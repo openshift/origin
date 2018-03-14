@@ -41,6 +41,8 @@ fi
 
 images=( "${OS_ALL_IMAGES[@]}" )
 
+OS_PUSH_BASE_REPO="${OS_PUSH_BASE_REPO:-openshift/}"
+
 PUSH_OPTS=""
 if docker push --help | grep -q force; then
   PUSH_OPTS="--force"
@@ -50,10 +52,10 @@ fi
 if [[ "${tag}" != ":latest" ]]; then
   if [[ -z "${OS_PUSH_LOCAL-}" ]]; then
     for image in "${images[@]}"; do
-      docker pull "${OS_PUSH_BASE_REGISTRY-}${image}:${source_tag}"
+      docker pull "${OS_PUSH_BASE_REGISTRY-}openshift/${image}:${source_tag}"
     done
   else
-    os::log::warning "Pushing local :${source_tag} images to ${OS_PUSH_BASE_REGISTRY-}*${tag}"
+    os::log::warning "Pushing local :${source_tag} images to ${OS_PUSH_BASE_REGISTRY-}${OS_PUSH_BASE_REPO}*${tag}"
     if [[ -z "${OS_PUSH_ALWAYS:-}" ]]; then
       echo "  CTRL+C to cancel, or any other key to continue"
       read
@@ -65,15 +67,15 @@ IFS=',' read -r -a tags <<< "$tag"
 if [[ "${OS_PUSH_BASE_REGISTRY-}" != "" || "${tag}" != "" ]]; then
   for image in "${images[@]}"; do
     for tag in "${tags[@]}"; do
-      docker tag "${image}:${source_tag}" "${OS_PUSH_BASE_REGISTRY-}${image}${tag}"
+      docker tag "openshift/${image}:${source_tag}" "${OS_PUSH_BASE_REGISTRY-}${OS_PUSH_BASE_REPO}${image}${tag}"
     done
   done
 fi
 
 for image in "${images[@]}"; do
   for tag in "${tags[@]}"; do
-    os::log::info "Pushing ${OS_PUSH_BASE_REGISTRY-}${image}${tag}..."
-    docker push ${PUSH_OPTS} "${OS_PUSH_BASE_REGISTRY-}${image}${tag}"
+    os::log::info "Pushing ${OS_PUSH_BASE_REGISTRY-}${OS_PUSH_BASE_REPO}${image}${tag}..."
+    docker push ${PUSH_OPTS} "${OS_PUSH_BASE_REGISTRY-}${OS_PUSH_BASE_REPO}${image}${tag}"
   done
 done
 

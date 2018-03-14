@@ -36,6 +36,10 @@ func NewSDNInterfaces(options configapi.NodeConfig, networkClient networkclient.
 		}
 	}
 
+	cniBinDir := kcni.DefaultCNIDir
+	if val, ok := options.KubeletArguments["cni-bin-dir"]; ok && len(val) == 1 {
+		cniBinDir = val[0]
+	}
 	cniConfDir := kcni.DefaultNetDir
 	if val, ok := options.KubeletArguments["cni-conf-dir"]; ok && len(val) == 1 {
 		cniConfDir = val[0]
@@ -55,6 +59,7 @@ func NewSDNInterfaces(options configapi.NodeConfig, networkClient networkclient.
 		Hostname:           options.NodeName,
 		SelfIP:             options.NodeIP,
 		RuntimeEndpoint:    runtimeEndpoint,
+		CNIBinDir:          cniBinDir,
 		CNIConfDir:         cniConfDir,
 		MTU:                options.NetworkConfig.MTU,
 		NetworkClient:      networkClient,

@@ -25,6 +25,9 @@ import (
 	"os"
 	"path"
 
+	"github.com/golang/glog"
+	"github.com/kubernetes-incubator/service-catalog/pkg/version"
+
 	"github.com/spf13/pflag"
 
 	utiltemplate "github.com/kubernetes-incubator/service-catalog/pkg/kubernetes/pkg/util/template"
@@ -182,7 +185,7 @@ func (hk *HyperKube) Run(args []string, stopCh <-chan struct{}) error {
 
 	logs.InitLogs()
 	defer logs.FlushLogs()
-
+	glog.Infof("Service Catalog version %s (built %s)", version.Get().String(), version.Get().BuildDate)
 	if !s.RespectsStopCh {
 		// For commands that do not respect the stopCh, we run them in a go
 		// routine and leave them running when stopCh is closed.

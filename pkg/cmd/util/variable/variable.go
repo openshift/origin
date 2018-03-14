@@ -58,13 +58,13 @@ func Identity(key string) (string, bool) {
 func Versions(key string) (string, bool) {
 	switch key {
 	case "shortcommit":
-		s := OverrideVersion.GitCommit
+		s := overrideVersion.GitCommit
 		if len(s) > 7 {
 			s = s[:7]
 		}
 		return s, true
 	case "version":
-		s := OverrideVersion.LastSemanticVersion()
+		s := overrideVersion.LastSemanticVersion()
 		return s, true
 	default:
 		return "", false
@@ -76,14 +76,5 @@ func Env(key string) (string, bool) {
 	return os.Getenv(key), true
 }
 
-// EnvPresent is a KeyFunc which returns an environment variable if it is present.
-func EnvPresent(key string) (string, bool) {
-	s := os.Getenv(key)
-	if len(s) == 0 {
-		return "", false
-	}
-	return s, true
-}
-
-// OverrideVersion is the latest version, exposed for testing.
-var OverrideVersion = version.Get()
+// overrideVersion is the latest version, exposed for testing.
+var overrideVersion = version.Get()

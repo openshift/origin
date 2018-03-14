@@ -91,6 +91,10 @@ func validateServiceBindingSpec(spec *sc.ServiceBindingSpec, fldPath *field.Path
 		allErrs = append(allErrs, field.Invalid(fldPath.Child("secretName"), spec.SecretName, msg))
 	}
 
+	if spec.ParametersFrom != nil {
+		allErrs = append(allErrs, validateParametersFromSource(spec.ParametersFrom, fldPath)...)
+	}
+
 	return allErrs
 }
 

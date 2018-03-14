@@ -68,8 +68,7 @@ fi
 
 # profile the web
 export OPENSHIFT_PROFILE="${WEB_PROFILE-}"
-
-export ADDITIONAL_ALLOWED_REGISTRIES=( "172.30.30.30:5000" "myregistry.com" "registry.centos.org" )
+export ALLOWED_REGISTRIES='[{"domainName":"172.30.30.30:5000"},{"domainName":"myregistry.com"},{"domainName":"registry.centos.org"},{"domainName":"docker.io"},{"domainName":"gcr.io"},{"domainName":"quay.io"},{"domainName":"*.redhat.com"},{"domainName":"*.docker.io"},{"domainName":"registry.redhat.io"}]'
 
 os::start::configure_server
 

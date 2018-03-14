@@ -20,15 +20,15 @@ func (c *client) PollBindingLastOperation(r *BindingLastOperationRequest) (*Last
 	params := map[string]string{}
 
 	if r.ServiceID != nil {
-		params[serviceIDKey] = *r.ServiceID
+		params[VarKeyServiceID] = *r.ServiceID
 	}
 	if r.PlanID != nil {
-		params[planIDKey] = *r.PlanID
+		params[VarKeyPlanID] = *r.PlanID
 	}
 	if r.OperationKey != nil {
 		op := *r.OperationKey
 		opStr := string(op)
-		params[operationKey] = opStr
+		params[VarKeyOperation] = opStr
 	}
 
 	response, err := c.prepareAndDo(http.MethodGet, fullURL, params, nil /* request body */, r.OriginatingIdentity)

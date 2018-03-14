@@ -58,6 +58,8 @@ tree:
     shortDesc: Show details of a specific plan
     command: ./svcat describe plan
     flags:
+    - name: show-schemas
+      desc: Whether or not to show instance and binding parameter schemas
     - name: traverse
       shorthand: t
       desc: Whether or not to traverse from plan -> class -> broker

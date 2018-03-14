@@ -571,6 +571,9 @@ func TestResourceDefaults(t *testing.T) {
 		// normally the buildconfig resources would be applied to the pod
 		// when it was created, but this pod didn't get created by the normal
 		// pod creation flow, so fake this out.
+		for i := range pod.Spec.InitContainers {
+			pod.Spec.InitContainers[i].Resources = buildutil.CopyApiResourcesToV1Resources(&test.BuildResource)
+		}
 		for i := range pod.Spec.Containers {
 			pod.Spec.Containers[i].Resources = buildutil.CopyApiResourcesToV1Resources(&test.BuildResource)
 		}
@@ -585,9 +588,12 @@ func TestResourceDefaults(t *testing.T) {
 		if !kapihelper.Semantic.DeepEqual(test.ExpectedResource, build.Spec.Resources) {
 			t.Fatalf("%v:Build resource expected expected=actual, %#v != %#v", name, test.ExpectedResource, build.Spec.Resources)
 		}
-		for i := range pod.Spec.Containers {
-			if !kapihelper.Semantic.DeepEqual(buildutil.CopyApiResourcesToV1Resources(&test.ExpectedResource), pod.Spec.Containers[i].Resources) {
-				t.Fatalf("%v:Pod container %d resource expected expected=actual, got expected:\n%#v\nactual:\n%#v", name, i, test.ExpectedResource, pod.Spec.Containers[i].Resources)
+
+		allContainers := append([]v1.Container{}, pod.Spec.Containers...)
+		allContainers = append(allContainers, pod.Spec.InitContainers...)
+		for i, c := range allContainers {
+			if !kapihelper.Semantic.DeepEqual(buildutil.CopyApiResourcesToV1Resources(&test.ExpectedResource), c.Resources) {
+				t.Fatalf("%v: Pod container %d resource expected expected=actual, got expected:\n%#v\nactual:\n%#v", name, i, test.ExpectedResource, c.Resources)
 			}
 		}
 	}

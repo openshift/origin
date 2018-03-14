@@ -43,6 +43,7 @@ func DefaultTemplate() *templateapi.Template {
 		panic(err)
 	}
 
+	// TODO this should be removed in 3.11.  We need to keep it for new server, old controller cases in 3.10.
 	serviceAccountRoleBindings := bootstrappolicy.GetBootstrapServiceAccountProjectRoleBindings(ns)
 	for i := range serviceAccountRoleBindings {
 		if err := templateapi.AddObjectsToTemplate(ret, []runtime.Object{&serviceAccountRoleBindings[i]}, v1beta1.SchemeGroupVersion); err != nil {

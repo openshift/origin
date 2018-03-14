@@ -11,7 +11,7 @@
 
 
 # Force dep to vendor the code generators, which aren't imported just used at dev time.
-# Picking a subpackage with Go code won't be necessary once https://github.com/golang/dep/issues/1306 is implemented.
+# Picking a subpackage with Go code won't be necessary once https://github.com/golang/dep/pull/1545 is merged.
 required = [
   "github.com/jteeuwen/go-bindata/go-bindata",
   "k8s.io/code-generator/cmd/defaulter-gen",
@@ -42,6 +42,10 @@ required = [
   revision = "44145f04b68cf362d9c4df2182967c2275eaefed"
 
 [[constraint]]
+  name = "github.com/Azure/go-autorest"
+  version = "^9.1.0"
+
+[[constraint]]
   name = "github.com/spf13/viper"
   version = "~1.0.0"
 
@@ -64,6 +68,10 @@ required = [
 [[constraint]]
   name = "k8s.io/code-generator"
   version = "kubernetes-1.9.1"
+
+[[constraint]]
+  name = "github.com/pmorie/go-open-service-broker-client"
+  version = "0.0.4"
 
 [prune]
   non-go = true

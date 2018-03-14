@@ -3565,6 +3565,45 @@ items:
       authorization.openshift.io/system-only: "true"
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
+    name: system:openshift:controller:default-rolebindings-controller
+  rules:
+  - apiGroups:
+    - rbac.authorization.k8s.io
+    resources:
+    - rolebindings
+    verbs:
+    - create
+  - apiGroups:
+    - ""
+    resources:
+    - namespaces
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - rbac.authorization.k8s.io
+    resources:
+    - rolebindings
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    resources:
+    - events
+    verbs:
+    - create
+    - patch
+    - update
+- apiVersion: rbac.authorization.k8s.io/v1beta1
+  kind: ClusterRole
+  metadata:
+    annotations:
+      authorization.openshift.io/system-only: "true"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
+    creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
     name: system:controller:attachdetach-controller
@@ -4818,7 +4857,6 @@ items:
   - apiGroups:
     - apps
     resources:
-    - daemonsets
     - deployments
     - deployments/rollback
     - deployments/scale
@@ -4833,6 +4871,14 @@ items:
     - list
     - patch
     - update
+    - watch
+  - apiGroups:
+    - apps
+    resources:
+    - daemonsets
+    verbs:
+    - get
+    - list
     - watch
   - apiGroups:
     - autoscaling
@@ -4864,7 +4910,6 @@ items:
   - apiGroups:
     - extensions
     resources:
-    - daemonsets
     - deployments
     - deployments/rollback
     - deployments/scale
@@ -4880,6 +4925,14 @@ items:
     - list
     - patch
     - update
+    - watch
+  - apiGroups:
+    - extensions
+    resources:
+    - daemonsets
+    verbs:
+    - get
+    - list
     - watch
   - apiGroups:
     - policy
@@ -4997,7 +5050,6 @@ items:
   - apiGroups:
     - apps
     resources:
-    - daemonsets
     - deployments
     - deployments/rollback
     - deployments/scale
@@ -5012,6 +5064,14 @@ items:
     - list
     - patch
     - update
+    - watch
+  - apiGroups:
+    - apps
+    resources:
+    - daemonsets
+    verbs:
+    - get
+    - list
     - watch
   - apiGroups:
     - autoscaling
@@ -5043,7 +5103,6 @@ items:
   - apiGroups:
     - extensions
     resources:
-    - daemonsets
     - deployments
     - deployments/rollback
     - deployments/scale
@@ -5059,6 +5118,14 @@ items:
     - list
     - patch
     - update
+    - watch
+  - apiGroups:
+    - extensions
+    resources:
+    - daemonsets
+    verbs:
+    - get
+    - list
     - watch
   - apiGroups:
     - policy

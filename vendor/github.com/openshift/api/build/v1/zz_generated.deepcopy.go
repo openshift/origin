@@ -1424,6 +1424,11 @@ func (in *ImageOptimizationPolicy) DeepCopy() *ImageOptimizationPolicy {
 func (in *ImageSource) DeepCopyInto(out *ImageSource) {
 	*out = *in
 	out.From = in.From
+	if in.As != nil {
+		in, out := &in.As, &out.As
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	if in.Paths != nil {
 		in, out := &in.Paths, &out.Paths
 		*out = make([]ImageSourcePath, len(*in))

@@ -1877,6 +1877,7 @@ func autoConvert_v1_ImageSource_To_build_ImageSource(in *v1.ImageSource, out *bu
 	if err := core_v1.Convert_v1_ObjectReference_To_core_ObjectReference(&in.From, &out.From, s); err != nil {
 		return err
 	}
+	out.As = *(*[]string)(unsafe.Pointer(&in.As))
 	out.Paths = *(*[]build.ImageSourcePath)(unsafe.Pointer(&in.Paths))
 	if in.PullSecret != nil {
 		in, out := &in.PullSecret, &out.PullSecret
@@ -1899,6 +1900,7 @@ func autoConvert_build_ImageSource_To_v1_ImageSource(in *build.ImageSource, out 
 	if err := core_v1.Convert_core_ObjectReference_To_v1_ObjectReference(&in.From, &out.From, s); err != nil {
 		return err
 	}
+	out.As = *(*[]string)(unsafe.Pointer(&in.As))
 	out.Paths = *(*[]v1.ImageSourcePath)(unsafe.Pointer(&in.Paths))
 	if in.PullSecret != nil {
 		in, out := &in.PullSecret, &out.PullSecret

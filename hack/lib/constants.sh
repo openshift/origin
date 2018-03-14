@@ -315,25 +315,25 @@ readonly -f os::build::clean_windows_versioninfo
 
 # OS_ALL_IMAGES is the list of images built by os::build::images.
 readonly OS_ALL_IMAGES=(
-  openshift/origin
-  openshift/origin-base
-  openshift/origin-pod
-  openshift/origin-deployer
-  openshift/origin-docker-builder
-  openshift/origin-keepalived-ipfailover
-  openshift/origin-sti-builder
-  openshift/origin-haproxy-router
-  openshift/origin-f5-router
-  openshift/origin-egress-router
-  openshift/origin-egress-http-proxy
-  openshift/origin-egress-dns-proxy
-  openshift/origin-recycler
-  openshift/origin-cluster-capacity
-  openshift/origin-service-catalog
-  openshift/origin-template-service-broker
-  openshift/hello-openshift
-  openshift/openvswitch
-  openshift/node
+  origin
+  origin-base
+  origin-pod
+  origin-deployer
+  origin-docker-builder
+  origin-keepalived-ipfailover
+  origin-sti-builder
+  origin-haproxy-router
+  origin-f5-router
+  origin-egress-router
+  origin-egress-http-proxy
+  origin-egress-dns-proxy
+  origin-recycler
+  origin-cluster-capacity
+  origin-service-catalog
+  origin-template-service-broker
+  hello-openshift
+  openvswitch
+  node
 )
 
 # os::build::images builds all images in this repo.

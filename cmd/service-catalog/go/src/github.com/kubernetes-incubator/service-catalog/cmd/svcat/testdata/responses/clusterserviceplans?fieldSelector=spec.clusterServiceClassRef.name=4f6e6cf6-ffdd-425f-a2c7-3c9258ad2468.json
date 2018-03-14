@@ -44,7 +44,31 @@
         "free": false,
         "clusterServiceClassRef": {
           "name": "4f6e6cf6-ffdd-425f-a2c7-3c9258ad2468"
-        }
+        },
+	"instanceCreateParameterSchema": {
+	  "properties": {
+	    "testInstanceProperty": {
+	      "description": "A test instance property.",
+	      "type": "string"
+	    }
+	  },
+	  "required": [
+	    "testInstanceProperty"
+	  ],
+	  "type": "object"
+	},
+	"serviceBindingCreateParameterSchema": {
+	  "properties": {
+	    "testBindingProperty": {
+	      "description": "A test binding property.",
+	      "type": "string"
+	    }
+	  },
+	  "required": [
+	    "testBindingProperty"
+	  ],
+	  "type": "object"
+	}
       },
       "status": {
         "removedFromBrokerCatalog": false

@@ -3,6 +3,7 @@ package strategy
 import (
 	"fmt"
 	"path/filepath"
+	"reflect"
 	"strconv"
 	"strings"
 
@@ -269,17 +270,33 @@ func getPodLabels(build *buildapi.Build) map[string]string {
 	return map[string]string{buildapi.BuildLabel: buildapi.LabelValue(build.Name)}
 }
 
-func setOwnerReference(pod *v1.Pod, build *buildapi.Build) {
+func makeOwnerReference(build *buildapi.Build) metav1.OwnerReference {
 	t := true
-	pod.OwnerReferences = []metav1.OwnerReference{
-		{
-			APIVersion: BuildControllerRefKind.GroupVersion().String(),
-			Kind:       BuildControllerRefKind.Kind,
-			Name:       build.Name,
-			UID:        build.UID,
-			Controller: &t,
-		},
+	return metav1.OwnerReference{
+		APIVersion: BuildControllerRefKind.GroupVersion().String(),
+		Kind:       BuildControllerRefKind.Kind,
+		Name:       build.Name,
+		UID:        build.UID,
+		Controller: &t,
 	}
+}
+
+func setOwnerReference(pod *v1.Pod, build *buildapi.Build) {
+	pod.OwnerReferences = []metav1.OwnerReference{makeOwnerReference(build)}
+}
+
+// HasOwnerReference returns true if the build pod has an OwnerReference to the
+// build.
+func HasOwnerReference(pod *v1.Pod, build *buildapi.Build) bool {
+	ref := makeOwnerReference(build)
+
+	for _, r := range pod.OwnerReferences {
+		if reflect.DeepEqual(r, ref) {
+			return true
+		}
+	}
+
+	return false
 }
 
 // copyEnvVarSlice returns a copy of an []v1.EnvVar

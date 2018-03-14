@@ -2,11 +2,13 @@ package kubelet
 
 import (
 	"fmt"
-	"io"
 	"os"
+	"path"
 
+	"github.com/docker/docker/api/types"
 	"github.com/golang/glog"
-	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/tmpformac"
+
+	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/componentinstall"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/run"
 	"github.com/openshift/origin/pkg/oc/errors"
@@ -34,40 +36,44 @@ func NewNodeStartConfig() *NodeStartConfig {
 
 }
 
-func (opt NodeStartConfig) MakeKubeDNSConfig(dockerClient dockerhelper.Interface, imageRunHelper *run.Runner, out io.Writer) (string, error) {
-	return opt.makeConfig(dockerClient, imageRunHelper, out, KubeDNSDirName)
-}
-
-func (opt NodeStartConfig) MakeNodeConfig(dockerClient dockerhelper.Interface, imageRunHelper *run.Runner, out io.Writer) (string, error) {
-	return opt.makeConfig(dockerClient, imageRunHelper, out, NodeConfigDirName)
-}
-
 // Start starts the OpenShift master as a Docker container
 // and returns a directory in the local file system where
 // the OpenShift configuration has been copied
-func (opt NodeStartConfig) makeConfig(dockerClient dockerhelper.Interface, imageRunHelper *run.Runner, out io.Writer, componentName string) (string, error) {
-	fmt.Fprintf(out, "Creating initial OpenShift node configuration\n")
+func (opt NodeStartConfig) MakeNodeConfig(dockerClient dockerhelper.Interface, basedir string) (string, error) {
+	componentName := "create-node-config"
+	imageRunHelper := run.NewRunHelper(dockerhelper.NewHelper(dockerClient)).New()
+	glog.Infof("Running %q", componentName)
+
 	createConfigCmd := []string{
 		"adm", "create-node-config",
 		fmt.Sprintf("--node-dir=%s", "/var/lib/origin/openshift.local.config"),
 	}
 	createConfigCmd = append(createConfigCmd, opt.Args...)
 
-	containerId, _, err := imageRunHelper.Image(opt.NodeImage).
+	containerId, stdout, stderr, rc, err := imageRunHelper.Image(opt.NodeImage).
 		Privileged().
 		HostNetwork().
 		HostPid().
 		Bind(opt.ContainerBinds...).
 		Entrypoint("oc").
-		Command(createConfigCmd...).Run()
+		Command(createConfigCmd...).Output()
+	defer func() {
+		if err = dockerClient.ContainerRemove(containerId, types.ContainerRemoveOptions{}); err != nil {
+			glog.Errorf("error removing %q: %v", containerId, err)
+		}
+	}()
+
+	if err := componentinstall.LogContainer(path.Join(basedir, "logs"), componentName, stdout, stderr); err != nil {
+		glog.Errorf("error logging %q: %v", componentName, err)
+	}
 	if err != nil {
-		return "", errors.NewError("could not create OpenShift configuration: %v", err).WithCause(err)
+		return "", errors.NewError("could not run %q: %v", componentName, err).WithCause(err)
+	}
+	if rc != 0 {
+		return "", errors.NewError("could not run %q: rc==%v", componentName, rc)
 	}
 
-	nodeConfigDir, err := tmpformac.TempDir(componentName)
-	if err != nil {
-		return "", err
-	}
+	nodeConfigDir := path.Join(basedir, NodeConfigDirName)
 	glog.V(1).Infof("Copying OpenShift node config to local directory %s", nodeConfigDir)
 	if err = dockerhelper.DownloadDirFromContainer(dockerClient, containerId, "/var/lib/origin/openshift.local.config", nodeConfigDir); err != nil {
 		if removeErr := os.RemoveAll(nodeConfigDir); removeErr != nil {

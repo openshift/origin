@@ -32,7 +32,10 @@ SRC_DIRS       = $(shell sh -c "find $(TOP_SRC_DIRS) -name \\*.go \
                    -exec dirname {} \\; | sort | uniq")
 TEST_DIRS     ?= $(shell sh -c "find $(TOP_SRC_DIRS) -name \\*_test.go \
                    -exec dirname {} \\; | sort | uniq")
+# Either the tag name, e.g. v1.2.3 or the commit hash for untagged commits, e.g. abc123
 VERSION       ?= $(shell git describe --always --abbrev=7 --dirty)
+# Either the tag name, e.g. v1.2.3 or a combination of the closest tag combined with the commit hash, e.g. v1.2.3-2-gabc123
+TAG_VERSION   ?= $(shell git describe --tags --abbrev=7 --dirty)
 BUILD_LDFLAGS  = $(shell build/version.sh $(ROOT) $(SC_PKG))
 GIT_BRANCH    ?= $(shell git rev-parse --abbrev-ref HEAD)
 
@@ -57,9 +60,18 @@ TYPES_FILES    = $(shell find pkg/apis -name types.go)
 GO_VERSION    ?= 1.9
 
 ALL_ARCH=amd64 arm arm64 ppc64le s390x
+ALL_CLIENT_PLATFORM=darwin linux windows
 
 PLATFORM ?= linux
+# This is the current platform, so that we can build a native client binary by default
+CLIENT_PLATFORM?=$(shell uname -s | tr A-Z a-z)
 ARCH     ?= amd64
+
+ifeq ($(PLATFORM),windows)
+FILE_EXT=.exe
+else
+FILE_EXT=
+endif
 
 # TODO: Consider using busybox instead of debian
 BASEIMAGE?=gcr.io/google-containers/debian-base-$(ARCH):0.2
@@ -95,7 +107,7 @@ ifdef NO_DOCKER
 else
 	# Mount .pkg as pkg so that we save our cached "go build" output files
 	DOCKER_CMD = docker run --security-opt label:disable --rm -v $(PWD):/go/src/$(SC_PKG) \
-	  -v $(PWD)/.pkg:/go/pkg scbuildimage
+	  -v $(PWD)/.pkg:/go/pkg --env AZURE_STORAGE_CONNECTION_STRING scbuildimage
 	scBuildImageTarget = .scBuildImage
 endif
 
@@ -176,8 +188,8 @@ $(BINDIR)/e2e.test: .init
 
 # Util targets
 ##############
-.PHONY: verify verify-generated verify-client-gen
-verify: .init .generate_files verify-generated verify-client-gen verify-vendor
+.PHONY: verify verify-generated verify-client-gen verify-docs
+verify: .init .generate_files verify-generated verify-client-gen verify-docs verify-vendor
 	@echo Running gofmt:
 	@$(DOCKER_CMD) gofmt -l -s $(TOP_TEST_DIRS) $(TOP_SRC_DIRS)>.out 2>&1||true
 	@[ ! -s .out ] || \
@@ -204,12 +216,14 @@ verify: .init .generate_files verify-generated verify-client-gen verify-vendor
 	@[ ! -s .out ] || (cat .out && rm .out && false)
 	@rm .out
 	@#
-	@echo Running href checker$(SKIP_COMMENT):
-	@$(DOCKER_CMD) verify-links.sh -s .pkg -t $(SKIP_HTTP) .
 	@echo Running errexit checker:
 	@$(DOCKER_CMD) build/verify-errexit.sh
 	@echo Running tag verification:
 	@$(DOCKER_CMD) build/verify-tags.sh
+
+verify-docs: .init
+	@echo Running href checker$(SKIP_COMMENT):
+	@$(DOCKER_CMD) verify-links.sh -s .pkg -t $(SKIP_HTTP) .
 
 verify-generated: .init .generate_files
 	$(DOCKER_CMD) $(BUILD_DIR)/update-apiserver-gen.sh --verify-only
@@ -255,8 +269,8 @@ test-integration: .init $(scBuildImageTarget) build build-integration
 	# golang integration tests
 	$(DOCKER_CMD) test/integration.sh $(INT_TEST_FLAGS)
 
-clean-e2e:
-	rm -f $(BINDIR)/e2e.test
+clean-e2e: .init $(scBuildImageTarget)
+	$(DOCKER_CMD) rm -f $(BINDIR)/e2e.test
 
 build-e2e: .generate_files $(BINDIR)/e2e.test
 
@@ -265,12 +279,12 @@ test-e2e: build-e2e
 
 clean: clean-bin clean-build-image clean-generated clean-coverage
 
-clean-bin:
-	rm -rf $(BINDIR)
+clean-bin: .init $(scBuildImageTarget)
+	$(DOCKER_CMD) rm -rf $(BINDIR)
 	rm -f .generate_exes
 
-clean-build-image:
-	rm -rf .pkg
+clean-build-image: .init $(scBuildImageTarget)
+	$(DOCKER_CMD) rm -rf .pkg
 	rm -f .scBuildImage
 	docker rmi -f scbuildimage > /dev/null 2>&1 || true
 
@@ -289,11 +303,13 @@ clean-generated:
 	git checkout -- pkg/openapi/openapi_generated.go
 
 # purge-generated removes generated files from the filesystem.
-purge-generated:
-	find $(TOP_SRC_DIRS) -name zz_generated* -exec rm {} \;
-	find $(TOP_SRC_DIRS) -type d -name *_generated -exec rm -rf {} \;
-	rm -f pkg/openapi/openapi_generated.go
+purge-generated: .init $(scBuildImageTarget)
+	find $(TOP_SRC_DIRS) -name zz_generated* -exec $(DOCKER_CMD) rm {} \;
+	find $(TOP_SRC_DIRS) -depth -type d -name *_generated \
+	  -exec $(DOCKER_CMD) rm -rf {} \;
+	$(DOCKER_CMD) rm -f pkg/openapi/openapi_generated.go
 	echo 'package v1beta1' > pkg/apis/servicecatalog/v1beta1/types.generated.go
+	rm -f .generate_files
 
 clean-coverage:
 	rm -f $(COVERAGE)
@@ -363,12 +379,29 @@ release-push-%:
 	$(MAKE) ARCH=$* build
 	$(MAKE) ARCH=$* push
 
-# SvCat Kubectl plugin stuff
+# svcat kubectl plugin
 ############################
-.PHONY: $(BINDIR)/svcat
-svcat: $(BINDIR)/svcat
-$(BINDIR)/svcat: .init .generate_files cmd/svcat/main.go
+.PHONY: $(BINDIR)/svcat/$(TAG_VERSION)/$(PLATFORM)/$(ARCH)/svcat$(FILE_EXT)
+svcat:
+	# Compile a native binary for local dev/test
+	$(MAKE) svcat-for-$(CLIENT_PLATFORM)
+	cp $(BINDIR)/svcat/$(TAG_VERSION)/$(CLIENT_PLATFORM)/$(ARCH)/svcat$(FILE_EXT) $(BINDIR)/svcat/
+
+svcat-all: $(addprefix svcat-for-,$(ALL_CLIENT_PLATFORM))
+
+svcat-for-%:
+	$(MAKE) PLATFORM=$* VERSION=$(TAG_VERSION) svcat-xbuild
+
+svcat-xbuild: $(BINDIR)/svcat/$(TAG_VERSION)/$(PLATFORM)/$(ARCH)/svcat$(FILE_EXT)
+$(BINDIR)/svcat/$(TAG_VERSION)/$(PLATFORM)/$(ARCH)/svcat$(FILE_EXT): .init .generate_files
 	$(DOCKER_CMD) $(GO_BUILD) -o $@ $(SC_PKG)/cmd/svcat
+
+svcat-publish: clean-bin svcat-all
+	# Download the latest client with https://download.svcat.sh/cli/latest/darwin/amd64/svcat
+	# Download an older client with  https://download.svcat.sh/cli/VERSION/darwin/amd64/svcat
+	cp -R $(BINDIR)/svcat/$(TAG_VERSION) $(BINDIR)/svcat/$(MUTABLE_TAG)
+	# AZURE_STORAGE_CONNECTION_STRING will be used for auth in the following command
+	$(DOCKER_CMD) az storage blob upload-batch -d cli -s $(BINDIR)/svcat
 
 # Dependency management via dep (https://golang.github.io/dep)
 .PHONY: verify-vendor test-dep

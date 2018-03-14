@@ -24,6 +24,7 @@ import (
 	kinternalclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kinternalclientfake "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
+	buildapiv1 "github.com/openshift/api/build/v1"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/build/apis/build/validation"
 	builddefaults "github.com/openshift/origin/pkg/build/controller/build/defaults"
@@ -48,7 +49,6 @@ func TestHandleBuild(t *testing.T) {
 	// patch appears to drop sub-second accuracy from times, which causes problems
 	// during equality testing later, so start with a rounded number of seconds for a time.
 	now := metav1.NewTime(time.Now().Round(time.Second))
-	before := metav1.NewTime(now.Time.Add(-1 * time.Hour))
 
 	build := func(phase buildapi.BuildPhase) *buildapi.Build {
 		b := dockerStrategy(mockBuild(phase, buildapi.BuildOutput{}))
@@ -95,8 +95,14 @@ func TestHandleBuild(t *testing.T) {
 		pod.Status.ContainerStatuses[0].State.Terminated.Message = "termination message"
 		return pod
 	}
-	withPodCreationTS := func(pod *v1.Pod, tm metav1.Time) *v1.Pod {
-		pod.CreationTimestamp = tm
+	withOwnerReference := func(pod *v1.Pod, build *buildapi.Build) *v1.Pod {
+		t := true
+		pod.OwnerReferences = []metav1.OwnerReference{{
+			APIVersion: buildapiv1.SchemeGroupVersion.String(),
+			Kind:       "Build",
+			Name:       build.Name,
+			Controller: &t,
+		}}
 		return pod
 	}
 
@@ -106,10 +112,6 @@ func TestHandleBuild(t *testing.T) {
 	}
 	withCompletionTS := func(build *buildapi.Build) *buildapi.Build {
 		build.Status.CompletionTimestamp = &now
-		return build
-	}
-	withBuildCreationTS := func(build *buildapi.Build, tm metav1.Time) *buildapi.Build {
-		build.CreationTimestamp = tm
 		return build
 	}
 	withLogSnippet := func(build *buildapi.Build) *buildapi.Build {
@@ -170,9 +172,9 @@ func TestHandleBuild(t *testing.T) {
 			expectPodCreated: true,
 		},
 		{
-			name:  "new with existing newer pod",
-			build: withBuildCreationTS(build(buildapi.BuildPhaseNew), before),
-			pod:   withPodCreationTS(pod(v1.PodRunning), now),
+			name:  "new with existing related pod",
+			build: build(buildapi.BuildPhaseNew),
+			pod:   withOwnerReference(pod(v1.PodRunning), build(buildapi.BuildPhaseNew)),
 			expectUpdate: newUpdate().
 				phase(buildapi.BuildPhaseRunning).
 				reason("").
@@ -182,9 +184,9 @@ func TestHandleBuild(t *testing.T) {
 				update,
 		},
 		{
-			name:  "new with existing older pod",
-			build: withBuildCreationTS(build(buildapi.BuildPhaseNew), now),
-			pod:   withPodCreationTS(pod(v1.PodRunning), before),
+			name:  "new with existing unrelated pod",
+			build: build(buildapi.BuildPhaseNew),
+			pod:   pod(v1.PodRunning),
 			expectUpdate: newUpdate().
 				phase(buildapi.BuildPhaseError).
 				reason(buildapi.StatusReasonBuildPodExists).
@@ -563,15 +565,24 @@ func TestCreateBuildPodWithPodSpecCreationError(t *testing.T) {
 	validateUpdate(t, "create build pod with pod spec creation error", expected, update)
 }
 
-func TestCreateBuildPodWithNewerExistingPod(t *testing.T) {
-	now := metav1.Now()
+func TestCreateBuildPodWithExistingRelatedPod(t *testing.T) {
+	tru := true
 	build := dockerStrategy(mockBuild(buildapi.BuildPhaseNew, buildapi.BuildOutput{}))
-	build.Status.StartTimestamp = &now
 
-	existingPod := &v1.Pod{}
-	existingPod.Name = buildapi.GetBuildPodName(build)
-	existingPod.Namespace = build.Namespace
-	existingPod.CreationTimestamp = metav1.NewTime(now.Time.Add(time.Hour))
+	existingPod := &v1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      buildapi.GetBuildPodName(build),
+			Namespace: build.Namespace,
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion: buildapiv1.SchemeGroupVersion.String(),
+					Kind:       "Build",
+					Name:       build.Name,
+					Controller: &tru,
+				},
+			},
+		},
+	}
 
 	kubeClient := fakeKubeExternalClientSet(existingPod)
 	errorReaction := func(action clientgotesting.Action) (bool, runtime.Object, error) {
@@ -588,20 +599,23 @@ func TestCreateBuildPodWithNewerExistingPod(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	if update != nil {
-		t.Errorf("unexpected update: %v", update)
-	}
+	expected := &buildUpdate{}
+	expected.setPhase(buildapi.BuildPhasePending)
+	expected.setReason("")
+	expected.setMessage("")
+	expected.setPodNameAnnotation(buildapi.GetBuildPodName(build))
+	validateUpdate(t, "create build pod with existing related pod error", expected, update)
 }
 
-func TestCreateBuildPodWithOlderExistingPod(t *testing.T) {
-	now := metav1.Now()
+func TestCreateBuildPodWithExistingUnrelatedPod(t *testing.T) {
 	build := dockerStrategy(mockBuild(buildapi.BuildPhaseNew, buildapi.BuildOutput{}))
-	build.CreationTimestamp = now
 
-	existingPod := &v1.Pod{}
-	existingPod.Name = buildapi.GetBuildPodName(build)
-	existingPod.Namespace = build.Namespace
-	existingPod.CreationTimestamp = metav1.NewTime(now.Time.Add(-1 * time.Hour))
+	existingPod := &v1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      buildapi.GetBuildPodName(build),
+			Namespace: build.Namespace,
+		},
+	}
 
 	kubeClient := fakeKubeExternalClientSet(existingPod)
 	errorReaction := func(action clientgotesting.Action) (bool, runtime.Object, error) {

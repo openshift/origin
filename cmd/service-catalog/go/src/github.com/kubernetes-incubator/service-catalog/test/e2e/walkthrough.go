@@ -17,9 +17,12 @@ limitations under the License.
 package e2e
 
 import (
+	"bytes"
+
 	v1beta1 "github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1beta1"
 	"github.com/kubernetes-incubator/service-catalog/test/e2e/framework"
 	"github.com/kubernetes-incubator/service-catalog/test/util"
+	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	. "github.com/onsi/ginkgo"
@@ -51,9 +54,19 @@ var _ = framework.ServiceCatalogDescribe("walkthrough", func() {
 	})
 
 	AfterEach(func() {
+		rc, err := f.KubeClientSet.CoreV1().Pods(f.Namespace.Name).GetLogs(upsbrokername, &v1.PodLogOptions{}).Stream()
+		defer rc.Close()
+		if err != nil {
+			framework.Logf("Error getting logs for pod %s: %v", upsbrokername, err)
+		} else {
+			buf := new(bytes.Buffer)
+			buf.ReadFrom(rc)
+			framework.Logf("Pod %s has the following logs:\n%sEnd %s logs", upsbrokername, buf.String(), upsbrokername)
+		}
+
 		// Delete ups-broker pod and service
 		By("Deleting the ups-broker pod")
-		err := f.KubeClientSet.CoreV1().Pods(f.Namespace.Name).Delete(upsbrokername, nil)
+		err = f.KubeClientSet.CoreV1().Pods(f.Namespace.Name).Delete(upsbrokername, nil)
 		Expect(err).NotTo(HaveOccurred())
 
 		By("Deleting the ups-broker service")

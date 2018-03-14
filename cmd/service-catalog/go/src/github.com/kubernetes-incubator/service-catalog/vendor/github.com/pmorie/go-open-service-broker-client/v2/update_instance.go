@@ -8,13 +8,11 @@ import (
 // internal message body types
 
 type updateInstanceRequestBody struct {
-	ServiceID  string                 `json:"service_id"`
-	PlanID     *string                `json:"plan_id,omitempty"`
-	Parameters map[string]interface{} `json:"parameters,omitempty"`
-	Context    map[string]interface{} `json:"context,omitempty"`
-
-	// Note: this client does not currently support the 'previous_values'
-	// field of this request body.
+	ServiceID      string                 `json:"service_id"`
+	PlanID         *string                `json:"plan_id,omitempty"`
+	Parameters     map[string]interface{} `json:"parameters,omitempty"`
+	Context        map[string]interface{} `json:"context,omitempty"`
+	PreviousValues *PreviousValues        `json:"previous_values,omitempty"`
 }
 
 func (c *client) UpdateInstance(r *UpdateInstanceRequest) (*UpdateInstanceResponse, error) {
@@ -25,13 +23,14 @@ func (c *client) UpdateInstance(r *UpdateInstanceRequest) (*UpdateInstanceRespon
 	fullURL := fmt.Sprintf(serviceInstanceURLFmt, c.URL, r.InstanceID)
 	params := map[string]string{}
 	if r.AcceptsIncomplete {
-		params[asyncQueryParamKey] = "true"
+		params[AcceptsIncomplete] = "true"
 	}
 
 	requestBody := &updateInstanceRequestBody{
-		ServiceID:  r.ServiceID,
-		PlanID:     r.PlanID,
-		Parameters: r.Parameters,
+		ServiceID:      r.ServiceID,
+		PlanID:         r.PlanID,
+		Parameters:     r.Parameters,
+		PreviousValues: r.PreviousValues,
 	}
 
 	if c.APIVersion.AtLeast(Version2_12()) {
@@ -42,7 +41,6 @@ func (c *client) UpdateInstance(r *UpdateInstanceRequest) (*UpdateInstanceRespon
 	if err != nil {
 		return nil, err
 	}
-
 	switch response.StatusCode {
 	case http.StatusOK:
 		if err := c.unmarshalResponse(response, &struct{}{}); err != nil {

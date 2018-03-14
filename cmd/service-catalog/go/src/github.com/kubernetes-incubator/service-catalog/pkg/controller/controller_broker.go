@@ -540,9 +540,25 @@ func (c *controller) reconcileClusterServiceClassFromClusterServiceBrokerCatalog
 	toUpdate.Spec.ExternalName = serviceClass.Spec.ExternalName
 	toUpdate.Spec.ExternalMetadata = serviceClass.Spec.ExternalMetadata
 
-	if _, err := c.serviceCatalogClient.ClusterServiceClasses().Update(toUpdate); err != nil {
+	updatedServiceClass, err := c.serviceCatalogClient.ClusterServiceClasses().Update(toUpdate)
+	if err != nil {
 		glog.Error(pcb.Messagef("Error updating %s: %v", pretty.ClusterServiceClassName(serviceClass), err))
 		return err
+	}
+
+	if updatedServiceClass.Status.RemovedFromBrokerCatalog {
+		glog.V(4).Info(pcb.Messagef("Resetting RemovedFromBrokerCatalog status on %s", pretty.ClusterServiceClassName(serviceClass)))
+		updatedServiceClass.Status.RemovedFromBrokerCatalog = false
+		_, err := c.serviceCatalogClient.ClusterServiceClasses().UpdateStatus(updatedServiceClass)
+		if err != nil {
+			s := fmt.Sprintf("Error updating status of %s: %v", pretty.ClusterServiceClassName(updatedServiceClass), err)
+			glog.Warning(pcb.Message(s))
+			c.recorder.Eventf(broker, corev1.EventTypeWarning, errorSyncingCatalogReason, s)
+			if err := c.updateClusterServiceBrokerCondition(broker, v1beta1.ServiceBrokerConditionReady, v1beta1.ConditionFalse, errorSyncingCatalogReason, errorSyncingCatalogMessage+s); err != nil {
+				return err
+			}
+			return err
+		}
 	}
 
 	return nil

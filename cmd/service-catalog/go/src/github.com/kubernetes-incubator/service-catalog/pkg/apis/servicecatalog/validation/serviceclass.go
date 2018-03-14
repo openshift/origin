@@ -26,8 +26,10 @@ import (
 	sc "github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog"
 )
 
-// validateServiceClassName is the validation function for ServiceClass names.
-var validateServiceClassName = apivalidation.NameIsDNSSubdomain
+const serviceClassNameFmt string = `[-a-zA-Z0-9]+`
+const serviceClassNameMaxLength int = 63
+
+var serviceClassNameRegexp = regexp.MustCompile("^" + serviceClassNameFmt + "$")
 
 const guidFmt string = "[a-zA-Z0-9]([-a-zA-Z0-9.]*[a-zA-Z0-9])?"
 const guidMaxLength int = 63
@@ -35,6 +37,19 @@ const guidMaxLength int = 63
 // guidRegexp is a loosened validation for
 // DNS1123 labels that allows uppercase characters.
 var guidRegexp = regexp.MustCompile("^" + guidFmt + "$")
+
+// validateServiceClassName is the validation function for Service names.
+func validateServiceClassName(value string, prefix bool) []string {
+	var errs []string
+	if len(value) > serviceClassNameMaxLength {
+		errs = append(errs, utilvalidation.MaxLenError(serviceClassNameMaxLength))
+	}
+	if !serviceClassNameRegexp.MatchString(value) {
+		errs = append(errs, utilvalidation.RegexError(serviceClassNameFmt, "service-name-40d-0983-1b89"))
+	}
+
+	return errs
+}
 
 // validateExternalID is the validation function for External IDs that
 // have been passed in. External IDs used to be OpenServiceBrokerAPI

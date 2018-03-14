@@ -1,0 +1,9 @@
+{
+  "kind": "ServiceInstanceList",
+  "apiVersion": "servicecatalog.k8s.io/v1beta1",
+  "metadata": {
+    "selfLink": "/apis/servicecatalog.k8s.io/v1beta1/serviceinstances",
+    "resourceVersion": "109"
+  },
+  "items": []
+}

@@ -147,7 +147,12 @@ spec:
           - key: requestheader-ca.crt
             path: requestheader-ca.crt
           {{- end }}
-      {{- if eq .Values.apiserver.storage.type "etcd" }}
+      {{- if and (eq .Values.apiserver.storage.type "etcd") .Values.apiserver.storage.etcd.useEmbedded }}
       - name: etcd-data-dir
+      {{- if .Values.apiserver.storage.etcd.persistence.enabled }}
+        persistentVolumeClaim:
+          claimName: {{ .Values.apiserver.storage.etcd.persistence.existingClaim | default (printf "%s-%s" (include "fullname" .) "etcd") }}
+      {{- else }}
         emptyDir: {}
+      {{- end }}
       {{- end }}

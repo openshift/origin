@@ -22,12 +22,10 @@ import (
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/apis/rbac"
 	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	coreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
-	rbacrest "k8s.io/kubernetes/pkg/registry/rbac/rest"
 	rbacregistryvalidation "k8s.io/kubernetes/pkg/registry/rbac/validation"
 	rbacauthorizer "k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac"
 
@@ -716,9 +714,7 @@ func (c *completedConfig) bootstrapSCC(context genericapiserver.PostStartHookCon
 
 // ensureOpenShiftInfraNamespace is called as part of global policy initialization to ensure infra namespace exists
 func ensureOpenShiftInfraNamespace(context genericapiserver.PostStartHookContext) error {
-	ns := bootstrappolicy.DefaultOpenShiftInfraNamespace
-
-	ensureNamespaceServiceAccountRoleBindings(context, ns)
+	namespaceName := bootstrappolicy.DefaultOpenShiftInfraNamespace
 
 	var coreClient coreclient.CoreInterface
 	err := wait.Poll(1*time.Second, 30*time.Second, func() (bool, error) {
@@ -735,77 +731,17 @@ func ensureOpenShiftInfraNamespace(context genericapiserver.PostStartHookContext
 		return err
 	}
 
-	// Ensure we have the bootstrap SA for Nodes
-	_, err = coreClient.ServiceAccounts(ns).Create(&kapi.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Name: bootstrappolicy.InfraNodeBootstrapServiceAccountName}})
+	_, err = coreClient.Namespaces().Create(&kapi.Namespace{ObjectMeta: metav1.ObjectMeta{Name: namespaceName}})
 	if err != nil && !kapierror.IsAlreadyExists(err) {
-		glog.Errorf("Error creating service account %s/%s: %v", ns, bootstrappolicy.InfraNodeBootstrapServiceAccountName, err)
+		utilruntime.HandleError(fmt.Errorf("error creating namespace %q: %v", namespaceName, err))
+		return err
+	}
+
+	// Ensure we have the bootstrap SA for Nodes
+	_, err = coreClient.ServiceAccounts(namespaceName).Create(&kapi.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Name: bootstrappolicy.InfraNodeBootstrapServiceAccountName}})
+	if err != nil && !kapierror.IsAlreadyExists(err) {
+		glog.Errorf("Error creating service account %s/%s: %v", namespaceName, bootstrappolicy.InfraNodeBootstrapServiceAccountName, err)
 	}
 
 	return nil
-}
-
-// ensureDefaultNamespaceServiceAccountRoles initializes roles for service accounts in the default namespace
-func ensureDefaultNamespaceServiceAccountRoles(context genericapiserver.PostStartHookContext) error {
-	ensureNamespaceServiceAccountRoleBindings(context, metav1.NamespaceDefault)
-	return nil
-}
-
-// ensureNamespaceServiceAccountRoleBindings initializes roles for service accounts in the namespace
-func ensureNamespaceServiceAccountRoleBindings(context genericapiserver.PostStartHookContext, namespaceName string) {
-	const ServiceAccountRolesInitializedAnnotation = "openshift.io/sa.initialized-roles"
-
-	var coreClient coreclient.CoreInterface
-	err := wait.Poll(1*time.Second, 30*time.Second, func() (bool, error) {
-		var err error
-		coreClient, err = coreclient.NewForConfig(context.LoopbackClientConfig)
-		if err != nil {
-			utilruntime.HandleError(fmt.Errorf("unable to initialize client: %v", err))
-			return false, nil
-		}
-		return true, nil
-	})
-	if err != nil {
-		utilruntime.HandleError(fmt.Errorf("error getting client: %v", err))
-		return
-	}
-
-	// Ensure namespace exists
-	namespace, err := coreClient.Namespaces().Create(&kapi.Namespace{ObjectMeta: metav1.ObjectMeta{Name: namespaceName}})
-	if kapierror.IsAlreadyExists(err) {
-		// Get the persisted namespace
-		namespace, err = coreClient.Namespaces().Get(namespaceName, metav1.GetOptions{})
-		if err != nil {
-			utilruntime.HandleError(fmt.Errorf("Error getting namespace %s: %v", namespaceName, err))
-			return
-		}
-	} else if err != nil {
-		utilruntime.HandleError(fmt.Errorf("Error creating namespace %s: %v", namespaceName, err))
-		return
-	}
-
-	// Short-circuit if we're already initialized
-	if namespace.Annotations[ServiceAccountRolesInitializedAnnotation] == "true" {
-		return
-	}
-
-	policyData := &rbacrest.PolicyData{
-		RoleBindings: map[string][]rbac.RoleBinding{
-			namespace.Name: bootstrappolicy.GetBootstrapServiceAccountProjectRoleBindings(namespace.Name),
-		},
-	}
-	if err := policyData.EnsureRBACPolicy()(context); err != nil {
-		utilruntime.HandleError(err)
-		return
-	}
-
-	if namespace.Annotations == nil {
-		namespace.Annotations = map[string]string{}
-	}
-	namespace.Annotations[ServiceAccountRolesInitializedAnnotation] = "true"
-	// Log any error other than a conflict (the update will be retried and recorded again on next startup in that case)
-	if _, err := coreClient.Namespaces().Update(namespace); err != nil && !kapierror.IsConflict(err) {
-		utilruntime.HandleError(fmt.Errorf("Error recording adding service account roles to %q namespace: %v", namespace.Name, err))
-		return
-	}
-
 }

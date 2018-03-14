@@ -71,7 +71,7 @@ func (opt installReadyTemplate) Name() string {
 	return opt.template.Name
 }
 
-func (opt installReadyTemplate) Install(dockerClient dockerhelper.Interface) error {
+func (opt installReadyTemplate) Install(dockerClient dockerhelper.Interface, logdir string) error {
 	imageRunHelper := run.NewRunHelper(dockerhelper.NewHelper(dockerClient)).New()
 
 	glog.Infof("Installing %q\n", opt.Name())
@@ -90,13 +90,18 @@ func (opt installReadyTemplate) Install(dockerClient dockerhelper.Interface) err
 	var lastErr error
 	// do a very simple retry loop on failure. Three times, ten second gaps
 	wait.PollImmediate(10*time.Second, 30*time.Second, func() (bool, error) {
-		_, rc, err := imageRunHelper.Image(opt.image).
+		_, stdout, stderr, rc, err := imageRunHelper.Image(opt.image).
 			Privileged().
+			DiscardContainer().
 			Copy(contentToCopy).
 			HostNetwork().
 			HostPid().
 			Entrypoint("sh").
-			Command("-c", "echo '"+opt.template.Name+"' && chmod 755 /install.sh && /install.sh").Run()
+			Command("-c", "echo '"+opt.Name()+"' && chmod 755 /install.sh && /install.sh").Output()
+
+		if err := LogContainer(logdir, opt.Name(), stdout, stderr); err != nil {
+			glog.Errorf("error logging %q: %v", opt.Name(), err)
+		}
 		if err != nil {
 			lastErr = errors.NewError("failed to install %q: %v", opt.Name(), err).WithCause(err)
 			return false, nil
@@ -142,11 +147,11 @@ func toPrivilegedSAFile(namespace string, privilegedSANames []string) []byte {
 	return []byte(output)
 }
 
-func InstallTemplates(templates []Template, image string, kubeconfig []byte, params map[string]string, dockerClient dockerhelper.Interface) error {
+func InstallTemplates(templates []Template, image string, kubeconfig []byte, params map[string]string, dockerClient dockerhelper.Interface, logdir string) error {
 	components := []Component{}
 	for _, template := range templates {
 		components = append(components, template.MakeReady(image, kubeconfig, params))
 	}
 
-	return InstallComponents(components, dockerClient)
+	return InstallComponents(components, dockerClient, logdir)
 }

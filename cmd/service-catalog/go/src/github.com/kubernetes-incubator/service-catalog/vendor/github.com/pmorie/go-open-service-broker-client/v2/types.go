@@ -27,15 +27,15 @@ type Service struct {
 	// Bindable represents whether a service is bindable.  May be overridden
 	// on a per-plan basis by the Plan.Bindable field.
 	Bindable bool `json:"bindable"`
-	// BindingRetrievable is ALPHA and may change or disappear at any time.
-	// BindingRetrievable will only be provided if alpha features are
+	// BindingsRetrievable is ALPHA and may change or disappear at any time.
+	// BindingsRetrievable will only be provided if alpha features are
 	// enabled.
 	//
-	// BindingRetrievable represents whether fetching a service binding via
+	// BindingsRetrievable represents whether fetching a service binding via
 	// a GET on the binding resource's endpoint
 	// (/v2/service_instances/instance-id/service_bindings/binding-id) is
 	// supported for all plans.
-	BindingRetrievable bool `json:"binding_retrievable,omitempty"`
+	BindingsRetrievable bool `json:"bindings_retrievable,omitempty"`
 	// PlanUpdatable represents whether instances of this service may be
 	// updated to a different plan.  The serialized form 'plan_updateable' is
 	// a mistake that has become written into the API for backward
@@ -217,6 +217,8 @@ type UpdateInstanceRequest struct {
 	// unset, indicates that the client does not wish to update the parameters
 	// for an instance.
 	Parameters map[string]interface{} `json:"parameters,omitempty"`
+	// Previous values contains information about the service instance prior to the update.
+	PreviousValues *PreviousValues `json:"previous_values,omitempty"`
 	// Context requires a client API version >= 2.12.
 	//
 	// Context is platform-specific contextual information under which the
@@ -224,17 +226,23 @@ type UpdateInstanceRequest struct {
 	Context map[string]interface{} `json:"context,omitempty"`
 	// OriginatingIdentity is the identity on the platform of the user making this request.
 	OriginatingIdentity *OriginatingIdentity `json:"originatingIdentity,omitempty"`
+}
 
-	// The OSB API also has a field called `previous_values` that contains:
-	// OrgID
-	// SpaceID
-	// ServiceID
-	// PlanID
-	//
-	// ...but those fields seem to be a relic of some API design mistakes in
-	// the past.  As such, this client library does not currently support
-	// them.  I will happily change this if someone can present a specific
-	// example of a broker that requires these fields to be sent.
+// PreviousValues represents information about the service instance prior to the update.
+type PreviousValues struct {
+	// ID of the plan prior to the update. If present, MUST be a non-empty string.
+	PlanID string `json:"plan_id,omitempty"`
+	// Deprecated; determined to be unnecessary as the value is immutable. ID of the service
+	// for the service instance. If present, MUST be a non-empty string.
+	ServiceID string `json:"service_id,omitempty"`
+	// Deprecated; Organization for the service instance MUST be provided by platforms in the
+	// top-level field context. ID of the organization specified for the service instance.
+	// If present, MUST be a non-empty string.
+	OrgID string `json:"organization_id,omitempty"`
+	// Deprecated; Space for the service instance MUST be provided by platforms in the top-level
+	// field context. ID of the space specified for the service instance. If present, MUST be
+	// a non-empty string.
+	SpaceID string `json:"space_id,omitempty"`
 }
 
 // UpdateInstanceResponse represents a broker's response to an update instance

@@ -42,7 +42,7 @@ func (opt List) Name() string {
 	return opt.ComponentName
 }
 
-func (opt List) Install(dockerClient dockerhelper.Interface) error {
+func (opt List) Install(dockerClient dockerhelper.Interface, logdir string) error {
 	imageRunHelper := run.NewRunHelper(dockerhelper.NewHelper(dockerClient)).New()
 
 	glog.Infof("Installing %q", opt.Name())
@@ -57,14 +57,18 @@ func (opt List) Install(dockerClient dockerhelper.Interface) error {
 	var lastErr error
 	// do a very simple retry loop on failure. Three times, ten second gaps
 	wait.PollImmediate(10*time.Second, 30*time.Second, func() (bool, error) {
-		_, rc, err := imageRunHelper.Image(opt.Image).
+		_, stdout, stderr, rc, err := imageRunHelper.Image(opt.Image).
 			Privileged().
 			DiscardContainer().
 			Copy(contentToCopy).
 			HostNetwork().
 			HostPid().
 			Entrypoint("sh").
-			Command("-c", "chmod 755 /apply.sh && /apply.sh").Run()
+			Command("-c", "chmod 755 /apply.sh && /apply.sh").Output()
+
+		if err := LogContainer(logdir, opt.ComponentName, stdout, stderr); err != nil {
+			glog.Errorf("error logging %q: %v", opt.ComponentName, err)
+		}
 		if err != nil {
 			lastErr = errors.NewError("failed to install %q: %v", opt.Name(), err).WithCause(err)
 			return false, nil

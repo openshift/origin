@@ -481,7 +481,7 @@ func TestDeleteServiceBindingFailureRetry(t *testing.T) {
 						return &osb.UnbindResponse{}, nil
 					}
 					return nil, osb.HTTPStatusCodeError{
-						StatusCode: 500,
+						StatusCode:  500,
 						Description: strPtr("test error unbinding"),
 					}
 				})

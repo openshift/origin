@@ -23,7 +23,7 @@ const (
 )
 
 // InstallTemplateServiceBroker checks whether the template service broker is installed and installs it if not already installed
-func (h *Helper) InstallTemplateServiceBroker(clusterAdminKubeConfig []byte, f *clientcmd.Factory, imageFormat string, serverLogLevel int) error {
+func (h *Helper) InstallTemplateServiceBroker(clusterAdminKubeConfig []byte, f *clientcmd.Factory, imageFormat string, serverLogLevel int, logdir string) error {
 	// create the actual resources required
 	imageTemplate := variable.NewDefaultImageTemplate()
 	imageTemplate.Format = imageFormat
@@ -66,11 +66,11 @@ func (h *Helper) InstallTemplateServiceBroker(clusterAdminKubeConfig []byte, f *
 	return component.MakeReady(
 		h.image,
 		clusterAdminKubeConfig,
-		params).Install(h.dockerHelper.Client())
+		params).Install(h.dockerHelper.Client(), logdir)
 }
 
 // RegisterTemplateServiceBroker registers the TSB with the SC by creating the broker resource
-func (h *Helper) RegisterTemplateServiceBroker(clusterAdminKubeConfig []byte, configDir string) error {
+func (h *Helper) RegisterTemplateServiceBroker(clusterAdminKubeConfig []byte, configDir string, logdir string) error {
 	// Register the template broker with the service catalog
 	glog.V(2).Infof("registering the template broker with the service catalog")
 
@@ -92,5 +92,5 @@ func (h *Helper) RegisterTemplateServiceBroker(clusterAdminKubeConfig []byte, co
 	return component.MakeReady(
 		h.image,
 		clusterAdminKubeConfig,
-		params).Install(h.dockerHelper.Client())
+		params).Install(h.dockerHelper.Client(), logdir)
 }

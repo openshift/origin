@@ -178,12 +178,18 @@ func AddObjectAnnotations(obj runtime.Object, annotations map[string]string) err
 
 // addDeploymentConfigNestedLabels adds new label(s) to a nested labels of a single DeploymentConfig object
 func addDeploymentConfigNestedLabels(obj *appsapi.DeploymentConfig, labels labels.Set, flags int) error {
+	if obj.Spec.Template == nil {
+		return nil
+	}
+
 	if obj.Spec.Template.Labels == nil {
 		obj.Spec.Template.Labels = make(map[string]string)
 	}
+
 	if err := MergeInto(obj.Spec.Template.Labels, labels, flags); err != nil {
 		return fmt.Errorf("unable to add labels to Template.DeploymentConfig.Template.ControllerTemplate.Template: %v", err)
 	}
+
 	return nil
 }
 

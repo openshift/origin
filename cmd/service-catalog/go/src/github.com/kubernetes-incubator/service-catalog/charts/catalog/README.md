@@ -40,7 +40,7 @@ chart and their default values.
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `image` | apiserver image to use | `quay.io/kubernetes-service-catalog/service-catalog:v0.1.8` |
+| `image` | apiserver image to use | `quay.io/kubernetes-service-catalog/service-catalog:v0.1.9` |
 | `imagePullPolicy` | `imagePullPolicy` for the service catalog | `Always` |
 | `apiserver.tls.requestHeaderCA` | Base64-encoded CA used to validate request-header authentication, when receiving delegated authentication from an aggregator. If not set, the service catalog API server will inherit this CA from the `extension-apiserver-authentication` ConfigMap if available. | `nil` |
 | `apiserver.service.type` | Type of service; valid values are `LoadBalancer` and `NodePort` | `NodePort` |
@@ -48,6 +48,10 @@ chart and their default values.
 | `apiserver.storage.type` | The storage backend to use; the only valid value is `etcd`, left for other storages support in future, e.g. `crd` | `etcd` |
 | `apiserver.storage.etcd.useEmbedded` | If storage type is `etcd`: Whether to embed an etcd container in the apiserver pod; THIS IS INADEQUATE FOR PRODUCTION USE! | `true` |
 | `apiserver.storage.etcd.servers` | If storage type is `etcd`: etcd URL(s); override this if NOT using embedded etcd | `http://localhost:2379` |
+| `apiserver.storage.etcd.persistence.enabled` | Enable persistence using PVC | `false` |
+| `apiserver.storage.etcd.persistence.storageClass` | PVC Storage Class | `nil` (uses alpha storage class annotation) |
+| `apiserver.storage.etcd.persistence.accessMode` | PVC Access Mode | `ReadWriteOnce` |
+| `apiserver.storage.etcd.persistence.size` | PVC Storage Request | `4Gi` |
 | `apiserver.verbosity` | Log level; valid values are in the range 0 - 10 | `10` |
 | `apiserver.auth.enabled` | Enable authentication and authorization | `true` |
 | `controllerManager.verbosity` | Log level; valid values are in the range 0 - 10 | `10` |

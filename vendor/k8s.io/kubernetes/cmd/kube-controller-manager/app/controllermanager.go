@@ -164,6 +164,10 @@ func Run(s *options.CMServer) error {
 		}
 		saTokenControllerInitFunc := serviceAccountTokenControllerStarter{rootClientBuilder: rootClientBuilder}.startServiceAccountTokenController
 
+		if err := createPVRecyclerSA(ctx, rootClientBuilder); err != nil {
+			glog.Fatalf("error creating recycler serviceaccount: %v", err)
+		}
+
 		if err := StartControllers(ctx, saTokenControllerInitFunc, NewControllerInitializers()); err != nil {
 			glog.Fatalf("error starting controllers: %v", err)
 		}

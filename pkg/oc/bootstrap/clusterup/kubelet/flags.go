@@ -1,9 +1,12 @@
 package kubelet
 
 import (
-	"fmt"
-	"io"
+	"path"
 
+	"github.com/golang/glog"
+
+	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/componentinstall"
+	"github.com/openshift/origin/pkg/oc/bootstrap/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/run"
 	"github.com/openshift/origin/pkg/oc/errors"
 )
@@ -22,21 +25,24 @@ func NewKubeletStartFlags() *KubeletStartFlags {
 }
 
 // MakeKubeletFlags returns the flags to start the kubelet
-func (opt KubeletStartFlags) MakeKubeletFlags(imageRunHelper *run.Runner, out io.Writer) (string, error) {
+func (opt KubeletStartFlags) MakeKubeletFlags(dockerClient dockerhelper.Interface, basedir string) (string, error) {
+	componentName := "create-kubelet-flags"
+	imageRunHelper := run.NewRunHelper(dockerhelper.NewHelper(dockerClient)).New()
+	glog.Infof("Running %q", componentName)
+
 	binds := append(opt.ContainerBinds)
 	env := append(opt.Environment)
 	if opt.UseSharedVolume {
 		env = append(env, "OPENSHIFT_CONTAINERIZED=false")
 	}
 
-	fmt.Fprintf(out, "Creating initial OpenShift node configuration\n")
 	createFlagsCmd := []string{
 		"start", "node",
 		"--write-flags",
 		"--config=/var/lib/origin/openshift.local.config/node/node-config.yaml",
 	}
 
-	_, stdout, _, _, err := imageRunHelper.Image(opt.NodeImage).
+	_, stdout, stderr, rc, err := imageRunHelper.Image(opt.NodeImage).
 		Privileged().
 		DiscardContainer().
 		HostNetwork().
@@ -45,8 +51,15 @@ func (opt KubeletStartFlags) MakeKubeletFlags(imageRunHelper *run.Runner, out io
 		Env(env...).
 		Entrypoint("openshift").
 		Command(createFlagsCmd...).Output()
+
+	if err := componentinstall.LogContainer(path.Join(basedir, "logs"), componentName, stdout, stderr); err != nil {
+		glog.Errorf("error logging %q: %v", componentName, err)
+	}
 	if err != nil {
-		return "", errors.NewError("could not create OpenShift configuration: %v", err).WithCause(err)
+		return "", errors.NewError("could not run %q: %v", componentName, err).WithCause(err)
+	}
+	if rc != 0 {
+		return "", errors.NewError("could not run %q: rc==%v", componentName, rc)
 	}
 
 	return stdout, nil

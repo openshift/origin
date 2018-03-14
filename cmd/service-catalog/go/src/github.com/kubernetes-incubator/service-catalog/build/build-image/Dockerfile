@@ -30,6 +30,12 @@ RUN go get -u github.com/golang/lint/golint
 RUN git clone https://github.com/duglin/vlinker.git /vlinker
 ENV PATH=$PATH:/vlinker/bin
 
+# Install the azure client, used to publish svcat binaries
+ENV AZCLI_VERSION=2.0.25
+RUN apt-get update && apt-get install -y python-pip && \
+    rm -rf /var/lib/apt/lists/*
+RUN pip install --disable-pip-version-check --no-cache-dir --upgrade cryptography azure-cli==${AZCLI_VERSION}
+
 # Create the full dir tree that we'll mount our src into when we run the image
 RUN mkdir -p /go/src/github.com/kubernetes-incubator/service-catalog
 

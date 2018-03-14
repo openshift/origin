@@ -89,11 +89,6 @@ type ServiceInfo struct {
 	Port int32
 }
 
-// TestResult struct contains result data to be saved at end of run
-type TestResult struct {
-	Time time.Duration `json:"time"`
-}
-
 // ParseConfig will complete flag parsing as well as viper tasks
 func ParseConfig(config string, isFixture bool) error {
 	// This must be done after common flags are registered, since Viper is a flag option.

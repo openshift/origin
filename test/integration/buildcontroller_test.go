@@ -20,9 +20,9 @@ import (
 	"k8s.io/kubernetes/pkg/controller"
 
 	buildtypedclient "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
+	origincontrollers "github.com/openshift/origin/pkg/cmd/openshift-controller-manager/controller"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/server/origin"
-	origincontrollers "github.com/openshift/origin/pkg/cmd/server/origin/controller"
 	imagetypedclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	"github.com/openshift/origin/test/common/build"
 	testutil "github.com/openshift/origin/test/util"

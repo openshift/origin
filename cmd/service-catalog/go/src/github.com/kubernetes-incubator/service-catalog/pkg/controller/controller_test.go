@@ -1542,7 +1542,7 @@ func newTestController(t *testing.T, config fakeosb.FakeClientConfiguration) (
 	// create a fake kube client
 	fakeKubeClient := &clientgofake.Clientset{}
 	// create a fake sc client
-	fakeCatalogClient := &fake.Clientset{&servicecatalogclientset.Clientset{}}
+	fakeCatalogClient := &fake.Clientset{Clientset: &servicecatalogclientset.Clientset{}}
 
 	fakeOSBClient := fakeosb.NewFakeClient(config) // error should always be nil
 	brokerClFunc := fakeosb.ReturnFakeClientFunc(fakeOSBClient)
@@ -1816,6 +1816,25 @@ func testActionFor(t *testing.T, name string, f failfFunc, action clientgotestin
 	}
 
 	return fakeRtObject, true
+}
+
+func assertRemovedFromBrokerCatalogFalse(t *testing.T, obj runtime.Object) {
+	assertRemovedFromBrokerCatalog(t, obj, false)
+}
+
+func assertRemovedFromBrokerCatalogTrue(t *testing.T, obj runtime.Object) {
+	assertRemovedFromBrokerCatalog(t, obj, true)
+}
+
+func assertRemovedFromBrokerCatalog(t *testing.T, obj runtime.Object, condition bool) {
+	clusterServiceClass, ok := obj.(*v1beta1.ClusterServiceClass)
+	if !ok {
+		fatalf(t, "Couldn't convert object %+v into a *v1beta1.ClusterServiceClass", obj)
+	}
+
+	if clusterServiceClass.Status.RemovedFromBrokerCatalog != condition {
+		fatalf(t, "ClusterServiceClass.RemovedFromBrokerCatalog!=%v", condition)
+	}
 }
 
 func assertClusterServiceBrokerReadyTrue(t *testing.T, obj runtime.Object) {

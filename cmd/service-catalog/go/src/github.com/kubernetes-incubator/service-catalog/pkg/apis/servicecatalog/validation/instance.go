@@ -88,18 +88,7 @@ func validateServiceInstanceSpec(spec *sc.ServiceInstanceSpec, fldPath *field.Pa
 	allErrs = append(allErrs, validatePlanReference(&spec.PlanReference, fldPath)...)
 
 	if spec.ParametersFrom != nil {
-		for _, paramsFrom := range spec.ParametersFrom {
-			if paramsFrom.SecretKeyRef != nil {
-				if paramsFrom.SecretKeyRef.Name == "" {
-					allErrs = append(allErrs, field.Required(fldPath.Child("parametersFrom.secretKeyRef.name"), "name is required"))
-				}
-				if paramsFrom.SecretKeyRef.Key == "" {
-					allErrs = append(allErrs, field.Required(fldPath.Child("parametersFrom.secretKeyRef.key"), "key is required"))
-				}
-			} else {
-				allErrs = append(allErrs, field.Required(fldPath.Child("parametersFrom"), "source must not be empty if present"))
-			}
-		}
+		allErrs = append(allErrs, validateParametersFromSource(spec.ParametersFrom, fldPath)...)
 	}
 	if spec.Parameters != nil {
 		if len(spec.Parameters.Raw) == 0 {

@@ -199,6 +199,10 @@ function os::util::curl_etcd() {
 # Returns:
 #  None
 function os::util::ensure_tmpfs() {
+	if [[ -z "${OS_TMPFS_REQUIRED:-}" ]]; then
+		return 0
+	fi
+
 	local target="$1"
 	if [[ ! -d "${target}" ]]; then
 		os::log::fatal "Target dir ${target} does not exist, cannot perform fstype check."
@@ -214,11 +218,6 @@ $( findmnt --all )"
 	fstype="$( df --output=fstype "${target}" | tail -n 1 )"
 	if [[ "${fstype}" != "tmpfs" ]]; then
 		local message="Expected \`${target}\` to be mounted on \`tmpfs\` but found \`${fstype}\` instead."
-		if [[ -n "${OS_TMPFS_REQUIRED:-}" ]]; then
-			os::log::fatal "${message}"
-		else
-			os::log::warning "${message}
-Running in permissive mode, this will be ignored."
-		fi
+		os::log::fatal "${message}"
 	fi
 }

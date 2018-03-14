@@ -446,9 +446,10 @@ func (ImageLabel) SwaggerDoc() map[string]string {
 }
 
 var map_ImageSource = map[string]string{
-	"":           "ImageSource is used to describe build source that will be extracted from an image. A reference of type ImageStreamTag, ImageStreamImage or DockerImage may be used. A pull secret can be specified to pull the image from an external registry or override the default service account secret if pulling from the internal registry. A list of paths to copy from the image and their respective destination within the build directory must be specified in the paths array.",
+	"":           "ImageSource is used to describe build source that will be extracted from an image or used during a multi stage build. A reference of type ImageStreamTag, ImageStreamImage or DockerImage may be used. A pull secret can be specified to pull the image from an external registry or override the default service account secret if pulling from the internal registry. Image sources can either be used to extract content from an image and place it into the build context along with the repository source, or used directly during a multi-stage Docker build to allow content to be copied without overwriting the contents of the repository source (see the 'paths' and 'as' fields).",
 	"from":       "from is a reference to an ImageStreamTag, ImageStreamImage, or DockerImage to copy source from.",
-	"paths":      "paths is a list of source and destination paths to copy from the image.",
+	"as":         "A list of image names that this source will be used in place of during a multi-stage Docker image build. For instance, a Dockerfile that uses \"COPY --from=nginx:latest\" will first check for an image source that has \"nginx:latest\" in this field before attempting to pull directly. If the Dockerfile does not reference an image source it is ignored. This field and paths may both be set, in which case the contents will be used twice.",
+	"paths":      "paths is a list of source and destination paths to copy from the image. This content will be copied into the build context prior to starting the build. If no paths are set, the build context will not be altered.",
 	"pullSecret": "pullSecret is a reference to a secret to be used to pull the image from a registry If the image is pulled from the OpenShift registry, this field does not need to be set.",
 }
 

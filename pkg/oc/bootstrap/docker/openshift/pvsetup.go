@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"time"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/authentication/serviceaccount"
 	kbatch "k8s.io/kubernetes/pkg/apis/batch"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
@@ -132,15 +134,30 @@ func (h *Helper) ensurePVInstallerSA(authorizationClient authorizationtypedclien
 		}
 	}
 
-	err = AddSCCToServiceAccount(securityClient.Security(), "privileged", "pvinstaller", "default", &bytes.Buffer{})
-	if err != nil {
-		return errors.NewError("cannot add privileged SCC to pvinstaller service account").WithCause(err).WithDetails(h.OriginLog())
-	}
+	err = wait.PollImmediate(time.Second, 5*time.Minute, func() (bool, error) {
+		err = AddSCCToServiceAccount(securityClient.Security(), "privileged", "pvinstaller", "default", &bytes.Buffer{})
+		// TODO this eventually becomes a component, but we do need to figure out why this is sometimes giving a 404. on SCC get
+		if kerrors.IsNotFound(err) {
+			return false, nil
+		}
+		if err != nil {
+			return false, errors.NewError("cannot add privileged SCC to pvinstaller service account").WithCause(err).WithDetails(h.OriginLog())
+		}
 
-	saUser := serviceaccount.MakeUsername(pvSetupNamespace, pvInstallerSA)
-	err = AddClusterRole(authorizationClient, "cluster-admin", saUser)
+		saUser := serviceaccount.MakeUsername(pvSetupNamespace, pvInstallerSA)
+		err = AddClusterRole(authorizationClient, "cluster-admin", saUser)
+
+		// TODO this eventually becomes a component, but we do need to figure out why this is sometimes giving a 404. on GET https://127.0.0.1:8443/apis/authorization.openshift.io/v1/clusterrolebindings
+		if kerrors.IsNotFound(err) {
+			return false, nil
+		}
+		if err != nil {
+			return false, errors.NewError("cannot add cluster role to service account (%s/%s)", pvSetupNamespace, pvInstallerSA).WithCause(err).WithDetails(h.OriginLog())
+		}
+		return true, nil
+	})
 	if err != nil {
-		return errors.NewError("cannot add cluster role to service account (%s/%s)", pvSetupNamespace, pvInstallerSA).WithCause(err).WithDetails(h.OriginLog())
+		return err
 	}
 
 	return nil

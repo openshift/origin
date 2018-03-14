@@ -356,6 +356,9 @@ func describeCommonSpec(p buildapi.CommonSpec, out *tabwriter.Writer) {
 			for _, path := range image.Paths {
 				fmt.Fprintf(out, "\t- %s -> %s\n", path.SourcePath, path.DestinationDir)
 			}
+			for _, name := range image.As {
+				fmt.Fprintf(out, "\t- as %s\n", name)
+			}
 		}
 	}
 

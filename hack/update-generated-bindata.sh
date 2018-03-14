@@ -30,7 +30,6 @@ pushd "${OS_ROOT}" > /dev/null
     examples/jenkins \
     examples/jenkins/pipeline \
     examples/quickstarts/... \
-    examples/logging/... \
     examples/heapster/... \
     examples/prometheus/... \
     examples/service-catalog/... \

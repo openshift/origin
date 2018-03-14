@@ -397,8 +397,7 @@ func stopSignal(b *Builder, args []string, attributes map[string]bool, flagArgs 
 	}
 
 	sig := args[0]
-	_, err := signal.ParseSignal(sig)
-	if err != nil {
+	if err := signal.CheckSignal(sig); err != nil {
 		return err
 	}
 

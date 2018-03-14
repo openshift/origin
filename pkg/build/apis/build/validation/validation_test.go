@@ -1,6 +1,7 @@
 package validation
 
 import (
+	"fmt"
 	"reflect"
 	"strings"
 	"testing"
@@ -1018,6 +1019,7 @@ func TestValidateSource(t *testing.T) {
 					},
 				},
 			},
+			multiple: true,
 		},
 		// 17 - destinationdir is not relative.
 		{
@@ -1127,33 +1129,93 @@ func TestValidateSource(t *testing.T) {
 				},
 			},
 		},
+		// 22
+		{
+			t:    field.ErrorTypeInvalid,
+			path: "images[0].as[0]",
+			source: &buildapi.BuildSource{
+				Images: []buildapi.ImageSource{
+					{
+						From: kapi.ObjectReference{
+							Kind: "ImageStreamTag",
+							Name: "my-image:latest",
+						},
+						As: []string{""},
+					},
+				},
+			},
+		},
+		// 23
+		{
+			t:    field.ErrorTypeDuplicate,
+			path: "images[1].as[1]",
+			source: &buildapi.BuildSource{
+				Images: []buildapi.ImageSource{
+					{
+						From: kapi.ObjectReference{
+							Kind: "ImageStreamTag",
+							Name: "my-image:latest",
+						},
+						As: []string{"a", "b"},
+					},
+					{
+						From: kapi.ObjectReference{
+							Kind: "ImageStreamTag",
+							Name: "my-image:v2",
+						},
+						As: []string{"c", "a"},
+					},
+				},
+			},
+		},
+		// 24
+		{
+			ok: true,
+			source: &buildapi.BuildSource{
+				Images: []buildapi.ImageSource{
+					{
+						From: kapi.ObjectReference{
+							Kind: "ImageStreamTag",
+							Name: "my-image:latest",
+						},
+						Paths: []buildapi.ImageSourcePath{
+							{
+								SourcePath:     "/some/path",
+								DestinationDir: "test/dir",
+							},
+						},
+						As: []string{"a"},
+					},
+				},
+			},
+		},
 	}
 	for i, tc := range errorCases {
-		errors := validateSource(tc.source, false, false, false, nil)
-		switch len(errors) {
-		case 0:
-			if !tc.ok {
-				t.Errorf("%d: Unexpected validation result: %v", i, errors)
+		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
+			errors := validateSource(tc.source, false, false, false, nil)
+			switch len(errors) {
+			case 0:
+				if !tc.ok {
+					t.Fatalf("Unexpected validation result: %v", errors)
+				}
+				return
+			case 1:
+				if tc.ok || tc.multiple {
+					t.Fatalf("Unexpected validation result: %v", errors)
+				}
+			default:
+				if tc.ok || !tc.multiple {
+					t.Fatalf("Unexpected validation result: %v", errors)
+				}
 			}
-			continue
-		case 1:
-			if tc.ok || tc.multiple {
-				t.Errorf("%d: Unexpected validation result: %v", i, errors)
-				continue
+			err := errors[0]
+			if err.Type != tc.t {
+				t.Fatalf("Expected error type %s, got %s", tc.t, err.Type)
 			}
-		default:
-			if tc.ok || !tc.multiple {
-				t.Errorf("%d: Unexpected validation result: %v", i, errors)
-				continue
+			if err.Field != tc.path {
+				t.Fatalf("Expected error path %s, got %s", tc.path, err.Field)
 			}
-		}
-		err := errors[0]
-		if err.Type != tc.t {
-			t.Errorf("%d: Expected error type %s, got %s", i, tc.t, err.Type)
-		}
-		if err.Field != tc.path {
-			t.Errorf("%d: Expected error path %s, got %s", i, tc.path, err.Field)
-		}
+		})
 	}
 
 	errorCases[11].source.ContextDir = "."

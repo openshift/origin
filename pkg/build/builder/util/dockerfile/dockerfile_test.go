@@ -9,9 +9,9 @@ import (
 	"github.com/docker/docker/builder/dockerfile/command"
 )
 
-// TestParseTreeToDockerfile tests calling ParseTreeToDockerfile with multiple
+// TestWrite tests calling Write with multiple
 // valid inputs.
-func TestParseTreeToDockerfile(t *testing.T) {
+func TestWrite(t *testing.T) {
 	testCases := map[string]struct {
 		in   string
 		want string
@@ -60,9 +60,11 @@ ONBUILD RUN echo "Hello universe!"
 LABEL version=1.0
 EXPOSE 8080
 VOLUME /var/run/www
-ENV PATH=/bin
+ENV PATH=/bin TEST=
 ADD file /home/
 COPY dir/ /tmp/
+FROM other as 2
+COPY --from=test /a /b
 RUN echo "Hello world!"
 ENTRYPOINT /bin/sh
 CMD ["-c", "env"]
@@ -76,37 +78,40 @@ ONBUILD RUN echo "Hello universe!"
 LABEL version=1.0
 EXPOSE 8080
 VOLUME /var/run/www
-ENV PATH=/bin
+ENV PATH=/bin TEST=
 ADD file /home/
 COPY dir/ /tmp/
+FROM other as 2
+COPY --from=test /a /b
 RUN echo "Hello world!"
 ENTRYPOINT /bin/sh
-CMD ["-c", "env"]
+CMD ["-c","env"]
 USER 1001
 WORKDIR /home
 `,
 		},
 	}
 	for name, tc := range testCases {
-		node, err := Parse(strings.NewReader(tc.in))
-		if err != nil {
-			t.Errorf("%s: parse error: %v", name, err)
-			continue
-		}
-		got := ParseTreeToDockerfile(node)
-		want := []byte(tc.want)
-		if !reflect.DeepEqual(got, want) {
-			t.Errorf("ParseTreeToDockerfile: %s:\ngot:\n%swant:\n%s", name, got, want)
-		}
+		t.Run(name, func(t *testing.T) {
+			node, err := Parse(strings.NewReader(tc.in))
+			if err != nil {
+				t.Fatalf("parse error: %v", err)
+			}
+			got := Write(node)
+			want := []byte(tc.want)
+			if !bytes.Equal(got, want) {
+				t.Errorf("got:\n%swant:\n%s", got, want)
+			}
+		})
 	}
 }
 
 // TestParseTreeToDockerfileNilNode tests calling ParseTreeToDockerfile with a
 // nil *parser.Node.
 func TestParseTreeToDockerfileNilNode(t *testing.T) {
-	got := ParseTreeToDockerfile(nil)
+	got := Write(nil)
 	if got != nil {
-		t.Errorf("ParseTreeToDockerfile(nil) = %#v; want nil", got)
+		t.Errorf("Write(nil) = %#v; want nil", got)
 	}
 }
 
@@ -220,7 +225,7 @@ ENV PATH=/bin
 			t.Errorf("InsertInstructions: %s: parse error: %v", name, err)
 			continue
 		}
-		if !bytes.Equal(ParseTreeToDockerfile(got), ParseTreeToDockerfile(want)) {
+		if !bytes.Equal(Write(got), Write(want)) {
 			t.Errorf("InsertInstructions: %s: got %#v; want %#v", name, got, want)
 		}
 	}

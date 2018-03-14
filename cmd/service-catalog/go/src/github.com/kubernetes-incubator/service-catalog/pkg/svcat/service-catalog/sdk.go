@@ -23,7 +23,7 @@ import (
 
 // SDK wrapper around the generated Go client for the Kubernetes Service Catalog
 type SDK struct {
-	ServiceCatalogClient *clientset.Clientset
+	ServiceCatalogClient clientset.Interface
 }
 
 // ServiceCatalog is the underlying generated Service Catalog versioned interface

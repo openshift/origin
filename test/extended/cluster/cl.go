@@ -179,9 +179,8 @@ var _ = g.Describe("[Feature:Performance][Serial][Slow] Load cluster", func() {
 		}
 
 		// Calculate and log test duration
-		testDuration := time.Since(testStartTime)
-		e2e.Logf("Cluster loading duration: %s", testDuration)
-		err := writeJSONToDisk(TestResult{testDuration}, testResultFile)
+		metrics := []Metrics{NewTestDuration("cluster-loader-test", testStartTime, time.Since(testStartTime))}
+		err := LogMetrics(metrics)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// If config context set to cleanup on completion

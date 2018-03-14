@@ -34,7 +34,8 @@ import (
 // WaitForBrokerCondition waits for the status of the named broker to contain
 // a condition whose type and status matches the supplied one.
 func WaitForBrokerCondition(client v1beta1servicecatalog.ServicecatalogV1beta1Interface, name string, condition v1beta1.ServiceBrokerCondition) error {
-	return wait.PollImmediate(500*time.Millisecond, wait.ForeverTestTimeout,
+	// GetCatalog default timeout time is 60 seconds, so the wait here must be at least that (previously set to 30 seconds)
+	return wait.PollImmediate(500*time.Millisecond, 3*time.Minute,
 		func() (bool, error) {
 			glog.V(5).Infof("Waiting for broker %v condition %#v", name, condition)
 			broker, err := client.ClusterServiceBrokers().Get(name, metav1.GetOptions{})

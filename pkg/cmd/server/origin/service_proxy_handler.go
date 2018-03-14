@@ -3,6 +3,7 @@ package origin
 import (
 	"context"
 	"fmt"
+	"html/template"
 	"net/http"
 	"net/url"
 
@@ -10,9 +11,62 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	utilnet "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/apimachinery/pkg/util/proxy"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apiserver/pkg/endpoints/handlers/responsewriters"
 	restclient "k8s.io/client-go/rest"
 )
+
+var proxyErrorPageTemplate = template.Must(template.New("proxyErrorPage").Parse(proxyErrorPageTemplateString))
+
+const proxyErrorPageTemplateString = `<!doctype html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{.ApplicationDisplayName}} is not available</title>
+    <style type="text/css">
+      body {
+	font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+	line-height: 1.66666667;
+	font-size: 13px;
+	color: #333333;
+	background-color: #ffffff;
+      }
+      h1 {
+	font-size: 24px;
+	font-weight: 300;
+      }
+      p {
+	margin: 0 0 10px;
+	font-size: 13px;
+      }
+      small {
+	color: #9c9c9c;
+	white-space: pre-line;
+      }
+      @media (min-width: 768px) {
+	body {
+	  margin: 2em 3em;
+	}
+	h1 {
+	  font-size: 2.15em;
+	}
+      }
+    </style>
+  </head>
+  <body>
+    <h1>{{.ApplicationDisplayName}} is not available</h1>
+    <p>The application is currently not serving requests. It might not be installed or is still installing.</p>
+    <small>{{.ErrorMessage}}</small>
+    <div>
+  </body>
+</html>
+`
+
+// serviceProxyErrorPageDetails contains the error details to show in the HTML error page for proxy errors.
+type serviceProxyErrorPageDetails struct {
+	ApplicationDisplayName string
+	ErrorMessage           string
+}
 
 // A ServiceResolver knows how to get a URL given a service.
 type ServiceResolver interface {
@@ -28,6 +82,8 @@ type serviceProxyHandler struct {
 	// Endpoints based routing to map from cluster IP to routable IP
 	serviceResolver ServiceResolver
 
+	applicationDisplayName string
+
 	// proxyRoundTripper is the re-useable portion of the transport.  It does not vary with any request.
 	proxyRoundTripper http.RoundTripper
 
@@ -35,7 +91,7 @@ type serviceProxyHandler struct {
 }
 
 // NewServiceProxyHandler is a simple proxy that doesn't handle upgrades, passes headers directly through, and doesn't assert any identity.
-func NewServiceProxyHandler(serviceName string, serviceNamespace string, serviceResolver ServiceResolver, caBundle []byte) (*serviceProxyHandler, error) {
+func NewServiceProxyHandler(serviceName string, serviceNamespace string, serviceResolver ServiceResolver, caBundle []byte, applicationDisplayName string) (*serviceProxyHandler, error) {
 	restConfig := &restclient.Config{
 		TLSClientConfig: restclient.TLSClientConfig{
 			ServerName: serviceName + "." + serviceNamespace + ".svc",
@@ -48,11 +104,12 @@ func NewServiceProxyHandler(serviceName string, serviceNamespace string, service
 	}
 
 	return &serviceProxyHandler{
-		serviceName:       serviceName,
-		serviceNamespace:  serviceNamespace,
-		serviceResolver:   serviceResolver,
-		proxyRoundTripper: proxyRoundTripper,
-		restConfig:        restConfig,
+		serviceName:            serviceName,
+		serviceNamespace:       serviceNamespace,
+		serviceResolver:        serviceResolver,
+		applicationDisplayName: applicationDisplayName,
+		proxyRoundTripper:      proxyRoundTripper,
+		restConfig:             restConfig,
 	}, nil
 }
 
@@ -61,11 +118,20 @@ func (r *serviceProxyHandler) ServeHTTP(w http.ResponseWriter, req *http.Request
 	location := &url.URL{}
 	location.Scheme = "https"
 	rloc, err := r.serviceResolver.ResolveEndpoint(r.serviceNamespace, r.serviceName)
-	if errors.IsNotFound(err) {
-		http.Error(w, fmt.Sprintf("missing service (%s)", err.Error()), http.StatusNotFound)
-	}
 	if err != nil {
-		http.Error(w, fmt.Sprintf("missing route (%s)", err.Error()), http.StatusInternalServerError)
+		errorPageDetails := serviceProxyErrorPageDetails{
+			ApplicationDisplayName: r.applicationDisplayName,
+		}
+		if errors.IsNotFound(err) {
+			w.WriteHeader(http.StatusNotFound)
+			errorPageDetails.ErrorMessage = fmt.Sprintf("Missing service: %s", err.Error())
+		} else {
+			w.WriteHeader(http.StatusInternalServerError)
+			errorPageDetails.ErrorMessage = fmt.Sprintf("Missing route: %s", err.Error())
+		}
+		if err := proxyErrorPageTemplate.Execute(w, errorPageDetails); err != nil {
+			utilruntime.HandleError(fmt.Errorf("unable to render proxy error page template: %v", err))
+		}
 		return
 	}
 	location.Host = rloc.Host
