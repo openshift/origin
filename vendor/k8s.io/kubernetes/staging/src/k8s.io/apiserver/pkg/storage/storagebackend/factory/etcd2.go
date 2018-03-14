@@ -75,6 +75,7 @@ func newTransportForETCD2(certFile, keyFile, caFile string) (*http.Transport, er
 		}).Dial,
 		TLSHandshakeTimeout: 10 * time.Second,
 		MaxIdleConnsPerHost: 500,
+		IdleConnTimeout:     30 * time.Second,
 		TLSClientConfig:     cfg,
 	})
 	return tr, nil
