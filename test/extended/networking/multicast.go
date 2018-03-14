@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"regexp"
 
+	"github.com/openshift/origin/pkg/network"
 	networkapi "github.com/openshift/origin/pkg/network/apis/network"
 	networkclient "github.com/openshift/origin/pkg/network/generated/internalclientset"
 	testexutil "github.com/openshift/origin/test/extended/util"
@@ -18,27 +19,35 @@ import (
 )
 
 var _ = Describe("[Area:Networking] multicast", func() {
-	InNonIsolatingContext(func() {
-		oc := testexutil.NewCLI("multicast", testexutil.KubeConfigPath())
-		f := oc.KubeFramework()
+	// The subnet plugin should block all multicast. The multitenant and networkpolicy
+	// plugins should implement multicast in the way that we test. For third-party
+	// plugins, the behavior is unspecified and we should not run either test.
 
-		It("should block multicast traffic", func() {
-			Expect(testMulticast(f, oc)).NotTo(Succeed())
-		})
-	})
+	InPluginContext([]string{network.SingleTenantPluginName},
+		func() {
+			oc := testexutil.NewCLI("multicast", testexutil.KubeConfigPath())
+			f := oc.KubeFramework()
 
-	InIsolatingContext(func() {
-		oc := testexutil.NewCLI("multicast", testexutil.KubeConfigPath())
-		f := oc.KubeFramework()
+			It("should block multicast traffic", func() {
+				Expect(testMulticast(f, oc)).NotTo(Succeed())
+			})
+		},
+	)
 
-		It("should block multicast traffic in namespaces where it is disabled", func() {
-			Expect(testMulticast(f, oc)).NotTo(Succeed())
-		})
-		It("should allow multicast traffic in namespaces where it is enabled", func() {
-			makeNamespaceMulticastEnabled(f.Namespace)
-			Expect(testMulticast(f, oc)).To(Succeed())
-		})
-	})
+	InPluginContext([]string{network.MultiTenantPluginName, network.NetworkPolicyPluginName},
+		func() {
+			oc := testexutil.NewCLI("multicast", testexutil.KubeConfigPath())
+			f := oc.KubeFramework()
+
+			It("should block multicast traffic in namespaces where it is disabled", func() {
+				Expect(testMulticast(f, oc)).NotTo(Succeed())
+			})
+			It("should allow multicast traffic in namespaces where it is enabled", func() {
+				makeNamespaceMulticastEnabled(f.Namespace)
+				Expect(testMulticast(f, oc)).To(Succeed())
+			})
+		},
+	)
 })
 
 func makeNamespaceMulticastEnabled(ns *kapiv1.Namespace) {
