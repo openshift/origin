@@ -2,6 +2,7 @@ package bootstrappolicy
 
 import (
 	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/authentication/serviceaccount"
 	"k8s.io/kubernetes/pkg/apis/rbac"
 	rbacv1conversions "k8s.io/kubernetes/pkg/apis/rbac/v1"
@@ -55,4 +56,14 @@ func GetBootstrapServiceAccountProjectV1RoleBindings(namespace string) []rbacv1.
 	}
 
 	return ret
+}
+
+func GetBootstrapServiceAccountProjectRoleBindingNames() sets.String {
+	names := sets.NewString()
+
+	for _, roleBinding := range GetBootstrapServiceAccountProjectRoleBindings("default") {
+		names.Insert(roleBinding.Name)
+	}
+
+	return names
 }

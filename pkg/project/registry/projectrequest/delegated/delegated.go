@@ -13,6 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
@@ -29,6 +30,7 @@ import (
 	osauthorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	authorizationutil "github.com/openshift/origin/pkg/authorization/util"
 	configcmd "github.com/openshift/origin/pkg/bulk"
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	projectclientinternal "github.com/openshift/origin/pkg/project/generated/internalclientset/typed/project/internalversion"
 	projectrequestregistry "github.com/openshift/origin/pkg/project/registry/projectrequest"
@@ -82,6 +84,10 @@ var _ = rest.Creater(&REST{})
 var (
 	ForbiddenNames    = []string{"openshift", "kubernetes", "kube"}
 	ForbiddenPrefixes = []string{"openshift-", "kubernetes-", "kube-"}
+
+	defaultRoleBindingNames = bootstrappolicy.GetBootstrapServiceAccountProjectRoleBindingNames()
+	roleBindingGroups       = sets.NewString(osauthorizationapi.LegacyGroupName, osauthorizationapi.GroupName, rbac.GroupName)
+	roleBindingKind         = "RoleBinding"
 )
 
 func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, createValidation rest.ValidateObjectFunc, includeUninitialized bool) (runtime.Object, error) {
@@ -184,9 +190,10 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, createValidati
 	}
 
 	// Stop on the first error, since we have to delete the whole project if any item in the template fails
-	stopOnErr := configcmd.AfterFunc(func(_ *resource.Info, err error) bool {
-		// if something already exists, we're probably racing a controller.  Don't die
-		if kapierror.IsAlreadyExists(err) {
+	stopOnErr := configcmd.AfterFunc(func(info *resource.Info, err error) bool {
+		// if a default role binding already exists, we're probably racing the controller.  Don't die
+		if gvk := info.Mapping.GroupVersionKind; kapierror.IsAlreadyExists(err) &&
+			gvk.Kind == roleBindingKind && roleBindingGroups.Has(gvk.Group) && defaultRoleBindingNames.Has(info.Name) {
 			return false
 		}
 		return err != nil
@@ -197,6 +204,10 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, createValidati
 			RESTMapper:   restutil.DefaultMultiRESTMapper(),
 			ObjectTyper:  legacyscheme.Scheme,
 			ClientMapper: configcmd.ClientMapperFromConfig(r.restConfig),
+		},
+		IgnoreError: func(err error) bool {
+			// it is safe to ignore all such errors since stopOnErr will only let these through for the default role bindings
+			return kapierror.IsAlreadyExists(err)
 		},
 		After: stopOnErr,
 		Op:    configcmd.Create,
