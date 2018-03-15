@@ -104,9 +104,7 @@ func testMulticast(f *e2e.Framework, oc *testexutil.CLI) error {
 	for i := range pod {
 		pod[i] = fmt.Sprintf("multicast-%d", i)
 		ip[i], err[i] = launchTestMulticastPod(f, nodes.Items[i/2].Name, pod[i])
-		if err[i] != nil {
-			return err[i]
-		}
+		expectNoError(err[i])
 		var zero int64
 		defer f.ClientSet.CoreV1().Pods(f.Namespace.Name).Delete(pod[i], &metav1.DeleteOptions{GracePeriodSeconds: &zero})
 		matchIP[i] = regexp.MustCompile(ip[i] + ".*multicast.*1/1/0%")
