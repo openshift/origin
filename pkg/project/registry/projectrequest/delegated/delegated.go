@@ -198,6 +198,9 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, createValidati
 			ObjectTyper:  legacyscheme.Scheme,
 			ClientMapper: configcmd.ClientMapperFromConfig(r.restConfig),
 		},
+		IgnoreError: func(e error) bool {
+			return kapierror.IsAlreadyExists(err)
+		},
 		After: stopOnErr,
 		Op:    configcmd.Create,
 	}
