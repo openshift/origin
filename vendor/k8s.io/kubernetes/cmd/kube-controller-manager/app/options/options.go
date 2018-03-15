@@ -56,7 +56,9 @@ type CMServer struct {
 	Master     string
 	Kubeconfig string
 
-	OpenShiftConfig string
+	OpenShiftConfig                     string
+	OpenShiftDefaultProjectNodeSelector string
+	KubeDefaultProjectNodeSelector      string
 }
 
 // NewCMServer creates a new CMServer with a default config.
