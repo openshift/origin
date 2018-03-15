@@ -31,6 +31,42 @@ func getOpenShiftConfig(configFile string) (map[string]interface{}, error) {
 }
 
 func applyOpenShiftConfigFlags(controllerManager *options.CMServer, openshiftConfig map[string]interface{}) error {
+	if err := applyOpenShiftConfigControllerArgs(controllerManager, openshiftConfig); err != nil {
+		return err
+	}
+	if err := applyOpenShiftConfigDefaultProjectSelector(controllerManager, openshiftConfig); err != nil {
+		return err
+	}
+	if err := applyOpenShiftConfigKubeDefaultProjectSelector(controllerManager, openshiftConfig); err != nil {
+		return err
+	}
+	return nil
+}
+
+func applyOpenShiftConfigDefaultProjectSelector(controllerManager *options.CMServer, openshiftConfig map[string]interface{}) error {
+	projectConfig, ok := openshiftConfig["projectConfig"]
+	if !ok {
+		return nil
+	}
+
+	castProjectConfig := projectConfig.(map[string]interface{})
+	defaultNodeSelector, ok := castProjectConfig["defaultNodeSelector"]
+	if !ok {
+		return nil
+	}
+	controllerManager.OpenShiftDefaultProjectNodeSelector = defaultNodeSelector.(string)
+
+	return nil
+}
+
+// this is an optimization.  It can be filled in later.  Looks like there are several special cases for this plugin upstream
+// TODO find this
+func applyOpenShiftConfigKubeDefaultProjectSelector(controllerManager *options.CMServer, openshiftConfig map[string]interface{}) error {
+	controllerManager.KubeDefaultProjectNodeSelector = ""
+	return nil
+}
+
+func applyOpenShiftConfigControllerArgs(controllerManager *options.CMServer, openshiftConfig map[string]interface{}) error {
 	kubeMasterConfig, ok := openshiftConfig["kubernetesMasterConfig"]
 	if !ok {
 		return nil
