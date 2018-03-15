@@ -19,12 +19,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit bb140ea391fb74fd16301b25a01b2ec737545a20
+%global commit 8754d712cd78ec2d84d41b341d212b30028f2b82
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=9+ OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.9.8 OS_GIT_TREE_STATE=clean OS_GIT_PATCH=8 KUBE_GIT_VERSION=v1.9.1+a0ce1bc657 OS_GIT_CATALOG_VERSION=v0.1.9 KUBE_GIT_COMMIT=a0ce1bc OS_GIT_COMMIT=5eaa5b9 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.16 ETCD_GIT_COMMIT=121edf0
+%global os_git_vars OS_GIT_MINOR=9+ OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.9.9 OS_GIT_TREE_STATE=clean OS_GIT_PATCH=9 KUBE_GIT_VERSION=v1.9.1+a0ce1bc657 OS_GIT_CATALOG_VERSION=v0.1.9 KUBE_GIT_COMMIT=a0ce1bc OS_GIT_COMMIT=6dd74bd OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.16 ETCD_GIT_COMMIT=121edf0
 }
 
 %if 0%{?skip_build}
@@ -66,7 +66,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.9.9
+Version:        3.9.10
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -606,6 +606,15 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Thu Mar 15 2018 Justin Pierce <jupierce@redhat.com> 3.9.10-1
+- Allow a new OS_PUSH_BASE_REPO flag to push-release (ccoleman@redhat.com)
+- UPSTREAM: 58433: bugfix(mount): lstat with abs path of parent
+  (hekumar@redhat.com)
+- Update policy tests to reflect removal of write access on daemonsets
+  (mkhan@redhat.com)
+- UPSTREAM: <carry>: Remove write permissions on daemonsets from Kubernetes
+  bootstrap policy (mkhan@redhat.com)
+
 * Wed Mar 14 2018 Justin Pierce <jupierce@redhat.com> 3.9.9-1
 - UPSTREAM: 61107: Add atomic writer subpath e2e tests (jliggitt@redhat.com)
 - UPSTREAM: 61107: Detect backsteps correctly in base path detection
