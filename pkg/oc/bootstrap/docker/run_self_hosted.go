@@ -33,7 +33,6 @@ import (
 	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/kubelet"
 	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/staticpods"
 	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/tmpformac"
-	"github.com/openshift/origin/pkg/oc/bootstrap/docker/openshift"
 
 	// install our apis into the legacy scheme
 	_ "github.com/openshift/origin/pkg/api/install"
@@ -89,14 +88,7 @@ var (
 	}
 )
 
-func (c *ClientStartConfig) StartSelfHosted(out io.Writer) error {
-	if c.PortForwarding {
-		err := openshift.CheckSocat()
-		if err != nil {
-			return err
-		}
-	}
-
+func (c *ClusterUpConfig) StartSelfHosted(out io.Writer) error {
 	var (
 		masterConfigDir              string
 		openshiftAPIServerConfigDir  string
@@ -283,7 +275,7 @@ func (c *ClientStartConfig) StartSelfHosted(out io.Writer) error {
 }
 
 // makeMasterConfig returns the directory where a generated masterconfig lives
-func (c *ClientStartConfig) makeMasterConfig(out io.Writer) (string, error) {
+func (c *ClusterUpConfig) makeMasterConfig(out io.Writer) (string, error) {
 	publicHost := c.PublicHostname
 	if len(publicHost) == 0 {
 		publicHost = c.ServerIP
@@ -309,7 +301,7 @@ func (c *ClientStartConfig) makeMasterConfig(out io.Writer) (string, error) {
 }
 
 // makeNodeConfig returns the directory where a generated nodeconfig lives
-func (c *ClientStartConfig) makeNodeConfig(masterConfigDir string) (string, error) {
+func (c *ClusterUpConfig) makeNodeConfig(masterConfigDir string) (string, error) {
 	defaultNodeName := "localhost"
 
 	container := kubelet.NewNodeStartConfig()
@@ -338,7 +330,7 @@ func (c *ClientStartConfig) makeNodeConfig(masterConfigDir string) (string, erro
 }
 
 // makeKubeletFlags returns the kubelet flags
-func (c *ClientStartConfig) makeKubeletFlags(out io.Writer, nodeConfigDir string) ([]string, error) {
+func (c *ClusterUpConfig) makeKubeletFlags(out io.Writer, nodeConfigDir string) ([]string, error) {
 	container := kubelet.NewKubeletStartFlags()
 	container.ContainerBinds = append(container.ContainerBinds, nodeConfigDir+":/var/lib/origin/openshift.local.config/node:z")
 	container.Environment = c.Environment
@@ -361,20 +353,20 @@ func (c *ClientStartConfig) makeKubeletFlags(out io.Writer, nodeConfigDir string
 	return flags, nil
 }
 
-func (c *ClientStartConfig) makeKubeDNSConfig(nodeConfig string) (string, error) {
+func (c *ClusterUpConfig) makeKubeDNSConfig(nodeConfig string) (string, error) {
 	return kubelet.MakeKubeDNSConfig(nodeConfig, c.BaseTempDir)
 }
 
-func (c *ClientStartConfig) makeOpenShiftAPIServerConfig(masterConfigDir string) (string, error) {
+func (c *ClusterUpConfig) makeOpenShiftAPIServerConfig(masterConfigDir string) (string, error) {
 	return kubeapiserver.MakeOpenShiftAPIServerConfig(masterConfigDir, c.BaseTempDir)
 }
 
-func (c *ClientStartConfig) makeOpenShiftControllerConfig(masterConfigDir string) (string, error) {
+func (c *ClusterUpConfig) makeOpenShiftControllerConfig(masterConfigDir string) (string, error) {
 	return kubeapiserver.MakeOpenShiftControllerConfig(masterConfigDir, c.BaseTempDir)
 }
 
 // startKubelet returns the container id
-func (c *ClientStartConfig) startKubelet(out io.Writer, masterConfigDir, nodeConfigDir, podManifestDir string, kubeletFlags []string) (string, error) {
+func (c *ClusterUpConfig) startKubelet(out io.Writer, masterConfigDir, nodeConfigDir, podManifestDir string, kubeletFlags []string) (string, error) {
 	dockerRoot, err := c.DockerHelper().DockerRoot()
 	if err != nil {
 		return "", err
