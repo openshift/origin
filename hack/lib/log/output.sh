@@ -8,7 +8,7 @@
 # Arguments:
 #  - all: message to write
 function os::log::info() {
-	local message; message="$( os::log::internal::prefix_lines "[INFO]" "$*" )"
+	local message; message="$( os::log::internal::prefix_lines "[INFO] [$( date +%H:%M:%S%z )]" "$*" )"
 	os::log::internal::to_logfile "${message}"
 	echo "${message}"
 }
@@ -21,7 +21,7 @@ readonly -f os::log::info
 # Arguments:
 #  - all: message to write
 function os::log::warning() {
-	local message; message="$( os::log::internal::prefix_lines "[WARNING]" "$*" )"
+	local message; message="$( os::log::internal::prefix_lines "[WARNING] [$( date +%H:%M:%S%z )]" "$*" )"
 	os::log::internal::to_logfile "${message}"
 	os::text::print_yellow "${message}" 1>&2
 }
@@ -34,7 +34,7 @@ readonly -f os::log::warning
 # Arguments:
 #  - all: message to write
 function os::log::error() {
-	local message; message="$( os::log::internal::prefix_lines "[ERROR]" "$*" )"
+	local message; message="$( os::log::internal::prefix_lines "[ERROR] [$( date +%H:%M:%S%z )]" "$*" )"
 	os::log::internal::to_logfile "${message}"
 	os::text::print_red "${message}" 1>&2
 }
@@ -48,7 +48,7 @@ readonly -f os::log::error
 # Arguments:
 #  - all: message to write
 function os::log::fatal() {
-	local message; message="$( os::log::internal::prefix_lines "[FATAL]" "$*" )"
+	local message; message="$( os::log::internal::prefix_lines "[FATAL] [$( date +%H:%M:%S%z )]" "$*" )"
 	os::log::internal::to_logfile "${message}"
 	os::text::print_red "${message}" 1>&2
 	exit 1
@@ -63,7 +63,7 @@ readonly -f os::log::fatal
 # Arguments:
 #  - all: message to write
 function os::log::debug() {
-	local message; message="$( os::log::internal::prefix_lines "[DEBUG]" "$*" )"
+	local message; message="$( os::log::internal::prefix_lines "[DEBUG] [$( date +%H:%M:%S%z )]" "$*" )"
 	os::log::internal::to_logfile "${message}"
 	if [[ -n "${OS_DEBUG:-}" ]]; then
 		os::text::print_blue "${message}" 1>&2
