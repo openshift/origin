@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/openshift/origin/pkg/oauthserver/api"
-	th "github.com/rackspace/gophercloud/testhelper"
+	th "github.com/gophercloud/gophercloud/testhelper"
 	"k8s.io/apiserver/pkg/authentication/user"
 )
 
