@@ -412,7 +412,7 @@ func TestPathWithinBase(t *testing.T) {
 }
 
 func TestSafeMakeDir(t *testing.T) {
-	defaultPerm := os.FileMode(0750)
+	defaultPerm := os.FileMode(0750) + os.ModeDir
 	tests := []struct {
 		name string
 		// Function that prepares directory structure for the test under given
@@ -420,6 +420,7 @@ func TestSafeMakeDir(t *testing.T) {
 		prepare     func(base string) error
 		path        string
 		checkPath   string
+		perm        os.FileMode
 		expectError bool
 	}{
 		{
@@ -429,6 +430,37 @@ func TestSafeMakeDir(t *testing.T) {
 			},
 			"test/directory",
 			"test/directory",
+			defaultPerm,
+			false,
+		},
+		{
+			"directory-with-sgid",
+			func(base string) error {
+				return nil
+			},
+			"test/directory",
+			"test/directory",
+			os.FileMode(0777) + os.ModeDir + os.ModeSetgid,
+			false,
+		},
+		{
+			"directory-with-suid",
+			func(base string) error {
+				return nil
+			},
+			"test/directory",
+			"test/directory",
+			os.FileMode(0777) + os.ModeDir + os.ModeSetuid,
+			false,
+		},
+		{
+			"directory-with-sticky-bit",
+			func(base string) error {
+				return nil
+			},
+			"test/directory",
+			"test/directory",
+			os.FileMode(0777) + os.ModeDir + os.ModeSticky,
 			false,
 		},
 		{
@@ -438,6 +470,7 @@ func TestSafeMakeDir(t *testing.T) {
 			},
 			"test/directory",
 			"test/directory",
+			defaultPerm,
 			false,
 		},
 		{
@@ -447,6 +480,7 @@ func TestSafeMakeDir(t *testing.T) {
 			},
 			"",
 			"",
+			defaultPerm,
 			false,
 		},
 		{
@@ -456,6 +490,7 @@ func TestSafeMakeDir(t *testing.T) {
 			},
 			"..",
 			"",
+			defaultPerm,
 			true,
 		},
 		{
@@ -465,6 +500,7 @@ func TestSafeMakeDir(t *testing.T) {
 			},
 			"test/../../..",
 			"",
+			defaultPerm,
 			true,
 		},
 		{
@@ -477,6 +513,7 @@ func TestSafeMakeDir(t *testing.T) {
 			},
 			"test/directory",
 			"destination/directory",
+			defaultPerm,
 			false,
 		},
 		{
@@ -486,6 +523,7 @@ func TestSafeMakeDir(t *testing.T) {
 			},
 			"test/directory",
 			"",
+			defaultPerm,
 			true,
 		},
 		{
@@ -508,6 +546,7 @@ func TestSafeMakeDir(t *testing.T) {
 			},
 			"test1/dir/dir/dir/dir/dir/dir/dir/foo",
 			"test2/foo",
+			defaultPerm,
 			false,
 		},
 		{
@@ -517,6 +556,7 @@ func TestSafeMakeDir(t *testing.T) {
 			},
 			"test/directory",
 			"",
+			defaultPerm,
 			true,
 		},
 		{
@@ -526,6 +566,7 @@ func TestSafeMakeDir(t *testing.T) {
 			},
 			"test/directory",
 			"",
+			defaultPerm,
 			true,
 		},
 		{
@@ -535,6 +576,7 @@ func TestSafeMakeDir(t *testing.T) {
 			},
 			"test",
 			"",
+			defaultPerm,
 			true,
 		},
 		{
@@ -550,6 +592,7 @@ func TestSafeMakeDir(t *testing.T) {
 			},
 			"dir/test",
 			"",
+			defaultPerm,
 			false,
 		},
 		{
@@ -562,6 +605,7 @@ func TestSafeMakeDir(t *testing.T) {
 			},
 			"dir/test",
 			"",
+			defaultPerm,
 			true,
 		},
 		{
@@ -571,6 +615,7 @@ func TestSafeMakeDir(t *testing.T) {
 			},
 			"test/directory",
 			"",
+			defaultPerm,
 			true,
 		},
 	}
@@ -583,7 +628,7 @@ func TestSafeMakeDir(t *testing.T) {
 		}
 		test.prepare(base)
 		pathToCreate := filepath.Join(base, test.path)
-		err = doSafeMakeDir(pathToCreate, base, defaultPerm)
+		err = doSafeMakeDir(pathToCreate, base, test.perm)
 		if err != nil && !test.expectError {
 			t.Errorf("test %q: %s", test.name, err)
 		}
@@ -595,14 +640,17 @@ func TestSafeMakeDir(t *testing.T) {
 		}
 
 		if test.checkPath != "" {
-			if _, err := os.Stat(filepath.Join(base, test.checkPath)); err != nil {
+			st, err := os.Stat(filepath.Join(base, test.checkPath))
+			if err != nil {
 				t.Errorf("test %q: cannot read path %s", test.name, test.checkPath)
+			}
+			if st.Mode() != test.perm {
+				t.Errorf("test %q: expected permissions %o, got %o", test.name, test.perm, st.Mode())
 			}
 		}
 
 		os.RemoveAll(base)
 	}
-
 }
 
 func validateDirEmpty(dir string) error {
