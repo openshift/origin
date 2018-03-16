@@ -115,3 +115,7 @@ Troubleshooting
 
 If you run into difficulties running OpenShift or getting the `OpenShift Sample` job to complete successfully, start by reading through the [troubleshooting guide](https://github.com/openshift/origin/blob/master/docs/debugging-openshift.md).
 
+Updating
+-----
+
+The jenkins-ephemeral and jenkins-persistent templates are sourced from the [jenkins image repository](https://github.com/openshift/jenkins) via the [OpenShift Library](https://github.com/openshift/library), so they should not be directly updated here.  Make changes upstream and then run `make update-examples` to pull in changes.
