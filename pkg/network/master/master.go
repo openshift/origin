@@ -33,7 +33,7 @@ type OsdnMaster struct {
 	kClient             kclientset.Interface
 	networkClient       networkclient.Interface
 	networkInfo         *common.NetworkInfo
-	subnetAllocatorList []*netutils.SubnetAllocator
+	subnetAllocatorList []*SubnetAllocator
 	vnids               *masterVNIDMap
 
 	kubeInformers    kinternalinformers.SharedInformerFactory
