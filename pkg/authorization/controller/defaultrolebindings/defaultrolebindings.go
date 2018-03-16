@@ -9,7 +9,6 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	coreinformers "k8s.io/client-go/informers/core/v1"
 	rbacinformers "k8s.io/client-go/informers/rbac/v1"
@@ -24,7 +23,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 )
 
-var defaultRoleBindingNames = getDefaultRoleBindingNames()
+var defaultRoleBindingNames = bootstrappolicy.GetBootstrapServiceAccountProjectRoleBindingNames()
 
 // DefaultRoleBindingController is a controller to combine cluster roles
 type DefaultRoleBindingController struct {
@@ -184,15 +183,4 @@ func (c *DefaultRoleBindingController) processNextWorkItem() bool {
 	c.queue.AddRateLimited(dsKey)
 
 	return true
-}
-
-func getDefaultRoleBindingNames() sets.String {
-	roleBindings := bootstrappolicy.GetBootstrapServiceAccountProjectV1RoleBindings("default")
-	names := []string{}
-
-	for _, roleBinding := range roleBindings {
-		names = append(names, roleBinding.Name)
-	}
-
-	return sets.NewString(names...)
 }
