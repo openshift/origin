@@ -19,12 +19,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit fd9a9424345bc54a39efb1221a1b519d460bbead
+%global commit 0e5c8f0edeb71c3d132297833732833592217521
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=10+ OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.10.0-0.8.0 OS_GIT_TREE_STATE=clean OS_GIT_PATCH=0 KUBE_GIT_VERSION=v1.9.1+a0ce1bc657 OS_GIT_CATALOG_VERSION=v0.1.9 KUBE_GIT_COMMIT=a0ce1bc OS_GIT_COMMIT=f8ebc08 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.16 ETCD_GIT_COMMIT=121edf0
+%global os_git_vars OS_GIT_MINOR=10+ OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.10.0-0.9.0 OS_GIT_TREE_STATE=clean OS_GIT_PATCH=0 KUBE_GIT_VERSION=v1.9.1+a0ce1bc657 OS_GIT_CATALOG_VERSION=v0.1.9 KUBE_GIT_COMMIT=a0ce1bc OS_GIT_COMMIT=626845b OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.16 ETCD_GIT_COMMIT=121edf0
 }
 
 %if 0%{?skip_build}
@@ -67,7 +67,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.10.0
-Release:        0.9.0%{?dist}
+Release:        0.10.0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -607,6 +607,21 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Fri Mar 16 2018 Justin Pierce <jupierce@redhat.com> 3.10.0-0.10.0
+- Add networking team members to pkg/cmd/OWNERS (bbennett@redhat.com)
+- Revert "Fix multicast test to run under ovs-networkpolicy plugin"
+  (ccoleman@redhat.com)
+- Handle role binding AlreadyExists errors on project creation
+  (mkhan@redhat.com)
+- Fail multicast test properly if pods can't be started (danw@redhat.com)
+- Fix multicast test to run under ovs-networkpolicy plugin (danw@redhat.com)
+- Wire in WebhookTokenAutenticator support (simo@redhat.com)
+- Include context UID for virtual user ~ (mkhan@redhat.com)
+- Avoid NodeNetworkUnavailable condition check for every node status update
+  (rpenta@redhat.com)
+- Fix clearInitialNodeNetworkUnavailableCondition() in sdn master
+  (rpenta@redhat.com)
+
 * Thu Mar 15 2018 Justin Pierce <jupierce@redhat.com> 3.10.0-0.9.0
 - remove the concept of tasks from cluster up and move installation logic to
   start (deads@redhat.com)
