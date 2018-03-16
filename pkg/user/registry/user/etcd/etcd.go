@@ -7,6 +7,7 @@ import (
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
@@ -62,24 +63,33 @@ func (r *REST) Get(ctx apirequest.Context, name string, options *metav1.GetOptio
 		contextGroups := sets.NewString(user.GetGroups()...)
 		contextGroups.Delete(bootstrappolicy.UnauthenticatedGroup, bootstrappolicy.AuthenticatedGroup)
 
+		// build a virtual user object using the context data
+		virtualUser := &userapi.User{ObjectMeta: metav1.ObjectMeta{Name: name, UID: types.UID(user.GetUID())}, Groups: contextGroups.List()}
+
 		if reasons := validation.ValidateUserName(name, false); len(reasons) != 0 {
 			// The user the authentication layer has identified cannot be a valid persisted user
 			// Return an API representation of the virtual user
-			return &userapi.User{ObjectMeta: metav1.ObjectMeta{Name: name}, Groups: contextGroups.List()}, nil
+			return virtualUser, nil
 		}
 
+		// see if the context user exists in storage
 		obj, err := r.Store.Get(ctx, name, options)
+
+		// valid persisted user
 		if err == nil {
 			return obj, nil
 		}
 
+		// server is broken
 		if !kerrs.IsNotFound(err) {
-			return nil, err
+			return nil, kerrs.NewInternalError(err)
 		}
 
-		return &userapi.User{ObjectMeta: metav1.ObjectMeta{Name: name}, Groups: contextGroups.List()}, nil
+		// impersonation, remote token authn, etc
+		return virtualUser, nil
 	}
 
+	// do not bother looking up users that cannot be persisted
 	if reasons := validation.ValidateUserName(name, false); len(reasons) != 0 {
 		return nil, field.Invalid(field.NewPath("metadata", "name"), name, strings.Join(reasons, ", "))
 	}

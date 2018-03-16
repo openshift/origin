@@ -1,6 +1,8 @@
 package validation
 
 import (
+	"io/ioutil"
+	"os"
 	"testing"
 
 	"k8s.io/apimachinery/pkg/util/diff"
@@ -522,6 +524,90 @@ func TestValidateIngressIPNetworkCIDR(t *testing.T) {
 		errorCount := len(errors)
 		if test.errorCount != errorCount {
 			t.Errorf("%s: expected %d errors, got %d", test.testName, test.errorCount, errorCount)
+		}
+	}
+}
+
+func TestValidateMasterAuthConfig(t *testing.T) {
+	testConfigFile, err := ioutil.TempFile("", "test1.cfg")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	defer os.Remove(testConfigFile.Name())
+
+	testCases := []struct {
+		testName                   string
+		RequestHeader              *configapi.RequestHeaderAuthenticationOptions
+		WebhookTokenAuthenticators []configapi.WebhookTokenAuthenticator
+		expectedErrors             []string
+	}{
+		{
+			testName: "No AuthConfig",
+		},
+		{
+			testName: "Valid RequestHeader",
+			RequestHeader: &configapi.RequestHeaderAuthenticationOptions{
+				ClientCA:            "ClientCA",
+				ClientCommonNames:   []string{"ClientCommonNames", "2", "3"},
+				UsernameHeaders:     []string{"Username", "Headers"},
+				GroupHeaders:        []string{"Group", "Headers"},
+				ExtraHeaderPrefixes: []string{"Extra", "Header", "Prefixes"},
+			},
+		},
+		{
+			testName: "Only One WebhookTokenAuthenticator",
+			WebhookTokenAuthenticators: []configapi.WebhookTokenAuthenticator{
+				{
+					ConfigFile: testConfigFile.Name(),
+					CacheTTL:   "2m",
+				},
+			},
+		},
+		{
+			testName: "Unexisting config file in second WebhookTokenAuthenticator",
+			WebhookTokenAuthenticators: []configapi.WebhookTokenAuthenticator{
+				{
+					ConfigFile: testConfigFile.Name(),
+					CacheTTL:   "2m",
+				},
+				{
+					ConfigFile: "Unexisting",
+					CacheTTL:   "2m",
+				},
+			},
+			expectedErrors: []string{"webhookTokenAuthenticators.ConfigFile: Invalid value: \"Unexisting\": could not read file: stat Unexisting: no such file or directory"},
+		},
+		{
+			testName: "Invalid and Empty CacheTTL WebhookTokenAuthenticator",
+			WebhookTokenAuthenticators: []configapi.WebhookTokenAuthenticator{
+				{
+					ConfigFile: testConfigFile.Name(),
+					CacheTTL:   "-2m",
+				},
+				{
+					ConfigFile: testConfigFile.Name(),
+				},
+			},
+			expectedErrors: []string{
+				"webhookTokenAuthenticators.cacheTTL: Invalid value: \"-2m\": cannot be less than zero",
+				"webhookTokenAuthenticators.cacheTTL: Required value",
+			},
+		},
+	}
+	for _, test := range testCases {
+		config := configapi.MasterAuthConfig{
+			RequestHeader:              test.RequestHeader,
+			WebhookTokenAuthenticators: test.WebhookTokenAuthenticators,
+		}
+		errors := ValidateMasterAuthConfig(config, nil)
+		if len(test.expectedErrors) != len(errors.Errors) {
+			t.Errorf("%s: expected %v errors, got %v", test.testName, test.expectedErrors, errors.Errors)
+			continue
+		}
+		for i := range test.expectedErrors {
+			if errors.Errors[i].Error() != test.expectedErrors[i] {
+				t.Errorf("%s: expected error '%s', got '%s'", test.testName, test.expectedErrors[i], errors.Errors[i])
+			}
 		}
 	}
 }
