@@ -588,7 +588,7 @@ func BuildKubernetesMasterConfig(
 
 func defaultOpenAPIConfig(config configapi.MasterConfig) *openapicommon.Config {
 	securityDefinitions := spec.SecurityDefinitions{}
-	if len(config.ServiceAccountConfig.PublicKeyFiles) > 0 {
+	if len(config.ServiceAccountConfig.PublicKeyFiles) > 0 || len(config.AuthConfig.WebhookTokenAuthenticators) > 0 {
 		securityDefinitions["BearerToken"] = &spec.SecurityScheme{
 			SecuritySchemeProps: spec.SecuritySchemeProps{
 				Type:        "apiKey",

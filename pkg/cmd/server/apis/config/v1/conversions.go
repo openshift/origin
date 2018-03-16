@@ -136,6 +136,13 @@ func SetDefaults_MasterConfig(obj *MasterConfig) {
 			obj.AdmissionConfig.PluginConfig[pluginName] = &AdmissionPluginConfig{}
 		}
 	}
+
+	// Set defaults Cache TTLs for external Webhook Token Reviewers
+	for i := range obj.AuthConfig.WebhookTokenAuthenticators {
+		if len(obj.AuthConfig.WebhookTokenAuthenticators[i].CacheTTL) == 0 {
+			obj.AuthConfig.WebhookTokenAuthenticators[i].CacheTTL = "2m"
+		}
+	}
 }
 
 func SetDefaults_KubernetesMasterConfig(obj *KubernetesMasterConfig) {

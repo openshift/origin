@@ -294,6 +294,8 @@ type MasterConfig struct {
 type MasterAuthConfig struct {
 	// RequestHeader holds options for setting up a front proxy against the the API.  It is optional.
 	RequestHeader *RequestHeaderAuthenticationOptions `json:"requestHeader"`
+	// WebhookTokenAuthnConfig, if present configures remote token reviewers
+	WebhookTokenAuthenticators []WebhookTokenAuthenticator `json:"webhookTokenAuthenticators"`
 }
 
 // RequestHeaderAuthenticationOptions provides options for setting up a front proxy against the entire
@@ -709,6 +711,18 @@ type DNSConfig struct {
 	// resolvers can be used for DNS amplification attacks and the master DNS should not be made accessible
 	// to public networks.
 	AllowRecursiveQueries bool `json:"allowRecursiveQueries"`
+}
+
+// WebhookTokenAuthenticators holds the necessary configuation options for
+// external token authenticators
+type WebhookTokenAuthenticator struct {
+	// ConfigFile is a path to a Kubeconfig file with the webhook configuration
+	ConfigFile string `json:"configFile"`
+	// CacheTTL indicates how long an authentication result should be cached.
+	// It takes a valid time duration string (e.g. "5m").
+	// If empty, you get a default timeout of 2 minutes.
+	// If zero (e.g. "0m"), caching is disabled
+	CacheTTL string `json:"cacheTTL"`
 }
 
 // OAuthConfig holds the necessary configuration options for OAuth authentication

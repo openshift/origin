@@ -215,6 +215,12 @@ func fuzzInternalObject(t *testing.T, forVersion schema.GroupVersion, item runti
 				}
 			}
 
+			for i := range obj.AuthConfig.WebhookTokenAuthenticators {
+				if len(obj.AuthConfig.WebhookTokenAuthenticators[i].CacheTTL) == 0 {
+					obj.AuthConfig.WebhookTokenAuthenticators[i].CacheTTL = "2m"
+				}
+			}
+
 			obj.AuditConfig.InternalAuditFilePath = ""
 
 			// this field isn't serialized
