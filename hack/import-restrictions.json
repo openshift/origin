@@ -353,7 +353,7 @@
       "vendor/github.com/gorilla/securecookie",
       "vendor/github.com/gorilla/sessions",
       "vendor/github.com/gorilla/context",
-      "vendor/github.com/rackspace/gophercloud",
+      "vendor/github.com/gophercloud/gophercloud",
       "vendor/gopkg.in/ldap.v2",
       "vendor/github.com/prometheus/client_golang/prometheus",
       "vendor/github.com/openshift/api",
