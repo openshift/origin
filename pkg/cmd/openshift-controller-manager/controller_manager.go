@@ -187,6 +187,7 @@ func newControllerContext(
 		AuthorizationInformers:  informers.GetAuthorizationInformers(),
 		BuildInformers:          informers.GetBuildInformers(),
 		ImageInformers:          informers.GetImageInformers(),
+		NetworkInformers:        informers.GetNetworkInformers(),
 		QuotaInformers:          informers.GetQuotaInformers(),
 		SecurityInformers:       informers.GetSecurityInformers(),
 		TemplateInformers:       informers.GetTemplateInformers(),
