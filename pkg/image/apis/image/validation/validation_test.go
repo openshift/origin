@@ -191,23 +191,6 @@ func TestValidateImageSignature(t *testing.T) {
 		},
 
 		{
-			name: "adding labels and anotations",
-			signature: imageapi.ImageSignature{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:        "img@annotated",
-					Annotations: map[string]string{"key": "value"},
-					Labels:      map[string]string{"label": "value"},
-				},
-				Type:    "valid",
-				Content: []byte("blob"),
-			},
-			expected: field.ErrorList{
-				field.Forbidden(field.NewPath("metadata").Child("labels"), "signature labels cannot be set"),
-				field.Forbidden(field.NewPath("metadata").Child("annotations"), "signature annotations cannot be set"),
-			},
-		},
-
-		{
 			name: "filled metadata for unknown signature state",
 			signature: imageapi.ImageSignature{
 				ObjectMeta: metav1.ObjectMeta{Name: "img@metadatafilled"},
