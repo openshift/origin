@@ -242,7 +242,7 @@ var _ = g.Describe("idling and unidling", func() {
 		g.By("Waiting for the endpoints to exist")
 		serviceName := resources["service"][0]
 		g.By("Waiting for endpoints to be up")
-		err = waitForEndpointsAvailable(oc, serviceName)
+		err = exutil.WaitForEndpointsAvailable(oc, serviceName)
 		o.Expect(err).ToNot(o.HaveOccurred())
 	})
 
@@ -287,7 +287,7 @@ var _ = g.Describe("idling and unidling", func() {
 			o.Expect(err).ToNot(o.HaveOccurred())
 
 			g.By("Waiting for the pods to have terminated")
-			err = waitForNoPodsAvailable(oc)
+			err = exutil.WaitForNoPodsAvailable(oc)
 			o.Expect(err).ToNot(o.HaveOccurred())
 
 			g.By("Connecting to the service IP and checking the echo")
@@ -299,7 +299,7 @@ var _ = g.Describe("idling and unidling", func() {
 			o.Expect(err).ToNot(o.HaveOccurred())
 
 			g.By("Waiting until we have endpoints")
-			err = waitForEndpointsAvailable(oc, serviceName)
+			err = exutil.WaitForEndpointsAvailable(oc, serviceName)
 			o.Expect(err).ToNot(o.HaveOccurred())
 
 			endpoints, err := oc.KubeClient().CoreV1().Endpoints(oc.Namespace()).Get(serviceName, metav1.GetOptions{})
@@ -323,7 +323,7 @@ var _ = g.Describe("idling and unidling", func() {
 			o.Consistently(func() error { return tryEchoTCP(svc) }, 10*time.Second, 500*time.Millisecond).ShouldNot(o.HaveOccurred())
 
 			g.By("Waiting until we have endpoints")
-			err = waitForEndpointsAvailable(oc, serviceName)
+			err = exutil.WaitForEndpointsAvailable(oc, serviceName)
 			o.Expect(err).ToNot(o.HaveOccurred())
 
 			endpoints, err := oc.KubeClient().CoreV1().Endpoints(oc.Namespace()).Get(serviceName, metav1.GetOptions{})
@@ -341,7 +341,7 @@ var _ = g.Describe("idling and unidling", func() {
 
 			g.By("Waiting for the pods to have terminated")
 			serviceName := resources["service"][0]
-			err = waitForNoPodsAvailable(oc)
+			err = exutil.WaitForNoPodsAvailable(oc)
 			o.Expect(err).ToNot(o.HaveOccurred())
 
 			g.By("Connecting to the service IP many times and checking the echo")
@@ -374,7 +374,7 @@ var _ = g.Describe("idling and unidling", func() {
 			o.Expect(errCount).To(o.Equal(connectionsToStart - unidlingproxy.MaxHeldConnections))
 
 			g.By("Waiting until we have endpoints")
-			err = waitForEndpointsAvailable(oc, serviceName)
+			err = exutil.WaitForEndpointsAvailable(oc, serviceName)
 
 			endpoints, err := oc.KubeClient().CoreV1().Endpoints(oc.Namespace()).Get(serviceName, metav1.GetOptions{})
 			o.Expect(err).ToNot(o.HaveOccurred())
@@ -390,7 +390,7 @@ var _ = g.Describe("idling and unidling", func() {
 			o.Expect(err).ToNot(o.HaveOccurred())
 
 			g.By("Waiting for the pods to have terminated")
-			err = waitForNoPodsAvailable(oc)
+			err = exutil.WaitForNoPodsAvailable(oc)
 			o.Expect(err).ToNot(o.HaveOccurred())
 
 			g.By("Connecting to the service IP and checking the echo")
@@ -402,7 +402,7 @@ var _ = g.Describe("idling and unidling", func() {
 			o.Expect(err).ToNot(o.HaveOccurred())
 
 			g.By("Waiting until we have endpoints")
-			err = waitForEndpointsAvailable(oc, serviceName)
+			err = exutil.WaitForEndpointsAvailable(oc, serviceName)
 			o.Expect(err).ToNot(o.HaveOccurred())
 
 			endpoints, err := oc.KubeClient().CoreV1().Endpoints(oc.Namespace()).Get(serviceName, metav1.GetOptions{})
@@ -420,7 +420,7 @@ var _ = g.Describe("idling and unidling", func() {
 			o.Expect(err).ToNot(o.HaveOccurred())
 
 			g.By("Waiting for the pods to have terminated")
-			err = waitForNoPodsAvailable(oc)
+			err = exutil.WaitForNoPodsAvailable(oc)
 			o.Expect(err).ToNot(o.HaveOccurred())
 
 			g.By("Connecting to the service IP many times and checking the echo")
@@ -454,7 +454,7 @@ var _ = g.Describe("idling and unidling", func() {
 			o.Expect(errCount).To(o.Equal(0))
 
 			g.By("Waiting until we have endpoints")
-			err = waitForEndpointsAvailable(oc, serviceName)
+			err = exutil.WaitForEndpointsAvailable(oc, serviceName)
 			o.Expect(err).ToNot(o.HaveOccurred())
 
 			endpoints, err := oc.KubeClient().CoreV1().Endpoints(oc.Namespace()).Get(serviceName, metav1.GetOptions{})
