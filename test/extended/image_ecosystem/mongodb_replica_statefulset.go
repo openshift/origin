@@ -47,14 +47,9 @@ var _ = g.Describe("[Conformance][image_ecosystem][mongodb][Slow] openshift mong
 				oc.SetOutputDir(exutil.TestContext.OutputDir)
 
 				g.By("creating persistent volumes")
-				_, err := exutil.SetupHostPathVolumes(
-					oc.AdminKubeClient().Core().PersistentVolumes(),
-					oc.Namespace(),
-					"256Mi",
-					3,
-				)
+				_, err := exutil.SetupHostPathVolumes(oc, "256Mi", 3)
 				o.Expect(err).NotTo(o.HaveOccurred())
-				defer cleanup(oc)
+				defer exutil.RemoveHostPathVolumes(oc)
 
 				g.By("creating a new app")
 				o.Expect(

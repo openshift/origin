@@ -20,7 +20,6 @@ import (
 	batchv1 "k8s.io/api/batch/v1"
 	kapiv1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
@@ -48,6 +47,7 @@ import (
 )
 
 const pvPrefix = "pv-"
+const nfsPrefix = "nfs-"
 
 // WaitForOpenShiftNamespaceImageStreams waits for the standard set of imagestreams to be imported
 func WaitForOpenShiftNamespaceImageStreams(oc *CLI) error {
@@ -1077,123 +1077,6 @@ func GetPodForContainer(container kapiv1.Container) *kapiv1.Pod {
 			RestartPolicy: kapiv1.RestartPolicyNever,
 		},
 	}
-}
-
-// CreatePersistentVolume creates a HostPath Persistent Volume.
-func CreatePersistentVolume(name, capacity, hostPath string) *kapiv1.PersistentVolume {
-	return &kapiv1.PersistentVolume{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "PersistentVolume",
-			APIVersion: "v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:   name,
-			Labels: map[string]string{"name": name},
-		},
-		Spec: kapiv1.PersistentVolumeSpec{
-			PersistentVolumeSource: kapiv1.PersistentVolumeSource{
-				HostPath: &kapiv1.HostPathVolumeSource{
-					Path: hostPath,
-				},
-			},
-			Capacity: kapiv1.ResourceList{
-				kapiv1.ResourceStorage: resource.MustParse(capacity),
-			},
-			AccessModes: []kapiv1.PersistentVolumeAccessMode{
-				kapiv1.ReadWriteOnce,
-				kapiv1.ReadOnlyMany,
-				kapiv1.ReadWriteMany,
-			},
-		},
-	}
-}
-
-// SetupHostPathVolumes will create multiple PersistentVolumes with given capacity
-func SetupHostPathVolumes(c kcoreclient.PersistentVolumeInterface, prefix, capacity string, count int) (volumes []*kapiv1.PersistentVolume, err error) {
-	rootDir, err := ioutil.TempDir(TestContext.OutputDir, "persistent-volumes")
-	if err != nil {
-		e2e.Logf("Error creating pv dir %s: %v\n", TestContext.OutputDir, err)
-		return volumes, err
-	}
-	e2e.Logf("Created pv dir %s\n", rootDir)
-	for i := 0; i < count; i++ {
-		dir, err := ioutil.TempDir(rootDir, fmt.Sprintf("%0.4d", i))
-		if err != nil {
-			e2e.Logf("Error creating pv subdir %s: %v\n", rootDir, err)
-			return volumes, err
-		}
-		e2e.Logf("Created pv subdir %s\n", dir)
-		if _, err = exec.LookPath("chcon"); err == nil {
-			e2e.Logf("Found chcon in path\n")
-			//err := exec.Command("chcon", "-t", "container_file_t", dir).Run()
-			out, err := exec.Command("chcon", "-t", "svirt_sandbox_file_t", dir).CombinedOutput()
-			if err != nil {
-				e2e.Logf("Error running chcon on %s, %s, %v\n", dir, string(out), err)
-				return volumes, err
-			}
-			e2e.Logf("Ran chcon on %s\n", dir)
-		}
-		if err != nil {
-			e2e.Logf("Error finding chcon in path: %v\n", err)
-			return volumes, err
-		}
-		if err = os.Chmod(dir, 0777); err != nil {
-			e2e.Logf("Error running chmod on %s, %v\n", dir, err)
-			return volumes, err
-		}
-		e2e.Logf("Ran chmod on %s\n", dir)
-		pv, err := c.Create(CreatePersistentVolume(fmt.Sprintf("%s%s-%0.4d", pvPrefix, prefix, i), capacity, dir))
-		if err != nil {
-			e2e.Logf("Error defining PV %v\n", err)
-			return volumes, err
-		}
-		e2e.Logf("Created PVs\n")
-		volumes = append(volumes, pv)
-	}
-	return volumes, err
-}
-
-// CleanupHostPathVolumes removes all PersistentVolumes created by
-// SetupHostPathVolumes, with a given prefix
-func CleanupHostPathVolumes(c kcoreclient.PersistentVolumeInterface, prefix string) error {
-	pvs, err := c.List(metav1.ListOptions{})
-	if err != nil {
-		return err
-	}
-	prefix = fmt.Sprintf("%s%s-", pvPrefix, prefix)
-	for _, pv := range pvs.Items {
-		if !strings.HasPrefix(pv.Name, prefix) {
-			continue
-		}
-
-		pvInfo, err := c.Get(pv.Name, metav1.GetOptions{})
-		if err != nil {
-			e2e.Logf("WARNING: couldn't get meta info for PV %s: %v\n", pv.Name, err)
-			continue
-		}
-
-		if err = c.Delete(pv.Name, nil); err != nil {
-			e2e.Logf("WARNING: couldn't remove PV %s: %v\n", pv.Name, err)
-			continue
-		}
-
-		volumeDir := pvInfo.Spec.HostPath.Path
-		if err = os.RemoveAll(volumeDir); err != nil {
-			e2e.Logf("WARNING: couldn't remove directory %q: %v\n", volumeDir, err)
-			continue
-		}
-
-		parentDir := filepath.Dir(volumeDir)
-		if parentDir == "." || parentDir == "/" {
-			continue
-		}
-
-		if err = os.Remove(parentDir); err != nil {
-			e2e.Logf("WARNING: couldn't remove directory %q: %v\n", parentDir, err)
-			continue
-		}
-	}
-	return nil
 }
 
 // KubeConfigPath returns the value of KUBECONFIG environment variable
