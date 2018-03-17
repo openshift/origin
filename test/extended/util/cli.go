@@ -20,6 +20,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apiserver/pkg/storage/names"
 	kclientset "k8s.io/client-go/kubernetes"
+	restclient "k8s.io/client-go/rest"
 	clientcmd "k8s.io/client-go/tools/clientcmd"
 	kinternalclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
@@ -384,6 +385,14 @@ func (c *CLI) InternalAdminKubeClient() kinternalclientset.Interface {
 		FatalErr(err)
 	}
 	return kubeClient
+}
+
+func (c *CLI) AdminConfig() *restclient.Config {
+	_, clientConfig, err := configapi.GetExternalKubeClient(c.adminConfigPath, nil)
+	if err != nil {
+		FatalErr(err)
+	}
+	return clientConfig
 }
 
 // Namespace returns the name of the namespace used in the current test case.
