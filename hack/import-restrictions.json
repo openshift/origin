@@ -395,6 +395,7 @@
       "vendor/github.com/docker/docker",
       "vendor/github.com/docker/go-connections",
       "vendor/github.com/docker/go-units",
+      "vendor/github.com/docker/libtrust",
       "vendor/github.com/evanphx/json-patch",
       "vendor/github.com/fsnotify/fsnotify",
       "vendor/github.com/fsouza/go-dockerclient",

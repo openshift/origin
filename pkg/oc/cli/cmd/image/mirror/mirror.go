@@ -1,18 +1,26 @@
 package mirror
 
 import (
+	"bufio"
 	"fmt"
 	"io"
+	"os"
 	"regexp"
 	"strings"
+	"sync"
 
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/manifest/manifestlist"
+	"github.com/docker/distribution/manifest/schema1"
 	"github.com/docker/distribution/manifest/schema2"
 	"github.com/docker/distribution/reference"
+	"github.com/docker/distribution/registry/api/errcode"
+	"github.com/docker/distribution/registry/api/v2"
 	"github.com/docker/distribution/registry/client"
 	"github.com/docker/distribution/registry/client/auth"
+
 	units "github.com/docker/go-units"
+	"github.com/docker/libtrust"
 	"github.com/golang/glog"
 	godigest "github.com/opencontainers/go-digest"
 	"github.com/spf13/cobra"
@@ -89,6 +97,8 @@ type Mapping struct {
 type pushOptions struct {
 	Out, ErrOut io.Writer
 
+	Filenames []string
+
 	Mappings []Mapping
 	OSFilter *regexp.Regexp
 
@@ -130,6 +140,7 @@ func NewCmdMirrorImage(name string, out, errOut io.Writer) *cobra.Command {
 	flag.StringVar(&o.FilterByOS, "filter-by-os", o.FilterByOS, "A regular expression to control which images are mirrored. Images will be passed as '<platform>/<architecture>[/<variant>]'.")
 	flag.BoolVar(&o.Force, "force", o.Force, "If true, attempt to write all contents.")
 	flag.StringSliceVar(&o.AttemptS3BucketCopy, "s3-source-bucket", o.AttemptS3BucketCopy, "A list of bucket/path locations on S3 that may contain already uploaded blobs. Add [store] to the end to use the Docker registry path convention.")
+	flag.StringSliceVarP(&o.Filenames, "filename", "f", o.Filenames, "One or more files to read SRC=DST or SRC DST [DST ...] mappings from.")
 
 	return cmd
 }
@@ -162,9 +173,9 @@ func parseDestination(ref string) (imageapi.DockerImageReference, DestinationTyp
 	return dst, dstType, nil
 }
 
-func (o *pushOptions) Complete(args []string) error {
+func parseArgs(args []string, overlap map[string]string) ([]Mapping, error) {
 	var remainingArgs []string
-	overlap := make(map[string]string)
+	var mappings []Mapping
 	for _, s := range args {
 		parts := strings.SplitN(s, "=", 2)
 		if len(parts) != 2 {
@@ -172,46 +183,99 @@ func (o *pushOptions) Complete(args []string) error {
 			continue
 		}
 		if len(parts[0]) == 0 || len(parts[1]) == 0 {
-			return fmt.Errorf("all arguments must be valid SRC=DST mappings")
+			return nil, fmt.Errorf("all arguments must be valid SRC=DST mappings")
 		}
 		src, err := parseSource(parts[0])
 		if err != nil {
-			return err
+			return nil, err
 		}
 		dst, dstType, err := parseDestination(parts[1])
 		if err != nil {
-			return err
+			return nil, err
 		}
 		if _, ok := overlap[dst.String()]; ok {
-			return fmt.Errorf("each destination tag may only be specified once: %s", dst.String())
+			return nil, fmt.Errorf("each destination tag may only be specified once: %s", dst.String())
 		}
 		overlap[dst.String()] = src.String()
 
-		o.Mappings = append(o.Mappings, Mapping{Source: src, Destination: dst, Type: dstType})
+		mappings = append(mappings, Mapping{Source: src, Destination: dst, Type: dstType})
 	}
 
 	switch {
-	case len(remainingArgs) == 0 && len(o.Mappings) > 0:
-		// user has input arguments
-	case len(remainingArgs) > 1 && len(o.Mappings) == 0:
+	case len(remainingArgs) > 1 && len(mappings) == 0:
 		src, err := parseSource(remainingArgs[0])
 		if err != nil {
-			return err
+			return nil, err
 		}
 		for i := 1; i < len(remainingArgs); i++ {
 			dst, dstType, err := parseDestination(remainingArgs[i])
 			if err != nil {
-				return err
+				return nil, err
 			}
 			if _, ok := overlap[dst.String()]; ok {
-				return fmt.Errorf("each destination tag may only be specified once: %s", dst.String())
+				return nil, fmt.Errorf("each destination tag may only be specified once: %s", dst.String())
 			}
 			overlap[dst.String()] = src.String()
-			o.Mappings = append(o.Mappings, Mapping{Source: src, Destination: dst, Type: dstType})
+			mappings = append(mappings, Mapping{Source: src, Destination: dst, Type: dstType})
 		}
-	case len(remainingArgs) == 1 && len(o.Mappings) == 0:
-		return fmt.Errorf("all arguments must be valid SRC=DST mappings, or you must specify one SRC argument and one or more DST arguments")
-	default:
+	case len(remainingArgs) == 1 && len(mappings) == 0:
+		return nil, fmt.Errorf("all arguments must be valid SRC=DST mappings, or you must specify one SRC argument and one or more DST arguments")
+	}
+	return mappings, nil
+}
+
+func parseFile(filename string, overlap map[string]string) ([]Mapping, error) {
+	var fileMappings []Mapping
+	f, err := os.Open(filename)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	s := bufio.NewScanner(f)
+	lineNumber := 0
+	for s.Scan() {
+		line := s.Text()
+		lineNumber++
+
+		// remove comments and whitespace
+		if i := strings.Index(line, "#"); i != -1 {
+			line = line[0:i]
+		}
+		line = strings.TrimSpace(line)
+		if len(line) == 0 {
+			continue
+		}
+
+		args := strings.Split(line, " ")
+		mappings, err := parseArgs(args, overlap)
+		if err != nil {
+			return nil, fmt.Errorf("file %s, line %d: %v", filename, lineNumber, err)
+		}
+		fileMappings = append(fileMappings, mappings...)
+	}
+	if err := s.Err(); err != nil {
+		return nil, err
+	}
+	return fileMappings, nil
+}
+
+func (o *pushOptions) Complete(args []string) error {
+	overlap := make(map[string]string)
+
+	var err error
+	o.Mappings, err = parseArgs(args, overlap)
+	if err != nil {
+		return err
+	}
+	for _, filename := range o.Filenames {
+		mappings, err := parseFile(filename, overlap)
+		if err != nil {
+			return err
+		}
+		o.Mappings = append(o.Mappings, mappings...)
+	}
+
+	if len(o.Mappings) == 0 {
 		return fmt.Errorf("you must specify at least one source image to pull and the destination to push to as SRC=DST or SRC DST [DST2 DST3 ...]")
 	}
 
@@ -461,7 +525,7 @@ func (o *pushOptions) Run() error {
 					}
 				}
 
-				if errs := uploadAndTagManifests(ctx, dst, srcManifest, src.ref, toManifests, o.Out); len(errs) > 0 {
+				if errs := uploadAndTagManifests(ctx, dst, srcManifest, src.ref, toManifests, o.Out, toRepo.Blobs(ctx), canonicalTo); len(errs) > 0 {
 					digestErrs = append(digestErrs, errs...)
 					continue
 				}
@@ -660,12 +724,15 @@ func uploadAndTagManifests(
 	srcRef imageapi.DockerImageReference,
 	toManifests distribution.ManifestService,
 	out io.Writer,
+	// supports schema2->schema1 downconversion
+	blobs distribution.BlobService,
+	ref reference.Named,
 ) []retrieverError {
 	var errs []retrieverError
 
 	// upload and tag the manifest
 	for _, tag := range dst.tags {
-		toDigest, err := toManifests.Put(ctx, srcManifest, distribution.WithTag(tag))
+		toDigest, err := putManifestInCompatibleSchema(ctx, srcManifest, tag, toManifests, blobs, ref)
 		if err != nil {
 			errs = append(errs, retrieverError{src: srcRef, dst: dst.ref, err: fmt.Errorf("unable to push manifest to %s: %v", dst.ref, err)})
 			continue
@@ -682,7 +749,7 @@ func uploadAndTagManifests(
 	}
 
 	// this is a pure manifest move, put the manifest by its id
-	toDigest, err := toManifests.Put(ctx, srcManifest)
+	toDigest, err := putManifestInCompatibleSchema(ctx, srcManifest, "latest", toManifests, blobs, ref)
 	if err != nil {
 		errs = append(errs, retrieverError{src: srcRef, dst: dst.ref, err: fmt.Errorf("unable to push manifest to %s: %v", dst.ref, err)})
 		return errs
@@ -694,6 +761,89 @@ func uploadAndTagManifests(
 		fmt.Fprintf(out, "%s %s\n", toDigest, dst.ref)
 	}
 	return errs
+}
+
+// TDOO: remove when quay.io switches to v2 schema
+func putManifestInCompatibleSchema(
+	ctx apirequest.Context,
+	srcManifest distribution.Manifest,
+	tag string,
+	toManifests distribution.ManifestService,
+	// supports schema2 -> schema1 downconversion
+	blobs distribution.BlobService,
+	ref reference.Named,
+) (godigest.Digest, error) {
+
+	toDigest, err := toManifests.Put(ctx, srcManifest, distribution.WithTag(tag))
+	if err == nil {
+		return toDigest, nil
+	}
+	errs, ok := err.(errcode.Errors)
+	if !ok || len(errs) == 0 {
+		return toDigest, err
+	}
+	errcode, ok := errs[0].(errcode.Error)
+	if !ok || errcode.ErrorCode() != v2.ErrorCodeManifestInvalid {
+		return toDigest, err
+	}
+	// try downconverting to v2-schema1
+	schema2Manifest, ok := srcManifest.(*schema2.DeserializedManifest)
+	if !ok {
+		return toDigest, err
+	}
+	ref, tagErr := reference.WithTag(ref, tag)
+	if tagErr != nil {
+		return toDigest, err
+	}
+	schema1Manifest, convertErr := convertToSchema1(ctx, blobs, schema2Manifest, ref)
+	if convertErr != nil {
+		return toDigest, err
+	}
+	return toManifests.Put(ctx, schema1Manifest, distribution.WithTag(tag))
+}
+
+// TDOO: remove when quay.io switches to v2 schema
+func convertToSchema1(ctx apirequest.Context, blobs distribution.BlobService, schema2Manifest *schema2.DeserializedManifest, ref reference.Named) (distribution.Manifest, error) {
+	targetDescriptor := schema2Manifest.Target()
+	configJSON, err := blobs.Get(ctx, targetDescriptor.Digest)
+	if err != nil {
+		return nil, err
+	}
+	trustKey, err := loadPrivateKey()
+	if err != nil {
+		return nil, err
+	}
+	builder := schema1.NewConfigManifestBuilder(blobs, trustKey, ref, configJSON)
+	for _, d := range schema2Manifest.Layers {
+		if err := builder.AppendReference(d); err != nil {
+			return nil, err
+		}
+	}
+	manifest, err := builder.Build(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return manifest, nil
+}
+
+var (
+	privateKeyLock sync.Mutex
+	privateKey     libtrust.PrivateKey
+)
+
+// TDOO: remove when quay.io switches to v2 schema
+func loadPrivateKey() (libtrust.PrivateKey, error) {
+	privateKeyLock.Lock()
+	defer privateKeyLock.Unlock()
+	if privateKey != nil {
+		return privateKey, nil
+	}
+	trustKey, err := libtrust.GenerateECP256PrivateKey()
+	if err != nil {
+		return nil, err
+	}
+	privateKey = trustKey
+	return privateKey, nil
 }
 
 type optionFunc func(interface{}) error
