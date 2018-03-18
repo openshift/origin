@@ -29,14 +29,20 @@ var (
 var _ = g.Describe("[image_ecosystem][postgresql][Slow][local] openshift postgresql replication", func() {
 	defer g.GinkgoRecover()
 
-	var oc *exutil.CLI
+	var oc = exutil.NewCLI("postgresql-replication", exutil.KubeConfigPath())
 
 	g.Context("", func() {
 		g.BeforeEach(func() {
 			exutil.DumpDockerInfo()
+
+			_, err := exutil.SetupNFSBackedPersistentVolumes(oc, "1Gi", 5)
+			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
 		g.AfterEach(func() {
+			defer exutil.RemoveNFSBackedPersistentVolumes(oc)
+			defer exutil.RemoveDeploymentConfigs(oc, "postgresql-master", "postgresql-slave")
+
 			if g.CurrentGinkgoTestDescription().Failed {
 				exutil.DumpPodStates(oc)
 				exutil.DumpPodLogsStartingWith("", oc)
@@ -44,10 +50,8 @@ var _ = g.Describe("[image_ecosystem][postgresql][Slow][local] openshift postgre
 			}
 		})
 
-		for i, image := range postgreSQLImages {
-			oc = exutil.NewCLI(fmt.Sprintf("postgresql-replication-%d", i), exutil.KubeConfigPath())
-			testFn := PostgreSQLReplicationTestFactory(oc, image)
-			g.It(fmt.Sprintf("postgresql replication works for %s", image), testFn)
+		for _, image := range postgreSQLImages {
+			g.It(fmt.Sprintf("postgresql replication works for %s", image), PostgreSQLReplicationTestFactory(oc, image))
 		}
 	})
 })
@@ -82,12 +86,8 @@ func CreatePostgreSQLReplicationHelpers(c kcoreclient.PodInterface, masterDeploy
 func PostgreSQLReplicationTestFactory(oc *exutil.CLI, image string) func() {
 	return func() {
 		oc.SetOutputDir(exutil.TestContext.OutputDir)
-		defer exutil.RemoveHostPathVolumes(oc)
 
-		_, err := exutil.SetupHostPathVolumes(oc, "512Mi", 3)
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		err = testutil.WaitForPolicyUpdate(oc.InternalKubeClient().Authorization(), oc.Namespace(), "create", templateapi.Resource("templates"), true)
+		err := testutil.WaitForPolicyUpdate(oc.InternalKubeClient().Authorization(), oc.Namespace(), "create", templateapi.Resource("templates"), true)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		exutil.CheckOpenShiftNamespaceImageStreams(oc)
