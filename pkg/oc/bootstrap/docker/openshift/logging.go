@@ -16,10 +16,6 @@ const (
 	loggingNamespace = "logging"
 )
 
-func getLoggingPlaybook(v semver.Version) string {
-	return "playbooks/openshift-logging/config.yml"
-}
-
 // InstallLoggingViaAnsible checks whether logging is installed and installs it if not already installed
 func (h *Helper) InstallLoggingViaAnsible(f *clientcmd.Factory, serverVersion semver.Version, serverIP, publicHostname, loggerHost, imagePrefix, imageVersion, hostConfigDir, imageStreams string) error {
 	kubeClient, err := f.ClientSet()
@@ -57,7 +53,8 @@ func (h *Helper) InstallLoggingViaAnsible(f *clientcmd.Factory, serverVersion se
 	runner := newAnsibleRunner(h, kubeClient, securityClient, loggingNamespace, imageStreams, "logging")
 
 	//run logging playbook
-	return runner.RunPlaybook(params, getLoggingPlaybook(serverVersion), hostConfigDir, imagePrefix, imageVersion)
+
+	return runner.RunPlaybook(params, "playbooks/openshift-logging/config.yml", hostConfigDir, imagePrefix, imageVersion)
 }
 
 func LoggingHost(routingSuffix, serverIP string) string {

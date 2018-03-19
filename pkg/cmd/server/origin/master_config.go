@@ -38,6 +38,7 @@ import (
 	imageadmission "github.com/openshift/origin/pkg/image/admission"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageinformer "github.com/openshift/origin/pkg/image/generated/informers/internalversion"
+	networkinformer "github.com/openshift/origin/pkg/network/generated/informers/internalversion"
 	oauthinformer "github.com/openshift/origin/pkg/oauth/generated/informers/internalversion"
 	projectauth "github.com/openshift/origin/pkg/project/auth"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
@@ -107,6 +108,7 @@ type InformerAccess interface {
 	GetAuthorizationInformers() authorizationinformer.SharedInformerFactory
 	GetBuildInformers() buildinformer.SharedInformerFactory
 	GetImageInformers() imageinformer.SharedInformerFactory
+	GetNetworkInformers() networkinformer.SharedInformerFactory
 	GetOauthInformers() oauthinformer.SharedInformerFactory
 	GetQuotaInformers() quotainformer.SharedInformerFactory
 	GetSecurityInformers() securityinformer.SharedInformerFactory

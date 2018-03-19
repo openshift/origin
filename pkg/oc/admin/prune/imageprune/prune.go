@@ -354,11 +354,11 @@ func (p *pruner) addImageStreamsToGraph(streams *imageapi.ImageStreamList, limit
 		for tag, history := range stream.Status.Tags {
 			istNode := imagegraph.EnsureImageStreamTagNode(p.g, makeISTagWithStream(stream, tag))
 
-			for i := range history.Items {
+			for i, tagEvent := range history.Items {
 				imageNode := imagegraph.FindImage(p.g, history.Items[i].Image)
 				if imageNode == nil {
 					glog.V(2).Infof("Unable to find image %q in graph (from tag=%q, revision=%d, dockerImageReference=%s) - skipping",
-						history.Items[i].Image, tag, i, history.Items[i].DockerImageReference)
+						history.Items[i].Image, tag, tagEvent.Generation, history.Items[i].DockerImageReference)
 					continue
 				}
 

@@ -116,7 +116,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 			times := 10
 			p := expfmt.TextParser{}
 			var results string
-			defer func() { e2e.Logf("received metrics:\n%s", results) }()
+			defer func() { e2e.Logf("initial metrics:\n%s", results) }()
 			err = wait.PollImmediate(2*time.Second, 240*time.Second, func() (bool, error) {
 				results, err = getAuthenticatedURLViaPod(ns, execPodName, fmt.Sprintf("http://%s:%d/metrics", host, statsPort), username, password)
 				o.Expect(err).NotTo(o.HaveOccurred())
@@ -193,11 +193,11 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 			time.Sleep(15 * time.Second)
 
 			g.By("checking that some metrics are not reset to 0 after router restart")
-			defer func() { e2e.Logf("received metrics:\n%s", results) }()
-			results, err = getAuthenticatedURLViaPod(ns, execPodName, fmt.Sprintf("http://%s:%d/metrics", host, statsPort), username, password)
+			updatedResults, err := getAuthenticatedURLViaPod(ns, execPodName, fmt.Sprintf("http://%s:%d/metrics", host, statsPort), username, password)
 			o.Expect(err).NotTo(o.HaveOccurred())
+			defer func() { e2e.Logf("final metrics:\n%s", updatedResults) }()
 
-			updatedMetrics, err := p.TextToMetricFamilies(bytes.NewBufferString(results))
+			updatedMetrics, err := p.TextToMetricFamilies(bytes.NewBufferString(updatedResults))
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(findGaugesWithLabels(updatedMetrics["haproxy_backend_connections_total"], routeLabels)[0]).To(o.BeNumerically(">=", findGaugesWithLabels(metrics["haproxy_backend_connections_total"], routeLabels)[0]))
 			o.Expect(findGaugesWithLabels(updatedMetrics["haproxy_server_bytes_in_total"], serverLabels)[0]).To(o.BeNumerically(">=", findGaugesWithLabels(metrics["haproxy_server_bytes_in_total"], serverLabels)[0]))

@@ -294,19 +294,19 @@ func printConfig(c *container.Config) string {
 	out := &bytes.Buffer{}
 	fmt.Fprintf(out, "  image: %s\n", c.Image)
 	if len(c.Entrypoint) > 0 {
-		fmt.Fprintf(out, "  entry point:\n")
+		fmt.Fprintln(out, "  entry point:")
 		for _, e := range c.Entrypoint {
 			fmt.Fprintf(out, "    %s\n", e)
 		}
 	}
 	if len(c.Cmd) > 0 {
-		fmt.Fprintf(out, "  command:\n")
+		fmt.Fprintln(out, "  command:")
 		for _, c := range c.Cmd {
 			fmt.Fprintf(out, "    %s\n", c)
 		}
 	}
 	if len(c.Env) > 0 {
-		fmt.Fprintf(out, "  environment:\n")
+		fmt.Fprintln(out, "  environment:")
 		for _, e := range c.Env {
 			fmt.Fprintf(out, "    %s\n", e)
 		}
@@ -320,13 +320,13 @@ func printHostConfig(c *container.HostConfig) string {
 	fmt.Fprintf(out, "  user mode: %s\n", c.UsernsMode)
 	fmt.Fprintf(out, "  network mode: %s\n", c.NetworkMode)
 	if len(c.DNS) > 0 {
-		fmt.Fprintf(out, "  DNS:\n")
+		fmt.Fprintln(out, "  DNS:")
 		for _, h := range c.DNS {
 			fmt.Fprintf(out, "    %s\n", h)
 		}
 	}
 	if len(c.Binds) > 0 {
-		fmt.Fprintf(out, "  volume binds:\n")
+		fmt.Fprintln(out, "  volume binds:")
 		for _, b := range c.Binds {
 			fmt.Fprintf(out, "    %s\n", b)
 		}

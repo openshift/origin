@@ -87,7 +87,7 @@ func (h *Helper) InstallWebConsole(f *clientcmd.Factory, imageFormat string, ser
 	glog.V(2).Infof("instantiating web console template with parameters %v", params)
 
 	// instantiate the web console template
-	if err = instantiateTemplate(templateClient.Template(), f, OpenshiftInfraNamespace, consoleAPIServerTemplateName, consoleNamespace, params, true); err != nil {
+	if err = instantiateTemplate(templateClient.Template(), f, InfraNamespace, consoleAPIServerTemplateName, consoleNamespace, params, true); err != nil {
 		return errors.NewError("cannot instantiate web console template").WithCause(err)
 	}
 

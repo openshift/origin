@@ -27,23 +27,28 @@ import (
 )
 
 const (
-	DefaultNamespace  = "default"
-	SvcDockerRegistry = "docker-registry"
-	SvcRouter         = "router"
-	masterConfigDir   = "/var/lib/origin/openshift.local.config/master"
-	RegistryServiceIP = "172.30.1.1"
-	routerCertPath    = masterConfigDir + "/router.pem"
+	DefaultNamespace           = "default"
+	RegistryServiceName        = "docker-registry"
+	RegistryServiceAccountName = "registry"
+	// This is needed because of NO_PROXY cannot handle the CIDR range
+	RegistryServiceClusterIP = "172.30.1.1"
+	RouterServiceAccountName = "router"
+	RouterServiceName        = "router"
+
+	masterConfigDir = "/var/lib/origin/openshift.local.config/master"
+	routerCertPath  = masterConfigDir + "/router.pem"
 )
 
 // InstallRegistry checks whether a registry is installed and installs one if not already installed
 func (h *Helper) InstallRegistry(dockerClient dockerhelper.Interface, ocImage string, kubeClient kclientset.Interface, f *clientcmd.Factory, configDir, logdir, images, pvDir string, out, errout io.Writer) error {
-	_, err := kubeClient.Core().Services(DefaultNamespace).Get(SvcDockerRegistry, metav1.GetOptions{})
+	_, err := kubeClient.Core().Services(DefaultNamespace).Get(RegistryServiceName, metav1.GetOptions{})
 	if err == nil {
+		glog.V(3).Infof("The %q service is already present, skipping installation", RegistryServiceName)
 		// If there's no error, the registry already exists
 		return nil
 	}
 	if !apierrors.IsNotFound(err) {
-		return errors.NewError("error retrieving docker registry service").WithCause(err).WithDetails(h.OriginLog())
+		return errors.NewError("error retrieving docker-registry service").WithCause(err).WithDetails(h.OriginLog())
 	}
 
 	componentName := "install-registry"
@@ -54,7 +59,7 @@ func (h *Helper) InstallRegistry(dockerClient dockerhelper.Interface, ocImage st
 	if err != nil {
 		return err
 	}
-	err = AddSCCToServiceAccount(securityClient.Security(), "privileged", "registry", "default", out)
+	err = AddSCCToServiceAccount(securityClient.Security(), "privileged", RegistryServiceAccountName, "default", out)
 	if err != nil {
 		return errors.NewError("cannot add privileged SCC to registry service account").WithCause(err).WithDetails(h.OriginLog())
 	}
@@ -68,15 +73,17 @@ func (h *Helper) InstallRegistry(dockerClient dockerhelper.Interface, ocImage st
 		"adm",
 		"registry",
 		"--loglevel=8",
+		// We need to set the ClusterIP for registry in order to be able to set the NO_PROXY no predicable
+		// IP address as NO_PROXY does not support CIDR format.
+		// TODO: We should switch the cluster up registry to use DNS.
+		"--cluster-ip=" + RegistryServiceClusterIP,
 		"--config=" + masterConfigDir + "/admin.kubeconfig",
 		fmt.Sprintf("--images=%s", images),
 		fmt.Sprintf("--mount-host=%s", path.Join(pvDir, "registry")),
 	}
 	_, stdout, stderr, rc, err := imageRunHelper.Image(ocImage).
-		Privileged().
 		DiscardContainer().
 		HostNetwork().
-		HostPid().
 		Bind(masterDir + ":" + masterConfigDir).
 		Entrypoint("oc").
 		Command(flags...).Output()
@@ -90,26 +97,14 @@ func (h *Helper) InstallRegistry(dockerClient dockerhelper.Interface, ocImage st
 	if rc != 0 {
 		return errors.NewError("could not run %q: rc==%v", componentName, rc)
 	}
-
-	svc, err := kubeClient.Core().Services(DefaultNamespace).Get(SvcDockerRegistry, metav1.GetOptions{})
-	if err == nil {
-		return err
-	}
-	svc.Spec.ClusterIP = RegistryServiceIP
-	if err := kubeClient.Core().Services(DefaultNamespace).Delete(svc.Name, nil); err == nil {
-		return err
-	}
-	if _, err := kubeClient.Core().Services(DefaultNamespace).Create(svc); err == nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 // InstallRouter installs a default router on the OpenShift server
 func (h *Helper) InstallRouter(dockerClient dockerhelper.Interface, ocImage string, kubeClient kclientset.Interface, f *clientcmd.Factory, configDir, logdir, images, hostIP string, portForwarding bool, out, errout io.Writer) error {
-	_, err := kubeClient.Core().Services(DefaultNamespace).Get(SvcRouter, metav1.GetOptions{})
+	_, err := kubeClient.Core().Services(DefaultNamespace).Get(RouterServiceName, metav1.GetOptions{})
 	if err == nil {
+		glog.V(3).Infof("The %q service is already present, skipping installation", RouterServiceName)
 		// Router service already exists, nothing to do
 		return nil
 	}
@@ -125,7 +120,7 @@ func (h *Helper) InstallRouter(dockerClient dockerhelper.Interface, ocImage stri
 
 	// Create service account for router
 	routerSA := &kapi.ServiceAccount{}
-	routerSA.Name = "router"
+	routerSA.Name = RouterServiceAccountName
 	_, err = kubeClient.Core().ServiceAccounts("default").Create(routerSA)
 	if err != nil {
 		return errors.NewError("cannot create router service account").WithCause(err).WithDetails(h.OriginLog())
@@ -140,7 +135,7 @@ func (h *Helper) InstallRouter(dockerClient dockerhelper.Interface, ocImage stri
 	if err != nil {
 		return errors.NewError("cannot retrieve privileged SCC").WithCause(err).WithDetails(h.OriginLog())
 	}
-	privilegedSCC.Users = append(privilegedSCC.Users, serviceaccount.MakeUsername("default", "router"))
+	privilegedSCC.Users = append(privilegedSCC.Users, serviceaccount.MakeUsername("default", RouterServiceAccountName))
 	_, err = securityClient.Security().SecurityContextConstraints().Update(privilegedSCC)
 	if err != nil {
 		return errors.NewError("cannot update privileged SCC").WithCause(err).WithDetails(h.OriginLog())
@@ -193,10 +188,8 @@ func (h *Helper) InstallRouter(dockerClient dockerhelper.Interface, ocImage stri
 		fmt.Sprintf("--default-cert=%s", routerCertPath),
 	}
 	_, stdout, stderr, rc, err := imageRunHelper.Image(ocImage).
-		Privileged().
 		DiscardContainer().
 		HostNetwork().
-		HostPid().
 		Bind(masterDir + ":" + masterConfigDir).
 		Entrypoint("oc").
 		Command(flags...).Output()

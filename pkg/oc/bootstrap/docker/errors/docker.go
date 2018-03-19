@@ -16,11 +16,6 @@ func ErrNoDockerMachineClient(name string, err error) error {
 	return NewError("cannot obtain a client for Docker machine %q", name).WithCause(err).WithSolution(noDockerMachineClientSolution())
 }
 
-// ErrCannotPingDocker is returned when a ping to Docker with the Docker client fails
-func ErrCannotPingDocker(err error) error {
-	return NewError("cannot communicate with Docker").WithCause(err).WithSolution(noDockerClientSolution())
-}
-
 // ErrKubeConfigNotWriteable is returned when the file pointed to by KUBECONFIG cannot be created or written to
 func ErrKubeConfigNotWriteable(file string, err error) error {
 	return NewError("KUBECONFIG is set to a file that cannot be created or modified: %s", file).WithCause(err).WithSolution(kubeConfigSolution())
