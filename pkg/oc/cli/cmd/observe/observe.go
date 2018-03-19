@@ -716,7 +716,25 @@ func measureCommandDuration(m *prometheus.SummaryVec, fn func() error, labels ..
 		statusCode = -1
 	}
 	m.WithLabelValues(append(labels, strconv.Itoa(statusCode))...).Observe(float64(duration / time.Millisecond))
+
+	if errnoError(err) == syscall.ECHILD {
+		// ignore wait4 syscall errno as it means
+		// that the subprocess has started and ended
+		// before the wait call was made.
+		return nil
+	}
+
 	return err
+}
+
+func errnoError(err error) syscall.Errno {
+	if se, ok := err.(*os.SyscallError); ok {
+		if errno, ok := se.Err.(syscall.Errno); ok {
+			return errno
+		}
+	}
+
+	return 0
 }
 
 func exitCodeForCommandError(err error) (int, bool) {
