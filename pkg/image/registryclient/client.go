@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"sort"
+	"sync"
 	"time"
 
 	"github.com/golang/glog"
@@ -54,6 +56,12 @@ func NewContext(transport, insecureTransport http.RoundTripper) *Context {
 	}
 }
 
+type transportCache struct {
+	rt        http.RoundTripper
+	scopes    map[string]struct{}
+	transport http.RoundTripper
+}
+
 type Context struct {
 	Transport         http.RoundTripper
 	InsecureTransport http.RoundTripper
@@ -63,66 +71,76 @@ type Context struct {
 	Retries           int
 	Credentials       auth.CredentialStore
 
-	authFn   AuthHandlersFunc
-	pings    map[url.URL]error
-	redirect map[url.URL]*url.URL
+	lock             sync.Mutex
+	pings            map[url.URL]error
+	redirect         map[url.URL]*url.URL
+	cachedTransports []transportCache
+}
+
+func (c *Context) Copy() *Context {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	copied := &Context{
+		Transport:         c.Transport,
+		InsecureTransport: c.InsecureTransport,
+		Challenges:        c.Challenges,
+		Scopes:            c.Scopes,
+		Actions:           c.Actions,
+		Retries:           c.Retries,
+		Credentials:       c.Credentials,
+
+		pings:    make(map[url.URL]error),
+		redirect: make(map[url.URL]*url.URL),
+	}
+	for k, v := range c.redirect {
+		copied.redirect[k] = v
+	}
+	return copied
 }
 
 func (c *Context) WithScopes(scopes ...auth.Scope) *Context {
-	c.authFn = nil
 	c.Scopes = scopes
 	return c
 }
 
 func (c *Context) WithActions(actions ...string) *Context {
-	c.authFn = nil
 	c.Actions = actions
 	return c
 }
 
 func (c *Context) WithCredentials(credentials auth.CredentialStore) *Context {
-	c.authFn = nil
 	c.Credentials = credentials
 	return c
 }
 
-func (c *Context) wrapTransport(t http.RoundTripper, registry *url.URL, repoName string) http.RoundTripper {
-	if c.authFn == nil {
-		c.authFn = func(rt http.RoundTripper, _ *url.URL, repoName string) []auth.AuthenticationHandler {
-			scopes := make([]auth.Scope, 0, 1+len(c.Scopes))
-			scopes = append(scopes, c.Scopes...)
-			if len(c.Actions) == 0 {
-				scopes = append(scopes, auth.RepositoryScope{Repository: repoName, Actions: []string{"pull"}})
-			} else {
-				scopes = append(scopes, auth.RepositoryScope{Repository: repoName, Actions: c.Actions})
-			}
-			return []auth.AuthenticationHandler{
-				auth.NewTokenHandlerWithOptions(auth.TokenHandlerOptions{
-					Transport:   rt,
-					Credentials: c.Credentials,
-					Scopes:      scopes,
-				}),
-				auth.NewBasicHandler(c.Credentials),
-			}
-		}
-	}
-	return transport.NewTransport(
-		t,
-		// TODO: slightly smarter authorizer that retries unauthenticated requests
-		// TODO: make multiple attempts if the first credential fails
-		auth.NewAuthorizer(
-			c.Challenges,
-			c.authFn(t, registry, repoName)...,
-		),
-	)
+// Reset clears any cached repository info for this context.
+func (c *Context) Reset() {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	c.pings = nil
+	c.redirect = nil
 }
 
-func (c *Context) Repository(ctx gocontext.Context, registry *url.URL, repoName string, insecure bool) (distribution.Repository, error) {
-	named, err := reference.WithName(repoName)
+func (c *Context) cachedPing(src url.URL) (*url.URL, error) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	err, ok := c.pings[src]
+	if !ok {
+		return nil, nil
+	}
 	if err != nil {
 		return nil, err
 	}
+	if redirect, ok := c.redirect[src]; ok {
+		src = *redirect
+	}
+	return &src, nil
+}
 
+// Ping contacts a registry and returns the transport and URL of the registry or an error.
+func (c *Context) Ping(ctx gocontext.Context, registry *url.URL, insecure bool) (http.RoundTripper, *url.URL, error) {
 	t := c.Transport
 	if insecure && c.InsecureTransport != nil {
 		t = c.InsecureTransport
@@ -132,27 +150,43 @@ func (c *Context) Repository(ctx gocontext.Context, registry *url.URL, repoName 
 		src.Scheme = "https"
 	}
 
-	// ping the registry to get challenge headers
-	if err, ok := c.pings[src]; ok {
-		if err != nil {
-			return nil, err
-		}
-		if redirect, ok := c.redirect[src]; ok {
-			src = *redirect
-		}
-	} else {
-		redirect, err := c.ping(src, insecure, t)
-		c.pings[src] = err
-		if err != nil {
-			return nil, err
-		}
-		if redirect != nil {
-			c.redirect[src] = redirect
-			src = *redirect
-		}
+	// reused cached pings
+	url, err := c.cachedPing(src)
+	if err != nil {
+		return nil, nil, err
+	}
+	if url != nil {
+		return t, url, nil
 	}
 
-	rt := c.wrapTransport(t, registry, repoName)
+	// follow redirects
+	redirect, err := c.ping(src, insecure, t)
+
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	c.pings[src] = err
+	if err != nil {
+		return nil, nil, err
+	}
+	if redirect != nil {
+		c.redirect[src] = redirect
+		src = *redirect
+	}
+	return t, &src, nil
+}
+
+func (c *Context) Repository(ctx gocontext.Context, registry *url.URL, repoName string, insecure bool) (distribution.Repository, error) {
+	named, err := reference.WithName(repoName)
+	if err != nil {
+		return nil, err
+	}
+
+	rt, src, err := c.Ping(ctx, registry, insecure)
+	if err != nil {
+		return nil, err
+	}
+
+	rt = c.repositoryTransport(rt, src, repoName)
 
 	repo, err := registryclient.NewRepository(context.Context(ctx), named, src.String(), rt)
 	if err != nil {
@@ -208,15 +242,91 @@ func (c *Context) ping(registry url.URL, insecure bool, transport http.RoundTrip
 	return nil, nil
 }
 
+func hasAll(a, b map[string]struct{}) bool {
+	for key := range b {
+		if _, ok := a[key]; !ok {
+			return false
+		}
+	}
+	return true
+}
+
+type stringScope string
+
+func (s stringScope) String() string { return string(s) }
+
+// cachedTransport reuses an underlying transport for the given round tripper based
+// on the set of passed scopes. It will always return a transport that has at least the
+// provided scope list.
+func (c *Context) cachedTransport(rt http.RoundTripper, scopes []auth.Scope) http.RoundTripper {
+	scopeNames := make(map[string]struct{})
+	for _, scope := range scopes {
+		scopeNames[scope.String()] = struct{}{}
+	}
+
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	for _, c := range c.cachedTransports {
+		if c.rt == rt && hasAll(c.scopes, scopeNames) {
+			return c.transport
+		}
+	}
+
+	// avoid taking a dependency on kube sets.String for minimal dependencies
+	names := make([]string, 0, len(scopeNames))
+	for s := range scopeNames {
+		names = append(names, s)
+	}
+	sort.Strings(names)
+	scopes = make([]auth.Scope, 0, len(scopeNames))
+	for _, s := range names {
+		scopes = append(scopes, stringScope(s))
+	}
+
+	t := transport.NewTransport(
+		rt,
+		// TODO: slightly smarter authorizer that retries unauthenticated requests
+		// TODO: make multiple attempts if the first credential fails
+		auth.NewAuthorizer(
+			c.Challenges,
+			auth.NewTokenHandlerWithOptions(auth.TokenHandlerOptions{
+				Transport:   rt,
+				Credentials: c.Credentials,
+				Scopes:      scopes,
+			}),
+			auth.NewBasicHandler(c.Credentials),
+		),
+	)
+	c.cachedTransports = append(c.cachedTransports, transportCache{
+		rt:        rt,
+		scopes:    scopeNames,
+		transport: t,
+	})
+	return t
+}
+
+func (c *Context) scopes(repoName string) []auth.Scope {
+	scopes := make([]auth.Scope, 0, 1+len(c.Scopes))
+	scopes = append(scopes, c.Scopes...)
+	if len(c.Actions) == 0 {
+		scopes = append(scopes, auth.RepositoryScope{Repository: repoName, Actions: []string{"pull"}})
+	} else {
+		scopes = append(scopes, auth.RepositoryScope{Repository: repoName, Actions: c.Actions})
+	}
+	return scopes
+}
+
+func (c *Context) repositoryTransport(t http.RoundTripper, registry *url.URL, repoName string) http.RoundTripper {
+	return c.cachedTransport(t, c.scopes(repoName))
+}
+
 var nowFn = time.Now
 
 type retryRepository struct {
 	distribution.Repository
 
 	retries int
-	initial *time.Time
 	wait    time.Duration
-	limit   time.Duration
 }
 
 // NewRetryRepository wraps a distribution.Repository with helpers that will retry authentication failures
@@ -233,7 +343,6 @@ func NewRetryRepository(repo distribution.Repository, retries int, interval time
 
 		retries: retries,
 		wait:    wait,
-		limit:   interval,
 	}
 }
 
@@ -245,34 +354,20 @@ func isTemporaryHTTPError(err error) bool {
 	return false
 }
 
-// shouldRetry returns true if the error is not an unauthorized error, if there are no retries left, or if
-// we have already retried once and it has been longer than c.limit since we retried the first time.
-func (c *retryRepository) shouldRetry(err error) bool {
+// shouldRetry returns true if the error was temporary and count is less than retries.
+func (c *retryRepository) shouldRetry(count int, err error) bool {
 	if err == nil {
 		return false
 	}
 	if !isTemporaryHTTPError(err) {
 		return false
 	}
-
-	if c.retries <= 0 {
+	if count >= c.retries {
 		return false
 	}
-	c.retries--
-
-	now := nowFn()
-	switch {
-	case c.initial == nil:
-		// always retry the first time immediately
-		c.initial = &now
-	case c.limit != 0 && now.Sub(*c.initial) > c.limit:
-		// give up retrying after the window
-		c.retries = 0
-	default:
-		// don't hot loop
-		time.Sleep(c.wait)
-	}
-	glog.V(4).Infof("Retrying request to a v2 Docker registry after encountering error (%d attempts remaining): %v", c.retries, err)
+	// don't hot loop
+	time.Sleep(c.wait)
+	glog.V(4).Infof("Retrying request to Docker registry after encountering error (%d attempts remaining): %v", count, err)
 	return true
 }
 
@@ -303,23 +398,23 @@ type retryManifest struct {
 
 // Exists returns true if the manifest exists.
 func (c retryManifest) Exists(ctx context.Context, dgst godigest.Digest) (bool, error) {
-	for {
-		if exists, err := c.ManifestService.Exists(ctx, dgst); c.repo.shouldRetry(err) {
+	for i := 0; ; i++ {
+		exists, err := c.ManifestService.Exists(ctx, dgst)
+		if c.repo.shouldRetry(i, err) {
 			continue
-		} else {
-			return exists, err
 		}
+		return exists, err
 	}
 }
 
 // Get retrieves the manifest identified by the digest, if it exists.
 func (c retryManifest) Get(ctx context.Context, dgst godigest.Digest, options ...distribution.ManifestServiceOption) (distribution.Manifest, error) {
-	for {
-		if m, err := c.ManifestService.Get(ctx, dgst, options...); c.repo.shouldRetry(err) {
+	for i := 0; ; i++ {
+		m, err := c.ManifestService.Get(ctx, dgst, options...)
+		if c.repo.shouldRetry(i, err) {
 			continue
-		} else {
-			return m, err
 		}
+		return m, err
 	}
 }
 
@@ -330,32 +425,32 @@ type retryBlobStore struct {
 }
 
 func (c retryBlobStore) Stat(ctx context.Context, dgst godigest.Digest) (distribution.Descriptor, error) {
-	for {
-		if d, err := c.BlobStore.Stat(ctx, dgst); c.repo.shouldRetry(err) {
+	for i := 0; ; i++ {
+		d, err := c.BlobStore.Stat(ctx, dgst)
+		if c.repo.shouldRetry(i, err) {
 			continue
-		} else {
-			return d, err
 		}
+		return d, err
 	}
 }
 
 func (c retryBlobStore) ServeBlob(ctx context.Context, w http.ResponseWriter, req *http.Request, dgst godigest.Digest) error {
-	for {
-		if err := c.BlobStore.ServeBlob(ctx, w, req, dgst); c.repo.shouldRetry(err) {
+	for i := 0; ; i++ {
+		err := c.BlobStore.ServeBlob(ctx, w, req, dgst)
+		if c.repo.shouldRetry(i, err) {
 			continue
-		} else {
-			return err
 		}
+		return err
 	}
 }
 
 func (c retryBlobStore) Open(ctx context.Context, dgst godigest.Digest) (distribution.ReadSeekCloser, error) {
-	for {
-		if rsc, err := c.BlobStore.Open(ctx, dgst); c.repo.shouldRetry(err) {
+	for i := 0; ; i++ {
+		rsc, err := c.BlobStore.Open(ctx, dgst)
+		if c.repo.shouldRetry(i, err) {
 			continue
-		} else {
-			return rsc, err
 		}
+		return rsc, err
 	}
 }
 
@@ -365,31 +460,31 @@ type retryTags struct {
 }
 
 func (c *retryTags) Get(ctx context.Context, tag string) (distribution.Descriptor, error) {
-	for {
-		if t, err := c.TagService.Get(ctx, tag); c.repo.shouldRetry(err) {
+	for i := 0; ; i++ {
+		t, err := c.TagService.Get(ctx, tag)
+		if c.repo.shouldRetry(i, err) {
 			continue
-		} else {
-			return t, err
 		}
+		return t, err
 	}
 }
 
 func (c *retryTags) All(ctx context.Context) ([]string, error) {
-	for {
-		if t, err := c.TagService.All(ctx); c.repo.shouldRetry(err) {
+	for i := 0; ; i++ {
+		t, err := c.TagService.All(ctx)
+		if c.repo.shouldRetry(i, err) {
 			continue
-		} else {
-			return t, err
 		}
+		return t, err
 	}
 }
 
 func (c *retryTags) Lookup(ctx context.Context, digest distribution.Descriptor) ([]string, error) {
-	for {
-		if t, err := c.TagService.Lookup(ctx, digest); c.repo.shouldRetry(err) {
+	for i := 0; ; i++ {
+		t, err := c.TagService.Lookup(ctx, digest)
+		if c.repo.shouldRetry(i, err) {
 			continue
-		} else {
-			return t, err
 		}
+		return t, err
 	}
 }
