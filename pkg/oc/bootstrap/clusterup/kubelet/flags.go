@@ -43,10 +43,7 @@ func (opt KubeletStartFlags) MakeKubeletFlags(dockerClient dockerhelper.Interfac
 	}
 
 	_, stdout, stderr, rc, err := imageRunHelper.Image(opt.NodeImage).
-		Privileged().
 		DiscardContainer().
-		HostNetwork().
-		HostPid().
 		Bind(binds...).
 		Env(env...).
 		Entrypoint("openshift").

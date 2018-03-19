@@ -16,10 +16,6 @@ const (
 	svcMetrics     = "hawkular-metrics"
 )
 
-func getMetricsPlaybook(v semver.Version) string {
-	return "playbooks/openshift-metrics/config.yml"
-}
-
 // InstallMetricsViaAnsible checks whether metrics is installed and installs it if not already installed
 func (h *Helper) InstallMetricsViaAnsible(f *clientcmd.Factory, serverVersion semver.Version, serverIP, publicHostname, hostName, imagePrefix, imageVersion, hostConfigDir, imageStreams string) error {
 	kubeClient, err := f.ClientSet()
@@ -53,7 +49,7 @@ func (h *Helper) InstallMetricsViaAnsible(f *clientcmd.Factory, serverVersion se
 	runner := newAnsibleRunner(h, kubeClient, securityClient, infraNamespace, imageStreams, "metrics")
 
 	//run playbook
-	return runner.RunPlaybook(params, getMetricsPlaybook(serverVersion), hostConfigDir, imagePrefix, imageVersion)
+	return runner.RunPlaybook(params, "playbooks/openshift-metrics/config.yml", hostConfigDir, imagePrefix, imageVersion)
 }
 
 func MetricsHost(routingSuffix, serverIP string) string {

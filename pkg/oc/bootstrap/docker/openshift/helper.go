@@ -2,7 +2,6 @@ package openshift
 
 import (
 	"fmt"
-	"io/ioutil"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -11,8 +10,10 @@ import (
 
 	"github.com/blang/semver"
 	"github.com/golang/glog"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/util/homedir"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	clientconfig "github.com/openshift/origin/pkg/client/config"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
@@ -24,56 +25,23 @@ import (
 	dockerexec "github.com/openshift/origin/pkg/oc/bootstrap/docker/exec"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/host"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/run"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 )
 
 const (
-	defaultNodeName         = "localhost"
-	serverConfigPath        = "/var/lib/origin/openshift.local.config"
-	serverMasterConfig      = serverConfigPath + "/master/master-config.yaml"
-	serverNodeConfig        = serverConfigPath + "/node-" + defaultNodeName + "/node-config.yaml"
-	aggregatorKey           = "aggregator-front-proxy.key"
-	aggregatorCert          = "aggregator-front-proxy.crt"
-	aggregatorCACert        = "front-proxy-ca.crt"
-	aggregatorCAKey         = "front-proxy-ca.key"
-	aggregatorCASerial      = "frontend-proxy-ca.serial.txt"
-	aggregatorKeyPath       = serverConfigPath + "/master/" + aggregatorKey
-	aggregatorCertPath      = serverConfigPath + "/master/" + aggregatorCert
-	aggregatorCACertPath    = serverConfigPath + "/master/" + aggregatorCACert
-	aggregatorCAKeyPath     = serverConfigPath + "/master/" + aggregatorCAKey
-	aggregatorCASerialPath  = serverConfigPath + "/master/" + aggregatorCASerial
-	DefaultDNSPort          = 8053
-	cmdDetermineNodeHost    = "for name in %s; do ls /var/lib/origin/openshift.local.config/node-$name &> /dev/null && echo $name && break; done"
-	OpenShiftContainer      = "origin"
-	OpenshiftNamespace      = "openshift"
-	OpenshiftInfraNamespace = "openshift-infra"
+	defaultNodeName      = "localhost"
+	DefaultDNSPort       = 8053
+	DefaultSvcCIDR       = "172.30.0.0/16"
+	cmdDetermineNodeHost = "for name in %s; do ls /var/lib/origin/openshift.local.config/node-$name &> /dev/null && echo $name && break; done"
+	ContainerName        = "origin"
+	Namespace            = "openshift"
+	InfraNamespace       = "openshift-infra"
 )
 
 var (
-	openShiftContainerBinds = []string{
-		"/var/log:/var/log:rw",
-		"/var/run:/var/run:rw",
-		"/sys:/sys:rw",
-		"/sys/fs/cgroup:/sys/fs/cgroup:rw",
-		"/dev:/dev",
-	}
-	BasePorts        = []int{4001, 7001, 8443, 10250, DefaultDNSPort}
-	RouterPorts      = []int{80, 443}
-	AllPorts         = append(RouterPorts, BasePorts...)
-	SocatPidFile     = filepath.Join(homedir.HomeDir(), clientconfig.OpenShiftConfigHomeDir, "socat-8443.pid")
-	defaultCertHosts = []string{
-		"127.0.0.1",
-		"172.30.0.1",
-		"localhost",
-		"kubernetes",
-		"kubernetes.default",
-		"kubernetes.default.svc",
-		"kubernetes.default.svc.cluster.local",
-		"openshift",
-		"openshift.default",
-		"openshift.default.svc",
-		"openshift.default.svc.cluster.local",
-	}
+	BasePorts    = []int{4001, 7001, 8443, 10250, DefaultDNSPort}
+	RouterPorts  = []int{80, 443}
+	AllPorts     = append(RouterPorts, BasePorts...)
+	SocatPidFile = filepath.Join(homedir.HomeDir(), clientconfig.OpenShiftConfigHomeDir, "socat-8443.pid")
 )
 
 // Helper contains methods and utilities to help with OpenShift startup
@@ -294,25 +262,6 @@ func (h *Helper) GetConfigFromLocalDir(configDir string) (*configapi.MasterConfi
 		return nil, "", err
 	}
 	return cfg, configPath, nil
-}
-
-func GetConfigFromContainer(client dockerhelper.Interface) (*configapi.MasterConfig, error) {
-	r, err := dockerhelper.StreamFileFromContainer(client, OpenShiftContainer, serverMasterConfig)
-	if err != nil {
-		return nil, err
-	}
-	defer r.Close()
-
-	data, err := ioutil.ReadAll(r)
-	if err != nil {
-		return nil, err
-	}
-	config := &configapi.MasterConfig{}
-	err = configapilatest.ReadYAMLInto(data, config)
-	if err != nil {
-		return nil, err
-	}
-	return config, nil
 }
 
 func (h *Helper) ServerVersion() (semver.Version, error) {
