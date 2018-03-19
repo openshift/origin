@@ -81,6 +81,46 @@ func TestBecomeFollowerAfterRetry(t *testing.T) {
 	}
 }
 
+func TestRunOverlappingWork(t *testing.T) {
+	l := New(0, 0)
+	l.backoff.Steps = 0
+	l.backoff.Duration = 0
+	done := make(chan struct{})
+	defer func() {
+		<-done
+		if len(l.queued) > 0 {
+			t.Fatalf("queue was not empty on shutdown: %#v", l.queued)
+		}
+	}()
+
+	go func() {
+		t.Logf("processing first")
+		l.work()
+		t.Logf("processing second")
+		l.work()
+		t.Logf("processing done")
+		close(done)
+	}()
+
+	first := make(chan struct{})
+	l.Try("test", func() (bool, bool) {
+		first <- struct{}{}
+		t.Logf("waiting for second item to be added")
+		first <- struct{}{}
+		return true, false
+	})
+	<-first
+	second := make(chan struct{}, 1)
+	l.Try("test", func() (bool, bool) {
+		second <- struct{}{}
+		return true, false
+	})
+	t.Logf("second item added")
+	<-first
+	<-second
+	<-done
+}
+
 func TestExtend(t *testing.T) {
 	nowFn = func() time.Time { return time.Unix(0, 0) }
 	defer func() { nowFn = time.Now }()

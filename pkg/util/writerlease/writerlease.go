@@ -122,7 +122,8 @@ func (l *WriterLease) Run(stopCh <-chan struct{}) {
 
 	go func() {
 		defer utilruntime.HandleCrash()
-		l.work()
+		for l.work() {
+		}
 		glog.V(4).Infof("[%s] Worker stopped", l.name)
 	}()
 
@@ -207,46 +208,45 @@ func (l *WriterLease) leaseState() (State, time.Time, int) {
 	return l.state, l.expires, l.tick
 }
 
-func (l *WriterLease) work() {
-	for {
-		item, shutdown := l.queue.Get()
-		if shutdown {
-			return
-		}
-		key := item.(string)
-
-		fn := l.get(key)
-		if fn == nil {
-			glog.V(4).Infof("[%s] Work item %s was cleared, done", l.name, key)
-			l.queue.Done(key)
-			continue
-		}
-
-		leaseState, leaseExpires, _ := l.leaseState()
-		if leaseState == Follower {
-			// if we are following, continue to defer work until the lease expires
-			if remaining := leaseExpires.Sub(nowFn()); remaining > 0 {
-				glog.V(4).Infof("[%s] Follower, %s remaining in lease", l.name, remaining)
-				l.queue.AddAfter(key, remaining)
-				l.queue.Done(key)
-				continue
-			}
-			glog.V(4).Infof("[%s] Lease expired, running %s", l.name, key)
-		} else {
-			glog.V(4).Infof("[%s] Lease owner or electing, running %s", l.name, key)
-		}
-
-		isLeader, retry := fn()
-		if retry {
-			// come back in a bit
-			glog.V(4).Infof("[%s] Retrying %s", l.name, key)
-			l.queue.AddAfter(key, l.retryInterval)
-			l.queue.Done(key)
-			continue
-		}
-
-		l.finishKey(key, isLeader)
+func (l *WriterLease) work() bool {
+	item, shutdown := l.queue.Get()
+	if shutdown {
+		return false
 	}
+	key := item.(string)
+
+	fn := l.get(key)
+	if fn == nil {
+		glog.V(4).Infof("[%s] Work item %s was cleared, done", l.name, key)
+		l.queue.Done(key)
+		return true
+	}
+
+	leaseState, leaseExpires, _ := l.leaseState()
+	if leaseState == Follower {
+		// if we are following, continue to defer work until the lease expires
+		if remaining := leaseExpires.Sub(nowFn()); remaining > 0 {
+			glog.V(4).Infof("[%s] Follower, %s remaining in lease", l.name, remaining)
+			l.queue.AddAfter(key, remaining)
+			l.queue.Done(key)
+			return true
+		}
+		glog.V(4).Infof("[%s] Lease expired, running %s", l.name, key)
+	} else {
+		glog.V(4).Infof("[%s] Lease owner or electing, running %s", l.name, key)
+	}
+
+	isLeader, retry := fn()
+	if retry {
+		// come back in a bit
+		glog.V(4).Infof("[%s] Retrying %s", l.name, key)
+		l.queue.AddAfter(key, l.retryInterval)
+		l.queue.Done(key)
+		return true
+	}
+
+	l.finishKey(key, isLeader)
+	return true
 }
 
 func (l *WriterLease) finishKey(key string, isLeader bool) {
