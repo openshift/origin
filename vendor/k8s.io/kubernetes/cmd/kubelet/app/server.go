@@ -529,6 +529,7 @@ func run(s *options.KubeletServer, kubeDeps *kubelet.Dependencies) (err error) {
 				ExperimentalQOSReserved:               *experimentalQOSReserved,
 				ExperimentalCPUManagerPolicy:          s.CPUManagerPolicy,
 				ExperimentalCPUManagerReconcilePeriod: s.CPUManagerReconcilePeriod.Duration,
+				EnforceCPULimits:                      s.CPUCFSQuota,
 			},
 			s.FailSwapOn,
 			devicePluginEnabled,

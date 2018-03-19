@@ -45,6 +45,8 @@ type podContainerManagerImpl struct {
 	// cgroupManager is the cgroup Manager Object responsible for managing all
 	// pod cgroups.
 	cgroupManager CgroupManager
+	// enforceCPULimits controls whether cfs quota is enforced or not
+	enforceCPULimits bool
 }
 
 // Make sure that podContainerManagerImpl implements the PodContainerManager interface
@@ -75,7 +77,7 @@ func (m *podContainerManagerImpl) EnsureExists(pod *v1.Pod) error {
 		// Create the pod container
 		containerConfig := &CgroupConfig{
 			Name:               podContainerName,
-			ResourceParameters: ResourceConfigForPod(pod),
+			ResourceParameters: ResourceConfigForPod(pod, m.enforceCPULimits),
 		}
 		if err := m.cgroupManager.Create(containerConfig); err != nil {
 			return fmt.Errorf("failed to create container for %v : %v", podContainerName, err)
