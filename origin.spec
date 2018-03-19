@@ -19,12 +19,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 8c232ad89f5e7042dfdca87c237c609e1ce5167f
+%global commit 5e1281922a1b7b08540608a3d19662b60bfeb173
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=10+ OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.10.0-0.10.0 OS_GIT_TREE_STATE=clean OS_GIT_PATCH=0 KUBE_GIT_VERSION=v1.9.1+a0ce1bc657 OS_GIT_CATALOG_VERSION=v0.1.9 KUBE_GIT_COMMIT=a0ce1bc OS_GIT_COMMIT=7849b1c OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.16 ETCD_GIT_COMMIT=121edf0
+%global os_git_vars OS_GIT_MINOR=10+ OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.10.0-0.11.0 OS_GIT_TREE_STATE=clean OS_GIT_PATCH=0 KUBE_GIT_VERSION=v1.9.1+a0ce1bc657 OS_GIT_CATALOG_VERSION=v0.1.9 KUBE_GIT_COMMIT=a0ce1bc OS_GIT_COMMIT=9292105 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.16 ETCD_GIT_COMMIT=121edf0
 }
 
 %if 0%{?skip_build}
@@ -67,7 +67,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.10.0
-Release:        0.11.0%{?dist}
+Release:        0.12.0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -607,6 +607,30 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Mon Mar 19 2018 Justin Pierce <jupierce@redhat.com> 3.10.0-0.12.0
+- Print correct router metrics output to test on failure (ccoleman@redhat.com)
+- Wait longer for router stress test replicas to start (ccoleman@redhat.com)
+- Replace loop index with generation number in addImageStreamsToGraph()
+  (nakayamakenjiro@gmail.com)
+- group services w same selectors in `oc status` (jvallejo@redhat.com)
+- ignore wait4 errs in observe max-err-count (jvallejo@redhat.com)
+- bootstrap: move GetConfigFromContainer to its usage (mfojtik@redhat.com)
+- bootstrap: remove unused constants (mfojtik@redhat.com)
+- bootstrap: make kubelet flag building run in unprivileged container
+  (mfojtik@redhat.com)
+- bootstrap: fix registry installation (mfojtik@redhat.com)
+- cli: expose --cluster-ip flag for oc adm registry (mfojtik@redhat.com)
+- Use existing network informers from openshift controller context in SDN
+  master controller (rpenta@redhat.com)
+- Add a test case for conflict detection and write backoff
+  (ccoleman@redhat.com)
+- Use backoff when writing route status to avoid conflicts
+  (ccoleman@redhat.com)
+- Simplify and improve the route conflict detection mechanism
+  (ccoleman@redhat.com)
+- Add a test framework for fetching urls (ccoleman@redhat.com)
+- Limit Prometheus discovery to relevant namespaces (spasquie@redhat.com)
+
 * Sat Mar 17 2018 Justin Pierce <jupierce@redhat.com> 3.10.0-0.11.0
 - clarify where jenkins templates come from (bparees@redhat.com)
 - Tests for jenkins-sync-plugin pull request to delete jenkins job runs when
