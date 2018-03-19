@@ -98,7 +98,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 				),
 			)
 			o.Expect(err).NotTo(o.HaveOccurred())
-			err = e2e.WaitForReadyReplicaSet(oc.KubeClient(), ns, rs.Name)
+			err = waitForReadyReplicaSet(oc.KubeClient(), ns, rs.Name)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("creating multiple routes")
@@ -183,7 +183,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 				),
 			)
 			o.Expect(err).NotTo(o.HaveOccurred())
-			err = e2e.WaitForReadyReplicaSet(oc.KubeClient(), ns, rs.Name)
+			err = waitForReadyReplicaSet(oc.KubeClient(), ns, rs.Name)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("creating multiple routes")
@@ -365,4 +365,20 @@ func verifyCommandEquivalent(c clientset.Interface, rs *extensionsv1beta1.Replic
 		e2e.Logf(name + ": " + strings.Join(strings.Split(stdout, "\n"), fmt.Sprintf("\n%s: ", name)))
 	}
 	o.Expect(err).NotTo(o.HaveOccurred())
+}
+
+// waitForReadyReplicaSet waits until the replicaset has all of its replicas ready.
+// Waits for longer than the standard e2e method.
+func waitForReadyReplicaSet(c clientset.Interface, ns, name string) error {
+	err := wait.Poll(3*time.Second, 3*time.Minute, func() (bool, error) {
+		rs, err := c.ExtensionsV1beta1().ReplicaSets(ns).Get(name, metav1.GetOptions{})
+		if err != nil {
+			return false, err
+		}
+		return *(rs.Spec.Replicas) == rs.Status.Replicas && *(rs.Spec.Replicas) == rs.Status.ReadyReplicas, nil
+	})
+	if err == wait.ErrWaitTimeout {
+		err = fmt.Errorf("replicaset %q never became ready", name)
+	}
+	return err
 }
