@@ -23,6 +23,7 @@ func NewCmdDepCheck(name string, out, errout io.Writer) *cobra.Command {
 
 	cmd.AddCommand(NewCmdPinImports(name, out, errout))
 	cmd.AddCommand(NewCmdTraceImports(name, out, errout))
+	cmd.AddCommand(NewCmdAnalyzeImports(name, out, errout))
 
 	// add glog flags to our global flag set
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
