@@ -80,12 +80,7 @@ function os::build::setup_env() {
   # a version number, so we skip this check on Travis.  It's unnecessary
   # there anyway.
   if [[ "${TRAVIS:-}" != "true" ]]; then
-    local go_version
-    go_version=($(go version))
-    if [[ "${go_version[2]}" < "go1.8" ]]; then
-      os::log::fatal "Detected Go version: ${go_version[*]}.
-Origin builds require Go version 1.8 or greater."
-    fi
+    os::golang::verify_go_version
   fi
   # For any tools that expect this to be set (it is default in golang 1.6),
   # force vendor experiment.
