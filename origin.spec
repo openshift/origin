@@ -19,12 +19,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 5e1281922a1b7b08540608a3d19662b60bfeb173
+%global commit d0f7e8adb9aec4eca99fcf3e7c64cac27b8830b2
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=10+ OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.10.0-0.11.0 OS_GIT_TREE_STATE=clean OS_GIT_PATCH=0 KUBE_GIT_VERSION=v1.9.1+a0ce1bc657 OS_GIT_CATALOG_VERSION=v0.1.9 KUBE_GIT_COMMIT=a0ce1bc OS_GIT_COMMIT=9292105 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.16 ETCD_GIT_COMMIT=121edf0
+%global os_git_vars OS_GIT_MINOR=10+ OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.10.0-0.12.0 OS_GIT_TREE_STATE=clean OS_GIT_PATCH=0 KUBE_GIT_VERSION=v1.9.1+a0ce1bc657 OS_GIT_CATALOG_VERSION=v0.1.9 KUBE_GIT_COMMIT=a0ce1bc OS_GIT_COMMIT=0876b11 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.16 ETCD_GIT_COMMIT=121edf0
 }
 
 %if 0%{?skip_build}
@@ -67,7 +67,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.10.0
-Release:        0.12.0%{?dist}
+Release:        0.13.0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -607,6 +607,17 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Tue Mar 20 2018 Justin Pierce <jupierce@redhat.com> 3.10.0-0.13.0
+- Stress test gets one more write because of retry (ccoleman@redhat.com)
+- Ensure that two functions added for the same work key get run
+  (ccoleman@redhat.com)
+- add graph analysis (jvallejo@redhat.com)
+- Add a test for overlapping writer leases (ccoleman@redhat.com)
+- Allow subnet allocator to mark assigned subnet dynamically
+  (rpenta@redhat.com)
+- Move subnet allocator from pkg/util/netutils to pkg/network/master
+  (rpenta@redhat.com)
+
 * Mon Mar 19 2018 Justin Pierce <jupierce@redhat.com> 3.10.0-0.12.0
 - Print correct router metrics output to test on failure (ccoleman@redhat.com)
 - Wait longer for router stress test replicas to start (ccoleman@redhat.com)
