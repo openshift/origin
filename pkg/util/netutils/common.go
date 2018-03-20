@@ -1,7 +1,6 @@
 package netutils
 
 import (
-	"encoding/binary"
 	"fmt"
 	"net"
 
@@ -12,16 +11,6 @@ import (
 
 var localHosts []string = []string{"127.0.0.1", "::1", "localhost"}
 var localSubnets []string = []string{"10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "fc00::/7", "fe80::/10"}
-
-func IPToUint32(ip net.IP) uint32 {
-	return binary.BigEndian.Uint32(ip.To4())
-}
-
-func Uint32ToIP(u uint32) net.IP {
-	ip := make([]byte, 4)
-	binary.BigEndian.PutUint32(ip, u)
-	return net.IPv4(ip[0], ip[1], ip[2], ip[3])
-}
 
 // Generate the default gateway IP Address for a subnet
 func GenerateDefaultGateway(sna *net.IPNet) net.IP {

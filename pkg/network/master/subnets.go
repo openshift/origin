@@ -16,7 +16,6 @@ import (
 	"github.com/openshift/origin/pkg/network"
 	networkapi "github.com/openshift/origin/pkg/network/apis/network"
 	"github.com/openshift/origin/pkg/network/common"
-	"github.com/openshift/origin/pkg/util/netutils"
 )
 
 func (master *OsdnMaster) SubnetStartMaster(clusterNetworks []common.ClusterNetwork) error {
@@ -44,9 +43,9 @@ func (master *OsdnMaster) SubnetStartMaster(clusterNetworks []common.ClusterNetw
 			}
 		}
 	}
-	var subnetAllocatorList []*netutils.SubnetAllocator
+	var subnetAllocatorList []*SubnetAllocator
 	for _, cn := range clusterNetworks {
-		subnetAllocator, err := netutils.NewSubnetAllocator(cn.ClusterCIDR.String(), cn.HostSubnetLength, subrange[cn])
+		subnetAllocator, err := NewSubnetAllocator(cn.ClusterCIDR.String(), cn.HostSubnetLength, subrange[cn])
 		if err != nil {
 			return err
 		}
@@ -144,7 +143,7 @@ func (master *OsdnMaster) addNode(nodeName string, nodeUID string, nodeIP string
 	}
 	for _, possibleSubnet := range master.subnetAllocatorList {
 		sn, err := possibleSubnet.GetNetwork()
-		if err == netutils.ErrSubnetAllocatorFull {
+		if err == ErrSubnetAllocatorFull {
 			// Current subnet exhausted, check the next one
 			continue
 		} else if err != nil {
