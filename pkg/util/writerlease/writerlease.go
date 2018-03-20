@@ -66,6 +66,11 @@ const (
 
 var nowFn = time.Now
 
+type work struct {
+	id int
+	fn WorkFunc
+}
+
 type WriterLease struct {
 	name          string
 	backoff       wait.Backoff
@@ -74,7 +79,8 @@ type WriterLease struct {
 	once          chan struct{}
 
 	lock    sync.Mutex
-	queued  map[string]WorkFunc
+	id      int
+	queued  map[string]*work
 	queue   workqueue.DelayingInterface
 	state   State
 	expires time.Time
@@ -95,7 +101,7 @@ func New(leaseDuration, retryInterval time.Duration) *WriterLease {
 		maxBackoff:    leaseDuration,
 		retryInterval: retryInterval,
 
-		queued: make(map[string]WorkFunc),
+		queued: make(map[string]*work),
 		queue:  workqueue.NewDelayingQueue(),
 		once:   make(chan struct{}),
 	}
@@ -110,7 +116,7 @@ func NewWithBackoff(name string, leaseDuration, retryInterval time.Duration, bac
 		maxBackoff:    leaseDuration,
 		retryInterval: retryInterval,
 
-		queued: make(map[string]WorkFunc),
+		queued: make(map[string]*work),
 		queue:  workqueue.NewNamedDelayingQueue(name),
 		once:   make(chan struct{}),
 	}
@@ -122,7 +128,8 @@ func (l *WriterLease) Run(stopCh <-chan struct{}) {
 
 	go func() {
 		defer utilruntime.HandleCrash()
-		l.work()
+		for l.work() {
+		}
 		glog.V(4).Infof("[%s] Worker stopped", l.name)
 	}()
 
@@ -154,7 +161,8 @@ func (l *WriterLease) WaitUntil(t time.Duration) (bool, bool) {
 func (l *WriterLease) Try(key string, fn WorkFunc) {
 	l.lock.Lock()
 	defer l.lock.Unlock()
-	l.queued[key] = fn
+	l.id++
+	l.queued[key] = &work{fn: fn, id: l.id}
 	if l.state == Follower {
 		delay := l.expires.Sub(nowFn())
 		// no matter what, always wait at least some amount of time as a follower to give the nominal
@@ -195,7 +203,7 @@ func (l *WriterLease) Remove(key string) {
 	delete(l.queued, key)
 }
 
-func (l *WriterLease) get(key string) WorkFunc {
+func (l *WriterLease) get(key string) *work {
 	l.lock.Lock()
 	defer l.lock.Unlock()
 	return l.queued[key]
@@ -207,49 +215,48 @@ func (l *WriterLease) leaseState() (State, time.Time, int) {
 	return l.state, l.expires, l.tick
 }
 
-func (l *WriterLease) work() {
-	for {
-		item, shutdown := l.queue.Get()
-		if shutdown {
-			return
-		}
-		key := item.(string)
-
-		fn := l.get(key)
-		if fn == nil {
-			glog.V(4).Infof("[%s] Work item %s was cleared, done", l.name, key)
-			l.queue.Done(key)
-			continue
-		}
-
-		leaseState, leaseExpires, _ := l.leaseState()
-		if leaseState == Follower {
-			// if we are following, continue to defer work until the lease expires
-			if remaining := leaseExpires.Sub(nowFn()); remaining > 0 {
-				glog.V(4).Infof("[%s] Follower, %s remaining in lease", l.name, remaining)
-				l.queue.AddAfter(key, remaining)
-				l.queue.Done(key)
-				continue
-			}
-			glog.V(4).Infof("[%s] Lease expired, running %s", l.name, key)
-		} else {
-			glog.V(4).Infof("[%s] Lease owner or electing, running %s", l.name, key)
-		}
-
-		isLeader, retry := fn()
-		if retry {
-			// come back in a bit
-			glog.V(4).Infof("[%s] Retrying %s", l.name, key)
-			l.queue.AddAfter(key, l.retryInterval)
-			l.queue.Done(key)
-			continue
-		}
-
-		l.finishKey(key, isLeader)
+func (l *WriterLease) work() bool {
+	item, shutdown := l.queue.Get()
+	if shutdown {
+		return false
 	}
+	key := item.(string)
+
+	work := l.get(key)
+	if work == nil {
+		glog.V(4).Infof("[%s] Work item %s was cleared, done", l.name, key)
+		l.queue.Done(key)
+		return true
+	}
+
+	leaseState, leaseExpires, _ := l.leaseState()
+	if leaseState == Follower {
+		// if we are following, continue to defer work until the lease expires
+		if remaining := leaseExpires.Sub(nowFn()); remaining > 0 {
+			glog.V(4).Infof("[%s] Follower, %s remaining in lease", l.name, remaining)
+			l.queue.AddAfter(key, remaining)
+			l.queue.Done(key)
+			return true
+		}
+		glog.V(4).Infof("[%s] Lease expired, running %s", l.name, key)
+	} else {
+		glog.V(4).Infof("[%s] Lease owner or electing, running %s", l.name, key)
+	}
+
+	isLeader, retry := work.fn()
+	if retry {
+		// come back in a bit
+		glog.V(4).Infof("[%s] Retrying %s", l.name, key)
+		l.queue.AddAfter(key, l.retryInterval)
+		l.queue.Done(key)
+		return true
+	}
+
+	l.finishKey(key, isLeader, work.id)
+	return true
 }
 
-func (l *WriterLease) finishKey(key string, isLeader bool) {
+func (l *WriterLease) finishKey(key string, isLeader bool, id int) {
 	l.lock.Lock()
 	defer l.lock.Unlock()
 
@@ -271,7 +278,9 @@ func (l *WriterLease) finishKey(key string, isLeader bool) {
 		}
 		l.expires = nowFn().Add(l.nextBackoff())
 	}
-	delete(l.queued, key)
+	if work, ok := l.queued[key]; ok && work.id == id {
+		delete(l.queued, key)
+	}
 	// close the channel before we remove the key from the queue to prevent races in Wait
 	if resolvedElection {
 		close(l.once)
