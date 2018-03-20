@@ -19,12 +19,6 @@ import (
 	imagelister "github.com/openshift/origin/pkg/image/generated/listers/image/internalversion"
 )
 
-const (
-	// SignatureManagedAnnotation marks signatures that were imported by this
-	// controller.
-	SignatureManagedAnnotation = "image.openshift.io/managed-signature"
-)
-
 type SignatureDownloader interface {
 	DownloadImageSignatures(*imageapi.Image) ([]imageapi.ImageSignature, error)
 }
