@@ -1323,9 +1323,6 @@ func createAndStartRouterContainerExtended(dockerCli *dockerClient.Client, maste
 		fmt.Sprintf("ROUTER_BIND_PORTS_AFTER_SYNC=%s", strconv.FormatBool(bindPortsAfterSync)),
 		fmt.Sprintf("NAMESPACE_LABELS=%s", namespaceLabels),
 		fmt.Sprintf("ROUTER_CONFIG_MANAGER=haproxy-manager"),
-		fmt.Sprintf("ROUTER_DYNAMIC_SERVER_PREFIX=_test-dynamic"),
-		fmt.Sprintf("ROUTER_MAX_DYNAMIC_SERVERS=3"),
-		fmt.Sprintf("ROUTER_BLUEPRINT_ROUTE_POOL_SIZE=5"),
 	}
 
 	reloadIntVar := fmt.Sprintf("RELOAD_INTERVAL=%ds", reloadInterval)

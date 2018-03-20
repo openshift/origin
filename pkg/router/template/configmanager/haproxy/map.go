@@ -54,9 +54,9 @@ type HAProxyMap struct {
 	dirty bool
 }
 
-// GetHAProxyMaps returns a list of loaded haproxy maps.
+// buildHAProxyMaps builds and returns a list of haproxy maps.
 // Note: Maps are lazily populated based on their usage.
-func GetHAProxyMaps(c *Client) ([]*HAProxyMap, error) {
+func buildHAProxyMaps(c *Client) ([]*HAProxyMap, error) {
 	entries := []*mapListEntry{}
 	converter := NewCSVConverter(showMapListHeader, &entries, fixupMapListOutput)
 

@@ -67,7 +67,32 @@ var routerLong = templates.LongDesc(`
 	You may restrict the set of routes exposed to a single project (with --namespace), projects your client has
 	access to with a set of labels (--project-labels), namespaces matching a label (--namespace-labels), or all
 	namespaces (no argument). You can limit the routes to those matching a --labels or --fields selector. Note
-	that you must have a cluster-wide administrative role to view all namespaces.`)
+	that you must have a cluster-wide administrative role to view all namespaces.
+
+	For certain template routers, you can specify if a dynamic configuration
+	manager should be used.  Certain template routers like haproxy and
+	its associated haproxy config manager, allow route and endpoint changes
+	to be propogated to the underlying router via a dynamic API.
+	In the case of haproxy, the haproxy-manager uses this dynamic config
+	API to modify the operational state of haproxy backends.
+	Any endpoint changes (scaling, node evictions, etc) are handled by
+	provisioning each backend with a pool of dynamic servers, which can
+	then be used as needed. The max-dynamic-servers option (and/or
+	ROUTER_MAX_DYNAMIC_SERVERS environment variable) controls the size
+	of this pool.
+	For new routes to be made available immediately, the haproxy-manager
+	provisions a pre-allocated pool of routes called blueprints. A backend
+	from this blueprint pool is used if the new route matches a specific blueprint.
+	The default set of blueprints support for passthrough, insecure (or http)
+	and edge secured routes using the default certificates.
+	The blueprint-route-pool-size option (and/or the
+	ROUTER_BLUEPRINT_ROUTE_POOL_SIZE environment variable) control the
+	size of this pre-allocated pool.
+
+	These blueprints can be extended or customized by using the blueprint route
+	namespace and the blueprint label selector. Those options allow selected routes
+	from a certain namespace (matching the label selection criteria) to
+	serve as custom blueprints.`)
 
 type TemplateRouterOptions struct {
 	Config *Config
@@ -98,11 +123,10 @@ type TemplateRouter struct {
 
 type TemplateRouterConfigManager struct {
 	ConfigManagerName           string
-	ConfigManagerConnectionInfo string
 	CommitInterval              time.Duration
 	BlueprintRouteNamespace     string
+	BlueprintRouteLabelSelector string
 	BlueprintRoutePoolSize      int
-	DynamicServerPrefix         string
 	MaxDynamicServers           int
 }
 
@@ -139,11 +163,10 @@ func (o *TemplateRouter) Bind(flag *pflag.FlagSet) {
 	flag.BoolVar(&o.StrictSNI, "strict-sni", isTrue(util.Env("ROUTER_STRICT_SNI", "")), "Use strict-sni bind processing (do not use default cert).")
 	flag.StringVar(&o.MetricsType, "metrics-type", util.Env("ROUTER_METRICS_TYPE", ""), "Specifies the type of metrics to gather. Supports 'haproxy'.")
 	flag.StringVar(&o.ConfigManagerName, "config-manager", util.Env("ROUTER_CONFIG_MANAGER", ""), "Specifies the manager to use for dynamically configuring changes with the underlying router. Supports 'haproxy-manager'.")
-	flag.StringVar(&o.ConfigManagerConnectionInfo, "config-manager-connection-info", "", "Specifies connection information for the dynamic configuration manager.")
 	flag.DurationVar(&o.CommitInterval, "commit-interval", getIntervalFromEnv("COMMIT_INTERVAL", defaultCommitInterval), "Controls how often to commit (to the actual config) all the changes made using the router specific dynamic configuration manager.")
 	flag.StringVar(&o.BlueprintRouteNamespace, "blueprint-route-namespace", util.Env("ROUTER_BLUEPRINT_ROUTE_NAMESPACE", ""), "Specifies the namespace which contains the routes that serve as blueprints for the dynamic configuration manager.")
+	flag.StringVar(&o.BlueprintRouteLabelSelector, "blueprint-route-labels", util.Env("ROUTER_BLUEPRINT_ROUTE_LABELS", ""), "A label selector to apply to the routes in the blueprint route namespace. These selected routes will serve as blueprints for the dynamic dynamic configuration manager.")
 	flag.IntVar(&o.BlueprintRoutePoolSize, "blueprint-route-pool-size", int(util.EnvInt("ROUTER_BLUEPRINT_ROUTE_POOL_SIZE", 10, 1)), "Specifies the size of the pre-allocated pool for each route blueprint managed by the router specific dynamic configuration manager. This can be overriden by an annotation router.openshift.io/pool-size on an individual route.")
-	flag.StringVar(&o.DynamicServerPrefix, "dynamic-server-prefix", util.Env("ROUTER_DYNAMIC_SERVER_PREFIX", ""), "Specifies the prefix for dynamic servers added to router backends. These dynamic servers are handled by the router specific dynamic configuration manager.")
 	flag.IntVar(&o.MaxDynamicServers, "max-dynamic-servers", int(util.EnvInt("ROUTER_MAX_DYNAMIC_SERVERS", 5, 1)), "Specifies the maximum number of dynamic servers added to a route for use by the router specific dynamic configuration manager.")
 }
 
@@ -437,19 +460,13 @@ func (o *TemplateRouterOptions) Run() error {
 		if err != nil {
 			return err
 		}
-
-		uri := o.ConfigManagerConnectionInfo
-		if len(o.ConfigManagerConnectionInfo) == 0 {
-			uri = "unix:///var/lib/haproxy/run/haproxy.sock"
-		}
-
 		cmopts := templateplugin.ConfigManagerOptions{
-			ConnectionInfo:         uri,
+			ConnectionInfo:         "unix:///var/lib/haproxy/run/haproxy.sock",
 			CommitInterval:         o.CommitInterval,
 			BlueprintRoutes:        blueprintRoutes,
 			BlueprintRoutePoolSize: o.BlueprintRoutePoolSize,
-			DynamicServerPrefix:    o.DynamicServerPrefix,
 			MaxDynamicServers:      o.MaxDynamicServers,
+			WildcardRoutesAllowed:  o.AllowWildcardRoutes,
 		}
 		cfgManager = haproxyconfigmanager.NewHAProxyConfigManager(cmopts)
 	}
@@ -533,7 +550,12 @@ func (o *TemplateRouterOptions) blueprintRoutes(routeclient *routeinternalclient
 		return blueprints, nil
 	}
 
-	routeList, err := routeclient.Route().Routes(o.BlueprintRouteNamespace).List(metav1.ListOptions{})
+	options := metav1.ListOptions{}
+	if len(o.BlueprintRouteLabelSelector) > 0 {
+		options.LabelSelector = o.BlueprintRouteLabelSelector
+	}
+
+	routeList, err := routeclient.Route().Routes(o.BlueprintRouteNamespace).List(options)
 	if err != nil {
 		return blueprints, err
 	}

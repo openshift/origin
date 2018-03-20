@@ -160,30 +160,34 @@ type ConfigManagerOptions struct {
 	//    router.openshift.io/pool-size
 	BlueprintRoutePoolSize int
 
-	// DynamicServerPrefix is the prefix used for naming the dynamic
-	// servers associated with a route. These dynamic servers are used to
-	// quickly modify the router config for any endpoint changes.
-	DynamicServerPrefix string
-
 	// MaxDynamicServers is the maximum number of dynamic servers we
 	// will allocate on a per-route basis.
 	MaxDynamicServers int
+
+	// WildcardRoutesAllowed indicates if wildcard routes are allowed.
+	WildcardRoutesAllowed bool
 }
 
 // ConfigManager is used by the router to make configuration changes using
 // the template router's dynamic configuration API (if any).
+// Please note that the code calling the ConfigManager interface methods
+// needs to ensure that a lock is acquired and released in order to
+// guarantee Config Manager consistency.
+// The haproxy specific implementation of the ConfigManager itself does
+// guarantee consistency with internal locks but it is not a hard
+// requirement for a ConfigManager "provider".
 type ConfigManager interface {
 	// Initialize initializes the config manager.
 	Initialize(router RouterInterface, certPath string)
 
 	// Register registers an id to be associated with a route.
-	Register(id string, route *routeapi.Route, wildcard bool)
+	Register(id string, route *routeapi.Route)
 
 	// AddRoute adds a new route or updates an existing route.
-	AddRoute(id string, route *routeapi.Route, wildcard bool) error
+	AddRoute(id string, route *routeapi.Route) error
 
 	// RemoveRoute removes a route.
-	RemoveRoute(id string, route *routeapi.Route, wildcard bool) error
+	RemoveRoute(id string, route *routeapi.Route) error
 
 	// ReplaceRouteEndpoints replaces a subset (the ones associated with
 	// a single service unit) of a route endpoints.

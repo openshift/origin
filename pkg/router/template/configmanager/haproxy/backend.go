@@ -103,8 +103,8 @@ type backendServer struct {
 	updatedState     BackendServerState
 }
 
-// GetHAProxyBackends returns a list of haproxy backends.
-func GetHAProxyBackends(c *Client) ([]*Backend, error) {
+// buildHAProxyBackends builds and returns a list of haproxy backends.
+func buildHAProxyBackends(c *Client) ([]*Backend, error) {
 	entries := []*backendEntry{}
 	converter := NewCSVConverter(showBackendHeader, &entries, nil)
 	_, err := c.RunCommand(ListBackendsCommand, converter)

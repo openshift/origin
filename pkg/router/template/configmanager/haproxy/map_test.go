@@ -4,8 +4,8 @@ import (
 	"testing"
 )
 
-// TestGetHAProxyMaps tests haproxy maps.
-func TestGetHAProxyMaps(t *testing.T) {
+// TestBuildHAProxyMaps tests haproxy maps.
+func TestBuildHAProxyMaps(t *testing.T) {
 	server := startFakeServerForTest(t)
 	defer server.Stop()
 
@@ -34,22 +34,22 @@ func TestGetHAProxyMaps(t *testing.T) {
 	for _, tc := range testCases {
 		client := NewClient(tc.sockFile, 0)
 		if client == nil {
-			t.Errorf("TestGetHAProxyMaps test case %s failed with no client.", tc.name)
+			t.Errorf("TestBuildHAProxyMaps test case %s failed with no client.", tc.name)
 		}
 
-		haproxyMaps, err := GetHAProxyMaps(client)
+		haproxyMaps, err := buildHAProxyMaps(client)
 		if tc.failureExpected {
 			if err == nil {
-				t.Errorf("TestGetHAProxyMaps test case %s expected an error but got none.", tc.name)
+				t.Errorf("TestBuildHAProxyMaps test case %s expected an error but got none.", tc.name)
 			}
 			continue
 		}
 
 		if err != nil {
-			t.Errorf("TestGetHAProxyMaps test case %s expected no error but got: %v", tc.name, err)
+			t.Errorf("TestBuildHAProxyMaps test case %s expected no error but got: %v", tc.name, err)
 		}
 		if len(haproxyMaps) == 0 {
-			t.Errorf("TestGetHAProxyMaps test case %s expected to get maps", tc.name)
+			t.Errorf("TestBuildHAProxyMaps test case %s expected to get maps", tc.name)
 		}
 	}
 }

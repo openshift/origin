@@ -246,3 +246,44 @@ func TestGenerateBackendNamePrefix(t *testing.T) {
 		}
 	}
 }
+
+func TestGenerateBackendNamePrefix(t *testing.T) {
+	testPrefixes := []struct {
+		name           string
+		termination    routeapi.TLSTerminationType
+		expectedPrefix string
+	}{
+		{
+			name:           "http route",
+			termination:    routeapi.TLSTerminationType(""),
+			expectedPrefix: "be_http",
+		},
+		{
+			name:           "edge secured route",
+			termination:    routeapi.TLSTerminationEdge,
+			expectedPrefix: "be_edge_http",
+		},
+		{
+			name:           "reencrypt route",
+			termination:    routeapi.TLSTerminationReencrypt,
+			expectedPrefix: "be_secure",
+		},
+		{
+			name:           "passthrough route",
+			termination:    routeapi.TLSTerminationPassthrough,
+			expectedPrefix: "be_tcp",
+		},
+		{
+			name:           "unknown route",
+			termination:    routeapi.TLSTerminationType("foo"),
+			expectedPrefix: "be_http",
+		},
+	}
+
+	for _, tc := range testPrefixes {
+		prefix := GenerateBackendNamePrefix(tc.termination)
+		if prefix != tc.expectedPrefix {
+			t.Errorf("%s: expected %s to get %s, but got %s", tc.name, tc.expectedPrefix, prefix)
+		}
+	}
+}

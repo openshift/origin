@@ -8,6 +8,8 @@ import (
 
 	haproxy "github.com/bcicen/go-haproxy"
 	"github.com/golang/glog"
+
+	utilwait "k8s.io/apimachinery/pkg/util/wait"
 )
 
 const (
@@ -95,7 +97,7 @@ func (c *Client) Commit() error {
 // Backends returns the list of configured haproxy backends.
 func (c *Client) Backends() ([]*Backend, error) {
 	if len(c.backends) == 0 {
-		if backends, err := GetHAProxyBackends(c); err != nil {
+		if backends, err := buildHAProxyBackends(c); err != nil {
 			return nil, err
 		} else {
 			c.backends = backends
@@ -123,7 +125,7 @@ func (c *Client) FindBackend(id string) (*Backend, error) {
 // Maps returns the list of configured haproxy maps.
 func (c *Client) Maps() ([]*HAProxyMap, error) {
 	if len(c.maps) == 0 {
-		hapMaps, err := GetHAProxyMaps(c)
+		hapMaps, err := buildHAProxyMaps(c)
 		if err != nil {
 			return nil, err
 		}
@@ -161,33 +163,41 @@ func (c *Client) FindMap(name string) (*HAProxyMap, error) {
 // runCommandWithRetries retries a haproxy command upto the retry limit
 // if the error for the command is a retryable error.
 func (c *Client) runCommandWithRetries(cmd string, limit int) (*bytes.Buffer, error) {
-	retryAttempt := 0
-	for {
+	var buffer *bytes.Buffer
+	var cmdErr error
+
+	cmdWaitBackoff := utilwait.Backoff{
+		Duration: 10 * time.Millisecond,
+		Factor:   2,
+		Steps:    limit,
+	}
+
+	n := 0
+	utilwait.ExponentialBackoff(cmdWaitBackoff, func() (bool, error) {
+		n++
 		client := &haproxy.HAProxyClient{
 			Addr:    c.socketAddress,
 			Timeout: c.timeout,
 		}
-		buffer, err := client.RunCommand(cmd)
-		if err == nil || !isRetryable(err, cmd) {
-			return buffer, err
+		buffer, cmdErr = client.RunCommand(cmd)
+		if cmdErr == nil {
+			return true, nil
 		}
+		if !isRetriable(cmdErr, cmd) {
+			return false, cmdErr
+		}
+		return false, nil
+	})
 
-		retryAttempt++
-		if retryAttempt > limit {
-			return buffer, err
-		}
-
-		msecs := retryAttempt * 10
-		if msecs > 60 {
-			msecs = 60
-		}
-		time.Sleep(time.Duration(msecs) * time.Millisecond)
-		glog.V(4).Infof("retry #%d: cmd: %q, err was %v", retryAttempt, cmd, err)
+	if cmdErr != nil {
+		glog.V(4).Infof("%d attempt(s) to run haproxy command %q failed: %v", n, cmd, cmdErr)
 	}
+
+	return buffer, cmdErr
 }
 
-// isRetryable checks if a haproxy command can be retried.
-func isRetryable(err error, cmd string) bool {
+// isRetriable checks if a haproxy command can be retried.
+func isRetriable(err error, cmd string) bool {
 	retryableErrors := []string{
 		"connection reset by peer",
 		"connection refused",

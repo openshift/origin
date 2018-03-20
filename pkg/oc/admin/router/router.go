@@ -808,7 +808,6 @@ func RunCmdRouter(f kcmdutil.Factory, cmd *cobra.Command, out, errout io.Writer,
 	// automatically start the internal metrics agent if we are handling a known type
 	if cfg.Type == "haproxy-router" {
 		env["ROUTER_CONFIG_MANAGER"] = "haproxy-manager"
-		env["ROUTER_DYNAMIC_SERVER_PREFIX"] = "_dynamic"
 		if cfg.StatsPort != 0 {
 			env["ROUTER_LISTEN_ADDR"] = fmt.Sprintf("0.0.0.0:%d", cfg.StatsPort)
 			env["ROUTER_METRICS_TYPE"] = "haproxy"

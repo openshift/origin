@@ -590,8 +590,7 @@ func (r *templateRouter) dynamicallyAddRoute(backendKey string, route *routeapi.
 	}
 
 	glog.V(4).Infof("Dynamically adding route backend %s", backendKey)
-	wildcard := backend.IsWildcard
-	r.dynamicConfigManager.Register(backendKey, route, wildcard)
+	r.dynamicConfigManager.Register(backendKey, route)
 
 	// If no initial sync was done, don't try to dynamically add the
 	// route as we will need a reload anyway.
@@ -599,9 +598,9 @@ func (r *templateRouter) dynamicallyAddRoute(backendKey string, route *routeapi.
 		return false
 	}
 
-	err := r.dynamicConfigManager.AddRoute(backendKey, route, wildcard)
+	err := r.dynamicConfigManager.AddRoute(backendKey, route)
 	if err != nil {
-		glog.Warningf("Router will reload as there was an error dynamically adding route backend %s: %v", backendKey, err)
+		glog.V(4).Infof("Router will reload as the ConfigManager could not dynamically add route for backend %s: %v", backendKey, err)
 		return false
 	}
 
@@ -620,7 +619,7 @@ func (r *templateRouter) dynamicallyAddRoute(backendKey string, route *routeapi.
 				weight = 0
 			}
 			if err := r.dynamicConfigManager.ReplaceRouteEndpoints(backendKey, oldEndpoints, newEndpoints, weight); err != nil {
-				glog.Warningf("Router will reload as there was an error dynamically replacing endpoints for new route backend %s, service %s: %v",
+				glog.V(4).Infof("Router will reload as the ConfigManager could not dynamically replace endpoints for route backend %s, service %s: %v",
 					backendKey, key, err)
 				return false
 			}
@@ -634,15 +633,15 @@ func (r *templateRouter) dynamicallyAddRoute(backendKey string, route *routeapi.
 // dynamicallyRemoveRoute attempts to dynamically remove a route.
 // Note: The config should have been synced at least once initially and
 //       the caller needs to acquire a lock [and release it].
-func (r *templateRouter) dynamicallyRemoveRoute(backendKey string, route *routeapi.Route, backend ServiceAliasConfig) bool {
+func (r *templateRouter) dynamicallyRemoveRoute(backendKey string, route *routeapi.Route) bool {
 	if r.dynamicConfigManager == nil || !r.synced {
 		return false
 	}
 
 	glog.V(4).Infof("Dynamically removing route backend %s", backendKey)
 
-	if err := r.dynamicConfigManager.RemoveRoute(backendKey, route, backend.IsWildcard); err != nil {
-		glog.Warningf("Router will reload as there was an error dynamically removing a route backend %s: %v", backendKey, err)
+	if err := r.dynamicConfigManager.RemoveRoute(backendKey, route); err != nil {
+		glog.V(4).Infof("Router will reload as the ConfigManager could not dynamically remove route backend %s: %v", backendKey, err)
 		return false
 	}
 
@@ -681,7 +680,7 @@ func (r *templateRouter) dynamicallyReplaceEndpoints(id string, service ServiceU
 		glog.V(4).Infof("Dynamically replacing endpoints for associated backend %s", backendKey)
 		if err := r.dynamicConfigManager.ReplaceRouteEndpoints(backendKey, oldEndpoints, newEndpoints, weight); err != nil {
 			// Error dynamically modifying the config, so return false to cause a reload to happen.
-			glog.Warningf("Router will reload as dynamic endpoint replacement for service id %s (backend=%s, weight=%v) failed: %v", id, backendKey, weight, err)
+			glog.V(4).Infof("Router will reload as the ConfigManager could not dynamically replace endpoints for service id %s (backend=%s, weight=%v): %v", id, backendKey, weight, err)
 			return false
 		}
 	}
@@ -708,7 +707,7 @@ func (r *templateRouter) dynamicallyRemoveEndpoints(service ServiceUnit, endpoin
 		glog.V(4).Infof("Dynamically removing endpoints for associated backend %s", backendKey)
 		if err := r.dynamicConfigManager.RemoveRouteEndpoints(backendKey, endpoints); err != nil {
 			// Error dynamically modifying the config, so return false to cause a reload to happen.
-			glog.Warningf("Router will reload as dynamic endpoint removal for backend %s failed: %v", backendKey, err)
+			glog.V(4).Infof("Router will reload as the ConfigManager could not dynamically remove endpoints for backend %s: %v", backendKey, err)
 			return false
 		}
 	}
@@ -910,7 +909,7 @@ func (r *templateRouter) removeRouteInternal(route *routeapi.Route) {
 		return
 	}
 
-	configChanged := r.dynamicallyRemoveRoute(backendKey, route, serviceAliasConfig)
+	configChanged := r.dynamicallyRemoveRoute(backendKey, route)
 
 	for key := range serviceAliasConfig.ServiceUnits {
 		r.removeServiceAliasAssociation(key, backendKey)

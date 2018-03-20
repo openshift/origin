@@ -16,6 +16,7 @@ import (
 
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	templaterouter "github.com/openshift/origin/pkg/router/template"
+	templateutil "github.com/openshift/origin/pkg/router/template/util"
 )
 
 const (
@@ -37,6 +38,10 @@ const (
 	// blueprintRoutePoolNamePrefix is the prefix used for the managed
 	// pool of blueprint routes.
 	blueprintRoutePoolNamePrefix = "_hapcm_blueprint_pool"
+
+	// dynamicServerPrefix is the prefix used in the haproxy template
+	// for adding dynamic servers (pods) to a backend.
+	dynamicServerPrefix = "_dynamic"
 
 	// routePoolSizeAnnotation is the annotation on the blueprint route
 	// overriding the default pool size.
@@ -107,13 +112,12 @@ type haproxyConfigManager struct {
 	// backends for each route blueprint.
 	blueprintRoutePoolSize int
 
-	// dynamicServerPrefix is the prefix used in the haproxy template
-	// for adding dynamic servers (pods) to a backend.
-	dynamicServerPrefix string
-
 	// maxDynamicServers is the maximum number of dynamic servers
 	// allocated per backend in the haproxy template configuration.
 	maxDynamicServers int
+
+	// wildcardRoutesAllowed indicates if wildcard routes are allowed.
+	wildcardRoutesAllowed bool
 
 	// router is the associated template router.
 	router templaterouter.RouterInterface
@@ -152,8 +156,8 @@ func NewHAProxyConfigManager(options templaterouter.ConfigManagerOptions) *hapro
 		commitInterval:         options.CommitInterval,
 		blueprintRoutes:        buildBlueprintRoutes(options.BlueprintRoutes),
 		blueprintRoutePoolSize: options.BlueprintRoutePoolSize,
-		dynamicServerPrefix:    options.DynamicServerPrefix,
 		maxDynamicServers:      options.MaxDynamicServers,
+		wildcardRoutesAllowed:  options.WildcardRoutesAllowed,
 		defaultCertificate:     "",
 
 		client:           client,
@@ -185,7 +189,8 @@ func (cm *haproxyConfigManager) Initialize(router templaterouter.RouterInterface
 }
 
 // Register registers an id with an expected haproxy backend for a route.
-func (cm *haproxyConfigManager) Register(id string, route *routeapi.Route, wildcard bool) {
+func (cm *haproxyConfigManager) Register(id string, route *routeapi.Route) {
+	wildcard := cm.wildcardRoutesAllowed && (route.Spec.WildcardPolicy == routeapi.WildcardPolicySubdomain)
 	entry := &routeBackendEntry{
 		id:               id,
 		termination:      routeTerminationType(route),
@@ -202,12 +207,12 @@ func (cm *haproxyConfigManager) Register(id string, route *routeapi.Route, wildc
 }
 
 // AddRoute adds a new route or updates an existing route.
-func (cm *haproxyConfigManager) AddRoute(id string, route *routeapi.Route, wildcard bool) error {
+func (cm *haproxyConfigManager) AddRoute(id string, route *routeapi.Route) error {
 	if cm.isReloading() {
 		return fmt.Errorf("Router reload in progress, cannot dynamically add route %s", id)
 	}
 
-	glog.V(4).Infof("Removing route id %s, wildcard %+v", id, wildcard)
+	glog.V(4).Infof("Adding route id %s", id)
 
 	if cm.isManagedPoolRoute(route) {
 		return fmt.Errorf("managed pool blueprint route %s ignored", id)
@@ -218,7 +223,7 @@ func (cm *haproxyConfigManager) AddRoute(id string, route *routeapi.Route, wildc
 		return fmt.Errorf("no blueprint found that would match route %s/%s", route.Namespace, route.Name)
 	}
 
-	cm.Register(id, route, wildcard)
+	cm.Register(id, route)
 
 	cm.lock.Lock()
 	defer cm.lock.Unlock()
@@ -252,8 +257,8 @@ func (cm *haproxyConfigManager) AddRoute(id string, route *routeapi.Route, wildc
 }
 
 // RemoveRoute removes a route.
-func (cm *haproxyConfigManager) RemoveRoute(id string, route *routeapi.Route, wildcard bool) error {
-	glog.V(4).Infof("Removing route %s, wildcard %+v", id, wildcard)
+func (cm *haproxyConfigManager) RemoveRoute(id string, route *routeapi.Route) error {
+	glog.V(4).Infof("Removing route %s", id)
 	if cm.isReloading() {
 		return fmt.Errorf("Router reload in progress, cannot dynamically remove route id %s", id)
 	}
@@ -369,7 +374,7 @@ func (cm *haproxyConfigManager) ReplaceRouteEndpoints(id string, oldEndpoints, n
 	unusedServerNames := []string{}
 	for _, s := range servers {
 		relatedEndpointID := s.Name
-		if cm.isDynamicBackendServer(s) {
+		if isDynamicBackendServer(s) {
 			if epid, ok := entry.dynamicServerMap[s.Name]; ok {
 				relatedEndpointID = epid
 			} else {
@@ -513,9 +518,9 @@ func (cm *haproxyConfigManager) Commit() {
 
 // ServerTemplateName returns the dynamic server template name.
 func (cm *haproxyConfigManager) ServerTemplateName(id string) string {
-	if len(cm.dynamicServerPrefix) > 0 && cm.maxDynamicServers > 0 {
+	if cm.maxDynamicServers > 0 {
 		// Adding the id makes the name unwieldy - use pod.
-		return fmt.Sprintf("%s-pod", cm.dynamicServerPrefix)
+		return fmt.Sprintf("%s-pod", dynamicServerPrefix)
 	}
 
 	return ""
@@ -574,15 +579,6 @@ func (cm *haproxyConfigManager) isReloading() bool {
 // pool of blueprint routes.
 func (cm *haproxyConfigManager) isManagedPoolRoute(route *routeapi.Route) bool {
 	return route.Namespace == blueprintRoutePoolNamespace
-}
-
-// isDynamicBackendServer indicates if a backend server is a dynamic server.
-func (cm *haproxyConfigManager) isDynamicBackendServer(server BackendServerInfo) bool {
-	if len(cm.dynamicServerPrefix) == 0 {
-		return false
-	}
-
-	return strings.HasPrefix(server.Name, cm.dynamicServerPrefix)
 }
 
 // provisionBackendPools pre-allocates pools of backends based on the
@@ -756,7 +752,7 @@ func (entry *routeBackendEntry) BuildMapAssociations(route *routeapi.Route) {
 	name := entry.BackendName()
 
 	// Do the path specific regular expression usage first.
-	pathRE := templaterouter.GenerateRouteRegexp(hostspec, pathspec, entry.wildcard)
+	pathRE := templateutil.GenerateRouteRegexp(hostspec, pathspec, entry.wildcard)
 	if policy == routeapi.InsecureEdgeTerminationPolicyRedirect {
 		associate("os_route_http_redirect.map", pathRE, name)
 	}
@@ -778,7 +774,7 @@ func (entry *routeBackendEntry) BuildMapAssociations(route *routeapi.Route) {
 	}
 
 	// And then handle the host specific regular expression usage.
-	hostRE := templaterouter.GenerateRouteRegexp(hostspec, "", entry.wildcard)
+	hostRE := templateutil.GenerateRouteRegexp(hostspec, "", entry.wildcard)
 	if len(os.Getenv("ROUTER_ALLOW_WILDCARD_ROUTES")) > 0 && entry.wildcard {
 		associate("os_wildcard_domain.map", hostRE, "1")
 	}
@@ -859,7 +855,7 @@ func createBlueprintRoute(routeType routeapi.TLSTerminationType) *routeapi.Route
 // routeBackendName returns the haproxy backend name for a route.
 func routeBackendName(id string, route *routeapi.Route) string {
 	termination := routeTerminationType(route)
-	prefix := templaterouter.GenBackendNamePrefix(termination)
+	prefix := templateutil.GenerateBackendNamePrefix(termination)
 	return fmt.Sprintf("%s:%s", prefix, id)
 }
 
@@ -888,6 +884,15 @@ func routeTerminationType(route *routeapi.Route) routeapi.TLSTerminationType {
 	}
 
 	return termination
+}
+
+// isDynamicBackendServer indicates if a backend server is a dynamic server.
+func isDynamicBackendServer(server BackendServerInfo) bool {
+	if len(dynamicServerPrefix) == 0 {
+		return false
+	}
+
+	return strings.HasPrefix(server.Name, dynamicServerPrefix)
 }
 
 // applyMapAssociations applies the backend associations to a haproxy map.
