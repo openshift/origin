@@ -91,10 +91,12 @@ func makeNamespaceMulticastEnabled(ns *kapiv1.Namespace) {
 // (or, on failure, "multicast, xmt/rcv/%loss = 1/0/100%, ...")
 
 func testMulticast(f *e2e.Framework, oc *testexutil.CLI) error {
-	nodes := e2e.GetReadySchedulableNodesOrDie(f.ClientSet)
-	if len(nodes.Items) == 1 {
-		e2e.Skipf("Only one node is available in this environment")
-	}
+	makeNamespaceScheduleToAllNodes(f)
+
+	// We launch 3 pods total; pod[0] and pod[1] will end up on node[0], and pod[2]
+	// will end up on node[1], ensuring we test both intra- and inter-node multicast
+	var nodes [2]*kapiv1.Node
+	nodes[0], nodes[1] = findAppropriateNodes(f, DIFFERENT_NODE)
 
 	var pod, ip, out [3]string
 	var err [3]error
@@ -103,7 +105,7 @@ func testMulticast(f *e2e.Framework, oc *testexutil.CLI) error {
 
 	for i := range pod {
 		pod[i] = fmt.Sprintf("multicast-%d", i)
-		ip[i], err[i] = launchTestMulticastPod(f, nodes.Items[i/2].Name, pod[i])
+		ip[i], err[i] = launchTestMulticastPod(f, nodes[i/2].Name, pod[i])
 		expectNoError(err[i])
 		var zero int64
 		defer f.ClientSet.CoreV1().Pods(f.Namespace.Name).Delete(pod[i], &metav1.DeleteOptions{GracePeriodSeconds: &zero})
