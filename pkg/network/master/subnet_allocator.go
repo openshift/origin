@@ -24,7 +24,7 @@ type SubnetAllocator struct {
 	mutex      sync.Mutex
 }
 
-func NewSubnetAllocator(network string, hostBits uint32, inUse []string) (*SubnetAllocator, error) {
+func newSubnetAllocator(network string, hostBits uint32) (*SubnetAllocator, error) {
 	_, netIP, err := net.ParseCIDR(network)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse network address: %q", network)
@@ -65,7 +65,7 @@ func NewSubnetAllocator(network string, hostBits uint32, inUse []string) (*Subne
 		rightMask = 0
 	}
 
-	sa := &SubnetAllocator{
+	return &SubnetAllocator{
 		network:    netIP,
 		hostBits:   hostBits,
 		leftShift:  leftShift,
@@ -74,22 +74,10 @@ func NewSubnetAllocator(network string, hostBits uint32, inUse []string) (*Subne
 		rightMask:  rightMask,
 		next:       0,
 		allocMap:   make(map[string]bool),
-	}
-	for _, netStr := range inUse {
-		_, ipNet, err := net.ParseCIDR(netStr)
-		if err != nil {
-			utilruntime.HandleError(fmt.Errorf("failed to parse network address: %s", netStr))
-			continue
-		}
-		if err = sa.AllocateNetwork(ipNet); err != nil {
-			utilruntime.HandleError(err)
-			continue
-		}
-	}
-	return sa, nil
+	}, nil
 }
 
-func (sna *SubnetAllocator) AllocateNetwork(ipNet *net.IPNet) error {
+func (sna *SubnetAllocator) markAllocatedNetwork(ipNet *net.IPNet) error {
 	sna.mutex.Lock()
 	defer sna.mutex.Unlock()
 
@@ -102,7 +90,7 @@ func (sna *SubnetAllocator) AllocateNetwork(ipNet *net.IPNet) error {
 	return nil
 }
 
-func (sna *SubnetAllocator) GetNetwork() (*net.IPNet, error) {
+func (sna *SubnetAllocator) allocateNetwork() (*net.IPNet, error) {
 	var (
 		numSubnets    uint32
 		numSubnetBits uint32
@@ -133,7 +121,7 @@ func (sna *SubnetAllocator) GetNetwork() (*net.IPNet, error) {
 	return nil, ErrSubnetAllocatorFull
 }
 
-func (sna *SubnetAllocator) ReleaseNetwork(ipnet *net.IPNet) error {
+func (sna *SubnetAllocator) releaseNetwork(ipnet *net.IPNet) error {
 	sna.mutex.Lock()
 	defer sna.mutex.Unlock()
 
@@ -164,7 +152,7 @@ func Uint32ToIP(u uint32) net.IP {
 
 func (master *OsdnMaster) initSubnetAllocators() error {
 	for _, cn := range master.networkInfo.ClusterNetworks {
-		sa, err := NewSubnetAllocator(cn.ClusterCIDR.String(), cn.HostSubnetLength, nil)
+		sa, err := newSubnetAllocator(cn.ClusterCIDR.String(), cn.HostSubnetLength)
 		if err != nil {
 			return err
 		}
@@ -191,7 +179,7 @@ func (master *OsdnMaster) markAllocatedNetwork(subnet string) error {
 	if err != nil {
 		return err
 	}
-	if err = sa.AllocateNetwork(ipnet); err != nil {
+	if err = sa.markAllocatedNetwork(ipnet); err != nil {
 		return err
 	}
 	return nil
@@ -202,7 +190,7 @@ func (master *OsdnMaster) allocateNetwork(nodeName string) (string, error) {
 	var err error
 
 	for _, possibleSubnet := range master.subnetAllocatorList {
-		sn, err = possibleSubnet.GetNetwork()
+		sn, err = possibleSubnet.allocateNetwork()
 		if err == ErrSubnetAllocatorFull {
 			// Current subnet exhausted, check the next one
 			continue
@@ -221,7 +209,7 @@ func (master *OsdnMaster) releaseNetwork(subnet string) error {
 	if err != nil {
 		return err
 	}
-	if err = sa.ReleaseNetwork(ipnet); err != nil {
+	if err = sa.releaseNetwork(ipnet); err != nil {
 		return err
 	}
 	return nil
