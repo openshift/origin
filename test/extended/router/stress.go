@@ -275,12 +275,11 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 					case _, ok := <-ch:
 						writes++
 						o.Expect(ok).To(o.BeTrue())
-						o.Expect(i).To(o.BeNumerically("<", 3))
 					case <-timer.C:
 						break Wait
 					}
 				}
-				e2e.Logf("Recorded %d writes total", writes)
+				o.Expect(writes).To(o.BeNumerically("<", 5))
 			}()
 		})
 	})
