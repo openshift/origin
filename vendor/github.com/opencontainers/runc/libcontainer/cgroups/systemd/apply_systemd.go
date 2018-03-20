@@ -17,7 +17,6 @@ import (
 	"github.com/opencontainers/runc/libcontainer/cgroups"
 	"github.com/opencontainers/runc/libcontainer/cgroups/fs"
 	"github.com/opencontainers/runc/libcontainer/configs"
-	"github.com/sirupsen/logrus"
 )
 
 type Manager struct {
@@ -301,11 +300,7 @@ func (m *Manager) Apply(pid int) error {
 		return err
 	}
 
-	select {
-	case <-statusChan:
-	case <-time.After(time.Second):
-		logrus.Warnf("Timed out while waiting for StartTransientUnit completion signal from dbus. Continuing...")
-	}
+	<-statusChan
 
 	if err := joinCgroups(c, pid); err != nil {
 		return err
