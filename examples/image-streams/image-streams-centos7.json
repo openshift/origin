@@ -121,7 +121,10 @@
               "kind": "ImageStreamTag",
               "name": "2"
             },
-            "name": "latest"
+            "name": "latest",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -136,7 +139,10 @@
               "kind": "DockerImage",
               "name": "docker.io/openshift/jenkins-1-centos7:latest"
             },
-            "name": "1"
+            "name": "1",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -151,7 +157,10 @@
               "kind": "DockerImage",
               "name": "docker.io/openshift/jenkins-2-centos7:v3.10"
             },
-            "name": "2"
+            "name": "2",
+            "referencePolicy": {
+              "type": "Local"
+            }
           }
         ]
       }
