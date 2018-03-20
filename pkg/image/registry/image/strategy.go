@@ -136,7 +136,7 @@ func (s imageStrategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime
 
 // ValidateUpdate is the default update validation for an end user.
 func (imageStrategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.Object) field.ErrorList {
-	return validation.ValidateImageUpdate(old.(*imageapi.Image), obj.(*imageapi.Image))
+	return validation.ValidateImageUpdate(obj.(*imageapi.Image), old.(*imageapi.Image))
 }
 
 // removeManagedSignatureAnnotation removes deprecated annotation from image signatures. A bug in image update
