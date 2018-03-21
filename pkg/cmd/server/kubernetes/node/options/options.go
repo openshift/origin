@@ -84,6 +84,13 @@ func ComputeKubeletFlags(startingArgs map[string][]string, options configapi.Nod
 	setIfUnset(args, "authorization-webhook-cache-authorized-ttl", options.AuthConfig.AuthorizationCacheTTL)
 	setIfUnset(args, "authorization-webhook-cache-unauthorized-ttl", options.AuthConfig.AuthorizationCacheTTL)
 
+	// Override kubelet iptables-masquerade-bit value to match overridden kube-proxy
+	// iptables-masquerade-bit value, UNLESS the user has overridden kube-proxy to match the
+	// previously-not-overridden kubelet value, in which case we don't want to re-break them.
+	if len(options.ProxyArguments["iptables-masquerade-bit"]) != 1 || options.ProxyArguments["iptables-masquerade-bit"][0] != "14" {
+		setIfUnset(args, "iptables-masquerade-bit", "0")
+	}
+
 	if network.IsOpenShiftNetworkPlugin(options.NetworkConfig.NetworkPluginName) {
 		// SDN plugin pod setup/teardown is implemented as a CNI plugin
 		setIfUnset(args, "network-plugin", kubeletcni.CNIPluginName)
