@@ -19,7 +19,7 @@ os::cmd::expect_success_and_text 'oc new-app library/php mysql -o yaml' '3306'
 os::cmd::expect_success_and_text 'oc new-app library/php mysql --dry-run' "Image \"library/php\" runs as the 'root' user which may not be permitted by your cluster administrator"
 os::cmd::expect_failure 'oc new-app unknownhubimage -o yaml'
 os::cmd::expect_failure_and_text 'oc new-app docker.io/node~https://github.com/openshift/nodejs-ex' 'the image match \"docker.io/node\" for source repository \"https://github.com/openshift/nodejs-ex\" does not appear to be a source-to-image builder.'
-os::cmd::expect_failure_and_text 'oc new-app https://github.com/openshift/rails-ex' 'the image match \"ruby\" for source repository \"https://github.com/openshift/rails-ex\" does not appear to be a source-to-image builder.'
+os::cmd::expect_failure_and_text 'oc new-app https://github.com/sclorg/rails-ex' 'the image match \"ruby\" for source repository \"https://github.com/sclorg/rails-ex\" does not appear to be a source-to-image builder.'
 os::cmd::expect_success 'oc new-app https://github.com/openshift/rails-ex --strategy=source --dry-run'
 # verify we can generate a Docker image based component "mongodb" directly
 os::cmd::expect_success_and_text 'oc new-app mongo -o yaml' 'image:\s*mongo'
@@ -268,14 +268,14 @@ os::cmd::expect_success_and_text 'oc new-app -f test/testdata/template-with-app-
 os::cmd::expect_success 'cat examples/sample-app/application-template-stibuild.json | oc new-app -o yaml -f -'
 
 # check search
-os::cmd::expect_success_and_text 'oc new-app --search mysql' "Tags:\s+5.6, 5.7, latest"
+os::cmd::expect_success_and_text 'oc new-app --search mysql' "Tags:\s+5.7, latest"
 os::cmd::expect_success_and_text 'oc new-app --search ruby-helloworld-sample' 'ruby-helloworld-sample'
 # check search - partial matches
 os::cmd::expect_success_and_text 'oc new-app --search ruby-hellow' 'ruby-helloworld-sample'
 os::cmd::expect_success_and_text 'oc new-app --search --template=ruby-hel' 'ruby-helloworld-sample'
 os::cmd::expect_success_and_text 'oc new-app --search --template=ruby-helloworld-sam -o yaml' 'ruby-helloworld-sample'
-os::cmd::expect_success_and_text 'oc new-app --search rub' "Tags:\s+2.2, 2.3, 2.4, latest"
-os::cmd::expect_success_and_text 'oc new-app --search --image-stream=rub' "Tags:\s+2.2, 2.3, 2.4, latest"
+os::cmd::expect_success_and_text 'oc new-app --search rub' "Tags:\s+2.3, 2.4, latest"
+os::cmd::expect_success_and_text 'oc new-app --search --image-stream=rub' "Tags:\s+2.3, 2.4, latest"
 # check search - check correct usage of filters
 os::cmd::expect_failure_and_not_text 'oc new-app --search --image-stream=ruby-heloworld-sample' 'application-template-stibuild'
 os::cmd::expect_failure 'oc new-app --search --template=php'
@@ -338,15 +338,15 @@ os::cmd::try_until_success 'oc get imagestreamtags wildfly:9.0'
 os::cmd::try_until_success 'oc get imagestreamtags wildfly:8.1'
 
 os::cmd::expect_success_and_text 'oc new-app --search --image-stream=mariadb' "Tags:\s+10.1, 10.2, latest"
-os::cmd::expect_success_and_text 'oc new-app --search --image-stream=mongodb' "Tags:\s+2.6, 3.2, 3.4, latest"
-os::cmd::expect_success_and_text 'oc new-app --search --image-stream=mysql' "Tags:\s+5.6, 5.7, latest"
+os::cmd::expect_success_and_text 'oc new-app --search --image-stream=mongodb' "Tags:\s+3.2, 3.4, latest"
+os::cmd::expect_success_and_text 'oc new-app --search --image-stream=mysql' "Tags:\s+5.7, latest"
 os::cmd::expect_success_and_text 'oc new-app --search --image-stream=nginx' "Tags:\s+1.10, 1.12, 1.8, latest"
-os::cmd::expect_success_and_text 'oc new-app --search --image-stream=nodejs' "Tags:\s+4, 6, 8, latest"
-os::cmd::expect_success_and_text 'oc new-app --search --image-stream=perl' "Tags:\s+5.20, 5.24, latest"
-os::cmd::expect_success_and_text 'oc new-app --search --image-stream=php' "Tags:\s+5.6, 7.0, 7.1, latest"
-os::cmd::expect_success_and_text 'oc new-app --search --image-stream=postgresql' "Tags:\s+9.4, 9.5, 9.6, latest"
-os::cmd::expect_success_and_text 'oc new-app -S --image-stream=python' "Tags:\s+2.7, 3.4, 3.5, 3.6, latest"
-os::cmd::expect_success_and_text 'oc new-app -S --image-stream=ruby' "Tags:\s+2.2, 2.3, 2.4, latest"
+os::cmd::expect_success_and_text 'oc new-app --search --image-stream=nodejs' "Tags:\s+6, 8, latest"
+os::cmd::expect_success_and_text 'oc new-app --search --image-stream=perl' "Tags:\s+5.24, latest"
+os::cmd::expect_success_and_text 'oc new-app --search --image-stream=php' "Tags:\s+7.0, 7.1, latest"
+os::cmd::expect_success_and_text 'oc new-app --search --image-stream=postgresql' "Tags:\s+9.5, 9.6, latest"
+os::cmd::expect_success_and_text 'oc new-app -S --image-stream=python' "Tags:\s+2.7, 3.5, 3.6, latest"
+os::cmd::expect_success_and_text 'oc new-app -S --image-stream=ruby' "Tags:\s+2.3, 2.4, latest"
 os::cmd::expect_success_and_text 'oc new-app -S --image-stream=wildfly' "Tags:\s+10.0, 10.1, 11.0, 12.0, 8.1, 9.0, latest"
 os::cmd::expect_success_and_text 'oc new-app --search --template=ruby-helloworld-sample' 'ruby-helloworld-sample'
 # check search - no matches
@@ -360,8 +360,8 @@ os::cmd::expect_failure_and_text 'oc new-app --search mysql --param=FOO=BAR' "ca
 os::cmd::expect_failure_and_not_text 'oc new-app --template foo' 'index out of range'
 
 # set context-dir
-os::cmd::expect_success_and_text 'oc new-app https://github.com/openshift/sti-ruby.git --context-dir="2.3/test/puma-test-app" -o yaml' 'contextDir: 2.3/test/puma-test-app'
-os::cmd::expect_success_and_text 'oc new-app ruby~https://github.com/openshift/sti-ruby.git --context-dir="2.3/test/puma-test-app" -o yaml' 'contextDir: 2.3/test/puma-test-app'
+os::cmd::expect_success_and_text 'oc new-app https://github.com/sclorg/s2i-ruby-container.git --context-dir="2.4/test/puma-test-app" -o yaml' 'contextDir: 2.4/test/puma-test-app'
+os::cmd::expect_success_and_text 'oc new-app ruby~https://github.com/sclorg/s2i-ruby-container.git --context-dir="2.4/test/puma-test-app" -o yaml' 'contextDir: 2.4/test/puma-test-app'
 
 # set strategy
 os::cmd::expect_success_and_text 'oc new-app ruby~https://github.com/openshift/ruby-hello-world.git --strategy=docker -o yaml' 'dockerStrategy'
@@ -393,17 +393,17 @@ os::cmd::expect_success 'printf "apiVersion: v1\nkind: ImageStream\nmetadata:\n 
 os::cmd::expect_failure_and_text 'oc new-app --dry-run emptystream' 'error: no tags found on matching image stream'
 os::cmd::expect_success 'oc new-app --dry-run emptystream --allow-missing-imagestream-tags'
 # new-build
-os::cmd::expect_failure_and_text 'oc new-build --dry-run emptystream~https://github.com/openshift/ruby-ex' 'error: no tags found on matching image stream'
-os::cmd::expect_success 'oc new-build --dry-run emptystream~https://github.com/openshift/ruby-ex --allow-missing-imagestream-tags --strategy=source'
+os::cmd::expect_failure_and_text 'oc new-build --dry-run emptystream~https://github.com/sclorg/ruby-ex' 'error: no tags found on matching image stream'
+os::cmd::expect_success 'oc new-build --dry-run emptystream~https://github.com/sclorg/ruby-ex --allow-missing-imagestream-tags --strategy=source'
 
 # Allow setting --name when specifying grouping
-os::cmd::expect_success "oc new-app mysql+ruby~https://github.com/openshift/ruby-ex --name foo -o yaml"
+os::cmd::expect_success "oc new-app mysql+ruby~https://github.com/sclorg/ruby-ex --name foo -o yaml"
 # but not with multiple components
-os::cmd::expect_failure_and_text "oc new-app mysql ruby~https://github.com/openshift/ruby-ex --name foo -o yaml" "error: only one component or source repository can be used when specifying a name"
+os::cmd::expect_failure_and_text "oc new-app mysql ruby~https://github.com/sclorg/ruby-ex --name foo -o yaml" "error: only one component or source repository can be used when specifying a name"
 # do not allow specifying output image when specifying multiple input repos
-os::cmd::expect_failure_and_text 'oc new-build https://github.com/openshift/nodejs-ex https://github.com/openshift/ruby-ex --to foo' 'error: only one component with source can be used when specifying an output image reference'
+os::cmd::expect_failure_and_text 'oc new-build https://github.com/openshift/nodejs-ex https://github.com/sclorg/ruby-ex --to foo' 'error: only one component with source can be used when specifying an output image reference'
 # but succeed with multiple input repos and no output image specified
-os::cmd::expect_success 'oc new-build https://github.com/openshift/nodejs-ex https://github.com/openshift/ruby-ex -o yaml'
+os::cmd::expect_success 'oc new-build https://github.com/openshift/nodejs-ex https://github.com/sclorg/ruby-ex -o yaml'
 # check that binary build with a builder image results in a source type build
 os::cmd::expect_success_and_text 'oc new-build --binary --image-stream=ruby -o yaml' 'type: Source'
 # check that binary build with a specific strategy uses that strategy regardless of the image type
@@ -412,10 +412,10 @@ os::cmd::expect_success_and_text 'oc new-build --binary --image=ruby --strategy=
 # When only a single imagestreamtag exists, and it does not match the implicit default
 # latest tag, new-app should fail.
 # when latest exists, we default to it and match it.
-os::cmd::expect_success 'oc new-app --image-stream ruby https://github.com/openshift/rails-ex --dry-run'
+os::cmd::expect_success 'oc new-app --image-stream ruby https://github.com/sclorg/rails-ex --dry-run'
 # when latest does not exist, there are multiple partial matches (2.2, 2.3, 2.4)
 os::cmd::expect_success 'oc delete imagestreamtag ruby:latest'
-os::cmd::expect_failure_and_text 'oc new-app --image-stream ruby https://github.com/openshift/rails-ex --dry-run' 'error: multiple images or templates matched \"ruby\":'
+os::cmd::expect_failure_and_text 'oc new-app --image-stream ruby https://github.com/sclorg/rails-ex --dry-run' 'error: multiple images or templates matched \"ruby\":'
 # when only 2.3 exists, there is a single partial match (2.3)
 os::cmd::expect_success 'oc delete imagestreamtag ruby:2.2'
 os::cmd::expect_success 'oc delete imagestreamtag ruby:2.3'
@@ -425,8 +425,8 @@ os::cmd::expect_success 'oc new-app --image-stream ruby:2.4 https://github.com/o
 os::cmd::expect_success 'oc delete imagestreams --all'
 
 # newapp does not attempt to create an imagestream that already exists for a Docker image
-os::cmd::expect_success_and_text 'oc new-app docker.io/ruby:latest~https://github.com/openshift/ruby-ex.git --name=testapp1 --strategy=docker' 'imagestream "ruby" created'
-os::cmd::expect_success_and_not_text 'oc new-app docker.io/ruby:latest~https://github.com/openshift/ruby-ex.git --name=testapp2 --strategy=docker' '"ruby" already exists'
+os::cmd::expect_success_and_text 'oc new-app docker.io/ruby:latest~https://github.com/sclorg/ruby-ex.git --name=testapp1 --strategy=docker' 'imagestream "ruby" created'
+os::cmd::expect_success_and_not_text 'oc new-app docker.io/ruby:latest~https://github.com/sclorg/ruby-ex.git --name=testapp2 --strategy=docker' '"ruby" already exists'
 os::cmd::expect_success 'oc delete all -l app=testapp2'
 os::cmd::expect_success 'oc delete all -l app=testapp1'
 os::cmd::expect_success 'oc delete all -l app=ruby --ignore-not-found'
