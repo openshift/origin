@@ -15161,7 +15161,10 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "kind": "ImageStreamTag",
               "name": "2"
             },
-            "name": "latest"
+            "name": "latest",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -15176,7 +15179,10 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "kind": "DockerImage",
               "name": "docker.io/openshift/jenkins-1-centos7:latest"
             },
-            "name": "1"
+            "name": "1",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -15191,7 +15197,10 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "kind": "DockerImage",
               "name": "docker.io/openshift/jenkins-2-centos7:v3.10"
             },
-            "name": "2"
+            "name": "2",
+            "referencePolicy": {
+              "type": "Local"
+            }
           }
         ]
       }
@@ -16341,7 +16350,10 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "kind": "ImageStreamTag",
               "name": "2"
             },
-            "name": "latest"
+            "name": "latest",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -16356,7 +16368,10 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "kind": "DockerImage",
               "name": "registry.access.redhat.com/openshift3/jenkins-1-rhel7:latest"
             },
-            "name": "1"
+            "name": "1",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -16371,7 +16386,10 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "kind": "DockerImage",
               "name": "registry.access.redhat.com/openshift3/jenkins-2-rhel7:v3.10"
             },
-            "name": "2"
+            "name": "2",
+            "referencePolicy": {
+              "type": "Local"
+            }
           }
         ]
       }
@@ -27095,6 +27113,10 @@ var _examplesJenkinsJenkinsEphemeralTemplateJson = []byte(`{
                                         "value": "true"
                                     },
                                     {
+                                        "name": "DISABLE_ADMINISTRATIVE_MONITORS",
+                                        "value": "${DISABLE_ADMINISTRATIVE_MONITORS}"
+                                    },
+                                    {
                                         "name": "KUBERNETES_MASTER",
                                         "value": "https://kubernetes.default:443"
                                     },
@@ -27295,6 +27317,12 @@ var _examplesJenkinsJenkinsEphemeralTemplateJson = []byte(`{
             "value": "openshift"
         },
         {
+            "description": "Whether to perform memory intensive, possibly slow, synchronization with the Jenkins Update Center on start.  If true, the Jenkins core update monitor and site warnings monitor are disabled.",
+            "displayName": "Disable memory intensive administrative monitors",
+            "name": "DISABLE_ADMINISTRATIVE_MONITORS",
+            "value": "false"
+        },
+        {
             "description": "Name of the ImageStreamTag to be used for the Jenkins image.",
             "displayName": "Jenkins ImageStreamTag",
             "name": "JENKINS_IMAGE_STREAM_TAG",
@@ -27413,6 +27441,10 @@ var _examplesJenkinsJenkinsPersistentTemplateJson = []byte(`{
                                     {
                                         "name": "OPENSHIFT_ENABLE_REDIRECT_PROMPT",
                                         "value": "true"
+                                    },
+                                    {
+                                        "name": "DISABLE_ADMINISTRATIVE_MONITORS",
+                                        "value": "${DISABLE_ADMINISTRATIVE_MONITORS}"
                                     },
                                     {
                                         "name": "KUBERNETES_MASTER",
@@ -27620,6 +27652,12 @@ var _examplesJenkinsJenkinsPersistentTemplateJson = []byte(`{
             "displayName": "Jenkins ImageStream Namespace",
             "name": "NAMESPACE",
             "value": "openshift"
+        },
+        {
+            "description": "Whether to perform memory intensive, possibly slow, synchronization with the Jenkins Update Center on start.  If true, the Jenkins core update monitor and site warnings monitor are disabled.",
+            "displayName": "Disable memory intensive administrative monitors",
+            "name": "DISABLE_ADMINISTRATIVE_MONITORS",
+            "value": "false"
         },
         {
             "description": "Name of the ImageStreamTag to be used for the Jenkins image.",
