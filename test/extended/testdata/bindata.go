@@ -259,6 +259,8 @@
 // install/openshift-controller-manager/install.yaml
 // install/origin-web-console/console-config.yaml
 // install/origin-web-console/console-template.yaml
+// install/service-catalog/rbac-template.yaml
+// install/service-catalog/service-catalog-template.yaml
 // install/service-catalog-broker-resources/template-service-broker-registration.yaml
 // install/templateservicebroker/apiserver-config.yaml
 // install/templateservicebroker/apiserver-template.yaml
@@ -30631,6 +30633,593 @@ func installOriginWebConsoleConsoleTemplateYaml() (*asset, error) {
 	return a, nil
 }
 
+var _installServiceCatalogRbacTemplateYaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: service-catalog-rbac
+parameters:
+- name: NAMESPACE
+  value: kube-service-catalog
+- name: KUBE_SYSTEM_NAMESPACE
+  value: kube-system
+objects:
+- apiVersion: rbac.authorization.k8s.io/v1beta1
+  kind: ClusterRole
+  metadata:
+    name: servicecatalog-serviceclass-viewer
+  rules:
+  - apiGroups:
+    - servicecatalog.k8s.io
+    resources:
+    - clusterserviceclasses
+    - clusterserviceplans
+    verbs:
+    - list
+    - watch
+    - get
+
+- apiVersion: rbac.authorization.k8s.io/v1beta1
+  kind: ClusterRoleBinding
+  metadata:
+    name: servicecatalog-serviceclass-viewer-binding
+  roleRef:
+    name: servicecatalog-serviceclass-viewer
+  groupNames:
+  - system:authenticated
+
+- apiVersion: rbac.authorization.k8s.io/v1beta1
+  kind: ClusterRoleBinding
+  metadata:
+    name: service-catalog-sar-creator-binding
+  roleRef:
+    name: sar-creator
+  subjects:
+  - kind: ServiceAccount
+    name: service-catalog-apiserver
+    namespace: ${NAMESPACE}
+
+- apiVersion: rbac.authorization.k8s.io/v1beta1
+  kind: ClusterRole
+  metadata:
+    name: namespace-viewer
+  rules:
+  - apiGroups:
+    - ""
+    resources:
+    - namespaces
+    verbs:
+    - list
+    - watch
+    - get
+
+- apiVersion: rbac.authorization.k8s.io/v1beta1
+  kind: ClusterRoleBinding
+  metadata:
+    name: service-catalog-namespace-viewer-binding
+  roleRef:
+    name: namespace-viewer
+  subjects:
+  - kind: ServiceAccount
+    name: service-catalog-apiserver
+    namespace: ${NAMESPACE}
+
+- apiVersion: rbac.authorization.k8s.io/v1beta1
+  kind: ClusterRoleBinding
+  metadata:
+    name: service-catalog-controller-namespace-viewer-binding
+  roleRef:
+    name: namespace-viewer
+  subjects:
+  - kind: ServiceAccount
+    name: service-catalog-controller
+    namespace: ${NAMESPACE}
+
+- apiVersion: rbac.authorization.k8s.io/v1beta1
+  kind: ClusterRole
+  metadata:
+    name: sar-creator
+  rules:
+  - apiGroups:
+    - ""
+    resources:
+    - subjectaccessreviews.authorization.k8s.io
+    verbs:
+    - create
+
+- apiVersion: rbac.authorization.k8s.io/v1beta1
+  kind: ClusterRole
+  metadata:
+    name: service-catalog-controller
+  rules:
+  - apiGroups:
+    - ""
+    resources:
+    - secrets
+    verbs:
+    - create
+    - update
+    - patch
+    - delete
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - servicecatalog.k8s.io
+    resources:
+    - clusterservicebrokers/status
+    - clusterserviceclasses/status
+    - clusterserviceplans/status
+    - serviceinstances/status
+    - servicebindings/status
+    - servicebindings/finalizers
+    - serviceinstances/reference
+    verbs:
+    - update
+  - apiGroups:
+    - servicecatalog.k8s.io
+    resources:
+    - clusterservicebrokers
+    - serviceinstances
+    - servicebindings
+    verbs:
+    - list
+    - get
+    - watch
+  - apiGroups:
+    - ""
+    resources:
+    - events
+    verbs:
+    - patch
+    - create
+  - apiGroups:
+    - servicecatalog.k8s.io
+    resources:
+    - clusterserviceclasses
+    - clusterserviceplans
+    verbs:
+    - create
+    - delete
+    - update
+    - patch
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - settings.k8s.io
+    resources:
+    - podpresets
+    verbs:
+    - create
+    - update
+    - delete
+    - get
+    - list
+    - watch
+
+- apiVersion: rbac.authorization.k8s.io/v1beta1
+  kind: ClusterRoleBinding
+  metadata:
+    name: service-catalog-controller-binding
+  roleRef:
+    name: service-catalog-controller
+  subjects:
+  - kind: ServiceAccount
+    name: service-catalog-controller
+    namespace: ${NAMESPACE}
+  
+- apiVersion: rbac.authorization.k8s.io/v1beta1
+  kind: Role
+  metadata:
+    name: endpoint-accessor
+  rules:
+  - apiGroups:
+    - ""
+    resources:
+    - endpoints
+    verbs:
+    - list
+    - watch
+    - get
+    - create
+    - update
+
+- apiVersion: rbac.authorization.k8s.io/v1beta1
+  kind: RoleBinding
+  metadata:
+    name: endpointer-accessor-binding
+  roleRef:
+    name: endpoint-accessor
+    namespace: ${NAMESPACE}
+  subjects:
+  - kind: ServiceAccount
+    namespace: ${NAMESPACE}
+    name: service-catalog-controller
+
+- apiVersion: rbac.authorization.k8s.io/v1beta1
+  kind: RoleBinding
+  metadata:
+    name: extension-apiserver-authentication-reader-binding
+    namespace: ${KUBE_SYSTEM_NAMESPACE}
+  roleRef:
+    name: extension-apiserver-authentication-reader
+    namespace: ${KUBE_SYSTEM_NAMESPACE}
+  subjects:
+  - kind: ServiceAccount
+    name: service-catalog-apiserver
+    namespace: ${NAMESPACE}
+
+- apiVersion: rbac.authorization.k8s.io/v1beta1
+  kind: ClusterRoleBinding
+  metadata:
+    name: system:auth-delegator-binding
+  roleRef:
+    name: system:auth-delegator
+  subjects:
+  - kind: ServiceAccount
+    name: service-catalog-apiserver
+    namespace: ${NAMESPACE}
+
+- apiVersion: rbac.authorization.k8s.io/v1beta1
+  kind: ClusterRole
+  meta:
+    name: system:openshift:service-catalog:aggregate-to-admin
+    labels: 
+      rbac.authorization.k8s.io/aggregate-to-admin: true
+  rules:
+  - apiGroups:
+    - "servicecatalog.k8s.io"
+    resources:
+    - "serviceinstances"
+    - "servicebindings"
+    verbs:
+    - create
+    - update
+    - delete
+    - get
+    - list
+    - watch
+    - patch
+  - apiGroups:
+    - settings.k8s.io
+    resources:
+    - podpresets
+    verbs:
+    - create
+    - update
+    - delete
+    - get
+    - list
+    - watch
+
+- apiVersion: rbac.authorization.k8s.io/v1beta1
+  kind: ClusterRole
+  meta:
+    name: system:openshift:service-catalog:aggregate-to-edit
+    labels:
+      rbac.authorization.k8s.io/aggregate-to-edit: true
+  rules:
+  - apiGroups:
+    - servicecatalog.k8s.io
+    resources:
+    - serviceinstances
+    - servicebindings
+    verbs:
+    - create
+    - update
+    - delete
+    - get
+    - list
+    - watch
+    - patch
+  - apiGroups:
+    - settings.k8s.io
+    resources:
+    - podpresets
+    verbs:
+    - create
+    - update
+    - delete
+    - get
+    - list
+    - watch
+
+- apiVersion: rbac.authorization.k8s.io/v1beta1
+  kind: ClusterRole
+  meta:
+    name: system:openshift:service-catalog:aggregate-to-view
+    labels:
+      rbac.authorization.k8s.io/aggregate-to-view: true
+  rules:
+  - apiGroups:
+    - servicecatalog.k8s.io
+    resources:
+    - serviceinstances
+    - servicebindings
+    verbs:
+    - get
+    - list
+    - watch
+
+- apiVersion: rbac.authorization.k8s.io/v1beta1
+  kind: ClusterRole
+  meta:
+    name: system:openshift:clusterservicebroker-client
+  rules:
+  - apiGroups:
+    - servicecatalog.k8s.io
+    resources:
+    - clusterservicebrokers
+    verbs:
+    - create
+    - update
+    - delete
+    - get
+    - list
+    - watch
+    - patch
+`)
+
+func installServiceCatalogRbacTemplateYamlBytes() ([]byte, error) {
+	return _installServiceCatalogRbacTemplateYaml, nil
+}
+
+func installServiceCatalogRbacTemplateYaml() (*asset, error) {
+	bytes, err := installServiceCatalogRbacTemplateYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "install/service-catalog/rbac-template.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _installServiceCatalogServiceCatalogTemplateYaml = []byte(`apiVersion: v1
+kind: Template
+metadata:
+  name: service-catalog
+parameters:
+- description: CORS allowed origin for the API server, if you need to specify multiple modify the Deployment after creation
+  displayName: CORS Allowed Origin
+  name: CORS_ALLOWED_ORIGIN
+  required: true
+  value: 10.192.213.116
+- description: Name of the service catalog image to use for apiserver and controller-manager
+  displayName: Service catalog image name
+  name: SERVICE_CATALOG_IMAGE
+  required: true
+  value: openshift/origin-service-catalog:latest
+- description: Cluster ip address for the service catalog service
+  displayName: Service Catalog Service IP
+  name: SERVICE_CATALOG_SERVICE_IP
+  required: true
+  value: 172.30.1.2
+- description: Do not change this value.
+  displayName: Name of the kube-system namespace
+  name: KUBE_SYSTEM_NAMESPACE
+  required: true
+  value: kube-system
+- name: CA_BUNDLE
+  description: CA bundle bytes for API service serving CA
+  required: true
+
+objects:
+
+- kind: ServiceAccount
+  apiVersion: v1
+  metadata:
+    name: service-catalog-controller
+
+- kind: ServiceAccount
+  apiVersion: v1
+  metadata:
+    name: service-catalog-apiserver
+
+- kind: Service
+  apiVersion: v1
+  metadata:
+    name: apiserver
+    annotations:
+      service.alpha.openshift.io/serving-cert-secret-name: 'apiserver-ssl'
+  spec:
+    type: ClusterIP
+    clusterIP: ${SERVICE_CATALOG_SERVICE_IP}
+    ports:
+    - name: secure
+      port: 443
+      protocol: TCP
+      targetPort: 6443
+    selector:
+      app: apiserver
+    sessionAffinity: None
+
+
+- kind: APIService
+  apiVersion: apiregistration.k8s.io/v1beta1
+  metadata:
+    name: v1beta1.servicecatalog.k8s.io
+  spec:
+    caBundle: ${CA_BUNDLE}
+    version: "v1beta1",
+    group: "servicecatalog.k8s.io",
+    groupPriorityMinimum: 200,
+    versionPriority:      20,
+    service:
+      name: "apiserver"
+      namespace: kube-service-catalog
+
+- kind: Deployment
+  apiVersion: extensions/v1beta1
+  metadata:
+    labels:
+      app: apiserver
+    name: apiserver
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: apiserver
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 1
+      type: RollingUpdate
+    template:
+      metadata:
+        labels:
+          app: apiserver
+      spec:
+        serviceAccountName: service-catalog-apiserver
+        containers:
+        - command: 
+          - service-catalog
+          args:
+          - apiserver
+          - --admission-control
+          - KubernetesNamespaceLifecycle,DefaultServicePlan,ServiceBindingsLifecycle,ServicePlanChangeValidator,BrokerAuthSarCheck
+          - --storage-type
+          - etcd
+          - --secure-port
+          - "6443"
+          - --etcd-servers
+          - http://localhost:2379
+          - -v
+          - "10"
+          - --cors-allowed-origins
+          - ${CORS_ALLOWED_ORIGIN}
+          - --feature-gates
+          - OriginatingIdentity=true
+          image: ${SERVICE_CATALOG_IMAGE}
+          imagePullPolicy: IfNotPresent
+          name: apiserver
+          ports:
+          - containerPort: 6443
+            protocol: TCP
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          volumeMounts:
+          - mountPath: /var/run/kubernetes-service-catalog
+            name: apiserver-ssl
+            readOnly: true
+        - env:
+          - name: ETCD_DATA_DIR
+            value: /data-dir
+          image: quay.io/coreos/etcd
+          imagePullPolicy: IfNotPresent
+          name: etcd
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          volumeMounts:
+          - mountPath: /data-dir
+            name: data-dir
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+        volumes:
+        - name: apiserver-ssl
+          secret:
+            defaultMode: 420
+            secretName: apiserver-ssl
+            items:
+            - key: tls.crt
+              path: apiserver.crt
+            - key: tls.key
+              path: apiserver.key
+        - emptyDir: {}
+          name: data-dir
+
+- kind: Service
+  apiVersion: v1
+  metadata:
+    name: controller-manager
+  spec:
+    ports:
+    - port: 6443
+      protocol: TCP
+      targetPort: 6443
+    selector:
+      app: controller-manager
+    sessionAffinity: None
+    type: ClusterIP
+
+- kind: Deployment
+  apiVersion: extensions/v1beta1
+  metadata:
+    labels:
+      app: controller-manager
+    name: controller-manager
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: controller-manager
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 1
+      type: RollingUpdate
+    template:
+      metadata:
+        labels:
+          app: controller-manager
+      spec:
+        serviceAccountName: service-catalog-controller
+        containers:
+        - command: 
+          - service-catalog
+          args:
+          - controller-manager
+          - -v
+          - "5"
+          - --leader-election-namespace
+          - kube-service-catalog
+          - --broker-relist-interval
+          - "5m"
+          - --feature-gates
+          - OriginatingIdentity=true
+          image: ${SERVICE_CATALOG_IMAGE}
+          imagePullPolicy: IfNotPresent
+          name: controller-manager
+          ports:
+          - containerPort: 8080
+            protocol: TCP
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          volumeMounts:
+          - mountPath: /etc/service-catalog-ssl
+            name: service-catalog-ssl
+            readOnly: true
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+        volumes:
+        - name: service-catalog-ssl
+          secret:
+            defaultMode: 420
+            items:
+            - key: tls.crt
+              path: apiserver.crt
+            secretName: apiserver-ssl
+`)
+
+func installServiceCatalogServiceCatalogTemplateYamlBytes() ([]byte, error) {
+	return _installServiceCatalogServiceCatalogTemplateYaml, nil
+}
+
+func installServiceCatalogServiceCatalogTemplateYaml() (*asset, error) {
+	bytes, err := installServiceCatalogServiceCatalogTemplateYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "install/service-catalog/service-catalog-template.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _installServiceCatalogBrokerResourcesTemplateServiceBrokerRegistrationYaml = []byte(`apiVersion: template.openshift.io/v1
 kind: Template
 metadata:
@@ -31257,6 +31846,8 @@ var _bindata = map[string]func() (*asset, error){
 	"install/openshift-controller-manager/install.yaml": installOpenshiftControllerManagerInstallYaml,
 	"install/origin-web-console/console-config.yaml": installOriginWebConsoleConsoleConfigYaml,
 	"install/origin-web-console/console-template.yaml": installOriginWebConsoleConsoleTemplateYaml,
+	"install/service-catalog/rbac-template.yaml": installServiceCatalogRbacTemplateYaml,
+	"install/service-catalog/service-catalog-template.yaml": installServiceCatalogServiceCatalogTemplateYaml,
 	"install/service-catalog-broker-resources/template-service-broker-registration.yaml": installServiceCatalogBrokerResourcesTemplateServiceBrokerRegistrationYaml,
 	"install/templateservicebroker/apiserver-config.yaml": installTemplateservicebrokerApiserverConfigYaml,
 	"install/templateservicebroker/apiserver-template.yaml": installTemplateservicebrokerApiserverTemplateYaml,
@@ -31395,6 +31986,10 @@ var _bintree = &bintree{nil, map[string]*bintree{
 		"origin-web-console": &bintree{nil, map[string]*bintree{
 			"console-config.yaml": &bintree{installOriginWebConsoleConsoleConfigYaml, map[string]*bintree{}},
 			"console-template.yaml": &bintree{installOriginWebConsoleConsoleTemplateYaml, map[string]*bintree{}},
+		}},
+		"service-catalog": &bintree{nil, map[string]*bintree{
+			"rbac-template.yaml": &bintree{installServiceCatalogRbacTemplateYaml, map[string]*bintree{}},
+			"service-catalog-template.yaml": &bintree{installServiceCatalogServiceCatalogTemplateYaml, map[string]*bintree{}},
 		}},
 		"service-catalog-broker-resources": &bintree{nil, map[string]*bintree{
 			"template-service-broker-registration.yaml": &bintree{installServiceCatalogBrokerResourcesTemplateServiceBrokerRegistrationYaml, map[string]*bintree{}},

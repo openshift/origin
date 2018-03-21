@@ -1007,7 +1007,13 @@ func (c *ClusterUpConfig) InstallServiceCatalog(out io.Writer) error {
 	if len(publicMaster) == 0 {
 		publicMaster = c.ServerIP
 	}
-	return c.OpenShiftHelper().InstallServiceCatalog(f, c.LocalConfigDir, publicMaster, openshift.CatalogHost(c.RoutingSuffix, c.ServerIP), c.imageFormat())
+
+	clusterAdminKubeConfig, err := ioutil.ReadFile(path.Join(c.LocalConfigDir, "master", "admin.kubeconfig"))
+	if err != nil {
+		return err
+	}
+
+	return c.OpenShiftHelper().InstallServiceCatalog(clusterAdminKubeConfig, f, c.LocalConfigDir, publicMaster, c.imageFormat(), path.Join(c.BaseTempDir, "logs"))
 }
 
 // InstallTemplateServiceBroker will start the installation of template service broker

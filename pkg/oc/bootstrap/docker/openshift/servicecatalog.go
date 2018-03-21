@@ -1,6 +1,7 @@
 package openshift
 
 import (
+	"encoding/base64"
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
@@ -8,17 +9,16 @@ import (
 
 	"github.com/golang/glog"
 
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+
 	"github.com/openshift/origin/pkg/cmd/util/variable"
+	"github.com/openshift/origin/pkg/oc/bootstrap"
 	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/componentinstall"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/errors"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
-	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	aggregatorapiv1beta1 "k8s.io/kube-aggregator/pkg/apis/apiregistration/v1beta1"
-	aggregatorclient "k8s.io/kube-aggregator/pkg/client/clientset_generated/clientset"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/registry/rbac/reconciliation"
 )
 
 const (
@@ -28,118 +28,71 @@ const (
 )
 
 // InstallServiceCatalog checks whether the service catalog is installed and installs it if not already installed
-func (h *Helper) InstallServiceCatalog(f *clientcmd.Factory, configDir, publicMaster, catalogHost string, imageFormat string) error {
-	kubeClient, err := f.ClientSet()
-	if err != nil {
-		return errors.NewError("cannot obtain API clients").WithCause(err).WithDetails(h.OriginLog())
-	}
-	templateClient, err := f.OpenshiftInternalTemplateClient()
-	if err != nil {
-		return err
-	}
-
-	for _, role := range GetServiceCatalogClusterRoles() {
-		if _, err := (&reconciliation.ReconcileRoleOptions{
-			Confirm:                true,
-			RemoveExtraPermissions: false,
-			Role: reconciliation.ClusterRoleRuleOwner{ClusterRole: &role},
-			Client: reconciliation.ClusterRoleModifier{
-				Client: kubeClient.Rbac().ClusterRoles(),
-			},
-		}).Run(); err != nil {
-			return errors.NewError("could not reconcile service catalog cluster role %s", role.Name).WithCause(err)
-		}
-	}
-
-	// create the namespace if needed.  This is a reserved namespace, so you can't do it with the create project request
-	if _, err := kubeClient.Core().Namespaces().Create(&kapi.Namespace{ObjectMeta: metav1.ObjectMeta{Name: catalogNamespace}}); err != nil && !kapierrors.IsAlreadyExists(err) {
-		return errors.NewError("cannot create service catalog project").WithCause(err)
-	}
-
+func (h *Helper) InstallServiceCatalog(clusterAdminKubeConfig []byte, f *clientcmd.Factory, configDir, publicMaster, imageFormat, logdir string) error {
 	// Instantiate service catalog
 	imageTemplate := variable.NewDefaultImageTemplate()
 	imageTemplate.Format = imageFormat
 	imageTemplate.Latest = false
-
-	params := map[string]string{
-		"SERVICE_CATALOG_SERVICE_IP": ServiceCatalogServiceIP,
-		"CORS_ALLOWED_ORIGIN":        publicMaster,
-		"SERVICE_CATALOG_IMAGE":      imageTemplate.ExpandOrDie("service-catalog"),
-	}
-	glog.V(2).Infof("instantiating service catalog template with parameters %v", params)
-
-	// Stands up the service catalog apiserver, etcd, and controller manager
-	err = instantiateTemplate(templateClient.Template(), f, InfraNamespace, catalogTemplate, catalogNamespace, params, true)
-	if err != nil {
-		return errors.NewError("cannot instantiate service catalog template").WithCause(err)
-	}
-
-	// Wait for the apiserver endpoint to become available
-	err = wait.Poll(1*time.Second, 600*time.Second, func() (bool, error) {
-		glog.V(2).Infof("polling for service catalog api server endpoint availability")
-		deployment, err := kubeClient.Extensions().Deployments(catalogNamespace).Get("apiserver", metav1.GetOptions{})
-		if err != nil {
-			return false, err
-		}
-		if deployment.Status.AvailableReplicas > 0 {
-			return true, nil
-		}
-		return false, nil
-	})
-	if err != nil {
-		return errors.NewError(fmt.Sprintf("failed to start the service catalog apiserver: %v", err))
-	}
-
-	// Register the service catalog api server w/ the api aggregator
-	glog.V(2).Infof("setting up the api aggregator")
-	clientConfig, err := f.OpenShiftClientConfig().ClientConfig()
-	if err != nil {
-		return errors.NewError(fmt.Sprintf("failed to retrieve client config: %v", err))
-	}
-
-	aggregatorClient, err := aggregatorclient.NewForConfig(clientConfig)
-	if err != nil {
-		return errors.NewError(fmt.Sprintf("failed to create an api aggregation registration client: %v", err))
-	}
 
 	serviceCA, err := ioutil.ReadFile(filepath.Join(configDir, "master", "service-signer.crt"))
 	if err != nil {
 		return errors.NewError(fmt.Sprintf("failed to read the service certificate signer CA bundle: %v", err))
 	}
 
-	sc := &aggregatorapiv1beta1.APIService{
-		Spec: aggregatorapiv1beta1.APIServiceSpec{
-			CABundle:             serviceCA,
-			Version:              "v1beta1",
-			Group:                "servicecatalog.k8s.io",
-			GroupPriorityMinimum: 200,
-			VersionPriority:      20,
-			Service: &aggregatorapiv1beta1.ServiceReference{
-				Name:      "apiserver",
-				Namespace: catalogNamespace,
-			},
+	params := map[string]string{
+		"SERVICE_CATALOG_SERVICE_IP": ServiceCatalogServiceIP,
+		"CORS_ALLOWED_ORIGIN":        publicMaster,
+		"SERVICE_CATALOG_IMAGE":      imageTemplate.ExpandOrDie("service-catalog"),
+		"CA_BUNDLE":                  base64.StdEncoding.EncodeToString(serviceCA),
+	}
+	glog.V(2).Infof("instantiating service catalog template with parameters %v", params)
+
+	component := componentinstall.Template{
+		Name:            "service-catalog",
+		Namespace:       catalogNamespace,
+		RBACTemplate:    bootstrap.MustAsset("install/service-catalog/rbac-template.yaml"),
+		InstallTemplate: bootstrap.MustAsset("install/service-catalog/service-catalog-template.yaml"),
+		WaitCondition: func() (bool, error) {
+			kubeClient, err := f.ClientSet()
+			if err != nil {
+				utilruntime.HandleError(err)
+				return false, nil
+			}
+
+			// Wait for the apiserver endpoint to become available
+			err = wait.Poll(1*time.Second, 600*time.Second, func() (bool, error) {
+				glog.V(2).Infof("polling for service catalog api server endpoint availability")
+				deployment, err := kubeClient.Extensions().Deployments(catalogNamespace).Get("apiserver", metav1.GetOptions{})
+				if err != nil {
+					return false, err
+				}
+				if deployment.Status.AvailableReplicas > 0 {
+					return true, nil
+				}
+				return false, nil
+			})
+			if err != nil {
+				return false, err
+			}
+
+			clientConfig, err := f.OpenShiftClientConfig().ClientConfig()
+			if err != nil {
+				return false, err
+			}
+
+			err = componentinstall.WaitForAPI(clientConfig, func(apiService aggregatorapiv1beta1.APIService) bool {
+				return apiService.Name == "v1beta1.servicecatalog.k8s.io"
+			})
+			if err != nil {
+				return false, err
+			}
+
+			return true, nil
 		},
 	}
-	sc.Name = "v1beta1.servicecatalog.k8s.io"
 
-	_, err = aggregatorClient.ApiregistrationV1beta1().APIServices().Create(sc)
-	if err != nil {
-		return errors.NewError(fmt.Sprintf("failed to register service catalog with api aggregator: %v", err))
-	}
-
-	err = componentinstall.WaitForAPI(clientConfig, func(apiService aggregatorapiv1beta1.APIService) bool {
-		return apiService.Name == "v1beta1.servicecatalog.k8s.io"
-	})
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func CatalogHost(routingSuffix, serverIP string) string {
-	if len(routingSuffix) > 0 {
-		return fmt.Sprintf("apiserver-service-catalog.%s", routingSuffix)
-	}
-	return fmt.Sprintf("apiserver-service-catalog.%s.nip.io", serverIP)
+	return component.MakeReady(
+		h.image,
+		clusterAdminKubeConfig,
+		params).Install(h.dockerHelper.Client(), logdir)
 }
