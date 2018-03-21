@@ -8,7 +8,7 @@ function os::golang::verify_go_version() {
 
 	local go_version
 	go_version=($(go version))
-	if [[ "${go_version[2]}" != go1.8* ]]; then
+	if ! echo "${go_version[2]#go}" | awk -F. -v min=1.8 '{ exit $2 < min }'; then
 		os::log::info "Detected go version: ${go_version[*]}."
 		if [[ -z "${PERMISSIVE_GO:-}" ]]; then
 			os::log::fatal "Please install Go version 1.8 or use PERMISSIVE_GO=y to bypass this check."
