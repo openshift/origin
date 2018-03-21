@@ -80,7 +80,7 @@ function start() {
     # dockershim is default and doesn't need an endpoint path
     runtime_endpoint=
   elif [[ "${container_runtime}" = "crio" ]]; then
-    runtime_endpoint="/var/run/crio.sock"
+    runtime_endpoint="unix:///var/run/crio/crio.sock"
   else
     >&2 echo "Invalid container runtime: ${container_runtime}"
     exit 1
