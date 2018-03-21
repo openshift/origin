@@ -173,7 +173,9 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 			// and test image is present, a new image stream is created using the test image, and our jenkins template is instantiated with
 			// an override to use that images stream and test image
 			var licensePrefix, pluginName string
-			newAppArgs := []string{exutil.FixturePath("..", "..", "examples", "jenkins", "jenkins-ephemeral-template.json")}
+			// with the startup costs now of jenkins 2.89 or greater and trying to incur those during startup, need more memory
+			// to avoid deployment timeouts
+			newAppArgs := []string{"-f", exutil.FixturePath("..", "..", "examples", "jenkins", "jenkins-ephemeral-template.json"), "-p", "MEMORY_LIMIT=2Gi"}
 			useSnapshotImage := false
 			origPluginNewAppArgs, useOrigPluginSnapshotImage := jenkins.SetupSnapshotImage(jenkins.UseLocalPluginSnapshotEnvVarName, localPluginSnapshotImage, localPluginSnapshotImageStream, newAppArgs, oc)
 			loginPluginNewAppArgs, useLoginPluginSnapshotImage := jenkins.SetupSnapshotImage(jenkins.UseLocalLoginPluginSnapshotEnvVarName, localLoginPluginSnapshotImage, localLoginPluginSnapshotImageStream, newAppArgs, oc)
@@ -202,7 +204,10 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for jenkins deployment")
-			err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().Apps(), oc.Namespace(), "jenkins", 1, oc)
+			err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().Apps(), oc.Namespace(), "jenkins", 1, false, oc)
+			if err != nil {
+				exutil.DumpApplicationPodLogs("jenkins", oc)
+			}
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			j = jenkins.NewRef(oc)
@@ -267,9 +272,9 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 				// we leverage some of the openshift utilities for waiting for the deployment before we poll
 				// jenkins for the successful job completion
 				g.By("waiting for frontend, frontend-prod deployments as signs that the build has finished")
-				err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().Apps(), oc.Namespace(), "frontend", 1, oc)
+				err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().Apps(), oc.Namespace(), "frontend", 1, true, oc)
 				o.Expect(err).NotTo(o.HaveOccurred())
-				err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().Apps(), oc.Namespace(), "frontend-prod", 1, oc)
+				err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().Apps(), oc.Namespace(), "frontend-prod", 1, true, oc)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("get build console logs and see if succeeded")
@@ -319,9 +324,9 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 				// we leverage some of the openshift utilities for waiting for the deployment before we poll
 				// jenkins for the successful job completion
 				g.By("waiting for frontend, frontend-prod deployments as signs that the build has finished")
-				err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().Apps(), oc.Namespace(), "frontend", 1, oc)
+				err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().Apps(), oc.Namespace(), "frontend", 1, true, oc)
 				o.Expect(err).NotTo(o.HaveOccurred())
-				err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().Apps(), oc.Namespace(), "frontend-prod", 1, oc)
+				err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().Apps(), oc.Namespace(), "frontend-prod", 1, true, oc)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("get build console logs and see if succeeded")
@@ -387,7 +392,7 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 				// we leverage some of the openshift utilities for waiting for the deployment before we poll
 				// jenkins for the successful job completion
 				g.By("waiting for frontend deployments as signs that the build has finished")
-				err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().Apps(), oc.Namespace(), "frontend", 1, oc)
+				err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().Apps(), oc.Namespace(), "frontend", 1, true, oc)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("get build console logs and see if succeeded")

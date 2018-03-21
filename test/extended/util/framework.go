@@ -808,7 +808,7 @@ var CheckImageStreamTagNotFoundFn = func(i *imageapi.ImageStream) bool {
 
 // WaitForDeploymentConfig waits for a DeploymentConfig to complete transition
 // to a given version and report minimum availability.
-func WaitForDeploymentConfig(kc kclientset.Interface, dcClient appstypeclientset.DeploymentConfigsGetter, namespace, name string, version int64, cli *CLI) error {
+func WaitForDeploymentConfig(kc kclientset.Interface, dcClient appstypeclientset.DeploymentConfigsGetter, namespace, name string, version int64, enforceNotProgressing bool, cli *CLI) error {
 	e2e.Logf("waiting for deploymentconfig %s/%s to be available with version %d\n", namespace, name, version)
 	var dc *appsapi.DeploymentConfig
 
@@ -841,8 +841,10 @@ func WaitForDeploymentConfig(kc kclientset.Interface, dcClient appstypeclientset
 			}
 		}
 
-		if progressing != nil && progressing.Status == kapi.ConditionFalse {
-			return false, fmt.Errorf("not progressing")
+		if enforceNotProgressing {
+			if progressing != nil && progressing.Status == kapi.ConditionFalse {
+				return false, fmt.Errorf("not progressing")
+			}
 		}
 
 		if progressing != nil &&

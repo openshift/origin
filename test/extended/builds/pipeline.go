@@ -128,7 +128,10 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for jenkins deployment")
-			err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().Apps(), oc.Namespace(), "jenkins", 1, oc)
+			err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().Apps(), oc.Namespace(), "jenkins", 1, false, oc)
+			if err != nil {
+				exutil.DumpApplicationPodLogs("jenkins", oc)
+			}
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			j = jenkins.NewRef(oc)
