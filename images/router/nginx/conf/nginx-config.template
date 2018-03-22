@@ -51,7 +51,6 @@ http {
  {{- if (eq $cfg.TLSTermination "") }}
     listen          80;
  {{- else }}
-    listen          80 ssl;
     listen          443 ssl;
  {{ end -}}
  
