@@ -65,7 +65,7 @@ var allInOneLong = templates.LongDesc(`
 	You may also pass --etcd=<address> to connect to an external etcd server.`)
 
 // NewCommandStartAllInOne provides a CLI handler for 'start' command
-func NewCommandStartAllInOne(basename string, out, errout io.Writer) (*cobra.Command, *AllInOneOptions) {
+func NewCommandStartAllInOne(basename string, out, errout io.Writer, stopCh <-chan struct{}) (*cobra.Command, *AllInOneOptions) {
 	options := &AllInOneOptions{
 		MasterOptions: &MasterOptions{
 			Output: out,
@@ -122,7 +122,7 @@ func NewCommandStartAllInOne(basename string, out, errout io.Writer) (*cobra.Com
 	BindImageFormatArgs(imageFormatArgs, flags, "")
 
 	startMaster, _ := NewCommandStartMaster(basename, out, errout)
-	startNode, _ := NewCommandStartNode(basename, out, errout)
+	startNode, _ := NewCommandStartNode(basename, out, errout, stopCh)
 	startNodeNetwork, _ := NewCommandStartNetwork(basename, out, errout)
 	startEtcdServer, _ := NewCommandStartEtcdServer(RecommendedStartEtcdServerName, basename, out, errout)
 	startTSBServer := tsbcmd.NewCommandStartTemplateServiceBrokerServer(out, errout, wait.NeverStop)

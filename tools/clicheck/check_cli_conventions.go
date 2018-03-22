@@ -6,6 +6,7 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/openshift"
 	cmdsanity "github.com/openshift/origin/tools/clicheck/sanity"
+	"k8s.io/apimachinery/pkg/util/wait"
 )
 
 var (
@@ -22,7 +23,7 @@ var (
 func main() {
 	errors := []error{}
 
-	oc := openshift.NewCommandOpenShift("openshift")
+	oc := openshift.NewCommandOpenShift("openshift", wait.NeverStop)
 	result := cmdsanity.CheckCmdTree(oc, cmdsanity.AllCmdChecks, skip)
 	errors = append(errors, result...)
 
