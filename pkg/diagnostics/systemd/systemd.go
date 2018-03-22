@@ -60,7 +60,7 @@ var tlsClientErrorSeen map[string]bool
 // Specify what units we can check and what to look for and say about it
 var unitLogSpecs = []*unitSpec{
 	{
-		Names:      []string{"origin-master", "atomic-openshift-master"},
+		Names:      []string{"origin-master-api", "atomic-openshift-master-api"},
 		StartMatch: regexp.MustCompile("Starting \\w+ Master"),
 		LogMatchers: []logMatcher{
 			badImageTemplate,
