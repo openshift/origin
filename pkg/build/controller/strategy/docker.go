@@ -57,7 +57,7 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*v1.Pod, e
 			ServiceAccountName: serviceAccount,
 			Containers: []v1.Container{
 				{
-					Name:    "docker-build",
+					Name:    dockerBuild,
 					Image:   bs.Image,
 					Command: []string{"openshift-docker-build"},
 					Env:     copyEnvVarSlice(containerEnv),

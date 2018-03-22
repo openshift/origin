@@ -40,6 +40,14 @@ const (
 	GitCloneContainer = "git-clone"
 )
 
+const (
+	customBuild = "custom-build"
+	stiBuild    = "sti-build"
+	dockerBuild = "docker-build"
+)
+
+var BuildContainerNames = []string{customBuild, stiBuild, dockerBuild}
+
 var (
 	// BuildControllerRefKind contains the schema.GroupVersionKind for builds.
 	// This is used in the ownerRef of builder pods.
