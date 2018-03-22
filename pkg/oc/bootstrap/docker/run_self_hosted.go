@@ -358,7 +358,7 @@ func (c *ClusterUpConfig) makeKubeDNSConfig(nodeConfig string) (string, error) {
 }
 
 func (c *ClusterUpConfig) makeOpenShiftAPIServerConfig(masterConfigDir string) (string, error) {
-	return kubeapiserver.MakeOpenShiftAPIServerConfig(masterConfigDir, c.BaseTempDir)
+	return kubeapiserver.MakeOpenShiftAPIServerConfig(masterConfigDir, c.RoutingSuffix, c.BaseTempDir)
 }
 
 func (c *ClusterUpConfig) makeOpenShiftControllerConfig(masterConfigDir string) (string, error) {
