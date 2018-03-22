@@ -19,6 +19,7 @@ import (
 	kapiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -55,11 +56,6 @@ type Definition struct {
 	Class   string   `xml:"class,attr"`
 	Plugin  string   `xml:"plugin,attr"`
 	Script  string   `xml:"script"`
-}
-
-// ginkgolog creates simple entry in the GinkgoWriter.
-func ginkgolog(format string, a ...interface{}) {
-	fmt.Fprintf(g.GinkgoWriter, format+"\n", a...)
 }
 
 // NewRef creates a jenkins reference from an OC client
@@ -99,7 +95,7 @@ func (j *JenkinsRef) BuildURI(resourcePathFormat string, a ...interface{}) strin
 // Returns a response body and status code or an error.
 func (j *JenkinsRef) GetResource(resourcePathFormat string, a ...interface{}) (string, int, error) {
 	uri := j.BuildURI(resourcePathFormat, a...)
-	ginkgolog("Retrieving Jenkins resource: %q", uri)
+	e2e.Logf("Retrieving Jenkins resource: %q", uri)
 	req, err := http.NewRequest("GET", uri, nil)
 	if err != nil {
 		return "", 0, fmt.Errorf("Unable to build request for uri %q: %v", uri, err)
@@ -144,7 +140,7 @@ func (j *JenkinsRef) Post(reqBody io.Reader, resourcePathFormat, contentType str
 	req.Header.Set("Authorization", "Bearer "+j.token)
 
 	client := &http.Client{}
-	ginkgolog("Posting to Jenkins resource: %q", uri)
+	e2e.Logf("Posting to Jenkins resource: %q", uri)
 	resp, err := client.Do(req)
 	if err != nil {
 		return "", 0, fmt.Errorf("Error posting request to %q: %v", uri, err)
@@ -175,7 +171,7 @@ func (j *JenkinsRef) GetResourceWithStatus(validStatusList []int, timeout time.D
 	err := wait.Poll(10*time.Second, timeout, func() (bool, error) {
 		body, status, err := j.GetResource(resourcePathFormat, a...)
 		if err != nil {
-			ginkgolog("Error accessing resource: %v", err)
+			e2e.Logf("Error accessing resource: %v", err)
 			return false, nil
 		}
 		var found bool
@@ -186,7 +182,7 @@ func (j *JenkinsRef) GetResourceWithStatus(validStatusList []int, timeout time.D
 			}
 		}
 		if !found {
-			ginkgolog("Expected http status [%v] during GET by recevied [%v] for %s with body %s", validStatusList, status, resourcePathFormat, body)
+			e2e.Logf("Expected http status [%v] during GET by recevied [%v] for %s with body %s", validStatusList, status, resourcePathFormat, body)
 			return false, nil
 		}
 		retBody = body
@@ -218,7 +214,7 @@ func (j *JenkinsRef) WaitForContent(verificationRegEx string, verificationStatus
 				matchingContent = content
 				return true, nil
 			} else {
-				ginkgolog("Content did not match verification regex %q:\n %v", verificationRegEx, content)
+				e2e.Logf("Content did not match verification regex %q:\n %v", verificationRegEx, content)
 				return false, nil
 			}
 		} else {
@@ -269,7 +265,7 @@ func (j *JenkinsRef) StartJob(jobName string) *JobMon {
 		jobName:         jobName,
 	}
 
-	ginkgolog("Current timestamp for [%s]: %q", jobName, jmon.lastBuildNumber)
+	e2e.Logf("Current timestamp for [%s]: %q", jobName, jmon.lastBuildNumber)
 	g.By(fmt.Sprintf("Starting jenkins job: %s", jobName))
 	_, status, err := j.PostXML(nil, "job/%s/build?delay=0sec", jobName)
 	o.ExpectWithOffset(1, err).NotTo(o.HaveOccurred())
@@ -318,7 +314,7 @@ func (j *JenkinsRef) BuildDSLJob(namespace string, scriptLines ...string) (strin
 		},
 	}
 	output, err := xml.MarshalIndent(fd, "  ", "    ")
-	ginkgolog("Formulated DSL Project XML:\n%s\n\n", output)
+	e2e.Logf("Formulated DSL Project XML:\n%s\n\n", output)
 	return string(output), err
 }
 
@@ -389,12 +385,8 @@ func SetupSnapshotImage(envVarName, localImageName, snapshotImageStream string, 
 		g.By("Creating a snapshot Jenkins imagestream and overridding the default Jenkins imagestream")
 		o.Expect(snapshotImagePresent).To(o.BeTrue())
 
-		ginkgolog("")
-		ginkgolog("")
-		ginkgolog("IMPORTANT: You are testing a local jenkins snapshot image.")
-		ginkgolog("In order to target the official image stream, you must unset %s before running extended tests.", envVarName)
-		ginkgolog("")
-		ginkgolog("")
+		e2e.Logf("\n\nIMPORTANT: You are testing a local jenkins snapshot image.")
+		e2e.Logf("In order to target the official image stream, you must unset %s before running extended tests.\n\n", envVarName)
 
 		// Create an imagestream based on the Jenkins' plugin PR-Testing image (https://github.com/openshift/jenkins-plugin/blob/master/PR-Testing/README).
 		err = oc.Run("new-build").Args("-D", fmt.Sprintf("FROM %s", localImageName), "--to", snapshotImageStream).Execute()
@@ -413,12 +405,8 @@ func SetupSnapshotImage(envVarName, localImageName, snapshotImageStream string, 
 
 	} else {
 		if snapshotImagePresent {
-			ginkgolog("")
-			ginkgolog("")
-			ginkgolog("IMPORTANT: You have a local OpenShift jenkins snapshot image, but it is not being used for testing.")
-			ginkgolog("In order to target your local image, you must set %s to some value before running extended tests.", envVarName)
-			ginkgolog("")
-			ginkgolog("")
+			e2e.Logf("\n\nIMPORTANT: You have a local OpenShift jenkins snapshot image, but it is not being used for testing.")
+			e2e.Logf("In order to target your local image, you must set %s to some value before running extended tests.\n\n", envVarName)
 		}
 	}
 
