@@ -80,7 +80,7 @@ func (bs *SourceBuildStrategy) CreateBuildPod(build *buildapi.Build) (*v1.Pod, e
 			ServiceAccountName: serviceAccount,
 			Containers: []v1.Container{
 				{
-					Name:    "sti-build",
+					Name:    stiBuild,
 					Image:   bs.Image,
 					Command: []string{"openshift-sti-build"},
 					Env:     copyEnvVarSlice(containerEnv),

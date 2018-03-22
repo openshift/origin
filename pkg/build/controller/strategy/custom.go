@@ -87,7 +87,7 @@ func (bs *CustomBuildStrategy) CreateBuildPod(build *buildapi.Build) (*v1.Pod, e
 			ServiceAccountName: serviceAccount,
 			Containers: []v1.Container{
 				{
-					Name:  "custom-build",
+					Name:  customBuild,
 					Image: strategy.From.Name,
 					Env:   containerEnv,
 					// TODO: run unprivileged https://github.com/openshift/origin/issues/662
