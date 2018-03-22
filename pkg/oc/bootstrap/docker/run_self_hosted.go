@@ -24,7 +24,6 @@ import (
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
-	aggregatorapiv1beta1 "k8s.io/kube-aggregator/pkg/apis/apiregistration/v1beta1"
 	aggregatorclient "k8s.io/kube-aggregator/pkg/client/clientset_generated/clientset"
 
 	"github.com/openshift/origin/pkg/oc/bootstrap"
@@ -177,9 +176,20 @@ func (c *ClusterUpConfig) StartSelfHosted(out io.Writer) error {
 	}
 
 	// wait for the openshift apiserver before we create the rest of the components, since they may rely on openshift resources
-	err = componentinstall.WaitForAPI(clientConfig, func(apiService aggregatorapiv1beta1.APIService) bool {
-		return strings.HasSuffix(apiService.Spec.Group, "openshift.io")
-	})
+	err = componentinstall.WaitForAPIs(clientConfig,
+		"v1.apps.openshift.io",
+		"v1.authorization.openshift.io",
+		"v1.build.openshift.io",
+		"v1.image.openshift.io",
+		"v1.network.openshift.io",
+		"v1.oauth.openshift.io",
+		"v1.project.openshift.io",
+		"v1.quota.openshift.io",
+		"v1.route.openshift.io",
+		"v1.security.openshift.io",
+		"v1.template.openshift.io",
+		"v1.user.openshift.io",
+	)
 	if err != nil {
 		return err
 	}
