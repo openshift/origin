@@ -7,6 +7,7 @@ import (
 	"runtime"
 	"time"
 
+	"k8s.io/apiserver/pkg/server"
 	"k8s.io/apiserver/pkg/util/logs"
 
 	"github.com/openshift/origin/pkg/cmd/openshift"
@@ -32,7 +33,7 @@ func main() {
 	}
 
 	basename := filepath.Base(os.Args[0])
-	command := openshift.CommandFor(basename)
+	command := openshift.CommandFor(basename, server.SetupSignalHandler())
 	if err := command.Execute(); err != nil {
 		os.Exit(1)
 	}
