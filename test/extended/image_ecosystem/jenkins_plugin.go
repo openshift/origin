@@ -175,7 +175,8 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 			var licensePrefix, pluginName string
 			// with the startup costs now of jenkins 2.89 or greater and trying to incur those during startup, need more memory
 			// to avoid deployment timeouts
-			newAppArgs := []string{"-f", exutil.FixturePath("..", "..", "examples", "jenkins", "jenkins-ephemeral-template.json"), "-p", "MEMORY_LIMIT=2Gi"}
+			newAppArgs := []string{"-f", exutil.FixturePath("..", "..", "examples", "jenkins", "jenkins-ephemeral-template.json"), "-p", "MEMORY_LIMIT=2Gi", "-p", "DISABLE_ADMINISTRATIVE_MONITORS=true"}
+
 			useSnapshotImage := false
 			origPluginNewAppArgs, useOrigPluginSnapshotImage := jenkins.SetupSnapshotImage(jenkins.UseLocalPluginSnapshotEnvVarName, localPluginSnapshotImage, localPluginSnapshotImageStream, newAppArgs, oc)
 			loginPluginNewAppArgs, useLoginPluginSnapshotImage := jenkins.SetupSnapshotImage(jenkins.UseLocalLoginPluginSnapshotEnvVarName, localLoginPluginSnapshotImage, localLoginPluginSnapshotImageStream, newAppArgs, oc)
