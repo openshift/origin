@@ -9,9 +9,10 @@ import (
 
 // A new entry shall be added to FeatureAliases for every change to following values.
 const (
-	FeatureBuilder    = `Builder`
-	FeatureS2I        = `S2IBuilder`
-	FeatureWebConsole = `WebConsole`
+	FeatureBuilder         = `Builder`
+	FeatureS2I             = `S2IBuilder`
+	FeatureWebConsole      = `WebConsole`
+	FeatureSignatureImport = `SignatureImport`
 
 	AllVersions = "*"
 )
