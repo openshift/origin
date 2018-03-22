@@ -14928,6 +14928,7 @@ spec:
   containers:
   - name: etcd
     image: openshift/origin:latest
+    imagePullPolicy: IfNotPresent
     workingDir: /var/lib/etcd
     command: ["/bin/bash", "-c"]
     args:
@@ -14980,6 +14981,7 @@ spec:
   containers:
   - name: api
     image: openshift/origin:latest
+    imagePullPolicy: IfNotPresent
     command: ["/bin/bash", "-c"]
     args:
     - |
@@ -15044,6 +15046,7 @@ spec:
   containers:
   - name: controllers
     image: openshift/origin:latest
+    imagePullPolicy: IfNotPresent
     command: ["hyperkube", "kube-controller-manager"]
     args:
     - "--enable-dynamic-provisioning=true"
@@ -15143,6 +15146,7 @@ objects:
         containers:
         - name: kube-proxy
           image: ${IMAGE}
+          imagePullPolicy: IfNotPresent
           command: ["openshift", "start", "node"]
           args:
           - "--enable=dns"
@@ -15254,6 +15258,7 @@ objects:
         containers:
         - name: kube-proxy
           image: ${IMAGE}
+          imagePullPolicy: IfNotPresent
           command: ["openshift", "start", "node"]
           args:
           - "--enable=proxy"
@@ -15301,6 +15306,7 @@ spec:
   containers:
   - name: scheduler
     image: openshift/origin:latest
+    imagePullPolicy: IfNotPresent
     command: ["hyperkube", "kube-scheduler"]
     args:
     - "--leader-elect=true"

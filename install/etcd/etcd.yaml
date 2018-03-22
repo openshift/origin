@@ -12,6 +12,7 @@ spec:
   containers:
   - name: etcd
     image: openshift/origin:latest
+    imagePullPolicy: IfNotPresent
     workingDir: /var/lib/etcd
     command: ["/bin/bash", "-c"]
     args:
