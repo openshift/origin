@@ -65,12 +65,8 @@ func CreateMySQLReplicationHelpers(c kcoreclient.PodInterface, masterDeployment,
 func replicationTestFactory(oc *exutil.CLI, tc testCase) func() {
 	return func() {
 		oc.SetOutputDir(exutil.TestContext.OutputDir)
-		defer exutil.RemoveHostPathVolumes(oc)
 
-		_, err := exutil.SetupHostPathVolumes(oc, "1Gi", 5)
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		err = testutil.WaitForPolicyUpdate(oc.InternalKubeClient().Authorization(), oc.Namespace(), "create", templateapi.Resource("templates"), true)
+		err := testutil.WaitForPolicyUpdate(oc.InternalKubeClient().Authorization(), oc.Namespace(), "create", templateapi.Resource("templates"), true)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		exutil.CheckOpenShiftNamespaceImageStreams(oc)
@@ -189,21 +185,26 @@ func replicationTestFactory(oc *exutil.CLI, tc testCase) func() {
 var _ = g.Describe("[image_ecosystem][mysql][Slow] openshift mysql replication", func() {
 	defer g.GinkgoRecover()
 
-	var oc *exutil.CLI
+	var oc = exutil.NewCLI("mysql-replication", exutil.KubeConfigPath())
 	g.Context("", func() {
 		g.BeforeEach(func() {
 			exutil.DumpDockerInfo()
+
+			_, err := exutil.SetupNFSBackedPersistentVolumes(oc, "1Gi", 5)
+			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
 		g.AfterEach(func() {
+			defer exutil.RemoveNFSBackedPersistentVolumes(oc)
+			defer exutil.RemoveDeploymentConfigs(oc, "mysql-master", "mysql-slave")
+
 			if g.CurrentGinkgoTestDescription().Failed {
 				exutil.DumpPodStates(oc)
 				exutil.DumpPodLogsStartingWith("", oc)
 			}
 		})
 
-		for i, tc := range testCases {
-			oc = exutil.NewCLI(fmt.Sprintf("mysql-replication-%d", i), exutil.KubeConfigPath())
+		for _, tc := range testCases {
 			g.It(fmt.Sprintf("MySQL replication template for %s: %s", tc.Version, tc.TemplatePath), replicationTestFactory(oc, tc))
 		}
 	})

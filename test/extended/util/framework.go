@@ -174,6 +174,10 @@ func GetApplicationPods(oc *CLI, dcName string) (*kapiv1.PodList, error) {
 	return oc.AdminKubeClient().CoreV1().Pods(oc.Namespace()).List(metav1.ListOptions{LabelSelector: ParseLabelsOrDie(fmt.Sprintf("deploymentconfig=%s", dcName)).String()})
 }
 
+func GetStatefulSetPods(oc *CLI, setName string) (*kapiv1.PodList, error) {
+	return oc.AdminKubeClient().CoreV1().Pods(oc.Namespace()).List(metav1.ListOptions{LabelSelector: ParseLabelsOrDie(fmt.Sprintf("name=%s", setName)).String()})
+}
+
 // DumpDeploymentLogs will dump the latest deployment logs for a DeploymentConfig for debug purposes
 func DumpDeploymentLogs(dcName string, version int64, oc *CLI) {
 	e2e.Logf("Dumping deployment logs for deploymentconfig %q\n", dcName)

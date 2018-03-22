@@ -93,7 +93,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 
 			// create persistent volumes if running persistent jenkins
 			if jenkinsTemplatePath == jenkinsPersistentTemplatePath {
-				_, err := exutil.SetupNFSBackedPersistentVolume(oc, "2Gi")
+				_, err := exutil.SetupNFSBackedPersistentVolumes(oc, "2Gi", 1)
 				o.Expect(err).NotTo(o.HaveOccurred())
 			}
 
@@ -998,7 +998,8 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 		})
 
 		g.AfterEach(func() {
-			defer exutil.RemoveNFSBackedPersistentVolume(oc)
+			defer exutil.RemoveDeploymentConfigs(oc, "jenkins")
+			defer exutil.RemoveNFSBackedPersistentVolumes(oc)
 
 			if g.CurrentGinkgoTestDescription().Failed {
 				exutil.DumpPodStates(oc)
