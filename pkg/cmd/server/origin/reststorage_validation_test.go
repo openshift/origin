@@ -99,7 +99,6 @@ func fakeOpenshiftAPIServerConfig() *OpenshiftAPIConfig {
 			QuotaInformers:                quotaInformerFactory,
 			SecurityInformers:             securityInformerFactory,
 			SCCStorage:                    sccStorage,
-			EnableBuilds:                  true,
 			ClusterQuotaMappingController: clusterquotamapping.NewClusterQuotaMappingControllerInternal(internalkubeInformerFactory.Core().InternalVersion().Namespaces(), quotaInformerFactory.Quota().InternalVersion().ClusterResourceQuotas()),
 		},
 	}

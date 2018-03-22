@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/golang/glog"
@@ -12,7 +11,6 @@ import (
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kutilerrors "k8s.io/apimachinery/pkg/util/errors"
-	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	clientgoclientset "k8s.io/client-go/kubernetes"
 	kclientsetexternal "k8s.io/client-go/kubernetes"
@@ -63,9 +61,6 @@ func runOpenShiftControllerManager(masterConfig *configapi.MasterConfig, runServ
 	// you can't double run healthz, so only do this next bit if we aren't starting the API
 	if runServer {
 		glog.Infof("Starting controllers on %s (%s)", masterConfig.ServingInfo.BindAddress, version.Get().String())
-		if len(masterConfig.DisabledFeatures) > 0 {
-			glog.V(4).Infof("Disabled features: %s", strings.Join(masterConfig.DisabledFeatures, ", "))
-		}
 
 		if err := origincontrollers.RunControllerServer(masterConfig.ServingInfo, clientGoKubeExternal); err != nil {
 			return err
@@ -280,14 +275,7 @@ func startControllers(options configapi.MasterConfig, allocationController origi
 		return err
 	}
 
-	excludedControllers := getExcludedControllers(options)
-
 	for controllerName, initFn := range openshiftControllerInitializers {
-		// TODO remove this.  Only call one to start to prove the principle
-		if excludedControllers.Has(controllerName) {
-			glog.Warningf("%q is skipped", controllerName)
-			continue
-		}
 		if !controllerContext.IsControllerEnabled(controllerName) {
 			glog.Warningf("%q is disabled", controllerName)
 			continue
@@ -309,13 +297,4 @@ func startControllers(options configapi.MasterConfig, allocationController origi
 	glog.Infof("Started Origin Controllers")
 
 	return nil
-}
-
-func getExcludedControllers(options configapi.MasterConfig) sets.String {
-	excludedControllers := sets.NewString()
-	if !configapi.IsBuildEnabled(&options) {
-		excludedControllers.Insert("openshift.io/build")
-		excludedControllers.Insert("openshift.io/build-config-change")
-	}
-	return excludedControllers
 }

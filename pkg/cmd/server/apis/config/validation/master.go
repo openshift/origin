@@ -69,8 +69,6 @@ func ValidateMasterConfig(config *configapi.MasterConfig, fldPath *field.Path) V
 		validationResults.AddErrors(field.Invalid(fldPath.Child("controllerLeaseTTL"), config.ControllerLeaseTTL, "TTL must be -1 (disabled), 0 (default), or between 10 and 300 seconds"))
 	}
 
-	validationResults.AddErrors(ValidateDisabledFeatures(config.DisabledFeatures, fldPath.Child("disabledFeatures"))...)
-
 	if config.DNSConfig != nil {
 		dnsConfigPath := fldPath.Child("dnsConfig")
 		validationResults.AddErrors(ValidateHostPort(config.DNSConfig.BindAddress, dnsConfigPath.Child("bindAddress"))...)

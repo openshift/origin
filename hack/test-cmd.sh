@@ -77,10 +77,6 @@ os::cmd::expect_success_and_not_text "KUBECONFIG='${MASTER_CONFIG_DIR}/admin.kub
 os::cmd::expect_success_and_not_text "KUBECONFIG='' oc version" "Missing or incomplete configuration info"
 os::test::junit::declare_suite_end
 
-os::test::junit::declare_suite_start "cmd/config"
-os::cmd::expect_success_and_text "cat ${MASTER_CONFIG_DIR}/master-config.yaml" 'disabledFeatures: null'
-os::test::junit::declare_suite_end
-
 os::start::master
 
 # profile the cli commands

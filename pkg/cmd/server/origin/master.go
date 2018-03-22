@@ -17,7 +17,6 @@ import (
 	kubeapiserver "k8s.io/kubernetes/pkg/master"
 	kcorestorage "k8s.io/kubernetes/pkg/registry/core/rest"
 
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	kubernetes "github.com/openshift/origin/pkg/cmd/server/kubernetes/master"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
@@ -65,7 +64,6 @@ func (c *MasterConfig) newOpenshiftAPIConfig(kubeAPIServerConfig apiserver.Confi
 			ProjectCache:                       c.ProjectCache,
 			ProjectRequestTemplate:             c.Options.ProjectConfig.ProjectRequestTemplate,
 			ProjectRequestMessage:              c.Options.ProjectConfig.ProjectRequestMessage,
-			EnableBuilds:                       configapi.IsBuildEnabled(&c.Options),
 			ClusterQuotaMappingController:      c.ClusterQuotaMappingController,
 			SCCStorage:                         sccStorage,
 		},
