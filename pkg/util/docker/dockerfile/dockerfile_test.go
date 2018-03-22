@@ -371,7 +371,96 @@ EXPOSE 9090 9091
 			t.Errorf("%s: parse error: %v", name, err)
 			continue
 		}
-		got := exposedPorts(node.AST)
+		got, _ := exposedPorts(node.AST)
+		if !reflect.DeepEqual(got, tc.want) {
+			t.Errorf("exposedPorts: %s: got %#v; want %#v", name, got, tc.want)
+		}
+	}
+}
+
+// TestLastExposedPortsVar tests calling exposedPorts with ENV,ARG and range
+func TestLastExposedPortsVarAndRange(t *testing.T) {
+	testCases := map[string]struct {
+		in   string
+		want []string
+	}{
+		"EXPOSE with ENV": {
+			in: `FROM centos:7
+ENV PORT 8080
+EXPOSE $PORT`,
+			want: []string{"8080"},
+		},
+		"EXPOSE with RANGE": {
+			in: `FROM centos:7
+EXPOSE 8080-9000`,
+			want: []string{"8080"},
+		},
+		"EXPOSE with default ARG": {
+			in: `FROM centos:7
+ARG PORT=8080
+EXPOSE $PORT`,
+			want: []string{"8080"},
+		},
+		"EXPOSE recursive ARGS, ENV and range": {
+			in: `FROM centos:7
+ARG PORT=8080-8085
+ENV PORT2 "$PORT"
+ENV PORT3="$PORT2"
+ENV PORT4=$PORT3
+ENV PORT5=$PORT4
+EXPOSE $PORT5`,
+			want: []string{"8080"},
+		},
+		"EXPOSE ignore post eval": {
+			in: `FROM centos:7
+ENV PORT=8080
+EXPOSE $PORT
+ENV PORT=10`,
+			want: []string{"8080"},
+		},
+		"EXPOSE parameter substitution syntax": {
+			in: `FROM centos:7
+ENV PORT2 8081
+ENV PORT=8080 PORT1="${PORT2}"
+EXPOSE ${PORT} "${PORT2:-8085}" ${PORT_MISSING:-8082}`,
+			want: []string{"8080", "8081", "8082"},
+		},
+		"EXPOSE shadow scope ENV": {
+			in: `FROM centos:7
+ENV PORT 8080
+FROM centos:7
+ENV PORT 8081
+EXPOSE $PORT`,
+			want: []string{"8081"},
+		},
+		"EXPOSE out of scope ENV": {
+			in: `FROM centos:7
+ENV PORT 8080
+FROM centos:7
+EXPOSE $PORT`,
+			want: []string{""},
+		},
+		"EXPOSE parse by line": {
+			in: `FROM centos:7
+ENV PORT 8080
+ENV PORT=8090 PORT1=$PORT PORT=9080
+EXPOSE $PORT1`,
+			want: []string{"8080"},
+		},
+		"EXPOSE partial ENV range": {
+			in: `FROM centos:7
+ENV PORT 8080
+EXPOSE ${PORT}-8090`,
+			want: []string{"8080"},
+		},
+	}
+	for name, tc := range testCases {
+		node, err := parser.Parse(strings.NewReader(tc.in))
+		if err != nil {
+			t.Errorf("%s: parse error: %v", name, err)
+			continue
+		}
+		got := LastExposedPorts(node.AST)
 		if !reflect.DeepEqual(got, tc.want) {
 			t.Errorf("exposedPorts: %s: got %#v; want %#v", name, got, tc.want)
 		}
@@ -380,7 +469,7 @@ EXPOSE 9090 9091
 
 // TestExposedPortsNilNode tests calling exposedPorts with a nil *parser.Node.
 func TestExposedPortsNilNode(t *testing.T) {
-	if got := exposedPorts(nil); got != nil {
+	if got, _ := exposedPorts(nil); got != nil {
 		t.Errorf("exposedPorts(nil) = %#v; want nil", got)
 	}
 }
