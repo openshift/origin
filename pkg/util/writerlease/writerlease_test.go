@@ -122,10 +122,8 @@ func TestRunOverlappingWork(t *testing.T) {
 }
 
 func TestExtend(t *testing.T) {
-	nowFn = func() time.Time { return time.Unix(0, 0) }
-	defer func() { nowFn = time.Now }()
-
 	l := New(10*time.Millisecond, 0)
+	l.nowFn = func() time.Time { return time.Unix(0, 0) }
 	l.backoff.Steps = 0
 	l.backoff.Duration = 2 * time.Millisecond
 	defer func() {

@@ -64,8 +64,6 @@ const (
 	Follower
 )
 
-var nowFn = time.Now
-
 type work struct {
 	id int
 	fn WorkFunc
@@ -77,6 +75,7 @@ type WriterLease struct {
 	maxBackoff    time.Duration
 	retryInterval time.Duration
 	once          chan struct{}
+	nowFn         func() time.Time
 
 	lock    sync.Mutex
 	id      int
@@ -101,6 +100,7 @@ func New(leaseDuration, retryInterval time.Duration) *WriterLease {
 		maxBackoff:    leaseDuration,
 		retryInterval: retryInterval,
 
+		nowFn:  time.Now,
 		queued: make(map[string]*work),
 		queue:  workqueue.NewDelayingQueue(),
 		once:   make(chan struct{}),
@@ -116,6 +116,7 @@ func NewWithBackoff(name string, leaseDuration, retryInterval time.Duration, bac
 		maxBackoff:    leaseDuration,
 		retryInterval: retryInterval,
 
+		nowFn:  time.Now,
 		queued: make(map[string]*work),
 		queue:  workqueue.NewNamedDelayingQueue(name),
 		once:   make(chan struct{}),
@@ -164,7 +165,7 @@ func (l *WriterLease) Try(key string, fn WorkFunc) {
 	l.id++
 	l.queued[key] = &work{fn: fn, id: l.id}
 	if l.state == Follower {
-		delay := l.expires.Sub(nowFn())
+		delay := l.expires.Sub(l.nowFn())
 		// no matter what, always wait at least some amount of time as a follower to give the nominal
 		// leader a chance to win
 		if delay < l.backoff.Duration*2 {
@@ -186,7 +187,7 @@ func (l *WriterLease) Extend(key string) {
 			l.tick++
 			backoff := l.nextBackoff()
 			glog.V(4).Infof("[%s] Clearing work for %s and extending lease by %s", l.name, key, backoff)
-			l.expires = nowFn().Add(backoff)
+			l.expires = l.nowFn().Add(backoff)
 		}
 	}
 }
@@ -232,7 +233,7 @@ func (l *WriterLease) work() bool {
 	leaseState, leaseExpires, _ := l.leaseState()
 	if leaseState == Follower {
 		// if we are following, continue to defer work until the lease expires
-		if remaining := leaseExpires.Sub(nowFn()); remaining > 0 {
+		if remaining := leaseExpires.Sub(l.nowFn()); remaining > 0 {
 			glog.V(4).Infof("[%s] Follower, %s remaining in lease", l.name, remaining)
 			l.queue.AddAfter(key, remaining)
 			l.queue.Done(key)
@@ -267,7 +268,7 @@ func (l *WriterLease) finishKey(key string, isLeader bool, id int) {
 			l.tick = 0
 			l.state = Leader
 		}
-		l.expires = nowFn().Add(l.maxBackoff)
+		l.expires = l.nowFn().Add(l.maxBackoff)
 	} else {
 		switch l.state {
 		case Election, Leader:
@@ -276,7 +277,7 @@ func (l *WriterLease) finishKey(key string, isLeader bool, id int) {
 		case Follower:
 			l.tick++
 		}
-		l.expires = nowFn().Add(l.nextBackoff())
+		l.expires = l.nowFn().Add(l.nextBackoff())
 	}
 	if work, ok := l.queued[key]; ok && work.id == id {
 		delete(l.queued, key)
