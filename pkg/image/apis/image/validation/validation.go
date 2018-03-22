@@ -87,13 +87,6 @@ func ValidateImageSignature(signature *imageapi.ImageSignature) field.ErrorList 
 
 func validateImageSignature(signature *imageapi.ImageSignature, fldPath *field.Path) field.ErrorList {
 	allErrs := validation.ValidateObjectMeta(&signature.ObjectMeta, false, path.ValidatePathSegmentName, fldPath.Child("metadata"))
-	if len(signature.Labels) > 0 {
-		allErrs = append(allErrs, field.Forbidden(fldPath.Child("metadata").Child("labels"), "signature labels cannot be set"))
-	}
-	if len(signature.Annotations) > 0 {
-		allErrs = append(allErrs, field.Forbidden(fldPath.Child("metadata").Child("annotations"), "signature annotations cannot be set"))
-	}
-
 	if _, _, err := imageapi.SplitImageSignatureName(signature.Name); err != nil {
 		allErrs = append(allErrs, field.Invalid(fldPath.Child("metadata").Child("name"), signature.Name, "name must be of format <imageName>@<signatureName>"))
 	}
