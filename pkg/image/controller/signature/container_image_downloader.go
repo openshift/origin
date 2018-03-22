@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/containers/image/docker"
@@ -13,6 +14,13 @@ import (
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
+
+// supportedExternalRegistry represents the registry that the image signature
+// importer will allow to import the signatures from.
+// TODO: This should be lifted when containers/image gets an option to blacklist
+// registries allowed for signature import which should prevent spamming
+// internal registry.
+const supportedExternalRegistryPrefix = "registry.access.redhat.com/"
 
 type containerImageSignatureDownloader struct {
 	ctx     context.Context
@@ -31,6 +39,10 @@ type GetSignaturesError struct {
 }
 
 func (s *containerImageSignatureDownloader) DownloadImageSignatures(image *imageapi.Image) ([]imageapi.ImageSignature, error) {
+	// Only allow to import signatures for RH images for now.
+	if !strings.HasPrefix(image.DockerImageReference, supportedExternalRegistryPrefix) {
+		return []imageapi.ImageSignature{}, nil
+	}
 	reference, err := docker.ParseReference("//" + image.DockerImageReference)
 	if err != nil {
 		return nil, err
