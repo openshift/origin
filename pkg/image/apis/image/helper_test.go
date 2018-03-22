@@ -1595,6 +1595,24 @@ func TestFollowTagReference(t *testing.T) {
 			expMultiple: false,
 			expErr:      ErrCrossImageStreamReference,
 		},
+		"crosss namespace tag reference error": {
+			stream: &ImageStream{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "thisns",
+					Name:      "thisis",
+				},
+				Spec: ImageStreamSpec{
+					Tags: map[string]TagReference{
+						"mytag": {From: &kapi.ObjectReference{Kind: "ImageStreamTag", Namespace: "anotherns", Name: "thisis:sometag"}},
+					},
+				},
+			},
+			tag:         "mytag",
+			expFinalTag: "mytag",
+			expRef:      nil,
+			expMultiple: false,
+			expErr:      ErrCrossImageStreamReference,
+		},
 		"circular tag reference error": {
 			stream: &ImageStream{
 				ObjectMeta: metav1.ObjectMeta{
