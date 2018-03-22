@@ -13776,6 +13776,12 @@ objects:
     - routers/metrics
     verbs:
     - get
+  - apiGroups:
+    - image.openshift.io
+    resources:
+    - registry/metrics
+    verbs:
+    - get
 
 - apiVersion: authorization.openshift.io/v1
   kind: ClusterRoleBinding
