@@ -1,0 +1,80 @@
+apiVersion: v1
+kind: Template
+labels:
+  template: multi-namespace-pipeline
+metadata:
+  annotations:
+    iconClass: icon-jenkins
+    tags: instant-app,jenkins
+  name: 
+parameters:
+- description: namespace
+  displayName: namespace
+  name: NAMESPACE
+  value: namespace
+- description: namespace2
+  displayName: namespace2
+  name: NAMESPACE2
+  value: namespace2
+- description: namespace3
+  displayName: namespace3
+  name: NAMESPACE3
+  value: namespace3
+objects:
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    labels:
+      name: multi-namespace-pipeline
+    name: multi-namespace-pipeline
+  spec:
+    strategy:
+      jenkinsPipelineStrategy:
+        env:
+          - name: NAMESPACE
+            value: ${NAMESPACE}
+          - name: NAMESPACE2
+            value: ${NAMESPACE2}
+          - name: NAMESPACE3
+            value: ${NAMESPACE3}
+        jenkinsfile: |-
+          try {
+              timeout(time: 20, unit: 'MINUTES') {
+                  // Select the default cluster
+                  openshift.withCluster() {
+                      // Select the default project
+                      openshift.withProject() {
+
+                          // Output the url of the currently selected cluster
+                          echo "Using project ${openshift.project()} in cluster with url ${openshift.cluster()}"
+
+                          template = openshift.create('https://raw.githubusercontent.com/openshift/origin/master/test/extended/testdata/multi-namespace-template.yaml').object()
+
+                          // Explore the Groovy object which models the OpenShift template as a Map
+                          echo "Template contains ${template.parameters.size()} parameters"
+
+                          // Process the modeled template. We could also pass JSON/YAML, a template name, or a url instead.
+                          def objectModels = openshift.process( template, "-p", "NAMESPACE=${env.NAMESPACE}", "-p", "NAMESPACE2=${env.NAMESPACE2}", "-p", "NAMESPACE3=${env.NAMESPACE3}" )
+
+                          // objectModels is a list of objects the template defined, modeled as Groovy objects
+                          echo "The template references ${objectModels.size()} objects"
+
+                          def objects = openshift.create(objectModels)
+
+                          // Create returns a selector which will always select the objects created
+                          objects.withEach {
+                              // Each loop binds the variable 'it' to a selector which selects a single object
+                              echo "Created ${it.name()} from template with labels ${it.object().metadata.labels}"
+                          }
+
+               
+                      }
+                  }
+              }
+          } catch (err) {
+             echo "in catch block"
+             echo "Caught: ${err}"
+             currentBuild.result = 'FAILURE'
+             throw err
+          }
+      type: JenkinsPipeline
