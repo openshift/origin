@@ -186,7 +186,7 @@ function os::test::extended::clusterup::hostdirs () {
         --host-config-dir="${base_dir}/config" \
         --host-pv-dir="${base_dir}/pv" \
         --host-volumes-dir="${base_dir}/volumes" \
-        --version="$ORIGIN_COMMIT" \
+        --tag="$ORIGIN_COMMIT" \
         --write-config
 
     BASE_DIR="${base_dir}" os::test::extended::clusterup::internal::hostdirs ${@}

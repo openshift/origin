@@ -160,14 +160,15 @@ off of as well as `:latest`. If you have not built all of the images locally,
 ask `oc cluster up` for the `:latest` version and any missing images will be
 pulled down:
 ----
-$ oc cluster up --version=latest
+$ oc cluster up --tag=latest
 ----
 If you have built a full suite of images and want to ensure that only the images
 you just built are going to be used, ask `oc cluster up` for the version that
 corresponds to your `git` commit:
 ----
-$ oc cluster up --version="$(git log -1 --pretty=%h )"
+$ oc cluster up --tag="$(git log -1 --pretty=%h )"
 ----
+NOTE: The `--tag` flag can be used only for development purposes. It is not meant for running a cluster of a different version than `oc` binary.
 
 === Develop and test using a docker-in-docker cluster
 
