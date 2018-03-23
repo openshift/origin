@@ -539,8 +539,8 @@
     "v2",
     "v2/fake"
   ]
-  revision = "43fbcdcb3441d0563527208eb75062ae23280bd7"
-  version = "0.0.4"
+  revision = "39dbb4e91dfc6aad1f293e73fba18cc5f75eceb3"
+  version = "0.0.6"
 
 [[projects]]
   name = "github.com/prometheus/client_golang"
@@ -571,11 +571,6 @@
     "xfs"
   ]
   revision = "65c1f6f8f0fc1e2185eb9863a3bc751496404259"
-
-[[projects]]
-  name = "github.com/satori/go.uuid"
-  packages = ["."]
-  revision = "5bf94b69c6b68ee1b541973bb8e1144db23a194b"
 
 [[projects]]
   name = "github.com/spf13/afero"
@@ -1177,6 +1172,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "5b9043b116c9435c042ac2f0719ecb99d589dc5c5cf400c15f24e9e66f651b44"
+  inputs-digest = "3e86272af4e2198fdca9acc394f165222f9318a0792955e99fea713fd1bce1fb"
   solver-name = "gps-cdcl"
   solver-version = 1

@@ -26,10 +26,10 @@ import (
 	sc "github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog"
 )
 
-const serviceClassNameFmt string = `[-a-zA-Z0-9]+`
-const serviceClassNameMaxLength int = 63
+const commonServiceClassNameFmt string = `[-.a-zA-Z0-9]+`
+const commonServiceClassNameMaxLength int = 63
 
-var serviceClassNameRegexp = regexp.MustCompile("^" + serviceClassNameFmt + "$")
+var commonServiceClassNameRegexp = regexp.MustCompile("^" + commonServiceClassNameFmt + "$")
 
 const guidFmt string = "[a-zA-Z0-9]([-a-zA-Z0-9.]*[a-zA-Z0-9])?"
 const guidMaxLength int = 63
@@ -38,14 +38,15 @@ const guidMaxLength int = 63
 // DNS1123 labels that allows uppercase characters.
 var guidRegexp = regexp.MustCompile("^" + guidFmt + "$")
 
-// validateServiceClassName is the validation function for Service names.
-func validateServiceClassName(value string, prefix bool) []string {
+// validateCommonServiceClassName is the common validation function for
+// service class types.
+func validateCommonServiceClassName(value string, prefix bool) []string {
 	var errs []string
-	if len(value) > serviceClassNameMaxLength {
-		errs = append(errs, utilvalidation.MaxLenError(serviceClassNameMaxLength))
+	if len(value) > commonServiceClassNameMaxLength {
+		errs = append(errs, utilvalidation.MaxLenError(commonServiceClassNameMaxLength))
 	}
-	if !serviceClassNameRegexp.MatchString(value) {
-		errs = append(errs, utilvalidation.RegexError(serviceClassNameFmt, "service-name-40d-0983-1b89"))
+	if !commonServiceClassNameRegexp.MatchString(value) {
+		errs = append(errs, utilvalidation.RegexError(commonServiceClassNameFmt, "service-name-40d-0983-1b89"))
 	}
 
 	return errs
@@ -55,8 +56,9 @@ func validateServiceClassName(value string, prefix bool) []string {
 // have been passed in. External IDs used to be OpenServiceBrokerAPI
 // GUIDs, so we will retain that form until there is another provider
 // that desires a different form.  In the case of the OSBAPI we
-// generate GUIDs for ServiceInstances and ServiceBindings, but for ClusterServiceClass and
-// ServicePlan, they are part of the payload returned from the ClusterServiceBroker.
+// generate GUIDs for ServiceInstances and ServiceBindings, but for
+// ServiceClasses and ServicePlan, they are part of the payload returned from
+// the ServiceBroker.
 func validateExternalID(value string) []string {
 	var errs []string
 	if len(value) > guidMaxLength {
@@ -73,17 +75,26 @@ func ValidateClusterServiceClass(serviceclass *sc.ClusterServiceClass) field.Err
 	return internalValidateClusterServiceClass(serviceclass)
 }
 
-func internalValidateClusterServiceClass(serviceclass *sc.ClusterServiceClass) field.ErrorList {
+// ValidateClusterServiceClassUpdate checks that when changing from an older
+// ClusterServiceClass to a newer ClusterServiceClass is okay.
+func ValidateClusterServiceClassUpdate(new *sc.ClusterServiceClass, old *sc.ClusterServiceClass) field.ErrorList {
+	allErrs := field.ErrorList{}
+	allErrs = append(allErrs, internalValidateClusterServiceClass(new)...)
+
+	return allErrs
+}
+
+func internalValidateClusterServiceClass(clusterserviceclass *sc.ClusterServiceClass) field.ErrorList {
 	allErrs := field.ErrorList{}
 
 	allErrs = append(allErrs,
 		apivalidation.ValidateObjectMeta(
-			&serviceclass.ObjectMeta,
+			&clusterserviceclass.ObjectMeta,
 			false, /* namespace required */
-			validateServiceClassName,
+			validateCommonServiceClassName,
 			field.NewPath("metadata"))...)
 
-	allErrs = append(allErrs, validateClusterServiceClassSpec(&serviceclass.Spec, field.NewPath("spec"), true)...)
+	allErrs = append(allErrs, validateClusterServiceClassSpec(&clusterserviceclass.Spec, field.NewPath("spec"), true)...)
 	return allErrs
 }
 
@@ -94,29 +105,32 @@ func validateClusterServiceClassSpec(spec *sc.ClusterServiceClassSpec, fldPath *
 		allErrs = append(allErrs, field.Required(fldPath.Child("clusterServiceBrokerName"), "clusterServiceBrokerName is required"))
 	}
 
-	if "" == spec.ExternalID {
-		allErrs = append(allErrs, field.Required(fldPath.Child("externalID"), "externalID is required"))
-	}
+	commonErrs := validateCommonServiceClassSpec(&spec.CommonServiceClassSpec, fldPath, create)
 
-	if "" == spec.Description {
-		allErrs = append(allErrs, field.Required(fldPath.Child("description"), "description is required"))
-	}
-
-	for _, msg := range validateServiceClassName(spec.ExternalName, false /* prefix */) {
-		allErrs = append(allErrs, field.Invalid(fldPath.Child("externalName"), spec.ExternalName, msg))
-	}
-	for _, msg := range validateExternalID(spec.ExternalID) {
-		allErrs = append(allErrs, field.Invalid(fldPath.Child("externalID"), spec.ExternalID, msg))
+	if len(commonErrs) != 0 {
+		allErrs = append(commonErrs)
 	}
 
 	return allErrs
 }
 
-// ValidateClusterServiceClassUpdate checks that when changing from an older
-// ClusterServiceClass to a newer ClusterServiceClass is okay.
-func ValidateClusterServiceClassUpdate(new *sc.ClusterServiceClass, old *sc.ClusterServiceClass) field.ErrorList {
-	allErrs := field.ErrorList{}
-	allErrs = append(allErrs, internalValidateClusterServiceClass(new)...)
+func validateCommonServiceClassSpec(spec *sc.CommonServiceClassSpec, fldPath *field.Path, create bool) field.ErrorList {
+	commonErrs := field.ErrorList{}
 
-	return allErrs
+	if "" == spec.ExternalID {
+		commonErrs = append(commonErrs, field.Required(fldPath.Child("externalID"), "externalID is required"))
+	}
+
+	if "" == spec.Description {
+		commonErrs = append(commonErrs, field.Required(fldPath.Child("description"), "description is required"))
+	}
+
+	for _, msg := range validateCommonServiceClassName(spec.ExternalName, false /* prefix */) {
+		commonErrs = append(commonErrs, field.Invalid(fldPath.Child("externalName"), spec.ExternalName, msg))
+	}
+	for _, msg := range validateExternalID(spec.ExternalID) {
+		commonErrs = append(commonErrs, field.Invalid(fldPath.Child("externalID"), spec.ExternalID, msg))
+	}
+
+	return commonErrs
 }

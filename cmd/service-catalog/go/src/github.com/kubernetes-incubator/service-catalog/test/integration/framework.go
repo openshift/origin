@@ -22,6 +22,7 @@ import (
 	"io/ioutil"
 	"log"
 	"math/rand"
+	"net"
 	"net/http"
 	"testing"
 	"time"
@@ -69,48 +70,59 @@ func withConfigGetFreshApiserverAndClient(
 	*restclient.Config,
 	func(),
 ) {
-	securePort := rand.Intn(31743) + 1024
-	secureAddr := fmt.Sprintf("https://localhost:%d", securePort)
 	stopCh := make(chan struct{})
 	serverFailed := make(chan struct{})
+
+	certDir, _ := ioutil.TempDir("", "service-catalog-integration")
+	secureServingOptions := genericserveroptions.NewSecureServingOptions()
+
+	var etcdOptions *server.EtcdOptions
+	if serverstorage.StorageTypeEtcd == serverConfig.storageType {
+		etcdOptions = server.NewEtcdOptions()
+		etcdOptions.StorageConfig.ServerList = serverConfig.etcdServerList
+		etcdOptions.EtcdOptions.StorageConfig.Prefix = fmt.Sprintf("%s-%08X", server.DefaultEtcdPathPrefix, rand.Int31())
+	} else {
+		t.Log("no storage type specified")
+	}
+	options := &server.ServiceCatalogServerOptions{
+		StorageTypeString:       serverConfig.storageType.String(),
+		GenericServerRunOptions: genericserveroptions.NewServerRunOptions(),
+		AdmissionOptions:        genericserveroptions.NewAdmissionOptions(),
+		SecureServingOptions:    secureServingOptions,
+		EtcdOptions:             etcdOptions,
+		AuthenticationOptions:   genericserveroptions.NewDelegatingAuthenticationOptions(),
+		AuthorizationOptions:    genericserveroptions.NewDelegatingAuthorizationOptions(),
+		AuditOptions:            genericserveroptions.NewAuditOptions(),
+		DisableAuth:             true,
+		StandaloneMode:          true, // this must be true because we have no kube server for integration.
+		ServeOpenAPISpec:        true,
+	}
+
+	// get a random free port
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Errorf("failed to listen on 127.0.0.1:0")
+	}
+
+	// Set the listener here, usually the Listener is created later in the framework for us
+	options.SecureServingOptions.Listener = ln
+	options.SecureServingOptions.BindPort = ln.Addr().(*net.TCPAddr).Port
+
+	t.Logf("Server started on port %v", options.SecureServingOptions.BindPort)
+
+	secureAddr := fmt.Sprintf("https://localhost:%d", options.SecureServingOptions.BindPort)
+
 	shutdownServer := func() {
-		t.Logf("Shutting down server on port: %d", securePort)
+		t.Logf("Shutting down server on port: %d", options.SecureServingOptions.BindPort)
 		close(stopCh)
 	}
 
-	t.Logf("Starting server on port: %d", securePort)
-	certDir, _ := ioutil.TempDir("", "service-catalog-integration")
-	secureServingOptions := genericserveroptions.NewSecureServingOptions()
 	// start the server in the background
 	go func() {
-		var etcdOptions *server.EtcdOptions
-		if serverstorage.StorageTypeEtcd == serverConfig.storageType {
-			etcdOptions = server.NewEtcdOptions()
-			etcdOptions.StorageConfig.ServerList = serverConfig.etcdServerList
-			etcdOptions.EtcdOptions.StorageConfig.Prefix = fmt.Sprintf("%s-%08X", server.DefaultEtcdPathPrefix, rand.Int31())
-		} else {
-			t.Fatal("no storage type specified")
-		}
-
-		options := &server.ServiceCatalogServerOptions{
-			StorageTypeString:       serverConfig.storageType.String(),
-			GenericServerRunOptions: genericserveroptions.NewServerRunOptions(),
-			AdmissionOptions:        genericserveroptions.NewAdmissionOptions(),
-			SecureServingOptions:    secureServingOptions,
-			EtcdOptions:             etcdOptions,
-			AuthenticationOptions:   genericserveroptions.NewDelegatingAuthenticationOptions(),
-			AuthorizationOptions:    genericserveroptions.NewDelegatingAuthorizationOptions(),
-			AuditOptions:            genericserveroptions.NewAuditOptions(),
-			DisableAuth:             true,
-			StandaloneMode:          true, // this must be true because we have no kube server for integration.
-			ServeOpenAPISpec:        true,
-		}
-		options.SecureServingOptions.BindPort = securePort
 		options.SecureServingOptions.ServerCert.CertDirectory = certDir
-
 		if err := server.RunServer(options, stopCh); err != nil {
 			close(serverFailed)
-			t.Fatalf("Error in bringing up the server: %v", err)
+			t.Logf("Error in bringing up the server: %v", err)
 		}
 	}()
 
@@ -127,6 +139,7 @@ func withConfigGetFreshApiserverAndClient(
 	if nil != err {
 		t.Fatal("can't make the client from the config", err)
 	}
+	t.Logf("Test client will use API Server URL of %v", secureAddr)
 	return clientset, config, shutdownServer
 }
 

@@ -29,7 +29,9 @@ func brokerWithOldSpec() *sc.ClusterServiceBroker {
 			Generation: 1,
 		},
 		Spec: sc.ClusterServiceBrokerSpec{
-			URL: "https://kubernetes.default.svc:443/brokers/template.k8s.io",
+			CommonServiceBrokerSpec: sc.CommonServiceBrokerSpec{
+				URL: "https://kubernetes.default.svc:443/brokers/template.k8s.io",
+			},
 		},
 		Status: sc.ClusterServiceBrokerStatus{
 			Conditions: []sc.ServiceBrokerCondition{
@@ -70,7 +72,9 @@ func TestBroker(t *testing.T) {
 	// Create a broker or brokers
 	broker := &sc.ClusterServiceBroker{
 		Spec: sc.ClusterServiceBrokerSpec{
-			URL: "abcd",
+			CommonServiceBrokerSpec: sc.CommonServiceBrokerSpec{
+				URL: "abcd",
+			},
 		},
 		Status: sc.ClusterServiceBrokerStatus{
 			Conditions: nil,

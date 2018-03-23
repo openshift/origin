@@ -1,3 +1,4 @@
-          NAME                  DESCRIPTION                         UUID                  
-+-----------------------+-------------------------+--------------------------------------+
-  user-provided-service   A user provided service   4f6e6cf6-ffdd-425f-a2c7-3c9258ad2468  
+            NAME                   DESCRIPTION                          UUID                  
++--------------------------+--------------------------+--------------------------------------+
+  user-provided-service      A user provided service    4f6e6cf6-ffdd-425f-a2c7-3c9258ad2468  
+  another-provided-service   Another provided service   f1a80068-e366-494e-92d6-a0782337945b  

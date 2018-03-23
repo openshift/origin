@@ -30,11 +30,13 @@ func validClusterServiceClass() *servicecatalog.ClusterServiceClass {
 			Name: "test-serviceclass",
 		},
 		Spec: servicecatalog.ClusterServiceClassSpec{
-			Bindable:                 true,
+			CommonServiceClassSpec: servicecatalog.CommonServiceClassSpec{
+				Bindable:     true,
+				ExternalName: "test-serviceclass",
+				ExternalID:   "1234-4354a-49b",
+				Description:  "service description",
+			},
 			ClusterServiceBrokerName: "test-broker",
-			ExternalName:             "test-serviceclass",
-			ExternalID:               "1234-4354a-49b",
-			Description:              "service description",
 		},
 	}
 }
@@ -64,6 +66,15 @@ func TestValidateClusterServiceClass(t *testing.T) {
 			serviceClass: func() *servicecatalog.ClusterServiceClass {
 				s := validClusterServiceClass()
 				s.Spec.ExternalID = "4315f5e1-0139-4ecf-9706-9df0aff33e5a.plan-name"
+				return s
+			}(),
+			valid: true,
+		},
+		{
+			name: "valid serviceClass - period in externalName",
+			serviceClass: func() *servicecatalog.ClusterServiceClass {
+				s := validClusterServiceClass()
+				s.Spec.ExternalName = "abc.com"
 				return s
 			}(),
 			valid: true,
@@ -114,10 +125,10 @@ func TestValidateClusterServiceClass(t *testing.T) {
 			valid: false,
 		},
 		{
-			name: "invalid serviceClass - period in externalName",
+			name: "invalid serviceClass - underscore in externalName",
 			serviceClass: func() *servicecatalog.ClusterServiceClass {
 				s := validClusterServiceClass()
-				s.Spec.ExternalName = "abc.com"
+				s.Spec.ExternalName = "test_serviceclass"
 				return s
 			}(),
 			valid: false,

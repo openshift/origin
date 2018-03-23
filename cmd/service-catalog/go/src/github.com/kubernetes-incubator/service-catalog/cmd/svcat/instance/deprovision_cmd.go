@@ -18,6 +18,7 @@ package instance
 
 import (
 	"fmt"
+	"github.com/kubernetes-incubator/service-catalog/cmd/svcat/output"
 
 	"github.com/kubernetes-incubator/service-catalog/cmd/svcat/command"
 	"github.com/spf13/cobra"
@@ -60,5 +61,9 @@ func (c *deprovisonCmd) Run() error {
 }
 
 func (c *deprovisonCmd) deprovision() error {
-	return c.App.Deprovision(c.ns, c.instanceName)
+	err := c.App.Deprovision(c.ns, c.instanceName)
+	if err == nil {
+		output.WriteDeletedResourceName(c.Output, c.instanceName)
+	}
+	return err
 }

@@ -12,6 +12,7 @@ Afterward, see the topics below.
 
 - [Installation instructions](install.md)
 - [Walkthrough](walkthrough.md)
+- [Service Catalog CLI](cli.md)
 - [The Service Catalog Resources In Depth](./resources.md)
 - [Passing parameters to ServiceInstances and ServiceBindings](parameters.md)
 

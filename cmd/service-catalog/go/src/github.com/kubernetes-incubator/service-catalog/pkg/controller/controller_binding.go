@@ -232,6 +232,8 @@ func (c *controller) reconcileServiceBindingAdd(binding *v1beta1.ServiceBinding)
 			// over with a fresh view of the binding.
 			return err
 		}
+		// recordStartOfServiceBindingOperation has updated the binding, so we need to continue in the next iteration
+		return nil
 	}
 
 	response, err := brokerClient.Bind(request)
@@ -342,6 +344,8 @@ func (c *controller) reconcileServiceBindingDelete(binding *v1beta1.ServiceBindi
 				// over with a fresh view of the binding.
 				return err
 			}
+			// recordStartOfServiceBindingOperation has updated the binding, so we need to continue in the next iteration
+			return nil
 		}
 	}
 

@@ -40,9 +40,11 @@ func TestValidateClusterServiceBroker(t *testing.T) {
 					Name: "test-broker",
 				},
 				Spec: servicecatalog.ClusterServiceBrokerSpec{
-					URL:            "http://example.com",
-					RelistBehavior: servicecatalog.ServiceBrokerRelistBehaviorDuration,
-					RelistDuration: &metav1.Duration{Duration: 15 * time.Minute},
+					CommonServiceBrokerSpec: servicecatalog.CommonServiceBrokerSpec{
+						URL:            "http://example.com",
+						RelistBehavior: servicecatalog.ServiceBrokerRelistBehaviorDuration,
+						RelistDuration: &metav1.Duration{Duration: 15 * time.Minute},
+					},
 				},
 			},
 			valid: true,
@@ -54,17 +56,19 @@ func TestValidateClusterServiceBroker(t *testing.T) {
 					Name: "test-broker",
 				},
 				Spec: servicecatalog.ClusterServiceBrokerSpec{
-					URL: "http://example.com",
-					AuthInfo: &servicecatalog.ServiceBrokerAuthInfo{
-						Basic: &servicecatalog.BasicAuthConfig{
+					AuthInfo: &servicecatalog.ClusterServiceBrokerAuthInfo{
+						Basic: &servicecatalog.ClusterBasicAuthConfig{
 							SecretRef: &servicecatalog.ObjectReference{
 								Namespace: "test-ns",
 								Name:      "test-secret",
 							},
 						},
 					},
-					RelistBehavior: servicecatalog.ServiceBrokerRelistBehaviorDuration,
-					RelistDuration: &metav1.Duration{Duration: 15 * time.Minute},
+					CommonServiceBrokerSpec: servicecatalog.CommonServiceBrokerSpec{
+						RelistBehavior: servicecatalog.ServiceBrokerRelistBehaviorDuration,
+						RelistDuration: &metav1.Duration{Duration: 15 * time.Minute},
+						URL:            "http://example.com",
+					},
 				},
 			},
 			valid: true,
@@ -76,17 +80,19 @@ func TestValidateClusterServiceBroker(t *testing.T) {
 					Name: "test-broker",
 				},
 				Spec: servicecatalog.ClusterServiceBrokerSpec{
-					URL: "http://example.com",
-					AuthInfo: &servicecatalog.ServiceBrokerAuthInfo{
-						Bearer: &servicecatalog.BearerTokenAuthConfig{
+					AuthInfo: &servicecatalog.ClusterServiceBrokerAuthInfo{
+						Bearer: &servicecatalog.ClusterBearerTokenAuthConfig{
 							SecretRef: &servicecatalog.ObjectReference{
 								Namespace: "test-ns",
 								Name:      "test-secret",
 							},
 						},
 					},
-					RelistBehavior: servicecatalog.ServiceBrokerRelistBehaviorDuration,
-					RelistDuration: &metav1.Duration{Duration: 15 * time.Minute},
+					CommonServiceBrokerSpec: servicecatalog.CommonServiceBrokerSpec{
+						URL:            "http://example.com",
+						RelistBehavior: servicecatalog.ServiceBrokerRelistBehaviorDuration,
+						RelistDuration: &metav1.Duration{Duration: 15 * time.Minute},
+					},
 				},
 			},
 			valid: true,
@@ -99,9 +105,11 @@ func TestValidateClusterServiceBroker(t *testing.T) {
 					Namespace: "oops",
 				},
 				Spec: servicecatalog.ClusterServiceBrokerSpec{
-					URL:            "http://example.com",
-					RelistBehavior: servicecatalog.ServiceBrokerRelistBehaviorDuration,
-					RelistDuration: &metav1.Duration{Duration: 15 * time.Minute},
+					CommonServiceBrokerSpec: servicecatalog.CommonServiceBrokerSpec{
+						URL:            "http://example.com",
+						RelistBehavior: servicecatalog.ServiceBrokerRelistBehaviorDuration,
+						RelistDuration: &metav1.Duration{Duration: 15 * time.Minute},
+					},
 				},
 			},
 			valid: false,
@@ -113,16 +121,18 @@ func TestValidateClusterServiceBroker(t *testing.T) {
 					Name: "test-broker",
 				},
 				Spec: servicecatalog.ClusterServiceBrokerSpec{
-					URL: "http://example.com",
-					AuthInfo: &servicecatalog.ServiceBrokerAuthInfo{
-						Basic: &servicecatalog.BasicAuthConfig{
+					AuthInfo: &servicecatalog.ClusterServiceBrokerAuthInfo{
+						Basic: &servicecatalog.ClusterBasicAuthConfig{
 							SecretRef: &servicecatalog.ObjectReference{
 								Name: "test-secret",
 							},
 						},
 					},
-					RelistBehavior: servicecatalog.ServiceBrokerRelistBehaviorDuration,
-					RelistDuration: &metav1.Duration{Duration: 15 * time.Minute},
+					CommonServiceBrokerSpec: servicecatalog.CommonServiceBrokerSpec{
+						URL:            "http://example.com",
+						RelistBehavior: servicecatalog.ServiceBrokerRelistBehaviorDuration,
+						RelistDuration: &metav1.Duration{Duration: 15 * time.Minute},
+					},
 				},
 			},
 			valid: false,
@@ -134,16 +144,18 @@ func TestValidateClusterServiceBroker(t *testing.T) {
 					Name: "test-broker",
 				},
 				Spec: servicecatalog.ClusterServiceBrokerSpec{
-					URL: "http://example.com",
-					AuthInfo: &servicecatalog.ServiceBrokerAuthInfo{
-						Basic: &servicecatalog.BasicAuthConfig{
+					AuthInfo: &servicecatalog.ClusterServiceBrokerAuthInfo{
+						Basic: &servicecatalog.ClusterBasicAuthConfig{
 							SecretRef: &servicecatalog.ObjectReference{
 								Namespace: "test-ns",
 							},
 						},
 					},
-					RelistBehavior: servicecatalog.ServiceBrokerRelistBehaviorDuration,
-					RelistDuration: &metav1.Duration{Duration: 15 * time.Minute},
+					CommonServiceBrokerSpec: servicecatalog.CommonServiceBrokerSpec{
+						URL:            "http://example.com",
+						RelistBehavior: servicecatalog.ServiceBrokerRelistBehaviorDuration,
+						RelistDuration: &metav1.Duration{Duration: 15 * time.Minute},
+					},
 				},
 			},
 			valid: false,
@@ -155,16 +167,18 @@ func TestValidateClusterServiceBroker(t *testing.T) {
 					Name: "test-broker",
 				},
 				Spec: servicecatalog.ClusterServiceBrokerSpec{
-					URL: "http://example.com",
-					AuthInfo: &servicecatalog.ServiceBrokerAuthInfo{
-						Bearer: &servicecatalog.BearerTokenAuthConfig{
+					AuthInfo: &servicecatalog.ClusterServiceBrokerAuthInfo{
+						Bearer: &servicecatalog.ClusterBearerTokenAuthConfig{
 							SecretRef: &servicecatalog.ObjectReference{
 								Name: "test-secret",
 							},
 						},
 					},
-					RelistBehavior: servicecatalog.ServiceBrokerRelistBehaviorDuration,
-					RelistDuration: &metav1.Duration{Duration: 15 * time.Minute},
+					CommonServiceBrokerSpec: servicecatalog.CommonServiceBrokerSpec{
+						URL:            "http://example.com",
+						RelistBehavior: servicecatalog.ServiceBrokerRelistBehaviorDuration,
+						RelistDuration: &metav1.Duration{Duration: 15 * time.Minute},
+					},
 				},
 			},
 			valid: false,
@@ -176,16 +190,18 @@ func TestValidateClusterServiceBroker(t *testing.T) {
 					Name: "test-broker",
 				},
 				Spec: servicecatalog.ClusterServiceBrokerSpec{
-					URL: "http://example.com",
-					AuthInfo: &servicecatalog.ServiceBrokerAuthInfo{
-						Bearer: &servicecatalog.BearerTokenAuthConfig{
+					AuthInfo: &servicecatalog.ClusterServiceBrokerAuthInfo{
+						Bearer: &servicecatalog.ClusterBearerTokenAuthConfig{
 							SecretRef: &servicecatalog.ObjectReference{
 								Namespace: "test-ns",
 							},
 						},
 					},
-					RelistBehavior: servicecatalog.ServiceBrokerRelistBehaviorDuration,
-					RelistDuration: &metav1.Duration{Duration: 15 * time.Minute},
+					CommonServiceBrokerSpec: servicecatalog.CommonServiceBrokerSpec{
+						URL:            "http://example.com",
+						RelistBehavior: servicecatalog.ServiceBrokerRelistBehaviorDuration,
+						RelistDuration: &metav1.Duration{Duration: 15 * time.Minute},
+					},
 				},
 			},
 			valid: false,
@@ -197,11 +213,13 @@ func TestValidateClusterServiceBroker(t *testing.T) {
 					Name: "test-broker",
 				},
 				Spec: servicecatalog.ClusterServiceBrokerSpec{
-					URL: "http://example.com",
-					InsecureSkipTLSVerify: true,
-					CABundle:              []byte("fake CABundle"),
-					RelistBehavior:        servicecatalog.ServiceBrokerRelistBehaviorDuration,
-					RelistDuration:        &metav1.Duration{Duration: 15 * time.Minute},
+					CommonServiceBrokerSpec: servicecatalog.CommonServiceBrokerSpec{
+						URL: "http://example.com",
+						InsecureSkipTLSVerify: true,
+						CABundle:              []byte("fake CABundle"),
+						RelistBehavior:        servicecatalog.ServiceBrokerRelistBehaviorDuration,
+						RelistDuration:        &metav1.Duration{Duration: 15 * time.Minute},
+					},
 				},
 			},
 			valid: false,
@@ -213,10 +231,12 @@ func TestValidateClusterServiceBroker(t *testing.T) {
 					Name: "test-broker",
 				},
 				Spec: servicecatalog.ClusterServiceBrokerSpec{
-					URL: "http://example.com",
-					InsecureSkipTLSVerify: true,
-					RelistBehavior:        servicecatalog.ServiceBrokerRelistBehaviorDuration,
-					RelistDuration:        &metav1.Duration{Duration: 15 * time.Minute},
+					CommonServiceBrokerSpec: servicecatalog.CommonServiceBrokerSpec{
+						URL: "http://example.com",
+						InsecureSkipTLSVerify: true,
+						RelistBehavior:        servicecatalog.ServiceBrokerRelistBehaviorDuration,
+						RelistDuration:        &metav1.Duration{Duration: 15 * time.Minute},
+					},
 				},
 			},
 			valid: true,
@@ -228,10 +248,12 @@ func TestValidateClusterServiceBroker(t *testing.T) {
 					Name: "test-broker",
 				},
 				Spec: servicecatalog.ClusterServiceBrokerSpec{
-					URL:            "http://example.com",
-					CABundle:       []byte("fake CABundle"),
-					RelistBehavior: servicecatalog.ServiceBrokerRelistBehaviorDuration,
-					RelistDuration: &metav1.Duration{Duration: 15 * time.Minute},
+					CommonServiceBrokerSpec: servicecatalog.CommonServiceBrokerSpec{
+						URL:            "http://example.com",
+						CABundle:       []byte("fake CABundle"),
+						RelistBehavior: servicecatalog.ServiceBrokerRelistBehaviorDuration,
+						RelistDuration: &metav1.Duration{Duration: 15 * time.Minute},
+					},
 				},
 			},
 			valid: true,
@@ -243,9 +265,11 @@ func TestValidateClusterServiceBroker(t *testing.T) {
 					Name: "test-broker",
 				},
 				Spec: servicecatalog.ClusterServiceBrokerSpec{
-					URL:            "http://example.com",
-					RelistBehavior: servicecatalog.ServiceBrokerRelistBehaviorManual,
-					RelistDuration: &metav1.Duration{Duration: 15 * time.Minute},
+					CommonServiceBrokerSpec: servicecatalog.CommonServiceBrokerSpec{
+						URL:            "http://example.com",
+						RelistBehavior: servicecatalog.ServiceBrokerRelistBehaviorManual,
+						RelistDuration: &metav1.Duration{Duration: 15 * time.Minute},
+					},
 				},
 			},
 			valid: false,
@@ -257,9 +281,11 @@ func TestValidateClusterServiceBroker(t *testing.T) {
 					Name: "test-broker",
 				},
 				Spec: servicecatalog.ClusterServiceBrokerSpec{
-					URL:            "http://example.com",
-					RelistBehavior: servicecatalog.ServiceBrokerRelistBehaviorManual,
-					RelistDuration: nil,
+					CommonServiceBrokerSpec: servicecatalog.CommonServiceBrokerSpec{
+						URL:            "http://example.com",
+						RelistBehavior: servicecatalog.ServiceBrokerRelistBehaviorManual,
+						RelistDuration: nil,
+					},
 				},
 			},
 			valid: true,
@@ -271,9 +297,11 @@ func TestValidateClusterServiceBroker(t *testing.T) {
 					Name: "test-broker",
 				},
 				Spec: servicecatalog.ClusterServiceBrokerSpec{
-					URL:            "http://example.com",
-					RelistBehavior: servicecatalog.ServiceBrokerRelistBehaviorDuration,
-					RelistDuration: nil,
+					CommonServiceBrokerSpec: servicecatalog.CommonServiceBrokerSpec{
+						URL:            "http://example.com",
+						RelistBehavior: servicecatalog.ServiceBrokerRelistBehaviorDuration,
+						RelistDuration: nil,
+					},
 				},
 			},
 			valid: false,
@@ -285,8 +313,10 @@ func TestValidateClusterServiceBroker(t *testing.T) {
 					Name: "test-broker",
 				},
 				Spec: servicecatalog.ClusterServiceBrokerSpec{
-					URL:            "http://example.com",
-					RelistBehavior: "Junk",
+					CommonServiceBrokerSpec: servicecatalog.CommonServiceBrokerSpec{
+						URL:            "http://example.com",
+						RelistBehavior: "Junk",
+					},
 				},
 			},
 			valid: false,
@@ -298,8 +328,10 @@ func TestValidateClusterServiceBroker(t *testing.T) {
 					Name: "test-broker",
 				},
 				Spec: servicecatalog.ClusterServiceBrokerSpec{
-					URL:            "http://example.com",
-					RelistBehavior: "",
+					CommonServiceBrokerSpec: servicecatalog.CommonServiceBrokerSpec{
+						URL:            "http://example.com",
+						RelistBehavior: "",
+					},
 				},
 			},
 			valid: false,
@@ -311,10 +343,12 @@ func TestValidateClusterServiceBroker(t *testing.T) {
 					Name: "test-broker",
 				},
 				Spec: servicecatalog.ClusterServiceBrokerSpec{
-					URL:            "http://example.com",
-					RelistBehavior: servicecatalog.ServiceBrokerRelistBehaviorDuration,
-					RelistDuration: &metav1.Duration{Duration: 15 * time.Minute},
-					RelistRequests: -1,
+					CommonServiceBrokerSpec: servicecatalog.CommonServiceBrokerSpec{
+						URL:            "http://example.com",
+						RelistBehavior: servicecatalog.ServiceBrokerRelistBehaviorDuration,
+						RelistDuration: &metav1.Duration{Duration: 15 * time.Minute},
+						RelistRequests: -1,
+					},
 				},
 			},
 			valid: false,
@@ -326,9 +360,11 @@ func TestValidateClusterServiceBroker(t *testing.T) {
 					Name: "test-broker",
 				},
 				Spec: servicecatalog.ClusterServiceBrokerSpec{
-					URL:            "http://example.com",
-					RelistBehavior: servicecatalog.ServiceBrokerRelistBehaviorDuration,
-					RelistDuration: &metav1.Duration{Duration: -15 * time.Minute},
+					CommonServiceBrokerSpec: servicecatalog.CommonServiceBrokerSpec{
+						URL:            "http://example.com",
+						RelistBehavior: servicecatalog.ServiceBrokerRelistBehaviorDuration,
+						RelistDuration: &metav1.Duration{Duration: -15 * time.Minute},
+					},
 				},
 			},
 			valid: false,
@@ -358,10 +394,12 @@ func TestValidateClusterServiceBroker(t *testing.T) {
 					Name: "test-broker",
 				},
 				Spec: servicecatalog.ClusterServiceBrokerSpec{
-					URL:            "http://example.com",
-					RelistBehavior: servicecatalog.ServiceBrokerRelistBehaviorDuration,
-					RelistDuration: &metav1.Duration{Duration: 15 * time.Minute},
-					RelistRequests: 1,
+					CommonServiceBrokerSpec: servicecatalog.CommonServiceBrokerSpec{
+						URL:            "http://example.com",
+						RelistBehavior: servicecatalog.ServiceBrokerRelistBehaviorDuration,
+						RelistDuration: &metav1.Duration{Duration: 15 * time.Minute},
+						RelistRequests: 1,
+					},
 				},
 			},
 			oldBroker: &servicecatalog.ClusterServiceBroker{
@@ -369,10 +407,12 @@ func TestValidateClusterServiceBroker(t *testing.T) {
 					Name: "test-broker",
 				},
 				Spec: servicecatalog.ClusterServiceBrokerSpec{
-					URL:            "http://example.com",
-					RelistBehavior: servicecatalog.ServiceBrokerRelistBehaviorDuration,
-					RelistDuration: &metav1.Duration{Duration: 15 * time.Minute},
-					RelistRequests: 1,
+					CommonServiceBrokerSpec: servicecatalog.CommonServiceBrokerSpec{
+						URL:            "http://example.com",
+						RelistBehavior: servicecatalog.ServiceBrokerRelistBehaviorDuration,
+						RelistDuration: &metav1.Duration{Duration: 15 * time.Minute},
+						RelistRequests: 1,
+					},
 				},
 			},
 			valid: true,
@@ -384,10 +424,12 @@ func TestValidateClusterServiceBroker(t *testing.T) {
 					Name: "test-broker",
 				},
 				Spec: servicecatalog.ClusterServiceBrokerSpec{
-					URL:            "http://example.com",
-					RelistBehavior: servicecatalog.ServiceBrokerRelistBehaviorDuration,
-					RelistDuration: &metav1.Duration{Duration: 15 * time.Minute},
-					RelistRequests: 2,
+					CommonServiceBrokerSpec: servicecatalog.CommonServiceBrokerSpec{
+						URL:            "http://example.com",
+						RelistBehavior: servicecatalog.ServiceBrokerRelistBehaviorDuration,
+						RelistDuration: &metav1.Duration{Duration: 15 * time.Minute},
+						RelistRequests: 2,
+					},
 				},
 			},
 			oldBroker: &servicecatalog.ClusterServiceBroker{
@@ -395,10 +437,12 @@ func TestValidateClusterServiceBroker(t *testing.T) {
 					Name: "test-broker",
 				},
 				Spec: servicecatalog.ClusterServiceBrokerSpec{
-					URL:            "http://example.com",
-					RelistBehavior: servicecatalog.ServiceBrokerRelistBehaviorDuration,
-					RelistDuration: &metav1.Duration{Duration: 15 * time.Minute},
-					RelistRequests: 1,
+					CommonServiceBrokerSpec: servicecatalog.CommonServiceBrokerSpec{
+						URL:            "http://example.com",
+						RelistBehavior: servicecatalog.ServiceBrokerRelistBehaviorDuration,
+						RelistDuration: &metav1.Duration{Duration: 15 * time.Minute},
+						RelistRequests: 1,
+					},
 				},
 			},
 			valid: true,
@@ -410,10 +454,12 @@ func TestValidateClusterServiceBroker(t *testing.T) {
 					Name: "test-broker",
 				},
 				Spec: servicecatalog.ClusterServiceBrokerSpec{
-					URL:            "http://example.com",
-					RelistBehavior: servicecatalog.ServiceBrokerRelistBehaviorDuration,
-					RelistDuration: &metav1.Duration{Duration: 15 * time.Minute},
-					RelistRequests: 1,
+					CommonServiceBrokerSpec: servicecatalog.CommonServiceBrokerSpec{
+						URL:            "http://example.com",
+						RelistBehavior: servicecatalog.ServiceBrokerRelistBehaviorDuration,
+						RelistDuration: &metav1.Duration{Duration: 15 * time.Minute},
+						RelistRequests: 1,
+					},
 				},
 			},
 			oldBroker: &servicecatalog.ClusterServiceBroker{
@@ -421,10 +467,12 @@ func TestValidateClusterServiceBroker(t *testing.T) {
 					Name: "test-broker",
 				},
 				Spec: servicecatalog.ClusterServiceBrokerSpec{
-					URL:            "http://example.com",
-					RelistBehavior: servicecatalog.ServiceBrokerRelistBehaviorDuration,
-					RelistDuration: &metav1.Duration{Duration: 15 * time.Minute},
-					RelistRequests: 2,
+					CommonServiceBrokerSpec: servicecatalog.CommonServiceBrokerSpec{
+						URL:            "http://example.com",
+						RelistBehavior: servicecatalog.ServiceBrokerRelistBehaviorDuration,
+						RelistDuration: &metav1.Duration{Duration: 15 * time.Minute},
+						RelistRequests: 2,
+					},
 				},
 			},
 			valid: false,
