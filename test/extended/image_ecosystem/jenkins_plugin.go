@@ -17,6 +17,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/jenkins"
@@ -33,11 +34,6 @@ const (
 	loginPluginName                     = "openshift-login"
 )
 
-// ginkgolog creates simple entry in the GinkgoWriter.
-func ginkgolog(format string, a ...interface{}) {
-	fmt.Fprintf(g.GinkgoWriter, format+"\n", a...)
-}
-
 // Loads a Jenkins related template using new-app.
 func loadFixture(oc *exutil.CLI, filename string) {
 	resourcePath := exutil.FixturePath("testdata", "jenkins-plugin", filename)
@@ -52,7 +48,7 @@ func assertEnvVars(oc *exutil.CLI, buildPrefix string, varsToFind map[string]str
 
 	// Ensure that expected start-build environment variables were injected
 	for _, build := range buildList.Items {
-		ginkgolog("Found build: %q", build.GetName())
+		e2e.Logf("Found build: %q", build.GetName())
 		if strings.HasPrefix(build.GetName(), buildPrefix) {
 			envs := []kapi.EnvVar{}
 			if build.Spec.Strategy.DockerStrategy != nil && build.Spec.Strategy.DockerStrategy.Env != nil {
@@ -66,7 +62,7 @@ func assertEnvVars(oc *exutil.CLI, buildPrefix string, varsToFind map[string]str
 			for k, v := range varsToFind {
 				found := false
 				for _, env := range envs {
-					ginkgolog("Found %s=%s in build %s", env.Name, env.Value, build.GetName())
+					e2e.Logf("Found %s=%s in build %s", env.Name, env.Value, build.GetName())
 					if k == env.Name && v == env.Value {
 						found = true
 						break
@@ -107,7 +103,7 @@ type apiObjJob struct {
 
 // Validate create/delete of objects
 func validateCreateDelete(create bool, key, out string, err error) {
-	ginkgolog("\nOBJ: %s\n", out)
+	e2e.Logf("\nOBJ: %s\n", out)
 	if create {
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(strings.Contains(out, key)).To(o.BeTrue())
@@ -136,18 +132,18 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 			}
 
 			oc.SetNamespace(j.Namespace())
-			ginkgolog("Jenkins DC description follows. If there were issues, check to see if there were any restarts in the jenkins pod.")
+			e2e.Logf("Jenkins DC description follows. If there were issues, check to see if there were any restarts in the jenkins pod.")
 			exutil.DumpApplicationPodLogs("jenkins", oc)
 
 			// Destroy the Jenkins namespace
 			oc.Run("delete").Args("project", j.Namespace()).Execute()
 			if dcLogFollow != nil && dcLogStdOut != nil && dcLogStdErr != nil {
-				ginkgolog("Waiting for Jenkins DC log follow to terminate")
+				e2e.Logf("Waiting for Jenkins DC log follow to terminate")
 				dcLogFollow.Process.Wait()
-				ginkgolog("Jenkins server logs from test:\nstdout>\n%s\n\nstderr>\n%s\n\n", string(dcLogStdOut.Bytes()), string(dcLogStdErr.Bytes()))
+				e2e.Logf("Jenkins server logs from test:\nstdout>\n%s\n\nstderr>\n%s\n\n", string(dcLogStdOut.Bytes()), string(dcLogStdErr.Bytes()))
 				dcLogFollow = nil
 			} else {
-				ginkgolog("Logs were not captured!\n%v\n%v\n%v\n", dcLogFollow, dcLogStdOut, dcLogStdErr)
+				e2e.Logf("Logs were not captured!\n%v\n%v\n%v\n", dcLogFollow, dcLogStdOut, dcLogStdErr)
 			}
 		})
 
@@ -265,7 +261,7 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 				err := jmon.Await(10 * time.Minute)
 				if err != nil {
 					logs, _ := j.GetLastJobConsoleLogs(jobName)
-					ginkgolog("\n\nJenkins logs>\n%s\n\n", logs)
+					e2e.Logf("\n\nJenkins logs>\n%s\n\n", logs)
 				}
 				o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -280,7 +276,7 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 
 				g.By("get build console logs and see if succeeded")
 				logs, err := j.WaitForContent("Finished: SUCCESS", 200, 10*time.Minute, "job/%s/lastBuild/consoleText", jobName)
-				ginkgolog("\n\nJenkins logs>\n%s\n\n", logs)
+				e2e.Logf("\n\nJenkins logs>\n%s\n\n", logs)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("get build and confirm trigger by field is correct")
@@ -295,7 +291,7 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 				jmon.Await(10 * time.Minute)
 				g.By("get clone build console logs and see if succeeded")
 				logs, err = j.WaitForContent("Finished: SUCCESS", 200, 10*time.Minute, "job/%s/lastBuild/consoleText", jobName)
-				ginkgolog("\n\nJenkins logs>\n%s\n\n", logs)
+				e2e.Logf("\n\nJenkins logs>\n%s\n\n", logs)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("get build and confirm trigger by field is correct")
@@ -317,7 +313,7 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 				err := jmon.Await(10 * time.Minute)
 				if err != nil {
 					logs, _ := j.GetLastJobConsoleLogs(jobName)
-					ginkgolog("\n\nJenkins logs>\n%s\n\n", logs)
+					e2e.Logf("\n\nJenkins logs>\n%s\n\n", logs)
 				}
 				o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -332,12 +328,12 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 
 				g.By("get build console logs and see if succeeded")
 				logs, err := j.WaitForContent("Finished: SUCCESS", 200, 10*time.Minute, "job/%s/lastBuild/consoleText", jobName)
-				ginkgolog("\n\nJenkins logs>\n%s\n\n", logs)
+				e2e.Logf("\n\nJenkins logs>\n%s\n\n", logs)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("get build console logs and confirm ran on slave")
 				logs, err = j.WaitForContent("Building remotely on", 200, 10*time.Minute, "job/%s/lastBuild/consoleText", jobName)
-				ginkgolog("\n\nJenkins logs>\n%s\n\n", logs)
+				e2e.Logf("\n\nJenkins logs>\n%s\n\n", logs)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 			})
@@ -356,13 +352,13 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 					err := jmon.Await(10 * time.Minute)
 					if err != nil {
 						logs, _ := j.GetLastJobConsoleLogs(job.jobName)
-						ginkgolog("\n\nJenkins logs>\n%s\n\n", logs)
+						e2e.Logf("\n\nJenkins logs>\n%s\n\n", logs)
 					}
 					o.Expect(err).NotTo(o.HaveOccurred())
 
 					g.By("get build console logs and see if succeeded")
 					logs, err := j.WaitForContent("Finished: SUCCESS", 200, 10*time.Minute, "job/%s/lastBuild/consoleText", job.jobName)
-					ginkgolog("\n\nJenkins logs>\n%s\n\n", logs)
+					e2e.Logf("\n\nJenkins logs>\n%s\n\n", logs)
 					o.Expect(err).NotTo(o.HaveOccurred())
 					out, err := oc.Run("get").Args("bc", "forcepull-bldr").Output()
 					validateCreateDelete(job.create, "forcepull-bldr", out, err)
@@ -381,12 +377,12 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 				err := jmon.Await(10 * time.Minute)
 				if err != nil {
 					logs, _ := j.GetLastJobConsoleLogs(jobName)
-					ginkgolog("\n\nJenkins logs>\n%s\n\n", logs)
+					e2e.Logf("\n\nJenkins logs>\n%s\n\n", logs)
 				}
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				logs, err := j.GetLastJobConsoleLogs(jobName)
-				ginkgolog("\n\nJenkins logs>\n%s\n\n", logs)
+				e2e.Logf("\n\nJenkins logs>\n%s\n\n", logs)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				// the build and deployment is by far the most time consuming portion of the test jenkins job;
@@ -424,7 +420,7 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 				err = monitor.Await(10 * time.Minute)
 				if err != nil {
 					logs, _ := j.GetLastJobConsoleLogs(jobName)
-					ginkgolog("\n\nJenkins logs>\n%s\n\n", logs)
+					e2e.Logf("\n\nJenkins logs>\n%s\n\n", logs)
 				}
 				o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -439,7 +435,7 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 				o.Expect(len(buildsAfter.Items)).To(o.Equal(len(buildsBefore.Items) + 1))
 
 				log, err := j.GetLastJobConsoleLogs(jobName)
-				ginkgolog("Job logs>>\n%s\n\n", log)
+				e2e.Logf("Job logs>>\n%s\n\n", log)
 
 				assertEnvVars(oc, "frontend-", map[string]string{
 					"a": "b",
@@ -471,12 +467,12 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 				err = monitor.Await(10 * time.Minute)
 				if err != nil {
 					logs, _ := j.GetLastJobConsoleLogs(jobName)
-					ginkgolog("\n\nJenkins logs>\n%s\n\n", logs)
+					e2e.Logf("\n\nJenkins logs>\n%s\n\n", logs)
 				}
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				log, err := j.GetLastJobConsoleLogs(jobName)
-				ginkgolog("Job logs>>\n%s\n\n", log)
+				e2e.Logf("Job logs>>\n%s\n\n", log)
 
 				o.Expect(strings.Contains(log, "hello world 1")).To(o.BeTrue())
 				o.Expect(strings.Contains(log, "hello world 2")).To(o.BeTrue())
@@ -502,7 +498,7 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 				jmon.Await(2 * time.Minute)
 
 				log, err := j.GetLastJobConsoleLogs(jobName)
-				ginkgolog("\n\nJenkins logs>\n%s\n\n", log)
+				e2e.Logf("\n\nJenkins logs>\n%s\n\n", log)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				o.Expect(strings.Contains(log, "hello world 1")).To(o.BeTrue())
@@ -519,7 +515,7 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 				jmon.Await(2 * time.Minute)
 
 				log, err = j.GetLastJobConsoleLogs(jobName)
-				ginkgolog("\n\nJenkins logs>\n%s\n\n", log)
+				e2e.Logf("\n\nJenkins logs>\n%s\n\n", log)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				o.Expect(strings.Contains(log, "hello world 1")).To(o.BeTrue())
@@ -545,12 +541,12 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 				err = monitor.Await(10 * time.Minute)
 				if err != nil {
 					logs, _ := j.GetLastJobConsoleLogs(jobName)
-					ginkgolog("\n\nJenkins logs>\n%s\n\n", logs)
+					e2e.Logf("\n\nJenkins logs>\n%s\n\n", logs)
 				}
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				log, err := j.GetLastJobConsoleLogs(jobName)
-				ginkgolog("Job logs>>\n%s\n\n", log)
+				e2e.Logf("Job logs>>\n%s\n\n", log)
 
 				// Assert stream tagging results
 				_, err = oc.ImageClient().Image().ImageStreamTags(oc.Namespace()).Get("multitag:prod", metav1.GetOptions{})
@@ -616,7 +612,7 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 
 				oc.SetNamespace(testNamespace)
 
-				ginkgolog("Using testNamespace: %q and currentNamespace: %q", testNamespace, oc.Namespace())
+				e2e.Logf("Using testNamespace: %q and currentNamespace: %q", testNamespace, oc.Namespace())
 
 				data, err := j.BuildDSLJob(oc.Namespace(),
 					"node{",
@@ -637,7 +633,7 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 				err = monitor.Await(10 * time.Minute)
 				if err != nil {
 					logs, _ := j.GetLastJobConsoleLogs(jobName)
-					ginkgolog("\n\nJenkins logs>\n%s\n\n", logs)
+					e2e.Logf("\n\nJenkins logs>\n%s\n\n", logs)
 				}
 				o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -645,7 +641,7 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 
 				log, err := j.GetLastJobConsoleLogs(jobName)
 				o.Expect(err).NotTo(o.HaveOccurred())
-				ginkgolog("Job logs>>\n%s\n\n", log)
+				e2e.Logf("Job logs>>\n%s\n\n", log)
 
 				// Assert stream tagging results
 				for _, namespace := range []string{oc.Namespace(), anotherNamespace} {
