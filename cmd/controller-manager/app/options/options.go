@@ -30,6 +30,14 @@ import (
 	k8scomponentconfig "github.com/kubernetes-incubator/service-catalog/pkg/kubernetes/pkg/apis/componentconfig"
 	"github.com/kubernetes-incubator/service-catalog/pkg/kubernetes/pkg/client/leaderelectionconfig"
 	osb "github.com/pmorie/go-open-service-broker-client/v2"
+	genericoptions "k8s.io/apiserver/pkg/server/options"
+)
+
+const (
+	// Use the same SSL configuration as we use in Catalog API Server.
+	// Store generated SSL certificates in a place that won't collide with the
+	// k8s core API server.
+	certDirectory = "/var/run/kubernetes-service-catalog"
 )
 
 // ControllerManagerServer is the main context object for the controller
@@ -43,7 +51,7 @@ const (
 	defaultServiceBrokerRelistInterval            = 24 * time.Hour
 	defaultContentType                            = "application/json"
 	defaultBindAddress                            = "0.0.0.0"
-	defaultPort                                   = 10000
+	defaultPort                                   = 8444
 	defaultK8sKubeconfigPath                      = "./kubeconfig"
 	defaultServiceCatalogKubeconfigPath           = "./service-catalog-kubeconfig"
 	defaultOSBAPIContextProfile                   = true
@@ -61,7 +69,7 @@ func NewControllerManagerServer() *ControllerManagerServer {
 	s := ControllerManagerServer{
 		ControllerManagerConfiguration: componentconfig.ControllerManagerConfiguration{
 			Address:                                defaultBindAddress,
-			Port:                                   defaultPort,
+			Port:                                   0,
 			ContentType:                            defaultContentType,
 			K8sKubeconfigPath:                      defaultK8sKubeconfigPath,
 			ServiceCatalogKubeconfigPath:           defaultServiceCatalogKubeconfigPath,
@@ -76,16 +84,22 @@ func NewControllerManagerServer() *ControllerManagerServer {
 			EnableContentionProfiling:              false,
 			ReconciliationRetryDuration:            defaultReconciliationRetryDuration,
 			OperationPollingMaximumBackoffDuration: defaultOperationPollingMaximumBackoffDuration,
+			SecureServingOptions:                   genericoptions.NewSecureServingOptions(),
 		},
 	}
+	// set defaults, these will be overriden by user specified flags
+	s.SecureServingOptions.BindPort = defaultPort
+	s.SecureServingOptions.ServerCert.CertDirectory = certDirectory
 	s.LeaderElection.LeaderElect = true
 	return &s
 }
 
 // AddFlags adds flags for a ControllerManagerServer to the specified FlagSet.
 func (s *ControllerManagerServer) AddFlags(fs *pflag.FlagSet) {
-	fs.Var(k8scomponentconfig.IPVar{Val: &s.Address}, "address", "The IP address to serve on (set to 0.0.0.0 for all interfaces)")
-	fs.Int32Var(&s.Port, "port", s.Port, "The port that the controller-manager's http service runs on")
+	fs.Var(k8scomponentconfig.IPVar{Val: &s.Address}, "address", "DEPRECATED: see --bind-address instead")
+	fs.MarkDeprecated("address", "see --bind-address instead")
+	fs.Int32Var(&s.Port, "port", 0, "DEPRECATED: see --secure-port instead")
+	fs.MarkDeprecated("port", "see --secure-port instead")
 	fs.StringVar(&s.ContentType, "api-content-type", s.ContentType, "Content type of requests sent to API servers")
 	fs.StringVar(&s.K8sAPIServerURL, "k8s-api-server-url", "", "The URL for the k8s API server")
 	fs.StringVar(&s.K8sKubeconfigPath, "k8s-kubeconfig", "", "Path to k8s core kubeconfig")
@@ -103,6 +117,6 @@ func (s *ControllerManagerServer) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&s.LeaderElectionNamespace, "leader-election-namespace", s.LeaderElectionNamespace, "Namespace to use for leader election lock")
 	fs.DurationVar(&s.ReconciliationRetryDuration, "reconciliation-retry-duration", s.ReconciliationRetryDuration, "The maximum amount of time to retry reconciliations on a resource before failing")
 	fs.DurationVar(&s.OperationPollingMaximumBackoffDuration, "operation-polling-maximum-backoff-duration", s.OperationPollingMaximumBackoffDuration, "The maximum amount of time to back-off while polling an OSB API operation")
-
+	s.SecureServingOptions.AddFlags(fs)
 	utilfeature.DefaultFeatureGate.AddFlag(fs)
 }

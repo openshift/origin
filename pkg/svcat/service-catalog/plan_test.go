@@ -51,7 +51,7 @@ var _ = Describe("Plan", func() {
 
 	Describe("RetrivePlans", func() {
 		It("Calls the generated v1beta1 List method", func() {
-			plans, err := sdk.RetrievePlans()
+			plans, err := sdk.RetrievePlans(nil)
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(plans).Should(ConsistOf(*sp, *sp2))
@@ -64,7 +64,7 @@ var _ = Describe("Plan", func() {
 				return true, nil, fmt.Errorf(errorMessage)
 			})
 			sdk.ServiceCatalogClient = badClient
-			_, err := sdk.RetrievePlans()
+			_, err := sdk.RetrievePlans(nil)
 
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).Should(ContainSubstring(errorMessage))

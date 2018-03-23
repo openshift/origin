@@ -205,24 +205,50 @@ func WaitForInstanceToNotExist(client v1beta1servicecatalog.ServicecatalogV1beta
 	)
 }
 
-// WaitForInstanceReconciledGeneration waits for the status of the named instance to
+// WaitForInstanceProcessedGeneration waits for the status of the named instance to
 // have the specified reconciled generation.
-func WaitForInstanceReconciledGeneration(client v1beta1servicecatalog.ServicecatalogV1beta1Interface, namespace, name string, reconciledGeneration int64) error {
+func WaitForInstanceProcessedGeneration(client v1beta1servicecatalog.ServicecatalogV1beta1Interface, namespace, name string, processedGeneration int64) error {
 	return wait.PollImmediate(500*time.Millisecond, wait.ForeverTestTimeout,
 		func() (bool, error) {
-			glog.V(5).Infof("Waiting for instance %v/%v to have reconciled generation of %v", namespace, name, reconciledGeneration)
+			glog.V(5).Infof("Waiting for instance %v/%v to have processed generation of %v", namespace, name, processedGeneration)
 			instance, err := client.ServiceInstances(namespace).Get(name, metav1.GetOptions{})
 			if nil != err {
 				return false, fmt.Errorf("error getting Instance %v/%v: %v", namespace, name, err)
 			}
 
-			if instance.Status.ReconciledGeneration == reconciledGeneration {
+			if instance.Status.ObservedGeneration >= processedGeneration &&
+				(isServiceInstanceReady(instance) || isServiceInstanceFailed(instance)) &&
+				!instance.Status.OrphanMitigationInProgress {
 				return true, nil
 			}
 
 			return false, nil
 		},
 	)
+}
+
+// isServiceInstanceConditionTrue returns whether the given instance has a given condition
+// with status true.
+func isServiceInstanceConditionTrue(instance *v1beta1.ServiceInstance, conditionType v1beta1.ServiceInstanceConditionType) bool {
+	for _, cond := range instance.Status.Conditions {
+		if cond.Type == conditionType {
+			return cond.Status == v1beta1.ConditionTrue
+		}
+	}
+
+	return false
+}
+
+// isServiceInstanceReady returns whether the given instance has a ready condition
+// with status true.
+func isServiceInstanceReady(instance *v1beta1.ServiceInstance) bool {
+	return isServiceInstanceConditionTrue(instance, v1beta1.ServiceInstanceConditionReady)
+}
+
+// isServiceInstanceFailed returns whether the instance has a failed condition with
+// status true.
+func isServiceInstanceFailed(instance *v1beta1.ServiceInstance) bool {
+	return isServiceInstanceConditionTrue(instance, v1beta1.ServiceInstanceConditionFailed)
 }
 
 // WaitForBindingCondition waits for the status of the named binding to contain

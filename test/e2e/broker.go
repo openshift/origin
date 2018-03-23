@@ -32,7 +32,9 @@ func newTestBroker(name, url string) *v1beta1.ClusterServiceBroker {
 			Name: name,
 		},
 		Spec: v1beta1.ClusterServiceBrokerSpec{
-			URL: url,
+			CommonServiceBrokerSpec: v1beta1.CommonServiceBrokerSpec{
+				URL: url,
+			},
 		},
 	}
 }

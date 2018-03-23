@@ -93,6 +93,10 @@ func Run(controllerManagerOptions *options.ControllerManagerServer) error {
 	// 	glog.Errorf("unable to register configz: %s", err)
 	// }
 
+	if controllerManagerOptions.Port > 0 {
+		glog.Warning("program option --port is obsolete and ignored, specify --secure-port instead")
+	}
+
 	// Build the K8s kubeconfig / client / clientBuilder
 	glog.V(4).Info("Building k8s kubeconfig")
 
@@ -142,6 +146,14 @@ func Run(controllerManagerOptions *options.ControllerManagerServer) error {
 	}
 	serviceCatalogKubeconfig.Insecure = controllerManagerOptions.ServiceCatalogInsecureSkipVerify
 
+	// Initialize SSL/TLS configuration.  Ensures we have a certificate and key to use.
+	// This is the same code as what is done in the API Server.  By default, Helm created
+	// cert and key for us, this just ensures the files are found and are readable and
+	// creates self signed versions if not.
+	if err := controllerManagerOptions.SecureServingOptions.MaybeDefaultWithSelfSignedCerts("" /*AdvertiseAddress*/, nil /*alternateDNS*/, []net.IP{net.ParseIP("127.0.0.1")}); err != nil {
+		return fmt.Errorf("failed to establish SecureServingOptions %v", err)
+	}
+
 	glog.V(4).Info("Starting http server and mux")
 	// Start http server and handlers
 	go func() {
@@ -165,10 +177,12 @@ func Run(controllerManagerOptions *options.ControllerManagerServer) error {
 			}
 		}
 		server := &http.Server{
-			Addr:    net.JoinHostPort(controllerManagerOptions.Address, strconv.Itoa(int(controllerManagerOptions.Port))),
+			Addr: net.JoinHostPort(controllerManagerOptions.SecureServingOptions.BindAddress.String(),
+				strconv.Itoa(int(controllerManagerOptions.SecureServingOptions.BindPort))),
 			Handler: mux,
 		}
-		glog.Fatal(server.ListenAndServe())
+		glog.Fatal(server.ListenAndServeTLS(controllerManagerOptions.SecureServingOptions.ServerCert.CertKey.CertFile,
+			controllerManagerOptions.SecureServingOptions.ServerCert.CertKey.KeyFile))
 	}()
 
 	// Create event broadcaster

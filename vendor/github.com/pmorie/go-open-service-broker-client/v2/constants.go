@@ -22,4 +22,12 @@ const (
 	// VarKeyOperation is the name to use for a mux var representing an
 	// operation.
 	VarKeyOperation = "operation"
+
+	// PlatformKubernetes is the name for Kubernetes in the Platform field of
+	// OriginatingIdentity.
+	PlatformKubernetes = "kubernetes"
+
+	// PlatformCloudFoundry is the name for Cloud Foundry in the Platform field
+	// of OriginatingIdentity.
+	PlatformCloudFoundry = "cloudfoundry"
 )

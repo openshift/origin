@@ -40,8 +40,11 @@ chart and their default values.
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `image` | apiserver image to use | `quay.io/kubernetes-service-catalog/service-catalog:v0.1.9` |
+| `image` | apiserver image to use | `quay.io/kubernetes-service-catalog/service-catalog:v0.1.11` |
 | `imagePullPolicy` | `imagePullPolicy` for the service catalog | `Always` |
+| `apiserver.aggregator.priority` | Priority of the APIService. | `100` |
+| `apiserver.aggregator.groupPriorityMinimum` | The minimum priority the group should have. | `10000` |
+| `apiserver.aggregator.versionPriority` | The ordering of this API inside of the group | `20` |
 | `apiserver.tls.requestHeaderCA` | Base64-encoded CA used to validate request-header authentication, when receiving delegated authentication from an aggregator. If not set, the service catalog API server will inherit this CA from the `extension-apiserver-authentication` ConfigMap if available. | `nil` |
 | `apiserver.service.type` | Type of service; valid values are `LoadBalancer` and `NodePort` | `NodePort` |
 | `apiserver.service.nodePort.securePort` | If service type is `NodePort`, specifies a port in allowable range (e.g. 30000 - 32767 on minikube); The TLS-enabled endpoint will be exposed here | `30443` |
@@ -54,11 +57,23 @@ chart and their default values.
 | `apiserver.storage.etcd.persistence.size` | PVC Storage Request | `4Gi` |
 | `apiserver.verbosity` | Log level; valid values are in the range 0 - 10 | `10` |
 | `apiserver.auth.enabled` | Enable authentication and authorization | `true` |
+| `apiserver.audit.activated` | If true, enables the use of audit features via this chart. | `false` |
+| `apiserver.audit.logPath` | If specified, audit log goes to specified path. | `"/tmp/service-catalog-apiserver-audit.log"` |
+| `apiserver.serviceAccount` | Service account. | `service-catalog-apiserver` |
+| `apiserver.serveOpenAPISpec` | If true, makes the API server serve the OpenAPI schema | `false` |
 | `controllerManager.verbosity` | Log level; valid values are in the range 0 - 10 | `10` |
 | `controllerManager.resyncInterval` | How often the controller should resync informers; duration format (`20m`, `1h`, etc) | `5m` |
 | `controllerManager.brokerRelistInterval` | How often the controller should relist the catalogs of ready brokers; duration format (`20m`, `1h`, etc) | `24h` |
+| `controllerManager.brokerRelistIntervalActivated` | Whether or not the controller supports a --broker-relist-interval flag. If this is set to true, brokerRelistInterval will be used as the value for that flag. | `true` |
+| `controllerManager.profiling.disabled` | Disable profiling via web interface host:port/debug/pprof/ | `false` |
+| `controllerManager.profiling.contentionProfiling` | Enables lock contention profiling, if profiling is enabled | `false` |
+| `controllerManager.leaderElection.activated` | Whether the controller has leader election enabled | `false` |
+| `controllerManager.serviceAccount` | Service account | `service-catalog-controller-manager` |
+| `controllerManager.apiserverSkipVerify` | Controls whether the API server's TLS verification should be skipped | `true` |
+| `controllerManager.enablePrometheusScrape` | Whether the controller will expose metrics on /metrics | `false` |
 | `useAggregator` | whether or not to set up the controller-manager to go through the main Kubernetes API server's API aggregator | `true` |
 | `rbacEnable` | If true, create & use RBAC resources | `true` |
+| `originatingIdentityEnabled` | Whether the OriginatingIdentity alpha feature should be enabled | `false` |
 | `asyncBindingOperationsEnabled` | Whether or not alpha support for async binding operations is enabled | `false` |
 
 Specify each parameter using the `--set key=value[,key=value]` argument to

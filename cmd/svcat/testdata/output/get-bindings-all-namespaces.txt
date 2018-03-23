@@ -1,0 +1,4 @@
+     NAME       NAMESPACE     INSTANCE     STATUS  
++-------------+-----------+--------------+--------+
+  ups-binding   test-ns     ups-instance   Ready   
+  ups-binding   default     ups-instance   Ready   

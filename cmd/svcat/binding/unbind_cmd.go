@@ -20,6 +20,7 @@ import (
 	"fmt"
 
 	"github.com/kubernetes-incubator/service-catalog/cmd/svcat/command"
+	"github.com/kubernetes-incubator/service-catalog/cmd/svcat/output"
 	"github.com/spf13/cobra"
 )
 
@@ -80,9 +81,15 @@ func (c *unbindCmd) Run() error {
 }
 
 func (c *unbindCmd) deleteBinding() error {
-	return c.App.DeleteBinding(c.ns, c.bindingName)
+	err := c.App.DeleteBinding(c.ns, c.bindingName)
+	if err == nil {
+		output.WriteDeletedResourceName(c.Output, c.bindingName)
+	}
+	return err
 }
 
 func (c *unbindCmd) unbindInstance() error {
-	return c.App.Unbind(c.ns, c.instanceName)
+	bindings, err := c.App.Unbind(c.ns, c.instanceName)
+	output.WriteDeletedBindingNames(c.Output, bindings)
+	return err
 }

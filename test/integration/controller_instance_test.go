@@ -145,10 +145,12 @@ func TestCreateServiceInstanceNonExistentClusterServiceBroker(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{Name: testClusterServiceClassGUID},
 				Spec: v1beta1.ClusterServiceClassSpec{
 					ClusterServiceBrokerName: testClusterServiceBrokerName,
-					ExternalID:               testClusterServiceClassGUID,
-					ExternalName:             testClusterServiceClassName,
-					Description:              "a test service",
-					Bindable:                 true,
+					CommonServiceClassSpec: v1beta1.CommonServiceClassSpec{
+						ExternalID:   testClusterServiceClassGUID,
+						ExternalName: testClusterServiceClassName,
+						Description:  "a test service",
+						Bindable:     true,
+					},
 				},
 			}
 			if _, err := ct.client.ClusterServiceClasses().Create(serviceClass); err != nil {
@@ -163,9 +165,11 @@ func TestCreateServiceInstanceNonExistentClusterServiceBroker(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{Name: testPlanExternalID},
 				Spec: v1beta1.ClusterServicePlanSpec{
 					ClusterServiceBrokerName: testClusterServiceBrokerName,
-					ExternalID:               testPlanExternalID,
-					ExternalName:             testClusterServicePlanName,
-					Description:              "a test plan",
+					CommonServicePlanSpec: v1beta1.CommonServicePlanSpec{
+						ExternalID:   testPlanExternalID,
+						ExternalName: testClusterServicePlanName,
+						Description:  "a test plan",
+					},
 					ClusterServiceClassRef: v1beta1.ClusterObjectReference{
 						Name: testClusterServiceClassGUID,
 					},
@@ -197,8 +201,8 @@ func TestCreateServiceInstanceWithAuthError(t *testing.T) {
 		t: t,
 		broker: func() *v1beta1.ClusterServiceBroker {
 			b := getTestBroker()
-			b.Spec.AuthInfo = &v1beta1.ServiceBrokerAuthInfo{
-				Basic: &v1beta1.BasicAuthConfig{
+			b.Spec.AuthInfo = &v1beta1.ClusterServiceBrokerAuthInfo{
+				Basic: &v1beta1.ClusterBasicAuthConfig{
 					SecretRef: &v1beta1.ObjectReference{
 						Namespace: testNamespace,
 						Name:      "secret-name",
@@ -424,7 +428,7 @@ func TestCreateServiceInstanceWithParameters(t *testing.T) {
 	for _, tc := range cases {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
+			//t.Parallel()
 			ct := &controllerTest{
 				t:      t,
 				broker: getTestBroker(),
@@ -525,7 +529,7 @@ func TestUpdateServiceInstanceChangePlans(t *testing.T) {
 	for _, tc := range cases {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
+			//t.Parallel()
 			ct := &controllerTest{
 				t:      t,
 				broker: getTestBroker(),
@@ -562,11 +566,13 @@ func TestUpdateServiceInstanceChangePlans(t *testing.T) {
 					ct.instance.Spec.ClusterServicePlanName = otherPlanID
 				}
 
-				if _, err := ct.client.ServiceInstances(testNamespace).Update(ct.instance); err != nil {
+				updatedInstance, err := ct.client.ServiceInstances(testNamespace).Update(ct.instance)
+				if err != nil {
 					t.Fatalf("error updating Instance: %v", err)
 				}
+				ct.instance = updatedInstance
 
-				if err := util.WaitForInstanceReconciledGeneration(ct.client, testNamespace, testInstanceName, ct.instance.Status.ReconciledGeneration+1); err != nil {
+				if err := util.WaitForInstanceProcessedGeneration(ct.client, testNamespace, testInstanceName, ct.instance.Generation); err != nil {
 					t.Fatalf("error waiting for instance to reconcile: %v", err)
 				}
 
@@ -770,7 +776,7 @@ func TestUpdateServiceInstanceUpdateParameters(t *testing.T) {
 	for _, tc := range cases {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
+			//t.Parallel()
 			ct := &controllerTest{
 				t:      t,
 				broker: getTestBroker(),
@@ -833,11 +839,13 @@ func TestUpdateServiceInstanceUpdateParameters(t *testing.T) {
 					ct.instance.Spec.UpdateRequests++
 				}
 
-				if _, err := ct.client.ServiceInstances(testNamespace).Update(ct.instance); err != nil {
+				updatedInstance, err := ct.client.ServiceInstances(testNamespace).Update(ct.instance)
+				if err != nil {
 					t.Fatalf("error updating Instance: %v", err)
 				}
+				ct.instance = updatedInstance
 
-				if err := util.WaitForInstanceReconciledGeneration(ct.client, testNamespace, testInstanceName, ct.instance.Status.ReconciledGeneration+1); err != nil {
+				if err := util.WaitForInstanceProcessedGeneration(ct.client, testNamespace, testInstanceName, ct.instance.Generation); err != nil {
 					t.Fatalf("error waiting for instance to reconcile: %v", err)
 				}
 
@@ -992,7 +1000,7 @@ func TestCreateServiceInstanceWithProvisionFailure(t *testing.T) {
 	for _, tc := range cases {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
+			//t.Parallel()
 			ct := &controllerTest{
 				t:                            t,
 				broker:                       getTestBroker(),
@@ -1032,7 +1040,7 @@ func TestCreateServiceInstanceWithProvisionFailure(t *testing.T) {
 				}
 
 				if tc.expectFailCondition {
-					if err := util.WaitForInstanceReconciledGeneration(ct.client, ct.instance.Namespace, ct.instance.Name, 1); err != nil {
+					if err := util.WaitForInstanceProcessedGeneration(ct.client, ct.instance.Namespace, ct.instance.Name, 1); err != nil {
 						t.Fatalf("error waiting for instance reconciliation to complete: %v", err)
 					}
 				}
@@ -1312,7 +1320,7 @@ func TestDeleteServiceInstance(t *testing.T) {
 	for _, tc := range cases {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
+			//t.Parallel()
 			ct := &controllerTest{
 				t:                            t,
 				broker:                       getTestBroker(),
@@ -1515,7 +1523,7 @@ func TestPollServiceInstanceLastOperation(t *testing.T) {
 	for _, tc := range cases {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
+			//t.Parallel()
 			ct := &controllerTest{
 				t:                            t,
 				broker:                       getTestBroker(),
@@ -1535,4 +1543,34 @@ func TestPollServiceInstanceLastOperation(t *testing.T) {
 			})
 		})
 	}
+}
+
+// TestRetryAsyncDeprovision tests whether asynchronous deprovisioning retries
+// by attempting a new deprovision after failing.
+func TestRetryAsyncDeprovision(t *testing.T) {
+	hasPollFailed := false
+	ct := &controllerTest{
+		t:        t,
+		broker:   getTestBroker(),
+		instance: getTestInstance(),
+		setup: func(ct *controllerTest) {
+			ct.osbClient.DeprovisionReaction = fakeosb.DynamicDeprovisionReaction(
+				func(_ *osb.DeprovisionRequest) (*osb.DeprovisionResponse, error) {
+					response := &osb.DeprovisionResponse{Async: true}
+					if hasPollFailed {
+						response.Async = false
+					}
+					return response, nil
+				})
+
+			ct.osbClient.PollLastOperationReaction = fakeosb.DynamicPollLastOperationReaction(
+				func(_ *osb.LastOperationRequest) (*osb.LastOperationResponse, error) {
+					hasPollFailed = true
+					return &osb.LastOperationResponse{
+						State: osb.StateFailed,
+					}, nil
+				})
+		},
+	}
+	ct.run(func(_ *controllerTest) {})
 }

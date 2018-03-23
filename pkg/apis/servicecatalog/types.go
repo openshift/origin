@@ -46,14 +46,10 @@ type ClusterServiceBrokerList struct {
 	Items []ClusterServiceBroker
 }
 
-// ClusterServiceBrokerSpec represents a description of a Broker.
-type ClusterServiceBrokerSpec struct {
-	// URL is the address used to communicate with the ClusterServiceBroker.
+// CommonServiceBrokerSpec represents a description of a Broker.
+type CommonServiceBrokerSpec struct {
+	// URL is the address used to communicate with the ServiceBroker.
 	URL string
-
-	// AuthInfo contains the data that the service catalog should use to authenticate
-	// with the Service Broker.
-	AuthInfo *ServiceBrokerAuthInfo
 
 	// InsecureSkipTLSVerify disables TLS certificate verification when communicating with this Broker.
 	// This is strongly discouraged.  You should use the CABundle instead.
@@ -65,7 +61,7 @@ type ClusterServiceBrokerSpec struct {
 	CABundle []byte
 
 	// RelistBehavior specifies the type of relist behavior the catalog should
-	// exhibit when relisting ClusterServiceClasses available from a broker.
+	// exhibit when relisting ServiceClasses available from a broker.
 	RelistBehavior ServiceBrokerRelistBehavior
 
 	// RelistDuration is the frequency by which a controller will relist the
@@ -83,6 +79,15 @@ type ClusterServiceBrokerSpec struct {
 	RelistRequests int64
 }
 
+// ClusterServiceBrokerSpec represents a description of a Broker.
+type ClusterServiceBrokerSpec struct {
+	CommonServiceBrokerSpec
+
+	// AuthInfo contains the data that the service catalog should use to authenticate
+	// with the Service Broker.
+	AuthInfo *ClusterServiceBrokerAuthInfo
+}
+
 // ServiceBrokerRelistBehavior represents a type of broker relist behavior.
 type ServiceBrokerRelistBehavior string
 
@@ -96,22 +101,24 @@ const (
 	ServiceBrokerRelistBehaviorManual ServiceBrokerRelistBehavior = "Manual"
 )
 
-// ServiceBrokerAuthInfo is a union type that contains information on one of the authentication methods
-// the the service catalog and brokers may support, according to the OpenServiceBroker API
-// specification (https://github.com/openservicebrokerapi/servicebroker/blob/master/spec.md).
-type ServiceBrokerAuthInfo struct {
-	// Basic provides configuration for basic authentication.
-	Basic *BasicAuthConfig
-	// BearerTokenAuthConfig provides configuration to send an opaque value as a bearer token.
+// ClusterServiceBrokerAuthInfo is a union type that contains information on
+// one of the authentication methods the the service catalog and brokers may
+// support, according to the OpenServiceBroker API specification
+// (https://github.com/openservicebrokerapi/servicebroker/blob/master/spec.md).
+type ClusterServiceBrokerAuthInfo struct {
+	// ClusterBasicAuthConfig provides configuration for basic authentication.
+	Basic *ClusterBasicAuthConfig
+	// ClusterBearerTokenAuthConfig provides configuration to send an opaque value as a bearer token.
 	// The value is referenced from the 'token' field of the given secret.  This value should only
 	// contain the token value and not the `Bearer` scheme.
-	Bearer *BearerTokenAuthConfig
+	Bearer *ClusterBearerTokenAuthConfig
 }
 
-// BasicAuthConfig provides config for the basic authentication.
-type BasicAuthConfig struct {
+// ClusterBasicAuthConfig provides config for the basic authentication of
+// cluster scoped brokers.
+type ClusterBasicAuthConfig struct {
 	// SecretRef is a reference to a Secret containing information the
-	// catalog should use to authenticate to this ServiceBroker.
+	// catalog should use to authenticate to this ClusterServiceBroker.
 	//
 	// Required at least one of the fields:
 	// - Secret.Data["username"] - username used for authentication
@@ -119,10 +126,11 @@ type BasicAuthConfig struct {
 	SecretRef *ObjectReference
 }
 
-// BearerTokenAuthConfig provides config for the bearer token authentication.
-type BearerTokenAuthConfig struct {
+// ClusterBearerTokenAuthConfig provides config for the bearer token
+// authentication of cluster scoped brokers.
+type ClusterBearerTokenAuthConfig struct {
 	// SecretRef is a reference to a Secret containing information the
-	// catalog should use to authenticate to this ServiceBroker.
+	// catalog should use to authenticate to this ClusterServiceBroker.
 	//
 	// Required field:
 	// - Secret.Data["token"] - bearer token for authentication
@@ -232,14 +240,8 @@ type ClusterServiceClass struct {
 	Status ClusterServiceClassStatus
 }
 
-// ClusterServiceClassSpec represents details about a ClusterServicePlan
-type ClusterServiceClassSpec struct {
-	// ClusterServiceBrokerName is the reference to the Broker that provides this
-	// ClusterServiceClass.
-	//
-	// Immutable.
-	ClusterServiceBrokerName string
-
+// CommonServiceClassSpec represents details about a ServiceClass
+type CommonServiceClassSpec struct {
 	// ExternalName is the name of this object that the Service Broker
 	// exposed this Service Class as. Mutable.
 	ExternalName string
@@ -249,11 +251,11 @@ type ClusterServiceClassSpec struct {
 	// Immutable.
 	ExternalID string
 
-	// Description is a short description of this ClusterServiceClass.
+	// Description is a short description of this ServiceClass.
 	Description string
 
 	// Bindable indicates whether a user can create bindings to an ServiceInstance
-	// provisioned from this service. ClusterServicePlan has an optional field called
+	// provisioned from this service. ServicePlan has an optional field called
 	// Bindable which overrides the value of this field.
 	Bindable bool
 
@@ -265,10 +267,10 @@ type ClusterServiceClassSpec struct {
 	BindingRetrievable bool
 
 	// PlanUpdatable indicates whether instances provisioned from this
-	// ClusterServiceClass may change ClusterServicePlans after being provisioned.
+	// ServiceClass may change ServicePlans after being provisioned.
 	PlanUpdatable bool
 
-	// ExternalMetadata is a blob of information about the ClusterServiceClass, meant
+	// ExternalMetadata is a blob of information about the ServiceClass, meant
 	// to be user-facing content and display instructions.  This field may
 	// contain platform-specific conventional values.
 	ExternalMetadata *runtime.RawExtension
@@ -277,7 +279,7 @@ type ClusterServiceClassSpec struct {
 	// and its data will not be migrated.
 	//
 	// Tags is a list of strings that represent different classification
-	// attributes of the ClusterServiceClass.  These are used in Cloud Foundry in a
+	// attributes of the ServiceClass.  These are used in Cloud Foundry in a
 	// way similar to Kubernetes labels, but they currently have no special
 	// meaning in Kubernetes.
 	Tags []string
@@ -288,8 +290,19 @@ type ClusterServiceClassSpec struct {
 	// Requires exposes a list of Cloud Foundry-specific 'permissions'
 	// that must be granted to an instance of this service within Cloud
 	// Foundry.  These 'permissions' have no meaning within Kubernetes and an
-	// ServiceInstance provisioned from this ClusterServiceClass will not work correctly.
+	// ServiceInstance provisioned from this ServiceClass will not work correctly.
 	Requires []string
+}
+
+// ClusterServiceClassSpec represents the details about a ClusterServiceClass
+type ClusterServiceClassSpec struct {
+	CommonServiceClassSpec
+
+	// ClusterServiceBrokerName is the reference to the Broker that provides this
+	// ClusterServiceClass.
+	//
+	// Immutable.
+	ClusterServiceBrokerName string
 }
 
 // ClusterServiceClassStatus represents status information about a
@@ -323,12 +336,8 @@ type ClusterServicePlan struct {
 	Status ClusterServicePlanStatus
 }
 
-// ClusterServicePlanSpec represents details about the ClusterServicePlan
-type ClusterServicePlanSpec struct {
-	// ClusterServiceBrokerName is the name of the ClusterServiceBroker that offers this
-	// ClusterServicePlan.
-	ClusterServiceBrokerName string
-
+// CommonServicePlanSpec represents details about the ServicePlan
+type CommonServicePlanSpec struct {
 	// ExternalName is the name of this object that the Service Broker
 	// exposed this Service Plan as. Mutable.
 	ExternalName string
@@ -338,15 +347,15 @@ type ClusterServicePlanSpec struct {
 	// Immutable.
 	ExternalID string
 
-	// Description is a short description of this ClusterServicePlan.
+	// Description is a short description of this ServicePlan.
 	Description string
 
 	// Bindable indicates whether a user can create bindings to an ServiceInstance
-	// using this ClusterServicePlan.  If set, overrides the value of the
-	// ClusterServiceClass.Bindable field.
+	// using this ServicePlan.  If set, overrides the value of the
+	// corresponding ServiceClassSpec Bindable field.
 	Bindable *bool
 
-	// Free indicates whether this ClusterServicePlan is available at no cost.
+	// Free indicates whether this ServicePlan is available at no cost.
 	Free bool
 
 	// ExternalMetadata is a blob of information about the plan, meant to be
@@ -366,7 +375,7 @@ type ClusterServicePlanSpec struct {
 	//
 	// ServiceInstanceUpdateParameterSchema is the schema for the parameters
 	// that may be updated once an ServiceInstance has been provisioned on this plan.
-	// This field only has meaning if the ClusterServiceClass is PlanUpdatable.
+	// This field only has meaning if the corresponding ServiceClassSpec is PlanUpdatable.
 	ServiceInstanceUpdateParameterSchema *runtime.RawExtension
 
 	// Currently, this field is ALPHA: it may change or disappear at any time
@@ -375,6 +384,15 @@ type ClusterServicePlanSpec struct {
 	// ServiceBindingCreateParameterSchema is the schema for the parameters that
 	// may be supplied binding to an ServiceInstance on this plan.
 	ServiceBindingCreateParameterSchema *runtime.RawExtension
+}
+
+// ClusterServicePlanSpec represents details about the ClusterServicePlan
+type ClusterServicePlanSpec struct {
+	CommonServicePlanSpec
+
+	// ClusterServiceBrokerName is the name of the ClusterServiceBroker that offers this
+	// ClusterServicePlan.
+	ClusterServiceBrokerName string
 
 	// ClusterServiceClassRef is a reference to the service class that
 	// owns this plan.
@@ -537,7 +555,14 @@ type ServiceInstanceStatus struct {
 	// ReconciledGeneration is the 'Generation' of the serviceInstanceSpec that
 	// was last processed by the controller. The reconciled generation is updated
 	// even if the controller failed to process the spec.
+	// Deprecated: use ObservedGeneration with conditions set to true to find
+	// whether generation was reconciled.
 	ReconciledGeneration int64
+
+	// ObservedGeneration is the 'Generation' of the serviceInstanceSpec that
+	// was last processed by the controller. The observed generation is updated
+	// whenever the status is updated regardless of operation result.
+	ObservedGeneration int64
 
 	// OperationStartTime is the time at which the current operation began.
 	OperationStartTime *metav1.Time
@@ -550,6 +575,9 @@ type ServiceInstanceStatus struct {
 	// ExternalProperties is the properties state of the ServiceInstance which the
 	// broker knows about.
 	ExternalProperties *ServiceInstancePropertiesState
+
+	// ProvisionStatus describes whether the instance is in the provisioned state.
+	ProvisionStatus ServiceInstanceProvisionStatus
 
 	// DeprovisionStatus describes what has been done to deprovision the
 	// ServiceInstance.
@@ -588,6 +616,10 @@ const (
 	// ServiceInstanceConditionFailed represents information about a final failure
 	// that should not be retried.
 	ServiceInstanceConditionFailed ServiceInstanceConditionType = "Failed"
+
+	// ServiceInstanceConditionOrphanMitigation represents information about an
+	// orphan mitigation that is required after failed provisioning.
+	ServiceInstanceConditionOrphanMitigation ServiceInstanceConditionType = "OrphanMitigation"
 )
 
 // ServiceInstanceOperation represents a type of operation the controller can
@@ -651,6 +683,19 @@ const (
 	// requests have been sent for the ServiceInstance but they failed. The
 	// controller has given up on sending more deprovision requests.
 	ServiceInstanceDeprovisionStatusFailed ServiceInstanceDeprovisionStatus = "Failed"
+)
+
+// ServiceInstanceProvisionStatus is the status of provisioning a
+// ServiceInstance
+type ServiceInstanceProvisionStatus string
+
+const (
+	// ServiceInstanceProvisionStatusProvisioned indicates that the instance
+	// was provisioned.
+	ServiceInstanceProvisionStatusProvisioned ServiceInstanceProvisionStatus = "Provisioned"
+	// ServiceInstanceProvisionStatusNotProvisioned indicates that the instance
+	// was not ever provisioned or was deprovisioned.
+	ServiceInstanceProvisionStatusNotProvisioned ServiceInstanceProvisionStatus = "NotProvisioned"
 )
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
