@@ -113,8 +113,6 @@ type OsdnNode struct {
 	host             knetwork.Host
 	kubeletCniPlugin knetwork.NetworkPlugin
 
-	hostSubnetMap map[string]*networkapi.HostSubnet
-
 	kubeInformers    kinternalinformers.SharedInformerFactory
 	networkInformers networkinformers.SharedInformerFactory
 
@@ -182,7 +180,6 @@ func New(c *OsdnNodeConfig) (network.NodeInterface, error) {
 		mtu:                c.MTU,
 		egressPolicies:     make(map[uint32][]networkapi.EgressNetworkPolicy),
 		egressDNS:          common.NewEgressDNS(),
-		hostSubnetMap:      make(map[string]*networkapi.HostSubnet),
 		kubeInformers:      c.KubeInformers,
 		networkInformers:   c.NetworkInformers,
 		egressIP:           newEgressIPWatcher(oc, c.SelfIP, c.MasqueradeBit),
@@ -332,7 +329,8 @@ func (node *OsdnNode) Start() error {
 		return fmt.Errorf("node SDN setup failed: %v", err)
 	}
 
-	node.SubnetStartNode()
+	hsw := newHostSubnetWatcher(node.oc, node.localIP, node.networkInfo)
+	hsw.Start(node.networkInformers)
 
 	if err = node.policy.Start(node); err != nil {
 		return err
