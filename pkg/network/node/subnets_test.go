@@ -199,3 +199,140 @@ func TestHostSubnetWatcher(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 }
+
+func TestHostSubnetReassignment(t *testing.T) {
+	hsw, flows := setupHostSubnetWatcher(t)
+
+	hs1orig := makeHostSubnet("node1", "192.168.0.2", "10.128.0.0/23")
+	hs2orig := makeHostSubnet("node2", "192.168.1.2", "10.129.0.0/23")
+
+	// Create original HostSubnets
+
+	err := hsw.updateHostSubnet(hs1orig)
+	if err != nil {
+		t.Fatalf("Unexpected error adding HostSubnet: %v", err)
+	}
+	err = hsw.updateHostSubnet(hs2orig)
+	if err != nil {
+		t.Fatalf("Unexpected error adding HostSubnet: %v", err)
+	}
+
+	err = assertHostSubnetFlowChanges(hsw, &flows,
+		flowChange{
+			kind:  flowAdded,
+			match: []string{"table=10", "tun_src=192.168.0.2"},
+		},
+		flowChange{
+			kind:  flowAdded,
+			match: []string{"table=10", "tun_src=192.168.1.2"},
+		},
+		flowChange{
+			kind:  flowAdded,
+			match: []string{"table=50", "arp", "arp_tpa=10.128.0.0/23", "192.168.0.2->tun_dst"},
+		},
+		flowChange{
+			kind:  flowAdded,
+			match: []string{"table=50", "arp", "arp_tpa=10.129.0.0/23", "192.168.1.2->tun_dst"},
+		},
+		flowChange{
+			kind:  flowAdded,
+			match: []string{"table=90", "ip", "nw_dst=10.128.0.0/23", "192.168.0.2->tun_dst"},
+		},
+		flowChange{
+			kind:  flowAdded,
+			match: []string{"table=90", "ip", "nw_dst=10.129.0.0/23", "192.168.1.2->tun_dst"},
+		},
+		flowChange{
+			kind:    flowRemoved,
+			match:   []string{"table=111", "goto_table:120"},
+			noMatch: []string{"->tun_dst"},
+		},
+		flowChange{
+			kind:  flowAdded,
+			match: []string{"table=111", "192.168.0.2->tun_dst", "192.168.1.2->tun_dst"},
+		},
+	)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	// Now both nodes go offline (without their Node objects being deleted), reboot and
+	// get assigned the opposite IPs after reboot. They reregister with the master, which
+	// updates their Node IPs, which causes the SDN master to update their HostSubnets.
+	// After the first update, we'll have two HostSubnets with the same HostIP, which
+	// used to cause us to break things when we got the second update.
+
+	hs1new := hs1orig.DeepCopy()
+	hs1new.HostIP = hs2orig.HostIP
+	hs2new := hs2orig.DeepCopy()
+	hs2new.HostIP = hs1orig.HostIP
+
+	err = hsw.updateHostSubnet(hs1new)
+	if err != nil {
+		t.Fatalf("Unexpected error adding HostSubnet: %v", err)
+	}
+	err = hsw.updateHostSubnet(hs2new)
+	if err != nil {
+		t.Fatalf("Unexpected error adding HostSubnet: %v", err)
+	}
+
+	err = assertHostSubnetFlowChanges(hsw, &flows,
+		// (We have to check for these table=10 removes+adds because they're not
+		// actually identical; the cookies will have changed.)
+		flowChange{
+			kind:  flowRemoved,
+			match: []string{"table=10", "tun_src=192.168.0.2"},
+		},
+		flowChange{
+			kind:  flowAdded,
+			match: []string{"table=10", "tun_src=192.168.0.2"},
+		},
+		flowChange{
+			kind:  flowRemoved,
+			match: []string{"table=10", "tun_src=192.168.1.2"},
+		},
+		flowChange{
+			kind:  flowAdded,
+			match: []string{"table=10", "tun_src=192.168.1.2"},
+		},
+
+		flowChange{
+			kind:  flowRemoved,
+			match: []string{"table=50", "arp", "arp_tpa=10.128.0.0/23", "192.168.0.2->tun_dst"},
+		},
+		flowChange{
+			kind:  flowAdded,
+			match: []string{"table=50", "arp", "arp_tpa=10.128.0.0/23", "192.168.1.2->tun_dst"},
+		},
+
+		flowChange{
+			kind:  flowRemoved,
+			match: []string{"table=50", "arp", "arp_tpa=10.129.0.0/23", "192.168.1.2->tun_dst"},
+		},
+		flowChange{
+			kind:  flowAdded,
+			match: []string{"table=50", "arp", "arp_tpa=10.129.0.0/23", "192.168.0.2->tun_dst"},
+		},
+
+		flowChange{
+			kind:  flowRemoved,
+			match: []string{"table=90", "ip", "nw_dst=10.128.0.0/23", "192.168.0.2->tun_dst"},
+		},
+		flowChange{
+			kind:  flowAdded,
+			match: []string{"table=90", "ip", "nw_dst=10.128.0.0/23", "192.168.1.2->tun_dst"},
+		},
+
+		flowChange{
+			kind:  flowRemoved,
+			match: []string{"table=90", "ip", "nw_dst=10.129.0.0/23", "192.168.1.2->tun_dst"},
+		},
+		flowChange{
+			kind:  flowAdded,
+			match: []string{"table=90", "ip", "nw_dst=10.129.0.0/23", "192.168.0.2->tun_dst"},
+		},
+	)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+}

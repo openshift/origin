@@ -76,7 +76,7 @@ func (hsw *hostSubnetWatcher) updateHostSubnet(hs *networkapi.HostSubnet) error 
 		}
 	}
 	if err := hsw.networkInfo.ValidateNodeIP(hs.HostIP); err != nil {
-		return fmt.Errorf("Ignoring invalid subnet for node %s: %v", hs.HostIP, err)
+		return fmt.Errorf("ignoring invalid subnet for node %s: %v", hs.HostIP, err)
 	}
 
 	hsw.hostSubnetMap[hs.UID] = hs
