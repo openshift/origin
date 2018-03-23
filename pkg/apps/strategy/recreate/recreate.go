@@ -13,7 +13,6 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/scale"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/retry"
@@ -263,38 +262,45 @@ func (s *RecreateDeploymentStrategy) scaleAndWait(deployment *kapi.ReplicationCo
 	return s.rcClient.ReplicationControllers(deployment.Namespace).Get(deployment.Name, metav1.GetOptions{})
 }
 
-// waitForTerminatedPods waits until all pods for the provided replication controller are terminated.
-func (s *RecreateDeploymentStrategy) waitForTerminatedPods(from *kapi.ReplicationController, timeout time.Duration) {
-	selector := labels.SelectorFromValidatedSet(labels.Set(from.Spec.Selector))
-	options := metav1.ListOptions{LabelSelector: selector.String()}
-	podList, err := s.podClient.Pods(from.Namespace).List(options)
-	if err != nil {
-		fmt.Fprintf(s.out, "--> Cannot list pods: %v\nNew pods may be scaled up before old pods terminate\n", err)
-		return
-	}
-	// If there are no pods left, we are done.
-	if len(podList.Items) == 0 {
-		return
-	}
-	// Watch from the resource version of the list and wait for all pods to be deleted
-	// before proceeding with the Recreate strategy.
-	options.ResourceVersion = podList.ResourceVersion
-	w, err := s.podClient.Pods(from.Namespace).Watch(options)
-	if err != nil {
-		fmt.Fprintf(s.out, "--> Watch could not be established: %v\nNew pods may be scaled up before old pods terminate\n", err)
-		return
-	}
-	defer w.Stop()
-	// Observe as many deletions as the remaining pods and then return.
-	deletionsNeeded := len(podList.Items)
-	condition := func(event watch.Event) (bool, error) {
-		if event.Type == watch.Deleted {
-			deletionsNeeded--
+// hasRunningPod returns true if there is at least one pod in non-terminal state.
+func hasRunningPod(pods []kapi.Pod) bool {
+	for _, pod := range pods {
+		switch pod.Status.Phase {
+		case kapi.PodFailed, kapi.PodSucceeded:
+			// Don't count pods in terminal state.
+			continue
+		case kapi.PodUnknown:
+			// This happens in situation like when the node is temporarily disconnected from the cluster.
+			// If we can't be sure that the pod is not running, we have to count it.
+			return true
+		default:
+			// Pod is not in terminal phase.
+			return true
 		}
-		return deletionsNeeded == 0, nil
 	}
-	// TODO: Timeout should be timeout - (time.Now - deployerPodStartTime)
-	if _, err = watch.Until(timeout, w, condition); err != nil && err != wait.ErrWaitTimeout {
-		fmt.Fprintf(s.out, "--> Watch failed: %v\nNew pods may be scaled up before old pods terminate\n", err)
+
+	return false
+}
+
+// waitForTerminatedPods waits until all pods for the provided replication controller are terminated.
+func (s *RecreateDeploymentStrategy) waitForTerminatedPods(rc *kapi.ReplicationController, timeout time.Duration) {
+	// Decode the config from the deployment.
+	err := wait.PollImmediate(1*time.Second, timeout, func() (bool, error) {
+		podList, err := s.podClient.Pods(rc.Namespace).List(metav1.ListOptions{
+			LabelSelector: labels.SelectorFromValidatedSet(labels.Set(rc.Spec.Selector)).String(),
+		})
+		if err != nil {
+			fmt.Fprintf(s.out, "--> ERROR: Cannot list pods: %v\n", err)
+			return false, nil
+		}
+
+		if hasRunningPod(podList.Items) {
+			return false, nil
+		}
+
+		return true, nil
+	})
+	if err != nil {
+		fmt.Fprintf(s.out, "--> Failed to wait for old pods to be terminated: %v\nNew pods may be scaled up before old pods get terminated!\n", err)
 	}
 }
