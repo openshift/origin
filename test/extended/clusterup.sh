@@ -157,7 +157,7 @@ function os::test::extended::clusterup::internal::hostdirs () {
         --host-config-dir="${config_dir}" \
         --host-pv-dir="${pv_dir}" \
         ${volumes_arg} \
-        --version="$ORIGIN_COMMIT" \
+        --tag="$ORIGIN_COMMIT" \
         ${@}
 
 	local sudo="${USE_SUDO:+sudo}"
@@ -224,13 +224,13 @@ function os::test::extended::clusterup::publichostname () {
     oc cluster up \
         --public-hostname="myserver.127.0.0.1.nip.io" \
         --host-config-dir="${base_dir}/config" \
-        --version="$ORIGIN_COMMIT" \
+        --tag="$ORIGIN_COMMIT" \
         --write-config
 
     BASE_DIR="${base_dir}" os::test::extended::clusterup::standard_test \
         --public-hostname="myserver.127.0.0.1.nip.io" \
         --host-config-dir="${base_dir}/config" \
-        --version="$ORIGIN_COMMIT" \
+        --tag="$ORIGIN_COMMIT" \
         ${@}
     os::cmd::expect_success_and_text "cat ${base_dir}/config/oc-cluster-up-kube-apiserver/master/master-config.yaml" "masterPublicURL.*myserver\.127\.0\.0\.1\.nip\.io"
 }
@@ -248,13 +248,13 @@ function os::test::extended::clusterup::numerichostname () {
     oc cluster up \
         --public-hostname="127.0.0.1" \
         --host-config-dir="${base_dir}/config" \
-        --version="$ORIGIN_COMMIT" \
+        --tag="$ORIGIN_COMMIT" \
         --write-config
 
     os::test::extended::clusterup::standard_test \
         --public-hostname="127.0.0.1" \
         --host-config-dir="${base_dir}/config" \
-        --version="$ORIGIN_COMMIT" \
+        --tag="$ORIGIN_COMMIT" \
         ${@}
     os::cmd::expect_success_and_text "cat ${base_dir}/config/oc-cluster-up-kube-apiserver/master/master-config.yaml" "masterPublicURL.*127\.0\.0\.1"
 }
@@ -339,19 +339,19 @@ readonly extra_args=(
     # Test the previous OCP release
     # TODO - enable this once v3.9 ships, v3.7 didn't have a TSB image so it's
     # annoying to test.
-    #"--loglevel=5 --image=registry.access.redhat.com/openshift3/ose --version=v3.7"
+    #"--loglevel=5 --image=registry.access.redhat.com/openshift3/ose --tag=v3.7"
 
     # Test the previous origin release
     # TODO - enable this once oc cluster up v3.9 supports modifiying cluster
     # roles on a 3.7 cluster image (https://github.com/openshift/origin/issues/17867)
-    # "--loglevel=5 --image=docker.io/openshift/origin --version=v3.7.0"
+    # "--loglevel=5 --image=docker.io/openshift/origin --tag=v3.7.0"
 
     # Test the current published release
     # disabling this based on irc with clayton.  This is more strict than openshift-ansible.
     #"--loglevel=5"  # can't be empty, so pass something benign
 
     # Test the code being delivered
-    "--loglevel=5 --server-loglevel=5 --version=${ORIGIN_COMMIT}"
+    "--loglevel=5 --server-loglevel=5 --tag=${ORIGIN_COMMIT}"
 
 )
 tests=("${1:-"${default_tests[@]}"}")
