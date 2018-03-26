@@ -13,7 +13,7 @@ import (
 
 // CreateNFSBackedPersistentVolume creates a persistent volume backed by a pod
 // running nfs
-func CreateNFSBackedPersistentVolume(name, capacity, server string, number int) *kapiv1.PersistentVolume {
+func CreateNFSBackedPersistentVolume(name, namespace, capacity, server string, number int) *kapiv1.PersistentVolume {
 	e2e.Logf("Creating persistent volume %s", name)
 	return &kapiv1.PersistentVolume{
 		TypeMeta: metav1.TypeMeta{
@@ -22,7 +22,7 @@ func CreateNFSBackedPersistentVolume(name, capacity, server string, number int) 
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   name,
-			Labels: map[string]string{"name": name},
+			Labels: map[string]string{"name": name, "namespace": namespace},
 		},
 		Spec: kapiv1.PersistentVolumeSpec{
 			PersistentVolumeSource: kapiv1.PersistentVolumeSource{
@@ -69,7 +69,7 @@ func SetupNFSBackedPersistentVolumes(oc *CLI, capacity string, count int) (volum
 	}
 
 	for i := 0; i < count; i++ {
-		pv, err := c.Create(CreateNFSBackedPersistentVolume(fmt.Sprintf("%s%s-%d", pvPrefix, prefix, i), capacity, server, i))
+		pv, err := c.Create(CreateNFSBackedPersistentVolume(fmt.Sprintf("%s%s-%d", pvPrefix, prefix, i), oc.Namespace(), capacity, server, i))
 		if err != nil {
 			e2e.Logf("Error creating persistent volume %v\n", err)
 			return nil, err
@@ -106,4 +106,47 @@ func RemoveNFSBackedPersistentVolumes(oc *CLI) error {
 	}
 
 	return nil
+}
+
+func AddNamespaceLabelToPersistentVolumeClaimsInTemplate(oc *CLI, templateName string) error {
+	e2e.Logf("Looking for persistent volume claims in template/%s", templateName)
+	template, err := oc.TemplateClient().Template().Templates(oc.Namespace()).Get(templateName, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	for i := range template.Objects {
+		oc.Run("patch").Args(fmt.Sprintf("template/%s", templateName), "--type", "json", "-p", fmt.Sprintf("[{\"op\": \"test\", \"path\": \"/objects/%d/kind\", \"value\":\"PersistentVolumeClaim\"},{\"op\": \"add\", \"path\":\"/objects/%d/spec/selector\", \"value\": {\"matchLabels\":{\"namespace\":\"%s\"}}}]", i, i, oc.Namespace())).Output()
+	}
+
+	return nil
+
+}
+
+func DumpPersistentVolumeInfo(oc *CLI) {
+	e2e.Logf("Dumping persistent volume info for cluster")
+	out, err := oc.AsAdmin().Run("get").Args("pv").Output()
+	if err != nil {
+		e2e.Logf("Error dumping persistent volume info: %v", err)
+		return
+	}
+	e2e.Logf("\n%s", out)
+	out, err = oc.AsAdmin().Run("get").Args("pv", "-o", "yaml").Output()
+	if err != nil {
+		e2e.Logf("Error dumping persistent volume info: %v", err)
+		return
+	}
+	e2e.Logf(out)
+	out, err = oc.AsAdmin().Run("get").Args("pvc", "-n", oc.Namespace()).Output()
+	if err != nil {
+		e2e.Logf("Error dumping persistent volume claim info: %v", err)
+		return
+	}
+	e2e.Logf("\n%s", out)
+	out, err = oc.AsAdmin().Run("get").Args("pvc", "-n", oc.Namespace(), "-o", "yaml").Output()
+	if err != nil {
+		e2e.Logf("Error dumping persistent volume claim info: %v", err)
+		return
+	}
+	e2e.Logf(out)
+
 }
