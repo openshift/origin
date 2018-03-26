@@ -7,6 +7,7 @@ import (
 	"github.com/golang/glog"
 
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -27,7 +28,7 @@ import (
 )
 
 type WebConsoleOperator struct {
-	apiServerConfigClient webconsoleclientv1.OpenShiftWebConsoleConfigsGetter
+	operatorConfigClient webconsoleclientv1.OpenShiftWebConsoleConfigsGetter
 
 	appsv1Client      appsclientv1.AppsV1Interface
 	corev1Client      coreclientv1.CoreV1Interface
@@ -38,14 +39,14 @@ type WebConsoleOperator struct {
 }
 
 func NewWebConsoleOperator(
-	apiServerConfigClient webconsoleclientv1.OpenShiftWebConsoleConfigsGetter,
+	operatorConfigClient webconsoleclientv1.OpenShiftWebConsoleConfigsGetter,
 	appsv1Client appsclientv1.AppsV1Interface,
 	corev1Client coreclientv1.CoreV1Interface,
 ) *WebConsoleOperator {
 	c := &WebConsoleOperator{
-		apiServerConfigClient: apiServerConfigClient,
-		appsv1Client:          appsv1Client,
-		corev1Client:          corev1Client,
+		operatorConfigClient: operatorConfigClient,
+		appsv1Client:         appsv1Client,
+		corev1Client:         corev1Client,
 
 		queue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "WebConsoleOperator"),
 	}
@@ -56,9 +57,29 @@ func NewWebConsoleOperator(
 const namespace = "openshift-web-console"
 
 func (c WebConsoleOperator) sync() error {
-	webconsoleConfig, err := c.apiServerConfigClient.OpenShiftWebConsoleConfigs().Get("instance", metav1.GetOptions{})
+	operatorConfig, err := c.operatorConfigClient.OpenShiftWebConsoleConfigs().Get("instance", metav1.GetOptions{})
 	if err != nil {
 		return err
+	}
+	switch operatorConfig.Spec.ManagementState {
+	case webconsolev1.Unmanaged:
+		return nil
+
+	case webconsolev1.Disabled:
+		// TODO probably need to watch until the NS is really gone
+		if err := c.corev1Client.Namespaces().Delete("openshift-web-console", nil); err != nil && !apierrors.IsNotFound(err) {
+			operatorConfig.Status.LastUnsuccessfulRunErrors = []string{err.Error()}
+			if _, updateErr := c.operatorConfigClient.OpenShiftWebConsoleConfigs().Update(operatorConfig); updateErr != nil {
+				utilruntime.HandleError(updateErr)
+			}
+			return err
+		}
+		operatorConfig.Status.LastUnsuccessfulRunErrors = []string{}
+		operatorConfig.Status.LastSuccessfulVersion = ""
+		if _, err := c.operatorConfigClient.OpenShiftWebConsoleConfigs().Update(operatorConfig); err != nil {
+			return err
+		}
+		return nil
 	}
 
 	errors := []error{}
@@ -68,7 +89,7 @@ func (c WebConsoleOperator) sync() error {
 		errors = append(errors, err)
 	}
 
-	if _, err := c.ensureWebConsoleService(webconsoleConfig.Spec); err != nil {
+	if _, err := c.ensureWebConsoleService(operatorConfig.Spec); err != nil {
 		panic(err)
 		errors = append(errors, err)
 	}
@@ -79,27 +100,27 @@ func (c WebConsoleOperator) sync() error {
 	}
 
 	// we need to make a configmap here
-	if _, err := c.ensureWebConsoleConfig(webconsoleConfig.Spec); err != nil {
+	if _, err := c.ensureWebConsoleConfig(operatorConfig.Spec); err != nil {
 		panic(err)
 		errors = append(errors, err)
 	}
 
 	// our configmaps and secrets are in order, now it is time to create the DS
 	// TODO check basic preconditions here
-	if _, err := c.ensureWebConsoleDeployment(webconsoleConfig.Spec); err != nil {
+	if _, err := c.ensureWebConsoleDeployment(operatorConfig.Spec); err != nil {
 		panic(err)
 		errors = append(errors, err)
 	}
 
 	// set the status
-	webconsoleConfig.Status.LastUnsuccessfulRunErrors = []string{}
+	operatorConfig.Status.LastUnsuccessfulRunErrors = []string{}
 	for _, err := range errors {
-		webconsoleConfig.Status.LastUnsuccessfulRunErrors = append(webconsoleConfig.Status.LastUnsuccessfulRunErrors, err.Error())
+		operatorConfig.Status.LastUnsuccessfulRunErrors = append(operatorConfig.Status.LastUnsuccessfulRunErrors, err.Error())
 	}
 	if len(errors) == 0 {
-		webconsoleConfig.Status.LastSuccessfulVersion = webconsoleConfig.Spec.Version
+		operatorConfig.Status.LastSuccessfulVersion = operatorConfig.Spec.Version
 	}
-	if _, err := c.apiServerConfigClient.OpenShiftWebConsoleConfigs().Update(webconsoleConfig); err != nil {
+	if _, err := c.operatorConfigClient.OpenShiftWebConsoleConfigs().Update(operatorConfig); err != nil {
 		// if we had no other errors, then return this error so we can re-apply and then re-set the status
 		if len(errors) == 0 {
 			return err

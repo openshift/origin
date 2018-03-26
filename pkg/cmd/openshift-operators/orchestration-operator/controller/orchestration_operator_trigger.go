@@ -31,7 +31,7 @@ import (
 )
 
 type OrchestrationOperator struct {
-	apiServerConfigClient orchestrationclientv1.OpenShiftOrchestrationConfigsGetter
+	operatorConfigClient orchestrationclientv1.OpenShiftOrchestrationConfigsGetter
 
 	appsv1Client                 appsclientv1.AppsV1Interface
 	corev1Client                 coreclientv1.CoreV1Interface
@@ -46,7 +46,7 @@ type OrchestrationOperator struct {
 }
 
 func NewOrchestrationOperator(
-	apiServerConfigClient orchestrationclientv1.OpenShiftOrchestrationConfigsGetter,
+	operatorConfigClient orchestrationclientv1.OpenShiftOrchestrationConfigsGetter,
 	appsv1Client appsclientv1.AppsV1Interface,
 	corev1Client coreclientv1.CoreV1Interface,
 	rbacv1Client rbacclientv1.RbacV1Interface,
@@ -56,7 +56,7 @@ func NewOrchestrationOperator(
 	webconsolev1Client webconsoleclientv1.WebconsoleV1Interface,
 ) *OrchestrationOperator {
 	c := &OrchestrationOperator{
-		apiServerConfigClient:        apiServerConfigClient,
+		operatorConfigClient:         operatorConfigClient,
 		appsv1Client:                 appsv1Client,
 		corev1Client:                 corev1Client,
 		rbacv1Client:                 rbacv1Client,
@@ -72,7 +72,7 @@ func NewOrchestrationOperator(
 }
 
 func (c OrchestrationOperator) sync() error {
-	orchestrationConfig, err := c.apiServerConfigClient.OpenShiftOrchestrationConfigs().Get("instance", metav1.GetOptions{})
+	operatorConfig, err := c.operatorConfigClient.OpenShiftOrchestrationConfigs().Get("instance", metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -80,23 +80,23 @@ func (c OrchestrationOperator) sync() error {
 	errors := []error{}
 	// TODO the configmap and secret changes for daemonset should actually be a newly created configmap and then a subsequent daemonset update
 	// TODO this requires us to be able to detect that the changes have not worked well and trigger an effective rollback to previous config
-	if _, errs := c.ensureControlPlaneOperator(orchestrationConfig.Spec.OpenShiftControlPlane); len(errs) > 0 {
+	if _, errs := c.ensureControlPlaneOperator(operatorConfig.Spec.OpenShiftControlPlane); len(errs) > 0 {
 		errors = append(errors, errs...)
 	}
 
-	if _, errs := c.ensureWebConsoleOperator(orchestrationConfig.Spec.WebConsole); len(errs) > 0 {
+	if _, errs := c.ensureWebConsoleOperator(operatorConfig.Spec.WebConsole); len(errs) > 0 {
 		errors = append(errors, errs...)
 	}
 
 	// set the status
-	orchestrationConfig.Status.LastUnsuccessfulRunErrors = []string{}
+	operatorConfig.Status.LastUnsuccessfulRunErrors = []string{}
 	for _, err := range errors {
-		orchestrationConfig.Status.LastUnsuccessfulRunErrors = append(orchestrationConfig.Status.LastUnsuccessfulRunErrors, err.Error())
+		operatorConfig.Status.LastUnsuccessfulRunErrors = append(operatorConfig.Status.LastUnsuccessfulRunErrors, err.Error())
 	}
 	if len(errors) == 0 {
-		orchestrationConfig.Status.LastSuccessfulVersion = "success"
+		operatorConfig.Status.LastSuccessfulVersion = "success"
 	}
-	if _, err := c.apiServerConfigClient.OpenShiftOrchestrationConfigs().Update(orchestrationConfig); err != nil {
+	if _, err := c.operatorConfigClient.OpenShiftOrchestrationConfigs().Update(operatorConfig); err != nil {
 		// if we had no other errors, then return this error so we can re-apply and then re-set the status
 		if len(errors) == 0 {
 			return err

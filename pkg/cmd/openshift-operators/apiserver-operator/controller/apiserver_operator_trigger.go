@@ -28,7 +28,7 @@ import (
 )
 
 type APIServerOperator struct {
-	apiServerConfigClient apiserverclientv1.OpenShiftAPIServerConfigsGetter
+	operatorConfigClient apiserverclientv1.OpenShiftAPIServerConfigsGetter
 
 	appsv1Client      appsclientv1.AppsV1Interface
 	corev1Client      coreclientv1.CoreV1Interface
@@ -39,16 +39,16 @@ type APIServerOperator struct {
 }
 
 func NewAPIServerOperator(
-	apiServerConfigClient apiserverclientv1.OpenShiftAPIServerConfigsGetter,
+	operatorConfigClient apiserverclientv1.OpenShiftAPIServerConfigsGetter,
 	appsv1Client appsclientv1.AppsV1Interface,
 	corev1Client coreclientv1.CoreV1Interface,
 	apiServicesClient apiregistrationclientv1beta1.APIServicesGetter,
 ) *APIServerOperator {
 	c := &APIServerOperator{
-		apiServerConfigClient: apiServerConfigClient,
-		appsv1Client:          appsv1Client,
-		corev1Client:          corev1Client,
-		apiServicesClient:     apiServicesClient,
+		operatorConfigClient: operatorConfigClient,
+		appsv1Client:         appsv1Client,
+		corev1Client:         corev1Client,
+		apiServicesClient:    apiServicesClient,
 
 		queue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "APIServerOperator"),
 	}
@@ -57,9 +57,29 @@ func NewAPIServerOperator(
 }
 
 func (c APIServerOperator) sync() error {
-	apiserverConfig, err := c.apiServerConfigClient.OpenShiftAPIServerConfigs().Get("instance", metav1.GetOptions{})
+	operatorConfig, err := c.operatorConfigClient.OpenShiftAPIServerConfigs().Get("instance", metav1.GetOptions{})
 	if err != nil {
 		return err
+	}
+	switch operatorConfig.Spec.ManagementState {
+	case apiserverv1.Unmanaged:
+		return nil
+
+	case apiserverv1.Disabled:
+		// TODO probably need to watch until the NS is really gone
+		if err := c.corev1Client.Namespaces().Delete("openshift-controller-manager", nil); err != nil && !apierrors.IsNotFound(err) {
+			operatorConfig.Status.LastUnsuccessfulRunErrors = []string{err.Error()}
+			if _, updateErr := c.operatorConfigClient.OpenShiftAPIServerConfigs().Update(operatorConfig); updateErr != nil {
+				utilruntime.HandleError(updateErr)
+			}
+			return err
+		}
+		operatorConfig.Status.LastUnsuccessfulRunErrors = []string{}
+		operatorConfig.Status.LastSuccessfulVersion = ""
+		if _, err := c.operatorConfigClient.OpenShiftAPIServerConfigs().Update(operatorConfig); err != nil {
+			return err
+		}
+		return nil
 	}
 
 	errors := []error{}
@@ -69,11 +89,11 @@ func (c APIServerOperator) sync() error {
 		errors = append(errors, err)
 	}
 
-	if _, err := c.ensureAPIServerService(apiserverConfig.Spec); err != nil {
+	if _, err := c.ensureAPIServerService(operatorConfig.Spec); err != nil {
 		errors = append(errors, err)
 	}
 
-	errors = append(errors, c.ensureAPIServices(apiserverConfig.Spec)...)
+	errors = append(errors, c.ensureAPIServices(operatorConfig.Spec)...)
 
 	// the daemonset needs an SA for the pods
 	if _, err := c.ensureServiceAccount(); err != nil {
@@ -82,19 +102,19 @@ func (c APIServerOperator) sync() error {
 
 	// our configmaps and secrets are in order, now it is time to create the DS
 	// TODO check basic preconditions here
-	if _, err := c.ensureAPIServerDaemonSet(apiserverConfig.Spec); err != nil {
+	if _, err := c.ensureAPIServerDaemonSet(operatorConfig.Spec); err != nil {
 		errors = append(errors, err)
 	}
 
 	// set the status
-	apiserverConfig.Status.LastUnsuccessfulRunErrors = []string{}
+	operatorConfig.Status.LastUnsuccessfulRunErrors = []string{}
 	for _, err := range errors {
-		apiserverConfig.Status.LastUnsuccessfulRunErrors = append(apiserverConfig.Status.LastUnsuccessfulRunErrors, err.Error())
+		operatorConfig.Status.LastUnsuccessfulRunErrors = append(operatorConfig.Status.LastUnsuccessfulRunErrors, err.Error())
 	}
 	if len(errors) == 0 {
-		apiserverConfig.Status.LastSuccessfulVersion = apiserverConfig.Spec.Version
+		operatorConfig.Status.LastSuccessfulVersion = operatorConfig.Spec.Version
 	}
-	if _, err := c.apiServerConfigClient.OpenShiftAPIServerConfigs().Update(apiserverConfig); err != nil {
+	if _, err := c.operatorConfigClient.OpenShiftAPIServerConfigs().Update(operatorConfig); err != nil {
 		// if we had no other errors, then return this error so we can re-apply and then re-set the status
 		if len(errors) == 0 {
 			return err

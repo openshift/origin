@@ -7,6 +7,7 @@ import (
 	"github.com/golang/glog"
 
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -22,7 +23,7 @@ import (
 )
 
 type ControllerOperator struct {
-	apiServerConfigClient controllerclientv1.OpenShiftControllerConfigsGetter
+	operatorConfigClient controllerclientv1.OpenShiftControllerConfigsGetter
 
 	appsv1Client appsclientv1.AppsV1Interface
 	corev1Client coreclientv1.CoreV1Interface
@@ -32,14 +33,14 @@ type ControllerOperator struct {
 }
 
 func NewControllerOperator(
-	apiServerConfigClient controllerclientv1.OpenShiftControllerConfigsGetter,
+	operatorConfigClient controllerclientv1.OpenShiftControllerConfigsGetter,
 	appsv1Client appsclientv1.AppsV1Interface,
 	corev1Client coreclientv1.CoreV1Interface,
 ) *ControllerOperator {
 	c := &ControllerOperator{
-		apiServerConfigClient: apiServerConfigClient,
-		appsv1Client:          appsv1Client,
-		corev1Client:          corev1Client,
+		operatorConfigClient: operatorConfigClient,
+		appsv1Client:         appsv1Client,
+		corev1Client:         corev1Client,
 
 		queue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "ControllerOperator"),
 	}
@@ -48,9 +49,29 @@ func NewControllerOperator(
 }
 
 func (c ControllerOperator) sync() error {
-	controllerConfig, err := c.apiServerConfigClient.OpenShiftControllerConfigs().Get("instance", metav1.GetOptions{})
+	operatorConfig, err := c.operatorConfigClient.OpenShiftControllerConfigs().Get("instance", metav1.GetOptions{})
 	if err != nil {
 		return err
+	}
+	switch operatorConfig.Spec.ManagementState {
+	case controllerv1.Unmanaged:
+		return nil
+
+	case controllerv1.Disabled:
+		// TODO probably need to watch until the NS is really gone
+		if err := c.corev1Client.Namespaces().Delete("openshift-controller-manager", nil); err != nil && !apierrors.IsNotFound(err) {
+			operatorConfig.Status.LastUnsuccessfulRunErrors = []string{err.Error()}
+			if _, updateErr := c.operatorConfigClient.OpenShiftControllerConfigs().Update(operatorConfig); updateErr != nil {
+				utilruntime.HandleError(updateErr)
+			}
+			return err
+		}
+		operatorConfig.Status.LastUnsuccessfulRunErrors = []string{}
+		operatorConfig.Status.LastSuccessfulVersion = ""
+		if _, err := c.operatorConfigClient.OpenShiftControllerConfigs().Update(operatorConfig); err != nil {
+			return err
+		}
+		return nil
 	}
 
 	errors := []error{}
@@ -67,19 +88,19 @@ func (c ControllerOperator) sync() error {
 
 	// our configmaps and secrets are in order, now it is time to create the DS
 	// TODO check basic preconditions here
-	if _, err := c.ensureControllerDaemonSet(controllerConfig.Spec); err != nil {
+	if _, err := c.ensureControllerDaemonSet(operatorConfig.Spec); err != nil {
 		errors = append(errors, err)
 	}
 
 	// set the status
-	controllerConfig.Status.LastUnsuccessfulRunErrors = []string{}
+	operatorConfig.Status.LastUnsuccessfulRunErrors = []string{}
 	for _, err := range errors {
-		controllerConfig.Status.LastUnsuccessfulRunErrors = append(controllerConfig.Status.LastUnsuccessfulRunErrors, err.Error())
+		operatorConfig.Status.LastUnsuccessfulRunErrors = append(operatorConfig.Status.LastUnsuccessfulRunErrors, err.Error())
 	}
 	if len(errors) == 0 {
-		controllerConfig.Status.LastSuccessfulVersion = controllerConfig.Spec.Version
+		operatorConfig.Status.LastSuccessfulVersion = operatorConfig.Spec.Version
 	}
-	if _, err := c.apiServerConfigClient.OpenShiftControllerConfigs().Update(controllerConfig); err != nil {
+	if _, err := c.operatorConfigClient.OpenShiftControllerConfigs().Update(operatorConfig); err != nil {
 		// if we had no other errors, then return this error so we can re-apply and then re-set the status
 		if len(errors) == 0 {
 			return err
