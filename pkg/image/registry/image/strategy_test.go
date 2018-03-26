@@ -79,13 +79,20 @@ func TestStrategyPrepareForCreate(t *testing.T) {
 
 	Strategy.PrepareForCreate(ctx, image)
 
-	if len(image.Signatures) != len(fuzzed.Signatures) {
-		t.Errorf("unexpected number of signatures: %d != %d", len(image.Signatures), len(fuzzed.Signatures))
+	testVerifySignatures(t, fuzzed, image)
+}
+
+func testVerifySignatures(t *testing.T, orig, new *imageapi.Image) {
+	if len(new.Signatures) != len(orig.Signatures) {
+		t.Errorf("unexpected number of signatures: %d != %d", len(new.Signatures), len(orig.Signatures))
 	}
 
-	for i, sig := range image.Signatures {
+	for i, sig := range new.Signatures {
+		// expect annotations to be cleared
+		delete(orig.Signatures[i].Annotations, managedSignatureAnnotation)
+
 		vi := reflect.ValueOf(&sig).Elem()
-		vf := reflect.ValueOf(&fuzzed.Signatures[i]).Elem()
+		vf := reflect.ValueOf(&orig.Signatures[i]).Elem()
 		typeOfT := vf.Type()
 
 		for j := 0; j < vf.NumField(); j++ {
@@ -99,5 +106,71 @@ func TestStrategyPrepareForCreate(t *testing.T) {
 				}
 			}
 		}
+	}
+}
+
+func TestStrategyPrepareForCreateSignature(t *testing.T) {
+	ctx := apirequest.NewDefaultContext()
+
+	original := imageapi.Image{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "image",
+		},
+	}
+
+	seed := int64(2703387474910584091) //rand.Int63()
+	fuzzed := fuzzImage(t, &original, seed)
+
+	if len(fuzzed.Signatures) == 0 {
+		t.Fatalf("fuzzifier failed to generate signatures")
+	}
+
+	for _, tc := range []struct {
+		name        string
+		annotations map[string]string
+		expected    map[string]string
+	}{
+		{
+			name:        "unset annotations",
+			annotations: nil,
+			expected:    nil,
+		},
+		{
+			name:        "empty annotations",
+			annotations: map[string]string{},
+			expected:    map[string]string{},
+		},
+		{
+			name:        "managed annotation shall be removed",
+			annotations: map[string]string{managedSignatureAnnotation: "value"},
+			expected:    map[string]string{},
+		},
+		{
+			name:        "other annotations shall stay",
+			annotations: map[string]string{"key": "value"},
+			expected:    map[string]string{"key": "value"},
+		},
+		{
+			name:        "remove and keep",
+			annotations: map[string]string{"key": "value", managedSignatureAnnotation: "true"},
+			expected:    map[string]string{"key": "value"},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			fuzzed.Signatures[0].Annotations = tc.annotations
+			obj, err := kapi.Scheme.DeepCopy(fuzzed)
+			if err != nil {
+				t.Fatalf("failed to copy image: %v", err)
+			}
+			image := obj.(*imageapi.Image)
+
+			Strategy.PrepareForCreate(ctx, image)
+
+			testVerifySignatures(t, fuzzed, image)
+
+			if !reflect.DeepEqual(image.Signatures[0].Annotations, tc.expected) {
+				t.Errorf("unexpected signature annotations: %s", diff.ObjectGoPrintDiff(image.Annotations, tc.expected))
+			}
+		})
 	}
 }
