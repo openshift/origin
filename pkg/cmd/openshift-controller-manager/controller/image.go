@@ -27,16 +27,7 @@ import (
 	triggerdeploymentconfigs "github.com/openshift/origin/pkg/image/trigger/deploymentconfigs"
 )
 
-type ImageTriggerControllerConfig struct {
-	HasBuilderEnabled      bool
-	HasDeploymentsEnabled  bool
-	HasDaemonSetsEnabled   bool
-	HasStatefulSetsEnabled bool
-	HasCronJobsEnabled     bool
-}
-
-func (c *ImageTriggerControllerConfig) RunController(ctx ControllerContext) (bool, error) {
-	//streamInformer := ctx.ImageInformers.Image().InternalVersion().ImageStreams().Informer()
+func RunImageTriggerController(ctx ControllerContext) (bool, error) {
 	informer := ctx.ImageInformers.Image().InternalVersion().ImageStreams()
 
 	buildClient, err := ctx.ClientBuilder.OpenshiftInternalBuildClient(bootstrappolicy.InfraImageTriggerControllerServiceAccountName)
@@ -63,51 +54,41 @@ func (c *ImageTriggerControllerConfig) RunController(ctx ControllerContext) (boo
 			Reactor:   &triggerdeploymentconfigs.DeploymentConfigReactor{Client: appsClient.Apps()},
 		},
 	}
-	if !c.HasBuilderEnabled {
-		sources = append(sources, imagetriggercontroller.TriggerSource{
-			Resource:  schema.GroupResource{Group: "build.openshift.io", Resource: "buildconfigs"},
-			Informer:  ctx.BuildInformers.Build().InternalVersion().BuildConfigs().Informer(),
-			Store:     ctx.BuildInformers.Build().InternalVersion().BuildConfigs().Informer().GetIndexer(),
-			TriggerFn: triggerbuildconfigs.NewBuildConfigTriggerIndexer,
-			Reactor:   triggerbuildconfigs.NewBuildConfigReactor(bcInstantiator, kclient.Core().RESTClient()),
-		})
-	}
-	if !c.HasDeploymentsEnabled {
-		sources = append(sources, imagetriggercontroller.TriggerSource{
-			Resource:  schema.GroupResource{Group: "extensions", Resource: "deployments"},
-			Informer:  ctx.ExternalKubeInformers.Extensions().V1beta1().Deployments().Informer(),
-			Store:     ctx.ExternalKubeInformers.Extensions().V1beta1().Deployments().Informer().GetIndexer(),
-			TriggerFn: triggerannotations.NewAnnotationTriggerIndexer,
-			Reactor:   &triggerannotations.AnnotationReactor{Updater: updater},
-		})
-	}
-	if !c.HasDaemonSetsEnabled {
-		sources = append(sources, imagetriggercontroller.TriggerSource{
-			Resource:  schema.GroupResource{Group: "extensions", Resource: "daemonsets"},
-			Informer:  ctx.ExternalKubeInformers.Extensions().V1beta1().DaemonSets().Informer(),
-			Store:     ctx.ExternalKubeInformers.Extensions().V1beta1().DaemonSets().Informer().GetIndexer(),
-			TriggerFn: triggerannotations.NewAnnotationTriggerIndexer,
-			Reactor:   &triggerannotations.AnnotationReactor{Updater: updater},
-		})
-	}
-	if !c.HasStatefulSetsEnabled {
-		sources = append(sources, imagetriggercontroller.TriggerSource{
-			Resource:  schema.GroupResource{Group: "apps", Resource: "statefulsets"},
-			Informer:  ctx.ExternalKubeInformers.Apps().V1beta1().StatefulSets().Informer(),
-			Store:     ctx.ExternalKubeInformers.Apps().V1beta1().StatefulSets().Informer().GetIndexer(),
-			TriggerFn: triggerannotations.NewAnnotationTriggerIndexer,
-			Reactor:   &triggerannotations.AnnotationReactor{Updater: updater},
-		})
-	}
-	if !c.HasCronJobsEnabled {
-		sources = append(sources, imagetriggercontroller.TriggerSource{
-			Resource:  schema.GroupResource{Group: "batch", Resource: "cronjobs"},
-			Informer:  ctx.ExternalKubeInformers.Batch().V2alpha1().CronJobs().Informer(),
-			Store:     ctx.ExternalKubeInformers.Batch().V2alpha1().CronJobs().Informer().GetIndexer(),
-			TriggerFn: triggerannotations.NewAnnotationTriggerIndexer,
-			Reactor:   &triggerannotations.AnnotationReactor{Updater: updater},
-		})
-	}
+	sources = append(sources, imagetriggercontroller.TriggerSource{
+		Resource:  schema.GroupResource{Group: "build.openshift.io", Resource: "buildconfigs"},
+		Informer:  ctx.BuildInformers.Build().InternalVersion().BuildConfigs().Informer(),
+		Store:     ctx.BuildInformers.Build().InternalVersion().BuildConfigs().Informer().GetIndexer(),
+		TriggerFn: triggerbuildconfigs.NewBuildConfigTriggerIndexer,
+		Reactor:   triggerbuildconfigs.NewBuildConfigReactor(bcInstantiator, kclient.Core().RESTClient()),
+	})
+	sources = append(sources, imagetriggercontroller.TriggerSource{
+		Resource:  schema.GroupResource{Group: "extensions", Resource: "deployments"},
+		Informer:  ctx.ExternalKubeInformers.Extensions().V1beta1().Deployments().Informer(),
+		Store:     ctx.ExternalKubeInformers.Extensions().V1beta1().Deployments().Informer().GetIndexer(),
+		TriggerFn: triggerannotations.NewAnnotationTriggerIndexer,
+		Reactor:   &triggerannotations.AnnotationReactor{Updater: updater},
+	})
+	sources = append(sources, imagetriggercontroller.TriggerSource{
+		Resource:  schema.GroupResource{Group: "extensions", Resource: "daemonsets"},
+		Informer:  ctx.ExternalKubeInformers.Extensions().V1beta1().DaemonSets().Informer(),
+		Store:     ctx.ExternalKubeInformers.Extensions().V1beta1().DaemonSets().Informer().GetIndexer(),
+		TriggerFn: triggerannotations.NewAnnotationTriggerIndexer,
+		Reactor:   &triggerannotations.AnnotationReactor{Updater: updater},
+	})
+	sources = append(sources, imagetriggercontroller.TriggerSource{
+		Resource:  schema.GroupResource{Group: "apps", Resource: "statefulsets"},
+		Informer:  ctx.ExternalKubeInformers.Apps().V1beta1().StatefulSets().Informer(),
+		Store:     ctx.ExternalKubeInformers.Apps().V1beta1().StatefulSets().Informer().GetIndexer(),
+		TriggerFn: triggerannotations.NewAnnotationTriggerIndexer,
+		Reactor:   &triggerannotations.AnnotationReactor{Updater: updater},
+	})
+	sources = append(sources, imagetriggercontroller.TriggerSource{
+		Resource:  schema.GroupResource{Group: "batch", Resource: "cronjobs"},
+		Informer:  ctx.ExternalKubeInformers.Batch().V2alpha1().CronJobs().Informer(),
+		Store:     ctx.ExternalKubeInformers.Batch().V2alpha1().CronJobs().Informer().GetIndexer(),
+		TriggerFn: triggerannotations.NewAnnotationTriggerIndexer,
+		Reactor:   &triggerannotations.AnnotationReactor{Updater: updater},
+	})
 
 	go imagetriggercontroller.NewTriggerController(
 		broadcaster,

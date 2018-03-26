@@ -9,7 +9,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"strings"
 
 	"github.com/coreos/go-systemd/daemon"
 	"github.com/golang/glog"
@@ -46,7 +45,6 @@ type MasterOptions struct {
 	SignerExpireDays   int
 	ConfigFile         string
 	Output             io.Writer
-	DisabledFeatures   []string
 }
 
 func (o *MasterOptions) DefaultsFromName(basename string) {}
@@ -266,10 +264,6 @@ func (o MasterOptions) RunMaster() error {
 		}
 	}
 
-	// Inject disabled feature flags based on distribution being used and
-	// regardless of configuration. They aren't written to config file to
-	// prevent upgrade path issues.
-	masterConfig.DisabledFeatures.Add(o.DisabledFeatures...)
 	validationResults := validation.ValidateMasterConfig(masterConfig, nil)
 	if len(validationResults.Warnings) != 0 {
 		for _, warning := range validationResults.Warnings {
@@ -455,9 +449,6 @@ func (m *Master) Start() error {
 
 		glog.Infof("Starting master on %s (%s)", m.config.ServingInfo.BindAddress, version.Get().String())
 		glog.Infof("Public master address is %s", m.config.MasterPublicURL)
-		if len(m.config.DisabledFeatures) > 0 {
-			glog.V(4).Infof("Disabled features: %s", strings.Join(m.config.DisabledFeatures, ", "))
-		}
 		imageTemplate := variable.NewDefaultImageTemplate()
 		imageTemplate.Format = m.config.ImageConfig.Format
 		imageTemplate.Latest = m.config.ImageConfig.Latest

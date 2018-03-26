@@ -9,10 +9,6 @@ import (
 
 // A new entry shall be added to FeatureAliases for every change to following values.
 const (
-	FeatureBuilder    = `Builder`
-	FeatureS2I        = `S2IBuilder`
-	FeatureWebConsole = `WebConsole`
-
 	AllVersions = "*"
 )
 
@@ -134,15 +130,6 @@ var (
 	}
 	KnownKubeAPIGroups   = sets.StringKeySet(KubeAPIGroupsToAllowedVersions)
 	KnownOriginAPIGroups = sets.StringKeySet(OriginAPIGroupsToAllowedVersions)
-
-	// FeatureAliases maps deprecated names of feature flag to their canonical
-	// names. Aliases must be lower-cased for O(1) lookup.
-	FeatureAliases = map[string]string{
-		"s2i builder": FeatureS2I,
-		"web console": FeatureWebConsole,
-	}
-	KnownOpenShiftFeatures = []string{FeatureBuilder, FeatureS2I, FeatureWebConsole}
-	AtomicDisabledFeatures = []string{FeatureBuilder, FeatureS2I, FeatureWebConsole}
 
 	// List public registries that we are allowing to import images from by default.
 	// By default all registries have set to be "secure", iow. the port for them is
@@ -330,8 +317,6 @@ const (
 	ControllersAll = "*"
 )
 
-type FeatureList []string
-
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 type MasterConfig struct {
@@ -378,9 +363,6 @@ type MasterConfig struct {
 	AdmissionConfig AdmissionConfig
 
 	ControllerConfig ControllerConfig
-
-	// Allow to disable OpenShift components
-	DisabledFeatures FeatureList
 
 	// EtcdStorageConfig contains information about how API resources are
 	// stored in Etcd. These values are only relevant when etcd is the

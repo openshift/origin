@@ -1,8 +1,6 @@
 package openshift_apiserver
 
 import (
-	"strings"
-
 	"github.com/golang/glog"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
@@ -55,9 +53,6 @@ func RunOpenShiftAPIServer(masterConfig *configapi.MasterConfig) error {
 
 	glog.Infof("Starting master on %s (%s)", masterConfig.ServingInfo.BindAddress, version.Get().String())
 	glog.Infof("Public master address is %s", masterConfig.MasterPublicURL)
-	if len(masterConfig.DisabledFeatures) > 0 {
-		glog.V(4).Infof("Disabled features: %s", strings.Join(masterConfig.DisabledFeatures, ", "))
-	}
 	imageTemplate := variable.NewDefaultImageTemplate()
 	imageTemplate.Format = masterConfig.ImageConfig.Format
 	imageTemplate.Latest = masterConfig.ImageConfig.Latest
