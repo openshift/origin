@@ -39,13 +39,21 @@ type OpenShiftOrchestrationConfigStatus struct {
 	LastUnsuccessfulRunErrors []string `json:"lastUnsuccessfulRunErrors"`
 }
 
+type ManagementState string
+
+const (
+	Enabled   ManagementState = "Enabled"
+	Unmanaged ManagementState = "Unmanaged"
+	Disabled  ManagementState = "Disabled"
+)
+
 type Component struct {
-	Enabled               bool   `json:"enabled"`
-	OperatorImagePullSpec string `json:"operatorImagePullSpec"`
-	OperatorLogLevel      int64  `json:"operatorLogLevel"`
-	ImagePullSpec         string `json:"imagePullSpec"`
-	Version               string `json:"version"`
-	LogLevel              int64  `json:"logLevel"`
+	ManagementState       ManagementState `json:"managementState"`
+	OperatorImagePullSpec string          `json:"operatorImagePullSpec"`
+	OperatorLogLevel      int64           `json:"operatorLogLevel"`
+	ImagePullSpec         string          `json:"imagePullSpec"`
+	Version               string          `json:"version"`
+	LogLevel              int64           `json:"logLevel"`
 }
 
 type ControlPlaneComponent struct {

@@ -27,7 +27,17 @@ type OpenShiftWebConsoleConfig struct {
 	Status OpenShiftWebConsoleConfigStatus `json:"status"`
 }
 
+type ManagementState string
+
+const (
+	Enabled   ManagementState = "Enabled"
+	Unmanaged ManagementState = "Unmanaged"
+	Disabled  ManagementState = "Disabled"
+)
+
 type OpenShiftWebConsoleConfigSpec struct {
+	ManagementState ManagementState `json:"managementState"`
+
 	// TODO I think this should eventually embed the entire master config
 	// it will end up overlaying in the following order:
 	// 1. hardcoded default
