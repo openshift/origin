@@ -342,20 +342,11 @@ func (f *Factory) PodForResource(resource string, timeout time.Duration) (string
 		if err != nil {
 			return "", err
 		}
-		kc, err := f.ClientSet()
-		if err != nil {
-			return "", err
-		}
 		dc, err := appsClient.Apps().DeploymentConfigs(namespace).Get(name, metav1.GetOptions{})
 		if err != nil {
 			return "", err
 		}
-		selector := labels.SelectorFromSet(dc.Spec.Selector)
-		pod, _, err := kcmdutil.GetFirstPod(kc.Core(), namespace, selector.String(), timeout, sortBy)
-		if err != nil {
-			return "", err
-		}
-		return pod.Name, nil
+		return f.PodForResource(fmt.Sprintf("rc/%s", appsutil.LatestDeploymentNameForConfig(dc)), timeout)
 	case extensions.Resource("daemonsets"):
 		kc, err := f.ClientSet()
 		if err != nil {
