@@ -133,9 +133,15 @@ func fuzzInternalObject(t *testing.T, forVersion schema.GroupVersion, item runti
 				obj.NetworkConfig.DeprecatedClusterNetworkCIDR = obj.NetworkConfig.ClusterNetworks[0].CIDR
 				obj.NetworkConfig.DeprecatedHostSubnetLength = obj.NetworkConfig.ClusterNetworks[0].HostSubnetLength
 			} else {
-				obj.NetworkConfig.ClusterNetworks = nil
 				obj.NetworkConfig.DeprecatedClusterNetworkCIDR = ""
 				obj.NetworkConfig.DeprecatedHostSubnetLength = 0
+				clusterNetwork := []configapi.ClusterNetworkEntry{
+					{
+						CIDR:             obj.NetworkConfig.DeprecatedClusterNetworkCIDR,
+						HostSubnetLength: obj.NetworkConfig.DeprecatedHostSubnetLength,
+					},
+				}
+				obj.NetworkConfig.ClusterNetworks = clusterNetwork
 			}
 
 			// TODO stop duplicating the conversion in the test.

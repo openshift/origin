@@ -132,7 +132,9 @@ masterClients:
   openshiftLoopbackKubeConfig: ""
 masterPublicURL: ""
 networkConfig:
-  clusterNetworks: null
+  clusterNetworks:
+  - cidr: ""
+    hostSubnetLength: 0
   externalIPNetworkCIDRs: null
   ingressIPNetworkCIDR: 172.29.0.0/16
   networkPluginName: ""
