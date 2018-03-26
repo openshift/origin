@@ -18,6 +18,7 @@ package types
 
 import (
 	"fmt"
+	"strings"
 
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -153,7 +154,11 @@ func IsCriticalPod(pod *v1.Pod) bool {
 func IsCritical(ns string, annotations map[string]string) bool {
 	// Critical pods are restricted to "kube-system" namespace as of now.
 	if ns != kubeapi.NamespaceSystem {
-		return false
+		// <carry>: critical pods may exist in openshift- namespaces
+		// pending priority and preemption support.
+		if !strings.HasPrefix(ns, "openshift-") {
+			return false
+		}
 	}
 	val, ok := annotations[CriticalPodAnnotationKey]
 	if ok && val == "" {
