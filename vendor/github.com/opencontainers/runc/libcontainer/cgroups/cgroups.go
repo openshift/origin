@@ -27,9 +27,9 @@ type Manager interface {
 	// Destroys the cgroup set
 	Destroy() error
 
-	// The option func SystemdCgroups() and Cgroupfs() require following attributes:
+	// NewCgroupManager() and LoadCgroupManager() require following attributes:
 	// 	Paths   map[string]string
-	// 	Cgroups *configs.Cgroup
+	// 	Cgroups *cgroups.Cgroup
 	// Paths maps cgroup subsystem to path at which it is mounted.
 	// Cgroups specifies specific cgroup settings for the various subsystems
 

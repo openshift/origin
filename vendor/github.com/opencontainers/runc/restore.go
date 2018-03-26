@@ -3,10 +3,14 @@
 package main
 
 import (
-	"fmt"
 	"os"
+	"syscall"
 
+	"github.com/Sirupsen/logrus"
 	"github.com/opencontainers/runc/libcontainer"
+	"github.com/opencontainers/runc/libcontainer/configs"
+	"github.com/opencontainers/runc/libcontainer/specconv"
+	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/urfave/cli"
 )
 
@@ -20,11 +24,6 @@ restored.`,
 	Description: `Restores the saved state of the container instance that was previously saved
 using the runc checkpoint command.`,
 	Flags: []cli.Flag{
-		cli.StringFlag{
-			Name:  "console-socket",
-			Value: "",
-			Usage: "path to an AF_UNIX socket which will receive a file descriptor referencing the master end of the console's pseudoterminal",
-		},
 		cli.StringFlag{
 			Name:  "image-path",
 			Value: "",
@@ -80,36 +79,108 @@ using the runc checkpoint command.`,
 		},
 		cli.StringSliceFlag{
 			Name:  "empty-ns",
-			Usage: "create a namespace, but don't restore its properties",
-		},
-		cli.BoolFlag{
-			Name:  "auto-dedup",
-			Usage: "enable auto deduplication of memory images",
+			Usage: "create a namespace, but don't restore its properies",
 		},
 	},
 	Action: func(context *cli.Context) error {
-		if err := checkArgs(context, 1, exactArgs); err != nil {
-			return err
+		imagePath := context.String("image-path")
+		id := context.Args().First()
+		if id == "" {
+			return errEmptyID
 		}
-		// XXX: Currently this is untested with rootless containers.
-		if isRootless() {
-			return fmt.Errorf("runc restore requires root")
+		if imagePath == "" {
+			imagePath = getDefaultImagePath(context)
 		}
-
-		spec, err := setupSpec(context)
+		bundle := context.String("bundle")
+		if bundle != "" {
+			if err := os.Chdir(bundle); err != nil {
+				return err
+			}
+		}
+		spec, err := loadSpec(specConfig)
 		if err != nil {
 			return err
 		}
-		options := criuOptions(context)
-		status, err := startContainer(context, spec, CT_ACT_RESTORE, options)
+		config, err := specconv.CreateLibcontainerConfig(&specconv.CreateOpts{
+			CgroupName:       id,
+			UseSystemdCgroup: context.GlobalBool("systemd-cgroup"),
+			NoPivotRoot:      context.Bool("no-pivot"),
+			Spec:             spec,
+		})
 		if err != nil {
 			return err
 		}
-		// exit with the container's exit status so any external supervisor is
-		// notified of the exit with the correct exit status.
-		os.Exit(status)
-		return nil
+		status, err := restoreContainer(context, spec, config, imagePath)
+		if err == nil {
+			os.Exit(status)
+		}
+		return err
 	},
+}
+
+func restoreContainer(context *cli.Context, spec *specs.Spec, config *configs.Config, imagePath string) (int, error) {
+	var (
+		rootuid = 0
+		rootgid = 0
+		id      = context.Args().First()
+	)
+	factory, err := loadFactory(context)
+	if err != nil {
+		return -1, err
+	}
+	container, err := factory.Load(id)
+	if err != nil {
+		container, err = factory.Create(id, config)
+		if err != nil {
+			return -1, err
+		}
+	}
+	options := criuOptions(context)
+
+	status, err := container.Status()
+	if err != nil {
+		logrus.Error(err)
+	}
+	if status == libcontainer.Running {
+		fatalf("Container with id %s already running", id)
+	}
+
+	setManageCgroupsMode(context, options)
+
+	if err := setEmptyNsMask(context, options); err != nil {
+		return -1, err
+	}
+
+	// ensure that the container is always removed if we were the process
+	// that created it.
+	detach := context.Bool("detach")
+	if !detach {
+		defer destroy(container)
+	}
+	process := &libcontainer.Process{}
+	tty, err := setupIO(process, rootuid, rootgid, "", false, detach)
+	if err != nil {
+		return -1, err
+	}
+	defer tty.Close()
+	handler := newSignalHandler(tty, !context.Bool("no-subreaper"))
+	if err := container.Restore(process, options); err != nil {
+		return -1, err
+	}
+	if err := tty.ClosePostStart(); err != nil {
+		return -1, err
+	}
+	if pidFile := context.String("pid-file"); pidFile != "" {
+		if err := createPidFile(pidFile, process); err != nil {
+			process.Signal(syscall.SIGKILL)
+			process.Wait()
+			return -1, err
+		}
+	}
+	if detach {
+		return 0, nil
+	}
+	return handler.forward(process)
 }
 
 func criuOptions(context *cli.Context) *libcontainer.CriuOpts {
@@ -120,13 +191,10 @@ func criuOptions(context *cli.Context) *libcontainer.CriuOpts {
 	return &libcontainer.CriuOpts{
 		ImagesDirectory:         imagePath,
 		WorkDirectory:           context.String("work-path"),
-		ParentImage:             context.String("parent-path"),
 		LeaveRunning:            context.Bool("leave-running"),
 		TcpEstablished:          context.Bool("tcp-established"),
 		ExternalUnixConnections: context.Bool("ext-unix-sk"),
 		ShellJob:                context.Bool("shell-job"),
 		FileLocks:               context.Bool("file-locks"),
-		PreDump:                 context.Bool("pre-dump"),
-		AutoDedup:               context.Bool("auto-dedup"),
 	}
 }

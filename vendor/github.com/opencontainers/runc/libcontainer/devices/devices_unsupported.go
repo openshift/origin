@@ -1,3 +1,3 @@
-// +build !linux
+// +build windows
 
 package devices

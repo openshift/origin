@@ -12,31 +12,29 @@ function teardown() {
 }
 
 @test "ps" {
-  # ps is not supported, it requires cgroups
-  requires root
-
   # start busybox detached
-  runc run -d --console-socket $CONSOLE_SOCKET test_busybox
+  runc run -d --console /dev/pts/ptmx test_busybox
   [ "$status" -eq 0 ]
 
   # check state
+  wait_for_container 15 1 test_busybox
+
   testcontainer test_busybox running
 
   runc ps test_busybox
   [ "$status" -eq 0 ]
   [[ ${lines[0]} =~ UID\ +PID\ +PPID\ +C\ +STIME\ +TTY\ +TIME\ +CMD+ ]]
-  [[ "${lines[1]}" == *"$(id -un 2>/dev/null)"*[0-9]* ]]
+  [[ "${lines[1]}" == *"root"*[0-9]* ]]
 }
 
 @test "ps -f json" {
-  # ps is not supported, it requires cgroups
-  requires root
-
   # start busybox detached
-  runc run -d --console-socket $CONSOLE_SOCKET test_busybox
+  runc run -d --console /dev/pts/ptmx test_busybox
   [ "$status" -eq 0 ]
 
   # check state
+  wait_for_container 15 1 test_busybox
+
   testcontainer test_busybox running
 
   runc ps -f json test_busybox
@@ -45,14 +43,13 @@ function teardown() {
 }
 
 @test "ps -e -x" {
-  # ps is not supported, it requires cgroups
-  requires root
-
   # start busybox detached
-  runc run -d --console-socket $CONSOLE_SOCKET test_busybox
+  runc run -d --console /dev/pts/ptmx test_busybox
   [ "$status" -eq 0 ]
 
   # check state
+  wait_for_container 15 1 test_busybox
+
   testcontainer test_busybox running
 
   runc ps test_busybox -e -x

@@ -3,13 +3,13 @@
 package xattr
 
 import (
-	"github.com/opencontainers/runc/libcontainer/system"
+	"syscall"
 
-	"golang.org/x/sys/unix"
+	"github.com/opencontainers/runc/libcontainer/system"
 )
 
 func XattrEnabled(path string) bool {
-	if Setxattr(path, "user.test", "") == unix.ENOTSUP {
+	if Setxattr(path, "user.test", "") == syscall.ENOTSUP {
 		return false
 	}
 	return true
@@ -27,12 +27,12 @@ func stringsfromByte(buf []byte) (result []string) {
 }
 
 func Listxattr(path string) ([]string, error) {
-	size, err := unix.Llistxattr(path, nil)
+	size, err := system.Llistxattr(path, nil)
 	if err != nil {
 		return nil, err
 	}
 	buf := make([]byte, size)
-	read, err := unix.Llistxattr(path, buf)
+	read, err := system.Llistxattr(path, buf)
 	if err != nil {
 		return nil, err
 	}
@@ -49,5 +49,5 @@ func Getxattr(path, attr string) (string, error) {
 }
 
 func Setxattr(path, xattr, value string) error {
-	return unix.Lsetxattr(path, xattr, []byte(value), 0)
+	return system.Lsetxattr(path, xattr, []byte(value), 0)
 }

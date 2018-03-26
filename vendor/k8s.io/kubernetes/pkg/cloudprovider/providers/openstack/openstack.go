@@ -362,9 +362,12 @@ func foreachServer(client *gophercloud.ServiceClient, opts servers.ListOptsBuild
 	return err
 }
 
-func getServerByName(client *gophercloud.ServiceClient, name types.NodeName) (*servers.Server, error) {
+func getServerByName(client *gophercloud.ServiceClient, name types.NodeName, showOnlyActive bool) (*servers.Server, error) {
 	opts := servers.ListOpts{
 		Name: fmt.Sprintf("^%s$", regexp.QuoteMeta(mapNodeNameToServerName(name))),
+	}
+	if showOnlyActive {
+		opts.Status = "ACTIVE"
 	}
 
 	pager := servers.List(client, opts)
@@ -448,7 +451,7 @@ func nodeAddresses(srv *servers.Server) ([]v1.NodeAddress, error) {
 }
 
 func getAddressesByName(client *gophercloud.ServiceClient, name types.NodeName) ([]v1.NodeAddress, error) {
-	srv, err := getServerByName(client, name)
+	srv, err := getServerByName(client, name, true)
 	if err != nil {
 		return nil, err
 	}
@@ -603,7 +606,7 @@ func (os *OpenStack) GetZoneByNodeName(nodeName types.NodeName) (cloudprovider.Z
 		return cloudprovider.Zone{}, err
 	}
 
-	srv, err := getServerByName(compute, nodeName)
+	srv, err := getServerByName(compute, nodeName, true)
 	if err != nil {
 		if err == ErrNotFound {
 			return cloudprovider.Zone{}, cloudprovider.InstanceNotFound

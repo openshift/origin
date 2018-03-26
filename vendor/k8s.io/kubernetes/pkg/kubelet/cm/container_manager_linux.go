@@ -300,7 +300,6 @@ func (cm *containerManagerImpl) NewPodContainerManager() PodContainerManager {
 			qosContainersInfo: cm.GetQOSContainersInfo(),
 			subsystems:        cm.subsystems,
 			cgroupManager:     cm.cgroupManager,
-			enforceCPULimits:  cm.EnforceCPULimits,
 		}
 	}
 	return &podContainerManagerNoop{

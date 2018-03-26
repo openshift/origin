@@ -6,12 +6,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"syscall"
 
+	"github.com/Sirupsen/logrus"
 	"github.com/opencontainers/runc/libcontainer/configs"
 	"github.com/opencontainers/runc/libcontainer/utils"
-
-	"github.com/sirupsen/logrus"
-	"golang.org/x/sys/unix"
 )
 
 func newStateTransitionError(from, to containerState) error {
@@ -40,7 +39,7 @@ type containerState interface {
 
 func destroy(c *linuxContainer) error {
 	if !c.config.Namespaces.Contains(configs.NEWPID) {
-		if err := signalAllProcesses(c.cgroupManager, unix.SIGKILL); err != nil {
+		if err := killCgroupProcesses(c.cgroupManager); err != nil {
 			logrus.Warn(err)
 		}
 	}
@@ -59,9 +58,10 @@ func destroy(c *linuxContainer) error {
 func runPoststopHooks(c *linuxContainer) error {
 	if c.config.Hooks != nil {
 		s := configs.HookState{
-			Version: c.config.Version,
-			ID:      c.id,
-			Bundle:  utils.SearchLabels(c.config.Labels, "bundle"),
+			Version:    c.config.Version,
+			ID:         c.id,
+			Root:       c.config.Rootfs,
+			BundlePath: utils.SearchLabels(c.config.Labels, "bundle"),
 		}
 		for _, hook := range c.config.Hooks.Poststop {
 			if err := hook.Run(s); err != nil {
@@ -83,7 +83,10 @@ func (b *stoppedState) status() Status {
 
 func (b *stoppedState) transition(s containerState) error {
 	switch s.(type) {
-	case *runningState, *restoredState:
+	case *runningState:
+		b.c.state = s
+		return nil
+	case *restoredState:
 		b.c.state = s
 		return nil
 	case *stoppedState:
@@ -157,7 +160,7 @@ func (i *createdState) transition(s containerState) error {
 }
 
 func (i *createdState) destroy() error {
-	i.c.initProcess.signal(unix.SIGKILL)
+	i.c.initProcess.signal(syscall.SIGKILL)
 	return destroy(i.c)
 }
 
@@ -196,7 +199,7 @@ func (p *pausedState) destroy() error {
 	return newGenericError(fmt.Errorf("container is paused"), ContainerPaused)
 }
 
-// restoredState is the same as the running state but also has associated checkpoint
+// restoredState is the same as the running state but also has accociated checkpoint
 // information that maybe need destroyed when the container is stopped and destroy is called.
 type restoredState struct {
 	imageDir string
@@ -209,7 +212,9 @@ func (r *restoredState) status() Status {
 
 func (r *restoredState) transition(s containerState) error {
 	switch s.(type) {
-	case *stoppedState, *runningState:
+	case *stoppedState:
+		return nil
+	case *runningState:
 		return nil
 	}
 	return newStateTransitionError(r, s)

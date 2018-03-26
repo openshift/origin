@@ -1,9 +1,9 @@
 package integration
 
 import (
-	"github.com/opencontainers/runc/libcontainer/configs"
+	"syscall"
 
-	"golang.org/x/sys/unix"
+	"github.com/opencontainers/runc/libcontainer/configs"
 )
 
 var standardEnvironment = []string{
@@ -13,7 +13,7 @@ var standardEnvironment = []string{
 	"TERM=xterm",
 }
 
-const defaultMountFlags = unix.MS_NOEXEC | unix.MS_NOSUID | unix.MS_NODEV
+const defaultMountFlags = syscall.MS_NOEXEC | syscall.MS_NOSUID | syscall.MS_NODEV
 
 // newTemplateConfig returns a base template for running a container
 //
@@ -23,87 +23,21 @@ func newTemplateConfig(rootfs string) *configs.Config {
 	allowAllDevices := false
 	return &configs.Config{
 		Rootfs: rootfs,
-		Capabilities: &configs.Capabilities{
-			Bounding: []string{
-				"CAP_CHOWN",
-				"CAP_DAC_OVERRIDE",
-				"CAP_FSETID",
-				"CAP_FOWNER",
-				"CAP_MKNOD",
-				"CAP_NET_RAW",
-				"CAP_SETGID",
-				"CAP_SETUID",
-				"CAP_SETFCAP",
-				"CAP_SETPCAP",
-				"CAP_NET_BIND_SERVICE",
-				"CAP_SYS_CHROOT",
-				"CAP_KILL",
-				"CAP_AUDIT_WRITE",
-			},
-			Permitted: []string{
-				"CAP_CHOWN",
-				"CAP_DAC_OVERRIDE",
-				"CAP_FSETID",
-				"CAP_FOWNER",
-				"CAP_MKNOD",
-				"CAP_NET_RAW",
-				"CAP_SETGID",
-				"CAP_SETUID",
-				"CAP_SETFCAP",
-				"CAP_SETPCAP",
-				"CAP_NET_BIND_SERVICE",
-				"CAP_SYS_CHROOT",
-				"CAP_KILL",
-				"CAP_AUDIT_WRITE",
-			},
-			Inheritable: []string{
-				"CAP_CHOWN",
-				"CAP_DAC_OVERRIDE",
-				"CAP_FSETID",
-				"CAP_FOWNER",
-				"CAP_MKNOD",
-				"CAP_NET_RAW",
-				"CAP_SETGID",
-				"CAP_SETUID",
-				"CAP_SETFCAP",
-				"CAP_SETPCAP",
-				"CAP_NET_BIND_SERVICE",
-				"CAP_SYS_CHROOT",
-				"CAP_KILL",
-				"CAP_AUDIT_WRITE",
-			},
-			Ambient: []string{
-				"CAP_CHOWN",
-				"CAP_DAC_OVERRIDE",
-				"CAP_FSETID",
-				"CAP_FOWNER",
-				"CAP_MKNOD",
-				"CAP_NET_RAW",
-				"CAP_SETGID",
-				"CAP_SETUID",
-				"CAP_SETFCAP",
-				"CAP_SETPCAP",
-				"CAP_NET_BIND_SERVICE",
-				"CAP_SYS_CHROOT",
-				"CAP_KILL",
-				"CAP_AUDIT_WRITE",
-			},
-			Effective: []string{
-				"CAP_CHOWN",
-				"CAP_DAC_OVERRIDE",
-				"CAP_FSETID",
-				"CAP_FOWNER",
-				"CAP_MKNOD",
-				"CAP_NET_RAW",
-				"CAP_SETGID",
-				"CAP_SETUID",
-				"CAP_SETFCAP",
-				"CAP_SETPCAP",
-				"CAP_NET_BIND_SERVICE",
-				"CAP_SYS_CHROOT",
-				"CAP_KILL",
-				"CAP_AUDIT_WRITE",
-			},
+		Capabilities: []string{
+			"CAP_CHOWN",
+			"CAP_DAC_OVERRIDE",
+			"CAP_FSETID",
+			"CAP_FOWNER",
+			"CAP_MKNOD",
+			"CAP_NET_RAW",
+			"CAP_SETGID",
+			"CAP_SETUID",
+			"CAP_SETFCAP",
+			"CAP_SETPCAP",
+			"CAP_NET_BIND_SERVICE",
+			"CAP_SYS_CHROOT",
+			"CAP_KILL",
+			"CAP_AUDIT_WRITE",
 		},
 		Namespaces: configs.Namespaces([]configs.Namespace{
 			{Type: configs.NEWNS},
@@ -140,14 +74,14 @@ func newTemplateConfig(rootfs string) *configs.Config {
 				Source:      "tmpfs",
 				Destination: "/dev",
 				Device:      "tmpfs",
-				Flags:       unix.MS_NOSUID | unix.MS_STRICTATIME,
+				Flags:       syscall.MS_NOSUID | syscall.MS_STRICTATIME,
 				Data:        "mode=755",
 			},
 			{
 				Source:      "devpts",
 				Destination: "/dev/pts",
 				Device:      "devpts",
-				Flags:       unix.MS_NOSUID | unix.MS_NOEXEC,
+				Flags:       syscall.MS_NOSUID | syscall.MS_NOEXEC,
 				Data:        "newinstance,ptmxmode=0666,mode=0620,gid=5",
 			},
 			{
@@ -170,7 +104,7 @@ func newTemplateConfig(rootfs string) *configs.Config {
 				Source:      "sysfs",
 				Destination: "/sys",
 				Device:      "sysfs",
-				Flags:       defaultMountFlags | unix.MS_RDONLY,
+				Flags:       defaultMountFlags | syscall.MS_RDONLY,
 			},
 		},
 		Networks: []*configs.Network{
@@ -182,7 +116,7 @@ func newTemplateConfig(rootfs string) *configs.Config {
 		},
 		Rlimits: []configs.Rlimit{
 			{
-				Type: unix.RLIMIT_NOFILE,
+				Type: syscall.RLIMIT_NOFILE,
 				Hard: uint64(1025),
 				Soft: uint64(1025),
 			},

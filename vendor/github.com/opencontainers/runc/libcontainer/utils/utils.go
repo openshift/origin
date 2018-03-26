@@ -8,9 +8,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"unsafe"
-
-	"golang.org/x/sys/unix"
 )
 
 const (
@@ -42,7 +41,7 @@ func ResolveRootfs(uncleanRootfs string) (string, error) {
 
 // ExitStatus returns the correct exit status for a process based on if it
 // was signaled or exited cleanly
-func ExitStatus(status unix.WaitStatus) int {
+func ExitStatus(status syscall.WaitStatus) int {
 	if status.Signaled() {
 		return exitSignalOffset + int(status.Signal())
 	}
