@@ -7,7 +7,6 @@ import (
 	"github.com/golang/glog"
 
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -117,40 +116,22 @@ func (c WebConsoleOperator) ensureNamespace() (bool, error) {
 }
 
 func (c WebConsoleOperator) ensureWebConsoleConfig(options webconsolev1.OpenShiftWebConsoleConfigSpec) (bool, error) {
-	requiredConfigMap := resourceread.ReadConfigMapOrDie([]byte(configMapYaml))
-
-	existingConfigMap, err := c.corev1Client.ConfigMaps(requiredConfigMap.Namespace).Get(requiredConfigMap.Name, metav1.GetOptions{})
-	if err != nil && !apierrors.IsNotFound(err) {
-		return false, err
-	}
-	needsCreate := apierrors.IsNotFound(err)
-
 	mergedConfig := &webconsoleconfigv1.WebConsoleConfiguration{}
 	defaultConfig, err := readWebConsoleConfiguration(defaultConfig)
 	if err != nil {
 		return false, err
 	}
 	ensureWebConsoleConfiguration(resourcemerge.BoolPtr(false), mergedConfig, *defaultConfig)
-
-	if !needsCreate {
-		if existingConfigBytes, ok := existingConfigMap.Data[configConfigMapKey]; ok {
-			existingConfig, err := readWebConsoleConfiguration(existingConfigBytes)
-			if err != nil {
-				return false, err
-			}
-			ensureWebConsoleConfiguration(resourcemerge.BoolPtr(false), mergedConfig, *existingConfig)
-		}
-	}
-
 	ensureWebConsoleConfiguration(resourcemerge.BoolPtr(false), mergedConfig, options.WebConsoleConfig)
 
 	newWebConsoleConfig, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(webconsoleconfigv1.SchemeGroupVersion), mergedConfig)
 	if err != nil {
 		return false, err
 	}
+	requiredConfigMap := resourceread.ReadConfigMapOrDie([]byte(configMapYaml))
 	requiredConfigMap.Data[configConfigMapKey] = string(newWebConsoleConfig)
 
-	return resourceapply.ApplyConfigMapForResourceVersion(c.corev1Client, existingConfigMap.ResourceVersion, requiredConfigMap)
+	return resourceapply.ApplyConfigMap(c.corev1Client, requiredConfigMap)
 }
 
 func readWebConsoleConfiguration(objBytes string) (*webconsoleconfigv1.WebConsoleConfiguration, error) {

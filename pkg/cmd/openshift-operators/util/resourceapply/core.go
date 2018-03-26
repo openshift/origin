@@ -1,8 +1,6 @@
 package resourceapply
 
 import (
-	"fmt"
-
 	"github.com/openshift/origin/pkg/cmd/openshift-operators/util/resourcemerge"
 
 	corev1 "k8s.io/api/core/v1"
@@ -77,14 +75,10 @@ func ApplyServiceAccount(client coreclientv1.ServiceAccountsGetter, required *co
 	return true, err
 }
 
-func ApplyConfigMapForResourceVersion(client coreclientv1.ConfigMapsGetter, resourceVersion string, required *corev1.ConfigMap) (bool, error) {
+func ApplyConfigMap(client coreclientv1.ConfigMapsGetter, required *corev1.ConfigMap) (bool, error) {
 	existing, err := client.ConfigMaps(required.Namespace).Get(required.Name, metav1.GetOptions{})
 	if err != nil && !apierrors.IsNotFound(err) {
 		return false, err
-	}
-	// for configmaps, we have usually based our new configmap on an existing one (merged configs), so we have to ensure valid preconditions
-	if existing.ResourceVersion != resourceVersion {
-		return false, fmt.Errorf("resourceVersion doesn't match; have %q, need %q", existing.ResourceVersion, resourceVersion)
 	}
 	needsCreate := apierrors.IsNotFound(err)
 
