@@ -235,6 +235,9 @@ type RouterConfig struct {
 	StrictSNI bool
 
 	Local bool
+
+	// Reconcile creates serviceaccounts and clusterrolebindings.
+	Reconcile bool
 }
 
 const (
@@ -264,6 +267,7 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out, errout io.
 		StatsPort:     defaultStatsPort,
 		HostNetwork:   true,
 		HostPorts:     true,
+		Reconcile:     false,
 	}
 
 	cmd := &cobra.Command{
@@ -317,6 +321,7 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out, errout io.
 	cmd.Flags().StringVar(&cfg.Ciphers, "ciphers", cfg.Ciphers, "Specifies the cipher suites to use. You can choose a predefined cipher set ('modern', 'intermediate', or 'old') or specify exact cipher suites by passing a : separated list. Not supported for F5.")
 	cmd.Flags().BoolVar(&cfg.StrictSNI, "strict-sni", cfg.StrictSNI, "Use strict-sni bind processing (do not use default cert). Not supported for F5.")
 	cmd.Flags().BoolVar(&cfg.Local, "local", cfg.Local, "If true, do not contact the apiserver")
+	cmd.Flags().BoolVar(&cfg.Reconcile, "reconcile", cfg.Reconcile, "If true, creates only serviceaccounts and clusterrolebindings")
 
 	cfg.Action.BindForOutput(cmd.Flags())
 	cmd.Flags().String("output-version", "", "The preferred API versions of the output objects")
@@ -601,7 +606,7 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out, errout io.Write
 		}
 	}
 
-	if !generate {
+	if !generate && !cfg.Reconcile {
 		fmt.Fprintf(out, "Router %q service exists\n", name)
 		return nil
 	}
@@ -757,36 +762,40 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out, errout io.Write
 		},
 	)
 
-	objects = append(objects, &appsapi.DeploymentConfig{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:   name,
-			Labels: label,
-		},
-		Spec: appsapi.DeploymentConfigSpec{
-			Strategy: appsapi.DeploymentStrategy{
-				Type:          appsapi.DeploymentStrategyTypeRolling,
-				RollingParams: &appsapi.RollingDeploymentStrategyParams{MaxUnavailable: intstr.FromString("25%")},
+	if !cfg.Reconcile {
+		objects = append(objects, &appsapi.DeploymentConfig{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:   name,
+				Labels: label,
 			},
-			Replicas: cfg.Replicas,
-			Selector: label,
-			Triggers: []appsapi.DeploymentTriggerPolicy{
-				{Type: appsapi.DeploymentTriggerOnConfigChange},
-			},
-			Template: &kapi.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{Labels: label},
-				Spec: kapi.PodSpec{
-					SecurityContext: &kapi.PodSecurityContext{
-						HostNetwork: cfg.HostNetwork,
+			Spec: appsapi.DeploymentConfigSpec{
+				Strategy: appsapi.DeploymentStrategy{
+					Type:          appsapi.DeploymentStrategyTypeRolling,
+					RollingParams: &appsapi.RollingDeploymentStrategyParams{MaxUnavailable: intstr.FromString("25%")},
+				},
+				Replicas: cfg.Replicas,
+				Selector: label,
+				Triggers: []appsapi.DeploymentTriggerPolicy{
+					{Type: appsapi.DeploymentTriggerOnConfigChange},
+				},
+				Template: &kapi.PodTemplateSpec{
+					ObjectMeta: metav1.ObjectMeta{Labels: label},
+					Spec: kapi.PodSpec{
+						SecurityContext: &kapi.PodSecurityContext{
+							HostNetwork: cfg.HostNetwork,
+						},
+						ServiceAccountName: cfg.ServiceAccount,
+						NodeSelector:       nodeSelector,
+						Containers:         containers,
+						Volumes:            volumes,
 					},
-					ServiceAccountName: cfg.ServiceAccount,
-					NodeSelector:       nodeSelector,
-					Containers:         containers,
-					Volumes:            volumes,
 				},
 			},
-		},
-	})
+		})
+	}
 
+	// When Reconcile is true, AddServices does not add service as there
+	// are neither daemoneset nor deploymentConfig are in objects.
 	objects = app.AddServices(objects, false)
 	// set the service port to the provided output port value
 	for i := range objects {
