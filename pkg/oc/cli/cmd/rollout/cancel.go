@@ -64,6 +64,7 @@ func NewCmdRolloutCancel(fullName string, f *clientcmd.Factory, out io.Writer) *
 			kcmdutil.CheckErr(opts.Complete(f, cmd, out, args))
 			kcmdutil.CheckErr(opts.Run())
 		},
+		ValidArgs: []string{"deploymentconfig"},
 	}
 	usage := "Filename, directory, or URL to a file identifying the resource to get from a server."
 	kcmdutil.AddFilenameOptionFlags(cmd, &opts.FilenameOptions, usage)
