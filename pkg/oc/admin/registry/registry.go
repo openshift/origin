@@ -299,9 +299,6 @@ func (opts *RegistryOptions) RunCmdRegistry() error {
 				if !errors.IsNotFound(err) {
 					return fmt.Errorf("can't check for existing docker-registry %q: %v", name, err)
 				}
-				if opts.Config.Action.DryRun {
-					return fmt.Errorf("Docker registry %q service does not exist", name)
-				}
 				generate = true
 			}
 		} else {

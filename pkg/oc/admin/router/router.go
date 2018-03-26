@@ -123,8 +123,8 @@ type RouterConfig struct {
 	Labels string
 
 	// DryRun specifies that the router command should not launch a router but
-	// should instead exit with code 1 to indicate if a router is already running
-	// or code 0 otherwise.
+	// should instead exit with code 1 to indicate if a router will not be
+	// running or code 0 otherwise.
 	DryRun bool
 
 	// SecretsAsEnv sets the credentials as env vars, instead of secrets.
@@ -590,9 +590,6 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out, errout io.Write
 			if !generate {
 				if !errors.IsNotFound(err) {
 					return fmt.Errorf("can't check for existing router %q: %v", name, err)
-				}
-				if !output && cfg.Action.DryRun {
-					return fmt.Errorf("Router %q service does not exist", name)
 				}
 				generate = true
 			}
