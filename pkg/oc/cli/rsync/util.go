@@ -87,14 +87,31 @@ func rsyncFlagsFromOptions(o *RsyncOptions) []string {
 	return flags
 }
 
-func rsyncSpecificFlags(o *RsyncOptions) []string {
+func tarFlagsFromOptions(o *RsyncOptions) []string {
 	flags := []string{}
+	if !o.Quiet {
+		flags = append(flags, "-v")
+	}
 	if len(o.RsyncInclude) > 0 {
-		flags = append(flags, "--include")
+		for _, include := range o.RsyncInclude {
+			flags = append(flags, fmt.Sprintf("**/%s", include))
+		}
+
+		// if we have explicit files or a pattern of filenames to include,
+		// maintain similar behavior to tar, and include anything else
+		// that would have otherwise been included
+		flags = append(flags, "*")
 	}
 	if len(o.RsyncExclude) > 0 {
-		flags = append(flags, "--exclude")
+		for _, exclude := range o.RsyncExclude {
+			flags = append(flags, fmt.Sprintf("--exclude=%s", exclude))
+		}
 	}
+	return flags
+}
+
+func rsyncSpecificFlags(o *RsyncOptions) []string {
+	flags := []string{}
 	if o.RsyncProgress {
 		flags = append(flags, "--progress")
 	}

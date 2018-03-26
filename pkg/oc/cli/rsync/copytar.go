@@ -31,7 +31,10 @@ type tarStrategy struct {
 	Delete         bool
 	Tar            tar.Tar
 	RemoteExecutor executor
+	Includes       []string
+	Excludes       []string
 	IgnoredFlags   []string
+	Flags          []string
 }
 
 func newTarStrategy(f kcmdutil.Factory, c *cobra.Command, o *RsyncOptions) (copyStrategy, error) {
@@ -49,9 +52,12 @@ func newTarStrategy(f kcmdutil.Factory, c *cobra.Command, o *RsyncOptions) (copy
 	return &tarStrategy{
 		Quiet:          o.Quiet,
 		Delete:         o.Delete,
+		Includes:       o.RsyncInclude,
+		Excludes:       o.RsyncExclude,
 		Tar:            tarHelper,
 		RemoteExecutor: remoteExec,
 		IgnoredFlags:   ignoredFlags,
+		Flags:          tarFlagsFromOptions(o),
 	}, nil
 }
 
@@ -144,7 +150,7 @@ func (r *tarStrategy) Copy(source, destination *pathSpec, out, errOut io.Writer)
 	} else {
 		glog.V(4).Infof("Creating local tar file %s from remote path %s", tmp.Name(), source.Path)
 		errBuf := &bytes.Buffer{}
-		err = tarRemote(r.RemoteExecutor, source.Path, tmp, errBuf)
+		err = tarRemote(r.RemoteExecutor, source.Path, r.Includes, r.Excludes, tmp, errBuf)
 		if err != nil {
 			if checkTar(r.RemoteExecutor) != nil {
 				return strategySetupError("tar not available in container")
@@ -165,7 +171,7 @@ func (r *tarStrategy) Copy(source, destination *pathSpec, out, errOut io.Writer)
 	} else {
 		glog.V(4).Infof("Untarring temp file %s to remote directory %s", tmp.Name(), destination.Path)
 		errBuf := &bytes.Buffer{}
-		err = untarRemote(r.RemoteExecutor, destination.Path, r.Quiet, tmp, out, errBuf)
+		err = untarRemote(r.RemoteExecutor, destination.Path, r.Flags, tmp, out, errBuf)
 		if err != nil {
 			if checkTar(r.RemoteExecutor) != nil {
 				return strategySetupError("tar not available in container")
@@ -197,13 +203,30 @@ func (r *tarStrategy) String() string {
 	return "tar"
 }
 
-func tarRemote(exec executor, sourceDir string, out, errOut io.Writer) error {
+func tarRemote(exec executor, sourceDir string, includes, excludes []string, out, errOut io.Writer) error {
 	glog.V(4).Infof("Tarring %s remotely", sourceDir)
+
+	exclude := []string{}
+	for _, pattern := range excludes {
+		exclude = append(exclude, fmt.Sprintf("--exclude=%s", pattern))
+	}
+
 	var cmd []string
 	if strings.HasSuffix(sourceDir, "/") {
-		cmd = []string{"tar", "-C", sourceDir, "-c", "."}
+		include := []string{"."}
+		include = append(include, includes...)
+
+		cmd = []string{"tar", "-C", sourceDir, "-c"}
+		cmd = append(cmd, append(include, exclude...)...)
 	} else {
+		include := []string{}
+
+		for _, pattern := range includes {
+			include = append(include, path.Join(path.Base(sourceDir), pattern))
+		}
+
 		cmd = []string{"tar", "-C", path.Dir(sourceDir), "-c", path.Base(sourceDir)}
+		cmd = append(cmd, append(include, exclude...)...)
 	}
 	glog.V(4).Infof("Remote tar command: %s", strings.Join(cmd, " "))
 	return exec.Execute(cmd, nil, out, errOut)
@@ -230,11 +253,9 @@ func untarLocal(tar tar.Tar, destinationDir string, r io.Reader, quiet bool, log
 	return tar.ExtractTarStreamWithLogging(destinationDir, r, logger)
 }
 
-func untarRemote(exec executor, destinationDir string, quiet bool, in io.Reader, out, errOut io.Writer) error {
+func untarRemote(exec executor, destinationDir string, flags []string, in io.Reader, out, errOut io.Writer) error {
 	cmd := []string{"tar", "-C", destinationDir, "-ox"}
-	if !quiet {
-		cmd = append(cmd, "-v")
-	}
+	cmd = append(cmd, flags...)
 	glog.V(4).Infof("Extracting tar remotely with command: %s", strings.Join(cmd, " "))
 	return exec.Execute(cmd, in, out, errOut)
 }
