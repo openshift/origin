@@ -41,12 +41,12 @@ const (
 )
 
 const (
-	customBuild = "custom-build"
+	CustomBuild = "custom-build"
 	stiBuild    = "sti-build"
 	dockerBuild = "docker-build"
 )
 
-var BuildContainerNames = []string{customBuild, stiBuild, dockerBuild}
+var BuildContainerNames = []string{CustomBuild, stiBuild, dockerBuild}
 
 var (
 	// BuildControllerRefKind contains the schema.GroupVersionKind for builds.
