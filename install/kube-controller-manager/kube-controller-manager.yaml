@@ -12,6 +12,7 @@ spec:
   containers:
   - name: controllers
     image: openshift/origin:latest
+    imagePullPolicy: IfNotPresent
     command: ["hyperkube", "kube-controller-manager"]
     args:
     - "--enable-dynamic-provisioning=true"

@@ -35,6 +35,8 @@
 // examples/heapster/heapster-standalone.yaml
 // examples/prometheus/prometheus.yaml
 // examples/service-catalog/service-catalog.yaml
+// install/apiserver-operator/install.yaml
+// install/controller-operator/install.yaml
 // install/etcd/etcd.yaml
 // install/kube-apiserver/apiserver.yaml
 // install/kube-controller-manager/kube-controller-manager.yaml
@@ -43,12 +45,14 @@
 // install/kube-scheduler/kube-scheduler.yaml
 // install/openshift-apiserver/install.yaml
 // install/openshift-controller-manager/install.yaml
+// install/orchestration-operator/install.yaml
 // install/origin-web-console/console-config.yaml
 // install/origin-web-console/console-template.yaml
 // install/service-catalog-broker-resources/template-service-broker-registration.yaml
 // install/templateservicebroker/apiserver-config.yaml
 // install/templateservicebroker/apiserver-template.yaml
 // install/templateservicebroker/rbac-template.yaml
+// install/webconsole-operator/install.yaml
 // pkg/image/admission/apis/imagepolicy/v1/default-policy.yaml
 // DO NOT EDIT!
 
@@ -14922,6 +14926,232 @@ func examplesServiceCatalogServiceCatalogYaml() (*asset, error) {
 	return a, nil
 }
 
+var _installApiserverOperatorInstallYaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: openshift-apiserver-operator
+parameters:
+- name: IMAGE
+  value: openshift/origin:latest
+- name: NAMESPACE
+  value: openshift-core-operators
+- name: LOGLEVEL
+  value: "0"
+- name: OPENSHIFT_APISERVER_CONFIG_HOST_PATH
+objects:
+
+- apiVersion: apiextensions.k8s.io/v1beta1
+  kind: CustomResourceDefinition
+  metadata:
+    name: openshiftapiserverconfigs.operator.openshift.io
+  spec:
+    scope: Cluster
+    group: operator.openshift.io
+    version: v1
+    names:
+      kind: OpenShiftAPIServerConfig
+      plural: openshiftapiserverconfigs
+      singular: openshiftapiserverconfig
+
+- apiVersion: v1
+  kind: Namespace
+  metadata:
+    name: ${NAMESPACE}
+    labels:
+      "openshift.io/run-level": "1"
+
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    namespace: ${NAMESPACE}
+    name: apiserver-operator
+
+# TODO make a real, constrained clusterole and bind that instead
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRoleBinding
+  metadata:
+    namespace: ${NAMESPACE}
+    name: apiserver-operator
+  roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
+    name: cluster-admin
+  subjects:
+  - kind: ServiceAccount
+    name: apiserver-operator
+    namespace: ${NAMESPACE}
+
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    namespace: ${NAMESPACE}
+    name: apiserver-operator
+    labels:
+      openshift.io/operator: "true"
+      openshift.io/component: api
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        openshift.io/operator: "true"
+        openshift.io/component: api
+    template:
+      metadata:
+        name: apiserver-operator
+        labels:
+          openshift.io/operator: "true"
+          openshift.io/component: api
+      spec:
+        serviceAccountName: apiserver-operator
+        restartPolicy: Always
+        containers:
+        - name: apiserver-operator
+          image: ${IMAGE}
+          imagePullPolicy: IfNotPresent
+          command: ["hypershift", "experimental", "openshift-apiserver-operator"]
+          args:
+          - "-v=5"
+
+- apiVersion: operator.openshift.io/v1
+  kind: OpenShiftAPIServerConfig
+  metadata:
+    name: instance
+  spec:
+    imagePullSpec: ${IMAGE}
+    version: 3.10.0
+    apiServerConfig:
+      logLevel: ${{LOGLEVEL}}
+      port: 8445
+      hostPath: ${OPENSHIFT_APISERVER_CONFIG_HOST_PATH}`)
+
+func installApiserverOperatorInstallYamlBytes() ([]byte, error) {
+	return _installApiserverOperatorInstallYaml, nil
+}
+
+func installApiserverOperatorInstallYaml() (*asset, error) {
+	bytes, err := installApiserverOperatorInstallYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "install/apiserver-operator/install.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _installControllerOperatorInstallYaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: openshift-controller-manager-operator
+parameters:
+- name: IMAGE
+  value: openshift/origin:latest
+- name: NAMESPACE
+  value: openshift-core-operators
+- name: LOGLEVEL
+  value: "0"
+- name: OPENSHIFT_CONTROLLER_MANAGER_CONFIG_HOST_PATH
+objects:
+
+- apiVersion: apiextensions.k8s.io/v1beta1
+  kind: CustomResourceDefinition
+  metadata:
+    name: openshiftcontrollerconfigs.operator.openshift.io
+  spec:
+    scope: Cluster
+    group: operator.openshift.io
+    version: v1
+    names:
+      kind: OpenShiftControllerConfig
+      plural: openshiftcontrollerconfigs
+      singular: openshiftcontrollerconfig
+
+- apiVersion: v1
+  kind: Namespace
+  metadata:
+    name: ${NAMESPACE}
+    labels:
+      "openshift.io/run-level": "1"
+
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    namespace: ${NAMESPACE}
+    name: controller-manager-operator
+
+# TODO make a real, constrained clusterole and bind that instead
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRoleBinding
+  metadata:
+    namespace: ${NAMESPACE}
+    name: controller-manager-operator
+  roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
+    name: cluster-admin
+  subjects:
+  - kind: ServiceAccount
+    name: controller-manager-operator
+    namespace: ${NAMESPACE}
+
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    namespace: ${NAMESPACE}
+    name: controller-manager-operator
+    labels:
+      openshift.io/operator: "true"
+      openshift.io/component: controller
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        openshift.io/operator: "true"
+        openshift.io/component: controller
+    template:
+      metadata:
+        name: controller-manager-operator
+        labels:
+          openshift.io/operator: "true"
+          openshift.io/component: controller
+      spec:
+        serviceAccountName: controller-manager-operator
+        restartPolicy: Always
+        containers:
+        - name: controller-manager-operator
+          image: ${IMAGE}
+          imagePullPolicy: IfNotPresent
+          command: ["hypershift", "experimental", "openshift-controller-operator"]
+          args:
+          - "-v=5"
+
+- apiVersion: operator.openshift.io/v1
+  kind: OpenShiftControllerConfig
+  metadata:
+    name: instance
+  spec:
+    imagePullSpec: ${IMAGE}
+    version: 3.10.0
+    apiServerConfig:
+      logLevel: ${{LOGLEVEL}}
+      port: 8444
+      hostPath: ${OPENSHIFT_CONTROLLER_MANAGER_CONFIG_HOST_PATH}`)
+
+func installControllerOperatorInstallYamlBytes() ([]byte, error) {
+	return _installControllerOperatorInstallYaml, nil
+}
+
+func installControllerOperatorInstallYaml() (*asset, error) {
+	bytes, err := installControllerOperatorInstallYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "install/controller-operator/install.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _installEtcdEtcdYaml = []byte(`kind: Pod
 apiVersion: v1
 metadata:
@@ -14936,6 +15166,7 @@ spec:
   containers:
   - name: etcd
     image: openshift/origin:latest
+    imagePullPolicy: IfNotPresent
     workingDir: /var/lib/etcd
     command: ["/bin/bash", "-c"]
     args:
@@ -14988,6 +15219,7 @@ spec:
   containers:
   - name: api
     image: openshift/origin:latest
+    imagePullPolicy: IfNotPresent
     command: ["/bin/bash", "-c"]
     args:
     - |
@@ -15052,6 +15284,7 @@ spec:
   containers:
   - name: controllers
     image: openshift/origin:latest
+    imagePullPolicy: IfNotPresent
     command: ["hyperkube", "kube-controller-manager"]
     args:
     - "--enable-dynamic-provisioning=true"
@@ -15151,6 +15384,7 @@ objects:
         containers:
         - name: kube-proxy
           image: ${IMAGE}
+          imagePullPolicy: IfNotPresent
           command: ["openshift", "start", "node"]
           args:
           - "--enable=dns"
@@ -15262,6 +15496,7 @@ objects:
         containers:
         - name: kube-proxy
           image: ${IMAGE}
+          imagePullPolicy: IfNotPresent
           command: ["openshift", "start", "node"]
           args:
           - "--enable=proxy"
@@ -15309,6 +15544,7 @@ spec:
   containers:
   - name: scheduler
     image: openshift/origin:latest
+    imagePullPolicy: IfNotPresent
     command: ["hyperkube", "kube-scheduler"]
     args:
     - "--leader-elect=true"
@@ -15725,6 +15961,130 @@ func installOpenshiftControllerManagerInstallYaml() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "install/openshift-controller-manager/install.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _installOrchestrationOperatorInstallYaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: openshift-orchestration-operator
+parameters:
+- name: OPERATOR_IMAGE
+  value: openshift/origin:latest
+- name: CONTROL_PLANE_IMAGE
+  value: openshift/origin:latest
+- name: WEBCONSOLE_IMAGE
+  value: openshift/origin-web-console:latest
+- name: NAMESPACE
+  value: openshift-core-operators
+- name: LOGLEVEL
+  value: "0"
+- name: OPENSHIFT_APISERVER_CONFIG_HOST_PATH
+- name: OPENSHIFT_CONTROLLER_MANAGER_CONFIG_HOST_PATH
+objects:
+
+- apiVersion: apiextensions.k8s.io/v1beta1
+  kind: CustomResourceDefinition
+  metadata:
+    name: openshiftorchestrationconfigs.operator.openshift.io
+  spec:
+    scope: Cluster
+    group: operator.openshift.io
+    version: v1
+    names:
+      kind: OpenShiftOrchestrationConfig
+      plural: openshiftorchestrationconfigs
+      singular: openshiftorchestrationconfig
+
+- apiVersion: v1
+  kind: Namespace
+  metadata:
+    name: ${NAMESPACE}
+    labels:
+      "openshift.io/run-level": "1"
+
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    namespace: ${NAMESPACE}
+    name: orchestration-operator
+
+# TODO make a real, constrained clusterole and bind that instead
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRoleBinding
+  metadata:
+    namespace: ${NAMESPACE}
+    name: orchestration-operator
+  roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
+    name: cluster-admin
+  subjects:
+  - kind: ServiceAccount
+    name: orchestration-operator
+    namespace: ${NAMESPACE}
+
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    namespace: ${NAMESPACE}
+    name: orchestration-operator
+    labels:
+      openshift.io/operator: "true"
+      openshift.io/component: api
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        openshift.io/operator: "true"
+        openshift.io/component: api
+    template:
+      metadata:
+        name: orchestration-operator
+        labels:
+          openshift.io/operator: "true"
+          openshift.io/component: api
+      spec:
+        serviceAccountName: orchestration-operator
+        restartPolicy: Always
+        containers:
+        - name: orchestration-operator
+          image: ${OPERATOR_IMAGE}
+          imagePullPolicy: IfNotPresent
+          command: ["hypershift", "experimental", "openshift-orchestration-operator"]
+          args:
+          - "-v=5"
+
+- apiVersion: operator.openshift.io/v1
+  kind: OpenShiftOrchestrationConfig
+  metadata:
+    name: instance
+  spec:
+    openShiftControlPlane:
+      enabled: true
+      operatorImagePullSpec: ${OPERATOR_IMAGE}
+      imagePullSpec: ${CONTROL_PLANE_IMAGE}
+      version: 3.10.0
+      apiServerConfigHostPath: ${OPENSHIFT_APISERVER_CONFIG_HOST_PATH}
+      controllerConfigHostPath: ${OPENSHIFT_CONTROLLER_MANAGER_CONFIG_HOST_PATH}
+    webConsole:
+      enabled: true
+      operatorImagePullSpec: ${OPERATOR_IMAGE}
+      imagePullSpec: ${WEBCONSOLE_IMAGE}
+      version: 3.10.0`)
+
+func installOrchestrationOperatorInstallYamlBytes() ([]byte, error) {
+	return _installOrchestrationOperatorInstallYaml, nil
+}
+
+func installOrchestrationOperatorInstallYaml() (*asset, error) {
+	bytes, err := installOrchestrationOperatorInstallYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "install/orchestration-operator/install.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -16237,6 +16597,117 @@ func installTemplateservicebrokerRbacTemplateYaml() (*asset, error) {
 	return a, nil
 }
 
+var _installWebconsoleOperatorInstallYaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: openshift-webconsole-operator
+parameters:
+- name: IMAGE
+  value: openshift/origin:latest
+- name: NAMESPACE
+  value: openshift-core-operators
+- name: LOGLEVEL
+  value: "0"
+- name: OPENSHIFT_CONTROLLER_MANAGER_CONFIG_HOST_PATH
+objects:
+
+- apiVersion: apiextensions.k8s.io/v1beta1
+  kind: CustomResourceDefinition
+  metadata:
+    name: openshiftwebconsoleconfigs.operator.openshift.io
+  spec:
+    scope: Cluster
+    group: operator.openshift.io
+    version: v1
+    names:
+      kind: OpenShiftWebConsoleConfig
+      plural: openshiftwebconsoleconfigs
+      singular: openshiftwebconsoleconfig
+
+- apiVersion: v1
+  kind: Namespace
+  metadata:
+    name: ${NAMESPACE}
+    labels:
+      "openshift.io/run-level": "1"
+
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    namespace: ${NAMESPACE}
+    name: webconsole-operator
+
+# TODO make a real, constrained clusterole and bind that instead
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRoleBinding
+  metadata:
+    namespace: ${NAMESPACE}
+    name: webconsole-operator
+  roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
+    name: cluster-admin
+  subjects:
+  - kind: ServiceAccount
+    name: webconsole-operator
+    namespace: ${NAMESPACE}
+
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    namespace: ${NAMESPACE}
+    name: webconsole-operator
+    labels:
+      openshift.io/operator: "true"
+      openshift.io/component: webconsole
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        openshift.io/operator: "true"
+        openshift.io/component: webconsole
+    template:
+      metadata:
+        name: webconsole-operator
+        labels:
+          openshift.io/operator: "true"
+          openshift.io/component: webconsole
+      spec:
+        serviceAccountName: webconsole-operator
+        restartPolicy: Always
+        containers:
+        - name: webconsole-operator
+          image: ${IMAGE}
+          imagePullPolicy: IfNotPresent
+          command: ["hypershift", "experimental", "openshift-webconsole-operator"]
+          args:
+          - "-v=5"
+
+- apiVersion: operator.openshift.io/v1
+  kind: OpenShiftWebConsoleConfig
+  metadata:
+    name: instance
+  spec:
+    imagePullSpec: openshift/origin-web-console:latest
+    version: 3.10.0
+    replicas: 1
+`)
+
+func installWebconsoleOperatorInstallYamlBytes() ([]byte, error) {
+	return _installWebconsoleOperatorInstallYaml, nil
+}
+
+func installWebconsoleOperatorInstallYaml() (*asset, error) {
+	bytes, err := installWebconsoleOperatorInstallYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "install/webconsole-operator/install.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _pkgImageAdmissionApisImagepolicyV1DefaultPolicyYaml = []byte(`kind: ImagePolicyConfig
 apiVersion: v1
 # To require that all images running on the platform be imported first, you may uncomment the
@@ -16360,6 +16831,8 @@ var _bindata = map[string]func() (*asset, error){
 	"examples/heapster/heapster-standalone.yaml": examplesHeapsterHeapsterStandaloneYaml,
 	"examples/prometheus/prometheus.yaml": examplesPrometheusPrometheusYaml,
 	"examples/service-catalog/service-catalog.yaml": examplesServiceCatalogServiceCatalogYaml,
+	"install/apiserver-operator/install.yaml": installApiserverOperatorInstallYaml,
+	"install/controller-operator/install.yaml": installControllerOperatorInstallYaml,
 	"install/etcd/etcd.yaml": installEtcdEtcdYaml,
 	"install/kube-apiserver/apiserver.yaml": installKubeApiserverApiserverYaml,
 	"install/kube-controller-manager/kube-controller-manager.yaml": installKubeControllerManagerKubeControllerManagerYaml,
@@ -16368,12 +16841,14 @@ var _bindata = map[string]func() (*asset, error){
 	"install/kube-scheduler/kube-scheduler.yaml": installKubeSchedulerKubeSchedulerYaml,
 	"install/openshift-apiserver/install.yaml": installOpenshiftApiserverInstallYaml,
 	"install/openshift-controller-manager/install.yaml": installOpenshiftControllerManagerInstallYaml,
+	"install/orchestration-operator/install.yaml": installOrchestrationOperatorInstallYaml,
 	"install/origin-web-console/console-config.yaml": installOriginWebConsoleConsoleConfigYaml,
 	"install/origin-web-console/console-template.yaml": installOriginWebConsoleConsoleTemplateYaml,
 	"install/service-catalog-broker-resources/template-service-broker-registration.yaml": installServiceCatalogBrokerResourcesTemplateServiceBrokerRegistrationYaml,
 	"install/templateservicebroker/apiserver-config.yaml": installTemplateservicebrokerApiserverConfigYaml,
 	"install/templateservicebroker/apiserver-template.yaml": installTemplateservicebrokerApiserverTemplateYaml,
 	"install/templateservicebroker/rbac-template.yaml": installTemplateservicebrokerRbacTemplateYaml,
+	"install/webconsole-operator/install.yaml": installWebconsoleOperatorInstallYaml,
 	"pkg/image/admission/apis/imagepolicy/v1/default-policy.yaml": pkgImageAdmissionApisImagepolicyV1DefaultPolicyYaml,
 }
 
@@ -16471,6 +16946,12 @@ var _bintree = &bintree{nil, map[string]*bintree{
 		}},
 	}},
 	"install": &bintree{nil, map[string]*bintree{
+		"apiserver-operator": &bintree{nil, map[string]*bintree{
+			"install.yaml": &bintree{installApiserverOperatorInstallYaml, map[string]*bintree{}},
+		}},
+		"controller-operator": &bintree{nil, map[string]*bintree{
+			"install.yaml": &bintree{installControllerOperatorInstallYaml, map[string]*bintree{}},
+		}},
 		"etcd": &bintree{nil, map[string]*bintree{
 			"etcd.yaml": &bintree{installEtcdEtcdYaml, map[string]*bintree{}},
 		}},
@@ -16495,6 +16976,9 @@ var _bintree = &bintree{nil, map[string]*bintree{
 		"openshift-controller-manager": &bintree{nil, map[string]*bintree{
 			"install.yaml": &bintree{installOpenshiftControllerManagerInstallYaml, map[string]*bintree{}},
 		}},
+		"orchestration-operator": &bintree{nil, map[string]*bintree{
+			"install.yaml": &bintree{installOrchestrationOperatorInstallYaml, map[string]*bintree{}},
+		}},
 		"origin-web-console": &bintree{nil, map[string]*bintree{
 			"console-config.yaml": &bintree{installOriginWebConsoleConsoleConfigYaml, map[string]*bintree{}},
 			"console-template.yaml": &bintree{installOriginWebConsoleConsoleTemplateYaml, map[string]*bintree{}},
@@ -16506,6 +16990,9 @@ var _bintree = &bintree{nil, map[string]*bintree{
 			"apiserver-config.yaml": &bintree{installTemplateservicebrokerApiserverConfigYaml, map[string]*bintree{}},
 			"apiserver-template.yaml": &bintree{installTemplateservicebrokerApiserverTemplateYaml, map[string]*bintree{}},
 			"rbac-template.yaml": &bintree{installTemplateservicebrokerRbacTemplateYaml, map[string]*bintree{}},
+		}},
+		"webconsole-operator": &bintree{nil, map[string]*bintree{
+			"install.yaml": &bintree{installWebconsoleOperatorInstallYaml, map[string]*bintree{}},
 		}},
 	}},
 	"pkg": &bintree{nil, map[string]*bintree{

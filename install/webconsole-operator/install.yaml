@@ -1,0 +1,94 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: openshift-webconsole-operator
+parameters:
+- name: IMAGE
+  value: openshift/origin:latest
+- name: NAMESPACE
+  value: openshift-core-operators
+- name: LOGLEVEL
+  value: "0"
+- name: OPENSHIFT_CONTROLLER_MANAGER_CONFIG_HOST_PATH
+objects:
+
+- apiVersion: apiextensions.k8s.io/v1beta1
+  kind: CustomResourceDefinition
+  metadata:
+    name: openshiftwebconsoleconfigs.operator.openshift.io
+  spec:
+    scope: Cluster
+    group: operator.openshift.io
+    version: v1
+    names:
+      kind: OpenShiftWebConsoleConfig
+      plural: openshiftwebconsoleconfigs
+      singular: openshiftwebconsoleconfig
+
+- apiVersion: v1
+  kind: Namespace
+  metadata:
+    name: ${NAMESPACE}
+    labels:
+      "openshift.io/run-level": "1"
+
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    namespace: ${NAMESPACE}
+    name: webconsole-operator
+
+# TODO make a real, constrained clusterole and bind that instead
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRoleBinding
+  metadata:
+    namespace: ${NAMESPACE}
+    name: webconsole-operator
+  roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
+    name: cluster-admin
+  subjects:
+  - kind: ServiceAccount
+    name: webconsole-operator
+    namespace: ${NAMESPACE}
+
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    namespace: ${NAMESPACE}
+    name: webconsole-operator
+    labels:
+      openshift.io/operator: "true"
+      openshift.io/component: webconsole
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        openshift.io/operator: "true"
+        openshift.io/component: webconsole
+    template:
+      metadata:
+        name: webconsole-operator
+        labels:
+          openshift.io/operator: "true"
+          openshift.io/component: webconsole
+      spec:
+        serviceAccountName: webconsole-operator
+        restartPolicy: Always
+        containers:
+        - name: webconsole-operator
+          image: ${IMAGE}
+          imagePullPolicy: IfNotPresent
+          command: ["hypershift", "experimental", "openshift-webconsole-operator"]
+          args:
+          - "-v=5"
+
+- apiVersion: operator.openshift.io/v1
+  kind: OpenShiftWebConsoleConfig
+  metadata:
+    name: instance
+  spec:
+    imagePullSpec: openshift/origin-web-console:latest
+    version: 3.10.0
+    replicas: 1
