@@ -1,6 +1,6 @@
 package controller
 
-const deploymentYaml = `apiVersion: apps/v1beta1
+const deploymentYaml = `apiVersion: apps/v1
 kind: Deployment
 metadata:
   namespace: openshift-web-console
@@ -11,6 +11,10 @@ metadata:
 spec:
   strategy:
     type: Recreate
+  selector:
+    matchLabels:
+      app: openshift-web-console
+      webconsole: "true"
   template:
     metadata:
       name: webconsole

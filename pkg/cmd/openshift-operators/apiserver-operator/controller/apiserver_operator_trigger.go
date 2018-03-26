@@ -67,7 +67,7 @@ func (c APIServerOperator) sync() error {
 
 	case apiserverv1.Disabled:
 		// TODO probably need to watch until the NS is really gone
-		if err := c.corev1Client.Namespaces().Delete("openshift-controller-manager", nil); err != nil && !apierrors.IsNotFound(err) {
+		if err := c.corev1Client.Namespaces().Delete("openshift-apiserver", nil); err != nil && !apierrors.IsNotFound(err) {
 			operatorConfig.Status.LastUnsuccessfulRunErrors = []string{err.Error()}
 			if _, updateErr := c.operatorConfigClient.OpenShiftAPIServerConfigs().Update(operatorConfig); updateErr != nil {
 				utilruntime.HandleError(updateErr)

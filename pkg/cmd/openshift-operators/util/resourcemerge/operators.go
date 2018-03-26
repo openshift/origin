@@ -9,6 +9,11 @@ import (
 func EnsureAPIServerOperatorConfig(modified *bool, existing *apiserverv1.OpenShiftAPIServerConfig, required apiserverv1.OpenShiftAPIServerConfig) {
 	EnsureObjectMeta(modified, &existing.ObjectMeta, required.ObjectMeta)
 
+	if existing.Spec.ManagementState != required.Spec.ManagementState {
+		*modified = true
+		existing.Spec.ManagementState = required.Spec.ManagementState
+	}
+
 	SetStringIfSet(modified, &existing.Spec.ImagePullSpec, required.Spec.ImagePullSpec)
 	SetStringIfSet(modified, &existing.Spec.Version, required.Spec.Version)
 	SetInt64(modified, &existing.Spec.APIServerConfig.LogLevel, required.Spec.APIServerConfig.LogLevel)
@@ -18,6 +23,11 @@ func EnsureAPIServerOperatorConfig(modified *bool, existing *apiserverv1.OpenShi
 func EnsureControllerOperatorConfig(modified *bool, existing *controllerv1.OpenShiftControllerConfig, required controllerv1.OpenShiftControllerConfig) {
 	EnsureObjectMeta(modified, &existing.ObjectMeta, required.ObjectMeta)
 
+	if existing.Spec.ManagementState != required.Spec.ManagementState {
+		*modified = true
+		existing.Spec.ManagementState = required.Spec.ManagementState
+	}
+
 	SetStringIfSet(modified, &existing.Spec.ImagePullSpec, required.Spec.ImagePullSpec)
 	SetStringIfSet(modified, &existing.Spec.Version, required.Spec.Version)
 	SetInt64(modified, &existing.Spec.ControllerConfig.LogLevel, required.Spec.ControllerConfig.LogLevel)
@@ -26,6 +36,11 @@ func EnsureControllerOperatorConfig(modified *bool, existing *controllerv1.OpenS
 
 func EnsureWebConsoleOperatorConfig(modified *bool, existing *webconsolev1.OpenShiftWebConsoleConfig, required webconsolev1.OpenShiftWebConsoleConfig) {
 	EnsureObjectMeta(modified, &existing.ObjectMeta, required.ObjectMeta)
+
+	if existing.Spec.ManagementState != required.Spec.ManagementState {
+		*modified = true
+		existing.Spec.ManagementState = required.Spec.ManagementState
+	}
 
 	SetStringIfSet(modified, &existing.Spec.ImagePullSpec, required.Spec.ImagePullSpec)
 	SetStringIfSet(modified, &existing.Spec.Version, required.Spec.Version)

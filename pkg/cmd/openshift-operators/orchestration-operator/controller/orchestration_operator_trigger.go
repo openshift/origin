@@ -188,6 +188,7 @@ func (c OrchestrationOperator) ensureControlPlaneOperator(options orchestrationv
 	desiredControllerConfig.Spec.Version = options.Component.Version
 	desiredControllerConfig.Spec.ControllerConfig.LogLevel = options.Component.LogLevel
 	desiredControllerConfig.Spec.ControllerConfig.HostPath = options.ControllerConfigHostPath
+	desiredControllerConfig.Spec.ManagementState = controllerv1.ManagementState(options.ManagementState)
 	resourcemerge.EnsureControllerOperatorConfig(&modified, requiredControllerConfig, *desiredControllerConfig)
 	if currModified, err := resourceapply.ApplyControllerOperatorConfig(c.controllerv1Client, requiredControllerConfig); err != nil {
 		errors = append(errors, err)
@@ -201,6 +202,7 @@ func (c OrchestrationOperator) ensureControlPlaneOperator(options orchestrationv
 	desiredAPIServerConfig.Spec.Version = options.Component.Version
 	desiredAPIServerConfig.Spec.APIServerConfig.LogLevel = options.Component.LogLevel
 	desiredAPIServerConfig.Spec.APIServerConfig.HostPath = options.APIServerConfigHostPath
+	desiredAPIServerConfig.Spec.ManagementState = apiserverv1.ManagementState(options.ManagementState)
 	resourcemerge.EnsureAPIServerOperatorConfig(&modified, requiredAPIServerConfig, *desiredAPIServerConfig)
 	if currModified, err := resourceapply.ApplyAPIServerOperatorConfig(c.apiserverv1Client, requiredAPIServerConfig); err != nil {
 		errors = append(errors, err)
@@ -219,6 +221,7 @@ func (c OrchestrationOperator) ensureWebConsoleOperator(options orchestrationv1.
 	desiredOperatorConfig.Spec.ImagePullSpec = options.Component.ImagePullSpec
 	desiredOperatorConfig.Spec.Version = options.Component.Version
 	desiredOperatorConfig.Spec.LogLevel = options.Component.LogLevel
+	desiredOperatorConfig.Spec.ManagementState = webconsolev1.ManagementState(options.ManagementState)
 	resourcemerge.EnsureWebConsoleOperatorConfig(&modified, requiredOperatorConfig, *desiredOperatorConfig)
 	if currModified, err := resourceapply.ApplyWebConsoleOperatorConfig(c.webconsolev1Client, requiredOperatorConfig); err != nil {
 		errors = append(errors, err)
