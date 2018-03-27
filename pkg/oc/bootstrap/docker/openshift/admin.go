@@ -29,9 +29,6 @@ const (
 	DefaultNamespace         = "default"
 	RouterServiceAccountName = "router"
 	RouterServiceName        = "router"
-
-	masterConfigDir = "/var/lib/origin/openshift.local.config/master"
-	routerCertPath  = masterConfigDir + "/router.pem"
 )
 
 // InstallRouter installs a default router on the OpenShift server
@@ -112,19 +109,21 @@ func (h *Helper) InstallRouter(dockerClient dockerhelper.Interface, ocImage stri
 		return errors.NewError("cannot create aggregate router cert").WithCause(err)
 	}
 
+	routerCertPath := masterDir + "/router.pem"
 	flags := []string{
 		"adm", "router",
 		"--host-ports=true",
 		"--loglevel=8",
-		"--config=" + masterConfigDir + "/admin.kubeconfig",
+		"--config=" + masterDir + "/admin.kubeconfig",
 		fmt.Sprintf("--host-network=%v", !portForwarding),
 		fmt.Sprintf("--images=%s", images),
 		fmt.Sprintf("--default-cert=%s", routerCertPath),
 	}
 	_, stdout, stderr, rc, err := imageRunHelper.Image(ocImage).
+		Privileged().
 		DiscardContainer().
 		HostNetwork().
-		Bind(masterDir + ":" + masterConfigDir).
+		Bind(masterDir + ":" + masterDir).
 		Entrypoint("oc").
 		Command(flags...).Output()
 
