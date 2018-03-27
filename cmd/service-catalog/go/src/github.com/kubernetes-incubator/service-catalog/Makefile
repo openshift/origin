@@ -399,7 +399,7 @@ $(BINDIR)/svcat/$(TAG_VERSION)/$(PLATFORM)/$(ARCH)/svcat$(FILE_EXT): .init .gene
 svcat-publish: clean-bin svcat-all
 	# Download the latest client with https://download.svcat.sh/cli/latest/darwin/amd64/svcat
 	# Download an older client with  https://download.svcat.sh/cli/VERSION/darwin/amd64/svcat
-	cp -R $(BINDIR)/svcat/$(TAG_VERSION) $(BINDIR)/svcat/$(MUTABLE_TAG)
+	$(DOCKER_CMD) cp -R $(BINDIR)/svcat/$(TAG_VERSION) $(BINDIR)/svcat/$(MUTABLE_TAG)
 	# AZURE_STORAGE_CONNECTION_STRING will be used for auth in the following command
 	$(DOCKER_CMD) az storage blob upload-batch -d cli -s $(BINDIR)/svcat
 

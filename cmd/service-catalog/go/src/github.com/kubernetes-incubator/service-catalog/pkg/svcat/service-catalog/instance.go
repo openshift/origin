@@ -20,6 +20,7 @@ import (
 	"fmt"
 
 	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1beta1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 )
@@ -142,7 +143,7 @@ func (sdk *SDK) InstanceToServiceClassAndPlan(instance *v1beta1.ServiceInstance,
 
 // Provision creates an instance of a service class and plan.
 func (sdk *SDK) Provision(namespace, instanceName, className, planName string,
-	params map[string]string, secrets map[string]string) (*v1beta1.ServiceInstance, error) {
+	params interface{}, secrets map[string]string) (*v1beta1.ServiceInstance, error) {
 
 	request := &v1beta1.ServiceInstance{
 		ObjectMeta: v1.ObjectMeta{
@@ -173,4 +174,29 @@ func (sdk *SDK) Deprovision(namespace, instanceName string) error {
 		return fmt.Errorf("deprovision request failed (%s)", err)
 	}
 	return nil
+}
+
+// TouchInstance increments the updateRequests field on an instance to make
+// service process it again (might be an update, delete, or noop)
+func (sdk *SDK) TouchInstance(ns, name string, retries int) error {
+	for j := 0; j < retries; j++ {
+		inst, err := sdk.RetrieveInstance(ns, name)
+		if err != nil {
+			return err
+		}
+
+		inst.Spec.UpdateRequests = inst.Spec.UpdateRequests + 1
+
+		_, err = sdk.ServiceCatalog().ServiceInstances(ns).Update(inst)
+		if err == nil {
+			return nil
+		}
+		// if we didn't get a conflict, no idea what happened
+		if !errors.IsConflict(err) {
+			return fmt.Errorf("could not touch instance (%s)", err)
+		}
+	}
+
+	// conflict after `retries` tries
+	return fmt.Errorf("could not sync service broker after %d tries", retries)
 }

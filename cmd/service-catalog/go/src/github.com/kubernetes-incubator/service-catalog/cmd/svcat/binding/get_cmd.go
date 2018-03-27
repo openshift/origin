@@ -24,8 +24,9 @@ import (
 
 type getCmd struct {
 	*command.Context
-	ns   string
-	name string
+	ns            string
+	name          string
+	allNamespaces bool
 }
 
 // NewGetCmd builds a "svcat get bindings" command
@@ -37,6 +38,7 @@ func NewGetCmd(cxt *command.Context) *cobra.Command {
 		Short:   "List bindings, optionally filtered by name",
 		Example: `
   svcat get bindings
+  svcat get bindings --all-namespaces
   svcat get binding wordpress-mysql-binding
   svcat get binding -n ci concourse-postgres-binding
 `,
@@ -50,6 +52,13 @@ func NewGetCmd(cxt *command.Context) *cobra.Command {
 		"n",
 		"default",
 		"The namespace from which to get the bindings",
+	)
+	cmd.Flags().BoolVarP(
+		&getCmd.allNamespaces,
+		"all-namespaces",
+		"",
+		false,
+		"List all bindings across namespaces",
 	)
 	return cmd
 }
@@ -71,6 +80,10 @@ func (c *getCmd) Run() error {
 }
 
 func (c *getCmd) getAll() error {
+	if c.allNamespaces {
+		c.ns = ""
+	}
+
 	bindings, err := c.App.RetrieveBindings(c.ns)
 	if err != nil {
 		return err

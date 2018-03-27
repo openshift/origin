@@ -24,14 +24,16 @@ import (
 	"time"
 
 	"github.com/kubernetes-incubator/service-catalog/pkg/kubernetes/pkg/apis/componentconfig"
+	genericoptions "k8s.io/apiserver/pkg/server/options"
 )
 
 // ControllerManagerConfiguration encapsulates configuration for the
 // controller manager.
 type ControllerManagerConfiguration struct {
-	// Address is the IP address to serve on (set to 0.0.0.0 for all interfaces).
+	// DEPRECATED/Ignored, use SecureServingOptions.BindAddress instead.
 	Address string
-	// Port is the port that the controller's http service runs on.
+
+	// DEPRECATED/Ignored, use SecureServingOptions.SecurePort instead.
 	Port int32
 
 	// ContentType is the content type for requests sent to API servers.
@@ -100,4 +102,6 @@ type ControllerManagerConfiguration struct {
 	// OperationPollingMaximumBackoffDuration is the maximum duration that exponential
 	// backoff for polling OSB API operations will use.
 	OperationPollingMaximumBackoffDuration time.Duration
+
+	SecureServingOptions *genericoptions.SecureServingOptions
 }

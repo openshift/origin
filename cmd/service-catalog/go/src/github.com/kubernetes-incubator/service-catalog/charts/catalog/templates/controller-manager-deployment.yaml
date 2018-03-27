@@ -41,8 +41,8 @@ spec:
               fieldPath: metadata.namespace
         args:
         - controller-manager
-        - --port
-        - "8080"
+        - --secure-port
+        - "8444"
         {{ if .Values.controllerManager.leaderElection.activated -}}
         - "--leader-election-namespace={{ .Release.Namespace }}"
         - "--leader-elect-resource-lock=configmaps"
@@ -78,16 +78,21 @@ spec:
         - --feature-gates
         - AsyncBindingOperations=true
         {{- end }}
+        {{- if .Values.namespacedServiceBrokerEnabled }}
+        - --feature-gates
+        - NamespacedServiceBroker=true
+        {{- end }}
         ports:
-        - containerPort: 8080
+        - containerPort: 8444
         volumeMounts:
         - name: service-catalog-cert
-          mountPath: /etc/service-catalog-ssl
+          mountPath: /var/run/kubernetes-service-catalog
           readOnly: true
         readinessProbe:
           httpGet:
-            port: 8080
+            port: 8444
             path: /healthz
+            scheme: HTTPS
           failureThreshold: 1
           initialDelaySeconds: 20
           periodSeconds: 10
@@ -95,8 +100,9 @@ spec:
           timeoutSeconds: 2
         livenessProbe:
           httpGet:
-            port: 8080
+            port: 8444
             path: /healthz
+            scheme: HTTPS
           failureThreshold: 3
           initialDelaySeconds: 20
           periodSeconds: 10
@@ -109,3 +115,9 @@ spec:
           items:
           - key: tls.crt
             path: apiserver.crt
+          - key: tls.key
+            path: apiserver.key
+          {{- if .Values.apiserver.tls.requestHeaderCA }}
+          - key: requestheader-ca.crt
+            path: requestheader-ca.crt
+          {{- end }}

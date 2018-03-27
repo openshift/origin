@@ -54,7 +54,9 @@ func TestClusterServiceClassName(t *testing.T) {
 	serviceClass := &v1beta1.ClusterServiceClass{
 		ObjectMeta: metav1.ObjectMeta{Name: "service-class"},
 		Spec: v1beta1.ClusterServiceClassSpec{
-			ExternalName: "external-class-name",
+			CommonServiceClassSpec: v1beta1.CommonServiceClassSpec{
+				ExternalName: "external-class-name",
+			},
 		},
 	}
 	e := `ClusterServiceClass (K8S: "service-class" ExternalName: "external-class-name")`
@@ -68,7 +70,9 @@ func TestClusterServicePlanName(t *testing.T) {
 	servicePlan := &v1beta1.ClusterServicePlan{
 		ObjectMeta: metav1.ObjectMeta{Name: "service-plan"},
 		Spec: v1beta1.ClusterServicePlanSpec{
-			ExternalName: "external-plan-name",
+			CommonServicePlanSpec: v1beta1.CommonServicePlanSpec{
+				ExternalName: "external-plan-name",
+			},
 		},
 	}
 
