@@ -30,7 +30,7 @@ import (
 
 	"k8s.io/kubernetes/plugin/pkg/admission/noderestriction"
 	expandpvcadmission "k8s.io/kubernetes/plugin/pkg/admission/persistentvolume/resize"
-	storageclassdefaultadmission "k8s.io/kubernetes/plugin/pkg/admission/storageclass/setdefault"
+	storageclassdefaultadmission "k8s.io/kubernetes/plugin/pkg/admission/storage/storageclass/setdefault"
 
 	imagepolicyapi "github.com/openshift/origin/pkg/image/admission/apis/imagepolicy"
 	overrideapi "github.com/openshift/origin/pkg/quota/admission/apis/clusterresourceoverride"

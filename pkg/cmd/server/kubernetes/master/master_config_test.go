@@ -21,11 +21,11 @@ import (
 	pluginwebhook "k8s.io/apiserver/plugin/pkg/audit/webhook"
 	kubeapiserveroptions "k8s.io/kubernetes/cmd/kube-apiserver/app/options"
 	cmapp "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
+	schedulerapp "k8s.io/kubernetes/cmd/kube-scheduler/app"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/apis/componentconfig"
 	kubeoptions "k8s.io/kubernetes/pkg/kubeapiserver/options"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
-	schedulerapp "k8s.io/kubernetes/plugin/cmd/kube-scheduler/app"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 )

@@ -20,7 +20,6 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
 	"github.com/openshift/origin/pkg/api/latest"
@@ -153,7 +152,7 @@ func ClientMapperFromConfig(config *rest.Config) resource.ClientMapperFunc {
 			return rest.RESTClientFor(&configCopy)
 		}
 
-		if err := unversioned.SetKubernetesDefaults(&configCopy); err != nil {
+		if err := setKubernetesDefaults(&configCopy); err != nil {
 			return nil, err
 		}
 		gvk := mapping.GroupVersionKind
@@ -167,6 +166,22 @@ func ClientMapperFromConfig(config *rest.Config) resource.ClientMapperFunc {
 		configCopy.GroupVersion = &gv
 		return rest.RESTClientFor(&configCopy)
 	})
+}
+
+// setKubernetesDefaults sets default values on the provided client config for accessing the
+// Kubernetes API or returns an error if any of the defaults are impossible or invalid.
+func setKubernetesDefaults(config *rest.Config) error {
+	if config.APIPath == "" {
+		config.APIPath = "/api"
+	}
+	// TODO chase down uses and tolerate nil
+	if config.GroupVersion == nil {
+		config.GroupVersion = &schema.GroupVersion{}
+	}
+	if config.NegotiatedSerializer == nil {
+		config.NegotiatedSerializer = legacyscheme.Codecs
+	}
+	return rest.SetKubernetesDefaults(config)
 }
 
 // PreferredSerializationOrder returns the preferred ordering via discovery. If anything fails, it just

@@ -14,7 +14,7 @@ import (
 	noderestriction "k8s.io/kubernetes/plugin/pkg/admission/noderestriction"
 	expandpvcadmission "k8s.io/kubernetes/plugin/pkg/admission/persistentvolume/resize"
 	saadmit "k8s.io/kubernetes/plugin/pkg/admission/serviceaccount"
-	storageclassdefaultadmission "k8s.io/kubernetes/plugin/pkg/admission/storageclass/setdefault"
+	storageclassdefaultadmission "k8s.io/kubernetes/plugin/pkg/admission/storage/storageclass/setdefault"
 
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"

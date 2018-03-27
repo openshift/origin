@@ -7,7 +7,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	conditions "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/kubectl"
 
 	apps "github.com/openshift/origin/pkg/apps/apis/apps"
 )
@@ -100,7 +100,7 @@ This may be a transient error. Check the master API logs for anomalies near this
 	}
 	defer stopWatcher(watcher)
 	for event := range watcher.ResultChan() {
-		running, err := conditions.PodContainerRunning(d.appName)(event)
+		running, err := kubectl.PodContainerRunning(d.appName)(event)
 		if err != nil {
 			d.out.Error("DCluAC009", err, fmt.Sprintf(`
 %s: Error while watching for app pod to deploy:
