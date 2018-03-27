@@ -18,7 +18,7 @@ var _ = g.Describe("[image_ecosystem][php][Slow] hot deploy for openshift php im
 		cakephpTemplate = "https://raw.githubusercontent.com/openshift/cakephp-ex/master/openshift/templates/cakephp-mysql.json"
 		oc              = exutil.NewCLI("s2i-php", exutil.KubeConfigPath())
 		hotDeployParam  = "OPCACHE_REVALIDATE_FREQ=0"
-		modifyCommand   = []string{"sed", "-ie", `s/\$result\['c'\]/1337/`, "app/View/Layouts/default.ctp"}
+		modifyCommand   = []string{"sed", "-ie", `s/\$result\['c'\]/1337/`, "src/Template/Pages/home.ctp"}
 		pageCountFn     = func(count int) string { return fmt.Sprintf(`<span class="code" id="count-value">%d</span>`, count) }
 		dcName          = "cakephp-mysql-example-1"
 		dcLabel         = exutil.ParseLabelsOrDie(fmt.Sprintf("deployment=%s", dcName))
