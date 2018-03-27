@@ -91,14 +91,25 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 			var licensePrefix, pluginName string
 			useSnapshotImage := false
 
+			err := oc.Run("create").Args("-n", oc.Namespace(), "-f", jenkinsTemplatePath).Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			jenkinsTemplateName := "jenkins-ephemeral"
+
 			// create persistent volumes if running persistent jenkins
 			if jenkinsTemplatePath == jenkinsPersistentTemplatePath {
-				_, err := exutil.SetupNFSBackedPersistentVolumes(oc, "2Gi", 1)
+				jenkinsTemplateName = "jenkins-persistent"
+
+				err = exutil.AddNamespaceLabelToPersistentVolumeClaimsInTemplate(oc, jenkinsTemplateName)
 				o.Expect(err).NotTo(o.HaveOccurred())
+
+				_, err := exutil.SetupNFSBackedPersistentVolumes(oc, "2Gi", 3)
+				o.Expect(err).NotTo(o.HaveOccurred())
+
 			}
 
 			// our pipeline jobs, between jenkins and oc invocations, need more mem than the default
-			newAppArgs := []string{"-f", jenkinsTemplatePath, "-p", "MEMORY_LIMIT=2Gi", "-p", "DISABLE_ADMINISTRATIVE_MONITORS=true"}
+			newAppArgs := []string{"--template", fmt.Sprintf("%s/%s", oc.Namespace(), jenkinsTemplateName), "-p", "MEMORY_LIMIT=2Gi", "-p", "DISABLE_ADMINISTRATIVE_MONITORS=true"}
 			clientPluginNewAppArgs, useClientPluginSnapshotImage := jenkins.SetupSnapshotImage(jenkins.UseLocalClientPluginSnapshotEnvVarName, localClientPluginSnapshotImage, localClientPluginSnapshotImageStream, newAppArgs, oc)
 			syncPluginNewAppArgs, useSyncPluginSnapshotImage := jenkins.SetupSnapshotImage(jenkins.UseLocalSyncPluginSnapshotEnvVarName, localSyncPluginSnapshotImage, localSyncPluginSnapshotImageStream, newAppArgs, oc)
 
@@ -124,7 +135,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 			}
 
 			g.By(fmt.Sprintf("calling oc new-app useSnapshotImage %v with license text %s and newAppArgs %#v", useSnapshotImage, licensePrefix, newAppArgs))
-			err := oc.Run("new-app").Args(newAppArgs...).Execute()
+			err = oc.Run("new-app").Args(newAppArgs...).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for jenkins deployment")
@@ -198,6 +209,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 			if g.CurrentGinkgoTestDescription().Failed {
 				exutil.DumpPodStates(oc)
 				exutil.DumpPodLogsStartingWith("", oc)
+				exutil.DumpPersistentVolumeInfo(oc)
 			}
 			if os.Getenv(jenkins.EnableJenkinsMemoryStats) != "" {
 				ticker.Stop()
@@ -262,6 +274,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 			if g.CurrentGinkgoTestDescription().Failed {
 				exutil.DumpPodStates(oc)
 				exutil.DumpPodLogsStartingWith("", oc)
+				exutil.DumpPersistentVolumeInfo(oc)
 			}
 			if os.Getenv(jenkins.EnableJenkinsMemoryStats) != "" {
 				ticker.Stop()
@@ -311,6 +324,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 			if g.CurrentGinkgoTestDescription().Failed {
 				exutil.DumpPodStates(oc)
 				exutil.DumpPodLogsStartingWith("", oc)
+				exutil.DumpPersistentVolumeInfo(oc)
 			}
 			if os.Getenv(jenkins.EnableJenkinsMemoryStats) != "" {
 				ticker.Stop()
@@ -358,6 +372,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 			if g.CurrentGinkgoTestDescription().Failed {
 				exutil.DumpPodStates(oc)
 				exutil.DumpPodLogsStartingWith("", oc)
+				exutil.DumpPersistentVolumeInfo(oc)
 			}
 			if os.Getenv(jenkins.EnableJenkinsGCStats) != "" {
 				g.By("stopping jenkins gc tracking")
@@ -415,6 +430,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 			if g.CurrentGinkgoTestDescription().Failed {
 				exutil.DumpPodStates(oc)
 				exutil.DumpPodLogsStartingWith("", oc)
+				exutil.DumpPersistentVolumeInfo(oc)
 			}
 			if os.Getenv(jenkins.EnableJenkinsGCStats) != "" {
 				g.By("stopping jenkins gc tracking")
@@ -464,6 +480,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 			if g.CurrentGinkgoTestDescription().Failed {
 				exutil.DumpPodStates(oc)
 				exutil.DumpPodLogsStartingWith("", oc)
+				exutil.DumpPersistentVolumeInfo(oc)
 			}
 			if os.Getenv(jenkins.EnableJenkinsGCStats) != "" {
 				g.By("stopping jenkins gc tracking")
@@ -513,6 +530,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 			if g.CurrentGinkgoTestDescription().Failed {
 				exutil.DumpPodStates(oc)
 				exutil.DumpPodLogsStartingWith("", oc)
+				exutil.DumpPersistentVolumeInfo(oc)
 			}
 			if os.Getenv(jenkins.EnableJenkinsGCStats) != "" {
 				g.By("stopping jenkins gc tracking")
@@ -562,6 +580,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 			if g.CurrentGinkgoTestDescription().Failed {
 				exutil.DumpPodStates(oc)
 				exutil.DumpPodLogsStartingWith("", oc)
+				exutil.DumpPersistentVolumeInfo(oc)
 			}
 			if os.Getenv(jenkins.EnableJenkinsMemoryStats) != "" {
 				ticker.Stop()
@@ -613,6 +632,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 			if g.CurrentGinkgoTestDescription().Failed {
 				exutil.DumpPodStates(oc)
 				exutil.DumpPodLogsStartingWith("", oc)
+				exutil.DumpPersistentVolumeInfo(oc)
 			}
 			if os.Getenv(jenkins.EnableJenkinsMemoryStats) != "" {
 				ticker.Stop()
@@ -747,6 +767,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 			if g.CurrentGinkgoTestDescription().Failed {
 				exutil.DumpPodStates(oc)
 				exutil.DumpPodLogsStartingWith("", oc)
+				exutil.DumpPersistentVolumeInfo(oc)
 			}
 			if os.Getenv(jenkins.EnableJenkinsMemoryStats) != "" {
 				ticker.Stop()
@@ -898,6 +919,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 			if g.CurrentGinkgoTestDescription().Failed {
 				exutil.DumpPodStates(oc)
 				exutil.DumpPodLogsStartingWith("", oc)
+				exutil.DumpPersistentVolumeInfo(oc)
 			}
 			if os.Getenv(jenkins.EnableJenkinsMemoryStats) != "" {
 				ticker.Stop()
@@ -1004,6 +1026,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 			if g.CurrentGinkgoTestDescription().Failed {
 				exutil.DumpPodStates(oc)
 				exutil.DumpPodLogsStartingWith("", oc)
+				exutil.DumpPersistentVolumeInfo(oc)
 			}
 			if os.Getenv(jenkins.EnableJenkinsMemoryStats) != "" {
 				ticker.Stop()

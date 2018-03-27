@@ -34,6 +34,7 @@ var _ = g.Describe("[Conformance][image_ecosystem][mongodb][Slow] openshift mong
 			if g.CurrentGinkgoTestDescription().Failed {
 				exutil.DumpPodStates(oc)
 				exutil.DumpPodLogsStartingWith("", oc)
+				exutil.DumpPersistentVolumeInfo(oc)
 			}
 			for i := 0; i < 3; i++ {
 				podLogs, err := oc.Run("logs").Args(fmt.Sprintf("mongodb-replicaset-%d", i), "--timestamps").Output()
@@ -47,16 +48,21 @@ var _ = g.Describe("[Conformance][image_ecosystem][mongodb][Slow] openshift mong
 		g.It(fmt.Sprintf("should instantiate the template"), func() {
 			oc.SetOutputDir(exutil.TestContext.OutputDir)
 
+			err := oc.Run("create").Args("-f", templatePath).Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			err = exutil.AddNamespaceLabelToPersistentVolumeClaimsInTemplate(oc, "mongodb-petset-replication")
+			o.Expect(err).NotTo(o.HaveOccurred())
+
 			g.By("creating a new app")
-			o.Expect(
-				oc.Run("new-app").Args(
-					"-f", templatePath,
-					"-p", "VOLUME_CAPACITY=256Mi",
-					"-p", "MEMORY_LIMIT=512Mi",
-					"-p", "MONGODB_IMAGE=centos/mongodb-32-centos7",
-					"-p", "MONGODB_SERVICE_NAME=mongodb-replicaset",
-				).Execute(),
-			).Should(o.Succeed())
+			err = oc.Run("new-app").Args(
+				"--template", "mongodb-petset-replication",
+				"-p", "VOLUME_CAPACITY=256Mi",
+				"-p", "MEMORY_LIMIT=512Mi",
+				"-p", "MONGODB_IMAGE=centos/mongodb-32-centos7",
+				"-p", "MONGODB_SERVICE_NAME=mongodb-replicaset",
+			).Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for all pods to reach ready status")
 			podNames, err := exutil.WaitForPods(

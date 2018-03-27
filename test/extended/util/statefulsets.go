@@ -25,13 +25,16 @@ func RemoveStatefulSets(oc *CLI, sets ...string) error {
 				e2e.Logf("Unable to get pods for statefulset/%s: %v", set, err)
 				return false, err
 			}
-			if len(pods.Items) != 0 {
+			if len(pods.Items) > 0 {
+				e2e.Logf("Waiting for pods for statefulset/%s to terminate", set)
 				return false, nil
 			}
+			e2e.Logf("Pods for statefulset/%s have terminated", set)
 			return true, nil
 		})
 
 		if err != nil {
+			e2e.Logf("Error occurred waiting for pods to terminate for statefulset/%s: %v", set, err)
 			errs = append(errs, err)
 		}
 	}

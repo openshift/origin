@@ -47,6 +47,7 @@ var _ = g.Describe("[image_ecosystem][postgresql][Slow][local] openshift postgre
 				exutil.DumpPodStates(oc)
 				exutil.DumpPodLogsStartingWith("", oc)
 				exutil.DumpImageStreams(oc)
+				exutil.DumpPersistentVolumeInfo(oc)
 			}
 		})
 
@@ -91,7 +92,14 @@ func PostgreSQLReplicationTestFactory(oc *exutil.CLI, image string) func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		exutil.CheckOpenShiftNamespaceImageStreams(oc)
-		err = oc.Run("new-app").Args("-f", postgreSQLReplicationTemplate, "-p", fmt.Sprintf("IMAGESTREAMTAG=%s", image)).Execute()
+
+		err = oc.Run("create").Args("-f", postgreSQLReplicationTemplate).Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		err = exutil.AddNamespaceLabelToPersistentVolumeClaimsInTemplate(oc, "pg-replica-example")
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		err = oc.Run("new-app").Args("--template", "pg-replica-example", "-p", fmt.Sprintf("IMAGESTREAMTAG=%s", image)).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		err = oc.Run("new-app").Args("-f", postgreSQLEphemeralTemplate, "-p", fmt.Sprintf("DATABASE_SERVICE_NAME=%s", postgreSQLHelperName)).Execute()
