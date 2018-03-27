@@ -5,14 +5,15 @@ import (
 
 	"github.com/golang/glog"
 
-	"github.com/openshift/origin/pkg/cmd/util/variable"
-	"github.com/openshift/origin/pkg/oc/bootstrap"
-	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/componentinstall"
-	"github.com/openshift/origin/pkg/oc/bootstrap/docker/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/registry/rbac/reconciliation"
+
+	"github.com/openshift/origin/pkg/cmd/util/variable"
+	"github.com/openshift/origin/pkg/oc/bootstrap"
+	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/componentinstall"
+	"github.com/openshift/origin/pkg/oc/bootstrap/docker/errors"
 )
 
 const (

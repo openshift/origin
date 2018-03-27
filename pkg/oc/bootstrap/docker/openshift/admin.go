@@ -10,6 +10,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apiserver/pkg/authentication/serviceaccount"
+	"k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
@@ -21,7 +22,7 @@ import (
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/errors"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/run"
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
+	securityclientinternal "github.com/openshift/origin/pkg/security/generated/internalclientset"
 	securitytypedclient "github.com/openshift/origin/pkg/security/generated/internalclientset/typed/security/internalversion"
 )
 
@@ -32,8 +33,12 @@ const (
 )
 
 // InstallRouter installs a default router on the OpenShift server
-func (h *Helper) InstallRouter(dockerClient dockerhelper.Interface, ocImage string, kubeClient kclientset.Interface, f *clientcmd.Factory, configDir, logdir, images, hostIP string, portForwarding bool, out, errout io.Writer) error {
-	_, err := kubeClient.Core().Services(DefaultNamespace).Get(RouterServiceName, metav1.GetOptions{})
+func (h *Helper) InstallRouter(dockerClient dockerhelper.Interface, ocImage string, restConfig *rest.Config, configDir, logdir, images, hostIP string, portForwarding bool, out, errout io.Writer) error {
+	kubeClient, err := kclientset.NewForConfig(restConfig)
+	if err != nil {
+		return err
+	}
+	_, err = kubeClient.Core().Services(DefaultNamespace).Get(RouterServiceName, metav1.GetOptions{})
 	if err == nil {
 		glog.V(3).Infof("The %q service is already present, skipping installation", RouterServiceName)
 		// Router service already exists, nothing to do
@@ -56,7 +61,7 @@ func (h *Helper) InstallRouter(dockerClient dockerhelper.Interface, ocImage stri
 	}
 
 	// Add router SA to privileged SCC
-	securityClient, err := f.OpenshiftInternalSecurityClient()
+	securityClient, err := securityclientinternal.NewForConfig(restConfig)
 	if err != nil {
 		return err
 	}

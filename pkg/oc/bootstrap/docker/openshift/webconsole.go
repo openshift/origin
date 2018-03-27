@@ -26,7 +26,7 @@ const (
 func (h *Helper) InstallWebConsole(clusterAdminKubeConfigBytes []byte, imageFormat string, serverLogLevel int, publicURL, masterURL, loggingURL, metricsURL, logdir string) error {
 	restConfig, err := kclientcmd.RESTConfigFromKubeConfig(clusterAdminKubeConfigBytes)
 	if err != nil {
-		return err
+		return errors.NewError("cannot obtain API clients").WithCause(err)
 	}
 	kubeClient, err := kclientset.NewForConfig(restConfig)
 	if err != nil {

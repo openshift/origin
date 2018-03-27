@@ -1,15 +1,17 @@
 package openshift
 
 import (
-	"bytes"
 	"fmt"
 
 	"github.com/blang/semver"
+	"k8s.io/kubernetes/pkg/apis/core"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/rest"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/errors"
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
+	securityclientinternal "github.com/openshift/origin/pkg/security/generated/internalclientset"
 )
 
 const (
@@ -17,14 +19,14 @@ const (
 )
 
 // InstallLoggingViaAnsible checks whether logging is installed and installs it if not already installed
-func (h *Helper) InstallLoggingViaAnsible(f *clientcmd.Factory, serverVersion semver.Version, serverIP, publicHostname, loggerHost, imagePrefix, imageVersion, hostConfigDir, imageStreams string) error {
-	kubeClient, err := f.ClientSet()
+func (h *Helper) InstallLoggingViaAnsible(restConfig *rest.Config, serverVersion semver.Version, serverIP, publicHostname, loggerHost, imagePrefix, imageVersion, hostConfigDir, imageStreams string) error {
+	kubeClient, err := kclientset.NewForConfig(restConfig)
 	if err != nil {
-		return errors.NewError("cannot obtain API clients").WithCause(err).WithDetails(h.OriginLog())
+		return errors.NewError("cannot obtain API clients").WithCause(err)
 	}
-	securityClient, err := f.OpenshiftInternalSecurityClient()
+	securityClient, err := securityclientinternal.NewForConfig(restConfig)
 	if err != nil {
-		return errors.NewError("cannot obtain API clients").WithCause(err).WithDetails(h.OriginLog())
+		return errors.NewError("cannot obtain API clients").WithCause(err)
 	}
 
 	_, err = kubeClient.Core().Namespaces().Get(loggingNamespace, metav1.GetOptions{})
@@ -34,10 +36,8 @@ func (h *Helper) InstallLoggingViaAnsible(f *clientcmd.Factory, serverVersion se
 	}
 
 	// Create logging namespace
-	out := &bytes.Buffer{}
-	err = CreateProject(f, loggingNamespace, "", "", "oc", out)
-	if err != nil {
-		return errors.NewError("cannot create logging project").WithCause(err).WithDetails(out.String())
+	if _, err := kubeClient.Core().Namespaces().Create(&core.Namespace{ObjectMeta: metav1.ObjectMeta{Name: loggingNamespace}}); err != nil {
+		return errors.NewError("cannot create logging namespace").WithCause(err)
 	}
 
 	params := newAnsibleInventoryParams()

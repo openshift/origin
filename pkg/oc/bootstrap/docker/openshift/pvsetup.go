@@ -10,6 +10,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/authentication/serviceaccount"
+	"k8s.io/client-go/rest"
 	kbatch "k8s.io/kubernetes/pkg/apis/batch"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -86,9 +87,21 @@ done
 `
 
 // SetupPersistentStorage sets up persistent storage
-func (h *Helper) SetupPersistentStorage(authorizationClient authorizationtypedclient.ClusterRoleBindingsGetter, kclient kclientset.Interface, securityClient securityclient.Interface, dir, HostPersistentVolumesDir string) error {
-	err := h.ensurePVInstallerSA(authorizationClient, kclient, securityClient)
+func (h *Helper) SetupPersistentStorage(restConfig *rest.Config, hostPersistentVolumesDir string) error {
+	kclient, err := kclientset.NewForConfig(restConfig)
 	if err != nil {
+		return err
+	}
+	securityClient, err := securityclient.NewForConfig(restConfig)
+	if err != nil {
+		return err
+	}
+	authorizationClient, err := authorizationtypedclient.NewForConfig(restConfig)
+	if err != nil {
+		return err
+	}
+
+	if err := h.ensurePVInstallerSA(authorizationClient, kclient, securityClient); err != nil {
 		return err
 	}
 
@@ -102,11 +115,11 @@ func (h *Helper) SetupPersistentStorage(authorizationClient authorizationtypedcl
 	}
 
 	// check if we need to create pv's
-	_, err = os.Stat(fmt.Sprintf("%s/%s", HostPersistentVolumesDir, pvIgnoreMarkerFile))
+	_, err = os.Stat(fmt.Sprintf("%s/%s", hostPersistentVolumesDir, pvIgnoreMarkerFile))
 	if !os.IsNotExist(err) {
 		fmt.Printf("Skip persistent volume creation \n")
 	} else {
-		setupJob := persistentStorageSetupJob(pvSetupJobName, dir, h.image, pvCount)
+		setupJob := persistentStorageSetupJob(pvSetupJobName, hostPersistentVolumesDir, h.image, pvCount)
 		if _, err = kclient.Batch().Jobs(pvSetupNamespace).Create(setupJob); err != nil {
 			return errors.NewError("cannot create job to setup persistent volumes (%s/%s)", pvSetupNamespace, pvSetupJobName).WithCause(err).WithDetails(h.OriginLog())
 		}
