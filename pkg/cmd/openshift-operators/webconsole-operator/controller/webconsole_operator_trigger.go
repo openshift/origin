@@ -82,6 +82,10 @@ func (c WebConsoleOperator) sync() error {
 		return nil
 	}
 
+	return c.sync10(operatorConfig)
+}
+
+func (c WebConsoleOperator) sync10(operatorConfig *webconsolev1.OpenShiftWebConsoleConfig) error {
 	errors := []error{}
 	// TODO the configmap and secret changes for daemonset should actually be a newly created configmap and then a subsequent daemonset update
 	// TODO this requires us to be able to detect that the changes have not worked well and trigger an effective rollback to previous config
@@ -89,26 +93,23 @@ func (c WebConsoleOperator) sync() error {
 		errors = append(errors, err)
 	}
 
-	if _, err := c.ensureWebConsoleService(operatorConfig.Spec); err != nil {
-		panic(err)
+	if _, err := resourceapply.ApplyService(c.corev1Client, resourceread.ReadServiceOrDie([]byte(service10Yaml))); err != nil {
 		errors = append(errors, err)
 	}
 
-	if _, err := c.ensureServiceAccount(); err != nil {
-		panic(err)
+	if _, err := resourceapply.ApplyServiceAccount(c.corev1Client,
+		&corev1.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Namespace: "openshift-web-console", Name: "webconsole"}}); err != nil {
 		errors = append(errors, err)
 	}
 
 	// we need to make a configmap here
-	if _, err := c.ensureWebConsoleConfig(operatorConfig.Spec); err != nil {
-		panic(err)
+	if _, err := c.ensureWebConsoleConfigMap10(operatorConfig.Spec); err != nil {
 		errors = append(errors, err)
 	}
 
 	// our configmaps and secrets are in order, now it is time to create the DS
 	// TODO check basic preconditions here
-	if _, err := c.ensureWebConsoleDeployment(operatorConfig.Spec); err != nil {
-		panic(err)
+	if _, err := c.ensureWebConsoleDeployment10(operatorConfig.Spec); err != nil {
 		errors = append(errors, err)
 	}
 
@@ -136,21 +137,30 @@ func (c WebConsoleOperator) ensureNamespace() (bool, error) {
 	return resourceapply.ApplyNamespace(c.corev1Client, required)
 }
 
-func (c WebConsoleOperator) ensureWebConsoleConfig(options webconsolev1.OpenShiftWebConsoleConfigSpec) (bool, error) {
+func ensureWebConsoleConfig(options webconsolev1.OpenShiftWebConsoleConfigSpec) (*webconsoleconfigv1.WebConsoleConfiguration, error) {
 	mergedConfig := &webconsoleconfigv1.WebConsoleConfiguration{}
 	defaultConfig, err := readWebConsoleConfiguration(defaultConfig)
 	if err != nil {
-		return false, err
+		return nil, err
 	}
 	ensureWebConsoleConfiguration(resourcemerge.BoolPtr(false), mergedConfig, *defaultConfig)
 	ensureWebConsoleConfiguration(resourcemerge.BoolPtr(false), mergedConfig, options.WebConsoleConfig)
 
-	newWebConsoleConfig, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(webconsoleconfigv1.SchemeGroupVersion), mergedConfig)
+	return mergedConfig, nil
+}
+
+func (c WebConsoleOperator) ensureWebConsoleConfigMap10(options webconsolev1.OpenShiftWebConsoleConfigSpec) (bool, error) {
+	requiredConfig, err := ensureWebConsoleConfig(options)
 	if err != nil {
 		return false, err
 	}
-	requiredConfigMap := resourceread.ReadConfigMapOrDie([]byte(configMapYaml))
-	requiredConfigMap.Data[configConfigMapKey] = string(newWebConsoleConfig)
+
+	newWebConsoleConfig, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(webconsoleconfigv1.SchemeGroupVersion), requiredConfig)
+	if err != nil {
+		return false, err
+	}
+	requiredConfigMap := resourceread.ReadConfigMapOrDie([]byte(configMap10Yaml))
+	requiredConfigMap.Data[configConfigMap10Key] = string(newWebConsoleConfig)
 
 	return resourceapply.ApplyConfigMap(c.corev1Client, requiredConfigMap)
 }
@@ -168,24 +178,14 @@ func readWebConsoleConfiguration(objBytes string) (*webconsoleconfigv1.WebConsol
 	return ret, nil
 }
 
-func (c WebConsoleOperator) ensureWebConsoleService(options webconsolev1.OpenShiftWebConsoleConfigSpec) (bool, error) {
-	required := resourceread.ReadServiceOrDie([]byte(serviceYaml))
-	return resourceapply.ApplyService(c.corev1Client, required)
-}
-
-func (c WebConsoleOperator) ensureWebConsoleDeployment(options webconsolev1.OpenShiftWebConsoleConfigSpec) (bool, error) {
-	required := resourceread.ReadDeploymentOrDie([]byte(deploymentYaml))
+func (c WebConsoleOperator) ensureWebConsoleDeployment10(options webconsolev1.OpenShiftWebConsoleConfigSpec) (bool, error) {
+	required := resourceread.ReadDeploymentOrDie([]byte(deployment10Yaml))
 	required.Spec.Template.Spec.Containers[0].Image = options.ImagePullSpec
 	required.Spec.Template.Spec.Containers[0].Args = append(required.Spec.Template.Spec.Containers[0].Args, fmt.Sprintf("-v=%d", options.LogLevel))
 	required.Spec.Replicas = &options.Replicas
 	required.Spec.Template.Spec.NodeSelector = options.NodeSelector
 
 	return resourceapply.ApplyDeployment(c.appsv1Client, required)
-}
-
-func (c WebConsoleOperator) ensureServiceAccount() (bool, error) {
-	return resourceapply.ApplyServiceAccount(c.corev1Client,
-		&corev1.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Namespace: "openshift-web-console", Name: "webconsole"}})
 }
 
 // Run starts the webconsole and blocks until stopCh is closed.

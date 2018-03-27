@@ -1,43 +1,43 @@
 package controller
 
-const deploymentYaml = `apiVersion: apps/v1
+const deployment10_1Yaml = `apiVersion: apps/v1
 kind: Deployment
 metadata:
   namespace: openshift-web-console
-  name: webconsole
+  name: web-console
   labels:
     app: openshift-web-console
-    webconsole: "true"
+    web-console: "true"
 spec:
   strategy:
     type: Recreate
   selector:
     matchLabels:
       app: openshift-web-console
-      webconsole: "true"
+      web-console: "true"
   template:
     metadata:
-      name: webconsole
+      name: web-console
       labels:
         app: openshift-web-console
-        webconsole: "true"
+        web-console: "true"
     spec:
-      serviceAccountName: webconsole
+      serviceAccountName: web-console
       containers:
-      - name: webconsole
+      - name: web-console
         image: ${IMAGE}
         imagePullPolicy: IfNotPresent
         command:
         - "/usr/bin/origin-web-console"
         - "--audit-log-path=-"
-        - "--config=/var/webconsole-config/webconsole-config.yaml"
+        - "--config=/var/web-console-config/web-console-config.yaml"
         ports:
         - containerPort: 8443
         volumeMounts:
         - mountPath: /var/serving-cert
           name: serving-cert
-        - mountPath: /var/webconsole-config
-          name: webconsole-config
+        - mountPath: /var/web-console-config
+          name: web-console-config
         readinessProbe:
           httpGet:
             path: /healthz
@@ -50,9 +50,9 @@ spec:
               - -i
               - -c
               - |-
-                if [[ ! -f /tmp/webconsole-config.hash ]]; then \
-                  md5sum /var/webconsole-config/webconsole-config.yaml > /tmp/webconsole-config.hash; \
-                elif [[ $(md5sum /var/webconsole-config/webconsole-config.yaml) != $(cat /tmp/webconsole-config.hash) ]]; then \
+                if [[ ! -f /tmp/web-console-config.hash ]]; then \
+                  md5sum /var/web-console-config/web-console-config.yaml > /tmp/web-console-config.hash; \
+                elif [[ $(md5sum /var/web-console-config/web-console-config.yaml) != $(cat /tmp/web-console-config.hash) ]]; then \
                   exit 1; \
                 fi && curl -k -f https://0.0.0.0:8443/console/
         resources:
@@ -63,9 +63,9 @@ spec:
       - name: serving-cert
         secret:
           defaultMode: 400
-          secretName: webconsole-serving-cert
-      - name: webconsole-config
+          secretName: web-console-serving-cert
+      - name: web-console-config
         configMap:
           defaultMode: 440
-          name: webconsole-config
+          name: web-console-config
 `

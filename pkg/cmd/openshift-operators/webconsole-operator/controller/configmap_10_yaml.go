@@ -1,9 +1,8 @@
 package controller
 
-const configConfigMapName = ""
-const configConfigMapKey = "webconsole-config.yaml"
+const configConfigMap10Key = "webconsole-config.yaml"
 
-const configMapYaml = `apiVersion: v1
+const configMap10Yaml = `apiVersion: v1
 kind: ConfigMap
 metadata:
   namespace: openshift-web-console
