@@ -18,6 +18,7 @@ package output
 
 import (
 	"fmt"
+	"io"
 	"strings"
 
 	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1beta1"
@@ -44,4 +45,9 @@ func formatStatusFull(condition string, conditionStatus v1beta1.ConditionStatus,
 
 	message = strings.TrimRight(message, ".")
 	return fmt.Sprintf("%s - %s @ %s", status, message, timestamp.UTC())
+}
+
+// WriteDeletedResourceName prints the name of a deleted resource
+func WriteDeletedResourceName(w io.Writer, resourceName string) {
+	fmt.Fprintf(w, "deleted %s\n", resourceName)
 }

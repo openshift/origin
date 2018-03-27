@@ -109,7 +109,7 @@ func TestBasicFlows(t *testing.T) {
 	for _, tc := range cases {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
+			//t.Parallel()
 			if tc.asyncForBindings {
 				// Enable the AsyncBindingOperations feature
 				utilfeature.DefaultFeatureGate.Set(fmt.Sprintf("%v=true", scfeatures.AsyncBindingOperations))
@@ -142,7 +142,7 @@ func TestBasicFlows(t *testing.T) {
 					t.Fatalf("error updating Instance: %v", err)
 				}
 
-				if err := util.WaitForInstanceReconciledGeneration(ct.client, testNamespace, testInstanceName, ct.instance.Status.ReconciledGeneration+1); err != nil {
+				if err := util.WaitForInstanceProcessedGeneration(ct.client, testNamespace, testInstanceName, ct.instance.Status.ReconciledGeneration+1); err != nil {
 					t.Fatalf("error waiting for instance to reconcile: %v", err)
 				}
 
@@ -271,7 +271,7 @@ func TestBasicFlowsWithOriginatingIdentity(t *testing.T) {
 			t.Fatalf("error updating Instance: %v", err)
 		}
 
-		if err := util.WaitForInstanceReconciledGeneration(ct.client, testNamespace, testInstanceName, ct.instance.Status.ReconciledGeneration+1); err != nil {
+		if err := util.WaitForInstanceProcessedGeneration(ct.client, testNamespace, testInstanceName, ct.instance.Status.ReconciledGeneration+1); err != nil {
 			t.Fatalf("error waiting for instance to reconcile: %v", err)
 		}
 
@@ -382,7 +382,7 @@ func TestServiceInstanceDeleteWithAsyncUpdateInProgress(t *testing.T) {
 	for _, tc := range cases {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
+			//t.Parallel()
 			var done int32 = 0
 			ct := controllerTest{
 				t:                            t,
@@ -476,7 +476,7 @@ func TestServiceInstanceDeleteWithAsyncProvisionInProgress(t *testing.T) {
 	for _, tc := range cases {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
+			//t.Parallel()
 			var done int32 = 0
 			ct := controllerTest{
 				t:                            t,
@@ -549,7 +549,7 @@ func TestServiceBindingDeleteWithAsyncBindInProgress(t *testing.T) {
 	for _, tc := range cases {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
+			//t.Parallel()
 
 			// Enable the AsyncBindingOperations feature
 			utilfeature.DefaultFeatureGate.Set(fmt.Sprintf("%v=true", scfeatures.AsyncBindingOperations))
@@ -876,7 +876,9 @@ func getTestBroker() *v1beta1.ClusterServiceBroker {
 	return &v1beta1.ClusterServiceBroker{
 		ObjectMeta: metav1.ObjectMeta{Name: testClusterServiceBrokerName},
 		Spec: v1beta1.ClusterServiceBrokerSpec{
-			URL: testBrokerURL,
+			CommonServiceBrokerSpec: v1beta1.CommonServiceBrokerSpec{
+				URL: testBrokerURL,
+			},
 		},
 	}
 }

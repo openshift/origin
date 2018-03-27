@@ -24,8 +24,9 @@ import (
 
 type getCmd struct {
 	*command.Context
-	ns   string
-	name string
+	ns            string
+	name          string
+	allNamespaces bool
 }
 
 // NewGetCmd builds a "svcat get instances" command
@@ -37,6 +38,7 @@ func NewGetCmd(cxt *command.Context) *cobra.Command {
 		Short:   "List instances, optionally filtered by name",
 		Example: `
   svcat get instances
+  svcat get instances --all-namespaces
   svcat get instance wordpress-mysql-instance
   svcat get instance -n ci concourse-postgres-instance
 `,
@@ -49,6 +51,13 @@ func NewGetCmd(cxt *command.Context) *cobra.Command {
 		"n",
 		"default",
 		"The namespace in which to get the ServiceInstance",
+	)
+	cmd.Flags().BoolVarP(
+		&getCmd.allNamespaces,
+		"all-namespaces",
+		"",
+		false,
+		"List all instances across namespaces",
 	)
 	return cmd
 }
@@ -70,6 +79,10 @@ func (c *getCmd) Run() error {
 }
 
 func (c *getCmd) getAll() error {
+	if c.allNamespaces {
+		c.ns = ""
+	}
+
 	instances, err := c.App.RetrieveInstances(c.ns)
 	if err != nil {
 		return err

@@ -17,7 +17,6 @@ limitations under the License.
 package controller
 
 import (
-	stderrors "errors"
 	"fmt"
 	"time"
 
@@ -266,17 +265,6 @@ func (c *controller) reconcileClusterServiceBroker(broker *v1beta1.ClusterServic
 			return err
 		}
 		glog.V(5).Info(pcb.Message("Successfully converted catalog payload from to service-catalog API"))
-
-		// brokers must return at least one service; enforce this constraint
-		if len(payloadServiceClasses) == 0 {
-			s := fmt.Sprintf("Error getting catalog payload for broker %q; received zero services; at least one service is required", broker.Name)
-			glog.Warning(pcb.Message(s))
-			c.recorder.Eventf(broker, corev1.EventTypeWarning, errorSyncingCatalogReason, s)
-			if err := c.updateClusterServiceBrokerCondition(broker, v1beta1.ServiceBrokerConditionReady, v1beta1.ConditionFalse, errorSyncingCatalogReason, errorSyncingCatalogMessage+s); err != nil {
-				return err
-			}
-			return stderrors.New(s)
-		}
 
 		// get the existing services and plans for this broker so that we can
 		// detect when services and plans are removed from the broker's
@@ -625,9 +613,26 @@ func (c *controller) reconcileClusterServicePlanFromClusterServiceBrokerCatalog(
 	toUpdate.Spec.ServiceInstanceUpdateParameterSchema = servicePlan.Spec.ServiceInstanceUpdateParameterSchema
 	toUpdate.Spec.ServiceBindingCreateParameterSchema = servicePlan.Spec.ServiceBindingCreateParameterSchema
 
-	if _, err := c.serviceCatalogClient.ClusterServicePlans().Update(toUpdate); err != nil {
+	updatedPlan, err := c.serviceCatalogClient.ClusterServicePlans().Update(toUpdate)
+	if err != nil {
 		glog.Error(pcb.Messagef("Error updating %s: %v", pretty.ClusterServicePlanName(servicePlan), err))
 		return err
+	}
+
+	if updatedPlan.Status.RemovedFromBrokerCatalog {
+		updatedPlan.Status.RemovedFromBrokerCatalog = false
+		glog.V(4).Info(pcb.Messagef("Resetting RemovedFromBrokerCatalog status on %s", pretty.ClusterServicePlanName(updatedPlan)))
+
+		_, err := c.serviceCatalogClient.ClusterServicePlans().UpdateStatus(updatedPlan)
+		if err != nil {
+			s := fmt.Sprintf("Error updating status of %s: %v", pretty.ClusterServicePlanName(updatedPlan), err)
+			glog.Error(pcb.Message(s))
+			c.recorder.Eventf(broker, corev1.EventTypeWarning, errorSyncingCatalogReason, s)
+			if err := c.updateClusterServiceBrokerCondition(broker, v1beta1.ServiceBrokerConditionReady, v1beta1.ConditionFalse, errorSyncingCatalogReason, errorSyncingCatalogMessage+s); err != nil {
+				return err
+			}
+			return err
+		}
 	}
 
 	return nil

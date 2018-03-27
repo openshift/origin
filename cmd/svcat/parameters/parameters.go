@@ -17,6 +17,7 @@ limitations under the License.
 package parameters
 
 import (
+	"encoding/json"
 	"fmt"
 	"regexp"
 	"strings"
@@ -24,14 +25,26 @@ import (
 
 var keymapRegex = regexp.MustCompile(`^([^\[]+)\[(.+)\]\s*$`)
 
+// ParseVariableJSON converts a JSON object into a map of keys and values
+// Example:
+// `{ "location" : "east", "group" : "demo" }' becomes map[location:east group:demo]
+func ParseVariableJSON(params string) (map[string]interface{}, error) {
+	var p map[string]interface{}
+	err := json.Unmarshal([]byte(params), &p)
+	if err != nil {
+		return nil, fmt.Errorf("invalid parameters (%s)", params)
+	}
+	return p, nil
+}
+
 // ParseVariableAssignments converts a string array of variable assignments
 // into a map of keys and values
 // Example:
 // [a=b c=abc1232===] becomes map[a:b c:abc1232===]
 func ParseVariableAssignments(params []string) (map[string]string, error) {
 	variables := map[string]string{}
-
 	for _, p := range params {
+
 		parts := strings.SplitN(p, "=", 2)
 		if len(parts) < 2 {
 			return nil, fmt.Errorf("invalid parameter (%s), must be in name=value format", p)
@@ -39,7 +52,7 @@ func ParseVariableAssignments(params []string) (map[string]string, error) {
 
 		variable := strings.TrimSpace(parts[0])
 		if variable == "" {
-			return nil, fmt.Errorf("invalid parameter (%s), variable name is requried", p)
+			return nil, fmt.Errorf("invalid parameter (%s), variable name is required", p)
 		}
 		value := strings.TrimSpace(parts[1])
 
@@ -64,7 +77,7 @@ func ParseKeyMaps(params []string) (map[string]string, error) {
 
 		mapName := strings.TrimSpace(parts[1])
 		if mapName == "" {
-			return nil, fmt.Errorf("invalid parameter (%s), map is requried", p)
+			return nil, fmt.Errorf("invalid parameter (%s), map is required", p)
 		}
 
 		key := strings.TrimSpace(parts[2])

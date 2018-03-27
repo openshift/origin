@@ -26,7 +26,7 @@ import (
 	sc "github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog"
 )
 
-const servicePlanNameFmt string = `[-a-zA-Z0-9]+`
+const servicePlanNameFmt string = `[-.a-zA-Z0-9]+`
 const servicePlanNameMaxLength int = 63
 
 var servicePlanNameRegexp = regexp.MustCompile("^" + servicePlanNameFmt + "$")
@@ -90,7 +90,7 @@ func validateClusterServicePlanSpec(spec *sc.ClusterServicePlanSpec, fldPath *fi
 		allErrs = append(allErrs, field.Invalid(fldPath.Child("externalID"), spec.ExternalID, msg))
 	}
 
-	for _, msg := range validateServiceClassName(spec.ClusterServiceClassRef.Name, false /* prefix */) {
+	for _, msg := range validateCommonServiceClassName(spec.ClusterServiceClassRef.Name, false /* prefix */) {
 		allErrs = append(allErrs, field.Invalid(fldPath.Child("clusterServiceClassRef", "name"), spec.ClusterServiceClassRef.Name, msg))
 	}
 

@@ -22,7 +22,8 @@ import (
 	"net/http"
 
 	"github.com/kubernetes-incubator/service-catalog/contrib/pkg/brokerapi"
-	uuid "github.com/satori/go.uuid"
+
+	"k8s.io/apimachinery/pkg/util/uuid"
 )
 
 // Client implements a fake (./pkg/brokerapi).BrokerClient. The implementation is 100% in-memory
@@ -176,9 +177,9 @@ func (i *InstanceClient) exists(id string) bool {
 
 func convertInstanceRequest(req *brokerapi.CreateServiceInstanceRequest) *brokerapi.ServiceInstance {
 	return &brokerapi.ServiceInstance{
-		ID:               uuid.NewV4().String(),
+		ID:               string(uuid.NewUUID()),
 		DashboardURL:     "https://github.com/kubernetes-incubator/service-catalog",
-		InternalID:       uuid.NewV4().String(),
+		InternalID:       string(uuid.NewUUID()),
 		ServiceID:        req.ServiceID,
 		PlanID:           req.PlanID,
 		OrganizationGUID: req.OrgID,
@@ -249,7 +250,7 @@ func (b *BindingClient) exists(instanceID, bindingID string) bool {
 
 func convertBindingRequest(req *brokerapi.BindingRequest) *brokerapi.ServiceBinding {
 	return &brokerapi.ServiceBinding{
-		ID:            uuid.NewV4().String(),
+		ID:            string(uuid.NewUUID()),
 		ServiceID:     req.ServiceID,
 		ServicePlanID: req.PlanID,
 		Parameters:    req.Parameters,

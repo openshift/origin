@@ -32,7 +32,8 @@ type provisonCmd struct {
 	className    string
 	planName     string
 	rawParams    []string
-	params       map[string]string
+	jsonParams   string
+	params       interface{}
 	rawSecrets   []string
 	secrets      map[string]string
 }
@@ -46,6 +47,22 @@ func NewProvisionCmd(cxt *command.Context) *cobra.Command {
 		Example: `
   svcat provision wordpress-mysql-instance --class mysqldb --plan free -p location=eastus -p sslEnforcement=disabled
   svcat provision wordpress-mysql-instance --class mysqldb --plan free -s mysecret[dbparams]
+  svcat provision secure-instance --class mysqldb --plan secureDB --params-json '{
+    "encrypt" : true,
+    "firewallRules" : [
+        {
+            "name": "AllowSome",
+            "startIPAddress": "75.70.113.50",
+            "endIPAddress" : "75.70.113.131"
+        },
+        {
+            "name": "AllowMore",
+            "startIPAddress": "13.54.0.0",
+            "endIPAddress" : "13.56.0.0"
+        }
+    ]
+}
+'
 `,
 		PreRunE: command.PreRunE(provisionCmd),
 		RunE:    command.RunE(provisionCmd),
@@ -59,9 +76,11 @@ func NewProvisionCmd(cxt *command.Context) *cobra.Command {
 		"The plan name (Required)")
 	cmd.MarkFlagRequired("plan")
 	cmd.Flags().StringSliceVarP(&provisionCmd.rawParams, "param", "p", nil,
-		"Additional parameter to use when provisioning the service, format: NAME=VALUE")
+		"Additional parameter to use when provisioning the service, format: NAME=VALUE. Cannot be combined with --params-json")
 	cmd.Flags().StringSliceVarP(&provisionCmd.rawSecrets, "secret", "s", nil,
 		"Additional parameter, whose value is stored in a secret, to use when provisioning the service, format: SECRET[KEY]")
+	cmd.Flags().StringVar(&provisionCmd.jsonParams, "params-json", "",
+		"Additional parameters to use when provisioning the service, provided as a JSON object. Cannot be combined with --param")
 	return cmd
 }
 
@@ -73,9 +92,20 @@ func (c *provisonCmd) Validate(args []string) error {
 
 	var err error
 
-	c.params, err = parameters.ParseVariableAssignments(c.rawParams)
-	if err != nil {
-		return fmt.Errorf("invalid --param value (%s)", err)
+	if c.jsonParams != "" && len(c.rawParams) > 0 {
+		return fmt.Errorf("--params-json cannot be used with --param")
+	}
+
+	if c.jsonParams != "" {
+		c.params, err = parameters.ParseVariableJSON(c.jsonParams)
+		if err != nil {
+			return fmt.Errorf("invalid --params value (%s)", err)
+		}
+	} else {
+		c.params, err = parameters.ParseVariableAssignments(c.rawParams)
+		if err != nil {
+			return fmt.Errorf("invalid --param value (%s)", err)
+		}
 	}
 
 	c.secrets, err = parameters.ParseKeyMaps(c.rawSecrets)

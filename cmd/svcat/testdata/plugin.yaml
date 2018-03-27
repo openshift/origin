@@ -73,6 +73,9 @@ tree:
   - name: bindings
     shortDesc: List bindings, optionally filtered by name
     command: ./svcat get bindings
+    flags:
+    - name: all-namespaces
+      desc: List all bindings across namespaces
   - name: brokers
     shortDesc: List brokers, optionally filtered by name
     command: ./svcat get brokers
@@ -86,10 +89,17 @@ tree:
   - name: instances
     shortDesc: List instances, optionally filtered by name
     command: ./svcat get instances
+    flags:
+    - name: all-namespaces
+      desc: List all instances across namespaces
   - name: plans
-    shortDesc: List plans, optionally filtered by name
+    shortDesc: List plans, optionally filtered by name or class
     command: ./svcat get plans
     flags:
+    - name: class
+      shorthand: c
+      desc: Filter plans based on class. When --uuid is specified, the class name
+        is interpreted as a uuid.
     - name: uuid
       shorthand: u
       desc: Whether or not to get the plan by UUID (the default is by name)
@@ -113,7 +123,11 @@ tree:
     desc: The class name (Required)
   - name: param
     shorthand: p
-    desc: 'Additional parameter to use when provisioning the service, format: NAME=VALUE'
+    desc: 'Additional parameter to use when provisioning the service, format: NAME=VALUE.
+      Cannot be combined with --params-json'
+  - name: params-json
+    desc: Additional parameters to use when provisioning the service, provided as
+      a JSON object. Cannot be combined with --param
   - name: plan
     desc: The plan name (Required)
   - name: secret
@@ -126,6 +140,16 @@ tree:
   - name: broker
     shortDesc: Syncs service catalog for a service broker
     command: ./svcat sync broker
+- name: touch
+  shortDesc: Force Service Catalog to reprocess a resource
+  command: ./svcat touch
+  tree:
+  - name: instance
+    shortDesc: Touch an instance to make service-catalog try to process the spec again
+    longDesc: "Touch instance will increment the updateRequests field on the instance.
+      \nThen, service catalog will process the instance's spec again. It might do
+      an update, a delete, or \nnothing."
+    command: ./svcat touch instance
 - name: unbind
   shortDesc: Unbinds an instance. When an instance name is specified, all of its bindings
     are removed, otherwise use --name to remove a specific binding

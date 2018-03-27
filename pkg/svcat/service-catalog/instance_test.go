@@ -194,6 +194,58 @@ var _ = Describe("Instances", func() {
 			Expect(actions[0].(testing.ListActionImpl).GetListRestrictions().Fields.Matches(opts)).To(BeTrue())
 		})
 	})
+	Describe("UpdateInstance", func() {
+		It("Properly increments the update requests field", func() {
+			namespace := "cherry_namespace"
+			instanceName := "cherry"
+			className := "cherry_class"
+			planName := "cherry_plan"
+			params := make(map[string]string)
+			params["foo"] = "bar"
+			secrets := make(map[string]string)
+			secrets["username"] = "admin"
+			secrets["password"] = "abc123"
+			retries := 3
+
+			provisionedInstance, err := sdk.Provision(namespace, instanceName, className, planName, params, secrets)
+			Expect(err).To(BeNil())
+			// once for the provision request
+			actions := svcCatClient.Actions()
+			Expect(len(actions)).To(Equal(1))
+
+			Expect(sdk.TouchInstance(
+				provisionedInstance.Namespace,
+				provisionedInstance.Name,
+				retries,
+			)).To(BeNil())
+
+			// verify that the get and the update happened
+			actions = svcCatClient.Actions()
+			// once for the get = 2
+			// once for the update = 3
+			Expect(len(actions)).To(Equal(3))
+			getAction := actions[1]
+			updateAction := actions[2]
+			Expect(getAction.Matches("get", "serviceinstances")).To(BeTrue())
+			Expect(updateAction.Matches("update", "serviceinstances")).To(BeTrue())
+
+			// verify the details of the get
+			get, ok := getAction.(testing.GetActionImpl)
+			Expect(ok).To(BeTrue())
+			Expect(get.Name).To(Equal(instanceName))
+			Expect(get.Namespace).To(Equal(namespace))
+
+			// verify the details of the update
+			update, ok := updateAction.(testing.UpdateActionImpl)
+			Expect(ok).To(BeTrue())
+			Expect(update.Namespace).To(Equal(namespace))
+			obj, ok := update.Object.(*v1beta1.ServiceInstance)
+			Expect(ok).To(BeTrue())
+			Expect(obj.Name).To(Equal(instanceName))
+			// obj.Spec.UpdateRequests is an int64, so compare it to an int64
+			Expect(obj.Spec.UpdateRequests).To(Equal(int64(1)))
+		})
+	})
 	Describe("InstanceParentHierarchy", func() {
 		It("calls the v1beta1 generated Get function repeatedly to build the heirarchy of the passed in service isntance", func() {
 			broker := &v1beta1.ClusterServiceBroker{ObjectMeta: metav1.ObjectMeta{Name: "foobar_broker"}}
