@@ -15195,7 +15195,7 @@ objects:
           args:
           - controller-manager
           - --secure-port
-          - "6444"
+          - "6443"
           - -v
           - "3"
           - --leader-election-namespace
@@ -15210,7 +15210,7 @@ objects:
           imagePullPolicy: IfNotPresent
           name: controller-manager
           ports:
-          - containerPort: 6444
+          - containerPort: 6443
             protocol: TCP
           resources: {}
           terminationMessagePath: /dev/termination-log
@@ -15226,13 +15226,30 @@ objects:
         - name: service-catalog-ssl
           secret:
             defaultMode: 420
-            secretName: apiserver-ssl
+            secretName: controllermanager-ssl
             items:
             - key: tls.crt
               path: apiserver.crt
             - key: tls.key
               path: apiserver.key
-
+- kind: Service
+  apiVersion: v1
+  metadata:
+    name: controller-manager
+    annotations:
+      service.alpha.openshift.io/serving-cert-secret-name: 'controllermanager-ssl'
+      prometheus.io/scrape: "true"
+      prometheus.io/scheme: https
+  spec:
+    type: ClusterIP
+    ports:
+    - name: secure
+      port: 6443
+      protocol: TCP
+      targetPort: 6443
+    selector:
+      app: controller-manager
+    sessionAffinity: None
 - apiVersion: apiregistration.k8s.io/v1beta1
   kind: APIService
   metadata:
