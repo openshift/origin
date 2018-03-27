@@ -50,8 +50,9 @@ can be built locally or in the `openshift/origin-release` container environment.
 http://golang.org/[Go] programming language is only necessary for building on
 the local host.
 
-Currently, OpenShift is built with `go` 1.8 and uses Docker 1.12. The exact
-requirement for Docker is documented
+Currently, OpenShift is built with `go` 1.9 and uses Docker 1.13 on Fedora/CentOS/RHEL.
+MacOS supports builds with `go` 1.9 and Docker CE 17.09.1 - newer versions of go and Docker are not supported.
+The exact requirement for Docker is documented
 https://docs.openshift.org/latest/install_config/install/prerequisites.html#installing-docker[here].
 
 ==== Installing Prerequisites
@@ -65,17 +66,23 @@ $ brew install git
 ----
 
 Then, follow the instructions to install https://docs.docker.com/docker-for-mac/install/[`docker`].
+Search the https://docs.docker.com/docker-for-mac/release-notes/[Docker for Mac releases] to find a link:/docs/cluster_up_down.md#prerequisites[supported
+version] to download.
 You will need to build `linux/amd64` binaries for the OpenShift server; if you
 want to do the builds locally, you will need to follow the instructions to
 install https://golang.org/doc/install#install[the `go` programming language].
+Go `pkg` installers can be downloaded https://golang.org/dl/[here].
 
 ===== Windows
 
 Follow the installation steps to install https://git-for-windows.github.io/[`git` for Windows]
 and https://docs.docker.com/docker-for-windows/install/[`docker`].
+Search the https://docs.docker.com/docker-for-windows/release-notes/[Docker for Windows releases] to find a link:/docs/cluster_up_down.md#prerequisites[supported
+version] to download.
 You will need to build `linux/amd64` binaries for the OpenShift server; if you
 want to do the builds locally, you will need to follow the instructions to
 install https://golang.org/doc/install#windows[the `go` programming language].
+Go `msi` installers can be downloaded https://golang.org/dl/[here].
 
 ===== Fedora
 
