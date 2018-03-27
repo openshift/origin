@@ -19,12 +19,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit d0f7e8adb9aec4eca99fcf3e7c64cac27b8830b2
+%global commit 2f3f2a8b35a867a26cc68c20dc422c84531af9f0
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=10+ OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.10.0-0.12.0 OS_GIT_TREE_STATE=clean OS_GIT_PATCH=0 KUBE_GIT_VERSION=v1.9.1+a0ce1bc657 OS_GIT_CATALOG_VERSION=v0.1.9 KUBE_GIT_COMMIT=a0ce1bc OS_GIT_COMMIT=0876b11 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.16 ETCD_GIT_COMMIT=121edf0
+%global os_git_vars OS_GIT_MINOR=10+ OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.10.0-0.13.0 OS_GIT_TREE_STATE=clean OS_GIT_PATCH=0 KUBE_GIT_VERSION=v1.9.1+a0ce1bc657 OS_GIT_CATALOG_VERSION=v0.1.9 KUBE_GIT_COMMIT=a0ce1bc OS_GIT_COMMIT=0b11219 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.16 ETCD_GIT_COMMIT=121edf0
 }
 
 %if 0%{?skip_build}
@@ -67,7 +67,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.10.0
-Release:        0.13.0%{?dist}
+Release:        0.14.0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -607,6 +607,64 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Mon Mar 26 2018 Justin Pierce <jupierce@redhat.com> 3.10.0-0.14.0
+- tests: use tmp as base-dir for cluster up tests (mfojtik@redhat.com)
+- bootstrap: fix mounting shared volumes in osx (mfojtik@redhat.com)
+- make cluster up us local config path by default (deads@redhat.com)
+- cli: get latest rc from a dc when selecting pod to rsh (mfojtik@redhat.com)
+- Add ValidArgs to rollout cancel (nakayamakenjiro@gmail.com)
+- dind: crio runtime fixes (rpenta@redhat.com)
+- Remove unnecessary source in crio-node.sh (rpenta@redhat.com)
+- UPSTREAM: 61294: Fix cpu cfs quota flag with pod cgroups (decarr@redhat.com)
+- remove disabledfeatures from master config (deads@redhat.com)
+- generated (deads@redhat.com)
+- Change remaining --version flags to --tag for oc cluster up calls
+  (maszulik@redhat.com)
+- add init-gateways flag so that services that point to external ip addresses
+  work automatically (rchopra@redhat.com)
+- remove python from ovn installation (rchopra@redhat.com)
+- Enable async binding in service-catalog (pmorie@redhat.com)
+- replaceing ginkgolog with e2e.Logf (cdaley@redhat.com)
+- Pick build container for logs with istio auto-inject - fixes #18997
+  (jwozniak@redhat.com)
+- switch reversed old/new objects to validation (deads@redhat.com)
+- image-strategy: unset image signature annotations (miminar@redhat.com)
+- signature-controller: stop adding managed annotation (miminar@redhat.com)
+- Reencrypt routes are failing now (ccoleman@redhat.com)
+- Prevent a race in writer lease tests (ccoleman@redhat.com)
+- http port should not be configured for ssl (rchopra@redhat.com)
+- turn off jenkins update center sync in extended tests, save cpu/mem, prevent
+  test flakes (gmontero@redhat.com)
+- Updates db replica extended tests to use nfs backed persistent volumes
+  (cdaley@redhat.com)
+- Bug 1452162 - oc new-app eval ENV/ARG and ranges in dockerfile EXPOSE
+  (jwozniak@redhat.com)
+- UPSTREAM: 59931: do not delete node in openstack, if those still exist in
+  cloudprovider (sjenning@redhat.com)
+- make registry installation a component (deads@redhat.com)
+- UPSTREAM: 61287: provide easy methods for direct kubeconfig loading from
+  bytes (deads@redhat.com)
+- Convert down to schema1 for registries that don't support it
+  (ccoleman@redhat.com)
+- Minor refactor to mirror for better readability (ccoleman@redhat.com)
+- pull in recent jenkins template, imagestream updates (gmontero@redhat.com)
+- allow for bypass of not proceeding deployment check jenkins extended tests
+  given update center sync delay is now on startup (gmontero@redhat.com)
+- hardcode the routing suffix for oc cluster up (deads@redhat.com)
+- Default the kubelet IPTablesMasqueradeBit to the same value as the kube-proxy
+  IPTablesMasqueradeBit (danw@redhat.com)
+- Remove --version from oc cluster up and replace it with hidden --tag flag
+  (maszulik@redhat.com)
+- Check namespace when follow tag reference (obulatov@redhat.com)
+- Add virtual resource for SAR checks (agladkov@redhat.com)
+- update to TestMasterConfig (jtanenba@redhat.com)
+- modification of the serialization_test.go (jtanenba@redhat.com)
+- Remove requirement of having deprecated clusterNetworkCIDR/hostSubnetLength
+  in master.networkConfig (jtanenba@redhat.com)
+- upgrade prometheus v2.0.0 -> v2.1.0 (pgier@redhat.com)
+- UPSTREAM: 59301: dockershim: don't check pod IP in StopPodSandbox
+  (dcbw@redhat.com)
+
 * Tue Mar 20 2018 Justin Pierce <jupierce@redhat.com> 3.10.0-0.13.0
 - Stress test gets one more write because of retry (ccoleman@redhat.com)
 - Ensure that two functions added for the same work key get run
