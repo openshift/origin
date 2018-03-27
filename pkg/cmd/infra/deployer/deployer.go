@@ -137,8 +137,8 @@ func NewDeployer(client kclientset.Interface, images imageclientinternal.Interfa
 			case appsapi.DeploymentStrategyTypeRecreate:
 				return recreate.NewRecreateDeploymentStrategy(client, images.Image(), &kv1core.EventSinkImpl{Interface: kv1core.New(client.Core().RESTClient()).Events("")}, legacyscheme.Codecs.UniversalDecoder(), out, errOut, until), nil
 			case appsapi.DeploymentStrategyTypeRolling:
-				recreate := recreate.NewRecreateDeploymentStrategy(client, images.Image(), &kv1core.EventSinkImpl{Interface: kv1core.New(client.Core().RESTClient()).Events("")}, legacyscheme.Codecs.UniversalDecoder(), out, errOut, until)
-				return rolling.NewRollingDeploymentStrategy(config.Namespace, client, images.Image(), &kv1core.EventSinkImpl{Interface: kv1core.New(client.Core().RESTClient()).Events("")}, legacyscheme.Codecs.UniversalDecoder(), recreate, out, errOut, until), nil
+				recreateDeploymentStrategy := recreate.NewRecreateDeploymentStrategy(client, images.Image(), &kv1core.EventSinkImpl{Interface: kv1core.New(client.Core().RESTClient()).Events("")}, legacyscheme.Codecs.UniversalDecoder(), out, errOut, until)
+				return rolling.NewRollingDeploymentStrategy(config.Namespace, client, images.Image(), legacyscheme.Codecs.UniversalDecoder(), recreateDeploymentStrategy, out, errOut, until), nil
 			default:
 				return nil, fmt.Errorf("unsupported strategy type: %s", config.Spec.Strategy.Type)
 			}
@@ -254,6 +254,6 @@ func (d *Deployer) Deploy(namespace, rcName string) error {
 	if err := s.Deploy(from, to, int(desiredReplicas)); err != nil {
 		return err
 	}
-	fmt.Fprintf(d.out, "--> Success\n")
+	fmt.Fprintln(d.out, "--> Success")
 	return nil
 }

@@ -89,23 +89,6 @@ func EachTemplateImage(pod *kapi.PodSpec, triggerFn TriggeredByFunc, fn func(Tem
 	}
 }
 
-// EachContainer iterates a pod spec with each container.
-func EachContainer(pod *kapi.PodSpec, fn func(*kapi.Container) error) error {
-	for i := range pod.InitContainers {
-		container := &pod.InitContainers[i]
-		if err := fn(container); err != nil {
-			return err
-		}
-	}
-	for i := range pod.Containers {
-		container := &pod.Containers[i]
-		if err := fn(container); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 // TriggeredByFunc returns a TemplateImage or error from the provided container
 type TriggeredByFunc func(container *kapi.Container) (TemplateImage, bool)
 

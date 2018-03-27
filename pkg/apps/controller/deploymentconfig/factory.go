@@ -40,7 +40,7 @@ func NewDeploymentConfigController(
 
 	c := &DeploymentConfigController{
 		dn: appsClientset.Apps(),
-		rn: kubeClientset.Core(),
+		rn: kubeClientset.CoreV1(),
 
 		queue: workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
 
@@ -115,12 +115,12 @@ func (c *DeploymentConfigController) deleteDeploymentConfig(obj interface{}) {
 	if !ok {
 		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
 		if !ok {
-			utilruntime.HandleError(fmt.Errorf("Couldn't get object from tombstone %+v", obj))
+			utilruntime.HandleError(fmt.Errorf("couldn't get object from tombstone %+v", obj))
 			return
 		}
 		dc, ok = tombstone.Obj.(*appsapi.DeploymentConfig)
 		if !ok {
-			utilruntime.HandleError(fmt.Errorf("Tombstone contained object that is not a deployment config: %+v", obj))
+			utilruntime.HandleError(fmt.Errorf("tombstone contained object that is not a deployment config: %+v", obj))
 			return
 		}
 	}
@@ -156,12 +156,12 @@ func (c *DeploymentConfigController) deleteReplicationController(obj interface{}
 	if !ok {
 		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
 		if !ok {
-			utilruntime.HandleError(fmt.Errorf("Couldn't get object from tombstone %#v", obj))
+			utilruntime.HandleError(fmt.Errorf("couldn't get object from tombstone %#v", obj))
 			return
 		}
 		rc, ok = tombstone.Obj.(*v1.ReplicationController)
 		if !ok {
-			utilruntime.HandleError(fmt.Errorf("Tombstone contained object that is not a replication controller %#v", obj))
+			utilruntime.HandleError(fmt.Errorf("tombstone contained object that is not a replication controller %#v", obj))
 			return
 		}
 	}
@@ -173,7 +173,7 @@ func (c *DeploymentConfigController) deleteReplicationController(obj interface{}
 func (c *DeploymentConfigController) enqueueDeploymentConfig(dc *appsapi.DeploymentConfig) {
 	key, err := kcontroller.KeyFunc(dc)
 	if err != nil {
-		utilruntime.HandleError(fmt.Errorf("Couldn't get key for object %#v: %v", dc, err))
+		utilruntime.HandleError(fmt.Errorf("couldn't get key for object %#v: %v", dc, err))
 		return
 	}
 	c.queue.Add(key)
