@@ -174,6 +174,10 @@ func GetApplicationPods(oc *CLI, dcName string) (*kapiv1.PodList, error) {
 	return oc.AdminKubeClient().CoreV1().Pods(oc.Namespace()).List(metav1.ListOptions{LabelSelector: ParseLabelsOrDie(fmt.Sprintf("deploymentconfig=%s", dcName)).String()})
 }
 
+func GetStatefulSetPods(oc *CLI, setName string) (*kapiv1.PodList, error) {
+	return oc.AdminKubeClient().CoreV1().Pods(oc.Namespace()).List(metav1.ListOptions{LabelSelector: ParseLabelsOrDie(fmt.Sprintf("name=%s", setName)).String()})
+}
+
 // DumpDeploymentLogs will dump the latest deployment logs for a DeploymentConfig for debug purposes
 func DumpDeploymentLogs(dcName string, version int64, oc *CLI) {
 	e2e.Logf("Dumping deployment logs for deploymentconfig %q\n", dcName)
@@ -808,7 +812,7 @@ var CheckImageStreamTagNotFoundFn = func(i *imageapi.ImageStream) bool {
 
 // WaitForDeploymentConfig waits for a DeploymentConfig to complete transition
 // to a given version and report minimum availability.
-func WaitForDeploymentConfig(kc kclientset.Interface, dcClient appstypeclientset.DeploymentConfigsGetter, namespace, name string, version int64, cli *CLI) error {
+func WaitForDeploymentConfig(kc kclientset.Interface, dcClient appstypeclientset.DeploymentConfigsGetter, namespace, name string, version int64, enforceNotProgressing bool, cli *CLI) error {
 	e2e.Logf("waiting for deploymentconfig %s/%s to be available with version %d\n", namespace, name, version)
 	var dc *appsapi.DeploymentConfig
 
@@ -841,8 +845,10 @@ func WaitForDeploymentConfig(kc kclientset.Interface, dcClient appstypeclientset
 			}
 		}
 
-		if progressing != nil && progressing.Status == kapi.ConditionFalse {
-			return false, fmt.Errorf("not progressing")
+		if enforceNotProgressing {
+			if progressing != nil && progressing.Status == kapi.ConditionFalse {
+				return false, fmt.Errorf("not progressing")
+			}
 		}
 
 		if progressing != nil &&

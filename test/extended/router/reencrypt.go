@@ -11,6 +11,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 
+	routeclientset "github.com/openshift/client-go/route/clientset/versioned"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -18,10 +19,24 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 	defer g.GinkgoRecover()
 	var (
 		configPath = exutil.FixturePath("testdata", "reencrypt-serving-cert.yaml")
-		oc         = exutil.NewCLI("router-reencrypt", exutil.KubeConfigPath())
+		oc         *exutil.CLI
 
 		ip, ns string
 	)
+
+	// this hook must be registered before the framework namespace teardown
+	// hook
+	g.AfterEach(func() {
+		if g.CurrentGinkgoTestDescription().Failed {
+			client := routeclientset.NewForConfigOrDie(oc.AdminConfig()).Route().Routes(ns)
+			if routes, _ := client.List(metav1.ListOptions{}); routes != nil {
+				outputIngress(routes.Items...)
+			}
+			exutil.DumpPodLogsStartingWithInNamespace("router", "default", oc.AsAdmin())
+		}
+	})
+
+	oc = exutil.NewCLI("router-reencrypt", exutil.KubeConfigPath())
 
 	g.BeforeEach(func() {
 		svc, err := oc.AdminKubeClient().Core().Services("default").Get("router", metav1.GetOptions{})

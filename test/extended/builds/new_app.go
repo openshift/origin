@@ -59,7 +59,7 @@ var _ = g.Describe("[Feature:Builds][Conformance] oc new-app", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for the deployment to complete")
-			err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().Apps(), oc.Namespace(), a58, 1, oc)
+			err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().Apps(), oc.Namespace(), a58, 1, true, oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 

@@ -72,7 +72,10 @@
               "kind": "ImageStreamTag",
               "name": "2"
             },
-            "name": "latest"
+            "name": "latest",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -87,7 +90,10 @@
               "kind": "DockerImage",
               "name": "registry.access.redhat.com/openshift3/jenkins-1-rhel7:latest"
             },
-            "name": "1"
+            "name": "1",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -102,7 +108,10 @@
               "kind": "DockerImage",
               "name": "registry.access.redhat.com/openshift3/jenkins-2-rhel7:v3.10"
             },
-            "name": "2"
+            "name": "2",
+            "referencePolicy": {
+              "type": "Local"
+            }
           }
         ]
       }

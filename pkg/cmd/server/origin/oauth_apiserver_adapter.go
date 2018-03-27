@@ -8,7 +8,6 @@ import (
 	utilflag "k8s.io/apiserver/pkg/util/flag"
 
 	routeclient "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1"
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	"github.com/openshift/origin/pkg/oauthserver/oauthserver"
 )
@@ -66,9 +65,7 @@ func NewOAuthServerConfigFromMasterConfig(masterConfig *MasterConfig, listener n
 	oauthServerConfig.ExtraOAuthConfig.KubeClient = masterConfig.PrivilegedLoopbackKubernetesClientsetExternal
 
 	// Build the list of valid redirect_uri prefixes for a login using the openshift-web-console client to redirect to
-	if !options.DisabledFeatures.Has(configapi.FeatureWebConsole) {
-		oauthServerConfig.ExtraOAuthConfig.AssetPublicAddresses = []string{oauthConfig.AssetPublicURL}
-	}
+	oauthServerConfig.ExtraOAuthConfig.AssetPublicAddresses = []string{oauthConfig.AssetPublicURL}
 
 	return oauthServerConfig, nil
 }

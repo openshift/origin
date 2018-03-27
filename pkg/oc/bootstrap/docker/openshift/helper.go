@@ -32,9 +32,11 @@ const (
 	DefaultDNSPort       = 8053
 	DefaultSvcCIDR       = "172.30.0.0/16"
 	cmdDetermineNodeHost = "for name in %s; do ls /var/lib/origin/openshift.local.config/node-$name &> /dev/null && echo $name && break; done"
-	ContainerName        = "origin"
-	Namespace            = "openshift"
-	InfraNamespace       = "openshift-infra"
+
+	// TODO: Figure out why cluster up relies on this name
+	ContainerName  = "origin"
+	Namespace      = "openshift"
+	InfraNamespace = "openshift-infra"
 )
 
 var (

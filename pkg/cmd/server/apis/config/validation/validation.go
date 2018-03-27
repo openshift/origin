@@ -234,18 +234,6 @@ func ValidateHTTPServingInfo(info config.HTTPServingInfo, fldPath *field.Path) V
 	return validationResults
 }
 
-func ValidateDisabledFeatures(disabledFeatures []string, fldPath *field.Path) field.ErrorList {
-	allErrs := field.ErrorList{}
-
-	for i, feature := range disabledFeatures {
-		if _, isKnown := config.NormalizeOpenShiftFeature(feature); !isKnown {
-			allErrs = append(allErrs, field.Invalid(fldPath.Index(i), disabledFeatures[i], fmt.Sprintf("not one of valid features: %s", strings.Join(config.KnownOpenShiftFeatures, ", "))))
-		}
-	}
-
-	return allErrs
-}
-
 func ValidateKubeConfig(path string, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 

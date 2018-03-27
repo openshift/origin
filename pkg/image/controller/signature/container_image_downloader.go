@@ -62,9 +62,6 @@ func (s *containerImageSignatureDownloader) DownloadImageSignatures(image *image
 		// signature.
 		sig.Name = imageapi.JoinImageStreamImage(image.Name, fmt.Sprintf("%x", sha256.Sum256(blob)))
 		sig.Content = blob
-		sig.Annotations = map[string]string{
-			SignatureManagedAnnotation: "true",
-		}
 		sig.CreationTimestamp = metav1.Now()
 		ret = append(ret, sig)
 	}

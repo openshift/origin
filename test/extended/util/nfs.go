@@ -170,15 +170,6 @@ func RemoveNFSServer(oc *CLI) error {
 	if _, err := oc.AsAdmin().Run("adm").Args("policy", "remove-scc-from-user", "privileged", fmt.Sprintf("system:serviceaccount:%s:default", oc.Namespace())).Output(); err != nil {
 		errs = append(errs, err)
 	}
-	// The DeploymentConfig in the Jenkins Persistent template uses the "Recreate" strategy, which will cause the
-	// Jenkins pod to recreate after it is deleted.  Since we have to delete the persistent volume at the end of the
-	// tests that use the NFSServer backed persistent volume, this causes the Jenkins pod to stall trying to recreate
-	// without having a valid persistent volume to use, which causes the test cleanup to fail because it can't delete
-	// the namespace.  So we have to delete the Jenkins DeploymentConfig manually instead of allowing the test runner
-	// to clean up the namespace.
-	e2e.Logf("Removing jenkins deployment config")
-	if err := oc.AdminAppsClient().Apps().DeploymentConfigs(oc.Namespace()).Delete("jenkins", &metav1.DeleteOptions{}); err != nil {
-		errs = append(errs, err)
-	}
+
 	return kutilerrors.NewAggregate(errs)
 }

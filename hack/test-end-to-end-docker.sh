@@ -62,15 +62,12 @@ os::log::info "Using images:							${USE_IMAGES}"
 os::log::info "Starting OpenShift containerized server"
 CLUSTERUP_DIR="${BASETMPDIR}"/cluster-up
 mkdir "${CLUSTERUP_DIR}"
-oc cluster up --server-loglevel=4 --version="${TAG}" \
-        --host-data-dir="${VOLUME_DIR}/etcd" \
-        --host-volumes-dir="${VOLUME_DIR}" \
-        --host-config-dir="${CLUSTERUP_DIR}" \
+oc cluster up --server-loglevel=4 --tag="${TAG}" \
+        --base-dir="${CLUSTERUP_DIR}" \
         --write-config
-oc cluster up --server-loglevel=4 --version="${TAG}" \
-        --host-config-dir="${CLUSTERUP_DIR}" \
-        --host-data-dir="${VOLUME_DIR}/etcd" \
-        --host-volumes-dir="${VOLUME_DIR}"
+        
+oc cluster up --server-loglevel=4 --tag="${TAG}" \
+        --base-dir="${CLUSTERUP_DIR}"
 
 MASTER_CONFIG_DIR="${CLUSTERUP_DIR}/oc-cluster-up-kube-apiserver/master"
 

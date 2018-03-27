@@ -102,8 +102,6 @@ type OpenshiftAPIExtraConfig struct {
 	ProjectRequestTemplate    string
 	ProjectRequestMessage     string
 
-	EnableBuilds bool
-
 	// oauth API server
 	ServiceAccountMethod configapi.GrantHandlerType
 
@@ -274,9 +272,6 @@ func (c *completedConfig) withAuthorizationAPIServer(delegateAPIServer genericap
 }
 
 func (c *completedConfig) withBuildAPIServer(delegateAPIServer genericapiserver.DelegationTarget) (genericapiserver.DelegationTarget, legacyStorageMutator, error) {
-	if !c.ExtraConfig.EnableBuilds {
-		return delegateAPIServer, legacyStorageMutatorFunc(func(map[schema.GroupVersion]map[string]rest.Storage) {}), nil
-	}
 
 	cfg := &buildapiserver.BuildServerConfig{
 		GenericConfig: &genericapiserver.RecommendedConfig{Config: *c.GenericConfig.Config},

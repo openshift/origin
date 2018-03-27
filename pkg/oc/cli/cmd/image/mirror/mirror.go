@@ -1,18 +1,26 @@
 package mirror
 
 import (
+	"bufio"
 	"fmt"
 	"io"
+	"os"
 	"regexp"
 	"strings"
+	"sync"
 
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/manifest/manifestlist"
+	"github.com/docker/distribution/manifest/schema1"
 	"github.com/docker/distribution/manifest/schema2"
 	"github.com/docker/distribution/reference"
+	"github.com/docker/distribution/registry/api/errcode"
+	"github.com/docker/distribution/registry/api/v2"
 	"github.com/docker/distribution/registry/client"
 	"github.com/docker/distribution/registry/client/auth"
+
 	units "github.com/docker/go-units"
+	"github.com/docker/libtrust"
 	"github.com/golang/glog"
 	godigest "github.com/opencontainers/go-digest"
 	"github.com/spf13/cobra"
@@ -89,6 +97,8 @@ type Mapping struct {
 type pushOptions struct {
 	Out, ErrOut io.Writer
 
+	Filenames []string
+
 	Mappings []Mapping
 	OSFilter *regexp.Regexp
 
@@ -130,6 +140,7 @@ func NewCmdMirrorImage(name string, out, errOut io.Writer) *cobra.Command {
 	flag.StringVar(&o.FilterByOS, "filter-by-os", o.FilterByOS, "A regular expression to control which images are mirrored. Images will be passed as '<platform>/<architecture>[/<variant>]'.")
 	flag.BoolVar(&o.Force, "force", o.Force, "If true, attempt to write all contents.")
 	flag.StringSliceVar(&o.AttemptS3BucketCopy, "s3-source-bucket", o.AttemptS3BucketCopy, "A list of bucket/path locations on S3 that may contain already uploaded blobs. Add [store] to the end to use the Docker registry path convention.")
+	flag.StringSliceVarP(&o.Filenames, "filename", "f", o.Filenames, "One or more files to read SRC=DST or SRC DST [DST ...] mappings from.")
 
 	return cmd
 }
@@ -162,9 +173,9 @@ func parseDestination(ref string) (imageapi.DockerImageReference, DestinationTyp
 	return dst, dstType, nil
 }
 
-func (o *pushOptions) Complete(args []string) error {
+func parseArgs(args []string, overlap map[string]string) ([]Mapping, error) {
 	var remainingArgs []string
-	overlap := make(map[string]string)
+	var mappings []Mapping
 	for _, s := range args {
 		parts := strings.SplitN(s, "=", 2)
 		if len(parts) != 2 {
@@ -172,46 +183,99 @@ func (o *pushOptions) Complete(args []string) error {
 			continue
 		}
 		if len(parts[0]) == 0 || len(parts[1]) == 0 {
-			return fmt.Errorf("all arguments must be valid SRC=DST mappings")
+			return nil, fmt.Errorf("all arguments must be valid SRC=DST mappings")
 		}
 		src, err := parseSource(parts[0])
 		if err != nil {
-			return err
+			return nil, err
 		}
 		dst, dstType, err := parseDestination(parts[1])
 		if err != nil {
-			return err
+			return nil, err
 		}
 		if _, ok := overlap[dst.String()]; ok {
-			return fmt.Errorf("each destination tag may only be specified once: %s", dst.String())
+			return nil, fmt.Errorf("each destination tag may only be specified once: %s", dst.String())
 		}
 		overlap[dst.String()] = src.String()
 
-		o.Mappings = append(o.Mappings, Mapping{Source: src, Destination: dst, Type: dstType})
+		mappings = append(mappings, Mapping{Source: src, Destination: dst, Type: dstType})
 	}
 
 	switch {
-	case len(remainingArgs) == 0 && len(o.Mappings) > 0:
-		// user has input arguments
-	case len(remainingArgs) > 1 && len(o.Mappings) == 0:
+	case len(remainingArgs) > 1 && len(mappings) == 0:
 		src, err := parseSource(remainingArgs[0])
 		if err != nil {
-			return err
+			return nil, err
 		}
 		for i := 1; i < len(remainingArgs); i++ {
 			dst, dstType, err := parseDestination(remainingArgs[i])
 			if err != nil {
-				return err
+				return nil, err
 			}
 			if _, ok := overlap[dst.String()]; ok {
-				return fmt.Errorf("each destination tag may only be specified once: %s", dst.String())
+				return nil, fmt.Errorf("each destination tag may only be specified once: %s", dst.String())
 			}
 			overlap[dst.String()] = src.String()
-			o.Mappings = append(o.Mappings, Mapping{Source: src, Destination: dst, Type: dstType})
+			mappings = append(mappings, Mapping{Source: src, Destination: dst, Type: dstType})
 		}
-	case len(remainingArgs) == 1 && len(o.Mappings) == 0:
-		return fmt.Errorf("all arguments must be valid SRC=DST mappings, or you must specify one SRC argument and one or more DST arguments")
-	default:
+	case len(remainingArgs) == 1 && len(mappings) == 0:
+		return nil, fmt.Errorf("all arguments must be valid SRC=DST mappings, or you must specify one SRC argument and one or more DST arguments")
+	}
+	return mappings, nil
+}
+
+func parseFile(filename string, overlap map[string]string) ([]Mapping, error) {
+	var fileMappings []Mapping
+	f, err := os.Open(filename)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	s := bufio.NewScanner(f)
+	lineNumber := 0
+	for s.Scan() {
+		line := s.Text()
+		lineNumber++
+
+		// remove comments and whitespace
+		if i := strings.Index(line, "#"); i != -1 {
+			line = line[0:i]
+		}
+		line = strings.TrimSpace(line)
+		if len(line) == 0 {
+			continue
+		}
+
+		args := strings.Split(line, " ")
+		mappings, err := parseArgs(args, overlap)
+		if err != nil {
+			return nil, fmt.Errorf("file %s, line %d: %v", filename, lineNumber, err)
+		}
+		fileMappings = append(fileMappings, mappings...)
+	}
+	if err := s.Err(); err != nil {
+		return nil, err
+	}
+	return fileMappings, nil
+}
+
+func (o *pushOptions) Complete(args []string) error {
+	overlap := make(map[string]string)
+
+	var err error
+	o.Mappings, err = parseArgs(args, overlap)
+	if err != nil {
+		return err
+	}
+	for _, filename := range o.Filenames {
+		mappings, err := parseFile(filename, overlap)
+		if err != nil {
+			return err
+		}
+		o.Mappings = append(o.Mappings, mappings...)
+	}
+
+	if len(o.Mappings) == 0 {
 		return fmt.Errorf("you must specify at least one source image to pull and the destination to push to as SRC=DST or SRC DST [DST2 DST3 ...]")
 	}
 
@@ -453,137 +517,17 @@ func (o *pushOptions) Run() error {
 						glog.V(4).Infof("Manifest exists in %s, no need to copy layers without --force", dst.ref)
 					}
 				}
+
 				if mustCopyLayers {
-					// upload all the blobs
-					toBlobs := toRepo.Blobs(ctx)
-					srcBlobs := srcRepo.Blobs(ctx)
-
-					// upload the each manifest
-					for _, srcManifest := range srcManifests {
-						switch srcManifest.(type) {
-						case *schema2.DeserializedManifest:
-						case *manifestlist.DeserializedManifestList:
-							// we do not need to upload layers in a manifestlist
-							continue
-						default:
-							digestErrs = append(digestErrs, retrieverError{src: src.ref, dst: dst.ref, err: fmt.Errorf("the manifest type %T is not supported", srcManifest)})
-							continue
-						}
-
-						for _, blob := range srcManifest.References() {
-							blobSource, err := reference.WithDigest(canonicalFrom, blob.Digest)
-							if err != nil {
-								digestErrs = append(digestErrs, retrieverError{src: src.ref, dst: dst.ref, err: fmt.Errorf("unexpected error building named digest: %v", err)})
-								continue
-							}
-
-							// if we aren't forcing upload, skip the blob copy
-							if !o.Force {
-								_, err := toBlobs.Stat(ctx, blob.Digest)
-								if err == nil {
-									// blob exists, skip
-									glog.V(5).Infof("Server reports blob exists %#v", blob)
-									continue
-								}
-								if err != distribution.ErrBlobUnknown {
-									glog.V(5).Infof("Server was unable to check whether blob exists %s: %v", blob.Digest, err)
-								}
-							}
-
-							var options []distribution.BlobCreateOption
-							if !o.SkipMount {
-								options = append(options, client.WithMountFrom(blobSource), WithDescriptor(blob))
-							}
-							w, err := toBlobs.Create(ctx, options...)
-							// no-op
-							if err == ErrAlreadyExists {
-								glog.V(5).Infof("Blob already exists %#v", blob)
-								continue
-							}
-							// mount successful
-							if ebm, ok := err.(distribution.ErrBlobMounted); ok {
-								glog.V(5).Infof("Blob mounted %#v", blob)
-								if ebm.From.Digest() != blob.Digest {
-									digestErrs = append(digestErrs, retrieverError{src: src.ref, dst: dst.ref, err: fmt.Errorf("unable to push %s: tried to mount blob %s src source and got back a different digest %s", src.ref, blob.Digest, ebm.From.Digest())})
-									break
-								}
-								continue
-							}
-							if err != nil {
-								digestErrs = append(digestErrs, retrieverError{src: src.ref, dst: dst.ref, err: fmt.Errorf("unable to upload blob %s to %s: %v", blob.Digest, dst.ref, err)})
-								break
-							}
-
-							err = func() error {
-								glog.V(5).Infof("Uploading blob %s", blob.Digest)
-								defer w.Cancel(ctx)
-								r, err := srcBlobs.Open(ctx, blob.Digest)
-								if err != nil {
-									return fmt.Errorf("unable to open source layer %s to copy to %s: %v", blob.Digest, dst.ref, err)
-								}
-								defer r.Close()
-
-								switch dst.t {
-								case DestinationS3:
-									fmt.Fprintf(o.ErrOut, "uploading: s3://%s %s %s\n", dst.ref, blob.Digest, units.BytesSize(float64(blob.Size)))
-								default:
-									fmt.Fprintf(o.ErrOut, "uploading: %s %s %s\n", dst.ref, blob.Digest, units.BytesSize(float64(blob.Size)))
-								}
-
-								n, err := w.ReadFrom(r)
-								if err != nil {
-									return fmt.Errorf("unable to copy layer %s to %s: %v", blob.Digest, dst.ref, err)
-								}
-								if n != blob.Size {
-									fmt.Fprintf(o.ErrOut, "warning: Layer size mismatch for %s: had %d, wrote %d\n", blob.Digest, blob.Size, n)
-								}
-								_, err = w.Commit(ctx, blob)
-								return err
-							}()
-							if err != nil {
-								_, srcBody, _ := srcManifest.Payload()
-								srcManifestDigest := godigest.Canonical.FromBytes(srcBody)
-								if srcManifestDigest == srcDigest {
-									digestErrs = append(digestErrs, retrieverError{src: src.ref, dst: dst.ref, err: fmt.Errorf("failed to commit blob %s from manifest %s to %s: %v", blob.Digest, srcManifestDigest, dst.ref, err)})
-								} else {
-									digestErrs = append(digestErrs, retrieverError{src: src.ref, dst: dst.ref, err: fmt.Errorf("failed to commit blob %s from manifest %s in manifest list %s to %s: %v", blob.Digest, srcManifestDigest, srcDigest, dst.ref, err)})
-								}
-								break
-							}
-						}
+					if errs := uploadBlobs(ctx, dst, srcRepo, toRepo, srcManifests, src.ref, srcDigest, canonicalFrom, o.Force, o.SkipMount, o.ErrOut); len(errs) > 0 {
+						digestErrs = append(digestErrs, errs...)
+						continue
 					}
 				}
 
-				if len(digestErrs) > 0 {
+				if errs := uploadAndTagManifests(ctx, dst, srcManifest, src.ref, toManifests, o.Out, toRepo.Blobs(ctx), canonicalTo); len(errs) > 0 {
+					digestErrs = append(digestErrs, errs...)
 					continue
-				}
-
-				// upload and tag the manifest
-				for _, tag := range dst.tags {
-					toDigest, err := toManifests.Put(ctx, srcManifest, distribution.WithTag(tag))
-					if err != nil {
-						digestErrs = append(digestErrs, retrieverError{src: src.ref, dst: dst.ref, err: fmt.Errorf("unable to push manifest to %s: %v", dst.ref, err)})
-						continue
-					}
-					switch dst.t {
-					case DestinationS3:
-						fmt.Fprintf(o.Out, "%s s3://%s:%s\n", toDigest, dst.ref, tag)
-					default:
-						fmt.Fprintf(o.Out, "%s %s:%s\n", toDigest, dst.ref, tag)
-					}
-				}
-				if len(dst.tags) == 0 {
-					toDigest, err := toManifests.Put(ctx, srcManifest)
-					if err != nil {
-						digestErrs = append(digestErrs, retrieverError{src: src.ref, dst: dst.ref, err: fmt.Errorf("unable to push manifest to %s: %v", dst.ref, err)})
-						continue
-					}
-					switch dst.t {
-					case DestinationS3:
-						fmt.Fprintf(o.Out, "%s s3://%s\n", toDigest, dst.ref)
-					default:
-						fmt.Fprintf(o.Out, "%s %s\n", toDigest, dst.ref)
-					}
 				}
 			}
 		}
@@ -655,6 +599,251 @@ func processManifestList(ctx apirequest.Context, srcDigest godigest.Digest, srcM
 	default:
 		return []distribution.Manifest{srcManifest}, srcManifest, srcDigest, nil
 	}
+}
+
+func uploadBlobs(
+	ctx apirequest.Context,
+	dst destination,
+	srcRepo, toRepo distribution.Repository,
+	srcManifests []distribution.Manifest,
+	srcRef imageapi.DockerImageReference,
+	srcDigest godigest.Digest,
+	canonicalFrom reference.Named,
+	force bool,
+	skipMount bool,
+	errOut io.Writer,
+) []retrieverError {
+
+	// upload all the blobs
+	toBlobs := toRepo.Blobs(ctx)
+	srcBlobs := srcRepo.Blobs(ctx)
+
+	var errs []retrieverError
+
+	// upload the each manifest
+	for _, srcManifest := range srcManifests {
+		switch srcManifest.(type) {
+		case *schema2.DeserializedManifest:
+		case *manifestlist.DeserializedManifestList:
+			// we do not need to upload layers in a manifestlist
+			continue
+		default:
+			errs = append(errs, retrieverError{src: srcRef, dst: dst.ref, err: fmt.Errorf("the manifest type %T is not supported", srcManifest)})
+			continue
+		}
+
+		for _, blob := range srcManifest.References() {
+			blobSource, err := reference.WithDigest(canonicalFrom, blob.Digest)
+			if err != nil {
+				errs = append(errs, retrieverError{src: srcRef, dst: dst.ref, err: fmt.Errorf("unexpected error building named digest: %v", err)})
+				continue
+			}
+
+			// if we aren't forcing upload, skip the blob copy
+			if !force {
+				_, err := toBlobs.Stat(ctx, blob.Digest)
+				if err == nil {
+					// blob exists, skip
+					glog.V(5).Infof("Server reports blob exists %#v", blob)
+					continue
+				}
+				if err != distribution.ErrBlobUnknown {
+					glog.V(5).Infof("Server was unable to check whether blob exists %s: %v", blob.Digest, err)
+				}
+			}
+
+			var options []distribution.BlobCreateOption
+			if !skipMount {
+				options = append(options, client.WithMountFrom(blobSource), WithDescriptor(blob))
+			}
+			w, err := toBlobs.Create(ctx, options...)
+			// no-op
+			if err == ErrAlreadyExists {
+				glog.V(5).Infof("Blob already exists %#v", blob)
+				continue
+			}
+			// mount successful
+			if ebm, ok := err.(distribution.ErrBlobMounted); ok {
+				glog.V(5).Infof("Blob mounted %#v", blob)
+				if ebm.From.Digest() != blob.Digest {
+					errs = append(errs, retrieverError{src: srcRef, dst: dst.ref, err: fmt.Errorf("unable to push %s: tried to mount blob %s src source and got back a different digest %s", srcRef, blob.Digest, ebm.From.Digest())})
+					break
+				}
+				continue
+			}
+			if err != nil {
+				errs = append(errs, retrieverError{src: srcRef, dst: dst.ref, err: fmt.Errorf("unable to upload blob %s to %s: %v", blob.Digest, dst.ref, err)})
+				break
+			}
+
+			err = func() error {
+				glog.V(5).Infof("Uploading blob %s", blob.Digest)
+				defer w.Cancel(ctx)
+				r, err := srcBlobs.Open(ctx, blob.Digest)
+				if err != nil {
+					return fmt.Errorf("unable to open source layer %s to copy to %s: %v", blob.Digest, dst.ref, err)
+				}
+				defer r.Close()
+
+				switch dst.t {
+				case DestinationS3:
+					fmt.Fprintf(errOut, "uploading: s3://%s %s %s\n", dst.ref, blob.Digest, units.BytesSize(float64(blob.Size)))
+				default:
+					fmt.Fprintf(errOut, "uploading: %s %s %s\n", dst.ref, blob.Digest, units.BytesSize(float64(blob.Size)))
+				}
+
+				n, err := w.ReadFrom(r)
+				if err != nil {
+					return fmt.Errorf("unable to copy layer %s to %s: %v", blob.Digest, dst.ref, err)
+				}
+				if n != blob.Size {
+					fmt.Fprintf(errOut, "warning: Layer size mismatch for %s: had %d, wrote %d\n", blob.Digest, blob.Size, n)
+				}
+				_, err = w.Commit(ctx, blob)
+				return err
+			}()
+			if err != nil {
+				_, srcBody, _ := srcManifest.Payload()
+				srcManifestDigest := godigest.Canonical.FromBytes(srcBody)
+				if srcManifestDigest == srcDigest {
+					errs = append(errs, retrieverError{src: srcRef, dst: dst.ref, err: fmt.Errorf("failed to commit blob %s from manifest %s to %s: %v", blob.Digest, srcManifestDigest, dst.ref, err)})
+				} else {
+					errs = append(errs, retrieverError{src: srcRef, dst: dst.ref, err: fmt.Errorf("failed to commit blob %s from manifest %s in manifest list %s to %s: %v", blob.Digest, srcManifestDigest, srcDigest, dst.ref, err)})
+				}
+				break
+			}
+		}
+	}
+	return errs
+}
+
+func uploadAndTagManifests(
+	ctx apirequest.Context,
+	dst destination,
+	srcManifest distribution.Manifest,
+	srcRef imageapi.DockerImageReference,
+	toManifests distribution.ManifestService,
+	out io.Writer,
+	// supports schema2->schema1 downconversion
+	blobs distribution.BlobService,
+	ref reference.Named,
+) []retrieverError {
+	var errs []retrieverError
+
+	// upload and tag the manifest
+	for _, tag := range dst.tags {
+		toDigest, err := putManifestInCompatibleSchema(ctx, srcManifest, tag, toManifests, blobs, ref)
+		if err != nil {
+			errs = append(errs, retrieverError{src: srcRef, dst: dst.ref, err: fmt.Errorf("unable to push manifest to %s: %v", dst.ref, err)})
+			continue
+		}
+		switch dst.t {
+		case DestinationS3:
+			fmt.Fprintf(out, "%s s3://%s:%s\n", toDigest, dst.ref, tag)
+		default:
+			fmt.Fprintf(out, "%s %s:%s\n", toDigest, dst.ref, tag)
+		}
+	}
+	if len(dst.tags) != 0 {
+		return errs
+	}
+
+	// this is a pure manifest move, put the manifest by its id
+	toDigest, err := putManifestInCompatibleSchema(ctx, srcManifest, "latest", toManifests, blobs, ref)
+	if err != nil {
+		errs = append(errs, retrieverError{src: srcRef, dst: dst.ref, err: fmt.Errorf("unable to push manifest to %s: %v", dst.ref, err)})
+		return errs
+	}
+	switch dst.t {
+	case DestinationS3:
+		fmt.Fprintf(out, "%s s3://%s\n", toDigest, dst.ref)
+	default:
+		fmt.Fprintf(out, "%s %s\n", toDigest, dst.ref)
+	}
+	return errs
+}
+
+// TDOO: remove when quay.io switches to v2 schema
+func putManifestInCompatibleSchema(
+	ctx apirequest.Context,
+	srcManifest distribution.Manifest,
+	tag string,
+	toManifests distribution.ManifestService,
+	// supports schema2 -> schema1 downconversion
+	blobs distribution.BlobService,
+	ref reference.Named,
+) (godigest.Digest, error) {
+
+	toDigest, err := toManifests.Put(ctx, srcManifest, distribution.WithTag(tag))
+	if err == nil {
+		return toDigest, nil
+	}
+	errs, ok := err.(errcode.Errors)
+	if !ok || len(errs) == 0 {
+		return toDigest, err
+	}
+	errcode, ok := errs[0].(errcode.Error)
+	if !ok || errcode.ErrorCode() != v2.ErrorCodeManifestInvalid {
+		return toDigest, err
+	}
+	// try downconverting to v2-schema1
+	schema2Manifest, ok := srcManifest.(*schema2.DeserializedManifest)
+	if !ok {
+		return toDigest, err
+	}
+	ref, tagErr := reference.WithTag(ref, tag)
+	if tagErr != nil {
+		return toDigest, err
+	}
+	schema1Manifest, convertErr := convertToSchema1(ctx, blobs, schema2Manifest, ref)
+	if convertErr != nil {
+		return toDigest, err
+	}
+	return toManifests.Put(ctx, schema1Manifest, distribution.WithTag(tag))
+}
+
+// TDOO: remove when quay.io switches to v2 schema
+func convertToSchema1(ctx apirequest.Context, blobs distribution.BlobService, schema2Manifest *schema2.DeserializedManifest, ref reference.Named) (distribution.Manifest, error) {
+	targetDescriptor := schema2Manifest.Target()
+	configJSON, err := blobs.Get(ctx, targetDescriptor.Digest)
+	if err != nil {
+		return nil, err
+	}
+	trustKey, err := loadPrivateKey()
+	if err != nil {
+		return nil, err
+	}
+	builder := schema1.NewConfigManifestBuilder(blobs, trustKey, ref, configJSON)
+	for _, d := range schema2Manifest.Layers {
+		if err := builder.AppendReference(d); err != nil {
+			return nil, err
+		}
+	}
+	manifest, err := builder.Build(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return manifest, nil
+}
+
+var (
+	privateKeyLock sync.Mutex
+	privateKey     libtrust.PrivateKey
+)
+
+// TDOO: remove when quay.io switches to v2 schema
+func loadPrivateKey() (libtrust.PrivateKey, error) {
+	privateKeyLock.Lock()
+	defer privateKeyLock.Unlock()
+	if privateKey != nil {
+		return privateKey, nil
+	}
+	trustKey, err := libtrust.GenerateECP256PrivateKey()
+	if err != nil {
+		return nil, err
+	}
+	privateKey = trustKey
+	return privateKey, nil
 }
 
 type optionFunc func(interface{}) error

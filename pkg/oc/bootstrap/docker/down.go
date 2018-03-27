@@ -66,7 +66,7 @@ func (c *ClientStopConfig) Stop(out io.Writer) error {
 		glog.V(2).Infof("error: cannot kill socat: %v", err)
 	}
 	glog.V(4).Infof("Stopping and removing origin container")
-	if err = helper.StopAndRemoveContainer("origin"); err != nil {
+	if err = helper.StopAndRemoveContainer(openshift.ContainerName); err != nil {
 		glog.V(2).Infof("Error stopping origin container: %v", err)
 	}
 	names, err := helper.ListContainerNames()

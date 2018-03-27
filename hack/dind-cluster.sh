@@ -80,7 +80,7 @@ function start() {
     # dockershim is default and doesn't need an endpoint path
     runtime_endpoint=
   elif [[ "${container_runtime}" = "crio" ]]; then
-    runtime_endpoint="/var/run/crio.sock"
+    runtime_endpoint="unix:///var/run/crio/crio.sock"
   else
     >&2 echo "Invalid container runtime: ${container_runtime}"
     exit 1
@@ -581,12 +581,6 @@ function copy-ovn-runtime() {
   cp "${ovn_go_controller_built_binaries_path}/ovn-kube-util" "${target}"
   cp "${ovn_go_controller_built_binaries_path}/ovn-k8s-overlay" "${target}"
   cp "${ovn_go_controller_built_binaries_path}/ovn-k8s-cni-overlay" "${target}"
-
-  local ovn_k8s_binaries_path="${ovn_root}/bin"
-  cp "${ovn_k8s_binaries_path}/ovn-k8s-gateway-helper" "${target}"
-
-  local ovn_k8s_python_module_path="${ovn_root}/ovn_k8s"
-  cp -R "${ovn_k8s_python_module_path}" "${target}/"
 }
 
 function wait-for-cluster() {

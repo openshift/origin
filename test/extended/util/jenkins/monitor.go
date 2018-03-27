@@ -10,6 +10,7 @@ import (
 	o "github.com/onsi/gomega"
 
 	"k8s.io/apimachinery/pkg/util/wait"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -38,7 +39,7 @@ func (jmon *JobMon) Await(timeout time.Duration) error {
 		buildNumber, err := jmon.j.GetJobBuildNumber(jmon.jobName, time.Minute)
 		o.ExpectWithOffset(1, err).NotTo(o.HaveOccurred())
 
-		ginkgolog("Checking build number for job %q current[%v] vs last[%v]", jmon.jobName, buildNumber, jmon.lastBuildNumber)
+		e2e.Logf("Checking build number for job %q current[%v] vs last[%v]", jmon.jobName, buildNumber, jmon.lastBuildNumber)
 		if buildNumber == jmon.lastBuildNumber {
 			return false, nil
 		}
@@ -52,23 +53,23 @@ func (jmon *JobMon) Await(timeout time.Duration) error {
 
 		body = strings.ToLower(body)
 		if strings.Contains(body, "\"building\":true") {
-			ginkgolog("Jenkins job %q still building:\n%s\n\n", jmon.jobName, body)
+			e2e.Logf("Jenkins job %q still building:\n%s\n\n", jmon.jobName, body)
 			return false, nil
 		}
 
 		if strings.Contains(body, "\"result\":null") {
-			ginkgolog("Jenkins job %q still building result:\n%s\n\n", jmon.jobName, body)
+			e2e.Logf("Jenkins job %q still building result:\n%s\n\n", jmon.jobName, body)
 			return false, nil
 		}
 
-		ginkgolog("Jenkins job %q build complete:\n%s\n\n", jmon.jobName, body)
+		e2e.Logf("Jenkins job %q build complete:\n%s\n\n", jmon.jobName, body)
 		// If Jenkins job has completed, output its log
 		body, status, err = jmon.j.GetResource("job/%s/%s/consoleText", jmon.jobName, jmon.buildNumber)
 		if err != nil || status != 200 {
-			ginkgolog("Unable to retrieve job log from Jenkins.\nStatus code: %d\nError: %v\nResponse Text: %s\n", status, err, body)
+			e2e.Logf("Unable to retrieve job log from Jenkins.\nStatus code: %d\nError: %v\nResponse Text: %s\n", status, err, body)
 			return true, nil
 		}
-		ginkgolog("Jenkins job %q log:\n%s\n\n", jmon.jobName, body)
+		e2e.Logf("Jenkins job %q log:\n%s\n\n", jmon.jobName, body)
 		return true, nil
 	})
 	return err

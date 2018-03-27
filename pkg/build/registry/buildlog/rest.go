@@ -23,6 +23,7 @@ import (
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/build/apis/build/validation"
+	buildstrategy "github.com/openshift/origin/pkg/build/controller/strategy"
 	buildtypedclient "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
 	"github.com/openshift/origin/pkg/build/registry"
 	buildutil "github.com/openshift/origin/pkg/build/util"
@@ -306,7 +307,11 @@ func (r *REST) Get(ctx apirequest.Context, name string, opts runtime.Object) (ru
 			}
 
 			containerLogOpts := buildapi.BuildToPodLogOptions(buildLogOpts)
-			containerLogOpts.Container = ""
+			containerLogOpts.Container = selectBuilderContainer(buildPod.Spec.Containers)
+			if containerLogOpts.Container == "" {
+				glog.Errorf("error: failed to select a container in build pod: %s/%s", build.Namespace, buildPodName)
+			}
+
 			// never follow logs for terminated pods, it just causes latency in streaming the result.
 			if buildPod.Status.Phase == kapi.PodFailed || buildPod.Status.Phase == kapi.PodSucceeded {
 				containerLogOpts.Follow = false
@@ -368,4 +373,17 @@ func (r *REST) pipeLogs(ctx apirequest.Context, namespace, buildPodName string, 
 	// dump all container logs from the log stream into a single output stream that we'll send back to the client.
 	_, err = io.Copy(writer, out)
 	return err
+}
+
+// 3rd party tools, such as istio auto-inject, may add sidecar containers to
+// the build pod. We are interested in logs from the build container only
+func selectBuilderContainer(containers []kapi.Container) string {
+	for _, c := range containers {
+		for _, bcName := range buildstrategy.BuildContainerNames {
+			if c.Name == bcName {
+				return bcName
+			}
+		}
+	}
+	return ""
 }

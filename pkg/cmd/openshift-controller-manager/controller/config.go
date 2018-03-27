@@ -58,7 +58,6 @@ type OpenshiftControllerConfig struct {
 	DeployerControllerConfig         DeployerControllerConfig
 	DeploymentConfigControllerConfig DeploymentConfigControllerConfig
 
-	ImageTriggerControllerConfig         ImageTriggerControllerConfig
 	ImageSignatureImportControllerConfig ImageSignatureImportControllerConfig
 	ImageImportControllerConfig          ImageImportControllerConfig
 
@@ -90,7 +89,7 @@ func (c *OpenshiftControllerConfig) GetControllerInitializers() (map[string]Init
 	ret["openshift.io/deployer"] = c.DeployerControllerConfig.RunController
 	ret["openshift.io/deploymentconfig"] = c.DeploymentConfigControllerConfig.RunController
 
-	ret["openshift.io/image-trigger"] = c.ImageTriggerControllerConfig.RunController
+	ret["openshift.io/image-trigger"] = RunImageTriggerController
 	ret["openshift.io/image-import"] = c.ImageImportControllerConfig.RunController
 	ret["openshift.io/image-signature-import"] = c.ImageSignatureImportControllerConfig.RunController
 
@@ -146,14 +145,6 @@ func BuildOpenshiftControllerConfig(options configapi.MasterConfig) (*OpenshiftC
 		Codec: annotationCodec,
 	}
 
-	ret.ImageTriggerControllerConfig = ImageTriggerControllerConfig{
-		HasBuilderEnabled: options.DisabledFeatures.Has(configapi.FeatureBuilder),
-		// TODO: make these consts in configapi
-		HasDeploymentsEnabled:  options.DisabledFeatures.Has("triggers.image.openshift.io/deployments"),
-		HasDaemonSetsEnabled:   options.DisabledFeatures.Has("triggers.image.openshift.io/daemonsets"),
-		HasStatefulSetsEnabled: options.DisabledFeatures.Has("triggers.image.openshift.io/statefulsets"),
-		HasCronJobsEnabled:     options.DisabledFeatures.Has("triggers.image.openshift.io/cronjobs"),
-	}
 	ret.ImageImportControllerConfig = ImageImportControllerConfig{
 		MaxScheduledImageImportsPerMinute:          options.ImagePolicyConfig.MaxScheduledImageImportsPerMinute,
 		ResyncPeriod:                               10 * time.Minute,

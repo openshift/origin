@@ -93,12 +93,12 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 
 			// create persistent volumes if running persistent jenkins
 			if jenkinsTemplatePath == jenkinsPersistentTemplatePath {
-				_, err := exutil.SetupNFSBackedPersistentVolume(oc, "2Gi")
+				_, err := exutil.SetupNFSBackedPersistentVolumes(oc, "2Gi", 1)
 				o.Expect(err).NotTo(o.HaveOccurred())
 			}
 
 			// our pipeline jobs, between jenkins and oc invocations, need more mem than the default
-			newAppArgs := []string{"-f", jenkinsTemplatePath, "-p", "MEMORY_LIMIT=2Gi"}
+			newAppArgs := []string{"-f", jenkinsTemplatePath, "-p", "MEMORY_LIMIT=2Gi", "-p", "DISABLE_ADMINISTRATIVE_MONITORS=true"}
 			clientPluginNewAppArgs, useClientPluginSnapshotImage := jenkins.SetupSnapshotImage(jenkins.UseLocalClientPluginSnapshotEnvVarName, localClientPluginSnapshotImage, localClientPluginSnapshotImageStream, newAppArgs, oc)
 			syncPluginNewAppArgs, useSyncPluginSnapshotImage := jenkins.SetupSnapshotImage(jenkins.UseLocalSyncPluginSnapshotEnvVarName, localSyncPluginSnapshotImage, localSyncPluginSnapshotImageStream, newAppArgs, oc)
 
@@ -128,7 +128,10 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for jenkins deployment")
-			err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().Apps(), oc.Namespace(), "jenkins", 1, oc)
+			err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().Apps(), oc.Namespace(), "jenkins", 1, false, oc)
+			if err != nil {
+				exutil.DumpApplicationPodLogs("jenkins", oc)
+			}
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			j = jenkins.NewRef(oc)
@@ -995,7 +998,8 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 		})
 
 		g.AfterEach(func() {
-			defer exutil.RemoveNFSBackedPersistentVolume(oc)
+			defer exutil.RemoveDeploymentConfigs(oc, "jenkins")
+			defer exutil.RemoveNFSBackedPersistentVolumes(oc)
 
 			if g.CurrentGinkgoTestDescription().Failed {
 				exutil.DumpPodStates(oc)

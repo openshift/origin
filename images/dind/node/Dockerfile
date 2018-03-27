@@ -88,3 +88,6 @@ RUN systemctl enable ovn-kubernetes-node.service
 COPY crio-node.sh /usr/local/bin/
 COPY crio-node.service /etc/systemd/system/
 RUN systemctl enable crio-node.service
+
+# Default crio storage to vfs. overlay on overlayfs is not supported in crio.
+RUN echo "CRIO_STORAGE_OPTIONS=--storage-driver vfs" > /etc/sysconfig/crio-storage

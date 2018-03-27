@@ -1198,11 +1198,6 @@ func (in *MasterConfig) DeepCopyInto(out *MasterConfig) {
 	}
 	in.AdmissionConfig.DeepCopyInto(&out.AdmissionConfig)
 	in.ControllerConfig.DeepCopyInto(&out.ControllerConfig)
-	if in.DisabledFeatures != nil {
-		in, out := &in.DisabledFeatures, &out.DisabledFeatures
-		*out = make(FeatureList, len(*in))
-		copy(*out, *in)
-	}
 	out.EtcdStorageConfig = in.EtcdStorageConfig
 	in.EtcdClientInfo.DeepCopyInto(&out.EtcdClientInfo)
 	out.KubeletClientInfo = in.KubeletClientInfo

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path"
 	"path/filepath"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -27,78 +26,13 @@ import (
 )
 
 const (
-	DefaultNamespace           = "default"
-	RegistryServiceName        = "docker-registry"
-	RegistryServiceAccountName = "registry"
-	// This is needed because of NO_PROXY cannot handle the CIDR range
-	RegistryServiceClusterIP = "172.30.1.1"
+	DefaultNamespace         = "default"
 	RouterServiceAccountName = "router"
 	RouterServiceName        = "router"
 
 	masterConfigDir = "/var/lib/origin/openshift.local.config/master"
 	routerCertPath  = masterConfigDir + "/router.pem"
 )
-
-// InstallRegistry checks whether a registry is installed and installs one if not already installed
-func (h *Helper) InstallRegistry(dockerClient dockerhelper.Interface, ocImage string, kubeClient kclientset.Interface, f *clientcmd.Factory, configDir, logdir, images, pvDir string, out, errout io.Writer) error {
-	_, err := kubeClient.Core().Services(DefaultNamespace).Get(RegistryServiceName, metav1.GetOptions{})
-	if err == nil {
-		glog.V(3).Infof("The %q service is already present, skipping installation", RegistryServiceName)
-		// If there's no error, the registry already exists
-		return nil
-	}
-	if !apierrors.IsNotFound(err) {
-		return errors.NewError("error retrieving docker-registry service").WithCause(err).WithDetails(h.OriginLog())
-	}
-
-	componentName := "install-registry"
-	imageRunHelper := run.NewRunHelper(dockerhelper.NewHelper(dockerClient)).New()
-	glog.Infof("Running %q", componentName)
-
-	securityClient, err := f.OpenshiftInternalSecurityClient()
-	if err != nil {
-		return err
-	}
-	err = AddSCCToServiceAccount(securityClient.Security(), "privileged", RegistryServiceAccountName, "default", out)
-	if err != nil {
-		return errors.NewError("cannot add privileged SCC to registry service account").WithCause(err).WithDetails(h.OriginLog())
-	}
-
-	masterDir := filepath.Join(configDir, "master")
-
-	// Obtain registry markup. The reason it is not created outright is because
-	// we need to modify the ClusterIP of the registry service. The command doesn't
-	// have an option to set it.
-	flags := []string{
-		"adm",
-		"registry",
-		"--loglevel=8",
-		// We need to set the ClusterIP for registry in order to be able to set the NO_PROXY no predicable
-		// IP address as NO_PROXY does not support CIDR format.
-		// TODO: We should switch the cluster up registry to use DNS.
-		"--cluster-ip=" + RegistryServiceClusterIP,
-		"--config=" + masterConfigDir + "/admin.kubeconfig",
-		fmt.Sprintf("--images=%s", images),
-		fmt.Sprintf("--mount-host=%s", path.Join(pvDir, "registry")),
-	}
-	_, stdout, stderr, rc, err := imageRunHelper.Image(ocImage).
-		DiscardContainer().
-		HostNetwork().
-		Bind(masterDir + ":" + masterConfigDir).
-		Entrypoint("oc").
-		Command(flags...).Output()
-
-	if err := componentinstall.LogContainer(logdir, componentName, stdout, stderr); err != nil {
-		glog.Errorf("error logging %q: %v", componentName, err)
-	}
-	if err != nil {
-		return errors.NewError("could not run %q: %v", componentName, err).WithCause(err)
-	}
-	if rc != 0 {
-		return errors.NewError("could not run %q: rc==%v", componentName, rc)
-	}
-	return err
-}
 
 // InstallRouter installs a default router on the OpenShift server
 func (h *Helper) InstallRouter(dockerClient dockerhelper.Interface, ocImage string, kubeClient kclientset.Interface, f *clientcmd.Factory, configDir, logdir, images, hostIP string, portForwarding bool, out, errout io.Writer) error {
