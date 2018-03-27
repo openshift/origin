@@ -125,16 +125,7 @@ var (
 	// templates are compatible with both vN and vN-1 clusters.  If they are not, they should be moved
 	// into the internalCurrent and internalPrevious maps.
 	internalTemplateLocations = map[string]string{
-		"service catalog":                      "examples/service-catalog/service-catalog.yaml",
-		"template service broker rbac":         "install/templateservicebroker/rbac-template.yaml",
 		"template service broker registration": "install/service-catalog-broker-resources/template-service-broker-registration.yaml",
-	}
-	// internalCurrentTemplateLocations are templates that will be registered in an internal namespace.
-	// These templates are for the current version of openshift (vN), for when the client version matches
-	// the cluster version.
-	internalCurrentTemplateLocations = map[string]string{
-		"web console server template":       "install/origin-web-console/console-template.yaml",
-		"template service broker apiserver": "install/templateservicebroker/apiserver-template.yaml",
 	}
 
 	adminTemplateLocations = map[string]string{
@@ -924,7 +915,7 @@ func (c *ClusterUpConfig) InstallRouter(out io.Writer) error {
 
 // InstallWebConsole installs the OpenShift web console on the server
 func (c *ClusterUpConfig) InstallWebConsole(out io.Writer) error {
-	f, err := c.Factory()
+	clusterAdminKubeConfigBytes, err := ioutil.ReadFile(path.Join(c.GetKubeAPIServerConfigDir(), "admin.kubeconfig"))
 	if err != nil {
 		return err
 	}
@@ -946,7 +937,7 @@ func (c *ClusterUpConfig) InstallWebConsole(out io.Writer) error {
 		loggingURL = fmt.Sprintf("https://%s", openshift.LoggingHost(c.RoutingSuffix))
 	}
 
-	return c.OpenShiftHelper().InstallWebConsole(f, c.imageFormat(), c.ServerLogLevel, publicURL, masterURL, loggingURL, metricsURL)
+	return c.OpenShiftHelper().InstallWebConsole(clusterAdminKubeConfigBytes, c.imageFormat(), c.ServerLogLevel, publicURL, masterURL, loggingURL, metricsURL, path.Join(c.BaseDir, "logs"))
 }
 
 // TODO this should become a separate thing we can install, like registry
@@ -962,8 +953,6 @@ func (c *ClusterUpConfig) ImportInitialObjectsComponents(out io.Writer) []compon
 		c.makeObjectImportInstallationComponentsOrDie(out, "kube-system", adminTemplateLocations)...)
 	componentsToInstall = append(componentsToInstall,
 		c.makeObjectImportInstallationComponentsOrDie(out, openshift.InfraNamespace, internalTemplateLocations)...)
-	componentsToInstall = append(componentsToInstall,
-		c.makeObjectImportInstallationComponentsOrDie(out, openshift.InfraNamespace, internalCurrentTemplateLocations)...)
 
 	return componentsToInstall
 }
@@ -1014,15 +1003,16 @@ func (c *ClusterUpConfig) InstallMetrics(out io.Writer) error {
 
 // InstallServiceCatalog will start the installation of service catalog components
 func (c *ClusterUpConfig) InstallServiceCatalog(out io.Writer) error {
-	f, err := c.Factory()
+	clusterAdminKubeConfigBytes, err := ioutil.ReadFile(path.Join(c.GetKubeAPIServerConfigDir(), "admin.kubeconfig"))
 	if err != nil {
 		return err
 	}
+
 	publicMaster := c.PublicHostname
 	if len(publicMaster) == 0 {
 		publicMaster = c.ServerIP
 	}
-	return c.OpenShiftHelper().InstallServiceCatalog(f, c.GetKubeAPIServerConfigDir(), publicMaster, openshift.CatalogHost(c.RoutingSuffix), c.imageFormat())
+	return c.OpenShiftHelper().InstallServiceCatalog(clusterAdminKubeConfigBytes, c.GetKubeAPIServerConfigDir(), publicMaster, openshift.CatalogHost(c.RoutingSuffix), c.imageFormat(), c.GetLogDir())
 }
 
 // InstallTemplateServiceBroker will start the installation of template service broker

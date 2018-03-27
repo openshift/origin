@@ -34,6 +34,7 @@
 // examples/quickstarts/rails-postgresql.json
 // examples/heapster/heapster-standalone.yaml
 // examples/prometheus/prometheus.yaml
+// examples/service-catalog/service-catalog-rbac.yaml
 // examples/service-catalog/service-catalog.yaml
 // install/etcd/etcd.yaml
 // install/kube-apiserver/apiserver.yaml
@@ -14476,13 +14477,13 @@ func examplesPrometheusPrometheusYaml() (*asset, error) {
 	return a, nil
 }
 
-var _examplesServiceCatalogServiceCatalogYaml = []byte(`apiVersion: v1
+var _examplesServiceCatalogServiceCatalogRbacYaml = []byte(`apiVersion: v1
 kind: Template
 metadata:
-  name: service-catalog
+  name: service-catalog-rbac
 objects:
 
-- apiVersion: authorization.openshift.io/v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     name: servicecatalog-serviceclass-viewer
@@ -14497,26 +14498,17 @@ objects:
     - watch
     - get
 
-- apiVersion: authorization.openshift.io/v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     name: servicecatalog-serviceclass-viewer-binding
   roleRef:
+    kind: ClusterRole
     name: servicecatalog-serviceclass-viewer
   groupNames:
   - system:authenticated
 
-- kind: ServiceAccount
-  apiVersion: v1
-  metadata:
-    name: service-catalog-controller
-
-- kind: ServiceAccount
-  apiVersion: v1
-  metadata:
-    name: service-catalog-apiserver
-
-- apiVersion: authorization.openshift.io/v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     name: sar-creator
@@ -14528,18 +14520,19 @@ objects:
     verbs:
     - create
 
-- apiVersion: authorization.openshift.io/v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     name: service-catalog-sar-creator-binding
   roleRef:
+    kind: ClusterRole
     name: sar-creator
   subjects:
   - kind: ServiceAccount
     name: service-catalog-apiserver
     namespace: kube-service-catalog
 
-- apiVersion: authorization.openshift.io/v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     name: namespace-viewer
@@ -14553,22 +14546,24 @@ objects:
     - watch
     - get
 
-- apiVersion: authorization.openshift.io/v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     name: service-catalog-namespace-viewer-binding
   roleRef:
+    kind: ClusterRole
     name: namespace-viewer
   subjects:
   - kind: ServiceAccount
     name: service-catalog-apiserver
     namespace: kube-service-catalog
 
-- apiVersion: authorization.openshift.io/v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     name: service-catalog-controller-namespace-viewer-binding
   roleRef:
+    kind: ClusterRole
     name: namespace-viewer
   subjects:
   - kind: ServiceAccount
@@ -14646,18 +14641,19 @@ objects:
     - list
     - watch
 
-- apiVersion: authorization.openshift.io/v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     name: service-catalog-controller-binding
   roleRef:
+    kind: ClusterRole
     name: service-catalog-controller
   subjects:
   - kind: ServiceAccount
     name: service-catalog-controller
     namespace: kube-service-catalog
-  
-- apiVersion: authorization.openshift.io/v1
+
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: Role
   metadata:
     name: endpoint-accessor
@@ -14673,11 +14669,12 @@ objects:
     - create
     - update
 
-- apiVersion: authorization.openshift.io/v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: RoleBinding
   metadata:
     name: endpointer-accessor-binding
   roleRef:
+    kind: Role
     name: endpoint-accessor
     namespace: kube-service-catalog
   subjects:
@@ -14685,12 +14682,13 @@ objects:
     namespace: kube-service-catalog
     name: service-catalog-controller
 
-- apiVersion: authorization.openshift.io/v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: RoleBinding
   metadata:
     name: extension-apiserver-authentication-reader-binding
     namespace: ${KUBE_SYSTEM_NAMESPACE}
   roleRef:
+    kind: Role
     name: extension-apiserver-authentication-reader
     namespace: ${KUBE_SYSTEM_NAMESPACE}
   subjects:
@@ -14698,17 +14696,56 @@ objects:
     name: service-catalog-apiserver
     namespace: kube-service-catalog
 
-- apiVersion: authorization.openshift.io/v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     name: system:auth-delegator-binding
   roleRef:
+    kind: ClusterRole
     name: system:auth-delegator
   subjects:
   - kind: ServiceAccount
     name: service-catalog-apiserver
     namespace: kube-service-catalog
 
+parameters:
+- description: Do not change this value.
+  displayName: Name of the kube-system namespace
+  name: KUBE_SYSTEM_NAMESPACE
+  required: true
+  value: kube-system
+`)
+
+func examplesServiceCatalogServiceCatalogRbacYamlBytes() ([]byte, error) {
+	return _examplesServiceCatalogServiceCatalogRbacYaml, nil
+}
+
+func examplesServiceCatalogServiceCatalogRbacYaml() (*asset, error) {
+	bytes, err := examplesServiceCatalogServiceCatalogRbacYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "examples/service-catalog/service-catalog-rbac.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _examplesServiceCatalogServiceCatalogYaml = []byte(`apiVersion: v1
+kind: Template
+metadata:
+  name: service-catalog
+objects:
+
+- kind: ServiceAccount
+  apiVersion: v1
+  metadata:
+    name: service-catalog-controller
+
+- kind: ServiceAccount
+  apiVersion: v1
+  metadata:
+    name: service-catalog-apiserver
 
 - kind: Deployment
   apiVersion: extensions/v1beta1
@@ -14875,6 +14912,20 @@ objects:
             - key: tls.key
               path: apiserver.key
 
+- apiVersion: apiregistration.k8s.io/v1beta1
+  kind: APIService
+  metadata:
+    name: v1beta1.servicecatalog.k8s.io
+  spec:
+    group: servicecatalog.k8s.io
+    version: v1beta1
+    service:
+      namespace: kube-service-catalog
+      name: apiserver
+    insecureSkipTLSVerify: true
+    groupPriorityMinimum: 200
+    versionPriority: 20
+
 parameters:
 - description: CORS allowed origin for the API server, if you need to specify multiple modify the Deployment after creation
   displayName: CORS Allowed Origin
@@ -14891,11 +14942,6 @@ parameters:
   name: SERVICE_CATALOG_SERVICE_IP
   required: true
   value: 172.30.1.2
-- description: Do not change this value.
-  displayName: Name of the kube-system namespace
-  name: KUBE_SYSTEM_NAMESPACE
-  required: true
-  value: kube-system
 `)
 
 func examplesServiceCatalogServiceCatalogYamlBytes() ([]byte, error) {
@@ -16350,6 +16396,7 @@ var _bindata = map[string]func() (*asset, error){
 	"examples/quickstarts/rails-postgresql.json": examplesQuickstartsRailsPostgresqlJson,
 	"examples/heapster/heapster-standalone.yaml": examplesHeapsterHeapsterStandaloneYaml,
 	"examples/prometheus/prometheus.yaml": examplesPrometheusPrometheusYaml,
+	"examples/service-catalog/service-catalog-rbac.yaml": examplesServiceCatalogServiceCatalogRbacYaml,
 	"examples/service-catalog/service-catalog.yaml": examplesServiceCatalogServiceCatalogYaml,
 	"install/etcd/etcd.yaml": installEtcdEtcdYaml,
 	"install/kube-apiserver/apiserver.yaml": installKubeApiserverApiserverYaml,
@@ -16458,6 +16505,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 			"rails-postgresql.json": &bintree{examplesQuickstartsRailsPostgresqlJson, map[string]*bintree{}},
 		}},
 		"service-catalog": &bintree{nil, map[string]*bintree{
+			"service-catalog-rbac.yaml": &bintree{examplesServiceCatalogServiceCatalogRbacYaml, map[string]*bintree{}},
 			"service-catalog.yaml": &bintree{examplesServiceCatalogServiceCatalogYaml, map[string]*bintree{}},
 		}},
 	}},
