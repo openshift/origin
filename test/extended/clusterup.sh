@@ -156,7 +156,7 @@ function os::test::extended::clusterup::internal::hostdirs () {
         ${@}
 
 	local sudo="${USE_SUDO:+sudo}"
-    os::cmd::expect_success "${sudo} ls ${base_dir}/oc-cluster-up-kube-apiserver/master/master-config.yaml"
+    os::cmd::expect_success "${sudo} ls ${base_dir}/kube-apiserver/master-config.yaml"
     os::cmd::expect_success "${sudo} ls ${base_dir}/openshift.local.pv/pv0100"
     os::cmd::expect_success "${sudo} ls ${base_dir}/etcd/member"
 }
@@ -226,7 +226,7 @@ function os::test::extended::clusterup::publichostname () {
         --base-dir="${base_dir}" \
         --tag="$ORIGIN_COMMIT" \
         ${@}
-    os::cmd::expect_success_and_text "cat ${base_dir}/oc-cluster-up-kube-apiserver/master/master-config.yaml" "masterPublicURL.*myserver\.127\.0\.0\.1\.nip\.io"
+    os::cmd::expect_success_and_text "cat ${base_dir}/kube-apiserver/master-config.yaml" "masterPublicURL.*myserver\.127\.0\.0\.1\.nip\.io"
 }
 
 # Tests creating a cluster with a numeric public hostname
@@ -246,7 +246,7 @@ function os::test::extended::clusterup::numerichostname () {
         --base-dir="${base_dir}" \
         --tag="$ORIGIN_COMMIT" \
         ${@}
-    os::cmd::expect_success_and_text "cat ${base_dir}/oc-cluster-up-kube-apiserver/master/master-config.yaml" "masterPublicURL.*127\.0\.0\.1"
+    os::cmd::expect_success_and_text "cat ${base_dir}/kube-apiserver/master-config.yaml" "masterPublicURL.*127\.0\.0\.1"
 }
 
 # Tests installation of console components

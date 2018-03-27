@@ -102,7 +102,7 @@ func (h *Helper) InstallServiceCatalog(f *clientcmd.Factory, configDir, publicMa
 		return errors.NewError(fmt.Sprintf("failed to create an api aggregation registration client: %v", err))
 	}
 
-	serviceCA, err := ioutil.ReadFile(filepath.Join(configDir, "master", "service-signer.crt"))
+	serviceCA, err := ioutil.ReadFile(filepath.Join(configDir, "service-signer.crt"))
 	if err != nil {
 		return errors.NewError(fmt.Sprintf("failed to read the service certificate signer CA bundle: %v", err))
 	}

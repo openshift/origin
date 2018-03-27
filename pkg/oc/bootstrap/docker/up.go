@@ -17,6 +17,7 @@ import (
 	cliconfig "github.com/docker/docker/cli/config"
 	dockerclient "github.com/docker/docker/client"
 	"github.com/golang/glog"
+	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/kubeapiserver"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"golang.org/x/net/context"
@@ -189,7 +190,6 @@ type ClusterUpConfig struct {
 	BaseDir                  string
 	SpecifiedBaseDir         bool
 	HostName                 string
-	LocalConfigDir           string
 	UseExistingConfig        bool
 	Environment              []string
 	ServerLogLevel           int
@@ -496,7 +496,7 @@ func (c *ClusterUpConfig) Start(out io.Writer) error {
 	}
 	taskPrinter.Success()
 
-	clusterAdminKubeConfigBytes, err := ioutil.ReadFile(path.Join(c.LocalConfigDir, "master", "admin.kubeconfig"))
+	clusterAdminKubeConfigBytes, err := ioutil.ReadFile(path.Join(c.GetKubeAPIServerConfigDir(), "admin.kubeconfig"))
 	if err != nil {
 		return err
 	}
@@ -512,7 +512,7 @@ func (c *ClusterUpConfig) Start(out io.Writer) error {
 		ClusterAdminKubeConfig: clusterAdminKubeConfig,
 
 		OCImage:         c.openshiftImage(),
-		MasterConfigDir: path.Join(c.LocalConfigDir, "master"),
+		MasterConfigDir: path.Join(c.GetKubeAPIServerConfigDir()),
 		Images:          c.imageFormat(),
 		PVDir:           c.HostPersistentVolumesDir,
 	}
@@ -521,7 +521,7 @@ func (c *ClusterUpConfig) Start(out io.Writer) error {
 	componentsToInstall = append(componentsToInstall, c.ImportInitialObjectsComponents(c.Out)...)
 	componentsToInstall = append(componentsToInstall, registryInstall)
 
-	err = componentinstall.InstallComponents(componentsToInstall, c.GetDockerClient(), path.Join(c.BaseDir, "logs"))
+	err = componentinstall.InstallComponents(componentsToInstall, c.GetDockerClient(), c.GetLogDir())
 	if err != nil {
 		return err
 	}
@@ -919,7 +919,7 @@ func (c *ClusterUpConfig) InstallRouter(out io.Writer) error {
 	if err != nil {
 		return err
 	}
-	return c.OpenShiftHelper().InstallRouter(c.GetDockerClient(), c.openshiftImage(), kubeClient, f, c.LocalConfigDir, path.Join(c.BaseDir, "logs"), c.imageFormat(), c.ServerIP, c.PortForwarding, out, os.Stderr)
+	return c.OpenShiftHelper().InstallRouter(c.GetDockerClient(), c.openshiftImage(), kubeClient, f, c.GetKubeAPIServerConfigDir(), c.GetLogDir(), c.imageFormat(), c.ServerIP, c.PortForwarding, out, os.Stderr)
 }
 
 // InstallWebConsole installs the OpenShift web console on the server
@@ -1022,7 +1022,7 @@ func (c *ClusterUpConfig) InstallServiceCatalog(out io.Writer) error {
 	if len(publicMaster) == 0 {
 		publicMaster = c.ServerIP
 	}
-	return c.OpenShiftHelper().InstallServiceCatalog(f, c.LocalConfigDir, publicMaster, openshift.CatalogHost(c.RoutingSuffix), c.imageFormat())
+	return c.OpenShiftHelper().InstallServiceCatalog(f, c.GetKubeAPIServerConfigDir(), publicMaster, openshift.CatalogHost(c.RoutingSuffix), c.imageFormat())
 }
 
 // InstallTemplateServiceBroker will start the installation of template service broker
@@ -1038,27 +1038,27 @@ func (c *ClusterUpConfig) InstallTemplateServiceBroker(out io.Writer) error {
 
 	imageTemplate := fmt.Sprintf("%s-${component}:%s", c.Image, c.ImageTag)
 
-	clusterAdminKubeConfig, err := ioutil.ReadFile(path.Join(c.LocalConfigDir, "master", "admin.kubeconfig"))
+	clusterAdminKubeConfig, err := ioutil.ReadFile(path.Join(c.GetKubeAPIServerConfigDir(), "admin.kubeconfig"))
 	if err != nil {
 		return err
 	}
 
-	return c.OpenShiftHelper().InstallTemplateServiceBroker(clusterAdminKubeConfig, f, imageTemplate, c.ServerLogLevel, path.Join(c.BaseDir, "logs"))
+	return c.OpenShiftHelper().InstallTemplateServiceBroker(clusterAdminKubeConfig, f, imageTemplate, c.ServerLogLevel, c.GetLogDir())
 }
 
 // RegisterTemplateServiceBroker will register the tsb with the service catalog
 func (c *ClusterUpConfig) RegisterTemplateServiceBroker(out io.Writer) error {
-	clusterAdminKubeConfig, err := ioutil.ReadFile(path.Join(c.LocalConfigDir, "master", "admin.kubeconfig"))
+	clusterAdminKubeConfig, err := ioutil.ReadFile(path.Join(c.GetKubeAPIServerConfigDir(), "admin.kubeconfig"))
 	if err != nil {
 		return err
 	}
-	return c.OpenShiftHelper().RegisterTemplateServiceBroker(clusterAdminKubeConfig, c.LocalConfigDir, path.Join(c.BaseDir, "logs"))
+	return c.OpenShiftHelper().RegisterTemplateServiceBroker(clusterAdminKubeConfig, c.GetKubeAPIServerConfigDir(), c.GetLogDir())
 }
 
 // Login logs into the new server and sets up a default user and project
 func (c *ClusterUpConfig) Login(out io.Writer) error {
 	server := c.OpenShiftHelper().Master(c.ServerIP)
-	return openshift.Login(initialUser, initialPassword, server, c.LocalConfigDir, c.originalFactory, c.command, out, out)
+	return openshift.Login(initialUser, initialPassword, server, c.GetKubeAPIServerConfigDir(), c.originalFactory, c.command, out, out)
 }
 
 // CreateProject creates a new project for the current user
@@ -1151,7 +1151,7 @@ func (c *ClusterUpConfig) checkProxySettings() string {
 // Factory returns a command factory that works with OpenShift server's admin credentials
 func (c *ClusterUpConfig) Factory() (*clientcmd.Factory, error) {
 	if c.factory == nil {
-		cfg, err := kclientcmd.LoadFromFile(filepath.Join(c.LocalConfigDir, "master", "admin.kubeconfig"))
+		cfg, err := kclientcmd.LoadFromFile(filepath.Join(c.GetKubeAPIServerConfigDir(), "admin.kubeconfig"))
 		if err != nil {
 			return nil, err
 		}
@@ -1202,7 +1202,7 @@ func (c *ClusterUpConfig) DockerHelper() *dockerhelper.Helper {
 }
 
 func (c *ClusterUpConfig) makeObjectImportInstallationComponents(out io.Writer, namespace string, locations map[string]string) ([]componentinstall.Component, error) {
-	clusterAdminKubeConfig, err := ioutil.ReadFile(path.Join(c.LocalConfigDir, "master", "admin.kubeconfig"))
+	clusterAdminKubeConfig, err := ioutil.ReadFile(path.Join(c.GetKubeAPIServerConfigDir(), "admin.kubeconfig"))
 	if err != nil {
 		return nil, err
 	}
@@ -1398,7 +1398,7 @@ func (c *ClusterUpConfig) ShouldCreateUser() bool {
 			return true
 		}
 
-		cfg, _, err := c.OpenShiftHelper().GetConfigFromLocalDir(c.LocalConfigDir)
+		cfg, _, err := c.OpenShiftHelper().GetConfigFromLocalDir(c.GetKubeAPIServerConfigDir())
 		if err != nil {
 			glog.V(2).Infof("error reading config: %v", err)
 			return true
@@ -1415,4 +1415,12 @@ func (c *ClusterUpConfig) ShouldCreateUser() bool {
 
 	c.shouldCreateUser = &result
 	return result
+}
+
+func (c *ClusterUpConfig) GetKubeAPIServerConfigDir() string {
+	return path.Join(c.BaseDir, kubeapiserver.KubeAPIServerDirName)
+}
+
+func (c *ClusterUpConfig) GetLogDir() string {
+	return path.Join(c.BaseDir, "logs")
 }

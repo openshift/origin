@@ -69,7 +69,7 @@ oc cluster up --server-loglevel=4 --tag="${TAG}" \
 oc cluster up --server-loglevel=4 --tag="${TAG}" \
         --base-dir="${CLUSTERUP_DIR}"
 
-MASTER_CONFIG_DIR="${CLUSTERUP_DIR}/oc-cluster-up-kube-apiserver/master"
+MASTER_CONFIG_DIR="${CLUSTERUP_DIR}/kube-apiserver"
 
 os::test::junit::declare_suite_start "setup/start-oc_cluster_up"
 os::cmd::try_until_success "oc cluster status" "$((5*TIME_MIN))" "10"

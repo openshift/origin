@@ -74,7 +74,7 @@ func (h *Helper) RegisterTemplateServiceBroker(clusterAdminKubeConfig []byte, co
 	// Register the template broker with the service catalog
 	glog.V(2).Infof("registering the template broker with the service catalog")
 
-	serviceCABytes, err := ioutil.ReadFile(filepath.Join(configDir, "master", "service-signer.crt"))
+	serviceCABytes, err := ioutil.ReadFile(filepath.Join(configDir, "service-signer.crt"))
 	serviceCAString := base64.StdEncoding.EncodeToString(serviceCABytes)
 	if err != nil {
 		return errors.NewError("unable to read service signer cert").WithCause(err)
