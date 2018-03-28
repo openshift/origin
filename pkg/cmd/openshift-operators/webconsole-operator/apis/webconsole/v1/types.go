@@ -69,7 +69,7 @@ const (
 )
 
 type OpenShiftOperatorCondition struct {
-	Type               String          `json:"type"`
+	Type               string          `json:"type"`
 	Status             ConditionStatus `json:"status"`
 	LastTransitionTime metav1.Time     `json:"lastTransitionTime,omitempty"`
 	Reason             string          `json:"reason,omitempty"`
