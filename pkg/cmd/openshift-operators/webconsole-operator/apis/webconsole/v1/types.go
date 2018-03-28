@@ -60,7 +60,25 @@ type OpenShiftWebConsoleConfigSpec struct {
 	Replicas int32 `json:"replicas"`
 }
 
+type ConditionStatus string
+
+const (
+	ConditionTrue    ConditionStatus = "True"
+	ConditionFalse   ConditionStatus = "False"
+	ConditionUnknown ConditionStatus = "Unknown"
+)
+
+type OpenShiftOperatorCondition struct {
+	Type               String          `json:"type"`
+	Status             ConditionStatus `json:"status"`
+	LastTransitionTime metav1.Time     `json:"lastTransitionTime,omitempty"`
+	Reason             string          `json:"reason,omitempty"`
+	Message            string          `json:"message,omitempty"`
+}
+
 type OpenShiftWebConsoleConfigStatus struct {
+	Conditions []OpenShiftOperatorCondition `json:"conditions,omitempty"`
+
 	InProgressVersion     string `json:"inProgressVersion"`
 	LastSuccessfulVersion string `json:"lastSuccessfulVersion"`
 
