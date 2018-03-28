@@ -177,7 +177,7 @@ func (o RetryOptions) Run() error {
 		})
 
 		if len(patches) == 0 {
-			kcmdutil.PrintSuccess(o.Mapper, false, o.Out, info.Mapping.Resource, info.Name, false, "already retried")
+			kcmdutil.PrintSuccess(false, o.Out, info.Object, false, "already retried")
 			continue
 		}
 
@@ -185,7 +185,7 @@ func (o RetryOptions) Run() error {
 			allErrs = append(allErrs, kcmdutil.AddSourceToErr("retrying", info.Source, err))
 			continue
 		}
-		kcmdutil.PrintSuccess(o.Mapper, false, o.Out, info.Mapping.Resource, info.Name, false, fmt.Sprintf("retried rollout #%d", config.Status.LatestVersion))
+		kcmdutil.PrintSuccess(false, o.Out, info.Object, false, fmt.Sprintf("retried rollout #%d", config.Status.LatestVersion))
 	}
 
 	return utilerrors.NewAggregate(allErrs)

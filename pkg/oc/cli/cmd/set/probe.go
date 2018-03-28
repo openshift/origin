@@ -350,7 +350,7 @@ func (o *ProbeOptions) Run() error {
 		}
 
 		info.Refresh(obj, true)
-		kcmdutil.PrintSuccess(o.Mapper, o.ShortOutput, o.Out, info.Mapping.Resource, info.Name, false, "updated")
+		kcmdutil.PrintSuccess(o.ShortOutput, o.Out, info.Object, false, "updated")
 	}
 	if failed {
 		return kcmdutil.ErrExit

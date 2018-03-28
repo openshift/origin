@@ -215,9 +215,9 @@ func RunExport(f *clientcmd.Factory, exporter Exporter, in io.Reader, out io.Wri
 	printOpts.OutputFormatArgument = templateFile
 	printOpts.AllowMissingKeys = kcmdutil.GetFlagBool(cmd, "allow-missing-template-keys")
 
-	mapper, typer := f.Object()
+	_, typer := f.Object()
 	p, err := kprinters.GetStandardPrinter(
-		mapper, typer, legacyscheme.Codecs.LegacyCodec(outputVersion), decoders, *printOpts)
+		typer, legacyscheme.Codecs.LegacyCodec(outputVersion), decoders, *printOpts)
 
 	if err != nil {
 		return err

@@ -170,8 +170,7 @@ func (o *ReconcileClusterRolesOptions) RunReconcileClusterRoles(cmd *cobra.Comma
 		for _, item := range changedClusterRoles {
 			list.Items = append(list.Items, item)
 		}
-		mapper, _ := f.Object()
-		fn := cmdutil.VersionedPrintObject(f.PrintObject, cmd, mapper, o.Out)
+		fn := cmdutil.VersionedPrintObject(kcmdutil.PrintObject, cmd, o.Out)
 		if err := fn(list); err != nil {
 			return err
 		}

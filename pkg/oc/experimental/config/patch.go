@@ -108,9 +108,7 @@ func (o *PatchOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args [
 	printOpts := cmdutil.ExtractCmdPrintOptions(cmd, false)
 	printOpts.OutputFormatType = "yaml"
 
-	o.Printer, err = kprinters.GetStandardPrinter(
-		mapper, typer, nil, decoders, *printOpts,
-	)
+	o.Printer, err = kprinters.GetStandardPrinter(typer, nil, decoders, *printOpts)
 	if err != nil {
 		return err
 	}

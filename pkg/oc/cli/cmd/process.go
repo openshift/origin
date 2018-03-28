@@ -320,7 +320,7 @@ func RunProcess(f *clientcmd.Factory, in io.Reader, out, errout io.Writer, cmd *
 	}
 	objects = append(objects, resultObj.Objects...)
 
-	p, err := f.PrinterForOptions(kcmdutil.ExtractCmdPrintOptions(cmd, false))
+	p, err := kcmdutil.PrinterForOptions(kcmdutil.ExtractCmdPrintOptions(cmd, false))
 	if err != nil {
 		return err
 	}
@@ -336,7 +336,7 @@ func RunProcess(f *clientcmd.Factory, in io.Reader, out, errout io.Writer, cmd *
 	}
 	// Prefer the Kubernetes core group for the List over the template.openshift.io
 	version.Group = kapi.GroupName
-	p = kprinters.NewVersionedPrinter(p, legacyscheme.Scheme, version)
+	p = kprinters.NewVersionedPrinter(p, legacyscheme.Scheme, legacyscheme.Scheme, version)
 
 	// use generic output
 	if kcmdutil.GetFlagBool(cmd, "raw") {

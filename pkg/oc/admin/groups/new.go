@@ -86,7 +86,7 @@ func (o *NewGroupOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, arg
 
 	o.GroupClient = userClient.User().Groups()
 
-	printer, err := f.PrinterForOptions(kcmdutil.ExtractCmdPrintOptions(cmd, false))
+	printer, err := kcmdutil.PrinterForOptions(kcmdutil.ExtractCmdPrintOptions(cmd, false))
 	if err != nil {
 		return err
 	}
@@ -95,8 +95,7 @@ func (o *NewGroupOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, arg
 		o.Printer = printer.PrintObj
 	} else {
 		o.Printer = func(obj runtime.Object, out io.Writer) error {
-			mapper, _ := f.Object()
-			return f.PrintObject(cmd, true, mapper, obj, out)
+			return kcmdutil.PrintObject(cmd, obj, out)
 		}
 	}
 

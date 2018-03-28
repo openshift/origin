@@ -345,12 +345,10 @@ func (o *RoleModificationOptions) CompleteUserWithSA(f *clientcmd.Factory, cmd *
 		return err
 	}
 
-	mapper, _ := f.Object()
-
 	o.DryRun = kcmdutil.GetFlagBool(cmd, "dry-run")
 	o.Output = kcmdutil.GetFlagString(cmd, "output")
 	o.PrintObj = func(obj runtime.Object) error {
-		return f.PrintObject(cmd, false, mapper, obj, out)
+		return kcmdutil.PrintObject(cmd, obj, out)
 	}
 
 	roleBindingNamespace, _, err := f.DefaultNamespace()
@@ -387,12 +385,10 @@ func (o *RoleModificationOptions) Complete(f *clientcmd.Factory, cmd *cobra.Comm
 		return err
 	}
 
-	mapper, _ := f.Object()
-
 	o.DryRun = kcmdutil.GetFlagBool(cmd, "dry-run")
 	o.Output = kcmdutil.GetFlagString(cmd, "output")
 	o.PrintObj = func(obj runtime.Object) error {
-		return f.PrintObject(cmd, false, mapper, obj, out)
+		return kcmdutil.PrintObject(cmd, obj, out)
 	}
 
 	if isNamespaced {

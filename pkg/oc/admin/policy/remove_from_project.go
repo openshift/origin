@@ -112,10 +112,8 @@ func (o *RemoveFromProjectOptions) Complete(f *clientcmd.Factory, cmd *cobra.Com
 		return err
 	}
 
-	mapper, _ := f.Object()
-
 	o.PrintObject = func(obj runtime.Object) error {
-		return f.PrintObject(cmd, false, mapper, obj, o.Out)
+		return kcmdutil.PrintObject(cmd, obj, o.Out)
 	}
 
 	return nil

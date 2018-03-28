@@ -197,7 +197,7 @@ func (o *ImageLookupOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 
 	output := kcmdutil.GetFlagString(cmd, "output")
 	if len(output) != 0 || o.Local || kcmdutil.GetDryRunFlag(cmd) {
-		o.PrintObject = func(obj runtime.Object) error { return f.PrintObject(cmd, o.Local, mapper, obj, o.Out) }
+		o.PrintObject = func(obj runtime.Object) error { return kcmdutil.PrintObject(cmd, obj, o.Out) }
 	}
 
 	o.Encoder = kcmdutil.InternalVersionJSONEncoder()
@@ -299,7 +299,7 @@ func (o *ImageLookupOptions) Run() error {
 		}
 
 		info.Refresh(obj, true)
-		kcmdutil.PrintSuccess(o.Mapper, o.ShortOutput, o.Out, info.Mapping.Resource, info.Name, false, "updated")
+		kcmdutil.PrintSuccess(o.ShortOutput, o.Out, info.Object, false, "updated")
 	}
 	if failed {
 		return kcmdutil.ErrExit

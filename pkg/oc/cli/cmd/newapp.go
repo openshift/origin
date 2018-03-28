@@ -195,7 +195,7 @@ func (o *ObjectGeneratorOptions) Complete(baseName, commandName string, f *clien
 	o.BaseName = baseName
 	o.CommandName = commandName
 
-	o.PrintObject = cmdutil.VersionedPrintObject(f.PrintObject, c, mapper, out)
+	o.PrintObject = cmdutil.VersionedPrintObject(kcmdutil.PrintObject, c, out)
 	o.LogsForObject = f.LogsForObject
 	if err := CompleteAppConfig(o.Config, f, c, args); err != nil {
 		return err

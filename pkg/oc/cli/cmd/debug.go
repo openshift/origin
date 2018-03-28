@@ -221,7 +221,6 @@ func (o *DebugOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, args [
 		return err
 	}
 
-	mapper, _ := f.Object()
 	b := f.NewBuilder().
 		Internal().
 		NamespaceParam(cmdNamespace).DefaultNamespace().
@@ -285,7 +284,7 @@ func (o *DebugOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, args [
 	output := kcmdutil.GetFlagString(cmd, "output")
 	if len(output) != 0 {
 		o.Print = func(pod *kapi.Pod, out io.Writer) error {
-			return f.PrintObject(cmd, false, mapper, pod, out)
+			return kcmdutil.PrintObject(cmd, pod, out)
 		}
 	}
 

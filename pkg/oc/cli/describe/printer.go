@@ -11,6 +11,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kprinters "k8s.io/kubernetes/pkg/printers"
@@ -195,12 +196,12 @@ func PrintTemplateParameters(params []templateapi.Parameter, output io.Writer) e
 
 // formatResourceName receives a resource kind, name, and boolean specifying
 // whether or not to update the current name to "kind/name"
-func formatResourceName(kind, name string, withKind bool) string {
-	if !withKind || kind == "" {
+func formatResourceName(kind schema.GroupKind, name string, withKind bool) string {
+	if !withKind || kind.Empty() {
 		return name
 	}
 
-	return kind + "/" + name
+	return strings.ToLower(kind.String()) + "/" + name
 }
 
 func printTemplate(t *templateapi.Template, w io.Writer, opts kprinters.PrintOptions) error {

@@ -258,10 +258,6 @@ func (f *ring0Factory) SuggestedPodTemplateResources() []schema.GroupResource {
 	return f.kubeClientAccessFactory.SuggestedPodTemplateResources()
 }
 
-func (f *ring0Factory) Printer(mapping *meta.RESTMapping, options kprinters.PrintOptions) (kprinters.ResourcePrinter, error) {
-	return describe.NewHumanReadablePrinter(f.JSONEncoder(), f.Decoder(true), options), nil
-}
-
 func (f *ring0Factory) Pauser(info *resource.Info) ([]byte, error) {
 	switch t := info.Object.(type) {
 	case *appsapi.DeploymentConfig:
@@ -383,8 +379,6 @@ func (f *ring0Factory) CanBeAutoscaled(kind schema.GroupKind) error {
 func (f *ring0Factory) EditorEnvs() []string {
 	return []string{"OC_EDITOR", "EDITOR"}
 }
-
-func (f *ring0Factory) PrintObjectSpecificMessage(obj runtime.Object, out io.Writer) {}
 
 // defaultingClientConfig detects whether the provided config is the default, and if
 // so returns an error that indicates the user should set up their config.

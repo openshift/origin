@@ -10,6 +10,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kprinters "k8s.io/kubernetes/pkg/printers"
@@ -98,13 +99,14 @@ main:
 
 func TestFormatResourceName(t *testing.T) {
 	tests := []struct {
-		kind, name string
-		want       string
+		kind schema.GroupKind
+		name string
+		want string
 	}{
-		{"", "", ""},
-		{"", "name", "name"},
-		{"kind", "", "kind/"}, // should not happen in practice
-		{"kind", "name", "kind/name"},
+		{schema.GroupKind{}, "", ""},
+		{schema.GroupKind{}, "name", "name"},
+		{schema.GroupKind{Kind: "Kind"}, "", "kind/"}, // should not happen in practice
+		{schema.GroupKind{Kind: "Kind"}, "name", "kind/name"},
 	}
 	for _, tt := range tests {
 		if got := formatResourceName(tt.kind, tt.name, true); got != tt.want {
