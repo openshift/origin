@@ -255,6 +255,12 @@ func (h *binaryInstantiateHandler) handle(r io.Reader) (runtime.Object, error) {
 		Stdin:     true,
 		Container: buildstrategy.GitCloneContainer,
 	}
+	// Custom builds don't have a gitclone container, so we inject the source
+	// directly into the main container.
+	if build.Spec.Strategy.CustomStrategy != nil {
+		opts.Container = buildstrategy.CustomBuild
+	}
+
 	location, transport, err := pod.AttachLocation(h.r.PodGetter, h.r.ConnectionInfo, h.ctx, buildPodName, opts)
 	if err != nil {
 		if errors.IsNotFound(err) {

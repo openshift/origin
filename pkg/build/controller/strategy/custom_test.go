@@ -51,8 +51,8 @@ func TestCustomCreateBuildPod(t *testing.T) {
 	}
 
 	container := actual.Spec.Containers[0]
-	if container.Name != customBuild {
-		t.Errorf("Expected %s, but got %s!", customBuild, container.Name)
+	if container.Name != CustomBuild {
+		t.Errorf("Expected %s, but got %s!", CustomBuild, container.Name)
 	}
 	if container.ImagePullPolicy != v1.PullIfNotPresent {
 		t.Errorf("Expected %v, got %v", v1.PullIfNotPresent, container.ImagePullPolicy)
@@ -190,9 +190,9 @@ func mockCustomBuild(forcePull, emptySource bool) *buildapi.Build {
 	}
 	return &buildapi.Build{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "customBuild",
+			Name: "CustomBuild",
 			Labels: map[string]string{
-				"name": "customBuild",
+				"name": "CustomBuild",
 			},
 		},
 		Spec: buildapi.BuildSpec{

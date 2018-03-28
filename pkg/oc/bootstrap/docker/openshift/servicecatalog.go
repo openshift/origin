@@ -127,9 +127,7 @@ func (h *Helper) InstallServiceCatalog(f *clientcmd.Factory, configDir, publicMa
 		return errors.NewError(fmt.Sprintf("failed to register service catalog with api aggregator: %v", err))
 	}
 
-	err = componentinstall.WaitForAPI(clientConfig, func(apiService aggregatorapiv1beta1.APIService) bool {
-		return apiService.Name == "v1beta1.servicecatalog.k8s.io"
-	})
+	err = componentinstall.WaitForAPIs(clientConfig, "v1beta1.servicecatalog.k8s.io")
 	if err != nil {
 		return err
 	}

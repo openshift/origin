@@ -2,9 +2,11 @@ package componentinstall
 
 import (
 	"net/http"
+	"reflect"
 	"time"
 
 	"github.com/golang/glog"
+	"k8s.io/apimachinery/pkg/util/sets"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -13,9 +15,11 @@ import (
 	aggregatorclient "k8s.io/kube-aggregator/pkg/client/clientset_generated/clientset"
 )
 
-func WaitForAPI(clientConfig *rest.Config, apiServiceMatcher func(apiService aggregatorapiv1beta1.APIService) bool) error {
+func WaitForAPIs(clientConfig *rest.Config, names ...string) error {
 	// wait until the openshift apiservices are ready
 	return wait.PollImmediate(time.Second, 5*time.Minute, func() (bool, error) {
+		requiredNames := sets.NewString(names...)
+
 		aggregatorClient, err := aggregatorclient.NewForConfig(clientConfig)
 		if err != nil {
 			return false, nil
@@ -28,10 +32,13 @@ func WaitForAPI(clientConfig *rest.Config, apiServiceMatcher func(apiService agg
 			return false, err
 		}
 
+		found := []string{}
 		for _, apiService := range apiServices.Items {
-			if !apiServiceMatcher(apiService) {
+			if !requiredNames.Has(apiService.Name) {
 				continue
 			}
+			found = append(found, apiService.Name)
+			glog.V(5).Infof("found: %v\n", apiService.Name)
 
 			for _, condition := range apiService.Status.Conditions {
 				if condition.Type == aggregatorapiv1beta1.Available && condition.Status != aggregatorapiv1beta1.ConditionTrue {
@@ -45,6 +52,11 @@ func WaitForAPI(clientConfig *rest.Config, apiServiceMatcher func(apiService agg
 		}
 		if len(unready) > 0 {
 			glog.V(3).Infof("waiting for readiness: %#v\n", unready)
+			return false, nil
+		}
+		// we can reasonably expect to find at least one hit.  Hit this edge with the operator.
+		if foundSet := sets.NewString(found...); !reflect.DeepEqual(requiredNames, foundSet) {
+			glog.V(3).Infof("missing: %v", requiredNames.Difference(foundSet).List())
 			return false, nil
 		}
 

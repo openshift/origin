@@ -492,9 +492,6 @@ const (
 	// PausedConfigReason is added in a deployment config when it is paused. Lack of progress shouldn't be
 	// estimated once a deployment config is paused.
 	PausedConfigReason DeploymentConditionReason = "DeploymentConfigPaused"
-	// ResumedConfigReason is added in a deployment config when it is resumed. Useful for not failing accidentally
-	// deployment configs that paused amidst a rollout.
-	ResumedConfigReason DeploymentConditionReason = "DeploymentConfigResumed"
 	// CancelledRolloutReason is added in a deployment config when its newest rollout was
 	// interrupted by cancellation.
 	CancelledRolloutReason DeploymentConditionReason = "RolloutCancelled"

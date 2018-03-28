@@ -20,6 +20,7 @@ import (
 type testCase struct {
 	Version         string
 	TemplatePath    string
+	TemplateName    string
 	SkipReplication bool
 }
 
@@ -28,6 +29,7 @@ var (
 		{
 			"5.7",
 			"https://raw.githubusercontent.com/sclorg/mysql-container/master/examples/replica/mysql_replica.json",
+			"mysql-replication-example",
 			false,
 		},
 	}
@@ -70,7 +72,13 @@ func replicationTestFactory(oc *exutil.CLI, tc testCase) func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		exutil.CheckOpenShiftNamespaceImageStreams(oc)
-		err = oc.Run("new-app").Args("-f", tc.TemplatePath).Execute()
+		err = oc.Run("create").Args("-f", tc.TemplatePath).Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		err = exutil.AddNamespaceLabelToPersistentVolumeClaimsInTemplate(oc, tc.TemplateName)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		err = oc.Run("new-app").Args("--template", tc.TemplateName).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		err = oc.Run("new-app").Args("-f", helperTemplate, "-p", fmt.Sprintf("MYSQL_VERSION=%s", tc.Version), "-p", fmt.Sprintf("DATABASE_SERVICE_NAME=%s", helperName)).Execute()
@@ -201,6 +209,7 @@ var _ = g.Describe("[image_ecosystem][mysql][Slow] openshift mysql replication",
 			if g.CurrentGinkgoTestDescription().Failed {
 				exutil.DumpPodStates(oc)
 				exutil.DumpPodLogsStartingWith("", oc)
+				exutil.DumpPersistentVolumeInfo(oc)
 			}
 		})
 

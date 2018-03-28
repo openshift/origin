@@ -25,13 +25,16 @@ func RemoveDeploymentConfigs(oc *CLI, dcs ...string) error {
 				e2e.Logf("Unable to get pods for dc/%s: %v", dc, err)
 				return false, err
 			}
-			if len(pods.Items) != 0 {
+			if len(pods.Items) > 0 {
+				e2e.Logf("Waiting for pods for dc/%s to terminate", dc)
 				return false, nil
 			}
+			e2e.Logf("Pods for dc/%s have terminated", dc)
 			return true, nil
 		})
 
 		if err != nil {
+			e2e.Logf("Error occurred waiting for pods to terminate for dc/%s: %v", dc, err)
 			errs = append(errs, err)
 		}
 	}

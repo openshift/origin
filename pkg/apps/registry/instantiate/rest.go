@@ -50,14 +50,14 @@ func (s *REST) New() runtime.Object {
 }
 
 // Create instantiates a deployment config
-func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, createValidation rest.ValidateObjectFunc, _ bool) (runtime.Object, error) {
+func (s *REST) Create(ctx apirequest.Context, obj runtime.Object, createValidation rest.ValidateObjectFunc, _ bool) (runtime.Object, error) {
 	req, ok := obj.(*appsapi.DeploymentRequest)
 	if !ok {
 		return nil, errors.NewInternalError(fmt.Errorf("wrong object passed for requesting a new rollout: %#v", obj))
 	}
 	var ret runtime.Object
 	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		configObj, err := r.store.Get(ctx, req.Name, &metav1.GetOptions{})
+		configObj, err := s.store.Get(ctx, req.Name, &metav1.GetOptions{})
 		if err != nil {
 			return err
 		}
@@ -71,12 +71,12 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, createValidati
 		// We need to process the deployment config before we can determine if it is possible to trigger
 		// a deployment.
 		if req.Latest {
-			if err := processTriggers(config, r.is, req.Force, req.ExcludeTriggers); err != nil {
+			if err := processTriggers(config, s.is, req.Force, req.ExcludeTriggers); err != nil {
 				return err
 			}
 		}
 
-		canTrigger, causes, err := canTrigger(config, r.rn, r.decoder, req.Force)
+		canTrigger, causes, err := canTrigger(config, s.rn, s.decoder, req.Force)
 		if err != nil {
 			return err
 		}
@@ -104,19 +104,19 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, createValidati
 
 		userInfo, _ := apirequest.UserFrom(ctx)
 		attrs := admission.NewAttributesRecord(config, old, appsapi.Kind("DeploymentConfig").WithVersion(""), config.Namespace, config.Name, appsapi.Resource("DeploymentConfig").WithVersion(""), "", admission.Update, userInfo)
-		if err := r.admit.(admission.MutationInterface).Admit(attrs); err != nil {
+		if err := s.admit.(admission.MutationInterface).Admit(attrs); err != nil {
 			return err
 		}
-		if err := r.admit.(admission.ValidationInterface).Validate(attrs); err != nil {
+		if err := s.admit.(admission.ValidationInterface).Validate(attrs); err != nil {
 			return err
 		}
 
-		ret, _, err = r.store.Update(
+		ret, _, err = s.store.Update(
 			ctx,
 			config.Name,
 			rest.DefaultUpdatedObjectInfo(config),
-			rest.AdmissionToValidateObjectFunc(r.admit, attrs),
-			rest.AdmissionToValidateObjectUpdateFunc(r.admit, attrs))
+			rest.AdmissionToValidateObjectFunc(s.admit, attrs),
+			rest.AdmissionToValidateObjectUpdateFunc(s.admit, attrs))
 		return err
 	})
 

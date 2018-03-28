@@ -186,14 +186,6 @@ func DeployerPodSelector(name string) labels.Selector {
 	return labels.SelectorFromValidatedSet(labels.Set{appsapi.DeployerPodForDeploymentLabel: name})
 }
 
-// AnyDeployerPodSelector returns a label Selector which can be used to find
-// all deployer pods across all deployments, including hook and custom
-// deployer pods.
-func AnyDeployerPodSelector() labels.Selector {
-	sel, _ := labels.Parse(appsapi.DeployerPodForDeploymentLabel)
-	return sel
-}
-
 // HasChangeTrigger returns whether the provided deployment configuration has
 // a config change trigger or not
 func HasChangeTrigger(config *appsapi.DeploymentConfig) bool {
@@ -555,10 +547,6 @@ func DeploymentDesiredReplicas(obj runtime.Object) (int32, bool) {
 	return int32AnnotationFor(obj, appsapi.DesiredReplicasAnnotation)
 }
 
-func DeploymentReplicas(obj runtime.Object) (int32, bool) {
-	return int32AnnotationFor(obj, appsapi.DeploymentReplicasAnnotation)
-}
-
 func EncodedDeploymentConfigFor(obj runtime.Object) string {
 	return annotationFor(obj, appsapi.DeploymentEncodedConfigAnnotation)
 }
@@ -594,12 +582,6 @@ func IsOwnedByConfig(obj metav1.Object) bool {
 // complete or failed).
 func IsTerminatedDeployment(deployment runtime.Object) bool {
 	return IsCompleteDeployment(deployment) || IsFailedDeployment(deployment)
-}
-
-// IsNewDeployment returns true if the passed deployment is in new state.
-func IsNewDeployment(deployment runtime.Object) bool {
-	current := DeploymentStatusFor(deployment)
-	return current == appsapi.DeploymentStatusNew
 }
 
 // IsCompleteDeployment returns true if the passed deployment is in state complete.
@@ -677,14 +659,14 @@ func MaxSurge(config appsapi.DeploymentConfig) int32 {
 
 // annotationFor returns the annotation with key for obj.
 func annotationFor(obj runtime.Object, key string) string {
-	meta, err := meta.Accessor(obj)
+	objectMeta, err := meta.Accessor(obj)
 	if err != nil {
 		return ""
 	}
-	if meta == nil || reflect.ValueOf(meta).IsNil() {
+	if objectMeta == nil || reflect.ValueOf(objectMeta).IsNil() {
 		return ""
 	}
-	return meta.GetAnnotations()[key]
+	return objectMeta.GetAnnotations()[key]
 }
 
 func int32AnnotationFor(obj runtime.Object, key string) (int32, bool) {
