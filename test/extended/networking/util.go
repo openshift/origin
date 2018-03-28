@@ -431,3 +431,24 @@ func InNetworkPolicyContext(body func()) {
 		body()
 	})
 }
+
+func InPluginContext(plugins []string, body func()) {
+	Context(fmt.Sprintf("when using one of the plugins '%s'", strings.Join(plugins, ", ")),
+		func() {
+			BeforeEach(func() {
+				found := false
+				for _, plugin := range plugins {
+					if networkPluginName() == plugin {
+						found = true
+						break
+					}
+				}
+				if !found {
+					e2e.Skipf("Not using one of the specified plugins")
+				}
+			})
+
+			body()
+		},
+	)
+}
