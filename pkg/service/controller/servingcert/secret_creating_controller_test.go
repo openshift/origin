@@ -427,7 +427,7 @@ func TestSkipGenerationControllerFlow(t *testing.T) {
 	serviceUID := "some-uid"
 	namespace := "ns"
 
-	caName, kubeclient, fakeWatch, _, controller, informerFactory := controllerSetup([]runtime.Object{}, stopChannel, t)
+	caName, kubeclient, fakeWatch, fakeSecretWatch, controller, informerFactory := controllerSetup([]runtime.Object{}, stopChannel, t)
 	kubeclient.PrependReactor("update", "service", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, &v1.Service{}, kapierrors.NewForbidden(v1.Resource("fdsa"), "new-service", fmt.Errorf("any service reason"))
 	})
@@ -470,6 +470,13 @@ func TestSkipGenerationControllerFlow(t *testing.T) {
 			t.Errorf("no mutation expected, but we got %v", action)
 		}
 	}
+
+	secretToAdd := &v1.Secret{}
+	secretToAdd.Name = expectedSecretName
+	secretToAdd.Namespace = namespace
+	fakeSecretWatch.Add(secretToAdd)
+	// makes sure that our lister has the secret.  Given wiring, I think it's this or kill the test
+	time.Sleep(2 * time.Second)
 
 	kubeclient.ClearActions()
 	serviceToAdd.Annotations = map[string]string{ServingCertSecretAnnotation: expectedSecretName, ServingCertCreatedByAnnotation: caName}
