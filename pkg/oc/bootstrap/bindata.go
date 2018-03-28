@@ -5211,7 +5211,7 @@ var _examplesJenkinsJenkinsEphemeralTemplateJson = []byte(`{
         "name": "${JENKINS_SERVICE_NAME}",
         "annotations": {
           "template.openshift.io/expose-uri": "http://{.spec.host}{.spec.path}",
-          "haproxy.router.openshift.io/timeout": "2m"
+          "haproxy.router.openshift.io/timeout": "4m"
         }
       },
       "spec": {
@@ -5515,7 +5515,7 @@ var _examplesJenkinsJenkinsPersistentTemplateJson = []byte(`{
         "name": "${JENKINS_SERVICE_NAME}",
         "annotations": {
           "template.openshift.io/expose-uri": "http://{.spec.host}{.spec.path}",
-          "haproxy.router.openshift.io/timeout": "2m"
+          "haproxy.router.openshift.io/timeout": "4m"
         }
       },
       "spec": {
