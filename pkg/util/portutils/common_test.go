@@ -6,10 +6,11 @@ import (
 )
 
 type TestData struct {
-	port  string
-	ports []string
-	err   string
-	errs  []string
+	port     string
+	ports    []string
+	err      string
+	errs     []string
+	filtered []string
 }
 
 var (
@@ -51,29 +52,40 @@ var (
 
 	testDataArray = []TestData{
 		{
-			ports: []string{"8080", "8080/tcp", "8080/udp"},
-			errs:  []string{},
+			ports:    []string{"8080", "8080/tcp", "8080/udp"},
+			filtered: []string{"8080", "8080/tcp", "8080/udp"},
+			errs:     []string{},
 		},
 		{
-			ports: []string{"8080", "8080/TCP", "8080/UDP"},
-			errs:  []string{},
+			ports:    []string{"8080", "8080/TCP", "8080/UDP"},
+			filtered: []string{"8080", "8080/TCP", "8080/UDP"},
+			errs:     []string{},
 		},
 		{
-			ports: []string{"8080", "$myPort/TCP", "8080/UDP"},
-			errs:  []string{"port number must be in range 0 - 65535"},
+			ports:    []string{"8080", "$myPort/TCP", "8080/UDP"},
+			filtered: []string{"8080", "8080/UDP"},
+			errs:     []string{"port number must be in range 0 - 65535"},
 		},
 
 		{
-			ports: []string{"8080", "88080/tcp", "8080/udp"},
-			errs:  []string{"port number must be in range 0 - 65535"},
+			ports:    []string{"8080", "88080/tcp", "8080/udp", "-1"},
+			filtered: []string{"8080", "8080/udp"},
+			errs:     []string{"port number must be in range 0 - 65535", "port number must be in range 0 - 65535"},
 		},
 		{
-			ports: []string{"8080", "8080/xyz", "8080/udp"},
-			errs:  []string{"protocol must be tcp or udp"},
+			ports:    []string{"8080", "8080/xyz", "8080/udp"},
+			filtered: []string{"8080", "8080/udp"},
+			errs:     []string{"protocol must be tcp or udp"},
 		},
 		{
-			ports: []string{"88080", "8080/xyz", "8080/udp"},
-			errs:  []string{"port number must be in range 0 - 65535", "protocol must be tcp or udp"},
+			ports:    []string{"88080", "8080/xyz", "8080/udp"},
+			filtered: []string{"8080/udp"},
+			errs:     []string{"port number must be in range 0 - 65535", "protocol must be tcp or udp"},
+		},
+		{
+			ports:    []string{"123/tcp", "abc"},
+			filtered: []string{"123/tcp"},
+			errs:     []string{"port number must be in range 0 - 65535"},
 		},
 	}
 )
@@ -98,6 +110,38 @@ func TestSplitPortAndProtocol(t *testing.T) {
 		}
 		if len(portAndProto) == 2 && portAndProto[1] != dp.Proto() {
 			t.Errorf("incorrect protocol %q returned, should have been %q", dp.Proto(), portAndProto[1])
+		}
+	}
+}
+
+func TestFilterPortAndProtocolArray(t *testing.T) {
+	for _, data := range testDataArray {
+		dps, errs := FilterPortAndProtocolArray(data.ports)
+		if len(data.errs) == 0 && len(errs) != 0 {
+			t.Errorf("got error for %q but shouldn't have: %v", data.ports, errs)
+		}
+		if len(data.errs) != 0 && len(errs) == 0 {
+			t.Errorf("should have gotten error for %q but didn't: %v", data.ports, data.errs)
+		}
+		if len(data.errs) != 0 && len(errs) != 0 {
+			var errorStrings []string
+			for _, err := range errs {
+				errorStrings = append(errorStrings, err.Error())
+			}
+			for _, err := range data.errs {
+				if !strings.Contains(strings.Join(errorStrings, " "), err) {
+					t.Errorf("returned incorrect error for %q: %v", data.ports, data.errs)
+				}
+			}
+		}
+		for i, dp := range dps {
+			portAndProto := strings.Split(data.filtered[i], "/")
+			if portAndProto[0] != dp.Port() {
+				t.Errorf("incorrect port %q returned, should have been %q", dp.Port(), portAndProto[0])
+			}
+			if len(portAndProto) == 2 && portAndProto[1] != dp.Proto() {
+				t.Errorf("incorrect protocol %q returned, should have been %q", dp.Proto(), portAndProto[1])
+			}
 		}
 	}
 }

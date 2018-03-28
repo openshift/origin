@@ -15,6 +15,7 @@ import (
 	"github.com/openshift/origin/pkg/oc/cli/describe"
 	"github.com/openshift/origin/pkg/oc/generate"
 	"github.com/openshift/origin/pkg/oc/generate/app"
+	"github.com/openshift/origin/pkg/util/portutils"
 )
 
 func displayName(meta metav1.ObjectMeta) string {
@@ -219,17 +220,25 @@ func describeBuildPipelineWithImage(out io.Writer, ref app.ComponentReference, p
 					ports.Insert(k)
 				}
 			}
-			switch len(ports) {
+			orderedPorts := ports.List()
+			sort.Sort(sort.StringSlice(orderedPorts))
+			filteredPorts, errs := portutils.FilterPortAndProtocolArray(orderedPorts)
+			if len(errs) > 0 {
+				fmt.Fprintf(out, "    * WARNING: The Dockerfile has some invalid ports in EXPOSE instruction: %v\n", errs)
+			}
+			switch len(filteredPorts) {
 			case 0:
 				fmt.Fprintf(out, "    * The image does not expose any ports - if you want to load balance or send traffic to this component\n")
 				fmt.Fprintf(out, "      you will need to create a service with 'expose dc/%s --port=[port]' later\n", pipeline.Deployment.Name)
 			default:
-				orderedPorts := ports.List()
-				sort.Sort(sort.StringSlice(orderedPorts))
-				if len(orderedPorts) == 1 {
-					fmt.Fprintf(out, "    * Port %s will be load balanced by service %q\n", orderedPorts[0], pipeline.Deployment.Name)
+				filteredPortsString := make([]string, len(filteredPorts))
+				for i, dp := range filteredPorts {
+					filteredPortsString[i] = dp.Port() + `/` + dp.Proto()
+				}
+				if len(filteredPorts) == 1 {
+					fmt.Fprintf(out, "    * Port %s will be load balanced by service %q\n", filteredPortsString[0], pipeline.Deployment.Name)
 				} else {
-					fmt.Fprintf(out, "    * Ports %s will be load balanced by service %q\n", strings.Join(orderedPorts, ", "), pipeline.Deployment.Name)
+					fmt.Fprintf(out, "    * Ports %s will be load balanced by service %q\n", strings.Join(filteredPortsString, ", "), pipeline.Deployment.Name)
 				}
 				fmt.Fprintf(out, "      * Other containers can access this service through the hostname %q\n", pipeline.Deployment.Name)
 			}

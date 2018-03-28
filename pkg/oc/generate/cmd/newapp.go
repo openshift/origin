@@ -42,8 +42,6 @@ import (
 	templateinternalclient "github.com/openshift/origin/pkg/template/client/internalversion"
 	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset/typed/template/internalversion"
 	outil "github.com/openshift/origin/pkg/util"
-	dockerfileutil "github.com/openshift/origin/pkg/util/docker/dockerfile"
-	"github.com/openshift/origin/pkg/util/portutils"
 )
 
 const (
@@ -104,11 +102,10 @@ type AppConfig struct {
 
 	SkipGeneration bool
 
-	AllowSecretUse              bool
-	SourceSecret                string
-	PushSecret                  string
-	AllowNonNumericExposedPorts bool
-	SecretAccessor              app.SecretAccessor
+	AllowSecretUse bool
+	SourceSecret   string
+	PushSecret     string
+	SecretAccessor app.SecretAccessor
 
 	AsSearch bool
 	AsList   bool
@@ -820,10 +817,6 @@ func (c *AppConfig) Run() (*AppResult, error) {
 		}
 	}
 
-	if err := optionallyValidateExposedPorts(c, repositories); err != nil {
-		return nil, err
-	}
-
 	if len(c.To) > 0 {
 		if err := validateOutputImageReference(c.To); err != nil {
 			return nil, err
@@ -1302,25 +1295,4 @@ func (c *AppConfig) HasArguments() bool {
 		len(c.DockerImages) > 0 ||
 		len(c.Templates) > 0 ||
 		len(c.TemplateFiles) > 0
-}
-
-func optionallyValidateExposedPorts(config *AppConfig, repositories app.SourceRepositories) error {
-	if config.AllowNonNumericExposedPorts {
-		return nil
-	}
-
-	if config.Strategy != generate.StrategyUnspecified && config.Strategy != generate.StrategyDocker {
-		return nil
-	}
-
-	for _, repo := range repositories {
-		if repoInfo := repo.Info(); repoInfo != nil && repoInfo.Dockerfile != nil {
-			node := repoInfo.Dockerfile.AST()
-			if _, errs := portutils.SplitPortAndProtocolArray(dockerfileutil.LastExposedPorts(node)); len(errs) > 0 {
-				return fmt.Errorf("the Dockerfile has an invalid EXPOSE instruction: %v", errs)
-			}
-		}
-	}
-
-	return nil
 }
