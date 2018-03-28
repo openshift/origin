@@ -13,9 +13,9 @@ import (
 	"github.com/openshift/origin/pkg/oc/errors"
 )
 
-const KubeAPIServerDirName = "oc-cluster-up-kube-apiserver"
-const OpenShiftAPIServerDirName = "oc-cluster-up-openshift-apiserver"
-const OpenShiftControllerManagerDirName = "oc-cluster-up-openshift-controller-manager"
+const KubeAPIServerDirName = "kube-apiserver"
+const OpenShiftAPIServerDirName = "openshift-apiserver"
+const OpenShiftControllerManagerDirName = "openshift-controller-manager"
 
 type KubeAPIServerStartConfig struct {
 	// MasterImage is the docker image for openshift start master
@@ -64,15 +64,14 @@ func (opt KubeAPIServerStartConfig) MakeMasterConfig(dockerClient dockerhelper.I
 	}
 
 	// TODO eliminate the linkage that other tasks have on this particular structure
-	tempDir := path.Join(basedir, KubeAPIServerDirName)
-	masterDir := path.Join(tempDir, "master")
+	masterDir := path.Join(basedir, KubeAPIServerDirName)
 	if err := os.MkdirAll(masterDir, 0755); err != nil {
 		return "", err
 	}
-	glog.V(1).Infof("Copying OpenShift config to local directory %s", tempDir)
+	glog.V(1).Infof("Copying OpenShift config to local directory %s", masterDir)
 	if err = dockerhelper.DownloadDirFromContainer(dockerClient, containerId, "/var/lib/origin/openshift.local.config", masterDir); err != nil {
-		if removeErr := os.RemoveAll(tempDir); removeErr != nil {
-			glog.V(2).Infof("Error removing temporary config dir %s: %v", tempDir, removeErr)
+		if removeErr := os.RemoveAll(masterDir); removeErr != nil {
+			glog.V(2).Infof("Error removing temporary config dir %s: %v", masterDir, removeErr)
 		}
 		return "", err
 	}

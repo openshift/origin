@@ -47,8 +47,6 @@ func (h *Helper) InstallRouter(dockerClient dockerhelper.Interface, ocImage stri
 	imageRunHelper := run.NewRunHelper(dockerhelper.NewHelper(dockerClient)).New()
 	glog.Infof("Running %q", componentName)
 
-	masterDir := filepath.Join(configDir, "master")
-
 	// Create service account for router
 	routerSA := &kapi.ServiceAccount{}
 	routerSA.Name = RouterServiceAccountName
@@ -81,9 +79,9 @@ func (h *Helper) InstallRouter(dockerClient dockerhelper.Interface, ocImage stri
 	cmdOutput := &bytes.Buffer{}
 	createCertOptions := &admin.CreateServerCertOptions{
 		SignerCertOptions: &admin.SignerCertOptions{
-			CertFile:   filepath.Join(masterDir, "ca.crt"),
-			KeyFile:    filepath.Join(masterDir, "ca.key"),
-			SerialFile: filepath.Join(masterDir, "ca.serial.txt"),
+			CertFile:   filepath.Join(configDir, "ca.crt"),
+			KeyFile:    filepath.Join(configDir, "ca.key"),
+			SerialFile: filepath.Join(configDir, "ca.serial.txt"),
 		},
 		Overwrite: true,
 		Hostnames: []string{
@@ -92,8 +90,8 @@ func (h *Helper) InstallRouter(dockerClient dockerhelper.Interface, ocImage stri
 			// certs will use certs valid for their arbitrary subdomain names.
 			fmt.Sprintf("*.%s", routingSuffix),
 		},
-		CertFile: filepath.Join(masterDir, "router.crt"),
-		KeyFile:  filepath.Join(masterDir, "router.key"),
+		CertFile: filepath.Join(configDir, "router.crt"),
+		KeyFile:  filepath.Join(configDir, "router.key"),
 		Output:   cmdOutput,
 	}
 	_, err = createCertOptions.CreateServerCert()
@@ -101,20 +99,20 @@ func (h *Helper) InstallRouter(dockerClient dockerhelper.Interface, ocImage stri
 		return errors.NewError("cannot create router cert").WithCause(err)
 	}
 
-	err = catFiles(filepath.Join(masterDir, "router.pem"),
-		filepath.Join(masterDir, "router.crt"),
-		filepath.Join(masterDir, "router.key"),
-		filepath.Join(masterDir, "ca.crt"))
+	err = catFiles(filepath.Join(configDir, "router.pem"),
+		filepath.Join(configDir, "router.crt"),
+		filepath.Join(configDir, "router.key"),
+		filepath.Join(configDir, "ca.crt"))
 	if err != nil {
 		return errors.NewError("cannot create aggregate router cert").WithCause(err)
 	}
 
-	routerCertPath := masterDir + "/router.pem"
+	routerCertPath := configDir + "/router.pem"
 	flags := []string{
 		"adm", "router",
 		"--host-ports=true",
 		"--loglevel=8",
-		"--config=" + masterDir + "/admin.kubeconfig",
+		"--config=" + configDir + "/admin.kubeconfig",
 		fmt.Sprintf("--host-network=%v", !portForwarding),
 		fmt.Sprintf("--images=%s", images),
 		fmt.Sprintf("--default-cert=%s", routerCertPath),
@@ -123,7 +121,7 @@ func (h *Helper) InstallRouter(dockerClient dockerhelper.Interface, ocImage stri
 		Privileged().
 		DiscardContainer().
 		HostNetwork().
-		Bind(masterDir + ":" + masterDir).
+		Bind(configDir + ":" + configDir).
 		Entrypoint("oc").
 		Command(flags...).Output()
 

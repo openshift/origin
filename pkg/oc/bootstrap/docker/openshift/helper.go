@@ -256,7 +256,7 @@ func (h *Helper) GetNodeConfigFromLocalDir(configDir string) (*configapi.NodeCon
 }
 
 func (h *Helper) GetConfigFromLocalDir(configDir string) (*configapi.MasterConfig, string, error) {
-	configPath := filepath.Join(configDir, "master", "master-config.yaml")
+	configPath := filepath.Join(configDir, "master-config.yaml")
 	glog.V(1).Infof("Reading master config from %s", configPath)
 	cfg, err := configapilatest.ReadMasterConfig(configPath)
 	if err != nil {

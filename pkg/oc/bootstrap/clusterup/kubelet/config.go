@@ -15,9 +15,9 @@ import (
 )
 
 const (
-	NodeConfigDirName  = "oc-cluster-up-node"
-	KubeDNSDirName     = "oc-cluster-up-kubedns"
-	PodManifestDirName = "oc-cluster-up-pod-manifest"
+	NodeConfigDirName  = "node"
+	KubeDNSDirName     = "kubedns"
+	PodManifestDirName = "static-pod-manifests"
 )
 
 type NodeStartConfig struct {
