@@ -14746,7 +14746,7 @@ objects:
           - --etcd-servers
           - http://localhost:2379
           - -v
-          - "10"
+          - "3"
           - --cors-allowed-origins
           - ${CORS_ALLOWED_ORIGIN}
           - --feature-gates
@@ -14839,7 +14839,7 @@ objects:
           - --secure-port
           - "6444"
           - -v
-          - "5"
+          - "3"
           - --leader-election-namespace
           - kube-service-catalog
           - --broker-relist-interval
