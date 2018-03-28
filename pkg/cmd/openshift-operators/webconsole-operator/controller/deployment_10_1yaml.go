@@ -63,7 +63,7 @@ spec:
       - name: serving-cert
         secret:
           defaultMode: 400
-          secretName: web-console-serving-cert
+          secretName: 
       - name: web-console-config
         configMap:
           defaultMode: 440

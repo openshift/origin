@@ -1,9 +1,8 @@
 package resourcemerge
 
 import (
-	"reflect"
-
 	appsv1 "k8s.io/api/apps/v1"
+	"k8s.io/apimachinery/pkg/api/equality"
 )
 
 func EnsureDeployment(modified *bool, existing *appsv1.Deployment, required appsv1.Deployment) {
@@ -13,7 +12,7 @@ func EnsureDeployment(modified *bool, existing *appsv1.Deployment, required apps
 		*modified = true
 		existing.Spec.Selector = required.Spec.Selector
 	}
-	if !reflect.DeepEqual(existing.Spec.Selector, required.Spec.Selector) {
+	if !equality.Semantic.DeepEqual(existing.Spec.Selector, required.Spec.Selector) {
 		*modified = true
 		existing.Spec.Selector = required.Spec.Selector
 	}

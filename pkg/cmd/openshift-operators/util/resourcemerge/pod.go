@@ -168,9 +168,13 @@ func ensureSecurityContext(modified *bool, existing *corev1.SecurityContext, req
 }
 
 func ensureSecurityContextPtr(modified *bool, existing **corev1.SecurityContext, required *corev1.SecurityContext) {
-	if *existing == nil || (required == nil && *existing != nil) {
+	if *existing == nil && required != nil {
 		*modified = true
 		*existing = required
+		return
+	}
+	// if we have no required, then we don't care what someone else has set
+	if required == nil {
 		return
 	}
 	ensureSecurityContext(modified, *existing, *required)
