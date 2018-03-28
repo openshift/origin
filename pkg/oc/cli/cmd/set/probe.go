@@ -201,7 +201,7 @@ func (o *ProbeOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args [
 		return f.PrintResourceInfos(cmd, o.Local, infos, o.Out)
 	}
 
-	o.Encoder = f.JSONEncoder()
+	o.Encoder = kcmdutil.InternalVersionJSONEncoder()
 	o.UpdatePodSpecForObject = f.UpdatePodSpecForObject
 	o.ShortOutput = kcmdutil.GetFlagString(cmd, "output") == "name"
 	o.Mapper = mapper

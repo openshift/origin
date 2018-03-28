@@ -3,7 +3,6 @@ package clientcmd
 import (
 	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -19,7 +18,6 @@ import (
 
 	osclientcmd "github.com/openshift/origin/pkg/client/cmd"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -34,13 +32,11 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
-	kprinters "k8s.io/kubernetes/pkg/printers"
 
 	appsapiv1 "github.com/openshift/api/apps/v1"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	deploymentcmd "github.com/openshift/origin/pkg/oc/cli/deploymentconfigs"
-	"github.com/openshift/origin/pkg/oc/cli/describe"
 	routegen "github.com/openshift/origin/pkg/route/generator"
 )
 
@@ -133,10 +129,6 @@ func (f *ring0Factory) ClientSet() (kclientset.Interface, error) {
 	return f.kubeClientAccessFactory.ClientSet()
 }
 
-func (f *ring0Factory) ClientSetForVersion(requiredVersion *schema.GroupVersion) (kclientset.Interface, error) {
-	return f.kubeClientAccessFactory.ClientSetForVersion(requiredVersion)
-}
-
 func (f *ring0Factory) ClientConfig() (*restclient.Config, error) {
 	return f.kubeClientAccessFactory.ClientConfig()
 }
@@ -145,20 +137,8 @@ func (f *ring0Factory) BareClientConfig() (*restclient.Config, error) {
 	return f.clientConfig.ClientConfig()
 }
 
-func (f *ring0Factory) ClientConfigForVersion(requiredVersion *schema.GroupVersion) (*restclient.Config, error) {
-	return f.kubeClientAccessFactory.ClientConfigForVersion(nil)
-}
-
 func (f *ring0Factory) RESTClient() (*restclient.RESTClient, error) {
 	return f.kubeClientAccessFactory.RESTClient()
-}
-
-func (f *ring0Factory) Decoder(toInternal bool) runtime.Decoder {
-	return f.kubeClientAccessFactory.Decoder(toInternal)
-}
-
-func (f *ring0Factory) JSONEncoder() runtime.Encoder {
-	return f.kubeClientAccessFactory.JSONEncoder()
 }
 
 func (f *ring0Factory) UpdatePodSpecForObject(obj runtime.Object, fn func(*corev1.PodSpec) error) (bool, error) {
@@ -290,7 +270,7 @@ func (f *ring0Factory) Pauser(info *resource.Info) ([]byte, error) {
 		}
 		t.Spec.Paused = true
 		// TODO: Pause the deployer containers.
-		return runtime.Encode(f.JSONEncoder(), info.Object)
+		return runtime.Encode(kcmdutil.InternalVersionJSONEncoder(), info.Object)
 	default:
 		return f.kubeClientAccessFactory.Pauser(info)
 	}
@@ -349,7 +329,7 @@ func (f *ring0Factory) Resumer(info *resource.Info) ([]byte, error) {
 		}
 		t.Spec.Paused = false
 		// TODO: Resume the deployer containers.
-		return runtime.Encode(f.JSONEncoder(), info.Object)
+		return runtime.Encode(kcmdutil.InternalVersionJSONEncoder(), info.Object)
 	default:
 		return f.kubeClientAccessFactory.Resumer(info)
 	}

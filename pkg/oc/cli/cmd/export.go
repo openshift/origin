@@ -140,7 +140,7 @@ func RunExport(f *clientcmd.Factory, exporter Exporter, in io.Reader, out io.Wri
 				errs = append(errs, err)
 				continue
 			}
-			decoded, err := runtime.Decode(f.Decoder(true), data)
+			decoded, err := runtime.Decode(legacyscheme.Codecs.UniversalDecoder(), data)
 			if err == nil {
 				// ignore error, if any, in order to allow resources
 				// not known by the client to still be exported
@@ -161,7 +161,7 @@ func RunExport(f *clientcmd.Factory, exporter Exporter, in io.Reader, out io.Wri
 			// internal version.
 			if converted {
 				if data, err = runtime.Encode(legacyscheme.Codecs.LegacyCodec(outputVersion), info.Object); err == nil {
-					external, err := runtime.Decode(f.Decoder(false), data)
+					external, err := runtime.Decode(legacyscheme.Codecs.UniversalDeserializer(), data)
 					if err != nil {
 						errs = append(errs, fmt.Errorf("error: failed to convert resource to external version: %v", err))
 						continue
@@ -209,7 +209,7 @@ func RunExport(f *clientcmd.Factory, exporter Exporter, in io.Reader, out io.Wri
 	if len(outputFormat) == 0 {
 		outputFormat = "yaml"
 	}
-	decoders := []runtime.Decoder{f.Decoder(true), unstructured.UnstructuredJSONScheme}
+	decoders := []runtime.Decoder{legacyscheme.Codecs.UniversalDeserializer(), unstructured.UnstructuredJSONScheme}
 	printOpts := kcmdutil.ExtractCmdPrintOptions(cmd, false)
 	printOpts.OutputFormatType = outputFormat
 	printOpts.OutputFormatArgument = templateFile

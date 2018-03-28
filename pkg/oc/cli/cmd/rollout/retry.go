@@ -77,7 +77,7 @@ func (o *RetryOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, out io
 	}
 
 	o.Mapper, o.Typer = f.Object()
-	o.Encoder = f.JSONEncoder()
+	o.Encoder = kcmdutil.InternalVersionJSONEncoder()
 	o.Out = out
 
 	cmdNamespace, enforceNamespace, err := f.DefaultNamespace()

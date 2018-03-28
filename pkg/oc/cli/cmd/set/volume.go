@@ -394,7 +394,7 @@ func (v *VolumeOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, out, 
 	v.CategoryExpander = f.CategoryExpander()
 	v.RESTClientFactory = f.ClientForMapping
 	v.UpdatePodSpecForObject = f.UpdatePodSpecForObject
-	v.Encoder = f.JSONEncoder()
+	v.Encoder = kcmdutil.InternalVersionJSONEncoder()
 
 	// In case of volume source ignore the default volume type
 	if len(v.AddOpts.Source) > 0 {
