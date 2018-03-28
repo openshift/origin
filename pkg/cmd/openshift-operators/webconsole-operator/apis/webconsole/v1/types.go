@@ -76,13 +76,19 @@ type OpenShiftOperatorCondition struct {
 	Message            string          `json:"message,omitempty"`
 }
 
+type WebConsoleVersionAvailablity struct {
+	Version           string   `json:"version"`
+	UpdatedReplicas   int32    `json:"updatedReplicas"`
+	AvailableReplicas int32    `json:"availableReplicas"`
+	ReadyReplicas     int32    `json:"readyReplicas"`
+	Errors            []string `json:"errors"`
+}
+
 type OpenShiftWebConsoleConfigStatus struct {
 	Conditions []OpenShiftOperatorCondition `json:"conditions,omitempty"`
 
-	InProgressVersion     string `json:"inProgressVersion"`
-	LastSuccessfulVersion string `json:"lastSuccessfulVersion"`
+	Task    string `json:"task"`
+	Version string `json:"version"`
 
-	// LastUnsuccessfulRunErrors tracks errors from the last run.  If we put the system back into a working state
-	// these will be from the last failure.
-	LastUnsuccessfulRunErrors []string `json:"lastUnsuccessfulRunErrors"`
+	VersionAvailability []WebConsoleVersionAvailablity `json:"versionAvailability"`
 }

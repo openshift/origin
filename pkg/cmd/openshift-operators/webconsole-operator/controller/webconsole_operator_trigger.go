@@ -7,6 +7,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	appsclientv1 "k8s.io/client-go/kubernetes/typed/apps/v1"
@@ -63,14 +64,14 @@ func (c WebConsoleOperator) sync() error {
 	case webconsolev1.Disabled:
 		// TODO probably need to watch until the NS is really gone
 		if err := c.corev1Client.Namespaces().Delete("openshift-web-console", nil); err != nil && !apierrors.IsNotFound(err) {
-			operatorConfig.Status.LastUnsuccessfulRunErrors = []string{err.Error()}
+			utilruntime.HandleError(err)
 			if _, updateErr := c.operatorConfigClient.OpenShiftWebConsoleConfigs().Update(operatorConfig); updateErr != nil {
 				utilruntime.HandleError(updateErr)
 			}
 			return err
 		}
-		operatorConfig.Status.LastUnsuccessfulRunErrors = []string{}
-		operatorConfig.Status.LastSuccessfulVersion = ""
+		operatorConfig.Status.Version = ""
+		operatorConfig.Status.VersionAvailability = []webconsolev1.WebConsoleVersionAvailablity{}
 		if _, err := c.operatorConfigClient.OpenShiftWebConsoleConfigs().Update(operatorConfig); err != nil {
 			return err
 		}
@@ -78,26 +79,39 @@ func (c WebConsoleOperator) sync() error {
 	}
 
 	// TODO use semver
-	isFirst := len(operatorConfig.Status.LastSuccessfulVersion) == 0
-	isSame := operatorConfig.Spec.Version == operatorConfig.Status.LastSuccessfulVersion
-	is10_0 := is10_0Version(operatorConfig.Status.LastSuccessfulVersion)
+	isFirst := len(operatorConfig.Status.Version) == 0
+	isSame := operatorConfig.Spec.Version == operatorConfig.Status.Version
+	is10_0 := is10_0Version(operatorConfig.Status.Version)
 	wants10_0 := is10_0Version(operatorConfig.Spec.Version)
 	wants10_1 := operatorConfig.Spec.Version == "3.10.1"
 
+	errors := []error{}
 	switch {
 	case wants10_0 && (isSame || isFirst):
-		return c.sync10_0(operatorConfig)
+		operatorConfig, errors = c.sync10_0(operatorConfig)
+		operatorConfig.Status.Task = "sync-3.10.0"
 
 	case wants10_1 && (isSame || isFirst):
-		return c.sync10_1(operatorConfig)
+		operatorConfig, errors = c.sync10_1(operatorConfig)
+		operatorConfig.Status.Task = "sync-3.10.1"
 
 	case wants10_1 && is10_0:
-		return c.migrate10_0_to_10_1(operatorConfig)
+		operatorConfig, errors = c.migrate10_0_to_10_1(operatorConfig)
+		operatorConfig.Status.Task = "migration-3.10.0-to-3.10.1"
 
 	default:
-		// TODO update status
+		operatorConfig.Status.Task = "unrecognized"
+		if _, err := c.operatorConfigClient.OpenShiftWebConsoleConfigs().Update(operatorConfig); err != nil {
+			utilruntime.HandleError(err)
+		}
+
 		return fmt.Errorf("unrecognized state")
 	}
+
+	if _, err := c.operatorConfigClient.OpenShiftWebConsoleConfigs().Update(operatorConfig); err != nil {
+		errors = append(errors, err)
+	}
+	return utilerrors.NewAggregate(errors)
 }
 
 func (c WebConsoleOperator) ensureNamespace() (bool, error) {

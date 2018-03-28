@@ -6,6 +6,7 @@ import (
 
 	"github.com/golang/glog"
 
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsclientv1beta1 "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -166,7 +167,7 @@ func (c OrchestrationOperator) ensureComponentOperators(component componentInfo,
 		} else {
 			modified = modified || currModified
 		}
-		if currModified, err := c.ensureComponentDeployment(operatorInfo.deploymentYaml, options); err != nil {
+		if _, currModified, err := c.ensureComponentDeployment(operatorInfo.deploymentYaml, options); err != nil {
 			errors = append(errors, err)
 		} else {
 			modified = modified || currModified
@@ -232,7 +233,7 @@ func (c OrchestrationOperator) ensureWebConsoleOperator(options orchestrationv1.
 	return modified, errors
 }
 
-func (c OrchestrationOperator) ensureComponentDeployment(deploymentYaml []byte, options orchestrationv1.Component) (bool, error) {
+func (c OrchestrationOperator) ensureComponentDeployment(deploymentYaml []byte, options orchestrationv1.Component) (*appsv1.Deployment, bool, error) {
 	required := resourceread.ReadDeploymentOrDie(deploymentYaml)
 	required.Spec.Template.Spec.Containers[0].Image = options.OperatorImagePullSpec
 	return resourceapply.ApplyDeployment(c.appsv1Client, required)
