@@ -660,11 +660,10 @@ can potentially break or change any part of Origin, the most affected parts are
 usually:
 
 1. https://github.com/openshift/origin/blob/master/pkg/cmd/server/start
-2. https://github.com/openshift/origin/blob/master/pkg/cmd/server/kubernetes/master.go
-3. https://github.com/openshift/origin/blob/master/pkg/cmd/server/origin/master.go
-4. https://github.com/openshift/origin/blob/master/pkg/cmd/util/clientcmd/factory.go
-5. https://github.com/openshift/origin/blob/master/pkg/cmd/cli/cli.go
-6. https://github.com/openshift/origin/blob/master/pkg/api/meta/meta.go
+2. https://github.com/openshift/origin/blob/master/pkg/cmd/server/origin/master.go
+3. https://github.com/openshift/origin/blob/master/pkg/oc/cli/util/clientcmd/factory.go
+4. https://github.com/openshift/origin/blob/master/pkg/oc/cli/cli.go
+5. https://github.com/openshift/origin/blob/master/pkg/api/meta/meta.go
 
 Place all your changes in a commit called "Refactor to match changes upstream".
 
