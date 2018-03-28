@@ -61,6 +61,10 @@ spec:
         - --feature-gates
         - OriginatingIdentity=true
         {{- end }}
+        {{- if .Values.namespacedServiceBrokerEnabled }}
+        - --feature-gates
+        - NamespacedServiceBroker=true
+        {{- end }}
         {{- if .Values.apiserver.serveOpenAPISpec }}
         - --serve-openapi-spec
         {{- end }}

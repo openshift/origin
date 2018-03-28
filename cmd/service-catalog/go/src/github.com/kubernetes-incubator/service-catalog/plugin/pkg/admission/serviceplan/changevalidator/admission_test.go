@@ -85,7 +85,11 @@ func newServiceInstance(namespace string, serviceClassName string, planName stri
 func newClusterServiceClass(name string, plan string, updateablePlan bool) *servicecatalog.ClusterServiceClass {
 	sc := &servicecatalog.ClusterServiceClass{
 		ObjectMeta: metav1.ObjectMeta{Name: name},
-		Spec:       servicecatalog.ClusterServiceClassSpec{PlanUpdatable: updateablePlan},
+		Spec: servicecatalog.ClusterServiceClassSpec{
+			CommonServiceClassSpec: servicecatalog.CommonServiceClassSpec{
+				PlanUpdatable: updateablePlan,
+			},
+		},
 	}
 	return sc
 }

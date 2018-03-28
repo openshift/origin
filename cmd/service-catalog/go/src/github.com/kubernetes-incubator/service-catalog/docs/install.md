@@ -166,3 +166,58 @@ Service Catalog is simple:
 helm install svc-cat/catalog \
     --name catalog --namespace catalog
 ```
+
+# Installing the Service Catalog CLI
+
+Follow the appropriate instructions for your operating system to install svcat. The binary
+can be used by itself, or as a kubectl plugin.
+
+## MacOS
+
+```
+curl -sLO https://download.svcat.sh/cli/latest/darwin/amd64/svcat
+chmod +x ./svcat
+mv ./svcat /usr/local/bin/
+svcat --version
+```
+
+## Linux
+
+```
+curl -sLO https://download.svcat.sh/cli/latest/linux/amd64/svcat
+chmod +x ./svcat
+mv ./svcat /usr/local/bin/
+svcat --version
+```
+
+## Windows
+
+The snippet below adds a directory to your PATH for the current session only.
+You will need to find a permanent location for it and add it to your PATH.
+
+```
+iwr 'https://download.svcat.sh/cli/latest/windows/amd64/svcat.exe' -UseBasicParsing -OutFile svcat.exe
+mkdir -f ~\bin
+$env:PATH += ";${pwd}\bin"
+svcat --version
+```
+
+## Manual
+1. Download the appropriate binary for your operating system:
+    * macOS: https://download.svcat.sh/cli/latest/darwin/amd64/svcat
+    * Windows: https://download.svcat.sh/cli/latest/windows/amd64/svcat.exe
+    * Linux: https://download.svcat.sh/cli/latest/linux/amd64/svcat
+1. Make the binary executable.
+1. Move the binary to a directory on your PATH.
+
+## Plugin
+To use svcat as a plugin, run the following command after downloading:
+
+```console
+$ ./svcat install plugin
+Plugin has been installed to ~/.kube/plugins/svcat. Run kubectl plugin svcat --help for help using the plugin.
+```
+
+When operating as a plugin, the commands are the same with the addition of the global
+kubectl configuration flags. One exception is that boolean flags aren't supported
+when running in plugin mode, so instead of using `--flag` you must specify a value `--flag=true`.

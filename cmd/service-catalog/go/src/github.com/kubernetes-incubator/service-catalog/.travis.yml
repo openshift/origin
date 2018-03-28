@@ -41,6 +41,7 @@ jobs:
     # Test is implicit from the build matrix
     # Deploy
     - stage: deploy
+      script: skip
       deploy:
         skip_cleanup: true
         provider: script

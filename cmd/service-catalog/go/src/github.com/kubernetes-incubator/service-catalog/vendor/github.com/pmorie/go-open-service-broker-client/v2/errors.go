@@ -179,7 +179,7 @@ func (e AsyncBindingOperationsNotAllowedError) Error() string {
 	return fmt.Sprintf("Asynchronous binding operations are not allowed: %s", e.reason)
 }
 
-// AsyncBindingOperationsNotAllowedError returns whether the error represents asynchronous
+// IsAsyncBindingOperationsNotAllowedError returns whether the error represents asynchronous
 // binding operations (bind/unbind/poll) not being allowed for this client.
 func IsAsyncBindingOperationsNotAllowedError(err error) bool {
 	_, ok := err.(AsyncBindingOperationsNotAllowedError)

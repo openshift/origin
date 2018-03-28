@@ -24,6 +24,7 @@ vendor/github.com/petar/GoLLRB/doc/*
 contrib/examples/consumer/Gopkg.lock
 contrib/examples/consumer
 contrib/examples/vendor/*
+integration.test*
 # this is for buildling service catalog with origin tooling
 _output
 /go/src/github.com/kubernetes-incubator/service-catalog/_output

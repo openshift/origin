@@ -55,6 +55,9 @@ func TestCommandValidation(t *testing.T) {
 		{"unbind requires arg", "unbind", "instance or binding name is required"},
 		{"sync requires names", "sync broker", "name is required"},
 		{"deprovision requires name", "deprovision", "name is required"},
+		{"provision does not accept --param and --params-json",
+			`provision name --class class --plan plan --params-json '{}' --param k=v`,
+			"--params-json cannot be used with --param"},
 	}
 
 	for _, tc := range testcases {
@@ -85,17 +88,23 @@ func TestCommandOutput(t *testing.T) {
 		{name: "get plan by name", cmd: "get plan default", golden: "output/get-plan.txt"},
 		{name: "get plan by uuid", cmd: "get plan --uuid 86064792-7ea2-467b-af93-ac9694d96d52", golden: "output/get-plan.txt"},
 		{name: "get plan by class/plan name combo", cmd: "get plan user-provided-service/default", golden: "output/get-plan.txt"},
+		{name: "get plan by class name", cmd: "get plan --class user-provided-service", golden: "output/get-plans-by-class.txt"},
+		{name: "get plan by class/plan name combo", cmd: "get plan --class user-provided-service default", golden: "output/get-plan.txt"},
+		{name: "get plan by class/plan uuid combo", cmd: "get plan --uuid --class 4f6e6cf6-ffdd-425f-a2c7-3c9258ad2468 86064792-7ea2-467b-af93-ac9694d96d52", golden: "output/get-plan.txt"},
+		{name: "get plan by class uuid", cmd: "get plan --uuid --class 4f6e6cf6-ffdd-425f-a2c7-3c9258ad2468", golden: "output/get-plans-by-class.txt"},
 		{name: "describe plan by name", cmd: "describe plan default", golden: "output/describe-plan.txt"},
 		{name: "describe plan by uuid", cmd: "describe plan --uuid 86064792-7ea2-467b-af93-ac9694d96d52", golden: "output/describe-plan.txt"},
 		{name: "describe plan by class/plan name combo", cmd: "describe plan user-provided-service/default", golden: "output/describe-plan.txt"},
 		{name: "describe plan with schemas", cmd: "describe plan premium", golden: "output/describe-plan-with-schemas.txt"},
 		{name: "describe plan without schemas", cmd: "describe plan premium --show-schemas=false", golden: "output/describe-plan-without-schemas.txt"},
 
-		{name: "list all instances", cmd: "get instances -n test-ns", golden: "output/get-instances.txt"},
+		{name: "list all test-ns instances", cmd: "get instances -n test-ns", golden: "output/get-instances.txt"},
+		{name: "list all instances", cmd: "get instances --all-namespaces", golden: "output/get-instances-all-namespaces.txt"},
 		{name: "get instance", cmd: "get instance ups-instance -n test-ns", golden: "output/get-instance.txt"},
 		{name: "describe instance", cmd: "describe instance ups-instance -n test-ns", golden: "output/describe-instance.txt"},
 
 		{name: "list all bindings", cmd: "get bindings -n test-ns", golden: "output/get-bindings.txt"},
+		{name: "list all instances", cmd: "get bindings --all-namespaces", golden: "output/get-bindings-all-namespaces.txt"},
 		{name: "get binding", cmd: "get binding ups-binding -n test-ns", golden: "output/get-binding.txt"},
 		{name: "describe binding", cmd: "describe binding ups-binding -n test-ns", golden: "output/describe-binding.txt"},
 	}
@@ -108,6 +117,18 @@ func TestCommandOutput(t *testing.T) {
 	}
 }
 
+// If you add a new command to svcat, this test will fail, because the plugin.yaml
+// golden file will be out of date. To fix this, run:
+//
+//	go test ./cmd/svcat/... -update
+//
+//
+// once. This command updates the golden file according to your new command.
+// After you run the update, make sure your tests pass against the new golden
+// file:
+//
+// 	go test ./cmd/svcat/...
+//
 func TestGenerateManifest(t *testing.T) {
 	svcat := buildRootCommand()
 

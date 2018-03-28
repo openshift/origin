@@ -97,3 +97,10 @@ func WriteAssociatedBindings(w io.Writer, bindings []v1beta1.ServiceBinding) {
 	}
 	t.Render()
 }
+
+// WriteDeletedBindingNames prints the names of a list of bindings
+func WriteDeletedBindingNames(w io.Writer, bindings []v1beta1.ServiceBinding) {
+	for _, binding := range bindings {
+		WriteDeletedResourceName(w, binding.Name)
+	}
+}

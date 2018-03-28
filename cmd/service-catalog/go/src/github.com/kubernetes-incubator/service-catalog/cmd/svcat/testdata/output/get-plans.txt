@@ -1,4 +1,7 @@
-   NAME             CLASS                 DESCRIPTION                         UUID                  
-+---------+-----------------------+-------------------------+--------------------------------------+
-  default   user-provided-service   Sample plan description   86064792-7ea2-467b-af93-ac9694d96d52  
-  premium   user-provided-service   Premium plan              cc0d7529-18e8-416d-8946-6f7456acd589  
+   NAME              CLASS                      DESCRIPTION                             UUID                  
++---------+--------------------------+--------------------------------+--------------------------------------+
+  default   user-provided-service      Sample plan description          86064792-7ea2-467b-af93-ac9694d96d52  
+  premium   user-provided-service      Premium plan                     cc0d7529-18e8-416d-8946-6f7456acd589  
+  default   another-provided-service   Another sample plan              25b9b299-b0b3-4e14-aa1a-242eeb788aca  
+                                       description                                                            
+  premium   another-provided-service   Another premium plan             c1dbdafe-f987-4d36-8c9b-2aaaff740d4a  

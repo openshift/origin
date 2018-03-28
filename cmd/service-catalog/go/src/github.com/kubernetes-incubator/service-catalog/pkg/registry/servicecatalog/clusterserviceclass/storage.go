@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package serviceclass
+package clusterserviceclass
 
 import (
 	"errors"
@@ -38,8 +38,8 @@ var (
 	errNotAClusterServiceClass = errors.New("not a ClusterServiceClass")
 )
 
-// NewSingular returns a new shell of a service class, according to the given namespace and
-// name
+// NewSingular returns a new shell of a cluster service class, according to the
+// given namespace and name.
 func NewSingular(ns, name string) runtime.Object {
 	return &servicecatalog.ClusterServiceClass{
 		TypeMeta: metav1.TypeMeta{
@@ -52,12 +52,12 @@ func NewSingular(ns, name string) runtime.Object {
 	}
 }
 
-// EmptyObject returns an empty service class
+// EmptyObject returns an empty cluster service class.
 func EmptyObject() runtime.Object {
 	return &servicecatalog.ClusterServiceClass{}
 }
 
-// NewList returns a new shell of a service class list
+// NewList returns a new shell of a cluster service class list.
 func NewList() runtime.Object {
 	return &servicecatalog.ClusterServiceClassList{
 		TypeMeta: metav1.TypeMeta{
@@ -67,7 +67,8 @@ func NewList() runtime.Object {
 	}
 }
 
-// CheckObject returns a non-nil error if obj is not a service class object
+// CheckObject returns a non-nil error if obj is not a cluster service class
+// object.
 func CheckObject(obj runtime.Object) error {
 	_, ok := obj.(*servicecatalog.ClusterServiceClass)
 	if !ok {
@@ -86,19 +87,20 @@ func Match(label labels.Selector, field fields.Selector) storage.SelectionPredic
 	}
 }
 
-// toSelectableFields returns a field set that represents the object for matching purposes.
-func toSelectableFields(serviceClass *servicecatalog.ClusterServiceClass) fields.Set {
+// toSelectableFields returns a field set that represents the object for
+// matching purposes.
+func toSelectableFields(clusterServiceClass *servicecatalog.ClusterServiceClass) fields.Set {
 	// The purpose of allocation with a given number of elements is to reduce
 	// amount of allocations needed to create the fields.Set. If you add any
 	// field here or the number of object-meta related fields changes, this should
 	// be adjusted.
 	// You also need to modify
 	// pkg/apis/servicecatalog/v1beta1/conversion[_test].go
-	scSpecificFieldsSet := make(fields.Set, 3)
-	scSpecificFieldsSet["spec.clusterServiceBrokerName"] = serviceClass.Spec.ClusterServiceBrokerName
-	scSpecificFieldsSet["spec.externalName"] = serviceClass.Spec.ExternalName
-	scSpecificFieldsSet["spec.externalID"] = serviceClass.Spec.ExternalID
-	return generic.AddObjectMetaFieldsSet(scSpecificFieldsSet, &serviceClass.ObjectMeta, true)
+	cscSpecificFieldsSet := make(fields.Set, 3)
+	cscSpecificFieldsSet["spec.clusterServiceBrokerName"] = clusterServiceClass.Spec.ClusterServiceBrokerName
+	cscSpecificFieldsSet["spec.externalName"] = clusterServiceClass.Spec.ExternalName
+	cscSpecificFieldsSet["spec.externalID"] = clusterServiceClass.Spec.ExternalID
+	return generic.AddObjectMetaFieldsSet(cscSpecificFieldsSet, &clusterServiceClass.ObjectMeta, true)
 }
 
 // GetAttrs returns labels and fields of a given object for filtering purposes.
@@ -110,15 +112,15 @@ func GetAttrs(obj runtime.Object) (labels.Set, fields.Set, bool, error) {
 	return labels.Set(serviceclass.ObjectMeta.Labels), toSelectableFields(serviceclass), serviceclass.Initializers != nil, nil
 }
 
-// NewStorage creates a new rest.Storage responsible for accessing ClusterServiceClass
-// resources
+// NewStorage creates a new rest.Storage responsible for accessing
+// ClusterServiceClass resources.
 func NewStorage(opts server.Options) (rest.Storage, rest.Storage) {
 	prefix := "/" + opts.ResourcePrefix()
 
 	storageInterface, dFunc := opts.GetStorage(
 		&servicecatalog.ClusterServiceClass{},
 		prefix,
-		serviceClassRESTStrategies,
+		clusterServiceClassRESTStrategies,
 		NewList,
 		nil,
 		storage.NoTriggerPublisher,
@@ -139,9 +141,9 @@ func NewStorage(opts server.Options) (rest.Storage, rest.Storage) {
 		// DefaultQualifiedResource should always be plural
 		DefaultQualifiedResource: servicecatalog.Resource("clusterserviceclasses"),
 
-		CreateStrategy: serviceClassRESTStrategies,
-		UpdateStrategy: serviceClassRESTStrategies,
-		DeleteStrategy: serviceClassRESTStrategies,
+		CreateStrategy: clusterServiceClassRESTStrategies,
+		UpdateStrategy: clusterServiceClassRESTStrategies,
+		DeleteStrategy: clusterServiceClassRESTStrategies,
 		Storage:        storageInterface,
 		DestroyFunc:    dFunc,
 	}
@@ -152,7 +154,7 @@ func NewStorage(opts server.Options) (rest.Storage, rest.Storage) {
 	}
 
 	statusStore := store
-	statusStore.UpdateStrategy = serviceClassStatusUpdateStrategy
+	statusStore.UpdateStrategy = clusterServiceClassStatusUpdateStrategy
 
 	return &store, &StatusREST{&statusStore}
 }
@@ -164,7 +166,7 @@ type StatusREST struct {
 	store *registry.Store
 }
 
-// New returns a new ServiceClass
+// New returns a new ClusterServiceClass.
 func (r *StatusREST) New() runtime.Object {
 	return &servicecatalog.ClusterServiceClass{}
 }

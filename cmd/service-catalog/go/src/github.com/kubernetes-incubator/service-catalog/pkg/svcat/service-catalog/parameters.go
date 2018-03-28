@@ -26,7 +26,7 @@ import (
 
 // BuildParameters converts a map of variable assignments to a byte encoded json document,
 // which is what the ServiceCatalog API consumes.
-func BuildParameters(params map[string]string) *runtime.RawExtension {
+func BuildParameters(params interface{}) *runtime.RawExtension {
 	paramsJSON, err := json.Marshal(params)
 	if err != nil {
 		// This should never be hit because marshalling a map[string]string is pretty safe

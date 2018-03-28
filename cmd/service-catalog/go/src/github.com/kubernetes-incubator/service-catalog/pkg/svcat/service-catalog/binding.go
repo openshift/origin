@@ -98,28 +98,33 @@ func (sdk *SDK) Bind(namespace, bindingName, instanceName, secretName string,
 }
 
 // Unbind deletes all bindings associated to an instance.
-func (sdk *SDK) Unbind(ns, instanceName string) error {
+func (sdk *SDK) Unbind(ns, instanceName string) ([]v1beta1.ServiceBinding, error) {
 	instance, err := sdk.RetrieveInstance(ns, instanceName)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	bindings, err := sdk.RetrieveBindingsByInstance(instance)
 	if err != nil {
-		return err
+		return nil, err
 	}
-
 	var g sync.WaitGroup
 	errs := make(chan error, len(bindings))
+	deletedBindings := make(chan v1beta1.ServiceBinding, len(bindings))
 	for _, binding := range bindings {
 		g.Add(1)
 		go func(binding v1beta1.ServiceBinding) {
 			defer g.Done()
-			errs <- sdk.DeleteBinding(binding.Namespace, binding.Name)
+			err := sdk.DeleteBinding(binding.Namespace, binding.Name)
+			if err == nil {
+				deletedBindings <- binding
+			}
+			errs <- err
 		}(binding)
 	}
 
 	g.Wait()
 	close(errs)
+	close(deletedBindings)
 
 	// Collect any errors that occurred into a single formatted error
 	bindErr := &multierror.Error{
@@ -131,7 +136,12 @@ func (sdk *SDK) Unbind(ns, instanceName string) error {
 		bindErr = multierror.Append(bindErr, err)
 	}
 
-	return bindErr.ErrorOrNil()
+	//Range over the deleted bindings to build a slice to return
+	deleted := []v1beta1.ServiceBinding{}
+	for b := range deletedBindings {
+		deleted = append(deleted, b)
+	}
+	return deleted, bindErr.ErrorOrNil()
 }
 
 // DeleteBinding by name.
