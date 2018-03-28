@@ -22,6 +22,11 @@ func (c WebConsoleOperator) migrate10_0_to_10_1(operatorConfig *webconsolev1.Ope
 	versionAvailability := webconsolev1.WebConsoleVersionAvailablity{
 		Version: "3.10.1",
 	}
+	migratingCondition := webconsolev1.OpenShiftOperatorCondition{
+		Type:   webconsolev1.OperatorStatusTypeMigrating,
+		Status: webconsolev1.ConditionTrue,
+	}
+	v1helpers.SetOperatorCondition(&operatorConfig.Status.Conditions, migratingCondition)
 
 	errors := []error{}
 	if _, err := c.ensureNamespace(); err != nil {

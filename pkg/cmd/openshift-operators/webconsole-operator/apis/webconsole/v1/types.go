@@ -66,6 +66,10 @@ const (
 	ConditionTrue    ConditionStatus = "True"
 	ConditionFalse   ConditionStatus = "False"
 	ConditionUnknown ConditionStatus = "Unknown"
+
+	OperatorStatusTypeAvailable = "Available"
+	OperatorStatusTypeMigrating = "Migrating"
+	OperatorStatusTypeFailing   = "Failing"
 )
 
 type OpenShiftOperatorCondition struct {

@@ -2,6 +2,7 @@ package controller
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/openshift/origin/pkg/cmd/openshift-operators/webconsole-operator/apis/webconsole/v1helpers"
@@ -115,6 +116,40 @@ func (c WebConsoleOperator) sync() error {
 	if _, err := c.operatorConfigClient.OpenShiftWebConsoleConfigs().Update(operatorConfig); err != nil {
 		errors = append(errors, err)
 	}
+
+	// given the VersionAvailability and the status.Version, we can compute availability
+	availableCondition := webconsolev1.OpenShiftOperatorCondition{
+		Type:   webconsolev1.OperatorStatusTypeAvailable,
+		Status: webconsolev1.ConditionUnknown,
+	}
+	for _, versionAvailability := range operatorConfig.Status.VersionAvailability {
+		if versionAvailability.Version == operatorConfig.Status.Version {
+			if versionAvailability.AvailableReplicas > 0 {
+				availableCondition.Status = webconsolev1.ConditionTrue
+			} else {
+				availableCondition.Status = webconsolev1.ConditionFalse
+			}
+			break
+		}
+	}
+	v1helpers.SetOperatorCondition(&operatorConfig.Status.Conditions, availableCondition)
+
+	failingCondition := webconsolev1.OpenShiftOperatorCondition{
+		Type:   webconsolev1.OperatorStatusTypeFailing,
+		Status: webconsolev1.ConditionFalse,
+	}
+	for _, versionAvailability := range operatorConfig.Status.VersionAvailability {
+		if len(versionAvailability.Errors) > 0 {
+			availableCondition.Status = webconsolev1.ConditionTrue
+			if len(availableCondition.Message) == 0 {
+				availableCondition.Message = strings.Join(versionAvailability.Errors, "\n")
+			} else {
+				availableCondition.Message = availableCondition.Message + "\n" + strings.Join(versionAvailability.Errors, "\n")
+			}
+		}
+	}
+	v1helpers.SetOperatorCondition(&operatorConfig.Status.Conditions, failingCondition)
+
 	return utilerrors.NewAggregate(errors)
 }
 
