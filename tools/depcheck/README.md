@@ -55,7 +55,7 @@ After this step, you should have a `depcheck` binary in your current working dir
 ### Running
 
 The `depcheck` tool can be used to obtain `dot` output for a given repository.
-This output may be fed into tools like [dot (1)](https://www.systutorials.com/docs/linux/man/1-dot/)
+This output may be fed into tools like [dot](https://www.systutorials.com/docs/linux/man/1-dot/)
 or [d3-graphviz](https://github.com/magjac/d3-graphviz) in order to obtain a visual dependency graph.
 
 Example:
@@ -92,13 +92,13 @@ $ depcheck analyze --root=github.com/openshift/origin --entry=cmd/... --entry=pk
 
 The `depcheck` tool can further be used to `pin` dependencies from a `glide.lock` file onto a `glide.yaml` file.
 *Pinning* these dependencies means that you are taking all dependencies listed in a lock file that are not currently present
-in the given `glide.yaml` file, and generating a new `glide.yaml` file containing this new set of dependencies, each one pinned to
-the commit hash specified in the lock file.
+in the given `glide.yaml` file, and generating a new `glide.yaml` file that additionally contains this new set of dependencies. Each newly added dependency
+is pinned to the same commit hash that was specified for it in the lock file.
 
 Example:
 
 ```bash
-$ depcheck pin --glide.yaml=glide.yaml --glide.lock=glide.lock > glide.yaml
+$ depcheck pin --glide.yaml=glide.yaml --glide.lock=glide.lock > newglide.yaml
 ```
 
 <a name="limitations"></a>
