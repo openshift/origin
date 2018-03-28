@@ -164,6 +164,7 @@
 // test/extended/testdata/ldap/ldapserver-service.json
 // test/extended/testdata/long_names/Dockerfile
 // test/extended/testdata/long_names/fixture.json
+// test/extended/testdata/multi-namespace-pipeline.yaml
 // test/extended/testdata/multi-namespace-template.yaml
 // test/extended/testdata/openshift-secret-to-jenkins-credential.yaml
 // test/extended/testdata/reencrypt-serving-cert.yaml
@@ -9070,6 +9071,103 @@ func testExtendedTestdataLong_namesFixtureJson() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/long_names/fixture.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataMultiNamespacePipelineYaml = []byte(`apiVersion: v1
+kind: Template
+labels:
+  template: multi-namespace-pipeline
+metadata:
+  annotations:
+    iconClass: icon-jenkins
+    tags: instant-app,jenkins
+  name: 
+parameters:
+- description: namespace
+  displayName: namespace
+  name: NAMESPACE
+  value: namespace
+- description: namespace2
+  displayName: namespace2
+  name: NAMESPACE2
+  value: namespace2
+- description: namespace3
+  displayName: namespace3
+  name: NAMESPACE3
+  value: namespace3
+objects:
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    labels:
+      name: multi-namespace-pipeline
+    name: multi-namespace-pipeline
+  spec:
+    strategy:
+      jenkinsPipelineStrategy:
+        env:
+          - name: NAMESPACE
+            value: ${NAMESPACE}
+          - name: NAMESPACE2
+            value: ${NAMESPACE2}
+          - name: NAMESPACE3
+            value: ${NAMESPACE3}
+        jenkinsfile: |-
+          try {
+              timeout(time: 20, unit: 'MINUTES') {
+                  // Select the default cluster
+                  openshift.withCluster() {
+                      // Select the default project
+                      openshift.withProject() {
+
+                          // Output the url of the currently selected cluster
+                          echo "Using project ${openshift.project()} in cluster with url ${openshift.cluster()}"
+
+                          template = openshift.create('https://raw.githubusercontent.com/openshift/origin/master/test/extended/testdata/multi-namespace-template.yaml').object()
+
+                          // Explore the Groovy object which models the OpenShift template as a Map
+                          echo "Template contains ${template.parameters.size()} parameters"
+
+                          // Process the modeled template. We could also pass JSON/YAML, a template name, or a url instead.
+                          def objectModels = openshift.process( template, "-p", "NAMESPACE=${env.NAMESPACE}", "-p", "NAMESPACE2=${env.NAMESPACE2}", "-p", "NAMESPACE3=${env.NAMESPACE3}" )
+
+                          // objectModels is a list of objects the template defined, modeled as Groovy objects
+                          echo "The template references ${objectModels.size()} objects"
+
+                          def objects = openshift.create(objectModels)
+
+                          // Create returns a selector which will always select the objects created
+                          objects.withEach {
+                              // Each loop binds the variable 'it' to a selector which selects a single object
+                              echo "Created ${it.name()} from template with labels ${it.object().metadata.labels}"
+                          }
+
+               
+                      }
+                  }
+              }
+          } catch (err) {
+             echo "in catch block"
+             echo "Caught: ${err}"
+             currentBuild.result = 'FAILURE'
+             throw err
+          }
+      type: JenkinsPipeline
+`)
+
+func testExtendedTestdataMultiNamespacePipelineYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataMultiNamespacePipelineYaml, nil
+}
+
+func testExtendedTestdataMultiNamespacePipelineYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataMultiNamespacePipelineYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/multi-namespace-pipeline.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -31206,6 +31304,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/ldap/ldapserver-service.json": testExtendedTestdataLdapLdapserverServiceJson,
 	"test/extended/testdata/long_names/Dockerfile": testExtendedTestdataLong_namesDockerfile,
 	"test/extended/testdata/long_names/fixture.json": testExtendedTestdataLong_namesFixtureJson,
+	"test/extended/testdata/multi-namespace-pipeline.yaml": testExtendedTestdataMultiNamespacePipelineYaml,
 	"test/extended/testdata/multi-namespace-template.yaml": testExtendedTestdataMultiNamespaceTemplateYaml,
 	"test/extended/testdata/openshift-secret-to-jenkins-credential.yaml": testExtendedTestdataOpenshiftSecretToJenkinsCredentialYaml,
 	"test/extended/testdata/reencrypt-serving-cert.yaml": testExtendedTestdataReencryptServingCertYaml,
@@ -31712,6 +31811,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"Dockerfile": &bintree{testExtendedTestdataLong_namesDockerfile, map[string]*bintree{}},
 					"fixture.json": &bintree{testExtendedTestdataLong_namesFixtureJson, map[string]*bintree{}},
 				}},
+				"multi-namespace-pipeline.yaml": &bintree{testExtendedTestdataMultiNamespacePipelineYaml, map[string]*bintree{}},
 				"multi-namespace-template.yaml": &bintree{testExtendedTestdataMultiNamespaceTemplateYaml, map[string]*bintree{}},
 				"openshift-secret-to-jenkins-credential.yaml": &bintree{testExtendedTestdataOpenshiftSecretToJenkinsCredentialYaml, map[string]*bintree{}},
 				"reencrypt-serving-cert.yaml": &bintree{testExtendedTestdataReencryptServingCertYaml, map[string]*bintree{}},
