@@ -142,7 +142,7 @@ func (ovsif *ovsExec) exec(cmd string, args ...string) (string, error) {
 	if cmd == OVS_OFCTL {
 		args = append([]string{"-O", "OpenFlow13"}, args...)
 	}
-	glog.V(5).Infof("Executing: %s %s", cmd, strings.Join(args, " "))
+	glog.V(4).Infof("Executing: %s %s", cmd, strings.Join(args, " "))
 
 	output, err := ovsif.execer.Command(cmd, args...).CombinedOutput()
 	if err != nil {
