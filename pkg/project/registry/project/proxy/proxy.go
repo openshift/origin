@@ -42,7 +42,7 @@ type REST struct {
 
 var _ rest.Lister = &REST{}
 var _ rest.CreaterUpdater = &REST{}
-var _ rest.Deleter = &REST{}
+var _ rest.GracefulDeleter = &REST{}
 var _ rest.Watcher = &REST{}
 
 // NewREST returns a RESTStorage object that will work against Project resources
@@ -183,11 +183,11 @@ func (s *REST) Update(ctx apirequest.Context, name string, objInfo rest.UpdatedO
 	return projectutil.ConvertNamespace(namespace), false, nil
 }
 
-var _ = rest.Deleter(&REST{})
+var _ = rest.GracefulDeleter(&REST{})
 
 // Delete deletes a Project specified by its name
-func (s *REST) Delete(ctx apirequest.Context, name string) (runtime.Object, error) {
-	return &metav1.Status{Status: metav1.StatusSuccess}, s.client.Delete(name, nil)
+func (s *REST) Delete(ctx apirequest.Context, name string, options *metav1.DeleteOptions) (runtime.Object, bool, error) {
+	return &metav1.Status{Status: metav1.StatusSuccess}, false, s.client.Delete(name, nil)
 }
 
 // decoratorFunc can mutate the provided object prior to being returned.
