@@ -174,7 +174,7 @@ func (c *MasterConfig) newOAuthServerHandler(genericConfig *apiserver.Config) (h
 		return http.NotFoundHandler(), nil, nil
 	}
 
-	config, err := NewOAuthServerConfigFromMasterConfig(c, genericConfig.SecureServingInfo.Listener)
+	config, err := NewOAuthServerConfigFromMasterConfig(c, genericConfig.SecureServing.Listener)
 	if err != nil {
 		return nil, nil, err
 	}

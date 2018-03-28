@@ -139,7 +139,7 @@ func NewCommandAdmin(name, fullName string, in io.Reader, out io.Writer, errout 
 
 	cmds.AddCommand(
 		// part of every root command
-		cmd.NewCmdConfig(fullName, "config", out, errout),
+		cmd.NewCmdConfig(fullName, "config", f, out, errout),
 		cmd.NewCmdCompletion(fullName, out),
 
 		// hidden

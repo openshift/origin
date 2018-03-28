@@ -31,7 +31,12 @@ func NewAuthorizer(informers InformerAccess, projectRequestDenyMessage string) a
 	)
 
 	graph := node.NewGraph()
-	node.AddGraphEventHandlers(graph, informers.GetInternalKubeInformers().Core().InternalVersion().Pods(), informers.GetInternalKubeInformers().Core().InternalVersion().PersistentVolumes())
+	node.AddGraphEventHandlers(
+		graph,
+		informers.GetInternalKubeInformers().Core().InternalVersion().Pods(),
+		informers.GetInternalKubeInformers().Core().InternalVersion().PersistentVolumes(),
+		informers.GetExternalKubeInformers().Storage().V1beta1().VolumeAttachments(),
+	)
 	nodeAuthorizer := node.NewAuthorizer(graph, nodeidentifier.NewDefaultNodeIdentifier(), kbootstrappolicy.NodeRules())
 
 	openshiftAuthorizer := authorizerunion.New(

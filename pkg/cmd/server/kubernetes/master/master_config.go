@@ -251,7 +251,7 @@ func BuildStorageFactory(server *kapiserveroptions.ServerRunOptions, enforcedSto
 // ONLY COMMENT OUT CODE HERE, do not modify it. Do modifications outside of this function.
 func buildUpstreamGenericConfig(s *kapiserveroptions.ServerRunOptions) (*apiserver.Config, error) {
 	// set defaults
-	if err := s.GenericServerRunOptions.DefaultAdvertiseAddress(s.SecureServing); err != nil {
+	if err := s.GenericServerRunOptions.DefaultAdvertiseAddress(s.SecureServing.SecureServingOptions); err != nil {
 		return nil, err
 	}
 	// In origin: certs should be available:
@@ -403,8 +403,8 @@ func buildKubeApiserverConfig(
 	kubeVersion := kversion.Get()
 	genericConfig.Version = &kubeVersion
 	genericConfig.PublicAddress = publicAddress
-	genericConfig.Authenticator = originAuthenticator // this is used to fulfill the tokenreviews endpoint which is used by node authentication
-	genericConfig.Authorizer = kubeAuthorizer         // this is used to fulfill the kube SAR endpoints
+	genericConfig.Authentication.Authenticator = originAuthenticator // this is used to fulfill the tokenreviews endpoint which is used by node authentication
+	genericConfig.Authorization.Authorizer = kubeAuthorizer          // this is used to fulfill the kube SAR endpoints
 	genericConfig.DisabledPostStartHooks.Insert(rbacrest.PostStartHookName)
 	// This disables the ThirdPartyController which removes handlers from our go-restful containers.  The remove functionality is broken and destroys the serve mux.
 	genericConfig.DisabledPostStartHooks.Insert("extensions/third-party-resources")
@@ -414,21 +414,14 @@ func buildKubeApiserverConfig(
 	genericConfig.SwaggerConfig = apiserver.DefaultSwaggerConfig()
 	genericConfig.SwaggerConfig.PostBuildHandler = customizeSwaggerDefinition
 	genericConfig.LegacyAPIGroupPrefixes = LegacyAPIGroupPrefixes
-	// I *think* that ApplyTo is doing this for us.
-	if false {
-		genericConfig.SecureServingInfo.Listener, err = net.Listen(masterConfig.ServingInfo.BindNetwork, masterConfig.ServingInfo.BindAddress)
-		if err != nil {
-			return nil, fmt.Errorf("failed to listen on %v: %v", masterConfig.ServingInfo.BindAddress, err)
-		}
-	}
-	genericConfig.SecureServingInfo.MinTLSVersion = crypto.TLSVersionOrDie(masterConfig.ServingInfo.MinTLSVersion)
-	genericConfig.SecureServingInfo.CipherSuites = crypto.CipherSuitesOrDie(masterConfig.ServingInfo.CipherSuites)
+	genericConfig.SecureServing.MinTLSVersion = crypto.TLSVersionOrDie(masterConfig.ServingInfo.MinTLSVersion)
+	genericConfig.SecureServing.CipherSuites = crypto.CipherSuitesOrDie(masterConfig.ServingInfo.CipherSuites)
 	oAuthClientCertCAs, err := configapi.GetOAuthClientCertCAs(masterConfig)
 	if err != nil {
 		glog.Fatalf("Error setting up OAuth2 client certificates: %v", err)
 	}
 	for _, cert := range oAuthClientCertCAs {
-		genericConfig.SecureServingInfo.ClientCA.AddCert(cert)
+		genericConfig.SecureServing.ClientCA.AddCert(cert)
 	}
 
 	url, err := url.Parse(masterConfig.MasterPublicURL)
@@ -810,7 +803,7 @@ func GetAuditConfig(auditConfig configapi.AuditConfig) (audit.Backend, auditpoli
 
 		// webhook configuration, only when config file was provided
 		if len(auditConfig.WebHookKubeConfig) > 0 {
-			webhook, err := auditwebhook.NewBackend(auditConfig.WebHookKubeConfig, string(auditConfig.WebHookMode), auditv1beta1.SchemeGroupVersion, pluginwebhook.NewDefaultBatchBackendConfig())
+			webhook, err := auditwebhook.NewBackend(auditConfig.WebHookKubeConfig, auditv1beta1.SchemeGroupVersion, pluginwebhook.DefaultInitialBackoff)
 			if err != nil {
 				glog.Fatalf("Audit webhook initialization failed: %v", err)
 			}

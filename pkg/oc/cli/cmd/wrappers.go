@@ -311,7 +311,6 @@ func NewCmdPortForward(fullName string, f *clientcmd.Factory, out, errout io.Wri
 	cmd := kcmd.NewCmdPortForward(f, out, errout)
 	cmd.Long = portForwardLong
 	cmd.Example = fmt.Sprintf(portForwardExample, fullName)
-	cmd.Flag("pod").Usage = cmd.Flag("pod").Usage + " (deprecated)"
 	return cmd
 }
 
@@ -391,8 +390,8 @@ var (
 )
 
 // NewCmdScale is a wrapper for the Kubernetes cli scale command
-func NewCmdScale(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	cmd := kcmd.NewCmdScale(f, out)
+func NewCmdScale(fullName string, f *clientcmd.Factory, out, errout io.Writer) *cobra.Command {
+	cmd := kcmd.NewCmdScale(f, out, errout)
 	cmd.ValidArgs = append(cmd.ValidArgs, "deploymentconfig")
 	cmd.Short = "Change the number of pods in a deployment"
 	cmd.Long = fmt.Sprintf(scaleLong, cmd.ValidArgs)
@@ -734,7 +733,7 @@ var (
 )
 
 // NewCmdConfig is a wrapper for the Kubernetes cli config command
-func NewCmdConfig(parentName, name string, out, errOut io.Writer) *cobra.Command {
+func NewCmdConfig(parentName, name string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
 	pathOptions := &kclientcmd.PathOptions{
 		GlobalFile:       cmdconfig.RecommendedHomeFile,
 		EnvVar:           cmdconfig.OpenShiftConfigPathEnvVar,
@@ -746,7 +745,7 @@ func NewCmdConfig(parentName, name string, out, errOut io.Writer) *cobra.Command
 	}
 	pathOptions.LoadingRules.DoNotResolvePaths = true
 
-	cmd := config.NewCmdConfig(pathOptions, out, errOut)
+	cmd := config.NewCmdConfig(f, pathOptions, out, errOut)
 	cmd.Short = "Change configuration files for the client"
 	cmd.Long = configLong
 	cmd.Example = fmt.Sprintf(configExample, parentName, name)
