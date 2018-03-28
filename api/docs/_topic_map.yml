@@ -128,6 +128,8 @@
   Topics:
   - Name: v1beta1.PodDisruptionBudget
     File: v1beta1.PodDisruptionBudget
+  - Name: v1beta1.PodSecurityPolicy
+    File: v1beta1.PodSecurityPolicy
 - Name: /apis/admissionregistration.k8s.io/v1beta1
   Dir: apis-admissionregistration.k8s.io
   Topics:
@@ -135,6 +137,11 @@
     File: v1beta1.MutatingWebhookConfiguration
   - Name: v1beta1.ValidatingWebhookConfiguration
     File: v1beta1.ValidatingWebhookConfiguration
+- Name: /apis/apiregistration.k8s.io/v1
+  Dir: apis-apiregistration.k8s.io
+  Topics:
+  - Name: v1.APIService
+    File: v1.APIService
 - Name: /apis/apiregistration.k8s.io/v1beta1
   Dir: apis-apiregistration.k8s.io
   Topics:
@@ -219,6 +226,8 @@
   Topics:
   - Name: v1beta1.StorageClass
     File: v1beta1.StorageClass
+  - Name: v1beta1.VolumeAttachment
+    File: v1beta1.VolumeAttachment
 - Name: /apis/apps.openshift.io/v1
   Dir: apis-apps.openshift.io
   Topics:

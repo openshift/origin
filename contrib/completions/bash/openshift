@@ -1,7 +1,7 @@
 
 # bash completion for openshift                            -*- shell-script -*-
 
-__debug()
+__openshift_debug()
 {
     if [[ -n ${BASH_COMP_DEBUG_FILE} ]]; then
         echo "$*" >> "${BASH_COMP_DEBUG_FILE}"
@@ -10,13 +10,13 @@ __debug()
 
 # Homebrew on Macs have version 1.3 of bash-completion which doesn't include
 # _init_completion. This is a very minimal version of that function.
-__my_init_completion()
+__openshift_init_completion()
 {
     COMPREPLY=()
     _get_comp_words_by_ref "$@" cur prev words cword
 }
 
-__index_of_word()
+__openshift_index_of_word()
 {
     local w word=$1
     shift
@@ -28,7 +28,7 @@ __index_of_word()
     index=-1
 }
 
-__contains_word()
+__openshift_contains_word()
 {
     local w word=$1; shift
     for w in "$@"; do
@@ -37,9 +37,9 @@ __contains_word()
     return 1
 }
 
-__handle_reply()
+__openshift_handle_reply()
 {
-    __debug "${FUNCNAME[0]}"
+    __openshift_debug "${FUNCNAME[0]}"
     case $cur in
         -*)
             if [[ $(type -t compopt) = "builtin" ]]; then
@@ -63,15 +63,15 @@ __handle_reply()
                 fi
 
                 local index flag
-                flag="${cur%%=*}"
-                __index_of_word "${flag}" "${flags_with_completion[@]}"
+                flag="${cur%=*}"
+                __openshift_index_of_word "${flag}" "${flags_with_completion[@]}"
+                COMPREPLY=()
                 if [[ ${index} -ge 0 ]]; then
-                    COMPREPLY=()
                     PREFIX=""
                     cur="${cur#*=}"
                     ${flags_completion[${index}]}
                     if [ -n "${ZSH_VERSION}" ]; then
-                        # zfs completion needs --flag= prefix
+                        # zsh completion needs --flag= prefix
                         eval "COMPREPLY=( \"\${COMPREPLY[@]/#/${flag}=}\" )"
                     fi
                 fi
@@ -82,7 +82,7 @@ __handle_reply()
 
     # check if we are handling a flag with special work handling
     local index
-    __index_of_word "${prev}" "${flags_with_completion[@]}"
+    __openshift_index_of_word "${prev}" "${flags_with_completion[@]}"
     if [[ ${index} -ge 0 ]]; then
         ${flags_completion[${index}]}
         return
@@ -111,25 +111,34 @@ __handle_reply()
         declare -F __custom_func >/dev/null && __custom_func
     fi
 
-    __ltrim_colon_completions "$cur"
+    # available in bash-completion >= 2, not always present on macOS
+    if declare -F __ltrim_colon_completions >/dev/null; then
+        __ltrim_colon_completions "$cur"
+    fi
+
+    # If there is only 1 completion and it is a flag with an = it will be completed
+    # but we don't want a space after the =
+    if [[ "${#COMPREPLY[@]}" -eq "1" ]] && [[ $(type -t compopt) = "builtin" ]] && [[ "${COMPREPLY[0]}" == --*= ]]; then
+       compopt -o nospace
+    fi
 }
 
 # The arguments should be in the form "ext1|ext2|extn"
-__handle_filename_extension_flag()
+__openshift_handle_filename_extension_flag()
 {
     local ext="$1"
     _filedir "@(${ext})"
 }
 
-__handle_subdirs_in_dir_flag()
+__openshift_handle_subdirs_in_dir_flag()
 {
     local dir="$1"
     pushd "${dir}" >/dev/null 2>&1 && _filedir -d && popd >/dev/null 2>&1
 }
 
-__handle_flag()
+__openshift_handle_flag()
 {
-    __debug "${FUNCNAME[0]}: c is $c words[c] is ${words[c]}"
+    __openshift_debug "${FUNCNAME[0]}: c is $c words[c] is ${words[c]}"
 
     # if a command required a flag, and we found it, unset must_have_one_flag()
     local flagname=${words[c]}
@@ -137,30 +146,33 @@ __handle_flag()
     # if the word contained an =
     if [[ ${words[c]} == *"="* ]]; then
         flagvalue=${flagname#*=} # take in as flagvalue after the =
-        flagname=${flagname%%=*} # strip everything after the =
+        flagname=${flagname%=*} # strip everything after the =
         flagname="${flagname}=" # but put the = back
     fi
-    __debug "${FUNCNAME[0]}: looking for ${flagname}"
-    if __contains_word "${flagname}" "${must_have_one_flag[@]}"; then
+    __openshift_debug "${FUNCNAME[0]}: looking for ${flagname}"
+    if __openshift_contains_word "${flagname}" "${must_have_one_flag[@]}"; then
         must_have_one_flag=()
     fi
 
     # if you set a flag which only applies to this command, don't show subcommands
-    if __contains_word "${flagname}" "${local_nonpersistent_flags[@]}"; then
+    if __openshift_contains_word "${flagname}" "${local_nonpersistent_flags[@]}"; then
       commands=()
     fi
 
     # keep flag value with flagname as flaghash
-    if [ -n "${flagvalue}" ] ; then
-        flaghash[${flagname}]=${flagvalue}
-    elif [ -n "${words[ $((c+1)) ]}" ] ; then
-        flaghash[${flagname}]=${words[ $((c+1)) ]}
-    else
-        flaghash[${flagname}]="true" # pad "true" for bool flag
+    # flaghash variable is an associative array which is only supported in bash > 3.
+    if [[ -z "${BASH_VERSION}" || "${BASH_VERSINFO[0]}" -gt 3 ]]; then
+        if [ -n "${flagvalue}" ] ; then
+            flaghash[${flagname}]=${flagvalue}
+        elif [ -n "${words[ $((c+1)) ]}" ] ; then
+            flaghash[${flagname}]=${words[ $((c+1)) ]}
+        else
+            flaghash[${flagname}]="true" # pad "true" for bool flag
+        fi
     fi
 
     # skip the argument to a two word flag
-    if __contains_word "${words[c]}" "${two_word_flags[@]}"; then
+    if __openshift_contains_word "${words[c]}" "${two_word_flags[@]}"; then
         c=$((c+1))
         # if we are looking for a flags value, don't show commands
         if [[ $c -eq $cword ]]; then
@@ -172,13 +184,13 @@ __handle_flag()
 
 }
 
-__handle_noun()
+__openshift_handle_noun()
 {
-    __debug "${FUNCNAME[0]}: c is $c words[c] is ${words[c]}"
+    __openshift_debug "${FUNCNAME[0]}: c is $c words[c] is ${words[c]}"
 
-    if __contains_word "${words[c]}" "${must_have_one_noun[@]}"; then
+    if __openshift_contains_word "${words[c]}" "${must_have_one_noun[@]}"; then
         must_have_one_noun=()
-    elif __contains_word "${words[c]}" "${noun_aliases[@]}"; then
+    elif __openshift_contains_word "${words[c]}" "${noun_aliases[@]}"; then
         must_have_one_noun=()
     fi
 
@@ -186,42 +198,42 @@ __handle_noun()
     c=$((c+1))
 }
 
-__handle_command()
+__openshift_handle_command()
 {
-    __debug "${FUNCNAME[0]}: c is $c words[c] is ${words[c]}"
+    __openshift_debug "${FUNCNAME[0]}: c is $c words[c] is ${words[c]}"
 
     local next_command
     if [[ -n ${last_command} ]]; then
         next_command="_${last_command}_${words[c]//:/__}"
     else
         if [[ $c -eq 0 ]]; then
-            next_command="_$(basename "${words[c]//:/__}")"
+            next_command="_openshift_root_command"
         else
             next_command="_${words[c]//:/__}"
         fi
     fi
     c=$((c+1))
-    __debug "${FUNCNAME[0]}: looking for ${next_command}"
-    declare -F $next_command >/dev/null && $next_command
+    __openshift_debug "${FUNCNAME[0]}: looking for ${next_command}"
+    declare -F "$next_command" >/dev/null && $next_command
 }
 
-__handle_word()
+__openshift_handle_word()
 {
     if [[ $c -ge $cword ]]; then
-        __handle_reply
+        __openshift_handle_reply
         return
     fi
-    __debug "${FUNCNAME[0]}: c is $c words[c] is ${words[c]}"
+    __openshift_debug "${FUNCNAME[0]}: c is $c words[c] is ${words[c]}"
     if [[ "${words[c]}" == -* ]]; then
-        __handle_flag
-    elif __contains_word "${words[c]}" "${commands[@]}"; then
-        __handle_command
-    elif [[ $c -eq 0 ]] && __contains_word "$(basename "${words[c]}")" "${commands[@]}"; then
-        __handle_command
+        __openshift_handle_flag
+    elif __openshift_contains_word "${words[c]}" "${commands[@]}"; then
+        __openshift_handle_command
+    elif [[ $c -eq 0 ]]; then
+        __openshift_handle_command
     else
-        __handle_noun
+        __openshift_handle_noun
     fi
-    __handle_word
+    __openshift_handle_word
 }
 
 _openshift_completion()
@@ -235,14 +247,11 @@ _openshift_completion()
     flags_with_completion=()
     flags_completion=()
 
-    flags+=("--azure-container-registry-config=")
-    flags+=("--google-json-key=")
-    flags+=("--log-flush-frequency=")
+    flags+=("--help")
+    flags+=("-h")
+    local_nonpersistent_flags+=("--help")
     flags+=("--loglevel=")
     flags+=("--logspec=")
-    flags+=("--v=")
-    flags+=("--version")
-    flags+=("--vmodule=")
 
     must_have_one_flag=()
     must_have_one_noun=()
@@ -262,14 +271,8 @@ _openshift_options()
     flags_with_completion=()
     flags_completion=()
 
-    flags+=("--azure-container-registry-config=")
-    flags+=("--google-json-key=")
-    flags+=("--log-flush-frequency=")
     flags+=("--loglevel=")
     flags+=("--logspec=")
-    flags+=("--v=")
-    flags+=("--version")
-    flags+=("--vmodule=")
 
     must_have_one_flag=()
     must_have_one_noun=()
@@ -289,16 +292,10 @@ _openshift_start_etcd()
 
     flags+=("--config=")
     flags_with_completion+=("--config")
-    flags_completion+=("__handle_filename_extension_flag yaml|yml")
+    flags_completion+=("__openshift_handle_filename_extension_flag yaml|yml")
     local_nonpersistent_flags+=("--config=")
-    flags+=("--azure-container-registry-config=")
-    flags+=("--google-json-key=")
-    flags+=("--log-flush-frequency=")
     flags+=("--loglevel=")
     flags+=("--logspec=")
-    flags+=("--v=")
-    flags+=("--version")
-    flags+=("--vmodule=")
 
     must_have_one_flag=()
     must_have_one_flag+=("--config=")
@@ -319,20 +316,14 @@ _openshift_start_master_api()
 
     flags+=("--config=")
     flags_with_completion+=("--config")
-    flags_completion+=("__handle_filename_extension_flag yaml|yml")
+    flags_completion+=("__openshift_handle_filename_extension_flag yaml|yml")
     local_nonpersistent_flags+=("--config=")
     flags+=("--listen=")
     local_nonpersistent_flags+=("--listen=")
     flags+=("--master=")
     local_nonpersistent_flags+=("--master=")
-    flags+=("--azure-container-registry-config=")
-    flags+=("--google-json-key=")
-    flags+=("--log-flush-frequency=")
     flags+=("--loglevel=")
     flags+=("--logspec=")
-    flags+=("--v=")
-    flags+=("--version")
-    flags+=("--vmodule=")
 
     must_have_one_flag=()
     must_have_one_noun=()
@@ -352,20 +343,14 @@ _openshift_start_master_controllers()
 
     flags+=("--config=")
     flags_with_completion+=("--config")
-    flags_completion+=("__handle_filename_extension_flag yaml|yml")
+    flags_completion+=("__openshift_handle_filename_extension_flag yaml|yml")
     local_nonpersistent_flags+=("--config=")
     flags+=("--listen=")
     local_nonpersistent_flags+=("--listen=")
     flags+=("--lock-service-name=")
     local_nonpersistent_flags+=("--lock-service-name=")
-    flags+=("--azure-container-registry-config=")
-    flags+=("--google-json-key=")
-    flags+=("--log-flush-frequency=")
     flags+=("--loglevel=")
     flags+=("--logspec=")
-    flags+=("--v=")
-    flags+=("--version")
-    flags+=("--vmodule=")
 
     must_have_one_flag=()
     must_have_one_noun=()
@@ -391,7 +376,7 @@ _openshift_start_master()
     local_nonpersistent_flags+=("--certificate-authority=")
     flags+=("--config=")
     flags_with_completion+=("--config")
-    flags_completion+=("__handle_filename_extension_flag yaml|yml")
+    flags_completion+=("__openshift_handle_filename_extension_flag yaml|yml")
     local_nonpersistent_flags+=("--config=")
     flags+=("--cors-allowed-origins=")
     local_nonpersistent_flags+=("--cors-allowed-origins=")
@@ -437,14 +422,8 @@ _openshift_start_master()
     flags_with_completion+=("--write-config")
     flags_completion+=("_filedir")
     local_nonpersistent_flags+=("--write-config=")
-    flags+=("--azure-container-registry-config=")
-    flags+=("--google-json-key=")
-    flags+=("--log-flush-frequency=")
     flags+=("--loglevel=")
     flags+=("--logspec=")
-    flags+=("--v=")
-    flags+=("--version")
-    flags+=("--vmodule=")
 
     must_have_one_flag=()
     must_have_one_noun=()
@@ -464,7 +443,7 @@ _openshift_start_network()
 
     flags+=("--config=")
     flags_with_completion+=("--config")
-    flags_completion+=("__handle_filename_extension_flag yaml|yml")
+    flags_completion+=("__openshift_handle_filename_extension_flag yaml|yml")
     local_nonpersistent_flags+=("--config=")
     flags+=("--disable=")
     local_nonpersistent_flags+=("--disable=")
@@ -484,14 +463,8 @@ _openshift_start_network()
     local_nonpersistent_flags+=("--network-plugin=")
     flags+=("--recursive-resolv-conf=")
     local_nonpersistent_flags+=("--recursive-resolv-conf=")
-    flags+=("--azure-container-registry-config=")
-    flags+=("--google-json-key=")
-    flags+=("--log-flush-frequency=")
     flags+=("--loglevel=")
     flags+=("--logspec=")
-    flags+=("--v=")
-    flags+=("--version")
-    flags+=("--vmodule=")
 
     must_have_one_flag=()
     must_have_one_noun=()
@@ -513,7 +486,7 @@ _openshift_start_node()
     local_nonpersistent_flags+=("--bootstrap-config-name=")
     flags+=("--config=")
     flags_with_completion+=("--config")
-    flags_completion+=("__handle_filename_extension_flag yaml|yml")
+    flags_completion+=("__openshift_handle_filename_extension_flag yaml|yml")
     local_nonpersistent_flags+=("--config=")
     flags+=("--disable=")
     local_nonpersistent_flags+=("--disable=")
@@ -543,14 +516,8 @@ _openshift_start_node()
     local_nonpersistent_flags+=("--volume-dir=")
     flags+=("--write-flags")
     local_nonpersistent_flags+=("--write-flags")
-    flags+=("--azure-container-registry-config=")
-    flags+=("--google-json-key=")
-    flags+=("--log-flush-frequency=")
     flags+=("--loglevel=")
     flags+=("--logspec=")
-    flags+=("--v=")
-    flags+=("--version")
-    flags+=("--vmodule=")
 
     must_have_one_flag=()
     must_have_one_noun=()
@@ -568,6 +535,18 @@ _openshift_start_template-service-broker()
     flags_with_completion=()
     flags_completion=()
 
+    flags+=("--audit-log-batch-buffer-size=")
+    local_nonpersistent_flags+=("--audit-log-batch-buffer-size=")
+    flags+=("--audit-log-batch-max-size=")
+    local_nonpersistent_flags+=("--audit-log-batch-max-size=")
+    flags+=("--audit-log-batch-max-wait=")
+    local_nonpersistent_flags+=("--audit-log-batch-max-wait=")
+    flags+=("--audit-log-batch-throttle-burst=")
+    local_nonpersistent_flags+=("--audit-log-batch-throttle-burst=")
+    flags+=("--audit-log-batch-throttle-enable")
+    local_nonpersistent_flags+=("--audit-log-batch-throttle-enable")
+    flags+=("--audit-log-batch-throttle-qps=")
+    local_nonpersistent_flags+=("--audit-log-batch-throttle-qps=")
     flags+=("--audit-log-format=")
     local_nonpersistent_flags+=("--audit-log-format=")
     flags+=("--audit-log-maxage=")
@@ -576,24 +555,28 @@ _openshift_start_template-service-broker()
     local_nonpersistent_flags+=("--audit-log-maxbackup=")
     flags+=("--audit-log-maxsize=")
     local_nonpersistent_flags+=("--audit-log-maxsize=")
+    flags+=("--audit-log-mode=")
+    local_nonpersistent_flags+=("--audit-log-mode=")
     flags+=("--audit-log-path=")
     local_nonpersistent_flags+=("--audit-log-path=")
     flags+=("--audit-policy-file=")
     local_nonpersistent_flags+=("--audit-policy-file=")
     flags+=("--audit-webhook-batch-buffer-size=")
     local_nonpersistent_flags+=("--audit-webhook-batch-buffer-size=")
-    flags+=("--audit-webhook-batch-initial-backoff=")
-    local_nonpersistent_flags+=("--audit-webhook-batch-initial-backoff=")
     flags+=("--audit-webhook-batch-max-size=")
     local_nonpersistent_flags+=("--audit-webhook-batch-max-size=")
     flags+=("--audit-webhook-batch-max-wait=")
     local_nonpersistent_flags+=("--audit-webhook-batch-max-wait=")
     flags+=("--audit-webhook-batch-throttle-burst=")
     local_nonpersistent_flags+=("--audit-webhook-batch-throttle-burst=")
+    flags+=("--audit-webhook-batch-throttle-enable")
+    local_nonpersistent_flags+=("--audit-webhook-batch-throttle-enable")
     flags+=("--audit-webhook-batch-throttle-qps=")
     local_nonpersistent_flags+=("--audit-webhook-batch-throttle-qps=")
     flags+=("--audit-webhook-config-file=")
     local_nonpersistent_flags+=("--audit-webhook-config-file=")
+    flags+=("--audit-webhook-initial-backoff=")
+    local_nonpersistent_flags+=("--audit-webhook-initial-backoff=")
     flags+=("--audit-webhook-mode=")
     local_nonpersistent_flags+=("--audit-webhook-mode=")
     flags+=("--authentication-kubeconfig=")
@@ -620,6 +603,8 @@ _openshift_start_template-service-broker()
     local_nonpersistent_flags+=("--contention-profiling")
     flags+=("--enable-swagger-ui")
     local_nonpersistent_flags+=("--enable-swagger-ui")
+    flags+=("--http2-max-streams-per-connection=")
+    local_nonpersistent_flags+=("--http2-max-streams-per-connection=")
     flags+=("--profiling")
     local_nonpersistent_flags+=("--profiling")
     flags+=("--requestheader-allowed-names=")
@@ -634,8 +619,6 @@ _openshift_start_template-service-broker()
     local_nonpersistent_flags+=("--requestheader-username-headers=")
     flags+=("--secure-port=")
     local_nonpersistent_flags+=("--secure-port=")
-    flags+=("--tls-ca-file=")
-    local_nonpersistent_flags+=("--tls-ca-file=")
     flags+=("--tls-cert-file=")
     local_nonpersistent_flags+=("--tls-cert-file=")
     flags+=("--tls-cipher-suites=")
@@ -646,14 +629,8 @@ _openshift_start_template-service-broker()
     local_nonpersistent_flags+=("--tls-private-key-file=")
     flags+=("--tls-sni-cert-key=")
     local_nonpersistent_flags+=("--tls-sni-cert-key=")
-    flags+=("--azure-container-registry-config=")
-    flags+=("--google-json-key=")
-    flags+=("--log-flush-frequency=")
     flags+=("--loglevel=")
     flags+=("--logspec=")
-    flags+=("--v=")
-    flags+=("--version")
-    flags+=("--vmodule=")
 
     must_have_one_flag=()
     must_have_one_noun=()
@@ -706,13 +683,13 @@ _openshift_start()
     local_nonpersistent_flags+=("--master=")
     flags+=("--master-config=")
     flags_with_completion+=("--master-config")
-    flags_completion+=("__handle_filename_extension_flag yaml|yml")
+    flags_completion+=("__openshift_handle_filename_extension_flag yaml|yml")
     local_nonpersistent_flags+=("--master-config=")
     flags+=("--network-plugin=")
     local_nonpersistent_flags+=("--network-plugin=")
     flags+=("--node-config=")
     flags_with_completion+=("--node-config")
-    flags_completion+=("__handle_filename_extension_flag yaml|yml")
+    flags_completion+=("__openshift_handle_filename_extension_flag yaml|yml")
     local_nonpersistent_flags+=("--node-config=")
     flags+=("--pause")
     local_nonpersistent_flags+=("--pause")
@@ -734,14 +711,8 @@ _openshift_start()
     flags_with_completion+=("--write-config")
     flags_completion+=("_filedir")
     local_nonpersistent_flags+=("--write-config=")
-    flags+=("--azure-container-registry-config=")
-    flags+=("--google-json-key=")
-    flags+=("--log-flush-frequency=")
     flags+=("--loglevel=")
     flags+=("--logspec=")
-    flags+=("--v=")
-    flags+=("--version")
-    flags+=("--vmodule=")
 
     must_have_one_flag=()
     must_have_one_noun=()
@@ -759,21 +730,15 @@ _openshift_version()
     flags_with_completion=()
     flags_completion=()
 
-    flags+=("--azure-container-registry-config=")
-    flags+=("--google-json-key=")
-    flags+=("--log-flush-frequency=")
     flags+=("--loglevel=")
     flags+=("--logspec=")
-    flags+=("--v=")
-    flags+=("--version")
-    flags+=("--vmodule=")
 
     must_have_one_flag=()
     must_have_one_noun=()
     noun_aliases=()
 }
 
-_openshift()
+_openshift_root_command()
 {
     last_command="openshift"
     commands=()
@@ -788,14 +753,8 @@ _openshift()
     flags_with_completion=()
     flags_completion=()
 
-    flags+=("--azure-container-registry-config=")
-    flags+=("--google-json-key=")
-    flags+=("--log-flush-frequency=")
     flags+=("--loglevel=")
     flags+=("--logspec=")
-    flags+=("--v=")
-    flags+=("--version")
-    flags+=("--vmodule=")
 
     must_have_one_flag=()
     must_have_one_noun=()
@@ -809,7 +768,7 @@ __start_openshift()
     if declare -F _init_completion >/dev/null 2>&1; then
         _init_completion -s || return
     else
-        __my_init_completion -n "=" || return
+        __openshift_init_completion -n "=" || return
     fi
 
     local c=0
@@ -824,7 +783,7 @@ __start_openshift()
     local last_command
     local nouns=()
 
-    __handle_word
+    __openshift_handle_word
 }
 
 if [[ $(type -t compopt) = "builtin" ]]; then

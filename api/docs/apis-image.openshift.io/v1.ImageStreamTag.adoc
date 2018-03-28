@@ -539,7 +539,7 @@ $ curl -k \
 
 The server guarantees that the objects returned when using continue will be identical to issuing a single list call without a limit - that is, no objects created, modified, or deleted after the first request is issued will be included in any subsequent continued requests. This is sometimes referred to as a consistent snapshot, and ensures that a client that is using limit to receive smaller chunks of a very large result can ensure they see all possible objects. If objects are updated during a chunked list the version of the object that was present at the time the first list result was calculated is returned.
 |resourceVersion|When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history. When specified for list: - if unset, then the result is returned from remote storage based on quorum-read flag; - if it's 0, then we simply return what we currently have in cache, no guarantee; - if set to non zero, then the result is at least as fresh as given rv.
-|timeoutSeconds|Timeout for the list/watch call.
+|timeoutSeconds|Timeout for the list/watch call. This limits the duration of the call, regardless of any activity or inactivity.
 |watch|Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.
 |===
 
@@ -604,7 +604,7 @@ $ curl -k \
 
 The server guarantees that the objects returned when using continue will be identical to issuing a single list call without a limit - that is, no objects created, modified, or deleted after the first request is issued will be included in any subsequent continued requests. This is sometimes referred to as a consistent snapshot, and ensures that a client that is using limit to receive smaller chunks of a very large result can ensure they see all possible objects. If objects are updated during a chunked list the version of the object that was present at the time the first list result was calculated is returned.
 |resourceVersion|When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history. When specified for list: - if unset, then the result is returned from remote storage based on quorum-read flag; - if it's 0, then we simply return what we currently have in cache, no guarantee; - if set to non zero, then the result is at least as fresh as given rv.
-|timeoutSeconds|Timeout for the list/watch call.
+|timeoutSeconds|Timeout for the list/watch call. This limits the duration of the call, regardless of any activity or inactivity.
 |watch|Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.
 |===
 
@@ -794,16 +794,35 @@ DELETE /apis/image.openshift.io/v1/namespaces/$NAMESPACE/imagestreamtags/$NAME H
 Authorization: Bearer $TOKEN
 Accept: application/json
 Connection: close
+Content-Type: application/json'
+
+{
+  ...
+}
+
 ----
 
 ==== Curl request
 ----
 $ curl -k \
     -X DELETE \
+    -d @- \
     -H "Authorization: Bearer $TOKEN" \
     -H 'Accept: application/json' \
-    https://$ENDPOINT/apis/image.openshift.io/v1/namespaces/$NAMESPACE/imagestreamtags/$NAME
+    -H 'Content-Type: application/json' \
+    https://$ENDPOINT/apis/image.openshift.io/v1/namespaces/$NAMESPACE/imagestreamtags/$NAME <<'EOF'
+{
+  ...
+}
+EOF
 ----
+
+==== HTTP body
+[cols="1,5", options="header"]
+|===
+|Parameter|Schema
+|body|v1.DeleteOptions
+|===
 
 ==== Path parameters
 [cols="1,5", options="header"]
@@ -818,6 +837,9 @@ $ curl -k \
 |===
 |Parameter|Description
 |pretty|If 'true', then the output is pretty printed.
+|gracePeriodSeconds|The duration in seconds before the object should be deleted. Value must be non-negative integer. The value zero indicates delete immediately. If this value is nil, the default grace period for the specified type will be used. Defaults to a per object value if not specified. zero means delete immediately.
+|orphanDependents|Deprecated: please use the PropagationPolicy, this field will be deprecated in 1.7. Should the dependent objects be orphaned. If true/false, the "orphan" finalizer will be added to/removed from the object's finalizers list. Either this field or PropagationPolicy may be set, but not both.
+|propagationPolicy|Whether and how garbage collection will be performed. Either this field or OrphanDependents may be set, but not both. The default policy is decided by the existing finalizer set in the metadata.finalizers and the resource-specific default policy. Acceptable values are: 'Orphan' - orphan the dependents; 'Background' - allow the garbage collector to delete the dependents in the background; 'Foreground' - a cascading policy that deletes all dependents in the foreground.
 |===
 
 ==== Responses
