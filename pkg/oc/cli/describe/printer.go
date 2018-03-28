@@ -10,11 +10,11 @@ import (
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kprinters "k8s.io/kubernetes/pkg/printers"
+	printersinternal "k8s.io/kubernetes/pkg/printers/internalversion"
 
 	oapi "github.com/openshift/origin/pkg/api"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
@@ -79,13 +79,12 @@ var (
 
 func init() {
 	// TODO this should be eliminated
-	kprinters.NewHumanReadablePrinterFn = NewHumanReadablePrinter
+	printersinternal.AddHandlers = addPrintHandlers
 }
 
-// NewHumanReadablePrinter returns a new HumanReadablePrinter
-func NewHumanReadablePrinter(encoder runtime.Encoder, decoder runtime.Decoder, printOptions kprinters.PrintOptions) *kprinters.HumanReadablePrinter {
-	// TODO: support cross namespace listing
-	p := kprinters.NewHumanReadablePrinter(encoder, decoder, printOptions)
+func addPrintHandlers(p kprinters.PrintHandler) {
+	printersinternal.AddKubeHandlers(p)
+
 	p.Handler(buildColumns, nil, printBuild)
 	p.Handler(buildColumns, nil, printBuildList)
 	p.Handler(buildConfigColumns, nil, printBuildConfig)
@@ -169,8 +168,6 @@ func NewHumanReadablePrinter(encoder runtime.Encoder, decoder runtime.Decoder, p
 
 	p.Handler(securityContextConstraintsColumns, nil, printSecurityContextConstraints)
 	p.Handler(securityContextConstraintsColumns, nil, printSecurityContextConstraintsList)
-
-	return p
 }
 
 const templateDescriptionLen = 80

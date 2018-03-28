@@ -68,7 +68,8 @@ var MissingPrinterCoverageExceptions = []reflect.Type{
 }
 
 func TestPrinterCoverage(t *testing.T) {
-	printer := NewHumanReadablePrinter(nil, nil, kprinters.PrintOptions{})
+	printer := kprinters.NewHumanReadablePrinter(nil, nil, kprinters.PrintOptions{})
+	addPrintHandlers(printer)
 
 main:
 	for _, apiType := range legacyscheme.Scheme.KnownTypes(api.SchemeGroupVersion) {
