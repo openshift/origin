@@ -4,6 +4,7 @@ import (
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/cmd/openshift-operators/webconsole-operator/apis/webconsole/v1"
 )
@@ -42,7 +43,22 @@ func RemoveAvailability(versionAvailability *[]v1.WebConsoleVersionAvailablity, 
 		}
 	}
 
-	versionAvailability = &newAvailability
+	*versionAvailability = newAvailability
+}
+
+func FilterAvailability(versionAvailability *[]v1.WebConsoleVersionAvailablity, versions ...string) {
+	if versionAvailability == nil {
+		versionAvailability = &[]v1.WebConsoleVersionAvailablity{}
+	}
+	allowedVersions := sets.NewString(versions...)
+	newAvailability := []v1.WebConsoleVersionAvailablity{}
+	for _, availability := range *versionAvailability {
+		if allowedVersions.Has(availability.Version) {
+			newAvailability = append(newAvailability, availability)
+		}
+	}
+
+	*versionAvailability = newAvailability
 }
 
 func FindVersionAvailablity(versionAvailability []v1.WebConsoleVersionAvailablity, version string) *v1.WebConsoleVersionAvailablity {

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/openshift/origin/pkg/cmd/openshift-operators/webconsole-operator/apis/webconsole/v1helpers"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -89,10 +90,12 @@ func (c WebConsoleOperator) sync() error {
 	switch {
 	case wants10_0 && (isSame || isFirst):
 		operatorConfig, errors = c.sync10_0(operatorConfig)
+		v1helpers.FilterAvailability(&operatorConfig.Status.VersionAvailability, "3.10.0")
 		operatorConfig.Status.Task = "sync-3.10.0"
 
 	case wants10_1 && (isSame || isFirst):
 		operatorConfig, errors = c.sync10_1(operatorConfig)
+		v1helpers.FilterAvailability(&operatorConfig.Status.VersionAvailability, "3.10.1")
 		operatorConfig.Status.Task = "sync-3.10.1"
 
 	case wants10_1 && is10_0:
@@ -108,6 +111,7 @@ func (c WebConsoleOperator) sync() error {
 		return fmt.Errorf("unrecognized state")
 	}
 
+	v1helpers.FilterAvailability(&operatorConfig.Status.VersionAvailability, "3.10.0", "3.10.1")
 	if _, err := c.operatorConfigClient.OpenShiftWebConsoleConfigs().Update(operatorConfig); err != nil {
 		errors = append(errors, err)
 	}
