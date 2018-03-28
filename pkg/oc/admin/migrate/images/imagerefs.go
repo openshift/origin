@@ -260,7 +260,7 @@ func (o *MigrateImageReferenceOptions) transform(obj runtime.Object) (migrate.Re
 		if c := t.Spec.Strategy.CustomStrategy; c != nil && c.From.Kind == "DockerImage" {
 			changed = updateString(&c.From.Name, fn) || changed
 		}
-		if c := t.Spec.Strategy.DockerStrategy; c != nil && c.From.Kind == "DockerImage" {
+		if c := t.Spec.Strategy.DockerStrategy; c != nil && c.From != nil && c.From.Kind == "DockerImage" {
 			changed = updateString(&c.From.Name, fn) || changed
 		}
 		if c := t.Spec.Strategy.SourceStrategy; c != nil && c.From.Kind == "DockerImage" {
