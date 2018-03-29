@@ -47,6 +47,7 @@ done </privileged-sa-list.txt
 ns=""
 if [ -s /namespace-file ]; then
 	ns="--namespace=$(cat /namespace-file) "
+	oc create ns $(cat /namespace-file) --config=/kubeconfig.kubeconfig --dry-run -o yaml | oc apply --config=/kubeconfig.kubeconfig -f -
 fi
 
 if [ -s /namespace.yaml ]; then
@@ -133,7 +134,7 @@ func toParamFile(params map[string]string) []byte {
 	output := ""
 
 	for k, v := range params {
-		output = output + fmt.Sprintf("%v=%v\n", k, v)
+		output = output + fmt.Sprintf("%v=%q\n", k, v)
 	}
 	return []byte(output)
 }

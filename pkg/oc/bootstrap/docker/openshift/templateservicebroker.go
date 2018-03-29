@@ -9,13 +9,13 @@ import (
 	"github.com/golang/glog"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	kclientcmd "k8s.io/client-go/tools/clientcmd"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	"github.com/openshift/origin/pkg/oc/bootstrap"
 	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/componentinstall"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/errors"
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
 const (
@@ -23,7 +23,15 @@ const (
 )
 
 // InstallTemplateServiceBroker checks whether the template service broker is installed and installs it if not already installed
-func (h *Helper) InstallTemplateServiceBroker(clusterAdminKubeConfig []byte, f *clientcmd.Factory, imageFormat string, serverLogLevel int, logdir string) error {
+func (h *Helper) InstallTemplateServiceBroker(clusterAdminKubeConfigBytes []byte, imageFormat string, serverLogLevel int, logdir string) error {
+	restConfig, err := kclientcmd.RESTConfigFromKubeConfig(clusterAdminKubeConfigBytes)
+	if err != nil {
+		return err
+	}
+	kubeClient, err := kclientset.NewForConfig(restConfig)
+	if err != nil {
+		return errors.NewError("cannot obtain API clients").WithCause(err)
+	}
 	// create the actual resources required
 	imageTemplate := variable.NewDefaultImageTemplate()
 	imageTemplate.Format = imageFormat
@@ -44,12 +52,6 @@ func (h *Helper) InstallTemplateServiceBroker(clusterAdminKubeConfig []byte, f *
 
 		// wait until the apiservice is ready
 		WaitCondition: func() (bool, error) {
-			kubeClient, err := f.ClientSet()
-			if err != nil {
-				utilruntime.HandleError(err)
-				return false, nil
-			}
-
 			glog.V(2).Infof("polling for template service broker api server endpoint availability")
 			ds, err := kubeClient.Extensions().DaemonSets(tsbNamespace).Get("apiserver", metav1.GetOptions{})
 			if err != nil {
@@ -65,7 +67,7 @@ func (h *Helper) InstallTemplateServiceBroker(clusterAdminKubeConfig []byte, f *
 
 	return component.MakeReady(
 		h.image,
-		clusterAdminKubeConfig,
+		clusterAdminKubeConfigBytes,
 		params).Install(h.dockerHelper.Client(), logdir)
 }
 

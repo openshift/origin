@@ -5,10 +5,12 @@ import (
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/rest"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	"github.com/blang/semver"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/errors"
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
+	securityclientinternal "github.com/openshift/origin/pkg/security/generated/internalclientset"
 )
 
 const (
@@ -17,14 +19,14 @@ const (
 )
 
 // InstallMetricsViaAnsible checks whether metrics is installed and installs it if not already installed
-func (h *Helper) InstallMetricsViaAnsible(f *clientcmd.Factory, serverVersion semver.Version, serverIP, publicHostname, hostName, imagePrefix, imageVersion, hostConfigDir, imageStreams string) error {
-	kubeClient, err := f.ClientSet()
+func (h *Helper) InstallMetricsViaAnsible(restConfig *rest.Config, serverVersion semver.Version, serverIP, publicHostname, hostName, imagePrefix, imageVersion, hostConfigDir, imageStreams string) error {
+	kubeClient, err := kclientset.NewForConfig(restConfig)
 	if err != nil {
-		return errors.NewError("cannot obtain API clients").WithCause(err).WithDetails(h.OriginLog())
+		return errors.NewError("cannot obtain API clients").WithCause(err)
 	}
-	securityClient, err := f.OpenshiftInternalSecurityClient()
+	securityClient, err := securityclientinternal.NewForConfig(restConfig)
 	if err != nil {
-		return errors.NewError("cannot obtain API clients").WithCause(err).WithDetails(h.OriginLog())
+		return errors.NewError("cannot obtain API clients").WithCause(err)
 	}
 
 	_, err = kubeClient.Core().Services(infraNamespace).Get(svcMetrics, metav1.GetOptions{})
