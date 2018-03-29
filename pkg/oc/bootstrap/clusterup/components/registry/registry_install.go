@@ -2,19 +2,20 @@ package registry
 
 import (
 	"fmt"
-	"os"
+	"io/ioutil"
 	"path"
 
 	"github.com/golang/glog"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apiserver/pkg/authentication/serviceaccount"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
+	kclientcmd "k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/util/retry"
 
 	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/componentinstall"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/dockerhelper"
-	"github.com/openshift/origin/pkg/oc/bootstrap/docker/openshift"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/run"
 	"github.com/openshift/origin/pkg/oc/errors"
 	securityclient "github.com/openshift/origin/pkg/security/generated/internalclientset/typed/security/internalversion"
@@ -29,8 +30,6 @@ const (
 )
 
 type RegistryComponentOptions struct {
-	ClusterAdminKubeConfig *rest.Config
-
 	OCImage         string
 	MasterConfigDir string
 	Images          string
@@ -42,7 +41,15 @@ func (r *RegistryComponentOptions) Name() string {
 }
 
 func (r *RegistryComponentOptions) Install(dockerClient dockerhelper.Interface, logdir string) error {
-	kubeClient, err := kubernetes.NewForConfig(r.ClusterAdminKubeConfig)
+	clusterAdminKubeConfigBytes, err := ioutil.ReadFile(path.Join(r.MasterConfigDir, "admin.kubeconfig"))
+	if err != nil {
+		return err
+	}
+	restConfig, err := kclientcmd.RESTConfigFromKubeConfig(clusterAdminKubeConfigBytes)
+	if err != nil {
+		return err
+	}
+	kubeClient, err := kubernetes.NewForConfig(restConfig)
 	_, err = kubeClient.Core().Services(DefaultNamespace).Get(SvcDockerRegistry, metav1.GetOptions{})
 	if err == nil {
 		// If there's no error, the registry already exists
@@ -55,13 +62,24 @@ func (r *RegistryComponentOptions) Install(dockerClient dockerhelper.Interface, 
 	imageRunHelper := run.NewRunHelper(dockerhelper.NewHelper(dockerClient)).New()
 	glog.Infof("Running %q", r.Name())
 
-	securityClient, err := securityclient.NewForConfig(r.ClusterAdminKubeConfig)
+	err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		securityClient, err := securityclient.NewForConfig(restConfig)
+		if err != nil {
+			return err
+		}
+		privilegedSCC, err := securityClient.SecurityContextConstraints().Get("privileged", metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
+		privilegedSCC.Users = append(privilegedSCC.Users, serviceaccount.MakeUsername("default", "registry"))
+		_, err = securityClient.SecurityContextConstraints().Update(privilegedSCC)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
 	if err != nil {
-		return err
-	}
-	err = openshift.AddSCCToServiceAccount(securityClient, "privileged", "registry", "default", os.Stdout)
-	if err != nil {
-		return errors.NewError("cannot add privileged SCC to registry service account").WithCause(err)
+		return errors.NewError("cannot update privileged SCC").WithCause(err)
 	}
 
 	// Obtain registry markup. The reason it is not created outright is because

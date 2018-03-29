@@ -17,6 +17,10 @@ import (
 	cliconfig "github.com/docker/docker/cli/config"
 	dockerclient "github.com/docker/docker/client"
 	"github.com/golang/glog"
+	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/components/router"
+	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/components/service-catalog"
+	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/components/template-service-broker"
+	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/components/web-console"
 	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/kubeapiserver"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -122,12 +126,6 @@ var (
 		"rails quickstart":            "examples/quickstarts/rails-postgresql-persistent.json",
 		"jenkins pipeline persistent": "examples/jenkins/jenkins-persistent-template.json",
 		"sample pipeline":             "examples/jenkins/pipeline/samplepipeline.yaml",
-	}
-	// internalTemplateLocations are templates that will be registered in an internal namespace. These
-	// templates are compatible with both vN and vN-1 clusters.  If they are not, they should be moved
-	// into the internalCurrent and internalPrevious maps.
-	internalTemplateLocations = map[string]string{
-		"template service broker registration": "install/service-catalog-broker-resources/template-service-broker-registration.yaml",
 	}
 
 	adminTemplateLocations = map[string]string{
@@ -498,38 +496,60 @@ func (c *ClusterUpConfig) Start(out io.Writer) error {
 	}
 	taskPrinter.Success()
 
-	clusterAdminKubeConfig, err := c.RESTConfig()
-	if err != nil {
-		return err
-	}
-
 	// TODO, now we build up a set of things to install here.  We build the list so that we can install everything in
 	// TODO parallel to avoid anyone accidentally introducing dependencies.  We'll start with migrating what we have
 	// TODO and then we'll try to clean it up.
 	registryInstall := &registry.RegistryComponentOptions{
-		ClusterAdminKubeConfig: clusterAdminKubeConfig,
-
 		OCImage:         c.openshiftImage(),
 		MasterConfigDir: path.Join(c.GetKubeAPIServerConfigDir()),
 		Images:          c.imageFormat(),
 		PVDir:           c.HostPersistentVolumesDir,
 	}
+	//	return c.OpenShiftHelper().InstallRouter(c.ServerIP, c.PortForwarding)
+	routerInstall := &router.RouterComponentOptions{
+		OCImage:         c.openshiftImage(),
+		MasterConfigDir: path.Join(c.GetKubeAPIServerConfigDir()),
+		RoutingSuffix:   c.RoutingSuffix,
+		ImageFormat:     c.imageFormat(),
+		PortForwarding:  c.PortForwarding,
+	}
+	webConsoleInstall := &web_console.WebConsoleComponentOptions{
+		OCImage:          c.openshiftImage(),
+		MasterConfigDir:  path.Join(c.GetKubeAPIServerConfigDir()),
+		ImageFormat:      c.imageFormat(),
+		PublicConsoleURL: fmt.Sprintf("https://%s:8443/console", c.GetPublicHostName()),
+		PublicMasterURL:  fmt.Sprintf("https://%s:8443", c.GetPublicHostName()),
+		PublicLoggingURL: fmt.Sprintf("https://%s", openshift.LoggingHost(c.RoutingSuffix)),
+		PublicMetricsURL: fmt.Sprintf("https://%s/hawkular/metrics", openshift.MetricsHost(c.RoutingSuffix)),
+		ServerLogLevel:   c.ServerLogLevel,
+	}
 
 	componentsToInstall := []componentinstall.Component{}
 	componentsToInstall = append(componentsToInstall, c.ImportInitialObjectsComponents(c.Out)...)
-	componentsToInstall = append(componentsToInstall, registryInstall)
+	componentsToInstall = append(componentsToInstall, registryInstall, webConsoleInstall, routerInstall)
 
-	err = componentinstall.InstallComponents(componentsToInstall, c.GetDockerClient(), c.GetLogDir())
+	if c.ShouldInstallServiceCatalog {
+		serviceCatalogInstall := &service_catalog.ServiceCatalogComponentOptions{
+			OCImage:         c.openshiftImage(),
+			MasterConfigDir: path.Join(c.GetKubeAPIServerConfigDir()),
+			ImageFormat:     c.imageFormat(),
+			PublicMasterURL: c.GetPublicHostName(),
+		}
+		componentsToInstall = append(componentsToInstall, serviceCatalogInstall)
+		tsbInstall := &template_service_broker.TemplateServiceBrokerComponentOptions{
+			OCImage:         c.openshiftImage(),
+			MasterConfigDir: path.Join(c.GetKubeAPIServerConfigDir()),
+			ImageFormat:     c.imageFormat(),
+			PublicMasterURL: c.GetPublicHostName(),
+			ServerLogLevel:  c.ServerLogLevel,
+		}
+		componentsToInstall = append(componentsToInstall, tsbInstall)
+	}
+
+	err := componentinstall.InstallComponents(componentsToInstall, c.GetDockerClient(), c.GetLogDir())
 	if err != nil {
 		return err
 	}
-
-	// Install a router
-	taskPrinter.StartTask("Installing router")
-	if err := c.InstallRouter(out); err != nil {
-		return taskPrinter.ToError(err)
-	}
-	taskPrinter.Success()
 
 	// Install metrics
 	if c.ShouldInstallMetrics {
@@ -549,39 +569,13 @@ func (c *ClusterUpConfig) Start(out io.Writer) error {
 		taskPrinter.Success()
 	}
 
-	// Install service catalog
-	if c.ShouldInstallServiceCatalog {
-		taskPrinter.StartTask("Installing service catalog")
-		if err := c.InstallServiceCatalog(out); err != nil {
-			return taskPrinter.ToError(err)
-		}
-		taskPrinter.Success()
-	}
-
-	// Install template service broker if our version is high enough
-	if c.ShouldInstallServiceCatalog {
-		taskPrinter.StartTask("Installing template service broker")
-		if err := c.InstallTemplateServiceBroker(out); err != nil {
-			return taskPrinter.ToError(err)
-		}
-		taskPrinter.Success()
-	}
-
-	// Register the TSB w/ the SC if requested.  This is done even when reusing a config because
-	// the TSB registration is not persisted.
+	// Register the TSB w/ the SC if requested.
 	if c.ShouldInstallServiceCatalog {
 		taskPrinter.StartTask("Registering template service broker with service catalog")
 		if err := c.RegisterTemplateServiceBroker(out); err != nil {
 			return taskPrinter.ToError(err)
 		}
 		taskPrinter.Success()
-	}
-
-	// Install the web console. Do this after the template service broker is installed so that
-	// the console can discover that the broker is running on startup.
-	taskPrinter.StartTask("Installing web console")
-	if err := c.InstallWebConsole(out); err != nil {
-		return taskPrinter.ToError(err)
 	}
 
 	if c.ShouldCreateUser() {
@@ -858,7 +852,7 @@ func (c *ClusterUpConfig) determineServerIP(out io.Writer) (string, []string, er
 
 // updateNoProxy will add some default values to the NO_PROXY setting if they are not present
 func (c *ClusterUpConfig) updateNoProxy() {
-	values := []string{"127.0.0.1", c.ServerIP, "localhost", openshift.ServiceCatalogServiceIP, registry.RegistryServiceClusterIP}
+	values := []string{"127.0.0.1", c.ServerIP, "localhost", service_catalog.ServiceCatalogServiceIP, registry.RegistryServiceClusterIP}
 	ipFromServer, err := c.OpenShiftHelper().ServerIP()
 	if err == nil {
 		values = append(values, ipFromServer)
@@ -898,43 +892,6 @@ func (c *ClusterUpConfig) imageFormat() string {
 	return fmt.Sprintf("%s-${component}:%s", c.Image, c.ImageTag)
 }
 
-// InstallRouter installs a default router on the server
-func (c *ClusterUpConfig) InstallRouter(out io.Writer) error {
-	restConfig, err := c.RESTConfig()
-	if err != nil {
-		return err
-	}
-
-	return c.OpenShiftHelper().InstallRouter(c.GetDockerClient(), c.openshiftImage(), restConfig, c.GetKubeAPIServerConfigDir(), c.GetLogDir(), c.imageFormat(), c.ServerIP, c.PortForwarding, out, os.Stderr)
-}
-
-// InstallWebConsole installs the OpenShift web console on the server
-func (c *ClusterUpConfig) InstallWebConsole(out io.Writer) error {
-	clusterAdminKubeConfigBytes, err := ioutil.ReadFile(path.Join(c.GetKubeAPIServerConfigDir(), "admin.kubeconfig"))
-	if err != nil {
-		return err
-	}
-
-	masterURL := c.OpenShiftHelper().Master(c.ServerIP)
-	if len(c.PublicHostname) > 0 {
-		masterURL = fmt.Sprintf("https://%s:8443", c.PublicHostname)
-	}
-
-	publicURL := fmt.Sprintf("%s/console/", masterURL)
-
-	metricsURL := ""
-	if c.ShouldInstallMetrics {
-		metricsURL = fmt.Sprintf("https://%s/hawkular/metrics", openshift.MetricsHost(c.RoutingSuffix))
-	}
-
-	loggingURL := ""
-	if c.ShouldInstallLogging {
-		loggingURL = fmt.Sprintf("https://%s", openshift.LoggingHost(c.RoutingSuffix))
-	}
-
-	return c.OpenShiftHelper().InstallWebConsole(clusterAdminKubeConfigBytes, c.imageFormat(), c.ServerLogLevel, publicURL, masterURL, loggingURL, metricsURL, path.Join(c.BaseDir, "logs"))
-}
-
 // TODO this should become a separate thing we can install, like registry
 func (c *ClusterUpConfig) ImportInitialObjectsComponents(out io.Writer) []componentinstall.Component {
 	componentsToInstall := []componentinstall.Component{}
@@ -946,8 +903,6 @@ func (c *ClusterUpConfig) ImportInitialObjectsComponents(out io.Writer) []compon
 		c.makeObjectImportInstallationComponentsOrDie(out, openshift.Namespace, templateLocations)...)
 	componentsToInstall = append(componentsToInstall,
 		c.makeObjectImportInstallationComponentsOrDie(out, "kube-system", adminTemplateLocations)...)
-	componentsToInstall = append(componentsToInstall,
-		c.makeObjectImportInstallationComponentsOrDie(out, openshift.InfraNamespace, internalTemplateLocations)...)
 
 	return componentsToInstall
 }
@@ -998,37 +953,6 @@ func (c *ClusterUpConfig) InstallMetrics(out io.Writer) error {
 		c.ImageStreams)
 }
 
-// InstallServiceCatalog will start the installation of service catalog components
-func (c *ClusterUpConfig) InstallServiceCatalog(out io.Writer) error {
-	clusterAdminKubeConfigBytes, err := ioutil.ReadFile(path.Join(c.GetKubeAPIServerConfigDir(), "admin.kubeconfig"))
-	if err != nil {
-		return err
-	}
-
-	publicMaster := c.PublicHostname
-	if len(publicMaster) == 0 {
-		publicMaster = c.ServerIP
-	}
-	return c.OpenShiftHelper().InstallServiceCatalog(clusterAdminKubeConfigBytes, c.GetKubeAPIServerConfigDir(), publicMaster, openshift.CatalogHost(c.RoutingSuffix), c.imageFormat(), c.GetLogDir())
-}
-
-// InstallTemplateServiceBroker will start the installation of template service broker
-func (c *ClusterUpConfig) InstallTemplateServiceBroker(out io.Writer) error {
-	publicMaster := c.PublicHostname
-	if len(publicMaster) == 0 {
-		publicMaster = c.ServerIP
-	}
-
-	imageTemplate := fmt.Sprintf("%s-${component}:%s", c.Image, c.ImageTag)
-
-	clusterAdminKubeConfig, err := c.ClusterAdminKubeConfigBytes()
-	if err != nil {
-		return err
-	}
-
-	return c.OpenShiftHelper().InstallTemplateServiceBroker(clusterAdminKubeConfig, imageTemplate, c.ServerLogLevel, c.GetLogDir())
-}
-
 // RegisterTemplateServiceBroker will register the tsb with the service catalog
 func (c *ClusterUpConfig) RegisterTemplateServiceBroker(out io.Writer) error {
 	clusterAdminKubeConfig, err := c.ClusterAdminKubeConfigBytes()
@@ -1055,6 +979,7 @@ func (c *ClusterUpConfig) CreateProject(out io.Writer) error {
 
 // ServerInfo displays server information after a successful start
 func (c *ClusterUpConfig) ServerInfo(out io.Writer) {
+	// TODO look this up based on the state of the cluster, not based on what we've done here.
 	metricsInfo := ""
 	if c.ShouldInstallMetrics && c.ShouldInitializeData() {
 		metricsInfo = fmt.Sprintf("The metrics service is available at:\n"+
@@ -1399,4 +1324,11 @@ func (c *ClusterUpConfig) RESTConfig() (*rest.Config, error) {
 
 func (c *ClusterUpConfig) ClusterAdminKubeConfigBytes() ([]byte, error) {
 	return ioutil.ReadFile(path.Join(c.GetKubeAPIServerConfigDir(), "admin.kubeconfig"))
+}
+
+func (c *ClusterUpConfig) GetPublicHostName() string {
+	if len(c.PublicHostname) > 0 {
+		return c.PublicHostname
+	}
+	return c.ServerIP
 }
