@@ -425,6 +425,13 @@ ENV PORT=8080 PORT1="${PORT2}"
 EXPOSE ${PORT} "${PORT2:-8085}" ${PORT_MISSING:-8082}`,
 			want: []string{"8080", "8081", "8082"},
 		},
+		"EXPOSE parameter substitution syntax with +": {
+			in: `FROM centos:7
+ENV PORT2 8081
+ENV PORT=8080 PORT1="${PORT2}"
+EXPOSE ${PORT} "${PORT2:+8085}" ${PORT_MISSING:+8082}`,
+			want: []string{"8080", "8085", ""},
+		},
 		"EXPOSE shadow scope ENV": {
 			in: `FROM centos:7
 ENV PORT 8080
