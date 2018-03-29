@@ -9,12 +9,11 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"syscall"
 	"testing"
 
 	"github.com/opencontainers/runc/libcontainer"
 	"github.com/vishvananda/netlink/nl"
-
-	"golang.org/x/sys/unix"
 )
 
 type pid struct {
@@ -30,7 +29,7 @@ func TestNsenterValidPaths(t *testing.T) {
 
 	namespaces := []string{
 		// join pid ns of the current process
-		fmt.Sprintf("pid:/proc/%d/ns/pid", os.Getpid()),
+		fmt.Sprintf("/proc/%d/ns/pid", os.Getpid()),
 	}
 	cmd := &exec.Cmd{
 		Path:       os.Args[0],
@@ -48,7 +47,7 @@ func TestNsenterValidPaths(t *testing.T) {
 	r := nl.NewNetlinkRequest(int(libcontainer.InitMsg), 0)
 	r.AddData(&libcontainer.Int32msg{
 		Type:  libcontainer.CloneFlagsAttr,
-		Value: uint32(unix.CLONE_NEWNET),
+		Value: uint32(syscall.CLONE_NEWNET),
 	})
 	r.AddData(&libcontainer.Bytemsg{
 		Type:  libcontainer.NsPathsAttr,
@@ -88,7 +87,7 @@ func TestNsenterInvalidPaths(t *testing.T) {
 
 	namespaces := []string{
 		// join pid ns of the current process
-		fmt.Sprintf("pid:/proc/%d/ns/pid", -1),
+		fmt.Sprintf("/proc/%d/ns/pid", -1),
 	}
 	cmd := &exec.Cmd{
 		Path:       os.Args[0],
@@ -104,47 +103,7 @@ func TestNsenterInvalidPaths(t *testing.T) {
 	r := nl.NewNetlinkRequest(int(libcontainer.InitMsg), 0)
 	r.AddData(&libcontainer.Int32msg{
 		Type:  libcontainer.CloneFlagsAttr,
-		Value: uint32(unix.CLONE_NEWNET),
-	})
-	r.AddData(&libcontainer.Bytemsg{
-		Type:  libcontainer.NsPathsAttr,
-		Value: []byte(strings.Join(namespaces, ",")),
-	})
-	if _, err := io.Copy(parent, bytes.NewReader(r.Serialize())); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := cmd.Wait(); err == nil {
-		t.Fatalf("nsenter exits with a zero exit status")
-	}
-}
-
-func TestNsenterIncorrectPathType(t *testing.T) {
-	args := []string{"nsenter-exec"}
-	parent, child, err := newPipe()
-	if err != nil {
-		t.Fatalf("failed to create pipe %v", err)
-	}
-
-	namespaces := []string{
-		// join pid ns of the current process
-		fmt.Sprintf("net:/proc/%d/ns/pid", os.Getpid()),
-	}
-	cmd := &exec.Cmd{
-		Path:       os.Args[0],
-		Args:       args,
-		ExtraFiles: []*os.File{child},
-		Env:        []string{"_LIBCONTAINER_INITPIPE=3"},
-	}
-
-	if err := cmd.Start(); err != nil {
-		t.Fatal(err)
-	}
-	// write cloneFlags
-	r := nl.NewNetlinkRequest(int(libcontainer.InitMsg), 0)
-	r.AddData(&libcontainer.Int32msg{
-		Type:  libcontainer.CloneFlagsAttr,
-		Value: uint32(unix.CLONE_NEWNET),
+		Value: uint32(syscall.CLONE_NEWNET),
 	})
 	r.AddData(&libcontainer.Bytemsg{
 		Type:  libcontainer.NsPathsAttr,
@@ -167,7 +126,7 @@ func init() {
 }
 
 func newPipe() (parent *os.File, child *os.File, err error) {
-	fds, err := unix.Socketpair(unix.AF_LOCAL, unix.SOCK_STREAM|unix.SOCK_CLOEXEC, 0)
+	fds, err := syscall.Socketpair(syscall.AF_LOCAL, syscall.SOCK_STREAM|syscall.SOCK_CLOEXEC, 0)
 	if err != nil {
 		return nil, nil, err
 	}

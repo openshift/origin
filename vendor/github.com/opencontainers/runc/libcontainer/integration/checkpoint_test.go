@@ -5,15 +5,13 @@ import (
 	"bytes"
 	"io/ioutil"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"testing"
 
 	"github.com/opencontainers/runc/libcontainer"
 	"github.com/opencontainers/runc/libcontainer/configs"
-
-	"golang.org/x/sys/unix"
 )
 
 func showFile(t *testing.T, fname string) error {
@@ -40,22 +38,7 @@ func showFile(t *testing.T, fname string) error {
 	return nil
 }
 
-func TestUsernsCheckpoint(t *testing.T) {
-	if _, err := os.Stat("/proc/self/ns/user"); os.IsNotExist(err) {
-		t.Skip("userns is unsupported")
-	}
-	cmd := exec.Command("criu", "check", "--feature", "userns")
-	if err := cmd.Run(); err != nil {
-		t.Skip("Unable to c/r a container with userns")
-	}
-	testCheckpoint(t, true)
-}
-
 func TestCheckpoint(t *testing.T) {
-	testCheckpoint(t, false)
-}
-
-func testCheckpoint(t *testing.T, userns bool) {
 	if testing.Short() {
 		return
 	}
@@ -76,14 +59,8 @@ func testCheckpoint(t *testing.T, userns bool) {
 	config.Mounts = append(config.Mounts, &configs.Mount{
 		Destination: "/sys/fs/cgroup",
 		Device:      "cgroup",
-		Flags:       defaultMountFlags | unix.MS_RDONLY,
+		Flags:       defaultMountFlags | syscall.MS_RDONLY,
 	})
-
-	if userns {
-		config.UidMappings = []configs.IDMap{{HostID: 0, ContainerID: 0, Size: 1000}}
-		config.GidMappings = []configs.IDMap{{HostID: 0, ContainerID: 0, Size: 1000}}
-		config.Namespaces = append(config.Namespaces, configs.Namespace{Type: configs.NEWUSER})
-	}
 
 	factory, err := libcontainer.New(root, libcontainer.Cgroupfs)
 
@@ -129,33 +106,6 @@ func testCheckpoint(t *testing.T, userns bool) {
 		t.Fatal(err)
 	}
 
-	parentDir, err := ioutil.TempDir("", "criu-parent")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(parentDir)
-
-	preDumpOpts := &libcontainer.CriuOpts{
-		ImagesDirectory: parentDir,
-		WorkDirectory:   parentDir,
-		PreDump:         true,
-	}
-	preDumpLog := filepath.Join(preDumpOpts.WorkDirectory, "dump.log")
-
-	if err := container.Checkpoint(preDumpOpts); err != nil {
-		showFile(t, preDumpLog)
-		t.Fatal(err)
-	}
-
-	state, err := container.Status()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if state != libcontainer.Running {
-		t.Fatal("Unexpected preDump state: ", state)
-	}
-
 	imagesDir, err := ioutil.TempDir("", "criu")
 	if err != nil {
 		t.Fatal(err)
@@ -165,7 +115,6 @@ func testCheckpoint(t *testing.T, userns bool) {
 	checkpointOpts := &libcontainer.CriuOpts{
 		ImagesDirectory: imagesDir,
 		WorkDirectory:   imagesDir,
-		ParentImage:     "../criu-parent",
 	}
 	dumpLog := filepath.Join(checkpointOpts.WorkDirectory, "dump.log")
 	restoreLog := filepath.Join(checkpointOpts.WorkDirectory, "restore.log")
@@ -175,12 +124,12 @@ func testCheckpoint(t *testing.T, userns bool) {
 		t.Fatal(err)
 	}
 
-	state, err = container.Status()
+	state, err := container.Status()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if state != libcontainer.Stopped {
+	if state != libcontainer.Running {
 		t.Fatal("Unexpected state checkpoint: ", state)
 	}
 

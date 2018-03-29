@@ -10,27 +10,11 @@ import (
 
 	"github.com/docker/docker/pkg/term"
 	"github.com/opencontainers/runc/libcontainer"
-	"github.com/opencontainers/runc/libcontainer/utils"
 )
 
-type tty struct {
-	console   libcontainer.Console
-	state     *term.State
-	closers   []io.Closer
-	postStart []io.Closer
-	wg        sync.WaitGroup
-	consoleC  chan error
-}
-
-func (t *tty) copyIO(w io.Writer, r io.ReadCloser) {
-	defer t.wg.Done()
-	io.Copy(w, r)
-	r.Close()
-}
-
-// setup pipes for the process so that advanced features like c/r are able to easily checkpoint
-// and restore the process's IO without depending on a host specific path or device
-func setupProcessPipes(p *libcontainer.Process, rootuid, rootgid int) (*tty, error) {
+// setup standard pipes so that the TTY of the calling runc process
+// is not inherited by the container.
+func createStdioPipes(p *libcontainer.Process, rootuid, rootgid int) (*tty, error) {
 	i, err := p.InitializeIO(rootuid, rootgid)
 	if err != nil {
 		return nil, err
@@ -62,40 +46,45 @@ func setupProcessPipes(p *libcontainer.Process, rootuid, rootgid int) (*tty, err
 	return t, nil
 }
 
-func inheritStdio(process *libcontainer.Process) error {
-	process.Stdin = os.Stdin
-	process.Stdout = os.Stdout
-	process.Stderr = os.Stderr
-	return nil
+func (t *tty) copyIO(w io.Writer, r io.ReadCloser) {
+	defer t.wg.Done()
+	io.Copy(w, r)
+	r.Close()
 }
 
-func (t *tty) recvtty(process *libcontainer.Process, socket *os.File) error {
-	f, err := utils.RecvFd(socket)
+func createTty(p *libcontainer.Process, rootuid, rootgid int, consolePath string) (*tty, error) {
+	if consolePath != "" {
+		if err := p.ConsoleFromPath(consolePath); err != nil {
+			return nil, err
+		}
+		return &tty{}, nil
+	}
+	console, err := p.NewConsole(rootuid, rootgid)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	if err = libcontainer.SaneTerminal(f); err != nil {
-		return err
-	}
-	console := libcontainer.ConsoleFromFile(f)
 	go io.Copy(console, os.Stdin)
-	t.wg.Add(1)
-	go t.copyIO(os.Stdout, console)
+	go io.Copy(os.Stdout, console)
+
 	state, err := term.SetRawTerminal(os.Stdin.Fd())
 	if err != nil {
-		return fmt.Errorf("failed to set the terminal from the stdin: %v", err)
+		return nil, fmt.Errorf("failed to set the terminal from the stdin: %v", err)
 	}
-	t.state = state
-	t.console = console
-	t.closers = []io.Closer{console}
-	return nil
+	return &tty{
+		console: console,
+		state:   state,
+		closers: []io.Closer{
+			console,
+		},
+	}, nil
 }
 
-func (t *tty) waitConsole() error {
-	if t.consoleC != nil {
-		return <-t.consoleC
-	}
-	return nil
+type tty struct {
+	console   libcontainer.Console
+	state     *term.State
+	closers   []io.Closer
+	postStart []io.Closer
+	wg        sync.WaitGroup
 }
 
 // ClosePostStart closes any fds that are provided to the container and dup2'd
@@ -133,5 +122,5 @@ func (t *tty) resize() error {
 	if err != nil {
 		return err
 	}
-	return term.SetWinsize(t.console.File().Fd(), ws)
+	return term.SetWinsize(t.console.Fd(), ws)
 }

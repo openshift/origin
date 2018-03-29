@@ -442,6 +442,7 @@ var evaluateTable = map[string]StepFunc{
 	command.StopSignal:  stopSignal,
 	command.Arg:         arg,
 	command.Healthcheck: healthcheck,
+	command.Shell:       shell,
 }
 
 // builtinAllowedBuildArgs is list of built-in allowed build args

@@ -5,7 +5,6 @@ load helpers
 function teardown() {
     rm -f $BATS_TMPDIR/runc-update-integration-test.json
     teardown_running_container test_update
-    teardown_running_container test_update_rt
     teardown_busybox
 }
 
@@ -31,10 +30,7 @@ function setup() {
         "cpus": "0"
     },
     "blockio": {
-        "weight": 1000
-    },
-    "pids": {
-        "limit": 20
+        "blkioWeight": 1000
     },
 EOF
     )
@@ -48,27 +44,21 @@ function check_cgroup_value() {
     expected=$3
 
     current=$(cat $cgroup/$source)
-    [ "$current" == "$expected" ]
+    [ "$current" -eq "$expected" ]
 }
 
-# TODO: test rt cgroup updating
 @test "update" {
-    # XXX: currently cgroups require root containers.
-	# XXX: Also, this test should be split into separate sections so that we
-	#      can skip kmem without skipping update tests overall.
-    requires cgroups_kmem root
-
+    requires cgroups_kmem
     # run a few busyboxes detached
-    runc run -d --console-socket $CONSOLE_SOCKET test_update
+    runc run -d --console /dev/pts/ptmx test_update
     [ "$status" -eq 0 ]
+    wait_for_container 15 1 test_update
 
     # get the cgroup paths
-    for g in MEMORY CPUSET CPU BLKIO PIDS; do
+    for g in MEMORY CPUSET CPU BLKIO; do
         base_path=$(grep "cgroup"  /proc/self/mountinfo | gawk 'toupper($NF) ~ /\<'${g}'\>/ { print $5; exit }')
         eval CGROUP_${g}="${base_path}/runc-update-integration-test"
     done
-
-    CGROUP_SYSTEM_MEMORY=$(grep "cgroup"  /proc/self/mountinfo | gawk 'toupper($NF) ~ /\<'MEMORY'\>/ { print $5; exit }')
 
     # check that initial values were properly set
     check_cgroup_value $CGROUP_BLKIO "blkio.weight" 1000
@@ -80,7 +70,6 @@ function check_cgroup_value() {
     check_cgroup_value $CGROUP_MEMORY "memory.kmem.tcp.limit_in_bytes" 11534336
     check_cgroup_value $CGROUP_MEMORY "memory.limit_in_bytes" 33554432
     check_cgroup_value $CGROUP_MEMORY "memory.soft_limit_in_bytes" 25165824
-    check_cgroup_value $CGROUP_PIDS "pids.max" 20
 
     # update blkio-weight
     runc update test_update --blkio-weight 500
@@ -119,38 +108,17 @@ function check_cgroup_value() {
     [ "$status" -eq 0 ]
     check_cgroup_value $CGROUP_MEMORY "memory.limit_in_bytes" 52428800
 
+
     # update memory soft limit
     runc update test_update --memory-reservation 33554432
     [ "$status" -eq 0 ]
     check_cgroup_value $CGROUP_MEMORY "memory.soft_limit_in_bytes" 33554432
 
-    # Run swap memory tests if swap is avaialble
+    # update memory swap (if available)
     if [ -f "$CGROUP_MEMORY/memory.memsw.limit_in_bytes" ]; then
-        # try to remove memory swap limit
-        runc update test_update --memory-swap -1
-        [ "$status" -eq 0 ]
-        # Get System memory swap limit
-        SYSTEM_MEMORY_SW=$(cat "${CGROUP_SYSTEM_MEMORY}/memory.memsw.limit_in_bytes")
-        check_cgroup_value $CGROUP_MEMORY "memory.memsw.limit_in_bytes" ${SYSTEM_MEMORY_SW}
-
-        # update memory swap
         runc update test_update --memory-swap 96468992
         [ "$status" -eq 0 ]
         check_cgroup_value $CGROUP_MEMORY "memory.memsw.limit_in_bytes" 96468992
-    fi;
-
-    # try to remove memory limit
-    runc update test_update --memory -1
-    [ "$status" -eq 0 ]
-
-    # Get System memory limit
-    SYSTEM_MEMORY=$(cat "${CGROUP_SYSTEM_MEMORY}/memory.limit_in_bytes")
-   	# check memory limited is gone
-    check_cgroup_value $CGROUP_MEMORY "memory.limit_in_bytes" ${SYSTEM_MEMORY}
-
-    # check swap memory limited is gone
-    if [ -f "$CGROUP_MEMORY/memory.memsw.limit_in_bytes" ]; then
-        check_cgroup_value $CGROUP_MEMORY "memory.memsw.limit_in_bytes" ${SYSTEM_MEMORY}
     fi
 
     # update kernel memory limit
@@ -162,11 +130,6 @@ function check_cgroup_value() {
     runc update test_update --kernel-memory-tcp 41943040
     [ "$status" -eq 0 ]
     check_cgroup_value $CGROUP_MEMORY "memory.kmem.tcp.limit_in_bytes" 41943040
-
-    # update pids limit
-    runc update test_update --pids-limit 10
-    [ "$status" -eq 0 ]
-    check_cgroup_value $CGROUP_PIDS "pids.max" 10
 
     # Revert to the test initial value via json on stding
     runc update  -r - test_update <<EOF
@@ -184,10 +147,7 @@ function check_cgroup_value() {
     "cpus": "0"
   },
   "blockIO": {
-    "weight": 1000
-  },
-  "pids": {
-    "limit": 20
+    "blkioWeight": 1000
   }
 }
 EOF
@@ -201,13 +161,11 @@ EOF
     check_cgroup_value $CGROUP_MEMORY "memory.kmem.tcp.limit_in_bytes" 11534336
     check_cgroup_value $CGROUP_MEMORY "memory.limit_in_bytes" 33554432
     check_cgroup_value $CGROUP_MEMORY "memory.soft_limit_in_bytes" 25165824
-    check_cgroup_value $CGROUP_PIDS "pids.max" 20
 
     # redo all the changes at once
     runc update test_update --blkio-weight 500 \
         --cpu-period 900000 --cpu-quota 600000 --cpu-share 200 --memory 67108864 \
-        --memory-reservation 33554432 --kernel-memory 50331648 --kernel-memory-tcp 41943040 \
-        --pids-limit 10
+        --memory-reservation 33554432 --kernel-memory 50331648 --kernel-memory-tcp 41943040
     [ "$status" -eq 0 ]
     check_cgroup_value $CGROUP_BLKIO "blkio.weight" 500
     check_cgroup_value $CGROUP_CPU "cpu.cfs_period_us" 900000
@@ -217,7 +175,6 @@ EOF
     check_cgroup_value $CGROUP_MEMORY "memory.kmem.tcp.limit_in_bytes" 41943040
     check_cgroup_value $CGROUP_MEMORY "memory.limit_in_bytes" 67108864
     check_cgroup_value $CGROUP_MEMORY "memory.soft_limit_in_bytes" 33554432
-    check_cgroup_value $CGROUP_PIDS "pids.max" 10
 
     # reset to initial test value via json file
     DATA=$(cat <<"EOF"
@@ -235,10 +192,7 @@ EOF
     "cpus": "0"
   },
   "blockIO": {
-    "weight": 1000
-  },
-  "pids": {
-    "limit": 20
+    "blkioWeight": 1000
   }
 }
 EOF
@@ -256,32 +210,4 @@ EOF
     check_cgroup_value $CGROUP_MEMORY "memory.kmem.tcp.limit_in_bytes" 11534336
     check_cgroup_value $CGROUP_MEMORY "memory.limit_in_bytes" 33554432
     check_cgroup_value $CGROUP_MEMORY "memory.soft_limit_in_bytes" 25165824
-    check_cgroup_value $CGROUP_PIDS "pids.max" 20
-}
-
-@test "update rt period and runtime" {
-    requires cgroups_rt
-
-    # run a detached busybox
-    runc run -d --console-socket $CONSOLE_SOCKET test_update_rt
-    [ "$status" -eq 0 ]
-
-    # get the cgroup paths
-    eval CGROUP_CPU="${CGROUP_CPU_BASE_PATH}/runc-update-integration-test"
-
-    runc update  -r - test_update_rt <<EOF
-{
-  "cpu": {
-    "realtimePeriod": 800001,
-    "realtimeRuntime": 500001
-  }
-}
-EOF
-    check_cgroup_value $CGROUP_CPU "cpu.rt_period_us" 800001
-    check_cgroup_value $CGROUP_CPU "cpu.rt_runtime_us" 500001
-
-    runc update test_update_rt --cpu-rt-period 900001 --cpu-rt-runtime 600001
-
-    check_cgroup_value $CGROUP_CPU "cpu.rt_period_us" 900001
-    check_cgroup_value $CGROUP_CPU "cpu.rt_runtime_us" 600001
 }

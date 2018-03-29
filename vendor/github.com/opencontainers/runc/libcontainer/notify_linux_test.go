@@ -8,10 +8,9 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"syscall"
 	"testing"
 	"time"
-
-	"golang.org/x/sys/unix"
 )
 
 type notifyFunc func(paths map[string]string) (<-chan struct{}, error)
@@ -53,17 +52,21 @@ func testMemoryNotification(t *testing.T, evName string, notify notifyFunc, targ
 		t.Fatalf("invalid control data %q: %s", data, err)
 	}
 
-	// dup the eventfd
-	efd, err := unix.Dup(eventFd)
+	// re-open the eventfd
+	efd, err := syscall.Dup(eventFd)
 	if err != nil {
-		t.Fatal("unable to dup eventfd:", err)
+		t.Fatal("unable to reopen eventfd:", err)
 	}
-	defer unix.Close(efd)
+	defer syscall.Close(efd)
+
+	if err != nil {
+		t.Fatal("unable to dup event fd:", err)
+	}
 
 	buf := make([]byte, 8)
 	binary.LittleEndian.PutUint64(buf, 1)
 
-	if _, err := unix.Write(efd, buf); err != nil {
+	if _, err := syscall.Write(efd, buf); err != nil {
 		t.Fatal("unable to write to eventfd:", err)
 	}
 
@@ -78,7 +81,7 @@ func testMemoryNotification(t *testing.T, evName string, notify notifyFunc, targ
 	if err := os.RemoveAll(memoryPath); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := unix.Write(efd, buf); err != nil {
+	if _, err := syscall.Write(efd, buf); err != nil {
 		t.Fatal("unable to write to eventfd:", err)
 	}
 
@@ -89,15 +92,14 @@ func testMemoryNotification(t *testing.T, evName string, notify notifyFunc, targ
 			t.Fatal("expected no notification to be triggered")
 		}
 	case <-time.After(100 * time.Millisecond):
-		t.Fatal("channel not closed after 100ms")
 	}
 
-	if _, _, err := unix.Syscall(unix.SYS_FCNTL, uintptr(evFd), unix.F_GETFD, 0); err != unix.EBADF {
-		t.Errorf("expected event control to be closed, but received error %s", err.Error())
+	if _, _, err := syscall.Syscall(syscall.SYS_FCNTL, uintptr(evFd), syscall.F_GETFD, 0); err != syscall.EBADF {
+		t.Error("expected event control to be closed")
 	}
 
-	if _, _, err := unix.Syscall(unix.SYS_FCNTL, uintptr(eventFd), unix.F_GETFD, 0); err != unix.EBADF {
-		t.Errorf("expected event fd to be closed, but received error %s", err.Error())
+	if _, _, err := syscall.Syscall(syscall.SYS_FCNTL, uintptr(eventFd), syscall.F_GETFD, 0); err != syscall.EBADF {
+		t.Error("expected event fd to be closed")
 	}
 }
 

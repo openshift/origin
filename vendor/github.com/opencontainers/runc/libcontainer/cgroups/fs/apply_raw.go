@@ -114,8 +114,8 @@ func (m *Manager) Apply(pid int) (err error) {
 		return err
 	}
 
-	m.Paths = make(map[string]string)
 	if c.Paths != nil {
+		paths := make(map[string]string)
 		for name, path := range c.Paths {
 			_, err := d.path(name)
 			if err != nil {
@@ -124,12 +124,17 @@ func (m *Manager) Apply(pid int) (err error) {
 				}
 				return err
 			}
-			m.Paths[name] = path
+			paths[name] = path
 		}
+		m.Paths = paths
 		return cgroups.EnterPid(m.Paths, pid)
 	}
 
+	paths := make(map[string]string)
 	for _, sys := range subsystems {
+		if err := sys.Apply(d); err != nil {
+			return err
+		}
 		// TODO: Apply should, ideally, be reentrant or be broken up into a separate
 		// create and join phase so that the cgroup hierarchy for a container can be
 		// created then join consists of writing the process pids to cgroup.procs
@@ -142,12 +147,9 @@ func (m *Manager) Apply(pid int) (err error) {
 			}
 			return err
 		}
-		m.Paths[sys.Name()] = p
-
-		if err := sys.Apply(d); err != nil {
-			return err
-		}
+		paths[sys.Name()] = p
 	}
+	m.Paths = paths
 	return nil
 }
 
@@ -267,8 +269,25 @@ func getCgroupData(c *configs.Cgroup, pid int) (*cgroupData, error) {
 	}, nil
 }
 
+func (raw *cgroupData) parentPath(subsystem, mountpoint, root string) (string, error) {
+	// Use GetThisCgroupDir instead of GetInitCgroupDir, because the creating
+	// process could in container and shared pid namespace with host, and
+	// /proc/1/cgroup could point to whole other world of cgroups.
+	initPath, err := cgroups.GetThisCgroupDir(subsystem)
+	if err != nil {
+		return "", err
+	}
+	// This is needed for nested containers, because in /proc/self/cgroup we
+	// see pathes from host, which don't exist in container.
+	relDir, err := filepath.Rel(root, initPath)
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(mountpoint, relDir), nil
+}
+
 func (raw *cgroupData) path(subsystem string) (string, error) {
-	mnt, err := cgroups.FindCgroupMountpoint(subsystem)
+	mnt, root, err := cgroups.FindCgroupMountpointAndRoot(subsystem)
 	// If we didn't mount the subsystem, there is no point we make the path.
 	if err != nil {
 		return "", err
@@ -280,10 +299,7 @@ func (raw *cgroupData) path(subsystem string) (string, error) {
 		return filepath.Join(raw.root, filepath.Base(mnt), raw.innerPath), nil
 	}
 
-	// Use GetOwnCgroupPath instead of GetInitCgroupPath, because the creating
-	// process could in container and shared pid namespace with host, and
-	// /proc/1/cgroup could point to whole other world of cgroups.
-	parentPath, err := cgroups.GetOwnCgroupPath(subsystem)
+	parentPath, err := raw.parentPath(subsystem, mnt, root)
 	if err != nil {
 		return "", err
 	}
@@ -332,8 +348,8 @@ func removePath(p string, err error) error {
 	return nil
 }
 
-func CheckCpushares(path string, c uint64) error {
-	var cpuShares uint64
+func CheckCpushares(path string, c int64) error {
+	var cpuShares int64
 
 	if c == 0 {
 		return nil

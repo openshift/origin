@@ -32,7 +32,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/coreos/go-systemd/daemon"
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
@@ -397,10 +396,9 @@ func run(s *options.KubeletServer, kubeDeps *kubelet.Dependencies) (err error) {
 				if err != nil {
 					return err
 				}
-				// we set exitAfter to five minutes because we use this client configuration to request new certs - if we are unable
-				// to request new certs, we will be unable to continue normal operation. Exiting the process allows a wrapper
-				// or the bootstrapping credentials to potentially lay down new initial config.
-				if err := kubeletcertificate.UpdateTransport(wait.NeverStop, clientConfig, clientCertificateManager, 5*time.Minute); err != nil {
+				// we set exitIfExpired to true because we use this client configuration to request new certs - if we are unable
+				// to request new certs, we will be unable to continue normal operation
+				if err := kubeletcertificate.UpdateTransport(wait.NeverStop, clientConfig, clientCertificateManager, true); err != nil {
 					return err
 				}
 			}
@@ -531,7 +529,6 @@ func run(s *options.KubeletServer, kubeDeps *kubelet.Dependencies) (err error) {
 				ExperimentalQOSReserved:               *experimentalQOSReserved,
 				ExperimentalCPUManagerPolicy:          s.CPUManagerPolicy,
 				ExperimentalCPUManagerReconcilePeriod: s.CPUManagerReconcilePeriod.Duration,
-				EnforceCPULimits:                      s.CPUCFSQuota,
 			},
 			s.FailSwapOn,
 			devicePluginEnabled,
@@ -573,9 +570,6 @@ func run(s *options.KubeletServer, kubeDeps *kubelet.Dependencies) (err error) {
 	if s.RunOnce {
 		return nil
 	}
-
-	// If systemd is used, notify it that we have started
-	go daemon.SdNotify(false, "READY=1")
 
 	<-done
 	return nil

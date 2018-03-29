@@ -106,7 +106,6 @@ type NodeConfig struct {
 	ExperimentalQOSReserved               map[v1.ResourceName]int64
 	ExperimentalCPUManagerPolicy          string
 	ExperimentalCPUManagerReconcilePeriod time.Duration
-	EnforceCPULimits                      bool
 }
 
 type NodeAllocatableConfig struct {

@@ -225,6 +225,11 @@ func (e *ClientExecutor) Prepare(b *imagebuilder.Builder, node *parser.Node, fro
 
 	var sharedMount string
 
+	defaultShell := b.RunConfig.Shell
+	if len(defaultShell) == 0 {
+		defaultShell = []string{"/bin/sh", "-c"}
+	}
+
 	// create a container to execute in, if necessary
 	mustStart := b.RequiresStart(node)
 	if e.Container == nil {
@@ -264,12 +269,12 @@ func (e *ClientExecutor) Prepare(b *imagebuilder.Builder, node *parser.Node, fro
 			} else {
 				// TODO; replace me with a better default command
 				opts.Config.Cmd = []string{"sleep 86400"}
-				opts.Config.Entrypoint = []string{"/bin/sh", "-c"}
+				opts.Config.Entrypoint = append([]string{}, defaultShell...)
 			}
 		}
 
 		if len(opts.Config.Cmd) == 0 {
-			opts.Config.Entrypoint = []string{"/bin/sh", "-c", "# NOP"}
+			opts.Config.Entrypoint = append(append([]string{}, defaultShell...), "# NOP")
 		}
 
 		// copy any source content into the temporary mount path
@@ -581,12 +586,20 @@ func (e *ClientExecutor) Run(run imagebuilder.Run, config docker.Config) error {
 	args := make([]string, len(run.Args))
 	copy(args, run.Args)
 
+	defaultShell := config.Shell
+	if len(defaultShell) == 0 {
+		if runtime.GOOS == "windows" {
+			defaultShell = []string{"cmd", "/S", "/C"}
+		} else {
+			defaultShell = []string{"/bin/sh", "-c"}
+		}
+	}
 	if runtime.GOOS == "windows" {
 		if len(config.WorkingDir) > 0 {
 			args[0] = fmt.Sprintf("cd %s && %s", imagebuilder.BashQuote(config.WorkingDir), args[0])
 		}
 		// TODO: implement windows ENV
-		args = append([]string{"cmd", "/S", "/C"}, args...)
+		args = append(defaultShell, args...)
 	} else {
 		if len(config.WorkingDir) > 0 {
 			args[0] = fmt.Sprintf("cd %s && %s", imagebuilder.BashQuote(config.WorkingDir), args[0])
@@ -594,7 +607,7 @@ func (e *ClientExecutor) Run(run imagebuilder.Run, config docker.Config) error {
 		if len(config.Env) > 0 {
 			args[0] = imagebuilder.ExportEnv(config.Env) + args[0]
 		}
-		args = append([]string{"/bin/sh", "-c"}, args...)
+		args = append(defaultShell, args...)
 	}
 
 	if e.StrictVolumeOwnership && !e.Volumes.Empty() {

@@ -7,10 +7,8 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"syscall" // only for exec
+	"syscall"
 	"unsafe"
-
-	"golang.org/x/sys/unix"
 )
 
 // If arg2 is nonzero, set the "child subreaper" attribute of the
@@ -55,8 +53,8 @@ func Execv(cmd string, args []string, env []string) error {
 	return syscall.Exec(name, args, env)
 }
 
-func Prlimit(pid, resource int, limit unix.Rlimit) error {
-	_, _, err := unix.RawSyscall6(unix.SYS_PRLIMIT64, uintptr(pid), uintptr(resource), uintptr(unsafe.Pointer(&limit)), uintptr(unsafe.Pointer(&limit)), 0, 0)
+func Prlimit(pid, resource int, limit syscall.Rlimit) error {
+	_, _, err := syscall.RawSyscall6(syscall.SYS_PRLIMIT64, uintptr(pid), uintptr(resource), uintptr(unsafe.Pointer(&limit)), uintptr(unsafe.Pointer(&limit)), 0, 0)
 	if err != 0 {
 		return err
 	}
@@ -64,7 +62,7 @@ func Prlimit(pid, resource int, limit unix.Rlimit) error {
 }
 
 func SetParentDeathSignal(sig uintptr) error {
-	if err := unix.Prctl(unix.PR_SET_PDEATHSIG, sig, 0, 0, 0); err != nil {
+	if _, _, err := syscall.RawSyscall(syscall.SYS_PRCTL, syscall.PR_SET_PDEATHSIG, sig, 0); err != 0 {
 		return err
 	}
 	return nil
@@ -72,14 +70,15 @@ func SetParentDeathSignal(sig uintptr) error {
 
 func GetParentDeathSignal() (ParentDeathSignal, error) {
 	var sig int
-	if err := unix.Prctl(unix.PR_GET_PDEATHSIG, uintptr(unsafe.Pointer(&sig)), 0, 0, 0); err != nil {
+	_, _, err := syscall.RawSyscall(syscall.SYS_PRCTL, syscall.PR_GET_PDEATHSIG, uintptr(unsafe.Pointer(&sig)), 0)
+	if err != 0 {
 		return -1, err
 	}
 	return ParentDeathSignal(sig), nil
 }
 
 func SetKeepCaps() error {
-	if err := unix.Prctl(unix.PR_SET_KEEPCAPS, 1, 0, 0, 0); err != nil {
+	if _, _, err := syscall.RawSyscall(syscall.SYS_PRCTL, syscall.PR_SET_KEEPCAPS, 1, 0); err != 0 {
 		return err
 	}
 
@@ -87,7 +86,7 @@ func SetKeepCaps() error {
 }
 
 func ClearKeepCaps() error {
-	if err := unix.Prctl(unix.PR_SET_KEEPCAPS, 0, 0, 0, 0); err != nil {
+	if _, _, err := syscall.RawSyscall(syscall.SYS_PRCTL, syscall.PR_SET_KEEPCAPS, 0, 0); err != 0 {
 		return err
 	}
 
@@ -95,7 +94,7 @@ func ClearKeepCaps() error {
 }
 
 func Setctty() error {
-	if err := unix.IoctlSetInt(0, unix.TIOCSCTTY, 0); err != nil {
+	if _, _, err := syscall.RawSyscall(syscall.SYS_IOCTL, 0, uintptr(syscall.TIOCSCTTY), 0); err != 0 {
 		return err
 	}
 	return nil
@@ -132,5 +131,13 @@ func RunningInUserNS() bool {
 
 // SetSubreaper sets the value i as the subreaper setting for the calling process
 func SetSubreaper(i int) error {
-	return unix.Prctl(PR_SET_CHILD_SUBREAPER, uintptr(i), 0, 0, 0)
+	return Prctl(PR_SET_CHILD_SUBREAPER, uintptr(i), 0, 0, 0)
+}
+
+func Prctl(option int, arg2, arg3, arg4, arg5 uintptr) (err error) {
+	_, _, e1 := syscall.Syscall6(syscall.SYS_PRCTL, uintptr(option), arg2, arg3, arg4, arg5, 0)
+	if e1 != 0 {
+		err = e1
+	}
+	return
 }

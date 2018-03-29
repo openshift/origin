@@ -12,20 +12,30 @@ function teardown() {
 }
 
 @test "runc start" {
-  runc create --console-socket $CONSOLE_SOCKET test_busybox
+  runc create --console /dev/pts/ptmx test_busybox1
   [ "$status" -eq 0 ]
 
-  testcontainer test_busybox created
+  testcontainer test_busybox1 created
 
-  # start container test_busybox
-  runc start test_busybox
+  runc create --console /dev/pts/ptmx test_busybox2
   [ "$status" -eq 0 ]
 
-  testcontainer test_busybox running
+  testcontainer test_busybox2 created
 
-  # delete test_busybox
-  runc delete --force test_busybox
 
-  runc state test_busybox
+  # start conatiner test_busybox1 and test_busybox2
+  runc start test_busybox1 test_busybox2
+  [ "$status" -eq 0 ]
+
+  testcontainer test_busybox1 running
+  testcontainer test_busybox2 running
+
+  # delete test_busybox1 and test_busybox2
+  runc delete --force test_busybox1 test_busybox2
+
+  runc state test_busybox1
+  [ "$status" -ne 0 ]
+
+  runc state test_busybox2
   [ "$status" -ne 0 ]
 }

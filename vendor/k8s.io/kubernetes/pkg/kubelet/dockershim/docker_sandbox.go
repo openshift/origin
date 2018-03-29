@@ -174,15 +174,19 @@ func (ds *dockerService) RunPodSandbox(config *runtimeapi.PodSandboxConfig) (id 
 func (ds *dockerService) StopPodSandbox(podSandboxID string) error {
 	var namespace, name string
 	var hostNetwork bool
+	var checkpointErr, statusErr error
 
-	// Try to retrieve minimal sandbox information from docker daemon or sandbox checkpoint.
-	inspectResult, metadata, statusErr := ds.getPodSandboxDetails(podSandboxID)
+	// Try to retrieve sandbox information from docker daemon or sandbox checkpoint
+	status, statusErr := ds.PodSandboxStatus(podSandboxID)
 	if statusErr == nil {
-		namespace = metadata.Namespace
-		name = metadata.Name
-		hostNetwork = sharesHostNetwork(inspectResult)
+		nsOpts := status.GetLinux().GetNamespaces().GetOptions()
+		hostNetwork = nsOpts != nil && nsOpts.HostNetwork
+		m := status.GetMetadata()
+		namespace = m.Namespace
+		name = m.Name
 	} else {
-		checkpoint, checkpointErr := ds.checkpointHandler.GetCheckpoint(podSandboxID)
+		var checkpoint *PodSandboxCheckpoint
+		checkpoint, checkpointErr = ds.checkpointHandler.GetCheckpoint(podSandboxID)
 
 		// Proceed if both sandbox container and checkpoint could not be found. This means that following
 		// actions will only have sandbox ID and not have pod namespace and name information.
@@ -337,25 +341,10 @@ func (ds *dockerService) getIP(podSandboxID string, sandbox *dockertypes.Contain
 	return ""
 }
 
-// Returns the inspect container response, the sandbox metadata, and network namespace mode
-func (ds *dockerService) getPodSandboxDetails(podSandboxID string) (*dockertypes.ContainerJSON, *runtimeapi.PodSandboxMetadata, error) {
-	resp, err := ds.client.InspectContainer(podSandboxID)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	metadata, err := parseSandboxName(resp.Name)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return resp, metadata, nil
-}
-
 // PodSandboxStatus returns the status of the PodSandbox.
 func (ds *dockerService) PodSandboxStatus(podSandboxID string) (*runtimeapi.PodSandboxStatus, error) {
 	// Inspect the container.
-	r, metadata, err := ds.getPodSandboxDetails(podSandboxID)
+	r, err := ds.client.InspectContainer(podSandboxID)
 	if err != nil {
 		return nil, err
 	}
@@ -381,6 +370,10 @@ func (ds *dockerService) PodSandboxStatus(podSandboxID string) (*runtimeapi.PodS
 	}
 	hostNetwork := sharesHostNetwork(r)
 
+	metadata, err := parseSandboxName(r.Name)
+	if err != nil {
+		return nil, err
+	}
 	labels, annotations := extractLabels(r.Config.Labels)
 	return &runtimeapi.PodSandboxStatus{
 		Id:          r.ID,

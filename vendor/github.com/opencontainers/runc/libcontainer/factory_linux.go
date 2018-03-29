@@ -10,17 +10,15 @@ import (
 	"regexp"
 	"runtime/debug"
 	"strconv"
+	"syscall"
 
 	"github.com/docker/docker/pkg/mount"
 	"github.com/opencontainers/runc/libcontainer/cgroups"
 	"github.com/opencontainers/runc/libcontainer/cgroups/fs"
-	"github.com/opencontainers/runc/libcontainer/cgroups/rootless"
 	"github.com/opencontainers/runc/libcontainer/cgroups/systemd"
 	"github.com/opencontainers/runc/libcontainer/configs"
 	"github.com/opencontainers/runc/libcontainer/configs/validate"
 	"github.com/opencontainers/runc/libcontainer/utils"
-
-	"golang.org/x/sys/unix"
 )
 
 const (
@@ -28,20 +26,15 @@ const (
 	execFifoFilename = "exec.fifo"
 )
 
-var idRegex = regexp.MustCompile(`^[\w+-\.]+$`)
+var (
+	idRegex  = regexp.MustCompile(`^[\w+-\.]+$`)
+	maxIdLen = 1024
+)
 
 // InitArgs returns an options func to configure a LinuxFactory with the
 // provided init binary path and arguments.
 func InitArgs(args ...string) func(*LinuxFactory) error {
-	return func(l *LinuxFactory) (err error) {
-		if len(args) > 0 {
-			// Resolve relative paths to ensure that its available
-			// after directory changes.
-			if args[0], err = filepath.Abs(args[0]); err != nil {
-				return newGenericError(err, ConfigInvalid)
-			}
-		}
-
+	return func(l *LinuxFactory) error {
 		l.InitArgs = args
 		return nil
 	}
@@ -72,20 +65,6 @@ func Cgroupfs(l *LinuxFactory) error {
 	return nil
 }
 
-// RootlessCgroups is an options func to configure a LinuxFactory to
-// return containers that use the "rootless" cgroup manager, which will
-// fail to do any operations not possible to do with an unprivileged user.
-// It should only be used in conjunction with rootless containers.
-func RootlessCgroups(l *LinuxFactory) error {
-	l.NewCgroupsManager = func(config *configs.Cgroup, paths map[string]string) cgroups.Manager {
-		return &rootless.Manager{
-			Cgroups: config,
-			Paths:   paths,
-		}
-	}
-	return nil
-}
-
 // TmpfsRoot is an option func to mount LinuxFactory.Root to tmpfs.
 func TmpfsRoot(l *LinuxFactory) error {
 	mounted, err := mount.Mounted(l.Root)
@@ -93,7 +72,7 @@ func TmpfsRoot(l *LinuxFactory) error {
 		return err
 	}
 	if !mounted {
-		if err := unix.Mount("tmpfs", l.Root, "tmpfs", 0, ""); err != nil {
+		if err := syscall.Mount("tmpfs", l.Root, "tmpfs", 0, ""); err != nil {
 			return err
 		}
 	}
@@ -162,6 +141,14 @@ func (l *LinuxFactory) Create(id string, config *configs.Config) (Container, err
 	if err := l.Validator.Validate(config); err != nil {
 		return nil, newGenericError(err, ConfigInvalid)
 	}
+	uid, err := config.HostUID()
+	if err != nil {
+		return nil, newGenericError(err, SystemError)
+	}
+	gid, err := config.HostGID()
+	if err != nil {
+		return nil, newGenericError(err, SystemError)
+	}
 	containerRoot := filepath.Join(l.Root, id)
 	if _, err := os.Stat(containerRoot); err == nil {
 		return nil, newGenericError(fmt.Errorf("container with id exists: %v", id), IdInUse)
@@ -171,11 +158,18 @@ func (l *LinuxFactory) Create(id string, config *configs.Config) (Container, err
 	if err := os.MkdirAll(containerRoot, 0711); err != nil {
 		return nil, newGenericError(err, SystemError)
 	}
-	if err := os.Chown(containerRoot, unix.Geteuid(), unix.Getegid()); err != nil {
+	if err := os.Chown(containerRoot, uid, gid); err != nil {
 		return nil, newGenericError(err, SystemError)
 	}
-	if config.Rootless {
-		RootlessCgroups(l)
+	fifoName := filepath.Join(containerRoot, execFifoFilename)
+	oldMask := syscall.Umask(0000)
+	if err := syscall.Mkfifo(fifoName, 0622); err != nil {
+		syscall.Umask(oldMask)
+		return nil, newGenericError(err, SystemError)
+	}
+	syscall.Umask(oldMask)
+	if err := os.Chown(fifoName, uid, gid); err != nil {
+		return nil, newGenericError(err, SystemError)
 	}
 	c := &linuxContainer{
 		id:            id,
@@ -203,10 +197,6 @@ func (l *LinuxFactory) Load(id string) (Container, error) {
 		processStartTime: state.InitProcessStartTime,
 		fds:              state.ExternalDescriptors,
 	}
-	// We have to use the RootlessManager.
-	if state.Rootless {
-		RootlessCgroups(l)
-	}
 	c := &linuxContainer{
 		initProcess:          r,
 		initProcessStartTime: state.InitProcessStartTime,
@@ -232,71 +222,58 @@ func (l *LinuxFactory) Type() string {
 // StartInitialization loads a container by opening the pipe fd from the parent to read the configuration and state
 // This is a low level implementation detail of the reexec and should not be consumed externally
 func (l *LinuxFactory) StartInitialization() (err error) {
-	var (
-		pipefd, fifofd int
-		consoleSocket  *os.File
-		envInitPipe    = os.Getenv("_LIBCONTAINER_INITPIPE")
-		envFifoFd      = os.Getenv("_LIBCONTAINER_FIFOFD")
-		envConsole     = os.Getenv("_LIBCONTAINER_CONSOLE")
-	)
+	var pipefd, rootfd int
+	for _, pair := range []struct {
+		k string
+		v *int
+	}{
+		{"_LIBCONTAINER_INITPIPE", &pipefd},
+		{"_LIBCONTAINER_STATEDIR", &rootfd},
+	} {
 
-	// Get the INITPIPE.
-	pipefd, err = strconv.Atoi(envInitPipe)
-	if err != nil {
-		return fmt.Errorf("unable to convert _LIBCONTAINER_INITPIPE=%s to int: %s", envInitPipe, err)
+		s := os.Getenv(pair.k)
+
+		i, err := strconv.Atoi(s)
+		if err != nil {
+			return fmt.Errorf("unable to convert %s=%s to int", pair.k, s)
+		}
+		*pair.v = i
 	}
-
 	var (
 		pipe = os.NewFile(uintptr(pipefd), "pipe")
 		it   = initType(os.Getenv("_LIBCONTAINER_INITTYPE"))
 	)
-	defer pipe.Close()
-
-	// Only init processes have FIFOFD.
-	fifofd = -1
-	if it == initStandard {
-		if fifofd, err = strconv.Atoi(envFifoFd); err != nil {
-			return fmt.Errorf("unable to convert _LIBCONTAINER_FIFOFD=%s to int: %s", envFifoFd, err)
-		}
-	}
-
-	if envConsole != "" {
-		console, err := strconv.Atoi(envConsole)
-		if err != nil {
-			return fmt.Errorf("unable to convert _LIBCONTAINER_CONSOLE=%s to int: %s", envConsole, err)
-		}
-		consoleSocket = os.NewFile(uintptr(console), "console-socket")
-		defer consoleSocket.Close()
-	}
-
 	// clear the current process's environment to clean any libcontainer
 	// specific env vars.
 	os.Clearenv()
 
+	var i initer
 	defer func() {
 		// We have an error during the initialization of the container's init,
 		// send it back to the parent process in the form of an initError.
-		if werr := utils.WriteJSON(pipe, syncT{procError}); werr != nil {
-			fmt.Fprintln(os.Stderr, err)
-			return
+		// If container's init successed, syscall.Exec will not return, hence
+		// this defer function will never be called.
+		if _, ok := i.(*linuxStandardInit); ok {
+			//  Synchronisation only necessary for standard init.
+			if werr := utils.WriteJSON(pipe, syncT{procError}); werr != nil {
+				panic(err)
+			}
 		}
 		if werr := utils.WriteJSON(pipe, newSystemError(err)); werr != nil {
-			fmt.Fprintln(os.Stderr, err)
-			return
+			panic(err)
 		}
+		// ensure that this pipe is always closed
+		pipe.Close()
 	}()
 	defer func() {
 		if e := recover(); e != nil {
 			err = fmt.Errorf("panic from initialization: %v, %v", e, string(debug.Stack()))
 		}
 	}()
-
-	i, err := newContainerInit(it, pipe, consoleSocket, fifofd)
+	i, err = newContainerInit(it, pipe, rootfd)
 	if err != nil {
 		return err
 	}
-
-	// If Init succeeds, syscall.Exec will not return, hence none of the defers will be called.
 	return i.Init()
 }
 
@@ -320,6 +297,8 @@ func (l *LinuxFactory) validateID(id string) error {
 	if !idRegex.MatchString(id) {
 		return newGenericError(fmt.Errorf("invalid id format: %v", id), InvalidIdFormat)
 	}
-
+	if len(id) > maxIdLen {
+		return newGenericError(fmt.Errorf("invalid id format: %v", id), InvalidIdFormat)
+	}
 	return nil
 }

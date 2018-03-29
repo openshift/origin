@@ -7,14 +7,12 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"syscall"
 	"text/tabwriter"
 	"time"
 
 	"encoding/json"
 
 	"github.com/opencontainers/runc/libcontainer"
-	"github.com/opencontainers/runc/libcontainer/user"
 	"github.com/opencontainers/runc/libcontainer/utils"
 	"github.com/urfave/cli"
 )
@@ -40,8 +38,6 @@ type containerState struct {
 	Created time.Time `json:"created"`
 	// Annotations is the user defined annotations added to the config.
 	Annotations map[string]string `json:"annotations,omitempty"`
-	// The owner of the state directory (the owner of the container).
-	Owner string `json:"owner"`
 }
 
 var listCommand = cli.Command{
@@ -71,9 +67,6 @@ To list containers created using a non-default value for "--root":
 		},
 	},
 	Action: func(context *cli.Context) error {
-		if err := checkArgs(context, 0, exactArgs); err != nil {
-			return err
-		}
 		s, err := getContainers(context)
 		if err != nil {
 			return err
@@ -89,15 +82,14 @@ To list containers created using a non-default value for "--root":
 		switch context.String("format") {
 		case "table":
 			w := tabwriter.NewWriter(os.Stdout, 12, 1, 3, ' ', 0)
-			fmt.Fprint(w, "ID\tPID\tSTATUS\tBUNDLE\tCREATED\tOWNER\n")
+			fmt.Fprint(w, "ID\tPID\tSTATUS\tBUNDLE\tCREATED\n")
 			for _, item := range s {
-				fmt.Fprintf(w, "%s\t%d\t%s\t%s\t%s\t%s\n",
+				fmt.Fprintf(w, "%s\t%d\t%s\t%s\t%s\n",
 					item.ID,
 					item.InitProcessPid,
 					item.Status,
 					item.Bundle,
-					item.Created.Format(time.RFC3339Nano),
-					item.Owner)
+					item.Created.Format(time.RFC3339Nano))
 			}
 			if err := w.Flush(); err != nil {
 				return err
@@ -131,13 +123,6 @@ func getContainers(context *cli.Context) ([]containerState, error) {
 	var s []containerState
 	for _, item := range list {
 		if item.IsDir() {
-			// This cast is safe on Linux.
-			stat := item.Sys().(*syscall.Stat_t)
-			owner, err := user.LookupUid(int(stat.Uid))
-			if err != nil {
-				owner.Name = fmt.Sprintf("#%d", stat.Uid)
-			}
-
 			container, err := factory.Load(item.Name())
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "load container %s: %v\n", item.Name(), err)
@@ -167,7 +152,6 @@ func getContainers(context *cli.Context) ([]containerState, error) {
 				Rootfs:         state.BaseState.Config.Rootfs,
 				Created:        state.BaseState.Created,
 				Annotations:    annotations,
-				Owner:          owner.Name,
 			})
 		}
 	}

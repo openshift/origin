@@ -533,6 +533,26 @@ func arg(b *Builder, args []string, attributes map[string]bool, flagArgs []strin
 	return nil
 }
 
+// SHELL powershell -command
+//
+// Set the non-default shell to use.
+func shell(b *Builder, args []string, attributes map[string]bool, flagArgs []string, original string) error {
+	shellSlice := handleJSONArgs(args, attributes)
+	switch {
+	case len(shellSlice) == 0:
+		// SHELL []
+		return errAtLeastOneArgument("SHELL")
+	case attributes["json"]:
+		// SHELL ["powershell", "-command"]
+		b.RunConfig.Shell = strslice.StrSlice(shellSlice)
+		// b.RunConfig.Shell = strslice.StrSlice(shellSlice)
+	default:
+		// SHELL powershell -command - not JSON
+		return errNotJSON("SHELL")
+	}
+	return nil
+}
+
 func errAtLeastOneArgument(command string) error {
 	return fmt.Errorf("%s requires at least one argument", command)
 }
@@ -543,4 +563,8 @@ func errExactlyOneArgument(command string) error {
 
 func errTooManyArguments(command string) error {
 	return fmt.Errorf("Bad input to %s, too many arguments", command)
+}
+
+func errNotJSON(command string) error {
+	return fmt.Errorf("%s requires the arguments to be in JSON form", command)
 }

@@ -47,9 +47,12 @@ type Process struct {
 	// ExtraFiles specifies additional open files to be inherited by the container
 	ExtraFiles []*os.File
 
+	// consolePath is the path to the console allocated to the container.
+	consolePath string
+
 	// Capabilities specify the capabilities to keep when executing the process inside the container
 	// All capabilities not specified will be dropped from the processes capability mask
-	Capabilities *configs.Capabilities
+	Capabilities []string
 
 	// AppArmorProfile specifies the profile to apply to the process and is
 	// changed at the time the process is execed
@@ -64,9 +67,6 @@ type Process struct {
 	// Rlimits specifies the resource limits, such as max open files, to set in the container
 	// If Rlimits are not set, the container will inherit rlimits from the parent process
 	Rlimits []configs.Rlimit
-
-	// ConsoleSocket provides the masterfd console.
-	ConsoleSocket *os.File
 
 	ops processOperations
 }
@@ -103,4 +103,23 @@ type IO struct {
 	Stdin  io.WriteCloser
 	Stdout io.ReadCloser
 	Stderr io.ReadCloser
+}
+
+// NewConsole creates new console for process and returns it
+func (p *Process) NewConsole(rootuid, rootgid int) (Console, error) {
+	console, err := NewConsole(rootuid, rootgid)
+	if err != nil {
+		return nil, err
+	}
+	p.consolePath = console.Path()
+	return console, nil
+}
+
+// ConsoleFromPath sets the process's console with the path provided
+func (p *Process) ConsoleFromPath(path string) error {
+	if p.consolePath != "" {
+		return newGenericError(fmt.Errorf("console path already exists for process"), ConsoleExists)
+	}
+	p.consolePath = path
+	return nil
 }
