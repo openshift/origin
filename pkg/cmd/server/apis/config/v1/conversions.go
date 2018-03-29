@@ -417,6 +417,21 @@ func addConversionFuncs(scheme *runtime.Scheme) error {
 			}
 			return nil
 		},
+		func(in *AuditConfig, out *internal.AuditConfig, s conversion.Scope) error {
+			if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+				return err
+			}
+			if len(in.AuditFilePath) > 0 {
+				out.InternalAuditFilePath = in.AuditFilePath
+			}
+			return nil
+		},
+		func(in *internal.AuditConfig, out *AuditConfig, s conversion.Scope) error {
+			if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+				return err
+			}
+			return nil
+		},
 
 		metav1.Convert_resource_Quantity_To_resource_Quantity,
 		metav1.Convert_bool_To_Pointer_bool,
