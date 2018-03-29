@@ -15214,7 +15214,10 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "kind": "ImageStreamTag",
               "name": "2.4"
             },
-            "name": "latest"
+            "name": "latest",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -15231,7 +15234,10 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "kind": "DockerImage",
               "name": "docker.io/centos/httpd-24-centos7:latest"
             },
-            "name": "2.4"
+            "name": "2.4",
+            "referencePolicy": {
+              "type": "Local"
+            }
           }
         ]
       }
@@ -15326,7 +15332,10 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "kind": "ImageStreamTag",
               "name": "10.2"
             },
-            "name": "latest"
+            "name": "latest",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -15341,7 +15350,10 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "kind": "DockerImage",
               "name": "docker.io/centos/mariadb-101-centos7:latest"
             },
-            "name": "10.1"
+            "name": "10.1",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -15356,7 +15368,10 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "kind": "DockerImage",
               "name": "docker.io/centos/mariadb-102-centos7:latest"
             },
-            "name": "10.2"
+            "name": "10.2",
+            "referencePolicy": {
+              "type": "Local"
+            }
           }
         ]
       }
@@ -15384,7 +15399,10 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "kind": "ImageStreamTag",
               "name": "3.4"
             },
-            "name": "latest"
+            "name": "latest",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -15399,7 +15417,10 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "kind": "DockerImage",
               "name": "docker.io/openshift/mongodb-24-centos7:latest"
             },
-            "name": "2.4"
+            "name": "2.4",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -15407,14 +15428,17 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "iconClass": "icon-mongodb",
               "openshift.io/display-name": "MongoDB 2.6",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "tags": "database,mongodb",
+              "tags": "hidden,database,mongodb",
               "version": "2.6"
             },
             "from": {
               "kind": "DockerImage",
               "name": "docker.io/centos/mongodb-26-centos7:latest"
             },
-            "name": "2.6"
+            "name": "2.6",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -15429,7 +15453,10 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "kind": "DockerImage",
               "name": "docker.io/centos/mongodb-32-centos7:latest"
             },
-            "name": "3.2"
+            "name": "3.2",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -15444,7 +15471,10 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "kind": "DockerImage",
               "name": "docker.io/centos/mongodb-34-centos7:latest"
             },
-            "name": "3.4"
+            "name": "3.4",
+            "referencePolicy": {
+              "type": "Local"
+            }
           }
         ]
       }
@@ -15472,7 +15502,10 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "kind": "ImageStreamTag",
               "name": "5.7"
             },
-            "name": "latest"
+            "name": "latest",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -15487,7 +15520,10 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "kind": "DockerImage",
               "name": "docker.io/openshift/mysql-55-centos7:latest"
             },
-            "name": "5.5"
+            "name": "5.5",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -15495,14 +15531,17 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "iconClass": "icon-mysql-database",
               "openshift.io/display-name": "MySQL 5.6",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "tags": "mysql",
+              "tags": "hidden,mysql",
               "version": "5.6"
             },
             "from": {
               "kind": "DockerImage",
               "name": "docker.io/centos/mysql-56-centos7:latest"
             },
-            "name": "5.6"
+            "name": "5.6",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -15517,7 +15556,10 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "kind": "DockerImage",
               "name": "docker.io/centos/mysql-57-centos7:latest"
             },
-            "name": "5.7"
+            "name": "5.7",
+            "referencePolicy": {
+              "type": "Local"
+            }
           }
         ]
       }
@@ -15548,7 +15590,10 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "kind": "DockerImage",
               "name": "docker.io/centos/nginx-18-centos7:latest"
             },
-            "name": "1.8"
+            "name": "1.8",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -15565,7 +15610,10 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "kind": "DockerImage",
               "name": "docker.io/centos/nginx-110-centos7:latest"
             },
-            "name": "1.10"
+            "name": "1.10",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -15582,7 +15630,10 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "kind": "DockerImage",
               "name": "docker.io/centos/nginx-112-centos7:latest"
             },
-            "name": "1.12"
+            "name": "1.12",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -15598,7 +15649,10 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "kind": "ImageStreamTag",
               "name": "1.12"
             },
-            "name": "latest"
+            "name": "latest",
+            "referencePolicy": {
+              "type": "Local"
+            }
           }
         ]
       }
@@ -15628,7 +15682,10 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "kind": "ImageStreamTag",
               "name": "8"
             },
-            "name": "latest"
+            "name": "latest",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -15645,7 +15702,10 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "kind": "DockerImage",
               "name": "docker.io/openshift/nodejs-010-centos7:latest"
             },
-            "name": "0.10"
+            "name": "0.10",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -15655,14 +15715,17 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "openshift.io/provider-display-name": "Red Hat, Inc.",
               "sampleRepo": "https://github.com/openshift/nodejs-ex.git",
               "supports": "nodejs:4,nodejs",
-              "tags": "builder,nodejs",
+              "tags": "hidden,builder,nodejs",
               "version": "4"
             },
             "from": {
               "kind": "DockerImage",
               "name": "docker.io/centos/nodejs-4-centos7:latest"
             },
-            "name": "4"
+            "name": "4",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -15679,7 +15742,10 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "kind": "DockerImage",
               "name": "docker.io/centos/nodejs-6-centos7:latest"
             },
-            "name": "6"
+            "name": "6",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -15695,7 +15761,10 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "kind": "DockerImage",
               "name": "docker.io/centos/nodejs-8-centos7:latest"
             },
-            "name": "8"
+            "name": "8",
+            "referencePolicy": {
+              "type": "Local"
+            }
           }
         ]
       }
@@ -15725,7 +15794,10 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "kind": "ImageStreamTag",
               "name": "5.24"
             },
-            "name": "latest"
+            "name": "latest",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -15742,7 +15814,10 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "kind": "DockerImage",
               "name": "docker.io/openshift/perl-516-centos7:latest"
             },
-            "name": "5.16"
+            "name": "5.16",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -15752,14 +15827,17 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "openshift.io/provider-display-name": "Red Hat, Inc.",
               "sampleRepo": "https://github.com/openshift/dancer-ex.git",
               "supports": "perl:5.20,perl",
-              "tags": "builder,perl",
+              "tags": "hidden,builder,perl",
               "version": "5.20"
             },
             "from": {
               "kind": "DockerImage",
               "name": "docker.io/centos/perl-520-centos7:latest"
             },
-            "name": "5.20"
+            "name": "5.20",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -15776,7 +15854,10 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "kind": "DockerImage",
               "name": "docker.io/centos/perl-524-centos7:latest"
             },
-            "name": "5.24"
+            "name": "5.24",
+            "referencePolicy": {
+              "type": "Local"
+            }
           }
         ]
       }
@@ -15806,7 +15887,10 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "kind": "ImageStreamTag",
               "name": "7.1"
             },
-            "name": "latest"
+            "name": "latest",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -15823,7 +15907,10 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "kind": "DockerImage",
               "name": "docker.io/openshift/php-55-centos7:latest"
             },
-            "name": "5.5"
+            "name": "5.5",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -15833,14 +15920,17 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "openshift.io/provider-display-name": "Red Hat, Inc.",
               "sampleRepo": "https://github.com/openshift/cakephp-ex.git",
               "supports": "php:5.6,php",
-              "tags": "builder,php",
+              "tags": "hidden,builder,php",
               "version": "5.6"
             },
             "from": {
               "kind": "DockerImage",
               "name": "docker.io/centos/php-56-centos7:latest"
             },
-            "name": "5.6"
+            "name": "5.6",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -15857,7 +15947,10 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "kind": "DockerImage",
               "name": "docker.io/centos/php-70-centos7:latest"
             },
-            "name": "7.0"
+            "name": "7.0",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -15874,7 +15967,10 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "kind": "DockerImage",
               "name": "docker.io/centos/php-71-centos7:latest"
             },
-            "name": "7.1"
+            "name": "7.1",
+            "referencePolicy": {
+              "type": "Local"
+            }
           }
         ]
       }
@@ -15902,7 +15998,10 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "kind": "ImageStreamTag",
               "name": "9.6"
             },
-            "name": "latest"
+            "name": "latest",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -15917,7 +16016,10 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "kind": "DockerImage",
               "name": "docker.io/openshift/postgresql-92-centos7:latest"
             },
-            "name": "9.2"
+            "name": "9.2",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -15925,14 +16027,17 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "iconClass": "icon-postgresql",
               "openshift.io/display-name": "PostgreSQL 9.4",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "tags": "database,postgresql",
+              "tags": "hidden,database,postgresql",
               "version": "9.4"
             },
             "from": {
               "kind": "DockerImage",
               "name": "docker.io/centos/postgresql-94-centos7:latest"
             },
-            "name": "9.4"
+            "name": "9.4",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -15947,7 +16052,10 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "kind": "DockerImage",
               "name": "docker.io/centos/postgresql-95-centos7:latest"
             },
-            "name": "9.5"
+            "name": "9.5",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -15962,7 +16070,10 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "kind": "DockerImage",
               "name": "docker.io/centos/postgresql-96-centos7:latest"
             },
-            "name": "9.6"
+            "name": "9.6",
+            "referencePolicy": {
+              "type": "Local"
+            }
           }
         ]
       }
@@ -15992,7 +16103,10 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "kind": "ImageStreamTag",
               "name": "3.6"
             },
-            "name": "latest"
+            "name": "latest",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -16009,7 +16123,10 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "kind": "DockerImage",
               "name": "docker.io/openshift/python-33-centos7:latest"
             },
-            "name": "3.3"
+            "name": "3.3",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -16026,7 +16143,10 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "kind": "DockerImage",
               "name": "docker.io/centos/python-27-centos7:latest"
             },
-            "name": "2.7"
+            "name": "2.7",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -16036,14 +16156,17 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "openshift.io/provider-display-name": "Red Hat, Inc.",
               "sampleRepo": "https://github.com/openshift/django-ex.git",
               "supports": "python:3.4,python",
-              "tags": "builder,python",
+              "tags": "hidden,builder,python",
               "version": "3.4"
             },
             "from": {
               "kind": "DockerImage",
               "name": "docker.io/centos/python-34-centos7:latest"
             },
-            "name": "3.4"
+            "name": "3.4",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -16060,7 +16183,10 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "kind": "DockerImage",
               "name": "docker.io/centos/python-35-centos7:latest"
             },
-            "name": "3.5"
+            "name": "3.5",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -16077,7 +16203,10 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "kind": "DockerImage",
               "name": "docker.io/centos/python-36-centos7:latest"
             },
-            "name": "3.6"
+            "name": "3.6",
+            "referencePolicy": {
+              "type": "Local"
+            }
           }
         ]
       }
@@ -16105,7 +16234,10 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "kind": "ImageStreamTag",
               "name": "3.2"
             },
-            "name": "latest"
+            "name": "latest",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -16120,7 +16252,10 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "kind": "DockerImage",
               "name": "docker.io/centos/redis-32-centos7:latest"
             },
-            "name": "3.2"
+            "name": "3.2",
+            "referencePolicy": {
+              "type": "Local"
+            }
           }
         ]
       }
@@ -16150,7 +16285,10 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "kind": "ImageStreamTag",
               "name": "2.4"
             },
-            "name": "latest"
+            "name": "latest",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -16167,7 +16305,10 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "kind": "DockerImage",
               "name": "docker.io/openshift/ruby-20-centos7:latest"
             },
-            "name": "2.0"
+            "name": "2.0",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -16177,14 +16318,17 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "openshift.io/provider-display-name": "Red Hat, Inc.",
               "sampleRepo": "https://github.com/openshift/ruby-ex.git",
               "supports": "ruby:2.2,ruby",
-              "tags": "builder,ruby",
+              "tags": "hidden,builder,ruby",
               "version": "2.2"
             },
             "from": {
               "kind": "DockerImage",
               "name": "docker.io/centos/ruby-22-centos7:latest"
             },
-            "name": "2.2"
+            "name": "2.2",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -16201,7 +16345,10 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "kind": "DockerImage",
               "name": "docker.io/centos/ruby-23-centos7:latest"
             },
-            "name": "2.3"
+            "name": "2.3",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -16218,7 +16365,10 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "kind": "DockerImage",
               "name": "docker.io/centos/ruby-24-centos7:latest"
             },
-            "name": "2.4"
+            "name": "2.4",
+            "referencePolicy": {
+              "type": "Local"
+            }
           }
         ]
       }
@@ -16248,7 +16398,10 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "kind": "ImageStreamTag",
               "name": "12.0"
             },
-            "name": "latest"
+            "name": "latest",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -16265,7 +16418,10 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "kind": "DockerImage",
               "name": "docker.io/openshift/wildfly-81-centos7:latest"
             },
-            "name": "8.1"
+            "name": "8.1",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -16282,7 +16438,10 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "kind": "DockerImage",
               "name": "docker.io/openshift/wildfly-90-centos7:latest"
             },
-            "name": "9.0"
+            "name": "9.0",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -16299,7 +16458,10 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "kind": "DockerImage",
               "name": "docker.io/openshift/wildfly-100-centos7:latest"
             },
-            "name": "10.0"
+            "name": "10.0",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -16316,7 +16478,10 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "kind": "DockerImage",
               "name": "docker.io/openshift/wildfly-101-centos7:latest"
             },
-            "name": "10.1"
+            "name": "10.1",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -16333,7 +16498,10 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "kind": "DockerImage",
               "name": "docker.io/openshift/wildfly-110-centos7:latest"
             },
-            "name": "11.0"
+            "name": "11.0",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -16350,7 +16518,10 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "kind": "DockerImage",
               "name": "docker.io/openshift/wildfly-120-centos7:latest"
             },
-            "name": "12.0"
+            "name": "12.0",
+            "referencePolicy": {
+              "type": "Local"
+            }
           }
         ]
       }
@@ -16403,7 +16574,10 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "kind": "ImageStreamTag",
               "name": "2.4"
             },
-            "name": "latest"
+            "name": "latest",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -16420,7 +16594,10 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "kind": "DockerImage",
               "name": "registry.access.redhat.com/rhscl/httpd-24-rhel7"
             },
-            "name": "2.4"
+            "name": "2.4",
+            "referencePolicy": {
+              "type": "Local"
+            }
           }
         ]
       }
@@ -16515,7 +16692,10 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "kind": "ImageStreamTag",
               "name": "10.2"
             },
-            "name": "latest"
+            "name": "latest",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -16530,7 +16710,10 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "kind": "DockerImage",
               "name": "registry.access.redhat.com/rhscl/mariadb-101-rhel7:latest"
             },
-            "name": "10.1"
+            "name": "10.1",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -16545,7 +16728,10 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "kind": "DockerImage",
               "name": "registry.access.redhat.com/rhscl/mariadb-102-rhel7:latest"
             },
-            "name": "10.2"
+            "name": "10.2",
+            "referencePolicy": {
+              "type": "Local"
+            }
           }
         ]
       }
@@ -16573,7 +16759,10 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "kind": "ImageStreamTag",
               "name": "3.4"
             },
-            "name": "latest"
+            "name": "latest",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -16588,7 +16777,10 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "kind": "DockerImage",
               "name": "registry.access.redhat.com/openshift3/mongodb-24-rhel7:latest"
             },
-            "name": "2.4"
+            "name": "2.4",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -16596,14 +16788,17 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "iconClass": "icon-mongodb",
               "openshift.io/display-name": "MongoDB 2.6",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "tags": "database,mongodb",
+              "tags": "hidden,database,mongodb",
               "version": "2.6"
             },
             "from": {
               "kind": "DockerImage",
               "name": "registry.access.redhat.com/rhscl/mongodb-26-rhel7:latest"
             },
-            "name": "2.6"
+            "name": "2.6",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -16618,7 +16813,10 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "kind": "DockerImage",
               "name": "registry.access.redhat.com/rhscl/mongodb-32-rhel7:latest"
             },
-            "name": "3.2"
+            "name": "3.2",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -16633,7 +16831,10 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "kind": "DockerImage",
               "name": "registry.access.redhat.com/rhscl/mongodb-34-rhel7:latest"
             },
-            "name": "3.4"
+            "name": "3.4",
+            "referencePolicy": {
+              "type": "Local"
+            }
           }
         ]
       }
@@ -16661,7 +16862,10 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "kind": "ImageStreamTag",
               "name": "5.7"
             },
-            "name": "latest"
+            "name": "latest",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -16676,7 +16880,10 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "kind": "DockerImage",
               "name": "registry.access.redhat.com/openshift3/mysql-55-rhel7:latest"
             },
-            "name": "5.5"
+            "name": "5.5",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -16684,14 +16891,17 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "iconClass": "icon-mysql-database",
               "openshift.io/display-name": "MySQL 5.6",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "tags": "mysql",
+              "tags": "hidden,mysql",
               "version": "5.6"
             },
             "from": {
               "kind": "DockerImage",
               "name": "registry.access.redhat.com/rhscl/mysql-56-rhel7:latest"
             },
-            "name": "5.6"
+            "name": "5.6",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -16706,7 +16916,10 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "kind": "DockerImage",
               "name": "registry.access.redhat.com/rhscl/mysql-57-rhel7:latest"
             },
-            "name": "5.7"
+            "name": "5.7",
+            "referencePolicy": {
+              "type": "Local"
+            }
           }
         ]
       }
@@ -16737,7 +16950,10 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "kind": "DockerImage",
               "name": "registry.access.redhat.com/rhscl/nginx-18-rhel7:latest"
             },
-            "name": "1.8"
+            "name": "1.8",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -16754,7 +16970,10 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "kind": "DockerImage",
               "name": "registry.access.redhat.com/rhscl/nginx-110-rhel7:latest"
             },
-            "name": "1.10"
+            "name": "1.10",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -16771,7 +16990,10 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "kind": "DockerImage",
               "name": "registry.access.redhat.com/rhscl/nginx-112-rhel7:latest"
             },
-            "name": "1.12"
+            "name": "1.12",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -16787,7 +17009,10 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "kind": "ImageStreamTag",
               "name": "1.12"
             },
-            "name": "latest"
+            "name": "latest",
+            "referencePolicy": {
+              "type": "Local"
+            }
           }
         ]
       }
@@ -16817,7 +17042,10 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "kind": "ImageStreamTag",
               "name": "8"
             },
-            "name": "latest"
+            "name": "latest",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -16834,7 +17062,10 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "kind": "DockerImage",
               "name": "registry.access.redhat.com/openshift3/nodejs-010-rhel7:latest"
             },
-            "name": "0.10"
+            "name": "0.10",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -16844,14 +17075,17 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "openshift.io/provider-display-name": "Red Hat, Inc.",
               "sampleRepo": "https://github.com/openshift/nodejs-ex.git",
               "supports": "nodejs:4,nodejs",
-              "tags": "builder,nodejs",
+              "tags": "hidden,builder,nodejs",
               "version": "4"
             },
             "from": {
               "kind": "DockerImage",
               "name": "registry.access.redhat.com/rhscl/nodejs-4-rhel7:latest"
             },
-            "name": "4"
+            "name": "4",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -16868,7 +17102,10 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "kind": "DockerImage",
               "name": "registry.access.redhat.com/rhscl/nodejs-6-rhel7:latest"
             },
-            "name": "6"
+            "name": "6",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -16884,7 +17121,10 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "kind": "DockerImage",
               "name": "registry.access.redhat.com/rhscl/nodejs-8-rhel7:latest"
             },
-            "name": "8"
+            "name": "8",
+            "referencePolicy": {
+              "type": "Local"
+            }
           }
         ]
       }
@@ -16914,7 +17154,10 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "kind": "ImageStreamTag",
               "name": "5.24"
             },
-            "name": "latest"
+            "name": "latest",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -16931,7 +17174,10 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "kind": "DockerImage",
               "name": "registry.access.redhat.com/openshift3/perl-516-rhel7:latest"
             },
-            "name": "5.16"
+            "name": "5.16",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -16941,14 +17187,17 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "openshift.io/provider-display-name": "Red Hat, Inc.",
               "sampleRepo": "https://github.com/openshift/dancer-ex.git",
               "supports": "perl:5.20,perl",
-              "tags": "builder,perl",
+              "tags": "hidden,builder,perl",
               "version": "5.20"
             },
             "from": {
               "kind": "DockerImage",
               "name": "registry.access.redhat.com/rhscl/perl-520-rhel7:latest"
             },
-            "name": "5.20"
+            "name": "5.20",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -16965,7 +17214,10 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "kind": "DockerImage",
               "name": "registry.access.redhat.com/rhscl/perl-524-rhel7:latest"
             },
-            "name": "5.24"
+            "name": "5.24",
+            "referencePolicy": {
+              "type": "Local"
+            }
           }
         ]
       }
@@ -16995,7 +17247,10 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "kind": "ImageStreamTag",
               "name": "7.1"
             },
-            "name": "latest"
+            "name": "latest",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -17012,7 +17267,10 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "kind": "DockerImage",
               "name": "registry.access.redhat.com/openshift3/php-55-rhel7:latest"
             },
-            "name": "5.5"
+            "name": "5.5",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -17022,14 +17280,17 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "openshift.io/provider-display-name": "Red Hat, Inc.",
               "sampleRepo": "https://github.com/openshift/cakephp-ex.git",
               "supports": "php:5.6,php",
-              "tags": "builder,php",
+              "tags": "hidden,builder,php",
               "version": "5.6"
             },
             "from": {
               "kind": "DockerImage",
               "name": "registry.access.redhat.com/rhscl/php-56-rhel7:latest"
             },
-            "name": "5.6"
+            "name": "5.6",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -17046,7 +17307,10 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "kind": "DockerImage",
               "name": "registry.access.redhat.com/rhscl/php-70-rhel7:latest"
             },
-            "name": "7.0"
+            "name": "7.0",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -17063,7 +17327,10 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "kind": "DockerImage",
               "name": "registry.access.redhat.com/rhscl/php-71-rhel7:latest"
             },
-            "name": "7.1"
+            "name": "7.1",
+            "referencePolicy": {
+              "type": "Local"
+            }
           }
         ]
       }
@@ -17091,7 +17358,10 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "kind": "ImageStreamTag",
               "name": "9.6"
             },
-            "name": "latest"
+            "name": "latest",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -17106,7 +17376,10 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "kind": "DockerImage",
               "name": "registry.access.redhat.com/openshift3/postgresql-92-rhel7:latest"
             },
-            "name": "9.2"
+            "name": "9.2",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -17114,14 +17387,17 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "iconClass": "icon-postgresql",
               "openshift.io/display-name": "PostgreSQL 9.4",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "tags": "database,postgresql",
+              "tags": "hidden,database,postgresql",
               "version": "9.4"
             },
             "from": {
               "kind": "DockerImage",
               "name": "registry.access.redhat.com/rhscl/postgresql-94-rhel7:latest"
             },
-            "name": "9.4"
+            "name": "9.4",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -17136,7 +17412,10 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "kind": "DockerImage",
               "name": "registry.access.redhat.com/rhscl/postgresql-95-rhel7:latest"
             },
-            "name": "9.5"
+            "name": "9.5",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -17151,7 +17430,10 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "kind": "DockerImage",
               "name": "registry.access.redhat.com/rhscl/postgresql-96-rhel7:latest"
             },
-            "name": "9.6"
+            "name": "9.6",
+            "referencePolicy": {
+              "type": "Local"
+            }
           }
         ]
       }
@@ -17181,7 +17463,10 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "kind": "ImageStreamTag",
               "name": "3.6"
             },
-            "name": "latest"
+            "name": "latest",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -17198,7 +17483,10 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "kind": "DockerImage",
               "name": "registry.access.redhat.com/openshift3/python-33-rhel7:latest"
             },
-            "name": "3.3"
+            "name": "3.3",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -17215,7 +17503,10 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "kind": "DockerImage",
               "name": "registry.access.redhat.com/rhscl/python-27-rhel7:latest"
             },
-            "name": "2.7"
+            "name": "2.7",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -17225,14 +17516,17 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "openshift.io/provider-display-name": "Red Hat, Inc.",
               "sampleRepo": "https://github.com/openshift/django-ex.git",
               "supports": "python:3.4,python",
-              "tags": "builder,python",
+              "tags": "hidden,builder,python",
               "version": "3.4"
             },
             "from": {
               "kind": "DockerImage",
               "name": "registry.access.redhat.com/rhscl/python-34-rhel7:latest"
             },
-            "name": "3.4"
+            "name": "3.4",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -17249,7 +17543,10 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "kind": "DockerImage",
               "name": "registry.access.redhat.com/rhscl/python-35-rhel7:latest"
             },
-            "name": "3.5"
+            "name": "3.5",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -17266,7 +17563,10 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "kind": "DockerImage",
               "name": "registry.access.redhat.com/rhscl/python-36-rhel7:latest"
             },
-            "name": "3.6"
+            "name": "3.6",
+            "referencePolicy": {
+              "type": "Local"
+            }
           }
         ]
       }
@@ -17294,7 +17594,10 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "kind": "ImageStreamTag",
               "name": "3.2"
             },
-            "name": "latest"
+            "name": "latest",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -17309,7 +17612,10 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "kind": "DockerImage",
               "name": "registry.access.redhat.com/rhscl/redis-32-rhel7:latest"
             },
-            "name": "3.2"
+            "name": "3.2",
+            "referencePolicy": {
+              "type": "Local"
+            }
           }
         ]
       }
@@ -17339,7 +17645,10 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "kind": "ImageStreamTag",
               "name": "2.4"
             },
-            "name": "latest"
+            "name": "latest",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -17356,7 +17665,10 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "kind": "DockerImage",
               "name": "registry.access.redhat.com/openshift3/ruby-20-rhel7:latest"
             },
-            "name": "2.0"
+            "name": "2.0",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -17366,14 +17678,17 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "openshift.io/provider-display-name": "Red Hat, Inc.",
               "sampleRepo": "https://github.com/openshift/ruby-ex.git",
               "supports": "ruby:2.2,ruby",
-              "tags": "builder,ruby",
+              "tags": "hidden,builder,ruby",
               "version": "2.2"
             },
             "from": {
               "kind": "DockerImage",
               "name": "registry.access.redhat.com/rhscl/ruby-22-rhel7:latest"
             },
-            "name": "2.2"
+            "name": "2.2",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -17390,7 +17705,10 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "kind": "DockerImage",
               "name": "registry.access.redhat.com/rhscl/ruby-23-rhel7:latest"
             },
-            "name": "2.3"
+            "name": "2.3",
+            "referencePolicy": {
+              "type": "Local"
+            }
           },
           {
             "annotations": {
@@ -17407,7 +17725,10 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "kind": "DockerImage",
               "name": "registry.access.redhat.com/rhscl/ruby-24-rhel7:latest"
             },
-            "name": "2.4"
+            "name": "2.4",
+            "referencePolicy": {
+              "type": "Local"
+            }
           }
         ]
       }
