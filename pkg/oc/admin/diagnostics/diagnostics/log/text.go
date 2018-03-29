@@ -3,11 +3,10 @@ package log
 import (
 	"fmt"
 	"io"
-	"os"
 	"strings"
 
 	ct "github.com/daviddengcn/go-colortext"
-	"github.com/docker/docker/pkg/term"
+	"github.com/openshift/origin/pkg/cmd/util/term"
 )
 
 type textLogger struct {
@@ -19,17 +18,11 @@ type textLogger struct {
 func newTextLogger(out io.Writer) *textLogger {
 	logger := &textLogger{out: out, lastNewline: true}
 
-	if IsTerminal(out) {
+	if term.IsTerminalWriter(out) {
 		// only want color sequences to humans, not redirected output (logs, "less", etc.)
 		logger.ttyOutput = true
 	}
 	return logger
-}
-
-// cribbed a la "github.com/openshift/origin/pkg/cmd/util"
-func IsTerminal(w io.Writer) bool {
-	file, ok := w.(*os.File)
-	return ok && term.IsTerminal(file.Fd())
 }
 
 func (t *textLogger) Write(entry Entry) {
