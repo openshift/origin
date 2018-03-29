@@ -9,10 +9,6 @@
 // test/extended/testdata/aggregator/sample-apiserver-service.yaml
 // test/extended/testdata/builds/build-pruning/default-group-build-config.yaml
 // test/extended/testdata/builds/build-pruning/default-legacy-build-config.yaml
-// test/extended/testdata/builds/build-pruning/errored-build-config.yaml
-// test/extended/testdata/builds/build-pruning/failed-build-config.yaml
-// test/extended/testdata/builds/build-pruning/imagestream.yaml
-// test/extended/testdata/builds/build-pruning/successful-build-config.yaml
 // test/extended/testdata/builds/build-quota/.s2i/bin/assemble
 // test/extended/testdata/builds/build-quota/Dockerfile
 // test/extended/testdata/builds/build-secrets/Dockerfile
@@ -582,143 +578,6 @@ func testExtendedTestdataBuildsBuildPruningDefaultLegacyBuildConfigYaml() (*asse
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/builds/build-pruning/default-legacy-build-config.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataBuildsBuildPruningErroredBuildConfigYaml = []byte(`apiVersion: v1
-kind: BuildConfig
-metadata:
-  name: myphp
-spec:
-  failedBuildsHistoryLimit: 2
-  source:
-    type: Git
-    git:
-      uri: 'https://github.com/openshift/cakephp-ex.git'
-      ref: master
-  strategy:
-    type: Source
-    sourceStrategy:
-      env:
-        - name: FIELDREF_ENV
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.nofield
-      from:
-        kind: ImageStreamTag
-        namespace: openshift
-        name: 'php:7.0'
-`)
-
-func testExtendedTestdataBuildsBuildPruningErroredBuildConfigYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataBuildsBuildPruningErroredBuildConfigYaml, nil
-}
-
-func testExtendedTestdataBuildsBuildPruningErroredBuildConfigYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataBuildsBuildPruningErroredBuildConfigYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/builds/build-pruning/errored-build-config.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataBuildsBuildPruningFailedBuildConfigYaml = []byte(`apiVersion: v1
-kind: BuildConfig
-metadata:
-  name: myphp
-  labels:
-    app: myphp
-  annotations:
-    openshift.io/generated-by: OpenShiftWebConsole
-spec:
-  failedBuildsHistoryLimit: 2
-  source:
-    type: Git
-    git:
-      uri: 'https://github.com/openshift/non-working-example.git'
-  strategy:
-    type: Source
-    sourceStrategy:
-      from:
-        kind: ImageStreamTag
-        namespace: openshift
-        name: 'php:7.0'
-`)
-
-func testExtendedTestdataBuildsBuildPruningFailedBuildConfigYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataBuildsBuildPruningFailedBuildConfigYaml, nil
-}
-
-func testExtendedTestdataBuildsBuildPruningFailedBuildConfigYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataBuildsBuildPruningFailedBuildConfigYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/builds/build-pruning/failed-build-config.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataBuildsBuildPruningImagestreamYaml = []byte(`apiVersion: v1
-kind: ImageStream
-metadata:
-  name: myphp
-`)
-
-func testExtendedTestdataBuildsBuildPruningImagestreamYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataBuildsBuildPruningImagestreamYaml, nil
-}
-
-func testExtendedTestdataBuildsBuildPruningImagestreamYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataBuildsBuildPruningImagestreamYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/builds/build-pruning/imagestream.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataBuildsBuildPruningSuccessfulBuildConfigYaml = []byte(`apiVersion: v1
-kind: BuildConfig
-metadata:
-  name: myphp
-  labels:
-    app: myphp
-  annotations:
-    openshift.io/generated-by: OpenShiftWebConsole
-spec:
-  successfulBuildsHistoryLimit: 2
-  source:
-    type: Git
-    git:
-      uri: 'https://github.com/openshift/cakephp-ex.git'
-  strategy:
-    type: Source
-    sourceStrategy:
-      from:
-        kind: ImageStreamTag
-        namespace: openshift
-        name: 'php:7.0'
-`)
-
-func testExtendedTestdataBuildsBuildPruningSuccessfulBuildConfigYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataBuildsBuildPruningSuccessfulBuildConfigYaml, nil
-}
-
-func testExtendedTestdataBuildsBuildPruningSuccessfulBuildConfigYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataBuildsBuildPruningSuccessfulBuildConfigYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/builds/build-pruning/successful-build-config.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -31470,10 +31329,6 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/aggregator/sample-apiserver-service.yaml": testExtendedTestdataAggregatorSampleApiserverServiceYaml,
 	"test/extended/testdata/builds/build-pruning/default-group-build-config.yaml": testExtendedTestdataBuildsBuildPruningDefaultGroupBuildConfigYaml,
 	"test/extended/testdata/builds/build-pruning/default-legacy-build-config.yaml": testExtendedTestdataBuildsBuildPruningDefaultLegacyBuildConfigYaml,
-	"test/extended/testdata/builds/build-pruning/errored-build-config.yaml": testExtendedTestdataBuildsBuildPruningErroredBuildConfigYaml,
-	"test/extended/testdata/builds/build-pruning/failed-build-config.yaml": testExtendedTestdataBuildsBuildPruningFailedBuildConfigYaml,
-	"test/extended/testdata/builds/build-pruning/imagestream.yaml": testExtendedTestdataBuildsBuildPruningImagestreamYaml,
-	"test/extended/testdata/builds/build-pruning/successful-build-config.yaml": testExtendedTestdataBuildsBuildPruningSuccessfulBuildConfigYaml,
 	"test/extended/testdata/builds/build-quota/.s2i/bin/assemble": testExtendedTestdataBuildsBuildQuotaS2iBinAssemble,
 	"test/extended/testdata/builds/build-quota/Dockerfile": testExtendedTestdataBuildsBuildQuotaDockerfile,
 	"test/extended/testdata/builds/build-secrets/Dockerfile": testExtendedTestdataBuildsBuildSecretsDockerfile,
@@ -31885,10 +31740,6 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"build-pruning": &bintree{nil, map[string]*bintree{
 						"default-group-build-config.yaml": &bintree{testExtendedTestdataBuildsBuildPruningDefaultGroupBuildConfigYaml, map[string]*bintree{}},
 						"default-legacy-build-config.yaml": &bintree{testExtendedTestdataBuildsBuildPruningDefaultLegacyBuildConfigYaml, map[string]*bintree{}},
-						"errored-build-config.yaml": &bintree{testExtendedTestdataBuildsBuildPruningErroredBuildConfigYaml, map[string]*bintree{}},
-						"failed-build-config.yaml": &bintree{testExtendedTestdataBuildsBuildPruningFailedBuildConfigYaml, map[string]*bintree{}},
-						"imagestream.yaml": &bintree{testExtendedTestdataBuildsBuildPruningImagestreamYaml, map[string]*bintree{}},
-						"successful-build-config.yaml": &bintree{testExtendedTestdataBuildsBuildPruningSuccessfulBuildConfigYaml, map[string]*bintree{}},
 					}},
 					"build-quota": &bintree{nil, map[string]*bintree{
 						".s2i": &bintree{nil, map[string]*bintree{
