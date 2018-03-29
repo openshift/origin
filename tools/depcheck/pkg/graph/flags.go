@@ -140,9 +140,10 @@ type GraphFlags struct {
 // the directory tree, returning a list of all reachable go packages.
 // Excludes the vendor tree.
 // Returns the list of calculated import paths or an error.
-func (o *GraphFlags) calculateRoots() ([]string, error) {
+func (o *GraphFlags) calculateRoots(excludes []string) ([]string, error) {
 	packages, err := getPackageMetadata(
 		o.Entrypoints,
+		excludes,
 	)
 	if err != nil {
 		return nil, err
@@ -172,23 +173,6 @@ func (o *GraphFlags) ToOptions(out, errout io.Writer) (*GraphOptions, error) {
 	// sanitize user-provided entrypoints
 	o.Entrypoints = ensureEntrypointPrefix(o.Entrypoints, o.RepoImportPath)
 
-	// calculate go package info from given set of entrypoints
-	packages, err := getPackageMetadata(
-		ensureVendorEntrypoint(o.Entrypoints, o.RepoImportPath),
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	opts.Packages = packages
-
-	// calculate non-vendor trees
-	roots, err := o.calculateRoots()
-	if err != nil {
-		return nil, err
-	}
-	opts.Roots = roots
-
 	// set openshift defaults
 	if o.Openshift {
 		opts.Excludes = getOpenShiftExcludes()
@@ -198,32 +182,49 @@ func (o *GraphFlags) ToOptions(out, errout io.Writer) (*GraphOptions, error) {
 		}
 
 		opts.Filters = filters
-		return opts, nil
+	} else {
+		if len(o.Exclude) > 0 {
+			f, err := ioutil.ReadFile(o.Exclude)
+			if err != nil {
+				return nil, err
+			}
+
+			err = json.Unmarshal(f, &opts.Excludes)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		if len(o.Filter) > 0 {
+			f, err := ioutil.ReadFile(o.Filter)
+			if err != nil {
+				return nil, err
+			}
+
+			err = json.Unmarshal(f, &opts.Filters)
+			if err != nil {
+				return nil, err
+			}
+		}
 	}
 
-	if len(o.Exclude) > 0 {
-		f, err := ioutil.ReadFile(o.Exclude)
-		if err != nil {
-			return nil, err
-		}
-
-		err = json.Unmarshal(f, &opts.Excludes)
-		if err != nil {
-			return nil, err
-		}
+	// calculate go package info from given set of entrypoints
+	packages, err := getPackageMetadata(
+		ensureVendorEntrypoint(o.Entrypoints, o.RepoImportPath),
+		opts.Excludes,
+	)
+	if err != nil {
+		return nil, err
 	}
 
-	if len(o.Filter) > 0 {
-		f, err := ioutil.ReadFile(o.Filter)
-		if err != nil {
-			return nil, err
-		}
+	opts.Packages = packages
 
-		err = json.Unmarshal(f, &opts.Filters)
-		if err != nil {
-			return nil, err
-		}
+	// calculate non-vendor trees
+	roots, err := o.calculateRoots(opts.Excludes)
+	if err != nil {
+		return nil, err
 	}
+	opts.Roots = roots
 
 	return opts, nil
 }
