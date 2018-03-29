@@ -261,6 +261,10 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 				})...)
 			}
 
+			for _, node := range service.DaemonSets {
+				printLines(out, indent, 1, describeDaemonSetInServiceGroup(local, node)...)
+			}
+
 		rsNode:
 			for _, rsNode := range service.FulfillingRSs {
 				for _, coveredD := range service.FulfillingDeployments {
