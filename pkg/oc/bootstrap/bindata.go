@@ -14746,6 +14746,21 @@ objects:
           action: keep
           regex: router;1936-tcp
 
+      # Scrape config for the service catalog
+      - job_name: 'openshift-service-catalog'
+        scheme: http
+
+        kubernetes_sd_configs:
+        - role: pod
+          namespaces:
+            names:
+            - kube-service-catalog
+
+        relabel_configs:
+        - source_labels: [__meta_kubernetes_pod_name]
+          action: keep
+          regex: controller-manager-(.+)
+
       alerting:
         alertmanagers:
         - scheme: http
