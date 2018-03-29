@@ -16,6 +16,7 @@ import (
 	"k8s.io/kubernetes/pkg/apis/authorization"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
+	"k8s.io/utils/clock"
 
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	restutil "github.com/openshift/origin/pkg/util/rest"
@@ -27,10 +28,21 @@ func (rt roundtripper) RoundTrip(r *http.Request) (*http.Response, error) {
 	return rt(r)
 }
 
+type fakeClock struct {
+	clock.RealClock
+	now time.Time
+}
+
+func (f *fakeClock) Now() time.Time {
+	return f.now
+}
+
 // TestControllerCheckReadiness verifies the basic behaviour of
 // TemplateInstanceController.checkReadiness(): that it can return ready, not
 // ready and timed out correctly.
 func TestControllerCheckReadiness(t *testing.T) {
+	clock := &fakeClock{now: time.Unix(0, 0)}
+
 	job := batchv1.Job{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "batch/v1",
@@ -66,15 +78,15 @@ func TestControllerCheckReadiness(t *testing.T) {
 		restmapper: restutil.DefaultMultiRESTMapper(),
 		kc:         fakeclientset,
 		config:     fakerestconfig,
+		clock:      clock,
 	}
 	fakeclientset.AddReactor("create", "subjectaccessreviews", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, &authorization.SubjectAccessReview{Status: authorization.SubjectAccessReviewStatus{Allowed: true}}, nil
 	})
 
-	now := time.Now()
 	templateInstance := &templateapi.TemplateInstance{
 		ObjectMeta: metav1.ObjectMeta{
-			CreationTimestamp: metav1.Time{Time: now},
+			CreationTimestamp: metav1.Time{Time: clock.now},
 		},
 		Spec: templateapi.TemplateInstanceSpec{
 			Requester: &templateapi.TemplateInstanceRequester{},
@@ -94,27 +106,29 @@ func TestControllerCheckReadiness(t *testing.T) {
 	}
 
 	// should report not ready yet
-	ready, err := c.checkReadiness(templateInstance, now)
+	ready, err := c.checkReadiness(templateInstance)
 	if ready || err != nil {
 		t.Error(ready, err)
 	}
 
 	// should report timed out
-	ready, err = c.checkReadiness(templateInstance, now.Add(readinessTimeout+1))
+	clock.now = clock.now.Add(readinessTimeout + 1)
+	ready, err = c.checkReadiness(templateInstance)
 	if ready || err == nil || err.Error() != "Timeout" {
 		t.Error(ready, err)
 	}
 
 	// should report ready
-	job.Status.CompletionTime = &metav1.Time{Time: now}
-	ready, err = c.checkReadiness(templateInstance, now)
+	clock.now = time.Unix(0, 0)
+	job.Status.CompletionTime = &metav1.Time{Time: clock.now}
+	ready, err = c.checkReadiness(templateInstance)
 	if !ready || err != nil {
 		t.Error(ready, err)
 	}
 
 	// should report failed
-	job.Status.Failed = int32(1)
-	ready, err = c.checkReadiness(templateInstance, now)
+	job.Status.Failed = 1
+	ready, err = c.checkReadiness(templateInstance)
 	if ready || err == nil || err.Error() != "Readiness failed on Job namespace/name" {
 		t.Error(ready, err)
 	}

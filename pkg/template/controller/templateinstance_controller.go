@@ -26,6 +26,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
+	"k8s.io/utils/clock"
 
 	"github.com/golang/glog"
 	"github.com/prometheus/client_golang/prometheus"
@@ -66,6 +67,8 @@ type TemplateInstanceController struct {
 	queue workqueue.RateLimitingInterface
 
 	readinessLimiter workqueue.RateLimiter
+
+	clock clock.Clock
 }
 
 // NewTemplateInstanceController returns a new TemplateInstanceController.
@@ -80,6 +83,7 @@ func NewTemplateInstanceController(config *rest.Config, kc kclientsetinternal.In
 		informer:         informer.Informer(),
 		queue:            workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "openshift_template_instance_controller"),
 		readinessLimiter: workqueue.NewItemFastSlowRateLimiter(5*time.Second, 20*time.Second, 200),
+		clock:            clock.RealClock{},
 	}
 
 	c.informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
@@ -140,11 +144,12 @@ func (c *TemplateInstanceController) sync(key string) error {
 				Reason:  "Failed",
 				Message: formatError(err),
 			})
+			templateInstanceCompleted.WithLabelValues(string(templateapi.TemplateInstanceInstantiateFailure)).Inc()
 		}
 	}
 
 	if !templateInstance.HasCondition(templateapi.TemplateInstanceInstantiateFailure, kapi.ConditionTrue) {
-		ready, err := c.checkReadiness(templateInstance, time.Now())
+		ready, err := c.checkReadiness(templateInstance)
 		if err != nil && !kerrors.IsTimeout(err) {
 			// NB: kerrors.IsTimeout() is true in the case of an API server
 			// timeout, not the timeout caused by readinessTimeout expiring.
@@ -162,6 +167,7 @@ func (c *TemplateInstanceController) sync(key string) error {
 				Reason:  "Failed",
 				Message: "See InstantiateFailure condition for error message",
 			})
+			templateInstanceCompleted.WithLabelValues(string(templateapi.TemplateInstanceInstantiateFailure)).Inc()
 
 		} else if ready {
 			templateInstance.SetCondition(templateapi.TemplateInstanceCondition{
@@ -169,6 +175,7 @@ func (c *TemplateInstanceController) sync(key string) error {
 				Status: kapi.ConditionTrue,
 				Reason: "Created",
 			})
+			templateInstanceCompleted.WithLabelValues(string(templateapi.TemplateInstanceReady)).Inc()
 
 		} else {
 			templateInstance.SetCondition(templateapi.TemplateInstanceCondition{
@@ -196,8 +203,8 @@ func (c *TemplateInstanceController) sync(key string) error {
 	return nil
 }
 
-func (c *TemplateInstanceController) checkReadiness(templateInstance *templateapi.TemplateInstance, now time.Time) (bool, error) {
-	if now.After(templateInstance.CreationTimestamp.Add(readinessTimeout)) {
+func (c *TemplateInstanceController) checkReadiness(templateInstance *templateapi.TemplateInstance) (bool, error) {
+	if c.clock.Now().After(templateInstance.CreationTimestamp.Add(readinessTimeout)) {
 		return false, fmt.Errorf("Timeout")
 	}
 
