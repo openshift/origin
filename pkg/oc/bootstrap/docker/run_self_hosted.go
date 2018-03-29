@@ -68,10 +68,10 @@ var (
 			InstallTemplate: bootstrap.MustAsset("install/kube-dns/install.yaml"),
 		},
 		{
-			Name:            "openshift-apiserver",
-			Namespace:       "openshift-apiserver",
-			NamespaceObj:    newNamespaceBytes("openshift-apiserver", runlevelOneLabel),
-			InstallTemplate: bootstrap.MustAsset("install/openshift-apiserver/install.yaml"),
+			Name:            "openshift-orchestration-operator",
+			Namespace:       "openshift-core-operators",
+			NamespaceObj:    newNamespaceBytes("openshift-core-operators", runlevelOneLabel),
+			InstallTemplate: bootstrap.MustAsset("install/orchestration-operator/install.yaml"),
 		},
 	}
 
@@ -81,15 +81,7 @@ var (
 	// in cluster up.
 	// TODO we can take a guess at readiness by making sure that pods in the namespace exist and all pods are healthy
 	// TODO it's not perfect, but its fairly good as a starting point.
-	componentsToInstall = []componentinstall.Template{
-		{
-			Name:              "openshift-controller-manager",
-			Namespace:         "openshift-controller-manager",
-			NamespaceObj:      newNamespaceBytes("openshift-controller-manager", nil),
-			PrivilegedSANames: []string{"openshift-controller-manager"},
-			InstallTemplate:   bootstrap.MustAsset("install/openshift-controller-manager/install.yaml"),
-		},
-	}
+	componentsToInstall = []componentinstall.Template{}
 )
 
 func (c *ClusterUpConfig) StartSelfHosted(out io.Writer) error {

@@ -1,0 +1,108 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: openshift-orchestration-operator
+parameters:
+- name: OPERATOR_IMAGE
+  value: openshift/origin:latest
+- name: CONTROL_PLANE_IMAGE
+  value: openshift/origin:latest
+- name: WEBCONSOLE_IMAGE
+  value: openshift/origin-web-console:latest
+- name: NAMESPACE
+  value: openshift-core-operators
+- name: LOGLEVEL
+  value: "0"
+- name: OPENSHIFT_APISERVER_CONFIG_HOST_PATH
+- name: OPENSHIFT_CONTROLLER_MANAGER_CONFIG_HOST_PATH
+objects:
+
+- apiVersion: apiextensions.k8s.io/v1beta1
+  kind: CustomResourceDefinition
+  metadata:
+    name: openshiftorchestrationconfigs.operator.openshift.io
+  spec:
+    scope: Cluster
+    group: operator.openshift.io
+    version: v1
+    names:
+      kind: OpenShiftOrchestrationConfig
+      plural: openshiftorchestrationconfigs
+      singular: openshiftorchestrationconfig
+
+- apiVersion: v1
+  kind: Namespace
+  metadata:
+    name: ${NAMESPACE}
+    labels:
+      "openshift.io/run-level": "1"
+
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    namespace: ${NAMESPACE}
+    name: orchestration-operator
+
+# TODO make a real, constrained clusterole and bind that instead
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRoleBinding
+  metadata:
+    namespace: ${NAMESPACE}
+    name: orchestration-operator
+  roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
+    name: cluster-admin
+  subjects:
+  - kind: ServiceAccount
+    name: orchestration-operator
+    namespace: ${NAMESPACE}
+
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    namespace: ${NAMESPACE}
+    name: orchestration-operator
+    labels:
+      openshift.io/operator: "true"
+      openshift.io/component: api
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        openshift.io/operator: "true"
+        openshift.io/component: api
+    template:
+      metadata:
+        name: orchestration-operator
+        labels:
+          openshift.io/operator: "true"
+          openshift.io/component: api
+      spec:
+        serviceAccountName: orchestration-operator
+        restartPolicy: Always
+        containers:
+        - name: orchestration-operator
+          image: ${OPERATOR_IMAGE}
+          imagePullPolicy: IfNotPresent
+          command: ["hypershift", "experimental", "openshift-orchestration-operator"]
+          args:
+          - "-v=5"
+
+- apiVersion: operator.openshift.io/v1
+  kind: OpenShiftOrchestrationConfig
+  metadata:
+    name: instance
+  spec:
+    openShiftControlPlane:
+      enabled: true
+      operatorImagePullSpec: ${OPERATOR_IMAGE}
+      imagePullSpec: ${CONTROL_PLANE_IMAGE}
+      version: 3.10.0
+      apiServerConfigHostPath: ${OPENSHIFT_APISERVER_CONFIG_HOST_PATH}
+      controllerConfigHostPath: ${OPENSHIFT_CONTROLLER_MANAGER_CONFIG_HOST_PATH}
+    webConsole:
+      enabled: true
+      operatorImagePullSpec: ${OPERATOR_IMAGE}
+      imagePullSpec: ${WEBCONSOLE_IMAGE}
+      version: 3.10.0

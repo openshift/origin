@@ -588,13 +588,6 @@ func (c *ClusterUpConfig) Start(out io.Writer) error {
 		taskPrinter.Success()
 	}
 
-	// Install the web console. Do this after the template service broker is installed so that
-	// the console can discover that the broker is running on startup.
-	taskPrinter.StartTask("Installing web console")
-	if err := c.InstallWebConsole(out); err != nil {
-		return taskPrinter.ToError(err)
-	}
-
 	if c.ShouldCreateUser() {
 		// Login with an initial default user
 		taskPrinter.StartTask("Login to server")
@@ -929,33 +922,6 @@ func (c *ClusterUpConfig) InstallRouter(out io.Writer) error {
 		return err
 	}
 	return c.OpenShiftHelper().InstallRouter(c.GetDockerClient(), c.openshiftImage(), kubeClient, f, c.GetKubeAPIServerConfigDir(), c.GetLogDir(), c.imageFormat(), c.ServerIP, c.PortForwarding, out, os.Stderr)
-}
-
-// InstallWebConsole installs the OpenShift web console on the server
-func (c *ClusterUpConfig) InstallWebConsole(out io.Writer) error {
-	f, err := c.Factory()
-	if err != nil {
-		return err
-	}
-
-	masterURL := c.OpenShiftHelper().Master(c.ServerIP)
-	if len(c.PublicHostname) > 0 {
-		masterURL = fmt.Sprintf("https://%s:8443", c.PublicHostname)
-	}
-
-	publicURL := fmt.Sprintf("%s/console/", masterURL)
-
-	metricsURL := ""
-	if c.ShouldInstallMetrics {
-		metricsURL = fmt.Sprintf("https://%s/hawkular/metrics", openshift.MetricsHost(c.RoutingSuffix))
-	}
-
-	loggingURL := ""
-	if c.ShouldInstallLogging {
-		loggingURL = fmt.Sprintf("https://%s", openshift.LoggingHost(c.RoutingSuffix))
-	}
-
-	return c.OpenShiftHelper().InstallWebConsole(f, c.imageFormat(), c.ServerLogLevel, publicURL, masterURL, loggingURL, metricsURL)
 }
 
 // TODO this should become a separate thing we can install, like registry

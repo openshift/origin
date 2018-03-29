@@ -16,6 +16,10 @@ ALL_FQ_APIS=(
     github.com/openshift/origin/pkg/build/controller/build/apis/overrides
     github.com/openshift/origin/pkg/build/controller/build/apis/overrides/v1
     github.com/openshift/origin/pkg/build/controller/build/pluginconfig/testing
+    github.com/openshift/origin/pkg/cmd/openshift-operators/apiserver-operator/apis/apiserver/v1
+    github.com/openshift/origin/pkg/cmd/openshift-operators/controller-operator/apis/controller/v1
+    github.com/openshift/origin/pkg/cmd/openshift-operators/orchestration-operator/apis/orchestration/v1
+    github.com/openshift/origin/pkg/cmd/openshift-operators/webconsole-operator/apis/webconsole/v1
     github.com/openshift/origin/pkg/cmd/server/apis/config
     github.com/openshift/origin/pkg/cmd/server/apis/config/v1
     github.com/openshift/origin/pkg/cmd/server/apis/config/v1/testing
