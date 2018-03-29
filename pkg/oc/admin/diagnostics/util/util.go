@@ -2,9 +2,12 @@ package util
 
 import (
 	"fmt"
+	"github.com/spf13/cobra"
+	"os"
 	"runtime/debug"
 
 	"k8s.io/apimachinery/pkg/util/sets"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/log"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/types"
@@ -65,4 +68,25 @@ func RunDiagnostics(logger *log.Logger, diagnostics []types.Diagnostic) error {
 		return fmt.Errorf("Requested diagnostic(s) skipped; nothing to run. See --help and consider setting flags or providing config to enable running.")
 	}
 	return nil
+}
+
+type OptionsRunner interface {
+	Logger() *log.Logger
+	Complete(*cobra.Command, []string) error
+	RunDiagnostics() error
+}
+
+// returns a shared function that runs when one of these Commands actually executes
+func CommandRunFunc(o OptionsRunner) func(c *cobra.Command, args []string) {
+	return func(c *cobra.Command, args []string) {
+		kcmdutil.CheckErr(o.Complete(c, args))
+
+		if err := o.RunDiagnostics(); err != nil {
+			o.Logger().Error("CED3001", fmt.Sprintf("Encountered fatal error while building diagnostics: %s", err.Error()))
+		}
+		o.Logger().Summary()
+		if o.Logger().ErrorsSeen() {
+			os.Exit(1)
+		}
+	}
 }

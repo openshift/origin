@@ -215,6 +215,8 @@ func fuzzInternalObject(t *testing.T, forVersion schema.GroupVersion, item runti
 				}
 			}
 
+			obj.AuditConfig.InternalAuditFilePath = ""
+
 			// this field isn't serialized
 			obj.DisableOpenAPI = false
 		},
@@ -405,6 +407,9 @@ func fuzzInternalObject(t *testing.T, forVersion schema.GroupVersion, item runti
 			if len(obj.ServiceAccountMethod) == 0 {
 				obj.ServiceAccountMethod = "prompt"
 			}
+		},
+		func(obj *configapi.AuditConfig, c fuzz.Continue) {
+			obj.InternalAuditFilePath = ""
 		},
 	)
 
