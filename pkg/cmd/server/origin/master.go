@@ -387,7 +387,7 @@ func (c *MasterConfig) buildHandlerChain(genericConfig *apiserver.Config) (func(
 			handler = withCacheControl(handler, "no-store") // protected endpoints should not be cached
 
 			// redirects from / to /console if you're using a browser
-			handler = withAssetServerRedirect(handler, webconsolePublicURL)
+			handler = withAssetServerRedirect(handler, c.PrivilegedLoopbackKubernetesClientsetExternal)
 
 			// these handlers are actually separate API servers which have their own handler chains.
 			// our server embeds these
@@ -407,44 +407,6 @@ func openshiftHandlerChain(apiHandler http.Handler, genericConfig *apiserver.Con
 	handler = withCacheControl(handler, "no-store") // protected endpoints should not be cached
 
 	return handler
-}
-
-// If we know the location of the asset server, redirect to it when / is requested
-// and the Accept header supports text/html
-func withAssetServerRedirect(handler http.Handler, webconsolePublicURL string) http.Handler {
-	if len(webconsolePublicURL) == 0 {
-		return handler
-	}
-
-	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		if req.URL.Path == "/" {
-			if httprequest.PrefersHTML(req) {
-				http.Redirect(w, req, webconsolePublicURL, http.StatusFound)
-			}
-		}
-		// Dispatch to the next handler
-		handler.ServeHTTP(w, req)
-	})
-}
-
-func (c *MasterConfig) withConsoleRedirection(handler, assetServerHandler http.Handler, webconsolePublicURL string) http.Handler {
-	if len(webconsolePublicURL) == 0 {
-		return handler
-	}
-
-	publicURL, err := url.Parse(webconsolePublicURL)
-	if err != nil {
-		// fails validation before here
-		glog.Fatal(err)
-	}
-	// path always ends in a slash or the
-	prefix := publicURL.Path
-	lastIndex := len(publicURL.Path) - 1
-	if publicURL.Path[lastIndex] == '/' {
-		prefix = publicURL.Path[0:lastIndex]
-	}
-
-	return WithPatternPrefixHandler(handler, assetServerHandler, prefix)
 }
 
 func (c *MasterConfig) withOAuthRedirection(handler, oauthServerHandler http.Handler) http.Handler {
