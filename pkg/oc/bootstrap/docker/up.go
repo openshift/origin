@@ -293,6 +293,15 @@ func (c *ClusterUpConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command, o
 	c.dockerClient = client
 	taskPrinter.Success()
 
+	// Ensure that the OpenShift Docker image is available.
+	// If not present, pull it.
+	// We do this here because the image is used in the next step if running Red Hat docker.
+	taskPrinter.StartTask(fmt.Sprintf("Checking if image %s is available", c.openshiftImage()))
+	if err := c.checkOpenShiftImage(out); err != nil {
+		return taskPrinter.ToError(err)
+	}
+	taskPrinter.Success()
+
 	// Check whether the Docker host has the right binaries to use Kubernetes' nsenter mounter
 	// If not, use a shared volume to mount volumes on OpenShift
 	if isRedHatDocker, err := c.DockerHelper().IsRedHat(); err == nil && isRedHatDocker {
