@@ -14158,7 +14158,7 @@ objects:
         - record: container_memory_rss_by_type
           expr: container_memory_rss{id=~"/|/system.slice|/kubepods.slice"} > 0
         - record: container_cpu_usage_percent_by_host
-          expr: sum by (hostname,type)(rate(container_cpu_usage_seconds_total{id="/"}[5m])) / on (hostname,type) machine_cpu_cores
+          expr: sum(rate(container_cpu_usage_seconds_total{id="/"}[5m])) BY(kubernetes_io_hostname) / ON(kubernetes_io_hostname) machine_cpu_cores
         - record: apiserver_request_count_rate_by_resources
           expr: sum without (client,instance,contentType) (rate(apiserver_request_count[5m]))
 
