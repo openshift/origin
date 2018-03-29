@@ -19,12 +19,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit a1ab9740a57184d118d1d00cbc333f3b550b4b45
+%global commit 1b22070765a4a61eed6ed9b95b4ba3caf4ce02a1
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=9+ OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.9.13 OS_GIT_TREE_STATE=clean OS_GIT_PATCH=13 KUBE_GIT_VERSION=v1.9.1+a0ce1bc657 OS_GIT_CATALOG_VERSION=v0.1.9 KUBE_GIT_COMMIT=a0ce1bc OS_GIT_COMMIT=785b968 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.16 ETCD_GIT_COMMIT=121edf0
+%global os_git_vars OS_GIT_MINOR=9+ OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.9.14 OS_GIT_TREE_STATE=clean OS_GIT_PATCH=14 KUBE_GIT_VERSION=v1.9.1+a0ce1bc657 OS_GIT_CATALOG_VERSION=v0.1.9 KUBE_GIT_COMMIT=a0ce1bc OS_GIT_COMMIT=31d31d9 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.16 ETCD_GIT_COMMIT=121edf0
 }
 
 %if 0%{?skip_build}
@@ -66,7 +66,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.9.14
+Version:        3.9.15
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -606,6 +606,38 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Thu Mar 29 2018 Justin Pierce <jupierce@redhat.com> 3.9.15-1
+- setup binary input for custom builds properly (bparees@redhat.com)
+- UPSTREAM: 61480: Fix subpath mounting for unix sockets (hekumar@redhat.com)
+- switch reversed old/new objects to validation (deads@redhat.com)
+- image-strategy: unset image signature annotations (miminar@redhat.com)
+- signature-controller: stop adding managed annotation (miminar@redhat.com)
+- Default the kubelet IPTablesMasqueradeBit to the same value as the kube-proxy
+  IPTablesMasqueradeBit (danw@redhat.com)
+- UPSTREAM: 61294: Fix cpu cfs quota flag with pod cgroups (decarr@redhat.com)
+- Add timestamps to bash log output (skuznets@redhat.com)
+- UPSTREAM: 57978: [vSphere] Renews cached NodeInfo with new vSphere connection
+  (hekumar@redhat.com)
+- Fix DC selectors for autoscaling (tnozicka@gmail.com)
+- UPSTREAM: 60978: Fix use of "-w" flag to iptables-restore (danw@redhat.com)
+- NetworkCheck diagnostic: use admin kubeconfig (lmeyer@redhat.com)
+- diagnostics: reorg network diags under cluster/network (lmeyer@redhat.com)
+- diagnostics: reorg pod diags under client/pod (lmeyer@redhat.com)
+- diagnostics: extract commandRunFunc to util pkg (lmeyer@redhat.com)
+- diagnostics logs: use local IsTerminalWriter (lmeyer@redhat.com)
+- bump jenkins route request timeout based on online testing
+  (gmontero@redhat.com)
+- nest daemonsets under their services (jvallejo@redhat.com)
+- Warn when AuditFilePath is relative (maszulik@redhat.com)
+- diagnostics: missing logging project shouldn't be fatal error
+  (jwozniak@redhat.com)
+- Rearrange egressip internals, add duplication tests (danw@redhat.com)
+- Fix egressip handling when a NetNamespace is updated (danw@redhat.com)
+- Have multiple egress IP ovscontroller methods rather than one confusing one
+  (danw@redhat.com)
+- egressip_test updates (danw@redhat.com)
+- Add assertOVSChanges helper to egressip_test (danw@redhat.com)
+
 * Thu Mar 22 2018 Justin Pierce <jupierce@redhat.com> 3.9.14-1
 - UPSTREAM: 61373: Fix subpath reconstruction (hekumar@redhat.com)
 
