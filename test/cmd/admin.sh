@@ -263,7 +263,7 @@ echo "admin-reconcile-cluster-role-bindings: ok"
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/admin/role-reapers"
-os::cmd::expect_success "oc process -f test/extended/testdata/roles/policy-roles.yaml -v NAMESPACE='${project}' | oc create -f -"
+os::cmd::expect_success "oc process -f test/extended/testdata/roles/policy-roles.yaml -p NAMESPACE='${project}' | oc create -f -"
 os::cmd::expect_success "oc get rolebinding/basic-users"
 os::cmd::expect_success "oc delete role/basic-user"
 os::cmd::expect_failure "oc get rolebinding/basic-users"

@@ -54,7 +54,7 @@ type StatusOptions struct {
 	outputFormat  string
 	describer     *describe.ProjectStatusDescriber
 	out           io.Writer
-	verbose       bool
+	suggest       bool
 
 	logsCommandName             string
 	securityPolicyCommandFormat string
@@ -68,7 +68,7 @@ func NewCmdStatus(name, baseCLIName, fullName string, f *clientcmd.Factory, out 
 	opts := &StatusOptions{}
 
 	cmd := &cobra.Command{
-		Use:     fmt.Sprintf("%s [-o dot | -v ]", StatusRecommendedName),
+		Use:     fmt.Sprintf("%s [-o dot | -s ]", StatusRecommendedName),
 		Short:   "Show an overview of the current project",
 		Long:    fmt.Sprintf(statusLong, baseCLIName),
 		Example: fmt.Sprintf(statusExample, fullName),
@@ -86,7 +86,10 @@ func NewCmdStatus(name, baseCLIName, fullName string, f *clientcmd.Factory, out 
 	}
 
 	cmd.Flags().StringVarP(&opts.outputFormat, "output", "o", opts.outputFormat, "Output format. One of: dot.")
-	cmd.Flags().BoolVarP(&opts.verbose, "verbose", "v", opts.verbose, "See details for resolving issues.")
+	cmd.Flags().BoolVarP(&opts.suggest, "verbose", "v", opts.suggest, "See details for resolving issues.")
+	cmd.Flags().MarkDeprecated("verbose", "Use --suggest instead.")
+	cmd.Flags().MarkHidden("verbose")
+	cmd.Flags().BoolVar(&opts.suggest, "suggest", opts.suggest, "See details for resolving issues.")
 	cmd.Flags().BoolVar(&opts.allNamespaces, "all-namespaces", false, "If true, display status for all namespaces (must have cluster admin)")
 
 	return cmd
@@ -166,7 +169,7 @@ func (o *StatusOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, baseC
 		ImageClient:   imageClient.Image(),
 		AppsClient:    appsClient.Apps(),
 		RouteClient:   routeClient.Route(),
-		Suggest:       o.verbose,
+		Suggest:       o.suggest,
 		Server:        config.Host,
 
 		CommandBaseName:    baseCLIName,
@@ -191,7 +194,7 @@ func (o StatusOptions) Validate() error {
 	if len(o.outputFormat) != 0 && o.outputFormat != "dot" {
 		return fmt.Errorf("invalid output format provided: %s", o.outputFormat)
 	}
-	if len(o.outputFormat) > 0 && o.verbose {
+	if len(o.outputFormat) > 0 && o.suggest {
 		return errors.New("cannot provide suggestions when output format is dot")
 	}
 	return nil

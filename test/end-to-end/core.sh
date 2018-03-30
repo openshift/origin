@@ -561,7 +561,7 @@ os::cmd::try_until_text "curl -s -k -H 'Host: wWw.ExAmPlE.cOm' https://${CONTAIN
 os::log::info "Validating pod.spec.nodeSelector rejections"
 # Create a project that enforces an impossible to satisfy nodeSelector, and two pods, one of which has an explicit node name
 os::cmd::expect_success "oc adm new-project node-selector --description='This is an example project to test node selection prevents deployment' --admin='e2e-user' --node-selector='impossible-label=true'"
-os::cmd::expect_success "oc process -n node-selector -v NODE_NAME='$(oc get node -o jsonpath='{.items[0].metadata.name}')' -f test/testdata/node-selector/pods.json | oc create -n node-selector -f -"
+os::cmd::expect_success "oc process -n node-selector -p NODE_NAME='$(oc get node -o jsonpath='{.items[0].metadata.name}')' -f test/testdata/node-selector/pods.json | oc create -n node-selector -f -"
 # The pod without a node name should fail to schedule
 os::cmd::try_until_text 'oc get events -n node-selector' 'pod-without-node-name.+FailedScheduling' $((20*TIME_SEC))
 # The pod with a node name should be rejected by the kubelet

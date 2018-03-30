@@ -17,7 +17,6 @@ func GLog(flags *pflag.FlagSet) {
 		if flags.Lookup("v") == nil {
 			flags.Int32Var(levelPtr, "v", 0, "Set the level of log output (0-10)")
 		}
-		flags.Lookup("v").Hidden = true
 	}
 	if flag := from.Lookup("vmodule"); flag != nil {
 		value := flag.Value
