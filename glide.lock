@@ -1,5 +1,5 @@
-hash: 62c15c18799a47447136eb51dc09b52ad4c8e4a11a78ecfea753b0b33073b704
-updated: 2018-03-29T13:28:08.580252-04:00
+hash: 7e3f8430a6df1b6f9aa4bed6cefee25b7f335e46f63b130a2447bbe13a6aa565
+updated: 2018-03-29T23:25:53.734707285-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -88,6 +88,8 @@ imports:
   - autorest/date
   - autorest/to
   - autorest/validation
+- name: github.com/bcicen/go-haproxy
+  version: ff5824fe38bede761b873cab6e247a530e89236a
 - name: github.com/beorn7/perks
   version: 3ac7bf7a47d159a033b107610db8a1b6575507a4
   subpackages:
@@ -438,6 +440,8 @@ imports:
   version: f3f9494671f93fcff853e3c6e9e948b3eb71e590
 - name: github.com/go-openapi/validate
   version: deaf2c9013bc1a7f4c774662259a506ba874d80f
+- name: github.com/gocarina/gocsv
+  version: a5c9099e2484f1551abb9433885e158610a25f4b
 - name: github.com/godbus/dbus
   version: c7fdd8b5cd55e87b4e1f4e372cdb1db61dd6c66f
 - name: github.com/gogo/protobuf
