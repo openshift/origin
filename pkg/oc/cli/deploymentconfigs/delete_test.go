@@ -90,6 +90,7 @@ func TestStop(t *testing.T) {
 				clientgotesting.NewGetAction(replicationControllersResource, "default", "config-1"),
 				clientgotesting.NewUpdateAction(replicationControllersResource, "default", nil),
 				clientgotesting.NewGetAction(replicationControllersResource, "default", "config-1"),
+				clientgotesting.NewGetAction(replicationControllersResource, "default", "config-1"),
 				clientgotesting.NewDeleteAction(replicationControllersResource, "default", "config-1"),
 			},
 			err: false,
@@ -111,6 +112,7 @@ func TestStop(t *testing.T) {
 				clientgotesting.NewListAction(replicationControllersResource, replicationControllerKind, "default", metav1.ListOptions{}),
 				clientgotesting.NewGetAction(replicationControllersResource, "default", "config-1"),
 				clientgotesting.NewUpdateAction(replicationControllersResource, "default", nil),
+				clientgotesting.NewGetAction(replicationControllersResource, "default", "config-1"),
 				clientgotesting.NewGetAction(replicationControllersResource, "default", "config-1"),
 				clientgotesting.NewDeleteAction(replicationControllersResource, "default", "config-1"),
 			},
@@ -134,11 +136,13 @@ func TestStop(t *testing.T) {
 				clientgotesting.NewGetAction(replicationControllersResource, "default", "config-1"),
 				clientgotesting.NewUpdateAction(replicationControllersResource, "default", nil),
 				clientgotesting.NewGetAction(replicationControllersResource, "default", "config-1"),
+				clientgotesting.NewGetAction(replicationControllersResource, "default", "config-1"),
 				clientgotesting.NewDeleteAction(replicationControllersResource, "default", "config-1"),
 				clientgotesting.NewGetAction(replicationControllersResource, "default", "config-2"),
 				clientgotesting.NewListAction(replicationControllersResource, replicationControllerKind, "default", metav1.ListOptions{}),
 				clientgotesting.NewGetAction(replicationControllersResource, "default", "config-2"),
 				clientgotesting.NewUpdateAction(replicationControllersResource, "default", nil),
+				clientgotesting.NewGetAction(replicationControllersResource, "default", "config-2"),
 				clientgotesting.NewGetAction(replicationControllersResource, "default", "config-2"),
 				clientgotesting.NewDeleteAction(replicationControllersResource, "default", "config-2"),
 				clientgotesting.NewGetAction(replicationControllersResource, "default", "config-3"),
@@ -146,17 +150,20 @@ func TestStop(t *testing.T) {
 				clientgotesting.NewGetAction(replicationControllersResource, "default", "config-3"),
 				clientgotesting.NewUpdateAction(replicationControllersResource, "default", nil),
 				clientgotesting.NewGetAction(replicationControllersResource, "default", "config-3"),
+				clientgotesting.NewGetAction(replicationControllersResource, "default", "config-3"),
 				clientgotesting.NewDeleteAction(replicationControllersResource, "default", "config-3"),
 				clientgotesting.NewGetAction(replicationControllersResource, "default", "config-4"),
 				clientgotesting.NewListAction(replicationControllersResource, replicationControllerKind, "default", metav1.ListOptions{}),
 				clientgotesting.NewGetAction(replicationControllersResource, "default", "config-4"),
 				clientgotesting.NewUpdateAction(replicationControllersResource, "default", nil),
 				clientgotesting.NewGetAction(replicationControllersResource, "default", "config-4"),
+				clientgotesting.NewGetAction(replicationControllersResource, "default", "config-4"),
 				clientgotesting.NewDeleteAction(replicationControllersResource, "default", "config-4"),
 				clientgotesting.NewGetAction(replicationControllersResource, "default", "config-5"),
 				clientgotesting.NewListAction(replicationControllersResource, replicationControllerKind, "default", metav1.ListOptions{}),
 				clientgotesting.NewGetAction(replicationControllersResource, "default", "config-5"),
 				clientgotesting.NewUpdateAction(replicationControllersResource, "default", nil),
+				clientgotesting.NewGetAction(replicationControllersResource, "default", "config-5"),
 				clientgotesting.NewGetAction(replicationControllersResource, "default", "config-5"),
 				clientgotesting.NewDeleteAction(replicationControllersResource, "default", "config-5"),
 			},
@@ -180,11 +187,13 @@ func TestStop(t *testing.T) {
 				clientgotesting.NewGetAction(replicationControllersResource, "default", "config-1"),
 				clientgotesting.NewUpdateAction(replicationControllersResource, "default", nil),
 				clientgotesting.NewGetAction(replicationControllersResource, "default", "config-1"),
+				clientgotesting.NewGetAction(replicationControllersResource, "default", "config-1"),
 				clientgotesting.NewDeleteAction(replicationControllersResource, "default", "config-1"),
 				clientgotesting.NewGetAction(replicationControllersResource, "default", "config-2"),
 				clientgotesting.NewListAction(replicationControllersResource, replicationControllerKind, "default", metav1.ListOptions{}),
 				clientgotesting.NewGetAction(replicationControllersResource, "default", "config-2"),
 				clientgotesting.NewUpdateAction(replicationControllersResource, "default", nil),
+				clientgotesting.NewGetAction(replicationControllersResource, "default", "config-2"),
 				clientgotesting.NewGetAction(replicationControllersResource, "default", "config-2"),
 				clientgotesting.NewDeleteAction(replicationControllersResource, "default", "config-2"),
 				clientgotesting.NewGetAction(replicationControllersResource, "default", "config-3"),
@@ -192,17 +201,20 @@ func TestStop(t *testing.T) {
 				clientgotesting.NewGetAction(replicationControllersResource, "default", "config-3"),
 				clientgotesting.NewUpdateAction(replicationControllersResource, "default", nil),
 				clientgotesting.NewGetAction(replicationControllersResource, "default", "config-3"),
+				clientgotesting.NewGetAction(replicationControllersResource, "default", "config-3"),
 				clientgotesting.NewDeleteAction(replicationControllersResource, "default", "config-3"),
 				clientgotesting.NewGetAction(replicationControllersResource, "default", "config-4"),
 				clientgotesting.NewListAction(replicationControllersResource, replicationControllerKind, "default", metav1.ListOptions{}),
 				clientgotesting.NewGetAction(replicationControllersResource, "default", "config-4"),
 				clientgotesting.NewUpdateAction(replicationControllersResource, "default", nil),
 				clientgotesting.NewGetAction(replicationControllersResource, "default", "config-4"),
+				clientgotesting.NewGetAction(replicationControllersResource, "default", "config-4"),
 				clientgotesting.NewDeleteAction(replicationControllersResource, "default", "config-4"),
 				clientgotesting.NewGetAction(replicationControllersResource, "default", "config-5"),
 				clientgotesting.NewListAction(replicationControllersResource, replicationControllerKind, "default", metav1.ListOptions{}),
 				clientgotesting.NewGetAction(replicationControllersResource, "default", "config-5"),
 				clientgotesting.NewUpdateAction(replicationControllersResource, "default", nil),
+				clientgotesting.NewGetAction(replicationControllersResource, "default", "config-5"),
 				clientgotesting.NewGetAction(replicationControllersResource, "default", "config-5"),
 				clientgotesting.NewDeleteAction(replicationControllersResource, "default", "config-5"),
 			},
@@ -224,6 +236,7 @@ func TestStop(t *testing.T) {
 				clientgotesting.NewGetAction(replicationControllersResource, "default", "config-1"),
 				clientgotesting.NewUpdateAction(replicationControllersResource, "default", nil),
 				clientgotesting.NewGetAction(replicationControllersResource, "default", "config-1"),
+				clientgotesting.NewGetAction(replicationControllersResource, "default", "config-1"),
 				clientgotesting.NewDeleteAction(replicationControllersResource, "default", "config-1"),
 			},
 			err: false,
@@ -238,7 +251,7 @@ func TestStop(t *testing.T) {
 				clientgotesting.NewPatchAction(deploymentConfigsResource, "default", "config", pauseBytes),
 			},
 			kexpected: []clientgotesting.Action{
-				clientgotesting.NewListAction(replicationControllersResource, replicationControllerKind, "default", metav1.ListOptions{}),
+				clientgotesting.NewListAction(replicationControllersResource, replicationControllerKind, "default", metav1.ListOptions{LabelSelector: labels.SelectorFromSet(map[string]string{"openshift.io/deployment-config.name": "config"}).String()}),
 			},
 			err: true,
 		},
@@ -254,7 +267,7 @@ func TestStop(t *testing.T) {
 				clientgotesting.NewDeleteAction(deploymentConfigsResource, "default", "config"),
 			},
 			kexpected: []clientgotesting.Action{
-				clientgotesting.NewListAction(replicationControllersResource, replicationControllerKind, "default", metav1.ListOptions{}),
+				clientgotesting.NewListAction(replicationControllersResource, replicationControllerKind, "default", metav1.ListOptions{LabelSelector: labels.SelectorFromSet(map[string]string{"openshift.io/deployment-config.name": "config"}).String()}),
 			},
 			err: false,
 		},
@@ -270,7 +283,7 @@ func TestStop(t *testing.T) {
 				clientgotesting.NewDeleteAction(deploymentConfigsResource, "default", "config"),
 			},
 			kexpected: []clientgotesting.Action{
-				clientgotesting.NewListAction(replicationControllersResource, replicationControllerKind, "default", metav1.ListOptions{}),
+				clientgotesting.NewListAction(replicationControllersResource, replicationControllerKind, "default", metav1.ListOptions{LabelSelector: labels.SelectorFromSet(map[string]string{"openshift.io/deployment-config.name": "config"}).String()}),
 			},
 			err: false,
 		},
@@ -291,6 +304,9 @@ func TestStop(t *testing.T) {
 			continue
 		}
 		for j, actualAction := range test.oc.Actions() {
+			if j >= len(test.expected) {
+				break
+			}
 			e, a := test.expected[j], actualAction
 			switch a.(type) {
 			case clientgotesting.UpdateAction:
@@ -298,33 +314,60 @@ func TestStop(t *testing.T) {
 					e.GetNamespace() != a.GetNamespace() ||
 					e.GetResource() != a.GetResource() ||
 					e.GetSubresource() != a.GetSubresource() {
-					t.Errorf("%s: unexpected action[%d]: %s, expected %s", test.testName, j, a, e)
+					t.Errorf("%s: unexpected action[%d]: expected %s, got %s", test.testName, j, e, a)
 				}
 			default:
-				if !reflect.DeepEqual(actualAction, test.expected[j]) {
-					t.Errorf("%s: unexpected action: %s", test.testName, diff.ObjectReflectDiff(actualAction, test.expected[j]))
+				if !reflect.DeepEqual(a, e) {
+					t.Errorf("%s: unexpected action[%d]: %s", test.testName, j, diff.ObjectReflectDiff(a, e))
 				}
 			}
 		}
-		if len(test.kc.Actions()) != len(test.kexpected) {
-			t.Errorf("%s: unexpected actions: %s", test.testName, diff.ObjectReflectDiff(test.kc.Actions(), test.kexpected))
+
+		if len(test.oc.Actions()) < len(test.expected) {
+			t.Errorf("%s: missing expected actions:", test.testName)
+			for _, action := range test.expected[len(test.oc.Actions()):] {
+				t.Errorf("\t%s\n", action)
+			}
+			continue
+		} else if len(test.oc.Actions()) > len(test.expected) {
+			t.Errorf("%s: unexpected additional actions:", test.testName)
+			for _, action := range test.oc.Actions()[len(test.expected):] {
+				t.Errorf("\t%s\n", action)
+			}
 			continue
 		}
-		for j, actualAction := range test.kc.Actions() {
-			e, a := test.kexpected[j], actualAction
-			if e.GetVerb() != a.GetVerb() ||
-				e.GetNamespace() != a.GetNamespace() ||
-				e.GetResource() != a.GetResource() ||
-				e.GetSubresource() != a.GetSubresource() {
-				t.Errorf("%s: unexpected action[%d]: %s, expected %s", test.testName, j, a, e)
-			}
 
+		for j, actualAction := range test.kc.Actions() {
+			if j >= len(test.kexpected) {
+				break
+			}
+			e, a := test.kexpected[j], actualAction
 			switch a.(type) {
-			case clientgotesting.GetAction, clientgotesting.DeleteAction:
-				if !reflect.DeepEqual(e, a) {
-					t.Errorf("%s: unexpected action[%d]: %s, expected %s", test.testName, j, a, e)
+			case clientgotesting.UpdateAction:
+				if e.GetVerb() != a.GetVerb() ||
+					e.GetNamespace() != a.GetNamespace() ||
+					e.GetResource() != a.GetResource() ||
+					e.GetSubresource() != a.GetSubresource() {
+					t.Errorf("%s: unexpected action[%d]: expected %s, got %s", test.testName, j, e, a)
+				}
+			default:
+				if !reflect.DeepEqual(a, e) {
+					t.Errorf("%s: unexpected action[%d]: %s", test.testName, j, diff.ObjectReflectDiff(a, e))
 				}
 			}
+		}
+		if len(test.kc.Actions()) < len(test.kexpected) {
+			t.Errorf("%s: missing expected actions:", test.testName)
+			for _, action := range test.kexpected[len(test.kc.Actions()):] {
+				t.Errorf("\t%s\n", action)
+			}
+			continue
+		} else if len(test.kc.Actions()) > len(test.kexpected) {
+			t.Errorf("%s: unexpected additional actions:", test.testName)
+			for _, action := range test.kc.Actions()[len(test.kexpected):] {
+				t.Errorf("\t%s\n", action)
+			}
+			continue
 		}
 	}
 }
