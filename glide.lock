@@ -1,5 +1,5 @@
-hash: 62c15c18799a47447136eb51dc09b52ad4c8e4a11a78ecfea753b0b33073b704
-updated: 2018-03-29T13:28:08.580252-04:00
+hash: 977eea94230d67ba609f55ba1b06f26ad5125d063de000057a8c95baf0ae7fec
+updated: 2018-03-30T10:33:22.769638-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -719,7 +719,7 @@ imports:
 - name: github.com/Microsoft/hcsshim
   version: 6ea7fe54f719d95721e7d9b26ac0add224c9b923
 - name: github.com/miekg/dns
-  version: 22cb769f47009091f1bc4bf9fffa398bbf6ca68f
+  version: 5364553f1ee9cddc7ac8b62dce148309c386695b
 - name: github.com/mindprince/gonvml
   version: fee913ce8fb235edf54739d259ca0ecc226c7b8a
 - name: github.com/mistifyio/go-zfs

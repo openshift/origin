@@ -55,7 +55,7 @@ func RunLocalUDPServer(laddr string) (*Server, string, error) {
 	return server, l, err
 }
 
-func RunLocalUDPServerWithFinChan(laddr string) (*Server, string, chan error, error) {
+func RunLocalUDPServerWithFinChan(laddr string) (*Server, string, chan struct{}, error) {
 	pc, err := net.ListenPacket("udp", laddr)
 	if err != nil {
 		return nil, "", nil, err
@@ -66,13 +66,11 @@ func RunLocalUDPServerWithFinChan(laddr string) (*Server, string, chan error, er
 	waitLock.Lock()
 	server.NotifyStartedFunc = waitLock.Unlock
 
-	// fin must be buffered so the goroutine below won't block
-	// forever if fin is never read from. This always happens
-	// in RunLocalUDPServer and can happen in TestShutdownUDP.
-	fin := make(chan error, 1)
+	fin := make(chan struct{}, 0)
 
 	go func() {
-		fin <- server.ActivateAndServe()
+		server.ActivateAndServe()
+		close(fin)
 		pc.Close()
 	}()
 
@@ -102,15 +100,9 @@ func RunLocalUDPServerUnsafe(laddr string) (*Server, string, error) {
 }
 
 func RunLocalTCPServer(laddr string) (*Server, string, error) {
-	server, l, _, err := RunLocalTCPServerWithFinChan(laddr)
-
-	return server, l, err
-}
-
-func RunLocalTCPServerWithFinChan(laddr string) (*Server, string, chan error, error) {
 	l, err := net.Listen("tcp", laddr)
 	if err != nil {
-		return nil, "", nil, err
+		return nil, "", err
 	}
 
 	server := &Server{Listener: l, ReadTimeout: time.Hour, WriteTimeout: time.Hour}
@@ -119,17 +111,13 @@ func RunLocalTCPServerWithFinChan(laddr string) (*Server, string, chan error, er
 	waitLock.Lock()
 	server.NotifyStartedFunc = waitLock.Unlock
 
-	// See the comment in RunLocalUDPServerWithFinChan as to
-	// why fin must be buffered.
-	fin := make(chan error, 1)
-
 	go func() {
-		fin <- server.ActivateAndServe()
+		server.ActivateAndServe()
 		l.Close()
 	}()
 
 	waitLock.Lock()
-	return server, l.Addr().String(), fin, nil
+	return server, l.Addr().String(), nil
 }
 
 func RunLocalTLSServer(laddr string, config *tls.Config) (*Server, string, error) {
@@ -557,21 +545,13 @@ func TestServingResponse(t *testing.T) {
 }
 
 func TestShutdownTCP(t *testing.T) {
-	s, _, fin, err := RunLocalTCPServerWithFinChan(":0")
+	s, _, err := RunLocalTCPServer(":0")
 	if err != nil {
 		t.Fatalf("unable to run test server: %v", err)
 	}
 	err = s.Shutdown()
 	if err != nil {
-		t.Fatalf("could not shutdown test TCP server, %v", err)
-	}
-	select {
-	case err := <-fin:
-		if err != nil {
-			t.Errorf("error returned from ActivateAndServe, %v", err)
-		}
-	case <-time.After(2 * time.Second):
-		t.Error("could not shutdown test TCP server. Gave up waiting")
+		t.Errorf("could not shutdown test TCP server, %v", err)
 	}
 }
 
@@ -662,10 +642,7 @@ func TestShutdownUDP(t *testing.T) {
 		t.Errorf("could not shutdown test UDP server, %v", err)
 	}
 	select {
-	case err := <-fin:
-		if err != nil {
-			t.Errorf("error returned from ActivateAndServe, %v", err)
-		}
+	case <-fin:
 	case <-time.After(2 * time.Second):
 		t.Error("could not shutdown test UDP server. Gave up waiting")
 	}
