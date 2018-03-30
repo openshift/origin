@@ -225,7 +225,7 @@ func buildDirectImage(dir string, ignoreFailures bool, opts *docker.BuildImageOp
 
 	if len(opts.BuildBinds) > 0 {
 		var s []string
-		if err := json.Unmarshal([]byte(opts.BuildBinds), s); err != nil {
+		if err := json.Unmarshal([]byte(opts.BuildBinds), &s); err != nil {
 			return fmt.Errorf("the build bindings were not a valid string array: %q: %v", opts.BuildBinds, err)
 		}
 		e.HostConfig.Binds = append(e.HostConfig.Binds, s...)
