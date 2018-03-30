@@ -10,21 +10,118 @@ import (
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	ktypes "k8s.io/apimachinery/pkg/types"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
 
 	networkapi "github.com/openshift/origin/pkg/network/apis/network"
 	"github.com/openshift/origin/pkg/network/common"
+	networkinformers "github.com/openshift/origin/pkg/network/generated/informers/internalversion"
 )
 
-func (node *OsdnNode) SubnetStartNode() {
-	node.watchSubnets()
+type hostSubnetWatcher struct {
+	oc          *ovsController
+	localIP     string
+	networkInfo *common.NetworkInfo
+
+	hostSubnetMap map[ktypes.UID]*networkapi.HostSubnet
 }
 
-func (node *OsdnNode) watchSubnets() {
-	funcs := common.InformerFuncs(&networkapi.HostSubnet{}, node.handleAddOrUpdateHostSubnet, node.handleDeleteHostSubnet)
-	node.networkInformers.Network().InternalVersion().HostSubnets().Informer().AddEventHandler(funcs)
+func newHostSubnetWatcher(oc *ovsController, localIP string, networkInfo *common.NetworkInfo) *hostSubnetWatcher {
+	return &hostSubnetWatcher{
+		oc:          oc,
+		localIP:     localIP,
+		networkInfo: networkInfo,
+
+		hostSubnetMap: make(map[ktypes.UID]*networkapi.HostSubnet),
+	}
+}
+
+func (hsw *hostSubnetWatcher) Start(networkInformers networkinformers.SharedInformerFactory) {
+	funcs := common.InformerFuncs(&networkapi.HostSubnet{}, hsw.handleAddOrUpdateHostSubnet, hsw.handleDeleteHostSubnet)
+	networkInformers.Network().InternalVersion().HostSubnets().Informer().AddEventHandler(funcs)
+}
+
+func (hsw *hostSubnetWatcher) handleAddOrUpdateHostSubnet(obj, _ interface{}, eventType watch.EventType) {
+	hs := obj.(*networkapi.HostSubnet)
+	glog.V(5).Infof("Watch %s event for HostSubnet %q", eventType, hs.Name)
+
+	if err := hsw.updateHostSubnet(hs); err != nil {
+		utilruntime.HandleError(err)
+	}
+}
+
+func (hsw *hostSubnetWatcher) handleDeleteHostSubnet(obj interface{}) {
+	hs := obj.(*networkapi.HostSubnet)
+	glog.V(5).Infof("Watch %s event for HostSubnet %q", watch.Deleted, hs.Name)
+
+	if err := hsw.deleteHostSubnet(hs); err != nil {
+		utilruntime.HandleError(err)
+	}
+}
+
+func (hsw *hostSubnetWatcher) updateHostSubnet(hs *networkapi.HostSubnet) error {
+	if hs.HostIP == hsw.localIP {
+		return nil
+	}
+	oldSubnet, exists := hsw.hostSubnetMap[hs.UID]
+	if exists {
+		if oldSubnet.HostIP == hs.HostIP {
+			return nil
+		} else {
+			// Delete old subnet rules (ignore errors)
+			hsw.oc.DeleteHostSubnetRules(oldSubnet)
+		}
+	}
+	if err := hsw.networkInfo.ValidateNodeIP(hs.HostIP); err != nil {
+		return fmt.Errorf("ignoring invalid subnet for node %s: %v", hs.HostIP, err)
+	}
+
+	hsw.hostSubnetMap[hs.UID] = hs
+
+	errList := []error{}
+	if err := hsw.oc.AddHostSubnetRules(hs); err != nil {
+		errList = append(errList, fmt.Errorf("error adding OVS flows for subnet %q: %v", hs.Subnet, err))
+	}
+	// Update multicast rules after all other changes have been processed
+	if err := hsw.updateVXLANMulticastRules(); err != nil {
+		errList = append(errList, fmt.Errorf("error updating OVS VXLAN multicast flows: %v", err))
+	}
+
+	return kerrors.NewAggregate(errList)
+}
+
+func (hsw *hostSubnetWatcher) deleteHostSubnet(hs *networkapi.HostSubnet) error {
+	if hs.HostIP == hsw.localIP {
+		return nil
+	}
+	if _, exists := hsw.hostSubnetMap[hs.UID]; !exists {
+		return nil
+	}
+
+	delete(hsw.hostSubnetMap, hs.UID)
+
+	errList := []error{}
+	if err := hsw.oc.DeleteHostSubnetRules(hs); err != nil {
+		errList = append(errList, fmt.Errorf("error deleting OVS flows for subnet %q: %v", hs.Subnet, err))
+	}
+	if err := hsw.updateVXLANMulticastRules(); err != nil {
+		errList = append(errList, fmt.Errorf("error updating OVS VXLAN multicast flows: %v", err))
+	}
+
+	return kerrors.NewAggregate(errList)
+}
+
+func (hsw *hostSubnetWatcher) updateVXLANMulticastRules() error {
+	remoteIPs := make([]string, 0, len(hsw.hostSubnetMap))
+	for _, subnet := range hsw.hostSubnetMap {
+		if subnet.HostIP != hsw.localIP {
+			remoteIPs = append(remoteIPs, subnet.HostIP)
+		}
+	}
+	return hsw.oc.UpdateVXLANMulticastFlows(remoteIPs)
 }
 
 func (node *OsdnNode) getLocalSubnet() (string, error) {
@@ -67,60 +164,4 @@ func (node *OsdnNode) getLocalSubnet() (string, error) {
 	}
 
 	return subnet.Subnet, nil
-}
-
-func (node *OsdnNode) handleAddOrUpdateHostSubnet(obj, _ interface{}, eventType watch.EventType) {
-	hs := obj.(*networkapi.HostSubnet)
-	glog.V(5).Infof("Watch %s event for HostSubnet %q", eventType, hs.Name)
-
-	if hs.HostIP == node.localIP {
-		return
-	}
-	oldSubnet, exists := node.hostSubnetMap[string(hs.UID)]
-	if exists {
-		if oldSubnet.HostIP == hs.HostIP {
-			return
-		} else {
-			// Delete old subnet rules
-			node.DeleteHostSubnetRules(oldSubnet)
-		}
-	}
-	if err := node.networkInfo.ValidateNodeIP(hs.HostIP); err != nil {
-		glog.Warningf("Ignoring invalid subnet for node %s: %v", hs.HostIP, err)
-		return
-	}
-	node.AddHostSubnetRules(hs)
-	node.hostSubnetMap[string(hs.UID)] = hs
-
-	// Update multicast rules after all other changes have been processed
-	node.updateVXLANMulticastRules()
-}
-
-func (node *OsdnNode) handleDeleteHostSubnet(obj interface{}) {
-	hs := obj.(*networkapi.HostSubnet)
-	glog.V(5).Infof("Watch %s event for HostSubnet %q", watch.Deleted, hs.Name)
-
-	if hs.HostIP == node.localIP {
-		return
-	}
-	if _, exists := node.hostSubnetMap[string(hs.UID)]; !exists {
-		return
-	}
-
-	delete(node.hostSubnetMap, string(hs.UID))
-	node.DeleteHostSubnetRules(hs)
-
-	node.updateVXLANMulticastRules()
-}
-
-func (node *OsdnNode) updateVXLANMulticastRules() {
-	remoteIPs := make([]string, 0, len(node.hostSubnetMap))
-	for _, subnet := range node.hostSubnetMap {
-		if subnet.HostIP != node.localIP {
-			remoteIPs = append(remoteIPs, subnet.HostIP)
-		}
-	}
-	if err := node.oc.UpdateVXLANMulticastFlows(remoteIPs); err != nil {
-		utilruntime.HandleError(fmt.Errorf("Error updating OVS VXLAN multicast flows: %v", err))
-	}
 }
