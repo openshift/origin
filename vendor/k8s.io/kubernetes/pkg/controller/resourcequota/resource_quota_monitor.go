@@ -74,12 +74,13 @@ type QuotaMonitor struct {
 	// After that it is safe to start them here, before that it is not.
 	informersStarted <-chan struct{}
 
-	// stopCh drives shutdown. If it is nil, it indicates that Run() has not been
-	// called yet. If it is non-nil, then when closed it indicates everything
-	// should shut down.
-	//
+	// stopCh drives shutdown. When a receive from it unblocks, monitors will shut down.
 	// This channel is also protected by monitorLock.
 	stopCh <-chan struct{}
+
+	// running tracks whether Run() has been called.
+	// it is protected by monitorLock.
+	running bool
 
 	// monitors are the producer of the resourceChanges queue
 	resourceChanges workqueue.RateLimitingInterface
@@ -100,18 +101,9 @@ type QuotaMonitor struct {
 	registry quota.Registry
 }
 
-// monitor runs a Controller with a local stop channel.
-type monitor struct {
-	controller cache.Controller
-
-	// stopCh stops Controller. If stopCh is nil, the monitor is considered to be
-	// not yet started.
-	stopCh chan struct{}
-}
-
-func NewQuotaMonitor(informersStarted <-chan struct{},informerFactory InformerFactory, ignoredResources map[schema.GroupResource]struct{}, resyncPeriod controller.ResyncPeriodFunc, replenishmentFunc ReplenishmentFunc, registry quota.Registry) *QuotaMonitor{
+func NewQuotaMonitor(informersStarted <-chan struct{}, informerFactory InformerFactory, ignoredResources map[schema.GroupResource]struct{}, resyncPeriod controller.ResyncPeriodFunc, replenishmentFunc ReplenishmentFunc, registry quota.Registry) *QuotaMonitor {
 	return &QuotaMonitor{
-		informersStarted:informersStarted,
+		informersStarted:  informersStarted,
 		informerFactory:   informerFactory,
 		ignoredResources:  ignoredResources,
 		resourceChanges:   workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "resource_quota_controller_resource_changes"),
@@ -119,6 +111,15 @@ func NewQuotaMonitor(informersStarted <-chan struct{},informerFactory InformerFa
 		replenishmentFunc: replenishmentFunc,
 		registry:          registry,
 	}
+}
+
+// monitor runs a Controller with a local stop channel.
+type monitor struct {
+	controller cache.Controller
+
+	// stopCh stops Controller. If stopCh is nil, the monitor is considered to be
+	// not yet started.
+	stopCh chan struct{}
 }
 
 // Run is intended to be called in a goroutine. Multiple calls of this is an
@@ -188,7 +189,7 @@ func (qm *QuotaMonitor) controllerFor(resource schema.GroupVersionResource) (cac
 // encountered, but will make an attempt to create a monitor for each resource
 // instead of immediately exiting on an error. It may be called before or after
 // Run. Monitors are NOT started as part of the sync. To ensure all existing
-// monitors are started, call startMonitors.
+// monitors are started, call StartMonitors.
 func (qm *QuotaMonitor) SyncMonitors(resources map[schema.GroupVersionResource]struct{}) error {
 	qm.monitorLock.Lock()
 	defer qm.monitorLock.Unlock()
@@ -247,13 +248,13 @@ func (qm *QuotaMonitor) SyncMonitors(resources map[schema.GroupVersionResource]s
 // StartMonitors ensures the current set of monitors are running. Any newly
 // started monitors will also cause shared informers to be started.
 //
-// If called before Run, startMonitors does nothing (as there is no stop channel
+// If called before Run, StartMonitors does nothing (as there is no stop channel
 // to support monitor/informer execution).
 func (qm *QuotaMonitor) StartMonitors() {
 	qm.monitorLock.Lock()
 	defer qm.monitorLock.Unlock()
 
-	if qm.stopCh == nil {
+	if !qm.running {
 		return
 	}
 
@@ -303,6 +304,7 @@ func (qm *QuotaMonitor) Run(stopCh <-chan struct{}) {
 	// Set up the stop channel.
 	qm.monitorLock.Lock()
 	qm.stopCh = stopCh
+	qm.running = true
 	qm.monitorLock.Unlock()
 
 	// Start monitors and begin change processing until the stop channel is

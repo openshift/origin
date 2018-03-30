@@ -19,3 +19,23 @@ func TestMigrate(t *testing.T) {
 	err := migrate.Migrate(client.ServiceClient(), serverID).ExtractErr()
 	th.AssertNoErr(t, err)
 }
+
+func TestLiveMigrate(t *testing.T) {
+	th.SetupHTTP()
+	defer th.TeardownHTTP()
+
+	mockLiveMigrateResponse(t, serverID)
+
+	host := "01c0cadef72d47e28a672a76060d492c"
+	blockMigration := false
+	diskOverCommit := true
+
+	migrationOpts := migrate.LiveMigrateOpts{
+		Host:           &host,
+		BlockMigration: &blockMigration,
+		DiskOverCommit: &diskOverCommit,
+	}
+
+	err := migrate.LiveMigrate(client.ServiceClient(), serverID, migrationOpts).ExtractErr()
+	th.AssertNoErr(t, err)
+}

@@ -31,7 +31,7 @@ load test_helper
   assert_success
 
   summary=$(govc device.info -vm $vm $eth0 | grep Summary: | awk -F: '{print $2}')
-  assert_equal "VM Network" $(collapse_ws $summary)
+  assert_equal "VM Network" "$(collapse_ws $summary)"
 
   run govc device.remove -vm $vm $eth0
   assert_success
@@ -77,6 +77,8 @@ load test_helper
 }
 
 @test "network standard backing" {
+  esx_env
+
   vm=$(new_empty_vm)
 
   run govc device.info -vm $vm ethernet-0
@@ -99,6 +101,8 @@ load test_helper
 }
 
 @test "network adapter" {
+  vcsim_env -esx
+
   vm=$(new_id)
   run govc vm.create -on=false -net.adapter=enoent $vm
   assert_failure "govc: unknown ethernet card type 'enoent'"
@@ -129,6 +133,8 @@ load test_helper
 }
 
 @test "network change hardware address" {
+  esx_env
+
   mac="00:00:0f$(dd bs=1 count=3 if=/dev/random 2>/dev/null | hexdump -v -e '/1 ":%02x"')"
   vm=$(new_id)
   run govc vm.create -on=false $vm
@@ -148,6 +154,11 @@ load test_helper
   id=$(new_id)
 
   run govc dvs.create "$id"
+  assert_success
+
+  local host=$GOVC_HOST
+
+  run govc dvs.add -dvs "$id" "$host"
   assert_success
 
   run govc dvs.portgroup.add -dvs "$id" -type earlyBinding -nports 16 "${id}-ExternalNetwork"

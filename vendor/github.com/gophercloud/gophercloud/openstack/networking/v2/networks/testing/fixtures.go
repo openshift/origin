@@ -20,7 +20,8 @@ const ListResponse = `
             "provider:segmentation_id": 9876543210,
             "provider:physical_network": null,
             "provider:network_type": "local",
-            "router:external": true
+            "router:external": true,
+            "port_security_enabled": true
         },
         {
             "status": "ACTIVE",
@@ -35,7 +36,8 @@ const ListResponse = `
             "provider:segmentation_id": 1234567890,
             "provider:physical_network": null,
             "provider:network_type": "local",
-            "router:external": false
+            "router:external": false,
+            "port_security_enabled": false
         }
     ]
 }`
@@ -55,7 +57,8 @@ const GetResponse = `
         "provider:segmentation_id": 9876543210,
         "provider:physical_network": null,
         "provider:network_type": "local",
-        "router:external": true
+        "router:external": true,
+        "port_security_enabled": true
     }
 }`
 
@@ -89,7 +92,8 @@ const CreateOptionalFieldsRequest = `
       "name": "public",
       "admin_state_up": true,
       "shared": true,
-      "tenant_id": "12345"
+      "tenant_id": "12345",
+      "availability_zone_hints": ["zone1", "zone2"]
   }
 }`
 

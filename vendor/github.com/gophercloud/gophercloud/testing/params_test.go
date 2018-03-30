@@ -4,6 +4,7 @@ import (
 	"net/url"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/gophercloud/gophercloud"
 	th "github.com/gophercloud/gophercloud/testhelper"
@@ -254,4 +255,22 @@ func TestBuildRequestBody(t *testing.T) {
 		_, err := gophercloud.BuildRequestBody(failCase.opts, "auth")
 		th.AssertDeepEquals(t, reflect.TypeOf(failCase.expected), reflect.TypeOf(err))
 	}
+
+	createdAt := time.Date(2018, 1, 4, 10, 00, 12, 0, time.UTC)
+	var complexFields = struct {
+		Username  string     `json:"username" required:"true"`
+		CreatedAt *time.Time `json:"-"`
+	}{
+		Username:  "jdoe",
+		CreatedAt: &createdAt,
+	}
+
+	expectedComplexFields := map[string]interface{}{
+		"username": "jdoe",
+	}
+
+	actual, err := gophercloud.BuildRequestBody(complexFields, "")
+	th.AssertNoErr(t, err)
+	th.AssertDeepEquals(t, expectedComplexFields, actual)
+
 }

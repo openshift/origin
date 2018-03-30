@@ -32,7 +32,6 @@ import (
 	registrationv1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -48,16 +47,16 @@ type fakeHookSource struct {
 	err   error
 }
 
-func (f *fakeHookSource) Webhooks() (*registrationv1beta1.ValidatingWebhookConfiguration, error) {
+func (f *fakeHookSource) Webhooks() *registrationv1beta1.ValidatingWebhookConfiguration {
 	if f.err != nil {
-		return nil, f.err
+		return nil
 	}
 	for i, h := range f.hooks {
 		if h.NamespaceSelector == nil {
 			f.hooks[i].NamespaceSelector = &metav1.LabelSelector{}
 		}
 	}
-	return &registrationv1beta1.ValidatingWebhookConfiguration{Webhooks: f.hooks}, nil
+	return &registrationv1beta1.ValidatingWebhookConfiguration{Webhooks: f.hooks}
 }
 
 func (f *fakeHookSource) Run(stopCh <-chan struct{}) {}
@@ -403,7 +402,7 @@ func TestValidate(t *testing.T) {
 					t.Errorf(" expected an error saying %q, but got %v", tt.errorContains, err)
 				}
 			}
-			if _, isStatusErr := err.(*apierrors.StatusError); err != nil && !isStatusErr {
+			if _, isStatusErr := err.(*errors.StatusError); err != nil && !isStatusErr {
 				t.Errorf("%s: expected a StatusError, got %T", name, err)
 			}
 		})
@@ -658,6 +657,11 @@ type fakeAuthenticationInfoResolver struct {
 }
 
 func (c *fakeAuthenticationInfoResolver) ClientConfigFor(server string) (*rest.Config, error) {
+	atomic.AddInt32(c.cachedCount, 1)
+	return c.restConfig, nil
+}
+
+func (c *fakeAuthenticationInfoResolver) ClientConfigForService(serviceName, serviceNamespace string) (*rest.Config, error) {
 	atomic.AddInt32(c.cachedCount, 1)
 	return c.restConfig, nil
 }

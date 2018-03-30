@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2015 VMware, Inc. All Rights Reserved.
+Copyright (c) 2015-2017 VMware, Inc. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,28 +19,19 @@ package view
 import (
 	"context"
 
-	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25"
 	"github.com/vmware/govmomi/vim25/methods"
 	"github.com/vmware/govmomi/vim25/types"
 )
 
 type ListView struct {
-	object.Common
+	ManagedObjectView
 }
 
 func NewListView(c *vim25.Client, ref types.ManagedObjectReference) *ListView {
 	return &ListView{
-		Common: object.NewCommon(c, ref),
+		ManagedObjectView: *NewManagedObjectView(c, ref),
 	}
-}
-
-func (v ListView) Destroy(ctx context.Context) error {
-	req := types.DestroyView{
-		This: v.Reference(),
-	}
-	_, err := methods.DestroyView(ctx, v.Client(), &req)
-	return err
 }
 
 func (v ListView) Add(ctx context.Context, refs []types.ManagedObjectReference) error {

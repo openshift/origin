@@ -35,8 +35,8 @@ import (
 	statustest "k8s.io/kubernetes/pkg/kubelet/status/testing"
 	"k8s.io/kubernetes/pkg/kubelet/volumemanager/cache"
 	volumetesting "k8s.io/kubernetes/pkg/volume/testing"
+	"k8s.io/kubernetes/pkg/volume/util"
 	"k8s.io/kubernetes/pkg/volume/util/types"
-	"k8s.io/kubernetes/pkg/volume/util/volumehelper"
 )
 
 func TestFindAndAddNewPods_FindAndRemoveDeletedPods(t *testing.T) {
@@ -74,7 +74,7 @@ func TestFindAndAddNewPods_FindAndRemoveDeletedPods(t *testing.T) {
 
 	fakePodManager.AddPod(pod)
 
-	podName := volumehelper.GetUniquePodName(pod)
+	podName := util.GetUniquePodName(pod)
 
 	generatedVolumeName := "fake-plugin/" + pod.Spec.Volumes[0].Name
 
@@ -111,6 +111,7 @@ func TestFindAndAddNewPods_FindAndRemoveDeletedPods(t *testing.T) {
 	}
 	podGet.Status.Phase = v1.PodFailed
 
+	fakePodManager.DeletePod(pod)
 	//pod is added to fakePodManager but fakeRuntime can not get the pod,so here findAndRemoveDeletedPods() will remove the pod and volumes it is mounted
 	dswp.findAndRemoveDeletedPods()
 
@@ -184,7 +185,7 @@ func TestFindAndAddNewPods_FindAndRemoveDeletedPods_Valid_Block_VolumeDevices(t 
 
 	fakePodManager.AddPod(pod)
 
-	podName := volumehelper.GetUniquePodName(pod)
+	podName := util.GetUniquePodName(pod)
 
 	generatedVolumeName := "fake-plugin/" + pod.Spec.Volumes[0].Name
 
@@ -220,7 +221,7 @@ func TestFindAndAddNewPods_FindAndRemoveDeletedPods_Valid_Block_VolumeDevices(t 
 		t.Fatalf("Failed to get pod by pod name: %s and namespace: %s", pod.Name, pod.Namespace)
 	}
 	podGet.Status.Phase = v1.PodFailed
-
+	fakePodManager.DeletePod(pod)
 	//pod is added to fakePodManager but fakeRuntime can not get the pod,so here findAndRemoveDeletedPods() will remove the pod and volumes it is mounted
 	dswp.findAndRemoveDeletedPods()
 

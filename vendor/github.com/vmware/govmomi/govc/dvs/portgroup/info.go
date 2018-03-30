@@ -24,7 +24,6 @@ import (
 	"github.com/vmware/govmomi/govc/cli"
 	"github.com/vmware/govmomi/govc/flags"
 	"github.com/vmware/govmomi/object"
-	"github.com/vmware/govmomi/vim25/methods"
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
 )
@@ -66,14 +65,21 @@ func (cmd *info) Process(ctx context.Context) error {
 	return nil
 }
 
+func (cmd *info) Usage() string {
+	return "DVS"
+}
+
+func (cmd *info) Description() string {
+	return `Portgroup info for DVS.
+
+Examples:
+  govc dvs.portgroup.info DSwitch
+  govc find / -type DistributedVirtualSwitch | xargs -n1 govc dvs.portgroup.info`
+}
+
 func (cmd *info) Run(ctx context.Context, f *flag.FlagSet) error {
 	if f.NArg() != 1 {
 		return flag.ErrHelp
-	}
-
-	client, err := cmd.Client()
-	if err != nil {
-		return err
 	}
 
 	finder, err := cmd.Finder()
@@ -125,14 +131,7 @@ func (cmd *info) Run(ctx context.Context, f *flag.FlagSet) error {
 		criteria.PortgroupKey = []string{dvp.Key}
 	}
 
-	// Prepare request
-	req := types.FetchDVPorts{
-		This:     dvs.Reference(),
-		Criteria: &criteria,
-	}
-
-	// Fetch ports
-	res, err := methods.FetchDVPorts(ctx, client, &req)
+	res, err := dvs.FetchDVPorts(ctx)
 	if err != nil {
 		return err
 	}
@@ -140,7 +139,7 @@ func (cmd *info) Run(ctx context.Context, f *flag.FlagSet) error {
 	var returnedPorts uint
 
 	// Iterate over returned ports
-	for _, port := range res.Returnval {
+	for _, port := range res {
 		portConfigSetting := port.Config.Setting.(*types.VMwareDVSPortSetting)
 		portVlan := portConfigSetting.Vlan.(*types.VmwareDistributedVirtualSwitchVlanIdSpec)
 		portVlanID := portVlan.VlanId

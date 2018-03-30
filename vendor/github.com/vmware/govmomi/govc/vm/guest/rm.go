@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2014-2015 VMware, Inc. All Rights Reserved.
+Copyright (c) 2014-2017 VMware, Inc. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -41,6 +41,17 @@ func (cmd *rm) Process(ctx context.Context) error {
 		return err
 	}
 	return nil
+}
+
+func (cmd *rm) Usage() string {
+	return "PATH"
+}
+
+func (cmd *rm) Description() string {
+	return `Remove file PATH in VM.
+
+Examples:
+  govc guest.rm -vm $name /tmp/foo.log`
 }
 
 func (cmd *rm) Run(ctx context.Context, f *flag.FlagSet) error {

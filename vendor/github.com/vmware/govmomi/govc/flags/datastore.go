@@ -76,9 +76,35 @@ func (f *DatastoreFlag) Process(ctx context.Context) error {
 	})
 }
 
+func (f *DatastoreFlag) Args(args []string) []object.DatastorePath {
+	var files []object.DatastorePath
+
+	for _, arg := range args {
+		var p object.DatastorePath
+
+		if p.FromString(arg) {
+			f.Name = p.Datastore
+		} else {
+			p.Datastore = f.Name
+			p.Path = arg
+		}
+
+		files = append(files, p)
+	}
+
+	return files
+}
+
 func (f *DatastoreFlag) Datastore() (*object.Datastore, error) {
 	if f.ds != nil {
 		return f.ds, nil
+	}
+
+	var p object.DatastorePath
+	if p.FromString(f.Name) {
+		// Example use case:
+		//   -ds "$(govc object.collect -s vm/foo config.files.logDirectory)"
+		f.Name = p.Datastore
 	}
 
 	finder, err := f.Finder()

@@ -225,7 +225,6 @@ func TestOldPodsRunning(t *testing.T) {
 	}
 }
 
-
 func rsWithUID(uid string) *extensions.ReplicaSet {
 	d := newDeployment("foo", 1, nil, nil, nil, map[string]string{"foo": "bar"})
 	rs := newReplicaSet(d, fmt.Sprintf("foo-%s", uid), 0)

@@ -84,7 +84,7 @@ func (cmd *download) DownloadFile(c *vim25.Client, b string) error {
 		p.Progress = logger
 	}
 
-	return c.Client.DownloadFile(dst, u, &p)
+	return c.Client.DownloadFile(context.Background(), dst, u, &p)
 }
 
 func (cmd *download) GenerateLogBundles(m *object.DiagnosticManager, host []*object.HostSystem) ([]types.DiagnosticManagerBundleInfo, error) {

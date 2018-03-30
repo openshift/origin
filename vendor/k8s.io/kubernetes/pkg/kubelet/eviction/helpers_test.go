@@ -30,8 +30,8 @@ import (
 	api "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/features"
 	statsapi "k8s.io/kubernetes/pkg/kubelet/apis/stats/v1alpha1"
-	"k8s.io/kubernetes/pkg/kubelet/cm"
 	evictionapi "k8s.io/kubernetes/pkg/kubelet/eviction/api"
+	kubetypes "k8s.io/kubernetes/pkg/kubelet/types"
 	"k8s.io/kubernetes/pkg/quota"
 )
 
@@ -61,7 +61,7 @@ func TestParseThresholdConfig(t *testing.T) {
 			expectThresholds:        []evictionapi.Threshold{},
 		},
 		"all memory eviction values": {
-			allocatableConfig:       []string{cm.NodeAllocatableEnforcementKey},
+			allocatableConfig:       []string{kubetypes.NodeAllocatableEnforcementKey},
 			evictionHard:            map[string]string{"memory.available": "150Mi"},
 			evictionSoft:            map[string]string{"memory.available": "300Mi"},
 			evictionSoftGracePeriod: map[string]string{"memory.available": "30s"},
@@ -72,7 +72,7 @@ func TestParseThresholdConfig(t *testing.T) {
 					Signal:   evictionapi.SignalAllocatableMemoryAvailable,
 					Operator: evictionapi.OpLessThan,
 					Value: evictionapi.ThresholdValue{
-						Quantity: quantityMustParse("0"),
+						Quantity: quantityMustParse("150Mi"),
 					},
 					MinReclaim: &evictionapi.ThresholdValue{
 						Quantity: quantityMustParse("0"),
@@ -287,6 +287,20 @@ func TestParseThresholdConfig(t *testing.T) {
 					},
 				},
 			},
+		},
+		"disable via 0%": {
+			allocatableConfig: []string{},
+			evictionHard:      map[string]string{"memory.available": "0%"},
+			evictionSoft:      map[string]string{"memory.available": "0%"},
+			expectErr:         false,
+			expectThresholds:  []evictionapi.Threshold{},
+		},
+		"disable via 100%": {
+			allocatableConfig: []string{},
+			evictionHard:      map[string]string{"memory.available": "100%"},
+			evictionSoft:      map[string]string{"memory.available": "100%"},
+			expectErr:         false,
+			expectThresholds:  []evictionapi.Threshold{},
 		},
 		"invalid-signal": {
 			allocatableConfig:       []string{},
@@ -920,7 +934,7 @@ type fakeSummaryProvider struct {
 	result *statsapi.Summary
 }
 
-func (f *fakeSummaryProvider) Get() (*statsapi.Summary, error) {
+func (f *fakeSummaryProvider) Get(updateStats bool) (*statsapi.Summary, error) {
 	return f.result, nil
 }
 
@@ -990,11 +1004,17 @@ func TestMakeSignalObservations(t *testing.T) {
 				InodesFree:     &nodeFsInodesFree,
 				Inodes:         &nodeFsInodes,
 			},
+			SystemContainers: []statsapi.ContainerStats{
+				{
+					Name: statsapi.SystemContainerPods,
+					Memory: &statsapi.MemoryStats{
+						AvailableBytes:  &nodeAvailableBytes,
+						WorkingSetBytes: &nodeWorkingSetBytes,
+					},
+				},
+			},
 		},
 		Pods: []statsapi.PodStats{},
-	}
-	provider := &fakeSummaryProvider{
-		result: fakeStats,
 	}
 	pods := []*v1.Pod{
 		podMaker("pod1", "ns1", "uuid1", 1),
@@ -1006,28 +1026,24 @@ func TestMakeSignalObservations(t *testing.T) {
 		fakeStats.Pods = append(fakeStats.Pods, newPodStats(pod, containerWorkingSetBytes))
 	}
 	res := quantityMustParse("5Gi")
-	capacityProvider := newMockCapacityProvider(v1.ResourceList{v1.ResourceMemory: *quantityMustParse("5Gi")}, v1.ResourceList{v1.ResourceMemory: *quantityMustParse("0Gi")})
 	// Allocatable thresholds are always 100%.  Verify that Threshold == Capacity.
 	if res.CmpInt64(int64(allocatableMemoryCapacity)) != 0 {
 		t.Errorf("Expected Threshold %v to be equal to value %v", res.Value(), allocatableMemoryCapacity)
 	}
-	actualObservations, statsFunc, err := makeSignalObservations(provider, capacityProvider, pods)
-	if err != nil {
-		t.Errorf("Unexpected err: %v", err)
-	}
+	actualObservations, statsFunc := makeSignalObservations(fakeStats)
 	allocatableMemQuantity, found := actualObservations[evictionapi.SignalAllocatableMemoryAvailable]
 	if !found {
 		t.Errorf("Expected allocatable memory observation, but didnt find one")
 	}
-	if allocatableMemQuantity.available.Value() != 2*containerWorkingSetBytes {
-		t.Errorf("Expected %v, actual: %v", containerWorkingSetBytes, allocatableMemQuantity.available.Value())
+	if expectedBytes := int64(nodeAvailableBytes); allocatableMemQuantity.available.Value() != expectedBytes {
+		t.Errorf("Expected %v, actual: %v", expectedBytes, allocatableMemQuantity.available.Value())
 	}
-	if expectedBytes := int64(allocatableMemoryCapacity); allocatableMemQuantity.capacity.Value() != expectedBytes {
+	if expectedBytes := int64(nodeWorkingSetBytes + nodeAvailableBytes); allocatableMemQuantity.capacity.Value() != expectedBytes {
 		t.Errorf("Expected %v, actual: %v", expectedBytes, allocatableMemQuantity.capacity.Value())
 	}
 	memQuantity, found := actualObservations[evictionapi.SignalMemoryAvailable]
 	if !found {
-		t.Errorf("Expected available memory observation: %v", err)
+		t.Error("Expected available memory observation")
 	}
 	if expectedBytes := int64(nodeAvailableBytes); memQuantity.available.Value() != expectedBytes {
 		t.Errorf("Expected %v, actual: %v", expectedBytes, memQuantity.available.Value())
@@ -1037,7 +1053,7 @@ func TestMakeSignalObservations(t *testing.T) {
 	}
 	nodeFsQuantity, found := actualObservations[evictionapi.SignalNodeFsAvailable]
 	if !found {
-		t.Errorf("Expected available nodefs observation: %v", err)
+		t.Error("Expected available nodefs observation")
 	}
 	if expectedBytes := int64(nodeFsAvailableBytes); nodeFsQuantity.available.Value() != expectedBytes {
 		t.Errorf("Expected %v, actual: %v", expectedBytes, nodeFsQuantity.available.Value())
@@ -1047,7 +1063,7 @@ func TestMakeSignalObservations(t *testing.T) {
 	}
 	nodeFsInodesQuantity, found := actualObservations[evictionapi.SignalNodeFsInodesFree]
 	if !found {
-		t.Errorf("Expected inodes free nodefs observation: %v", err)
+		t.Error("Expected inodes free nodefs observation")
 	}
 	if expected := int64(nodeFsInodesFree); nodeFsInodesQuantity.available.Value() != expected {
 		t.Errorf("Expected %v, actual: %v", expected, nodeFsInodesQuantity.available.Value())
@@ -1057,7 +1073,7 @@ func TestMakeSignalObservations(t *testing.T) {
 	}
 	imageFsQuantity, found := actualObservations[evictionapi.SignalImageFsAvailable]
 	if !found {
-		t.Errorf("Expected available imagefs observation: %v", err)
+		t.Error("Expected available imagefs observation")
 	}
 	if expectedBytes := int64(imageFsAvailableBytes); imageFsQuantity.available.Value() != expectedBytes {
 		t.Errorf("Expected %v, actual: %v", expectedBytes, imageFsQuantity.available.Value())
@@ -1067,7 +1083,7 @@ func TestMakeSignalObservations(t *testing.T) {
 	}
 	imageFsInodesQuantity, found := actualObservations[evictionapi.SignalImageFsInodesFree]
 	if !found {
-		t.Errorf("Expected inodes free imagefs observation: %v", err)
+		t.Error("Expected inodes free imagefs observation")
 	}
 	if expected := int64(imageFsInodesFree); imageFsInodesQuantity.available.Value() != expected {
 		t.Errorf("Expected %v, actual: %v", expected, imageFsInodesQuantity.available.Value())
@@ -1645,7 +1661,7 @@ func TestGetStarvedResources(t *testing.T) {
 	}
 }
 
-func testParsePercentage(t *testing.T) {
+func TestParsePercentage(t *testing.T) {
 	testCases := map[string]struct {
 		hasError bool
 		value    float32
@@ -1674,7 +1690,7 @@ func testParsePercentage(t *testing.T) {
 	}
 }
 
-func testCompareThresholdValue(t *testing.T) {
+func TestCompareThresholdValue(t *testing.T) {
 	testCases := []struct {
 		a, b  evictionapi.ThresholdValue
 		equal bool
@@ -1827,20 +1843,6 @@ func newResourceList(cpu, memory, disk string) v1.ResourceList {
 	}
 	if disk != "" {
 		res[v1.ResourceEphemeralStorage] = resource.MustParse(disk)
-	}
-	return res
-}
-
-func newEphemeralStorageResourceList(ephemeral, cpu, memory string) v1.ResourceList {
-	res := v1.ResourceList{}
-	if ephemeral != "" {
-		res[v1.ResourceEphemeralStorage] = resource.MustParse(ephemeral)
-	}
-	if cpu != "" {
-		res[v1.ResourceCPU] = resource.MustParse(cpu)
-	}
-	if memory != "" {
-		res[v1.ResourceMemory] = resource.MustParse("1Mi")
 	}
 	return res
 }

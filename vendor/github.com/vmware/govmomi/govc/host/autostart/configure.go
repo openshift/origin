@@ -39,11 +39,11 @@ func (cmd *configure) Register(ctx context.Context, f *flag.FlagSet) {
 	cmd.AutostartFlag, ctx = newAutostartFlag(ctx)
 	cmd.AutostartFlag.Register(ctx, f)
 
-	f.Var(flags.NewOptionalBool(&cmd.Enabled), "enabled", "")
-	f.Var(flags.NewInt32(&cmd.StartDelay), "start-delay", "")
-	f.StringVar(&cmd.StopAction, "stop-action", "", "")
-	f.Var(flags.NewInt32(&cmd.StopDelay), "stop-delay", "")
-	f.Var(flags.NewOptionalBool(&cmd.WaitForHeartbeat), "wait-for-heartbeat", "")
+	f.Var(flags.NewOptionalBool(&cmd.Enabled), "enabled", "Enable autostart")
+	f.Var(flags.NewInt32(&cmd.StartDelay), "start-delay", "Start delay")
+	f.StringVar(&cmd.StopAction, "stop-action", "", "Stop action")
+	f.Var(flags.NewInt32(&cmd.StopDelay), "stop-delay", "Stop delay")
+	f.Var(flags.NewOptionalBool(&cmd.WaitForHeartbeat), "wait-for-heartbeat", "Wait for hearbeat")
 }
 
 func (cmd *configure) Process(ctx context.Context) error {
@@ -51,10 +51,6 @@ func (cmd *configure) Process(ctx context.Context) error {
 		return err
 	}
 	return nil
-}
-
-func (cmd *configure) Usage() string {
-	return ""
 }
 
 func (cmd *configure) Run(ctx context.Context, f *flag.FlagSet) error {

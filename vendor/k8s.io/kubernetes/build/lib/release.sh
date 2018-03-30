@@ -28,11 +28,7 @@ readonly RELEASE_STAGE="${LOCAL_OUTPUT_ROOT}/release-stage"
 readonly RELEASE_TARS="${LOCAL_OUTPUT_ROOT}/release-tars"
 readonly RELEASE_IMAGES="${LOCAL_OUTPUT_ROOT}/release-images"
 
-KUBE_BUILD_HYPERKUBE=${KUBE_BUILD_HYPERKUBE:-n}
-if [[ -n "${KUBE_DOCKER_IMAGE_TAG-}" && -n "${KUBE_DOCKER_REGISTRY-}" ]]; then
-  # retain legacy behavior of automatically building hyperkube during releases
-  KUBE_BUILD_HYPERKUBE=y
-fi
+KUBE_BUILD_HYPERKUBE=${KUBE_BUILD_HYPERKUBE:-y}
 
 # Validate a ci version
 #
@@ -82,7 +78,6 @@ function kube::release::package_tarballs() {
   mkdir -p "${RELEASE_TARS}"
   kube::release::package_src_tarball &
   kube::release::package_client_tarballs &
-  kube::release::package_salt_tarball &
   kube::release::package_kube_manifests_tarball &
   kube::util::wait-for-jobs || { kube::log::error "previous tarball phase failed"; return 1; }
 
@@ -289,7 +284,11 @@ function kube::release::create_docker_images_for_server() {
     local images_dir="${RELEASE_IMAGES}/${arch}"
     mkdir -p "${images_dir}"
 
-    local -r docker_registry="gcr.io/google_containers"
+    local -r docker_registry="k8s.gcr.io"
+    # TODO(thockin): Remove all traces of this after 1.10 release.
+    # The following is the old non-indirected registry name.  To ease the
+    # transition to the new name (above), we are double-tagging saved images.
+    local -r deprecated_registry="gcr.io/google_containers"
     # Docker tags cannot contain '+'
     local docker_tag="${KUBE_GIT_VERSION/+/_}"
     if [[ -z "${docker_tag}" ]]; then
@@ -310,14 +309,17 @@ function kube::release::create_docker_images_for_server() {
       local docker_file_path="${docker_build_path}/Dockerfile"
       local binary_file_path="${binary_dir}/${binary_name}"
       local docker_image_tag="${docker_registry}"
+      local deprecated_image_tag="${deprecated_registry}"
       if [[ ${arch} == "amd64" ]]; then
         # If we are building a amd64 docker image, preserve the original
         # image name
         docker_image_tag+="/${binary_name}:${docker_tag}"
+        deprecated_image_tag+="/${binary_name}:${docker_tag}"
       else
         # If we are building a docker image for another architecture,
         # append the arch in the image tag
         docker_image_tag+="/${binary_name}-${arch}:${docker_tag}"
+        deprecated_image_tag+="/${binary_name}-${arch}:${docker_tag}"
       fi
 
 
@@ -329,7 +331,8 @@ function kube::release::create_docker_images_for_server() {
         printf " FROM ${base_image} \n ADD ${binary_name} /usr/local/bin/${binary_name}\n" > ${docker_file_path}
 
         "${DOCKER[@]}" build --pull -q -t "${docker_image_tag}" ${docker_build_path} >/dev/null
-        "${DOCKER[@]}" save "${docker_image_tag}" > "${binary_dir}/${binary_name}.tar"
+        "${DOCKER[@]}" tag "${docker_image_tag}" ${deprecated_image_tag} >/dev/null
+        "${DOCKER[@]}" save "${docker_image_tag}" ${deprecated_image_tag} > "${binary_dir}/${binary_name}.tar"
         echo "${docker_tag}" > ${binary_dir}/${binary_name}.docker_tag
         rm -rf ${docker_build_path}
         ln "${binary_dir}/${binary_name}.tar" "${images_dir}/"
@@ -348,6 +351,7 @@ function kube::release::create_docker_images_for_server() {
           # not a release
           kube::log::status "Deleting docker image ${docker_image_tag}"
           "${DOCKER[@]}" rmi ${docker_image_tag} &>/dev/null || true
+          "${DOCKER[@]}" rmi ${deprecated_image_tag} &>/dev/null || true
         fi
       ) &
     done
@@ -363,71 +367,38 @@ function kube::release::create_docker_images_for_server() {
 
 }
 
-# Package up the salt configuration tree.  This is an optional helper to getting
-# a cluster up and running.
-function kube::release::package_salt_tarball() {
-  kube::log::status "Building tarball: salt"
-
-  local release_stage="${RELEASE_STAGE}/salt/kubernetes"
-  rm -rf "${release_stage}"
-  mkdir -p "${release_stage}"
-
-  cp -R "${KUBE_ROOT}/cluster/saltbase" "${release_stage}/"
-
-  # TODO(#3579): This is a temporary hack. It gathers up the yaml,
-  # yaml.in, json files in cluster/addons (minus any demos) and overlays
-  # them into kube-addons, where we expect them. (This pipeline is a
-  # fancy copy, stripping anything but the files we don't want.)
-  local objects
-  objects=$(cd "${KUBE_ROOT}/cluster/addons" && find . \( -name \*.yaml -or -name \*.yaml.in -or -name \*.json \) | grep -v demo)
-  tar c -C "${KUBE_ROOT}/cluster/addons" ${objects} | tar x -C "${release_stage}/saltbase/salt/kube-addons"
-
-  kube::release::clean_cruft
-
-  local package_name="${RELEASE_TARS}/kubernetes-salt.tar.gz"
-  kube::release::create_tarball "${package_name}" "${release_stage}/.."
-}
-
-# This will pack kube-system manifests files for distros without using salt
-# such as GCI and Ubuntu Trusty. We directly copy manifests from
-# cluster/addons and cluster/saltbase/salt. The script of cluster initialization
-# will remove the salt configuration and evaluate the variables in the manifests.
+# This will pack kube-system manifests files for distros such as COS.
 function kube::release::package_kube_manifests_tarball() {
   kube::log::status "Building tarball: manifests"
 
-  local salt_dir="${KUBE_ROOT}/cluster/saltbase/salt"
+  local src_dir="${KUBE_ROOT}/cluster/gce/manifests"
 
   local release_stage="${RELEASE_STAGE}/manifests/kubernetes"
   rm -rf "${release_stage}"
 
-  mkdir -p "${release_stage}"
-  cp "${salt_dir}/kube-registry-proxy/kube-registry-proxy.yaml" "${release_stage}/"
-  cp "${salt_dir}/kube-proxy/kube-proxy.manifest" "${release_stage}/"
-
-  local gci_dst_dir="${release_stage}/gci-trusty"
-  mkdir -p "${gci_dst_dir}"
-  cp "${salt_dir}/cluster-autoscaler/cluster-autoscaler.manifest" "${gci_dst_dir}/"
-  cp "${salt_dir}/etcd/etcd.manifest" "${gci_dst_dir}"
-  cp "${salt_dir}/kube-scheduler/kube-scheduler.manifest" "${gci_dst_dir}"
-  cp "${salt_dir}/kube-apiserver/kube-apiserver.manifest" "${gci_dst_dir}"
-  cp "${salt_dir}/kube-apiserver/abac-authz-policy.jsonl" "${gci_dst_dir}"
-  cp "${salt_dir}/kube-controller-manager/kube-controller-manager.manifest" "${gci_dst_dir}"
-  cp "${salt_dir}/kube-addons/kube-addon-manager.yaml" "${gci_dst_dir}"
-  cp "${salt_dir}/l7-gcp/glbc.manifest" "${gci_dst_dir}"
-  cp "${salt_dir}/rescheduler/rescheduler.manifest" "${gci_dst_dir}/"
-  cp "${salt_dir}/e2e-image-puller/e2e-image-puller.manifest" "${gci_dst_dir}/"
-  cp "${KUBE_ROOT}/cluster/gce/gci/configure-helper.sh" "${gci_dst_dir}/gci-configure-helper.sh"
-  cp "${KUBE_ROOT}/cluster/gce/gci/health-monitor.sh" "${gci_dst_dir}/health-monitor.sh"
-  cp "${KUBE_ROOT}/cluster/gce/container-linux/configure-helper.sh" "${gci_dst_dir}/container-linux-configure-helper.sh"
-  cp -r "${salt_dir}/kube-admission-controls/limit-range" "${gci_dst_dir}"
+  local dst_dir="${release_stage}/gci-trusty"
+  mkdir -p "${dst_dir}"
+  cp "${src_dir}/kube-proxy.manifest" "${dst_dir}/"
+  cp "${src_dir}/cluster-autoscaler.manifest" "${dst_dir}/"
+  cp "${src_dir}/etcd.manifest" "${dst_dir}"
+  cp "${src_dir}/kube-scheduler.manifest" "${dst_dir}"
+  cp "${src_dir}/kube-apiserver.manifest" "${dst_dir}"
+  cp "${src_dir}/abac-authz-policy.jsonl" "${dst_dir}"
+  cp "${src_dir}/kube-controller-manager.manifest" "${dst_dir}"
+  cp "${src_dir}/kube-addon-manager.yaml" "${dst_dir}"
+  cp "${src_dir}/glbc.manifest" "${dst_dir}"
+  cp "${src_dir}/rescheduler.manifest" "${dst_dir}/"
+  cp "${src_dir}/e2e-image-puller.manifest" "${dst_dir}/"
+  cp "${KUBE_ROOT}/cluster/gce/gci/configure-helper.sh" "${dst_dir}/gci-configure-helper.sh"
+  cp "${KUBE_ROOT}/cluster/gce/gci/health-monitor.sh" "${dst_dir}/health-monitor.sh"
   local objects
   objects=$(cd "${KUBE_ROOT}/cluster/addons" && find . \( -name \*.yaml -or -name \*.yaml.in -or -name \*.json \) | grep -v demo)
-  tar c -C "${KUBE_ROOT}/cluster/addons" ${objects} | tar x -C "${gci_dst_dir}"
+  tar c -C "${KUBE_ROOT}/cluster/addons" ${objects} | tar x -C "${dst_dir}"
   # Merge GCE-specific addons with general purpose addons.
   local gce_objects
   gce_objects=$(cd "${KUBE_ROOT}/cluster/gce/addons" && find . \( -name \*.yaml -or -name \*.yaml.in -or -name \*.json \) \( -not -name \*demo\* \))
   if [[ -n "${gce_objects}" ]]; then
-    tar c -C "${KUBE_ROOT}/cluster/gce/addons" ${gce_objects} | tar x -C "${gci_dst_dir}"
+    tar c -C "${KUBE_ROOT}/cluster/gce/addons" ${gce_objects} | tar x -C "${dst_dir}"
   fi
 
   kube::release::clean_cruft
@@ -476,8 +447,7 @@ function kube::release::package_test_tarball() {
 # using the bundled cluster/get-kube-binaries.sh script).
 # Included in this tarball:
 #   - Cluster spin up/down scripts and configs for various cloud providers
-#   - Tarballs for salt configs that are ready to be uploaded
-#     to master by whatever means appropriate.
+#   - Tarballs for manifest configs that are ready to be uploaded
 #   - Examples (which may or may not still work)
 #   - The remnants of the docs/ directory
 function kube::release::package_final_tarball() {
@@ -496,13 +466,10 @@ Client binaries are no longer included in the Kubernetes final tarball.
 Run cluster/get-kube-binaries.sh to download client and server binaries.
 EOF
 
-  # We want everything in /cluster except saltbase.  That is only needed on the
-  # server.
+  # We want everything in /cluster.
   cp -R "${KUBE_ROOT}/cluster" "${release_stage}/"
-  rm -rf "${release_stage}/cluster/saltbase"
 
   mkdir -p "${release_stage}/server"
-  cp "${RELEASE_TARS}/kubernetes-salt.tar.gz" "${release_stage}/server/"
   cp "${RELEASE_TARS}/kubernetes-manifests.tar.gz" "${release_stage}/server/"
   cat <<EOF > "${release_stage}/server/README"
 Server binary tarballs are no longer included in the Kubernetes final tarball.
@@ -521,7 +488,6 @@ EOF
   cp -R "${KUBE_ROOT}/docs" "${release_stage}/"
   cp "${KUBE_ROOT}/README.md" "${release_stage}/"
   cp "${KUBE_ROOT}/Godeps/LICENSES" "${release_stage}/"
-  cp "${KUBE_ROOT}/Vagrantfile" "${release_stage}/"
 
   echo "${KUBE_GIT_VERSION}" > "${release_stage}/version"
 

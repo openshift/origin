@@ -43,3 +43,47 @@ func TestListInterfacesAllPages(t *testing.T) {
 	_, err = attachinterfaces.ExtractInterfaces(allPages)
 	th.AssertNoErr(t, err)
 }
+
+func TestGetInterface(t *testing.T) {
+	th.SetupHTTP()
+	defer th.TeardownHTTP()
+	HandleInterfaceGetSuccessfully(t)
+
+	expected := GetInterfaceExpected
+
+	serverID := "b07e7a3b-d951-4efc-a4f9-ac9f001afb7f"
+	interfaceID := "0dde1598-b374-474e-986f-5b8dd1df1d4e"
+
+	actual, err := attachinterfaces.Get(client.ServiceClient(), serverID, interfaceID).Extract()
+	th.AssertNoErr(t, err)
+	th.CheckDeepEquals(t, &expected, actual)
+}
+
+func TestCreateInterface(t *testing.T) {
+	th.SetupHTTP()
+	defer th.TeardownHTTP()
+	HandleInterfaceCreateSuccessfully(t)
+
+	expected := CreateInterfacesExpected
+
+	serverID := "b07e7a3b-d951-4efc-a4f9-ac9f001afb7f"
+	networkID := "8a5fe506-7e9f-4091-899b-96336909d93c"
+
+	actual, err := attachinterfaces.Create(client.ServiceClient(), serverID, attachinterfaces.CreateOpts{
+		NetworkID: networkID,
+	}).Extract()
+	th.AssertNoErr(t, err)
+	th.CheckDeepEquals(t, &expected, actual)
+}
+
+func TestDeleteInterface(t *testing.T) {
+	th.SetupHTTP()
+	defer th.TeardownHTTP()
+	HandleInterfaceDeleteSuccessfully(t)
+
+	serverID := "b07e7a3b-d951-4efc-a4f9-ac9f001afb7f"
+	portID := "0dde1598-b374-474e-986f-5b8dd1df1d4e"
+
+	err := attachinterfaces.Delete(client.ServiceClient(), serverID, portID).ExtractErr()
+	th.AssertNoErr(t, err)
+}

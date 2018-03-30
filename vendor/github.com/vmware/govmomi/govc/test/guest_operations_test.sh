@@ -6,6 +6,8 @@
 
 . "$(dirname "$0")"/test_helper.bash
 
+esx_env
+
 import_ttylinux_vmdk
 
 export GOVC_GUEST_LOGIN=root:password
@@ -53,7 +55,10 @@ df -h
 cp /etc/motd /data
 EOF
 
-  govc guest.chmod -perm 755 "$script"
+  govc guest.chown 65534 "$script"
+  govc guest.chown 65534:65534 "$script"
+  govc guest.ls "$script" | grep 65534
+  govc guest.chmod 0755 "$script"
   pid=$(govc guest.start "$script" '>&' /tmp/disk.log)
   status=$(govc guest.ps -p "$pid" -json -X | jq .ProcessInfo[].ExitCode)
   govc guest.download /tmp/disk.log -
@@ -63,6 +68,9 @@ EOF
 
   echo "Writing some data to the disks..."
   for d in /etc /data ; do
+    govc guest.touch "$d/motd.bak"
+    govc guest.touch -d "$(date -d '1 day ago')" "$d/motd"
+    govc guest.ls "$d/motd"
     govc guest.download $d/motd - | grep Chop
   done
   govc version | govc guest.upload -f - /etc/motd
@@ -95,6 +103,11 @@ EOF
 
     govc guest.rmdir /data/foo 2>/dev/null && exit 1 # should fail
     govc guest.rmdir /data/foo/bar/baz
+    dir=$(govc guest.mktemp -d -p /data/foo -s govc)
+    file=$(govc guest.mktemp -p "$dir")
+    govc guest.mv -n "$(govc guest.mktemp)" "$file" 2>/dev/null && exit 1 # should fail
+    govc guest.mv "$file" "${file}-old"
+    govc guest.mv "$dir" "${dir}-old"
     govc guest.rmdir -r /data/foo
     govc guest.ls /data | grep -v foo
   else

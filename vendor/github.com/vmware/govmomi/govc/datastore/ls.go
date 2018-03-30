@@ -86,6 +86,8 @@ func isInvalid(err error) bool {
 }
 
 func (cmd *ls) Run(ctx context.Context, f *flag.FlagSet) error {
+	args := cmd.Args(f.Args())
+
 	ds, err := cmd.Datastore()
 	if err != nil {
 		return err
@@ -96,9 +98,8 @@ func (cmd *ls) Run(ctx context.Context, f *flag.FlagSet) error {
 		return err
 	}
 
-	args := f.Args()
 	if len(args) == 0 {
-		args = []string{""}
+		args = append(args, object.DatastorePath{})
 	}
 
 	result := &listOutput{
@@ -106,7 +107,9 @@ func (cmd *ls) Run(ctx context.Context, f *flag.FlagSet) error {
 		cmd: cmd,
 	}
 
-	for _, arg := range args {
+	for _, p := range args {
+		arg := p.Path
+
 		spec := types.HostDatastoreBrowserSearchSpec{
 			MatchPattern: []string{"*"},
 		}

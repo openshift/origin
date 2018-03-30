@@ -39,7 +39,7 @@ func (flag *AuthFlag) String() string {
 }
 
 func (flag *AuthFlag) Set(s string) error {
-	c := strings.Split(s, ":")
+	c := strings.SplitN(s, ":", 2)
 	if len(c) > 0 {
 		flag.auth.Username = c[0]
 		if len(c) > 1 {

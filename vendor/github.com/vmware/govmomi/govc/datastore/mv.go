@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2014-2015 VMware, Inc. All Rights Reserved.
+Copyright (c) 2014-2018 VMware, Inc. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,36 +18,18 @@ package datastore
 
 import (
 	"context"
-	"errors"
 	"flag"
+	"fmt"
 
 	"github.com/vmware/govmomi/govc/cli"
-	"github.com/vmware/govmomi/govc/flags"
-	"github.com/vmware/govmomi/object"
 )
 
 type mv struct {
-	*flags.DatastoreFlag
-
-	force bool
+	target
 }
 
 func init() {
 	cli.Register("datastore.mv", &mv{})
-}
-
-func (cmd *mv) Register(ctx context.Context, f *flag.FlagSet) {
-	cmd.DatastoreFlag, ctx = flags.NewDatastoreFlag(ctx)
-	cmd.DatastoreFlag.Register(ctx, f)
-
-	f.BoolVar(&cmd.force, "f", false, "If true, overwrite any identically named file at the destination")
-}
-
-func (cmd *mv) Process(ctx context.Context) error {
-	if err := cmd.DatastoreFlag.Process(ctx); err != nil {
-		return err
-	}
-	return nil
 }
 
 func (cmd *mv) Usage() string {
@@ -65,36 +47,31 @@ Examples:
 func (cmd *mv) Run(ctx context.Context, f *flag.FlagSet) error {
 	args := f.Args()
 	if len(args) != 2 {
-		return errors.New("SRC and DST arguments are required")
+		return flag.ErrHelp
 	}
 
-	c, err := cmd.Client()
+	m, err := cmd.FileManager()
 	if err != nil {
 		return err
 	}
-
-	dc, err := cmd.Datacenter()
-	if err != nil {
-		return err
-	}
-
-	// TODO: support cross-datacenter move
 
 	src, err := cmd.DatastorePath(args[0])
 	if err != nil {
 		return err
 	}
 
-	dst, err := cmd.DatastorePath(args[1])
+	dst, err := cmd.target.ds.DatastorePath(args[1])
 	if err != nil {
 		return err
 	}
 
-	m := object.NewFileManager(c)
-	task, err := m.MoveDatastoreFile(ctx, src, dc, dst, dc, cmd.force)
-	if err != nil {
-		return err
+	mv := m.MoveFile
+	if cmd.kind {
+		mv = m.Move
 	}
 
-	return task.Wait(ctx)
+	logger := cmd.ProgressLogger(fmt.Sprintf("Moving %s to %s...", src, dst))
+	defer logger.Wait()
+
+	return mv(m.WithProgress(ctx, logger), src, dst)
 }

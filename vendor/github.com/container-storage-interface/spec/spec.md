@@ -142,6 +142,23 @@ Plugins. A unified Plugin component supplies both the Controller
 Service and Node Service.
 ```
 
+```
+                            CO "Node" Host(s)
++-------------------------------------------+
+|                                           |
+|  +------------+           +------------+  |
+|  |     CO     |   gRPC    |    Node    |  |
+|  |            +----------->   Plugin   |  |
+|  +------------+           +------------+  |
+|                                           |
++-------------------------------------------+
+
+Figure 4: Headless Plugin deployment, only the CO Node hosts run
+Plugins. A Node-only Plugin component supplies only the Node Service.
+Its GetPluginCapabilities RPC does not report the CONTROLLER_SERVICE
+capability.
+```
+
 ### Volume Lifecycle
 
 ```
@@ -161,8 +178,36 @@ Service and Node Service.
                 | PUBLISHED  |
                 +------------+
 
-Figure 4: The lifecycle of a dynamically provisioned volume, from
+Figure 5: The lifecycle of a dynamically provisioned volume, from
 creation to destruction.
+```
+
+```
+   CreateVolume +------------+ DeleteVolume
+ +------------->|  CREATED   +--------------+
+ |              +---+----+---+              |
+ |       Controller |    | Controller       v
++++         Publish |    | Unpublish       +++
+|X|          Volume |    | Volume          | |
++-+             +---v----+---+             +-+
+                | NODE_READY |
+                +---+----^---+
+               Node |    | Node
+              Stage |    | Unstage
+             Volume |    | Volume
+                +---v----+---+
+                |  VOL_READY |
+                +------------+
+               Node |    | Node
+            Publish |    | Unpublish
+             Volume |    | Volume
+                +---v----+---+
+                | PUBLISHED  |
+                +------------+
+
+Figure 6: The lifecycle of a dynamically provisioned volume, from
+creation to destruction, when the Node Plugin advertises the
+STAGE_UNSTAGE_VOLUME capability.
 ```
 
 ```
@@ -182,7 +227,7 @@ creation to destruction.
    Volume
    Capabilities
 
-Figure 5: The lifecycle of a pre-provisioned volume that requires
+Figure 7: The lifecycle of a pre-provisioned volume that requires
 controller to publish to a node (`ControllerPublishVolume`) prior to
 publishing on the node (`NodePublishVolume`).
 ```
@@ -199,7 +244,7 @@ Publish |    | Unpublish
     | PUBLISHED  |
     +------------+
 
-Figure 6: Plugins may forego other lifecycle steps by contraindicating
+Figure 8: Plugins may forego other lifecycle steps by contraindicating
 them via the capabilities API. Interactions with the volumes of such
 plugins is reduced to `NodePublishVolume` and `NodeUnpublishVolume`
 calls.
@@ -225,7 +270,9 @@ Each SP MUST provide:
 
 ```protobuf
 syntax = "proto3";
-package csi;
+package csi.v0;
+
+option go_package = "csi";
 ```
 
 There are three sets of RPCs:
@@ -236,11 +283,14 @@ There are three sets of RPCs:
 
 ```protobuf
 service Identity {
-  rpc GetSupportedVersions (GetSupportedVersionsRequest)
-    returns (GetSupportedVersionsResponse) {}
-
   rpc GetPluginInfo(GetPluginInfoRequest)
     returns (GetPluginInfoResponse) {}
+
+  rpc GetPluginCapabilities(GetPluginCapabilitiesRequest)
+    returns (GetPluginCapabilitiesResponse) {}
+
+  rpc Probe (ProbeRequest)
+    returns (ProbeResponse) {}
 }
 
 service Controller {
@@ -265,25 +315,25 @@ service Controller {
   rpc GetCapacity (GetCapacityRequest)
     returns (GetCapacityResponse) {}
 
-  rpc ControllerProbe (ControllerProbeRequest)
-    returns (ControllerProbeResponse) {}
-
   rpc ControllerGetCapabilities (ControllerGetCapabilitiesRequest)
     returns (ControllerGetCapabilitiesResponse) {}  
 }
 
 service Node {
+  rpc NodeStageVolume (NodeStageVolumeRequest)
+    returns (NodeStageVolumeResponse) {}
+
+  rpc NodeUnstageVolume (NodeUnstageVolumeRequest)
+    returns (NodeUnstageVolumeResponse) {}
+
   rpc NodePublishVolume (NodePublishVolumeRequest)
     returns (NodePublishVolumeResponse) {}
 
   rpc NodeUnpublishVolume (NodeUnpublishVolumeRequest)
     returns (NodeUnpublishVolumeResponse) {}
 
-  rpc GetNodeID (GetNodeIDRequest)
-    returns (GetNodeIDResponse) {}
-
-  rpc NodeProbe (NodeProbeRequest)
-    returns (NodeProbeResponse) {}
+  rpc NodeGetId (NodeGetIdRequest)
+    returns (NodeGetIdResponse) {}
 
   rpc NodeGetCapabilities (NodeGetCapabilitiesRequest)
     returns (NodeGetCapabilitiesResponse) {}
@@ -319,11 +369,10 @@ Most gRPC libraries provide helper methods to set and read the status fields.
 
 The status `code` MUST contain a [canonical error code](https://github.com/grpc/grpc-go/blob/master/codes/codes.go). COs must handle all valid error codes. Each RPC defines a set of gRPC error codes that MUST be returned by the plugin when specified conditions are encountered. In addition to those, if the conditions defined below are encountered, the plugin MUST return the associated gRPC error code.
 
-Condition | gRPC Code | Description | Recovery Behavior
-| --- | --- | --- | --- |
-| Unsupported request version | 3 INVALID_ARGUMENT | Indicates that the version specified in the request is not supported by the Plugin. | Caller MUST NOT retry; caller SHOULD call `GetSupportedVersions` to discover which CSI versions the Plugin supports. |
+| Condition | gRPC Code | Description | Recovery Behavior |
+|-----------|-----------|-------------|-------------------|
 | Missing required field | 3 INVALID_ARGUMENT | Indicates that a required field is missing from the request. More human-readable information MAY be provided in the `error_description` field. | Caller MUST fix the request by adding the missing required field before retrying. |
-| Invalid or unsupported field in the request | 3 INVALID_ARGUMENT | Indicates that the one ore more fields in this field is either not allowed by the Plugin or has an invalid value. More human-readable information MAY be provided in the gRPC `status.message` field. | Caller MUST fix the the field before retrying. |
+| Invalid or unsupported field in the request | 3 INVALID_ARGUMENT | Indicates that the one ore more fields in this field is either not allowed by the Plugin or has an invalid value. More human-readable information MAY be provided in the gRPC `status.message` field. | Caller MUST fix the field before retrying. |
 
 The status `message` MUST contain a human readable description of error, if the status `code` is not `OK`.
 This string MAY be surfaced by CO to end users.
@@ -332,30 +381,14 @@ The status `details` MUST be empty. In the future, this spec may require `detail
 
 ### Identity Service RPC
 
-Identity service RPCs allow a CO to negotiate an API protocol version that MAY be used for subsequent RPCs across all CSI services with respect to a particular CSI plugin.
-The general flow of the success case is as follows (protos illustrated in YAML for brevity):
+Identity service RPCs allow a CO to query a plugin for capabilities, health, and other metadata.
+The general flow of the success case MAY be as follows (protos illustrated in YAML for brevity):
 
-1. CO queries supported versions via Identity RPC. The CO is expected to gracefully handle, in the manner of its own choosing, the case wherein the returned `supported_versions` from the plugin are not supported by the CO.
-
-```
-   # CO --(GetSupportedVersions)--> Plugin
-   request: {}
-   response:
-      supported_versions:
-        - major: 0
-          minor: 1
-          patch: 0
-```
-
-2. CO queries metadata via Identity RPC, using a supported API protocol version (as per the reply from the prior step): the requested `version` MUST match an entry from the aforementioned `supported_versions` array.
+1. CO queries metadata via Identity RPC.
 
 ```
    # CO --(GetPluginInfo)--> Plugin
    request:
-     version:
-       major: 0
-       minor: 1
-       patch: 0
    response:
       name: org.foo.whizbang.super-plugin
       vendor_version: blue-green
@@ -363,45 +396,29 @@ The general flow of the success case is as follows (protos illustrated in YAML f
         baz: qaz
 ```
 
-#### `GetSupportedVersions`
+2. CO queries available capabilities of the plugin.
 
-A Plugin SHALL reply with a list of supported CSI versions.
-The initial version of the CSI specification is 0.1.0 (in *major.minor.patch* format).
-A CO MAY execute plugin RPCs in the manner prescribed by any such supported CSI version.
-The versions returned by this call are orthogonal to any vendor-specific version metadata (see `vendor_version` in `GetPluginInfoResponse`).
-
-NOTE: Changes to this RPC should be approached very conservatively since the request/response protobufs here are critical for proper client-server version negotiation.
-Future changes to this RPC MUST **guarantee** backwards compatibility.
-
-```protobuf
-message GetSupportedVersionsRequest {
-}
-
-message GetSupportedVersionsResponse {
-  // All the CSI versions that the Plugin supports. This field is
-  // REQUIRED.
-  repeated Version supported_versions = 1;
-}
-
-// Specifies a version in Semantic Version 2.0 format.
-// (http://semver.org/spec/v2.0.0.html)
-message Version {
-  uint32 major = 1;  // This field is REQUIRED.
-  uint32 minor = 2;  // This field is REQUIRED.
-  uint32 patch = 3;  // This field is REQUIRED.
-}
+```
+   # CO --(GetPluginCapabilities)--> Plugin
+   request:
+   response:
+     capabilities:
+       - service:
+           type: CONTROLLER_SERVICE
 ```
 
-##### GetSupportedVersions Errors
+3. CO queries the readiness of the plugin.
 
-If the plugin is unable to complete the GetSupportedVersions call successfully, it MUST return a non-ok gRPC code in the gRPC status.
+```
+   # CO --(Probe)--> Plugin
+   request:
+   response: {}
+```
 
 #### `GetPluginInfo`
 
 ```protobuf
 message GetPluginInfoRequest {
-  // The API version assumed by the CO. This is a REQUIRED field.
-  Version version = 1;
 }
 
 message GetPluginInfoResponse {
@@ -426,19 +443,100 @@ message GetPluginInfoResponse {
 
 If the plugin is unable to complete the GetPluginInfo call successfully, it MUST return a non-ok gRPC code in the gRPC status.
 
+#### `GetPluginCapabilities`
+
+This REQUIRED RPC allows the CO to query the supported capabilities of the Plugin "as a whole": it is the grand sum of all capabilities of all instances of the Plugin software, as it is intended to be deployed.
+All instances of the same version (see `vendor_version` of `GetPluginInfoResponse`) of the Plugin SHALL return the same set of capabilities, regardless of both: (a) where instances are deployed on the cluster as well as; (b) which RPCs an instance is serving.
+
+```protobuf
+message GetPluginCapabilitiesRequest {
+}
+
+message GetPluginCapabilitiesResponse {
+  // All the capabilities that the controller service supports. This
+  // field is OPTIONAL.
+  repeated PluginCapability capabilities = 2;
+}
+
+// Specifies a capability of the plugin.
+message PluginCapability {
+  message Service {
+    enum Type {
+      UNKNOWN = 0;
+
+      // CONTROLLER_SERVICE indicates that the Plugin provides RPCs for
+      // the ControllerService. Plugins SHOULD provide this capability.
+      // In rare cases certain plugins may wish to omit the
+      // ControllerService entirely from their implementation, but such
+      // SHOULD NOT be the common case.
+      // The presence of this capability determines whether the CO will
+      // attempt to invoke the REQUIRED ControllerService RPCs, as well
+      // as specific RPCs as indicated by ControllerGetCapabilities.
+      CONTROLLER_SERVICE = 1;
+    }
+    Type type = 1;
+  }
+
+  oneof type {
+    // Service that the plugin supports.
+    Service service = 1;
+  }
+}
+```
+
+##### GetPluginCapabilities Errors
+
+If the plugin is unable to complete the GetPluginCapabilities call successfully, it MUST return a non-ok gRPC code in the gRPC status.
+
+#### `Probe`
+
+A Plugin MUST implement this RPC call.
+The primary utility of the Probe RPC is to verify that the plugin is in a healthy state.
+If an unhealthy state is reported, via a non-success response, a CO MAY take action with the intent to bring the plugin to a healthy state.
+Such actions MAY include, but SHALL NOT be limited to, the following:
+
+* Restarting the plugin container, or
+* Notifying the plugin supervisor.
+
+The Plugin MAY verify that it has the right configurations, devices, dependencies and drivers in order to run and return a success if the validation succeeds.
+The CO MAY invoke this RPC at any time.
+A CO MAY invoke this call multiple times with the understanding that a plugin's implementation MAY NOT be trivial and there MAY be overhead incurred by such repeated calls.
+The SP SHALL document guidance and known limitations regarding a particular Plugin's implementation of this RPC.
+For example, the SP MAY document the maximum frequency at which its Probe implementation should be called.
+
+```protobuf
+message ProbeRequest {
+}
+
+message ProbeResponse {
+  // Intentionally empty.
+}
+```
+
+##### Probe Errors
+
+If the plugin is unable to complete the Probe call successfully, it MUST return a non-ok gRPC code in the gRPC status.
+If the conditions defined below are encountered, the plugin MUST return the specified gRPC error code.
+The CO MUST implement the specified error recovery behavior when it encounters the gRPC error code.
+
+| Condition | gRPC Code | Description | Recovery Behavior |
+|-----------|-----------|-------------|-------------------|
+| Plugin not healthy | 9 FAILED_PRECONDITION | Indicates that the plugin is not in a healthy/ready state. | Caller SHOULD assume the plugin is not healthy and that future RPCs MAY fail because of this condition. |
+| Missing required dependency | 9 FAILED_PRECONDITION | Indicates that the plugin is missing one or more required dependency. | Caller MUST assume the plugin is not healthy. |
+
+
 ### Controller Service RPC
 
 #### `CreateVolume`
 
 A Controller Plugin MUST implement this RPC call if it has `CREATE_DELETE_VOLUME` controller capability.
 This RPC will be called by the CO to provision a new volume on behalf of a user (to be consumed as either a block device or a mounted filesystem).
+
 This operation MUST be idempotent.
+If a volume corresponding to the specified volume `name` already exists and is compatible with the specified `capacity_range`, `volume_capabilities` and `parameters` in the `CreateVolumeRequest`, the Plugin MUST reply `0 OK` with the corresponding `CreateVolumeResponse`.
 
 ```protobuf
 message CreateVolumeRequest {
-  // The API version assumed by the CO. This field is REQUIRED.
-  Version version = 1;
-
   // The suggested name for the storage space. This field is REQUIRED.
   // It serves two purposes:
   // 1) Idempotency - This name is generated by the CO to achieve
@@ -454,12 +552,12 @@ message CreateVolumeRequest {
   //    an identifier by which to refer to the newly provisioned
   //    storage. If a storage system supports this, it can optionally
   //    use this name as the identifier for the new volume.
-  string name = 2;
+  string name = 1;
 
   // This field is OPTIONAL. This allows the CO to specify the capacity
   // requirement of the volume to be provisioned. If not specified, the
   // Plugin MAY choose an implementation-defined capacity range.
-  CapacityRange capacity_range = 3;
+  CapacityRange capacity_range = 2;
 
   // The capabilities that the provisioned volume MUST have: the Plugin
   // MUST provision a volume that could satisfy ALL of the
@@ -469,32 +567,38 @@ message CreateVolumeRequest {
   // early validation: if ANY of the specified volume capabilities are
   // not supported by the Plugin, the call SHALL fail. This field is
   // REQUIRED.
-  repeated VolumeCapability volume_capabilities = 4;
+  repeated VolumeCapability volume_capabilities = 3;
 
   // Plugin specific parameters passed in as opaque key-value pairs.
   // This field is OPTIONAL. The Plugin is responsible for parsing and
   // validating these parameters. COs will treat these as opaque.
-  map<string, string> parameters = 5;
+  map<string, string> parameters = 4;
 
-  // End user credentials used to authenticate/authorize volume creation
-  // request.
-  // This field contains credential data, for example username and
-  // password. Each key must consist of alphanumeric characters, '-',
-  // '_' or '.'. Each value MUST contain a valid string. An SP MAY
-  // choose to accept binary (non-string) data by using a binary-to-text
-  // encoding scheme, like base64. An SP SHALL advertise the
-  // requirements for credentials in documentation. COs SHALL permit
-  // users to pass through the required credentials. This information is
-  // sensitive and MUST be treated as such (not logged, etc.) by the CO.
+  // Secrets required by plugin to complete volume creation request.
+  // A secret is a string to string map where the key identifies the
+  // name of the secret (e.g. "username" or "password"), and the value
+  // contains the secret data (e.g. "bob" or "abc123").
+  // Each key MUST consist of alphanumeric characters, '-', '_' or '.'.
+  // Each value MUST contain a valid string. An SP MAY choose to accept
+  // binary (non-string) data by using a binary-to-text encoding scheme,
+  // like base64.
+  // An SP SHALL advertise the requirements for required secret keys and
+  // values in documentation.
+  // CO SHALL permit passing through the required secrets.
+  // A CO MAY pass the same secrets to all RPCs, therefore the keys for
+  // all unique secrets that an SP expects must be unique across all CSI
+  // operations.
+  // This information is sensitive and MUST be treated as such (not
+  // logged, etc.) by the CO.
   // This field is OPTIONAL.
-  map<string, string> user_credentials = 6;
+  map<string, string> controller_create_secrets = 5;
 }
 
 message CreateVolumeResponse {
   // Contains all attributes of the newly created volume that are
   // relevant to the CO along with information required by the Plugin
   // to uniquely identify the volume. This field is REQUIRED.
-  VolumeInfo volume_info = 1;
+  Volume volume = 1;
 }
 
 // Specify a capability of a volume.
@@ -523,10 +627,12 @@ message VolumeCapability {
     enum Mode {
       UNKNOWN = 0;
 
-      // Can be published as read/write at one node at a time.
+      // Can only be published once as read/write on a single node, at
+      // any given time.
       SINGLE_NODE_WRITER = 1;
 
-      // Can be published as readonly at one node at a time.
+      // Can only be published once as readonly on a single node, at
+      // any given time.
       SINGLE_NODE_READER_ONLY = 2;
 
       // Can be published as readonly at multiple nodes simultaneously.
@@ -562,19 +668,22 @@ message VolumeCapability {
 message CapacityRange {
   // Volume must be at least this big. This field is OPTIONAL.
   // A value of 0 is equal to an unspecified field value.
-  uint64 required_bytes = 1;
+  // The value of this field MUST NOT be negative. 
+  int64 required_bytes = 1;
 
   // Volume must not be bigger than this. This field is OPTIONAL.
   // A value of 0 is equal to an unspecified field value.
-  uint64 limit_bytes = 2;
+  // The value of this field MUST NOT be negative. 
+  int64 limit_bytes = 2;
 }
 
 // The information about a provisioned volume.
-message VolumeInfo {
+message Volume {
   // The capacity of the volume in bytes. This field is OPTIONAL. If not
   // set (value of 0), it indicates that the capacity of the volume is
   // unknown (e.g., NFS share).
-  uint64 capacity_bytes = 1;
+  // The value of this field MUST NOT be negative. 
+  int64 capacity_bytes = 1;
 
   // Contains identity information for the created volume. This field is
   // REQUIRED. The identity information will be used by the CO in
@@ -599,10 +708,10 @@ If the plugin is unable to complete the CreateVolume call successfully, it MUST 
 If the conditions defined below are encountered, the plugin MUST return the specified gRPC error code.
 The CO MUST implement the specified error recovery behavior when it encounters the gRPC error code.
 
-Condition | gRPC Code | Description | Recovery Behavior
-| --- | --- | --- | --- |
-| Volume already exists | 6 ALREADY_EXISTS | Indicates that a volume corresponding to the specified volume `name` already exists. Plugin MUST also return a valid `CreateVolumeResponse`. | Caller MUST assume the `CreateVolume` call succeeded. |
-| Operation pending for volume | 9 FAILED_PRECONDITION | Indicates that there is a already an operation pending for the specified volume. In general the Cluster Orchestrator (CO) is responsible for ensuring that there is no more than one call "in-flight" per volume at a given time. However, in some circumstances, the CO MAY lose state (for example when the CO crashes and restarts), and MAY issue multiple calls simultaneously for the same volume. The Plugin, SHOULD handle this as gracefully as possible, and MAY return this error code to reject secondary calls. | Caller SHOULD ensure that there are no other calls pending for the specified volume, and then retry with exponential back off. |
+| Condition | gRPC Code | Description | Recovery Behavior |
+|-----------|-----------|-------------|-------------------|
+| Volume already exists but is incompatible | 6 ALREADY_EXISTS | Indicates that a volume corresponding to the specified volume `name` already exists but is incompatible with the specified `capacity_range`, `volume_capabilities` or `parameters`. | Caller MUST fix the arguments or use a different `name` before retrying. |
+| Operation pending for volume | 10 ABORTED | Indicates that there is a already an operation pending for the specified volume. In general the Cluster Orchestrator (CO) is responsible for ensuring that there is no more than one call "in-flight" per volume at a given time. However, in some circumstances, the CO MAY lose state (for example when the CO crashes and restarts), and MAY issue multiple calls simultaneously for the same volume. The Plugin, SHOULD handle this as gracefully as possible, and MAY return this error code to reject secondary calls. | Caller SHOULD ensure that there are no other calls pending for the specified volume, and then retry with exponential back off. |
 | Unsupported `capacity_range` | 11 OUT_OF_RANGE | Indicates that the capacity range is not allowed by the Plugin. More human-readable information MAY be provided in the gRPC `status.message` field. | Caller MUST fix the capacity range before retrying. |
 | Call not implemented | 12 UNIMPLEMENTED | CreateVolume call is not implemented by the plugin or disabled in the Plugin's current mode of operation. | Caller MUST NOT retry. Caller MAY call `ControllerGetCapabilities` or `NodeGetCapabilities` to discover Plugin capabilities. |
 
@@ -614,32 +723,36 @@ This RPC will be called by the CO to deprovision a volume.
 If successful, the storage space associated with the volume MUST be released and all the data in the volume SHALL NOT be accessible anymore.
 
 This operation MUST be idempotent.
-This operation SHOULD be best effort in the sense that if the Plugin is certain that the volume as well as the artifacts associated with the volume do not exist anymore, it SHOULD return a success.
+If a volume corresponding to the specified `volume_id` does not exist or the artifacts associated with the volume do not exist anymore, the Plugin MUST reply `0 OK`.
 
 ```protobuf
 message DeleteVolumeRequest {
-  // The API version assumed by the CO. This field is REQUIRED.
-  Version version = 1;
-
   // The ID of the volume to be deprovisioned.
   // This field is REQUIRED.
-  string volume_id = 2;
+  string volume_id = 1;
 
-  // End user credentials used to authenticate/authorize volume deletion
-  // request.
-  // This field contains credential data, for example username and
-  // password. Each key must consist of alphanumeric characters, '-',
-  // '_' or '.'. Each value MUST contain a valid string. An SP MAY
-  // choose to accept binary (non-string) data by using a binary-to-text
-  // encoding scheme, like base64. An SP SHALL advertise the
-  // requirements for credentials in documentation. COs SHALL permit
-  // users to pass through the required credentials. This information is
-  // sensitive and MUST be treated as such (not logged, etc.) by the CO.
+  // Secrets required by plugin to complete volume deletion request.
+  // A secret is a string to string map where the key identifies the
+  // name of the secret (e.g. "username" or "password"), and the value
+  // contains the secret data (e.g. "bob" or "abc123").
+  // Each key MUST consist of alphanumeric characters, '-', '_' or '.'.
+  // Each value MUST contain a valid string. An SP MAY choose to accept
+  // binary (non-string) data by using a binary-to-text encoding scheme,
+  // like base64.
+  // An SP SHALL advertise the requirements for required secret keys and
+  // values in documentation.
+  // CO SHALL permit passing through the required secrets.
+  // A CO MAY pass the same secrets to all RPCs, therefore the keys for
+  // all unique secrets that an SP expects must be unique across all CSI
+  // operations.
+  // This information is sensitive and MUST be treated as such (not
+  // logged, etc.) by the CO.
   // This field is OPTIONAL.
-  map<string, string> user_credentials = 3;
+  map<string, string> controller_delete_secrets = 2;
 }
 
-message DeleteVolumeResponse {}
+message DeleteVolumeResponse {
+}
 ```
 
 ##### DeleteVolume Errors
@@ -648,11 +761,10 @@ If the plugin is unable to complete the DeleteVolume call successfully, it MUST 
 If the conditions defined below are encountered, the plugin MUST return the specified gRPC error code.
 The CO MUST implement the specified error recovery behavior when it encounters the gRPC error code.
 
-Condition | gRPC Code | Description | Recovery Behavior
-| --- | --- | --- | --- |
-| Volume does not exists | 5 NOT_FOUND | Indicates that a volume corresponding to the specified `volume_id` does not exist. | Caller MUST assume the `DeleteVolume` call succeeded. |
+| Condition | gRPC Code | Description | Recovery Behavior |
+|-----------|-----------|-------------|-------------------|
 | Volume in use | 9 FAILED_PRECONDITION | Indicates that the volume corresponding to the specified `volume_id` could not be deleted because it is in use by another resource. | Caller SHOULD ensure that there are no other resources using the volume, and then retry with exponential back off. |
-| Operation pending for volume | 9 FAILED_PRECONDITION | Indicates that there is a already an operation pending for the specified volume. In general the Cluster Orchestrator (CO) is responsible for ensuring that there is no more than one call "in-flight" per volume at a given time. However, in some circumstances, the CO MAY lose state (for example when the CO crashes and restarts), and MAY issue multiple calls simultaneously for the same volume. The Plugin, SHOULD handle this as gracefully as possible, and MAY return this error code to reject secondary calls. | Caller SHOULD ensure that there are no other calls pending for the specified volume, and then retry with exponential back off. |
+| Operation pending for volume | 10 ABORTED | Indicates that there is a already an operation pending for the specified volume. In general the Cluster Orchestrator (CO) is responsible for ensuring that there is no more than one call "in-flight" per volume at a given time. However, in some circumstances, the CO MAY lose state (for example when the CO crashes and restarts), and MAY issue multiple calls simultaneously for the same volume. The Plugin, SHOULD handle this as gracefully as possible, and MAY return this error code to reject secondary calls. | Caller SHOULD ensure that there are no other calls pending for the specified volume, and then retry with exponential back off. |
 | Call not implemented | 12 UNIMPLEMENTED | DeleteVolume call is not implemented by the plugin or disabled in the Plugin's current mode of operation. | Caller MUST NOT retry. Caller MAY call `ControllerGetCapabilities` or `NodeGetCapabilities` to discover Plugin capabilities. |
 
 
@@ -664,55 +776,62 @@ The Plugin SHOULD perform the work that is necessary for making the volume avail
 The Plugin MUST NOT assume that this RPC will be executed on the node where the volume will be used.
 
 This operation MUST be idempotent.
+If the volume corresponding to the `volume_id` has already been published at the node corresponding to the `node_id`, and is compatible with the specified `volume_capability` and `readonly` flag, the Plugin MUST reply `0 OK`.
+
 If the operation failed or the CO does not know if the operation has failed or not, it MAY choose to call `ControllerPublishVolume` again or choose to call `ControllerUnpublishVolume`.
 
 The CO MAY call this RPC for publishing a volume to multiple nodes if the volume has `MULTI_NODE` capability (i.e., `MULTI_NODE_READER_ONLY`, `MULTI_NODE_SINGLE_WRITER` or `MULTI_NODE_MULTI_WRITER`).
 
 ```protobuf
 message ControllerPublishVolumeRequest {
-  // The API version assumed by the CO. This field is REQUIRED.
-  Version version = 1;
-
   // The ID of the volume to be used on a node.
   // This field is REQUIRED.
-  string volume_id = 2;
+  string volume_id = 1;
 
   // The ID of the node. This field is REQUIRED. The CO SHALL set this
-  // field to match the node ID returned by `GetNodeID`.
-  string node_id = 3;
+  // field to match the node ID returned by `NodeGetId`.
+  string node_id = 2;
 
   // The capability of the volume the CO expects the volume to have.
   // This is a REQUIRED field.
-  VolumeCapability volume_capability = 4;
+  VolumeCapability volume_capability = 3;
 
   // Whether to publish the volume in readonly mode. This field is
   // REQUIRED.
-  bool readonly = 5;
+  bool readonly = 4;
 
-  // End user credentials used to authenticate/authorize controller
-  // publish request.
-  // This field contains credential data, for example username and
-  // password. Each key must consist of alphanumeric characters, '-',
-  // '_' or '.'. Each value MUST contain a valid string. An SP MAY
-  // choose to accept binary (non-string) data by using a binary-to-text
-  // encoding scheme, like base64. An SP SHALL advertise the
-  // requirements for credentials in documentation. COs SHALL permit
-  // users to pass through the required credentials. This information is
-  // sensitive and MUST be treated as such (not logged, etc.) by the CO.
+  // Secrets required by plugin to complete controller publish volume
+  // request.
+  // A secret is a string to string map where the key identifies the
+  // name of the secret (e.g. "username" or "password"), and the value
+  // contains the secret data (e.g. "bob" or "abc123").
+  // Each key MUST consist of alphanumeric characters, '-', '_' or '.'.
+  // Each value MUST contain a valid string. An SP MAY choose to accept
+  // binary (non-string) data by using a binary-to-text encoding scheme,
+  // like base64.
+  // An SP SHALL advertise the requirements for required secret keys and
+  // values in documentation.
+  // CO SHALL permit passing through the required secrets.
+  // A CO MAY pass the same secrets to all RPCs, therefore the keys for
+  // all unique secrets that an SP expects must be unique across all CSI
+  // operations.
+  // This information is sensitive and MUST be treated as such (not
+  // logged, etc.) by the CO.
   // This field is OPTIONAL.
-  map<string, string> user_credentials = 6;
+  map<string, string> controller_publish_secrets = 5;
 
   // Attributes of the volume to be used on a node. This field is
-  // OPTIONAL and MUST match the attributes of the VolumeInfo identified
+  // OPTIONAL and MUST match the attributes of the Volume identified
   // by `volume_id`.
-  map<string,string> volume_attributes = 7;
+  map<string,string> volume_attributes = 6;
 }
 
 message ControllerPublishVolumeResponse {
   // The SP specific information that will be passed to the Plugin in
-  // the subsequent `NodePublishVolume` call for the given volume.
+  // the subsequent `NodeStageVolume` or `NodePublishVolume` calls
+  // for the given volume.
   // This information is opaque to the CO. This field is OPTIONAL.
-  map<string, string> publish_volume_info = 1;
+  map<string, string> publish_info = 1;
 }
 ```
 
@@ -722,58 +841,67 @@ If the plugin is unable to complete the ControllerPublishVolume call successfull
 If the conditions defined below are encountered, the plugin MUST return the specified gRPC error code.
 The CO MUST implement the specified error recovery behavior when it encounters the gRPC error code.
 
-Condition | gRPC Code | Description | Recovery Behavior
-| --- | --- | --- | --- |
+| Condition | gRPC Code | Description | Recovery Behavior |
+|-----------|-----------|-------------|-------------------|
 | Volume does not exists | 5 NOT_FOUND | Indicates that a volume corresponding to the specified `volume_id` does not exist. | Caller MUST verify that the `volume_id` is correct and that the volume is accessible and has not been deleted before retrying with exponential back off. |
 | Node does not exists | 5 NOT_FOUND | Indicates that a node corresponding to the specified `node_id` does not exist. | Caller MUST verify that the `node_id` is correct and that the node is available and has not been terminated or deleted before retrying with exponential backoff. |
-| Volume published to another node | 6 ALREADY_EXISTS | Indicates that a volume corresponding to the specified `volume_id` is already attached to another node and does not support multi-node attach. If this error code is returned, the Plugin SHOULD specify the `node_id` of the node the volume is already attached to as part of the gRPC `status.message`. | Caller SHOULD ensure the specified volume is not attached to any other node before retrying with exponential back off. |
+| Volume published but is incompatible | 6 ALREADY_EXISTS | Indicates that a volume corresponding to the specified `volume_id` has already been published at the node corresponding to the specified `volume_id` but is incompatible with the specified `volume_capability` or `readonly` flag . | Caller MUST fix the arguments before retying. |
+| Volume published to another node | 9 FAILED_PRECONDITION | Indicates that a volume corresponding to the specified `volume_id` has already been published at another node and does not have MULTI_NODE volume capability. If this error code is returned, the Plugin SHOULD specify the `node_id` of the node at which the volume is published as part of the gRPC `status.message`. | Caller SHOULD ensure the specified volume is not published at any other node before retrying with exponential back off. |
 | Max volumes attached | 8 RESOURCE_EXHAUSTED | Indicates that the maximum supported number of volumes that can be attached to the specified node are already attached. Therefore, this operation will fail until at least one of the existing attached volumes is detached from the node. | Caller MUST ensure that the number of volumes already attached to the node is less then the maximum supported number of volumes before retrying with exponential backoff. |
-| Operation pending for volume | 9 FAILED_PRECONDITION | Indicates that there is a already an operation pending for the specified volume. In general the Cluster Orchestrator (CO) is responsible for ensuring that there is no more than one call "in-flight" per volume at a given time. However, in some circumstances, the CO MAY lose state (for example when the CO crashes and restarts), and MAY issue multiple calls simultaneously for the same volume. The Plugin, SHOULD handle this as gracefully as possible, and MAY return this error code to reject secondary calls. | Caller SHOULD ensure that there are no other calls pending for the specified volume, and then retry with exponential back off. |
+| Operation pending for volume | 10 ABORTED | Indicates that there is a already an operation pending for the specified volume. In general the Cluster Orchestrator (CO) is responsible for ensuring that there is no more than one call "in-flight" per volume at a given time. However, in some circumstances, the CO MAY lose state (for example when the CO crashes and restarts), and MAY issue multiple calls simultaneously for the same volume. The Plugin, SHOULD handle this as gracefully as possible, and MAY return this error code to reject secondary calls. | Caller SHOULD ensure that there are no other calls pending for the specified volume, and then retry with exponential back off. |
 | Call not implemented | 12 UNIMPLEMENTED | ControllerPublishVolume call is not implemented by the plugin or disabled in the Plugin's current mode of operation. | Caller MUST NOT retry. Caller MAY call `ControllerGetCapabilities` or `NodeGetCapabilities` to discover Plugin capabilities. |
 
 #### `ControllerUnpublishVolume`
 
 Controller Plugin MUST implement this RPC call if it has `PUBLISH_UNPUBLISH_VOLUME` controller capability.
 This RPC is a reverse operation of `ControllerPublishVolume`.
-It MUST be called after `NodeUnpublishVolume` on the volume is called and succeeds.
+It MUST be called after all `NodeUnstageVolume` and `NodeUnpublishVolume` on the volume are called and succeed.
 The Plugin SHOULD perform the work that is necessary for making the volume ready to be consumed by a different node.
 The Plugin MUST NOT assume that this RPC will be executed on the node where the volume was previously used.
 
 This RPC is typically called by the CO when the workload using the volume is being moved to a different node, or all the workload using the volume on a node has finished.
 
 This operation MUST be idempotent.
+If the volume corresponding to the `volume_id` is not attached to the node corresponding to the `node_id`, the Plugin MUST reply `0 OK`.
 If this operation failed, or the CO does not know if the operation failed or not, it can choose to call `ControllerUnpublishVolume` again.
 
 ```protobuf
 message ControllerUnpublishVolumeRequest {
-  // The API version assumed by the CO. This field is REQUIRED.
-  Version version = 1;
-
   // The ID of the volume. This field is REQUIRED.
-  string volume_id = 2;
+  string volume_id = 1;
 
   // The ID of the node. This field is OPTIONAL. The CO SHOULD set this
-  // field to match the node ID returned by `GetNodeID` or leave it
+  // field to match the node ID returned by `NodeGetId` or leave it
   // unset. If the value is set, the SP MUST unpublish the volume from
   // the specified node. If the value is unset, the SP MUST unpublish
   // the volume from all nodes it is published to.
-  string node_id = 3;
+  string node_id = 2;
 
-  // End user credentials used to authenticate/authorize controller
-  // unpublish request.
-  // This field contains credential data, for example username and
-  // password. Each key must consist of alphanumeric characters, '-',
-  // '_' or '.'. Each value MUST contain a valid string. An SP MAY
-  // choose to accept binary (non-string) data by using a binary-to-text
-  // encoding scheme, like base64. An SP SHALL advertise the
-  // requirements for credentials in documentation. COs SHALL permit
-  // users to pass through the required credentials. This information is
-  // sensitive and MUST be treated as such (not logged, etc.) by the CO.
+  // Secrets required by plugin to complete controller unpublish volume
+  // request. This SHOULD be the same secrets passed to the
+  // ControllerPublishVolume.
+  // call for the specified volume.
+  // A secret is a string to string map where the key identifies the
+  // name of the secret (e.g. "username" or "password"), and the value
+  // contains the secret data (e.g. "bob" or "abc123").
+  // Each key MUST consist of alphanumeric characters, '-', '_' or '.'.
+  // Each value MUST contain a valid string. An SP MAY choose to accept
+  // binary (non-string) data by using a binary-to-text encoding scheme,
+  // like base64.
+  // An SP SHALL advertise the requirements for required secret keys and
+  // values in documentation.
+  // CO SHALL permit passing through the required secrets.
+  // A CO MAY pass the same secrets to all RPCs, therefore the keys for
+  // all unique secrets that an SP expects must be unique across all CSI
+  // operations.
+  // This information is sensitive and MUST be treated as such (not
+  // logged, etc.) by the CO.
   // This field is OPTIONAL.
-  map<string, string> user_credentials = 4;
+  map<string, string> controller_unpublish_secrets = 3;
 }
 
-message ControllerUnpublishVolumeResponse {}
+message ControllerUnpublishVolumeResponse {
+}
 ```
 
 ##### ControllerUnpublishVolume Errors
@@ -782,12 +910,11 @@ If the plugin is unable to complete the ControllerUnpublishVolume call successfu
 If the conditions defined below are encountered, the plugin MUST return the specified gRPC error code.
 The CO MUST implement the specified error recovery behavior when it encounters the gRPC error code.
 
-Condition | gRPC Code | Description | Recovery Behavior
-| --- | --- | --- | --- |
-| Volume not attached to specified node | 0 OK | Indicates that the volume corresponding to `volume_id` is not attached to the node corresponding to `node_id`. | Caller MUST assume the `ControllerUnpublishVolume` call succeeded. |
+| Condition | gRPC Code | Description | Recovery Behavior |
+|-----------|-----------|-------------|-------------------|
 | Volume does not exists | 5 NOT_FOUND | Indicates that a volume corresponding to the specified `volume_id` does not exist. | Caller MUST verify that the `volume_id` is correct and that the volume is accessible and has not been deleted before retrying with exponential back off. |
 | Node does not exists | 5 NOT_FOUND | Indicates that a node corresponding to the specified `node_id` does not exist. | Caller MUST verify that the `node_id` is correct and that the node is available and has not been terminated or deleted before retrying with exponential backoff. |
-| Operation pending for volume | 9 FAILED_PRECONDITION | Indicates that there is a already an operation pending for the specified volume. In general the Cluster Orchestrator (CO) is responsible for ensuring that there is no more than one call "in-flight" per volume at a given time. However, in some circumstances, the CO MAY lose state (for example when the CO crashes and restarts), and MAY issue multiple calls simultaneously for the same volume. The Plugin, SHOULD handle this as gracefully as possible, and MAY return this error code to reject secondary calls. | Caller SHOULD ensure that there are no other calls pending for the specified volume, and then retry with exponential back off. |
+| Operation pending for volume | 10 ABORTED | Indicates that there is a already an operation pending for the specified volume. In general the Cluster Orchestrator (CO) is responsible for ensuring that there is no more than one call "in-flight" per volume at a given time. However, in some circumstances, the CO MAY lose state (for example when the CO crashes and restarts), and MAY issue multiple calls simultaneously for the same volume. The Plugin, SHOULD handle this as gracefully as possible, and MAY return this error code to reject secondary calls. | Caller SHOULD ensure that there are no other calls pending for the specified volume, and then retry with exponential back off. |
 | Call not implemented | 12 UNIMPLEMENTED | ControllerUnpublishVolume call is not implemented by the plugin or disabled in the Plugin's current mode of operation. | Caller MUST NOT retry. Caller MAY call `ControllerGetCapabilities` or `NodeGetCapabilities` to discover Plugin capabilities. |
 
 
@@ -800,20 +927,17 @@ This operation MUST be idempotent.
 
 ```protobuf
 message ValidateVolumeCapabilitiesRequest {
-  // The API version assumed by the CO. This is a REQUIRED field.
-  Version version = 1;
-
   // The ID of the volume to check. This field is REQUIRED.
-  string volume_id = 2;
+  string volume_id = 1;
 
   // The capabilities that the CO wants to check for the volume. This
   // call SHALL return "supported" only if all the volume capabilities
   // specified below are supported. This field is REQUIRED.
-  repeated VolumeCapability volume_capabilities = 3;
+  repeated VolumeCapability volume_capabilities = 2;
 
   // Attributes of the volume to check. This field is OPTIONAL and MUST
-  // match the attributes of the VolumeInfo identified by `volume_id`.
-  map<string,string> volume_attributes = 4;
+  // match the attributes of the Volume identified by `volume_id`.
+  map<string,string> volume_attributes = 3;
 }
 
 message ValidateVolumeCapabilitiesResponse {
@@ -834,9 +958,10 @@ If the plugin is unable to complete the ValidateVolumeCapabilities call successf
 If the conditions defined below are encountered, the plugin MUST return the specified gRPC error code.
 The CO MUST implement the specified error recovery behavior when it encounters the gRPC error code.
 
-Condition | gRPC Code | Description | Recovery Behavior
-| --- | --- | --- | --- |
+| Condition | gRPC Code | Description | Recovery Behavior |
+|-----------|-----------|-------------|-------------------|
 | Volume does not exists | 5 NOT_FOUND | Indicates that a volume corresponding to the specified `volume_id` does not exist. | Caller MUST verify that the `volume_id` is correct and that the volume is accessible and has not been deleted before retrying with exponential back off. |
+
 
 #### `ListVolumes`
 
@@ -845,9 +970,6 @@ The Plugin SHALL return the information about all the volumes that it knows abou
 
 ```protobuf
 message ListVolumesRequest {
-  // The API version assumed by the CO. This field is REQUIRED.
-  Version version = 1;
-
   // If specified (non-zero value), the Plugin MUST NOT return more
   // entries than this number in the response. If the actual number of
   // entries is more than this number, the Plugin MUST set `next_token`
@@ -855,18 +977,19 @@ message ListVolumesRequest {
   // in the subsequent `ListVolumes` call. This field is OPTIONAL. If
   // not specified (zero value), it means there is no restriction on the
   // number of entries that can be returned.
-  uint32 max_entries = 2;
+  // The value of this field MUST NOT be negative. 
+  int32 max_entries = 1;
 
   // A token to specify where to start paginating. Set this field to
   // `next_token` returned by a previous `ListVolumes` call to get the
   // next page of entries. This field is OPTIONAL.
   // An empty string is equal to an unspecified field value.
-  string starting_token = 3;
+  string starting_token = 2;
 }
 
 message ListVolumesResponse {
   message Entry {
-    VolumeInfo volume_info = 1;
+    Volume volume = 1;
   }
 
   repeated Entry entries = 1;
@@ -887,9 +1010,10 @@ If the plugin is unable to complete the ListVolumes call successfully, it MUST r
 If the conditions defined below are encountered, the plugin MUST return the specified gRPC error code.
 The CO MUST implement the specified error recovery behavior when it encounters the gRPC error code.
 
-Condition | gRPC Code | Description | Recovery Behavior
-| --- | --- | --- | --- |
+| Condition | gRPC Code | Description | Recovery Behavior |
+|-----------|-----------|-------------|-------------------|
 | Invalid `starting_token` | 10 ABORTED | Indicates that `starting_token` is not valid. | Caller SHOULD start the `ListVolumes` operation again with an empty `starting_token`. |
+
 
 #### `GetCapacity`
 
@@ -898,21 +1022,18 @@ The RPC allows the CO to query the capacity of the storage pool from which the c
 
 ```protobuf
 message GetCapacityRequest {
-  // The API version assumed by the CO. This is a REQUIRED field.
-  Version version = 1;
-
   // If specified, the Plugin SHALL report the capacity of the storage
   // that can be used to provision volumes that satisfy ALL of the
   // specified `volume_capabilities`. These are the same
   // `volume_capabilities` the CO will use in `CreateVolumeRequest`.
   // This field is OPTIONAL.
-  repeated VolumeCapability volume_capabilities = 2;
+  repeated VolumeCapability volume_capabilities = 1;
 
   // If specified, the Plugin SHALL report the capacity of the storage
   // that can be used to provision volumes with the given Plugin
   // specific `parameters`. These are the same `parameters` the CO will
   // use in `CreateVolumeRequest`. This field is OPTIONAL.
-  map<string, string> parameters = 3;
+  map<string, string> parameters = 2;
 }
 
 message GetCapacityResponse {
@@ -921,7 +1042,8 @@ message GetCapacityResponse {
   // specified in the request, the Plugin SHALL take those into
   // consideration when calculating the available capacity of the
   // storage. This field is REQUIRED.
-  uint64 available_capacity = 1;
+  // The value of this field MUST NOT be negative. 
+  int64 available_capacity = 1;
 }
 ```
 
@@ -929,41 +1051,12 @@ message GetCapacityResponse {
 
 If the plugin is unable to complete the GetCapacity call successfully, it MUST return a non-ok gRPC code in the gRPC status.
 
-#### `ControllerProbe`
-
-A Controller Plugin MUST implement this RPC call.
-The Plugin SHOULD verify if it has the right configurations, devices, dependencies and drivers in order to run the controller service, and return a success if the validation succeeds.
-The CO SHALL invoke this RPC prior to any other controller service RPC in order to allow the CO to determine the readiness of the controller service.
-A CO MAY invoke this call multiple times with the understanding that a plugin's implementation MAY NOT be trivial and there MAY be overhead incurred by such repeated calls.
-
-```protobuf
-message ControllerProbeRequest {
-  // The API version assumed by the CO. This is a REQUIRED field.
-  Version version = 1;
-}
-
-message ControllerProbeResponse {}
-```
-
-##### ControllerProbe Errors
-
-If the plugin is unable to complete the ControllerProbe call successfully, it MUST return a non-ok gRPC code in the gRPC status.
-If the conditions defined below are encountered, the plugin MUST return the specified gRPC error code.
-The CO MUST implement the specified error recovery behavior when it encounters the gRPC error code.
-
-Condition | gRPC Code | Description | Recovery Behavior
-| --- | --- | --- | --- |
-| Bad plugin config | 9 FAILED_PRECONDITION | Indicates that the plugin is misconfigured. | Caller MUST assume the plugin is not healthy. |
-| Missing required dependency | 9 FAILED_PRECONDITION | Indicates that the plugin is missing one or more required dependency. | Caller MUST assume the plugin is not healthy. |
-
 #### `ControllerGetCapabilities`
 
 A Controller Plugin MUST implement this RPC call. This RPC allows the CO to check the supported capabilities of controller service provided by the Plugin.
 
 ```protobuf
 message ControllerGetCapabilitiesRequest {
-  // The API version assumed by the CO. This is a REQUIRED field.
-  Version version = 1;
 }
 
 message ControllerGetCapabilitiesResponse {
@@ -997,36 +1090,204 @@ message ControllerServiceCapability {
 
 If the plugin is unable to complete the ControllerGetCapabilities call successfully, it MUST return a non-ok gRPC code in the gRPC status.
 
+#### RPC Interactions
+
+##### `CreateVolume`, `DeleteVolume`, `ListVolumes`
+
+It is worth noting that the plugin-generated `volume_id` is a REQUIRED field for the `DeleteVolume` RPC, as opposed to the CO-generated volume `name` that is REQUIRED for the `CreateVolume` RPC: these fields MAY NOT contain the same value.
+If a `CreateVolume` operation times out, leaving the CO without an ID with which to reference a volume, and the CO *also* decides that it no longer needs/wants the volume in question then the CO MAY choose one of the following paths:
+
+1. Replay the `CreateVolume` RPC that timed out; upon success execute `DeleteVolume` using the known volume ID (from the response to `CreateVolume`).
+2. Execute the `ListVolumes` RPC to possibly obtain a volume ID that may be used to execute a `DeleteVolume` RPC; upon success execute `DeleteVolume`.
+3. The CO takes no further action regarding the timed out RPC, a volume is possibly leaked and the operator/user is expected to clean up.
+
+It is NOT REQUIRED for a controller plugin to implement the `LIST_VOLUMES` capability if it supports the `CREATE_DELETE_VOLUME` capability: the onus is upon the CO to take into consideration the full range of plugin capabilities before deciding how to proceed in the above scenario.
+
 ### Node Service RPC
 
-#### `NodePublishVolume`
+#### `NodeStageVolume`
 
-This RPC is called by the CO when a workload that wants to use the specified volume is placed (scheduled) on a node.
+A Node Plugin MUST implement this RPC call if it has `STAGE_UNSTAGE_VOLUME` node capability.
+
+This RPC is called by the CO prior to the volume being consumed by any workloads on the node by `NodePublishVolume`.
 The Plugin SHALL assume that this RPC will be executed on the node where the volume will be used.
-This RPC MAY be called by the CO multiple times on the same node for the same volume with possibly different `target_path` and/or auth credentials.
-If the corresponding Controller Plugin has `PUBLISH_UNPUBLISH_VOLUME` controller capability, the CO MUST guarantee that this RPC is called after `ControllerPublishVolume` is called for the given volume on the given node and returns a success.
+This RPC SHOULD be called by the CO when a workload that wants to use the specified volume is placed (scheduled) on the specified node for the first time or for the first time since a `NodeUnstageVolume` call for the specified volume was called and returned success on that node.
+
+If the corresponding Controller Plugin has `PUBLISH_UNPUBLISH_VOLUME` controller capability and the Node Plugin has `STAGE_UNSTAGE_VOLUME` capability, then the CO MUST guarantee that this RPC is called after `ControllerPublishVolume` is called for the given volume on the given node and returns a success.
+The CO MUST guarantee that this RPC is called and returns a success before any `NodePublishVolume` is called for the given volume on the given node.
 
 This operation MUST be idempotent.
-If this RPC failed, or the CO does not know if it failed or not, it MAY choose to call `NodePublishVolume` again, or choose to call `NodeUnpublishVolume`.
+If the volume corresponding to the `volume_id` is already staged to the `staging_target_path`, and is identical to the specified `volume_capability` the Plugin MUST reply `0 OK`.
+
+If this RPC failed, or the CO does not know if it failed or not, it MAY choose to call `NodeStageVolume` again, or choose to call `NodeUnstageVolume`.
 
 ```protobuf
-message NodePublishVolumeRequest {
-  // The API version assumed by the CO. This is a REQUIRED field.
-  Version version = 1;
-
+message NodeStageVolumeRequest {
   // The ID of the volume to publish. This field is REQUIRED.
-  string volume_id = 2;
+  string volume_id = 1;
 
   // The CO SHALL set this field to the value returned by
   // `ControllerPublishVolume` if the corresponding Controller Plugin
   // has `PUBLISH_UNPUBLISH_VOLUME` controller capability, and SHALL be
   // left unset if the corresponding Controller Plugin does not have
   // this capability. This is an OPTIONAL field.
-  map<string, string> publish_volume_info = 3;
+  map<string, string> publish_info = 2;
+
+  // The path to which the volume will be published. It MUST be an
+  // absolute path in the root filesystem of the process serving this
+  // request. The CO SHALL ensure that there is only one 
+  // staging_target_path per volume.
+  // This is a REQUIRED field.
+  string staging_target_path = 3;
+
+  // The capability of the volume the CO expects the volume to have.
+  // This is a REQUIRED field.
+  VolumeCapability volume_capability = 4;
+
+  // Secrets required by plugin to complete node stage volume request.
+  // A secret is a string to string map where the key identifies the
+  // name of the secret (e.g. "username" or "password"), and the value
+  // contains the secret data (e.g. "bob" or "abc123").
+  // Each key MUST consist of alphanumeric characters, '-', '_' or '.'.
+  // Each value MUST contain a valid string. An SP MAY choose to accept
+  // binary (non-string) data by using a binary-to-text encoding scheme,
+  // like base64.
+  // An SP SHALL advertise the requirements for required secret keys and
+  // values in documentation.
+  // CO SHALL permit passing through the required secrets.
+  // A CO MAY pass the same secrets to all RPCs, therefore the keys for
+  // all unique secrets that an SP expects must be unique across all CSI
+  // operations.
+  // This information is sensitive and MUST be treated as such (not
+  // logged, etc.) by the CO.
+  // This field is OPTIONAL.
+  map<string, string> node_stage_secrets = 5;
+
+  // Attributes of the volume to publish. This field is OPTIONAL and
+  // MUST match the attributes of the VolumeInfo identified by
+  // `volume_id`.
+  map<string,string> volume_attributes = 6;
+}
+
+message NodeStageVolumeResponse {
+}
+```
+
+#### NodeStageVolume Errors
+
+If the plugin is unable to complete the NodeStageVolume call successfully, it MUST return a non-ok gRPC code in the gRPC status.
+If the conditions defined below are encountered, the plugin MUST return the specified gRPC error code.
+The CO MUST implement the specified error recovery behavior when it encounters the gRPC error code.
+
+| Condition | gRPC Code | Description | Recovery Behavior |
+|-----------|-----------|-------------|-------------------|
+| Volume does not exist | 5 NOT_FOUND | Indicates that a volume corresponding to the specified `volume_id` does not exist. | Caller MUST verify that the `volume_id` is correct and that the volume is accessible and has not been deleted before retrying with exponential back off. |
+| Volume published but is incompatible | 6 ALREADY_EXISTS | Indicates that a volume corresponding to the specified `volume_id` has already been published at the specified `staging_target_path` but is incompatible with the specified `volume_capability` flag. | Caller MUST fix the arguments before retying. |
+| Operation pending for volume | 10 ABORTED | Indicates that there is a already an operation pending for the specified volume. In general the Cluster Orchestrator (CO) is responsible for ensuring that there is no more than one call "in-flight" per volume at a given time. However, in some circumstances, the CO MAY lose state (for example when the CO crashes and restarts), and MAY issue multiple calls simultaneously for the same volume. The Plugin, SHOULD handle this as gracefully as possible, and MAY return this error code to reject secondary calls. | Caller SHOULD ensure that there are no other calls pending for the specified volume, and then retry with exponential back off. |
+| Exceeds capabilities | 10 FAILED_PRECONDITION | Indicates that the CO has exceeded the volume's capabilities because the volume does not have MULTI_NODE capability. | Caller MAY choose to call `ValidateVolumeCapabilities` to validate the volume capabilities, or wait for the volume to be unpublished on the node. |
+
+#### `NodeUnstageVolume`
+
+A Node Plugin MUST implement this RPC call if it has `STAGE_UNSTAGE_VOLUME` node capability.
+
+This RPC is a reverse operation of `NodeStageVolume`.
+This RPC MUST undo the work by the corresponding `NodeStageVolume`.
+This RPC SHALL be called by the CO once for each `staging_target_path` that was successfully setup via `NodeStageVolume`.
+
+If the corresponding Controller Plugin has `PUBLISH_UNPUBLISH_VOLUME` controller capability and the Node Plugin has `STAGE_UNSTAGE_VOLUME` capability, the CO MUST guarantee that this RPC is called and returns success before calling `ControllerUnpublishVolume` for the given node and the given volume.
+The CO MUST guarantee that this RPC is called after all `NodeUnpublishVolume` have been called and returned success for the given volume on the given node.
+
+The Plugin SHALL assume that this RPC will be executed on the node where the volume is being used.
+
+This RPC MAY be called by the CO when the workload using the volume is being moved to a different node, or all the workloads using the volume on a node have finished.
+
+This operation MUST be idempotent.
+If the volume corresponding to the `volume_id` is not staged to the `staging_target_path`,  the Plugin MUST reply `0 OK`.
+
+If this RPC failed, or the CO does not know if it failed or not, it MAY choose to call `NodeUnstageVolume` again.
+
+```protobuf
+message NodeUnstageVolumeRequest {
+  // The ID of the volume. This field is REQUIRED.
+  string volume_id = 1;
+
+  // The path at which the volume was published. It MUST be an absolute
+  // path in the root filesystem of the process serving this request.
+  // This is a REQUIRED field.
+  string staging_target_path = 2;
+}
+
+message NodeUnstageVolumeResponse {
+}
+```
+
+#### NodeUnstageVolume Errors
+
+If the plugin is unable to complete the NodeUnstageVolume call successfully, it MUST return a non-ok gRPC code in the gRPC status.
+If the conditions defined below are encountered, the plugin MUST return the specified gRPC error code.
+The CO MUST implement the specified error recovery behavior when it encounters the gRPC error code.
+
+| Condition | gRPC Code | Description | Recovery Behavior |
+|-----------|-----------|-------------|-------------------|
+| Volume does not exists | 5 NOT_FOUND | Indicates that a volume corresponding to the specified `volume_id` does not exist. | Caller MUST verify that the `volume_id` is correct and that the volume is accessible and has not been deleted before retrying with exponential back off. |
+| Operation pending for volume | 10 ABORTED | Indicates that there is a already an operation pending for the specified volume. In general the Cluster Orchestrator (CO) is responsible for ensuring that there is no more than one call "in-flight" per volume at a given time. However, in some circumstances, the CO MAY lose state (for example when the CO crashes and restarts), and MAY issue multiple calls simultaneously for the same volume. The Plugin, SHOULD handle this as gracefully as possible, and MAY return this error code to reject secondary calls. | Caller SHOULD ensure that there are no other calls pending for the specified volume, and then retry with exponential back off. |
+
+#### RPC Interactions and Reference Counting
+`NodeStageVolume`, `NodeUnstageVolume`, `NodePublishVolume`, `NodeUnpublishVolume`
+
+The following interaction semantics ARE REQUIRED if the plugin advertises the `STAGE_UNSTAGE_VOLUME` capability. 
+`NodeStageVolume` MUST be called and return success once per volume per node before any `NodePublishVolume` MAY be called for the volume.
+All `NodeUnpublishVolume` MUST be called and return success for a volume before `NodeUnstageVolume` MAY be called for the volume.
+
+Note that this requires that all COs MUST support reference counting of volumes so that if `STAGE_UNSTAGE_VOLUME` is advertised by the SP, the CO MUST fufill the above interaction semantics.
+
+#### `NodePublishVolume`
+
+This RPC is called by the CO when a workload that wants to use the specified volume is placed (scheduled) on a node.
+The Plugin SHALL assume that this RPC will be executed on the node where the volume will be used.
+
+If the corresponding Controller Plugin has `PUBLISH_UNPUBLISH_VOLUME` controller capability, the CO MUST guarantee that this RPC is called after `ControllerPublishVolume` is called for the given volume on the given node and returns a success.
+
+This operation MUST be idempotent.
+If the volume corresponding to the `volume_id` has already been published at the specified `target_path`, and is compatible with the specified `volume_capability` and `readonly` flag, the Plugin MUST reply `0 OK`.
+
+If this RPC failed, or the CO does not know if it failed or not, it MAY choose to call `NodePublishVolume` again, or choose to call `NodeUnpublishVolume`.
+
+This RPC MAY be called by the CO multiple times on the same node for the same volume with possibly different `target_path` and/or other arguments if the volume has MULTI_NODE capability (i.e., `access_mode` is either `MULTI_NODE_READER_ONLY`, `MULTI_NODE_SINGLE_WRITER` or `MULTI_NODE_MULTI_WRITER`).
+The following table shows what the Plugin SHOULD return when receiving a second `NodePublishVolume` on the same volume on the same node:
+
+|                | T1=T2, P1=P2    | T1=T2, P1!=P2  | T1!=T2, P1=P2       | T1!=T2, P1!=P2     |
+|----------------|-----------------|----------------|---------------------|--------------------|
+| MULTI_NODE     | OK (idempotent) | ALREADY_EXISTS | OK                  | OK                 |
+| Non MULTI_NODE | OK (idempotent) | ALREADY_EXISTS | FAILED_PRECONDITION | FAILED_PRECONDITION|
+
+(`Tn`: target path of the n-th `NodePublishVolume`, `Pn`: other arguments of the n-th `NodePublishVolume` except `node_publish_secrets`)
+
+```protobuf
+message NodePublishVolumeRequest {
+  // The ID of the volume to publish. This field is REQUIRED.
+  string volume_id = 1;
+
+  // The CO SHALL set this field to the value returned by
+  // `ControllerPublishVolume` if the corresponding Controller Plugin
+  // has `PUBLISH_UNPUBLISH_VOLUME` controller capability, and SHALL be
+  // left unset if the corresponding Controller Plugin does not have
+  // this capability. This is an OPTIONAL field.
+  map<string, string> publish_info = 2;
+
+  // The path to which the device was mounted by `NodeStageVolume`.
+  // It MUST be an absolute path in the root filesystem of the process
+  // serving this request.
+  // It MUST be set if the Node Plugin implements the 
+  // `STAGE_UNSTAGE_VOLUME` node capability.
+  // This is an OPTIONAL field.
+  string staging_target_path = 3;
 
   // The path to which the volume will be published. It MUST be an
   // absolute path in the root filesystem of the process serving this
   // request. The CO SHALL ensure uniqueness of target_path per volume.
+  // The CO SHALL ensure that the path exists, and that the process
+  // serving the request has `read` and `write` permissions to the path.
   // This is a REQUIRED field.
   string target_path = 4;
 
@@ -1038,26 +1299,33 @@ message NodePublishVolumeRequest {
   // REQUIRED.
   bool readonly = 6;
 
-  // End user credentials used to authenticate/authorize node
-  // publish request.
-  // This field contains credential data, for example username and
-  // password. Each key must consist of alphanumeric characters, '-',
-  // '_' or '.'. Each value MUST contain a valid string. An SP MAY
-  // choose to accept binary (non-string) data by using a binary-to-text
-  // encoding scheme, like base64. An SP SHALL advertise the
-  // requirements for credentials in documentation. COs SHALL permit
-  // users to pass through the required credentials. This information is
-  // sensitive and MUST be treated as such (not logged, etc.) by the CO.
+  // Secrets required by plugin to complete node publish volume request.
+  // A secret is a string to string map where the key identifies the
+  // name of the secret (e.g. "username" or "password"), and the value
+  // contains the secret data (e.g. "bob" or "abc123").
+  // Each key MUST consist of alphanumeric characters, '-', '_' or '.'.
+  // Each value MUST contain a valid string. An SP MAY choose to accept
+  // binary (non-string) data by using a binary-to-text encoding scheme,
+  // like base64.
+  // An SP SHALL advertise the requirements for required secret keys and
+  // values in documentation.
+  // CO SHALL permit passing through the required secrets.
+  // A CO MAY pass the same secrets to all RPCs, therefore the keys for
+  // all unique secrets that an SP expects must be unique across all CSI
+  // operations.
+  // This information is sensitive and MUST be treated as such (not
+  // logged, etc.) by the CO.
   // This field is OPTIONAL.
-  map<string, string> user_credentials = 7;
+  map<string, string> node_publish_secrets = 7;
 
   // Attributes of the volume to publish. This field is OPTIONAL and
-  // MUST match the attributes of the VolumeInfo identified by
+  // MUST match the attributes of the Volume identified by
   // `volume_id`.
   map<string,string> volume_attributes = 8;
 }
 
-message NodePublishVolumeResponse {}
+message NodePublishVolumeResponse {
+}
 ```
 
 ##### NodePublishVolume Errors
@@ -1066,10 +1334,14 @@ If the plugin is unable to complete the NodePublishVolume call successfully, it 
 If the conditions defined below are encountered, the plugin MUST return the specified gRPC error code.
 The CO MUST implement the specified error recovery behavior when it encounters the gRPC error code.
 
-Condition | gRPC Code | Description | Recovery Behavior
-| --- | --- | --- | --- |
+| Condition | gRPC Code | Description | Recovery Behavior |
+|-----------|-----------|-------------|-------------------|
 | Volume does not exists | 5 NOT_FOUND | Indicates that a volume corresponding to the specified `volume_id` does not exist. | Caller MUST verify that the `volume_id` is correct and that the volume is accessible and has not been deleted before retrying with exponential back off. |
-| Operation pending for volume | 9 FAILED_PRECONDITION | Indicates that there is a already an operation pending for the specified volume. In general the Cluster Orchestrator (CO) is responsible for ensuring that there is no more than one call "in-flight" per volume at a given time. However, in some circumstances, the CO MAY lose state (for example when the CO crashes and restarts), and MAY issue multiple calls simultaneously for the same volume. The Plugin, SHOULD handle this as gracefully as possible, and MAY return this error code to reject secondary calls. | Caller SHOULD ensure that there are no other calls pending for the specified volume, and then retry with exponential back off. |
+| Volume published but is incompatible | 6 ALREADY_EXISTS | Indicates that a volume corresponding to the specified `volume_id` has already been published at the specified `target_path` but is incompatible with the specified `volume_capability` or `readonly` flag. | Caller MUST fix the arguments before retying. |
+| Operation pending for volume | 10 ABORTED | Indicates that there is a already an operation pending for the specified volume. In general the Cluster Orchestrator (CO) is responsible for ensuring that there is no more than one call "in-flight" per volume at a given time. However, in some circumstances, the CO MAY lose state (for example when the CO crashes and restarts), and MAY issue multiple calls simultaneously for the same volume. The Plugin, SHOULD handle this as gracefully as possible, and MAY return this error code to reject secondary calls. | Caller SHOULD ensure that there are no other calls pending for the specified volume, and then retry with exponential back off. |
+| Exceeds capabilities | 10 FAILED_PRECONDITION | Indicates that the CO has exceeded the volume's capabilities because the volume does not have MULTI_NODE capability. | Caller MAY choose to call `ValidateVolumeCapabilities` to validate the volume capabilities, or wait for the volume to be unpublished on the node. |
+| Stanging target path not set | 10 FAILED_PRECONDITION | Indicates that `STAGE_UNSTAGE_VOLUME` capability is set but no `staging_target_path` was set. | Caller MUST make sure call to `NodeStageVolume` is made and returns success before retrying with valid `staging_target_path`. |  
+
 
 #### `NodeUnpublishVolume`
 
@@ -1087,32 +1359,17 @@ If this RPC failed, or the CO does not know if it failed or not, it can choose t
 
 ```protobuf
 message NodeUnpublishVolumeRequest {
-  // The API version assumed by the CO. This is a REQUIRED field.
-  Version version = 1;
-
   // The ID of the volume. This field is REQUIRED.
-  string volume_id = 2;
+  string volume_id = 1;
 
   // The path at which the volume was published. It MUST be an absolute
   // path in the root filesystem of the process serving this request.
   // This is a REQUIRED field.
-  string target_path = 3;
-
-  // End user credentials used to authenticate/authorize node
-  // unpublish request.
-  // This field contains credential data, for example username and
-  // password. Each key must consist of alphanumeric characters, '-',
-  // '_' or '.'. Each value MUST contain a valid string. An SP MAY
-  // choose to accept binary (non-string) data by using a binary-to-text
-  // encoding scheme, like base64. An SP SHALL advertise the
-  // requirements for credentials in documentation. COs SHALL permit
-  // users to pass through the required credentials. This information is
-  // sensitive and MUST be treated as such (not logged, etc.) by the CO.
-  // This field is OPTIONAL.
-  map<string, string> user_credentials = 4;
+  string target_path = 2;
 }
 
-message NodeUnpublishVolumeResponse {}
+message NodeUnpublishVolumeResponse {
+}
 ```
 
 ##### NodeUnpublishVolume Errors
@@ -1121,12 +1378,13 @@ If the plugin is unable to complete the NodeUnpublishVolume call successfully, i
 If the conditions defined below are encountered, the plugin MUST return the specified gRPC error code.
 The CO MUST implement the specified error recovery behavior when it encounters the gRPC error code.
 
-Condition | gRPC Code | Description | Recovery Behavior
-| --- | --- | --- | --- |
+| Condition | gRPC Code | Description | Recovery Behavior |
+|-----------|-----------|-------------|-------------------|
 | Volume does not exists | 5 NOT_FOUND | Indicates that a volume corresponding to the specified `volume_id` does not exist. | Caller MUST verify that the `volume_id` is correct and that the volume is accessible and has not been deleted before retrying with exponential back off. |
-| Operation pending for volume | 9 FAILED_PRECONDITION | Indicates that there is a already an operation pending for the specified volume. In general the Cluster Orchestrator (CO) is responsible for ensuring that there is no more than one call "in-flight" per volume at a given time. However, in some circumstances, the CO MAY lose state (for example when the CO crashes and restarts), and MAY issue multiple calls simultaneously for the same volume. The Plugin, SHOULD handle this as gracefully as possible, and MAY return this error code to reject secondary calls. | Caller SHOULD ensure that there are no other calls pending for the specified volume, and then retry with exponential back off. |
+| Operation pending for volume | 10 ABORTED | Indicates that there is a already an operation pending for the specified volume. In general the Cluster Orchestrator (CO) is responsible for ensuring that there is no more than one call "in-flight" per volume at a given time. However, in some circumstances, the CO MAY lose state (for example when the CO crashes and restarts), and MAY issue multiple calls simultaneously for the same volume. The Plugin, SHOULD handle this as gracefully as possible, and MAY return this error code to reject secondary calls. | Caller SHOULD ensure that there are no other calls pending for the specified volume, and then retry with exponential back off. |
 
-#### `GetNodeID`
+
+#### `NodeGetId`
 
 A Node Plugin MUST implement this RPC call if the plugin has `PUBLISH_UNPUBLISH_VOLUME` controller capability.
 The Plugin SHALL assume that this RPC will be executed on the node where the volume will be used.
@@ -1134,12 +1392,10 @@ The CO SHOULD call this RPC for the node at which it wants to place the workload
 The result of this call will be used by CO in `ControllerPublishVolume`.
 
 ```protobuf
-message GetNodeIDRequest {
-  // The API version assumed by the CO. This is a REQUIRED field.
-  Version version = 1;
+message NodeGetIdRequest {
 }
 
-message GetNodeIDResponse {
+message NodeGetIdResponse {
   // The ID of the node as understood by the SP which SHALL be used by
   // CO in subsequent `ControllerPublishVolume`.
   // This is a REQUIRED field.
@@ -1147,44 +1403,15 @@ message GetNodeIDResponse {
 }
 ```
 
-##### GetNodeID Errors
+##### NodeGetId Errors
 
-If the plugin is unable to complete the GetNodeID call successfully, it MUST return a non-ok gRPC code in the gRPC status.
+If the plugin is unable to complete the NodeGetId call successfully, it MUST return a non-ok gRPC code in the gRPC status.
 If the conditions defined below are encountered, the plugin MUST return the specified gRPC error code.
 The CO MUST implement the specified error recovery behavior when it encounters the gRPC error code.
 
 Condition | gRPC Code | Description | Recovery Behavior
 | --- | --- | --- | --- |
-| Call not implemented | 12 UNIMPLEMENTED | GetNodeID call is not implemented by the plugin or disabled in the Plugin's current mode of operation. | Caller MUST NOT retry. Caller MAY call `ControllerGetCapabilities` or `NodeGetCapabilities` to discover Plugin capabilities. |
-
-#### `NodeProbe`
-
-A Node Plugin MUST implement this RPC call.
-The Plugin SHALL assume that this RPC will be executed on the node where the volume will be used.
-The CO SHOULD call this RPC for the node at which it wants to place the workload.
-This RPC allows the CO to probe the readiness of the Plugin on the node where the volumes will be used.
-The Plugin SHOULD verify if it has everything it needs (binaries, kernel module, drivers, etc.) to run on that node, and return a success if the validation succeeds.
-The CO MAY use this RPC to probe which machines can support specific Plugins and schedule workloads accordingly.
-
-```protobuf
-message NodeProbeRequest {
-  // The API version assumed by the CO. This is a REQUIRED field.
-  Version version = 1;
-}
-
-message NodeProbeResponse {}
-```
-
-##### NodeProbe Errors
-
-If the plugin is unable to complete the NodeProbe call successfully, it MUST return a non-ok gRPC code in the gRPC status.
-If the conditions defined below are encountered, the plugin MUST return the specified gRPC error code.
-The CO MUST implement the specified error recovery behavior when it encounters the gRPC error code.
-
-Condition | gRPC Code | Description | Recovery Behavior
-| --- | --- | --- | --- |
-| Bad plugin config | 9 FAILED_PRECONDITION | Indicates that the plugin is misconfigured. | Caller MUST assume the plugin is not healthy. |
-| Missing required dependency | 9 FAILED_PRECONDITION | Indicates that the plugin is missing one or more required dependency. | Caller MUST assume the plugin is not healthy. |
+| Call not implemented | 12 UNIMPLEMENTED | NodeGetId call is not implemented by the plugin or disabled in the Plugin's current mode of operation. | Caller MUST NOT retry. Caller MAY call `ControllerGetCapabilities` or `NodeGetCapabilities` to discover Plugin capabilities. |
 
 #### `NodeGetCapabilities`
 
@@ -1193,8 +1420,6 @@ This RPC allows the CO to check the supported capabilities of node service provi
 
 ```protobuf
 message NodeGetCapabilitiesRequest {
-  // The API version assumed by the CO. This is a REQUIRED field.
-  Version version = 1;
 }
 
 message NodeGetCapabilitiesResponse {
@@ -1208,6 +1433,7 @@ message NodeServiceCapability {
   message RPC {
     enum Type {
       UNKNOWN = 0;
+      STAGE_UNSTAGE_VOLUME = 1;
     }
 
     Type type = 1;
@@ -1267,7 +1493,7 @@ If the plugin is unable to complete the NodeGetCapabilities call successfully, i
 * CO: monitor `/path/to/unix/domain/socket.sock`.
 * Plugin: read `CSI_ENDPOINT`, create UNIX socket at specified path, bind and listen.
 * CO: observe that socket now exists, establish connection.
-* CO: invoke `GetSupportedVersions`.
+* CO: invoke `GetPluginCapabilities`.
 
 #### Filesystem
 
@@ -1319,11 +1545,13 @@ Supervised plugins MAY be isolated and/or resource-bounded.
   * Logging configuration flags and/or variables, including working sample configurations.
   * Default log destination(s) (where do the logs go if no configuration is specified?)
   * Log lifecycle management ownership and related guidance (size limits, rate limits, rolling, archiving, expunging, etc.) applicable to the logging mechanism embedded within the Plugin.
-* Plugins SHOULD NOT write potentially sensitive data to logs (e.g. `Credentials`).
+* Plugins SHOULD NOT write potentially sensitive data to logs (e.g. secrets).
 
 ##### Available Services
 
 * Plugin Packages MAY support all or a subset of CSI services; service combinations MAY be configurable at runtime by the Plugin Supervisor.
+  * A plugin must know the "mode" in which it is operating (e.g. node, controller, or both).
+  * This specification does not dictate the mechanism by which mode of operation must be discovered, and instead places that burden upon the SP.
 * Misconfigured plugin software SHOULD fail-fast with an OS-appropriate error code.
 
 ##### Linux Capabilities

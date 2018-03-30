@@ -21,7 +21,7 @@ export GOPATH
 
 # Only set PROTOC_VER if it has an empty value.
 ifeq (,$(strip $(PROTOC_VER)))
-PROTOC_VER := 3.3.0
+PROTOC_VER := 3.5.1
 endif
 
 PROTOC_OS := $(shell uname -s)
@@ -76,10 +76,11 @@ export PATH := $(shell pwd):$(PATH)
 ########################################################################
 ##                              BUILD                                 ##
 ########################################################################
-CSI_GO := csi/csi.pb.go
-CSI_A := csi.a
 CSI_PROTO := ../../csi.proto
-CSI_GO_TMP := csi/.build/csi.pb.go
+CSI_PKG := $(shell cat $(CSI_PROTO) | sed -n -e 's/^package.\([^;]*\);$$/\1/p'|tr '.' '/')
+CSI_GO := $(CSI_PKG)/csi.pb.go
+CSI_A := csi.a
+CSI_GO_TMP := $(CSI_PKG)/.build/csi.pb.go
 
 # This recipe generates the go language bindings to a temp area.
 $(CSI_GO_TMP): $(CSI_PROTO) | $(PROTOC) $(PROTOC_GEN_GO)
@@ -104,8 +105,8 @@ endif
 #   3. Build the archive file.
 $(CSI_A): $(CSI_GO)
 	go get -d ./...
-	go install ./csi
-	go build -o "$@" ./csi
+	go install ./$(CSI_PKG)
+	go build -o "$@" ./$(CSI_PKG)
 
 build: $(CSI_A)
 

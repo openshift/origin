@@ -3,6 +3,8 @@
 load test_helper
 
 @test "logs" {
+  esx_env
+
   run govc logs
   assert_success
   nlogs=${#lines[@]}
@@ -33,10 +35,23 @@ load test_helper
 }
 
 @test "logs.ls" {
+  esx_env
+
   run govc logs.ls
   assert_success
 
   # -host ignored against ESX
   run govc logs.ls -host enoent
   assert_success
+}
+
+@test "logs opid" {
+  esx_env
+
+  id=$(new_id)
+
+  run env GOVC_OPERATION_ID="$id" govc events
+  assert_success
+
+  govc logs | grep "$id"
 }

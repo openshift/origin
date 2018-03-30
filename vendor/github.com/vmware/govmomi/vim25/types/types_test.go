@@ -17,6 +17,7 @@ limitations under the License.
 package types
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/vmware/govmomi/vim25/xml"
@@ -88,5 +89,28 @@ func TestVirtualMachineConfigSpec(t *testing.T) {
 	_, err := xml.MarshalIndent(spec, "", " ")
 	if err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestVirtualMachineAffinityInfo(t *testing.T) {
+	// See https://github.com/vmware/govmomi/issues/1008
+	in := VirtualMachineAffinityInfo{
+		AffinitySet: []int32{0, 1, 2, 3},
+	}
+
+	b, err := xml.Marshal(in)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var out VirtualMachineAffinityInfo
+
+	err = xml.Unmarshal(b, &out)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !reflect.DeepEqual(in, out) {
+		t.Errorf("%#v vs %#v", in, out)
 	}
 }

@@ -79,6 +79,8 @@ func (cmd *tail) Run(ctx context.Context, f *flag.FlagSet) error {
 		return flag.ErrHelp
 	}
 
+	p := cmd.Args(f.Args())[0]
+
 	ds, err := cmd.Datastore()
 	if err != nil {
 		return err
@@ -93,7 +95,7 @@ func (cmd *tail) Run(ctx context.Context, f *flag.FlagSet) error {
 		ctx = ds.HostContext(ctx, h)
 	}
 
-	file, err := ds.Open(ctx, f.Arg(0))
+	file, err := ds.Open(ctx, p.Path)
 	if err != nil {
 		return err
 	}

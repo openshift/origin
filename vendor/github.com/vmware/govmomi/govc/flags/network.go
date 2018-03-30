@@ -129,3 +129,19 @@ func (flag *NetworkFlag) Device() (types.BaseVirtualDevice, error) {
 
 	return device, nil
 }
+
+// Change applies update backing and hardware address changes to the given network device.
+func (flag *NetworkFlag) Change(device types.BaseVirtualDevice, update types.BaseVirtualDevice) {
+	current := device.(types.BaseVirtualEthernetCard).GetVirtualEthernetCard()
+	changed := update.(types.BaseVirtualEthernetCard).GetVirtualEthernetCard()
+
+	current.Backing = changed.Backing
+
+	if changed.MacAddress != "" {
+		current.MacAddress = changed.MacAddress
+	}
+
+	if changed.AddressType != "" {
+		current.AddressType = changed.AddressType
+	}
+}

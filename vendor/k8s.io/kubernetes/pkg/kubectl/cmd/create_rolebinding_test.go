@@ -30,6 +30,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/rest/fake"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	cmdtesting "k8s.io/kubernetes/pkg/kubectl/cmd/testing"
 )
 
@@ -68,14 +69,16 @@ func TestCreateRoleBinding(t *testing.T) {
 		},
 	}
 
-	f, tf, _, ns := cmdtesting.NewAPIFactory()
+	tf := cmdtesting.NewTestFactory()
+	defer tf.Cleanup()
+
+	ns := legacyscheme.Codecs
 
 	info, _ := runtime.SerializerInfoForMediaType(ns.SupportedMediaTypes(), runtime.ContentTypeJSON)
 	encoder := ns.EncoderForVersion(info.Serializer, groupVersion)
 	decoder := ns.DecoderToVersion(info.Serializer, groupVersion)
 
 	tf.Namespace = "test"
-	tf.Printer = &testPrinter{}
 	tf.Client = &RoleBindingRESTClient{
 		RESTClient: &fake.RESTClient{
 			NegotiatedSerializer: ns,
@@ -110,7 +113,7 @@ func TestCreateRoleBinding(t *testing.T) {
 	}
 
 	buf := bytes.NewBuffer([]byte{})
-	cmd := NewCmdCreateRoleBinding(f, buf)
+	cmd := NewCmdCreateRoleBinding(tf, buf)
 	cmd.Flags().Set("role", "fake-role")
 	cmd.Flags().Set("user", "fake-user")
 	cmd.Flags().Set("group", "fake-group")

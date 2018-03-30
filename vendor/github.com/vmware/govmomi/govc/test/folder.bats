@@ -3,19 +3,21 @@
 load test_helper
 
 @test "folder.info" {
-    for name in / vm host network datastore ; do
-        run govc folder.info $name
-        assert_success
+  vcsim_env -esx
 
-        govc folder.info -json $name
-        assert_success
-    done
+  for name in / vm host network datastore ; do
+    run govc folder.info $name
+    assert_success
 
-    result=$(govc folder.info '*' | grep Name: | wc -l)
-    [ $result -eq 4 ]
+    govc folder.info -json $name
+    assert_success
+  done
 
-    run govc info.info /enoent
-    assert_failure
+  result=$(govc folder.info '*' | grep -c Name:)
+  [ "$result" -eq 4 ]
+
+  run govc info.info /enoent
+  assert_failure
 }
 
 @test "folder.create" {
@@ -37,25 +39,25 @@ load test_helper
     assert_success
 
     run govc object.destroy vm/$name
-    assert_success
+    assert_failure # TODO: Folder:folder-N does not implement: Destroy_Task
 
     unset GOVC_DATACENTER
     # relative to /
 
-    run govc folder.create $name
+    run govc folder.create /$name
     assert_success
 
     run govc folder.info /$name
     assert_success
 
     child=$(new_id)
-    run govc folder.create $child
+    run govc folder.create /$child
     assert_success
 
     run govc folder.info /$name/$child
     assert_failure
 
-    run govc object.mv $child /$name
+    run govc object.mv /$child /$name
     assert_success
 
     run govc folder.info /$name/$child
@@ -70,5 +72,5 @@ load test_helper
     assert_success
 
     run govc object.destroy $name
-    assert_success
+    assert_failure # TODO: Folder:folder-N does not implement: Destroy_Task
 }

@@ -40,7 +40,6 @@ import (
 	"k8s.io/client-go/informers"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
-	fakeclientset "k8s.io/client-go/kubernetes/fake"
 	restclient "k8s.io/client-go/rest"
 	core "k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/cache"
@@ -201,10 +200,6 @@ func validateSyncReplicaSet(t *testing.T, fakePodControl *controller.FakePodCont
 	if e, a := expectedPatches, len(fakePodControl.Patches); e != a {
 		t.Errorf("Unexpected number of patches.  Expected %d, saw %d\n", e, a)
 	}
-}
-
-func replicaSetResourceName() string {
-	return "replicasets"
 }
 
 func TestSyncReplicaSetDoesNothing(t *testing.T) {
@@ -1107,7 +1102,7 @@ func TestDeletionTimestamp(t *testing.T) {
 
 // setupManagerWithGCEnabled creates a RS manager with a fakePodControl
 func setupManagerWithGCEnabled(stopCh chan struct{}, objs ...runtime.Object) (manager *ReplicaSetController, fakePodControl *controller.FakePodControl, informers informers.SharedInformerFactory) {
-	c := fakeclientset.NewSimpleClientset(objs...)
+	c := fake.NewSimpleClientset(objs...)
 	fakePodControl = &controller.FakePodControl{}
 	manager, informers = testNewReplicaSetControllerFromClient(c, stopCh, BurstReplicas)
 

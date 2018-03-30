@@ -19,6 +19,7 @@ limitations under the License.
 package main
 
 import (
+	goflag "flag"
 	"fmt"
 	"math/rand"
 	"os"
@@ -26,11 +27,11 @@ import (
 
 	"github.com/spf13/pflag"
 
+	utilflag "k8s.io/apiserver/pkg/util/flag"
 	"k8s.io/apiserver/pkg/util/logs"
 	"k8s.io/kubernetes/cmd/kube-apiserver/app"
 	_ "k8s.io/kubernetes/pkg/client/metrics/prometheus" // for client metric registration
 	_ "k8s.io/kubernetes/pkg/version/prometheus"        // for version metric registration
-	"k8s.io/kubernetes/pkg/version/verflag"
 )
 
 func main() {
@@ -44,13 +45,11 @@ func main() {
 	pflag.CommandLine.SetNormalizeFunc(utilflag.WordSepNormalizeFunc)
 	pflag.CommandLine.AddGoFlagSet(goflag.CommandLine)
 	// utilflag.InitFlags()
-	// 	logs.InitLogs()
+	logs.InitLogs()
 	defer logs.FlushLogs()
 
-	verflag.PrintAndExitIfRequested()
-
 	if err := command.Execute(); err != nil {
-		fmt.Fprintf(os.Stderr, "%v\n", err)
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
 	}
 }

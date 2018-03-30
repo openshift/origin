@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2014-2015 VMware, Inc. All Rights Reserved.
+Copyright (c) 2014-2017 VMware, Inc. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -47,6 +47,13 @@ func (cmd *disconnect) Process(ctx context.Context) error {
 
 func (cmd *disconnect) Usage() string {
 	return "DEVICE..."
+}
+
+func (cmd *disconnect) Description() string {
+	return `Disconnect DEVICE on VM.
+
+Examples:
+  govc device.disconnect -vm $name cdrom-3000`
 }
 
 func (cmd *disconnect) Run(ctx context.Context, f *flag.FlagSet) error {

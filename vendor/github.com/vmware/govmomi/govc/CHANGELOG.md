@@ -1,5 +1,44 @@
 # changelog
 
+### 0.17.0 (undef)
+
+* Allow columns in password for guest login.
+
+### 0.16.0 (2017-11-08)
+
+* Add export.ovf command
+
+* Add '-snapshot' and '-link' options to vm.clone
+
+* Add vm.console command
+
+* Add '-refresh' option to host.storage.info
+
+* Add tasks and task.cancel commands
+
+* The import.vmdk command now requires streamOptimized format
+
+* Add view and filter support to object.collect command
+
+* Add reboot option to host.shutdown
+
+### 0.15.0 (2017-06-19)
+
+* Remove FileAttr flags from guest.chmod command,
+  chown functionality moved to its own command
+
+* Add optional path to guest mktemp file methods
+
+* Add guest.touch and guest.mv commands
+
+* Add host.shutdown command
+
+* Add option flags to host.autostart.add
+
+* Add object.method command
+
+* Add options.{ls,set} commands
+
 ### 0.14.0 (2017-04-08)
 
 * Add find command

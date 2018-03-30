@@ -1,4 +1,4 @@
-FROM golang:1.8.0
+FROM golang:1.8
 
 # libseccomp in jessie is not _quite_ new enough -- need backports version
 RUN echo 'deb http://httpredir.debian.org/debian jessie-backports main' > /etc/apt/sources.list.d/backports.list
@@ -22,6 +22,7 @@ RUN apt-get update && apt-get install -y \
     protobuf-c-compiler \
     protobuf-compiler \
     python-minimal \
+    uidmap \
     --no-install-recommends \
     && apt-get clean
 
@@ -49,12 +50,13 @@ RUN mkdir -p /usr/src/criu \
 
 # setup a playground for us to spawn containers in
 ENV ROOTFS /busybox
-RUN mkdir -p ${ROOTFS} \
-    && curl -o- -sSL 'https://github.com/docker-library/busybox/raw/a0558a9006ce0dd6f6ec5d56cfd3f32ebeeb815f/glibc/busybox.tar.xz' | tar xfJC - ${ROOTFS}
-
+RUN mkdir -p ${ROOTFS}
 
 COPY script/tmpmount /
 WORKDIR /go/src/github.com/opencontainers/runc
 ENTRYPOINT ["/tmpmount"]
 
 ADD . /go/src/github.com/opencontainers/runc
+
+RUN . tests/integration/multi-arch.bash \
+    && curl -o- -sSL `get_busybox` | tar xfJC - ${ROOTFS}

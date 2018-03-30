@@ -26,28 +26,16 @@ import (
 	"os"
 	"time"
 
-	"github.com/spf13/pflag"
-
 	"k8s.io/apiserver/pkg/util/logs"
 	"k8s.io/kubernetes/cmd/kubelet/app"
 	_ "k8s.io/kubernetes/pkg/client/metrics/prometheus" // for client metric registration
 	_ "k8s.io/kubernetes/pkg/version/prometheus"        // for version metric registration
 )
 
-func die(err error) {
-	fmt.Fprintf(os.Stderr, "error: %v\n", err)
-	os.Exit(1)
-}
-
 func main() {
 	rand.Seed(time.Now().UTC().UnixNano())
 
 	command := app.NewKubeletCommand()
-
-	// TODO: this is done differently in 1.10
-	pflag.CommandLine.SetNormalizeFunc(utilflag.WordSepNormalizeFunc)
-	pflag.CommandLine.AddGoFlagSet(goflag.CommandLine)
-	// utilflag.InitFlags()
 	logs.InitLogs()
 	defer logs.FlushLogs()
 

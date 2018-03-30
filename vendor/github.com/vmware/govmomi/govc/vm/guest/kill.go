@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2014-2015 VMware, Inc. All Rights Reserved.
+Copyright (c) 2014-2017 VMware, Inc. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -45,6 +45,13 @@ func (cmd *kill) Process(ctx context.Context) error {
 		return err
 	}
 	return nil
+}
+
+func (cmd *kill) Description() string {
+	return `Kill process ID on VM.
+
+Examples:
+  govc guest.kill -vm $name -p 12345`
 }
 
 func (cmd *kill) Run(ctx context.Context, f *flag.FlagSet) error {

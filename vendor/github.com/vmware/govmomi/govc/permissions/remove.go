@@ -28,8 +28,6 @@ type remove struct {
 	*PermissionFlag
 
 	types.Permission
-
-	role string
 }
 
 func init() {
@@ -60,7 +58,7 @@ func (cmd *remove) Description() string {
 
 Examples:
   govc permissions.remove -principal root
-  govc permissions.remove -principal $USER@vsphere.local -role Admin /dc1/host/cluster1`
+  govc permissions.remove -principal $USER@vsphere.local /dc1/host/cluster1`
 }
 
 func (cmd *remove) Run(ctx context.Context, f *flag.FlagSet) error {

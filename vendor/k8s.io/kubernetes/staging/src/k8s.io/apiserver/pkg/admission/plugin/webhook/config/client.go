@@ -24,8 +24,10 @@ import (
 	"net/url"
 
 	lru "github.com/hashicorp/golang-lru"
+	admissionv1beta1 "k8s.io/api/admission/v1beta1"
 	"k8s.io/api/admissionregistration/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	webhookerrors "k8s.io/apiserver/pkg/admission/plugin/webhook/errors"
 	"k8s.io/client-go/rest"
@@ -54,8 +56,13 @@ func NewClientManager() (ClientManager, error) {
 	if err != nil {
 		return ClientManager{}, err
 	}
+	admissionScheme := runtime.NewScheme()
+	admissionv1beta1.AddToScheme(admissionScheme)
 	return ClientManager{
 		cache: cache,
+		negotiatedSerializer: serializer.NegotiatedSerializerWrapper(runtime.SerializerInfo{
+			Serializer: serializer.NewCodecFactory(admissionScheme).LegacyCodec(admissionv1beta1.SchemeGroupVersion),
+		}),
 	}, nil
 }
 
@@ -77,11 +84,6 @@ func (cm *ClientManager) SetServiceResolver(sr ServiceResolver) {
 	if sr != nil {
 		cm.serviceResolver = sr
 	}
-}
-
-// SetNegotiatedSerializer sets the NegotiatedSerializer.
-func (cm *ClientManager) SetNegotiatedSerializer(n runtime.NegotiatedSerializer) {
-	cm.negotiatedSerializer = n
 }
 
 // Validate checks if ClientManager is properly set up.
@@ -122,12 +124,12 @@ func (cm *ClientManager) HookClient(h *v1beta1.Webhook) (*rest.RESTClient, error
 	}
 
 	if svc := h.ClientConfig.Service; svc != nil {
-		serverName := svc.Name + "." + svc.Namespace + ".svc"
-		restConfig, err := cm.authInfoResolver.ClientConfigFor(serverName)
+		restConfig, err := cm.authInfoResolver.ClientConfigForService(svc.Name, svc.Namespace)
 		if err != nil {
 			return nil, err
 		}
 		cfg := rest.CopyConfig(restConfig)
+		serverName := svc.Name + "." + svc.Namespace + ".svc"
 		host := serverName + ":443"
 		cfg.Host = "https://" + host
 		if svc.Path != nil {
@@ -168,7 +170,7 @@ func (cm *ClientManager) HookClient(h *v1beta1.Webhook) (*rest.RESTClient, error
 	}
 
 	cfg := rest.CopyConfig(restConfig)
-	cfg.Host = u.Host
+	cfg.Host = u.Scheme + "://" + u.Host
 	cfg.APIPath = u.Path
 
 	return complete(cfg)

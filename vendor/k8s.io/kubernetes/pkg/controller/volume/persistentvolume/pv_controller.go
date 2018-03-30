@@ -45,7 +45,7 @@ import (
 	"k8s.io/kubernetes/pkg/util/goroutinemap/exponentialbackoff"
 	vol "k8s.io/kubernetes/pkg/volume"
 	"k8s.io/kubernetes/pkg/volume/util"
-	"k8s.io/kubernetes/pkg/volume/util/volumehelper"
+	"k8s.io/kubernetes/pkg/volume/util/recyclerclient"
 
 	"github.com/golang/glog"
 )
@@ -238,6 +238,14 @@ func (ctrl *PersistentVolumeController) syncClaim(claim *v1.PersistentVolumeClai
 func checkVolumeSatisfyClaim(volume *v1.PersistentVolume, claim *v1.PersistentVolumeClaim) error {
 	requestedQty := claim.Spec.Resources.Requests[v1.ResourceName(v1.ResourceStorage)]
 	requestedSize := requestedQty.Value()
+
+	// check if PV's DeletionTimeStamp is set, if so, return error.
+	if utilfeature.DefaultFeatureGate.Enabled(features.StorageObjectInUseProtection) {
+		if volume.ObjectMeta.DeletionTimestamp != nil {
+			return fmt.Errorf("the volume is marked for deletion")
+		}
+	}
+
 	volumeQty := volume.Spec.Capacity[v1.ResourceStorage]
 	volumeSize := volumeQty.Value()
 	if volumeSize < requestedSize {
@@ -370,7 +378,7 @@ func (ctrl *PersistentVolumeController) syncUnboundClaim(claim *v1.PersistentVol
 				glog.V(4).Infof("synchronizing unbound PersistentVolumeClaim[%s]: volume is unbound, binding", claimToClaimKey(claim))
 				if err = checkVolumeSatisfyClaim(volume, claim); err != nil {
 					glog.V(4).Infof("Can't bind the claim to volume %q: %v", volume.Name, err)
-					//send a event
+					//send an event
 					msg := fmt.Sprintf("Cannot bind to requested volume %q: %s", volume.Name, err)
 					ctrl.eventRecorder.Event(claim, v1.EventTypeWarning, events.VolumeMismatch, msg)
 					//volume does not satisfy the requirements of the claim
@@ -811,7 +819,7 @@ func (ctrl *PersistentVolumeController) bindVolumeToClaim(volume *v1.PersistentV
 // API server. The claim is not modified in this method!
 func (ctrl *PersistentVolumeController) updateBindVolumeToClaim(volumeClone *v1.PersistentVolume, claim *v1.PersistentVolumeClaim, updateCache bool) (*v1.PersistentVolume, error) {
 	glog.V(2).Infof("claim %q bound to volume %q", claimToClaimKey(claim), volumeClone.Name)
-	newVol, err := ctrl.kubeClient.Core().PersistentVolumes().Update(volumeClone)
+	newVol, err := ctrl.kubeClient.CoreV1().PersistentVolumes().Update(volumeClone)
 	if err != nil {
 		glog.V(4).Infof("updating PersistentVolume[%s]: binding to %q failed: %v", volumeClone.Name, claimToClaimKey(claim), err)
 		return newVol, err
@@ -970,7 +978,7 @@ func (ctrl *PersistentVolumeController) bind(volume *v1.PersistentVolume, claim 
 func (ctrl *PersistentVolumeController) unbindVolume(volume *v1.PersistentVolume) error {
 	glog.V(4).Infof("updating PersistentVolume[%s]: rolling back binding from %q", volume.Name, claimrefToClaimKey(volume.Spec.ClaimRef))
 
-	// Save the PV only when any modification is neccessary.
+	// Save the PV only when any modification is necessary.
 	volumeClone := volume.DeepCopy()
 
 	if metav1.HasAnnotation(volume.ObjectMeta, annBoundByController) {
@@ -1050,7 +1058,7 @@ func (ctrl *PersistentVolumeController) recycleVolumeOperation(arg interface{}) 
 	// so read current volume state now.
 	newVolume, err := ctrl.kubeClient.CoreV1().PersistentVolumes().Get(volume.Name, metav1.GetOptions{})
 	if err != nil {
-		glog.V(3).Infof("error reading peristent volume %q: %v", volume.Name, err)
+		glog.V(3).Infof("error reading persistent volume %q: %v", volume.Name, err)
 		return
 	}
 	needsReclaim, err := ctrl.isVolumeReleased(newVolume)
@@ -1140,7 +1148,7 @@ func (ctrl *PersistentVolumeController) deleteVolumeOperation(arg interface{}) e
 	// read current volume state now.
 	newVolume, err := ctrl.kubeClient.CoreV1().PersistentVolumes().Get(volume.Name, metav1.GetOptions{})
 	if err != nil {
-		glog.V(3).Infof("error reading peristent volume %q: %v", volume.Name, err)
+		glog.V(3).Infof("error reading persistent volume %q: %v", volume.Name, err)
 		return nil
 	}
 	needsReclaim, err := ctrl.isVolumeReleased(newVolume)
@@ -1254,7 +1262,7 @@ func (ctrl *PersistentVolumeController) isVolumeUsed(pv *v1.PersistentVolume) ([
 		return nil, false, fmt.Errorf("error listing pods: %s", err)
 	}
 	for _, pod := range pods {
-		if volumehelper.IsPodTerminated(pod, pod.Status) {
+		if util.IsPodTerminated(pod, pod.Status) {
 			continue
 		}
 		for i := range pod.Spec.Volumes {
@@ -1542,7 +1550,7 @@ func (ctrl *PersistentVolumeController) scheduleOperation(operationName string, 
 
 // newRecyclerEventRecorder returns a RecycleEventRecorder that sends all events
 // to given volume.
-func (ctrl *PersistentVolumeController) newRecyclerEventRecorder(volume *v1.PersistentVolume) vol.RecycleEventRecorder {
+func (ctrl *PersistentVolumeController) newRecyclerEventRecorder(volume *v1.PersistentVolume) recyclerclient.RecycleEventRecorder {
 	return func(eventtype, message string) {
 		ctrl.eventRecorder.Eventf(volume, eventtype, events.RecyclerPod, "Recycler pod: %s", message)
 	}

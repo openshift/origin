@@ -3,6 +3,8 @@
 load test_helper
 
 @test "metric.ls" {
+  esx_env
+
   run govc metric.ls
   assert_failure
 
@@ -23,6 +25,8 @@ load test_helper
 }
 
 @test "metric.sample" {
+  esx_env
+
   host=$(govc ls -t HostSystem ./... | head -n 1)
   metrics=($(govc metric.ls "$host"))
 
@@ -30,6 +34,9 @@ load test_helper
   assert_failure
 
   run govc metric.sample "$host" "${metrics[@]}"
+  assert_success
+
+  run govc metric.sample -instance - "$host" "${metrics[@]}"
   assert_success
 
   run govc metric.sample -json "$host" "${metrics[@]}"
@@ -59,6 +66,8 @@ load test_helper
 }
 
 @test "metric.info" {
+  esx_env
+
   host=$(govc ls -t HostSystem ./... | head -n 1)
   metrics=($(govc metric.ls "$host"))
 
@@ -71,6 +80,9 @@ load test_helper
   run govc metric.info -json "$host"
   assert_success
 
+  run govc metric.info -dump "$host"
+  assert_success
+
   run govc metric.sample "$host" "${metrics[@]}"
   assert_success
 
@@ -79,4 +91,12 @@ load test_helper
 
   run govc metric.info - "${metrics[@]}"
   assert_success
+}
+
+@test "metric manager" {
+  vcsim_env
+
+  moid=$(govc object.collect -s - content.perfManager)
+
+  govc object.collect -json "$moid" | jq .
 }

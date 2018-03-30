@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2014-2015 VMware, Inc. All Rights Reserved.
+Copyright (c) 2014-2017 VMware, Inc. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -45,6 +45,18 @@ func (cmd *rmdir) Process(ctx context.Context) error {
 		return err
 	}
 	return nil
+}
+
+func (cmd *rmdir) Usage() string {
+	return "PATH"
+}
+
+func (cmd *rmdir) Description() string {
+	return `Remove directory PATH in VM.
+
+Examples:
+  govc guest.rmdir -vm $name /tmp/empty-dir
+  govc guest.rmdir -vm $name -r /tmp/non-empty-dir`
 }
 
 func (cmd *rmdir) Run(ctx context.Context, f *flag.FlagSet) error {

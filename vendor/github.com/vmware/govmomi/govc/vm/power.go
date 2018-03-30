@@ -39,6 +39,7 @@ type power struct {
 	Shutdown bool
 	Suspend  bool
 	Force    bool
+	Multi    bool
 }
 
 func init() {
@@ -59,6 +60,7 @@ func (cmd *power) Register(ctx context.Context, f *flag.FlagSet) {
 	f.BoolVar(&cmd.Reboot, "r", false, "Reboot guest")
 	f.BoolVar(&cmd.Shutdown, "s", false, "Shutdown guest")
 	f.BoolVar(&cmd.Force, "force", false, "Force (ignore state error and hard shutdown/reboot if tools unavailable)")
+	f.BoolVar(&cmd.Multi, "M", false, "Use Datacenter.PowerOnVM")
 }
 
 func (cmd *power) Process(ctx context.Context) error {
@@ -98,9 +100,44 @@ func isToolsUnavailable(err error) bool {
 	return false
 }
 
+// this is annoying, but the likely use cases for Datacenter.PowerOnVM outside of this command would
+// use []types.ManagedObjectReference via ContainerView or field such as ResourcePool.Vm rather than the Finder.
+func vmReferences(vms []*object.VirtualMachine) []types.ManagedObjectReference {
+	refs := make([]types.ManagedObjectReference, len(vms))
+	for i, vm := range vms {
+		refs[i] = vm.Reference()
+	}
+	return refs
+}
+
 func (cmd *power) Run(ctx context.Context, f *flag.FlagSet) error {
 	vms, err := cmd.VirtualMachines(f.Args())
 	if err != nil {
+		return err
+	}
+
+	if cmd.On && cmd.Multi {
+		dc, derr := cmd.Datacenter()
+		if derr != nil {
+			return derr
+		}
+
+		task, derr := dc.PowerOnVM(ctx, vmReferences(vms))
+		if derr != nil {
+			return derr
+		}
+
+		msg := fmt.Sprintf("Powering on %d VMs...", len(vms))
+		if task == nil {
+			// running against ESX
+			fmt.Fprintf(cmd, "%s OK\n", msg)
+			return nil
+		}
+
+		logger := cmd.ProgressLogger(msg)
+		defer logger.Wait()
+
+		_, err = task.WaitForResult(ctx, logger)
 		return err
 	}
 

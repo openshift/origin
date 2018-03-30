@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2014-2015 VMware, Inc. All Rights Reserved.
+Copyright (c) 2014-2016 VMware, Inc. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@ import (
 	"os"
 
 	"github.com/vmware/govmomi/govc/cli"
-	"github.com/vmware/govmomi/vim25/soap"
+	"github.com/vmware/govmomi/vim25/progress"
 )
 
 type download struct {
@@ -70,50 +70,36 @@ func (cmd *download) Run(ctx context.Context, f *flag.FlagSet) error {
 		return flag.ErrHelp
 	}
 
-	m, err := cmd.FileManager()
-	if err != nil {
-		return err
-	}
-
 	src := f.Arg(0)
 	dst := f.Arg(1)
 
-	_, err = os.Stat(dst)
+	_, err := os.Stat(dst)
 	if err == nil && !cmd.overwrite {
 		return os.ErrExist
 	}
 
-	info, err := m.InitiateFileTransferFromGuest(ctx, cmd.Auth(), src)
+	c, err := cmd.Toolbox()
 	if err != nil {
 		return err
 	}
 
-	u, err := cmd.ParseURL(info.Url)
+	s, n, err := c.Download(ctx, src)
 	if err != nil {
 		return err
 	}
-
-	c, err := cmd.Client()
-	if err != nil {
-		return nil
-	}
-
-	p := soap.DefaultDownload
 
 	if dst == "-" {
-		f, _, err := c.Client.Download(u, &p)
-		if err != nil {
-			return err
-		}
-		_, err = io.Copy(os.Stdout, f)
+		_, err = io.Copy(os.Stdout, s)
 		return err
 	}
+
+	var p progress.Sinker
 
 	if cmd.OutputFlag.TTY {
 		logger := cmd.ProgressLogger("Downloading... ")
-		p.Progress = logger
+		p = logger
 		defer logger.Wait()
 	}
 
-	return c.Client.DownloadFile(dst, u, &p)
+	return c.ProcessManager.Client().WriteFile(ctx, dst, s, n, p, nil)
 }

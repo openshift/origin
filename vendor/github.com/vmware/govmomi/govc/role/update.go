@@ -42,7 +42,7 @@ func (cmd *update) Register(ctx context.Context, f *flag.FlagSet) {
 
 	f.StringVar(&cmd.name, "name", "", "Change role name")
 	f.BoolVar(&cmd.remove, "r", false, "Remove given PRIVILEGE(s)")
-	f.BoolVar(&cmd.add, "a", false, "Remove given PRIVILEGE(s)")
+	f.BoolVar(&cmd.add, "a", false, "Add given PRIVILEGE(s)")
 }
 
 func (cmd *update) Process(ctx context.Context) error {

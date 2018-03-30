@@ -7,6 +7,7 @@ import (
 
 	"github.com/gophercloud/gophercloud/acceptance/clients"
 	"github.com/gophercloud/gophercloud/acceptance/tools"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/portsecurity"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/networks"
 )
 
@@ -16,12 +17,19 @@ func TestNetworksList(t *testing.T) {
 		t.Fatalf("Unable to create a network client: %v", err)
 	}
 
+	type networkWithExt struct {
+		networks.Network
+		portsecurity.PortSecurityExt
+	}
+
+	var allNetworks []networkWithExt
+
 	allPages, err := networks.List(client, nil).AllPages()
 	if err != nil {
 		t.Fatalf("Unable to list networks: %v", err)
 	}
 
-	allNetworks, err := networks.ExtractNetworks(allPages)
+	err = networks.ExtractNetworksInto(allPages, &allNetworks)
 	if err != nil {
 		t.Fatalf("Unable to extract networks: %v", err)
 	}

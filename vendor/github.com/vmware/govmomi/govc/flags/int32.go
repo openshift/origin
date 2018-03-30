@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2016 VMware, Inc. All Rights Reserved.
+Copyright (c) 2016-2017 VMware, Inc. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -27,7 +27,7 @@ import (
 type int32Value int32
 
 func (i *int32Value) Set(s string) error {
-	v, err := strconv.ParseInt(s, 0, 64)
+	v, err := strconv.ParseInt(s, 0, 32)
 	*i = int32Value(v)
 	return err
 }
@@ -43,4 +43,30 @@ func (i *int32Value) String() string {
 // NewInt32 behaves as flag.IntVar, but using an int32 type.
 func NewInt32(v *int32) flag.Value {
 	return (*int32Value)(v)
+}
+
+type int32ptrValue struct {
+	val **int32
+}
+
+func (i *int32ptrValue) Set(s string) error {
+	v, err := strconv.ParseInt(s, 0, 32)
+	*i.val = new(int32)
+	**i.val = int32(v)
+	return err
+}
+
+func (i *int32ptrValue) Get() interface{} {
+	if i.val == nil || *i.val == nil {
+		return nil
+	}
+	return *i.val
+}
+
+func (i *int32ptrValue) String() string {
+	return fmt.Sprintf("%v", i.Get())
+}
+
+func NewOptionalInt32(v **int32) flag.Value {
+	return &int32ptrValue{val: v}
 }

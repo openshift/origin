@@ -19,30 +19,20 @@ package view
 import (
 	"context"
 
-	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/property"
 	"github.com/vmware/govmomi/vim25"
-	"github.com/vmware/govmomi/vim25/methods"
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
 )
 
 type ContainerView struct {
-	object.Common
+	ManagedObjectView
 }
 
 func NewContainerView(c *vim25.Client, ref types.ManagedObjectReference) *ContainerView {
 	return &ContainerView{
-		Common: object.NewCommon(c, ref),
+		ManagedObjectView: *NewManagedObjectView(c, ref),
 	}
-}
-
-func (v ContainerView) Destroy(ctx context.Context) error {
-	req := types.DestroyView{
-		This: v.Reference(),
-	}
-	_, err := methods.DestroyView(ctx, v.Client(), &req)
-	return err
 }
 
 // Retrieve populates dst as property.Collector.Retrieve does, for all entities in the view of types specified by kind.

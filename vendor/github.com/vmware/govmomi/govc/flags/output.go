@@ -23,12 +23,12 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"reflect"
 	"sync"
 	"time"
 
+	"github.com/kr/pretty"
 	"github.com/vmware/govmomi/vim25/progress"
-
-	"github.com/davecgh/go-spew/spew"
 )
 
 type OutputWriter interface {
@@ -59,7 +59,7 @@ func NewOutputFlag(ctx context.Context) (*OutputFlag, context.Context) {
 func (flag *OutputFlag) Register(ctx context.Context, f *flag.FlagSet) {
 	flag.RegisterOnce(func() {
 		f.BoolVar(&flag.JSON, "json", false, "Enable JSON output")
-		f.BoolVar(&flag.Dump, "dump", false, "Enable output dump")
+		f.BoolVar(&flag.Dump, "dump", false, "Enable Go output")
 	})
 }
 
@@ -100,14 +100,46 @@ func (flag *OutputFlag) WriteString(s string) (int, error) {
 	return flag.Write([]byte(s))
 }
 
+func (flag *OutputFlag) All() bool {
+	return flag.JSON || flag.Dump
+}
+
+func dumpValue(val interface{}) interface{} {
+	type dumper interface {
+		Dump() interface{}
+	}
+
+	if d, ok := val.(dumper); ok {
+		return d.Dump()
+	}
+
+	rval := reflect.ValueOf(val)
+	if rval.Type().Kind() != reflect.Ptr {
+		return val
+	}
+
+	rval = rval.Elem()
+	if rval.Type().Kind() == reflect.Struct {
+		f := rval.Field(0)
+		if f.Type().Kind() == reflect.Slice {
+			// common case for the various 'type infoResult'
+			if f.Len() == 1 {
+				return f.Index(0).Interface()
+			}
+			return f.Interface()
+		}
+	}
+
+	return val
+}
+
 func (flag *OutputFlag) WriteResult(result OutputWriter) error {
 	var err error
 
 	if flag.JSON {
 		err = json.NewEncoder(flag.Out).Encode(result)
 	} else if flag.Dump {
-		scs := spew.ConfigState{Indent: "    "}
-		scs.Fdump(flag.Out, result)
+		pretty.Fprintf(flag.Out, "%# v\n", dumpValue(result))
 	} else {
 		err = result.Write(flag.Out)
 	}
@@ -150,11 +182,14 @@ func (p *progressLogger) loopA() {
 	tick := time.NewTicker(100 * time.Millisecond)
 	defer tick.Stop()
 
+	called := false
+
 	for stop := false; !stop; {
 		select {
 		case ch := <-p.sink:
 			err = p.loopB(tick, ch)
 			stop = true
+			called = true
 		case <-p.done:
 			stop = true
 		case <-tick.C:
@@ -165,7 +200,7 @@ func (p *progressLogger) loopA() {
 
 	if err != nil && err != io.EOF {
 		p.flag.Log(fmt.Sprintf("\r%sError: %s\n", p.prefix, err))
-	} else {
+	} else if called {
 		p.flag.Log(fmt.Sprintf("\r%sOK\n", p.prefix))
 	}
 }

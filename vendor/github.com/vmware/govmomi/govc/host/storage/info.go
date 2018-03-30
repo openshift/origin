@@ -67,9 +67,11 @@ type info struct {
 	*flags.HostSystemFlag
 	*flags.OutputFlag
 
-	typ       infoType
-	rescan    bool
-	unclaimed bool
+	typ        infoType
+	rescan     bool
+	refresh    bool
+	rescanvmfs bool
+	unclaimed  bool
 }
 
 func init() {
@@ -89,7 +91,9 @@ func (cmd *info) Register(ctx context.Context, f *flag.FlagSet) {
 
 	f.Var(&cmd.typ, "t", fmt.Sprintf("Type (%s)", strings.Join(infoTypes, ",")))
 
-	f.BoolVar(&cmd.rescan, "rescan", false, "Rescan for new storage devices")
+	f.BoolVar(&cmd.rescan, "rescan", false, "Rescan all host bus adapters")
+	f.BoolVar(&cmd.refresh, "refresh", false, "Refresh the storage system provider")
+	f.BoolVar(&cmd.rescanvmfs, "rescan-vmfs", false, "Rescan for new VMFSs")
 	f.BoolVar(&cmd.unclaimed, "unclaimed", false, "Only show disks that can be used as new VMFS datastores")
 }
 
@@ -97,7 +101,7 @@ func (cmd *info) Description() string {
 	return `Show HOST storage system information.
 
 Examples:
-  govc ls -t HostSystem host/* | xargs -n1 govc host.storage.info -unclaimed -host`
+  govc find / -type h | xargs -n1 govc host.storage.info -unclaimed -host`
 }
 
 func (cmd *info) Process(ctx context.Context) error {
@@ -123,6 +127,20 @@ func (cmd *info) Run(ctx context.Context, f *flag.FlagSet) error {
 
 	if cmd.rescan {
 		err = ss.RescanAllHba(ctx)
+		if err != nil {
+			return err
+		}
+	}
+
+	if cmd.refresh {
+		err = ss.Refresh(ctx)
+		if err != nil {
+			return err
+		}
+	}
+
+	if cmd.rescanvmfs {
+		err = ss.RescanVmfs(ctx)
 		if err != nil {
 			return err
 		}

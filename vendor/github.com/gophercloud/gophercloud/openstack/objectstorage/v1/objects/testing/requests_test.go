@@ -73,14 +73,53 @@ func TestListObjectInfo(t *testing.T) {
 	th.CheckEquals(t, count, 1)
 }
 
+func TestListObjectSubdir(t *testing.T) {
+	th.SetupHTTP()
+	defer th.TeardownHTTP()
+	HandleListSubdirSuccessfully(t)
+
+	count := 0
+	options := &objects.ListOpts{Full: true, Prefix: "", Delimiter: "/"}
+	err := objects.List(fake.ServiceClient(), "testContainer", options).EachPage(func(page pagination.Page) (bool, error) {
+		count++
+		actual, err := objects.ExtractInfo(page)
+		th.AssertNoErr(t, err)
+
+		th.CheckDeepEquals(t, ExpectedListSubdir, actual)
+
+		return true, nil
+	})
+	th.AssertNoErr(t, err)
+	th.CheckEquals(t, count, 1)
+}
+
 func TestListObjectNames(t *testing.T) {
 	th.SetupHTTP()
 	defer th.TeardownHTTP()
 	HandleListObjectNamesSuccessfully(t)
 
+	// Check without delimiter.
 	count := 0
 	options := &objects.ListOpts{Full: false}
 	err := objects.List(fake.ServiceClient(), "testContainer", options).EachPage(func(page pagination.Page) (bool, error) {
+		count++
+		actual, err := objects.ExtractNames(page)
+		if err != nil {
+			t.Errorf("Failed to extract container names: %v", err)
+			return false, err
+		}
+
+		th.CheckDeepEquals(t, ExpectedListNames, actual)
+
+		return true, nil
+	})
+	th.AssertNoErr(t, err)
+	th.CheckEquals(t, count, 1)
+
+	// Check with delimiter.
+	count = 0
+	options = &objects.ListOpts{Full: false, Delimiter: "/"}
+	err = objects.List(fake.ServiceClient(), "testContainer", options).EachPage(func(page pagination.Page) (bool, error) {
 		count++
 		actual, err := objects.ExtractNames(page)
 		if err != nil {

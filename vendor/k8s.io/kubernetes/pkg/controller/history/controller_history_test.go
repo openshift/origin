@@ -23,7 +23,7 @@ import (
 	"reflect"
 	"testing"
 
-	apps "k8s.io/api/apps/v1beta1"
+	apps "k8s.io/api/apps/v1"
 	"k8s.io/api/core/v1"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes/fake"
@@ -56,7 +56,7 @@ func TestRealHistory_ListControllerRevisions(t *testing.T) {
 		stop := make(chan struct{})
 		defer close(stop)
 		informerFactory.Start(stop)
-		informer := informerFactory.Apps().V1beta1().ControllerRevisions()
+		informer := informerFactory.Apps().V1().ControllerRevisions()
 		informerFactory.WaitForCacheSync(stop)
 		for i := range test.revisions {
 			informer.Informer().GetIndexer().Add(test.revisions[i])
@@ -153,7 +153,7 @@ func TestFakeHistory_ListControllerRevisions(t *testing.T) {
 		stop := make(chan struct{})
 		defer close(stop)
 		informerFactory.Start(stop)
-		informer := informerFactory.Apps().V1beta1().ControllerRevisions()
+		informer := informerFactory.Apps().V1().ControllerRevisions()
 		informerFactory.WaitForCacheSync(stop)
 		for i := range test.revisions {
 			informer.Informer().GetIndexer().Add(test.revisions[i])
@@ -252,7 +252,7 @@ func TestRealHistory_CreateControllerRevision(t *testing.T) {
 		stop := make(chan struct{})
 		defer close(stop)
 		informerFactory.Start(stop)
-		informer := informerFactory.Apps().V1beta1().ControllerRevisions()
+		informer := informerFactory.Apps().V1().ControllerRevisions()
 		informerFactory.WaitForCacheSync(stop)
 		history := NewHistory(client, informer.Lister())
 
@@ -375,7 +375,7 @@ func TestFakeHistory_CreateControllerRevision(t *testing.T) {
 		stop := make(chan struct{})
 		defer close(stop)
 		informerFactory.Start(stop)
-		informer := informerFactory.Apps().V1beta1().ControllerRevisions()
+		informer := informerFactory.Apps().V1().ControllerRevisions()
 		informerFactory.WaitForCacheSync(stop)
 		history := NewFakeHistory(informer)
 
@@ -525,7 +525,7 @@ func TestRealHistory_UpdateControllerRevision(t *testing.T) {
 		stop := make(chan struct{})
 		defer close(stop)
 		informerFactory.Start(stop)
-		informer := informerFactory.Apps().V1beta1().ControllerRevisions()
+		informer := informerFactory.Apps().V1().ControllerRevisions()
 		informerFactory.WaitForCacheSync(stop)
 		history := NewHistory(client, informer.Lister())
 		var collisionCount int32
@@ -652,7 +652,7 @@ func TestFakeHistory_UpdateControllerRevision(t *testing.T) {
 		stop := make(chan struct{})
 		defer close(stop)
 		informerFactory.Start(stop)
-		informer := informerFactory.Apps().V1beta1().ControllerRevisions()
+		informer := informerFactory.Apps().V1().ControllerRevisions()
 		informerFactory.WaitForCacheSync(stop)
 		history := NewFakeHistory(informer)
 		var collisionCount int32
@@ -740,7 +740,7 @@ func TestRealHistory_DeleteControllerRevision(t *testing.T) {
 		stop := make(chan struct{})
 		defer close(stop)
 		informerFactory.Start(stop)
-		informer := informerFactory.Apps().V1beta1().ControllerRevisions()
+		informer := informerFactory.Apps().V1().ControllerRevisions()
 		informerFactory.WaitForCacheSync(stop)
 		history := NewHistory(client, informer.Lister())
 		var collisionCount int32
@@ -843,7 +843,7 @@ func TestFakeHistory_DeleteControllerRevision(t *testing.T) {
 		stop := make(chan struct{})
 		defer close(stop)
 		informerFactory.Start(stop)
-		informer := informerFactory.Apps().V1beta1().ControllerRevisions()
+		informer := informerFactory.Apps().V1().ControllerRevisions()
 		informerFactory.WaitForCacheSync(stop)
 		history := NewFakeHistory(informer)
 		var collisionCount int32
@@ -980,7 +980,7 @@ func TestRealHistory_AdoptControllerRevision(t *testing.T) {
 		stop := make(chan struct{})
 		defer close(stop)
 		informerFactory.Start(stop)
-		informer := informerFactory.Apps().V1beta1().ControllerRevisions()
+		informer := informerFactory.Apps().V1().ControllerRevisions()
 		informerFactory.WaitForCacheSync(stop)
 
 		history := NewHistory(client, informer.Lister())
@@ -1086,7 +1086,7 @@ func TestFakeHistory_AdoptControllerRevision(t *testing.T) {
 		stop := make(chan struct{})
 		defer close(stop)
 		informerFactory.Start(stop)
-		informer := informerFactory.Apps().V1beta1().ControllerRevisions()
+		informer := informerFactory.Apps().V1().ControllerRevisions()
 		informerFactory.WaitForCacheSync(stop)
 
 		history := NewFakeHistory(informer)
@@ -1231,7 +1231,7 @@ func TestRealHistory_ReleaseControllerRevision(t *testing.T) {
 		stop := make(chan struct{})
 		defer close(stop)
 		informerFactory.Start(stop)
-		informer := informerFactory.Apps().V1beta1().ControllerRevisions()
+		informer := informerFactory.Apps().V1().ControllerRevisions()
 		informerFactory.WaitForCacheSync(stop)
 
 		history := NewHistory(client, informer.Lister())
@@ -1353,7 +1353,7 @@ func TestFakeHistory_ReleaseControllerRevision(t *testing.T) {
 		stop := make(chan struct{})
 		defer close(stop)
 		informerFactory.Start(stop)
-		informer := informerFactory.Apps().V1beta1().ControllerRevisions()
+		informer := informerFactory.Apps().V1().ControllerRevisions()
 		informerFactory.WaitForCacheSync(stop)
 		history := NewFakeHistory(informer)
 		var collisionCount int32
@@ -1602,7 +1602,7 @@ func newStatefulSet(replicas int, name string, uid types.UID, labels map[string]
 	return &apps.StatefulSet{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "StatefulSet",
-			APIVersion: "apps/v1beta1",
+			APIVersion: "apps/v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
