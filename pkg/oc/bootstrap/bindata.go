@@ -14578,6 +14578,30 @@ objects:
           action: keep
           regex: openshift-template-service-broker;apiserver;https
 
+      # Scrape config for Service Catalog controllers
+      #
+      # Catalog runs on each master node and exposes a /metrics endpoint on :6443 that contains operational metrics for
+      # the controllers.
+      #
+      - job_name: 'catalog-controllers'
+
+        scheme: https
+        tls_config:
+          server_name: 'controller-manager.kube-service-catalog.svc'
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+
+        kubernetes_sd_configs:
+        - role: endpoints
+          namespaces:
+            names:
+            - kube-service-catalog
+
+        relabel_configs:
+        - source_labels: [__meta_kubernetes_service_name]
+          action: keep
+          regex: controller-manager
+
       alerting:
         alertmanagers:
         - scheme: http
@@ -14989,8 +15013,8 @@ objects:
           - service-catalog
           args:
           - controller-manager
-          - --port
-          - "8080"
+          - --secure-port
+          - "6443"
           - -v
           - "5"
           - --leader-election-namespace
@@ -14999,16 +15023,18 @@ objects:
           - "5m"
           - --feature-gates
           - OriginatingIdentity=true
+          - --feature-gates
+          - AsyncBindingOperations=true
           image: ${SERVICE_CATALOG_IMAGE}
           imagePullPolicy: IfNotPresent
           name: controller-manager
           ports:
-          - containerPort: 8080
+          - containerPort: 6443
             protocol: TCP
           resources: {}
           terminationMessagePath: /dev/termination-log
           volumeMounts:
-          - mountPath: /etc/service-catalog-ssl
+          - mountPath: /var/run/kubernetes-service-catalog
             name: service-catalog-ssl
             readOnly: true
         dnsPolicy: ClusterFirst
@@ -15019,11 +15045,28 @@ objects:
         - name: service-catalog-ssl
           secret:
             defaultMode: 420
+            secretName: controllermanager-ssl
             items:
             - key: tls.crt
               path: apiserver.crt
-            secretName: apiserver-ssl
-
+            - key: tls.key
+              path: apiserver.key
+- kind: Service
+  apiVersion: v1
+  metadata:
+    name: controller-manager
+    annotations:
+      service.alpha.openshift.io/serving-cert-secret-name: 'controllermanager-ssl'
+  spec:
+    type: ClusterIP
+    ports:
+    - name: secure
+      port: 6443
+      protocol: TCP
+      targetPort: 6443
+    selector:
+      app: controller-manager
+    sessionAffinity: None
 parameters:
 - description: CORS allowed origin for the API server, if you need to specify multiple modify the Deployment after creation
   displayName: CORS Allowed Origin

@@ -33,10 +33,20 @@ const (
 )
 
 // RetrievePlans lists all plans defined in the cluster.
-func (sdk *SDK) RetrievePlans() ([]v1beta1.ClusterServicePlan, error) {
+func (sdk *SDK) RetrievePlans(opts *FilterOptions) ([]v1beta1.ClusterServicePlan, error) {
 	plans, err := sdk.ServiceCatalog().ClusterServicePlans().List(v1.ListOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("unable to list plans (%s)", err)
+	}
+
+	if opts != nil && opts.ClassID != "" {
+		plansFiltered := make([]v1beta1.ClusterServicePlan, 0)
+		for _, p := range plans.Items {
+			if p.Spec.ClusterServiceClassRef.Name == opts.ClassID {
+				plansFiltered = append(plansFiltered, p)
+			}
+		}
+		return plansFiltered, nil
 	}
 
 	return plans.Items, nil

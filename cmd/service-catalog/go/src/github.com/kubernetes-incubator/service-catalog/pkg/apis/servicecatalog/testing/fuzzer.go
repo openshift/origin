@@ -23,12 +23,13 @@ import (
 	"fmt"
 	"github.com/google/gofuzz"
 	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog"
-	"github.com/satori/go.uuid"
+
 	"k8s.io/apimachinery/pkg/api/testing/fuzzer"
 	genericfuzzer "k8s.io/apimachinery/pkg/apis/meta/fuzzer"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
+	"k8s.io/apimachinery/pkg/util/uuid"
 )
 
 type serviceMetadata struct {
@@ -99,7 +100,7 @@ func servicecatalogFuncs(codecs runtimeserializer.CodecFactory) []interface{} {
 		},
 		func(is *servicecatalog.ServiceInstanceSpec, c fuzz.Continue) {
 			c.FuzzNoCustom(is)
-			is.ExternalID = uuid.NewV4().String()
+			is.ExternalID = string(uuid.NewUUID())
 			parameters, err := createParameter(c)
 			if err != nil {
 				panic(fmt.Sprintf("Failed to create parameter object: %v", err))
@@ -108,7 +109,7 @@ func servicecatalogFuncs(codecs runtimeserializer.CodecFactory) []interface{} {
 		},
 		func(bs *servicecatalog.ServiceBindingSpec, c fuzz.Continue) {
 			c.FuzzNoCustom(bs)
-			bs.ExternalID = uuid.NewV4().String()
+			bs.ExternalID = string(uuid.NewUUID())
 			// Don't allow the SecretName to be an empty string because
 			// the defaulter for this object (on the server) will set it to
 			// a non-empty string, which means the round-trip checking will

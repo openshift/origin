@@ -319,18 +319,21 @@ func TestReconcileClusterServiceBrokerRemovedClusterServiceClass(t *testing.T) {
 }
 
 // TestReconcileClusterServiceBrokerRemovedAndRestoredClusterServiceClass
-// validates where Service Catalog has a class that is marked as
-// RemovedFromBrokerCatalog but then the ServiceBroker adds the class back into
-// its getCatalog response.  This should result in the class's status being
-// updated resetting the RemovedFromBrokerCatalog to false.
+// validates where Service Catalog has a class and plan that is marked as
+// RemovedFromBrokerCatalog but then the ServiceBroker adds the class and plan
+// back into its getCatalog response.  This should result in the class's status
+// and plan's status being updated resetting the RemovedFromBrokerCatalog to
+// false.
 func TestReconcileClusterServiceBrokerRemovedAndRestoredClusterServiceClass(t *testing.T) {
 	fakeKubeClient, fakeCatalogClient, fakeClusterServiceBrokerClient, testController, sharedInformers := newTestController(t, getTestCatalogConfig())
 
 	testClusterServiceClass := getTestClusterServiceClass()
 	testClusterServicePlan := getTestClusterServicePlan()
+	testClusterServicePlan.Status.RemovedFromBrokerCatalog = true
 	testClusterServicePlanNonbindable := getTestClusterServicePlanNonbindable()
 	testClusterServiceClass.Status.RemovedFromBrokerCatalog = true
 	sharedInformers.ClusterServiceClasses().Informer().GetStore().Add(testClusterServiceClass)
+	sharedInformers.ClusterServicePlans().Informer().GetStore().Add(testClusterServicePlan)
 
 	fakeCatalogClient.AddReactor("list", "clusterserviceclasses", func(action clientgotesting.Action) (bool, runtime.Object, error) {
 		return true, &v1beta1.ClusterServiceClassList{
@@ -339,9 +342,18 @@ func TestReconcileClusterServiceBrokerRemovedAndRestoredClusterServiceClass(t *t
 			},
 		}, nil
 	})
-
+	fakeCatalogClient.AddReactor("list", "clusterserviceplans", func(action clientgotesting.Action) (bool, runtime.Object, error) {
+		return true, &v1beta1.ClusterServicePlanList{
+			Items: []v1beta1.ClusterServicePlan{
+				*testClusterServicePlan,
+			},
+		}, nil
+	})
 	fakeCatalogClient.AddReactor("update", "clusterserviceclasses", func(action clientgotesting.Action) (bool, runtime.Object, error) {
 		return true, testClusterServiceClass, nil
+	})
+	fakeCatalogClient.AddReactor("update", "clusterserviceplans", func(action clientgotesting.Action) (bool, runtime.Object, error) {
+		return true, testClusterServicePlan, nil
 	})
 
 	if err := testController.reconcileClusterServiceBroker(getTestClusterServiceBroker()); err != nil {
@@ -358,15 +370,17 @@ func TestReconcileClusterServiceBrokerRemovedAndRestoredClusterServiceClass(t *t
 	}
 
 	actions := fakeCatalogClient.Actions()
-	assertNumberOfActions(t, actions, 7)
+	assertNumberOfActions(t, actions, 8)
 	assertList(t, actions[0], &v1beta1.ClusterServiceClass{}, listRestrictions)
 	assertList(t, actions[1], &v1beta1.ClusterServicePlan{}, listRestrictions)
 	assertUpdate(t, actions[2], testClusterServiceClass)
 	class := assertUpdateStatus(t, actions[3], testClusterServiceClass)
-	assertRemovedFromBrokerCatalogFalse(t, class)
-	assertCreate(t, actions[4], testClusterServicePlan)
-	assertCreate(t, actions[5], testClusterServicePlanNonbindable)
-	updatedClusterServiceBroker := assertUpdateStatus(t, actions[6], getTestClusterServiceBroker())
+	assertClassRemovedFromBrokerCatalogFalse(t, class)
+	assertUpdate(t, actions[4], testClusterServicePlan)
+	plan := assertUpdateStatus(t, actions[5], testClusterServicePlan)
+	assertPlanRemovedFromBrokerCatalogFalse(t, plan)
+	assertCreate(t, actions[6], testClusterServicePlanNonbindable)
+	updatedClusterServiceBroker := assertUpdateStatus(t, actions[7], getTestClusterServiceBroker())
 	assertClusterServiceBrokerReadyTrue(t, updatedClusterServiceBroker)
 
 	// verify no kube resources created
@@ -649,8 +663,7 @@ func TestReconcileClusterServiceBrokerErrorFetchingCatalog(t *testing.T) {
 }
 
 // TestReconcileClusterServiceBrokerZeroServices simulates broker reconciliation where
-// OSB client responds with zero services which causes reconcileClusterServiceBroker()
-// to return an error
+// OSB client responds with zero services which is valid
 func TestReconcileClusterServiceBrokerZeroServices(t *testing.T) {
 	fakeKubeClient, fakeCatalogClient, fakeClusterServiceBrokerClient, testController, _ := newTestController(t, fakeosb.FakeClientConfiguration{
 		CatalogReaction: &fakeosb.CatalogReaction{
@@ -658,47 +671,69 @@ func TestReconcileClusterServiceBrokerZeroServices(t *testing.T) {
 		},
 	})
 
+	// Broker's response to getCatalog is empty, there are no existing classes or plans,
+	// reconcile will allow the empty services and just update the broker status
+
 	broker := getTestClusterServiceBroker()
 
-	if err := testController.reconcileClusterServiceBroker(broker); err == nil {
-		t.Fatal("ClusterServiceBroker should not have had any Service Classes.")
+	fakeCatalogClient.AddReactor("list", "clusterserviceclasses", func(action clientgotesting.Action) (bool, runtime.Object, error) {
+		return true, &v1beta1.ClusterServiceClassList{
+			Items: []v1beta1.ClusterServiceClass{},
+		}, nil
+	})
+	fakeCatalogClient.AddReactor("list", "clusterserviceplans", func(action clientgotesting.Action) (bool, runtime.Object, error) {
+		return true, &v1beta1.ClusterServicePlanList{
+			Items: []v1beta1.ClusterServicePlan{},
+		}, nil
+	})
+
+	err := testController.reconcileClusterServiceBroker(broker)
+	if err != nil {
+		t.Fatalf("This should not fail : %v", err)
 	}
 
 	brokerActions := fakeClusterServiceBrokerClient.Actions()
 	assertNumberOfClusterServiceBrokerActions(t, brokerActions, 1)
 	assertGetCatalog(t, brokerActions[0])
 
+	// Verify no core kube actions occurred
+	kubeActions := fakeKubeClient.Actions()
+	assertNumberOfActions(t, kubeActions, 0)
+
 	actions := fakeCatalogClient.Actions()
-	assertNumberOfActions(t, actions, 1)
+	// The four actions should be:
+	// - list serviceplans
+	// - list serviceclasses
+	// - update the broker status
+	assertNumberOfActions(t, actions, 3)
 
-	updatedClusterServiceBroker := assertUpdateStatus(t, actions[0], broker)
-	assertClusterServiceBrokerReadyFalse(t, updatedClusterServiceBroker)
-
-	assertNumberOfActions(t, fakeKubeClient.Actions(), 0)
+	listRestrictions := clientgotesting.ListRestrictions{
+		Labels: labels.Everything(),
+		Fields: fields.OneTermEqualSelector("spec.clusterServiceBrokerName", broker.Name),
+	}
+	assertList(t, actions[0], &v1beta1.ClusterServiceClass{}, listRestrictions)
+	assertList(t, actions[1], &v1beta1.ClusterServicePlan{}, listRestrictions)
+	updatedClusterServiceBroker := assertUpdateStatus(t, actions[2], broker)
+	assertClusterServiceBrokerReadyTrue(t, updatedClusterServiceBroker)
 
 	events := getRecordedEvents(testController)
-	assertNumEvents(t, events, 1)
-
-	expectedEvent := warningEventBuilder(errorSyncingCatalogReason).msgf(
-		"Error getting catalog payload for broker %q; received zero services; at least one service is required",
-		testClusterServiceBrokerName,
-	)
-	if err := checkEvents(events, expectedEvent.stringArr()); err != nil {
-		t.Fatal(err)
+	expectedEvent := corev1.EventTypeNormal + " " + successFetchedCatalogReason + " " + successFetchedCatalogMessage
+	if e, a := expectedEvent, events[0]; !strings.HasPrefix(a, e) {
+		t.Fatalf("Received unexpected event, %s", expectedGot(e, a))
 	}
 }
 
 func TestReconcileClusterServiceBrokerWithAuth(t *testing.T) {
-	basicAuthInfo := &v1beta1.ServiceBrokerAuthInfo{
-		Basic: &v1beta1.BasicAuthConfig{
+	basicAuthInfo := &v1beta1.ClusterServiceBrokerAuthInfo{
+		Basic: &v1beta1.ClusterBasicAuthConfig{
 			SecretRef: &v1beta1.ObjectReference{
 				Namespace: "test-ns",
 				Name:      "auth-secret",
 			},
 		},
 	}
-	bearerAuthInfo := &v1beta1.ServiceBrokerAuthInfo{
-		Bearer: &v1beta1.BearerTokenAuthConfig{
+	bearerAuthInfo := &v1beta1.ClusterServiceBrokerAuthInfo{
+		Bearer: &v1beta1.ClusterBearerTokenAuthConfig{
 			SecretRef: &v1beta1.ObjectReference{
 				Namespace: "test-ns",
 				Name:      "auth-secret",
@@ -726,7 +761,7 @@ func TestReconcileClusterServiceBrokerWithAuth(t *testing.T) {
 	// shouldSucceed: whether authentication should succeed
 	cases := []struct {
 		name          string
-		authInfo      *v1beta1.ServiceBrokerAuthInfo
+		authInfo      *v1beta1.ClusterServiceBrokerAuthInfo
 		secret        *corev1.Secret
 		shouldSucceed bool
 	}{
@@ -776,7 +811,7 @@ func TestReconcileClusterServiceBrokerWithAuth(t *testing.T) {
 	}
 }
 
-func testReconcileClusterServiceBrokerWithAuth(t *testing.T, authInfo *v1beta1.ServiceBrokerAuthInfo, secret *corev1.Secret, shouldSucceed bool) {
+func testReconcileClusterServiceBrokerWithAuth(t *testing.T, authInfo *v1beta1.ClusterServiceBrokerAuthInfo, secret *corev1.Secret, shouldSucceed bool) {
 	fakeKubeClient, fakeCatalogClient, fakeClusterServiceBrokerClient, testController, _ := newTestController(t, fakeosb.FakeClientConfiguration{})
 
 	broker := getTestClusterServiceBrokerWithAuth(authInfo)

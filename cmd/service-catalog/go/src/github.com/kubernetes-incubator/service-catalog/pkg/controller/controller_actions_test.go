@@ -114,7 +114,7 @@ type instanceDescription struct {
 // kubernetes client
 func checkKubeClientActions(actual []testing.Action, expected []kubeClientAction) error {
 	if len(actual) != len(expected) {
-		return fmt.Errorf("expected %d kube client actions, got %d", len(expected), len(actual))
+		return fmt.Errorf("expected %d kube client actions, got %d; full action list: %v", len(expected), len(actual), actual)
 	}
 	for i, actualAction := range actual {
 		expectedAction := expected[i]

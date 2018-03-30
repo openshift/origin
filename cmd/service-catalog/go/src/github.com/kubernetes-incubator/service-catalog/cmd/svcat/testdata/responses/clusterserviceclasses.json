@@ -26,6 +26,27 @@
       "status": {
         "removedFromBrokerCatalog": false
       }
+    },
+    {
+      "metadata": {
+        "name": "f1a80068-e366-494e-92d6-a0782337945b",
+        "selfLink": "/apis/servicecatalog.k8s.io/v1beta1/clusterserviceclasses/f1a80068-e366-494e-92d6-a0782337945b",
+        "uid": "5be743ff-06bc-4d49-b762-c8b1470916c4",
+        "resourceVersion": "6",
+        "creationTimestamp": "2018-02-26T20:53:31Z"
+      },
+      "spec": {
+        "clusterServiceBrokerName": "ups-broker",
+        "externalName": "another-provided-service",
+        "externalID": "f1a80068-e366-494e-92d6-a0782337945b",
+        "description": "Another provided service",
+        "bindable": true,
+        "bindingRetrievable": false,
+        "planUpdatable": true
+      },
+      "status": {
+        "removedFromBrokerCatalog": false
+      }
     }
   ]
 }

@@ -46,6 +46,12 @@ const (
 	// owner: @droot
 	// alpha: v0.1.6
 	PodPreset utilfeature.Feature = "PodPreset"
+
+	// NamespacedServiceBroker enables namespaced variants of ServiceBrokers,
+	// ServiceClasses, and ServicePlans.
+	// owner: @eriknelson & @jeremyrickard
+	// alpha: v0.1.10
+	NamespacedServiceBroker utilfeature.Feature = "NamespacedServiceBroker"
 )
 
 func init() {
@@ -56,7 +62,8 @@ func init() {
 // To add a new feature, define a key for it above and add it here. The features will be
 // available throughout service catalog binaries.
 var defaultServiceCatalogFeatureGates = map[utilfeature.Feature]utilfeature.FeatureSpec{
-	PodPreset:              {Default: false, PreRelease: utilfeature.Alpha},
-	OriginatingIdentity:    {Default: false, PreRelease: utilfeature.Alpha},
-	AsyncBindingOperations: {Default: false, PreRelease: utilfeature.Alpha},
+	PodPreset:               {Default: false, PreRelease: utilfeature.Alpha},
+	OriginatingIdentity:     {Default: false, PreRelease: utilfeature.Alpha},
+	AsyncBindingOperations:  {Default: false, PreRelease: utilfeature.Alpha},
+	NamespacedServiceBroker: {Default: false, PreRelease: utilfeature.Alpha},
 }

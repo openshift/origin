@@ -23,7 +23,7 @@ func (c *client) GetCatalog() (*CatalogResponse, error) {
 		if !c.APIVersion.AtLeast(Version2_13()) {
 			for ii := range catalogResponse.Services {
 				for jj := range catalogResponse.Services[ii].Plans {
-					catalogResponse.Services[ii].Plans[jj].ParameterSchemas = nil
+					catalogResponse.Services[ii].Plans[jj].Schemas = nil
 				}
 			}
 		}

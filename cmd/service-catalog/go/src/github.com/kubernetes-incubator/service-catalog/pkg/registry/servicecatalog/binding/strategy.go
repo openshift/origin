@@ -80,7 +80,7 @@ func (bindingRESTStrategy) Canonicalize(obj runtime.Object) {
 	}
 }
 
-// NamespaceScoped returns false as bindings are not scoped to a namespace.
+// NamespaceScoped returns true as bindings are scoped to a namespace.
 func (bindingRESTStrategy) NamespaceScoped() bool {
 	return true
 }
