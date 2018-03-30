@@ -66,7 +66,7 @@ func calculateDeploymentConfigTrigger(t appsapi.DeploymentTriggerPolicy, dc *app
 		})
 	}
 	for _, index := range indicesForContainerNames(dc.Spec.Template.Spec.InitContainers, t.ImageChangeParams.ContainerNames) {
-		fieldPath := fmt.Sprintf("spec.template.spec.initContainers[@name==\"%s\"].image", dc.Spec.Template.Spec.Containers[index].Name)
+		fieldPath := fmt.Sprintf("spec.template.spec.initContainers[@name==\"%s\"].image", dc.Spec.Template.Spec.InitContainers[index].Name)
 		triggers = append(triggers, triggerapi.ObjectFieldTrigger{
 			From: triggerapi.ObjectReference{
 				Name:       from.Name,
