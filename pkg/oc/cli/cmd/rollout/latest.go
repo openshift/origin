@@ -80,7 +80,6 @@ func NewCmdRolloutLatest(fullName string, f *clientcmd.Factory, out io.Writer) *
 			err = opts.RunRolloutLatest()
 			kcmdutil.CheckErr(err)
 		},
-		ValidArgs: []string{"deploymentconfig"},
 	}
 
 	kcmdutil.AddPrinterFlags(cmd)

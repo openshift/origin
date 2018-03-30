@@ -17382,7 +17382,6 @@ _oc_rollout_latest()
 
     must_have_one_flag=()
     must_have_one_noun=()
-    must_have_one_noun+=("deploymentconfig")
     noun_aliases=()
 }
 
