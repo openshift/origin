@@ -13,6 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/client-go/kubernetes/scheme"
 	corelisters "k8s.io/client-go/listers/core/v1"
 	extensionslisters "k8s.io/client-go/listers/extensions/v1beta1"
 	clientgotesting "k8s.io/client-go/testing"
@@ -143,6 +144,206 @@ func (r *nsSecretLister) Get(name string) (*v1.Secret, error) {
 	return nil, errors.NewNotFound(schema.GroupResource{}, name)
 }
 
+const complexIngress = `
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: test-1
+  namespace: test
+spec:
+  rules:
+  - host: 1.ingress-test.com
+    http:
+      paths:
+      - path: /test
+        backend:
+          serviceName: ingress-endpoint-1
+          servicePort: 80
+      - path: /other
+        backend:
+          serviceName: ingress-endpoint-2
+          servicePort: 80
+  - host: 2.ingress-test.com
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: ingress-endpoint-1
+          servicePort: 80
+  - host: 3.ingress-test.com
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: ingress-endpoint-1
+          servicePort: 80
+`
+
+func TestController_stabilizeAfterCreate(t *testing.T) {
+	obj, _, err := scheme.Codecs.UniversalDeserializer().Decode([]byte(complexIngress), nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ingress := obj.(*extensionsv1beta1.Ingress)
+
+	i := &ingressLister{
+		Items: []*extensionsv1beta1.Ingress{
+			ingress,
+		},
+	}
+	r := &routeLister{}
+	s := &secretLister{}
+	svc := &serviceLister{Items: []*v1.Service{
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "ingress-endpoint-1",
+				Namespace: "test",
+			},
+			Spec: v1.ServiceSpec{
+				Ports: []v1.ServicePort{
+					{
+						Name:       "http",
+						Port:       80,
+						TargetPort: intstr.FromInt(8080),
+					},
+				},
+			},
+		},
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "ingress-endpoint-2",
+				Namespace: "test",
+			},
+			Spec: v1.ServiceSpec{
+				Ports: []v1.ServicePort{
+					{
+						Name:       "80-tcp",
+						Port:       80,
+						TargetPort: intstr.FromInt(8080),
+					},
+				},
+			},
+		},
+	}}
+
+	var names []string
+	kc := &fake.Clientset{}
+	kc.AddReactor("*", "routes", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+		switch a := action.(type) {
+		case clientgotesting.CreateAction:
+			obj := a.GetObject().DeepCopyObject()
+			m := obj.(metav1.Object)
+			if len(m.GetName()) == 0 {
+				m.SetName(m.GetGenerateName())
+			}
+			names = append(names, m.GetName())
+			return true, obj, nil
+		}
+		return true, nil, nil
+	})
+
+	c := &Controller{
+		queue:         workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "ingress-to-route-test"),
+		client:        kc.Route(),
+		ingressLister: i,
+		routeLister:   r,
+		secretLister:  s,
+		serviceLister: svc,
+		expectations:  newExpectations(),
+	}
+	defer c.queue.ShutDown()
+
+	// load the ingresses for the namespace
+	if err := c.sync(queueKey{namespace: "test"}); err != nil {
+		t.Errorf("Controller.sync() error = %v", err)
+	}
+	if c.queue.Len() != 1 {
+		t.Fatalf("Controller.sync() unexpected queue: %#v", c.queue.Len())
+	}
+	actions := kc.Actions()
+	if len(actions) != 0 {
+		t.Fatalf("Controller.sync() unexpected actions: %#v", actions)
+	}
+
+	// process the ingress
+	key, _ := c.queue.Get()
+	expectKey := queueKey{namespace: ingress.Namespace, name: ingress.Name}
+	if key.(queueKey) != expectKey {
+		t.Fatalf("incorrect key: %v", key)
+	}
+	if err := c.sync(key.(queueKey)); err != nil {
+		t.Fatalf("Controller.sync() error = %v", err)
+	}
+	c.queue.Done(key)
+	if c.queue.Len() != 0 {
+		t.Fatalf("Controller.sync() unexpected queue: %#v", c.queue.Len())
+	}
+	actions = kc.Actions()
+	if len(actions) == 0 {
+		t.Fatalf("Controller.sync() unexpected actions: %#v", actions)
+	}
+	if !c.expectations.Expecting("test", "test-1") {
+		t.Fatalf("Controller.sync() should be holding an expectation: %#v", c.expectations.expect)
+	}
+
+	for _, action := range actions {
+		switch action.GetVerb() {
+		case "create":
+			switch o := action.(clientgotesting.CreateAction).GetObject().(type) {
+			case *routev1.Route:
+				r.Items = append(r.Items, o)
+				c.processRoute(o)
+			default:
+				t.Fatalf("Unexpected create: %T", o)
+			}
+		default:
+			t.Fatalf("Unexpected action: %#v", action)
+		}
+	}
+	if c.queue.Len() != 1 {
+		t.Fatalf("Controller.sync() unexpected queue: %#v", c.queue.Len())
+	}
+	if c.expectations.Expecting("test", "test-1") {
+		t.Fatalf("Controller.sync() should have cleared all expectations: %#v", c.expectations.expect)
+	}
+	c.expectations.Expect("test", "test-1", names[0])
+
+	// waiting for a single expected route, will do nothing
+	key, _ = c.queue.Get()
+	if err := c.sync(key.(queueKey)); err != nil {
+		t.Errorf("Controller.sync() error = %v", err)
+	}
+	c.queue.Done(key)
+	actions = kc.Actions()
+	if len(actions) == 0 {
+		t.Fatalf("Controller.sync() unexpected actions: %#v", actions)
+	}
+	if c.queue.Len() != 1 {
+		t.Fatalf("Controller.sync() unexpected queue: %#v", c.queue.Len())
+	}
+	c.expectations.Satisfied("test", "test-1", names[0])
+
+	// steady state, nothing has changed
+	key, _ = c.queue.Get()
+	if err := c.sync(key.(queueKey)); err != nil {
+		t.Errorf("Controller.sync() error = %v", err)
+	}
+	c.queue.Done(key)
+	actions = kc.Actions()
+	if len(actions) == 0 {
+		t.Fatalf("Controller.sync() unexpected actions: %#v", actions)
+	}
+	if c.queue.Len() != 0 {
+		t.Fatalf("Controller.sync() unexpected queue: %#v", c.queue.Len())
+	}
+}
+
+func newTestExpectations(fn func(*expectations)) *expectations {
+	e := newExpectations()
+	fn(e)
+	return e
+}
+
 func TestController_sync(t *testing.T) {
 	services := &serviceLister{Items: []*v1.Service{
 		{
@@ -240,14 +441,17 @@ func TestController_sync(t *testing.T) {
 		svc corelisters.ServiceLister
 	}
 	tests := []struct {
-		name        string
-		fields      fields
-		args        queueKey
-		wantErr     bool
-		wantCreates []*routev1.Route
-		wantPatches []clientgotesting.PatchActionImpl
-		wantDeletes []clientgotesting.DeleteActionImpl
-		wantQueue   []queueKey
+		name            string
+		fields          fields
+		args            queueKey
+		expects         *expectations
+		wantErr         bool
+		wantCreates     []*routev1.Route
+		wantPatches     []clientgotesting.PatchActionImpl
+		wantDeletes     []clientgotesting.DeleteActionImpl
+		wantQueue       []queueKey
+		wantExpectation *expectations
+		wantExpects     []queueKey
 	}{
 		{
 			name:   "no changes",
@@ -415,11 +619,12 @@ func TestController_sync(t *testing.T) {
 				}},
 				r: &routeLister{},
 			},
-			args: queueKey{namespace: "test", name: "1"},
+			args:        queueKey{namespace: "test", name: "1"},
+			wantExpects: []queueKey{{namespace: "test", name: "1"}},
 			wantCreates: []*routev1.Route{
 				{
 					ObjectMeta: metav1.ObjectMeta{
-						GenerateName:    "1-",
+						Name:            "<generated>",
 						Namespace:       "test",
 						OwnerReferences: []metav1.OwnerReference{{APIVersion: "extensions/v1beta1", Kind: "Ingress", Name: "1", Controller: &boolTrue}},
 					},
@@ -436,7 +641,7 @@ func TestController_sync(t *testing.T) {
 				},
 				{
 					ObjectMeta: metav1.ObjectMeta{
-						GenerateName:    "1-",
+						Name:            "<generated>",
 						Namespace:       "test",
 						OwnerReferences: []metav1.OwnerReference{{APIVersion: "extensions/v1beta1", Kind: "Ingress", Name: "1", Controller: &boolTrue}},
 					},
@@ -452,6 +657,54 @@ func TestController_sync(t *testing.T) {
 					},
 				},
 			},
+		},
+		{
+			name: "create route - blocked by expectation",
+			fields: fields{
+				i: &ingressLister{Items: []*extensionsv1beta1.Ingress{
+					{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "1",
+							Namespace: "test",
+						},
+						Spec: extensionsv1beta1.IngressSpec{
+							Rules: []extensionsv1beta1.IngressRule{
+								{
+									Host: "test.com",
+									IngressRuleValue: extensionsv1beta1.IngressRuleValue{
+										HTTP: &extensionsv1beta1.HTTPIngressRuleValue{
+											Paths: []extensionsv1beta1.HTTPIngressPath{
+												{
+													Path: "/deep", Backend: extensionsv1beta1.IngressBackend{
+														ServiceName: "service-1",
+														ServicePort: intstr.FromString("http"),
+													},
+												},
+												{
+													Path: "/", Backend: extensionsv1beta1.IngressBackend{
+														ServiceName: "service-1",
+														ServicePort: intstr.FromString("http"),
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				}},
+				r: &routeLister{},
+			},
+			expects: newTestExpectations(func(e *expectations) {
+				e.Expect("test", "1", "route-test-1")
+			}),
+			args:      queueKey{namespace: "test", name: "1"},
+			wantQueue: []queueKey{{namespace: "test", name: "1"}},
+			// preserves the expectations unchanged
+			wantExpectation: newTestExpectations(func(e *expectations) {
+				e.Expect("test", "1", "route-test-1")
+			}),
 		},
 		{
 			name: "update route",
@@ -1244,8 +1497,19 @@ func TestController_sync(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			var names []string
 			kc := &fake.Clientset{}
 			kc.AddReactor("*", "routes", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+				switch a := action.(type) {
+				case clientgotesting.CreateAction:
+					obj := a.GetObject().DeepCopyObject()
+					m := obj.(metav1.Object)
+					if len(m.GetName()) == 0 {
+						m.SetName(m.GetGenerateName())
+					}
+					names = append(names, m.GetName())
+					return true, obj, nil
+				}
 				return true, nil, nil
 			})
 
@@ -1256,8 +1520,12 @@ func TestController_sync(t *testing.T) {
 				routeLister:   tt.fields.r,
 				secretLister:  tt.fields.s,
 				serviceLister: tt.fields.svc,
+				expectations:  tt.expects,
 			}
 			// default these
+			if c.expectations == nil {
+				c.expectations = newExpectations()
+			}
 			if c.secretLister == nil {
 				c.secretLister = secrets
 			}
@@ -1282,6 +1550,20 @@ func TestController_sync(t *testing.T) {
 				t.Errorf("unexpected queue: %s", diff.ObjectReflectDiff(tt.wantQueue, hasQueue))
 			}
 
+			wants := tt.wantExpectation
+			if wants == nil {
+				wants = newTestExpectations(func(e *expectations) {
+					for _, key := range tt.wantExpects {
+						for _, routeName := range names {
+							e.Expect(key.namespace, key.name, routeName)
+						}
+					}
+				})
+			}
+			if !reflect.DeepEqual(wants, c.expectations) {
+				t.Errorf("unexpected expectations: %s", diff.ObjectReflectDiff(wants.expect, c.expectations.expect))
+			}
+
 			actions := kc.Actions()
 
 			for i := range tt.wantCreates {
@@ -1295,8 +1577,13 @@ func TestController_sync(t *testing.T) {
 				if action.GetNamespace() != tt.args.namespace {
 					t.Errorf("unexpected action[%d]: %#v", i, action)
 				}
-				if !reflect.DeepEqual(tt.wantCreates[i], action.GetObject()) {
-					t.Errorf("unexpected create: %s", diff.ObjectReflectDiff(tt.wantCreates[i], action.GetObject()))
+				obj := action.GetObject()
+				if tt.wantCreates[i].Name == "<generated>" {
+					tt.wantCreates[i].Name = names[0]
+					names = names[1:]
+				}
+				if !reflect.DeepEqual(tt.wantCreates[i], obj) {
+					t.Errorf("unexpected create: %s", diff.ObjectReflectDiff(tt.wantCreates[i], obj))
 				}
 			}
 			actions = actions[len(tt.wantCreates):]

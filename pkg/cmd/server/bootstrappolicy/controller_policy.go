@@ -297,7 +297,7 @@ func init() {
 		},
 	})
 
-	// ingress-secretref-controller
+	// ingress-to-route-controller
 	addControllerRole(rbac.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{Name: saRolePrefix + InfraIngressToRouteControllerServiceAccountName},
 		Rules: []rbac.PolicyRule{
