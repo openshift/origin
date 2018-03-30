@@ -57,6 +57,24 @@ func clearEnv() {
 	}
 }
 
+type dummyHostNS struct{}
+
+func (ns *dummyHostNS) Do(toRun func(ns.NetNS) error) error {
+	return toRun(ns)
+}
+func (ns *dummyHostNS) Set() error {
+	panic("should not be reached")
+}
+func (ns *dummyHostNS) Path() string {
+	panic("should not be reached")
+}
+func (ns *dummyHostNS) Fd() uintptr {
+	panic("should not be reached")
+}
+func (ns *dummyHostNS) Close() error {
+	panic("should not be reached")
+}
+
 func TestOpenshiftSdnCNIPlugin(t *testing.T) {
 	tmpDir, err := utiltesting.MkTmpdir("cniserver")
 	if err != nil {
@@ -70,12 +88,7 @@ func TestOpenshiftSdnCNIPlugin(t *testing.T) {
 		t.Fatalf("error starting CNI server: %v", err)
 	}
 
-	hostNS, err := ns.GetCurrentNS()
-	if err != nil {
-		panic(fmt.Sprintf("could not get current kernel netns: %v", err))
-	}
-	defer hostNS.Close()
-	cniPlugin := NewCNIPlugin(path, hostNS)
+	cniPlugin := NewCNIPlugin(path, &dummyHostNS{})
 
 	expectedIP, expectedNet, _ := net.ParseCIDR("10.0.0.2/24")
 	expectedResult = &cni020.Result{
