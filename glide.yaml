@@ -167,6 +167,11 @@ import:
 # router metrics
 - package: github.com/cockroachdb/cmux
   version: b64f5908f4945f4b11ed4a0a9d3cc1e23350866d
+# router dynamic reloads
+- package: github.com/gocarina/gocsv
+  version: a5c9099e2484f1551abb9433885e158610a25f4b
+- package: github.com/bcicen/go-haproxy
+  version: ff5824fe38bede761b873cab6e247a530e89236a
 # keep us up to date with latest DNS security fixes
 - package: github.com/miekg/dns
   version: master
