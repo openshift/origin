@@ -334,12 +334,12 @@ func (sc *ServiceServingCertController) requiresCertGeneration(service *v1.Servi
 	if getNumFailures(service) >= sc.maxRetries {
 		return false
 	}
-	if service.Annotations[ServingCertCreatedByAnnotation] == sc.ca.Config.Certs[0].Subject.CommonName {
-		return false
-	}
 	_, err := sc.secretLister.Secrets(service.Namespace).Get(secretName)
 	if kapierrors.IsNotFound(err) {
 		return true
+	}
+	if service.Annotations[ServingCertCreatedByAnnotation] == sc.ca.Config.Certs[0].Subject.CommonName {
+		return false
 	}
 	if err != nil {
 		utilruntime.HandleError(fmt.Errorf("Unable to get the secret %s/%s: %v", service.Namespace, secretName, err))
