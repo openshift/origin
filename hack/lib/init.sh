@@ -37,7 +37,7 @@ cd "${OS_ROOT}"
 
 while IFS= read -r -d '' library_file; do
 	source "$library_file"
-done < <(find "${OS_ROOT}/hack/lib" -type f -name '*.sh' -not -path '*/hack/lib/init.sh')
+done < <(find "${OS_ROOT}/hack/lib" -type f -name '*.sh' -not -path '*/hack/lib/init.sh' -print0)
 
 unset library_files library_file init_source
 
