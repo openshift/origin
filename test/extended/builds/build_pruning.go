@@ -28,7 +28,7 @@ var _ = g.Describe("[Feature:Builds][pruning] prune builds based on settings in 
 		groupBuildConfig    = filepath.Join(buildPruningBaseDir, "default-group-build-config.yaml")
 		oc                  = exutil.NewCLI("build-pruning", exutil.KubeConfigPath())
 		pollingInterval     = time.Second
-		timeout             = 2 * time.Minute
+		timeout             = 10 * time.Minute
 	)
 
 	g.Context("", func() {
