@@ -2,26 +2,18 @@ package master
 
 import (
 	"testing"
-	"time"
 
-	"github.com/coreos/etcd/client"
+	"github.com/coreos/etcd/clientv3"
 	"golang.org/x/net/context"
 	"k8s.io/apiserver/pkg/registry/generic"
 	"k8s.io/apiserver/pkg/storage/etcd/etcdtest"
 	etcdtesting "k8s.io/apiserver/pkg/storage/etcd/testing"
-	"k8s.io/apiserver/pkg/storage/storagebackend"
 	"k8s.io/kubernetes/pkg/api/testapi"
 )
 
 func TestNewMasterLeasesHasCorrectTTL(t *testing.T) {
-	server := etcdtesting.NewUnsecuredEtcdTestClientServer(t)
-	etcdStorage := &storagebackend.Config{
-		Type:                     "etcd2",
-		Prefix:                   etcdtest.PathPrefix(),
-		ServerList:               server.Client.Endpoints(),
-		DeserializationCacheSize: etcdtest.DeserializationCacheSize,
-		Codec: testapi.Groups[""].StorageCodec(),
-	}
+	server, etcdStorage := etcdtesting.NewUnsecuredEtcd3TestClientServer(t)
+	etcdStorage.Codec = testapi.Groups[""].StorageCodec()
 
 	restOptions := generic.RESTOptions{StorageConfig: etcdStorage, Decorator: generic.UndecoratedStorage, DeleteCollectionWorkers: 1}
 	storageInterface, _ := restOptions.Decorator(restOptions.StorageConfig, nil, "masterleases", nil, nil, nil, nil)
@@ -32,14 +24,21 @@ func TestNewMasterLeasesHasCorrectTTL(t *testing.T) {
 		t.Fatalf("error updating lease: %v", err)
 	}
 
-	etcdClient := server.Client
-	keys := client.NewKeysAPI(etcdClient)
-	resp, err := keys.Get(context.Background(), etcdtest.PathPrefix()+"/masterleases/1.2.3.4", nil)
+	etcdClient := server.V3Client
+	resp, err := etcdClient.Get(context.Background(), etcdtest.PathPrefix()+"/masterleases/1.2.3.4")
 	if err != nil {
 		t.Fatalf("error getting key: %v", err)
 	}
-	ttl := resp.Node.TTLDuration()
-	if ttl > 15*time.Second || ttl < 10*time.Second {
+	leaseID := resp.Kvs[0].Lease
+	if leaseID == 0 {
+		t.Fatalf("no lease found")
+	}
+	ttlResponse, err := etcdClient.Lease.TimeToLive(context.Background(), clientv3.LeaseID(leaseID))
+	if err != nil {
+		t.Fatalf("error getting lease: %v", err)
+	}
+	ttl := ttlResponse.GrantedTTL
+	if ttl > 15 || ttl < 10 {
 		t.Errorf("ttl %v should be ~ 15s", ttl)
 	}
 }
