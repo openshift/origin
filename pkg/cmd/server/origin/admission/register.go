@@ -91,6 +91,7 @@ var (
 		"ServiceAccount",
 		noderestriction.PluginName,
 		securityadmission.PluginName,
+		"StorageObjectInUseProtection",
 		"SCCExecRestrictions",
 		"PersistentVolumeLabel",
 		"DefaultStorageClass",
@@ -122,7 +123,6 @@ var (
 		"ValidatingAdmissionWebhook",
 		"MutatingAdmissionWebhook",
 		"ExtendedResourceToleration",
-		"PVCProtection",
 		expandpvcadmission.PluginName,
 
 		// these should usually be off.
