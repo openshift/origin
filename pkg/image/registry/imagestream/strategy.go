@@ -348,6 +348,9 @@ func tagRefChanged(old, next imageapi.TagReference, streamNamespace string) bool
 	if oldFrom.Name != next.From.Name {
 		return true
 	}
+	if old.Reference != next.Reference {
+		return true
+	}
 	return tagRefGenerationChanged(old, next)
 }
 
