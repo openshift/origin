@@ -1,5 +1,5 @@
 hash: 12f4ccd1107150413a0ddb1fee9b3946e65d4b6c407aa16c5e921572586dbc3d
-updated: 2018-03-30T22:42:43.649753-04:00
+updated: 2018-03-30T22:58:05.176897-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -598,6 +598,7 @@ imports:
   - openstack/networking/v2/ports
   - openstack/utils
   - pagination
+  - testhelper
 - name: github.com/gorilla/context
   version: 215affda49addc4c8ef7e2534915df2c8c35c6cd
 - name: github.com/gorilla/mux
@@ -1018,17 +1019,6 @@ imports:
   version: 5bd2802263f21d8788851d5305584c82a5c75d7e
 - name: github.com/quobyte/api
   version: cb10db90715b14d4784465d2fa3b915dfacc0628
-- name: github.com/rackspace/gophercloud
-  version: 934dbf81977c67c521c75492dc1f55ca74dc5b04
-  subpackages:
-  - openstack
-  - openstack/identity/v2/tenants
-  - openstack/identity/v2/tokens
-  - openstack/identity/v3/tokens
-  - openstack/utils
-  - pagination
-  - testhelper
-  - testhelper/client
 - name: github.com/rancher/go-rancher
   version: 09693a8743ba5ee58c58c1b1e8a4abd17af00d45
   subpackages:
