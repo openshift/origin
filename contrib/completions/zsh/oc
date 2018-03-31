@@ -4718,8 +4718,6 @@ _oc_adm_migrate_image-references()
     flags+=("--vmodule=")
 
     must_have_one_flag=()
-    must_have_one_flag+=("--filename=")
-    must_have_one_flag+=("-f")
     must_have_one_noun=()
     noun_aliases=()
 }
@@ -4803,8 +4801,6 @@ _oc_adm_migrate_legacy-hpa()
     flags+=("--vmodule=")
 
     must_have_one_flag=()
-    must_have_one_flag+=("--filename=")
-    must_have_one_flag+=("-f")
     must_have_one_noun=()
     noun_aliases=()
 }
@@ -4888,8 +4884,6 @@ _oc_adm_migrate_storage()
     flags+=("--vmodule=")
 
     must_have_one_flag=()
-    must_have_one_flag+=("--filename=")
-    must_have_one_flag+=("-f")
     must_have_one_noun=()
     noun_aliases=()
 }
@@ -11510,7 +11504,6 @@ _oc_create_route_reencrypt()
     flags+=("--vmodule=")
 
     must_have_one_flag=()
-    must_have_one_flag+=("--dest-ca-cert=")
     must_have_one_flag+=("--service=")
     must_have_one_noun=()
     noun_aliases=()
