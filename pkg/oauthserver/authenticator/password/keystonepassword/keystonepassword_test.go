@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"testing"
 
+	th "github.com/gophercloud/gophercloud/testhelper"
 	"github.com/openshift/origin/pkg/oauthserver/api"
-	th "github.com/rackspace/gophercloud/testhelper"
 	"k8s.io/apiserver/pkg/authentication/user"
 )
 
