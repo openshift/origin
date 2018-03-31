@@ -14,6 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
+	ktemplates "k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
@@ -127,19 +128,50 @@ func NewCmdDiagnostics(name string, fullName string, out io.Writer) *cobra.Comma
 	o.bindClientFlags(cmd.Flags())
 	o.bindHostFlags(cmd.Flags())
 
-	// add "all" subcommand
-	cmd.AddCommand(NewCmdDiagnosticsAll(AllDiagnosticsRecommendedName, fullName+" "+AllDiagnosticsRecommendedName, out, available))
-	// add individual diagnostic subcommands
-	for _, diag := range available {
-		cmd.AddCommand(NewCmdDiagnosticsIndividual(strings.ToLower(diag.Name()), fullName+" "+strings.ToLower(diag.Name()), out, diag))
-	}
-	// add hidden in-pod subcommands
-	cmd.AddCommand(
-		poddiag.NewCommandPodDiagnostics(poddiag.InPodDiagnosticRecommendedName, out),
-		networkpoddiag.NewCommandNetworkPodDiagnostics(networkpoddiag.InPodNetworkCheckRecommendedName, out),
-	)
+	groups := createCommnadGroups(fullName, out)
+	groups = append(groups, ktemplates.CommandGroup{"All Diagnostics:",
+		[]*cobra.Command{
+			NewCmdDiagnosticsAll(AllDiagnosticsRecommendedName, fullName+" "+AllDiagnosticsRecommendedName, out, available),
+		},
+	})
+	groups.Add(cmd)
+	templates.ActsAsRootCommand(cmd, []string{"options"}, groups...)
 
 	return cmd
+}
+
+// createCommandGroups creates a group of sub commands to make help option clear.
+func createCommnadGroups(fullName string, out io.Writer) ktemplates.CommandGroups {
+	groups := ktemplates.CommandGroups{}
+
+	// Client Diagnostics
+	cmd := []*cobra.Command{}
+	for _, diag := range availableClientDiagnostics() {
+		cmd = append(cmd, NewCmdDiagnosticsIndividual(strings.ToLower(diag.Name()), fullName+" "+strings.ToLower(diag.Name()), out, diag))
+	}
+	groups = append(groups, ktemplates.CommandGroup{"Clinent Diagnostics:", cmd})
+
+	// Cluster Diagnostics
+	cmd = []*cobra.Command{}
+	for _, diag := range availableClusterDiagnostics() {
+		cmd = append(cmd, NewCmdDiagnosticsIndividual(strings.ToLower(diag.Name()), fullName+" "+strings.ToLower(diag.Name()), out, diag))
+	}
+	groups = append(groups, ktemplates.CommandGroup{"Cluster Diagnostics:", cmd})
+
+	// Host Diagnostics
+	cmd = []*cobra.Command{}
+	for _, diag := range availableHostDiagnostics() {
+		cmd = append(cmd, NewCmdDiagnosticsIndividual(strings.ToLower(diag.Name()), fullName+" "+strings.ToLower(diag.Name()), out, diag))
+	}
+	groups = append(groups, ktemplates.CommandGroup{"Host Diagnostics:", cmd})
+
+	// Network Diagnostics
+	cmd = []*cobra.Command{
+		poddiag.NewCommandPodDiagnostics(poddiag.InPodDiagnosticRecommendedName, out),
+		networkpoddiag.NewCommandNetworkPodDiagnostics(networkpoddiag.InPodNetworkCheckRecommendedName, out),
+	}
+	groups = append(groups, ktemplates.CommandGroup{"Netowrk Diagnostics:", cmd})
+	return groups
 }
 
 // NewCmdDiagnosticsAll is the command for running ALL diagnostics and providing all flags.
