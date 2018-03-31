@@ -530,7 +530,8 @@ func getMarkerScanners(logsCommandName, securityPolicyCommandFormat, setProbeCom
 			return kubeanalysis.FindMissingSecrets(g, f)
 		},
 		kubeanalysis.FindHPASpecsMissingCPUTargets,
-		kubeanalysis.FindHPASpecsMissingScaleRefs,
+		// TODO(directxman12): re-enable FindHPASpecsMissingScaleRefs once the graph library
+		// knows how to deal with arbitrary scale targets
 		kubeanalysis.FindOverlappingHPAs,
 		buildanalysis.FindUnpushableBuildConfigs,
 		buildanalysis.FindCircularBuilds,
