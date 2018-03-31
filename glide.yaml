@@ -84,7 +84,7 @@ import:
 # cli
 - package: github.com/docker/distribution
   repo:    git@github.com:openshift/docker-distribution
-  version: release-2.6.0
+  version: openshift-3.10-docker-edc3ab2
 # close-write carry
 - package: github.com/docker/docker
   repo:    git@github.com:openshift/moby-moby
