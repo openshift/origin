@@ -26,6 +26,7 @@ import (
 	"github.com/openshift/origin/pkg/oc/cli/cmd/importer"
 	"github.com/openshift/origin/pkg/oc/cli/cmd/login"
 	"github.com/openshift/origin/pkg/oc/cli/cmd/observe"
+	"github.com/openshift/origin/pkg/oc/cli/cmd/registry"
 	"github.com/openshift/origin/pkg/oc/cli/cmd/rollout"
 	"github.com/openshift/origin/pkg/oc/cli/cmd/rsync"
 	"github.com/openshift/origin/pkg/oc/cli/cmd/set"
@@ -171,6 +172,7 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 				cmd.NewCmdConvert(fullName, f, out),
 				importer.NewCmdImport(fullName, f, in, out, errout),
 				image.NewCmdImage(fullName, f, in, out, errout),
+				registry.NewCmd(fullName, f, in, out, errout),
 			},
 		},
 		{
