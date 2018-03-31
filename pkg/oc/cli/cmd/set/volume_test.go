@@ -346,7 +346,7 @@ func TestValidateAddOptions(t *testing.T) {
 
 	for _, testCase := range tests {
 		addOpts := testCase.addOpts
-		err := addOpts.Validate(true)
+		err := addOpts.Validate()
 		if testCase.expectedError == nil && err != nil {
 			t.Errorf("Expected nil error for %s got %s", testCase.name, err)
 			continue
