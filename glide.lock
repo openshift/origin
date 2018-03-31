@@ -1,5 +1,5 @@
-hash: 977eea94230d67ba609f55ba1b06f26ad5125d063de000057a8c95baf0ae7fec
-updated: 2018-03-30T10:33:22.769638-04:00
+hash: 12f4ccd1107150413a0ddb1fee9b3946e65d4b6c407aa16c5e921572586dbc3d
+updated: 2018-03-30T22:42:43.649753-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -309,7 +309,7 @@ imports:
 - name: github.com/dgrijalva/jwt-go
   version: 01aeca54ebda6e0fbfafd0a524d234159c05ec20
 - name: github.com/docker/distribution
-  version: a25d9964dcb79db32040eaf6a09016f21bba3952
+  version: a8549110ba0fed84a3b91dc12c84457c775224f1
   repo: git@github.com:openshift/docker-distribution
   subpackages:
   - context
