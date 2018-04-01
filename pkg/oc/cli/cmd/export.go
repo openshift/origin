@@ -54,7 +54,7 @@ func NewCmdExport(fullName string, f *clientcmd.Factory, in io.Reader, out io.Wr
 	exporter := &DefaultExporter{}
 	var filenames []string
 	cmd := &cobra.Command{
-		Use:     "export RESOURCE/NAME ... [options]",
+		Use:     "export RESOURCE/NAME ... [flags]",
 		Short:   "Export resources so they can be used elsewhere",
 		Long:    exportLong,
 		Example: fmt.Sprintf(exportExample, fullName),

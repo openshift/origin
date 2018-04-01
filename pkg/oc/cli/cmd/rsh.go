@@ -85,7 +85,7 @@ func NewCmdRsh(name string, parent string, f *clientcmd.Factory, in io.Reader, o
 	}
 
 	cmd := &cobra.Command{
-		Use:     fmt.Sprintf("%s [options] POD [COMMAND]", name),
+		Use:     fmt.Sprintf("%s [flags] POD [COMMAND]", name),
 		Short:   "Start a shell session in a pod",
 		Long:    fmt.Sprintf(rshLong, parent),
 		Example: fmt.Sprintf(rshExample, parent+" "+name),

@@ -190,7 +190,7 @@ func (t *templater) optionsCmdFor(c *cobra.Command) string {
 
 func (t *templater) usageLine(c *cobra.Command) string {
 	usage := c.UseLine()
-	suffix := "[options]"
+	suffix := "[flags]"
 	if c.HasFlags() && !strings.Contains(usage, suffix) {
 		usage += " " + suffix
 	}

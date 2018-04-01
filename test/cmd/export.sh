@@ -15,6 +15,8 @@ os::test::junit::declare_suite_start "cmd/export"
 
 os::cmd::expect_success 'oc new-app -f examples/sample-app/application-template-stibuild.json --name=sample'
 
+# wait for service account to have secret
+os::cmd::try_until_text "oc get sa/default -o yaml" 'default-token'
 # this checks to make sure that the generated tokens and dockercfg secrets are excluded by default
 # and included when --exact is requested
 os::cmd::expect_success_and_text "oc export sa/default --template='{{ .secrets }}'" '<no value>'
