@@ -141,10 +141,10 @@ os::cmd::expect_success_and_text 'oc whoami' 'e2e-user'
 
 # check to make sure that cluster-admin and node-reader can see node endpoint
 os::test::junit::declare_suite_start "end-to-end/core/node-access"
-os::cmd::expect_success "oc get --context='${CLUSTER_ADMIN_CONTEXT}' --server='https://${KUBELET_HOST}:${KUBELET_PORT}' --insecure-skip-tls-verify --raw spec/"
+os::cmd::expect_success "oc get --context='${CLUSTER_ADMIN_CONTEXT}' --server='https://${KUBELET_HOST}:${KUBELET_PORT}' --insecure-skip-tls-verify --raw /spec/"
 os::cmd::expect_success "oc adm policy add-cluster-role-to-user --context='${CLUSTER_ADMIN_CONTEXT}' system:node-reader e2e-user"
 os::cmd::try_until_text "oc policy can-i get nodes/spec" "yes"
-os::cmd::expect_success "oc get --server='https://${KUBELET_HOST}:${KUBELET_PORT}' --insecure-skip-tls-verify --raw spec/"
+os::cmd::expect_success "oc get --server='https://${KUBELET_HOST}:${KUBELET_PORT}' --insecure-skip-tls-verify --raw /spec/"
 os::test::junit::declare_suite_end
 
 # make sure viewers can see oc status
@@ -269,7 +269,7 @@ schema2_user_token="$(oc whoami -t)"
 
 # check to make sure that schema2-user is denied node access
 os::test::junit::declare_suite_start "end-to-end/core/node-access-denial"
-os::cmd::expect_failure_and_text "oc get --server='https://${KUBELET_HOST}:${KUBELET_PORT}' --insecure-skip-tls-verify --raw spec/" "Forbidden"
+os::cmd::expect_failure_and_text "oc get --server='https://${KUBELET_HOST}:${KUBELET_PORT}' --insecure-skip-tls-verify --raw /spec/" "Forbidden"
 os::test::junit::declare_suite_end
 
 
@@ -473,10 +473,10 @@ os::cmd::expect_success_and_text "oc rsh pod/${frontend_pod} id -u" '1000'
 os::cmd::expect_success_and_text "oc rsh -T ${frontend_pod} id -u" '1000'
 
 os::log::info "Check we can get access to statefulset container via rsh"
-os::cmd::expect_success_and_text "oc create -f test/testdata/statefulset.yaml" 'statefulset "testapp" created'
+os::cmd::expect_success_and_text "oc create -f test/testdata/statefulset.yaml" 'statefulset.apps "testapp" created'
 os::cmd::try_until_text "oc get pod testapp-0 -o jsonpath='{.status.phase}'" "Running" "$(( 2*TIME_MIN ))"
 os::cmd::expect_success_and_text "oc rsh sts/testapp echo 1" "1"
-os::cmd::expect_success_and_text "oc delete sts/testapp" 'statefulset "testapp" deleted'
+os::cmd::expect_success_and_text "oc delete sts/testapp" 'statefulset.apps "testapp" deleted'
 
 # test that rsh inherits the TERM variable by default
 # this must be done as an echo and not an argument to rsh because rsh only sets the TERM if
@@ -493,7 +493,7 @@ os::cmd::expect_success_and_text "oc deploy frontend" 'deployed'
 
 # Port forwarding
 os::log::info "Validating port-forward"
-os::cmd::expect_success "oc port-forward -p ${frontend_pod} 10080:8080  &> '${LOG_DIR}/port-forward.log' &"
+os::cmd::expect_success "oc port-forward pod/${frontend_pod} 10080:8080  &> '${LOG_DIR}/port-forward.log' &"
 os::cmd::try_until_success "curl --max-time 2 --fail --silent 'http://localhost:10080'" "$((10*TIME_SEC))"
 
 # Rsync
