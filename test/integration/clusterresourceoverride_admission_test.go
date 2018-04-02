@@ -125,9 +125,6 @@ func setupClusterResourceOverrideTest(t *testing.T, pluginConfig *overrideapi.Cl
 		t.Fatal(err)
 	}
 	// fill in possibly-empty config values
-	if masterConfig.KubernetesMasterConfig == nil {
-		masterConfig.KubernetesMasterConfig = &config.KubernetesMasterConfig{}
-	}
 	if masterConfig.AdmissionConfig.PluginConfig == nil {
 		masterConfig.AdmissionConfig.PluginConfig = map[string]*config.AdmissionPluginConfig{}
 	}

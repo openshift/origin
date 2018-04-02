@@ -145,16 +145,14 @@ func GetMasterFileReferences(config *MasterConfig) []*string {
 		refs = append(refs, &config.AdmissionConfig.PluginConfig[k].Location)
 	}
 
-	if config.KubernetesMasterConfig != nil {
-		refs = append(refs, &config.KubernetesMasterConfig.SchedulerConfigFile)
+	refs = append(refs, &config.KubernetesMasterConfig.SchedulerConfigFile)
 
-		refs = append(refs, &config.KubernetesMasterConfig.ProxyClientInfo.CertFile)
-		refs = append(refs, &config.KubernetesMasterConfig.ProxyClientInfo.KeyFile)
+	refs = append(refs, &config.KubernetesMasterConfig.ProxyClientInfo.CertFile)
+	refs = append(refs, &config.KubernetesMasterConfig.ProxyClientInfo.KeyFile)
 
-		refs = appendFlagsWithFileExtensions(refs, config.KubernetesMasterConfig.APIServerArguments)
-		refs = appendFlagsWithFileExtensions(refs, config.KubernetesMasterConfig.SchedulerArguments)
-		refs = appendFlagsWithFileExtensions(refs, config.KubernetesMasterConfig.ControllerArguments)
-	}
+	refs = appendFlagsWithFileExtensions(refs, config.KubernetesMasterConfig.APIServerArguments)
+	refs = appendFlagsWithFileExtensions(refs, config.KubernetesMasterConfig.SchedulerArguments)
+	refs = appendFlagsWithFileExtensions(refs, config.KubernetesMasterConfig.ControllerArguments)
 
 	if config.AuthConfig.RequestHeader != nil {
 		refs = append(refs, &config.AuthConfig.RequestHeader.ClientCA)

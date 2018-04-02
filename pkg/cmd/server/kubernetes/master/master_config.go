@@ -94,9 +94,6 @@ var LegacyAPIGroupPrefixes = sets.NewString(apiserver.DefaultLegacyAPIPrefix, ap
 // BuildKubeAPIserverOptions constructs the appropriate kube-apiserver run options.
 // It returns an error if no KubernetesMasterConfig was defined.
 func BuildKubeAPIserverOptions(masterConfig configapi.MasterConfig) (*kapiserveroptions.ServerRunOptions, error) {
-	if masterConfig.KubernetesMasterConfig == nil {
-		return nil, fmt.Errorf("no kubernetesMasterConfig defined, unable to load settings")
-	}
 	host, portString, err := net.SplitHostPort(masterConfig.ServingInfo.BindAddress)
 	if err != nil {
 		return nil, err
@@ -721,14 +718,14 @@ func getAPIResourceConfig(options configapi.MasterConfig) apiserverstorage.APIRe
 	resourceConfig := apiserverstorage.NewResourceConfig()
 
 	for group := range configapi.KnownKubeAPIGroups {
-		for _, version := range configapi.GetEnabledAPIVersionsForGroup(*options.KubernetesMasterConfig, group) {
+		for _, version := range configapi.GetEnabledAPIVersionsForGroup(options.KubernetesMasterConfig, group) {
 			gv := schema.GroupVersion{Group: group, Version: version}
 			resourceConfig.EnableVersions(gv)
 		}
 	}
 
 	for group := range options.KubernetesMasterConfig.DisabledAPIGroupVersions {
-		for _, version := range configapi.GetDisabledAPIVersionsForGroup(*options.KubernetesMasterConfig, group) {
+		for _, version := range configapi.GetDisabledAPIVersionsForGroup(options.KubernetesMasterConfig, group) {
 			gv := schema.GroupVersion{Group: group, Version: version}
 			resourceConfig.DisableVersions(gv)
 		}

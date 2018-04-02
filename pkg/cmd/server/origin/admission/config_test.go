@@ -101,7 +101,7 @@ func TestSeparateAdmissionChainDetection(t *testing.T) {
 		{
 			name: "stock everything",
 			options: configapi.MasterConfig{
-				KubernetesMasterConfig: &configapi.KubernetesMasterConfig{},
+				KubernetesMasterConfig: configapi.KubernetesMasterConfig{},
 			},
 			admissionChainBuilder: func(pluginNames []string, admissionConfigFilename string, options configapi.MasterConfig, pluginInitializer admission.PluginInitializer, decorator admission.Decorator) (admission.Interface, error) {
 				if !reflect.DeepEqual(pluginNames, combinedAdmissionControlPlugins) {
@@ -113,7 +113,7 @@ func TestSeparateAdmissionChainDetection(t *testing.T) {
 		{
 			name: "specified origin admission order",
 			options: configapi.MasterConfig{
-				KubernetesMasterConfig: &configapi.KubernetesMasterConfig{},
+				KubernetesMasterConfig: configapi.KubernetesMasterConfig{},
 				AdmissionConfig: configapi.AdmissionConfig{
 					PluginOrderOverride: []string{"foo"},
 				},
@@ -134,7 +134,7 @@ func TestSeparateAdmissionChainDetection(t *testing.T) {
 		{
 			name: "specified kube admission config file",
 			options: configapi.MasterConfig{
-				KubernetesMasterConfig: &configapi.KubernetesMasterConfig{
+				KubernetesMasterConfig: configapi.KubernetesMasterConfig{
 					APIServerArguments: configapi.ExtendedArguments{
 						"admission-control-config-file": []string{"foo"},
 					},
@@ -152,7 +152,7 @@ func TestSeparateAdmissionChainDetection(t *testing.T) {
 		{
 			name: "specified, non-conflicting plugin configs 01",
 			options: configapi.MasterConfig{
-				KubernetesMasterConfig: &configapi.KubernetesMasterConfig{},
+				KubernetesMasterConfig: configapi.KubernetesMasterConfig{},
 				AdmissionConfig: configapi.AdmissionConfig{
 					PluginConfig: map[string]*configapi.AdmissionPluginConfig{
 						"foo": {

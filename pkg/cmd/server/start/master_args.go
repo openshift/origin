@@ -176,13 +176,9 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 		}
 	}
 
-	builtInKubernetes := len(args.KubeConnectionArgs.ClientConfigLoadingRules.ExplicitPath) == 0
-	var kubernetesMasterConfig *configapi.KubernetesMasterConfig
-	if builtInKubernetes {
-		kubernetesMasterConfig, err = args.BuildSerializeableKubeMasterConfig()
-		if err != nil {
-			return nil, err
-		}
+	kubernetesMasterConfig, err := args.BuildSerializeableKubeMasterConfig()
+	if err != nil {
+		return nil, err
 	}
 
 	oauthConfig, err := args.BuildSerializeableOAuthConfig()
@@ -205,7 +201,7 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 		CORSAllowedOrigins: corsAllowedOrigins.List(),
 		MasterPublicURL:    masterPublicAddr.String(),
 
-		KubernetesMasterConfig: kubernetesMasterConfig,
+		KubernetesMasterConfig: *kubernetesMasterConfig,
 		EtcdConfig:             etcdConfig,
 
 		AuthConfig: configapi.MasterAuthConfig{
@@ -299,12 +295,9 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 		oauthConfig.MasterCA = &s
 	}
 
-	// Only set up ca/cert info for kubelet connections if we're self-hosting Kubernetes
-	if builtInKubernetes {
-		config.KubeletClientInfo.CA = admin.DefaultRootCAFile(args.ConfigDir.Value())
-		config.KubeletClientInfo.ClientCert = kubeletClientInfo.CertLocation
-		config.ServiceAccountConfig.MasterCA = admin.DefaultCABundleFile(args.ConfigDir.Value())
-	}
+	config.KubeletClientInfo.CA = admin.DefaultRootCAFile(args.ConfigDir.Value())
+	config.KubeletClientInfo.ClientCert = kubeletClientInfo.CertLocation
+	config.ServiceAccountConfig.MasterCA = admin.DefaultCABundleFile(args.ConfigDir.Value())
 
 	// Only set up ca/cert info for etcd connections if we're self-hosting etcd
 	if builtInEtcd {
@@ -312,28 +305,17 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 		config.EtcdClientInfo.ClientCert = etcdClientInfo.CertLocation
 	}
 
-	if builtInKubernetes {
-		// When we start Kubernetes, we're responsible for generating all the managed service accounts
-		config.ServiceAccountConfig.ManagedNames = []string{
-			bootstrappolicy.DefaultServiceAccountName,
-			bootstrappolicy.BuilderServiceAccountName,
-			bootstrappolicy.DeployerServiceAccountName,
-		}
-		// We also need the private key file to give to the token generator
-		config.ServiceAccountConfig.PrivateKeyFile = admin.DefaultServiceAccountPrivateKeyFile(args.ConfigDir.Value())
-		// We also need the public key file to give to the authenticator
-		config.ServiceAccountConfig.PublicKeyFiles = []string{
-			admin.DefaultServiceAccountPublicKeyFile(args.ConfigDir.Value()),
-		}
-	} else {
-		// When running against an external Kubernetes, we're only responsible for the builder and deployer accounts.
-		// We don't have the private key, but we need to get the public key to authenticate signed tokens.
-		// TODO: JTL: take arg for public key(s)?
-		config.ServiceAccountConfig.ManagedNames = []string{
-			bootstrappolicy.BuilderServiceAccountName,
-			bootstrappolicy.DeployerServiceAccountName,
-		}
-		config.ServiceAccountConfig.PublicKeyFiles = []string{}
+	// We're responsible for generating all the managed service accounts
+	config.ServiceAccountConfig.ManagedNames = []string{
+		bootstrappolicy.DefaultServiceAccountName,
+		bootstrappolicy.BuilderServiceAccountName,
+		bootstrappolicy.DeployerServiceAccountName,
+	}
+	// We also need the private key file to give to the token generator
+	config.ServiceAccountConfig.PrivateKeyFile = admin.DefaultServiceAccountPrivateKeyFile(args.ConfigDir.Value())
+	// We also need the public key file to give to the authenticator
+	config.ServiceAccountConfig.PublicKeyFiles = []string{
+		admin.DefaultServiceAccountPublicKeyFile(args.ConfigDir.Value()),
 	}
 
 	internal, err := applyDefaults(config, configapiv1.SchemeGroupVersion)
@@ -347,11 +329,11 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 
 	// Default storage backend to etcd3 with protobuf storage for our innate config when starting both
 	// Kubernetes and etcd.
-	if km := config.KubernetesMasterConfig; km != nil && config.EtcdConfig != nil {
-		if len(km.APIServerArguments) == 0 {
-			km.APIServerArguments = configapi.ExtendedArguments{}
-			km.APIServerArguments["storage-media-type"] = []string{"application/vnd.kubernetes.protobuf"}
-			km.APIServerArguments["storage-backend"] = []string{"etcd3"}
+	if config.EtcdConfig != nil {
+		if len(config.KubernetesMasterConfig.APIServerArguments) == 0 {
+			config.KubernetesMasterConfig.APIServerArguments = configapi.ExtendedArguments{}
+			config.KubernetesMasterConfig.APIServerArguments["storage-media-type"] = []string{"application/vnd.kubernetes.protobuf"}
+			config.KubernetesMasterConfig.APIServerArguments["storage-backend"] = []string{"etcd3"}
 		}
 	}
 

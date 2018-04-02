@@ -191,7 +191,7 @@ func TestMasterConfig(t *testing.T) {
 				NamedCertificates: []internal.NamedCertificate{{}},
 			},
 		},
-		KubernetesMasterConfig: &internal.KubernetesMasterConfig{},
+		KubernetesMasterConfig: internal.KubernetesMasterConfig{},
 		EtcdConfig:             &internal.EtcdConfig{},
 		OAuthConfig: &internal.OAuthConfig{
 			IdentityProviders: []internal.IdentityProvider{
