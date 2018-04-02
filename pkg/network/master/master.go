@@ -11,16 +11,19 @@ import (
 	ktypes "k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
+	kcoreinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion/core/internalversion"
 
 	osconfigapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/network"
 	networkapi "github.com/openshift/origin/pkg/network/apis/network"
 	osapivalidation "github.com/openshift/origin/pkg/network/apis/network/validation"
 	"github.com/openshift/origin/pkg/network/common"
-	networkinformers "github.com/openshift/origin/pkg/network/generated/informers/internalversion"
+	networkinternalinformers "github.com/openshift/origin/pkg/network/generated/informers/internalversion"
+	networkinformers "github.com/openshift/origin/pkg/network/generated/informers/internalversion/network/internalversion"
 	networkclient "github.com/openshift/origin/pkg/network/generated/internalclientset"
 	"github.com/openshift/origin/pkg/util/netutils"
 )
@@ -30,14 +33,20 @@ const (
 )
 
 type OsdnMaster struct {
-	kClient             kclientset.Interface
-	networkClient       networkclient.Interface
-	networkInfo         *common.NetworkInfo
-	subnetAllocatorList []*SubnetAllocator
-	vnids               *masterVNIDMap
+	kClient       kclientset.Interface
+	networkClient networkclient.Interface
+	networkInfo   *common.NetworkInfo
+	vnids         *masterVNIDMap
 
-	kubeInformers    kinternalinformers.SharedInformerFactory
-	networkInformers networkinformers.SharedInformerFactory
+	nodeInformer         kcoreinformers.NodeInformer
+	namespaceInformer    kcoreinformers.NamespaceInformer
+	hostSubnetInformer   networkinformers.HostSubnetInformer
+	netNamespaceInformer networkinformers.NetNamespaceInformer
+
+	// Used for allocating subnets in order
+	subnetAllocatorList []*SubnetAllocator
+	// Used for clusterNetwork --> subnetAllocator lookup
+	subnetAllocatorMap map[common.ClusterNetwork]*SubnetAllocator
 
 	// Holds Node IP used in creating host subnet for a node
 	hostSubnetNodeIPs map[ktypes.UID]string
@@ -45,15 +54,20 @@ type OsdnMaster struct {
 
 func Start(networkConfig osconfigapi.MasterNetworkConfig, networkClient networkclient.Interface,
 	kClient kclientset.Interface, kubeInformers kinternalinformers.SharedInformerFactory,
-	networkInformers networkinformers.SharedInformerFactory) error {
+	networkInformers networkinternalinformers.SharedInformerFactory) error {
 	glog.Infof("Initializing SDN master of type %q", networkConfig.NetworkPluginName)
 
 	master := &OsdnMaster{
-		kClient:           kClient,
-		networkClient:     networkClient,
-		kubeInformers:     kubeInformers,
-		networkInformers:  networkInformers,
-		hostSubnetNodeIPs: map[ktypes.UID]string{},
+		kClient:       kClient,
+		networkClient: networkClient,
+
+		nodeInformer:         kubeInformers.Core().InternalVersion().Nodes(),
+		namespaceInformer:    kubeInformers.Core().InternalVersion().Namespaces(),
+		hostSubnetInformer:   networkInformers.Network().InternalVersion().HostSubnets(),
+		netNamespaceInformer: networkInformers.Network().InternalVersion().NetNamespaces(),
+
+		subnetAllocatorMap: map[common.ClusterNetwork]*SubnetAllocator{},
+		hostSubnetNodeIPs:  map[ktypes.UID]string{},
 	}
 
 	var err error
@@ -142,24 +156,36 @@ func Start(networkConfig osconfigapi.MasterNetworkConfig, networkClient networkc
 		return err
 	}
 
-	if err = master.SubnetStartMaster(master.networkInfo.ClusterNetworks); err != nil {
-		return err
-	}
-
-	switch networkConfig.NetworkPluginName {
-	case network.MultiTenantPluginName:
-		master.vnids = newMasterVNIDMap(true)
-		if err = master.VnidStartMaster(); err != nil {
-			return err
-		}
-	case network.NetworkPolicyPluginName:
-		master.vnids = newMasterVNIDMap(false)
-		if err = master.VnidStartMaster(); err != nil {
-			return err
-		}
-	}
+	go master.startSubSystems(networkConfig.NetworkPluginName)
 
 	return nil
+}
+
+func (master *OsdnMaster) startSubSystems(pluginName string) {
+	// Wait for informer sync
+	if !cache.WaitForCacheSync(wait.NeverStop,
+		master.nodeInformer.Informer().GetController().HasSynced,
+		master.namespaceInformer.Informer().GetController().HasSynced,
+		master.hostSubnetInformer.Informer().GetController().HasSynced,
+		master.netNamespaceInformer.Informer().GetController().HasSynced) {
+		glog.Fatalf("failed to sync SDN master informers")
+	}
+
+	if err := master.startSubnetMaster(); err != nil {
+		glog.Fatalf("failed to start subnet master: %v", err)
+	}
+
+	switch pluginName {
+	case network.MultiTenantPluginName:
+		master.vnids = newMasterVNIDMap(true)
+	case network.NetworkPolicyPluginName:
+		master.vnids = newMasterVNIDMap(false)
+	}
+	if master.vnids != nil {
+		if err := master.startVNIDMaster(); err != nil {
+			glog.Fatalf("failed to start VNID master: %v", err)
+		}
+	}
 }
 
 func (master *OsdnMaster) checkClusterNetworkAgainstLocalNetworks() error {
