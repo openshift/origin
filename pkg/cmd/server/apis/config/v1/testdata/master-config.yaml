@@ -91,21 +91,10 @@ kubeletClientInfo:
   keyFile: ""
   port: 0
 kubernetesMasterConfig:
-  admissionConfig:
-    pluginConfig:
-      plugin:
-        configuration:
-          apiVersion: v1
-          data: ""
-          kind: AdmissionPluginTestConfig
-        location: ""
-    pluginOrderOverride:
-    - plugin
   apiLevels: null
   apiServerArguments: null
   controllerArguments: null
   disabledAPIGroupVersions: {}
-  masterCount: 1
   masterEndpointReconcileTTL: 15
   masterIP: ""
   podEvictionTimeout: 5m
@@ -116,7 +105,6 @@ kubernetesMasterConfig:
   schedulerConfigFile: ""
   servicesNodePortRange: 30000-32767
   servicesSubnet: ""
-  staticNodeNames: null
 masterClients:
   externalKubernetesClientConnectionOverrides:
     acceptContentTypes: application/json
