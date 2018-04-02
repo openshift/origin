@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -25,7 +24,6 @@ import (
 	routeplugin "github.com/openshift/origin/pkg/route/allocation/simple"
 	routeallocationcontroller "github.com/openshift/origin/pkg/route/controller/allocation"
 	sccstorage "github.com/openshift/origin/pkg/security/registry/securitycontextconstraints/etcd"
-	"github.com/openshift/origin/pkg/util/httprequest"
 	kapiserveroptions "k8s.io/kubernetes/cmd/kube-apiserver/app/options"
 )
 
@@ -217,7 +215,7 @@ func (c *MasterConfig) Run(stopCh <-chan struct{}) error {
 	var delegateAPIServer apiserver.DelegationTarget
 	var extraPostStartHooks map[string]apiserver.PostStartHookFunc
 
-	c.kubeAPIServerConfig.GenericConfig.BuildHandlerChainFunc, extraPostStartHooks, err = c.buildHandlerChain(c.kubeAPIServerConfig.GenericConfig)
+	c.kubeAPIServerConfig.GenericConfig.BuildHandlerChainFunc, extraPostStartHooks, err = c.buildHandlerChain(c.kubeAPIServerConfig.GenericConfig, stopCh)
 	if err != nil {
 		return err
 	}
@@ -288,7 +286,7 @@ func (c *MasterConfig) RunKubeAPIServer(stopCh <-chan struct{}) error {
 	var delegateAPIServer apiserver.DelegationTarget
 	var extraPostStartHooks map[string]apiserver.PostStartHookFunc
 
-	c.kubeAPIServerConfig.GenericConfig.BuildHandlerChainFunc, extraPostStartHooks, err = c.buildHandlerChain(c.kubeAPIServerConfig.GenericConfig)
+	c.kubeAPIServerConfig.GenericConfig.BuildHandlerChainFunc, extraPostStartHooks, err = c.buildHandlerChain(c.kubeAPIServerConfig.GenericConfig, stopCh)
 	if err != nil {
 		return err
 	}
@@ -376,11 +374,7 @@ func (c *MasterConfig) RunOpenShift(stopCh <-chan struct{}) error {
 	return cmdutil.WaitForSuccessfulDial(true, c.Options.ServingInfo.BindNetwork, c.Options.ServingInfo.BindAddress, 100*time.Millisecond, 100*time.Millisecond, 100)
 }
 
-func (c *MasterConfig) buildHandlerChain(genericConfig *apiserver.Config) (func(apiHandler http.Handler, kc *apiserver.Config) http.Handler, map[string]apiserver.PostStartHookFunc, error) {
-	webconsolePublicURL := ""
-	if c.Options.OAuthConfig != nil {
-		webconsolePublicURL = c.Options.OAuthConfig.AssetPublicURL
-	}
+func (c *MasterConfig) buildHandlerChain(genericConfig *apiserver.Config, stopCh <-chan struct{}) (func(apiHandler http.Handler, kc *apiserver.Config) http.Handler, map[string]apiserver.PostStartHookFunc, error) {
 	webconsoleProxyHandler, err := c.newWebConsoleProxy()
 	if err != nil {
 		return nil, nil, err
@@ -391,6 +385,10 @@ func (c *MasterConfig) buildHandlerChain(genericConfig *apiserver.Config) (func(
 	}
 
 	return func(apiHandler http.Handler, genericConfig *apiserver.Config) http.Handler {
+			// Machinery that let's use discover the Web Console Public URL
+			accessor := newWebConsolePublicURLAccessor(c.PrivilegedLoopbackClientConfig)
+			go accessor.Run(stopCh)
+
 			// these are after the kube handler
 			handler := c.versionSkewFilter(apiHandler, genericConfig.RequestContextMapper)
 
@@ -402,11 +400,11 @@ func (c *MasterConfig) buildHandlerChain(genericConfig *apiserver.Config) (func(
 			handler = withCacheControl(handler, "no-store") // protected endpoints should not be cached
 
 			// redirects from / to /console if you're using a browser
-			handler = withAssetServerRedirect(handler, webconsolePublicURL)
+			handler = withAssetServerRedirect(handler, accessor)
 
 			// these handlers are actually separate API servers which have their own handler chains.
 			// our server embeds these
-			handler = c.withConsoleRedirection(handler, webconsoleProxyHandler, webconsolePublicURL)
+			handler = c.withConsoleRedirection(handler, webconsoleProxyHandler, accessor)
 			handler = c.withOAuthRedirection(handler, oauthServerHandler)
 
 			return handler
@@ -422,44 +420,6 @@ func openshiftHandlerChain(apiHandler http.Handler, genericConfig *apiserver.Con
 	handler = withCacheControl(handler, "no-store") // protected endpoints should not be cached
 
 	return handler
-}
-
-// If we know the location of the asset server, redirect to it when / is requested
-// and the Accept header supports text/html
-func withAssetServerRedirect(handler http.Handler, webconsolePublicURL string) http.Handler {
-	if len(webconsolePublicURL) == 0 {
-		return handler
-	}
-
-	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		if req.URL.Path == "/" {
-			if httprequest.PrefersHTML(req) {
-				http.Redirect(w, req, webconsolePublicURL, http.StatusFound)
-			}
-		}
-		// Dispatch to the next handler
-		handler.ServeHTTP(w, req)
-	})
-}
-
-func (c *MasterConfig) withConsoleRedirection(handler, assetServerHandler http.Handler, webconsolePublicURL string) http.Handler {
-	if len(webconsolePublicURL) == 0 {
-		return handler
-	}
-
-	publicURL, err := url.Parse(webconsolePublicURL)
-	if err != nil {
-		// fails validation before here
-		glog.Fatal(err)
-	}
-	// path always ends in a slash or the
-	prefix := publicURL.Path
-	lastIndex := len(publicURL.Path) - 1
-	if publicURL.Path[lastIndex] == '/' {
-		prefix = publicURL.Path[0:lastIndex]
-	}
-
-	return WithPatternPrefixHandler(handler, assetServerHandler, prefix)
 }
 
 func (c *MasterConfig) withOAuthRedirection(handler, oauthServerHandler http.Handler) http.Handler {
