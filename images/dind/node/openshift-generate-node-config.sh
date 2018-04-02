@@ -67,7 +67,7 @@ function ensure-node-config() {
        --signer-cert="${master_config_path}/ca.crt" \
        --signer-key="${master_config_path}/ca.key" \
        --signer-serial="${master_config_path}/ca.serial.txt"
-    ) 200>"${config_path}"/.openshift-generate-node-config.lock
+    ) 200>"${config_path}"/.openshift-ca.lock
 
     cat >> "${node_config_file}" <<EOF
 kubeletArguments:
