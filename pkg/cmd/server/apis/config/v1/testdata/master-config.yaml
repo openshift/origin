@@ -118,12 +118,6 @@ kubernetesMasterConfig:
   servicesSubnet: ""
   staticNodeNames: null
 masterClients:
-  externalKubernetesClientConnectionOverrides:
-    acceptContentTypes: application/json
-    burst: 200
-    contentType: application/json
-    qps: 100
-  externalKubernetesKubeConfig: ""
   openshiftLoopbackClientConnectionOverrides:
     acceptContentTypes: application/json
     burst: 300

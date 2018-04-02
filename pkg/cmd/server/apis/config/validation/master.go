@@ -106,12 +106,6 @@ func ValidateMasterConfig(config *configapi.MasterConfig, fldPath *field.Path) V
 	if config.KubernetesMasterConfig != nil {
 		validationResults.Append(ValidateKubernetesMasterConfig(config.KubernetesMasterConfig, fldPath.Child("kubernetesMasterConfig")))
 	}
-	if (config.KubernetesMasterConfig == nil) && (len(config.MasterClients.ExternalKubernetesKubeConfig) == 0) {
-		validationResults.AddErrors(field.Invalid(fldPath.Child("kubernetesMasterConfig"), config.KubernetesMasterConfig, "either kubernetesMasterConfig or masterClients.externalKubernetesKubeConfig must have a value"))
-	}
-	if (config.KubernetesMasterConfig != nil) && (len(config.MasterClients.ExternalKubernetesKubeConfig) != 0) {
-		validationResults.AddErrors(field.Invalid(fldPath.Child("kubernetesMasterConfig"), config.KubernetesMasterConfig, "kubernetesMasterConfig and masterClients.externalKubernetesKubeConfig are mutually exclusive"))
-	}
 
 	if len(config.NetworkConfig.ServiceNetworkCIDR) > 0 {
 		if _, _, err := net.ParseCIDR(strings.TrimSpace(config.NetworkConfig.ServiceNetworkCIDR)); err != nil {
@@ -133,10 +127,6 @@ func ValidateMasterConfig(config *configapi.MasterConfig, fldPath *field.Path) V
 	validationResults.Append(ValidateDeprecatedClusterNetworkConfig(config, fldPath.Child("networkConfig")))
 
 	validationResults.AddErrors(ValidateKubeConfig(config.MasterClients.OpenShiftLoopbackKubeConfig, fldPath.Child("masterClients", "openShiftLoopbackKubeConfig"))...)
-
-	if len(config.MasterClients.ExternalKubernetesKubeConfig) > 0 {
-		validationResults.AddErrors(ValidateKubeConfig(config.MasterClients.ExternalKubernetesKubeConfig, fldPath.Child("masterClients", "externalKubernetesKubeConfig"))...)
-	}
 
 	validationResults.AddErrors(ValidatePolicyConfig(config.PolicyConfig, fldPath.Child("policyConfig"))...)
 	if config.OAuthConfig != nil {

@@ -1143,15 +1143,6 @@ func (in *MasterClients) DeepCopyInto(out *MasterClients) {
 			**out = **in
 		}
 	}
-	if in.ExternalKubernetesClientConnectionOverrides != nil {
-		in, out := &in.ExternalKubernetesClientConnectionOverrides, &out.ExternalKubernetesClientConnectionOverrides
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(ClientConnectionOverrides)
-			**out = **in
-		}
-	}
 	return
 }
 

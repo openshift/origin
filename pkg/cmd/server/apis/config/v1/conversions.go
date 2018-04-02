@@ -77,18 +77,6 @@ func SetDefaults_MasterConfig(obj *MasterConfig) {
 	}
 	SetDefaults_ClientConnectionOverrides(obj.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
 
-	if obj.MasterClients.ExternalKubernetesClientConnectionOverrides == nil {
-		obj.MasterClients.ExternalKubernetesClientConnectionOverrides = &ClientConnectionOverrides{}
-	}
-	// historical values
-	if obj.MasterClients.ExternalKubernetesClientConnectionOverrides.QPS <= 0 {
-		obj.MasterClients.ExternalKubernetesClientConnectionOverrides.QPS = 100.0
-	}
-	if obj.MasterClients.ExternalKubernetesClientConnectionOverrides.Burst <= 0 {
-		obj.MasterClients.ExternalKubernetesClientConnectionOverrides.Burst = 200
-	}
-	SetDefaults_ClientConnectionOverrides(obj.MasterClients.ExternalKubernetesClientConnectionOverrides)
-
 	// Populate the new NetworkConfig.ServiceNetworkCIDR field from the KubernetesMasterConfig.ServicesSubnet field if needed
 	if len(obj.NetworkConfig.ServiceNetworkCIDR) == 0 {
 		if obj.KubernetesMasterConfig != nil && len(obj.KubernetesMasterConfig.ServicesSubnet) > 0 {

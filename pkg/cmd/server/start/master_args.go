@@ -238,8 +238,7 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 		},
 
 		MasterClients: configapi.MasterClients{
-			OpenShiftLoopbackKubeConfig:  admin.DefaultKubeConfigFilename(args.ConfigDir.Value(), bootstrappolicy.MasterUnqualifiedUsername),
-			ExternalKubernetesKubeConfig: args.KubeConnectionArgs.ClientConfigLoadingRules.ExplicitPath,
+			OpenShiftLoopbackKubeConfig: admin.DefaultKubeConfigFilename(args.ConfigDir.Value(), bootstrappolicy.MasterUnqualifiedUsername),
 		},
 
 		EtcdClientInfo: configapi.EtcdConnectionInfo{
@@ -355,7 +354,6 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 
 	// When creating a new config, use Protobuf
 	configapi.SetProtobufClientDefaults(config.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
-	configapi.SetProtobufClientDefaults(config.MasterClients.ExternalKubernetesClientConnectionOverrides)
 
 	// Default storage backend to etcd3 with protobuf storage for our innate config when starting both
 	// Kubernetes and etcd.

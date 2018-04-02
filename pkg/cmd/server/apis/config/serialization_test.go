@@ -91,24 +91,6 @@ func fuzzInternalObject(t *testing.T, forVersion schema.GroupVersion, item runti
 			if len(obj.MasterClients.OpenShiftLoopbackClientConnectionOverrides.ContentType) == 0 {
 				obj.MasterClients.OpenShiftLoopbackClientConnectionOverrides.ContentType = "test/fifth"
 			}
-			if obj.MasterClients.ExternalKubernetesClientConnectionOverrides == nil {
-				obj.MasterClients.ExternalKubernetesClientConnectionOverrides = &configapi.ClientConnectionOverrides{
-					AcceptContentTypes: "test/other",
-					ContentType:        "test/third",
-				}
-			}
-			if obj.MasterClients.ExternalKubernetesClientConnectionOverrides.QPS <= 0 {
-				obj.MasterClients.ExternalKubernetesClientConnectionOverrides.QPS = 2.0
-			}
-			if obj.MasterClients.ExternalKubernetesClientConnectionOverrides.Burst <= 0 {
-				obj.MasterClients.ExternalKubernetesClientConnectionOverrides.Burst = 2
-			}
-			if len(obj.MasterClients.ExternalKubernetesClientConnectionOverrides.AcceptContentTypes) == 0 {
-				obj.MasterClients.ExternalKubernetesClientConnectionOverrides.AcceptContentTypes = "test/fourth"
-			}
-			if len(obj.MasterClients.ExternalKubernetesClientConnectionOverrides.ContentType) == 0 {
-				obj.MasterClients.ExternalKubernetesClientConnectionOverrides.ContentType = "test/fifth"
-			}
 
 			// Populate the new NetworkConfig.ServiceNetworkCIDR field from the KubernetesMasterConfig.ServicesSubnet field if needed
 			if len(obj.NetworkConfig.ServiceNetworkCIDR) == 0 {
