@@ -47,6 +47,8 @@ import (
 	auditlog "k8s.io/apiserver/plugin/pkg/audit/log"
 	auditwebhook "k8s.io/apiserver/plugin/pkg/audit/webhook"
 	pluginwebhook "k8s.io/apiserver/plugin/pkg/audit/webhook"
+	"k8s.io/kube-aggregator/pkg/apis/apiregistration"
+	apiregistrationv1beta1 "k8s.io/kube-aggregator/pkg/apis/apiregistration/v1beta1"
 	openapicommon "k8s.io/kube-openapi/pkg/common"
 	kapiserveroptions "k8s.io/kubernetes/cmd/kube-apiserver/app/options"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
@@ -57,6 +59,8 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/apis/networking"
+	storageapi "k8s.io/kubernetes/pkg/apis/storage"
+	storageapiv1beta1 "k8s.io/kubernetes/pkg/apis/storage/v1beta1"
 	"k8s.io/kubernetes/pkg/kubeapiserver"
 	"k8s.io/kubernetes/pkg/master"
 	"k8s.io/kubernetes/pkg/registry/cachesize"
@@ -209,6 +213,8 @@ func BuildStorageFactory(server *kapiserveroptions.ServerRunOptions, enforcedSto
 		resourceEncodingConfig.SetVersionEncoding(group, storageEncodingVersion, schema.GroupVersion{Group: group, Version: runtime.APIVersionInternal})
 	}
 	resourceEncodingConfig.SetResourceEncoding(batch.Resource("cronjobs"), batchv1beta1.SchemeGroupVersion, batch.SchemeGroupVersion)
+	resourceEncodingConfig.SetResourceEncoding(apiregistration.Resource("apiservices"), apiregistrationv1beta1.SchemeGroupVersion, apiregistration.SchemeGroupVersion)
+	resourceEncodingConfig.SetResourceEncoding(storageapi.Resource("volumeattachments"), storageapiv1beta1.SchemeGroupVersion, storageapi.SchemeGroupVersion)
 
 	for gr, storageGV := range enforcedStorageVersions {
 		resourceEncodingConfig.SetResourceEncoding(gr, storageGV, schema.GroupVersion{Group: storageGV.Group, Version: runtime.APIVersionInternal})
