@@ -172,12 +172,12 @@ func (t *templater) optionsCmdFor(c *cobra.Command) string {
 	currentCmdHasOptsArg := false
 
 	if t.RootCmd.HasParent() {
-		if _, _, err := t.RootCmd.Parent().Find([]string{"options"}); err == nil {
+		if _, args, err := t.RootCmd.Parent().Find([]string{"options"}); err == nil && len(args) == 0 {
 			parentCmdHasOptsArg = true
 		}
 	}
 
-	if _, _, err := t.RootCmd.Find([]string{"options"}); err == nil {
+	if _, args, err := t.RootCmd.Find([]string{"options"}); err == nil && len(args) == 0 {
 		currentCmdHasOptsArg = true
 	}
 
