@@ -18,12 +18,9 @@ func SetDefaults_MasterConfig(obj *MasterConfig) {
 	if len(obj.APILevels) == 0 {
 		obj.APILevels = internal.DefaultOpenShiftAPILevels
 	}
-	if len(obj.Controllers) == 0 {
-		obj.Controllers = ControllersAll
-	}
 	if len(obj.ControllerConfig.Controllers) == 0 {
 		switch {
-		case obj.Controllers == ControllersAll:
+		case len(obj.Controllers) == 0 || obj.Controllers == ControllersAll:
 			obj.ControllerConfig.Controllers = []string{"*"}
 		case obj.Controllers == ControllersDisabled:
 			obj.ControllerConfig.Controllers = []string{}
