@@ -518,10 +518,6 @@ func ValidateKubernetesMasterConfig(config *configapi.KubernetesMasterConfig, fl
 		validationResults.AddErrors(ValidateSpecifiedIP(config.MasterIP, fldPath.Child("masterIP"))...)
 	}
 
-	if config.MasterCount == 0 || config.MasterCount < -1 {
-		validationResults.AddErrors(field.Invalid(fldPath.Child("masterCount"), config.MasterCount, "must be a positive integer or -1"))
-	}
-
 	validationResults.AddErrors(ValidateCertInfo(config.ProxyClientInfo, false, fldPath.Child("proxyClientInfo"))...)
 	if len(config.ProxyClientInfo.CertFile) == 0 && len(config.ProxyClientInfo.KeyFile) == 0 {
 		validationResults.AddWarnings(field.Invalid(fldPath.Child("proxyClientInfo"), "", "if no client certificate is specified, TLS pods and services cannot validate requests came from the proxy"))

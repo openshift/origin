@@ -1139,9 +1139,6 @@ type KubernetesMasterConfig struct {
 
 	// MasterIP is the public IP address of kubernetes stuff.  If empty, the first result from net.InterfaceAddrs will be used.
 	MasterIP string `json:"masterIP"`
-	// MasterCount is the number of expected masters that should be running. This value defaults to 1 and may be set to a positive integer,
-	// or if set to -1, indicates this is part of a cluster.
-	MasterCount int `json:"masterCount"`
 	// MasterEndpointReconcileTTL sets the time to live in seconds of an endpoint record recorded by each master. The endpoints are checked
 	// at an interval that is 2/3 of this value and this value defaults to 15s if unset. In very large clusters, this value may be increased to
 	// reduce the possibility that the master endpoint record expires (due to other load on the etcd server) and causes masters to drop in and

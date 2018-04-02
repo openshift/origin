@@ -120,7 +120,6 @@ func BuildKubeAPIserverOptions(masterConfig configapi.MasterConfig) (*kapiserver
 	server.ServiceClusterIPRange = net.IPNet(flagtypes.DefaultIPNet(masterConfig.KubernetesMasterConfig.ServicesSubnet))
 	server.ServiceNodePortRange = *portRange
 	server.Features.EnableProfiling = true
-	server.MasterCount = masterConfig.KubernetesMasterConfig.MasterCount
 
 	server.SecureServing.BindAddress = net.ParseIP(host)
 	server.SecureServing.BindPort = port
@@ -502,40 +501,34 @@ func buildKubeApiserverConfig(
 		},
 	}
 
-	if kubeApiserverConfig.ExtraConfig.EnableCoreControllers {
-		ttl := masterConfig.KubernetesMasterConfig.MasterEndpointReconcileTTL
-		interval := ttl * 2 / 3
+	ttl := masterConfig.KubernetesMasterConfig.MasterEndpointReconcileTTL
+	interval := ttl * 2 / 3
 
-		glog.V(2).Infof("Using the lease endpoint reconciler with TTL=%ds and interval=%ds", ttl, interval)
+	glog.V(2).Infof("Using the lease endpoint reconciler with TTL=%ds and interval=%ds", ttl, interval)
 
-		config, err := kubeApiserverConfig.ExtraConfig.StorageFactory.NewConfig(kapi.Resource("apiServerIPInfo"))
-		if err != nil {
-			return nil, err
-		}
-		leaseStorage, _, err := storagefactory.Create(*config)
-		if err != nil {
-			return nil, err
-		}
-
-		masterLeases := newMasterLeases(leaseStorage, ttl)
-
-		endpointConfig, err := kubeApiserverConfig.ExtraConfig.StorageFactory.NewConfig(kapi.Resource("endpoints"))
-		if err != nil {
-			return nil, err
-		}
-		endpointsStorage := endpointsstorage.NewREST(generic.RESTOptions{
-			StorageConfig:           endpointConfig,
-			Decorator:               generic.UndecoratedStorage,
-			DeleteCollectionWorkers: 0,
-			ResourcePrefix:          kubeApiserverConfig.ExtraConfig.StorageFactory.ResourcePrefix(kapi.Resource("endpoints")),
-		})
-
-		endpointRegistry := endpoint.NewRegistry(endpointsStorage)
-
-		kubeApiserverConfig.ExtraConfig.EndpointReconcilerConfig = master.EndpointReconcilerConfig{
-			Reconciler: election.NewLeaseEndpointReconciler(endpointRegistry, masterLeases),
-			Interval:   time.Duration(interval) * time.Second,
-		}
+	config, err := kubeApiserverConfig.ExtraConfig.StorageFactory.NewConfig(kapi.Resource("apiServerIPInfo"))
+	if err != nil {
+		return nil, err
+	}
+	leaseStorage, _, err := storagefactory.Create(*config)
+	if err != nil {
+		return nil, err
+	}
+	masterLeases := newMasterLeases(leaseStorage, ttl)
+	endpointConfig, err := kubeApiserverConfig.ExtraConfig.StorageFactory.NewConfig(kapi.Resource("endpoints"))
+	if err != nil {
+		return nil, err
+	}
+	endpointsStorage := endpointsstorage.NewREST(generic.RESTOptions{
+		StorageConfig:           endpointConfig,
+		Decorator:               generic.UndecoratedStorage,
+		DeleteCollectionWorkers: 0,
+		ResourcePrefix:          kubeApiserverConfig.ExtraConfig.StorageFactory.ResourcePrefix(kapi.Resource("endpoints")),
+	})
+	endpointRegistry := endpoint.NewRegistry(endpointsStorage)
+	kubeApiserverConfig.ExtraConfig.EndpointReconcilerConfig = master.EndpointReconcilerConfig{
+		Reconciler: election.NewLeaseEndpointReconciler(endpointRegistry, masterLeases),
+		Interval:   time.Duration(interval) * time.Second,
 	}
 
 	if masterConfig.DNSConfig != nil {

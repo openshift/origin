@@ -234,9 +234,6 @@ func fuzzInternalObject(t *testing.T, forVersion schema.GroupVersion, item runti
 		},
 		func(obj *configapi.KubernetesMasterConfig, c fuzz.Continue) {
 			c.FuzzNoCustom(obj)
-			if obj.MasterCount == 0 {
-				obj.MasterCount = 1
-			}
 			if len(obj.ServicesNodePortRange) == 0 {
 				obj.ServicesNodePortRange = "30000-32767"
 			}

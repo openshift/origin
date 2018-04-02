@@ -146,9 +146,6 @@ func SetDefaults_MasterConfig(obj *MasterConfig) {
 }
 
 func SetDefaults_KubernetesMasterConfig(obj *KubernetesMasterConfig) {
-	if obj.MasterCount == 0 {
-		obj.MasterCount = 1
-	}
 	if obj.MasterEndpointReconcileTTL == 0 {
 		obj.MasterEndpointReconcileTTL = 15
 	}
