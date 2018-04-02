@@ -181,11 +181,90 @@ func (cm *haproxyConfigManager) Initialize(router templaterouter.RouterInterface
 	cm.lock.Lock()
 	cm.router = router
 	cm.defaultCertificate = string(certBytes)
+	blueprints := cm.blueprintRoutes
 	cm.lock.Unlock()
 
-	cm.provisionBackendPools()
+	// Ensure this is done outside of the lock as the router will call
+	// back into the manager code for all the routes we provision.
+	for _, r := range blueprints {
+		cm.provisionRoutePool(r)
+	}
 
 	glog.V(2).Infof("haproxy Config Manager router will flush out any dynamically configured changes within %s of each other", cm.commitInterval.String())
+}
+
+// AddBlueprint adds a new (or replaces an existing) route blueprint.
+func (cm *haproxyConfigManager) AddBlueprint(route *routeapi.Route) {
+	newRoute := route.DeepCopy()
+	newRoute.Namespace = blueprintRoutePoolNamespace
+	newRoute.Spec.Host = ""
+
+	cm.lock.Lock()
+	existingBlueprints := cm.blueprintRoutes
+	cm.lock.Unlock()
+
+	routeExists := false
+	updated := false
+	blueprints := make([]*routeapi.Route, 0)
+	for _, r := range existingBlueprints {
+		if r.Namespace == newRoute.Namespace && r.Name == newRoute.Name {
+			// Existing route, check if if anything changed,
+			// other than the host name.
+			routeExists = true
+			newRoute.Spec.Host = r.Spec.Host
+			if !reflect.DeepEqual(r, newRoute) {
+				updated = true
+				blueprints = append(blueprints, route.DeepCopy())
+				continue
+			}
+		}
+		blueprints = append(blueprints, r)
+	}
+
+	if !routeExists {
+		blueprints = append(blueprints, route.DeepCopy())
+		updated = true
+	}
+
+	if !updated {
+		return
+	}
+
+	cm.lock.Lock()
+	cm.blueprintRoutes = blueprints
+	cm.lock.Unlock()
+
+	cm.provisionRoutePool(route)
+}
+
+// RemoveBlueprint removes a route blueprint.
+func (cm *haproxyConfigManager) RemoveBlueprint(route *routeapi.Route) {
+	deletedRoute := route.DeepCopy()
+	deletedRoute.Namespace = blueprintRoutePoolNamespace
+
+	cm.lock.Lock()
+	existingBlueprints := cm.blueprintRoutes
+	cm.lock.Unlock()
+
+	updated := false
+	blueprints := make([]*routeapi.Route, 0)
+	for _, r := range existingBlueprints {
+		if r.Namespace == deletedRoute.Namespace && r.Name == deletedRoute.Name {
+			updated = true
+		} else {
+			blueprints = append(blueprints, r)
+		}
+	}
+
+	if !updated {
+		return
+	}
+
+	cm.lock.Lock()
+	cm.blueprintRoutes = blueprints
+	cm.lock.Unlock()
+
+	cm.removeRoutePool(route)
 }
 
 // Register registers an id with an expected haproxy backend for a route.
@@ -226,7 +305,10 @@ func (cm *haproxyConfigManager) AddRoute(id string, route *routeapi.Route) error
 	cm.Register(id, route)
 
 	cm.lock.Lock()
-	defer cm.lock.Unlock()
+	defer func() {
+		cm.lock.Unlock()
+		cm.scheduleRouterReload()
+	}()
 
 	slotName, err := cm.findFreeBackendPoolSlot(matchedBlueprint)
 	if err != nil {
@@ -268,7 +350,10 @@ func (cm *haproxyConfigManager) RemoveRoute(id string, route *routeapi.Route) er
 	}
 
 	cm.lock.Lock()
-	defer cm.lock.Unlock()
+	defer func() {
+		cm.lock.Unlock()
+		cm.scheduleRouterReload()
+	}()
 
 	entry, ok := cm.backendEntries[id]
 	if !ok {
@@ -315,8 +400,14 @@ func (cm *haproxyConfigManager) ReplaceRouteEndpoints(id string, oldEndpoints, n
 		return fmt.Errorf("Router reload in progress, cannot dynamically add endpoints for %s", id)
 	}
 
+	configChanged := false
 	cm.lock.Lock()
-	defer cm.lock.Unlock()
+	defer func() {
+		cm.lock.Unlock()
+		if configChanged {
+			cm.scheduleRouterReload()
+		}
+	}()
 
 	entry, ok := cm.backendEntries[id]
 	if !ok {
@@ -355,6 +446,7 @@ func (cm *haproxyConfigManager) ReplaceRouteEndpoints(id string, oldEndpoints, n
 				delete(modifiedEndpoints, v2ep.ID)
 			}
 		} else {
+			configChanged = true
 			deletedEndpoints[ep.ID] = ep
 		}
 	}
@@ -384,6 +476,7 @@ func (cm *haproxyConfigManager) ReplaceRouteEndpoints(id string, oldEndpoints, n
 		}
 
 		if _, ok := deletedEndpoints[relatedEndpointID]; ok {
+			configChanged = true
 			glog.V(4).Infof("For deleted endpoint %s, disabling server %s", relatedEndpointID, s.Name)
 			backend.DisableServer(s.Name)
 			if _, ok := entry.dynamicServerMap[s.Name]; ok {
@@ -394,6 +487,7 @@ func (cm *haproxyConfigManager) ReplaceRouteEndpoints(id string, oldEndpoints, n
 		}
 
 		if ep, ok := modifiedEndpoints[relatedEndpointID]; ok {
+			configChanged = true
 			glog.V(4).Infof("For modified endpoint %s, setting server %s info to %s:%s with weight %d and enabling",
 				relatedEndpointID, s.Name, ep.IP, ep.Port, weight)
 			backend.UpdateServerInfo(s.Name, ep.IP, ep.Port, weight, weightIsRelative)
@@ -419,6 +513,7 @@ func (cm *haproxyConfigManager) ReplaceRouteEndpoints(id string, oldEndpoints, n
 		}
 
 		// Add entry for the dyamic server used.
+		configChanged = true
 		entry.dynamicServerMap[name] = ep.ID
 
 		glog.V(4).Infof("For added endpoint %s, setting dynamic server %s info: (%s, %s, %d) and enabling", ep.ID, name, ep.IP, ep.Port, weight)
@@ -447,7 +542,10 @@ func (cm *haproxyConfigManager) RemoveRouteEndpoints(id string, endpoints []temp
 	}
 
 	cm.lock.Lock()
-	defer cm.lock.Unlock()
+	defer func() {
+		cm.lock.Unlock()
+		cm.scheduleRouterReload()
+	}()
 
 	entry, ok := cm.backendEntries[id]
 	if !ok {
@@ -503,17 +601,10 @@ func (cm *haproxyConfigManager) Notify(event templaterouter.RouterEventType) {
 	}
 }
 
-// Commit defers calling commit on the associated template router using a
-// internal flush timer.
+// Commit commits the configuration and reloads the associated router.
 func (cm *haproxyConfigManager) Commit() {
 	glog.V(4).Infof("Committing dynamic config manager changes")
-
-	cm.lock.Lock()
-	defer cm.lock.Unlock()
-
-	if cm.commitTimer == nil {
-		cm.commitTimer = time.AfterFunc(cm.commitInterval, cm.commitRouterConfig)
-	}
+	cm.commitRouterConfig()
 }
 
 // ServerTemplateName returns the dynamic server template name.
@@ -551,6 +642,16 @@ func (cm *haproxyConfigManager) GenerateDynamicServerNames(id string) []string {
 	return []string{}
 }
 
+// scheduleRouterReload schedules a reload by deferring commit on the
+// associated template router using a internal flush timer.
+func (cm *haproxyConfigManager) scheduleRouterReload() {
+	cm.lock.Lock()
+	defer cm.lock.Unlock()
+	if cm.commitTimer == nil {
+		cm.commitTimer = time.AfterFunc(cm.commitInterval, cm.commitRouterConfig)
+	}
+}
+
 // commitRouterConfig calls Commit on the associated template router.
 func (cm *haproxyConfigManager) commitRouterConfig() {
 	cm.lock.Lock()
@@ -581,20 +682,29 @@ func (cm *haproxyConfigManager) isManagedPoolRoute(route *routeapi.Route) bool {
 	return route.Namespace == blueprintRoutePoolNamespace
 }
 
-// provisionBackendPools pre-allocates pools of backends based on the
-// different blueprint routes.
-func (cm *haproxyConfigManager) provisionBackendPools() {
-	for _, r := range cm.blueprintRoutes {
-		poolSize := getPoolSize(r, cm.blueprintRoutePoolSize)
-		glog.Infof("Provisioning blueprint route pool %s/%s-[1-%d]",
-			r.Namespace, r.Name, poolSize)
-		for i := 0; i < poolSize; i++ {
-			route := r.DeepCopy()
-			route.Namespace = blueprintRoutePoolNamespace
-			route.Name = fmt.Sprintf("%v-%v", route.Name, i+1)
-			route.Spec.Host = ""
-			cm.router.AddRoute(route)
-		}
+// provisionRoutePool provisions a pre-allocated pool of routes based on a blueprint.
+func (cm *haproxyConfigManager) provisionRoutePool(blueprint *routeapi.Route) {
+	poolSize := getPoolSize(blueprint, cm.blueprintRoutePoolSize)
+	glog.Infof("Provisioning blueprint route pool %s/%s-[1-%d]", blueprint.Namespace, blueprint.Name, poolSize)
+	for i := 0; i < poolSize; i++ {
+		route := blueprint.DeepCopy()
+		route.Namespace = blueprintRoutePoolNamespace
+		route.Name = fmt.Sprintf("%v-%v", route.Name, i+1)
+		route.Spec.Host = ""
+		cm.router.AddRoute(route)
+	}
+}
+
+// removeRoutePool removes a pre-allocated pool of routes based on a blueprint.
+func (cm *haproxyConfigManager) removeRoutePool(blueprint *routeapi.Route) {
+	poolSize := getPoolSize(blueprint, cm.blueprintRoutePoolSize)
+	glog.Infof("Removing blueprint route pool %s/%s-[1-%d]", blueprint.Namespace, blueprint.Name, poolSize)
+	for i := 0; i < poolSize; i++ {
+		route := blueprint.DeepCopy()
+		route.Namespace = blueprintRoutePoolNamespace
+		route.Name = fmt.Sprintf("%v-%v", route.Name, i+1)
+		route.Spec.Host = ""
+		cm.router.RemoveRoute(route)
 	}
 }
 

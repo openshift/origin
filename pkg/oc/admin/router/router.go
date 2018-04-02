@@ -806,14 +806,11 @@ func RunCmdRouter(f kcmdutil.Factory, cmd *cobra.Command, out, errout io.Writer,
 		env["ROUTER_CANONICAL_HOSTNAME"] = cfg.RouterCanonicalHostname
 	}
 	// automatically start the internal metrics agent if we are handling a known type
-	if cfg.Type == "haproxy-router" {
-		env["ROUTER_CONFIG_MANAGER"] = "haproxy-manager"
-		if cfg.StatsPort != 0 {
-			env["ROUTER_LISTEN_ADDR"] = fmt.Sprintf("0.0.0.0:%d", cfg.StatsPort)
-			env["ROUTER_METRICS_TYPE"] = "haproxy"
-			env["ROUTER_METRICS_TLS_CERT_FILE"] = "/etc/pki/tls/metrics/tls.crt"
-			env["ROUTER_METRICS_TLS_KEY_FILE"] = "/etc/pki/tls/metrics/tls.key"
-		}
+	if cfg.Type == "haproxy-router" && cfg.StatsPort != 0 {
+		env["ROUTER_LISTEN_ADDR"] = fmt.Sprintf("0.0.0.0:%d", cfg.StatsPort)
+		env["ROUTER_METRICS_TYPE"] = "haproxy"
+		env["ROUTER_METRICS_TLS_CERT_FILE"] = "/etc/pki/tls/metrics/tls.crt"
+		env["ROUTER_METRICS_TLS_KEY_FILE"] = "/etc/pki/tls/metrics/tls.key"
 	}
 	mtlsAuth := strings.TrimSpace(cfg.MutualTLSAuth)
 	if len(mtlsAuth) > 0 && mtlsAuth != defaultMutualTLSAuth {

@@ -122,7 +122,7 @@ type TemplateRouter struct {
 }
 
 type TemplateRouterConfigManager struct {
-	ConfigManagerName           string
+	UseHAProxyConfigManager     bool
 	CommitInterval              time.Duration
 	BlueprintRouteNamespace     string
 	BlueprintRouteLabelSelector string
@@ -162,7 +162,7 @@ func (o *TemplateRouter) Bind(flag *pflag.FlagSet) {
 	flag.StringVar(&o.Ciphers, "ciphers", util.Env("ROUTER_CIPHERS", ""), "Specifies the cipher suites to use. You can choose a predefined cipher set ('modern', 'intermediate', or 'old') or specify exact cipher suites by passing a : separated list.")
 	flag.BoolVar(&o.StrictSNI, "strict-sni", isTrue(util.Env("ROUTER_STRICT_SNI", "")), "Use strict-sni bind processing (do not use default cert).")
 	flag.StringVar(&o.MetricsType, "metrics-type", util.Env("ROUTER_METRICS_TYPE", ""), "Specifies the type of metrics to gather. Supports 'haproxy'.")
-	flag.StringVar(&o.ConfigManagerName, "config-manager", util.Env("ROUTER_CONFIG_MANAGER", ""), "Specifies the manager to use for dynamically configuring changes with the underlying router. Supports 'haproxy-manager'.")
+	flag.BoolVar(&o.UseHAProxyConfigManager, "haproxy-config-manager", isTrue(util.Env("ROUTER_HAPROXY_CONFIG_MANAGER", "")), "Use the the haproxy config manager (and dynamic configuration API) to configure route and endpoint changes. Reduces the number of haproxy reloads needed on configuration changes.")
 	flag.DurationVar(&o.CommitInterval, "commit-interval", getIntervalFromEnv("COMMIT_INTERVAL", defaultCommitInterval), "Controls how often to commit (to the actual config) all the changes made using the router specific dynamic configuration manager.")
 	flag.StringVar(&o.BlueprintRouteNamespace, "blueprint-route-namespace", util.Env("ROUTER_BLUEPRINT_ROUTE_NAMESPACE", ""), "Specifies the namespace which contains the routes that serve as blueprints for the dynamic configuration manager.")
 	flag.StringVar(&o.BlueprintRouteLabelSelector, "blueprint-route-labels", util.Env("ROUTER_BLUEPRINT_ROUTE_LABELS", ""), "A label selector to apply to the routes in the blueprint route namespace. These selected routes will serve as blueprints for the dynamic dynamic configuration manager.")
@@ -455,7 +455,8 @@ func (o *TemplateRouterOptions) Run() error {
 	}
 
 	var cfgManager templateplugin.ConfigManager
-	if o.ConfigManagerName == "haproxy-manager" {
+	var blueprintPlugin router.Plugin
+	if o.UseHAProxyConfigManager {
 		blueprintRoutes, err := o.blueprintRoutes(routeclient)
 		if err != nil {
 			return err
@@ -469,6 +470,9 @@ func (o *TemplateRouterOptions) Run() error {
 			WildcardRoutesAllowed:  o.AllowWildcardRoutes,
 		}
 		cfgManager = haproxyconfigmanager.NewHAProxyConfigManager(cmopts)
+		if len(o.BlueprintRouteNamespace) > 0 {
+			blueprintPlugin = haproxyconfigmanager.NewBlueprintPlugin(cfgManager)
+		}
 	}
 
 	pluginCfg := templateplugin.TemplatePluginConfig{

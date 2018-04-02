@@ -613,6 +613,13 @@ function os::start::router() {
 	else
 		oc adm router --config="${ADMIN_KUBECONFIG}" --images="${USE_IMAGES}" --service-account=router
 	fi
+
+	# Note that when the haproxy config manager is set based on router type,
+	# the env entry may need to be always set or removed (if defaulted).
+	if [[ -n "${ROUTER_HAPROXY_CONFIG_MANAGER:-}" ]]; then
+		os::log::debug "Changing the router DC to enable the haproxy config manager"
+		oc set env dc/router -c router ROUTER_HAPROXY_CONFIG_MANAGER=true
+	fi
 }
 readonly -f os::start::router
 

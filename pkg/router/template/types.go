@@ -180,6 +180,12 @@ type ConfigManager interface {
 	// Initialize initializes the config manager.
 	Initialize(router RouterInterface, certPath string)
 
+	// AddBlueprint adds a new (or replaces an existing) route blueprint.
+	AddBlueprint(route *routeapi.Route)
+
+	// RemoveBlueprint removes a route blueprint.
+	RemoveBlueprint(route *routeapi.Route)
+
 	// Register registers an id to be associated with a route.
 	Register(id string, route *routeapi.Route)
 
