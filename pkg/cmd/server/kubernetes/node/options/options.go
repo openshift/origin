@@ -70,7 +70,6 @@ func ComputeKubeletFlags(startingArgs map[string][]string, options configapi.Nod
 	setIfUnset(args, "file-check-frequency", fmt.Sprintf("%ds", fileCheckInterval))
 	setIfUnset(args, "pod-infra-container-image", imageTemplate.ExpandOrDie("pod"))
 	setIfUnset(args, "max-pods", "250")
-	setIfUnset(args, "pods-per-core", "10")
 	setIfUnset(args, "cgroup-driver", "systemd")
 	setIfUnset(args, "container-runtime-endpoint", options.DockerConfig.DockerShimSocket)
 	setIfUnset(args, "image-service-endpoint", options.DockerConfig.DockerShimSocket)
