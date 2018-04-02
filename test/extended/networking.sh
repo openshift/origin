@@ -89,27 +89,26 @@ function copy-container-files() {
 
 function save-container-logs() {
   local base_dest_dir=$1
-  local output_to_stdout=${2:-}
+  local deployment_failed=${2:-}
 
   os::log::info "Saving container logs"
 
-  local container_log_file="/tmp/systemd.log.gz"
+  local container_log_file="/tmp/systemd.log"
 
   for container_name in "${CONTAINER_NAMES[@]}"; do
     local dest_dir="${base_dest_dir}/${container_name}"
     if [[ ! -d "${dest_dir}" ]]; then
       mkdir -p "${dest_dir}"
     fi
-    sudo docker exec -t "${container_name}" bash -c "journalctl | \
-gzip > ${container_log_file}"
+    sudo docker exec -t "${container_name}" bash -c "journalctl > ${container_log_file}"
     sudo docker cp "${container_name}:${container_log_file}" "${dest_dir}"
-    # Output container logs to stdout to ensure that jenkins has
-    # detail to classify the failure cause.
-    if [[ -n "${output_to_stdout}" ]]; then
+    if [[ -n "${deployment_failed}" ]]; then
+      # Output container logs to stdout to ensure that jenkins has
+      # detail to classify the failure cause.
       local msg="System logs for container ${container_name}"
       os::log::info "< ${msg} >"
       os::log::info "***************************************************"
-      gunzip --stdout "${dest_dir}/$(basename "${container_log_file}")"
+      cat "${dest_dir}/$(basename "${container_log_file}")"
       os::log::info "***************************************************"
       os::log::info "</ ${msg} >"
     fi
