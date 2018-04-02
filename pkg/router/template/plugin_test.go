@@ -1,11 +1,13 @@
 package templaterouter
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
@@ -484,14 +486,20 @@ func TestHandleRoute(t *testing.T) {
 	// here
 	plugin := controller.NewUniqueHost(templatePlugin, controller.HostForRoute, false, rejections)
 
+	uidCount := 0
+	nextUID := func() types.UID {
+		uidCount++
+		return types.UID(fmt.Sprintf("%03d", uidCount))
+	}
 	original := metav1.Time{Time: time.Now()}
 
 	//add
-	route := &routeapi.Route{
+	fooTest1 := &routeapi.Route{
 		ObjectMeta: metav1.ObjectMeta{
 			CreationTimestamp: original,
 			Namespace:         "foo",
 			Name:              "test",
+			UID:               nextUID(),
 		},
 		Spec: routeapi.RouteSpec{
 			Host: "www.example.com",
@@ -501,22 +509,22 @@ func TestHandleRoute(t *testing.T) {
 			},
 		},
 	}
-	serviceUnitKey := endpointsKeyFromParts(route.Namespace, route.Spec.To.Name)
+	serviceUnitKey := endpointsKeyFromParts(fooTest1.Namespace, fooTest1.Spec.To.Name)
 
-	plugin.HandleRoute(watch.Added, route)
+	plugin.HandleRoute(watch.Added, fooTest1)
 
 	_, ok := router.FindServiceUnit(serviceUnitKey)
 
 	if !ok {
-		t.Errorf("TestHandleRoute was unable to find the service unit %s after HandleRoute was called", route.Spec.To.Name)
+		t.Errorf("TestHandleRoute was unable to find the service unit %s after HandleRoute was called", fooTest1.Spec.To.Name)
 	} else {
-		serviceAliasCfg, ok := router.State[getKey(route)]
+		serviceAliasCfg, ok := router.State[getKey(fooTest1)]
 
 		if !ok {
-			t.Errorf("TestHandleRoute expected route key %s", getKey(route))
+			t.Errorf("TestHandleRoute expected route key %s", getKey(fooTest1))
 		} else {
-			if serviceAliasCfg.Host != route.Spec.Host || serviceAliasCfg.Path != route.Spec.Path {
-				t.Errorf("Expected route did not match service alias config %v : %v", route, serviceAliasCfg)
+			if serviceAliasCfg.Host != fooTest1.Spec.Host || serviceAliasCfg.Path != fooTest1.Spec.Path {
+				t.Errorf("Expected route did not match service alias config %v : %v", fooTest1, serviceAliasCfg)
 			}
 		}
 	}
@@ -526,11 +534,12 @@ func TestHandleRoute(t *testing.T) {
 	}
 
 	// attempt to add a second route with a newer time, verify it is ignored
-	duplicateRoute := &routeapi.Route{
+	fooDupe2 := &routeapi.Route{
 		ObjectMeta: metav1.ObjectMeta{
 			CreationTimestamp: metav1.Time{Time: original.Add(time.Hour)},
 			Namespace:         "foo",
 			Name:              "dupe",
+			UID:               nextUID(),
 		},
 		Spec: routeapi.RouteSpec{
 			Host: "www.example.com",
@@ -540,9 +549,10 @@ func TestHandleRoute(t *testing.T) {
 			},
 		},
 	}
-	if err := plugin.HandleRoute(watch.Added, duplicateRoute); err == nil {
+	if err := plugin.HandleRoute(watch.Added, fooDupe2); err == nil {
 		t.Fatal("unexpected non-error")
 	}
+
 	if _, ok := router.FindServiceUnit(endpointsKeyFromParts("foo", "TestService2")); ok {
 		t.Fatalf("unexpected second unit: %#v", router)
 	}
@@ -558,9 +568,10 @@ func TestHandleRoute(t *testing.T) {
 	rejections.rejections = nil
 
 	// attempt to remove the second route that is not being used, verify it is ignored
-	if err := plugin.HandleRoute(watch.Deleted, duplicateRoute); err == nil {
-		t.Fatal("unexpected non-error")
+	if err := plugin.HandleRoute(watch.Deleted, fooDupe2); err != nil {
+		t.Fatal("unexpected error")
 	}
+
 	if _, ok := router.FindServiceUnit(endpointsKeyFromParts("foo", "TestService2")); ok {
 		t.Fatalf("unexpected second unit: %#v", router)
 	}
@@ -570,17 +581,17 @@ func TestHandleRoute(t *testing.T) {
 	if r, ok := plugin.RoutesForHost("www.example.com"); !ok || r[0].Name != "test" {
 		t.Fatalf("unexpected claimed routes: %#v", r)
 	}
-	if len(rejections.rejections) != 1 ||
-		rejections.rejections[0].route.Name != "dupe" ||
-		rejections.rejections[0].reason != "HostAlreadyClaimed" ||
-		rejections.rejections[0].message != "route test already exposes www.example.com and is older" {
+	if len(rejections.rejections) != 0 {
 		t.Fatalf("did not record rejection: %#v", rejections)
 	}
 	rejections.rejections = nil
 
-	// add a second route with an older time, verify it takes effect
-	duplicateRoute.CreationTimestamp = metav1.Time{Time: original.Add(-time.Hour)}
-	if err := plugin.HandleRoute(watch.Added, duplicateRoute); err != nil {
+	// add a third route with an older time, verify it takes effect
+	copied := *fooDupe2
+	fooDupe3 := &copied
+	fooDupe3.UID = nextUID()
+	fooDupe3.CreationTimestamp = metav1.Time{Time: original.Add(-time.Hour)}
+	if err := plugin.HandleRoute(watch.Added, fooDupe3); err != nil {
 		t.Fatal("unexpected error")
 	}
 	_, ok = router.FindServiceUnit(endpointsKeyFromParts("foo", "TestService2"))
@@ -596,24 +607,36 @@ func TestHandleRoute(t *testing.T) {
 	rejections.rejections = nil
 
 	//mod
-	route.Spec.Host = "www.example2.com"
-	if err := plugin.HandleRoute(watch.Modified, route); err != nil {
+	copied2 := *fooTest1
+	fooTest1NewHost := &copied2
+	fooTest1NewHost.Spec.Host = "www.example2.com"
+	if err := plugin.HandleRoute(watch.Modified, fooTest1NewHost); err != nil {
 		t.Fatal("unexpected error")
 	}
+
+	key := getKey(fooTest1NewHost)
 	_, ok = router.FindServiceUnit(serviceUnitKey)
 	if !ok {
-		t.Errorf("TestHandleRoute was unable to find the service unit %s after HandleRoute was called", route.Spec.To.Name)
+		t.Errorf("TestHandleRoute was unable to find the service unit %s after HandleRoute was called", fooTest1NewHost.Spec.To.Name)
 	} else {
-		serviceAliasCfg, ok := router.State[getKey(route)]
-
+		serviceAliasCfg, ok := router.State[key]
 		if !ok {
-			t.Errorf("TestHandleRoute expected route key %s", getKey(route))
+			t.Errorf("TestHandleRoute expected route key %s", key)
 		} else {
-			if serviceAliasCfg.Host != route.Spec.Host || serviceAliasCfg.Path != route.Spec.Path {
-				t.Errorf("Expected route did not match service alias config %v : %v", route, serviceAliasCfg)
+			if serviceAliasCfg.Host != fooTest1NewHost.Spec.Host || serviceAliasCfg.Path != fooTest1NewHost.Spec.Path {
+				t.Errorf("Expected route did not match service alias config %v : %v", fooTest1NewHost, serviceAliasCfg)
 			}
 		}
 	}
+	if plugin.HostLen() != 2 {
+		t.Fatalf("did not clear claimed route: %#v", plugin)
+	}
+	if len(rejections.rejections) != 0 {
+		t.Fatalf("unexpected rejection: %#v", rejections)
+	}
+
+	plugin.HandleRoute(watch.Deleted, fooDupe3)
+
 	if plugin.HostLen() != 1 {
 		t.Fatalf("did not clear claimed route: %#v", plugin)
 	}
@@ -622,17 +645,18 @@ func TestHandleRoute(t *testing.T) {
 	}
 
 	//delete
-	if err := plugin.HandleRoute(watch.Deleted, route); err != nil {
+	if err := plugin.HandleRoute(watch.Deleted, fooTest1NewHost); err != nil {
 		t.Fatal("unexpected error")
 	}
 	_, ok = router.FindServiceUnit(serviceUnitKey)
 	if !ok {
-		t.Errorf("TestHandleRoute was unable to find the service unit %s after HandleRoute was called", route.Spec.To.Name)
+		t.Errorf("TestHandleRoute was unable to find the service unit %s after HandleRoute was called", fooTest1NewHost.Spec.To.Name)
 	} else {
-		_, ok := router.State[getKey(route)]
+
+		_, ok := router.State[key]
 
 		if ok {
-			t.Errorf("TestHandleRoute did not expect route key %s", getKey(route))
+			t.Errorf("TestHandleRoute did not expect route key %s", key)
 		}
 	}
 	if plugin.HostLen() != 0 {
@@ -643,15 +667,37 @@ func TestHandleRoute(t *testing.T) {
 	}
 }
 
+type fakePlugin struct {
+	Route *routeapi.Route
+	Err   error
+}
+
+func (p *fakePlugin) HandleRoute(event watch.EventType, route *routeapi.Route) error {
+	p.Route = route
+	return p.Err
+}
+
+func (p *fakePlugin) HandleEndpoints(watch.EventType, *kapi.Endpoints) error {
+	return p.Err
+}
+
+func (p *fakePlugin) HandleNamespaces(namespaces sets.String) error {
+	return p.Err
+}
+
+func (p *fakePlugin) HandleNode(watch.EventType, *kapi.Node) error {
+	return p.Err
+}
+
+func (p *fakePlugin) Commit() error {
+	return p.Err
+}
+
 // TestHandleRouteExtendedValidation test route watch events with extended route configuration validation.
 func TestHandleRouteExtendedValidation(t *testing.T) {
 	rejections := &fakeRejections{}
-	router := newTestRouter(make(map[string]ServiceAliasConfig))
-	templatePlugin := newDefaultTemplatePlugin(router, true, nil)
-	// TODO: move tests that rely on unique hosts to pkg/router/controller and remove them from
-	// here
-	extendedValidatorPlugin := controller.NewExtendedValidator(templatePlugin, rejections)
-	plugin := controller.NewUniqueHost(extendedValidatorPlugin, controller.HostForRoute, false, rejections)
+	fake := &fakePlugin{}
+	plugin := controller.NewExtendedValidator(fake, rejections)
 
 	original := metav1.Time{Time: time.Now()}
 
@@ -670,24 +716,10 @@ func TestHandleRouteExtendedValidation(t *testing.T) {
 			},
 		},
 	}
-	serviceUnitKey := endpointsKeyFromParts(route.Namespace, route.Spec.To.Name)
 
 	plugin.HandleRoute(watch.Added, route)
-
-	_, ok := router.FindServiceUnit(serviceUnitKey)
-
-	if !ok {
-		t.Errorf("TestHandleRoute was unable to find the service unit %s after HandleRoute was called", route.Spec.To.Name)
-	} else {
-		serviceAliasCfg, ok := router.State[getKey(route)]
-
-		if !ok {
-			t.Errorf("TestHandleRoute expected route key %s", getKey(route))
-		} else {
-			if serviceAliasCfg.Host != route.Spec.Host || serviceAliasCfg.Path != route.Spec.Path {
-				t.Errorf("Expected route did not match service alias config %v : %v", route, serviceAliasCfg)
-			}
-		}
+	if fake.Route != route {
+		t.Fatalf("unexpected route: %#v", fake.Route)
 	}
 
 	if len(rejections.rejections) > 0 {
@@ -960,7 +992,7 @@ func TestHandleRouteExtendedValidation(t *testing.T) {
 					},
 				},
 			},
-			errorExpected: false,
+			errorExpected: true,
 		},
 		{
 			name: "Double escaped newlines",
@@ -981,16 +1013,18 @@ func TestHandleRouteExtendedValidation(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		err := plugin.HandleRoute(watch.Added, tc.route)
-		if tc.errorExpected {
-			if err == nil {
-				t.Fatalf("test case %s: expected an error, got none", tc.name)
+		t.Run(tc.name, func(t *testing.T) {
+			err := plugin.HandleRoute(watch.Added, tc.route)
+			if tc.errorExpected {
+				if err == nil {
+					t.Fatalf("test case %s: expected an error, got none", tc.name)
+				}
+			} else {
+				if err != nil {
+					t.Fatalf("test case %s: expected no errors, got %v", tc.name, err)
+				}
 			}
-		} else {
-			if err != nil {
-				t.Fatalf("test case %s: expected no errors, got %v", tc.name, err)
-			}
-		}
+		})
 	}
 }
 
