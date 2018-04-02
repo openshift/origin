@@ -19,12 +19,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 1b22070765a4a61eed6ed9b95b4ba3caf4ce02a1
+%global commit 2e00ef59e708dae107dc75caf21252b450750502
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=9+ OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.9.14 OS_GIT_TREE_STATE=clean OS_GIT_PATCH=14 KUBE_GIT_VERSION=v1.9.1+a0ce1bc657 OS_GIT_CATALOG_VERSION=v0.1.9 KUBE_GIT_COMMIT=a0ce1bc OS_GIT_COMMIT=31d31d9 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.16 ETCD_GIT_COMMIT=121edf0
+%global os_git_vars OS_GIT_MINOR=9+ OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.9.15 OS_GIT_TREE_STATE=clean OS_GIT_PATCH=15 KUBE_GIT_VERSION=v1.9.1+a0ce1bc657 OS_GIT_CATALOG_VERSION=v0.1.9 KUBE_GIT_COMMIT=a0ce1bc OS_GIT_COMMIT=818b003 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.16 ETCD_GIT_COMMIT=121edf0
 }
 
 %if 0%{?skip_build}
@@ -66,7 +66,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.9.15
+Version:        3.9.16
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -606,6 +606,14 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Mon Apr 02 2018 Justin Pierce <jupierce@redhat.com> 3.9.16-1
+- UPSTREAM: 61284: Fix creation of subpath with SUID/SGID directories.
+  (hchen@redhat.com)
+- Additional audit tests (maszulik@redhat.com)
+- Register audit/v1beta1 for master config (maszulik@redhat.com)
+- Fix initContainer name lookup for ImageChange trigger
+  (alexandre.lossent@cern.ch)
+
 * Thu Mar 29 2018 Justin Pierce <jupierce@redhat.com> 3.9.15-1
 - setup binary input for custom builds properly (bparees@redhat.com)
 - UPSTREAM: 61480: Fix subpath mounting for unix sockets (hekumar@redhat.com)
