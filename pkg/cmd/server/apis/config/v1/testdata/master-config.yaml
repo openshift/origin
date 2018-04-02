@@ -244,6 +244,7 @@ oauthConfig:
       keyFile: ""
       kind: KeystonePasswordIdentityProvider
       url: ""
+      useKeystoneIdentity: false
   - challenge: false
     login: false
     mappingMethod: claim

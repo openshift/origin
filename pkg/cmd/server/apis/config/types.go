@@ -1036,6 +1036,8 @@ type KeystonePasswordIdentityProvider struct {
 	RemoteConnectionInfo RemoteConnectionInfo
 	// Domain Name is required for keystone v3
 	DomainName string
+	// UseKeystoneIdentity flag indicates that user should be authenticated by keystone ID, not by username
+	UseKeystoneIdentity bool
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
