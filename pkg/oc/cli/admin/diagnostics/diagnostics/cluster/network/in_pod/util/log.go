@@ -10,6 +10,8 @@ import (
 
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	kruntimeapi "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
+	kcontainer "k8s.io/kubernetes/pkg/kubelet/container"
 
 	"github.com/openshift/origin/pkg/oc/cli/admin/diagnostics/diagnostics/types"
 )
@@ -23,14 +25,20 @@ func (l *LogInterface) LogNode(kubeClient kclientset.Interface) {
 	l.LogSystem()
 	l.LogServices()
 
-	l.Run("docker ps -a", "docker-ps")
 	l.Run("ovs-ofctl -O OpenFlow13 dump-flows br0", "flows")
 	l.Run("ovs-ofctl -O OpenFlow13 show br0", "ovs-show")
 	l.Run("tc qdisc show", "tc-qdisc")
 	l.Run("tc class show", "tc-class")
 	l.Run("tc filter show", "tc-filter")
-	l.Run("systemctl cat docker.service", "docker-unit-file")
-	l.logDockerNetworkFile()
+
+	runtime, err := GetRuntime()
+	if err != nil {
+		l.Result.Error("DLogNet1009", err, fmt.Sprintf("Failed to get CRI runtime: %v", err))
+		return
+	}
+
+	l.logRuntime(runtime)
+	l.logPodInfo(kubeClient, runtime)
 }
 
 func (l *LogInterface) LogMaster() {
@@ -97,7 +105,6 @@ func (l *LogInterface) LogSystem() {
 	l.Run("lsmod", "modules")
 	l.Run("sysctl -a", "sysctl")
 	l.Run("oc version", "version")
-	l.Run("docker version", "version")
 	l.Run("cat /etc/system-release-cpe", "version")
 
 	l.logNetworkInterfaces()
@@ -135,18 +142,41 @@ func (l *LogInterface) Run(cmd, outfile string) {
 	}
 }
 
-func (l *LogInterface) logDockerNetworkFile() {
-	out, err := exec.Command("systemctl", "cat", "docker.service").CombinedOutput()
+// The api version of kubelet runtime api
+// Copied from k8s.io/kubernetes/pkg/kubelet/kuberuntime/kuberuntime_manager.go
+const kubeRuntimeAPIVersion = "0.1.0"
+
+func (l *LogInterface) logRuntime(runtime *Runtime) {
+	// Log runtime version
+	version, err := runtime.Service.Version(kubeRuntimeAPIVersion)
 	if err != nil {
-		l.Run(fmt.Sprintf("echo %s", string(out)), "docker-network-file")
+		l.Result.Error("DLogNet1006", err, fmt.Sprintf("Fetching runtime version failed: %v", err))
+		return
+	}
+	l.Run(fmt.Sprintf("echo '\n%v'", version), "version")
+
+	containers, err := runtime.Service.ListContainers(&kruntimeapi.ContainerFilter{})
+	if err != nil {
+		l.Result.Error("DLogNet1007", err, fmt.Sprintf("Fetching containers list failed: %v", err))
+		return
+	}
+	l.Run(fmt.Sprintf("echo '%v'", containers), "containers-list")
+
+	l.Run(fmt.Sprintf("systemctl cat %s.service", runtime.Name), fmt.Sprintf("%s-unit-file", runtime.Name))
+	l.logRuntimeNetworkFile(runtime.Name)
+}
+
+func (l *LogInterface) logRuntimeNetworkFile(name string) {
+	out, err := exec.Command("systemctl", "cat", fmt.Sprintf("%s.service", name)).CombinedOutput()
+	if err != nil {
+		l.Run(fmt.Sprintf("echo '%s'", string(out)), fmt.Sprintf("%s-network-file", name))
 		return
 	}
 
 	re := regexp.MustCompile("EnvironmentFile=-(.*openshift-sdn.*)")
 	match := re.FindStringSubmatch(string(out))
 	if len(match) > 1 {
-		dockerNetworkFile := match[1]
-		l.Run(fmt.Sprintf("cat %s", dockerNetworkFile), "docker-network-file")
+		l.Run(fmt.Sprintf("cat %s", match[1]), fmt.Sprintf("%s-network-file", name))
 	}
 }
 
@@ -155,13 +185,13 @@ func (l *LogInterface) logNetworkInterfaces() {
 		if !strings.HasPrefix(path, "ifcfg-") {
 			return nil
 		}
-		l.Run(fmt.Sprintf("\necho %s", path), "ifcfg")
+		l.Run(fmt.Sprintf("\necho '%s'", path), "ifcfg")
 		l.Run(fmt.Sprintf("cat %s", path), "ifcfg")
 		return nil
 	})
 }
 
-func (l *LogInterface) logPodInfo(kubeClient kclientset.Interface) {
+func (l *LogInterface) logPodInfo(kubeClient kclientset.Interface, runtime *Runtime) {
 	pods, _, err := GetLocalAndNonLocalDiagnosticPods(kubeClient)
 	if err != nil {
 		l.Result.Error("DLogNet1003", err, err.Error())
@@ -173,18 +203,18 @@ func (l *LogInterface) logPodInfo(kubeClient kclientset.Interface) {
 			continue
 		}
 
-		containerID := ParseContainerID(pod.Status.ContainerStatuses[0].ContainerID).ID
-		out, err := exec.Command("docker", []string{"inspect", "-f", "'{{.State.Pid}}'", containerID}...).Output()
+		containerID := kcontainer.ParseContainerID(pod.Status.ContainerStatuses[0].ContainerID).ID
+		pid, err := runtime.GetContainerPid(containerID)
 		if err != nil {
-			l.Result.Error("DLogNet1004", err, fmt.Sprintf("Fetching pid for container %q failed: %s", containerID, err))
+			l.Result.Error("DLogNet1008", err, err.Error())
 			continue
 		}
-		pid := strings.Trim(string(out[:]), "\n")
 
 		p := LogInterface{
 			Result: l.Result,
 			Logdir: filepath.Join(l.Logdir, NetworkDiagPodLogDirPrefix, pod.Name),
 		}
+
 		p.Run(fmt.Sprintf("nsenter -n -t %s -- ip addr show", pid), "addresses")
 		p.Run(fmt.Sprintf("nsenter -n -t %s -- ip route show", pid), "routes")
 	}
