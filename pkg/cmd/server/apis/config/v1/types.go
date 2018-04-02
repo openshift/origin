@@ -481,15 +481,6 @@ type SecurityAllocator struct {
 
 //  holds the necessary configuration options for
 type PolicyConfig struct {
-	// BootstrapPolicyFile points to a template that contains roles and rolebindings that will be created if no policy object exists in the master namespace
-	BootstrapPolicyFile string `json:"bootstrapPolicyFile"`
-
-	// OpenShiftSharedResourcesNamespace is the namespace where shared OpenShift resources live (like shared templates)
-	OpenShiftSharedResourcesNamespace string `json:"openshiftSharedResourcesNamespace"`
-
-	// OpenShiftInfrastructureNamespace is the namespace where OpenShift infrastructure resources live (like controller service accounts)
-	OpenShiftInfrastructureNamespace string `json:"openshiftInfrastructureNamespace"`
-
 	// UserAgentMatchingConfig controls how API calls from *voluntarily* identifying clients will be handled.  THIS DOES NOT DEFEND AGAINST MALICIOUS CLIENTS!
 	UserAgentMatchingConfig UserAgentMatchingConfig `json:"userAgentMatchingConfig"`
 }

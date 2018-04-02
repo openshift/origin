@@ -8,7 +8,6 @@ import (
 
 	"github.com/openshift/origin/pkg/api/apihelpers"
 	internal "github.com/openshift/origin/pkg/cmd/server/apis/config"
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 )
 
 func addDefaultingFuncs(scheme *runtime.Scheme) error {
@@ -44,9 +43,6 @@ func SetDefaults_MasterConfig(obj *MasterConfig) {
 	}
 	if obj.ServingInfo.MaxRequestsInFlight == 0 {
 		obj.ServingInfo.MaxRequestsInFlight = 1200
-	}
-	if len(obj.PolicyConfig.OpenShiftInfrastructureNamespace) == 0 {
-		obj.PolicyConfig.OpenShiftInfrastructureNamespace = bootstrappolicy.DefaultOpenShiftInfraNamespace
 	}
 	if len(obj.RoutingConfig.Subdomain) == 0 {
 		obj.RoutingConfig.Subdomain = "router.default.svc.cluster.local"

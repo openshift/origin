@@ -21,7 +21,6 @@ import (
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	configapiv1 "github.com/openshift/origin/pkg/cmd/server/apis/config/v1"
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	imagepolicyapi "github.com/openshift/origin/pkg/image/admission/apis/imagepolicy"
 	podnodeapi "github.com/openshift/origin/pkg/scheduler/admission/apis/podnodeconstraints"
 
@@ -65,9 +64,6 @@ func fuzzInternalObject(t *testing.T, forVersion schema.GroupVersion, item runti
 			}
 			if obj.ServingInfo.MaxRequestsInFlight == 0 {
 				obj.ServingInfo.MaxRequestsInFlight = 1200
-			}
-			if len(obj.PolicyConfig.OpenShiftInfrastructureNamespace) == 0 {
-				obj.PolicyConfig.OpenShiftInfrastructureNamespace = bootstrappolicy.DefaultOpenShiftInfraNamespace
 			}
 			if len(obj.RoutingConfig.Subdomain) == 0 {
 				obj.RoutingConfig.Subdomain = "router.default.svc.cluster.local"

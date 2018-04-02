@@ -115,11 +115,6 @@ func NewDefaultMasterArgs() *MasterArgs {
 	return config
 }
 
-// GetPolicyFile returns the policy filepath for master
-func (args MasterArgs) GetPolicyFile() string {
-	return path.Join(args.ConfigDir.Value(), "policy.json")
-}
-
 // GetConfigFileToWrite returns the configuration filepath for master
 func (args MasterArgs) GetConfigFileToWrite() string {
 	return path.Join(args.ConfigDir.Value(), "master-config.yaml")
@@ -248,11 +243,6 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 
 		KubeletClientInfo: configapi.KubeletConnectionInfo{
 			Port: ports.KubeletPort,
-		},
-
-		PolicyConfig: configapi.PolicyConfig{
-			BootstrapPolicyFile:               args.GetPolicyFile(),
-			OpenShiftSharedResourcesNamespace: bootstrappolicy.DefaultOpenShiftSharedResourcesNamespace,
 		},
 
 		ImageConfig: configapi.ImageConfig{

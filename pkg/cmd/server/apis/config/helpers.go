@@ -179,8 +179,6 @@ func GetMasterFileReferences(config *MasterConfig) []*string {
 	refs = append(refs, &config.MasterClients.OpenShiftLoopbackKubeConfig)
 	refs = append(refs, &config.MasterClients.ExternalKubernetesKubeConfig)
 
-	refs = append(refs, &config.PolicyConfig.BootstrapPolicyFile)
-
 	if config.ControllerConfig.ServiceServingCert.Signer != nil {
 		refs = append(refs, &config.ControllerConfig.ServiceServingCert.Signer.CertFile)
 		refs = append(refs, &config.ControllerConfig.ServiceServingCert.Signer.KeyFile)
