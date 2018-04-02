@@ -27,6 +27,7 @@ auditConfig:
   webHookKubeConfig: ""
   webHookMode: ""
 authConfig:
+  oauthMetadataFile: ""
   requestHeader: null
   webhookTokenAuthenticators: null
 controllerConfig:

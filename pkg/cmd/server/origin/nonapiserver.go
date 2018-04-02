@@ -1,20 +1,15 @@
 package origin
 
 import (
-	"encoding/json"
 	"net/http"
-
-	"github.com/golang/glog"
 
 	genericmux "k8s.io/apiserver/pkg/server/mux"
 
-	oauthutil "github.com/openshift/origin/pkg/oauth/util"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 )
 
 type NonAPIExtraConfig struct {
-	MasterPublicURL string
-	EnableOAuth     bool
+	OAuthMetadata []byte
 }
 
 type OpenshiftNonAPIConfig struct {
@@ -59,8 +54,8 @@ func (c completedOpenshiftNonAPIConfig) New(delegationTarget genericapiserver.De
 
 	// TODO move this up to the spot where we wire the oauth endpoint
 	// Set up OAuth metadata only if we are configured to use OAuth
-	if c.ExtraConfig.EnableOAuth {
-		initOAuthAuthorizationServerMetadataRoute(s.GenericAPIServer.Handler.NonGoRestfulMux, oauthMetadataEndpoint, c.ExtraConfig.MasterPublicURL)
+	if len(c.ExtraConfig.OAuthMetadata) > 0 {
+		initOAuthAuthorizationServerMetadataRoute(s.GenericAPIServer.Handler.NonGoRestfulMux, c.ExtraConfig)
 	}
 
 	return s, nil
@@ -76,17 +71,10 @@ const (
 // initOAuthAuthorizationServerMetadataRoute initializes an HTTP endpoint for OAuth 2.0 Authorization Server Metadata discovery
 // https://tools.ietf.org/id/draft-ietf-oauth-discovery-04.html#rfc.section.2
 // masterPublicURL should be internally and externally routable to allow all users to discover this information
-func initOAuthAuthorizationServerMetadataRoute(mux *genericmux.PathRecorderMux, path, masterPublicURL string) {
-	// Build OAuth metadata once
-	metadata, err := json.MarshalIndent(oauthutil.GetOauthMetadata(masterPublicURL), "", "  ")
-	if err != nil {
-		glog.Errorf("Unable to initialize OAuth authorization server metadata route: %v", err)
-		return
-	}
-
-	mux.UnlistedHandleFunc(path, func(w http.ResponseWriter, req *http.Request) {
+func initOAuthAuthorizationServerMetadataRoute(mux *genericmux.PathRecorderMux, ExtraConfig *NonAPIExtraConfig) {
+	mux.UnlistedHandleFunc(oauthMetadataEndpoint, func(w http.ResponseWriter, req *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write(metadata)
+		w.Write(ExtraConfig.OAuthMetadata)
 	})
 }

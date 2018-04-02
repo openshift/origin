@@ -1,6 +1,7 @@
 package validation
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -535,10 +536,24 @@ func TestValidateMasterAuthConfig(t *testing.T) {
 	}
 	defer os.Remove(testConfigFile.Name())
 
+	metadataFile, err := ioutil.TempFile("", "oauth.metadata")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	defer os.Remove(metadataFile.Name())
+	ioutil.WriteFile(metadataFile.Name(), testMetadataContent, os.FileMode(0644))
+	badMetadataFile, err := ioutil.TempFile("", "badoauth.metadata")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	defer os.Remove(badMetadataFile.Name())
+	ioutil.WriteFile(badMetadataFile.Name(), []byte("bad file"), os.FileMode(0644))
+
 	testCases := []struct {
 		testName                   string
 		RequestHeader              *configapi.RequestHeaderAuthenticationOptions
 		WebhookTokenAuthenticators []configapi.WebhookTokenAuthenticator
+		OAuthMetadataFile          string
 		expectedErrors             []string
 	}{
 		{
@@ -593,11 +608,22 @@ func TestValidateMasterAuthConfig(t *testing.T) {
 				"webhookTokenAuthenticators.cacheTTL: Required value",
 			},
 		},
+		{
+			testName:          "No OAuth Metadata file",
+			OAuthMetadataFile: "NoFile",
+			expectedErrors:    []string{`oauthMetadataFile: Invalid value: "NoFile": Metadata validation failed: Unable to read External OAuth Metadata file: open NoFile: no such file or directory`},
+		},
+		{
+			testName:          "Bad Metadata file",
+			OAuthMetadataFile: badMetadataFile.Name(),
+			expectedErrors:    []string{fmt.Sprintf(`oauthMetadataFile: Invalid value: %q: Metadata validation failed: Unable to decode External OAuth Metadata file: invalid character 'b' looking for beginning of value`, badMetadataFile.Name())},
+		},
 	}
 	for _, test := range testCases {
 		config := configapi.MasterAuthConfig{
 			RequestHeader:              test.RequestHeader,
 			WebhookTokenAuthenticators: test.WebhookTokenAuthenticators,
+			OAuthMetadataFile:          test.OAuthMetadataFile,
 		}
 		errors := ValidateMasterAuthConfig(config, nil)
 		if len(test.expectedErrors) != len(errors.Errors) {
@@ -611,3 +637,12 @@ func TestValidateMasterAuthConfig(t *testing.T) {
 		}
 	}
 }
+
+var testMetadataContent = []byte(`{
+	"issuer": "https://127.0.0.1/",
+	"authorization_endpoint": "https://127.0.0.1/",
+	"token_endpoint": "https://127.0.0.1/",
+	"scopes_supported": ["openid", "profile", "email", "address", "phone", "offline_access"],
+	"response_types_supported": ["code", "code token"],
+	"grant_types_supported": ["authorization_code", "implicit"],
+	"code_challenge_methods_supported": ["plain", "S256"]}`)
