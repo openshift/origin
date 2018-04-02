@@ -176,6 +176,10 @@ func BuildKubeAPIserverOptions(masterConfig configapi.MasterConfig) (*kapiserver
 	for k, v := range masterConfig.KubernetesMasterConfig.APIServerArguments {
 		args[k] = v
 	}
+	// fixup 'apis/' prefixed args
+	for i, key := range args["runtime-config"] {
+		args["runtime-config"][i] = strings.TrimPrefix(key, "apis/")
+	}
 	if masterConfig.AuditConfig.Enabled {
 		if existing, ok := args["feature-gates"]; ok {
 			args["feature-gates"] = []string{existing[0] + ",AdvancedAuditing=true"}
