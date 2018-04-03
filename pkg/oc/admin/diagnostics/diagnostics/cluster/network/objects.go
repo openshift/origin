@@ -63,7 +63,7 @@ func GetNetworkDiagnosticsPod(diagnosticsImage, command, podName, nodeName strin
 						},
 					},
 					Command: []string{"/bin/bash", "-c"},
-					Args:    []string{getNetworkDebugScript(util.NetworkDiagContainerMountPath, command)},
+					Args:    []string{fmt.Sprintf("chroot %s %s", util.NetworkDiagContainerMountPath, command)},
 				},
 			},
 			Volumes: []kapi.Volume{
@@ -148,43 +148,4 @@ func GetTestService(serviceName, podName, podProtocol, nodeName string, podPort 
 			},
 		},
 	}
-}
-
-func getNetworkDebugScript(nodeRootFS, command string) string {
-	return fmt.Sprintf(`
-#!/bin/bash
-#
-# Based on containerized/non-containerized openshift install,
-# this script sets the environment so that docker, openshift, iptables, etc.
-# binaries are availble for network diagnostics.
-#
-set -o nounset
-set -o pipefail
-
-node_rootfs=%s
-cmd="%s"
-
-# Origin image: openshift/node, OSE image: openshift3/node
-node_image_regex="^openshift.*/node"
-
-node_container_id="$(chroot "${node_rootfs}" docker ps --format='{{.Image}} {{.ID}}' | grep "${node_image_regex}" | cut -d' ' -f2)"
-
-if [[ -z "${node_container_id}" ]]; then # non-containerized openshift env
-
-    chroot "${node_rootfs}" ${cmd}
-
-else # containerized env
-
-    # On containerized install, docker on the host is used by node container,
-    # For the privileged network diagnostics pod to use all the binaries on the node:
-    # - Copy kubeconfig secret to node mount namespace
-    # - Run openshift under the mount namespace of node
-
-    node_docker_pid="$(chroot "${node_rootfs}" docker inspect --format='{{.State.Pid}}' "${node_container_id}")"
-    kubeconfig="/etc/origin/node/kubeconfig"
-    cp "${node_rootfs}/secrets/kubeconfig" "${node_rootfs}/${kubeconfig}"
-
-    chroot "${node_rootfs}" nsenter -m -t "${node_docker_pid}" -- /bin/bash -c 'KUBECONFIG='"${kubeconfig} ${cmd}"''
-
-fi`, nodeRootFS, command)
 }
