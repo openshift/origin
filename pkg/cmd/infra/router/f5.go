@@ -251,7 +251,7 @@ func (o *F5RouterOptions) Run() error {
 
 	factory := o.RouterSelection.NewFactory(routeclient, projectclient.Project().Projects(), kc)
 	watchNodes := (len(o.InternalAddress) != 0 && len(o.VxlanGateway) != 0)
-	controller := factory.Create(plugin, watchNodes, o.EnableIngress)
+	controller := factory.Create(plugin, watchNodes)
 	controller.Run()
 
 	select {}

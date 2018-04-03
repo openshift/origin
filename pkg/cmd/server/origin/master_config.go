@@ -27,6 +27,7 @@ import (
 	rbacregistryvalidation "k8s.io/kubernetes/pkg/registry/rbac/validation"
 	rbacauthorizer "k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac"
 
+	routeinformer "github.com/openshift/client-go/route/informers/externalversions"
 	userinformer "github.com/openshift/client-go/user/informers/externalversions"
 	appinformer "github.com/openshift/origin/pkg/apps/generated/informers/internalversion"
 	authorizationinformer "github.com/openshift/origin/pkg/authorization/generated/informers/internalversion"
@@ -96,6 +97,7 @@ type MasterConfig struct {
 	InternalKubeInformers  kinternalinformers.SharedInformerFactory
 	ClientGoKubeInformers  kubeclientgoinformers.SharedInformerFactory
 	AuthorizationInformers authorizationinformer.SharedInformerFactory
+	RouteInformers         routeinformer.SharedInformerFactory
 	QuotaInformers         quotainformer.SharedInformerFactory
 	SecurityInformers      securityinformer.SharedInformerFactory
 }
@@ -112,6 +114,7 @@ type InformerAccess interface {
 	GetOauthInformers() oauthinformer.SharedInformerFactory
 	GetQuotaInformers() quotainformer.SharedInformerFactory
 	GetSecurityInformers() securityinformer.SharedInformerFactory
+	GetRouteInformers() routeinformer.SharedInformerFactory
 	GetUserInformers() userinformer.SharedInformerFactory
 	GetTemplateInformers() templateinformer.SharedInformerFactory
 	ToGenericInformer() GenericResourceInformer
@@ -226,6 +229,7 @@ func BuildMasterConfig(
 		AuthorizationInformers: informers.GetAuthorizationInformers(),
 		QuotaInformers:         informers.GetQuotaInformers(),
 		SecurityInformers:      informers.GetSecurityInformers(),
+		RouteInformers:         informers.GetRouteInformers(),
 	}
 
 	for name, hook := range authenticatorPostStartHooks {

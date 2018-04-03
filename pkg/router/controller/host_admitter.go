@@ -125,6 +125,7 @@ func (p *HostAdmitter) HandleRoute(eventType watch.EventType, route *routeapi.Ro
 	if err := p.admitter(route); err != nil {
 		glog.V(4).Infof("Route %s not admitted: %s", routeNameKey(route), err.Error())
 		p.recorder.RecordRouteRejection(route, "RouteNotAdmitted", err.Error())
+		p.plugin.HandleRoute(watch.Deleted, route)
 		return err
 	}
 

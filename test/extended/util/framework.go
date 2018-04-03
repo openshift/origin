@@ -277,6 +277,23 @@ func DumpPodLogs(pods []kapiv1.Pod, oc *CLI) {
 	}
 }
 
+// DumpPodsCommand runs the provided command in every pod identified by selector in the provided namespace.
+func DumpPodsCommand(c kclientset.Interface, ns string, selector labels.Selector, cmd string) {
+	podList, err := c.CoreV1().Pods(ns).List(metav1.ListOptions{LabelSelector: selector.String()})
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	values := make(map[string]string)
+	for _, pod := range podList.Items {
+		stdout, err := e2e.RunHostCmdWithRetries(pod.Namespace, pod.Name, cmd, e2e.StatefulSetPoll, e2e.StatefulPodTimeout)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		values[pod.Name] = stdout
+	}
+	for name, stdout := range values {
+		stdout = strings.TrimSuffix(stdout, "\n")
+		e2e.Logf(name + ": " + strings.Join(strings.Split(stdout, "\n"), fmt.Sprintf("\n%s: ", name)))
+	}
+}
+
 // GetMasterThreadDump will get a golang thread stack dump
 func GetMasterThreadDump(oc *CLI) {
 	out, err := oc.AsAdmin().Run("get").Args("--raw", "/debug/pprof/goroutine?debug=2").Output()

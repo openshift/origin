@@ -12,6 +12,7 @@ import (
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 	"k8s.io/kubernetes/pkg/controller"
 
+	routeinformer "github.com/openshift/client-go/route/informers/externalversions"
 	appinformer "github.com/openshift/origin/pkg/apps/generated/informers/internalversion"
 	appsclientinternal "github.com/openshift/origin/pkg/apps/generated/internalclientset"
 	authorizationinformer "github.com/openshift/origin/pkg/authorization/generated/informers/internalversion"
@@ -46,6 +47,7 @@ type ControllerContext struct {
 	TemplateInformers       templateinformer.SharedInformerFactory
 	QuotaInformers          quotainformer.SharedInformerFactory
 	AuthorizationInformers  authorizationinformer.SharedInformerFactory
+	RouteInformers          routeinformer.SharedInformerFactory
 	SecurityInformers       securityinformer.SharedInformerFactory
 	GenericResourceInformer GenericResourceInformer
 

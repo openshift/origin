@@ -110,8 +110,8 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("checking for the expected metrics")
-			routeLabels := labels{"backend": "http", "namespace": ns, "route": "weightedroute"}
-			serverLabels := labels{"namespace": ns, "route": "weightedroute"}
+			routeLabels := promLabels{"backend": "http", "namespace": ns, "route": "weightedroute"}
+			serverLabels := promLabels{"namespace": ns, "route": "weightedroute"}
 			var metrics map[string]*dto.MetricFamily
 			times := 10
 			p := expfmt.TextParser{}
@@ -222,10 +222,10 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 	})
 })
 
-type labels map[string]string
+type promLabels map[string]string
 
-func (l labels) With(name, value string) labels {
-	n := make(labels)
+func (l promLabels) With(name, value string) promLabels {
+	n := make(promLabels)
 	for k, v := range l {
 		n[k] = v
 	}
@@ -242,7 +242,7 @@ func findEnvVar(vars []kapi.EnvVar, key string) string {
 	return ""
 }
 
-func findMetricsWithLabels(f *dto.MetricFamily, labels map[string]string) []*dto.Metric {
+func findMetricsWithLabels(f *dto.MetricFamily, promLabels map[string]string) []*dto.Metric {
 	var result []*dto.Metric
 	if f == nil {
 		return result
@@ -250,14 +250,14 @@ func findMetricsWithLabels(f *dto.MetricFamily, labels map[string]string) []*dto
 	for _, m := range f.Metric {
 		matched := map[string]struct{}{}
 		for _, l := range m.Label {
-			if expect, ok := labels[l.GetName()]; ok {
+			if expect, ok := promLabels[l.GetName()]; ok {
 				if expect != l.GetValue() {
 					break
 				}
 				matched[l.GetName()] = struct{}{}
 			}
 		}
-		if len(matched) != len(labels) {
+		if len(matched) != len(promLabels) {
 			continue
 		}
 		result = append(result, m)
@@ -265,25 +265,25 @@ func findMetricsWithLabels(f *dto.MetricFamily, labels map[string]string) []*dto
 	return result
 }
 
-func findCountersWithLabels(f *dto.MetricFamily, labels map[string]string) []float64 {
+func findCountersWithLabels(f *dto.MetricFamily, promLabels map[string]string) []float64 {
 	var result []float64
-	for _, m := range findMetricsWithLabels(f, labels) {
+	for _, m := range findMetricsWithLabels(f, promLabels) {
 		result = append(result, m.Counter.GetValue())
 	}
 	return result
 }
 
-func findGaugesWithLabels(f *dto.MetricFamily, labels map[string]string) []float64 {
+func findGaugesWithLabels(f *dto.MetricFamily, promLabels map[string]string) []float64 {
 	var result []float64
-	for _, m := range findMetricsWithLabels(f, labels) {
+	for _, m := range findMetricsWithLabels(f, promLabels) {
 		result = append(result, m.Gauge.GetValue())
 	}
 	return result
 }
 
-func findMetricLabels(f *dto.MetricFamily, labels map[string]string, match string) []string {
+func findMetricLabels(f *dto.MetricFamily, promLabels map[string]string, match string) []string {
 	var result []string
-	for _, m := range findMetricsWithLabels(f, labels) {
+	for _, m := range findMetricsWithLabels(f, promLabels) {
 		for _, l := range m.Label {
 			if l.GetName() == match {
 				result = append(result, l.GetValue())
