@@ -135,6 +135,12 @@ func NewCmdDiagnostics(name string, fullName string, out io.Writer) *cobra.Comma
 		},
 	})
 	groups.Add(cmd)
+
+	// add hidden in-pod subcommands
+	cmd.AddCommand(
+		poddiag.NewCommandPodDiagnostics(poddiag.InPodDiagnosticRecommendedName, out),
+		networkpoddiag.NewCommandNetworkPodDiagnostics(networkpoddiag.InPodNetworkCheckRecommendedName, out),
+	)
 	templates.ActsAsRootCommand(cmd, []string{"options"}, groups...)
 
 	return cmd
@@ -149,7 +155,7 @@ func createCommnadGroups(fullName string, out io.Writer) ktemplates.CommandGroup
 	for _, diag := range availableClientDiagnostics() {
 		cmd = append(cmd, NewCmdDiagnosticsIndividual(strings.ToLower(diag.Name()), fullName+" "+strings.ToLower(diag.Name()), out, diag))
 	}
-	groups = append(groups, ktemplates.CommandGroup{"Clinent Diagnostics:", cmd})
+	groups = append(groups, ktemplates.CommandGroup{"Client Diagnostics:", cmd})
 
 	// Cluster Diagnostics
 	cmd = []*cobra.Command{}
@@ -165,12 +171,6 @@ func createCommnadGroups(fullName string, out io.Writer) ktemplates.CommandGroup
 	}
 	groups = append(groups, ktemplates.CommandGroup{"Host Diagnostics:", cmd})
 
-	// Network Diagnostics
-	cmd = []*cobra.Command{
-		poddiag.NewCommandPodDiagnostics(poddiag.InPodDiagnosticRecommendedName, out),
-		networkpoddiag.NewCommandNetworkPodDiagnostics(networkpoddiag.InPodNetworkCheckRecommendedName, out),
-	}
-	groups = append(groups, ktemplates.CommandGroup{"Netowrk Diagnostics:", cmd})
 	return groups
 }
 
