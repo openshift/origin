@@ -121,8 +121,23 @@ func (b *Broker) Catalog() *api.Response {
 	glog.V(4).Infof("Template service broker: Catalog")
 
 	var services []*api.Service
+	var namespaces map[string]struct{}
 
-	for namespace := range b.templateNamespaces {
+	// Repopulate the namespaces list after each catalog request
+	if len(b.templateNamespaces) == 1 && b.templateNamespaces[0] == "all" {
+		ns, err := b.kc.Core().Namespace().List(labels.Everything())
+		if err != nil {
+			return api.InternalServerError(err)
+		}
+
+		for _, item := range ns.items {
+			namespaces[item.Name] = struct{}{}
+		}
+	} else {
+		namespaces = b.templateNamespaces
+	}
+
+	for namespace := range namespaces {
 		templates, err := b.lister.Templates(namespace).List(labels.Everything())
 		if err != nil {
 			return api.InternalServerError(err)
