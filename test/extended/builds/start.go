@@ -70,8 +70,8 @@ var _ = g.Describe("[Feature:Builds][Slow] starting a build using CLI", func() {
 
 			g.Describe("oc start-build with pr ref", func() {
 				g.It("should start a build from a PR ref, wait for the build to complete, and confirm the right level was used", func() {
-					g.By("make sure wildly imagestream has latest tag")
-					err := exutil.WaitForAnImageStreamTag(oc.AsAdmin(), "openshift", "wildfly", "latest")
+					g.By("make sure python imagestream has latest tag")
+					err := exutil.WaitForAnImageStreamTag(oc.AsAdmin(), "openshift", "python", "latest")
 					o.Expect(err).NotTo(o.HaveOccurred())
 
 					g.By("create build config")
@@ -88,20 +88,20 @@ var _ = g.Describe("[Feature:Builds][Slow] starting a build using CLI", func() {
 					out, err := br.Logs()
 					o.Expect(err).NotTo(o.HaveOccurred())
 
-					// the repo at the PR level noted in bcWithPRRef had a pom.xml level of "0.1-SNAPSHOT" (we are well past that now)
-					// so simply looking for that string in the mvn output is indicative of being at that level
+					// the repo has a dependency 'gunicorn', referenced PR removes this dependency
+					// from requirements.txt so it should not appear in the output anymore
 					g.By("confirm the correct commit level was retrieved")
-					o.Expect(out).Should(o.ContainSubstring("0.1-SNAPSHOT"))
+					o.Expect(out).Should(o.Not(o.ContainSubstring("gunicorn")))
 
 					istag, err := oc.ImageClient().Image().ImageStreamTags(oc.Namespace()).Get("bc-with-pr-ref:latest", metav1.GetOptions{})
 					o.Expect(err).NotTo(o.HaveOccurred())
-					o.Expect(istag.Image.DockerImageMetadata.Config.Labels).To(o.HaveKeyWithValue("io.openshift.build.commit.ref", "refs/pull/1/head"))
-					o.Expect(istag.Image.DockerImageMetadata.Config.Env).To(o.ContainElement("OPENSHIFT_BUILD_REFERENCE=refs/pull/1/head"))
+					o.Expect(istag.Image.DockerImageMetadata.Config.Labels).To(o.HaveKeyWithValue("io.openshift.build.commit.ref", "refs/pull/121/head"))
+					o.Expect(istag.Image.DockerImageMetadata.Config.Env).To(o.ContainElement("OPENSHIFT_BUILD_REFERENCE=refs/pull/121/head"))
 
 					istag, err = oc.ImageClient().Image().ImageStreamTags(oc.Namespace()).Get("bc-with-pr-ref-docker:latest", metav1.GetOptions{})
 					o.Expect(err).NotTo(o.HaveOccurred())
-					o.Expect(istag.Image.DockerImageMetadata.Config.Labels).To(o.HaveKeyWithValue("io.openshift.build.commit.ref", "refs/pull/1/head"))
-					o.Expect(istag.Image.DockerImageMetadata.Config.Env).To(o.ContainElement("OPENSHIFT_BUILD_REFERENCE=refs/pull/1/head"))
+					o.Expect(istag.Image.DockerImageMetadata.Config.Labels).To(o.HaveKeyWithValue("io.openshift.build.commit.ref", "refs/pull/121/head"))
+					o.Expect(istag.Image.DockerImageMetadata.Config.Env).To(o.ContainElement("OPENSHIFT_BUILD_REFERENCE=refs/pull/121/head"))
 				})
 
 			})
