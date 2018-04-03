@@ -337,3 +337,32 @@ type ServiceAccountPodSecurityPolicyReviewStatus struct {
 	// Name contains the allowed and the denied ServiceAccount name
 	Name string
 }
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// RangeAllocation is used so we can easily expose a RangeAllocation typed for security group
+type RangeAllocation struct {
+	metav1.TypeMeta
+	// +optional
+	metav1.ObjectMeta
+
+	// range is a string representing a unique label for a range of uids, "1000000000-2000000000/10000".
+	Range string
+
+	// data is a byte array representing the serialized state of a range allocation.  It is a bitmap
+	// with each bit set to one to represent a range is taken.
+	Data []byte
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// RangeAllocationList is a list of RangeAllocations objects
+type RangeAllocationList struct {
+	metav1.TypeMeta
+
+	// More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata
+	metav1.ListMeta
+
+	// List of RangeAllocations.
+	Items []RangeAllocation
+}

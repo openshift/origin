@@ -314,6 +314,10 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 		stub:             `{"allowPrivilegedContainer": true, "fsGroup": {"type": "RunAsAny"}, "metadata": {"name": "scc2"}, "runAsUser": {"type": "RunAsAny"}, "seLinuxContext": {"type": "MustRunAs"}, "supplementalGroups": {"type": "RunAsAny"}}`,
 		expectedEtcdPath: "kubernetes.io/securitycontextconstraints/scc2",
 	},
+	gvr("security.openshift.io", "v1", "rangeallocations"): {
+		stub:             `{"metadata": {"name": "scc2"}}`,
+		expectedEtcdPath: "openshift.io/rangeallocations/scc2",
+	},
 	// --
 
 	// github.com/openshift/origin/pkg/template/apis/template/v1
