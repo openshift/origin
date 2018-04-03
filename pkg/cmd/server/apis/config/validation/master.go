@@ -639,6 +639,12 @@ func ValidateAPIServerExtendedArguments(config configapi.ExtendedArguments, fldP
 
 	validationResults.AddErrors(ValidateExtendedArguments(config, apiserveroptions.NewServerRunOptions().AddFlags, fldPath)...)
 
+	for i, key := range config["runtime-config"] {
+		if strings.HasPrefix(key, "apis/") {
+			validationResults.AddWarnings(field.Invalid(fldPath.Key("runtime-config").Index(i), key, "remove the apis/ prefix"))
+		}
+	}
+
 	if len(config["admission-control"]) > 0 {
 		validationResults.AddWarnings(field.Invalid(fldPath.Key("admission-control"), config["admission-control"], "specified admission ordering is being phased out.  Convert to DefaultAdmissionConfig in admissionConfig.pluginConfig."))
 	}

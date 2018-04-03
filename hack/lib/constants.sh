@@ -230,20 +230,18 @@ function os::util::list_test_packages_under() {
 
     if [[ -n "${TEST_KUBE-}" ]]; then
       # we need to find all of the kubernetes test suites, excluding those we directly whitelisted before, the end-to-end suite, and
-      # the go2idl tests which we currently do not support
-      # etcd3 isn't supported yet and that test flakes upstream
       # cmd wasn't done before using glide and constantly flakes
-      find -L vendor/k8s.io/{apimachinery,apiserver,client-go,kube-aggregator,kubernetes} -not \( \
+      # the forked etcd packages are used only by the gce etcd containers
+      find -L vendor/k8s.io/{api,apimachinery,apiserver,client-go,kube-aggregator,kubernetes} -not \( \
         \(                                                                                          \
           -path "${kubernetes_path}/staging"                                                        \
           -o -path "${kubernetes_path}/cmd"                                                         \
           -o -path "${kubernetes_path}/test"                                                        \
-          -o -path "${kubernetes_path}/cmd/libs/go2idl/client-gen/testoutput/testgroup/unversioned" \
-          -o -path "${kubernetes_path}/pkg/storage/etcd3"                                           \
-          -o -path "${kubernetes_path}/third_party/golang/go/build"                                 \
+          -o -path "${kubernetes_path}/third_party/forked/etcd*"                                    \
         \) -prune                                                                                   \
       \) -name '*_test.go' | cut -f 2- -d / | xargs -n1 dirname | sort -u | xargs -n1 printf "${OS_GO_PACKAGE}/vendor/%s\n"
     else
+      echo "${OS_GO_PACKAGE}/vendor/k8s.io/api/..."
       echo "${OS_GO_PACKAGE}/vendor/k8s.io/kubernetes/pkg/api/..."
       echo "${OS_GO_PACKAGE}/vendor/k8s.io/kubernetes/pkg/apis/..."
     fi

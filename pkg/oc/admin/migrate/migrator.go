@@ -95,7 +95,6 @@ func (o *ResourceOptions) Bind(c *cobra.Command) {
 
 	usage := "Filename, directory, or URL to docker-compose.yml file to use"
 	kubectl.AddJsonFilenameFlag(c, &o.Filenames, usage)
-	c.MarkFlagRequired("filename")
 }
 
 func (o *ResourceOptions) Complete(f *clientcmd.Factory, c *cobra.Command) error {

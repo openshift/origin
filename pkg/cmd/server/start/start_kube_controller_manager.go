@@ -87,6 +87,6 @@ func runEmbeddedKubeControllerManager(kubeconfigFile, saPrivateKeyFile, saRootCA
 		glog.Fatal(err)
 	}
 	glog.Infof("`kube-controller-manager %v`", args)
-	cmd.Run(nil, nil)
+	cmd.Run(cmd, nil)
 	panic(fmt.Sprintf("`kube-controller-manager %v` exited", args))
 }

@@ -15,14 +15,14 @@ func TestGetKubeAPIServerFlagAPIEnablement(t *testing.T) {
 	}{
 		{
 			name:      "skip bad",
-			flagValue: []string{"api/legacy=true", "apis/foobar/is/bad=true", "apis/foo/v1=true=true", "apis/good/v1=false"},
+			flagValue: []string{"api/legacy=true", "foobar/is/bad=true", "foo/v1=true=true", "good/v1=false"},
 			expected: map[schema.GroupVersion]bool{
 				{Group: "good", Version: "v1"}: false,
 			},
 		},
 		{
 			name:      "good",
-			flagValue: []string{"apis/good/v2=true", "apis/good/v1=false"},
+			flagValue: []string{"good/v2=true", "good/v1=false"},
 			expected: map[schema.GroupVersion]bool{
 				{Group: "good", Version: "v1"}: false,
 				{Group: "good", Version: "v2"}: true,
@@ -51,20 +51,20 @@ func TestGetEnabledAPIVersionsForGroup(t *testing.T) {
 		{
 			name:      "enable unknown from flag",
 			apiGroup:  "good",
-			flagValue: []string{"apis/good/v2=true", "apis/good/v1=false"},
+			flagValue: []string{"good/v2=true", "good/v1=false"},
 			expected:  []string{"v2"},
 		},
 		{
 			name:                     "enable from flag, disabled by disable",
 			apiGroup:                 "good",
 			disabledAPIGroupVersions: map[string][]string{"good": {"v2"}},
-			flagValue:                []string{"apis/good/v2=true", "apis/good/v1=false"},
+			flagValue:                []string{"good/v2=true", "good/v1=false"},
 			expected:                 []string{},
 		},
 		{
 			name:      "enable by default, disable by flag",
 			apiGroup:  "batch",
-			flagValue: []string{"apis/batch/v1=false"},
+			flagValue: []string{"batch/v1=false"},
 			expected:  []string{"v1beta1", "v2alpha1"},
 		},
 		{
@@ -75,7 +75,7 @@ func TestGetEnabledAPIVersionsForGroup(t *testing.T) {
 		{
 			name:      "enable settings",
 			apiGroup:  "settings.k8s.io",
-			flagValue: []string{"apis/settings.k8s.io/v1alpha1=true"},
+			flagValue: []string{"settings.k8s.io/v1alpha1=true"},
 			expected:  []string{"v1alpha1"},
 		},
 	}
@@ -108,20 +108,20 @@ func TestGetDisabledAPIVersionsForGroup(t *testing.T) {
 		{
 			name:      "enable unknown from flag",
 			apiGroup:  "good",
-			flagValue: []string{"apis/good/v2=true", "apis/good/v1=false"},
+			flagValue: []string{"good/v2=true", "good/v1=false"},
 			expected:  []string{"v1"},
 		},
 		{
 			name:                     "enable from flag, disabled by disable",
 			apiGroup:                 "good",
 			disabledAPIGroupVersions: map[string][]string{"good": {"v2"}},
-			flagValue:                []string{"apis/good/v2=true", "apis/good/v1=false"},
+			flagValue:                []string{"good/v2=true", "good/v1=false"},
 			expected:                 []string{"v1", "v2"},
 		},
 		{
 			name:      "enable by default, disable by flag",
 			apiGroup:  "batch",
-			flagValue: []string{"apis/batch/v1=false"},
+			flagValue: []string{"batch/v1=false"},
 			expected:  []string{"v1"},
 		},
 		{

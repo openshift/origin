@@ -331,7 +331,6 @@ func NewCmdCreateReencryptRoute(fullName string, f *clientcmd.Factory, out io.Wr
 	cmd.Flags().String("ca-cert", "", "Path to a CA certificate file.")
 	cmd.MarkFlagFilename("ca-cert")
 	cmd.Flags().String("dest-ca-cert", "", "Path to a CA certificate file, used for securing the connection from the router to the destination.")
-	cmd.MarkFlagRequired("dest-ca-cert")
 	cmd.MarkFlagFilename("dest-ca-cert")
 	cmd.Flags().String("wildcard-policy", "", "Sets the WildcardPolicy for the hostname, the default is \"None\". valid values are \"None\" and \"Subdomain\"")
 

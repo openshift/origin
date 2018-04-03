@@ -472,10 +472,11 @@ func GetKubeAPIServerFlagAPIEnablement(flagValue []string) map[schema.GroupVersi
 	versions := map[schema.GroupVersion]bool{}
 	for _, val := range flagValue {
 		// skip bad flags
-		if !strings.HasPrefix(val, "apis/") {
+		if strings.HasPrefix(val, "api/") {
 			continue
 		}
-		tokens := strings.Split(val[len("apis/"):], "=")
+		val = strings.TrimPrefix(val, "apis/")
+		tokens := strings.Split(val, "=")
 		if len(tokens) != 2 {
 			continue
 		}
