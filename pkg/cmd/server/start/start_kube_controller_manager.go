@@ -63,9 +63,6 @@ func computeKubeControllerManagerArgs(kubeconfigFile, saPrivateKeyFile, saRootCA
 	if _, ok := cmdLineArgs["cluster-signing-key-file"]; !ok {
 		cmdLineArgs["cluster-signing-key-file"] = []string{""}
 	}
-	if _, ok := cmdLineArgs["experimental-cluster-signing-duration"]; !ok {
-		cmdLineArgs["experimental-cluster-signing-duration"] = []string{"720h"}
-	}
 	if _, ok := cmdLineArgs["leader-elect-retry-period"]; !ok {
 		cmdLineArgs["leader-elect-retry-period"] = []string{"3s"}
 	}
