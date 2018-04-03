@@ -521,8 +521,6 @@
       "github.com/openshift/origin/pkg/template/client/internalversion",
       "github.com/openshift/origin/pkg/template/generator",
       "github.com/openshift/origin/pkg/template/templateprocessing",
-      "github.com/openshift/origin/pkg/unidling/api",
-      "github.com/openshift/origin/pkg/unidling/util",
       "github.com/openshift/origin/pkg/user/apis/user",
       "github.com/openshift/origin/pkg/user/apis/user/install",
       "github.com/openshift/origin/pkg/util",

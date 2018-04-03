@@ -381,7 +381,6 @@ var globalDeploymentConfigGetterUsers = sets.NewString(
 	"system:serviceaccount:openshift-infra:deploymentconfig-controller",
 	"system:serviceaccount:openshift-infra:template-instance-controller",
 	"system:serviceaccount:openshift-infra:template-instance-finalizer-controller",
-	"system:serviceaccount:openshift-infra:unidling-controller",
 )
 
 type resourceAccessReviewTest struct {
