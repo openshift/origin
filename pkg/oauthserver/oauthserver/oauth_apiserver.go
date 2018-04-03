@@ -41,6 +41,7 @@ var (
 
 func NewOAuthServerConfig(oauthConfig configapi.OAuthConfig, userClientConfig *rest.Config) (*OAuthServerConfig, error) {
 	genericConfig := genericapiserver.NewRecommendedConfig(codecs)
+	genericConfig.LoopbackClientConfig = userClientConfig
 
 	var sessionAuth *session.Authenticator
 	var sessionHandlerWrapper handlerWrapper

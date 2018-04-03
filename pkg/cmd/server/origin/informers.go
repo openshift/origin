@@ -120,10 +120,10 @@ func (i genericInformers) Start(stopCh <-chan struct{}) {
 	}
 }
 
-// informers is a convenient way for us to keep track of the informers, but
+// informerHolder is a convenient way for us to keep track of the informers, but
 // is intentionally private.  We don't want to leak it out further than this package.
 // Everything else should say what it wants.
-type informers struct {
+type informerHolder struct {
 	internalKubeInformers  kinternalinformers.SharedInformerFactory
 	externalKubeInformers  kexternalinformers.SharedInformerFactory
 	clientGoKubeInformers  kubeclientgoinformers.SharedInformerFactory
@@ -141,7 +141,7 @@ type informers struct {
 }
 
 // NewInformers is only exposed for the build's integration testing until it can be fixed more appropriately.
-func NewInformers(options configapi.MasterConfig) (*informers, error) {
+func NewInformers(options configapi.MasterConfig) (*informerHolder, error) {
 	clientConfig, kubeInternal, kubeExternal, kubeClientGoExternal, err := getAllClients(options)
 	if err != nil {
 		return nil, err
@@ -200,7 +200,7 @@ func NewInformers(options configapi.MasterConfig) (*informers, error) {
 	appInformers.Apps().InternalVersion().DeploymentConfigs().Informer().AddIndexers(
 		map[string]cache.IndexFunc{appslisters.ImageStreamReferenceIndex: appslisters.ImageStreamReferenceIndexFunc})
 
-	return &informers{
+	return &informerHolder{
 		internalKubeInformers:  kinternalinformers.NewSharedInformerFactory(kubeInternal, defaultInformerResyncPeriod),
 		externalKubeInformers:  kexternalinformers.NewSharedInformerFactory(kubeExternal, defaultInformerResyncPeriod),
 		clientGoKubeInformers:  kubeclientgoinformers.NewSharedInformerFactory(kubeClientGoExternal, defaultInformerResyncPeriod),
@@ -220,57 +220,57 @@ func NewInformers(options configapi.MasterConfig) (*informers, error) {
 
 // AddUserIndexes the API server runs a reverse index on users to groups which requires an index on the group informer
 // this activates the lister/watcher, so we want to do it only in this path
-func (i *informers) AddUserIndexes() error {
+func (i *informerHolder) AddUserIndexes() error {
 	return i.userInformers.User().V1().Groups().Informer().AddIndexers(cache.Indexers{
 		usercache.ByUserIndexName: usercache.ByUserIndexKeys,
 	})
 }
 
-func (i *informers) GetInternalKubeInformers() kinternalinformers.SharedInformerFactory {
+func (i *informerHolder) GetInternalKubeInformers() kinternalinformers.SharedInformerFactory {
 	return i.internalKubeInformers
 }
-func (i *informers) GetExternalKubeInformers() kexternalinformers.SharedInformerFactory {
+func (i *informerHolder) GetExternalKubeInformers() kexternalinformers.SharedInformerFactory {
 	return i.externalKubeInformers
 }
-func (i *informers) GetClientGoKubeInformers() kubeclientgoinformers.SharedInformerFactory {
+func (i *informerHolder) GetClientGoKubeInformers() kubeclientgoinformers.SharedInformerFactory {
 	return i.clientGoKubeInformers
 }
-func (i *informers) GetAppInformers() appinformer.SharedInformerFactory {
+func (i *informerHolder) GetAppInformers() appinformer.SharedInformerFactory {
 	return i.appInformers
 }
-func (i *informers) GetAuthorizationInformers() authorizationinformer.SharedInformerFactory {
+func (i *informerHolder) GetAuthorizationInformers() authorizationinformer.SharedInformerFactory {
 	return i.authorizationInformers
 }
-func (i *informers) GetBuildInformers() buildinformer.SharedInformerFactory {
+func (i *informerHolder) GetBuildInformers() buildinformer.SharedInformerFactory {
 	return i.buildInformers
 }
-func (i *informers) GetImageInformers() imageinformer.SharedInformerFactory {
+func (i *informerHolder) GetImageInformers() imageinformer.SharedInformerFactory {
 	return i.imageInformers
 }
-func (i *informers) GetNetworkInformers() networkinformer.SharedInformerFactory {
+func (i *informerHolder) GetNetworkInformers() networkinformer.SharedInformerFactory {
 	return i.networkInformers
 }
-func (i *informers) GetOauthInformers() oauthinformer.SharedInformerFactory {
+func (i *informerHolder) GetOauthInformers() oauthinformer.SharedInformerFactory {
 	return i.oauthInformers
 }
-func (i *informers) GetQuotaInformers() quotainformer.SharedInformerFactory {
+func (i *informerHolder) GetQuotaInformers() quotainformer.SharedInformerFactory {
 	return i.quotaInformers
 }
-func (i *informers) GetRouteInformers() routeinformer.SharedInformerFactory {
+func (i *informerHolder) GetRouteInformers() routeinformer.SharedInformerFactory {
 	return i.routeInformers
 }
-func (i *informers) GetSecurityInformers() securityinformer.SharedInformerFactory {
+func (i *informerHolder) GetSecurityInformers() securityinformer.SharedInformerFactory {
 	return i.securityInformers
 }
-func (i *informers) GetTemplateInformers() templateinformer.SharedInformerFactory {
+func (i *informerHolder) GetTemplateInformers() templateinformer.SharedInformerFactory {
 	return i.templateInformers
 }
-func (i *informers) GetUserInformers() userinformer.SharedInformerFactory {
+func (i *informerHolder) GetUserInformers() userinformer.SharedInformerFactory {
 	return i.userInformers
 }
 
 // Start initializes all requested informers.
-func (i *informers) Start(stopCh <-chan struct{}) {
+func (i *informerHolder) Start(stopCh <-chan struct{}) {
 	i.internalKubeInformers.Start(stopCh)
 	i.externalKubeInformers.Start(stopCh)
 	i.clientGoKubeInformers.Start(stopCh)
@@ -287,7 +287,7 @@ func (i *informers) Start(stopCh <-chan struct{}) {
 	i.userInformers.Start(stopCh)
 }
 
-func (i *informers) ToGenericInformer() GenericResourceInformer {
+func (i *informerHolder) ToGenericInformer() GenericResourceInformer {
 	return newGenericInformers(
 		i.Start,
 		i.GetExternalKubeInformers(),

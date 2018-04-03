@@ -168,6 +168,9 @@ func BuildKubeAPIserverOptions(masterConfig configapi.MasterConfig) (*kapiserver
 
 	server.KubeletConfig.ReadOnlyPort = 0
 
+	server.ProxyClientCertFile = masterConfig.AggregatorConfig.ProxyClientInfo.CertFile
+	server.ProxyClientKeyFile = masterConfig.AggregatorConfig.ProxyClientInfo.KeyFile
+
 	// resolve extended arguments
 	args := map[string][]string{}
 	for k, v := range masterConfig.KubernetesMasterConfig.APIServerArguments {
