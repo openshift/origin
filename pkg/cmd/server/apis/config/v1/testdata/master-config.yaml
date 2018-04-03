@@ -107,12 +107,6 @@ kubernetesMasterConfig:
   servicesNodePortRange: 30000-32767
   servicesSubnet: ""
 masterClients:
-  externalKubernetesClientConnectionOverrides:
-    acceptContentTypes: application/json
-    burst: 200
-    contentType: application/json
-    qps: 100
-  externalKubernetesKubeConfig: ""
   openshiftLoopbackClientConnectionOverrides:
     acceptContentTypes: application/json
     burst: 300

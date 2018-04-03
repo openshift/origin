@@ -786,13 +786,9 @@ type HTTPServingInfo struct {
 type MasterClients struct {
 	// OpenShiftLoopbackKubeConfig is a .kubeconfig filename for system components to loopback to this master
 	OpenShiftLoopbackKubeConfig string
-	// ExternalKubernetesKubeConfig is a .kubeconfig filename for proxying to kubernetes
-	ExternalKubernetesKubeConfig string
 
 	// OpenShiftLoopbackClientConnectionOverrides specifies client overrides for system components to loop back to this master.
 	OpenShiftLoopbackClientConnectionOverrides *ClientConnectionOverrides
-	// ExternalKubernetesClientConnectionOverrides specifies client overrides for proxying to Kubernetes.
-	ExternalKubernetesClientConnectionOverrides *ClientConnectionOverrides
 }
 
 type ClientConnectionOverrides struct {
