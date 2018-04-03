@@ -377,16 +377,20 @@ func (o *TriggersOptions) printTriggers(infos []*resource.Info) error {
 				fmt.Fprintf(w, "%s/%s\t%s\t%s\t%t\n", info.Mapping.Resource, info.Name, "image", details, image.Auto)
 			}
 			for _, s := range triggers.GenericWebHooks {
-				fmt.Fprintf(w, "%s/%s\t%s\t%s\t%s\n", info.Mapping.Resource, info.Name, "webhook", s, "")
+				val := "<secret>"
+				if s.AllowEnv {
+					val += ", allowenv"
+				}
+				fmt.Fprintf(w, "%s/%s\t%s\t%s\t%s\n", info.Mapping.Resource, info.Name, "webhook", val, "")
 			}
-			for _, s := range triggers.GitHubWebHooks {
-				fmt.Fprintf(w, "%s/%s\t%s\t%s\t%s\n", info.Mapping.Resource, info.Name, "github", s, "")
+			for range triggers.GitHubWebHooks {
+				fmt.Fprintf(w, "%s/%s\t%s\t%s\t%s\n", info.Mapping.Resource, info.Name, "github", "<secret>", "")
 			}
-			for _, s := range triggers.GitLabWebHooks {
-				fmt.Fprintf(w, "%s/%s\t%s\t%s\t%s\n", info.Mapping.Resource, info.Name, "gitlab", s, "")
+			for range triggers.GitLabWebHooks {
+				fmt.Fprintf(w, "%s/%s\t%s\t%s\t%s\n", info.Mapping.Resource, info.Name, "gitlab", "<secret>", "")
 			}
-			for _, s := range triggers.BitbucketWebHooks {
-				fmt.Fprintf(w, "%s/%s\t%s\t%s\t%s\n", info.Mapping.Resource, info.Name, "bitbucket", s, "")
+			for range triggers.BitbucketWebHooks {
+				fmt.Fprintf(w, "%s/%s\t%s\t%s\t%s\n", info.Mapping.Resource, info.Name, "bitbucket", "<secret>", "")
 			}
 			return nil
 		})
