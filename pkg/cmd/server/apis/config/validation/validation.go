@@ -18,7 +18,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	utilvalidation "k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	kvalidation "k8s.io/kubernetes/pkg/apis/core/validation"
 
 	"github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
@@ -337,18 +336,6 @@ func ValidateURL(urlString string, fldPath *field.Path) (*url.URL, field.ErrorLi
 		allErrs = append(allErrs, field.Invalid(fldPath, urlString, "must contain a host"))
 	}
 	return urlObj, allErrs
-}
-
-func ValidateNamespace(namespace string, fldPath *field.Path) field.ErrorList {
-	allErrs := field.ErrorList{}
-
-	if len(namespace) == 0 {
-		allErrs = append(allErrs, field.Required(fldPath, ""))
-	} else if reasons := kvalidation.ValidateNamespaceName(namespace, false); len(reasons) != 0 {
-		allErrs = append(allErrs, field.Invalid(fldPath, namespace, "must be a valid namespace"))
-	}
-
-	return allErrs
 }
 
 func ValidateFile(path string, fldPath *field.Path) field.ErrorList {

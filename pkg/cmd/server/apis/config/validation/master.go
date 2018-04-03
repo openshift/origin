@@ -572,9 +572,6 @@ func ValidateKubernetesMasterConfig(config *configapi.KubernetesMasterConfig, fl
 func ValidatePolicyConfig(config configapi.PolicyConfig, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 
-	allErrs = append(allErrs, ValidateNamespace(config.OpenShiftSharedResourcesNamespace, fldPath.Child("openShiftSharedResourcesNamespace"))...)
-	allErrs = append(allErrs, ValidateNamespace(config.OpenShiftInfrastructureNamespace, fldPath.Child("openShiftInfrastructureNamespace"))...)
-
 	for i, matchingRule := range config.UserAgentMatchingConfig.DeniedClients {
 		_, err := regexp.Compile(matchingRule.Regex)
 		if err != nil {

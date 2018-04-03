@@ -10,6 +10,7 @@ import (
 	serviceaccountadmission "k8s.io/kubernetes/plugin/pkg/admission/serviceaccount"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 )
 
@@ -181,7 +182,7 @@ func BuildOpenshiftControllerConfig(options configapi.MasterConfig) (*OpenshiftC
 
 	// TODO this goes away with a truly generic autoscaler
 	ret.HorizontalPodAutoscalerControllerConfig = HorizontalPodAutoscalerControllerConfig{
-		HeapsterNamespace: options.PolicyConfig.OpenShiftInfrastructureNamespace,
+		HeapsterNamespace: bootstrappolicy.DefaultOpenShiftInfraNamespace,
 	}
 
 	return ret, nil

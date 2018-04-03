@@ -365,9 +365,6 @@ oauthConfig:
     authorizeTokenMaxAgeSeconds: 0
 pauseControllers: false
 policyConfig:
-  bootstrapPolicyFile: ""
-  openshiftInfrastructureNamespace: openshift-infra
-  openshiftSharedResourcesNamespace: ""
   userAgentMatchingConfig:
     defaultRejectionMessage: ""
     deniedClients: null
