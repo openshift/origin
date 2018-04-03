@@ -541,10 +541,11 @@ func (cm *containerManagerImpl) Start(node *v1.Node,
 
 	rootfs, err := cm.cadvisorInterface.RootFsInfo()
 	if err != nil {
-		return fmt.Errorf("failed to get rootfs info: %v", err)
-	}
-	for rName, rCap := range cadvisor.EphemeralStorageCapacityFromFsInfo(rootfs) {
-		cm.capacity[rName] = rCap
+		glog.Errorf("failed to get rootfs info,  cannot set ephemeral storage capacity: %v", err)
+	} else {
+		for rName, rCap := range cadvisor.EphemeralStorageCapacityFromFsInfo(rootfs) {
+			cm.capacity[rName] = rCap
+		}
 	}
 
 	// Ensure that node allocatable configuration is valid.
