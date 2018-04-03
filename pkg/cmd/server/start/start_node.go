@@ -534,6 +534,6 @@ func runKubeletInProcess(kubeletArgs []string) error {
 		return err
 	}
 	glog.Infof("kubelet %v", kubeletArgs)
-	cmd.Run(nil, nil)
+	cmd.Run(cmd, kubeletArgs)
 	return nil
 }

@@ -60,7 +60,7 @@ func runEmbeddedScheduler(kubeconfigFile, schedulerConfigFile string, qps float3
 		glog.Fatal(err)
 	}
 	glog.Infof("`kube-scheduler %v`", args)
-	cmd.Run(nil, nil)
+	cmd.Run(cmd, nil)
 	glog.Fatalf("`kube-scheduler %v` exited", args)
 	time.Sleep(10 * time.Second)
 }

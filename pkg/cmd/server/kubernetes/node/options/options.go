@@ -49,7 +49,6 @@ func ComputeKubeletFlags(startingArgs map[string][]string, options configapi.Nod
 
 	setIfUnset(args, "address", kubeAddressStr)
 	setIfUnset(args, "port", kubePortStr)
-	setIfUnset(args, "require-kubeconfig", "true")
 	setIfUnset(args, "kubeconfig", options.MasterKubeConfig)
 	setIfUnset(args, "pod-manifest-path", path)
 	setIfUnset(args, "root-dir", options.VolumeDirectory)
