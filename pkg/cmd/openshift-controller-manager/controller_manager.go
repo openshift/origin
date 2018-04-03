@@ -10,8 +10,11 @@ import (
 
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kutilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
+	utilwait "k8s.io/apimachinery/pkg/util/wait"
+	kexternalinformers "k8s.io/client-go/informers"
 	clientgoclientset "k8s.io/client-go/kubernetes"
 	kclientsetexternal "k8s.io/client-go/kubernetes"
 	v1core "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -22,7 +25,10 @@ import (
 	cmappoptions "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/apis/componentconfig"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/controller"
+	"k8s.io/kubernetes/pkg/registry/core/service/allocator"
+	etcdallocator "k8s.io/kubernetes/pkg/registry/core/service/allocator/storage"
 
 	origincontrollers "github.com/openshift/origin/pkg/cmd/openshift-controller-manager/controller"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
@@ -31,6 +37,11 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/origin"
 	originrest "github.com/openshift/origin/pkg/cmd/server/origin/rest"
 	cmdflags "github.com/openshift/origin/pkg/cmd/util/flags"
+	securitycontroller "github.com/openshift/origin/pkg/security/controller"
+	"github.com/openshift/origin/pkg/security/mcs"
+	"github.com/openshift/origin/pkg/security/uid"
+	"github.com/openshift/origin/pkg/security/uidallocator"
+	"github.com/openshift/origin/pkg/util/restoptions"
 	"github.com/openshift/origin/pkg/version"
 )
 
@@ -79,7 +90,7 @@ func runOpenShiftControllerManager(masterConfig *configapi.MasterConfig, runServ
 	if err != nil {
 		return err
 	}
-	allocationController := origin.SecurityAllocationController{
+	allocationController := securityAllocationController{
 		SecurityAllocator:          masterConfig.ProjectConfig.SecurityAllocator,
 		OpenshiftRESTOptionsGetter: restOptsGetter,
 		ExternalKubeInformers:      openshiftControllerInformers.GetExternalKubeInformers(),
@@ -262,7 +273,7 @@ func waitForHealthyAPIServer(client rest.Interface) error {
 
 // startControllers launches the controllers
 // allocation controller is passed in because it wants direct etcd access.  Naughty.
-func startControllers(options configapi.MasterConfig, allocationController origin.SecurityAllocationController, controllerContext origincontrollers.ControllerContext) error {
+func startControllers(options configapi.MasterConfig, allocationController securityAllocationController, controllerContext origincontrollers.ControllerContext) error {
 	openshiftControllerConfig, err := origincontrollers.BuildOpenshiftControllerConfig(options)
 	if err != nil {
 		return err
@@ -297,4 +308,65 @@ func startControllers(options configapi.MasterConfig, allocationController origi
 	glog.Infof("Started Origin Controllers")
 
 	return nil
+}
+
+type securityAllocationController struct {
+	SecurityAllocator          *configapi.SecurityAllocator
+	OpenshiftRESTOptionsGetter restoptions.Getter
+	ExternalKubeInformers      kexternalinformers.SharedInformerFactory
+	KubeExternalClient         kclientsetexternal.Interface
+}
+
+// RunSecurityAllocationController starts the security allocation controller process.
+func (c securityAllocationController) RunSecurityAllocationController() {
+	alloc := c.SecurityAllocator
+	if alloc == nil {
+		glog.V(3).Infof("Security allocator is disabled - no UIDs assigned to projects")
+		return
+	}
+
+	// TODO: move range initialization to run_config
+	uidRange, err := uid.ParseRange(alloc.UIDAllocatorRange)
+	if err != nil {
+		glog.Fatalf("Unable to describe UID range: %v", err)
+	}
+
+	opts, err := c.OpenshiftRESTOptionsGetter.GetRESTOptions(schema.GroupResource{Resource: "securityuidranges"})
+	if err != nil {
+		glog.Fatalf("Unable to load storage options for security UID ranges")
+	}
+
+	var etcdAlloc *etcdallocator.Etcd
+	uidAllocator := uidallocator.New(uidRange, func(max int, rangeSpec string) allocator.Interface {
+		mem := allocator.NewContiguousAllocationMap(max, rangeSpec)
+		etcdAlloc = etcdallocator.NewEtcd(mem, "/ranges/uids", kapi.Resource("uidallocation"), opts.StorageConfig)
+		return etcdAlloc
+	})
+	mcsRange, err := mcs.ParseRange(alloc.MCSAllocatorRange)
+	if err != nil {
+		glog.Fatalf("Unable to describe MCS category range: %v", err)
+	}
+
+	repair := securitycontroller.NewRepair(time.Minute, c.KubeExternalClient.CoreV1().Namespaces(), uidRange, etcdAlloc)
+	if err := repair.RunOnce(); err != nil {
+		// TODO: v scary, may need to use direct etcd calls?
+		// If the security controller fails during RunOnce it could mean a
+		// couple of things:
+		// 1. an unexpected etcd error occurred getting an allocator or the namespaces
+		// 2. the allocation blocks were full - would result in an admission controller that is unable
+		//	  to create the strategies correctly which would likely mean that the cluster
+		//	  would not admit pods the the majority of users.
+		// 3. an unexpected error persisting an allocation for a namespace has occurred - same as above
+		// In all cases we do not want to continue normal operations, this should be fatal.
+		glog.Fatalf("Unable to initialize namespaces: %v", err)
+	}
+
+	controller := securitycontroller.NewNamespaceSecurityDefaultsController(
+		c.ExternalKubeInformers.Core().V1().Namespaces(),
+		c.KubeExternalClient.Core().Namespaces(),
+		uidAllocator,
+		securitycontroller.DefaultMCSAllocation(uidRange, mcsRange, alloc.MCSLabelsPerProject),
+	)
+	// TODO: scale out
+	go controller.Run(utilwait.NeverStop, 1)
 }
