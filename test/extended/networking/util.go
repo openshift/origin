@@ -283,13 +283,16 @@ func pluginIsolatesNamespaces() bool {
 }
 
 func pluginImplementsNetworkPolicy() bool {
-	if os.Getenv("NETWORKING_E2E_NETWORKPOLICY") == "false" {
+	switch {
+	case os.Getenv("NETWORKING_E2E_NETWORKPOLICY") == "true":
+		return true
+	case networkPluginName() == network.NetworkPolicyPluginName:
+		return true
+	default:
+		// If we can't detect the plugin, we assume it doesn't support
+		// NetworkPolicy, so the tests will work under kubenet
 		return false
 	}
-	// Assume that all plugins except the OpenShift SDN "subnet" and "multitenant"
-	// plugins implement NetworkPolicy
-	return networkPluginName() != network.SingleTenantPluginName &&
-		networkPluginName() != network.MultiTenantPluginName
 }
 
 func makeNamespaceGlobal(ns *corev1.Namespace) {
