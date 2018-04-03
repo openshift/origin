@@ -191,17 +191,8 @@ func TestMasterConfig(t *testing.T) {
 				NamedCertificates: []internal.NamedCertificate{{}},
 			},
 		},
-		KubernetesMasterConfig: &internal.KubernetesMasterConfig{
-			AdmissionConfig: internal.AdmissionConfig{
-				PluginConfig: map[string]*internal.AdmissionPluginConfig{ // test config as an embedded object
-					"plugin": {
-						Configuration: &testtypes.AdmissionPluginTestConfig{},
-					},
-				},
-				PluginOrderOverride: []string{"plugin"}, // explicitly set this field because it's omitempty
-			},
-		},
-		EtcdConfig: &internal.EtcdConfig{},
+		KubernetesMasterConfig: &internal.KubernetesMasterConfig{},
+		EtcdConfig:             &internal.EtcdConfig{},
 		OAuthConfig: &internal.OAuthConfig{
 			IdentityProviders: []internal.IdentityProvider{
 				{Provider: &internal.BasicAuthPasswordIdentityProvider{}},

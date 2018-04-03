@@ -527,10 +527,6 @@ func ValidateKubernetesMasterConfig(config *configapi.KubernetesMasterConfig, fl
 		validationResults.AddErrors(ValidateSpecifiedIP(config.MasterIP, fldPath.Child("masterIP"))...)
 	}
 
-	if config.MasterCount == 0 || config.MasterCount < -1 {
-		validationResults.AddErrors(field.Invalid(fldPath.Child("masterCount"), config.MasterCount, "must be a positive integer or -1"))
-	}
-
 	validationResults.AddErrors(ValidateCertInfo(config.ProxyClientInfo, false, fldPath.Child("proxyClientInfo"))...)
 	if len(config.ProxyClientInfo.CertFile) == 0 && len(config.ProxyClientInfo.KeyFile) == 0 {
 		validationResults.AddWarnings(field.Invalid(fldPath.Child("proxyClientInfo"), "", "if no client certificate is specified, TLS pods and services cannot validate requests came from the proxy"))
@@ -550,14 +546,6 @@ func ValidateKubernetesMasterConfig(config *configapi.KubernetesMasterConfig, fl
 
 	if len(config.SchedulerConfigFile) > 0 {
 		validationResults.AddErrors(ValidateFile(config.SchedulerConfigFile, fldPath.Child("schedulerConfigFile"))...)
-	}
-
-	for i, nodeName := range config.StaticNodeNames {
-		if len(nodeName) == 0 {
-			validationResults.AddErrors(field.Invalid(fldPath.Child("staticNodeName").Index(i), nodeName, "may not be empty"))
-		} else {
-			validationResults.AddWarnings(field.Invalid(fldPath.Child("staticNodeName").Index(i), nodeName, "static nodes are not supported"))
-		}
 	}
 
 	if len(config.PodEvictionTimeout) > 0 {
@@ -583,13 +571,6 @@ func ValidateKubernetesMasterConfig(config *configapi.KubernetesMasterConfig, fl
 				validationResults.AddWarnings(field.NotSupported(keyPath.Index(i), version, allowedVersions.List()))
 			}
 		}
-	}
-
-	if config.AdmissionConfig.PluginConfig != nil {
-		validationResults.AddErrors(field.Invalid(fldPath.Child("admissionConfig", "pluginConfig"), config.AdmissionConfig.PluginConfig, "separate admission chains are no longer allowed.  Convert to admissionConfig.pluginConfig."))
-	}
-	if len(config.AdmissionConfig.PluginOrderOverride) != 0 {
-		validationResults.AddErrors(field.Invalid(fldPath.Child("admissionConfig", "pluginOrderOverride"), config.AdmissionConfig.PluginOrderOverride, "separate admission chains are no longer allowed.  Convert to DefaultAdmissionConfig in admissionConfig.pluginConfig."))
 	}
 
 	validationResults.Append(ValidateAPIServerExtendedArguments(config.APIServerArguments, fldPath.Child("apiServerArguments")))

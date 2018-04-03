@@ -146,9 +146,6 @@ func SetDefaults_MasterConfig(obj *MasterConfig) {
 }
 
 func SetDefaults_KubernetesMasterConfig(obj *KubernetesMasterConfig) {
-	if obj.MasterCount == 0 {
-		obj.MasterCount = 1
-	}
 	if obj.MasterEndpointReconcileTTL == 0 {
 		obj.MasterEndpointReconcileTTL = 15
 	}
@@ -160,12 +157,6 @@ func SetDefaults_KubernetesMasterConfig(obj *KubernetesMasterConfig) {
 	}
 	if len(obj.PodEvictionTimeout) == 0 {
 		obj.PodEvictionTimeout = "5m"
-	}
-	// Ensure no nil plugin config stanzas
-	for pluginName := range obj.AdmissionConfig.PluginConfig {
-		if obj.AdmissionConfig.PluginConfig[pluginName] == nil {
-			obj.AdmissionConfig.PluginConfig[pluginName] = &AdmissionPluginConfig{}
-		}
 	}
 }
 func SetDefaults_NodeConfig(obj *NodeConfig) {
@@ -465,12 +456,6 @@ func (c *MasterConfig) DecodeNestedObjects(d runtime.Decoder) error {
 		apihelpers.DecodeNestedRawExtensionOrUnknown(d, &v.Configuration)
 		c.AdmissionConfig.PluginConfig[k] = v
 	}
-	if c.KubernetesMasterConfig != nil {
-		for k, v := range c.KubernetesMasterConfig.AdmissionConfig.PluginConfig {
-			apihelpers.DecodeNestedRawExtensionOrUnknown(d, &v.Configuration)
-			c.KubernetesMasterConfig.AdmissionConfig.PluginConfig[k] = v
-		}
-	}
 	if c.OAuthConfig != nil {
 		for i := range c.OAuthConfig.IdentityProviders {
 			apihelpers.DecodeNestedRawExtensionOrUnknown(d, &c.OAuthConfig.IdentityProviders[i].Provider)
@@ -490,14 +475,6 @@ func (c *MasterConfig) EncodeNestedObjects(e runtime.Encoder) error {
 			return err
 		}
 		c.AdmissionConfig.PluginConfig[k] = v
-	}
-	if c.KubernetesMasterConfig != nil {
-		for k, v := range c.KubernetesMasterConfig.AdmissionConfig.PluginConfig {
-			if err := apihelpers.EncodeNestedRawExtension(e, &v.Configuration); err != nil {
-				return err
-			}
-			c.KubernetesMasterConfig.AdmissionConfig.PluginConfig[k] = v
-		}
 	}
 	if c.OAuthConfig != nil {
 		for i := range c.OAuthConfig.IdentityProviders {

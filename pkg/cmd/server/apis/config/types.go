@@ -1220,9 +1220,6 @@ type KubernetesMasterConfig struct {
 
 	// MasterIP is the public IP address of kubernetes stuff.  If empty, the first result from net.InterfaceAddrs will be used.
 	MasterIP string
-	// MasterCount is the number of expected masters that should be running. This value defaults to 1 and may be set to a positive integer,
-	// or if set to -1, indicates this is part of a cluster.
-	MasterCount int
 	// MasterEndpointReconcileTTL sets the time to live in seconds of an endpoint record recorded by each master. The endpoints are checked
 	// at an interval that is 2/3 of this value and this value defaults to 15s if unset. In very large clusters, this value may be increased to
 	// reduce the possibility that the master endpoint record expires (due to other load on the etcd server) and causes masters to drop in and
@@ -1232,8 +1229,6 @@ type KubernetesMasterConfig struct {
 	ServicesSubnet string
 	// ServicesNodePortRange is the range to use for assigning service public ports on a host.
 	ServicesNodePortRange string
-	// StaticNodeNames is the list of nodes that are statically known
-	StaticNodeNames []string
 
 	// SchedulerConfigFile points to a file that describes how to set up the scheduler. If empty, you get the default scheduling rules.
 	SchedulerConfigFile string
@@ -1244,9 +1239,6 @@ type KubernetesMasterConfig struct {
 
 	// ProxyClientInfo specifies the client cert/key to use when proxying to pods
 	ProxyClientInfo CertInfo
-
-	// AdmissionConfig contains admission control plugin configuration.
-	AdmissionConfig AdmissionConfig
 
 	// APIServerArguments are key value pairs that will be passed directly to the Kube apiserver that match the apiservers's
 	// command line arguments.  These are not migrated, but if you reference a value that does not exist the server will not

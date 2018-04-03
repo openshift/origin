@@ -191,25 +191,7 @@ func fuzzInternalObject(t *testing.T, forVersion schema.GroupVersion, item runti
 					obj.AdmissionConfig.PluginConfig[pluginName] = &configapi.AdmissionPluginConfig{}
 				}
 			}
-			if obj.KubernetesMasterConfig != nil {
-				for pluginName := range obj.KubernetesMasterConfig.AdmissionConfig.PluginConfig {
-					if obj.KubernetesMasterConfig.AdmissionConfig.PluginConfig[pluginName] == nil {
-						obj.KubernetesMasterConfig.AdmissionConfig.PluginConfig[pluginName] = &configapi.AdmissionPluginConfig{}
-					}
-				}
-			}
 
-			// test a Kubernetes admission plugin nested for round tripping
-			if obj.KubernetesMasterConfig != nil && c.RandBool() {
-				obj.KubernetesMasterConfig.AdmissionConfig.PluginConfig = map[string]*configapi.AdmissionPluginConfig{
-					"abc": {
-						Location: "test",
-						Configuration: &configapi.LDAPSyncConfig{
-							URL: "ldap://some:other@server:8080/test",
-						},
-					},
-				}
-			}
 			if obj.OAuthConfig != nil && c.RandBool() {
 				obj.OAuthConfig.IdentityProviders = []configapi.IdentityProvider{
 					{
@@ -234,9 +216,6 @@ func fuzzInternalObject(t *testing.T, forVersion schema.GroupVersion, item runti
 		},
 		func(obj *configapi.KubernetesMasterConfig, c fuzz.Continue) {
 			c.FuzzNoCustom(obj)
-			if obj.MasterCount == 0 {
-				obj.MasterCount = 1
-			}
 			if len(obj.ServicesNodePortRange) == 0 {
 				obj.ServicesNodePortRange = "30000-32767"
 			}

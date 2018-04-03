@@ -283,17 +283,6 @@ func TestValidateAdmissionPluginConfigConflicts(t *testing.T) {
 			name: "stock everything",
 		},
 		{
-			name: "specified kube admission order 01",
-			options: configapi.MasterConfig{
-				KubernetesMasterConfig: &configapi.KubernetesMasterConfig{
-					AdmissionConfig: configapi.AdmissionConfig{
-						PluginOrderOverride: []string{"foo"},
-					},
-				},
-			},
-			errorFields: []string{"kubernetesMasterConfig.admissionConfig.pluginOrderOverride"},
-		},
-		{
 			name: "specified kube admission order 02",
 			options: configapi.MasterConfig{
 				KubernetesMasterConfig: &configapi.KubernetesMasterConfig{
@@ -335,69 +324,6 @@ func TestValidateAdmissionPluginConfigConflicts(t *testing.T) {
 					},
 				},
 			},
-		},
-		{
-			name: "specified, non-conflicting plugin configs 02",
-			options: configapi.MasterConfig{
-				KubernetesMasterConfig: &configapi.KubernetesMasterConfig{
-					AdmissionConfig: configapi.AdmissionConfig{
-						PluginConfig: map[string]*configapi.AdmissionPluginConfig{
-							"foo": {
-								Location: "bar",
-							},
-							"third": {
-								Location: "bar",
-							},
-						},
-					},
-				},
-				AdmissionConfig: configapi.AdmissionConfig{
-					PluginConfig: map[string]*configapi.AdmissionPluginConfig{
-						"foo": {
-							Location: "bar",
-						},
-					},
-				},
-			},
-		},
-		{
-			name: "specified, non-conflicting plugin configs 03",
-			options: configapi.MasterConfig{
-				KubernetesMasterConfig: &configapi.KubernetesMasterConfig{
-					AdmissionConfig: configapi.AdmissionConfig{
-						PluginConfig: map[string]*configapi.AdmissionPluginConfig{
-							"foo": {
-								Location: "bar",
-							},
-							"third": {
-								Location: "bar",
-							},
-						},
-					},
-				},
-			},
-		},
-		{
-			name: "specified conflicting plugin configs 01",
-			options: configapi.MasterConfig{
-				KubernetesMasterConfig: &configapi.KubernetesMasterConfig{
-					AdmissionConfig: configapi.AdmissionConfig{
-						PluginConfig: map[string]*configapi.AdmissionPluginConfig{
-							"foo": {
-								Location: "different",
-							},
-						},
-					},
-				},
-				AdmissionConfig: configapi.AdmissionConfig{
-					PluginConfig: map[string]*configapi.AdmissionPluginConfig{
-						"foo": {
-							Location: "bar",
-						},
-					},
-				},
-			},
-			errorFields: []string{"kubernetesMasterConfig.admissionConfig.pluginConfig"},
 		},
 	}
 

@@ -873,13 +873,7 @@ func (in *KubernetesMasterConfig) DeepCopyInto(out *KubernetesMasterConfig) {
 			}
 		}
 	}
-	if in.StaticNodeNames != nil {
-		in, out := &in.StaticNodeNames, &out.StaticNodeNames
-		*out = make([]string, len(*in))
-		copy(*out, *in)
-	}
 	out.ProxyClientInfo = in.ProxyClientInfo
-	in.AdmissionConfig.DeepCopyInto(&out.AdmissionConfig)
 	if in.APIServerArguments != nil {
 		in, out := &in.APIServerArguments, &out.APIServerArguments
 		*out = make(ExtendedArguments, len(*in))
