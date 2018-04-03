@@ -103,7 +103,7 @@ func TestKubeletDefaults(t *testing.T) {
 			IPTablesMasqueradeBit:       14,
 			IPTablesDropBit:             15,
 			PodPidsLimit:                -1,
-			FailSwapOn:                  true,
+			FailSwapOn:                  true, // overridden
 			ContainerLogMaxSize:         "10Mi",
 			ContainerLogMaxFiles:        5,
 
