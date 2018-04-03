@@ -67,6 +67,7 @@ var rolesToHide = sets.NewString(
 	"system:openshift:aggregate-to-view",
 	"system:kubelet-api-admin",
 	"system:volume-scheduler",
+	"system:unidling-trigger",
 )
 
 func TestSystemOnlyRoles(t *testing.T) {

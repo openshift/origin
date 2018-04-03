@@ -2017,6 +2017,24 @@ items:
       authorization.openshift.io/system-only: "true"
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
+    name: system:unidling-trigger
+  rules:
+  - apiGroups:
+    - idling.openshift.io
+    resources:
+    - idlers
+    verbs:
+    - get
+    - list
+    - patch
+    - watch
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRole
+  metadata:
+    annotations:
+      authorization.openshift.io/system-only: "true"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
+    creationTimestamp: null
     name: system:webhook
   rules:
   - apiGroups:

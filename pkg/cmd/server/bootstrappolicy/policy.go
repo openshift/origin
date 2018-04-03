@@ -644,6 +644,16 @@ func GetOpenshiftBootstrapClusterRoles() []rbacv1.ClusterRole {
 
 		{
 			ObjectMeta: metav1.ObjectMeta{
+				Name: UnidlerRoleName,
+			},
+			Rules: []rbacv1.PolicyRule{
+				// proxies are allowed list/watch/get and patch idlers (for the unidling proxy)
+				rbacv1helpers.NewRule("get", "list", "watch", "patch").Groups("idling.openshift.io").Resources("idlers").RuleOrDie(),
+			},
+		},
+
+		{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: WebHooksRoleName,
 			},
 			Rules: []rbacv1.PolicyRule{
@@ -859,6 +869,9 @@ func GetOpenshiftBootstrapClusterRoleBindings() []rbacv1.ClusterRoleBinding {
 			BindingOrDie(),
 		newOriginClusterBinding(SDNReaderRoleBindingName, SDNReaderRoleName).
 			// Allow node identities to run SDN plugins
+			Groups(NodesGroup).
+			BindingOrDie(),
+		newOriginClusterBinding(UnidlerRoleBindingName, UnidlerRoleName).
 			Groups(NodesGroup).
 			BindingOrDie(),
 		newOriginClusterBinding(WebHooksRoleBindingName, WebHooksRoleName).

@@ -173,12 +173,6 @@ func SetDefaults_NodeConfig(obj *NodeConfig) {
 	if obj.AuthConfig.AuthorizationCacheSize == 0 {
 		obj.AuthConfig.AuthorizationCacheSize = 1000
 	}
-
-	// EnableUnidling by default
-	if obj.EnableUnidling == nil {
-		v := true
-		obj.EnableUnidling = &v
-	}
 }
 func SetDefaults_EtcdStorageConfig(obj *EtcdStorageConfig) {
 	if len(obj.KubernetesStorageVersion) == 0 {

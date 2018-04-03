@@ -186,6 +186,21 @@ items:
     annotations:
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
+    name: system:unidling-triggers
+  roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
+    name: system:unidling-trigger
+  subjects:
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
+    name: system:nodes
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRoleBinding
+  metadata:
+    annotations:
+      rbac.authorization.kubernetes.io/autoupdate: "true"
+    creationTimestamp: null
     name: system:webhooks
   roleRef:
     apiGroup: rbac.authorization.k8s.io

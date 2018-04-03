@@ -14,7 +14,6 @@ dockerConfig:
   dockerShimRootDirectory: /var/lib/dockershim
   dockerShimSocket: unix:///var/run/dockershim.sock
   execHandlerName: native
-enableUnidling: false
 imageConfig:
   format: ""
   latest: false
@@ -41,6 +40,10 @@ servingInfo:
   clientCA: ""
   keyFile: ""
   namedCertificates: null
+unidlingConfig:
+  enabled: false
+  markBit: 0
+  nfQueueNumber: 0
 volumeConfig:
   localQuota:
     perFSGroup: null

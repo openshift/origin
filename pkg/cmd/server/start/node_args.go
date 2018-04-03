@@ -220,8 +220,6 @@ func (args NodeArgs) BuildSerializeableNodeConfig() (*configapi.NodeConfig, erro
 		MasterKubeConfig: admin.DefaultNodeKubeConfigFile(args.ConfigDir.Value()),
 
 		PodManifestConfig: nil,
-
-		EnableUnidling: true,
 	}
 
 	if args.ListenArg.UseTLS() {

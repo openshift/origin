@@ -32,6 +32,7 @@ import (
 	utilsysctl "k8s.io/kubernetes/pkg/util/sysctl"
 	utilexec "k8s.io/utils/exec"
 
+	idlingutil "github.com/openshift/origin/pkg/idling"
 	"github.com/openshift/origin/pkg/proxy/hybrid"
 	"github.com/openshift/origin/pkg/proxy/unidler"
 )
@@ -89,6 +90,27 @@ func (c *NetworkConfig) RunProxy() {
 		}
 		healthzServer = healthcheck.NewDefaultHealthzServer(c.ProxyConfig.HealthzBindAddress, 2*c.ProxyConfig.IPTables.SyncPeriod.Duration, recorder, nodeRef)
 	}
+	var healthzUpdater healthcheck.HealthzUpdater = healthzServer
+	var waitIndicator hybrid.WaitIndicator
+
+	if c.UnidlingConfig.Enabled {
+		// this is a bit of hack to avoid having to carry a hook in the iptables proxier.
+		// basically, we want to know when the iptables proxier has synced its iptables rules,
+		// because asking it to sync with `Sync` requests a sync, but doesn't perform one
+		// synchronously.  The only way to know that a sync has actually occurred is to
+		// look at the healthz timestamp, which is updated after every iptables sync.
+		// Thus, we wrap the healthz indicator to notify our unidling proxy when the iptables
+		// proxier updates the healthz timestamp.
+
+		// TODO(directxman12): remove this once we get proper hooks in the proxiers upstream
+		// and/or switch to OVN.
+		waitIndicator, healthzUpdater = hybrid.NewHealthzWaitIndicator(healthzServer)
+	} else {
+		// remove artifacts from the unidling proxier
+		if err := unidler.CleanupLeftovers(iptInterface, c.UnidlingConfig.MarkBit); err != nil {
+			glog.Errorf("Unable to clean up leftovers from unidler proxy: %v", err)
+		}
+	}
 
 	switch c.ProxyConfig.Mode {
 	case kubeproxyconfig.ProxyModeIPTables:
@@ -116,7 +138,7 @@ func (c *NetworkConfig) RunProxy() {
 			hostname,
 			bindAddr,
 			recorder,
-			healthzServer,
+			healthzUpdater,
 			c.ProxyConfig.NodePortAddresses,
 		)
 		metrics.RegisterMetrics()
@@ -171,29 +193,45 @@ func (c *NetworkConfig) RunProxy() {
 		c.ProxyConfig.ConfigSyncPeriod.Duration,
 	)
 
-	if c.EnableUnidling {
-		unidlingLoadBalancer := userspace.NewLoadBalancerRR()
-		signaler := unidler.NewEventSignaler(recorder)
-		unidlingUserspaceProxy, err := unidler.NewUnidlerProxier(unidlingLoadBalancer, bindAddr, iptInterface, execer, *portRange, c.ProxyConfig.IPTables.SyncPeriod.Duration, c.ProxyConfig.IPTables.MinSyncPeriod.Duration, c.ProxyConfig.UDPIdleTimeout.Duration, c.ProxyConfig.NodePortAddresses, signaler)
+	if c.UnidlingConfig.Enabled {
+		idlingInformer := c.IdlingInformers.Idling().V1alpha2().Idlers().Informer()
+		lookup, err := idlingutil.NewIdlerServiceLookup(idlingInformer)
+		if err != nil {
+			glog.Fatalf("error: Could not initialize Kubernetes Proxy. You must run this process as root (and if containerized, in the host network namespace as privileged) to use the service proxy: %v", err)
+		}
+		signaler := unidler.NewIdlerSignaler(c.IdlingClientset.IdlingV1alpha2(), lookup)
+		// NB: the unidling mark bit must not be the kubernetes masquerade bit (0x1 by default)
+		// or the kubernetes drop bit (0x8000 by default)
+		unidlingProxy, err := unidler.NewUnidlerProxier(iptInterface, c.UnidlingConfig.NFQueueNumber, c.UnidlingConfig.MarkBit, signaler, waitIndicator.Wait)
 		if err != nil {
 			glog.Fatalf("error: Could not initialize Kubernetes Proxy. You must run this process as root (and if containerized, in the host network namespace as privileged) to use the service proxy: %v", err)
 		}
 		hybridProxier, err := hybrid.NewHybridProxier(
-			unidlingLoadBalancer,
-			unidlingUserspaceProxy,
+			unidlingProxy,
 			endpointsHandler,
 			servicesHandler,
 			proxier,
-			unidlingUserspaceProxy,
 			c.ProxyConfig.IPTables.SyncPeriod.Duration,
-			c.InternalKubeInformers.Core().InternalVersion().Services().Lister(),
+			lookup,
 		)
 		if err != nil {
 			glog.Fatalf("error: Could not initialize Kubernetes Proxy. You must run this process as root (and if containerized, in the host network namespace as privileged) to use the service proxy: %v", err)
 		}
+
+		idlerHandler := hybridProxier.IdlerEventHandlers(
+			c.InternalKubeInformers.Core().InternalVersion().Services().Lister(),
+			c.InternalKubeInformers.Core().InternalVersion().Endpoints().Lister(),
+			waitIndicator,
+		)
+		idlingInformer.AddEventHandler(idlerHandler)
+
 		endpointsHandler = hybridProxier
 		servicesHandler = hybridProxier
 		proxier = hybridProxier
+
+		if err := unidlingProxy.RunUntil(utilwait.NeverStop); err != nil {
+			glog.Fatalf("error: Could not initialize Kubernetes Proxy. You must run this process as root (and if containerized, in the host network namespace as privileged) to use the service proxy: %v", err)
+		}
 	}
 
 	iptInterface.AddReloadFunc(proxier.Sync)

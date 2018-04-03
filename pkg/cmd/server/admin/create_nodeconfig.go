@@ -424,8 +424,6 @@ func (o CreateNodeConfigOptions) MakeNodeConfig(serverCertFile, serverKeyFile, n
 		},
 
 		KubeletArguments: o.KubeletArguments,
-
-		EnableUnidling: true,
 	}
 
 	if o.UseTLS() {

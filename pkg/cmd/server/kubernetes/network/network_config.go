@@ -7,6 +7,10 @@ import (
 
 	miekgdns "github.com/miekg/dns"
 
+	idlingclient "github.com/openshift/service-idler/pkg/client/clientset/versioned"
+	idlingclientset "github.com/openshift/service-idler/pkg/client/clientset/versioned"
+	idlinginformers "github.com/openshift/service-idler/pkg/client/informers/externalversions"
+	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	kclientset "k8s.io/client-go/kubernetes"
@@ -33,15 +37,20 @@ type NetworkConfig struct {
 	KubeClientset kclientset.Interface
 	// External kube client
 	ExternalKubeClientset kclientsetexternal.Interface
+	// Idling client
+	IdlingClientset idlingclientset.Interface
 	// Internal kubernetes shared informer factory.
 	InternalKubeInformers kinternalinformers.SharedInformerFactory
 	// Internal network shared informer factory.
 	InternalNetworkInformers networkinformers.SharedInformerFactory
+	// Idling shared informer factory
+	IdlingInformers idlinginformers.SharedInformerFactory
 
 	// ProxyConfig is the configuration for the kube-proxy, fully initialized
 	ProxyConfig *kubeproxyconfig.KubeProxyConfiguration
-	// EnableUnidling indicates whether or not the unidling hybrid proxy should be used
-	EnableUnidling bool
+
+	// UnidlingConfig configures the unidling proxy.
+	UnidlingConfig configapi.UnidlingProxyConfig
 
 	// DNSConfig controls the DNS configuration.
 	DNSServer *dns.Server
@@ -60,6 +69,20 @@ type ProxyInterface interface {
 
 type NodeInterface interface {
 	Start() error
+}
+
+// UnidlingConfiguration configures the unidling proxy.
+type UnidlingProxyConfig struct {
+	// Enabled controls whether or not the unidling proxy is enabled.
+	Enabled bool
+
+	// NFQueueNumber is the number of the NFQueue used to intercept unidling traffic.
+	// It must be unique.
+	NFQueueNumber uint16
+
+	// MarkBit is the bit of the mark set on packets that are intercepted by the unidling proxy.
+	// It must be unique.
+	MarkBit uint
 }
 
 // configureKubeConfigForClientCertRotation attempts to watch for client certificate rotation on the kubelet's cert
@@ -114,7 +137,7 @@ func New(options configapi.NodeConfig, clusterDomain string, proxyConfig *kubepr
 		InternalKubeInformers: internalKubeInformers,
 
 		ProxyConfig:    proxyConfig,
-		EnableUnidling: options.EnableUnidling,
+		UnidlingConfig: options.UnidlingConfig,
 	}
 
 	if network.IsOpenShiftNetworkPlugin(options.NetworkConfig.NetworkPluginName) {
@@ -124,6 +147,21 @@ func New(options configapi.NodeConfig, clusterDomain string, proxyConfig *kubepr
 		if err != nil {
 			return nil, fmt.Errorf("SDN initialization failed: %v", err)
 		}
+	}
+	if config.UnidlingConfig.Enabled {
+		// ok, so, CRDs use JSON as the content type, but the Origin config manually overrides
+		// the content type to protobuf, which gets re-negotiated fine with normal operation,
+		// but the renegotiation doesn't fix watch frame decoding, which still tries to use
+		// protobuf frame decoding, which doesn't work for JSON, thus breaking watch.
+		// TODO(directxman12): remove this when we pick up kubernetes/kubernetes#62175.
+		jsonKubeConfig := *kubeConfig
+		jsonKubeConfig.ContentType = runtime.ContentTypeJSON
+		idlingClient, err := idlingclient.NewForConfig(&jsonKubeConfig)
+		if err != nil {
+			return nil, err
+		}
+		config.IdlingInformers = idlinginformers.NewSharedInformerFactory(idlingClient, proxyConfig.ConfigSyncPeriod.Duration)
+		config.IdlingClientset = idlingClient
 	}
 
 	if enableDNS {

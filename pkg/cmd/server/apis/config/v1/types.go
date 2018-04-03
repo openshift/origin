@@ -98,8 +98,8 @@ type NodeConfig struct {
 	// IPTablesSyncPeriod is how often iptable rules are refreshed
 	IPTablesSyncPeriod string `json:"iptablesSyncPeriod"`
 
-	// EnableUnidling controls whether or not the hybrid unidling proxy will be set up
-	EnableUnidling *bool `json:"enableUnidling"`
+	// UnidlingConfig configures options for the unidling network proxy.
+	UnidlingConfig UnidlingProxyConfig `json:"unidlingConfig"`
 
 	// VolumeConfig contains options for configuring volumes on the node.
 	VolumeConfig NodeVolumeConfig `json:"volumeConfig"`
@@ -1418,6 +1418,21 @@ type ServiceServingCert struct {
 	// Signer holds the signing information used to automatically sign serving certificates.
 	// If this value is nil, then certs are not signed automatically.
 	Signer *CertInfo `json:"signer"`
+}
+
+// UnidlingProxyConfig holds configuration for the unidling network proxy, which triggers unidling
+// on the presence of network traffic.
+type UnidlingProxyConfig struct {
+	// Enabled controls whether or not the unidling proxy is enabled.
+	Enabled bool `json:"enabled"`
+
+	// NFQueueNumber is the number of the NFQueue used to intercept unidling traffic.
+	// It must be unique.
+	NFQueueNumber uint16 `json:"nfQueueNumber"`
+
+	// MarkBit is the bit of the mark set on packets that are intercepted by the unidling proxy.
+	// It must be unique.
+	MarkBit uint `json:"markBit"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

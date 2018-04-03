@@ -496,6 +496,9 @@ func StartNode(nodeConfig configapi.NodeConfig, components *utilflags.ComponentF
 	if networkConfig.InternalNetworkInformers != nil {
 		networkConfig.InternalNetworkInformers.Start(stopCh)
 	}
+	if networkConfig.IdlingInformers != nil {
+		networkConfig.IdlingInformers.Start(stopCh)
+	}
 
 	return nil
 }

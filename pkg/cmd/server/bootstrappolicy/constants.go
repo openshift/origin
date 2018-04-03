@@ -96,6 +96,7 @@ const (
 	OAuthTokenDeleterRoleName = "system:oauth-token-deleter"
 	WebHooksRoleName          = "system:webhook"
 	DiscoveryRoleName         = "system:discovery"
+	UnidlerRoleName           = "system:unidling-trigger"
 
 	// NodeAdmin has full access to the API provided by the kubelet
 	NodeAdminRoleName = "system:node-admin"
@@ -127,6 +128,7 @@ const (
 	SDNReaderRoleBindingName          = SDNReaderRoleName + "s"
 	WebHooksRoleBindingName           = WebHooksRoleName + "s"
 	DiscoveryRoleBindingName          = DiscoveryRoleName + "-binding"
+	UnidlerRoleBindingName            = UnidlerRoleName + "s"
 
 	OpenshiftSharedResourceViewRoleBindingName = OpenshiftSharedResourceViewRoleName + "s"
 
