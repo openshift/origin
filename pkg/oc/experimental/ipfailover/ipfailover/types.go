@@ -55,6 +55,7 @@ type IPFailoverConfigCmdOptions struct {
 
 	//  Failover options.
 	VirtualIPs       string
+	VIPGroups        uint
 	IptablesChain    string
 	NotifyScript     string
 	CheckScript      string
