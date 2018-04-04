@@ -134,7 +134,6 @@
 // test/extended/testdata/hello-builder/Dockerfile
 // test/extended/testdata/hello-builder/scripts/assemble
 // test/extended/testdata/hello-builder/scripts/run
-// test/extended/testdata/idling-echo-server-rc.yaml
 // test/extended/testdata/idling-echo-server.yaml
 // test/extended/testdata/image/deployment-with-annotation-trigger.yaml
 // test/extended/testdata/image-pull-secrets/dc-with-new-pull-secret.yaml
@@ -275,6 +274,7 @@
 // install/origin-web-console/console-config.yaml
 // install/origin-web-console/console-template.yaml
 // install/service-catalog-broker-resources/template-service-broker-registration.yaml
+// install/service-idler/service-idler.yaml
 // install/templateservicebroker/apiserver-config.yaml
 // install/templateservicebroker/apiserver-template.yaml
 // install/templateservicebroker/rbac-template.yaml
@@ -6946,72 +6946,6 @@ func testExtendedTestdataHelloBuilderScriptsRun() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataIdlingEchoServerRcYaml = []byte(`apiVersion: v1
-kind: List
-items:
-- apiVersion: v1
-  kind: ReplicationController
-  metadata:
-    name: idling-echo-rc
-  spec:
-    replicas: 2
-    selector:
-      app: idling-echo
-      replicationcontroller: idling-echo
-    template:
-      metadata:
-        labels:
-          app: idling-echo
-          replicationcontroller: idling-echo
-      spec:
-        containers:
-        - image: openshift/origin-base
-          name: idling-echo
-          command:
-            - /usr/bin/socat
-            - TCP4-LISTEN:8675,reuseaddr,fork
-            - EXEC:'/bin/cat'
-          ports:
-          - containerPort: 8675
-            protocol: TCP
-        dnsPolicy: ClusterFirst
-        restartPolicy: Always
-        securityContext: {}
-- apiVersion: v1
-  kind: Service
-  metadata:
-    name: idling-echo
-  spec:
-    selector:
-      app: idling-echo
-    ports:
-      - port: 8675
-- apiVersion: v1
-  kind: Route
-  metadata:
-    name: idling-echo
-  spec:
-    to:
-      kind: Service
-      name: idling-echo
-
-`)
-
-func testExtendedTestdataIdlingEchoServerRcYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataIdlingEchoServerRcYaml, nil
-}
-
-func testExtendedTestdataIdlingEchoServerRcYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataIdlingEchoServerRcYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/idling-echo-server-rc.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
 var _testExtendedTestdataIdlingEchoServerYaml = []byte(`apiVersion: v1
 kind: List
 metadata: {}
@@ -7111,6 +7045,18 @@ items:
     to:
       kind: Service
       name: idling-echo
+- apiVersion: idling.openshift.io/v1alpha2
+  kind: Idler
+  metadata:
+    name: idling-echo
+  spec:
+    wantIdle: false
+    targetScalables:
+    - resource: deploymentconfig
+      group: apps.openshift.io
+      name: idling-echo
+    triggerServiceNames:
+    - idling-echo
 `)
 
 func testExtendedTestdataIdlingEchoServerYamlBytes() ([]byte, error) {
@@ -33242,6 +33188,208 @@ func installServiceCatalogBrokerResourcesTemplateServiceBrokerRegistrationYaml()
 	return a, nil
 }
 
+var _installServiceIdlerServiceIdlerYaml = []byte(`apiVersion: v1
+kind: Namespace
+metadata:
+  creationTimestamp: null
+  labels:
+    api: openshift-idling
+  name: openshift-idling-system
+spec: {}
+status: {}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  creationTimestamp: null
+  labels:
+    api: openshift-idling
+  name: openshift-idling-role
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - endpoints
+  verbs:
+  - list
+  - watch
+  - get
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - patch
+  - create
+  - update
+- apiGroups:
+  - '*'
+  resources:
+  - '*/scale'
+  verbs:
+  - get
+  - update
+- apiGroups:
+  - idling.openshift.io
+  resources:
+  - '*'
+  verbs:
+  - '*'
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  creationTimestamp: null
+  labels:
+    api: openshift-idling
+  name: openshift-idling-rolebinding
+  namespace: openshift-idling-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: openshift-idling-role
+subjects:
+- kind: ServiceAccount
+  name: default
+  namespace: openshift-idling-system
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  creationTimestamp: null
+  labels:
+    api: openshift-idling
+  name: idlers.idling.openshift.io
+spec:
+  group: idling.openshift.io
+  names:
+    kind: Idler
+    plural: idlers
+  scope: Namespaced
+  validation:
+    openAPIV3Schema:
+      properties:
+        apiVersion:
+          type: string
+        kind:
+          type: string
+        metadata:
+          type: object
+        spec:
+          properties:
+            targetScalables:
+              items:
+                properties:
+                  group:
+                    type: string
+                  name:
+                    type: string
+                  resource:
+                    type: string
+                type: object
+              type: array
+            triggerServiceNames:
+              items:
+                type: string
+              type: array
+            wantIdle:
+              type: boolean
+          type: object
+        status:
+          properties:
+            idled:
+              type: boolean
+            inactiveServiceNames:
+              items:
+                type: string
+              type: array
+            unidledScales:
+              items:
+                properties:
+                  previousScale:
+                    type: integer
+                type: object
+              type: array
+          type: object
+      type: object
+  version: v1alpha2
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+---
+apiVersion: v1
+kind: Service
+metadata:
+  creationTimestamp: null
+  labels:
+    api: openshift-idling
+    control-plane: controller-manager
+  name: openshift-idling-controller-manager-service
+  namespace: openshift-idling-system
+spec:
+  clusterIP: None
+  selector:
+    api: openshift-idling
+    control-plane: controller-manager
+status:
+  loadBalancer: {}
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  creationTimestamp: null
+  labels:
+    api: openshift-idling
+    control-plane: controller-manager
+  name: openshift-idling-controller-manager
+  namespace: openshift-idling-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      api: openshift-idling
+      control-plane: controller-manager
+  serviceName: openshift-idling-controller-manager-service
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        api: openshift-idling
+        control-plane: controller-manager
+    spec:
+      containers:
+      - image: openshift/service-idler
+        name: controller-manager
+        resources:
+          limits:
+            cpu: 100m
+            memory: 30Mi
+          requests:
+            cpu: 100m
+            memory: 20Mi
+      terminationGracePeriodSeconds: 10
+  updateStrategy: {}
+status:
+  replicas: 0
+`)
+
+func installServiceIdlerServiceIdlerYamlBytes() ([]byte, error) {
+	return _installServiceIdlerServiceIdlerYaml, nil
+}
+
+func installServiceIdlerServiceIdlerYaml() (*asset, error) {
+	bytes, err := installServiceIdlerServiceIdlerYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "install/service-idler/service-idler.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _installTemplateservicebrokerApiserverConfigYaml = []byte(`kind: TemplateServiceBrokerConfig
 apiVersion: config.templateservicebroker.openshift.io/v1
 templateNamespaces:
@@ -33703,7 +33851,6 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/hello-builder/Dockerfile": testExtendedTestdataHelloBuilderDockerfile,
 	"test/extended/testdata/hello-builder/scripts/assemble": testExtendedTestdataHelloBuilderScriptsAssemble,
 	"test/extended/testdata/hello-builder/scripts/run": testExtendedTestdataHelloBuilderScriptsRun,
-	"test/extended/testdata/idling-echo-server-rc.yaml": testExtendedTestdataIdlingEchoServerRcYaml,
 	"test/extended/testdata/idling-echo-server.yaml": testExtendedTestdataIdlingEchoServerYaml,
 	"test/extended/testdata/image/deployment-with-annotation-trigger.yaml": testExtendedTestdataImageDeploymentWithAnnotationTriggerYaml,
 	"test/extended/testdata/image-pull-secrets/dc-with-new-pull-secret.yaml": testExtendedTestdataImagePullSecretsDcWithNewPullSecretYaml,
@@ -33844,6 +33991,7 @@ var _bindata = map[string]func() (*asset, error){
 	"install/origin-web-console/console-config.yaml": installOriginWebConsoleConsoleConfigYaml,
 	"install/origin-web-console/console-template.yaml": installOriginWebConsoleConsoleTemplateYaml,
 	"install/service-catalog-broker-resources/template-service-broker-registration.yaml": installServiceCatalogBrokerResourcesTemplateServiceBrokerRegistrationYaml,
+	"install/service-idler/service-idler.yaml": installServiceIdlerServiceIdlerYaml,
 	"install/templateservicebroker/apiserver-config.yaml": installTemplateservicebrokerApiserverConfigYaml,
 	"install/templateservicebroker/apiserver-template.yaml": installTemplateservicebrokerApiserverTemplateYaml,
 	"install/templateservicebroker/rbac-template.yaml": installTemplateservicebrokerRbacTemplateYaml,
@@ -33995,6 +34143,9 @@ var _bintree = &bintree{nil, map[string]*bintree{
 		}},
 		"service-catalog-broker-resources": &bintree{nil, map[string]*bintree{
 			"template-service-broker-registration.yaml": &bintree{installServiceCatalogBrokerResourcesTemplateServiceBrokerRegistrationYaml, map[string]*bintree{}},
+		}},
+		"service-idler": &bintree{nil, map[string]*bintree{
+			"service-idler.yaml": &bintree{installServiceIdlerServiceIdlerYaml, map[string]*bintree{}},
 		}},
 		"templateservicebroker": &bintree{nil, map[string]*bintree{
 			"apiserver-config.yaml": &bintree{installTemplateservicebrokerApiserverConfigYaml, map[string]*bintree{}},
@@ -34215,7 +34366,6 @@ var _bintree = &bintree{nil, map[string]*bintree{
 						"run": &bintree{testExtendedTestdataHelloBuilderScriptsRun, map[string]*bintree{}},
 					}},
 				}},
-				"idling-echo-server-rc.yaml": &bintree{testExtendedTestdataIdlingEchoServerRcYaml, map[string]*bintree{}},
 				"idling-echo-server.yaml": &bintree{testExtendedTestdataIdlingEchoServerYaml, map[string]*bintree{}},
 				"image": &bintree{nil, map[string]*bintree{
 					"deployment-with-annotation-trigger.yaml": &bintree{testExtendedTestdataImageDeploymentWithAnnotationTriggerYaml, map[string]*bintree{}},

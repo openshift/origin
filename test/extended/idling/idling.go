@@ -1,11 +1,8 @@
 package idling
 
 import (
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net"
-	"os"
 	"strings"
 	"sync"
 	"time"
@@ -16,8 +13,6 @@ import (
 	kapiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	unidlingproxy "github.com/openshift/origin/pkg/proxy/unidler"
-	unidlingapi "github.com/openshift/origin/pkg/unidling/api"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -134,7 +129,9 @@ func tryEchoTCP(svc *kapiv1.Service) error {
 }
 
 func createFixture(oc *exutil.CLI, path string) ([]string, []string, error) {
-	output, err := oc.Run("create").Args("-f", path, "-o", "name").Output()
+	// NB: the default policy does not allow normal users to create or update idlers,
+	// so we need admin here
+	output, err := oc.AsAdmin().Run("create").Args("-f", path, "-o", "name").Output()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -159,69 +156,19 @@ func createFixture(oc *exutil.CLI, path string) ([]string, []string, error) {
 	return resources, names, nil
 }
 
-func checkSingleIdle(oc *exutil.CLI, idlingFile string, resources map[string][]string, resourceName string, kind string) {
-	g.By("Idling the service")
-	_, err := oc.Run("idle").Args("--resource-names-file", idlingFile).Output()
-	o.Expect(err).ToNot(o.HaveOccurred())
-
-	g.By("Ensuring the scale is zero (and stays zero)")
-	objName := resources[resourceName][0]
-	// make sure we don't get woken up by an incorrect router health check or anything like that
-	o.Consistently(func() (string, error) {
-		return oc.Run("get").Args(resourceName+"/"+objName, "--output=jsonpath=\"{.spec.replicas}\"").Output()
-	}, 20*time.Second, 500*time.Millisecond).Should(o.ContainSubstring("0"))
-
-	g.By("Fetching the service and checking the annotations are present")
-	serviceName := resources["service"][0]
-	endpoints, err := oc.KubeClient().CoreV1().Endpoints(oc.Namespace()).Get(serviceName, metav1.GetOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred())
-
-	o.Expect(endpoints.Annotations).To(o.HaveKey(unidlingapi.IdledAtAnnotation))
-	o.Expect(endpoints.Annotations).To(o.HaveKey(unidlingapi.UnidleTargetAnnotation))
-
-	g.By("Checking the idled-at time")
-	idledAtAnnotation := endpoints.Annotations[unidlingapi.IdledAtAnnotation]
-	idledAtTime, err := time.Parse(time.RFC3339, idledAtAnnotation)
-	o.Expect(err).ToNot(o.HaveOccurred())
-	o.Expect(idledAtTime).To(o.BeTemporally("~", time.Now(), 5*time.Minute))
-
-	g.By("Checking the idle targets")
-	unidleTargetAnnotation := endpoints.Annotations[unidlingapi.UnidleTargetAnnotation]
-	unidleTargets := []unidlingapi.RecordedScaleReference{}
-	err = json.Unmarshal([]byte(unidleTargetAnnotation), &unidleTargets)
-	o.Expect(err).ToNot(o.HaveOccurred())
-	o.Expect(unidleTargets).To(o.Equal([]unidlingapi.RecordedScaleReference{
-		{
-			Replicas: 2,
-			CrossGroupObjectReference: unidlingapi.CrossGroupObjectReference{
-				Name: resources[resourceName][0],
-				Kind: kind,
-			},
-		},
-	}))
-}
-
-var _ = g.Describe("idling and unidling", func() {
+var _ = g.Describe("idling and unidling [local]", func() {
 	defer g.GinkgoRecover()
 	var (
-		oc                  = exutil.NewCLI("cli-idling", exutil.KubeConfigPath()).Verbose()
-		echoServerFixture   = exutil.FixturePath("testdata", "idling-echo-server.yaml")
-		echoServerRcFixture = exutil.FixturePath("testdata", "idling-echo-server-rc.yaml")
-		framework           = oc.KubeFramework()
+		oc                = exutil.NewCLI("cli-idling", exutil.KubeConfigPath()).Verbose()
+		echoServerFixture = exutil.FixturePath("testdata", "idling-echo-server.yaml")
 	)
-
-	// path to the fixture
-	var fixture string
-
-	// path to the idling file
-	var idlingFile string
 
 	// map of all resources created from the fixtures
 	var resources map[string][]string
 
 	g.JustBeforeEach(func() {
 		g.By("Creating the resources")
-		rawResources, rawResourceNames, err := createFixture(oc, fixture)
+		rawResources, rawResourceNames, err := createFixture(oc, echoServerFixture)
 		o.Expect(err).ToNot(o.HaveOccurred())
 
 		resources = make(map[string][]string)
@@ -229,15 +176,7 @@ var _ = g.Describe("idling and unidling", func() {
 			resources[resource] = append(resources[resource], rawResourceNames[i])
 		}
 
-		g.By("Creating the idling file")
-		serviceNames := resources["service"]
-
-		targetFile, err := ioutil.TempFile("", "idling-services-")
-		o.Expect(err).ToNot(o.HaveOccurred())
-		defer targetFile.Close()
-		idlingFile = targetFile.Name()
-		_, err = targetFile.Write([]byte(strings.Join(serviceNames, "\n")))
-		o.Expect(err).ToNot(o.HaveOccurred())
+		fmt.Fprintf(g.GinkgoWriter, "created resources %v", resources)
 
 		g.By("Waiting for the endpoints to exist")
 		serviceName := resources["service"][0]
@@ -246,223 +185,111 @@ var _ = g.Describe("idling and unidling", func() {
 		o.Expect(err).ToNot(o.HaveOccurred())
 	})
 
-	g.AfterEach(func() {
-		g.By("Cleaning up the idling file")
-		os.Remove(idlingFile)
+	g.It("should work with TCP (when fully idled) [Conformance]", func() {
+		g.By("Idling the service")
+		// NB: the default policy does not allow normal users to create or update idlers,
+		// so we need admin here
+		_, err := oc.AsAdmin().Run("idle").Args(resources["idler.idling.openshift.io"][0]).Output()
+		o.Expect(err).ToNot(o.HaveOccurred())
+
+		g.By("Waiting for the pods to have terminated")
+		err = exutil.WaitForNoPodsAvailable(oc)
+		o.Expect(err).ToNot(o.HaveOccurred())
+
+		g.By("Connecting to the service IP and checking the echo")
+		serviceName := resources["service"][0]
+		svc, err := oc.KubeClient().CoreV1().Services(oc.Namespace()).Get(serviceName, metav1.GetOptions{})
+		o.Expect(err).ToNot(o.HaveOccurred())
+
+		err = tryEchoTCP(svc)
+		o.Expect(err).ToNot(o.HaveOccurred())
+
+		g.By("Waiting until we have endpoints")
+		err = exutil.WaitForEndpointsAvailable(oc, serviceName)
+		o.Expect(err).ToNot(o.HaveOccurred())
 	})
 
-	g.Describe("idling [local]", func() {
-		g.Context("with a single service and DeploymentConfig [Conformance]", func() {
-			g.BeforeEach(func() {
-				framework.BeforeEach()
-				fixture = echoServerFixture
-			})
+	g.It("should work with TCP (while idling)", func() {
+		g.By("Idling the service")
+		_, err := oc.AsAdmin().Run("idle").Args(resources["idler.idling.openshift.io"][0]).Output()
+		o.Expect(err).ToNot(o.HaveOccurred())
 
-			g.It("should idle the service and DeploymentConfig properly", func() {
-				checkSingleIdle(oc, idlingFile, resources, "deploymentconfig.apps.openshift.io", "DeploymentConfig")
-			})
-		})
+		g.By("Connecting to the service IP and repeatedly connecting, making sure we seamlessly idle and come back up")
+		serviceName := resources["service"][0]
+		svc, err := oc.KubeClient().CoreV1().Services(oc.Namespace()).Get(serviceName, metav1.GetOptions{})
+		o.Expect(err).ToNot(o.HaveOccurred())
 
-		g.Context("with a single service and ReplicationController", func() {
-			g.BeforeEach(func() {
-				framework.BeforeEach()
-				fixture = echoServerRcFixture
-			})
+		o.Consistently(func() error { return tryEchoTCP(svc) }, 10*time.Second, 500*time.Millisecond).ShouldNot(o.HaveOccurred())
 
-			g.It("should idle the service and ReplicationController properly", func() {
-				checkSingleIdle(oc, idlingFile, resources, "replicationcontroller", "ReplicationController")
-			})
-		})
+		g.By("Waiting until we have endpoints")
+		err = exutil.WaitForEndpointsAvailable(oc, serviceName)
+		o.Expect(err).ToNot(o.HaveOccurred())
 	})
 
-	g.Describe("unidling", func() {
-		g.BeforeEach(func() {
-			framework.BeforeEach()
-			fixture = echoServerFixture
-		})
+	g.It("should handle many TCP connections", func() {
+		g.By("Idling the service")
+		_, err := oc.AsAdmin().Run("idle").Args(resources["idler.idling.openshift.io"][0]).Output()
+		o.Expect(err).ToNot(o.HaveOccurred())
 
-		g.It("should work with TCP (when fully idled) [Conformance] [local]", func() {
-			g.By("Idling the service")
-			_, err := oc.Run("idle").Args("--resource-names-file", idlingFile).Output()
-			o.Expect(err).ToNot(o.HaveOccurred())
+		g.By("Waiting for the pods to have terminated")
+		serviceName := resources["service"][0]
+		err = exutil.WaitForNoPodsAvailable(oc)
+		o.Expect(err).ToNot(o.HaveOccurred())
 
-			g.By("Waiting for the pods to have terminated")
-			err = exutil.WaitForNoPodsAvailable(oc)
-			o.Expect(err).ToNot(o.HaveOccurred())
+		g.By("Connecting to the service IP many times and checking the echo")
+		svc, err := oc.KubeClient().CoreV1().Services(oc.Namespace()).Get(serviceName, metav1.GetOptions{})
+		o.Expect(err).ToNot(o.HaveOccurred())
 
-			g.By("Connecting to the service IP and checking the echo")
-			serviceName := resources["service"][0]
-			svc, err := oc.KubeClient().CoreV1().Services(oc.Namespace()).Get(serviceName, metav1.GetOptions{})
-			o.Expect(err).ToNot(o.HaveOccurred())
+		connectionsToStart := 100
 
-			err = tryEchoTCP(svc)
-			o.Expect(err).ToNot(o.HaveOccurred())
+		errors := make([]error, connectionsToStart)
+		var connWG sync.WaitGroup
+		// spawn many connections
+		for i := 0; i < connectionsToStart; i++ {
+			connWG.Add(1)
+			go func(ind int) {
+				defer connWG.Done()
+				err = tryEchoTCP(svc)
+				errors[ind] = err
+			}(i)
+		}
 
-			g.By("Waiting until we have endpoints")
-			err = exutil.WaitForEndpointsAvailable(oc, serviceName)
-			o.Expect(err).ToNot(o.HaveOccurred())
+		connWG.Wait()
 
-			endpoints, err := oc.KubeClient().CoreV1().Endpoints(oc.Namespace()).Get(serviceName, metav1.GetOptions{})
-			o.Expect(err).ToNot(o.HaveOccurred())
-
-			g.By("Making sure the endpoints are no longer marked as idled")
-			o.Expect(endpoints.Annotations).NotTo(o.HaveKey(unidlingapi.IdledAtAnnotation))
-			o.Expect(endpoints.Annotations).NotTo(o.HaveKey(unidlingapi.UnidleTargetAnnotation))
-		})
-
-		g.It("should work with TCP (while idling) [local]", func() {
-			g.By("Idling the service")
-			_, err := oc.Run("idle").Args("--resource-names-file", idlingFile).Output()
-			o.Expect(err).ToNot(o.HaveOccurred())
-
-			g.By("Connecting to the service IP and repeatedly connecting, making sure we seamlessly idle and come back up")
-			serviceName := resources["service"][0]
-			svc, err := oc.KubeClient().CoreV1().Services(oc.Namespace()).Get(serviceName, metav1.GetOptions{})
-			o.Expect(err).ToNot(o.HaveOccurred())
-
-			o.Consistently(func() error { return tryEchoTCP(svc) }, 10*time.Second, 500*time.Millisecond).ShouldNot(o.HaveOccurred())
-
-			g.By("Waiting until we have endpoints")
-			err = exutil.WaitForEndpointsAvailable(oc, serviceName)
-			o.Expect(err).ToNot(o.HaveOccurred())
-
-			endpoints, err := oc.KubeClient().CoreV1().Endpoints(oc.Namespace()).Get(serviceName, metav1.GetOptions{})
-			o.Expect(err).ToNot(o.HaveOccurred())
-
-			g.By("Making sure the endpoints are no longer marked as idled")
-			o.Expect(endpoints.Annotations).NotTo(o.HaveKey(unidlingapi.IdledAtAnnotation))
-			o.Expect(endpoints.Annotations).NotTo(o.HaveKey(unidlingapi.UnidleTargetAnnotation))
-		})
-
-		g.It("should handle many TCP connections by dropping those under a certain bound [local]", func() {
-			g.By("Idling the service")
-			_, err := oc.Run("idle").Args("--resource-names-file", idlingFile).Output()
-			o.Expect(err).ToNot(o.HaveOccurred())
-
-			g.By("Waiting for the pods to have terminated")
-			serviceName := resources["service"][0]
-			err = exutil.WaitForNoPodsAvailable(oc)
-			o.Expect(err).ToNot(o.HaveOccurred())
-
-			g.By("Connecting to the service IP many times and checking the echo")
-			svc, err := oc.KubeClient().CoreV1().Services(oc.Namespace()).Get(serviceName, metav1.GetOptions{})
-			o.Expect(err).ToNot(o.HaveOccurred())
-
-			connectionsToStart := 100
-
-			errors := make([]error, connectionsToStart)
-			var connWG sync.WaitGroup
-			// spawn many connections
-			for i := 0; i < connectionsToStart; i++ {
-				connWG.Add(1)
-				go func(ind int) {
-					defer connWG.Done()
-					err = tryEchoTCP(svc)
-					errors[ind] = err
-				}(i)
+		g.By("Expecting all of those connections to succeed")
+		errCount := 0
+		for _, err := range errors {
+			if err != nil {
+				errCount++
 			}
+		}
+		o.Expect(errCount).To(o.Equal(0))
 
-			connWG.Wait()
+		g.By("Waiting until we have endpoints")
+		err = exutil.WaitForEndpointsAvailable(oc, serviceName)
+	})
 
-			g.By(fmt.Sprintf("Expecting all but %v of those connections to fail", unidlingproxy.MaxHeldConnections))
-			errCount := 0
-			for _, err := range errors {
-				if err != nil {
-					errCount++
-				}
-			}
-			o.Expect(errCount).To(o.Equal(connectionsToStart - unidlingproxy.MaxHeldConnections))
+	g.It("should work with UDP", func() {
+		g.By("Idling the service")
+		// NB: the default policy does not allow normal users to create or update idlers,
+		// so we need admin here
+		_, err := oc.AsAdmin().Run("idle").Args(resources["idler.idling.openshift.io"][0]).Output()
+		o.Expect(err).ToNot(o.HaveOccurred())
 
-			g.By("Waiting until we have endpoints")
-			err = exutil.WaitForEndpointsAvailable(oc, serviceName)
+		g.By("Waiting for the pods to have terminated")
+		err = exutil.WaitForNoPodsAvailable(oc)
+		o.Expect(err).ToNot(o.HaveOccurred())
 
-			endpoints, err := oc.KubeClient().CoreV1().Endpoints(oc.Namespace()).Get(serviceName, metav1.GetOptions{})
-			o.Expect(err).ToNot(o.HaveOccurred())
+		g.By("Connecting to the service IP and checking the echo")
+		serviceName := resources["service"][0]
+		svc, err := oc.KubeClient().CoreV1().Services(oc.Namespace()).Get(serviceName, metav1.GetOptions{})
+		o.Expect(err).ToNot(o.HaveOccurred())
 
-			g.By("Making sure the endpoints are no longer marked as idled")
-			o.Expect(endpoints.Annotations).NotTo(o.HaveKey(unidlingapi.IdledAtAnnotation))
-			o.Expect(endpoints.Annotations).NotTo(o.HaveKey(unidlingapi.UnidleTargetAnnotation))
-		})
+		err = tryEchoUDP(svc)
+		o.Expect(err).ToNot(o.HaveOccurred())
 
-		g.It("should work with UDP [local]", func() {
-			g.By("Idling the service")
-			_, err := oc.Run("idle").Args("--resource-names-file", idlingFile).Output()
-			o.Expect(err).ToNot(o.HaveOccurred())
-
-			g.By("Waiting for the pods to have terminated")
-			err = exutil.WaitForNoPodsAvailable(oc)
-			o.Expect(err).ToNot(o.HaveOccurred())
-
-			g.By("Connecting to the service IP and checking the echo")
-			serviceName := resources["service"][0]
-			svc, err := oc.KubeClient().CoreV1().Services(oc.Namespace()).Get(serviceName, metav1.GetOptions{})
-			o.Expect(err).ToNot(o.HaveOccurred())
-
-			err = tryEchoUDP(svc)
-			o.Expect(err).ToNot(o.HaveOccurred())
-
-			g.By("Waiting until we have endpoints")
-			err = exutil.WaitForEndpointsAvailable(oc, serviceName)
-			o.Expect(err).ToNot(o.HaveOccurred())
-
-			endpoints, err := oc.KubeClient().CoreV1().Endpoints(oc.Namespace()).Get(serviceName, metav1.GetOptions{})
-			o.Expect(err).ToNot(o.HaveOccurred())
-
-			g.By("Making sure the endpoints are no longer marked as idled")
-			o.Expect(endpoints.Annotations).NotTo(o.HaveKey(unidlingapi.IdledAtAnnotation))
-			o.Expect(endpoints.Annotations).NotTo(o.HaveKey(unidlingapi.UnidleTargetAnnotation))
-		})
-
-		// TODO: Work out how to make this test work correctly when run on AWS
-		g.XIt("should handle many UDP senders (by continuing to drop all packets on the floor) [local]", func() {
-			g.By("Idling the service")
-			_, err := oc.Run("idle").Args("--resource-names-file", idlingFile).Output()
-			o.Expect(err).ToNot(o.HaveOccurred())
-
-			g.By("Waiting for the pods to have terminated")
-			err = exutil.WaitForNoPodsAvailable(oc)
-			o.Expect(err).ToNot(o.HaveOccurred())
-
-			g.By("Connecting to the service IP many times and checking the echo")
-			serviceName := resources["service"][0]
-			svc, err := oc.KubeClient().CoreV1().Services(oc.Namespace()).Get(serviceName, metav1.GetOptions{})
-			o.Expect(err).ToNot(o.HaveOccurred())
-
-			connectionsToStart := 100
-			errors := make([]error, connectionsToStart)
-			var connWG sync.WaitGroup
-			// spawn many connectors
-			for i := 0; i < connectionsToStart; i++ {
-				connWG.Add(1)
-				go func(ind int) {
-					defer g.GinkgoRecover()
-					defer connWG.Done()
-					err = tryEchoUDP(svc)
-					errors[ind] = err
-				}(i)
-			}
-
-			connWG.Wait()
-
-			// all of the echoers should eventually succeed
-			errCount := 0
-			for _, err := range errors {
-				if err != nil {
-					errCount++
-				}
-			}
-			o.Expect(errCount).To(o.Equal(0))
-
-			g.By("Waiting until we have endpoints")
-			err = exutil.WaitForEndpointsAvailable(oc, serviceName)
-			o.Expect(err).ToNot(o.HaveOccurred())
-
-			endpoints, err := oc.KubeClient().CoreV1().Endpoints(oc.Namespace()).Get(serviceName, metav1.GetOptions{})
-			o.Expect(err).ToNot(o.HaveOccurred())
-
-			g.By("Making sure the endpoints are no longer marked as idled")
-			o.Expect(endpoints.Annotations).NotTo(o.HaveKey(unidlingapi.IdledAtAnnotation))
-			o.Expect(endpoints.Annotations).NotTo(o.HaveKey(unidlingapi.UnidleTargetAnnotation))
-		})
+		g.By("Waiting until we have endpoints")
+		err = exutil.WaitForEndpointsAvailable(oc, serviceName)
+		o.Expect(err).ToNot(o.HaveOccurred())
 	})
 })

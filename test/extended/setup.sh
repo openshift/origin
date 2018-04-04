@@ -132,6 +132,10 @@ function os::test::extended::setup () {
 	cp "${SERVER_CONFIG_DIR}/master/master-config.yaml" "${SERVER_CONFIG_DIR}/master/master-config.orig3.yaml"
 	oc ex config patch "${SERVER_CONFIG_DIR}/master/master-config.orig3.yaml" --patch='{"kubernetesMasterConfig":{"controllerArguments":{"terminated-pod-gc-threshold":["100"], "enable-hostpath-provisioner":["true"]}}}' > "${SERVER_CONFIG_DIR}/master/master-config.yaml"
 
+	# enable the unidler proxy (for the unidler tests)
+	cp "${NODE_CONFIG_DIR}/node-config.yaml" "${NODE_CONFIG_DIR}/node-config.orig3.yaml"
+	oc ex config patch "${NODE_CONFIG_DIR}/node-config.orig3.yaml" --patch='{"unidlingConfig":{"enabled": true, "markBit": 25}}' > "${NODE_CONFIG_DIR}/node-config.yaml"
+
 	os::start::server "${API_SERVER_VERSION:-}" "${CONTROLLER_VERSION:-}" "${SKIP_NODE:-}"
 
 	export KUBECONFIG="${ADMIN_KUBECONFIG}"
@@ -141,6 +145,10 @@ function os::test::extended::setup () {
 		oc rollout status dc/docker-registry
 	fi
 	CREATE_ROUTER_CERT=true os::start::router
+
+	# install the service idler (for the idler tests)
+	os::log::info "Installing service-idler"
+	oc apply -f "${OS_ROOT}/install/service-idler/service-idler.yaml"
 
 	os::log::info "Creating image streams"
 	oc create -n openshift -f "${OS_ROOT}/examples/image-streams/image-streams-centos7.json" --config="${ADMIN_KUBECONFIG}"

@@ -54,6 +54,7 @@
 // install/origin-web-console/console-config.yaml
 // install/origin-web-console/console-template.yaml
 // install/service-catalog-broker-resources/template-service-broker-registration.yaml
+// install/service-idler/service-idler.yaml
 // install/templateservicebroker/apiserver-config.yaml
 // install/templateservicebroker/apiserver-template.yaml
 // install/templateservicebroker/rbac-template.yaml
@@ -18050,6 +18051,208 @@ func installServiceCatalogBrokerResourcesTemplateServiceBrokerRegistrationYaml()
 	return a, nil
 }
 
+var _installServiceIdlerServiceIdlerYaml = []byte(`apiVersion: v1
+kind: Namespace
+metadata:
+  creationTimestamp: null
+  labels:
+    api: openshift-idling
+  name: openshift-idling-system
+spec: {}
+status: {}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  creationTimestamp: null
+  labels:
+    api: openshift-idling
+  name: openshift-idling-role
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - endpoints
+  verbs:
+  - list
+  - watch
+  - get
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - patch
+  - create
+  - update
+- apiGroups:
+  - '*'
+  resources:
+  - '*/scale'
+  verbs:
+  - get
+  - update
+- apiGroups:
+  - idling.openshift.io
+  resources:
+  - '*'
+  verbs:
+  - '*'
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  creationTimestamp: null
+  labels:
+    api: openshift-idling
+  name: openshift-idling-rolebinding
+  namespace: openshift-idling-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: openshift-idling-role
+subjects:
+- kind: ServiceAccount
+  name: default
+  namespace: openshift-idling-system
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  creationTimestamp: null
+  labels:
+    api: openshift-idling
+  name: idlers.idling.openshift.io
+spec:
+  group: idling.openshift.io
+  names:
+    kind: Idler
+    plural: idlers
+  scope: Namespaced
+  validation:
+    openAPIV3Schema:
+      properties:
+        apiVersion:
+          type: string
+        kind:
+          type: string
+        metadata:
+          type: object
+        spec:
+          properties:
+            targetScalables:
+              items:
+                properties:
+                  group:
+                    type: string
+                  name:
+                    type: string
+                  resource:
+                    type: string
+                type: object
+              type: array
+            triggerServiceNames:
+              items:
+                type: string
+              type: array
+            wantIdle:
+              type: boolean
+          type: object
+        status:
+          properties:
+            idled:
+              type: boolean
+            inactiveServiceNames:
+              items:
+                type: string
+              type: array
+            unidledScales:
+              items:
+                properties:
+                  previousScale:
+                    type: integer
+                type: object
+              type: array
+          type: object
+      type: object
+  version: v1alpha2
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+---
+apiVersion: v1
+kind: Service
+metadata:
+  creationTimestamp: null
+  labels:
+    api: openshift-idling
+    control-plane: controller-manager
+  name: openshift-idling-controller-manager-service
+  namespace: openshift-idling-system
+spec:
+  clusterIP: None
+  selector:
+    api: openshift-idling
+    control-plane: controller-manager
+status:
+  loadBalancer: {}
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  creationTimestamp: null
+  labels:
+    api: openshift-idling
+    control-plane: controller-manager
+  name: openshift-idling-controller-manager
+  namespace: openshift-idling-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      api: openshift-idling
+      control-plane: controller-manager
+  serviceName: openshift-idling-controller-manager-service
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        api: openshift-idling
+        control-plane: controller-manager
+    spec:
+      containers:
+      - image: openshift/service-idler
+        name: controller-manager
+        resources:
+          limits:
+            cpu: 100m
+            memory: 30Mi
+          requests:
+            cpu: 100m
+            memory: 20Mi
+      terminationGracePeriodSeconds: 10
+  updateStrategy: {}
+status:
+  replicas: 0
+`)
+
+func installServiceIdlerServiceIdlerYamlBytes() ([]byte, error) {
+	return _installServiceIdlerServiceIdlerYaml, nil
+}
+
+func installServiceIdlerServiceIdlerYaml() (*asset, error) {
+	bytes, err := installServiceIdlerServiceIdlerYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "install/service-idler/service-idler.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _installTemplateservicebrokerApiserverConfigYaml = []byte(`kind: TemplateServiceBrokerConfig
 apiVersion: config.templateservicebroker.openshift.io/v1
 templateNamespaces:
@@ -18467,6 +18670,7 @@ var _bindata = map[string]func() (*asset, error){
 	"install/origin-web-console/console-config.yaml": installOriginWebConsoleConsoleConfigYaml,
 	"install/origin-web-console/console-template.yaml": installOriginWebConsoleConsoleTemplateYaml,
 	"install/service-catalog-broker-resources/template-service-broker-registration.yaml": installServiceCatalogBrokerResourcesTemplateServiceBrokerRegistrationYaml,
+	"install/service-idler/service-idler.yaml": installServiceIdlerServiceIdlerYaml,
 	"install/templateservicebroker/apiserver-config.yaml": installTemplateservicebrokerApiserverConfigYaml,
 	"install/templateservicebroker/apiserver-template.yaml": installTemplateservicebrokerApiserverTemplateYaml,
 	"install/templateservicebroker/rbac-template.yaml": installTemplateservicebrokerRbacTemplateYaml,
@@ -18609,6 +18813,9 @@ var _bintree = &bintree{nil, map[string]*bintree{
 		}},
 		"service-catalog-broker-resources": &bintree{nil, map[string]*bintree{
 			"template-service-broker-registration.yaml": &bintree{installServiceCatalogBrokerResourcesTemplateServiceBrokerRegistrationYaml, map[string]*bintree{}},
+		}},
+		"service-idler": &bintree{nil, map[string]*bintree{
+			"service-idler.yaml": &bintree{installServiceIdlerServiceIdlerYaml, map[string]*bintree{}},
 		}},
 		"templateservicebroker": &bintree{nil, map[string]*bintree{
 			"apiserver-config.yaml": &bintree{installTemplateservicebrokerApiserverConfigYaml, map[string]*bintree{}},
