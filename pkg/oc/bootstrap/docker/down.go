@@ -33,7 +33,6 @@ var (
 )
 
 type ClientStopConfig struct {
-	DockerMachine string
 }
 
 // NewCmdDown creates a command that stops OpenShift
@@ -45,17 +44,16 @@ func NewCmdDown(name, fullName string, out io.Writer) *cobra.Command {
 		Long:    cmdDownLong,
 		Example: fmt.Sprintf(cmdDownExample, fullName),
 		Run: func(c *cobra.Command, args []string) {
-			kcmdutil.CheckErr(config.Stop(out))
+			kcmdutil.CheckErr(config.Stop())
 		},
 	}
-	cmd.Flags().StringVar(&config.DockerMachine, "docker-machine", "", "Specify the Docker machine to use")
 	return cmd
 }
 
 // Stop stops the currently running origin container and any
 // containers started by the node.
-func (c *ClientStopConfig) Stop(out io.Writer) error {
-	client, err := GetDockerClient(out, c.DockerMachine, false)
+func (c *ClientStopConfig) Stop() error {
+	client, err := GetDockerClient()
 	if err != nil {
 		return err
 	}

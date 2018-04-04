@@ -159,7 +159,7 @@ func (c *ClusterAddConfig) Complete(cmd *cobra.Command) error {
 		c.BaseDir = absHostDir
 	}
 
-	client, err := docker.GetDockerClient(c.Out, "", false)
+	client, err := docker.GetDockerClient()
 	if err != nil {
 		return err
 	}

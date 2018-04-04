@@ -44,7 +44,6 @@ import (
 	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/components/web-console"
 	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/kubeapiserver"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/dockerhelper"
-	"github.com/openshift/origin/pkg/oc/bootstrap/docker/dockermachine"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/errors"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/host"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/localcmd"
@@ -79,12 +78,6 @@ var (
 		This command will attempt to use an existing connection to a Docker daemon. Before running
 		the command, ensure that you can execute docker commands successfully (i.e. 'docker ps').
 
-		Optionally, the command can create a new Docker machine for OpenShift using the VirtualBox
-		driver when the --create-machine argument is specified. The machine will be named 'openshift'
-		by default. To name the machine differently, use the --docker-machine=NAME argument. If the
-		--docker-machine=NAME argument is specified, but --create-machine is not, the command will attempt
-		to find an existing docker machine with that name and start it if it's not running.
-
 		By default, the OpenShift cluster will be setup to use a routing suffix that ends in nip.io.
 		This is to allow dynamic host names to be created for routes. An alternate routing suffix
 		can be specified using the --routing-suffix flag.
@@ -92,14 +85,8 @@ var (
 		A public hostname can also be specified for the server with the --public-hostname flag.`)
 
 	cmdUpExample = templates.Examples(`
-	  # Start OpenShift on a new docker machine named 'openshift'
-	  %[1]s --create-machine
-
 	  # Start OpenShift using a specific public host name
 	  %[1]s --public-hostname=my.address.example.com
-
-	  # Start OpenShift and preserve data and config between restarts
-	  %[1]s --host-data-dir=/mydata --use-existing-config
 
 	  # Specify which set of image streams to use
 	  %[1]s --image-streams=centos7`)
@@ -226,7 +213,6 @@ type ClusterUpConfig struct {
 }
 
 func (c *ClusterUpConfig) Bind(flags *pflag.FlagSet) {
-	flags.StringVar(&c.DockerMachine, "docker-machine", "", "Specify the Docker machine to use")
 	flags.StringVar(&c.ImageTag, "tag", "", "Specify the tag for OpenShift images")
 	flags.MarkHidden("tag")
 	flags.StringVar(&c.Image, "image", variable.DefaultImagePrefix, "Specify the images to use for OpenShift")
@@ -282,7 +268,7 @@ func (c *ClusterUpConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command, o
 	// If a Docker machine was specified, make sure that the machine is running.
 	// Otherwise, use environment variables.
 	taskPrinter.StartTask("Getting a Docker client")
-	client, err := GetDockerClient(out, c.DockerMachine, true)
+	client, err := GetDockerClient()
 	if err != nil {
 		return taskPrinter.ToError(err)
 	}
@@ -646,18 +632,9 @@ func (c *ClusterUpConfig) GetDockerClient() dockerhelper.Interface {
 	return c.dockerClient
 }
 
-// getDockerClient obtains a new Docker client from the environment or
+// GetDockerClient obtains a new Docker client from the environment or
 // from a Docker machine, starting it if necessary and permitted
-func GetDockerClient(out io.Writer, dockerMachine string, canStartDockerMachine bool) (dockerhelper.Interface, error) {
-	if len(dockerMachine) > 0 {
-		glog.V(2).Infof("Getting client for Docker machine %q", dockerMachine)
-		client, err := getDockerMachineClient(dockerMachine, out, canStartDockerMachine)
-		if err != nil {
-			return nil, errors.ErrNoDockerMachineClient(dockerMachine, err)
-		}
-		return client, nil
-	}
-
+func GetDockerClient() (dockerhelper.Interface, error) {
 	dockerTLSVerify := os.Getenv("DOCKER_TLS_VERIFY")
 	dockerCertPath := os.Getenv("DOCKER_CERT_PATH")
 	if len(dockerTLSVerify) > 0 && len(dockerCertPath) == 0 {
@@ -1105,18 +1082,6 @@ func (c *ClusterUpConfig) openshiftImage() string {
 	return fmt.Sprintf("%s:%s", c.Image, c.ImageTag)
 }
 
-func getDockerMachineClient(machine string, out io.Writer, canStart bool) (dockerhelper.Interface, error) {
-	if !dockermachine.IsRunning(machine) && canStart {
-		fmt.Fprintf(out, "Starting Docker machine '%s'\n", machine)
-		err := dockermachine.Start(machine)
-		if err != nil {
-			return nil, errors.NewError("cannot start Docker machine %q", machine).WithCause(err)
-		}
-		fmt.Fprintf(out, "Started Docker machine '%s'\n", machine)
-	}
-	return dockermachine.Client(machine)
-}
-
 func (c *ClusterUpConfig) determineAdditionalIPs(ip string) ([]string, error) {
 	additionalIPs := sets.NewString()
 	serverIPs, err := c.OpenShiftHelper().OtherIPs(ip)
@@ -1162,18 +1127,6 @@ func (c *ClusterUpConfig) determineIP(out io.Writer) (string, error) {
 	if ip := net.ParseIP(c.PublicHostname); ip != nil && !ip.IsUnspecified() {
 		fmt.Fprintf(out, "Using public hostname IP %s as the host IP\n", ip)
 		return ip.String(), nil
-	}
-
-	if len(c.DockerMachine) > 0 {
-		// If a docker machine is specified, port forwarding will not be used
-		c.PortForwarding = false
-		glog.V(2).Infof("Using docker machine %q to determine server IP", c.DockerMachine)
-		ip, err := dockermachine.IP(c.DockerMachine)
-		if err != nil {
-			return "", errors.NewError("could not determine IP address").WithCause(err).WithSolution("Ensure that docker-machine is functional.")
-		}
-		fmt.Fprintf(out, "Using docker-machine IP %s as the host IP\n", ip)
-		return ip, nil
 	}
 
 	// If using port-forwarding, use the default loopback address
