@@ -1813,14 +1813,14 @@ items:
     source:
       type: Git
       git:
-        uri: https://github.com/openshift/jenkins-openshift-login-plugin.git
-        ref: refs/pull/1/head
+        uri: https://github.com/sclorg/django-ex.git
+        ref: refs/pull/121/head
     strategy:
       type: Source
       sourceStrategy:
         from:
           kind: ImageStreamTag
-          name: wildfly:latest
+          name: python:latest
           namespace: openshift
     output:
       to:
@@ -1834,15 +1834,15 @@ items:
     source:
       type: Git
       git:
-        uri: https://github.com/openshift/jenkins-openshift-login-plugin.git
-        ref: refs/pull/1/head
-      dockerfile: FROM centos/ruby-22-centos7
+        uri: https://github.com/sclorg/django-ex.git
+        ref: refs/pull/121/head
+      dockerfile: FROM centos/python-36-centos7
     strategy:
       type: Docker
       dockerStrategy:
         from:
           kind: DockerImage
-          name: centos/ruby-22-centos7
+          name: centos/python-36-centos7
     output:
       to:
         kind: ImageStreamTag
