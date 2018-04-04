@@ -90,7 +90,7 @@ func getConfigFromContainer(client dockerhelper.Interface) (*config.MasterConfig
 
 // Status prints the OpenShift cluster status
 func (c *ClientStatusConfig) Status(f *clientcmd.Factory, out io.Writer) error {
-	dockerClient, err := getDockerClient(out, c.DockerMachine, false)
+	dockerClient, err := GetDockerClient(out, c.DockerMachine, false)
 	if err != nil {
 		return errors.ErrNoDockerClient(err)
 	}

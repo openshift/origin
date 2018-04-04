@@ -16,6 +16,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	"github.com/openshift/origin/pkg/oc/bootstrap"
 	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/componentinstall"
+	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/components/register-template-service-broker"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/errors"
 )
@@ -26,10 +27,10 @@ const (
 )
 
 type ServiceCatalogComponentOptions struct {
-	OCImage         string
-	MasterConfigDir string
-	ImageFormat     string
-	PublicMasterURL string
+	OCImage              string
+	MasterConfigDir      string
+	ImageFormat          string
+	PublicMasterHostName string
 }
 
 func (c *ServiceCatalogComponentOptions) Name() string {
@@ -74,7 +75,7 @@ func (c *ServiceCatalogComponentOptions) Install(dockerClient dockerhelper.Inter
 
 	params := map[string]string{
 		"SERVICE_CATALOG_SERVICE_IP": ServiceCatalogServiceIP,
-		"CORS_ALLOWED_ORIGIN":        c.PublicMasterURL,
+		"CORS_ALLOWED_ORIGIN":        c.PublicMasterHostName,
 		"SERVICE_CATALOG_IMAGE":      imageTemplate.ExpandOrDie("service-catalog"),
 	}
 
@@ -99,10 +100,18 @@ func (c *ServiceCatalogComponentOptions) Install(dockerClient dockerhelper.Inter
 		},
 	}
 
-	return component.MakeReady(
+	err = component.MakeReady(
 		c.OCImage,
 		clusterAdminKubeConfigBytes,
 		params).Install(dockerClient, logdir)
+
+	if err != nil {
+		return err
+	}
+
+	// the template service broker may not be here, but as a best effort try to register
+	register_template_service_broker.RegisterTemplateServiceBroker(dockerClient, c.OCImage, clusterAdminKubeConfigBytes, c.MasterConfigDir, logdir)
+	return nil
 }
 
 // TODO move to template

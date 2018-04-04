@@ -17,11 +17,6 @@ import (
 	cliconfig "github.com/docker/docker/cli/config"
 	dockerclient "github.com/docker/docker/client"
 	"github.com/golang/glog"
-	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/components/router"
-	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/components/service-catalog"
-	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/components/template-service-broker"
-	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/components/web-console"
-	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/kubeapiserver"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"golang.org/x/net/context"
@@ -44,6 +39,10 @@ import (
 	"github.com/openshift/origin/pkg/oc/bootstrap"
 	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/componentinstall"
 	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/components/registry"
+	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/components/router"
+	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/components/service-catalog"
+	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/components/web-console"
+	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/kubeapiserver"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/dockermachine"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/errors"
@@ -135,13 +134,17 @@ var (
 )
 
 // NewCmdUp creates a command that starts OpenShift on Docker with reasonable defaults
-func NewCmdUp(name, fullName string, f *osclientcmd.Factory, out, errout io.Writer) *cobra.Command {
+func NewCmdUp(name, fullName string, f *osclientcmd.Factory, out, errout io.Writer, clusterAdd *cobra.Command) *cobra.Command {
 	config := &ClusterUpConfig{
 		Out:                 out,
 		UsePorts:            openshift.BasePorts,
 		PortForwarding:      defaultPortForwarding(),
 		DNSPort:             openshift.DefaultDNSPort,
 		checkAlternatePorts: true,
+
+		// We pass cluster add as a command to prevent anyone from ever cheating with their wiring. You either work from flags or
+		// or you don't work.  You cannot add glue of any sort.
+		ClusterAdd: clusterAdd,
 	}
 	cmd := &cobra.Command{
 		Use:     name,
@@ -163,27 +166,29 @@ func NewCmdUp(name, fullName string, f *osclientcmd.Factory, out, errout io.Writ
 }
 
 type ClusterUpConfig struct {
-	Image                       string
-	ImageTag                    string
-	ImageStreams                string
-	DockerMachine               string
-	SkipRegistryCheck           bool
-	ShouldInstallMetrics        bool
-	ShouldInstallLogging        bool
-	ShouldInstallServiceCatalog bool
-	PortForwarding              bool
+	Image                string
+	ImageTag             string
+	ImageStreams         string
+	DockerMachine        string
+	SkipRegistryCheck    bool
+	ShouldInstallMetrics bool
+	ShouldInstallLogging bool
+	PortForwarding       bool
+	ClusterAdd           *cobra.Command
 
 	Out io.Writer
 
 	// BaseTempDir is the directory to use as the root for temp directories
 	// This allows us to bundle all of the cluster-up directories in one spot for easier cleanup and ensures we aren't
 	// doing crazy thing like dirtying /var on the host (that does weird stuff)
-	BaseDir                  string
-	SpecifiedBaseDir         bool
-	HostName                 string
-	UseExistingConfig        bool
-	Environment              []string
-	ServerLogLevel           int
+	BaseDir           string
+	SpecifiedBaseDir  bool
+	HostName          string
+	UseExistingConfig bool
+	Environment       []string
+	ServerLogLevel    int
+	AddComponents     []string
+
 	HostVolumesDir           string
 	HostConfigDir            string
 	WriteConfig              bool
@@ -237,7 +242,7 @@ func (c *ClusterUpConfig) Bind(flags *pflag.FlagSet) {
 	flags.StringArrayVarP(&c.Environment, "env", "e", c.Environment, "Specify a key-value pair for an environment variable to set on OpenShift container")
 	flags.BoolVar(&c.ShouldInstallMetrics, "metrics", false, "Install metrics (experimental)")
 	flags.BoolVar(&c.ShouldInstallLogging, "logging", false, "Install logging (experimental)")
-	flags.BoolVar(&c.ShouldInstallServiceCatalog, "service-catalog", false, "Install service catalog (experimental).")
+	flags.StringArrayVar(&c.AddComponents, "enable", c.AddComponents, "Install additional components.")
 	flags.StringVar(&c.HTTPProxy, "http-proxy", "", "HTTP proxy to use for master and builds")
 	flags.StringVar(&c.HTTPSProxy, "https-proxy", "", "HTTPS proxy to use for master and builds")
 	flags.StringArrayVar(&c.NoProxy, "no-proxy", c.NoProxy, "List of hosts or subnets for which a proxy should not be used")
@@ -271,13 +276,13 @@ func (c *ClusterUpConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command, o
 	}
 	// do some struct initialization next
 	// used for some pretty printing
-	taskPrinter := NewTaskPrinter(getDetailedOut(out))
+	taskPrinter := NewTaskPrinter(GetDetailedOut(out))
 
 	// Get a Docker client.
 	// If a Docker machine was specified, make sure that the machine is running.
 	// Otherwise, use environment variables.
 	taskPrinter.StartTask("Getting a Docker client")
-	client, err := getDockerClient(out, c.DockerMachine, true)
+	client, err := GetDockerClient(out, c.DockerMachine, true)
 	if err != nil {
 		return taskPrinter.ToError(err)
 	}
@@ -384,7 +389,7 @@ func (c *ClusterUpConfig) Validate(errout io.Writer) error {
 // Complete and into Check.
 func (c *ClusterUpConfig) Check(out io.Writer) error {
 	// used for some pretty printing
-	taskPrinter := NewTaskPrinter(getDetailedOut(out))
+	taskPrinter := NewTaskPrinter(GetDetailedOut(out))
 
 	// Check for an OpenShift container. If one exists and is running, exit.
 	// If one exists but not running, delete it.
@@ -450,7 +455,7 @@ func (c *ClusterUpConfig) Check(out io.Writer) error {
 	return nil
 }
 
-func getDetailedOut(out io.Writer) io.Writer {
+func GetDetailedOut(out io.Writer) io.Writer {
 	// When loglevel > 0, just use stdout to write all messages
 	if glog.V(1) {
 		return out
@@ -479,7 +484,7 @@ func (c *ClusterUpConfig) Start(out io.Writer) error {
 		return err
 	}
 
-	detailedOut := getDetailedOut(out)
+	detailedOut := GetDetailedOut(out)
 	taskPrinter := NewTaskPrinter(detailedOut)
 
 	if !c.ShouldInitializeData() {
@@ -528,27 +533,24 @@ func (c *ClusterUpConfig) Start(out io.Writer) error {
 	componentsToInstall = append(componentsToInstall, c.ImportInitialObjectsComponents(c.Out)...)
 	componentsToInstall = append(componentsToInstall, registryInstall, webConsoleInstall, routerInstall)
 
-	if c.ShouldInstallServiceCatalog {
-		serviceCatalogInstall := &service_catalog.ServiceCatalogComponentOptions{
-			OCImage:         c.openshiftImage(),
-			MasterConfigDir: path.Join(c.GetKubeAPIServerConfigDir()),
-			ImageFormat:     c.imageFormat(),
-			PublicMasterURL: c.GetPublicHostName(),
-		}
-		componentsToInstall = append(componentsToInstall, serviceCatalogInstall)
-		tsbInstall := &template_service_broker.TemplateServiceBrokerComponentOptions{
-			OCImage:         c.openshiftImage(),
-			MasterConfigDir: path.Join(c.GetKubeAPIServerConfigDir()),
-			ImageFormat:     c.imageFormat(),
-			PublicMasterURL: c.GetPublicHostName(),
-			ServerLogLevel:  c.ServerLogLevel,
-		}
-		componentsToInstall = append(componentsToInstall, tsbInstall)
-	}
-
 	err := componentinstall.InstallComponents(componentsToInstall, c.GetDockerClient(), c.GetLogDir())
 	if err != nil {
 		return err
+	}
+
+	if len(c.AddComponents) > 0 {
+		args := append([]string{}, "--image="+c.Image)
+		args = append(args, "--tag="+c.ImageTag)
+		args = append(args, "--base-dir="+c.BaseDir)
+		args = append(args, c.AddComponents...)
+
+		if err := c.ClusterAdd.ParseFlags(args); err != nil {
+			return err
+		}
+		glog.V(2).Infof("oc cluster add %v", args)
+		if err := c.ClusterAdd.RunE(c.ClusterAdd, args); err != nil {
+			return err
+		}
 	}
 
 	// Install metrics
@@ -564,15 +566,6 @@ func (c *ClusterUpConfig) Start(out io.Writer) error {
 	if c.ShouldInstallLogging {
 		taskPrinter.StartTask("Installing logging")
 		if err := c.InstallLogging(out); err != nil {
-			return taskPrinter.ToError(err)
-		}
-		taskPrinter.Success()
-	}
-
-	// Register the TSB w/ the SC if requested.
-	if c.ShouldInstallServiceCatalog {
-		taskPrinter.StartTask("Registering template service broker with service catalog")
-		if err := c.RegisterTemplateServiceBroker(out); err != nil {
 			return taskPrinter.ToError(err)
 		}
 		taskPrinter.Success()
@@ -655,7 +648,7 @@ func (c *ClusterUpConfig) GetDockerClient() dockerhelper.Interface {
 
 // getDockerClient obtains a new Docker client from the environment or
 // from a Docker machine, starting it if necessary and permitted
-func getDockerClient(out io.Writer, dockerMachine string, canStartDockerMachine bool) (dockerhelper.Interface, error) {
+func GetDockerClient(out io.Writer, dockerMachine string, canStartDockerMachine bool) (dockerhelper.Interface, error) {
 	if len(dockerMachine) > 0 {
 		glog.V(2).Infof("Getting client for Docker machine %q", dockerMachine)
 		client, err := getDockerMachineClient(dockerMachine, out, canStartDockerMachine)
