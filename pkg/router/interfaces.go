@@ -6,6 +6,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
+	idling "github.com/openshift/service-idler/pkg/apis/idling/v1alpha2"
 )
 
 // Plugin is the interface the router controller dispatches watch events
@@ -16,5 +17,6 @@ type Plugin interface {
 	// If sent, filter the list of accepted routes and endpoints to this set
 	HandleNamespaces(namespaces sets.String) error
 	HandleNode(watch.EventType, *kapi.Node) error
+	HandleIdler(watch.EventType, *idling.Idler) error
 	Commit() error
 }

@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/golang/glog"
+	idling "github.com/openshift/service-idler/pkg/apis/idling/v1alpha2"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/watch"
@@ -78,6 +79,10 @@ func (p *UniqueHost) HandleEndpoints(eventType watch.EventType, endpoints *kapi.
 // HandleNode processes watch events on the Node resource and calls the router
 func (p *UniqueHost) HandleNode(eventType watch.EventType, node *kapi.Node) error {
 	return p.plugin.HandleNode(eventType, node)
+}
+
+func (a *UniqueHost) HandleIdler(eventType watch.EventType, idler *idling.Idler) error {
+	return a.plugin.HandleIdler(eventType, idler)
 }
 
 // HandleRoute processes watch events on the Route resource.

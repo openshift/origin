@@ -8,23 +8,17 @@ import (
 
 	"github.com/golang/glog"
 
-	"k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
+	idling "github.com/openshift/service-idler/pkg/apis/idling/v1alpha2"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
-	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
 	kcache "k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
-	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset/typed/project/internalversion"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
-	routeclientset "github.com/openshift/origin/pkg/route/generated/internalclientset"
 	"github.com/openshift/origin/pkg/router"
 	routercontroller "github.com/openshift/origin/pkg/router/controller"
-	informerfactory "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 )
 
 const (
@@ -35,40 +29,23 @@ const (
 // controller. It supports optional scoping on Namespace, Labels, and Fields of routes.
 // If Namespace is empty, it means "all namespaces".
 type RouterControllerFactory struct {
-	KClient       kclientset.Interface
-	RClient       routeclientset.Interface
-	ProjectClient projectclient.ProjectResourceInterface
-
-	ResyncInterval  time.Duration
-	Namespace       string
-	LabelSelector   string
-	FieldSelector   string
-	NamespaceLabels labels.Selector
-	ProjectLabels   labels.Selector
-	RouteModifierFn func(route *routeapi.Route)
-
-	informers map[reflect.Type]kcache.SharedIndexInformer
+	*RouterInformerFactory
 }
 
-// NewDefaultRouterControllerFactory initializes a default router controller factory.
-func NewDefaultRouterControllerFactory(rc routeclientset.Interface, pc projectclient.ProjectResourceInterface, kc kclientset.Interface) *RouterControllerFactory {
+// NewRouterControllerFactory initializes a router controller factory.
+func NewRouterControllerFactory(informerFactory *RouterInformerFactory) *RouterControllerFactory {
 	return &RouterControllerFactory{
-		KClient:        kc,
-		RClient:        rc,
-		ProjectClient:  pc,
-		ResyncInterval: DefaultResyncInterval,
-
-		Namespace: v1.NamespaceAll,
-		informers: map[reflect.Type]kcache.SharedIndexInformer{},
+		RouterInformerFactory: informerFactory,
 	}
 }
 
 // Create begins listing and watching against the API server for the desired route and endpoint
 // resources. It spawns child goroutines that cannot be terminated.
-func (f *RouterControllerFactory) Create(plugin router.Plugin, watchNodes bool) *routercontroller.RouterController {
+func (f *RouterControllerFactory) Create(plugin router.Plugin, watchNodes, enableUnidling bool) *routercontroller.RouterController {
 	rc := &routercontroller.RouterController{
-		Plugin:     plugin,
-		WatchNodes: watchNodes,
+		Plugin:         plugin,
+		WatchNodes:     watchNodes,
+		EnableUnidling: enableUnidling,
 
 		NamespaceLabels:        f.NamespaceLabels,
 		FilteredNamespaceNames: make(sets.String),
@@ -97,25 +74,20 @@ func (f *RouterControllerFactory) Create(plugin router.Plugin, watchNodes bool) 
 
 func (f *RouterControllerFactory) initInformers(rc *routercontroller.RouterController) {
 	if f.NamespaceLabels != nil {
-		f.createNamespacesSharedInformer()
+		f.InformerFor(&kapi.Namespace{})
 	}
-	f.createEndpointsSharedInformer()
-	f.CreateRoutesSharedInformer()
+	f.InformerFor(&routeapi.Route{})
+	f.InformerFor(&kapi.Endpoints{})
+	f.InformerFor(&routeapi.Route{})
 
 	if rc.WatchNodes {
-		f.createNodesSharedInformer()
+		f.InformerFor(&kapi.Node{})
+	}
+	if rc.EnableUnidling {
+		f.InformerFor(&idling.Idler{})
 	}
 
-	// Start informers
-	for _, informer := range f.informers {
-		go informer.Run(utilwait.NeverStop)
-	}
-	// Wait for informers cache to be synced
-	for objType, informer := range f.informers {
-		if !kcache.WaitForCacheSync(utilwait.NeverStop, informer.HasSynced) {
-			utilruntime.HandleError(fmt.Errorf("failed to sync cache for %+v shared informer", objType))
-		}
-	}
+	f.RouterInformerFactory.Run()
 }
 
 func (f *RouterControllerFactory) registerInformerEventHandlers(rc *routercontroller.RouterController) {
@@ -128,6 +100,9 @@ func (f *RouterControllerFactory) registerInformerEventHandlers(rc *routercontro
 
 	if rc.WatchNodes {
 		f.registerSharedInformerEventHandlers(&kapi.Node{}, rc.HandleNode)
+	}
+	if rc.EnableUnidling {
+		f.registerSharedInformerEventHandlers(&idling.Idler{}, rc.HandleIdler)
 	}
 }
 
@@ -184,104 +159,10 @@ func (f *RouterControllerFactory) processExistingItems(rc *routercontroller.Rout
 	}
 }
 
-func (f *RouterControllerFactory) setSelectors(options *v1.ListOptions) {
-	options.LabelSelector = f.LabelSelector
-	options.FieldSelector = f.FieldSelector
-}
-
-func (f *RouterControllerFactory) createEndpointsSharedInformer() {
-	// we do not scope endpoints by labels or fields because the route labels != endpoints labels
-	lw := &kcache.ListWatch{
-		ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
-			return f.KClient.Core().Endpoints(f.Namespace).List(options)
-		},
-		WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
-			return f.KClient.Core().Endpoints(f.Namespace).Watch(options)
-		},
-	}
-	ep := &kapi.Endpoints{}
-	objType := reflect.TypeOf(ep)
-	indexers := kcache.Indexers{kcache.NamespaceIndex: kcache.MetaNamespaceIndexFunc}
-	informer := kcache.NewSharedIndexInformer(lw, ep, f.ResyncInterval, indexers)
-	f.informers[objType] = informer
-}
-
-func (f *RouterControllerFactory) CreateRoutesSharedInformer() kcache.SharedIndexInformer {
-	rt := &routeapi.Route{}
-	objType := reflect.TypeOf(rt)
-	if informer, ok := f.informers[objType]; ok {
-		return informer
-	}
-
-	lw := &kcache.ListWatch{
-		ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
-			f.setSelectors(&options)
-			routeList, err := f.RClient.Route().Routes(f.Namespace).List(options)
-			if err != nil {
-				return nil, err
-			}
-			if f.RouteModifierFn != nil {
-				for i := range routeList.Items {
-					f.RouteModifierFn(&routeList.Items[i])
-				}
-			}
-			// Return routes in order of age to avoid rejections during resync
-			sort.Sort(routeAge(routeList.Items))
-			return routeList, nil
-		},
-		WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
-			f.setSelectors(&options)
-			w, err := f.RClient.Route().Routes(f.Namespace).Watch(options)
-			if err != nil {
-				return nil, err
-			}
-			if f.RouteModifierFn != nil {
-				w = watch.Filter(w, func(in watch.Event) (watch.Event, bool) {
-					if route, ok := in.Object.(*routeapi.Route); ok {
-						f.RouteModifierFn(route)
-					}
-					return in, true
-				})
-			}
-			return w, nil
-		},
-	}
-	indexers := kcache.Indexers{kcache.NamespaceIndex: kcache.MetaNamespaceIndexFunc}
-	informer := kcache.NewSharedIndexInformer(lw, rt, f.ResyncInterval, indexers)
-	f.informers[objType] = informer
-	return informer
-}
-
-func (f *RouterControllerFactory) createNodesSharedInformer() {
-	// Use stock node informer as we don't need namespace/labels/fields filtering on nodes
-	ifactory := informerfactory.NewSharedInformerFactory(f.KClient, f.ResyncInterval)
-	informer := ifactory.Core().InternalVersion().Nodes().Informer()
-	objType := reflect.TypeOf(&kapi.Node{})
-	f.informers[objType] = informer
-}
-
-func (f *RouterControllerFactory) createNamespacesSharedInformer() {
-	lw := &kcache.ListWatch{
-		ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
-			options.LabelSelector = f.NamespaceLabels.String()
-			return f.KClient.Core().Namespaces().List(options)
-		},
-		WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
-			options.LabelSelector = f.NamespaceLabels.String()
-			return f.KClient.Core().Namespaces().Watch(options)
-		},
-	}
-	ns := &kapi.Namespace{}
-	objType := reflect.TypeOf(ns)
-	indexers := kcache.Indexers{kcache.NamespaceIndex: kcache.MetaNamespaceIndexFunc}
-	informer := kcache.NewSharedIndexInformer(lw, ns, f.ResyncInterval, indexers)
-	f.informers[objType] = informer
-}
-
 func (f *RouterControllerFactory) registerSharedInformerEventHandlers(obj runtime.Object,
 	handleFunc func(watch.EventType, interface{})) {
+	informer, ok := f.StrictInformerFor(obj)
 	objType := reflect.TypeOf(obj)
-	informer, ok := f.informers[objType]
 	if !ok {
 		utilruntime.HandleError(fmt.Errorf("register event handler failed: %+v shared informer not found", objType))
 		return

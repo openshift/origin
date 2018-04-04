@@ -7,6 +7,7 @@ import (
 
 	"github.com/golang/glog"
 
+	idling "github.com/openshift/service-idler/pkg/apis/idling/v1alpha2"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -43,6 +44,8 @@ type RouterController struct {
 	ProjectRetries      int
 
 	WatchNodes bool
+
+	EnableUnidling bool
 }
 
 // Run begins watching and syncing.
@@ -223,6 +226,16 @@ func (c *RouterController) HandleEndpoints(eventType watch.EventType, obj interf
 	c.Commit()
 }
 
+func (c *RouterController) HandleIdler(eventType watch.EventType, obj interface{}) {
+	idler := obj.(*idling.Idler)
+
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	c.processIdler(eventType, idler)
+	c.Commit()
+}
+
 // Commit notifies the plugin that it is safe to commit state.
 func (c *RouterController) Commit() {
 	if c.firstSyncDone {
@@ -243,6 +256,15 @@ func (c *RouterController) processRoute(eventType watch.EventType, route *routea
 
 	c.RecordNamespaceRoutes(eventType, route)
 	if err := c.Plugin.HandleRoute(eventType, route); err != nil {
+		utilruntime.HandleError(err)
+	}
+}
+
+func (c *RouterController) processIdler(eventType watch.EventType, idler *idling.Idler) {
+	glog.V(4).Infof("Processing Idler: %s/%s (idled: %v)", idler.Namespace, idler.Name, idler.Status.Idled)
+	glog.V(4).Infof("           Services: %v", idler.Spec.TriggerServiceNames)
+
+	if err := c.Plugin.HandleIdler(eventType, idler); err != nil {
 		utilruntime.HandleError(err)
 	}
 }

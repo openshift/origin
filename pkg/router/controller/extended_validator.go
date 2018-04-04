@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/golang/glog"
+	idling "github.com/openshift/service-idler/pkg/apis/idling/v1alpha2"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
@@ -41,6 +42,10 @@ func (p *ExtendedValidator) HandleNode(eventType watch.EventType, node *kapi.Nod
 // HandleEndpoints processes watch events on the Endpoints resource.
 func (p *ExtendedValidator) HandleEndpoints(eventType watch.EventType, endpoints *kapi.Endpoints) error {
 	return p.plugin.HandleEndpoints(eventType, endpoints)
+}
+
+func (a *ExtendedValidator) HandleIdler(eventType watch.EventType, idler *idling.Idler) error {
+	return a.plugin.HandleIdler(eventType, idler)
 }
 
 // HandleRoute processes watch events on the Route resource.

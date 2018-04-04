@@ -6,6 +6,7 @@ import (
 
 	"github.com/golang/glog"
 
+	idling "github.com/openshift/service-idler/pkg/apis/idling/v1alpha2"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -92,6 +93,10 @@ func (a *StatusAdmitter) HandleNode(eventType watch.EventType, node *kapi.Node) 
 
 func (a *StatusAdmitter) HandleEndpoints(eventType watch.EventType, route *kapi.Endpoints) error {
 	return a.plugin.HandleEndpoints(eventType, route)
+}
+
+func (a *StatusAdmitter) HandleIdler(eventType watch.EventType, idler *idling.Idler) error {
+	return a.plugin.HandleIdler(eventType, idler)
 }
 
 func (a *StatusAdmitter) HandleNamespaces(namespaces sets.String) error {

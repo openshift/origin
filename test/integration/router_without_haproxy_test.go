@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	idling "github.com/openshift/service-idler/pkg/apis/idling/v1alpha2"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -60,7 +61,7 @@ func TestRouterNamespaceSync(t *testing.T) {
 		NamespaceLabels: selector,
 		ResyncInterval:  2 * time.Second,
 	}
-	templatePlugin := launchRouter(routeclient, projectclient, kc, routerSelection)
+	templatePlugin := launchRouter(t, routeclient, projectclient, kc, routerSelection)
 
 	// Wait until the router has completed initial sync
 	err = wait.PollImmediate(waitInterval, wait.ForeverTestTimeout, func() (bool, error) {
@@ -359,6 +360,11 @@ func (p *DelayPlugin) HandleNamespaces(namespaces sets.String) error {
 	return p.plugin.HandleNamespaces(namespaces)
 }
 
+func (p *DelayPlugin) HandleIdler(eventType watch.EventType, idler *idling.Idler) error {
+	p.delay()
+	return p.plugin.HandleIdler(eventType, idler)
+}
+
 func (p *DelayPlugin) Commit() error {
 	return p.plugin.Commit()
 }
@@ -373,16 +379,21 @@ func launchRateLimitedRouter(t *testing.T, routeclient routeinternalclientset.In
 		return nil
 	}
 
-	factory := controllerfactory.NewDefaultRouterControllerFactory(routeclient, projectclient.Project().Projects(), kc)
+	informerFactory := controllerfactory.NewDefaultRouterInformerFactory(routeclient, projectclient.Project().Projects(), kc, nil)
+	factory := controllerfactory.NewRouterControllerFactory(informerFactory)
 
 	var plugin router.Plugin
-	templatePlugin, plugin := initializeRouterPlugins(routeclient, projectclient, factory.CreateRoutesSharedInformer(), name, reloadInterval, rateLimitingFunc)
+	routerInformer, available := informerFactory.InformerFor(&routeapi.Route{})
+	if !available {
+		t.Fatalf("unable to fetch Route informer")
+	}
+	templatePlugin, plugin := initializeRouterPlugins(routeclient, projectclient, routerInformer, name, reloadInterval, rateLimitingFunc)
 
 	if maxDelay > 0 {
 		plugin = NewDelayPlugin(plugin, maxDelay)
 	}
 
-	ctrl := factory.Create(plugin, false)
+	ctrl := factory.Create(plugin, false, false)
 	ctrl.Run()
 
 	return templatePlugin
@@ -402,7 +413,10 @@ func initializeRouterPlugins(routeclient routeinternalclientset.Interface, proje
 	go tracker.Run(wait.NeverStop)
 	lease := writerlease.New(time.Minute, 3*time.Second)
 	go lease.Run(wait.NeverStop)
-	templatePlugin := &templateplugin.TemplatePlugin{Router: r}
+	templatePlugin := &templateplugin.TemplatePlugin{
+		Router:      r,
+		IdlingCache: templateplugin.NewNoOpIdlingCache(),
+	}
 	statusPlugin := controller.NewStatusAdmitter(templatePlugin, routeclient.Route(), routeLister, name, "", lease, tracker)
 	validationPlugin := controller.NewExtendedValidator(statusPlugin, controller.RejectionRecorder(statusPlugin))
 	uniquePlugin := controller.NewUniqueHost(validationPlugin, false, controller.RejectionRecorder(statusPlugin))
@@ -412,12 +426,18 @@ func initializeRouterPlugins(routeclient routeinternalclientset.Interface, proje
 
 // launchRouter launches a template router that communicates with the
 // api via the provided clients.
-func launchRouter(routeclient routeinternalclientset.Interface, projectclient projectinternalclientset.Interface, kc kclientset.Interface, routerSelection infrarouter.RouterSelection) *templateplugin.TemplatePlugin {
-	factory := routerSelection.NewFactory(routeclient, projectclient.Project().Projects(), kc)
-	templatePlugin, plugin := initializeRouterPlugins(routeclient, projectclient, factory.CreateRoutesSharedInformer(), "test-router", 0, func() error {
+func launchRouter(t *testing.T, routeclient routeinternalclientset.Interface, projectclient projectinternalclientset.Interface, kc kclientset.Interface, routerSelection infrarouter.RouterSelection) *templateplugin.TemplatePlugin {
+	informerFactory := routerSelection.NewInformerFactory(routeclient, projectclient.Project().Projects(), kc, nil)
+	routerInformer, available := informerFactory.InformerFor(&routeapi.Route{})
+	if !available {
+		t.Fatalf("unable to fetch Route informer")
+	}
+
+	templatePlugin, plugin := initializeRouterPlugins(routeclient, projectclient, routerInformer, "test-router", 0, func() error {
 		return nil
 	})
-	ctrl := factory.Create(plugin, false)
+	factory := controllerfactory.NewRouterControllerFactory(informerFactory)
+	ctrl := factory.Create(plugin, false, false)
 	ctrl.Run()
 
 	return templatePlugin

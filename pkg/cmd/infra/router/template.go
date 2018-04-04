@@ -15,6 +15,8 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
+	idling "github.com/openshift/service-idler/pkg/apis/idling/v1alpha2"
+	idlerclient "github.com/openshift/service-idler/pkg/client/clientset/versioned"
 	ktypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -24,17 +26,22 @@ import (
 	"k8s.io/apiserver/pkg/server/healthz"
 	authenticationclient "k8s.io/client-go/kubernetes/typed/authentication/v1beta1"
 	authorizationclient "k8s.io/client-go/kubernetes/typed/authorization/v1beta1"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
+	kcorelisters "k8s.io/kubernetes/pkg/client/listers/core/internalversion"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/library-go/pkg/crypto"
 	"github.com/openshift/origin/pkg/cmd/util"
 	cmdversion "github.com/openshift/origin/pkg/cmd/version"
+	idlingutil "github.com/openshift/origin/pkg/idling"
 	projectinternalclientset "github.com/openshift/origin/pkg/project/generated/internalclientset"
+	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	routeinternalclientset "github.com/openshift/origin/pkg/route/generated/internalclientset"
 	routelisters "github.com/openshift/origin/pkg/route/generated/listers/route/internalversion"
 	"github.com/openshift/origin/pkg/router"
 	"github.com/openshift/origin/pkg/router/controller"
+	controllerfactory "github.com/openshift/origin/pkg/router/controller/factory"
 	"github.com/openshift/origin/pkg/router/metrics"
 	"github.com/openshift/origin/pkg/router/metrics/haproxy"
 	templateplugin "github.com/openshift/origin/pkg/router/template"
@@ -85,6 +92,7 @@ type TemplateRouter struct {
 	Ciphers                  string
 	StrictSNI                bool
 	MetricsType              string
+	EnableUnidling           bool
 }
 
 // isTrue here has the same logic as the function within package pkg/router/template
@@ -119,6 +127,7 @@ func (o *TemplateRouter) Bind(flag *pflag.FlagSet) {
 	flag.StringVar(&o.Ciphers, "ciphers", util.Env("ROUTER_CIPHERS", ""), "Specifies the cipher suites to use. You can choose a predefined cipher set ('modern', 'intermediate', or 'old') or specify exact cipher suites by passing a : separated list.")
 	flag.BoolVar(&o.StrictSNI, "strict-sni", isTrue(util.Env("ROUTER_STRICT_SNI", "")), "Use strict-sni bind processing (do not use default cert).")
 	flag.StringVar(&o.MetricsType, "metrics-type", util.Env("ROUTER_METRICS_TYPE", ""), "Specifies the type of metrics to gather. Supports 'haproxy'.")
+	flag.BoolVar(&o.EnableUnidling, "enable-unidling", isTrue(util.Env("ENABLE_UNIDLING", "")), "Whether or not to enable support for interacting with the idling API to properly wake up idled services.")
 }
 
 type RouterStats struct {
@@ -422,23 +431,54 @@ func (o *TemplateRouterOptions) Run() error {
 	if err != nil {
 		return err
 	}
+	idlerClient, err := idlerclient.NewForConfig(config)
+	if err != nil {
+		return err
+	}
 
-	svcFetcher := templateplugin.NewListWatchServiceLookup(kc.Core(), o.ResyncInterval, o.Namespace)
-	templatePlugin, err := templateplugin.NewTemplatePlugin(pluginCfg, svcFetcher)
+	informerFactory := o.RouterSelection.NewInformerFactory(routeclient, projectclient.Project().Projects(), kc, idlerClient.IdlingV1alpha2())
+	informerFactory.RouteModifierFn = o.RouteUpdate
+
+	idlingCache := templateplugin.NewNoOpIdlingCache()
+	if o.EnableUnidling {
+		idlerInformer, ok := informerFactory.InformerFor(&idling.Idler{})
+		if !ok {
+			return fmt.Errorf("no informer for idlers found")
+		}
+		idlerLookup, err := idlingutil.NewIdlerServiceLookup(idlerInformer)
+		if err != nil {
+			return err
+		}
+
+		epInformer, ok := informerFactory.InformerFor(&kapi.Endpoints{})
+		if !ok {
+			return fmt.Errorf("no informer for endpoints found")
+		}
+		svcInformer, ok := informerFactory.InformerFor(&kapi.Service{})
+		if !ok {
+			return fmt.Errorf("no informer for services found")
+		}
+
+		idlingCache = templateplugin.NewIdlingCache(
+			kcorelisters.NewServiceLister(svcInformer.GetIndexer()),
+			kcorelisters.NewEndpointsLister(epInformer.GetIndexer()),
+			idlerLookup)
+	}
+	templatePlugin, err := templateplugin.NewTemplatePlugin(pluginCfg, idlingCache)
 	if err != nil {
 		return err
 	}
 	ptrTemplatePlugin = templatePlugin
-
-	factory := o.RouterSelection.NewFactory(routeclient, projectclient.Project().Projects(), kc)
-	factory.RouteModifierFn = o.RouteUpdate
 
 	var plugin router.Plugin = templatePlugin
 	var recorder controller.RejectionRecorder = controller.LogRejections
 	if o.UpdateStatus {
 		lease := writerlease.New(time.Minute, 3*time.Second)
 		go lease.Run(wait.NeverStop)
-		informer := factory.CreateRoutesSharedInformer()
+		informer, ok := informerFactory.InformerFor(&routeapi.Route{})
+		if !ok {
+			return fmt.Errorf("no informer for routes found")
+		}
 		tracker := controller.NewSimpleContentionTracker(informer, o.RouterName, o.ResyncInterval/10)
 		tracker.SetConflictMessage(fmt.Sprintf("The router detected another process is writing conflicting updates to route status with name %q. Please ensure that the configuration of all routers is consistent. Route status will not be updated as long as conflicts are detected.", o.RouterName))
 		go tracker.Run(wait.NeverStop)
@@ -453,7 +493,8 @@ func (o *TemplateRouterOptions) Run() error {
 	plugin = controller.NewUniqueHost(plugin, o.RouterSelection.DisableNamespaceOwnershipCheck, recorder)
 	plugin = controller.NewHostAdmitter(plugin, o.RouteAdmissionFunc(), o.AllowWildcardRoutes, o.RouterSelection.DisableNamespaceOwnershipCheck, recorder)
 
-	controller := factory.Create(plugin, false)
+	factory := controllerfactory.NewRouterControllerFactory(informerFactory)
+	controller := factory.Create(plugin, false, o.EnableUnidling)
 	controller.Run()
 
 	proc.StartReaper()

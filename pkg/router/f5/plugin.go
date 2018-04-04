@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/golang/glog"
+	idling "github.com/openshift/service-idler/pkg/apis/idling/v1alpha2"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/watch"
@@ -662,6 +663,12 @@ func (p *F5Plugin) HandleRoute(eventType watch.EventType,
 	glog.V(4).Infof("Done processing route %s.", routename)
 
 	return nil
+}
+
+// HandleIdler handles dealing with idling.
+// The f5 router doesn't support idling.
+func (p *F5Plugin) HandleIdler(_ watch.EventType, _ *idling.Idler) error {
+	return fmt.Errorf("idling support for F5 is not implemented")
 }
 
 // No-op since f5 configuration can be updated piecemeal

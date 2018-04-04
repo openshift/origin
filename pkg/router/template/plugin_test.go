@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	idling "github.com/openshift/service-idler/pkg/apis/idling/v1alpha2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -329,7 +330,7 @@ func TestHandleEndpoints(t *testing.T) {
 	}
 
 	router := newTestRouter(make(map[string]ServiceAliasConfig))
-	templatePlugin := newDefaultTemplatePlugin(router, true, nil)
+	templatePlugin := newDefaultTemplatePlugin(router, true, NewNoOpIdlingCache())
 	// TODO: move tests that rely on unique hosts to pkg/router/controller and remove them from
 	// here
 	plugin := controller.NewUniqueHost(templatePlugin, false, controller.LogRejections)
@@ -439,7 +440,7 @@ func TestHandleTCPEndpoints(t *testing.T) {
 	}
 
 	router := newTestRouter(make(map[string]ServiceAliasConfig))
-	templatePlugin := newDefaultTemplatePlugin(router, false, nil)
+	templatePlugin := newDefaultTemplatePlugin(router, false, NewNoOpIdlingCache())
 	// TODO: move tests that rely on unique hosts to pkg/router/controller and remove them from
 	// here
 	plugin := controller.NewUniqueHost(templatePlugin, false, controller.LogRejections)
@@ -481,7 +482,7 @@ func (r *fakeRejections) RecordRouteRejection(route *routeapi.Route, reason, mes
 func TestHandleRoute(t *testing.T) {
 	rejections := &fakeRejections{}
 	router := newTestRouter(make(map[string]ServiceAliasConfig))
-	templatePlugin := newDefaultTemplatePlugin(router, true, nil)
+	templatePlugin := newDefaultTemplatePlugin(router, true, NewNoOpIdlingCache())
 	// TODO: move tests that rely on unique hosts to pkg/router/controller and remove them from
 	// here
 	plugin := controller.NewUniqueHost(templatePlugin, false, rejections)
@@ -686,6 +687,10 @@ func (p *fakePlugin) HandleNamespaces(namespaces sets.String) error {
 }
 
 func (p *fakePlugin) HandleNode(watch.EventType, *kapi.Node) error {
+	return p.Err
+}
+
+func (p *fakePlugin) HandleIdler(watch.EventType, *idling.Idler) error {
 	return p.Err
 }
 
@@ -1030,7 +1035,7 @@ func TestHandleRouteExtendedValidation(t *testing.T) {
 
 func TestNamespaceScopingFromEmpty(t *testing.T) {
 	router := newTestRouter(make(map[string]ServiceAliasConfig))
-	templatePlugin := newDefaultTemplatePlugin(router, true, nil)
+	templatePlugin := newDefaultTemplatePlugin(router, true, NewNoOpIdlingCache())
 	// TODO: move tests that rely on unique hosts to pkg/router/controller and remove them from
 	// here
 	plugin := controller.NewUniqueHost(templatePlugin, false, controller.LogRejections)

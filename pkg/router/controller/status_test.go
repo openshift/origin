@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	idling "github.com/openshift/service-idler/pkg/apis/idling/v1alpha2"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -57,7 +58,9 @@ func (p *fakePlugin) HandleRoute(t watch.EventType, route *routeapi.Route) error
 func (p *fakePlugin) HandleNode(t watch.EventType, node *kapi.Node) error {
 	return fmt.Errorf("not expected")
 }
-
+func (p *fakePlugin) HandleIdler(_ watch.EventType, _ *idling.Idler) error {
+	return fmt.Errorf("not expected")
+}
 func (p *fakePlugin) HandleEndpoints(watch.EventType, *kapi.Endpoints) error {
 	return fmt.Errorf("not expected")
 }

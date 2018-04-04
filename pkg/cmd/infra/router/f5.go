@@ -22,6 +22,7 @@ import (
 	routelisters "github.com/openshift/origin/pkg/route/generated/listers/route/internalversion"
 	"github.com/openshift/origin/pkg/router"
 	"github.com/openshift/origin/pkg/router/controller"
+	controllerfactory "github.com/openshift/origin/pkg/router/controller/factory"
 	f5plugin "github.com/openshift/origin/pkg/router/f5"
 	"github.com/openshift/origin/pkg/util/writerlease"
 	"github.com/openshift/origin/pkg/version"
@@ -234,15 +235,19 @@ func (o *F5RouterOptions) Run() error {
 		return err
 	}
 
-	factory := o.RouterSelection.NewFactory(routeclient, projectclient.Project().Projects(), kc)
-	factory.RouteModifierFn = o.RouteUpdate
+	informerFactory := o.RouterSelection.NewInformerFactory(routeclient, projectclient.Project().Projects(), kc, nil)
+	informerFactory.RouteModifierFn = o.RouteUpdate
+	factory := controllerfactory.NewRouterControllerFactory(informerFactory)
 
 	var plugin router.Plugin = f5Plugin
 	var recorder controller.RejectionRecorder = controller.LogRejections
 	if o.UpdateStatus {
 		lease := writerlease.New(time.Minute, 3*time.Second)
 		go lease.Run(wait.NeverStop)
-		informer := factory.CreateRoutesSharedInformer()
+		informer, hadRoutesInformer := informerFactory.InformerFor(&routeapi.Route{})
+		if !hadRoutesInformer {
+			return fmt.Errorf("unable to fetch informer for Route objects")
+		}
 		tracker := controller.NewSimpleContentionTracker(informer, o.RouterName, o.ResyncInterval/10)
 		tracker.SetConflictMessage(fmt.Sprintf("The router detected another process is writing conflicting updates to route status with name %q. Please ensure that the configuration of all routers is consistent. Route status will not be updated as long as conflicts are detected.", o.RouterName))
 		go tracker.Run(wait.NeverStop)
@@ -258,7 +263,7 @@ func (o *F5RouterOptions) Run() error {
 	plugin = controller.NewHostAdmitter(plugin, o.F5RouteAdmitterFunc(), o.AllowWildcardRoutes, o.RouterSelection.DisableNamespaceOwnershipCheck, recorder)
 
 	watchNodes := (len(o.InternalAddress) != 0 && len(o.VxlanGateway) != 0)
-	controller := factory.Create(plugin, watchNodes)
+	controller := factory.Create(plugin, watchNodes, false)
 	controller.Run()
 
 	select {}

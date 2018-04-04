@@ -36,6 +36,7 @@ import (
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
+	idlingapi "github.com/openshift/service-idler/pkg/apis/idling/v1alpha2"
 )
 
 const (
@@ -67,6 +68,7 @@ var (
 	storageGroup               = storage.GroupName
 	settingsGroup              = settings.GroupName
 	schedulingGroup            = "scheduling.k8s.io"
+	idlingGroup                = idlingapi.SchemeGroupVersion.Group
 
 	authzGroup          = authorizationapi.GroupName
 	kAuthzGroup         = kauthorizationapi.GroupName
@@ -568,6 +570,7 @@ func GetOpenshiftBootstrapClusterRoles() []rbacv1.ClusterRole {
 			Rules: []rbacv1.PolicyRule{
 				rbacv1helpers.NewRule("list", "watch").Groups(kapiGroup).Resources("endpoints").RuleOrDie(),
 				rbacv1helpers.NewRule("list", "watch").Groups(kapiGroup).Resources("services").RuleOrDie(),
+				rbacv1helpers.NewRule("list", "watch").Groups(idlingGroup).Resources("idlers").RuleOrDie(),
 
 				rbacv1helpers.NewRule("create").Groups(kAuthnGroup).Resources("tokenreviews").RuleOrDie(),
 				rbacv1helpers.NewRule("create").Groups(kAuthzGroup).Resources("subjectaccessreviews").RuleOrDie(),

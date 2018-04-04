@@ -10,15 +10,14 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+	idling "github.com/openshift/service-idler/pkg/apis/idling/v1alpha2"
 	ktypes "k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
-	unidlingapi "github.com/openshift/origin/pkg/unidling/api"
 )
 
 const (
@@ -29,16 +28,18 @@ const (
 // TemplatePlugin implements the router.Plugin interface to provide
 // a template based, backend-agnostic router.
 type TemplatePlugin struct {
-	Router         routerInterface
-	IncludeUDP     bool
-	ServiceFetcher ServiceLookup
+	Router     routerInterface
+	IncludeUDP bool
+
+	IdlingCache IdlingCache
 }
 
-func newDefaultTemplatePlugin(router routerInterface, includeUDP bool, lookupSvc ServiceLookup) *TemplatePlugin {
+func newDefaultTemplatePlugin(router routerInterface, includeUDP bool, idlingCache IdlingCache) *TemplatePlugin {
 	return &TemplatePlugin{
-		Router:         router,
-		IncludeUDP:     includeUDP,
-		ServiceFetcher: lookupSvc,
+		Router:     router,
+		IncludeUDP: includeUDP,
+
+		IdlingCache: idlingCache,
 	}
 }
 
@@ -114,7 +115,7 @@ func createTemplateWithHelper(t *template.Template) (*template.Template, error) 
 }
 
 // NewTemplatePlugin creates a new TemplatePlugin.
-func NewTemplatePlugin(cfg TemplatePluginConfig, lookupSvc ServiceLookup) (*TemplatePlugin, error) {
+func NewTemplatePlugin(cfg TemplatePluginConfig, idlingCache IdlingCache) (*TemplatePlugin, error) {
 	templateBaseName := filepath.Base(cfg.TemplatePath)
 	masterTemplate, err := template.New("config").Funcs(helperFunctions).ParseFiles(cfg.TemplatePath)
 	if err != nil {
@@ -158,7 +159,7 @@ func NewTemplatePlugin(cfg TemplatePluginConfig, lookupSvc ServiceLookup) (*Temp
 		bindPortsAfterSync:       cfg.BindPortsAfterSync,
 	}
 	router, err := newTemplateRouter(templateRouterCfg)
-	return newDefaultTemplatePlugin(router, cfg.IncludeUDP, lookupSvc), err
+	return newDefaultTemplatePlugin(router, cfg.IncludeUDP, idlingCache), err
 }
 
 // HandleEndpoints processes watch events on the Endpoints resource.
@@ -178,7 +179,7 @@ func (p *TemplatePlugin) HandleEndpoints(eventType watch.EventType, endpoints *k
 	switch eventType {
 	case watch.Added, watch.Modified:
 		glog.V(4).Infof("Modifying endpoints for %s", key)
-		routerEndpoints := createRouterEndpoints(endpoints, !p.IncludeUDP, p.ServiceFetcher)
+		routerEndpoints := createRouterEndpoints(endpoints, !p.IncludeUDP, p.IdlingCache)
 		key := endpointsKey(endpoints)
 		p.Router.AddEndpoints(key, routerEndpoints)
 	case watch.Deleted:
@@ -218,6 +219,35 @@ func (p *TemplatePlugin) HandleNamespaces(namespaces sets.String) error {
 	return nil
 }
 
+// ensureEndpoints makes sure the given service has the right endpoints passed
+// to the template.  It restores the most recent set of endpoints from the idling
+// cache, and should only be used from idling functions.
+func (p *TemplatePlugin) ensureEndpoints(name ktypes.NamespacedName) error {
+	endpoints, err := p.IdlingCache.NormalEndpoints(name)
+	if err != nil {
+		return err
+	}
+	routerEndpoints := createRouterEndpoints(endpoints, !p.IncludeUDP, p.IdlingCache)
+	key := endpointsKey(endpoints)
+	p.Router.AddEndpoints(key, routerEndpoints)
+	return nil
+}
+
+// HandleIdler deals with idling.
+// In the template router, this translates to ensuring that inactive trigger services
+// have their endpoints faked point to the service IP while idled.
+func (p *TemplatePlugin) HandleIdler(eventType watch.EventType, idler *idling.Idler) error {
+	for _, svcName := range idler.Spec.TriggerServiceNames {
+		name := ktypes.NamespacedName{Namespace: idler.Namespace, Name: svcName}
+		if err := p.ensureEndpoints(name); err != nil {
+			utilruntime.HandleError(err)
+			continue
+		}
+	}
+
+	return nil
+}
+
 func (p *TemplatePlugin) Commit() error {
 	p.Router.Commit()
 	return nil
@@ -250,18 +280,15 @@ func peerEndpointsKey(namespacedName ktypes.NamespacedName) string {
 }
 
 // createRouterEndpoints creates openshift router endpoints based on k8s endpoints
-func createRouterEndpoints(endpoints *kapi.Endpoints, excludeUDP bool, lookupSvc ServiceLookup) []Endpoint {
-	// check if this service is currently idled
-	wasIdled := false
+func createRouterEndpoints(endpoints *kapi.Endpoints, excludeUDP bool, idlingCache IdlingCache) []Endpoint {
+	idled, serviceIP, ports := idlingCache.IsIdled(ktypes.NamespacedName{
+		Name:      endpoints.Name,
+		Namespace: endpoints.Namespace,
+	})
 	subsets := endpoints.Subsets
-	if _, ok := endpoints.Annotations[unidlingapi.IdledAtAnnotation]; ok && len(endpoints.Subsets) == 0 {
-		service, err := lookupSvc.LookupService(endpoints)
-		if err != nil {
-			utilruntime.HandleError(fmt.Errorf("unable to find idled service corresponding to idled endpoints %s/%s: %v", endpoints.Namespace, endpoints.Name, err))
-			return []Endpoint{}
-		}
-
-		if !kapihelper.IsServiceIPSet(service) {
+	// fake the endpoint if we've been idled
+	if idled {
+		if serviceIP == "" {
 			utilruntime.HandleError(fmt.Errorf("headless service %s/%s was marked as idled, but cannot setup unidling without a cluster IP", endpoints.Namespace, endpoints.Name))
 			return []Endpoint{}
 		}
@@ -269,22 +296,13 @@ func createRouterEndpoints(endpoints *kapi.Endpoints, excludeUDP bool, lookupSvc
 		svcSubset := kapi.EndpointSubset{
 			Addresses: []kapi.EndpointAddress{
 				{
-					IP: service.Spec.ClusterIP,
+					IP: serviceIP,
 				},
 			},
-		}
-
-		for _, port := range service.Spec.Ports {
-			endptPort := kapi.EndpointPort{
-				Name:     port.Name,
-				Port:     port.Port,
-				Protocol: port.Protocol,
-			}
-			svcSubset.Ports = append(svcSubset.Ports, endptPort)
+			Ports: ports,
 		}
 
 		subsets = []kapi.EndpointSubset{svcSubset}
-		wasIdled = true
 	}
 
 	out := make([]Endpoint, 0, len(endpoints.Subsets)*4)
@@ -302,7 +320,7 @@ func createRouterEndpoints(endpoints *kapi.Endpoints, excludeUDP bool, lookupSvc
 
 					PortName: p.Name,
 
-					NoHealthCheck: wasIdled,
+					NoHealthCheck: idled,
 				}
 				if a.TargetRef != nil {
 					ep.TargetName = a.TargetRef.Name

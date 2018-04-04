@@ -8,6 +8,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/pflag"
 
+	idlerclient "github.com/openshift/service-idler/pkg/client/clientset/versioned/typed/idling/v1alpha2"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -232,9 +233,9 @@ func (o *RouterSelection) Complete() error {
 	return nil
 }
 
-// NewFactory initializes a factory that will watch the requested routes
-func (o *RouterSelection) NewFactory(routeclient routeinternalclientset.Interface, projectclient projectclient.ProjectResourceInterface, kc kclientset.Interface) *controllerfactory.RouterControllerFactory {
-	factory := controllerfactory.NewDefaultRouterControllerFactory(routeclient, projectclient, kc)
+// NewInformerFactory initializes an informer factory for informers that will watch the requested routes
+func (o *RouterSelection) NewInformerFactory(routeclient routeinternalclientset.Interface, projectclient projectclient.ProjectResourceInterface, kc kclientset.Interface, ic idlerclient.IdlersGetter) *controllerfactory.RouterInformerFactory {
+	factory := controllerfactory.NewDefaultRouterInformerFactory(routeclient, projectclient, kc, ic)
 	factory.LabelSelector = o.LabelSelector
 	factory.FieldSelector = o.FieldSelector
 	factory.Namespace = o.Namespace
