@@ -170,7 +170,6 @@ function os::util::list_go_src_files() {
 		-o -wholename './openshift.local.*' \
 		-o -wholename './test/extended/testdata/bindata.go' \
 		-o -wholename '*/vendor/*' \
-		-o -wholename './cmd/service-catalog/*' \
 		-o -wholename './cmd/cluster-capacity/*' \
 		-o -wholename './assets/bower_components/*' \
 		\) -prune \
@@ -179,7 +178,7 @@ function os::util::list_go_src_files() {
 readonly -f os::util::list_go_src_files
 
 # os::util::list_go_src_dirs lists dirs in origin/ and cmd/ dirs excluding
-# cmd/cluster-capacity and cmd/service-catalog and doc.go useful for tools that
+# cmd/cluster-capacity and doc.go useful for tools that
 # iterate over source to provide vetting or linting, or for godep-save etc.
 #
 # Globals:
@@ -197,7 +196,7 @@ readonly -f os::util::list_go_src_dirs
 # os::util::list_go_deps outputs the list of dependencies for the project.
 function os::util::list_go_deps() {
   go list -f '{{.ImportPath}}{{.Imports}}' ./pkg/... ./cmd/... | tr '[]' '  ' |
-    grep -vE '^github.com/openshift/origin/cmd/(service-catalog|cluster-capacity)' |
+    grep -vE '^github.com/openshift/origin/cmd/(cluster-capacity)' |
     sed -e 's|github.com/openshift/origin/vendor/||g' |
     sed -e 's|github.com/openshift/origin/pkg/build/vendor/||g'
 }
@@ -221,7 +220,6 @@ function os::util::list_test_packages_under() {
               -o -path '*assets/node_modules' \
               -o -path '*test/*'              \
               -o -path '*cmd/cluster-capacity' \
-              -o -path '*cmd/service-catalog' \
               -o -path '*pkg/proxy' \
         \) -prune                             \
     \) -name '*_test.go' | xargs -n1 dirname | sort -u | xargs -n1 printf "${OS_GO_PACKAGE}/%s\n"
@@ -327,7 +325,6 @@ readonly OS_ALL_IMAGES=(
   origin-egress-dns-proxy
   origin-recycler
   origin-cluster-capacity
-  origin-service-catalog
   origin-template-service-broker
   hello-openshift
   openvswitch
@@ -356,7 +353,6 @@ function os::build::images() {
   # images that depend on "${tag_prefix}-source"
   ( os::build::image "${tag_prefix}-pod"                   images/pod ) &
   ( os::build::image "${tag_prefix}-cluster-capacity"      images/cluster-capacity ) &
-  ( os::build::image "${tag_prefix}-service-catalog"       images/service-catalog ) &
   ( os::build::image "${tag_prefix}-template-service-broker"  images/template-service-broker ) &
 
 
