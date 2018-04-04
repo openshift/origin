@@ -75,7 +75,7 @@ func SetDefaults_MasterConfig(obj *MasterConfig) {
 
 	// Populate the new NetworkConfig.ServiceNetworkCIDR field from the KubernetesMasterConfig.ServicesSubnet field if needed
 	if len(obj.NetworkConfig.ServiceNetworkCIDR) == 0 {
-		if obj.KubernetesMasterConfig != nil && len(obj.KubernetesMasterConfig.ServicesSubnet) > 0 {
+		if len(obj.KubernetesMasterConfig.ServicesSubnet) > 0 {
 			// if a subnet is set in the kubernetes master config, use that
 			obj.NetworkConfig.ServiceNetworkCIDR = obj.KubernetesMasterConfig.ServicesSubnet
 		} else {
@@ -85,8 +85,7 @@ func SetDefaults_MasterConfig(obj *MasterConfig) {
 	}
 
 	// TODO Detect cloud provider when not using built-in kubernetes
-	kubeConfig := obj.KubernetesMasterConfig
-	noCloudProvider := kubeConfig != nil && (len(kubeConfig.ControllerArguments["cloud-provider"]) == 0 || kubeConfig.ControllerArguments["cloud-provider"][0] == "")
+	noCloudProvider := (len(obj.KubernetesMasterConfig.ControllerArguments["cloud-provider"]) == 0 || obj.KubernetesMasterConfig.ControllerArguments["cloud-provider"][0] == "")
 
 	if noCloudProvider && len(obj.NetworkConfig.IngressIPNetworkCIDR) == 0 {
 		cidr := internal.DefaultIngressIPNetworkCIDR

@@ -1,8 +1,6 @@
 package openshift_kube_apiserver
 
 import (
-	"fmt"
-
 	"github.com/golang/glog"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
@@ -29,10 +27,6 @@ func RunOpenShiftKubeAPIServerServer(masterConfig *configapi.MasterConfig) error
 			HostIPCSources:     []string{kubelettypes.ApiserverSource, kubelettypes.FileSource},
 		},
 	})
-
-	if masterConfig.KubernetesMasterConfig == nil {
-		return fmt.Errorf("KubernetesMasterConfig is required to start this server - use of external Kubernetes is no longer supported.")
-	}
 
 	// install aggregator types into the scheme so that "normal" RESTOptionsGetters can work for us.
 	// done in Start() prior to doing any other initialization so we don't mutate the scheme after it is being used by clients in other goroutines.

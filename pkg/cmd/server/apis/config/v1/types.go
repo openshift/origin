@@ -239,7 +239,7 @@ type MasterConfig struct {
 	KubeletClientInfo KubeletConnectionInfo `json:"kubeletClientInfo"`
 
 	// KubernetesMasterConfig, if present start the kubernetes master in this process
-	KubernetesMasterConfig *KubernetesMasterConfig `json:"kubernetesMasterConfig"`
+	KubernetesMasterConfig KubernetesMasterConfig `json:"kubernetesMasterConfig"`
 	// EtcdConfig, if present start etcd in this process
 	EtcdConfig *EtcdConfig `json:"etcdConfig"`
 	// OAuthConfig, if present start the /oauth endpoint in this process

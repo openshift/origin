@@ -285,7 +285,7 @@ func TestValidateAdmissionPluginConfigConflicts(t *testing.T) {
 		{
 			name: "specified kube admission order 02",
 			options: configapi.MasterConfig{
-				KubernetesMasterConfig: &configapi.KubernetesMasterConfig{
+				KubernetesMasterConfig: configapi.KubernetesMasterConfig{
 					APIServerArguments: configapi.ExtendedArguments{
 						"admission-control": []string{"foo"},
 					},
@@ -305,7 +305,7 @@ func TestValidateAdmissionPluginConfigConflicts(t *testing.T) {
 		{
 			name: "specified kube admission config file",
 			options: configapi.MasterConfig{
-				KubernetesMasterConfig: &configapi.KubernetesMasterConfig{
+				KubernetesMasterConfig: configapi.KubernetesMasterConfig{
 					APIServerArguments: configapi.ExtendedArguments{
 						"admission-control-config-file": []string{"foo"},
 					},
@@ -432,7 +432,7 @@ func TestValidateIngressIPNetworkCIDR(t *testing.T) {
 	}
 	for _, test := range testCases {
 		config := &configapi.MasterConfig{
-			KubernetesMasterConfig: &configapi.KubernetesMasterConfig{
+			KubernetesMasterConfig: configapi.KubernetesMasterConfig{
 				ControllerArguments: configapi.ExtendedArguments{
 					"cloud-provider": []string{test.cloudProvider},
 				},

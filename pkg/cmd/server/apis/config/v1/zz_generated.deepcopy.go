@@ -1186,15 +1186,7 @@ func (in *MasterConfig) DeepCopyInto(out *MasterConfig) {
 	out.EtcdStorageConfig = in.EtcdStorageConfig
 	in.EtcdClientInfo.DeepCopyInto(&out.EtcdClientInfo)
 	out.KubeletClientInfo = in.KubeletClientInfo
-	if in.KubernetesMasterConfig != nil {
-		in, out := &in.KubernetesMasterConfig, &out.KubernetesMasterConfig
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(KubernetesMasterConfig)
-			(*in).DeepCopyInto(*out)
-		}
-	}
+	in.KubernetesMasterConfig.DeepCopyInto(&out.KubernetesMasterConfig)
 	if in.EtcdConfig != nil {
 		in, out := &in.EtcdConfig, &out.EtcdConfig
 		if *in == nil {
