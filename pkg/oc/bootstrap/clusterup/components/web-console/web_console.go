@@ -1,41 +1,61 @@
-package openshift
+package web_console
 
 import (
 	"fmt"
+	"io/ioutil"
+	"path"
 
-	"gopkg.in/yaml.v2"
+	yaml "gopkg.in/yaml.v2"
 
 	"github.com/golang/glog"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	"github.com/openshift/origin/pkg/oc/bootstrap"
 	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/componentinstall"
-	"github.com/openshift/origin/pkg/oc/bootstrap/docker/errors"
+	"github.com/openshift/origin/pkg/oc/bootstrap/docker/dockerhelper"
+	"github.com/openshift/origin/pkg/oc/errors"
 )
 
 const (
-	consoleNamespace  = "openshift-web-console"
-	consoleConfigFile = "install/origin-web-console/console-config.yaml"
+	consoleNamespace = "openshift-web-console"
 )
 
-// InstallWebConsole installs the web console server into the openshift-web-console namespace and waits for it to become ready
-func (h *Helper) InstallWebConsole(clusterAdminKubeConfigBytes []byte, imageFormat string, serverLogLevel int, publicURL, masterURL, loggingURL, metricsURL, logdir string) error {
+type WebConsoleComponentOptions struct {
+	OCImage          string
+	MasterConfigDir  string
+	ImageFormat      string
+	PublicMasterURL  string
+	PublicConsoleURL string
+	PublicLoggingURL string
+	PublicMetricsURL string
+	ServerLogLevel   int
+}
+
+func (c *WebConsoleComponentOptions) Name() string {
+	return "openshift-web-console"
+}
+
+func (c *WebConsoleComponentOptions) Install(dockerClient dockerhelper.Interface, logdir string) error {
+	clusterAdminKubeConfigBytes, err := ioutil.ReadFile(path.Join(c.MasterConfigDir, "admin.kubeconfig"))
+	if err != nil {
+		return err
+	}
 	restConfig, err := kclientcmd.RESTConfigFromKubeConfig(clusterAdminKubeConfigBytes)
 	if err != nil {
 		return errors.NewError("cannot obtain API clients").WithCause(err)
 	}
-	kubeClient, err := kclientset.NewForConfig(restConfig)
+	kubeClient, err := kubernetes.NewForConfig(restConfig)
 	if err != nil {
 		return errors.NewError("cannot obtain API clients").WithCause(err)
 	}
 
 	// parse the YAML to edit
 	var consoleConfig map[string]interface{}
-	if err := yaml.Unmarshal(bootstrap.MustAsset(consoleConfigFile), &consoleConfig); err != nil {
+	if err := yaml.Unmarshal(bootstrap.MustAsset("install/origin-web-console/console-config.yaml"), &consoleConfig); err != nil {
 		return errors.NewError("cannot parse web console config as YAML").WithCause(err)
 	}
 
@@ -45,13 +65,13 @@ func (h *Helper) InstallWebConsole(clusterAdminKubeConfigBytes []byte, imageForm
 		return errors.NewError("cannot read clusterInfo in web console config")
 	}
 
-	clusterInfo["consolePublicURL"] = publicURL
-	clusterInfo["masterPublicURL"] = masterURL
-	if len(loggingURL) > 0 {
-		clusterInfo["loggingPublicURL"] = loggingURL
+	clusterInfo["consolePublicURL"] = c.PublicConsoleURL + "/"
+	clusterInfo["masterPublicURL"] = c.PublicMasterURL
+	if len(c.PublicLoggingURL) > 0 {
+		clusterInfo["loggingPublicURL"] = c.PublicLoggingURL
 	}
-	if len(metricsURL) > 0 {
-		clusterInfo["metricsPublicURL"] = metricsURL
+	if len(c.PublicMetricsURL) > 0 {
+		clusterInfo["metricsPublicURL"] = c.PublicMetricsURL
 	}
 
 	// serialize it back out as a string to use as a template parameter
@@ -61,13 +81,13 @@ func (h *Helper) InstallWebConsole(clusterAdminKubeConfigBytes []byte, imageForm
 	}
 
 	imageTemplate := variable.NewDefaultImageTemplate()
-	imageTemplate.Format = imageFormat
+	imageTemplate.Format = c.ImageFormat
 	imageTemplate.Latest = false
 
 	params := map[string]string{
 		"API_SERVER_CONFIG": string(updatedConfig),
 		"IMAGE":             imageTemplate.ExpandOrDie("web-console"),
-		"LOGLEVEL":          fmt.Sprint(serverLogLevel),
+		"LOGLEVEL":          fmt.Sprintf("%d", c.ServerLogLevel),
 		"NAMESPACE":         consoleNamespace,
 	}
 
@@ -79,7 +99,7 @@ func (h *Helper) InstallWebConsole(clusterAdminKubeConfigBytes []byte, imageForm
 		// wait until the webconsole is ready
 		WaitCondition: func() (bool, error) {
 			glog.V(2).Infof("polling for web console server availability")
-			ds, err := kubeClient.Extensions().Deployments(consoleNamespace).Get("webconsole", metav1.GetOptions{})
+			ds, err := kubeClient.AppsV1().Deployments(consoleNamespace).Get("webconsole", metav1.GetOptions{})
 			if err != nil {
 				return false, err
 			}
@@ -92,7 +112,7 @@ func (h *Helper) InstallWebConsole(clusterAdminKubeConfigBytes []byte, imageForm
 
 	// instantiate the web console template
 	return component.MakeReady(
-		h.image,
+		c.OCImage,
 		clusterAdminKubeConfigBytes,
-		params).Install(h.dockerHelper.Client(), logdir)
+		params).Install(dockerClient, logdir)
 }

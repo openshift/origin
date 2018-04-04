@@ -32,6 +32,9 @@ type internalError struct {
 }
 
 func (e *internalError) Error() string {
+	if e.cause != nil && len(e.cause.Error()) > 0 {
+		return e.msg + "; caused by: " + e.cause.Error()
+	}
 	return e.msg
 }
 
