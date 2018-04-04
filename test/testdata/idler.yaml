@@ -1,0 +1,12 @@
+ apiVersion: idling.openshift.io/v1alpha2
+ kind: Idler
+ metadata:
+   name: idling-echo
+ spec:
+   wantIdle: false
+   targetScalables:
+   - resource: deploymentconfig
+     group: apps.openshift.io
+     name: idling-echo
+   triggerServiceNames:
+   - idling-echo

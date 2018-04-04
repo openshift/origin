@@ -67,7 +67,7 @@ else
 fi
 
 # profile the web
-export OPENSHIFT_PROFILE="${WEB_PROFILE-}"
+#export OPENSHIFT_PROFILE="${WEB_PROFILE-}"
 export ALLOWED_REGISTRIES='[{"domainName":"172.30.30.30:5000"},{"domainName":"myregistry.com"},{"domainName":"registry.centos.org"},{"domainName":"docker.io"},{"domainName":"gcr.io"},{"domainName":"quay.io"},{"domainName":"*.redhat.com"},{"domainName":"*.docker.io"},{"domainName":"registry.redhat.io"}]'
 
 os::start::configure_server
@@ -80,7 +80,7 @@ os::test::junit::declare_suite_end
 os::start::master
 
 # profile the cli commands
-export OPENSHIFT_PROFILE="${CLI_PROFILE-}"
+#export OPENSHIFT_PROFILE="${CLI_PROFILE-}"
 
 os::start::registry
 

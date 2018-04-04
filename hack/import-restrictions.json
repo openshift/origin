@@ -450,7 +450,6 @@
       "github.com/openshift/origin/pkg/apps/apis/apps/install",
       "github.com/openshift/origin/pkg/apps/apis/apps/test",
       "github.com/openshift/origin/pkg/apps/client/internalversion",
-      "github.com/openshift/origin/pkg/apps/client/v1",
       "github.com/openshift/origin/pkg/apps/util",
       "github.com/openshift/origin/pkg/authorization/apis/authorization",
       "github.com/openshift/origin/pkg/authorization/apis/authorization/install",
@@ -482,6 +481,7 @@
       "github.com/openshift/origin/pkg/cmd/util/term",
       "github.com/openshift/origin/pkg/cmd/util/variable",
       "github.com/openshift/origin/pkg/git",
+      "github.com/openshift/origin/pkg/idling",
       "github.com/openshift/origin/pkg/image/apis/image",
       "github.com/openshift/origin/pkg/image/apis/image/install",
       "github.com/openshift/origin/pkg/image/apis/image/v1/trigger",
@@ -538,6 +538,7 @@
       "vendor/github.com/coreos/etcd/pkg/transport",
       "vendor/github.com/coreos/etcd/version",
       "vendor/github.com/miekg/dns",
+      "vendor/github.com/openshift/service-idler/pkg/apis/idling/v1alpha2",
 
       "vendor/k8s.io/kubernetes/pkg/api/legacyscheme",
       "vendor/k8s.io/kubernetes/pkg/api/ref",
