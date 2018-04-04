@@ -14,6 +14,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubelet/config"
 	"k8s.io/kubernetes/pkg/kubelet/rkt"
 	kubetypes "k8s.io/kubernetes/pkg/kubelet/types"
+	kubeletutil "k8s.io/kubernetes/pkg/kubelet/util"
 	"k8s.io/kubernetes/pkg/proxy/apis/kubeproxyconfig"
 )
 
@@ -201,4 +202,50 @@ func TestProxyConfig(t *testing.T) {
 		t.Logf("Difference %s", diff.ObjectReflectDiff(expectedProxyConfig, actualConfig))
 	}
 
+}
+
+func TestRuntimeEndpoint(t *testing.T) {
+	tests := []struct {
+		name         string
+		endpoint     string
+		expectError  bool
+		expectedAddr string
+	}{
+		{
+			// Current default format
+			name:         "Endpoint format that includes protocol",
+			endpoint:     "unix:///var/run/dockershim.sock",
+			expectedAddr: "/var/run/dockershim.sock",
+		},
+		{
+			// Deprecated format, this ensures old/existing configs are not broken
+			name:         "Endpoint format that does not include protocol",
+			endpoint:     "/var/run/dockershim.sock",
+			expectedAddr: "/var/run/dockershim.sock",
+		},
+		{
+			name:        "Endpoint with invalid protocol",
+			endpoint:    "tcp1://foo",
+			expectError: true,
+		},
+		{
+			name:        "Invalid endpoint",
+			endpoint:    "foo bar",
+			expectError: true,
+		},
+	}
+
+	for _, test := range tests {
+		addr, _, err := kubeletutil.GetAddressAndDialer(test.endpoint)
+		if err != nil && !test.expectError {
+			t.Errorf("Test: %q expected to pass but received error %#v, endpoint: %s", test.name, err, test.endpoint)
+			continue
+		} else if err == nil && test.expectError {
+			t.Errorf("Test: %q expected to fail but did not receive an error, endpoint: %s", test.name, test.endpoint)
+		}
+
+		if test.expectedAddr != addr {
+			t.Errorf("Test: %q expected addr %s but got %s", test.name, test.expectedAddr, addr)
+		}
+	}
 }

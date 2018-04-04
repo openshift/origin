@@ -271,7 +271,7 @@ func fuzzInternalObject(t *testing.T, forVersion schema.GroupVersion, item runti
 				obj.ExecHandlerName = configapi.DockerExecHandlerNative
 			}
 			if len(obj.DockerShimSocket) == 0 {
-				obj.DockerShimSocket = "/var/run/sockershim.sock"
+				obj.DockerShimSocket = "unix:///var/run/dockershim.sock"
 			}
 			if len(obj.DockershimRootDirectory) == 0 {
 				obj.DockershimRootDirectory = "/var/lib/dockershim"
