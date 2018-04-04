@@ -20,6 +20,7 @@ import (
 	projectinternalclientset "github.com/openshift/origin/pkg/project/generated/internalclientset"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	routeinternalclientset "github.com/openshift/origin/pkg/route/generated/internalclientset"
+	routelisters "github.com/openshift/origin/pkg/route/generated/listers/route/internalversion"
 	"github.com/openshift/origin/pkg/router"
 	"github.com/openshift/origin/pkg/router/controller"
 	controllerfactory "github.com/openshift/origin/pkg/router/controller/factory"
@@ -370,21 +371,24 @@ func launchRateLimitedRouter(t *testing.T, routeclient routeinternalclientset.In
 		t.Logf("Router %s reloaded (%d times)\n", name, reloadedMap[name])
 		return nil
 	}
+
+	factory := controllerfactory.NewDefaultRouterControllerFactory(routeclient, projectclient.Project().Projects(), kc)
+	routeLister := routelisters.NewRouteLister(factory.CreateRoutesSharedInformer().GetIndexer())
+
 	var plugin router.Plugin
-	templatePlugin, plugin := initializeRouterPlugins(routeclient, projectclient, name, reloadInterval, rateLimitingFunc)
+	templatePlugin, plugin := initializeRouterPlugins(routeclient, projectclient, routeLister, name, reloadInterval, rateLimitingFunc)
 
 	if maxDelay > 0 {
 		plugin = NewDelayPlugin(plugin, maxDelay)
 	}
 
-	factory := controllerfactory.NewDefaultRouterControllerFactory(routeclient, projectclient.Project().Projects(), kc)
 	ctrl := factory.Create(plugin, false)
 	ctrl.Run()
 
 	return templatePlugin
 }
 
-func initializeRouterPlugins(routeclient routeinternalclientset.Interface, projectclient projectinternalclientset.Interface, name string, reloadInterval time.Duration, rateLimitingFunc ratelimiter.HandlerFunc) (*templateplugin.TemplatePlugin, router.Plugin) {
+func initializeRouterPlugins(routeclient routeinternalclientset.Interface, projectclient projectinternalclientset.Interface, routeLister routelisters.RouteLister, name string, reloadInterval time.Duration, rateLimitingFunc ratelimiter.HandlerFunc) (*templateplugin.TemplatePlugin, router.Plugin) {
 	r := templateplugin.NewFakeTemplateRouter()
 
 	r.EnableRateLimiter(reloadInterval, func() error {
@@ -397,7 +401,7 @@ func initializeRouterPlugins(routeclient routeinternalclientset.Interface, proje
 	lease := writerlease.New(time.Minute, 3*time.Second)
 	go lease.Run(wait.NeverStop)
 	templatePlugin := &templateplugin.TemplatePlugin{Router: r}
-	statusPlugin := controller.NewStatusAdmitter(templatePlugin, routeclient.Route(), name, "", lease, tracker)
+	statusPlugin := controller.NewStatusAdmitter(templatePlugin, routeclient.Route(), routeLister, name, "", lease, tracker)
 	validationPlugin := controller.NewExtendedValidator(statusPlugin, controller.RejectionRecorder(statusPlugin))
 	uniquePlugin := controller.NewUniqueHost(validationPlugin, controller.HostForRoute, false, controller.RejectionRecorder(statusPlugin))
 
@@ -407,10 +411,11 @@ func initializeRouterPlugins(routeclient routeinternalclientset.Interface, proje
 // launchRouter launches a template router that communicates with the
 // api via the provided clients.
 func launchRouter(routeclient routeinternalclientset.Interface, projectclient projectinternalclientset.Interface, kc kclientset.Interface, routerSelection infrarouter.RouterSelection) *templateplugin.TemplatePlugin {
-	templatePlugin, plugin := initializeRouterPlugins(routeclient, projectclient, "test-router", 0, func() error {
+	factory := routerSelection.NewFactory(routeclient, projectclient.Project().Projects(), kc)
+	routeLister := routelisters.NewRouteLister(factory.CreateRoutesSharedInformer().GetIndexer())
+	templatePlugin, plugin := initializeRouterPlugins(routeclient, projectclient, routeLister, "test-router", 0, func() error {
 		return nil
 	})
-	factory := routerSelection.NewFactory(routeclient, projectclient.Project().Projects(), kc)
 	ctrl := factory.Create(plugin, false)
 	ctrl.Run()
 

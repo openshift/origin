@@ -16,6 +16,7 @@ import (
 
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	client "github.com/openshift/origin/pkg/route/generated/internalclientset/typed/route/internalversion"
+	routelisters "github.com/openshift/origin/pkg/route/generated/listers/route/internalversion"
 	"github.com/openshift/origin/pkg/router"
 	"github.com/openshift/origin/pkg/util/writerlease"
 )
@@ -36,8 +37,10 @@ func (logRecorder) RecordRouteRejection(route *routeapi.Route, reason, message s
 
 // StatusAdmitter ensures routes added to the plugin have status set.
 type StatusAdmitter struct {
-	plugin                  router.Plugin
-	client                  client.RoutesGetter
+	plugin router.Plugin
+	client client.RoutesGetter
+	lister routelisters.RouteLister
+
 	routerName              string
 	routerCanonicalHostname string
 
@@ -49,10 +52,12 @@ type StatusAdmitter struct {
 // route has a status field set that matches this router. The admitter manages
 // an LRU of recently seen conflicting updates to handle when two router processes
 // with differing configurations are writing updates at the same time.
-func NewStatusAdmitter(plugin router.Plugin, client client.RoutesGetter, name, hostName string, lease writerlease.Lease, tracker ContentionTracker) *StatusAdmitter {
+func NewStatusAdmitter(plugin router.Plugin, client client.RoutesGetter, lister routelisters.RouteLister, name, hostName string, lease writerlease.Lease, tracker ContentionTracker) *StatusAdmitter {
 	return &StatusAdmitter{
-		plugin:                  plugin,
-		client:                  client,
+		plugin: plugin,
+		client: client,
+		lister: lister,
+
 		routerName:              name,
 		routerCanonicalHostname: hostName,
 
@@ -74,7 +79,7 @@ var nowFn = getRfc3339Timestamp
 func (a *StatusAdmitter) HandleRoute(eventType watch.EventType, route *routeapi.Route) error {
 	switch eventType {
 	case watch.Added, watch.Modified:
-		performIngressConditionUpdate("admit", a.lease, a.tracker, a.client, route, a.routerName, a.routerCanonicalHostname, routeapi.RouteIngressCondition{
+		performIngressConditionUpdate("admit", a.lease, a.tracker, a.client, a.lister, route, a.routerName, a.routerCanonicalHostname, routeapi.RouteIngressCondition{
 			Type:   routeapi.RouteAdmitted,
 			Status: kapi.ConditionTrue,
 		})
@@ -100,7 +105,7 @@ func (a *StatusAdmitter) Commit() error {
 
 // RecordRouteRejection attempts to update the route status with a reason for a route being rejected.
 func (a *StatusAdmitter) RecordRouteRejection(route *routeapi.Route, reason, message string) {
-	performIngressConditionUpdate("reject", a.lease, a.tracker, a.client, route, a.routerName, a.routerCanonicalHostname, routeapi.RouteIngressCondition{
+	performIngressConditionUpdate("reject", a.lease, a.tracker, a.client, a.lister, route, a.routerName, a.routerCanonicalHostname, routeapi.RouteIngressCondition{
 		Type:    routeapi.RouteAdmitted,
 		Status:  kapi.ConditionFalse,
 		Reason:  reason,
@@ -108,43 +113,71 @@ func (a *StatusAdmitter) RecordRouteRejection(route *routeapi.Route, reason, mes
 	})
 }
 
-// performIngressConditionUpdate updates the route to the the appropriate status for the provided condition.
-func performIngressConditionUpdate(action string, lease writerlease.Lease, tracker ContentionTracker, oc client.RoutesGetter, route *routeapi.Route, name, hostName string, condition routeapi.RouteIngressCondition) {
+// performIngressConditionUpdate updates the route to the appropriate status for the provided condition.
+func performIngressConditionUpdate(action string, lease writerlease.Lease, tracker ContentionTracker, oc client.RoutesGetter, lister routelisters.RouteLister, route *routeapi.Route, routerName, hostName string, condition routeapi.RouteIngressCondition) {
+	attempts := 3
 	key := string(route.UID)
-	newestIngressName := findMostRecentIngress(route)
-	changed, created, now, latest := recordIngressCondition(route, name, hostName, condition)
-	if !changed {
-		glog.V(4).Infof("%s: no changes to route needed: %s/%s", action, route.Namespace, route.Name)
-		tracker.Clear(key, latest)
-		// if the most recent change was to our ingress status, consider the current lease extended
-		if newestIngressName == name {
-			lease.Extend(key)
-		}
-		return
-	}
-	// If the tracker determines that another process is attempting to update the ingress to an inconsistent
-	// value, skip updating altogether and rely on the next resync to resolve conflicts. This prevents routers
-	// with different configurations from endlessly updating the route status.
-	if !created && tracker.IsContended(key, now, latest) {
-		glog.V(4).Infof("%s: skipped update due to another process altering the route with a different ingress status value: %s", action, key)
-		return
-	}
+	routeNamespace, routeName := route.Namespace, route.Name
 
-	lease.Try(key, func() (bool, bool) {
-		updated := updateStatus(oc, route)
-		if updated {
-			tracker.Clear(key, latest)
-		} else {
-			glog.V(4).Infof("%s: did not update route status, skipping route until next resync", action)
+	lease.Try(key, func() (writerlease.WorkResult, bool) {
+		route, err := lister.Routes(routeNamespace).Get(routeName)
+		if err != nil {
+			return writerlease.None, false
 		}
-		return updated, false
+		if string(route.UID) != key {
+			glog.V(4).Infof("%s: skipped update due to route UID changing (likely delete and recreate): %s/%s", action, route.Namespace, route.Name)
+			return writerlease.None, false
+		}
+
+		route = route.DeepCopy()
+		changed, created, now, latest := recordIngressCondition(route, routerName, hostName, condition)
+		if !changed {
+			glog.V(4).Infof("%s: no changes to route needed: %s/%s", action, route.Namespace, route.Name)
+			tracker.Clear(key, latest)
+			// if the most recent change was to our ingress status, consider the current lease extended
+			if findMostRecentIngress(route) == routerName {
+				lease.Extend(key)
+			}
+			return writerlease.None, false
+		}
+
+		// If the tracker determines that another process is attempting to update the ingress to an inconsistent
+		// value, skip updating altogether and rely on the next resync to resolve conflicts. This prevents routers
+		// with different configurations from endlessly updating the route status.
+		if !created && tracker.IsContended(key, now, latest) {
+			glog.V(4).Infof("%s: skipped update due to another process altering the route with a different ingress status value: %s", action, key)
+			return writerlease.None, false
+		}
+
+		switch _, err := oc.Routes(route.Namespace).UpdateStatus(route); {
+		case err == nil:
+			tracker.Clear(key, latest)
+			return writerlease.Extend, false
+		case errors.IsForbidden(err):
+			// if the router can't write status updates, allow the route to go through
+			utilruntime.HandleError(fmt.Errorf("Unable to write router status - please ensure you reconcile your system policy or grant this router access to update route status: %v", err))
+			tracker.Clear(key, latest)
+			return writerlease.Extend, false
+		case errors.IsNotFound(err):
+			// route was deleted
+			return writerlease.Release, false
+		case errors.IsConflict(err):
+			// just follow the normal process, and retry when we receive the update notification due to
+			// the other entity updating the route.
+			glog.V(4).Infof("%s: updating status of %s/%s failed due to write conflict", action, route.Namespace, route.Name)
+			return writerlease.Release, true
+		default:
+			utilruntime.HandleError(fmt.Errorf("Unable to write router status for %s/%s: %v", route.Namespace, route.Name, err))
+			attempts--
+			return writerlease.Release, attempts > 0
+		}
 	})
 }
 
 // recordIngressCondition updates the matching ingress on the route (or adds a new one) with the specified
 // condition, returning whether the route was updated or created, the time assigned to the condition, and
 // a pointer to the current ingress record.
-func recordIngressCondition(route *routeapi.Route, name, hostName string, condition routeapi.RouteIngressCondition) (changed, created bool, _ time.Time, latest *routeapi.RouteIngress) {
+func recordIngressCondition(route *routeapi.Route, name, hostName string, condition routeapi.RouteIngressCondition) (changed, created bool, at time.Time, latest *routeapi.RouteIngress) {
 	for i := range route.Status.Ingress {
 		existing := &route.Status.Ingress[i]
 		if existing.RouterName != name {
@@ -225,31 +258,6 @@ func findCondition(ingress *routeapi.RouteIngress, t routeapi.RouteIngressCondit
 		return &ingress.Conditions[i]
 	}
 	return nil
-}
-
-func updateStatus(oc client.RoutesGetter, route *routeapi.Route) bool {
-	for i := 0; i < 3; i++ {
-		switch _, err := oc.Routes(route.Namespace).UpdateStatus(route); {
-		case err == nil:
-			return true
-		case errors.IsNotFound(err):
-			// route was deleted
-			return false
-		case errors.IsForbidden(err):
-			// if the router can't write status updates, allow the route to go through
-			utilruntime.HandleError(fmt.Errorf("Unable to write router status - please ensure you reconcile your system policy or grant this router access to update route status: %v", err))
-			return true
-		case errors.IsConflict(err):
-			// just follow the normal process, and retry when we receive the update notification due to
-			// the other entity updating the route.
-			glog.V(4).Infof("updating status of %s/%s failed due to write conflict", route.Namespace, route.Name)
-			return false
-		default:
-			utilruntime.HandleError(fmt.Errorf("Unable to write router status for %s/%s: %v", route.Namespace, route.Name, err))
-			continue
-		}
-	}
-	return false
 }
 
 // ContentionTracker records modifications to a particular entry to prevent endless

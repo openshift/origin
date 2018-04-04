@@ -145,6 +145,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 			r, err := oc.RouteClient().Route().Routes(ns).Get("route-1", metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			ingress := ingressForName(r, "test-override")
+			e2e.Logf("Selected: %#v, All: %#v", ingress, r.Status.Ingress)
 			o.Expect(ingress).NotTo(o.BeNil())
 			o.Expect(ingress.Host).To(o.Equal(fmt.Sprintf(pattern, "route-1", ns)))
 			status, condition := routeapi.IngressConditionStatus(ingress, routeapi.RouteAdmitted)

@@ -96,13 +96,13 @@ func (f *RouterControllerFactory) Create(plugin router.Plugin, watchNodes bool) 
 
 func (f *RouterControllerFactory) initInformers(rc *routercontroller.RouterController) {
 	if f.NamespaceLabels != nil {
-		f.createNamespacesSharedInformer(rc)
+		f.createNamespacesSharedInformer()
 	}
-	f.createEndpointsSharedInformer(rc)
-	f.createRoutesSharedInformer(rc)
+	f.createEndpointsSharedInformer()
+	f.CreateRoutesSharedInformer()
 
 	if rc.WatchNodes {
-		f.createNodesSharedInformer(rc)
+		f.createNodesSharedInformer()
 	}
 
 	// Start informers
@@ -187,7 +187,7 @@ func (f *RouterControllerFactory) setSelectors(options *v1.ListOptions) {
 	options.FieldSelector = f.FieldSelector
 }
 
-func (f *RouterControllerFactory) createEndpointsSharedInformer(rc *routercontroller.RouterController) {
+func (f *RouterControllerFactory) createEndpointsSharedInformer() {
 	// we do not scope endpoints by labels or fields because the route labels != endpoints labels
 	lw := &kcache.ListWatch{
 		ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
@@ -204,7 +204,13 @@ func (f *RouterControllerFactory) createEndpointsSharedInformer(rc *routercontro
 	f.informers[objType] = informer
 }
 
-func (f *RouterControllerFactory) createRoutesSharedInformer(rc *routercontroller.RouterController) {
+func (f *RouterControllerFactory) CreateRoutesSharedInformer() kcache.SharedIndexInformer {
+	rt := &routeapi.Route{}
+	objType := reflect.TypeOf(rt)
+	if informer, ok := f.informers[objType]; ok {
+		return informer
+	}
+
 	lw := &kcache.ListWatch{
 		ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
 			f.setSelectors(&options)
@@ -221,14 +227,13 @@ func (f *RouterControllerFactory) createRoutesSharedInformer(rc *routercontrolle
 			return f.RClient.Route().Routes(f.Namespace).Watch(options)
 		},
 	}
-	rt := &routeapi.Route{}
-	objType := reflect.TypeOf(rt)
 	indexers := kcache.Indexers{kcache.NamespaceIndex: kcache.MetaNamespaceIndexFunc}
 	informer := kcache.NewSharedIndexInformer(lw, rt, f.ResyncInterval, indexers)
 	f.informers[objType] = informer
+	return informer
 }
 
-func (f *RouterControllerFactory) createNodesSharedInformer(rc *routercontroller.RouterController) {
+func (f *RouterControllerFactory) createNodesSharedInformer() {
 	// Use stock node informer as we don't need namespace/labels/fields filtering on nodes
 	ifactory := informerfactory.NewSharedInformerFactory(f.KClient, f.ResyncInterval)
 	informer := ifactory.Core().InternalVersion().Nodes().Informer()
@@ -236,7 +241,7 @@ func (f *RouterControllerFactory) createNodesSharedInformer(rc *routercontroller
 	f.informers[objType] = informer
 }
 
-func (f *RouterControllerFactory) createNamespacesSharedInformer(rc *routercontroller.RouterController) {
+func (f *RouterControllerFactory) createNamespacesSharedInformer() {
 	lw := &kcache.ListWatch{
 		ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
 			options.LabelSelector = f.NamespaceLabels.String()
