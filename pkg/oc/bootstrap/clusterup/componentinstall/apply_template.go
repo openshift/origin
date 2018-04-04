@@ -91,18 +91,15 @@ func (opt installReadyTemplate) Install(dockerClient dockerhelper.Interface, log
 	var lastErr error
 	// do a very simple retry loop on failure. Three times, ten second gaps
 	wait.PollImmediate(10*time.Second, 30*time.Second, func() (bool, error) {
-		_, stdout, stderr, rc, err := imageRunHelper.Image(opt.image).
+		_, rc, err := imageRunHelper.Image(opt.image).
 			Privileged().
 			DiscardContainer().
 			Copy(contentToCopy).
+			SaveContainerLogs(opt.Name(), logdir).
 			HostNetwork().
 			HostPid().
 			Entrypoint("sh").
-			Command("-c", "echo '"+opt.Name()+"' && chmod 755 /install.sh && /install.sh").Output()
-
-		if err := LogContainer(logdir, opt.Name(), stdout, stderr); err != nil {
-			glog.Errorf("error logging %q: %v", opt.Name(), err)
-		}
+			Command("-c", "echo '"+opt.Name()+"' && chmod 755 /install.sh && /install.sh").Run()
 		if err != nil {
 			lastErr = errors.NewError("failed to install %q: %v", opt.Name(), err).WithCause(err)
 			return false, nil

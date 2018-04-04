@@ -23,7 +23,7 @@ func InstallComponents(components []Component, dockerClient dockerhelper.Interfa
 	for i := range components {
 		component := components[i]
 		componentNames = append(componentNames, fmt.Sprintf("%q", component.Name()))
-		glog.V(4).Infof("Installing %q...", component.Name())
+		glog.Infof("Installing %q ...", component.Name())
 		waitGroupOne.Add(1)
 
 		go func() {

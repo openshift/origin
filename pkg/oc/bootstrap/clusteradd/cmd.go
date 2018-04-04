@@ -81,6 +81,10 @@ func (c *ClusterAddConfig) Run() error {
 	fmt.Fprintf(c.Out, "Adding %s ...\n", strings.Join(c.ComponentsToInstall, ", "))
 
 	componentsToInstall := []componentinstall.Component{}
+	installContext, err := componentinstall.NewComponentInstallContext(c.openshiftImage(), c.imageFormat(), c.BaseDir, c.ServerLogLevel)
+	if err != nil {
+		return err
+	}
 	for _, componentName := range c.ComponentsToInstall {
 		switch componentName {
 		case "service-catalog":
@@ -94,19 +98,14 @@ func (c *ClusterAddConfig) Run() error {
 			}
 
 			component := &service_catalog.ServiceCatalogComponentOptions{
-				OCImage:              c.openshiftImage(),
-				MasterConfigDir:      path.Join(c.GetKubeAPIServerConfigDir()),
-				ImageFormat:          c.imageFormat(),
 				PublicMasterHostName: masterURL.Hostname(),
+				InstallContext:       installContext,
 			}
 			componentsToInstall = append(componentsToInstall, component)
 
 		case "template-service-broker":
 			component := &template_service_broker.TemplateServiceBrokerComponentOptions{
-				OCImage:         c.openshiftImage(),
-				MasterConfigDir: path.Join(c.GetKubeAPIServerConfigDir()),
-				ImageFormat:     c.imageFormat(),
-				ServerLogLevel:  c.ServerLogLevel,
+				InstallContext: installContext,
 			}
 			componentsToInstall = append(componentsToInstall, component)
 
@@ -115,12 +114,7 @@ func (c *ClusterAddConfig) Run() error {
 		}
 	}
 
-	err := componentinstall.InstallComponents(componentsToInstall, c.dockerClient, c.GetLogDir())
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return componentinstall.InstallComponents(componentsToInstall, c.dockerClient, c.GetLogDir())
 }
 
 type ClusterAddConfig struct {

@@ -8,7 +8,6 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/golang/glog"
 
-	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/componentinstall"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/run"
 	"github.com/openshift/origin/pkg/oc/errors"
@@ -50,22 +49,19 @@ func (opt NodeStartConfig) MakeNodeConfig(dockerClient dockerhelper.Interface, b
 	}
 	createConfigCmd = append(createConfigCmd, opt.Args...)
 
-	containerId, stdout, stderr, rc, err := imageRunHelper.Image(opt.NodeImage).
+	containerId, rc, err := imageRunHelper.Image(opt.NodeImage).
 		Privileged().
 		HostNetwork().
 		HostPid().
 		Bind(opt.ContainerBinds...).
+		SaveContainerLogs(componentName, path.Join(basedir, "logs")).
 		Entrypoint("oc").
-		Command(createConfigCmd...).Output()
+		Command(createConfigCmd...).Run()
 	defer func() {
 		if err = dockerClient.ContainerRemove(containerId, types.ContainerRemoveOptions{}); err != nil {
 			glog.Errorf("error removing %q: %v", containerId, err)
 		}
 	}()
-
-	if err := componentinstall.LogContainer(path.Join(basedir, "logs"), componentName, stdout, stderr); err != nil {
-		glog.Errorf("error logging %q: %v", componentName, err)
-	}
 	if err != nil {
 		return "", errors.NewError("could not run %q: %v", componentName, err).WithCause(err)
 	}

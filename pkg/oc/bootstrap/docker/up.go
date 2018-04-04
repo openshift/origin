@@ -483,38 +483,37 @@ func (c *ClusterUpConfig) Start(out io.Writer) error {
 	}
 	taskPrinter.Success()
 
+	installContext, err := componentinstall.NewComponentInstallContext(c.openshiftImage(), c.imageFormat(), c.BaseDir, c.ServerLogLevel)
+	if err != nil {
+		return err
+	}
+
 	// TODO, now we build up a set of things to install here.  We build the list so that we can install everything in
 	// TODO parallel to avoid anyone accidentally introducing dependencies.  We'll start with migrating what we have
 	// TODO and then we'll try to clean it up.
 	registryInstall := &registry.RegistryComponentOptions{
-		OCImage:         c.openshiftImage(),
-		MasterConfigDir: path.Join(c.GetKubeAPIServerConfigDir()),
-		Images:          c.imageFormat(),
-		PVDir:           c.HostPersistentVolumesDir,
+		PVDir:          c.HostPersistentVolumesDir,
+		InstallContext: installContext,
 	}
 	//	return c.OpenShiftHelper().InstallRouter(c.ServerIP, c.PortForwarding)
 	routerInstall := &router.RouterComponentOptions{
-		OCImage:         c.openshiftImage(),
-		MasterConfigDir: path.Join(c.GetKubeAPIServerConfigDir()),
-		RoutingSuffix:   c.RoutingSuffix,
-		ImageFormat:     c.imageFormat(),
-		PortForwarding:  c.PortForwarding,
+		RoutingSuffix:  c.RoutingSuffix,
+		PortForwarding: c.PortForwarding,
+		InstallContext: installContext,
 	}
 	webConsoleInstall := &web_console.WebConsoleComponentOptions{
-		OCImage:          c.openshiftImage(),
-		MasterConfigDir:  path.Join(c.GetKubeAPIServerConfigDir()),
-		ImageFormat:      c.imageFormat(),
 		PublicConsoleURL: fmt.Sprintf("https://%s:8443/console", c.GetPublicHostName()),
 		PublicMasterURL:  fmt.Sprintf("https://%s:8443", c.GetPublicHostName()),
-		ServerLogLevel:   c.ServerLogLevel,
+		PublicLoggingURL: fmt.Sprintf("https://%s", openshift.LoggingHost(c.RoutingSuffix)),
+		PublicMetricsURL: fmt.Sprintf("https://%s/hawkular/metrics", openshift.MetricsHost(c.RoutingSuffix)),
+		InstallContext:   installContext,
 	}
 
 	componentsToInstall := []componentinstall.Component{}
 	componentsToInstall = append(componentsToInstall, c.ImportInitialObjectsComponents(c.Out)...)
 	componentsToInstall = append(componentsToInstall, registryInstall, webConsoleInstall, routerInstall)
 
-	err := componentinstall.InstallComponents(componentsToInstall, c.GetDockerClient(), c.GetLogDir())
-	if err != nil {
+	if err := componentinstall.InstallComponents(componentsToInstall, c.GetDockerClient(), c.GetLogDir()); err != nil {
 		return err
 	}
 

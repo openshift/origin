@@ -1,14 +1,15 @@
 package service_catalog
 
 import (
-	"io/ioutil"
 	"path"
 
 	"github.com/golang/glog"
+	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/components/register-template-service-broker"
+	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/kubeapiserver"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	kclientcmd "k8s.io/client-go/tools/clientcmd"
+	aggregatorclient "k8s.io/kube-aggregator/pkg/client/clientset_generated/clientset"
 	"k8s.io/kubernetes/pkg/apis/rbac"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/registry/rbac/reconciliation"
@@ -16,7 +17,6 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	"github.com/openshift/origin/pkg/oc/bootstrap"
 	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/componentinstall"
-	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/components/register-template-service-broker"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/errors"
 )
@@ -27,10 +27,8 @@ const (
 )
 
 type ServiceCatalogComponentOptions struct {
-	OCImage              string
-	MasterConfigDir      string
-	ImageFormat          string
 	PublicMasterHostName string
+	InstallContext       componentinstall.Context
 }
 
 func (c *ServiceCatalogComponentOptions) Name() string {
@@ -38,21 +36,14 @@ func (c *ServiceCatalogComponentOptions) Name() string {
 }
 
 func (c *ServiceCatalogComponentOptions) Install(dockerClient dockerhelper.Interface, logdir string) error {
-	clusterAdminKubeConfigBytes, err := ioutil.ReadFile(path.Join(c.MasterConfigDir, "admin.kubeconfig"))
+	kubeAdminClient, err := kubernetes.NewForConfig(c.InstallContext.ClusterAdminClientConfig())
 	if err != nil {
 		return err
 	}
-	restConfig, err := kclientcmd.RESTConfigFromKubeConfig(clusterAdminKubeConfigBytes)
+
+	kubeInternalAdminClient, err := kclientset.NewForConfig(c.InstallContext.ClusterAdminClientConfig())
 	if err != nil {
 		return err
-	}
-	kubeClient, err := kclientset.NewForConfig(restConfig)
-	if err != nil {
-		return errors.NewError("cannot obtain API clients").WithCause(err)
-	}
-	kubeExternalClient, err := kubernetes.NewForConfig(restConfig)
-	if err != nil {
-		return errors.NewError("cannot obtain API clients").WithCause(err)
 	}
 
 	for _, role := range getServiceCatalogClusterRoles() {
@@ -61,7 +52,7 @@ func (c *ServiceCatalogComponentOptions) Install(dockerClient dockerhelper.Inter
 			RemoveExtraPermissions: false,
 			Role: reconciliation.ClusterRoleRuleOwner{ClusterRole: &role},
 			Client: reconciliation.ClusterRoleModifier{
-				Client: kubeClient.Rbac().ClusterRoles(),
+				Client: kubeInternalAdminClient.Rbac().ClusterRoles(),
 			},
 		}).Run(); err != nil {
 			return errors.NewError("could not reconcile service catalog cluster role %s", role.Name).WithCause(err)
@@ -70,7 +61,7 @@ func (c *ServiceCatalogComponentOptions) Install(dockerClient dockerhelper.Inter
 
 	// Instantiate service catalog
 	imageTemplate := variable.NewDefaultImageTemplate()
-	imageTemplate.Format = c.ImageFormat
+	imageTemplate.Format = c.InstallContext.ImageFormat()
 	imageTemplate.Latest = false
 
 	params := map[string]string{
@@ -78,7 +69,10 @@ func (c *ServiceCatalogComponentOptions) Install(dockerClient dockerhelper.Inter
 		"CORS_ALLOWED_ORIGIN":        c.PublicMasterHostName,
 		"SERVICE_CATALOG_IMAGE":      imageTemplate.ExpandOrDie("service-catalog"),
 	}
-
+	aggregatorClient, err := aggregatorclient.NewForConfig(c.InstallContext.ClusterAdminClientConfig())
+	if err != nil {
+		return err
+	}
 	// Stands up the service catalog apiserver, etcd, and controller manager
 	component := componentinstall.Template{
 		Name:            "service-catalog",
@@ -89,28 +83,35 @@ func (c *ServiceCatalogComponentOptions) Install(dockerClient dockerhelper.Inter
 		// Wait for the apiserver endpoint to become available
 		WaitCondition: func() (bool, error) {
 			glog.V(2).Infof("polling for service catalog api server endpoint availability")
-			deployment, err := kubeExternalClient.AppsV1().Deployments(catalogNamespace).Get("apiserver", metav1.GetOptions{})
+			deployment, err := kubeAdminClient.AppsV1().Deployments(catalogNamespace).Get("apiserver", metav1.GetOptions{})
 			if err != nil {
 				return false, err
 			}
 			if deployment.Status.AvailableReplicas == 0 {
 				return false, nil
 			}
-			return componentinstall.CheckForAPIs(restConfig, "v1beta1.servicecatalog.k8s.io")
+			return componentinstall.CheckForAPIs(aggregatorClient, "v1beta1.servicecatalog.k8s.io")
 		},
 	}
 
 	err = component.MakeReady(
-		c.OCImage,
-		clusterAdminKubeConfigBytes,
+		c.InstallContext.ClientImage(),
+		c.InstallContext.ClusterAdminConfigBytes(),
 		params).Install(dockerClient, logdir)
 
 	if err != nil {
 		return err
 	}
 
+	masterConfigDir := path.Join(c.InstallContext.BaseDir(), kubeapiserver.KubeAPIServerDirName)
 	// the template service broker may not be here, but as a best effort try to register
-	register_template_service_broker.RegisterTemplateServiceBroker(dockerClient, c.OCImage, clusterAdminKubeConfigBytes, c.MasterConfigDir, logdir)
+	register_template_service_broker.RegisterTemplateServiceBroker(
+		dockerClient,
+		c.InstallContext.ClientImage(),
+		c.InstallContext.ClusterAdminConfigBytes(),
+		masterConfigDir,
+		logdir,
+	)
 	return nil
 }
 
