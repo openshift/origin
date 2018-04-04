@@ -1,3 +1,0 @@
-      NAME       NAMESPACE           CLASS            PLAN     STATUS  
-+--------------+-----------+-----------------------+---------+--------+
-  ups-instance   test-ns     user-provided-service   default   Ready   
