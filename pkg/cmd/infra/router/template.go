@@ -405,7 +405,7 @@ func (o *TemplateRouterOptions) Run() error {
 		return err
 	}
 
-	svcFetcher := templateplugin.NewListWatchServiceLookup(kc.Core(), o.ResyncInterval)
+	svcFetcher := templateplugin.NewListWatchServiceLookup(kc.Core(), o.ResyncInterval, o.Namespace)
 	templatePlugin, err := templateplugin.NewTemplatePlugin(pluginCfg, svcFetcher)
 	if err != nil {
 		return err
