@@ -271,9 +271,6 @@ func buildUpstreamGenericConfig(s *kapiserveroptions.ServerRunOptions) (*apiserv
 	//if err := s.SecureServing.MaybeDefaultWithSelfSignedCerts(s.GenericServerRunOptions.AdvertiseAddress.String(), apiServerServiceIP); err != nil {
 	//	return nil, fmt.Errorf("error creating self-signed certificates: %v", err)
 	//}
-	if err := s.CloudProvider.DefaultExternalHost(s.GenericServerRunOptions); err != nil {
-		return nil, fmt.Errorf("error setting the external host value: %v", err)
-	}
 
 	s.Authentication.ApplyAuthorization(s.Authorization)
 
@@ -298,6 +295,9 @@ func buildUpstreamGenericConfig(s *kapiserveroptions.ServerRunOptions) (*apiserv
 		return nil, err
 	}
 	if err := s.Authentication.ApplyTo(genericConfig); err != nil {
+		return nil, err
+	}
+	if err := s.APIEnablement.ApplyTo(genericConfig, master.DefaultAPIResourceConfigSource(), legacyscheme.Registry); err != nil {
 		return nil, err
 	}
 	// Do not wait for etcd because the internal etcd is launched after this and origin has an etcd test already
