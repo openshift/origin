@@ -53,6 +53,8 @@ Options:
 os_image_prefix = getenv("OS_IMAGE_PREFIX", "openshift/origin")
 image_namespace, _, image_prefix = os_image_prefix.rpartition("/")
 
+# "enable_default: True" can be added to skip the image build
+# with no arguments
 image_config = {
     image_prefix: {
         "directory": "origin",
@@ -139,15 +141,6 @@ image_config = {
             "openshift": "/usr/bin/openshift"
         },
         "files": {}
-    },
-    "service-catalog": {
-        "directory": "service-catalog",
-        "vendor_dir": "cmd/service-catalog/go/src/github.com/kubernetes-incubator/service-catalog",
-        "binaries": {
-            "service-catalog": "/usr/bin/service-catalog",
-        },
-        "files": {},
-        "enable_default": False,
     },
     "template-service-broker": {
         "directory": "template-service-broker",

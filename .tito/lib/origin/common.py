@@ -32,7 +32,6 @@ def get_os_git_vars():
     """
     git_vars = {}
     for var_name in ["OS_GIT_COMMIT", "OS_GIT_VERSION", "OS_GIT_MAJOR", "OS_GIT_MINOR", "OS_GIT_PATCH",
-                     "OS_GIT_CATALOG_VERSION",
                      "ETCD_GIT_VERSION", "ETCD_GIT_COMMIT",
                      "KUBE_GIT_VERSION", "KUBE_GIT_COMMIT"]:
         git_vars[var_name] = run_command(
