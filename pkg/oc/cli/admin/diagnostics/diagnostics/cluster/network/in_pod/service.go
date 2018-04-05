@@ -26,6 +26,7 @@ type CheckServiceNetwork struct {
 	KubeClient           kclientset.Interface
 	NetNamespacesClient  networktypedclient.NetNamespacesGetter
 	ClusterNetworkClient networktypedclient.ClusterNetworksGetter
+	Runtime              *util.Runtime
 
 	vnidMap map[string]uint32
 	res     types.DiagnosticResult
@@ -175,14 +176,8 @@ func (d CheckServiceNetwork) checkPodToServiceConnection(fromPod *kapi.Pod, toSe
 
 	success := util.ExpectedConnectionStatus(fromPod.Namespace, toService.Namespace, d.vnidMap)
 
-	runtime, err := util.GetRuntime()
-	if err != nil {
-		d.res.Error("DSvcNet1014", err, fmt.Sprintf("Failed to get CRI runtime: %v", err))
-		return
-	}
-
 	containerID := kcontainer.ParseContainerID(fromPod.Status.ContainerStatuses[0].ContainerID).ID
-	pid, err := runtime.GetContainerPid(containerID)
+	pid, err := d.Runtime.GetContainerPid(containerID)
 	if err != nil {
 		d.res.Error("DSvcNet1009", err, err.Error())
 		return

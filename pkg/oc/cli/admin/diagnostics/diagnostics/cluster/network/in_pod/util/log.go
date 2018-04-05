@@ -21,7 +21,7 @@ type LogInterface struct {
 	Logdir string
 }
 
-func (l *LogInterface) LogNode(kubeClient kclientset.Interface) {
+func (l *LogInterface) LogNode(kubeClient kclientset.Interface, runtime *Runtime) {
 	l.LogSystem()
 	l.LogServices()
 
@@ -30,12 +30,6 @@ func (l *LogInterface) LogNode(kubeClient kclientset.Interface) {
 	l.Run("tc qdisc show", "tc-qdisc")
 	l.Run("tc class show", "tc-class")
 	l.Run("tc filter show", "tc-filter")
-
-	runtime, err := GetRuntime()
-	if err != nil {
-		l.Result.Error("DLogNet1009", err, fmt.Sprintf("Failed to get CRI runtime: %v", err))
-		return
-	}
 
 	l.logRuntime(runtime)
 	l.logPodInfo(kubeClient, runtime)
