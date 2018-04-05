@@ -109,7 +109,7 @@ func New(client dockerpkg.Client, config *api.Config, fs fs.FileSystem, override
 		config.PullAuthentication,
 		fs,
 	)
-	tarHandler := tar.New(fs)
+	tarHandler := tar.NewParanoid(fs)
 	tarHandler.SetExclusionPattern(excludePattern)
 
 	builder := &STI{
