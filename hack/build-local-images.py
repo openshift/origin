@@ -31,8 +31,8 @@ Usage:
   of the image (e.g. openshift3/ose-haproxy-router) or the name sans prefix
   (e.g. haproxy-router).
 
-  The following environment veriables are honored by this script:
-   - $OS_IMAGE_PREFIX: one of [openshift/origin, openshift3/ose]
+  The following environment variables are honored by this script:
+   - $OS_IMAGE_PREFIX: one of [openshift/origin, docker.io/openshift/origin, openshift3/ose]
    - $OS_DEBUG: if set, debugging information will be printed
 
 Examples:
@@ -51,7 +51,7 @@ Options:
     exit(2)
 
 os_image_prefix = getenv("OS_IMAGE_PREFIX", "openshift/origin")
-image_namespace, image_prefix = os_image_prefix.split("/", 2)
+image_namespace, _, image_prefix = os_image_prefix.rpartition("/")
 
 image_config = {
     image_prefix: {
