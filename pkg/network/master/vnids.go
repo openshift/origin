@@ -111,7 +111,7 @@ func (vmap *masterVNIDMap) allocateNetID(nsName string) (uint32, bool, error) {
 	}
 
 	vmap.setVNID(nsName, netid)
-	glog.Infof("Allocated netid %d for namespace %q", netid, nsName)
+	glog.Infof("[master] Allocated netid %d for namespace %q", netid, nsName)
 	return netid, exists, nil
 }
 
@@ -133,9 +133,9 @@ func (vmap *masterVNIDMap) releaseNetID(nsName string) error {
 		if err := vmap.netIDManager.Release(netid); err != nil {
 			return fmt.Errorf("error while releasing netid %d for namespace %q, %v", netid, nsName, err)
 		}
-		glog.Infof("Released netid %d for namespace %q", netid, nsName)
+		glog.Infof("[master] Released netid %d for namespace %q", netid, nsName)
 	} else {
-		glog.V(5).Infof("netid %d for namespace %q is still in use", netid, nsName)
+		glog.Infof("[master] netid %d for namespace %q is still in use", netid, nsName)
 	}
 	return nil
 }
@@ -189,7 +189,7 @@ func (vmap *masterVNIDMap) updateNetID(nsName string, action network.PodNetworkA
 
 	// Set new network ID
 	vmap.setVNID(nsName, netid)
-	glog.Infof("Updated netid %d for namespace %q", netid, nsName)
+	glog.Infof("[master] Updated netid %d for namespace %q", netid, nsName)
 	return netid, nil
 }
 
@@ -217,6 +217,8 @@ func (vmap *masterVNIDMap) assignVNID(networkClient networkclient.Interface, nsN
 			}
 			return err
 		}
+	} else {
+	glog.Infof("[master] VNID for %q already exists", nsName)
 	}
 	return nil
 }
@@ -269,12 +271,16 @@ func (vmap *masterVNIDMap) updateVNID(networkClient networkclient.Interface, ori
 //--------------------- Master methods ----------------------
 
 func (master *OsdnMaster) startVNIDMaster() error {
+	glog.Infof("[master] starting netid allocator")
 	if err := master.initNetIDAllocator(); err != nil {
 		return err
 	}
 
+	glog.Infof("[master] starting namespace watch")
 	master.watchNamespaces()
+	glog.Infof("[master] starting netNamespace watch")
 	master.watchNetNamespaces()
+	glog.Infof("[master] vnids start done")
 
 	return nil
 }
@@ -297,12 +303,13 @@ func (master *OsdnMaster) initNetIDAllocator() error {
 
 func (master *OsdnMaster) watchNamespaces() {
 	funcs := common.InformerFuncs(&kapi.Namespace{}, master.handleAddOrUpdateNamespace, master.handleDeleteNamespace)
+	glog.Infof("[master] Watching namespaces, informer %p", master.namespaceInformer.Informer())
 	master.namespaceInformer.Informer().AddEventHandler(funcs)
 }
 
 func (master *OsdnMaster) handleAddOrUpdateNamespace(obj, _ interface{}, eventType watch.EventType) {
 	ns := obj.(*kapi.Namespace)
-	glog.V(5).Infof("Watch %s event for Namespace %q", eventType, ns.Name)
+	glog.Infof("[master] Watch %s event for Namespace %q", eventType, ns.Name)
 
 	if err := master.vnids.assignVNID(master.networkClient, ns.Name); err != nil {
 		utilruntime.HandleError(fmt.Errorf("Error assigning netid: %v", err))
@@ -311,7 +318,7 @@ func (master *OsdnMaster) handleAddOrUpdateNamespace(obj, _ interface{}, eventTy
 
 func (master *OsdnMaster) handleDeleteNamespace(obj interface{}) {
 	ns := obj.(*kapi.Namespace)
-	glog.V(5).Infof("Watch %s event for Namespace %q", watch.Deleted, ns.Name)
+	glog.Infof("[master] Watch %s event for Namespace %q", watch.Deleted, ns.Name)
 	if err := master.vnids.revokeVNID(master.networkClient, ns.Name); err != nil {
 		utilruntime.HandleError(fmt.Errorf("Error revoking netid: %v", err))
 	}
@@ -319,12 +326,13 @@ func (master *OsdnMaster) handleDeleteNamespace(obj interface{}) {
 
 func (master *OsdnMaster) watchNetNamespaces() {
 	funcs := common.InformerFuncs(&networkapi.NetNamespace{}, master.handleAddOrUpdateNetNamespace, nil)
+	glog.Infof("[master] Watching netNamespaces")
 	master.netNamespaceInformer.Informer().AddEventHandler(funcs)
 }
 
 func (master *OsdnMaster) handleAddOrUpdateNetNamespace(obj, _ interface{}, eventType watch.EventType) {
 	netns := obj.(*networkapi.NetNamespace)
-	glog.V(5).Infof("Watch %s event for NetNamespace %q", eventType, netns.Name)
+	glog.Infof("[master] Watch %s event for NetNamespace %q", eventType, netns.Name)
 
 	if err := master.vnids.updateVNID(master.networkClient, netns); err != nil {
 		utilruntime.HandleError(fmt.Errorf("Error updating netid: %v", err))

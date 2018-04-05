@@ -157,6 +157,7 @@ func Start(networkConfig osconfigapi.MasterNetworkConfig, networkClient networkc
 	}
 
 	go master.startSubSystems(networkConfig.NetworkPluginName)
+	glog.Infof("[master] master started")
 
 	return nil
 }
@@ -170,10 +171,12 @@ func (master *OsdnMaster) startSubSystems(pluginName string) {
 		master.netNamespaceInformer.Informer().GetController().HasSynced) {
 		glog.Fatalf("failed to sync SDN master informers")
 	}
+	glog.Infof("[master] informer caches synced")
 
 	if err := master.startSubnetMaster(); err != nil {
 		glog.Fatalf("failed to start subnet master: %v", err)
 	}
+	glog.Infof("[master] started subnets")
 
 	switch pluginName {
 	case network.MultiTenantPluginName:
@@ -185,7 +188,9 @@ func (master *OsdnMaster) startSubSystems(pluginName string) {
 		if err := master.startVNIDMaster(); err != nil {
 			glog.Fatalf("failed to start VNID master: %v", err)
 		}
+		glog.Infof("[master] started vnids")
 	}
+	glog.Infof("[master] subsystems started")
 }
 
 func (master *OsdnMaster) checkClusterNetworkAgainstLocalNetworks() error {
