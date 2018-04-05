@@ -504,8 +504,6 @@ func (c *ClusterUpConfig) Start(out io.Writer) error {
 	webConsoleInstall := &web_console.WebConsoleComponentOptions{
 		PublicConsoleURL: fmt.Sprintf("https://%s:8443/console", c.GetPublicHostName()),
 		PublicMasterURL:  fmt.Sprintf("https://%s:8443", c.GetPublicHostName()),
-		PublicLoggingURL: fmt.Sprintf("https://%s", openshift.LoggingHost(c.RoutingSuffix)),
-		PublicMetricsURL: fmt.Sprintf("https://%s/hawkular/metrics", openshift.MetricsHost(c.RoutingSuffix)),
 		InstallContext:   installContext,
 	}
 

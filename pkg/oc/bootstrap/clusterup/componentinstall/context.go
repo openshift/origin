@@ -17,7 +17,7 @@ type Context interface {
 	BaseDir() string
 	ClientImage() string
 	ImageFormat() string
-	LogLevel() int
+	ComponentLogLevel() int
 }
 
 type installContext struct {
@@ -34,8 +34,8 @@ func (c *installContext) ImageFormat() string {
 	return c.imageFormat
 }
 
-// LogLevel tells what log level user desire for the component
-func (c *installContext) LogLevel() int {
+// ComponentLogLevel tells what log level user desire for the component
+func (c *installContext) ComponentLogLevel() int {
 	return c.logLevel
 }
 

@@ -3,26 +3,21 @@ package clusteradd
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
-	"net/url"
 	"os"
 	"path"
 	"strings"
 
+	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/components/service-catalog"
+	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/components/template-service-broker"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
-	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
-	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/componentinstall"
-	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/components/service-catalog"
-	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/components/template-service-broker"
-	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/kubeapiserver"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/version"
@@ -45,14 +40,14 @@ var (
 	  %[1]s --base-dir=other/path template-service-broker`)
 )
 
-const (
-	ServiceCatalogComponentName        = "service-catalog"
-	TemplateServiceBrokenComponentName = "template-service-broker"
-)
-
-var validComponentNames = []string{
-	ServiceCatalogComponentName,
-	TemplateServiceBrokenComponentName,
+// availableComponents lists the components that are available for installation.
+var availableComponents = map[string]func(ctx componentinstall.Context) componentinstall.Component{
+	"service-catalog": func(ctx componentinstall.Context) componentinstall.Component {
+		return &service_catalog.ServiceCatalogComponentOptions{InstallContext: ctx}
+	},
+	"template-service-broker": func(ctx componentinstall.Context) componentinstall.Component {
+		return &template_service_broker.TemplateServiceBrokerComponentOptions{InstallContext: ctx}
+	},
 }
 
 func NewCmdAdd(name, fullName string, out, errout io.Writer) *cobra.Command {
@@ -88,42 +83,16 @@ func NewCmdAdd(name, fullName string, out, errout io.Writer) *cobra.Command {
 
 // Start runs the start tasks ensuring that they are executed in sequence
 func (c *ClusterAddConfig) Run() error {
-	fmt.Fprintf(c.Out, "Adding %s ...\n", strings.Join(c.ComponentsToInstall, ", "))
-
 	componentsToInstall := []componentinstall.Component{}
 	installContext, err := componentinstall.NewComponentInstallContext(c.openshiftImage(), c.imageFormat(), c.BaseDir, c.ServerLogLevel)
 	if err != nil {
 		return err
 	}
 	for _, componentName := range c.ComponentsToInstall {
-		switch componentName {
-		case ServiceCatalogComponentName:
-			masterConfig, err := c.GetKubeAPIServerMasterConfig()
-			if err != nil {
-				return err
-			}
-			masterURL, err := url.Parse(masterConfig.MasterPublicURL)
-			if err != nil {
-				return err
-			}
-
-			component := &service_catalog.ServiceCatalogComponentOptions{
-				PublicMasterHostName: masterURL.Hostname(),
-				InstallContext:       installContext,
-			}
-			componentsToInstall = append(componentsToInstall, component)
-
-		case TemplateServiceBrokenComponentName:
-			component := &template_service_broker.TemplateServiceBrokerComponentOptions{
-				InstallContext: installContext,
-			}
-			componentsToInstall = append(componentsToInstall, component)
-
-		default:
-			return fmt.Errorf("unknown component: %q, valid components are: %q", componentName, strings.Join(validComponentNames, ","))
-		}
+		fmt.Fprintf(c.Out, "Adding %s ...\n", componentName)
+		component := availableComponents[componentName](installContext)
+		componentsToInstall = append(componentsToInstall, component)
 	}
-
 	return componentinstall.InstallComponents(componentsToInstall, c.dockerClient, c.GetLogDir())
 }
 
@@ -141,8 +110,13 @@ type ClusterAddConfig struct {
 }
 
 func (c *ClusterAddConfig) Complete(cmd *cobra.Command) error {
-	// TODO validate these
 	c.ComponentsToInstall = cmd.Flags().Args()
+	validComponentNames := sets.StringKeySet(availableComponents)
+	for _, name := range c.ComponentsToInstall {
+		if !validComponentNames.Has(name) {
+			return fmt.Errorf("unknown component %q, valid component names are: %q", name, strings.Join(validComponentNames.List(), ","))
+		}
+	}
 
 	// do some defaulting
 	if len(c.ImageTag) == 0 {
@@ -205,20 +179,4 @@ func (c *ClusterAddConfig) GetLogDir() string {
 
 func (c *ClusterAddConfig) imageFormat() string {
 	return fmt.Sprintf("%s-${component}:%s", c.Image, c.ImageTag)
-}
-
-func (c *ClusterAddConfig) GetKubeAPIServerMasterConfig() (*configapi.MasterConfig, error) {
-	configBytes, err := ioutil.ReadFile(path.Join(c.GetKubeAPIServerConfigDir(), "master-config.yaml"))
-	if err != nil {
-		return nil, err
-	}
-	configObj, err := runtime.Decode(configapilatest.Codec, configBytes)
-	if err != nil {
-		return nil, err
-	}
-	return configObj.(*configapi.MasterConfig), nil
-}
-
-func (c *ClusterAddConfig) GetKubeAPIServerConfigDir() string {
-	return path.Join(c.BaseDir, kubeapiserver.KubeAPIServerDirName)
 }

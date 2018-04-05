@@ -1,13 +1,19 @@
 package service_catalog
 
 import (
+	"fmt"
+	"io/ioutil"
+	"net/url"
 	"path"
 
 	"github.com/golang/glog"
 	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/components/register-template-service-broker"
 	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/kubeapiserver"
 
+	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
+	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	aggregatorclient "k8s.io/kube-aggregator/pkg/client/clientset_generated/clientset"
 	"k8s.io/kubernetes/pkg/apis/rbac"
@@ -27,8 +33,7 @@ const (
 )
 
 type ServiceCatalogComponentOptions struct {
-	PublicMasterHostName string
-	InstallContext       componentinstall.Context
+	InstallContext componentinstall.Context
 }
 
 func (c *ServiceCatalogComponentOptions) Name() string {
@@ -64,9 +69,26 @@ func (c *ServiceCatalogComponentOptions) Install(dockerClient dockerhelper.Inter
 	imageTemplate.Format = c.InstallContext.ImageFormat()
 	imageTemplate.Latest = false
 
+	configBytes, err := ioutil.ReadFile(path.Join(c.InstallContext.BaseDir(), kubeapiserver.KubeAPIServerDirName, "master-config.yaml"))
+	if err != nil {
+		return err
+	}
+	configObj, err := runtime.Decode(configapilatest.Codec, configBytes)
+	if err != nil {
+		return err
+	}
+	masterConfig, ok := configObj.(*configapi.MasterConfig)
+	if !ok {
+		return fmt.Errorf("the %#v is not MasterConfig", configObj)
+	}
+	masterURL, err := url.Parse(masterConfig.MasterPublicURL)
+	if err != nil {
+		return err
+	}
+
 	params := map[string]string{
 		"SERVICE_CATALOG_SERVICE_IP": ServiceCatalogServiceIP,
-		"CORS_ALLOWED_ORIGIN":        c.PublicMasterHostName,
+		"CORS_ALLOWED_ORIGIN":        masterURL.Hostname(),
 		"SERVICE_CATALOG_IMAGE":      imageTemplate.ExpandOrDie("service-catalog"),
 	}
 	aggregatorClient, err := aggregatorclient.NewForConfig(c.InstallContext.ClusterAdminClientConfig())
