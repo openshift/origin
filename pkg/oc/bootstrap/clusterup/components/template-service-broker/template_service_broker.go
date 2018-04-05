@@ -60,7 +60,7 @@ func (c *TemplateServiceBrokerComponentOptions) Install(dockerClient dockerhelpe
 			if err != nil {
 				return false, err
 			}
-			if ds.Status.NumberReady > 0 {
+			if ds.Status.NumberAvailable > 0 {
 				return true, nil
 			}
 			return false, nil

@@ -86,11 +86,11 @@ func (c *WebConsoleComponentOptions) Install(dockerClient dockerhelper.Interface
 		// wait until the webconsole is ready
 		WaitCondition: func() (bool, error) {
 			glog.V(2).Infof("polling for web console server availability")
-			ds, err := kubeAdminClient.AppsV1().Deployments(consoleNamespace).Get("webconsole", metav1.GetOptions{})
+			deployment, err := kubeAdminClient.AppsV1().Deployments(consoleNamespace).Get("webconsole", metav1.GetOptions{})
 			if err != nil {
 				return false, err
 			}
-			if ds.Status.ReadyReplicas > 0 {
+			if deployment.Status.AvailableReplicas > 0 {
 				return true, nil
 			}
 			return false, nil
