@@ -17,6 +17,12 @@ When done through ansible, provide sdn_network_plugin_name=cni as the option whi
 
 Learn more about CNI [here](https://kubernetes.io/docs/concepts/cluster-administration/network-plugins) and [here](https://github.com/containernetworking/cni/blob/master/SPEC.md).
 
+## Daemonset is the preferred way of installing the plugin
+
+OpenShift uses 'ansible' for installation and a complete installation of a cluster that uses a vendor plugin should hook up with the ansible installation [code](https://github.com/openshift/openshift-ansible). The preferred way to install the plugin itself (invoked through ansible) should be using [daemonsets](https://kubernetes.io/docs/concepts/workloads/controllers/daemonset).
+
+With daemonset based installation, it is easier to install the plugin as a post-cluster-creation step. But the real advantage is when the plugin needs to upgrade itself.
+
 ## Advanced requirements
 Finally, these extra things should be kept in mind when writing a CNI plugin for OpenShift:
 
@@ -39,6 +45,8 @@ OPTIONS="--loglevel=2 --disable proxy"
 6. *Respect the PodSecurityContext::HostNetwork=true for infra pods. Or provide an externally routable IP address to the pod. This is used for the load balancer pods which are the entry point for all external traffic funneling into the cluster.
    - Note that the HostPort<->ContainerPort mapping will not be available by default if the CNI plugin is enabled (as the default docker networking is turned off). The plugin will have to implement this functionality by itself.
 
+7. Keep in mind that NetworkManager is installed and run by default in OpenShift. So, if the vendor SDN plugin wants some interfaces not to be managed by NetworkManager then they have to be marked with nm_controlled=no specifically. 
 
+A common conflict point is that in OpenShift, NetworkManager enables DNS using dnsmasq. The plugin may need to explicitly check that openshift does not use dnsmasq - use flag 'openshift_use_dnsmasq=False' in ansible.
 
 * The items marked with '*' are _not_ necessary for a functional OpenShift cluster, but some things will need to be worked around for the administrator's benefit.
