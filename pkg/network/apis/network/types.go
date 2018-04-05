@@ -51,7 +51,8 @@ type HostSubnet struct {
 	HostIP string
 	Subnet string
 
-	EgressIPs []string
+	EgressIPs   []string
+	EgressCIDRs []string
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
