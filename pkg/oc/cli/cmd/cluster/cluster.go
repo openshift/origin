@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/openshift/origin/pkg/oc/bootstrap/clusteradd"
 	"github.com/spf13/cobra"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -45,7 +46,10 @@ func NewCmdCluster(name, fullName string, f *clientcmd.Factory, in io.Reader, ou
 		Run:   cmdutil.DefaultSubCommandRun(errout),
 	}
 
-	cmds.AddCommand(docker.NewCmdUp(docker.CmdUpRecommendedName, fullName+" "+docker.CmdUpRecommendedName, f, out, errout))
+	clusterAdd := clusteradd.NewCmdAdd(clusteradd.CmdAddRecommendedName, fullName+" "+clusteradd.CmdAddRecommendedName, out, errout)
+
+	cmds.AddCommand(clusterAdd)
+	cmds.AddCommand(docker.NewCmdUp(docker.CmdUpRecommendedName, fullName+" "+docker.CmdUpRecommendedName, f, out, errout, clusterAdd))
 	cmds.AddCommand(docker.NewCmdDown(docker.CmdDownRecommendedName, fullName+" "+docker.CmdDownRecommendedName, out))
 	cmds.AddCommand(docker.NewCmdStatus(docker.CmdStatusRecommendedName, fullName+" "+docker.CmdStatusRecommendedName, f, out))
 	return cmds

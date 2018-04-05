@@ -55,7 +55,7 @@ func NewCmdDown(name, fullName string, out io.Writer) *cobra.Command {
 // Stop stops the currently running origin container and any
 // containers started by the node.
 func (c *ClientStopConfig) Stop(out io.Writer) error {
-	client, err := getDockerClient(out, c.DockerMachine, false)
+	client, err := GetDockerClient(out, c.DockerMachine, false)
 	if err != nil {
 		return err
 	}

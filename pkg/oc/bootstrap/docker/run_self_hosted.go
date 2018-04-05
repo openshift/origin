@@ -275,10 +275,7 @@ func (c *ClusterUpConfig) BuildConfig() (*configDirs, error) {
 
 // makeMasterConfig returns the directory where a generated masterconfig lives
 func (c *ClusterUpConfig) makeMasterConfig() (string, error) {
-	publicHost := c.PublicHostname
-	if len(publicHost) == 0 {
-		publicHost = c.ServerIP
-	}
+	publicHost := c.GetPublicHostName()
 
 	container := kubeapiserver.NewKubeAPIServerStartConfig()
 	container.MasterImage = c.openshiftImage()

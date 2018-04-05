@@ -14,6 +14,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	"github.com/openshift/origin/pkg/oc/bootstrap"
 	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/componentinstall"
+	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/components/register-template-service-broker"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/oc/errors"
 )
@@ -26,7 +27,6 @@ type TemplateServiceBrokerComponentOptions struct {
 	OCImage         string
 	MasterConfigDir string
 	ImageFormat     string
-	PublicMasterURL string
 	ServerLogLevel  int
 }
 
@@ -80,8 +80,15 @@ func (c *TemplateServiceBrokerComponentOptions) Install(dockerClient dockerhelpe
 		},
 	}
 
-	return component.MakeReady(
+	err = component.MakeReady(
 		c.OCImage,
 		clusterAdminKubeConfigBytes,
 		params).Install(dockerClient, logdir)
+	if err != nil {
+		return err
+	}
+
+	// the service catalog may not be here, but as a best effort try to register
+	register_template_service_broker.RegisterTemplateServiceBroker(dockerClient, c.OCImage, clusterAdminKubeConfigBytes, c.MasterConfigDir, logdir)
+	return nil
 }

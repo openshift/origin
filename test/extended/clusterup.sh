@@ -193,7 +193,7 @@ function os::test::extended::clusterup::service_catalog() {
     base_dir=$(os::test::extended::clusterup::make_base_dir "service_catalog")
 
     arg=$@
-    os::cmd::expect_success "oc cluster up --base-dir="${base_dir}" --service-catalog $arg"
+    os::cmd::expect_success "oc cluster up --base-dir="${base_dir}" --enable=service-catalog --enable=template-service-broker $arg"
     os::test::extended::clusterup::verify_router_and_registry
     os::test::extended::clusterup::verify_image_streams
     os::cmd::expect_success "oc login -u system:admin"
