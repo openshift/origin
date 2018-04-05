@@ -27,6 +27,8 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/apiserver/pkg/server/healthz"
 	"k8s.io/client-go/tools/cache"
@@ -147,9 +149,7 @@ var (
 		script could make a call to allocate storage on your infrastructure as a
 		service, or register node names in DNS, or set complex firewalls. The more
 		complex your integration, the more important it is to record enough data in the
-		remote system that you can identify when resources on either side are deleted.
-
-		Experimental: This command is under active development and may change without notice.`)
+		remote system that you can identify when resources on either side are deleted.`)
 
 	observeExample = templates.Examples(`
 		# Observe changes to services
@@ -440,12 +440,23 @@ func (o *ObserveOptions) Run() error {
 	}
 
 	defer o.dumpMetrics()
-	stopChan := make(chan struct{})
-	defer close(stopChan)
+	stopCh := make(chan struct{})
+	defer close(stopCh)
 
 	// start the reflector
 	reflector := cache.NewNamedReflector("observer", lw, nil, store, o.resyncPeriod)
-	go reflector.Run(stopChan)
+	go func() {
+		observedListErrors := 0
+		wait.Until(func() {
+			if err := reflector.ListAndWatch(stopCh); err != nil {
+				utilruntime.HandleError(err)
+				observedListErrors++
+				if o.maximumErrors != -1 && observedListErrors > o.maximumErrors {
+					glog.Fatalf("Maximum list errors of %d reached, exiting", o.maximumErrors)
+				}
+			}
+		}, time.Second, stopCh)
+	}()
 
 	if o.once {
 		// wait until the reflector reports it has completed the initial list and the
