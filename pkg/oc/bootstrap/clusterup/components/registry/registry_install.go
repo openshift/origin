@@ -55,7 +55,7 @@ func (r *RegistryComponentOptions) Install(dockerClient dockerhelper.Interface, 
 	flags := []string{
 		"adm",
 		"registry",
-		fmt.Sprintf("--loglevel=%d", r.InstallContext.LogLevel()),
+		fmt.Sprintf("--loglevel=%d", r.InstallContext.ComponentLogLevel()),
 		// We need to set the ClusterIP for registry in order to be able to set the NO_PROXY no predicable
 		// IP address as NO_PROXY does not support CIDR format.
 		// TODO: We should switch the cluster up registry to use DNS.

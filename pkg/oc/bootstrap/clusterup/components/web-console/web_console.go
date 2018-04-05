@@ -74,7 +74,7 @@ func (c *WebConsoleComponentOptions) Install(dockerClient dockerhelper.Interface
 	params := map[string]string{
 		"API_SERVER_CONFIG": string(updatedConfig),
 		"IMAGE":             imageTemplate.ExpandOrDie("web-console"),
-		"LOGLEVEL":          fmt.Sprintf("%d", c.InstallContext.LogLevel()),
+		"LOGLEVEL":          fmt.Sprintf("%d", c.InstallContext.ComponentLogLevel()),
 		"NAMESPACE":         consoleNamespace,
 	}
 

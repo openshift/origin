@@ -108,7 +108,7 @@ func (c *RouterComponentOptions) Install(dockerClient dockerhelper.Interface, lo
 	flags := []string{
 		"adm", "router",
 		"--host-ports=true",
-		fmt.Sprintf("--loglevel=%d", c.InstallContext.LogLevel()),
+		fmt.Sprintf("--loglevel=%d", c.InstallContext.ComponentLogLevel()),
 		"--config=" + masterConfigDir + "/admin.kubeconfig",
 		fmt.Sprintf("--host-network=%v", !c.PortForwarding),
 		fmt.Sprintf("--images=%s", c.InstallContext.ImageFormat()),
