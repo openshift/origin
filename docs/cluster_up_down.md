@@ -174,18 +174,11 @@ and download a [compatible version of Docker](#prerequisites).
 4. Create a new docker machine named `openshift` with appropriate resource constraints. See [Getting Started with Docker Machine](https://docs.docker.com/machine/get-started/#create-a-machine) for instructions.
 5. Open Terminal and run
    ```
-   $ oc cluster up --docker-machine=openshift
+   $ docker-machine create openshift
+   $ docker-machine start openshift
    ```
 
-   OpenShift will start cluster on the docker machine you specified.
-
-To stop the cluster, run:
-
-```
-$ oc cluster down --docker-machine=openshift
-```
-
-To start/stop OpenShift again, either:
+To start/stop OpenShift cluster:
 
 * Setup the Docker environment for the machine you wish to use, and then run `oc cluster up` and `oc cluster down`:
 
@@ -196,18 +189,6 @@ To start/stop OpenShift again, either:
   ...
 
   $ oc cluster down
-  ```
-
-  OR
-
-* Specify the Docker machine name as an argument to `oc cluster up` and `oc cluster down`:
-
-  ```
-  $ oc cluster up --docker-machine=openshift
-
-  ...
-
-  $ oc cluster down --docker-machine=openshift
   ```
 
 ### Windows with Docker for Windows
@@ -252,18 +233,11 @@ and download a [compatible version of Docker](#prerequisites).
 5. Open a Command window as Administrator (for most drivers, docker-machine on Windows requires administrator privileges)
    and run:
    ```
-   C:\> oc cluster up --docker-machine=openshift
+   C:\> docker-machine create openshift
+   C:\> docker-machine start openshift
    ```
 
-  OpenShift will start cluster on the docker machine you specified.
-
-To stop the cluster, run:
-
-```
-C:\> oc cluster down --docker-machine=openshift
-```
-
-To start/stop OpenShift again, either:
+To start/stop OpenShift cluster:
 
 * Setup the Docker environment for the machine you wish to use, and then run `oc cluster up` and `oc cluster down`:
   ```
@@ -273,16 +247,6 @@ To start/stop OpenShift again, either:
   ...
 
   C:\> oc cluster down
-  ```
-
-* Specify the Docker machine name as an argument to `oc cluster up` and `oc cluster down`:
-
-  ```
-  C:\> oc cluster up --docker-machine=openshift
-
-  ...
-
-  C:\> oc cluster down --docker-machine=openshift
   ```
 
 ## Persistent Volumes
