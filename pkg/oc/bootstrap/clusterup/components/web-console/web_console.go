@@ -100,6 +100,6 @@ func (c *WebConsoleComponentOptions) Install(dockerClient dockerhelper.Interface
 	// instantiate the web console template
 	return component.MakeReady(
 		c.InstallContext.ClientImage(),
-		c.InstallContext.ClusterAdminConfigBytes(),
+		c.InstallContext.BaseDir(),
 		params).Install(dockerClient, logdir)
 }

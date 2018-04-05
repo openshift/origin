@@ -70,7 +70,7 @@ func (c *TemplateServiceBrokerComponentOptions) Install(dockerClient dockerhelpe
 
 	err = component.MakeReady(
 		c.InstallContext.ClientImage(),
-		c.InstallContext.ClusterAdminConfigBytes(),
+		c.InstallContext.BaseDir(),
 		params).Install(dockerClient, logdir)
 
 	if err != nil {
@@ -82,7 +82,7 @@ func (c *TemplateServiceBrokerComponentOptions) Install(dockerClient dockerhelpe
 	register_template_service_broker.RegisterTemplateServiceBroker(
 		dockerClient,
 		c.InstallContext.ClientImage(),
-		c.InstallContext.ClusterAdminConfigBytes(),
+		c.InstallContext.BaseDir(),
 		masterConfigDir,
 		logdir,
 	)

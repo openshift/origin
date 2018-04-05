@@ -13,7 +13,6 @@ const adminKubeConfigFileName = "admin.kubeconfig"
 
 type Context interface {
 	ClusterAdminClientConfig() *restclient.Config
-	ClusterAdminConfigBytes() []byte
 	BaseDir() string
 	ClientImage() string
 	ImageFormat() string
@@ -21,12 +20,11 @@ type Context interface {
 }
 
 type installContext struct {
-	restConfig              *restclient.Config
-	clusterAdminConfigBytes []byte
-	clientImage             string
-	imageFormat             string
-	baseDir                 string
-	logLevel                int
+	restConfig  *restclient.Config
+	clientImage string
+	imageFormat string
+	baseDir     string
+	logLevel    int
 }
 
 // ImageFormat returns the format of the images to use when running commands like 'oc adm'
@@ -54,11 +52,6 @@ func (c *installContext) ClientImage() string {
 	return c.clientImage
 }
 
-// ClusterAdminConfigBytes provides the cluster admin kubeconfig in bytes
-func (c *installContext) ClusterAdminConfigBytes() []byte {
-	return c.clusterAdminConfigBytes
-}
-
 func NewComponentInstallContext(clientImageName, imageFormat, baseDir string, logLevel int) (Context, error) {
 	clusterAdminConfigBytes, err := ioutil.ReadFile(path.Join(baseDir, kubeapiserver.KubeAPIServerDirName, adminKubeConfigFileName))
 	if err != nil {
@@ -69,11 +62,10 @@ func NewComponentInstallContext(clientImageName, imageFormat, baseDir string, lo
 		return nil, err
 	}
 	return &installContext{
-		restConfig:              restConfig,
-		clusterAdminConfigBytes: clusterAdminConfigBytes,
-		clientImage:             clientImageName,
-		baseDir:                 baseDir,
-		logLevel:                logLevel,
-		imageFormat:             imageFormat,
+		restConfig:  restConfig,
+		clientImage: clientImageName,
+		baseDir:     baseDir,
+		logLevel:    logLevel,
+		imageFormat: imageFormat,
 	}, nil
 }
