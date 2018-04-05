@@ -379,7 +379,12 @@ func buildKubeApiserverConfig(
 		return nil, err
 	}
 
-	storageFactory, err := BuildStorageFactory(apiserverOptions, nil)
+	storageFactory, err := BuildStorageFactory(apiserverOptions, map[schema.GroupResource]schema.GroupVersion{
+		// SCC are actually an openshift resource we injected into the kubeapiserver pre-3.0.  We need to manage
+		// their storage configuration via the kube storagefactory.
+		// TODO We really should create a single one of these somewhere.
+		{Group: "", Resource: "securitycontextconstraints"}: {Group: "security.openshift.io", Version: "v1"},
+	})
 	if err != nil {
 		return nil, err
 	}

@@ -13,8 +13,8 @@ import (
 )
 
 func init() {
-	Install(legacyscheme.GroupFactoryRegistry, legacyscheme.Registry, legacyscheme.Scheme)
 	legacy.InstallLegacySecurity(legacyscheme.Scheme, legacyscheme.Registry)
+	Install(legacyscheme.GroupFactoryRegistry, legacyscheme.Registry, legacyscheme.Scheme)
 }
 
 // Install registers the API group and adds types to a scheme

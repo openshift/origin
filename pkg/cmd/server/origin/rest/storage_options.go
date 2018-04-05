@@ -11,7 +11,6 @@ import (
 // StorageOptions returns the appropriate storage configuration for the origin rest APIs, including
 // overiddes.
 func StorageOptions(options configapi.MasterConfig) (restoptions.Getter, error) {
-	legacyCoreV1 := schema.GroupVersion{Group: "", Version: "v1"}
 	return restoptions.NewConfigGetter(
 		options,
 		&serverstorage.ResourceConfig{},
@@ -47,34 +46,8 @@ func StorageOptions(options configapi.MasterConfig) (restoptions.Getter, error) 
 			{Resource: "netnamespaces"}:                                        "registry/sdnnetnamespaces",
 			{Resource: "netnamespaces", Group: "network.openshift.io"}:         "registry/sdnnetnamespaces",
 		},
-		// storage versions: use legacy group name "" for all resources that existed when apigroups were introduced
-		map[schema.GroupResource]schema.GroupVersion{
-			{Group: "authorization.openshift.io", Resource: "clusterpolicybindings"}:   legacyCoreV1,
-			{Group: "authorization.openshift.io", Resource: "clusterpolicies"}:         legacyCoreV1,
-			{Group: "authorization.openshift.io", Resource: "policybindings"}:          legacyCoreV1,
-			{Group: "authorization.openshift.io", Resource: "rolebindingrestrictions"}: legacyCoreV1,
-			{Group: "authorization.openshift.io", Resource: "policies"}:                legacyCoreV1,
-			{Group: "build.openshift.io", Resource: "builds"}:                          legacyCoreV1,
-			{Group: "build.openshift.io", Resource: "buildconfigs"}:                    legacyCoreV1,
-			{Group: "apps.openshift.io", Resource: "deploymentconfigs"}:                legacyCoreV1,
-			{Group: "image.openshift.io", Resource: "imagestreams"}:                    legacyCoreV1,
-			{Group: "image.openshift.io", Resource: "images"}:                          legacyCoreV1,
-			{Group: "oauth.openshift.io", Resource: "oauthclientauthorizations"}:       legacyCoreV1,
-			{Group: "oauth.openshift.io", Resource: "oauthaccesstokens"}:               legacyCoreV1,
-			{Group: "oauth.openshift.io", Resource: "oauthauthorizetokens"}:            legacyCoreV1,
-			{Group: "oauth.openshift.io", Resource: "oauthclients"}:                    legacyCoreV1,
-			{Group: "project.openshift.io", Resource: "projects"}:                      legacyCoreV1,
-			{Group: "quota.openshift.io", Resource: "clusterresourcequotas"}:           legacyCoreV1,
-			{Group: "route.openshift.io", Resource: "routes"}:                          legacyCoreV1,
-			{Group: "network.openshift.io", Resource: "netnamespaces"}:                 legacyCoreV1,
-			{Group: "network.openshift.io", Resource: "hostsubnets"}:                   legacyCoreV1,
-			{Group: "network.openshift.io", Resource: "clusternetworks"}:               legacyCoreV1,
-			{Group: "network.openshift.io", Resource: "egressnetworkpolicies"}:         legacyCoreV1,
-			{Group: "template.openshift.io", Resource: "templates"}:                    legacyCoreV1,
-			{Group: "user.openshift.io", Resource: "groups"}:                           legacyCoreV1,
-			{Group: "user.openshift.io", Resource: "users"}:                            legacyCoreV1,
-			{Group: "user.openshift.io", Resource: "identities"}:                       legacyCoreV1,
-		},
+		// storage versions: no overrides anymore
+		map[schema.GroupResource]schema.GroupVersion{},
 		// quorum resources:
 		map[schema.GroupResource]struct{}{
 			{Resource: "oauthauthorizetokens"}:                              {},

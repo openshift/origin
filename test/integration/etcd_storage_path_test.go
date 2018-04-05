@@ -88,11 +88,11 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 	gvr("", "v1", "rolebindingrestrictions"): {
 		stub:             `{"metadata": {"name": "rbr"}, "spec": {"serviceaccountrestriction": {"serviceaccounts": [{"name": "sa"}]}}}`,
 		expectedEtcdPath: "openshift.io/rolebindingrestrictions/etcdstoragepathtestnamespace/rbr",
+		expectedGVK:      gvkP("authorization.openshift.io", "v1", "RoleBindingRestriction"),
 	},
 	gvr("authorization.openshift.io", "v1", "rolebindingrestrictions"): {
 		stub:             `{"metadata": {"name": "rbrg"}, "spec": {"serviceaccountrestriction": {"serviceaccounts": [{"name": "sa"}]}}}`,
 		expectedEtcdPath: "openshift.io/rolebindingrestrictions/etcdstoragepathtestnamespace/rbrg",
-		expectedGVK:      gvkP("", "v1", "RoleBindingRestriction"), // expect the legacy group to be persisted
 	},
 	// --
 
@@ -100,20 +100,20 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 	gvr("", "v1", "builds"): {
 		stub:             `{"metadata": {"name": "build1"}, "spec": {"source": {"dockerfile": "Dockerfile1"}, "strategy": {"dockerStrategy": {"noCache": true}}}}`,
 		expectedEtcdPath: "openshift.io/builds/etcdstoragepathtestnamespace/build1",
+		expectedGVK:      gvkP("build.openshift.io", "v1", "Build"),
 	},
 	gvr("build.openshift.io", "v1", "builds"): {
 		stub:             `{"metadata": {"name": "build1g"}, "spec": {"source": {"dockerfile": "Dockerfile1"}, "strategy": {"dockerStrategy": {"noCache": true}}}}`,
 		expectedEtcdPath: "openshift.io/builds/etcdstoragepathtestnamespace/build1g",
-		expectedGVK:      gvkP("", "v1", "Build"), // expect the legacy group to be persisted
 	},
 	gvr("", "v1", "buildconfigs"): {
 		stub:             `{"metadata": {"name": "bc1"}, "spec": {"source": {"dockerfile": "Dockerfile0"}, "strategy": {"dockerStrategy": {"noCache": true}}}}`,
 		expectedEtcdPath: "openshift.io/buildconfigs/etcdstoragepathtestnamespace/bc1",
+		expectedGVK:      gvkP("build.openshift.io", "v1", "BuildConfig"),
 	},
 	gvr("build.openshift.io", "v1", "buildconfigs"): {
 		stub:             `{"metadata": {"name": "bc1g"}, "spec": {"source": {"dockerfile": "Dockerfile0"}, "strategy": {"dockerStrategy": {"noCache": true}}}}`,
 		expectedEtcdPath: "openshift.io/buildconfigs/etcdstoragepathtestnamespace/bc1g",
-		expectedGVK:      gvkP("", "v1", "BuildConfig"), // expect the legacy group to be persisted
 	},
 	// --
 
@@ -121,11 +121,11 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 	gvr("", "v1", "deploymentconfigs"): {
 		stub:             `{"metadata": {"name": "dc1"}, "spec": {"selector": {"d": "c"}, "template": {"metadata": {"labels": {"d": "c"}}, "spec": {"containers": [{"image": "fedora:latest", "name": "container2"}]}}}}`,
 		expectedEtcdPath: "openshift.io/deploymentconfigs/etcdstoragepathtestnamespace/dc1",
+		expectedGVK:      gvkP("apps.openshift.io", "v1", "DeploymentConfig"),
 	},
 	gvr("apps.openshift.io", "v1", "deploymentconfigs"): {
 		stub:             `{"metadata": {"name": "dc1g"}, "spec": {"selector": {"d": "c"}, "template": {"metadata": {"labels": {"d": "c"}}, "spec": {"containers": [{"image": "fedora:latest", "name": "container2"}]}}}}`,
 		expectedEtcdPath: "openshift.io/deploymentconfigs/etcdstoragepathtestnamespace/dc1g",
-		expectedGVK:      gvkP("", "v1", "DeploymentConfig"), // expect the legacy group to be persisted
 	},
 	// --
 
@@ -133,20 +133,20 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 	gvr("", "v1", "imagestreams"): {
 		stub:             `{"metadata": {"name": "is1"}, "spec": {"dockerImageRepository": "docker"}}`,
 		expectedEtcdPath: "openshift.io/imagestreams/etcdstoragepathtestnamespace/is1",
+		expectedGVK:      gvkP("image.openshift.io", "v1", "ImageStream"),
 	},
 	gvr("image.openshift.io", "v1", "imagestreams"): {
 		stub:             `{"metadata": {"name": "is1g"}, "spec": {"dockerImageRepository": "docker"}}`,
 		expectedEtcdPath: "openshift.io/imagestreams/etcdstoragepathtestnamespace/is1g",
-		expectedGVK:      gvkP("", "v1", "ImageStream"), // expect the legacy group to be persisted
 	},
 	gvr("", "v1", "images"): {
 		stub:             `{"dockerImageReference": "fedora:latest", "metadata": {"name": "image1"}}`,
 		expectedEtcdPath: "openshift.io/images/image1",
+		expectedGVK:      gvkP("image.openshift.io", "v1", "Image"),
 	},
 	gvr("image.openshift.io", "v1", "images"): {
 		stub:             `{"dockerImageReference": "fedora:latest", "metadata": {"name": "image1g"}}`,
 		expectedEtcdPath: "openshift.io/images/image1g",
-		expectedGVK:      gvkP("", "v1", "Image"), // expect the legacy group to be persisted
 	},
 	// --
 
@@ -164,6 +164,7 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 				stub:    `{"metadata": {"annotations": {"kubernetes.io/service-account.name": "client"}, "generateName": "client"}, "type": "kubernetes.io/service-account-token"}`,
 			},
 		},
+		expectedGVK: gvkP("oauth.openshift.io", "v1", "OAuthClientAuthorization"),
 	},
 	gvr("oauth.openshift.io", "v1", "oauthclientauthorizations"): {
 		stub:             `{"clientName": "system:serviceaccount:etcdstoragepathtestnamespace:clientg", "metadata": {"name": "user:system:serviceaccount:etcdstoragepathtestnamespace:clientg"}, "scopes": ["user:info"], "userName": "user", "userUID": "cannot be empty"}`,
@@ -178,7 +179,6 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 				stub:    `{"metadata": {"annotations": {"kubernetes.io/service-account.name": "clientg"}, "generateName": "clientg"}, "type": "kubernetes.io/service-account-token"}`,
 			},
 		},
-		expectedGVK: gvkP("", "v1", "OAuthClientAuthorization"), // expect the legacy group to be persisted
 	},
 	gvr("", "v1", "oauthaccesstokens"): {
 		stub:             `{"clientName": "client1", "metadata": {"name": "tokenneedstobelongenoughelseitwontwork"}, "userName": "user", "userUID": "cannot be empty"}`,
@@ -189,6 +189,7 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 				stub:    `{"metadata": {"name": "client1"}}`,
 			},
 		},
+		expectedGVK: gvkP("oauth.openshift.io", "v1", "OAuthAccessToken"),
 	},
 	gvr("oauth.openshift.io", "v1", "oauthaccesstokens"): {
 		stub:             `{"clientName": "client1g", "metadata": {"name": "tokenneedstobelongenoughelseitwontworkg"}, "userName": "user", "userUID": "cannot be empty"}`,
@@ -199,7 +200,6 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 				stub:    `{"metadata": {"name": "client1g"}}`,
 			},
 		},
-		expectedGVK: gvkP("", "v1", "OAuthAccessToken"), // expect the legacy group to be persisted
 	},
 	gvr("", "v1", "oauthauthorizetokens"): {
 		stub:             `{"clientName": "client0", "metadata": {"name": "tokenneedstobelongenoughelseitwontwork"}, "userName": "user", "userUID": "cannot be empty"}`,
@@ -210,6 +210,7 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 				stub:    `{"metadata": {"name": "client0"}}`,
 			},
 		},
+		expectedGVK: gvkP("oauth.openshift.io", "v1", "OAuthAuthorizeToken"),
 	},
 	gvr("oauth.openshift.io", "v1", "oauthauthorizetokens"): {
 		stub:             `{"clientName": "client0g", "metadata": {"name": "tokenneedstobelongenoughelseitwontworkg"}, "userName": "user", "userUID": "cannot be empty"}`,
@@ -220,16 +221,15 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 				stub:    `{"metadata": {"name": "client0g"}}`,
 			},
 		},
-		expectedGVK: gvkP("", "v1", "OAuthAuthorizeToken"), // expect the legacy group to be persisted
 	},
 	gvr("", "v1", "oauthclients"): {
 		stub:             `{"metadata": {"name": "client"}}`,
 		expectedEtcdPath: "openshift.io/oauth/clients/client",
+		expectedGVK:      gvkP("oauth.openshift.io", "v1", "OAuthClient"),
 	},
 	gvr("oauth.openshift.io", "v1", "oauthclients"): {
 		stub:             `{"metadata": {"name": "clientg"}}`,
 		expectedEtcdPath: "openshift.io/oauth/clients/clientg",
-		expectedGVK:      gvkP("", "v1", "OAuthClient"), // expect the legacy group to be persisted
 	},
 	// --
 
@@ -242,7 +242,7 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 	gvr("project.openshift.io", "v1", "projects"): {
 		stub:             `{"metadata": {"name": "namespace2g"}, "spec": {"finalizers": ["kubernetes", "openshift.io/origin"]}}`,
 		expectedEtcdPath: "kubernetes.io/namespaces/namespace2g",
-		expectedGVK:      gvkP("", "v1", "Namespace"), // project is a proxy for namespace, expect the legacy group
+		expectedGVK:      gvkP("", "v1", "Namespace"), // project is a proxy for namespace
 	},
 	// --
 
@@ -250,11 +250,11 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 	gvr("", "v1", "clusterresourcequotas"): {
 		stub:             `{"metadata": {"name": "quota1"}, "spec": {"selector": {"labels": {"matchLabels": {"a": "b"}}}}}`,
 		expectedEtcdPath: "openshift.io/clusterresourcequotas/quota1",
+		expectedGVK:      gvkP("quota.openshift.io", "v1", "ClusterResourceQuota"),
 	},
 	gvr("quota.openshift.io", "v1", "clusterresourcequotas"): {
 		stub:             `{"metadata": {"name": "quota1g"}, "spec": {"selector": {"labels": {"matchLabels": {"a": "b"}}}}}`,
 		expectedEtcdPath: "openshift.io/clusterresourcequotas/quota1g",
-		expectedGVK:      gvkP("", "v1", "ClusterResourceQuota"), // expect the legacy group to be persisted
 	},
 	// --
 
@@ -262,11 +262,11 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 	gvr("", "v1", "routes"): {
 		stub:             `{"metadata": {"name": "route1"}, "spec": {"host": "hostname1", "to": {"name": "service1"}}}`,
 		expectedEtcdPath: "openshift.io/routes/etcdstoragepathtestnamespace/route1",
+		expectedGVK:      gvkP("route.openshift.io", "v1", "Route"),
 	},
 	gvr("route.openshift.io", "v1", "routes"): {
 		stub:             `{"metadata": {"name": "route1g"}, "spec": {"host": "hostname1", "to": {"name": "service1"}}}`,
 		expectedEtcdPath: "openshift.io/routes/etcdstoragepathtestnamespace/route1g",
-		expectedGVK:      gvkP("", "v1", "Route"), // expect the legacy group to be persisted
 	},
 	// --
 
@@ -274,38 +274,38 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 	gvr("", "v1", "netnamespaces"): {
 		stub:             `{"metadata": {"name": "networkname"}, "netid": 100, "netname": "networkname"}`,
 		expectedEtcdPath: "openshift.io/registry/sdnnetnamespaces/networkname",
+		expectedGVK:      gvkP("network.openshift.io", "v1", "NetNamespace"),
 	},
 	gvr("network.openshift.io", "v1", "netnamespaces"): {
 		stub:             `{"metadata": {"name": "networknameg"}, "netid": 100, "netname": "networknameg"}`,
 		expectedEtcdPath: "openshift.io/registry/sdnnetnamespaces/networknameg",
-		expectedGVK:      gvkP("", "v1", "NetNamespace"), // expect the legacy group to be persisted
 	},
 	gvr("", "v1", "hostsubnets"): {
 		stub:             `{"host": "hostname", "hostIP": "192.168.1.1", "metadata": {"name": "hostname"}, "subnet": "192.168.1.0/24"}`,
 		expectedEtcdPath: "openshift.io/registry/sdnsubnets/hostname",
+		expectedGVK:      gvkP("network.openshift.io", "v1", "HostSubnet"),
 	},
 	gvr("network.openshift.io", "v1", "hostsubnets"): {
 		stub:             `{"host": "hostnameg", "hostIP": "192.168.1.1", "metadata": {"name": "hostnameg"}, "subnet": "192.168.1.0/24"}`,
 		expectedEtcdPath: "openshift.io/registry/sdnsubnets/hostnameg",
-		expectedGVK:      gvkP("", "v1", "HostSubnet"), // expect the legacy group to be persisted
 	},
 	gvr("", "v1", "clusternetworks"): {
 		stub:             `{"metadata": {"name": "cn1"}, "serviceNetwork": "192.168.1.0/24", "clusterNetworks": [{"CIDR": "192.166.0.0/16", "hostSubnetLength": 8}]}`,
 		expectedEtcdPath: "openshift.io/registry/sdnnetworks/cn1",
+		expectedGVK:      gvkP("network.openshift.io", "v1", "ClusterNetwork"),
 	},
 	gvr("network.openshift.io", "v1", "clusternetworks"): {
 		stub:             `{"metadata": {"name": "cn1g"}, "serviceNetwork": "192.168.1.0/24", "clusterNetworks": [{"CIDR": "192.167.0.0/16", "hostSubnetLength": 8}]}`,
 		expectedEtcdPath: "openshift.io/registry/sdnnetworks/cn1g",
-		expectedGVK:      gvkP("", "v1", "ClusterNetwork"), // expect the legacy group to be persisted
 	},
 	gvr("", "v1", "egressnetworkpolicies"): {
 		stub:             `{"metadata": {"name": "enp1"}, "spec": {"egress": [{"to": {"cidrSelector": "192.168.1.0/24"}, "type": "Allow"}]}}`,
 		expectedEtcdPath: "openshift.io/registry/egressnetworkpolicy/etcdstoragepathtestnamespace/enp1",
+		expectedGVK:      gvkP("network.openshift.io", "v1", "EgressNetworkPolicy"),
 	},
 	gvr("network.openshift.io", "v1", "egressnetworkpolicies"): {
 		stub:             `{"metadata": {"name": "enp1g"}, "spec": {"egress": [{"to": {"cidrSelector": "192.168.1.0/24"}, "type": "Allow"}]}}`,
 		expectedEtcdPath: "openshift.io/registry/egressnetworkpolicy/etcdstoragepathtestnamespace/enp1g",
-		expectedGVK:      gvkP("", "v1", "EgressNetworkPolicy"), // expect the legacy group to be persisted
 	},
 	// --
 
@@ -313,7 +313,6 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 	gvr("security.openshift.io", "v1", "securitycontextconstraints"): {
 		stub:             `{"allowPrivilegedContainer": true, "fsGroup": {"type": "RunAsAny"}, "metadata": {"name": "scc2"}, "runAsUser": {"type": "RunAsAny"}, "seLinuxContext": {"type": "MustRunAs"}, "supplementalGroups": {"type": "RunAsAny"}}`,
 		expectedEtcdPath: "kubernetes.io/securitycontextconstraints/scc2",
-		expectedGVK:      gvkP("", "v1", "SecurityContextConstraints"), // we need to backwards compatible with old SCC for at least one release.
 	},
 	// --
 
@@ -321,11 +320,11 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 	gvr("", "v1", "templates"): {
 		stub:             `{"message": "Jenkins template", "metadata": {"name": "template1"}}`,
 		expectedEtcdPath: "openshift.io/templates/etcdstoragepathtestnamespace/template1",
+		expectedGVK:      gvkP("template.openshift.io", "v1", "Template"),
 	},
 	gvr("template.openshift.io", "v1", "templates"): {
 		stub:             `{"message": "Jenkins template", "metadata": {"name": "template1g"}}`,
 		expectedEtcdPath: "openshift.io/templates/etcdstoragepathtestnamespace/template1g",
-		expectedGVK:      gvkP("", "v1", "Template"), // expect the legacy group to be persisted
 	},
 	gvr("template.openshift.io", "v1", "templateinstances"): {
 		stub:             `{"metadata": {"name": "templateinstance1"}, "spec": {"template": {"metadata": {"name": "template1", "namespace": "etcdstoragepathtestnamespace"}}, "requester": {"username": "test"}}}`,
@@ -341,29 +340,29 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 	gvr("", "v1", "groups"): {
 		stub:             `{"metadata": {"name": "group"}, "users": ["user1", "user2"]}`,
 		expectedEtcdPath: "openshift.io/groups/group",
+		expectedGVK:      gvkP("user.openshift.io", "v1", "Group"),
 	},
 	gvr("user.openshift.io", "v1", "groups"): {
 		stub:             `{"metadata": {"name": "groupg"}, "users": ["user1", "user2"]}`,
 		expectedEtcdPath: "openshift.io/groups/groupg",
-		expectedGVK:      gvkP("", "v1", "Group"), // expect the legacy group to be persisted
 	},
 	gvr("", "v1", "users"): {
 		stub:             `{"fullName": "user1", "metadata": {"name": "user1"}}`,
 		expectedEtcdPath: "openshift.io/users/user1",
+		expectedGVK:      gvkP("user.openshift.io", "v1", "User"),
 	},
 	gvr("user.openshift.io", "v1", "users"): {
 		stub:             `{"fullName": "user1g", "metadata": {"name": "user1g"}}`,
 		expectedEtcdPath: "openshift.io/users/user1g",
-		expectedGVK:      gvkP("", "v1", "User"), // expect the legacy group to be persisted
 	},
 	gvr("", "v1", "identities"): {
 		stub:             `{"metadata": {"name": "github:user2"}, "providerName": "github", "providerUserName": "user2"}`,
 		expectedEtcdPath: "openshift.io/useridentities/github:user2",
+		expectedGVK:      gvkP("user.openshift.io", "v1", "Identity"),
 	},
 	gvr("user.openshift.io", "v1", "identities"): {
 		stub:             `{"metadata": {"name": "github:user2g"}, "providerName": "github", "providerUserName": "user2g"}`,
 		expectedEtcdPath: "openshift.io/useridentities/github:user2g",
-		expectedGVK:      gvkP("", "v1", "Identity"), // expect the legacy group to be persisted
 	},
 	// --
 
@@ -403,6 +402,7 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 	gvr("", "v1", "securitycontextconstraints"): {
 		stub:             `{"allowPrivilegedContainer": true, "fsGroup": {"type": "RunAsAny"}, "metadata": {"name": "scc1"}, "runAsUser": {"type": "RunAsAny"}, "seLinuxContext": {"type": "MustRunAs"}, "supplementalGroups": {"type": "RunAsAny"}}`,
 		expectedEtcdPath: "kubernetes.io/securitycontextconstraints/scc1",
+		expectedGVK:      gvkP("security.openshift.io", "v1", "SecurityContextConstraints"),
 	},
 	gvr("", "v1", "nodes"): {
 		stub:             `{"metadata": {"name": "node1"}, "spec": {"unschedulable": true}}`,
