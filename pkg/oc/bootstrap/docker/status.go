@@ -58,13 +58,11 @@ func NewCmdStatus(name, fullName string, f *clientcmd.Factory, out io.Writer) *c
 			}
 		},
 	}
-	cmd.Flags().StringVar(&clientStatusConfig.DockerMachine, "docker-machine", "", "Specify the Docker machine to use")
 	return cmd
 }
 
 // ClientStatusConfig is the configuration for the client status command
 type ClientStatusConfig struct {
-	DockerMachine string
 }
 
 func getConfigFromContainer(client dockerhelper.Interface) (*config.MasterConfig, error) {
@@ -90,7 +88,7 @@ func getConfigFromContainer(client dockerhelper.Interface) (*config.MasterConfig
 
 // Status prints the OpenShift cluster status
 func (c *ClientStatusConfig) Status(f *clientcmd.Factory, out io.Writer) error {
-	dockerClient, err := GetDockerClient(out, c.DockerMachine, false)
+	dockerClient, err := GetDockerClient()
 	if err != nil {
 		return errors.ErrNoDockerClient(err)
 	}
