@@ -854,11 +854,7 @@ func (c *ClusterUpConfig) ImportInitialObjectsComponents(out io.Writer) []compon
 
 // RegisterTemplateServiceBroker will register the tsb with the service catalog
 func (c *ClusterUpConfig) RegisterTemplateServiceBroker(out io.Writer) error {
-	clusterAdminKubeConfig, err := c.ClusterAdminKubeConfigBytes()
-	if err != nil {
-		return err
-	}
-	return c.OpenShiftHelper().RegisterTemplateServiceBroker(clusterAdminKubeConfig, c.GetKubeAPIServerConfigDir(), c.GetLogDir())
+	return c.OpenShiftHelper().RegisterTemplateServiceBroker(c.BaseDir, c.GetKubeAPIServerConfigDir(), c.GetLogDir())
 }
 
 // Login logs into the new server and sets up a default user and project

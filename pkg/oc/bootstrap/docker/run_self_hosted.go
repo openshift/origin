@@ -3,10 +3,8 @@ package docker
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
-	"path"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -158,15 +156,10 @@ func (c *ClusterUpConfig) StartSelfHosted(out io.Writer) error {
 		return err
 	}
 
-	clusterAdminKubeConfig, err := ioutil.ReadFile(path.Join(configDirs.masterConfigDir, "admin.kubeconfig"))
-	if err != nil {
-		return err
-	}
-
 	err = componentinstall.InstallTemplates(
 		runLevelOneComponents,
 		c.openshiftImage(),
-		clusterAdminKubeConfig,
+		c.BaseDir,
 		templateSubstitutionValues,
 		c.GetDockerClient(),
 		c.GetLogDir(),
@@ -209,7 +202,7 @@ func (c *ClusterUpConfig) StartSelfHosted(out io.Writer) error {
 	err = componentinstall.InstallTemplates(
 		componentsToInstall,
 		c.openshiftImage(),
-		clusterAdminKubeConfig,
+		c.BaseDir,
 		templateSubstitutionValues,
 		c.GetDockerClient(),
 		c.GetLogDir(),
