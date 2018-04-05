@@ -45,6 +45,16 @@ var (
 	  %[1]s --base-dir=other/path template-service-broker`)
 )
 
+const (
+	ServiceCatalogComponentName        = "service-catalog"
+	TemplateServiceBrokenComponentName = "template-service-broker"
+)
+
+var validComponentNames = []string{
+	ServiceCatalogComponentName,
+	TemplateServiceBrokenComponentName,
+}
+
 func NewCmdAdd(name, fullName string, out, errout io.Writer) *cobra.Command {
 	config := &ClusterAddConfig{
 		Out:    out,
@@ -87,7 +97,7 @@ func (c *ClusterAddConfig) Run() error {
 	}
 	for _, componentName := range c.ComponentsToInstall {
 		switch componentName {
-		case "service-catalog":
+		case ServiceCatalogComponentName:
 			masterConfig, err := c.GetKubeAPIServerMasterConfig()
 			if err != nil {
 				return err
@@ -103,14 +113,14 @@ func (c *ClusterAddConfig) Run() error {
 			}
 			componentsToInstall = append(componentsToInstall, component)
 
-		case "template-service-broker":
+		case TemplateServiceBrokenComponentName:
 			component := &template_service_broker.TemplateServiceBrokerComponentOptions{
 				InstallContext: installContext,
 			}
 			componentsToInstall = append(componentsToInstall, component)
 
 		default:
-			return fmt.Errorf("unknown component: %v", componentName)
+			return fmt.Errorf("unknown component: %q, valid components are: %q", componentName, strings.Join(validComponentNames, ","))
 		}
 	}
 

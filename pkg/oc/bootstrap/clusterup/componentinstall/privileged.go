@@ -12,6 +12,7 @@ import (
 	securityclient "github.com/openshift/origin/pkg/security/generated/internalclientset/typed/security/internalversion"
 )
 
+// AddPrivilegedUser adds the provided user to list of users allowed to use privileged SCC.
 func AddPrivilegedUser(clientConfig *rest.Config, namespace, name string) error {
 	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		securityClient, err := securityclient.NewForConfig(clientConfig)
