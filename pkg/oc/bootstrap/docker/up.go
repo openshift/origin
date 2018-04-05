@@ -123,6 +123,8 @@ var (
 // NewCmdUp creates a command that starts OpenShift on Docker with reasonable defaults
 func NewCmdUp(name, fullName string, out, errout io.Writer, clusterAdd *cobra.Command) *cobra.Command {
 	config := &ClusterUpConfig{
+		UserEnabledComponents: []string{"*"},
+
 		Out:                 out,
 		UsePorts:            openshift.BasePorts,
 		PortForwarding:      defaultPortForwarding(),
@@ -153,13 +155,14 @@ func NewCmdUp(name, fullName string, out, errout io.Writer, clusterAdd *cobra.Co
 }
 
 type ClusterUpConfig struct {
-	Image             string
-	ImageTag          string
-	ImageStreams      string
-	DockerMachine     string
-	SkipRegistryCheck bool
-	PortForwarding    bool
-	ClusterAdd        *cobra.Command
+	Image                 string
+	ImageTag              string
+	ImageStreams          string
+	DockerMachine         string
+	SkipRegistryCheck     bool
+	PortForwarding        bool
+	ClusterAdd            *cobra.Command
+	UserEnabledComponents []string
 
 	Out io.Writer
 
@@ -172,8 +175,8 @@ type ClusterUpConfig struct {
 	UseExistingConfig bool
 	Environment       []string
 	ServerLogLevel    int
-	AddComponents     []string
 
+	ComponentsToEnable       []string
 	HostVolumesDir           string
 	HostConfigDir            string
 	WriteConfig              bool
@@ -223,11 +226,19 @@ func (c *ClusterUpConfig) Bind(flags *pflag.FlagSet) {
 	flags.BoolVar(&c.PortForwarding, "forward-ports", c.PortForwarding, "Use Docker port-forwarding to communicate with origin container. Requires 'socat' locally.")
 	flags.IntVar(&c.ServerLogLevel, "server-loglevel", 0, "Log level for OpenShift server")
 	flags.StringArrayVarP(&c.Environment, "env", "e", c.Environment, "Specify a key-value pair for an environment variable to set on OpenShift container")
-	flags.StringArrayVar(&c.AddComponents, "enable", c.AddComponents, "Install additional components.")
+	flags.StringSliceVar(&c.UserEnabledComponents, "enable", c.UserEnabledComponents, fmt.Sprintf(""+
+		"A list of components to enable.  '*' enables all on-by-default components, 'foo' enables the component "+
+		"named 'foo', '-foo' disables the component named 'foo'.\nAll components: %s\nDisabled-by-default components: %s",
+		strings.Join(knownComponents.List(), ", "), strings.Join(componentsDisabledByDefault.List(), ", ")))
 	flags.StringVar(&c.HTTPProxy, "http-proxy", "", "HTTP proxy to use for master and builds")
 	flags.StringVar(&c.HTTPSProxy, "https-proxy", "", "HTTPS proxy to use for master and builds")
 	flags.StringArrayVar(&c.NoProxy, "no-proxy", c.NoProxy, "List of hosts or subnets for which a proxy should not be used")
 }
+
+var (
+	knownComponents             = sets.NewString("service-catalog", "template-service-broker")
+	componentsDisabledByDefault = sets.NewString("service-catalog", "template-service-broker")
+)
 
 func (c *ClusterUpConfig) Complete(cmd *cobra.Command, out io.Writer) error {
 	// TODO: remove this when we move to container/apply based component installation
@@ -265,6 +276,13 @@ func (c *ClusterUpConfig) Complete(cmd *cobra.Command, out io.Writer) error {
 		}
 		c.BaseDir = absHostDir
 	}
+
+	for _, currComponent := range knownComponents.UnsortedList() {
+		if isComponentEnabled(currComponent, componentsDisabledByDefault, c.UserEnabledComponents...) {
+			c.ComponentsToEnable = append(c.ComponentsToEnable, currComponent)
+		}
+	}
+
 	// do some struct initialization next
 	// used for some pretty printing
 	taskPrinter := NewTaskPrinter(GetDetailedOut(out))
@@ -524,11 +542,11 @@ func (c *ClusterUpConfig) Start(out io.Writer) error {
 		return err
 	}
 
-	if len(c.AddComponents) > 0 {
+	if len(c.ComponentsToEnable) > 0 {
 		args := append([]string{}, "--image="+c.Image)
 		args = append(args, "--tag="+c.ImageTag)
 		args = append(args, "--base-dir="+c.BaseDir)
-		args = append(args, c.AddComponents...)
+		args = append(args, c.ComponentsToEnable...)
 
 		if err := c.ClusterAdd.ParseFlags(args); err != nil {
 			return err
@@ -1196,4 +1214,29 @@ func (c *ClusterUpConfig) GetPublicHostName() string {
 		return c.PublicHostname
 	}
 	return c.ServerIP
+}
+
+func isComponentEnabled(name string, disabledByDefaultComponents sets.String, components ...string) bool {
+	hasStar := false
+	for _, ctrl := range components {
+		if ctrl == name {
+			return true
+		}
+		if ctrl == "-"+name {
+			return false
+		}
+		if ctrl == "*" {
+			hasStar = true
+		}
+	}
+	// if we get here, there was no explicit choice
+	if !hasStar {
+		// nothing on by default
+		return false
+	}
+	if disabledByDefaultComponents.Has(name) {
+		return false
+	}
+
+	return true
 }
