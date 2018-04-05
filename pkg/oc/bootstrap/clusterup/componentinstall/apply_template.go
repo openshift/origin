@@ -44,14 +44,14 @@ while read p; do
 	oc adm policy add-scc-to-user --config=/kubeconfig.kubeconfig privileged ${p}
 done </privileged-sa-list.txt
 
+if [ -s /namespace.yaml ]; then
+	oc apply --config=/kubeconfig.kubeconfig -f /namespace.yaml
+fi
+
 ns=""
 if [ -s /namespace-file ]; then
 	ns="--namespace=$(cat /namespace-file) "
 	oc create ns $(cat /namespace-file) --config=/kubeconfig.kubeconfig --dry-run -o yaml | oc apply --config=/kubeconfig.kubeconfig -f -
-fi
-
-if [ -s /namespace.yaml ]; then
-	oc apply --config=/kubeconfig.kubeconfig -f /namespace.yaml
 fi
 
 if [ -s /rbac.yaml ]; then
