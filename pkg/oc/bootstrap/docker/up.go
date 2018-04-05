@@ -153,15 +153,13 @@ func NewCmdUp(name, fullName string, f *osclientcmd.Factory, out, errout io.Writ
 }
 
 type ClusterUpConfig struct {
-	Image                string
-	ImageTag             string
-	ImageStreams         string
-	DockerMachine        string
-	SkipRegistryCheck    bool
-	ShouldInstallMetrics bool
-	ShouldInstallLogging bool
-	PortForwarding       bool
-	ClusterAdd           *cobra.Command
+	Image             string
+	ImageTag          string
+	ImageStreams      string
+	DockerMachine     string
+	SkipRegistryCheck bool
+	PortForwarding    bool
+	ClusterAdd        *cobra.Command
 
 	Out io.Writer
 
@@ -226,8 +224,6 @@ func (c *ClusterUpConfig) Bind(flags *pflag.FlagSet) {
 	flags.BoolVar(&c.PortForwarding, "forward-ports", c.PortForwarding, "Use Docker port-forwarding to communicate with origin container. Requires 'socat' locally.")
 	flags.IntVar(&c.ServerLogLevel, "server-loglevel", 0, "Log level for OpenShift server")
 	flags.StringArrayVarP(&c.Environment, "env", "e", c.Environment, "Specify a key-value pair for an environment variable to set on OpenShift container")
-	flags.BoolVar(&c.ShouldInstallMetrics, "metrics", false, "Install metrics (experimental)")
-	flags.BoolVar(&c.ShouldInstallLogging, "logging", false, "Install logging (experimental)")
 	flags.StringArrayVar(&c.AddComponents, "enable", c.AddComponents, "Install additional components.")
 	flags.StringVar(&c.HTTPProxy, "http-proxy", "", "HTTP proxy to use for master and builds")
 	flags.StringVar(&c.HTTPSProxy, "https-proxy", "", "HTTPS proxy to use for master and builds")
@@ -510,8 +506,6 @@ func (c *ClusterUpConfig) Start(out io.Writer) error {
 		ImageFormat:      c.imageFormat(),
 		PublicConsoleURL: fmt.Sprintf("https://%s:8443/console", c.GetPublicHostName()),
 		PublicMasterURL:  fmt.Sprintf("https://%s:8443", c.GetPublicHostName()),
-		PublicLoggingURL: fmt.Sprintf("https://%s", openshift.LoggingHost(c.RoutingSuffix)),
-		PublicMetricsURL: fmt.Sprintf("https://%s/hawkular/metrics", openshift.MetricsHost(c.RoutingSuffix)),
 		ServerLogLevel:   c.ServerLogLevel,
 	}
 
@@ -537,24 +531,6 @@ func (c *ClusterUpConfig) Start(out io.Writer) error {
 		if err := c.ClusterAdd.RunE(c.ClusterAdd, args); err != nil {
 			return err
 		}
-	}
-
-	// Install metrics
-	if c.ShouldInstallMetrics {
-		taskPrinter.StartTask("Installing metrics")
-		if err := c.InstallMetrics(out); err != nil {
-			return taskPrinter.ToError(err)
-		}
-		taskPrinter.Success()
-	}
-
-	// Install logging
-	if c.ShouldInstallLogging {
-		taskPrinter.StartTask("Installing logging")
-		if err := c.InstallLogging(out); err != nil {
-			return taskPrinter.ToError(err)
-		}
-		taskPrinter.Success()
 	}
 
 	if c.ShouldCreateUser() {
@@ -877,52 +853,6 @@ func (c *ClusterUpConfig) ImportInitialObjectsComponents(out io.Writer) []compon
 	return componentsToInstall
 }
 
-// InstallLogging will start the installation of logging components
-func (c *ClusterUpConfig) InstallLogging(out io.Writer) error {
-	restConfig, err := c.RESTConfig()
-	if err != nil {
-		return err
-	}
-	publicMaster := c.PublicHostname
-	if len(publicMaster) == 0 {
-		publicMaster = c.ServerIP
-	}
-	serverVersion, _ := c.OpenShiftHelper().ServerVersion()
-	return c.OpenShiftHelper().InstallLoggingViaAnsible(
-		restConfig,
-		serverVersion,
-		c.ServerIP,
-		publicMaster,
-		openshift.LoggingHost(c.RoutingSuffix),
-		c.Image,
-		c.ImageTag,
-		c.HostConfigDir,
-		c.ImageStreams)
-}
-
-// InstallMetrics will start the installation of Metrics components
-func (c *ClusterUpConfig) InstallMetrics(out io.Writer) error {
-	restConfig, err := c.RESTConfig()
-	if err != nil {
-		return err
-	}
-	serverVersion, _ := c.OpenShiftHelper().ServerVersion()
-	publicMaster := c.PublicHostname
-	if len(publicMaster) == 0 {
-		publicMaster = c.ServerIP
-	}
-	return c.OpenShiftHelper().InstallMetricsViaAnsible(
-		restConfig,
-		serverVersion,
-		c.ServerIP,
-		publicMaster,
-		openshift.MetricsHost(c.RoutingSuffix),
-		c.Image,
-		c.ImageTag,
-		c.HostConfigDir,
-		c.ImageStreams)
-}
-
 // RegisterTemplateServiceBroker will register the tsb with the service catalog
 func (c *ClusterUpConfig) RegisterTemplateServiceBroker(out io.Writer) error {
 	clusterAdminKubeConfig, err := c.ClusterAdminKubeConfigBytes()
@@ -949,24 +879,11 @@ func (c *ClusterUpConfig) CreateProject(out io.Writer) error {
 
 // ServerInfo displays server information after a successful start
 func (c *ClusterUpConfig) ServerInfo(out io.Writer) {
-	// TODO look this up based on the state of the cluster, not based on what we've done here.
-	metricsInfo := ""
-	if c.ShouldInstallMetrics && c.ShouldInitializeData() {
-		metricsInfo = fmt.Sprintf("The metrics service is available at:\n"+
-			"    https://%s/hawkular/metrics\n\n", openshift.MetricsHost(c.RoutingSuffix))
-	}
-	loggingInfo := ""
-	if c.ShouldInstallLogging && c.ShouldInitializeData() {
-		loggingInfo = fmt.Sprintf("The kibana logging UI is available at:\n"+
-			"    https://%s\n\n", openshift.LoggingHost(c.RoutingSuffix))
-	}
-	masterURL := c.OpenShiftHelper().Master(c.ServerIP)
-	if len(c.PublicHostname) > 0 {
-		masterURL = fmt.Sprintf("https://%s:8443", c.PublicHostname)
-	}
+	masterURL := fmt.Sprintf("https://%s:8443", c.GetPublicHostName())
+
 	msg := fmt.Sprintf("OpenShift server started.\n\n"+
 		"The server is accessible via web console at:\n"+
-		"    %s\n\n%s%s", masterURL, metricsInfo, loggingInfo)
+		"    %s\n\n", masterURL)
 
 	if c.ShouldCreateUser() {
 		msg += fmt.Sprintf("You are logged in as:\n"+
@@ -1029,7 +946,7 @@ func (c *ClusterUpConfig) checkProxySettings() string {
 // OpenShiftHelper returns a helper object to work with OpenShift on the server
 func (c *ClusterUpConfig) OpenShiftHelper() *openshift.Helper {
 	if c.openshiftHelper == nil {
-		c.openshiftHelper = openshift.NewHelper(c.DockerHelper(), c.HostHelper(), c.openshiftImage(), openshift.ContainerName, c.RoutingSuffix)
+		c.openshiftHelper = openshift.NewHelper(c.DockerHelper(), c.openshiftImage(), openshift.ContainerName)
 	}
 	return c.openshiftHelper
 }
@@ -1037,7 +954,7 @@ func (c *ClusterUpConfig) OpenShiftHelper() *openshift.Helper {
 // HostHelper returns a helper object to check Host configuration
 func (c *ClusterUpConfig) HostHelper() *host.HostHelper {
 	if c.hostHelper == nil {
-		c.hostHelper = host.NewHostHelper(c.DockerHelper(), c.openshiftImage(), c.HostVolumesDir, c.HostConfigDir, c.HostDataDir, c.HostPersistentVolumesDir)
+		c.hostHelper = host.NewHostHelper(c.DockerHelper(), c.openshiftImage(), c.HostVolumesDir)
 	}
 	return c.hostHelper
 }

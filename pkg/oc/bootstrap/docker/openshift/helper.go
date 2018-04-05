@@ -3,12 +3,10 @@ package openshift
 import (
 	"fmt"
 	"path/filepath"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/blang/semver"
 	"github.com/golang/glog"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -22,8 +20,6 @@ import (
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/errors"
-	dockerexec "github.com/openshift/origin/pkg/oc/bootstrap/docker/exec"
-	"github.com/openshift/origin/pkg/oc/bootstrap/docker/host"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/run"
 )
 
@@ -34,9 +30,8 @@ const (
 	cmdDetermineNodeHost = "for name in %s; do ls /var/lib/origin/openshift.local.config/node-$name &> /dev/null && echo $name && break; done"
 
 	// TODO: Figure out why cluster up relies on this name
-	ContainerName  = "origin"
-	Namespace      = "openshift"
-	InfraNamespace = "openshift-infra"
+	ContainerName = "origin"
+	Namespace     = "openshift"
 )
 
 var (
@@ -48,28 +43,20 @@ var (
 
 // Helper contains methods and utilities to help with OpenShift startup
 type Helper struct {
-	hostHelper        *host.HostHelper
-	dockerHelper      *dockerhelper.Helper
-	execHelper        *dockerexec.ExecHelper
-	runHelper         *run.RunHelper
-	image             string
-	containerName     string
-	routingSuffix     string
-	serverIP          string
-	version           *semver.Version
-	prereleaseVersion *semver.Version
+	dockerHelper  *dockerhelper.Helper
+	runHelper     *run.RunHelper
+	image         string
+	containerName string
+	serverIP      string
 }
 
 // NewHelper creates a new OpenShift helper
-func NewHelper(dockerHelper *dockerhelper.Helper, hostHelper *host.HostHelper, image, containerName, routingSuffix string) *Helper {
+func NewHelper(dockerHelper *dockerhelper.Helper, image, containerName string) *Helper {
 	return &Helper{
 		dockerHelper:  dockerHelper,
-		execHelper:    dockerexec.NewExecHelper(dockerHelper.Client(), containerName),
-		hostHelper:    hostHelper,
 		runHelper:     run.NewRunHelper(dockerHelper),
 		image:         image,
 		containerName: containerName,
-		routingSuffix: routingSuffix,
 	}
 }
 
@@ -236,23 +223,8 @@ func (h *Helper) OriginLog() string {
 	return fmt.Sprintf("No log available from %q container\n", h.containerName)
 }
 
-func (h *Helper) healthzReadyURL(ip string) string {
-	return fmt.Sprintf("%s/healthz/ready", h.Master(ip))
-}
-
 func (h *Helper) Master(ip string) string {
 	return fmt.Sprintf("https://%s:8443", ip)
-}
-
-func (h *Helper) GetNodeConfigFromLocalDir(configDir string) (*configapi.NodeConfig, string, error) {
-	configPath := filepath.Join(configDir, fmt.Sprintf("node-%s", defaultNodeName), "node-config.yaml")
-	glog.V(1).Infof("Reading node config from %s", configPath)
-	cfg, err := configapilatest.ReadNodeConfig(configPath)
-	if err != nil {
-		glog.V(2).Infof("Could not read node config: %v", err)
-		return nil, "", err
-	}
-	return cfg, configPath, nil
 }
 
 func (h *Helper) GetConfigFromLocalDir(configDir string) (*configapi.MasterConfig, string, error) {
@@ -264,56 +236,6 @@ func (h *Helper) GetConfigFromLocalDir(configDir string) (*configapi.MasterConfi
 		return nil, "", err
 	}
 	return cfg, configPath, nil
-}
-
-func (h *Helper) ServerVersion() (semver.Version, error) {
-	if h.version != nil {
-		return *h.version, nil
-	}
-	version, err := h.ServerPrereleaseVersion()
-	if err == nil {
-		// ignore pre-release portion
-		version.Pre = []semver.PRVersion{}
-		h.version = &version
-	}
-	return version, err
-}
-
-func (h *Helper) ServerPrereleaseVersion() (semver.Version, error) {
-	if h.prereleaseVersion != nil {
-		return *h.prereleaseVersion, nil
-	}
-
-	_, versionText, _, _, err := h.runHelper.New().Image(h.image).
-		Command("version").
-		DiscardContainer().
-		Output()
-	if err != nil {
-		return semver.Version{}, err
-	}
-	lines := strings.Split(versionText, "\n")
-	versionStr := ""
-	for _, line := range lines {
-		if strings.HasPrefix(line, "openshift") {
-			parts := strings.SplitN(line, " ", 2)
-			versionStr = strings.TrimLeft(parts[1], "v")
-			break
-		}
-	}
-	if len(versionStr) == 0 {
-		return semver.Version{}, fmt.Errorf("did not find version in command output: %s", versionText)
-	}
-	return parseOpenshiftVersion(versionStr)
-}
-
-func parseOpenshiftVersion(versionStr string) (semver.Version, error) {
-	// The OCP version may have > 4 parts to the version string,
-	// e.g. 3.5.1.1-prerelease, whereas Origin will be 3.5.1-prerelease,
-	// drop the 4th digit for OCP.
-	re := regexp.MustCompile("([0-9]+)\\.([0-9]+)\\.([0-9]+)((?:\\.[0-9]+)+)(.*)")
-	versionStr = re.ReplaceAllString(versionStr, "${1}.${2}.${3}${5}")
-
-	return semver.Parse(versionStr)
 }
 
 func checkPortsInUse(data string, ports []int) error {
