@@ -15,7 +15,7 @@ var metricsRegexp = regexp.MustCompile("(?m)^# HELP ([^ ]*)")
 
 func TestMetrics(t *testing.T) {
 	expectedMetrics := []string{
-		"openshift_template_instance_total",
+		"openshift_template_instance_active_age_seconds",
 	}
 
 	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMaster()

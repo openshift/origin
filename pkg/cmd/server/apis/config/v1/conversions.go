@@ -8,7 +8,6 @@ import (
 
 	"github.com/openshift/origin/pkg/api/apihelpers"
 	internal "github.com/openshift/origin/pkg/cmd/server/apis/config"
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 )
 
 func addDefaultingFuncs(scheme *runtime.Scheme) error {
@@ -45,9 +44,6 @@ func SetDefaults_MasterConfig(obj *MasterConfig) {
 	if obj.ServingInfo.MaxRequestsInFlight == 0 {
 		obj.ServingInfo.MaxRequestsInFlight = 1200
 	}
-	if len(obj.PolicyConfig.OpenShiftInfrastructureNamespace) == 0 {
-		obj.PolicyConfig.OpenShiftInfrastructureNamespace = bootstrappolicy.DefaultOpenShiftInfraNamespace
-	}
 	if len(obj.RoutingConfig.Subdomain) == 0 {
 		obj.RoutingConfig.Subdomain = "router.default.svc.cluster.local"
 	}
@@ -77,21 +73,9 @@ func SetDefaults_MasterConfig(obj *MasterConfig) {
 	}
 	SetDefaults_ClientConnectionOverrides(obj.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
 
-	if obj.MasterClients.ExternalKubernetesClientConnectionOverrides == nil {
-		obj.MasterClients.ExternalKubernetesClientConnectionOverrides = &ClientConnectionOverrides{}
-	}
-	// historical values
-	if obj.MasterClients.ExternalKubernetesClientConnectionOverrides.QPS <= 0 {
-		obj.MasterClients.ExternalKubernetesClientConnectionOverrides.QPS = 100.0
-	}
-	if obj.MasterClients.ExternalKubernetesClientConnectionOverrides.Burst <= 0 {
-		obj.MasterClients.ExternalKubernetesClientConnectionOverrides.Burst = 200
-	}
-	SetDefaults_ClientConnectionOverrides(obj.MasterClients.ExternalKubernetesClientConnectionOverrides)
-
 	// Populate the new NetworkConfig.ServiceNetworkCIDR field from the KubernetesMasterConfig.ServicesSubnet field if needed
 	if len(obj.NetworkConfig.ServiceNetworkCIDR) == 0 {
-		if obj.KubernetesMasterConfig != nil && len(obj.KubernetesMasterConfig.ServicesSubnet) > 0 {
+		if len(obj.KubernetesMasterConfig.ServicesSubnet) > 0 {
 			// if a subnet is set in the kubernetes master config, use that
 			obj.NetworkConfig.ServiceNetworkCIDR = obj.KubernetesMasterConfig.ServicesSubnet
 		} else {
@@ -101,8 +85,7 @@ func SetDefaults_MasterConfig(obj *MasterConfig) {
 	}
 
 	// TODO Detect cloud provider when not using built-in kubernetes
-	kubeConfig := obj.KubernetesMasterConfig
-	noCloudProvider := kubeConfig != nil && (len(kubeConfig.ControllerArguments["cloud-provider"]) == 0 || kubeConfig.ControllerArguments["cloud-provider"][0] == "")
+	noCloudProvider := (len(obj.KubernetesMasterConfig.ControllerArguments["cloud-provider"]) == 0 || obj.KubernetesMasterConfig.ControllerArguments["cloud-provider"][0] == "")
 
 	if noCloudProvider && len(obj.NetworkConfig.IngressIPNetworkCIDR) == 0 {
 		cidr := internal.DefaultIngressIPNetworkCIDR
@@ -146,9 +129,6 @@ func SetDefaults_MasterConfig(obj *MasterConfig) {
 }
 
 func SetDefaults_KubernetesMasterConfig(obj *KubernetesMasterConfig) {
-	if obj.MasterCount == 0 {
-		obj.MasterCount = 1
-	}
 	if obj.MasterEndpointReconcileTTL == 0 {
 		obj.MasterEndpointReconcileTTL = 15
 	}
@@ -160,12 +140,6 @@ func SetDefaults_KubernetesMasterConfig(obj *KubernetesMasterConfig) {
 	}
 	if len(obj.PodEvictionTimeout) == 0 {
 		obj.PodEvictionTimeout = "5m"
-	}
-	// Ensure no nil plugin config stanzas
-	for pluginName := range obj.AdmissionConfig.PluginConfig {
-		if obj.AdmissionConfig.PluginConfig[pluginName] == nil {
-			obj.AdmissionConfig.PluginConfig[pluginName] = &AdmissionPluginConfig{}
-		}
 	}
 }
 func SetDefaults_NodeConfig(obj *NodeConfig) {
@@ -465,12 +439,6 @@ func (c *MasterConfig) DecodeNestedObjects(d runtime.Decoder) error {
 		apihelpers.DecodeNestedRawExtensionOrUnknown(d, &v.Configuration)
 		c.AdmissionConfig.PluginConfig[k] = v
 	}
-	if c.KubernetesMasterConfig != nil {
-		for k, v := range c.KubernetesMasterConfig.AdmissionConfig.PluginConfig {
-			apihelpers.DecodeNestedRawExtensionOrUnknown(d, &v.Configuration)
-			c.KubernetesMasterConfig.AdmissionConfig.PluginConfig[k] = v
-		}
-	}
 	if c.OAuthConfig != nil {
 		for i := range c.OAuthConfig.IdentityProviders {
 			apihelpers.DecodeNestedRawExtensionOrUnknown(d, &c.OAuthConfig.IdentityProviders[i].Provider)
@@ -490,14 +458,6 @@ func (c *MasterConfig) EncodeNestedObjects(e runtime.Encoder) error {
 			return err
 		}
 		c.AdmissionConfig.PluginConfig[k] = v
-	}
-	if c.KubernetesMasterConfig != nil {
-		for k, v := range c.KubernetesMasterConfig.AdmissionConfig.PluginConfig {
-			if err := apihelpers.EncodeNestedRawExtension(e, &v.Configuration); err != nil {
-				return err
-			}
-			c.KubernetesMasterConfig.AdmissionConfig.PluginConfig[k] = v
-		}
 	}
 	if c.OAuthConfig != nil {
 		for i := range c.OAuthConfig.IdentityProviders {

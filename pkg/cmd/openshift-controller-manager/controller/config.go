@@ -10,6 +10,7 @@ import (
 	serviceaccountadmission "k8s.io/kubernetes/plugin/pkg/admission/serviceaccount"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 )
 
@@ -63,9 +64,10 @@ type OpenshiftControllerConfig struct {
 
 	ServiceServingCertsControllerOptions ServiceServingCertsControllerOptions
 
-	SDNControllerConfig       SDNControllerConfig
-	UnidlingControllerConfig  UnidlingControllerConfig
-	IngressIPControllerConfig IngressIPControllerConfig
+	SDNControllerConfig            SDNControllerConfig
+	UnidlingControllerConfig       UnidlingControllerConfig
+	IngressIPControllerConfig      IngressIPControllerConfig
+	IngressToRouteControllerConfig IngressToRouteControllerConfig
 
 	ClusterQuotaReconciliationControllerConfig ClusterQuotaReconciliationControllerConfig
 
@@ -98,6 +100,7 @@ func (c *OpenshiftControllerConfig) GetControllerInitializers() (map[string]Init
 	ret["openshift.io/sdn"] = c.SDNControllerConfig.RunController
 	ret["openshift.io/unidling"] = c.UnidlingControllerConfig.RunController
 	ret["openshift.io/ingress-ip"] = c.IngressIPControllerConfig.RunController
+	ret["openshift.io/ingress-to-route"] = c.IngressToRouteControllerConfig.RunController
 
 	ret["openshift.io/resourcequota"] = RunResourceQuotaManager
 	ret["openshift.io/cluster-quota-reconciliation"] = c.ClusterQuotaReconciliationControllerConfig.RunController
@@ -179,7 +182,7 @@ func BuildOpenshiftControllerConfig(options configapi.MasterConfig) (*OpenshiftC
 
 	// TODO this goes away with a truly generic autoscaler
 	ret.HorizontalPodAutoscalerControllerConfig = HorizontalPodAutoscalerControllerConfig{
-		HeapsterNamespace: options.PolicyConfig.OpenShiftInfrastructureNamespace,
+		HeapsterNamespace: bootstrappolicy.DefaultOpenShiftInfraNamespace,
 	}
 
 	return ret, nil

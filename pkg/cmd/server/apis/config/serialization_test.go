@@ -21,7 +21,6 @@ import (
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	configapiv1 "github.com/openshift/origin/pkg/cmd/server/apis/config/v1"
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	imagepolicyapi "github.com/openshift/origin/pkg/image/admission/apis/imagepolicy"
 	podnodeapi "github.com/openshift/origin/pkg/scheduler/admission/apis/podnodeconstraints"
 
@@ -66,9 +65,6 @@ func fuzzInternalObject(t *testing.T, forVersion schema.GroupVersion, item runti
 			if obj.ServingInfo.MaxRequestsInFlight == 0 {
 				obj.ServingInfo.MaxRequestsInFlight = 1200
 			}
-			if len(obj.PolicyConfig.OpenShiftInfrastructureNamespace) == 0 {
-				obj.PolicyConfig.OpenShiftInfrastructureNamespace = bootstrappolicy.DefaultOpenShiftInfraNamespace
-			}
 			if len(obj.RoutingConfig.Subdomain) == 0 {
 				obj.RoutingConfig.Subdomain = "router.default.svc.cluster.local"
 			}
@@ -91,28 +87,10 @@ func fuzzInternalObject(t *testing.T, forVersion schema.GroupVersion, item runti
 			if len(obj.MasterClients.OpenShiftLoopbackClientConnectionOverrides.ContentType) == 0 {
 				obj.MasterClients.OpenShiftLoopbackClientConnectionOverrides.ContentType = "test/fifth"
 			}
-			if obj.MasterClients.ExternalKubernetesClientConnectionOverrides == nil {
-				obj.MasterClients.ExternalKubernetesClientConnectionOverrides = &configapi.ClientConnectionOverrides{
-					AcceptContentTypes: "test/other",
-					ContentType:        "test/third",
-				}
-			}
-			if obj.MasterClients.ExternalKubernetesClientConnectionOverrides.QPS <= 0 {
-				obj.MasterClients.ExternalKubernetesClientConnectionOverrides.QPS = 2.0
-			}
-			if obj.MasterClients.ExternalKubernetesClientConnectionOverrides.Burst <= 0 {
-				obj.MasterClients.ExternalKubernetesClientConnectionOverrides.Burst = 2
-			}
-			if len(obj.MasterClients.ExternalKubernetesClientConnectionOverrides.AcceptContentTypes) == 0 {
-				obj.MasterClients.ExternalKubernetesClientConnectionOverrides.AcceptContentTypes = "test/fourth"
-			}
-			if len(obj.MasterClients.ExternalKubernetesClientConnectionOverrides.ContentType) == 0 {
-				obj.MasterClients.ExternalKubernetesClientConnectionOverrides.ContentType = "test/fifth"
-			}
 
 			// Populate the new NetworkConfig.ServiceNetworkCIDR field from the KubernetesMasterConfig.ServicesSubnet field if needed
 			if len(obj.NetworkConfig.ServiceNetworkCIDR) == 0 {
-				if obj.KubernetesMasterConfig != nil && len(obj.KubernetesMasterConfig.ServicesSubnet) > 0 {
+				if len(obj.KubernetesMasterConfig.ServicesSubnet) > 0 {
 					// if a subnet is set in the kubernetes master config, use that
 					obj.NetworkConfig.ServiceNetworkCIDR = obj.KubernetesMasterConfig.ServicesSubnet
 				} else {
@@ -145,8 +123,7 @@ func fuzzInternalObject(t *testing.T, forVersion schema.GroupVersion, item runti
 			}
 
 			// TODO stop duplicating the conversion in the test.
-			kubeConfig := obj.KubernetesMasterConfig
-			noCloudProvider := kubeConfig != nil && (len(kubeConfig.ControllerArguments["cloud-provider"]) == 0 || kubeConfig.ControllerArguments["cloud-provider"][0] == "")
+			noCloudProvider := (len(obj.KubernetesMasterConfig.ControllerArguments["cloud-provider"]) == 0 || obj.KubernetesMasterConfig.ControllerArguments["cloud-provider"][0] == "")
 			if noCloudProvider && len(obj.NetworkConfig.IngressIPNetworkCIDR) == 0 {
 				cidr := configapi.DefaultIngressIPNetworkCIDR
 				setCIDR := true
@@ -191,25 +168,7 @@ func fuzzInternalObject(t *testing.T, forVersion schema.GroupVersion, item runti
 					obj.AdmissionConfig.PluginConfig[pluginName] = &configapi.AdmissionPluginConfig{}
 				}
 			}
-			if obj.KubernetesMasterConfig != nil {
-				for pluginName := range obj.KubernetesMasterConfig.AdmissionConfig.PluginConfig {
-					if obj.KubernetesMasterConfig.AdmissionConfig.PluginConfig[pluginName] == nil {
-						obj.KubernetesMasterConfig.AdmissionConfig.PluginConfig[pluginName] = &configapi.AdmissionPluginConfig{}
-					}
-				}
-			}
 
-			// test a Kubernetes admission plugin nested for round tripping
-			if obj.KubernetesMasterConfig != nil && c.RandBool() {
-				obj.KubernetesMasterConfig.AdmissionConfig.PluginConfig = map[string]*configapi.AdmissionPluginConfig{
-					"abc": {
-						Location: "test",
-						Configuration: &configapi.LDAPSyncConfig{
-							URL: "ldap://some:other@server:8080/test",
-						},
-					},
-				}
-			}
 			if obj.OAuthConfig != nil && c.RandBool() {
 				obj.OAuthConfig.IdentityProviders = []configapi.IdentityProvider{
 					{
@@ -234,9 +193,6 @@ func fuzzInternalObject(t *testing.T, forVersion schema.GroupVersion, item runti
 		},
 		func(obj *configapi.KubernetesMasterConfig, c fuzz.Continue) {
 			c.FuzzNoCustom(obj)
-			if obj.MasterCount == 0 {
-				obj.MasterCount = 1
-			}
 			if len(obj.ServicesNodePortRange) == 0 {
 				obj.ServicesNodePortRange = "30000-32767"
 			}

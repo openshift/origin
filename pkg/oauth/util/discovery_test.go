@@ -8,7 +8,7 @@ import (
 )
 
 func TestGetOauthMetadata(t *testing.T) {
-	actual := GetOauthMetadata("https://localhost:8443")
+	actual := getOauthMetadata("https://localhost:8443")
 	expected := OauthAuthorizationServerMetadata{
 		Issuer:                "https://localhost:8443",
 		AuthorizationEndpoint: "https://localhost:8443/oauth/authorize",

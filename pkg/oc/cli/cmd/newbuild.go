@@ -152,7 +152,6 @@ func (o *NewBuildOptions) Complete(baseName, commandName string, f *clientcmd.Fa
 		return err
 	}
 
-	bo.Config.AllowNonNumericExposedPorts = true
 	if bo.Config.Dockerfile == "-" {
 		data, err := ioutil.ReadAll(in)
 		if err != nil {

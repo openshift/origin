@@ -182,8 +182,10 @@ func TestImageRefDeployableContainerPorts(t *testing.T) {
 			inputPorts: map[string]struct{}{
 				"123/tcp abc": {},
 			},
-			expectedPorts: map[int]string{},
-			expectError:   true,
+			expectedPorts: map[int]string{
+				123: "TCP",
+			},
+			expectError: false,
 		},
 		{
 			name:          "no image config",

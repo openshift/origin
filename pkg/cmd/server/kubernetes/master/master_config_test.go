@@ -399,7 +399,7 @@ func TestGetAPIGroupVersionOverrides(t *testing.T) {
 	}
 
 	for k, tc := range testcases {
-		config := configapi.MasterConfig{KubernetesMasterConfig: &configapi.KubernetesMasterConfig{DisabledAPIGroupVersions: tc.DisabledVersions}}
+		config := configapi.MasterConfig{KubernetesMasterConfig: configapi.KubernetesMasterConfig{DisabledAPIGroupVersions: tc.DisabledVersions}}
 		overrides := getAPIResourceConfig(config)
 
 		for _, expected := range tc.ExpectedDisabledVersions {

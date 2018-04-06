@@ -859,13 +859,7 @@ func (in *KubernetesMasterConfig) DeepCopyInto(out *KubernetesMasterConfig) {
 			}
 		}
 	}
-	if in.StaticNodeNames != nil {
-		in, out := &in.StaticNodeNames, &out.StaticNodeNames
-		*out = make([]string, len(*in))
-		copy(*out, *in)
-	}
 	out.ProxyClientInfo = in.ProxyClientInfo
-	in.AdmissionConfig.DeepCopyInto(&out.AdmissionConfig)
 	if in.APIServerArguments != nil {
 		in, out := &in.APIServerArguments, &out.APIServerArguments
 		*out = make(ExtendedArguments, len(*in))
@@ -1143,15 +1137,6 @@ func (in *MasterClients) DeepCopyInto(out *MasterClients) {
 			**out = **in
 		}
 	}
-	if in.ExternalKubernetesClientConnectionOverrides != nil {
-		in, out := &in.ExternalKubernetesClientConnectionOverrides, &out.ExternalKubernetesClientConnectionOverrides
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(ClientConnectionOverrides)
-			**out = **in
-		}
-	}
 	return
 }
 
@@ -1187,15 +1172,7 @@ func (in *MasterConfig) DeepCopyInto(out *MasterConfig) {
 	out.EtcdStorageConfig = in.EtcdStorageConfig
 	in.EtcdClientInfo.DeepCopyInto(&out.EtcdClientInfo)
 	out.KubeletClientInfo = in.KubeletClientInfo
-	if in.KubernetesMasterConfig != nil {
-		in, out := &in.KubernetesMasterConfig, &out.KubernetesMasterConfig
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(KubernetesMasterConfig)
-			(*in).DeepCopyInto(*out)
-		}
-	}
+	in.KubernetesMasterConfig.DeepCopyInto(&out.KubernetesMasterConfig)
 	if in.EtcdConfig != nil {
 		in, out := &in.EtcdConfig, &out.EtcdConfig
 		if *in == nil {

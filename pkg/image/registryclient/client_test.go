@@ -240,26 +240,17 @@ func TestShouldRetry(t *testing.T) {
 	r := NewRetryRepository(nil, 1, 0).(*retryRepository)
 
 	// nil error doesn't consume retries
-	if r.shouldRetry(nil) {
-		t.Fatal(r)
-	}
-	if r.retries != 1 || r.initial != nil {
+	if r.shouldRetry(0, nil) {
 		t.Fatal(r)
 	}
 
 	// normal error doesn't consume retries
-	if r.shouldRetry(fmt.Errorf("error")) {
-		t.Fatal(r)
-	}
-	if r.retries != 1 || r.initial != nil {
+	if r.shouldRetry(0, fmt.Errorf("error")) {
 		t.Fatal(r)
 	}
 
 	// docker error doesn't consume retries
-	if r.shouldRetry(errcode.ErrorCodeDenied) {
-		t.Fatal(r)
-	}
-	if r.retries != 1 || r.initial != nil {
+	if r.shouldRetry(0, errcode.ErrorCodeDenied) {
 		t.Fatal(r)
 	}
 
@@ -267,51 +258,12 @@ func TestShouldRetry(t *testing.T) {
 	nowFn = func() time.Time {
 		return now
 	}
-	// should retry unauthorized
+	// should retry a temporary error
 	r = NewRetryRepository(nil, 1, 0).(*retryRepository)
-	if !r.shouldRetry(temporaryError{}) {
+	if !r.shouldRetry(0, temporaryError{}) {
 		t.Fatal(r)
 	}
-	if r.retries != 0 || r.initial == nil || !r.initial.Equal(now) {
-		t.Fatal(r)
-	}
-	if r.shouldRetry(temporaryError{}) {
-		t.Fatal(r)
-	}
-
-	// should not retry unauthorized after one second
-	r = NewRetryRepository(nil, 2, time.Second).(*retryRepository)
-	if !r.shouldRetry(temporaryError{}) {
-		t.Fatal(r)
-	}
-	if r.retries != 1 || r.initial == nil || !r.initial.Equal(time.Unix(1, 0)) || r.wait != (time.Second) {
-		t.Fatal(r)
-	}
-	now = time.Unix(3, 0)
-	if !r.shouldRetry(temporaryError{}) {
-		t.Fatal(r)
-	}
-	if r.retries != 0 || r.initial == nil || !r.initial.Equal(time.Unix(1, 0)) || r.wait != (time.Second) {
-		t.Fatal(r)
-	}
-	if r.shouldRetry(temporaryError{}) {
-		t.Fatal(r)
-	}
-
-	// should retry unauthorized within one second and preserve initial time
-	now = time.Unix(0, 0)
-	r = NewRetryRepository(nil, 2, time.Millisecond).(*retryRepository)
-	if !r.shouldRetry(temporaryError{}) {
-		t.Fatal(r)
-	}
-	if r.retries != 1 || r.initial == nil || !r.initial.Equal(time.Unix(0, 0)) {
-		t.Fatal(r)
-	}
-	now = time.Unix(0, time.Millisecond.Nanoseconds()/2)
-	if !r.shouldRetry(temporaryError{}) {
-		t.Fatal(r)
-	}
-	if r.retries != 0 || r.initial == nil || !r.initial.Equal(time.Unix(0, 0)) {
+	if r.shouldRetry(1, temporaryError{}) {
 		t.Fatal(r)
 	}
 }
@@ -356,11 +308,11 @@ func TestRetryFailure(t *testing.T) {
 		t.Fatal(err)
 	}
 	r.retries = 2
-	if _, err := m.Get(nil, godigest.Digest("foo")); err != repo.getErr || r.retries != 0 {
+	if _, err := m.Get(nil, godigest.Digest("foo")); err != repo.getErr {
 		t.Fatalf("unexpected: %v %#v", err, r)
 	}
 	r.retries = 2
-	if m, err := m.Exists(nil, "foo"); m || err != repo.getErr || r.retries != 0 {
+	if m, err := m.Exists(nil, "foo"); m || err != repo.getErr {
 		t.Fatalf("unexpected: %v %v %#v", m, err, r)
 	}
 
@@ -369,15 +321,15 @@ func TestRetryFailure(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := b.Stat(nil, godigest.Digest("x")); err != repo.blobs.statErr || r.retries != 0 {
+	if _, err := b.Stat(nil, godigest.Digest("x")); err != repo.blobs.statErr {
 		t.Fatalf("unexpected: %v %#v", err, r)
 	}
 	r.retries = 2
-	if err := b.ServeBlob(nil, nil, nil, godigest.Digest("foo")); err != repo.blobs.serveErr || r.retries != 0 {
+	if err := b.ServeBlob(nil, nil, nil, godigest.Digest("foo")); err != repo.blobs.serveErr {
 		t.Fatalf("unexpected: %v %#v", err, r)
 	}
 	r.retries = 2
-	if _, err := b.Open(nil, godigest.Digest("foo")); err != repo.blobs.openErr || r.retries != 0 {
+	if _, err := b.Open(nil, godigest.Digest("foo")); err != repo.blobs.openErr {
 		t.Fatalf("unexpected: %v %#v", err, r)
 	}
 }

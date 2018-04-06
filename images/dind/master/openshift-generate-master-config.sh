@@ -36,16 +36,19 @@ function ensure-master-config() {
     serving_ip_addr="${ip_addr1}"
   fi
 
-  /usr/local/bin/oc adm ca create-master-certs \
-    --overwrite=false \
-    --cert-dir="${master_path}" \
-    --master="https://${serving_ip_addr}:8443" \
-    --hostnames="${ip_addrs},${name}"
+  mkdir -p "${config_path}"
+  (flock 200;
+   /usr/local/bin/oc adm ca create-master-certs \
+     --overwrite=false \
+     --cert-dir="${master_path}" \
+     --master="https://${serving_ip_addr}:8443" \
+     --hostnames="${ip_addrs},${name}"
 
-  /usr/local/bin/openshift start master --write-config="${master_path}" \
-    --master="https://${serving_ip_addr}:8443" \
-    --network-plugin="${OPENSHIFT_NETWORK_PLUGIN}" \
-    ${OPENSHIFT_ADDITIONAL_ARGS}
+   /usr/local/bin/openshift start master --write-config="${master_path}" \
+     --master="https://${serving_ip_addr}:8443" \
+     --network-plugin="${OPENSHIFT_NETWORK_PLUGIN}" \
+     ${OPENSHIFT_ADDITIONAL_ARGS}
+  ) 200>"${config_path}"/.openshift-ca.lock
 
   # ensure the configuration can be used outside of the container
   chmod -R ga+rX "${master_path}"

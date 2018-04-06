@@ -145,20 +145,14 @@ func GetMasterFileReferences(config *MasterConfig) []*string {
 		refs = append(refs, &config.AdmissionConfig.PluginConfig[k].Location)
 	}
 
-	if config.KubernetesMasterConfig != nil {
-		refs = append(refs, &config.KubernetesMasterConfig.SchedulerConfigFile)
+	refs = append(refs, &config.KubernetesMasterConfig.SchedulerConfigFile)
 
-		refs = append(refs, &config.KubernetesMasterConfig.ProxyClientInfo.CertFile)
-		refs = append(refs, &config.KubernetesMasterConfig.ProxyClientInfo.KeyFile)
+	refs = append(refs, &config.KubernetesMasterConfig.ProxyClientInfo.CertFile)
+	refs = append(refs, &config.KubernetesMasterConfig.ProxyClientInfo.KeyFile)
 
-		refs = appendFlagsWithFileExtensions(refs, config.KubernetesMasterConfig.APIServerArguments)
-		refs = appendFlagsWithFileExtensions(refs, config.KubernetesMasterConfig.SchedulerArguments)
-		refs = appendFlagsWithFileExtensions(refs, config.KubernetesMasterConfig.ControllerArguments)
-
-		for k := range config.KubernetesMasterConfig.AdmissionConfig.PluginConfig {
-			refs = append(refs, &config.KubernetesMasterConfig.AdmissionConfig.PluginConfig[k].Location)
-		}
-	}
+	refs = appendFlagsWithFileExtensions(refs, config.KubernetesMasterConfig.APIServerArguments)
+	refs = appendFlagsWithFileExtensions(refs, config.KubernetesMasterConfig.SchedulerArguments)
+	refs = appendFlagsWithFileExtensions(refs, config.KubernetesMasterConfig.ControllerArguments)
 
 	if config.AuthConfig.RequestHeader != nil {
 		refs = append(refs, &config.AuthConfig.RequestHeader.ClientCA)
@@ -166,6 +160,9 @@ func GetMasterFileReferences(config *MasterConfig) []*string {
 
 	for k := range config.AuthConfig.WebhookTokenAuthenticators {
 		refs = append(refs, &config.AuthConfig.WebhookTokenAuthenticators[k].ConfigFile)
+	}
+	if len(config.AuthConfig.OAuthMetadataFile) > 0 {
+		refs = append(refs, &config.AuthConfig.OAuthMetadataFile)
 	}
 
 	refs = append(refs, &config.AggregatorConfig.ProxyClientInfo.CertFile)
@@ -178,9 +175,6 @@ func GetMasterFileReferences(config *MasterConfig) []*string {
 	}
 
 	refs = append(refs, &config.MasterClients.OpenShiftLoopbackKubeConfig)
-	refs = append(refs, &config.MasterClients.ExternalKubernetesKubeConfig)
-
-	refs = append(refs, &config.PolicyConfig.BootstrapPolicyFile)
 
 	if config.ControllerConfig.ServiceServingCert.Signer != nil {
 		refs = append(refs, &config.ControllerConfig.ServiceServingCert.Signer.CertFile)
@@ -476,10 +470,11 @@ func GetKubeAPIServerFlagAPIEnablement(flagValue []string) map[schema.GroupVersi
 	versions := map[schema.GroupVersion]bool{}
 	for _, val := range flagValue {
 		// skip bad flags
-		if !strings.HasPrefix(val, "apis/") {
+		if strings.HasPrefix(val, "api/") {
 			continue
 		}
-		tokens := strings.Split(val[len("apis/"):], "=")
+		val = strings.TrimPrefix(val, "apis/")
+		tokens := strings.Split(val, "=")
 		if len(tokens) != 2 {
 			continue
 		}

@@ -207,7 +207,6 @@ func TestBuilder(t *testing.T) {
 			From:       "busybox",
 			Unrecognized: []Step{
 				Step{Command: "health", Message: "HEALTH ", Original: "HEALTH NONE", Args: []string{""}, Flags: []string{}, Env: []string{}},
-				Step{Command: "shell", Message: "SHELL /bin/sh -c", Original: "SHELL [\"/bin/sh\", \"-c\"]", Args: []string{"/bin/sh", "-c"}, Flags: []string{}, Env: []string{}, Attrs: map[string]bool{"json": true}},
 				Step{Command: "unrecognized", Message: "UNRECOGNIZED ", Original: "UNRECOGNIZED", Args: []string{""}, Env: []string{}},
 			},
 			Config: docker.Config{
@@ -348,6 +347,20 @@ func TestBuilder(t *testing.T) {
 				{Src: []string{"file"}, Dest: "/var/www/", Download: true},
 				{Src: []string{"file2"}, Dest: "/var/www/", Download: true},
 				{Src: []string{"file4"}, Dest: "/var/www/", Download: true},
+			},
+		},
+		{
+			Dockerfile: "dockerclient/testdata/Dockerfile.shell",
+			From:       "centos:7",
+			Config: docker.Config{
+				Image: "centos:7",
+				Shell: []string{"/bin/bash", "-xc"},
+			},
+			ErrFn: func(err error) bool {
+				return err != nil && strings.Contains(err.Error(), "multiple FROM statements are not supported")
+			},
+			Runs: []Run{
+				{Shell: true, Args: []string{"env"}},
 			},
 		},
 	}

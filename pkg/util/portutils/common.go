@@ -18,6 +18,25 @@ func SplitPortAndProtocol(port string) (docker.Port, error) {
 	return dp, err
 }
 
+// FilterPortAndProtocolArray splits an array of strings of format port/proto
+// and returns an array of docker.Port that succeeded parsing
+func FilterPortAndProtocolArray(ports []string) ([]docker.Port, []error) {
+	allErrs := []error{}
+	allPorts := []docker.Port{}
+
+	for _, port := range ports {
+		dp, err := SplitPortAndProtocol(port)
+
+		if err == nil {
+			allPorts = append(allPorts, dp)
+		} else {
+			allErrs = append(allErrs, err)
+		}
+	}
+
+	return allPorts, allErrs
+}
+
 // SplitPortAndProtocolArray splits an array of strings of format port/proto
 // and returns an array of docker.Port
 func SplitPortAndProtocolArray(ports []string) ([]docker.Port, []error) {

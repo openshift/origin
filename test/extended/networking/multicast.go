@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"regexp"
 
+	"github.com/openshift/origin/pkg/network"
 	networkapi "github.com/openshift/origin/pkg/network/apis/network"
 	networkclient "github.com/openshift/origin/pkg/network/generated/internalclientset"
 	testexutil "github.com/openshift/origin/test/extended/util"
@@ -18,27 +19,35 @@ import (
 )
 
 var _ = Describe("[Area:Networking] multicast", func() {
-	InNonIsolatingContext(func() {
-		oc := testexutil.NewCLI("multicast", testexutil.KubeConfigPath())
-		f := oc.KubeFramework()
+	// The subnet plugin should block all multicast. The multitenant and networkpolicy
+	// plugins should implement multicast in the way that we test. For third-party
+	// plugins, the behavior is unspecified and we should not run either test.
 
-		It("should block multicast traffic", func() {
-			Expect(testMulticast(f, oc)).NotTo(Succeed())
-		})
-	})
+	InPluginContext([]string{network.SingleTenantPluginName},
+		func() {
+			oc := testexutil.NewCLI("multicast", testexutil.KubeConfigPath())
+			f := oc.KubeFramework()
 
-	InIsolatingContext(func() {
-		oc := testexutil.NewCLI("multicast", testexutil.KubeConfigPath())
-		f := oc.KubeFramework()
+			It("should block multicast traffic", func() {
+				Expect(testMulticast(f, oc)).NotTo(Succeed())
+			})
+		},
+	)
 
-		It("should block multicast traffic in namespaces where it is disabled", func() {
-			Expect(testMulticast(f, oc)).NotTo(Succeed())
-		})
-		It("should allow multicast traffic in namespaces where it is enabled", func() {
-			makeNamespaceMulticastEnabled(f.Namespace)
-			Expect(testMulticast(f, oc)).To(Succeed())
-		})
-	})
+	InPluginContext([]string{network.MultiTenantPluginName, network.NetworkPolicyPluginName},
+		func() {
+			oc := testexutil.NewCLI("multicast", testexutil.KubeConfigPath())
+			f := oc.KubeFramework()
+
+			It("should block multicast traffic in namespaces where it is disabled", func() {
+				Expect(testMulticast(f, oc)).NotTo(Succeed())
+			})
+			It("should allow multicast traffic in namespaces where it is enabled", func() {
+				makeNamespaceMulticastEnabled(f.Namespace)
+				Expect(testMulticast(f, oc)).To(Succeed())
+			})
+		},
+	)
 })
 
 func makeNamespaceMulticastEnabled(ns *kapiv1.Namespace) {
@@ -82,10 +91,12 @@ func makeNamespaceMulticastEnabled(ns *kapiv1.Namespace) {
 // (or, on failure, "multicast, xmt/rcv/%loss = 1/0/100%, ...")
 
 func testMulticast(f *e2e.Framework, oc *testexutil.CLI) error {
-	nodes := e2e.GetReadySchedulableNodesOrDie(f.ClientSet)
-	if len(nodes.Items) == 1 {
-		e2e.Skipf("Only one node is available in this environment")
-	}
+	makeNamespaceScheduleToAllNodes(f)
+
+	// We launch 3 pods total; pod[0] and pod[1] will end up on node[0], and pod[2]
+	// will end up on node[1], ensuring we test both intra- and inter-node multicast
+	var nodes [2]*kapiv1.Node
+	nodes[0], nodes[1] = findAppropriateNodes(f, DIFFERENT_NODE)
 
 	var pod, ip, out [3]string
 	var err [3]error
@@ -94,10 +105,8 @@ func testMulticast(f *e2e.Framework, oc *testexutil.CLI) error {
 
 	for i := range pod {
 		pod[i] = fmt.Sprintf("multicast-%d", i)
-		ip[i], err[i] = launchTestMulticastPod(f, nodes.Items[i/2].Name, pod[i])
-		if err[i] != nil {
-			return err[i]
-		}
+		ip[i], err[i] = launchTestMulticastPod(f, nodes[i/2].Name, pod[i])
+		expectNoError(err[i])
 		var zero int64
 		defer f.ClientSet.CoreV1().Pods(f.Namespace.Name).Delete(pod[i], &metav1.DeleteOptions{GracePeriodSeconds: &zero})
 		matchIP[i] = regexp.MustCompile(ip[i] + ".*multicast.*1/1/0%")

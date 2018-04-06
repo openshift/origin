@@ -60,8 +60,6 @@ type RouterSelection struct {
 
 	ExtendedValidation bool
 
-	EnableIngress bool
-
 	ListenAddr string
 }
 
@@ -82,8 +80,9 @@ func (o *RouterSelection) Bind(flag *pflag.FlagSet) {
 	flag.StringSliceVar(&o.AllowedDomains, "allowed-domains", envVarAsStrings("ROUTER_ALLOWED_DOMAINS", "", ","), "List of comma separated domains to allow in routes. If specified, only the domains in this list will be allowed routes. Note that domains in the denied list take precedence over the ones in the allowed list")
 	flag.BoolVar(&o.AllowWildcardRoutes, "allow-wildcard-routes", isTrue(cmdutil.Env("ROUTER_ALLOW_WILDCARD_ROUTES", "")), "Allow wildcard host names for routes")
 	flag.BoolVar(&o.DisableNamespaceOwnershipCheck, "disable-namespace-ownership-check", isTrue(cmdutil.Env("ROUTER_DISABLE_NAMESPACE_OWNERSHIP_CHECK", "")), "Disables the namespace ownership checks for a route host with different paths or for overlapping host names in the case of wildcard routes. Please be aware that if namespace ownership checks are disabled, routes in a different namespace can use this mechanism to 'steal' sub-paths for existing domains. This is only safe if route creation privileges are restricted, or if all the users can be trusted.")
-	flag.BoolVar(&o.EnableIngress, "enable-ingress", isTrue(cmdutil.Env("ROUTER_ENABLE_INGRESS", "")), "Enable configuration via ingress resources")
 	flag.BoolVar(&o.ExtendedValidation, "extended-validation", isTrue(cmdutil.Env("EXTENDED_VALIDATION", "true")), "If set, then an additional extended validation step is performed on all routes admitted in by this router. Defaults to true and enables the extended validation checks.")
+	flag.Bool("enable-ingress", false, "Enable configuration via ingress resources.")
+	flag.MarkDeprecated("enable-ingress", "Ingress resources are now synchronized to routes automatically.")
 	flag.StringVar(&o.ListenAddr, "listen-addr", cmdutil.Env("ROUTER_LISTEN_ADDR", ""), "The name of an interface to listen on to expose metrics and health checking. If not specified, will not listen. Overrides stats port.")
 }
 
@@ -96,14 +95,10 @@ func (o *RouterSelection) RouteSelectionFunc() controller.RouteHostFunc {
 		if !o.OverrideHostname && len(route.Spec.Host) > 0 {
 			return route.Spec.Host
 		}
-		// GetNameForHost returns the ingress name for a generated route, and the route route
-		// name otherwise.  When a route and ingress in the same namespace share a name, the
-		// route and the ingress' rules should receive the same generated host.
-		nameForHost := controller.GetNameForHost(route.Name)
 		s, err := variable.ExpandStrict(o.HostnameTemplate, func(key string) (string, bool) {
 			switch key {
 			case "name":
-				return nameForHost, true
+				return route.Name, true
 			case "namespace":
 				return route.Namespace, true
 			default:

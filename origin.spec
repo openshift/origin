@@ -24,7 +24,7 @@
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=10+ OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.10.0-0.14.0 OS_GIT_TREE_STATE=clean OS_GIT_PATCH=0 KUBE_GIT_VERSION=v1.9.1+a0ce1bc657 OS_GIT_CATALOG_VERSION=v0.1.9 KUBE_GIT_COMMIT=a0ce1bc OS_GIT_COMMIT=6b58055 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.16 ETCD_GIT_COMMIT=121edf0
+%global os_git_vars OS_GIT_MINOR=10+ OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.10.0-0.14.0 OS_GIT_TREE_STATE=clean OS_GIT_PATCH=0 KUBE_GIT_VERSION=v1.9.1+a0ce1bc657 KUBE_GIT_COMMIT=a0ce1bc OS_GIT_COMMIT=6b58055 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.16 ETCD_GIT_COMMIT=121edf0
 }
 
 %if 0%{?skip_build}
@@ -191,12 +191,6 @@ Summary:        %{produce_name} Federation Services
 
 %description federation-services
 
-%package service-catalog
-Summary:        %{product_name} Service Catalog
-
-%description service-catalog
-%{summary}
-
 %package template-service-broker
 Summary: Template Service Broker
 %description template-service-broker
@@ -241,7 +235,6 @@ of docker.  Exclude those versions of docker.
 # Create Binaries for all supported arches
 %{os_git_vars} OS_BUILD_RELEASE_ARCHIVES=n make build-cross
 %{os_git_vars} hack/build-go.sh vendor/github.com/onsi/ginkgo/ginkgo
-%{os_git_vars} unset GOPATH; cmd/service-catalog/go/src/github.com/kubernetes-incubator/service-catalog/hack/build-cross.sh
 %{os_git_vars} unset GOPATH; cmd/cluster-capacity/go/src/github.com/kubernetes-incubator/cluster-capacity/hack/build-cross.sh
 %else
 # Create Binaries only for building arch
@@ -262,7 +255,6 @@ of docker.  Exclude those versions of docker.
 %endif
 OS_ONLY_BUILD_PLATFORMS="${BUILD_PLATFORM}" %{os_git_vars} OS_BUILD_RELEASE_ARCHIVES=n make build-cross
 OS_ONLY_BUILD_PLATFORMS="${BUILD_PLATFORM}" %{os_git_vars} hack/build-go.sh vendor/github.com/onsi/ginkgo/ginkgo
-OS_ONLY_BUILD_PLATFORMS="${BUILD_PLATFORM}" %{os_git_vars} unset GOPATH; cmd/service-catalog/go/src/github.com/kubernetes-incubator/service-catalog/hack/build-cross.sh
 OS_ONLY_BUILD_PLATFORMS="${BUILD_PLATFORM}" %{os_git_vars} unset GOPATH; cmd/cluster-capacity/go/src/github.com/kubernetes-incubator/cluster-capacity/hack/build-cross.sh
 %endif
 
@@ -305,9 +297,6 @@ install -p -m 755 _output/local/bin/${PLATFORM}/hyperkube %{buildroot}%{_bindir}
 # Install cluster capacity
 install -p -m 755 cmd/cluster-capacity/go/src/github.com/kubernetes-incubator/cluster-capacity/_output/local/bin/${PLATFORM}/hypercc %{buildroot}%{_bindir}/
 ln -s hypercc %{buildroot}%{_bindir}/cluster-capacity
-
-# Install service-catalog
-install -p -m 755 cmd/service-catalog/go/src/github.com/kubernetes-incubator/service-catalog/_output/local/bin/${PLATFORM}/service-catalog %{buildroot}%{_bindir}/
 
 # Install pod
 install -p -m 755 _output/local/bin/${PLATFORM}/pod %{buildroot}%{_bindir}/
@@ -527,9 +516,6 @@ fi
 if [ -d %{kube_plugin_path} ]; then
   rmdir %{kube_plugin_path}
 fi
-
-%files service-catalog
-%{_bindir}/service-catalog
 
 %files clients
 %license LICENSE

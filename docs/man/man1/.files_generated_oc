@@ -130,6 +130,7 @@ oc-auth.1
 oc-autoscale.1
 oc-build-logs.1
 oc-cancel-build.1
+oc-cluster-add.1
 oc-cluster-down.1
 oc-cluster-status.1
 oc-cluster-up.1
@@ -264,6 +265,9 @@ oc-process.1
 oc-project.1
 oc-projects.1
 oc-proxy.1
+oc-registry-info.1
+oc-registry-login.1
+oc-registry.1
 oc-replace.1
 oc-rollback.1
 oc-rollout-cancel.1

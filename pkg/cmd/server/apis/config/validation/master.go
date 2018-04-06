@@ -25,6 +25,7 @@ import (
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/server/cm"
+	oauthutil "github.com/openshift/origin/pkg/oauth/util"
 	"github.com/openshift/origin/pkg/security/mcs"
 	"github.com/openshift/origin/pkg/security/uid"
 	"github.com/openshift/origin/pkg/util/labelselector"
@@ -102,21 +103,12 @@ func ValidateMasterConfig(config *configapi.MasterConfig, fldPath *field.Path) V
 
 	validationResults.AddErrors(ValidateKubeletConnectionInfo(config.KubeletClientInfo, fldPath.Child("kubeletClientInfo"))...)
 
-	builtInKubernetes := config.KubernetesMasterConfig != nil
-	if config.KubernetesMasterConfig != nil {
-		validationResults.Append(ValidateKubernetesMasterConfig(config.KubernetesMasterConfig, fldPath.Child("kubernetesMasterConfig")))
-	}
-	if (config.KubernetesMasterConfig == nil) && (len(config.MasterClients.ExternalKubernetesKubeConfig) == 0) {
-		validationResults.AddErrors(field.Invalid(fldPath.Child("kubernetesMasterConfig"), config.KubernetesMasterConfig, "either kubernetesMasterConfig or masterClients.externalKubernetesKubeConfig must have a value"))
-	}
-	if (config.KubernetesMasterConfig != nil) && (len(config.MasterClients.ExternalKubernetesKubeConfig) != 0) {
-		validationResults.AddErrors(field.Invalid(fldPath.Child("kubernetesMasterConfig"), config.KubernetesMasterConfig, "kubernetesMasterConfig and masterClients.externalKubernetesKubeConfig are mutually exclusive"))
-	}
+	validationResults.Append(ValidateKubernetesMasterConfig(config.KubernetesMasterConfig, fldPath.Child("kubernetesMasterConfig")))
 
 	if len(config.NetworkConfig.ServiceNetworkCIDR) > 0 {
 		if _, _, err := net.ParseCIDR(strings.TrimSpace(config.NetworkConfig.ServiceNetworkCIDR)); err != nil {
 			validationResults.AddErrors(field.Invalid(fldPath.Child("networkConfig", "serviceNetworkCIDR"), config.NetworkConfig.ServiceNetworkCIDR, "must be a valid CIDR notation IP range (e.g. 172.30.0.0/16)"))
-		} else if config.KubernetesMasterConfig != nil && len(config.KubernetesMasterConfig.ServicesSubnet) > 0 && config.KubernetesMasterConfig.ServicesSubnet != config.NetworkConfig.ServiceNetworkCIDR {
+		} else if len(config.KubernetesMasterConfig.ServicesSubnet) > 0 && config.KubernetesMasterConfig.ServicesSubnet != config.NetworkConfig.ServiceNetworkCIDR {
 			validationResults.AddErrors(field.Invalid(fldPath.Child("networkConfig", "serviceNetworkCIDR"), config.NetworkConfig.ServiceNetworkCIDR, fmt.Sprintf("must match kubernetesMasterConfig.servicesSubnet value of %q", config.KubernetesMasterConfig.ServicesSubnet)))
 		}
 	}
@@ -134,16 +126,15 @@ func ValidateMasterConfig(config *configapi.MasterConfig, fldPath *field.Path) V
 
 	validationResults.AddErrors(ValidateKubeConfig(config.MasterClients.OpenShiftLoopbackKubeConfig, fldPath.Child("masterClients", "openShiftLoopbackKubeConfig"))...)
 
-	if len(config.MasterClients.ExternalKubernetesKubeConfig) > 0 {
-		validationResults.AddErrors(ValidateKubeConfig(config.MasterClients.ExternalKubernetesKubeConfig, fldPath.Child("masterClients", "externalKubernetesKubeConfig"))...)
-	}
-
 	validationResults.AddErrors(ValidatePolicyConfig(config.PolicyConfig, fldPath.Child("policyConfig"))...)
 	if config.OAuthConfig != nil {
 		validationResults.Append(ValidateOAuthConfig(config.OAuthConfig, fldPath.Child("oauthConfig")))
+		if len(config.AuthConfig.OAuthMetadataFile) > 0 {
+			validationResults.AddErrors(field.Invalid(fldPath.Child("authConfig", "oauthMetadataFile"), config.AuthConfig.OAuthMetadataFile, "Cannot specify external OAuth Metadata when the internal Oauth Server is configured"))
+		}
 	}
 
-	validationResults.Append(ValidateServiceAccountConfig(config.ServiceAccountConfig, builtInKubernetes, fldPath.Child("serviceAccountConfig")))
+	validationResults.Append(ValidateServiceAccountConfig(config.ServiceAccountConfig, fldPath.Child("serviceAccountConfig")))
 
 	validationResults.Append(ValidateHTTPServingInfo(config.ServingInfo, fldPath.Child("servingInfo")))
 
@@ -170,6 +161,12 @@ func ValidateMasterConfig(config *configapi.MasterConfig, fldPath *field.Path) V
 
 func ValidateMasterAuthConfig(config configapi.MasterAuthConfig, fldPath *field.Path) ValidationResults {
 	validationResults := ValidationResults{}
+
+	if len(config.OAuthMetadataFile) > 0 {
+		if _, _, err := oauthutil.LoadOAuthMetadataFile(config.OAuthMetadataFile); err != nil {
+			validationResults.AddErrors(field.Invalid(fldPath.Child("oauthMetadataFile"), config.OAuthMetadataFile, fmt.Sprintf("Metadata validation failed: %v", err)))
+		}
+	}
 
 	for _, wta := range config.WebhookTokenAuthenticators {
 		configFile := fldPath.Child("webhookTokenAuthenticators", "ConfigFile")
@@ -396,7 +393,7 @@ func ValidateStorageVersionLevel(level string, knownAPILevels, deadAPILevels []s
 	return allErrs
 }
 
-func ValidateServiceAccountConfig(config configapi.ServiceAccountConfig, builtInKubernetes bool, fldPath *field.Path) ValidationResults {
+func ValidateServiceAccountConfig(config configapi.ServiceAccountConfig, fldPath *field.Path) ValidationResults {
 	validationResults := ValidationResults{}
 
 	managedNames := sets.NewString(config.ManagedNames...)
@@ -407,7 +404,7 @@ func ValidateServiceAccountConfig(config configapi.ServiceAccountConfig, builtIn
 	if !managedNames.Has(bootstrappolicy.DeployerServiceAccountName) {
 		validationResults.AddWarnings(field.Invalid(managedNamesPath, "", fmt.Sprintf("missing %q, which will require manual creation in each namespace before deployments can run", bootstrappolicy.DeployerServiceAccountName)))
 	}
-	if builtInKubernetes && !managedNames.Has(bootstrappolicy.DefaultServiceAccountName) {
+	if !managedNames.Has(bootstrappolicy.DefaultServiceAccountName) {
 		validationResults.AddWarnings(field.Invalid(managedNamesPath, "", fmt.Sprintf("missing %q, which will prevent creation of pods that do not specify a valid service account", bootstrappolicy.DefaultServiceAccountName)))
 	}
 
@@ -424,7 +421,7 @@ func ValidateServiceAccountConfig(config configapi.ServiceAccountConfig, builtIn
 		} else if _, err := cert.PrivateKeyFromFile(config.PrivateKeyFile); err != nil {
 			validationResults.AddErrors(field.Invalid(privateKeyFilePath, config.PrivateKeyFile, err.Error()))
 		}
-	} else if builtInKubernetes {
+	} else {
 		validationResults.AddWarnings(field.Invalid(fldPath.Child("privateKeyFile"), "", "no service account tokens will be generated, which could prevent builds and deployments from working"))
 	}
 
@@ -442,7 +439,7 @@ func ValidateServiceAccountConfig(config configapi.ServiceAccountConfig, builtIn
 
 	if len(config.MasterCA) > 0 {
 		validationResults.AddErrors(ValidateFile(config.MasterCA, fldPath.Child("masterCA"))...)
-	} else if builtInKubernetes {
+	} else {
 		validationResults.AddWarnings(field.Invalid(fldPath.Child("masterCA"), "", "master CA information will not be automatically injected into pods, which will prevent verification of the API server from inside a pod"))
 	}
 
@@ -511,15 +508,11 @@ func ValidateKubeletConnectionInfo(config configapi.KubeletConnectionInfo, fldPa
 	return allErrs
 }
 
-func ValidateKubernetesMasterConfig(config *configapi.KubernetesMasterConfig, fldPath *field.Path) ValidationResults {
+func ValidateKubernetesMasterConfig(config configapi.KubernetesMasterConfig, fldPath *field.Path) ValidationResults {
 	validationResults := ValidationResults{}
 
 	if len(config.MasterIP) > 0 {
 		validationResults.AddErrors(ValidateSpecifiedIP(config.MasterIP, fldPath.Child("masterIP"))...)
-	}
-
-	if config.MasterCount == 0 || config.MasterCount < -1 {
-		validationResults.AddErrors(field.Invalid(fldPath.Child("masterCount"), config.MasterCount, "must be a positive integer or -1"))
 	}
 
 	validationResults.AddErrors(ValidateCertInfo(config.ProxyClientInfo, false, fldPath.Child("proxyClientInfo"))...)
@@ -541,14 +534,6 @@ func ValidateKubernetesMasterConfig(config *configapi.KubernetesMasterConfig, fl
 
 	if len(config.SchedulerConfigFile) > 0 {
 		validationResults.AddErrors(ValidateFile(config.SchedulerConfigFile, fldPath.Child("schedulerConfigFile"))...)
-	}
-
-	for i, nodeName := range config.StaticNodeNames {
-		if len(nodeName) == 0 {
-			validationResults.AddErrors(field.Invalid(fldPath.Child("staticNodeName").Index(i), nodeName, "may not be empty"))
-		} else {
-			validationResults.AddWarnings(field.Invalid(fldPath.Child("staticNodeName").Index(i), nodeName, "static nodes are not supported"))
-		}
 	}
 
 	if len(config.PodEvictionTimeout) > 0 {
@@ -576,13 +561,6 @@ func ValidateKubernetesMasterConfig(config *configapi.KubernetesMasterConfig, fl
 		}
 	}
 
-	if config.AdmissionConfig.PluginConfig != nil {
-		validationResults.AddErrors(field.Invalid(fldPath.Child("admissionConfig", "pluginConfig"), config.AdmissionConfig.PluginConfig, "separate admission chains are no longer allowed.  Convert to admissionConfig.pluginConfig."))
-	}
-	if len(config.AdmissionConfig.PluginOrderOverride) != 0 {
-		validationResults.AddErrors(field.Invalid(fldPath.Child("admissionConfig", "pluginOrderOverride"), config.AdmissionConfig.PluginOrderOverride, "separate admission chains are no longer allowed.  Convert to DefaultAdmissionConfig in admissionConfig.pluginConfig."))
-	}
-
 	validationResults.Append(ValidateAPIServerExtendedArguments(config.APIServerArguments, fldPath.Child("apiServerArguments")))
 	validationResults.AddErrors(ValidateControllerExtendedArguments(config.ControllerArguments, fldPath.Child("controllerArguments"))...)
 
@@ -591,9 +569,6 @@ func ValidateKubernetesMasterConfig(config *configapi.KubernetesMasterConfig, fl
 
 func ValidatePolicyConfig(config configapi.PolicyConfig, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
-
-	allErrs = append(allErrs, ValidateNamespace(config.OpenShiftSharedResourcesNamespace, fldPath.Child("openShiftSharedResourcesNamespace"))...)
-	allErrs = append(allErrs, ValidateNamespace(config.OpenShiftInfrastructureNamespace, fldPath.Child("openShiftInfrastructureNamespace"))...)
 
 	for i, matchingRule := range config.UserAgentMatchingConfig.DeniedClients {
 		_, err := regexp.Compile(matchingRule.Regex)
@@ -662,6 +637,12 @@ func ValidateAPIServerExtendedArguments(config configapi.ExtendedArguments, fldP
 
 	validationResults.AddErrors(ValidateExtendedArguments(config, apiserveroptions.NewServerRunOptions().AddFlags, fldPath)...)
 
+	for i, key := range config["runtime-config"] {
+		if strings.HasPrefix(key, "apis/") {
+			validationResults.AddWarnings(field.Invalid(fldPath.Key("runtime-config").Index(i), key, "remove the apis/ prefix"))
+		}
+	}
+
 	if len(config["admission-control"]) > 0 {
 		validationResults.AddWarnings(field.Invalid(fldPath.Key("admission-control"), config["admission-control"], "specified admission ordering is being phased out.  Convert to DefaultAdmissionConfig in admissionConfig.pluginConfig."))
 	}
@@ -719,7 +700,7 @@ func ValidateIngressIPNetworkCIDR(config *configapi.MasterConfig, fldPath *field
 
 	// TODO Detect cloud provider when not using built-in kubernetes
 	kubeConfig := config.KubernetesMasterConfig
-	noCloudProvider := kubeConfig != nil && (len(kubeConfig.ControllerArguments["cloud-provider"]) == 0 || kubeConfig.ControllerArguments["cloud-provider"][0] == "")
+	noCloudProvider := (len(kubeConfig.ControllerArguments["cloud-provider"]) == 0 || kubeConfig.ControllerArguments["cloud-provider"][0] == "")
 
 	if noCloudProvider {
 		for _, entry := range config.NetworkConfig.ClusterNetworks {

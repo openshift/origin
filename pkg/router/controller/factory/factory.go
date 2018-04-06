@@ -17,7 +17,6 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	kcache "k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/apis/extensions"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset/typed/project/internalversion"
@@ -65,12 +64,10 @@ func NewDefaultRouterControllerFactory(rc routeclientset.Interface, pc projectcl
 
 // Create begins listing and watching against the API server for the desired route and endpoint
 // resources. It spawns child goroutines that cannot be terminated.
-func (f *RouterControllerFactory) Create(plugin router.Plugin, watchNodes, enableIngress bool) *routercontroller.RouterController {
+func (f *RouterControllerFactory) Create(plugin router.Plugin, watchNodes bool) *routercontroller.RouterController {
 	rc := &routercontroller.RouterController{
-		Plugin:            plugin,
-		WatchNodes:        watchNodes,
-		EnableIngress:     enableIngress,
-		IngressTranslator: routercontroller.NewIngressTranslator(f.KClient.Core()),
+		Plugin:     plugin,
+		WatchNodes: watchNodes,
 
 		NamespaceLabels:        f.NamespaceLabels,
 		FilteredNamespaceNames: make(sets.String),
@@ -107,10 +104,6 @@ func (f *RouterControllerFactory) initInformers(rc *routercontroller.RouterContr
 	if rc.WatchNodes {
 		f.createNodesSharedInformer(rc)
 	}
-	if rc.EnableIngress {
-		f.createIngressesSharedInformer(rc)
-		f.createSecretsSharedInformer(rc)
-	}
 
 	// Start informers
 	for _, informer := range f.informers {
@@ -133,10 +126,6 @@ func (f *RouterControllerFactory) registerInformerEventHandlers(rc *routercontro
 
 	if rc.WatchNodes {
 		f.registerSharedInformerEventHandlers(&kapi.Node{}, rc.HandleNode)
-	}
-	if rc.EnableIngress {
-		f.registerSharedInformerEventHandlers(&extensions.Ingress{}, rc.HandleIngress)
-		f.registerSharedInformerEventHandlers(&kapi.Secret{}, rc.HandleSecret)
 	}
 }
 
@@ -191,16 +180,6 @@ func (f *RouterControllerFactory) processExistingItems(rc *routercontroller.Rout
 			rc.HandleNode(watch.Added, item.(*kapi.Node))
 		}
 	}
-
-	if rc.EnableIngress {
-		for _, item := range f.informerStoreList(&extensions.Ingress{}) {
-			rc.HandleIngress(watch.Added, item.(*extensions.Ingress))
-		}
-
-		for _, item := range f.informerStoreList(&kapi.Secret{}) {
-			rc.HandleSecret(watch.Added, item.(*kapi.Secret))
-		}
-	}
 }
 
 func (f *RouterControllerFactory) setSelectors(options *v1.ListOptions) {
@@ -249,46 +228,11 @@ func (f *RouterControllerFactory) createRoutesSharedInformer(rc *routercontrolle
 	f.informers[objType] = informer
 }
 
-func (f *RouterControllerFactory) createIngressesSharedInformer(rc *routercontroller.RouterController) {
-	// The same filtering is applied to ingress as is applied to routes
-	lw := &kcache.ListWatch{
-		ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
-			f.setSelectors(&options)
-			return f.KClient.Extensions().Ingresses(f.Namespace).List(options)
-		},
-		WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
-			f.setSelectors(&options)
-			return f.KClient.Extensions().Ingresses(f.Namespace).Watch(options)
-		},
-	}
-	ig := &extensions.Ingress{}
-	objType := reflect.TypeOf(ig)
-	indexers := kcache.Indexers{kcache.NamespaceIndex: kcache.MetaNamespaceIndexFunc}
-	informer := kcache.NewSharedIndexInformer(lw, ig, f.ResyncInterval, indexers)
-	f.informers[objType] = informer
-}
-
 func (f *RouterControllerFactory) createNodesSharedInformer(rc *routercontroller.RouterController) {
 	// Use stock node informer as we don't need namespace/labels/fields filtering on nodes
 	ifactory := informerfactory.NewSharedInformerFactory(f.KClient, f.ResyncInterval)
 	informer := ifactory.Core().InternalVersion().Nodes().Informer()
 	objType := reflect.TypeOf(&kapi.Node{})
-	f.informers[objType] = informer
-}
-
-func (f *RouterControllerFactory) createSecretsSharedInformer(rc *routercontroller.RouterController) {
-	lw := &kcache.ListWatch{
-		ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
-			return f.KClient.Core().Secrets(f.Namespace).List(options)
-		},
-		WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
-			return f.KClient.Core().Secrets(f.Namespace).Watch(options)
-		},
-	}
-	sc := &kapi.Secret{}
-	objType := reflect.TypeOf(sc)
-	indexers := kcache.Indexers{kcache.NamespaceIndex: kcache.MetaNamespaceIndexFunc}
-	informer := kcache.NewSharedIndexInformer(lw, sc, f.ResyncInterval, indexers)
 	f.informers[objType] = informer
 }
 

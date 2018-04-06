@@ -15,10 +15,9 @@ func LogContainer(logdir, name, stdout, stderr string) error {
 		return err
 	}
 
-	spinNumber := 1
 	stdoutFile := ""
 	stderrFile := ""
-	for i := 0; i < 1000; i++ {
+	for spinNumber := 1; spinNumber < 1000; spinNumber++ {
 		stdoutFile = fmt.Sprintf("%s-%03d.stdout", strings.Replace(name, "/", "-", -1), spinNumber)
 		stderrFile = fmt.Sprintf("%s-%03d.stderr", strings.Replace(name, "/", "-", -1), spinNumber)
 
@@ -28,6 +27,8 @@ func LogContainer(logdir, name, stdout, stderr string) error {
 		if _, err := os.Stat(path.Join(logdir, stderrFile)); !os.IsNotExist(err) {
 			continue
 		}
+
+		break
 	}
 
 	stdoutErr := ioutil.WriteFile(path.Join(logdir, stdoutFile), []byte(stdout), 0644)

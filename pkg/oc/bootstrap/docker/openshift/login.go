@@ -26,7 +26,7 @@ func Login(username, password, server, configDir string, f *clientcmd.Factory, c
 		}
 		existingConfig = *(kclientcmdapi.NewConfig())
 	}
-	adminConfig, err := kclientcmd.LoadFromFile(filepath.Join(configDir, "master", "admin.kubeconfig"))
+	adminConfig, err := kclientcmd.LoadFromFile(filepath.Join(configDir, "admin.kubeconfig"))
 	if err != nil {
 		return err
 	}

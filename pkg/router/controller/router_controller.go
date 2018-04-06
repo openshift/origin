@@ -14,7 +14,6 @@ import (
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/apis/extensions"
 
 	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset/typed/project/internalversion"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
@@ -44,9 +43,6 @@ type RouterController struct {
 	ProjectRetries      int
 
 	WatchNodes bool
-
-	EnableIngress     bool
-	IngressTranslator *IngressTranslator
 }
 
 // Run begins watching and syncing.
@@ -138,13 +134,6 @@ func (c *RouterController) processNamespace(eventType watch.EventType, ns *kapi.
 func (c *RouterController) UpdateNamespaces() {
 	namespaces := c.FilteredNamespaceNames
 
-	// The ingress translator synchronizes access to its cache with a
-	// lock, so calls to it are made outside of the controller lock to
-	// avoid unintended interaction.
-	if c.EnableIngress {
-		c.IngressTranslator.UpdateNamespaces(namespaces)
-	}
-
 	glog.V(4).Infof("Updating watched namespaces: %v", namespaces)
 	if err := c.Plugin.HandleNamespaces(namespaces); err != nil {
 		utilruntime.HandleError(err)
@@ -234,36 +223,6 @@ func (c *RouterController) HandleEndpoints(eventType watch.EventType, obj interf
 	c.Commit()
 }
 
-// HandleIngress handles a single Ingress event and synchronizes the router backend.
-func (c *RouterController) HandleIngress(eventType watch.EventType, obj interface{}) {
-	ingress := obj.(*extensions.Ingress)
-	// The ingress translator synchronizes access to its cache with a
-	// lock, so calls to it are made outside of the controller lock to
-	// avoid unintended interaction.
-	events := c.IngressTranslator.TranslateIngressEvent(eventType, ingress)
-
-	c.lock.Lock()
-	defer c.lock.Unlock()
-
-	c.processIngressEvents(events)
-	c.Commit()
-}
-
-// HandleSecret handles a single Secret event and synchronizes the router backend.
-func (c *RouterController) HandleSecret(eventType watch.EventType, obj interface{}) {
-	secret := obj.(*kapi.Secret)
-	// The ingress translator synchronizes access to its cache with a
-	// lock, so calls to it are made outside of the controller lock to
-	// avoid unintended interaction.
-	events := c.IngressTranslator.TranslateSecretEvent(eventType, secret)
-
-	c.lock.Lock()
-	defer c.lock.Unlock()
-
-	c.processIngressEvents(events)
-	c.Commit()
-}
-
 // Commit notifies the plugin that it is safe to commit state.
 func (c *RouterController) Commit() {
 	if c.firstSyncDone {
@@ -285,16 +244,6 @@ func (c *RouterController) processRoute(eventType watch.EventType, route *routea
 	c.RecordNamespaceRoutes(eventType, route)
 	if err := c.Plugin.HandleRoute(eventType, route); err != nil {
 		utilruntime.HandleError(err)
-	}
-}
-
-// processIngressEvents logs and propagates the route events resulting from an ingress or secret event
-func (c *RouterController) processIngressEvents(events []ingressRouteEvents) {
-	for _, ingressEvent := range events {
-		glog.V(4).Infof("Processing Ingress: %s", ingressEvent.ingressKey)
-		for _, routeEvent := range ingressEvent.routeEvents {
-			c.processRoute(routeEvent.eventType, routeEvent.route)
-		}
 	}
 }
 

@@ -97,6 +97,7 @@ func (p *UniqueHost) HandleRoute(eventType watch.EventType, route *routeapi.Rout
 	if len(host) == 0 {
 		glog.V(4).Infof("Route %s has no host value", routeName)
 		p.recorder.RecordRouteRejection(route, "NoHostValue", "no host value was defined for the route")
+		p.plugin.HandleRoute(watch.Deleted, route)
 		return nil
 	}
 	route.Spec.Host = host
@@ -112,6 +113,7 @@ func (p *UniqueHost) HandleRoute(eventType watch.EventType, route *routeapi.Rout
 
 		err := fmt.Errorf("host name validation errors: %s", strings.Join(errMessages, ", "))
 		p.recorder.RecordRouteRejection(route, "InvalidHost", err.Error())
+		p.plugin.HandleRoute(watch.Deleted, route)
 		return err
 	}
 
@@ -130,6 +132,7 @@ func (p *UniqueHost) HandleRoute(eventType watch.EventType, route *routeapi.Rout
 						glog.V(4).Infof("Route %s cannot take %s from %s", routeName, host, routeNameKey(oldest))
 						err := fmt.Errorf("route %s already exposes %s and is older", oldest.Name, host)
 						p.recorder.RecordRouteRejection(route, "HostAlreadyClaimed", err.Error())
+						p.plugin.HandleRoute(watch.Deleted, route)
 						return err
 					}
 					added = true
@@ -173,6 +176,7 @@ func (p *UniqueHost) HandleRoute(eventType watch.EventType, route *routeapi.Rout
 				glog.V(4).Infof("Route %s cannot take %s from %s", routeName, host, routeNameKey(oldest))
 				err := fmt.Errorf("a route in another namespace holds %s and is older than %s", host, route.Name)
 				p.recorder.RecordRouteRejection(route, "HostAlreadyClaimed", err.Error())
+				p.plugin.HandleRoute(watch.Deleted, route)
 				return err
 			}
 

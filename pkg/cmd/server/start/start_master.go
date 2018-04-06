@@ -104,7 +104,7 @@ func NewCommandStartMaster(basename string, out, errout io.Writer) (*cobra.Comma
 	options.MasterArgs.StartAPI = true
 	options.MasterArgs.StartControllers = true
 	options.MasterArgs.OverrideConfig = func(config *configapi.MasterConfig) error {
-		if config.KubernetesMasterConfig != nil && options.MasterArgs.MasterAddr.Provided {
+		if options.MasterArgs.MasterAddr.Provided {
 			if ip := net.ParseIP(options.MasterArgs.MasterAddr.Host); ip != nil {
 				glog.V(2).Infof("Using a masterIP override %q", ip)
 				config.KubernetesMasterConfig.MasterIP = ip.String()
@@ -351,10 +351,6 @@ func (m *Master) Start() error {
 			HostIPCSources:     []string{kubelettypes.ApiserverSource, kubelettypes.FileSource},
 		},
 	})
-
-	if m.config.KubernetesMasterConfig == nil {
-		return fmt.Errorf("KubernetesMasterConfig is required to start this server - use of external Kubernetes is no longer supported.")
-	}
 
 	// install aggregator types into the scheme so that "normal" RESTOptionsGetters can work for us.
 	// done in Start() prior to doing any other initialization so we don't mutate the scheme after it is being used by clients in other goroutines.

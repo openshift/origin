@@ -15,7 +15,6 @@ var (
 		"github.com/openshift/origin/pkg/build/builder",
 
 		"github.com/openshift/origin/cmd/cluster-capacity",
-		"github.com/openshift/origin/cmd/service-catalog",
 	}
 
 	openshiftImportPath = "github.com/openshift/origin"

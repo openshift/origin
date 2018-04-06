@@ -376,11 +376,12 @@ type MasterConfig struct {
 	KubeletClientInfo KubeletConnectionInfo
 
 	// KubernetesMasterConfig, if present start the kubernetes master in this process
-	KubernetesMasterConfig *KubernetesMasterConfig
+	KubernetesMasterConfig KubernetesMasterConfig
 	// EtcdConfig, if present start etcd in this process
 	EtcdConfig *EtcdConfig
 	// OAuthConfig, if present start the /oauth endpoint in this process
 	OAuthConfig *OAuthConfig
+
 	// DNSConfig, if present start the DNS server in this process
 	DNSConfig *DNSConfig
 
@@ -430,6 +431,11 @@ type MasterAuthConfig struct {
 	RequestHeader *RequestHeaderAuthenticationOptions
 	// WebhookTokenAuthnConfig, if present configures remote token reviewers
 	WebhookTokenAuthenticators []WebhookTokenAuthenticator
+	// OAuthMetadataFile is a path to a file containing the discovery endpoint for OAuth 2.0 Authorization
+	// Server Metadata for an external OAuth server.
+	// See IETF Draft: // https://tools.ietf.org/html/draft-ietf-oauth-discovery-04#section-2
+	// This option is mutually exclusive with OAuthConfig
+	OAuthMetadataFile string
 }
 
 // RequestHeaderAuthenticationOptions provides options for setting up a front proxy against the entire
@@ -615,15 +621,6 @@ type SecurityAllocator struct {
 }
 
 type PolicyConfig struct {
-	// BootstrapPolicyFile points to a template that contains roles and rolebindings that will be created if no policy object exists in the master namespace
-	BootstrapPolicyFile string
-
-	// OpenShiftSharedResourcesNamespace is the namespace where shared OpenShift resources live (like shared templates)
-	OpenShiftSharedResourcesNamespace string
-
-	// OpenShiftInfrastructureNamespace is the namespace where OpenShift infrastructure resources live (like controller service accounts)
-	OpenShiftInfrastructureNamespace string
-
 	// UserAgentMatchingConfig controls how API calls from *voluntarily* identifying clients will be handled.  THIS DOES NOT DEFEND AGAINST MALICIOUS CLIENTS!
 	UserAgentMatchingConfig UserAgentMatchingConfig
 }
@@ -780,13 +777,9 @@ type HTTPServingInfo struct {
 type MasterClients struct {
 	// OpenShiftLoopbackKubeConfig is a .kubeconfig filename for system components to loopback to this master
 	OpenShiftLoopbackKubeConfig string
-	// ExternalKubernetesKubeConfig is a .kubeconfig filename for proxying to kubernetes
-	ExternalKubernetesKubeConfig string
 
 	// OpenShiftLoopbackClientConnectionOverrides specifies client overrides for system components to loop back to this master.
 	OpenShiftLoopbackClientConnectionOverrides *ClientConnectionOverrides
-	// ExternalKubernetesClientConnectionOverrides specifies client overrides for proxying to Kubernetes.
-	ExternalKubernetesClientConnectionOverrides *ClientConnectionOverrides
 }
 
 type ClientConnectionOverrides struct {
@@ -1214,9 +1207,6 @@ type KubernetesMasterConfig struct {
 
 	// MasterIP is the public IP address of kubernetes stuff.  If empty, the first result from net.InterfaceAddrs will be used.
 	MasterIP string
-	// MasterCount is the number of expected masters that should be running. This value defaults to 1 and may be set to a positive integer,
-	// or if set to -1, indicates this is part of a cluster.
-	MasterCount int
 	// MasterEndpointReconcileTTL sets the time to live in seconds of an endpoint record recorded by each master. The endpoints are checked
 	// at an interval that is 2/3 of this value and this value defaults to 15s if unset. In very large clusters, this value may be increased to
 	// reduce the possibility that the master endpoint record expires (due to other load on the etcd server) and causes masters to drop in and
@@ -1226,8 +1216,6 @@ type KubernetesMasterConfig struct {
 	ServicesSubnet string
 	// ServicesNodePortRange is the range to use for assigning service public ports on a host.
 	ServicesNodePortRange string
-	// StaticNodeNames is the list of nodes that are statically known
-	StaticNodeNames []string
 
 	// SchedulerConfigFile points to a file that describes how to set up the scheduler. If empty, you get the default scheduling rules.
 	SchedulerConfigFile string
@@ -1238,9 +1226,6 @@ type KubernetesMasterConfig struct {
 
 	// ProxyClientInfo specifies the client cert/key to use when proxying to pods
 	ProxyClientInfo CertInfo
-
-	// AdmissionConfig contains admission control plugin configuration.
-	AdmissionConfig AdmissionConfig
 
 	// APIServerArguments are key value pairs that will be passed directly to the Kube apiserver that match the apiservers's
 	// command line arguments.  These are not migrated, but if you reference a value that does not exist the server will not

@@ -387,10 +387,7 @@ func (r *ImageRef) DeployableContainer() (container *kapi.Container, triggers []
 			ports = append(ports, strings.Split(exposed, " ")...)
 		}
 
-		dockerPorts, errs := portutils.SplitPortAndProtocolArray(ports)
-		if len(errs) > 0 {
-			return nil, nil, fmt.Errorf("failed to parse port(s): %v", errs)
-		}
+		dockerPorts, _ := portutils.FilterPortAndProtocolArray(ports)
 		for _, dp := range dockerPorts {
 			intPort, _ := strconv.Atoi(dp.Port())
 			container.Ports = append(container.Ports, kapi.ContainerPort{

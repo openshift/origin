@@ -1,7 +1,6 @@
 package: github.com/openshift/origin
 excludeDirs:
 - cmd/cluster-capacity
-- cmd/service-catalog
 - openshift.local.config
 - openshift.local.etcd
 - openshift.local.volumes
@@ -35,7 +34,7 @@ import:
   version: release-1.9.1
 - package: k8s.io/kubernetes
   repo:    git@github.com:openshift/kubernetes
-  version: release-1.9.1
+  version: origin-3.10-kubernetes-1.9.1
 
 # openshift second
 - package: github.com/openshift/api
@@ -76,7 +75,7 @@ import:
 # pod - sjenning
 - package: github.com/opencontainers/runc
   repo:    git@github.com:openshift/opencontainers-runc
-  version: openshift-3.9
+  version: openshift-3.10
 # pod - sjenning
 - package: github.com/google/cadvisor
   repo:    git@github.com:openshift/google-cadvisor
@@ -84,7 +83,11 @@ import:
 # cli
 - package: github.com/docker/distribution
   repo:    git@github.com:openshift/docker-distribution
-  version: release-2.6.0
+  version: openshift-3.10-docker-edc3ab2
+# close-write carry
+- package: github.com/docker/docker
+  repo:    git@github.com:openshift/moby-moby
+  version: openshift-3.10-docker-b68221c
 
 # ours: shared with kube, but forced by openshift
 # master
@@ -163,12 +166,9 @@ import:
 # router metrics
 - package: github.com/cockroachdb/cmux
   version: b64f5908f4945f4b11ed4a0a9d3cc1e23350866d
-# fsouza and to limit dependencies
-- package: github.com/docker/docker
-  version: b68221c37ee597950364788204546f9c9d0e46a1
 # keep us up to date with latest DNS security fixes
 - package: github.com/miekg/dns
-  version: master
+  version: ~v1
 # etcd pins a very old version that has contention issues
 - package: github.com/google/btree
   version: master

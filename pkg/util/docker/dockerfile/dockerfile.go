@@ -92,13 +92,11 @@ func evalPorts(exposedPorts []string, node *parser.Node, from, to int) []string 
 	envs := evalVars(node, from, to, exposedPorts, shlex)
 	ports := make([]string, 0, len(exposedPorts))
 	for _, p := range exposedPorts {
+		if pp, err := shlex.ProcessWord(p, envs); err == nil {
+			p = pp
+		}
 		dp := docker.Port(p)
 		port := dp.Port()
-		port, err := shlex.ProcessWord(port, envs)
-		if err != nil {
-			//keep the exposed port as was
-			port = dp.Port()
-		}
 		port = evalRange(port)
 		if strings.Contains(p, `/`) {
 			p = port + `/` + dp.Proto()

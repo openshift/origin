@@ -27,6 +27,7 @@ auditConfig:
   webHookKubeConfig: ""
   webHookMode: ""
 authConfig:
+  oauthMetadataFile: ""
   requestHeader: null
   webhookTokenAuthenticators: null
 controllerConfig:
@@ -91,21 +92,10 @@ kubeletClientInfo:
   keyFile: ""
   port: 0
 kubernetesMasterConfig:
-  admissionConfig:
-    pluginConfig:
-      plugin:
-        configuration:
-          apiVersion: v1
-          data: ""
-          kind: AdmissionPluginTestConfig
-        location: ""
-    pluginOrderOverride:
-    - plugin
   apiLevels: null
   apiServerArguments: null
   controllerArguments: null
   disabledAPIGroupVersions: {}
-  masterCount: 1
   masterEndpointReconcileTTL: 15
   masterIP: ""
   podEvictionTimeout: 5m
@@ -116,14 +106,7 @@ kubernetesMasterConfig:
   schedulerConfigFile: ""
   servicesNodePortRange: 30000-32767
   servicesSubnet: ""
-  staticNodeNames: null
 masterClients:
-  externalKubernetesClientConnectionOverrides:
-    acceptContentTypes: application/json
-    burst: 200
-    contentType: application/json
-    qps: 100
-  externalKubernetesKubeConfig: ""
   openshiftLoopbackClientConnectionOverrides:
     acceptContentTypes: application/json
     burst: 300
@@ -382,9 +365,6 @@ oauthConfig:
     authorizeTokenMaxAgeSeconds: 0
 pauseControllers: false
 policyConfig:
-  bootstrapPolicyFile: ""
-  openshiftInfrastructureNamespace: openshift-infra
-  openshiftSharedResourcesNamespace: ""
   userAgentMatchingConfig:
     defaultRejectionMessage: ""
     deniedClients: null

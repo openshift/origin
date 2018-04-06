@@ -94,9 +94,6 @@ var LegacyAPIGroupPrefixes = sets.NewString(apiserver.DefaultLegacyAPIPrefix, ap
 // BuildKubeAPIserverOptions constructs the appropriate kube-apiserver run options.
 // It returns an error if no KubernetesMasterConfig was defined.
 func BuildKubeAPIserverOptions(masterConfig configapi.MasterConfig) (*kapiserveroptions.ServerRunOptions, error) {
-	if masterConfig.KubernetesMasterConfig == nil {
-		return nil, fmt.Errorf("no kubernetesMasterConfig defined, unable to load settings")
-	}
 	host, portString, err := net.SplitHostPort(masterConfig.ServingInfo.BindAddress)
 	if err != nil {
 		return nil, err
@@ -120,7 +117,6 @@ func BuildKubeAPIserverOptions(masterConfig configapi.MasterConfig) (*kapiserver
 	server.ServiceClusterIPRange = net.IPNet(flagtypes.DefaultIPNet(masterConfig.KubernetesMasterConfig.ServicesSubnet))
 	server.ServiceNodePortRange = *portRange
 	server.Features.EnableProfiling = true
-	server.MasterCount = masterConfig.KubernetesMasterConfig.MasterCount
 
 	server.SecureServing.BindAddress = net.ParseIP(host)
 	server.SecureServing.BindPort = port
@@ -176,6 +172,10 @@ func BuildKubeAPIserverOptions(masterConfig configapi.MasterConfig) (*kapiserver
 	args := map[string][]string{}
 	for k, v := range masterConfig.KubernetesMasterConfig.APIServerArguments {
 		args[k] = v
+	}
+	// fixup 'apis/' prefixed args
+	for i, key := range args["runtime-config"] {
+		args["runtime-config"][i] = strings.TrimPrefix(key, "apis/")
 	}
 	if masterConfig.AuditConfig.Enabled {
 		if existing, ok := args["feature-gates"]; ok {
@@ -379,7 +379,12 @@ func buildKubeApiserverConfig(
 		return nil, err
 	}
 
-	storageFactory, err := BuildStorageFactory(apiserverOptions, nil)
+	storageFactory, err := BuildStorageFactory(apiserverOptions, map[schema.GroupResource]schema.GroupVersion{
+		// SCC are actually an openshift resource we injected into the kubeapiserver pre-3.0.  We need to manage
+		// their storage configuration via the kube storagefactory.
+		// TODO We really should create a single one of these somewhere.
+		{Group: "", Resource: "securitycontextconstraints"}: {Group: "security.openshift.io", Version: "v1"},
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -502,40 +507,34 @@ func buildKubeApiserverConfig(
 		},
 	}
 
-	if kubeApiserverConfig.ExtraConfig.EnableCoreControllers {
-		ttl := masterConfig.KubernetesMasterConfig.MasterEndpointReconcileTTL
-		interval := ttl * 2 / 3
+	ttl := masterConfig.KubernetesMasterConfig.MasterEndpointReconcileTTL
+	interval := ttl * 2 / 3
 
-		glog.V(2).Infof("Using the lease endpoint reconciler with TTL=%ds and interval=%ds", ttl, interval)
+	glog.V(2).Infof("Using the lease endpoint reconciler with TTL=%ds and interval=%ds", ttl, interval)
 
-		config, err := kubeApiserverConfig.ExtraConfig.StorageFactory.NewConfig(kapi.Resource("apiServerIPInfo"))
-		if err != nil {
-			return nil, err
-		}
-		leaseStorage, _, err := storagefactory.Create(*config)
-		if err != nil {
-			return nil, err
-		}
-
-		masterLeases := newMasterLeases(leaseStorage, ttl)
-
-		endpointConfig, err := kubeApiserverConfig.ExtraConfig.StorageFactory.NewConfig(kapi.Resource("endpoints"))
-		if err != nil {
-			return nil, err
-		}
-		endpointsStorage := endpointsstorage.NewREST(generic.RESTOptions{
-			StorageConfig:           endpointConfig,
-			Decorator:               generic.UndecoratedStorage,
-			DeleteCollectionWorkers: 0,
-			ResourcePrefix:          kubeApiserverConfig.ExtraConfig.StorageFactory.ResourcePrefix(kapi.Resource("endpoints")),
-		})
-
-		endpointRegistry := endpoint.NewRegistry(endpointsStorage)
-
-		kubeApiserverConfig.ExtraConfig.EndpointReconcilerConfig = master.EndpointReconcilerConfig{
-			Reconciler: election.NewLeaseEndpointReconciler(endpointRegistry, masterLeases),
-			Interval:   time.Duration(interval) * time.Second,
-		}
+	config, err := kubeApiserverConfig.ExtraConfig.StorageFactory.NewConfig(kapi.Resource("apiServerIPInfo"))
+	if err != nil {
+		return nil, err
+	}
+	leaseStorage, _, err := storagefactory.Create(*config)
+	if err != nil {
+		return nil, err
+	}
+	masterLeases := newMasterLeases(leaseStorage, ttl)
+	endpointConfig, err := kubeApiserverConfig.ExtraConfig.StorageFactory.NewConfig(kapi.Resource("endpoints"))
+	if err != nil {
+		return nil, err
+	}
+	endpointsStorage := endpointsstorage.NewREST(generic.RESTOptions{
+		StorageConfig:           endpointConfig,
+		Decorator:               generic.UndecoratedStorage,
+		DeleteCollectionWorkers: 0,
+		ResourcePrefix:          kubeApiserverConfig.ExtraConfig.StorageFactory.ResourcePrefix(kapi.Resource("endpoints")),
+	})
+	endpointRegistry := endpoint.NewRegistry(endpointsStorage)
+	kubeApiserverConfig.ExtraConfig.EndpointReconcilerConfig = master.EndpointReconcilerConfig{
+		Reconciler: election.NewLeaseEndpointReconciler(endpointRegistry, masterLeases),
+		Interval:   time.Duration(interval) * time.Second,
 	}
 
 	if masterConfig.DNSConfig != nil {
@@ -598,23 +597,22 @@ func defaultOpenAPIConfig(config configapi.MasterConfig) *openapicommon.Config {
 			},
 		}
 	}
-	if config.OAuthConfig != nil {
-		baseUrl := config.OAuthConfig.MasterPublicURL
+	if _, oauthMetadata, _ := oauthutil.PrepOauthMetadata(config); oauthMetadata != nil {
 		securityDefinitions["Oauth2Implicit"] = &spec.SecurityScheme{
 			SecuritySchemeProps: spec.SecuritySchemeProps{
 				Type:             "oauth2",
 				Flow:             "implicit",
-				AuthorizationURL: oauthutil.OpenShiftOAuthAuthorizeURL(baseUrl),
-				Scopes:           scope.DefaultSupportedScopesMap(),
+				AuthorizationURL: oauthMetadata.AuthorizationEndpoint,
+				Scopes:           scope.DescribeScopes(oauthMetadata.ScopesSupported),
 			},
 		}
 		securityDefinitions["Oauth2AccessToken"] = &spec.SecurityScheme{
 			SecuritySchemeProps: spec.SecuritySchemeProps{
 				Type:             "oauth2",
 				Flow:             "accessCode",
-				AuthorizationURL: oauthutil.OpenShiftOAuthAuthorizeURL(baseUrl),
-				TokenURL:         oauthutil.OpenShiftOAuthTokenURL(baseUrl),
-				Scopes:           scope.DefaultSupportedScopesMap(),
+				AuthorizationURL: oauthMetadata.AuthorizationEndpoint,
+				TokenURL:         oauthMetadata.TokenEndpoint,
+				Scopes:           scope.DescribeScopes(oauthMetadata.ScopesSupported),
 			},
 		}
 	}
@@ -729,14 +727,14 @@ func getAPIResourceConfig(options configapi.MasterConfig) apiserverstorage.APIRe
 	resourceConfig := apiserverstorage.NewResourceConfig()
 
 	for group := range configapi.KnownKubeAPIGroups {
-		for _, version := range configapi.GetEnabledAPIVersionsForGroup(*options.KubernetesMasterConfig, group) {
+		for _, version := range configapi.GetEnabledAPIVersionsForGroup(options.KubernetesMasterConfig, group) {
 			gv := schema.GroupVersion{Group: group, Version: version}
 			resourceConfig.EnableVersions(gv)
 		}
 	}
 
 	for group := range options.KubernetesMasterConfig.DisabledAPIGroupVersions {
-		for _, version := range configapi.GetDisabledAPIVersionsForGroup(*options.KubernetesMasterConfig, group) {
+		for _, version := range configapi.GetDisabledAPIVersionsForGroup(options.KubernetesMasterConfig, group) {
 			gv := schema.GroupVersion{Group: group, Version: version}
 			resourceConfig.DisableVersions(gv)
 		}

@@ -169,7 +169,7 @@ func (c *ClusterUpConfig) StartSelfHosted(out io.Writer) error {
 		clusterAdminKubeConfig,
 		templateSubstitutionValues,
 		c.GetDockerClient(),
-		path.Join(c.BaseDir, "logs"),
+		c.GetLogDir(),
 	)
 	if err != nil {
 		return err
@@ -203,14 +203,11 @@ func (c *ClusterUpConfig) StartSelfHosted(out io.Writer) error {
 		clusterAdminKubeConfig,
 		templateSubstitutionValues,
 		c.GetDockerClient(),
-		path.Join(c.BaseDir, "logs"),
+		c.GetLogDir(),
 	)
 	if err != nil {
 		return err
 	}
-
-	// TODO remove this linkage.  State like this doesn't belong on the struct and should be passed through for each invocation
-	c.LocalConfigDir = path.Dir(configDirs.masterConfigDir)
 
 	return nil
 }
@@ -227,7 +224,7 @@ type configDirs struct {
 
 func (c *ClusterUpConfig) BuildConfig() (*configDirs, error) {
 	configLocations := &configDirs{
-		masterConfigDir:              filepath.Join(c.BaseDir, kubeapiserver.KubeAPIServerDirName, "master"),
+		masterConfigDir:              filepath.Join(c.BaseDir, kubeapiserver.KubeAPIServerDirName),
 		openshiftAPIServerConfigDir:  filepath.Join(c.BaseDir, kubeapiserver.OpenShiftAPIServerDirName),
 		openshiftControllerConfigDir: filepath.Join(c.BaseDir, kubeapiserver.OpenShiftControllerManagerDirName),
 		nodeConfigDir:                filepath.Join(c.BaseDir, kubelet.NodeConfigDirName),
@@ -278,10 +275,7 @@ func (c *ClusterUpConfig) BuildConfig() (*configDirs, error) {
 
 // makeMasterConfig returns the directory where a generated masterconfig lives
 func (c *ClusterUpConfig) makeMasterConfig() (string, error) {
-	publicHost := c.PublicHostname
-	if len(publicHost) == 0 {
-		publicHost = c.ServerIP
-	}
+	publicHost := c.GetPublicHostName()
 
 	container := kubeapiserver.NewKubeAPIServerStartConfig()
 	container.MasterImage = c.openshiftImage()

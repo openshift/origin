@@ -84,6 +84,42 @@ func TestMount(t *testing.T) {
 	}
 }
 
+func TestShell(t *testing.T) {
+	tmpDir, err := ioutil.TempDir("", "dockerbuild-conformance-")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	c, err := docker.NewClientFromEnv()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	e := NewClientExecutor(c)
+	defer e.Release()
+
+	out := &bytes.Buffer{}
+	e.Out, e.ErrOut = out, out
+	e.Directory = tmpDir
+	e.Tag = filepath.Base(tmpDir)
+	b := imagebuilder.NewBuilder(nil)
+	node, err := imagebuilder.ParseFile("testdata/Dockerfile.shell")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := e.Prepare(b, node, ""); err != nil {
+		t.Fatal(err)
+	}
+	if err := e.Execute(b, node); err != nil {
+		t.Fatal(err)
+	}
+
+	if !strings.Contains(out.String(), "+ env\n") {
+		t.Errorf("Unexpected build output:\n%s", out.String())
+	}
+}
+
 // TestConformance* compares the result of running the direct build against a
 // sequential docker build. A dockerfile and git repo is loaded, then each step
 // in the file is run sequentially, committing after each step. The generated
@@ -134,6 +170,10 @@ func TestConformanceInternal(t *testing.T) {
 		{
 			Name:       "add",
 			Dockerfile: "testdata/Dockerfile.add",
+		},
+		{
+			Name:       "shell",
+			Dockerfile: "testdata/Dockerfile.shell",
 		},
 		{
 			Name:       "args",

@@ -150,6 +150,19 @@ func DefaultSupportedScopesMap() map[string]string {
 	return defaultSupportedScopesMap
 }
 
+func DescribeScopes(scopes []string) map[string]string {
+	ret := map[string]string{}
+	for _, s := range scopes {
+		val, ok := defaultSupportedScopesMap[s]
+		if ok {
+			ret[s] = val
+		} else {
+			ret[s] = ""
+		}
+	}
+	return ret
+}
+
 // user:<scope name>
 type userEvaluator struct{}
 

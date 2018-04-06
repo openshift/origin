@@ -93,18 +93,16 @@ func NewCommandStartMasterAPI(name, basename string, out, errout io.Writer) (*co
 	options.MasterArgs.OverrideConfig = func(config *configapi.MasterConfig) error {
 		// we do not currently enable multi host etcd for the cluster
 		config.EtcdConfig = nil
-		if config.KubernetesMasterConfig != nil {
-			if masterAddr.Provided {
-				if ip := net.ParseIP(masterAddr.Host); ip != nil {
-					glog.V(2).Infof("Using a masterIP override %q", ip)
-					config.KubernetesMasterConfig.MasterIP = ip.String()
-				}
+		if masterAddr.Provided {
+			if ip := net.ParseIP(masterAddr.Host); ip != nil {
+				glog.V(2).Infof("Using a masterIP override %q", ip)
+				config.KubernetesMasterConfig.MasterIP = ip.String()
 			}
-			if listenArg.ListenAddr.Provided {
-				addr := listenArg.ListenAddr.URL.Host
-				glog.V(2).Infof("Using a listen address override %q", addr)
-				applyBindAddressOverride(addr, config)
-			}
+		}
+		if listenArg.ListenAddr.Provided {
+			addr := listenArg.ListenAddr.URL.Host
+			glog.V(2).Infof("Using a listen address override %q", addr)
+			applyBindAddressOverride(addr, config)
 		}
 		return nil
 	}

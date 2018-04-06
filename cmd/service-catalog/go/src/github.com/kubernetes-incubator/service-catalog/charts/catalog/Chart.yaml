@@ -1,3 +1,0 @@
-name: catalog
-description: service-catalog API server and controller-manager helm chart
-version: 0.1.9

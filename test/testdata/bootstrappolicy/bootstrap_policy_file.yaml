@@ -3662,6 +3662,64 @@ items:
       authorization.openshift.io/system-only: "true"
       openshift.io/reconcile-protect: "false"
     creationTimestamp: null
+    name: system:openshift:controller:ingress-to-route-controller
+  rules:
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - secrets
+    - services
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - extensions
+    attributeRestrictions: null
+    resources:
+    - ingress
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - route.openshift.io
+    attributeRestrictions: null
+    resources:
+    - routes
+    verbs:
+    - create
+    - delete
+    - get
+    - list
+    - patch
+    - update
+    - watch
+  - apiGroups:
+    - route.openshift.io
+    attributeRestrictions: null
+    resources:
+    - routes/custom-host
+    verbs:
+    - create
+    - update
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - events
+    verbs:
+    - create
+    - patch
+    - update
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    annotations:
+      authorization.openshift.io/system-only: "true"
+      openshift.io/reconcile-protect: "false"
+    creationTimestamp: null
     name: system:openshift:controller:pv-recycler-controller
   rules:
   - apiGroups:
@@ -7119,6 +7177,22 @@ items:
     namespace: openshift-infra
   userNames:
   - system:serviceaccount:openshift-infra:service-ingress-ip-controller
+- apiVersion: v1
+  groupNames: null
+  kind: ClusterRoleBinding
+  metadata:
+    annotations:
+      openshift.io/reconcile-protect: "false"
+    creationTimestamp: null
+    name: system:openshift:controller:ingress-to-route-controller
+  roleRef:
+    name: system:openshift:controller:ingress-to-route-controller
+  subjects:
+  - kind: ServiceAccount
+    name: ingress-to-route-controller
+    namespace: openshift-infra
+  userNames:
+  - system:serviceaccount:openshift-infra:ingress-to-route-controller
 - apiVersion: v1
   groupNames: null
   kind: ClusterRoleBinding

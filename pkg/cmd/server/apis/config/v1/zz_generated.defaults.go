@@ -21,9 +21,7 @@ func SetObjectDefaults_MasterConfig(in *MasterConfig) {
 	SetDefaults_MasterConfig(in)
 	SetDefaults_ServingInfo(&in.ServingInfo.ServingInfo)
 	SetDefaults_EtcdStorageConfig(&in.EtcdStorageConfig)
-	if in.KubernetesMasterConfig != nil {
-		SetDefaults_KubernetesMasterConfig(in.KubernetesMasterConfig)
-	}
+	SetDefaults_KubernetesMasterConfig(&in.KubernetesMasterConfig)
 	if in.EtcdConfig != nil {
 		SetDefaults_ServingInfo(&in.EtcdConfig.ServingInfo)
 		SetDefaults_ServingInfo(&in.EtcdConfig.PeerServingInfo)
@@ -40,9 +38,6 @@ func SetObjectDefaults_MasterConfig(in *MasterConfig) {
 	}
 	if in.MasterClients.OpenShiftLoopbackClientConnectionOverrides != nil {
 		SetDefaults_ClientConnectionOverrides(in.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
-	}
-	if in.MasterClients.ExternalKubernetesClientConnectionOverrides != nil {
-		SetDefaults_ClientConnectionOverrides(in.MasterClients.ExternalKubernetesClientConnectionOverrides)
 	}
 	SetDefaults_ImagePolicyConfig(&in.ImagePolicyConfig)
 	if in.ProjectConfig.SecurityAllocator != nil {

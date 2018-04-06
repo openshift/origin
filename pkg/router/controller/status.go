@@ -72,16 +72,12 @@ var nowFn = getRfc3339Timestamp
 
 // HandleRoute attempts to admit the provided route on watch add / modifications.
 func (a *StatusAdmitter) HandleRoute(eventType watch.EventType, route *routeapi.Route) error {
-	if IsGeneratedRouteName(route.Name) {
-		// Can't record status for ingress resources
-	} else {
-		switch eventType {
-		case watch.Added, watch.Modified:
-			performIngressConditionUpdate("admit", a.lease, a.tracker, a.client, route, a.routerName, a.routerCanonicalHostname, routeapi.RouteIngressCondition{
-				Type:   routeapi.RouteAdmitted,
-				Status: kapi.ConditionTrue,
-			})
-		}
+	switch eventType {
+	case watch.Added, watch.Modified:
+		performIngressConditionUpdate("admit", a.lease, a.tracker, a.client, route, a.routerName, a.routerCanonicalHostname, routeapi.RouteIngressCondition{
+			Type:   routeapi.RouteAdmitted,
+			Status: kapi.ConditionTrue,
+		})
 	}
 	return a.plugin.HandleRoute(eventType, route)
 }
@@ -104,10 +100,6 @@ func (a *StatusAdmitter) Commit() error {
 
 // RecordRouteRejection attempts to update the route status with a reason for a route being rejected.
 func (a *StatusAdmitter) RecordRouteRejection(route *routeapi.Route, reason, message string) {
-	if IsGeneratedRouteName(route.Name) {
-		// Can't record status for ingress resources
-		return
-	}
 	performIngressConditionUpdate("reject", a.lease, a.tracker, a.client, route, a.routerName, a.routerCanonicalHostname, routeapi.RouteIngressCondition{
 		Type:    routeapi.RouteAdmitted,
 		Status:  kapi.ConditionFalse,
@@ -364,7 +356,6 @@ func (t *SimpleContentionTracker) flush() {
 				removed++
 				continue
 			}
-
 		}
 	}
 	if t.contentions > 0 && len(t.message) > 0 {

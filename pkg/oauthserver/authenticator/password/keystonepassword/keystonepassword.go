@@ -6,8 +6,8 @@ import (
 	"runtime/debug"
 
 	"github.com/golang/glog"
-	"github.com/rackspace/gophercloud"
-	"github.com/rackspace/gophercloud/openstack"
+	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/openstack"
 
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apiserver/pkg/authentication/authenticator"
@@ -65,12 +65,10 @@ func (a keystonePasswordAuthenticator) AuthenticatePassword(username, password s
 	}
 
 	client.HTTPClient = *a.client
-	err = openstack.AuthenticateV3(client, opts)
+	err = openstack.AuthenticateV3(client, &opts, gophercloud.EndpointOpts{})
 	if err != nil {
-		if responseErr, ok := err.(*gophercloud.UnexpectedResponseCodeError); ok {
-			if responseErr.Actual == 401 {
-				return nil, false, nil
-			}
+		if _, ok := err.(gophercloud.ErrDefault401); ok {
+			return nil, false, nil
 		}
 		glog.Warningf("Failed: Calling openstack AuthenticateV3: %v", err)
 		return nil, false, err
