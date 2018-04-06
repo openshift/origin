@@ -51,7 +51,7 @@ func originFuzzer(t *testing.T, seed int64) *fuzz.Fuzzer {
 		// Roles and RoleBindings maps are never nil
 		func(j *authorizationapi.Policy, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
-			if j.Roles != nil {
+			if j.Roles == nil {
 				j.Roles = make(map[string]*authorizationapi.Role)
 			}
 			for k, v := range j.Roles {
@@ -83,7 +83,9 @@ func originFuzzer(t *testing.T, seed int64) *fuzz.Fuzzer {
 			}
 		},
 		func(j *authorizationapi.ClusterPolicyBinding, c fuzz.Continue) {
-			j.RoleBindings = make(map[string]*authorizationapi.ClusterRoleBinding)
+			if j.RoleBindings == nil {
+				j.RoleBindings = make(map[string]*authorizationapi.ClusterRoleBinding)
+			}
 		},
 		func(j *authorizationapi.RoleBinding, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
