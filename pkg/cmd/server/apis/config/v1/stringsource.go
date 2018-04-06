@@ -20,7 +20,7 @@ func (s *StringSource) UnmarshalJSON(value []byte) error {
 // MarshalJSON implements the json.Marshaller interface.
 // If the StringSource contains only a string Value (or is empty), it is marshaled as a JSON string.
 // Otherwise, the StringSourceSpec struct is marshaled as a JSON object.
-func (s StringSource) MarshalJSON() ([]byte, error) {
+func (s *StringSource) MarshalJSON() ([]byte, error) {
 	// If we have only a cleartext value set, do a simple string marshal
 	if s.StringSourceSpec == (StringSourceSpec{Value: s.Value}) {
 		return json.Marshal(s.Value)
