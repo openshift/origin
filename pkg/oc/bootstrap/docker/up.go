@@ -33,8 +33,8 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
+	userv1client "github.com/openshift/client-go/user/clientset/versioned"
 	osclientcmd "github.com/openshift/origin/pkg/client/cmd"
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	oauthclientinternal "github.com/openshift/origin/pkg/oauth/generated/internalclientset"
@@ -125,11 +125,10 @@ func NewCmdUp(name, fullName string, out, errout io.Writer, clusterAdd *cobra.Co
 	config := &ClusterUpConfig{
 		UserEnabledComponents: []string{"*"},
 
-		Out:                 out,
-		UsePorts:            openshift.BasePorts,
-		PortForwarding:      defaultPortForwarding(),
-		DNSPort:             openshift.DefaultDNSPort,
-		checkAlternatePorts: true,
+		Out:            out,
+		UsePorts:       openshift.BasePorts,
+		PortForwarding: defaultPortForwarding(),
+		DNSPort:        openshift.DefaultDNSPort,
 
 		// We pass cluster add as a command to prevent anyone from ever cheating with their wiring. You either work from flags or
 		// or you don't work.  You cannot add glue of any sort.
@@ -192,8 +191,6 @@ type ClusterUpConfig struct {
 	HTTPProxy                string
 	HTTPSProxy               string
 	NoProxy                  []string
-	CACert                   string
-	PVCount                  int
 
 	dockerClient        dockerhelper.Interface
 	dockerHelper        *dockerhelper.Helper
@@ -204,12 +201,8 @@ type ClusterUpConfig struct {
 
 	usingDefaultImages         bool
 	usingDefaultOpenShiftImage bool
-	checkAlternatePorts        bool
 
-	shouldInitializeData *bool
-	shouldCreateUser     *bool
-
-	containerNetworkErr chan error
+	createdUser bool
 }
 
 func (c *ClusterUpConfig) Bind(flags *pflag.FlagSet) {
@@ -220,7 +213,6 @@ func (c *ClusterUpConfig) Bind(flags *pflag.FlagSet) {
 	flags.BoolVar(&c.SkipRegistryCheck, "skip-registry-check", false, "Skip Docker daemon registry check")
 	flags.StringVar(&c.PublicHostname, "public-hostname", "", "Public hostname for OpenShift cluster")
 	flags.StringVar(&c.RoutingSuffix, "routing-suffix", "", "Default suffix for server routes")
-	flags.BoolVar(&c.UseExistingConfig, "use-existing-config", false, "Use existing configuration if present")
 	flags.StringVar(&c.BaseDir, "base-dir", c.BaseDir, "Directory on Docker host for cluster up configuration")
 	flags.BoolVar(&c.WriteConfig, "write-config", false, "Write the configuration files into host config dir")
 	flags.BoolVar(&c.PortForwarding, "forward-ports", c.PortForwarding, "Use Docker port-forwarding to communicate with origin container. Requires 'socat' locally.")
@@ -496,13 +488,6 @@ func (c *ClusterUpConfig) Start(out io.Writer) error {
 	detailedOut := GetDetailedOut(out)
 	taskPrinter := NewTaskPrinter(detailedOut)
 
-	if !c.ShouldInitializeData() {
-		taskPrinter.StartTask("Server Information")
-		c.ServerInfo(out)
-		taskPrinter.Success()
-		return nil
-	}
-
 	// Add default redirect URIs to an OAuthClient to enable local web-console development.
 	taskPrinter.StartTask("Adding default OAuthClient redirect URIs")
 	if err := c.ensureDefaultRedirectURIs(out); err != nil {
@@ -564,6 +549,7 @@ func (c *ClusterUpConfig) Start(out io.Writer) error {
 			return taskPrinter.ToError(err)
 		}
 		taskPrinter.Success()
+		c.createdUser = true
 
 		// Create an initial project
 		taskPrinter.StartTask(fmt.Sprintf("Creating initial project %q", initialProjectName))
@@ -922,7 +908,7 @@ func (c *ClusterUpConfig) ServerInfo(out io.Writer) {
 		"The server is accessible via web console at:\n"+
 		"    %s\n\n", masterURL)
 
-	if c.ShouldCreateUser() {
+	if c.createdUser {
 		msg += fmt.Sprintf("You are logged in as:\n"+
 			"    User:     %s\n"+
 			"    Password: <any value>\n\n", initialUser)
@@ -1132,73 +1118,31 @@ func (c *ClusterUpConfig) determineIP(out io.Writer) (string, error) {
 	return "", errors.NewError("cannot determine an IP to use for your server.")
 }
 
-// ShouldInitializeData tries to determine whether we're dealing with
-// an existing OpenShift data and config. It determines that data exists by checking
-// for the existence of a docker-registry service.
-func (c *ClusterUpConfig) ShouldInitializeData() bool {
-	if c.shouldInitializeData != nil {
-		return *c.shouldInitializeData
-	}
-
-	result := func() bool {
-		if !c.UseExistingConfig {
-			return true
-		}
-		// For now, we determine if using existing etcd data by looking
-		// for the registry service
-		restConfig, err := c.RESTConfig()
-		if err != nil {
-			glog.V(2).Info(err)
-			return true
-		}
-		kclient, err := kclientset.NewForConfig(restConfig)
-		if err != nil {
-			glog.V(2).Info(err)
-			return true
-		}
-
-		if _, err = kclient.Core().Services(openshift.DefaultNamespace).Get(registry.SvcDockerRegistry, metav1.GetOptions{}); err != nil {
-			return true
-		}
-
-		// If a registry exists, then don't initialize data
-		return false
-	}()
-	c.shouldInitializeData = &result
-	return result
-}
-
 // ShouldCreateUser determines whether a user and project should
 // be created. If the user provider has been modified in the config, then it should
 // not attempt to create a user. Also, even if the user provider has not been
 // modified, but data has been initialized, then we should also not create user.
 func (c *ClusterUpConfig) ShouldCreateUser() bool {
-	if c.shouldCreateUser != nil {
-		return *c.shouldCreateUser
+	restClientConfig, err := c.RESTConfig()
+	if err != nil {
+		glog.Warningf("error checking user: %v", err)
+		return true
+	}
+	userClient, err := userv1client.NewForConfig(restClientConfig)
+	if err != nil {
+		glog.Warningf("error checking user: %v", err)
+		return true
+	}
+	_, err = userClient.UserV1().Users().Get(initialUser, metav1.GetOptions{})
+	if kerrors.IsNotFound(err) {
+		return true
+	}
+	if err != nil {
+		glog.Warningf("error checking user: %v", err)
+		return true
 	}
 
-	result := func() bool {
-		if !c.UseExistingConfig {
-			return true
-		}
-
-		cfg, _, err := c.OpenShiftHelper().GetConfigFromLocalDir(c.GetKubeAPIServerConfigDir())
-		if err != nil {
-			glog.V(2).Infof("error reading config: %v", err)
-			return true
-		}
-		if cfg.OAuthConfig == nil || len(cfg.OAuthConfig.IdentityProviders) != 1 {
-			return false
-		}
-		if _, ok := cfg.OAuthConfig.IdentityProviders[0].Provider.(*configapi.AllowAllPasswordIdentityProvider); !ok {
-			return false
-		}
-
-		return c.ShouldInitializeData()
-	}()
-
-	c.shouldCreateUser = &result
-	return result
+	return false
 }
 
 func (c *ClusterUpConfig) GetKubeAPIServerConfigDir() string {
