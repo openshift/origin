@@ -19,12 +19,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 0554e474828bf9b53d9138343a1dc478d85ecd7a
+%global commit f2059a267eda6f6589dcbcb7e51062808f1143f5
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=10+ OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.10.0-0.14.0 OS_GIT_TREE_STATE=clean OS_GIT_PATCH=0 KUBE_GIT_VERSION=v1.9.1+a0ce1bc657 KUBE_GIT_COMMIT=a0ce1bc OS_GIT_COMMIT=6b58055 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.16 ETCD_GIT_COMMIT=121edf0
+%global os_git_vars OS_GIT_MINOR=10+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.10.0-0.15.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 KUBE_GIT_VERSION=v1.9.1+a0ce1bc657 OS_GIT_PATCH=0 KUBE_GIT_COMMIT=a0ce1bc OS_GIT_COMMIT=80295a2 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.16 ETCD_GIT_COMMIT=121edf0
 }
 
 %if 0%{?skip_build}
@@ -67,7 +67,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.10.0
-Release:        0.15.0%{?dist}
+Release:        0.16.0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -593,6 +593,139 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Fri Apr 06 2018 Justin Pierce <jupierce@redhat.com> 3.10.0-0.16.0
+- bootstrap: remove factory dependency in up command (mfojtik@redhat.com)
+- bootstrap: remove ClusterAdminConfigBytes from context interface
+  (mfojtik@redhat.com)
+- bootstrap: formalize registration of components (mfojtik@redhat.com)
+- bootstrap: unify the readiness checks in tsb and web console
+  (mfojtik@redhat.com)
+- bootstrap: print list of available components to add (mfojtik@redhat.com)
+- bootstrap: add component install context (mfojtik@redhat.com)
+- Further dind start certificate generation serialization (danw@redhat.com)
+- Update console liveness probe (spadgett@redhat.com)
+- start storing data in groupified format (deads@redhat.com)
+- remove dockermachine from cluster up (deads@redhat.com)
+- generated (deads@redhat.com)
+- remove oc cluster up experimental flags broken since 3.6.1 (deads@redhat.com)
+- Observe should exit when enough reflector errors occur (ccoleman@redhat.com)
+- Remove catalog from dep exclusions (jpeeler@redhat.com)
+- allow docker.io prefix in hack/build-local-images.py (jliggitt@redhat.com)
+- Remove catalog from build-local-images (jpeeler@redhat.com)
+- Remove special handling for catalog merges (jpeeler@redhat.com)
+- Remove catalog from glide exclusion (jpeeler@redhat.com)
+- Remove vendored service-catalog (jpeeler@redhat.com)
+- Remove catalog from spec (jpeeler@redhat.com)
+- Remove service-catalog image directory (jpeeler@redhat.com)
+- Remove service-catalog from hack tooling (jpeeler@redhat.com)
+- create oc cluster add (deads@redhat.com)
+- generated (deads@redhat.com)
+- Allow VIP grouping per VRRP (ichavero@redhat.com)
+- extended tests: use faster built repo for bc with PR (jwozniak@redhat.com)
+- make kubemasterconfig non-pointer since it is required (deads@redhat.com)
+- make runtime-config kube-compatible (jliggitt@redhat.com)
+- stop marking optional flags required (jliggitt@redhat.com)
+- fix controller manager, scheduler, node (jliggitt@redhat.com)
+- fix upstream unit test selection (jliggitt@redhat.com)
+- switch etcd test code from etcd2 to etcd3 (jliggitt@redhat.com)
+- remove dead auth related master-config fields (deads@redhat.com)
+- Updates to CONTRIBUTING Documentation (adam.kaplan@redhat.com)
+- Set a route expectation to delay processing until routes are created
+  (ccoleman@redhat.com)
+- Add a test that validates ingress routes (ccoleman@redhat.com)
+- Ensure all router admission propogates deletes (ccoleman@redhat.com)
+- Create a controller that mirrors ingress to routes (ccoleman@redhat.com)
+- Remove router side ingress support (ccoleman@redhat.com)
+- Revert to using the upstream default of 1y for signing (ccoleman@redhat.com)
+- Self-hosted masters require many more pods per core (ccoleman@redhat.com)
+- Fix NetworkPolicy tests to be skipped under kubenet (danw@redhat.com)
+- remove dead client from config (deads@redhat.com)
+- dind: serialize master and node cert generation (danw@redhat.com)
+- remove illegal and dead kubemasterconfig fields (deads@redhat.com)
+- External OAuth integration test (simo@redhat.com)
+- Add option to configure an external OAuth server (simo@redhat.com)
+- Store logs uncompressed in the networking test artifacts (danw@redhat.com)
+- make oc cluster add-ons into component installs (deads@redhat.com)
+- Hide secret value from output of oc set triggers (nakayamakenjiro@gmail.com)
+- bump(*): remove gophercloud (jliggitt@redhat.com)
+- Switch gophercloud (mfedosin@redhat.com)
+- update docker/distribution sha (jliggitt@redhat.com)
+- Support login to the integrated registry via CLI (ccoleman@redhat.com)
+- Use a dummy ns.NetNS in sdn_cni_plugin_test.go (danw@redhat.com)
+- Call deleteNode() only if node UID matches (rpenta@redhat.com)
+- Subnet allocator cleanup (rpenta@redhat.com)
+- Split allocators from subnet handling in pkg/network/master/subnets.go
+  (rpenta@redhat.com)
+- SDN master VNID cleanup (rpenta@redhat.com)
+- Refactor pkg/network/master/subnets.go (rpenta@redhat.com)
+- Use netNamespace cache in pkg/network/master/vnids.go (rpenta@redhat.com)
+- Use node and host subnet cache in pkg/network/master/subnets.go
+  (rpenta@redhat.com)
+- Wait for informer sync before starting sub-systems in SDN master
+  (rpenta@redhat.com)
+- SDN master: Start subnet and vnid sub-systems asynchronously
+  (rpenta@redhat.com)
+- bump(dns): pin to ~v1 (jliggitt@redhat.com)
+- Revert "Fix for wildcard routes taking precedence over other routes"
+  (ccoleman@redhat.com)
+- Have to unmarshal to pointer for json (ccoleman@redhat.com)
+- changing timeout to 5 minutes (cdaley@redhat.com)
+- update prometheus 2.1.0 -> 2.2.1 (pgier@redhat.com)
+- bump(*) (jliggitt@redhat.com)
+- glide updates (jliggitt@redhat.com)
+- ignore golist errs from --excluded paths (jvallejo@redhat.com)
+- Need additional debug output when build binds fail for CRIO
+  (ccoleman@redhat.com)
+- service catalog: start API and Controller pods with -v 3 (jaboyd@redhat.com)
+- reload-haproxy: changes how map files are sorted (jmprusi@keepalive.io)
+- convert templateinstance metrics to counters and histogram
+  (jminter@redhat.com)
+- add tools/depcheck README (jvallejo@redhat.com)
+- if the secret is missing, always generate a cert (deads@redhat.com)
+- Sync NetworkPolicy test with upstream a bit (danw@redhat.com)
+- remove some oc cluster up factory deps (deads@redhat.com)
+- remove template instantiate from current process (deads@redhat.com)
+- Correct default labels for prom recording rule (ccoleman@redhat.com)
+- oc adm migrate image-references panics (ccoleman@redhat.com)
+- Build pruning test rewrite (cdaley@redhat.com)
+- log OVS commands at level 4 (danw@redhat.com)
+- oc new app: warn about garbage in dockerfile EXPOSE but don't fail
+  (jwozniak@redhat.com)
+- Provide feedback on progression for extracting of binary build
+  (nakayamakenjiro@gmail.com)
+- Remove unncessary if glog.Is(0) condition (nakayamakenjiro@gmail.com)
+- flatten oc cluster up directory path (deads@redhat.com)
+- cluster cidr format has changed: fix it for ovn-dind (rchopra@redhat.com)
+- add test for multi namespace object create with jenkins client plugin
+  pipelines refactor jenkins pipeline ext tests, reduce number of jenkins
+  launches (gmontero@redhat.com)
+- make cluster up router work with selinux (deads@redhat.com)
+- use localref for imagestreams (bparees@redhat.com)
+- Use cookies in HostSubnet-related OVS flows to avoid misdeletions
+  (danw@redhat.com)
+- catalog: v0.1.11 changed controller port to secure 6444 (jaboyd@redhat.com)
+- Remove wrong ValidArgs from rollout latest (nakayamakenjiro@gmail.com)
+- Refactor node HostSubnet code into its own object for ease of testing
+  (danw@redhat.com)
+- networking requirements changes: plugins should utilize daemonsets for
+  installation; plugins should be aware of conflicts with NetworkManager
+  (rchopra@redhat.com)
+- Mirroring should take advantage of mount opportunities for binaries
+  (ccoleman@redhat.com)
+- Squashed 'cmd/service-catalog/go/src/github.com/kubernetes-incubator/service-
+  catalog/' changes from c3e3071633..231772fcc0 (jaboyd@redhat.com)
+- UPSTREAM: docker/distribution: 2382: Don't double add scopes
+  (ccoleman@redhat.com)
+- Clear node-selector restrictions for multicast test (danw@redhat.com)
+- Fix oc cluster up to do image pull (decarr@redhat.com)
+- Fail multicast test properly if pods can't be started (danw@redhat.com)
+- Fix multicast test to run under ovs-networkpolicy plugin (danw@redhat.com)
+- Combine backend map files to fix bath based routing (jtanenba@redhat.com)
+- Setting reference to true may create a status tag (obulatov@redhat.com)
+- Disable HPA scale ref check in `oc status` (sross@redhat.com)
+- embed clock interface into templateinstance controller for testing
+  (jminter@redhat.com)
+
 * Tue Mar 27 2018 Justin Pierce <jupierce@redhat.com> 3.10.0-0.15.0
 - wait for at least one apiservice (deads@redhat.com)
 - apps: cleanup unused code (mfojtik@redhat.com)
