@@ -2,6 +2,9 @@ package web_console
 
 import (
 	"fmt"
+	"io/ioutil"
+	"net/url"
+	"path"
 
 	yaml "gopkg.in/yaml.v2"
 	"k8s.io/client-go/kubernetes"
@@ -9,10 +12,14 @@ import (
 	"github.com/golang/glog"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 
+	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
+	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	"github.com/openshift/origin/pkg/oc/bootstrap"
 	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/componentinstall"
+	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/kubeapiserver"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/oc/errors"
 )
@@ -22,11 +29,6 @@ const (
 )
 
 type WebConsoleComponentOptions struct {
-	PublicMasterURL  string
-	PublicConsoleURL string
-	PublicLoggingURL string
-	PublicMetricsURL string
-
 	InstallContext componentinstall.Context
 }
 
@@ -52,13 +54,15 @@ func (c *WebConsoleComponentOptions) Install(dockerClient dockerhelper.Interface
 		return errors.NewError("cannot read clusterInfo in web console config")
 	}
 
-	clusterInfo["consolePublicURL"] = c.PublicConsoleURL + "/"
-	clusterInfo["masterPublicURL"] = c.PublicMasterURL
-	if len(c.PublicLoggingURL) > 0 {
-		clusterInfo["loggingPublicURL"] = c.PublicLoggingURL
+	masterPublicHostPort, err := getMasterPublicHostPort(c.InstallContext.BaseDir())
+	if err != nil {
+		return err
 	}
-	if len(c.PublicMetricsURL) > 0 {
-		clusterInfo["metricsPublicURL"] = c.PublicMetricsURL
+	clusterInfo["consolePublicURL"] = "https://" + masterPublicHostPort + "/console/"
+
+	clusterInfo["masterPublicURL"], err = getMasterPublicURL(c.InstallContext.BaseDir())
+	if err != nil {
+		return err
 	}
 
 	// serialize it back out as a string to use as a template parameter
@@ -102,4 +106,40 @@ func (c *WebConsoleComponentOptions) Install(dockerClient dockerhelper.Interface
 		c.InstallContext.ClientImage(),
 		c.InstallContext.BaseDir(),
 		params).Install(dockerClient, logdir)
+}
+
+func getMasterPublicHostPort(basedir string) (string, error) {
+	masterPublicURL, err := getMasterPublicURL(basedir)
+	if err != nil {
+		return "", err
+	}
+	masterURL, err := url.Parse(masterPublicURL)
+	if err != nil {
+		return "", err
+	}
+	return masterURL.Host, nil
+}
+
+func getMasterPublicURL(basedir string) (string, error) {
+	masterConfig, err := getMasterConfig(basedir)
+	if err != nil {
+		return "", err
+	}
+	return masterConfig.MasterPublicURL, nil
+}
+
+func getMasterConfig(basedir string) (*configapi.MasterConfig, error) {
+	configBytes, err := ioutil.ReadFile(path.Join(basedir, kubeapiserver.KubeAPIServerDirName, "master-config.yaml"))
+	if err != nil {
+		return nil, err
+	}
+	configObj, err := runtime.Decode(configapilatest.Codec, configBytes)
+	if err != nil {
+		return nil, err
+	}
+	masterConfig, ok := configObj.(*configapi.MasterConfig)
+	if !ok {
+		return nil, fmt.Errorf("the %#v is not MasterConfig", configObj)
+	}
+	return masterConfig, nil
 }

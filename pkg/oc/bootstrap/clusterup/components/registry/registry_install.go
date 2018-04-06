@@ -17,14 +17,11 @@ import (
 const (
 	DefaultNamespace  = "default"
 	SvcDockerRegistry = "docker-registry"
-	masterConfigDir   = "/var/lib/origin/openshift.local.config/master"
 	// This is needed because of NO_PROXY cannot handle the CIDR range
 	RegistryServiceClusterIP = "172.30.1.1"
 )
 
 type RegistryComponentOptions struct {
-	PVDir string
-
 	InstallContext componentinstall.Context
 }
 
@@ -62,7 +59,7 @@ func (r *RegistryComponentOptions) Install(dockerClient dockerhelper.Interface, 
 		fmt.Sprintf("--cluster-ip=%s", RegistryServiceClusterIP),
 		fmt.Sprintf("--config=%s", path.Join(masterConfigDir, "admin.kubeconfig")),
 		fmt.Sprintf("--images=%s", r.InstallContext.ImageFormat()),
-		fmt.Sprintf("--mount-host=%s", path.Join(r.PVDir, "registry")),
+		fmt.Sprintf("--mount-host=%s", path.Join(r.InstallContext.BaseDir(), "openshift.local.pv", "registry")),
 	}
 	_, rc, err := imageRunHelper.Image(r.InstallContext.ClientImage()).
 		Privileged().

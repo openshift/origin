@@ -4,20 +4,25 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
+	goruntime "runtime"
 
 	"github.com/golang/glog"
-	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/kubeapiserver"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	"github.com/openshift/origin/pkg/cmd/server/admin"
+	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
+	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/componentinstall"
+	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/kubeapiserver"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/run"
 	"github.com/openshift/origin/pkg/oc/errors"
@@ -30,10 +35,6 @@ const (
 )
 
 type RouterComponentOptions struct {
-	PublicMasterURL string
-	RoutingSuffix   string
-	PortForwarding  bool
-
 	InstallContext componentinstall.Context
 }
 
@@ -71,6 +72,11 @@ func (c *RouterComponentOptions) Install(dockerClient dockerhelper.Interface, lo
 		return err
 	}
 
+	masterConfig, err := getMasterConfig(c.InstallContext.BaseDir())
+	if err != nil {
+		return err
+	}
+
 	masterConfigDir := path.Join(c.InstallContext.BaseDir(), kubeapiserver.KubeAPIServerDirName)
 	// Create router cert
 	cmdOutput := &bytes.Buffer{}
@@ -82,10 +88,10 @@ func (c *RouterComponentOptions) Install(dockerClient dockerhelper.Interface, lo
 		},
 		Overwrite: true,
 		Hostnames: []string{
-			c.RoutingSuffix,
+			masterConfig.RoutingConfig.Subdomain,
 			// This will ensure that routes using edge termination and the default
 			// certs will use certs valid for their arbitrary subdomain names.
-			"*." + c.RoutingSuffix,
+			"*." + masterConfig.RoutingConfig.Subdomain,
 		},
 		CertFile: filepath.Join(masterConfigDir, "router.crt"),
 		KeyFile:  filepath.Join(masterConfigDir, "router.key"),
@@ -110,7 +116,7 @@ func (c *RouterComponentOptions) Install(dockerClient dockerhelper.Interface, lo
 		"--host-ports=true",
 		fmt.Sprintf("--loglevel=%d", c.InstallContext.ComponentLogLevel()),
 		"--config=" + masterConfigDir + "/admin.kubeconfig",
-		fmt.Sprintf("--host-network=%v", !c.PortForwarding),
+		fmt.Sprintf("--host-network=%v", !portForwarding()),
 		fmt.Sprintf("--images=%s", c.InstallContext.ImageFormat()),
 		fmt.Sprintf("--default-cert=%s", routerCertPath),
 	}
@@ -147,4 +153,25 @@ func catFiles(dest string, src ...string) error {
 		}
 	}
 	return nil
+}
+
+func getMasterConfig(basedir string) (*configapi.MasterConfig, error) {
+	configBytes, err := ioutil.ReadFile(path.Join(basedir, kubeapiserver.KubeAPIServerDirName, "master-config.yaml"))
+	if err != nil {
+		return nil, err
+	}
+	configObj, err := runtime.Decode(configapilatest.Codec, configBytes)
+	if err != nil {
+		return nil, err
+	}
+	masterConfig, ok := configObj.(*configapi.MasterConfig)
+	if !ok {
+		return nil, fmt.Errorf("the %#v is not MasterConfig", configObj)
+	}
+	return masterConfig, nil
+}
+
+func portForwarding() bool {
+	// true if running on Mac, with no DOCKER_HOST defined
+	return goruntime.GOOS == "darwin" && len(os.Getenv("DOCKER_HOST")) == 0
 }
