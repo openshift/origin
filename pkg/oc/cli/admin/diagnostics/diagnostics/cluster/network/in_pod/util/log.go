@@ -169,11 +169,11 @@ func (l *LogInterface) logRuntime(runtime *Runtime) {
 func (l *LogInterface) logRuntimeNetworkFile(name string) {
 	out, err := exec.Command("systemctl", "cat", fmt.Sprintf("%s.service", name)).CombinedOutput()
 	if err != nil {
-		l.Run(fmt.Sprintf("echo '%s'", string(out)), fmt.Sprintf("%s-network-file", name))
+		l.Run(fmt.Sprintf("cat /etc/sysconfig/%s-network", name), fmt.Sprintf("%s-network-file", name))
 		return
 	}
 
-	re := regexp.MustCompile("EnvironmentFile=-(.*openshift-sdn.*)")
+	re := regexp.MustCompile("EnvironmentFile=-(.*-network)")
 	match := re.FindStringSubmatch(string(out))
 	if len(match) > 1 {
 		l.Run(fmt.Sprintf("cat %s", match[1]), fmt.Sprintf("%s-network-file", name))
