@@ -26,12 +26,14 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/rest"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	aggregatorinstall "k8s.io/kube-aggregator/pkg/apis/apiregistration/install"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
+	osclientcmd "github.com/openshift/origin/pkg/client/cmd"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
@@ -48,8 +50,6 @@ import (
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/host"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/localcmd"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/openshift"
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
-	osclientcmd "github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	"github.com/openshift/origin/pkg/version"
 )
 
@@ -121,7 +121,7 @@ var (
 )
 
 // NewCmdUp creates a command that starts OpenShift on Docker with reasonable defaults
-func NewCmdUp(name, fullName string, f *osclientcmd.Factory, out, errout io.Writer, clusterAdd *cobra.Command) *cobra.Command {
+func NewCmdUp(name, fullName string, out, errout io.Writer, clusterAdd *cobra.Command) *cobra.Command {
 	config := &ClusterUpConfig{
 		Out:                 out,
 		UsePorts:            openshift.BasePorts,
@@ -139,7 +139,7 @@ func NewCmdUp(name, fullName string, f *osclientcmd.Factory, out, errout io.Writ
 		Long:    cmdUpLong,
 		Example: fmt.Sprintf(cmdUpExample, fullName),
 		Run: func(c *cobra.Command, args []string) {
-			kcmdutil.CheckErr(config.Complete(f, c, out))
+			kcmdutil.CheckErr(config.Complete(c, out))
 			kcmdutil.CheckErr(config.Validate(errout))
 			kcmdutil.CheckErr(config.Check(out))
 			if err := config.Start(out); err != nil {
@@ -192,13 +192,12 @@ type ClusterUpConfig struct {
 	CACert                   string
 	PVCount                  int
 
-	dockerClient    dockerhelper.Interface
-	dockerHelper    *dockerhelper.Helper
-	hostHelper      *host.HostHelper
-	openshiftHelper *openshift.Helper
-	factory         *clientcmd.Factory
-	originalFactory *clientcmd.Factory
-	command         *cobra.Command
+	dockerClient        dockerhelper.Interface
+	dockerHelper        *dockerhelper.Helper
+	hostHelper          *host.HostHelper
+	openshiftHelper     *openshift.Helper
+	command             *cobra.Command
+	defaultClientConfig clientcmdapi.Config
 
 	usingDefaultImages         bool
 	usingDefaultOpenShiftImage bool
@@ -230,11 +229,21 @@ func (c *ClusterUpConfig) Bind(flags *pflag.FlagSet) {
 	flags.StringArrayVar(&c.NoProxy, "no-proxy", c.NoProxy, "List of hosts or subnets for which a proxy should not be used")
 }
 
-func (c *ClusterUpConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command, out io.Writer) error {
+func (c *ClusterUpConfig) Complete(cmd *cobra.Command, out io.Writer) error {
 	// TODO: remove this when we move to container/apply based component installation
 	aggregatorinstall.Install(legacyscheme.GroupFactoryRegistry, legacyscheme.Registry, legacyscheme.Scheme)
 
-	c.originalFactory = f
+	// Get the default client config for login
+	var err error
+	flags := pflag.NewFlagSet("", pflag.ContinueOnError)
+	c.defaultClientConfig, err = osclientcmd.DefaultClientConfig(flags).RawConfig()
+	if err != nil {
+		if !os.IsNotExist(err) {
+			return err
+		}
+		c.defaultClientConfig = (*clientcmdapi.NewConfig())
+	}
+
 	c.command = cmd
 
 	// do some defaulting
@@ -504,8 +513,6 @@ func (c *ClusterUpConfig) Start(out io.Writer) error {
 	webConsoleInstall := &web_console.WebConsoleComponentOptions{
 		PublicConsoleURL: fmt.Sprintf("https://%s:8443/console", c.GetPublicHostName()),
 		PublicMasterURL:  fmt.Sprintf("https://%s:8443", c.GetPublicHostName()),
-		PublicLoggingURL: fmt.Sprintf("https://%s", openshift.LoggingHost(c.RoutingSuffix)),
-		PublicMetricsURL: fmt.Sprintf("https://%s/hawkular/metrics", openshift.MetricsHost(c.RoutingSuffix)),
 		InstallContext:   installContext,
 	}
 
@@ -860,7 +867,7 @@ func (c *ClusterUpConfig) RegisterTemplateServiceBroker(out io.Writer) error {
 // Login logs into the new server and sets up a default user and project
 func (c *ClusterUpConfig) Login(out io.Writer) error {
 	server := c.OpenShiftHelper().Master(c.ServerIP)
-	return openshift.Login(initialUser, initialPassword, server, c.GetKubeAPIServerConfigDir(), c.originalFactory, c.command, out, out)
+	return openshift.Login(initialUser, initialPassword, server, c.GetKubeAPIServerConfigDir(), c.defaultClientConfig, c.command, out, out)
 }
 
 // CreateProject creates a new project for the current user
