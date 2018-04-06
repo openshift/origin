@@ -3,7 +3,6 @@ package openshift
 import (
 	"io"
 	"io/ioutil"
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -14,18 +13,10 @@ import (
 
 	"github.com/openshift/origin/pkg/oc/cli/cmd/login"
 	"github.com/openshift/origin/pkg/oc/cli/config"
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
 // Login logs into the specified server using given credentials and CA file
-func Login(username, password, server, configDir string, f *clientcmd.Factory, c *cobra.Command, out, errOut io.Writer) error {
-	existingConfig, err := f.OpenShiftClientConfig().RawConfig()
-	if err != nil {
-		if !os.IsNotExist(err) {
-			return err
-		}
-		existingConfig = *(kclientcmdapi.NewConfig())
-	}
+func Login(username, password, server, configDir string, clientConfig kclientcmdapi.Config, c *cobra.Command, out, errOut io.Writer) error {
 	adminConfig, err := kclientcmd.LoadFromFile(filepath.Join(configDir, "admin.kubeconfig"))
 	if err != nil {
 		return err
@@ -59,7 +50,7 @@ func Login(username, password, server, configDir string, f *clientcmd.Factory, c
 			break
 		}
 	}
-	newConfig, err := config.MergeConfig(existingConfig, *adminConfig)
+	newConfig, err := config.MergeConfig(clientConfig, *adminConfig)
 	if err != nil {
 		return err
 	}

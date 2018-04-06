@@ -5,7 +5,6 @@ import (
 
 	"github.com/golang/glog"
 
-	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/componentinstall"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/run"
 	"github.com/openshift/origin/pkg/oc/errors"
@@ -42,21 +41,18 @@ func (opt KubeletStartFlags) MakeKubeletFlags(dockerClient dockerhelper.Interfac
 		"--config=/var/lib/origin/openshift.local.config/node/node-config.yaml",
 	}
 
-	_, stdout, stderr, rc, err := imageRunHelper.Image(opt.NodeImage).
+	_, stdout, _, rc, err := imageRunHelper.Image(opt.NodeImage).
 		DiscardContainer().
 		Bind(binds...).
 		Env(env...).
+		SaveContainerLogs(componentName, path.Join(basedir, "logs")).
 		Entrypoint("openshift").
 		Command(createFlagsCmd...).Output()
-
-	if err := componentinstall.LogContainer(path.Join(basedir, "logs"), componentName, stdout, stderr); err != nil {
-		glog.Errorf("error logging %q: %v", componentName, err)
-	}
 	if err != nil {
 		return "", errors.NewError("could not run %q: %v", componentName, err).WithCause(err)
 	}
 	if rc != 0 {
-		return "", errors.NewError("could not run %q: rc==%v", componentName, rc)
+		return "", errors.NewError("could not run %q: rc=%d", componentName, rc)
 	}
 
 	return stdout, nil

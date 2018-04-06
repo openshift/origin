@@ -49,7 +49,7 @@ func NewCmdCluster(name, fullName string, f *clientcmd.Factory, in io.Reader, ou
 	clusterAdd := clusteradd.NewCmdAdd(clusteradd.CmdAddRecommendedName, fullName+" "+clusteradd.CmdAddRecommendedName, out, errout)
 
 	cmds.AddCommand(clusterAdd)
-	cmds.AddCommand(docker.NewCmdUp(docker.CmdUpRecommendedName, fullName+" "+docker.CmdUpRecommendedName, f, out, errout, clusterAdd))
+	cmds.AddCommand(docker.NewCmdUp(docker.CmdUpRecommendedName, fullName+" "+docker.CmdUpRecommendedName, out, errout, clusterAdd))
 	cmds.AddCommand(docker.NewCmdDown(docker.CmdDownRecommendedName, fullName+" "+docker.CmdDownRecommendedName, out))
 	cmds.AddCommand(docker.NewCmdStatus(docker.CmdStatusRecommendedName, fullName+" "+docker.CmdStatusRecommendedName, f, out))
 	return cmds
