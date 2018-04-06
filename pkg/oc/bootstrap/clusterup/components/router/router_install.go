@@ -4,18 +4,15 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
 
 	"github.com/golang/glog"
-	"k8s.io/client-go/util/retry"
+	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/kubeapiserver"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apiserver/pkg/authentication/serviceaccount"
-	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
@@ -24,7 +21,6 @@ import (
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/run"
 	"github.com/openshift/origin/pkg/oc/errors"
-	securityclientinternal "github.com/openshift/origin/pkg/security/generated/internalclientset"
 )
 
 const (
@@ -34,12 +30,11 @@ const (
 )
 
 type RouterComponentOptions struct {
-	OCImage         string
-	MasterConfigDir string
-	ImageFormat     string
 	PublicMasterURL string
 	RoutingSuffix   string
 	PortForwarding  bool
+
+	InstallContext componentinstall.Context
 }
 
 func (c *RouterComponentOptions) Name() string {
@@ -47,19 +42,11 @@ func (c *RouterComponentOptions) Name() string {
 }
 
 func (c *RouterComponentOptions) Install(dockerClient dockerhelper.Interface, logdir string) error {
-	clusterAdminKubeConfigBytes, err := ioutil.ReadFile(path.Join(c.MasterConfigDir, "admin.kubeconfig"))
+	kubeAdminClient, err := kclientset.NewForConfig(c.InstallContext.ClusterAdminClientConfig())
 	if err != nil {
 		return err
 	}
-	restConfig, err := kclientcmd.RESTConfigFromKubeConfig(clusterAdminKubeConfigBytes)
-	if err != nil {
-		return err
-	}
-	kubeClient, err := kclientset.NewForConfig(restConfig)
-	if err != nil {
-		return err
-	}
-	_, err = kubeClient.Core().Services(DefaultNamespace).Get(RouterServiceName, metav1.GetOptions{})
+	_, err = kubeAdminClient.Core().Services(DefaultNamespace).Get(RouterServiceName, metav1.GetOptions{})
 	if err == nil {
 		glog.V(3).Infof("The %q service is already present, skipping installation", RouterServiceName)
 		// Router service already exists, nothing to do
@@ -71,54 +58,37 @@ func (c *RouterComponentOptions) Install(dockerClient dockerhelper.Interface, lo
 
 	componentName := "install-router"
 	imageRunHelper := run.NewRunHelper(dockerhelper.NewHelper(dockerClient)).New()
-	glog.Infof("Running %q", componentName)
 
 	// Create service account for router
 	routerSA := &kapi.ServiceAccount{}
 	routerSA.Name = RouterServiceAccountName
-	_, err = kubeClient.Core().ServiceAccounts("default").Create(routerSA)
+	_, err = kubeAdminClient.Core().ServiceAccounts(DefaultNamespace).Create(routerSA)
 	if err != nil {
 		return errors.NewError("cannot create router service account").WithCause(err)
 	}
 
-	// Add router SA to privileged SCC
-	err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		securityClient, err := securityclientinternal.NewForConfig(restConfig)
-		if err != nil {
-			return err
-		}
-		privilegedSCC, err := securityClient.Security().SecurityContextConstraints().Get("privileged", metav1.GetOptions{})
-		if err != nil {
-			return err
-		}
-		privilegedSCC.Users = append(privilegedSCC.Users, serviceaccount.MakeUsername("default", RouterServiceAccountName))
-		_, err = securityClient.Security().SecurityContextConstraints().Update(privilegedSCC)
-		if err != nil {
-			return err
-		}
-		return nil
-	})
-	if err != nil {
-		return errors.NewError("cannot update privileged SCC").WithCause(err)
+	if err := componentinstall.AddPrivilegedUser(c.InstallContext.ClusterAdminClientConfig(), DefaultNamespace, RouterServiceAccountName); err != nil {
+		return err
 	}
 
+	masterConfigDir := path.Join(c.InstallContext.BaseDir(), kubeapiserver.KubeAPIServerDirName)
 	// Create router cert
 	cmdOutput := &bytes.Buffer{}
 	createCertOptions := &admin.CreateServerCertOptions{
 		SignerCertOptions: &admin.SignerCertOptions{
-			CertFile:   filepath.Join(c.MasterConfigDir, "ca.crt"),
-			KeyFile:    filepath.Join(c.MasterConfigDir, "ca.key"),
-			SerialFile: filepath.Join(c.MasterConfigDir, "ca.serial.txt"),
+			CertFile:   filepath.Join(masterConfigDir, "ca.crt"),
+			KeyFile:    filepath.Join(masterConfigDir, "ca.key"),
+			SerialFile: filepath.Join(masterConfigDir, "ca.serial.txt"),
 		},
 		Overwrite: true,
 		Hostnames: []string{
 			c.RoutingSuffix,
 			// This will ensure that routes using edge termination and the default
 			// certs will use certs valid for their arbitrary subdomain names.
-			fmt.Sprintf("*.%s", c.RoutingSuffix),
+			"*." + c.RoutingSuffix,
 		},
-		CertFile: filepath.Join(c.MasterConfigDir, "router.crt"),
-		KeyFile:  filepath.Join(c.MasterConfigDir, "router.key"),
+		CertFile: filepath.Join(masterConfigDir, "router.crt"),
+		KeyFile:  filepath.Join(masterConfigDir, "router.key"),
 		Output:   cmdOutput,
 	}
 	_, err = createCertOptions.CreateServerCert()
@@ -126,40 +96,34 @@ func (c *RouterComponentOptions) Install(dockerClient dockerhelper.Interface, lo
 		return errors.NewError("cannot create router cert").WithCause(err)
 	}
 
-	err = catFiles(filepath.Join(c.MasterConfigDir, "router.pem"),
-		filepath.Join(c.MasterConfigDir, "router.crt"),
-		filepath.Join(c.MasterConfigDir, "router.key"),
-		filepath.Join(c.MasterConfigDir, "ca.crt"))
+	err = catFiles(filepath.Join(masterConfigDir, "router.pem"),
+		filepath.Join(masterConfigDir, "router.crt"),
+		filepath.Join(masterConfigDir, "router.key"),
+		filepath.Join(masterConfigDir, "ca.crt"))
 	if err != nil {
 		return errors.NewError("cannot create aggregate router cert").WithCause(err)
 	}
 
-	routerCertPath := c.MasterConfigDir + "/router.pem"
+	routerCertPath := masterConfigDir + "/router.pem"
 	flags := []string{
 		"adm", "router",
 		"--host-ports=true",
-		"--loglevel=8",
-		"--config=" + c.MasterConfigDir + "/admin.kubeconfig",
+		fmt.Sprintf("--loglevel=%d", c.InstallContext.ComponentLogLevel()),
+		"--config=" + masterConfigDir + "/admin.kubeconfig",
 		fmt.Sprintf("--host-network=%v", !c.PortForwarding),
-		fmt.Sprintf("--images=%s", c.ImageFormat),
+		fmt.Sprintf("--images=%s", c.InstallContext.ImageFormat()),
 		fmt.Sprintf("--default-cert=%s", routerCertPath),
 	}
-	_, stdout, stderr, rc, err := imageRunHelper.Image(c.OCImage).
+	_, rc, err := imageRunHelper.Image(c.InstallContext.ClientImage()).
 		Privileged().
 		DiscardContainer().
 		HostNetwork().
-		Bind(c.MasterConfigDir + ":" + c.MasterConfigDir).
+		SaveContainerLogs(componentName, logdir).
+		Bind(masterConfigDir + ":" + masterConfigDir).
 		Entrypoint("oc").
-		Command(flags...).Output()
-
-	if err := componentinstall.LogContainer(logdir, componentName, stdout, stderr); err != nil {
-		glog.Errorf("error logging %q: %v", componentName, err)
-	}
-	if err != nil {
-		return errors.NewError("could not run %q: %v", componentName, err).WithCause(err)
-	}
+		Command(flags...).Run()
 	if rc != 0 {
-		return errors.NewError("could not run %q: rc==%v", componentName, rc)
+		return errors.NewError("could not run %q: rc=%d", componentName, rc)
 	}
 	return nil
 }

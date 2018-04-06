@@ -2,9 +2,12 @@ package componentinstall
 
 import (
 	"fmt"
+	"io/ioutil"
+	"path"
 	"time"
 
 	"github.com/golang/glog"
+	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/kubeapiserver"
 
 	"k8s.io/apimachinery/pkg/util/wait"
 
@@ -25,12 +28,12 @@ type Template struct {
 	WaitCondition func() (bool, error)
 }
 
-func (t Template) MakeReady(image string, kubeconfig []byte, params map[string]string) Component {
+func (t Template) MakeReady(image, baseDir string, params map[string]string) Component {
 	return installReadyTemplate{
-		template:   t,
-		image:      image,
-		kubeconfig: kubeconfig,
-		params:     params,
+		template: t,
+		image:    image,
+		baseDir:  baseDir,
+		params:   params,
 	}
 }
 
@@ -62,10 +65,10 @@ oc process --local -o yaml --ignore-unknown-parameters --param-file=/param-file.
 `
 
 type installReadyTemplate struct {
-	template   Template
-	image      string
-	kubeconfig []byte
-	params     map[string]string
+	template Template
+	image    string
+	baseDir  string
+	params   map[string]string
 }
 
 func (opt installReadyTemplate) Name() string {
@@ -77,8 +80,13 @@ func (opt installReadyTemplate) Install(dockerClient dockerhelper.Interface, log
 
 	glog.Infof("Installing %q\n", opt.Name())
 
+	clusterAdminConfigBytes, err := ioutil.ReadFile(path.Join(opt.baseDir, kubeapiserver.KubeAPIServerDirName, "admin.kubeconfig"))
+	if err != nil {
+		return err
+	}
+
 	contentToCopy := map[string][]byte{
-		"kubeconfig.kubeconfig":  opt.kubeconfig,
+		"kubeconfig.kubeconfig":  clusterAdminConfigBytes,
 		"namespace.yaml":         opt.template.NamespaceObj,
 		"rbac.yaml":              opt.template.RBACTemplate,
 		"install.yaml":           opt.template.InstallTemplate,
@@ -91,18 +99,15 @@ func (opt installReadyTemplate) Install(dockerClient dockerhelper.Interface, log
 	var lastErr error
 	// do a very simple retry loop on failure. Three times, ten second gaps
 	wait.PollImmediate(10*time.Second, 30*time.Second, func() (bool, error) {
-		_, stdout, stderr, rc, err := imageRunHelper.Image(opt.image).
+		_, rc, err := imageRunHelper.Image(opt.image).
 			Privileged().
 			DiscardContainer().
 			Copy(contentToCopy).
+			SaveContainerLogs(opt.Name(), logdir).
 			HostNetwork().
 			HostPid().
 			Entrypoint("sh").
-			Command("-c", "echo '"+opt.Name()+"' && chmod 755 /install.sh && /install.sh").Output()
-
-		if err := LogContainer(logdir, opt.Name(), stdout, stderr); err != nil {
-			glog.Errorf("error logging %q: %v", opt.Name(), err)
-		}
+			Command("-c", "echo '"+opt.Name()+"' && chmod 755 /install.sh && /install.sh").Run()
 		if err != nil {
 			lastErr = errors.NewError("failed to install %q: %v", opt.Name(), err).WithCause(err)
 			return false, nil
@@ -148,10 +153,11 @@ func toPrivilegedSAFile(namespace string, privilegedSANames []string) []byte {
 	return []byte(output)
 }
 
-func InstallTemplates(templates []Template, image string, kubeconfig []byte, params map[string]string, dockerClient dockerhelper.Interface, logdir string) error {
+func InstallTemplates(templates []Template, image, baseDir string, params map[string]string, dockerClient dockerhelper.Interface,
+	logdir string) error {
 	components := []Component{}
 	for _, template := range templates {
-		components = append(components, template.MakeReady(image, kubeconfig, params))
+		components = append(components, template.MakeReady(image, baseDir, params))
 	}
 
 	return InstallComponents(components, dockerClient, logdir)

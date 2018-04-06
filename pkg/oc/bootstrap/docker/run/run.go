@@ -5,12 +5,17 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"io/ioutil"
+	"os"
+	"path"
 	"strings"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/go-connections/nat"
 	"github.com/golang/glog"
+
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/errors"
@@ -46,6 +51,8 @@ type Runner struct {
 	hostConfig      *container.HostConfig
 	removeContainer bool
 	copies          map[string][]byte
+	logDir          string
+	logName         string
 }
 
 // Name sets the name of the container to create
@@ -121,6 +128,13 @@ func (h *Runner) Env(env ...string) *Runner {
 // Privileged tells Docker to run the container as privileged
 func (h *Runner) Privileged() *Runner {
 	h.hostConfig.Privileged = true
+	return h
+}
+
+// SaveContainerLogs causes the helper to store the container stdout and stderr into a file
+func (h *Runner) SaveContainerLogs(name, logdir string) *Runner {
+	h.logDir = logdir
+	h.logName = name
 	return h
 }
 
@@ -226,6 +240,41 @@ func streamingArchive(contents map[string][]byte) io.ReadCloser {
 	return r
 }
 
+func (h *Runner) logContainerOutput(stdout, stderr string) error {
+	if err := os.MkdirAll(h.logDir, 0755); err != nil {
+		return err
+	}
+	stdoutFile := ""
+	stderrFile := ""
+	for spinNumber := 1; spinNumber < 1000; spinNumber++ {
+		stdoutFile = fmt.Sprintf("%s-%03d.stdout", strings.Replace(h.logName, "/", "-", -1), spinNumber)
+		stderrFile = fmt.Sprintf("%s-%03d.stderr", strings.Replace(h.logName, "/", "-", -1), spinNumber)
+
+		if _, err := os.Stat(path.Join(h.logDir, stdoutFile)); !os.IsNotExist(err) {
+			continue
+		}
+		if _, err := os.Stat(path.Join(h.logDir, stderrFile)); !os.IsNotExist(err) {
+			continue
+		}
+
+		break
+	}
+
+	stdoutErr := ioutil.WriteFile(path.Join(h.logDir, stdoutFile), []byte(stdout), 0644)
+	stderrErr := ioutil.WriteFile(path.Join(h.logDir, stderrFile), []byte(stderr), 0644)
+
+	switch {
+	case stdoutErr == nil && stderrErr == nil:
+		return nil
+	case stdoutErr != nil && stderrErr == nil:
+		return stdoutErr
+	case stdoutErr == nil && stderrErr != nil:
+		return stderrErr
+	default:
+		return utilerrors.NewAggregate([]error{stdoutErr, stderrErr})
+	}
+}
+
 func (h *Runner) startContainer(id string) error {
 	err := h.client.ContainerStart(id)
 	if err != nil {
@@ -279,7 +328,12 @@ func (h *Runner) runWithOutput() (string, string, string, int, error) {
 		return id, "", "", 0, err
 	}
 	glog.V(5).Infof("Done reading logs from container %q", id)
-
+	if len(h.logDir) > 0 {
+		if err := h.logContainerOutput(stdOut.String(), stdErr.String()); err != nil {
+			// This is an convenience problem, not fatal error.
+			glog.Warningf("Unable to preserve container %q logs: %v", h.logName, err)
+		}
+	}
 	glog.V(5).Infof("Stdout:\n%s", stdOut.String())
 	glog.V(5).Infof("Stderr:\n%s", stdErr.String())
 	if rc != 0 || err != nil {

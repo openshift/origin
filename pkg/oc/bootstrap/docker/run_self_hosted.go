@@ -3,10 +3,8 @@ package docker
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
-	"path"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -158,15 +156,10 @@ func (c *ClusterUpConfig) StartSelfHosted(out io.Writer) error {
 		return err
 	}
 
-	clusterAdminKubeConfig, err := ioutil.ReadFile(path.Join(configDirs.masterConfigDir, "admin.kubeconfig"))
-	if err != nil {
-		return err
-	}
-
 	err = componentinstall.InstallTemplates(
 		runLevelOneComponents,
 		c.openshiftImage(),
-		clusterAdminKubeConfig,
+		c.BaseDir,
 		templateSubstitutionValues,
 		c.GetDockerClient(),
 		c.GetLogDir(),
@@ -175,8 +168,17 @@ func (c *ClusterUpConfig) StartSelfHosted(out io.Writer) error {
 		return err
 	}
 
+	installContext, err := componentinstall.NewComponentInstallContext(c.openshiftImage(), c.imageFormat(), c.BaseDir, c.ServerLogLevel)
+	if err != nil {
+		return err
+	}
+
 	// wait for the openshift apiserver before we create the rest of the components, since they may rely on openshift resources
-	err = componentinstall.WaitForAPIs(clientConfig,
+	aggregatorClient, err := aggregatorclient.NewForConfig(installContext.ClusterAdminClientConfig())
+	if err != nil {
+		return err
+	}
+	err = componentinstall.WaitForAPIs(aggregatorClient,
 		"v1.apps.openshift.io",
 		"v1.authorization.openshift.io",
 		"v1.build.openshift.io",
@@ -195,12 +197,12 @@ func (c *ClusterUpConfig) StartSelfHosted(out io.Writer) error {
 	}
 	glog.Info("openshift-apiserver available")
 
-	go watchAPIServices(clientConfig)
+	go watchAPIServices(aggregatorClient)
 
 	err = componentinstall.InstallTemplates(
 		componentsToInstall,
 		c.openshiftImage(),
-		clusterAdminKubeConfig,
+		c.BaseDir,
 		templateSubstitutionValues,
 		c.GetDockerClient(),
 		c.GetLogDir(),
@@ -465,11 +467,7 @@ func waitForHealthyKubeAPIServer(clientConfig *rest.Config) error {
 	return err
 }
 
-func watchAPIServices(clientConfig *rest.Config) {
-	aggregatorClient, err := aggregatorclient.NewForConfig(clientConfig)
-	if err != nil {
-		panic(err)
-	}
+func watchAPIServices(aggregatorClient aggregatorclient.Interface) {
 	watch, err := aggregatorClient.ApiregistrationV1beta1().APIServices().Watch(metav1.ListOptions{})
 	if err != nil {
 		panic(err)

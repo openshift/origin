@@ -19,7 +19,7 @@ const (
 
 // TODO this should be a controller based on the actual cluster state
 // RegisterTemplateServiceBroker registers the TSB with the SC by creating the broker resource
-func RegisterTemplateServiceBroker(dockerClient dockerhelper.Interface, ocImage string, clusterAdminKubeConfig []byte, configDir string, logdir string) error {
+func RegisterTemplateServiceBroker(dockerClient dockerhelper.Interface, ocImage, baseDir, configDir, logDir string) error {
 	// Register the template broker with the service catalog
 	glog.V(2).Infof("registering the template broker with the service catalog")
 
@@ -40,7 +40,7 @@ func RegisterTemplateServiceBroker(dockerClient dockerhelper.Interface, ocImage 
 	}
 	return component.MakeReady(
 		ocImage,
-		clusterAdminKubeConfig,
-		params).Install(dockerClient, logdir)
+		baseDir,
+		params).Install(dockerClient, logDir)
 
 }

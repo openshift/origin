@@ -10,28 +10,22 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/rest"
 	aggregatorapiv1beta1 "k8s.io/kube-aggregator/pkg/apis/apiregistration/v1beta1"
 	aggregatorclient "k8s.io/kube-aggregator/pkg/client/clientset_generated/clientset"
 )
 
-func WaitForAPIs(clientConfig *rest.Config, names ...string) error {
+func WaitForAPIs(aggregatorClient aggregatorclient.Interface, names ...string) error {
 	// wait until the openshift apiservices are ready
 	return wait.PollImmediate(time.Second, 5*time.Minute, func() (bool, error) {
-		return CheckForAPIs(clientConfig, names...)
+		return CheckForAPIs(aggregatorClient, names...)
 	})
 }
 
-func CheckForAPIs(clientConfig *rest.Config, names ...string) (bool, error) {
+func CheckForAPIs(aggregatorClient aggregatorclient.Interface, names ...string) (bool, error) {
 	requiredNames := sets.NewString(names...)
-
-	aggregatorClient, err := aggregatorclient.NewForConfig(clientConfig)
-	if err != nil {
-		return false, nil
-	}
-
 	unready := []string{}
 	rawDiscoveryUrls := []string{}
+
 	apiServices, err := aggregatorClient.ApiregistrationV1beta1().APIServices().List(metav1.ListOptions{})
 	if err != nil {
 		return false, err
