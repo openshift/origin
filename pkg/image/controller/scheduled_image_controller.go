@@ -13,6 +13,7 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	imageinformer "github.com/openshift/origin/pkg/image/generated/listers/image/internalversion"
+	metrics "github.com/openshift/origin/pkg/image/metrics/prometheus"
 )
 
 type uniqueItem struct {
@@ -37,6 +38,9 @@ type ScheduledImageStreamController struct {
 
 	// scheduler for timely image re-imports
 	scheduler *scheduler
+
+	// importCounter counts successful and failed imports for metric collection
+	importCounter *ImportMetricCounter
 }
 
 // Importing is invoked when the controller decides to import a stream in order to push back
@@ -64,6 +68,8 @@ func (s *ScheduledImageStreamController) Run(stopCh <-chan struct{}) {
 	}
 
 	go s.scheduler.RunUntil(stopCh)
+
+	metrics.InitializeImportCollector(true, s.importCounter.Collect)
 
 	<-stopCh
 	glog.Infof("Shutting down image stream controller")
@@ -172,7 +178,9 @@ func (s *ScheduledImageStreamController) syncTimedByName(namespace, name string)
 	resetScheduledTags(stream)
 
 	glog.V(3).Infof("Scheduled import of stream %s/%s...", stream.Namespace, stream.Name)
-	return handleImageStream(stream, s.client, nil)
+	result, err := handleImageStream(stream, s.client, nil)
+	s.importCounter.Increment(result, err)
+	return err
 }
 
 // resetScheduledTags artificially increments the generation on the tags that should be imported.

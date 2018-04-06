@@ -19,6 +19,7 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	imageinformer "github.com/openshift/origin/pkg/image/generated/listers/image/internalversion"
+	metrics "github.com/openshift/origin/pkg/image/metrics/prometheus"
 )
 
 var ErrNotImportable = errors.New("requested image cannot be imported")
@@ -45,6 +46,9 @@ type ImageStreamController struct {
 
 	// notifier informs other controllers that an import is being performed
 	notifier Notifier
+
+	// importCounter counts successful and failed imports for metric collection
+	importCounter *ImportMetricCounter
 }
 
 func (c *ImageStreamController) SetNotifier(n Notifier) {
@@ -67,6 +71,8 @@ func (c *ImageStreamController) Run(workers int, stopCh <-chan struct{}) {
 	for i := 0; i < workers; i++ {
 		go wait.Until(c.worker, time.Second, stopCh)
 	}
+
+	metrics.InitializeImportCollector(false, c.importCounter.Collect)
 
 	<-stopCh
 	glog.Infof("Shutting down image stream controller")
@@ -150,7 +156,9 @@ func (c *ImageStreamController) syncImageStream(key string) error {
 	}
 
 	glog.V(3).Infof("Queued import of stream %s/%s...", stream.Namespace, stream.Name)
-	return handleImageStream(stream, c.client, c.notifier)
+	result, err := handleImageStream(stream, c.client, c.notifier)
+	c.importCounter.Increment(result, err)
+	return err
 }
 
 // tagImportable is true if the given TagReference is importable by this controller
@@ -215,10 +223,14 @@ func needsImport(stream *imageapi.ImageStream) (ok bool, partial bool) {
 // 3. spec.DockerImageRepository not defined - import tags per each definition.
 //
 // Notifier, if passed, will be invoked if the stream is going to be imported.
-func handleImageStream(stream *imageapi.ImageStream, client imageclient.ImageInterface, notifier Notifier) error {
+func handleImageStream(
+	stream *imageapi.ImageStream,
+	client imageclient.ImageInterface,
+	notifier Notifier,
+) (*imageapi.ImageStreamImport, error) {
 	ok, partial := needsImport(stream)
 	if !ok {
-		return nil
+		return nil, nil
 	}
 	glog.V(3).Infof("Importing stream %s/%s partial=%t...", stream.Namespace, stream.Name, partial)
 
@@ -256,13 +268,14 @@ func handleImageStream(stream *imageapi.ImageStream, client imageclient.ImageInt
 	result, err := client.ImageStreamImports(stream.Namespace).Create(isi)
 	if err != nil {
 		if apierrs.IsNotFound(err) && isStatusErrorKind(err, "imageStream") {
-			return ErrNotImportable
+			return result, ErrNotImportable
 		}
 		glog.V(4).Infof("Import stream %s/%s partial=%t error: %v", stream.Namespace, stream.Name, partial, err)
-	} else {
-		glog.V(5).Infof("Import stream %s/%s partial=%t import: %#v", stream.Namespace, stream.Name, partial, result.Status.Import)
+		return result, err
 	}
-	return err
+
+	glog.V(5).Infof("Import stream %s/%s partial=%t import: %#v", stream.Namespace, stream.Name, partial, result.Status.Import)
+	return result, nil
 }
 
 // isStatusErrorKind returns true if this error describes the provided kind.
