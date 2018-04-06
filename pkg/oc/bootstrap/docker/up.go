@@ -448,7 +448,7 @@ func (c *ClusterUpConfig) Check(out io.Writer) error {
 
 	// OpenShift checks
 	taskPrinter.StartTask("Checking if OpenShift client is configured properly")
-	if err := checkOpenShiftClient(); err != nil {
+	if err := c.checkOpenShiftClient(); err != nil {
 		return taskPrinter.ToError(err)
 	}
 	taskPrinter.Success()
@@ -587,16 +587,33 @@ func defaultPortForwarding() bool {
 
 // checkOpenShiftClient ensures that the client can be configured
 // for the new server
-func checkOpenShiftClient() error {
+func (c *ClusterUpConfig) checkOpenShiftClient() error {
 	kubeConfig := os.Getenv("KUBECONFIG")
 	if len(kubeConfig) == 0 {
 		return nil
 	}
+
+	// if you're trying to use the kubeconfig into a subdirectory of the basedir, you're probably using a KUBECONFIG
+	// location that is going to overwrite a "real" kubeconfig, usually admin.kubeconfig which will break every other component
+	// relying on it being a full power kubeconfig
+	kubeConfigDir := filepath.Dir(kubeConfig)
+	cwd, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+	absKubeConfigDir, err := cmdutil.MakeAbs(kubeConfigDir, cwd)
+	if err != nil {
+		return err
+	}
+	if strings.HasPrefix(absKubeConfigDir, c.BaseDir+"/") {
+		return fmt.Errorf("cannot choose kubeconfig in subdirectory of the --base-dir: %q", kubeConfig)
+	}
+
 	var (
 		kubeConfigError error
 		f               *os.File
 	)
-	_, err := os.Stat(kubeConfig)
+	_, err = os.Stat(kubeConfig)
 	switch {
 	case os.IsNotExist(err):
 		err = os.MkdirAll(filepath.Dir(kubeConfig), 0755)
