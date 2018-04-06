@@ -7,6 +7,8 @@ After=ovn-kubernetes-node-setup.service
 [Service]
 Type=simple
 ExecStart=/usr/local/bin/ovn-kubernetes-node.sh
+Restart=on-failure
+RestartSec=5
 
 [Install]
 WantedBy=openshift-node.service
