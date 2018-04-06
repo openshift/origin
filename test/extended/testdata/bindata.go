@@ -30996,12 +30996,12 @@ objects:
             exec:
               command:
                 - /bin/sh
-                - -i
                 - -c
                 - |-
                   if [[ ! -f /tmp/webconsole-config.hash ]]; then \
                     md5sum /var/webconsole-config/webconsole-config.yaml > /tmp/webconsole-config.hash; \
                   elif [[ $(md5sum /var/webconsole-config/webconsole-config.yaml) != $(cat /tmp/webconsole-config.hash) ]]; then \
+                    echo 'webconsole-config.yaml has changed.'; \
                     exit 1; \
                   fi && curl -k -f https://0.0.0.0:8443/console/
           resources:
