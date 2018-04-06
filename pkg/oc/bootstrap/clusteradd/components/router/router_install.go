@@ -21,7 +21,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
-	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/componentinstall"
+	"github.com/openshift/origin/pkg/oc/bootstrap/clusteradd/componentinstall"
 	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/kubeapiserver"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/run"

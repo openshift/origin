@@ -7,11 +7,11 @@ import (
 	"path"
 	"strings"
 
-	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/components/registry"
-	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/components/router"
-	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/components/service-catalog"
-	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/components/template-service-broker"
-	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/components/web-console"
+	"github.com/openshift/origin/pkg/oc/bootstrap/clusteradd/components/registry"
+	"github.com/openshift/origin/pkg/oc/bootstrap/clusteradd/components/router"
+	"github.com/openshift/origin/pkg/oc/bootstrap/clusteradd/components/service-catalog"
+	"github.com/openshift/origin/pkg/oc/bootstrap/clusteradd/components/template-service-broker"
+	"github.com/openshift/origin/pkg/oc/bootstrap/clusteradd/components/web-console"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
@@ -20,7 +20,7 @@ import (
 
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
-	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/componentinstall"
+	"github.com/openshift/origin/pkg/oc/bootstrap/clusteradd/componentinstall"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/version"
