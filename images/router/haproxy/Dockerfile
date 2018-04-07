@@ -3,7 +3,7 @@
 #
 # The standard name for this image is openshift/origin-haproxy-router
 #
-FROM openshift/origin
+FROM openshift/origin-control-plane
 
 RUN INSTALL_PKGS="haproxy18" && \
     yum install -y $INSTALL_PKGS && \

@@ -135,13 +135,6 @@ image_config = {
         },
         "files": {}
     },
-    "openvswitch": {
-        "directory": "openvswitch",
-        "binaries": {
-            "openshift": "/usr/bin/openshift"
-        },
-        "files": {}
-    },
     "template-service-broker": {
         "directory": "template-service-broker",
         "binaries": {
