@@ -184,11 +184,6 @@ Obsoletes:        openshift-sdn-ovs < %{package_refector_version}
 %description sdn-ovs
 %{summary}
 
-%package federation-services
-Summary:        %{produce_name} Federation Services
-
-%description federation-services
-
 %package template-service-broker
 Summary: Template Service Broker
 %description template-service-broker
@@ -258,7 +253,7 @@ PLATFORM="$(go env GOHOSTOS)/$(go env GOHOSTARCH)"
 install -d %{buildroot}%{_bindir}
 
 # Install linux components
-for bin in oc oadm openshift hypershift template-service-broker
+for bin in oc oadm openshift hypershift hyperkube template-service-broker
 do
   echo "+++ INSTALLING ${bin}"
   install -p -m 755 _output/local/bin/${PLATFORM}/${bin} %{buildroot}%{_bindir}/${bin}
@@ -281,9 +276,6 @@ install -p -m 755 _output/local/bin/darwin/amd64/oadm %{buildroot}/%{_datadir}/%
 install -p -m 755 _output/local/bin/windows/amd64/oadm.exe %{buildroot}/%{_datadir}/%{name}/windows/oadm.exe
 %endif
 
-# Install federation services
-install -p -m 755 _output/local/bin/${PLATFORM}/hyperkube %{buildroot}%{_bindir}/
-
 # Install pod
 install -p -m 755 _output/local/bin/${PLATFORM}/pod %{buildroot}%{_bindir}/
 
@@ -300,8 +292,7 @@ for cmd in \
     openshift-extract-image-content \
     openshift-f5-router \
     openshift-recycle \
-    openshift-router \
-    origin
+    openshift-router
 do
     ln -s openshift %{buildroot}%{_bindir}/$cmd
 done
@@ -475,8 +466,5 @@ fi
 if [ "$1" -eq 0 ] ; then
   /usr/sbin/%{name}-docker-excluder unexclude
 fi
-
-%files federation-services
-%{_bindir}/hyperkube
 
 %changelog

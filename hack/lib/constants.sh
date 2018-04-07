@@ -106,8 +106,6 @@ readonly OS_BINARY_RELEASE_CLIENT_EXTRA=(
 function os::build::get_product_vars() {
   export OS_BUILD_LDFLAGS_IMAGE_PREFIX="${OS_IMAGE_PREFIX:-"openshift/origin"}"
   export OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS="${OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS:-"centos7"}"
-  export OS_BUILD_LDFLAGS_FEDERATION_SERVER_IMAGE_NAME="${OS_BUILD_LDFLAGS_FEDERATION_SERVER_IMAGE_NAME:-"${OS_BUILD_LDFLAGS_IMAGE_PREFIX}-federation"}"
-  export OS_BUILD_LDFLAGS_FEDERATION_ETCD_IMAGE="${OS_BUILD_LDFLAGS_FEDERATION_ETCD_IMAGE:-"quay.io/coreos/etcd:v3.1.7"}"
 }
 
 # os::build::ldflags calculates the -ldflags argument for building OpenShift
@@ -354,11 +352,10 @@ function os::build::images() {
   ( os::build::image "${tag_prefix}-template-service-broker" images/template-service-broker ) &
 
   # images that depend on "${tag_prefix}-base"
-  ( os::build::image "${tag_prefix}"                       images/origin ) &
-  ( os::build::image "${tag_prefix}-egress-router"         images/egress/router ) &
-  ( os::build::image "${tag_prefix}-egress-http-proxy"     images/egress/http-proxy ) &
-  ( os::build::image "${tag_prefix}-egress-dns-proxy"      images/egress/dns-proxy ) &
-  ( os::build::image "${tag_prefix}-federation"            images/federation ) &
+  ( os::build::image "${tag_prefix}"                    images/origin ) &
+  ( os::build::image "${tag_prefix}-egress-router"      images/egress/router ) &
+  ( os::build::image "${tag_prefix}-egress-http-proxy"  images/egress/http-proxy ) &
+  ( os::build::image "${tag_prefix}-egress-dns-proxy"   images/egress/dns-proxy ) &
 
   for i in `jobs -p`; do wait $i; done
 
