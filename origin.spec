@@ -5,8 +5,6 @@
 
 %global gopath      %{_datadir}/gocode
 %global import_path github.com/openshift/origin
-# The following should only be used for cleanup of sdn-ovs upgrades
-%global kube_plugin_path /usr/libexec/kubernetes/kubelet-plugins/net/exec/redhat~openshift-ovs-subnet
 
 # docker_version is the version of docker requires by packages
 %global docker_version 1.13
@@ -313,10 +311,8 @@ ln -s oc %{buildroot}%{_bindir}/kubectl
 install -d -m 0755 %{buildroot}%{_sysconfdir}/origin/{master,node}
 
 # different service for origin vs aos
-install -m 0644 contrib/systemd/%{name}-master.service %{buildroot}%{_unitdir}/%{name}-master.service
 install -m 0644 contrib/systemd/%{name}-node.service %{buildroot}%{_unitdir}/%{name}-node.service
 # same sysconfig files for origin vs aos
-install -m 0644 contrib/systemd/origin-master.sysconfig %{buildroot}%{_sysconfdir}/sysconfig/%{name}-master
 install -m 0644 contrib/systemd/origin-node.sysconfig %{buildroot}%{_sysconfdir}/sysconfig/%{name}-node
 
 # Install man1 man pages
@@ -333,7 +329,6 @@ install -p -m 0755 _output/local/bin/${PLATFORM}/host-local %{buildroot}/opt/cni
 install -p -m 0755 _output/local/bin/${PLATFORM}/loopback %{buildroot}/opt/cni/bin
 
 install -d -m 0755 %{buildroot}%{_unitdir}/%{name}-node.service.d
-install -p -m 0644 contrib/systemd/openshift-sdn-ovs.conf %{buildroot}%{_unitdir}/%{name}-node.service.d/openshift-sdn-ovs.conf
 
 # Install bash completions
 install -d -m 755 %{buildroot}%{_sysconfdir}/bash_completion.d/
@@ -366,10 +361,6 @@ sed "s|@@CONF_FILE-VARIABLE@@|${OS_CONF_FILE}|" contrib/excluder/excluder-templa
 sed -i "s|@@PACKAGE_LIST-VARIABLE@@|docker*1.14* docker*1.15* docker*1.16* docker*1.17* docker*1.18* docker*1.19* docker*1.20*|" $RPM_BUILD_ROOT/usr/sbin/%{name}-docker-excluder
 chmod 0744 $RPM_BUILD_ROOT/usr/sbin/%{name}-docker-excluder
 
-# Install migration scripts
-install -d %{buildroot}%{_datadir}/%{name}/migration
-install -p -m 755 contrib/migration/* %{buildroot}%{_datadir}/%{name}/migration/
-
 %files
 %doc README.md
 %license LICENSE
@@ -385,7 +376,6 @@ install -p -m 755 contrib/migration/* %{buildroot}%{_datadir}/%{name}/migration/
 %{_bindir}/openshift-git-clone
 %{_bindir}/openshift-extract-image-content
 %{_bindir}/openshift-manage-dockerfile
-%{_bindir}/origin
 %{_sharedstatedir}/origin
 %{_sysconfdir}/bash_completion.d/openshift
 %defattr(-,root,root,0700)
@@ -394,95 +384,19 @@ install -p -m 755 contrib/migration/* %{buildroot}%{_datadir}/%{name}/migration/
 %ghost %config(noreplace) %{_sysconfdir}/origin/.config_managed
 %{_mandir}/man1/openshift*
 
-%pre
-# If /etc/openshift exists and /etc/origin doesn't, symlink it to /etc/origin
-if [ -d "%{_sysconfdir}/openshift" ]; then
-  if ! [ -d "%{_sysconfdir}/origin"  ]; then
-    ln -s %{_sysconfdir}/openshift %{_sysconfdir}/origin
-  fi
-fi
-if [ -d "%{_sharedstatedir}/openshift" ]; then
-  if ! [ -d "%{_sharedstatedir}/origin"  ]; then
-    ln -s %{_sharedstatedir}/openshift %{_sharedstatedir}/origin
-  fi
-fi
-
 %files tests
 %{_libexecdir}/%{name}
 %{_libexecdir}/%{name}/extended.test
 
 %files master
-%{_unitdir}/%{name}-master.service
-%config(noreplace) %{_sysconfdir}/sysconfig/%{name}-master
-%dir %{_datadir}/%{name}/migration/
-%{_datadir}/%{name}/migration/*
 %defattr(-,root,root,0700)
 %config(noreplace) %{_sysconfdir}/origin/master
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/admin.crt
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/admin.key
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/admin.kubeconfig
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/ca.crt
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/ca.key
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/ca.serial.txt
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/etcd.server.crt
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/etcd.server.key
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/master-config.yaml
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/master.etcd-client.crt
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/master.etcd-client.key
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/master.kubelet-client.crt
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/master.kubelet-client.key
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/master.server.crt
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/master.server.key
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/openshift-master.crt
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/openshift-master.key
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/openshift-master.kubeconfig
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/openshift-registry.crt
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/openshift-registry.key
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/openshift-registry.kubeconfig
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/openshift-router.crt
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/openshift-router.key
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/openshift-router.kubeconfig
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/policy.json
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/serviceaccounts.private.key
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/serviceaccounts.public.key
-%ghost %config(noreplace) %{_sysconfdir}/origin/.config_managed
-
-%post master
-%systemd_post %{name}-master.service
-# Create master config and certs if both do not exist
-if [[ ! -e %{_sysconfdir}/origin/master/master-config.yaml &&
-     ! -e %{_sysconfdir}/origin/master/ca.crt ]]; then
-  %{_bindir}/openshift start master --write-config=%{_sysconfdir}/origin/master
-  # Create node configs if they do not already exist
-  if ! find %{_sysconfdir}/origin/ -type f -name "node-config.yaml" | grep -E "node-config.yaml"; then
-    %{_bindir}/oc adm create-node-config --node-dir=%{_sysconfdir}/origin/node/ --node=localhost --hostnames=localhost,127.0.0.1 --node-client-certificate-authority=%{_sysconfdir}/origin/master/ca.crt --signer-cert=%{_sysconfdir}/origin/master/ca.crt --signer-key=%{_sysconfdir}/origin/master/ca.key --signer-serial=%{_sysconfdir}/origin/master/ca.serial.txt --certificate-authority=%{_sysconfdir}/origin/master/ca.crt
-  fi
-  # Generate a marker file that indicates config and certs were RPM generated
-  echo "# Config generated by RPM at "`date -u` > %{_sysconfdir}/origin/.config_managed
-fi
-
-
-%preun master
-%systemd_preun %{name}-master.service
-
-%postun master
-%systemd_postun
 
 %files node
-%{_unitdir}/%{name}-node.service
 %{_sysconfdir}/systemd/system.conf.d/origin-accounting.conf
 %config(noreplace) %{_sysconfdir}/sysconfig/%{name}-node
 %defattr(-,root,root,0700)
 %config(noreplace) %{_sysconfdir}/origin/node
-%ghost %config(noreplace) %{_sysconfdir}/origin/node/node-config.yaml
-%ghost %config(noreplace) %{_sysconfdir}/origin/.config_managed
-
-%post node
-%systemd_post %{name}-node.service
-# If accounting is not currently enabled systemd reexec
-if [[ `systemctl show docker %{name}-node | grep -q -e CPUAccounting=no -e MemoryAccounting=no; echo $?` == 0 ]]; then
-  systemctl daemon-reexec
-fi
 
 %preun node
 %systemd_preun %{name}-node.service
@@ -491,19 +405,9 @@ fi
 %systemd_postun
 
 %files sdn-ovs
-%dir %{_unitdir}/%{name}-node.service.d/
 %dir %{_sysconfdir}/cni/net.d
 %dir /opt/cni/bin
-%{_unitdir}/%{name}-node.service.d/openshift-sdn-ovs.conf
 /opt/cni/bin/*
-
-%posttrans sdn-ovs
-# This path was installed by older packages but the directory wasn't owned by
-# RPM so we need to clean it up otherwise kubelet throws an error trying to
-# load the directory as a plugin
-if [ -d %{kube_plugin_path} ]; then
-  rmdir %{kube_plugin_path}
-fi
 
 %files clients
 %license LICENSE
@@ -576,70 +480,3 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
-* Tue Jan 23 2018 Huamin Chen <hchen@redhat.com> 0.2-11
-- Add cifs-utils BZ#1536362.
-
-* Wed Jul 12 2017 Steve Milner <smilner@redhat.com> 0.2-10
-- Master config files moved to /etc/origin/master/ BZ#1469034.
-
-* Fri Sep 18 2015 Scott Dodson <sdodson@redhat.com> 0.2-9
-- Rename from openshift -> origin
-- Symlink /var/lib/origin to /var/lib/openshift if /var/lib/openshift exists
-
-* Wed Aug 12 2015 Steve Milner <smilner@redhat.com> 0.2-8
-- Master configs will be generated if none are found when the master is installed.
-- Node configs will be generated if none are found when the master is installed.
-- Additional notice file added if config is generated by the RPM.
-- All-In-One services removed.
-
-* Wed Aug 12 2015 Steve Milner <smilner@redhat.com> 0.2-7
-- Added new ovs script(s) to file lists.
-
-* Wed Aug  5 2015 Steve Milner <smilner@redhat.com> 0.2-6
-- Using _unitdir instead of _prefix for unit data
-
-* Fri Jul 31 2015 Steve Milner <smilner@redhat.com> 0.2-5
-- Configuration location now /etc/origin
-- Default configs created upon installation
-
-* Tue Jul 28 2015 Steve Milner <smilner@redhat.com> 0.2-4
-- Added AEP packages
-
-* Mon Jan 26 2015 Scott Dodson <sdodson@redhat.com> 0.2-3
-- Update to 21fb40637c4e3507cca1fcab6c4d56b06950a149
-- Split packaging of openshift-master and openshift-node
-
-* Mon Jan 19 2015 Scott Dodson <sdodson@redhat.com> 0.2-2
-- new package built with tito
-
-* Fri Jan 09 2015 Adam Miller <admiller@redhat.com> - 0.2-2
-- Add symlink for osc command line tooling (merged in from jhonce@redhat.com)
-
-* Wed Jan 07 2015 Adam Miller <admiller@redhat.com> - 0.2-1
-- Update to latest upstream release
-- Restructured some of the golang deps  build setup for restructuring done
-  upstream
-
-* Thu Oct 23 2014 Adam Miller <admiller@redhat.com> - 0-0.0.9.git562842e
-- Add new patches from jhonce for systemd units
-
-* Mon Oct 20 2014 Adam Miller <admiller@redhat.com> - 0-0.0.8.git562842e
-- Update to latest master snapshot
-
-* Wed Oct 15 2014 Adam Miller <admiller@redhat.com> - 0-0.0.7.git7872f0f
-- Update to latest master snapshot
-
-* Fri Oct 03 2014 Adam Miller <admiller@redhat.com> - 0-0.0.6.gite4d4ecf
-- Update to latest Alpha nightly build tag 20141003
-
-* Wed Oct 01 2014 Adam Miller <admiller@redhat.com> - 0-0.0.5.git6d9f1a9
-- Switch to consistent naming, patch by jhonce
-
-* Tue Sep 30 2014 Adam Miller <admiller@redhat.com> - 0-0.0.4.git6d9f1a9
-- Add systemd and sysconfig entries from jhonce
-
-* Tue Sep 23 2014 Adam Miller <admiller@redhat.com> - 0-0.0.3.git6d9f1a9
-- Update to latest upstream.
-
-* Mon Sep 15 2014 Adam Miller <admiller@redhat.com> - 0-0.0.2.git2647df5
-- Update to latest upstream.

@@ -1,9 +1,0 @@
-OPTIONS="--loglevel=0"
-CONFIG_FILE=/etc/origin/master/master-config.yaml
-
-# Proxy configuration
-# Origin uses standard HTTP_PROXY environment variables. Be sure to set
-# NO_PROXY for your master
-#NO_PROXY=master.example.com
-#HTTP_PROXY=http://USER:PASSWORD@IPADDR:PORT
-#HTTPS_PROXY=https://USER:PASSWORD@IPADDR:PORT
