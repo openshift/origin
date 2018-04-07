@@ -195,6 +195,7 @@ func (vmap *nodeVNIDMap) Start(networkInformers networkinformers.SharedInformerF
 
 func (vmap *nodeVNIDMap) watchNetNamespaces() {
 	funcs := common.InformerFuncs(&networkapi.NetNamespace{}, vmap.handleAddOrUpdateNetNamespace, vmap.handleDeleteNetNamespace)
+	glog.Infof("[master] Watching netNamespaces, informer %p", vmap.networkInformers.Network().InternalVersion().NetNamespaces().Informer())
 	vmap.networkInformers.Network().InternalVersion().NetNamespaces().Informer().AddEventHandler(funcs)
 }
 
