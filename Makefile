@@ -306,13 +306,17 @@ build-rpms-redistributable:
 	hack/build-rpms.sh
 .PHONY: build-rpms-redistributable
 
+build-base-images:
+	hack/build-base-images.sh
+.PHONY: build-base-images
+
 # Build images from the official RPMs
 #
 # Args:
 #
 # Example:
 #   make build-images
-build-images: build-rpms
+build-images:  build-rpms build-base-images
 	hack/build-images.sh
 .PHONY: build-images
 
