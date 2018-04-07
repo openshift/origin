@@ -5,6 +5,7 @@ package dockerclient
 import (
 	"archive/tar"
 	"bytes"
+	"encoding/hex"
 	"flag"
 	"fmt"
 	"io"
@@ -14,6 +15,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"reflect"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -35,6 +37,7 @@ type conformanceTest struct {
 	Git        string
 	Mounts     []Mount
 	ContextDir string
+	Output     []*regexp.Regexp
 	Args       map[string]string
 	Ignore     []ignoreFunc
 	PostClone  func(dir string) error
@@ -170,6 +173,17 @@ func TestConformanceInternal(t *testing.T) {
 		{
 			Name:       "add",
 			Dockerfile: "testdata/Dockerfile.add",
+		},
+		{
+			Name:       "run with JSON",
+			Dockerfile: "testdata/Dockerfile.run.args",
+			Output: []*regexp.Regexp{
+				// docker outputs colorized output
+				regexp.MustCompile(`(?m)(\[0m|^)inner outer$`),
+				regexp.MustCompile(`(?m)(\[0m|^)first second$`),
+				regexp.MustCompile(`(?m)(\[0m|^)third fourth$`),
+				regexp.MustCompile(`(?m)(\[0m|^)fifth sixth$`),
+			},
 		},
 		{
 			Name:       "shell",
@@ -424,6 +438,9 @@ func conformanceTester(t *testing.T, c *docker.Client, test conformanceTest, i i
 		return false
 	}
 
+	dockerOut := &bytes.Buffer{}
+	imageOut := &bytes.Buffer{}
+
 	if deep {
 		// execute each step on both Docker build and the direct builder, comparing as we
 		// go
@@ -444,25 +461,25 @@ func conformanceTester(t *testing.T, c *docker.Client, test conformanceTest, i i
 				t.Errorf("%d: unable to generate build context %q: %v", i, dockerfilePath, err)
 				break
 			}
-			out := &bytes.Buffer{}
 			if err := c.BuildImage(docker.BuildImageOptions{
 				Name:                nameDocker,
 				Dockerfile:          dockerfile,
 				RmTmpContainer:      true,
 				ForceRmTmpContainer: true,
 				InputStream:         in,
-				OutputStream:        out,
+				OutputStream:        dockerOut,
+				NoCache:             len(test.Output) > 0,
 			}); err != nil {
 				in.Close()
-				t.Errorf("%d: unable to build Docker image %q: %v\n%s", i, test.Git, err, out)
+				data, _ := ioutil.ReadFile(testFile)
+				t.Errorf("%d: unable to build Docker image %q: %v\n%s\n%s", i, test.Git, err, string(data), dockerOut)
 				break
 			}
 			toDelete = append(toDelete, nameDocker)
 
 			// run direct build
 			e := NewClientExecutor(c)
-			out = &bytes.Buffer{}
-			e.Out, e.ErrOut = out, out
+			e.Out, e.ErrOut = imageOut, imageOut
 			e.Directory = contextDir
 			e.Tag = nameDirect
 			b := imagebuilder.NewBuilder(test.Args)
@@ -471,7 +488,7 @@ func conformanceTester(t *testing.T, c *docker.Client, test conformanceTest, i i
 				t.Fatalf("%d: %v", i, err)
 			}
 			if err := e.Build(b, node, ""); err != nil {
-				t.Errorf("%d: failed to build step %d in dockerfile %q: %s\n%s", i, j, dockerfilePath, steps[j].Original, out)
+				t.Errorf("%d: failed to build step %d in dockerfile %q: %s\n%s", i, j, dockerfilePath, steps[j].Original, imageOut)
 				break
 			}
 			toDelete = append(toDelete, nameDirect)
@@ -503,7 +520,6 @@ func conformanceTester(t *testing.T, c *docker.Client, test conformanceTest, i i
 			t.Errorf("%d: unable to generate build context %q: %v", i, dockerfilePath, err)
 			return
 		}
-		out := &bytes.Buffer{}
 		nameDocker := fmt.Sprintf(nameFormat, i, "docker", 0)
 		var args []docker.BuildArg
 		for k, v := range test.Args {
@@ -515,11 +531,12 @@ func conformanceTester(t *testing.T, c *docker.Client, test conformanceTest, i i
 			RmTmpContainer:      true,
 			ForceRmTmpContainer: true,
 			InputStream:         in,
-			OutputStream:        out,
+			OutputStream:        dockerOut,
 			BuildArgs:           args,
+			NoCache:             len(test.Output) > 0,
 		}); err != nil {
 			in.Close()
-			t.Errorf("%d: unable to build Docker image %q: %v\n%s", i, test.Git, err, out)
+			t.Errorf("%d: unable to build Docker image %q: %v\n%s", i, test.Git, err, dockerOut)
 			return
 		}
 		lastImage = nameDocker
@@ -530,8 +547,7 @@ func conformanceTester(t *testing.T, c *docker.Client, test conformanceTest, i i
 	if len(steps) > 1 || !deep {
 		nameDirect := fmt.Sprintf(nameFormat, i, "direct", len(steps)-1)
 		e := NewClientExecutor(c)
-		out := &bytes.Buffer{}
-		e.Out, e.ErrOut = out, out
+		e.Out, e.ErrOut = imageOut, imageOut
 		e.Directory = contextDir
 		e.Tag = nameDirect
 		b := imagebuilder.NewBuilder(test.Args)
@@ -540,7 +556,7 @@ func conformanceTester(t *testing.T, c *docker.Client, test conformanceTest, i i
 			t.Fatalf("%d: %v", i, err)
 		}
 		if err := e.Build(b, node, ""); err != nil {
-			t.Errorf("%d: failed to build complete image in %q: %v\n%s", i, input, err, out)
+			t.Errorf("%d: failed to build complete image in %q: %v\n%s", i, input, err, imageOut)
 		} else {
 			if !equivalentImages(
 				t, c, lastImage, nameDirect, true,
@@ -557,6 +573,21 @@ func conformanceTester(t *testing.T, c *docker.Client, test conformanceTest, i i
 				t.Errorf("%d: full Docker build was not equivalent to squashed image metadata %s", i, input)
 			}
 		}
+	}
+
+	badOutput := false
+	for _, re := range test.Output {
+		if !re.MatchString(dockerOut.String()) {
+			t.Errorf("Docker did not output %v", re)
+			badOutput = true
+		}
+		if !re.MatchString(imageOut.String()) {
+			t.Errorf("Imagebuilder did not output %v", re)
+			badOutput = true
+		}
+	}
+	if badOutput {
+		t.Logf("Output mismatch:\nDocker:\n---\n%s\n---\nImagebuilder:\n---\n%s\n---", hex.Dump(dockerOut.Bytes()), hex.Dump(imageOut.Bytes()))
 	}
 
 	for _, s := range toDelete {

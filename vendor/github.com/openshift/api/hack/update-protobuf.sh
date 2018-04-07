@@ -20,7 +20,7 @@ go build -o _output/bin/protoc-gen-gogo github.com/openshift/api/vendor/k8s.io/c
 
 PATH="$PATH:_output/bin" go-to-protobuf \
   --output-base="${GOPATH}/src" \
-  --apimachinery-packages='-k8s.io/apimachinery/pkg/util/intstr,-k8s.io/apimachinery/pkg/api/resource,-k8s.io/apimachinery/pkg/runtime/schema,-k8s.io/apimachinery/pkg/runtime,-k8s.io/apimachinery/pkg/apis/meta/v1,-k8s.io/apimachinery/pkg/apis/meta/v1alpha1,-k8s.io/api/core/v1,-k8s.io/api/rbac/v1' \
+  --apimachinery-packages='-k8s.io/apimachinery/pkg/util/intstr,-k8s.io/apimachinery/pkg/api/resource,-k8s.io/apimachinery/pkg/runtime/schema,-k8s.io/apimachinery/pkg/runtime,-k8s.io/apimachinery/pkg/apis/meta/v1,-k8s.io/apimachinery/pkg/apis/meta/v1beta1,-k8s.io/api/core/v1,-k8s.io/api/rbac/v1' \
   --go-header-file=${SCRIPT_ROOT}/hack/empty.txt \
   --proto-import=${SCRIPT_ROOT}/vendor/github.com/gogo/protobuf/protobuf \
   --proto-import=${SCRIPT_ROOT}/vendor \
