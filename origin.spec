@@ -196,12 +196,6 @@ Summary: Template Service Broker
 %description template-service-broker
 %{summary}
 
-%package cluster-capacity
-Summary:        %{product_name} Cluster Capacity Analysis Tool
-
-%description cluster-capacity
-%{summary}
-
 %package excluder
 Summary:   Exclude openshift packages from updates
 BuildArch: noarch
@@ -235,7 +229,6 @@ of docker.  Exclude those versions of docker.
 # Create Binaries for all supported arches
 %{os_git_vars} OS_BUILD_RELEASE_ARCHIVES=n make build-cross
 %{os_git_vars} hack/build-go.sh vendor/github.com/onsi/ginkgo/ginkgo
-%{os_git_vars} unset GOPATH; cmd/cluster-capacity/go/src/github.com/kubernetes-incubator/cluster-capacity/hack/build-cross.sh
 %else
 # Create Binaries only for building arch
 %ifarch x86_64
@@ -255,7 +248,6 @@ of docker.  Exclude those versions of docker.
 %endif
 OS_ONLY_BUILD_PLATFORMS="${BUILD_PLATFORM}" %{os_git_vars} OS_BUILD_RELEASE_ARCHIVES=n make build-cross
 OS_ONLY_BUILD_PLATFORMS="${BUILD_PLATFORM}" %{os_git_vars} hack/build-go.sh vendor/github.com/onsi/ginkgo/ginkgo
-OS_ONLY_BUILD_PLATFORMS="${BUILD_PLATFORM}" %{os_git_vars} unset GOPATH; cmd/cluster-capacity/go/src/github.com/kubernetes-incubator/cluster-capacity/hack/build-cross.sh
 %endif
 
 # Generate man pages
@@ -293,10 +285,6 @@ install -p -m 755 _output/local/bin/windows/amd64/oadm.exe %{buildroot}/%{_datad
 
 # Install federation services
 install -p -m 755 _output/local/bin/${PLATFORM}/hyperkube %{buildroot}%{_bindir}/
-
-# Install cluster capacity
-install -p -m 755 cmd/cluster-capacity/go/src/github.com/kubernetes-incubator/cluster-capacity/_output/local/bin/${PLATFORM}/hypercc %{buildroot}%{_bindir}/
-ln -s hypercc %{buildroot}%{_bindir}/cluster-capacity
 
 # Install pod
 install -p -m 755 _output/local/bin/${PLATFORM}/pod %{buildroot}%{_bindir}/
@@ -564,13 +552,8 @@ fi
 %files docker-excluder
 /usr/sbin/%{name}-docker-excluder
 
-%files cluster-capacity
-%{_bindir}/hypercc
-%{_bindir}/cluster-capacity
-
 %files template-service-broker
 %{_bindir}/template-service-broker
-
 
 %pretrans docker-excluder
 # we always want to clear this out using the last

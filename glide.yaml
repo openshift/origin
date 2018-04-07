@@ -1,6 +1,5 @@
 package: github.com/openshift/origin
 excludeDirs:
-- cmd/cluster-capacity
 - openshift.local.config
 - openshift.local.etcd
 - openshift.local.volumes
