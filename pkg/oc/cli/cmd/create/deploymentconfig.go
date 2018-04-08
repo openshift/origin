@@ -3,6 +3,7 @@ package create
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -68,12 +69,14 @@ func NewCmdCreateDeploymentConfig(name, fullName string, f kcmdutil.Factory, out
 
 func (o *CreateDeploymentConfigOptions) Complete(cmd *cobra.Command, f kcmdutil.Factory, args []string) error {
 	argsLenAtDash := cmd.ArgsLenAtDash()
+	image := cmdutil.GetFlagString(cmd, "image")
 	switch {
 	case (argsLenAtDash == -1 && len(args) != 1),
 		(argsLenAtDash == 0),
 		(argsLenAtDash > 1):
 		return fmt.Errorf("NAME is required: %v", args)
-
+	case len(image) == 0:
+		return fmt.Errorf("--image is required: %v", args)
 	}
 
 	labels := map[string]string{"deployment-config.name": args[0]}
@@ -89,8 +92,8 @@ func (o *CreateDeploymentConfigOptions) Complete(cmd *cobra.Command, f kcmdutil.
 				Spec: kapi.PodSpec{
 					Containers: []kapi.Container{
 						{
-							Name:  "default-container",
-							Image: cmdutil.GetFlagString(cmd, "image"),
+							Name:  parseImageName(image),
+							Image: image,
 							Args:  args[1:],
 						},
 					},
@@ -122,6 +125,21 @@ func (o *CreateDeploymentConfigOptions) Complete(cmd *cobra.Command, f kcmdutil.
 	}
 
 	return nil
+}
+
+// parseImageName parses the image strings and returns just the image name
+func parseImageName(imageString string) string {
+	// Retain just the image name
+	imageSplit := strings.Split(imageString, "/")
+	name := imageSplit[len(imageSplit)-1]
+	// Remove any tag or hash
+	if strings.Contains(name, ":") {
+		name = strings.Split(name, ":")[0]
+	}
+	if strings.Contains(name, "@") {
+		name = strings.Split(name, "@")[0]
+	}
+	return name
 }
 
 func (o *CreateDeploymentConfigOptions) Validate() error {
