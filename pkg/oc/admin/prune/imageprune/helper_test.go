@@ -9,8 +9,8 @@ import (
 	"sync"
 	"testing"
 
+	"k8s.io/apimachinery/pkg/util/diff"
 	knet "k8s.io/apimachinery/pkg/util/net"
-	"k8s.io/kubernetes/staging/src/k8s.io/apimachinery/pkg/util/diff"
 )
 
 type requestStats struct {

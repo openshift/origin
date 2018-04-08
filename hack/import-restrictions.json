@@ -420,7 +420,11 @@
       "vendor/k8s.io/apiserver",
       "vendor/k8s.io/client-go",
       "vendor/k8s.io/kube-aggregator",
-      "vendor/k8s.io/kubernetes",
+      "vendor/k8s.io/kubernetes/pkg/apis",
+      "vendor/k8s.io/kubernetes/pkg/client",
+      "vendor/k8s.io/kubernetes/pkg/kubectl",
+      "vendor/k8s.io/kubernetes/pkg/printers",
+      "vendor/k8s.io/kubernetes/pkg/util",
       "vendor/k8s.io/utils",
 
       "github.com/openshift/origin/pkg/apps/generated",
@@ -532,8 +536,28 @@
       "vendor/github.com/coreos/etcd/clientv3",
       "vendor/github.com/coreos/etcd/pkg/transport",
       "vendor/github.com/coreos/etcd/version",
-      "vendor/github.com/miekg/dns"
+      "vendor/github.com/miekg/dns",
 
+      "vendor/k8s.io/kubernetes/pkg/api/legacyscheme",
+      "vendor/k8s.io/kubernetes/pkg/api/ref",
+      "vendor/k8s.io/kubernetes/pkg/controller",
+      "vendor/k8s.io/kubernetes/pkg/controller/deployment/util",
+      "vendor/k8s.io/kubernetes/pkg/credentialprovider",
+      "vendor/k8s.io/kubernetes/pkg/serviceaccount",
+      "vendor/k8s.io/kubernetes/pkg/version",
+
+      "vendor/k8s.io/kubernetes/pkg/registry/core/endpoint",
+      "vendor/k8s.io/kubernetes/pkg/registry/core/namespace",
+      "vendor/k8s.io/kubernetes/pkg/registry/core/node",
+      "vendor/k8s.io/kubernetes/pkg/registry/core/persistentvolume",
+      "vendor/k8s.io/kubernetes/pkg/registry/core/persistentvolumeclaim",
+      "vendor/k8s.io/kubernetes/pkg/registry/core/pod",
+      "vendor/k8s.io/kubernetes/pkg/registry/core/replicationcontroller",
+      "vendor/k8s.io/kubernetes/pkg/registry/core/resourcequota",
+      "vendor/k8s.io/kubernetes/pkg/registry/core/secret",
+      "vendor/k8s.io/kubernetes/pkg/registry/core/serviceaccount",
+      "vendor/k8s.io/kubernetes/pkg/registry/rbac/reconciliation",
+      "vendor/k8s.io/kubernetes/pkg/registry/rbac/validation"
     ]
   }
 ]
