@@ -75,22 +75,13 @@ type AuthenticationErrorHandler interface {
 	AuthenticationError(error, http.ResponseWriter, *http.Request) (handled bool, err error)
 }
 
-// ProviderInfo represents display information for an oauth identity provider.  This is used by the
-// selection provider template to render links to login using different identity providers.
-type ProviderInfo struct {
-	// Name is unique and corresponds to the name of the identity provider in the oauth configuration
-	Name string
-	// URL to login using this identity provider
-	URL string
-}
-
 // AuthenticationSelectionHandler is responsible for selecting which identity provider to use for login
 type AuthenticationSelectionHandler interface {
 	// SelectAuthentication will choose which identity provider to use for login or handle the request
 	// If the request is being handled, such as rendering a login provider selection page, then handled will
 	// be true and selected will be nil.  If the request is not handled then a provider may be selected,
 	// if a provider could not be selected then selected will be nil.
-	SelectAuthentication([]ProviderInfo, http.ResponseWriter, *http.Request) (selected *ProviderInfo, handled bool, err error)
+	SelectAuthentication([]api.ProviderInfo, http.ResponseWriter, *http.Request) (selected *api.ProviderInfo, handled bool, err error)
 }
 
 // AuthenticationSuccessHandler reacts to a user authenticating

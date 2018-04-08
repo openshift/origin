@@ -13,6 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/diff"
 	restclient "k8s.io/client-go/rest"
 
+	"github.com/openshift/origin/pkg/oauth/urls"
 	"github.com/openshift/origin/pkg/oauth/util"
 
 	"github.com/RangelReale/osincli"
@@ -434,9 +435,9 @@ func TestRequestToken(t *testing.T) {
 			Handler:      tc.Handler,
 			OsinConfig: &osincli.ClientConfig{
 				ClientId:     openShiftCLIClientID,
-				AuthorizeUrl: util.OpenShiftOAuthAuthorizeURL(s.URL),
-				TokenUrl:     util.OpenShiftOAuthTokenURL(s.URL),
-				RedirectUrl:  util.OpenShiftOAuthTokenImplicitURL(s.URL),
+				AuthorizeUrl: urls.OpenShiftOAuthAuthorizeURL(s.URL),
+				TokenUrl:     urls.OpenShiftOAuthTokenURL(s.URL),
+				RedirectUrl:  urls.OpenShiftOAuthTokenImplicitURL(s.URL),
 			},
 			TokenFlow: true,
 		}

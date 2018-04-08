@@ -1,29 +1,36 @@
-package util
+package urls
 
 import (
 	"path"
 	"strings"
+)
 
-	"github.com/openshift/origin/pkg/oauthserver/osinserver"
-	"github.com/openshift/origin/pkg/oauthserver/server/tokenrequest"
+const (
+	AuthorizePath = "/authorize"
+	TokenPath     = "/token"
+	InfoPath      = "/info"
+
+	RequestTokenEndpoint  = "/token/request"
+	DisplayTokenEndpoint  = "/token/display"
+	ImplicitTokenEndpoint = "/token/implicit"
 )
 
 const OpenShiftOAuthAPIPrefix = "/oauth"
 
 func OpenShiftOAuthAuthorizeURL(masterAddr string) string {
-	return openShiftOAuthURL(masterAddr, osinserver.AuthorizePath)
+	return openShiftOAuthURL(masterAddr, AuthorizePath)
 }
 func OpenShiftOAuthTokenURL(masterAddr string) string {
-	return openShiftOAuthURL(masterAddr, osinserver.TokenPath)
+	return openShiftOAuthURL(masterAddr, TokenPath)
 }
 func OpenShiftOAuthTokenRequestURL(masterAddr string) string {
-	return openShiftOAuthURL(masterAddr, tokenrequest.RequestTokenEndpoint)
+	return openShiftOAuthURL(masterAddr, RequestTokenEndpoint)
 }
 func OpenShiftOAuthTokenDisplayURL(masterAddr string) string {
-	return openShiftOAuthURL(masterAddr, tokenrequest.DisplayTokenEndpoint)
+	return openShiftOAuthURL(masterAddr, DisplayTokenEndpoint)
 }
 func OpenShiftOAuthTokenImplicitURL(masterAddr string) string {
-	return openShiftOAuthURL(masterAddr, tokenrequest.ImplicitTokenEndpoint)
+	return openShiftOAuthURL(masterAddr, ImplicitTokenEndpoint)
 }
 func openShiftOAuthURL(masterAddr, oauthEndpoint string) string {
 	return strings.TrimRight(masterAddr, "/") + path.Join(OpenShiftOAuthAPIPrefix, oauthEndpoint)

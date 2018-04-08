@@ -12,13 +12,8 @@ import (
 
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
+	"github.com/openshift/origin/pkg/oauth/urls"
 	"github.com/openshift/origin/pkg/oauthserver/server/login"
-)
-
-const (
-	RequestTokenEndpoint  = "/token/request"
-	DisplayTokenEndpoint  = "/token/display"
-	ImplicitTokenEndpoint = "/token/implicit"
 )
 
 type endpointDetails struct {
@@ -52,9 +47,9 @@ func NewEndpoints(publicMasterURL string, osinOAuthClientGetter func() (*osincli
 // provided prefix will serve all operations
 func (endpoints *endpointDetails) Install(mux login.Mux, paths ...string) {
 	for _, prefix := range paths {
-		mux.HandleFunc(path.Join(prefix, RequestTokenEndpoint), endpoints.readyHandler(endpoints.requestToken))
-		mux.HandleFunc(path.Join(prefix, DisplayTokenEndpoint), endpoints.readyHandler(endpoints.displayToken))
-		mux.HandleFunc(path.Join(prefix, ImplicitTokenEndpoint), endpoints.implicitToken)
+		mux.HandleFunc(path.Join(prefix, urls.RequestTokenEndpoint), endpoints.readyHandler(endpoints.requestToken))
+		mux.HandleFunc(path.Join(prefix, urls.DisplayTokenEndpoint), endpoints.readyHandler(endpoints.displayToken))
+		mux.HandleFunc(path.Join(prefix, urls.ImplicitTokenEndpoint), endpoints.implicitToken)
 	}
 }
 

@@ -13,7 +13,7 @@ import (
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
 	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset/typed/oauth/internalversion"
-	oauthutil "github.com/openshift/origin/pkg/oauth/util"
+	"github.com/openshift/origin/pkg/oauth/urls"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -62,7 +62,7 @@ func TestAuthProxyOnAuthorize(t *testing.T) {
 	}
 
 	// our simple URL to get back a code.  We want to go through the front proxy
-	rawAuthorizeRequest := proxyServer.URL + oauthutil.OpenShiftOAuthAPIPrefix + "/authorize?response_type=code&client_id=test"
+	rawAuthorizeRequest := proxyServer.URL + urls.OpenShiftOAuthAPIPrefix + "/authorize?response_type=code&client_id=test"
 
 	// the first request we make to the front proxy should challenge us for authentication info
 	shouldBeAChallengeResponse, err := http.Get(rawAuthorizeRequest)

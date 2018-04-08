@@ -30,7 +30,7 @@ import (
 	userclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
-	oauthutil "github.com/openshift/origin/pkg/oauth/util"
+	"github.com/openshift/origin/pkg/oauth/urls"
 	"github.com/openshift/origin/pkg/oauthserver/server/session"
 )
 
@@ -249,7 +249,7 @@ func (c *OAuthServerConfig) StartOAuthClientsBootstrapping(context genericapiser
 				ObjectMeta:            metav1.ObjectMeta{Name: OpenShiftBrowserClientID},
 				Secret:                uuid.New(),
 				RespondWithChallenges: false,
-				RedirectURIs:          []string{oauthutil.OpenShiftOAuthTokenDisplayURL(c.ExtraOAuthConfig.Options.MasterPublicURL)},
+				RedirectURIs:          []string{urls.OpenShiftOAuthTokenDisplayURL(c.ExtraOAuthConfig.Options.MasterPublicURL)},
 				GrantMethod:           oauthapi.GrantHandlerAuto,
 			}
 			if err := ensureOAuthClient(browserClient, c.ExtraOAuthConfig.OAuthClientClient, true, true); err != nil {
@@ -261,7 +261,7 @@ func (c *OAuthServerConfig) StartOAuthClientsBootstrapping(context genericapiser
 				ObjectMeta:            metav1.ObjectMeta{Name: OpenShiftCLIClientID},
 				Secret:                "",
 				RespondWithChallenges: true,
-				RedirectURIs:          []string{oauthutil.OpenShiftOAuthTokenImplicitURL(c.ExtraOAuthConfig.Options.MasterPublicURL)},
+				RedirectURIs:          []string{urls.OpenShiftOAuthTokenImplicitURL(c.ExtraOAuthConfig.Options.MasterPublicURL)},
 				GrantMethod:           oauthapi.GrantHandlerAuto,
 			}
 			if err := ensureOAuthClient(cliClient, c.ExtraOAuthConfig.OAuthClientClient, false, false); err != nil {

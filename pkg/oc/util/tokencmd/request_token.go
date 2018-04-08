@@ -14,6 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	restclient "k8s.io/client-go/rest"
 
+	"github.com/openshift/origin/pkg/oauth/urls"
 	"github.com/openshift/origin/pkg/oauth/util"
 
 	"github.com/RangelReale/osincli"
@@ -130,7 +131,7 @@ func (o *RequestTokenOptions) SetDefaultOsinConfig() error {
 		ClientId:     openShiftCLIClientID,
 		AuthorizeUrl: metadata.AuthorizationEndpoint,
 		TokenUrl:     metadata.TokenEndpoint,
-		RedirectUrl:  util.OpenShiftOAuthTokenImplicitURL(metadata.Issuer),
+		RedirectUrl:  urls.OpenShiftOAuthTokenImplicitURL(metadata.Issuer),
 	}
 	if !o.TokenFlow && sets.NewString(metadata.CodeChallengeMethodsSupported...).Has(pkce_s256) {
 		if err := osincli.PopulatePKCE(config); err != nil {

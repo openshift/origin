@@ -165,13 +165,13 @@ func (authHandler *unionAuthenticationHandler) AuthenticationNeeded(apiClient au
 
 	// Delegate to provider selection
 	if authHandler.selectionHandler != nil {
-		providers := []ProviderInfo{}
+		providers := []authapi.ProviderInfo{}
 		for _, name := range authHandler.redirectors.GetNames() {
 			u := *req.URL
 			q := u.Query()
 			q.Set(useRedirectParam, name)
 			u.RawQuery = q.Encode()
-			providerInfo := ProviderInfo{
+			providerInfo := authapi.ProviderInfo{
 				Name: name,
 				URL:  u.String(),
 			}

@@ -7,20 +7,20 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/openshift/origin/pkg/oauthserver/oauth/handlers"
+	"github.com/openshift/origin/pkg/oauthserver/api"
 )
 
 func TestSelectAuthentication(t *testing.T) {
 	testCases := map[string]struct {
 		ForceInterstitial      bool
-		Providers              []handlers.ProviderInfo
+		Providers              []api.ProviderInfo
 		ExpectSelectedProvider bool
 		ExpectHandled          bool
 		ExpectContains         []string
 	}{
 		"should select single provider": {
 			ForceInterstitial: false,
-			Providers: []handlers.ProviderInfo{
+			Providers: []api.ProviderInfo{
 				{
 					Name: "provider_1",
 					URL:  "http://example.com/redirect_1/",
@@ -31,13 +31,13 @@ func TestSelectAuthentication(t *testing.T) {
 		},
 		"should return empty provider info when no providers": {
 			ForceInterstitial:      false,
-			Providers:              []handlers.ProviderInfo{},
+			Providers:              []api.ProviderInfo{},
 			ExpectSelectedProvider: false,
 			ExpectHandled:          false,
 		},
 		"should render select provider when forced": {
 			ForceInterstitial: true,
-			Providers: []handlers.ProviderInfo{
+			Providers: []api.ProviderInfo{
 				{
 					Name: "provider_1",
 					URL:  "http://example.com/redirect_1/",
@@ -51,7 +51,7 @@ func TestSelectAuthentication(t *testing.T) {
 		},
 		"should render select provider when multiple providers": {
 			ForceInterstitial: false,
-			Providers: []handlers.ProviderInfo{
+			Providers: []api.ProviderInfo{
 				{
 					Name: "provider_1",
 					URL:  "http://example.com/redirect_1/",
