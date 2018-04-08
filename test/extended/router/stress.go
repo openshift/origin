@@ -211,11 +211,18 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 					return false, err
 				}
 				o.Expect(routes.Items).To(o.HaveLen(10))
+				other := 0
 				conflicting := 0
 				for _, route := range routes.Items {
 					ingress := findIngress(&route, "conflicting")
 					if ingress == nil {
+						if len(route.Status.Ingress) > 0 {
+							other++
+						}
 						continue
+					}
+					if len(route.Status.Ingress) > 1 {
+						other++
 					}
 					conflicting++
 					o.Expect(ingress.Host).NotTo(o.BeEmpty())
@@ -224,7 +231,9 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 					o.Expect(ingress.Conditions[0].Type).To(o.Equal(routev1.RouteAdmitted))
 					o.Expect(ingress.Conditions[0].Status).To(o.Equal(corev1.ConditionTrue))
 				}
-				if conflicting < 3 {
+				// if other routers are writing status, wait until we get a complete
+				// set since we don't have a way to tell other routers to ignore us
+				if conflicting < 3 && other%10 != 0 {
 					return false, nil
 				}
 				outputIngress(routes.Items...)
