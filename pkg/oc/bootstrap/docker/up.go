@@ -201,6 +201,7 @@ var (
 		"rhel-imagestreams",
 		"router",
 		"sample-templates",
+		"persistent-volumes",
 		"service-catalog",
 		"template-service-broker",
 		"web-console",
@@ -232,7 +233,7 @@ func (c *ClusterUpConfig) Complete(cmd *cobra.Command, out io.Writer) error {
 		if !os.IsNotExist(err) {
 			return err
 		}
-		c.defaultClientConfig = (*clientcmdapi.NewConfig())
+		c.defaultClientConfig = *clientcmdapi.NewConfig()
 	}
 
 	c.command = cmd
@@ -810,10 +811,6 @@ func (c *ClusterUpConfig) PostClusterStartupMutations(out io.Writer) error {
 		return err
 	}
 
-	err = c.OpenShiftHelper().SetupPersistentStorage(restConfig, c.HostPersistentVolumesDir)
-	if err != nil {
-		return err
-	}
 	return nil
 }
 
