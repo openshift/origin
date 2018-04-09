@@ -5,7 +5,7 @@ import (
 	"path"
 
 	"github.com/golang/glog"
-	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/components/register-template-service-broker"
+	"github.com/openshift/origin/pkg/oc/bootstrap/clusteradd/components/register-template-service-broker"
 	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/kubeapiserver"
 	"k8s.io/client-go/kubernetes"
 
@@ -13,7 +13,7 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	"github.com/openshift/origin/pkg/oc/bootstrap"
-	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/componentinstall"
+	"github.com/openshift/origin/pkg/oc/bootstrap/clusteradd/componentinstall"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/oc/errors"
 )

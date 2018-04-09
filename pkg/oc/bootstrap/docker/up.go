@@ -39,11 +39,9 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	oauthclientinternal "github.com/openshift/origin/pkg/oauth/generated/internalclientset"
 	"github.com/openshift/origin/pkg/oc/bootstrap"
-	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/componentinstall"
-	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/components/registry"
-	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/components/router"
-	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/components/service-catalog"
-	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/components/web-console"
+	"github.com/openshift/origin/pkg/oc/bootstrap/clusteradd/componentinstall"
+	"github.com/openshift/origin/pkg/oc/bootstrap/clusteradd/components/registry"
+	"github.com/openshift/origin/pkg/oc/bootstrap/clusteradd/components/service-catalog"
 	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/kubeapiserver"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/errors"
@@ -236,7 +234,7 @@ func (c *ClusterUpConfig) Bind(flags *pflag.FlagSet) {
 }
 
 var (
-	knownComponents             = sets.NewString("service-catalog", "template-service-broker")
+	knownComponents             = sets.NewString("web-console", "registry", "router", "service-catalog", "template-service-broker")
 	componentsDisabledByDefault = sets.NewString("service-catalog", "template-service-broker")
 )
 
@@ -510,38 +508,6 @@ func (c *ClusterUpConfig) Start(out io.Writer) error {
 	}
 	taskPrinter.Success()
 
-	installContext, err := componentinstall.NewComponentInstallContext(c.openshiftImage(), c.imageFormat(), c.BaseDir, c.ServerLogLevel)
-	if err != nil {
-		return err
-	}
-
-	// TODO, now we build up a set of things to install here.  We build the list so that we can install everything in
-	// TODO parallel to avoid anyone accidentally introducing dependencies.  We'll start with migrating what we have
-	// TODO and then we'll try to clean it up.
-	registryInstall := &registry.RegistryComponentOptions{
-		PVDir:          c.HostPersistentVolumesDir,
-		InstallContext: installContext,
-	}
-	//	return c.OpenShiftHelper().InstallRouter(c.ServerIP, c.PortForwarding)
-	routerInstall := &router.RouterComponentOptions{
-		RoutingSuffix:  c.RoutingSuffix,
-		PortForwarding: c.PortForwarding,
-		InstallContext: installContext,
-	}
-	webConsoleInstall := &web_console.WebConsoleComponentOptions{
-		PublicConsoleURL: fmt.Sprintf("https://%s:8443/console", c.GetPublicHostName()),
-		PublicMasterURL:  fmt.Sprintf("https://%s:8443", c.GetPublicHostName()),
-		InstallContext:   installContext,
-	}
-
-	componentsToInstall := []componentinstall.Component{}
-	componentsToInstall = append(componentsToInstall, c.ImportInitialObjectsComponents(c.Out)...)
-	componentsToInstall = append(componentsToInstall, registryInstall, webConsoleInstall, routerInstall)
-
-	if err := componentinstall.InstallComponents(componentsToInstall, c.GetDockerClient(), c.GetLogDir()); err != nil {
-		return err
-	}
-
 	if len(c.ComponentsToEnable) > 0 {
 		args := append([]string{}, "--image="+c.Image)
 		args = append(args, "--tag="+c.ImageTag)
@@ -555,6 +521,14 @@ func (c *ClusterUpConfig) Start(out io.Writer) error {
 		if err := c.ClusterAdd.RunE(c.ClusterAdd, args); err != nil {
 			return err
 		}
+	}
+
+	// TODO, now we build up a set of things to install here.  We build the list so that we can install everything in
+	// TODO parallel to avoid anyone accidentally introducing dependencies.
+	componentsToInstall := []componentinstall.Component{}
+	componentsToInstall = append(componentsToInstall, c.ImportInitialObjectsComponents(c.Out)...)
+	if err := componentinstall.InstallComponents(componentsToInstall, c.GetDockerClient(), c.GetLogDir()); err != nil {
+		return err
 	}
 
 	if c.ShouldCreateUser() {

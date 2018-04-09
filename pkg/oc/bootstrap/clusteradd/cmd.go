@@ -7,8 +7,11 @@ import (
 	"path"
 	"strings"
 
-	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/components/service-catalog"
-	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/components/template-service-broker"
+	"github.com/openshift/origin/pkg/oc/bootstrap/clusteradd/components/registry"
+	"github.com/openshift/origin/pkg/oc/bootstrap/clusteradd/components/router"
+	"github.com/openshift/origin/pkg/oc/bootstrap/clusteradd/components/service-catalog"
+	"github.com/openshift/origin/pkg/oc/bootstrap/clusteradd/components/template-service-broker"
+	"github.com/openshift/origin/pkg/oc/bootstrap/clusteradd/components/web-console"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
@@ -17,7 +20,7 @@ import (
 
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
-	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/componentinstall"
+	"github.com/openshift/origin/pkg/oc/bootstrap/clusteradd/componentinstall"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/version"
@@ -42,6 +45,15 @@ var (
 
 // availableComponents lists the components that are available for installation.
 var availableComponents = map[string]func(ctx componentinstall.Context) componentinstall.Component{
+	"web-console": func(ctx componentinstall.Context) componentinstall.Component {
+		return &web_console.WebConsoleComponentOptions{InstallContext: ctx}
+	},
+	"registry": func(ctx componentinstall.Context) componentinstall.Component {
+		return &registry.RegistryComponentOptions{InstallContext: ctx}
+	},
+	"router": func(ctx componentinstall.Context) componentinstall.Component {
+		return &router.RouterComponentOptions{InstallContext: ctx}
+	},
 	"service-catalog": func(ctx componentinstall.Context) componentinstall.Component {
 		return &service_catalog.ServiceCatalogComponentOptions{InstallContext: ctx}
 	},
