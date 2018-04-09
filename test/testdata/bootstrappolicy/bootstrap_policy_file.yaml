@@ -422,6 +422,15 @@ items:
     - list
     - watch
   - apiGroups:
+    - security.openshift.io
+    attributeRestrictions: null
+    resources:
+    - rangeallocations
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
     - ""
     - template.openshift.io
     attributeRestrictions: null
