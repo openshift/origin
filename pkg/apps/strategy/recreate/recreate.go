@@ -234,6 +234,10 @@ func (s *RecreateDeploymentStrategy) scaleAndWait(deployment *kapi.ReplicationCo
 		if scaleErr == nil {
 			return true, nil
 		}
+		// Handle conflicts (shouldn't this be already handled by the scaler?)
+		if errors.IsConflict(scaleErr) {
+			return false, nil
+		}
 		// This error is returned when the lifecycle admission plugin cache is not fully
 		// synchronized. In that case the scaling should be retried.
 		//
