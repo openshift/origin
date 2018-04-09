@@ -14851,7 +14851,7 @@ objects:
   subjects:
   - kind: ServiceAccount
     name: service-catalog-apiserver
-    namespace: kube-service-catalog
+    namespace: ${KUBE_SERVICE_CATALOG_NAMESPACE}
 
 - apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
@@ -14877,7 +14877,7 @@ objects:
   subjects:
   - kind: ServiceAccount
     name: service-catalog-apiserver
-    namespace: kube-service-catalog
+    namespace: ${KUBE_SERVICE_CATALOG_NAMESPACE}
 
 - apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
@@ -14889,9 +14889,9 @@ objects:
   subjects:
   - kind: ServiceAccount
     name: service-catalog-controller
-    namespace: kube-service-catalog
+    namespace: ${KUBE_SERVICE_CATALOG_NAMESPACE}
 
-- apiVersion: authorization.openshift.io/v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     name: service-catalog-controller
@@ -14972,12 +14972,13 @@ objects:
   subjects:
   - kind: ServiceAccount
     name: service-catalog-controller
-    namespace: kube-service-catalog
+    namespace: ${KUBE_SERVICE_CATALOG_NAMESPACE}
 
 - apiVersion: rbac.authorization.k8s.io/v1
   kind: Role
   metadata:
     name: endpoint-accessor
+    namespace: ${KUBE_SERVICE_CATALOG_NAMESPACE}
   rules:
   - apiGroups:
     - ""
@@ -14994,13 +14995,13 @@ objects:
   kind: RoleBinding
   metadata:
     name: endpointer-accessor-binding
+    namespace: ${KUBE_SERVICE_CATALOG_NAMESPACE}
   roleRef:
     kind: Role
     name: endpoint-accessor
-    namespace: kube-service-catalog
   subjects:
   - kind: ServiceAccount
-    namespace: kube-service-catalog
+    namespace: ${KUBE_SERVICE_CATALOG_NAMESPACE}
     name: service-catalog-controller
 
 - apiVersion: rbac.authorization.k8s.io/v1
@@ -15011,11 +15012,10 @@ objects:
   roleRef:
     kind: Role
     name: extension-apiserver-authentication-reader
-    namespace: ${KUBE_SYSTEM_NAMESPACE}
   subjects:
   - kind: ServiceAccount
     name: service-catalog-apiserver
-    namespace: kube-service-catalog
+    namespace: ${KUBE_SERVICE_CATALOG_NAMESPACE}
 
 - apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
@@ -15027,7 +15027,7 @@ objects:
   subjects:
   - kind: ServiceAccount
     name: service-catalog-apiserver
-    namespace: kube-service-catalog
+    namespace: ${KUBE_SERVICE_CATALOG_NAMESPACE}
 
 parameters:
 - description: Do not change this value.
@@ -15035,6 +15035,12 @@ parameters:
   name: KUBE_SYSTEM_NAMESPACE
   required: true
   value: kube-system
+
+- description: Do not change this value.
+  displayName: Name of the kube-service-catalog namespace
+  name: KUBE_SERVICE_CATALOG_NAMESPACE
+  required: true
+  value: kube-service-catalog
 `)
 
 func examplesServiceCatalogServiceCatalogRbacYamlBytes() ([]byte, error) {
