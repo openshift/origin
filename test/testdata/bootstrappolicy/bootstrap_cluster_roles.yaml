@@ -3696,6 +3696,40 @@ items:
       authorization.openshift.io/system-only: "true"
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
+    name: system:openshift:controller:namespace-security-allocation-controller
+  rules:
+  - apiGroups:
+    - security.openshift.io
+    resources:
+    - rangeallocations
+    verbs:
+    - create
+    - get
+    - update
+  - apiGroups:
+    - ""
+    resources:
+    - namespaces
+    verbs:
+    - get
+    - list
+    - update
+    - watch
+  - apiGroups:
+    - ""
+    resources:
+    - events
+    verbs:
+    - create
+    - patch
+    - update
+- apiVersion: rbac.authorization.k8s.io/v1beta1
+  kind: ClusterRole
+  metadata:
+    annotations:
+      authorization.openshift.io/system-only: "true"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
+    creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
     name: system:controller:attachdetach-controller
