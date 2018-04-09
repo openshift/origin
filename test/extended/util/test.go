@@ -273,6 +273,8 @@ var (
 			`\[Feature:Initializers\]`,           // admission controller disabled
 			`\[Feature:LocalPersistentVolumes\]`, // flag gate is off
 			`\[Feature:PodPreemption\]`,          // flag gate is off
+			`\[Feature:RunAsGroup\]`,             // flag gate is off
+			`\[Feature:BlockVolume\]`,            // flag gate is off
 			`AdmissionWebhook`,                   // needs to be enabled
 		},
 		// tests for features that are not implemented in openshift
