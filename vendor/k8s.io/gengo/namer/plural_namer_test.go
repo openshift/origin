@@ -55,6 +55,56 @@ func TestPluralNamer(t *testing.T) {
 			"buses",
 			"Buses",
 		},
+		{
+			"Fizz",
+			"fizzes",
+			"Fizzes",
+		},
+		{
+			"Search",
+			"searches",
+			"Searches",
+		},
+		{
+			"Autograph",
+			"autographs",
+			"Autographs",
+		},
+		{
+			"Dispatch",
+			"dispatches",
+			"Dispatches",
+		},
+		{
+			"Earth",
+			"earths",
+			"Earths",
+		},
+		{
+			"City",
+			"cities",
+			"Cities",
+		},
+		{
+			"Ray",
+			"rays",
+			"Rays",
+		},
+		{
+			"Fountain",
+			"fountains",
+			"Fountains",
+		},
+		{
+			"Life",
+			"lives",
+			"Lives",
+		},
+		{
+			"Leaf",
+			"leaves",
+			"Leaves",
+		},
 	}
 	for _, c := range cases {
 		testType := &types.Type{Name: types.Name{Name: c.typeName}}

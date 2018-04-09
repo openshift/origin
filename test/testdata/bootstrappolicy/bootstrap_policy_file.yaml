@@ -243,6 +243,7 @@ items:
     resources:
     - poddisruptionbudgets
     - poddisruptionbudgets/status
+    - podsecuritypolicies
     verbs:
     - get
     - list
@@ -273,6 +274,7 @@ items:
     attributeRestrictions: null
     resources:
     - storageclasses
+    - volumeattachments
     verbs:
     - get
     - list
@@ -1553,6 +1555,7 @@ items:
     - /apis/*
     - /oapi
     - /oapi/*
+    - /openapi/v2
     - /osapi
     - /osapi/
     - /swagger-2.0.0.pb-v1
@@ -1815,6 +1818,14 @@ items:
     - list
     - update
     - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - replicationcontrollers/scale
+    verbs:
+    - get
+    - update
   - apiGroups:
     - ""
     attributeRestrictions: null
@@ -2198,6 +2209,13 @@ items:
     verbs:
     - get
   - apiGroups:
+    - storage.k8s.io
+    attributeRestrictions: null
+    resources:
+    - volumeattachments
+    verbs:
+    - get
+  - apiGroups:
     - ""
     attributeRestrictions: null
     resources:
@@ -2350,6 +2368,7 @@ items:
     - /apis/*
     - /oapi
     - /oapi/*
+    - /openapi/v2
     - /osapi
     - /osapi/
     - /swagger-2.0.0.pb-v1
@@ -3021,6 +3040,14 @@ items:
     - ""
     attributeRestrictions: null
     resources:
+    - replicationcontrollers/scale
+    verbs:
+    - get
+    - update
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
     - events
     verbs:
     - create
@@ -3048,6 +3075,14 @@ items:
     - patch
     - update
     - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - replicationcontrollers/scale
+    verbs:
+    - get
+    - update
   - apiGroups:
     - ""
     - apps.openshift.io
@@ -4052,6 +4087,17 @@ items:
     - create
     - patch
     - update
+  - apiGroups:
+    - storage.k8s.io
+    attributeRestrictions: null
+    resources:
+    - volumeattachments
+    verbs:
+    - create
+    - delete
+    - get
+    - list
+    - watch
 - apiVersion: v1
   kind: ClusterRole
   metadata:
@@ -5194,6 +5240,7 @@ items:
     resources:
     - certificatesigningrequests
     verbs:
+    - delete
     - get
     - list
     - watch
@@ -5212,6 +5259,75 @@ items:
     - subjectaccessreviews
     verbs:
     - create
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - events
+    verbs:
+    - create
+    - patch
+    - update
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    annotations:
+      authorization.openshift.io/system-only: "true"
+      openshift.io/reconcile-protect: "false"
+    creationTimestamp: null
+    labels:
+      kubernetes.io/bootstrapping: rbac-defaults
+    name: system:controller:pvc-protection-controller
+  rules:
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - persistentvolumeclaims
+    verbs:
+    - get
+    - list
+    - update
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - pods
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - events
+    verbs:
+    - create
+    - patch
+    - update
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    annotations:
+      authorization.openshift.io/system-only: "true"
+      openshift.io/reconcile-protect: "false"
+    creationTimestamp: null
+    labels:
+      kubernetes.io/bootstrapping: rbac-defaults
+    name: system:controller:pv-protection-controller
+  rules:
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - persistentvolumes
+    verbs:
+    - get
+    - list
+    - update
+    - watch
   - apiGroups:
     - ""
     attributeRestrictions: null
@@ -5377,6 +5493,7 @@ items:
     - apps
     attributeRestrictions: null
     resources:
+    - daemonsets
     - deployments
     - deployments/rollback
     - deployments/scale
@@ -5391,15 +5508,6 @@ items:
     - list
     - patch
     - update
-    - watch
-  - apiGroups:
-    - apps
-    attributeRestrictions: null
-    resources:
-    - daemonsets
-    verbs:
-    - get
-    - list
     - watch
   - apiGroups:
     - autoscaling
@@ -5434,10 +5542,12 @@ items:
     - extensions
     attributeRestrictions: null
     resources:
+    - daemonsets
     - deployments
     - deployments/rollback
     - deployments/scale
     - ingresses
+    - networkpolicies
     - replicasets
     - replicasets/scale
     - replicationcontrollers/scale
@@ -5451,19 +5561,24 @@ items:
     - update
     - watch
   - apiGroups:
-    - extensions
-    attributeRestrictions: null
-    resources:
-    - daemonsets
-    verbs:
-    - get
-    - list
-    - watch
-  - apiGroups:
     - policy
     attributeRestrictions: null
     resources:
     - poddisruptionbudgets
+    verbs:
+    - create
+    - delete
+    - deletecollection
+    - get
+    - list
+    - patch
+    - update
+    - watch
+  - apiGroups:
+    - networking.k8s.io
+    attributeRestrictions: null
+    resources:
+    - networkpolicies
     verbs:
     - create
     - delete
@@ -5584,6 +5699,7 @@ items:
     - apps
     attributeRestrictions: null
     resources:
+    - daemonsets
     - deployments
     - deployments/rollback
     - deployments/scale
@@ -5598,15 +5714,6 @@ items:
     - list
     - patch
     - update
-    - watch
-  - apiGroups:
-    - apps
-    attributeRestrictions: null
-    resources:
-    - daemonsets
-    verbs:
-    - get
-    - list
     - watch
   - apiGroups:
     - autoscaling
@@ -5641,10 +5748,12 @@ items:
     - extensions
     attributeRestrictions: null
     resources:
+    - daemonsets
     - deployments
     - deployments/rollback
     - deployments/scale
     - ingresses
+    - networkpolicies
     - replicasets
     - replicasets/scale
     - replicationcontrollers/scale
@@ -5658,19 +5767,24 @@ items:
     - update
     - watch
   - apiGroups:
-    - extensions
-    attributeRestrictions: null
-    resources:
-    - daemonsets
-    verbs:
-    - get
-    - list
-    - watch
-  - apiGroups:
     - policy
     attributeRestrictions: null
     resources:
     - poddisruptionbudgets
+    verbs:
+    - create
+    - delete
+    - deletecollection
+    - get
+    - list
+    - patch
+    - update
+    - watch
+  - apiGroups:
+    - networking.k8s.io
+    attributeRestrictions: null
+    resources:
+    - networkpolicies
     verbs:
     - create
     - delete
@@ -5775,6 +5889,7 @@ items:
     - deployments
     - deployments/scale
     - ingresses
+    - networkpolicies
     - replicasets
     - replicasets/scale
     - replicationcontrollers/scale
@@ -5787,6 +5902,15 @@ items:
     attributeRestrictions: null
     resources:
     - poddisruptionbudgets
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - networking.k8s.io
+    attributeRestrictions: null
+    resources:
+    - networkpolicies
     verbs:
     - get
     - list
@@ -5857,6 +5981,44 @@ items:
     - create
     - patch
     - update
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    annotations:
+      authorization.openshift.io/system-only: "true"
+      openshift.io/reconcile-protect: "false"
+    creationTimestamp: null
+    labels:
+      kubernetes.io/bootstrapping: rbac-defaults
+    name: system:kubelet-api-admin
+  rules:
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - nodes
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - nodes
+    verbs:
+    - proxy
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - nodes/log
+    - nodes/metrics
+    - nodes/proxy
+    - nodes/spec
+    - nodes/stats
+    verbs:
+    - '*'
 - apiVersion: v1
   kind: ClusterRole
   metadata:
@@ -6200,6 +6362,37 @@ items:
     - certificatesigningrequests/selfnodeclient
     verbs:
     - create
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    annotations:
+      authorization.openshift.io/system-only: "true"
+      openshift.io/reconcile-protect: "false"
+    creationTimestamp: null
+    labels:
+      kubernetes.io/bootstrapping: rbac-defaults
+    name: system:volume-scheduler
+  rules:
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - persistentvolumes
+    verbs:
+    - get
+    - list
+    - patch
+    - update
+    - watch
+  - apiGroups:
+    - storage.k8s.io
+    attributeRestrictions: null
+    resources:
+    - storageclasses
+    verbs:
+    - get
+    - list
+    - watch
 - apiVersion: v1
   groupNames:
   - system:masters
@@ -6928,6 +7121,42 @@ items:
     annotations:
       openshift.io/reconcile-protect: "false"
     creationTimestamp: null
+    labels:
+      kubernetes.io/bootstrapping: rbac-defaults
+    name: system:controller:pvc-protection-controller
+  roleRef:
+    name: system:controller:pvc-protection-controller
+  subjects:
+  - kind: ServiceAccount
+    name: pvc-protection-controller
+    namespace: kube-system
+  userNames:
+  - system:serviceaccount:kube-system:pvc-protection-controller
+- apiVersion: v1
+  groupNames: null
+  kind: ClusterRoleBinding
+  metadata:
+    annotations:
+      openshift.io/reconcile-protect: "false"
+    creationTimestamp: null
+    labels:
+      kubernetes.io/bootstrapping: rbac-defaults
+    name: system:controller:pv-protection-controller
+  roleRef:
+    name: system:controller:pv-protection-controller
+  subjects:
+  - kind: ServiceAccount
+    name: pv-protection-controller
+    namespace: kube-system
+  userNames:
+  - system:serviceaccount:kube-system:pv-protection-controller
+- apiVersion: v1
+  groupNames: null
+  kind: ClusterRoleBinding
+  metadata:
+    annotations:
+      openshift.io/reconcile-protect: "false"
+    creationTimestamp: null
     name: system:openshift:controller:build-controller
   roleRef:
     name: system:openshift:controller:build-controller
@@ -7495,6 +7724,23 @@ items:
     name: system:node
   subjects: []
   userNames: null
+- apiVersion: v1
+  groupNames: null
+  kind: ClusterRoleBinding
+  metadata:
+    annotations:
+      openshift.io/reconcile-protect: "false"
+    creationTimestamp: null
+    labels:
+      kubernetes.io/bootstrapping: rbac-defaults
+    name: system:volume-scheduler
+  roleRef:
+    name: system:volume-scheduler
+  subjects:
+  - kind: SystemUser
+    name: system:kube-scheduler
+  userNames:
+  - system:kube-scheduler
 - apiVersion: v1
   kind: Role
   metadata:

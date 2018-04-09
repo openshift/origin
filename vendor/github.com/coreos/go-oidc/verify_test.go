@@ -2,6 +2,7 @@ package oidc
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 	"testing"
 	"time"
@@ -13,7 +14,11 @@ type testVerifier struct {
 	jwk jose.JSONWebKey
 }
 
-func (t *testVerifier) verify(ctx context.Context, jws *jose.JSONWebSignature) ([]byte, error) {
+func (t *testVerifier) VerifySignature(ctx context.Context, jwt string) ([]byte, error) {
+	jws, err := jose.ParseSigned(jwt)
+	if err != nil {
+		return nil, fmt.Errorf("oidc: malformed jwt: %v", err)
+	}
 	return jws.Verify(&t.jwk)
 }
 
@@ -187,6 +192,30 @@ func TestVerifySigningAlg(t *testing.T) {
 	}
 }
 
+func TestAccessTokenHash(t *testing.T) {
+	atHash := "piwt8oCH-K2D9pXlaS1Y-w"
+	vt := verificationTest{
+		name:    "preserves token hash and sig algo",
+		idToken: `{"iss":"https://foo","aud":"client1", "at_hash": "` + atHash + `"}`,
+		config: Config{
+			ClientID:        "client1",
+			SkipExpiryCheck: true,
+		},
+		signKey: newRSAKey(t),
+	}
+	t.Run("at_hash", func(t *testing.T) {
+		tok := vt.runGetToken(t)
+		if tok != nil {
+			if tok.AccessTokenHash != atHash {
+				t.Errorf("access token hash not preserved correctly, want %q got %q", atHash, tok.AccessTokenHash)
+			}
+			if tok.sigAlgorithm != RS256 {
+				t.Errorf("invalid signature algo, want %q got %q", RS256, tok.sigAlgorithm)
+			}
+		}
+	})
+}
+
 type verificationTest struct {
 	// Name of the subtest.
 	name string
@@ -207,7 +236,7 @@ type verificationTest struct {
 	wantErr bool
 }
 
-func (v verificationTest) run(t *testing.T) {
+func (v verificationTest) runGetToken(t *testing.T) *IDToken {
 	token := v.signKey.sign(t, []byte(v.idToken))
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -217,15 +246,16 @@ func (v verificationTest) run(t *testing.T) {
 	if v.issuer != "" {
 		issuer = v.issuer
 	}
-	var ks keySet
+	var ks KeySet
 	if v.verificationKey == nil {
 		ks = &testVerifier{v.signKey.jwk()}
 	} else {
 		ks = &testVerifier{v.verificationKey.jwk()}
 	}
-	verifier := newVerifier(ks, &v.config, issuer)
+	verifier := NewVerifier(issuer, ks, &v.config)
 
-	if _, err := verifier.Verify(ctx, token); err != nil {
+	idToken, err := verifier.Verify(ctx, token)
+	if err != nil {
 		if !v.wantErr {
 			t.Errorf("%s: verify %v", v.name, err)
 		}
@@ -234,4 +264,9 @@ func (v verificationTest) run(t *testing.T) {
 			t.Errorf("%s: expected error", v.name)
 		}
 	}
+	return idToken
+}
+
+func (v verificationTest) run(t *testing.T) {
+	v.runGetToken(t)
 }

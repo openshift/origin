@@ -60,7 +60,7 @@ os::cmd::expect_success_and_text "oc project" 'Using project "project-bar-2"'
 
 # delete the current project `project-bar-2` and make sure `oc status` does not return the "no projects"
 # message since `project-bar` still exists
-os::cmd::expect_success_and_text "oc delete project project-bar-2" 'project "project-bar-2" deleted'
+os::cmd::expect_success_and_text "oc delete project project-bar-2" 'project.project.openshift.io "project-bar-2" deleted'
 # the deletion is asynchronous and can take a while, so wait until we see the error
 os::cmd::try_until_text "oc status" 'Error from server \(Forbidden\): projects.project.openshift.io "project-bar-2" is forbidden: User "test-user" cannot get projects.project.openshift.io in the namespace "project-bar-2"'
 

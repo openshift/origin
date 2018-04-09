@@ -292,11 +292,11 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 				oc.SetNamespace(namespace2)
 				output, err := oc.Run("get").Args("all").Output()
 				o.Expect(err).NotTo(o.HaveOccurred())
-				o.Expect(output).To(o.ContainSubstring("deploymentconfigs/mongodb"))
+				o.Expect(output).To(o.ContainSubstring("deploymentconfig.apps.openshift.io/mongodb"))
 				oc.SetNamespace(namespace3)
 				output, err = oc.Run("get").Args("all").Output()
 				o.Expect(err).NotTo(o.HaveOccurred())
-				o.Expect(output).To(o.ContainSubstring("svc/mongodb"))
+				o.Expect(output).To(o.ContainSubstring("service/mongodb"))
 
 				g.By("clean up openshift resources for next potential run")
 				oc.SetNamespace(namespace)

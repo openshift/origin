@@ -10,6 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/json"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	kyaml "k8s.io/apimachinery/pkg/util/yaml"
+	"k8s.io/kubernetes/cmd/kube-controller-manager/app/config"
 	"k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
 )
 
@@ -30,7 +31,7 @@ func getOpenShiftConfig(configFile string) (map[string]interface{}, error) {
 	return config, nil
 }
 
-func applyOpenShiftConfigFlags(controllerManager *options.CMServer, openshiftConfig map[string]interface{}) error {
+func applyOpenShiftConfigFlags(controllerManagerOptions *options.KubeControllerManagerOptions, controllerManager *config.Config, openshiftConfig map[string]interface{}) error {
 	kubeMasterConfig, ok := openshiftConfig["kubernetesMasterConfig"]
 	if !ok {
 		return nil
@@ -48,11 +49,10 @@ func applyOpenShiftConfigFlags(controllerManager *options.CMServer, openshiftCon
 			args[key] = append(args[key], arrayValue.(string))
 		}
 	}
-	if err := resolveFlags(args, kubeControllerManagerAddFlags(controllerManager)); len(err) > 0 {
+	if err := resolveFlags(args, kubeControllerManagerAddFlags(controllerManagerOptions)); len(err) > 0 {
 		return kerrors.NewAggregate(err)
 	}
-
-	return nil
+	return controllerManagerOptions.ApplyTo(controllerManager)
 }
 
 // applyFlags stores the provided arguments onto a flag set, reporting any errors
@@ -81,8 +81,8 @@ func resolveFlags(args map[string][]string, fn func(*pflag.FlagSet)) []error {
 	return applyFlags(args, fs)
 }
 
-func kubeControllerManagerAddFlags(cmserver *options.CMServer) func(flags *pflag.FlagSet) {
+func kubeControllerManagerAddFlags(options *options.KubeControllerManagerOptions) func(flags *pflag.FlagSet) {
 	return func(flags *pflag.FlagSet) {
-		cmserver.AddFlags(flags, KnownControllers(), ControllersDisabledByDefault.List())
+		options.AddFlags(flags, KnownControllers(), ControllersDisabledByDefault.List())
 	}
 }

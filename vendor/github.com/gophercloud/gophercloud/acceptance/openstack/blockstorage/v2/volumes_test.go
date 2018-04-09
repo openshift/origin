@@ -7,6 +7,7 @@ import (
 
 	"github.com/gophercloud/gophercloud/acceptance/clients"
 	"github.com/gophercloud/gophercloud/acceptance/tools"
+	"github.com/gophercloud/gophercloud/openstack/blockstorage/extensions/volumeactions"
 	"github.com/gophercloud/gophercloud/openstack/blockstorage/v2/volumes"
 )
 
@@ -49,4 +50,28 @@ func TestVolumesCreateDestroy(t *testing.T) {
 	}
 
 	tools.PrintResource(t, newVolume)
+}
+
+func TestVolumesCreateForceDestroy(t *testing.T) {
+	client, err := clients.NewBlockStorageV2Client()
+	if err != nil {
+		t.Fatalf("Unable to create blockstorage client: %v", err)
+	}
+
+	volume, err := CreateVolume(t, client)
+	if err != nil {
+		t.Fatalf("Unable to create volume: %v", err)
+	}
+
+	newVolume, err := volumes.Get(client, volume.ID).Extract()
+	if err != nil {
+		t.Errorf("Unable to retrieve volume: %v", err)
+	}
+
+	tools.PrintResource(t, newVolume)
+
+	err = volumeactions.ForceDelete(client, newVolume.ID).ExtractErr()
+	if err != nil {
+		t.Errorf("Unable to force delete volume: %v", err)
+	}
 }

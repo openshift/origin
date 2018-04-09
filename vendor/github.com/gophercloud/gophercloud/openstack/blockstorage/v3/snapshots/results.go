@@ -55,7 +55,7 @@ type DeleteResult struct {
 
 // SnapshotPage is a pagination.Pager that is returned from a call to the List function.
 type SnapshotPage struct {
-	pagination.SinglePageBase
+	pagination.LinkedPageBase
 }
 
 // UnmarshalJSON converts our JSON API response into our snapshot struct
@@ -82,6 +82,17 @@ func (r *Snapshot) UnmarshalJSON(b []byte) error {
 func (r SnapshotPage) IsEmpty() (bool, error) {
 	volumes, err := ExtractSnapshots(r)
 	return len(volumes) == 0, err
+}
+
+func (page SnapshotPage) NextPageURL() (string, error) {
+	var s struct {
+		Links []gophercloud.Link `json:"snapshots_links"`
+	}
+	err := page.ExtractInto(&s)
+	if err != nil {
+		return "", err
+	}
+	return gophercloud.ExtractNextURL(s.Links)
 }
 
 // ExtractSnapshots extracts and returns Snapshots. It is used while iterating over a snapshots.List call.

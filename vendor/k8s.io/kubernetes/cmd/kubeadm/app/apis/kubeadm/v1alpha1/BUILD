@@ -4,7 +4,6 @@ go_library(
     name = "go_default_library",
     srcs = [
         "defaults.go",
-        "defaults_unix.go",
         "doc.go",
         "register.go",
         "types.go",
@@ -12,7 +11,37 @@ go_library(
         "zz_generated.deepcopy.go",
         "zz_generated.defaults.go",
     ] + select({
-        "@io_bazel_rules_go//go/platform:windows_amd64": [
+        "@io_bazel_rules_go//go/platform:android": [
+            "defaults_unix.go",
+        ],
+        "@io_bazel_rules_go//go/platform:darwin": [
+            "defaults_unix.go",
+        ],
+        "@io_bazel_rules_go//go/platform:dragonfly": [
+            "defaults_unix.go",
+        ],
+        "@io_bazel_rules_go//go/platform:freebsd": [
+            "defaults_unix.go",
+        ],
+        "@io_bazel_rules_go//go/platform:linux": [
+            "defaults_unix.go",
+        ],
+        "@io_bazel_rules_go//go/platform:nacl": [
+            "defaults_unix.go",
+        ],
+        "@io_bazel_rules_go//go/platform:netbsd": [
+            "defaults_unix.go",
+        ],
+        "@io_bazel_rules_go//go/platform:openbsd": [
+            "defaults_unix.go",
+        ],
+        "@io_bazel_rules_go//go/platform:plan9": [
+            "defaults_unix.go",
+        ],
+        "@io_bazel_rules_go//go/platform:solaris": [
+            "defaults_unix.go",
+        ],
+        "@io_bazel_rules_go//go/platform:windows": [
             "defaults_windows.go",
         ],
         "//conditions:default": [],
@@ -24,10 +53,10 @@ go_library(
         "//cmd/kubeadm/app/constants:go_default_library",
         "//cmd/kubeadm/app/features:go_default_library",
         "//pkg/kubelet/apis/kubeletconfig/scheme:go_default_library",
-        "//pkg/kubelet/apis/kubeletconfig/v1alpha1:go_default_library",
+        "//pkg/kubelet/apis/kubeletconfig/v1beta1:go_default_library",
         "//pkg/proxy/apis/kubeproxyconfig/scheme:go_default_library",
         "//pkg/proxy/apis/kubeproxyconfig/v1alpha1:go_default_library",
-        "//pkg/util/pointer:go_default_library",
+        "//vendor/k8s.io/api/core/v1:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/apis/meta/v1:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/conversion:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/runtime:go_default_library",

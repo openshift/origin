@@ -711,7 +711,7 @@ func TestDelete(t *testing.T) {
 	}
 
 	actions, _, _, rest := setupRegistries(associatedIdentity, associatedUser)
-	_, err := rest.Delete(apirequest.NewContext(), associatedIdentity.Name)
+	_, _, err := rest.Delete(apirequest.NewContext(), associatedIdentity.Name, nil)
 
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
@@ -726,7 +726,7 @@ func TestDeleteMissingIdentity(t *testing.T) {
 	}
 
 	actions, _, _, rest := setupRegistries(nil, associatedUser)
-	_, err := rest.Delete(apirequest.NewContext(), associatedIdentity.Name)
+	_, _, err := rest.Delete(apirequest.NewContext(), associatedIdentity.Name, nil)
 
 	if err == nil {
 		t.Errorf("Expected error")
@@ -745,7 +745,7 @@ func TestDeleteMissingUser(t *testing.T) {
 	}
 
 	actions, _, _, rest := setupRegistries(associatedIdentity)
-	_, err := rest.Delete(apirequest.NewContext(), associatedIdentity.Name)
+	_, _, err := rest.Delete(apirequest.NewContext(), associatedIdentity.Name, nil)
 
 	if err == nil {
 		t.Errorf("Expected error")
@@ -768,7 +768,7 @@ func TestDeleteUserUpdateError(t *testing.T) {
 
 	actions, userRegistry, _, rest := setupRegistries(associatedIdentity, associatedUser)
 	userRegistry.UpdateErr[associatedUser.Name] = expectedErr
-	_, err := rest.Delete(apirequest.NewContext(), associatedIdentity.Name)
+	_, _, err := rest.Delete(apirequest.NewContext(), associatedIdentity.Name, nil)
 
 	if err == nil {
 		t.Errorf("Expected error")
@@ -792,7 +792,7 @@ func TestDeleteIdentityUpdateError(t *testing.T) {
 
 	actions, _, identityRegistry, rest := setupRegistries(associatedIdentity, associatedUser)
 	identityRegistry.UpdateErr = expectedErr
-	_, err := rest.Delete(apirequest.NewContext(), associatedIdentity.Name)
+	_, _, err := rest.Delete(apirequest.NewContext(), associatedIdentity.Name, nil)
 
 	// An error cleaning up the identity reference shouldn't manifest as an update failure, since the mapping no longer exists
 	if err != nil {

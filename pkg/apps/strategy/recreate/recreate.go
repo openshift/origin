@@ -71,7 +71,7 @@ func NewRecreateDeploymentStrategy(client kclientset.Interface, tagClient imagec
 	if errOut == nil {
 		errOut = ioutil.Discard
 	}
-	scaler, _ := kubectl.ScalerFor(kapi.Kind("ReplicationController"), client)
+
 	return &RecreateDeploymentStrategy{
 		out:         out,
 		errOut:      errOut,
@@ -83,7 +83,7 @@ func NewRecreateDeploymentStrategy(client kclientset.Interface, tagClient imagec
 		getUpdateAcceptor: func(timeout time.Duration, minReadySeconds int32) strat.UpdateAcceptor {
 			return stratsupport.NewAcceptAvailablePods(out, client.Core(), timeout)
 		},
-		scaler:       scaler,
+		scaler:       appsutil.NewReplicationControllerV1Scaler(client),
 		decoder:      decoder,
 		hookExecutor: stratsupport.NewHookExecutor(client.Core(), tagClient, client.Core(), os.Stdout, decoder),
 		retryPeriod:  1 * time.Second,

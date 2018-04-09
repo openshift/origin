@@ -8,7 +8,6 @@ import (
 
 	"github.com/evanphx/json-patch"
 	"github.com/spf13/cobra"
-	"k8s.io/kubernetes/pkg/kubectl/categories"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -16,9 +15,11 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"k8s.io/apimachinery/pkg/util/yaml"
+	"k8s.io/kubernetes/pkg/kubectl/categories"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
+	"k8s.io/kubernetes/pkg/kubectl/scheme"
 	kprinters "k8s.io/kubernetes/pkg/printers"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
@@ -102,14 +103,12 @@ func (o *PatchOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args [
 	)
 
 	var err error
-	mapper, typer := f.Object()
-	decoders := []runtime.Decoder{f.Decoder(true), unstructured.UnstructuredJSONScheme}
+	_, typer := f.Object()
+	decoders := []runtime.Decoder{scheme.Codecs.UniversalDeserializer(), configapi.Codecs.UniversalDeserializer(), unstructured.UnstructuredJSONScheme}
 	printOpts := cmdutil.ExtractCmdPrintOptions(cmd, false)
 	printOpts.OutputFormatType = "yaml"
 
-	o.Printer, err = kprinters.GetStandardPrinter(
-		mapper, typer, nil, decoders, *printOpts,
-	)
+	o.Printer, err = kprinters.GetStandardPrinter(typer, nil, decoders, *printOpts)
 	if err != nil {
 		return err
 	}

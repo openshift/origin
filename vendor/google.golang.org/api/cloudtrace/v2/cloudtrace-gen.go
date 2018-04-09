@@ -52,9 +52,6 @@ const (
 
 	// Write Trace data for a project or application
 	TraceAppendScope = "https://www.googleapis.com/auth/trace.append"
-
-	// Read Trace data for a project or application
-	TraceReadonlyScope = "https://www.googleapis.com/auth/trace.readonly"
 )
 
 func New(client *http.Client) (*Service, error) {
@@ -116,8 +113,8 @@ type ProjectsTracesSpansService struct {
 
 // Annotation: Text annotation with a set of attributes.
 type Annotation struct {
-	// Attributes: A set of attributes on the annotation. There is a limit
-	// of 4 attributes
+	// Attributes: A set of attributes on the annotation. You can have up to
+	// 4 attributes
 	// per Annotation.
 	Attributes *Attributes `json:"attributes,omitempty"`
 
@@ -144,8 +141,8 @@ type Annotation struct {
 }
 
 func (s *Annotation) MarshalJSON() ([]byte, error) {
-	type noMethod Annotation
-	raw := noMethod(*s)
+	type NoMethod Annotation
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -179,8 +176,8 @@ type AttributeValue struct {
 }
 
 func (s *AttributeValue) MarshalJSON() ([]byte, error) {
-	type noMethod AttributeValue
-	raw := noMethod(*s)
+	type NoMethod AttributeValue
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -223,15 +220,17 @@ type Attributes struct {
 }
 
 func (s *Attributes) MarshalJSON() ([]byte, error) {
-	type noMethod Attributes
-	raw := noMethod(*s)
+	type NoMethod Attributes
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
 // BatchWriteSpansRequest: The request message for the `BatchWriteSpans`
 // method.
 type BatchWriteSpansRequest struct {
-	// Spans: A collection of spans.
+	// Spans: A list of new spans. The span names must not match
+	// existing
+	// spans, or the results are undefined.
 	Spans []*Span `json:"spans,omitempty"`
 
 	// ForceSendFields is a list of field names (e.g. "Spans") to
@@ -252,8 +251,8 @@ type BatchWriteSpansRequest struct {
 }
 
 func (s *BatchWriteSpansRequest) MarshalJSON() ([]byte, error) {
-	type noMethod BatchWriteSpansRequest
-	raw := noMethod(*s)
+	type NoMethod BatchWriteSpansRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -284,15 +283,15 @@ type Empty struct {
 // traces or when the handler receives a request from a different
 // project.
 type Link struct {
-	// Attributes: A set of attributes on the link. There is a limit of 32
+	// Attributes: A set of attributes on the link. You have have up to  32
 	// attributes per
 	// link.
 	Attributes *Attributes `json:"attributes,omitempty"`
 
-	// SpanId: `SPAN_ID` identifies a span within a trace.
+	// SpanId: The [SPAN_ID] for a span within a trace.
 	SpanId string `json:"spanId,omitempty"`
 
-	// TraceId: `TRACE_ID` identifies a trace within a project.
+	// TraceId: The [TRACE_ID] for a trace within a project.
 	TraceId string `json:"traceId,omitempty"`
 
 	// Type: The relationship of the current span relative to the linked
@@ -324,8 +323,8 @@ type Link struct {
 }
 
 func (s *Link) MarshalJSON() ([]byte, error) {
-	type noMethod Link
-	raw := noMethod(*s)
+	type NoMethod Link
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -360,86 +359,61 @@ type Links struct {
 }
 
 func (s *Links) MarshalJSON() ([]byte, error) {
-	type noMethod Links
-	raw := noMethod(*s)
+	type NoMethod Links
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
-// ListSpansResponse: The response message for the `ListSpans` method.
-type ListSpansResponse struct {
-	// NextPageToken: If defined, indicates that there might be more spans
-	// that match the
-	// request. Pass this as the value of `pageToken` in a subsequent
-	// request to
-	// retrieve additional spans.
-	NextPageToken string `json:"nextPageToken,omitempty"`
+// MessageEvent: An event describing a message sent/received between
+// Spans.
+type MessageEvent struct {
+	// CompressedSizeBytes: The number of compressed bytes sent or received.
+	// If missing assumed to
+	// be the same size as uncompressed.
+	CompressedSizeBytes int64 `json:"compressedSizeBytes,omitempty,string"`
 
-	// Spans: The requested spans, if there are any in the specified trace.
-	Spans []*Span `json:"spans,omitempty"`
+	// Id: An identifier for the MessageEvent's message that can be used to
+	// match
+	// SENT and RECEIVED MessageEvents. It is recommended to be unique
+	// within
+	// a Span.
+	Id int64 `json:"id,omitempty,string"`
 
-	// ServerResponse contains the HTTP response code and headers from the
-	// server.
-	googleapi.ServerResponse `json:"-"`
+	// Type: Type of MessageEvent. Indicates whether the message was sent
+	// or
+	// received.
+	//
+	// Possible values:
+	//   "TYPE_UNSPECIFIED" - Unknown event type.
+	//   "SENT" - Indicates a sent message.
+	//   "RECEIVED" - Indicates a received message.
+	Type string `json:"type,omitempty"`
 
-	// ForceSendFields is a list of field names (e.g. "NextPageToken") to
-	// unconditionally include in API requests. By default, fields with
+	// UncompressedSizeBytes: The number of uncompressed bytes sent or
+	// received.
+	UncompressedSizeBytes int64 `json:"uncompressedSizeBytes,omitempty,string"`
+
+	// ForceSendFields is a list of field names (e.g. "CompressedSizeBytes")
+	// to unconditionally include in API requests. By default, fields with
 	// empty values are omitted from API requests. However, any non-pointer,
 	// non-interface field appearing in ForceSendFields will be sent to the
 	// server regardless of whether the field is empty or not. This may be
 	// used to include empty fields in Patch requests.
 	ForceSendFields []string `json:"-"`
 
-	// NullFields is a list of field names (e.g. "NextPageToken") to include
-	// in API requests with the JSON null value. By default, fields with
-	// empty values are omitted from API requests. However, any field with
-	// an empty value appearing in NullFields will be sent to the server as
-	// null. It is an error if a field in this list has a non-empty value.
-	// This may be used to include null fields in Patch requests.
+	// NullFields is a list of field names (e.g. "CompressedSizeBytes") to
+	// include in API requests with the JSON null value. By default, fields
+	// with empty values are omitted from API requests. However, any field
+	// with an empty value appearing in NullFields will be sent to the
+	// server as null. It is an error if a field in this list has a
+	// non-empty value. This may be used to include null fields in Patch
+	// requests.
 	NullFields []string `json:"-"`
 }
 
-func (s *ListSpansResponse) MarshalJSON() ([]byte, error) {
-	type noMethod ListSpansResponse
-	raw := noMethod(*s)
-	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
-}
-
-// ListTracesResponse: The response message for the `ListTraces` method.
-type ListTracesResponse struct {
-	// NextPageToken: If there might be more results than those appearing in
-	// this response, then
-	// `next_page_token` is included.  To get the next set of results, call
-	// this
-	// method again using the value of `next_page_token` as `page_token`.
-	NextPageToken string `json:"nextPageToken,omitempty"`
-
-	// Traces: List of trace records returned.
-	Traces []*Trace `json:"traces,omitempty"`
-
-	// ServerResponse contains the HTTP response code and headers from the
-	// server.
-	googleapi.ServerResponse `json:"-"`
-
-	// ForceSendFields is a list of field names (e.g. "NextPageToken") to
-	// unconditionally include in API requests. By default, fields with
-	// empty values are omitted from API requests. However, any non-pointer,
-	// non-interface field appearing in ForceSendFields will be sent to the
-	// server regardless of whether the field is empty or not. This may be
-	// used to include empty fields in Patch requests.
-	ForceSendFields []string `json:"-"`
-
-	// NullFields is a list of field names (e.g. "NextPageToken") to include
-	// in API requests with the JSON null value. By default, fields with
-	// empty values are omitted from API requests. However, any field with
-	// an empty value appearing in NullFields will be sent to the server as
-	// null. It is an error if a field in this list has a non-empty value.
-	// This may be used to include null fields in Patch requests.
-	NullFields []string `json:"-"`
-}
-
-func (s *ListTracesResponse) MarshalJSON() ([]byte, error) {
-	type noMethod ListTracesResponse
-	raw := noMethod(*s)
+func (s *MessageEvent) MarshalJSON() ([]byte, error) {
+	type NoMethod MessageEvent
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -473,65 +447,8 @@ type Module struct {
 }
 
 func (s *Module) MarshalJSON() ([]byte, error) {
-	type noMethod Module
-	raw := noMethod(*s)
-	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
-}
-
-// NetworkEvent: An event describing an RPC message sent or received on
-// the network.
-type NetworkEvent struct {
-	// CompressedMessageSize: The number of compressed bytes sent or
-	// received.
-	CompressedMessageSize uint64 `json:"compressedMessageSize,omitempty,string"`
-
-	// MessageId: An identifier for the message, which must be unique in
-	// this span.
-	MessageId uint64 `json:"messageId,omitempty,string"`
-
-	// Time: For sent messages, this is the time at which the first bit was
-	// sent.
-	// For received messages, this is the time at which the last bit
-	// was
-	// received.
-	Time string `json:"time,omitempty"`
-
-	// Type: Type of NetworkEvent. Indicates whether the RPC message was
-	// sent or
-	// received.
-	//
-	// Possible values:
-	//   "TYPE_UNSPECIFIED" - Unknown event type.
-	//   "SENT" - Indicates a sent RPC message.
-	//   "RECV" - Indicates a received RPC message.
-	Type string `json:"type,omitempty"`
-
-	// UncompressedMessageSize: The number of uncompressed bytes sent or
-	// received.
-	UncompressedMessageSize uint64 `json:"uncompressedMessageSize,omitempty,string"`
-
-	// ForceSendFields is a list of field names (e.g.
-	// "CompressedMessageSize") to unconditionally include in API requests.
-	// By default, fields with empty values are omitted from API requests.
-	// However, any non-pointer, non-interface field appearing in
-	// ForceSendFields will be sent to the server regardless of whether the
-	// field is empty or not. This may be used to include empty fields in
-	// Patch requests.
-	ForceSendFields []string `json:"-"`
-
-	// NullFields is a list of field names (e.g. "CompressedMessageSize") to
-	// include in API requests with the JSON null value. By default, fields
-	// with empty values are omitted from API requests. However, any field
-	// with an empty value appearing in NullFields will be sent to the
-	// server as null. It is an error if a field in this list has a
-	// non-empty value. This may be used to include null fields in Patch
-	// requests.
-	NullFields []string `json:"-"`
-}
-
-func (s *NetworkEvent) MarshalJSON() ([]byte, error) {
-	type noMethod NetworkEvent
-	raw := noMethod(*s)
+	type NoMethod Module
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -545,7 +462,7 @@ func (s *NetworkEvent) MarshalJSON() ([]byte, error) {
 // be
 // gaps or overlaps between spans in a trace.
 type Span struct {
-	// Attributes: A set of attributes on the span. There is a limit of 32
+	// Attributes: A set of attributes on the span. You can have up to 32
 	// attributes per
 	// span.
 	Attributes *Attributes `json:"attributes,omitempty"`
@@ -576,15 +493,19 @@ type Span struct {
 	// is the time when the server application handler stops running.
 	EndTime string `json:"endTime,omitempty"`
 
-	// Links: A maximum of 128 links are allowed per Span.
+	// Links: Links associated with the span. You can have up to 128 links
+	// per Span.
 	Links *Links `json:"links,omitempty"`
 
 	// Name: The resource name of the span in the following format:
 	//
-	//     projects/[PROJECT_ID]traces/[TRACE_ID]/spans/SPAN_ID is a unique
-	// identifier for a trace within a project.
-	// [SPAN_ID] is a unique identifier for a span within a trace,
-	// assigned when the span is created.
+	//     projects/[PROJECT_ID]/traces/[TRACE_ID]/spans/SPAN_ID is a unique
+	// identifier for a trace within a project;
+	// it is a 32-character hexadecimal encoding of a 16-byte
+	// array.
+	//
+	// [SPAN_ID] is a unique identifier for a span within a trace; it
+	// is a 16-character hexadecimal encoding of an 8-byte array.
 	Name string `json:"name,omitempty"`
 
 	// ParentSpanId: The [SPAN_ID] of this span's parent span. If this is a
@@ -592,11 +513,13 @@ type Span struct {
 	// then this field must be empty.
 	ParentSpanId string `json:"parentSpanId,omitempty"`
 
-	// SameProcessAsParentSpan: A highly recommended but not required flag
-	// that identifies when a trace
-	// crosses a process boundary. True when the parent_span belongs to
-	// the
-	// same process as the current span.
+	// SameProcessAsParentSpan: (Optional) Set this parameter to indicate
+	// whether this span is in
+	// the same process as its parent. If you do not set this
+	// parameter,
+	// Stackdriver Trace is unable to take advantage of this
+	// helpful
+	// information.
 	SameProcessAsParentSpan bool `json:"sameProcessAsParentSpan,omitempty"`
 
 	// SpanId: The [SPAN_ID] portion of the span's resource name.
@@ -615,8 +538,8 @@ type Span struct {
 	// Status: An optional final status for this span.
 	Status *Status `json:"status,omitempty"`
 
-	// TimeEvents: The included time events. There can be up to 32
-	// annotations and 128 network
+	// TimeEvents: A set of time events. You can have up to 32 annotations
+	// and 128 message
 	// events per span.
 	TimeEvents *TimeEvents `json:"timeEvents,omitempty"`
 
@@ -642,8 +565,8 @@ type Span struct {
 }
 
 func (s *Span) MarshalJSON() ([]byte, error) {
-	type noMethod Span
-	raw := noMethod(*s)
+	type NoMethod Span
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -700,8 +623,8 @@ type StackFrame struct {
 }
 
 func (s *StackFrame) MarshalJSON() ([]byte, error) {
-	type noMethod StackFrame
-	raw := noMethod(*s)
+	type NoMethod StackFrame
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -735,8 +658,8 @@ type StackFrames struct {
 }
 
 func (s *StackFrames) MarshalJSON() ([]byte, error) {
-	type noMethod StackFrames
-	raw := noMethod(*s)
+	type NoMethod StackFrames
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -757,7 +680,7 @@ type StackTrace struct {
 	//
 	// Subsequent spans within the same request can refer
 	// to that stack trace by only setting `stackTraceHashId`.
-	StackTraceHashId uint64 `json:"stackTraceHashId,omitempty,string"`
+	StackTraceHashId int64 `json:"stackTraceHashId,omitempty,string"`
 
 	// ForceSendFields is a list of field names (e.g. "StackFrames") to
 	// unconditionally include in API requests. By default, fields with
@@ -777,8 +700,8 @@ type StackTrace struct {
 }
 
 func (s *StackTrace) MarshalJSON() ([]byte, error) {
-	type noMethod StackTrace
-	raw := noMethod(*s)
+	type NoMethod StackTrace
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -896,19 +819,19 @@ type Status struct {
 }
 
 func (s *Status) MarshalJSON() ([]byte, error) {
-	type noMethod Status
-	raw := noMethod(*s)
+	type NoMethod Status
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
-// TimeEvent: A time-stamped annotation or network event in the Span.
+// TimeEvent: A time-stamped annotation or message event in the Span.
 type TimeEvent struct {
-	// Annotation: One or more key:value pairs.
+	// Annotation: Text annotation with a set of attributes.
 	Annotation *Annotation `json:"annotation,omitempty"`
 
-	// NetworkEvent: An event describing an RPC message sent/received on the
-	// network.
-	NetworkEvent *NetworkEvent `json:"networkEvent,omitempty"`
+	// MessageEvent: An event describing a message sent/received between
+	// Spans.
+	MessageEvent *MessageEvent `json:"messageEvent,omitempty"`
 
 	// Time: The timestamp indicating the time the event occurred.
 	Time string `json:"time,omitempty"`
@@ -931,8 +854,8 @@ type TimeEvent struct {
 }
 
 func (s *TimeEvent) MarshalJSON() ([]byte, error) {
-	type noMethod TimeEvent
-	raw := noMethod(*s)
+	type NoMethod TimeEvent
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -940,17 +863,17 @@ func (s *TimeEvent) MarshalJSON() ([]byte, error) {
 // time-stamped annotation
 // on the span, consisting of either user-supplied key:value pairs,
 // or
-// details of an RPC message sent/received on the network.
+// details of a message sent/received between Spans.
 type TimeEvents struct {
 	// DroppedAnnotationsCount: The number of dropped annotations in all the
 	// included time events.
 	// If the value is 0, then no annotations were dropped.
 	DroppedAnnotationsCount int64 `json:"droppedAnnotationsCount,omitempty"`
 
-	// DroppedNetworkEventsCount: The number of dropped network events in
+	// DroppedMessageEventsCount: The number of dropped message events in
 	// all the included time events.
-	// If the value is 0, then no network events were dropped.
-	DroppedNetworkEventsCount int64 `json:"droppedNetworkEventsCount,omitempty"`
+	// If the value is 0, then no message events were dropped.
+	DroppedMessageEventsCount int64 `json:"droppedMessageEventsCount,omitempty"`
 
 	// TimeEvent: A collection of `TimeEvent`s.
 	TimeEvent []*TimeEvent `json:"timeEvent,omitempty"`
@@ -975,43 +898,8 @@ type TimeEvents struct {
 }
 
 func (s *TimeEvents) MarshalJSON() ([]byte, error) {
-	type noMethod TimeEvents
-	raw := noMethod(*s)
-	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
-}
-
-// Trace: A trace describes how long it takes for an application to
-// perform some
-// operations. It consists of a set of spans, each representing
-// an operation and including time information and operation details.
-type Trace struct {
-	// Name: The resource name of the trace in the following format:
-	//
-	//     projects/[PROJECT_ID]/traces/TRACE_ID is a unique identifier for
-	// a trace within a project.
-	// The ID is assigned when the trace is created.
-	Name string `json:"name,omitempty"`
-
-	// ForceSendFields is a list of field names (e.g. "Name") to
-	// unconditionally include in API requests. By default, fields with
-	// empty values are omitted from API requests. However, any non-pointer,
-	// non-interface field appearing in ForceSendFields will be sent to the
-	// server regardless of whether the field is empty or not. This may be
-	// used to include empty fields in Patch requests.
-	ForceSendFields []string `json:"-"`
-
-	// NullFields is a list of field names (e.g. "Name") to include in API
-	// requests with the JSON null value. By default, fields with empty
-	// values are omitted from API requests. However, any field with an
-	// empty value appearing in NullFields will be sent to the server as
-	// null. It is an error if a field in this list has a non-empty value.
-	// This may be used to include null fields in Patch requests.
-	NullFields []string `json:"-"`
-}
-
-func (s *Trace) MarshalJSON() ([]byte, error) {
-	type noMethod Trace
-	raw := noMethod(*s)
+	type NoMethod TimeEvents
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1023,16 +911,16 @@ type TruncatableString struct {
 	// value is 0, then the string was not shortened.
 	TruncatedByteCount int64 `json:"truncatedByteCount,omitempty"`
 
-	// Value: The shortened string. For example, if the original string was
+	// Value: The shortened string. For example, if the original string is
 	// 500
-	// bytes long and the limit of the string was 128 bytes, then this
-	// value contains the first 128 bytes of the 500-byte string. Note
-	// that
-	// truncation always happens on the character boundary, to ensure
-	// that
-	// truncated string is still valid UTF8. In case of multi-byte
-	// characters,
-	// size of truncated string can be less than truncation limit.
+	// bytes long and the limit of the string is 128 bytes, then
+	// `value` contains the first 128 bytes of the 500-byte
+	// string.
+	//
+	// Truncation always happens on a UTF8 character boundary. If there
+	// are multi-byte characters in the string, then the length of
+	// the
+	// shortened string might be less than the size limit.
 	Value string `json:"value,omitempty"`
 
 	// ForceSendFields is a list of field names (e.g. "TruncatedByteCount")
@@ -1054,8 +942,8 @@ type TruncatableString struct {
 }
 
 func (s *TruncatableString) MarshalJSON() ([]byte, error) {
-	type noMethod TruncatableString
-	raw := noMethod(*s)
+	type NoMethod TruncatableString
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1070,15 +958,9 @@ type ProjectsTracesBatchWriteCall struct {
 	header_                http.Header
 }
 
-// BatchWrite: Sends new spans to Stackdriver Trace or updates existing
-// traces. If the
-// name of a trace that you send matches that of an existing trace, new
-// spans
-// are added to the existing trace. Attempt to update existing spans
-// results
-// undefined behavior. If the name does not match, a new trace is
-// created
-// with given set of spans.
+// BatchWrite: Sends new spans to new or existing traces. You cannot
+// update
+// existing spans.
 func (r *ProjectsTracesService) BatchWrite(name string, batchwritespansrequest *BatchWriteSpansRequest) *ProjectsTracesBatchWriteCall {
 	c := &ProjectsTracesBatchWriteCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.name = name
@@ -1167,12 +1049,12 @@ func (c *ProjectsTracesBatchWriteCall) Do(opts ...googleapi.CallOption) (*Empty,
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
 	// {
-	//   "description": "Sends new spans to Stackdriver Trace or updates existing traces. If the\nname of a trace that you send matches that of an existing trace, new spans\nare added to the existing trace. Attempt to update existing spans results\nundefined behavior. If the name does not match, a new trace is created\nwith given set of spans.",
+	//   "description": "Sends new spans to new or existing traces. You cannot update\nexisting spans.",
 	//   "flatPath": "v2/projects/{projectsId}/traces:batchWrite",
 	//   "httpMethod": "POST",
 	//   "id": "cloudtrace.projects.traces.batchWrite",
@@ -1181,7 +1063,7 @@ func (c *ProjectsTracesBatchWriteCall) Do(opts ...googleapi.CallOption) (*Empty,
 	//   ],
 	//   "parameters": {
 	//     "name": {
-	//       "description": "Required. Name of the project where the spans belong. The format is\n`projects/PROJECT_ID`.",
+	//       "description": "Required. The name of the project where the spans belong. The format is\n`projects/[PROJECT_ID]`.",
 	//       "location": "path",
 	//       "pattern": "^projects/[^/]+$",
 	//       "required": true,
@@ -1203,448 +1085,9 @@ func (c *ProjectsTracesBatchWriteCall) Do(opts ...googleapi.CallOption) (*Empty,
 
 }
 
-// method id "cloudtrace.projects.traces.list":
+// method id "cloudtrace.projects.traces.spans.createSpan":
 
-type ProjectsTracesListCall struct {
-	s            *Service
-	parent       string
-	urlParams_   gensupport.URLParams
-	ifNoneMatch_ string
-	ctx_         context.Context
-	header_      http.Header
-}
-
-// List: Returns of a list of traces that match the specified filter
-// conditions.
-func (r *ProjectsTracesService) List(parent string) *ProjectsTracesListCall {
-	c := &ProjectsTracesListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
-	c.parent = parent
-	return c
-}
-
-// EndTime sets the optional parameter "endTime": Do not return traces
-// whose start time is later than this time.
-func (c *ProjectsTracesListCall) EndTime(endTime string) *ProjectsTracesListCall {
-	c.urlParams_.Set("endTime", endTime)
-	return c
-}
-
-// Filter sets the optional parameter "filter": Opional. Return only
-// traces that match this
-// [trace filter](/trace/docs/trace-filters). Example:
-//
-//     "label:/http/url root:/_ah/background my_label:17"
-func (c *ProjectsTracesListCall) Filter(filter string) *ProjectsTracesListCall {
-	c.urlParams_.Set("filter", filter)
-	return c
-}
-
-// OrderBy sets the optional parameter "orderBy": A single field used to
-// sort the returned traces.
-// Only the following field names can be used:
-//
-// *   `trace_id`: the trace's ID field
-// *   `name`:  the root span's resource name
-// *   `duration`: the difference between the root span's start time and
-// end time
-// *   `start`:  the start time of the root span
-//
-// Sorting is in ascending order unless `desc` is appended to the sort
-// field name.
-// Example: "name desc").
-func (c *ProjectsTracesListCall) OrderBy(orderBy string) *ProjectsTracesListCall {
-	c.urlParams_.Set("orderBy", orderBy)
-	return c
-}
-
-// PageSize sets the optional parameter "pageSize": The maximum number
-// of results to return from this request.
-// Non-positive values are ignored. The presence of `next_page_token` in
-// the
-// response indicates that more results might be available, even if
-// fewer than
-// the maximum number of results is returned by this request.
-func (c *ProjectsTracesListCall) PageSize(pageSize int64) *ProjectsTracesListCall {
-	c.urlParams_.Set("pageSize", fmt.Sprint(pageSize))
-	return c
-}
-
-// PageToken sets the optional parameter "pageToken": If present, then
-// retrieve the next batch of results from the
-// preceding call to this method.  `page_token` must be the value
-// of
-// `next_page_token` from the previous response.  The values of other
-// method
-// parameters should be identical to those in the previous call.
-func (c *ProjectsTracesListCall) PageToken(pageToken string) *ProjectsTracesListCall {
-	c.urlParams_.Set("pageToken", pageToken)
-	return c
-}
-
-// StartTime sets the optional parameter "startTime": Do not return
-// traces whose end time is earlier than this time.
-func (c *ProjectsTracesListCall) StartTime(startTime string) *ProjectsTracesListCall {
-	c.urlParams_.Set("startTime", startTime)
-	return c
-}
-
-// Fields allows partial responses to be retrieved. See
-// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *ProjectsTracesListCall) Fields(s ...googleapi.Field) *ProjectsTracesListCall {
-	c.urlParams_.Set("fields", googleapi.CombineFields(s))
-	return c
-}
-
-// IfNoneMatch sets the optional parameter which makes the operation
-// fail if the object's ETag matches the given value. This is useful for
-// getting updates only after the object has changed since the last
-// request. Use googleapi.IsNotModified to check whether the response
-// error from Do is the result of In-None-Match.
-func (c *ProjectsTracesListCall) IfNoneMatch(entityTag string) *ProjectsTracesListCall {
-	c.ifNoneMatch_ = entityTag
-	return c
-}
-
-// Context sets the context to be used in this call's Do method. Any
-// pending HTTP request will be aborted if the provided context is
-// canceled.
-func (c *ProjectsTracesListCall) Context(ctx context.Context) *ProjectsTracesListCall {
-	c.ctx_ = ctx
-	return c
-}
-
-// Header returns an http.Header that can be modified by the caller to
-// add HTTP headers to the request.
-func (c *ProjectsTracesListCall) Header() http.Header {
-	if c.header_ == nil {
-		c.header_ = make(http.Header)
-	}
-	return c.header_
-}
-
-func (c *ProjectsTracesListCall) doRequest(alt string) (*http.Response, error) {
-	reqHeaders := make(http.Header)
-	for k, v := range c.header_ {
-		reqHeaders[k] = v
-	}
-	reqHeaders.Set("User-Agent", c.s.userAgent())
-	if c.ifNoneMatch_ != "" {
-		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
-	}
-	var body io.Reader = nil
-	c.urlParams_.Set("alt", alt)
-	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/traces")
-	urls += "?" + c.urlParams_.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	req.Header = reqHeaders
-	googleapi.Expand(req.URL, map[string]string{
-		"parent": c.parent,
-	})
-	return gensupport.SendRequest(c.ctx_, c.s.client, req)
-}
-
-// Do executes the "cloudtrace.projects.traces.list" call.
-// Exactly one of *ListTracesResponse or error will be non-nil. Any
-// non-2xx status code is an error. Response headers are in either
-// *ListTracesResponse.ServerResponse.Header or (if a response was
-// returned at all) in error.(*googleapi.Error).Header. Use
-// googleapi.IsNotModified to check whether the returned error was
-// because http.StatusNotModified was returned.
-func (c *ProjectsTracesListCall) Do(opts ...googleapi.CallOption) (*ListTracesResponse, error) {
-	gensupport.SetOptions(c.urlParams_, opts...)
-	res, err := c.doRequest("json")
-	if res != nil && res.StatusCode == http.StatusNotModified {
-		if res.Body != nil {
-			res.Body.Close()
-		}
-		return nil, &googleapi.Error{
-			Code:   res.StatusCode,
-			Header: res.Header,
-		}
-	}
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	ret := &ListTracesResponse{
-		ServerResponse: googleapi.ServerResponse{
-			Header:         res.Header,
-			HTTPStatusCode: res.StatusCode,
-		},
-	}
-	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
-		return nil, err
-	}
-	return ret, nil
-	// {
-	//   "description": "Returns of a list of traces that match the specified filter conditions.",
-	//   "flatPath": "v2/projects/{projectsId}/traces",
-	//   "httpMethod": "GET",
-	//   "id": "cloudtrace.projects.traces.list",
-	//   "parameterOrder": [
-	//     "parent"
-	//   ],
-	//   "parameters": {
-	//     "endTime": {
-	//       "description": "Optional. Do not return traces whose start time is later than this time.",
-	//       "format": "google-datetime",
-	//       "location": "query",
-	//       "type": "string"
-	//     },
-	//     "filter": {
-	//       "description": "Opional. Return only traces that match this\n[trace filter](/trace/docs/trace-filters). Example:\n\n    \"label:/http/url root:/_ah/background my_label:17\"",
-	//       "location": "query",
-	//       "type": "string"
-	//     },
-	//     "orderBy": {
-	//       "description": "Optional. A single field used to sort the returned traces.\nOnly the following field names can be used:\n\n*   `trace_id`: the trace's ID field\n*   `name`:  the root span's resource name\n*   `duration`: the difference between the root span's start time and end time\n*   `start`:  the start time of the root span\n\nSorting is in ascending order unless `desc` is appended to the sort field name.\nExample: `\"name desc\"`).",
-	//       "location": "query",
-	//       "type": "string"
-	//     },
-	//     "pageSize": {
-	//       "description": "Optional. The maximum number of results to return from this request.\nNon-positive values are ignored. The presence of `next_page_token` in the\nresponse indicates that more results might be available, even if fewer than\nthe maximum number of results is returned by this request.",
-	//       "format": "int32",
-	//       "location": "query",
-	//       "type": "integer"
-	//     },
-	//     "pageToken": {
-	//       "description": "Optional. If present, then retrieve the next batch of results from the\npreceding call to this method.  `page_token` must be the value of\n`next_page_token` from the previous response.  The values of other method\nparameters should be identical to those in the previous call.",
-	//       "location": "query",
-	//       "type": "string"
-	//     },
-	//     "parent": {
-	//       "description": "Required. The project where the trace data is stored. The format\nis `projects/PROJECT_ID`.",
-	//       "location": "path",
-	//       "pattern": "^projects/[^/]+$",
-	//       "required": true,
-	//       "type": "string"
-	//     },
-	//     "startTime": {
-	//       "description": "Optional. Do not return traces whose end time is earlier than this time.",
-	//       "format": "google-datetime",
-	//       "location": "query",
-	//       "type": "string"
-	//     }
-	//   },
-	//   "path": "v2/{+parent}/traces",
-	//   "response": {
-	//     "$ref": "ListTracesResponse"
-	//   },
-	//   "scopes": [
-	//     "https://www.googleapis.com/auth/cloud-platform",
-	//     "https://www.googleapis.com/auth/trace.readonly"
-	//   ]
-	// }
-
-}
-
-// Pages invokes f for each page of results.
-// A non-nil error returned from f will halt the iteration.
-// The provided context supersedes any context provided to the Context method.
-func (c *ProjectsTracesListCall) Pages(ctx context.Context, f func(*ListTracesResponse) error) error {
-	c.ctx_ = ctx
-	defer c.PageToken(c.urlParams_.Get("pageToken")) // reset paging to original point
-	for {
-		x, err := c.Do()
-		if err != nil {
-			return err
-		}
-		if err := f(x); err != nil {
-			return err
-		}
-		if x.NextPageToken == "" {
-			return nil
-		}
-		c.PageToken(x.NextPageToken)
-	}
-}
-
-// method id "cloudtrace.projects.traces.listSpans":
-
-type ProjectsTracesListSpansCall struct {
-	s            *Service
-	parent       string
-	urlParams_   gensupport.URLParams
-	ifNoneMatch_ string
-	ctx_         context.Context
-	header_      http.Header
-}
-
-// ListSpans: Returns a list of spans within a trace.
-func (r *ProjectsTracesService) ListSpans(parent string) *ProjectsTracesListSpansCall {
-	c := &ProjectsTracesListSpansCall{s: r.s, urlParams_: make(gensupport.URLParams)}
-	c.parent = parent
-	return c
-}
-
-// PageToken sets the optional parameter "pageToken": If present, then
-// retrieve the next batch of results from the
-// preceding call to this method. `page_token` must be the value
-// of
-// `next_page_token` from the previous response. The values of other
-// method
-// parameters should be identical to those in the previous call.
-func (c *ProjectsTracesListSpansCall) PageToken(pageToken string) *ProjectsTracesListSpansCall {
-	c.urlParams_.Set("pageToken", pageToken)
-	return c
-}
-
-// Fields allows partial responses to be retrieved. See
-// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *ProjectsTracesListSpansCall) Fields(s ...googleapi.Field) *ProjectsTracesListSpansCall {
-	c.urlParams_.Set("fields", googleapi.CombineFields(s))
-	return c
-}
-
-// IfNoneMatch sets the optional parameter which makes the operation
-// fail if the object's ETag matches the given value. This is useful for
-// getting updates only after the object has changed since the last
-// request. Use googleapi.IsNotModified to check whether the response
-// error from Do is the result of In-None-Match.
-func (c *ProjectsTracesListSpansCall) IfNoneMatch(entityTag string) *ProjectsTracesListSpansCall {
-	c.ifNoneMatch_ = entityTag
-	return c
-}
-
-// Context sets the context to be used in this call's Do method. Any
-// pending HTTP request will be aborted if the provided context is
-// canceled.
-func (c *ProjectsTracesListSpansCall) Context(ctx context.Context) *ProjectsTracesListSpansCall {
-	c.ctx_ = ctx
-	return c
-}
-
-// Header returns an http.Header that can be modified by the caller to
-// add HTTP headers to the request.
-func (c *ProjectsTracesListSpansCall) Header() http.Header {
-	if c.header_ == nil {
-		c.header_ = make(http.Header)
-	}
-	return c.header_
-}
-
-func (c *ProjectsTracesListSpansCall) doRequest(alt string) (*http.Response, error) {
-	reqHeaders := make(http.Header)
-	for k, v := range c.header_ {
-		reqHeaders[k] = v
-	}
-	reqHeaders.Set("User-Agent", c.s.userAgent())
-	if c.ifNoneMatch_ != "" {
-		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
-	}
-	var body io.Reader = nil
-	c.urlParams_.Set("alt", alt)
-	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}:listSpans")
-	urls += "?" + c.urlParams_.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	req.Header = reqHeaders
-	googleapi.Expand(req.URL, map[string]string{
-		"parent": c.parent,
-	})
-	return gensupport.SendRequest(c.ctx_, c.s.client, req)
-}
-
-// Do executes the "cloudtrace.projects.traces.listSpans" call.
-// Exactly one of *ListSpansResponse or error will be non-nil. Any
-// non-2xx status code is an error. Response headers are in either
-// *ListSpansResponse.ServerResponse.Header or (if a response was
-// returned at all) in error.(*googleapi.Error).Header. Use
-// googleapi.IsNotModified to check whether the returned error was
-// because http.StatusNotModified was returned.
-func (c *ProjectsTracesListSpansCall) Do(opts ...googleapi.CallOption) (*ListSpansResponse, error) {
-	gensupport.SetOptions(c.urlParams_, opts...)
-	res, err := c.doRequest("json")
-	if res != nil && res.StatusCode == http.StatusNotModified {
-		if res.Body != nil {
-			res.Body.Close()
-		}
-		return nil, &googleapi.Error{
-			Code:   res.StatusCode,
-			Header: res.Header,
-		}
-	}
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	ret := &ListSpansResponse{
-		ServerResponse: googleapi.ServerResponse{
-			Header:         res.Header,
-			HTTPStatusCode: res.StatusCode,
-		},
-	}
-	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
-		return nil, err
-	}
-	return ret, nil
-	// {
-	//   "description": "Returns a list of spans within a trace.",
-	//   "flatPath": "v2/projects/{projectsId}/traces/{tracesId}:listSpans",
-	//   "httpMethod": "GET",
-	//   "id": "cloudtrace.projects.traces.listSpans",
-	//   "parameterOrder": [
-	//     "parent"
-	//   ],
-	//   "parameters": {
-	//     "pageToken": {
-	//       "description": "Optional. If present, then retrieve the next batch of results from the\npreceding call to this method. `page_token` must be the value of\n`next_page_token` from the previous response. The values of other method\nparameters should be identical to those in the previous call.",
-	//       "location": "query",
-	//       "type": "string"
-	//     },
-	//     "parent": {
-	//       "description": "Required: The resource name of the trace containing the spans to list.\nThe format is `projects/PROJECT_ID/traces/TRACE_ID`.",
-	//       "location": "path",
-	//       "pattern": "^projects/[^/]+/traces/[^/]+$",
-	//       "required": true,
-	//       "type": "string"
-	//     }
-	//   },
-	//   "path": "v2/{+parent}:listSpans",
-	//   "response": {
-	//     "$ref": "ListSpansResponse"
-	//   },
-	//   "scopes": [
-	//     "https://www.googleapis.com/auth/cloud-platform",
-	//     "https://www.googleapis.com/auth/trace.readonly"
-	//   ]
-	// }
-
-}
-
-// Pages invokes f for each page of results.
-// A non-nil error returned from f will halt the iteration.
-// The provided context supersedes any context provided to the Context method.
-func (c *ProjectsTracesListSpansCall) Pages(ctx context.Context, f func(*ListSpansResponse) error) error {
-	c.ctx_ = ctx
-	defer c.PageToken(c.urlParams_.Get("pageToken")) // reset paging to original point
-	for {
-		x, err := c.Do()
-		if err != nil {
-			return err
-		}
-		if err := f(x); err != nil {
-			return err
-		}
-		if x.NextPageToken == "" {
-			return nil
-		}
-		c.PageToken(x.NextPageToken)
-	}
-}
-
-// method id "cloudtrace.projects.traces.spans.create":
-
-type ProjectsTracesSpansCreateCall struct {
+type ProjectsTracesSpansCreateSpanCall struct {
 	s          *Service
 	nameid     string
 	span       *Span
@@ -1653,9 +1096,9 @@ type ProjectsTracesSpansCreateCall struct {
 	header_    http.Header
 }
 
-// Create: Creates a new Span.
-func (r *ProjectsTracesSpansService) Create(nameid string, span *Span) *ProjectsTracesSpansCreateCall {
-	c := &ProjectsTracesSpansCreateCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+// CreateSpan: Creates a new span.
+func (r *ProjectsTracesSpansService) CreateSpan(nameid string, span *Span) *ProjectsTracesSpansCreateSpanCall {
+	c := &ProjectsTracesSpansCreateSpanCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.nameid = nameid
 	c.span = span
 	return c
@@ -1664,7 +1107,7 @@ func (r *ProjectsTracesSpansService) Create(nameid string, span *Span) *Projects
 // Fields allows partial responses to be retrieved. See
 // https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
-func (c *ProjectsTracesSpansCreateCall) Fields(s ...googleapi.Field) *ProjectsTracesSpansCreateCall {
+func (c *ProjectsTracesSpansCreateSpanCall) Fields(s ...googleapi.Field) *ProjectsTracesSpansCreateSpanCall {
 	c.urlParams_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
@@ -1672,21 +1115,21 @@ func (c *ProjectsTracesSpansCreateCall) Fields(s ...googleapi.Field) *ProjectsTr
 // Context sets the context to be used in this call's Do method. Any
 // pending HTTP request will be aborted if the provided context is
 // canceled.
-func (c *ProjectsTracesSpansCreateCall) Context(ctx context.Context) *ProjectsTracesSpansCreateCall {
+func (c *ProjectsTracesSpansCreateSpanCall) Context(ctx context.Context) *ProjectsTracesSpansCreateSpanCall {
 	c.ctx_ = ctx
 	return c
 }
 
 // Header returns an http.Header that can be modified by the caller to
 // add HTTP headers to the request.
-func (c *ProjectsTracesSpansCreateCall) Header() http.Header {
+func (c *ProjectsTracesSpansCreateSpanCall) Header() http.Header {
 	if c.header_ == nil {
 		c.header_ = make(http.Header)
 	}
 	return c.header_
 }
 
-func (c *ProjectsTracesSpansCreateCall) doRequest(alt string) (*http.Response, error) {
+func (c *ProjectsTracesSpansCreateSpanCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := make(http.Header)
 	for k, v := range c.header_ {
 		reqHeaders[k] = v
@@ -1701,7 +1144,7 @@ func (c *ProjectsTracesSpansCreateCall) doRequest(alt string) (*http.Response, e
 	c.urlParams_.Set("alt", alt)
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
+	req, _ := http.NewRequest("POST", urls, body)
 	req.Header = reqHeaders
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.nameid,
@@ -1709,14 +1152,14 @@ func (c *ProjectsTracesSpansCreateCall) doRequest(alt string) (*http.Response, e
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
-// Do executes the "cloudtrace.projects.traces.spans.create" call.
+// Do executes the "cloudtrace.projects.traces.spans.createSpan" call.
 // Exactly one of *Span or error will be non-nil. Any non-2xx status
 // code is an error. Response headers are in either
 // *Span.ServerResponse.Header or (if a response was returned at all) in
 // error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
 // whether the returned error was because http.StatusNotModified was
 // returned.
-func (c *ProjectsTracesSpansCreateCall) Do(opts ...googleapi.CallOption) (*Span, error) {
+func (c *ProjectsTracesSpansCreateSpanCall) Do(opts ...googleapi.CallOption) (*Span, error) {
 	gensupport.SetOptions(c.urlParams_, opts...)
 	res, err := c.doRequest("json")
 	if res != nil && res.StatusCode == http.StatusNotModified {
@@ -1742,21 +1185,21 @@ func (c *ProjectsTracesSpansCreateCall) Do(opts ...googleapi.CallOption) (*Span,
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
 	// {
-	//   "description": "Creates a new Span.",
+	//   "description": "Creates a new span.",
 	//   "flatPath": "v2/projects/{projectsId}/traces/{tracesId}/spans/{spansId}",
-	//   "httpMethod": "PUT",
-	//   "id": "cloudtrace.projects.traces.spans.create",
+	//   "httpMethod": "POST",
+	//   "id": "cloudtrace.projects.traces.spans.createSpan",
 	//   "parameterOrder": [
 	//     "name"
 	//   ],
 	//   "parameters": {
 	//     "name": {
-	//       "description": "The resource name of the span in the following format:\n\n    projects/[PROJECT_ID]traces/[TRACE_ID]/spans/SPAN_ID is a unique identifier for a trace within a project.\n[SPAN_ID] is a unique identifier for a span within a trace,\nassigned when the span is created.",
+	//       "description": "The resource name of the span in the following format:\n\n    projects/[PROJECT_ID]/traces/[TRACE_ID]/spans/SPAN_ID is a unique identifier for a trace within a project;\nit is a 32-character hexadecimal encoding of a 16-byte array.\n\n[SPAN_ID] is a unique identifier for a span within a trace; it\nis a 16-character hexadecimal encoding of an 8-byte array.",
 	//       "location": "path",
 	//       "pattern": "^projects/[^/]+/traces/[^/]+/spans/[^/]+$",
 	//       "required": true,

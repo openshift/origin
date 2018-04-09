@@ -19,6 +19,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapiv1 "k8s.io/kubernetes/pkg/apis/core/v1"
 	"k8s.io/kubernetes/pkg/credentialprovider"
+	credentialprovidersecrets "k8s.io/kubernetes/pkg/credentialprovider/secrets"
 
 	buildapiv1 "github.com/openshift/api/build/v1"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
@@ -434,7 +435,7 @@ func FindDockerSecretAsReference(secrets []kapi.Secret, image string) *kapi.Loca
 			glog.V(2).Infof("Unable to make the Docker keyring for %s/%s secret: %v", secret.Name, secret.Namespace, err)
 			continue
 		}
-		keyring, err := credentialprovider.MakeDockerKeyring(secretsv1, &emptyKeyring)
+		keyring, err := credentialprovidersecrets.MakeDockerKeyring(secretsv1, &emptyKeyring)
 		if err != nil {
 			glog.V(2).Infof("Unable to make the Docker keyring for %s/%s secret: %v", secret.Name, secret.Namespace, err)
 			continue

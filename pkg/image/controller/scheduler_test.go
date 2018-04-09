@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/juju/ratelimit"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"
 )
 
@@ -145,12 +144,12 @@ func (h *int64Heap) Pop() interface{} {
 
 type wallClock struct{}
 
-var _ ratelimit.Clock = &wallClock{}
+var _ flowcontrol.Clock = &wallClock{}
 
 func (c wallClock) Now() time.Time        { return time.Now() }
 func (c wallClock) Sleep(d time.Duration) { time.Sleep(d) }
 
-// fakeClock implements ratelimit.Clock.  Its time starts at the UNIX epoch.
+// fakeClock implements flowcontrol.Clock.  Its time starts at the UNIX epoch.
 // When all known threads are in Sleep(), its time advances just enough to wake
 // the first thread (or threads) due to wake.
 type fakeClock struct {
@@ -160,9 +159,9 @@ type fakeClock struct {
 	wake    int64Heap
 }
 
-var _ ratelimit.Clock = &fakeClock{}
+var _ flowcontrol.Clock = &fakeClock{}
 
-func newFakeClock(threads int) ratelimit.Clock {
+func newFakeClock(threads int) flowcontrol.Clock {
 	return &fakeClock{threads: threads, c: sync.Cond{L: &sync.Mutex{}}}
 }
 

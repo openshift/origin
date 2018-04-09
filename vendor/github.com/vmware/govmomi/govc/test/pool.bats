@@ -3,6 +3,8 @@
 load test_helper
 
 @test "pool.create" {
+  vcsim_env -esx
+
   path="*/Resources/$(new_id)/$(new_id)"
   run govc pool.create $path
   assert_failure
@@ -25,6 +27,8 @@ load test_helper
 }
 
 @test "pool.create multiple" {
+  vcsim_env -esx
+
   id=$(new_id)
   path="*/Resources/$id"
   govc pool.create $path
@@ -55,16 +59,26 @@ load test_helper
 }
 
 @test "pool.change" {
-  id=$(new_id)
-  path="*/Resources/$id"
-  govc pool.create $path
+  vcsim_env -esx
 
-  run govc pool.change -mem.shares high $path
+  id=$(new_id)
+  root=$(govc find /ha-datacenter/host -type p -name Resources)
+  path="$root/$id"
+
+  run govc pool.create -cpu.reservation 100 $path
+  assert_success
+
+  run govc object.collect -s $path config.cpuAllocation.reservation
+  assert_success "100"
+
+  run govc pool.change -cpu.reservation 0 -mem.shares high $path
   assert_success
   run govc pool.info $path
   assert_success
   assert_line "Mem Shares: high"
   assert_line "CPU Shares: normal"
+  run govc object.collect -s $path config.cpuAllocation.reservation
+  assert_success "0"
 
   nid=$(new_id)
   run govc pool.change -name $nid $path
@@ -80,6 +94,8 @@ load test_helper
 }
 
 @test "pool.change multiple" {
+  esx_env
+
   id=$(new_id)
   path="*/Resources/$id"
   govc pool.create $path
@@ -116,6 +132,8 @@ load test_helper
 }
 
 @test "pool.destroy" {
+  esx_env
+
   id=$(new_id)
 
   # parent pool
@@ -163,6 +181,8 @@ load test_helper
 }
 
 @test "pool.destroy children" {
+  esx_env
+
   id=$(new_id)
 
   # parent pool
@@ -206,6 +226,8 @@ load test_helper
 }
 
 @test "pool.destroy multiple" {
+  vcsim_env -esx
+
   id=$(new_id)
   path="*/Resources/$id"
   govc pool.create $path
@@ -230,6 +252,8 @@ load test_helper
 }
 
 @test "vm.create -pool" {
+  esx_env
+
   # test with full inventory path to pools
   parent_path=$(govc ls 'host/*/Resources')
   parent_name=$(basename $parent_path)
@@ -272,6 +296,8 @@ load test_helper
 }
 
 @test "vm.create -pool host" {
+  vcsim_env -esx
+
   id=$(new_id)
 
   path=$(govc ls host)

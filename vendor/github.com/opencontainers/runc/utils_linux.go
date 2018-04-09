@@ -7,12 +7,14 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strconv"
 
 	"github.com/opencontainers/runc/libcontainer"
 	"github.com/opencontainers/runc/libcontainer/cgroups/systemd"
 	"github.com/opencontainers/runc/libcontainer/configs"
+	"github.com/opencontainers/runc/libcontainer/intelrdt"
 	"github.com/opencontainers/runc/libcontainer/specconv"
 	"github.com/opencontainers/runc/libcontainer/utils"
 	"github.com/opencontainers/runtime-spec/specs-go"
@@ -25,8 +27,6 @@ import (
 
 var errEmptyID = errors.New("container id cannot be empty")
 
-var container libcontainer.Container
-
 // loadFactory returns the configured factory instance for execing containers.
 func loadFactory(context *cli.Context) (libcontainer.Factory, error) {
 	root := context.GlobalString("root")
@@ -34,6 +34,9 @@ func loadFactory(context *cli.Context) (libcontainer.Factory, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// We default to cgroupfs, and can only use systemd if the system is a
+	// systemd box.
 	cgroupManager := libcontainer.Cgroupfs
 	if context.GlobalBool("systemd-cgroup") {
 		if systemd.UseSystemd() {
@@ -42,7 +45,28 @@ func loadFactory(context *cli.Context) (libcontainer.Factory, error) {
 			return nil, fmt.Errorf("systemd cgroup flag passed, but systemd support for managing cgroups is not available")
 		}
 	}
-	return libcontainer.New(abs, cgroupManager, libcontainer.CriuPath(context.GlobalString("criu")))
+
+	intelRdtManager := libcontainer.IntelRdtFs
+	if !intelrdt.IsEnabled() {
+		intelRdtManager = nil
+	}
+
+	// We resolve the paths for {newuidmap,newgidmap} from the context of runc,
+	// to avoid doing a path lookup in the nsexec context. TODO: The binary
+	// names are not currently configurable.
+	newuidmap, err := exec.LookPath("newuidmap")
+	if err != nil {
+		newuidmap = ""
+	}
+	newgidmap, err := exec.LookPath("newgidmap")
+	if err != nil {
+		newgidmap = ""
+	}
+
+	return libcontainer.New(abs, cgroupManager, intelRdtManager,
+		libcontainer.CriuPath(context.GlobalString("criu")),
+		libcontainer.NewuidmapPath(newuidmap),
+		libcontainer.NewgidmapPath(newgidmap))
 }
 
 // getContainer returns the specified container instance by loading it from state
@@ -84,6 +108,12 @@ func newProcess(p specs.Process) (*libcontainer.Process, error) {
 		NoNewPrivileges: &p.NoNewPrivileges,
 		AppArmorProfile: p.ApparmorProfile,
 	}
+
+	if p.ConsoleSize != nil {
+		lp.ConsoleWidth = uint16(p.ConsoleSize.Width)
+		lp.ConsoleHeight = uint16(p.ConsoleSize.Height)
+	}
+
 	if p.Capabilities != nil {
 		lp.Capabilities = &configs.Capabilities{}
 		lp.Capabilities.Bounding = p.Capabilities.Bounding

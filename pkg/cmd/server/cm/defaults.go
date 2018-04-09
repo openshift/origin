@@ -12,7 +12,7 @@ var (
 	ControllersDisabledByDefault = kcmapp.ControllersDisabledByDefault
 )
 
-func OriginControllerManagerAddFlags(cmserver *kcmoptions.CMServer) func(flags *pflag.FlagSet) {
+func OriginControllerManagerAddFlags(cmserver *kcmoptions.KubeControllerManagerOptions) func(flags *pflag.FlagSet) {
 	return func(flags *pflag.FlagSet) {
 		cmserver.AddFlags(flags, kcmapp.KnownControllers(), ControllersDisabledByDefault.List())
 	}

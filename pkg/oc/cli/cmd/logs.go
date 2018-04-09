@@ -73,12 +73,12 @@ type OpenShiftLogsOptions struct {
 }
 
 // NewCmdLogs creates a new logs command that supports OpenShift resources.
-func NewCmdLogs(name, baseName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdLogs(name, baseName string, f *clientcmd.Factory, out io.Writer, errOut io.Writer) *cobra.Command {
 	o := OpenShiftLogsOptions{
 		KubeLogOptions: &kcmd.LogsOptions{},
 	}
 
-	cmd := kcmd.NewCmdLogs(f, out)
+	cmd := kcmd.NewCmdLogs(f, out, errOut)
 	cmd.Short = "Print the logs for a resource"
 	cmd.Long = logsLong
 	cmd.Example = fmt.Sprintf(logsExample, baseName, name)

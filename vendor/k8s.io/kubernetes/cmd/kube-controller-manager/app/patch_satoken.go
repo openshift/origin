@@ -5,8 +5,7 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
-	"github.com/openshift/origin/pkg/cmd/server/crypto"
-
+	certutil "k8s.io/client-go/util/cert"
 	serviceaccountcontroller "k8s.io/kubernetes/pkg/controller/serviceaccount"
 )
 
@@ -26,7 +25,7 @@ func applyOpenShiftServiceServingCertCAFunc(openshiftConfigBase string, openshif
 	if err != nil {
 		return fmt.Errorf("error reading ca file for Service Serving Certificate Signer: %s: %v", serviceServingCertCAFilename, err)
 	}
-	if _, err := crypto.CertsFromPEM(serviceServingCA); err != nil {
+	if _, err := certutil.ParseCertsPEM(serviceServingCA); err != nil {
 		return fmt.Errorf("error parsing ca file for Service Serving Certificate Signer: %s: %v", serviceServingCertCAFilename, err)
 	}
 

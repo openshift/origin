@@ -28,10 +28,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/rest/fake"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	api "k8s.io/kubernetes/pkg/apis/core"
 	cmdtesting "k8s.io/kubernetes/pkg/kubectl/cmd/testing"
 	"k8s.io/kubernetes/pkg/kubectl/scheme"
-	"k8s.io/kubernetes/pkg/printers"
 )
 
 // This init should be removed after switching this command and its tests to user external types.
@@ -466,46 +466,46 @@ func TestRunExposeService(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		f, tf, codec, ns := cmdtesting.NewAPIFactory()
-		tf.Printer = &printers.JSONPrinter{}
-		tf.Client = &fake.RESTClient{
-			GroupVersion:         schema.GroupVersion{Version: "v1"},
-			NegotiatedSerializer: ns,
-			Client: fake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) {
-				switch p, m := req.URL.Path, req.Method; {
-				case p == test.calls[m] && m == "GET":
-					return &http.Response{StatusCode: test.status, Header: defaultHeader(), Body: objBody(codec, test.input)}, nil
-				case p == test.calls[m] && m == "POST":
-					return &http.Response{StatusCode: test.status, Header: defaultHeader(), Body: objBody(codec, test.output)}, nil
-				default:
-					t.Fatalf("unexpected request: %#v\n%#v", req.URL, req)
-					return nil, nil
-				}
-			}),
-		}
-		tf.Namespace = test.ns
-		buf := bytes.NewBuffer([]byte{})
+		t.Run(test.name, func(t *testing.T) {
+			tf := cmdtesting.NewTestFactory()
+			defer tf.Cleanup()
 
-		cmd := NewCmdExposeService(f, buf)
-		cmd.SetOutput(buf)
-		for flag, value := range test.flags {
-			cmd.Flags().Set(flag, value)
-		}
-		cmd.Run(cmd, test.args)
+			codec := legacyscheme.Codecs.LegacyCodec(scheme.Versions...)
+			ns := legacyscheme.Codecs
 
-		out := buf.String()
-		if _, ok := test.flags["dry-run"]; ok {
-			buf.Reset()
-			if err := tf.Printer.PrintObj(test.output, buf); err != nil {
-				t.Errorf("%s: Unexpected error: %v", test.name, err)
-				continue
+			tf.Client = &fake.RESTClient{
+				GroupVersion:         schema.GroupVersion{Version: "v1"},
+				NegotiatedSerializer: ns,
+				Client: fake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) {
+					switch p, m := req.URL.Path, req.Method; {
+					case p == test.calls[m] && m == "GET":
+						return &http.Response{StatusCode: test.status, Header: defaultHeader(), Body: objBody(codec, test.input)}, nil
+					case p == test.calls[m] && m == "POST":
+						return &http.Response{StatusCode: test.status, Header: defaultHeader(), Body: objBody(codec, test.output)}, nil
+					default:
+						t.Fatalf("unexpected request: %#v\n%#v", req.URL, req)
+						return nil, nil
+					}
+				}),
+			}
+			tf.Namespace = test.ns
+			buf := bytes.NewBuffer([]byte{})
+
+			cmd := NewCmdExposeService(tf, buf)
+			cmd.SetOutput(buf)
+			for flag, value := range test.flags {
+				cmd.Flags().Set(flag, value)
+			}
+			cmd.Run(cmd, test.args)
+
+			out := buf.String()
+			if _, ok := test.flags["dry-run"]; ok {
+				test.expected = fmt.Sprintf("service %q exposed (dry run)", test.flags["name"])
 			}
 
-			test.expected = fmt.Sprintf("service %q exposed (dry run)", test.flags["name"])
-		}
-
-		if !strings.Contains(out, test.expected) {
-			t.Errorf("%s: Unexpected output! Expected\n%s\ngot\n%s", test.name, test.expected, out)
-		}
+			if !strings.Contains(out, test.expected) {
+				t.Errorf("%s: Unexpected output! Expected\n%s\ngot\n%s", test.name, test.expected, out)
+			}
+		})
 	}
 }

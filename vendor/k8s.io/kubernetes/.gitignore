@@ -113,7 +113,7 @@ kubernetes.tar.gz
 
 # make-related metadata
 /.make/
-# Just in time generated data in the source, should never be commited
+# Just in time generated data in the source, should never be committed
 
 # This file used by some vendor repos (e.g. github.com/go-openapi/...) to store secret variables and should not be ignored
 !\.drone\.sec

@@ -50,11 +50,11 @@ func NewOAuthServerConfigFromMasterConfig(masterConfig *MasterConfig, listener n
 		}
 		secureServingOptions.SNICertKeys = append(secureServingOptions.SNICertKeys, sniCert)
 	}
-	if err := secureServingOptions.ApplyTo(&oauthServerConfig.GenericConfig.Config); err != nil {
+	if err := secureServingOptions.ApplyTo(&oauthServerConfig.GenericConfig.Config.SecureServing); err != nil {
 		return nil, err
 	}
-	oauthServerConfig.GenericConfig.SecureServingInfo.MinTLSVersion = crypto.TLSVersionOrDie(servingConfig.MinTLSVersion)
-	oauthServerConfig.GenericConfig.SecureServingInfo.CipherSuites = crypto.CipherSuitesOrDie(servingConfig.CipherSuites)
+	oauthServerConfig.GenericConfig.SecureServing.MinTLSVersion = crypto.TLSVersionOrDie(servingConfig.MinTLSVersion)
+	oauthServerConfig.GenericConfig.SecureServing.CipherSuites = crypto.CipherSuitesOrDie(servingConfig.CipherSuites)
 
 	routeClient, err := routeclient.NewForConfig(&masterConfig.PrivilegedLoopbackClientConfig)
 	if err != nil {

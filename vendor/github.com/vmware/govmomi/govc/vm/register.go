@@ -22,13 +22,9 @@ import (
 
 	"github.com/vmware/govmomi/govc/cli"
 	"github.com/vmware/govmomi/govc/flags"
-	"github.com/vmware/govmomi/object"
-	"github.com/vmware/govmomi/vim25"
 )
 
 type register struct {
-	*flags.ClientFlag
-	*flags.DatacenterFlag
 	*flags.DatastoreFlag
 	*flags.ResourcePoolFlag
 	*flags.HostSystemFlag
@@ -36,13 +32,6 @@ type register struct {
 
 	name     string
 	template bool
-
-	Client       *vim25.Client
-	Datacenter   *object.Datacenter
-	Datastore    *object.Datastore
-	ResourcePool *object.ResourcePool
-	HostSystem   *object.HostSystem
-	Folder       *object.Folder
 }
 
 func init() {
@@ -50,12 +39,6 @@ func init() {
 }
 
 func (cmd *register) Register(ctx context.Context, f *flag.FlagSet) {
-	cmd.ClientFlag, ctx = flags.NewClientFlag(ctx)
-	cmd.ClientFlag.Register(ctx, f)
-
-	cmd.DatacenterFlag, ctx = flags.NewDatacenterFlag(ctx)
-	cmd.DatacenterFlag.Register(ctx, f)
-
 	cmd.DatastoreFlag, ctx = flags.NewDatastoreFlag(ctx)
 	cmd.DatastoreFlag.Register(ctx, f)
 
@@ -69,16 +52,10 @@ func (cmd *register) Register(ctx context.Context, f *flag.FlagSet) {
 	cmd.FolderFlag.Register(ctx, f)
 
 	f.StringVar(&cmd.name, "name", "", "Name of the VM")
-	f.BoolVar(&cmd.template, "as-template", false, "Mark VM as template")
+	f.BoolVar(&cmd.template, "template", false, "Mark VM as template")
 }
 
 func (cmd *register) Process(ctx context.Context) error {
-	if err := cmd.ClientFlag.Process(ctx); err != nil {
-		return err
-	}
-	if err := cmd.DatacenterFlag.Process(ctx); err != nil {
-		return err
-	}
 	if err := cmd.DatastoreFlag.Process(ctx); err != nil {
 		return err
 	}
@@ -105,53 +82,55 @@ func (cmd *register) Description() string {
 VMX is a path to the vm config file, relative to DATASTORE.
 
 Examples:
-  govc vm.register path/name.vmx`
+  govc vm.register path/name.vmx
+  govc vm.register -template -host $host path/name.vmx`
 }
 
 func (cmd *register) Run(ctx context.Context, f *flag.FlagSet) error {
-	var err error
-
 	if len(f.Args()) != 1 {
 		return flag.ErrHelp
 	}
 
-	cmd.Client, err = cmd.ClientFlag.Client()
+	pool, err := cmd.ResourcePoolIfSpecified()
 	if err != nil {
 		return err
 	}
 
-	cmd.Datacenter, err = cmd.DatacenterFlag.Datacenter()
+	host, err := cmd.HostSystemFlag.HostSystemIfSpecified()
 	if err != nil {
 		return err
 	}
 
-	cmd.Datastore, err = cmd.DatastoreFlag.Datastore()
-	if err != nil {
-		return err
-	}
-
-	cmd.HostSystem, err = cmd.HostSystemFlag.HostSystemIfSpecified()
-	if err != nil {
-		return err
-	}
-
-	if cmd.HostSystem != nil {
-		if cmd.ResourcePool, err = cmd.HostSystem.ResourcePool(ctx); err != nil {
-			return err
+	if cmd.template {
+		if pool != nil || host == nil {
+			return flag.ErrHelp
 		}
-	} else if !cmd.template {
-		if cmd.ResourcePool, err = cmd.ResourcePoolFlag.ResourcePool(); err != nil {
-			return err
+	} else if pool == nil {
+		if host != nil {
+			pool, err = host.ResourcePool(ctx)
+			if err != nil {
+				return err
+			}
+		} else {
+			// neither -host nor -pool were specified, so use the default pool (ESX)
+			pool, err = cmd.ResourcePool()
+			if err != nil {
+				return err
+			}
 		}
 	}
 
-	if cmd.Folder, err = cmd.FolderFlag.Folder(); err != nil {
+	folder, err := cmd.FolderFlag.Folder()
+	if err != nil {
 		return err
 	}
 
-	path := cmd.Datastore.Path(f.Arg(0))
+	path, err := cmd.DatastorePath(f.Arg(0))
+	if err != nil {
+		return err
+	}
 
-	task, err := cmd.Folder.RegisterVM(ctx, path, cmd.name, cmd.template, cmd.ResourcePool, cmd.HostSystem)
+	task, err := folder.RegisterVM(ctx, path, cmd.name, cmd.template, pool, host)
 	if err != nil {
 		return err
 	}

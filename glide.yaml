@@ -7,34 +7,34 @@ excludeDirs:
 import:
 # kube first
 - package: k8s.io/kube-openapi
-  version: 39a7bf85c140f972372c2a0d1ee40adbf0c8bfe1
+  version: 50ae88d24ede7b8bad68e23c805b5d3da5c8abaf
 - package: k8s.io/code-generator
   repo:    git@github.com:openshift/kubernetes-code-generator
-  version: release-1.9.1
+  version: origin-3.10-kubernetes-1.10.0
 - package: k8s.io/apimachinery
   repo:    git@github.com:openshift/kubernetes-apimachinery
-  version: release-1.9.1
+  version: origin-3.10-kubernetes-1.10.0
 - package: k8s.io/api
   repo:    git@github.com:openshift/kubernetes-api
-  version: release-1.9.1
+  version: origin-3.10-kubernetes-1.10.0
 - package: k8s.io/client-go
   repo:    git@github.com:openshift/kubernetes-client-go
-  version: release-1.9.1
+  version: origin-3.10-kubernetes-1.10.0
 - package: k8s.io/metrics
   repo:    git@github.com:openshift/kubernetes-metrics
-  version: release-1.9.1
+  version: origin-3.10-kubernetes-1.10.0
 - package: k8s.io/apiserver
   repo:    git@github.com:openshift/kubernetes-apiserver
-  version: release-1.9.1
+  version: origin-3.10-kubernetes-1.10.0
 - package: k8s.io/kube-aggregator
   repo:    git@github.com:openshift/kube-aggregator
-  version: release-1.9.1
+  version: origin-3.10-kubernetes-1.10.0
 - package: k8s.io/apiextensions-apiserver
   repo:    git@github.com:openshift/kubernetes-apiextensions-apiserver
-  version: release-1.9.1
+  version: origin-3.10-kubernetes-1.10.0
 - package: k8s.io/kubernetes
   repo:    git@github.com:openshift/kubernetes
-  version: origin-3.10-kubernetes-1.9.1
+  version: origin-3.10-kubernetes-1.10.0
 
 # openshift second
 - package: github.com/openshift/api
@@ -45,10 +45,6 @@ import:
   version: master
 
 # forks third
-# master
-- package: k8s.io/gengo
-  repo:    git@github.com:openshift/kubernetes-gengo
-  version: openshift-3.9
 # master
 - package: github.com/google/certificate-transparency
   repo:    git@github.com:openshift/google-certificate-transparency
@@ -75,11 +71,11 @@ import:
 # pod - sjenning
 - package: github.com/opencontainers/runc
   repo:    git@github.com:openshift/opencontainers-runc
-  version: openshift-3.10
+  version: openshift-3.10-runc-595bea0
 # pod - sjenning
 - package: github.com/google/cadvisor
   repo:    git@github.com:openshift/google-cadvisor
-  version: release-v0.28.3
+  version: openshift-3.10-cadvisor-v0.29.1
 # cli
 - package: github.com/docker/distribution
   repo:    git@github.com:openshift/docker-distribution
@@ -91,15 +87,17 @@ import:
 
 # ours: shared with kube, but forced by openshift
 # master
-- package: github.com/ugorji/go
-  version: ded73eae5db7e7a0ef6f55aace87a2873c5d2b74
-# master
+- package: k8s.io/gengo
+  version: 01a732e01d00cb9a81bb0ca050d3e6d2b947927b
+# master: etcd
 - package: github.com/coreos/etcd
   version: v3.2.16
 - package: google.golang.org/grpc
   version: v1.7.5
 - package: github.com/grpc-ecosystem/grpc-gateway
   version: v1.3.0
+- package: github.com/coreos/bbolt
+  version: 32c383e75ce054674c53b5a07e55de85332aee14
 # cli
 - package: github.com/gonum/blas
   version: 37e82626499e1df7c54aeaba0959fd6e7e8dc1e4
@@ -124,8 +122,14 @@ import:
 # because of genapidocs.  This is the current kube level
 - package: github.com/go-openapi/loads
   version: a80dea3052f00e5f032e860dd7355cd0cc67e24d
+# retrieve latest version that fixes deadlock on kqueue
+- package: github.com/fsnotify/fsnotify
+  version: v1.4.7
 
 # mine: specific to openshift
+# master
+- package: github.com/ugorji/go
+  version: ded73eae5db7e7a0ef6f55aace87a2873c5d2b74
 # networking
 - package: github.com/containernetworking/plugins
   version: ~0.6.0
@@ -172,13 +176,13 @@ import:
 # etcd pins a very old version that has contention issues
 - package: github.com/google/btree
   version: master
-# retrieve latest version that fixes deadlock on kqueue
-- package: github.com/fsnotify/fsnotify
-  version: v1.4.7
 
 # why do we have this?
 - package: google.golang.org/appengine
   version: 12d5545dc1cfa6047a286d5e853841b6471f4c19
+
+# force glide to pull this in
+- package: github.com/google/uuid
 
 # yours that I suspect aren't pinning because vendor.conf is respected
 # yours: containers/image.  No idea why this isn't self-pinning.

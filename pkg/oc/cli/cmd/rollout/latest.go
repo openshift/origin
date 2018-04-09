@@ -129,7 +129,7 @@ func (o *RolloutLatestOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command
 
 	if o.output != "revision" {
 		o.printObj = func(obj runtime.Object, mapping *meta.RESTMapping, out io.Writer) error {
-			printer, err := f.PrinterForMapping(kcmdutil.ExtractCmdPrintOptions(cmd, false), mapping)
+			printer, err := kcmdutil.PrinterForOptions(kcmdutil.ExtractCmdPrintOptions(cmd, false))
 			if err != nil {
 				return err
 			}
@@ -205,6 +205,6 @@ func (o RolloutLatestOptions) RunRolloutLatest() error {
 		return o.printObj(dc, info.Mapping, o.out)
 	}
 
-	kcmdutil.PrintSuccess(o.mapper, o.output == "name", o.out, info.Mapping.Resource, info.Name, o.DryRun, "rolled out")
+	kcmdutil.PrintSuccess(o.output == "name", o.out, info.Object, o.DryRun, "rolled out")
 	return nil
 }

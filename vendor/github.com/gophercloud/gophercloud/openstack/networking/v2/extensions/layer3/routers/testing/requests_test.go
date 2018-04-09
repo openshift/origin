@@ -138,7 +138,8 @@ func TestCreate(t *testing.T) {
       "external_gateway_info":{
          "enable_snat": false,
          "network_id":"8ca37218-28ff-41cb-9b10-039601ea7e6b"
-      }
+	  },
+	  "availability_zone_hints": ["zone1", "zone2"]
    }
 }
 			`)
@@ -160,7 +161,8 @@ func TestCreate(t *testing.T) {
         "name": "foo_router",
         "admin_state_up": false,
         "tenant_id": "6b96ff0cb17a4b859e1e575d221683d3",
-        "distributed": false,
+		"distributed": false,
+		"availability_zone_hints": ["zone1", "zone2"],
         "id": "8604a0de-7f6b-409a-a47c-a1cc7bc77b2e"
     }
 }
@@ -174,9 +176,10 @@ func TestCreate(t *testing.T) {
 		EnableSNAT: &enableSNAT,
 	}
 	options := routers.CreateOpts{
-		Name:         "foo_router",
-		AdminStateUp: &asu,
-		GatewayInfo:  &gwi,
+		Name:                  "foo_router",
+		AdminStateUp:          &asu,
+		GatewayInfo:           &gwi,
+		AvailabilityZoneHints: []string{"zone1", "zone2"},
 	}
 	r, err := routers.Create(fake.ServiceClient(), options).Extract()
 	th.AssertNoErr(t, err)
@@ -189,6 +192,7 @@ func TestCreate(t *testing.T) {
 	th.AssertEquals(t, "foo_router", r.Name)
 	th.AssertEquals(t, false, r.AdminStateUp)
 	th.AssertDeepEquals(t, gwi, r.GatewayInfo)
+	th.AssertDeepEquals(t, []string{"zone1", "zone2"}, r.AvailabilityZoneHints)
 }
 
 func TestGet(t *testing.T) {
@@ -221,7 +225,8 @@ func TestGet(t *testing.T) {
         "name": "router1",
         "admin_state_up": true,
         "tenant_id": "d6554fe62e2f41efbb6e026fad5c1542",
-        "distributed": false,
+		"distributed": false,
+		"availability_zone_hints": ["zone1", "zone2"],
         "id": "a07eea83-7710-4860-931b-5fe220fae533"
     }
 }
@@ -243,6 +248,7 @@ func TestGet(t *testing.T) {
 	th.AssertEquals(t, n.TenantID, "d6554fe62e2f41efbb6e026fad5c1542")
 	th.AssertEquals(t, n.ID, "a07eea83-7710-4860-931b-5fe220fae533")
 	th.AssertDeepEquals(t, n.Routes, []routers.Route{{DestinationCIDR: "40.0.1.0/24", NextHop: "10.1.0.10"}})
+	th.AssertDeepEquals(t, n.AvailabilityZoneHints, []string{"zone1", "zone2"})
 }
 
 func TestUpdate(t *testing.T) {

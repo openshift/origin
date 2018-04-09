@@ -27,12 +27,13 @@ import (
 	"k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	netutil "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/apimachinery/pkg/util/wait"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/cmd/kubeadm/app/constants"
 )
 
-// Waiter is an interface for waiting for criterias in Kubernetes to happen
+// Waiter is an interface for waiting for criteria in Kubernetes to happen
 type Waiter interface {
 	// WaitForAPI waits for the API Server's /healthz endpoint to become "ok"
 	WaitForAPI() error
@@ -132,7 +133,8 @@ func (w *KubeWaiter) WaitForPodToDisappear(podName string) error {
 func (w *KubeWaiter) WaitForHealthyKubelet(initalTimeout time.Duration, healthzEndpoint string) error {
 	time.Sleep(initalTimeout)
 	return TryRunCommand(func() error {
-		resp, err := http.Get(healthzEndpoint)
+		client := &http.Client{Transport: netutil.SetOldTransportDefaults(&http.Transport{})}
+		resp, err := client.Get(healthzEndpoint)
 		if err != nil {
 			fmt.Printf("[kubelet-check] It seems like the kubelet isn't running or healthy.\n")
 			fmt.Printf("[kubelet-check] The HTTP call equal to 'curl -sSL %s' failed with error: %v.\n", healthzEndpoint, err)
@@ -193,7 +195,7 @@ func (w *KubeWaiter) WaitForStaticPodSingleHash(nodeName string, component strin
 }
 
 // WaitForStaticPodControlPlaneHashChange blocks until it timeouts or notices that the Mirror Pod (for the Static Pod, respectively) has changed
-// This implicitely means this function blocks until the kubelet has restarted the Static Pod in question
+// This implicitly means this function blocks until the kubelet has restarted the Static Pod in question
 func (w *KubeWaiter) WaitForStaticPodControlPlaneHashChange(nodeName, component, previousHash string) error {
 	return wait.PollImmediate(constants.APICallRetryInterval, w.timeout, func() (bool, error) {
 

@@ -4,25 +4,25 @@ import (
 	"path"
 
 	"k8s.io/client-go/informers"
-	"k8s.io/client-go/rest"
+	"k8s.io/kubernetes/cmd/kube-controller-manager/app/config"
 	"k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
 )
 
 var InformerFactoryOverride informers.SharedInformerFactory
 
-func ShimForOpenShift(controllerManager *options.CMServer, clientConfig *rest.Config) (func(), error) {
-	if len(controllerManager.OpenShiftConfig) == 0 {
+func ShimForOpenShift(controllerManagerOptions *options.KubeControllerManagerOptions, controllerManager *config.Config) (func(), error) {
+	if len(controllerManager.Extra.OpenShiftConfig) == 0 {
 		return func() {}, nil
 	}
 
 	// TODO this gets removed when no longer take flags and no longer build a recycler template
-	openshiftConfig, err := getOpenShiftConfig(controllerManager.OpenShiftConfig)
+	openshiftConfig, err := getOpenShiftConfig(controllerManager.Extra.OpenShiftConfig)
 	if err != nil {
 		return func() {}, err
 	}
 	// apply the config based controller manager flags.  They will override.
 	// TODO this should be replaced by the installer setting up the flags for us
-	if err := applyOpenShiftConfigFlags(controllerManager, openshiftConfig); err != nil {
+	if err := applyOpenShiftConfigFlags(controllerManagerOptions, controllerManager, openshiftConfig); err != nil {
 		return func() {}, err
 	}
 	// set up a non-default template
@@ -33,7 +33,7 @@ func ShimForOpenShift(controllerManager *options.CMServer, clientConfig *rest.Co
 	}
 
 	// TODO this should be replaced by using a flex volume to inject service serving cert CAs into pods instead of adding it to the sa token
-	if err := applyOpenShiftServiceServingCertCAFunc(path.Dir(controllerManager.OpenShiftConfig), openshiftConfig); err != nil {
+	if err := applyOpenShiftServiceServingCertCAFunc(path.Dir(controllerManager.Extra.OpenShiftConfig), openshiftConfig); err != nil {
 		return func() {}, err
 	}
 
@@ -45,13 +45,10 @@ func ShimForOpenShift(controllerManager *options.CMServer, clientConfig *rest.Co
 
 	// Overwrite the informers, because we have our custom generic informers for quota.
 	// TODO update quota to create its own informer like garbage collection
-	combinedInformers, err := NewInformers(clientConfig)
-	if err != nil {
+	if informers, err := newInformerFactory(controllerManager.Generic.Kubeconfig); err != nil {
 		return cleanupFn, err
-	}
-	InformerFactoryOverride = externalKubeInformersWithExtraGenerics{
-		SharedInformerFactory:   combinedInformers.GetExternalKubeInformers(),
-		genericResourceInformer: combinedInformers.ToGenericInformer(),
+	} else {
+		InformerFactoryOverride = informers
 	}
 
 	return cleanupFn, nil

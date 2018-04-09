@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2014-2015 VMware, Inc. All Rights Reserved.
+Copyright (c) 2014-2017 VMware, Inc. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -42,6 +42,18 @@ func (cmd *getenv) Process(ctx context.Context) error {
 		return err
 	}
 	return nil
+}
+
+func (cmd *getenv) Usage() string {
+	return "[NAME]..."
+}
+
+func (cmd *getenv) Description() string {
+	return `Read NAME environment variables from VM.
+
+Examples:
+  govc guest.getenv -vm $name
+  govc guest.getenv -vm $name HOME`
 }
 
 func (cmd *getenv) Run(ctx context.Context, f *flag.FlagSet) error {

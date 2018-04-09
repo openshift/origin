@@ -37,7 +37,7 @@ os::cmd::expect_success_and_text     'oc create -f test/testdata/oauth/client.ya
 # Create OAuth client authorization for client
 os::cmd::expect_success_and_text     'oc create -f test/testdata/oauth/clientauthorization.yaml' 'oauthclientauthorization "user1:test-oauth-client" created'
 # Delete client
-os::cmd::expect_success_and_text     'oc delete oauthclient test-oauth-client' 'oauthclient "test-oauth-client" deleted'
+os::cmd::expect_success_and_text     'oc delete oauthclient test-oauth-client' 'oauthclient.oauth.openshift.io "test-oauth-client" deleted'
 # Assert that migration/update still works even though the client authorization is no longer valid
 os::cmd::expect_success_and_text 'oc adm migrate storage --loglevel=6 --include=oauthclientauthorizations --confirm' 'PUT.*oauthclientauthorizations/user1:test-oauth-client'
 os::test::junit::declare_suite_end

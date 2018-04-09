@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2014-2015 VMware, Inc. All Rights Reserved.
+Copyright (c) 2014-2017 VMware, Inc. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -49,6 +49,14 @@ func (cmd *remove) Process(ctx context.Context) error {
 
 func (cmd *remove) Usage() string {
 	return "DEVICE..."
+}
+
+func (cmd *remove) Description() string {
+	return `Remove DEVICE from VM.
+
+Examples:
+  govc device.remove -vm $name cdrom-3000
+  govc device.remove -vm $name -keep disk-1000`
 }
 
 func (cmd *remove) Run(ctx context.Context, f *flag.FlagSet) error {

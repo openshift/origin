@@ -54,6 +54,7 @@ EOF
 
 function download-kube-env {
   # Fetch kube-env from GCE metadata server.
+  (umask 700;
   local -r tmp_kube_env="/tmp/kube-env.yaml"
   curl --fail --retry 5 --retry-delay 3 ${CURL_RETRY_CONNREFUSED} --silent --show-error \
     -H "X-Google-Metadata-Request: True" \
@@ -66,10 +67,12 @@ for k,v in yaml.load(sys.stdin).iteritems():
   print("readonly {var}={value}".format(var = k, value = pipes.quote(str(v))))
 ''' < "${tmp_kube_env}" > "${KUBE_HOME}/kube-env")
   rm -f "${tmp_kube_env}"
+  )
 }
 
 function download-kube-master-certs {
   # Fetch kube-env from GCE metadata server.
+  (umask 700;
   local -r tmp_kube_master_certs="/tmp/kube-master-certs.yaml"
   curl --fail --retry 5 --retry-delay 3 ${CURL_RETRY_CONNREFUSED} --silent --show-error \
     -H "X-Google-Metadata-Request: True" \
@@ -82,6 +85,7 @@ for k,v in yaml.load(sys.stdin).iteritems():
   print("readonly {var}={value}".format(var = k, value = pipes.quote(str(v))))
 ''' < "${tmp_kube_master_certs}" > "${KUBE_HOME}/kube-master-certs")
   rm -f "${tmp_kube_master_certs}"
+  )
 }
 
 function validate-hash {
@@ -132,6 +136,13 @@ function is-preloaded {
 
 function split-commas {
   echo $1 | tr "," "\n"
+}
+
+function remount-flexvolume-directory {
+  local -r flexvolume_plugin_dir=$1
+  mkdir -p $flexvolume_plugin_dir
+  mount --bind $flexvolume_plugin_dir $flexvolume_plugin_dir
+  mount -o remount,exec $flexvolume_plugin_dir
 }
 
 function install-gci-mounter-tools {
@@ -223,12 +234,12 @@ function install-kube-manifests {
   echo "Downloading k8s manifests tar"
   download-or-bust "${manifests_tar_hash}" "${manifests_tar_urls[@]}"
   tar xzf "${KUBE_HOME}/${manifests_tar}" -C "${dst_dir}" --overwrite
-  local -r kube_addon_registry="${KUBE_ADDON_REGISTRY:-gcr.io/google_containers}"
-  if [[ "${kube_addon_registry}" != "gcr.io/google_containers" ]]; then
+  local -r kube_addon_registry="${KUBE_ADDON_REGISTRY:-k8s.gcr.io}"
+  if [[ "${kube_addon_registry}" != "k8s.gcr.io" ]]; then
     find "${dst_dir}" -name \*.yaml -or -name \*.yaml.in | \
-      xargs sed -ri "s@(image:\s.*)gcr.io/google_containers@\1${kube_addon_registry}@"
+      xargs sed -ri "s@(image:\s.*)k8s.gcr.io@\1${kube_addon_registry}@"
     find "${dst_dir}" -name \*.manifest -or -name \*.json | \
-      xargs sed -ri "s@(image\":\s+\")gcr.io/google_containers@\1${kube_addon_registry}@"
+      xargs sed -ri "s@(image\":\s+\")k8s.gcr.io@\1${kube_addon_registry}@"
   fi
   cp "${dst_dir}/kubernetes/gci-trusty/gci-configure-helper.sh" "${KUBE_BIN}/configure-helper.sh"
   cp "${dst_dir}/kubernetes/gci-trusty/health-monitor.sh" "${KUBE_BIN}/health-monitor.sh"
@@ -331,6 +342,11 @@ function install-kube-binary-config {
 
   # Install gci mounter related artifacts to allow mounting storage volumes in GCI
   install-gci-mounter-tools
+
+  # Remount the Flexvolume directory with the "exec" option, if needed.
+  if [[ "${REMOUNT_VOLUME_PLUGIN_DIR:-}" == "true" && -n "${VOLUME_PLUGIN_DIR:-}" ]]; then
+    remount-flexvolume-directory "${VOLUME_PLUGIN_DIR}"
+  fi
 
   # Clean up.
   rm -rf "${KUBE_HOME}/kubernetes"

@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	fake "github.com/gophercloud/gophercloud/openstack/networking/v2/common"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/portsecurity"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/ports"
 	"github.com/gophercloud/gophercloud/pagination"
 	th "github.com/gophercloud/gophercloud/testhelper"
@@ -66,6 +67,36 @@ func TestList(t *testing.T) {
 	}
 }
 
+func TestListWithExtensions(t *testing.T) {
+	th.SetupHTTP()
+	defer th.TeardownHTTP()
+
+	th.Mux.HandleFunc("/v2.0/ports", func(w http.ResponseWriter, r *http.Request) {
+		th.TestMethod(t, r, "GET")
+		th.TestHeader(t, r, "X-Auth-Token", fake.TokenID)
+
+		w.Header().Add("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		fmt.Fprintf(w, ListResponse)
+	})
+
+	type portWithExt struct {
+		ports.Port
+		portsecurity.PortSecurityExt
+	}
+
+	var allPorts []portWithExt
+
+	allPages, err := ports.List(fake.ServiceClient(), ports.ListOpts{}).AllPages()
+	th.AssertNoErr(t, err)
+
+	err = ports.ExtractPortsInto(allPages, &allPorts)
+
+	th.AssertEquals(t, allPorts[0].Status, "ACTIVE")
+	th.AssertEquals(t, allPorts[0].PortSecurityEnabled, false)
+}
+
 func TestGet(t *testing.T) {
 	th.SetupHTTP()
 	defer th.TeardownHTTP()
@@ -97,6 +128,32 @@ func TestGet(t *testing.T) {
 	th.AssertDeepEquals(t, n.SecurityGroups, []string{})
 	th.AssertEquals(t, n.Status, "ACTIVE")
 	th.AssertEquals(t, n.DeviceID, "5e3898d7-11be-483e-9732-b2f5eccd2b2e")
+}
+
+func TestGetWithExtensions(t *testing.T) {
+	th.SetupHTTP()
+	defer th.TeardownHTTP()
+
+	th.Mux.HandleFunc("/v2.0/ports/46d4bfb9-b26e-41f3-bd2e-e6dcc1ccedb2", func(w http.ResponseWriter, r *http.Request) {
+		th.TestMethod(t, r, "GET")
+		th.TestHeader(t, r, "X-Auth-Token", fake.TokenID)
+
+		w.Header().Add("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		fmt.Fprintf(w, GetResponse)
+	})
+
+	var portWithExtensions struct {
+		ports.Port
+		portsecurity.PortSecurityExt
+	}
+
+	err := ports.Get(fake.ServiceClient(), "46d4bfb9-b26e-41f3-bd2e-e6dcc1ccedb2").ExtractInto(&portWithExtensions)
+	th.AssertNoErr(t, err)
+
+	th.AssertEquals(t, portWithExtensions.Status, "ACTIVE")
+	th.AssertEquals(t, portWithExtensions.PortSecurityEnabled, false)
 }
 
 func TestCreate(t *testing.T) {

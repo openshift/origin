@@ -488,8 +488,7 @@ updates:
 			return fmt.Errorf("at least one environment variable must be provided")
 		}
 
-		mapper, _ := f.Object()
-		kcmdutil.PrintSuccess(mapper, o.ShortOutput, o.Out, info.Mapping.Resource, info.Name, false, "updated")
+		kcmdutil.PrintSuccess(o.ShortOutput, o.Out, info.Object, false, "updated")
 	}
 	if failed {
 		return kcmdutil.ErrExit

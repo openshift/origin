@@ -138,7 +138,7 @@ service_db:
 	// handler for my_env.yaml
 	th.Mux.HandleFunc(urlparsed.Path, func(w http.ResponseWriter, r *http.Request) {
 		th.TestMethod(t, r, "GET")
-		w.Header().Set("Content-Type", "application/jason")
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		fmt.Fprintf(w, environmentContent)
 	})
@@ -150,7 +150,7 @@ service_db:
 	// handler for my_db.yaml
 	th.Mux.HandleFunc(urlparsed.Path, func(w http.ResponseWriter, r *http.Request) {
 		th.TestMethod(t, r, "GET")
-		w.Header().Set("Content-Type", "application/jason")
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		fmt.Fprintf(w, dbContent)
 	})
@@ -170,13 +170,20 @@ service_db:
 	th.AssertEquals(t, expectedEnvFilesContent, env.Files[fakeEnvURL])
 	th.AssertEquals(t, expectedDBFilesContent, env.Files[fakeDBURL])
 
+	// Update env's fileMaps to replace relative filenames by absolute URLs.
+	env.fileMaps = map[string]string{
+		"my_env.yaml": fakeEnvURL,
+		"my_db.yaml":  fakeDBURL,
+	}
 	env.fixFileRefs()
+
 	expectedParsed := map[string]interface{}{
-		"resource_registry": "2015-04-30",
-		"My::WP::Server":    fakeEnvURL,
-		"resources": map[string]interface{}{
-			"my_db_server": map[string]interface{}{
-				"OS::DBInstance": fakeDBURL,
+		"resource_registry": map[string]interface{}{
+			"My::WP::Server": fakeEnvURL,
+			"resources": map[string]interface{}{
+				"my_db_server": map[string]interface{}{
+					"OS::DBInstance": fakeDBURL,
+				},
 			},
 		},
 	}

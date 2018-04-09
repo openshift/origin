@@ -183,8 +183,7 @@ func (o *ReconcileClusterRoleBindingsOptions) RunReconcileClusterRoleBindings(cm
 		for _, item := range changedClusterRoleBindings {
 			list.Items = append(list.Items, item)
 		}
-		mapper, _ := f.Object()
-		fn := cmdutil.VersionedPrintObject(f.PrintObject, cmd, mapper, o.Out)
+		fn := cmdutil.VersionedPrintObject(kcmdutil.PrintObject, cmd, o.Out)
 		if err := fn(list); err != nil {
 			errs = append(errs, err)
 			return kutilerrors.NewAggregate(errs)

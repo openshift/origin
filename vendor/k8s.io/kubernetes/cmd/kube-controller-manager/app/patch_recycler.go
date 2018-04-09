@@ -10,15 +10,15 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
+	"k8s.io/kubernetes/cmd/kube-controller-manager/app/config"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/controller"
 	"k8s.io/kubernetes/pkg/volume"
 )
 
-func applyOpenShiftDefaultRecycler(controllerManager *options.CMServer, openshiftConfig map[string]interface{}) (func(), error) {
-	hostPathTemplateSet := len(controllerManager.VolumeConfiguration.PersistentVolumeRecyclerConfiguration.PodTemplateFilePathHostPath) != 0
-	nfsTemplateSet := len(controllerManager.VolumeConfiguration.PersistentVolumeRecyclerConfiguration.PodTemplateFilePathNFS) != 0
+func applyOpenShiftDefaultRecycler(controllerManager *config.Config, openshiftConfig map[string]interface{}) (func(), error) {
+	hostPathTemplateSet := len(controllerManager.Generic.ComponentConfig.VolumeConfiguration.PersistentVolumeRecyclerConfiguration.PodTemplateFilePathHostPath) != 0
+	nfsTemplateSet := len(controllerManager.Generic.ComponentConfig.VolumeConfiguration.PersistentVolumeRecyclerConfiguration.PodTemplateFilePathNFS) != 0
 
 	// if both are set, nothing to do
 	if hostPathTemplateSet && nfsTemplateSet {
@@ -57,10 +57,10 @@ func applyOpenShiftDefaultRecycler(controllerManager *options.CMServer, openshif
 	}
 
 	if !hostPathTemplateSet {
-		controllerManager.VolumeConfiguration.PersistentVolumeRecyclerConfiguration.PodTemplateFilePathHostPath = templateFilename
+		controllerManager.Generic.ComponentConfig.VolumeConfiguration.PersistentVolumeRecyclerConfiguration.PodTemplateFilePathHostPath = templateFilename
 	}
 	if !nfsTemplateSet {
-		controllerManager.VolumeConfiguration.PersistentVolumeRecyclerConfiguration.PodTemplateFilePathNFS = templateFilename
+		controllerManager.Generic.ComponentConfig.VolumeConfiguration.PersistentVolumeRecyclerConfiguration.PodTemplateFilePathNFS = templateFilename
 	}
 
 	return cleanupFunction, nil
@@ -111,8 +111,8 @@ func getRecyclerImage(config map[string]interface{}) (string, error) {
 	return imageTemplate.Expand("recycler")
 }
 
-func createPVRecyclerSA(ctx ControllerContext, clientBuilder controller.ControllerClientBuilder) error {
-	if len(ctx.Options.OpenShiftConfig) == 0 {
+func createPVRecyclerSA(openshiftConfig string, clientBuilder controller.ControllerClientBuilder) error {
+	if len(openshiftConfig) == 0 {
 		return nil
 	}
 

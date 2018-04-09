@@ -4,7 +4,7 @@ This folder contains an [OpenAPI specification][openapi] for Kubernetes API.
 
 ## Vendor Extensions
 
-Kuberntes extends OpenAPI using these extensions. Note the version that
+Kubernetes extends OpenAPI using these extensions. Note the version that
 extensions has been added.
 
 ### `x-kubernetes-group-version-kind`
@@ -57,4 +57,4 @@ For example:
 ### `x-kubernetes-patch-strategy` and `x-kubernetes-patch-merge-key`
 
 Some of the definitions may have these extensions. For more information about PatchStrategy and PatchMergeKey see
-[strategic-merge-patch] (https://github.com/kubernetes/community/blob/master/contributors/devel/strategic-merge-patch.md).
+[strategic-merge-patch](https://git.k8s.io/community/contributors/devel/strategic-merge-patch.md).

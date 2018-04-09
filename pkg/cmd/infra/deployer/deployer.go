@@ -120,7 +120,6 @@ func (cfg *config) RunDeployer() error {
 
 // NewDeployer makes a new Deployer from a kube client.
 func NewDeployer(client kclientset.Interface, images imageclientinternal.Interface, out, errOut io.Writer, until string) *Deployer {
-	scaler, _ := kubectl.ScalerFor(kapi.Kind("ReplicationController"), client)
 	return &Deployer{
 		out:    out,
 		errOut: errOut,
@@ -131,7 +130,7 @@ func NewDeployer(client kclientset.Interface, images imageclientinternal.Interfa
 		getDeployments: func(namespace, configName string) (*kapi.ReplicationControllerList, error) {
 			return client.Core().ReplicationControllers(namespace).List(metav1.ListOptions{LabelSelector: appsutil.ConfigSelector(configName).String()})
 		},
-		scaler: scaler,
+		scaler: appsutil.NewReplicationControllerV1Scaler(client),
 		strategyFor: func(config *appsapi.DeploymentConfig) (strategy.DeploymentStrategy, error) {
 			switch config.Spec.Strategy.Type {
 			case appsapi.DeploymentStrategyTypeRecreate:

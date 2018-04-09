@@ -62,12 +62,35 @@ type ListOptsBuilder interface {
 	ToSnapshotListQuery() (string, error)
 }
 
-// ListOpts hold options for listing Snapshots. It is passed to the
-// snapshots.List function.
 type ListOpts struct {
-	Name     string `q:"name"`
-	Status   string `q:"status"`
+	// AllTenants will retrieve snapshots of all tenants/projects.
+	AllTenants bool `q:"all_tenants"`
+
+	// Name will filter by the specified snapshot name.
+	Name string `q:"name"`
+
+	// Status will filter by the specified status.
+	Status string `q:"status"`
+
+	// TenantID will filter by a specific tenant/project ID.
+	// Setting AllTenants is required to use this.
+	TenantID string `q:"project_id"`
+
+	// VolumeID will filter by a specified volume ID.
 	VolumeID string `q:"volume_id"`
+
+	// Comma-separated list of sort keys and optional sort directions in the
+	// form of <key>[:<direction>].
+	Sort string `q:"sort"`
+
+	// Requests a page size of items.
+	Limit int `q:"limit"`
+
+	// Used in conjunction with limit to return a slice of items.
+	Offset int `q:"offset"`
+
+	// The ID of the last-seen item.
+	Marker string `q:"marker"`
 }
 
 // ToSnapshotListQuery formats a ListOpts into a query string.
@@ -88,7 +111,7 @@ func List(client *gophercloud.ServiceClient, opts ListOptsBuilder) pagination.Pa
 		url += query
 	}
 	return pagination.NewPager(client, url, func(r pagination.PageResult) pagination.Page {
-		return SnapshotPage{pagination.SinglePageBase(r)}
+		return SnapshotPage{pagination.LinkedPageBase{PageResult: r}}
 	})
 }
 

@@ -400,7 +400,7 @@ func (o *StartBuildOptions) Run() error {
 		}
 	}
 
-	kcmdutil.PrintSuccess(o.Mapper, o.ShortOutput, o.Out, "build", newBuild.Name, false, "started")
+	kcmdutil.PrintSuccess(o.ShortOutput, o.Out, newBuild, false, "started")
 
 	// Stream the logs from the build
 	if o.Follow {
@@ -750,7 +750,7 @@ func (o *StartBuildOptions) RunStartBuildWebHook() error {
 				return err
 			}
 
-			kcmdutil.PrintSuccess(o.Mapper, o.ShortOutput, o.Out, "build", newBuild.Name, false, "started")
+			kcmdutil.PrintSuccess(o.ShortOutput, o.Out, &newBuild, false, "started")
 		}
 	}
 

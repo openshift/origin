@@ -1134,6 +1134,7 @@ func TestMakeDeployerPod(t *testing.T) {
 	container := controller.makeDeployerContainer(&config.Spec.Strategy)
 	container.Resources = appsutil.CopyApiResourcesToV1Resources(&config.Spec.Strategy.Resources)
 	defaultGracePeriod := int64(10)
+	defaultShareProcessNamespace := false
 	maxDeploymentDurationSeconds := appsapi.MaxDeploymentDurationSeconds
 
 	for i := 1; i <= 25; i++ {
@@ -1160,6 +1161,7 @@ func TestMakeDeployerPod(t *testing.T) {
 				p.Spec.TerminationGracePeriodSeconds = &defaultGracePeriod
 				p.Spec.ActiveDeadlineSeconds = &maxDeploymentDurationSeconds
 				p.Spec.ServiceAccountName = "sa:test"
+				p.Spec.ShareProcessNamespace = &defaultShareProcessNamespace
 
 				// FIXME: These are weird or missing. If you get an error below, consider
 				// adding this field into deployer controller or to this list:

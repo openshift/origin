@@ -106,8 +106,8 @@ func TestUsage(t *testing.T) {
 	if GetCommandLine().Parse([]string{"--x"}) == nil {
 		t.Error("parse did not fail for unknown flag")
 	}
-	if !called {
-		t.Error("did not call Usage for unknown flag")
+	if called {
+		t.Error("did call Usage while using ContinueOnError")
 	}
 }
 
@@ -168,6 +168,7 @@ func testParse(f *FlagSet, t *testing.T) {
 	bool3Flag := f.Bool("bool3", false, "bool3 value")
 	intFlag := f.Int("int", 0, "int value")
 	int8Flag := f.Int8("int8", 0, "int value")
+	int16Flag := f.Int16("int16", 0, "int value")
 	int32Flag := f.Int32("int32", 0, "int value")
 	int64Flag := f.Int64("int64", 0, "int64 value")
 	uintFlag := f.Uint("uint", 0, "uint value")
@@ -192,6 +193,7 @@ func testParse(f *FlagSet, t *testing.T) {
 		"--bool3=false",
 		"--int=22",
 		"--int8=-8",
+		"--int16=-16",
 		"--int32=-32",
 		"--int64=0x23",
 		"--uint", "24",
@@ -236,8 +238,14 @@ func testParse(f *FlagSet, t *testing.T) {
 	if *int8Flag != -8 {
 		t.Error("int8 flag should be 0x23, is ", *int8Flag)
 	}
+	if *int16Flag != -16 {
+		t.Error("int16 flag should be -16, is ", *int16Flag)
+	}
 	if v, err := f.GetInt8("int8"); err != nil || v != *int8Flag {
 		t.Error("GetInt8 does not work.")
+	}
+	if v, err := f.GetInt16("int16"); err != nil || v != *int16Flag {
+		t.Error("GetInt16 does not work.")
 	}
 	if *int32Flag != -32 {
 		t.Error("int32 flag should be 0x23, is ", *int32Flag)
@@ -335,7 +343,7 @@ func testParse(f *FlagSet, t *testing.T) {
 
 func testParseAll(f *FlagSet, t *testing.T) {
 	if f.Parsed() {
-		fmt.Errorf("f.Parse() = true before Parse")
+		t.Error("f.Parse() = true before Parse")
 	}
 	f.BoolP("boola", "a", false, "bool value")
 	f.BoolP("boolb", "b", false, "bool2 value")
@@ -374,7 +382,7 @@ func testParseAll(f *FlagSet, t *testing.T) {
 		return nil
 	}
 	if err := f.ParseAll(args, store); err != nil {
-		t.Errorf("expected no error, got ", err)
+		t.Errorf("expected no error, got %s", err)
 	}
 	if !f.Parsed() {
 		t.Errorf("f.Parse() = false after Parse")
@@ -444,6 +452,42 @@ func TestShorthand(t *testing.T) {
 	if f.ArgsLenAtDash() != 1 {
 		t.Errorf("expected argsLenAtDash %d got %d", f.ArgsLenAtDash(), 1)
 	}
+}
+
+func TestShorthandLookup(t *testing.T) {
+	f := NewFlagSet("shorthand", ContinueOnError)
+	if f.Parsed() {
+		t.Error("f.Parse() = true before Parse")
+	}
+	f.BoolP("boola", "a", false, "bool value")
+	f.BoolP("boolb", "b", false, "bool2 value")
+	args := []string{
+		"-ab",
+	}
+	f.SetOutput(ioutil.Discard)
+	if err := f.Parse(args); err != nil {
+		t.Error("expected no error, got ", err)
+	}
+	if !f.Parsed() {
+		t.Error("f.Parse() = false after Parse")
+	}
+	flag := f.ShorthandLookup("a")
+	if flag == nil {
+		t.Errorf("f.ShorthandLookup(\"a\") returned nil")
+	}
+	if flag.Name != "boola" {
+		t.Errorf("f.ShorthandLookup(\"a\") found %q instead of \"boola\"", flag.Name)
+	}
+	flag = f.ShorthandLookup("")
+	if flag != nil {
+		t.Errorf("f.ShorthandLookup(\"\") did not return nil")
+	}
+	defer func() {
+		recover()
+	}()
+	flag = f.ShorthandLookup("ab")
+	// should NEVER get here. lookup should panic. defer'd func should recover it.
+	t.Errorf("f.ShorthandLookup(\"ab\") did not panic")
 }
 
 func TestParse(t *testing.T) {
@@ -568,7 +612,6 @@ func aliasAndWordSepFlagNames(f *FlagSet, name string) NormalizedName {
 	switch name {
 	case oldName:
 		name = newName
-		break
 	}
 
 	return NormalizedName(name)
@@ -619,6 +662,70 @@ func TestNormalizationFuncShouldChangeFlagName(t *testing.T) {
 	f.Bool("valid_flag", false, "bool value")
 	if f.Lookup("valid_flag").Name != "valid.flag" {
 		t.Error("The new flag should have the name 'valid.flag' instead of ", f.Lookup("valid_flag").Name)
+	}
+}
+
+// Related to https://github.com/spf13/cobra/issues/521.
+func TestNormalizationSharedFlags(t *testing.T) {
+	f := NewFlagSet("set f", ContinueOnError)
+	g := NewFlagSet("set g", ContinueOnError)
+	nfunc := wordSepNormalizeFunc
+	testName := "valid_flag"
+	normName := nfunc(nil, testName)
+	if testName == string(normName) {
+		t.Error("TestNormalizationSharedFlags meaningless: the original and normalized flag names are identical:", testName)
+	}
+
+	f.Bool(testName, false, "bool value")
+	g.AddFlagSet(f)
+
+	f.SetNormalizeFunc(nfunc)
+	g.SetNormalizeFunc(nfunc)
+
+	if len(f.formal) != 1 {
+		t.Error("Normalizing flags should not result in duplications in the flag set:", f.formal)
+	}
+	if f.orderedFormal[0].Name != string(normName) {
+		t.Error("Flag name not normalized")
+	}
+	for k := range f.formal {
+		if k != "valid.flag" {
+			t.Errorf("The key in the flag map should have been normalized: wanted \"%s\", got \"%s\" instead", normName, k)
+		}
+	}
+
+	if !reflect.DeepEqual(f.formal, g.formal) || !reflect.DeepEqual(f.orderedFormal, g.orderedFormal) {
+		t.Error("Two flag sets sharing the same flags should stay consistent after being normalized. Original set:", f.formal, "Duplicate set:", g.formal)
+	}
+}
+
+func TestNormalizationSetFlags(t *testing.T) {
+	f := NewFlagSet("normalized", ContinueOnError)
+	nfunc := wordSepNormalizeFunc
+	testName := "valid_flag"
+	normName := nfunc(nil, testName)
+	if testName == string(normName) {
+		t.Error("TestNormalizationSetFlags meaningless: the original and normalized flag names are identical:", testName)
+	}
+
+	f.Bool(testName, false, "bool value")
+	f.Set(testName, "true")
+	f.SetNormalizeFunc(nfunc)
+
+	if len(f.formal) != 1 {
+		t.Error("Normalizing flags should not result in duplications in the flag set:", f.formal)
+	}
+	if f.orderedFormal[0].Name != string(normName) {
+		t.Error("Flag name not normalized")
+	}
+	for k := range f.formal {
+		if k != "valid.flag" {
+			t.Errorf("The key in the flag map should have been normalized: wanted \"%s\", got \"%s\" instead", normName, k)
+		}
+	}
+
+	if !reflect.DeepEqual(f.formal, f.actual) {
+		t.Error("The map of set flags should get normalized. Formal:", f.formal, "Actual:", f.actual)
 	}
 }
 
@@ -936,21 +1043,23 @@ const defaultOutput = `      --A                         for bootstrapping, allo
       --Alongflagname             disable bounds checking
   -C, --CCC                       a boolean defaulting to true (default true)
       --D path                    set relative path for local imports
+  -E, --EEE num[=1234]            a num with NoOptDefVal (default 4321)
       --F number                  a non-zero number (default 2.7)
       --G float                   a float that defaults to zero
       --IP ip                     IP address with no default
       --IPMask ipMask             Netmask address with no default
       --IPNet ipNet               IP network with no default
-      --Ints intSlice             int slice with zero default
+      --Ints ints                 int slice with zero default
       --N int                     a non-zero int (default 27)
       --ND1 string[="bar"]        a string with NoOptDefVal (default "foo")
       --ND2 num[=4321]            a num with NoOptDefVal (default 1234)
       --StringArray stringArray   string array with zero default
-      --StringSlice stringSlice   string slice with zero default
+      --StringSlice strings       string slice with zero default
       --Z int                     an int that defaults to zero
       --custom custom             custom Value implementation
       --customP custom            a VarP with default (default 10)
       --maxT timeout              set timeout for dial
+  -v, --verbose count             verbosity
 `
 
 // Custom value that satisfies the Value interface.
@@ -987,8 +1096,11 @@ func TestPrintDefaults(t *testing.T) {
 	fs.Lookup("ND1").NoOptDefVal = "bar"
 	fs.Int("ND2", 1234, "a `num` with NoOptDefVal")
 	fs.Lookup("ND2").NoOptDefVal = "4321"
+	fs.IntP("EEE", "E", 4321, "a `num` with NoOptDefVal")
+	fs.ShorthandLookup("E").NoOptDefVal = "1234"
 	fs.StringSlice("StringSlice", []string{}, "string slice with zero default")
 	fs.StringArray("StringArray", []string{}, "string array with zero default")
+	fs.CountP("verbose", "v", "verbosity")
 
 	var cv customValue
 	fs.Var(&cv, "custom", "custom Value implementation")
@@ -1003,4 +1115,44 @@ func TestPrintDefaults(t *testing.T) {
 		fmt.Println("\n" + defaultOutput)
 		t.Errorf("got %q want %q\n", got, defaultOutput)
 	}
+}
+
+func TestVisitAllFlagOrder(t *testing.T) {
+	fs := NewFlagSet("TestVisitAllFlagOrder", ContinueOnError)
+	fs.SortFlags = false
+	// https://github.com/spf13/pflag/issues/120
+	fs.SetNormalizeFunc(func(f *FlagSet, name string) NormalizedName {
+		return NormalizedName(name)
+	})
+
+	names := []string{"C", "B", "A", "D"}
+	for _, name := range names {
+		fs.Bool(name, false, "")
+	}
+
+	i := 0
+	fs.VisitAll(func(f *Flag) {
+		if names[i] != f.Name {
+			t.Errorf("Incorrect order. Expected %v, got %v", names[i], f.Name)
+		}
+		i++
+	})
+}
+
+func TestVisitFlagOrder(t *testing.T) {
+	fs := NewFlagSet("TestVisitFlagOrder", ContinueOnError)
+	fs.SortFlags = false
+	names := []string{"C", "B", "A", "D"}
+	for _, name := range names {
+		fs.Bool(name, false, "")
+		fs.Set(name, "true")
+	}
+
+	i := 0
+	fs.Visit(func(f *Flag) {
+		if names[i] != f.Name {
+			t.Errorf("Incorrect order. Expected %v, got %v", names[i], f.Name)
+		}
+		i++
+	})
 }

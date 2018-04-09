@@ -3,6 +3,10 @@ options:
     type: boolean
     default: True
     description: Deploy the Kubernetes Dashboard and Heapster addons
+  enable-kube-dns:
+    type: boolean
+    default: True
+    description: Deploy kube-dns addon
   dns_domain:
     type: string
     default: cluster.local
@@ -29,7 +33,7 @@ options:
       detected on a worker node.
   channel:
     type: string
-    default: "1.8/stable"
+    default: "1.9/stable"
     description: |
       Snap channel to install Kubernetes master services from
   client_password:
@@ -76,3 +80,9 @@ options:
     description: |
       When true, master nodes will not be upgraded until the user triggers
       it manually by running the upgrade action.
+  storage-backend:
+    type: string
+    default: "auto"
+    description: |
+      The storage backend for kube-apiserver persistence. Can be "etcd2", "etcd3", or
+      "auto". Auto mode will select etcd3 on new installations, or etcd2 on upgrades.

@@ -47,7 +47,7 @@ const defaultBoilerPlate = `
 var (
 	completionLong = dedent.Dedent(`
 		Output shell completion code for the specified shell (bash or zsh).
-		The shell code must be evalutated to provide interactive
+		The shell code must be evaluated to provide interactive
 		completion of kubeadm commands. This can be done by sourcing it from
 		the .bash_profile.
 
@@ -210,7 +210,7 @@ __kubeadm_get_comp_words_by_ref() {
 __kubeadm_filedir() {
 	local RET OLD_IFS w qw
 
-	__debug "_filedir $@ cur=$cur"
+	__kubectl_debug "_filedir $@ cur=$cur"
 	if [[ "$1" = \~* ]]; then
 		# somehow does not work. Maybe, zsh does not call this at all
 		eval echo "$1"
@@ -227,7 +227,7 @@ __kubeadm_filedir() {
 	fi
 	IFS="$OLD_IFS"
 
-	IFS="," __debug "RET=${RET[@]} len=${#RET[@]}"
+	IFS="," __kubectl_debug "RET=${RET[@]} len=${#RET[@]}"
 
 	for w in ${RET[@]}; do
 		if [[ ! "${w}" = "${cur}"* ]]; then

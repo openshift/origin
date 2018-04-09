@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2014-2015 VMware, Inc. All Rights Reserved.
+Copyright (c) 2014-2017 VMware, Inc. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -61,6 +61,22 @@ func (cmd *start) Process(ctx context.Context) error {
 		return err
 	}
 	return nil
+}
+
+func (cmd *start) Usage() string {
+	return "PATH [ARG]..."
+}
+
+func (cmd *start) Description() string {
+	return `Start program in VM.
+
+The process can have its status queried with govc guest.ps.
+When the process completes, its exit code and end time will be available for 5 minutes after completion.
+
+Examples:
+  govc guest.start -vm $name /bin/mount /dev/hdb1 /data
+  pid=$(govc guest.start -vm $name /bin/long-running-thing)
+  govc guest.ps -vm $name -p $pid -X`
 }
 
 func (cmd *start) Run(ctx context.Context, f *flag.FlagSet) error {

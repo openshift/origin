@@ -2,6 +2,9 @@
 
 # Root directory of integration tests.
 INTEGRATION_ROOT=$(dirname "$(readlink -f "$BASH_SOURCE")")
+
+. ${INTEGRATION_ROOT}/multi-arch.bash
+
 RUNC="${INTEGRATION_ROOT}/../../runc"
 RECVTTY="${INTEGRATION_ROOT}/../../contrib/cmd/recvtty/recvtty"
 GOPATH="$(mktemp -d --tmpdir runc-integration-gopath.XXXXXX)"
@@ -14,7 +17,8 @@ BUSYBOX_IMAGE="$BATS_TMPDIR/busybox.tar"
 BUSYBOX_BUNDLE="$BATS_TMPDIR/busyboxtest"
 
 # hello-world in tar format
-HELLO_IMAGE="$TESTDATA/hello-world.tar"
+HELLO_FILE=`get_hello`
+HELLO_IMAGE="$TESTDATA/$HELLO_FILE"
 HELLO_BUNDLE="$BATS_TMPDIR/hello-world"
 
 # CRIU PATH
@@ -32,9 +36,11 @@ ROOT=$(mktemp -d "$BATS_TMPDIR/runc.XXXXXX")
 # Path to console socket.
 CONSOLE_SOCKET="$BATS_TMPDIR/console.sock"
 
-# Cgroup mount
+# Cgroup paths
 CGROUP_MEMORY_BASE_PATH=$(grep "cgroup" /proc/self/mountinfo | gawk 'toupper($NF) ~ /\<MEMORY\>/ { print $5; exit }')
 CGROUP_CPU_BASE_PATH=$(grep "cgroup" /proc/self/mountinfo | gawk 'toupper($NF) ~ /\<CPU\>/ { print $5; exit }')
+CGROUPS_PATH="/runc-cgroups-integration-test/test-cgroup"
+CGROUP_MEMORY="${CGROUP_MEMORY_BASE_PATH}${CGROUPS_PATH}"
 
 # CONFIG_MEMCG_KMEM support
 KMEM="${CGROUP_MEMORY_BASE_PATH}/memory.kmem.limit_in_bytes"
@@ -58,15 +64,67 @@ function __runc() {
 	"$RUNC" --log /proc/self/fd/2 --root "$ROOT" "$@"
 }
 
-# Wrapper for runc spec.
+# Wrapper for runc spec, which takes only one argument (the bundle path).
 function runc_spec() {
-	local args=""
+	! [[ "$#" > 1 ]]
+
+	local args=()
+	local bundle=""
 
 	if [ "$ROOTLESS" -ne 0 ]; then
-		args+="--rootless"
+		args+=("--rootless")
+	fi
+	if [ "$#" -ne 0 ]; then
+		bundle="$1"
+		args+=("--bundle" "$bundle")
 	fi
 
-	runc spec $args "$@"
+	runc spec "${args[@]}"
+
+	# Always add additional mappings if we have idmaps.
+	if [[ "$ROOTLESS" -ne 0 ]] && [[ "$ROOTLESS_FEATURES" == *"idmap"* ]]; then
+		runc_rootless_idmap "$bundle"
+	fi
+
+	# Ensure config.json contains linux.resources
+	if [[ "$ROOTLESS" -ne 0 ]] && [[ "$ROOTLESS_FEATURES" == *"cgroup"* ]]; then
+		runc_rootless_cgroup "$bundle"
+	fi
+}
+
+# Shortcut to add additional uids and gids, based on the values set as part of
+# a rootless configuration.
+function runc_rootless_idmap() {
+	bundle="${1:-.}"
+	cat "$bundle/config.json" \
+		| jq '.mounts |= map((select(.type == "devpts") | .options += ["gid=5"]) // .)' \
+		| jq '.linux.uidMappings |= .+ [{"hostID": '"$ROOTLESS_UIDMAP_START"', "containerID": 1000, "size": '"$ROOTLESS_UIDMAP_LENGTH"'}]' \
+		| jq '.linux.gidMappings |= .+ [{"hostID": '"$ROOTLESS_GIDMAP_START"', "containerID": 100, "size": 1}]' \
+		| jq '.linux.gidMappings |= .+ [{"hostID": '"$(($ROOTLESS_GIDMAP_START+10))"', "containerID": 1, "size": 20}]' \
+		| jq '.linux.gidMappings |= .+ [{"hostID": '"$(($ROOTLESS_GIDMAP_START+100))"', "containerID": 1000, "size": '"$(($ROOTLESS_GIDMAP_LENGTH-1000))"'}]' \
+		>"$bundle/config.json.tmp"
+	mv "$bundle/config.json"{.tmp,}
+}
+
+# Shortcut to add empty resources as part of a rootless configuration.
+function runc_rootless_cgroup() {
+	bundle="${1:-.}"
+	cat "$bundle/config.json" \
+		| jq '.linux.resources |= .+ {"memory":{},"cpu":{},"blockio":{},"pids":{}}' \
+		>"$bundle/config.json.tmp"
+	mv "$bundle/config.json"{.tmp,}
+}
+
+# Helper function to set cgroupsPath to the value of $CGROUPS_PATH
+function set_cgroups_path() {
+  bundle="${1:-.}"
+  sed -i 's/\("linux": {\)/\1\n    "cgroupsPath": "\/runc-cgroups-integration-test\/test-cgroup",/' "$bundle/config.json"
+}
+
+# Helper function to set a resouces limit
+function set_resources_limit() {
+  bundle="${1:-.}"
+  sed -i 's/\("linux": {\)/\1\n   "resources": { "pids": { "limit": 100 } },/'  "$bundle/config.json"
 }
 
 # Fails the current test, providing the error given.
@@ -90,14 +148,34 @@ function requires() {
 				skip "test requires ${var}"
 			fi
 			;;
+		rootless)
+			if [ "$ROOTLESS" -eq 0 ]; then
+				skip "test requires ${var}"
+			fi
+			;;
+		rootless_idmap)
+			if [[ "$ROOTLESS_FEATURES" != *"idmap"* ]]; then
+				skip "test requires ${var}"
+			fi
+			;;
+		rootless_cgroup)
+			if [[ "$ROOTLESS_FEATURES" != *"cgroup"* ]]; then
+				skip "test requires ${var}"
+			fi
+			;;
+		rootless_no_cgroup)
+			if [[ "$ROOTLESS_FEATURES" == *"cgroup"* ]]; then
+				skip "test requires ${var}"
+			fi
+			;;
 		cgroups_kmem)
 			if [ ! -e "$KMEM" ]; then
-				skip "Test requires ${var}."
+				skip "Test requires ${var}"
 			fi
 			;;
 		cgroups_rt)
 			if [ ! -e "$RT_PERIOD" ]; then
-				skip "Test requires ${var}."
+				skip "Test requires ${var}"
 			fi
 			;;
 		*)
@@ -196,7 +274,7 @@ function setup_busybox() {
 		BUSYBOX_IMAGE="/testdata/busybox.tar"
 	fi
 	if [ ! -e $BUSYBOX_IMAGE ]; then
-		curl -o $BUSYBOX_IMAGE -sSL 'https://github.com/docker-library/busybox/raw/a0558a9006ce0dd6f6ec5d56cfd3f32ebeeb815f/glibc/busybox.tar.xz'
+		curl -o $BUSYBOX_IMAGE -sSL `get_busybox`
 	fi
 	tar --exclude './dev/*' -C "$BUSYBOX_BUNDLE"/rootfs -xf "$BUSYBOX_IMAGE"
 	cd "$BUSYBOX_BUNDLE"

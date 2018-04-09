@@ -21,7 +21,8 @@ const ListResponse = `
             ],
             "id": "d80b1a3b-4fc1-49f3-952e-1e2ab7081d8b",
             "security_groups": [],
-            "device_id": "9ae135f4-b6e0-4dad-9e91-3c223e385824"
+            "device_id": "9ae135f4-b6e0-4dad-9e91-3c223e385824",
+            "port_security_enabled": false
         }
     ]
 }

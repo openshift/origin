@@ -55,6 +55,9 @@ import (
 	clientset "k8s.io/client-go/kubernetes"
 	kubeletapis "k8s.io/kubernetes/pkg/kubelet/apis"
 	"k8s.io/kubernetes/test/e2e/framework"
+	"k8s.io/kubernetes/test/e2e/storage/utils"
+	vspheretest "k8s.io/kubernetes/test/e2e/storage/vsphere"
+	imageutils "k8s.io/kubernetes/test/utils/image"
 )
 
 func DeleteCinderVolume(name string) error {
@@ -79,7 +82,7 @@ func DeleteCinderVolume(name string) error {
 }
 
 // These tests need privileged containers, which are disabled by default.
-var _ = SIGDescribe("Volumes", func() {
+var _ = utils.SIGDescribe("Volumes", func() {
 	f := framework.NewDefaultFramework("volume")
 
 	// note that namespace deletion is handled by delete-namespace flag
@@ -258,14 +261,14 @@ var _ = SIGDescribe("Volumes", func() {
 			config := framework.VolumeTestConfig{
 				Namespace:   namespace.Name,
 				Prefix:      "cephfs",
-				ServerImage: framework.CephServerImage,
+				ServerImage: imageutils.GetE2EImage(imageutils.VolumeCephServer),
 				ServerPorts: []int{6789},
 			}
 
 			defer framework.VolumeTestCleanup(f, config)
 			_, serverIP := framework.CreateStorageServer(cs, config)
 			By("sleeping a bit to give ceph server time to initialize")
-			time.Sleep(20 * time.Second)
+			time.Sleep(framework.VolumeServerPodStartupSleep)
 
 			// create ceph secret
 			secret := &v1.Secret{
@@ -500,24 +503,18 @@ var _ = SIGDescribe("Volumes", func() {
 	Describe("vsphere [Feature:Volumes]", func() {
 		It("should be mountable", func() {
 			framework.SkipUnlessProviderIs("vsphere")
+			vspheretest.Bootstrap(f)
+			nodeInfo := vspheretest.GetReadySchedulableRandomNodeInfo()
 			var volumePath string
 			config := framework.VolumeTestConfig{
 				Namespace: namespace.Name,
 				Prefix:    "vsphere",
 			}
-			By("creating a test vsphere volume")
-			c, err := framework.LoadClientset()
-			if err != nil {
-				return
-			}
-			vsp, err := getVSphere(c)
-			Expect(err).NotTo(HaveOccurred())
-
-			volumePath, err = createVSphereVolume(vsp, nil)
+			volumePath, err := nodeInfo.VSphere.CreateVolume(&vspheretest.VolumeOptions{}, nodeInfo.DataCenterRef)
 			Expect(err).NotTo(HaveOccurred())
 
 			defer func() {
-				vsp.DeleteVolume(volumePath)
+				nodeInfo.VSphere.DeleteVolume(volumePath, nodeInfo.DataCenterRef)
 			}()
 
 			defer func() {

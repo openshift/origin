@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2014-2015 VMware, Inc. All Rights Reserved.
+Copyright (c) 2014-2017 VMware, Inc. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,13 +19,14 @@ package guest
 import (
 	"context"
 	"flag"
+	"strconv"
 
 	"github.com/vmware/govmomi/govc/cli"
+	"github.com/vmware/govmomi/vim25/types"
 )
 
 type chmod struct {
 	*GuestFlag
-	*FileAttrFlag
 }
 
 func init() {
@@ -35,25 +36,42 @@ func init() {
 func (cmd *chmod) Register(ctx context.Context, f *flag.FlagSet) {
 	cmd.GuestFlag, ctx = newGuestFlag(ctx)
 	cmd.GuestFlag.Register(ctx, f)
-	cmd.FileAttrFlag, ctx = newFileAttrFlag(ctx)
-	cmd.FileAttrFlag.Register(ctx, f)
 }
 
 func (cmd *chmod) Process(ctx context.Context) error {
 	if err := cmd.GuestFlag.Process(ctx); err != nil {
 		return err
 	}
-	if err := cmd.FileAttrFlag.Process(ctx); err != nil {
-		return err
-	}
 	return nil
 }
 
+func (cmd *chmod) Usage() string {
+	return "MODE FILE"
+}
+
+func (cmd *chmod) Description() string {
+	return `Change FILE MODE on VM.
+
+Examples:
+  govc guest.chmod -vm $name 0644 /var/log/foo.log`
+}
+
 func (cmd *chmod) Run(ctx context.Context, f *flag.FlagSet) error {
+	if f.NArg() != 2 {
+		return flag.ErrHelp
+	}
+
 	m, err := cmd.FileManager()
 	if err != nil {
 		return err
 	}
 
-	return m.ChangeFileAttributes(ctx, cmd.Auth(), f.Arg(0), cmd.Attr())
+	var attr types.GuestPosixFileAttributes
+
+	attr.Permissions, err = strconv.ParseInt(f.Arg(0), 0, 64)
+	if err != nil {
+		return err
+	}
+
+	return m.ChangeFileAttributes(ctx, cmd.Auth(), f.Arg(1), &attr)
 }

@@ -3,6 +3,7 @@
 package layer3
 
 import (
+	"os"
 	"testing"
 
 	"github.com/gophercloud/gophercloud/acceptance/clients"
@@ -10,6 +11,7 @@ import (
 	"github.com/gophercloud/gophercloud/acceptance/tools"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/layer3/floatingips"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/networks"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/subnets"
 )
 
 func TestLayer3FloatingIPsList(t *testing.T) {
@@ -97,4 +99,49 @@ func TestLayer3FloatingIPsCreateDelete(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unable to disassociate floating IP: %v", err)
 	}
+}
+
+func TestLayer3FloatingIPsCreateDeleteBySubnetID(t *testing.T) {
+	username := os.Getenv("OS_USERNAME")
+	if username != "admin" {
+		t.Skip("must be admin to run this test")
+	}
+
+	client, err := clients.NewNetworkV2Client()
+	if err != nil {
+		t.Fatalf("Unable to create a compute client: %v", err)
+	}
+
+	choices, err := clients.AcceptanceTestChoicesFromEnv()
+	if err != nil {
+		t.Fatalf("Unable to get choices: %v", err)
+	}
+
+	listOpts := subnets.ListOpts{
+		NetworkID: choices.ExternalNetworkID,
+	}
+
+	subnetPages, err := subnets.List(client, listOpts).AllPages()
+	if err != nil {
+		t.Fatalf("Unable to list subnets: %v", err)
+	}
+
+	allSubnets, err := subnets.ExtractSubnets(subnetPages)
+	if err != nil {
+		t.Fatalf("Unable to extract subnets: %v", err)
+	}
+
+	createOpts := floatingips.CreateOpts{
+		FloatingNetworkID: choices.ExternalNetworkID,
+		SubnetID:          allSubnets[0].ID,
+	}
+
+	fip, err := floatingips.Create(client, createOpts).Extract()
+	if err != nil {
+		t.Fatalf("Unable to create floating IP: %v")
+	}
+
+	tools.PrintResource(t, fip)
+
+	DeleteFloatingIP(t, client, fip.ID)
 }

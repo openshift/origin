@@ -172,8 +172,8 @@ type AggregationInfo struct {
 }
 
 func (s *AggregationInfo) MarshalJSON() ([]byte, error) {
-	type noMethod AggregationInfo
-	raw := noMethod(*s)
+	type NoMethod AggregationInfo
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -227,8 +227,8 @@ type BillingAccount struct {
 }
 
 func (s *BillingAccount) MarshalJSON() ([]byte, error) {
-	type noMethod BillingAccount
-	raw := noMethod(*s)
+	type NoMethod BillingAccount
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -269,8 +269,8 @@ type Category struct {
 }
 
 func (s *Category) MarshalJSON() ([]byte, error) {
-	type noMethod Category
-	raw := noMethod(*s)
+	type NoMethod Category
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -310,8 +310,8 @@ type ListBillingAccountsResponse struct {
 }
 
 func (s *ListBillingAccountsResponse) MarshalJSON() ([]byte, error) {
-	type noMethod ListBillingAccountsResponse
-	raw := noMethod(*s)
+	type NoMethod ListBillingAccountsResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -352,8 +352,8 @@ type ListProjectBillingInfoResponse struct {
 }
 
 func (s *ListProjectBillingInfoResponse) MarshalJSON() ([]byte, error) {
-	type noMethod ListProjectBillingInfoResponse
-	raw := noMethod(*s)
+	type NoMethod ListProjectBillingInfoResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -391,8 +391,8 @@ type ListServicesResponse struct {
 }
 
 func (s *ListServicesResponse) MarshalJSON() ([]byte, error) {
-	type noMethod ListServicesResponse
-	raw := noMethod(*s)
+	type NoMethod ListServicesResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -429,8 +429,8 @@ type ListSkusResponse struct {
 }
 
 func (s *ListSkusResponse) MarshalJSON() ([]byte, error) {
-	type noMethod ListSkusResponse
-	raw := noMethod(*s)
+	type NoMethod ListSkusResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -471,8 +471,8 @@ type Money struct {
 }
 
 func (s *Money) MarshalJSON() ([]byte, error) {
-	type noMethod Money
-	raw := noMethod(*s)
+	type NoMethod Money
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -560,19 +560,19 @@ type PricingExpression struct {
 }
 
 func (s *PricingExpression) MarshalJSON() ([]byte, error) {
-	type noMethod PricingExpression
-	raw := noMethod(*s)
+	type NoMethod PricingExpression
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
 func (s *PricingExpression) UnmarshalJSON(data []byte) error {
-	type noMethod PricingExpression
+	type NoMethod PricingExpression
 	var s1 struct {
 		BaseUnitConversionFactor gensupport.JSONFloat64 `json:"baseUnitConversionFactor"`
 		DisplayQuantity          gensupport.JSONFloat64 `json:"displayQuantity"`
-		*noMethod
+		*NoMethod
 	}
-	s1.noMethod = (*noMethod)(s)
+	s1.NoMethod = (*NoMethod)(s)
 	if err := json.Unmarshal(data, &s1); err != nil {
 		return err
 	}
@@ -589,14 +589,27 @@ type PricingInfo struct {
 	// doesn't require aggregation.
 	AggregationInfo *AggregationInfo `json:"aggregationInfo,omitempty"`
 
-	// CurrencyConversionRate: Conversion rate for currency conversion, from
-	// USD to the currency specified
-	// in the request. If the currency is not specified this defaults to
-	// 1.0.
+	// CurrencyConversionRate: Conversion rate used for currency conversion,
+	// from USD to the currency
+	// specified in the request. This includes any surcharge collected for
+	// billing
+	// in non USD currency. If a currency is not specified in the request
+	// this
+	// defaults to 1.0.
 	// Example: USD * currency_conversion_rate = JPY
 	CurrencyConversionRate float64 `json:"currencyConversionRate,omitempty"`
 
-	// EffectiveTime: The timestamp from which this pricing was effective.
+	// EffectiveTime: The timestamp from which this pricing was effective
+	// within the requested
+	// time range. This is guaranteed to be greater than or equal to
+	// the
+	// start_time field in the request and less than the end_time field in
+	// the
+	// request. If a time range was not specified in the request this field
+	// will
+	// be equivalent to a time within the last 12 hours, indicating the
+	// latest
+	// pricing info.
 	EffectiveTime string `json:"effectiveTime,omitempty"`
 
 	// PricingExpression: Expresses the pricing formula. See
@@ -627,18 +640,18 @@ type PricingInfo struct {
 }
 
 func (s *PricingInfo) MarshalJSON() ([]byte, error) {
-	type noMethod PricingInfo
-	raw := noMethod(*s)
+	type NoMethod PricingInfo
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
 func (s *PricingInfo) UnmarshalJSON(data []byte) error {
-	type noMethod PricingInfo
+	type NoMethod PricingInfo
 	var s1 struct {
 		CurrencyConversionRate gensupport.JSONFloat64 `json:"currencyConversionRate"`
-		*noMethod
+		*NoMethod
 	}
-	s1.noMethod = (*noMethod)(s)
+	s1.NoMethod = (*NoMethod)(s)
 	if err := json.Unmarshal(data, &s1); err != nil {
 		return err
 	}
@@ -706,8 +719,8 @@ type ProjectBillingInfo struct {
 }
 
 func (s *ProjectBillingInfo) MarshalJSON() ([]byte, error) {
-	type noMethod ProjectBillingInfo
-	raw := noMethod(*s)
+	type NoMethod ProjectBillingInfo
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -742,8 +755,8 @@ type Service struct {
 }
 
 func (s *Service) MarshalJSON() ([]byte, error) {
-	type noMethod Service
-	raw := noMethod(*s)
+	type NoMethod Service
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -799,8 +812,8 @@ type Sku struct {
 }
 
 func (s *Sku) MarshalJSON() ([]byte, error) {
-	type noMethod Sku
-	raw := noMethod(*s)
+	type NoMethod Sku
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -838,18 +851,18 @@ type TierRate struct {
 }
 
 func (s *TierRate) MarshalJSON() ([]byte, error) {
-	type noMethod TierRate
-	raw := noMethod(*s)
+	type NoMethod TierRate
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
 func (s *TierRate) UnmarshalJSON(data []byte) error {
-	type noMethod TierRate
+	type NoMethod TierRate
 	var s1 struct {
 		StartUsageAmount gensupport.JSONFloat64 `json:"startUsageAmount"`
-		*noMethod
+		*NoMethod
 	}
-	s1.noMethod = (*noMethod)(s)
+	s1.NoMethod = (*NoMethod)(s)
 	if err := json.Unmarshal(data, &s1); err != nil {
 		return err
 	}
@@ -968,7 +981,7 @@ func (c *BillingAccountsGetCall) Do(opts ...googleapi.CallOption) (*BillingAccou
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -1123,7 +1136,7 @@ func (c *BillingAccountsListCall) Do(opts ...googleapi.CallOption) (*ListBilling
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -1191,9 +1204,11 @@ type BillingAccountsProjectsListCall struct {
 
 // List: Lists the projects associated with a billing account. The
 // current
-// authenticated user must be an [owner of the
-// billing
-// account](https://support.google.com/cloud/answer/4430947).
+// authenticated user must have the "billing.resourceAssociations.list"
+// IAM
+// permission, which is often given to billing
+// account
+// [viewers](https://support.google.com/cloud/answer/4430947).
 func (r *BillingAccountsProjectsService) List(name string) *BillingAccountsProjectsListCall {
 	c := &BillingAccountsProjectsListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.name = name
@@ -1308,12 +1323,12 @@ func (c *BillingAccountsProjectsListCall) Do(opts ...googleapi.CallOption) (*Lis
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
 	// {
-	//   "description": "Lists the projects associated with a billing account. The current\nauthenticated user must be an [owner of the billing\naccount](https://support.google.com/cloud/answer/4430947).",
+	//   "description": "Lists the projects associated with a billing account. The current\nauthenticated user must have the \"billing.resourceAssociations.list\" IAM\npermission, which is often given to billing account\n[viewers](https://support.google.com/cloud/answer/4430947).",
 	//   "flatPath": "v1/billingAccounts/{billingAccountsId}/projects",
 	//   "httpMethod": "GET",
 	//   "id": "cloudbilling.billingAccounts.projects.list",
@@ -1485,7 +1500,7 @@ func (c *ProjectsGetBillingInfoCall) Do(opts ...googleapi.CallOption) (*ProjectB
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -1672,7 +1687,7 @@ func (c *ProjectsUpdateBillingInfoCall) Do(opts ...googleapi.CallOption) (*Proje
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -1826,7 +1841,7 @@ func (c *ServicesListCall) Do(opts ...googleapi.CallOption) (*ListServicesRespon
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -1909,11 +1924,13 @@ func (c *ServicesSkusListCall) CurrencyCode(currencyCode string) *ServicesSkusLi
 // time of the time range for which the pricing
 // versions will be returned. Timestamps in the future are not
 // allowed.
-// Maximum allowable time range is 1 month (31 days). Time range as a
-// whole
-// is optional. If not specified, the latest pricing will be returned
-// (up to
-// 12 hours old at most).
+// The time range has to be within a single calendar month
+// in
+// America/Los_Angeles timezone. Time range as a whole is optional. If
+// not
+// specified, the latest pricing will be returned (up to 12 hours old
+// at
+// most).
 func (c *ServicesSkusListCall) EndTime(endTime string) *ServicesSkusListCall {
 	c.urlParams_.Set("endTime", endTime)
 	return c
@@ -1940,11 +1957,13 @@ func (c *ServicesSkusListCall) PageToken(pageToken string) *ServicesSkusListCall
 // start time of the time range for which the pricing
 // versions will be returned. Timestamps in the future are not
 // allowed.
-// Maximum allowable time range is 1 month (31 days). Time range as a
-// whole
-// is optional. If not specified, the latest pricing will be returned
-// (up to
-// 12 hours old at most).
+// The time range has to be within a single calendar month
+// in
+// America/Los_Angeles timezone. Time range as a whole is optional. If
+// not
+// specified, the latest pricing will be returned (up to 12 hours old
+// at
+// most).
 func (c *ServicesSkusListCall) StartTime(startTime string) *ServicesSkusListCall {
 	c.urlParams_.Set("startTime", startTime)
 	return c
@@ -2039,7 +2058,7 @@ func (c *ServicesSkusListCall) Do(opts ...googleapi.CallOption) (*ListSkusRespon
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -2058,7 +2077,7 @@ func (c *ServicesSkusListCall) Do(opts ...googleapi.CallOption) (*ListSkusRespon
 	//       "type": "string"
 	//     },
 	//     "endTime": {
-	//       "description": "Optional exclusive end time of the time range for which the pricing\nversions will be returned. Timestamps in the future are not allowed.\nMaximum allowable time range is 1 month (31 days). Time range as a whole\nis optional. If not specified, the latest pricing will be returned (up to\n12 hours old at most).",
+	//       "description": "Optional exclusive end time of the time range for which the pricing\nversions will be returned. Timestamps in the future are not allowed.\nThe time range has to be within a single calendar month in\nAmerica/Los_Angeles timezone. Time range as a whole is optional. If not\nspecified, the latest pricing will be returned (up to 12 hours old at\nmost).",
 	//       "format": "google-datetime",
 	//       "location": "query",
 	//       "type": "string"
@@ -2082,7 +2101,7 @@ func (c *ServicesSkusListCall) Do(opts ...googleapi.CallOption) (*ListSkusRespon
 	//       "type": "string"
 	//     },
 	//     "startTime": {
-	//       "description": "Optional inclusive start time of the time range for which the pricing\nversions will be returned. Timestamps in the future are not allowed.\nMaximum allowable time range is 1 month (31 days). Time range as a whole\nis optional. If not specified, the latest pricing will be returned (up to\n12 hours old at most).",
+	//       "description": "Optional inclusive start time of the time range for which the pricing\nversions will be returned. Timestamps in the future are not allowed.\nThe time range has to be within a single calendar month in\nAmerica/Los_Angeles timezone. Time range as a whole is optional. If not\nspecified, the latest pricing will be returned (up to 12 hours old at\nmost).",
 	//       "format": "google-datetime",
 	//       "location": "query",
 	//       "type": "string"

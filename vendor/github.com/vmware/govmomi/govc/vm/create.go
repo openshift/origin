@@ -103,7 +103,7 @@ func (cmd *create) Register(ctx context.Context, f *flag.FlagSet) {
 
 	f.IntVar(&cmd.memory, "m", 1024, "Size in MB of memory")
 	f.IntVar(&cmd.cpus, "c", 1, "Number of CPUs")
-	f.StringVar(&cmd.guestID, "g", "otherGuest", "Guest OS")
+	f.StringVar(&cmd.guestID, "g", "otherGuest", "Guest OS ID")
 	f.BoolVar(&cmd.link, "link", true, "Link specified disk")
 	f.BoolVar(&cmd.on, "on", true, "Power on VM. Default is true if -disk argument is given.")
 	f.BoolVar(&cmd.force, "force", false, "Create VM if vmx already exists")
@@ -154,6 +154,21 @@ func (cmd *create) Process(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func (cmd *create) Usage() string {
+	return "NAME"
+}
+
+func (cmd *create) Description() string {
+	return `Create VM.
+
+For a list of possible '-g' IDs, see:
+http://pubs.vmware.com/vsphere-6-5/topic/com.vmware.wssdk.apiref.doc/vim.vm.GuestOsDescriptor.GuestOsIdentifier.html
+
+Examples:
+  govc vm.create vm-name
+  govc vm.create -m 2048 -c 2 -g freebsd64Guest -net.adapter vmxnet3 -disk.controller pvscsi vm-name`
 }
 
 func (cmd *create) Run(ctx context.Context, f *flag.FlagSet) error {

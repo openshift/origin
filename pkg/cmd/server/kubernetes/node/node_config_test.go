@@ -8,7 +8,6 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/diff"
-	"k8s.io/apiserver/pkg/util/flag"
 	kubeproxyoptions "k8s.io/kubernetes/cmd/kube-proxy/app"
 	kubeletoptions "k8s.io/kubernetes/cmd/kubelet/app/options"
 	"k8s.io/kubernetes/pkg/kubelet/apis/kubeletconfig"
@@ -26,15 +25,16 @@ func TestKubeletDefaults(t *testing.T) {
 	// Once we've reacted to the changes appropriately in BuildKubernetesNodeConfig(), update this expected default to match the new upstream defaults
 	expectedDefaults := &kubeletoptions.KubeletServer{
 		KubeletFlags: kubeletoptions.KubeletFlags{
-			KubeConfig: flag.NewStringFlag("/var/lib/kubelet/kubeconfig"),
+			KubeConfig: "", // overridden
 			ContainerRuntimeOptions: config.ContainerRuntimeOptions{
 				DockershimRootDirectory:   "/var/lib/dockershim",
 				DockerEndpoint:            "unix:///var/run/docker.sock",
 				ImagePullProgressDeadline: metav1.Duration{Duration: 1 * time.Minute},
 				RktAPIEndpoint:            rkt.DefaultRktAPIServiceEndpoint,
-				PodSandboxImage:           "gcr.io/google_containers/pause-" + goruntime.GOARCH + ":3.0", // overridden
+				PodSandboxImage:           "k8s.gcr.io/pause-" + goruntime.GOARCH + ":3.1", // overridden
 				DockerDisableSharedPID:    true,
 				ContainerRuntime:          "docker",
+				RuntimeCgroups:            "",
 			},
 			CloudProvider:           "", // now disabled
 			RootDirectory:           "/var/lib/kubelet",
@@ -51,11 +51,16 @@ func TestKubeletDefaults(t *testing.T) {
 			MaxPerPodContainerCount: 1,
 			RegisterSchedulable:     true,
 			NonMasqueradeCIDR:       "10.0.0.0/8",
+			AllowPrivileged:         false, // overridden
+			CAdvisorPort:            4194,  // disabled
+			EnableServer:            true,
+			HostNetworkSources:      []string{"*"}, // overridden
+			HostPIDSources:          []string{"*"}, // overridden
+			HostIPCSources:          []string{"*"}, // overridden
 		},
 
 		KubeletConfiguration: kubeletconfig.KubeletConfiguration{
-			Address:         "0.0.0.0", // overridden
-			AllowPrivileged: false,     // overridden
+			Address: "0.0.0.0", // overridden
 			Authentication: kubeletconfig.KubeletAuthentication{
 				Webhook: kubeletconfig.KubeletWebhookAuthentication{
 					CacheTTL: metav1.Duration{Duration: 2 * time.Minute},
@@ -71,7 +76,6 @@ func TestKubeletDefaults(t *testing.T) {
 					CacheUnauthorizedTTL: metav1.Duration{Duration: 30 * time.Second},
 				},
 			},
-			CAdvisorPort:         4194, // disabled
 			VolumeStatsAggPeriod: metav1.Duration{Duration: time.Minute},
 			CgroupRoot:           "",
 			CgroupDriver:         "cgroupfs",
@@ -81,9 +85,8 @@ func TestKubeletDefaults(t *testing.T) {
 
 			EventBurst:     10,
 			EventRecordQPS: 5.0,
-			//EnableCustomMetrics:         false,
+
 			EnableDebuggingHandlers: true,
-			EnableServer:            true,
 			EvictionHard: map[string]string{
 				"memory.available":  "100Mi",
 				"nodefs.available":  "10%",
@@ -93,17 +96,17 @@ func TestKubeletDefaults(t *testing.T) {
 			FileCheckFrequency:          metav1.Duration{Duration: 20 * time.Second}, // overridden
 			HealthzBindAddress:          "127.0.0.1",                                 // disabled
 			HealthzPort:                 10248,                                       // disabled
-			HostNetworkSources:          []string{"*"},                               // overridden
-			HostPIDSources:              []string{"*"},                               // overridden
-			HostIPCSources:              []string{"*"},                               // overridden
 			HTTPCheckFrequency:          metav1.Duration{Duration: 20 * time.Second}, // disabled
 			ImageMinimumGCAge:           metav1.Duration{Duration: 120 * time.Second},
 			ImageGCHighThresholdPercent: 85,
 			ImageGCLowThresholdPercent:  80,
 			IPTablesMasqueradeBit:       14,
 			IPTablesDropBit:             15,
-			// TODO figure out where this moved
-			// LowDiskSpaceThresholdMB:        0, // used to be 256.  Overriden to have old behavior. 3.7
+			PodPidsLimit:                -1,
+			FailSwapOn:                  true, // overridden
+			ContainerLogMaxSize:         "10Mi",
+			ContainerLogMaxFiles:        5,
+
 			MakeIPTablesUtilChains:    true,
 			MaxOpenFiles:              1000000,
 			MaxPods:                   110, // overridden
@@ -116,8 +119,7 @@ func TestKubeletDefaults(t *testing.T) {
 			ResolverConfig:            kubetypes.ResolvConfDefault,
 			KubeletCgroups:            "",
 			CgroupsPerQOS:             true,
-			// TODO figure out where this moved
-			//RuntimeCgroups:                 "",
+
 			SerializeImagePulls:            true,
 			StreamingConnectionIdleTimeout: metav1.Duration{Duration: 4 * time.Hour},
 			SyncFrequency:                  metav1.Duration{Duration: 1 * time.Minute},
@@ -138,7 +140,6 @@ func TestKubeletDefaults(t *testing.T) {
 
 			EnforceNodeAllocatable: []string{"pods"},
 
-			ConfigTrialDuration:       &metav1.Duration{Duration: 10 * time.Minute},
 			CPUManagerReconcilePeriod: metav1.Duration{Duration: 10 * time.Second},
 			CPUManagerPolicy:          "none",
 		},
@@ -167,6 +168,7 @@ func TestProxyConfig(t *testing.T) {
 		BindAddress:        "0.0.0.0",
 		HealthzBindAddress: "0.0.0.0:10256",   // disabled
 		MetricsBindAddress: "127.0.0.1:10249", // disabled
+		FeatureGates:       map[string]bool{},
 		ClientConnection: kubeproxyconfig.ClientConnectionConfiguration{
 			ContentType: "application/vnd.kubernetes.protobuf",
 			QPS:         5,

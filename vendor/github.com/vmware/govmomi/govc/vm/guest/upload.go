@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2014-2015 VMware, Inc. All Rights Reserved.
+Copyright (c) 2014-2016 VMware, Inc. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,7 +17,6 @@ limitations under the License.
 package guest
 
 import (
-	"bytes"
 	"context"
 	"flag"
 	"io"
@@ -76,7 +75,7 @@ func (cmd *upload) Run(ctx context.Context, f *flag.FlagSet) error {
 		return flag.ErrHelp
 	}
 
-	m, err := cmd.FileManager()
+	c, err := cmd.Toolbox()
 	if err != nil {
 		return err
 	}
@@ -84,50 +83,25 @@ func (cmd *upload) Run(ctx context.Context, f *flag.FlagSet) error {
 	src := f.Arg(0)
 	dst := f.Arg(1)
 
-	var size int64
-	var buf *bytes.Buffer
-
-	if src == "-" {
-		buf = new(bytes.Buffer)
-		size, err = io.Copy(buf, os.Stdin)
-		if err != nil {
-			return err
-		}
-	} else {
-		s, err := os.Stat(src)
-		if err != nil {
-			return err
-		}
-		size = s.Size()
-	}
-
-	url, err := m.InitiateFileTransferToGuest(ctx, cmd.Auth(), dst, cmd.Attr(), size, cmd.overwrite)
-	if err != nil {
-		return err
-	}
-
-	u, err := cmd.ParseURL(url)
-	if err != nil {
-		return err
-	}
-
-	c, err := cmd.Client()
-	if err != nil {
-		return nil
-	}
-
 	p := soap.DefaultUpload
 
-	if buf != nil {
-		p.ContentLength = size
-		return c.Client.Upload(buf, u, &p)
+	var r io.Reader = os.Stdin
+
+	if src != "-" {
+		f, err := os.Open(src)
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+
+		r = f
+
+		if cmd.OutputFlag.TTY {
+			logger := cmd.ProgressLogger("Uploading... ")
+			p.Progress = logger
+			defer logger.Wait()
+		}
 	}
 
-	if cmd.OutputFlag.TTY {
-		logger := cmd.ProgressLogger("Uploading... ")
-		p.Progress = logger
-		defer logger.Wait()
-	}
-
-	return c.Client.UploadFile(src, u, nil)
+	return c.Upload(ctx, r, dst, p, cmd.Attr(), cmd.overwrite)
 }

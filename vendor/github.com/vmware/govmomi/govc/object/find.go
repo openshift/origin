@@ -237,6 +237,10 @@ func (cmd *find) Run(ctx context.Context, f *flag.FlagSet) error {
 
 	filter := property.Filter{}
 
+	if len(props)%2 != 0 {
+		return flag.ErrHelp
+	}
+
 	for i := 0; i < len(props); i++ {
 		key := props[i]
 		if !strings.HasPrefix(key, "-") {

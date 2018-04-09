@@ -379,6 +379,7 @@ func (c *DeploymentController) makeDeployerPod(deployment *v1.ReplicationControl
 	}
 
 	gracePeriod := int64(10)
+	shareProcessNamespace := false
 
 	pod := &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
@@ -420,6 +421,7 @@ func (c *DeploymentController) makeDeployerPod(deployment *v1.ReplicationControl
 			RestartPolicy:                 v1.RestartPolicyNever,
 			ServiceAccountName:            c.serviceAccount,
 			TerminationGracePeriodSeconds: &gracePeriod,
+			ShareProcessNamespace:         &shareProcessNamespace,
 		},
 	}
 

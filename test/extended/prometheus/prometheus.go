@@ -317,7 +317,7 @@ func bringUpPrometheusFromTemplate(oc *exutil.CLI) (ns, host, bearerToken string
 			fmt.Fprintf(g.GinkgoWriter, "test continuing, but create on the prometheus template resulted in: %#v", err)
 		}
 		tester := e2e.NewStatefulSetTester(oc.AdminKubeClient())
-		ss, err := oc.AdminKubeClient().AppsV1beta1().StatefulSets("kube-system").Get("prometheus", metav1.GetOptions{})
+		ss, err := oc.AdminKubeClient().AppsV1().StatefulSets("kube-system").Get("prometheus", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		tester.WaitForRunningAndReady(1, ss)
 	}

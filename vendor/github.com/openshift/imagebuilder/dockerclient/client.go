@@ -601,13 +601,33 @@ func (e *ClientExecutor) Run(run imagebuilder.Run, config docker.Config) error {
 		// TODO: implement windows ENV
 		args = append(defaultShell, args...)
 	} else {
-		if len(config.WorkingDir) > 0 {
-			args[0] = fmt.Sprintf("cd %s && %s", imagebuilder.BashQuote(config.WorkingDir), args[0])
+		if run.Shell {
+			if len(config.WorkingDir) > 0 {
+				args[0] = fmt.Sprintf("cd %s && %s", imagebuilder.BashQuote(config.WorkingDir), args[0])
+			}
+			if len(config.Env) > 0 {
+				args[0] = imagebuilder.ExportEnv(config.Env) + args[0]
+			}
+			args = append(defaultShell, args...)
+		} else {
+			switch {
+			case len(config.WorkingDir) == 0 && len(config.Env) == 0:
+				// no change necessary
+			case len(args) > 0:
+				setup := "exec \"$@\""
+				if len(config.WorkingDir) > 0 {
+					setup = fmt.Sprintf("cd %s && %s", imagebuilder.BashQuote(config.WorkingDir), setup)
+				}
+				if len(config.Env) > 0 {
+					setup = imagebuilder.ExportEnv(config.Env) + setup
+				}
+				newArgs := make([]string, 0, len(args)+4)
+				newArgs = append(newArgs, defaultShell...)
+				newArgs = append(newArgs, setup, "")
+				newArgs = append(newArgs, args...)
+				args = newArgs
+			}
 		}
-		if len(config.Env) > 0 {
-			args[0] = imagebuilder.ExportEnv(config.Env) + args[0]
-		}
-		args = append(defaultShell, args...)
 	}
 
 	if e.StrictVolumeOwnership && !e.Volumes.Empty() {
@@ -618,7 +638,7 @@ func (e *ClientExecutor) Run(run imagebuilder.Run, config docker.Config) error {
 	}
 
 	config.Cmd = args
-	glog.V(4).Infof("Running %v inside of %s as user %s", config.Cmd, e.Container.ID, config.User)
+	glog.V(4).Infof("Running %#v inside of %s as user %s", config.Cmd, e.Container.ID, config.User)
 	exec, err := e.Client.CreateExec(docker.CreateExecOptions{
 		Cmd:          config.Cmd,
 		Container:    e.Container.ID,

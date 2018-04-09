@@ -19,7 +19,7 @@ type REST struct {
 }
 
 var _ rest.Creater = &REST{}
-var _ rest.Deleter = &REST{}
+var _ rest.GracefulDeleter = &REST{}
 
 // NewREST returns a new REST.
 func NewREST(imageClient imageclient.ImagesGetter) *REST {
@@ -75,20 +75,20 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, createValidati
 	return &image.Signatures[byName], nil
 }
 
-func (r *REST) Delete(ctx apirequest.Context, name string) (runtime.Object, error) {
+func (r *REST) Delete(ctx apirequest.Context, name string, options *metav1.DeleteOptions) (runtime.Object, bool, error) {
 	imageName, _, err := imageapi.SplitImageSignatureName(name)
 	if err != nil {
-		return nil, kapierrors.NewBadRequest("ImageSignatures must be accessed with <imageName>@<signatureName>")
+		return nil, false, kapierrors.NewBadRequest("ImageSignatures must be accessed with <imageName>@<signatureName>")
 	}
 
 	image, err := r.imageClient.Images().Get(imageName, metav1.GetOptions{})
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	index := imageapi.IndexOfImageSignatureByName(image.Signatures, name)
 	if index < 0 {
-		return nil, kapierrors.NewNotFound(imageapi.Resource("imageSignatures"), name)
+		return nil, false, kapierrors.NewNotFound(imageapi.Resource("imageSignatures"), name)
 	}
 
 	size := len(image.Signatures)
@@ -96,8 +96,8 @@ func (r *REST) Delete(ctx apirequest.Context, name string) (runtime.Object, erro
 	image.Signatures = image.Signatures[0 : size-1]
 
 	if _, err := r.imageClient.Images().Update(image); err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
-	return &metav1.Status{Status: metav1.StatusSuccess}, nil
+	return &metav1.Status{Status: metav1.StatusSuccess}, true, nil
 }

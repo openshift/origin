@@ -802,7 +802,7 @@ func newEchoServerPodSpec(podName string) *v1.Pod {
 			Containers: []v1.Container{
 				{
 					Name:  "echoserver",
-					Image: "gcr.io/google_containers/echoserver:1.6",
+					Image: imageutils.GetE2EImage(imageutils.EchoServer),
 					Ports: []v1.ContainerPort{{ContainerPort: int32(port)}},
 				},
 			},
@@ -1105,22 +1105,6 @@ func GetContainerPortsByPodUID(endpoints *v1.Endpoints) PortsByPodUID {
 		for _, port := range ss.Ports {
 			for _, addr := range ss.Addresses {
 				containerPort := port.Port
-				hostPort := port.Port
-
-				// use endpoint annotations to recover the container port in a Mesos setup
-				// compare contrib/mesos/pkg/service/endpoints_controller.syncService
-				key := fmt.Sprintf("k8s.mesosphere.io/containerPort_%s_%s_%d", port.Protocol, addr.IP, hostPort)
-				mesosContainerPortString := endpoints.Annotations[key]
-				if mesosContainerPortString != "" {
-					mesosContainerPort, err := strconv.Atoi(mesosContainerPortString)
-					if err != nil {
-						continue
-					}
-					containerPort = int32(mesosContainerPort)
-					Logf("Mapped mesos host port %d to container port %d via annotation %s=%s", hostPort, containerPort, key, mesosContainerPortString)
-				}
-
-				// Logf("Found pod %v, host port %d and container port %d", addr.TargetRef.UID, hostPort, containerPort)
 				if _, ok := m[addr.TargetRef.UID]; !ok {
 					m[addr.TargetRef.UID] = make([]int, 0)
 				}
@@ -1384,17 +1368,17 @@ func VerifyServeHostnameServiceDown(c clientset.Interface, host string, serviceI
 	return fmt.Errorf("waiting for service to be down timed out")
 }
 
-func CleanupServiceResources(c clientset.Interface, loadBalancerName, zone string) {
+func CleanupServiceResources(c clientset.Interface, loadBalancerName, region, zone string) {
 	if TestContext.Provider == "gce" || TestContext.Provider == "gke" {
-		CleanupServiceGCEResources(c, loadBalancerName, zone)
+		CleanupServiceGCEResources(c, loadBalancerName, region, zone)
 	}
 
 	// TODO: we need to add this function with other cloud providers, if there is a need.
 }
 
-func CleanupServiceGCEResources(c clientset.Interface, loadBalancerName, zone string) {
+func CleanupServiceGCEResources(c clientset.Interface, loadBalancerName, region, zone string) {
 	if pollErr := wait.Poll(5*time.Second, LoadBalancerCleanupTimeout, func() (bool, error) {
-		if err := CleanupGCEResources(c, loadBalancerName, zone); err != nil {
+		if err := CleanupGCEResources(c, loadBalancerName, region, zone); err != nil {
 			Logf("Still waiting for glbc to cleanup: %v", err)
 			return false, nil
 		}

@@ -9,8 +9,7 @@ load(
 go_test(
     name = "go_default_test",
     srcs = ["local_test.go"],
-    importpath = "k8s.io/kubernetes/cmd/kubeadm/app/phases/etcd",
-    library = ":go_default_library",
+    embed = [":go_default_library"],
     deps = [
         "//cmd/kubeadm/app/apis/kubeadm:go_default_library",
         "//cmd/kubeadm/app/constants:go_default_library",

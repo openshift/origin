@@ -3,6 +3,8 @@
 load test_helper
 
 @test "session.ls" {
+  esx_env
+
   run govc session.ls
   assert_success
 
@@ -14,6 +16,8 @@ load test_helper
 }
 
 @test "session.rm" {
+  esx_env
+
   run govc session.rm enoent
   assert_failure
   assert_output "govc: ServerFaultCode: The object or item referred to could not be found."
@@ -33,4 +37,25 @@ load test_helper
 
   run govc session.rm "$id"
   assert_success
+}
+
+@test "session.login" {
+    esx_env
+
+    # Remove username/password
+    host=$(govc env GOVC_URL)
+
+    # Validate auth is not required for service content
+    run govc about -u "$host"
+    assert_success
+
+    # Auth is required here
+    run govc ls -u "$host"
+    assert_failure
+
+    cookie=$(govc session.login -l)
+    ticket=$(govc session.login -cookie "$cookie" -clone)
+
+    run govc session.login -u "$host" -ticket "$ticket"
+    assert_success
 }

@@ -25,6 +25,8 @@ import (
 	"os"
 	"sort"
 	"text/tabwriter"
+
+	"github.com/vmware/govmomi/vim25/types"
 )
 
 type HasFlags interface {
@@ -136,6 +138,11 @@ func Run(args []string) int {
 	fs.SetOutput(ioutil.Discard)
 
 	ctx := context.Background()
+
+	if id := os.Getenv("GOVC_OPERATION_ID"); id != "" {
+		ctx = context.WithValue(ctx, types.ID{}, id)
+	}
+
 	cmd.Register(ctx, fs)
 
 	if err = fs.Parse(args[1:]); err != nil {

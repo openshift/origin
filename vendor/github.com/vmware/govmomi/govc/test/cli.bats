@@ -3,18 +3,35 @@
 load test_helper
 
 @test "about" {
+  vcsim_env -esx
+
   run govc about
   assert_success
   assert_line "Vendor: VMware, Inc."
+
+  run env GOVC_TLS_HANDSHAKE_TIMEOUT=10s govc about
+  assert_success
+  assert_line "Vendor: VMware, Inc."
+
+  run env GOVC_TLS_HANDSHAKE_TIMEOUT=NOT_A_DURATION govc about
+  assert_failure
 
   run govc about -json
   assert_success
 
   run govc about -json -l
   assert_success
+
+  run govc about -dump
+  assert_success
+
+  run govc about -dump -l
+  assert_success
 }
 
 @test "about.cert" {
+  vcsim_env -esx
+
   run govc about.cert
   assert_success
 
@@ -45,38 +62,54 @@ load test_helper
 }
 
 @test "version" {
-    run govc version
-    assert_success
+  vcsim_env -esx
 
-    v=$(govc version | awk '{print $NF}')
-    run govc version -require "$v"
-    assert_success
+  run govc version
+  assert_success
 
-    run govc version -require "not-a-version-string"
-    assert_failure
+  v=$(govc version | awk '{print $NF}')
+  run govc version -require "$v"
+  assert_success
 
-    run govc version -require 100.0.0
-    assert_failure
+  run govc version -require "not-a-version-string"
+  assert_failure
+
+  run govc version -require 100.0.0
+  assert_failure
 }
 
 @test "login attempt without credentials" {
+  vcsim_env -esx
+
   host=$(govc env -x GOVC_URL_HOST)
-  run govc about -u "enoent@$host"
-  assert_failure "govc: ServerFaultCode: Cannot complete login due to an incorrect user name or password."
+  port=$(govc env -x GOVC_URL_PORT)
+  run govc about -u "enoent@$host:$port"
+  assert_failure "govc: ServerFaultCode: Login failure"
 }
 
 @test "login attempt with GOVC_URL, GOVC_USERNAME, and GOVC_PASSWORD" {
+  vcsim_env -esx
+
   govc_url_to_vars
   run govc about
   assert_success
 }
 
-@test "connect to an endpoint with a non-supported API version" {
-  run env GOVC_MIN_API_VERSION=24.4 govc about
-  assert grep -q "^govc: Require API version 24.4," <<<${output}
-}
+@test "API version check" {
+  vcsim_env -esx
 
-@test "connect to an endpoint with user provided Vim namespace and Vim version" {
+  run env GOVC_MIN_API_VERSION=24.4 govc about
+  assert grep -q "^govc: Require API version \"24.4\"," <<<"${output}"
+
+  run env GOVC_MIN_API_VERSION=no.no govc about
+  assert_failure
+
+  run env GOVC_MIN_API_VERSION=- govc about
+  assert_success
+
+  run env GOVC_MIN_API_VERSION=5.0 govc about
+  assert_success
+
   run govc about -vim-namespace urn:vim25 -vim-version 6.0
   assert_success
 }
@@ -94,7 +127,7 @@ load test_helper
   assert grep -q GOVC_URL_QUERY=key=val <<<${output}
   assert grep -q GOVC_URL_FRAGMENT=anchor <<<${output}
 
-  password="pa\$sword\!ok"
+  password="pa\$sword!ok"
   run govc env -u "user:${password}@enoent:99999" GOVC_PASSWORD
   assert_output "$password"
 }

@@ -77,7 +77,7 @@ func (o *CancelOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, out i
 	}
 
 	o.Mapper, o.Typer = f.Object()
-	o.Encoder = f.JSONEncoder()
+	o.Encoder = kcmdutil.InternalVersionJSONEncoder()
 	o.Out = out
 
 	cmdNamespace, enforceNamespace, err := f.DefaultNamespace()
@@ -127,7 +127,7 @@ func (o CancelOptions) Run() error {
 
 		mutateFn := func(rc *kapi.ReplicationController) bool {
 			if appsutil.IsDeploymentCancelled(rc) {
-				kcmdutil.PrintSuccess(o.Mapper, false, o.Out, info.Mapping.Resource, info.Name, false, "already cancelled")
+				kcmdutil.PrintSuccess(false, o.Out, info.Object, false, "already cancelled")
 				return false
 			}
 
@@ -145,7 +145,7 @@ func (o CancelOptions) Run() error {
 				}
 			}
 			if allPatchesEmpty {
-				kcmdutil.PrintSuccess(o.Mapper, false, o.Out, info.Mapping.Resource, info.Name, false, "already cancelled")
+				kcmdutil.PrintSuccess(false, o.Out, info.Object, false, "already cancelled")
 				return false
 			}
 
@@ -154,7 +154,7 @@ func (o CancelOptions) Run() error {
 				allErrs = append(allErrs, kcmdutil.AddSourceToErr("cancelling", info.Source, err))
 				return false
 			}
-			kcmdutil.PrintSuccess(o.Mapper, false, o.Out, info.Mapping.Resource, info.Name, false, "cancelling")
+			kcmdutil.PrintSuccess(false, o.Out, info.Object, false, "cancelling")
 			return true
 		}
 

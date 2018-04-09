@@ -27,6 +27,7 @@ import (
 	"github.com/vmware/govmomi/govc/cli"
 	"github.com/vmware/govmomi/govc/flags"
 	"github.com/vmware/govmomi/property"
+	"github.com/vmware/govmomi/vim25/methods"
 	"github.com/vmware/govmomi/vim25/mo"
 )
 
@@ -67,6 +68,7 @@ func (cmd *ls) Process(ctx context.Context) error {
 
 type sessionInfo struct {
 	cmd *ls
+	now *time.Time
 	mo.SessionManager
 }
 
@@ -85,7 +87,7 @@ func (s *sessionInfo) Write(w io.Writer) error {
 	for _, v := range s.SessionList {
 		idle := "  ."
 		if v.Key != s.CurrentSession.Key {
-			since := time.Since(v.LastActiveTime)
+			since := s.now.Sub(v.LastActiveTime)
 			if since > time.Hour {
 				idle = "old"
 			} else {
@@ -117,5 +119,10 @@ func (cmd *ls) Run(ctx context.Context, f *flag.FlagSet) error {
 		return nil
 	}
 
-	return cmd.WriteResult(&sessionInfo{cmd, m})
+	now, err := methods.GetCurrentTime(ctx, c)
+	if err != nil {
+		return err
+	}
+
+	return cmd.WriteResult(&sessionInfo{cmd, now, m})
 }

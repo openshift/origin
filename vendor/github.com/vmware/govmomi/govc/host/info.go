@@ -75,7 +75,7 @@ func (cmd *info) Run(ctx context.Context, f *flag.FlagSet) error {
 	var res infoResult
 	var props []string
 
-	if cmd.OutputFlag.JSON {
+	if cmd.OutputFlag.All() {
 		props = nil // Load everything
 	} else {
 		props = []string{"summary"} // Load summary
@@ -139,9 +139,9 @@ func (r *infoResult) Write(w io.Writer) error {
 		s := host.Summary
 		h := s.Hardware
 		z := s.QuickStats
-		ncpu := int32(h.NumCpuPkgs * h.NumCpuCores)
+		ncpu := int32(h.NumCpuPkgs * h.NumCpuThreads)
 		cpuUsage := 100 * float64(z.OverallCpuUsage) / float64(ncpu*h.CpuMhz)
-		memUsage := 100 * float64(z.OverallMemoryUsage<<20) / float64(h.MemorySize)
+		memUsage := 100 * float64(z.OverallMemoryUsage) / float64(h.MemorySize>>20)
 
 		fmt.Fprintf(tw, "Name:\t%s\n", s.Config.Name)
 		fmt.Fprintf(tw, "  Path:\t%s\n", o.InventoryPath)
@@ -152,6 +152,11 @@ func (r *infoResult) Write(w io.Writer) error {
 		fmt.Fprintf(tw, "  Memory:\t%dMB\n", h.MemorySize/(1024*1024))
 		fmt.Fprintf(tw, "  Memory usage:\t%d MB (%.1f%%)\n", z.OverallMemoryUsage, memUsage)
 		fmt.Fprintf(tw, "  Boot time:\t%s\n", s.Runtime.BootTime)
+		if s.Runtime.InMaintenanceMode {
+			fmt.Fprint(tw, "  State: Maintenance Mode")
+		} else {
+			fmt.Fprintf(tw, "  State:\t%s\n", s.Runtime.ConnectionState)
+		}
 	}
 
 	return tw.Flush()

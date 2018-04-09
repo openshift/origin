@@ -199,7 +199,7 @@ func (o *BuildSecretOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 		return f.PrintResourceInfos(cmd, o.Local, infos, o.Out)
 	}
 
-	o.Encoder = f.JSONEncoder()
+	o.Encoder = kcmdutil.InternalVersionJSONEncoder()
 	o.ShortOutput = kcmdutil.GetFlagString(cmd, "output") == "name"
 	o.Mapper = mapper
 
@@ -262,7 +262,7 @@ func (o *BuildSecretOptions) Run() error {
 		}
 
 		info.Refresh(obj, true)
-		kcmdutil.PrintSuccess(o.Mapper, o.ShortOutput, o.Out, info.Mapping.Resource, info.Name, false, "updated")
+		kcmdutil.PrintSuccess(o.ShortOutput, o.Out, info.Object, false, "updated")
 	}
 	if len(errs) > 0 {
 		return errors.NewAggregate(errs)

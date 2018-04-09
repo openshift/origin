@@ -41,7 +41,7 @@ func NewManager(c *vim25.Client) *Manager {
 }
 
 func mapToKeyValueSlice(m map[string]string) []types.KeyValue {
-	r := make([]types.KeyValue, len(m))
+	var r []types.KeyValue
 	for k, v := range m {
 		r = append(r, types.KeyValue{Key: k, Value: v})
 	}

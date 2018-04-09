@@ -75,7 +75,11 @@ var _ = framework.KubeDescribe("Summary API", func() {
 				maxStartAge = time.Hour * 24 * 365 // 1 year
 				maxStatsAge = time.Minute
 			)
-			fsCapacityBounds := bounded(100*framework.Mb, 100*framework.Gb)
+			// fetch node so we can know proper node memory bounds for unconstrained cgroups
+			node := getLocalNode(f)
+			memoryCapacity := node.Status.Capacity["memory"]
+			memoryLimit := memoryCapacity.Value()
+			fsCapacityBounds := bounded(100*framework.Mb, 10*framework.Tb)
 			// Expectations for system containers.
 			sysContExpectations := func() types.GomegaMatcher {
 				return gstruct.MatchAllFields(gstruct.Fields{
@@ -90,10 +94,10 @@ var _ = framework.KubeDescribe("Summary API", func() {
 						"Time": recent(maxStatsAge),
 						// We don't limit system container memory.
 						"AvailableBytes":  BeNil(),
-						"UsageBytes":      bounded(1*framework.Mb, 10*framework.Gb),
-						"WorkingSetBytes": bounded(1*framework.Mb, 10*framework.Gb),
+						"UsageBytes":      bounded(1*framework.Mb, memoryLimit),
+						"WorkingSetBytes": bounded(1*framework.Mb, memoryLimit),
 						// this now returns /sys/fs/cgroup/memory.stat total_rss
-						"RSSBytes":        bounded(1*framework.Mb, 1*framework.Gb),
+						"RSSBytes":        bounded(1*framework.Mb, memoryLimit),
 						"PageFaults":      bounded(1000, 1E9),
 						"MajorPageFaults": bounded(0, 100000),
 					}),
@@ -103,9 +107,21 @@ var _ = framework.KubeDescribe("Summary API", func() {
 					"UserDefinedMetrics": BeEmpty(),
 				})
 			}
+			podsContExpectations := sysContExpectations().(*gstruct.FieldsMatcher)
+			podsContExpectations.Fields["Memory"] = ptrMatchAllFields(gstruct.Fields{
+				"Time": recent(maxStatsAge),
+				// Pods are limited by Node Allocatable
+				"AvailableBytes":  bounded(1*framework.Kb, memoryLimit),
+				"UsageBytes":      bounded(10*framework.Kb, 20*framework.Mb),
+				"WorkingSetBytes": bounded(10*framework.Kb, 20*framework.Mb),
+				"RSSBytes":        bounded(1*framework.Kb, 20*framework.Mb),
+				"PageFaults":      bounded(0, 1000000),
+				"MajorPageFaults": bounded(0, 10),
+			})
 			systemContainers := gstruct.Elements{
 				"kubelet": sysContExpectations(),
 				"runtime": sysContExpectations(),
+				"pods":    podsContExpectations,
 			}
 			// The Kubelet only manages the 'misc' system container if the host is not running systemd.
 			if !systemdutil.IsRunningSystemd() {
@@ -116,9 +132,9 @@ var _ = framework.KubeDescribe("Summary API", func() {
 					"Time": recent(maxStatsAge),
 					// We don't limit system container memory.
 					"AvailableBytes":  BeNil(),
-					"UsageBytes":      bounded(100*framework.Kb, 10*framework.Gb),
-					"WorkingSetBytes": bounded(100*framework.Kb, 10*framework.Gb),
-					"RSSBytes":        bounded(100*framework.Kb, 1*framework.Gb),
+					"UsageBytes":      bounded(100*framework.Kb, memoryLimit),
+					"WorkingSetBytes": bounded(100*framework.Kb, memoryLimit),
+					"RSSBytes":        bounded(100*framework.Kb, memoryLimit),
 					"PageFaults":      bounded(1000, 1E9),
 					"MajorPageFaults": bounded(0, 100000),
 				})
@@ -231,11 +247,11 @@ var _ = framework.KubeDescribe("Summary API", func() {
 					}),
 					"Memory": ptrMatchAllFields(gstruct.Fields{
 						"Time":            recent(maxStatsAge),
-						"AvailableBytes":  bounded(100*framework.Mb, 100*framework.Gb),
-						"UsageBytes":      bounded(10*framework.Mb, 10*framework.Gb),
-						"WorkingSetBytes": bounded(10*framework.Mb, 10*framework.Gb),
+						"AvailableBytes":  bounded(100*framework.Mb, memoryLimit),
+						"UsageBytes":      bounded(10*framework.Mb, memoryLimit),
+						"WorkingSetBytes": bounded(10*framework.Mb, memoryLimit),
 						// this now returns /sys/fs/cgroup/memory.stat total_rss
-						"RSSBytes":        bounded(1*framework.Kb, 1*framework.Gb),
+						"RSSBytes":        bounded(1*framework.Kb, memoryLimit),
 						"PageFaults":      bounded(1000, 1E9),
 						"MajorPageFaults": bounded(0, 100000),
 					}),
@@ -272,6 +288,11 @@ var _ = framework.KubeDescribe("Summary API", func() {
 							"Inodes":     bounded(1E4, 1E8),
 							"InodesUsed": bounded(0, 1E8),
 						}),
+					}),
+					"Rlimit": ptrMatchAllFields(gstruct.Fields{
+						"Time":                  recent(maxStatsAge),
+						"MaxPID":                bounded(0, 1E8),
+						"NumOfRunningProcesses": bounded(0, 1E8),
 					}),
 				}),
 				// Ignore extra pods since the tests run in parallel.

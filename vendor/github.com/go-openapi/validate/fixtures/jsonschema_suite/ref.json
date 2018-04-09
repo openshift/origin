@@ -141,6 +141,39 @@
         ]
     },
     {
+        "description": "ref overrides any sibling keywords",
+        "schema": {
+            "definitions": {
+                "reffed": {
+                    "type": "array"
+                }
+            },
+            "properties": {
+                "foo": {
+                    "$ref": "#/definitions/reffed",
+                    "maxItems": 2
+                }
+            }
+        },
+        "tests": [
+            {
+                "description": "ref valid",
+                "data": { "foo": [] },
+                "valid": true
+            },
+            {
+                "description": "ref valid, maxItems ignored",
+                "data": { "foo": [ 1, 2, 3] },
+                "valid": true
+            },
+            {
+                "description": "ref invalid",
+                "data": { "foo": "string" },
+                "valid": false
+            }
+        ]
+    },
+    {
         "description": "remote ref, containing refs itself",
         "schema": {"$ref": "http://json-schema.org/draft-04/schema#"},
         "tests": [
@@ -152,6 +185,26 @@
             {
                 "description": "remote ref invalid",
                 "data": {"minLength": -1},
+                "valid": false
+            }
+        ]
+    },
+    {
+        "description": "property named $ref that is not a reference",
+        "schema": {
+            "properties": {
+                "$ref": {"type": "string"}
+            }
+        },
+        "tests": [
+            {
+                "description": "property named $ref valid",
+                "data": {"$ref": "a"},
+                "valid": true
+            },
+            {
+                "description": "property named $ref invalid",
+                "data": {"$ref": 2},
                 "valid": false
             }
         ]

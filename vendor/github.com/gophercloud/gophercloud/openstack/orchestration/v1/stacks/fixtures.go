@@ -6,7 +6,7 @@ const ValidJSONTemplate = `
   "heat_template_version": "2014-10-16",
   "parameters": {
     "flavor": {
-      "default": 4353,
+      "default": "debian2G",
       "description": "Flavor for the server to be created",
       "hidden": true,
       "type": "string"
@@ -32,7 +32,7 @@ parameters:
   flavor:
     type: string
     description: Flavor for the server to be created
-    default: 4353
+    default: debian2G
     hidden: true
 resources:
   test_server:
@@ -49,7 +49,7 @@ parameters:
   flavor:
     type: string
     description: Flavor for the server to be created
-    default: 4353
+    default: debian2G
     hidden: true
 resources:
   test_server:
@@ -128,7 +128,7 @@ parameters:
 	flavor:
 		type: string
 		description: Flavor for the server to be created
-		default: 4353
+		default: debian2G
 		hidden: true
 resources:
 	test_server:
@@ -180,7 +180,7 @@ var ValidJSONTemplateParsed = map[string]interface{}{
 	"heat_template_version": "2014-10-16",
 	"parameters": map[string]interface{}{
 		"flavor": map[string]interface{}{
-			"default":     4353,
+			"default":     "debian2G",
 			"description": "Flavor for the server to be created",
 			"hidden":      true,
 			"type":        "string",

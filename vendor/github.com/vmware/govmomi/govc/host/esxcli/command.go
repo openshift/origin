@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/vmware/govmomi/vim25/types"
+	"github.com/vmware/govmomi/internal"
 )
 
 type Command struct {
@@ -92,7 +92,7 @@ func (c *Command) Moid() string {
 
 // Parse generates a flag.FlagSet based on the given []CommandInfoParam and
 // returns arguments for use with methods.ExecuteSoap
-func (c *Command) Parse(params []CommandInfoParam) ([]types.ReflectManagedMethodExecuterSoapArgument, error) {
+func (c *Command) Parse(params []CommandInfoParam) ([]internal.ReflectManagedMethodExecuterSoapArgument, error) {
 	flags := flag.NewFlagSet(strings.Join(c.name, " "), flag.ExitOnError)
 	vals := make([]string, len(params))
 
@@ -109,7 +109,7 @@ func (c *Command) Parse(params []CommandInfoParam) ([]types.ReflectManagedMethod
 		return nil, err
 	}
 
-	args := []types.ReflectManagedMethodExecuterSoapArgument{}
+	args := []internal.ReflectManagedMethodExecuterSoapArgument{}
 
 	for i, p := range params {
 		if vals[i] == "" {
@@ -121,8 +121,8 @@ func (c *Command) Parse(params []CommandInfoParam) ([]types.ReflectManagedMethod
 	return args, nil
 }
 
-func (c *Command) Argument(name string, val string) types.ReflectManagedMethodExecuterSoapArgument {
-	return types.ReflectManagedMethodExecuterSoapArgument{
+func (c *Command) Argument(name string, val string) internal.ReflectManagedMethodExecuterSoapArgument {
+	return internal.ReflectManagedMethodExecuterSoapArgument{
 		Name: name,
 		Val:  fmt.Sprintf("<%s>%s</%s>", name, val, name),
 	}

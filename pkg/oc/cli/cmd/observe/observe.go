@@ -397,7 +397,7 @@ func (o *ObserveOptions) Run() error {
 	}
 
 	// watch the given resource for changes
-	store := cache.NewDeltaFIFO(objectArgumentsKeyFunc, nil, o.knownObjects)
+	store := cache.NewDeltaFIFO(objectArgumentsKeyFunc, o.knownObjects)
 	lw := restListWatcher{Helper: resource.NewHelper(o.client, o.mapping)}
 	if !o.allNamespaces {
 		lw.namespace = o.namespace

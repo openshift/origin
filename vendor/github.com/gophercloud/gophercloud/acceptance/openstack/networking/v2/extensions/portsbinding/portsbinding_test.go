@@ -8,7 +8,6 @@ import (
 	"github.com/gophercloud/gophercloud/acceptance/clients"
 	networking "github.com/gophercloud/gophercloud/acceptance/openstack/networking/v2"
 	"github.com/gophercloud/gophercloud/acceptance/tools"
-	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/portsbinding"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/ports"
 )
 
@@ -49,7 +48,7 @@ func TestPortsbindingCRUD(t *testing.T) {
 	updateOpts := ports.UpdateOpts{
 		Name: newPortName,
 	}
-	newPort, err := portsbinding.Update(client, port.ID, updateOpts).Extract()
+	newPort, err := ports.Update(client, port.ID, updateOpts).Extract()
 	if err != nil {
 		t.Fatalf("Could not update port: %v", err)
 	}

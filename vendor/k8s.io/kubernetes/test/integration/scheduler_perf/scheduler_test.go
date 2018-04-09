@@ -23,7 +23,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/kubernetes/plugin/pkg/scheduler"
+	"k8s.io/kubernetes/pkg/scheduler"
 	testutils "k8s.io/kubernetes/test/utils"
 	"math"
 	"strconv"
@@ -144,7 +144,7 @@ func schedulePods(config *testConfig) int32 {
 			glog.Fatalf("%v", err)
 		}
 		// 30,000 pods -> wait till @ least 300 are scheduled to start measuring.
-		// TODO Find out why sometimes there may be scheduling blips in the beggining.
+		// TODO Find out why sometimes there may be scheduling blips in the beginning.
 		if len(scheduled) > config.numPods/100 {
 			break
 		}
@@ -258,7 +258,7 @@ func (inputConfig *schedulerPerfConfig) generatePodAndNodeTopology(config *testC
 }
 
 // writePodAndNodeTopologyToConfig reads a configuration and then applies it to a test configuration.
-//TODO: As of now, this function is not doing anything expect for reading input values to priority structs.
+//TODO: As of now, this function is not doing anything except for reading input values to priority structs.
 func writePodAndNodeTopologyToConfig(config *testConfig) error {
 	// High Level structure that should be filled for every predicate or priority.
 	inputConfig := &schedulerPerfConfig{

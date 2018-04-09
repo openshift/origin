@@ -25,10 +25,10 @@ import (
 
 	"github.com/vmware/govmomi/govc/cli"
 	"github.com/vmware/govmomi/govc/flags"
+	"github.com/vmware/govmomi/nfc"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/ovf"
 	"github.com/vmware/govmomi/vim25"
-	"github.com/vmware/govmomi/vim25/progress"
 	"github.com/vmware/govmomi/vim25/soap"
 	"github.com/vmware/govmomi/vim25/types"
 )
@@ -38,10 +38,10 @@ type ovfx struct {
 	*flags.HostSystemFlag
 	*flags.OutputFlag
 	*flags.ResourcePoolFlag
+	*flags.FolderFlag
 
 	*ArchiveFlag
 	*OptionsFlag
-	*FolderFlag
 
 	Name string
 
@@ -64,13 +64,13 @@ func (cmd *ovfx) Register(ctx context.Context, f *flag.FlagSet) {
 	cmd.OutputFlag.Register(ctx, f)
 	cmd.ResourcePoolFlag, ctx = flags.NewResourcePoolFlag(ctx)
 	cmd.ResourcePoolFlag.Register(ctx, f)
+	cmd.FolderFlag, ctx = flags.NewFolderFlag(ctx)
+	cmd.FolderFlag.Register(ctx, f)
 
 	cmd.ArchiveFlag, ctx = newArchiveFlag(ctx)
 	cmd.ArchiveFlag.Register(ctx, f)
 	cmd.OptionsFlag, ctx = newOptionsFlag(ctx)
 	cmd.OptionsFlag.Register(ctx, f)
-	cmd.FolderFlag, ctx = newFolderFlag(ctx)
-	cmd.FolderFlag.Register(ctx, f)
 
 	f.StringVar(&cmd.Name, "name", "", "Name to use for new entity")
 }
@@ -110,7 +110,10 @@ func (cmd *ovfx) Run(ctx context.Context, f *flag.FlagSet) error {
 		return err
 	}
 
-	cmd.Archive = &FileArchive{fpath}
+	archive := &FileArchive{path: fpath}
+	archive.Client = cmd.Client
+
+	cmd.Archive = archive
 
 	moref, err := cmd.Import(fpath)
 	if err != nil {
@@ -213,7 +216,7 @@ func (cmd *ovfx) Import(fpath string) (*types.ManagedObjectReference, error) {
 		return nil, err
 	}
 
-	e, err := cmd.ReadEnvelope(fpath)
+	e, err := cmd.ReadEnvelope(o)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse ovf: %s", err.Error())
 	}
@@ -248,7 +251,7 @@ func (cmd *ovfx) Import(fpath string) (*types.ManagedObjectReference, error) {
 		NetworkMapping:  cmd.NetworkMap(e),
 	}
 
-	m := object.NewOvfManager(cmd.Client)
+	m := ovf.NewManager(cmd.Client)
 	spec, err := m.CreateImportSpec(ctx, string(o), cmd.ResourcePool, cmd.Datastore, cisp)
 	if err != nil {
 		return nil, err
@@ -278,7 +281,7 @@ func (cmd *ovfx) Import(fpath string) (*types.ManagedObjectReference, error) {
 		}
 	}
 
-	folder, err := cmd.Folder()
+	folder, err := cmd.FolderOrDefault("vm")
 	if err != nil {
 		return nil, err
 	}
@@ -288,51 +291,25 @@ func (cmd *ovfx) Import(fpath string) (*types.ManagedObjectReference, error) {
 		return nil, err
 	}
 
-	info, err := lease.Wait(ctx)
+	info, err := lease.Wait(ctx, spec.FileItem)
 	if err != nil {
 		return nil, err
 	}
 
-	// Build slice of items and URLs first, so that the lease updater can know
-	// about every item that needs to be uploaded, and thereby infer progress.
-	var items []ovfFileItem
-
-	for _, device := range info.DeviceUrl {
-		for _, item := range spec.FileItem {
-			if device.ImportKey != item.DeviceId {
-				continue
-			}
-
-			u, err := cmd.Client.ParseURL(device.Url)
-			if err != nil {
-				return nil, err
-			}
-
-			i := ovfFileItem{
-				url:  u,
-				item: item,
-				ch:   make(chan progress.Report),
-			}
-
-			items = append(items, i)
-		}
-	}
-
-	u := newLeaseUpdater(cmd.Client, lease, items)
+	u := lease.StartUpdater(ctx, info)
 	defer u.Done()
 
-	for _, i := range items {
-		err = cmd.Upload(lease, i)
+	for _, i := range info.Items {
+		err = cmd.Upload(ctx, lease, i)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	return &info.Entity, lease.HttpNfcLeaseComplete(ctx)
+	return &info.Entity, lease.Complete(ctx)
 }
 
-func (cmd *ovfx) Upload(lease *object.HttpNfcLease, ofi ovfFileItem) error {
-	item := ofi.item
+func (cmd *ovfx) Upload(ctx context.Context, lease *nfc.Lease, item nfc.FileItem) error {
 	file := item.Path
 
 	f, size, err := cmd.Open(file)
@@ -346,22 +323,10 @@ func (cmd *ovfx) Upload(lease *object.HttpNfcLease, ofi ovfFileItem) error {
 
 	opts := soap.Upload{
 		ContentLength: size,
-		Progress:      progress.Tee(ofi, logger),
+		Progress:      logger,
 	}
 
-	// Non-disk files (such as .iso) use the PUT method.
-	// Overwrite: t header is also required in this case (ovftool does the same)
-	if item.Create {
-		opts.Method = "PUT"
-		opts.Headers = map[string]string{
-			"Overwrite": "t",
-		}
-	} else {
-		opts.Method = "POST"
-		opts.Type = "application/x-vnd.vmware-streamVmdk"
-	}
-
-	return cmd.Client.Client.Upload(f, ofi.url, &opts)
+	return lease.Upload(ctx, item, f, opts)
 }
 
 func (cmd *ovfx) PowerOn(vm *object.VirtualMachine) error {

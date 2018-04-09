@@ -20,9 +20,9 @@ import (
 
 // TestLogsFlagParity makes sure that our copied flags don't slip during rebases
 func TestLogsFlagParity(t *testing.T) {
-	kubeCmd := kcmd.NewCmdLogs(nil, ioutil.Discard)
+	kubeCmd := kcmd.NewCmdLogs(nil, ioutil.Discard, ioutil.Discard)
 	f := clientcmd.NewFactory(nil)
-	originCmd := NewCmdLogs("oc", "logs", f, ioutil.Discard)
+	originCmd := NewCmdLogs("oc", "logs", f, ioutil.Discard, ioutil.Discard)
 
 	kubeCmd.LocalFlags().VisitAll(func(kubeFlag *pflag.Flag) {
 		originFlag := originCmd.LocalFlags().Lookup(kubeFlag.Name)

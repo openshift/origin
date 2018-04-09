@@ -52,7 +52,6 @@ type quotaEvaluator struct {
 	// lockAcquisitionFunc acquires any required locks and returns a cleanup method to defer
 	lockAcquisitionFunc func([]api.ResourceQuota) func()
 
-	// how quota was configured
 	ignoredResources map[schema.GroupResource]struct{}
 
 	// registry that knows how to measure usage for objects
@@ -121,7 +120,7 @@ func NewQuotaEvaluator(quotaAccessor QuotaAccessor, ignoredResources map[schema.
 		lockAcquisitionFunc: lockAcquisitionFunc,
 
 		ignoredResources: ignoredResources,
-		registry:           quotaRegistry,
+		registry:         quotaRegistry,
 
 		queue:      workqueue.NewNamed("admission_quota_controller"),
 		work:       map[string][]*admissionWaiter{},

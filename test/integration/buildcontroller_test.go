@@ -119,7 +119,7 @@ func setupBuildControllerTest(counts controllerCount, t *testing.T) (buildtypedc
 
 	// this test wants to duplicate the controllers, so it needs to duplicate the wiring.
 	// TODO have this simply start the particular controller it wants multiple times
-	controllerManagerOptions := cmapp.NewCMServer()
+	controllerManagerOptions := cmapp.NewKubeControllerManagerOptions()
 	rootClientBuilder := controller.SimpleControllerClientBuilder{
 		ClientConfig: clusterAdminClientConfig,
 	}
@@ -158,7 +158,7 @@ func setupBuildControllerTest(counts controllerCount, t *testing.T) (buildtypedc
 				informers.GetExternalKubeInformers(),
 			},
 		},
-		Options:            *controllerManagerOptions,
+		ComponentConfig:    controllerManagerOptions.Generic.ComponentConfig,
 		AvailableResources: availableResources,
 		Stop:               wait.NeverStop,
 	}

@@ -154,3 +154,13 @@ func TestExtendSize(t *testing.T) {
 	err := volumeactions.ExtendSize(client.ServiceClient(), "cd281d77-8217-4830-be95-9528227c105c", options).ExtractErr()
 	th.AssertNoErr(t, err)
 }
+
+func TestForceDelete(t *testing.T) {
+	th.SetupHTTP()
+	defer th.TeardownHTTP()
+
+	MockForceDeleteResponse(t)
+
+	res := volumeactions.ForceDelete(client.ServiceClient(), "d32019d3-bc6e-4319-9c1d-6722fc136a22")
+	th.AssertNoErr(t, res.Err)
+}

@@ -158,7 +158,7 @@ func (o *RollbackOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, arg
 	o.Format = kcmdutil.GetFlagString(cmd, "output")
 
 	o.printObj = func(obj runtime.Object, mapping *meta.RESTMapping, out io.Writer) error {
-		printer, err := f.PrinterForMapping(kcmdutil.ExtractCmdPrintOptions(cmd, false), mapping)
+		printer, err := kcmdutil.PrinterForOptions(kcmdutil.ExtractCmdPrintOptions(cmd, false))
 		if err != nil {
 			return err
 		}

@@ -68,7 +68,7 @@ os::cmd::expect_success_and_text 'oc get dc/router -o yaml' 'readinessProbe'
 
 # delete the router and deployment config, leaving the clusterrolebinding and service account
 os::cmd::expect_success_and_text "oc delete svc/router" 'service "router" deleted'
-os::cmd::expect_success_and_text "oc delete dc/router" 'deploymentconfig "router" deleted'
+os::cmd::expect_success_and_text "oc delete dc/router" 'deploymentconfig.apps.openshift.io "router" deleted'
 # create a router and check for success with a warning about the existing clusterrolebinding
 os::cmd::expect_success_and_text "oc adm router" 'warning: clusterrolebindings "router-router-role" already exists'
 
@@ -96,7 +96,7 @@ os::cmd::expect_failure_and_text 'oc adm ipfailover --virtual-ips="1.2.3.4" --dr
 os::cmd::expect_success 'oc adm policy remove-scc-from-user privileged -z ipfailover'
 
 # TODO add tests for normal ipfailover creation
-# os::cmd::expect_success_and_text 'oc adm ipfailover' 'deploymentconfig "ipfailover" created'
+# os::cmd::expect_success_and_text 'oc adm ipfailover' 'deploymentconfig.apps.openshift.io "ipfailover" created'
 # os::cmd::expect_failure_and_text 'oc adm ipfailover' 'Error from server: deploymentconfig "ipfailover" already exists'
 # os::cmd::expect_success_and_text 'oc adm ipfailover -o name --dry-run | xargs oc delete' 'deleted'
 echo "ipfailover: ok"

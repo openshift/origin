@@ -23,12 +23,14 @@ import (
 	"strings"
 	"testing"
 
+	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest/fake"
-	api "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	cmdtesting "k8s.io/kubernetes/pkg/kubectl/cmd/testing"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
+	"k8s.io/kubernetes/pkg/kubectl/scheme"
 )
 
 func TestValidateLabels(t *testing.T) {
@@ -164,7 +166,7 @@ func TestLabelFunc(t *testing.T) {
 		expectErr bool
 	}{
 		{
-			obj: &api.Pod{
+			obj: &v1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"a": "b"},
 				},
@@ -173,41 +175,41 @@ func TestLabelFunc(t *testing.T) {
 			expectErr: true,
 		},
 		{
-			obj: &api.Pod{
+			obj: &v1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"a": "b"},
 				},
 			},
 			labels:    map[string]string{"a": "c"},
 			overwrite: true,
-			expected: &api.Pod{
+			expected: &v1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"a": "c"},
 				},
 			},
 		},
 		{
-			obj: &api.Pod{
+			obj: &v1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"a": "b"},
 				},
 			},
 			labels: map[string]string{"c": "d"},
-			expected: &api.Pod{
+			expected: &v1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"a": "b", "c": "d"},
 				},
 			},
 		},
 		{
-			obj: &api.Pod{
+			obj: &v1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"a": "b"},
 				},
 			},
 			labels:  map[string]string{"c": "d"},
 			version: "2",
-			expected: &api.Pod{
+			expected: &v1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels:          map[string]string{"a": "b", "c": "d"},
 					ResourceVersion: "2",
@@ -215,28 +217,28 @@ func TestLabelFunc(t *testing.T) {
 			},
 		},
 		{
-			obj: &api.Pod{
+			obj: &v1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"a": "b"},
 				},
 			},
 			labels: map[string]string{},
 			remove: []string{"a"},
-			expected: &api.Pod{
+			expected: &v1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{},
 				},
 			},
 		},
 		{
-			obj: &api.Pod{
+			obj: &v1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"a": "b", "c": "d"},
 				},
 			},
 			labels: map[string]string{"e": "f"},
 			remove: []string{"a"},
-			expected: &api.Pod{
+			expected: &v1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
 						"c": "d",
@@ -246,11 +248,11 @@ func TestLabelFunc(t *testing.T) {
 			},
 		},
 		{
-			obj: &api.Pod{
+			obj: &v1.Pod{
 				ObjectMeta: metav1.ObjectMeta{},
 			},
 			labels: map[string]string{"a": "b"},
-			expected: &api.Pod{
+			expected: &v1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"a": "b"},
 				},
@@ -319,42 +321,46 @@ func TestLabelErrors(t *testing.T) {
 	}
 
 	for k, testCase := range testCases {
-		f, tf, _, _ := cmdtesting.NewAPIFactory()
-		tf.Printer = &testPrinter{}
-		tf.Namespace = "test"
-		tf.ClientConfig = defaultClientConfig()
+		t.Run(k, func(t *testing.T) {
+			tf := cmdtesting.NewTestFactory()
+			defer tf.Cleanup()
 
-		buf := bytes.NewBuffer([]byte{})
-		cmd := NewCmdLabel(f, buf)
-		cmd.SetOutput(buf)
+			tf.Namespace = "test"
+			tf.ClientConfigVal = defaultClientConfig()
 
-		for k, v := range testCase.flags {
-			cmd.Flags().Set(k, v)
-		}
-		opts := LabelOptions{}
-		err := opts.Complete(buf, cmd, testCase.args)
-		if err == nil {
-			err = opts.Validate()
-		}
-		if err == nil {
-			err = opts.RunLabel(f, cmd)
-		}
-		if !testCase.errFn(err) {
-			t.Errorf("%s: unexpected error: %v", k, err)
-			continue
-		}
-		if tf.Printer.(*testPrinter).Objects != nil {
-			t.Errorf("unexpected print to default printer")
-		}
-		if buf.Len() > 0 {
-			t.Errorf("buffer should be empty: %s", string(buf.Bytes()))
-		}
+			buf := bytes.NewBuffer([]byte{})
+			cmd := NewCmdLabel(tf, buf)
+			cmd.SetOutput(buf)
+
+			for k, v := range testCase.flags {
+				cmd.Flags().Set(k, v)
+			}
+			opts := LabelOptions{}
+			err := opts.Complete(buf, cmd, testCase.args)
+			if err == nil {
+				err = opts.Validate()
+			}
+			if err == nil {
+				err = opts.RunLabel(tf, cmd)
+			}
+			if !testCase.errFn(err) {
+				t.Errorf("%s: unexpected error: %v", k, err)
+				return
+			}
+			if buf.Len() > 0 {
+				t.Errorf("buffer should be empty: %s", string(buf.Bytes()))
+			}
+		})
 	}
 }
 
 func TestLabelForResourceFromFile(t *testing.T) {
 	pods, _, _ := testData()
-	f, tf, codec, _ := cmdtesting.NewAPIFactory()
+	tf := cmdtesting.NewTestFactory()
+	defer tf.Cleanup()
+
+	codec := legacyscheme.Codecs.LegacyCodec(scheme.Versions...)
+
 	tf.UnstructuredClient = &fake.RESTClient{
 		NegotiatedSerializer: unstructuredSerializer,
 		Client: fake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) {
@@ -382,18 +388,18 @@ func TestLabelForResourceFromFile(t *testing.T) {
 		}),
 	}
 	tf.Namespace = "test"
-	tf.ClientConfig = defaultClientConfig()
+	tf.ClientConfigVal = defaultClientConfig()
 
 	buf := bytes.NewBuffer([]byte{})
-	cmd := NewCmdLabel(f, buf)
+	cmd := NewCmdLabel(tf, buf)
 	opts := LabelOptions{FilenameOptions: resource.FilenameOptions{
-		Filenames: []string{"../../../examples/storage/cassandra/cassandra-controller.yaml"}}}
+		Filenames: []string{"../../../test/e2e/testing-manifests/statefulset/cassandra/controller.yaml"}}}
 	err := opts.Complete(buf, cmd, []string{"a=b"})
 	if err == nil {
 		err = opts.Validate()
 	}
 	if err == nil {
-		err = opts.RunLabel(f, cmd)
+		err = opts.RunLabel(tf, cmd)
 	}
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -404,7 +410,9 @@ func TestLabelForResourceFromFile(t *testing.T) {
 }
 
 func TestLabelLocal(t *testing.T) {
-	f, tf, _, _ := cmdtesting.NewAPIFactory()
+	tf := cmdtesting.NewTestFactory()
+	defer tf.Cleanup()
+
 	tf.UnstructuredClient = &fake.RESTClient{
 		NegotiatedSerializer: unstructuredSerializer,
 		Client: fake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) {
@@ -413,19 +421,19 @@ func TestLabelLocal(t *testing.T) {
 		}),
 	}
 	tf.Namespace = "test"
-	tf.ClientConfig = defaultClientConfig()
+	tf.ClientConfigVal = defaultClientConfig()
 
 	buf := bytes.NewBuffer([]byte{})
-	cmd := NewCmdLabel(f, buf)
-	cmd.Flags().Set("local", "true")
+	cmd := NewCmdLabel(tf, buf)
 	opts := LabelOptions{FilenameOptions: resource.FilenameOptions{
-		Filenames: []string{"../../../examples/storage/cassandra/cassandra-controller.yaml"}}}
+		Filenames: []string{"../../../test/e2e/testing-manifests/statefulset/cassandra/controller.yaml"}},
+		local: true}
 	err := opts.Complete(buf, cmd, []string{"a=b"})
 	if err == nil {
 		err = opts.Validate()
 	}
 	if err == nil {
-		err = opts.RunLabel(f, cmd)
+		err = opts.RunLabel(tf, cmd)
 	}
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -437,7 +445,11 @@ func TestLabelLocal(t *testing.T) {
 
 func TestLabelMultipleObjects(t *testing.T) {
 	pods, _, _ := testData()
-	f, tf, codec, _ := cmdtesting.NewAPIFactory()
+	tf := cmdtesting.NewTestFactory()
+	defer tf.Cleanup()
+
+	codec := legacyscheme.Codecs.LegacyCodec(scheme.Versions...)
+
 	tf.UnstructuredClient = &fake.RESTClient{
 		NegotiatedSerializer: unstructuredSerializer,
 		Client: fake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) {
@@ -467,19 +479,17 @@ func TestLabelMultipleObjects(t *testing.T) {
 		}),
 	}
 	tf.Namespace = "test"
-	tf.ClientConfig = defaultClientConfig()
+	tf.ClientConfigVal = defaultClientConfig()
 
 	buf := bytes.NewBuffer([]byte{})
-	cmd := NewCmdLabel(f, buf)
-	cmd.Flags().Set("all", "true")
-
-	opts := LabelOptions{}
+	cmd := NewCmdLabel(tf, buf)
+	opts := LabelOptions{all: true}
 	err := opts.Complete(buf, cmd, []string{"pods", "a=b"})
 	if err == nil {
 		err = opts.Validate()
 	}
 	if err == nil {
-		err = opts.RunLabel(f, cmd)
+		err = opts.RunLabel(tf, cmd)
 	}
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

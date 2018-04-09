@@ -51,9 +51,9 @@ func NewEventSignaler(eventRecorder record.EventRecorder) NeedPodsSignaler {
 
 // NewUnidlerProxier creates a new Proxier for the given LoadBalancer and address which fires off
 // unidling signals connections and traffic.  It is intended to be used as one half of a HybridProxier.
-func NewUnidlerProxier(loadBalancer userspace.LoadBalancer, listenIP net.IP, iptables iptables.Interface, exec utilexec.Interface, pr utilnet.PortRange, syncPeriod, minSyncPeriod, udpIdleTimeout time.Duration, signaler NeedPodsSignaler) (*userspace.Proxier, error) {
+func NewUnidlerProxier(loadBalancer userspace.LoadBalancer, listenIP net.IP, iptables iptables.Interface, exec utilexec.Interface, pr utilnet.PortRange, syncPeriod, minSyncPeriod, udpIdleTimeout time.Duration, nodePortAddresses []string, signaler NeedPodsSignaler) (*userspace.Proxier, error) {
 	newFunc := func(protocol api.Protocol, ip net.IP, port int) (userspace.ProxySocket, error) {
 		return newUnidlerSocket(protocol, ip, port, signaler)
 	}
-	return userspace.NewCustomProxier(loadBalancer, listenIP, iptables, exec, pr, syncPeriod, minSyncPeriod, udpIdleTimeout, newFunc)
+	return userspace.NewCustomProxier(loadBalancer, listenIP, iptables, exec, pr, syncPeriod, minSyncPeriod, udpIdleTimeout, nodePortAddresses, newFunc)
 }

@@ -105,7 +105,8 @@ func NewCmdCordon(f cmdutil.Factory, out io.Writer) *cobra.Command {
 	options := &DrainOptions{Factory: f, Out: out}
 
 	cmd := &cobra.Command{
-		Use:     "cordon NODE",
+		Use: "cordon NODE",
+		DisableFlagsInUseLine: true,
 		Short:   i18n.T("Mark node as unschedulable"),
 		Long:    cordon_long,
 		Example: cordon_example,
@@ -132,7 +133,8 @@ func NewCmdUncordon(f cmdutil.Factory, out io.Writer) *cobra.Command {
 	options := &DrainOptions{Factory: f, Out: out}
 
 	cmd := &cobra.Command{
-		Use:     "uncordon NODE",
+		Use: "uncordon NODE",
+		DisableFlagsInUseLine: true,
 		Short:   i18n.T("Mark node as schedulable"),
 		Long:    uncordon_long,
 		Example: uncordon_example,
@@ -184,7 +186,8 @@ func NewCmdDrain(f cmdutil.Factory, out, errOut io.Writer) *cobra.Command {
 	options := &DrainOptions{Factory: f, Out: out, ErrOut: errOut, backOff: clockwork.NewRealClock()}
 
 	cmd := &cobra.Command{
-		Use:     "drain NODE",
+		Use: "drain NODE",
+		DisableFlagsInUseLine: true,
 		Short:   i18n.T("Drain node in preparation for maintenance"),
 		Long:    drain_long,
 		Example: drain_example,
@@ -221,7 +224,7 @@ func (o *DrainOptions) SetupDrain(cmd *cobra.Command, args []string) error {
 		return cmdutil.UsageErrorf(cmd, fmt.Sprintf("USAGE: %s [flags]", cmd.Use))
 	}
 
-	o.DryRun = cmdutil.GetFlagBool(cmd, "dry-run")
+	o.DryRun = cmdutil.GetDryRunFlag(cmd)
 
 	if o.client, err = o.Factory.KubernetesClientSet(); err != nil {
 		return err
@@ -239,7 +242,6 @@ func (o *DrainOptions) SetupDrain(cmd *cobra.Command, args []string) error {
 	}
 
 	o.nodeInfos = []*resource.Info{}
-	o.mapper, o.typer = o.Factory.Object()
 
 	cmdNamespace, _, err := o.Factory.DefaultNamespace()
 	if err != nil {
@@ -293,7 +295,7 @@ func (o *DrainOptions) RunDrain() error {
 		}
 		if err == nil || o.DryRun {
 			drainedNodes.Insert(info.Name)
-			o.Factory.PrintSuccess(o.mapper, false, o.Out, "node", info.Name, o.DryRun, "drained")
+			cmdutil.PrintSuccess(false, o.Out, info.Object, o.DryRun, "drained")
 		} else {
 			fmt.Fprintf(o.ErrOut, "error: unable to drain node %q, aborting command...\n\n", info.Name)
 			remainingNodes := []string{}
@@ -372,13 +374,14 @@ func (o *DrainOptions) daemonsetFilter(pod corev1.Pod) (bool, *warning, *fatal) 
 		return true, nil, nil
 	}
 
-	if _, err := o.client.Extensions().DaemonSets(pod.Namespace).Get(controllerRef.Name, metav1.GetOptions{}); err != nil {
+	if _, err := o.client.ExtensionsV1beta1().DaemonSets(pod.Namespace).Get(controllerRef.Name, metav1.GetOptions{}); err != nil {
 		// remove orphaned pods with a warning if --force is used
 		if apierrors.IsNotFound(err) && o.Force {
 			return true, &warning{err.Error()}, nil
 		}
 		return false, nil, &fatal{err.Error()}
 	}
+
 	if !o.IgnoreDaemonsets {
 		return false, nil, &fatal{kDaemonsetFatal}
 	}
@@ -433,7 +436,7 @@ func (o *DrainOptions) getPodsForDeletion(nodeInfo *resource.Info) (pods []corev
 		return pods, err
 	}
 
-	podList, err := o.client.Core().Pods(metav1.NamespaceAll).List(metav1.ListOptions{
+	podList, err := o.client.CoreV1().Pods(metav1.NamespaceAll).List(metav1.ListOptions{
 		LabelSelector: labelSelector.String(),
 		FieldSelector: fields.SelectorFromSet(fields.Set{"spec.nodeName": nodeInfo.Name}).String()})
 	if err != nil {
@@ -483,7 +486,7 @@ func (o *DrainOptions) deletePod(pod corev1.Pod) error {
 		gracePeriodSeconds := int64(o.GracePeriodSeconds)
 		deleteOptions.GracePeriodSeconds = &gracePeriodSeconds
 	}
-	return o.client.Core().Pods(pod.Namespace).Delete(pod.Name, deleteOptions)
+	return o.client.CoreV1().Pods(pod.Namespace).Delete(pod.Name, deleteOptions)
 }
 
 func (o *DrainOptions) evictPod(pod corev1.Pod, policyGroupVersion string) error {
@@ -504,7 +507,7 @@ func (o *DrainOptions) evictPod(pod corev1.Pod, policyGroupVersion string) error
 		DeleteOptions: deleteOptions,
 	}
 	// Remember to change change the URL manipulation func when Evction's version change
-	return o.client.Policy().Evictions(eviction.Namespace).Evict(eviction)
+	return o.client.PolicyV1beta1().Evictions(eviction.Namespace).Evict(eviction)
 }
 
 // deleteOrEvictPods deletes or evicts the pods on the api server
@@ -519,7 +522,7 @@ func (o *DrainOptions) deleteOrEvictPods(pods []corev1.Pod) error {
 	}
 
 	getPodFn := func(namespace, name string) (*corev1.Pod, error) {
-		return o.client.Core().Pods(namespace).Get(name, metav1.GetOptions{})
+		return o.client.CoreV1().Pods(namespace).Get(name, metav1.GetOptions{})
 	}
 
 	if len(policyGroupVersion) > 0 {
@@ -613,7 +616,7 @@ func (o *DrainOptions) waitForDelete(pods []corev1.Pod, interval, timeout time.D
 		for i, pod := range pods {
 			p, err := getPodFn(pod.Namespace, pod.Name)
 			if apierrors.IsNotFound(err) || (p != nil && p.ObjectMeta.UID != pod.ObjectMeta.UID) {
-				o.Factory.PrintSuccess(o.mapper, false, o.Out, "pod", pod.Name, false, verbStr)
+				cmdutil.PrintSuccess(false, o.Out, &pod, false, verbStr)
 				continue
 			} else if err != nil {
 				return false, err
@@ -694,7 +697,7 @@ func (o *DrainOptions) RunCordonOrUncordon(desired bool) error {
 			}
 			unsched := node.Spec.Unschedulable
 			if unsched == desired {
-				o.Factory.PrintSuccess(o.mapper, false, o.Out, nodeInfo.Mapping.Resource, nodeInfo.Name, o.DryRun, already(desired))
+				cmdutil.PrintSuccess(false, o.Out, nodeInfo.Object, o.DryRun, already(desired))
 			} else {
 				if !o.DryRun {
 					helper := resource.NewHelper(o.restClient, nodeInfo.Mapping)
@@ -715,10 +718,10 @@ func (o *DrainOptions) RunCordonOrUncordon(desired bool) error {
 						continue
 					}
 				}
-				o.Factory.PrintSuccess(o.mapper, false, o.Out, nodeInfo.Mapping.Resource, nodeInfo.Name, o.DryRun, changed(desired))
+				cmdutil.PrintSuccess(false, o.Out, nodeInfo.Object, o.DryRun, changed(desired))
 			}
 		} else {
-			o.Factory.PrintSuccess(o.mapper, false, o.Out, nodeInfo.Mapping.Resource, nodeInfo.Name, o.DryRun, "skipped")
+			cmdutil.PrintSuccess(false, o.Out, nodeInfo.Object, o.DryRun, "skipped")
 		}
 	}
 

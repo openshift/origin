@@ -32,6 +32,10 @@ type ProcessManager struct {
 	c *vim25.Client
 }
 
+func (m ProcessManager) Client() *vim25.Client {
+	return m.c
+}
+
 func (m ProcessManager) Reference() types.ManagedObjectReference {
 	return m.ManagedObjectReference
 }

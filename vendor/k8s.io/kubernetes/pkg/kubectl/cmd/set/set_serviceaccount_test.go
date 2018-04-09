@@ -37,12 +37,11 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/rest/fake"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/api/testapi"
-	"k8s.io/kubernetes/pkg/kubectl/categories"
 	cmdtesting "k8s.io/kubernetes/pkg/kubectl/cmd/testing"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/kubectl/scheme"
-	"k8s.io/kubernetes/pkg/printers"
 )
 
 const serviceAccount = "serviceaccount1"
@@ -68,7 +67,9 @@ func TestSetServiceAccountLocal(t *testing.T) {
 
 	for i, input := range inputs {
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
-			f, tf, _, _ := cmdtesting.NewAPIFactory()
+			tf := cmdtesting.NewTestFactory()
+			defer tf.Cleanup()
+
 			tf.Client = &fake.RESTClient{
 				GroupVersion: schema.GroupVersion{Version: "v1"},
 				Client: fake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) {
@@ -78,17 +79,16 @@ func TestSetServiceAccountLocal(t *testing.T) {
 			}
 			tf.Namespace = "test"
 			out := new(bytes.Buffer)
-			cmd := NewCmdServiceAccount(f, out, out)
+			cmd := NewCmdServiceAccount(tf, out, out)
 			cmd.SetOutput(out)
 			cmd.Flags().Set("output", "yaml")
 			cmd.Flags().Set("local", "true")
 			testapi.Default = testapi.Groups[input.apiGroup]
-			tf.Printer = printers.NewVersionedPrinter(&printers.YAMLPrinter{}, testapi.Default.Converter(), *testapi.Default.GroupVersion())
 			saConfig := serviceAccountConfig{fileNameOptions: resource.FilenameOptions{
 				Filenames: []string{input.yaml}},
 				out:   out,
 				local: true}
-			err := saConfig.Complete(f, cmd, []string{serviceAccount})
+			err := saConfig.Complete(tf, cmd, []string{serviceAccount})
 			assert.NoError(t, err)
 			err = saConfig.Run()
 			assert.NoError(t, err)
@@ -99,7 +99,10 @@ func TestSetServiceAccountLocal(t *testing.T) {
 
 func TestSetServiceAccountMultiLocal(t *testing.T) {
 	testapi.Default = testapi.Groups[""]
-	f, tf, codec, ns := cmdtesting.NewAPIFactory()
+	tf := cmdtesting.NewTestFactory()
+	defer tf.Cleanup()
+
+	ns := legacyscheme.Codecs
 	tf.Client = &fake.RESTClient{
 		GroupVersion:         schema.GroupVersion{Version: ""},
 		NegotiatedSerializer: ns,
@@ -109,28 +112,26 @@ func TestSetServiceAccountMultiLocal(t *testing.T) {
 		}),
 	}
 	tf.Namespace = "test"
-	tf.ClientConfig = &restclient.Config{ContentConfig: restclient.ContentConfig{GroupVersion: &schema.GroupVersion{Version: ""}}}
+	tf.ClientConfigVal = &restclient.Config{ContentConfig: restclient.ContentConfig{GroupVersion: &schema.GroupVersion{Version: ""}}}
 
 	buf := bytes.NewBuffer([]byte{})
-	cmd := NewCmdServiceAccount(f, buf, buf)
+	cmd := NewCmdServiceAccount(tf, buf, buf)
 	cmd.SetOutput(buf)
 	cmd.Flags().Set("output", "name")
 	cmd.Flags().Set("local", "true")
-	mapper, typer := f.Object()
-	tf.Printer = &printers.NamePrinter{Decoders: []runtime.Decoder{codec}, Typer: typer, Mapper: mapper}
 	opts := serviceAccountConfig{fileNameOptions: resource.FilenameOptions{
 		Filenames: []string{"../../../../test/fixtures/pkg/kubectl/cmd/set/multi-resource-yaml.yaml"}},
 		out:   buf,
 		local: true}
 
-	err := opts.Complete(f, cmd, []string{serviceAccount})
+	err := opts.Complete(tf, cmd, []string{serviceAccount})
 	if err == nil {
 		err = opts.Run()
 	}
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	expectedOut := "replicationcontrollers/first-rc\nreplicationcontrollers/second-rc\n"
+	expectedOut := "replicationcontroller/first-rc\nreplicationcontroller/second-rc\n"
 	if buf.String() != expectedOut {
 		t.Errorf("expected out:\n%s\nbut got:\n%s", expectedOut, buf.String())
 	}
@@ -313,78 +314,86 @@ func TestSetServiceAccountRemote(t *testing.T) {
 		},
 	}
 	for _, input := range inputs {
-		groupVersion := schema.GroupVersion{Group: input.apiGroup, Version: input.apiVersion}
-		testapi.Default = testapi.Groups[input.testAPIGroup]
-		f, tf, _, ns := cmdtesting.NewAPIFactory()
-		codec := scheme.Codecs.CodecForVersions(scheme.Codecs.LegacyCodec(groupVersion), scheme.Codecs.UniversalDecoder(groupVersion), groupVersion, groupVersion)
-		tf.Printer = printers.NewVersionedPrinter(&printers.YAMLPrinter{}, testapi.Default.Converter(), *testapi.Default.GroupVersion())
-		tf.Namespace = "test"
-		tf.CategoryExpander = categories.LegacyCategoryExpander
-		tf.Client = &fake.RESTClient{
-			GroupVersion:         groupVersion,
-			NegotiatedSerializer: ns,
-			Client: fake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) {
-				resourcePath := testapi.Default.ResourcePath(input.args[0]+"s", tf.Namespace, input.args[1])
-				switch p, m := req.URL.Path, req.Method; {
-				case p == resourcePath && m == http.MethodGet:
-					return &http.Response{StatusCode: http.StatusOK, Header: defaultHeader(), Body: objBody(codec, input.object)}, nil
-				case p == resourcePath && m == http.MethodPatch:
-					stream, err := req.GetBody()
-					if err != nil {
-						return nil, err
+		t.Run(input.apiPrefix, func(t *testing.T) {
+			groupVersion := schema.GroupVersion{Group: input.apiGroup, Version: input.apiVersion}
+			testapi.Default = testapi.Groups[input.testAPIGroup]
+			tf := cmdtesting.NewTestFactory()
+			defer tf.Cleanup()
+
+			codec := scheme.Codecs.CodecForVersions(scheme.Codecs.LegacyCodec(groupVersion), scheme.Codecs.UniversalDecoder(groupVersion), groupVersion, groupVersion)
+			ns := legacyscheme.Codecs
+			tf.Namespace = "test"
+			tf.Client = &fake.RESTClient{
+				GroupVersion:         groupVersion,
+				NegotiatedSerializer: ns,
+				Client: fake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) {
+					resourcePath := testapi.Default.ResourcePath(input.args[0]+"s", tf.Namespace, input.args[1])
+					switch p, m := req.URL.Path, req.Method; {
+					case p == resourcePath && m == http.MethodGet:
+						return &http.Response{StatusCode: http.StatusOK, Header: defaultHeader(), Body: objBody(codec, input.object)}, nil
+					case p == resourcePath && m == http.MethodPatch:
+						stream, err := req.GetBody()
+						if err != nil {
+							return nil, err
+						}
+						bytes, err := ioutil.ReadAll(stream)
+						if err != nil {
+							return nil, err
+						}
+						assert.Contains(t, string(bytes), `"serviceAccountName":`+`"`+serviceAccount+`"`, fmt.Sprintf("serviceaccount not updated for %#v", input.object))
+						return &http.Response{StatusCode: http.StatusOK, Header: defaultHeader(), Body: objBody(codec, input.object)}, nil
+					default:
+						t.Errorf("%s: unexpected request: %s %#v\n%#v", "serviceaccount", req.Method, req.URL, req)
+						return nil, fmt.Errorf("unexpected request")
 					}
-					bytes, err := ioutil.ReadAll(stream)
-					if err != nil {
-						return nil, err
-					}
-					assert.Contains(t, string(bytes), `"serviceAccountName":`+`"`+serviceAccount+`"`, fmt.Sprintf("serviceaccount not updated for %#v", input.object))
-					return &http.Response{StatusCode: http.StatusOK, Header: defaultHeader(), Body: objBody(codec, input.object)}, nil
-				default:
-					t.Errorf("%s: unexpected request: %s %#v\n%#v", "serviceaccount", req.Method, req.URL, req)
-					return nil, fmt.Errorf("unexpected request")
-				}
-			}),
-			VersionedAPIPath: path.Join(input.apiPrefix, testapi.Default.GroupVersion().String()),
-		}
-		out := new(bytes.Buffer)
-		cmd := NewCmdServiceAccount(f, out, out)
-		cmd.SetOutput(out)
-		cmd.Flags().Set("output", "yaml")
-		saConfig := serviceAccountConfig{
-			out:   out,
-			local: false}
-		err := saConfig.Complete(f, cmd, input.args)
-		assert.NoError(t, err)
-		err = saConfig.Run()
-		assert.NoError(t, err)
+				}),
+				VersionedAPIPath: path.Join(input.apiPrefix, testapi.Default.GroupVersion().String()),
+			}
+			out := new(bytes.Buffer)
+			cmd := NewCmdServiceAccount(tf, out, out)
+			cmd.SetOutput(out)
+			cmd.Flags().Set("output", "yaml")
+			saConfig := serviceAccountConfig{
+				out:   out,
+				local: false}
+			err := saConfig.Complete(tf, cmd, input.args)
+			assert.NoError(t, err)
+			err = saConfig.Run()
+			assert.NoError(t, err)
+		})
 	}
 }
 
 func TestServiceAccountValidation(t *testing.T) {
 	inputs := []struct {
+		name        string
 		args        []string
 		errorString string
 	}{
-		{args: []string{}, errorString: serviceAccountMissingErrString},
-		{args: []string{serviceAccount}, errorString: resourceMissingErrString},
+		{name: "test service account missing", args: []string{}, errorString: serviceAccountMissingErrString},
+		{name: "test service account resource missing", args: []string{serviceAccount}, errorString: resourceMissingErrString},
 	}
 	for _, input := range inputs {
-		f, tf, _, _ := cmdtesting.NewAPIFactory()
-		tf.Client = &fake.RESTClient{
-			GroupVersion: schema.GroupVersion{Version: "v1"},
-			Client: fake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) {
-				t.Fatalf("unexpected request: %s %#v\n%#v", req.Method, req.URL, req)
-				return nil, nil
-			}),
-		}
-		tf.Namespace = "test"
-		out := bytes.NewBuffer([]byte{})
-		cmd := NewCmdServiceAccount(f, out, out)
-		cmd.SetOutput(out)
+		t.Run(input.name, func(t *testing.T) {
+			tf := cmdtesting.NewTestFactory()
+			defer tf.Cleanup()
 
-		saConfig := &serviceAccountConfig{}
-		err := saConfig.Complete(f, cmd, input.args)
-		assert.EqualError(t, err, input.errorString)
+			tf.Client = &fake.RESTClient{
+				GroupVersion: schema.GroupVersion{Version: "v1"},
+				Client: fake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) {
+					t.Fatalf("unexpected request: %s %#v\n%#v", req.Method, req.URL, req)
+					return nil, nil
+				}),
+			}
+			tf.Namespace = "test"
+			out := bytes.NewBuffer([]byte{})
+			cmd := NewCmdServiceAccount(tf, out, out)
+			cmd.SetOutput(out)
+
+			saConfig := &serviceAccountConfig{}
+			err := saConfig.Complete(tf, cmd, input.args)
+			assert.EqualError(t, err, input.errorString)
+		})
 	}
 }
 

@@ -11,6 +11,7 @@ import (
 	"github.com/gophercloud/gophercloud/acceptance/tools"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/attachinterfaces"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/availabilityzones"
+	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/extendedstatus"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/lockunlock"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/pauseunpause"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/suspendresume"
@@ -111,6 +112,7 @@ func TestServersCreateDestroyWithExtensions(t *testing.T) {
 	var extendedServer struct {
 		servers.Server
 		availabilityzones.ServerAvailabilityZoneExt
+		extendedstatus.ServerExtendedStatusExt
 	}
 
 	client, err := clients.NewComputeV2Client()
@@ -131,6 +133,9 @@ func TestServersCreateDestroyWithExtensions(t *testing.T) {
 	tools.PrintResource(t, extendedServer)
 
 	t.Logf("Availability Zone: %s\n", extendedServer.AvailabilityZone)
+	t.Logf("Power State: %s\n", extendedServer.PowerState)
+	t.Logf("Task State: %s\n", extendedServer.TaskState)
+	t.Logf("VM State: %s\n", extendedServer.VmState)
 }
 
 func TestServersWithoutImageRef(t *testing.T) {

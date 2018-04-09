@@ -26,6 +26,7 @@ import (
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/flavors"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
 
+	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/aggregates"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -568,6 +569,37 @@ func CreateVolumeAttachment(t *testing.T, client *gophercloud.ServiceClient, blo
 	}
 
 	return volumeAttachment, nil
+}
+
+// CreateAggregate will create an aggregate with random name and available zone.
+// An error will be returned if the aggregate could not be created.
+func CreateAggregate(t *testing.T, client *gophercloud.ServiceClient) (*aggregates.Aggregate, error) {
+	aggregateName := tools.RandomString("aggregate_", 5)
+	availableZone := tools.RandomString("zone_", 5)
+	t.Logf("Attempting to create aggregate %s", aggregateName)
+
+	createOpts := aggregates.CreateOpts{Name: aggregateName, AvailabilityZone: availableZone}
+
+	aggregate, err := aggregates.Create(client, createOpts).Extract()
+	if err != nil {
+		return nil, err
+	}
+
+	t.Logf("Successfully created aggregate %d", aggregate.ID)
+
+	return aggregate, nil
+}
+
+// DeleteAggregate will delete a given host aggregate. A fatal error will occur if
+// the aggregate deleting is failed. This works best when using it as a
+// deferred function.
+func DeleteAggregate(t *testing.T, client *gophercloud.ServiceClient, aggregate *aggregates.Aggregate) {
+	err := aggregates.Delete(client, aggregate.ID).ExtractErr()
+	if err != nil {
+		t.Fatalf("Unable to delete aggregate %d", aggregate.ID)
+	}
+
+	t.Logf("Deleted aggregate: %d", aggregate.ID)
 }
 
 // DeleteDefaultRule deletes a default security group rule.

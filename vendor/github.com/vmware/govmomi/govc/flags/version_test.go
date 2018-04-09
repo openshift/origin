@@ -61,3 +61,17 @@ func TestLte(t *testing.T) {
 		t.Errorf("Expected not 5.6 <= 5.5")
 	}
 }
+
+func TestDevelopmentVersion(t *testing.T) {
+	if !isDevelopmentVersion("6.5.x") {
+		t.Error("expected true")
+	}
+
+	if !isDevelopmentVersion("r4A70F") {
+		t.Error("expected true")
+	}
+
+	if isDevelopmentVersion("6.5") {
+		t.Error("expected false")
+	}
+}

@@ -89,7 +89,7 @@ func (cmd *info) Run(ctx context.Context, f *flag.FlagSet) error {
 	var props []string
 	var res infoResult
 
-	if !cmd.OutputFlag.JSON {
+	if !cmd.OutputFlag.All() {
 		props = []string{
 			"name",
 			"childEntity",

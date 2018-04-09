@@ -168,13 +168,45 @@ type SignupUrlsService struct {
 	s *Service
 }
 
+// AlwaysOnVpnPackage: Configuration for an always-on VPN connection.
+type AlwaysOnVpnPackage struct {
+	// LockdownEnabled: Disallows networking when the VPN is not connected.
+	LockdownEnabled bool `json:"lockdownEnabled,omitempty"`
+
+	// PackageName: The package name of the VPN app.
+	PackageName string `json:"packageName,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "LockdownEnabled") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "LockdownEnabled") to
+	// include in API requests with the JSON null value. By default, fields
+	// with empty values are omitted from API requests. However, any field
+	// with an empty value appearing in NullFields will be sent to the
+	// server as null. It is an error if a field in this list has a
+	// non-empty value. This may be used to include null fields in Patch
+	// requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *AlwaysOnVpnPackage) MarshalJSON() ([]byte, error) {
+	type NoMethod AlwaysOnVpnPackage
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
 // ApiLevelCondition: A compliance rule condition which is satisfied if
-// the Android Framework API level on the device does not meet a minimum
+// the Android Framework API level on the device doesn't meet a minimum
 // requirement. There can only be one rule with this type of condition
 // per policy.
 type ApiLevelCondition struct {
 	// MinApiLevel: The minimum desired Android Framework API level. If the
-	// device does not meet the minimum requirement, this condition is
+	// device doesn't meet the minimum requirement, this condition is
 	// satisfied. Must be greater than zero.
 	MinApiLevel int64 `json:"minApiLevel,omitempty"`
 
@@ -196,25 +228,25 @@ type ApiLevelCondition struct {
 }
 
 func (s *ApiLevelCondition) MarshalJSON() ([]byte, error) {
-	type noMethod ApiLevelCondition
-	raw := noMethod(*s)
+	type NoMethod ApiLevelCondition
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
-// Application: Application information.
+// Application: Information about an app.
 type Application struct {
 	// ManagedProperties: The set of managed properties available to be
-	// pre-configured for the application.
+	// pre-configured for the app.
 	ManagedProperties []*ManagedProperty `json:"managedProperties,omitempty"`
 
-	// Name: The name of the application in the form
-	// enterprises/{enterpriseId}/applications/{package_name}
+	// Name: The name of the app in the form
+	// enterprises/{enterpriseId}/applications/{package_name}.
 	Name string `json:"name,omitempty"`
 
 	// Permissions: The permissions required by the app.
 	Permissions []*ApplicationPermission `json:"permissions,omitempty"`
 
-	// Title: The title of the application. Localized.
+	// Title: The title of the app. Localized.
 	Title string `json:"title,omitempty"`
 
 	// ServerResponse contains the HTTP response code and headers from the
@@ -240,15 +272,15 @@ type Application struct {
 }
 
 func (s *Application) MarshalJSON() ([]byte, error) {
-	type noMethod Application
-	raw := noMethod(*s)
+	type NoMethod Application
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
-// ApplicationPermission: Application permission.
+// ApplicationPermission: A permission required by the app.
 type ApplicationPermission struct {
-	// Description: A longer description of the permission, giving more
-	// details of what it affects. Localized.
+	// Description: A longer description of the permission, providing more
+	// detail on what it affects. Localized.
 	Description string `json:"description,omitempty"`
 
 	// Name: The name of the permission. Localized.
@@ -276,8 +308,8 @@ type ApplicationPermission struct {
 }
 
 func (s *ApplicationPermission) MarshalJSON() ([]byte, error) {
-	type noMethod ApplicationPermission
-	raw := noMethod(*s)
+	type NoMethod ApplicationPermission
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -296,19 +328,35 @@ type ApplicationPolicy struct {
 	//   "DENY" - Automatically deny a permission.
 	DefaultPermissionPolicy string `json:"defaultPermissionPolicy,omitempty"`
 
+	// DelegatedScopes: The scopes delegated to the app from Android Device
+	// Policy.
+	//
+	// Possible values:
+	//   "DELEGATED_SCOPE_UNSPECIFIED" - No delegation scope specified.
+	//   "CERT_INSTALL" - Grants access to certificate installation and
+	// management.
+	//   "MANAGED_CONFIGURATIONS" - Grants access to managed configurations
+	// management.
+	//   "BLOCK_UNINSTALL" - Grants access to blocking uninstallation.
+	//   "PERMISSION_GRANT" - Grants access to permission policy and
+	// permission grant state.
+	//   "PACKAGE_ACCESS" - Grants access to package access state.
+	//   "ENABLE_SYSTEM_APP" - Grants access for enabling system apps.
+	DelegatedScopes []string `json:"delegatedScopes,omitempty"`
+
 	// InstallType: The type of installation to perform.
 	//
 	// Possible values:
 	//   "INSTALL_TYPE_UNSPECIFIED" - No automatic installation is
 	// performed. Any other app policies will be applied if the user
 	// installs the app.
-	//   "PREINSTALLED" - The application is automatically installed and can
-	// be removed by the user.
-	//   "FORCE_INSTALLED" - The application is automatically installed and
-	// cannot be removed by the user.
+	//   "PREINSTALLED" - The app is automatically installed and can be
+	// removed by the user.
+	//   "FORCE_INSTALLED" - The app is automatically installed and can't be
+	// removed by the user.
 	InstallType string `json:"installType,omitempty"`
 
-	// LockTaskAllowed: Whether the application is allowed to lock itself in
+	// LockTaskAllowed: Whether the app is allowed to lock itself in
 	// full-screen mode.
 	LockTaskAllowed bool `json:"lockTaskAllowed,omitempty"`
 
@@ -327,7 +375,16 @@ type ApplicationPolicy struct {
 	// <tr><td>BUNDLE_ARRAY</td><td>array of objects</td></tr> </table>
 	ManagedConfiguration googleapi.RawMessage `json:"managedConfiguration,omitempty"`
 
-	// PackageName: The package name of the app, e.g.
+	// MinimumVersionCode: The minimum version of the app that runs on the
+	// device. If set, the device attempts to update the app to at least
+	// this version code. If the app is not up-to-date, the device will
+	// contain a NonComplianceDetail with non_compliance_reason set to
+	// APP_NOT_UPDATED. The app must already be published to Google Play
+	// with a version code greater than or equal to this value. At most 20
+	// apps may specify a minimum version code per policy.
+	MinimumVersionCode int64 `json:"minimumVersionCode,omitempty"`
+
+	// PackageName: The package name of the app. For example,
 	// com.google.android.youtube for the YouTube app.
 	PackageName string `json:"packageName,omitempty"`
 
@@ -355,8 +412,8 @@ type ApplicationPolicy struct {
 }
 
 func (s *ApplicationPolicy) MarshalJSON() ([]byte, error) {
-	type noMethod ApplicationPolicy
-	raw := noMethod(*s)
+	type NoMethod ApplicationPolicy
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -385,6 +442,7 @@ type Command struct {
 	// again until the user has entered it.
 	//   "DO_NOT_ASK_CREDENTIALS_ON_BOOT" - Don't ask for user credentials
 	// on device boot.
+	//   "LOCK_NOW" - Lock the device after password reset.
 	ResetPasswordFlags []string `json:"resetPasswordFlags,omitempty"`
 
 	// Type: The type of the command.
@@ -415,8 +473,8 @@ type Command struct {
 }
 
 func (s *Command) MarshalJSON() ([]byte, error) {
-	type noMethod Command
-	raw := noMethod(*s)
+	type NoMethod Command
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -429,15 +487,14 @@ func (s *Command) MarshalJSON() ([]byte, error) {
 // field values in the rule.
 type ComplianceRule struct {
 	// ApiLevelCondition: A condition which is satisfied if the Android
-	// Framework API level on the device does not meet a minimum
-	// requirement.
+	// Framework API level on the device doesn't meet a minimum requirement.
 	ApiLevelCondition *ApiLevelCondition `json:"apiLevelCondition,omitempty"`
 
 	// DisableApps: If set to true, the rule includes a mitigating action to
-	// disable applications so that the device is effectively disabled, but
-	// application data is preserved. If the device is running an app in
-	// locked task mode, the app will be closed and a UI showing the reason
-	// for non-compliance will be displayed.
+	// disable apps so that the device is effectively disabled, but app data
+	// is preserved. If the device is running an app in locked task mode,
+	// the app will be closed and a UI showing the reason for non-compliance
+	// will be displayed.
 	DisableApps bool `json:"disableApps,omitempty"`
 
 	// NonComplianceDetailCondition: A condition which is satisfied if there
@@ -463,58 +520,63 @@ type ComplianceRule struct {
 }
 
 func (s *ComplianceRule) MarshalJSON() ([]byte, error) {
-	type noMethod ComplianceRule
-	raw := noMethod(*s)
+	type NoMethod ComplianceRule
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
 // Device: A device owned by an enterprise. Unless otherwise noted, all
-// fields are read-only and cannot be modified by an update device
-// request.
+// fields are read-only and can't be modified by
+// enterprises.devices.patch.
 type Device struct {
 	// ApiLevel: The API level of the Android platform version running on
 	// the device.
 	ApiLevel int64 `json:"apiLevel,omitempty"`
 
-	// AppliedPolicyName: The name of the policy that is currently applied
-	// by the device.
+	// AppliedPolicyName: The name of the policy currently applied to the
+	// device.
 	AppliedPolicyName string `json:"appliedPolicyName,omitempty"`
 
-	// AppliedPolicyVersion: The version of the policy that is currently
-	// applied by the device.
+	// AppliedPolicyVersion: The version of the policy currently applied to
+	// the device.
 	AppliedPolicyVersion int64 `json:"appliedPolicyVersion,omitempty,string"`
 
-	// AppliedState: The state that is currently applied by the device.
+	// AppliedState: The state currently applied to the device.
 	//
 	// Possible values:
 	//   "DEVICE_STATE_UNSPECIFIED" - This value is disallowed.
 	//   "ACTIVE" - The device is active.
 	//   "DISABLED" - The device is disabled.
 	//   "DELETED" - The device was deleted. This state will never be
-	// returned by an API call, but will be used in the final policy
-	// compliance report published to Cloud Pub/Sub when the device
-	// acknowledges the deletion.
+	// returned by an API call, but is used in the final policy compliance
+	// report published to Cloud Pub/Sub when the device acknowledges the
+	// deletion.
 	//   "PROVISIONING" - The device is being provisioned. Newly enrolled
-	// devices will be in this state until they have applied policy.
+	// devices are in this state until they have a policy applied.
 	AppliedState string `json:"appliedState,omitempty"`
+
+	// DeviceSettings: Device settings information. This information is only
+	// available if deviceSettingsEnabled is true in the device's policy.
+	DeviceSettings *DeviceSettings `json:"deviceSettings,omitempty"`
 
 	// DisabledReason: If the device state is DISABLED, an optional message
 	// that is displayed on the device indicating the reason the device is
-	// disabled. This field may be modified by an update request.
+	// disabled. This field can be modified by a patch request.
 	DisabledReason *UserFacingMessage `json:"disabledReason,omitempty"`
 
-	// Displays: Displays on the device. This information is only available
-	// when displayInfoEnabled is true in the device's policy.
+	// Displays: Detailed information about displays on the device. This
+	// information is only available if displayInfoEnabled is true in the
+	// device's policy.
 	Displays []*Display `json:"displays,omitempty"`
 
 	// EnrollmentTime: The time of device enrollment.
 	EnrollmentTime string `json:"enrollmentTime,omitempty"`
 
-	// EnrollmentTokenData: If this device was enrolled with an enrollment
+	// EnrollmentTokenData: If the device was enrolled with an enrollment
 	// token with additional data provided, this field contains that data.
 	EnrollmentTokenData string `json:"enrollmentTokenData,omitempty"`
 
-	// EnrollmentTokenName: If this device was enrolled with an enrollment
+	// EnrollmentTokenName: If the device was enrolled with an enrollment
 	// token, this field contains the name of the token.
 	EnrollmentTokenName string `json:"enrollmentTokenName,omitempty"`
 
@@ -522,8 +584,8 @@ type Device struct {
 	HardwareInfo *HardwareInfo `json:"hardwareInfo,omitempty"`
 
 	// HardwareStatusSamples: Hardware status samples in chronological
-	// order. This information is only available when hardwareStatusEnabled
-	// is true in the device's policy.
+	// order. This information is only available if hardwareStatusEnabled is
+	// true in the device's policy.
 	HardwareStatusSamples []*HardwareStatus `json:"hardwareStatusSamples,omitempty"`
 
 	// LastPolicyComplianceReportTime: The last time the device sent a
@@ -537,75 +599,74 @@ type Device struct {
 	LastStatusReportTime string `json:"lastStatusReportTime,omitempty"`
 
 	// MemoryEvents: Events related to memory and storage measurements in
-	// chronological order. This information is only available when
+	// chronological order. This information is only available if
 	// memoryInfoEnabled is true in the device's policy.
 	MemoryEvents []*MemoryEvent `json:"memoryEvents,omitempty"`
 
-	// MemoryInfo: Memory information. This information is only available
-	// when memoryInfoEnabled is true in the device's policy.
+	// MemoryInfo: Memory information. This information is only available if
+	// memoryInfoEnabled is true in the device's policy.
 	MemoryInfo *MemoryInfo `json:"memoryInfo,omitempty"`
 
 	// Name: The name of the device in the form
-	// enterprises/{enterpriseId}/devices/{deviceId}
+	// enterprises/{enterpriseId}/devices/{deviceId}.
 	Name string `json:"name,omitempty"`
 
 	// NetworkInfo: Device network information. This information is only
-	// available when networkInfoEnabled is true in the device's policy.
+	// available if networkInfoEnabled is true in the device's policy.
 	NetworkInfo *NetworkInfo `json:"networkInfo,omitempty"`
 
-	// NonComplianceDetails: Details about policy settings for which the
-	// device is not in compliance.
+	// NonComplianceDetails: Details about policy settings that the device
+	// is not compliant with.
 	NonComplianceDetails []*NonComplianceDetail `json:"nonComplianceDetails,omitempty"`
 
 	// PolicyCompliant: Whether the device is compliant with its policy.
 	PolicyCompliant bool `json:"policyCompliant,omitempty"`
 
-	// PolicyName: The name of the policy that is intended to be applied to
-	// the device. If empty, the policy with id default is applied. This
-	// field may be modified by an update request. The name of the policy is
-	// in the form enterprises/{enterpriseId}/policies/{policyId}. It is
-	// also permissible to only specify the policyId when updating this
-	// field as long as the policyId contains no slashes since the rest of
-	// the policy name can be inferred from context.
+	// PolicyName: The name of the policy applied to the device, in the form
+	// enterprises/{enterpriseId}/policies/{policyId}. If not specified, the
+	// policy_name for the device's user is applied. This field can be
+	// modified by a patch request. You can specify only the policyId when
+	// calling enterprises.devices.patch, as long as the policyId doesn’t
+	// contain any slashes. The rest of the policy name is inferred.
 	PolicyName string `json:"policyName,omitempty"`
 
 	// PowerManagementEvents: Power management events on the device in
-	// chronological order. This information is only available when
+	// chronological order. This information is only available if
 	// powerManagementEventsEnabled is true in the device's policy.
 	PowerManagementEvents []*PowerManagementEvent `json:"powerManagementEvents,omitempty"`
 
-	// PreviousDeviceNames: The previous device names used for the same
-	// physical device when it has been enrolled multiple times. The serial
-	// number is used as the unique identifier to determine if the same
-	// physical device has enrolled previously. The names are in
+	// PreviousDeviceNames: If the same physical device has been enrolled
+	// multiple times, this field contains its previous device names. The
+	// serial number is used as the unique identifier to determine if the
+	// same physical device has enrolled previously. The names are in
 	// chronological order.
 	PreviousDeviceNames []string `json:"previousDeviceNames,omitempty"`
 
 	// SoftwareInfo: Detailed information about the device software. This
-	// information is only available when softwareInfoEnabled is true in the
+	// information is only available if softwareInfoEnabled is true in the
 	// device's policy.
 	SoftwareInfo *SoftwareInfo `json:"softwareInfo,omitempty"`
 
-	// State: The state that is intended to be applied to the device. This
-	// field may be modified by an update request. Note that UpdateDevice
-	// only handles toggling between ACTIVE and DISABLED states. Use the
-	// delete device method to cause the device to enter the DELETED state.
+	// State: The state to be applied to the device. This field can be
+	// modified by a patch request. Note that when calling
+	// enterprises.devices.patch, ACTIVE and DISABLED are the only allowable
+	// values. To enter the device into a DELETED state, call
+	// enterprises.devices.delete.
 	//
 	// Possible values:
 	//   "DEVICE_STATE_UNSPECIFIED" - This value is disallowed.
 	//   "ACTIVE" - The device is active.
 	//   "DISABLED" - The device is disabled.
 	//   "DELETED" - The device was deleted. This state will never be
-	// returned by an API call, but will be used in the final policy
-	// compliance report published to Cloud Pub/Sub when the device
-	// acknowledges the deletion.
+	// returned by an API call, but is used in the final policy compliance
+	// report published to Cloud Pub/Sub when the device acknowledges the
+	// deletion.
 	//   "PROVISIONING" - The device is being provisioned. Newly enrolled
-	// devices will be in this state until they have applied policy.
+	// devices are in this state until they have a policy applied.
 	State string `json:"state,omitempty"`
 
-	// UserName: The resource name of the user of the device in the form
-	// enterprises/{enterpriseId}/users/{userId}. This is the name of the
-	// device account automatically created for this device.
+	// UserName: The resource name of the user that owns this device in the
+	// form enterprises/{enterpriseId}/users/{userId}.
 	UserName string `json:"userName,omitempty"`
 
 	// ServerResponse contains the HTTP response code and headers from the
@@ -630,8 +691,75 @@ type Device struct {
 }
 
 func (s *Device) MarshalJSON() ([]byte, error) {
-	type noMethod Device
-	raw := noMethod(*s)
+	type NoMethod Device
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// DeviceSettings: Information about security related device settings on
+// device.
+type DeviceSettings struct {
+	// AdbEnabled: Whether ADB
+	// (https://developer.android.com/studio/command-line/adb.html) is
+	// enabled on the device.
+	AdbEnabled bool `json:"adbEnabled,omitempty"`
+
+	// DevelopmentSettingsEnabled: Whether developer mode is enabled on the
+	// device.
+	DevelopmentSettingsEnabled bool `json:"developmentSettingsEnabled,omitempty"`
+
+	// EncryptionStatus: Encryption status from DevicePolicyManager.
+	//
+	// Possible values:
+	//   "ENCRYPTION_STATUS_UNSPECIFIED" - Unspecified. No device should
+	// have this type.
+	//   "UNSUPPORTED" - Encryption is not supported by the device.
+	//   "INACTIVE" - Encryption is supported by the device, but is not
+	// currently active.
+	//   "ACTIVATING" - Encryption is not currently active, but is currently
+	// being activated.
+	//   "ACTIVE" - Encryption is active.
+	//   "ACTIVE_DEFAULT_KEY" - Encryption is active, but an encryption key
+	// is not set by the user.
+	//   "ACTIVE_PER_USER" - Encryption is active, and the encryption key is
+	// tied to the user profile.
+	EncryptionStatus string `json:"encryptionStatus,omitempty"`
+
+	// IsDeviceSecure: Whether the device is secured with PIN/password.
+	IsDeviceSecure bool `json:"isDeviceSecure,omitempty"`
+
+	// IsEncrypted: Whether the storage encryption is enabled.
+	IsEncrypted bool `json:"isEncrypted,omitempty"`
+
+	// UnknownSourcesEnabled: Whether installing apps from unknown sources
+	// is enabled.
+	UnknownSourcesEnabled bool `json:"unknownSourcesEnabled,omitempty"`
+
+	// VerifyAppsEnabled: Whether Verify Apps (Google Play Protect
+	// (https://support.google.com/googleplay/answer/2812853)) is enabled on
+	// the device.
+	VerifyAppsEnabled bool `json:"verifyAppsEnabled,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "AdbEnabled") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "AdbEnabled") to include in
+	// API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. However, any field with an
+	// empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *DeviceSettings) MarshalJSON() ([]byte, error) {
+	type NoMethod DeviceSettings
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -683,8 +811,8 @@ type Display struct {
 }
 
 func (s *Display) MarshalJSON() ([]byte, error) {
-	type noMethod Display
-	raw := noMethod(*s)
+	type NoMethod Display
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -706,15 +834,16 @@ type Empty struct {
 // EnrollmentToken: An enrollment token.
 type EnrollmentToken struct {
 	// AdditionalData: Optional, arbitrary data associated with the
-	// enrollment token. This could contain, for example, the id of an org
-	// unit to which the device is assigned after enrollment. After a device
+	// enrollment token. This could contain, for example, the ID of an org
+	// unit the device is assigned to after enrollment. After a device
 	// enrolls with the token, this data will be exposed in the
 	// enrollment_token_data field of the Device resource. The data must be
 	// 1024 characters or less; otherwise, the creation request will fail.
 	AdditionalData string `json:"additionalData,omitempty"`
 
-	// Duration: The duration of the token. If not specified, the duration
-	// will be 1 hour. The allowed range is 1 minute to 30 days.
+	// Duration: The length of time the enrollment token is valid, ranging
+	// from 1 minute to 30 days. If not specified, the default duration is 1
+	// hour.
 	Duration string `json:"duration,omitempty"`
 
 	// ExpirationTimestamp: The expiration time of the token. This is a
@@ -723,16 +852,17 @@ type EnrollmentToken struct {
 
 	// Name: The name of the enrollment token, which is generated by the
 	// server during creation, in the form
-	// enterprises/{enterpriseId}/enrollmentTokens/{enrollmentTokenId}
+	// enterprises/{enterpriseId}/enrollmentTokens/{enrollmentTokenId}.
 	Name string `json:"name,omitempty"`
 
-	// PolicyName: The name of the policy that will be initially applied to
-	// the enrolled device in the form
-	// enterprises/{enterpriseId}/policies/{policyId}. If not specified, the
-	// policy with id default is applied. It is permissible to only specify
-	// the policyId when updating this field as long as the policyId
-	// contains no slashes since the rest of the policy name can be inferred
-	// from context.
+	// PolicyName: The name of the policy initially applied to the enrolled
+	// device, in the form enterprises/{enterpriseId}/policies/{policyId}.
+	// If not specified, the policy_name for the device’s user is applied.
+	// If user_name is also not specified,
+	// enterprises/{enterpriseId}/policies/default is applied by default.
+	// When updating this field, you can specify only the policyId as long
+	// as the policyId doesn’t contain any slashes. The rest of the policy
+	// name will be inferred.
 	PolicyName string `json:"policyName,omitempty"`
 
 	// QrCode: A JSON string whose UTF-8 representation can be used to
@@ -741,9 +871,8 @@ type EnrollmentToken struct {
 	// java.util.Properties representation of the properties in the JSON.
 	QrCode string `json:"qrCode,omitempty"`
 
-	// Value: The token value which is passed to the device and authorizes
-	// the device to enroll. This is a read-only field generated by the
-	// server.
+	// Value: The token value that's passed to the device and authorizes the
+	// device to enroll. This is a read-only field generated by the server.
 	Value string `json:"value,omitempty"`
 
 	// ServerResponse contains the HTTP response code and headers from the
@@ -769,22 +898,21 @@ type EnrollmentToken struct {
 }
 
 func (s *EnrollmentToken) MarshalJSON() ([]byte, error) {
-	type noMethod EnrollmentToken
-	raw := noMethod(*s)
+	type NoMethod EnrollmentToken
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
 // Enterprise: The configuration applied to an enterprise.
 type Enterprise struct {
-	// AppAutoApprovalEnabled: Whether app auto-approval is enabled. When
-	// enabled, apps installed via policy for this enterprise have all
-	// permissions automatically approved. When enabled, it is the caller's
-	// responsibility to display the permissions required by an app to the
-	// enterprise admin before setting the app to be installed in a policy.
+	// AppAutoApprovalEnabled: Whether permissions for apps installed via
+	// policy are automatically approved. If enabled, you must display an
+	// app's permissions to the enterprise admin before setting the app to
+	// be installed in a policy.
 	AppAutoApprovalEnabled bool `json:"appAutoApprovalEnabled,omitempty"`
 
-	// EnabledNotificationTypes: The notification types to enable via Google
-	// Cloud Pub/Sub.
+	// EnabledNotificationTypes: The types of Google Pub/Sub notifications
+	// enabled for the enterprise.
 	//
 	// Possible values:
 	//   "NOTIFICATION_TYPE_UNSPECIFIED" - This value is ignored.
@@ -797,8 +925,7 @@ type Enterprise struct {
 	// completed.
 	EnabledNotificationTypes []string `json:"enabledNotificationTypes,omitempty"`
 
-	// EnterpriseDisplayName: The name of the enterprise as it will appear
-	// to users.
+	// EnterpriseDisplayName: The name of the enterprise displayed to users.
 	EnterpriseDisplayName string `json:"enterpriseDisplayName,omitempty"`
 
 	// Logo: An image displayed as a logo during device provisioning.
@@ -807,21 +934,18 @@ type Enterprise struct {
 	Logo *ExternalData `json:"logo,omitempty"`
 
 	// Name: The name of the enterprise which is generated by the server
-	// during creation, in the form enterprises/{enterpriseId}
+	// during creation, in the form enterprises/{enterpriseId}.
 	Name string `json:"name,omitempty"`
 
-	// PrimaryColor: A color in RGB format indicating the predominant color
-	// to display in the device management app UI. The color components are
-	// stored as follows: (red << 16) | (green << 8) | blue, where each
-	// component may take a value between 0 and 255 inclusive.
+	// PrimaryColor: A color in RGB format that indicates the predominant
+	// color to display in the device management app UI. The color
+	// components are stored as follows: (red << 16) | (green << 8) | blue,
+	// where the value of each component is between 0 and 255, inclusive.
 	PrimaryColor int64 `json:"primaryColor,omitempty"`
 
-	// PubsubTopic: When Cloud Pub/Sub notifications are enabled, this field
-	// is required to indicate the topic to which the notifications will be
-	// published. The format of this field is
-	// projects/{project}/topics/{topic}. You must have granted the publish
-	// permission on this topic to
-	// android-cloud-policy@system.gserviceaccount.com
+	// PubsubTopic: The topic that Cloud Pub/Sub notifications are published
+	// to, in the form projects/{project}/topics/{topic}. This field is only
+	// required if Pub/Sub notifications are enabled.
 	PubsubTopic string `json:"pubsubTopic,omitempty"`
 
 	// ServerResponse contains the HTTP response code and headers from the
@@ -848,8 +972,8 @@ type Enterprise struct {
 }
 
 func (s *Enterprise) MarshalJSON() ([]byte, error) {
-	type noMethod Enterprise
-	raw := noMethod(*s)
+	type NoMethod Enterprise
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -857,12 +981,12 @@ func (s *Enterprise) MarshalJSON() ([]byte, error) {
 // downloaded by Android Device Policy and verified against the hash.
 type ExternalData struct {
 	// Sha256Hash: The base-64 encoded SHA-256 hash of the content hosted at
-	// url. If the content does not match this hash, Android Device Policy
-	// will not use the data.
+	// url. If the content doesn't match this hash, Android Device Policy
+	// won't use the data.
 	Sha256Hash string `json:"sha256Hash,omitempty"`
 
 	// Url: The absolute URL to the data, which must use either the http or
-	// https scheme. Android Device Policy does not provide any credentials
+	// https scheme. Android Device Policy doesn't provide any credentials
 	// in the GET request, so the URL must be publicly accessible. Including
 	// a long, random component in the URL may be used to prevent attackers
 	// from discovering the URL.
@@ -886,14 +1010,14 @@ type ExternalData struct {
 }
 
 func (s *ExternalData) MarshalJSON() ([]byte, error) {
-	type noMethod ExternalData
-	raw := noMethod(*s)
+	type NoMethod ExternalData
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
 // HardwareInfo: Information about device hardware. The fields related
-// to temperature thresholds are only available when
-// hardwareStatusEnabled is true in the device's policy.
+// to temperature thresholds are only available if hardwareStatusEnabled
+// is true in the device's policy.
 type HardwareInfo struct {
 	// BatteryShutdownTemperatures: Battery shutdown temperature thresholds
 	// in Celsius for each battery on the device.
@@ -903,7 +1027,7 @@ type HardwareInfo struct {
 	// thresholds in Celsius for each battery on the device.
 	BatteryThrottlingTemperatures []float64 `json:"batteryThrottlingTemperatures,omitempty"`
 
-	// Brand: Brand of the device, e.g. Google.
+	// Brand: Brand of the device. For example, Google.
 	Brand string `json:"brand,omitempty"`
 
 	// CpuShutdownTemperatures: CPU shutdown temperature thresholds in
@@ -914,7 +1038,7 @@ type HardwareInfo struct {
 	// Celsius for each CPU on the device.
 	CpuThrottlingTemperatures []float64 `json:"cpuThrottlingTemperatures,omitempty"`
 
-	// DeviceBasebandVersion: Baseband version, e.g.
+	// DeviceBasebandVersion: Baseband version. For example,
 	// MDM9625_104662.22.05.34p.
 	DeviceBasebandVersion string `json:"deviceBasebandVersion,omitempty"`
 
@@ -926,13 +1050,13 @@ type HardwareInfo struct {
 	// Celsius for each GPU on the device.
 	GpuThrottlingTemperatures []float64 `json:"gpuThrottlingTemperatures,omitempty"`
 
-	// Hardware: Name of the hardware, e.g. Angler.
+	// Hardware: Name of the hardware. For example, Angler.
 	Hardware string `json:"hardware,omitempty"`
 
-	// Manufacturer: Manufacturer, e.g. Motorola.
+	// Manufacturer: Manufacturer. For example, Motorola.
 	Manufacturer string `json:"manufacturer,omitempty"`
 
-	// Model: The model of the device, e.g. Asus Nexus 7.
+	// Model: The model of the device. For example, Asus Nexus 7.
 	Model string `json:"model,omitempty"`
 
 	// SerialNumber: The device serial number.
@@ -966,8 +1090,8 @@ type HardwareInfo struct {
 }
 
 func (s *HardwareInfo) MarshalJSON() ([]byte, error) {
-	type noMethod HardwareInfo
-	raw := noMethod(*s)
+	type NoMethod HardwareInfo
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1022,8 +1146,8 @@ type HardwareStatus struct {
 }
 
 func (s *HardwareStatus) MarshalJSON() ([]byte, error) {
-	type noMethod HardwareStatus
-	raw := noMethod(*s)
+	type NoMethod HardwareStatus
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1059,8 +1183,8 @@ type ListDevicesResponse struct {
 }
 
 func (s *ListDevicesResponse) MarshalJSON() ([]byte, error) {
-	type noMethod ListDevicesResponse
-	raw := noMethod(*s)
+	type NoMethod ListDevicesResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1096,8 +1220,8 @@ type ListOperationsResponse struct {
 }
 
 func (s *ListOperationsResponse) MarshalJSON() ([]byte, error) {
-	type noMethod ListOperationsResponse
-	raw := noMethod(*s)
+	type NoMethod ListOperationsResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1133,27 +1257,27 @@ type ListPoliciesResponse struct {
 }
 
 func (s *ListPoliciesResponse) MarshalJSON() ([]byte, error) {
-	type noMethod ListPoliciesResponse
-	raw := noMethod(*s)
+	type NoMethod ListPoliciesResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
 // ManagedProperty: Managed property.
 type ManagedProperty struct {
-	// DefaultValue: The default value of the properties. BUNDLE_ARRAY
-	// properties never have a default value.
+	// DefaultValue: The default value of the property. BUNDLE_ARRAY
+	// properties don't have a default value.
 	DefaultValue interface{} `json:"defaultValue,omitempty"`
 
-	// Description: A longer description of the property, giving more detail
-	// of what it affects. Localized.
+	// Description: A longer description of the property, providing more
+	// detail of what it affects. Localized.
 	Description string `json:"description,omitempty"`
 
 	// Entries: For CHOICE or MULTISELECT properties, the list of possible
 	// entries.
 	Entries []*ManagedPropertyEntry `json:"entries,omitempty"`
 
-	// Key: The unique key that the application uses to identify the
-	// property, e.g. "com.google.android.gm.fieldname".
+	// Key: The unique key that the app uses to identify the property, e.g.
+	// "com.google.android.gm.fieldname".
 	Key string `json:"key,omitempty"`
 
 	// NestedProperties: For BUNDLE_ARRAY properties, the list of nested
@@ -1173,8 +1297,8 @@ type ManagedProperty struct {
 	//   "CHOICE" - A choice of one item from a set.
 	//   "MULTISELECT" - A choice of multiple items from a set.
 	//   "HIDDEN" - A hidden restriction of string type (the default value
-	// can be used to pass along information that cannot be modified, such
-	// as a version code).
+	// can be used to pass along information that can't be modified, such as
+	// a version code).
 	//   "BUNDLE_ARRAY" - An array of property bundles.
 	Type string `json:"type,omitempty"`
 
@@ -1196,8 +1320,8 @@ type ManagedProperty struct {
 }
 
 func (s *ManagedProperty) MarshalJSON() ([]byte, error) {
-	type noMethod ManagedProperty
-	raw := noMethod(*s)
+	type NoMethod ManagedProperty
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1228,8 +1352,8 @@ type ManagedPropertyEntry struct {
 }
 
 func (s *ManagedPropertyEntry) MarshalJSON() ([]byte, error) {
-	type noMethod ManagedPropertyEntry
-	raw := noMethod(*s)
+	type NoMethod ManagedPropertyEntry
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1278,8 +1402,8 @@ type MemoryEvent struct {
 }
 
 func (s *MemoryEvent) MarshalJSON() ([]byte, error) {
-	type noMethod MemoryEvent
-	raw := noMethod(*s)
+	type NoMethod MemoryEvent
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1311,20 +1435,24 @@ type MemoryInfo struct {
 }
 
 func (s *MemoryInfo) MarshalJSON() ([]byte, error) {
-	type noMethod MemoryInfo
-	raw := noMethod(*s)
+	type NoMethod MemoryInfo
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
 // NetworkInfo: Device network info.
 type NetworkInfo struct {
-	// Imei: IMEI number of the GSM device, e.g. A1000031212.
+	// Imei: IMEI number of the GSM device. For example, A1000031212.
 	Imei string `json:"imei,omitempty"`
 
-	// Meid: MEID number of the CDMA device, e.g. A00000292788E1.
+	// Meid: MEID number of the CDMA device. For example, A00000292788E1.
 	Meid string `json:"meid,omitempty"`
 
-	// WifiMacAddress: WiFi MAC address of the device, e.g.
+	// NetworkOperatorName: Alphabetic name of current registered operator.
+	// For example, Vodafone.
+	NetworkOperatorName string `json:"networkOperatorName,omitempty"`
+
+	// WifiMacAddress: Wi-Fi MAC address of the device. For example,
 	// 7c:11:11:11:11:11.
 	WifiMacAddress string `json:"wifiMacAddress,omitempty"`
 
@@ -1346,8 +1474,8 @@ type NetworkInfo struct {
 }
 
 func (s *NetworkInfo) MarshalJSON() ([]byte, error) {
-	type noMethod NetworkInfo
-	raw := noMethod(*s)
+	type NoMethod NetworkInfo
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1370,15 +1498,15 @@ type NonComplianceDetail struct {
 	FieldPath string `json:"fieldPath,omitempty"`
 
 	// InstallationFailureReason: If package_name is set and the
-	// non-compliance reason is APP_NOT_INSTALLED, the detailed reason the
-	// app cannot be installed.
+	// non-compliance reason is APP_NOT_INSTALLED or APP_NOT_UPDATED, the
+	// detailed reason the app can't be installed or updated.
 	//
 	// Possible values:
 	//   "INSTALLATION_FAILURE_REASON_UNSPECIFIED" - This value is
 	// disallowed.
 	//   "INSTALLATION_FAILURE_REASON_UNKNOWN" - An unknown condition is
-	// preventing the app from being installed. Some potential reaons are
-	// that the device does not have enough storage, the device network
+	// preventing the app from being installed. Some potential reasons are
+	// that the device doesn't have enough storage, the device network
 	// connection is unreliable, or the installation is taking longer than
 	// expected. The installation will be retried automatically.
 	//   "IN_PROGRESS" - The installation is still in progress.
@@ -1390,10 +1518,10 @@ type NonComplianceDetail struct {
 	// not been accepted by the admin.
 	//   "NOT_AVAILABLE_IN_COUNTRY" - The app is not available in the user's
 	// country.
-	//   "NO_LICENSES_REMAINING" - There are no more licenses to assign to
-	// the user.
-	//   "NOT_ENROLLED" - The enterprise is no longer enrolled with Play for
-	// Work or Android Device Policy is not enabled for the enterprise.
+	//   "NO_LICENSES_REMAINING" - There are no licenses available to assign
+	// to the user.
+	//   "NOT_ENROLLED" - The enterprise is no longer enrolled with managed
+	// Play or Android Device Policy is not enabled for the enterprise.
 	//   "USER_INVALID" - The user is no longer valid. The user may have
 	// been deleted or disabled.
 	InstallationFailureReason string `json:"installationFailureReason,omitempty"`
@@ -1403,27 +1531,28 @@ type NonComplianceDetail struct {
 	//
 	// Possible values:
 	//   "NON_COMPLIANCE_REASON_UNSPECIFIED" - This value is disallowed.
-	//   "API_LEVEL" - The setting is not supported in the API level of
-	// Android OS version the device is running.
-	//   "ADMIN_TYPE" - The admin type (profile owner, device owner, etc.)
-	// does not support the setting.
+	//   "API_LEVEL" - The setting is not supported in the API level of the
+	// Android version running on the device.
+	//   "MANAGEMENT_MODE" - The management mode (profile owner, device
+	// owner, etc.) doesn't support the setting.
 	//   "USER_ACTION" - The user has not taken required action to comply
 	// with the setting.
 	//   "INVALID_VALUE" - The setting has an invalid value.
-	//   "APP_NOT_INSTALLED" - The application required to implement the
-	// policy is not installed.
+	//   "APP_NOT_INSTALLED" - The app required to implement the policy is
+	// not installed.
 	//   "UNSUPPORTED" - The policy is not supported by the version of
 	// Android Device Policy on the device.
-	//   "APP_INSTALLED" - A blocked application is installed.
-	//   "PENDING" - The setting was not applied yet at the time of the
+	//   "APP_INSTALLED" - A blocked app is installed.
+	//   "PENDING" - The setting hasn't been applied at the time of the
 	// report, but is expected to be applied shortly.
-	//   "APP_INCOMPATIBLE" - The setting cannot be applied to the
-	// application because its target SDK version is not high enough.
-	//   "APP_NOT_UPDATED" - The application is installed but not updated to
-	// the minimum version code specified by policy
+	//   "APP_INCOMPATIBLE" - The setting can't be applied to the app
+	// because the app doesn't support it, for example because its target
+	// SDK version is not high enough.
+	//   "APP_NOT_UPDATED" - The app is installed, but it hasn't been
+	// updated to the minimum version code specified by policy.
 	NonComplianceReason string `json:"nonComplianceReason,omitempty"`
 
-	// PackageName: The package name indicating which application is out of
+	// PackageName: The package name indicating which app is out of
 	// compliance, if applicable.
 	PackageName string `json:"packageName,omitempty"`
 
@@ -1449,8 +1578,8 @@ type NonComplianceDetail struct {
 }
 
 func (s *NonComplianceDetail) MarshalJSON() ([]byte, error) {
-	type noMethod NonComplianceDetail
-	raw := noMethod(*s)
+	type NoMethod NonComplianceDetail
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1466,30 +1595,29 @@ type NonComplianceDetailCondition struct {
 	//
 	// Possible values:
 	//   "NON_COMPLIANCE_REASON_UNSPECIFIED" - This value is disallowed.
-	//   "API_LEVEL" - The setting is not supported in the API level of
-	// Android OS version the device is running.
-	//   "ADMIN_TYPE" - The admin type (profile owner, device owner, etc.)
-	// does not support the setting.
+	//   "API_LEVEL" - The setting is not supported in the API level of the
+	// Android version running on the device.
+	//   "MANAGEMENT_MODE" - The management mode (profile owner, device
+	// owner, etc.) doesn't support the setting.
 	//   "USER_ACTION" - The user has not taken required action to comply
 	// with the setting.
 	//   "INVALID_VALUE" - The setting has an invalid value.
-	//   "APP_NOT_INSTALLED" - The application required to implement the
-	// policy is not installed.
+	//   "APP_NOT_INSTALLED" - The app required to implement the policy is
+	// not installed.
 	//   "UNSUPPORTED" - The policy is not supported by the version of
 	// Android Device Policy on the device.
-	//   "APP_INSTALLED" - A blocked application is installed.
-	//   "PENDING" - The setting was not applied yet at the time of the
+	//   "APP_INSTALLED" - A blocked app is installed.
+	//   "PENDING" - The setting hasn't been applied at the time of the
 	// report, but is expected to be applied shortly.
-	//   "APP_INCOMPATIBLE" - The setting cannot be applied to the
-	// application because its target SDK version is not high enough.
-	//   "APP_NOT_UPDATED" - The application is installed but not updated to
-	// the minimum version code specified by policy
+	//   "APP_INCOMPATIBLE" - The setting can't be applied to the app
+	// because the app doesn't support it, for example because its target
+	// SDK version is not high enough.
+	//   "APP_NOT_UPDATED" - The app is installed, but it hasn't been
+	// updated to the minimum version code specified by policy.
 	NonComplianceReason string `json:"nonComplianceReason,omitempty"`
 
-	// PackageName: The package name indicating which application is out of
-	// compliance. If not set, then this condition matches any package name.
-	// If this field is set, then setting_name must be unset or set to
-	// applications; otherwise, the condition would never be satisfied.
+	// PackageName: The package name of the app that's out of compliance. If
+	// not set, then this condition matches any package name.
 	PackageName string `json:"packageName,omitempty"`
 
 	// SettingName: The name of the policy setting. This is the JSON field
@@ -1516,8 +1644,8 @@ type NonComplianceDetailCondition struct {
 }
 
 func (s *NonComplianceDetailCondition) MarshalJSON() ([]byte, error) {
-	type noMethod NonComplianceDetailCondition
-	raw := noMethod(*s)
+	type NoMethod NonComplianceDetailCondition
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1577,16 +1705,44 @@ type Operation struct {
 }
 
 func (s *Operation) MarshalJSON() ([]byte, error) {
-	type noMethod Operation
-	raw := noMethod(*s)
+	type NoMethod Operation
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// PackageNameList: A list of package names.
+type PackageNameList struct {
+	// PackageNames: A list of package names.
+	PackageNames []string `json:"packageNames,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "PackageNames") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "PackageNames") to include
+	// in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. However, any field with
+	// an empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *PackageNameList) MarshalJSON() ([]byte, error) {
+	type NoMethod PackageNameList
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
 // PasswordRequirements: Requirements for the password used to unlock a
 // device.
 type PasswordRequirements struct {
-	// MaximumFailedPasswordsForWipe: A device will be wiped after too many
-	// incorrect device-unlock passwords have been entered. A value of 0
+	// MaximumFailedPasswordsForWipe: Number of incorrect device-unlock
+	// passwords that can be entered before a device is wiped. A value of 0
 	// means there is no restriction.
 	MaximumFailedPasswordsForWipe int64 `json:"maximumFailedPasswordsForWipe,omitempty"`
 
@@ -1594,9 +1750,9 @@ type PasswordRequirements struct {
 	PasswordExpirationTimeout string `json:"passwordExpirationTimeout,omitempty"`
 
 	// PasswordHistoryLength: The length of the password history. After
-	// setting this, the user will not be able to enter a new password that
-	// is the same as any password in the history. A value of 0 means there
-	// is no restriction.
+	// setting this field, the user won't be able to enter a new password
+	// that is the same as any password in the history. A value of 0 means
+	// there is no restriction.
 	PasswordHistoryLength int64 `json:"passwordHistoryLength,omitempty"`
 
 	// PasswordMinimumLength: The minimum allowed password length. A value
@@ -1635,16 +1791,21 @@ type PasswordRequirements struct {
 	// PasswordQuality: The required password quality.
 	//
 	// Possible values:
-	//   "PASSWORD_QUALITY_UNSPECIFIED" - There are no requirements for the
-	// password.
-	//   "SOMETHING" - There must be a password, but there are no
-	// restrictions on its characters.
+	//   "PASSWORD_QUALITY_UNSPECIFIED" - There are no password
+	// requirements.
+	//   "BIOMETRIC_WEAK" - The device must be secured with a low-security
+	// biometric recognition technology, at minimum. This includes
+	// technologies that can recognize the identity of an individual that
+	// are roughly equivalent to a 3-digit PIN (false detection is less than
+	// 1 in 1,000).
+	//   "SOMETHING" - A password is required, but there are no restrictions
+	// on what the password must contain.
 	//   "NUMERIC" - The password must contain numeric characters.
 	//   "NUMERIC_COMPLEX" - The password must contain numeric characters
 	// with no repeating (4444) or ordered (1234, 4321, 2468) sequences.
 	//   "ALPHABETIC" - The password must contain alphabetic (or symbol)
 	// characters.
-	//   "ALPHANUMERIC" - The password must contain at both numeric and
+	//   "ALPHANUMERIC" - The password must contain both numeric and
 	// alphabetic (or symbol) characters.
 	//   "COMPLEX" - The password must contain at least a letter, a
 	// numerical digit and a special symbol. Other password constraints, for
@@ -1671,8 +1832,8 @@ type PasswordRequirements struct {
 }
 
 func (s *PasswordRequirements) MarshalJSON() ([]byte, error) {
-	type noMethod PasswordRequirements
-	raw := noMethod(*s)
+	type NoMethod PasswordRequirements
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1712,8 +1873,8 @@ type PermissionGrant struct {
 }
 
 func (s *PermissionGrant) MarshalJSON() ([]byte, error) {
-	type noMethod PermissionGrant
-	raw := noMethod(*s)
+	type NoMethod PermissionGrant
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1758,19 +1919,40 @@ type PersistentPreferredActivity struct {
 }
 
 func (s *PersistentPreferredActivity) MarshalJSON() ([]byte, error) {
-	type noMethod PersistentPreferredActivity
-	raw := noMethod(*s)
+	type NoMethod PersistentPreferredActivity
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
-// Policy: A policy, which governs behavior for a device.
+// Policy: A policy resources represents a group settings that govern
+// the behavior of a managed device and the apps installed on it.
 type Policy struct {
+	// AccountTypesWithManagementDisabled: Account types that can't be
+	// managed by the user.
+	AccountTypesWithManagementDisabled []string `json:"accountTypesWithManagementDisabled,omitempty"`
+
 	// AddUserDisabled: Whether adding new users and profiles is disabled.
 	AddUserDisabled bool `json:"addUserDisabled,omitempty"`
 
 	// AdjustVolumeDisabled: Whether adjusting the master volume is
 	// disabled.
 	AdjustVolumeDisabled bool `json:"adjustVolumeDisabled,omitempty"`
+
+	// AlwaysOnVpnPackage: Configuration for an always-on VPN connection.
+	// Use with vpn_config_disabled to prevent modification of this setting.
+	AlwaysOnVpnPackage *AlwaysOnVpnPackage `json:"alwaysOnVpnPackage,omitempty"`
+
+	// AndroidDevicePolicyTracks: The app tracks for Android Device Policy
+	// the device can access. The device receives the latest version among
+	// all accessible tracks. If no tracks are specified, then the device
+	// only uses the production track.
+	//
+	// Possible values:
+	//   "APP_TRACK_UNSPECIFIED" - This value is ignored.
+	//   "PRODUCTION" - The production track, which provides the latest
+	// stable release.
+	//   "BETA" - The beta track, which provides the latest beta release.
+	AndroidDevicePolicyTracks []string `json:"androidDevicePolicyTracks,omitempty"`
 
 	// Applications: Policy applied to apps.
 	Applications []*ApplicationPolicy `json:"applications,omitempty"`
@@ -1785,8 +1967,24 @@ type Policy struct {
 	// longer appear in the policy are automatically uninstalled.
 	BlockApplicationsEnabled bool `json:"blockApplicationsEnabled,omitempty"`
 
+	// BluetoothConfigDisabled: Whether configuring bluetooth is disabled.
+	BluetoothConfigDisabled bool `json:"bluetoothConfigDisabled,omitempty"`
+
+	// BluetoothContactSharingDisabled: Whether bluetooth contact sharing is
+	// disabled.
+	BluetoothContactSharingDisabled bool `json:"bluetoothContactSharingDisabled,omitempty"`
+
+	// BluetoothDisabled: Whether bluetooth is disabled. Prefer this setting
+	// over bluetooth_config_disabled because bluetooth_config_disabled can
+	// be bypassed by the user.
+	BluetoothDisabled bool `json:"bluetoothDisabled,omitempty"`
+
 	// CameraDisabled: Whether all cameras on the device are disabled.
 	CameraDisabled bool `json:"cameraDisabled,omitempty"`
+
+	// CellBroadcastsConfigDisabled: Whether configuring cell broadcast is
+	// disabled.
+	CellBroadcastsConfigDisabled bool `json:"cellBroadcastsConfigDisabled,omitempty"`
 
 	// ComplianceRules: Rules declaring which mitigating actions to take
 	// when a device is not compliant with its policy. When the conditions
@@ -1794,12 +1992,23 @@ type Policy struct {
 	// the rules are taken. There is a maximum limit of 100 rules.
 	ComplianceRules []*ComplianceRule `json:"complianceRules,omitempty"`
 
+	// CreateWindowsDisabled: Whether creating windows besides app windows
+	// is disabled.
+	CreateWindowsDisabled bool `json:"createWindowsDisabled,omitempty"`
+
+	// CredentialsConfigDisabled: Whether configuring user credentials is
+	// disabled.
+	CredentialsConfigDisabled bool `json:"credentialsConfigDisabled,omitempty"`
+
+	// DataRoamingDisabled: Whether roaming data services are disabled.
+	DataRoamingDisabled bool `json:"dataRoamingDisabled,omitempty"`
+
 	// DebuggingFeaturesAllowed: Whether the user is allowed to enable
 	// debugging features.
 	DebuggingFeaturesAllowed bool `json:"debuggingFeaturesAllowed,omitempty"`
 
-	// DefaultPermissionPolicy: The default permission policy for requests
-	// for runtime permissions.
+	// DefaultPermissionPolicy: The default permission policy for runtime
+	// permission requests.
 	//
 	// Possible values:
 	//   "PERMISSION_POLICY_UNSPECIFIED" - Policy not specified. If no
@@ -1810,6 +2019,9 @@ type Policy struct {
 	//   "DENY" - Automatically deny a permission.
 	DefaultPermissionPolicy string `json:"defaultPermissionPolicy,omitempty"`
 
+	// EnsureVerifyAppsEnabled: Whether app verification is force-enabled.
+	EnsureVerifyAppsEnabled bool `json:"ensureVerifyAppsEnabled,omitempty"`
+
 	// FactoryResetDisabled: Whether factory resetting from settings is
 	// disabled.
 	FactoryResetDisabled bool `json:"factoryResetDisabled,omitempty"`
@@ -1818,12 +2030,15 @@ type Policy struct {
 	// reset protection. When the device is factory reset, it will require
 	// one of these admins to log in with the Google account email and
 	// password to unlock the device. If no admins are specified, the device
-	// will not provide factory reset protection.
+	// won't provide factory reset protection.
 	FrpAdminEmails []string `json:"frpAdminEmails,omitempty"`
 
 	// FunDisabled: Whether the user is allowed to have fun. Controls
 	// whether the Easter egg game in Settings is disabled.
 	FunDisabled bool `json:"funDisabled,omitempty"`
+
+	// InstallAppsDisabled: Whether user installation of apps is disabled.
+	InstallAppsDisabled bool `json:"installAppsDisabled,omitempty"`
 
 	// InstallUnknownSourcesAllowed: Whether the user is allowed to enable
 	// the "Unknown Sources" setting, which allows installation of apps from
@@ -1833,37 +2048,102 @@ type Policy struct {
 	// KeyguardDisabled: Whether the keyguard is disabled.
 	KeyguardDisabled bool `json:"keyguardDisabled,omitempty"`
 
+	// KeyguardDisabledFeatures: Disabled keyguard customizations, such as
+	// widgets.
+	//
+	// Possible values:
+	//   "KEYGUARD_DISABLED_FEATURE_UNSPECIFIED" - This value is ignored.
+	//   "CAMERA" - Disable the camera on secure keyguard screens (e.g.
+	// PIN).
+	//   "NOTIFICATIONS" - Disable showing all notifications on secure
+	// keyguard screens.
+	//   "UNREDACTED_NOTIFICATIONS" - Disable unredacted notifications on
+	// secure keyguard screens.
+	//   "TRUST_AGENTS" - Ignore trust agent state on secure keyguard
+	// screens.
+	//   "DISABLE_FINGERPRINT" - Disable fingerprint sensor on keyguard
+	// secure screens.
+	//   "DISABLE_REMOTE_INPUT" - Disable text entry into notifications on
+	// secure keyguard screens.
+	//   "ALL_FEATURES" - Disable all current and future keyguard
+	// customizations.
+	KeyguardDisabledFeatures []string `json:"keyguardDisabledFeatures,omitempty"`
+
+	// KioskCustomLauncherEnabled: Whether the kiosk custom launcher is
+	// enabled. This replaces the home screen with a launcher that locks
+	// down the device to the apps installed via the applications setting.
+	// The apps appear on a single page in alphabetical order. It is
+	// recommended to also use status_bar_disabled to block access to device
+	// settings.
+	KioskCustomLauncherEnabled bool `json:"kioskCustomLauncherEnabled,omitempty"`
+
+	// LongSupportMessage: A message displayed to the user in the device
+	// administators settings screen.
+	LongSupportMessage *UserFacingMessage `json:"longSupportMessage,omitempty"`
+
 	// MaximumTimeToLock: Maximum time in milliseconds for user activity
-	// until the device will lock. A value of 0 means there is no
-	// restriction.
+	// until the device locks. A value of 0 means there is no restriction.
 	MaximumTimeToLock int64 `json:"maximumTimeToLock,omitempty,string"`
+
+	// MobileNetworksConfigDisabled: Whether configuring mobile networks is
+	// disabled.
+	MobileNetworksConfigDisabled bool `json:"mobileNetworksConfigDisabled,omitempty"`
 
 	// ModifyAccountsDisabled: Whether adding or removing accounts is
 	// disabled.
 	ModifyAccountsDisabled bool `json:"modifyAccountsDisabled,omitempty"`
 
+	// MountPhysicalMediaDisabled: Whether the user mounting physical
+	// external media is disabled.
+	MountPhysicalMediaDisabled bool `json:"mountPhysicalMediaDisabled,omitempty"`
+
 	// Name: The name of the policy in the form
-	// enterprises/{enterpriseId}/policies/{policyId}
+	// enterprises/{enterpriseId}/policies/{policyId}.
 	Name string `json:"name,omitempty"`
 
-	// NetworkEscapeHatchEnabled: Flag to specify if network escape hatch is
-	// enabled. If this flag has been enabled then upon device boot if
-	// device has no network connection, then an activity will be shown that
-	// allows the user to temporarily connect to a network to fetch the
-	// latest policy. The launched activity will time out if no network has
-	// been connected for a given while and will return to the previous
-	// activity that was shown.
+	// NetworkEscapeHatchEnabled: Whether the network escape hatch is
+	// enabled. If a network connection can't be made at boot time, the
+	// escape hatch prompts the user to temporarily connect to a network in
+	// order to refresh the device policy. After applying policy, the
+	// temporary network will be forgotten and the device will continue
+	// booting. This prevents being unable to connect to a network if there
+	// is no suitable network in the last policy and the device boots into
+	// an app in lock task mode, or the user is otherwise unable to reach
+	// device settings.
 	NetworkEscapeHatchEnabled bool `json:"networkEscapeHatchEnabled,omitempty"`
+
+	// NetworkResetDisabled: Whether resetting network settings is disabled.
+	NetworkResetDisabled bool `json:"networkResetDisabled,omitempty"`
 
 	// OpenNetworkConfiguration: Network configuration for the device. See
 	// configure networks for more information.
 	OpenNetworkConfiguration googleapi.RawMessage `json:"openNetworkConfiguration,omitempty"`
 
+	// OutgoingBeamDisabled: Whether using NFC to beam data from apps is
+	// disabled.
+	OutgoingBeamDisabled bool `json:"outgoingBeamDisabled,omitempty"`
+
+	// OutgoingCallsDisabled: Whether outgoing calls are disabled.
+	OutgoingCallsDisabled bool `json:"outgoingCallsDisabled,omitempty"`
+
 	// PasswordRequirements: Password requirements.
 	PasswordRequirements *PasswordRequirements `json:"passwordRequirements,omitempty"`
 
+	// PermittedInputMethods: If present, only the input methods provided by
+	// packages in this list are permitted. If this field is present, but
+	// the list is empty, then only system input methods are permitted.
+	PermittedInputMethods *PackageNameList `json:"permittedInputMethods,omitempty"`
+
 	// PersistentPreferredActivities: Default intent handler activities.
 	PersistentPreferredActivities []*PersistentPreferredActivity `json:"persistentPreferredActivities,omitempty"`
+
+	// RecommendedGlobalProxy: The network-independent global HTTP proxy.
+	// Typically proxies should be configured per-network in
+	// open_network_configuration. However for unusual configurations like
+	// general internal filtering a global HTTP proxy may be useful. If the
+	// proxy is not accessible, network access may break. The global proxy
+	// is only a recommendation and some apps may ignore it.
+	RecommendedGlobalProxy *ProxyInfo `json:"recommendedGlobalProxy,omitempty"`
 
 	// RemoveUserDisabled: Whether removing other users is disabled.
 	RemoveUserDisabled bool `json:"removeUserDisabled,omitempty"`
@@ -1875,8 +2155,21 @@ type Policy struct {
 	// ScreenCaptureDisabled: Whether screen capture is disabled.
 	ScreenCaptureDisabled bool `json:"screenCaptureDisabled,omitempty"`
 
+	// SetUserIconDisabled: Whether changing the user icon is disabled.
+	SetUserIconDisabled bool `json:"setUserIconDisabled,omitempty"`
+
+	// SetWallpaperDisabled: Whether changing the wallpaper is disabled.
+	SetWallpaperDisabled bool `json:"setWallpaperDisabled,omitempty"`
+
+	// ShortSupportMessage: A message displayed to the user in the settings
+	// screen wherever functionality has been disabled by the admin.
+	ShortSupportMessage *UserFacingMessage `json:"shortSupportMessage,omitempty"`
+
+	// SmsDisabled: Whether sending and receiving SMS messages is disabled.
+	SmsDisabled bool `json:"smsDisabled,omitempty"`
+
 	// StatusBarDisabled: Whether the status bar is disabled. This disables
-	// notifications, quick settings and other screen overlays that allow
+	// notifications, quick settings, and other screen overlays that allow
 	// escape from full-screen mode.
 	StatusBarDisabled bool `json:"statusBarDisabled,omitempty"`
 
@@ -1896,53 +2189,67 @@ type Policy struct {
 	StayOnPluggedModes []string `json:"stayOnPluggedModes,omitempty"`
 
 	// SystemUpdate: The system update policy, which controls how OS updates
-	// are applied. If the update type is WINDOWED and the device has a
-	// device account, the update window will automatically apply to Play
-	// app updates as well.
+	// are applied. If the update type is WINDOWED, the update window will
+	// automatically apply to Play app updates as well.
 	SystemUpdate *SystemUpdate `json:"systemUpdate,omitempty"`
+
+	// TetheringConfigDisabled: Whether configuring tethering and portable
+	// hotspots is disabled.
+	TetheringConfigDisabled bool `json:"tetheringConfigDisabled,omitempty"`
+
+	// UninstallAppsDisabled: Whether user uninstallation of applications is
+	// disabled.
+	UninstallAppsDisabled bool `json:"uninstallAppsDisabled,omitempty"`
 
 	// UnmuteMicrophoneDisabled: Whether the microphone is muted and
 	// adjusting microphone volume is disabled.
 	UnmuteMicrophoneDisabled bool `json:"unmuteMicrophoneDisabled,omitempty"`
 
+	// UsbFileTransferDisabled: Whether transferring files over USB is
+	// disabled.
+	UsbFileTransferDisabled bool `json:"usbFileTransferDisabled,omitempty"`
+
 	// Version: The version of the policy. This is a read-only field. The
 	// version is incremented each time the policy is updated.
 	Version int64 `json:"version,omitempty,string"`
 
-	// WifiConfigDisabled: Whether configuring WiFi access points is
+	// VpnConfigDisabled: Whether configuring VPN is disabled.
+	VpnConfigDisabled bool `json:"vpnConfigDisabled,omitempty"`
+
+	// WifiConfigDisabled: Whether configuring Wi-Fi access points is
 	// disabled.
 	WifiConfigDisabled bool `json:"wifiConfigDisabled,omitempty"`
 
-	// WifiConfigsLockdownEnabled: Whether WiFi networks defined in Open
-	// Network Configuration are locked so they cannot be edited by the
-	// user.
+	// WifiConfigsLockdownEnabled: Whether Wi-Fi networks defined in Open
+	// Network Configuration are locked so they can't be edited by the user.
 	WifiConfigsLockdownEnabled bool `json:"wifiConfigsLockdownEnabled,omitempty"`
 
 	// ServerResponse contains the HTTP response code and headers from the
 	// server.
 	googleapi.ServerResponse `json:"-"`
 
-	// ForceSendFields is a list of field names (e.g. "AddUserDisabled") to
-	// unconditionally include in API requests. By default, fields with
-	// empty values are omitted from API requests. However, any non-pointer,
-	// non-interface field appearing in ForceSendFields will be sent to the
-	// server regardless of whether the field is empty or not. This may be
-	// used to include empty fields in Patch requests.
+	// ForceSendFields is a list of field names (e.g.
+	// "AccountTypesWithManagementDisabled") to unconditionally include in
+	// API requests. By default, fields with empty values are omitted from
+	// API requests. However, any non-pointer, non-interface field appearing
+	// in ForceSendFields will be sent to the server regardless of whether
+	// the field is empty or not. This may be used to include empty fields
+	// in Patch requests.
 	ForceSendFields []string `json:"-"`
 
-	// NullFields is a list of field names (e.g. "AddUserDisabled") to
-	// include in API requests with the JSON null value. By default, fields
-	// with empty values are omitted from API requests. However, any field
-	// with an empty value appearing in NullFields will be sent to the
-	// server as null. It is an error if a field in this list has a
-	// non-empty value. This may be used to include null fields in Patch
-	// requests.
+	// NullFields is a list of field names (e.g.
+	// "AccountTypesWithManagementDisabled") to include in API requests with
+	// the JSON null value. By default, fields with empty values are omitted
+	// from API requests. However, any field with an empty value appearing
+	// in NullFields will be sent to the server as null. It is an error if a
+	// field in this list has a non-empty value. This may be used to include
+	// null fields in Patch requests.
 	NullFields []string `json:"-"`
 }
 
 func (s *Policy) MarshalJSON() ([]byte, error) {
-	type noMethod Policy
-	raw := noMethod(*s)
+	type NoMethod Policy
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1987,18 +2294,18 @@ type PowerManagementEvent struct {
 }
 
 func (s *PowerManagementEvent) MarshalJSON() ([]byte, error) {
-	type noMethod PowerManagementEvent
-	raw := noMethod(*s)
+	type NoMethod PowerManagementEvent
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
 func (s *PowerManagementEvent) UnmarshalJSON(data []byte) error {
-	type noMethod PowerManagementEvent
+	type NoMethod PowerManagementEvent
 	var s1 struct {
 		BatteryLevel gensupport.JSONFloat64 `json:"batteryLevel"`
-		*noMethod
+		*NoMethod
 	}
-	s1.noMethod = (*noMethod)(s)
+	s1.NoMethod = (*NoMethod)(s)
 	if err := json.Unmarshal(data, &s1); err != nil {
 		return err
 	}
@@ -2006,14 +2313,55 @@ func (s *PowerManagementEvent) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// ProxyInfo: Configuration info for an HTTP proxy. For a direct proxy,
+// set the host, port, and excluded_hosts fields. For a PAC script
+// proxy, set the pac_uri field.
+type ProxyInfo struct {
+	// ExcludedHosts: For a direct proxy, the hosts for which the proxy is
+	// bypassed. The host names may contain wildcards such as *.example.com.
+	ExcludedHosts []string `json:"excludedHosts,omitempty"`
+
+	// Host: The host of the direct proxy.
+	Host string `json:"host,omitempty"`
+
+	// PacUri: The URI of the PAC script used to configure the proxy.
+	PacUri string `json:"pacUri,omitempty"`
+
+	// Port: The port of the direct proxy.
+	Port int64 `json:"port,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "ExcludedHosts") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "ExcludedHosts") to include
+	// in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. However, any field with
+	// an empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *ProxyInfo) MarshalJSON() ([]byte, error) {
+	type NoMethod ProxyInfo
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
 // SignupUrl: An enterprise signup URL.
 type SignupUrl struct {
-	// Name: The name of the resource. This must be included in the create
-	// enterprise request at the end of the signup flow.
+	// Name: The name of the resource. Use this value in the signupUrl field
+	// when calling enterprises.create to complete the enterprise signup
+	// flow.
 	Name string `json:"name,omitempty"`
 
-	// Url: A URL under which the Admin can sign up for an enterprise. The
-	// page pointed to cannot be rendered in an iframe.
+	// Url: A URL where an enterprise admin can register their enterprise.
+	// The page can't be rendered in an iframe.
 	Url string `json:"url,omitempty"`
 
 	// ServerResponse contains the HTTP response code and headers from the
@@ -2038,27 +2386,42 @@ type SignupUrl struct {
 }
 
 func (s *SignupUrl) MarshalJSON() ([]byte, error) {
-	type noMethod SignupUrl
-	raw := noMethod(*s)
+	type NoMethod SignupUrl
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
 // SoftwareInfo: Information about device software.
 type SoftwareInfo struct {
-	// AndroidBuildNumber: Android build Id string meant for displaying to
-	// the user, e.g. shamu-userdebug 6.0.1 MOB30I 2756745 dev-keys.
+	// AndroidBuildNumber: Android build ID string meant for displaying to
+	// the user. For example, shamu-userdebug 6.0.1 MOB30I 2756745 dev-keys.
 	AndroidBuildNumber string `json:"androidBuildNumber,omitempty"`
 
 	// AndroidBuildTime: Build time.
 	AndroidBuildTime string `json:"androidBuildTime,omitempty"`
 
-	// AndroidVersion: The user visible Android version string, e.g. 6.0.1.
+	// AndroidDevicePolicyVersionCode: The Android Device Policy app version
+	// code.
+	AndroidDevicePolicyVersionCode int64 `json:"androidDevicePolicyVersionCode,omitempty"`
+
+	// AndroidDevicePolicyVersionName: The Android Device Policy app version
+	// as displayed to the user.
+	AndroidDevicePolicyVersionName string `json:"androidDevicePolicyVersionName,omitempty"`
+
+	// AndroidVersion: The user-visible Android version string. For example,
+	// 6.0.1.
 	AndroidVersion string `json:"androidVersion,omitempty"`
 
 	// BootloaderVersion: The system bootloader version number, e.g. 0.6.7.
 	BootloaderVersion string `json:"bootloaderVersion,omitempty"`
 
-	// DeviceKernelVersion: Kernel version, e.g. 2.6.32.9-g103d848.
+	// DeviceBuildSignature: SHA-256 hash of android.content.pm.Signature
+	// (https://developer.android.com/reference/android/content/pm/Signature.
+	// html) associated with the system package, which can be used to verify
+	// that the system build hasn't been modified.
+	DeviceBuildSignature string `json:"deviceBuildSignature,omitempty"`
+
+	// DeviceKernelVersion: Kernel version, for example, 2.6.32.9-g103d848.
 	DeviceKernelVersion string `json:"deviceKernelVersion,omitempty"`
 
 	// SecurityPatchLevel: Security patch level, e.g. 2016-05-01.
@@ -2083,8 +2446,8 @@ type SoftwareInfo struct {
 }
 
 func (s *SoftwareInfo) MarshalJSON() ([]byte, error) {
-	type noMethod SoftwareInfo
-	raw := noMethod(*s)
+	type NoMethod SoftwareInfo
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2159,14 +2522,17 @@ type Status struct {
 }
 
 func (s *Status) MarshalJSON() ([]byte, error) {
-	type noMethod Status
-	raw := noMethod(*s)
+	type NoMethod Status
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
 // StatusReportingSettings: Settings controlling the behavior of status
 // reports.
 type StatusReportingSettings struct {
+	// DeviceSettingsEnabled: Whether device settings reporting is enabled.
+	DeviceSettingsEnabled bool `json:"deviceSettingsEnabled,omitempty"`
+
 	// DisplayInfoEnabled: Whether displays reporting is enabled.
 	DisplayInfoEnabled bool `json:"displayInfoEnabled,omitempty"`
 
@@ -2186,15 +2552,16 @@ type StatusReportingSettings struct {
 	// SoftwareInfoEnabled: Whether software info reporting is enabled.
 	SoftwareInfoEnabled bool `json:"softwareInfoEnabled,omitempty"`
 
-	// ForceSendFields is a list of field names (e.g. "DisplayInfoEnabled")
-	// to unconditionally include in API requests. By default, fields with
-	// empty values are omitted from API requests. However, any non-pointer,
-	// non-interface field appearing in ForceSendFields will be sent to the
-	// server regardless of whether the field is empty or not. This may be
-	// used to include empty fields in Patch requests.
+	// ForceSendFields is a list of field names (e.g.
+	// "DeviceSettingsEnabled") to unconditionally include in API requests.
+	// By default, fields with empty values are omitted from API requests.
+	// However, any non-pointer, non-interface field appearing in
+	// ForceSendFields will be sent to the server regardless of whether the
+	// field is empty or not. This may be used to include empty fields in
+	// Patch requests.
 	ForceSendFields []string `json:"-"`
 
-	// NullFields is a list of field names (e.g. "DisplayInfoEnabled") to
+	// NullFields is a list of field names (e.g. "DeviceSettingsEnabled") to
 	// include in API requests with the JSON null value. By default, fields
 	// with empty values are omitted from API requests. However, any field
 	// with an empty value appearing in NullFields will be sent to the
@@ -2205,15 +2572,15 @@ type StatusReportingSettings struct {
 }
 
 func (s *StatusReportingSettings) MarshalJSON() ([]byte, error) {
-	type noMethod StatusReportingSettings
-	raw := noMethod(*s)
+	type NoMethod StatusReportingSettings
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
 // SystemUpdate: Configuration for managing system updates
 type SystemUpdate struct {
 	// EndMinutes: If the type is WINDOWED, the end of the maintenance
-	// window, measured as the number of minutes after midnight in device
+	// window, measured as the number of minutes after midnight in device's
 	// local time. This value must be between 0 and 1439, inclusive. If this
 	// value is less than start_minutes, then the maintenance window spans
 	// midnight. If the maintenance window specified is smaller than 30
@@ -2222,8 +2589,9 @@ type SystemUpdate struct {
 	EndMinutes int64 `json:"endMinutes,omitempty"`
 
 	// StartMinutes: If the type is WINDOWED, the start of the maintenance
-	// window, measured as the number of minutes after midnight in device
-	// local time. This value must be between 0 and 1439, inclusive.
+	// window, measured as the number of minutes after midnight in the
+	// device's local time. This value must be between 0 and 1439,
+	// inclusive.
 	StartMinutes int64 `json:"startMinutes,omitempty"`
 
 	// Type: The type of system update to configure.
@@ -2235,10 +2603,10 @@ type SystemUpdate struct {
 	//   "AUTOMATIC" - Install automatically as soon as an update is
 	// available.
 	//   "WINDOWED" - Install automatically within a daily maintenance
-	// window. If the device has a device account, this also configures Play
-	// apps to be updated within the window. This is strongly recommended
-	// for kiosk devices because this is the only way apps persistently
-	// pinned to the foreground can be updated by Play.
+	// window. This also configures Play apps to be updated within the
+	// window. This is strongly recommended for kiosk devices because this
+	// is the only way apps persistently pinned to the foreground can be
+	// updated by Play.
 	//   "POSTPONE" - Postpone automatic install up to a maximum of 30 days.
 	Type string `json:"type,omitempty"`
 
@@ -2260,22 +2628,24 @@ type SystemUpdate struct {
 }
 
 func (s *SystemUpdate) MarshalJSON() ([]byte, error) {
-	type noMethod SystemUpdate
-	raw := noMethod(*s)
+	type NoMethod SystemUpdate
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
-// UserFacingMessage: Provides user facing message with locale info. The
-// maximum message length is 4096 characters.
+// UserFacingMessage: Provides a user-facing message with locale info.
+// The maximum message length is 4096 characters.
 type UserFacingMessage struct {
-	// DefaultMessage: The default message that gets displayed if no
-	// localized message is specified, or the user's locale does not match
-	// with any of the localized messages. A default message must be
-	// provided if any localized messages are provided.
+	// DefaultMessage: The default message displayed if no localized message
+	// is specified or the user's locale doesn't match with any of the
+	// localized messages. A default message must be provided if any
+	// localized messages are provided.
 	DefaultMessage string `json:"defaultMessage,omitempty"`
 
-	// LocalizedMessages: A map which contains <locale, message> pairs. The
-	// locale is a BCP 47 language code, e.g. en-US, es-ES, fr.
+	// LocalizedMessages: A map containing <locale, message> pairs, where
+	// locale is a well-formed BCP 47 language
+	// (https://www.w3.org/International/articles/language-tags/) code, such
+	// as en-US, es-ES, or fr.
 	LocalizedMessages map[string]string `json:"localizedMessages,omitempty"`
 
 	// ForceSendFields is a list of field names (e.g. "DefaultMessage") to
@@ -2297,16 +2667,15 @@ type UserFacingMessage struct {
 }
 
 func (s *UserFacingMessage) MarshalJSON() ([]byte, error) {
-	type noMethod UserFacingMessage
-	raw := noMethod(*s)
+	type NoMethod UserFacingMessage
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
-// WebToken: A web token used to access an embeddable managed Google
-// Play web UI.
+// WebToken: A web token used to access the managed Google Play iframe.
 type WebToken struct {
 	// Name: The name of the web token, which is generated by the server
-	// during creation, in the form
+	// during creation in the form
 	// enterprises/{enterpriseId}/webTokens/{webTokenId}.
 	Name string `json:"name,omitempty"`
 
@@ -2315,8 +2684,8 @@ type WebToken struct {
 	// other URLs. The URL must use the https scheme.
 	ParentFrameUrl string `json:"parentFrameUrl,omitempty"`
 
-	// Permissions: Permissions the admin may exercise in the embedded UI.
-	// The admin must have all of these permissions in order to view the UI.
+	// Permissions: Permissions available to an admin in the embedded UI. An
+	// admin must have all of these permissions in order to view the UI.
 	//
 	// Possible values:
 	//   "WEB_TOKEN_PERMISSION_UNSPECIFIED" - This value is ignored.
@@ -2350,8 +2719,8 @@ type WebToken struct {
 }
 
 func (s *WebToken) MarshalJSON() ([]byte, error) {
-	type noMethod WebToken
-	raw := noMethod(*s)
+	type NoMethod WebToken
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2365,8 +2734,8 @@ type EnterprisesCreateCall struct {
 	header_    http.Header
 }
 
-// Create: Creates an enterprise by completing the enterprise signup
-// flow.
+// Create: Creates an enterprise. This is the last step in the
+// enterprise signup flow.
 func (r *EnterprisesService) Create(enterprise *Enterprise) *EnterprisesCreateCall {
 	c := &EnterprisesCreateCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.enterprise = enterprise
@@ -2380,7 +2749,7 @@ func (c *EnterprisesCreateCall) EnterpriseToken(enterpriseToken string) *Enterpr
 	return c
 }
 
-// ProjectId sets the optional parameter "projectId": The id of the
+// ProjectId sets the optional parameter "projectId": The ID of the
 // Google Cloud Platform project which will own the enterprise.
 func (c *EnterprisesCreateCall) ProjectId(projectId string) *EnterprisesCreateCall {
 	c.urlParams_.Set("projectId", projectId)
@@ -2472,12 +2841,12 @@ func (c *EnterprisesCreateCall) Do(opts ...googleapi.CallOption) (*Enterprise, e
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
 	// {
-	//   "description": "Creates an enterprise by completing the enterprise signup flow.",
+	//   "description": "Creates an enterprise. This is the last step in the enterprise signup flow.",
 	//   "flatPath": "v1/enterprises",
 	//   "httpMethod": "POST",
 	//   "id": "androidmanagement.enterprises.create",
@@ -2489,7 +2858,7 @@ func (c *EnterprisesCreateCall) Do(opts ...googleapi.CallOption) (*Enterprise, e
 	//       "type": "string"
 	//     },
 	//     "projectId": {
-	//       "description": "The id of the Google Cloud Platform project which will own the enterprise.",
+	//       "description": "The ID of the Google Cloud Platform project which will own the enterprise.",
 	//       "location": "query",
 	//       "type": "string"
 	//     },
@@ -2620,7 +2989,7 @@ func (c *EnterprisesGetCall) Do(opts ...googleapi.CallOption) (*Enterprise, erro
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -2634,7 +3003,7 @@ func (c *EnterprisesGetCall) Do(opts ...googleapi.CallOption) (*Enterprise, erro
 	//   ],
 	//   "parameters": {
 	//     "name": {
-	//       "description": "The name of the enterprise in the form enterprises/{enterpriseId}",
+	//       "description": "The name of the enterprise in the form enterprises/{enterpriseId}.",
 	//       "location": "path",
 	//       "pattern": "^enterprises/[^/]+$",
 	//       "required": true,
@@ -2760,7 +3129,7 @@ func (c *EnterprisesPatchCall) Do(opts ...googleapi.CallOption) (*Enterprise, er
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -2774,7 +3143,7 @@ func (c *EnterprisesPatchCall) Do(opts ...googleapi.CallOption) (*Enterprise, er
 	//   ],
 	//   "parameters": {
 	//     "name": {
-	//       "description": "The name of the enterprise in the form enterprises/{enterpriseId}",
+	//       "description": "The name of the enterprise in the form enterprises/{enterpriseId}.",
 	//       "location": "path",
 	//       "pattern": "^enterprises/[^/]+$",
 	//       "required": true,
@@ -2917,7 +3286,7 @@ func (c *EnterprisesApplicationsGetCall) Do(opts ...googleapi.CallOption) (*Appl
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -2936,7 +3305,7 @@ func (c *EnterprisesApplicationsGetCall) Do(opts ...googleapi.CallOption) (*Appl
 	//       "type": "string"
 	//     },
 	//     "name": {
-	//       "description": "The name of the application in the form enterprises/{enterpriseId}/applications/{package_name}",
+	//       "description": "The name of the application in the form enterprises/{enterpriseId}/applications/{package_name}.",
 	//       "location": "path",
 	//       "pattern": "^enterprises/[^/]+/applications/[^/]+$",
 	//       "required": true,
@@ -2964,7 +3333,7 @@ type EnterprisesDevicesDeleteCall struct {
 	header_    http.Header
 }
 
-// Delete: Deletes a device, which causes the device to be wiped.
+// Delete: Deletes a device. This operation wipes the device.
 func (r *EnterprisesDevicesService) Delete(name string) *EnterprisesDevicesDeleteCall {
 	c := &EnterprisesDevicesDeleteCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.name = name
@@ -3047,12 +3416,12 @@ func (c *EnterprisesDevicesDeleteCall) Do(opts ...googleapi.CallOption) (*Empty,
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
 	// {
-	//   "description": "Deletes a device, which causes the device to be wiped.",
+	//   "description": "Deletes a device. This operation wipes the device.",
 	//   "flatPath": "v1/enterprises/{enterprisesId}/devices/{devicesId}",
 	//   "httpMethod": "DELETE",
 	//   "id": "androidmanagement.enterprises.devices.delete",
@@ -3061,7 +3430,7 @@ func (c *EnterprisesDevicesDeleteCall) Do(opts ...googleapi.CallOption) (*Empty,
 	//   ],
 	//   "parameters": {
 	//     "name": {
-	//       "description": "The name of the device in the form enterprises/{enterpriseId}/devices/{deviceId}",
+	//       "description": "The name of the device in the form enterprises/{enterpriseId}/devices/{deviceId}.",
 	//       "location": "path",
 	//       "pattern": "^enterprises/[^/]+/devices/[^/]+$",
 	//       "required": true,
@@ -3186,7 +3555,7 @@ func (c *EnterprisesDevicesGetCall) Do(opts ...googleapi.CallOption) (*Device, e
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -3200,7 +3569,7 @@ func (c *EnterprisesDevicesGetCall) Do(opts ...googleapi.CallOption) (*Device, e
 	//   ],
 	//   "parameters": {
 	//     "name": {
-	//       "description": "The name of the device in the form enterprises/{enterpriseId}/devices/{deviceId}",
+	//       "description": "The name of the device in the form enterprises/{enterpriseId}/devices/{deviceId}.",
 	//       "location": "path",
 	//       "pattern": "^enterprises/[^/]+/devices/[^/]+$",
 	//       "required": true,
@@ -3320,7 +3689,7 @@ func (c *EnterprisesDevicesIssueCommandCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -3334,7 +3703,7 @@ func (c *EnterprisesDevicesIssueCommandCall) Do(opts ...googleapi.CallOption) (*
 	//   ],
 	//   "parameters": {
 	//     "name": {
-	//       "description": "The name of the device in the form enterprises/{enterpriseId}/devices/{deviceId}",
+	//       "description": "The name of the device in the form enterprises/{enterpriseId}/devices/{deviceId}.",
 	//       "location": "path",
 	//       "pattern": "^enterprises/[^/]+/devices/[^/]+$",
 	//       "required": true,
@@ -3381,7 +3750,7 @@ func (c *EnterprisesDevicesListCall) PageSize(pageSize int64) *EnterprisesDevice
 }
 
 // PageToken sets the optional parameter "pageToken": A token
-// identifying a page of results the server should return.
+// identifying a page of results returned by the server.
 func (c *EnterprisesDevicesListCall) PageToken(pageToken string) *EnterprisesDevicesListCall {
 	c.urlParams_.Set("pageToken", pageToken)
 	return c
@@ -3476,7 +3845,7 @@ func (c *EnterprisesDevicesListCall) Do(opts ...googleapi.CallOption) (*ListDevi
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -3496,12 +3865,12 @@ func (c *EnterprisesDevicesListCall) Do(opts ...googleapi.CallOption) (*ListDevi
 	//       "type": "integer"
 	//     },
 	//     "pageToken": {
-	//       "description": "A token identifying a page of results the server should return.",
+	//       "description": "A token identifying a page of results returned by the server.",
 	//       "location": "query",
 	//       "type": "string"
 	//     },
 	//     "parent": {
-	//       "description": "The name of the enterprise in the form enterprises/{enterpriseId}",
+	//       "description": "The name of the enterprise in the form enterprises/{enterpriseId}.",
 	//       "location": "path",
 	//       "pattern": "^enterprises/[^/]+$",
 	//       "required": true,
@@ -3648,7 +4017,7 @@ func (c *EnterprisesDevicesPatchCall) Do(opts ...googleapi.CallOption) (*Device,
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -3662,7 +4031,7 @@ func (c *EnterprisesDevicesPatchCall) Do(opts ...googleapi.CallOption) (*Device,
 	//   ],
 	//   "parameters": {
 	//     "name": {
-	//       "description": "The name of the device in the form enterprises/{enterpriseId}/devices/{deviceId}",
+	//       "description": "The name of the device in the form enterprises/{enterpriseId}/devices/{deviceId}.",
 	//       "location": "path",
 	//       "pattern": "^enterprises/[^/]+/devices/[^/]+$",
 	//       "required": true,
@@ -3791,7 +4160,7 @@ func (c *EnterprisesDevicesOperationsCancelCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -3919,7 +4288,7 @@ func (c *EnterprisesDevicesOperationsDeleteCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -4060,7 +4429,7 @@ func (c *EnterprisesDevicesOperationsGetCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -4229,7 +4598,7 @@ func (c *EnterprisesDevicesOperationsListCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -4398,7 +4767,7 @@ func (c *EnterprisesEnrollmentTokensCreateCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -4412,7 +4781,7 @@ func (c *EnterprisesEnrollmentTokensCreateCall) Do(opts ...googleapi.CallOption)
 	//   ],
 	//   "parameters": {
 	//     "parent": {
-	//       "description": "The name of the enterprise in the form enterprises/{enterpriseId}",
+	//       "description": "The name of the enterprise in the form enterprises/{enterpriseId}.",
 	//       "location": "path",
 	//       "pattern": "^enterprises/[^/]+$",
 	//       "required": true,
@@ -4443,8 +4812,8 @@ type EnterprisesEnrollmentTokensDeleteCall struct {
 	header_    http.Header
 }
 
-// Delete: Deletes an enrollment token, which prevents future use of the
-// token.
+// Delete: Deletes an enrollment token. This operation invalidates the
+// token, preventing its future use.
 func (r *EnterprisesEnrollmentTokensService) Delete(name string) *EnterprisesEnrollmentTokensDeleteCall {
 	c := &EnterprisesEnrollmentTokensDeleteCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.name = name
@@ -4527,12 +4896,12 @@ func (c *EnterprisesEnrollmentTokensDeleteCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
 	// {
-	//   "description": "Deletes an enrollment token, which prevents future use of the token.",
+	//   "description": "Deletes an enrollment token. This operation invalidates the token, preventing its future use.",
 	//   "flatPath": "v1/enterprises/{enterprisesId}/enrollmentTokens/{enrollmentTokensId}",
 	//   "httpMethod": "DELETE",
 	//   "id": "androidmanagement.enterprises.enrollmentTokens.delete",
@@ -4541,7 +4910,7 @@ func (c *EnterprisesEnrollmentTokensDeleteCall) Do(opts ...googleapi.CallOption)
 	//   ],
 	//   "parameters": {
 	//     "name": {
-	//       "description": "The name of the enrollment token in the form enterprises/{enterpriseId}/enrollmentTokens/{enrollmentTokenId}",
+	//       "description": "The name of the enrollment token in the form enterprises/{enterpriseId}/enrollmentTokens/{enrollmentTokenId}.",
 	//       "location": "path",
 	//       "pattern": "^enterprises/[^/]+/enrollmentTokens/[^/]+$",
 	//       "required": true,
@@ -4653,7 +5022,7 @@ func (c *EnterprisesPoliciesDeleteCall) Do(opts ...googleapi.CallOption) (*Empty
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -4667,7 +5036,7 @@ func (c *EnterprisesPoliciesDeleteCall) Do(opts ...googleapi.CallOption) (*Empty
 	//   ],
 	//   "parameters": {
 	//     "name": {
-	//       "description": "The name of the policy in the form enterprises/{enterpriseId}/policies/{policyId}",
+	//       "description": "The name of the policy in the form enterprises/{enterpriseId}/policies/{policyId}.",
 	//       "location": "path",
 	//       "pattern": "^enterprises/[^/]+/policies/[^/]+$",
 	//       "required": true,
@@ -4792,7 +5161,7 @@ func (c *EnterprisesPoliciesGetCall) Do(opts ...googleapi.CallOption) (*Policy, 
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -4806,7 +5175,7 @@ func (c *EnterprisesPoliciesGetCall) Do(opts ...googleapi.CallOption) (*Policy, 
 	//   ],
 	//   "parameters": {
 	//     "name": {
-	//       "description": "The name of the policy in the form enterprises/{enterpriseId}/policies/{policyId}",
+	//       "description": "The name of the policy in the form enterprises/{enterpriseId}/policies/{policyId}.",
 	//       "location": "path",
 	//       "pattern": "^enterprises/[^/]+/policies/[^/]+$",
 	//       "required": true,
@@ -4850,7 +5219,7 @@ func (c *EnterprisesPoliciesListCall) PageSize(pageSize int64) *EnterprisesPolic
 }
 
 // PageToken sets the optional parameter "pageToken": A token
-// identifying a page of results the server should return.
+// identifying a page of results returned by the server.
 func (c *EnterprisesPoliciesListCall) PageToken(pageToken string) *EnterprisesPoliciesListCall {
 	c.urlParams_.Set("pageToken", pageToken)
 	return c
@@ -4945,7 +5314,7 @@ func (c *EnterprisesPoliciesListCall) Do(opts ...googleapi.CallOption) (*ListPol
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -4965,12 +5334,12 @@ func (c *EnterprisesPoliciesListCall) Do(opts ...googleapi.CallOption) (*ListPol
 	//       "type": "integer"
 	//     },
 	//     "pageToken": {
-	//       "description": "A token identifying a page of results the server should return.",
+	//       "description": "A token identifying a page of results returned by the server.",
 	//       "location": "query",
 	//       "type": "string"
 	//     },
 	//     "parent": {
-	//       "description": "The name of the enterprise in the form enterprises/{enterpriseId}",
+	//       "description": "The name of the enterprise in the form enterprises/{enterpriseId}.",
 	//       "location": "path",
 	//       "pattern": "^enterprises/[^/]+$",
 	//       "required": true,
@@ -5117,7 +5486,7 @@ func (c *EnterprisesPoliciesPatchCall) Do(opts ...googleapi.CallOption) (*Policy
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -5131,7 +5500,7 @@ func (c *EnterprisesPoliciesPatchCall) Do(opts ...googleapi.CallOption) (*Policy
 	//   ],
 	//   "parameters": {
 	//     "name": {
-	//       "description": "The name of the policy in the form enterprises/{enterpriseId}/policies/{policyId}",
+	//       "description": "The name of the policy in the form enterprises/{enterpriseId}/policies/{policyId}.",
 	//       "location": "path",
 	//       "pattern": "^enterprises/[^/]+/policies/[^/]+$",
 	//       "required": true,
@@ -5259,7 +5628,7 @@ func (c *EnterprisesWebTokensCreateCall) Do(opts ...googleapi.CallOption) (*WebT
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -5273,7 +5642,7 @@ func (c *EnterprisesWebTokensCreateCall) Do(opts ...googleapi.CallOption) (*WebT
 	//   ],
 	//   "parameters": {
 	//     "parent": {
-	//       "description": "The name of the enterprise in the form enterprises/{enterpriseId}",
+	//       "description": "The name of the enterprise in the form enterprises/{enterpriseId}.",
 	//       "location": "path",
 	//       "pattern": "^enterprises/[^/]+$",
 	//       "required": true,
@@ -5310,7 +5679,7 @@ func (r *SignupUrlsService) Create() *SignupUrlsCreateCall {
 }
 
 // CallbackUrl sets the optional parameter "callbackUrl": The callback
-// URL to which the admin will be redirected after successfully creating
+// URL that the admin will be redirected to after successfully creating
 // an enterprise. Before redirecting there the system will add a query
 // parameter to this URL named enterpriseToken which will contain an
 // opaque token to be used for the create enterprise request. The URL
@@ -5321,7 +5690,7 @@ func (c *SignupUrlsCreateCall) CallbackUrl(callbackUrl string) *SignupUrlsCreate
 	return c
 }
 
-// ProjectId sets the optional parameter "projectId": The id of the
+// ProjectId sets the optional parameter "projectId": The ID of the
 // Google Cloud Platform project which will own the enterprise.
 func (c *SignupUrlsCreateCall) ProjectId(projectId string) *SignupUrlsCreateCall {
 	c.urlParams_.Set("projectId", projectId)
@@ -5401,7 +5770,7 @@ func (c *SignupUrlsCreateCall) Do(opts ...googleapi.CallOption) (*SignupUrl, err
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -5413,12 +5782,12 @@ func (c *SignupUrlsCreateCall) Do(opts ...googleapi.CallOption) (*SignupUrl, err
 	//   "parameterOrder": [],
 	//   "parameters": {
 	//     "callbackUrl": {
-	//       "description": "The callback URL to which the admin will be redirected after successfully creating an enterprise. Before redirecting there the system will add a query parameter to this URL named enterpriseToken which will contain an opaque token to be used for the create enterprise request. The URL will be parsed then reformatted in order to add the enterpriseToken parameter, so there may be some minor formatting changes.",
+	//       "description": "The callback URL that the admin will be redirected to after successfully creating an enterprise. Before redirecting there the system will add a query parameter to this URL named enterpriseToken which will contain an opaque token to be used for the create enterprise request. The URL will be parsed then reformatted in order to add the enterpriseToken parameter, so there may be some minor formatting changes.",
 	//       "location": "query",
 	//       "type": "string"
 	//     },
 	//     "projectId": {
-	//       "description": "The id of the Google Cloud Platform project which will own the enterprise.",
+	//       "description": "The ID of the Google Cloud Platform project which will own the enterprise.",
 	//       "location": "query",
 	//       "type": "string"
 	//     }

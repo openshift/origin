@@ -115,7 +115,7 @@ func (o *sccReviewOptions) Complete(f *clientcmd.Factory, args []string, cmd *co
 	wide := len(output) > 0 && output == "wide"
 
 	if len(output) != 0 && !wide {
-		printer, err := f.PrinterForOptions(kcmdutil.ExtractCmdPrintOptions(cmd, false))
+		printer, err := kcmdutil.PrinterForOptions(kcmdutil.ExtractCmdPrintOptions(cmd, false))
 		if err != nil {
 			return err
 		}

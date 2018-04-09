@@ -22,6 +22,7 @@ import (
 	"flag"
 	"fmt"
 	"path"
+	"strings"
 
 	"github.com/vmware/govmomi/govc/cli"
 	"github.com/vmware/govmomi/ovf"
@@ -29,9 +30,6 @@ import (
 )
 
 var (
-	// all possible ovf property values
-	// the first element being the default value
-	allDeploymentOptions         = []string{"small", "medium", "large"}
 	allDiskProvisioningOptions   = []string{"thin", "monolithicSparse", "monolithicFlat", "twoGbMaxExtentSparse", "twoGbMaxExtentFlat", "seSparse", "eagerZeroedThick", "thick", "sparse", "flat"}
 	allIPAllocationPolicyOptions = []string{"dhcpPolicy", "transientPolicy", "fixedPolicy", "fixedAllocatedPolicy"}
 	allIPProtocolOptions         = []string{"IPv4", "IPv6"}
@@ -75,9 +73,9 @@ func (cmd *spec) Run(ctx context.Context, f *flag.FlagSet) error {
 	if len(fpath) > 0 {
 		switch path.Ext(fpath) {
 		case ".ovf":
-			cmd.Archive = &FileArchive{fpath}
+			cmd.Archive = &FileArchive{path: fpath}
 		case "", ".ova":
-			cmd.Archive = &TapeArchive{fpath}
+			cmd.Archive = &TapeArchive{path: fpath}
 			fpath = "*.ovf"
 		default:
 			return fmt.Errorf("invalid file extension %s", path.Ext(fpath))
@@ -94,9 +92,18 @@ func (cmd *spec) Map(e *ovf.Envelope) (res []Property) {
 
 	for _, p := range e.VirtualSystem.Product {
 		for i, v := range p.Property {
+			if v.UserConfigurable == nil || !*v.UserConfigurable {
+				continue
+			}
+
 			d := ""
 			if v.Default != nil {
 				d = *v.Default
+			}
+
+			// vSphere only accept True/False as boolean values for some reason
+			if v.Type == "boolean" {
+				d = strings.Title(d)
 			}
 
 			// From OVF spec, section 9.5.1:
@@ -122,15 +129,18 @@ func (cmd *spec) Map(e *ovf.Envelope) (res []Property) {
 }
 
 func (cmd *spec) Spec(fpath string) error {
-	e, err := cmd.ReadEnvelope(fpath)
+	d, err := cmd.ReadOvf(fpath)
 	if err != nil {
 		return err
 	}
 
-	var deploymentOptions = allDeploymentOptions
-	if e.DeploymentOption != nil && e.DeploymentOption.Configuration != nil {
-		deploymentOptions = nil
+	e, err := cmd.ReadEnvelope(d)
+	if err != nil {
+		return err
+	}
 
+	var deploymentOptions []string
+	if e.DeploymentOption != nil && e.DeploymentOption.Configuration != nil {
 		// add default first
 		for _, c := range e.DeploymentOption.Configuration {
 			if c.Default != nil && *c.Default {
@@ -146,14 +156,18 @@ func (cmd *spec) Spec(fpath string) error {
 	}
 
 	o := Options{
-		Deployment:         deploymentOptions[0],
 		DiskProvisioning:   allDiskProvisioningOptions[0],
 		IPAllocationPolicy: allIPAllocationPolicyOptions[0],
 		IPProtocol:         allIPProtocolOptions[0],
 		PowerOn:            false,
 		WaitForIP:          false,
 		InjectOvfEnv:       false,
-		PropertyMapping:    cmd.Map(e)}
+		PropertyMapping:    cmd.Map(e),
+	}
+
+	if deploymentOptions != nil {
+		o.Deployment = deploymentOptions[0]
+	}
 
 	if e.VirtualSystem != nil && e.VirtualSystem.Annotation != nil {
 		for _, a := range e.VirtualSystem.Annotation {
@@ -168,7 +182,9 @@ func (cmd *spec) Spec(fpath string) error {
 	}
 
 	if cmd.verbose {
-		o.AllDeploymentOptions = deploymentOptions
+		if deploymentOptions != nil {
+			o.AllDeploymentOptions = deploymentOptions
+		}
 		o.AllDiskProvisioningOptions = allDiskProvisioningOptions
 		o.AllIPAllocationPolicyOptions = allIPAllocationPolicyOptions
 		o.AllIPProtocolOptions = allIPProtocolOptions

@@ -47,6 +47,12 @@ const basePath = "https://classroom.googleapis.com/"
 
 // OAuth2 scopes used by this API.
 const (
+	// View and manage announcements in Google Classroom
+	ClassroomAnnouncementsScope = "https://www.googleapis.com/auth/classroom.announcements"
+
+	// View announcements in Google Classroom
+	ClassroomAnnouncementsReadonlyScope = "https://www.googleapis.com/auth/classroom.announcements.readonly"
+
 	// Manage your Google Classroom classes
 	ClassroomCoursesScope = "https://www.googleapis.com/auth/classroom.courses"
 
@@ -84,6 +90,9 @@ const (
 	// View the profile photos of people in your classes
 	ClassroomProfilePhotosScope = "https://www.googleapis.com/auth/classroom.profile.photos"
 
+	// Receive notifications about your Google Classroom data
+	ClassroomPushNotificationsScope = "https://www.googleapis.com/auth/classroom.push-notifications"
+
 	// Manage your Google Classroom class rosters
 	ClassroomRostersScope = "https://www.googleapis.com/auth/classroom.rosters"
 
@@ -105,6 +114,7 @@ func New(client *http.Client) (*Service, error) {
 	s := &Service{client: client, BasePath: basePath}
 	s.Courses = NewCoursesService(s)
 	s.Invitations = NewInvitationsService(s)
+	s.Registrations = NewRegistrationsService(s)
 	s.UserProfiles = NewUserProfilesService(s)
 	return s, nil
 }
@@ -117,6 +127,8 @@ type Service struct {
 	Courses *CoursesService
 
 	Invitations *InvitationsService
+
+	Registrations *RegistrationsService
 
 	UserProfiles *UserProfilesService
 }
@@ -131,9 +143,11 @@ func (s *Service) userAgent() string {
 func NewCoursesService(s *Service) *CoursesService {
 	rs := &CoursesService{s: s}
 	rs.Aliases = NewCoursesAliasesService(s)
+	rs.Announcements = NewCoursesAnnouncementsService(s)
 	rs.CourseWork = NewCoursesCourseWorkService(s)
 	rs.Students = NewCoursesStudentsService(s)
 	rs.Teachers = NewCoursesTeachersService(s)
+	rs.Topics = NewCoursesTopicsService(s)
 	return rs
 }
 
@@ -142,11 +156,15 @@ type CoursesService struct {
 
 	Aliases *CoursesAliasesService
 
+	Announcements *CoursesAnnouncementsService
+
 	CourseWork *CoursesCourseWorkService
 
 	Students *CoursesStudentsService
 
 	Teachers *CoursesTeachersService
+
+	Topics *CoursesTopicsService
 }
 
 func NewCoursesAliasesService(s *Service) *CoursesAliasesService {
@@ -155,6 +173,15 @@ func NewCoursesAliasesService(s *Service) *CoursesAliasesService {
 }
 
 type CoursesAliasesService struct {
+	s *Service
+}
+
+func NewCoursesAnnouncementsService(s *Service) *CoursesAnnouncementsService {
+	rs := &CoursesAnnouncementsService{s: s}
+	return rs
+}
+
+type CoursesAnnouncementsService struct {
 	s *Service
 }
 
@@ -197,12 +224,30 @@ type CoursesTeachersService struct {
 	s *Service
 }
 
+func NewCoursesTopicsService(s *Service) *CoursesTopicsService {
+	rs := &CoursesTopicsService{s: s}
+	return rs
+}
+
+type CoursesTopicsService struct {
+	s *Service
+}
+
 func NewInvitationsService(s *Service) *InvitationsService {
 	rs := &InvitationsService{s: s}
 	return rs
 }
 
 type InvitationsService struct {
+	s *Service
+}
+
+func NewRegistrationsService(s *Service) *RegistrationsService {
+	rs := &RegistrationsService{s: s}
+	return rs
+}
+
+type RegistrationsService struct {
 	s *Service
 }
 
@@ -239,6 +284,126 @@ type UserProfilesGuardiansService struct {
 	s *Service
 }
 
+// Announcement: Announcement created by a teacher for students of the
+// course
+type Announcement struct {
+	// AlternateLink: Absolute link to this announcement in the Classroom
+	// web UI.
+	// This is only populated if `state` is `PUBLISHED`.
+	//
+	// Read-only.
+	AlternateLink string `json:"alternateLink,omitempty"`
+
+	// AssigneeMode: Assignee mode of the announcement.
+	// If unspecified, the default value is `ALL_STUDENTS`.
+	//
+	// Possible values:
+	//   "ASSIGNEE_MODE_UNSPECIFIED" - No mode specified. This is never
+	// returned.
+	//   "ALL_STUDENTS" - All students can see the item.
+	// This is the default state.
+	//   "INDIVIDUAL_STUDENTS" - A subset of the students can see the item.
+	AssigneeMode string `json:"assigneeMode,omitempty"`
+
+	// CourseId: Identifier of the course.
+	//
+	// Read-only.
+	CourseId string `json:"courseId,omitempty"`
+
+	// CreationTime: Timestamp when this announcement was
+	// created.
+	//
+	// Read-only.
+	CreationTime string `json:"creationTime,omitempty"`
+
+	// CreatorUserId: Identifier for the user that created the
+	// announcement.
+	//
+	// Read-only.
+	CreatorUserId string `json:"creatorUserId,omitempty"`
+
+	// Id: Classroom-assigned identifier of this announcement, unique per
+	// course.
+	//
+	// Read-only.
+	Id string `json:"id,omitempty"`
+
+	// IndividualStudentsOptions: Identifiers of students with access to the
+	// announcement.
+	// This field is set only if `assigneeMode` is `INDIVIDUAL_STUDENTS`.
+	// If the `assigneeMode` is `INDIVIDUAL_STUDENTS`, then only students
+	// specified in this
+	// field will be able to see the announcement.
+	IndividualStudentsOptions *IndividualStudentsOptions `json:"individualStudentsOptions,omitempty"`
+
+	// Materials: Additional materials.
+	//
+	// Announcements must have no more than 20 material items.
+	Materials []*Material `json:"materials,omitempty"`
+
+	// ScheduledTime: Optional timestamp when this announcement is scheduled
+	// to be published.
+	ScheduledTime string `json:"scheduledTime,omitempty"`
+
+	// State: Status of this announcement.
+	// If unspecified, the default state is `DRAFT`.
+	//
+	// Possible values:
+	//   "ANNOUNCEMENT_STATE_UNSPECIFIED" - No state specified. This is
+	// never returned.
+	//   "PUBLISHED" - Status for announcement that has been published.
+	// This is the default state.
+	//   "DRAFT" - Status for an announcement that is not yet
+	// published.
+	// Announcement in this state is visible only to course teachers and
+	// domain
+	// administrators.
+	//   "DELETED" - Status for announcement that was published but is now
+	// deleted.
+	// Announcement in this state is visible only to course teachers and
+	// domain
+	// administrators.
+	// Announcement in this state is deleted after some time.
+	State string `json:"state,omitempty"`
+
+	// Text: Description of this announcement.
+	// The text must be a valid UTF-8 string containing no more
+	// than 30,000 characters.
+	Text string `json:"text,omitempty"`
+
+	// UpdateTime: Timestamp of the most recent change to this
+	// announcement.
+	//
+	// Read-only.
+	UpdateTime string `json:"updateTime,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the
+	// server.
+	googleapi.ServerResponse `json:"-"`
+
+	// ForceSendFields is a list of field names (e.g. "AlternateLink") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "AlternateLink") to include
+	// in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. However, any field with
+	// an empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *Announcement) MarshalJSON() ([]byte, error) {
+	type NoMethod Announcement
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
 // Assignment: Additional details for assignments.
 type Assignment struct {
 	// StudentWorkFolder: Drive folder where attachments from student
@@ -265,8 +430,8 @@ type Assignment struct {
 }
 
 func (s *Assignment) MarshalJSON() ([]byte, error) {
-	type noMethod Assignment
-	raw := noMethod(*s)
+	type NoMethod Assignment
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -304,8 +469,8 @@ type AssignmentSubmission struct {
 }
 
 func (s *AssignmentSubmission) MarshalJSON() ([]byte, error) {
-	type noMethod AssignmentSubmission
-	raw := noMethod(*s)
+	type NoMethod AssignmentSubmission
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -343,8 +508,44 @@ type Attachment struct {
 }
 
 func (s *Attachment) MarshalJSON() ([]byte, error) {
-	type noMethod Attachment
-	raw := noMethod(*s)
+	type NoMethod Attachment
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// CloudPubsubTopic: A reference to a Cloud Pub/Sub topic.
+//
+// To register for notifications, the owner of the topic must
+// grant
+// `classroom-notifications@system.gserviceaccount.com` the
+//  `projects.topics.publish` permission.
+type CloudPubsubTopic struct {
+	// TopicName: The `name` field of a Cloud
+	// Pub/Sub
+	// [Topic](https://cloud.google.com/pubsub/docs/reference/rest/v1
+	// /projects.topics#Topic).
+	TopicName string `json:"topicName,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "TopicName") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "TopicName") to include in
+	// API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. However, any field with an
+	// empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *CloudPubsubTopic) MarshalJSON() ([]byte, error) {
+	type NoMethod CloudPubsubTopic
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -552,8 +753,8 @@ type Course struct {
 }
 
 func (s *Course) MarshalJSON() ([]byte, error) {
-	type noMethod Course
-	raw := noMethod(*s)
+	type NoMethod Course
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -616,8 +817,8 @@ type CourseAlias struct {
 }
 
 func (s *CourseAlias) MarshalJSON() ([]byte, error) {
-	type noMethod CourseAlias
-	raw := noMethod(*s)
+	type NoMethod CourseAlias
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -654,8 +855,8 @@ type CourseMaterial struct {
 }
 
 func (s *CourseMaterial) MarshalJSON() ([]byte, error) {
-	type noMethod CourseMaterial
-	raw := noMethod(*s)
+	type NoMethod CourseMaterial
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -689,8 +890,38 @@ type CourseMaterialSet struct {
 }
 
 func (s *CourseMaterialSet) MarshalJSON() ([]byte, error) {
-	type noMethod CourseMaterialSet
-	raw := noMethod(*s)
+	type NoMethod CourseMaterialSet
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// CourseRosterChangesInfo: Information about a `Feed` with a
+// `feed_type` of `COURSE_ROSTER_CHANGES`.
+type CourseRosterChangesInfo struct {
+	// CourseId: The `course_id` of the course to subscribe to roster
+	// changes for.
+	CourseId string `json:"courseId,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "CourseId") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "CourseId") to include in
+	// API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. However, any field with an
+	// empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *CourseRosterChangesInfo) MarshalJSON() ([]byte, error) {
+	type NoMethod CourseRosterChangesInfo
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -703,6 +934,17 @@ type CourseWork struct {
 	//
 	// Read-only.
 	AlternateLink string `json:"alternateLink,omitempty"`
+
+	// AssigneeMode: Assignee mode of the coursework.
+	// If unspecified, the default value is `ALL_STUDENTS`.
+	//
+	// Possible values:
+	//   "ASSIGNEE_MODE_UNSPECIFIED" - No mode specified. This is never
+	// returned.
+	//   "ALL_STUDENTS" - All students can see the item.
+	// This is the default state.
+	//   "INDIVIDUAL_STUDENTS" - A subset of the students can see the item.
+	AssigneeMode string `json:"assigneeMode,omitempty"`
 
 	// Assignment: Assignment details.
 	// This is populated only when `work_type` is `ASSIGNMENT`.
@@ -732,6 +974,12 @@ type CourseWork struct {
 	// Read-only.
 	CreationTime string `json:"creationTime,omitempty"`
 
+	// CreatorUserId: Identifier for the user that created the
+	// coursework.
+	//
+	// Read-only.
+	CreatorUserId string `json:"creatorUserId,omitempty"`
+
 	// Description: Optional description of this course work.
 	// If set, the description must be a valid UTF-8 string containing no
 	// more
@@ -754,6 +1002,14 @@ type CourseWork struct {
 	//
 	// Read-only.
 	Id string `json:"id,omitempty"`
+
+	// IndividualStudentsOptions: Identifiers of students with access to the
+	// coursework.
+	// This field is set only if `assigneeMode` is `INDIVIDUAL_STUDENTS`.
+	// If the `assigneeMode` is `INDIVIDUAL_STUDENTS`, then only
+	// students
+	// specified in this field will be assigned the coursework.
+	IndividualStudentsOptions *IndividualStudentsOptions `json:"individualStudentsOptions,omitempty"`
 
 	// Materials: Additional materials.
 	//
@@ -859,18 +1115,18 @@ type CourseWork struct {
 }
 
 func (s *CourseWork) MarshalJSON() ([]byte, error) {
-	type noMethod CourseWork
-	raw := noMethod(*s)
+	type NoMethod CourseWork
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
 func (s *CourseWork) UnmarshalJSON(data []byte) error {
-	type noMethod CourseWork
+	type NoMethod CourseWork
 	var s1 struct {
 		MaxPoints gensupport.JSONFloat64 `json:"maxPoints"`
-		*noMethod
+		*NoMethod
 	}
-	s1.noMethod = (*noMethod)(s)
+	s1.NoMethod = (*NoMethod)(s)
 	if err := json.Unmarshal(data, &s1); err != nil {
 		return err
 	}
@@ -923,8 +1179,8 @@ type Date struct {
 }
 
 func (s *Date) MarshalJSON() ([]byte, error) {
-	type noMethod Date
-	raw := noMethod(*s)
+	type NoMethod Date
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -967,8 +1223,8 @@ type DriveFile struct {
 }
 
 func (s *DriveFile) MarshalJSON() ([]byte, error) {
-	type noMethod DriveFile
-	raw := noMethod(*s)
+	type NoMethod DriveFile
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1006,8 +1262,8 @@ type DriveFolder struct {
 }
 
 func (s *DriveFolder) MarshalJSON() ([]byte, error) {
-	type noMethod DriveFolder
-	raw := noMethod(*s)
+	type NoMethod DriveFolder
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1027,6 +1283,69 @@ type Empty struct {
 	// ServerResponse contains the HTTP response code and headers from the
 	// server.
 	googleapi.ServerResponse `json:"-"`
+}
+
+// Feed: A class of notifications that an application can register to
+// receive.
+// For example: "all roster changes for a domain".
+type Feed struct {
+	// CourseRosterChangesInfo: Information about a `Feed` with a
+	// `feed_type` of `COURSE_ROSTER_CHANGES`.
+	// This field must be specified if `feed_type` is
+	// `COURSE_ROSTER_CHANGES`.
+	CourseRosterChangesInfo *CourseRosterChangesInfo `json:"courseRosterChangesInfo,omitempty"`
+
+	// FeedType: The type of feed.
+	//
+	// Possible values:
+	//   "FEED_TYPE_UNSPECIFIED" - Should never be returned or provided.
+	//   "DOMAIN_ROSTER_CHANGES" - All roster changes for a particular
+	// domain.
+	//
+	// Notifications will be generated whenever a user joins or leaves a
+	// course.
+	//
+	// No notifications will be generated when an invitation is created
+	// or
+	// deleted, but notifications will be generated when a user joins a
+	// course
+	// by accepting an invitation.
+	//   "COURSE_ROSTER_CHANGES" - All roster changes for a particular
+	// course.
+	//
+	// Notifications will be generated whenever a user joins or leaves a
+	// course.
+	//
+	// No notifications will be generated when an invitation is created
+	// or
+	// deleted, but notifications will be generated when a user joins a
+	// course
+	// by accepting an invitation.
+	FeedType string `json:"feedType,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g.
+	// "CourseRosterChangesInfo") to unconditionally include in API
+	// requests. By default, fields with empty values are omitted from API
+	// requests. However, any non-pointer, non-interface field appearing in
+	// ForceSendFields will be sent to the server regardless of whether the
+	// field is empty or not. This may be used to include empty fields in
+	// Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "CourseRosterChangesInfo")
+	// to include in API requests with the JSON null value. By default,
+	// fields with empty values are omitted from API requests. However, any
+	// field with an empty value appearing in NullFields will be sent to the
+	// server as null. It is an error if a field in this list has a
+	// non-empty value. This may be used to include null fields in Patch
+	// requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *Feed) MarshalJSON() ([]byte, error) {
+	type NoMethod Feed
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
 // Form: Google Forms item.
@@ -1070,8 +1389,8 @@ type Form struct {
 }
 
 func (s *Form) MarshalJSON() ([]byte, error) {
-	type noMethod Form
-	raw := noMethod(*s)
+	type NoMethod Form
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1104,8 +1423,8 @@ type GlobalPermission struct {
 }
 
 func (s *GlobalPermission) MarshalJSON() ([]byte, error) {
-	type noMethod GlobalPermission
-	raw := noMethod(*s)
+	type NoMethod GlobalPermission
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1157,19 +1476,19 @@ type GradeHistory struct {
 }
 
 func (s *GradeHistory) MarshalJSON() ([]byte, error) {
-	type noMethod GradeHistory
-	raw := noMethod(*s)
+	type NoMethod GradeHistory
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
 func (s *GradeHistory) UnmarshalJSON(data []byte) error {
-	type noMethod GradeHistory
+	type NoMethod GradeHistory
 	var s1 struct {
 		MaxPoints    gensupport.JSONFloat64 `json:"maxPoints"`
 		PointsEarned gensupport.JSONFloat64 `json:"pointsEarned"`
-		*noMethod
+		*NoMethod
 	}
-	s1.noMethod = (*noMethod)(s)
+	s1.NoMethod = (*NoMethod)(s)
 	if err := json.Unmarshal(data, &s1); err != nil {
 		return err
 	}
@@ -1219,8 +1538,8 @@ type Guardian struct {
 }
 
 func (s *Guardian) MarshalJSON() ([]byte, error) {
-	type noMethod Guardian
-	raw := noMethod(*s)
+	type NoMethod Guardian
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1278,8 +1597,41 @@ type GuardianInvitation struct {
 }
 
 func (s *GuardianInvitation) MarshalJSON() ([]byte, error) {
-	type noMethod GuardianInvitation
-	raw := noMethod(*s)
+	type NoMethod GuardianInvitation
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// IndividualStudentsOptions: Assignee details about a
+// coursework/announcement.
+// This field is set if and only if `assigneeMode` is
+// `INDIVIDUAL_STUDENTS`.
+type IndividualStudentsOptions struct {
+	// StudentIds: Identifiers for the students that have access to
+	// the
+	// coursework/announcement.
+	StudentIds []string `json:"studentIds,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "StudentIds") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "StudentIds") to include in
+	// API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. However, any field with an
+	// empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *IndividualStudentsOptions) MarshalJSON() ([]byte, error) {
+	type NoMethod IndividualStudentsOptions
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1336,8 +1688,8 @@ type Invitation struct {
 }
 
 func (s *Invitation) MarshalJSON() ([]byte, error) {
-	type noMethod Invitation
-	raw := noMethod(*s)
+	type NoMethod Invitation
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1376,8 +1728,45 @@ type Link struct {
 }
 
 func (s *Link) MarshalJSON() ([]byte, error) {
-	type noMethod Link
-	raw := noMethod(*s)
+	type NoMethod Link
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// ListAnnouncementsResponse: Response when listing course work.
+type ListAnnouncementsResponse struct {
+	// Announcements: Announcement items that match the request.
+	Announcements []*Announcement `json:"announcements,omitempty"`
+
+	// NextPageToken: Token identifying the next page of results to return.
+	// If empty, no further
+	// results are available.
+	NextPageToken string `json:"nextPageToken,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the
+	// server.
+	googleapi.ServerResponse `json:"-"`
+
+	// ForceSendFields is a list of field names (e.g. "Announcements") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "Announcements") to include
+	// in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. However, any field with
+	// an empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *ListAnnouncementsResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod ListAnnouncementsResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1413,8 +1802,8 @@ type ListCourseAliasesResponse struct {
 }
 
 func (s *ListCourseAliasesResponse) MarshalJSON() ([]byte, error) {
-	type noMethod ListCourseAliasesResponse
-	raw := noMethod(*s)
+	type NoMethod ListCourseAliasesResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1450,8 +1839,8 @@ type ListCourseWorkResponse struct {
 }
 
 func (s *ListCourseWorkResponse) MarshalJSON() ([]byte, error) {
-	type noMethod ListCourseWorkResponse
-	raw := noMethod(*s)
+	type NoMethod ListCourseWorkResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1487,8 +1876,8 @@ type ListCoursesResponse struct {
 }
 
 func (s *ListCoursesResponse) MarshalJSON() ([]byte, error) {
-	type noMethod ListCoursesResponse
-	raw := noMethod(*s)
+	type NoMethod ListCoursesResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1527,8 +1916,8 @@ type ListGuardianInvitationsResponse struct {
 }
 
 func (s *ListGuardianInvitationsResponse) MarshalJSON() ([]byte, error) {
-	type noMethod ListGuardianInvitationsResponse
-	raw := noMethod(*s)
+	type NoMethod ListGuardianInvitationsResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1566,8 +1955,8 @@ type ListGuardiansResponse struct {
 }
 
 func (s *ListGuardiansResponse) MarshalJSON() ([]byte, error) {
-	type noMethod ListGuardiansResponse
-	raw := noMethod(*s)
+	type NoMethod ListGuardiansResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1603,8 +1992,8 @@ type ListInvitationsResponse struct {
 }
 
 func (s *ListInvitationsResponse) MarshalJSON() ([]byte, error) {
-	type noMethod ListInvitationsResponse
-	raw := noMethod(*s)
+	type NoMethod ListInvitationsResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1641,8 +2030,8 @@ type ListStudentSubmissionsResponse struct {
 }
 
 func (s *ListStudentSubmissionsResponse) MarshalJSON() ([]byte, error) {
-	type noMethod ListStudentSubmissionsResponse
-	raw := noMethod(*s)
+	type NoMethod ListStudentSubmissionsResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1678,8 +2067,8 @@ type ListStudentsResponse struct {
 }
 
 func (s *ListStudentsResponse) MarshalJSON() ([]byte, error) {
-	type noMethod ListStudentsResponse
-	raw := noMethod(*s)
+	type NoMethod ListStudentsResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1715,8 +2104,45 @@ type ListTeachersResponse struct {
 }
 
 func (s *ListTeachersResponse) MarshalJSON() ([]byte, error) {
-	type noMethod ListTeachersResponse
-	raw := noMethod(*s)
+	type NoMethod ListTeachersResponse
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// ListTopicResponse: Response when listing topics.
+type ListTopicResponse struct {
+	// NextPageToken: Token identifying the next page of results to return.
+	// If empty, no further
+	// results are available.
+	NextPageToken string `json:"nextPageToken,omitempty"`
+
+	// Topic: Topic items that match the request.
+	Topic []*Topic `json:"topic,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the
+	// server.
+	googleapi.ServerResponse `json:"-"`
+
+	// ForceSendFields is a list of field names (e.g. "NextPageToken") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "NextPageToken") to include
+	// in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. However, any field with
+	// an empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *ListTopicResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod ListTopicResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1756,8 +2182,51 @@ type Material struct {
 }
 
 func (s *Material) MarshalJSON() ([]byte, error) {
-	type noMethod Material
-	raw := noMethod(*s)
+	type NoMethod Material
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// ModifyAnnouncementAssigneesRequest: Request to modify assignee mode
+// and options of an announcement.
+type ModifyAnnouncementAssigneesRequest struct {
+	// AssigneeMode: Mode of the announcement describing whether it will be
+	// accessible by all
+	// students or specified individual students.
+	//
+	// Possible values:
+	//   "ASSIGNEE_MODE_UNSPECIFIED" - No mode specified. This is never
+	// returned.
+	//   "ALL_STUDENTS" - All students can see the item.
+	// This is the default state.
+	//   "INDIVIDUAL_STUDENTS" - A subset of the students can see the item.
+	AssigneeMode string `json:"assigneeMode,omitempty"`
+
+	// ModifyIndividualStudentsOptions: Set which students can view or
+	// cannot view the announcement.
+	// Must be specified only when `assigneeMode` is `INDIVIDUAL_STUDENTS`.
+	ModifyIndividualStudentsOptions *ModifyIndividualStudentsOptions `json:"modifyIndividualStudentsOptions,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "AssigneeMode") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "AssigneeMode") to include
+	// in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. However, any field with
+	// an empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *ModifyAnnouncementAssigneesRequest) MarshalJSON() ([]byte, error) {
+	type NoMethod ModifyAnnouncementAssigneesRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1789,8 +2258,88 @@ type ModifyAttachmentsRequest struct {
 }
 
 func (s *ModifyAttachmentsRequest) MarshalJSON() ([]byte, error) {
-	type noMethod ModifyAttachmentsRequest
-	raw := noMethod(*s)
+	type NoMethod ModifyAttachmentsRequest
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// ModifyCourseWorkAssigneesRequest: Request to modify assignee mode and
+// options of a coursework.
+type ModifyCourseWorkAssigneesRequest struct {
+	// AssigneeMode: Mode of the coursework describing whether it will be
+	// assigned to all
+	// students or specified individual students.
+	//
+	// Possible values:
+	//   "ASSIGNEE_MODE_UNSPECIFIED" - No mode specified. This is never
+	// returned.
+	//   "ALL_STUDENTS" - All students can see the item.
+	// This is the default state.
+	//   "INDIVIDUAL_STUDENTS" - A subset of the students can see the item.
+	AssigneeMode string `json:"assigneeMode,omitempty"`
+
+	// ModifyIndividualStudentsOptions: Set which students are assigned or
+	// not assigned to the coursework.
+	// Must be specified only when `assigneeMode` is `INDIVIDUAL_STUDENTS`.
+	ModifyIndividualStudentsOptions *ModifyIndividualStudentsOptions `json:"modifyIndividualStudentsOptions,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "AssigneeMode") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "AssigneeMode") to include
+	// in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. However, any field with
+	// an empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *ModifyCourseWorkAssigneesRequest) MarshalJSON() ([]byte, error) {
+	type NoMethod ModifyCourseWorkAssigneesRequest
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// ModifyIndividualStudentsOptions: Contains fields to add or remove
+// students from a course work or announcement
+// where the `assigneeMode` is set to `INDIVIDUAL_STUDENTS`.
+type ModifyIndividualStudentsOptions struct {
+	// AddStudentIds: Ids of students to be added as having access to
+	// this
+	// coursework/announcement.
+	AddStudentIds []string `json:"addStudentIds,omitempty"`
+
+	// RemoveStudentIds: Ids of students to be removed from having access to
+	// this
+	// coursework/announcement.
+	RemoveStudentIds []string `json:"removeStudentIds,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "AddStudentIds") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "AddStudentIds") to include
+	// in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. However, any field with
+	// an empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *ModifyIndividualStudentsOptions) MarshalJSON() ([]byte, error) {
+	type NoMethod ModifyIndividualStudentsOptions
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1818,8 +2367,8 @@ type MultipleChoiceQuestion struct {
 }
 
 func (s *MultipleChoiceQuestion) MarshalJSON() ([]byte, error) {
-	type noMethod MultipleChoiceQuestion
-	raw := noMethod(*s)
+	type NoMethod MultipleChoiceQuestion
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1847,8 +2396,8 @@ type MultipleChoiceSubmission struct {
 }
 
 func (s *MultipleChoiceSubmission) MarshalJSON() ([]byte, error) {
-	type noMethod MultipleChoiceSubmission
-	raw := noMethod(*s)
+	type NoMethod MultipleChoiceSubmission
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1889,14 +2438,67 @@ type Name struct {
 }
 
 func (s *Name) MarshalJSON() ([]byte, error) {
-	type noMethod Name
-	raw := noMethod(*s)
+	type NoMethod Name
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
 // ReclaimStudentSubmissionRequest: Request to reclaim a student
 // submission.
 type ReclaimStudentSubmissionRequest struct {
+}
+
+// Registration: An instruction to Classroom to send notifications from
+// the `feed` to the
+// provided `destination`.
+type Registration struct {
+	// CloudPubsubTopic: The Cloud Pub/Sub topic that notifications are to
+	// be sent to.
+	CloudPubsubTopic *CloudPubsubTopic `json:"cloudPubsubTopic,omitempty"`
+
+	// ExpiryTime: The time until which the `Registration` is
+	// effective.
+	//
+	// This is a read-only field assigned by the server.
+	ExpiryTime string `json:"expiryTime,omitempty"`
+
+	// Feed: Specification for the class of notifications that Classroom
+	// should deliver
+	// to the `destination`.
+	Feed *Feed `json:"feed,omitempty"`
+
+	// RegistrationId: A server-generated unique identifier for this
+	// `Registration`.
+	//
+	// Read-only.
+	RegistrationId string `json:"registrationId,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the
+	// server.
+	googleapi.ServerResponse `json:"-"`
+
+	// ForceSendFields is a list of field names (e.g. "CloudPubsubTopic") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "CloudPubsubTopic") to
+	// include in API requests with the JSON null value. By default, fields
+	// with empty values are omitted from API requests. However, any field
+	// with an empty value appearing in NullFields will be sent to the
+	// server as null. It is an error if a field in this list has a
+	// non-empty value. This may be used to include null fields in Patch
+	// requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *Registration) MarshalJSON() ([]byte, error) {
+	type NoMethod Registration
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
 // ReturnStudentSubmissionRequest: Request to return a student
@@ -1937,8 +2539,8 @@ type SharedDriveFile struct {
 }
 
 func (s *SharedDriveFile) MarshalJSON() ([]byte, error) {
-	type noMethod SharedDriveFile
-	raw := noMethod(*s)
+	type NoMethod SharedDriveFile
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1965,8 +2567,8 @@ type ShortAnswerSubmission struct {
 }
 
 func (s *ShortAnswerSubmission) MarshalJSON() ([]byte, error) {
-	type noMethod ShortAnswerSubmission
-	raw := noMethod(*s)
+	type NoMethod ShortAnswerSubmission
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2017,8 +2619,8 @@ type StateHistory struct {
 }
 
 func (s *StateHistory) MarshalJSON() ([]byte, error) {
-	type noMethod StateHistory
-	raw := noMethod(*s)
+	type NoMethod StateHistory
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2074,8 +2676,8 @@ type Student struct {
 }
 
 func (s *Student) MarshalJSON() ([]byte, error) {
-	type noMethod Student
-	raw := noMethod(*s)
+	type NoMethod Student
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2104,7 +2706,11 @@ type StudentSubmission struct {
 	AssignedGrade float64 `json:"assignedGrade,omitempty"`
 
 	// AssignmentSubmission: Submission content when course_work_type is
-	// ASSIGNMENT .
+	// ASSIGNMENT.
+	//
+	// Students can modify this content
+	// using
+	// google.classroom.Work.ModifyAttachments.
 	AssignmentSubmission *AssignmentSubmission `json:"assignmentSubmission,omitempty"`
 
 	// AssociatedWithDeveloper: Whether this student submission is
@@ -2235,19 +2841,19 @@ type StudentSubmission struct {
 }
 
 func (s *StudentSubmission) MarshalJSON() ([]byte, error) {
-	type noMethod StudentSubmission
-	raw := noMethod(*s)
+	type NoMethod StudentSubmission
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
 func (s *StudentSubmission) UnmarshalJSON(data []byte) error {
-	type noMethod StudentSubmission
+	type NoMethod StudentSubmission
 	var s1 struct {
 		AssignedGrade gensupport.JSONFloat64 `json:"assignedGrade"`
 		DraftGrade    gensupport.JSONFloat64 `json:"draftGrade"`
-		*noMethod
+		*NoMethod
 	}
-	s1.noMethod = (*noMethod)(s)
+	s1.NoMethod = (*NoMethod)(s)
 	if err := json.Unmarshal(data, &s1); err != nil {
 		return err
 	}
@@ -2286,8 +2892,8 @@ type SubmissionHistory struct {
 }
 
 func (s *SubmissionHistory) MarshalJSON() ([]byte, error) {
-	type noMethod SubmissionHistory
-	raw := noMethod(*s)
+	type NoMethod SubmissionHistory
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2336,8 +2942,8 @@ type Teacher struct {
 }
 
 func (s *Teacher) MarshalJSON() ([]byte, error) {
-	type noMethod Teacher
-	raw := noMethod(*s)
+	type NoMethod Teacher
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2383,8 +2989,62 @@ type TimeOfDay struct {
 }
 
 func (s *TimeOfDay) MarshalJSON() ([]byte, error) {
-	type noMethod TimeOfDay
-	raw := noMethod(*s)
+	type NoMethod TimeOfDay
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// Topic: Topic created by a teacher for the course
+type Topic struct {
+	// CourseId: Identifier of the course.
+	//
+	// Read-only.
+	CourseId string `json:"courseId,omitempty"`
+
+	// Name: The name of the topic, generated by the user.
+	// Leading and trailing whitespaces, if any, will be trimmed. Also,
+	// multiple
+	// consecutive whitespaces will be collapsed into one inside the
+	// name.
+	// Topic names are case sensitive, and must be no longer than 100
+	// characters.
+	Name string `json:"name,omitempty"`
+
+	// TopicId: Unique identifier for the topic.
+	//
+	// Read-only.
+	TopicId string `json:"topicId,omitempty"`
+
+	// UpdateTime: The time the topic was last updated by the
+	// system.
+	//
+	// Read-only.
+	UpdateTime string `json:"updateTime,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the
+	// server.
+	googleapi.ServerResponse `json:"-"`
+
+	// ForceSendFields is a list of field names (e.g. "CourseId") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "CourseId") to include in
+	// API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. However, any field with an
+	// empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *Topic) MarshalJSON() ([]byte, error) {
+	type NoMethod Topic
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2452,8 +3112,8 @@ type UserProfile struct {
 }
 
 func (s *UserProfile) MarshalJSON() ([]byte, error) {
-	type noMethod UserProfile
-	raw := noMethod(*s)
+	type NoMethod UserProfile
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2497,8 +3157,8 @@ type YouTubeVideo struct {
 }
 
 func (s *YouTubeVideo) MarshalJSON() ([]byte, error) {
-	type noMethod YouTubeVideo
-	raw := noMethod(*s)
+	type NoMethod YouTubeVideo
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2614,7 +3274,7 @@ func (c *CoursesCreateCall) Do(opts ...googleapi.CallOption) (*Course, error) {
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -2739,7 +3399,7 @@ func (c *CoursesDeleteCall) Do(opts ...googleapi.CallOption) (*Empty, error) {
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -2884,7 +3544,7 @@ func (c *CoursesGetCall) Do(opts ...googleapi.CallOption) (*Course, error) {
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -3093,7 +3753,7 @@ func (c *CoursesListCall) Do(opts ...googleapi.CallOption) (*ListCoursesResponse
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -3314,7 +3974,7 @@ func (c *CoursesPatchCall) Do(opts ...googleapi.CallOption) (*Course, error) {
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -3463,7 +4123,7 @@ func (c *CoursesUpdateCall) Do(opts ...googleapi.CallOption) (*Course, error) {
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -3609,7 +4269,7 @@ func (c *CoursesAliasesCreateCall) Do(opts ...googleapi.CallOption) (*CourseAlia
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -3750,7 +4410,7 @@ func (c *CoursesAliasesDeleteCall) Do(opts ...googleapi.CallOption) (*Empty, err
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -3926,7 +4586,7 @@ func (c *CoursesAliasesListCall) Do(opts ...googleapi.CallOption) (*ListCourseAl
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -3988,6 +4648,1055 @@ func (c *CoursesAliasesListCall) Pages(ctx context.Context, f func(*ListCourseAl
 		}
 		c.PageToken(x.NextPageToken)
 	}
+}
+
+// method id "classroom.courses.announcements.create":
+
+type CoursesAnnouncementsCreateCall struct {
+	s            *Service
+	courseId     string
+	announcement *Announcement
+	urlParams_   gensupport.URLParams
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// Create: Creates an announcement.
+//
+// This method returns the following error codes:
+//
+// * `PERMISSION_DENIED` if the requesting user is not permitted to
+// access the
+// requested course, create announcements in the requested course, share
+// a
+// Drive attachment, or for access errors.
+// * `INVALID_ARGUMENT` if the request is malformed.
+// * `NOT_FOUND` if the requested course does not exist.
+// * `FAILED_PRECONDITION` for the following request error:
+//     * AttachmentNotVisible
+func (r *CoursesAnnouncementsService) Create(courseId string, announcement *Announcement) *CoursesAnnouncementsCreateCall {
+	c := &CoursesAnnouncementsCreateCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.courseId = courseId
+	c.announcement = announcement
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
+// for more information.
+func (c *CoursesAnnouncementsCreateCall) Fields(s ...googleapi.Field) *CoursesAnnouncementsCreateCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method. Any
+// pending HTTP request will be aborted if the provided context is
+// canceled.
+func (c *CoursesAnnouncementsCreateCall) Context(ctx context.Context) *CoursesAnnouncementsCreateCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns an http.Header that can be modified by the caller to
+// add HTTP headers to the request.
+func (c *CoursesAnnouncementsCreateCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *CoursesAnnouncementsCreateCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := make(http.Header)
+	for k, v := range c.header_ {
+		reqHeaders[k] = v
+	}
+	reqHeaders.Set("User-Agent", c.s.userAgent())
+	var body io.Reader = nil
+	body, err := googleapi.WithoutDataWrapper.JSONReader(c.announcement)
+	if err != nil {
+		return nil, err
+	}
+	reqHeaders.Set("Content-Type", "application/json")
+	c.urlParams_.Set("alt", alt)
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/courses/{courseId}/announcements")
+	urls += "?" + c.urlParams_.Encode()
+	req, _ := http.NewRequest("POST", urls, body)
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"courseId": c.courseId,
+	})
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "classroom.courses.announcements.create" call.
+// Exactly one of *Announcement or error will be non-nil. Any non-2xx
+// status code is an error. Response headers are in either
+// *Announcement.ServerResponse.Header or (if a response was returned at
+// all) in error.(*googleapi.Error).Header. Use googleapi.IsNotModified
+// to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *CoursesAnnouncementsCreateCall) Do(opts ...googleapi.CallOption) (*Announcement, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, &googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		}
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, err
+	}
+	ret := &Announcement{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	if err := gensupport.DecodeResponse(target, res); err != nil {
+		return nil, err
+	}
+	return ret, nil
+	// {
+	//   "description": "Creates an announcement.\n\nThis method returns the following error codes:\n\n* `PERMISSION_DENIED` if the requesting user is not permitted to access the\nrequested course, create announcements in the requested course, share a\nDrive attachment, or for access errors.\n* `INVALID_ARGUMENT` if the request is malformed.\n* `NOT_FOUND` if the requested course does not exist.\n* `FAILED_PRECONDITION` for the following request error:\n    * AttachmentNotVisible",
+	//   "flatPath": "v1/courses/{courseId}/announcements",
+	//   "httpMethod": "POST",
+	//   "id": "classroom.courses.announcements.create",
+	//   "parameterOrder": [
+	//     "courseId"
+	//   ],
+	//   "parameters": {
+	//     "courseId": {
+	//       "description": "Identifier of the course.\nThis identifier can be either the Classroom-assigned identifier or an\nalias.",
+	//       "location": "path",
+	//       "required": true,
+	//       "type": "string"
+	//     }
+	//   },
+	//   "path": "v1/courses/{courseId}/announcements",
+	//   "request": {
+	//     "$ref": "Announcement"
+	//   },
+	//   "response": {
+	//     "$ref": "Announcement"
+	//   },
+	//   "scopes": [
+	//     "https://www.googleapis.com/auth/classroom.announcements"
+	//   ]
+	// }
+
+}
+
+// method id "classroom.courses.announcements.delete":
+
+type CoursesAnnouncementsDeleteCall struct {
+	s          *Service
+	courseId   string
+	id         string
+	urlParams_ gensupport.URLParams
+	ctx_       context.Context
+	header_    http.Header
+}
+
+// Delete: Deletes an announcement.
+//
+// This request must be made by the Developer Console project of
+// the
+// [OAuth client ID](https://support.google.com/cloud/answer/6158849)
+// used to
+// create the corresponding announcement item.
+//
+// This method returns the following error codes:
+//
+// * `PERMISSION_DENIED` if the requesting developer project did not
+// create
+// the corresponding announcement, if the requesting user is not
+// permitted
+// to delete the requested course or for access errors.
+// * `FAILED_PRECONDITION` if the requested announcement has already
+// been
+// deleted.
+// * `NOT_FOUND` if no course exists with the requested ID.
+func (r *CoursesAnnouncementsService) Delete(courseId string, id string) *CoursesAnnouncementsDeleteCall {
+	c := &CoursesAnnouncementsDeleteCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.courseId = courseId
+	c.id = id
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
+// for more information.
+func (c *CoursesAnnouncementsDeleteCall) Fields(s ...googleapi.Field) *CoursesAnnouncementsDeleteCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method. Any
+// pending HTTP request will be aborted if the provided context is
+// canceled.
+func (c *CoursesAnnouncementsDeleteCall) Context(ctx context.Context) *CoursesAnnouncementsDeleteCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns an http.Header that can be modified by the caller to
+// add HTTP headers to the request.
+func (c *CoursesAnnouncementsDeleteCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *CoursesAnnouncementsDeleteCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := make(http.Header)
+	for k, v := range c.header_ {
+		reqHeaders[k] = v
+	}
+	reqHeaders.Set("User-Agent", c.s.userAgent())
+	var body io.Reader = nil
+	c.urlParams_.Set("alt", alt)
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/courses/{courseId}/announcements/{id}")
+	urls += "?" + c.urlParams_.Encode()
+	req, _ := http.NewRequest("DELETE", urls, body)
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"courseId": c.courseId,
+		"id":       c.id,
+	})
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "classroom.courses.announcements.delete" call.
+// Exactly one of *Empty or error will be non-nil. Any non-2xx status
+// code is an error. Response headers are in either
+// *Empty.ServerResponse.Header or (if a response was returned at all)
+// in error.(*googleapi.Error).Header. Use googleapi.IsNotModified to
+// check whether the returned error was because http.StatusNotModified
+// was returned.
+func (c *CoursesAnnouncementsDeleteCall) Do(opts ...googleapi.CallOption) (*Empty, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, &googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		}
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, err
+	}
+	ret := &Empty{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	if err := gensupport.DecodeResponse(target, res); err != nil {
+		return nil, err
+	}
+	return ret, nil
+	// {
+	//   "description": "Deletes an announcement.\n\nThis request must be made by the Developer Console project of the\n[OAuth client ID](https://support.google.com/cloud/answer/6158849) used to\ncreate the corresponding announcement item.\n\nThis method returns the following error codes:\n\n* `PERMISSION_DENIED` if the requesting developer project did not create\nthe corresponding announcement, if the requesting user is not permitted\nto delete the requested course or for access errors.\n* `FAILED_PRECONDITION` if the requested announcement has already been\ndeleted.\n* `NOT_FOUND` if no course exists with the requested ID.",
+	//   "flatPath": "v1/courses/{courseId}/announcements/{id}",
+	//   "httpMethod": "DELETE",
+	//   "id": "classroom.courses.announcements.delete",
+	//   "parameterOrder": [
+	//     "courseId",
+	//     "id"
+	//   ],
+	//   "parameters": {
+	//     "courseId": {
+	//       "description": "Identifier of the course.\nThis identifier can be either the Classroom-assigned identifier or an\nalias.",
+	//       "location": "path",
+	//       "required": true,
+	//       "type": "string"
+	//     },
+	//     "id": {
+	//       "description": "Identifier of the announcement to delete.\nThis identifier is a Classroom-assigned identifier.",
+	//       "location": "path",
+	//       "required": true,
+	//       "type": "string"
+	//     }
+	//   },
+	//   "path": "v1/courses/{courseId}/announcements/{id}",
+	//   "response": {
+	//     "$ref": "Empty"
+	//   },
+	//   "scopes": [
+	//     "https://www.googleapis.com/auth/classroom.announcements"
+	//   ]
+	// }
+
+}
+
+// method id "classroom.courses.announcements.get":
+
+type CoursesAnnouncementsGetCall struct {
+	s            *Service
+	courseId     string
+	id           string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// Get: Returns an announcement.
+//
+// This method returns the following error codes:
+//
+// * `PERMISSION_DENIED` if the requesting user is not permitted to
+// access the
+// requested course or announcement, or for access errors.
+// * `INVALID_ARGUMENT` if the request is malformed.
+// * `NOT_FOUND` if the requested course or announcement does not exist.
+func (r *CoursesAnnouncementsService) Get(courseId string, id string) *CoursesAnnouncementsGetCall {
+	c := &CoursesAnnouncementsGetCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.courseId = courseId
+	c.id = id
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
+// for more information.
+func (c *CoursesAnnouncementsGetCall) Fields(s ...googleapi.Field) *CoursesAnnouncementsGetCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets the optional parameter which makes the operation
+// fail if the object's ETag matches the given value. This is useful for
+// getting updates only after the object has changed since the last
+// request. Use googleapi.IsNotModified to check whether the response
+// error from Do is the result of In-None-Match.
+func (c *CoursesAnnouncementsGetCall) IfNoneMatch(entityTag string) *CoursesAnnouncementsGetCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method. Any
+// pending HTTP request will be aborted if the provided context is
+// canceled.
+func (c *CoursesAnnouncementsGetCall) Context(ctx context.Context) *CoursesAnnouncementsGetCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns an http.Header that can be modified by the caller to
+// add HTTP headers to the request.
+func (c *CoursesAnnouncementsGetCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *CoursesAnnouncementsGetCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := make(http.Header)
+	for k, v := range c.header_ {
+		reqHeaders[k] = v
+	}
+	reqHeaders.Set("User-Agent", c.s.userAgent())
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	var body io.Reader = nil
+	c.urlParams_.Set("alt", alt)
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/courses/{courseId}/announcements/{id}")
+	urls += "?" + c.urlParams_.Encode()
+	req, _ := http.NewRequest("GET", urls, body)
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"courseId": c.courseId,
+		"id":       c.id,
+	})
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "classroom.courses.announcements.get" call.
+// Exactly one of *Announcement or error will be non-nil. Any non-2xx
+// status code is an error. Response headers are in either
+// *Announcement.ServerResponse.Header or (if a response was returned at
+// all) in error.(*googleapi.Error).Header. Use googleapi.IsNotModified
+// to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *CoursesAnnouncementsGetCall) Do(opts ...googleapi.CallOption) (*Announcement, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, &googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		}
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, err
+	}
+	ret := &Announcement{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	if err := gensupport.DecodeResponse(target, res); err != nil {
+		return nil, err
+	}
+	return ret, nil
+	// {
+	//   "description": "Returns an announcement.\n\nThis method returns the following error codes:\n\n* `PERMISSION_DENIED` if the requesting user is not permitted to access the\nrequested course or announcement, or for access errors.\n* `INVALID_ARGUMENT` if the request is malformed.\n* `NOT_FOUND` if the requested course or announcement does not exist.",
+	//   "flatPath": "v1/courses/{courseId}/announcements/{id}",
+	//   "httpMethod": "GET",
+	//   "id": "classroom.courses.announcements.get",
+	//   "parameterOrder": [
+	//     "courseId",
+	//     "id"
+	//   ],
+	//   "parameters": {
+	//     "courseId": {
+	//       "description": "Identifier of the course.\nThis identifier can be either the Classroom-assigned identifier or an\nalias.",
+	//       "location": "path",
+	//       "required": true,
+	//       "type": "string"
+	//     },
+	//     "id": {
+	//       "description": "Identifier of the announcement.",
+	//       "location": "path",
+	//       "required": true,
+	//       "type": "string"
+	//     }
+	//   },
+	//   "path": "v1/courses/{courseId}/announcements/{id}",
+	//   "response": {
+	//     "$ref": "Announcement"
+	//   },
+	//   "scopes": [
+	//     "https://www.googleapis.com/auth/classroom.announcements",
+	//     "https://www.googleapis.com/auth/classroom.announcements.readonly"
+	//   ]
+	// }
+
+}
+
+// method id "classroom.courses.announcements.list":
+
+type CoursesAnnouncementsListCall struct {
+	s            *Service
+	courseId     string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// List: Returns a list of announcements that the requester is permitted
+// to view.
+//
+// Course students may only view `PUBLISHED` announcements. Course
+// teachers
+// and domain administrators may view all announcements.
+//
+// This method returns the following error codes:
+//
+// * `PERMISSION_DENIED` if the requesting user is not permitted to
+// access
+// the requested course or for access errors.
+// * `INVALID_ARGUMENT` if the request is malformed.
+// * `NOT_FOUND` if the requested course does not exist.
+func (r *CoursesAnnouncementsService) List(courseId string) *CoursesAnnouncementsListCall {
+	c := &CoursesAnnouncementsListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.courseId = courseId
+	return c
+}
+
+// AnnouncementStates sets the optional parameter "announcementStates":
+// Restriction on the `state` of announcements returned.
+// If this argument is left unspecified, the default value is
+// `PUBLISHED`.
+//
+// Possible values:
+//   "ANNOUNCEMENT_STATE_UNSPECIFIED"
+//   "PUBLISHED"
+//   "DRAFT"
+//   "DELETED"
+func (c *CoursesAnnouncementsListCall) AnnouncementStates(announcementStates ...string) *CoursesAnnouncementsListCall {
+	c.urlParams_.SetMulti("announcementStates", append([]string{}, announcementStates...))
+	return c
+}
+
+// OrderBy sets the optional parameter "orderBy": Optional sort ordering
+// for results. A comma-separated list of fields with
+// an optional sort direction keyword. Supported field is
+// `updateTime`.
+// Supported direction keywords are `asc` and `desc`.
+// If not specified, `updateTime desc` is the default
+// behavior.
+// Examples: `updateTime asc`, `updateTime`
+func (c *CoursesAnnouncementsListCall) OrderBy(orderBy string) *CoursesAnnouncementsListCall {
+	c.urlParams_.Set("orderBy", orderBy)
+	return c
+}
+
+// PageSize sets the optional parameter "pageSize": Maximum number of
+// items to return. Zero or unspecified indicates that the
+// server may assign a maximum.
+//
+// The server may return fewer than the specified number of results.
+func (c *CoursesAnnouncementsListCall) PageSize(pageSize int64) *CoursesAnnouncementsListCall {
+	c.urlParams_.Set("pageSize", fmt.Sprint(pageSize))
+	return c
+}
+
+// PageToken sets the optional parameter "pageToken":
+// nextPageToken
+// value returned from a previous
+// list call,
+// indicating that the subsequent page of results should be
+// returned.
+//
+// The list request
+// must be otherwise identical to the one that resulted in this token.
+func (c *CoursesAnnouncementsListCall) PageToken(pageToken string) *CoursesAnnouncementsListCall {
+	c.urlParams_.Set("pageToken", pageToken)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
+// for more information.
+func (c *CoursesAnnouncementsListCall) Fields(s ...googleapi.Field) *CoursesAnnouncementsListCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets the optional parameter which makes the operation
+// fail if the object's ETag matches the given value. This is useful for
+// getting updates only after the object has changed since the last
+// request. Use googleapi.IsNotModified to check whether the response
+// error from Do is the result of In-None-Match.
+func (c *CoursesAnnouncementsListCall) IfNoneMatch(entityTag string) *CoursesAnnouncementsListCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method. Any
+// pending HTTP request will be aborted if the provided context is
+// canceled.
+func (c *CoursesAnnouncementsListCall) Context(ctx context.Context) *CoursesAnnouncementsListCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns an http.Header that can be modified by the caller to
+// add HTTP headers to the request.
+func (c *CoursesAnnouncementsListCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *CoursesAnnouncementsListCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := make(http.Header)
+	for k, v := range c.header_ {
+		reqHeaders[k] = v
+	}
+	reqHeaders.Set("User-Agent", c.s.userAgent())
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	var body io.Reader = nil
+	c.urlParams_.Set("alt", alt)
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/courses/{courseId}/announcements")
+	urls += "?" + c.urlParams_.Encode()
+	req, _ := http.NewRequest("GET", urls, body)
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"courseId": c.courseId,
+	})
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "classroom.courses.announcements.list" call.
+// Exactly one of *ListAnnouncementsResponse or error will be non-nil.
+// Any non-2xx status code is an error. Response headers are in either
+// *ListAnnouncementsResponse.ServerResponse.Header or (if a response
+// was returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was
+// because http.StatusNotModified was returned.
+func (c *CoursesAnnouncementsListCall) Do(opts ...googleapi.CallOption) (*ListAnnouncementsResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, &googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		}
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, err
+	}
+	ret := &ListAnnouncementsResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	if err := gensupport.DecodeResponse(target, res); err != nil {
+		return nil, err
+	}
+	return ret, nil
+	// {
+	//   "description": "Returns a list of announcements that the requester is permitted to view.\n\nCourse students may only view `PUBLISHED` announcements. Course teachers\nand domain administrators may view all announcements.\n\nThis method returns the following error codes:\n\n* `PERMISSION_DENIED` if the requesting user is not permitted to access\nthe requested course or for access errors.\n* `INVALID_ARGUMENT` if the request is malformed.\n* `NOT_FOUND` if the requested course does not exist.",
+	//   "flatPath": "v1/courses/{courseId}/announcements",
+	//   "httpMethod": "GET",
+	//   "id": "classroom.courses.announcements.list",
+	//   "parameterOrder": [
+	//     "courseId"
+	//   ],
+	//   "parameters": {
+	//     "announcementStates": {
+	//       "description": "Restriction on the `state` of announcements returned.\nIf this argument is left unspecified, the default value is `PUBLISHED`.",
+	//       "enum": [
+	//         "ANNOUNCEMENT_STATE_UNSPECIFIED",
+	//         "PUBLISHED",
+	//         "DRAFT",
+	//         "DELETED"
+	//       ],
+	//       "location": "query",
+	//       "repeated": true,
+	//       "type": "string"
+	//     },
+	//     "courseId": {
+	//       "description": "Identifier of the course.\nThis identifier can be either the Classroom-assigned identifier or an\nalias.",
+	//       "location": "path",
+	//       "required": true,
+	//       "type": "string"
+	//     },
+	//     "orderBy": {
+	//       "description": "Optional sort ordering for results. A comma-separated list of fields with\nan optional sort direction keyword. Supported field is `updateTime`.\nSupported direction keywords are `asc` and `desc`.\nIf not specified, `updateTime desc` is the default behavior.\nExamples: `updateTime asc`, `updateTime`",
+	//       "location": "query",
+	//       "type": "string"
+	//     },
+	//     "pageSize": {
+	//       "description": "Maximum number of items to return. Zero or unspecified indicates that the\nserver may assign a maximum.\n\nThe server may return fewer than the specified number of results.",
+	//       "format": "int32",
+	//       "location": "query",
+	//       "type": "integer"
+	//     },
+	//     "pageToken": {
+	//       "description": "nextPageToken\nvalue returned from a previous\nlist call,\nindicating that the subsequent page of results should be returned.\n\nThe list request\nmust be otherwise identical to the one that resulted in this token.",
+	//       "location": "query",
+	//       "type": "string"
+	//     }
+	//   },
+	//   "path": "v1/courses/{courseId}/announcements",
+	//   "response": {
+	//     "$ref": "ListAnnouncementsResponse"
+	//   },
+	//   "scopes": [
+	//     "https://www.googleapis.com/auth/classroom.announcements",
+	//     "https://www.googleapis.com/auth/classroom.announcements.readonly"
+	//   ]
+	// }
+
+}
+
+// Pages invokes f for each page of results.
+// A non-nil error returned from f will halt the iteration.
+// The provided context supersedes any context provided to the Context method.
+func (c *CoursesAnnouncementsListCall) Pages(ctx context.Context, f func(*ListAnnouncementsResponse) error) error {
+	c.ctx_ = ctx
+	defer c.PageToken(c.urlParams_.Get("pageToken")) // reset paging to original point
+	for {
+		x, err := c.Do()
+		if err != nil {
+			return err
+		}
+		if err := f(x); err != nil {
+			return err
+		}
+		if x.NextPageToken == "" {
+			return nil
+		}
+		c.PageToken(x.NextPageToken)
+	}
+}
+
+// method id "classroom.courses.announcements.modifyAssignees":
+
+type CoursesAnnouncementsModifyAssigneesCall struct {
+	s                                  *Service
+	courseId                           string
+	id                                 string
+	modifyannouncementassigneesrequest *ModifyAnnouncementAssigneesRequest
+	urlParams_                         gensupport.URLParams
+	ctx_                               context.Context
+	header_                            http.Header
+}
+
+// ModifyAssignees: Modifies assignee mode and options of an
+// announcement.
+//
+// Only a teacher of the course that contains the announcement may
+// call this method.
+//
+// This method returns the following error codes:
+//
+// * `PERMISSION_DENIED` if the requesting user is not permitted to
+// access the
+// requested course or course work or for access errors.
+// * `INVALID_ARGUMENT` if the request is malformed.
+// * `NOT_FOUND` if the requested course or course work does not exist.
+func (r *CoursesAnnouncementsService) ModifyAssignees(courseId string, id string, modifyannouncementassigneesrequest *ModifyAnnouncementAssigneesRequest) *CoursesAnnouncementsModifyAssigneesCall {
+	c := &CoursesAnnouncementsModifyAssigneesCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.courseId = courseId
+	c.id = id
+	c.modifyannouncementassigneesrequest = modifyannouncementassigneesrequest
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
+// for more information.
+func (c *CoursesAnnouncementsModifyAssigneesCall) Fields(s ...googleapi.Field) *CoursesAnnouncementsModifyAssigneesCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method. Any
+// pending HTTP request will be aborted if the provided context is
+// canceled.
+func (c *CoursesAnnouncementsModifyAssigneesCall) Context(ctx context.Context) *CoursesAnnouncementsModifyAssigneesCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns an http.Header that can be modified by the caller to
+// add HTTP headers to the request.
+func (c *CoursesAnnouncementsModifyAssigneesCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *CoursesAnnouncementsModifyAssigneesCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := make(http.Header)
+	for k, v := range c.header_ {
+		reqHeaders[k] = v
+	}
+	reqHeaders.Set("User-Agent", c.s.userAgent())
+	var body io.Reader = nil
+	body, err := googleapi.WithoutDataWrapper.JSONReader(c.modifyannouncementassigneesrequest)
+	if err != nil {
+		return nil, err
+	}
+	reqHeaders.Set("Content-Type", "application/json")
+	c.urlParams_.Set("alt", alt)
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/courses/{courseId}/announcements/{id}:modifyAssignees")
+	urls += "?" + c.urlParams_.Encode()
+	req, _ := http.NewRequest("POST", urls, body)
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"courseId": c.courseId,
+		"id":       c.id,
+	})
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "classroom.courses.announcements.modifyAssignees" call.
+// Exactly one of *Announcement or error will be non-nil. Any non-2xx
+// status code is an error. Response headers are in either
+// *Announcement.ServerResponse.Header or (if a response was returned at
+// all) in error.(*googleapi.Error).Header. Use googleapi.IsNotModified
+// to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *CoursesAnnouncementsModifyAssigneesCall) Do(opts ...googleapi.CallOption) (*Announcement, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, &googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		}
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, err
+	}
+	ret := &Announcement{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	if err := gensupport.DecodeResponse(target, res); err != nil {
+		return nil, err
+	}
+	return ret, nil
+	// {
+	//   "description": "Modifies assignee mode and options of an announcement.\n\nOnly a teacher of the course that contains the announcement may\ncall this method.\n\nThis method returns the following error codes:\n\n* `PERMISSION_DENIED` if the requesting user is not permitted to access the\nrequested course or course work or for access errors.\n* `INVALID_ARGUMENT` if the request is malformed.\n* `NOT_FOUND` if the requested course or course work does not exist.",
+	//   "flatPath": "v1/courses/{courseId}/announcements/{id}:modifyAssignees",
+	//   "httpMethod": "POST",
+	//   "id": "classroom.courses.announcements.modifyAssignees",
+	//   "parameterOrder": [
+	//     "courseId",
+	//     "id"
+	//   ],
+	//   "parameters": {
+	//     "courseId": {
+	//       "description": "Identifier of the course.\nThis identifier can be either the Classroom-assigned identifier or an\nalias.",
+	//       "location": "path",
+	//       "required": true,
+	//       "type": "string"
+	//     },
+	//     "id": {
+	//       "description": "Identifier of the announcement.",
+	//       "location": "path",
+	//       "required": true,
+	//       "type": "string"
+	//     }
+	//   },
+	//   "path": "v1/courses/{courseId}/announcements/{id}:modifyAssignees",
+	//   "request": {
+	//     "$ref": "ModifyAnnouncementAssigneesRequest"
+	//   },
+	//   "response": {
+	//     "$ref": "Announcement"
+	//   },
+	//   "scopes": [
+	//     "https://www.googleapis.com/auth/classroom.announcements"
+	//   ]
+	// }
+
+}
+
+// method id "classroom.courses.announcements.patch":
+
+type CoursesAnnouncementsPatchCall struct {
+	s            *Service
+	courseId     string
+	id           string
+	announcement *Announcement
+	urlParams_   gensupport.URLParams
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// Patch: Updates one or more fields of an announcement.
+//
+// This method returns the following error codes:
+//
+// * `PERMISSION_DENIED` if the requesting developer project did not
+// create
+// the corresponding announcement or for access errors.
+// * `INVALID_ARGUMENT` if the request is malformed.
+// * `FAILED_PRECONDITION` if the requested announcement has already
+// been
+// deleted.
+// * `NOT_FOUND` if the requested course or announcement does not exist
+func (r *CoursesAnnouncementsService) Patch(courseId string, id string, announcement *Announcement) *CoursesAnnouncementsPatchCall {
+	c := &CoursesAnnouncementsPatchCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.courseId = courseId
+	c.id = id
+	c.announcement = announcement
+	return c
+}
+
+// UpdateMask sets the optional parameter "updateMask": Mask that
+// identifies which fields on the announcement to update.
+// This field is required to do an update. The update fails if
+// invalid
+// fields are specified. If a field supports empty values, it can be
+// cleared
+// by specifying it in the update mask and not in the Announcement
+// object. If
+// a field that does not support empty values is included in the update
+// mask
+// and not set in the Announcement object, an `INVALID_ARGUMENT` error
+// will be
+// returned.
+//
+// The following fields may be specified by teachers:
+//
+// * `text`
+// * `state`
+// * `scheduled_time`
+func (c *CoursesAnnouncementsPatchCall) UpdateMask(updateMask string) *CoursesAnnouncementsPatchCall {
+	c.urlParams_.Set("updateMask", updateMask)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
+// for more information.
+func (c *CoursesAnnouncementsPatchCall) Fields(s ...googleapi.Field) *CoursesAnnouncementsPatchCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method. Any
+// pending HTTP request will be aborted if the provided context is
+// canceled.
+func (c *CoursesAnnouncementsPatchCall) Context(ctx context.Context) *CoursesAnnouncementsPatchCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns an http.Header that can be modified by the caller to
+// add HTTP headers to the request.
+func (c *CoursesAnnouncementsPatchCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *CoursesAnnouncementsPatchCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := make(http.Header)
+	for k, v := range c.header_ {
+		reqHeaders[k] = v
+	}
+	reqHeaders.Set("User-Agent", c.s.userAgent())
+	var body io.Reader = nil
+	body, err := googleapi.WithoutDataWrapper.JSONReader(c.announcement)
+	if err != nil {
+		return nil, err
+	}
+	reqHeaders.Set("Content-Type", "application/json")
+	c.urlParams_.Set("alt", alt)
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/courses/{courseId}/announcements/{id}")
+	urls += "?" + c.urlParams_.Encode()
+	req, _ := http.NewRequest("PATCH", urls, body)
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"courseId": c.courseId,
+		"id":       c.id,
+	})
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "classroom.courses.announcements.patch" call.
+// Exactly one of *Announcement or error will be non-nil. Any non-2xx
+// status code is an error. Response headers are in either
+// *Announcement.ServerResponse.Header or (if a response was returned at
+// all) in error.(*googleapi.Error).Header. Use googleapi.IsNotModified
+// to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *CoursesAnnouncementsPatchCall) Do(opts ...googleapi.CallOption) (*Announcement, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, &googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		}
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, err
+	}
+	ret := &Announcement{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	if err := gensupport.DecodeResponse(target, res); err != nil {
+		return nil, err
+	}
+	return ret, nil
+	// {
+	//   "description": "Updates one or more fields of an announcement.\n\nThis method returns the following error codes:\n\n* `PERMISSION_DENIED` if the requesting developer project did not create\nthe corresponding announcement or for access errors.\n* `INVALID_ARGUMENT` if the request is malformed.\n* `FAILED_PRECONDITION` if the requested announcement has already been\ndeleted.\n* `NOT_FOUND` if the requested course or announcement does not exist",
+	//   "flatPath": "v1/courses/{courseId}/announcements/{id}",
+	//   "httpMethod": "PATCH",
+	//   "id": "classroom.courses.announcements.patch",
+	//   "parameterOrder": [
+	//     "courseId",
+	//     "id"
+	//   ],
+	//   "parameters": {
+	//     "courseId": {
+	//       "description": "Identifier of the course.\nThis identifier can be either the Classroom-assigned identifier or an\nalias.",
+	//       "location": "path",
+	//       "required": true,
+	//       "type": "string"
+	//     },
+	//     "id": {
+	//       "description": "Identifier of the announcement.",
+	//       "location": "path",
+	//       "required": true,
+	//       "type": "string"
+	//     },
+	//     "updateMask": {
+	//       "description": "Mask that identifies which fields on the announcement to update.\nThis field is required to do an update. The update fails if invalid\nfields are specified. If a field supports empty values, it can be cleared\nby specifying it in the update mask and not in the Announcement object. If\na field that does not support empty values is included in the update mask\nand not set in the Announcement object, an `INVALID_ARGUMENT` error will be\nreturned.\n\nThe following fields may be specified by teachers:\n\n* `text`\n* `state`\n* `scheduled_time`",
+	//       "format": "google-fieldmask",
+	//       "location": "query",
+	//       "type": "string"
+	//     }
+	//   },
+	//   "path": "v1/courses/{courseId}/announcements/{id}",
+	//   "request": {
+	//     "$ref": "Announcement"
+	//   },
+	//   "response": {
+	//     "$ref": "Announcement"
+	//   },
+	//   "scopes": [
+	//     "https://www.googleapis.com/auth/classroom.announcements"
+	//   ]
+	// }
+
 }
 
 // method id "classroom.courses.courseWork.create":
@@ -4113,7 +5822,7 @@ func (c *CoursesCourseWorkCreateCall) Do(opts ...googleapi.CallOption) (*CourseW
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -4261,7 +5970,7 @@ func (c *CoursesCourseWorkDeleteCall) Do(opts ...googleapi.CallOption) (*Empty, 
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -4417,7 +6126,7 @@ func (c *CoursesCourseWorkGetCall) Do(opts ...googleapi.CallOption) (*CourseWork
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -4632,7 +6341,7 @@ func (c *CoursesCourseWorkListCall) Do(opts ...googleapi.CallOption) (*ListCours
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -4715,6 +6424,162 @@ func (c *CoursesCourseWorkListCall) Pages(ctx context.Context, f func(*ListCours
 	}
 }
 
+// method id "classroom.courses.courseWork.modifyAssignees":
+
+type CoursesCourseWorkModifyAssigneesCall struct {
+	s                                *Service
+	courseId                         string
+	id                               string
+	modifycourseworkassigneesrequest *ModifyCourseWorkAssigneesRequest
+	urlParams_                       gensupport.URLParams
+	ctx_                             context.Context
+	header_                          http.Header
+}
+
+// ModifyAssignees: Modifies assignee mode and options of a
+// coursework.
+//
+// Only a teacher of the course that contains the coursework may
+// call this method.
+//
+// This method returns the following error codes:
+//
+// * `PERMISSION_DENIED` if the requesting user is not permitted to
+// access the
+// requested course or course work or for access errors.
+// * `INVALID_ARGUMENT` if the request is malformed.
+// * `NOT_FOUND` if the requested course or course work does not exist.
+func (r *CoursesCourseWorkService) ModifyAssignees(courseId string, id string, modifycourseworkassigneesrequest *ModifyCourseWorkAssigneesRequest) *CoursesCourseWorkModifyAssigneesCall {
+	c := &CoursesCourseWorkModifyAssigneesCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.courseId = courseId
+	c.id = id
+	c.modifycourseworkassigneesrequest = modifycourseworkassigneesrequest
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
+// for more information.
+func (c *CoursesCourseWorkModifyAssigneesCall) Fields(s ...googleapi.Field) *CoursesCourseWorkModifyAssigneesCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method. Any
+// pending HTTP request will be aborted if the provided context is
+// canceled.
+func (c *CoursesCourseWorkModifyAssigneesCall) Context(ctx context.Context) *CoursesCourseWorkModifyAssigneesCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns an http.Header that can be modified by the caller to
+// add HTTP headers to the request.
+func (c *CoursesCourseWorkModifyAssigneesCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *CoursesCourseWorkModifyAssigneesCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := make(http.Header)
+	for k, v := range c.header_ {
+		reqHeaders[k] = v
+	}
+	reqHeaders.Set("User-Agent", c.s.userAgent())
+	var body io.Reader = nil
+	body, err := googleapi.WithoutDataWrapper.JSONReader(c.modifycourseworkassigneesrequest)
+	if err != nil {
+		return nil, err
+	}
+	reqHeaders.Set("Content-Type", "application/json")
+	c.urlParams_.Set("alt", alt)
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/courses/{courseId}/courseWork/{id}:modifyAssignees")
+	urls += "?" + c.urlParams_.Encode()
+	req, _ := http.NewRequest("POST", urls, body)
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"courseId": c.courseId,
+		"id":       c.id,
+	})
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "classroom.courses.courseWork.modifyAssignees" call.
+// Exactly one of *CourseWork or error will be non-nil. Any non-2xx
+// status code is an error. Response headers are in either
+// *CourseWork.ServerResponse.Header or (if a response was returned at
+// all) in error.(*googleapi.Error).Header. Use googleapi.IsNotModified
+// to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *CoursesCourseWorkModifyAssigneesCall) Do(opts ...googleapi.CallOption) (*CourseWork, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, &googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		}
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, err
+	}
+	ret := &CourseWork{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	if err := gensupport.DecodeResponse(target, res); err != nil {
+		return nil, err
+	}
+	return ret, nil
+	// {
+	//   "description": "Modifies assignee mode and options of a coursework.\n\nOnly a teacher of the course that contains the coursework may\ncall this method.\n\nThis method returns the following error codes:\n\n* `PERMISSION_DENIED` if the requesting user is not permitted to access the\nrequested course or course work or for access errors.\n* `INVALID_ARGUMENT` if the request is malformed.\n* `NOT_FOUND` if the requested course or course work does not exist.",
+	//   "flatPath": "v1/courses/{courseId}/courseWork/{id}:modifyAssignees",
+	//   "httpMethod": "POST",
+	//   "id": "classroom.courses.courseWork.modifyAssignees",
+	//   "parameterOrder": [
+	//     "courseId",
+	//     "id"
+	//   ],
+	//   "parameters": {
+	//     "courseId": {
+	//       "description": "Identifier of the course.\nThis identifier can be either the Classroom-assigned identifier or an\nalias.",
+	//       "location": "path",
+	//       "required": true,
+	//       "type": "string"
+	//     },
+	//     "id": {
+	//       "description": "Identifier of the coursework.",
+	//       "location": "path",
+	//       "required": true,
+	//       "type": "string"
+	//     }
+	//   },
+	//   "path": "v1/courses/{courseId}/courseWork/{id}:modifyAssignees",
+	//   "request": {
+	//     "$ref": "ModifyCourseWorkAssigneesRequest"
+	//   },
+	//   "response": {
+	//     "$ref": "CourseWork"
+	//   },
+	//   "scopes": [
+	//     "https://www.googleapis.com/auth/classroom.coursework.students"
+	//   ]
+	// }
+
+}
+
 // method id "classroom.courses.courseWork.patch":
 
 type CoursesCourseWorkPatchCall struct {
@@ -4776,6 +6641,7 @@ func (r *CoursesCourseWorkService) Patch(courseId string, id string, coursework 
 // returned.
 //
 // The following fields may be specified by teachers:
+//
 // * `title`
 // * `description`
 // * `state`
@@ -4871,7 +6737,7 @@ func (c *CoursesCourseWorkPatchCall) Do(opts ...googleapi.CallOption) (*CourseWo
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -4898,7 +6764,7 @@ func (c *CoursesCourseWorkPatchCall) Do(opts ...googleapi.CallOption) (*CourseWo
 	//       "type": "string"
 	//     },
 	//     "updateMask": {
-	//       "description": "Mask that identifies which fields on the course work to update.\nThis field is required to do an update. The update fails if invalid\nfields are specified. If a field supports empty values, it can be cleared\nby specifying it in the update mask and not in the CourseWork object. If a\nfield that does not support empty values is included in the update mask and\nnot set in the CourseWork object, an `INVALID_ARGUMENT` error will be\nreturned.\n\nThe following fields may be specified by teachers:\n* `title`\n* `description`\n* `state`\n* `due_date`\n* `due_time`\n* `max_points`\n* `scheduled_time`\n* `submission_modification_mode`",
+	//       "description": "Mask that identifies which fields on the course work to update.\nThis field is required to do an update. The update fails if invalid\nfields are specified. If a field supports empty values, it can be cleared\nby specifying it in the update mask and not in the CourseWork object. If a\nfield that does not support empty values is included in the update mask and\nnot set in the CourseWork object, an `INVALID_ARGUMENT` error will be\nreturned.\n\nThe following fields may be specified by teachers:\n\n* `title`\n* `description`\n* `state`\n* `due_date`\n* `due_time`\n* `max_points`\n* `scheduled_time`\n* `submission_modification_mode`",
 	//       "format": "google-fieldmask",
 	//       "location": "query",
 	//       "type": "string"
@@ -5040,7 +6906,7 @@ func (c *CoursesCourseWorkStudentSubmissionsGetCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -5284,7 +7150,7 @@ func (c *CoursesCourseWorkStudentSubmissionsListCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -5518,7 +7384,7 @@ func (c *CoursesCourseWorkStudentSubmissionsModifyAttachmentsCall) Do(opts ...go
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -5619,6 +7485,7 @@ func (r *CoursesCourseWorkStudentSubmissionsService) Patch(courseId string, cour
 // fields are specified.
 //
 // The following fields may be specified by teachers:
+//
 // * `draft_grade`
 // * `assigned_grade`
 func (c *CoursesCourseWorkStudentSubmissionsPatchCall) UpdateMask(updateMask string) *CoursesCourseWorkStudentSubmissionsPatchCall {
@@ -5709,7 +7576,7 @@ func (c *CoursesCourseWorkStudentSubmissionsPatchCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -5743,7 +7610,7 @@ func (c *CoursesCourseWorkStudentSubmissionsPatchCall) Do(opts ...googleapi.Call
 	//       "type": "string"
 	//     },
 	//     "updateMask": {
-	//       "description": "Mask that identifies which fields on the student submission to update.\nThis field is required to do an update. The update fails if invalid\nfields are specified.\n\nThe following fields may be specified by teachers:\n* `draft_grade`\n* `assigned_grade`",
+	//       "description": "Mask that identifies which fields on the student submission to update.\nThis field is required to do an update. The update fails if invalid\nfields are specified.\n\nThe following fields may be specified by teachers:\n\n* `draft_grade`\n* `assigned_grade`",
 	//       "format": "google-fieldmask",
 	//       "location": "query",
 	//       "type": "string"
@@ -5900,7 +7767,7 @@ func (c *CoursesCourseWorkStudentSubmissionsReclaimCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -6083,7 +7950,7 @@ func (c *CoursesCourseWorkStudentSubmissionsReturnCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -6263,7 +8130,7 @@ func (c *CoursesCourseWorkStudentSubmissionsTurnInCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -6438,7 +8305,7 @@ func (c *CoursesStudentsCreateCall) Do(opts ...googleapi.CallOption) (*Student, 
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -6584,7 +8451,7 @@ func (c *CoursesStudentsDeleteCall) Do(opts ...googleapi.CallOption) (*Empty, er
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -6741,7 +8608,7 @@ func (c *CoursesStudentsGetCall) Do(opts ...googleapi.CallOption) (*Student, err
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -6917,7 +8784,7 @@ func (c *CoursesStudentsListCall) Do(opts ...googleapi.CallOption) (*ListStudent
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -7100,7 +8967,7 @@ func (c *CoursesTeachersCreateCall) Do(opts ...googleapi.CallOption) (*Teacher, 
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -7244,7 +9111,7 @@ func (c *CoursesTeachersDeleteCall) Do(opts ...googleapi.CallOption) (*Empty, er
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -7401,7 +9268,7 @@ func (c *CoursesTeachersGetCall) Do(opts ...googleapi.CallOption) (*Teacher, err
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -7577,7 +9444,7 @@ func (c *CoursesTeachersListCall) Do(opts ...googleapi.CallOption) (*ListTeacher
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -7626,6 +9493,371 @@ func (c *CoursesTeachersListCall) Do(opts ...googleapi.CallOption) (*ListTeacher
 // A non-nil error returned from f will halt the iteration.
 // The provided context supersedes any context provided to the Context method.
 func (c *CoursesTeachersListCall) Pages(ctx context.Context, f func(*ListTeachersResponse) error) error {
+	c.ctx_ = ctx
+	defer c.PageToken(c.urlParams_.Get("pageToken")) // reset paging to original point
+	for {
+		x, err := c.Do()
+		if err != nil {
+			return err
+		}
+		if err := f(x); err != nil {
+			return err
+		}
+		if x.NextPageToken == "" {
+			return nil
+		}
+		c.PageToken(x.NextPageToken)
+	}
+}
+
+// method id "classroom.courses.topics.get":
+
+type CoursesTopicsGetCall struct {
+	s            *Service
+	courseId     string
+	id           string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// Get: Returns a topic.
+//
+// This method returns the following error codes:
+//
+// * `PERMISSION_DENIED` if the requesting user is not permitted to
+// access the
+// requested course or topic, or for access errors.
+// * `INVALID_ARGUMENT` if the request is malformed.
+// * `NOT_FOUND` if the requested course or topic does not exist.
+func (r *CoursesTopicsService) Get(courseId string, id string) *CoursesTopicsGetCall {
+	c := &CoursesTopicsGetCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.courseId = courseId
+	c.id = id
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
+// for more information.
+func (c *CoursesTopicsGetCall) Fields(s ...googleapi.Field) *CoursesTopicsGetCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets the optional parameter which makes the operation
+// fail if the object's ETag matches the given value. This is useful for
+// getting updates only after the object has changed since the last
+// request. Use googleapi.IsNotModified to check whether the response
+// error from Do is the result of In-None-Match.
+func (c *CoursesTopicsGetCall) IfNoneMatch(entityTag string) *CoursesTopicsGetCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method. Any
+// pending HTTP request will be aborted if the provided context is
+// canceled.
+func (c *CoursesTopicsGetCall) Context(ctx context.Context) *CoursesTopicsGetCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns an http.Header that can be modified by the caller to
+// add HTTP headers to the request.
+func (c *CoursesTopicsGetCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *CoursesTopicsGetCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := make(http.Header)
+	for k, v := range c.header_ {
+		reqHeaders[k] = v
+	}
+	reqHeaders.Set("User-Agent", c.s.userAgent())
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	var body io.Reader = nil
+	c.urlParams_.Set("alt", alt)
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/courses/{courseId}/topics/{id}")
+	urls += "?" + c.urlParams_.Encode()
+	req, _ := http.NewRequest("GET", urls, body)
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"courseId": c.courseId,
+		"id":       c.id,
+	})
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "classroom.courses.topics.get" call.
+// Exactly one of *Topic or error will be non-nil. Any non-2xx status
+// code is an error. Response headers are in either
+// *Topic.ServerResponse.Header or (if a response was returned at all)
+// in error.(*googleapi.Error).Header. Use googleapi.IsNotModified to
+// check whether the returned error was because http.StatusNotModified
+// was returned.
+func (c *CoursesTopicsGetCall) Do(opts ...googleapi.CallOption) (*Topic, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, &googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		}
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, err
+	}
+	ret := &Topic{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	if err := gensupport.DecodeResponse(target, res); err != nil {
+		return nil, err
+	}
+	return ret, nil
+	// {
+	//   "description": "Returns a topic.\n\nThis method returns the following error codes:\n\n* `PERMISSION_DENIED` if the requesting user is not permitted to access the\nrequested course or topic, or for access errors.\n* `INVALID_ARGUMENT` if the request is malformed.\n* `NOT_FOUND` if the requested course or topic does not exist.",
+	//   "flatPath": "v1/courses/{courseId}/topics/{id}",
+	//   "httpMethod": "GET",
+	//   "id": "classroom.courses.topics.get",
+	//   "parameterOrder": [
+	//     "courseId",
+	//     "id"
+	//   ],
+	//   "parameters": {
+	//     "courseId": {
+	//       "description": "Identifier of the course.",
+	//       "location": "path",
+	//       "required": true,
+	//       "type": "string"
+	//     },
+	//     "id": {
+	//       "description": "Identifier of the topic.",
+	//       "location": "path",
+	//       "required": true,
+	//       "type": "string"
+	//     }
+	//   },
+	//   "path": "v1/courses/{courseId}/topics/{id}",
+	//   "response": {
+	//     "$ref": "Topic"
+	//   },
+	//   "scopes": [
+	//     "https://www.googleapis.com/auth/classroom.coursework.me",
+	//     "https://www.googleapis.com/auth/classroom.coursework.me.readonly",
+	//     "https://www.googleapis.com/auth/classroom.coursework.students",
+	//     "https://www.googleapis.com/auth/classroom.coursework.students.readonly"
+	//   ]
+	// }
+
+}
+
+// method id "classroom.courses.topics.list":
+
+type CoursesTopicsListCall struct {
+	s            *Service
+	courseId     string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// List: Returns the list of topics that the requester is permitted to
+// view.
+//
+// This method returns the following error codes:
+//
+// * `PERMISSION_DENIED` if the requesting user is not permitted to
+// access
+// the requested course or for access errors.
+// * `INVALID_ARGUMENT` if the request is malformed.
+// * `NOT_FOUND` if the requested course does not exist.
+func (r *CoursesTopicsService) List(courseId string) *CoursesTopicsListCall {
+	c := &CoursesTopicsListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.courseId = courseId
+	return c
+}
+
+// PageSize sets the optional parameter "pageSize": Maximum number of
+// items to return. Zero or unspecified indicates that the
+// server may assign a maximum.
+//
+// The server may return fewer than the specified number of results.
+func (c *CoursesTopicsListCall) PageSize(pageSize int64) *CoursesTopicsListCall {
+	c.urlParams_.Set("pageSize", fmt.Sprint(pageSize))
+	return c
+}
+
+// PageToken sets the optional parameter "pageToken":
+// nextPageToken
+// value returned from a previous
+// list call,
+// indicating that the subsequent page of results should be
+// returned.
+//
+// The list request
+// must be otherwise identical to the one that resulted in this token.
+func (c *CoursesTopicsListCall) PageToken(pageToken string) *CoursesTopicsListCall {
+	c.urlParams_.Set("pageToken", pageToken)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
+// for more information.
+func (c *CoursesTopicsListCall) Fields(s ...googleapi.Field) *CoursesTopicsListCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets the optional parameter which makes the operation
+// fail if the object's ETag matches the given value. This is useful for
+// getting updates only after the object has changed since the last
+// request. Use googleapi.IsNotModified to check whether the response
+// error from Do is the result of In-None-Match.
+func (c *CoursesTopicsListCall) IfNoneMatch(entityTag string) *CoursesTopicsListCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method. Any
+// pending HTTP request will be aborted if the provided context is
+// canceled.
+func (c *CoursesTopicsListCall) Context(ctx context.Context) *CoursesTopicsListCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns an http.Header that can be modified by the caller to
+// add HTTP headers to the request.
+func (c *CoursesTopicsListCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *CoursesTopicsListCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := make(http.Header)
+	for k, v := range c.header_ {
+		reqHeaders[k] = v
+	}
+	reqHeaders.Set("User-Agent", c.s.userAgent())
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	var body io.Reader = nil
+	c.urlParams_.Set("alt", alt)
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/courses/{courseId}/topics")
+	urls += "?" + c.urlParams_.Encode()
+	req, _ := http.NewRequest("GET", urls, body)
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"courseId": c.courseId,
+	})
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "classroom.courses.topics.list" call.
+// Exactly one of *ListTopicResponse or error will be non-nil. Any
+// non-2xx status code is an error. Response headers are in either
+// *ListTopicResponse.ServerResponse.Header or (if a response was
+// returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was
+// because http.StatusNotModified was returned.
+func (c *CoursesTopicsListCall) Do(opts ...googleapi.CallOption) (*ListTopicResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, &googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		}
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, err
+	}
+	ret := &ListTopicResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	if err := gensupport.DecodeResponse(target, res); err != nil {
+		return nil, err
+	}
+	return ret, nil
+	// {
+	//   "description": "Returns the list of topics that the requester is permitted to view.\n\nThis method returns the following error codes:\n\n* `PERMISSION_DENIED` if the requesting user is not permitted to access\nthe requested course or for access errors.\n* `INVALID_ARGUMENT` if the request is malformed.\n* `NOT_FOUND` if the requested course does not exist.",
+	//   "flatPath": "v1/courses/{courseId}/topics",
+	//   "httpMethod": "GET",
+	//   "id": "classroom.courses.topics.list",
+	//   "parameterOrder": [
+	//     "courseId"
+	//   ],
+	//   "parameters": {
+	//     "courseId": {
+	//       "description": "Identifier of the course.\nThis identifier can be either the Classroom-assigned identifier or an\nalias.",
+	//       "location": "path",
+	//       "required": true,
+	//       "type": "string"
+	//     },
+	//     "pageSize": {
+	//       "description": "Maximum number of items to return. Zero or unspecified indicates that the\nserver may assign a maximum.\n\nThe server may return fewer than the specified number of results.",
+	//       "format": "int32",
+	//       "location": "query",
+	//       "type": "integer"
+	//     },
+	//     "pageToken": {
+	//       "description": "nextPageToken\nvalue returned from a previous\nlist call,\nindicating that the subsequent page of results should be returned.\n\nThe list request\nmust be otherwise identical to the one that resulted in this token.",
+	//       "location": "query",
+	//       "type": "string"
+	//     }
+	//   },
+	//   "path": "v1/courses/{courseId}/topics",
+	//   "response": {
+	//     "$ref": "ListTopicResponse"
+	//   },
+	//   "scopes": [
+	//     "https://www.googleapis.com/auth/classroom.coursework.me",
+	//     "https://www.googleapis.com/auth/classroom.coursework.me.readonly",
+	//     "https://www.googleapis.com/auth/classroom.coursework.students",
+	//     "https://www.googleapis.com/auth/classroom.coursework.students.readonly"
+	//   ]
+	// }
+
+}
+
+// Pages invokes f for each page of results.
+// A non-nil error returned from f will halt the iteration.
+// The provided context supersedes any context provided to the Context method.
+func (c *CoursesTopicsListCall) Pages(ctx context.Context, f func(*ListTopicResponse) error) error {
 	c.ctx_ = ctx
 	defer c.PageToken(c.urlParams_.Get("pageToken")) // reset paging to original point
 	for {
@@ -7752,7 +9984,7 @@ func (c *InvitationsAcceptCall) Do(opts ...googleapi.CallOption) (*Empty, error)
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -7893,7 +10125,7 @@ func (c *InvitationsCreateCall) Do(opts ...googleapi.CallOption) (*Invitation, e
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -8018,7 +10250,7 @@ func (c *InvitationsDeleteCall) Do(opts ...googleapi.CallOption) (*Empty, error)
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -8163,7 +10395,7 @@ func (c *InvitationsGetCall) Do(opts ...googleapi.CallOption) (*Invitation, erro
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -8349,7 +10581,7 @@ func (c *InvitationsListCall) Do(opts ...googleapi.CallOption) (*ListInvitations
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -8413,6 +10645,296 @@ func (c *InvitationsListCall) Pages(ctx context.Context, f func(*ListInvitations
 		}
 		c.PageToken(x.NextPageToken)
 	}
+}
+
+// method id "classroom.registrations.create":
+
+type RegistrationsCreateCall struct {
+	s            *Service
+	registration *Registration
+	urlParams_   gensupport.URLParams
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// Create: Creates a `Registration`, causing Classroom to start sending
+// notifications
+// from the provided `feed` to the provided `destination`.
+//
+// Returns the created `Registration`. Currently, this will be the same
+// as
+// the argument, but with server-assigned fields such as `expiry_time`
+// and
+// `id` filled in.
+//
+// Note that any value specified for the `expiry_time` or `id` fields
+// will be
+// ignored.
+//
+// While Classroom may validate the `destination` and return errors on a
+// best
+// effort basis, it is the caller's responsibility to ensure that it
+// exists
+// and that Classroom has permission to publish to it.
+//
+// This method may return the following error codes:
+//
+// * `PERMISSION_DENIED` if:
+//     * the authenticated user does not have permission to receive
+//       notifications from the requested field; or
+//     * the credential provided does not include the appropriate scope
+// for the
+//       requested feed.
+//     * another access error is encountered.
+// * `INVALID_ARGUMENT` if:
+//     * no `destination` is specified, or the specified `destination`
+// is not
+//       valid; or
+//     * no `feed` is specified, or the specified `feed` is not valid.
+// * `NOT_FOUND` if:
+//     * the specified `feed` cannot be located, or the requesting user
+// does not
+//       have permission to determine whether or not it exists; or
+//     * the specified `destination` cannot be located, or Classroom has
+// not
+//       been granted permission to publish to it.
+func (r *RegistrationsService) Create(registration *Registration) *RegistrationsCreateCall {
+	c := &RegistrationsCreateCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.registration = registration
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
+// for more information.
+func (c *RegistrationsCreateCall) Fields(s ...googleapi.Field) *RegistrationsCreateCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method. Any
+// pending HTTP request will be aborted if the provided context is
+// canceled.
+func (c *RegistrationsCreateCall) Context(ctx context.Context) *RegistrationsCreateCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns an http.Header that can be modified by the caller to
+// add HTTP headers to the request.
+func (c *RegistrationsCreateCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *RegistrationsCreateCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := make(http.Header)
+	for k, v := range c.header_ {
+		reqHeaders[k] = v
+	}
+	reqHeaders.Set("User-Agent", c.s.userAgent())
+	var body io.Reader = nil
+	body, err := googleapi.WithoutDataWrapper.JSONReader(c.registration)
+	if err != nil {
+		return nil, err
+	}
+	reqHeaders.Set("Content-Type", "application/json")
+	c.urlParams_.Set("alt", alt)
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/registrations")
+	urls += "?" + c.urlParams_.Encode()
+	req, _ := http.NewRequest("POST", urls, body)
+	req.Header = reqHeaders
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "classroom.registrations.create" call.
+// Exactly one of *Registration or error will be non-nil. Any non-2xx
+// status code is an error. Response headers are in either
+// *Registration.ServerResponse.Header or (if a response was returned at
+// all) in error.(*googleapi.Error).Header. Use googleapi.IsNotModified
+// to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *RegistrationsCreateCall) Do(opts ...googleapi.CallOption) (*Registration, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, &googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		}
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, err
+	}
+	ret := &Registration{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	if err := gensupport.DecodeResponse(target, res); err != nil {
+		return nil, err
+	}
+	return ret, nil
+	// {
+	//   "description": "Creates a `Registration`, causing Classroom to start sending notifications\nfrom the provided `feed` to the provided `destination`.\n\nReturns the created `Registration`. Currently, this will be the same as\nthe argument, but with server-assigned fields such as `expiry_time` and\n`id` filled in.\n\nNote that any value specified for the `expiry_time` or `id` fields will be\nignored.\n\nWhile Classroom may validate the `destination` and return errors on a best\neffort basis, it is the caller's responsibility to ensure that it exists\nand that Classroom has permission to publish to it.\n\nThis method may return the following error codes:\n\n* `PERMISSION_DENIED` if:\n    * the authenticated user does not have permission to receive\n      notifications from the requested field; or\n    * the credential provided does not include the appropriate scope for the\n      requested feed.\n    * another access error is encountered.\n* `INVALID_ARGUMENT` if:\n    * no `destination` is specified, or the specified `destination` is not\n      valid; or\n    * no `feed` is specified, or the specified `feed` is not valid.\n* `NOT_FOUND` if:\n    * the specified `feed` cannot be located, or the requesting user does not\n      have permission to determine whether or not it exists; or\n    * the specified `destination` cannot be located, or Classroom has not\n      been granted permission to publish to it.",
+	//   "flatPath": "v1/registrations",
+	//   "httpMethod": "POST",
+	//   "id": "classroom.registrations.create",
+	//   "parameterOrder": [],
+	//   "parameters": {},
+	//   "path": "v1/registrations",
+	//   "request": {
+	//     "$ref": "Registration"
+	//   },
+	//   "response": {
+	//     "$ref": "Registration"
+	//   },
+	//   "scopes": [
+	//     "https://www.googleapis.com/auth/classroom.push-notifications",
+	//     "https://www.googleapis.com/auth/classroom.rosters",
+	//     "https://www.googleapis.com/auth/classroom.rosters.readonly"
+	//   ]
+	// }
+
+}
+
+// method id "classroom.registrations.delete":
+
+type RegistrationsDeleteCall struct {
+	s              *Service
+	registrationId string
+	urlParams_     gensupport.URLParams
+	ctx_           context.Context
+	header_        http.Header
+}
+
+// Delete: Deletes a `Registration`, causing Classroom to stop sending
+// notifications
+// for that `Registration`.
+func (r *RegistrationsService) Delete(registrationId string) *RegistrationsDeleteCall {
+	c := &RegistrationsDeleteCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.registrationId = registrationId
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
+// for more information.
+func (c *RegistrationsDeleteCall) Fields(s ...googleapi.Field) *RegistrationsDeleteCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method. Any
+// pending HTTP request will be aborted if the provided context is
+// canceled.
+func (c *RegistrationsDeleteCall) Context(ctx context.Context) *RegistrationsDeleteCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns an http.Header that can be modified by the caller to
+// add HTTP headers to the request.
+func (c *RegistrationsDeleteCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *RegistrationsDeleteCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := make(http.Header)
+	for k, v := range c.header_ {
+		reqHeaders[k] = v
+	}
+	reqHeaders.Set("User-Agent", c.s.userAgent())
+	var body io.Reader = nil
+	c.urlParams_.Set("alt", alt)
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/registrations/{registrationId}")
+	urls += "?" + c.urlParams_.Encode()
+	req, _ := http.NewRequest("DELETE", urls, body)
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"registrationId": c.registrationId,
+	})
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "classroom.registrations.delete" call.
+// Exactly one of *Empty or error will be non-nil. Any non-2xx status
+// code is an error. Response headers are in either
+// *Empty.ServerResponse.Header or (if a response was returned at all)
+// in error.(*googleapi.Error).Header. Use googleapi.IsNotModified to
+// check whether the returned error was because http.StatusNotModified
+// was returned.
+func (c *RegistrationsDeleteCall) Do(opts ...googleapi.CallOption) (*Empty, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, &googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		}
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, err
+	}
+	ret := &Empty{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	if err := gensupport.DecodeResponse(target, res); err != nil {
+		return nil, err
+	}
+	return ret, nil
+	// {
+	//   "description": "Deletes a `Registration`, causing Classroom to stop sending notifications\nfor that `Registration`.",
+	//   "flatPath": "v1/registrations/{registrationId}",
+	//   "httpMethod": "DELETE",
+	//   "id": "classroom.registrations.delete",
+	//   "parameterOrder": [
+	//     "registrationId"
+	//   ],
+	//   "parameters": {
+	//     "registrationId": {
+	//       "description": "The `registration_id` of the `Registration` to be deleted.",
+	//       "location": "path",
+	//       "required": true,
+	//       "type": "string"
+	//     }
+	//   },
+	//   "path": "v1/registrations/{registrationId}",
+	//   "response": {
+	//     "$ref": "Empty"
+	//   },
+	//   "scopes": [
+	//     "https://www.googleapis.com/auth/classroom.push-notifications",
+	//     "https://www.googleapis.com/auth/classroom.rosters",
+	//     "https://www.googleapis.com/auth/classroom.rosters.readonly"
+	//   ]
+	// }
+
 }
 
 // method id "classroom.userProfiles.get":
@@ -8530,7 +11052,7 @@ func (c *UserProfilesGetCall) Do(opts ...googleapi.CallOption) (*UserProfile, er
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -8709,7 +11231,7 @@ func (c *UserProfilesGuardianInvitationsCreateCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -8872,7 +11394,7 @@ func (c *UserProfilesGuardianInvitationsGetCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -9088,7 +11610,7 @@ func (c *UserProfilesGuardianInvitationsListCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -9313,7 +11835,7 @@ func (c *UserProfilesGuardianInvitationsPatchCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -9480,7 +12002,7 @@ func (c *UserProfilesGuardiansDeleteCall) Do(opts ...googleapi.CallOption) (*Emp
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -9649,7 +12171,7 @@ func (c *UserProfilesGuardiansGetCall) Do(opts ...googleapi.CallOption) (*Guardi
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -9860,7 +12382,7 @@ func (c *UserProfilesGuardiansListCall) Do(opts ...googleapi.CallOption) (*ListG
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil

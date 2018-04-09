@@ -69,6 +69,10 @@ func (cmd *sample) Description() string {
 
 Interval ID defaults to 20 (realtime) if supported, otherwise 300 (5m interval).
 
+By default, INSTANCE '*' samples all instances and the aggregate counter.
+An INSTANCE value of '-' will only sample the aggregate counter.
+An INSTANCE value other than '*' or '-' will only sample the given instance counter.
+
 If PLOT value is set to '-', output a gnuplot script.  If non-empty with another
 value, PLOT will pipe the script to gnuplot for you.  The value is also used to set
 the gnuplot 'terminal' variable, unless the value is that of the DISPLAY env var.
@@ -77,7 +81,9 @@ Only 1 metric NAME can be specified when the PLOT flag is set.
 Examples:
   govc metric.sample host/cluster1/* cpu.usage.average
   govc metric.sample -plot .png host/cluster1/* cpu.usage.average | xargs open
-  govc metric.sample vm/* net.bytesTx.average net.bytesTx.average`
+  govc metric.sample vm/* net.bytesTx.average net.bytesTx.average
+  govc metric.sample -instance vmnic0 vm/* net.bytesTx.average
+  govc metric.sample -instance - vm/* net.bytesTx.average`
 }
 
 func (cmd *sample) Process(ctx context.Context) error {
@@ -292,6 +298,10 @@ func (cmd *sample) Run(ctx context.Context, f *flag.FlagSet) error {
 	s, err := m.ProviderSummary(ctx, objs[0])
 	if err != nil {
 		return err
+	}
+
+	if cmd.instance == "-" {
+		cmd.instance = ""
 	}
 
 	spec := types.PerfQuerySpec{

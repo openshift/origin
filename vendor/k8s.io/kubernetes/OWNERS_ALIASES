@@ -13,11 +13,12 @@ aliases:
     - resouer
     - timothysc
     - wojtek-t
+    - aveshagarwal
+    - ravisantoshgudimetla
   sig-cli-maintainers:
     - adohe
     - brendandburns
     - deads2k
-    - fabianofranz
     - janetkuo
     - liggitt
     - pwittrock
@@ -30,7 +31,6 @@ aliases:
     - dshulyak
     - eparis
     - ericchiang
-    - fabianofranz
     - ghodss
     - mengqiy
     - rootfs
@@ -43,13 +43,11 @@ aliases:
     - ixdy
     - rmmh
     - spiffxp
-    - spxtr
   sig-testing-approvers:
     - fejta
     - ixdy
     - rmmh
     - spiffxp
-    - spxtr
   sig-node-reviewers:
     - Random-Liu
     - dashpole
@@ -101,6 +99,12 @@ aliases:
   sig-apps-api-approvers:
     - erictune
     - smarterclayton
+  sig-autoscaling-maintainers:
+    - aleksandra-malinowska
+    - bskiba
+    - DirectXMan12
+    - MaciekPytel
+    - mwielgus
   milestone-maintainers:
     - lavalamp
     - deads2k
@@ -121,7 +125,6 @@ aliases:
     - slack
     - colemickens
     - foxish
-    - fabianofranz
     - pwittrock
     - AdoHe
     - lukemarsden
@@ -176,6 +179,7 @@ aliases:
     - jpbetz
     - cmluciano
     - bsalamat
+    - m1093782566
   api-approvers:
     - erictune
     - lavalamp
@@ -220,3 +224,7 @@ aliases:
     - piosz
     - jsafrane
     - jbeda
+  dep-approvers:
+    - cblecker
+    - thockin
+    - sttts

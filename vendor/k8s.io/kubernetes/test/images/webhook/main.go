@@ -40,6 +40,9 @@ const (
 	patch2 string = `[
          { "op": "add", "path": "/data/mutation-stage-2", "value": "yes" }
      ]`
+	addInitContainerPatch string = `[
+		 {"op":"add","path":"/spec/initContainers","value":[{"image":"webhook-added-image","name":"webhook-added-init-container","resources":{}}]}
+	]`
 )
 
 // Config contains the server (the webhook) cert and key.
@@ -64,6 +67,15 @@ func toAdmissionResponse(err error) *v1beta1.AdmissionResponse {
 	}
 }
 
+// Deny all requests made to this function.
+func alwaysDeny(ar v1beta1.AdmissionReview) *v1beta1.AdmissionResponse {
+	glog.V(2).Info("calling always-deny")
+	reviewResponse := v1beta1.AdmissionResponse{}
+	reviewResponse.Allowed = false
+	reviewResponse.Result = &metav1.Status{Message: "this webhook denies all requests"}
+	return &reviewResponse
+}
+
 // only allow pods to pull images from specific registry.
 func admitPods(ar v1beta1.AdmissionReview) *v1beta1.AdmissionResponse {
 	glog.V(2).Info("admitting pods")
@@ -85,10 +97,15 @@ func admitPods(ar v1beta1.AdmissionReview) *v1beta1.AdmissionResponse {
 	reviewResponse.Allowed = true
 
 	var msg string
-	for k, v := range pod.Labels {
-		if k == "webhook-e2e-test" && v == "webhook-disallow" {
+	if v, ok := pod.Labels["webhook-e2e-test"]; ok {
+		if v == "webhook-disallow" {
 			reviewResponse.Allowed = false
 			msg = msg + "the pod contains unwanted label; "
+		}
+		if v == "wait-forever" {
+			reviewResponse.Allowed = false
+			msg = msg + "the pod response should not be sent; "
+			<-make(chan int) // Sleep forever - no one sends to this channel
 		}
 	}
 	for _, container := range pod.Spec.Containers {
@@ -99,6 +116,31 @@ func admitPods(ar v1beta1.AdmissionReview) *v1beta1.AdmissionResponse {
 	}
 	if !reviewResponse.Allowed {
 		reviewResponse.Result = &metav1.Status{Message: strings.TrimSpace(msg)}
+	}
+	return &reviewResponse
+}
+
+func mutatePods(ar v1beta1.AdmissionReview) *v1beta1.AdmissionResponse {
+	glog.V(2).Info("mutating pods")
+	podResource := metav1.GroupVersionResource{Group: "", Version: "v1", Resource: "pods"}
+	if ar.Request.Resource != podResource {
+		glog.Errorf("expect resource to be %s", podResource)
+		return nil
+	}
+
+	raw := ar.Request.Object.Raw
+	pod := corev1.Pod{}
+	deserializer := codecs.UniversalDeserializer()
+	if _, _, err := deserializer.Decode(raw, nil, &pod); err != nil {
+		glog.Error(err)
+		return toAdmissionResponse(err)
+	}
+	reviewResponse := v1beta1.AdmissionResponse{}
+	reviewResponse.Allowed = true
+	if pod.Name == "webhook-to-be-mutated" {
+		reviewResponse.Patch = []byte(addInitContainerPatch)
+		pt := v1beta1.PatchTypeJSONPatch
+		reviewResponse.PatchType = &pt
 	}
 	return &reviewResponse
 }
@@ -262,8 +304,16 @@ func serve(w http.ResponseWriter, r *http.Request, admit admitFunc) {
 	}
 }
 
+func serveAlwaysDeny(w http.ResponseWriter, r *http.Request) {
+	serve(w, r, alwaysDeny)
+}
+
 func servePods(w http.ResponseWriter, r *http.Request) {
 	serve(w, r, admitPods)
+}
+
+func serveMutatePods(w http.ResponseWriter, r *http.Request) {
+	serve(w, r, mutatePods)
 }
 
 func serveConfigmaps(w http.ResponseWriter, r *http.Request) {
@@ -287,7 +337,9 @@ func main() {
 	config.addFlags()
 	flag.Parse()
 
+	http.HandleFunc("/always-deny", serveAlwaysDeny)
 	http.HandleFunc("/pods", servePods)
+	http.HandleFunc("/mutating-pods", serveMutatePods)
 	http.HandleFunc("/configmaps", serveConfigmaps)
 	http.HandleFunc("/mutating-configmaps", serveMutateConfigmaps)
 	http.HandleFunc("/crd", serveCRD)

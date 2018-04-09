@@ -90,23 +90,6 @@ func TestCreateServiceAccount(t *testing.T) {
 	}
 }
 
-func TestGetClusterCIDR(t *testing.T) {
-	emptyClusterCIDR := getClusterCIDR("")
-	if emptyClusterCIDR != "" {
-		t.Errorf("Invalid format: %s", emptyClusterCIDR)
-	}
-
-	clusterCIDR := getClusterCIDR("10.244.0.0/16")
-	if clusterCIDR != "- --cluster-cidr=10.244.0.0/16" {
-		t.Errorf("Invalid format: %s", clusterCIDR)
-	}
-
-	clusterIPv6CIDR := getClusterCIDR("2001:db8::/64")
-	if clusterIPv6CIDR != "- --cluster-cidr=2001:db8::/64" {
-		t.Errorf("Invalid format: %s", clusterIPv6CIDR)
-	}
-}
-
 func TestCompileManifests(t *testing.T) {
 	var tests = []struct {
 		manifest string
@@ -114,34 +97,12 @@ func TestCompileManifests(t *testing.T) {
 		expected bool
 	}{
 		{
-			manifest: KubeProxyConfigMap18,
-			data: struct {
-				MasterEndpoint, ProxyConfig string
-			}{
-				MasterEndpoint: "foo",
-			},
-			expected: true,
-		},
-		{
 			manifest: KubeProxyConfigMap19,
 			data: struct {
 				MasterEndpoint, ProxyConfig string
 			}{
 				MasterEndpoint: "foo",
 				ProxyConfig:    "  bindAddress: 0.0.0.0\n  clusterCIDR: 192.168.1.1\n  enableProfiling: false",
-			},
-			expected: true,
-		},
-		{
-			manifest: KubeProxyDaemonSet18,
-			data: struct{ ImageRepository, Arch, Version, ImageOverride, ClusterCIDR, MasterTaintKey, CloudTaintKey string }{
-				ImageRepository: "foo",
-				Arch:            "foo",
-				Version:         "foo",
-				ImageOverride:   "foo",
-				ClusterCIDR:     "foo",
-				MasterTaintKey:  "foo",
-				CloudTaintKey:   "foo",
 			},
 			expected: true,
 		},
@@ -240,7 +201,7 @@ func TestEnsureProxyAddon(t *testing.T) {
 			UnifiedControlPlaneImage: "someImage",
 		}
 
-		// Simulate an error if neccessary
+		// Simulate an error if necessary
 		switch tc.simError {
 		case ServiceAccountError:
 			client.PrependReactor("create", "serviceaccounts", func(action core.Action) (bool, runtime.Object, error) {

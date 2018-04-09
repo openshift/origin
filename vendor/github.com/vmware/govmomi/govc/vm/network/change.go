@@ -24,7 +24,6 @@ import (
 
 	"github.com/vmware/govmomi/govc/cli"
 	"github.com/vmware/govmomi/govc/flags"
-	"github.com/vmware/govmomi/vim25/types"
 )
 
 type change struct {
@@ -103,18 +102,7 @@ func (cmd *change) Run(ctx context.Context, f *flag.FlagSet) error {
 		return err
 	}
 
-	current := net.(types.BaseVirtualEthernetCard).GetVirtualEthernetCard()
-	changed := dev.(types.BaseVirtualEthernetCard).GetVirtualEthernetCard()
-
-	current.Backing = changed.Backing
-
-	if changed.MacAddress != "" {
-		current.MacAddress = changed.MacAddress
-	}
-
-	if changed.AddressType != "" {
-		current.AddressType = changed.AddressType
-	}
+	cmd.NetworkFlag.Change(net, dev)
 
 	return vm.EditDevice(ctx, net)
 }

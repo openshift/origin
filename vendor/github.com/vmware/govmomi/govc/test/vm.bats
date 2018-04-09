@@ -3,6 +3,8 @@
 load test_helper
 
 @test "vm.ip" {
+  esx_env
+
   id=$(new_ttylinux_vm)
 
   run govc vm.power -on $id
@@ -31,6 +33,8 @@ load test_helper
 }
 
 @test "vm.ip -esxcli" {
+  esx_env
+
   ok=$(govc host.esxcli system settings advanced list -o /Net/GuestIPHack | grep ^IntValue: | awk '{print $2}')
   if [ "$ok" != "1" ] ; then
     skip "/Net/GuestIPHack=0"
@@ -53,6 +57,8 @@ load test_helper
 }
 
 @test "vm.create" {
+  esx_env
+
   id=$(new_ttylinux_vm)
 
   run govc vm.power -on $id
@@ -66,6 +72,8 @@ load test_helper
 }
 
 @test "vm.change" {
+  esx_env
+
   id=$(new_ttylinux_vm)
 
   run govc vm.change -g ubuntu64Guest -m 1024 -c 2 -vm $id
@@ -99,6 +107,14 @@ load test_helper
   assert_success
   assert_line "SyncTimeWithHost: true"
 
+  run govc object.collect -s "vm/$id" config.memoryAllocation.reservation
+  assert_success 0
+
+  govc vm.change -vm "$id" -mem.reservation 1024
+
+  run govc object.collect -s "vm/$id" config.memoryAllocation.reservation
+  assert_success 1024
+
   nid=$(new_id)
   run govc vm.change -name $nid -vm $id
   assert_success
@@ -111,6 +127,8 @@ load test_helper
 }
 
 @test "vm.power" {
+  esx_env
+
   vm=$(new_ttylinux_vm)
 
   run vm_power_state $vm
@@ -138,7 +156,34 @@ load test_helper
   assert_success "poweredOn"
 }
 
+@test "vm.power -on -M" {
+  for esx in true false ; do
+    vcsim_env -esx=$esx -autostart=false
+
+    vms=($(govc find / -type m | sort))
+
+    # All VMs are off with -autostart=false
+    off=($(govc find / -type m -runtime.powerState poweredOff | sort))
+    assert_equal "${vms[*]}" "${off[*]}"
+
+    # Power on 1 VM to test that -M is idempotent
+    run govc vm.power -on "${vms[0]}"
+    assert_success
+
+    run govc vm.power -on -M "${vms[@]}"
+    assert_success
+
+    # All VMs should be powered on now
+    on=($(govc find / -type m -runtime.powerState poweredOn | sort))
+    assert_equal "${vms[*]}" "${on[*]}"
+
+    vcsim_stop
+  done
+}
+
 @test "vm.power -force" {
+  esx_env
+
   vm=$(new_id)
   govc vm.create $vm
 
@@ -171,6 +216,8 @@ load test_helper
 }
 
 @test "vm.create pvscsi" {
+  esx_env
+
   vm=$(new_id)
   govc vm.create -on=false -disk.controller pvscsi $vm
 
@@ -198,6 +245,8 @@ load test_helper
 }
 
 @test "vm.info" {
+  vcsim_env -esx
+
   local num=3
 
   local prefix=$(new_id)
@@ -215,6 +264,9 @@ load test_helper
     run govc vm.info -json $id
     assert_success
     assert_line "{\"VirtualMachines\":null}"
+
+    run govc vm.info -dump $id
+    assert_success
 
     run govc vm.create -on=false $id
     assert_success
@@ -254,9 +306,21 @@ load test_helper
   run govc vm.info -e $id
   assert_success
   assert_line "guestinfo.a: 2"
+  run govc vm.change -e "guestinfo.a=" -vm $id
+  assert_success
+  refute_line "guestinfo.a: 2"
+
+  # test optional bool Config
+  run govc vm.change -nested-hv-enabled=true -vm "$id"
+  assert_success
+
+  hv=$(govc vm.info -json "$id" | jq '.[][0].Config.NestedHVEnabled')
+  assert_equal "$hv" "true"
 }
 
 @test "vm.create linked ide disk" {
+  esx_env
+
   import_ttylinux_vmdk
 
   vm=$(new_id)
@@ -270,6 +334,8 @@ load test_helper
 }
 
 @test "vm.create linked scsi disk" {
+  esx_env
+
   import_ttylinux_vmdk
 
   vm=$(new_id)
@@ -288,6 +354,8 @@ load test_helper
 }
 
 @test "vm.create scsi disk" {
+  esx_env
+
   import_ttylinux_vmdk
 
   vm=$(new_id)
@@ -307,6 +375,8 @@ load test_helper
 }
 
 @test "vm.create scsi disk with datastore argument" {
+  esx_env
+
   import_ttylinux_vmdk
 
   vm=$(new_id)
@@ -320,6 +390,8 @@ load test_helper
 }
 
 @test "vm.create iso" {
+  esx_env
+
   upload_iso
 
   vm=$(new_id)
@@ -337,6 +409,8 @@ load test_helper
 }
 
 @test "vm.create iso with datastore argument" {
+  esx_env
+
   upload_iso
 
   vm=$(new_id)
@@ -350,6 +424,8 @@ load test_helper
 }
 
 @test "vm.disk.create empty vm" {
+  esx_env
+
   vm=$(new_empty_vm)
 
   local name=$(new_id)
@@ -368,6 +444,8 @@ load test_helper
 }
 
 @test "vm.disk.create" {
+  esx_env
+
   import_ttylinux_vmdk
 
   vm=$(new_id)
@@ -390,6 +468,8 @@ load test_helper
 }
 
 @test "vm.disk.attach" {
+  esx_env
+
   import_ttylinux_vmdk
 
   vm=$(new_id)
@@ -398,7 +478,8 @@ load test_helper
   result=$(govc device.ls -vm $vm | grep disk- | wc -l)
   [ $result -eq 1 ]
 
-  run govc import.vmdk $GOVC_TEST_VMDK_SRC $vm
+  id=$(new_id)
+  run govc import.vmdk $GOVC_TEST_VMDK_SRC $id
   assert_success
 
   run govc vm.disk.attach -vm $vm -link=false -disk enoent.vmdk
@@ -407,13 +488,15 @@ load test_helper
   run govc vm.disk.attach -vm $vm -disk enoent.vmdk
   assert_failure "govc: Invalid configuration for device '0'."
 
-  run govc vm.disk.attach -vm $vm -disk $vm/$(basename $GOVC_TEST_VMDK) -controller lsilogic-1000
+  run govc vm.disk.attach -vm $vm -disk $id/$(basename $GOVC_TEST_VMDK) -controller lsilogic-1000
   assert_success
   result=$(govc device.ls -vm $vm | grep disk- | wc -l)
   [ $result -eq 2 ]
 }
 
 @test "vm.create new disk with datastore argument" {
+  esx_env
+
   vm=$(new_id)
 
   run govc vm.create -disk="1GiB" -ds="${GOVC_DATASTORE}" -on=false -link=false $vm
@@ -439,54 +522,105 @@ load test_helper
 }
 
 @test "vm.register" {
+  esx_env
+
   run govc vm.unregister enoent
   assert_failure
 
   vm=$(new_empty_vm)
 
-  run govc vm.change -vm "$vm" -e foo=bar
-  assert_success
-
   run govc vm.unregister "$vm"
   assert_success
 
-  run govc vm.change -vm "$vm" -e foo=bar
-  assert_failure
-
   run govc vm.register "$vm/${vm}.vmx"
   assert_success
+}
 
-  run govc vm.change -vm "$vm" -e foo=bar
+@test "vm.register vcsim" {
+  vcsim_env -autostart=false
+
+  host=$GOVC_HOST
+  pool=$GOVC_RESOURCE_POOL
+
+  unset GOVC_HOST GOVC_RESOURCE_POOL
+
+  vm=DC0_H0_VM0
+
+  run govc vm.unregister $vm
+  assert_success
+
+  run govc vm.register "$vm/${vm}.vmx"
+  assert_failure # -pool is required
+
+  run govc vm.register -pool "$pool" "$vm/${vm}.vmx"
+  assert_success
+
+  run govc vm.unregister $vm
+  assert_success
+
+  run govc vm.register -template -pool "$pool" "$vm/${vm}.vmx"
+  assert_failure # -pool is not allowed w/ template
+
+  run govc vm.register -template -host "$host" "$vm/${vm}.vmx"
   assert_success
 }
 
 @test "vm.clone" {
   vcsim_env
+
   vm=$(new_empty_vm)
   clone=$(new_id)
 
-  run govc vm.clone -vm $vm $clone
+  run govc vm.clone -vm "$vm" "$clone"
   assert_success
 
-  result=$(govc device.ls -vm $clone | grep disk- | wc -l)
-  [ $result -eq 0 ]
+  clone=$(new_id)
+  run govc vm.clone -vm "$vm" -snapshot X "$clone"
+  assert_failure
 
-  result=$(govc device.ls -vm $clone | grep cdrom- | wc -l)
-  [ $result -eq 0 ]
+  run govc snapshot.create -vm "$vm" X
+  assert_success
+
+  run govc vm.clone -vm "$vm" -snapshot X "$clone"
+  assert_success
 }
 
 @test "vm.clone change resources" {
   vcsim_env
-  vm=$(new_ttylinux_vm)
+
+  vm=$(new_empty_vm)
   clone=$(new_id)
 
-  run govc vm.clone -m 1024 -c 2 -vm $vm $clone
+  run govc vm.info -r "$vm"
+  assert_success
+  assert_line "Network: $(basename "$GOVC_NETWORK")" # DVPG0
+
+  run govc vm.clone -m 1024 -c 2 -net "VM Network" -vm "$vm" "$clone"
   assert_success
 
-  run govc vm.info $clone
+  run govc vm.info -r "$clone"
   assert_success
   assert_line "Memory: 1024MB"
   assert_line "CPU: 2 vCPU(s)"
+  assert_line "Network: VM Network"
+
+  # Remove all NICs from source vm
+  run govc device.remove -vm "$vm" "$(govc device.ls -vm "$vm" | grep ethernet- | awk '{print $1}')"
+  assert_success
+
+  clone=$(new_id)
+
+  mac=00:00:0f:a7:a0:f1
+  run govc vm.clone -net "VM Network" -net.address $mac -vm "$vm" "$clone"
+  assert_success
+
+  run govc vm.info -r "$clone"
+  assert_success
+  assert_line "Network: VM Network"
+
+  run govc device.info -vm "$clone"
+  assert_success
+  assert_line "MAC Address: $mac"
 }
 
 @test "vm.clone usage" {
@@ -496,7 +630,8 @@ load test_helper
 }
 
 @test "vm.migrate" {
-  vcsim_env
+  vcsim_env -cluster 2
+
   vm=$(new_empty_vm)
 
   # migrate from H0 to H1
@@ -508,84 +643,95 @@ load test_helper
   assert_success
 }
 
-@test "vm.snapshot" {
-  vm=$(new_ttylinux_vm)
+@test "object name with slash" {
+  esx_env
+
+  vm=$(new_empty_vm)
+
+  name="$vm/with-slash"
+
+  # rename VM to include a '/'
+  run govc vm.change -vm "$vm" -name "$name"
+  assert_success
+
+  path=$(govc ls "vm/$name")
+
+  run govc vm.info "$name"
+  assert_success
+  assert_line "Name: $name"
+  assert_line "Path: $path"
+
+  run govc vm.info "$path"
+  assert_success
+  assert_line "Name: $name"
+  assert_line "Path: $path"
+
+  run govc find vm -name "$name"
+  assert_success "vm/$name"
+
+  # create a portgroup where name includes a '/'
+  net=$(new_id)/with-slash
+
+  run govc host.portgroup.add -vswitch vSwitch0 "$net"
+  assert_success
+
+  run govc vm.network.change -vm "$name" -net "$net" ethernet-0
+  assert_success
+
+  # change VM eth0 to use network that includes a '/' in the name
+  run govc device.info -vm "$name" ethernet-0
+  assert_success
+  assert_line "Summary: $net"
+
+  run govc host.portgroup.remove "$net"
+  assert_success
+}
+
+@test "vm.console" {
+  esx_env
+
+  vm=$(new_empty_vm)
+
+  run govc vm.console "$vm"
+  assert_failure
+
+  run govc vm.power -on "$vm"
+  assert_success
+
+  run govc vm.console "$vm"
+  assert_success
+
+  run govc vm.console -capture - "$vm"
+  assert_success
+}
+
+@test "vm.upgrade" {
+  esx_env
+
+  vm=$(new_empty_vm)
+
+  govc vm.upgrade -vm "$vm"
+  assert_success
+
+}
+
+@test "vm.markastemplate" {
+  vcsim_env
+
   id=$(new_id)
 
-  # No snapshots == no output
-  run govc snapshot.tree -vm "$vm"
-  assert_success ""
-
-  run govc snapshot.remove -vm "$vm" '*'
+  run govc vm.create -on=true "$id"
   assert_success
 
-  run govc snapshot.revert -vm "$vm"
+  run govc vm.markastemplate "$id"
   assert_failure
 
-  run govc snapshot.create -vm "$vm" "$id"
+  run govc vm.power -off "$id"
   assert_success
 
-  run govc snapshot.revert -vm "$vm" enoent
+  run govc vm.markastemplate "$id"
+  assert_success
+
+  run govc vm.power -on "$id"
   assert_failure
-
-  run govc snapshot.revert -vm "$vm"
-  assert_success
-
-  run govc snapshot.remove -vm "$vm" "$id"
-  assert_success
-
-  run govc snapshot.create -vm "$vm" root
-  assert_success
-
-  run govc snapshot.create -vm "$vm" child
-  assert_success
-
-  run govc snapshot.create -vm "$vm" grand
-  assert_success
-
-  run govc snapshot.create -vm "$vm" child
-  assert_success
-
-  result=$(govc snapshot.tree -vm "$vm" -f | grep -c root/child/grand/child)
-  [ "$result" -eq 1 ]
-
-  run govc snapshot.revert -vm "$vm" root
-  assert_success
-
-  run govc snapshot.create -vm "$vm" child
-  assert_success
-
-  # 3 snapshots named "child"
-  result=$(govc snapshot.tree -vm "$vm" | grep -c child)
-  [ "$result" -eq 3 ]
-
-  run govc snapshot.remove -vm "$vm" child
-  assert_failure
-
-  # 2 snapshots with path "root/child"
-  result=$(govc snapshot.tree -vm "$vm" -f | egrep -c 'root/child$')
-  [ "$result" -eq 2 ]
-
-  run govc snapshot.remove -vm "$vm" root/child
-  assert_failure
-
-  # path is unique
-  run govc snapshot.remove -vm "$vm" root/child/grand/child
-  assert_success
-
-  # name is unique
-  run govc snapshot.remove -vm "$vm" grand
-  assert_success
-
-  result=$(govc snapshot.tree -vm "$vm" -f | grep root/child/grand/child | wc -l)
-  [ "$result" -eq 0 ]
-
-  id=$(govc snapshot.tree -vm "$vm" -f -i | egrep 'root/child$' | head -n1 | awk '{print $1}' | tr -d '[]')
-  # moid is unique
-  run govc snapshot.remove -vm "$vm" "$id"
-  assert_success
-
-  # now root/child is unique
-  run govc snapshot.remove -vm "$vm" root/child
-  assert_success
 }

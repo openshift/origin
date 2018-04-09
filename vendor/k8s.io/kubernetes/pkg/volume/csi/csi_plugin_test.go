@@ -64,8 +64,7 @@ func newTestPlugin(t *testing.T) (*csiPlugin, string) {
 func makeTestPV(name string, sizeGig int, driverName, volID string) *api.PersistentVolume {
 	return &api.PersistentVolume{
 		ObjectMeta: meta.ObjectMeta{
-			Name:      name,
-			Namespace: testns,
+			Name: name,
 		},
 		Spec: api.PersistentVolumeSpec{
 			AccessModes: []api.PersistentVolumeAccessMode{api.ReadWriteOnce},
@@ -230,47 +229,17 @@ func TestPluginNewUnmounter(t *testing.T) {
 	csiUnmounter := unmounter.(*csiMountMgr)
 
 	if err != nil {
-		t.Fatalf("Failed to make a new Mounter: %v", err)
+		t.Fatalf("Failed to make a new Unmounter: %v", err)
 	}
 
 	if csiUnmounter == nil {
-		t.Fatal("failed to create CSI mounter")
+		t.Fatal("failed to create CSI Unmounter")
 	}
 
 	if csiUnmounter.podUID != testPodUID {
 		t.Error("podUID not set")
 	}
 
-}
-
-func TestValidateDriverName(t *testing.T) {
-	testCases := []struct {
-		name       string
-		driverName string
-		valid      bool
-	}{
-
-		{"ok no punctuations", "comgooglestoragecsigcepd", true},
-		{"ok dot only", "io.kubernetes.storage.csi.flex", true},
-		{"ok dash only", "io-kubernetes-storage-csi-flex", true},
-		{"ok underscore only", "io_kubernetes_storage_csi_flex", true},
-		{"ok dot underscores", "io.kubernetes.storage_csi.flex", true},
-		{"ok dot dash underscores", "io.kubernetes-storage.csi_flex", true},
-
-		{"invalid length 0", "", false},
-		{"invalid length > 63", "comgooglestoragecsigcepdcomgooglestoragecsigcepdcomgooglestoragecsigcepdcomgooglestoragecsigcepd", false},
-		{"invalid start char", "_comgooglestoragecsigcepd", false},
-		{"invalid end char", "comgooglestoragecsigcepd/", false},
-		{"invalid separators", "com/google/storage/csi~gcepd", false},
-	}
-
-	for _, tc := range testCases {
-		t.Logf("test case: %v", tc.name)
-		drValid := isDriverNameValid(tc.driverName)
-		if tc.valid != drValid {
-			t.Errorf("expecting driverName %s as valid=%t, but got valid=%t", tc.driverName, tc.valid, drValid)
-		}
-	}
 }
 
 func TestPluginNewAttacher(t *testing.T) {
@@ -305,6 +274,6 @@ func TestPluginNewDetacher(t *testing.T) {
 		t.Error("plugin not set for detacher")
 	}
 	if csiDetacher.k8s == nil {
-		t.Error("Kubernetes client not set for attacher")
+		t.Error("Kubernetes client not set for detacher")
 	}
 }

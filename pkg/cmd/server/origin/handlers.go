@@ -33,6 +33,7 @@ var cacheExcludedPathPrefixes = []string{
 	"/swagger-2.0.0.pb-v1.gz",
 	"/swagger.json",
 	"/swaggerapi",
+	"/openapi/",
 }
 
 // cacheControlFilter sets the Cache-Control header to the specified value.

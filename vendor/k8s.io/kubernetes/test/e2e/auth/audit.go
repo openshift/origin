@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	apiv1 "k8s.io/api/core/v1"
 	extensions "k8s.io/api/extensions/v1beta1"
@@ -29,13 +30,13 @@ import (
 	"k8s.io/apiextensions-apiserver/test/integration/testserver"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/apis/audit/v1beta1"
 	"k8s.io/kubernetes/test/e2e/framework"
 	imageutils "k8s.io/kubernetes/test/utils/image"
 
 	"github.com/evanphx/json-patch"
 	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 )
 
 var (
@@ -203,27 +204,27 @@ var _ = SIGDescribe("Advanced Audit", func() {
 					podLabels := map[string]string{"name": "audit-deployment-pod"}
 					d := framework.NewDeployment("audit-deployment", int32(1), podLabels, "redis", imageutils.GetE2EImage(imageutils.Redis), extensions.RecreateDeploymentStrategyType)
 
-					_, err := f.ClientSet.Extensions().Deployments(namespace).Create(d)
+					_, err := f.ClientSet.ExtensionsV1beta1().Deployments(namespace).Create(d)
 					framework.ExpectNoError(err, "failed to create audit-deployment")
 
-					_, err = f.ClientSet.Extensions().Deployments(namespace).Get(d.Name, metav1.GetOptions{})
+					_, err = f.ClientSet.ExtensionsV1beta1().Deployments(namespace).Get(d.Name, metav1.GetOptions{})
 					framework.ExpectNoError(err, "failed to get audit-deployment")
 
-					deploymentChan, err := f.ClientSet.Extensions().Deployments(namespace).Watch(watchOptions)
+					deploymentChan, err := f.ClientSet.ExtensionsV1beta1().Deployments(namespace).Watch(watchOptions)
 					framework.ExpectNoError(err, "failed to create watch for deployments")
 					for range deploymentChan.ResultChan() {
 					}
 
-					_, err = f.ClientSet.Extensions().Deployments(namespace).Update(d)
+					_, err = f.ClientSet.ExtensionsV1beta1().Deployments(namespace).Update(d)
 					framework.ExpectNoError(err, "failed to update audit-deployment")
 
-					_, err = f.ClientSet.Extensions().Deployments(namespace).Patch(d.Name, types.JSONPatchType, patch)
+					_, err = f.ClientSet.ExtensionsV1beta1().Deployments(namespace).Patch(d.Name, types.JSONPatchType, patch)
 					framework.ExpectNoError(err, "failed to patch deployment")
 
-					_, err = f.ClientSet.Extensions().Deployments(namespace).List(metav1.ListOptions{})
+					_, err = f.ClientSet.ExtensionsV1beta1().Deployments(namespace).List(metav1.ListOptions{})
 					framework.ExpectNoError(err, "failed to create list deployments")
 
-					err = f.ClientSet.Extensions().Deployments(namespace).Delete("audit-deployment", &metav1.DeleteOptions{})
+					err = f.ClientSet.ExtensionsV1beta1().Deployments(namespace).Delete("audit-deployment", &metav1.DeleteOptions{})
 					framework.ExpectNoError(err, "failed to delete deployments")
 				},
 				[]auditEvent{
@@ -630,7 +631,18 @@ var _ = SIGDescribe("Advanced Audit", func() {
 			expectedEvents = append(expectedEvents, t.events...)
 		}
 
-		expectAuditLines(f, expectedEvents)
+		// The default flush timeout is 30 seconds, therefore it should be enough to retry once
+		// to find all expected events. However, we're waiting for 5 minutes to avoid flakes.
+		pollingInterval := 30 * time.Second
+		pollingTimeout := 5 * time.Minute
+		err = wait.Poll(pollingInterval, pollingTimeout, func() (bool, error) {
+			ok, err := checkAuditLines(f, expectedEvents)
+			if err != nil {
+				framework.Logf("Failed to observe audit events: %v", err)
+			}
+			return ok, nil
+		})
+		framework.ExpectNoError(err, "after %v failed to observe audit events", pollingTimeout)
 	})
 })
 
@@ -648,7 +660,7 @@ type auditEvent struct {
 }
 
 // Search the audit log for the expected audit lines.
-func expectAuditLines(f *framework.Framework, expected []auditEvent) {
+func checkAuditLines(f *framework.Framework, expected []auditEvent) (bool, error) {
 	expectations := map[auditEvent]bool{}
 	for _, event := range expected {
 		expectations[event] = false
@@ -656,25 +668,36 @@ func expectAuditLines(f *framework.Framework, expected []auditEvent) {
 
 	// Fetch the log stream.
 	stream, err := f.ClientSet.CoreV1().RESTClient().Get().AbsPath("/logs/kube-apiserver-audit.log").Stream()
-	framework.ExpectNoError(err, "could not read audit log")
+	if err != nil {
+		return false, err
+	}
 	defer stream.Close()
 
 	scanner := bufio.NewScanner(stream)
 	for scanner.Scan() {
 		line := scanner.Text()
 		event, err := parseAuditLine(line)
-		framework.ExpectNoError(err)
+		if err != nil {
+			return false, err
+		}
 
 		// If the event was expected, mark it as found.
 		if _, found := expectations[event]; found {
 			expectations[event] = true
 		}
 	}
-	framework.ExpectNoError(scanner.Err(), "error reading audit log")
-
-	for event, found := range expectations {
-		Expect(found).To(BeTrue(), "Event %#v not found!", event)
+	if err := scanner.Err(); err != nil {
+		return false, err
 	}
+
+	noneMissing := true
+	for event, found := range expectations {
+		if !found {
+			framework.Logf("Event %#v not found!", event)
+		}
+		noneMissing = noneMissing && found
+	}
+	return noneMissing, nil
 }
 
 func parseAuditLine(line string) (auditEvent, error) {

@@ -822,8 +822,7 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out, errout io.Write
 	list := &kapi.List{Items: objects}
 
 	if cfg.Action.ShouldPrint() {
-		mapper, _ := f.Object()
-		fn := cmdutil.VersionedPrintObject(f.PrintObject, cmd, mapper, out)
+		fn := cmdutil.VersionedPrintObject(kcmdutil.PrintObject, cmd, out)
 		if err := fn(list); err != nil {
 			return fmt.Errorf("unable to print object: %v", err)
 		}

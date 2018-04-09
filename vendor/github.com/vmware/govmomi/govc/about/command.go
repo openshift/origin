@@ -107,3 +107,10 @@ func (r *infoResult) Write(w io.Writer) error {
 	fmt.Fprintf(tw, "UUID:\t%s\n", r.a.InstanceUuid)
 	return tw.Flush()
 }
+
+func (r *infoResult) Dump() interface{} {
+	if r.Content != nil {
+		return r.Content
+	}
+	return r.About
+}

@@ -10,6 +10,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apiserver/pkg/admission"
 	admissionmetrics "k8s.io/apiserver/pkg/admission/metrics"
 	"k8s.io/apiserver/pkg/audit"
 	genericapiserver "k8s.io/apiserver/pkg/server"
@@ -165,16 +166,18 @@ func BuildMasterConfig(
 	if err != nil {
 		return nil, err
 	}
-	admissionDecorator := namespaceconditions.NamespaceLabelConditions{
-		Delegate: admissionmetrics.WithControllerMetrics,
-
+	namespaceLabelDecorator := namespaceconditions.NamespaceLabelConditions{
 		NamespaceClient: privilegedLoopbackKubeClientsetExternal.CoreV1(),
 		NamespaceLister: informers.GetExternalKubeInformers().Core().V1().Namespaces().Lister(),
 
 		SkipLevelZeroNames: originadmission.SkipRunLevelZeroPlugins,
 		SkipLevelOneNames:  originadmission.SkipRunLevelOnePlugins,
 	}
-	admission, err := originadmission.NewAdmissionChains(options, admissionInitializer, admissionDecorator.WithNamespaceLabelConditions)
+	admissionDecorators := admission.Decorators{
+		admission.DecoratorFunc(namespaceLabelDecorator.WithNamespaceLabelConditions),
+		admission.DecoratorFunc(admissionmetrics.WithControllerMetrics),
+	}
+	admission, err := originadmission.NewAdmissionChains(options, admissionInitializer, admissionDecorators)
 	if err != nil {
 		return nil, err
 	}

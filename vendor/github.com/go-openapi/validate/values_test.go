@@ -24,9 +24,9 @@ func TestValidateIntEnum(t *testing.T) {
 	enumValues := []interface{}{1, 2, 3}
 
 	err := Enum("test", "body", int64(5), enumValues)
-	assert.Error(t, err)
-	err = Enum("test", "body", int64(1), enumValues)
-	assert.NoError(t, err)
+	assert.NotNil(t, err)
+	err2 := Enum("test", "body", int64(1), enumValues)
+	assert.Nil(t, err2)
 }
 
 func TestValidateEnum(t *testing.T) {
@@ -35,7 +35,7 @@ func TestValidateEnum(t *testing.T) {
 	err := Enum("test", "body", "a", enumValues)
 	assert.Error(t, err)
 	err = Enum("test", "body", "bb", enumValues)
-	assert.NoError(t, err)
+	assert.Nil(t, err)
 }
 
 func TestValidateUniqueItems(t *testing.T) {
@@ -62,7 +62,7 @@ func TestValidateUniqueItems(t *testing.T) {
 	}
 	for _, v := range itemsUnique {
 		err = UniqueItems("test", "body", v)
-		assert.NoError(t, err)
+		assert.Nil(t, err)
 	}
 }
 
@@ -71,7 +71,7 @@ func TestValidateMinLength(t *testing.T) {
 	err := MinLength("test", "body", "aa", minLength)
 	assert.Error(t, err)
 	err = MinLength("test", "body", "aaaaa", minLength)
-	assert.NoError(t, err)
+	assert.Nil(t, err)
 }
 
 func TestValidateMaxLength(t *testing.T) {
@@ -79,7 +79,7 @@ func TestValidateMaxLength(t *testing.T) {
 	err := MaxLength("test", "body", "bbbbbb", maxLength)
 	assert.Error(t, err)
 	err = MaxLength("test", "body", "aa", maxLength)
-	assert.NoError(t, err)
+	assert.Nil(t, err)
 }
 
 func TestValidateRequired(t *testing.T) {
@@ -107,7 +107,7 @@ func TestValidateRequired(t *testing.T) {
 
 	for _, v := range RequiredSuccess {
 		err = Required(path, in, v)
-		assert.NoError(t, err)
+		assert.Nil(t, err)
 	}
 
 }
@@ -116,5 +116,42 @@ func TestValidateRequiredNumber(t *testing.T) {
 	err := RequiredNumber("test", "body", 0)
 	assert.Error(t, err)
 	err = RequiredNumber("test", "body", 1)
-	assert.NoError(t, err)
+	assert.Nil(t, err)
+}
+
+func TestMultipleOf(t *testing.T) {
+
+	// positive
+
+	err := MultipleOf("test", "body", 9, 3)
+	assert.Nil(t, err)
+
+	err = MultipleOf("test", "body", 9.3, 3.1)
+	assert.Nil(t, err)
+
+	err = MultipleOf("test", "body", 9.1, 0.1)
+	assert.Nil(t, err)
+
+	err = MultipleOf("test", "body", 3, 0.3)
+	assert.Nil(t, err)
+
+	err = MultipleOf("test", "body", 6, 0.3)
+	assert.Nil(t, err)
+
+	err = MultipleOf("test", "body", 1, 0.25)
+	assert.Nil(t, err)
+
+	err = MultipleOf("test", "body", 8, 0.2)
+	assert.Nil(t, err)
+
+	// negative
+
+	err = MultipleOf("test", "body", 3, 0.4)
+	assert.Error(t, err)
+
+	err = MultipleOf("test", "body", 9.1, 0.2)
+	assert.Error(t, err)
+
+	err = MultipleOf("test", "body", 9.34, 0.1)
+	assert.Error(t, err)
 }

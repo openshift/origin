@@ -3,28 +3,32 @@
 load test_helper
 
 @test "object.destroy" {
-    run govc object.destroy "/enoent"
-    assert_failure
+  vcsim_env
 
-    run govc object.destroy
-    assert_failure
+  run govc object.destroy "/enoent"
+  assert_failure
 
-    vm=$(new_id)
-    run govc vm.create "$vm"
-    assert_success
+  run govc object.destroy
+  assert_failure
 
-    # fails when powered on
-    run govc object.destroy "vm/$vm"
-    assert_failure
+  vm=$(new_id)
+  run govc vm.create "$vm"
+  assert_success
 
-    run govc vm.power -off "$vm"
-    assert_success
+  # fails when powered on
+  run govc object.destroy "vm/$vm"
+  assert_failure
 
-    run govc object.destroy "vm/$vm"
-    assert_success
+  run govc vm.power -off "$vm"
+  assert_success
+
+  run govc object.destroy "vm/$vm"
+  assert_success
 }
 
 @test "object.rename" {
+  esx_env
+
   run govc object.rename "/enoent" "nope"
   assert_failure
 
@@ -73,6 +77,8 @@ load test_helper
 }
 
 @test "object.collect" {
+  esx_env
+
   run govc object.collect
   assert_success
 
@@ -127,7 +133,237 @@ load test_helper
   assert_success
 }
 
+@test "object.collect vcsim" {
+  vcsim_env -app 1 -pool 1
+
+  run govc object.collect -s -type ClusterComputeResource / configStatus
+  assert_success green
+
+  run govc object.collect -s -type ClusterComputeResource / effectiveRole
+  assert_number
+
+  run govc object.collect -s -type ComputeResource / configStatus
+  assert_success "$(printf "green\ngreen")"
+
+  run govc object.collect -s -type ComputeResource / effectiveRole
+  assert_number
+
+  run govc object.collect -s -type Datacenter / effectiveRole
+  assert_number
+
+  run govc object.collect -s -type Datastore / effectiveRole
+  assert_number
+
+  run govc object.collect -s -type DistributedVirtualPortgroup / config.key
+  assert_matches dvportgroup-
+
+  run govc object.collect -s -type DistributedVirtualPortgroup / config.name
+  assert_success DC0_DVPG0
+
+  run govc object.collect -s -type DistributedVirtualPortgroup / effectiveRole
+  assert_number
+
+  run govc object.collect -s -type DistributedVirtualSwitch / effectiveRole
+  assert_number
+
+  run govc object.collect -s -type DistributedVirtualSwitch / summary.name
+  assert_success DVS0
+
+  run govc object.collect -s -type DistributedVirtualSwitch / summary.productInfo.name
+  assert_success DVS
+
+  run govc object.collect -s -type DistributedVirtualSwitch / summary.productInfo.vendor
+  assert_success "VMware, Inc."
+
+  run govc object.collect -s -type DistributedVirtualSwitch / summary.productInfo.version
+  assert_success 6.5.0
+
+  run govc object.collect -s -type DistributedVirtualSwitch / summary.uuid
+  assert_matches "-"
+
+  run govc object.collect -s -type Folder / effectiveRole
+  assert_number
+
+  run govc object.collect -json -type HostSystem / config.storageDevice.scsiLun
+  assert_matches /vmfs/devices
+
+  run govc object.collect -json -type HostSystem / config.storageDevice.scsiTopology
+  assert_matches host.ScsiTopology
+
+  run govc object.collect -s -type HostSystem / effectiveRole
+  assert_number
+
+  run govc object.collect -s -type Network / effectiveRole
+  assert_number
+
+  run govc object.collect -s -type ResourcePool / resourcePool
+  # DC0_C0/Resources has 1 child ResourcePool and 1 child VirtualApp
+  assert_matches "ResourcePool:"
+  assert_matches "VirtualApp:"
+
+  run govc object.collect -s -type VirtualApp / effectiveRole
+  assert_number
+
+  run govc object.collect -s -type VirtualApp / name
+  assert_success DC0_C0_APP0
+
+  run govc object.collect -s -type VirtualApp / owner
+  assert_matches ":"
+
+  run govc object.collect -s -type VirtualApp / parent
+  assert_matches ":"
+
+  run govc object.collect -s -type VirtualApp / resourcePool
+  assert_success "" # no VirtualApp children
+
+  run govc object.collect -s -type VirtualApp / summary.config.cpuAllocation.limit
+  assert_number
+
+  run govc object.collect -s -type VirtualApp / summary.config.cpuAllocation.reservation
+  assert_number
+
+  run govc object.collect -s -type VirtualApp / summary.config.memoryAllocation.limit
+  assert_number
+
+  run govc object.collect -s -type VirtualApp / summary.config.memoryAllocation.reservation
+  assert_number
+
+  run govc object.collect -s -type VirtualApp / vm
+  assert_matches "VirtualMachine:"
+
+  run govc object.collect -s -type VirtualMachine / config.tools.toolsVersion
+  assert_number
+
+  run govc object.collect -s -type VirtualMachine / effectiveRole
+  assert_number
+
+  run govc object.collect -s -type VirtualMachine / summary.guest.toolsStatus
+  assert_matches toolsNotInstalled
+
+  run govc object.collect -s /DC0/vm/DC0_H0_VM0 config.hardware.numCoresPerSocket
+  assert_success 1
+
+  run govc object.collect -s -type ClusterComputeResource / summary.effectiveCpu
+  assert_number
+
+  run govc object.collect -s -type ClusterComputeResource / summary.effectiveMemory
+  assert_number
+
+  run govc object.collect -s -type ClusterComputeResource / summary.numCpuCores
+  assert_number
+
+  run govc object.collect -s -type ClusterComputeResource / summary.numCpuThreads
+  assert_number
+
+  run govc object.collect -s -type ClusterComputeResource / summary.numEffectiveHosts
+  assert_number
+
+  run govc object.collect -s -type ClusterComputeResource / summary.numHosts
+  assert_number
+
+  run govc object.collect -s -type ClusterComputeResource / summary.totalCpu
+  assert_number
+
+  run govc object.collect -s -type ClusterComputeResource / summary.totalMemory
+  assert_number
+
+  run govc object.collect -s -type ComputeResource / summary.effectiveCpu
+  assert_number
+
+  run govc object.collect -s -type ComputeResource / summary.effectiveMemory
+  assert_number
+
+  run govc object.collect -s -type ComputeResource / summary.numCpuCores
+  assert_number
+
+  run govc object.collect -s -type ComputeResource / summary.numCpuThreads
+  assert_number
+
+  run govc object.collect -s -type ComputeResource / summary.numEffectiveHosts
+  assert_number
+
+  run govc object.collect -s -type ComputeResource / summary.numHosts
+  assert_number
+
+  run govc object.collect -s -type ComputeResource / summary.totalCpu
+  assert_number
+
+  run govc object.collect -s -type ComputeResource / summary.totalMemory
+  assert_number
+
+  run govc object.collect -s -type Network / summary.accessible
+  assert_success "$(printf "true\ntrue")"
+
+  run govc object.collect -s -type Network / summary.ipPoolName
+  assert_success ""
+
+  # check that uuid and instanceUuid are set under both config and summary.config
+  for prop in config summary.config ; do
+    uuids=$(govc object.collect -s -type m / "$prop.uuid" | sort)
+    [ -n "$uuids" ]
+    iuuids=$(govc object.collect -s -type m / "$prop.instanceUuid" | sort)
+    [ -n "$iuuids" ]
+
+    [ "$uuids" != "$iuuids" ]
+  done
+}
+
+@test "object.collect view" {
+  vcsim_env -dc 2 -folder 1
+
+  run govc object.collect -type m
+  assert_success
+
+  run govc object.collect -type m / -name '*C0*'
+  assert_success
+
+  run govc object.collect -type m / -name
+  assert_success
+
+  run govc object.collect -type m / name runtime.powerState
+  assert_success
+
+  run govc object.collect -type m -type h /F0 name
+  assert_success
+
+  run govc object.collect -type n / name
+  assert_success
+
+  run govc object.collect -type enoent / name
+  assert_failure
+}
+
+@test "object.collect raw" {
+  vcsim_env
+
+  govc object.collect -R - <<EOF | grep serverClock
+<?xml version="1.0" encoding="UTF-8"?>
+<Envelope xmlns="http://schemas.xmlsoap.org/soap/envelope/">
+ <Body>
+  <CreateFilter xmlns="urn:vim25">
+   <_this type="PropertyCollector">PropertyCollector</_this>
+   <spec>
+    <propSet>
+     <type>ServiceInstance</type>
+     <all>true</all>
+    </propSet>
+    <objectSet>
+     <obj type="ServiceInstance">ServiceInstance</obj>
+    </objectSet>
+   </spec>
+   <partialUpdates>false</partialUpdates>
+  </CreateFilter>
+ </Body>
+</Envelope>
+EOF
+
+  govc object.collect -O | grep types.CreateFilter
+  govc object.collect -O -json | jq .
+}
+
 @test "object.find" {
+  esx_env
+
   unset GOVC_DATACENTER
 
   run govc find "/enoent"
@@ -210,7 +446,7 @@ load test_helper
 }
 
 @test "object.method" {
-  vcsim_env
+  vcsim_env_todo
 
   vm=$(govc find vm -type m | head -1)
 
