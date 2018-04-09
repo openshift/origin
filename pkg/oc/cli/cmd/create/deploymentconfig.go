@@ -3,7 +3,6 @@ package create
 import (
 	"fmt"
 	"io"
-	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -17,6 +16,7 @@ import (
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsclientinternal "github.com/openshift/origin/pkg/apps/generated/internalclientset"
 	appsinternalversion "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
 var DeploymentConfigRecommendedName = "deploymentconfig"
@@ -78,6 +78,7 @@ func (o *CreateDeploymentConfigOptions) Complete(cmd *cobra.Command, f kcmdutil.
 	case len(image) == 0:
 		return fmt.Errorf("--image is required: %v", args)
 	}
+	imageRef, _ := imageapi.ParseDockerImageReference(image)
 
 	labels := map[string]string{"deployment-config.name": args[0]}
 
@@ -92,7 +93,7 @@ func (o *CreateDeploymentConfigOptions) Complete(cmd *cobra.Command, f kcmdutil.
 				Spec: kapi.PodSpec{
 					Containers: []kapi.Container{
 						{
-							Name:  parseImageName(image),
+							Name:  imageRef.Name,
 							Image: image,
 							Args:  args[1:],
 						},
@@ -125,21 +126,6 @@ func (o *CreateDeploymentConfigOptions) Complete(cmd *cobra.Command, f kcmdutil.
 	}
 
 	return nil
-}
-
-// parseImageName parses the image strings and returns just the image name
-func parseImageName(imageString string) string {
-	// Retain just the image name
-	imageSplit := strings.Split(imageString, "/")
-	name := imageSplit[len(imageSplit)-1]
-	// Remove any tag or hash
-	if strings.Contains(name, ":") {
-		name = strings.Split(name, ":")[0]
-	}
-	if strings.Contains(name, "@") {
-		name = strings.Split(name, "@")[0]
-	}
-	return name
 }
 
 func (o *CreateDeploymentConfigOptions) Validate() error {
