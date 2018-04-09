@@ -35,6 +35,7 @@ import (
 	utiluuid "k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/apimachinery/pkg/watch"
 	clientset "k8s.io/client-go/kubernetes"
+	scaleclient "k8s.io/client-go/scale"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/kubernetes/pkg/apis/batch"
@@ -65,6 +66,7 @@ type DensityTestConfig struct {
 	Configs            []testutils.RunObjectConfig
 	ClientSets         []clientset.Interface
 	InternalClientsets []internalclientset.Interface
+	ScaleClients       []scaleclient.ScalesGetter
 	PollInterval       time.Duration
 	PodCount           int
 	// What kind of resource we want to create
@@ -115,6 +117,7 @@ func (dtc *DensityTestConfig) deleteDaemonSets(numberOfClients int, testPhase *t
 		framework.ExpectNoError(framework.DeleteResourceAndPods(
 			dtc.ClientSets[i%numberOfClients],
 			dtc.InternalClientsets[i%numberOfClients],
+			dtc.ScaleClients[i%numberOfClients],
 			extensions.Kind("DaemonSet"),
 			dtc.DaemonConfigs[i].Namespace,
 			dtc.DaemonConfigs[i].Name,
@@ -319,7 +322,7 @@ func cleanupDensityTest(dtc DensityTestConfig, testPhaseDurations *timer.TestPha
 			framework.ExpectNoError(err)
 		} else {
 			By(fmt.Sprintf("Cleaning up the %v and pods", kind))
-			err := framework.DeleteResourceAndPods(dtc.ClientSets[i%numberOfClients], dtc.InternalClientsets[i%numberOfClients], kind, namespace, name)
+			err := framework.DeleteResourceAndPods(dtc.ClientSets[i%numberOfClients], dtc.InternalClientsets[i%numberOfClients], dtc.ScaleClients[i%numberOfClients], kind, namespace, name)
 			framework.ExpectNoError(err)
 		}
 	}
@@ -612,11 +615,12 @@ var _ = SIGDescribe("Density", func() {
 			}
 
 			// Single client is running out of http2 connections in delete phase, hence we need more.
-			clients, internalClients, _, err = createClients(2)
+			clients, internalClients, scalesClients, err = createClients(2)
 
 			dConfig := DensityTestConfig{
 				ClientSets:         clients,
 				InternalClientsets: internalClients,
+				ScaleClients:       scalesClients,
 				Configs:            configs,
 				PodCount:           totalPods,
 				PollInterval:       DensityPollInterval,
