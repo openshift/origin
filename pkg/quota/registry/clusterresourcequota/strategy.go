@@ -1,6 +1,8 @@
 package clusterresourcequota
 
 import (
+	"github.com/golang/glog"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
@@ -93,6 +95,9 @@ func (statusStrategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.
 	curr := obj.(*quotaapi.ClusterResourceQuota)
 	prev := old.(*quotaapi.ClusterResourceQuota)
 
+	if curr.Name == "for-deads" {
+		glog.V(1).Infof("Updating clusterresourcequota %s: %#v", curr.Name, curr.Status)
+	}
 	curr.Spec = prev.Spec
 }
 
