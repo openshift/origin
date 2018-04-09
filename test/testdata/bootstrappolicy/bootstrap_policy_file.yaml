@@ -5276,6 +5276,7 @@ items:
     - apps
     attributeRestrictions: null
     resources:
+    - daemonsets
     - deployments
     - deployments/rollback
     - deployments/scale
@@ -5290,15 +5291,6 @@ items:
     - list
     - patch
     - update
-    - watch
-  - apiGroups:
-    - apps
-    attributeRestrictions: null
-    resources:
-    - daemonsets
-    verbs:
-    - get
-    - list
     - watch
   - apiGroups:
     - autoscaling
@@ -5333,6 +5325,7 @@ items:
     - extensions
     attributeRestrictions: null
     resources:
+    - daemonsets
     - deployments
     - deployments/rollback
     - deployments/scale
@@ -5348,15 +5341,6 @@ items:
     - list
     - patch
     - update
-    - watch
-  - apiGroups:
-    - extensions
-    attributeRestrictions: null
-    resources:
-    - daemonsets
-    verbs:
-    - get
-    - list
     - watch
   - apiGroups:
     - policy
@@ -5483,6 +5467,7 @@ items:
     - apps
     attributeRestrictions: null
     resources:
+    - daemonsets
     - deployments
     - deployments/rollback
     - deployments/scale
@@ -5497,15 +5482,6 @@ items:
     - list
     - patch
     - update
-    - watch
-  - apiGroups:
-    - apps
-    attributeRestrictions: null
-    resources:
-    - daemonsets
-    verbs:
-    - get
-    - list
     - watch
   - apiGroups:
     - autoscaling
@@ -5540,6 +5516,7 @@ items:
     - extensions
     attributeRestrictions: null
     resources:
+    - daemonsets
     - deployments
     - deployments/rollback
     - deployments/scale
@@ -5555,15 +5532,6 @@ items:
     - list
     - patch
     - update
-    - watch
-  - apiGroups:
-    - extensions
-    attributeRestrictions: null
-    resources:
-    - daemonsets
-    verbs:
-    - get
-    - list
     - watch
   - apiGroups:
     - policy
