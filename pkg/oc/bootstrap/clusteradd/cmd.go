@@ -10,6 +10,7 @@ import (
 	"github.com/openshift/origin/pkg/oc/bootstrap/clusteradd/components/default-imagestreams"
 	"github.com/openshift/origin/pkg/oc/bootstrap/clusteradd/components/registry"
 	"github.com/openshift/origin/pkg/oc/bootstrap/clusteradd/components/router"
+	"github.com/openshift/origin/pkg/oc/bootstrap/clusteradd/components/sample-templates"
 	"github.com/openshift/origin/pkg/oc/bootstrap/clusteradd/components/service-catalog"
 	"github.com/openshift/origin/pkg/oc/bootstrap/clusteradd/components/template-service-broker"
 	"github.com/openshift/origin/pkg/oc/bootstrap/clusteradd/components/web-console"
@@ -57,6 +58,9 @@ var availableComponents = map[string]func(ctx componentinstall.Context) componen
 	},
 	"router": func(ctx componentinstall.Context) componentinstall.Component {
 		return &router.RouterComponentOptions{InstallContext: ctx}
+	},
+	"sample-templates": func(ctx componentinstall.Context) componentinstall.Component {
+		return &sample_templates.SampleTemplatesComponentOptions{InstallContext: ctx}
 	},
 	"service-catalog": func(ctx componentinstall.Context) componentinstall.Component {
 		return &service_catalog.ServiceCatalogComponentOptions{InstallContext: ctx}

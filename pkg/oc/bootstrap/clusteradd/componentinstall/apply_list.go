@@ -100,7 +100,7 @@ func (opt *installReadyList) Install(dockerClient dockerhelper.Interface, logdir
 		return lastErr
 	}
 
-	if opt.WaitCondition == nil {
+	if opt.list.WaitCondition == nil {
 		return nil
 	}
 
