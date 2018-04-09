@@ -230,7 +230,7 @@ func (s *RecreateDeploymentStrategy) scaleAndWait(deployment *kapi.ReplicationCo
 	}
 	var scaleErr error
 	err := wait.PollImmediate(1*time.Second, 30*time.Second, func() (bool, error) {
-		scaleErr = s.scaler.Scale(deployment.Namespace, deployment.Name, uint(replicas), &kubectl.ScalePrecondition{Size: -1, ResourceVersion: ""}, retry, retryParams)
+		scaleErr = s.scaler.Scale(deployment.Namespace, deployment.Name, uint(replicas), &kubectl.ScalePrecondition{Size: -1, ResourceVersion: ""}, retry, retryParams, kapi.Resource("replicationcontrollers"))
 		if scaleErr == nil {
 			return true, nil
 		}

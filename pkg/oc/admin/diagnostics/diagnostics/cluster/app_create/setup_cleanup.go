@@ -8,6 +8,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 
+	appsutil "github.com/openshift/origin/pkg/apps/util"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	newproject "github.com/openshift/origin/pkg/oc/admin/project"
 	appscmd "github.com/openshift/origin/pkg/oc/cli/deploymentconfigs"
@@ -82,7 +83,7 @@ func (d *AppCreate) cleanupApp() {
 	d.out.Debug("DCluAC043", fmt.Sprintf("%s: Deleting components of app '%s' if present.", now(), d.appName))
 
 	// reap the DC's deployments first
-	if err := appscmd.NewDeploymentConfigReaper(d.AppsClient, d.KubeClient).Stop(d.project, d.appName, time.Duration(1)*time.Second, nil); err != nil {
+	if err := appscmd.NewDeploymentConfigReaper(d.AppsClient, d.KubeClient, appsutil.NewReplicationControllerV1ScaleClient(d.KubeClient)).Stop(d.project, d.appName, time.Duration(1)*time.Second, nil); err != nil {
 		errs = append(errs, err)
 	}
 

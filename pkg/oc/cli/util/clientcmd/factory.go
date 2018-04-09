@@ -58,7 +58,7 @@ var _ kcmdutil.Factory = &Factory{}
 func NewFactory(optionalClientConfig kclientcmd.ClientConfig) *Factory {
 	clientAccessFactory := NewClientAccessFactory(optionalClientConfig)
 	objectMappingFactory := NewObjectMappingFactory(clientAccessFactory)
-	builderFactory := kcmdutil.NewBuilderFactory(clientAccessFactory, objectMappingFactory)
+	builderFactory := NewBuilderFactory(clientAccessFactory, objectMappingFactory)
 
 	return &Factory{
 		ClientAccessFactory:  clientAccessFactory,
