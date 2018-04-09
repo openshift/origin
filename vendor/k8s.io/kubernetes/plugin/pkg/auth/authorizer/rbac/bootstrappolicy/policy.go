@@ -227,18 +227,17 @@ func ClusterRoles() []rbac.ClusterRole {
 				rbac.NewRule("impersonate").Groups(legacyGroup).Resources("serviceaccounts").RuleOrDie(),
 
 				rbac.NewRule(ReadWrite...).Groups(appsGroup).Resources("statefulsets",
+					"daemonsets",
 					"deployments", "deployments/scale", "deployments/rollback",
 					"replicasets", "replicasets/scale").RuleOrDie(),
-				rbac.NewRule(Read...).Groups(appsGroup).Resources("daemonsets").RuleOrDie(),
 
 				rbac.NewRule(ReadWrite...).Groups(autoscalingGroup).Resources("horizontalpodautoscalers").RuleOrDie(),
 
 				rbac.NewRule(ReadWrite...).Groups(batchGroup).Resources("jobs", "cronjobs").RuleOrDie(),
 
-				rbac.NewRule(ReadWrite...).Groups(extensionsGroup).Resources(
+				rbac.NewRule(ReadWrite...).Groups(extensionsGroup).Resources("daemonsets",
 					"deployments", "deployments/scale", "deployments/rollback", "ingresses",
 					"replicasets", "replicasets/scale", "replicationcontrollers/scale").RuleOrDie(),
-				rbac.NewRule(Read...).Groups(extensionsGroup).Resources("daemonsets").RuleOrDie(),
 
 				rbac.NewRule(ReadWrite...).Groups(policyGroup).Resources("poddisruptionbudgets").RuleOrDie(),
 
@@ -264,18 +263,17 @@ func ClusterRoles() []rbac.ClusterRole {
 				rbac.NewRule("impersonate").Groups(legacyGroup).Resources("serviceaccounts").RuleOrDie(),
 
 				rbac.NewRule(ReadWrite...).Groups(appsGroup).Resources("statefulsets",
+					"daemonsets",
 					"deployments", "deployments/scale", "deployments/rollback",
 					"replicasets", "replicasets/scale").RuleOrDie(),
-				rbac.NewRule(Read...).Groups(appsGroup).Resources("daemonsets").RuleOrDie(),
 
 				rbac.NewRule(ReadWrite...).Groups(autoscalingGroup).Resources("horizontalpodautoscalers").RuleOrDie(),
 
 				rbac.NewRule(ReadWrite...).Groups(batchGroup).Resources("jobs", "cronjobs").RuleOrDie(),
 
-				rbac.NewRule(ReadWrite...).Groups(extensionsGroup).Resources(
+				rbac.NewRule(ReadWrite...).Groups(extensionsGroup).Resources("daemonsets",
 					"deployments", "deployments/scale", "deployments/rollback", "ingresses",
 					"replicasets", "replicasets/scale", "replicationcontrollers/scale").RuleOrDie(),
-				rbac.NewRule(Read...).Groups(extensionsGroup).Resources("daemonsets").RuleOrDie(),
 
 				rbac.NewRule(ReadWrite...).Groups(policyGroup).Resources("poddisruptionbudgets").RuleOrDie(),
 			},
