@@ -2,6 +2,10 @@
 
 package v1
 
+// RangeAllocationListerExpansion allows custom methods to be added to
+// RangeAllocationLister.
+type RangeAllocationListerExpansion interface{}
+
 // SecurityContextConstraintsListerExpansion allows custom methods to be added to
 // SecurityContextConstraintsLister.
 type SecurityContextConstraintsListerExpansion interface{}

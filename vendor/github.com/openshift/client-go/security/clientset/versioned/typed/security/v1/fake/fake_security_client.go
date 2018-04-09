@@ -24,6 +24,10 @@ func (c *FakeSecurityV1) PodSecurityPolicySubjectReviews(namespace string) v1.Po
 	return &FakePodSecurityPolicySubjectReviews{c, namespace}
 }
 
+func (c *FakeSecurityV1) RangeAllocations() v1.RangeAllocationInterface {
+	return &FakeRangeAllocations{c}
+}
+
 func (c *FakeSecurityV1) SecurityContextConstraints() v1.SecurityContextConstraintsInterface {
 	return &FakeSecurityContextConstraints{c}
 }

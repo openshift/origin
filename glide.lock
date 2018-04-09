@@ -1,5 +1,5 @@
-hash: 746f7c3ffe48a5033a444367502e1b05dbb2c0dc787237086e8ba908236d343a
-updated: 2018-04-07T16:20:16.521507-04:00
+hash: 9d6b54e00b963bd054a285134fd1664d9832fc1315e92b928bb3db9e56ab78bd
+updated: 2018-04-09T11:30:42.785065601-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -818,7 +818,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: f8f731029ee299c40c27a45f23fca52c04a164ac
+  version: 80a1e2bf16952088360b492c175703755deea8d2
   subpackages:
   - apps/v1
   - authorization/v1
@@ -836,7 +836,7 @@ imports:
   - template/v1
   - user/v1
 - name: github.com/openshift/client-go
-  version: 92b07a9fc09ac9d7f1f9431220c0f5b435d97af5
+  version: b3f4c8b4682c151defdd33ce75acfbf5fb30bccc
   subpackages:
   - apps/clientset/versioned
   - apps/clientset/versioned/scheme
@@ -1792,7 +1792,7 @@ imports:
   - pkg/util/proto
   - pkg/util/proto/validation
 - name: k8s.io/kubernetes
-  version: b81c8f8e48a661f3cc94e2bd49760c7b6c424ee8
+  version: d0746cd474201890c12f8a906085394451952df6
   repo: git@github.com:openshift/kubernetes
   subpackages:
   - cmd/controller-manager/app

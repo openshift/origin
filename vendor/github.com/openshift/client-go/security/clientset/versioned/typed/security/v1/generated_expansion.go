@@ -8,4 +8,6 @@ type PodSecurityPolicySelfSubjectReviewExpansion interface{}
 
 type PodSecurityPolicySubjectReviewExpansion interface{}
 
+type RangeAllocationExpansion interface{}
+
 type SecurityContextConstraintsExpansion interface{}
