@@ -474,12 +474,10 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 	gvr("apps", "v1", "daemonsets"): {
 		stub:             `{"metadata": {"name": "ds3"}, "spec": {"selector": {"matchLabels": {"u": "t"}}, "template": {"metadata": {"labels": {"u": "t"}}, "spec": {"containers": [{"image": "fedora:latest", "name": "container5"}]}}}}`,
 		expectedEtcdPath: "kubernetes.io/daemonsets/etcdstoragepathtestnamespace/ds3",
-		expectedGVK:      gvkP("extensions", "v1beta1", "DaemonSet"),
 	},
 	gvr("apps", "v1", "deployments"): {
 		stub:             `{"metadata": {"name": "deployment4"}, "spec": {"selector": {"matchLabels": {"f": "z"}}, "template": {"metadata": {"labels": {"f": "z"}}, "spec": {"containers": [{"image": "fedora:latest", "name": "container6"}]}}}}`,
 		expectedEtcdPath: "kubernetes.io/deployments/etcdstoragepathtestnamespace/deployment4",
-		expectedGVK:      gvkP("extensions", "v1beta1", "Deployment"), // still a beta extension
 	},
 	gvr("apps", "v1", "statefulsets"): {
 		stub:             `{"metadata": {"name": "ss4"}, "spec": {"selector": {"matchLabels": {"a": "b"}}, "template": {"metadata": {"labels": {"a": "b"}}}}}`,
@@ -492,7 +490,6 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 	gvr("apps", "v1", "replicasets"): {
 		stub:             `{"metadata": {"name": "rs3"}, "spec": {"selector": {"matchLabels": {"g": "h"}}, "template": {"metadata": {"labels": {"g": "h"}}, "spec": {"containers": [{"image": "fedora:latest", "name": "container4"}]}}}}`,
 		expectedEtcdPath: "kubernetes.io/replicasets/etcdstoragepathtestnamespace/rs3",
-		expectedGVK:      gvkP("extensions", "v1beta1", "ReplicaSet"),
 	},
 	// --
 
@@ -500,7 +497,7 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 	gvr("apps", "v1beta1", "deployments"): {
 		stub:             `{"metadata": {"name": "deployment2"}, "spec": {"selector": {"matchLabels": {"f": "z"}}, "template": {"metadata": {"labels": {"f": "z"}}, "spec": {"containers": [{"image": "fedora:latest", "name": "container6"}]}}}}`,
 		expectedEtcdPath: "kubernetes.io/deployments/etcdstoragepathtestnamespace/deployment2",
-		expectedGVK:      gvkP("extensions", "v1beta1", "Deployment"), // still a beta extension
+		expectedGVK:      gvkP("apps", "v1", "Deployment"),
 	},
 	gvr("apps", "v1beta1", "statefulsets"): {
 		stub:             `{"metadata": {"name": "ss1"}, "spec": {"template": {"metadata": {"labels": {"a": "b"}}}}}`,
@@ -523,17 +520,17 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 	gvr("apps", "v1beta2", "deployments"): {
 		stub:             `{"metadata": {"name": "deployment3"}, "spec": {"selector": {"matchLabels": {"f": "z"}}, "template": {"metadata": {"labels": {"f": "z"}}, "spec": {"containers": [{"image": "fedora:latest", "name": "container6"}]}}}}`,
 		expectedEtcdPath: "kubernetes.io/deployments/etcdstoragepathtestnamespace/deployment3",
-		expectedGVK:      gvkP("extensions", "v1beta1", "Deployment"),
+		expectedGVK:      gvkP("apps", "v1", "Deployment"),
 	},
 	gvr("apps", "v1beta2", "daemonsets"): {
 		stub:             `{"metadata": {"name": "ds2"}, "spec": {"selector": {"matchLabels": {"u": "t"}}, "template": {"metadata": {"labels": {"u": "t"}}, "spec": {"containers": [{"image": "fedora:latest", "name": "container5"}]}}}}`,
 		expectedEtcdPath: "kubernetes.io/daemonsets/etcdstoragepathtestnamespace/ds2",
-		expectedGVK:      gvkP("extensions", "v1beta1", "DaemonSet"),
+		expectedGVK:      gvkP("apps", "v1", "DaemonSet"),
 	},
 	gvr("apps", "v1beta2", "replicasets"): {
 		stub:             `{"metadata": {"name": "rs2"}, "spec": {"selector": {"matchLabels": {"g": "h"}}, "template": {"metadata": {"labels": {"g": "h"}}, "spec": {"containers": [{"image": "fedora:latest", "name": "container4"}]}}}}`,
 		expectedEtcdPath: "kubernetes.io/replicasets/etcdstoragepathtestnamespace/rs2",
-		expectedGVK:      gvkP("extensions", "v1beta1", "ReplicaSet"),
+		expectedGVK:      gvkP("apps", "v1", "ReplicaSet"),
 	},
 	gvr("apps", "v1beta2", "controllerrevisions"): {
 		stub:             `{"metadata": {"name": "cr2"}, "data": {}, "revision": 6}`,
@@ -598,6 +595,7 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 	gvr("extensions", "v1beta1", "daemonsets"): {
 		stub:             `{"metadata": {"name": "ds1"}, "spec": {"selector": {"matchLabels": {"u": "t"}}, "template": {"metadata": {"labels": {"u": "t"}}, "spec": {"containers": [{"image": "fedora:latest", "name": "container5"}]}}}}`,
 		expectedEtcdPath: "kubernetes.io/daemonsets/etcdstoragepathtestnamespace/ds1",
+		expectedGVK:      gvkP("apps", "v1", "DaemonSet"),
 	},
 	gvr("extensions", "v1beta1", "podsecuritypolicies"): {
 		stub:             `{"metadata": {"name": "psp1"}, "spec": {"fsGroup": {"rule": "RunAsAny"}, "privileged": true, "runAsUser": {"rule": "RunAsAny"}, "seLinux": {"rule": "MustRunAs"}, "supplementalGroups": {"rule": "RunAsAny"}}}`,
@@ -610,14 +608,17 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 	gvr("extensions", "v1beta1", "networkpolicies"): {
 		stub:             `{"metadata": {"name": "np1"}, "spec": {"podSelector": {"matchLabels": {"e": "f"}}}}`,
 		expectedEtcdPath: "kubernetes.io/networkpolicies/etcdstoragepathtestnamespace/np1",
+		expectedGVK:      gvkP("networking.k8s.io", "v1", "NetworkPolicy"),
 	},
 	gvr("extensions", "v1beta1", "deployments"): {
 		stub:             `{"metadata": {"name": "deployment1"}, "spec": {"selector": {"matchLabels": {"f": "z"}}, "template": {"metadata": {"labels": {"f": "z"}}, "spec": {"containers": [{"image": "fedora:latest", "name": "container6"}]}}}}`,
 		expectedEtcdPath: "kubernetes.io/deployments/etcdstoragepathtestnamespace/deployment1",
+		expectedGVK:      gvkP("apps", "v1", "Deployment"),
 	},
 	gvr("extensions", "v1beta1", "replicasets"): {
 		stub:             `{"metadata": {"name": "rs1"}, "spec": {"selector": {"matchLabels": {"g": "h"}}, "template": {"metadata": {"labels": {"g": "h"}}, "spec": {"containers": [{"image": "fedora:latest", "name": "container4"}]}}}}`,
 		expectedEtcdPath: "kubernetes.io/replicasets/etcdstoragepathtestnamespace/rs1",
+		expectedGVK:      gvkP("apps", "v1", "ReplicaSet"),
 	},
 	// --
 
@@ -625,7 +626,6 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 	gvr("networking.k8s.io", "v1", "networkpolicies"): {
 		stub:             `{"metadata": {"name": "np2"}, "spec": {"podSelector": {"matchLabels": {"e": "f"}}}}`,
 		expectedEtcdPath: "kubernetes.io/networkpolicies/etcdstoragepathtestnamespace/np2",
-		expectedGVK:      gvkP("extensions", "v1beta1", "NetworkPolicy"), // migrate to v1 later
 	},
 	// --
 

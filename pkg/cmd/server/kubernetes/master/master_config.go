@@ -59,6 +59,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/apis/networking"
+	"k8s.io/kubernetes/pkg/apis/policy"
 	storageapi "k8s.io/kubernetes/pkg/apis/storage"
 	storageapiv1beta1 "k8s.io/kubernetes/pkg/apis/storage/v1beta1"
 	"k8s.io/kubernetes/pkg/kubeapiserver"
@@ -235,12 +236,13 @@ func BuildStorageFactory(server *kapiserveroptions.ServerRunOptions, enforcedSto
 	// the order here is important, it defines which version will be used for storage
 	// keep HPAs in the autoscaling apigroup (as in upstream 1.6), but keep extension cohabitation around until origin 3.7.
 	storageFactory.AddCohabitatingResources(autoscaling.Resource("horizontalpodautoscalers"), extensions.Resource("horizontalpodautoscalers"))
-	// keep Deployments, NetworkPolicies, Daemonsets and ReplicaSets in extensions for backwards compatibility, we'll have to migrate at some point, eventually
-	storageFactory.AddCohabitatingResources(extensions.Resource("deployments"), apps.Resource("deployments"))
-	storageFactory.AddCohabitatingResources(extensions.Resource("daemonsets"), apps.Resource("daemonsets"))
-	storageFactory.AddCohabitatingResources(extensions.Resource("replicasets"), apps.Resource("replicasets"))
-	storageFactory.AddCohabitatingResources(extensions.Resource("networkpolicies"), networking.Resource("networkpolicies"))
-	storageFactory.AddCohabitatingResources(kapi.Resource("securitycontextconstraints"), securityapi.Resource("securitycontextconstraints"))
+	storageFactory.AddCohabitatingResources(apps.Resource("deployments"), extensions.Resource("deployments"))
+	storageFactory.AddCohabitatingResources(apps.Resource("daemonsets"), extensions.Resource("daemonsets"))
+	storageFactory.AddCohabitatingResources(apps.Resource("replicasets"), extensions.Resource("replicasets"))
+	storageFactory.AddCohabitatingResources(networking.Resource("networkpolicies"), extensions.Resource("networkpolicies"))
+	storageFactory.AddCohabitatingResources(securityapi.Resource("securitycontextconstraints"), kapi.Resource("securitycontextconstraints"))
+	// TODO: switch to prefer policy API group in 3.11
+	storageFactory.AddCohabitatingResources(extensions.Resource("podsecuritypolicies"), policy.Resource("podsecuritypolicies"))
 
 	if server.Etcd.EncryptionProviderConfigFilepath != "" {
 		glog.V(4).Infof("Reading encryption configuration from %q", server.Etcd.EncryptionProviderConfigFilepath)
