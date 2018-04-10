@@ -19,12 +19,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit f2059a267eda6f6589dcbcb7e51062808f1143f5
+%global commit 8a4320bebcc34c788e0a99d88956156f21e18318
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=10+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.10.0-0.15.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 KUBE_GIT_VERSION=v1.9.1+a0ce1bc657 OS_GIT_PATCH=0 KUBE_GIT_COMMIT=a0ce1bc OS_GIT_COMMIT=80295a2 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.16 ETCD_GIT_COMMIT=121edf0
+%global os_git_vars OS_GIT_MINOR=10+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.10.0-0.16.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 KUBE_GIT_VERSION=v1.10.0+b81c8f8 OS_GIT_PATCH=0 KUBE_GIT_COMMIT=b81c8f8 OS_GIT_COMMIT=e64625a OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.16-0-g121edf0 ETCD_GIT_COMMIT=121edf0
 }
 
 %if 0%{?skip_build}
@@ -67,7 +67,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.10.0
-Release:        0.16.0%{?dist}
+Release:        0.17.0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -593,6 +593,74 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Tue Apr 10 2018 Justin Pierce <jupierce@redhat.com> 3.10.0-0.17.0
+- generated (deads@redhat.com)
+- rest API for rangeallocations.security.openshift.io (deads@redhat.com)
+- bump(*) (deads@redhat.com)
+- update glide.yaml to ignore clusterup (deads@redhat.com)
+- Wait until other routers have written their status (ccoleman@redhat.com)
+- UPSTREAM: <drop>: make RootFsInfo error non-fatal on start
+  (jliggitt@redhat.com)
+- interesting: kube-apiserver wiring (jliggitt@redhat.com)
+- interesting: admission decoration (jliggitt@redhat.com)
+- interesting: client cache dir setup (jliggitt@redhat.com)
+- interesting: fixup template service broker wiring (jliggitt@redhat.com)
+- interesting: e2e/extended fixes (jliggitt@redhat.com)
+- interesting: scaler clients (jliggitt@redhat.com)
+- interesting: etcd storage path/versions (jliggitt@redhat.com)
+- interesting: integration test fixes (jliggitt@redhat.com)
+- interesting: test/cmd fixes (jliggitt@redhat.com)
+- interesting: inject print handlers (jliggitt@redhat.com)
+- interesting: fix kube versions in build script (jliggitt@redhat.com)
+- interesting: node wiring (override fail-swap-on) (jliggitt@redhat.com)
+- interesting: apiserver wiring (jliggitt@redhat.com)
+- interesting: enable storage protection admission (jliggitt@redhat.com)
+- interesting: node config changes (jliggitt@redhat.com)
+- interesting: deployer pod shared namespace setting (jliggitt@redhat.com)
+- interesting: policy updates (adds daemonset permissions to users, rc/scale
+  permissions to deployments) (jliggitt@redhat.com)
+- interesting: webhook auth resolver change (jliggitt@redhat.com)
+- interesting: proxy node port arg change (jliggitt@redhat.com)
+- boring: correctly find options command for help output (jliggitt@redhat.com)
+- boring: deploymentconfig stop test scaler does additional get
+  (jliggitt@redhat.com)
+- boring: printers (jliggitt@redhat.com)
+- boring: signature/type changes (jliggitt@redhat.com)
+- boring: factory changes (jliggitt@redhat.com)
+- boring: rest delete interface change (jliggitt@redhat.com)
+- boring: generated (jliggitt@redhat.com)
+- UPSTREAM: <carry>: allow injecting printers (jliggitt@redhat.com)
+- UPSTREAM: 62234: Handle partial group and resource responses consistently
+  (jliggitt@redhat.com)
+- UPSTREAM: 62199: Make priority rest mapper handle partial discovery results
+  (jliggitt@redhat.com)
+- UPSTREAM: 62196: Remove need for server connections for dry-run create
+  (jliggitt@redhat.com)
+- UPSTREAM: 62074: Narrow interface consumed by scale client
+  (jliggitt@redhat.com)
+- UPSTREAM: 61985: Restore show-kind function when printing multiple kinds
+  (jliggitt@redhat.com)
+- UPSTREAM: 61962: Avoid data races in unit tests (jliggitt@redhat.com)
+- UPSTREAM: 61949: Tolerate 406 mime-type errors attempting to load new openapi
+  schema (jliggitt@redhat.com)
+- UPSTREAM: 61808: Ensure -o yaml populates kind/apiVersion
+  (jliggitt@redhat.com)
+- godep.json version comments (jliggitt@redhat.com)
+- bump(*): 1.10.0 (jliggitt@redhat.com)
+- pre-bump package updates (jliggitt@redhat.com)
+- update glide.yaml for 1.10.0 (jliggitt@redhat.com)
+- Add 1.10.0 publishing rules (jliggitt@redhat.com)
+- dind: restart ovn-kubernetes-node via systemd if it fails (dcbw@redhat.com)
+- move component installation to cluster add (deads@redhat.com)
+- make everything a comopnent (deads@redhat.com)
+- fix swapped format args and fix ruby version checking (bparees@redhat.com)
+- add * and - as oc clusterup enable concepts (deads@redhat.com)
+- prevent oc cluster up from allowing bad KUBECONFIGs (deads@redhat.com)
+- Better warning for --build-loglevel with binary builds
+  (nakayamakenjiro@gmail.com)
+- validation_test.go(TestValidateSecurityContextConstraints): fix "index out of
+  range" panic when there no errors encountered. (vsemushi@redhat.com)
+
 * Fri Apr 06 2018 Justin Pierce <jupierce@redhat.com> 3.10.0-0.16.0
 - bootstrap: remove factory dependency in up command (mfojtik@redhat.com)
 - bootstrap: remove ClusterAdminConfigBytes from context interface
