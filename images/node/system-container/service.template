@@ -1,6 +1,5 @@
 [Unit]
 After=${DOCKER_SERVICE}
-After=${OPENVSWITCH_SERVICE}
 Wants=${DOCKER_SERVICE}
 After=$NAME-dep.service
 After=${MASTER_SERVICE}
