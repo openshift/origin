@@ -471,7 +471,7 @@ backend be_tcp:{{$cfgIdx}}
 			[sub]domain regexps. This map is used to check if
 			a host matches a [sub]domain with has wildcard support.
 */}}
-{{ define "/var/lib/haproxy/conf/os_wildcard_domain.map" -}}
+{{ define "/var/lib/haproxy/conf/.tmp/os_wildcard_domain.map" -}}
 {{     if isTrue (env "ROUTER_ALLOW_WILDCARD_ROUTES") -}}
 {{       range $idx, $cfg := .State -}}
 {{         if ne $cfg.Host "" -}}
@@ -480,9 +480,14 @@ backend be_tcp:{{$cfgIdx}}
 {{           end -}}
 {{         end -}}
 {{       end -}}
-{{     end -}}{{/* end if router allows wildcard routes */}}
-{{ end -}}{{/* end wildcard domain map template */}}
+{{     end -}}{{/* end if router allows wildcard routes */ -}}
+{{ end -}}{{/* end temporary wildcard domain map template */}}
 
+{{ define "/var/lib/haproxy/conf/os_wildcard_domain.map" -}}
+{{     range $idx, $data := sortedMapData "/var/lib/haproxy/conf/.tmp/os_wildcard_domain.map" true -}}
+{{ $data }}
+{{     end -}}
+{{ end -}}{{/* end wildcard domain map template */}}
 
 
 {{/*
@@ -491,7 +496,7 @@ backend be_tcp:{{$cfgIdx}}
                                                 be_edge_http for edge routes with InsecureEdgeTerminationPolicy Allow
                                                 be_secure for reencrypt routes with InsecureEdgeTerminationPolicy Allow
 */}}
-{{ define "/var/lib/haproxy/conf/os_http_be.map" -}}
+{{ define "/var/lib/haproxy/conf/.tmp/os_http_be.map" -}}
 {{     range $idx, $cfg := .State -}}
 {{       if and (ne $cfg.Host "") (eq $cfg.TLSTermination "") -}}
 {{generateRouteRegexp $cfg.Host $cfg.Path $cfg.IsWildcard}} be_http:{{$idx}}
@@ -506,12 +511,19 @@ backend be_tcp:{{$cfgIdx}}
 {{     end -}}
 {{ end -}}
 
+{{ define "/var/lib/haproxy/conf/os_http_be.map" -}}
+{{     range $idx, $data := sortedMapData "/var/lib/haproxy/conf/.tmp/os_http_be.map" true -}}
+{{ $data }}
+{{     end -}}
+{{ end -}}{{/* end http host map template */}}
+
+
 {{/*
     os_edge_reencrypt_be.map : contains a mapping of www.example.com -> <service name>. This map is similar to os_http_be.map but for tls routes.
                          by attaching prefix: be_edge_http for edge terminated routes
                                               be_secure for reencrypt routes
 */}}
-{{ define "/var/lib/haproxy/conf/os_edge_reencrypt_be.map" -}}
+{{ define "/var/lib/haproxy/conf/.tmp/os_edge_reencrypt_be.map" -}}
 {{     range $idx, $cfg := .State -}}
 {{       if and (ne $cfg.Host "") (eq $cfg.TLSTermination "edge") -}}
 {{generateRouteRegexp $cfg.Host $cfg.Path $cfg.IsWildcard}} be_edge_http:{{$idx}}
@@ -519,6 +531,12 @@ backend be_tcp:{{$cfgIdx}}
 {{       if and (ne $cfg.Host "") (eq $cfg.TLSTermination "reencrypt") -}}
 {{generateRouteRegexp $cfg.Host $cfg.Path $cfg.IsWildcard}} be_secure:{{$idx}}
 {{       end -}}
+{{     end -}}
+{{ end -}}{{/* end temporary edge http host map template */}}
+
+{{ define "/var/lib/haproxy/conf/os_edge_reencrypt_be.map" -}}
+{{     range $idx, $data := sortedMapData "/var/lib/haproxy/conf/.tmp/os_edge_reencrypt_be.map" true -}}
+{{ $data }}
 {{     end -}}
 {{ end -}}{{/* end edge http host map template */}}
 
@@ -528,11 +546,17 @@ backend be_tcp:{{$cfgIdx}}
     Map is used to redirect insecure traffic to use a secure scheme (https)
     if acls match for routes that have the insecure option set to redirect.
 */}}
-{{ define "/var/lib/haproxy/conf/os_route_http_redirect.map" -}}
+{{ define "/var/lib/haproxy/conf/.tmp/os_route_http_redirect.map" -}}
 {{     range $idx, $cfg := .State -}}
 {{       if and (ne $cfg.Host "") (eq $cfg.InsecureEdgeTerminationPolicy "Redirect") -}}
 {{generateRouteRegexp $cfg.Host $cfg.Path $cfg.IsWildcard}} {{$idx}}
 {{       end -}}
+{{     end -}}
+{{ end -}}{{/* end temporary redirect http host map template */}}
+
+{{ define "/var/lib/haproxy/conf/os_route_http_redirect.map" -}}
+{{     range $idx, $data := sortedMapData "/var/lib/haproxy/conf/.tmp/os_route_http_redirect.map" true -}}
+{{ $data }}
 {{     end -}}
 {{ end -}}{{/* end redirect http host map template */}}
 
@@ -541,23 +565,36 @@ backend be_tcp:{{$cfgIdx}}
     os_tcp_be.map: contains a mapping of www.example.com -> <service name>.  This map is used to discover the correct backend
                         by attaching a prefix (be_tcp: or be_secure:) by use_backend statements if acls are matched.
 */}}
-{{ define "/var/lib/haproxy/conf/os_tcp_be.map" -}}
+{{ define "/var/lib/haproxy/conf/.tmp/os_tcp_be.map" -}}
 {{     range $idx, $cfg := .State -}}
 {{       if and (eq $cfg.Path "") (and (ne $cfg.Host "") (matchValues (print $cfg.TLSTermination) "passthrough" "reencrypt")) -}}
 {{generateRouteRegexp $cfg.Host "" $cfg.IsWildcard}} {{$idx}}
 {{       end -}}
 {{     end -}}
+{{ end -}}{{/* end temporary tcp host map template */}}
+
+{{ define "/var/lib/haproxy/conf/os_tcp_be.map" -}}
+{{     range $idx, $data := sortedMapData "/var/lib/haproxy/conf/.tmp/os_tcp_be.map" true -}}
+{{ $data }}
+{{     end -}}
 {{ end -}}{{/* end tcp host map template */}}
+
 
 {{/*
     os_sni_passthrough.map: contains a mapping of routes that expect to have an sni header and should be passed
     					through to the host_be.  Driven by the termination type of the ServiceAliasConfigs
 */}}
-{{ define "/var/lib/haproxy/conf/os_sni_passthrough.map" -}}
+{{ define "/var/lib/haproxy/conf/.tmp/os_sni_passthrough.map" -}}
 {{     range $idx, $cfg := .State -}}
 {{       if and (eq $cfg.Path "") (eq $cfg.TLSTermination "passthrough") -}}
 {{generateRouteRegexp $cfg.Host "" $cfg.IsWildcard}} 1
 {{       end -}}
+{{     end -}}
+{{ end -}}{{/* end temporary sni passthrough map template */}}
+
+{{ define "/var/lib/haproxy/conf/os_sni_passthrough.map" -}}
+{{     range $idx, $data := sortedMapData "/var/lib/haproxy/conf/.tmp/os_sni_passthrough.map" true -}}
+{{ $data }}
 {{     end -}}
 {{ end -}}{{/* end sni passthrough map template */}}
 
@@ -569,7 +606,7 @@ backend be_tcp:{{$cfgIdx}}
           "<cert>: <domain-set>" is important as this allows us to use
          wildcards and/or use a deny set with !<domain> in the future.
 */}}
-{{ define "/var/lib/haproxy/conf/cert_config.map" -}}
+{{ define "/var/lib/haproxy/conf/.tmp/cert_config.map" -}}
 {{     $workingDir := .WorkingDir -}}
 {{     range $idx, $cfg := .State -}}
 {{       if and (ne $cfg.Host "") (matchValues (print $cfg.TLSTermination) "edge" "reencrypt") -}}
@@ -579,4 +616,10 @@ backend be_tcp:{{$cfgIdx}}
 {{         end -}}
 {{      end -}}
 {{     end -}}
-{{ end }}{{/* end cert_config map template */}}
+{{ end }}{{/* end temporary cert_config map template */}}
+
+{{ define "/var/lib/haproxy/conf/cert_config.map" -}}
+{{     range $idx, $data := sortedMapData "/var/lib/haproxy/conf/.tmp/cert_config.map" false -}}
+{{ $data }}
+{{     end -}}
+{{ end -}}{{/* end cert_config map template */}}

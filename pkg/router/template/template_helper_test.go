@@ -1,7 +1,10 @@
 package templaterouter
 
 import (
+	"fmt"
+	"io/ioutil"
 	"regexp"
+	"strings"
 	"testing"
 )
 
@@ -294,6 +297,115 @@ func TestMatchPattern(t *testing.T) {
 		match := matchPattern(tt.pattern, tt.input)
 		if match {
 			t.Errorf("%s: expected %s not to match %s, but did", tt.name, tt.input, tt.pattern)
+		}
+	}
+}
+
+func createTempMapFile(prefix string, data []string) (string, error) {
+	name := ""
+	tempFile, err := ioutil.TempFile("", prefix)
+	if err != nil {
+		return "", fmt.Errorf("unexpected error creating temp file: %v", err)
+	}
+
+	name = tempFile.Name()
+	if err = tempFile.Close(); err != nil {
+		return name, fmt.Errorf("unexpected error creating temp file: %v", err)
+	}
+
+	if err := ioutil.WriteFile(name, []byte(strings.Join(data, "\n")), 0664); err != nil {
+		return name, fmt.Errorf("unexpected error writing temp file %s: %v", name, err)
+	}
+
+	return name, nil
+}
+
+func TestSortMapData(t *testing.T) {
+	testData := []string{
+		`^api-stg\.127\.0\.0\.1\.nip\.io(:[0-9]+)?(/.*)?$ stg:api-route`,
+		`^api-prod\.127\.0\.0\.1\.nip\.io(:[0-9]+)?(/.*)?$ prod:api-route`,
+		`^[^\.]*\.127\.0\.0\.1\.nip\.io(:[0-9]+)?(/.*)?$ prod:wildcard-route`,
+		`^3dev\.127\.0\.0\.1\.nip\.io(:[0-9]+)?(/.*)?$ dev:api-route`,
+		`^api-prod\.127\.0\.0\.1\.nip\.io(:[0-9]+)?/x/y/z(/.*)?$ prod:api-path-route`,
+		`^3app-admin\.127\.0\.0\.1\.nip\.io(:[0-9]+)?(/.*)?$ dev:admin-route`,
+		`^[^\.]*\.foo\.127\.0\.0\.1\.nip\.io(:[0-9]+)?(/.*)?$ devel2:foo-wildcard-route`,
+		`^zzz-production\.wildcard\.test(:[0-9]+)?/x/y/z(/.*)?$ test:api-route`,
+		`^backend-app\.127\.0\.0\.1\.nip\.io(:[0-9]+)?(/.*)?$ prod:backend-route`,
+		`^[^\.]*\.foo\.wildcard\.test(:[0-9]+)?(/.*)?$ devel2:foo-wildcard-test`,
+	}
+
+	expectedOrder := []string{
+		"test:api-route",
+		"prod:backend-route",
+		"stg:api-route",
+		"prod:api-path-route",
+		"prod:api-route",
+		"dev:api-route",
+		"dev:admin-route",
+		"devel2:foo-wildcard-test",
+		"devel2:foo-wildcard-route",
+		"prod:wildcard-route",
+	}
+
+	fileName, err := createTempMapFile("sort-map-data-test", testData)
+	if err != nil {
+		t.Errorf("TestSortMapData error: %v", err)
+	}
+
+	lines := sortedMapData(fileName, true)
+	if len(lines) != len(expectedOrder) {
+		t.Errorf("TestSortMapData sorted data length %d did not match expected length %d",
+			len(lines), len(expectedOrder))
+	}
+	for idx, suffix := range expectedOrder {
+		if !strings.HasSuffix(lines[idx], suffix) {
+			t.Errorf("TestSortMapData sorted data %s at index %d did not match expectation %s",
+				lines[idx], idx, suffix)
+		}
+	}
+}
+
+func TestSortMapCertConfigData(t *testing.T) {
+	testData := []string{
+		`/path/to/certs/stg:api-route.pem stg:api-route`,
+		`/path/to/certs/prod:api-route.pem prod:api-route`,
+		`/path/to/certs/prod:wildcard-route.pem prod:wildcard-route`,
+		`/path/to/certs/dev:api-route.pem dev:api-route`,
+		`/path/to/certs/prod:api-path-route prod:api-path-route`,
+		`/path/to/certs/dev:admin-route.pem dev:admin-route`,
+		`/path/to/certs/devel2:foo-wildcard-route.pem devel2:foo-wildcard-route`,
+		`/path/to/certs/test:api-route.pem test:api-route`,
+		`/path/to/certs/prod:backend-route.pem prod:backend-route`,
+		`/path/to/certs/devel2:foo-wildcard-test.pem devel2:foo-wildcard-test`,
+	}
+
+	expectedOrder := []string{
+		"test:api-route",
+		"stg:api-route",
+		"prod:wildcard-route",
+		"prod:backend-route",
+		"prod:api-route",
+		"prod:api-path-route",
+		"devel2:foo-wildcard-test",
+		"devel2:foo-wildcard-route",
+		"dev:api-route",
+		"dev:admin-route",
+	}
+
+	fileName, err := createTempMapFile("sort-map-cert-config-test", testData)
+	if err != nil {
+		t.Errorf("TestSortMapCertConfigData error: %v", err)
+	}
+
+	lines := sortedMapData(fileName, false)
+	if len(lines) != len(expectedOrder) {
+		t.Errorf("TestSortMapCertConfigData sorted data length %d did not match expected length %d",
+			len(lines), len(expectedOrder))
+	}
+	for idx, suffix := range expectedOrder {
+		if !strings.HasSuffix(lines[idx], suffix) {
+			t.Errorf("TestSortMapCertConfigData sorted data %s at index %d did not match expectation %s",
+				lines[idx], idx, suffix)
 		}
 	}
 }
