@@ -241,6 +241,47 @@ func TestCreateDefaultGateway(t *testing.T) {
 	th.AssertEquals(t, s.ID, "54d6f61d-db07-451c-9ab3-b9609b6b6f0c")
 }
 
+func TestCreateIPv6RaAddressMode(t *testing.T) {
+	th.SetupHTTP()
+	defer th.TeardownHTTP()
+
+	th.Mux.HandleFunc("/v2.0/subnets", func(w http.ResponseWriter, r *http.Request) {
+		th.TestMethod(t, r, "POST")
+		th.TestHeader(t, r, "X-Auth-Token", fake.TokenID)
+		th.TestHeader(t, r, "Content-Type", "application/json")
+		th.TestHeader(t, r, "Accept", "application/json")
+		th.TestJSONRequest(t, r, SubnetCreateWithIPv6RaAddressModeRequest)
+
+		w.Header().Add("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+
+		fmt.Fprintf(w, SubnetCreateWithIPv6RaAddressModeResponse)
+	})
+
+	var gatewayIP = "2001:db8:0:a::1"
+	opts := subnets.CreateOpts{
+		NetworkID:       "d32019d3-bc6e-4319-9c1d-6722fc136a22",
+		IPVersion:       6,
+		CIDR:            "2001:db8:0:a:0:0:0:0/64",
+		GatewayIP:       &gatewayIP,
+		IPv6AddressMode: "slaac",
+		IPv6RAMode:      "slaac",
+	}
+	s, err := subnets.Create(fake.ServiceClient(), opts).Extract()
+	th.AssertNoErr(t, err)
+
+	th.AssertEquals(t, s.Name, "")
+	th.AssertEquals(t, s.EnableDHCP, true)
+	th.AssertEquals(t, s.NetworkID, "d32019d3-bc6e-4319-9c1d-6722fc136a22")
+	th.AssertEquals(t, s.TenantID, "4fd44f30292945e481c7b8a0c8908869")
+	th.AssertEquals(t, s.IPVersion, 6)
+	th.AssertEquals(t, s.GatewayIP, "2001:db8:0:a::1")
+	th.AssertEquals(t, s.CIDR, "2001:db8:0:a:0:0:0:0/64")
+	th.AssertEquals(t, s.ID, "3b80198d-4f7b-4f77-9ef5-774d54e17126")
+	th.AssertEquals(t, s.IPv6AddressMode, "slaac")
+	th.AssertEquals(t, s.IPv6RAMode, "slaac")
+}
+
 func TestRequiredCreateOpts(t *testing.T) {
 	res := subnets.Create(fake.ServiceClient(), subnets.CreateOpts{})
 	if res.Err == nil {

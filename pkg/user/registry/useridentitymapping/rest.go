@@ -29,7 +29,7 @@ type REST struct {
 
 var _ rest.Getter = &REST{}
 var _ rest.CreaterUpdater = &REST{}
-var _ rest.Deleter = &REST{}
+var _ rest.GracefulDeleter = &REST{}
 
 // NewREST returns a new REST.
 func NewREST(userClient userclient.UserInterface, identityClient userclient.IdentityInterface) *REST {
@@ -173,18 +173,18 @@ func (s *REST) createOrUpdate(ctx apirequest.Context, obj runtime.Object, forceC
 }
 
 // Delete deletes the user association for the named identity
-func (s *REST) Delete(ctx apirequest.Context, name string) (runtime.Object, error) {
+func (s *REST) Delete(ctx apirequest.Context, name string, options *metav1.DeleteOptions) (runtime.Object, bool, error) {
 	identity, _, user, _, _, mappingErr := s.getRelatedObjects(ctx, name, &metav1.GetOptions{})
 
 	if mappingErr != nil {
-		return nil, mappingErr
+		return nil, false, mappingErr
 	}
 
 	// Disassociate the identity with the user first
 	// If this fails, Delete is re-entrant
 	if removeIdentityFromUser(identity, user) {
 		if _, err := s.userClient.Update(user); err != nil {
-			return nil, err
+			return nil, false, err
 		}
 	}
 
@@ -197,7 +197,7 @@ func (s *REST) Delete(ctx apirequest.Context, name string) (runtime.Object, erro
 		}
 	}
 
-	return &metav1.Status{Status: metav1.StatusSuccess}, nil
+	return &metav1.Status{Status: metav1.StatusSuccess}, true, nil
 }
 
 // getRelatedObjects returns the identity, user, and mapping for the named identity

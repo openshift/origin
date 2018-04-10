@@ -83,8 +83,7 @@ func NewCmdCreateBasicAuthSecret(name, fullName string, f kcmdutil.Factory, read
 				secret, err := o.NewBasicAuthSecret()
 				kcmdutil.CheckErr(err)
 
-				mapper, _ := f.Object()
-				kcmdutil.CheckErr(f.PrintObject(c, false, mapper, secret, out))
+				kcmdutil.CheckErr(kcmdutil.PrintObject(c, secret, out))
 				return
 			}
 

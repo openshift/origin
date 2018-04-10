@@ -27,10 +27,9 @@ import (
 )
 
 type add struct {
-	*flags.DatacenterFlag
+	*flags.ClusterFlag
 	*flags.HostConnectFlag
 
-	cluster string
 	connect bool
 	license string
 }
@@ -40,13 +39,11 @@ func init() {
 }
 
 func (cmd *add) Register(ctx context.Context, f *flag.FlagSet) {
-	cmd.DatacenterFlag, ctx = flags.NewDatacenterFlag(ctx)
-	cmd.DatacenterFlag.Register(ctx, f)
+	cmd.ClusterFlag, ctx = flags.NewClusterFlag(ctx)
+	cmd.ClusterFlag.Register(ctx, f)
 
 	cmd.HostConnectFlag, ctx = flags.NewHostConnectFlag(ctx)
 	cmd.HostConnectFlag.Register(ctx, f)
-
-	f.StringVar(&cmd.cluster, "cluster", "*", "Path to cluster")
 
 	f.StringVar(&cmd.license, "license", "", "Assign license key")
 
@@ -54,7 +51,7 @@ func (cmd *add) Register(ctx context.Context, f *flag.FlagSet) {
 }
 
 func (cmd *add) Process(ctx context.Context) error {
-	if err := cmd.DatacenterFlag.Process(ctx); err != nil {
+	if err := cmd.ClusterFlag.Process(ctx); err != nil {
 		return err
 	}
 	if err := cmd.HostConnectFlag.Process(ctx); err != nil {
@@ -108,12 +105,7 @@ func (cmd *add) Run(ctx context.Context, f *flag.FlagSet) error {
 		return flag.ErrHelp
 	}
 
-	finder, err := cmd.Finder()
-	if err != nil {
-		return err
-	}
-
-	cluster, err := finder.ClusterComputeResource(ctx, cmd.cluster)
+	cluster, err := cmd.Cluster()
 	if err != nil {
 		return err
 	}

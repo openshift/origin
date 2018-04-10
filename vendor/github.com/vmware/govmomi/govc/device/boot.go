@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2014-2015 VMware, Inc. All Rights Reserved.
+Copyright (c) 2014-2017 VMware, Inc. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -42,7 +42,7 @@ func (cmd *boot) Register(ctx context.Context, f *flag.FlagSet) {
 	cmd.VirtualMachineFlag.Register(ctx, f)
 
 	f.Int64Var(&cmd.BootDelay, "delay", 0, "Delay in ms before starting the boot sequence")
-	f.StringVar(&cmd.order, "order", "", "Boot device order")
+	f.StringVar(&cmd.order, "order", "", "Boot device order [-,floppy,cdrom,ethernet,disk]")
 	f.Int64Var(&cmd.BootRetryDelay, "retry-delay", 0, "Delay in ms before a boot retry")
 
 	cmd.BootRetryEnabled = types.NewBool(false)
@@ -56,7 +56,8 @@ func (cmd *boot) Description() string {
 	return `Configure VM boot settings.
 
 Examples:
-  govc device.boot -vm $vm -delay 1000 -order floppy,cdrom,ethernet,disk`
+  govc device.boot -vm $vm -delay 1000 -order floppy,cdrom,ethernet,disk
+  govc device.boot -vm $vm -order - # reset boot order`
 }
 
 func (cmd *boot) Process(ctx context.Context) error {

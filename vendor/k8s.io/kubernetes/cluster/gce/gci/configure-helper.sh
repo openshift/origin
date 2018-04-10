@@ -77,7 +77,9 @@ function config-ip-firewall {
     iptables -w -t nat -A IP-MASQ -m comment --comment "ip-masq: outbound traffic is subject to MASQUERADE (must be last in chain)" -j MASQUERADE
   fi
 
-  if [[ "${ENABLE_METADATA_CONCEALMENT:-}" == "true" ]]; then
+  # If METADATA_CONCEALMENT_NO_FIREWALL is set, don't create a firewall on this
+  # node because we don't expect the daemonset to run on this node.
+  if [[ "${ENABLE_METADATA_CONCEALMENT:-}" == "true" ]] && [[ ! "${METADATA_CONCEALMENT_NO_FIREWALL:-}" == "true" ]]; then
     echo "Add rule for metadata concealment"
     iptables -w -t nat -I PREROUTING -p tcp -d 169.254.169.254 --dport 80 -m comment --comment "metadata-concealment: bridge traffic to metadata server goes to metadata proxy" -j DNAT --to-destination 127.0.0.1:988
   fi
@@ -118,7 +120,7 @@ function get-local-disk-num() {
 function safe-block-symlink(){
   local device="${1}"
   local symdir="${2}"
-  
+
   mkdir -p "${symdir}"
 
   get-or-generate-uuid "${device}"
@@ -192,11 +194,11 @@ function unique-uuid-bind-mount(){
   # Trigger udev refresh so that newly formatted devices are propagated in by-uuid
   udevadm control --reload-rules
   udevadm trigger
-  udevadm settle 
+  udevadm settle
 
   # grep the exact match of actual device, prevents substring matching
   local myuuid=$(ls -l /dev/disk/by-uuid/ | grep "/${actual_device}$" | tr -s ' ' | cut -d ' ' -f 9)
-  # myuuid should be the uuid of the device as found in /dev/disk/by-uuid/ 
+  # myuuid should be the uuid of the device as found in /dev/disk/by-uuid/
   if [[ -z "${myuuid}" ]]; then
     echo "Failed to get a uuid for device ${actual_device} when mounting." >&2
     exit 2
@@ -228,7 +230,7 @@ function mount-ext(){
   local devicenum="${2}"
   local interface="${3}"
   local format="${4}"
-  
+
 
   if [[ -z "${devicenum}" ]]; then
     echo "Failed to get the local disk number for device ${ssd}" >&2
@@ -727,6 +729,7 @@ function create-master-audit-policy {
       - group: "networking.k8s.io"
       - group: "policy"
       - group: "rbac.authorization.k8s.io"
+      - group: "scheduling.k8s.io"
       - group: "settings.k8s.io"
       - group: "storage.k8s.io"'
 
@@ -992,6 +995,14 @@ current-context: kube-scheduler
 EOF
 }
 
+function create-kubescheduler-policy-config {
+  echo "Creating kube-scheduler policy config file"
+  mkdir -p /etc/srv/kubernetes/kube-scheduler
+  cat <<EOF >/etc/srv/kubernetes/kube-scheduler/policy-config
+${SCHEDULER_POLICY_CONFIG}
+EOF
+}
+
 function create-node-problem-detector-kubeconfig {
   echo "Creating node-problem-detector kubeconfig file"
   mkdir -p /var/lib/node-problem-detector
@@ -1061,23 +1072,11 @@ function assemble-docker-flags {
 
   echo "DOCKER_OPTS=\"${docker_opts} ${EXTRA_DOCKER_OPTS:-}\"" > /etc/default/docker
 
-  if [[ "${use_net_plugin}" == "true" ]]; then
-    # If using a network plugin, extend the docker configuration to always remove
-    # the network checkpoint to avoid corrupt checkpoints.
-    # (https://github.com/docker/docker/issues/18283).
-    echo "Extend the docker.service configuration to remove the network checkpiont"
-    mkdir -p /etc/systemd/system/docker.service.d
-    cat <<EOF >/etc/systemd/system/docker.service.d/01network.conf
-[Service]
-ExecStartPre=/bin/sh -x -c "rm -rf /var/lib/docker/network"
-EOF
-  fi
-
   # Ensure TasksMax is sufficient for docker.
   # (https://github.com/kubernetes/kubernetes/issues/51977)
   echo "Extend the docker.service configuration to set a higher pids limit"
   mkdir -p /etc/systemd/system/docker.service.d
-  cat <<EOF >/etc/systemd/system/docker.service.d/02tasksmax.conf
+  cat <<EOF >/etc/systemd/system/docker.service.d/01tasksmax.conf
 [Service]
 TasksMax=infinity
 EOF
@@ -1092,8 +1091,8 @@ EOF
 function start-kubelet {
   echo "Start kubelet"
 
-  local -r kubelet_cert_dir="/var/lib/kubelet/pki/"
-  mkdir -p "${kubelet_cert_dir}"
+  # TODO(#60123): The kubelet should create the cert-dir directory if it doesn't exist
+  mkdir -p /var/lib/kubelet/pki/
 
   local kubelet_bin="${KUBE_HOME}/bin/kubelet"
   local -r version="$("${kubelet_bin}" --version=true | cut -f2 -d " ")"
@@ -1111,114 +1110,9 @@ function start-kubelet {
     fi
   fi
   echo "Using kubelet binary at ${kubelet_bin}"
-  local flags="${KUBELET_TEST_LOG_LEVEL:-"--v=2"} ${KUBELET_TEST_ARGS:-}"
-  flags+=" --allow-privileged=true"
-  flags+=" --cgroup-root=/"
-  flags+=" --cloud-provider=gce"
-  flags+=" --cluster-dns=${DNS_SERVER_IP}"
-  flags+=" --cluster-domain=${DNS_DOMAIN}"
-  flags+=" --pod-manifest-path=/etc/kubernetes/manifests"
-  flags+=" --experimental-mounter-path=${CONTAINERIZED_MOUNTER_HOME}/mounter"
-  flags+=" --experimental-check-node-capabilities-before-mount=true"
-  flags+=" --cert-dir=${kubelet_cert_dir}"
-
-  if [[ -n "${KUBELET_PORT:-}" ]]; then
-    flags+=" --port=${KUBELET_PORT}"
-  fi
-  if [[ "${KUBERNETES_MASTER:-}" == "true" ]]; then
-    flags+=" ${MASTER_KUBELET_TEST_ARGS:-}"
-    flags+=" --enable-debugging-handlers=false"
-    flags+=" --hairpin-mode=none"
-    if [[ "${REGISTER_MASTER_KUBELET:-false}" == "true" ]]; then
-      #TODO(mikedanese): allow static pods to start before creating a client
-      #flags+=" --bootstrap-kubeconfig=/var/lib/kubelet/bootstrap-kubeconfig"
-      #flags+=" --kubeconfig=/var/lib/kubelet/kubeconfig"
-      flags+=" --kubeconfig=/var/lib/kubelet/bootstrap-kubeconfig"
-      flags+=" --register-schedulable=false"
-    else
-      # Standalone mode (not widely used?)
-      flags+=" --pod-cidr=${MASTER_IP_RANGE}"
-    fi
-  else # For nodes
-    flags+=" ${NODE_KUBELET_TEST_ARGS:-}"
-    flags+=" --enable-debugging-handlers=true"
-    flags+=" --bootstrap-kubeconfig=/var/lib/kubelet/bootstrap-kubeconfig"
-    flags+=" --kubeconfig=/var/lib/kubelet/kubeconfig"
-    if [[ "${HAIRPIN_MODE:-}" == "promiscuous-bridge" ]] || \
-       [[ "${HAIRPIN_MODE:-}" == "hairpin-veth" ]] || \
-       [[ "${HAIRPIN_MODE:-}" == "none" ]]; then
-      flags+=" --hairpin-mode=${HAIRPIN_MODE}"
-    fi
-    flags+=" --anonymous-auth=false --authorization-mode=Webhook --client-ca-file=${CA_CERT_BUNDLE_PATH}"
-  fi
-  # Network plugin
-  if [[ -n "${NETWORK_PROVIDER:-}" || -n "${NETWORK_POLICY_PROVIDER:-}" ]]; then
-    flags+=" --cni-bin-dir=/home/kubernetes/bin"
-    if [[ "${NETWORK_POLICY_PROVIDER:-}" == "calico" ]]; then
-      # Calico uses CNI always.
-      # Keep KUBERNETES_PRIVATE_MASTER for backward compatibility.
-      # Note that network policy won't work for master node.
-      if [[ "${KUBERNETES_PRIVATE_MASTER:-}" == "true" || "${KUBERNETES_MASTER:-}" == "true" ]]; then
-        flags+=" --network-plugin=${NETWORK_PROVIDER}"
-      else
-        flags+=" --network-plugin=cni"
-      fi
-    else
-      # Otherwise use the configured value.
-      flags+=" --network-plugin=${NETWORK_PROVIDER}"
-    fi
-  fi
-  if [[ -n "${NON_MASQUERADE_CIDR:-}" ]]; then
-    flags+=" --non-masquerade-cidr=${NON_MASQUERADE_CIDR}"
-  fi
-  # FlexVolume plugin
-  if [[ -n "${VOLUME_PLUGIN_DIR:-}" ]]; then
-    flags+=" --volume-plugin-dir=${VOLUME_PLUGIN_DIR}"
-  fi
-  if [[ "${ENABLE_MANIFEST_URL:-}" == "true" ]]; then
-    flags+=" --manifest-url=${MANIFEST_URL}"
-    flags+=" --manifest-url-header=${MANIFEST_URL_HEADER}"
-  fi
-  if [[ -n "${ENABLE_CUSTOM_METRICS:-}" ]]; then
-    flags+=" --enable-custom-metrics=${ENABLE_CUSTOM_METRICS}"
-  fi
-  local node_labels=""
-  if [[ "${KUBE_PROXY_DAEMONSET:-}" == "true" && "${KUBERNETES_MASTER:-}" != "true" ]]; then
-    # Add kube-proxy daemonset label to node to avoid situation during cluster
-    # upgrade/downgrade when there are two instances of kube-proxy running on a node.
-    node_labels="beta.kubernetes.io/kube-proxy-ds-ready=true"
-  fi
-  if [[ -n "${NODE_LABELS:-}" ]]; then
-    node_labels="${node_labels:+${node_labels},}${NODE_LABELS}"
-  fi
-  if [[ -n "${NON_MASTER_NODE_LABELS:-}" && "${KUBERNETES_MASTER:-}" != "true" ]]; then
-    node_labels="${node_labels:+${node_labels},}${NON_MASTER_NODE_LABELS}"
-  fi
-  if [[ -n "${node_labels:-}" ]]; then
-    flags+=" --node-labels=${node_labels}"
-  fi
-  if [[ -n "${NODE_TAINTS:-}" ]]; then
-    flags+=" --register-with-taints=${NODE_TAINTS}"
-  fi
-  if [[ -n "${EVICTION_HARD:-}" ]]; then
-    flags+=" --eviction-hard=${EVICTION_HARD}"
-  fi
-  if [[ -n "${FEATURE_GATES:-}" ]]; then
-    flags+=" --feature-gates=${FEATURE_GATES}"
-  fi
-  if [[ -n "${ROTATE_CERTIFICATES:-}" ]]; then
-    flags+=" --rotate-certificates=true"
-  fi
-  if [[ -n "${CONTAINER_RUNTIME:-}" ]]; then
-    flags+=" --container-runtime=${CONTAINER_RUNTIME}"
-  fi
-  if [[ -n "${CONTAINER_RUNTIME_ENDPOINT:-}" ]]; then
-    flags+=" --container-runtime-endpoint=${CONTAINER_RUNTIME_ENDPOINT}"
-  fi
-
 
   local -r kubelet_env_file="/etc/default/kubelet"
-  echo "KUBELET_OPTS=\"${flags}\"" > "${kubelet_env_file}"
+  echo "KUBELET_OPTS=\"${KUBELET_ARGS}\"" > "${kubelet_env_file}"
 
   # Write the systemd service file for kubelet.
   cat <<EOF >/etc/systemd/system/kubelet.service
@@ -1289,10 +1183,8 @@ function prepare-log-file {
 function prepare-kube-proxy-manifest-variables {
   local -r src_file=$1;
 
-  remove-salt-config-comments "${src_file}"
-
   local -r kubeconfig="--kubeconfig=/var/lib/kube-proxy/kubeconfig"
-  local kube_docker_registry="gcr.io/google_containers"
+  local kube_docker_registry="k8s.gcr.io"
   if [[ -n "${KUBE_DOCKER_REGISTRY:-}" ]]; then
     kube_docker_registry=${KUBE_DOCKER_REGISTRY}
   fi
@@ -1301,6 +1193,9 @@ function prepare-kube-proxy-manifest-variables {
   local params="${KUBEPROXY_TEST_LOG_LEVEL:-"--v=2"}"
   if [[ -n "${FEATURE_GATES:-}" ]]; then
     params+=" --feature-gates=${FEATURE_GATES}"
+  fi
+  if [[ "${KUBE_PROXY_MODE:-}" == "ipvs" ]];then
+    params+=" --proxy-mode=ipvs --feature-gates=SupportIPVSProxyMode=true"
   fi
   params+=" --iptables-sync-period=1m --iptables-min-sync-period=10s --ipvs-sync-period=1m --ipvs-min-sync-period=10s"
   if [[ -n "${KUBEPROXY_TEST_ARGS:-}" ]]; then
@@ -1338,7 +1233,7 @@ function prepare-kube-proxy-manifest-variables {
 function start-kube-proxy {
   echo "Start kube-proxy static pod"
   prepare-log-file /var/log/kube-proxy.log
-  local -r src_file="${KUBE_HOME}/kube-manifests/kubernetes/kube-proxy.manifest"
+  local -r src_file="${KUBE_HOME}/kube-manifests/kubernetes/gci-trusty/kube-proxy.manifest"
   prepare-kube-proxy-manifest-variables "${src_file}"
 
   cp "${src_file}" /etc/kubernetes/manifests
@@ -1353,6 +1248,7 @@ function start-kube-proxy {
 # $5: pod name, which should be either etcd or etcd-events
 function prepare-etcd-manifest {
   local host_name=${ETCD_HOSTNAME:-$(hostname -s)}
+  local host_ip=$(python -c "import socket;print(socket.gethostbyname(\"${host_name}\"))")
   local etcd_cluster=""
   local cluster_state="new"
   local etcd_protocol="http"
@@ -1376,12 +1272,12 @@ function prepare-etcd-manifest {
 
   local -r temp_file="/tmp/$5"
   cp "${KUBE_HOME}/kube-manifests/kubernetes/gci-trusty/etcd.manifest" "${temp_file}"
-  remove-salt-config-comments "${temp_file}"
   sed -i -e "s@{{ *suffix *}}@$1@g" "${temp_file}"
   sed -i -e "s@{{ *port *}}@$2@g" "${temp_file}"
   sed -i -e "s@{{ *server_port *}}@$3@g" "${temp_file}"
   sed -i -e "s@{{ *cpulimit *}}@\"$4\"@g" "${temp_file}"
   sed -i -e "s@{{ *hostname *}}@$host_name@g" "${temp_file}"
+  sed -i -e "s@{{ *host_ip *}}@$host_ip@g" "${temp_file}"
   sed -i -e "s@{{ *srv_kube_path *}}@/etc/srv/kubernetes@g" "${temp_file}"
   sed -i -e "s@{{ *etcd_cluster *}}@$etcd_cluster@g" "${temp_file}"
   sed -i -e "s@{{ *liveness_probe_initial_delay *}}@${ETCD_LIVENESS_PROBE_INITIAL_DELAY_SEC:-15}@g" "${temp_file}"
@@ -1395,7 +1291,7 @@ function prepare-etcd-manifest {
     sed -i -e "s@{{ *pillar\.get('storage_backend', '\(.*\)') *}}@\1@g" "${temp_file}"
   fi
   if [[ "${STORAGE_BACKEND:-${default_storage_backend}}" == "etcd3" ]]; then
-    sed -i -e "s@{{ *quota_bytes *}}@--quota-backend-bytes=4294967296@g" "${temp_file}"
+    sed -i -e "s@{{ *quota_bytes *}}@--quota-backend-bytes=${ETCD_QUOTA_BACKEND_BYTES:-4294967296}@g" "${temp_file}"
   else
     sed -i -e "s@{{ *quota_bytes *}}@@g" "${temp_file}"
   fi
@@ -1456,6 +1352,8 @@ function start-etcd-servers {
 #   CLOUD_CONFIG_VOLUME
 #   CLOUD_CONFIG_MOUNT
 #   DOCKER_REGISTRY
+#   FLEXVOLUME_HOSTPATH_MOUNT
+#   FLEXVOLUME_HOSTPATH_VOLUME
 function compute-master-manifest-variables {
   CLOUD_CONFIG_OPT=""
   CLOUD_CONFIG_VOLUME=""
@@ -1465,9 +1363,16 @@ function compute-master-manifest-variables {
     CLOUD_CONFIG_VOLUME="{\"name\": \"cloudconfigmount\",\"hostPath\": {\"path\": \"/etc/gce.conf\", \"type\": \"FileOrCreate\"}},"
     CLOUD_CONFIG_MOUNT="{\"name\": \"cloudconfigmount\",\"mountPath\": \"/etc/gce.conf\", \"readOnly\": true},"
   fi
-  DOCKER_REGISTRY="gcr.io/google_containers"
+  DOCKER_REGISTRY="k8s.gcr.io"
   if [[ -n "${KUBE_DOCKER_REGISTRY:-}" ]]; then
     DOCKER_REGISTRY="${KUBE_DOCKER_REGISTRY}"
+  fi
+
+  FLEXVOLUME_HOSTPATH_MOUNT=""
+  FLEXVOLUME_HOSTPATH_VOLUME=""
+  if [[ -n "${VOLUME_PLUGIN_DIR:-}" ]]; then
+    FLEXVOLUME_HOSTPATH_MOUNT="{ \"name\": \"flexvolumedir\", \"mountPath\": \"${VOLUME_PLUGIN_DIR}\", \"readOnly\": true},"
+    FLEXVOLUME_HOSTPATH_VOLUME="{ \"name\": \"flexvolumedir\", \"hostPath\": {\"path\": \"${VOLUME_PLUGIN_DIR}\"}},"
   fi
 }
 
@@ -1482,17 +1387,6 @@ function prepare-mounter-rootfs {
   mount --bind -o ro /proc "${CONTAINERIZED_MOUNTER_ROOTFS}/proc"
   mount --bind -o ro /dev "${CONTAINERIZED_MOUNTER_ROOTFS}/dev"
   cp /etc/resolv.conf "${CONTAINERIZED_MOUNTER_ROOTFS}/etc/"
-}
-
-# A helper function for removing salt configuration and comments from a file.
-# This is mainly for preparing a manifest file.
-#
-# $1: Full path of the file to manipulate
-function remove-salt-config-comments {
-  # Remove salt configuration.
-  sed -i "/^[ |\t]*{[#|%]/d" $1
-  # Remove comments.
-  sed -i "/^[ |\t]*#/d" $1
 }
 
 # Starts kubernetes apiserver.
@@ -1520,6 +1414,7 @@ function start-kube-apiserver {
   params+=" --secure-port=443"
   params+=" --tls-cert-file=${APISERVER_SERVER_CERT_PATH}"
   params+=" --tls-private-key-file=${APISERVER_SERVER_KEY_PATH}"
+  params+=" --kubelet-preferred-address-types=InternalIP,ExternalIP,Hostname"
   if [[ -s "${REQUESTHEADER_CA_CERT_PATH:-}" ]]; then
     params+=" --requestheader-client-ca-file=${REQUESTHEADER_CA_CERT_PATH}"
     params+=" --requestheader-allowed-names=aggregator"
@@ -1547,6 +1442,9 @@ function start-kube-apiserver {
   if [[ -n "${STORAGE_MEDIA_TYPE:-}" ]]; then
     params+=" --storage-media-type=${STORAGE_MEDIA_TYPE}"
   fi
+  if [[ -n "${ETCD_COMPACTION_INTERVAL_SEC:-}" ]]; then
+    params+=" --etcd-compaction-interval=${ETCD_COMPACTION_INTERVAL_SEC}s"
+  fi
   if [[ -n "${KUBE_APISERVER_REQUEST_TIMEOUT_SEC:-}" ]]; then
     params+=" --request-timeout=${KUBE_APISERVER_REQUEST_TIMEOUT_SEC}s"
   fi
@@ -1568,6 +1466,11 @@ function start-kube-apiserver {
   fi
   if [[ -n "${ETCD_QUORUM_READ:-}" ]]; then
     params+=" --etcd-quorum-read=${ETCD_QUORUM_READ}"
+  fi
+  if [[ -n "${SERVICEACCOUNT_ISSUER:-}" ]]; then
+    params+=" --service-account-issuer=${SERVICEACCOUNT_ISSUER}"
+    params+=" --service-account-signing-key-file=${SERVICEACCOUNT_KEY_PATH}"
+    params+=" --service-account-api-audiences=${SERVICEACCOUNT_API_AUDIENCES}"
   fi
 
   local audit_policy_config_mount=""
@@ -1612,6 +1515,29 @@ function start-kube-apiserver {
       # grows at 10MiB/s (~30K QPS), it will rotate after ~6 years if apiserver
       # never restarts. Please manually restart apiserver before this time.
       params+=" --audit-log-maxsize=2000000000"
+
+      # Batching parameters
+      if [[ -n "${ADVANCED_AUDIT_LOG_MODE:-}" ]]; then
+        params+=" --audit-log-mode=${ADVANCED_AUDIT_LOG_MODE}"
+      fi
+      if [[ -n "${ADVANCED_AUDIT_LOG_BUFFER_SIZE:-}" ]]; then
+        params+=" --audit-log-batch-buffer-size=${ADVANCED_AUDIT_LOG_BUFFER_SIZE}"
+      fi
+      if [[ -n "${ADVANCED_AUDIT_LOG_MAX_BATCH_SIZE:-}" ]]; then
+        params+=" --audit-log-batch-max-size=${ADVANCED_AUDIT_LOG_MAX_BATCH_SIZE}"
+      fi
+      if [[ -n "${ADVANCED_AUDIT_LOG_MAX_BATCH_WAIT:-}" ]]; then
+        params+=" --audit-log-batch-max-wait=${ADVANCED_AUDIT_LOG_MAX_BATCH_WAIT}"
+      fi
+      if [[ -n "${ADVANCED_AUDIT_LOG_THROTTLE_QPS:-}" ]]; then
+        params+=" --audit-log-batch-throttle-qps=${ADVANCED_AUDIT_LOG_THROTTLE_QPS}"
+      fi
+      if [[ -n "${ADVANCED_AUDIT_LOG_THROTTLE_BURST:-}" ]]; then
+        params+=" --audit-log-batch-throttle-burst=${ADVANCED_AUDIT_LOG_THROTTLE_BURST}"
+      fi
+      if [[ -n "${ADVANCED_AUDIT_LOG_INITIAL_BACKOFF:-}" ]]; then
+        params+=" --audit-log-initial-backoff=${ADVANCED_AUDIT_LOG_INITIAL_BACKOFF}"
+      fi
     fi
     if [[ "${ADVANCED_AUDIT_BACKEND:-}" == *"webhook"* ]]; then
       params+=" --audit-webhook-mode=batch"
@@ -1619,6 +1545,14 @@ function start-kube-apiserver {
       # Create the audit webhook config file, and mount it into the apiserver pod.
       local -r audit_webhook_config_file="/etc/audit_webhook.config"
       params+=" --audit-webhook-config-file=${audit_webhook_config_file}"
+      create-master-audit-webhook-config "${audit_webhook_config_file}"
+      audit_webhook_config_mount="{\"name\": \"auditwebhookconfigmount\",\"mountPath\": \"${audit_webhook_config_file}\", \"readOnly\": true},"
+      audit_webhook_config_volume="{\"name\": \"auditwebhookconfigmount\",\"hostPath\": {\"path\": \"${audit_webhook_config_file}\", \"type\": \"FileOrCreate\"}},"
+
+      # Batching parameters
+      if [[ -n "${ADVANCED_AUDIT_WEBHOOK_MODE:-}" ]]; then
+        params+=" --audit-webhook-mode=${ADVANCED_AUDIT_WEBHOOK_MODE}"
+      fi
       if [[ -n "${ADVANCED_AUDIT_WEBHOOK_BUFFER_SIZE:-}" ]]; then
         params+=" --audit-webhook-batch-buffer-size=${ADVANCED_AUDIT_WEBHOOK_BUFFER_SIZE}"
       fi
@@ -1635,11 +1569,8 @@ function start-kube-apiserver {
         params+=" --audit-webhook-batch-throttle-burst=${ADVANCED_AUDIT_WEBHOOK_THROTTLE_BURST}"
       fi
       if [[ -n "${ADVANCED_AUDIT_WEBHOOK_INITIAL_BACKOFF:-}" ]]; then
-        params+=" --audit-webhook-batch-initial-backoff=${ADVANCED_AUDIT_WEBHOOK_INITIAL_BACKOFF}"
+        params+=" --audit-webhook-initial-backoff=${ADVANCED_AUDIT_WEBHOOK_INITIAL_BACKOFF}"
       fi
-      create-master-audit-webhook-config "${audit_webhook_config_file}"
-      audit_webhook_config_mount="{\"name\": \"auditwebhookconfigmount\",\"mountPath\": \"${audit_webhook_config_file}\", \"readOnly\": true},"
-      audit_webhook_config_volume="{\"name\": \"auditwebhookconfigmount\",\"hostPath\": {\"path\": \"${audit_webhook_config_file}\", \"type\": \"FileOrCreate\"}},"
     fi
   fi
 
@@ -1676,11 +1607,9 @@ function start-kube-apiserver {
   if [[ -n "${PROJECT_ID:-}" && -n "${TOKEN_URL:-}" && -n "${TOKEN_BODY:-}" && -n "${NODE_NETWORK:-}" ]]; then
     local -r vm_external_ip=$(curl --retry 5 --retry-delay 3 ${CURL_RETRY_CONNREFUSED} --fail --silent -H 'Metadata-Flavor: Google' "http://metadata/computeMetadata/v1/instance/network-interfaces/0/access-configs/0/external-ip")
     if [[ -n "${PROXY_SSH_USER:-}" ]]; then
-      params+=" --advertise-address=${vm_external_ip}"      
+      params+=" --advertise-address=${vm_external_ip}"
       params+=" --ssh-user=${PROXY_SSH_USER}"
       params+=" --ssh-keyfile=/etc/srv/sshproxy/.sshkeyfile"
-    else
-      params+=" --kubelet-preferred-address-types=InternalIP,ExternalIP,Hostname",
     fi
   elif [ -n "${MASTER_ADVERTISE_ADDRESS:-}" ]; then
     params="${params} --advertise-address=${MASTER_ADVERTISE_ADDRESS}"
@@ -1692,10 +1621,13 @@ function start-kube-apiserver {
     params+=" --authentication-token-webhook-config-file=/etc/gcp_authn.config"
     webhook_authn_config_mount="{\"name\": \"webhookauthnconfigmount\",\"mountPath\": \"/etc/gcp_authn.config\", \"readOnly\": false},"
     webhook_authn_config_volume="{\"name\": \"webhookauthnconfigmount\",\"hostPath\": {\"path\": \"/etc/gcp_authn.config\", \"type\": \"FileOrCreate\"}},"
+    if [[ -n "${GCP_AUTHN_CACHE_TTL:-}" ]]; then
+      params+=" --authentication-token-webhook-cache-ttl=${GCP_AUTHN_CACHE_TTL}"
+    fi
   fi
 
 
-  local authorization_mode="Node,RBAC"
+  local authorization_mode="RBAC"
   local -r src_dir="${KUBE_HOME}/kube-manifests/kubernetes/gci-trusty"
 
   # Enable ABAC mode unless the user explicitly opts out with ENABLE_LEGACY_ABAC=false
@@ -1704,7 +1636,6 @@ function start-kube-apiserver {
     # Create the ABAC file if it doesn't exist yet, or if we have a KUBE_USER set (to ensure the right user is given permissions)
     if [[ -n "${KUBE_USER:-}" || ! -e /etc/srv/kubernetes/abac-authz-policy.jsonl ]]; then
       local -r abac_policy_json="${src_dir}/abac-authz-policy.jsonl"
-      remove-salt-config-comments "${abac_policy_json}"
       if [[ -n "${KUBE_USER:-}" ]]; then
         sed -i -e "s/{{kube_user}}/${KUBE_USER}/g" "${abac_policy_json}"
       else
@@ -1720,11 +1651,18 @@ function start-kube-apiserver {
   local webhook_config_mount=""
   local webhook_config_volume=""
   if [[ -n "${GCP_AUTHZ_URL:-}" ]]; then
-    authorization_mode+=",Webhook"
+    authorization_mode="Webhook,${authorization_mode}"
     params+=" --authorization-webhook-config-file=/etc/gcp_authz.config"
     webhook_config_mount="{\"name\": \"webhookconfigmount\",\"mountPath\": \"/etc/gcp_authz.config\", \"readOnly\": false},"
     webhook_config_volume="{\"name\": \"webhookconfigmount\",\"hostPath\": {\"path\": \"/etc/gcp_authz.config\", \"type\": \"FileOrCreate\"}},"
+    if [[ -n "${GCP_AUTHZ_CACHE_AUTHORIZED_TTL:-}" ]]; then
+      params+=" --authorization-webhook-cache-authorized-ttl=${GCP_AUTHZ_CACHE_AUTHORIZED_TTL}"
+    fi
+    if [[ -n "${GCP_AUTHZ_CACHE_UNAUTHORIZED_TTL:-}" ]]; then
+      params+=" --authorization-webhook-cache-unauthorized-ttl=${GCP_AUTHZ_CACHE_UNAUTHORIZED_TTL}"
+    fi
   fi
+  authorization_mode="Node,${authorization_mode}"
   params+=" --authorization-mode=${authorization_mode}"
 
   local container_env=""
@@ -1748,7 +1686,6 @@ function start-kube-apiserver {
   fi
 
   src_file="${src_dir}/kube-apiserver.manifest"
-  remove-salt-config-comments "${src_file}"
   # Evaluate variables.
   local -r kube_apiserver_docker_tag=$(cat /home/kubernetes/kube-docker-files/kube-apiserver.docker_tag)
   sed -i -e "s@{{params}}@${params}@g" "${src_file}"
@@ -1828,7 +1765,7 @@ function start-kube-controller-manager {
     params+=" --terminated-pod-gc-threshold=${TERMINATED_POD_GC_THRESHOLD}"
   fi
   if [[ "${ENABLE_IP_ALIASES:-}" == 'true' ]]; then
-    params+=" --cidr-allocator-type=CloudAllocator"
+    params+=" --cidr-allocator-type=${NODE_IPAM_MODE}"
     params+=" --configure-cloud-routes=false"
   fi
   if [[ -n "${FEATURE_GATES:-}" ]]; then
@@ -1858,7 +1795,6 @@ function start-kube-controller-manager {
   fi
 
   local -r src_file="${KUBE_HOME}/kube-manifests/kubernetes/gci-trusty/kube-controller-manager.manifest"
-  remove-salt-config-comments "${src_file}"
   # Evaluate variables.
   sed -i -e "s@{{srv_kube_path}}@/etc/srv/kubernetes@g" "${src_file}"
   sed -i -e "s@{{pillar\['kube_docker_registry'\]}}@${DOCKER_REGISTRY}@g" "${src_file}"
@@ -1871,6 +1807,9 @@ function start-kube-controller-manager {
   sed -i -e "s@{{additional_cloud_config_volume}}@@g" "${src_file}"
   sed -i -e "s@{{pv_recycler_mount}}@${PV_RECYCLER_MOUNT}@g" "${src_file}"
   sed -i -e "s@{{pv_recycler_volume}}@${PV_RECYCLER_VOLUME}@g" "${src_file}"
+  sed -i -e "s@{{flexvolume_hostpath_mount}}@${FLEXVOLUME_HOSTPATH_MOUNT}@g" "${src_file}"
+  sed -i -e "s@{{flexvolume_hostpath}}@${FLEXVOLUME_HOSTPATH_VOLUME}@g" "${src_file}"
+
   cp "${src_file}" /etc/kubernetes/manifests
 }
 
@@ -1894,11 +1833,15 @@ function start-kube-scheduler {
   if [[ -n "${SCHEDULING_ALGORITHM_PROVIDER:-}"  ]]; then
     params+=" --algorithm-provider=${SCHEDULING_ALGORITHM_PROVIDER}"
   fi
+  if [[ -n "${SCHEDULER_POLICY_CONFIG:-}" ]]; then
+    create-kubescheduler-policy-config
+    params+=" --use-legacy-policy-config"
+    params+=" --policy-config-file=/etc/srv/kubernetes/kube-scheduler/policy-config"
+  fi
   local -r kube_scheduler_docker_tag=$(cat "${KUBE_HOME}/kube-docker-files/kube-scheduler.docker_tag")
 
   # Remove salt comments and replace variables with values.
   local -r src_file="${KUBE_HOME}/kube-manifests/kubernetes/gci-trusty/kube-scheduler.manifest"
-  remove-salt-config-comments "${src_file}"
 
   sed -i -e "s@{{srv_kube_path}}@/etc/srv/kubernetes@g" "${src_file}"
   sed -i -e "s@{{params}}@${params}@g" "${src_file}"
@@ -1919,7 +1862,6 @@ function start-cluster-autoscaler {
 
     # Remove salt comments and replace variables with values
     local -r src_file="${KUBE_HOME}/kube-manifests/kubernetes/gci-trusty/cluster-autoscaler.manifest"
-    remove-salt-config-comments "${src_file}"
 
     local params="${AUTOSCALER_MIG_CONFIG} ${CLOUD_CONFIG_OPT} ${AUTOSCALER_EXPANDER_CONFIG:---expander=price}"
     sed -i -e "s@{{params}}@${params}@g" "${src_file}"
@@ -1935,7 +1877,7 @@ function start-cluster-autoscaler {
 #
 # $1: addon category under /etc/kubernetes
 # $2: manifest source dir
-# $3: (optional) auxilary manifest source dir
+# $3: (optional) auxiliary manifest source dir
 function setup-addon-manifests {
   local -r src_dir="${KUBE_HOME}/kube-manifests/kubernetes/gci-trusty"
   local -r dst_dir="/etc/kubernetes/$1/$2"
@@ -1950,6 +1892,33 @@ function setup-addon-manifests {
       copy-manifests "${psp_dir}" "${dst_dir}"
     fi
   fi
+}
+
+# A function that downloads extra addons from a URL and puts them in the GCI
+# manifests directory.
+function download-extra-addons {
+  local -r out_dir="${KUBE_HOME}/kube-manifests/kubernetes/gci-trusty/gce-extras"
+
+  mkdir -p "${out_dir}"
+
+  local curl_cmd=(
+    "curl"
+    "--fail"
+    "--retry" "5"
+    "--retry-delay" "3"
+    "--silent"
+    "--show-error"
+  )
+  if [[ -n "${CURL_RETRY_CONNREFUSED:-}" ]]; then
+    curl_cmd+=("${CURL_RETRY_CONNREFUSED}")
+  fi
+  if [[ -n "${EXTRA_ADDONS_HEADER:-}" ]]; then
+    curl_cmd+=("-H" "${EXTRA_ADDONS_HEADER}")
+  fi
+  curl_cmd+=("-o" "${out_dir}/extras.json")
+  curl_cmd+=("${EXTRA_ADDONS_URL}")
+
+  "${curl_cmd[@]}"
 }
 
 # A helper function for copying manifests and setting dir/files
@@ -1980,50 +1949,63 @@ function copy-manifests {
   chmod 644 "${dst_dir}"/*
 }
 
-# Fluentd manifest is modified using kubectl, which may not be available at
-# this point. Run this as a background process.
+# Fluentd resources are modified using ScalingPolicy CR, which may not be
+# available at this point. Run this as a background process.
 function wait-for-apiserver-and-update-fluentd {
-  local -r fluentd_gcp_yaml="${1}"
-
-  local modifying_flags=""
+  local any_overrides=false
   if [[ -n "${FLUENTD_GCP_MEMORY_LIMIT:-}" ]]; then
-    modifying_flags="${modifying_flags} --limits=memory=${FLUENTD_GCP_MEMORY_LIMIT}"
+    any_overrides=true
   fi
-  local request_resources=""
   if [[ -n "${FLUENTD_GCP_CPU_REQUEST:-}" ]]; then
-    request_resources="cpu=${FLUENTD_GCP_CPU_REQUEST}"
+    any_overrides=true
   fi
   if [[ -n "${FLUENTD_GCP_MEMORY_REQUEST:-}" ]]; then
-    if [[ -n "${request_resources}" ]]; then
-      request_resources="${request_resources},"
-    fi
-    request_resources="memory=${FLUENTD_GCP_MEMORY_REQUEST}"
+    any_overrides=true
   fi
-  if [[ -n "${request_resources}" ]]; then
-    modifying_flags="${modifying_flags} --requests=${request_resources}"
+  if ! $any_overrides; then
+    # Nothing to do here.
+    exit
   fi
 
-  until kubectl get nodes
+  # Wait until ScalingPolicy CRD is in place.
+  until kubectl get scalingpolicies.scalingpolicy.kope.io
   do
     sleep 10
   done
 
-  local -r temp_fluentd_gcp_yaml="${fluentd_gcp_yaml}.tmp"
-  if kubectl set resources --dry-run --local -f ${fluentd_gcp_yaml} ${modifying_flags} \
-      --containers=fluentd-gcp -o yaml > ${temp_fluentd_gcp_yaml}; then
-    mv ${temp_fluentd_gcp_yaml} ${fluentd_gcp_yaml}
-  else
-    (echo "Failed to update fluentd resources. Used manifest:" && cat ${temp_fluentd_gcp_yaml}) >&2
-    rm ${temp_fluentd_gcp_yaml}
-  fi
+  # Single-shot, not managed by addon manager. Can be later modified or removed
+  # at will.
+  cat <<EOF | kubectl apply -f -
+apiVersion: scalingpolicy.kope.io/v1alpha1
+kind: ScalingPolicy
+metadata:
+  name: fluentd-gcp-scaling-policy
+  namespace: kube-system
+spec:
+  containers:
+  - name: fluentd-gcp
+    resources:
+      requests:
+      - resource: cpu
+        base: ${FLUENTD_GCP_CPU_REQUEST:-}
+      - resource: memory
+        base: ${FLUENTD_GCP_MEMORY_REQUEST:-}
+      limits:
+      - resource: memory
+        base: ${FLUENTD_GCP_MEMORY_LIMIT:-}
+EOF
 }
 
 # Trigger background process that will ultimately update fluentd resource
 # requirements.
 function start-fluentd-resource-update {
-  local -r fluentd_gcp_yaml="${1}"
+  wait-for-apiserver-and-update-fluentd &
+}
 
-  wait-for-apiserver-and-update-fluentd ${fluentd_gcp_yaml} &
+# Update {{ container-runtime }} with actual container runtime name.
+function update-container-runtime {
+  local -r configmap_yaml="$1"
+  sed -i -e "s@{{ *container_runtime *}}@${CONTAINER_RUNTIME_NAME:-docker}@g" "${configmap_yaml}"
 }
 
 # Updates parameters in yaml file for prometheus-to-sd configuration, or
@@ -2036,6 +2018,17 @@ function update-prometheus-to-sd-parameters {
     # Removes all lines between two patterns (throws away prometheus-to-sd)
     sed -i -e "/# BEGIN_PROMETHEUS_TO_SD/,/# END_PROMETHEUS_TO_SD/d" "$1"
    fi
+}
+
+# Updates parameters in yaml file for event-exporter configuration
+function update-event-exporter {
+    sed -i -e "s@{{ *event_exporter_zone *}}@${ZONE:-}@g" "$1"
+}
+
+function update-dashboard-controller {
+  if [ -n "${CUSTOM_KUBE_DASHBOARD_BANNER:-}" ]; then
+    sed -i -e "s@\( \+\)# PLATFORM-SPECIFIC ARGS HERE@\1- --system-banner=${CUSTOM_KUBE_DASHBOARD_BANNER}\n\1- --system-banner-severity=WARNING@" "$1"
+  fi
 }
 
 # Sets up the manifests of coreDNS for k8s addons.
@@ -2064,7 +2057,7 @@ EOF
   sed -i -e "s@{{ *pillar\['dns_server'\] *}}@${DNS_SERVER_IP}@g" "${kubedns_file}"
 
   if [[ "${ENABLE_DNS_HORIZONTAL_AUTOSCALER:-}" == "true" ]]; then
-    setup-addon-manifests "addons" "dns-horizontal-autoscaler"
+    setup-addon-manifests "addons" "dns-horizontal-autoscaler" "gce"
   fi
 }
 
@@ -2128,7 +2121,6 @@ EOF
     else
       controller_yaml="${controller_yaml}/heapster-controller.yaml"
     fi
-    remove-salt-config-comments "${controller_yaml}"
 
     sed -i -e "s@{{ cluster_name }}@${CLUSTER_NAME}@g" "${controller_yaml}"
     sed -i -e "s@{{ *base_metrics_memory *}}@${base_metrics_memory}@g" "${controller_yaml}"
@@ -2175,34 +2167,31 @@ EOF
       setup-kube-dns-manifest
     fi
   fi
-  if [[ "${ENABLE_CLUSTER_REGISTRY:-}" == "true" ]]; then
-    setup-addon-manifests "addons" "registry"
-    local -r registry_pv_file="${dst_dir}/registry/registry-pv.yaml"
-    local -r registry_pvc_file="${dst_dir}/registry/registry-pvc.yaml"
-    mv "${dst_dir}/registry/registry-pv.yaml.in" "${registry_pv_file}"
-    mv "${dst_dir}/registry/registry-pvc.yaml.in" "${registry_pvc_file}"
-    # Replace the salt configurations with variable values.
-    remove-salt-config-comments "${controller_yaml}"
-    sed -i -e "s@{{ *pillar\['cluster_registry_disk_size'\] *}}@${CLUSTER_REGISTRY_DISK_SIZE}@g" "${registry_pv_file}"
-    sed -i -e "s@{{ *pillar\['cluster_registry_disk_size'\] *}}@${CLUSTER_REGISTRY_DISK_SIZE}@g" "${registry_pvc_file}"
-    sed -i -e "s@{{ *pillar\['cluster_registry_disk_name'\] *}}@${CLUSTER_REGISTRY_DISK}@g" "${registry_pvc_file}"
-  fi
   if [[ "${ENABLE_NODE_LOGGING:-}" == "true" ]] && \
      [[ "${LOGGING_DESTINATION:-}" == "elasticsearch" ]] && \
      [[ "${ENABLE_CLUSTER_LOGGING:-}" == "true" ]]; then
     setup-addon-manifests "addons" "fluentd-elasticsearch"
+    local -r fluentd_es_configmap_yaml="${dst_dir}/fluentd-elasticsearch/fluentd-es-configmap.yaml"
+    update-container-runtime ${fluentd_es_configmap_yaml}
   fi
   if [[ "${ENABLE_NODE_LOGGING:-}" == "true" ]] && \
      [[ "${LOGGING_DESTINATION:-}" == "gcp" ]]; then
     setup-addon-manifests "addons" "fluentd-gcp"
     local -r event_exporter_yaml="${dst_dir}/fluentd-gcp/event-exporter.yaml"
     local -r fluentd_gcp_yaml="${dst_dir}/fluentd-gcp/fluentd-gcp-ds.yaml"
+    local -r fluentd_gcp_configmap_yaml="${dst_dir}/fluentd-gcp/fluentd-gcp-configmap.yaml"
+    update-event-exporter ${event_exporter_yaml}
+    fluentd_gcp_version="${FLUENTD_GCP_VERSION:-0.2-1.5.28-1}"
+    sed -i -e "s@{{ fluentd_gcp_version }}@${fluentd_gcp_version}@g" "${fluentd_gcp_yaml}"
     update-prometheus-to-sd-parameters ${event_exporter_yaml}
     update-prometheus-to-sd-parameters ${fluentd_gcp_yaml}
     start-fluentd-resource-update ${fluentd_gcp_yaml}
+    update-container-runtime ${fluentd_gcp_configmap_yaml}
   fi
   if [[ "${ENABLE_CLUSTER_UI:-}" == "true" ]]; then
     setup-addon-manifests "addons" "dashboard"
+    local -r dashboard_controller_yaml="${dst_dir}/dashboard/dashboard-controller.yaml"
+    update-dashboard-controller ${dashboard_controller_yaml}
   fi
   if [[ "${ENABLE_NODE_PROBLEM_DETECTOR:-}" == "daemonset" ]]; then
     setup-addon-manifests "addons" "node-problem-detector"
@@ -2212,7 +2201,7 @@ EOF
     setup-addon-manifests "addons" "node-problem-detector/standalone" "node-problem-detector"
   fi
   if echo "${ADMISSION_CONTROL:-}" | grep -q "LimitRanger"; then
-    setup-addon-manifests "admission-controls" "limit-range"
+    setup-addon-manifests "admission-controls" "limit-range" "gce"
   fi
   if [[ "${NETWORK_POLICY_PROVIDER:-}" == "calico" ]]; then
     setup-addon-manifests "addons" "calico-policy-controller"
@@ -2232,6 +2221,17 @@ EOF
     local -r metadata_proxy_yaml="${dst_dir}/metadata-proxy/gce/metadata-proxy.yaml"
     update-prometheus-to-sd-parameters ${metadata_proxy_yaml}
   fi
+  if [[ "${ENABLE_ISTIO:-}" == "true" ]]; then
+    if [[ "${ISTIO_AUTH_TYPE:-}" == "MUTUAL_TLS" ]]; then
+      setup-addon-manifests "addons" "istio/auth"
+    else
+      setup-addon-manifests "addons" "istio/noauth"
+    fi
+  fi
+  if [[ -n "${EXTRA_ADDONS_URL:-}" ]]; then
+    download-extra-addons
+    setup-addon-manifests "addons" "gce-extras"
+  fi
 
   # Place addon manager pod manifest.
   cp "${src_dir}/kube-addon-manager.yaml" /etc/kubernetes/manifests
@@ -2244,14 +2244,11 @@ function start-image-puller {
     /etc/kubernetes/manifests/
 }
 
-# Starts kube-registry proxy
-function start-kube-registry-proxy {
-  echo "Start kube-registry-proxy"
-  cp "${KUBE_HOME}/kube-manifests/kubernetes/kube-registry-proxy.yaml" /etc/kubernetes/manifests
-}
-
-# Starts a l7 loadbalancing controller for ingress.
+# Setups manifests for ingress controller and gce-specific policies for service controller.
 function start-lb-controller {
+  setup-addon-manifests "addons" "loadbalancing"
+
+  # Starts a l7 loadbalancing controller for ingress.
   if [[ "${ENABLE_L7_LOADBALANCING:-}" == "glbc" ]]; then
     echo "Start GCE L7 pod"
     prepare-log-file /var/log/glbc.log
@@ -2345,7 +2342,7 @@ spec:
   - name: vol
   containers:
   - name: pv-recycler
-    image: gcr.io/google_containers/busybox:1.27
+    image: k8s.gcr.io/busybox:1.27
     command:
     - /bin/sh
     args:
@@ -2432,10 +2429,6 @@ if [[ "${KUBERNETES_MASTER:-}" == "true" ]]; then
 else
   if [[ "${KUBE_PROXY_DAEMONSET:-}" != "true" ]]; then
     start-kube-proxy
-  fi
-  # Kube-registry-proxy.
-  if [[ "${ENABLE_CLUSTER_REGISTRY:-}" == "true" ]]; then
-    start-kube-registry-proxy
   fi
   if [[ "${PREPULL_E2E_IMAGES:-}" == "true" ]]; then
     start-image-puller

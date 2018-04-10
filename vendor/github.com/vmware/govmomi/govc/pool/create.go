@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2015 VMware, Inc. All Rights Reserved.
+Copyright (c) 2015-2017 VMware, Inc. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -25,7 +25,6 @@ import (
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/govc/cli"
 	"github.com/vmware/govmomi/govc/flags"
-	"github.com/vmware/govmomi/vim25/types"
 )
 
 type create struct {
@@ -42,11 +41,6 @@ func (cmd *create) Register(ctx context.Context, f *flag.FlagSet) {
 	cmd.DatacenterFlag.Register(ctx, f)
 
 	cmd.ResourceConfigSpecFlag = NewResourceConfigSpecFlag()
-	cmd.ResourceConfigSpecFlag.SetAllocation(func(a types.BaseResourceAllocationInfo) {
-		ra := a.GetResourceAllocationInfo()
-		ra.Shares.Level = types.SharesLevelNormal
-		ra.ExpandableReservation = types.NewBool(true)
-	})
 	cmd.ResourceConfigSpecFlag.Register(ctx, f)
 }
 

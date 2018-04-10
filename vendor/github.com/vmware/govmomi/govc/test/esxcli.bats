@@ -3,6 +3,8 @@
 load test_helper
 
 @test "network vm list" {
+  esx_env
+
   # make sure there's at least 1 VM so we get a table header to count against
   vm=$(new_empty_vm)
   govc vm.power -on $vm
@@ -22,6 +24,8 @@ load test_helper
 }
 
 @test "network ip connection list" {
+  esx_env
+
   run govc host.esxcli -- network ip connection list -t tcp
   assert_success
 
@@ -34,6 +38,8 @@ load test_helper
 }
 
 @test "system settings advanced list" {
+  esx_env
+
   run govc host.esxcli -- system settings advanced list -o /Net/GuestIPHack
   assert_success
   assert_line "Path: /Net/GuestIPHack"

@@ -38,11 +38,11 @@ import (
 	kubeapiserver "k8s.io/kubernetes/cmd/kube-apiserver/app"
 	kubecontrollermanager "k8s.io/kubernetes/cmd/kube-controller-manager/app"
 	kubeproxy "k8s.io/kubernetes/cmd/kube-proxy/app"
+	kubescheduler "k8s.io/kubernetes/cmd/kube-scheduler/app"
 	kubelet "k8s.io/kubernetes/cmd/kubelet/app"
 	_ "k8s.io/kubernetes/pkg/client/metrics/prometheus" // for client metric registration
 	kubectl "k8s.io/kubernetes/pkg/kubectl/cmd"
 	_ "k8s.io/kubernetes/pkg/version/prometheus" // for version metric registration
-	kubescheduler "k8s.io/kubernetes/plugin/cmd/kube-scheduler/app"
 )
 
 func main() {

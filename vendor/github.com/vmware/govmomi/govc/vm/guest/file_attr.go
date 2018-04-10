@@ -33,8 +33,8 @@ func newFileAttrFlag(ctx context.Context) (*FileAttrFlag, context.Context) {
 }
 
 func (flag *FileAttrFlag) Register(ctx context.Context, f *flag.FlagSet) {
-	f.Var(flags.NewInt32(&flag.OwnerId), "uid", "User ID")
-	f.Var(flags.NewInt32(&flag.GroupId), "gid", "Group ID")
+	f.Var(flags.NewOptionalInt32(&flag.OwnerId), "uid", "User ID")
+	f.Var(flags.NewOptionalInt32(&flag.GroupId), "gid", "Group ID")
 	f.Int64Var(&flag.Permissions, "perm", 0, "File permissions")
 }
 

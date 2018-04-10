@@ -6,11 +6,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/kubectl/resource"
 
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
@@ -159,19 +157,8 @@ func CreateEdgeRoute(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, ar
 		}
 	}
 
-	mapper, typer := f.Object()
-	resourceMapper := &resource.Mapper{
-		ObjectTyper:  typer,
-		RESTMapper:   mapper,
-		ClientMapper: resource.ClientMapperFunc(f.ClientForMapping),
-	}
-	info, err := resourceMapper.InfoForObject(actualRoute, []schema.GroupVersionKind{{Group: ""}})
-	if err != nil {
-		return err
-	}
-
 	shortOutput := kcmdutil.GetFlagString(cmd, "output") == "name"
-	kcmdutil.PrintSuccess(mapper, shortOutput, out, info.Mapping.Resource, info.Name, dryRun, "created")
+	kcmdutil.PrintSuccess(shortOutput, out, actualRoute, dryRun, "created")
 	return nil
 }
 
@@ -269,19 +256,8 @@ func CreatePassthroughRoute(f *clientcmd.Factory, out io.Writer, cmd *cobra.Comm
 		}
 	}
 
-	mapper, typer := f.Object()
-	resourceMapper := &resource.Mapper{
-		ObjectTyper:  typer,
-		RESTMapper:   mapper,
-		ClientMapper: resource.ClientMapperFunc(f.ClientForMapping),
-	}
-	info, err := resourceMapper.InfoForObject(actualRoute, []schema.GroupVersionKind{{Group: ""}})
-	if err != nil {
-		return err
-	}
-
 	shortOutput := kcmdutil.GetFlagString(cmd, "output") == "name"
-	kcmdutil.PrintSuccess(mapper, shortOutput, out, info.Mapping.Resource, info.Name, dryRun, "created")
+	kcmdutil.PrintSuccess(shortOutput, out, actualRoute, dryRun, "created")
 	return nil
 }
 
@@ -410,19 +386,9 @@ func CreateReencryptRoute(f *clientcmd.Factory, out io.Writer, cmd *cobra.Comman
 			return err
 		}
 	}
-	mapper, typer := f.Object()
-	resourceMapper := &resource.Mapper{
-		ObjectTyper:  typer,
-		RESTMapper:   mapper,
-		ClientMapper: resource.ClientMapperFunc(f.ClientForMapping),
-	}
-	info, err := resourceMapper.InfoForObject(actualRoute, []schema.GroupVersionKind{{Group: ""}})
-	if err != nil {
-		return err
-	}
 
 	shortOutput := kcmdutil.GetFlagString(cmd, "output") == "name"
-	kcmdutil.PrintSuccess(mapper, shortOutput, out, info.Mapping.Resource, info.Name, dryRun, "created")
+	kcmdutil.PrintSuccess(shortOutput, out, actualRoute, dryRun, "created")
 	return nil
 }
 

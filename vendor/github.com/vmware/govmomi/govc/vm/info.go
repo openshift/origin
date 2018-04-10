@@ -83,6 +83,19 @@ func (cmd *info) Process(ctx context.Context) error {
 	return nil
 }
 
+func (cmd *info) Usage() string {
+	return `VM...`
+}
+
+func (cmd *info) Description() string {
+	return `Display info for VM.
+
+Examples:
+  govc vm.info $vm
+  govc vm.info -json $vm
+  govc find . -type m -runtime.powerState poweredOn | xargs govc vm.info`
+}
+
 func (cmd *info) Run(ctx context.Context, f *flag.FlagSet) error {
 	c, err := cmd.Client()
 	if err != nil {
@@ -106,7 +119,7 @@ func (cmd *info) Run(ctx context.Context, f *flag.FlagSet) error {
 	var res infoResult
 	var props []string
 
-	if cmd.OutputFlag.JSON {
+	if cmd.OutputFlag.All() {
 		props = nil // Load everything
 	} else {
 		props = []string{"summary"} // Load summary
@@ -148,7 +161,7 @@ func (cmd *info) Run(ctx context.Context, f *flag.FlagSet) error {
 		}
 	}
 
-	if !cmd.OutputFlag.JSON {
+	if !cmd.OutputFlag.All() {
 		res.objects = vms
 		res.cmd = cmd
 		if err = res.collectReferences(pc, ctx); err != nil {

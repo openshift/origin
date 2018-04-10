@@ -90,6 +90,7 @@ func (s *Service) userAgent() string {
 
 func NewSpreadsheetsService(s *Service) *SpreadsheetsService {
 	rs := &SpreadsheetsService{s: s}
+	rs.DeveloperMetadata = NewSpreadsheetsDeveloperMetadataService(s)
 	rs.Sheets = NewSpreadsheetsSheetsService(s)
 	rs.Values = NewSpreadsheetsValuesService(s)
 	return rs
@@ -98,9 +99,20 @@ func NewSpreadsheetsService(s *Service) *SpreadsheetsService {
 type SpreadsheetsService struct {
 	s *Service
 
+	DeveloperMetadata *SpreadsheetsDeveloperMetadataService
+
 	Sheets *SpreadsheetsSheetsService
 
 	Values *SpreadsheetsValuesService
+}
+
+func NewSpreadsheetsDeveloperMetadataService(s *Service) *SpreadsheetsDeveloperMetadataService {
+	rs := &SpreadsheetsDeveloperMetadataService{s: s}
+	return rs
+}
+
+type SpreadsheetsDeveloperMetadataService struct {
+	s *Service
 }
 
 func NewSpreadsheetsSheetsService(s *Service) *SpreadsheetsSheetsService {
@@ -147,8 +159,8 @@ type AddBandingRequest struct {
 }
 
 func (s *AddBandingRequest) MarshalJSON() ([]byte, error) {
-	type noMethod AddBandingRequest
-	raw := noMethod(*s)
+	type NoMethod AddBandingRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -175,8 +187,8 @@ type AddBandingResponse struct {
 }
 
 func (s *AddBandingResponse) MarshalJSON() ([]byte, error) {
-	type noMethod AddBandingResponse
-	raw := noMethod(*s)
+	type NoMethod AddBandingResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -208,8 +220,8 @@ type AddChartRequest struct {
 }
 
 func (s *AddChartRequest) MarshalJSON() ([]byte, error) {
-	type noMethod AddChartRequest
-	raw := noMethod(*s)
+	type NoMethod AddChartRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -236,8 +248,8 @@ type AddChartResponse struct {
 }
 
 func (s *AddChartResponse) MarshalJSON() ([]byte, error) {
-	type noMethod AddChartResponse
-	raw := noMethod(*s)
+	type NoMethod AddChartResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -269,8 +281,8 @@ type AddConditionalFormatRuleRequest struct {
 }
 
 func (s *AddConditionalFormatRuleRequest) MarshalJSON() ([]byte, error) {
-	type noMethod AddConditionalFormatRuleRequest
-	raw := noMethod(*s)
+	type NoMethod AddConditionalFormatRuleRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -300,8 +312,8 @@ type AddFilterViewRequest struct {
 }
 
 func (s *AddFilterViewRequest) MarshalJSON() ([]byte, error) {
-	type noMethod AddFilterViewRequest
-	raw := noMethod(*s)
+	type NoMethod AddFilterViewRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -328,8 +340,8 @@ type AddFilterViewResponse struct {
 }
 
 func (s *AddFilterViewResponse) MarshalJSON() ([]byte, error) {
-	type noMethod AddFilterViewResponse
-	raw := noMethod(*s)
+	type NoMethod AddFilterViewResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -359,8 +371,8 @@ type AddNamedRangeRequest struct {
 }
 
 func (s *AddNamedRangeRequest) MarshalJSON() ([]byte, error) {
-	type noMethod AddNamedRangeRequest
-	raw := noMethod(*s)
+	type NoMethod AddNamedRangeRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -387,8 +399,8 @@ type AddNamedRangeResponse struct {
 }
 
 func (s *AddNamedRangeResponse) MarshalJSON() ([]byte, error) {
-	type noMethod AddNamedRangeResponse
-	raw := noMethod(*s)
+	type NoMethod AddNamedRangeResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -420,8 +432,8 @@ type AddProtectedRangeRequest struct {
 }
 
 func (s *AddProtectedRangeRequest) MarshalJSON() ([]byte, error) {
-	type noMethod AddProtectedRangeRequest
-	raw := noMethod(*s)
+	type NoMethod AddProtectedRangeRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -450,8 +462,8 @@ type AddProtectedRangeResponse struct {
 }
 
 func (s *AddProtectedRangeResponse) MarshalJSON() ([]byte, error) {
-	type noMethod AddProtectedRangeResponse
-	raw := noMethod(*s)
+	type NoMethod AddProtectedRangeResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -489,8 +501,8 @@ type AddSheetRequest struct {
 }
 
 func (s *AddSheetRequest) MarshalJSON() ([]byte, error) {
-	type noMethod AddSheetRequest
-	raw := noMethod(*s)
+	type NoMethod AddSheetRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -517,8 +529,8 @@ type AddSheetResponse struct {
 }
 
 func (s *AddSheetResponse) MarshalJSON() ([]byte, error) {
-	type noMethod AddSheetResponse
-	raw := noMethod(*s)
+	type NoMethod AddSheetResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -556,8 +568,8 @@ type AppendCellsRequest struct {
 }
 
 func (s *AppendCellsRequest) MarshalJSON() ([]byte, error) {
-	type noMethod AppendCellsRequest
-	raw := noMethod(*s)
+	type NoMethod AppendCellsRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -596,8 +608,8 @@ type AppendDimensionRequest struct {
 }
 
 func (s *AppendDimensionRequest) MarshalJSON() ([]byte, error) {
-	type noMethod AppendDimensionRequest
-	raw := noMethod(*s)
+	type NoMethod AppendDimensionRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -638,8 +650,8 @@ type AppendValuesResponse struct {
 }
 
 func (s *AppendValuesResponse) MarshalJSON() ([]byte, error) {
-	type noMethod AppendValuesResponse
-	raw := noMethod(*s)
+	type NoMethod AppendValuesResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -680,8 +692,8 @@ type AutoFillRequest struct {
 }
 
 func (s *AutoFillRequest) MarshalJSON() ([]byte, error) {
-	type noMethod AutoFillRequest
-	raw := noMethod(*s)
+	type NoMethod AutoFillRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -710,8 +722,8 @@ type AutoResizeDimensionsRequest struct {
 }
 
 func (s *AutoResizeDimensionsRequest) MarshalJSON() ([]byte, error) {
-	type noMethod AutoResizeDimensionsRequest
-	raw := noMethod(*s)
+	type NoMethod AutoResizeDimensionsRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -755,8 +767,8 @@ type BandedRange struct {
 }
 
 func (s *BandedRange) MarshalJSON() ([]byte, error) {
-	type noMethod BandedRange
-	raw := noMethod(*s)
+	type NoMethod BandedRange
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -827,8 +839,8 @@ type BandingProperties struct {
 }
 
 func (s *BandingProperties) MarshalJSON() ([]byte, error) {
-	type noMethod BandingProperties
-	raw := noMethod(*s)
+	type NoMethod BandingProperties
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -861,6 +873,9 @@ type BasicChartAxis struct {
 	// from headers of the data.
 	Title string `json:"title,omitempty"`
 
+	// TitleTextPosition: The axis title text position.
+	TitleTextPosition *TextPosition `json:"titleTextPosition,omitempty"`
+
 	// ForceSendFields is a list of field names (e.g. "Format") to
 	// unconditionally include in API requests. By default, fields with
 	// empty values are omitted from API requests. However, any non-pointer,
@@ -879,8 +894,8 @@ type BasicChartAxis struct {
 }
 
 func (s *BasicChartAxis) MarshalJSON() ([]byte, error) {
-	type noMethod BasicChartAxis
-	raw := noMethod(*s)
+	type NoMethod BasicChartAxis
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -915,8 +930,8 @@ type BasicChartDomain struct {
 }
 
 func (s *BasicChartDomain) MarshalJSON() ([]byte, error) {
-	type noMethod BasicChartDomain
-	raw := noMethod(*s)
+	type NoMethod BasicChartDomain
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -926,6 +941,14 @@ func (s *BasicChartDomain) MarshalJSON() ([]byte, error) {
 // one for the "Open Price", "High Price", "Low Price" and "Close
 // Price".
 type BasicChartSeries struct {
+	// LineStyle: The line style of this series. Valid only if the
+	// chartType is AREA,
+	// LINE, or SCATTER.
+	// COMBO charts are also supported if the
+	// series chart type is
+	// AREA or LINE.
+	LineStyle *LineStyle `json:"lineStyle,omitempty"`
+
 	// Series: The data being visualized in this chart series.
 	Series *ChartData `json:"series,omitempty"`
 
@@ -981,7 +1004,7 @@ type BasicChartSeries struct {
 	// chart</a>.
 	Type string `json:"type,omitempty"`
 
-	// ForceSendFields is a list of field names (e.g. "Series") to
+	// ForceSendFields is a list of field names (e.g. "LineStyle") to
 	// unconditionally include in API requests. By default, fields with
 	// empty values are omitted from API requests. However, any non-pointer,
 	// non-interface field appearing in ForceSendFields will be sent to the
@@ -989,8 +1012,8 @@ type BasicChartSeries struct {
 	// used to include empty fields in Patch requests.
 	ForceSendFields []string `json:"-"`
 
-	// NullFields is a list of field names (e.g. "Series") to include in API
-	// requests with the JSON null value. By default, fields with empty
+	// NullFields is a list of field names (e.g. "LineStyle") to include in
+	// API requests with the JSON null value. By default, fields with empty
 	// values are omitted from API requests. However, any field with an
 	// empty value appearing in NullFields will be sent to the server as
 	// null. It is an error if a field in this list has a non-empty value.
@@ -999,8 +1022,8 @@ type BasicChartSeries struct {
 }
 
 func (s *BasicChartSeries) MarshalJSON() ([]byte, error) {
-	type noMethod BasicChartSeries
-	raw := noMethod(*s)
+	type NoMethod BasicChartSeries
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1032,6 +1055,19 @@ type BasicChartSpec struct {
 	// href="/chart/interactive/docs/gallery/steppedareachart">stepped area
 	// chart</a>.
 	ChartType string `json:"chartType,omitempty"`
+
+	// CompareMode: The behavior of tooltips and data highlighting when
+	// hovering on data and
+	// chart area.
+	//
+	// Possible values:
+	//   "BASIC_CHART_COMPARE_MODE_UNSPECIFIED" - Default value, do not use.
+	//   "DATUM" - Only the focused data element is highlighted and shown in
+	// the tooltip.
+	//   "CATEGORY" - All data elements with the same category (e.g., domain
+	// value) are
+	// highlighted and shown in the tooltip.
+	CompareMode string `json:"compareMode,omitempty"`
 
 	// Domains: The domain of data this is charting.
 	// Only a single domain is supported.
@@ -1113,8 +1149,8 @@ type BasicChartSpec struct {
 }
 
 func (s *BasicChartSpec) MarshalJSON() ([]byte, error) {
-	type noMethod BasicChartSpec
-	raw := noMethod(*s)
+	type NoMethod BasicChartSpec
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1152,8 +1188,78 @@ type BasicFilter struct {
 }
 
 func (s *BasicFilter) MarshalJSON() ([]byte, error) {
-	type noMethod BasicFilter
-	raw := noMethod(*s)
+	type NoMethod BasicFilter
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// BatchClearValuesByDataFilterRequest: The request for clearing more
+// than one range selected by a
+// DataFilter in a spreadsheet.
+type BatchClearValuesByDataFilterRequest struct {
+	// DataFilters: The DataFilters used to determine which ranges to clear.
+	DataFilters []*DataFilter `json:"dataFilters,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "DataFilters") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "DataFilters") to include
+	// in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. However, any field with
+	// an empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *BatchClearValuesByDataFilterRequest) MarshalJSON() ([]byte, error) {
+	type NoMethod BatchClearValuesByDataFilterRequest
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// BatchClearValuesByDataFilterResponse: The response when clearing a
+// range of values selected with
+// DataFilters in a spreadsheet.
+type BatchClearValuesByDataFilterResponse struct {
+	// ClearedRanges: The ranges that were cleared, in A1 notation.
+	// (If the requests were for an unbounded range or a ranger larger
+	//  than the bounds of the sheet, this will be the actual ranges
+	//  that were cleared, bounded to the sheet's limits.)
+	ClearedRanges []string `json:"clearedRanges,omitempty"`
+
+	// SpreadsheetId: The spreadsheet the updates were applied to.
+	SpreadsheetId string `json:"spreadsheetId,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the
+	// server.
+	googleapi.ServerResponse `json:"-"`
+
+	// ForceSendFields is a list of field names (e.g. "ClearedRanges") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "ClearedRanges") to include
+	// in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. However, any field with
+	// an empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *BatchClearValuesByDataFilterResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod BatchClearValuesByDataFilterResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1181,8 +1287,8 @@ type BatchClearValuesRequest struct {
 }
 
 func (s *BatchClearValuesRequest) MarshalJSON() ([]byte, error) {
-	type noMethod BatchClearValuesRequest
-	raw := noMethod(*s)
+	type NoMethod BatchClearValuesRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1220,8 +1326,152 @@ type BatchClearValuesResponse struct {
 }
 
 func (s *BatchClearValuesResponse) MarshalJSON() ([]byte, error) {
-	type noMethod BatchClearValuesResponse
-	raw := noMethod(*s)
+	type NoMethod BatchClearValuesResponse
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// BatchGetValuesByDataFilterRequest: The request for retrieving a range
+// of values in a spreadsheet selected by a
+// set of DataFilters.
+type BatchGetValuesByDataFilterRequest struct {
+	// DataFilters: The data filters used to match the ranges of values to
+	// retrieve.  Ranges
+	// that match any of the specified data filters will be included in
+	// the
+	// response.
+	DataFilters []*DataFilter `json:"dataFilters,omitempty"`
+
+	// DateTimeRenderOption: How dates, times, and durations should be
+	// represented in the output.
+	// This is ignored if value_render_option is
+	// FORMATTED_VALUE.
+	// The default dateTime render option is
+	// [DateTimeRenderOption.SERIAL_NUMBER].
+	//
+	// Possible values:
+	//   "SERIAL_NUMBER" - Instructs date, time, datetime, and duration
+	// fields to be output
+	// as doubles in "serial number" format, as popularized by Lotus
+	// 1-2-3.
+	// The whole number portion of the value (left of the decimal)
+	// counts
+	// the days since December 30th 1899. The fractional portion (right
+	// of
+	// the decimal) counts the time as a fraction of the day. For
+	// example,
+	// January 1st 1900 at noon would be 2.5, 2 because it's 2 days
+	// after
+	// December 30st 1899, and .5 because noon is half a day.  February
+	// 1st
+	// 1900 at 3pm would be 33.625. This correctly treats the year 1900
+	// as
+	// not a leap year.
+	//   "FORMATTED_STRING" - Instructs date, time, datetime, and duration
+	// fields to be output
+	// as strings in their given number format (which is dependent
+	// on the spreadsheet locale).
+	DateTimeRenderOption string `json:"dateTimeRenderOption,omitempty"`
+
+	// MajorDimension: The major dimension that results should use.
+	//
+	// For example, if the spreadsheet data is: `A1=1,B1=2,A2=3,B2=4`,
+	// then a request that selects that range and sets `majorDimension=ROWS`
+	// will
+	// return `[[1,2],[3,4]]`,
+	// whereas a request that sets `majorDimension=COLUMNS` will
+	// return
+	// `[[1,3],[2,4]]`.
+	//
+	// Possible values:
+	//   "DIMENSION_UNSPECIFIED" - The default value, do not use.
+	//   "ROWS" - Operates on the rows of a sheet.
+	//   "COLUMNS" - Operates on the columns of a sheet.
+	MajorDimension string `json:"majorDimension,omitempty"`
+
+	// ValueRenderOption: How values should be represented in the
+	// output.
+	// The default render option is ValueRenderOption.FORMATTED_VALUE.
+	//
+	// Possible values:
+	//   "FORMATTED_VALUE" - Values will be calculated & formatted in the
+	// reply according to the
+	// cell's formatting.  Formatting is based on the spreadsheet's
+	// locale,
+	// not the requesting user's locale.
+	// For example, if `A1` is `1.23` and `A2` is `=A1` and formatted as
+	// currency,
+	// then `A2` would return "$1.23".
+	//   "UNFORMATTED_VALUE" - Values will be calculated, but not formatted
+	// in the reply.
+	// For example, if `A1` is `1.23` and `A2` is `=A1` and formatted as
+	// currency,
+	// then `A2` would return the number `1.23`.
+	//   "FORMULA" - Values will not be calculated.  The reply will include
+	// the formulas.
+	// For example, if `A1` is `1.23` and `A2` is `=A1` and formatted as
+	// currency,
+	// then A2 would return "=A1".
+	ValueRenderOption string `json:"valueRenderOption,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "DataFilters") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "DataFilters") to include
+	// in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. However, any field with
+	// an empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *BatchGetValuesByDataFilterRequest) MarshalJSON() ([]byte, error) {
+	type NoMethod BatchGetValuesByDataFilterRequest
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// BatchGetValuesByDataFilterResponse: The response when retrieving more
+// than one range of values in a spreadsheet
+// selected by DataFilters.
+type BatchGetValuesByDataFilterResponse struct {
+	// SpreadsheetId: The ID of the spreadsheet the data was retrieved from.
+	SpreadsheetId string `json:"spreadsheetId,omitempty"`
+
+	// ValueRanges: The requested values with the list of data filters that
+	// matched them.
+	ValueRanges []*MatchedValueRange `json:"valueRanges,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the
+	// server.
+	googleapi.ServerResponse `json:"-"`
+
+	// ForceSendFields is a list of field names (e.g. "SpreadsheetId") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "SpreadsheetId") to include
+	// in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. However, any field with
+	// an empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *BatchGetValuesByDataFilterResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod BatchGetValuesByDataFilterResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1258,8 +1508,8 @@ type BatchGetValuesResponse struct {
 }
 
 func (s *BatchGetValuesResponse) MarshalJSON() ([]byte, error) {
-	type noMethod BatchGetValuesResponse
-	raw := noMethod(*s)
+	type NoMethod BatchGetValuesResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1278,7 +1528,7 @@ type BatchUpdateSpreadsheetRequest struct {
 
 	// ResponseIncludeGridData: True if grid data should be returned.
 	// Meaningful only if
-	// if include_spreadsheet_response is 'true'.
+	// if include_spreadsheet_in_response is 'true'.
 	// This parameter is ignored if a field mask was set in the request.
 	ResponseIncludeGridData bool `json:"responseIncludeGridData,omitempty"`
 
@@ -1307,8 +1557,8 @@ type BatchUpdateSpreadsheetRequest struct {
 }
 
 func (s *BatchUpdateSpreadsheetRequest) MarshalJSON() ([]byte, error) {
-	type noMethod BatchUpdateSpreadsheetRequest
-	raw := noMethod(*s)
+	type NoMethod BatchUpdateSpreadsheetRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1352,8 +1602,182 @@ type BatchUpdateSpreadsheetResponse struct {
 }
 
 func (s *BatchUpdateSpreadsheetResponse) MarshalJSON() ([]byte, error) {
-	type noMethod BatchUpdateSpreadsheetResponse
-	raw := noMethod(*s)
+	type NoMethod BatchUpdateSpreadsheetResponse
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// BatchUpdateValuesByDataFilterRequest: The request for updating more
+// than one range of values in a spreadsheet.
+type BatchUpdateValuesByDataFilterRequest struct {
+	// Data: The new values to apply to the spreadsheet.  If more than one
+	// range is
+	// matched by the specified DataFilter the specified values will
+	// be
+	// applied to all of those ranges.
+	Data []*DataFilterValueRange `json:"data,omitempty"`
+
+	// IncludeValuesInResponse: Determines if the update response should
+	// include the values
+	// of the cells that were updated. By default, responses
+	// do not include the updated values. The `updatedData` field
+	// within
+	// each of the BatchUpdateValuesResponse.responses will contain
+	// the updated values. If the range to write was larger than than the
+	// range
+	// actually written, the response will include all values in the
+	// requested
+	// range (excluding trailing empty rows and columns).
+	IncludeValuesInResponse bool `json:"includeValuesInResponse,omitempty"`
+
+	// ResponseDateTimeRenderOption: Determines how dates, times, and
+	// durations in the response should be
+	// rendered. This is ignored if response_value_render_option
+	// is
+	// FORMATTED_VALUE.
+	// The default dateTime render option
+	// is
+	// DateTimeRenderOption.SERIAL_NUMBER.
+	//
+	// Possible values:
+	//   "SERIAL_NUMBER" - Instructs date, time, datetime, and duration
+	// fields to be output
+	// as doubles in "serial number" format, as popularized by Lotus
+	// 1-2-3.
+	// The whole number portion of the value (left of the decimal)
+	// counts
+	// the days since December 30th 1899. The fractional portion (right
+	// of
+	// the decimal) counts the time as a fraction of the day. For
+	// example,
+	// January 1st 1900 at noon would be 2.5, 2 because it's 2 days
+	// after
+	// December 30st 1899, and .5 because noon is half a day.  February
+	// 1st
+	// 1900 at 3pm would be 33.625. This correctly treats the year 1900
+	// as
+	// not a leap year.
+	//   "FORMATTED_STRING" - Instructs date, time, datetime, and duration
+	// fields to be output
+	// as strings in their given number format (which is dependent
+	// on the spreadsheet locale).
+	ResponseDateTimeRenderOption string `json:"responseDateTimeRenderOption,omitempty"`
+
+	// ResponseValueRenderOption: Determines how values in the response
+	// should be rendered.
+	// The default render option is ValueRenderOption.FORMATTED_VALUE.
+	//
+	// Possible values:
+	//   "FORMATTED_VALUE" - Values will be calculated & formatted in the
+	// reply according to the
+	// cell's formatting.  Formatting is based on the spreadsheet's
+	// locale,
+	// not the requesting user's locale.
+	// For example, if `A1` is `1.23` and `A2` is `=A1` and formatted as
+	// currency,
+	// then `A2` would return "$1.23".
+	//   "UNFORMATTED_VALUE" - Values will be calculated, but not formatted
+	// in the reply.
+	// For example, if `A1` is `1.23` and `A2` is `=A1` and formatted as
+	// currency,
+	// then `A2` would return the number `1.23`.
+	//   "FORMULA" - Values will not be calculated.  The reply will include
+	// the formulas.
+	// For example, if `A1` is `1.23` and `A2` is `=A1` and formatted as
+	// currency,
+	// then A2 would return "=A1".
+	ResponseValueRenderOption string `json:"responseValueRenderOption,omitempty"`
+
+	// ValueInputOption: How the input data should be interpreted.
+	//
+	// Possible values:
+	//   "INPUT_VALUE_OPTION_UNSPECIFIED" - Default input value. This value
+	// must not be used.
+	//   "RAW" - The values the user has entered will not be parsed and will
+	// be stored
+	// as-is.
+	//   "USER_ENTERED" - The values will be parsed as if the user typed
+	// them into the UI.
+	// Numbers will stay as numbers, but strings may be converted to
+	// numbers,
+	// dates, etc. following the same rules that are applied when
+	// entering
+	// text into a cell via the Google Sheets UI.
+	ValueInputOption string `json:"valueInputOption,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "Data") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "Data") to include in API
+	// requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. However, any field with an
+	// empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *BatchUpdateValuesByDataFilterRequest) MarshalJSON() ([]byte, error) {
+	type NoMethod BatchUpdateValuesByDataFilterRequest
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// BatchUpdateValuesByDataFilterResponse: The response when updating a
+// range of values in a spreadsheet.
+type BatchUpdateValuesByDataFilterResponse struct {
+	// Responses: The response for each range updated.
+	Responses []*UpdateValuesByDataFilterResponse `json:"responses,omitempty"`
+
+	// SpreadsheetId: The spreadsheet the updates were applied to.
+	SpreadsheetId string `json:"spreadsheetId,omitempty"`
+
+	// TotalUpdatedCells: The total number of cells updated.
+	TotalUpdatedCells int64 `json:"totalUpdatedCells,omitempty"`
+
+	// TotalUpdatedColumns: The total number of columns where at least one
+	// cell in the column was
+	// updated.
+	TotalUpdatedColumns int64 `json:"totalUpdatedColumns,omitempty"`
+
+	// TotalUpdatedRows: The total number of rows where at least one cell in
+	// the row was updated.
+	TotalUpdatedRows int64 `json:"totalUpdatedRows,omitempty"`
+
+	// TotalUpdatedSheets: The total number of sheets where at least one
+	// cell in the sheet was
+	// updated.
+	TotalUpdatedSheets int64 `json:"totalUpdatedSheets,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the
+	// server.
+	googleapi.ServerResponse `json:"-"`
+
+	// ForceSendFields is a list of field names (e.g. "Responses") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "Responses") to include in
+	// API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. However, any field with an
+	// empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *BatchUpdateValuesByDataFilterResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod BatchUpdateValuesByDataFilterResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1469,8 +1893,8 @@ type BatchUpdateValuesRequest struct {
 }
 
 func (s *BatchUpdateValuesRequest) MarshalJSON() ([]byte, error) {
-	type noMethod BatchUpdateValuesRequest
-	raw := noMethod(*s)
+	type NoMethod BatchUpdateValuesRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1524,8 +1948,8 @@ type BatchUpdateValuesResponse struct {
 }
 
 func (s *BatchUpdateValuesResponse) MarshalJSON() ([]byte, error) {
-	type noMethod BatchUpdateValuesResponse
-	raw := noMethod(*s)
+	type NoMethod BatchUpdateValuesResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1695,8 +2119,8 @@ type BooleanCondition struct {
 }
 
 func (s *BooleanCondition) MarshalJSON() ([]byte, error) {
-	type noMethod BooleanCondition
-	raw := noMethod(*s)
+	type NoMethod BooleanCondition
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1734,8 +2158,8 @@ type BooleanRule struct {
 }
 
 func (s *BooleanRule) MarshalJSON() ([]byte, error) {
-	type noMethod BooleanRule
-	raw := noMethod(*s)
+	type NoMethod BooleanRule
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1780,8 +2204,8 @@ type Border struct {
 }
 
 func (s *Border) MarshalJSON() ([]byte, error) {
-	type noMethod Border
-	raw := noMethod(*s)
+	type NoMethod Border
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1817,8 +2241,8 @@ type Borders struct {
 }
 
 func (s *Borders) MarshalJSON() ([]byte, error) {
-	type noMethod Borders
-	raw := noMethod(*s)
+	type NoMethod Borders
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1909,18 +2333,18 @@ type BubbleChartSpec struct {
 }
 
 func (s *BubbleChartSpec) MarshalJSON() ([]byte, error) {
-	type noMethod BubbleChartSpec
-	raw := noMethod(*s)
+	type NoMethod BubbleChartSpec
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
 func (s *BubbleChartSpec) UnmarshalJSON(data []byte) error {
-	type noMethod BubbleChartSpec
+	type NoMethod BubbleChartSpec
 	var s1 struct {
 		BubbleOpacity gensupport.JSONFloat64 `json:"bubbleOpacity"`
-		*noMethod
+		*NoMethod
 	}
-	s1.noMethod = (*noMethod)(s)
+	s1.NoMethod = (*NoMethod)(s)
 	if err := json.Unmarshal(data, &s1); err != nil {
 		return err
 	}
@@ -1961,8 +2385,8 @@ type CandlestickChartSpec struct {
 }
 
 func (s *CandlestickChartSpec) MarshalJSON() ([]byte, error) {
-	type noMethod CandlestickChartSpec
-	raw := noMethod(*s)
+	type NoMethod CandlestickChartSpec
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2013,8 +2437,8 @@ type CandlestickData struct {
 }
 
 func (s *CandlestickData) MarshalJSON() ([]byte, error) {
-	type noMethod CandlestickData
-	raw := noMethod(*s)
+	type NoMethod CandlestickData
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2045,8 +2469,8 @@ type CandlestickDomain struct {
 }
 
 func (s *CandlestickDomain) MarshalJSON() ([]byte, error) {
-	type noMethod CandlestickDomain
-	raw := noMethod(*s)
+	type NoMethod CandlestickDomain
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2073,8 +2497,8 @@ type CandlestickSeries struct {
 }
 
 func (s *CandlestickSeries) MarshalJSON() ([]byte, error) {
-	type noMethod CandlestickSeries
-	raw := noMethod(*s)
+	type NoMethod CandlestickSeries
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2173,8 +2597,8 @@ type CellData struct {
 }
 
 func (s *CellData) MarshalJSON() ([]byte, error) {
-	type noMethod CellData
-	raw := noMethod(*s)
+	type NoMethod CellData
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2312,8 +2736,8 @@ type CellFormat struct {
 }
 
 func (s *CellFormat) MarshalJSON() ([]byte, error) {
-	type noMethod CellFormat
-	raw := noMethod(*s)
+	type NoMethod CellFormat
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2340,8 +2764,8 @@ type ChartData struct {
 }
 
 func (s *ChartData) MarshalJSON() ([]byte, error) {
-	type noMethod ChartData
-	raw := noMethod(*s)
+	type NoMethod ChartData
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2386,8 +2810,8 @@ type ChartSourceRange struct {
 }
 
 func (s *ChartSourceRange) MarshalJSON() ([]byte, error) {
-	type noMethod ChartSourceRange
-	raw := noMethod(*s)
+	type NoMethod ChartSourceRange
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2449,12 +2873,30 @@ type ChartSpec struct {
 	// PieChart: A pie chart specification.
 	PieChart *PieChartSpec `json:"pieChart,omitempty"`
 
+	// Subtitle: The subtitle of the chart.
+	Subtitle string `json:"subtitle,omitempty"`
+
+	// SubtitleTextFormat: The subtitle text format.
+	// Strikethrough and underline are not supported.
+	SubtitleTextFormat *TextFormat `json:"subtitleTextFormat,omitempty"`
+
+	// SubtitleTextPosition: The subtitle text position.
+	// This field is optional.
+	SubtitleTextPosition *TextPosition `json:"subtitleTextPosition,omitempty"`
+
 	// Title: The title of the chart.
 	Title string `json:"title,omitempty"`
 
 	// TitleTextFormat: The title text format.
 	// Strikethrough and underline are not supported.
 	TitleTextFormat *TextFormat `json:"titleTextFormat,omitempty"`
+
+	// TitleTextPosition: The title text position.
+	// This field is optional.
+	TitleTextPosition *TextPosition `json:"titleTextPosition,omitempty"`
+
+	// WaterfallChart: A waterfall chart specification.
+	WaterfallChart *WaterfallChartSpec `json:"waterfallChart,omitempty"`
 
 	// ForceSendFields is a list of field names (e.g. "AltText") to
 	// unconditionally include in API requests. By default, fields with
@@ -2474,8 +2916,8 @@ type ChartSpec struct {
 }
 
 func (s *ChartSpec) MarshalJSON() ([]byte, error) {
-	type noMethod ChartSpec
-	raw := noMethod(*s)
+	type NoMethod ChartSpec
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2503,8 +2945,8 @@ type ClearBasicFilterRequest struct {
 }
 
 func (s *ClearBasicFilterRequest) MarshalJSON() ([]byte, error) {
-	type noMethod ClearBasicFilterRequest
-	raw := noMethod(*s)
+	type NoMethod ClearBasicFilterRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2547,8 +2989,8 @@ type ClearValuesResponse struct {
 }
 
 func (s *ClearValuesResponse) MarshalJSON() ([]byte, error) {
-	type noMethod ClearValuesResponse
-	raw := noMethod(*s)
+	type NoMethod ClearValuesResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2726,21 +3168,21 @@ type Color struct {
 }
 
 func (s *Color) MarshalJSON() ([]byte, error) {
-	type noMethod Color
-	raw := noMethod(*s)
+	type NoMethod Color
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
 func (s *Color) UnmarshalJSON(data []byte) error {
-	type noMethod Color
+	type NoMethod Color
 	var s1 struct {
 		Alpha gensupport.JSONFloat64 `json:"alpha"`
 		Blue  gensupport.JSONFloat64 `json:"blue"`
 		Green gensupport.JSONFloat64 `json:"green"`
 		Red   gensupport.JSONFloat64 `json:"red"`
-		*noMethod
+		*NoMethod
 	}
-	s1.noMethod = (*noMethod)(s)
+	s1.NoMethod = (*NoMethod)(s)
 	if err := json.Unmarshal(data, &s1); err != nil {
 		return err
 	}
@@ -2797,8 +3239,8 @@ type ConditionValue struct {
 }
 
 func (s *ConditionValue) MarshalJSON() ([]byte, error) {
-	type noMethod ConditionValue
-	raw := noMethod(*s)
+	type NoMethod ConditionValue
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2835,8 +3277,8 @@ type ConditionalFormatRule struct {
 }
 
 func (s *ConditionalFormatRule) MarshalJSON() ([]byte, error) {
-	type noMethod ConditionalFormatRule
-	raw := noMethod(*s)
+	type NoMethod ConditionalFormatRule
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2894,8 +3336,8 @@ type CopyPasteRequest struct {
 }
 
 func (s *CopyPasteRequest) MarshalJSON() ([]byte, error) {
-	type noMethod CopyPasteRequest
-	raw := noMethod(*s)
+	type NoMethod CopyPasteRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2926,8 +3368,68 @@ type CopySheetToAnotherSpreadsheetRequest struct {
 }
 
 func (s *CopySheetToAnotherSpreadsheetRequest) MarshalJSON() ([]byte, error) {
-	type noMethod CopySheetToAnotherSpreadsheetRequest
-	raw := noMethod(*s)
+	type NoMethod CopySheetToAnotherSpreadsheetRequest
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// CreateDeveloperMetadataRequest: A request to create developer
+// metadata.
+type CreateDeveloperMetadataRequest struct {
+	// DeveloperMetadata: The developer metadata to create.
+	DeveloperMetadata *DeveloperMetadata `json:"developerMetadata,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "DeveloperMetadata")
+	// to unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "DeveloperMetadata") to
+	// include in API requests with the JSON null value. By default, fields
+	// with empty values are omitted from API requests. However, any field
+	// with an empty value appearing in NullFields will be sent to the
+	// server as null. It is an error if a field in this list has a
+	// non-empty value. This may be used to include null fields in Patch
+	// requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *CreateDeveloperMetadataRequest) MarshalJSON() ([]byte, error) {
+	type NoMethod CreateDeveloperMetadataRequest
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// CreateDeveloperMetadataResponse: The response from creating developer
+// metadata.
+type CreateDeveloperMetadataResponse struct {
+	// DeveloperMetadata: The developer metadata that was created.
+	DeveloperMetadata *DeveloperMetadata `json:"developerMetadata,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "DeveloperMetadata")
+	// to unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "DeveloperMetadata") to
+	// include in API requests with the JSON null value. By default, fields
+	// with empty values are omitted from API requests. However, any field
+	// with an empty value appearing in NullFields will be sent to the
+	// server as null. It is an error if a field in this list has a
+	// non-empty value. This may be used to include null fields in Patch
+	// requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *CreateDeveloperMetadataResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod CreateDeveloperMetadataResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2973,8 +3475,95 @@ type CutPasteRequest struct {
 }
 
 func (s *CutPasteRequest) MarshalJSON() ([]byte, error) {
-	type noMethod CutPasteRequest
-	raw := noMethod(*s)
+	type NoMethod CutPasteRequest
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// DataFilter: Filter that describes what data should be selected or
+// returned from a
+// request.
+type DataFilter struct {
+	// A1Range: Selects data that matches the specified A1 range.
+	A1Range string `json:"a1Range,omitempty"`
+
+	// DeveloperMetadataLookup: Selects data associated with the developer
+	// metadata matching the criteria
+	// described by this DeveloperMetadataLookup.
+	DeveloperMetadataLookup *DeveloperMetadataLookup `json:"developerMetadataLookup,omitempty"`
+
+	// GridRange: Selects data that matches the range described by the
+	// GridRange.
+	GridRange *GridRange `json:"gridRange,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "A1Range") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "A1Range") to include in
+	// API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. However, any field with an
+	// empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *DataFilter) MarshalJSON() ([]byte, error) {
+	type NoMethod DataFilter
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// DataFilterValueRange: A range of values whose location is specified
+// by a DataFilter.
+type DataFilterValueRange struct {
+	// DataFilter: The data filter describing the location of the values in
+	// the spreadsheet.
+	DataFilter *DataFilter `json:"dataFilter,omitempty"`
+
+	// MajorDimension: The major dimension of the values.
+	//
+	// Possible values:
+	//   "DIMENSION_UNSPECIFIED" - The default value, do not use.
+	//   "ROWS" - Operates on the rows of a sheet.
+	//   "COLUMNS" - Operates on the columns of a sheet.
+	MajorDimension string `json:"majorDimension,omitempty"`
+
+	// Values: The data to be written.  If the provided values exceed any of
+	// the ranges
+	// matched by the data filter then the request will fail.  If the
+	// provided
+	// values are less than the matched ranges only the specified values
+	// will be
+	// written, existing values in the matched ranges will remain
+	// unaffected.
+	Values [][]interface{} `json:"values,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "DataFilter") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "DataFilter") to include in
+	// API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. However, any field with an
+	// empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *DataFilterValueRange) MarshalJSON() ([]byte, error) {
+	type NoMethod DataFilterValueRange
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -3013,8 +3602,8 @@ type DataValidationRule struct {
 }
 
 func (s *DataValidationRule) MarshalJSON() ([]byte, error) {
-	type noMethod DataValidationRule
-	raw := noMethod(*s)
+	type NoMethod DataValidationRule
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -3042,8 +3631,8 @@ type DeleteBandingRequest struct {
 }
 
 func (s *DeleteBandingRequest) MarshalJSON() ([]byte, error) {
-	type noMethod DeleteBandingRequest
-	raw := noMethod(*s)
+	type NoMethod DeleteBandingRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -3075,8 +3664,8 @@ type DeleteConditionalFormatRuleRequest struct {
 }
 
 func (s *DeleteConditionalFormatRuleRequest) MarshalJSON() ([]byte, error) {
-	type noMethod DeleteConditionalFormatRuleRequest
-	raw := noMethod(*s)
+	type NoMethod DeleteConditionalFormatRuleRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -3104,8 +3693,70 @@ type DeleteConditionalFormatRuleResponse struct {
 }
 
 func (s *DeleteConditionalFormatRuleResponse) MarshalJSON() ([]byte, error) {
-	type noMethod DeleteConditionalFormatRuleResponse
-	raw := noMethod(*s)
+	type NoMethod DeleteConditionalFormatRuleResponse
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// DeleteDeveloperMetadataRequest: A request to delete developer
+// metadata.
+type DeleteDeveloperMetadataRequest struct {
+	// DataFilter: The data filter describing the criteria used to select
+	// which developer
+	// metadata entry to delete.
+	DataFilter *DataFilter `json:"dataFilter,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "DataFilter") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "DataFilter") to include in
+	// API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. However, any field with an
+	// empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *DeleteDeveloperMetadataRequest) MarshalJSON() ([]byte, error) {
+	type NoMethod DeleteDeveloperMetadataRequest
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// DeleteDeveloperMetadataResponse: The response from deleting developer
+// metadata.
+type DeleteDeveloperMetadataResponse struct {
+	// DeletedDeveloperMetadata: The metadata that was deleted.
+	DeletedDeveloperMetadata []*DeveloperMetadata `json:"deletedDeveloperMetadata,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g.
+	// "DeletedDeveloperMetadata") to unconditionally include in API
+	// requests. By default, fields with empty values are omitted from API
+	// requests. However, any non-pointer, non-interface field appearing in
+	// ForceSendFields will be sent to the server regardless of whether the
+	// field is empty or not. This may be used to include empty fields in
+	// Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "DeletedDeveloperMetadata")
+	// to include in API requests with the JSON null value. By default,
+	// fields with empty values are omitted from API requests. However, any
+	// field with an empty value appearing in NullFields will be sent to the
+	// server as null. It is an error if a field in this list has a
+	// non-empty value. This may be used to include null fields in Patch
+	// requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *DeleteDeveloperMetadataResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod DeleteDeveloperMetadataResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -3132,8 +3783,8 @@ type DeleteDimensionRequest struct {
 }
 
 func (s *DeleteDimensionRequest) MarshalJSON() ([]byte, error) {
-	type noMethod DeleteDimensionRequest
-	raw := noMethod(*s)
+	type NoMethod DeleteDimensionRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -3161,8 +3812,8 @@ type DeleteEmbeddedObjectRequest struct {
 }
 
 func (s *DeleteEmbeddedObjectRequest) MarshalJSON() ([]byte, error) {
-	type noMethod DeleteEmbeddedObjectRequest
-	raw := noMethod(*s)
+	type NoMethod DeleteEmbeddedObjectRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -3189,8 +3840,8 @@ type DeleteFilterViewRequest struct {
 }
 
 func (s *DeleteFilterViewRequest) MarshalJSON() ([]byte, error) {
-	type noMethod DeleteFilterViewRequest
-	raw := noMethod(*s)
+	type NoMethod DeleteFilterViewRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -3218,8 +3869,8 @@ type DeleteNamedRangeRequest struct {
 }
 
 func (s *DeleteNamedRangeRequest) MarshalJSON() ([]byte, error) {
-	type noMethod DeleteNamedRangeRequest
-	raw := noMethod(*s)
+	type NoMethod DeleteNamedRangeRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -3248,8 +3899,8 @@ type DeleteProtectedRangeRequest struct {
 }
 
 func (s *DeleteProtectedRangeRequest) MarshalJSON() ([]byte, error) {
-	type noMethod DeleteProtectedRangeRequest
-	raw := noMethod(*s)
+	type NoMethod DeleteProtectedRangeRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -3289,8 +3940,8 @@ type DeleteRangeRequest struct {
 }
 
 func (s *DeleteRangeRequest) MarshalJSON() ([]byte, error) {
-	type noMethod DeleteRangeRequest
-	raw := noMethod(*s)
+	type NoMethod DeleteRangeRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -3317,13 +3968,299 @@ type DeleteSheetRequest struct {
 }
 
 func (s *DeleteSheetRequest) MarshalJSON() ([]byte, error) {
-	type noMethod DeleteSheetRequest
-	raw := noMethod(*s)
+	type NoMethod DeleteSheetRequest
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// DeveloperMetadata: Developer metadata associated with a location or
+// object in a spreadsheet.
+// Developer metadata may be used to associate arbitrary data with
+// various
+// parts of a spreadsheet and will remain associated at those locations
+// as they
+// move around and the spreadsheet is edited.  For example, if
+// developer
+// metadata is associated with row 5 and another row is then
+// subsequently
+// inserted above row 5, that original metadata will still be associated
+// with
+// the row it was first associated with (what is now row 6). If the
+// associated
+// object is deleted its metadata will be deleted too.
+type DeveloperMetadata struct {
+	// Location: The location where the metadata is associated.
+	Location *DeveloperMetadataLocation `json:"location,omitempty"`
+
+	// MetadataId: The spreadsheet-scoped unique ID that identifies the
+	// metadata. IDs may be
+	// specified when metadata is created, otherwise one will be
+	// randomly
+	// generated and assigned. Must be positive.
+	MetadataId int64 `json:"metadataId,omitempty"`
+
+	// MetadataKey: The metadata key. There may be multiple metadata in a
+	// spreadsheet with the
+	// same key.  Developer metadata must always have a key specified.
+	MetadataKey string `json:"metadataKey,omitempty"`
+
+	// MetadataValue: Data associated with the metadata's key.
+	MetadataValue string `json:"metadataValue,omitempty"`
+
+	// Visibility: The metadata visibility.  Developer metadata must always
+	// have a visibility
+	// specified.
+	//
+	// Possible values:
+	//   "DEVELOPER_METADATA_VISIBILITY_UNSPECIFIED" - Default value.
+	//   "DOCUMENT" - Document-visible metadata is accessible from any
+	// developer project with
+	// access to the document.
+	//   "PROJECT" - Project-visible metadata is only visible to and
+	// accessible by the developer
+	// project that created the metadata.
+	Visibility string `json:"visibility,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the
+	// server.
+	googleapi.ServerResponse `json:"-"`
+
+	// ForceSendFields is a list of field names (e.g. "Location") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "Location") to include in
+	// API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. However, any field with an
+	// empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *DeveloperMetadata) MarshalJSON() ([]byte, error) {
+	type NoMethod DeveloperMetadata
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// DeveloperMetadataLocation: A location where metadata may be
+// associated in a spreadsheet.
+type DeveloperMetadataLocation struct {
+	// DimensionRange: Represents the row or column when metadata is
+	// associated with
+	// a dimension. The specified DimensionRange must represent a single
+	// row
+	// or column; it cannot be unbounded or span multiple rows or columns.
+	DimensionRange *DimensionRange `json:"dimensionRange,omitempty"`
+
+	// LocationType: The type of location this object represents.  This
+	// field is read-only.
+	//
+	// Possible values:
+	//   "DEVELOPER_METADATA_LOCATION_TYPE_UNSPECIFIED" - Default value.
+	//   "ROW" - Developer metadata associated on an entire row dimension.
+	//   "COLUMN" - Developer metadata associated on an entire column
+	// dimension.
+	//   "SHEET" - Developer metadata associated on an entire sheet.
+	//   "SPREADSHEET" - Developer metadata associated on the entire
+	// spreadsheet.
+	LocationType string `json:"locationType,omitempty"`
+
+	// SheetId: The ID of the sheet when metadata is associated with an
+	// entire sheet.
+	SheetId int64 `json:"sheetId,omitempty"`
+
+	// Spreadsheet: True when metadata is associated with an entire
+	// spreadsheet.
+	Spreadsheet bool `json:"spreadsheet,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "DimensionRange") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "DimensionRange") to
+	// include in API requests with the JSON null value. By default, fields
+	// with empty values are omitted from API requests. However, any field
+	// with an empty value appearing in NullFields will be sent to the
+	// server as null. It is an error if a field in this list has a
+	// non-empty value. This may be used to include null fields in Patch
+	// requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *DeveloperMetadataLocation) MarshalJSON() ([]byte, error) {
+	type NoMethod DeveloperMetadataLocation
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// DeveloperMetadataLookup: Selects DeveloperMetadata that matches all
+// of the specified fields.  For
+// example, if only a metadata ID is specified this considers
+// the
+// DeveloperMetadata with that particular unique ID. If a metadata key
+// is
+// specified, this considers all developer metadata with that key.  If
+// a
+// key, visibility, and location type are all specified, this considers
+// all
+// developer metadata with that key and visibility that are associated
+// with a
+// location of that type.  In general, this
+// selects all DeveloperMetadata that matches the intersection of all
+// the
+// specified fields; any field or combination of fields may be
+// specified.
+type DeveloperMetadataLookup struct {
+	// LocationMatchingStrategy: Determines how this lookup matches the
+	// location.  If this field is
+	// specified as EXACT, only developer metadata associated on the
+	// exact
+	// location specified is matched.  If this field is specified to
+	// INTERSECTING,
+	// developer metadata associated on intersecting locations is
+	// also
+	// matched.  If left unspecified, this field assumes a default value
+	// of
+	// INTERSECTING.
+	// If this field is specified, a metadataLocation
+	// must also be specified.
+	//
+	// Possible values:
+	//   "DEVELOPER_METADATA_LOCATION_MATCHING_STRATEGY_UNSPECIFIED" -
+	// Default value. This value must not be used.
+	//   "EXACT_LOCATION" - Indicates that a specified location should be
+	// matched exactly.  For
+	// example, if row three were specified as a location this matching
+	// strategy
+	// would only match developer metadata also associated on row three.
+	// Metadata
+	// associated on other locations would not be considered.
+	//   "INTERSECTING_LOCATION" - Indicates that a specified location
+	// should match that exact location as
+	// well as any intersecting locations.  For example, if row three
+	// were
+	// specified as a location this matching strategy would match
+	// developer
+	// metadata associated on row three as well as metadata associated
+	// on
+	// locations that intersect row three.  If, for instance, there was
+	// developer
+	// metadata associated on column B, this matching strategy would also
+	// match
+	// that location because column B intersects row three.
+	LocationMatchingStrategy string `json:"locationMatchingStrategy,omitempty"`
+
+	// LocationType: Limits the selected developer metadata to those entries
+	// which are
+	// associated with locations of the specified type.  For example, when
+	// this
+	// field is specified as ROW this lookup
+	// only considers developer metadata associated on rows.  If the field
+	// is left
+	// unspecified, all location types are considered.  This field cannot
+	// be
+	// specified as SPREADSHEET when
+	// the locationMatchingStrategy
+	// is specified as INTERSECTING or when the
+	// metadataLocation is specified as a
+	// non-spreadsheet location: spreadsheet metadata cannot intersect any
+	// other
+	// developer metadata location.  This field also must be left
+	// unspecified when
+	// the locationMatchingStrategy
+	// is specified as EXACT.
+	//
+	// Possible values:
+	//   "DEVELOPER_METADATA_LOCATION_TYPE_UNSPECIFIED" - Default value.
+	//   "ROW" - Developer metadata associated on an entire row dimension.
+	//   "COLUMN" - Developer metadata associated on an entire column
+	// dimension.
+	//   "SHEET" - Developer metadata associated on an entire sheet.
+	//   "SPREADSHEET" - Developer metadata associated on the entire
+	// spreadsheet.
+	LocationType string `json:"locationType,omitempty"`
+
+	// MetadataId: Limits the selected developer metadata to that which has
+	// a matching
+	// DeveloperMetadata.metadata_id.
+	MetadataId int64 `json:"metadataId,omitempty"`
+
+	// MetadataKey: Limits the selected developer metadata to that which has
+	// a matching
+	// DeveloperMetadata.metadata_key.
+	MetadataKey string `json:"metadataKey,omitempty"`
+
+	// MetadataLocation: Limits the selected developer metadata to those
+	// entries associated with
+	// the specified location.  This field either matches exact locations or
+	// all
+	// intersecting locations according the
+	// specified
+	// locationMatchingStrategy.
+	MetadataLocation *DeveloperMetadataLocation `json:"metadataLocation,omitempty"`
+
+	// MetadataValue: Limits the selected developer metadata to that which
+	// has a matching
+	// DeveloperMetadata.metadata_value.
+	MetadataValue string `json:"metadataValue,omitempty"`
+
+	// Visibility: Limits the selected developer metadata to that which has
+	// a matching
+	// DeveloperMetadata.visibility.  If left unspecified, all
+	// developer
+	// metadata visibile to the requesting project is considered.
+	//
+	// Possible values:
+	//   "DEVELOPER_METADATA_VISIBILITY_UNSPECIFIED" - Default value.
+	//   "DOCUMENT" - Document-visible metadata is accessible from any
+	// developer project with
+	// access to the document.
+	//   "PROJECT" - Project-visible metadata is only visible to and
+	// accessible by the developer
+	// project that created the metadata.
+	Visibility string `json:"visibility,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g.
+	// "LocationMatchingStrategy") to unconditionally include in API
+	// requests. By default, fields with empty values are omitted from API
+	// requests. However, any non-pointer, non-interface field appearing in
+	// ForceSendFields will be sent to the server regardless of whether the
+	// field is empty or not. This may be used to include empty fields in
+	// Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "LocationMatchingStrategy")
+	// to include in API requests with the JSON null value. By default,
+	// fields with empty values are omitted from API requests. However, any
+	// field with an empty value appearing in NullFields will be sent to the
+	// server as null. It is an error if a field in this list has a
+	// non-empty value. This may be used to include null fields in Patch
+	// requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *DeveloperMetadataLookup) MarshalJSON() ([]byte, error) {
+	type NoMethod DeveloperMetadataLookup
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
 // DimensionProperties: Properties about a dimension.
 type DimensionProperties struct {
+	// DeveloperMetadata: The developer metadata associated with a single
+	// row or column.
+	DeveloperMetadata []*DeveloperMetadata `json:"developerMetadata,omitempty"`
+
 	// HiddenByFilter: True if this dimension is being filtered.
 	// This field is read-only.
 	HiddenByFilter bool `json:"hiddenByFilter,omitempty"`
@@ -3335,15 +4272,15 @@ type DimensionProperties struct {
 	// dimension in pixels.
 	PixelSize int64 `json:"pixelSize,omitempty"`
 
-	// ForceSendFields is a list of field names (e.g. "HiddenByFilter") to
-	// unconditionally include in API requests. By default, fields with
+	// ForceSendFields is a list of field names (e.g. "DeveloperMetadata")
+	// to unconditionally include in API requests. By default, fields with
 	// empty values are omitted from API requests. However, any non-pointer,
 	// non-interface field appearing in ForceSendFields will be sent to the
 	// server regardless of whether the field is empty or not. This may be
 	// used to include empty fields in Patch requests.
 	ForceSendFields []string `json:"-"`
 
-	// NullFields is a list of field names (e.g. "HiddenByFilter") to
+	// NullFields is a list of field names (e.g. "DeveloperMetadata") to
 	// include in API requests with the JSON null value. By default, fields
 	// with empty values are omitted from API requests. However, any field
 	// with an empty value appearing in NullFields will be sent to the
@@ -3354,8 +4291,8 @@ type DimensionProperties struct {
 }
 
 func (s *DimensionProperties) MarshalJSON() ([]byte, error) {
-	type noMethod DimensionProperties
-	raw := noMethod(*s)
+	type NoMethod DimensionProperties
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -3401,8 +4338,8 @@ type DimensionRange struct {
 }
 
 func (s *DimensionRange) MarshalJSON() ([]byte, error) {
-	type noMethod DimensionRange
-	raw := noMethod(*s)
+	type NoMethod DimensionRange
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -3429,8 +4366,8 @@ type DuplicateFilterViewRequest struct {
 }
 
 func (s *DuplicateFilterViewRequest) MarshalJSON() ([]byte, error) {
-	type noMethod DuplicateFilterViewRequest
-	raw := noMethod(*s)
+	type NoMethod DuplicateFilterViewRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -3458,8 +4395,8 @@ type DuplicateFilterViewResponse struct {
 }
 
 func (s *DuplicateFilterViewResponse) MarshalJSON() ([]byte, error) {
-	type noMethod DuplicateFilterViewResponse
-	raw := noMethod(*s)
+	type NoMethod DuplicateFilterViewResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -3502,8 +4439,8 @@ type DuplicateSheetRequest struct {
 }
 
 func (s *DuplicateSheetRequest) MarshalJSON() ([]byte, error) {
-	type noMethod DuplicateSheetRequest
-	raw := noMethod(*s)
+	type NoMethod DuplicateSheetRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -3530,8 +4467,8 @@ type DuplicateSheetResponse struct {
 }
 
 func (s *DuplicateSheetResponse) MarshalJSON() ([]byte, error) {
-	type noMethod DuplicateSheetResponse
-	raw := noMethod(*s)
+	type NoMethod DuplicateSheetResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -3570,8 +4507,8 @@ type Editors struct {
 }
 
 func (s *Editors) MarshalJSON() ([]byte, error) {
-	type noMethod Editors
-	raw := noMethod(*s)
+	type NoMethod Editors
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -3604,8 +4541,8 @@ type EmbeddedChart struct {
 }
 
 func (s *EmbeddedChart) MarshalJSON() ([]byte, error) {
-	type noMethod EmbeddedChart
-	raw := noMethod(*s)
+	type NoMethod EmbeddedChart
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -3643,8 +4580,8 @@ type EmbeddedObjectPosition struct {
 }
 
 func (s *EmbeddedObjectPosition) MarshalJSON() ([]byte, error) {
-	type noMethod EmbeddedObjectPosition
-	raw := noMethod(*s)
+	type NoMethod EmbeddedObjectPosition
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -3687,8 +4624,8 @@ type ErrorValue struct {
 }
 
 func (s *ErrorValue) MarshalJSON() ([]byte, error) {
-	type noMethod ErrorValue
-	raw := noMethod(*s)
+	type NoMethod ErrorValue
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -3737,18 +4674,18 @@ type ExtendedValue struct {
 }
 
 func (s *ExtendedValue) MarshalJSON() ([]byte, error) {
-	type noMethod ExtendedValue
-	raw := noMethod(*s)
+	type NoMethod ExtendedValue
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
 func (s *ExtendedValue) UnmarshalJSON(data []byte) error {
-	type noMethod ExtendedValue
+	type NoMethod ExtendedValue
 	var s1 struct {
 		NumberValue gensupport.JSONFloat64 `json:"numberValue"`
-		*noMethod
+		*NoMethod
 	}
-	s1.noMethod = (*noMethod)(s)
+	s1.NoMethod = (*NoMethod)(s)
 	if err := json.Unmarshal(data, &s1); err != nil {
 		return err
 	}
@@ -3786,8 +4723,8 @@ type FilterCriteria struct {
 }
 
 func (s *FilterCriteria) MarshalJSON() ([]byte, error) {
-	type noMethod FilterCriteria
-	raw := noMethod(*s)
+	type NoMethod FilterCriteria
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -3841,8 +4778,8 @@ type FilterView struct {
 }
 
 func (s *FilterView) MarshalJSON() ([]byte, error) {
-	type noMethod FilterView
-	raw := noMethod(*s)
+	type NoMethod FilterView
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -3907,8 +4844,8 @@ type FindReplaceRequest struct {
 }
 
 func (s *FindReplaceRequest) MarshalJSON() ([]byte, error) {
-	type noMethod FindReplaceRequest
-	raw := noMethod(*s)
+	type NoMethod FindReplaceRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -3952,8 +4889,43 @@ type FindReplaceResponse struct {
 }
 
 func (s *FindReplaceResponse) MarshalJSON() ([]byte, error) {
-	type noMethod FindReplaceResponse
-	raw := noMethod(*s)
+	type NoMethod FindReplaceResponse
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// GetSpreadsheetByDataFilterRequest: The request for retrieving a
+// Spreadsheet.
+type GetSpreadsheetByDataFilterRequest struct {
+	// DataFilters: The DataFilters used to select which ranges to retrieve
+	// from
+	// the spreadsheet.
+	DataFilters []*DataFilter `json:"dataFilters,omitempty"`
+
+	// IncludeGridData: True if grid data should be returned.
+	// This parameter is ignored if a field mask was set in the request.
+	IncludeGridData bool `json:"includeGridData,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "DataFilters") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "DataFilters") to include
+	// in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. However, any field with
+	// an empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *GetSpreadsheetByDataFilterRequest) MarshalJSON() ([]byte, error) {
+	type NoMethod GetSpreadsheetByDataFilterRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -3991,8 +4963,8 @@ type GradientRule struct {
 }
 
 func (s *GradientRule) MarshalJSON() ([]byte, error) {
-	type noMethod GradientRule
-	raw := noMethod(*s)
+	type NoMethod GradientRule
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -4026,8 +4998,8 @@ type GridCoordinate struct {
 }
 
 func (s *GridCoordinate) MarshalJSON() ([]byte, error) {
-	type noMethod GridCoordinate
-	raw := noMethod(*s)
+	type NoMethod GridCoordinate
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -4074,8 +5046,8 @@ type GridData struct {
 }
 
 func (s *GridData) MarshalJSON() ([]byte, error) {
-	type noMethod GridData
-	raw := noMethod(*s)
+	type NoMethod GridData
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -4114,8 +5086,8 @@ type GridProperties struct {
 }
 
 func (s *GridProperties) MarshalJSON() ([]byte, error) {
-	type noMethod GridProperties
-	raw := noMethod(*s)
+	type NoMethod GridProperties
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -4190,8 +5162,8 @@ type GridRange struct {
 }
 
 func (s *GridRange) MarshalJSON() ([]byte, error) {
-	type noMethod GridRange
-	raw := noMethod(*s)
+	type NoMethod GridRange
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -4274,24 +5246,124 @@ type HistogramChartSpec struct {
 }
 
 func (s *HistogramChartSpec) MarshalJSON() ([]byte, error) {
-	type noMethod HistogramChartSpec
-	raw := noMethod(*s)
+	type NoMethod HistogramChartSpec
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
 func (s *HistogramChartSpec) UnmarshalJSON(data []byte) error {
-	type noMethod HistogramChartSpec
+	type NoMethod HistogramChartSpec
 	var s1 struct {
 		BucketSize        gensupport.JSONFloat64 `json:"bucketSize"`
 		OutlierPercentile gensupport.JSONFloat64 `json:"outlierPercentile"`
-		*noMethod
+		*NoMethod
 	}
-	s1.noMethod = (*noMethod)(s)
+	s1.NoMethod = (*NoMethod)(s)
 	if err := json.Unmarshal(data, &s1); err != nil {
 		return err
 	}
 	s.BucketSize = float64(s1.BucketSize)
 	s.OutlierPercentile = float64(s1.OutlierPercentile)
+	return nil
+}
+
+// HistogramRule: Allows you to organize the numeric values in a source
+// data column into
+// buckets of a constant size. All values from HistogramRule.start
+// to
+// HistogramRule.end will be placed into groups of
+// size
+// HistogramRule.interval. In addition, all values
+// below
+// HistogramRule.start will be placed in one group, and all values
+// above
+// HistogramRule.end will be placed in another.
+// Only
+// HistogramRule.interval is required, though if HistogramRule.start
+// and HistogramRule.end are both provided, HistogramRule.start must
+// be less than HistogramRule.end. For example, a pivot table
+// showing
+// average purchase amount by age that has 50+ rows:
+//
+//     +-----+-------------------+
+//     | Age | AVERAGE of Amount |
+//     +-----+-------------------+
+//     | 16  |            $27.13 |
+//     | 17  |             $5.24 |
+//     | 18  |            $20.15 |
+//     ...
+//     +-----+-------------------+
+// could be turned into a pivot table that looks like the one below
+// by
+// applying a histogram group rule with a HistogramRule.start of 25,
+// an HistogramRule.interval of 20, and an HistogramRule.end
+// of 65.
+//
+//     +-------------+-------------------+
+//     | Grouped Age | AVERAGE of Amount |
+//     +-------------+-------------------+
+//     | < 25        |            $19.34 |
+//     | 25-45       |            $31.43 |
+//     | 45-65       |            $35.87 |
+//     | > 65        |            $27.55 |
+//     +-------------+-------------------+
+//     | Grand Total |            $29.12 |
+//     +-------------+-------------------+
+type HistogramRule struct {
+	// End: Optional. The maximum value at which items will be placed into
+	// buckets
+	// of constant size. Values above end will be lumped into a single
+	// bucket.
+	End float64 `json:"end,omitempty"`
+
+	// Interval: Required. The size of the buckets that will be created.
+	// Must be positive.
+	Interval float64 `json:"interval,omitempty"`
+
+	// Start: Optional. The minimum value at which items will be placed into
+	// buckets
+	// of constant size. Values below start will be lumped into a single
+	// bucket.
+	Start float64 `json:"start,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "End") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "End") to include in API
+	// requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. However, any field with an
+	// empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *HistogramRule) MarshalJSON() ([]byte, error) {
+	type NoMethod HistogramRule
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+func (s *HistogramRule) UnmarshalJSON(data []byte) error {
+	type NoMethod HistogramRule
+	var s1 struct {
+		End      gensupport.JSONFloat64 `json:"end"`
+		Interval gensupport.JSONFloat64 `json:"interval"`
+		Start    gensupport.JSONFloat64 `json:"start"`
+		*NoMethod
+	}
+	s1.NoMethod = (*NoMethod)(s)
+	if err := json.Unmarshal(data, &s1); err != nil {
+		return err
+	}
+	s.End = float64(s1.End)
+	s.Interval = float64(s1.Interval)
+	s.Start = float64(s1.Start)
 	return nil
 }
 
@@ -4324,8 +5396,8 @@ type HistogramSeries struct {
 }
 
 func (s *HistogramSeries) MarshalJSON() ([]byte, error) {
-	type noMethod HistogramSeries
-	raw := noMethod(*s)
+	type NoMethod HistogramSeries
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -4376,8 +5448,8 @@ type InsertDimensionRequest struct {
 }
 
 func (s *InsertDimensionRequest) MarshalJSON() ([]byte, error) {
-	type noMethod InsertDimensionRequest
-	raw := noMethod(*s)
+	type NoMethod InsertDimensionRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -4416,8 +5488,8 @@ type InsertRangeRequest struct {
 }
 
 func (s *InsertRangeRequest) MarshalJSON() ([]byte, error) {
-	type noMethod InsertRangeRequest
-	raw := noMethod(*s)
+	type NoMethod InsertRangeRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -4483,8 +5555,8 @@ type InterpolationPoint struct {
 }
 
 func (s *InterpolationPoint) MarshalJSON() ([]byte, error) {
-	type noMethod InterpolationPoint
-	raw := noMethod(*s)
+	type NoMethod InterpolationPoint
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -4522,23 +5594,239 @@ type IterativeCalculationSettings struct {
 }
 
 func (s *IterativeCalculationSettings) MarshalJSON() ([]byte, error) {
-	type noMethod IterativeCalculationSettings
-	raw := noMethod(*s)
+	type NoMethod IterativeCalculationSettings
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
 func (s *IterativeCalculationSettings) UnmarshalJSON(data []byte) error {
-	type noMethod IterativeCalculationSettings
+	type NoMethod IterativeCalculationSettings
 	var s1 struct {
 		ConvergenceThreshold gensupport.JSONFloat64 `json:"convergenceThreshold"`
-		*noMethod
+		*NoMethod
 	}
-	s1.noMethod = (*noMethod)(s)
+	s1.NoMethod = (*NoMethod)(s)
 	if err := json.Unmarshal(data, &s1); err != nil {
 		return err
 	}
 	s.ConvergenceThreshold = float64(s1.ConvergenceThreshold)
 	return nil
+}
+
+// LineStyle: Properties that describe the style of a line.
+type LineStyle struct {
+	// Type: The dash type of the line.
+	//
+	// Possible values:
+	//   "LINE_DASH_TYPE_UNSPECIFIED" - Default value, do not use.
+	//   "INVISIBLE" - No dash type, which is equivalent to a non-visible
+	// line.
+	//   "CUSTOM" - A custom dash for a line. Modifying the exact custom
+	// dash style is
+	// currently unsupported.
+	//   "SOLID" - A solid line.
+	//   "DOTTED" - A dotted line.
+	//   "MEDIUM_DASHED" - A dashed line where the dashes have "medium"
+	// length.
+	//   "MEDIUM_DASHED_DOTTED" - A line that alternates between a "medium"
+	// dash and a dot.
+	//   "LONG_DASHED" - A dashed line where the dashes have "long" length.
+	//   "LONG_DASHED_DOTTED" - A line that alternates between a "long" dash
+	// and a dot.
+	Type string `json:"type,omitempty"`
+
+	// Width: The thickness of the line, in px.
+	Width int64 `json:"width,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "Type") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "Type") to include in API
+	// requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. However, any field with an
+	// empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *LineStyle) MarshalJSON() ([]byte, error) {
+	type NoMethod LineStyle
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// ManualRule: Allows you to manually organize the values in a source
+// data column into
+// buckets with names of your choosing. For example, a pivot table
+// that
+// aggregates population by state:
+//
+//     +-------+-------------------+
+//     | State | SUM of Population |
+//     +-------+-------------------+
+//     | AK    |               0.7 |
+//     | AL    |               4.8 |
+//     | AR    |               2.9 |
+//     ...
+//     +-------+-------------------+
+// could be turned into a pivot table that aggregates population by time
+// zone
+// by providing a list of groups (e.g. groupName = 'Central',
+// items = ['AL', 'AR', 'IA', ...]) to a manual group rule.
+// Note that a similar effect could be achieved by adding a time zone
+// column
+// to the source data and adjusting the pivot table.
+//
+//     +-----------+-------------------+
+//     | Time Zone | SUM of Population |
+//     +-----------+-------------------+
+//     | Central   |             106.3 |
+//     | Eastern   |             151.9 |
+//     | Mountain  |              17.4 |
+//     ...
+//     +-----------+-------------------+
+type ManualRule struct {
+	// Groups: The list of group names and the corresponding items from the
+	// source data
+	// that map to each group name.
+	Groups []*ManualRuleGroup `json:"groups,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "Groups") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "Groups") to include in API
+	// requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. However, any field with an
+	// empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *ManualRule) MarshalJSON() ([]byte, error) {
+	type NoMethod ManualRule
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// ManualRuleGroup: A group name and a list of items from the source
+// data that should be placed
+// in the group with this name.
+type ManualRuleGroup struct {
+	// GroupName: The group name, which must be a string. Each group in a
+	// given
+	// ManualRule must have a unique group name.
+	GroupName *ExtendedValue `json:"groupName,omitempty"`
+
+	// Items: The items in the source data that should be placed into this
+	// group. Each
+	// item may be a string, number, or boolean. Items may appear in at most
+	// one
+	// group within a given ManualRule. Items that do not appear in
+	// any
+	// group will appear on their own.
+	Items []*ExtendedValue `json:"items,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "GroupName") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "GroupName") to include in
+	// API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. However, any field with an
+	// empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *ManualRuleGroup) MarshalJSON() ([]byte, error) {
+	type NoMethod ManualRuleGroup
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// MatchedDeveloperMetadata: A developer metadata entry and the data
+// filters specified in the original
+// request that matched it.
+type MatchedDeveloperMetadata struct {
+	// DataFilters: All filters matching the returned developer metadata.
+	DataFilters []*DataFilter `json:"dataFilters,omitempty"`
+
+	// DeveloperMetadata: The developer metadata matching the specified
+	// filters.
+	DeveloperMetadata *DeveloperMetadata `json:"developerMetadata,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "DataFilters") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "DataFilters") to include
+	// in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. However, any field with
+	// an empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *MatchedDeveloperMetadata) MarshalJSON() ([]byte, error) {
+	type NoMethod MatchedDeveloperMetadata
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// MatchedValueRange: A value range that was matched by one or more data
+// filers.
+type MatchedValueRange struct {
+	// DataFilters: The DataFilters from the request that matched the range
+	// of
+	// values.
+	DataFilters []*DataFilter `json:"dataFilters,omitempty"`
+
+	// ValueRange: The values matched by the DataFilter.
+	ValueRange *ValueRange `json:"valueRange,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "DataFilters") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "DataFilters") to include
+	// in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. However, any field with
+	// an empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *MatchedValueRange) MarshalJSON() ([]byte, error) {
+	type NoMethod MatchedValueRange
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
 // MergeCellsRequest: Merges all cells in the range.
@@ -4572,8 +5860,8 @@ type MergeCellsRequest struct {
 }
 
 func (s *MergeCellsRequest) MarshalJSON() ([]byte, error) {
-	type noMethod MergeCellsRequest
-	raw := noMethod(*s)
+	type NoMethod MergeCellsRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -4619,8 +5907,8 @@ type MoveDimensionRequest struct {
 }
 
 func (s *MoveDimensionRequest) MarshalJSON() ([]byte, error) {
-	type noMethod MoveDimensionRequest
-	raw := noMethod(*s)
+	type NoMethod MoveDimensionRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -4653,8 +5941,8 @@ type NamedRange struct {
 }
 
 func (s *NamedRange) MarshalJSON() ([]byte, error) {
-	type noMethod NamedRange
-	raw := noMethod(*s)
+	type NoMethod NamedRange
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -4704,8 +5992,8 @@ type NumberFormat struct {
 }
 
 func (s *NumberFormat) MarshalJSON() ([]byte, error) {
-	type noMethod NumberFormat
-	raw := noMethod(*s)
+	type NoMethod NumberFormat
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -4779,8 +6067,8 @@ type OrgChartSpec struct {
 }
 
 func (s *OrgChartSpec) MarshalJSON() ([]byte, error) {
-	type noMethod OrgChartSpec
-	raw := noMethod(*s)
+	type NoMethod OrgChartSpec
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -4823,8 +6111,8 @@ type OverlayPosition struct {
 }
 
 func (s *OverlayPosition) MarshalJSON() ([]byte, error) {
-	type noMethod OverlayPosition
-	raw := noMethod(*s)
+	type NoMethod OverlayPosition
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -4861,8 +6149,8 @@ type Padding struct {
 }
 
 func (s *Padding) MarshalJSON() ([]byte, error) {
-	type noMethod Padding
-	raw := noMethod(*s)
+	type NoMethod Padding
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -4914,8 +6202,8 @@ type PasteDataRequest struct {
 }
 
 func (s *PasteDataRequest) MarshalJSON() ([]byte, error) {
-	type noMethod PasteDataRequest
-	raw := noMethod(*s)
+	type NoMethod PasteDataRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -4967,18 +6255,18 @@ type PieChartSpec struct {
 }
 
 func (s *PieChartSpec) MarshalJSON() ([]byte, error) {
-	type noMethod PieChartSpec
-	raw := noMethod(*s)
+	type NoMethod PieChartSpec
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
 func (s *PieChartSpec) UnmarshalJSON(data []byte) error {
-	type noMethod PieChartSpec
+	type NoMethod PieChartSpec
 	var s1 struct {
 		PieHole gensupport.JSONFloat64 `json:"pieHole"`
-		*noMethod
+		*NoMethod
 	}
-	s1.noMethod = (*noMethod)(s)
+	s1.NoMethod = (*NoMethod)(s)
 	if err := json.Unmarshal(data, &s1); err != nil {
 		return err
 	}
@@ -5011,14 +6299,66 @@ type PivotFilterCriteria struct {
 }
 
 func (s *PivotFilterCriteria) MarshalJSON() ([]byte, error) {
-	type noMethod PivotFilterCriteria
-	raw := noMethod(*s)
+	type NoMethod PivotFilterCriteria
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
 // PivotGroup: A single grouping (either row or column) in a pivot
 // table.
 type PivotGroup struct {
+	// GroupRule: The group rule to apply to this row/column group.
+	GroupRule *PivotGroupRule `json:"groupRule,omitempty"`
+
+	// Label: The labels to use for the row/column groups which can be
+	// customized. For
+	// example, in the following pivot table, the row label is `Region`
+	// (which
+	// could be renamed to `State`) and the column label is `Product`
+	// (which
+	// could be renamed `Item`). Pivot tables created before December 2017
+	// do
+	// not have header labels. If you'd like to add header labels to an
+	// existing
+	// pivot table, please delete the existing pivot table and then create a
+	// new
+	// pivot table with same parameters.
+	//
+	//     +--------------+---------+-------+
+	//     | SUM of Units | Product |       |
+	//     | Region       | Pen     | Paper |
+	//     +--------------+---------+-------+
+	//     | New York     |     345 |    98 |
+	//     | Oregon       |     234 |   123 |
+	//     | Tennessee    |     531 |   415 |
+	//     +--------------+---------+-------+
+	//     | Grand Total  |    1110 |   636 |
+	//     +--------------+---------+-------+
+	Label string `json:"label,omitempty"`
+
+	// RepeatHeadings: True if the headings in this pivot group should be
+	// repeated.
+	// This is only valid for row groupings and will be ignored by
+	// columns.
+	//
+	// By default, we minimize repitition of headings by not showing
+	// higher
+	// level headings where they are the same. For example, even though
+	// the
+	// third row below corresponds to "Q1 Mar", "Q1" is not shown because
+	// it is redundant with previous rows. Setting repeat_headings to
+	// true
+	// would cause "Q1" to be repeated for "Feb" and "Mar".
+	//
+	//     +--------------+
+	//     | Q1     | Jan |
+	//     |        | Feb |
+	//     |        | Mar |
+	//     +--------+-----+
+	//     | Q1 Total     |
+	//     +--------------+
+	RepeatHeadings bool `json:"repeatHeadings,omitempty"`
+
 	// ShowTotals: True if the pivot table should include the totals for
 	// this grouping.
 	ShowTotals bool `json:"showTotals,omitempty"`
@@ -5048,7 +6388,7 @@ type PivotGroup struct {
 	// ValueMetadata: Metadata about values in the grouping.
 	ValueMetadata []*PivotGroupValueMetadata `json:"valueMetadata,omitempty"`
 
-	// ForceSendFields is a list of field names (e.g. "ShowTotals") to
+	// ForceSendFields is a list of field names (e.g. "GroupRule") to
 	// unconditionally include in API requests. By default, fields with
 	// empty values are omitted from API requests. However, any non-pointer,
 	// non-interface field appearing in ForceSendFields will be sent to the
@@ -5056,7 +6396,7 @@ type PivotGroup struct {
 	// used to include empty fields in Patch requests.
 	ForceSendFields []string `json:"-"`
 
-	// NullFields is a list of field names (e.g. "ShowTotals") to include in
+	// NullFields is a list of field names (e.g. "GroupRule") to include in
 	// API requests with the JSON null value. By default, fields with empty
 	// values are omitted from API requests. However, any field with an
 	// empty value appearing in NullFields will be sent to the server as
@@ -5066,8 +6406,47 @@ type PivotGroup struct {
 }
 
 func (s *PivotGroup) MarshalJSON() ([]byte, error) {
-	type noMethod PivotGroup
-	raw := noMethod(*s)
+	type NoMethod PivotGroup
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// PivotGroupRule: An optional setting on a PivotGroup that defines
+// buckets for the values
+// in the source data column rather than breaking out each individual
+// value.
+// Only one PivotGroup with a group rule may be added for each column
+// in
+// the source data, though on any given column you may add both
+// a
+// PivotGroup that has a rule and a PivotGroup that does not.
+type PivotGroupRule struct {
+	// HistogramRule: A HistogramRule.
+	HistogramRule *HistogramRule `json:"histogramRule,omitempty"`
+
+	// ManualRule: A ManualRule.
+	ManualRule *ManualRule `json:"manualRule,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "HistogramRule") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "HistogramRule") to include
+	// in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. However, any field with
+	// an empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *PivotGroupRule) MarshalJSON() ([]byte, error) {
+	type NoMethod PivotGroupRule
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -5114,8 +6493,8 @@ type PivotGroupSortValueBucket struct {
 }
 
 func (s *PivotGroupSortValueBucket) MarshalJSON() ([]byte, error) {
-	type noMethod PivotGroupSortValueBucket
-	raw := noMethod(*s)
+	type NoMethod PivotGroupSortValueBucket
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -5147,8 +6526,8 @@ type PivotGroupValueMetadata struct {
 }
 
 func (s *PivotGroupValueMetadata) MarshalJSON() ([]byte, error) {
-	type noMethod PivotGroupValueMetadata
-	raw := noMethod(*s)
+	type NoMethod PivotGroupValueMetadata
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -5207,22 +6586,43 @@ type PivotTable struct {
 }
 
 func (s *PivotTable) MarshalJSON() ([]byte, error) {
-	type noMethod PivotTable
-	raw := noMethod(*s)
+	type NoMethod PivotTable
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
 // PivotValue: The definition of how a value in a pivot table should be
 // calculated.
 type PivotValue struct {
+	// CalculatedDisplayType: If specified, indicates that pivot values
+	// should be displayed as
+	// the result of a calculation with another pivot value. For example,
+	// if
+	// calculated_display_type is specified as PERCENT_OF_GRAND_TOTAL, all
+	// the
+	// pivot values will be displayed as the percentage of the grand total.
+	// In
+	// the Sheets UI, this is referred to as "Show As" in the value section
+	// of a
+	// pivot table.
+	//
+	// Possible values:
+	//   "PIVOT_VALUE_CALCULATED_DISPLAY_TYPE_UNSPECIFIED" - Default value,
+	// do not use.
+	//   "PERCENT_OF_ROW_TOTAL" - Shows the pivot values as percentage of
+	// the row total values.
+	//   "PERCENT_OF_COLUMN_TOTAL" - Shows the pivot values as percentage of
+	// the column total values.
+	//   "PERCENT_OF_GRAND_TOTAL" - Shows the pivot values as percentage of
+	// the grand total values.
+	CalculatedDisplayType string `json:"calculatedDisplayType,omitempty"`
+
 	// Formula: A custom formula to calculate the value.  The formula must
 	// start
 	// with an `=` character.
 	Formula string `json:"formula,omitempty"`
 
-	// Name: A name to use for the value. This is only used if formula was
-	// set.
-	// Otherwise, the column name is used.
+	// Name: A name to use for the value.
 	Name string `json:"name,omitempty"`
 
 	// SourceColumnOffset: The column offset of the source range that this
@@ -5262,26 +6662,28 @@ type PivotValue struct {
 	// Only valid if PivotValue.formula was set.
 	SummarizeFunction string `json:"summarizeFunction,omitempty"`
 
-	// ForceSendFields is a list of field names (e.g. "Formula") to
-	// unconditionally include in API requests. By default, fields with
-	// empty values are omitted from API requests. However, any non-pointer,
-	// non-interface field appearing in ForceSendFields will be sent to the
-	// server regardless of whether the field is empty or not. This may be
-	// used to include empty fields in Patch requests.
+	// ForceSendFields is a list of field names (e.g.
+	// "CalculatedDisplayType") to unconditionally include in API requests.
+	// By default, fields with empty values are omitted from API requests.
+	// However, any non-pointer, non-interface field appearing in
+	// ForceSendFields will be sent to the server regardless of whether the
+	// field is empty or not. This may be used to include empty fields in
+	// Patch requests.
 	ForceSendFields []string `json:"-"`
 
-	// NullFields is a list of field names (e.g. "Formula") to include in
-	// API requests with the JSON null value. By default, fields with empty
-	// values are omitted from API requests. However, any field with an
-	// empty value appearing in NullFields will be sent to the server as
-	// null. It is an error if a field in this list has a non-empty value.
-	// This may be used to include null fields in Patch requests.
+	// NullFields is a list of field names (e.g. "CalculatedDisplayType") to
+	// include in API requests with the JSON null value. By default, fields
+	// with empty values are omitted from API requests. However, any field
+	// with an empty value appearing in NullFields will be sent to the
+	// server as null. It is an error if a field in this list has a
+	// non-empty value. This may be used to include null fields in Patch
+	// requests.
 	NullFields []string `json:"-"`
 }
 
 func (s *PivotValue) MarshalJSON() ([]byte, error) {
-	type noMethod PivotValue
-	raw := noMethod(*s)
+	type NoMethod PivotValue
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -5362,8 +6764,8 @@ type ProtectedRange struct {
 }
 
 func (s *ProtectedRange) MarshalJSON() ([]byte, error) {
-	type noMethod ProtectedRange
-	raw := noMethod(*s)
+	type NoMethod ProtectedRange
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -5390,8 +6792,8 @@ type RandomizeRangeRequest struct {
 }
 
 func (s *RandomizeRangeRequest) MarshalJSON() ([]byte, error) {
-	type noMethod RandomizeRangeRequest
-	raw := noMethod(*s)
+	type NoMethod RandomizeRangeRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -5444,8 +6846,8 @@ type RepeatCellRequest struct {
 }
 
 func (s *RepeatCellRequest) MarshalJSON() ([]byte, error) {
-	type noMethod RepeatCellRequest
-	raw := noMethod(*s)
+	type NoMethod RepeatCellRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -5492,6 +6894,9 @@ type Request struct {
 	// CopyPaste: Copies data from one area and pastes it to another.
 	CopyPaste *CopyPasteRequest `json:"copyPaste,omitempty"`
 
+	// CreateDeveloperMetadata: Creates new developer metadata
+	CreateDeveloperMetadata *CreateDeveloperMetadataRequest `json:"createDeveloperMetadata,omitempty"`
+
 	// CutPaste: Cuts data from one area and pastes it to another.
 	CutPaste *CutPasteRequest `json:"cutPaste,omitempty"`
 
@@ -5501,6 +6906,9 @@ type Request struct {
 	// DeleteConditionalFormatRule: Deletes an existing conditional format
 	// rule.
 	DeleteConditionalFormatRule *DeleteConditionalFormatRuleRequest `json:"deleteConditionalFormatRule,omitempty"`
+
+	// DeleteDeveloperMetadata: Deletes developer metadata
+	DeleteDeveloperMetadata *DeleteDeveloperMetadataRequest `json:"deleteDeveloperMetadata,omitempty"`
 
 	// DeleteDimension: Deletes rows or columns in a sheet.
 	DeleteDimension *DeleteDimensionRequest `json:"deleteDimension,omitempty"`
@@ -5588,6 +6996,9 @@ type Request struct {
 	// rule.
 	UpdateConditionalFormatRule *UpdateConditionalFormatRuleRequest `json:"updateConditionalFormatRule,omitempty"`
 
+	// UpdateDeveloperMetadata: Updates an existing developer metadata entry
+	UpdateDeveloperMetadata *UpdateDeveloperMetadataRequest `json:"updateDeveloperMetadata,omitempty"`
+
 	// UpdateDimensionProperties: Updates dimensions' properties.
 	UpdateDimensionProperties *UpdateDimensionPropertiesRequest `json:"updateDimensionProperties,omitempty"`
 
@@ -5628,8 +7039,8 @@ type Request struct {
 }
 
 func (s *Request) MarshalJSON() ([]byte, error) {
-	type noMethod Request
-	raw := noMethod(*s)
+	type NoMethod Request
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -5653,9 +7064,17 @@ type Response struct {
 	// AddSheet: A reply from adding a sheet.
 	AddSheet *AddSheetResponse `json:"addSheet,omitempty"`
 
+	// CreateDeveloperMetadata: A reply from creating a developer metadata
+	// entry.
+	CreateDeveloperMetadata *CreateDeveloperMetadataResponse `json:"createDeveloperMetadata,omitempty"`
+
 	// DeleteConditionalFormatRule: A reply from deleting a conditional
 	// format rule.
 	DeleteConditionalFormatRule *DeleteConditionalFormatRuleResponse `json:"deleteConditionalFormatRule,omitempty"`
+
+	// DeleteDeveloperMetadata: A reply from deleting a developer metadata
+	// entry.
+	DeleteDeveloperMetadata *DeleteDeveloperMetadataResponse `json:"deleteDeveloperMetadata,omitempty"`
 
 	// DuplicateFilterView: A reply from duplicating a filter view.
 	DuplicateFilterView *DuplicateFilterViewResponse `json:"duplicateFilterView,omitempty"`
@@ -5669,6 +7088,10 @@ type Response struct {
 	// UpdateConditionalFormatRule: A reply from updating a conditional
 	// format rule.
 	UpdateConditionalFormatRule *UpdateConditionalFormatRuleResponse `json:"updateConditionalFormatRule,omitempty"`
+
+	// UpdateDeveloperMetadata: A reply from updating a developer metadata
+	// entry.
+	UpdateDeveloperMetadata *UpdateDeveloperMetadataResponse `json:"updateDeveloperMetadata,omitempty"`
 
 	// UpdateEmbeddedObjectPosition: A reply from updating an embedded
 	// object's position.
@@ -5692,8 +7115,8 @@ type Response struct {
 }
 
 func (s *Response) MarshalJSON() ([]byte, error) {
-	type noMethod Response
-	raw := noMethod(*s)
+	type NoMethod Response
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -5720,8 +7143,78 @@ type RowData struct {
 }
 
 func (s *RowData) MarshalJSON() ([]byte, error) {
-	type noMethod RowData
-	raw := noMethod(*s)
+	type NoMethod RowData
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// SearchDeveloperMetadataRequest: A request to retrieve all developer
+// metadata matching the set of specified
+// criteria.
+type SearchDeveloperMetadataRequest struct {
+	// DataFilters: The data filters describing the criteria used to
+	// determine which
+	// DeveloperMetadata entries to return.  DeveloperMetadata matching any
+	// of the
+	// specified filters will be included in the response.
+	DataFilters []*DataFilter `json:"dataFilters,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "DataFilters") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "DataFilters") to include
+	// in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. However, any field with
+	// an empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *SearchDeveloperMetadataRequest) MarshalJSON() ([]byte, error) {
+	type NoMethod SearchDeveloperMetadataRequest
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// SearchDeveloperMetadataResponse: A reply to a developer metadata
+// search request.
+type SearchDeveloperMetadataResponse struct {
+	// MatchedDeveloperMetadata: The metadata matching the criteria of the
+	// search request.
+	MatchedDeveloperMetadata []*MatchedDeveloperMetadata `json:"matchedDeveloperMetadata,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the
+	// server.
+	googleapi.ServerResponse `json:"-"`
+
+	// ForceSendFields is a list of field names (e.g.
+	// "MatchedDeveloperMetadata") to unconditionally include in API
+	// requests. By default, fields with empty values are omitted from API
+	// requests. However, any non-pointer, non-interface field appearing in
+	// ForceSendFields will be sent to the server regardless of whether the
+	// field is empty or not. This may be used to include empty fields in
+	// Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "MatchedDeveloperMetadata")
+	// to include in API requests with the JSON null value. By default,
+	// fields with empty values are omitted from API requests. However, any
+	// field with an empty value appearing in NullFields will be sent to the
+	// server as null. It is an error if a field in this list has a
+	// non-empty value. This may be used to include null fields in Patch
+	// requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *SearchDeveloperMetadataResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod SearchDeveloperMetadataResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -5748,8 +7241,8 @@ type SetBasicFilterRequest struct {
 }
 
 func (s *SetBasicFilterRequest) MarshalJSON() ([]byte, error) {
-	type noMethod SetBasicFilterRequest
-	raw := noMethod(*s)
+	type NoMethod SetBasicFilterRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -5782,8 +7275,8 @@ type SetDataValidationRequest struct {
 }
 
 func (s *SetDataValidationRequest) MarshalJSON() ([]byte, error) {
-	type noMethod SetDataValidationRequest
-	raw := noMethod(*s)
+	type NoMethod SetDataValidationRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -5816,6 +7309,9 @@ type Sheet struct {
 	// and `startColumn 3` (zero-based column D).
 	Data []*GridData `json:"data,omitempty"`
 
+	// DeveloperMetadata: The developer metadata associated with a sheet.
+	DeveloperMetadata []*DeveloperMetadata `json:"developerMetadata,omitempty"`
+
 	// FilterViews: The filter views in this sheet.
 	FilterViews []*FilterView `json:"filterViews,omitempty"`
 
@@ -5846,8 +7342,8 @@ type Sheet struct {
 }
 
 func (s *Sheet) MarshalJSON() ([]byte, error) {
-	type noMethod Sheet
-	raw := noMethod(*s)
+	type NoMethod Sheet
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -5926,8 +7422,8 @@ type SheetProperties struct {
 }
 
 func (s *SheetProperties) MarshalJSON() ([]byte, error) {
-	type noMethod SheetProperties
-	raw := noMethod(*s)
+	type NoMethod SheetProperties
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -5960,8 +7456,8 @@ type SortRangeRequest struct {
 }
 
 func (s *SortRangeRequest) MarshalJSON() ([]byte, error) {
-	type noMethod SortRangeRequest
-	raw := noMethod(*s)
+	type NoMethod SortRangeRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -5997,8 +7493,8 @@ type SortSpec struct {
 }
 
 func (s *SortSpec) MarshalJSON() ([]byte, error) {
-	type noMethod SortSpec
-	raw := noMethod(*s)
+	type NoMethod SortSpec
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -6042,13 +7538,17 @@ type SourceAndDestination struct {
 }
 
 func (s *SourceAndDestination) MarshalJSON() ([]byte, error) {
-	type noMethod SourceAndDestination
-	raw := noMethod(*s)
+	type NoMethod SourceAndDestination
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
 // Spreadsheet: Resource that represents a spreadsheet.
 type Spreadsheet struct {
+	// DeveloperMetadata: The developer metadata associated with a
+	// spreadsheet.
+	DeveloperMetadata []*DeveloperMetadata `json:"developerMetadata,omitempty"`
+
 	// NamedRanges: The named ranges defined in a spreadsheet.
 	NamedRanges []*NamedRange `json:"namedRanges,omitempty"`
 
@@ -6070,26 +7570,27 @@ type Spreadsheet struct {
 	// server.
 	googleapi.ServerResponse `json:"-"`
 
-	// ForceSendFields is a list of field names (e.g. "NamedRanges") to
-	// unconditionally include in API requests. By default, fields with
+	// ForceSendFields is a list of field names (e.g. "DeveloperMetadata")
+	// to unconditionally include in API requests. By default, fields with
 	// empty values are omitted from API requests. However, any non-pointer,
 	// non-interface field appearing in ForceSendFields will be sent to the
 	// server regardless of whether the field is empty or not. This may be
 	// used to include empty fields in Patch requests.
 	ForceSendFields []string `json:"-"`
 
-	// NullFields is a list of field names (e.g. "NamedRanges") to include
-	// in API requests with the JSON null value. By default, fields with
-	// empty values are omitted from API requests. However, any field with
-	// an empty value appearing in NullFields will be sent to the server as
-	// null. It is an error if a field in this list has a non-empty value.
-	// This may be used to include null fields in Patch requests.
+	// NullFields is a list of field names (e.g. "DeveloperMetadata") to
+	// include in API requests with the JSON null value. By default, fields
+	// with empty values are omitted from API requests. However, any field
+	// with an empty value appearing in NullFields will be sent to the
+	// server as null. It is an error if a field in this list has a
+	// non-empty value. This may be used to include null fields in Patch
+	// requests.
 	NullFields []string `json:"-"`
 }
 
 func (s *Spreadsheet) MarshalJSON() ([]byte, error) {
-	type noMethod Spreadsheet
-	raw := noMethod(*s)
+	type NoMethod Spreadsheet
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -6109,9 +7610,9 @@ type SpreadsheetProperties struct {
 
 	// DefaultFormat: The default format of all cells in the
 	// spreadsheet.
-	// CellData.effectiveFormat will not be set if the
-	// cell's format is equal to this default format.
-	// This field is read-only.
+	// CellData.effectiveFormat will not be set if
+	// the cell's format is equal to this default format. This field is
+	// read-only.
 	DefaultFormat *CellFormat `json:"defaultFormat,omitempty"`
 
 	// IterativeCalculationSettings: Determines whether and how circular
@@ -6163,8 +7664,8 @@ type SpreadsheetProperties struct {
 }
 
 func (s *SpreadsheetProperties) MarshalJSON() ([]byte, error) {
-	type noMethod SpreadsheetProperties
-	raw := noMethod(*s)
+	type NoMethod SpreadsheetProperties
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -6210,8 +7711,8 @@ type TextFormat struct {
 }
 
 func (s *TextFormat) MarshalJSON() ([]byte, error) {
-	type noMethod TextFormat
-	raw := noMethod(*s)
+	type NoMethod TextFormat
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -6245,8 +7746,46 @@ type TextFormatRun struct {
 }
 
 func (s *TextFormatRun) MarshalJSON() ([]byte, error) {
-	type noMethod TextFormatRun
-	raw := noMethod(*s)
+	type NoMethod TextFormatRun
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// TextPosition: Position settings for text.
+type TextPosition struct {
+	// HorizontalAlignment: Horizontal alignment setting for the piece of
+	// text.
+	//
+	// Possible values:
+	//   "HORIZONTAL_ALIGN_UNSPECIFIED" - The horizontal alignment is not
+	// specified. Do not use this.
+	//   "LEFT" - The text is explicitly aligned to the left of the cell.
+	//   "CENTER" - The text is explicitly aligned to the center of the
+	// cell.
+	//   "RIGHT" - The text is explicitly aligned to the right of the cell.
+	HorizontalAlignment string `json:"horizontalAlignment,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "HorizontalAlignment")
+	// to unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "HorizontalAlignment") to
+	// include in API requests with the JSON null value. By default, fields
+	// with empty values are omitted from API requests. However, any field
+	// with an empty value appearing in NullFields will be sent to the
+	// server as null. It is an error if a field in this list has a
+	// non-empty value. This may be used to include null fields in Patch
+	// requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *TextPosition) MarshalJSON() ([]byte, error) {
+	type NoMethod TextPosition
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -6296,8 +7835,8 @@ type TextRotation struct {
 }
 
 func (s *TextRotation) MarshalJSON() ([]byte, error) {
-	type noMethod TextRotation
-	raw := noMethod(*s)
+	type NoMethod TextRotation
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -6320,6 +7859,7 @@ type TextToColumnsRequest struct {
 	//   "PERIOD" - "."
 	//   "SPACE" - " "
 	//   "CUSTOM" - A custom value as defined in delimiter.
+	//   "AUTODETECT" - Automatically detect columns.
 	DelimiterType string `json:"delimiterType,omitempty"`
 
 	// Source: The source data range.  This must span exactly one column.
@@ -6343,8 +7883,8 @@ type TextToColumnsRequest struct {
 }
 
 func (s *TextToColumnsRequest) MarshalJSON() ([]byte, error) {
-	type noMethod TextToColumnsRequest
-	raw := noMethod(*s)
+	type NoMethod TextToColumnsRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -6373,8 +7913,8 @@ type UnmergeCellsRequest struct {
 }
 
 func (s *UnmergeCellsRequest) MarshalJSON() ([]byte, error) {
-	type noMethod UnmergeCellsRequest
-	raw := noMethod(*s)
+	type NoMethod UnmergeCellsRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -6408,8 +7948,8 @@ type UpdateBandingRequest struct {
 }
 
 func (s *UpdateBandingRequest) MarshalJSON() ([]byte, error) {
-	type noMethod UpdateBandingRequest
-	raw := noMethod(*s)
+	type NoMethod UpdateBandingRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -6465,8 +8005,8 @@ type UpdateBordersRequest struct {
 }
 
 func (s *UpdateBordersRequest) MarshalJSON() ([]byte, error) {
-	type noMethod UpdateBordersRequest
-	raw := noMethod(*s)
+	type NoMethod UpdateBordersRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -6511,8 +8051,8 @@ type UpdateCellsRequest struct {
 }
 
 func (s *UpdateCellsRequest) MarshalJSON() ([]byte, error) {
-	type noMethod UpdateCellsRequest
-	raw := noMethod(*s)
+	type NoMethod UpdateCellsRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -6545,8 +8085,8 @@ type UpdateChartSpecRequest struct {
 }
 
 func (s *UpdateChartSpecRequest) MarshalJSON() ([]byte, error) {
-	type noMethod UpdateChartSpecRequest
-	raw := noMethod(*s)
+	type NoMethod UpdateChartSpecRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -6587,8 +8127,8 @@ type UpdateConditionalFormatRuleRequest struct {
 }
 
 func (s *UpdateConditionalFormatRuleRequest) MarshalJSON() ([]byte, error) {
-	type noMethod UpdateConditionalFormatRuleRequest
-	raw := noMethod(*s)
+	type NoMethod UpdateConditionalFormatRuleRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -6629,8 +8169,88 @@ type UpdateConditionalFormatRuleResponse struct {
 }
 
 func (s *UpdateConditionalFormatRuleResponse) MarshalJSON() ([]byte, error) {
-	type noMethod UpdateConditionalFormatRuleResponse
-	raw := noMethod(*s)
+	type NoMethod UpdateConditionalFormatRuleResponse
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// UpdateDeveloperMetadataRequest: A request to update properties of
+// developer metadata.
+// Updates the properties of the developer metadata selected by the
+// filters to
+// the values provided in the DeveloperMetadata resource.  Callers
+// must
+// specify the properties they wish to update in the fields parameter,
+// as well
+// as specify at least one DataFilter matching the metadata they wish
+// to
+// update.
+type UpdateDeveloperMetadataRequest struct {
+	// DataFilters: The filters matching the developer metadata entries to
+	// update.
+	DataFilters []*DataFilter `json:"dataFilters,omitempty"`
+
+	// DeveloperMetadata: The value that all metadata matched by the data
+	// filters will be updated to.
+	DeveloperMetadata *DeveloperMetadata `json:"developerMetadata,omitempty"`
+
+	// Fields: The fields that should be updated.  At least one field must
+	// be specified.
+	// The root `developerMetadata` is implied and should not be
+	// specified.
+	// A single "*" can be used as short-hand for listing every field.
+	Fields string `json:"fields,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "DataFilters") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "DataFilters") to include
+	// in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. However, any field with
+	// an empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *UpdateDeveloperMetadataRequest) MarshalJSON() ([]byte, error) {
+	type NoMethod UpdateDeveloperMetadataRequest
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// UpdateDeveloperMetadataResponse: The response from updating developer
+// metadata.
+type UpdateDeveloperMetadataResponse struct {
+	// DeveloperMetadata: The updated developer metadata.
+	DeveloperMetadata []*DeveloperMetadata `json:"developerMetadata,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "DeveloperMetadata")
+	// to unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "DeveloperMetadata") to
+	// include in API requests with the JSON null value. By default, fields
+	// with empty values are omitted from API requests. However, any field
+	// with an empty value appearing in NullFields will be sent to the
+	// server as null. It is an error if a field in this list has a
+	// non-empty value. This may be used to include null fields in Patch
+	// requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *UpdateDeveloperMetadataResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod UpdateDeveloperMetadataResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -6667,8 +8287,8 @@ type UpdateDimensionPropertiesRequest struct {
 }
 
 func (s *UpdateDimensionPropertiesRequest) MarshalJSON() ([]byte, error) {
-	type noMethod UpdateDimensionPropertiesRequest
-	raw := noMethod(*s)
+	type NoMethod UpdateDimensionPropertiesRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -6715,8 +8335,8 @@ type UpdateEmbeddedObjectPositionRequest struct {
 }
 
 func (s *UpdateEmbeddedObjectPositionRequest) MarshalJSON() ([]byte, error) {
-	type noMethod UpdateEmbeddedObjectPositionRequest
-	raw := noMethod(*s)
+	type NoMethod UpdateEmbeddedObjectPositionRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -6744,8 +8364,8 @@ type UpdateEmbeddedObjectPositionResponse struct {
 }
 
 func (s *UpdateEmbeddedObjectPositionResponse) MarshalJSON() ([]byte, error) {
-	type noMethod UpdateEmbeddedObjectPositionResponse
-	raw := noMethod(*s)
+	type NoMethod UpdateEmbeddedObjectPositionResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -6778,8 +8398,8 @@ type UpdateFilterViewRequest struct {
 }
 
 func (s *UpdateFilterViewRequest) MarshalJSON() ([]byte, error) {
-	type noMethod UpdateFilterViewRequest
-	raw := noMethod(*s)
+	type NoMethod UpdateFilterViewRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -6814,8 +8434,8 @@ type UpdateNamedRangeRequest struct {
 }
 
 func (s *UpdateNamedRangeRequest) MarshalJSON() ([]byte, error) {
-	type noMethod UpdateNamedRangeRequest
-	raw := noMethod(*s)
+	type NoMethod UpdateNamedRangeRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -6851,8 +8471,8 @@ type UpdateProtectedRangeRequest struct {
 }
 
 func (s *UpdateProtectedRangeRequest) MarshalJSON() ([]byte, error) {
-	type noMethod UpdateProtectedRangeRequest
-	raw := noMethod(*s)
+	type NoMethod UpdateProtectedRangeRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -6887,8 +8507,8 @@ type UpdateSheetPropertiesRequest struct {
 }
 
 func (s *UpdateSheetPropertiesRequest) MarshalJSON() ([]byte, error) {
-	type noMethod UpdateSheetPropertiesRequest
-	raw := noMethod(*s)
+	type NoMethod UpdateSheetPropertiesRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -6922,8 +8542,60 @@ type UpdateSpreadsheetPropertiesRequest struct {
 }
 
 func (s *UpdateSpreadsheetPropertiesRequest) MarshalJSON() ([]byte, error) {
-	type noMethod UpdateSpreadsheetPropertiesRequest
-	raw := noMethod(*s)
+	type NoMethod UpdateSpreadsheetPropertiesRequest
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// UpdateValuesByDataFilterResponse: The response when updating a range
+// of values by a data filter in a
+// spreadsheet.
+type UpdateValuesByDataFilterResponse struct {
+	// DataFilter: The data filter that selected the range that was updated.
+	DataFilter *DataFilter `json:"dataFilter,omitempty"`
+
+	// UpdatedCells: The number of cells updated.
+	UpdatedCells int64 `json:"updatedCells,omitempty"`
+
+	// UpdatedColumns: The number of columns where at least one cell in the
+	// column was updated.
+	UpdatedColumns int64 `json:"updatedColumns,omitempty"`
+
+	// UpdatedData: The values of the cells in the range matched by the
+	// dataFilter after all
+	// updates were applied. This is only included if the
+	// request's
+	// `includeValuesInResponse` field was `true`.
+	UpdatedData *ValueRange `json:"updatedData,omitempty"`
+
+	// UpdatedRange: The range (in A1 notation) that updates were applied
+	// to.
+	UpdatedRange string `json:"updatedRange,omitempty"`
+
+	// UpdatedRows: The number of rows where at least one cell in the row
+	// was updated.
+	UpdatedRows int64 `json:"updatedRows,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "DataFilter") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "DataFilter") to include in
+	// API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. However, any field with an
+	// empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *UpdateValuesByDataFilterResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod UpdateValuesByDataFilterResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -6976,8 +8648,8 @@ type UpdateValuesResponse struct {
 }
 
 func (s *UpdateValuesResponse) MarshalJSON() ([]byte, error) {
-	type noMethod UpdateValuesResponse
-	raw := noMethod(*s)
+	type NoMethod UpdateValuesResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -7055,8 +8727,228 @@ type ValueRange struct {
 }
 
 func (s *ValueRange) MarshalJSON() ([]byte, error) {
-	type noMethod ValueRange
-	raw := noMethod(*s)
+	type NoMethod ValueRange
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// WaterfallChartColumnStyle: Styles for a waterfall chart column.
+type WaterfallChartColumnStyle struct {
+	// Color: The color of the column.
+	Color *Color `json:"color,omitempty"`
+
+	// Label: The label of the column's legend.
+	Label string `json:"label,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "Color") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "Color") to include in API
+	// requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. However, any field with an
+	// empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *WaterfallChartColumnStyle) MarshalJSON() ([]byte, error) {
+	type NoMethod WaterfallChartColumnStyle
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// WaterfallChartCustomSubtotal: A custom subtotal column for a
+// waterfall chart series.
+type WaterfallChartCustomSubtotal struct {
+	// DataIsSubtotal: True if the data point at subtotal_index is the
+	// subtotal. If false,
+	// the subtotal will be computed and appear after the data point.
+	DataIsSubtotal bool `json:"dataIsSubtotal,omitempty"`
+
+	// Label: A label for the subtotal column.
+	Label string `json:"label,omitempty"`
+
+	// SubtotalIndex: The 0-based index of a data point within the series.
+	// If
+	// data_is_subtotal is true, the data point at this index is
+	// the
+	// subtotal. Otherwise, the subtotal appears after the data point
+	// with
+	// this index. A series can have multiple subtotals at arbitrary
+	// indices,
+	// but subtotals do not affect the indices of the data points.
+	// For
+	// example, if a series has 3 data points, their indices will always be
+	// 0,
+	// 1, and 2, regardless of how many subtotals exist on the series or
+	// what
+	// data points they are associated with.
+	SubtotalIndex int64 `json:"subtotalIndex,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "DataIsSubtotal") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "DataIsSubtotal") to
+	// include in API requests with the JSON null value. By default, fields
+	// with empty values are omitted from API requests. However, any field
+	// with an empty value appearing in NullFields will be sent to the
+	// server as null. It is an error if a field in this list has a
+	// non-empty value. This may be used to include null fields in Patch
+	// requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *WaterfallChartCustomSubtotal) MarshalJSON() ([]byte, error) {
+	type NoMethod WaterfallChartCustomSubtotal
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// WaterfallChartDomain: The domain of a waterfall chart.
+type WaterfallChartDomain struct {
+	// Data: The data of the WaterfallChartDomain.
+	Data *ChartData `json:"data,omitempty"`
+
+	// Reversed: True to reverse the order of the domain values (horizontal
+	// axis).
+	Reversed bool `json:"reversed,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "Data") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "Data") to include in API
+	// requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. However, any field with an
+	// empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *WaterfallChartDomain) MarshalJSON() ([]byte, error) {
+	type NoMethod WaterfallChartDomain
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// WaterfallChartSeries: A single series of data for a waterfall chart.
+type WaterfallChartSeries struct {
+	// CustomSubtotals: Custom subtotal columns appearing in this series.
+	// The order in which
+	// subtotals are defined is not significant. Only one subtotal may
+	// be
+	// defined for each data point.
+	CustomSubtotals []*WaterfallChartCustomSubtotal `json:"customSubtotals,omitempty"`
+
+	// Data: The data being visualized in this series.
+	Data *ChartData `json:"data,omitempty"`
+
+	// HideTrailingSubtotal: True to hide the subtotal column from the end
+	// of the series. By default,
+	// a subtotal column will appear at the end of each series. Setting
+	// this
+	// field to true will hide that subtotal column for this series.
+	HideTrailingSubtotal bool `json:"hideTrailingSubtotal,omitempty"`
+
+	// NegativeColumnsStyle: Styles for all columns in this series with
+	// negative values.
+	NegativeColumnsStyle *WaterfallChartColumnStyle `json:"negativeColumnsStyle,omitempty"`
+
+	// PositiveColumnsStyle: Styles for all columns in this series with
+	// positive values.
+	PositiveColumnsStyle *WaterfallChartColumnStyle `json:"positiveColumnsStyle,omitempty"`
+
+	// SubtotalColumnsStyle: Styles for all subtotal columns in this series.
+	SubtotalColumnsStyle *WaterfallChartColumnStyle `json:"subtotalColumnsStyle,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "CustomSubtotals") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "CustomSubtotals") to
+	// include in API requests with the JSON null value. By default, fields
+	// with empty values are omitted from API requests. However, any field
+	// with an empty value appearing in NullFields will be sent to the
+	// server as null. It is an error if a field in this list has a
+	// non-empty value. This may be used to include null fields in Patch
+	// requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *WaterfallChartSeries) MarshalJSON() ([]byte, error) {
+	type NoMethod WaterfallChartSeries
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// WaterfallChartSpec: A waterfall chart.
+type WaterfallChartSpec struct {
+	// ConnectorLineStyle: The line style for the connector lines.
+	ConnectorLineStyle *LineStyle `json:"connectorLineStyle,omitempty"`
+
+	// Domain: The domain data (horizontal axis) for the waterfall chart.
+	Domain *WaterfallChartDomain `json:"domain,omitempty"`
+
+	// FirstValueIsTotal: True to interpret the first value as a total.
+	FirstValueIsTotal bool `json:"firstValueIsTotal,omitempty"`
+
+	// HideConnectorLines: True to hide connector lines between columns.
+	HideConnectorLines bool `json:"hideConnectorLines,omitempty"`
+
+	// Series: The data this waterfall chart is visualizing.
+	Series []*WaterfallChartSeries `json:"series,omitempty"`
+
+	// StackedType: The stacked type.
+	//
+	// Possible values:
+	//   "WATERFALL_STACKED_TYPE_UNSPECIFIED" - Default value, do not use.
+	//   "STACKED" - Values corresponding to the same domain (horizontal
+	// axis) value will be
+	// stacked vertically.
+	//   "SEQUENTIAL" - Series will spread out along the horizontal axis.
+	StackedType string `json:"stackedType,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "ConnectorLineStyle")
+	// to unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "ConnectorLineStyle") to
+	// include in API requests with the JSON null value. By default, fields
+	// with empty values are omitted from API requests. However, any field
+	// with an empty value appearing in NullFields will be sent to the
+	// server as null. It is an error if a field in this list has a
+	// non-empty value. This may be used to include null fields in Patch
+	// requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *WaterfallChartSpec) MarshalJSON() ([]byte, error) {
+	type NoMethod WaterfallChartSpec
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -7187,7 +9079,7 @@ func (c *SpreadsheetsBatchUpdateCall) Do(opts ...googleapi.CallOption) (*BatchUp
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -7319,7 +9211,7 @@ func (c *SpreadsheetsCreateCall) Do(opts ...googleapi.CallOption) (*Spreadsheet,
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -7492,7 +9384,7 @@ func (c *SpreadsheetsGetCall) Do(opts ...googleapi.CallOption) (*Spreadsheet, er
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -7533,6 +9425,468 @@ func (c *SpreadsheetsGetCall) Do(opts ...googleapi.CallOption) (*Spreadsheet, er
 	//     "https://www.googleapis.com/auth/drive.readonly",
 	//     "https://www.googleapis.com/auth/spreadsheets",
 	//     "https://www.googleapis.com/auth/spreadsheets.readonly"
+	//   ]
+	// }
+
+}
+
+// method id "sheets.spreadsheets.getByDataFilter":
+
+type SpreadsheetsGetByDataFilterCall struct {
+	s                                 *Service
+	spreadsheetId                     string
+	getspreadsheetbydatafilterrequest *GetSpreadsheetByDataFilterRequest
+	urlParams_                        gensupport.URLParams
+	ctx_                              context.Context
+	header_                           http.Header
+}
+
+// GetByDataFilter: Returns the spreadsheet at the given ID.
+// The caller must specify the spreadsheet ID.
+//
+// This method differs from GetSpreadsheet in that it allows
+// selecting
+// which subsets of spreadsheet data to return by specifying
+// a
+// dataFilters parameter.
+// Multiple DataFilters can be specified.  Specifying one or
+// more data filters will return the portions of the spreadsheet
+// that
+// intersect ranges matched by any of the filters.
+//
+// By default, data within grids will not be returned.
+// You can include grid data one of two ways:
+//
+// * Specify a field mask listing your desired fields using the `fields`
+// URL
+// parameter in HTTP
+//
+// * Set the includeGridData
+// parameter to true.  If a field mask is set, the
+// `includeGridData`
+// parameter is ignored
+//
+// For large spreadsheets, it is recommended to retrieve only the
+// specific
+// fields of the spreadsheet that you want.
+func (r *SpreadsheetsService) GetByDataFilter(spreadsheetId string, getspreadsheetbydatafilterrequest *GetSpreadsheetByDataFilterRequest) *SpreadsheetsGetByDataFilterCall {
+	c := &SpreadsheetsGetByDataFilterCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.spreadsheetId = spreadsheetId
+	c.getspreadsheetbydatafilterrequest = getspreadsheetbydatafilterrequest
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
+// for more information.
+func (c *SpreadsheetsGetByDataFilterCall) Fields(s ...googleapi.Field) *SpreadsheetsGetByDataFilterCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method. Any
+// pending HTTP request will be aborted if the provided context is
+// canceled.
+func (c *SpreadsheetsGetByDataFilterCall) Context(ctx context.Context) *SpreadsheetsGetByDataFilterCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns an http.Header that can be modified by the caller to
+// add HTTP headers to the request.
+func (c *SpreadsheetsGetByDataFilterCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *SpreadsheetsGetByDataFilterCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := make(http.Header)
+	for k, v := range c.header_ {
+		reqHeaders[k] = v
+	}
+	reqHeaders.Set("User-Agent", c.s.userAgent())
+	var body io.Reader = nil
+	body, err := googleapi.WithoutDataWrapper.JSONReader(c.getspreadsheetbydatafilterrequest)
+	if err != nil {
+		return nil, err
+	}
+	reqHeaders.Set("Content-Type", "application/json")
+	c.urlParams_.Set("alt", alt)
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v4/spreadsheets/{spreadsheetId}:getByDataFilter")
+	urls += "?" + c.urlParams_.Encode()
+	req, _ := http.NewRequest("POST", urls, body)
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"spreadsheetId": c.spreadsheetId,
+	})
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "sheets.spreadsheets.getByDataFilter" call.
+// Exactly one of *Spreadsheet or error will be non-nil. Any non-2xx
+// status code is an error. Response headers are in either
+// *Spreadsheet.ServerResponse.Header or (if a response was returned at
+// all) in error.(*googleapi.Error).Header. Use googleapi.IsNotModified
+// to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *SpreadsheetsGetByDataFilterCall) Do(opts ...googleapi.CallOption) (*Spreadsheet, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, &googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		}
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, err
+	}
+	ret := &Spreadsheet{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	if err := gensupport.DecodeResponse(target, res); err != nil {
+		return nil, err
+	}
+	return ret, nil
+	// {
+	//   "description": "Returns the spreadsheet at the given ID.\nThe caller must specify the spreadsheet ID.\n\nThis method differs from GetSpreadsheet in that it allows selecting\nwhich subsets of spreadsheet data to return by specifying a\ndataFilters parameter.\nMultiple DataFilters can be specified.  Specifying one or\nmore data filters will return the portions of the spreadsheet that\nintersect ranges matched by any of the filters.\n\nBy default, data within grids will not be returned.\nYou can include grid data one of two ways:\n\n* Specify a field mask listing your desired fields using the `fields` URL\nparameter in HTTP\n\n* Set the includeGridData\nparameter to true.  If a field mask is set, the `includeGridData`\nparameter is ignored\n\nFor large spreadsheets, it is recommended to retrieve only the specific\nfields of the spreadsheet that you want.",
+	//   "flatPath": "v4/spreadsheets/{spreadsheetId}:getByDataFilter",
+	//   "httpMethod": "POST",
+	//   "id": "sheets.spreadsheets.getByDataFilter",
+	//   "parameterOrder": [
+	//     "spreadsheetId"
+	//   ],
+	//   "parameters": {
+	//     "spreadsheetId": {
+	//       "description": "The spreadsheet to request.",
+	//       "location": "path",
+	//       "required": true,
+	//       "type": "string"
+	//     }
+	//   },
+	//   "path": "v4/spreadsheets/{spreadsheetId}:getByDataFilter",
+	//   "request": {
+	//     "$ref": "GetSpreadsheetByDataFilterRequest"
+	//   },
+	//   "response": {
+	//     "$ref": "Spreadsheet"
+	//   },
+	//   "scopes": [
+	//     "https://www.googleapis.com/auth/drive",
+	//     "https://www.googleapis.com/auth/drive.file",
+	//     "https://www.googleapis.com/auth/spreadsheets"
+	//   ]
+	// }
+
+}
+
+// method id "sheets.spreadsheets.developerMetadata.get":
+
+type SpreadsheetsDeveloperMetadataGetCall struct {
+	s             *Service
+	spreadsheetId string
+	metadataId    int64
+	urlParams_    gensupport.URLParams
+	ifNoneMatch_  string
+	ctx_          context.Context
+	header_       http.Header
+}
+
+// Get: Returns the developer metadata with the specified ID.
+// The caller must specify the spreadsheet ID and the developer
+// metadata's
+// unique metadataId.
+func (r *SpreadsheetsDeveloperMetadataService) Get(spreadsheetId string, metadataId int64) *SpreadsheetsDeveloperMetadataGetCall {
+	c := &SpreadsheetsDeveloperMetadataGetCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.spreadsheetId = spreadsheetId
+	c.metadataId = metadataId
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
+// for more information.
+func (c *SpreadsheetsDeveloperMetadataGetCall) Fields(s ...googleapi.Field) *SpreadsheetsDeveloperMetadataGetCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets the optional parameter which makes the operation
+// fail if the object's ETag matches the given value. This is useful for
+// getting updates only after the object has changed since the last
+// request. Use googleapi.IsNotModified to check whether the response
+// error from Do is the result of In-None-Match.
+func (c *SpreadsheetsDeveloperMetadataGetCall) IfNoneMatch(entityTag string) *SpreadsheetsDeveloperMetadataGetCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method. Any
+// pending HTTP request will be aborted if the provided context is
+// canceled.
+func (c *SpreadsheetsDeveloperMetadataGetCall) Context(ctx context.Context) *SpreadsheetsDeveloperMetadataGetCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns an http.Header that can be modified by the caller to
+// add HTTP headers to the request.
+func (c *SpreadsheetsDeveloperMetadataGetCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *SpreadsheetsDeveloperMetadataGetCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := make(http.Header)
+	for k, v := range c.header_ {
+		reqHeaders[k] = v
+	}
+	reqHeaders.Set("User-Agent", c.s.userAgent())
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	var body io.Reader = nil
+	c.urlParams_.Set("alt", alt)
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v4/spreadsheets/{spreadsheetId}/developerMetadata/{metadataId}")
+	urls += "?" + c.urlParams_.Encode()
+	req, _ := http.NewRequest("GET", urls, body)
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"spreadsheetId": c.spreadsheetId,
+		"metadataId":    strconv.FormatInt(c.metadataId, 10),
+	})
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "sheets.spreadsheets.developerMetadata.get" call.
+// Exactly one of *DeveloperMetadata or error will be non-nil. Any
+// non-2xx status code is an error. Response headers are in either
+// *DeveloperMetadata.ServerResponse.Header or (if a response was
+// returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was
+// because http.StatusNotModified was returned.
+func (c *SpreadsheetsDeveloperMetadataGetCall) Do(opts ...googleapi.CallOption) (*DeveloperMetadata, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, &googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		}
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, err
+	}
+	ret := &DeveloperMetadata{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	if err := gensupport.DecodeResponse(target, res); err != nil {
+		return nil, err
+	}
+	return ret, nil
+	// {
+	//   "description": "Returns the developer metadata with the specified ID.\nThe caller must specify the spreadsheet ID and the developer metadata's\nunique metadataId.",
+	//   "flatPath": "v4/spreadsheets/{spreadsheetId}/developerMetadata/{metadataId}",
+	//   "httpMethod": "GET",
+	//   "id": "sheets.spreadsheets.developerMetadata.get",
+	//   "parameterOrder": [
+	//     "spreadsheetId",
+	//     "metadataId"
+	//   ],
+	//   "parameters": {
+	//     "metadataId": {
+	//       "description": "The ID of the developer metadata to retrieve.",
+	//       "format": "int32",
+	//       "location": "path",
+	//       "required": true,
+	//       "type": "integer"
+	//     },
+	//     "spreadsheetId": {
+	//       "description": "The ID of the spreadsheet to retrieve metadata from.",
+	//       "location": "path",
+	//       "required": true,
+	//       "type": "string"
+	//     }
+	//   },
+	//   "path": "v4/spreadsheets/{spreadsheetId}/developerMetadata/{metadataId}",
+	//   "response": {
+	//     "$ref": "DeveloperMetadata"
+	//   },
+	//   "scopes": [
+	//     "https://www.googleapis.com/auth/drive",
+	//     "https://www.googleapis.com/auth/drive.file",
+	//     "https://www.googleapis.com/auth/spreadsheets"
+	//   ]
+	// }
+
+}
+
+// method id "sheets.spreadsheets.developerMetadata.search":
+
+type SpreadsheetsDeveloperMetadataSearchCall struct {
+	s                              *Service
+	spreadsheetId                  string
+	searchdevelopermetadatarequest *SearchDeveloperMetadataRequest
+	urlParams_                     gensupport.URLParams
+	ctx_                           context.Context
+	header_                        http.Header
+}
+
+// Search: Returns all developer metadata matching the specified
+// DataFilter.
+// If the provided DataFilter represents a DeveloperMetadataLookup
+// object,
+// this will return all DeveloperMetadata entries selected by it. If
+// the
+// DataFilter represents a location in a spreadsheet, this will return
+// all
+// developer metadata associated with locations intersecting that
+// region.
+func (r *SpreadsheetsDeveloperMetadataService) Search(spreadsheetId string, searchdevelopermetadatarequest *SearchDeveloperMetadataRequest) *SpreadsheetsDeveloperMetadataSearchCall {
+	c := &SpreadsheetsDeveloperMetadataSearchCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.spreadsheetId = spreadsheetId
+	c.searchdevelopermetadatarequest = searchdevelopermetadatarequest
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
+// for more information.
+func (c *SpreadsheetsDeveloperMetadataSearchCall) Fields(s ...googleapi.Field) *SpreadsheetsDeveloperMetadataSearchCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method. Any
+// pending HTTP request will be aborted if the provided context is
+// canceled.
+func (c *SpreadsheetsDeveloperMetadataSearchCall) Context(ctx context.Context) *SpreadsheetsDeveloperMetadataSearchCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns an http.Header that can be modified by the caller to
+// add HTTP headers to the request.
+func (c *SpreadsheetsDeveloperMetadataSearchCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *SpreadsheetsDeveloperMetadataSearchCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := make(http.Header)
+	for k, v := range c.header_ {
+		reqHeaders[k] = v
+	}
+	reqHeaders.Set("User-Agent", c.s.userAgent())
+	var body io.Reader = nil
+	body, err := googleapi.WithoutDataWrapper.JSONReader(c.searchdevelopermetadatarequest)
+	if err != nil {
+		return nil, err
+	}
+	reqHeaders.Set("Content-Type", "application/json")
+	c.urlParams_.Set("alt", alt)
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v4/spreadsheets/{spreadsheetId}/developerMetadata:search")
+	urls += "?" + c.urlParams_.Encode()
+	req, _ := http.NewRequest("POST", urls, body)
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"spreadsheetId": c.spreadsheetId,
+	})
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "sheets.spreadsheets.developerMetadata.search" call.
+// Exactly one of *SearchDeveloperMetadataResponse or error will be
+// non-nil. Any non-2xx status code is an error. Response headers are in
+// either *SearchDeveloperMetadataResponse.ServerResponse.Header or (if
+// a response was returned at all) in error.(*googleapi.Error).Header.
+// Use googleapi.IsNotModified to check whether the returned error was
+// because http.StatusNotModified was returned.
+func (c *SpreadsheetsDeveloperMetadataSearchCall) Do(opts ...googleapi.CallOption) (*SearchDeveloperMetadataResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, &googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		}
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, err
+	}
+	ret := &SearchDeveloperMetadataResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	if err := gensupport.DecodeResponse(target, res); err != nil {
+		return nil, err
+	}
+	return ret, nil
+	// {
+	//   "description": "Returns all developer metadata matching the specified DataFilter.\nIf the provided DataFilter represents a DeveloperMetadataLookup object,\nthis will return all DeveloperMetadata entries selected by it. If the\nDataFilter represents a location in a spreadsheet, this will return all\ndeveloper metadata associated with locations intersecting that region.",
+	//   "flatPath": "v4/spreadsheets/{spreadsheetId}/developerMetadata:search",
+	//   "httpMethod": "POST",
+	//   "id": "sheets.spreadsheets.developerMetadata.search",
+	//   "parameterOrder": [
+	//     "spreadsheetId"
+	//   ],
+	//   "parameters": {
+	//     "spreadsheetId": {
+	//       "description": "The ID of the spreadsheet to retrieve metadata from.",
+	//       "location": "path",
+	//       "required": true,
+	//       "type": "string"
+	//     }
+	//   },
+	//   "path": "v4/spreadsheets/{spreadsheetId}/developerMetadata:search",
+	//   "request": {
+	//     "$ref": "SearchDeveloperMetadataRequest"
+	//   },
+	//   "response": {
+	//     "$ref": "SearchDeveloperMetadataResponse"
+	//   },
+	//   "scopes": [
+	//     "https://www.googleapis.com/auth/drive",
+	//     "https://www.googleapis.com/auth/drive.file",
+	//     "https://www.googleapis.com/auth/spreadsheets"
 	//   ]
 	// }
 
@@ -7643,7 +9997,7 @@ func (c *SpreadsheetsSheetsCopyToCall) Do(opts ...googleapi.CallOption) (*SheetP
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -7874,7 +10228,7 @@ func (c *SpreadsheetsValuesAppendCall) Do(opts ...googleapi.CallOption) (*Append
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -8066,7 +10420,7 @@ func (c *SpreadsheetsValuesBatchClearCall) Do(opts ...googleapi.CallOption) (*Ba
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -8092,6 +10446,150 @@ func (c *SpreadsheetsValuesBatchClearCall) Do(opts ...googleapi.CallOption) (*Ba
 	//   },
 	//   "response": {
 	//     "$ref": "BatchClearValuesResponse"
+	//   },
+	//   "scopes": [
+	//     "https://www.googleapis.com/auth/drive",
+	//     "https://www.googleapis.com/auth/drive.file",
+	//     "https://www.googleapis.com/auth/spreadsheets"
+	//   ]
+	// }
+
+}
+
+// method id "sheets.spreadsheets.values.batchClearByDataFilter":
+
+type SpreadsheetsValuesBatchClearByDataFilterCall struct {
+	s                                   *Service
+	spreadsheetId                       string
+	batchclearvaluesbydatafilterrequest *BatchClearValuesByDataFilterRequest
+	urlParams_                          gensupport.URLParams
+	ctx_                                context.Context
+	header_                             http.Header
+}
+
+// BatchClearByDataFilter: Clears one or more ranges of values from a
+// spreadsheet.
+// The caller must specify the spreadsheet ID and one or
+// more
+// DataFilters. Ranges matching any of the specified data
+// filters will be cleared.  Only values are cleared -- all other
+// properties
+// of the cell (such as formatting, data validation, etc..) are kept.
+func (r *SpreadsheetsValuesService) BatchClearByDataFilter(spreadsheetId string, batchclearvaluesbydatafilterrequest *BatchClearValuesByDataFilterRequest) *SpreadsheetsValuesBatchClearByDataFilterCall {
+	c := &SpreadsheetsValuesBatchClearByDataFilterCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.spreadsheetId = spreadsheetId
+	c.batchclearvaluesbydatafilterrequest = batchclearvaluesbydatafilterrequest
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
+// for more information.
+func (c *SpreadsheetsValuesBatchClearByDataFilterCall) Fields(s ...googleapi.Field) *SpreadsheetsValuesBatchClearByDataFilterCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method. Any
+// pending HTTP request will be aborted if the provided context is
+// canceled.
+func (c *SpreadsheetsValuesBatchClearByDataFilterCall) Context(ctx context.Context) *SpreadsheetsValuesBatchClearByDataFilterCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns an http.Header that can be modified by the caller to
+// add HTTP headers to the request.
+func (c *SpreadsheetsValuesBatchClearByDataFilterCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *SpreadsheetsValuesBatchClearByDataFilterCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := make(http.Header)
+	for k, v := range c.header_ {
+		reqHeaders[k] = v
+	}
+	reqHeaders.Set("User-Agent", c.s.userAgent())
+	var body io.Reader = nil
+	body, err := googleapi.WithoutDataWrapper.JSONReader(c.batchclearvaluesbydatafilterrequest)
+	if err != nil {
+		return nil, err
+	}
+	reqHeaders.Set("Content-Type", "application/json")
+	c.urlParams_.Set("alt", alt)
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v4/spreadsheets/{spreadsheetId}/values:batchClearByDataFilter")
+	urls += "?" + c.urlParams_.Encode()
+	req, _ := http.NewRequest("POST", urls, body)
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"spreadsheetId": c.spreadsheetId,
+	})
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "sheets.spreadsheets.values.batchClearByDataFilter" call.
+// Exactly one of *BatchClearValuesByDataFilterResponse or error will be
+// non-nil. Any non-2xx status code is an error. Response headers are in
+// either *BatchClearValuesByDataFilterResponse.ServerResponse.Header or
+// (if a response was returned at all) in
+// error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
+// whether the returned error was because http.StatusNotModified was
+// returned.
+func (c *SpreadsheetsValuesBatchClearByDataFilterCall) Do(opts ...googleapi.CallOption) (*BatchClearValuesByDataFilterResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, &googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		}
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, err
+	}
+	ret := &BatchClearValuesByDataFilterResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	if err := gensupport.DecodeResponse(target, res); err != nil {
+		return nil, err
+	}
+	return ret, nil
+	// {
+	//   "description": "Clears one or more ranges of values from a spreadsheet.\nThe caller must specify the spreadsheet ID and one or more\nDataFilters. Ranges matching any of the specified data\nfilters will be cleared.  Only values are cleared -- all other properties\nof the cell (such as formatting, data validation, etc..) are kept.",
+	//   "flatPath": "v4/spreadsheets/{spreadsheetId}/values:batchClearByDataFilter",
+	//   "httpMethod": "POST",
+	//   "id": "sheets.spreadsheets.values.batchClearByDataFilter",
+	//   "parameterOrder": [
+	//     "spreadsheetId"
+	//   ],
+	//   "parameters": {
+	//     "spreadsheetId": {
+	//       "description": "The ID of the spreadsheet to update.",
+	//       "location": "path",
+	//       "required": true,
+	//       "type": "string"
+	//     }
+	//   },
+	//   "path": "v4/spreadsheets/{spreadsheetId}/values:batchClearByDataFilter",
+	//   "request": {
+	//     "$ref": "BatchClearValuesByDataFilterRequest"
+	//   },
+	//   "response": {
+	//     "$ref": "BatchClearValuesByDataFilterResponse"
 	//   },
 	//   "scopes": [
 	//     "https://www.googleapis.com/auth/drive",
@@ -8267,7 +10765,7 @@ func (c *SpreadsheetsValuesBatchGetCall) Do(opts ...googleapi.CallOption) (*Batc
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -8332,6 +10830,148 @@ func (c *SpreadsheetsValuesBatchGetCall) Do(opts ...googleapi.CallOption) (*Batc
 	//     "https://www.googleapis.com/auth/drive.readonly",
 	//     "https://www.googleapis.com/auth/spreadsheets",
 	//     "https://www.googleapis.com/auth/spreadsheets.readonly"
+	//   ]
+	// }
+
+}
+
+// method id "sheets.spreadsheets.values.batchGetByDataFilter":
+
+type SpreadsheetsValuesBatchGetByDataFilterCall struct {
+	s                                 *Service
+	spreadsheetId                     string
+	batchgetvaluesbydatafilterrequest *BatchGetValuesByDataFilterRequest
+	urlParams_                        gensupport.URLParams
+	ctx_                              context.Context
+	header_                           http.Header
+}
+
+// BatchGetByDataFilter: Returns one or more ranges of values that match
+// the specified data filters.
+// The caller must specify the spreadsheet ID and one or
+// more
+// DataFilters.  Ranges that match any of the data filters in
+// the request will be returned.
+func (r *SpreadsheetsValuesService) BatchGetByDataFilter(spreadsheetId string, batchgetvaluesbydatafilterrequest *BatchGetValuesByDataFilterRequest) *SpreadsheetsValuesBatchGetByDataFilterCall {
+	c := &SpreadsheetsValuesBatchGetByDataFilterCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.spreadsheetId = spreadsheetId
+	c.batchgetvaluesbydatafilterrequest = batchgetvaluesbydatafilterrequest
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
+// for more information.
+func (c *SpreadsheetsValuesBatchGetByDataFilterCall) Fields(s ...googleapi.Field) *SpreadsheetsValuesBatchGetByDataFilterCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method. Any
+// pending HTTP request will be aborted if the provided context is
+// canceled.
+func (c *SpreadsheetsValuesBatchGetByDataFilterCall) Context(ctx context.Context) *SpreadsheetsValuesBatchGetByDataFilterCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns an http.Header that can be modified by the caller to
+// add HTTP headers to the request.
+func (c *SpreadsheetsValuesBatchGetByDataFilterCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *SpreadsheetsValuesBatchGetByDataFilterCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := make(http.Header)
+	for k, v := range c.header_ {
+		reqHeaders[k] = v
+	}
+	reqHeaders.Set("User-Agent", c.s.userAgent())
+	var body io.Reader = nil
+	body, err := googleapi.WithoutDataWrapper.JSONReader(c.batchgetvaluesbydatafilterrequest)
+	if err != nil {
+		return nil, err
+	}
+	reqHeaders.Set("Content-Type", "application/json")
+	c.urlParams_.Set("alt", alt)
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v4/spreadsheets/{spreadsheetId}/values:batchGetByDataFilter")
+	urls += "?" + c.urlParams_.Encode()
+	req, _ := http.NewRequest("POST", urls, body)
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"spreadsheetId": c.spreadsheetId,
+	})
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "sheets.spreadsheets.values.batchGetByDataFilter" call.
+// Exactly one of *BatchGetValuesByDataFilterResponse or error will be
+// non-nil. Any non-2xx status code is an error. Response headers are in
+// either *BatchGetValuesByDataFilterResponse.ServerResponse.Header or
+// (if a response was returned at all) in
+// error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
+// whether the returned error was because http.StatusNotModified was
+// returned.
+func (c *SpreadsheetsValuesBatchGetByDataFilterCall) Do(opts ...googleapi.CallOption) (*BatchGetValuesByDataFilterResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, &googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		}
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, err
+	}
+	ret := &BatchGetValuesByDataFilterResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	if err := gensupport.DecodeResponse(target, res); err != nil {
+		return nil, err
+	}
+	return ret, nil
+	// {
+	//   "description": "Returns one or more ranges of values that match the specified data filters.\nThe caller must specify the spreadsheet ID and one or more\nDataFilters.  Ranges that match any of the data filters in\nthe request will be returned.",
+	//   "flatPath": "v4/spreadsheets/{spreadsheetId}/values:batchGetByDataFilter",
+	//   "httpMethod": "POST",
+	//   "id": "sheets.spreadsheets.values.batchGetByDataFilter",
+	//   "parameterOrder": [
+	//     "spreadsheetId"
+	//   ],
+	//   "parameters": {
+	//     "spreadsheetId": {
+	//       "description": "The ID of the spreadsheet to retrieve data from.",
+	//       "location": "path",
+	//       "required": true,
+	//       "type": "string"
+	//     }
+	//   },
+	//   "path": "v4/spreadsheets/{spreadsheetId}/values:batchGetByDataFilter",
+	//   "request": {
+	//     "$ref": "BatchGetValuesByDataFilterRequest"
+	//   },
+	//   "response": {
+	//     "$ref": "BatchGetValuesByDataFilterResponse"
+	//   },
+	//   "scopes": [
+	//     "https://www.googleapis.com/auth/drive",
+	//     "https://www.googleapis.com/auth/drive.file",
+	//     "https://www.googleapis.com/auth/spreadsheets"
 	//   ]
 	// }
 
@@ -8440,7 +11080,7 @@ func (c *SpreadsheetsValuesBatchUpdateCall) Do(opts ...googleapi.CallOption) (*B
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -8466,6 +11106,147 @@ func (c *SpreadsheetsValuesBatchUpdateCall) Do(opts ...googleapi.CallOption) (*B
 	//   },
 	//   "response": {
 	//     "$ref": "BatchUpdateValuesResponse"
+	//   },
+	//   "scopes": [
+	//     "https://www.googleapis.com/auth/drive",
+	//     "https://www.googleapis.com/auth/drive.file",
+	//     "https://www.googleapis.com/auth/spreadsheets"
+	//   ]
+	// }
+
+}
+
+// method id "sheets.spreadsheets.values.batchUpdateByDataFilter":
+
+type SpreadsheetsValuesBatchUpdateByDataFilterCall struct {
+	s                                    *Service
+	spreadsheetId                        string
+	batchupdatevaluesbydatafilterrequest *BatchUpdateValuesByDataFilterRequest
+	urlParams_                           gensupport.URLParams
+	ctx_                                 context.Context
+	header_                              http.Header
+}
+
+// BatchUpdateByDataFilter: Sets values in one or more ranges of a
+// spreadsheet.
+// The caller must specify the spreadsheet ID,
+// a valueInputOption, and one or more
+// DataFilterValueRanges.
+func (r *SpreadsheetsValuesService) BatchUpdateByDataFilter(spreadsheetId string, batchupdatevaluesbydatafilterrequest *BatchUpdateValuesByDataFilterRequest) *SpreadsheetsValuesBatchUpdateByDataFilterCall {
+	c := &SpreadsheetsValuesBatchUpdateByDataFilterCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.spreadsheetId = spreadsheetId
+	c.batchupdatevaluesbydatafilterrequest = batchupdatevaluesbydatafilterrequest
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
+// for more information.
+func (c *SpreadsheetsValuesBatchUpdateByDataFilterCall) Fields(s ...googleapi.Field) *SpreadsheetsValuesBatchUpdateByDataFilterCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method. Any
+// pending HTTP request will be aborted if the provided context is
+// canceled.
+func (c *SpreadsheetsValuesBatchUpdateByDataFilterCall) Context(ctx context.Context) *SpreadsheetsValuesBatchUpdateByDataFilterCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns an http.Header that can be modified by the caller to
+// add HTTP headers to the request.
+func (c *SpreadsheetsValuesBatchUpdateByDataFilterCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *SpreadsheetsValuesBatchUpdateByDataFilterCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := make(http.Header)
+	for k, v := range c.header_ {
+		reqHeaders[k] = v
+	}
+	reqHeaders.Set("User-Agent", c.s.userAgent())
+	var body io.Reader = nil
+	body, err := googleapi.WithoutDataWrapper.JSONReader(c.batchupdatevaluesbydatafilterrequest)
+	if err != nil {
+		return nil, err
+	}
+	reqHeaders.Set("Content-Type", "application/json")
+	c.urlParams_.Set("alt", alt)
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v4/spreadsheets/{spreadsheetId}/values:batchUpdateByDataFilter")
+	urls += "?" + c.urlParams_.Encode()
+	req, _ := http.NewRequest("POST", urls, body)
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"spreadsheetId": c.spreadsheetId,
+	})
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "sheets.spreadsheets.values.batchUpdateByDataFilter" call.
+// Exactly one of *BatchUpdateValuesByDataFilterResponse or error will
+// be non-nil. Any non-2xx status code is an error. Response headers are
+// in either
+// *BatchUpdateValuesByDataFilterResponse.ServerResponse.Header or (if a
+// response was returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was
+// because http.StatusNotModified was returned.
+func (c *SpreadsheetsValuesBatchUpdateByDataFilterCall) Do(opts ...googleapi.CallOption) (*BatchUpdateValuesByDataFilterResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, &googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		}
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, err
+	}
+	ret := &BatchUpdateValuesByDataFilterResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	if err := gensupport.DecodeResponse(target, res); err != nil {
+		return nil, err
+	}
+	return ret, nil
+	// {
+	//   "description": "Sets values in one or more ranges of a spreadsheet.\nThe caller must specify the spreadsheet ID,\na valueInputOption, and one or more\nDataFilterValueRanges.",
+	//   "flatPath": "v4/spreadsheets/{spreadsheetId}/values:batchUpdateByDataFilter",
+	//   "httpMethod": "POST",
+	//   "id": "sheets.spreadsheets.values.batchUpdateByDataFilter",
+	//   "parameterOrder": [
+	//     "spreadsheetId"
+	//   ],
+	//   "parameters": {
+	//     "spreadsheetId": {
+	//       "description": "The ID of the spreadsheet to update.",
+	//       "location": "path",
+	//       "required": true,
+	//       "type": "string"
+	//     }
+	//   },
+	//   "path": "v4/spreadsheets/{spreadsheetId}/values:batchUpdateByDataFilter",
+	//   "request": {
+	//     "$ref": "BatchUpdateValuesByDataFilterRequest"
+	//   },
+	//   "response": {
+	//     "$ref": "BatchUpdateValuesByDataFilterResponse"
 	//   },
 	//   "scopes": [
 	//     "https://www.googleapis.com/auth/drive",
@@ -8583,7 +11364,7 @@ func (c *SpreadsheetsValuesClearCall) Do(opts ...googleapi.CallOption) (*ClearVa
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -8786,7 +11567,7 @@ func (c *SpreadsheetsValuesGetCall) Do(opts ...googleapi.CallOption) (*ValueRang
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -9020,7 +11801,7 @@ func (c *SpreadsheetsValuesUpdateCall) Do(opts ...googleapi.CallOption) (*Update
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil

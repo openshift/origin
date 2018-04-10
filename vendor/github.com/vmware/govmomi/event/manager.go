@@ -155,22 +155,32 @@ func (m Manager) EventCategory(ctx context.Context, event types.BaseEvent) (stri
 		return "", err
 	}
 
+	switch e := event.(type) {
+	case *types.EventEx:
+		if e.Severity == "" {
+			return "info", nil
+		}
+		return e.Severity, nil
+	}
+
 	class := reflect.TypeOf(event).Elem().Name()
 
 	return eventCategory[class], nil
 }
 
 // Get the events from the specified object(s) and optionanlly tail the event stream
-func (m Manager) Events(ctx context.Context, objects []types.ManagedObjectReference, pageSize int32, tail bool, force bool, f func(types.ManagedObjectReference, []types.BaseEvent) error) error {
-
+func (m Manager) Events(ctx context.Context, objects []types.ManagedObjectReference, pageSize int32, tail bool, force bool, f func(types.ManagedObjectReference, []types.BaseEvent) error, kind ...string) error {
+	// TODO: deprecated this method and add one that uses a single config struct, so we can extend further without breaking the method signature.
 	if len(objects) >= m.maxObjects && !force {
 		return fmt.Errorf("Maximum number of objects to monitor (%d) exceeded, refine search", m.maxObjects)
 	}
 
-	proc := newEventProcessor(m, pageSize, f)
+	proc := newEventProcessor(m, pageSize, f, kind)
 	for _, o := range objects {
 		proc.addObject(ctx, o)
 	}
+
+	defer proc.destroy()
 
 	return proc.run(ctx, tail)
 }

@@ -18,7 +18,7 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	restclient "k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/kubectl"
 	kcmd "k8s.io/kubernetes/pkg/kubectl/cmd"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -129,7 +129,7 @@ func NewCmdDebug(fullName string, f *clientcmd.Factory, in io.Reader, out, errou
 	}
 
 	cmd := &cobra.Command{
-		Use:     "debug RESOURCE/NAME [ENV1=VAL1 ...] [-c CONTAINER] [options] [-- COMMAND]",
+		Use:     "debug RESOURCE/NAME [ENV1=VAL1 ...] [-c CONTAINER] [flags] [-- COMMAND]",
 		Short:   "Launch a new instance of a pod for debugging",
 		Long:    debugLong,
 		Example: fmt.Sprintf(debugExample, fmt.Sprintf("%s debug", fullName)),
@@ -221,7 +221,6 @@ func (o *DebugOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, args [
 		return err
 	}
 
-	mapper, _ := f.Object()
 	b := f.NewBuilder().
 		Internal().
 		NamespaceParam(cmdNamespace).DefaultNamespace().
@@ -285,7 +284,7 @@ func (o *DebugOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, args [
 	output := kcmdutil.GetFlagString(cmd, "output")
 	if len(output) != 0 {
 		o.Print = func(pod *kapi.Pod, out io.Writer) error {
-			return f.PrintObject(cmd, false, mapper, pod, out)
+			return kcmdutil.PrintObject(cmd, pod, out)
 		}
 	}
 
@@ -378,7 +377,7 @@ func (o *DebugOptions) Debug() error {
 		}
 		fmt.Fprintf(o.Attach.Err, "Waiting for pod to start ...\n")
 
-		switch containerRunningEvent, err := watch.Until(o.Timeout, w, kclient.PodContainerRunning(o.Attach.ContainerName)); {
+		switch containerRunningEvent, err := watch.Until(o.Timeout, w, kubectl.PodContainerRunning(o.Attach.ContainerName)); {
 		// api didn't error right away but the pod wasn't even created
 		case kapierrors.IsNotFound(err):
 			msg := fmt.Sprintf("unable to create the debug pod %q", pod.Name)
@@ -387,7 +386,7 @@ func (o *DebugOptions) Debug() error {
 			}
 			return fmt.Errorf(msg)
 			// switch to logging output
-		case err == kclient.ErrPodCompleted, err == kclient.ErrContainerTerminated, !o.Attach.Stdin:
+		case err == kubectl.ErrPodCompleted, err == kubectl.ErrContainerTerminated, !o.Attach.Stdin:
 			return kcmd.LogsOptions{
 				Object: pod,
 				Options: &kapi.PodLogOptions{

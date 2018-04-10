@@ -45,6 +45,14 @@ var ExpectedListInfo = []objects.Object{
 	},
 }
 
+// ExpectedListSubdir is the result expected from a call to `List` when full
+// info is requested.
+var ExpectedListSubdir = []objects.Object{
+	{
+		Subdir: "directory/",
+	},
+}
+
 // ExpectedListNames is the result expected from a call to `List` when just
 // object names are requested.
 var ExpectedListNames = []string{"hello", "goodbye"}
@@ -79,6 +87,32 @@ func HandleListObjectsInfoSuccessfully(t *testing.T) {
       }
     ]`)
 		case "hello":
+			fmt.Fprintf(w, `[]`)
+		default:
+			t.Fatalf("Unexpected marker: [%s]", marker)
+		}
+	})
+}
+
+// HandleListSubdirSuccessfully creates an HTTP handler at `/testContainer` on the test handler mux that
+// responds with a `List` response when full info is requested.
+func HandleListSubdirSuccessfully(t *testing.T) {
+	th.Mux.HandleFunc("/testContainer", func(w http.ResponseWriter, r *http.Request) {
+		th.TestMethod(t, r, "GET")
+		th.TestHeader(t, r, "X-Auth-Token", fake.TokenID)
+		th.TestHeader(t, r, "Accept", "application/json")
+
+		w.Header().Set("Content-Type", "application/json")
+		r.ParseForm()
+		marker := r.Form.Get("marker")
+		switch marker {
+		case "":
+			fmt.Fprintf(w, `[
+      {
+        "subdir": "directory/"
+      }
+    ]`)
+		case "directory/":
 			fmt.Fprintf(w, `[]`)
 		default:
 			t.Fatalf("Unexpected marker: [%s]", marker)

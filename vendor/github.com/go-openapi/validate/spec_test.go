@@ -16,8 +16,8 @@ package validate
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
+	"log"
 	"path/filepath"
 	"testing"
 
@@ -31,6 +31,32 @@ import (
 
 func init() {
 	loads.AddLoader(fmts.YAMLMatcher, fmts.YAMLDoc)
+}
+
+func TestExpandResponseLocalFile(t *testing.T) {
+	fp := filepath.Join("fixtures", "local_expansion", "spec.yaml")
+	doc, err := loads.Spec(fp)
+	if assert.NoError(t, err) {
+		if assert.NotNil(t, doc) {
+			validator := NewSpecValidator(doc.Schema(), strfmt.Default)
+			res, _ := validator.Validate(doc)
+			assert.True(t, res.IsValid())
+			assert.Empty(t, res.Errors)
+		}
+	}
+}
+
+func TestExpandResponseRecursive(t *testing.T) {
+	fp := filepath.Join("fixtures", "recursive_expansion", "spec.yaml")
+	doc, err := loads.Spec(fp)
+	if assert.NoError(t, err) {
+		if assert.NotNil(t, doc) {
+			validator := NewSpecValidator(doc.Schema(), strfmt.Default)
+			res, _ := validator.Validate(doc)
+			assert.True(t, res.IsValid())
+			assert.Empty(t, res.Errors)
+		}
+	}
 }
 
 func TestIssue52(t *testing.T) {
@@ -82,6 +108,7 @@ func TestIssue53(t *testing.T) {
 }
 
 func TestIssue62(t *testing.T) {
+	t.SkipNow()
 	fp := filepath.Join("fixtures", "bugs", "62", "swagger.json")
 
 	// as swagger spec
@@ -141,14 +168,57 @@ func TestIssue123(t *testing.T) {
 		validator := NewSpecValidator(doc.Schema(), strfmt.Default)
 		res, _ := validator.Validate(doc)
 		for _, e := range res.Errors {
-			fmt.Println(e)
+			log.Println(e)
 		}
 		assert.True(t, res.IsValid())
 	}
 }
 
-func init() {
-	loads.AddLoader(fmts.YAMLMatcher, fmts.YAMLDoc)
+func TestIssue6(t *testing.T) {
+	files, _ := filepath.Glob(filepath.Join("fixtures", "bugs", "6", "*.json"))
+	for _, path := range files {
+		doc, err := loads.Spec(path)
+		if assert.NoError(t, err) {
+			validator := NewSpecValidator(doc.Schema(), strfmt.Default)
+			res, _ := validator.Validate(doc)
+			for _, e := range res.Errors {
+				log.Println(e)
+			}
+			assert.False(t, res.IsValid())
+		}
+	}
+}
+
+// check if invalid patterns are indeed invalidated
+func TestIssue18(t *testing.T) {
+	files, _ := filepath.Glob(filepath.Join("fixtures", "bugs", "18", "*.json"))
+	for _, path := range files {
+		doc, err := loads.Spec(path)
+		if assert.NoError(t, err) {
+			validator := NewSpecValidator(doc.Schema(), strfmt.Default)
+			res, _ := validator.Validate(doc)
+			for _, e := range res.Errors {
+				log.Println(e)
+			}
+			assert.False(t, res.IsValid())
+		}
+	}
+}
+
+// check if a fragment path parameter is recognized
+func TestIssue39(t *testing.T) {
+	fp := filepath.Join("fixtures", "bugs", "39", "swagger.yml")
+
+	// as swagger spec
+	doc, err := loads.Spec(fp)
+	if assert.NoError(t, err) {
+		validator := NewSpecValidator(doc.Schema(), strfmt.Default)
+		res, _ := validator.Validate(doc)
+		for _, e := range res.Errors {
+			log.Println(e)
+		}
+		assert.True(t, res.IsValid())
+	}
 }
 
 func TestValidateDuplicatePropertyNames(t *testing.T) {

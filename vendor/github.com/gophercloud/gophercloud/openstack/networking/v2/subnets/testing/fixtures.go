@@ -263,6 +263,36 @@ const SubnetCreateWithDefaultGatewayResponse = `
     }
 }
 `
+const SubnetCreateWithIPv6RaAddressModeRequest = `
+{
+    "subnet": {
+        "network_id": "d32019d3-bc6e-4319-9c1d-6722fc136a22",
+        "ip_version": 6,
+        "gateway_ip": "2001:db8:0:a::1",
+        "cidr": "2001:db8:0:a:0:0:0:0/64",
+        "ipv6_address_mode": "slaac",
+        "ipv6_ra_mode": "slaac"
+    }
+}
+`
+const SubnetCreateWithIPv6RaAddressModeResponse = `
+{
+    "subnet": {
+        "name": "",
+        "enable_dhcp": true,
+        "network_id": "d32019d3-bc6e-4319-9c1d-6722fc136a22",
+        "tenant_id": "4fd44f30292945e481c7b8a0c8908869",
+        "dns_nameservers": [],
+        "host_routes": [],
+        "ip_version": 6,
+        "gateway_ip": "2001:db8:0:a::1",
+        "cidr": "2001:db8:0:a:0:0:0:0/64",
+        "id": "3b80198d-4f7b-4f77-9ef5-774d54e17126",
+        "ipv6_address_mode": "slaac",
+        "ipv6_ra_mode": "slaac"
+    }
+}
+`
 
 const SubnetUpdateRequest = `
 {

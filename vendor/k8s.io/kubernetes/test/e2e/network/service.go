@@ -25,6 +25,8 @@ import (
 	"strings"
 	"time"
 
+	compute "google.golang.org/api/compute/v1"
+
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -59,7 +61,7 @@ var _ = SIGDescribe("Services", func() {
 		}
 		for _, lb := range serviceLBNames {
 			framework.Logf("cleaning gce resource for %s", lb)
-			framework.CleanupServiceGCEResources(cs, lb, framework.TestContext.CloudConfig.Zone)
+			framework.CleanupServiceGCEResources(cs, lb, framework.TestContext.CloudConfig.Region, framework.TestContext.CloudConfig.Zone)
 		}
 		//reset serviceLBNames
 		serviceLBNames = []string{}
@@ -426,7 +428,7 @@ var _ = SIGDescribe("Services", func() {
 
 		// Restart apiserver
 		By("Restarting apiserver")
-		if err := framework.RestartApiserver(cs.Discovery()); err != nil {
+		if err := framework.RestartApiserver(cs); err != nil {
 			framework.Failf("error restarting apiserver: %v", err)
 		}
 		By("Waiting for apiserver to come up by polling /healthz")
@@ -572,16 +574,23 @@ var _ = SIGDescribe("Services", func() {
 		if framework.ProviderIs("gce", "gke") {
 			By("creating a static load balancer IP")
 			staticIPName = fmt.Sprintf("e2e-external-lb-test-%s", framework.RunId)
-			requestedIP, err = framework.CreateGCEStaticIP(staticIPName)
+			gceCloud, err := framework.GetGCECloud()
+			Expect(err).NotTo(HaveOccurred())
+
+			err = gceCloud.ReserveRegionAddress(&compute.Address{Name: staticIPName}, gceCloud.Region())
 			defer func() {
 				if staticIPName != "" {
 					// Release GCE static IP - this is not kube-managed and will not be automatically released.
-					if err := framework.DeleteGCEStaticIP(staticIPName); err != nil {
+					if err := gceCloud.DeleteRegionAddress(staticIPName, gceCloud.Region()); err != nil {
 						framework.Logf("failed to release static IP %s: %v", staticIPName, err)
 					}
 				}
 			}()
 			Expect(err).NotTo(HaveOccurred())
+			reservedAddr, err := gceCloud.GetRegionAddress(staticIPName, gceCloud.Region())
+			Expect(err).NotTo(HaveOccurred())
+
+			requestedIP = reservedAddr.Address
 			framework.Logf("Allocated static load balancer IP: %s", requestedIP)
 		}
 
@@ -622,9 +631,11 @@ var _ = SIGDescribe("Services", func() {
 			// coming from, so this is first-aid rather than surgery).
 			By("demoting the static IP to ephemeral")
 			if staticIPName != "" {
+				gceCloud, err := framework.GetGCECloud()
+				Expect(err).NotTo(HaveOccurred())
 				// Deleting it after it is attached "demotes" it to an
 				// ephemeral IP, which can be auto-released.
-				if err := framework.DeleteGCEStaticIP(staticIPName); err != nil {
+				if err := gceCloud.DeleteRegionAddress(staticIPName, gceCloud.Region()); err != nil {
 					framework.Failf("failed to release static IP %s: %v", staticIPName, err)
 				}
 				staticIPName = ""
@@ -815,7 +826,7 @@ var _ = SIGDescribe("Services", func() {
 		tcpService := jig.CreateTCPServiceOrFail(ns, nil)
 		defer func() {
 			framework.Logf("Cleaning up the updating NodePorts test service")
-			err := cs.Core().Services(ns).Delete(serviceName, nil)
+			err := cs.CoreV1().Services(ns).Delete(serviceName, nil)
 			Expect(err).NotTo(HaveOccurred())
 		}()
 		jig.SanityCheckService(tcpService, v1.ServiceTypeClusterIP)
@@ -1265,7 +1276,7 @@ var _ = SIGDescribe("Services", func() {
 		}
 
 		By("Scaling down replication controller to zero")
-		framework.ScaleRC(f.ClientSet, f.InternalClientset, t.Namespace, rcSpec.Name, 0, false)
+		framework.ScaleRC(f.ClientSet, f.InternalClientset, f.ScalesGetter, t.Namespace, rcSpec.Name, 0, false)
 
 		By("Update service to not tolerate unready services")
 		_, err = framework.UpdateService(f.ClientSet, t.Namespace, t.ServiceName, func(s *v1.Service) {
@@ -1435,8 +1446,36 @@ var _ = SIGDescribe("Services", func() {
 		svc = jig.WaitForLoadBalancerOrFail(namespace, serviceName, createTimeout)
 		jig.SanityCheckService(svc, v1.ServiceTypeLoadBalancer)
 		lbIngress := &svc.Status.LoadBalancer.Ingress[0]
+		svcPort := int(svc.Spec.Ports[0].Port)
 		// should have an internal IP.
 		Expect(isInternalEndpoint(lbIngress)).To(BeTrue())
+
+		// ILBs are not accessible from the test orchestrator, so it's necessary to use
+		//  a pod to test the service.
+		By("hitting the internal load balancer from pod")
+		framework.Logf("creating pod with host network")
+		hostExec := framework.LaunchHostExecPod(f.ClientSet, f.Namespace.Name, "ilb-host-exec")
+
+		framework.Logf("Waiting up to %v for service %q's internal LB to respond to requests", createTimeout, serviceName)
+		tcpIngressIP := framework.GetIngressPoint(lbIngress)
+		if pollErr := wait.PollImmediate(pollInterval, createTimeout, func() (bool, error) {
+			cmd := fmt.Sprintf(`curl -m 5 'http://%v:%v/echo?msg=hello'`, tcpIngressIP, svcPort)
+			stdout, err := framework.RunHostCmd(hostExec.Namespace, hostExec.Name, cmd)
+			if err != nil {
+				framework.Logf("error curling; stdout: %v. err: %v", stdout, err)
+				return false, nil
+			}
+
+			if !strings.Contains(stdout, "hello") {
+				framework.Logf("Expected output to contain 'hello', got %q; retrying...", stdout)
+				return false, nil
+			}
+
+			framework.Logf("Successful curl; stdout: %v", stdout)
+			return true, nil
+		}); pollErr != nil {
+			framework.Failf("Failed to hit ILB IP, err: %v", pollErr)
+		}
 
 		By("switching to external type LoadBalancer")
 		svc = jig.UpdateServiceOrFail(namespace, serviceName, func(svc *v1.Service) {
@@ -1456,6 +1495,11 @@ var _ = SIGDescribe("Services", func() {
 		// should have an external IP.
 		jig.SanityCheckService(svc, v1.ServiceTypeLoadBalancer)
 		Expect(isInternalEndpoint(lbIngress)).To(BeFalse())
+
+		By("hitting the external load balancer")
+		framework.Logf("Waiting up to %v for service %q's external LB to respond to requests", createTimeout, serviceName)
+		tcpIngressIP = framework.GetIngressPoint(lbIngress)
+		jig.TestReachableHTTP(tcpIngressIP, svcPort, framework.LoadBalancerLagTimeoutDefault)
 
 		// GCE cannot test a specific IP because the test may not own it. This cloud specific condition
 		// will be removed when GCP supports similar functionality.
@@ -1511,7 +1555,7 @@ var _ = SIGDescribe("ESIPP [Slow] [DisabledForLargeClusters]", func() {
 		}
 		for _, lb := range serviceLBNames {
 			framework.Logf("cleaning gce resource for %s", lb)
-			framework.CleanupServiceGCEResources(cs, lb, framework.TestContext.CloudConfig.Zone)
+			framework.CleanupServiceGCEResources(cs, lb, framework.TestContext.CloudConfig.Region, framework.TestContext.CloudConfig.Zone)
 		}
 		//reset serviceLBNames
 		serviceLBNames = []string{}

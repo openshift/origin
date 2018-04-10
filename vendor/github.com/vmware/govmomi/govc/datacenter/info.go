@@ -93,7 +93,7 @@ func (cmd *info) Run(ctx context.Context, f *flag.FlagSet) error {
 		ctx:    ctx,
 	}
 
-	if !cmd.OutputFlag.JSON {
+	if !cmd.OutputFlag.All() {
 		props = []string{
 			"name",
 			"vmFolder",

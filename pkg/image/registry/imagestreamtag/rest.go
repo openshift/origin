@@ -38,7 +38,7 @@ func NewREST(imageRegistry image.Registry, imageStreamRegistry imagestream.Regis
 var _ rest.Getter = &REST{}
 var _ rest.Lister = &REST{}
 var _ rest.CreaterUpdater = &REST{}
-var _ rest.Deleter = &REST{}
+var _ rest.GracefulDeleter = &REST{}
 var _ rest.ShortNamesProvider = &REST{}
 
 // ShortNames implements the ShortNamesProvider interface. Returns a list of short names for a resource.
@@ -301,15 +301,15 @@ func (r *REST) Update(ctx apirequest.Context, tagName string, objInfo rest.Updat
 // Delete removes a tag from a stream. `id` is of the format <stream name>:<tag>.
 // The associated image that the tag points to is *not* deleted.
 // The tag history remains intact and is not deleted.
-func (r *REST) Delete(ctx apirequest.Context, id string) (runtime.Object, error) {
+func (r *REST) Delete(ctx apirequest.Context, id string, options *metav1.DeleteOptions) (runtime.Object, bool, error) {
 	name, tag, err := nameAndTag(id)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	stream, err := r.imageStreamRegistry.GetImageStream(ctx, name, &metav1.GetOptions{})
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	notFound := true
@@ -327,14 +327,14 @@ func (r *REST) Delete(ctx apirequest.Context, id string) (runtime.Object, error)
 	}
 
 	if notFound {
-		return nil, kapierrors.NewNotFound(imageapi.Resource("imagestreamtags"), tag)
+		return nil, false, kapierrors.NewNotFound(imageapi.Resource("imagestreamtags"), tag)
 	}
 
 	if _, err = r.imageStreamRegistry.UpdateImageStream(ctx, stream); err != nil {
-		return nil, fmt.Errorf("cannot remove tag from image stream: %v", err)
+		return nil, false, fmt.Errorf("cannot remove tag from image stream: %v", err)
 	}
 
-	return &metav1.Status{Status: metav1.StatusSuccess}, nil
+	return &metav1.Status{Status: metav1.StatusSuccess}, true, nil
 }
 
 // imageFor retrieves the most recent image for a tag in a given imageStreem.

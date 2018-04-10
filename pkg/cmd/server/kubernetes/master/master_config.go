@@ -47,6 +47,8 @@ import (
 	auditlog "k8s.io/apiserver/plugin/pkg/audit/log"
 	auditwebhook "k8s.io/apiserver/plugin/pkg/audit/webhook"
 	pluginwebhook "k8s.io/apiserver/plugin/pkg/audit/webhook"
+	"k8s.io/kube-aggregator/pkg/apis/apiregistration"
+	apiregistrationv1beta1 "k8s.io/kube-aggregator/pkg/apis/apiregistration/v1beta1"
 	openapicommon "k8s.io/kube-openapi/pkg/common"
 	kapiserveroptions "k8s.io/kubernetes/cmd/kube-apiserver/app/options"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
@@ -57,6 +59,8 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/apis/networking"
+	storageapi "k8s.io/kubernetes/pkg/apis/storage"
+	storageapiv1beta1 "k8s.io/kubernetes/pkg/apis/storage/v1beta1"
 	"k8s.io/kubernetes/pkg/kubeapiserver"
 	"k8s.io/kubernetes/pkg/master"
 	"k8s.io/kubernetes/pkg/registry/cachesize"
@@ -168,6 +172,9 @@ func BuildKubeAPIserverOptions(masterConfig configapi.MasterConfig) (*kapiserver
 
 	server.KubeletConfig.ReadOnlyPort = 0
 
+	server.ProxyClientCertFile = masterConfig.AggregatorConfig.ProxyClientInfo.CertFile
+	server.ProxyClientKeyFile = masterConfig.AggregatorConfig.ProxyClientInfo.KeyFile
+
 	// resolve extended arguments
 	args := map[string][]string{}
 	for k, v := range masterConfig.KubernetesMasterConfig.APIServerArguments {
@@ -206,6 +213,8 @@ func BuildStorageFactory(server *kapiserveroptions.ServerRunOptions, enforcedSto
 		resourceEncodingConfig.SetVersionEncoding(group, storageEncodingVersion, schema.GroupVersion{Group: group, Version: runtime.APIVersionInternal})
 	}
 	resourceEncodingConfig.SetResourceEncoding(batch.Resource("cronjobs"), batchv1beta1.SchemeGroupVersion, batch.SchemeGroupVersion)
+	resourceEncodingConfig.SetResourceEncoding(apiregistration.Resource("apiservices"), apiregistrationv1beta1.SchemeGroupVersion, apiregistration.SchemeGroupVersion)
+	resourceEncodingConfig.SetResourceEncoding(storageapi.Resource("volumeattachments"), storageapiv1beta1.SchemeGroupVersion, storageapi.SchemeGroupVersion)
 
 	for gr, storageGV := range enforcedStorageVersions {
 		resourceEncodingConfig.SetResourceEncoding(gr, storageGV, schema.GroupVersion{Group: storageGV.Group, Version: runtime.APIVersionInternal})
@@ -251,7 +260,7 @@ func BuildStorageFactory(server *kapiserveroptions.ServerRunOptions, enforcedSto
 // ONLY COMMENT OUT CODE HERE, do not modify it. Do modifications outside of this function.
 func buildUpstreamGenericConfig(s *kapiserveroptions.ServerRunOptions) (*apiserver.Config, error) {
 	// set defaults
-	if err := s.GenericServerRunOptions.DefaultAdvertiseAddress(s.SecureServing); err != nil {
+	if err := s.GenericServerRunOptions.DefaultAdvertiseAddress(s.SecureServing.SecureServingOptions); err != nil {
 		return nil, err
 	}
 	// In origin: certs should be available:
@@ -262,9 +271,6 @@ func buildUpstreamGenericConfig(s *kapiserveroptions.ServerRunOptions) (*apiserv
 	//if err := s.SecureServing.MaybeDefaultWithSelfSignedCerts(s.GenericServerRunOptions.AdvertiseAddress.String(), apiServerServiceIP); err != nil {
 	//	return nil, fmt.Errorf("error creating self-signed certificates: %v", err)
 	//}
-	if err := s.CloudProvider.DefaultExternalHost(s.GenericServerRunOptions); err != nil {
-		return nil, fmt.Errorf("error setting the external host value: %v", err)
-	}
 
 	s.Authentication.ApplyAuthorization(s.Authorization)
 
@@ -289,6 +295,9 @@ func buildUpstreamGenericConfig(s *kapiserveroptions.ServerRunOptions) (*apiserv
 		return nil, err
 	}
 	if err := s.Authentication.ApplyTo(genericConfig); err != nil {
+		return nil, err
+	}
+	if err := s.APIEnablement.ApplyTo(genericConfig, master.DefaultAPIResourceConfigSource(), legacyscheme.Registry); err != nil {
 		return nil, err
 	}
 	// Do not wait for etcd because the internal etcd is launched after this and origin has an etcd test already
@@ -403,8 +412,8 @@ func buildKubeApiserverConfig(
 	kubeVersion := kversion.Get()
 	genericConfig.Version = &kubeVersion
 	genericConfig.PublicAddress = publicAddress
-	genericConfig.Authenticator = originAuthenticator // this is used to fulfill the tokenreviews endpoint which is used by node authentication
-	genericConfig.Authorizer = kubeAuthorizer         // this is used to fulfill the kube SAR endpoints
+	genericConfig.Authentication.Authenticator = originAuthenticator // this is used to fulfill the tokenreviews endpoint which is used by node authentication
+	genericConfig.Authorization.Authorizer = kubeAuthorizer          // this is used to fulfill the kube SAR endpoints
 	genericConfig.DisabledPostStartHooks.Insert(rbacrest.PostStartHookName)
 	// This disables the ThirdPartyController which removes handlers from our go-restful containers.  The remove functionality is broken and destroys the serve mux.
 	genericConfig.DisabledPostStartHooks.Insert("extensions/third-party-resources")
@@ -414,21 +423,14 @@ func buildKubeApiserverConfig(
 	genericConfig.SwaggerConfig = apiserver.DefaultSwaggerConfig()
 	genericConfig.SwaggerConfig.PostBuildHandler = customizeSwaggerDefinition
 	genericConfig.LegacyAPIGroupPrefixes = LegacyAPIGroupPrefixes
-	// I *think* that ApplyTo is doing this for us.
-	if false {
-		genericConfig.SecureServingInfo.Listener, err = net.Listen(masterConfig.ServingInfo.BindNetwork, masterConfig.ServingInfo.BindAddress)
-		if err != nil {
-			return nil, fmt.Errorf("failed to listen on %v: %v", masterConfig.ServingInfo.BindAddress, err)
-		}
-	}
-	genericConfig.SecureServingInfo.MinTLSVersion = crypto.TLSVersionOrDie(masterConfig.ServingInfo.MinTLSVersion)
-	genericConfig.SecureServingInfo.CipherSuites = crypto.CipherSuitesOrDie(masterConfig.ServingInfo.CipherSuites)
+	genericConfig.SecureServing.MinTLSVersion = crypto.TLSVersionOrDie(masterConfig.ServingInfo.MinTLSVersion)
+	genericConfig.SecureServing.CipherSuites = crypto.CipherSuitesOrDie(masterConfig.ServingInfo.CipherSuites)
 	oAuthClientCertCAs, err := configapi.GetOAuthClientCertCAs(masterConfig)
 	if err != nil {
 		glog.Fatalf("Error setting up OAuth2 client certificates: %v", err)
 	}
 	for _, cert := range oAuthClientCertCAs {
-		genericConfig.SecureServingInfo.ClientCA.AddCert(cert)
+		genericConfig.SecureServing.ClientCA.AddCert(cert)
 	}
 
 	url, err := url.Parse(masterConfig.MasterPublicURL)
@@ -810,7 +812,7 @@ func GetAuditConfig(auditConfig configapi.AuditConfig) (audit.Backend, auditpoli
 
 		// webhook configuration, only when config file was provided
 		if len(auditConfig.WebHookKubeConfig) > 0 {
-			webhook, err := auditwebhook.NewBackend(auditConfig.WebHookKubeConfig, string(auditConfig.WebHookMode), auditv1beta1.SchemeGroupVersion, pluginwebhook.NewDefaultBatchBackendConfig())
+			webhook, err := auditwebhook.NewBackend(auditConfig.WebHookKubeConfig, auditv1beta1.SchemeGroupVersion, pluginwebhook.DefaultInitialBackoff)
 			if err != nil {
 				glog.Fatalf("Audit webhook initialization failed: %v", err)
 			}

@@ -347,7 +347,7 @@ type ImageStreamMapping struct {
 }
 
 // +genclient
-// +genclient:onlyVerbs=get,create,update,delete
+// +genclient:onlyVerbs=get,list,create,update,delete
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // ImageStreamTag represents an Image that is retrieved by tag name from an ImageStream.

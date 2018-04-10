@@ -9,6 +9,7 @@ import (
 
 	kapiv1 "k8s.io/api/core/v1"
 	"k8s.io/kubernetes/pkg/credentialprovider"
+	credentialprovidersecrets "k8s.io/kubernetes/pkg/credentialprovider/secrets"
 
 	"github.com/openshift/origin/pkg/image/registryclient"
 )
@@ -66,7 +67,7 @@ func (s *SecretCredentialStore) init() credentialprovider.DockerKeyring {
 	}
 
 	// TODO: need a version of this that is best effort secret - otherwise one error blocks all secrets
-	keyring, err := credentialprovider.MakeDockerKeyring(s.secrets, emptyKeyring)
+	keyring, err := credentialprovidersecrets.MakeDockerKeyring(s.secrets, emptyKeyring)
 	if err != nil {
 		glog.V(5).Infof("Loading keyring failed for credential store: %v", err)
 		s.err = err

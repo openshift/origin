@@ -26,7 +26,6 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/explain"
-	"k8s.io/kubernetes/pkg/kubectl/scheme"
 	"k8s.io/kubernetes/pkg/kubectl/util/i18n"
 )
 
@@ -53,7 +52,8 @@ var (
 // NewCmdExplain returns a cobra command for swagger docs
 func NewCmdExplain(f cmdutil.Factory, out, cmdErr io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "explain RESOURCE",
+		Use: "explain RESOURCE",
+		DisableFlagsInUseLine: true,
 		Short:   i18n.T("Documentation of resources"),
 		Long:    explainLong + "\n\n" + cmdutil.ValidResourceTypeList(f),
 		Example: explainExamples,
@@ -103,15 +103,7 @@ func RunExplain(f cmdutil.Factory, out, cmdErr io.Writer, cmd *cobra.Command, ar
 		}
 	}
 
-	if len(apiVersionString) == 0 {
-		if len(gvk.Version) == 0 {
-			groupMeta, err := scheme.Registry.Group(gvk.Group)
-			if err != nil {
-				return err
-			}
-			gvk = groupMeta.GroupVersion.WithKind(gvk.Kind)
-		}
-	} else {
+	if len(apiVersionString) != 0 {
 		apiVersion, err := schema.ParseGroupVersion(apiVersionString)
 		if err != nil {
 			return err
@@ -129,5 +121,5 @@ func RunExplain(f cmdutil.Factory, out, cmdErr io.Writer, cmd *cobra.Command, ar
 		return fmt.Errorf("Couldn't find resource for %q", gvk)
 	}
 
-	return explain.PrintModelDescription(fieldsPath, out, schema, recursive)
+	return explain.PrintModelDescription(fieldsPath, out, schema, gvk, recursive)
 }

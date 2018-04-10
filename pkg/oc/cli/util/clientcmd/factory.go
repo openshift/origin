@@ -72,14 +72,13 @@ func NewFactory(optionalClientConfig kclientcmd.ClientConfig) *Factory {
 func (f *Factory) PrintResourceInfos(cmd *cobra.Command, isLocal bool, infos []*resource.Info, out io.Writer) error {
 	// mirrors PrintResourceInfoForCommand upstream
 	opts := kcmdutil.ExtractCmdPrintOptions(cmd, false)
-	printer, err := f.PrinterForOptions(opts)
+	printer, err := kcmdutil.PrinterForOptions(opts)
 	if err != nil {
 		return nil
 	}
 	if !printer.IsGeneric() {
 		for _, info := range infos {
-			mapping := info.ResourceMapping()
-			printer, err := f.PrinterForMapping(opts, mapping)
+			printer, err := kcmdutil.PrinterForOptions(opts)
 			if err != nil {
 				return err
 			}

@@ -176,7 +176,7 @@ func TestControllerList(t *testing.T) {
 	}
 
 	client := newTestClient(&FakeRoundTripper{message: controllersData, status: http.StatusOK})
-	controllers, err := client.ControllerList(types.ListOptions{Namespace: "projA"})
+	controllers, err := client.ControllerList(types.ListOptions{})
 	if err != nil {
 		t.Error(err)
 	}
@@ -263,7 +263,6 @@ func TestController(t *testing.T) {
 	fakeRT := &FakeRoundTripper{message: body, status: http.StatusOK}
 	client := newTestClient(fakeRT)
 	name := "tardis"
-	namespace := "projA"
 	controller, err := client.Controller(name)
 	if err != nil {
 		t.Fatal(err)
@@ -276,8 +275,7 @@ func TestController(t *testing.T) {
 	if req.Method != expectedMethod {
 		t.Errorf("InspectController(%q): Wrong HTTP method. Want %s. Got %s.", name, expectedMethod, req.Method)
 	}
-	path, _ := namespacedRefPath(namespace, ControllerAPIPrefix, name)
-	u, _ := url.Parse(client.getAPIPath(path, url.Values{}, false))
+	u, _ := url.Parse(client.getAPIPath(ControllerAPIPrefix+"/"+"tardis", url.Values{}, false))
 	if req.URL.Path != u.Path {
 		t.Errorf("ControllerCreate(%q): Wrong request path. Want %q. Got %q.", name, u.Path, req.URL.Path)
 	}
@@ -285,13 +283,11 @@ func TestController(t *testing.T) {
 
 func TestControllerDelete(t *testing.T) {
 	name := "test"
-	namespace := "projA"
 	fakeRT := &FakeRoundTripper{message: "", status: http.StatusNoContent}
 	client := newTestClient(fakeRT)
 	err := client.ControllerDelete(
 		types.DeleteOptions{
-			Name:      name,
-			Namespace: namespace,
+			Name: name,
 		},
 	)
 	if err != nil {
@@ -302,8 +298,8 @@ func TestControllerDelete(t *testing.T) {
 	if req.Method != expectedMethod {
 		t.Errorf("ControllerDelete(%q): Wrong HTTP method. Want %s. Got %s.", name, expectedMethod, req.Method)
 	}
-	path, _ := namespacedRefPath(namespace, ControllerAPIPrefix, name)
-	u, _ := url.Parse(client.getAPIPath(path, url.Values{}, false))
+
+	u, _ := url.Parse(client.getAPIPath(ControllerAPIPrefix+"/"+name, url.Values{}, false))
 	if req.URL.Path != u.Path {
 		t.Errorf("ControllerDelete(%q): Wrong request path. Want %q. Got %q.", name, u.Path, req.URL.Path)
 	}
@@ -313,8 +309,7 @@ func TestControllerDeleteNotFound(t *testing.T) {
 	client := newTestClient(&FakeRoundTripper{message: "no such controller", status: http.StatusNotFound})
 	err := client.ControllerDelete(
 		types.DeleteOptions{
-			Name:      "badname",
-			Namespace: "badnamespace",
+			Name: "badname",
 		},
 	)
 	if err != ErrNoSuchController {
@@ -324,12 +319,10 @@ func TestControllerDeleteNotFound(t *testing.T) {
 
 func TestControllerDeleteInUse(t *testing.T) {
 	name := "test"
-	namespace := "projA"
 	client := newTestClient(&FakeRoundTripper{message: "controller in use and cannot be removed", status: http.StatusConflict})
 	err := client.ControllerDelete(
 		types.DeleteOptions{
-			Name:      name,
-			Namespace: namespace,
+			Name: name,
 		},
 	)
 	if err != ErrControllerInUse {
@@ -339,10 +332,9 @@ func TestControllerDeleteInUse(t *testing.T) {
 
 func TestControllerDeleteForce(t *testing.T) {
 	name := "testdelete"
-	namespace := "projA"
 	fakeRT := &FakeRoundTripper{message: "", status: http.StatusNoContent}
 	client := newTestClient(fakeRT)
-	if err := client.ControllerDelete(types.DeleteOptions{Name: name, Namespace: namespace, Force: true}); err != nil {
+	if err := client.ControllerDelete(types.DeleteOptions{Name: name, Force: true}); err != nil {
 		t.Fatal(err)
 	}
 	req := fakeRT.requests[0]

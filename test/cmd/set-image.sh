@@ -21,7 +21,7 @@ os::cmd::try_until_success 'oc get imagestreamtags ruby:2.0'
 os::cmd::expect_failure_and_text 'oc set image dc/test-deployment-config ruby-helloworld=ruby:2.0 --local' 'you must specify resources by --filename when --local is set.'
 # test --dry-run flag with -o formats
 os::cmd::expect_success_and_text 'oc set image dc/test-deployment-config ruby-helloworld=ruby:2.0 --source=istag --dry-run' 'test-deployment-config'
-os::cmd::expect_success_and_text 'oc set image dc/test-deployment-config ruby-helloworld=ruby:2.0 --source=istag --dry-run -o name' 'deploymentconfigs/test-deployment-config'
+os::cmd::expect_success_and_text 'oc set image dc/test-deployment-config ruby-helloworld=ruby:2.0 --source=istag --dry-run -o name' 'deploymentconfig.apps.openshift.io/test-deployment-config'
 os::cmd::expect_success_and_text 'oc set image dc/test-deployment-config ruby-helloworld=ruby:2.0 --source=istag --dry-run --template={{.metadata.name}}' 'test-deployment-config'
 # ensure backwards compatibility with -o formats acting as --dry-run (e.g. all commands after this one succeed if specifying -o without --dry-run does not mutate resources in server)
 os::cmd::expect_success_and_text 'oc set image dc/test-deployment-config ruby-helloworld=ruby:2.0 --source=istag -o yaml' 'name: test-deployment-config'

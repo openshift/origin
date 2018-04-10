@@ -6,7 +6,6 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
@@ -43,7 +42,6 @@ type CreateImageStreamOptions struct {
 
 	DryRun bool
 
-	Mapper       meta.RESTMapper
 	OutputFormat string
 	Out          io.Writer
 	Printer      ObjectPrinter
@@ -102,11 +100,10 @@ func (o *CreateImageStreamOptions) Complete(cmd *cobra.Command, f *clientcmd.Fac
 	}
 	o.Client = client.Image()
 
-	o.Mapper, _ = f.Object()
 	o.OutputFormat = cmdutil.GetFlagString(cmd, "output")
 
 	o.Printer = func(obj runtime.Object, out io.Writer) error {
-		return f.PrintObject(cmd, false, o.Mapper, obj, out)
+		return cmdutil.PrintObject(cmd, obj, out)
 	}
 
 	return nil
@@ -118,9 +115,6 @@ func (o *CreateImageStreamOptions) Validate() error {
 	}
 	if o.Client == nil {
 		return fmt.Errorf("Client is required")
-	}
-	if o.Mapper == nil {
-		return fmt.Errorf("Mapper is required")
 	}
 	if o.Out == nil {
 		return fmt.Errorf("Out is required")
@@ -144,7 +138,7 @@ func (o *CreateImageStreamOptions) Run() error {
 	}
 
 	if useShortOutput := o.OutputFormat == "name"; useShortOutput || len(o.OutputFormat) == 0 {
-		cmdutil.PrintSuccess(o.Mapper, useShortOutput, o.Out, "imagestream", actualObj.Name, o.DryRun, "created")
+		cmdutil.PrintSuccess(useShortOutput, o.Out, actualObj, o.DryRun, "created")
 		return nil
 	}
 

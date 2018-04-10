@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2015-2016 VMware, Inc. All Rights Reserved.
+Copyright (c) 2015-2017 VMware, Inc. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -90,7 +90,7 @@ func (cmd *info) Run(ctx context.Context, f *flag.FlagSet) error {
 	var res infoResult
 	var props []string
 
-	if cmd.OutputFlag.JSON {
+	if cmd.OutputFlag.All() {
 		props = nil
 	} else {
 		props = []string{
@@ -191,8 +191,7 @@ func (r *infoResult) Write(w io.Writer) error {
 	return tw.Flush()
 }
 
-func writeInfo(w io.Writer, name string, units string, ru *types.ResourcePoolResourceUsage, b types.BaseResourceAllocationInfo) {
-	ra := b.GetResourceAllocationInfo()
+func writeInfo(w io.Writer, name string, units string, ru *types.ResourcePoolResourceUsage, ra types.ResourceAllocationInfo) {
 	usage := 100.0 * float64(ru.OverallUsage) / float64(ru.MaxUsage)
 	shares := ""
 	limit := "unlimited"
@@ -201,12 +200,12 @@ func writeInfo(w io.Writer, name string, units string, ru *types.ResourcePoolRes
 		shares = fmt.Sprintf(" (%d)", ra.Shares.Shares)
 	}
 
-	if ra.Limit != -1 {
-		limit = fmt.Sprintf("%d%s", ra.Limit, units)
+	if ra.Limit != nil {
+		limit = fmt.Sprintf("%d%s", *ra.Limit, units)
 	}
 
 	fmt.Fprintf(w, "  %s Usage:\t%d%s (%0.1f%%)\n", name, ru.OverallUsage, units, usage)
 	fmt.Fprintf(w, "  %s Shares:\t%s%s\n", name, ra.Shares.Level, shares)
-	fmt.Fprintf(w, "  %s Reservation:\t%d%s (expandable=%v)\n", name, ra.Reservation, units, *ra.ExpandableReservation)
+	fmt.Fprintf(w, "  %s Reservation:\t%d%s (expandable=%v)\n", name, *ra.Reservation, units, *ra.ExpandableReservation)
 	fmt.Fprintf(w, "  %s Limit:\t%s\n", name, limit)
 }

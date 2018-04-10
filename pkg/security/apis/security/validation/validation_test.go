@@ -207,9 +207,7 @@ func TestValidateSecurityContextConstraints(t *testing.T) {
 	for k, v := range errorCases {
 		t.Run(k, func(t *testing.T) {
 			if errs := ValidateSecurityContextConstraints(v.scc); len(errs) == 0 || errs[0].Type != v.errorType || errs[0].Detail != v.errorDetail {
-				t.Errorf("Expected %q got %q", v.errorType, errs[0].Type)
-				t.Errorf("Expected %q got %q", v.errorDetail, errs[0].Detail)
-				t.Errorf("got all these %v", errs)
+				t.Errorf("Expected error type %q with detail %q, got %v", v.errorType, v.errorDetail, errs)
 			}
 		})
 	}

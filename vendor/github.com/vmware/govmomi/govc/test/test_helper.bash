@@ -1,13 +1,13 @@
 # set the following variables only if they've not been set
-GOVC_TEST_URL=${GOVC_TEST_URL-"https://root:vagrant@localhost:18443/sdk"}
-export GOVC_URL=$GOVC_TEST_URL
 export GOVC_DATASTORE=${GOVC_DATASTORE-datastore1}
 export GOVC_NETWORK=${GOVC_NETWORK-"VM Network"}
 
 export GOVC_INSECURE=true
 export GOVC_PERSIST_SESSION=false
+unset GOVC_URL
 unset GOVC_DEBUG
 unset GOVC_TLS_KNOWN_HOSTS
+unset GOVC_TLS_HANDSHAKE_TIMEOUT
 unset GOVC_DATACENTER
 unset GOVC_HOST
 unset GOVC_USERNAME
@@ -36,16 +36,26 @@ GOVC_TEST_ISO=govc-images/$(basename $GOVC_TEST_ISO_SRC)
 GOVC_TEST_IMG_SRC=$GOVC_IMAGES/floppybird.img
 GOVC_TEST_IMG=govc-images/$(basename $GOVC_TEST_IMG_SRC)
 
-PATH="$(dirname $BATS_TEST_DIRNAME):$PATH"
+PATH="$GOPATH/bin:$PATH"
+
+vcsim_stop() {
+  kill "$GOVC_SIM_PID"
+  rm -f "$GOVC_SIM_ENV"
+  unset GOVC_SIM_PID
+}
 
 teardown() {
-  govc ls vm | grep govc-test- | $xargs -r govc vm.destroy
-  govc datastore.ls | grep govc-test- | awk '{print ($NF)}' | $xargs -n1 -r govc datastore.rm
-  govc ls "host/*/Resources/govc-test-*" | $xargs -r govc pool.destroy
+  if [ -n "$GOVC_SIM_PID" ] ; then
+    vcsim_stop
+  else
+    govc ls vm | grep govc-test- | $xargs -r govc vm.destroy
+    govc datastore.ls | grep govc-test- | awk '{print ($NF)}' | $xargs -n1 -r govc datastore.rm
+    govc ls "host/*/Resources/govc-test-*" | $xargs -r govc pool.destroy
+  fi
 }
 
 new_id() {
-  echo "govc-test-$(uuidgen)"
+  echo "govc-test-$(vcsim uuidgen)"
 }
 
 import_ttylinux_vmdk() {
@@ -72,7 +82,7 @@ upload_iso() {
 }
 
 new_ttylinux_vm() {
-  import_ttylinux_vmdk # TODO: make this part of vagrant provision
+  import_ttylinux_vmdk
   id=$(new_id)
   govc vm.create -m 32 -disk $GOVC_TEST_VMDK -disk.controller ide -on=false $id
   echo $id
@@ -92,21 +102,35 @@ vm_mac() {
   govc device.info -vm "$1" ethernet-0 | grep "MAC Address" | awk '{print $NF}'
 }
 
-# exports an environment for using vcsim if running, otherwise skips the calling test.
-vcsim_env() {
-  if [ "$(uname)" == "Darwin" ]; then
-    PATH="/Applications/VMware Fusion.app/Contents/Library:$PATH"
+esx_env() {
+  if [ -z "$GOVC_TEST_URL" ] ; then
+    skip "GOVC_TEST_URL not set"
   fi
 
-  if [ "$(vmrun list | grep $BATS_TEST_DIRNAME/vcsim | wc -l)" -eq 1 ]; then
-    export GOVC_URL=https://root:vmware@localhost:16443/sdk \
-           GOVC_DATACENTER=DC0 \
-           GOVC_DATASTORE=GlobalDS_0 \
+  export GOVC_URL=$GOVC_TEST_URL
+}
+
+vcsim_env_todo() {
+  skip "not yet supported by vcsim"
+}
+
+# starts vcsim and exports the environment
+vcsim_env() {
+  GOVC_SIM_ENV="$BATS_TMPDIR/$(new_id)"
+  export GOVC_SIM_ENV
+  mkfifo "$GOVC_SIM_ENV"
+
+  vcsim -httptest.serve=127.0.0.1:0 -E "$GOVC_SIM_ENV" "$@" &
+
+  eval "$(cat "$GOVC_SIM_ENV")"
+
+  export GOVC_DATASTORE=LocalDS_0
+
+  if [ "$1" != "-esx" ] && [ "$1" != "-esx=true" ]; then
+    export GOVC_DATACENTER=DC0 \
            GOVC_HOST=/DC0/host/DC0_C0/DC0_C0_H0 \
            GOVC_RESOURCE_POOL=/DC0/host/DC0_C0/Resources \
            GOVC_NETWORK=/DC0/network/DC0_DVPG0
-  else
-    skip "requires vcsim"
   fi
 }
 
@@ -196,14 +220,18 @@ assert_matches() {
   local actual="${2}"
 
   if [ $# -eq 1 ]; then
-    actual="$(cat -)"
+    actual="$output"
   fi
 
-  if ! grep -q "${pattern}" <<<"${actual}"; then
+  if ! grep -E -q "${pattern}" <<<"${actual}"; then
     { echo "pattern: ${pattern}"
       echo "actual:  ${actual}"
     } | flunk
   fi
+}
+
+assert_number() {
+  assert_matches "^-?[0-9]+$" "$output"
 }
 
 assert_empty() {
@@ -249,6 +277,6 @@ refute_line() {
 
 assert() {
   if ! "$@"; then
-    flunk "failed: $@"
+    flunk "failed: $*"
   fi
 }

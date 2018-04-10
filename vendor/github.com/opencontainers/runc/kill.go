@@ -8,48 +8,8 @@ import (
 	"strings"
 	"syscall"
 
-	"golang.org/x/sys/unix"
-
 	"github.com/urfave/cli"
 )
-
-var signalMap = map[string]syscall.Signal{
-	"ABRT":   unix.SIGABRT,
-	"ALRM":   unix.SIGALRM,
-	"BUS":    unix.SIGBUS,
-	"CHLD":   unix.SIGCHLD,
-	"CLD":    unix.SIGCLD,
-	"CONT":   unix.SIGCONT,
-	"FPE":    unix.SIGFPE,
-	"HUP":    unix.SIGHUP,
-	"ILL":    unix.SIGILL,
-	"INT":    unix.SIGINT,
-	"IO":     unix.SIGIO,
-	"IOT":    unix.SIGIOT,
-	"KILL":   unix.SIGKILL,
-	"PIPE":   unix.SIGPIPE,
-	"POLL":   unix.SIGPOLL,
-	"PROF":   unix.SIGPROF,
-	"PWR":    unix.SIGPWR,
-	"QUIT":   unix.SIGQUIT,
-	"SEGV":   unix.SIGSEGV,
-	"STKFLT": unix.SIGSTKFLT,
-	"STOP":   unix.SIGSTOP,
-	"SYS":    unix.SIGSYS,
-	"TERM":   unix.SIGTERM,
-	"TRAP":   unix.SIGTRAP,
-	"TSTP":   unix.SIGTSTP,
-	"TTIN":   unix.SIGTTIN,
-	"TTOU":   unix.SIGTTOU,
-	"UNUSED": unix.SIGUNUSED,
-	"URG":    unix.SIGURG,
-	"USR1":   unix.SIGUSR1,
-	"USR2":   unix.SIGUSR2,
-	"VTALRM": unix.SIGVTALRM,
-	"WINCH":  unix.SIGWINCH,
-	"XCPU":   unix.SIGXCPU,
-	"XFSZ":   unix.SIGXFSZ,
-}
 
 var killCommand = cli.Command{
 	Name:  "kill",
@@ -101,13 +61,7 @@ signal to the init process of the "ubuntu01" container:
 func parseSignal(rawSignal string) (syscall.Signal, error) {
 	s, err := strconv.Atoi(rawSignal)
 	if err == nil {
-		sig := syscall.Signal(s)
-		for _, msig := range signalMap {
-			if sig == msig {
-				return sig, nil
-			}
-		}
-		return -1, fmt.Errorf("unknown signal %q", rawSignal)
+		return syscall.Signal(s), nil
 	}
 	signal, ok := signalMap[strings.TrimPrefix(strings.ToUpper(rawSignal), "SIG")]
 	if !ok {

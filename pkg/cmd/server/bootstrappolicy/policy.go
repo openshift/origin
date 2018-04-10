@@ -156,13 +156,13 @@ func GetOpenshiftBootstrapClusterRoles() []rbac.ClusterRole {
 
 				rbac.NewRule(read...).Groups(networkingGroup).Resources("networkpolicies").RuleOrDie(),
 
-				rbac.NewRule(read...).Groups(policyGroup).Resources("poddisruptionbudgets", "poddisruptionbudgets/status").RuleOrDie(),
+				rbac.NewRule(read...).Groups(policyGroup).Resources("podsecuritypolicies", "poddisruptionbudgets", "poddisruptionbudgets/status").RuleOrDie(),
 
 				rbac.NewRule(read...).Groups(rbacGroup).Resources("roles", "rolebindings", "clusterroles", "clusterrolebindings").RuleOrDie(),
 
 				rbac.NewRule(read...).Groups(settingsGroup).Resources("podpresets").RuleOrDie(),
 
-				rbac.NewRule(read...).Groups(storageGroup).Resources("storageclasses").RuleOrDie(),
+				rbac.NewRule(read...).Groups(storageGroup).Resources("storageclasses", "volumeattachments").RuleOrDie(),
 
 				rbac.NewRule(read...).Groups(certificatesGroup).Resources("certificatesigningrequests", "certificatesigningrequests/approval", "certificatesigningrequests/status").RuleOrDie(),
 
@@ -189,6 +189,7 @@ func GetOpenshiftBootstrapClusterRoles() []rbac.ClusterRole {
 				rbac.NewRule(read...).Groups(networkGroup, legacyNetworkGroup).Resources("clusternetworks", "egressnetworkpolicies", "hostsubnets", "netnamespaces").RuleOrDie(),
 
 				rbac.NewRule(read...).Groups(securityGroup, legacySecurityGroup).Resources("securitycontextconstraints").RuleOrDie(),
+				rbac.NewRule(read...).Groups(securityGroup).Resources("rangeallocations").RuleOrDie(),
 
 				rbac.NewRule(read...).Groups(templateGroup, legacyTemplateGroup).Resources("templates", "templateconfigs", "processedtemplates", "templateinstances").RuleOrDie(),
 				rbac.NewRule(read...).Groups(templateGroup, legacyTemplateGroup).Resources("brokertemplateinstances", "templateinstances/status").RuleOrDie(),
@@ -530,6 +531,7 @@ func GetOpenshiftBootstrapClusterRoles() []rbac.ClusterRole {
 				// TODO: remove "delete" rule few releases after 3.6
 				rbac.NewRule("delete").Groups(kapiGroup).Resources("replicationcontrollers").RuleOrDie(),
 				rbac.NewRule("get", "list", "watch", "update").Groups(kapiGroup).Resources("replicationcontrollers").RuleOrDie(),
+				rbac.NewRule("get", "update").Groups(kapiGroup).Resources("replicationcontrollers/scale").RuleOrDie(),
 				rbac.NewRule("get", "list", "watch", "create").Groups(kapiGroup).Resources("pods").RuleOrDie(),
 				rbac.NewRule("get").Groups(kapiGroup).Resources("pods/log").RuleOrDie(),
 				rbac.NewRule("create", "list").Groups(kapiGroup).Resources("events").RuleOrDie(),
@@ -655,6 +657,7 @@ func GetOpenshiftBootstrapClusterRoles() []rbac.ClusterRole {
 				// TODO: restrict to claims/volumes used by pods scheduled on bound node once supported
 				// Needed for persistent volumes
 				rbac.NewRule("get").Groups(kapiGroup).Resources("persistentvolumeclaims", "persistentvolumes").RuleOrDie(),
+				rbac.NewRule("get").Groups(storageGroup).Resources("volumeattachments").RuleOrDie(),
 				// TODO: restrict to namespaces of pods scheduled on bound node once supported
 				// TODO: change glusterfs to use DNS lookup so this isn't needed?
 				// Needed for glusterfs volumes

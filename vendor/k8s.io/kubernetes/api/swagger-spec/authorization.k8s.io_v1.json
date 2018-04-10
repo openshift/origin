@@ -72,6 +72,61 @@
     ]
    },
    {
+    "path": "/apis/authorization.k8s.io/v1/localsubjectaccessreviews",
+    "description": "API at /apis/authorization.k8s.io/v1",
+    "operations": [
+     {
+      "type": "v1.LocalSubjectAccessReview",
+      "method": "POST",
+      "summary": "create a LocalSubjectAccessReview",
+      "nickname": "createLocalSubjectAccessReviewForAllNamespaces",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "v1.LocalSubjectAccessReview",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.LocalSubjectAccessReview"
+       },
+       {
+        "code": 201,
+        "message": "Created",
+        "responseModel": "v1.LocalSubjectAccessReview"
+       },
+       {
+        "code": 202,
+        "message": "Accepted",
+        "responseModel": "v1.LocalSubjectAccessReview"
+       }
+      ],
+      "produces": [
+       "application/json",
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     }
+    ]
+   },
+   {
     "path": "/apis/authorization.k8s.io/v1/selfsubjectaccessreviews",
     "description": "API at /apis/authorization.k8s.io/v1",
     "operations": [

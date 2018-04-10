@@ -33,7 +33,6 @@ import (
 	"k8s.io/kubernetes/pkg/kubelet/config"
 	"k8s.io/kubernetes/pkg/kubelet/configmap"
 	containertest "k8s.io/kubernetes/pkg/kubelet/container/testing"
-	"k8s.io/kubernetes/pkg/kubelet/pod"
 	kubepod "k8s.io/kubernetes/pkg/kubelet/pod"
 	podtest "k8s.io/kubernetes/pkg/kubelet/pod/testing"
 	"k8s.io/kubernetes/pkg/kubelet/secret"
@@ -42,8 +41,8 @@ import (
 	"k8s.io/kubernetes/pkg/util/mount"
 	"k8s.io/kubernetes/pkg/volume"
 	volumetest "k8s.io/kubernetes/pkg/volume/testing"
+	"k8s.io/kubernetes/pkg/volume/util"
 	"k8s.io/kubernetes/pkg/volume/util/types"
-	"k8s.io/kubernetes/pkg/volume/util/volumehelper"
 )
 
 const (
@@ -169,7 +168,7 @@ func TestGetExtraSupplementalGroupsForPod(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "pvA",
 				Annotations: map[string]string{
-					volumehelper.VolumeGidAnnotationKey: tc.gidAnnotation,
+					util.VolumeGidAnnotationKey: tc.gidAnnotation,
 				},
 			},
 			Spec: v1.PersistentVolumeSpec{
@@ -188,9 +187,7 @@ func TestGetExtraSupplementalGroupsForPod(t *testing.T) {
 		manager := newTestVolumeManager(tmpDir, podManager, kubeClient)
 
 		stopCh := runVolumeManager(manager)
-		defer func() {
-			close(stopCh)
-		}()
+		defer close(stopCh)
 
 		podManager.SetPods([]*v1.Pod{pod})
 
@@ -213,7 +210,7 @@ func TestGetExtraSupplementalGroupsForPod(t *testing.T) {
 	}
 }
 
-func newTestVolumeManager(tmpDir string, podManager pod.Manager, kubeClient clientset.Interface) VolumeManager {
+func newTestVolumeManager(tmpDir string, podManager kubepod.Manager, kubeClient clientset.Interface) VolumeManager {
 	plug := &volumetest.FakeVolumePlugin{PluginName: "fake", Host: nil}
 	fakeRecorder := &record.FakeRecorder{}
 	plugMgr := &volume.VolumePluginMgr{}

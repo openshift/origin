@@ -201,8 +201,7 @@ func Run(f *clientcmd.Factory, options *ipfailover.IPFailoverConfigCmdOptions, c
 	list.Items = append(configList, list.Items...)
 
 	if options.Action.ShouldPrint() {
-		mapper, _ := f.Object()
-		return cmdutil.VersionedPrintObject(f.PrintObject, cmd, mapper, options.Action.Out)(list)
+		return cmdutil.VersionedPrintObject(kcmdutil.PrintObject, cmd, options.Action.Out)(list)
 	}
 
 	if errs := options.Action.WithMessage(fmt.Sprintf("Creating IP failover %s", name), "created").Run(list, namespace); len(errs) > 0 {

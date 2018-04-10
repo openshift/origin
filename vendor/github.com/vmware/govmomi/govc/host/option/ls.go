@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2016 VMware, Inc. All Rights Reserved.
+Copyright (c) 2016-2017 VMware, Inc. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,19 +19,14 @@ package option
 import (
 	"context"
 	"flag"
-	"fmt"
-	"io"
-	"os"
-	"text/tabwriter"
 
 	"github.com/vmware/govmomi/govc/cli"
 	"github.com/vmware/govmomi/govc/flags"
-	"github.com/vmware/govmomi/vim25/types"
+	"github.com/vmware/govmomi/govc/option"
 )
 
 type ls struct {
-	*flags.ClientFlag
-	*flags.OutputFlag
+	*option.List
 	*flags.HostSystemFlag
 }
 
@@ -40,21 +35,19 @@ func init() {
 }
 
 func (cmd *ls) Register(ctx context.Context, f *flag.FlagSet) {
-	cmd.ClientFlag, ctx = flags.NewClientFlag(ctx)
-	cmd.ClientFlag.Register(ctx, f)
+	cmd.List = &option.List{}
+	cmd.List.ClientFlag, ctx = flags.NewClientFlag(ctx)
+	cmd.List.ClientFlag.Register(ctx, f)
 
-	cmd.OutputFlag, ctx = flags.NewOutputFlag(ctx)
-	cmd.OutputFlag.Register(ctx, f)
+	cmd.List.OutputFlag, ctx = flags.NewOutputFlag(ctx)
+	cmd.List.OutputFlag.Register(ctx, f)
 
 	cmd.HostSystemFlag, ctx = flags.NewHostSystemFlag(ctx)
 	cmd.HostSystemFlag.Register(ctx, f)
 }
 
 func (cmd *ls) Process(ctx context.Context) error {
-	if err := cmd.ClientFlag.Process(ctx); err != nil {
-		return err
-	}
-	if err := cmd.OutputFlag.Process(ctx); err != nil {
+	if err := cmd.List.Process(ctx); err != nil {
 		return err
 	}
 	if err := cmd.HostSystemFlag.Process(ctx); err != nil {
@@ -63,21 +56,16 @@ func (cmd *ls) Process(ctx context.Context) error {
 	return nil
 }
 
-func (cmd *ls) Usage() string {
-	return "NAME"
-}
-
 func (cmd *ls) Description() string {
-	return `List option with the given NAME.
+	return option.ListDescription + `
 
-If NAME ends with a dot, all options for that subtree are listed.`
+Examples:
+  govc host.option.ls
+  govc host.option.ls Config.HostAgent.
+  govc host.option.ls Config.HostAgent.plugins.solo.enableMob`
 }
 
 func (cmd *ls) Run(ctx context.Context, f *flag.FlagSet) error {
-	if f.NArg() != 1 {
-		return flag.ErrHelp
-	}
-
 	host, err := cmd.HostSystem()
 	if err != nil {
 		return err
@@ -88,21 +76,5 @@ func (cmd *ls) Run(ctx context.Context, f *flag.FlagSet) error {
 		return err
 	}
 
-	opts, err := m.Query(ctx, f.Arg(0))
-	if err != nil {
-		return err
-	}
-
-	return cmd.WriteResult(optionResult(opts))
-}
-
-type optionResult []types.BaseOptionValue
-
-func (r optionResult) Write(w io.Writer) error {
-	tw := tabwriter.NewWriter(os.Stdout, 2, 0, 2, ' ', 0)
-	for _, opt := range r {
-		o := opt.GetOptionValue()
-		fmt.Fprintf(tw, "%s:\t%v\n", o.Key, o.Value)
-	}
-	return tw.Flush()
+	return cmd.Query(ctx, f, m)
 }

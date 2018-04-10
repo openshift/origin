@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2015 VMware, Inc. All Rights Reserved.
+Copyright (c) 2015-2017 VMware, Inc. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -26,6 +26,16 @@ import (
 	"github.com/vmware/govmomi/vim25/types"
 )
 
+func DrsBehaviorUsage() string {
+	drsModes := []string{
+		string(types.DrsBehaviorManual),
+		string(types.DrsBehaviorPartiallyAutomated),
+		string(types.DrsBehaviorFullyAutomated),
+	}
+
+	return "DRS behavior for virtual machines: " + strings.Join(drsModes, ", ")
+}
+
 type change struct {
 	*flags.DatacenterFlag
 
@@ -48,13 +58,7 @@ func (cmd *change) Register(ctx context.Context, f *flag.FlagSet) {
 	// DRS
 	f.Var(flags.NewOptionalBool(&cmd.DrsConfig.Enabled), "drs-enabled", "Enable DRS")
 
-	drsModes := []string{
-		string(types.DrsBehaviorManual),
-		string(types.DrsBehaviorPartiallyAutomated),
-		string(types.DrsBehaviorFullyAutomated),
-	}
-	f.StringVar((*string)(&cmd.DrsConfig.DefaultVmBehavior), "drs-mode", "",
-		"DRS behavior for virtual machines: "+strings.Join(drsModes, ", "))
+	f.StringVar((*string)(&cmd.DrsConfig.DefaultVmBehavior), "drs-mode", "", DrsBehaviorUsage())
 
 	// HA
 	f.Var(flags.NewOptionalBool(&cmd.DasConfig.Enabled), "ha-enabled", "Enable HA")

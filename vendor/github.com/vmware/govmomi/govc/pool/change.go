@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2015 VMware, Inc. All Rights Reserved.
+Copyright (c) 2015-2017 VMware, Inc. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -39,7 +39,16 @@ func init() {
 func (cmd *change) Register(ctx context.Context, f *flag.FlagSet) {
 	cmd.DatacenterFlag, ctx = flags.NewDatacenterFlag(ctx)
 	cmd.DatacenterFlag.Register(ctx, f)
-	cmd.ResourceConfigSpecFlag = NewResourceConfigSpecFlag()
+	cmd.ResourceConfigSpecFlag = &ResourceConfigSpecFlag{
+		ResourceConfigSpec: types.ResourceConfigSpec{
+			CpuAllocation: types.ResourceAllocationInfo{
+				Shares: new(types.SharesInfo),
+			},
+			MemoryAllocation: types.ResourceAllocationInfo{
+				Shares: new(types.SharesInfo),
+			},
+		},
+	}
 	cmd.ResourceConfigSpecFlag.Register(ctx, f)
 
 	f.StringVar(&cmd.name, "name", "", "Resource pool name")
@@ -73,12 +82,11 @@ func (cmd *change) Run(ctx context.Context, f *flag.FlagSet) error {
 		return err
 	}
 
-	cmd.SetAllocation(func(a types.BaseResourceAllocationInfo) {
-		ra := a.GetResourceAllocationInfo()
+	for _, ra := range []*types.ResourceAllocationInfo{&cmd.CpuAllocation, &cmd.MemoryAllocation} {
 		if ra.Shares.Level == "" {
 			ra.Shares = nil
 		}
-	})
+	}
 
 	for _, arg := range f.Args() {
 		pools, err := finder.ResourcePoolListAll(ctx, arg)

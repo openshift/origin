@@ -39,7 +39,14 @@ type schemaTestT struct {
 	}
 }
 
+type schemasTestT struct {
+	Schema  *spec.Schema `json:"schema"`
+	Valid   interface{}  `json:"valid"`
+	Invalid interface{}  `json:"invalid"`
+}
+
 var jsonSchemaFixturesPath = filepath.Join("fixtures", "jsonschema_suite")
+var schemaFixturesPath = filepath.Join("fixtures", "schemas")
 
 var ints = []interface{}{
 	1,
@@ -97,8 +104,8 @@ var enabled = []string{
 	"not",
 	"oneOf",
 	"anyOf",
-	// "ref",
-	// "definitions",
+	"ref",
+	"definitions",
 	"refRemote",
 	"format",
 }
@@ -159,6 +166,44 @@ func TestJSONSchemaSuite(t *testing.T) {
 							assert.NotEmpty(t, result.Errors, test.Description+" should have errors")
 						}
 					}
+				}
+			}
+		}
+	}
+}
+
+func TestSchemaFixtures(t *testing.T) {
+	files, err := ioutil.ReadDir(schemaFixturesPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, f := range files {
+		if f.IsDir() {
+			continue
+		}
+		fileName := f.Name()
+		specName := strings.TrimSuffix(fileName, filepath.Ext(fileName))
+
+		t.Log("Running " + specName)
+		b, _ := ioutil.ReadFile(filepath.Join(schemaFixturesPath, fileName))
+
+		var testDescriptions []schemasTestT
+		json.Unmarshal(b, &testDescriptions)
+
+		for _, testDescription := range testDescriptions {
+
+			err := spec.ExpandSchema(testDescription.Schema, nil, nil /*new(noopResCache)*/)
+			if assert.NoError(t, err) {
+
+				validator := NewSchemaValidator(testDescription.Schema, nil, "data", strfmt.Default)
+				valid := validator.Validate(testDescription.Valid)
+				if assert.NotNil(t, valid, specName+" should validate") {
+					assert.Empty(t, valid.Errors, specName+".valid should not have errors")
+				}
+				invalid := validator.Validate(testDescription.Invalid)
+				if assert.NotNil(t, invalid, specName+" should validate") {
+					assert.NotEmpty(t, invalid.Errors, specName+".invalid should have errors")
 				}
 			}
 		}

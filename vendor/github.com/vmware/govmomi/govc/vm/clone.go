@@ -50,6 +50,8 @@ type clone struct {
 	customization string
 	waitForIP     bool
 	annotation    string
+	snapshot      string
+	link          bool
 
 	Client         *vim25.Client
 	Datacenter     *object.Datacenter
@@ -101,6 +103,8 @@ func (cmd *clone) Register(ctx context.Context, f *flag.FlagSet) {
 	f.StringVar(&cmd.customization, "customization", "", "Customization Specification Name")
 	f.BoolVar(&cmd.waitForIP, "waitip", false, "Wait for VM to acquire IP address")
 	f.StringVar(&cmd.annotation, "annotation", "", "VM description")
+	f.StringVar(&cmd.snapshot, "snapshot", "", "Snapshot name to clone from")
+	f.BoolVar(&cmd.link, "link", false, "Creates a linked clone from snapshot or source VM")
 }
 
 func (cmd *clone) Usage() string {
@@ -111,7 +115,11 @@ func (cmd *clone) Description() string {
 	return `Clone VM to NAME.
 
 Examples:
-  govc vm.clone -vm template-vm new-vm`
+  govc vm.clone -vm template-vm new-vm
+  govc vm.clone -vm template-vm -link new-vm
+  govc vm.clone -vm template-vm -snapshot s-name new-vm
+  govc vm.clone -vm template-vm -link -snapshot s-name new-vm
+  govc vm.clone -vm template-vm -snapshot $(govc snapshot.tree -vm template-vm -C) new-vm`
 }
 
 func (cmd *clone) Process(ctx context.Context) error {
@@ -208,17 +216,10 @@ func (cmd *clone) Run(ctx context.Context, f *flag.FlagSet) error {
 		return flag.ErrHelp
 	}
 
-	task, err := cmd.cloneVM(ctx)
+	vm, err := cmd.cloneVM(ctx)
 	if err != nil {
 		return err
 	}
-
-	info, err := task.WaitForResult(ctx, nil)
-	if err != nil {
-		return err
-	}
-
-	vm := object.NewVirtualMachine(cmd.Client, info.Result.(types.ManagedObjectReference))
 
 	if cmd.cpus > 0 || cmd.memory > 0 {
 		vmConfigSpec := types.VirtualMachineConfigSpec{}
@@ -261,39 +262,36 @@ func (cmd *clone) Run(ctx context.Context, f *flag.FlagSet) error {
 	return nil
 }
 
-func (cmd *clone) cloneVM(ctx context.Context) (*object.Task, error) {
-
-	// search for the first network card of the source
+func (cmd *clone) cloneVM(ctx context.Context) (*object.VirtualMachine, error) {
 	devices, err := cmd.VirtualMachine.Device(ctx)
 	if err != nil {
 		return nil, err
 	}
-	var card *types.VirtualEthernetCard
-	for _, device := range devices {
-		if c, ok := device.(types.BaseVirtualEthernetCard); ok {
-			card = c.GetVirtualEthernetCard()
-			break
-		}
-	}
-	if card == nil {
-		return nil, fmt.Errorf("No network device found.")
-	}
-
-	// get the new backing information
-	dev, err := cmd.NetworkFlag.Device()
-	if err != nil {
-		return nil, err
-	}
-
-	//set backing info
-	card.Backing = dev.(types.BaseVirtualEthernetCard).GetVirtualEthernetCard().Backing
 
 	// prepare virtual device config spec for network card
-	configSpecs := []types.BaseVirtualDeviceConfigSpec{
-		&types.VirtualDeviceConfigSpec{
-			Operation: types.VirtualDeviceConfigSpecOperationEdit,
+	configSpecs := []types.BaseVirtualDeviceConfigSpec{}
+
+	if cmd.NetworkFlag.IsSet() {
+		op := types.VirtualDeviceConfigSpecOperationAdd
+		card, derr := cmd.NetworkFlag.Device()
+		if derr != nil {
+			return nil, derr
+		}
+		// search for the first network card of the source
+		for _, device := range devices {
+			if _, ok := device.(types.BaseVirtualEthernetCard); ok {
+				op = types.VirtualDeviceConfigSpecOperationEdit
+				// set new backing info
+				cmd.NetworkFlag.Change(device, card)
+				card = device
+				break
+			}
+		}
+
+		configSpecs = append(configSpecs, &types.VirtualDeviceConfigSpec{
+			Operation: op,
 			Device:    card,
-		},
+		})
 	}
 
 	folderref := cmd.Folder.Reference()
@@ -311,10 +309,28 @@ func (cmd *clone) cloneVM(ctx context.Context) (*object.Task, error) {
 	}
 
 	cloneSpec := &types.VirtualMachineCloneSpec{
-		Location: relocateSpec,
 		PowerOn:  false,
 		Template: cmd.template,
 	}
+
+	if cmd.snapshot == "" {
+		if cmd.link {
+			relocateSpec.DiskMoveType = string(types.VirtualMachineRelocateDiskMoveOptionsMoveAllDiskBackingsAndAllowSharing)
+		}
+	} else {
+		if cmd.link {
+			relocateSpec.DiskMoveType = string(types.VirtualMachineRelocateDiskMoveOptionsCreateNewChildDiskBacking)
+		}
+
+		ref, ferr := cmd.VirtualMachine.FindSnapshot(ctx, cmd.snapshot)
+		if ferr != nil {
+			return nil, ferr
+		}
+
+		cloneSpec.Snapshot = ref
+	}
+
+	cloneSpec.Location = relocateSpec
 
 	// clone to storage pod
 	datastoreref := types.ManagedObjectReference{}
@@ -405,6 +421,18 @@ func (cmd *clone) cloneVM(ctx context.Context) (*object.Task, error) {
 		cloneSpec.Customization = &customSpec
 	}
 
-	// clone virtualmachine
-	return cmd.VirtualMachine.Clone(ctx, cmd.Folder, cmd.name, *cloneSpec)
+	task, err := cmd.VirtualMachine.Clone(ctx, cmd.Folder, cmd.name, *cloneSpec)
+	if err != nil {
+		return nil, err
+	}
+
+	logger := cmd.ProgressLogger(fmt.Sprintf("Cloning %s to %s...", cmd.VirtualMachine.InventoryPath, cmd.name))
+	defer logger.Wait()
+
+	info, err := task.WaitForResult(ctx, logger)
+	if err != nil {
+		return nil, err
+	}
+
+	return object.NewVirtualMachine(cmd.Client, info.Result.(types.ManagedObjectReference)), nil
 }

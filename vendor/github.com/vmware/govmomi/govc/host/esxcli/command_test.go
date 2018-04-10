@@ -20,6 +20,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/vmware/govmomi/internal"
 	"github.com/vmware/govmomi/vim25/types"
 )
 
@@ -71,7 +72,7 @@ func TestSystemSettingsAdvancedSetCommand(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expect := []types.ReflectManagedMethodExecuterSoapArgument{
+	expect := []internal.ReflectManagedMethodExecuterSoapArgument{
 		{
 			DynamicData: types.DynamicData{},
 			Name:        "intvalue",
@@ -116,7 +117,7 @@ func TestNetworkVmListCommand(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expect := []types.ReflectManagedMethodExecuterSoapArgument{}
+	expect := []internal.ReflectManagedMethodExecuterSoapArgument{}
 
 	if !reflect.DeepEqual(args, expect) {
 		t.Errorf("%s != %s", args, expect)

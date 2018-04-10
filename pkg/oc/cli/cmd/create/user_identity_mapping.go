@@ -6,7 +6,6 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
@@ -39,7 +38,6 @@ type CreateUserIdentityMappingOptions struct {
 
 	DryRun bool
 
-	Mapper       meta.RESTMapper
 	OutputFormat string
 	Out          io.Writer
 	Printer      ObjectPrinter
@@ -86,11 +84,10 @@ func (o *CreateUserIdentityMappingOptions) Complete(cmd *cobra.Command, f *clien
 	}
 	o.UserIdentityMappingClient = client.User().UserIdentityMappings()
 
-	o.Mapper, _ = f.Object()
 	o.OutputFormat = cmdutil.GetFlagString(cmd, "output")
 
 	o.Printer = func(obj runtime.Object, out io.Writer) error {
-		return f.PrintObject(cmd, false, o.Mapper, obj, out)
+		return cmdutil.PrintObject(cmd, obj, out)
 	}
 
 	return nil
@@ -105,9 +102,6 @@ func (o *CreateUserIdentityMappingOptions) Validate() error {
 	}
 	if o.UserIdentityMappingClient == nil {
 		return fmt.Errorf("UserIdentityMappingClient is required")
-	}
-	if o.Mapper == nil {
-		return fmt.Errorf("Mapper is required")
 	}
 	if o.Out == nil {
 		return fmt.Errorf("Out is required")
@@ -135,7 +129,7 @@ func (o *CreateUserIdentityMappingOptions) Run() error {
 	}
 
 	if useShortOutput := o.OutputFormat == "name"; useShortOutput || len(o.OutputFormat) == 0 {
-		cmdutil.PrintSuccess(o.Mapper, useShortOutput, o.Out, "useridentitymapping", actualMapping.Name, o.DryRun, "created")
+		cmdutil.PrintSuccess(useShortOutput, o.Out, actualMapping, o.DryRun, "created")
 		return nil
 	}
 

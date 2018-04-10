@@ -59,10 +59,6 @@ func (cmd *info) Process(ctx context.Context) error {
 	return nil
 }
 
-func (cmd *info) Usage() string {
-	return ""
-}
-
 func (cmd *info) Run(ctx context.Context, f *flag.FlagSet) error {
 	client, err := cmd.Client()
 	if err != nil {

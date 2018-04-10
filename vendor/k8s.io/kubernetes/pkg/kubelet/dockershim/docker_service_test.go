@@ -18,6 +18,7 @@ package dockershim
 
 import (
 	"errors"
+	"math/rand"
 	"testing"
 	"time"
 
@@ -28,7 +29,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"k8s.io/apimachinery/pkg/util/clock"
-	runtimeapi "k8s.io/kubernetes/pkg/kubelet/apis/cri/v1alpha1/runtime"
+	runtimeapi "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
 	containertest "k8s.io/kubernetes/pkg/kubelet/container/testing"
 	"k8s.io/kubernetes/pkg/kubelet/dockershim/libdocker"
 	"k8s.io/kubernetes/pkg/kubelet/network"
@@ -44,7 +45,7 @@ func newTestNetworkPlugin(t *testing.T) *nettest.MockNetworkPlugin {
 
 func newTestDockerService() (*dockerService, *libdocker.FakeDockerClient, *clock.FakeClock) {
 	fakeClock := clock.NewFakeClock(time.Time{})
-	c := libdocker.NewFakeDockerClient().WithClock(fakeClock).WithVersion("1.11.2", "1.23")
+	c := libdocker.NewFakeDockerClient().WithClock(fakeClock).WithVersion("1.11.2", "1.23").WithRandSource(rand.NewSource(0))
 	pm := network.NewPluginManager(&network.NoopNetworkPlugin{})
 	return &dockerService{
 		client:            c,
@@ -83,33 +84,33 @@ func TestStatus(t *testing.T) {
 	}
 
 	// Should report ready status if version returns no error.
-	status, err := ds.Status()
-	assert.NoError(t, err)
+	statusResp, err := ds.Status(getTestCTX(), &runtimeapi.StatusRequest{})
+	require.NoError(t, err)
 	assertStatus(map[string]bool{
 		runtimeapi.RuntimeReady: true,
 		runtimeapi.NetworkReady: true,
-	}, status)
+	}, statusResp.Status)
 
 	// Should not report ready status if version returns error.
 	fDocker.InjectError("version", errors.New("test error"))
-	status, err = ds.Status()
+	statusResp, err = ds.Status(getTestCTX(), &runtimeapi.StatusRequest{})
 	assert.NoError(t, err)
 	assertStatus(map[string]bool{
 		runtimeapi.RuntimeReady: false,
 		runtimeapi.NetworkReady: true,
-	}, status)
+	}, statusResp.Status)
 
 	// Should not report ready status is network plugin returns error.
 	mockPlugin := newTestNetworkPlugin(t)
 	ds.network = network.NewPluginManager(mockPlugin)
 	defer mockPlugin.Finish()
 	mockPlugin.EXPECT().Status().Return(errors.New("network error"))
-	status, err = ds.Status()
+	statusResp, err = ds.Status(getTestCTX(), &runtimeapi.StatusRequest{})
 	assert.NoError(t, err)
 	assertStatus(map[string]bool{
 		runtimeapi.RuntimeReady: true,
 		runtimeapi.NetworkReady: false,
-	}, status)
+	}, statusResp.Status)
 }
 
 func TestVersion(t *testing.T) {

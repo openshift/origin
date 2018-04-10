@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2014-2015 VMware, Inc. All Rights Reserved.
+Copyright (c) 2014-2017 VMware, Inc. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,8 +21,8 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"os"
 	"strconv"
+	"strings"
 	"text/tabwriter"
 	"time"
 
@@ -36,6 +36,7 @@ type ps struct {
 	*GuestFlag
 
 	every bool
+	exit  bool
 	wait  bool
 
 	pids pidSelector
@@ -81,6 +82,7 @@ func (cmd *ps) Register(ctx context.Context, f *flag.FlagSet) {
 
 	cmd.uids = make(map[string]bool)
 	f.BoolVar(&cmd.every, "e", false, "Select all processes")
+	f.BoolVar(&cmd.exit, "x", false, "Output exit time and code")
 	f.BoolVar(&cmd.wait, "X", false, "Wait for process to exit")
 	f.Var(&cmd.pids, "p", "Select by process ID")
 	f.Var(&cmd.uids, "U", "Select by process UID")
@@ -94,6 +96,22 @@ func (cmd *ps) Process(ctx context.Context) error {
 		return err
 	}
 	return nil
+}
+
+func (cmd *ps) Description() string {
+	return `List processes in VM.
+
+By default, unless the '-e', '-p' or '-U' flag is specified, only processes owned
+by the '-l' flag user are displayed.
+
+The '-x' and '-X' flags only apply to processes started by vmware-tools,
+such as those started with the govc guest.start command.
+
+Examples:
+  govc guest.ps -vm $name
+  govc guest.ps -vm $name -e
+  govc guest.ps -vm $name -p 12345
+  govc guest.ps -vm $name -U root`
 }
 
 func running(procs []types.GuestProcessInfo) bool {
@@ -145,9 +163,17 @@ type psResult struct {
 }
 
 func (r *psResult) Write(w io.Writer) error {
-	tw := tabwriter.NewWriter(os.Stdout, 4, 0, 2, ' ', 0)
+	tw := tabwriter.NewWriter(w, 2, 0, 2, ' ', 0)
 
-	fmt.Fprintf(tw, "%s\t%s\t%s\t%s\n", "UID", "PID", "STIME", "CMD")
+	fmt.Fprintf(tw, "%s\t%s\t%s", "UID", "PID", "STIME")
+	if r.cmd.exit {
+		fmt.Fprintf(tw, "\t%s\t%s", "XTIME", "XCODE")
+	}
+	fmt.Fprint(tw, "\tCMD\n")
+
+	if len(r.cmd.pids) != 0 {
+		r.cmd.every = true
+	}
 
 	if !r.cmd.every && len(r.cmd.uids) == 0 {
 		r.cmd.uids[r.cmd.auth.Username] = true
@@ -155,7 +181,17 @@ func (r *psResult) Write(w io.Writer) error {
 
 	for _, p := range r.ProcessInfo {
 		if r.cmd.every || r.cmd.uids[p.Owner] {
-			fmt.Fprintf(tw, "%s\t%d\t%s\t%s\n", p.Owner, p.Pid, p.StartTime.Format("15:04"), p.CmdLine)
+			fmt.Fprintf(tw, "%s\t%d\t%s", p.Owner, p.Pid, p.StartTime.Format("15:04"))
+			if r.cmd.exit {
+				etime := "-"
+				ecode := "-"
+				if p.EndTime != nil {
+					etime = p.EndTime.Format("15:04")
+					ecode = strconv.Itoa(int(p.ExitCode))
+				}
+				fmt.Fprintf(tw, "\t%s\t%s", etime, ecode)
+			}
+			fmt.Fprintf(tw, "\t%s\n", strings.TrimSpace(p.CmdLine))
 		}
 	}
 

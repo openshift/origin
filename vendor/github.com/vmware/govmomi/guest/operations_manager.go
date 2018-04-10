@@ -18,6 +18,7 @@ package guest
 
 import (
 	"context"
+	"sync"
 
 	"github.com/vmware/govmomi/property"
 	"github.com/vmware/govmomi/vim25"
@@ -58,7 +59,13 @@ func (m OperationsManager) FileManager(ctx context.Context) (*FileManager, error
 		return nil, err
 	}
 
-	return &FileManager{*g.FileManager, m.vm, m.c}, nil
+	return &FileManager{
+		ManagedObjectReference: *g.FileManager,
+		vm:    m.vm,
+		c:     m.c,
+		mu:    new(sync.Mutex),
+		hosts: make(map[string]string),
+	}, nil
 }
 
 func (m OperationsManager) ProcessManager(ctx context.Context) (*ProcessManager, error) {

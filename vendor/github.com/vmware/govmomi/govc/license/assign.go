@@ -30,6 +30,7 @@ type assign struct {
 	*flags.ClientFlag
 	*flags.OutputFlag
 	*flags.HostSystemFlag
+	*flags.ClusterFlag
 
 	name   string
 	remove bool
@@ -49,6 +50,9 @@ func (cmd *assign) Register(ctx context.Context, f *flag.FlagSet) {
 	cmd.HostSystemFlag, ctx = flags.NewHostSystemFlag(ctx)
 	cmd.HostSystemFlag.Register(ctx, f)
 
+	cmd.ClusterFlag, ctx = flags.NewClusterFlag(ctx)
+	cmd.ClusterFlag.Register(ctx, f)
+
 	f.StringVar(&cmd.name, "name", "", "Display name")
 	f.BoolVar(&cmd.remove, "remove", false, "Remove assignment")
 }
@@ -63,11 +67,20 @@ func (cmd *assign) Process(ctx context.Context) error {
 	if err := cmd.HostSystemFlag.Process(ctx); err != nil {
 		return err
 	}
-	return nil
+	return cmd.ClusterFlag.Process(ctx)
 }
 
 func (cmd *assign) Usage() string {
 	return "KEY"
+}
+
+func (cmd *assign) Description() string {
+	return `Assign licenses to HOST or CLUSTER.
+
+Examples:
+  govc license.assign $VCSA_LICENSE_KEY
+  govc license.assign -host a_host.example.com $ESX_LICENSE_KEY
+  govc license.assign -cluster a_cluster $VSAN_LICENSE_KEY`
 }
 
 func (cmd *assign) Run(ctx context.Context, f *flag.FlagSet) error {
@@ -95,8 +108,16 @@ func (cmd *assign) Run(ctx context.Context, f *flag.FlagSet) error {
 	var id string
 
 	if host == nil {
-		// Default to vCenter UUID
-		id = client.ServiceContent.About.InstanceUuid
+		cluster, cerr := cmd.ClusterIfSpecified()
+		if cerr != nil {
+			return cerr
+		}
+		if cluster == nil {
+			// Default to vCenter UUID
+			id = client.ServiceContent.About.InstanceUuid
+		} else {
+			id = cluster.Reference().Value
+		}
 	} else {
 		id = host.Reference().Value
 	}

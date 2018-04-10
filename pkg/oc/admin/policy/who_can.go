@@ -67,7 +67,7 @@ func (o *whoCanOptions) complete(f *clientcmd.Factory, cmd *cobra.Command, args 
 	o.out = out
 	o.output = kcmdutil.GetFlagString(cmd, "output")
 	o.printObj = func(obj runtime.Object) error {
-		return f.PrintObject(cmd, false, mapper, obj, out)
+		return kcmdutil.PrintObject(cmd, obj, out)
 	}
 
 	switch len(args) {

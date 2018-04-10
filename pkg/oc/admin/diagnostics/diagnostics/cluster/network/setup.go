@@ -2,24 +2,18 @@ package network
 
 // Set up test environment needed for network diagnostics
 import (
-	"bytes"
 	"fmt"
 	"strings"
 	"time"
 
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/storage/names"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
-	"k8s.io/client-go/tools/clientcmd/api/latest"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/printers"
 
 	"github.com/openshift/origin/pkg/network"
 	networkapi "github.com/openshift/origin/pkg/network/apis/network"
@@ -52,7 +46,7 @@ func (d *NetworkDiagnostic) TestSetup() error {
 	}
 
 	// Store kubeconfig as secret, used by network diagnostic pod
-	kconfigData, err := d.getKubeConfig()
+	kconfigData, err := kclientcmd.Write(*d.RawConfig)
 	if err != nil {
 		return fmt.Errorf("Fetching kube config for network pod failed: %v", err)
 	}
@@ -274,25 +268,4 @@ func (d *NetworkDiagnostic) makeNamespaceGlobal(nsName string) error {
 		// Pod network change not applied yet
 		return false, nil
 	})
-}
-
-// turn a raw config object into its string representation (kubeconfig)
-func (d *NetworkDiagnostic) getKubeConfig() ([]byte, error) {
-	var b bytes.Buffer
-
-	// there does not seem to be a simple DefaultPrinter to invoke; create one
-	options := &printers.PrintOptions{
-		OutputFormatType: "yaml",
-		AllowMissingKeys: true,
-	}
-	printer, err := cmdutil.PrinterForOptions(meta.NewDefaultRESTMapper(nil, nil), latest.Scheme, nil, []runtime.Decoder{latest.Codec}, options)
-	if err != nil {
-		return nil, fmt.Errorf("from PrinterForOptions: %#v", err)
-	}
-	printer = printers.NewVersionedPrinter(printer, latest.Scheme, latest.ExternalVersion)
-
-	if err := printer.PrintObj(d.RawConfig, &b); err != nil {
-		return nil, fmt.Errorf("from PrintObj: %#v", err)
-	}
-	return b.Bytes(), nil
 }

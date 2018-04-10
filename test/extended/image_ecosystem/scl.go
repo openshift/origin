@@ -41,7 +41,10 @@ func defineTest(image string, t tc, oc *exutil.CLI) {
 			err = oc.KubeFramework().WaitForPodRunningSlow(pod.Name)
 			if err != nil {
 				p, e := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(pod.Name, metav1.GetOptions{})
-				e2e.Logf("error %v waiting for pod %v: ", p, e)
+				if e != nil {
+					e2e.Logf("error %v getting pod", e)
+				}
+				e2e.Logf("error %v waiting for pod %v: ", err, p)
 				o.Expect(err).To(o.Equal(conditions.ErrPodCompleted))
 			}
 
@@ -76,7 +79,10 @@ func defineTest(image string, t tc, oc *exutil.CLI) {
 			err = oc.KubeFramework().WaitForPodRunningSlow(pod.Name)
 			if err != nil {
 				p, e := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(pod.Name, metav1.GetOptions{})
-				e2e.Logf("error %v waiting for pod %v: ", p, e)
+				if e != nil {
+					e2e.Logf("error %v getting pod", e)
+				}
+				e2e.Logf("error %v waiting for pod %v: ", err, p)
 				o.Expect(err).To(o.Equal(conditions.ErrPodCompleted))
 			}
 

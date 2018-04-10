@@ -54,12 +54,12 @@ func (m PriorityRESTMapper) String() string {
 
 // ResourceFor finds all resources, then passes them through the ResourcePriority patterns to find a single matching hit.
 func (m PriorityRESTMapper) ResourceFor(partiallySpecifiedResource schema.GroupVersionResource) (schema.GroupVersionResource, error) {
-	originalGVRs, err := m.Delegate.ResourcesFor(partiallySpecifiedResource)
-	if err != nil {
-		return schema.GroupVersionResource{}, err
+	originalGVRs, originalErr := m.Delegate.ResourcesFor(partiallySpecifiedResource)
+	if originalErr != nil && len(originalGVRs) == 0 {
+		return schema.GroupVersionResource{}, originalErr
 	}
 	if len(originalGVRs) == 1 {
-		return originalGVRs[0], nil
+		return originalGVRs[0], originalErr
 	}
 
 	remainingGVRs := append([]schema.GroupVersionResource{}, originalGVRs...)
@@ -90,7 +90,7 @@ func (m PriorityRESTMapper) ResourceFor(partiallySpecifiedResource schema.GroupV
 			continue
 		case 1:
 			// one match, return
-			return matchedGVRs[0], nil
+			return matchedGVRs[0], originalErr
 		default:
 			// more than one match, use the matched hits as the list moving to the next pattern.
 			// this way you can have a series of selection criteria
@@ -103,12 +103,12 @@ func (m PriorityRESTMapper) ResourceFor(partiallySpecifiedResource schema.GroupV
 
 // KindFor finds all kinds, then passes them through the KindPriority patterns to find a single matching hit.
 func (m PriorityRESTMapper) KindFor(partiallySpecifiedResource schema.GroupVersionResource) (schema.GroupVersionKind, error) {
-	originalGVKs, err := m.Delegate.KindsFor(partiallySpecifiedResource)
-	if err != nil {
-		return schema.GroupVersionKind{}, err
+	originalGVKs, originalErr := m.Delegate.KindsFor(partiallySpecifiedResource)
+	if originalErr != nil && len(originalGVKs) == 0 {
+		return schema.GroupVersionKind{}, originalErr
 	}
 	if len(originalGVKs) == 1 {
-		return originalGVKs[0], nil
+		return originalGVKs[0], originalErr
 	}
 
 	remainingGVKs := append([]schema.GroupVersionKind{}, originalGVKs...)
@@ -139,7 +139,7 @@ func (m PriorityRESTMapper) KindFor(partiallySpecifiedResource schema.GroupVersi
 			continue
 		case 1:
 			// one match, return
-			return matchedGVKs[0], nil
+			return matchedGVKs[0], originalErr
 		default:
 			// more than one match, use the matched hits as the list moving to the next pattern.
 			// this way you can have a series of selection criteria
@@ -179,9 +179,9 @@ func kindMatches(pattern schema.GroupVersionKind, kind schema.GroupVersionKind) 
 }
 
 func (m PriorityRESTMapper) RESTMapping(gk schema.GroupKind, versions ...string) (mapping *RESTMapping, err error) {
-	mappings, err := m.Delegate.RESTMappings(gk)
-	if err != nil {
-		return nil, err
+	mappings, originalErr := m.Delegate.RESTMappings(gk, versions...)
+	if originalErr != nil && len(mappings) == 0 {
+		return nil, originalErr
 	}
 
 	// any versions the user provides take priority
@@ -213,7 +213,7 @@ func (m PriorityRESTMapper) RESTMapping(gk schema.GroupKind, versions ...string)
 			continue
 		case 1:
 			// one match, return
-			return matching[0], nil
+			return matching[0], originalErr
 		default:
 			// more than one match, use the matched hits as the list moving to the next pattern.
 			// this way you can have a series of selection criteria
@@ -221,7 +221,7 @@ func (m PriorityRESTMapper) RESTMapping(gk schema.GroupKind, versions ...string)
 		}
 	}
 	if len(remaining) == 1 {
-		return remaining[0], nil
+		return remaining[0], originalErr
 	}
 
 	var kinds []schema.GroupVersionKind

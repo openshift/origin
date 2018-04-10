@@ -122,7 +122,7 @@ func NewCmdProbe(fullName string, f *clientcmd.Factory, out, errOut io.Writer) *
 		ContainerSelector: "*",
 	}
 	cmd := &cobra.Command{
-		Use:     "probe RESOURCE/NAME --readiness|--liveness [options] (--get-url=URL|--open-tcp=PORT|-- CMD)",
+		Use:     "probe RESOURCE/NAME --readiness|--liveness [flags] (--get-url=URL|--open-tcp=PORT|-- CMD)",
 		Short:   "Update a probe on a pod template",
 		Long:    probeLong,
 		Example: fmt.Sprintf(probeExample, fullName),
@@ -201,7 +201,7 @@ func (o *ProbeOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args [
 		return f.PrintResourceInfos(cmd, o.Local, infos, o.Out)
 	}
 
-	o.Encoder = f.JSONEncoder()
+	o.Encoder = kcmdutil.InternalVersionJSONEncoder()
 	o.UpdatePodSpecForObject = f.UpdatePodSpecForObject
 	o.ShortOutput = kcmdutil.GetFlagString(cmd, "output") == "name"
 	o.Mapper = mapper
@@ -350,7 +350,7 @@ func (o *ProbeOptions) Run() error {
 		}
 
 		info.Refresh(obj, true)
-		kcmdutil.PrintSuccess(o.Mapper, o.ShortOutput, o.Out, info.Mapping.Resource, info.Name, false, "updated")
+		kcmdutil.PrintSuccess(o.ShortOutput, o.Out, info.Object, false, "updated")
 	}
 	if failed {
 		return kcmdutil.ErrExit

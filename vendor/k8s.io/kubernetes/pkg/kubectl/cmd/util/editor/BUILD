@@ -42,8 +42,7 @@ go_library(
 go_test(
     name = "go_default_test",
     srcs = ["editor_test.go"],
-    importpath = "k8s.io/kubernetes/pkg/kubectl/cmd/util/editor",
-    library = ":go_default_library",
+    embed = [":go_default_library"],
 )
 
 filegroup(

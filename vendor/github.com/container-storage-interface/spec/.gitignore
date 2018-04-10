@@ -1,2 +1,3 @@
-/csi.proto.tmp
+*.tmp
 .DS_Store
+.build

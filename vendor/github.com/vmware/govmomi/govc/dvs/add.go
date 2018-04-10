@@ -87,7 +87,7 @@ func (cmd *add) Run(ctx context.Context, f *flag.FlagSet) error {
 		return fmt.Errorf("%s (%T) is not of type %T", cmd.path, net, dvs)
 	}
 
-	var s mo.VmwareDistributedVirtualSwitch
+	var s mo.DistributedVirtualSwitch
 	err = dvs.Properties(ctx, dvs.Reference(), []string{"config"}, &s)
 	if err != nil {
 		return err

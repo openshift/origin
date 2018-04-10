@@ -60,6 +60,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&PodSecurityPolicySubjectReview{},
 		&PodSecurityPolicySelfSubjectReview{},
 		&PodSecurityPolicyReview{},
+		&RangeAllocation{},
+		&RangeAllocationList{},
 	)
 	return nil
 }

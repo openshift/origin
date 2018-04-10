@@ -18,16 +18,21 @@ package importx
 
 import (
 	"archive/tar"
+	"bytes"
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net/url"
 	"os"
 	"path"
-	"path/filepath"
+	"strings"
 
 	"github.com/vmware/govmomi/ovf"
+	"github.com/vmware/govmomi/vim25"
+	"github.com/vmware/govmomi/vim25/soap"
 )
 
 // ArchiveFlag doesn't register any flags;
@@ -57,16 +62,8 @@ func (f *ArchiveFlag) ReadOvf(fpath string) ([]byte, error) {
 	return ioutil.ReadAll(r)
 }
 
-func (f *ArchiveFlag) ReadEnvelope(fpath string) (*ovf.Envelope, error) {
-	if fpath == "" {
-		return &ovf.Envelope{}, nil
-	}
-
-	r, _, err := f.Open(fpath)
-	if err != nil {
-		return nil, err
-	}
-	defer r.Close()
+func (f *ArchiveFlag) ReadEnvelope(data []byte) (*ovf.Envelope, error) {
+	r := bytes.NewReader(data)
 
 	e, err := ovf.Unmarshal(r)
 	if err != nil {
@@ -82,11 +79,12 @@ type Archive interface {
 
 type TapeArchive struct {
 	path string
+	Opener
 }
 
 type TapeArchiveEntry struct {
 	io.Reader
-	f *os.File
+	f io.Closer
 }
 
 func (t *TapeArchiveEntry) Close() error {
@@ -94,7 +92,7 @@ func (t *TapeArchiveEntry) Close() error {
 }
 
 func (t *TapeArchive) Open(name string) (io.ReadCloser, int64, error) {
-	f, err := os.Open(t.path)
+	f, _, err := t.OpenFile(t.path)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -127,23 +125,62 @@ func (t *TapeArchive) Open(name string) (io.ReadCloser, int64, error) {
 
 type FileArchive struct {
 	path string
+	Opener
 }
 
 func (t *FileArchive) Open(name string) (io.ReadCloser, int64, error) {
 	fpath := name
 	if name != t.path {
-		fpath = filepath.Join(filepath.Dir(t.path), name)
+		index := strings.LastIndex(t.path, "/")
+		if index != -1 {
+			fpath = t.path[:index] + "/" + name
+		}
 	}
 
-	s, err := os.Stat(fpath)
+	return t.OpenFile(fpath)
+}
+
+type Opener struct {
+	*vim25.Client
+}
+
+func isRemotePath(path string) bool {
+	if strings.HasPrefix(path, "http://") || strings.HasPrefix(path, "https://") {
+		return true
+	}
+	return false
+}
+
+func (o Opener) OpenLocal(path string) (io.ReadCloser, int64, error) {
+	f, err := os.Open(path)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	f, err := os.Open(fpath)
+	s, err := f.Stat()
 	if err != nil {
 		return nil, 0, err
 	}
 
 	return f, s.Size(), nil
+}
+
+func (o Opener) OpenFile(path string) (io.ReadCloser, int64, error) {
+	if isRemotePath(path) {
+		return o.OpenRemote(path)
+	}
+	return o.OpenLocal(path)
+}
+
+func (o Opener) OpenRemote(link string) (io.ReadCloser, int64, error) {
+	if o.Client == nil {
+		return nil, 0, errors.New("remote path not supported")
+	}
+
+	u, err := url.Parse(link)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return o.Download(context.Background(), u, &soap.DefaultDownload)
 }

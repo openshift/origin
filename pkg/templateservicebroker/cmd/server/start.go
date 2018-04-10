@@ -23,7 +23,7 @@ import (
 
 type TemplateServiceBrokerServerOptions struct {
 	// we don't have any storage, so we shouldn't use the recommended options
-	SecureServing  *genericoptions.SecureServingOptions
+	SecureServing  *genericoptions.SecureServingOptionsWithLoopback
 	Authentication *genericoptions.DelegatingAuthenticationOptions
 	Authorization  *genericoptions.DelegatingAuthorizationOptions
 	Audit          *genericoptions.AuditOptions
@@ -37,7 +37,7 @@ type TemplateServiceBrokerServerOptions struct {
 
 func NewTemplateServiceBrokerServerOptions(out, errOut io.Writer) *TemplateServiceBrokerServerOptions {
 	o := &TemplateServiceBrokerServerOptions{
-		SecureServing:  genericoptions.NewSecureServingOptions(),
+		SecureServing:  genericoptions.WithLoopback(genericoptions.NewSecureServingOptions()),
 		Authentication: genericoptions.NewDelegatingAuthenticationOptions(),
 		Authorization:  genericoptions.NewDelegatingAuthorizationOptions(),
 		Audit:          genericoptions.NewAuditOptions(),
@@ -124,10 +124,10 @@ func (o TemplateServiceBrokerServerOptions) Config() (*server.TemplateServiceBro
 	if err := o.SecureServing.ApplyTo(serverConfig); err != nil {
 		return nil, err
 	}
-	if err := o.Authentication.ApplyTo(serverConfig); err != nil {
+	if err := o.Authentication.ApplyTo(&serverConfig.Authentication, serverConfig.SecureServing, serverConfig.OpenAPIConfig); err != nil {
 		return nil, err
 	}
-	if err := o.Authorization.ApplyTo(serverConfig); err != nil {
+	if err := o.Authorization.ApplyTo(&serverConfig.Authorization); err != nil {
 		return nil, err
 	}
 	if err := o.Audit.ApplyTo(serverConfig); err != nil {

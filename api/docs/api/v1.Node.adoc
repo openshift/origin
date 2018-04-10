@@ -129,7 +129,7 @@ Populated by the system. Read-only. More info: http://kubernetes.io/docs/user-gu
 </summary><details><summary>    <span title="(v1.DaemonEndpoint) Endpoint on which Kubelet is listening.">kubeletEndpoint</span>:
 </summary><div style="margin-left:13px;">      <span title="(integer) Port number of the given endpoint.">Port</span>:
 </div></details></details><details><summary>  <span title="(array) List of container images on this node">images</span>:
-</summary><details><summary>  - <span title="(array) Names by which this image is known. e.g. [&#34;gcr.io/google_containers/hyperkube:v1.0.7&#34;, &#34;dockerhub.io/google_containers/hyperkube:v1.0.7&#34;]">names</span>:
+</summary><details><summary>  - <span title="(array) Names by which this image is known. e.g. [&#34;k8s.gcr.io/hyperkube:v1.0.7&#34;, &#34;dockerhub.io/google_containers/hyperkube:v1.0.7&#34;]">names</span>:
 </summary><div style="margin-left:13px;">  - - <span title="(string)">[string]</span>:
 </div></details><div style="margin-left:13px;">    <span title="(integer) The size of the image in bytes.">sizeBytes</span>:
 </div></details><details><summary>  <span title="(v1.NodeSystemInfo) Set of ids/uuids to uniquely identify the node. More info: https://kubernetes.io/docs/concepts/nodes/node/#info">nodeInfo</span>:
@@ -315,7 +315,7 @@ $ curl -k \
 
 The server guarantees that the objects returned when using continue will be identical to issuing a single list call without a limit - that is, no objects created, modified, or deleted after the first request is issued will be included in any subsequent continued requests. This is sometimes referred to as a consistent snapshot, and ensures that a client that is using limit to receive smaller chunks of a very large result can ensure they see all possible objects. If objects are updated during a chunked list the version of the object that was present at the time the first list result was calculated is returned.
 |resourceVersion|When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history. When specified for list: - if unset, then the result is returned from remote storage based on quorum-read flag; - if it's 0, then we simply return what we currently have in cache, no guarantee; - if set to non zero, then the result is at least as fresh as given rv.
-|timeoutSeconds|Timeout for the list/watch call.
+|timeoutSeconds|Timeout for the list/watch call. This limits the duration of the call, regardless of any activity or inactivity.
 |watch|Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.
 |===
 
@@ -380,7 +380,7 @@ $ curl -k \
 The server guarantees that the objects returned when using continue will be identical to issuing a single list call without a limit - that is, no objects created, modified, or deleted after the first request is issued will be included in any subsequent continued requests. This is sometimes referred to as a consistent snapshot, and ensures that a client that is using limit to receive smaller chunks of a very large result can ensure they see all possible objects. If objects are updated during a chunked list the version of the object that was present at the time the first list result was calculated is returned.
 |pretty|If 'true', then the output is pretty printed.
 |resourceVersion|When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history. When specified for list: - if unset, then the result is returned from remote storage based on quorum-read flag; - if it's 0, then we simply return what we currently have in cache, no guarantee; - if set to non zero, then the result is at least as fresh as given rv.
-|timeoutSeconds|Timeout for the list/watch call.
+|timeoutSeconds|Timeout for the list/watch call. This limits the duration of the call, regardless of any activity or inactivity.
 |watch|Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.
 |===
 
@@ -438,7 +438,7 @@ $ curl -k \
 The server guarantees that the objects returned when using continue will be identical to issuing a single list call without a limit - that is, no objects created, modified, or deleted after the first request is issued will be included in any subsequent continued requests. This is sometimes referred to as a consistent snapshot, and ensures that a client that is using limit to receive smaller chunks of a very large result can ensure they see all possible objects. If objects are updated during a chunked list the version of the object that was present at the time the first list result was calculated is returned.
 |pretty|If 'true', then the output is pretty printed.
 |resourceVersion|When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history. When specified for list: - if unset, then the result is returned from remote storage based on quorum-read flag; - if it's 0, then we simply return what we currently have in cache, no guarantee; - if set to non zero, then the result is at least as fresh as given rv.
-|timeoutSeconds|Timeout for the list/watch call.
+|timeoutSeconds|Timeout for the list/watch call. This limits the duration of the call, regardless of any activity or inactivity.
 |watch|Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.
 |===
 
@@ -726,7 +726,7 @@ $ curl -k \
 
 The server guarantees that the objects returned when using continue will be identical to issuing a single list call without a limit - that is, no objects created, modified, or deleted after the first request is issued will be included in any subsequent continued requests. This is sometimes referred to as a consistent snapshot, and ensures that a client that is using limit to receive smaller chunks of a very large result can ensure they see all possible objects. If objects are updated during a chunked list the version of the object that was present at the time the first list result was calculated is returned.
 |resourceVersion|When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history. When specified for list: - if unset, then the result is returned from remote storage based on quorum-read flag; - if it's 0, then we simply return what we currently have in cache, no guarantee; - if set to non zero, then the result is at least as fresh as given rv.
-|timeoutSeconds|Timeout for the list/watch call.
+|timeoutSeconds|Timeout for the list/watch call. This limits the duration of the call, regardless of any activity or inactivity.
 |watch|Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.
 |===
 

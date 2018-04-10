@@ -39,11 +39,9 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	oauthclientinternal "github.com/openshift/origin/pkg/oauth/generated/internalclientset"
 	"github.com/openshift/origin/pkg/oc/bootstrap"
-	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/componentinstall"
-	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/components/registry"
-	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/components/router"
-	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/components/service-catalog"
-	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/components/web-console"
+	"github.com/openshift/origin/pkg/oc/bootstrap/clusteradd/componentinstall"
+	"github.com/openshift/origin/pkg/oc/bootstrap/clusteradd/components/registry"
+	"github.com/openshift/origin/pkg/oc/bootstrap/clusteradd/components/service-catalog"
 	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/kubeapiserver"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/errors"
@@ -123,6 +121,8 @@ var (
 // NewCmdUp creates a command that starts OpenShift on Docker with reasonable defaults
 func NewCmdUp(name, fullName string, out, errout io.Writer, clusterAdd *cobra.Command) *cobra.Command {
 	config := &ClusterUpConfig{
+		UserEnabledComponents: []string{"*"},
+
 		Out:                 out,
 		UsePorts:            openshift.BasePorts,
 		PortForwarding:      defaultPortForwarding(),
@@ -153,13 +153,14 @@ func NewCmdUp(name, fullName string, out, errout io.Writer, clusterAdd *cobra.Co
 }
 
 type ClusterUpConfig struct {
-	Image             string
-	ImageTag          string
-	ImageStreams      string
-	DockerMachine     string
-	SkipRegistryCheck bool
-	PortForwarding    bool
-	ClusterAdd        *cobra.Command
+	Image                 string
+	ImageTag              string
+	ImageStreams          string
+	DockerMachine         string
+	SkipRegistryCheck     bool
+	PortForwarding        bool
+	ClusterAdd            *cobra.Command
+	UserEnabledComponents []string
 
 	Out io.Writer
 
@@ -172,8 +173,8 @@ type ClusterUpConfig struct {
 	UseExistingConfig bool
 	Environment       []string
 	ServerLogLevel    int
-	AddComponents     []string
 
+	ComponentsToEnable       []string
 	HostVolumesDir           string
 	HostConfigDir            string
 	WriteConfig              bool
@@ -223,11 +224,19 @@ func (c *ClusterUpConfig) Bind(flags *pflag.FlagSet) {
 	flags.BoolVar(&c.PortForwarding, "forward-ports", c.PortForwarding, "Use Docker port-forwarding to communicate with origin container. Requires 'socat' locally.")
 	flags.IntVar(&c.ServerLogLevel, "server-loglevel", 0, "Log level for OpenShift server")
 	flags.StringArrayVarP(&c.Environment, "env", "e", c.Environment, "Specify a key-value pair for an environment variable to set on OpenShift container")
-	flags.StringArrayVar(&c.AddComponents, "enable", c.AddComponents, "Install additional components.")
+	flags.StringSliceVar(&c.UserEnabledComponents, "enable", c.UserEnabledComponents, fmt.Sprintf(""+
+		"A list of components to enable.  '*' enables all on-by-default components, 'foo' enables the component "+
+		"named 'foo', '-foo' disables the component named 'foo'.\nAll components: %s\nDisabled-by-default components: %s",
+		strings.Join(knownComponents.List(), ", "), strings.Join(componentsDisabledByDefault.List(), ", ")))
 	flags.StringVar(&c.HTTPProxy, "http-proxy", "", "HTTP proxy to use for master and builds")
 	flags.StringVar(&c.HTTPSProxy, "https-proxy", "", "HTTPS proxy to use for master and builds")
 	flags.StringArrayVar(&c.NoProxy, "no-proxy", c.NoProxy, "List of hosts or subnets for which a proxy should not be used")
 }
+
+var (
+	knownComponents             = sets.NewString("web-console", "registry", "router", "service-catalog", "template-service-broker")
+	componentsDisabledByDefault = sets.NewString("service-catalog", "template-service-broker")
+)
 
 func (c *ClusterUpConfig) Complete(cmd *cobra.Command, out io.Writer) error {
 	// TODO: remove this when we move to container/apply based component installation
@@ -265,6 +274,13 @@ func (c *ClusterUpConfig) Complete(cmd *cobra.Command, out io.Writer) error {
 		}
 		c.BaseDir = absHostDir
 	}
+
+	for _, currComponent := range knownComponents.UnsortedList() {
+		if isComponentEnabled(currComponent, componentsDisabledByDefault, c.UserEnabledComponents...) {
+			c.ComponentsToEnable = append(c.ComponentsToEnable, currComponent)
+		}
+	}
+
 	// do some struct initialization next
 	// used for some pretty printing
 	taskPrinter := NewTaskPrinter(GetDetailedOut(out))
@@ -430,7 +446,7 @@ func (c *ClusterUpConfig) Check(out io.Writer) error {
 
 	// OpenShift checks
 	taskPrinter.StartTask("Checking if OpenShift client is configured properly")
-	if err := checkOpenShiftClient(); err != nil {
+	if err := c.checkOpenShiftClient(); err != nil {
 		return taskPrinter.ToError(err)
 	}
 	taskPrinter.Success()
@@ -492,43 +508,11 @@ func (c *ClusterUpConfig) Start(out io.Writer) error {
 	}
 	taskPrinter.Success()
 
-	installContext, err := componentinstall.NewComponentInstallContext(c.openshiftImage(), c.imageFormat(), c.BaseDir, c.ServerLogLevel)
-	if err != nil {
-		return err
-	}
-
-	// TODO, now we build up a set of things to install here.  We build the list so that we can install everything in
-	// TODO parallel to avoid anyone accidentally introducing dependencies.  We'll start with migrating what we have
-	// TODO and then we'll try to clean it up.
-	registryInstall := &registry.RegistryComponentOptions{
-		PVDir:          c.HostPersistentVolumesDir,
-		InstallContext: installContext,
-	}
-	//	return c.OpenShiftHelper().InstallRouter(c.ServerIP, c.PortForwarding)
-	routerInstall := &router.RouterComponentOptions{
-		RoutingSuffix:  c.RoutingSuffix,
-		PortForwarding: c.PortForwarding,
-		InstallContext: installContext,
-	}
-	webConsoleInstall := &web_console.WebConsoleComponentOptions{
-		PublicConsoleURL: fmt.Sprintf("https://%s:8443/console", c.GetPublicHostName()),
-		PublicMasterURL:  fmt.Sprintf("https://%s:8443", c.GetPublicHostName()),
-		InstallContext:   installContext,
-	}
-
-	componentsToInstall := []componentinstall.Component{}
-	componentsToInstall = append(componentsToInstall, c.ImportInitialObjectsComponents(c.Out)...)
-	componentsToInstall = append(componentsToInstall, registryInstall, webConsoleInstall, routerInstall)
-
-	if err := componentinstall.InstallComponents(componentsToInstall, c.GetDockerClient(), c.GetLogDir()); err != nil {
-		return err
-	}
-
-	if len(c.AddComponents) > 0 {
+	if len(c.ComponentsToEnable) > 0 {
 		args := append([]string{}, "--image="+c.Image)
 		args = append(args, "--tag="+c.ImageTag)
 		args = append(args, "--base-dir="+c.BaseDir)
-		args = append(args, c.AddComponents...)
+		args = append(args, c.ComponentsToEnable...)
 
 		if err := c.ClusterAdd.ParseFlags(args); err != nil {
 			return err
@@ -537,6 +521,14 @@ func (c *ClusterUpConfig) Start(out io.Writer) error {
 		if err := c.ClusterAdd.RunE(c.ClusterAdd, args); err != nil {
 			return err
 		}
+	}
+
+	// TODO, now we build up a set of things to install here.  We build the list so that we can install everything in
+	// TODO parallel to avoid anyone accidentally introducing dependencies.
+	componentsToInstall := []componentinstall.Component{}
+	componentsToInstall = append(componentsToInstall, c.ImportInitialObjectsComponents(c.Out)...)
+	if err := componentinstall.InstallComponents(componentsToInstall, c.GetDockerClient(), c.GetLogDir()); err != nil {
+		return err
 	}
 
 	if c.ShouldCreateUser() {
@@ -569,16 +561,33 @@ func defaultPortForwarding() bool {
 
 // checkOpenShiftClient ensures that the client can be configured
 // for the new server
-func checkOpenShiftClient() error {
+func (c *ClusterUpConfig) checkOpenShiftClient() error {
 	kubeConfig := os.Getenv("KUBECONFIG")
 	if len(kubeConfig) == 0 {
 		return nil
 	}
+
+	// if you're trying to use the kubeconfig into a subdirectory of the basedir, you're probably using a KUBECONFIG
+	// location that is going to overwrite a "real" kubeconfig, usually admin.kubeconfig which will break every other component
+	// relying on it being a full power kubeconfig
+	kubeConfigDir := filepath.Dir(kubeConfig)
+	cwd, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+	absKubeConfigDir, err := cmdutil.MakeAbs(kubeConfigDir, cwd)
+	if err != nil {
+		return err
+	}
+	if strings.HasPrefix(absKubeConfigDir, c.BaseDir+"/") {
+		return fmt.Errorf("cannot choose kubeconfig in subdirectory of the --base-dir: %q", kubeConfig)
+	}
+
 	var (
 		kubeConfigError error
 		f               *os.File
 	)
-	_, err := os.Stat(kubeConfig)
+	_, err = os.Stat(kubeConfig)
 	switch {
 	case os.IsNotExist(err):
 		err = os.MkdirAll(filepath.Dir(kubeConfig), 0755)
@@ -1196,4 +1205,29 @@ func (c *ClusterUpConfig) GetPublicHostName() string {
 		return c.PublicHostname
 	}
 	return c.ServerIP
+}
+
+func isComponentEnabled(name string, disabledByDefaultComponents sets.String, components ...string) bool {
+	hasStar := false
+	for _, ctrl := range components {
+		if ctrl == name {
+			return true
+		}
+		if ctrl == "-"+name {
+			return false
+		}
+		if ctrl == "*" {
+			hasStar = true
+		}
+	}
+	// if we get here, there was no explicit choice
+	if !hasStar {
+		// nothing on by default
+		return false
+	}
+	if disabledByDefaultComponents.Has(name) {
+		return false
+	}
+
+	return true
 }

@@ -15,19 +15,53 @@ import (
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/client-go/dynamic"
+	scaleclient "k8s.io/client-go/scale"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	autoscalingv1 "k8s.io/kubernetes/pkg/apis/autoscaling/v1"
 	api "k8s.io/kubernetes/pkg/apis/core"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapiv1 "k8s.io/kubernetes/pkg/apis/core/v1"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	kdeplutil "k8s.io/kubernetes/pkg/controller/deployment/util"
+	"k8s.io/kubernetes/pkg/kubectl"
 
 	appsapiv1 "github.com/openshift/api/apps/v1"
 	"github.com/openshift/origin/pkg/api/apihelpers"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 )
+
+func NewReplicationControllerV1Scaler(client kclientset.Interface) kubectl.Scaler {
+	return kubectl.ScalerFor(
+		kapi.Kind("ReplicationController"),
+		nil,
+		scaleclient.New(client.Core().RESTClient(), rcv1mapper{}, dynamic.LegacyAPIPathResolverFunc, rcv1mapper{}),
+		kapi.Resource("replicationcontrollers"),
+	)
+}
+
+// rcv1mapper pins preferred version to v1 and scale kind to autoscaling/v1 Scale
+// this avoids putting complete server discovery (including extension APIs) in the critical path for deployments
+type rcv1mapper struct{}
+
+func (rcv1mapper) ResourceFor(gvr schema.GroupVersionResource) (schema.GroupVersionResource, error) {
+	if gvr.Group == kapi.GroupName && gvr.Resource == "replicationcontrollers" {
+		return kapiv1.SchemeGroupVersion.WithResource("replicationcontrollers"), nil
+	}
+	return schema.GroupVersionResource{}, fmt.Errorf("unknown replication controller resource: %#v", gvr)
+}
+
+func (rcv1mapper) ScaleForResource(gvr schema.GroupVersionResource) (schema.GroupVersionKind, error) {
+	if gvr == kapiv1.SchemeGroupVersion.WithResource("replicationcontrollers") {
+		return autoscalingv1.SchemeGroupVersion.WithKind("Scale"), nil
+	}
+	return schema.GroupVersionKind{}, fmt.Errorf("unknown replication controller resource: %#v", gvr)
+}
 
 var (
 	// DeploymentConfigControllerRefKind contains the schema.GroupVersionKind for the

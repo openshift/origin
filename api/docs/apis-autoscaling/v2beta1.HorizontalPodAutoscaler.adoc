@@ -92,8 +92,20 @@ Populated by the system. Read-only. More info: http://kubernetes.io/docs/user-gu
 </div></details><details open><summary><span title="(v2beta1.HorizontalPodAutoscalerSpec) spec is the specification for the behaviour of the autoscaler. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#spec-and-status.">spec</span>:
 </summary><div style="margin-left:13px;">  <span title="(integer) maxReplicas is the upper limit for the number of replicas to which the autoscaler can scale up. It cannot be less that minReplicas.">maxReplicas</span>:
 </div><details><summary>  <span title="(array) metrics contains the specifications for which to use to calculate the desired replica count (the maximum replica count across all metrics will be used).  The desired replica count is calculated multiplying the ratio between the target value and the current value by the current number of pods.  Ergo, metrics used must decrease as the pod count is increased, and vice-versa.  See the individual metric source types for more information about how each type of metric must respond.">metrics</span>:
-</summary><details><summary>  - <span title="(v2beta1.ObjectMetricSource) object refers to a metric describing a single kubernetes object (for example, hits-per-second on an Ingress object).">object</span>:
+</summary><details><summary>  - <span title="(v2beta1.ExternalMetricSource) external refers to a global metric that is not associated with any Kubernetes object. It allows autoscaling based on information coming from components running outside of cluster (for example length of queue in cloud messaging service, or QPS from loadbalancer running outside of cluster).">external</span>:
 </summary><div style="margin-left:13px;">  -   <span title="(string) metricName is the name of the metric in question.">metricName</span>:
+</div><details><summary>      <span title="(v1.LabelSelector) metricSelector is used to identify a specific time series within a given metric.">metricSelector</span>:
+</summary><details><summary>        <span title="(array) matchExpressions is a list of label selector requirements. The requirements are ANDed.">matchExpressions</span>:
+</summary><div style="margin-left:13px;">        - <span title="(string) key is the label key that the selector applies to.">key</span>:
+</div><div style="margin-left:13px;">          <span title="(string) operator represents a key&#39;s relationship to a set of values. Valid operators are In, NotIn, Exists and DoesNotExist.">operator</span>:
+</div><details><summary>          <span title="(array) values is an array of string values. If the operator is In or NotIn, the values array must be non-empty. If the operator is Exists or DoesNotExist, the values array must be empty. This array is replaced during a strategic merge patch.">values</span>:
+</summary><div style="margin-left:13px;">          - <span title="(string)">[string]</span>:
+</div></details></details><details><summary>        <span title="(object) matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels map is equivalent to an element of matchExpressions, whose key field is &#34;key&#34;, the operator is &#34;In&#34;, and the values array contains only &#34;value&#34;. The requirements are ANDed.">matchLabels</span>:
+</summary><div style="margin-left:13px;">          <span title="(string)">[string]</span>:
+</div></details></details><div style="margin-left:13px;">      <span title="(resource.Quantity) targetAverageValue is the target per-pod value of global metric (as a quantity). Mutually exclusive with TargetValue.">targetAverageValue</span>:
+</div><div style="margin-left:13px;">      <span title="(resource.Quantity) targetValue is the target value of the metric (as a quantity). Mutually exclusive with TargetAverageValue.">targetValue</span>:
+</div></details><details><summary>    <span title="(v2beta1.ObjectMetricSource) object refers to a metric describing a single kubernetes object (for example, hits-per-second on an Ingress object).">object</span>:
+</summary><div style="margin-left:13px;">      <span title="(string) metricName is the name of the metric in question.">metricName</span>:
 </div><details><summary>      <span title="(v2beta1.CrossVersionObjectReference) target is the described Kubernetes object.">target</span>:
 </summary><div style="margin-left:13px;">        <span title="(string) API version of the referent">apiVersion</span>:
 </div><div style="margin-left:13px;">        <span title="(string) Kind of the referent; More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds&#34;">kind</span>:
@@ -106,7 +118,7 @@ Populated by the system. Read-only. More info: http://kubernetes.io/docs/user-gu
 </summary><div style="margin-left:13px;">      <span title="(string) name is the name of the resource in question.">name</span>:
 </div><div style="margin-left:13px;">      <span title="(integer) targetAverageUtilization is the target value of the average of the resource metric across all relevant pods, represented as a percentage of the requested value of the resource for the pods.">targetAverageUtilization</span>:
 </div><div style="margin-left:13px;">      <span title="(resource.Quantity) targetAverageValue is the target value of the average of the resource metric across all relevant pods, as a raw value (instead of as a percentage of the request), similar to the &#34;pods&#34; metric source type.">targetAverageValue</span>:
-</div></details><div style="margin-left:13px;">    <span title="(string) type is the type of metric source.  It should match one of the fields below.">type</span>:
+</div></details><div style="margin-left:13px;">    <span title="(string) type is the type of metric source.  It should be one of &#34;Object&#34;, &#34;Pods&#34; or &#34;Resource&#34;, each mapping to a matching field in the object.">type</span>:
 </div></details><div style="margin-left:13px;">  <span title="(integer) minReplicas is the lower limit for the number of replicas to which the autoscaler can scale down. It defaults to 1 pod.">minReplicas</span>:
 </div><details><summary>  <span title="(v2beta1.CrossVersionObjectReference) scaleTargetRef points to the target resource to scale, and is used to the pods for which metrics should be collected, as well as to actually change the replica count.">scaleTargetRef</span>:
 </summary><div style="margin-left:13px;">    <span title="(string) API version of the referent">apiVersion</span>:
@@ -120,8 +132,20 @@ Populated by the system. Read-only. More info: http://kubernetes.io/docs/user-gu
 </div><div style="margin-left:13px;">    <span title="(string) status is the status of the condition (True, False, Unknown)">status</span>:
 </div><div style="margin-left:13px;">    <span title="(string) type describes the current condition">type</span>:
 </div></details><details><summary>  <span title="(array) currentMetrics is the last read state of the metrics used by this autoscaler.">currentMetrics</span>:
-</summary><details><summary>  - <span title="(v2beta1.ObjectMetricStatus) object refers to a metric describing a single kubernetes object (for example, hits-per-second on an Ingress object).">object</span>:
-</summary><div style="margin-left:13px;">  -   <span title="(resource.Quantity) currentValue is the current value of the metric (as a quantity).">currentValue</span>:
+</summary><details><summary>  - <span title="(v2beta1.ExternalMetricStatus) external refers to a global metric that is not associated with any Kubernetes object. It allows autoscaling based on information coming from components running outside of cluster (for example length of queue in cloud messaging service, or QPS from loadbalancer running outside of cluster).">external</span>:
+</summary><div style="margin-left:13px;">  -   <span title="(resource.Quantity) currentAverageValue is the current value of metric averaged over autoscaled pods.">currentAverageValue</span>:
+</div><div style="margin-left:13px;">      <span title="(resource.Quantity) currentValue is the current value of the metric (as a quantity)">currentValue</span>:
+</div><div style="margin-left:13px;">      <span title="(string) metricName is the name of a metric used for autoscaling in metric system.">metricName</span>:
+</div><details><summary>      <span title="(v1.LabelSelector) metricSelector is used to identify a specific time series within a given metric.">metricSelector</span>:
+</summary><details><summary>        <span title="(array) matchExpressions is a list of label selector requirements. The requirements are ANDed.">matchExpressions</span>:
+</summary><div style="margin-left:13px;">        - <span title="(string) key is the label key that the selector applies to.">key</span>:
+</div><div style="margin-left:13px;">          <span title="(string) operator represents a key&#39;s relationship to a set of values. Valid operators are In, NotIn, Exists and DoesNotExist.">operator</span>:
+</div><details><summary>          <span title="(array) values is an array of string values. If the operator is In or NotIn, the values array must be non-empty. If the operator is Exists or DoesNotExist, the values array must be empty. This array is replaced during a strategic merge patch.">values</span>:
+</summary><div style="margin-left:13px;">          - <span title="(string)">[string]</span>:
+</div></details></details><details><summary>        <span title="(object) matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels map is equivalent to an element of matchExpressions, whose key field is &#34;key&#34;, the operator is &#34;In&#34;, and the values array contains only &#34;value&#34;. The requirements are ANDed.">matchLabels</span>:
+</summary><div style="margin-left:13px;">          <span title="(string)">[string]</span>:
+</div></details></details></details><details><summary>    <span title="(v2beta1.ObjectMetricStatus) object refers to a metric describing a single kubernetes object (for example, hits-per-second on an Ingress object).">object</span>:
+</summary><div style="margin-left:13px;">      <span title="(resource.Quantity) currentValue is the current value of the metric (as a quantity).">currentValue</span>:
 </div><div style="margin-left:13px;">      <span title="(string) metricName is the name of the metric in question.">metricName</span>:
 </div><details><summary>      <span title="(v2beta1.CrossVersionObjectReference) target is the described Kubernetes object.">target</span>:
 </summary><div style="margin-left:13px;">        <span title="(string) API version of the referent">apiVersion</span>:
@@ -134,7 +158,7 @@ Populated by the system. Read-only. More info: http://kubernetes.io/docs/user-gu
 </summary><div style="margin-left:13px;">      <span title="(integer) currentAverageUtilization is the current value of the average of the resource metric across all relevant pods, represented as a percentage of the requested value of the resource for the pods.  It will only be present if `targetAverageValue` was set in the corresponding metric specification.">currentAverageUtilization</span>:
 </div><div style="margin-left:13px;">      <span title="(resource.Quantity) currentAverageValue is the current value of the average of the resource metric across all relevant pods, as a raw value (instead of as a percentage of the request), similar to the &#34;pods&#34; metric source type. It will always be set, regardless of the corresponding metric specification.">currentAverageValue</span>:
 </div><div style="margin-left:13px;">      <span title="(string) name is the name of the resource in question.">name</span>:
-</div></details><div style="margin-left:13px;">    <span title="(string) type is the type of metric source.  It will match one of the fields below.">type</span>:
+</div></details><div style="margin-left:13px;">    <span title="(string) type is the type of metric source.  It will be one of &#34;Object&#34;, &#34;Pods&#34; or &#34;Resource&#34;, each corresponds to a matching field in the object.">type</span>:
 </div></details><div style="margin-left:13px;">  <span title="(integer) currentReplicas is current number of replicas of pods managed by this autoscaler, as last seen by the autoscaler.">currentReplicas</span>:
 </div><div style="margin-left:13px;">  <span title="(integer) desiredReplicas is the desired number of replicas of pods managed by this autoscaler, as last calculated by the autoscaler.">desiredReplicas</span>:
 </div><div style="margin-left:13px;">  <span title="(v1.Time) lastScaleTime is the last time the HorizontalPodAutoscaler scaled the number of pods, used by the autoscaler to control how often the number of pods is changed.">lastScaleTime</span>:
@@ -385,7 +409,7 @@ $ curl -k \
 
 The server guarantees that the objects returned when using continue will be identical to issuing a single list call without a limit - that is, no objects created, modified, or deleted after the first request is issued will be included in any subsequent continued requests. This is sometimes referred to as a consistent snapshot, and ensures that a client that is using limit to receive smaller chunks of a very large result can ensure they see all possible objects. If objects are updated during a chunked list the version of the object that was present at the time the first list result was calculated is returned.
 |resourceVersion|When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history. When specified for list: - if unset, then the result is returned from remote storage based on quorum-read flag; - if it's 0, then we simply return what we currently have in cache, no guarantee; - if set to non zero, then the result is at least as fresh as given rv.
-|timeoutSeconds|Timeout for the list/watch call.
+|timeoutSeconds|Timeout for the list/watch call. This limits the duration of the call, regardless of any activity or inactivity.
 |watch|Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.
 |===
 
@@ -450,7 +474,7 @@ $ curl -k \
 
 The server guarantees that the objects returned when using continue will be identical to issuing a single list call without a limit - that is, no objects created, modified, or deleted after the first request is issued will be included in any subsequent continued requests. This is sometimes referred to as a consistent snapshot, and ensures that a client that is using limit to receive smaller chunks of a very large result can ensure they see all possible objects. If objects are updated during a chunked list the version of the object that was present at the time the first list result was calculated is returned.
 |resourceVersion|When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history. When specified for list: - if unset, then the result is returned from remote storage based on quorum-read flag; - if it's 0, then we simply return what we currently have in cache, no guarantee; - if set to non zero, then the result is at least as fresh as given rv.
-|timeoutSeconds|Timeout for the list/watch call.
+|timeoutSeconds|Timeout for the list/watch call. This limits the duration of the call, regardless of any activity or inactivity.
 |watch|Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.
 |===
 
@@ -516,7 +540,7 @@ $ curl -k \
 The server guarantees that the objects returned when using continue will be identical to issuing a single list call without a limit - that is, no objects created, modified, or deleted after the first request is issued will be included in any subsequent continued requests. This is sometimes referred to as a consistent snapshot, and ensures that a client that is using limit to receive smaller chunks of a very large result can ensure they see all possible objects. If objects are updated during a chunked list the version of the object that was present at the time the first list result was calculated is returned.
 |pretty|If 'true', then the output is pretty printed.
 |resourceVersion|When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history. When specified for list: - if unset, then the result is returned from remote storage based on quorum-read flag; - if it's 0, then we simply return what we currently have in cache, no guarantee; - if set to non zero, then the result is at least as fresh as given rv.
-|timeoutSeconds|Timeout for the list/watch call.
+|timeoutSeconds|Timeout for the list/watch call. This limits the duration of the call, regardless of any activity or inactivity.
 |watch|Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.
 |===
 
@@ -574,7 +598,7 @@ $ curl -k \
 The server guarantees that the objects returned when using continue will be identical to issuing a single list call without a limit - that is, no objects created, modified, or deleted after the first request is issued will be included in any subsequent continued requests. This is sometimes referred to as a consistent snapshot, and ensures that a client that is using limit to receive smaller chunks of a very large result can ensure they see all possible objects. If objects are updated during a chunked list the version of the object that was present at the time the first list result was calculated is returned.
 |pretty|If 'true', then the output is pretty printed.
 |resourceVersion|When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history. When specified for list: - if unset, then the result is returned from remote storage based on quorum-read flag; - if it's 0, then we simply return what we currently have in cache, no guarantee; - if set to non zero, then the result is at least as fresh as given rv.
-|timeoutSeconds|Timeout for the list/watch call.
+|timeoutSeconds|Timeout for the list/watch call. This limits the duration of the call, regardless of any activity or inactivity.
 |watch|Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.
 |===
 
@@ -639,7 +663,7 @@ $ curl -k \
 The server guarantees that the objects returned when using continue will be identical to issuing a single list call without a limit - that is, no objects created, modified, or deleted after the first request is issued will be included in any subsequent continued requests. This is sometimes referred to as a consistent snapshot, and ensures that a client that is using limit to receive smaller chunks of a very large result can ensure they see all possible objects. If objects are updated during a chunked list the version of the object that was present at the time the first list result was calculated is returned.
 |pretty|If 'true', then the output is pretty printed.
 |resourceVersion|When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history. When specified for list: - if unset, then the result is returned from remote storage based on quorum-read flag; - if it's 0, then we simply return what we currently have in cache, no guarantee; - if set to non zero, then the result is at least as fresh as given rv.
-|timeoutSeconds|Timeout for the list/watch call.
+|timeoutSeconds|Timeout for the list/watch call. This limits the duration of the call, regardless of any activity or inactivity.
 |watch|Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.
 |===
 
@@ -937,7 +961,7 @@ $ curl -k \
 
 The server guarantees that the objects returned when using continue will be identical to issuing a single list call without a limit - that is, no objects created, modified, or deleted after the first request is issued will be included in any subsequent continued requests. This is sometimes referred to as a consistent snapshot, and ensures that a client that is using limit to receive smaller chunks of a very large result can ensure they see all possible objects. If objects are updated during a chunked list the version of the object that was present at the time the first list result was calculated is returned.
 |resourceVersion|When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history. When specified for list: - if unset, then the result is returned from remote storage based on quorum-read flag; - if it's 0, then we simply return what we currently have in cache, no guarantee; - if set to non zero, then the result is at least as fresh as given rv.
-|timeoutSeconds|Timeout for the list/watch call.
+|timeoutSeconds|Timeout for the list/watch call. This limits the duration of the call, regardless of any activity or inactivity.
 |watch|Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.
 |===
 

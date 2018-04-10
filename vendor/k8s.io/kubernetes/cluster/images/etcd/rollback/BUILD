@@ -8,8 +8,7 @@ load(
 
 go_binary(
     name = "rollback",
-    importpath = "k8s.io/kubernetes/cluster/images/etcd/rollback",
-    library = ":go_default_library",
+    embed = [":go_default_library"],
 )
 
 go_library(

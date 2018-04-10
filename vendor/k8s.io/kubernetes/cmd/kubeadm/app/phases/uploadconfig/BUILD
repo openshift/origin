@@ -39,8 +39,7 @@ filegroup(
 go_test(
     name = "go_default_test",
     srcs = ["uploadconfig_test.go"],
-    importpath = "k8s.io/kubernetes/cmd/kubeadm/app/phases/uploadconfig",
-    library = ":go_default_library",
+    embed = [":go_default_library"],
     deps = [
         "//cmd/kubeadm/app/apis/kubeadm:go_default_library",
         "//cmd/kubeadm/app/apis/kubeadm/v1alpha1:go_default_library",

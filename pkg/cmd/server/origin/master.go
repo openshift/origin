@@ -12,6 +12,7 @@ import (
 	"github.com/golang/glog"
 
 	apiextensionsinformers "k8s.io/apiextensions-apiserver/pkg/client/informers/internalversion"
+	utilnet "k8s.io/apimachinery/pkg/util/net"
 	apiserver "k8s.io/apiserver/pkg/server"
 	aggregatorapiserver "k8s.io/kube-aggregator/pkg/apiserver"
 	kubeapiserver "k8s.io/kubernetes/pkg/master"
@@ -25,6 +26,7 @@ import (
 	routeallocationcontroller "github.com/openshift/origin/pkg/route/controller/allocation"
 	sccstorage "github.com/openshift/origin/pkg/security/registry/securitycontextconstraints/etcd"
 	"github.com/openshift/origin/pkg/util/httprequest"
+	kapiserveroptions "k8s.io/kubernetes/cmd/kube-apiserver/app/options"
 )
 
 const (
@@ -91,13 +93,8 @@ func (c *MasterConfig) newOpenshiftNonAPIConfig(kubeAPIServerConfig apiserver.Co
 	return ret, nil
 }
 
-func (c *MasterConfig) withAPIExtensions(delegateAPIServer apiserver.DelegationTarget, kubeAPIServerConfig apiserver.Config) (apiserver.DelegationTarget, apiextensionsinformers.SharedInformerFactory, error) {
-	kubeAPIServerOptions, err := kubernetes.BuildKubeAPIserverOptions(c.Options)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	apiExtensionsConfig, err := createAPIExtensionsConfig(kubeAPIServerConfig, kubeAPIServerOptions.Etcd)
+func (c *MasterConfig) withAPIExtensions(delegateAPIServer apiserver.DelegationTarget, kubeAPIServerOptions *kapiserveroptions.ServerRunOptions, kubeAPIServerConfig apiserver.Config) (apiserver.DelegationTarget, apiextensionsinformers.SharedInformerFactory, error) {
+	apiExtensionsConfig, err := createAPIExtensionsConfig(kubeAPIServerConfig, c.ClientGoKubeInformers, kubeAPIServerOptions)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -174,7 +171,7 @@ func (c *MasterConfig) newOAuthServerHandler(genericConfig *apiserver.Config) (h
 		return http.NotFoundHandler(), nil, nil
 	}
 
-	config, err := NewOAuthServerConfigFromMasterConfig(c, genericConfig.SecureServingInfo.Listener)
+	config, err := NewOAuthServerConfigFromMasterConfig(c, genericConfig.SecureServing.Listener)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -191,8 +188,14 @@ func (c *MasterConfig) newOAuthServerHandler(genericConfig *apiserver.Config) (h
 		nil
 }
 
-func (c *MasterConfig) withAggregator(delegateAPIServer apiserver.DelegationTarget, kubeAPIServerConfig apiserver.Config, apiExtensionsInformers apiextensionsinformers.SharedInformerFactory) (*aggregatorapiserver.APIAggregator, error) {
-	aggregatorConfig, err := c.createAggregatorConfig(kubeAPIServerConfig)
+func (c *MasterConfig) withAggregator(delegateAPIServer apiserver.DelegationTarget, kubeAPIServerOptions *kapiserveroptions.ServerRunOptions, kubeAPIServerConfig apiserver.Config, apiExtensionsInformers apiextensionsinformers.SharedInformerFactory) (*aggregatorapiserver.APIAggregator, error) {
+	aggregatorConfig, err := createAggregatorConfig(
+		kubeAPIServerConfig,
+		kubeAPIServerOptions,
+		c.ClientGoKubeInformers,
+		aggregatorapiserver.NewClusterIPServiceResolver(c.ClientGoKubeInformers.Core().V1().Services().Lister()),
+		utilnet.SetTransportDefaults(&http.Transport{}),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -219,8 +222,13 @@ func (c *MasterConfig) Run(stopCh <-chan struct{}) error {
 		return err
 	}
 
+	kubeAPIServerOptions, err := kubernetes.BuildKubeAPIserverOptions(c.Options)
+	if err != nil {
+		return err
+	}
+
 	delegateAPIServer = apiserver.EmptyDelegate
-	delegateAPIServer, apiExtensionsInformers, err = c.withAPIExtensions(delegateAPIServer, *c.kubeAPIServerConfig.GenericConfig)
+	delegateAPIServer, apiExtensionsInformers, err = c.withAPIExtensions(delegateAPIServer, kubeAPIServerOptions, *c.kubeAPIServerConfig.GenericConfig)
 	if err != nil {
 		return err
 	}
@@ -236,7 +244,7 @@ func (c *MasterConfig) Run(stopCh <-chan struct{}) error {
 	if err != nil {
 		return err
 	}
-	aggregatedAPIServer, err := c.withAggregator(delegateAPIServer, *c.kubeAPIServerConfig.GenericConfig, apiExtensionsInformers)
+	aggregatedAPIServer, err := c.withAggregator(delegateAPIServer, kubeAPIServerOptions, *c.kubeAPIServerConfig.GenericConfig, apiExtensionsInformers)
 	if err != nil {
 		return err
 	}
@@ -285,8 +293,13 @@ func (c *MasterConfig) RunKubeAPIServer(stopCh <-chan struct{}) error {
 		return err
 	}
 
+	kubeAPIServerOptions, err := kubernetes.BuildKubeAPIserverOptions(c.Options)
+	if err != nil {
+		return err
+	}
+
 	delegateAPIServer = apiserver.EmptyDelegate
-	delegateAPIServer, apiExtensionsInformers, err = c.withAPIExtensions(delegateAPIServer, *c.kubeAPIServerConfig.GenericConfig)
+	delegateAPIServer, apiExtensionsInformers, err = c.withAPIExtensions(delegateAPIServer, kubeAPIServerOptions, *c.kubeAPIServerConfig.GenericConfig)
 	if err != nil {
 		return err
 	}
@@ -298,7 +311,7 @@ func (c *MasterConfig) RunKubeAPIServer(stopCh <-chan struct{}) error {
 	if err != nil {
 		return err
 	}
-	aggregatedAPIServer, err := c.withAggregator(delegateAPIServer, *c.kubeAPIServerConfig.GenericConfig, apiExtensionsInformers)
+	aggregatedAPIServer, err := c.withAggregator(delegateAPIServer, kubeAPIServerOptions, *c.kubeAPIServerConfig.GenericConfig, apiExtensionsInformers)
 	if err != nil {
 		return err
 	}

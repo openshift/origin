@@ -83,8 +83,8 @@ type MetricInfo struct {
 }
 
 type infoResult struct {
-	cmd  *info
 	Info []*MetricInfo
+	cmd  *info
 }
 
 func (r *infoResult) Write(w io.Writer) error {
@@ -226,5 +226,5 @@ func (cmd *info) Run(ctx context.Context, f *flag.FlagSet) error {
 
 	}
 
-	return cmd.WriteResult(&infoResult{cmd, metrics})
+	return cmd.WriteResult(&infoResult{metrics, cmd})
 }

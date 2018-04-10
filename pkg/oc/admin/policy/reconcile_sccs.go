@@ -159,8 +159,7 @@ func (o *ReconcileSCCOptions) RunReconcileSCCs(cmd *cobra.Command, f *clientcmd.
 		for _, item := range changedSCCs {
 			list.Items = append(list.Items, item)
 		}
-		mapper, _ := f.Object()
-		fn := cmdutil.VersionedPrintObject(f.PrintObject, cmd, mapper, o.Out)
+		fn := cmdutil.VersionedPrintObject(kcmdutil.PrintObject, cmd, o.Out)
 		if err := fn(list); err != nil {
 			return err
 		}

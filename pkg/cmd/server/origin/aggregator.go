@@ -1,70 +1,67 @@
-/*
-Copyright 2017 The Kubernetes Authors.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
-// Package app does all of the work necessary to create a Kubernetes
-// APIServer by binding together the API, master and APIServer infrastructure.
-// It can be configured and called directly or via the hyperkube framework.
 package origin
+
+// REBASE TODO: sync this file with k8s.io/kubernetes/cmd/kube-apiserver/app/aggregator.go
 
 import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strings"
+	"sync"
 
 	"github.com/golang/glog"
 
 	apiextensionsinformers "k8s.io/apiextensions-apiserver/pkg/client/informers/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	utilnet "k8s.io/apimachinery/pkg/util/net"
+	"k8s.io/apimachinery/pkg/util/sets"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	"k8s.io/apiserver/pkg/server/healthz"
+	// genericoptions "k8s.io/apiserver/pkg/server/options"
+	kubeexternalinformers "k8s.io/client-go/informers"
+	"k8s.io/client-go/tools/cache"
 	"k8s.io/kube-aggregator/pkg/apis/apiregistration"
+	"k8s.io/kube-aggregator/pkg/apis/apiregistration/v1"
+	"k8s.io/kube-aggregator/pkg/apis/apiregistration/v1beta1"
 	aggregatorapiserver "k8s.io/kube-aggregator/pkg/apiserver"
+	aggregatorscheme "k8s.io/kube-aggregator/pkg/apiserver/scheme"
 	apiregistrationclient "k8s.io/kube-aggregator/pkg/client/clientset_generated/internalclientset/typed/apiregistration/internalversion"
+	informers "k8s.io/kube-aggregator/pkg/client/informers/internalversion/apiregistration/internalversion"
 	"k8s.io/kube-aggregator/pkg/controllers/autoregister"
+	"k8s.io/kubernetes/cmd/kube-apiserver/app/options"
 	"k8s.io/kubernetes/pkg/master/controller/crdregistration"
 )
 
-func (c *MasterConfig) createAggregatorConfig(genericConfig genericapiserver.Config) (*aggregatorapiserver.Config, error) {
+func createAggregatorConfig(kubeAPIServerConfig genericapiserver.Config, commandOptions *options.ServerRunOptions, externalInformers kubeexternalinformers.SharedInformerFactory, serviceResolver aggregatorapiserver.ServiceResolver, proxyTransport *http.Transport) (*aggregatorapiserver.Config, error) {
+	// make a shallow copy to let us twiddle a few things
+	// most of the config actually remains the same.  We only need to mess with a couple items related to the particulars of the aggregator
+	genericConfig := kubeAPIServerConfig
 
-	// this is a shallow copy so let's twiddle a few things
 	// the aggregator doesn't wire these up.  It just delegates them to the kubeapiserver
 	genericConfig.EnableSwaggerUI = false
 	genericConfig.SwaggerConfig = nil
 
-	// This depends on aggregator types being registered into the legacyscheme.Scheme, which is currently done in Start() to avoid concurrent scheme modification
-	// install our types into the scheme so that "normal" RESTOptionsGetters can work for us
-	// install.Install(legacyscheme.GroupFactoryRegistry, legacyscheme.Registry, legacyscheme.Scheme)
+	// copy the etcd options so we don't mutate originals.
+	etcdOptions := *commandOptions.Etcd
+	etcdOptions.StorageConfig.Codec = aggregatorscheme.Codecs.LegacyCodec(v1beta1.SchemeGroupVersion, v1.SchemeGroupVersion)
+	// genericConfig.RESTOptionsGetter = &genericoptions.SimpleRestOptionsFactory{Options: etcdOptions}
 
-	serviceResolver := aggregatorapiserver.NewClusterIPServiceResolver(
-		c.ClientGoKubeInformers.Core().V1().Services().Lister(),
-	)
+	// override MergedResourceConfig with aggregator defaults and registry
+	if err := commandOptions.APIEnablement.ApplyTo(
+		&genericConfig,
+		aggregatorapiserver.DefaultAPIResourceConfigSource(),
+		aggregatorscheme.Registry); err != nil {
+		return nil, err
+	}
 
-	var certBytes []byte
-	var keyBytes []byte
 	var err error
-	if len(c.Options.AggregatorConfig.ProxyClientInfo.CertFile) > 0 {
-		certBytes, err = ioutil.ReadFile(c.Options.AggregatorConfig.ProxyClientInfo.CertFile)
+	var certBytes, keyBytes []byte
+	if len(commandOptions.ProxyClientCertFile) > 0 && len(commandOptions.ProxyClientKeyFile) > 0 {
+		certBytes, err = ioutil.ReadFile(commandOptions.ProxyClientCertFile)
 		if err != nil {
 			return nil, err
 		}
-		keyBytes, err = ioutil.ReadFile(c.Options.AggregatorConfig.ProxyClientInfo.KeyFile)
+		keyBytes, err = ioutil.ReadFile(commandOptions.ProxyClientKeyFile)
 		if err != nil {
 			return nil, err
 		}
@@ -73,13 +70,13 @@ func (c *MasterConfig) createAggregatorConfig(genericConfig genericapiserver.Con
 	aggregatorConfig := &aggregatorapiserver.Config{
 		GenericConfig: &genericapiserver.RecommendedConfig{
 			Config:                genericConfig,
-			SharedInformerFactory: c.ClientGoKubeInformers,
+			SharedInformerFactory: externalInformers,
 		},
 		ExtraConfig: aggregatorapiserver.ExtraConfig{
 			ProxyClientCert: certBytes,
 			ProxyClientKey:  keyBytes,
 			ServiceResolver: serviceResolver,
-			ProxyTransport:  utilnet.SetTransportDefaults(&http.Transport{}),
+			ProxyTransport:  proxyTransport,
 		},
 	}
 
@@ -99,48 +96,28 @@ func createAggregatorServer(aggregatorConfig *aggregatorapiserver.Config, delega
 	}
 	autoRegistrationController := autoregister.NewAutoRegisterController(aggregatorServer.APIRegistrationInformers.Apiregistration().InternalVersion().APIServices(), apiRegistrationClient)
 	apiServices := apiServicesToRegister(delegateAPIServer, autoRegistrationController)
-	tprRegistrationController := crdregistration.NewAutoRegistrationController(
+	crdRegistrationController := crdregistration.NewAutoRegistrationController(
 		apiExtensionInformers.Apiextensions().InternalVersion().CustomResourceDefinitions(),
 		autoRegistrationController)
 
-	if err := aggregatorServer.GenericAPIServer.AddPostStartHook("kube-apiserver-autoregistration", func(context genericapiserver.PostStartHookContext) error {
-		go autoRegistrationController.Run(5, context.StopCh)
-		go tprRegistrationController.Run(5, context.StopCh)
+	aggregatorServer.GenericAPIServer.AddPostStartHook("kube-apiserver-autoregistration", func(context genericapiserver.PostStartHookContext) error {
+		go crdRegistrationController.Run(5, context.StopCh)
+		go func() {
+			// let the CRD controller process the initial set of CRDs before starting the autoregistration controller.
+			// this prevents the autoregistration controller's initial sync from deleting APIServices for CRDs that still exist.
+			crdRegistrationController.WaitForInitialSync()
+			autoRegistrationController.Run(5, context.StopCh)
+		}()
 		return nil
-	}); err != nil {
-		return nil, err
-	}
-	if err := aggregatorServer.GenericAPIServer.AddHealthzChecks(healthz.NamedCheck("autoregister-completion", func(r *http.Request) error {
-		items, err := aggregatorServer.APIRegistrationInformers.Apiregistration().InternalVersion().APIServices().Lister().List(labels.Everything())
-		if err != nil {
-			return err
-		}
+	})
 
-		missing := []apiregistration.APIService{}
-		for _, apiService := range apiServices {
-			found := false
-			for _, item := range items {
-				if item.Name != apiService.Name {
-					continue
-				}
-				if apiregistration.IsAPIServiceConditionTrue(item, apiregistration.Available) {
-					found = true
-					break
-				}
-			}
-
-			if !found {
-				missing = append(missing, *apiService)
-			}
-		}
-
-		if len(missing) > 0 {
-			return fmt.Errorf("missing APIService: %v", missing)
-		}
-		return nil
-	})); err != nil {
-		return nil, err
-	}
+	aggregatorServer.GenericAPIServer.AddHealthzChecks(
+		makeAPIServiceAvailableHealthzCheck(
+			"autoregister-completion",
+			apiServices,
+			aggregatorServer.APIRegistrationInformers.Apiregistration().InternalVersion().APIServices(),
+		),
+	)
 
 	return aggregatorServer, nil
 }
@@ -164,8 +141,51 @@ func makeAPIService(gv schema.GroupVersion) *apiregistration.APIService {
 	}
 }
 
+// makeAPIServiceAvailableHealthzCheck returns a healthz check that returns healthy
+// once all of the specified services have been observed to be available at least once.
+func makeAPIServiceAvailableHealthzCheck(name string, apiServices []*apiregistration.APIService, apiServiceInformer informers.APIServiceInformer) healthz.HealthzChecker {
+	// Track the auto-registered API services that have not been observed to be available yet
+	pendingServiceNamesLock := &sync.RWMutex{}
+	pendingServiceNames := sets.NewString()
+	for _, service := range apiServices {
+		pendingServiceNames.Insert(service.Name)
+	}
+
+	// When an APIService in the list is seen as available, remove it from the pending list
+	handleAPIServiceChange := func(service *apiregistration.APIService) {
+		pendingServiceNamesLock.Lock()
+		defer pendingServiceNamesLock.Unlock()
+		if !pendingServiceNames.Has(service.Name) {
+			return
+		}
+		if apiregistration.IsAPIServiceConditionTrue(service, apiregistration.Available) {
+			pendingServiceNames.Delete(service.Name)
+		}
+	}
+
+	// Watch add/update events for APIServices
+	apiServiceInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc:    func(obj interface{}) { handleAPIServiceChange(obj.(*apiregistration.APIService)) },
+		UpdateFunc: func(old, new interface{}) { handleAPIServiceChange(new.(*apiregistration.APIService)) },
+	})
+
+	// Don't return healthy until the pending list is empty
+	return healthz.NamedCheck(name, func(r *http.Request) error {
+		pendingServiceNamesLock.RLock()
+		defer pendingServiceNamesLock.RUnlock()
+		if pendingServiceNames.Len() > 0 {
+			return fmt.Errorf("missing APIService: %v", pendingServiceNames.List())
+		}
+		return nil
+	})
+}
+
+// priority defines group priority that is used in discovery. This controls
+// group position in the kubectl output.
 type priority struct {
-	group   int32
+	// group indicates the order of the group relative to other groups.
+	group int32
+	// version indicates the relative order of the version inside of its group.
 	version int32
 }
 
@@ -180,7 +200,7 @@ var apiVersionPriorities = map[schema.GroupVersion]priority{
 	{Group: "extensions", Version: "v1beta1"}: {group: 17900, version: 1},
 	// to my knowledge, nothing below here collides
 	{Group: "apps", Version: "v1beta1"}:                          {group: 17800, version: 1},
-	{Group: "apps", Version: "v1beta2"}:                          {group: 17800, version: 1},
+	{Group: "apps", Version: "v1beta2"}:                          {group: 17800, version: 9},
 	{Group: "apps", Version: "v1"}:                               {group: 17800, version: 15},
 	{Group: "events.k8s.io", Version: "v1beta1"}:                 {group: 17750, version: 5},
 	{Group: "authentication.k8s.io", Version: "v1"}:              {group: 17700, version: 15},
@@ -201,10 +221,15 @@ var apiVersionPriorities = map[schema.GroupVersion]priority{
 	{Group: "settings.k8s.io", Version: "v1alpha1"}:              {group: 16900, version: 9},
 	{Group: "storage.k8s.io", Version: "v1"}:                     {group: 16800, version: 15},
 	{Group: "storage.k8s.io", Version: "v1beta1"}:                {group: 16800, version: 9},
+	{Group: "storage.k8s.io", Version: "v1alpha1"}:               {group: 16800, version: 1},
 	{Group: "apiextensions.k8s.io", Version: "v1beta1"}:          {group: 16700, version: 9},
+	{Group: "admissionregistration.k8s.io", Version: "v1"}:       {group: 16700, version: 15},
 	{Group: "admissionregistration.k8s.io", Version: "v1beta1"}:  {group: 16700, version: 12},
 	{Group: "admissionregistration.k8s.io", Version: "v1alpha1"}: {group: 16700, version: 9},
 	{Group: "scheduling.k8s.io", Version: "v1alpha1"}:            {group: 16600, version: 9},
+	// Append a new group to the end of the list if unsure.
+	// You can use min(existing group)-100 as the initial value for a group.
+	// Version can be set to 9 (to have space around) for a new group.
 
 	// arbitrarily starting openshift around 10000.
 	// bump authorization above RBAC
@@ -228,7 +253,7 @@ func apiServicesToRegister(delegateAPIServer genericapiserver.DelegationTarget, 
 	for _, curr := range delegateAPIServer.ListedPaths() {
 		if curr == "/api/v1" {
 			apiService := makeAPIService(schema.GroupVersion{Group: "", Version: "v1"})
-			registration.AddAPIServiceToSync(apiService)
+			registration.AddAPIServiceToSyncOnStart(apiService)
 			apiServices = append(apiServices, apiService)
 			continue
 		}
@@ -246,7 +271,7 @@ func apiServicesToRegister(delegateAPIServer genericapiserver.DelegationTarget, 
 		if apiService == nil {
 			continue
 		}
-		registration.AddAPIServiceToSync(apiService)
+		registration.AddAPIServiceToSyncOnStart(apiService)
 		apiServices = append(apiServices, apiService)
 	}
 

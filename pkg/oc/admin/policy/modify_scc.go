@@ -164,10 +164,8 @@ func (o *SCCModificationOptions) CompleteUsers(f *clientcmd.Factory, cmd *cobra.
 	o.DryRun = kcmdutil.GetFlagBool(cmd, "dry-run")
 	o.Output = kcmdutil.GetFlagString(cmd, "output")
 
-	mapper, _ := f.Object()
-
 	o.PrintObj = func(obj runtime.Object) error {
-		return f.PrintObject(cmd, false, mapper, obj, out)
+		return kcmdutil.PrintObject(cmd, obj, out)
 	}
 
 	securityClient, err := f.OpenshiftInternalSecurityClient()
@@ -196,10 +194,8 @@ func (o *SCCModificationOptions) CompleteGroups(f *clientcmd.Factory, cmd *cobra
 	o.Out = out
 	o.Output = kcmdutil.GetFlagString(cmd, "output")
 
-	mapper, _ := f.Object()
-
 	o.PrintObj = func(obj runtime.Object) error {
-		return f.PrintObject(cmd, false, mapper, obj, out)
+		return kcmdutil.PrintObject(cmd, obj, out)
 	}
 
 	o.IsGroup = true

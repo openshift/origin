@@ -8,8 +8,7 @@ load(
 
 go_binary(
     name = "sample-apiserver",
-    importpath = "k8s.io/sample-apiserver",
-    library = ":go_default_library",
+    embed = [":go_default_library"],
 )
 
 go_library(

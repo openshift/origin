@@ -249,8 +249,7 @@ func (o *CancelBuildOptions) RunCancelBuild() error {
 				return
 			}
 
-			resource, name, _ := cmdutil.ResolveResource(buildapi.Resource("builds"), build.Name, o.Mapper)
-			kcmdutil.PrintSuccess(o.Mapper, false, o.Out, resource.Resource, name, false, "cancelled")
+			kcmdutil.PrintSuccess(false, o.Out, build, false, "cancelled")
 		}(b)
 	}
 	wg.Wait()
@@ -263,8 +262,7 @@ func (o *CancelBuildOptions) RunCancelBuild() error {
 				o.ReportError(fmt.Errorf("build %s/%s failed to restart: %v", b.Namespace, b.Name, err))
 				continue
 			}
-			resource, name, _ := cmdutil.ResolveResource(buildapi.Resource("builds"), build.Name, o.Mapper)
-			kcmdutil.PrintSuccess(o.Mapper, false, o.Out, resource.Resource, name, false, fmt.Sprintf("restarted build %q", b.Name))
+			kcmdutil.PrintSuccess(false, o.Out, build, false, fmt.Sprintf("restarted build %q", b.Name))
 		}
 	}
 

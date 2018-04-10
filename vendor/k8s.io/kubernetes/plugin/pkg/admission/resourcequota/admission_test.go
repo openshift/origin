@@ -8,7 +8,7 @@ You may obtain a copy of the License at
     http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,`
+distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
@@ -722,12 +722,6 @@ func TestAdmitEnforceQuotaConstraints(t *testing.T) {
 	// verify all values are specified as required on the quota
 	newPod := validPod("not-allowed-pod", 1, getResourceRequirements(getResourceList("100m", "2Gi"), getResourceList("200m", "")))
 	err := handler.Validate(admission.NewAttributesRecord(newPod, nil, api.Kind("Pod").WithVersion("version"), newPod.Namespace, newPod.Name, api.Resource("pods").WithVersion("version"), "", admission.Create, nil))
-	if err == nil {
-		t.Errorf("Expected an error because the pod does not specify a memory limit")
-	}
-	// verify the requests and limits are actually valid (in this case, we fail because the limits < requests)
-	newPod = validPod("not-allowed-pod", 1, getResourceRequirements(getResourceList("200m", "2Gi"), getResourceList("100m", "1Gi")))
-	err = handler.Validate(admission.NewAttributesRecord(newPod, nil, api.Kind("Pod").WithVersion("version"), newPod.Namespace, newPod.Name, api.Resource("pods").WithVersion("version"), "", admission.Create, nil))
 	if err == nil {
 		t.Errorf("Expected an error because the pod does not specify a memory limit")
 	}

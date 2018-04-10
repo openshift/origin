@@ -117,10 +117,10 @@ func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
 
 	selfSubjectRulesReviewStorage := selfsubjectrulesreview.NewREST(c.ExtraConfig.RuleResolver, c.ExtraConfig.KubeInternalInformers.Rbac().InternalVersion().ClusterRoles().Lister())
 	subjectRulesReviewStorage := subjectrulesreview.NewREST(c.ExtraConfig.RuleResolver, c.ExtraConfig.KubeInternalInformers.Rbac().InternalVersion().ClusterRoles().Lister())
-	subjectAccessReviewStorage := subjectaccessreview.NewREST(c.GenericConfig.Authorizer)
+	subjectAccessReviewStorage := subjectaccessreview.NewREST(c.GenericConfig.Authorization.Authorizer)
 	subjectAccessReviewRegistry := subjectaccessreview.NewRegistry(subjectAccessReviewStorage)
 	localSubjectAccessReviewStorage := localsubjectaccessreview.NewREST(subjectAccessReviewRegistry)
-	resourceAccessReviewStorage := resourceaccessreview.NewREST(c.GenericConfig.Authorizer, c.ExtraConfig.SubjectLocator)
+	resourceAccessReviewStorage := resourceaccessreview.NewREST(c.GenericConfig.Authorization.Authorizer, c.ExtraConfig.SubjectLocator)
 	resourceAccessReviewRegistry := resourceaccessreview.NewRegistry(resourceAccessReviewStorage)
 	localResourceAccessReviewStorage := localresourceaccessreview.NewREST(resourceAccessReviewRegistry)
 	roleBindingRestrictionStorage, err := rolebindingrestrictionetcd.NewREST(c.GenericConfig.RESTOptionsGetter)

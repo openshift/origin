@@ -137,7 +137,7 @@ func (cmd *ls) Run(ctx context.Context, f *flag.FlagSet) error {
 }
 
 type listResult struct {
-	*ls
+	*ls      `json:"-"`
 	Elements []list.Element `json:"elements"`
 }
 

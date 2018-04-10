@@ -196,6 +196,8 @@ class Vmodl
     @data.map do |k,v|
       next if !v.is_a?(Hash)
       next if v["kind"] != "managed"
+      # rbvmomi/vmodl.db includes pbm mo's, but we don't need the types as they have no properties
+      next if k =~ /^pbm/i
 
       Managed.new(self, k, v)
     end.compact
@@ -214,6 +216,11 @@ vmodl = Vmodl.new(read ARGV[2] || "./rbvmomi/vmodl.db")
 
 File.open(File.join(ARGV.first, "mo/mo.go"), "w") do |io|
   io.print WSDL.header("mo")
+  io.print <<EOF
+import (
+        "github.com/vmware/govmomi/vim25/types"
+)
+EOF
 
   vmodl.
     managed.

@@ -87,7 +87,12 @@ func newAuthenticator(config configapi.MasterConfig, accessTokenGetter oauthclie
 			}
 			publicKeys = append(publicKeys, readPublicKeys...)
 		}
-		serviceAccountTokenAuthenticator := serviceaccount.JWTTokenAuthenticator(publicKeys, true, tokenGetter)
+
+		serviceAccountTokenAuthenticator := serviceaccount.JWTTokenAuthenticator(
+			serviceaccount.LegacyIssuer,
+			publicKeys,
+			serviceaccount.NewLegacyValidator(true, tokenGetter),
+		)
 		tokenAuthenticators = append(tokenAuthenticators, serviceAccountTokenAuthenticator)
 	}
 

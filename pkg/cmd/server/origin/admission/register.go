@@ -8,7 +8,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/admission"
 	genericapiserver "k8s.io/apiserver/pkg/server"
-	kubeapiserver "k8s.io/kubernetes/cmd/kube-apiserver/app/options"
+	kubeapiserver "k8s.io/kubernetes/pkg/kubeapiserver/options"
 
 	// Admission control plug-ins used by OpenShift
 	authorizationrestrictusers "github.com/openshift/origin/pkg/authorization/admission/restrictusers"
@@ -30,7 +30,7 @@ import (
 
 	"k8s.io/kubernetes/plugin/pkg/admission/noderestriction"
 	expandpvcadmission "k8s.io/kubernetes/plugin/pkg/admission/persistentvolume/resize"
-	storageclassdefaultadmission "k8s.io/kubernetes/plugin/pkg/admission/storageclass/setdefault"
+	storageclassdefaultadmission "k8s.io/kubernetes/plugin/pkg/admission/storage/storageclass/setdefault"
 
 	imagepolicyapi "github.com/openshift/origin/pkg/image/admission/apis/imagepolicy"
 	overrideapi "github.com/openshift/origin/pkg/quota/admission/apis/clusterresourceoverride"
@@ -91,6 +91,7 @@ var (
 		"ServiceAccount",
 		noderestriction.PluginName,
 		securityadmission.PluginName,
+		"StorageObjectInUseProtection",
 		"SCCExecRestrictions",
 		"PersistentVolumeLabel",
 		"DefaultStorageClass",
@@ -122,7 +123,6 @@ var (
 		"ValidatingAdmissionWebhook",
 		"MutatingAdmissionWebhook",
 		"ExtendedResourceToleration",
-		"PVCProtection",
 		expandpvcadmission.PluginName,
 
 		// these should usually be off.

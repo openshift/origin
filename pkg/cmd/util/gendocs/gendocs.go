@@ -49,7 +49,7 @@ func GenDocs(cmd *cobra.Command, filename string) error {
 	printOpts.OutputFormatArgument = string(template)
 
 	printer, err := printers.GetStandardPrinter(
-		nil, nil, nil, nil, *printOpts)
+		nil, nil, nil, *printOpts)
 	if err != nil {
 		return err
 	}

@@ -32,10 +32,11 @@ import (
 type tree struct {
 	*flags.VirtualMachineFlag
 
-	fullPath bool
-	current  bool
-	date     bool
-	id       bool
+	fullPath    bool
+	current     bool
+	currentName bool
+	date        bool
+	id          bool
 
 	info *types.VirtualMachineSnapshotInfo
 }
@@ -49,6 +50,7 @@ func (cmd *tree) Register(ctx context.Context, f *flag.FlagSet) {
 	cmd.VirtualMachineFlag.Register(ctx, f)
 
 	f.BoolVar(&cmd.fullPath, "f", false, "Print the full path prefix for snapshot")
+	f.BoolVar(&cmd.currentName, "C", false, "Print the current snapshot name only")
 	f.BoolVar(&cmd.current, "c", true, "Print the current snapshot")
 	f.BoolVar(&cmd.date, "D", false, "Print the snapshot creation date")
 	f.BoolVar(&cmd.id, "i", false, "Print the snapshot id")
@@ -79,10 +81,19 @@ func (cmd *tree) write(level int, parent string, st []types.VirtualMachineSnapsh
 			sname = path.Join(parent, sname)
 		}
 
-		names := []string{sname}
+		var names []string
 
-		if cmd.current && s.Snapshot == *cmd.info.CurrentSnapshot {
-			names = append(names, ".")
+		if !cmd.currentName {
+			names = append(names, sname)
+		}
+
+		if s.Snapshot == *cmd.info.CurrentSnapshot {
+			if cmd.current {
+				names = append(names, ".")
+			} else if cmd.currentName {
+				fmt.Println(sname)
+				return
+			}
 		}
 
 		for _, name := range names {
@@ -133,7 +144,7 @@ func (cmd *tree) Run(ctx context.Context, f *flag.FlagSet) error {
 		return nil
 	}
 
-	if cmd.current && o.Snapshot.CurrentSnapshot == nil {
+	if o.Snapshot.CurrentSnapshot == nil || cmd.currentName {
 		cmd.current = false
 	}
 

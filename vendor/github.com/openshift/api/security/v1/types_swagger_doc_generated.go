@@ -120,6 +120,27 @@ func (PodSecurityPolicySubjectReviewStatus) SwaggerDoc() map[string]string {
 	return map_PodSecurityPolicySubjectReviewStatus
 }
 
+var map_RangeAllocation = map[string]string{
+	"":         "RangeAllocation is used so we can easily expose a RangeAllocation typed for security group",
+	"metadata": "Standard object's metadata. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata",
+	"range":    "range is a string representing a unique label for a range of uids, \"1000000000-2000000000/10000\".",
+	"data":     "data is a byte array representing the serialized state of a range allocation.  It is a bitmap with each bit set to one to represent a range is taken.",
+}
+
+func (RangeAllocation) SwaggerDoc() map[string]string {
+	return map_RangeAllocation
+}
+
+var map_RangeAllocationList = map[string]string{
+	"":         "RangeAllocationList is a list of RangeAllocations objects",
+	"metadata": "More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata",
+	"items":    "List of RangeAllocations.",
+}
+
+func (RangeAllocationList) SwaggerDoc() map[string]string {
+	return map_RangeAllocationList
+}
+
 var map_RunAsUserStrategyOptions = map[string]string{
 	"":            "RunAsUserStrategyOptions defines the strategy type and any options used to create the strategy.",
 	"type":        "Type is the strategy that will dictate what RunAsUser is used in the SecurityContext.",

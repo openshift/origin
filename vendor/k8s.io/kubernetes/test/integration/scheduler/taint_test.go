@@ -37,22 +37,21 @@ import (
 	"k8s.io/kubernetes/pkg/api/testapi"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	internalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
-	"k8s.io/kubernetes/pkg/controller/node"
-	"k8s.io/kubernetes/pkg/controller/node/ipam"
+	"k8s.io/kubernetes/pkg/controller/nodelifecycle"
 	kubeadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
+	"k8s.io/kubernetes/pkg/scheduler"
+	"k8s.io/kubernetes/pkg/scheduler/algorithm"
+	"k8s.io/kubernetes/pkg/scheduler/algorithmprovider"
+	"k8s.io/kubernetes/pkg/scheduler/factory"
 	"k8s.io/kubernetes/plugin/pkg/admission/podtolerationrestriction"
 	pluginapi "k8s.io/kubernetes/plugin/pkg/admission/podtolerationrestriction/apis/podtolerationrestriction"
-	"k8s.io/kubernetes/plugin/pkg/scheduler"
-	"k8s.io/kubernetes/plugin/pkg/scheduler/algorithm"
-	"k8s.io/kubernetes/plugin/pkg/scheduler/algorithmprovider"
-	"k8s.io/kubernetes/plugin/pkg/scheduler/factory"
 	"k8s.io/kubernetes/test/integration/framework"
 )
 
 // TestTaintNodeByCondition verifies:
 //   1. MemoryPressure Toleration is added to non-BestEffort Pod by PodTolerationRestriction
 //   2. NodeController taints nodes by node condition
-//   3. Scheduler allows pod to tolerate node condition taints, e.g. network unavailabe
+//   3. Scheduler allows pod to tolerate node condition taints, e.g. network unavailable
 func TestTaintNodeByCondition(t *testing.T) {
 	h := &framework.MasterHolder{Initialized: make(chan struct{})}
 	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
@@ -85,29 +84,24 @@ func TestTaintNodeByCondition(t *testing.T) {
 	controllerCh := make(chan struct{})
 	defer close(controllerCh)
 
-	// Start NodeController for taint.
-	nc, err := node.NewNodeController(
+	// Start NodeLifecycleController for taint.
+	nc, err := nodelifecycle.NewNodeLifecycleController(
 		informers.Core().V1().Pods(),
 		informers.Core().V1().Nodes(),
 		informers.Extensions().V1beta1().DaemonSets(),
 		nil, // CloudProvider
 		clientset,
+		time.Second, // Node monitor grace period
+		time.Second, // Node startup grace period
+		time.Second, // Node monitor period
 		time.Second, // Pod eviction timeout
 		100,         // Eviction limiter QPS
 		100,         // Secondary eviction limiter QPS
 		100,         // Large cluster threshold
 		100,         // Unhealthy zone threshold
-		time.Second, // Node monitor grace period
-		time.Second, // Node startup grace period
-		time.Second, // Node monitor period
-		nil,         // Cluster CIDR
-		nil,         // Service CIDR
-		0,           // Node CIDR mask size
-		false,       // Allocate node CIDRs
-		ipam.RangeAllocatorType, // Allocator type
-		true, // Run taint manger
-		true, // Enabled taint based eviction
-		true, // Enabled TaintNodeByCondition feature
+		true,        // Run taint manager
+		true,        // Use taint based evictions
+		true,        // Enabled TaintNodeByCondition feature
 	)
 	if err != nil {
 		t.Errorf("Failed to create node controller: %v", err)
@@ -250,6 +244,9 @@ func TestTaintNodeByCondition(t *testing.T) {
 	nodeInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		UpdateFunc: func(old, cur interface{}) {
 			curNode := cur.(*v1.Node)
+			if curNode.Name != "node-1" {
+				return
+			}
 			for _, taint := range curNode.Spec.Taints {
 				if taint.Key == algorithm.TaintNodeNetworkUnavailable &&
 					taint.Effect == v1.TaintEffectNoSchedule {
@@ -298,6 +295,57 @@ func TestTaintNodeByCondition(t *testing.T) {
 	} else {
 		if err := waitForPodToScheduleWithTimeout(clientset, networkDaemonPod, time.Second*60); err != nil {
 			t.Errorf("Case 4: Failed to schedule network daemon pod in 60s.")
+		}
+	}
+
+	// Case 5: Taint node by unschedulable condition
+	unschedulableNode := &v1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "node-2",
+		},
+		Spec: v1.NodeSpec{
+			Unschedulable: true,
+		},
+		Status: v1.NodeStatus{
+			Capacity: v1.ResourceList{
+				v1.ResourceCPU:    resource.MustParse("4000m"),
+				v1.ResourceMemory: resource.MustParse("16Gi"),
+				v1.ResourcePods:   resource.MustParse("110"),
+			},
+			Allocatable: v1.ResourceList{
+				v1.ResourceCPU:    resource.MustParse("4000m"),
+				v1.ResourceMemory: resource.MustParse("16Gi"),
+				v1.ResourcePods:   resource.MustParse("110"),
+			},
+		},
+	}
+
+	nodeInformerCh2 := make(chan bool)
+	nodeInformer2 := informers.Core().V1().Nodes().Informer()
+	nodeInformer2.AddEventHandler(cache.ResourceEventHandlerFuncs{
+		UpdateFunc: func(old, cur interface{}) {
+			curNode := cur.(*v1.Node)
+			if curNode.Name != "node-2" {
+				return
+			}
+
+			for _, taint := range curNode.Spec.Taints {
+				if taint.Key == algorithm.TaintNodeUnschedulable &&
+					taint.Effect == v1.TaintEffectNoSchedule {
+					nodeInformerCh2 <- true
+					break
+				}
+			}
+		},
+	})
+
+	if _, err := clientset.CoreV1().Nodes().Create(unschedulableNode); err != nil {
+		t.Errorf("Case 5: Failed to create node: %v", err)
+	} else {
+		select {
+		case <-time.After(60 * time.Second):
+			t.Errorf("Case 5: Failed to taint node after 60s.")
+		case <-nodeInformerCh2:
 		}
 	}
 }

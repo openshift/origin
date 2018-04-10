@@ -2,15 +2,30 @@
 
 load test_helper
 
-@test "permissions.ls" {
-  run govc permissions.ls
-  assert_success
+@test "permissions" {
+  vcsim_env
+
+  perm=$(govc permissions.ls /DC0)
 
   run govc permissions.ls -json
   assert_success
+
+  run govc permissions.set -principal root -role Admin /DC0
+  assert_success
+
+  run govc permissions.ls /DC0
+  refute_line "$perm"
+
+  run govc permissions.remove -principal root /DC0
+  assert_success
+
+  run govc permissions.ls /DC0
+  assert_success "$perm"
 }
 
 @test "role.ls" {
+  vcsim_env
+
   run govc role.ls
   assert_success
 
@@ -28,6 +43,8 @@ load test_helper
 }
 
 @test "role.usage" {
+  vcsim_env
+
   run govc role.usage
   assert_success
 
@@ -45,6 +62,8 @@ load test_helper
 }
 
 @test "role.create" {
+  vcsim_env
+
   id=$(new_id)
   run govc role.create "$id"
   assert_success
@@ -53,11 +72,17 @@ load test_helper
   assert_success
 
   priv=$(govc role.ls "$id" | wc -l)
+  [ "$priv" -eq 3 ]
+
   vm_priv=($(govc role.ls Admin | grep VirtualMachine.))
 
   # Test set
   run govc role.update "$id" "${vm_priv[@]}"
   assert_success
+
+  # invalid priv id
+  run govc role.update "$id" enoent
+  assert_failure
 
   npriv=$(govc role.ls "$id" | wc -l)
   [ "$npriv" -gt "$priv" ]

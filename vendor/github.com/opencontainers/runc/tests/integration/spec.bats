@@ -51,7 +51,7 @@ function teardown() {
   [ ! -e "$HELLO_BUNDLE"/config.json ]
 
   # test generation of spec does not return an error
-  runc_spec --bundle "$HELLO_BUNDLE"
+  runc_spec "$HELLO_BUNDLE"
   [ "$status" -eq 0 ]
 
   # test generation of spec created our config.json (spec)
@@ -79,6 +79,9 @@ function teardown() {
   [ -e src/runtime-spec/schema/config-schema.json ]
 
   run bash -c "GOPATH='$GOPATH' go get github.com/xeipuuv/gojsonschema"
+  [ "$status" -eq 0 ]
+
+  run git -C "${GOPATH}/src/github.com/xeipuuv/gojsonschema" reset --hard 6637feb73ee44cd4640bb3def285c29774234c7f
   [ "$status" -eq 0 ]
 
   GOPATH="$GOPATH" go build src/runtime-spec/schema/validate.go

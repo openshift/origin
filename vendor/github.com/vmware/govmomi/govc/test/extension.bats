@@ -3,7 +3,7 @@
 load test_helper
 
 @test "extension" {
-  vcsim_env
+  vcsim_env_todo
 
   govc extension.info | grep Name: | grep govc-test | awk '{print $2}' | $xargs -r govc extension.unregister
 
@@ -58,8 +58,6 @@ EOS
     unset GOVC_PASSWORD
     GOVC_USERNAME=$id
     export GOVC_PERSIST_SESSION=false
-    # vagrant port forwards to VC's port 80
-    export GOVC_TUNNEL_PROXY_PORT=16080
     run govc about -cert "${id}.crt" -key "${id}.key"
     assert_success
   )

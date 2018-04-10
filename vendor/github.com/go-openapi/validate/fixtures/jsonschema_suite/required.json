@@ -18,6 +18,11 @@
                 "description": "non-present required property is invalid",
                 "data": {"bar": 1},
                 "valid": false
+            },
+            {
+                "description": "ignores non-objects",
+                "data": 12,
+                "valid": true
             }
         ]
     },

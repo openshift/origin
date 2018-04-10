@@ -150,15 +150,25 @@ func NewPluginInitializer(
 		restMapper,
 		generic.NewConfiguration(quotaRegistry.List(), map[schema.GroupResource]struct{}{}))
 
-	webhookInitializer := webhookinitializer.NewPluginInitializer(
-		func(delegate webhookconfig.AuthenticationInfoResolver) webhookconfig.AuthenticationInfoResolver {
-			return webhookconfig.AuthenticationInfoResolverFunc(func(server string) (*rest.Config, error) {
+	webhookAuthResolverWrapper := func(delegate webhookconfig.AuthenticationInfoResolver) webhookconfig.AuthenticationInfoResolver {
+		return &webhookconfig.AuthenticationInfoResolverDelegator{
+			ClientConfigForFunc: func(server string) (*rest.Config, error) {
 				if server == "kubernetes.default.svc" {
 					return rest.CopyConfig(privilegedLoopbackConfig), nil
 				}
 				return delegate.ClientConfigFor(server)
-			})
-		},
+			},
+			ClientConfigForServiceFunc: func(serviceName, serviceNamespace string) (*rest.Config, error) {
+				if serviceName == "kubernetes" && serviceNamespace == "default" {
+					return rest.CopyConfig(privilegedLoopbackConfig), nil
+				}
+				return delegate.ClientConfigForService(serviceName, serviceNamespace)
+			},
+		}
+	}
+
+	webhookInitializer := webhookinitializer.NewPluginInitializer(
+		webhookAuthResolverWrapper,
 		aggregatorapiserver.NewClusterIPServiceResolver(informers.GetClientGoKubeInformers().Core().V1().Services().Lister()),
 	)
 

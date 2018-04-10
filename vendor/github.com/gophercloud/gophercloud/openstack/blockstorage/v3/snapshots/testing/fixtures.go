@@ -17,7 +17,11 @@ func MockListResponse(t *testing.T) {
 		w.Header().Add("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 
-		fmt.Fprintf(w, `
+		r.ParseForm()
+		marker := r.Form.Get("marker")
+		switch marker {
+		case "":
+			fmt.Fprintf(w, `
     {
       "snapshots": [
         {
@@ -38,9 +42,19 @@ func MockListResponse(t *testing.T) {
           "size": 25,
 		  "created_at": "2017-05-30T03:35:03.000000"
         }
-      ]
+      ],
+      "snapshots_links": [
+        {
+            "href": "%s/snapshots?marker=1",
+            "rel": "next"
+        }]
     }
-    `)
+    `, th.Server.URL)
+		case "1":
+			fmt.Fprintf(w, `{"snapshots": []}`)
+		default:
+			t.Fatalf("Unexpected marker: [%s]", marker)
+		}
 	})
 }
 

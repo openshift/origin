@@ -6,7 +6,6 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
@@ -37,7 +36,6 @@ type CreateDeploymentConfigOptions struct {
 
 	DryRun bool
 
-	Mapper       meta.RESTMapper
 	OutputFormat string
 	Out          io.Writer
 	Printer      ObjectPrinter
@@ -112,11 +110,10 @@ func (o *CreateDeploymentConfigOptions) Complete(cmd *cobra.Command, f *clientcm
 	}
 	o.Client = appsClient.Apps()
 
-	o.Mapper, _ = f.Object()
 	o.OutputFormat = cmdutil.GetFlagString(cmd, "output")
 
 	o.Printer = func(obj runtime.Object, out io.Writer) error {
-		return f.PrintObject(cmd, false, o.Mapper, obj, out)
+		return cmdutil.PrintObject(cmd, obj, out)
 	}
 
 	return nil
@@ -128,9 +125,6 @@ func (o *CreateDeploymentConfigOptions) Validate() error {
 	}
 	if o.Client == nil {
 		return fmt.Errorf("Client is required")
-	}
-	if o.Mapper == nil {
-		return fmt.Errorf("Mapper is required")
 	}
 	if o.Out == nil {
 		return fmt.Errorf("Out is required")
@@ -155,7 +149,7 @@ func (o *CreateDeploymentConfigOptions) Run() error {
 	}
 
 	if useShortOutput := o.OutputFormat == "name"; useShortOutput || len(o.OutputFormat) == 0 {
-		cmdutil.PrintSuccess(o.Mapper, useShortOutput, o.Out, "deploymentconfig", actualObj.Name, o.DryRun, "created")
+		cmdutil.PrintSuccess(useShortOutput, o.Out, actualObj, o.DryRun, "created")
 		return nil
 	}
 

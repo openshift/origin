@@ -161,6 +161,7 @@ oc-create-deploymentconfig.1
 oc-create-identity.1
 oc-create-imagestream.1
 oc-create-imagestreamtag.1
+oc-create-job.1
 oc-create-namespace.1
 oc-create-poddisruptionbudget.1
 oc-create-policybinding.1

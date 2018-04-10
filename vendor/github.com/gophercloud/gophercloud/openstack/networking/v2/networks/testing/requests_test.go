@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	fake "github.com/gophercloud/gophercloud/openstack/networking/v2/common"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/portsecurity"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/networks"
 	"github.com/gophercloud/gophercloud/pagination"
 	th "github.com/gophercloud/gophercloud/testhelper"
@@ -46,6 +47,39 @@ func TestList(t *testing.T) {
 	}
 }
 
+func TestListWithExtensions(t *testing.T) {
+	th.SetupHTTP()
+	defer th.TeardownHTTP()
+
+	th.Mux.HandleFunc("/v2.0/networks", func(w http.ResponseWriter, r *http.Request) {
+		th.TestMethod(t, r, "GET")
+		th.TestHeader(t, r, "X-Auth-Token", fake.TokenID)
+
+		w.Header().Add("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		fmt.Fprintf(w, ListResponse)
+	})
+
+	client := fake.ServiceClient()
+
+	type networkWithExt struct {
+		networks.Network
+		portsecurity.PortSecurityExt
+	}
+
+	var allNetworks []networkWithExt
+
+	allPages, err := networks.List(client, networks.ListOpts{}).AllPages()
+	th.AssertNoErr(t, err)
+
+	err = networks.ExtractNetworksInto(allPages, &allNetworks)
+	th.AssertNoErr(t, err)
+
+	th.AssertEquals(t, allNetworks[0].Status, "ACTIVE")
+	th.AssertEquals(t, allNetworks[0].PortSecurityEnabled, true)
+}
+
 func TestGet(t *testing.T) {
 	th.SetupHTTP()
 	defer th.TeardownHTTP()
@@ -63,6 +97,32 @@ func TestGet(t *testing.T) {
 	n, err := networks.Get(fake.ServiceClient(), "d32019d3-bc6e-4319-9c1d-6722fc136a22").Extract()
 	th.AssertNoErr(t, err)
 	th.CheckDeepEquals(t, &Network1, n)
+}
+
+func TestGetWithExtensions(t *testing.T) {
+	th.SetupHTTP()
+	defer th.TeardownHTTP()
+
+	th.Mux.HandleFunc("/v2.0/networks/d32019d3-bc6e-4319-9c1d-6722fc136a22", func(w http.ResponseWriter, r *http.Request) {
+		th.TestMethod(t, r, "GET")
+		th.TestHeader(t, r, "X-Auth-Token", fake.TokenID)
+
+		w.Header().Add("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		fmt.Fprintf(w, GetResponse)
+	})
+
+	var networkWithExtensions struct {
+		networks.Network
+		portsecurity.PortSecurityExt
+	}
+
+	err := networks.Get(fake.ServiceClient(), "d32019d3-bc6e-4319-9c1d-6722fc136a22").ExtractInto(&networkWithExtensions)
+	th.AssertNoErr(t, err)
+
+	th.AssertEquals(t, networkWithExtensions.Status, "ACTIVE")
+	th.AssertEquals(t, networkWithExtensions.PortSecurityEnabled, true)
 }
 
 func TestCreate(t *testing.T) {
@@ -106,7 +166,13 @@ func TestCreateWithOptionalFields(t *testing.T) {
 	})
 
 	iTrue := true
-	options := networks.CreateOpts{Name: "public", AdminStateUp: &iTrue, Shared: &iTrue, TenantID: "12345"}
+	options := networks.CreateOpts{
+		Name:                  "public",
+		AdminStateUp:          &iTrue,
+		Shared:                &iTrue,
+		TenantID:              "12345",
+		AvailabilityZoneHints: []string{"zone1", "zone2"},
+	}
 	_, err := networks.Create(fake.ServiceClient(), options).Extract()
 	th.AssertNoErr(t, err)
 }

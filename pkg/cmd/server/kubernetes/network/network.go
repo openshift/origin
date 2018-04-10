@@ -117,6 +117,7 @@ func (c *NetworkConfig) RunProxy() {
 			bindAddr,
 			recorder,
 			healthzServer,
+			c.ProxyConfig.NodePortAddresses,
 		)
 		metrics.RegisterMetrics()
 
@@ -147,6 +148,7 @@ func (c *NetworkConfig) RunProxy() {
 			c.ProxyConfig.IPTables.SyncPeriod.Duration,
 			c.ProxyConfig.IPTables.MinSyncPeriod.Duration,
 			c.ProxyConfig.UDPIdleTimeout.Duration,
+			c.ProxyConfig.NodePortAddresses,
 		)
 		if err != nil {
 			glog.Fatalf("error: Could not initialize Kubernetes Proxy. You must run this process as root (and if containerized, in the host network namespace as privileged) to use the service proxy: %v", err)
@@ -172,7 +174,7 @@ func (c *NetworkConfig) RunProxy() {
 	if c.EnableUnidling {
 		unidlingLoadBalancer := userspace.NewLoadBalancerRR()
 		signaler := unidler.NewEventSignaler(recorder)
-		unidlingUserspaceProxy, err := unidler.NewUnidlerProxier(unidlingLoadBalancer, bindAddr, iptInterface, execer, *portRange, c.ProxyConfig.IPTables.SyncPeriod.Duration, c.ProxyConfig.IPTables.MinSyncPeriod.Duration, c.ProxyConfig.UDPIdleTimeout.Duration, signaler)
+		unidlingUserspaceProxy, err := unidler.NewUnidlerProxier(unidlingLoadBalancer, bindAddr, iptInterface, execer, *portRange, c.ProxyConfig.IPTables.SyncPeriod.Duration, c.ProxyConfig.IPTables.MinSyncPeriod.Duration, c.ProxyConfig.UDPIdleTimeout.Duration, c.ProxyConfig.NodePortAddresses, signaler)
 		if err != nil {
 			glog.Fatalf("error: Could not initialize Kubernetes Proxy. You must run this process as root (and if containerized, in the host network namespace as privileged) to use the service proxy: %v", err)
 		}

@@ -7,7 +7,7 @@ import (
 	"github.com/golang/glog"
 
 	controllerapp "k8s.io/kubernetes/cmd/kube-controller-manager/app"
-	_ "k8s.io/kubernetes/plugin/pkg/scheduler/algorithmprovider"
+	_ "k8s.io/kubernetes/pkg/scheduler/algorithmprovider"
 )
 
 func computeKubeControllerManagerArgs(kubeconfigFile, saPrivateKeyFile, saRootCAFile, podEvictionTimeout, openshiftConfigFile string, dynamicProvisioningEnabled bool, qps float32, burst int) []string {

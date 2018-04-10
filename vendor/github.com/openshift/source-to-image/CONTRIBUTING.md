@@ -12,7 +12,7 @@ it calls `hack/build-go.sh`. The resulting binary will be placed in `_output/loc
 Additionally you can pass `WHAT` or `TEST` variable specifying directory names to test,
 eg. `make test WHAT=pkg/build`
 * `check` - is synonym for `test`.
-* `clean` - cleans environment by removing `_output` and `Godeps/_workspace/pkg` directories.
+* `clean` - cleans environment by removing `_output`
 
 ## Generating Bash completion
 
@@ -87,16 +87,16 @@ Run the integration tests with:
     $ hack/test-integration.sh
 
 
-## Installing Godep
+## Installing Glide
 
-S2I uses [Godep](https://github.com/tools/godep) for dependency management.
-Godep allows versions of dependent packages to be locked at a specific commit by *vendoring* them
-(checking a copy of them into `Godeps/_workspace/`).  This means that everything you need for
-S2I is checked into this repository.  To install `godep` locally run:
+S2I uses [Glide](https://github.com/Masterminds/glide) for dependency management.
+Glide allows versions of dependent packages to be locked at a specific commit by *vendoring* them
+(checking a copy of them into `vendor`).  This means that everything you need for
+S2I is checked into this repository.  To install `glide` locally run:
 
-    $ go get github.com/tools/godep
+    $ go get github.com/Masterminds/glide
 
-If you are not updating packages you should not need godep installed.
+If you are not updating packages you should not need glide installed.
 
 
 ## Building a Release

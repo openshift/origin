@@ -53,6 +53,26 @@ func (b ByteSize) String() string {
 	return fmt.Sprintf("%dB", b)
 }
 
+type FileSize int64
+
+func (b FileSize) String() string {
+	switch {
+	case b >= EB:
+		return fmt.Sprintf("%.1fE", float32(b)/EB)
+	case b >= PB:
+		return fmt.Sprintf("%.1fP", float32(b)/PB)
+	case b >= TB:
+		return fmt.Sprintf("%.1fT", float32(b)/TB)
+	case b >= GB:
+		return fmt.Sprintf("%.1fG", float32(b)/GB)
+	case b >= MB:
+		return fmt.Sprintf("%.1fM", float32(b)/MB)
+	case b >= KB:
+		return fmt.Sprintf("%.1fK", float32(b)/KB)
+	}
+	return fmt.Sprintf("%d", b)
+}
+
 var bytesRegexp = regexp.MustCompile(`^(?i)(\d+)([BKMGTPE]?)(ib|b)?$`)
 
 func (b *ByteSize) Set(s string) error {

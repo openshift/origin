@@ -37,7 +37,8 @@ func TestListFlavors(t *testing.T) {
 								"disk": 1,
 								"ram": 512,
 								"swap":"",
-								"os-flavor-access:is_public": true
+								"os-flavor-access:is_public": true,
+								"OS-FLV-EXT-DATA:ephemeral": 10
 							},
 							{
 								"id": "2",
@@ -46,7 +47,8 @@ func TestListFlavors(t *testing.T) {
 								"disk": 20,
 								"ram": 2048,
 								"swap": 1000,
-								"os-flavor-access:is_public": true
+								"os-flavor-access:is_public": true,
+								"OS-FLV-EXT-DATA:ephemeral": 0
 							},
 							{
 								"id": "3",
@@ -55,7 +57,8 @@ func TestListFlavors(t *testing.T) {
 								"disk": 40,
 								"ram": 4096,
 								"swap": 1000,
-								"os-flavor-access:is_public": false
+								"os-flavor-access:is_public": false,
+								"OS-FLV-EXT-DATA:ephemeral": 0
 							}
 						],
 						"flavors_links": [
@@ -84,9 +87,9 @@ func TestListFlavors(t *testing.T) {
 		}
 
 		expected := []flavors.Flavor{
-			{ID: "1", Name: "m1.tiny", VCPUs: 1, Disk: 1, RAM: 512, Swap: 0, IsPublic: true},
-			{ID: "2", Name: "m1.small", VCPUs: 1, Disk: 20, RAM: 2048, Swap: 1000, IsPublic: true},
-			{ID: "3", Name: "m1.medium", VCPUs: 2, Disk: 40, RAM: 4096, Swap: 1000, IsPublic: false},
+			{ID: "1", Name: "m1.tiny", VCPUs: 1, Disk: 1, RAM: 512, Swap: 0, IsPublic: true, Ephemeral: 10},
+			{ID: "2", Name: "m1.small", VCPUs: 1, Disk: 20, RAM: 2048, Swap: 1000, IsPublic: true, Ephemeral: 0},
+			{ID: "3", Name: "m1.medium", VCPUs: 2, Disk: 40, RAM: 4096, Swap: 1000, IsPublic: false, Ephemeral: 0},
 		}
 
 		if !reflect.DeepEqual(expected, actual) {
@@ -249,4 +252,151 @@ func TestFlavorAccessesList(t *testing.T) {
 	if !reflect.DeepEqual(expected, actual) {
 		t.Errorf("Expected %#v, but was %#v", expected, actual)
 	}
+}
+
+func TestFlavorAccessAdd(t *testing.T) {
+	th.SetupHTTP()
+	defer th.TeardownHTTP()
+
+	th.Mux.HandleFunc("/flavors/12345678/action", func(w http.ResponseWriter, r *http.Request) {
+		th.TestMethod(t, r, "POST")
+		th.TestHeader(t, r, "X-Auth-Token", fake.TokenID)
+		th.TestHeader(t, r, "accept", "application/json")
+		th.TestJSONRequest(t, r, `
+			{
+			  "addTenantAccess": {
+			    "tenant": "2f954bcf047c4ee9b09a37d49ae6db54"
+			  }
+			}
+		`)
+
+		w.Header().Add("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintf(w, `
+			{
+			  "flavor_access": [
+			    {
+			      "flavor_id": "12345678",
+			      "tenant_id": "2f954bcf047c4ee9b09a37d49ae6db54"
+			    }
+			  ]
+			}
+			`)
+	})
+
+	expected := []flavors.FlavorAccess{
+		flavors.FlavorAccess{
+			FlavorID: "12345678",
+			TenantID: "2f954bcf047c4ee9b09a37d49ae6db54",
+		},
+	}
+
+	addAccessOpts := flavors.AddAccessOpts{
+		Tenant: "2f954bcf047c4ee9b09a37d49ae6db54",
+	}
+
+	actual, err := flavors.AddAccess(fake.ServiceClient(), "12345678", addAccessOpts).Extract()
+	th.AssertNoErr(t, err)
+
+	if !reflect.DeepEqual(expected, actual) {
+		t.Errorf("Expected %#v, but was %#v", expected, actual)
+	}
+}
+
+func TestFlavorAccessRemove(t *testing.T) {
+	th.SetupHTTP()
+	defer th.TeardownHTTP()
+
+	th.Mux.HandleFunc("/flavors/12345678/action", func(w http.ResponseWriter, r *http.Request) {
+		th.TestMethod(t, r, "POST")
+		th.TestHeader(t, r, "X-Auth-Token", fake.TokenID)
+		th.TestHeader(t, r, "accept", "application/json")
+		th.TestJSONRequest(t, r, `
+			{
+			  "removeTenantAccess": {
+			    "tenant": "2f954bcf047c4ee9b09a37d49ae6db54"
+			  }
+			}
+		`)
+
+		w.Header().Add("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintf(w, `
+			{
+			  "flavor_access": []
+			}
+			`)
+	})
+
+	expected := []flavors.FlavorAccess{}
+	removeAccessOpts := flavors.RemoveAccessOpts{
+		Tenant: "2f954bcf047c4ee9b09a37d49ae6db54",
+	}
+
+	actual, err := flavors.RemoveAccess(fake.ServiceClient(), "12345678", removeAccessOpts).Extract()
+	th.AssertNoErr(t, err)
+
+	if !reflect.DeepEqual(expected, actual) {
+		t.Errorf("Expected %#v, but was %#v", expected, actual)
+	}
+}
+
+func TestFlavorExtraSpecsList(t *testing.T) {
+	th.SetupHTTP()
+	defer th.TeardownHTTP()
+	HandleExtraSpecsListSuccessfully(t)
+
+	expected := ExtraSpecs
+	actual, err := flavors.ListExtraSpecs(fake.ServiceClient(), "1").Extract()
+	th.AssertNoErr(t, err)
+	th.CheckDeepEquals(t, expected, actual)
+}
+
+func TestFlavorExtraSpecGet(t *testing.T) {
+	th.SetupHTTP()
+	defer th.TeardownHTTP()
+	HandleExtraSpecGetSuccessfully(t)
+
+	expected := ExtraSpec
+	actual, err := flavors.GetExtraSpec(fake.ServiceClient(), "1", "hw:cpu_policy").Extract()
+	th.AssertNoErr(t, err)
+	th.CheckDeepEquals(t, expected, actual)
+}
+
+func TestFlavorExtraSpecsCreate(t *testing.T) {
+	th.SetupHTTP()
+	defer th.TeardownHTTP()
+	HandleExtraSpecsCreateSuccessfully(t)
+
+	createOpts := flavors.ExtraSpecsOpts{
+		"hw:cpu_policy":        "CPU-POLICY",
+		"hw:cpu_thread_policy": "CPU-THREAD-POLICY",
+	}
+	expected := ExtraSpecs
+	actual, err := flavors.CreateExtraSpecs(fake.ServiceClient(), "1", createOpts).Extract()
+	th.AssertNoErr(t, err)
+	th.CheckDeepEquals(t, expected, actual)
+}
+
+func TestFlavorExtraSpecUpdate(t *testing.T) {
+	th.SetupHTTP()
+	defer th.TeardownHTTP()
+	HandleExtraSpecUpdateSuccessfully(t)
+
+	updateOpts := flavors.ExtraSpecsOpts{
+		"hw:cpu_policy": "CPU-POLICY-2",
+	}
+	expected := UpdatedExtraSpec
+	actual, err := flavors.UpdateExtraSpec(fake.ServiceClient(), "1", updateOpts).Extract()
+	th.AssertNoErr(t, err)
+	th.CheckDeepEquals(t, expected, actual)
+}
+
+func TestFlavorExtraSpecDelete(t *testing.T) {
+	th.SetupHTTP()
+	defer th.TeardownHTTP()
+	HandleExtraSpecDeleteSuccessfully(t)
+
+	res := flavors.DeleteExtraSpec(fake.ServiceClient(), "1", "hw:cpu_policy")
+	th.AssertNoErr(t, res.Err)
 }

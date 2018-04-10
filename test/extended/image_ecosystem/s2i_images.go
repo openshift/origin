@@ -26,7 +26,7 @@ var s2iImages = map[string][]tc{
 		{
 			Version:    "22",
 			Cmd:        "ruby --version",
-			Expected:   "ruby 2.2.2",
+			Expected:   "ruby 2.2",
 			Repository: "centos",
 		},
 		{

@@ -133,10 +133,22 @@ Populated by the system. Read-only. More info: http://kubernetes.io/docs/user-gu
 </div><div style="margin-left:13px;">    <span title="(string) Namespace of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/">namespace</span>:
 </div><div style="margin-left:13px;">    <span title="(string) Specific resourceVersion to which this reference is made, if any. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#concurrency-control-and-consistency">resourceVersion</span>:
 </div><div style="margin-left:13px;">    <span title="(string) UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids">uid</span>:
-</div></details><details><summary>  <span title="(v1.CSIPersistentVolumeSource) CSI represents storage that handled by an external CSI driver">csi</span>:
-</summary><div style="margin-left:13px;">    <span title="(string) Driver is the name of the driver to use for this volume. Required.">driver</span>:
-</div><div style="margin-left:13px;">    <span title="(boolean) Optional: The value to pass to ControllerPublishVolumeRequest. Defaults to false (read/write).">readOnly</span>:
-</div><div style="margin-left:13px;">    <span title="(string) VolumeHandle is the unique volume name returned by the CSI volume plugin’s CreateVolume to refer to the volume on all subsequent calls. Required.">volumeHandle</span>:
+</div></details><details><summary>  <span title="(v1.CSIPersistentVolumeSource) CSI represents storage that handled by an external CSI driver (Beta feature).">csi</span>:
+</summary><details><summary>    <span title="(v1.SecretReference) ControllerPublishSecretRef is a reference to the secret object containing sensitive information to pass to the CSI driver to complete the CSI ControllerPublishVolume and ControllerUnpublishVolume calls. This field is optional, and  may be empty if no secret is required. If the secret object contains more than one secret, all secrets are passed.">controllerPublishSecretRef</span>:
+</summary><div style="margin-left:13px;">      <span title="(string) Name is unique within a namespace to reference a secret resource.">name</span>:
+</div><div style="margin-left:13px;">      <span title="(string) Namespace defines the space within which the secret name must be unique.">namespace</span>:
+</div></details><div style="margin-left:13px;">    <span title="(string) Driver is the name of the driver to use for this volume. Required.">driver</span>:
+</div><div style="margin-left:13px;">    <span title="(string) Filesystem type to mount. Must be a filesystem type supported by the host operating system. Ex. &#34;ext4&#34;, &#34;xfs&#34;, &#34;ntfs&#34;. Implicitly inferred to be &#34;ext4&#34; if unspecified.">fsType</span>:
+</div><details><summary>    <span title="(v1.SecretReference) NodePublishSecretRef is a reference to the secret object containing sensitive information to pass to the CSI driver to complete the CSI NodePublishVolume and NodeUnpublishVolume calls. This field is optional, and  may be empty if no secret is required. If the secret object contains more than one secret, all secrets are passed.">nodePublishSecretRef</span>:
+</summary><div style="margin-left:13px;">      <span title="(string) Name is unique within a namespace to reference a secret resource.">name</span>:
+</div><div style="margin-left:13px;">      <span title="(string) Namespace defines the space within which the secret name must be unique.">namespace</span>:
+</div></details><details><summary>    <span title="(v1.SecretReference) NodeStageSecretRef is a reference to the secret object containing sensitive information to pass to the CSI driver to complete the CSI NodeStageVolume and NodeStageVolume and NodeUnstageVolume calls. This field is optional, and  may be empty if no secret is required. If the secret object contains more than one secret, all secrets are passed.">nodeStageSecretRef</span>:
+</summary><div style="margin-left:13px;">      <span title="(string) Name is unique within a namespace to reference a secret resource.">name</span>:
+</div><div style="margin-left:13px;">      <span title="(string) Namespace defines the space within which the secret name must be unique.">namespace</span>:
+</div></details><div style="margin-left:13px;">    <span title="(boolean) Optional: The value to pass to ControllerPublishVolumeRequest. Defaults to false (read/write).">readOnly</span>:
+</div><details><summary>    <span title="(object) Attributes of the volume to publish.">volumeAttributes</span>:
+</summary><div style="margin-left:13px;">      <span title="(string)">[string]</span>:
+</div></details><div style="margin-left:13px;">    <span title="(string) VolumeHandle is the unique volume name returned by the CSI volume plugin’s CreateVolume to refer to the volume on all subsequent calls. Required.">volumeHandle</span>:
 </div></details><details><summary>  <span title="(v1.FCVolumeSource) FC represents a Fibre Channel resource that is attached to a kubelet&#39;s host machine and then exposed to the pod.">fc</span>:
 </summary><div style="margin-left:13px;">    <span title="(string) Filesystem type to mount. Must be a filesystem type supported by the host operating system. Ex. &#34;ext4&#34;, &#34;xfs&#34;, &#34;ntfs&#34;. Implicitly inferred to be &#34;ext4&#34; if unspecified.">fsType</span>:
 </div><div style="margin-left:13px;">    <span title="(integer) Optional: FC target lun number">lun</span>:
@@ -145,14 +157,15 @@ Populated by the system. Read-only. More info: http://kubernetes.io/docs/user-gu
 </summary><div style="margin-left:13px;">    - <span title="(string)">[string]</span>:
 </div></details><details><summary>    <span title="(array) Optional: FC volume world wide identifiers (wwids) Either wwids or combination of targetWWNs and lun must be set, but not both simultaneously.">wwids</span>:
 </summary><div style="margin-left:13px;">    - <span title="(string)">[string]</span>:
-</div></details></details><details><summary>  <span title="(v1.FlexVolumeSource) FlexVolume represents a generic volume resource that is provisioned/attached using an exec based plugin.">flexVolume</span>:
+</div></details></details><details><summary>  <span title="(v1.FlexPersistentVolumeSource) FlexVolume represents a generic volume resource that is provisioned/attached using an exec based plugin.">flexVolume</span>:
 </summary><div style="margin-left:13px;">    <span title="(string) Driver is the name of the driver to use for this volume.">driver</span>:
 </div><div style="margin-left:13px;">    <span title="(string) Filesystem type to mount. Must be a filesystem type supported by the host operating system. Ex. &#34;ext4&#34;, &#34;xfs&#34;, &#34;ntfs&#34;. The default filesystem depends on FlexVolume script.">fsType</span>:
 </div><details><summary>    <span title="(object) Optional: Extra command options if any.">options</span>:
 </summary><div style="margin-left:13px;">      <span title="(string)">[string]</span>:
 </div></details><div style="margin-left:13px;">    <span title="(boolean) Optional: Defaults to false (read/write). ReadOnly here will force the ReadOnly setting in VolumeMounts.">readOnly</span>:
-</div><details><summary>    <span title="(v1.LocalObjectReference) Optional: SecretRef is reference to the secret object containing sensitive information to pass to the plugin scripts. This may be empty if no secret object is specified. If the secret object contains more than one secret, all secrets are passed to the plugin scripts.">secretRef</span>:
-</summary><div style="margin-left:13px;">      <span title="(string) Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names">name</span>:
+</div><details><summary>    <span title="(v1.SecretReference) Optional: SecretRef is reference to the secret object containing sensitive information to pass to the plugin scripts. This may be empty if no secret object is specified. If the secret object contains more than one secret, all secrets are passed to the plugin scripts.">secretRef</span>:
+</summary><div style="margin-left:13px;">      <span title="(string) Name is unique within a namespace to reference a secret resource.">name</span>:
+</div><div style="margin-left:13px;">      <span title="(string) Namespace defines the space within which the secret name must be unique.">namespace</span>:
 </div></details></details><details><summary>  <span title="(v1.FlockerVolumeSource) Flocker represents a Flocker volume attached to a kubelet&#39;s host machine and exposed to the pod for its usage. This depends on the Flocker control service being running">flocker</span>:
 </summary><div style="margin-left:13px;">    <span title="(string) Name of the dataset stored as metadata -&gt; name on the dataset for Flocker should be considered as deprecated">datasetName</span>:
 </div><div style="margin-left:13px;">    <span title="(string) UUID of the dataset. This is unique identifier of a Flocker dataset">datasetUUID</span>:
@@ -191,7 +204,15 @@ Populated by the system. Read-only. More info: http://kubernetes.io/docs/user-gu
 </summary><div style="margin-left:13px;">    <span title="(string) Path that is exported by the NFS server. More info: https://kubernetes.io/docs/concepts/storage/volumes#nfs">path</span>:
 </div><div style="margin-left:13px;">    <span title="(boolean) ReadOnly here will force the NFS export to be mounted with read-only permissions. Defaults to false. More info: https://kubernetes.io/docs/concepts/storage/volumes#nfs">readOnly</span>:
 </div><div style="margin-left:13px;">    <span title="(string) Server is the hostname or IP address of the NFS server. More info: https://kubernetes.io/docs/concepts/storage/volumes#nfs">server</span>:
-</div></details><div style="margin-left:13px;">  <span title="(string) What happens to a persistent volume when released from its claim. Valid options are Retain (default) and Recycle. Recycling must be supported by the volume plugin underlying this persistent volume. More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#reclaiming">persistentVolumeReclaimPolicy</span>:
+</div></details><details><summary>  <span title="(v1.VolumeNodeAffinity) NodeAffinity defines constraints that limit what nodes this volume can be accessed from. This field influences the scheduling of pods that use this volume.">nodeAffinity</span>:
+</summary><details><summary>    <span title="(v1.NodeSelector) Required specifies hard node constraints that must be met.">required</span>:
+</summary><details><summary>      <span title="(array) Required. A list of node selector terms. The terms are ORed.">nodeSelectorTerms</span>:
+</summary><details><summary>      - <span title="(array) Required. A list of node selector requirements. The requirements are ANDed.">matchExpressions</span>:
+</summary><div style="margin-left:13px;">      - - <span title="(string) The label key that the selector applies to.">key</span>:
+</div><div style="margin-left:13px;">          <span title="(string) Represents a key&#39;s relationship to a set of values. Valid operators are In, NotIn, Exists, DoesNotExist. Gt, and Lt.">operator</span>:
+</div><details><summary>          <span title="(array) An array of string values. If the operator is In or NotIn, the values array must be non-empty. If the operator is Exists or DoesNotExist, the values array must be empty. If the operator is Gt or Lt, the values array must have a single element, which will be interpreted as an integer. This array is replaced during a strategic merge patch.">values</span>:
+</summary><div style="margin-left:13px;">          - <span title="(string)">[string]</span>:
+</div></details></details></details></details></details><div style="margin-left:13px;">  <span title="(string) What happens to a persistent volume when released from its claim. Valid options are Retain (default for manually created PersistentVolumes), Delete (default for dynamically provisioned PersistentVolumes), and Recycle (deprecated). Recycle must be supported by the volume plugin underlying this PersistentVolume. More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#reclaiming">persistentVolumeReclaimPolicy</span>:
 </div><details><summary>  <span title="(v1.PhotonPersistentDiskVolumeSource) PhotonPersistentDisk represents a PhotonController persistent disk attached and mounted on kubelets host machine">photonPersistentDisk</span>:
 </summary><div style="margin-left:13px;">    <span title="(string) Filesystem type to mount. Must be a filesystem type supported by the host operating system. Ex. &#34;ext4&#34;, &#34;xfs&#34;, &#34;ntfs&#34;. Implicitly inferred to be &#34;ext4&#34; if unspecified.">fsType</span>:
 </div><div style="margin-left:13px;">    <span title="(string) ID that identifies Photon Controller persistent disk">pdID</span>:
@@ -420,7 +441,7 @@ $ curl -k \
 
 The server guarantees that the objects returned when using continue will be identical to issuing a single list call without a limit - that is, no objects created, modified, or deleted after the first request is issued will be included in any subsequent continued requests. This is sometimes referred to as a consistent snapshot, and ensures that a client that is using limit to receive smaller chunks of a very large result can ensure they see all possible objects. If objects are updated during a chunked list the version of the object that was present at the time the first list result was calculated is returned.
 |resourceVersion|When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history. When specified for list: - if unset, then the result is returned from remote storage based on quorum-read flag; - if it's 0, then we simply return what we currently have in cache, no guarantee; - if set to non zero, then the result is at least as fresh as given rv.
-|timeoutSeconds|Timeout for the list/watch call.
+|timeoutSeconds|Timeout for the list/watch call. This limits the duration of the call, regardless of any activity or inactivity.
 |watch|Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.
 |===
 
@@ -485,7 +506,7 @@ $ curl -k \
 The server guarantees that the objects returned when using continue will be identical to issuing a single list call without a limit - that is, no objects created, modified, or deleted after the first request is issued will be included in any subsequent continued requests. This is sometimes referred to as a consistent snapshot, and ensures that a client that is using limit to receive smaller chunks of a very large result can ensure they see all possible objects. If objects are updated during a chunked list the version of the object that was present at the time the first list result was calculated is returned.
 |pretty|If 'true', then the output is pretty printed.
 |resourceVersion|When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history. When specified for list: - if unset, then the result is returned from remote storage based on quorum-read flag; - if it's 0, then we simply return what we currently have in cache, no guarantee; - if set to non zero, then the result is at least as fresh as given rv.
-|timeoutSeconds|Timeout for the list/watch call.
+|timeoutSeconds|Timeout for the list/watch call. This limits the duration of the call, regardless of any activity or inactivity.
 |watch|Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.
 |===
 
@@ -543,7 +564,7 @@ $ curl -k \
 The server guarantees that the objects returned when using continue will be identical to issuing a single list call without a limit - that is, no objects created, modified, or deleted after the first request is issued will be included in any subsequent continued requests. This is sometimes referred to as a consistent snapshot, and ensures that a client that is using limit to receive smaller chunks of a very large result can ensure they see all possible objects. If objects are updated during a chunked list the version of the object that was present at the time the first list result was calculated is returned.
 |pretty|If 'true', then the output is pretty printed.
 |resourceVersion|When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history. When specified for list: - if unset, then the result is returned from remote storage based on quorum-read flag; - if it's 0, then we simply return what we currently have in cache, no guarantee; - if set to non zero, then the result is at least as fresh as given rv.
-|timeoutSeconds|Timeout for the list/watch call.
+|timeoutSeconds|Timeout for the list/watch call. This limits the duration of the call, regardless of any activity or inactivity.
 |watch|Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.
 |===
 
@@ -831,7 +852,7 @@ $ curl -k \
 
 The server guarantees that the objects returned when using continue will be identical to issuing a single list call without a limit - that is, no objects created, modified, or deleted after the first request is issued will be included in any subsequent continued requests. This is sometimes referred to as a consistent snapshot, and ensures that a client that is using limit to receive smaller chunks of a very large result can ensure they see all possible objects. If objects are updated during a chunked list the version of the object that was present at the time the first list result was calculated is returned.
 |resourceVersion|When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history. When specified for list: - if unset, then the result is returned from remote storage based on quorum-read flag; - if it's 0, then we simply return what we currently have in cache, no guarantee; - if set to non zero, then the result is at least as fresh as given rv.
-|timeoutSeconds|Timeout for the list/watch call.
+|timeoutSeconds|Timeout for the list/watch call. This limits the duration of the call, regardless of any activity or inactivity.
 |watch|Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.
 |===
 

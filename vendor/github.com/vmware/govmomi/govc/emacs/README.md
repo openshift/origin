@@ -117,7 +117,7 @@ Keybinding     | Description
 <kbd>u</kbd>   | Unmark and move to the next line
 <kbd>t</kbd>   | Toggle mark
 <kbd>U</kbd>   | Unmark all
-<kbd>M-&</kbd> | Shell CMD with current `govc-session` exported as GOVC_ env vars
+<kbd>M-&</kbd> | Shell CMD in BUFFER with current `govc-session` exported as GOVC_ env vars
 <kbd>M-w</kbd> | Copy current selection or region to the kill ring
 <kbd>M-E</kbd> | Export session to `process-environment` and `kill-ring`
 
@@ -139,6 +139,7 @@ Keybinding     | Description
 <kbd>M</kbd>   | Metrics info
 <kbd>N</kbd>   | Netstat via `govc-esxcli-netstat-info` with current host id
 <kbd>O</kbd>   | Object browser via govc object
+<kbd>T</kbd>   | Tasks via govc tasks
 <kbd>c</kbd>   | Connect new session for the current govc mode
 <kbd>p</kbd>   | Pool-mode with current session
 <kbd>s</kbd>   | Datastore-mode with current session
@@ -161,6 +162,7 @@ Keybinding     | Description
 <kbd>J</kbd>   | JSON via govc pool
 <kbd>M</kbd>   | Metrics info
 <kbd>O</kbd>   | Object browser via govc object
+<kbd>T</kbd>   | Tasks via govc tasks
 <kbd>c</kbd>   | Connect new session for the current govc mode
 <kbd>h</kbd>   | Host-mode with current session
 <kbd>s</kbd>   | Datastore-mode with current session
@@ -199,10 +201,11 @@ during initialization.
 
 Keybinding     | Description
 ---------------|------------------------------------------------------------
+<kbd>I</kbd>   | Info datastore disk
 <kbd>J</kbd>   | JSON via govc datastore
 <kbd>S</kbd>   | Search via govc datastore
 <kbd>D</kbd>   | Delete selected datastore paths
-<kbd>T</kbd>   | Tail datastore file
+<kbd>T</kbd>   | Tail datastore FILE
 <kbd>+</kbd>   | Mkdir via govc datastore
 <kbd>DEL</kbd> | Up to parent folder
 <kbd>RET</kbd> | Open datastore folder or file
@@ -220,11 +223,13 @@ during initialization.
 Keybinding     | Description
 ---------------|------------------------------------------------------------
 <kbd>E</kbd>   | Events via govc events -n `govc-max-events`
+<kbd>L</kbd>   | Logs via `govc-datastore-tail` with logDirectory of current selection
 <kbd>J</kbd>   | JSON via govc vm
 <kbd>O</kbd>   | Object browser via govc object
+<kbd>T</kbd>   | Tasks via govc tasks
 <kbd>X</kbd>   | ExtraConfig via `govc-vm-extra-config` on the current selection
 <kbd>RET</kbd> | Devices via `govc-device` on the current selection
-<kbd>C</kbd>   | Console screenshot via `govc-vm-screen` on the current selection
+<kbd>C</kbd>   | Console via `govc-vm-console` on the current selection
 <kbd>V</kbd>   | VNC via `govc-vm-vnc` on the current selection
 <kbd>D</kbd>   | Destroy via `govc-vm-destroy` on the current selection
 <kbd>^</kbd>   | Start via `govc-vm-start` on the current selection

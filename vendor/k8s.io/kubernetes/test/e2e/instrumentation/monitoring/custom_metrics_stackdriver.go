@@ -32,7 +32,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/client-go/discovery"
-	kubeaggrcs "k8s.io/kube-aggregator/pkg/client/clientset_generated/clientset"
 	"k8s.io/kubernetes/test/e2e/framework"
 	customclient "k8s.io/metrics/pkg/client/custom_metrics"
 )
@@ -50,13 +49,11 @@ var _ = instrumentation.SIGDescribe("Stackdriver Monitoring", func() {
 
 	f := framework.NewDefaultFramework("stackdriver-monitoring")
 	var kubeClient clientset.Interface
-	var kubeAggrClient kubeaggrcs.Interface
 	var customMetricsClient customclient.CustomMetricsClient
 	var discoveryClient *discovery.DiscoveryClient
 
 	It("should run Custom Metrics - Stackdriver Adapter [Feature:StackdriverCustomMetrics]", func() {
 		kubeClient = f.ClientSet
-		kubeAggrClient = f.AggregatorClient
 		config, err := framework.LoadConfig()
 		if err != nil {
 			framework.Failf("Failed to load config: %s", err)
@@ -104,8 +101,8 @@ func testAdapter(f *framework.Framework, kubeClient clientset.Interface, customM
 	}
 	defer CleanupAdapter()
 
-	_, err = kubeClient.Rbac().ClusterRoleBindings().Create(HPAPermissions)
-	defer kubeClient.Rbac().ClusterRoleBindings().Delete("custom-metrics-reader", &metav1.DeleteOptions{})
+	_, err = kubeClient.RbacV1().ClusterRoleBindings().Create(HPAPermissions)
+	defer kubeClient.RbacV1().ClusterRoleBindings().Delete("custom-metrics-reader", &metav1.DeleteOptions{})
 
 	// Run application that exports the metric
 	err = createSDExporterPods(f, kubeClient)

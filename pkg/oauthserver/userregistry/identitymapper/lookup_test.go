@@ -198,7 +198,7 @@ type mappingRegistry interface {
 // TODO: move me somewhere common
 type mappingStorage interface {
 	rest.Getter
-	rest.Deleter
+	rest.GracefulDeleter
 
 	Create(ctx apirequest.Context, obj runtime.Object, createValidate rest.ValidateObjectFunc, _ bool) (runtime.Object, error)
 	Update(ctx apirequest.Context, name string, objInfo rest.UpdatedObjectInfo, createValidate rest.ValidateObjectFunc, updateValidate rest.ValidateObjectUpdateFunc) (runtime.Object, bool, error)
@@ -245,6 +245,6 @@ func (s *storage) UpdateUserIdentityMapping(ctx apirequest.Context, mapping *use
 
 //
 func (s *storage) DeleteUserIdentityMapping(ctx apirequest.Context, name string) error {
-	_, err := s.Delete(ctx, name)
+	_, _, err := s.Delete(ctx, name, nil)
 	return err
 }

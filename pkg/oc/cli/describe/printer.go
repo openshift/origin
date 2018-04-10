@@ -10,10 +10,11 @@ import (
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kprinters "k8s.io/kubernetes/pkg/printers"
+	printersinternal "k8s.io/kubernetes/pkg/printers/internalversion"
 
 	oapi "github.com/openshift/origin/pkg/api"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
@@ -78,13 +79,12 @@ var (
 
 func init() {
 	// TODO this should be eliminated
-	kprinters.NewHumanReadablePrinterFn = NewHumanReadablePrinter
+	printersinternal.AddHandlers = addPrintHandlers
 }
 
-// NewHumanReadablePrinter returns a new HumanReadablePrinter
-func NewHumanReadablePrinter(encoder runtime.Encoder, decoder runtime.Decoder, printOptions kprinters.PrintOptions) *kprinters.HumanReadablePrinter {
-	// TODO: support cross namespace listing
-	p := kprinters.NewHumanReadablePrinter(encoder, decoder, printOptions)
+func addPrintHandlers(p kprinters.PrintHandler) {
+	printersinternal.AddKubeHandlers(p)
+
 	p.Handler(buildColumns, nil, printBuild)
 	p.Handler(buildColumns, nil, printBuildList)
 	p.Handler(buildConfigColumns, nil, printBuildConfig)
@@ -168,8 +168,6 @@ func NewHumanReadablePrinter(encoder runtime.Encoder, decoder runtime.Decoder, p
 
 	p.Handler(securityContextConstraintsColumns, nil, printSecurityContextConstraints)
 	p.Handler(securityContextConstraintsColumns, nil, printSecurityContextConstraintsList)
-
-	return p
 }
 
 const templateDescriptionLen = 80
@@ -195,12 +193,12 @@ func PrintTemplateParameters(params []templateapi.Parameter, output io.Writer) e
 
 // formatResourceName receives a resource kind, name, and boolean specifying
 // whether or not to update the current name to "kind/name"
-func formatResourceName(kind, name string, withKind bool) string {
-	if !withKind || kind == "" {
+func formatResourceName(kind schema.GroupKind, name string, withKind bool) string {
+	if !withKind || kind.Empty() {
 		return name
 	}
 
-	return kind + "/" + name
+	return strings.ToLower(kind.String()) + "/" + name
 }
 
 func printTemplate(t *templateapi.Template, w io.Writer, opts kprinters.PrintOptions) error {

@@ -199,24 +199,24 @@ func newControllerContext(
 // we can defer making the controller options structs until we have a better idea what they should look like.
 // This does mean we pull in an upstream command that hopefully won't change much.
 func getOpenshiftControllerOptions(args map[string][]string) (origincontrollers.OpenshiftControllerOptions, error) {
-	cmserver := cmappoptions.NewCMServer()
-	if err := cmdflags.Resolve(args, cm.OriginControllerManagerAddFlags(cmserver)); len(err) > 0 {
+	cmoptions := cmappoptions.NewKubeControllerManagerOptions()
+	if err := cmdflags.Resolve(args, cm.OriginControllerManagerAddFlags(cmoptions)); len(err) > 0 {
 		return origincontrollers.OpenshiftControllerOptions{}, kutilerrors.NewAggregate(err)
 	}
 
 	return origincontrollers.OpenshiftControllerOptions{
 		HPAControllerOptions: origincontrollers.HPAControllerOptions{
-			SyncPeriod:               cmserver.KubeControllerManagerConfiguration.HorizontalPodAutoscalerSyncPeriod,
-			UpscaleForbiddenWindow:   cmserver.KubeControllerManagerConfiguration.HorizontalPodAutoscalerUpscaleForbiddenWindow,
-			DownscaleForbiddenWindow: cmserver.KubeControllerManagerConfiguration.HorizontalPodAutoscalerDownscaleForbiddenWindow,
+			SyncPeriod:               cmoptions.Generic.ComponentConfig.HorizontalPodAutoscalerSyncPeriod,
+			UpscaleForbiddenWindow:   cmoptions.Generic.ComponentConfig.HorizontalPodAutoscalerUpscaleForbiddenWindow,
+			DownscaleForbiddenWindow: cmoptions.Generic.ComponentConfig.HorizontalPodAutoscalerDownscaleForbiddenWindow,
 		},
 		ResourceQuotaOptions: origincontrollers.ResourceQuotaOptions{
-			ConcurrentSyncs: cmserver.KubeControllerManagerConfiguration.ConcurrentResourceQuotaSyncs,
-			SyncPeriod:      cmserver.KubeControllerManagerConfiguration.ResourceQuotaSyncPeriod,
-			MinResyncPeriod: cmserver.KubeControllerManagerConfiguration.MinResyncPeriod,
+			ConcurrentSyncs: cmoptions.Generic.ComponentConfig.ConcurrentResourceQuotaSyncs,
+			SyncPeriod:      cmoptions.Generic.ComponentConfig.ResourceQuotaSyncPeriod,
+			MinResyncPeriod: cmoptions.Generic.ComponentConfig.MinResyncPeriod,
 		},
 		ServiceAccountTokenOptions: origincontrollers.ServiceAccountTokenOptions{
-			ConcurrentSyncs: cmserver.KubeControllerManagerConfiguration.ConcurrentSATokenSyncs,
+			ConcurrentSyncs: cmoptions.Generic.ComponentConfig.ConcurrentSATokenSyncs,
 		},
 	}, nil
 }
@@ -225,14 +225,14 @@ func getOpenshiftControllerOptions(args map[string][]string) (origincontrollers.
 // we can defer making the options structs until we have a better idea what they should look like.
 // This does mean we pull in an upstream command that hopefully won't change much.
 func getLeaderElectionOptions(args map[string][]string) (componentconfig.LeaderElectionConfiguration, error) {
-	cmserver := cmappoptions.NewCMServer()
-	cmserver.LeaderElection.RetryPeriod = metav1.Duration{Duration: 3 * time.Second}
+	cmoptions := cmappoptions.NewKubeControllerManagerOptions()
+	cmoptions.Generic.ComponentConfig.LeaderElection.RetryPeriod = metav1.Duration{Duration: 3 * time.Second}
 
-	if err := cmdflags.Resolve(args, cm.OriginControllerManagerAddFlags(cmserver)); len(err) > 0 {
+	if err := cmdflags.Resolve(args, cm.OriginControllerManagerAddFlags(cmoptions)); len(err) > 0 {
 		return componentconfig.LeaderElectionConfiguration{}, kutilerrors.NewAggregate(err)
 	}
 
-	leaderElection := cmserver.KubeControllerManagerConfiguration.LeaderElection
+	leaderElection := cmoptions.Generic.ComponentConfig.LeaderElection
 	leaderElection.LeaderElect = true
 	leaderElection.ResourceLock = "configmaps"
 	return leaderElection, nil

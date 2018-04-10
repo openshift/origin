@@ -672,7 +672,7 @@ func (o *IdleOptions) RunIdle(f *clientcmd.Factory) error {
 	for scaleRef, info := range toScale {
 		if !o.dryRun {
 			info.scale.Spec.Replicas = 0
-			scaleUpdater := utilunidling.NewScaleUpdater(f.JSONEncoder(), info.namespace, appClient.Apps(), kclient.Core())
+			scaleUpdater := utilunidling.NewScaleUpdater(kcmdutil.InternalVersionJSONEncoder(), info.namespace, appClient.Apps(), kclient.Core())
 			if err := scaleAnnotater.UpdateObjectScale(scaleUpdater, info.namespace, scaleRef.CrossGroupObjectReference, info.obj, info.scale); err != nil {
 				fmt.Fprintf(o.errOut, "error: unable to scale %s %s/%s to 0, but still listed as target for unidling: %v\n", scaleRef.Kind, info.namespace, scaleRef.Name, err)
 				hadError = true

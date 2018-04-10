@@ -18,9 +18,6 @@ func init() {
 
 // NamespaceLabelConditions provides a decorator that can delegate and conditionally add label conditions
 type NamespaceLabelConditions struct {
-	// TODO decorators are refactored in 1.10, so this is unnecessary and we'll get a nice chain
-	Delegate admission.Decorator
-
 	NamespaceClient corev1client.NamespacesGetter
 	NamespaceLister corev1lister.NamespaceLister
 
@@ -29,15 +26,13 @@ type NamespaceLabelConditions struct {
 }
 
 func (d *NamespaceLabelConditions) WithNamespaceLabelConditions(admissionPlugin admission.Interface, name string) admission.Interface {
-	delegateDecoratedAdmissionPlugin := d.Delegate(admissionPlugin, name)
-
 	switch {
 	case d.SkipLevelOneNames.Has(name):
 		// return a decorated admission plugin that skips runlevel 0 and 1 namespaces based on name (for known values) and
 		// label.
 		return &pluginHandlerWithNamespaceNameConditions{
 			admissionPlugin: &pluginHandlerWithNamespaceLabelConditions{
-				admissionPlugin:   delegateDecoratedAdmissionPlugin,
+				admissionPlugin:   admissionPlugin,
 				namespaceClient:   d.NamespaceClient,
 				namespaceLister:   d.NamespaceLister,
 				namespaceSelector: skipRunLevelOneSelector,
@@ -50,7 +45,7 @@ func (d *NamespaceLabelConditions) WithNamespaceLabelConditions(admissionPlugin 
 		// label.
 		return &pluginHandlerWithNamespaceNameConditions{
 			admissionPlugin: &pluginHandlerWithNamespaceLabelConditions{
-				admissionPlugin:   delegateDecoratedAdmissionPlugin,
+				admissionPlugin:   admissionPlugin,
 				namespaceClient:   d.NamespaceClient,
 				namespaceLister:   d.NamespaceLister,
 				namespaceSelector: skipRunLevelZeroSelector,
@@ -59,7 +54,7 @@ func (d *NamespaceLabelConditions) WithNamespaceLabelConditions(admissionPlugin 
 		}
 
 	default:
-		return delegateDecoratedAdmissionPlugin
+		return admissionPlugin
 	}
 
 }

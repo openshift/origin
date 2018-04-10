@@ -1,14 +1,14 @@
 package app
 
 import (
-	"k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
+	"k8s.io/kubernetes/cmd/kube-controller-manager/app/config"
 	"k8s.io/kubernetes/pkg/apis/componentconfig"
 )
 
-func applyOpenShiftGCConfig(controllerManager *options.CMServer) error {
+func applyOpenShiftGCConfig(controllerManager *config.Config) error {
 	// TODO make this configurable or discoverable.  This is going to prevent us from running the stock GC controller
 	// IF YOU ADD ANYTHING TO THIS LIST, MAKE SURE THAT YOU UPDATE THEIR STRATEGIES TO PREVENT GC FINALIZERS
-	controllerManager.GCIgnoredResources = append(controllerManager.GCIgnoredResources,
+	controllerManager.Generic.ComponentConfig.GCIgnoredResources = append(controllerManager.Generic.ComponentConfig.GCIgnoredResources,
 		// explicitly disabled from GC for now - not enough value to track them
 		componentconfig.GroupResource{Group: "authorization.openshift.io", Resource: "rolebindingrestrictions"},
 		componentconfig.GroupResource{Group: "network.openshift.io", Resource: "clusternetworks"},

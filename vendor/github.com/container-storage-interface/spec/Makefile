@@ -8,9 +8,7 @@ CSI_PROTO := csi.proto
 # The temporary file is not versioned, and thus will always be
 # built on Travis-CI.
 $(CSI_PROTO).tmp: $(CSI_SPEC)
-	cat $? | \
-	  sed -n -e '/```protobuf$$/,/```$$/ p' | \
-	  sed -e 's@^```.*$$@////////@g' > $@
+	cat $? | sed -n -e '/```protobuf$$/,/^```$$/ p' | sed '/^```/d' > "$@"
 
 # This is the target for building the CSI protobuf file.
 #

@@ -38,7 +38,7 @@ type Network struct {
 
 type Options struct {
 	AllDeploymentOptions []string `json:",omitempty"`
-	Deployment           string
+	Deployment           string   `json:",omitempty"`
 
 	AllDiskProvisioningOptions []string `json:",omitempty"`
 	DiskProvisioning           string

@@ -113,7 +113,7 @@ A path is optional, and if present may be any string permissible in a URL. You m
 Attempting to use a user or basic auth e.g. &#34;user:password@&#34; is not allowed. Fragments (&#34;#...&#34;) and query parameters (&#34;?...&#34;) are not allowed, either.">url</span>:
 </div></details><div style="margin-left:13px;">  <span title="(string) FailurePolicy defines how unrecognized errors from the admission endpoint are handled - allowed values are Ignore or Fail. Defaults to Ignore.">failurePolicy</span>:
 </div><div style="margin-left:13px;">  <span title="(string) The name of the admission webhook. Name should be fully qualified, e.g., imagepolicy.kubernetes.io, where &#34;imagepolicy&#34; is the name of the webhook, and kubernetes.io is the name of the organization. Required.">name</span>:
-</div><details><summary>  <span title="(v1.LabelSelector) NamespaceSelector decides whether to run the webhook on an object based on whether the namespace for that object matches the selector. If the object itself is a namespace, the matching is performed on object.metadata.labels. If the object is other cluster scoped resource, it is not subjected to the webhook.
+</div><details><summary>  <span title="(v1.LabelSelector) NamespaceSelector decides whether to run the webhook on an object based on whether the namespace for that object matches the selector. If the object itself is a namespace, the matching is performed on object.metadata.labels. If the object is another cluster scoped resource, it never skips the webhook.
 
 For example, to run the webhook on any objects whose namespace is not associated with &#34;runlevel&#34; of &#34;0&#34; or &#34;1&#34;;  you will set the selector as follows: &#34;namespaceSelector&#34;: {
   &#34;matchExpressions&#34;: [
@@ -151,7 +151,7 @@ Default to the empty LabelSelector, which matches everything.">namespaceSelector
 </summary><div style="margin-left:13px;">      - <span title="(string)">[string]</span>:
 </div></details></details><details><summary>    <span title="(object) matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels map is equivalent to an element of matchExpressions, whose key field is &#34;key&#34;, the operator is &#34;In&#34;, and the values array contains only &#34;value&#34;. The requirements are ANDed.">matchLabels</span>:
 </summary><div style="margin-left:13px;">      <span title="(string)">[string]</span>:
-</div></details></details><details><summary>  <span title="(array) Rules describes what operations on what resources/subresources the webhook cares about. The webhook cares about an operation if it matches _any_ Rule.">rules</span>:
+</div></details></details><details><summary>  <span title="(array) Rules describes what operations on what resources/subresources the webhook cares about. The webhook cares about an operation if it matches _any_ Rule. However, in order to prevent ValidatingAdmissionWebhooks and MutatingAdmissionWebhooks from putting the cluster in a state which cannot be recovered from without completely disabling the plugin, ValidatingAdmissionWebhooks and MutatingAdmissionWebhooks are never called on admission requests for ValidatingWebhookConfiguration and MutatingWebhookConfiguration objects.">rules</span>:
 </summary><details><summary>  - <span title="(array) APIGroups is the API groups the resources belong to. &#39;*&#39; is all groups. If &#39;*&#39; is present, the length of the slice must be one. Required.">apiGroups</span>:
 </summary><div style="margin-left:13px;">  - - <span title="(string)">[string]</span>:
 </div></details><details><summary>    <span title="(array) APIVersions is the API versions the resources belong to. &#39;*&#39; is all versions. If &#39;*&#39; is present, the length of the slice must be one. Required.">apiVersions</span>:
@@ -332,7 +332,7 @@ $ curl -k \
 
 The server guarantees that the objects returned when using continue will be identical to issuing a single list call without a limit - that is, no objects created, modified, or deleted after the first request is issued will be included in any subsequent continued requests. This is sometimes referred to as a consistent snapshot, and ensures that a client that is using limit to receive smaller chunks of a very large result can ensure they see all possible objects. If objects are updated during a chunked list the version of the object that was present at the time the first list result was calculated is returned.
 |resourceVersion|When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history. When specified for list: - if unset, then the result is returned from remote storage based on quorum-read flag; - if it's 0, then we simply return what we currently have in cache, no guarantee; - if set to non zero, then the result is at least as fresh as given rv.
-|timeoutSeconds|Timeout for the list/watch call.
+|timeoutSeconds|Timeout for the list/watch call. This limits the duration of the call, regardless of any activity or inactivity.
 |watch|Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.
 |===
 
@@ -397,7 +397,7 @@ $ curl -k \
 The server guarantees that the objects returned when using continue will be identical to issuing a single list call without a limit - that is, no objects created, modified, or deleted after the first request is issued will be included in any subsequent continued requests. This is sometimes referred to as a consistent snapshot, and ensures that a client that is using limit to receive smaller chunks of a very large result can ensure they see all possible objects. If objects are updated during a chunked list the version of the object that was present at the time the first list result was calculated is returned.
 |pretty|If 'true', then the output is pretty printed.
 |resourceVersion|When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history. When specified for list: - if unset, then the result is returned from remote storage based on quorum-read flag; - if it's 0, then we simply return what we currently have in cache, no guarantee; - if set to non zero, then the result is at least as fresh as given rv.
-|timeoutSeconds|Timeout for the list/watch call.
+|timeoutSeconds|Timeout for the list/watch call. This limits the duration of the call, regardless of any activity or inactivity.
 |watch|Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.
 |===
 
@@ -455,7 +455,7 @@ $ curl -k \
 The server guarantees that the objects returned when using continue will be identical to issuing a single list call without a limit - that is, no objects created, modified, or deleted after the first request is issued will be included in any subsequent continued requests. This is sometimes referred to as a consistent snapshot, and ensures that a client that is using limit to receive smaller chunks of a very large result can ensure they see all possible objects. If objects are updated during a chunked list the version of the object that was present at the time the first list result was calculated is returned.
 |pretty|If 'true', then the output is pretty printed.
 |resourceVersion|When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history. When specified for list: - if unset, then the result is returned from remote storage based on quorum-read flag; - if it's 0, then we simply return what we currently have in cache, no guarantee; - if set to non zero, then the result is at least as fresh as given rv.
-|timeoutSeconds|Timeout for the list/watch call.
+|timeoutSeconds|Timeout for the list/watch call. This limits the duration of the call, regardless of any activity or inactivity.
 |watch|Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.
 |===
 
@@ -743,7 +743,7 @@ $ curl -k \
 
 The server guarantees that the objects returned when using continue will be identical to issuing a single list call without a limit - that is, no objects created, modified, or deleted after the first request is issued will be included in any subsequent continued requests. This is sometimes referred to as a consistent snapshot, and ensures that a client that is using limit to receive smaller chunks of a very large result can ensure they see all possible objects. If objects are updated during a chunked list the version of the object that was present at the time the first list result was calculated is returned.
 |resourceVersion|When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history. When specified for list: - if unset, then the result is returned from remote storage based on quorum-read flag; - if it's 0, then we simply return what we currently have in cache, no guarantee; - if set to non zero, then the result is at least as fresh as given rv.
-|timeoutSeconds|Timeout for the list/watch call.
+|timeoutSeconds|Timeout for the list/watch call. This limits the duration of the call, regardless of any activity or inactivity.
 |watch|Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.
 |===
 

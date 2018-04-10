@@ -19,6 +19,11 @@
                 "valid": false
             },
             {
+                "description": "a string is still not an integer, even if it looks like one",
+                "data": "1",
+                "valid": false
+            },
+            {
                 "description": "an object is not an integer",
                 "data": {},
                 "valid": false
@@ -60,6 +65,11 @@
                 "valid": false
             },
             {
+                "description": "a string is still not a number, even if it looks like one",
+                "data": "1",
+                "valid": false
+            },
+            {
                 "description": "an object is not a number",
                 "data": {},
                 "valid": false
@@ -98,6 +108,11 @@
             {
                 "description": "a string is a string",
                 "data": "foo",
+                "valid": true
+            },
+            {
+                "description": "a string is still a string, even if it looks like a number",
+                "data": "1",
                 "valid": true
             },
             {

@@ -133,7 +133,7 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 				cmd.NewCmdAnnotate(fullName, f, out),
 				cmd.NewCmdExpose(fullName, f, out),
 				cmd.NewCmdDelete(fullName, f, out, errout),
-				cmd.NewCmdScale(fullName, f, out),
+				cmd.NewCmdScale(fullName, f, out, errout),
 				cmd.NewCmdAutoscale(fullName, f, out),
 				secretcmds,
 				sa.NewCmdServiceAccounts(sa.ServiceAccountsRecommendedName, fullName+" "+sa.ServiceAccountsRecommendedName, f, out, errout),
@@ -142,7 +142,7 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 		{
 			Message: "Troubleshooting and Debugging Commands:",
 			Commands: []*cobra.Command{
-				cmd.NewCmdLogs(cmd.LogsRecommendedCommandName, fullName, f, out),
+				cmd.NewCmdLogs(cmd.LogsRecommendedCommandName, fullName, f, out, errout),
 				cmd.NewCmdRsh(cmd.RshRecommendedName, fullName, f, in, out, errout),
 				rsync.NewCmdRsync(rsync.RsyncRecommendedName, fullName, f, out, errout),
 				cmd.NewCmdPortForward(fullName, f, out, errout),
@@ -179,7 +179,7 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 			Message: "Settings Commands:",
 			Commands: []*cobra.Command{
 				login.NewCmdLogout("logout", fullName+" logout", fullName+" login", f, in, out),
-				cmd.NewCmdConfig(fullName, "config", out, errout),
+				cmd.NewCmdConfig(fullName, "config", f, out, errout),
 				cmd.NewCmdWhoAmI(cmd.WhoAmIRecommendedCommandName, fullName+" "+cmd.WhoAmIRecommendedCommandName, f, out),
 				cmd.NewCmdCompletion(fullName, out),
 			},

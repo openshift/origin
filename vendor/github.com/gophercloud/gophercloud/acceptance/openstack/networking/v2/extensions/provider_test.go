@@ -8,7 +8,6 @@ import (
 	"github.com/gophercloud/gophercloud/acceptance/clients"
 	networking "github.com/gophercloud/gophercloud/acceptance/openstack/networking/v2"
 	"github.com/gophercloud/gophercloud/acceptance/tools"
-	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/provider"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/networks"
 )
 
@@ -26,7 +25,7 @@ func TestNetworksProviderCRUD(t *testing.T) {
 	defer networking.DeleteNetwork(t, client, network.ID)
 
 	getResult := networks.Get(client, network.ID)
-	newNetwork, err := provider.ExtractGet(getResult)
+	newNetwork, err := getResult.Extract()
 	if err != nil {
 		t.Fatalf("Unable to extract network: %v", err)
 	}

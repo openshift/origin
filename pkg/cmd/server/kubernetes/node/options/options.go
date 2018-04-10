@@ -60,6 +60,7 @@ func ComputeKubeletFlags(startingArgs map[string][]string, options configapi.Nod
 	setIfUnset(args, "cadvisor-port", "0")       // no unsecured cadvisor access
 	setIfUnset(args, "healthz-port", "0")        // no unsecured healthz access
 	setIfUnset(args, "healthz-bind-address", "") // no unsecured healthz access
+	setIfUnset(args, "fail-swap-on", "false")
 	setIfUnset(args, "cluster-dns", options.DNSIP)
 	setIfUnset(args, "cluster-domain", options.DNSDomain)
 	setIfUnset(args, "host-network-sources", kubelettypes.ApiserverSource, kubelettypes.FileSource)

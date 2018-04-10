@@ -18,6 +18,7 @@ import (
 	"github.com/openshift/origin/pkg/security/registry/podsecuritypolicyreview"
 	"github.com/openshift/origin/pkg/security/registry/podsecuritypolicyselfsubjectreview"
 	"github.com/openshift/origin/pkg/security/registry/podsecuritypolicysubjectreview"
+	"github.com/openshift/origin/pkg/security/registry/rangeallocations"
 	sccstorage "github.com/openshift/origin/pkg/security/registry/securitycontextconstraints/etcd"
 	oscc "github.com/openshift/origin/pkg/security/securitycontextconstraints"
 )
@@ -127,11 +128,13 @@ func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
 		oscc.NewDefaultSCCMatcher(c.ExtraConfig.SecurityInformers.Security().InternalVersion().SecurityContextConstraints().Lister()),
 		kubeInternalClient,
 	)
+	uidRangeStorage := rangeallocations.NewREST(c.GenericConfig.RESTOptionsGetter)
 
 	v1Storage := map[string]rest.Storage{}
 	v1Storage["securityContextConstraints"] = sccStorage
 	v1Storage["podSecurityPolicyReviews"] = podSecurityPolicyReviewStorage
 	v1Storage["podSecurityPolicySubjectReviews"] = podSecurityPolicySubjectStorage
 	v1Storage["podSecurityPolicySelfSubjectReviews"] = podSecurityPolicySelfSubjectReviewStorage
+	v1Storage["rangeallocations"] = uidRangeStorage
 	return v1Storage, nil
 }

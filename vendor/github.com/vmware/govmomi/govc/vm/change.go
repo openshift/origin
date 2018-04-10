@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2015 VMware, Inc. All Rights Reserved.
+Copyright (c) 2015-2017 VMware, Inc. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -37,8 +37,6 @@ func (e *extraConfig) Set(v string) error {
 	r := strings.SplitN(v, "=", 2)
 	if len(r) < 2 {
 		return fmt.Errorf("failed to parse extraConfig: %s", v)
-	} else if r[1] == "" {
-		return fmt.Errorf("empty value: %s", v)
 	}
 	*e = append(*e, &types.OptionValue{Key: r[0], Value: r[1]})
 	return nil
@@ -46,6 +44,7 @@ func (e *extraConfig) Set(v string) error {
 
 type change struct {
 	*flags.VirtualMachineFlag
+	*flags.ResourceAllocationFlag
 
 	types.VirtualMachineConfigSpec
 	extraConfig extraConfig
@@ -55,9 +54,38 @@ func init() {
 	cli.Register("vm.change", &change{})
 }
 
+// setAllocation sets *info=nil if none of the fields have been set.
+// We need non-nil fields for use with flag.FlagSet, but we want the
+// VirtualMachineConfigSpec fields to be nil if none of the related flags were given.
+func setAllocation(info **types.ResourceAllocationInfo) {
+	r := *info
+
+	if r.Shares.Level == "" {
+		r.Shares = nil
+	} else {
+		return
+	}
+
+	if r.Limit != nil {
+		return
+	}
+
+	if r.Reservation != nil {
+		return
+	}
+
+	*info = nil
+}
+
 func (cmd *change) Register(ctx context.Context, f *flag.FlagSet) {
 	cmd.VirtualMachineFlag, ctx = flags.NewVirtualMachineFlag(ctx)
 	cmd.VirtualMachineFlag.Register(ctx, f)
+
+	cmd.CpuAllocation = &types.ResourceAllocationInfo{Shares: new(types.SharesInfo)}
+	cmd.MemoryAllocation = &types.ResourceAllocationInfo{Shares: new(types.SharesInfo)}
+	cmd.ResourceAllocationFlag = flags.NewResourceAllocationFlag(cmd.CpuAllocation, cmd.MemoryAllocation)
+	cmd.ResourceAllocationFlag.ExpandableReservation = false
+	cmd.ResourceAllocationFlag.Register(ctx, f)
 
 	f.Int64Var(&cmd.MemoryMB, "m", 0, "Size in MB of memory")
 	f.Var(flags.NewInt32(&cmd.NumCPUs), "c", "Number of CPUs")
@@ -73,8 +101,14 @@ func (cmd *change) Register(ctx context.Context, f *flag.FlagSet) {
 func (cmd *change) Description() string {
 	return `Change VM configuration.
 
+To add ExtraConfig variables that can read within the guest, use the 'guestinfo.' prefix.
+
 Examples:
-  govc vm.change -vm $vm -e smc.present=TRUE -e ich7m.present=TRUE`
+  govc vm.change -vm $vm -mem.reservation 2048
+  govc vm.change -vm $vm -e smc.present=TRUE -e ich7m.present=TRUE
+  govc vm.change -vm $vm -e guestinfo.vmname $vm
+  # Read the variable set above inside the guest:
+  vmware-rpctool "info-get guestinfo.vmname"`
 }
 
 func (cmd *change) Process(ctx context.Context) error {
@@ -97,6 +131,9 @@ func (cmd *change) Run(ctx context.Context, f *flag.FlagSet) error {
 	if len(cmd.extraConfig) > 0 {
 		cmd.VirtualMachineConfigSpec.ExtraConfig = cmd.extraConfig
 	}
+
+	setAllocation(&cmd.CpuAllocation)
+	setAllocation(&cmd.MemoryAllocation)
 
 	task, err := vm.Reconfigure(ctx, cmd.VirtualMachineConfigSpec)
 	if err != nil {

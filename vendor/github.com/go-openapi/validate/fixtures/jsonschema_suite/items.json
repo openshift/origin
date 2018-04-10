@@ -40,6 +40,21 @@
                 "description": "wrong types",
                 "data": [ "foo", 1 ],
                 "valid": false
+            },
+            {
+                "description": "incomplete array of items",
+                "data": [ 1 ],
+                "valid": true
+            },
+            {
+                "description": "array with additional items",
+                "data": [ 1, "foo", true ],
+                "valid": true
+            },
+            {
+                "description": "empty array",
+                "data": [ ],
+                "valid": true
             }
         ]
     }

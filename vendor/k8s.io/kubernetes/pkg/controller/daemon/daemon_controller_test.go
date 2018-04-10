@@ -24,8 +24,8 @@ import (
 	"sync"
 	"testing"
 
+	apps "k8s.io/api/apps/v1"
 	"k8s.io/api/core/v1"
-	extensions "k8s.io/api/extensions/v1beta1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -40,14 +40,15 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	"k8s.io/kubernetes/pkg/api/testapi"
 	podutil "k8s.io/kubernetes/pkg/api/v1/pod"
 	api "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/controller"
+	"k8s.io/kubernetes/pkg/features"
+	kubeletapis "k8s.io/kubernetes/pkg/kubelet/apis"
 	kubelettypes "k8s.io/kubernetes/pkg/kubelet/types"
+	"k8s.io/kubernetes/pkg/scheduler/algorithm"
 	"k8s.io/kubernetes/pkg/securitycontext"
 	labelsutil "k8s.io/kubernetes/pkg/util/labels"
-	"k8s.io/kubernetes/plugin/pkg/scheduler/algorithm"
 )
 
 var (
@@ -83,28 +84,27 @@ var (
 	}}
 )
 
-func getKey(ds *extensions.DaemonSet, t *testing.T) string {
-	if key, err := controller.KeyFunc(ds); err != nil {
+func getKey(ds *apps.DaemonSet, t *testing.T) string {
+	key, err := controller.KeyFunc(ds)
+
+	if err != nil {
 		t.Errorf("Unexpected error getting key for ds %v: %v", ds.Name, err)
-		return ""
-	} else {
-		return key
 	}
+	return key
 }
 
-func newDaemonSet(name string) *extensions.DaemonSet {
+func newDaemonSet(name string) *apps.DaemonSet {
 	two := int32(2)
-	return &extensions.DaemonSet{
-		TypeMeta: metav1.TypeMeta{APIVersion: testapi.Extensions.GroupVersion().String()},
+	return &apps.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			UID:       uuid.NewUUID(),
 			Name:      name,
 			Namespace: metav1.NamespaceDefault,
 		},
-		Spec: extensions.DaemonSetSpec{
+		Spec: apps.DaemonSetSpec{
 			RevisionHistoryLimit: &two,
-			UpdateStrategy: extensions.DaemonSetUpdateStrategy{
-				Type: extensions.OnDeleteDaemonSetStrategyType,
+			UpdateStrategy: apps.DaemonSetUpdateStrategy{
+				Type: apps.OnDeleteDaemonSetStrategyType,
 			},
 			Selector: &metav1.LabelSelector{MatchLabels: simpleDaemonSetLabel},
 			Template: v1.PodTemplateSpec{
@@ -127,22 +127,22 @@ func newDaemonSet(name string) *extensions.DaemonSet {
 	}
 }
 
-func newRollbackStrategy() *extensions.DaemonSetUpdateStrategy {
+func newRollbackStrategy() *apps.DaemonSetUpdateStrategy {
 	one := intstr.FromInt(1)
-	return &extensions.DaemonSetUpdateStrategy{
-		Type:          extensions.RollingUpdateDaemonSetStrategyType,
-		RollingUpdate: &extensions.RollingUpdateDaemonSet{MaxUnavailable: &one},
+	return &apps.DaemonSetUpdateStrategy{
+		Type:          apps.RollingUpdateDaemonSetStrategyType,
+		RollingUpdate: &apps.RollingUpdateDaemonSet{MaxUnavailable: &one},
 	}
 }
 
-func newOnDeleteStrategy() *extensions.DaemonSetUpdateStrategy {
-	return &extensions.DaemonSetUpdateStrategy{
-		Type: extensions.OnDeleteDaemonSetStrategyType,
+func newOnDeleteStrategy() *apps.DaemonSetUpdateStrategy {
+	return &apps.DaemonSetUpdateStrategy{
+		Type: apps.OnDeleteDaemonSetStrategyType,
 	}
 }
 
-func updateStrategies() []*extensions.DaemonSetUpdateStrategy {
-	return []*extensions.DaemonSetUpdateStrategy{newOnDeleteStrategy(), newRollbackStrategy()}
+func updateStrategies() []*apps.DaemonSetUpdateStrategy {
+	return []*apps.DaemonSetUpdateStrategy{newOnDeleteStrategy(), newRollbackStrategy()}
 }
 
 func newNode(name string, label map[string]string) *v1.Node {
@@ -170,14 +170,14 @@ func addNodes(nodeStore cache.Store, startIndex, numNodes int, label map[string]
 	}
 }
 
-func newPod(podName string, nodeName string, label map[string]string, ds *extensions.DaemonSet) *v1.Pod {
+func newPod(podName string, nodeName string, label map[string]string, ds *apps.DaemonSet) *v1.Pod {
 	// Add hash unique label to the pod
 	newLabels := label
 	var podSpec v1.PodSpec
 	// Copy pod spec from DaemonSet template, or use a default one if DaemonSet is nil
 	if ds != nil {
 		hash := fmt.Sprint(controller.ComputeHash(&ds.Spec.Template, ds.Status.CollisionCount))
-		newLabels = labelsutil.CloneAndAddLabel(label, extensions.DefaultDaemonSetUniqueLabelKey, hash)
+		newLabels = labelsutil.CloneAndAddLabel(label, apps.DefaultDaemonSetUniqueLabelKey, hash)
 		podSpec = ds.Spec.Template.Spec
 	} else {
 		podSpec = v1.PodSpec{
@@ -212,14 +212,14 @@ func newPod(podName string, nodeName string, label map[string]string, ds *extens
 	return pod
 }
 
-func addPods(podStore cache.Store, nodeName string, label map[string]string, ds *extensions.DaemonSet, number int) {
+func addPods(podStore cache.Store, nodeName string, label map[string]string, ds *apps.DaemonSet, number int) {
 	for i := 0; i < number; i++ {
 		pod := newPod(fmt.Sprintf("%s-", nodeName), nodeName, label, ds)
 		podStore.Add(pod)
 	}
 }
 
-func addFailedPods(podStore cache.Store, nodeName string, label map[string]string, ds *extensions.DaemonSet, number int) {
+func addFailedPods(podStore cache.Store, nodeName string, label map[string]string, ds *apps.DaemonSet, number int) {
 	for i := 0; i < number; i++ {
 		pod := newPod(fmt.Sprintf("%s-", nodeName), nodeName, label, ds)
 		pod.Status = v1.PodStatus{Phase: v1.PodFailed}
@@ -269,6 +269,31 @@ func (f *fakePodControl) CreatePodsOnNode(nodeName, namespace string, template *
 	return nil
 }
 
+func (f *fakePodControl) CreatePodsWithControllerRef(namespace string, template *v1.PodTemplateSpec, object runtime.Object, controllerRef *metav1.OwnerReference) error {
+	f.Lock()
+	defer f.Unlock()
+	if err := f.FakePodControl.CreatePodsWithControllerRef(namespace, template, object, controllerRef); err != nil {
+		return fmt.Errorf("failed to create pod for DaemonSet")
+	}
+
+	pod := &v1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Labels:    template.Labels,
+			Namespace: namespace,
+		},
+	}
+
+	pod.Name = names.SimpleNameGenerator.GenerateName(fmt.Sprintf("%p-", pod))
+
+	if err := legacyscheme.Scheme.Convert(&template.Spec, &pod.Spec, nil); err != nil {
+		return fmt.Errorf("unable to convert pod template: %v", err)
+	}
+
+	f.podStore.Update(pod)
+	f.podIDMap[pod.Name] = pod
+	return nil
+}
+
 func (f *fakePodControl) DeletePod(namespace string, podID string, object runtime.Object) error {
 	f.Lock()
 	defer f.Unlock()
@@ -299,8 +324,8 @@ func newTestController(initialObjects ...runtime.Object) (*daemonSetsController,
 	informerFactory := informers.NewSharedInformerFactory(clientset, controller.NoResyncPeriodFunc())
 
 	dsc, err := NewDaemonSetsController(
-		informerFactory.Extensions().V1beta1().DaemonSets(),
-		informerFactory.Apps().V1beta1().ControllerRevisions(),
+		informerFactory.Apps().V1().DaemonSets(),
+		informerFactory.Apps().V1().ControllerRevisions(),
 		informerFactory.Core().V1().Pods(),
 		informerFactory.Core().V1().Nodes(),
 		clientset,
@@ -322,8 +347,8 @@ func newTestController(initialObjects ...runtime.Object) (*daemonSetsController,
 
 	return &daemonSetsController{
 		dsc,
-		informerFactory.Extensions().V1beta1().DaemonSets().Informer().GetStore(),
-		informerFactory.Apps().V1beta1().ControllerRevisions().Informer().GetStore(),
+		informerFactory.Apps().V1().DaemonSets().Informer().GetStore(),
+		informerFactory.Apps().V1().ControllerRevisions().Informer().GetStore(),
 		informerFactory.Core().V1().Pods().Informer().GetStore(),
 		informerFactory.Core().V1().Nodes().Informer().GetStore(),
 		fakeRecorder,
@@ -346,7 +371,7 @@ func validateSyncDaemonSets(t *testing.T, manager *daemonSetsController, fakePod
 	}
 	// Make sure the ControllerRefs are correct.
 	for _, controllerRef := range fakePodControl.ControllerRefs {
-		if got, want := controllerRef.APIVersion, "extensions/v1beta1"; got != want {
+		if got, want := controllerRef.APIVersion, "apps/v1"; got != want {
 			t.Errorf("controllerRef.APIVersion = %q, want %q", got, want)
 		}
 		if got, want := controllerRef.Kind, "DaemonSet"; got != want {
@@ -358,7 +383,7 @@ func validateSyncDaemonSets(t *testing.T, manager *daemonSetsController, fakePod
 	}
 }
 
-func syncAndValidateDaemonSets(t *testing.T, manager *daemonSetsController, ds *extensions.DaemonSet, podControl *fakePodControl, expectedCreates, expectedDeletes int, expectedEvents int) {
+func syncAndValidateDaemonSets(t *testing.T, manager *daemonSetsController, ds *apps.DaemonSet, podControl *fakePodControl, expectedCreates, expectedDeletes int, expectedEvents int) {
 	key, err := controller.KeyFunc(ds)
 	if err != nil {
 		t.Errorf("Could not get key for daemon.")
@@ -368,7 +393,7 @@ func syncAndValidateDaemonSets(t *testing.T, manager *daemonSetsController, ds *
 }
 
 // clearExpectations copies the FakePodControl to PodStore and clears the create and delete expectations.
-func clearExpectations(t *testing.T, manager *daemonSetsController, ds *extensions.DaemonSet, fakePodControl *fakePodControl) {
+func clearExpectations(t *testing.T, manager *daemonSetsController, ds *apps.DaemonSet, fakePodControl *fakePodControl) {
 	fakePodControl.Clear()
 
 	key, err := controller.KeyFunc(ds)
@@ -425,6 +450,97 @@ func TestSimpleDaemonSetLaunchesPods(t *testing.T) {
 	}
 }
 
+// When ScheduleDaemonSetPods is enabled, DaemonSets without node selectors should
+// launch pods on every node by NodeAffinity.
+func TestSimpleDaemonSetScheduleDaemonSetPodsLaunchesPods(t *testing.T) {
+	t.Skip("disabled for 1.10")
+
+	enabled := utilfeature.DefaultFeatureGate.Enabled(features.ScheduleDaemonSetPods)
+	// Rollback feature gate.
+	defer func() {
+		if !enabled {
+			utilfeature.DefaultFeatureGate.Set("ScheduleDaemonSetPods=false")
+		}
+	}()
+
+	utilfeature.DefaultFeatureGate.Set("ScheduleDaemonSetPods=true")
+
+	nodeNum := 5
+
+	for _, strategy := range updateStrategies() {
+		ds := newDaemonSet("foo")
+		ds.Spec.UpdateStrategy = *strategy
+		manager, podControl, _, err := newTestController(ds)
+		if err != nil {
+			t.Fatalf("error creating DaemonSets controller: %v", err)
+		}
+		addNodes(manager.nodeStore, 0, nodeNum, nil)
+		manager.dsStore.Add(ds)
+		syncAndValidateDaemonSets(t, manager, ds, podControl, nodeNum, 0, 0)
+
+		// Check for ScheduleDaemonSetPods feature
+		if len(podControl.podIDMap) != nodeNum {
+			t.Fatalf("failed to create pods for DaemonSet when enabled ScheduleDaemonSetPods.")
+		}
+
+		nodeMap := make(map[string]*v1.Node)
+		for _, node := range manager.nodeStore.List() {
+			n := node.(*v1.Node)
+			nodeMap[n.Name] = n
+		}
+
+		if len(nodeMap) != nodeNum {
+			t.Fatalf("not enough nodes in the store, expected: %v, got: %v",
+				nodeNum, len(nodeMap))
+		}
+
+		for _, pod := range podControl.podIDMap {
+			if len(pod.Spec.NodeName) != 0 {
+				t.Fatalf("the hostname of pod %v should be empty, but got %s",
+					pod.Name, pod.Spec.NodeName)
+			}
+			if pod.Spec.Affinity == nil {
+				t.Fatalf("the Affinity of pod %s is nil.", pod.Name)
+			}
+			if pod.Spec.Affinity.NodeAffinity == nil {
+				t.Fatalf("the NodeAffinity of pod %s is nil.", pod.Name)
+			}
+
+			nodeSelector := pod.Spec.Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution
+			if nodeSelector == nil {
+				t.Fatalf("the node selector of pod %s is nil.", pod.Name)
+			}
+			if len(nodeSelector.NodeSelectorTerms) != 1 {
+				t.Fatalf("incorrect node selector terms number of pod %s, expected: 1, got: %d.",
+					pod.Name, len(nodeSelector.NodeSelectorTerms))
+			}
+
+			if len(nodeSelector.NodeSelectorTerms[0].MatchExpressions) != 1 {
+				t.Fatalf("incorrect expression number of pod %s node selector term, expected: 1, got: %d.",
+					pod.Name, len(nodeSelector.NodeSelectorTerms[0].MatchExpressions))
+			}
+
+			exp := nodeSelector.NodeSelectorTerms[0].MatchExpressions[0]
+			if exp.Key == kubeletapis.LabelHostname {
+				if exp.Operator != v1.NodeSelectorOpIn {
+					t.Fatalf("the operation of hostname NodeAffinity is not %v", v1.NodeSelectorOpIn)
+				}
+
+				if len(exp.Values) != 1 {
+					t.Fatalf("incorrect hostname in node affinity: expected 1, got %v", len(exp.Values))
+				}
+
+				delete(nodeMap, exp.Values[0])
+			}
+		}
+
+		if len(nodeMap) != 0 {
+			t.Fatalf("did not foud pods on nodes %+v", nodeMap)
+		}
+	}
+
+}
+
 // Simulate a cluster with 100 nodes, but simulate a limit (like a quota limit)
 // of 10 pods, and verify that the ds doesn't make 100 create calls per sync pass
 func TestSimpleDaemonSetPodCreateErrors(t *testing.T) {
@@ -459,13 +575,13 @@ func TestSimpleDaemonSetUpdatesStatusAfterLaunchingPods(t *testing.T) {
 			t.Fatalf("error creating DaemonSets controller: %v", err)
 		}
 
-		var updated *extensions.DaemonSet
+		var updated *apps.DaemonSet
 		clientset.PrependReactor("update", "daemonsets", func(action core.Action) (handled bool, ret runtime.Object, err error) {
 			if action.GetSubresource() != "status" {
 				return false, nil, nil
 			}
 			if u, ok := action.(core.UpdateAction); ok {
-				updated = u.GetObject().(*extensions.DaemonSet)
+				updated = u.GetObject().(*apps.DaemonSet)
 			}
 			return false, nil, nil
 		})
@@ -542,6 +658,12 @@ func resourcePodSpec(nodeName, memory, cpu string) v1.PodSpec {
 	}
 }
 
+func resourceContainerSpec(memory, cpu string) v1.ResourceRequirements {
+	return v1.ResourceRequirements{
+		Requests: allocatableResources(memory, cpu),
+	}
+}
+
 func resourcePodSpecWithoutNodeName(memory, cpu string) v1.PodSpec {
 	return v1.PodSpec{
 		Containers: []v1.Container{{
@@ -579,9 +701,9 @@ func TestInsufficientCapacityNodeDaemonDoesNotLaunchPod(t *testing.T) {
 		})
 		manager.dsStore.Add(ds)
 		switch strategy.Type {
-		case extensions.OnDeleteDaemonSetStrategyType:
+		case apps.OnDeleteDaemonSetStrategyType:
 			syncAndValidateDaemonSets(t, manager, ds, podControl, 0, 0, 2)
-		case extensions.RollingUpdateDaemonSetStrategyType:
+		case apps.RollingUpdateDaemonSetStrategyType:
 			syncAndValidateDaemonSets(t, manager, ds, podControl, 0, 0, 3)
 		default:
 			t.Fatalf("unexpected UpdateStrategy %+v", strategy)
@@ -609,9 +731,9 @@ func TestInsufficientCapacityNodeDaemonDoesNotUnscheduleRunningPod(t *testing.T)
 		})
 		manager.dsStore.Add(ds)
 		switch strategy.Type {
-		case extensions.OnDeleteDaemonSetStrategyType:
+		case apps.OnDeleteDaemonSetStrategyType:
 			syncAndValidateDaemonSets(t, manager, ds, podControl, 0, 0, 2)
-		case extensions.RollingUpdateDaemonSetStrategyType:
+		case apps.RollingUpdateDaemonSetStrategyType:
 			syncAndValidateDaemonSets(t, manager, ds, podControl, 0, 0, 3)
 		default:
 			t.Fatalf("unexpected UpdateStrategy %+v", strategy)
@@ -1117,13 +1239,13 @@ func TestNumberReadyStatus(t *testing.T) {
 		if err != nil {
 			t.Fatalf("error creating DaemonSets controller: %v", err)
 		}
-		var updated *extensions.DaemonSet
+		var updated *apps.DaemonSet
 		clientset.PrependReactor("update", "daemonsets", func(action core.Action) (handled bool, ret runtime.Object, err error) {
 			if action.GetSubresource() != "status" {
 				return false, nil, nil
 			}
 			if u, ok := action.(core.UpdateAction); ok {
-				updated = u.GetObject().(*extensions.DaemonSet)
+				updated = u.GetObject().(*apps.DaemonSet)
 			}
 			return false, nil, nil
 		})
@@ -1160,13 +1282,13 @@ func TestObservedGeneration(t *testing.T) {
 		if err != nil {
 			t.Fatalf("error creating DaemonSets controller: %v", err)
 		}
-		var updated *extensions.DaemonSet
+		var updated *apps.DaemonSet
 		clientset.PrependReactor("update", "daemonsets", func(action core.Action) (handled bool, ret runtime.Object, err error) {
 			if action.GetSubresource() != "status" {
 				return false, nil, nil
 			}
 			if u, ok := action.(core.UpdateAction); ok {
-				updated = u.GetObject().(*extensions.DaemonSet)
+				updated = u.GetObject().(*apps.DaemonSet)
 			}
 			return false, nil, nil
 		})
@@ -1379,7 +1501,7 @@ func setNodeTaint(node *v1.Node, taints []v1.Taint) {
 	node.Spec.Taints = taints
 }
 
-func setDaemonSetToleration(ds *extensions.DaemonSet, tolerations []v1.Toleration) {
+func setDaemonSetToleration(ds *apps.DaemonSet, tolerations []v1.Toleration) {
 	ds.Spec.Template.Spec.Tolerations = tolerations
 }
 
@@ -1476,9 +1598,9 @@ func TestInsufficientCapacityNodeDaemonLaunchesCriticalPod(t *testing.T) {
 		utilfeature.DefaultFeatureGate.Set("ExperimentalCriticalPodAnnotation=False")
 		manager.dsStore.Add(ds)
 		switch strategy.Type {
-		case extensions.OnDeleteDaemonSetStrategyType:
+		case apps.OnDeleteDaemonSetStrategyType:
 			syncAndValidateDaemonSets(t, manager, ds, podControl, 0, 0, 2)
-		case extensions.RollingUpdateDaemonSetStrategyType:
+		case apps.RollingUpdateDaemonSetStrategyType:
 			syncAndValidateDaemonSets(t, manager, ds, podControl, 0, 0, 3)
 		default:
 			t.Fatalf("unexpected UpdateStrategy %+v", strategy)
@@ -1487,9 +1609,9 @@ func TestInsufficientCapacityNodeDaemonLaunchesCriticalPod(t *testing.T) {
 		// Enabling critical pod annotation feature gate should create critical pod
 		utilfeature.DefaultFeatureGate.Set("ExperimentalCriticalPodAnnotation=True")
 		switch strategy.Type {
-		case extensions.OnDeleteDaemonSetStrategyType:
+		case apps.OnDeleteDaemonSetStrategyType:
 			syncAndValidateDaemonSets(t, manager, ds, podControl, 1, 0, 2)
-		case extensions.RollingUpdateDaemonSetStrategyType:
+		case apps.RollingUpdateDaemonSetStrategyType:
 			syncAndValidateDaemonSets(t, manager, ds, podControl, 1, 0, 3)
 		default:
 			t.Fatalf("unexpected UpdateStrategy %+v", strategy)
@@ -1528,7 +1650,7 @@ func TestPortConflictNodeDaemonDoesNotLaunchCriticalPod(t *testing.T) {
 	}
 }
 
-func setDaemonSetCritical(ds *extensions.DaemonSet) {
+func setDaemonSetCritical(ds *apps.DaemonSet) {
 	ds.Namespace = api.NamespaceSystem
 	if ds.Spec.Template.ObjectMeta.Annotations == nil {
 		ds.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
@@ -1538,15 +1660,18 @@ func setDaemonSetCritical(ds *extensions.DaemonSet) {
 
 func TestNodeShouldRunDaemonPod(t *testing.T) {
 	cases := []struct {
+		predicateName                                    string
 		podsOnNode                                       []*v1.Pod
 		nodeCondition                                    []v1.NodeCondition
-		ds                                               *extensions.DaemonSet
+		nodeUnschedulable                                bool
+		ds                                               *apps.DaemonSet
 		wantToRun, shouldSchedule, shouldContinueRunning bool
 		err                                              error
 	}{
 		{
-			ds: &extensions.DaemonSet{
-				Spec: extensions.DaemonSetSpec{
+			predicateName: "ShouldRunDaemonPod",
+			ds: &apps.DaemonSet{
+				Spec: apps.DaemonSetSpec{
 					Selector: &metav1.LabelSelector{MatchLabels: simpleDaemonSetLabel},
 					Template: v1.PodTemplateSpec{
 						ObjectMeta: metav1.ObjectMeta{
@@ -1561,8 +1686,9 @@ func TestNodeShouldRunDaemonPod(t *testing.T) {
 			shouldContinueRunning: true,
 		},
 		{
-			ds: &extensions.DaemonSet{
-				Spec: extensions.DaemonSetSpec{
+			predicateName: "InsufficientResourceError",
+			ds: &apps.DaemonSet{
+				Spec: apps.DaemonSetSpec{
 					Selector: &metav1.LabelSelector{MatchLabels: simpleDaemonSetLabel},
 					Template: v1.PodTemplateSpec{
 						ObjectMeta: metav1.ObjectMeta{
@@ -1577,8 +1703,9 @@ func TestNodeShouldRunDaemonPod(t *testing.T) {
 			shouldContinueRunning: true,
 		},
 		{
-			ds: &extensions.DaemonSet{
-				Spec: extensions.DaemonSetSpec{
+			predicateName: "ErrPodNotMatchHostName",
+			ds: &apps.DaemonSet{
+				Spec: apps.DaemonSetSpec{
 					Selector: &metav1.LabelSelector{MatchLabels: simpleDaemonSetLabel},
 					Template: v1.PodTemplateSpec{
 						ObjectMeta: metav1.ObjectMeta{
@@ -1593,6 +1720,7 @@ func TestNodeShouldRunDaemonPod(t *testing.T) {
 			shouldContinueRunning: false,
 		},
 		{
+			predicateName: "ErrPodNotFitsHostPorts",
 			podsOnNode: []*v1.Pod{
 				{
 					Spec: v1.PodSpec{
@@ -1604,8 +1732,8 @@ func TestNodeShouldRunDaemonPod(t *testing.T) {
 					},
 				},
 			},
-			ds: &extensions.DaemonSet{
-				Spec: extensions.DaemonSetSpec{
+			ds: &apps.DaemonSet{
+				Spec: apps.DaemonSetSpec{
 					Selector: &metav1.LabelSelector{MatchLabels: simpleDaemonSetLabel},
 					Template: v1.PodTemplateSpec{
 						ObjectMeta: metav1.ObjectMeta{
@@ -1625,13 +1753,198 @@ func TestNodeShouldRunDaemonPod(t *testing.T) {
 			shouldSchedule:        false,
 			shouldContinueRunning: false,
 		},
+		{
+			predicateName: "InsufficientResourceError",
+			podsOnNode: []*v1.Pod{
+				{
+					Spec: v1.PodSpec{
+						Containers: []v1.Container{{
+							Ports: []v1.ContainerPort{{
+								HostPort: 666,
+							}},
+							Resources: resourceContainerSpec("50M", "0.5"),
+						}},
+					},
+				},
+			},
+			ds: &apps.DaemonSet{
+				Spec: apps.DaemonSetSpec{
+					Selector: &metav1.LabelSelector{MatchLabels: simpleDaemonSetLabel},
+					Template: v1.PodTemplateSpec{
+						ObjectMeta: metav1.ObjectMeta{
+							Labels: simpleDaemonSetLabel,
+						},
+						Spec: resourcePodSpec("", "100M", "0.5"),
+					},
+				},
+			},
+			wantToRun:             true,
+			shouldSchedule:        false,
+			shouldContinueRunning: true,
+		},
+		{
+			predicateName: "ShouldRunDaemonPod",
+			podsOnNode: []*v1.Pod{
+				{
+					Spec: v1.PodSpec{
+						Containers: []v1.Container{{
+							Ports: []v1.ContainerPort{{
+								HostPort: 666,
+							}},
+							Resources: resourceContainerSpec("50M", "0.5"),
+						}},
+					},
+				},
+			},
+			ds: &apps.DaemonSet{
+				Spec: apps.DaemonSetSpec{
+					Selector: &metav1.LabelSelector{MatchLabels: simpleDaemonSetLabel},
+					Template: v1.PodTemplateSpec{
+						ObjectMeta: metav1.ObjectMeta{
+							Labels: simpleDaemonSetLabel,
+						},
+						Spec: resourcePodSpec("", "50M", "0.5"),
+					},
+				},
+			},
+			wantToRun:             true,
+			shouldSchedule:        true,
+			shouldContinueRunning: true,
+		},
+		{
+			predicateName: "ErrNodeSelectorNotMatch",
+			ds: &apps.DaemonSet{
+				Spec: apps.DaemonSetSpec{
+					Selector: &metav1.LabelSelector{MatchLabels: simpleDaemonSetLabel},
+					Template: v1.PodTemplateSpec{
+						ObjectMeta: metav1.ObjectMeta{
+							Labels: simpleDaemonSetLabel,
+						},
+						Spec: v1.PodSpec{
+							NodeSelector: simpleDaemonSetLabel2,
+						},
+					},
+				},
+			},
+			wantToRun:             false,
+			shouldSchedule:        false,
+			shouldContinueRunning: false,
+		},
+		{
+			predicateName: "ShouldRunDaemonPod",
+			ds: &apps.DaemonSet{
+				Spec: apps.DaemonSetSpec{
+					Selector: &metav1.LabelSelector{MatchLabels: simpleDaemonSetLabel},
+					Template: v1.PodTemplateSpec{
+						ObjectMeta: metav1.ObjectMeta{
+							Labels: simpleDaemonSetLabel,
+						},
+						Spec: v1.PodSpec{
+							NodeSelector: simpleDaemonSetLabel,
+						},
+					},
+				},
+			},
+			wantToRun:             true,
+			shouldSchedule:        true,
+			shouldContinueRunning: true,
+		},
+		{
+			predicateName: "ErrPodAffinityNotMatch",
+			ds: &apps.DaemonSet{
+				Spec: apps.DaemonSetSpec{
+					Selector: &metav1.LabelSelector{MatchLabels: simpleDaemonSetLabel},
+					Template: v1.PodTemplateSpec{
+						ObjectMeta: metav1.ObjectMeta{
+							Labels: simpleDaemonSetLabel,
+						},
+						Spec: v1.PodSpec{
+							Affinity: &v1.Affinity{
+								NodeAffinity: &v1.NodeAffinity{
+									RequiredDuringSchedulingIgnoredDuringExecution: &v1.NodeSelector{
+										NodeSelectorTerms: []v1.NodeSelectorTerm{
+											{
+												MatchExpressions: []v1.NodeSelectorRequirement{
+													{
+														Key:      "type",
+														Operator: v1.NodeSelectorOpIn,
+														Values:   []string{"test"},
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantToRun:             false,
+			shouldSchedule:        false,
+			shouldContinueRunning: false,
+		},
+		{
+			predicateName: "ShouldRunDaemonPod",
+			ds: &apps.DaemonSet{
+				Spec: apps.DaemonSetSpec{
+					Selector: &metav1.LabelSelector{MatchLabels: simpleDaemonSetLabel},
+					Template: v1.PodTemplateSpec{
+						ObjectMeta: metav1.ObjectMeta{
+							Labels: simpleDaemonSetLabel,
+						},
+						Spec: v1.PodSpec{
+							Affinity: &v1.Affinity{
+								NodeAffinity: &v1.NodeAffinity{
+									RequiredDuringSchedulingIgnoredDuringExecution: &v1.NodeSelector{
+										NodeSelectorTerms: []v1.NodeSelectorTerm{
+											{
+												MatchExpressions: []v1.NodeSelectorRequirement{
+													{
+														Key:      "type",
+														Operator: v1.NodeSelectorOpIn,
+														Values:   []string{"production"},
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantToRun:             true,
+			shouldSchedule:        true,
+			shouldContinueRunning: true,
+		},
+		{
+			predicateName: "ShouldRunDaemonPodOnUnscheduableNode",
+			ds: &apps.DaemonSet{
+				Spec: apps.DaemonSetSpec{
+					Selector: &metav1.LabelSelector{MatchLabels: simpleDaemonSetLabel},
+					Template: v1.PodTemplateSpec{
+						ObjectMeta: metav1.ObjectMeta{
+							Labels: simpleDaemonSetLabel,
+						},
+						Spec: resourcePodSpec("", "50M", "0.5"),
+					},
+				},
+			},
+			nodeUnschedulable:     true,
+			wantToRun:             true,
+			shouldSchedule:        true,
+			shouldContinueRunning: true,
+		},
 	}
 
 	for i, c := range cases {
 		for _, strategy := range updateStrategies() {
-			node := newNode("test-node", nil)
+			node := newNode("test-node", simpleDaemonSetLabel)
 			node.Status.Conditions = append(node.Status.Conditions, c.nodeCondition...)
 			node.Status.Allocatable = allocatableResources("100M", "1")
+			node.Spec.Unschedulable = c.nodeUnschedulable
 			manager, _, _, err := newTestController()
 			if err != nil {
 				t.Fatalf("error creating DaemonSets controller: %v", err)
@@ -1645,16 +1958,16 @@ func TestNodeShouldRunDaemonPod(t *testing.T) {
 			wantToRun, shouldSchedule, shouldContinueRunning, err := manager.nodeShouldRunDaemonPod(node, c.ds)
 
 			if wantToRun != c.wantToRun {
-				t.Errorf("[%v] expected wantToRun: %v, got: %v", i, c.wantToRun, wantToRun)
+				t.Errorf("[%v] strategy: %v, predicateName: %v expected wantToRun: %v, got: %v", i, c.ds.Spec.UpdateStrategy.Type, c.predicateName, c.wantToRun, wantToRun)
 			}
 			if shouldSchedule != c.shouldSchedule {
-				t.Errorf("[%v] expected shouldSchedule: %v, got: %v", i, c.shouldSchedule, shouldSchedule)
+				t.Errorf("[%v] strategy: %v, predicateName: %v expected shouldSchedule: %v, got: %v", i, c.ds.Spec.UpdateStrategy.Type, c.predicateName, c.shouldSchedule, shouldSchedule)
 			}
 			if shouldContinueRunning != c.shouldContinueRunning {
-				t.Errorf("[%v] expected shouldContinueRunning: %v, got: %v", i, c.shouldContinueRunning, shouldContinueRunning)
+				t.Errorf("[%v] strategy: %v, predicateName: %v expected shouldContinueRunning: %v, got: %v", i, c.ds.Spec.UpdateStrategy.Type, c.predicateName, c.shouldContinueRunning, shouldContinueRunning)
 			}
 			if err != c.err {
-				t.Errorf("[%v] expected err: %v, got: %v", i, c.err, err)
+				t.Errorf("[%v] strategy: %v, predicateName: %v expected err: %v, got: %v", i, c.predicateName, c.ds.Spec.UpdateStrategy.Type, c.err, err)
 			}
 		}
 	}
@@ -1668,14 +1981,14 @@ func TestUpdateNode(t *testing.T) {
 		test          string
 		newNode       *v1.Node
 		oldNode       *v1.Node
-		ds            *extensions.DaemonSet
+		ds            *apps.DaemonSet
 		shouldEnqueue bool
 	}{
 		{
 			test:    "Nothing changed, should not enqueue",
 			oldNode: newNode("node1", nil),
 			newNode: newNode("node1", nil),
-			ds: func() *extensions.DaemonSet {
+			ds: func() *apps.DaemonSet {
 				ds := newDaemonSet("ds")
 				ds.Spec.Template.Spec.NodeSelector = simpleNodeLabel
 				return ds
@@ -1686,7 +1999,7 @@ func TestUpdateNode(t *testing.T) {
 			test:    "Node labels changed",
 			oldNode: newNode("node1", nil),
 			newNode: newNode("node1", simpleNodeLabel),
-			ds: func() *extensions.DaemonSet {
+			ds: func() *apps.DaemonSet {
 				ds := newDaemonSet("ds")
 				ds.Spec.Template.Spec.NodeSelector = simpleNodeLabel
 				return ds
@@ -1716,7 +2029,7 @@ func TestUpdateNode(t *testing.T) {
 			manager.dsStore.Add(c.ds)
 			syncAndValidateDaemonSets(t, manager, c.ds, podControl, 0, 0, 0)
 
-			manager.enqueueDaemonSet = func(ds *extensions.DaemonSet) {
+			manager.enqueueDaemonSet = func(ds *apps.DaemonSet) {
 				if ds.Name == "ds" {
 					enqueued = true
 				}
@@ -1740,7 +2053,7 @@ func TestDeleteNoDaemonPod(t *testing.T) {
 		node          *v1.Node
 		existPods     []*v1.Pod
 		deletedPod    *v1.Pod
-		ds            *extensions.DaemonSet
+		ds            *apps.DaemonSet
 		shouldEnqueue bool
 	}{
 		{
@@ -1775,7 +2088,7 @@ func TestDeleteNoDaemonPod(t *testing.T) {
 					Spec: podSpec,
 				}
 			}(),
-			ds: func() *extensions.DaemonSet {
+			ds: func() *apps.DaemonSet {
 				ds := newDaemonSet("ds")
 				ds.Spec.Template.Spec = resourcePodSpec("", "50M", "50m")
 				return ds
@@ -1820,7 +2133,7 @@ func TestDeleteNoDaemonPod(t *testing.T) {
 					Spec: podSpec,
 				}
 			}(),
-			ds: func() *extensions.DaemonSet {
+			ds: func() *apps.DaemonSet {
 				ds := newDaemonSet("ds")
 				ds.Spec.Template.Spec = resourcePodSpec("", "50M", "50m")
 				return ds
@@ -1862,7 +2175,7 @@ func TestDeleteNoDaemonPod(t *testing.T) {
 					Spec: podSpec,
 				}
 			}(),
-			ds: func() *extensions.DaemonSet {
+			ds: func() *apps.DaemonSet {
 				ds := newDaemonSet("ds")
 				ds.Spec.Template.Spec = resourcePodSpec("", "50M", "50m")
 				return ds
@@ -1884,15 +2197,15 @@ func TestDeleteNoDaemonPod(t *testing.T) {
 				manager.podStore.Add(pod)
 			}
 			switch strategy.Type {
-			case extensions.OnDeleteDaemonSetStrategyType:
+			case apps.OnDeleteDaemonSetStrategyType:
 				syncAndValidateDaemonSets(t, manager, c.ds, podControl, 0, 0, 2)
-			case extensions.RollingUpdateDaemonSetStrategyType:
+			case apps.RollingUpdateDaemonSetStrategyType:
 				syncAndValidateDaemonSets(t, manager, c.ds, podControl, 0, 0, 3)
 			default:
 				t.Fatalf("unexpected UpdateStrategy %+v", strategy)
 			}
 
-			manager.enqueueDaemonSetRateLimited = func(ds *extensions.DaemonSet) {
+			manager.enqueueDaemonSetRateLimited = func(ds *apps.DaemonSet) {
 				if ds.Name == "ds" {
 					enqueued = true
 				}

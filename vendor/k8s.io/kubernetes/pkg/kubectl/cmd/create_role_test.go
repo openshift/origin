@@ -18,48 +18,28 @@ package cmd
 
 import (
 	"bytes"
-	"io"
 	"reflect"
 	"testing"
 
 	rbac "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/client-go/rest/fake"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	cmdtesting "k8s.io/kubernetes/pkg/kubectl/cmd/testing"
 )
-
-type testRolePrinter struct {
-	CachedRole *rbac.Role
-}
-
-func (t *testRolePrinter) PrintObj(obj runtime.Object, out io.Writer) error {
-	t.CachedRole = obj.(*rbac.Role)
-	return nil
-}
-
-func (t *testRolePrinter) AfterPrint(output io.Writer, res string) error {
-	return nil
-}
-
-func (t *testRolePrinter) HandledResources() []string {
-	return []string{}
-}
-
-func (t *testRolePrinter) IsGeneric() bool {
-	return true
-}
 
 func TestCreateRole(t *testing.T) {
 	roleName := "my-role"
 
-	f, tf, _, _ := cmdtesting.NewAPIFactory()
-	printer := &testRolePrinter{}
-	tf.Printer = printer
+	tf := cmdtesting.NewTestFactory()
+	defer tf.Cleanup()
+
 	tf.Namespace = "test"
 	tf.Client = &fake.RESTClient{}
-	tf.ClientConfig = defaultClientConfig()
+	tf.ClientConfigVal = defaultClientConfig()
 
 	tests := map[string]struct {
 		verbs         string
@@ -71,6 +51,7 @@ func TestCreateRole(t *testing.T) {
 			verbs:     "get,watch,list",
 			resources: "pods,pods",
 			expectedRole: &rbac.Role{
+				TypeMeta: v1.TypeMeta{APIVersion: "rbac.authorization.k8s.io/v1", Kind: "Role"},
 				ObjectMeta: v1.ObjectMeta{
 					Name: roleName,
 				},
@@ -88,6 +69,7 @@ func TestCreateRole(t *testing.T) {
 			verbs:     "get,watch,list",
 			resources: "replicasets/scale",
 			expectedRole: &rbac.Role{
+				TypeMeta: v1.TypeMeta{APIVersion: "rbac.authorization.k8s.io/v1", Kind: "Role"},
 				ObjectMeta: v1.ObjectMeta{
 					Name: roleName,
 				},
@@ -105,6 +87,7 @@ func TestCreateRole(t *testing.T) {
 			verbs:     "get,watch,list",
 			resources: "replicasets.extensions/scale",
 			expectedRole: &rbac.Role{
+				TypeMeta: v1.TypeMeta{APIVersion: "rbac.authorization.k8s.io/v1", Kind: "Role"},
 				ObjectMeta: v1.ObjectMeta{
 					Name: roleName,
 				},
@@ -122,6 +105,7 @@ func TestCreateRole(t *testing.T) {
 			verbs:     "get,watch,list",
 			resources: "pods,deployments.extensions",
 			expectedRole: &rbac.Role{
+				TypeMeta: v1.TypeMeta{APIVersion: "rbac.authorization.k8s.io/v1", Kind: "Role"},
 				ObjectMeta: v1.ObjectMeta{
 					Name: roleName,
 				},
@@ -146,25 +130,31 @@ func TestCreateRole(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			buf := bytes.NewBuffer([]byte{})
-			cmd := NewCmdCreateRole(f, buf)
+			cmd := NewCmdCreateRole(tf, buf)
 			cmd.Flags().Set("dry-run", "true")
-			cmd.Flags().Set("output", "object")
+			cmd.Flags().Set("output", "yaml")
 			cmd.Flags().Set("verb", test.verbs)
 			cmd.Flags().Set("resource", test.resources)
 			if test.resourceNames != "" {
 				cmd.Flags().Set("resource-name", test.resourceNames)
 			}
 			cmd.Run(cmd, []string{roleName})
-			if !reflect.DeepEqual(test.expectedRole, printer.CachedRole) {
-				t.Errorf("%s", diff.ObjectReflectDiff(test.expectedRole, printer.CachedRole))
+			actual := &rbac.Role{}
+			if err := runtime.DecodeInto(legacyscheme.Codecs.UniversalDecoder(), buf.Bytes(), actual); err != nil {
+				t.Log(string(buf.Bytes()))
+				t.Fatal(err)
+			}
+			if !equality.Semantic.DeepEqual(test.expectedRole, actual) {
+				t.Errorf("%s", diff.ObjectReflectDiff(test.expectedRole, actual))
 			}
 		})
 	}
 }
 
 func TestValidate(t *testing.T) {
-	f, tf, _, _ := cmdtesting.NewAPIFactory()
-	tf.Printer = &testPrinter{}
+	tf := cmdtesting.NewTestFactory()
+	defer tf.Cleanup()
+
 	tf.Namespace = "test"
 
 	tests := map[string]struct {
@@ -349,7 +339,7 @@ func TestValidate(t *testing.T) {
 	}
 
 	for name, test := range tests {
-		test.roleOptions.Mapper, _ = f.Object()
+		test.roleOptions.Mapper, _ = tf.Object()
 		err := test.roleOptions.Validate()
 		if test.expectErr && err == nil {
 			t.Errorf("%s: expect error happens but validate passes.", name)
@@ -363,14 +353,15 @@ func TestValidate(t *testing.T) {
 func TestComplete(t *testing.T) {
 	roleName := "my-role"
 
-	f, tf, _, _ := cmdtesting.NewAPIFactory()
-	tf.Printer = &testPrinter{}
+	tf := cmdtesting.NewTestFactory()
+	defer tf.Cleanup()
+
 	tf.Namespace = "test"
 	tf.Client = &fake.RESTClient{}
-	tf.ClientConfig = defaultClientConfig()
+	tf.ClientConfigVal = defaultClientConfig()
 
 	buf := bytes.NewBuffer([]byte{})
-	cmd := NewCmdCreateRole(f, buf)
+	cmd := NewCmdCreateRole(tf, buf)
 	cmd.Flags().Set("resource", "pods,deployments.extensions")
 
 	tests := map[string]struct {
@@ -495,7 +486,7 @@ func TestComplete(t *testing.T) {
 	}
 
 	for name, test := range tests {
-		err := test.roleOptions.Complete(f, cmd, test.params)
+		err := test.roleOptions.Complete(tf, cmd, test.params)
 		if !test.expectErr && err != nil {
 			t.Errorf("%s: unexpected error: %v", name, err)
 		}

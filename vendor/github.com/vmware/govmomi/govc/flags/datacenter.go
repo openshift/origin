@@ -33,7 +33,7 @@ type DatacenterFlag struct {
 	*ClientFlag
 	*OutputFlag
 
-	path   string
+	Name   string
 	dc     *object.Datacenter
 	finder *find.Finder
 	err    error
@@ -61,7 +61,7 @@ func (flag *DatacenterFlag) Register(ctx context.Context, f *flag.FlagSet) {
 		env := "GOVC_DATACENTER"
 		value := os.Getenv(env)
 		usage := fmt.Sprintf("Datacenter [%s]", env)
-		f.StringVar(&flag.path, "dc", value, usage)
+		f.StringVar(&flag.Name, "dc", value, usage)
 	})
 }
 
@@ -93,10 +93,10 @@ func (flag *DatacenterFlag) Finder() (*find.Finder, error) {
 	// Set for relative func if dc flag is given or
 	// if there is a single (default) Datacenter
 	ctx := context.TODO()
-	if flag.path == "" {
+	if flag.Name == "" {
 		flag.dc, flag.err = finder.DefaultDatacenter(ctx)
 	} else {
-		if flag.dc, err = finder.Datacenter(ctx, flag.path); err != nil {
+		if flag.dc, err = finder.Datacenter(ctx, flag.Name); err != nil {
 			return nil, err
 		}
 	}
@@ -127,7 +127,7 @@ func (flag *DatacenterFlag) Datacenter() (*object.Datacenter, error) {
 }
 
 func (flag *DatacenterFlag) DatacenterIfSpecified() (*object.Datacenter, error) {
-	if flag.path == "" {
+	if flag.Name == "" {
 		return nil, nil
 	}
 	return flag.Datacenter()

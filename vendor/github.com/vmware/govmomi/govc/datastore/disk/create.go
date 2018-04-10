@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2017 VMware, Inc. All Rights Reserved.
+Copyright (c) 2017-2018 VMware, Inc. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ package disk
 import (
 	"context"
 	"flag"
+	"fmt"
 
 	"github.com/vmware/govmomi/govc/cli"
 	"github.com/vmware/govmomi/govc/flags"
@@ -27,10 +28,22 @@ import (
 	"github.com/vmware/govmomi/vim25/types"
 )
 
+type spec struct {
+	types.FileBackedVirtualDiskSpec
+	force bool
+}
+
+func (s *spec) Register(ctx context.Context, f *flag.FlagSet) {
+	f.StringVar(&s.AdapterType, "a", string(types.VirtualDiskAdapterTypeLsiLogic), "Disk adapter")
+	f.StringVar(&s.DiskType, "d", string(types.VirtualDiskTypeThin), "Disk format")
+	f.BoolVar(&s.force, "f", false, "Force")
+}
+
 type create struct {
 	*flags.DatastoreFlag
 
 	Bytes units.ByteSize
+	spec
 }
 
 func init() {
@@ -43,13 +56,8 @@ func (cmd *create) Register(ctx context.Context, f *flag.FlagSet) {
 
 	_ = cmd.Bytes.Set("10G")
 	f.Var(&cmd.Bytes, "size", "Size of new disk")
-}
 
-func (cmd *create) Process(ctx context.Context) error {
-	if err := cmd.DatastoreFlag.Process(ctx); err != nil {
-		return err
-	}
-	return nil
+	cmd.spec.Register(ctx, f)
 }
 
 func (cmd *create) Usage() string {
@@ -61,7 +69,8 @@ func (cmd *create) Description() string {
 
 Examples:
   govc datastore.mkdir disks
-  govc datastore.disk.create -size 24G disks/disk1.vmdk`
+  govc datastore.disk.create -size 24G disks/disk1.vmdk
+  govc datastore.disk.create disks/parent.vmdk disk/child.vmdk`
 }
 
 func (cmd *create) Run(ctx context.Context, f *flag.FlagSet) error {
@@ -81,18 +90,25 @@ func (cmd *create) Run(ctx context.Context, f *flag.FlagSet) error {
 
 	m := object.NewVirtualDiskManager(ds.Client())
 
-	spec := &types.FileBackedVirtualDiskSpec{
-		VirtualDiskSpec: types.VirtualDiskSpec{
-			AdapterType: string(types.VirtualDiskAdapterTypeLsiLogic),
-			DiskType:    string(types.VirtualDiskTypeThin),
-		},
-		CapacityKb: int64(cmd.Bytes) / 1024,
+	var task *object.Task
+	var dst string
+
+	if f.NArg() == 1 {
+		cmd.spec.CapacityKb = int64(cmd.Bytes) / 1024
+		dst = ds.Path(f.Arg(0))
+		task, err = m.CreateVirtualDisk(ctx, dst, dc, &cmd.spec.FileBackedVirtualDiskSpec)
+	} else {
+		dst = ds.Path(f.Arg(0))
+		task, err = m.CreateChildDisk(ctx, ds.Path(f.Arg(0)), dc, dst, dc, cmd.force)
 	}
 
-	task, err := m.CreateVirtualDisk(ctx, ds.Path(f.Arg(0)), dc, spec)
 	if err != nil {
 		return err
 	}
 
-	return task.Wait(ctx)
+	logger := cmd.ProgressLogger(fmt.Sprintf("Creating %s...", dst))
+	defer logger.Wait()
+
+	_, err = task.WaitForResult(ctx, logger)
+	return err
 }

@@ -117,7 +117,7 @@ echo "certs: ok"
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/admin/groups"
-os::cmd::expect_success_and_text 'oc adm groups new shortoutputgroup -o name' 'groups/shortoutputgroup'
+os::cmd::expect_success_and_text 'oc adm groups new shortoutputgroup -o name' 'group/shortoutputgroup'
 os::cmd::expect_failure_and_text 'oc adm groups new shortoutputgroup' 'groups.user.openshift.io "shortoutputgroup" already exists'
 os::cmd::expect_failure_and_text 'oc adm groups new errorgroup -o blah' 'error: output format "blah" not recognized'
 os::cmd::expect_failure_and_text 'oc get groups/errorgroup' 'groups.user.openshift.io "errorgroup" not found'
