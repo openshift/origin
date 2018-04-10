@@ -37,6 +37,8 @@ func (f *genericInformer) Lister() cache.GenericLister {
 func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource) (GenericInformer, error) {
 	switch resource {
 	// Group=security.openshift.io, Version=v1
+	case v1.SchemeGroupVersion.WithResource("rangeallocations"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Security().V1().RangeAllocations().Informer()}, nil
 	case v1.SchemeGroupVersion.WithResource("securitycontextconstraints"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Security().V1().SecurityContextConstraints().Informer()}, nil
 

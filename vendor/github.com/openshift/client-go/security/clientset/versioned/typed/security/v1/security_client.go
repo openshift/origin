@@ -14,6 +14,7 @@ type SecurityV1Interface interface {
 	PodSecurityPolicyReviewsGetter
 	PodSecurityPolicySelfSubjectReviewsGetter
 	PodSecurityPolicySubjectReviewsGetter
+	RangeAllocationsGetter
 	SecurityContextConstraintsGetter
 }
 
@@ -32,6 +33,10 @@ func (c *SecurityV1Client) PodSecurityPolicySelfSubjectReviews(namespace string)
 
 func (c *SecurityV1Client) PodSecurityPolicySubjectReviews(namespace string) PodSecurityPolicySubjectReviewInterface {
 	return newPodSecurityPolicySubjectReviews(c, namespace)
+}
+
+func (c *SecurityV1Client) RangeAllocations() RangeAllocationInterface {
+	return newRangeAllocations(c)
 }
 
 func (c *SecurityV1Client) SecurityContextConstraints() SecurityContextConstraintsInterface {

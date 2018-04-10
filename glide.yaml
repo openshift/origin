@@ -4,6 +4,7 @@ excludeDirs:
 - openshift.local.config
 - openshift.local.etcd
 - openshift.local.volumes
+- openshift.local.clusterup
 import:
 # kube first
 - package: k8s.io/kube-openapi

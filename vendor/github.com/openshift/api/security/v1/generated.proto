@@ -125,6 +125,30 @@ message PodSecurityPolicySubjectReviewStatus {
   optional k8s.io.api.core.v1.PodTemplateSpec template = 3;
 }
 
+// RangeAllocation is used so we can easily expose a RangeAllocation typed for security group
+message RangeAllocation {
+  // Standard object's metadata.
+  // More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata
+  // +optional
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
+
+  // range is a string representing a unique label for a range of uids, "1000000000-2000000000/10000".
+  optional string range = 2;
+
+  // data is a byte array representing the serialized state of a range allocation.  It is a bitmap
+  // with each bit set to one to represent a range is taken.
+  optional bytes data = 3;
+}
+
+// RangeAllocationList is a list of RangeAllocations objects
+message RangeAllocationList {
+  // More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ListMeta metadata = 1;
+
+  // List of RangeAllocations.
+  repeated RangeAllocation items = 2;
+}
+
 // RunAsUserStrategyOptions defines the strategy type and any options used to create the strategy.
 message RunAsUserStrategyOptions {
   // Type is the strategy that will dictate what RunAsUser is used in the SecurityContext.

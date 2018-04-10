@@ -389,6 +389,14 @@ items:
     - list
     - watch
   - apiGroups:
+    - security.openshift.io
+    resources:
+    - rangeallocations
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
     - ""
     - template.openshift.io
     resources:

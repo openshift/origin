@@ -332,6 +332,8 @@
     File: v1.PodSecurityPolicySelfSubjectReview
   - Name: v1.PodSecurityPolicySubjectReview
     File: v1.PodSecurityPolicySubjectReview
+  - Name: v1.RangeAllocation
+    File: v1.RangeAllocation
   - Name: v1.SecurityContextConstraints
     File: v1.SecurityContextConstraints
 - Name: /apis/template.openshift.io/v1

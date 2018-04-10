@@ -13,3 +13,11 @@ type ImageStreamListerExpansion interface{}
 // ImageStreamNamespaceListerExpansion allows custom methods to be added to
 // ImageStreamNamespaceLister.
 type ImageStreamNamespaceListerExpansion interface{}
+
+// ImageStreamTagListerExpansion allows custom methods to be added to
+// ImageStreamTagLister.
+type ImageStreamTagListerExpansion interface{}
+
+// ImageStreamTagNamespaceListerExpansion allows custom methods to be added to
+// ImageStreamTagNamespaceLister.
+type ImageStreamTagNamespaceListerExpansion interface{}

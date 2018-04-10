@@ -351,3 +351,36 @@ type ServiceAccountPodSecurityPolicyReviewStatus struct {
 	// name contains the allowed and the denied ServiceAccount name
 	Name string `json:"name" protobuf:"bytes,2,opt,name=name"`
 }
+
+// +genclient
+// +genclient:nonNamespaced
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// RangeAllocation is used so we can easily expose a RangeAllocation typed for security group
+type RangeAllocation struct {
+	metav1.TypeMeta `json:",inline"`
+	// Standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata
+	// +optional
+	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+
+	// range is a string representing a unique label for a range of uids, "1000000000-2000000000/10000".
+	Range string `json:"range" protobuf:"bytes,2,opt,name=range"`
+
+	// data is a byte array representing the serialized state of a range allocation.  It is a bitmap
+	// with each bit set to one to represent a range is taken.
+	Data []byte `json:"data" protobuf:"bytes,3,opt,name=data"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// RangeAllocationList is a list of RangeAllocations objects
+type RangeAllocationList struct {
+	metav1.TypeMeta `json:",inline"`
+
+	// More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata
+	metav1.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+
+	// List of RangeAllocations.
+	Items []RangeAllocation `json:"items" protobuf:"bytes,2,rep,name=items"`
+}
