@@ -109,7 +109,7 @@ func New(client dockerpkg.Client, config *api.Config, fs fs.FileSystem, override
 		config.PullAuthentication,
 		fs,
 	)
-	tarHandler := tar.New(fs)
+	tarHandler := tar.NewParanoid(fs)
 	tarHandler.SetExclusionPattern(excludePattern)
 
 	builder := &STI{
@@ -750,9 +750,9 @@ func (builder *STI) initPostExecutorSteps() {
 }
 
 func isMissingRequirements(text string) bool {
-	tar, _ := regexp.MatchString(`.*tar.*not found`, text)
-	sh, _ := regexp.MatchString(`.*/bin/sh.*no such file or directory`, text)
-	return tar || sh
+	tarCommand, _ := regexp.MatchString(`.*tar.*not found`, text)
+	shCommand, _ := regexp.MatchString(`.*/bin/sh.*no such file or directory`, text)
+	return tarCommand || shCommand
 }
 
 func includes(arr []string, str string) bool {
