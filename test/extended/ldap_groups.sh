@@ -226,7 +226,7 @@ for (( i=0; i<${#schema[@]}; i++ )); do
 	os::cmd::expect_success_and_text 'oc get group -o jsonpath={.items[*].metadata.name}' 'firstgroup secondgroup thirdgroup'
 	os::cmd::expect_success_and_text 'oc adm groups prune --whitelist=ldapgroupuids.txt --sync-config=sync-config-user-defined.yaml --confirm | wc -l' '0'
 	os::cmd::expect_success_and_text 'oc get group -o jsonpath={.items[*].metadata.name}' 'firstgroup secondgroup thirdgroup'
-	os::cmd::expect_success_and_text 'oc patch group secondgroup -p "{\"metadata\":{\"annotations\":{\"openshift.io/ldap.uid\":\"cn=garbage\"}}}"' 'group "secondgroup" patched'
+	os::cmd::expect_success_and_text 'oc patch group secondgroup -p "{\"metadata\":{\"annotations\":{\"openshift.io/ldap.uid\":\"cn=garbage\"}}}"' 'group.user.openshift.io "secondgroup" patched'
 	os::cmd::expect_success_and_text 'oc adm groups prune --whitelist=ldapgroupuids.txt --sync-config=sync-config-user-defined.yaml --confirm' 'group/secondgroup'
 	os::cmd::expect_success_and_text 'oc get group -o jsonpath={.items[*].metadata.name}' 'firstgroup thirdgroup'
 	os::cmd::expect_success_and_text 'oc delete groups --all' 'deleted'
