@@ -93,6 +93,7 @@ func NewRollingDeploymentStrategy(namespace string, client kclientset.Interface,
 	if errOut == nil {
 		errOut = ioutil.Discard
 	}
+
 	return &RollingDeploymentStrategy{
 		out:             out,
 		errOut:          errOut,
@@ -105,7 +106,7 @@ func NewRollingDeploymentStrategy(namespace string, client kclientset.Interface,
 		apiRetryPeriod:  defaultApiRetryPeriod,
 		apiRetryTimeout: defaultApiRetryTimeout,
 		rollingUpdate: func(config *kubectl.RollingUpdaterConfig) error {
-			updater := kubectl.NewRollingUpdater(namespace, client.Core(), client.Core())
+			updater := kubectl.NewRollingUpdater(namespace, client.Core(), client.Core(), appsutil.NewReplicationControllerV1ScaleClient(client))
 			return updater.Update(config)
 		},
 		hookExecutor: stratsupport.NewHookExecutor(client.Core(), tags, client.Core(), os.Stdout, decoder),

@@ -55,7 +55,7 @@ var _ = SIGDescribe("Rescheduler [Serial]", func() {
 	It("should ensure that critical pod is scheduled in case there is no resources available", func() {
 		By("reserving all available cpu")
 		err := reserveAllCpu(f, "reserve-all-cpu", totalMillicores)
-		defer framework.DeleteRCAndPods(f.ClientSet, f.InternalClientset, ns, "reserve-all-cpu")
+		defer framework.DeleteRCAndPods(f.ClientSet, f.InternalClientset, f.ScalesGetter, ns, "reserve-all-cpu")
 		framework.ExpectNoError(err)
 
 		By("creating a new instance of Dashboard and waiting for Dashboard to be scheduled")
@@ -68,8 +68,8 @@ var _ = SIGDescribe("Rescheduler [Serial]", func() {
 		deployment := deployments.Items[0]
 		replicas := uint(*(deployment.Spec.Replicas))
 
-		err = framework.ScaleDeployment(f.ClientSet, f.InternalClientset, f.ScalesGetter, metav1.NamespaceSystem, deployment.Name, replicas+1, true)
-		defer framework.ExpectNoError(framework.ScaleDeployment(f.ClientSet, f.InternalClientset, f.ScalesGetter, metav1.NamespaceSystem, deployment.Name, replicas, true))
+		err = framework.ScaleDeployment(f.ClientSet, f.ScalesGetter, metav1.NamespaceSystem, deployment.Name, replicas+1, true)
+		defer framework.ExpectNoError(framework.ScaleDeployment(f.ClientSet, f.ScalesGetter, metav1.NamespaceSystem, deployment.Name, replicas, true))
 		framework.ExpectNoError(err)
 
 	})
@@ -80,7 +80,7 @@ func reserveAllCpu(f *framework.Framework, id string, millicores int) error {
 	replicas := millicores / 100
 
 	reserveCpu(f, id, 1, 100)
-	framework.ExpectNoError(framework.ScaleRC(f.ClientSet, f.InternalClientset, f.ScalesGetter, f.Namespace.Name, id, uint(replicas), false))
+	framework.ExpectNoError(framework.ScaleRC(f.ClientSet, f.ScalesGetter, f.Namespace.Name, id, uint(replicas), false))
 
 	for start := time.Now(); time.Since(start) < timeout; time.Sleep(10 * time.Second) {
 		pods, err := framework.GetPodsInNamespace(f.ClientSet, f.Namespace.Name, framework.ImagePullerLabels)

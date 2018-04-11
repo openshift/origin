@@ -5031,6 +5031,7 @@ items:
     - replicasets
     - replicasets/scale
     - statefulsets
+    - statefulsets/scale
     verbs:
     - create
     - delete
@@ -5224,6 +5225,7 @@ items:
     - replicasets
     - replicasets/scale
     - statefulsets
+    - statefulsets/scale
     verbs:
     - create
     - delete
@@ -5367,6 +5369,7 @@ items:
     - replicasets
     - replicasets/scale
     - statefulsets
+    - statefulsets/scale
     verbs:
     - get
     - list

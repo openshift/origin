@@ -7,8 +7,10 @@ import (
 	"path"
 	"strings"
 
+	"github.com/openshift/origin/pkg/oc/bootstrap/clusteradd/components/default-imagestreams"
 	"github.com/openshift/origin/pkg/oc/bootstrap/clusteradd/components/registry"
 	"github.com/openshift/origin/pkg/oc/bootstrap/clusteradd/components/router"
+	"github.com/openshift/origin/pkg/oc/bootstrap/clusteradd/components/sample-templates"
 	"github.com/openshift/origin/pkg/oc/bootstrap/clusteradd/components/service-catalog"
 	"github.com/openshift/origin/pkg/oc/bootstrap/clusteradd/components/template-service-broker"
 	"github.com/openshift/origin/pkg/oc/bootstrap/clusteradd/components/web-console"
@@ -45,20 +47,29 @@ var (
 
 // availableComponents lists the components that are available for installation.
 var availableComponents = map[string]func(ctx componentinstall.Context) componentinstall.Component{
-	"web-console": func(ctx componentinstall.Context) componentinstall.Component {
-		return &web_console.WebConsoleComponentOptions{InstallContext: ctx}
+	"centos-imagestreams": func(ctx componentinstall.Context) componentinstall.Component {
+		return &default_imagestreams.CentosImageStreamsComponentOptions{InstallContext: ctx}
 	},
 	"registry": func(ctx componentinstall.Context) componentinstall.Component {
 		return &registry.RegistryComponentOptions{InstallContext: ctx}
 	},
+	"rhel-imagestreams": func(ctx componentinstall.Context) componentinstall.Component {
+		return &default_imagestreams.RHELImageStreamsComponentOptions{InstallContext: ctx}
+	},
 	"router": func(ctx componentinstall.Context) componentinstall.Component {
 		return &router.RouterComponentOptions{InstallContext: ctx}
+	},
+	"sample-templates": func(ctx componentinstall.Context) componentinstall.Component {
+		return &sample_templates.SampleTemplatesComponentOptions{InstallContext: ctx}
 	},
 	"service-catalog": func(ctx componentinstall.Context) componentinstall.Component {
 		return &service_catalog.ServiceCatalogComponentOptions{InstallContext: ctx}
 	},
 	"template-service-broker": func(ctx componentinstall.Context) componentinstall.Component {
 		return &template_service_broker.TemplateServiceBrokerComponentOptions{InstallContext: ctx}
+	},
+	"web-console": func(ctx componentinstall.Context) componentinstall.Component {
+		return &web_console.WebConsoleComponentOptions{InstallContext: ctx}
 	},
 }
 

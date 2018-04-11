@@ -238,7 +238,7 @@ func (d *Deployer) Deploy(namespace, rcName string) error {
 		}
 		// Scale the deployment down to zero.
 		retryWaitParams := kubectl.NewRetryParams(1*time.Second, 120*time.Second)
-		if err := d.scaler.Scale(candidate.Namespace, candidate.Name, uint(0), &kubectl.ScalePrecondition{Size: -1, ResourceVersion: ""}, retryWaitParams, retryWaitParams); err != nil {
+		if err := d.scaler.Scale(candidate.Namespace, candidate.Name, uint(0), &kubectl.ScalePrecondition{Size: -1, ResourceVersion: ""}, retryWaitParams, retryWaitParams, kapi.Resource("replicationcontrollers")); err != nil {
 			fmt.Fprintf(d.errOut, "error: Couldn't scale down prior deployment %s: %v\n", appsutil.LabelForDeployment(candidate), err)
 		} else {
 			fmt.Fprintf(d.out, "--> Scaled older deployment %s down\n", candidate.Name)

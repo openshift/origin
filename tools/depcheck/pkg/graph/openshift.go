@@ -13,8 +13,6 @@ var (
 	openshiftDefaultExcludes = []string{
 		"github.com/openshift/origin/images",
 		"github.com/openshift/origin/pkg/build/builder",
-
-		"github.com/openshift/origin/cmd/cluster-capacity",
 	}
 
 	openshiftImportPath = "github.com/openshift/origin"

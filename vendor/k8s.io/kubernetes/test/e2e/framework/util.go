@@ -2782,7 +2782,6 @@ func RemoveAvoidPodsOffNode(c clientset.Interface, nodeName string) {
 
 func ScaleResource(
 	clientset clientset.Interface,
-	internalClientset internalclientset.Interface,
 	scalesGetter scaleclient.ScalesGetter,
 	ns, name string,
 	size uint,
@@ -2791,8 +2790,8 @@ func ScaleResource(
 	gr schema.GroupResource,
 ) error {
 	By(fmt.Sprintf("Scaling %v %s in namespace %s to %d", kind, name, ns, size))
-	scaler := kubectl.ScalerFor(kind, internalClientset.Batch(), scalesGetter, gr)
-	if err := testutils.ScaleResourceWithRetries(scaler, ns, name, size); err != nil {
+	scaler := kubectl.NewScaler(scalesGetter)
+	if err := testutils.ScaleResourceWithRetries(scaler, ns, name, size, gr); err != nil {
 		return fmt.Errorf("error while scaling RC %s to %d replicas: %v", name, size, err)
 	}
 	if !wait {
@@ -2984,7 +2983,7 @@ func getReplicasFromRuntimeObject(obj runtime.Object) (int32, error) {
 }
 
 // DeleteResourceAndPods deletes a given resource and all pods it spawned
-func DeleteResourceAndPods(clientset clientset.Interface, internalClientset internalclientset.Interface, kind schema.GroupKind, ns, name string) error {
+func DeleteResourceAndPods(clientset clientset.Interface, internalClientset internalclientset.Interface, scaleClient scaleclient.ScalesGetter, kind schema.GroupKind, ns, name string) error {
 	By(fmt.Sprintf("deleting %v %s in namespace %s", kind, name, ns))
 
 	rtObject, err := getRuntimeObjectForKind(clientset, kind, ns, name)
@@ -3005,7 +3004,7 @@ func DeleteResourceAndPods(clientset clientset.Interface, internalClientset inte
 	}
 	defer ps.Stop()
 	startTime := time.Now()
-	if err := testutils.DeleteResourceUsingReaperWithRetries(internalClientset, kind, ns, name, nil); err != nil {
+	if err := testutils.DeleteResourceUsingReaperWithRetries(internalClientset, kind, ns, name, nil, scaleClient); err != nil {
 		return fmt.Errorf("error while stopping %v: %s: %v", kind, name, err)
 	}
 	deleteTime := time.Now().Sub(startTime)

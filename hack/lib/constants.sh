@@ -59,7 +59,6 @@ readonly OS_GOVET_BLACKLIST=(
 	"pkg/.*/generated/internalclientset/fake/clientset_generated.go:[0-9]+: literal copies lock value from fakePtr: github.com/openshift/origin/vendor/k8s.io/client-go/testing.Fake"
 	"pkg/.*/generated/clientset/fake/clientset_generated.go:[0-9]+: literal copies lock value from fakePtr: github.com/openshift/origin/vendor/k8s.io/client-go/testing.Fake"
 	"pkg/build/vendor/github.com/docker/docker/client/hijack.go:[0-9]+: assignment copies lock value to c: crypto/tls.Config contains sync.Once contains sync.Mutex"
-	"cmd/cluster-capacity/.*"
 	"pkg/build/builder/vendor/.*"
 	"pkg/cmd/server/start/.*"
 )
@@ -174,7 +173,6 @@ function os::util::list_go_src_files() {
 		-o -wholename './openshift.local.*' \
 		-o -wholename './test/extended/testdata/bindata.go' \
 		-o -wholename '*/vendor/*' \
-		-o -wholename './cmd/cluster-capacity/*' \
 		-o -wholename './assets/bower_components/*' \
 		\) -prune \
 	\) -name '*.go' | sort -u
@@ -182,8 +180,8 @@ function os::util::list_go_src_files() {
 readonly -f os::util::list_go_src_files
 
 # os::util::list_go_src_dirs lists dirs in origin/ and cmd/ dirs excluding
-# cmd/cluster-capacity and doc.go useful for tools that
-# iterate over source to provide vetting or linting, or for godep-save etc.
+# doc.go, useful for tools that iterate over source to provide vetting or 
+# linting, or for godep-save etc.
 #
 # Globals:
 #  None
@@ -200,7 +198,6 @@ readonly -f os::util::list_go_src_dirs
 # os::util::list_go_deps outputs the list of dependencies for the project.
 function os::util::list_go_deps() {
   go list -f '{{.ImportPath}}{{.Imports}}' ./pkg/... ./cmd/... | tr '[]' '  ' |
-    grep -vE '^github.com/openshift/origin/cmd/(cluster-capacity)' |
     sed -e 's|github.com/openshift/origin/vendor/||g' |
     sed -e 's|github.com/openshift/origin/pkg/build/vendor/||g'
 }
@@ -223,7 +220,6 @@ function os::util::list_test_packages_under() {
               -o -path '*vendor/*'            \
               -o -path '*assets/node_modules' \
               -o -path '*test/*'              \
-              -o -path '*cmd/cluster-capacity' \
               -o -path '*pkg/proxy' \
         \) -prune                             \
     \) -name '*_test.go' | xargs -n1 dirname | sort -u | xargs -n1 printf "${OS_GO_PACKAGE}/%s\n"
@@ -328,7 +324,6 @@ readonly OS_ALL_IMAGES=(
   origin-egress-http-proxy
   origin-egress-dns-proxy
   origin-recycler
-  origin-cluster-capacity
   origin-template-service-broker
   hello-openshift
   openvswitch
@@ -355,12 +350,8 @@ function os::build::images() {
   tag_prefix="${OS_IMAGE_PREFIX:-"openshift/origin"}"
 
   # images that depend on "${tag_prefix}-source"
-  ( os::build::image "${tag_prefix}-pod"                   images/pod ) &
-  ( os::build::image "${tag_prefix}-cluster-capacity"      images/cluster-capacity ) &
-  ( os::build::image "${tag_prefix}-template-service-broker"  images/template-service-broker ) &
-
-
-  for i in `jobs -p`; do wait $i; done
+  ( os::build::image "${tag_prefix}-pod"                     images/pod ) &
+  ( os::build::image "${tag_prefix}-template-service-broker" images/template-service-broker ) &
 
   # images that depend on "${tag_prefix}-base"
   ( os::build::image "${tag_prefix}"                       images/origin ) &

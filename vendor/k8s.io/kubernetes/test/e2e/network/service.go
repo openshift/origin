@@ -325,7 +325,7 @@ var _ = SIGDescribe("Services", func() {
 
 		// Stop service 1 and make sure it is gone.
 		By("stopping service1")
-		framework.ExpectNoError(framework.StopServeHostnameService(f.ClientSet, f.InternalClientset, ns, "service1"))
+		framework.ExpectNoError(framework.StopServeHostnameService(f.ClientSet, f.InternalClientset, f.ScalesGetter, ns, "service1"))
 
 		By("verifying service1 is not up")
 		framework.ExpectNoError(framework.VerifyServeHostnameServiceDown(cs, host, svc1IP, servicePort))
@@ -359,13 +359,13 @@ var _ = SIGDescribe("Services", func() {
 		svc2 := "service2"
 
 		defer func() {
-			framework.ExpectNoError(framework.StopServeHostnameService(f.ClientSet, f.InternalClientset, ns, svc1))
+			framework.ExpectNoError(framework.StopServeHostnameService(f.ClientSet, f.InternalClientset, f.ScalesGetter, ns, svc1))
 		}()
 		podNames1, svc1IP, err := framework.StartServeHostnameService(cs, internalClientset, ns, svc1, servicePort, numPods)
 		Expect(err).NotTo(HaveOccurred())
 
 		defer func() {
-			framework.ExpectNoError(framework.StopServeHostnameService(f.ClientSet, f.InternalClientset, ns, svc2))
+			framework.ExpectNoError(framework.StopServeHostnameService(f.ClientSet, f.InternalClientset, f.ScalesGetter, ns, svc2))
 		}()
 		podNames2, svc2IP, err := framework.StartServeHostnameService(cs, internalClientset, ns, svc2, servicePort, numPods)
 		Expect(err).NotTo(HaveOccurred())
@@ -412,7 +412,7 @@ var _ = SIGDescribe("Services", func() {
 		numPods, servicePort := 3, 80
 
 		defer func() {
-			framework.ExpectNoError(framework.StopServeHostnameService(f.ClientSet, f.InternalClientset, ns, "service1"))
+			framework.ExpectNoError(framework.StopServeHostnameService(f.ClientSet, f.InternalClientset, f.ScalesGetter, ns, "service1"))
 		}()
 		podNames1, svc1IP, err := framework.StartServeHostnameService(cs, internalClientset, ns, "service1", servicePort, numPods)
 		Expect(err).NotTo(HaveOccurred())
@@ -439,7 +439,7 @@ var _ = SIGDescribe("Services", func() {
 
 		// Create a new service and check if it's not reusing IP.
 		defer func() {
-			framework.ExpectNoError(framework.StopServeHostnameService(f.ClientSet, f.InternalClientset, ns, "service2"))
+			framework.ExpectNoError(framework.StopServeHostnameService(f.ClientSet, f.InternalClientset, f.ScalesGetter, ns, "service2"))
 		}()
 		podNames2, svc2IP, err := framework.StartServeHostnameService(cs, internalClientset, ns, "service2", servicePort, numPods)
 		Expect(err).NotTo(HaveOccurred())
@@ -1276,7 +1276,7 @@ var _ = SIGDescribe("Services", func() {
 		}
 
 		By("Scaling down replication controller to zero")
-		framework.ScaleRC(f.ClientSet, f.InternalClientset, f.ScalesGetter, t.Namespace, rcSpec.Name, 0, false)
+		framework.ScaleRC(f.ClientSet, f.ScalesGetter, t.Namespace, rcSpec.Name, 0, false)
 
 		By("Update service to not tolerate unready services")
 		_, err = framework.UpdateService(f.ClientSet, t.Namespace, t.ServiceName, func(s *v1.Service) {
@@ -1683,7 +1683,7 @@ var _ = SIGDescribe("ESIPP [Slow] [DisabledForLargeClusters]", func() {
 				framework.Logf("Health checking %s, http://%s%s, expectedSuccess %v", nodes.Items[n].Name, ipPort, path, expectedSuccess)
 				Expect(jig.TestHTTPHealthCheckNodePort(publicIP, healthCheckNodePort, path, framework.KubeProxyEndpointLagTimeout, expectedSuccess, threshold)).NotTo(HaveOccurred())
 			}
-			framework.ExpectNoError(framework.DeleteRCAndPods(f.ClientSet, f.InternalClientset, namespace, serviceName))
+			framework.ExpectNoError(framework.DeleteRCAndPods(f.ClientSet, f.InternalClientset, f.ScalesGetter, namespace, serviceName))
 		}
 	})
 
