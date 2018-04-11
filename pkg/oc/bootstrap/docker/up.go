@@ -38,8 +38,6 @@ import (
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	oauthclientinternal "github.com/openshift/origin/pkg/oauth/generated/internalclientset"
-	"github.com/openshift/origin/pkg/oc/bootstrap"
-	"github.com/openshift/origin/pkg/oc/bootstrap/clusteradd/componentinstall"
 	"github.com/openshift/origin/pkg/oc/bootstrap/clusteradd/components/registry"
 	"github.com/openshift/origin/pkg/oc/bootstrap/clusteradd/components/service-catalog"
 	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/kubeapiserver"
@@ -84,38 +82,11 @@ var (
 
 	cmdUpExample = templates.Examples(`
 	  # Start OpenShift using a specific public host name
-	  %[1]s --public-hostname=my.address.example.com
-
-	  # Specify which set of image streams to use
-	  %[1]s --image-streams=centos7`)
-
-	imageStreams = map[string]string{
-		"centos7": "examples/image-streams/image-streams-centos7.json",
-		"rhel7":   "examples/image-streams/image-streams-rhel7.json",
-	}
+	  %[1]s --public-hostname=my.address.example.com`)
 
 	// defaultImageStreams is the default key for the above imageStreams mapping.
 	// It should be set during build via -ldflags.
 	defaultImageStreams string
-
-	templateLocations = map[string]string{
-		"mongodb":                     "examples/db-templates/mongodb-persistent-template.json",
-		"mariadb":                     "examples/db-templates/mariadb-persistent-template.json",
-		"mysql":                       "examples/db-templates/mysql-persistent-template.json",
-		"postgresql":                  "examples/db-templates/postgresql-persistent-template.json",
-		"cakephp quickstart":          "examples/quickstarts/cakephp-mysql-persistent.json",
-		"dancer quickstart":           "examples/quickstarts/dancer-mysql-persistent.json",
-		"django quickstart":           "examples/quickstarts/django-postgresql-persistent.json",
-		"nodejs quickstart":           "examples/quickstarts/nodejs-mongodb-persistent.json",
-		"rails quickstart":            "examples/quickstarts/rails-postgresql-persistent.json",
-		"jenkins pipeline persistent": "examples/jenkins/jenkins-persistent-template.json",
-		"sample pipeline":             "examples/jenkins/pipeline/samplepipeline.yaml",
-	}
-
-	adminTemplateLocations = map[string]string{
-		"prometheus":          "examples/prometheus/prometheus.yaml",
-		"heapster standalone": "examples/heapster/heapster-standalone.yaml",
-	}
 )
 
 // NewCmdUp creates a command that starts OpenShift on Docker with reasonable defaults
@@ -154,7 +125,6 @@ func NewCmdUp(name, fullName string, out, errout io.Writer, clusterAdd *cobra.Co
 type ClusterUpConfig struct {
 	Image                 string
 	ImageTag              string
-	ImageStreams          string
 	DockerMachine         string
 	SkipRegistryCheck     bool
 	PortForwarding        bool
@@ -207,7 +177,6 @@ func (c *ClusterUpConfig) Bind(flags *pflag.FlagSet) {
 	flags.StringVar(&c.ImageTag, "tag", "", "Specify the tag for OpenShift images")
 	flags.MarkHidden("tag")
 	flags.StringVar(&c.Image, "image", variable.DefaultImagePrefix, "Specify the images to use for OpenShift")
-	flags.StringVar(&c.ImageStreams, "image-streams", defaultImageStreams, "Specify which image streams to use, centos7|rhel7")
 	flags.BoolVar(&c.SkipRegistryCheck, "skip-registry-check", false, "Skip Docker daemon registry check")
 	flags.StringVar(&c.PublicHostname, "public-hostname", "", "Public hostname for OpenShift cluster")
 	flags.StringVar(&c.RoutingSuffix, "routing-suffix", "", "Default suffix for server routes")
@@ -226,9 +195,30 @@ func (c *ClusterUpConfig) Bind(flags *pflag.FlagSet) {
 }
 
 var (
-	knownComponents             = sets.NewString("web-console", "registry", "router", "service-catalog", "template-service-broker")
-	componentsDisabledByDefault = sets.NewString("service-catalog", "template-service-broker")
+	knownComponents = sets.NewString(
+		"centos-imagestreams",
+		"registry",
+		"rhel-imagestreams",
+		"router",
+		"sample-templates",
+		"service-catalog",
+		"template-service-broker",
+		"web-console",
+	)
+
+	componentsDisabledByDefault = sets.NewString(
+		"service-catalog",
+		"template-service-broker")
 )
+
+func init() {
+	switch defaultImageStreams {
+	case "centos7":
+		componentsDisabledByDefault.Insert("rhel-imagestreams")
+	case "rhel7":
+		componentsDisabledByDefault.Insert("centos-imagestreams")
+	}
+}
 
 func (c *ClusterUpConfig) Complete(cmd *cobra.Command, out io.Writer) error {
 	// TODO: remove this when we move to container/apply based component installation
@@ -506,14 +496,6 @@ func (c *ClusterUpConfig) Start(out io.Writer) error {
 		if err := c.ClusterAdd.RunE(c.ClusterAdd, args); err != nil {
 			return err
 		}
-	}
-
-	// TODO, now we build up a set of things to install here.  We build the list so that we can install everything in
-	// TODO parallel to avoid anyone accidentally introducing dependencies.
-	componentsToInstall := []componentinstall.Component{}
-	componentsToInstall = append(componentsToInstall, c.ImportInitialObjectsComponents(c.Out)...)
-	if err := componentinstall.InstallComponents(componentsToInstall, c.GetDockerClient(), c.GetLogDir()); err != nil {
-		return err
 	}
 
 	if c.ShouldCreateUser() {
@@ -839,26 +821,6 @@ func (c *ClusterUpConfig) imageFormat() string {
 	return fmt.Sprintf("%s-${component}:%s", c.Image, c.ImageTag)
 }
 
-// TODO this should become a separate thing we can install, like registry
-func (c *ClusterUpConfig) ImportInitialObjectsComponents(out io.Writer) []componentinstall.Component {
-	componentsToInstall := []componentinstall.Component{}
-	componentsToInstall = append(componentsToInstall,
-		c.makeObjectImportInstallationComponentsOrDie(out, openshift.Namespace, map[string]string{
-			c.ImageStreams: imageStreams[c.ImageStreams],
-		})...)
-	componentsToInstall = append(componentsToInstall,
-		c.makeObjectImportInstallationComponentsOrDie(out, openshift.Namespace, templateLocations)...)
-	componentsToInstall = append(componentsToInstall,
-		c.makeObjectImportInstallationComponentsOrDie(out, "kube-system", adminTemplateLocations)...)
-
-	return componentsToInstall
-}
-
-// RegisterTemplateServiceBroker will register the tsb with the service catalog
-func (c *ClusterUpConfig) RegisterTemplateServiceBroker(out io.Writer) error {
-	return c.OpenShiftHelper().RegisterTemplateServiceBroker(c.BaseDir, c.GetKubeAPIServerConfigDir(), c.GetLogDir())
-}
-
 // Login logs into the new server and sets up a default user and project
 func (c *ClusterUpConfig) Login(out io.Writer) error {
 	server := c.OpenShiftHelper().Master(c.ServerIP)
@@ -962,34 +924,6 @@ func (c *ClusterUpConfig) DockerHelper() *dockerhelper.Helper {
 		c.dockerHelper = dockerhelper.NewHelper(c.dockerClient)
 	}
 	return c.dockerHelper
-}
-
-func (c *ClusterUpConfig) makeObjectImportInstallationComponents(out io.Writer, namespace string, locations map[string]string) ([]componentinstall.Component, error) {
-	clusterAdminKubeConfig, err := c.ClusterAdminKubeConfigBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	componentsToInstall := []componentinstall.Component{}
-	for name, location := range locations {
-		componentsToInstall = append(componentsToInstall, componentinstall.List{
-			ComponentName: namespace + "/" + name,
-			Image:         c.openshiftImage(),
-			Namespace:     namespace,
-			KubeConfig:    clusterAdminKubeConfig,
-			List:          bootstrap.MustAsset(location),
-		})
-	}
-
-	return componentsToInstall, nil
-}
-
-func (c *ClusterUpConfig) makeObjectImportInstallationComponentsOrDie(out io.Writer, namespace string, locations map[string]string) []componentinstall.Component {
-	componentsToInstall, err := c.makeObjectImportInstallationComponents(out, namespace, locations)
-	if err != nil {
-		panic(err)
-	}
-	return componentsToInstall
 }
 
 func (c *ClusterUpConfig) openshiftImage() string {
