@@ -88,11 +88,7 @@ var (
 
 // NewCmdStartBuild implements the OpenShift cli start-build command
 func NewCmdStartBuild(fullName string, f *clientcmd.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
-	o := &StartBuildOptions{
-		In:     in,
-		Out:    out,
-		ErrOut: errout,
-	}
+	o := &StartBuildOptions{}
 
 	cmd := &cobra.Command{
 		Use:        "start-build (BUILDCONFIG | --from-build=BUILD)",
@@ -101,8 +97,7 @@ func NewCmdStartBuild(fullName string, f *clientcmd.Factory, in io.Reader, out, 
 		Example:    fmt.Sprintf(startBuildExample, fullName),
 		SuggestFor: []string{"build", "builds"},
 		Run: func(cmd *cobra.Command, args []string) {
-			kcmdutil.CheckErr(o.Complete(f, cmd, fullName, args))
-			kcmdutil.CheckErr(o.Validate())
+			kcmdutil.CheckErr(o.Complete(f, in, out, errout, cmd, fullName, args))
 			kcmdutil.CheckErr(o.Run())
 		},
 	}
@@ -173,7 +168,10 @@ type StartBuildOptions struct {
 	Namespace   string
 }
 
-func (o *StartBuildOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, cmdFullName string, args []string) error {
+func (o *StartBuildOptions) Complete(f *clientcmd.Factory, in io.Reader, out, errout io.Writer, cmd *cobra.Command, cmdFullName string, args []string) error {
+	o.In = in
+	o.Out = out
+	o.ErrOut = errout
 	o.Git = git.NewRepository()
 	o.ClientConfig = f.OpenShiftClientConfig()
 	o.Mapper, _ = f.Object()
@@ -218,12 +216,18 @@ func (o *StartBuildOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, c
 			return kcmdutil.UsageErrorf(cmd, "The '--from-webhook' flag is incompatible with arguments and all '--from-*' flags")
 		}
 		if !strings.HasSuffix(webhook, "/generic") {
-			fmt.Fprintf(o.ErrOut, "warning: the '--from-webhook' flag should be called with a generic webhook URL.\n")
+			fmt.Fprintf(errout, "warning: the '--from-webhook' flag should be called with a generic webhook URL.\n")
 		}
 		return nil
 
 	case len(args) != 1 && len(buildName) == 0:
 		return kcmdutil.UsageErrorf(cmd, "Must pass a name of a build config or specify build name with '--from-build' flag.\nUse \"%s get bc\" to list all available build configs.", cmdFullName)
+	}
+
+	if len(buildName) != 0 && o.AsBinary {
+		// TODO: we should support this, it should be possible to clone a build to run again with new uploaded artifacts.
+		// Doing so requires introducing a new clonebinary endpoint.
+		return kcmdutil.UsageErrorf(cmd, "Cannot use '--from-build' flag with binary builds")
 	}
 
 	namespace, _, err := f.DefaultNamespace()
@@ -276,12 +280,16 @@ func (o *StartBuildOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, c
 		name = ref.Name
 	}
 
+	if len(name) == 0 {
+		return fmt.Errorf("a resource name is required either as an argument or by using --from-build")
+	}
+
 	o.Namespace = namespace
 	o.Name = name
 
 	// Handle environment variables
 	cmdutil.WarnAboutCommaSeparation(o.ErrOut, o.Env, "--env")
-	env, _, err := utilenv.ParseEnv(o.Env, o.In)
+	env, _, err := utilenv.ParseEnv(o.Env, in)
 	if err != nil {
 		return err
 	}
@@ -292,38 +300,11 @@ func (o *StartBuildOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, c
 
 	// Handle Docker build arguments. In order to leverage existing logic, we
 	// first create an EnvVar array, then convert it to []docker.BuildArg
-	buildArgs, err := utilenv.ParseBuildArg(o.Args, o.In)
+	buildArgs, err := utilenv.ParseBuildArg(o.Args, in)
 	if err != nil {
 		return err
 	}
 	o.BuildArgs = buildArgs
-
-	return nil
-}
-
-// Validate returns validation errors regarding start-build
-func (o *StartBuildOptions) Validate() error {
-	if o.AsBinary {
-		if len(o.LogLevel) > 0 {
-			return fmt.Errorf("Specifying --build-loglevel with binary builds is not supported")
-		}
-		if len(o.EnvVar) > 0 {
-			return fmt.Errorf("Specifying environment variables with binary builds is not supported")
-		}
-		if len(o.BuildArgs) > 0 {
-			return fmt.Errorf("Specifying build arguments with binary builds is not supported")
-		}
-	}
-
-	if len(o.FromBuild) != 0 && o.AsBinary {
-		// TODO: we should support this, it should be possible to clone a build to run again with new uploaded artifacts.
-		// Doing so requires introducing a new clonebinary endpoint.
-		return fmt.Errorf("Cannot use '--from-build' flag with binary builds")
-	}
-
-	if len(o.Name) == 0 && len(o.FromWebhook) == 0 {
-		return fmt.Errorf("a resource name is required either as an argument or by using --from-build")
-	}
 
 	return nil
 }
@@ -383,6 +364,12 @@ func (o *StartBuildOptions) Run() error {
 				Namespace: o.Namespace,
 			},
 			Commit: o.Commit,
+		}
+		if len(o.EnvVar) > 0 {
+			fmt.Fprintf(o.ErrOut, "WARNING: Specifying environment variables with binary builds is not supported.\n")
+		}
+		if len(o.BuildArgs) > 0 {
+			fmt.Fprintf(o.ErrOut, "WARNING: Specifying build arguments with binary builds is not supported.\n")
 		}
 		instantiateClient := buildclientinternal.NewBuildInstantiateBinaryClient(o.BuildClient.RESTClient(), o.Namespace)
 		if newBuild, err = streamPathToBuild(o.Git, o.In, o.ErrOut, instantiateClient, o.FromDir, o.FromFile, o.FromRepo, request); err != nil {
