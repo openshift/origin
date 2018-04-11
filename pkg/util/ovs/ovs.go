@@ -1,6 +1,7 @@
 package ovs
 
 import (
+	"bytes"
 	"fmt"
 	"strconv"
 	"strings"
@@ -138,16 +139,26 @@ func New(execer exec.Interface, bridge string, minVersion string) (Interface, er
 	return ovsif, nil
 }
 
-func (ovsif *ovsExec) exec(cmd string, args ...string) (string, error) {
+func (ovsif *ovsExec) execWithStdin(cmd string, stdinArgs []string, args ...string) (string, error) {
 	switch cmd {
 	case OVS_OFCTL:
 		args = append([]string{"-O", "OpenFlow13"}, args...)
 	case OVS_VSCTL:
 		args = append([]string{"--timeout=30"}, args...)
 	}
-	glog.V(4).Infof("Executing: %s %s", cmd, strings.Join(args, " "))
 
-	output, err := ovsif.execer.Command(cmd, args...).CombinedOutput()
+	kcmd := ovsif.execer.Command(cmd, args...)
+	if stdinArgs != nil {
+		stdinString := strings.Join(stdinArgs, "\n")
+		stdin := bytes.NewBufferString(stdinString)
+		kcmd.SetStdin(stdin)
+
+		glog.V(4).Infof("Executing: %s %s <<\n%s", cmd, strings.Join(args, " "), stdinString)
+	} else {
+		glog.V(4).Infof("Executing: %s %s", cmd, strings.Join(args, " "))
+	}
+
+	output, err := kcmd.CombinedOutput()
 	if err != nil {
 		glog.V(2).Infof("Error executing %s: %s", cmd, string(output))
 		return "", err
@@ -162,6 +173,10 @@ func (ovsif *ovsExec) exec(cmd string, args ...string) (string, error) {
 		}
 	}
 	return outStr, nil
+}
+
+func (ovsif *ovsExec) exec(cmd string, args ...string) (string, error) {
+	return ovsif.execWithStdin(cmd, nil, args...)
 }
 
 func (ovsif *ovsExec) AddBridge(properties ...string) error {
@@ -336,4 +351,14 @@ func (ovsif *ovsExec) DumpFlows(flow string, args ...interface{}) ([]string, err
 		}
 	}
 	return flows, nil
+}
+
+// bundle executes all given flows as a single atomic transaction
+func (ovsif *ovsExec) bundle(flows []string) error {
+	if len(flows) == 0 {
+		return nil
+	}
+
+	_, err := ovsif.execWithStdin(OVS_OFCTL, flows, "bundle", ovsif.bridge, "-")
+	return err
 }
