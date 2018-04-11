@@ -53,42 +53,47 @@ func ensureTestResults(t *testing.T, fexec *fakeexec.FakeExec) {
 
 func TestTransactionSuccess(t *testing.T) {
 	fexec := normalSetup()
-	addTestResult(t, fexec, "ovs-ofctl -O OpenFlow13 add-flow br0 flow1", "", nil)
-	addTestResult(t, fexec, "ovs-ofctl -O OpenFlow13 add-flow br0 flow2", "", nil)
 
 	ovsif, err := New(fexec, "br0", "")
 	if err != nil {
 		t.Fatalf("Unexpected error from ovs.New(): %v", err)
 	}
 
+	// Test Empty transaction
 	otx := ovsif.NewTransaction()
+	err = otx.EndTransaction()
+	if err != nil {
+		t.Fatalf("Unexpected error from command: %v", err)
+	}
+	ensureTestResults(t, fexec)
+
+	// Test Successful transaction
+	addTestResult(t, fexec, "ovs-ofctl -O OpenFlow13 bundle br0 -", "", nil)
+	otx = ovsif.NewTransaction()
 	otx.AddFlow("flow1")
 	otx.AddFlow("flow2")
 	err = otx.EndTransaction()
 	if err != nil {
 		t.Fatalf("Unexpected error from command: %v", err)
 	}
-
 	ensureTestResults(t, fexec)
-}
 
-func TestTransactionFailure(t *testing.T) {
-	fexec := normalSetup()
-	addTestResult(t, fexec, "ovs-ofctl -O OpenFlow13 add-flow br0 flow1", "", fmt.Errorf("Something bad happened"))
-
-	ovsif, err := New(fexec, "br0", "")
+	// Test reuse transaction object
+	err = otx.EndTransaction()
 	if err != nil {
-		t.Fatalf("Unexpected error from ovs.New(): %v", err)
+		t.Fatalf("Unexpected error from command: %v", err)
 	}
+	ensureTestResults(t, fexec)
 
-	otx := ovsif.NewTransaction()
+	// Test Failed transaction
+	addTestResult(t, fexec, "ovs-ofctl -O OpenFlow13 bundle br0 -", "", fmt.Errorf("Something bad happened"))
+	otx = ovsif.NewTransaction()
 	otx.AddFlow("flow1")
 	otx.AddFlow("flow2")
 	err = otx.EndTransaction()
 	if err == nil {
 		t.Fatalf("Failed to get expected error")
 	}
-
 	ensureTestResults(t, fexec)
 }
 
