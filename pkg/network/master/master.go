@@ -156,6 +156,13 @@ func Start(networkConfig osconfigapi.MasterNetworkConfig, networkClient networkc
 		return err
 	}
 
+	// FIXME: this is required to register informers for the types we care about to ensure the informers are started.
+	// FIXME: restructure this controller to add event handlers in Start() before returning, instead of inside startSubSystems.
+	master.nodeInformer.Informer().GetController()
+	master.namespaceInformer.Informer().GetController()
+	master.hostSubnetInformer.Informer().GetController()
+	master.netNamespaceInformer.Informer().GetController()
+
 	go master.startSubSystems(networkConfig.NetworkPluginName)
 
 	return nil
