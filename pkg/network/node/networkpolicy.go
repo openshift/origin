@@ -91,7 +91,7 @@ func (np *networkPolicyPlugin) Start(node *OsdnNode) error {
 		otx.AddFlow("table=21, priority=200, ip, nw_dst=%s, actions=ct(commit,table=30)", cn.ClusterCIDR.String())
 	}
 	otx.AddFlow("table=80, priority=200, ip, ct_state=+rpl, actions=output:NXM_NX_REG2[]")
-	if err := otx.EndTransaction(); err != nil {
+	if err := otx.Commit(); err != nil {
 		return err
 	}
 
@@ -229,7 +229,7 @@ func (np *networkPolicyPlugin) syncNamespace(npns *npNamespace) {
 			otx.AddFlow("table=80, priority=50, reg1=%d, actions=output:NXM_NX_REG2[]", npns.vnid)
 		}
 	}
-	if err := otx.EndTransaction(); err != nil {
+	if err := otx.Commit(); err != nil {
 		utilruntime.HandleError(fmt.Errorf("Error syncing OVS flows for VNID: %v", err))
 	}
 }

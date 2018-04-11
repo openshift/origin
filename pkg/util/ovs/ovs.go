@@ -73,26 +73,25 @@ type Interface interface {
 	// strings, one per flow. If flow is not "" then it describes the flows to dump.
 	DumpFlows(flow string, args ...interface{}) ([]string, error)
 
-	// NewTransaction begins a new OVS transaction. If an error occurs at
-	// any step in the transaction, it will be recorded until
-	// EndTransaction(), and any further calls on the transaction will be
-	// ignored.
+	// NewTransaction begins a new OVS transaction.
 	NewTransaction() Transaction
 }
 
 // Transaction manages a single set of OVS flow modifications
 type Transaction interface {
-	// AddFlow adds a flow to the bridge. The arguments are passed to fmt.Sprintf().
+	// AddFlow prepares adding a flow to the bridge.
+	// Given flow is cached but not executed at this time.
+	// The arguments are passed to fmt.Sprintf().
 	AddFlow(flow string, args ...interface{})
 
-	// DeleteFlows deletes all matching flows from the bridge. The arguments are
-	// passed to fmt.Sprintf().
+	// DeleteFlows prepares deleting all matching flows from the bridge.
+	// Given flow is cached but not executed at this time.
+	// The arguments are passed to fmt.Sprintf().
 	DeleteFlows(flow string, args ...interface{})
 
-	// EndTransaction ends an OVS transaction and returns any error that occurred
-	// during the transaction. You should not use the transaction again after
-	// calling this function.
-	EndTransaction() error
+	// Commit executes all cached flows as a single atomic transaction and
+	// returns any error that occurred during the transaction.
+	Commit() error
 }
 
 const (
@@ -297,43 +296,6 @@ func (ovsif *ovsExec) Clear(table, record string, columns ...string) error {
 	return err
 }
 
-type ovsExecTx struct {
-	ovsif *ovsExec
-	err   error
-}
-
-func (tx *ovsExecTx) exec(cmd string, args ...string) (string, error) {
-	out := ""
-	if tx.err == nil {
-		out, tx.err = tx.ovsif.exec(cmd, args...)
-	}
-	return out, tx.err
-}
-
-func (ovsif *ovsExec) NewTransaction() Transaction {
-	return &ovsExecTx{ovsif: ovsif}
-}
-
-func (tx *ovsExecTx) AddFlow(flow string, args ...interface{}) {
-	if len(args) > 0 {
-		flow = fmt.Sprintf(flow, args...)
-	}
-	tx.exec(OVS_OFCTL, "add-flow", tx.ovsif.bridge, flow)
-}
-
-func (tx *ovsExecTx) DeleteFlows(flow string, args ...interface{}) {
-	if len(args) > 0 {
-		flow = fmt.Sprintf(flow, args...)
-	}
-	tx.exec(OVS_OFCTL, "del-flows", tx.ovsif.bridge, flow)
-}
-
-func (tx *ovsExecTx) EndTransaction() error {
-	err := tx.err
-	tx.err = nil
-	return err
-}
-
 func (ovsif *ovsExec) DumpFlows(flow string, args ...interface{}) ([]string, error) {
 	if len(args) > 0 {
 		flow = fmt.Sprintf(flow, args...)
@@ -353,6 +315,10 @@ func (ovsif *ovsExec) DumpFlows(flow string, args ...interface{}) ([]string, err
 	return flows, nil
 }
 
+func (ovsif *ovsExec) NewTransaction() Transaction {
+	return &ovsExecTx{ovsif: ovsif, flows: []string{}}
+}
+
 // bundle executes all given flows as a single atomic transaction
 func (ovsif *ovsExec) bundle(flows []string) error {
 	if len(flows) == 0 {
@@ -360,5 +326,33 @@ func (ovsif *ovsExec) bundle(flows []string) error {
 	}
 
 	_, err := ovsif.execWithStdin(OVS_OFCTL, flows, "bundle", ovsif.bridge, "-")
+	return err
+}
+
+// ovsExecTx implements ovs.Transaction and maintains current flow context
+type ovsExecTx struct {
+	ovsif *ovsExec
+	flows []string
+}
+
+func (tx *ovsExecTx) AddFlow(flow string, args ...interface{}) {
+	if len(args) > 0 {
+		flow = fmt.Sprintf(flow, args...)
+	}
+	tx.flows = append(tx.flows, fmt.Sprintf("flow add %s", flow))
+}
+
+func (tx *ovsExecTx) DeleteFlows(flow string, args ...interface{}) {
+	if len(args) > 0 {
+		flow = fmt.Sprintf(flow, args...)
+	}
+	tx.flows = append(tx.flows, fmt.Sprintf("flow delete %s", flow))
+}
+
+func (tx *ovsExecTx) Commit() error {
+	err := tx.ovsif.bundle(tx.flows)
+
+	// Reset flow context
+	tx.flows = []string{}
 	return err
 }

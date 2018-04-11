@@ -165,7 +165,7 @@ func TestFakeDumpFlows(t *testing.T) {
 	otx.AddFlow("table=30, priority=300, ip, nw_dst=%s, actions=output:2", localSubnetGateway)
 	otx.AddFlow("table=35, priority=300, ip, nw_dst=%s, actions=ct(commit,exec(set_field:1->ct_mark),table=70)", localSubnetGateway)
 
-	err = otx.EndTransaction()
+	err = otx.Commit()
 	if err != nil {
 		t.Fatalf("unexpected error from AddFlow: %v", err)
 	}
@@ -280,7 +280,7 @@ func TestFlowMatchesMasked(t *testing.T) {
 	otx.AddFlow("table=100, priority=200, reg0=2, actions=two")
 	otx.AddFlow("table=100, priority=300, reg0=3, cookie=1, actions=three")
 	otx.AddFlow("table=100, priority=400, reg0=4, cookie=0xe, actions=four")
-	err = otx.EndTransaction()
+	err = otx.Commit()
 	if err != nil {
 		t.Fatalf("unexpected error from AddFlow: %v", err)
 	}
@@ -294,7 +294,7 @@ func TestFlowMatchesMasked(t *testing.T) {
 
 	otx = ovsif.NewTransaction()
 	otx.DeleteFlows("table=100, cookie=0/0xFFFF")
-	err = otx.EndTransaction()
+	err = otx.Commit()
 	if err != nil {
 		t.Fatalf("unexpected error from AddFlow: %v", err)
 	}
@@ -308,7 +308,7 @@ func TestFlowMatchesMasked(t *testing.T) {
 
 	otx = ovsif.NewTransaction()
 	otx.DeleteFlows("table=100, cookie=2/2")
-	err = otx.EndTransaction()
+	err = otx.Commit()
 	if err != nil {
 		t.Fatalf("unexpected error from AddFlow: %v", err)
 	}

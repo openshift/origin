@@ -24,7 +24,7 @@ func (sp *singleTenantPlugin) SupportsVNIDs() bool {
 func (sp *singleTenantPlugin) Start(node *OsdnNode) error {
 	otx := node.oc.NewTransaction()
 	otx.AddFlow("table=80, priority=200, actions=output:NXM_NX_REG2[]")
-	return otx.EndTransaction()
+	return otx.Commit()
 }
 
 func (sp *singleTenantPlugin) AddNetNamespace(netns *networkapi.NetNamespace) {
