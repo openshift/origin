@@ -260,7 +260,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 						break Wait
 					}
 				}
-				o.Expect(writes).To(o.BeNumerically("<", 10))
+				o.Expect(writes).To(o.BeNumerically("<", 20))
 			}()
 
 			// the os_http_be.map file will vary, so only check the haproxy config
