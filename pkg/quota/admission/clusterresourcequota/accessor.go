@@ -3,6 +3,7 @@ package clusterresourcequota
 import (
 	"time"
 
+	"github.com/golang/glog"
 	lru "github.com/hashicorp/golang-lru"
 
 	"k8s.io/apimachinery/pkg/api/equality"
@@ -57,11 +58,16 @@ func newQuotaAccessor(
 // UpdateQuotaStatus the newQuota coming in will be incremented from the original.  The difference between the original
 // and the new is the amount to add to the namespace total, but the total status is the used value itself
 func (e *clusterQuotaAccessor) UpdateQuotaStatus(newQuota *kapi.ResourceQuota) error {
+	debug := glog.Verbose(newQuota.Name == "for-deads")
+
+	debug.Infof("%#v", newQuota)
 	clusterQuota, err := e.clusterQuotaLister.Get(newQuota.Name)
 	if err != nil {
+		debug.Infof("%v", err)
 		return err
 	}
 	clusterQuota = e.checkCache(clusterQuota)
+	debug.Infof("%#v", newQuota)
 
 	// re-assign objectmeta
 	// make a copy
@@ -83,11 +89,13 @@ func (e *clusterQuotaAccessor) UpdateQuotaStatus(newQuota *kapi.ResourceQuota) e
 	clusterQuota.Status.Namespaces.Insert(newQuota.Namespace, newNamespaceTotals)
 
 	updatedQuota, err := e.clusterQuotaClient.ClusterResourceQuotas().UpdateStatus(clusterQuota)
+	debug.Infof("diff %#v, updated %#v, got %#v, %v", usageDiff, newNamespaceTotals, updatedQuota, err)
 	if err != nil {
 		return err
 	}
 
 	e.updatedClusterQuotas.Add(clusterQuota.Name, updatedQuota)
+	debug.Infof("Added %s to cache at %s", clusterQuota.Name, updatedQuota.ResourceVersion)
 	return nil
 }
 

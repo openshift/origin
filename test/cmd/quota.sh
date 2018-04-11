@@ -17,7 +17,7 @@ os::cmd::expect_success 'oc new-project quota-foo --as=deads --as-group=system:a
 os::cmd::expect_success 'oc label namespace/quota-foo owner=deads'
 os::cmd::expect_success 'oc create clusterquota for-deads --project-label-selector=owner=deads --hard=secrets=10'
 os::cmd::try_until_text 'oc get appliedclusterresourcequota -n quota-foo --as deads -o name' "for-deads"
-os::cmd::try_until_text 'oc get secrets -o name --all-namespaces; oc describe appliedclusterresourcequota/for-deads -n quota-foo --as deads' "secrets.*9"
+os::cmd::try_until_text 'oc get secrets,serviceaccounts -n quota-foo; oc describe appliedclusterresourcequota/for-deads -n quota-foo --as deads' "secrets.*9"
 
 os::cmd::expect_failure_and_text 'oc create clusterquota for-deads-malformed --project-annotation-selector="openshift.#$%/requester=deads"' "prefix part a DNS-1123 subdomain must consist of lower case alphanumeric characters"
 os::cmd::expect_failure_and_text 'oc create clusterquota for-deads-malformed --project-annotation-selector=openshift.io/requester=deads,openshift.io/novalue' "Malformed annotation selector"
