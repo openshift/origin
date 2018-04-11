@@ -37,12 +37,11 @@ import (
 )
 
 func NewReplicationControllerV1Scaler(client kclientset.Interface) kubectl.Scaler {
-	return kubectl.ScalerFor(
-		kapi.Kind("ReplicationController"),
-		nil,
-		scaleclient.New(client.Core().RESTClient(), rcv1mapper{}, dynamic.LegacyAPIPathResolverFunc, rcv1mapper{}),
-		kapi.Resource("replicationcontrollers"),
-	)
+	return kubectl.NewScaler(NewReplicationControllerV1ScaleClient(client))
+}
+
+func NewReplicationControllerV1ScaleClient(client kclientset.Interface) scaleclient.ScalesGetter {
+	return scaleclient.New(client.Core().RESTClient(), rcv1mapper{}, dynamic.LegacyAPIPathResolverFunc, rcv1mapper{})
 }
 
 // rcv1mapper pins preferred version to v1 and scale kind to autoscaling/v1 Scale

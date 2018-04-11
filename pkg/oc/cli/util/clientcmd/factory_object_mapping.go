@@ -6,8 +6,6 @@ import (
 	"sort"
 	"time"
 
-	"k8s.io/kubernetes/pkg/kubectl/categories"
-
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -18,6 +16,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/controller"
 	"k8s.io/kubernetes/pkg/kubectl"
+	"k8s.io/kubernetes/pkg/kubectl/categories"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/util/openapi"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
@@ -29,19 +28,13 @@ import (
 	appsmanualclient "github.com/openshift/origin/pkg/apps/client/internalversion"
 	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	authorizationreaper "github.com/openshift/origin/pkg/authorization/reaper"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildmanualclient "github.com/openshift/origin/pkg/build/client/internalversion"
-	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	configcmd "github.com/openshift/origin/pkg/bulk"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	buildcmd "github.com/openshift/origin/pkg/oc/cli/builds"
 	deploymentcmd "github.com/openshift/origin/pkg/oc/cli/deploymentconfigs"
 	"github.com/openshift/origin/pkg/oc/cli/describe"
-	userapi "github.com/openshift/origin/pkg/user/apis/user"
-	authenticationreaper "github.com/openshift/origin/pkg/user/reaper"
 )
 
 type ring1Factory struct {
@@ -184,100 +177,6 @@ func (f *ring1Factory) LogsForObject(object, options runtime.Object, timeout tim
 	default:
 		return f.kubeObjectMappingFactory.LogsForObject(object, options, timeout)
 	}
-}
-
-func (f *ring1Factory) Scaler(mapping *meta.RESTMapping) (kubectl.Scaler, error) {
-	if appsapi.IsKindOrLegacy("DeploymentConfig", mapping.GroupVersionKind.GroupKind()) {
-		kc, err := f.clientAccessFactory.ClientSet()
-		if err != nil {
-			return nil, err
-		}
-		config, err := f.clientAccessFactory.OpenShiftClientConfig().ClientConfig()
-		if err != nil {
-			return nil, err
-		}
-		return deploymentcmd.NewDeploymentConfigScaler(appsclient.NewForConfigOrDie(config), kc), nil
-	}
-	return f.kubeObjectMappingFactory.Scaler(mapping)
-}
-
-func (f *ring1Factory) Reaper(mapping *meta.RESTMapping) (kubectl.Reaper, error) {
-	gk := mapping.GroupVersionKind.GroupKind()
-	switch {
-	case appsapi.IsKindOrLegacy("DeploymentConfig", gk):
-		kc, err := f.clientAccessFactory.ClientSet()
-		if err != nil {
-			return nil, err
-		}
-		config, err := f.clientAccessFactory.OpenShiftClientConfig().ClientConfig()
-		if err != nil {
-			return nil, err
-		}
-		return deploymentcmd.NewDeploymentConfigReaper(appsclient.NewForConfigOrDie(config), kc), nil
-	case authorizationapi.IsKindOrLegacy("Role", gk):
-		authClient, err := f.clientAccessFactory.OpenshiftInternalAuthorizationClient()
-		if err != nil {
-			return nil, err
-		}
-		return authorizationreaper.NewRoleReaper(authClient.Authorization(), authClient.Authorization()), nil
-	case authorizationapi.IsKindOrLegacy("ClusterRole", gk):
-		authClient, err := f.clientAccessFactory.OpenshiftInternalAuthorizationClient()
-		if err != nil {
-			return nil, err
-		}
-		return authorizationreaper.NewClusterRoleReaper(authClient.Authorization(), authClient.Authorization(), authClient.Authorization()), nil
-	case userapi.IsKindOrLegacy("User", gk):
-		userClient, err := f.clientAccessFactory.OpenshiftInternalUserClient()
-		if err != nil {
-			return nil, err
-		}
-		authClient, err := f.clientAccessFactory.OpenshiftInternalAuthorizationClient()
-		if err != nil {
-			return nil, err
-		}
-		oauthClient, err := f.clientAccessFactory.OpenshiftInternalOAuthClient()
-		if err != nil {
-			return nil, err
-		}
-		securityClient, err := f.clientAccessFactory.OpenshiftInternalSecurityClient()
-		if err != nil {
-			return nil, err
-		}
-		return authenticationreaper.NewUserReaper(
-			userClient,
-			userClient,
-			authClient,
-			authClient,
-			oauthClient,
-			securityClient.Security().SecurityContextConstraints(),
-		), nil
-	case userapi.IsKindOrLegacy("Group", gk):
-		userClient, err := f.clientAccessFactory.OpenshiftInternalUserClient()
-		if err != nil {
-			return nil, err
-		}
-		authClient, err := f.clientAccessFactory.OpenshiftInternalAuthorizationClient()
-		if err != nil {
-			return nil, err
-		}
-		securityClient, err := f.clientAccessFactory.OpenshiftInternalSecurityClient()
-		if err != nil {
-			return nil, err
-		}
-		return authenticationreaper.NewGroupReaper(
-			userClient,
-			authClient,
-			authClient,
-			securityClient.Security().SecurityContextConstraints(),
-		), nil
-	case buildapi.IsKindOrLegacy("BuildConfig", gk):
-		config, err := f.clientAccessFactory.OpenShiftClientConfig().ClientConfig()
-		if err != nil {
-			return nil, err
-		}
-		return buildcmd.NewBuildConfigReaper(buildclient.NewForConfigOrDie(config)), nil
-	}
-	return f.kubeObjectMappingFactory.Reaper(mapping)
 }
 
 func (f *ring1Factory) HistoryViewer(mapping *meta.RESTMapping) (kubectl.HistoryViewer, error) {

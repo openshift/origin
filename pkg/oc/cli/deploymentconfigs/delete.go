@@ -8,6 +8,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
+	scaleclient "k8s.io/client-go/scale"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl"
@@ -18,14 +19,15 @@ import (
 )
 
 // NewDeploymentConfigReaper returns a new reaper for deploymentConfigs
-func NewDeploymentConfigReaper(appsClient appsclient.Interface, kc kclientset.Interface) kubectl.Reaper {
-	return &DeploymentConfigReaper{appsClient: appsClient, kc: kc, pollInterval: kubectl.Interval, timeout: kubectl.Timeout}
+func NewDeploymentConfigReaper(appsClient appsclient.Interface, kc kclientset.Interface, scaleClient scaleclient.ScalesGetter) kubectl.Reaper {
+	return &DeploymentConfigReaper{appsClient: appsClient, kc: kc, scaleClient: scaleClient, pollInterval: kubectl.Interval, timeout: kubectl.Timeout}
 }
 
 // DeploymentConfigReaper implements the Reaper interface for deploymentConfigs
 type DeploymentConfigReaper struct {
 	appsClient            appsclient.Interface
 	kc                    kclientset.Interface
+	scaleClient           scaleclient.ScalesGetter
 	pollInterval, timeout time.Duration
 }
 
@@ -85,10 +87,6 @@ func (reaper *DeploymentConfigReaper) Stop(namespace, name string, timeout time.
 	if err != nil {
 		return err
 	}
-	rcReaper, err := kubectl.ReaperFor(kapi.Kind("ReplicationController"), reaper.kc)
-	if err != nil {
-		return err
-	}
 
 	// If there is neither a config nor any deployments, nor any deployer pods, we can return NotFound.
 	deployments := rcList.Items
@@ -98,9 +96,20 @@ func (reaper *DeploymentConfigReaper) Stop(namespace, name string, timeout time.
 	}
 
 	for _, rc := range deployments {
-		if err = rcReaper.Stop(rc.Namespace, rc.Name, timeout, gracePeriod); err != nil {
-			// Better not error out here...
-			glog.Infof("Cannot delete ReplicationController %s/%s for deployment config %s/%s: %v", rc.Namespace, rc.Name, namespace, name, err)
+		// this is unnecessary since the ownership is present
+		if reaper.scaleClient != nil {
+			rcReaper, err := kubectl.ReaperFor(kapi.Kind("ReplicationController"), reaper.kc, reaper.scaleClient)
+			if err != nil {
+				return err
+			}
+			if err = rcReaper.Stop(rc.Namespace, rc.Name, timeout, gracePeriod); err != nil {
+				// Better not error out here...
+				glog.Infof("Cannot delete ReplicationController %s/%s for deployment config %s/%s: %v", rc.Namespace, rc.Name, namespace, name, err)
+			}
+		} else {
+			if err := reaper.kc.Core().ReplicationControllers(rc.Namespace).Delete(rc.Name, nil); err != nil {
+				glog.Infof("Cannot delete ReplicationController %s/%s for deployment config %s/%s: %v", rc.Namespace, rc.Name, namespace, name, err)
+			}
 		}
 
 		// Only remove deployer pods when the deployment was failed. For completed
