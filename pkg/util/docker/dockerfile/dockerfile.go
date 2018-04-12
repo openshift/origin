@@ -89,12 +89,9 @@ func evalRange(port string) string {
 func evalPorts(exposedPorts []string, node *parser.Node, from, to int) []string {
 	shlex := NewShellLex('\\')
 	shlex.ProcessWord("w", []string{})
-	envs := evalVars(node, from, to, exposedPorts, shlex)
-	ports := make([]string, 0, len(exposedPorts))
-	for _, p := range exposedPorts {
-		if pp, err := shlex.ProcessWord(p, envs); err == nil {
-			p = pp
-		}
+	portsEnv := evalVars(node, from, to, exposedPorts, shlex)
+	ports := make([]string, 0, len(portsEnv))
+	for _, p := range portsEnv {
 		dp := docker.Port(p)
 		port := dp.Port()
 		port = evalRange(port)
@@ -180,30 +177,40 @@ func containsVars(ports []string) bool {
 func evalVars(n *parser.Node, from, to int, ports []string, shlex *ShellLex) []string {
 	envs := make([]string, 0)
 	if !containsVars(ports) {
-		return envs
+		return ports
 	}
-	for i := from; i < to; i++ {
+	evaledPorts := make([]string, 0)
+	for i := from; i <= to; i++ {
 		switch n.Children[i].Value {
+		case command.Expose:
+			args := nextValues(n.Children[i])
+			for _, arg := range args {
+				if processed, err := shlex.ProcessWord(arg, envs); err == nil {
+					evaledPorts = append(evaledPorts, processed)
+				} else {
+					evaledPorts = append(evaledPorts, arg)
+				}
+			}
 		case command.Arg:
 			args := nextValues(n.Children[i])
 			if len(args) == 1 {
 				//silently skip ARG without default value
 				if _, match := match(argSplitRegexp, args[0]); match {
-					processed, err := shlex.ProcessWord(args[0], envs)
-					if err == nil {
-						envs = append(envs, processed)
+					if processed, err := shlex.ProcessWord(args[0], envs); err == nil {
+						envs = append([]string{processed}, envs...)
 					}
 				}
 			}
 		case command.Env:
 			args := nextValues(n.Children[i])
+			currentEnvs := make([]string, 0)
 			for j := 0; j < len(args)-1; j += 2 {
-				processed, err := shlex.ProcessWord(args[j+1], envs)
-				if err == nil {
-					envs = append(envs, args[j]+"="+processed)
+				if processed, err := shlex.ProcessWord(args[j+1], envs); err == nil {
+					currentEnvs = append(currentEnvs, args[j]+"="+processed)
 				}
 			}
+			envs = append(currentEnvs, envs...)
 		}
 	}
-	return envs
+	return evaledPorts
 }
