@@ -50,7 +50,6 @@ type MasterArgs struct {
 	// StartControllers controls whether the controller component of the master is started (to support
 	// the controller role)
 	StartControllers bool
-	PauseControllers bool
 
 	// DNSBindAddr exposed for integration tests to set
 	DNSBindAddr flagtypes.Addr
@@ -83,7 +82,6 @@ func BindMasterArgs(args *MasterArgs, flags *pflag.FlagSet, prefix string) {
 	flags.Var(&args.MasterPublicAddr, prefix+"public-master", "The master address for use by public clients, if different (host, host:port, or URL). Defaults to same as --master.")
 	flags.Var(&args.EtcdAddr, prefix+"etcd", "The address of the etcd server (host, host:port, or URL). If specified, no built-in etcd will be started.")
 	flags.Var(&args.DNSBindAddr, prefix+"dns", "The address to listen for DNS requests on.")
-	flags.BoolVar(&args.PauseControllers, prefix+"pause", false, "If true, wait for a signal before starting the controllers.")
 
 	flags.StringVar(&args.EtcdDir, prefix+"etcd-dir", "openshift.local.etcd", "The etcd data directory.")
 
@@ -218,8 +216,6 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 		},
 
 		OAuthConfig: oauthConfig,
-
-		PauseControllers: args.PauseControllers,
 
 		DNSConfig: &configapi.DNSConfig{
 			BindAddress: dnsServingInfo.BindAddress,

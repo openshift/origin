@@ -274,10 +274,6 @@ func (o MasterOptions) RunMaster() error {
 		return kerrors.NewInvalid(configapi.Kind("MasterConfig"), o.ConfigFile, validationResults.Errors)
 	}
 
-	if !o.MasterArgs.StartControllers {
-		masterConfig.Controllers = configapi.ControllersDisabled
-	}
-
 	m := &Master{
 		config:      masterConfig,
 		api:         o.MasterArgs.StartAPI,
@@ -357,7 +353,7 @@ func (m *Master) Start() error {
 	// TODO: make scheme threadsafe and do this as part of aggregator config building
 	aggregatorinstall.Install(legacyscheme.GroupFactoryRegistry, legacyscheme.Registry, legacyscheme.Scheme)
 
-	controllersEnabled := m.controllers && m.config.Controllers != configapi.ControllersDisabled
+	controllersEnabled := m.controllers && len(m.config.ControllerConfig.Controllers) > 0
 	if controllersEnabled {
 		_, privilegedLoopbackConfig, err := configapi.GetExternalKubeClient(m.config.MasterClients.OpenShiftLoopbackKubeConfig, m.config.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
 		if err != nil {

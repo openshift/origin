@@ -310,11 +310,6 @@ const (
 	DockerExecHandlerNative DockerExecHandlerType = "native"
 	// DockerExecHandlerNsenter uses nsenter for executing commands in containers.
 	DockerExecHandlerNsenter DockerExecHandlerType = "nsenter"
-
-	// ControllersDisabled indicates no controllers should be enabled.
-	ControllersDisabled = "none"
-	// ControllersAll indicates all controllers should be started.
-	ControllersAll = "*"
 )
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -341,26 +336,11 @@ type MasterConfig struct {
 	// MasterPublicURL is how clients can access the OpenShift API server
 	MasterPublicURL string
 
-	// Controllers is a list of the controllers that should be started. If set to "none", no controllers
-	// will start automatically. The default value is "*" which will start all controllers. When
-	// using "*", you may exclude controllers by prepending a "-" in front of their name. No other
-	// values are recognized at this time.
-	Controllers string
-	// PauseControllers instructs the master to not automatically start controllers, but instead
-	// to wait until a notification to the server is received before launching them.
-	// Deprecated: Will be removed in 3.7.
-	PauseControllers bool
-	// ControllerLeaseTTL enables controller election against etcd, instructing the master to attempt to
-	// acquire a lease before controllers start and renewing it within a number of seconds defined by this
-	// value. Setting this value non-negative forces pauseControllers=true. This value defaults off (0, or
-	// omitted) and controller election can be disabled with -1.
-	// Deprecated: use controllerConfig.lockServiceName to force leader election via config, and the
-	//   appropriate leader election flags in controllerArguments. Will be removed in 3.9.
-	ControllerLeaseTTL int
-	// TODO: the next field added to controllers must be added to a new controllers struct
-
 	// AdmissionConfig contains admission control plugin configuration.
 	AdmissionConfig AdmissionConfig
+
+	// Deprecated DO NOT USE.  This lets reflective conversion work for now
+	Controllers string
 
 	ControllerConfig ControllerConfig
 
