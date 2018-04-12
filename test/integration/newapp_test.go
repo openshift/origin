@@ -1358,7 +1358,7 @@ func TestNewAppRunBuilds(t *testing.T) {
 				}) {
 					return fmt.Errorf("invalid bc.Spec.Source, got %#v", bc.Spec.Source)
 				}
-				if !reflect.DeepEqual(bc.Spec.Strategy, buildapi.BuildStrategy{JenkinsPipelineStrategy: &buildapi.JenkinsPipelineBuildStrategy{}}) {
+				if !reflect.DeepEqual(bc.Spec.Strategy, buildapi.BuildStrategy{JenkinsPipelineStrategy: &buildapi.JenkinsPipelineBuildStrategy{Env: []kapi.EnvVar{}}}) {
 					return fmt.Errorf("invalid bc.Spec.Strategy, got %#v", bc.Spec.Strategy)
 				}
 				return nil
@@ -1398,7 +1398,7 @@ func TestNewAppRunBuilds(t *testing.T) {
 				}) {
 					return fmt.Errorf("invalid bc.Spec.Source, got %#v", bc.Spec.Source.Git)
 				}
-				if !reflect.DeepEqual(bc.Spec.Strategy, buildapi.BuildStrategy{JenkinsPipelineStrategy: &buildapi.JenkinsPipelineBuildStrategy{}}) {
+				if !reflect.DeepEqual(bc.Spec.Strategy, buildapi.BuildStrategy{JenkinsPipelineStrategy: &buildapi.JenkinsPipelineBuildStrategy{Env: []kapi.EnvVar{}}}) {
 					return fmt.Errorf("invalid bc.Spec.Strategy, got %#v", bc.Spec.Strategy)
 				}
 				return nil
