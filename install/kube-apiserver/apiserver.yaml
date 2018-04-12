@@ -12,6 +12,7 @@ spec:
   containers:
   - name: api
     image: openshift/origin:latest
+    imagePullPolicy: IfNotPresent
     command: ["/bin/bash", "-c"]
     args:
     - |

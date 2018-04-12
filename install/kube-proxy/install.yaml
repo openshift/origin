@@ -54,6 +54,7 @@ objects:
         containers:
         - name: kube-proxy
           image: ${IMAGE}
+          imagePullPolicy: IfNotPresent
           command: ["openshift", "start", "node"]
           args:
           - "--enable=proxy"
