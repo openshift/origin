@@ -39,7 +39,7 @@ var (
 
 // CommandFor returns the appropriate command for this base name,
 // or the global OpenShift command
-func CommandFor(basename string) *cobra.Command {
+func CommandFor(basename string, stopCh <-chan struct{}) *cobra.Command {
 	var cmd *cobra.Command
 
 	out := os.Stdout
@@ -70,9 +70,9 @@ func CommandFor(basename string) *cobra.Command {
 	case "openshift-extract-image-content":
 		cmd = builder.NewCommandExtractImageContent(basename)
 	case "origin":
-		cmd = NewCommandOpenShift(basename)
+		cmd = NewCommandOpenShift(basename, stopCh)
 	default:
-		cmd = NewCommandOpenShift("openshift")
+		cmd = NewCommandOpenShift("openshift", stopCh)
 	}
 
 	if cmd.UsageFunc() == nil {
@@ -84,7 +84,7 @@ func CommandFor(basename string) *cobra.Command {
 }
 
 // NewCommandOpenShift creates the standard OpenShift command
-func NewCommandOpenShift(name string) *cobra.Command {
+func NewCommandOpenShift(name string, stopCh <-chan struct{}) *cobra.Command {
 	out, errout := os.Stdout, os.Stderr
 
 	root := &cobra.Command{
@@ -94,7 +94,7 @@ func NewCommandOpenShift(name string) *cobra.Command {
 		Run:   kcmdutil.DefaultSubCommandRun(out),
 	}
 
-	startAllInOne, _ := start.NewCommandStartAllInOne(name, out, errout)
+	startAllInOne, _ := start.NewCommandStartAllInOne(name, out, errout, stopCh)
 	root.AddCommand(startAllInOne)
 	root.AddCommand(newCompletionCommand("completion", name+" completion"))
 	root.AddCommand(cmdversion.NewCmdVersion(name, osversion.Get(), os.Stdout))
