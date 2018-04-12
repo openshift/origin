@@ -3,6 +3,7 @@ package controller
 import (
 	"fmt"
 	"math/rand"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -1002,5 +1003,126 @@ func TestDisableOwnershipChecksFuzzing(t *testing.T) {
 
 	if len(errors) > 0 {
 		t.Errorf("Unexpected errors:\n%s", strings.Join(errors.List(), "\n"))
+	}
+}
+
+func TestHandleNamespaceProcessing(t *testing.T) {
+	p := &fakePlugin{}
+	recorder := rejectionRecorder{rejections: make(map[string]string)}
+	admitter := NewHostAdmitter(p, wildcardAdmitter, true, false, recorder)
+
+	// Set namespaces handled in the host admitter plugin, the fakePlugin in
+	// the test chain doesn't support this, so ignore not expected error.
+	err := admitter.HandleNamespaces(sets.NewString("ns1", "ns2", "nsx"))
+	if err != nil && err.Error() != "not expected" {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	tests := []struct {
+		name      string
+		namespace string
+		host      string
+		policy    routeapi.WildcardPolicyType
+		expected  bool
+	}{
+		{
+			name:      "expected",
+			namespace: "ns1",
+			host:      "update.expected.test",
+			policy:    routeapi.WildcardPolicyNone,
+			expected:  true,
+		},
+		{
+			name:      "not-expected",
+			namespace: "updatemenot",
+			host:      "no-update.expected.test",
+			policy:    routeapi.WildcardPolicyNone,
+			expected:  false,
+		},
+		{
+			name:      "expected-wild",
+			namespace: "ns1",
+			host:      "update.wild.expected.test",
+			policy:    routeapi.WildcardPolicySubdomain,
+			expected:  true,
+		},
+		{
+			name:      "not-expected-wild-not-owner",
+			namespace: "nsx",
+			host:      "second.wild.expected.test",
+			policy:    routeapi.WildcardPolicySubdomain,
+			expected:  false,
+		},
+		{
+			name:      "not-expected-wild",
+			namespace: "otherns",
+			host:      "noupdate.wild.expected.test",
+			policy:    routeapi.WildcardPolicySubdomain,
+			expected:  false,
+		},
+		{
+			name:      "expected-wild-other-subdomain",
+			namespace: "nsx",
+			host:      "host.third.wild.expected.test",
+			policy:    routeapi.WildcardPolicySubdomain,
+			expected:  true,
+		},
+		{
+			name:      "not-expected-plain-2",
+			namespace: "notallowed",
+			host:      "not.allowed.expected.test",
+			policy:    routeapi.WildcardPolicyNone,
+			expected:  false,
+		},
+		{
+			name:      "not-expected-blocked",
+			namespace: "nsx",
+			host:      "blitz.domain.blocked.test",
+			policy:    routeapi.WildcardPolicyNone,
+			expected:  false,
+		},
+		{
+			name:      "not-expected-blocked-wildcard",
+			namespace: "ns2",
+			host:      "wild.blocked.domain.blocked.test",
+			policy:    routeapi.WildcardPolicySubdomain,
+			expected:  false,
+		},
+	}
+
+	for _, tc := range tests {
+		route := &routeapi.Route{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      tc.name,
+				Namespace: tc.namespace,
+				UID:       types.UID(tc.name),
+			},
+			Spec: routeapi.RouteSpec{
+				Host:           tc.host,
+				WildcardPolicy: tc.policy,
+			},
+			Status: routeapi.RouteStatus{
+				Ingress: []routeapi.RouteIngress{
+					{
+						Host:           tc.host,
+						RouterName:     "nsproc",
+						Conditions:     []routeapi.RouteIngressCondition{},
+						WildcardPolicy: tc.policy,
+					},
+				},
+			},
+		}
+
+		err := admitter.HandleRoute(watch.Added, route)
+		if tc.expected {
+			if err != nil {
+				t.Fatalf("test case %s unexpected error: %v", tc.name, err)
+			}
+			if !reflect.DeepEqual(p.route, route) {
+				t.Fatalf("test case %s expected route to be processed: %+v", tc.name, route)
+			}
+		} else if err == nil && reflect.DeepEqual(p.route, route) {
+			t.Fatalf("test case %s did not expected route to be processed: %+v", tc.name, route)
+		}
 	}
 }

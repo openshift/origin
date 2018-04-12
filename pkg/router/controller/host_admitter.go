@@ -87,6 +87,10 @@ type HostAdmitter struct {
 	// ownership (of subdomains) to a single owner/namespace.
 	disableNamespaceCheck bool
 
+	// allowedNamespaces is the set of allowed namespaces.
+	// Note that nil (aka allow all) has a different meaning than empty set.
+	allowedNamespaces sets.String
+
 	claimedHosts     RouteMap
 	claimedWildcards RouteMap
 	blockedWildcards RouteMap
@@ -122,6 +126,12 @@ func (p *HostAdmitter) HandleEndpoints(eventType watch.EventType, endpoints *kap
 
 // HandleRoute processes watch events on the Route resource.
 func (p *HostAdmitter) HandleRoute(eventType watch.EventType, route *routeapi.Route) error {
+	if p.allowedNamespaces != nil && !p.allowedNamespaces.Has(route.Namespace) {
+		// Ignore routes we don't need to "service" due to namespace
+		// restrictions (ala for sharding).
+		return nil
+	}
+
 	if err := p.admitter(route); err != nil {
 		glog.V(4).Infof("Route %s not admitted: %s", routeNameKey(route), err.Error())
 		p.recorder.RecordRouteRejection(route, "RouteNotAdmitted", err.Error())
@@ -151,6 +161,7 @@ func (p *HostAdmitter) HandleRoute(eventType watch.EventType, route *routeapi.Ro
 // HandleNamespaces limits the scope of valid routes to only those that match
 // the provided namespace list.
 func (p *HostAdmitter) HandleNamespaces(namespaces sets.String) error {
+	p.allowedNamespaces = namespaces
 	return p.plugin.HandleNamespaces(namespaces)
 }
 
