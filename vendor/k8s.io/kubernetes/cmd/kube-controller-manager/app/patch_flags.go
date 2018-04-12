@@ -32,6 +32,42 @@ func getOpenShiftConfig(configFile string) (map[string]interface{}, error) {
 }
 
 func applyOpenShiftConfigFlags(controllerManagerOptions *options.KubeControllerManagerOptions, controllerManager *config.Config, openshiftConfig map[string]interface{}) error {
+	if err := applyOpenShiftConfigControllerArgs(controllerManagerOptions, openshiftConfig); err != nil {
+		return err
+	}
+	if err := applyOpenShiftConfigDefaultProjectSelector(controllerManagerOptions, openshiftConfig); err != nil {
+		return err
+	}
+	if err := applyOpenShiftConfigKubeDefaultProjectSelector(controllerManagerOptions, openshiftConfig); err != nil {
+		return err
+	}
+	return controllerManagerOptions.ApplyTo(controllerManager)
+}
+
+func applyOpenShiftConfigDefaultProjectSelector(controllerManagerOptions *options.KubeControllerManagerOptions, openshiftConfig map[string]interface{}) error {
+	projectConfig, ok := openshiftConfig["projectConfig"]
+	if !ok {
+		return nil
+	}
+
+	castProjectConfig := projectConfig.(map[string]interface{})
+	defaultNodeSelector, ok := castProjectConfig["defaultNodeSelector"]
+	if !ok {
+		return nil
+	}
+	controllerManagerOptions.OpenShiftContext.OpenShiftDefaultProjectNodeSelector = defaultNodeSelector.(string)
+
+	return nil
+}
+
+// this is an optimization.  It can be filled in later.  Looks like there are several special cases for this plugin upstream
+// TODO find this
+func applyOpenShiftConfigKubeDefaultProjectSelector(controllerManagerOptions *options.KubeControllerManagerOptions, openshiftConfig map[string]interface{}) error {
+	controllerManagerOptions.OpenShiftContext.KubeDefaultProjectNodeSelector = ""
+	return nil
+}
+
+func applyOpenShiftConfigControllerArgs(controllerManagerOptions *options.KubeControllerManagerOptions, openshiftConfig map[string]interface{}) error {
 	kubeMasterConfig, ok := openshiftConfig["kubernetesMasterConfig"]
 	if !ok {
 		return nil
@@ -52,7 +88,7 @@ func applyOpenShiftConfigFlags(controllerManagerOptions *options.KubeControllerM
 	if err := resolveFlags(args, kubeControllerManagerAddFlags(controllerManagerOptions)); len(err) > 0 {
 		return kerrors.NewAggregate(err)
 	}
-	return controllerManagerOptions.ApplyTo(controllerManager)
+	return nil
 }
 
 // applyFlags stores the provided arguments onto a flag set, reporting any errors
