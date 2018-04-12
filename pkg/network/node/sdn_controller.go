@@ -154,7 +154,7 @@ func (plugin *OsdnNode) SetupSDN() (bool, error) {
 func (plugin *OsdnNode) setup(clusterNetworkCIDRs []string, localSubnetCIDR, localSubnetGateway, gwCIDR string) error {
 	serviceNetworkCIDR := plugin.networkInfo.ServiceNetwork.String()
 
-	if err := plugin.oc.SetupOVS(clusterNetworkCIDRs, serviceNetworkCIDR, localSubnetCIDR, localSubnetGateway); err != nil {
+	if err := plugin.oc.SetupOVS(clusterNetworkCIDRs, serviceNetworkCIDR, localSubnetCIDR, localSubnetGateway, plugin.mtu); err != nil {
 		return err
 	}
 
@@ -165,9 +165,6 @@ func (plugin *OsdnNode) setup(clusterNetworkCIDRs []string, localSubnetCIDR, loc
 		if err == nil {
 			defer deleteLocalSubnetRoute(Tun0, localSubnetCIDR)
 		}
-	}
-	if err == nil {
-		err = netlink.LinkSetMTU(l, int(plugin.mtu))
 	}
 	if err == nil {
 		err = netlink.LinkSetUp(l)
