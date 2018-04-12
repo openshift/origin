@@ -17,7 +17,6 @@ import (
 
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
-	"github.com/openshift/origin/pkg/client/config"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	"github.com/openshift/origin/pkg/cmd/util"
 )
@@ -199,8 +198,8 @@ func (cfg *Config) bindEnv() error {
 
 func DefaultClientConfig(flags *pflag.FlagSet) kclientcmd.ClientConfig {
 	loadingRules := kclientcmd.NewDefaultClientConfigLoadingRules()
-	flags.StringVar(&loadingRules.ExplicitPath, config.OpenShiftConfigFlagName, "", "Path to the config file to use for CLI requests.")
-	cobra.MarkFlagFilename(flags, config.OpenShiftConfigFlagName)
+	flags.StringVar(&loadingRules.ExplicitPath, kclientcmd.OpenShiftKubeConfigFlagName, "", "Path to the config file to use for CLI requests.")
+	cobra.MarkFlagFilename(flags, kclientcmd.OpenShiftKubeConfigFlagName)
 
 	// set our explicit defaults
 	defaultOverrides := &kclientcmd.ConfigOverrides{ClusterDefaults: kclientcmdapi.Cluster{Server: os.Getenv("KUBERNETES_MASTER")}}

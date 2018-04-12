@@ -5,12 +5,10 @@ import (
 
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-
-	"github.com/openshift/origin/pkg/client/config"
 )
 
 func NewPathOptions(cmd *cobra.Command) *kclientcmd.PathOptions {
-	return NewPathOptionsWithConfig(kcmdutil.GetFlagString(cmd, config.OpenShiftConfigFlagName))
+	return NewPathOptionsWithConfig(kcmdutil.GetFlagString(cmd, kclientcmd.OpenShiftKubeConfigFlagName))
 }
 
 func NewPathOptionsWithConfig(configPath string) *kclientcmd.PathOptions {
@@ -18,7 +16,7 @@ func NewPathOptionsWithConfig(configPath string) *kclientcmd.PathOptions {
 		GlobalFile: kclientcmd.RecommendedHomeFile,
 
 		EnvVar:           kclientcmd.RecommendedConfigPathEnvVar,
-		ExplicitFileFlag: config.OpenShiftConfigFlagName,
+		ExplicitFileFlag: kclientcmd.OpenShiftKubeConfigFlagName,
 
 		LoadingRules: &kclientcmd.ClientConfigLoadingRules{
 			ExplicitPath: configPath,

@@ -10,7 +10,6 @@ import (
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 
-	"github.com/openshift/origin/pkg/client/config"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/util"
 )
 
@@ -33,7 +32,7 @@ func (o DiagnosticsOptions) detectClientConfig() (expected bool, detected bool) 
 		return false, false
 	}
 	o.Logger().Notice("CED2011", "Determining if client configuration exists for client/cluster diagnostics")
-	confFlagName := config.OpenShiftConfigFlagName
+	confFlagName := kclientcmd.OpenShiftKubeConfigFlagName
 	confFlagValue := o.ClientFlags.Lookup(confFlagName).Value.String()
 	successfulLoad := false
 

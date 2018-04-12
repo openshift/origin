@@ -20,7 +20,6 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
-	cmdconfig "github.com/openshift/origin/pkg/client/config"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/oc/cli/cmd/create"
 	"github.com/openshift/origin/pkg/oc/cli/describe"
@@ -738,7 +737,7 @@ func NewCmdConfig(parentName, name string, f *clientcmd.Factory, out, errOut io.
 	pathOptions := &kclientcmd.PathOptions{
 		GlobalFile:       kclientcmd.RecommendedHomeFile,
 		EnvVar:           kclientcmd.RecommendedConfigPathEnvVar,
-		ExplicitFileFlag: cmdconfig.OpenShiftConfigFlagName,
+		ExplicitFileFlag: kclientcmd.OpenShiftKubeConfigFlagName,
 
 		GlobalFileSubpath: path.Join(kclientcmd.RecommendedHomeDir, kclientcmd.RecommendedFileName),
 
