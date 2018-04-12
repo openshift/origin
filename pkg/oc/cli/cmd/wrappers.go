@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"path"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -735,13 +736,13 @@ var (
 // NewCmdConfig is a wrapper for the Kubernetes cli config command
 func NewCmdConfig(parentName, name string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
 	pathOptions := &kclientcmd.PathOptions{
-		GlobalFile:       cmdconfig.RecommendedHomeFile,
-		EnvVar:           cmdconfig.OpenShiftConfigPathEnvVar,
+		GlobalFile:       kclientcmd.RecommendedHomeFile,
+		EnvVar:           kclientcmd.RecommendedConfigPathEnvVar,
 		ExplicitFileFlag: cmdconfig.OpenShiftConfigFlagName,
 
-		GlobalFileSubpath: cmdconfig.OpenShiftConfigHomeDirFileName,
+		GlobalFileSubpath: path.Join(kclientcmd.RecommendedHomeDir, kclientcmd.RecommendedFileName),
 
-		LoadingRules: cmdconfig.NewOpenShiftClientConfigLoadingRules(),
+		LoadingRules: kclientcmd.NewDefaultClientConfigLoadingRules(),
 	}
 	pathOptions.LoadingRules.DoNotResolvePaths = true
 
