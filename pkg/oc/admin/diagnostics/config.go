@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"k8s.io/client-go/tools/clientcmd"
+	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 
 	"github.com/openshift/origin/pkg/client/config"
@@ -37,7 +38,7 @@ func (o DiagnosticsOptions) detectClientConfig() (expected bool, detected bool) 
 	successfulLoad := false
 
 	var foundPath string
-	rules := config.NewOpenShiftClientConfigLoadingRules()
+	rules := kclientcmd.NewDefaultClientConfigLoadingRules()
 	paths := append([]string{confFlagValue}, rules.Precedence...)
 	for index, path := range paths {
 		errmsg := ""
@@ -47,8 +48,8 @@ func (o DiagnosticsOptions) detectClientConfig() (expected bool, detected bool) 
 		case len(paths) - 1: // config in ~/.kube
 		// no error message indicated if it is not there... user didn't say it would be
 		default: // can be multiple paths from the env var in theory; all cases should go here
-			if len(os.Getenv(config.OpenShiftConfigPathEnvVar)) != 0 {
-				errmsg = fmt.Sprintf("Env var %s specified that client config could be at %s\n", config.OpenShiftConfigPathEnvVar, path)
+			if len(os.Getenv(kclientcmd.RecommendedConfigPathEnvVar)) != 0 {
+				errmsg = fmt.Sprintf("Env var %s specified that client config could be at %s\n", kclientcmd.RecommendedConfigPathEnvVar, path)
 			}
 		}
 
@@ -88,7 +89,7 @@ location for use by the client and diagnostics.
 		for _, path := range util.AdminKubeConfigPaths {
 			msg := fmt.Sprintf("Looking for a possible client config at %s\n", path)
 			if o.canOpenConfigFile(path, msg) {
-				o.Logger().Warn("DCli1003", fmt.Sprintf(adminWarningF, config.OpenShiftConfigPathEnvVar, path, config.RecommendedHomeFile))
+				o.Logger().Warn("DCli1003", fmt.Sprintf(adminWarningF, kclientcmd.RecommendedConfigPathEnvVar, path, kclientcmd.RecommendedHomeFile))
 				break
 			}
 		}

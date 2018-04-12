@@ -14,7 +14,6 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
-	clientcmd "github.com/openshift/origin/pkg/client/cmd"
 	"github.com/openshift/origin/pkg/cmd/util"
 	cmdversion "github.com/openshift/origin/pkg/cmd/version"
 	projectinternalclientset "github.com/openshift/origin/pkg/project/generated/internalclientset"
@@ -42,7 +41,7 @@ var (
 // F5RouterOptions represent the complete structure needed to start an F5 router
 // sync process.
 type F5RouterOptions struct {
-	Config *clientcmd.Config
+	Config *Config
 
 	F5Router
 	RouterSelection
@@ -138,12 +137,12 @@ func (o *F5Router) Validate() error {
 // NewCommandF5Router provides CLI handler for the F5 router sync plugin.
 func NewCommandF5Router(name string) *cobra.Command {
 	options := &F5RouterOptions{
-		Config: clientcmd.NewConfig(),
+		Config: NewConfig(),
 	}
 	options.Config.FromFile = true
 
 	cmd := &cobra.Command{
-		Use:   fmt.Sprintf("%s%s", name, clientcmd.ConfigSyntax),
+		Use:   fmt.Sprintf("%s%s", name, ConfigSyntax),
 		Short: "Start an F5 route synchronizer",
 		Long:  f5Long,
 		Run: func(c *cobra.Command, args []string) {
