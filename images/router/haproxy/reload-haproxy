@@ -72,11 +72,6 @@ function haproxyHealthCheck() {
 retries=20
 
 
-# sort the path based map files for the haproxy map_beg function
-for mapfile in "$haproxy_conf_dir"/*.map; do
-  sort -r "$mapfile" -o "$mapfile"
-done
-
 old_pids=$(ps -A -opid,args | grep haproxy | egrep -v -e 'grep|reload-haproxy' | awk '{print $1}' | tr '\n' ' ')
 
 reload_status=0
