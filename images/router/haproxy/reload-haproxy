@@ -4,7 +4,7 @@ set -o nounset
 
 config_file=/var/lib/haproxy/conf/haproxy.config
 pid_file=/var/lib/haproxy/run/haproxy.pid
-old_pid=""
+old_pids=""
 haproxy_conf_dir=/var/lib/haproxy/conf
 readonly max_wait_time=30
 readonly timeout_opts="-m 1 --connect-timeout 1"
