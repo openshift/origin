@@ -190,7 +190,6 @@ func NewCmdCreate(parentName string, f *clientcmd.Factory, out, errOut io.Writer
 
 	// create subcommands
 	cmd.AddCommand(create.NewCmdCreateRoute(parentName, f, out, errOut))
-	cmd.AddCommand(create.NewCmdCreatePolicyBinding(create.PolicyBindingRecommendedName, parentName+" create "+create.PolicyBindingRecommendedName, f, out))
 	cmd.AddCommand(create.NewCmdCreateDeploymentConfig(create.DeploymentConfigRecommendedName, parentName+" create "+create.DeploymentConfigRecommendedName, f, out))
 	cmd.AddCommand(create.NewCmdCreateClusterQuota(create.ClusterQuotaRecommendedName, parentName+" create "+create.ClusterQuotaRecommendedName, f, out))
 
