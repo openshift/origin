@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"reflect"
+	"sort"
 	"strings"
 	"sync"
 	"text/template"
@@ -400,7 +401,13 @@ func (r *templateRouter) writeConfig() error {
 
 	glog.V(4).Infof("Router certificate manager config committed")
 
-	for path, template := range r.templates {
+	pathNames := make([]string, 0)
+	for k := range r.templates {
+		pathNames = append(pathNames, k)
+	}
+	sort.Strings(pathNames)
+	for _, path := range pathNames {
+		template := r.templates[path]
 		file, err := os.Create(path)
 		if err != nil {
 			return fmt.Errorf("error creating config file %s: %v", path, err)

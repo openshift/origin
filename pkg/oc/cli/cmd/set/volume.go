@@ -155,7 +155,11 @@ type AddVolumeOptions struct {
 
 func NewCmdVolume(fullName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
 	addOpts := &AddVolumeOptions{}
-	opts := &VolumeOptions{AddOpts: addOpts}
+	opts := &VolumeOptions{
+		AddOpts: addOpts,
+		Out:     out,
+		Err:     errOut,
+	}
 	cmd := &cobra.Command{
 		Use:     "volumes RESOURCE/NAME --add|--remove|--list",
 		Short:   "Update volumes on a pod template",
@@ -165,12 +169,12 @@ func NewCmdVolume(fullName string, f *clientcmd.Factory, out, errOut io.Writer) 
 		Run: func(cmd *cobra.Command, args []string) {
 			addOpts.TypeChanged = cmd.Flag("type").Changed
 
+			kcmdutil.CheckErr(opts.Complete(f, cmd))
+
 			err := opts.Validate(cmd, args)
 			if err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
 			}
-			err = opts.Complete(f, cmd, out, errOut)
-			kcmdutil.CheckErr(err)
 
 			err = opts.RunVolume(args, f)
 			if err == kcmdutil.ErrExit {
@@ -228,6 +232,107 @@ func (v *VolumeOptions) Validate(cmd *cobra.Command, args []string) error {
 		return errors.New("provide one or more resources to add, list, or delete volumes on as TYPE/NAME")
 	}
 
+	if v.List && len(v.Output) > 0 {
+		return errors.New("--list and --output may not be specified together")
+	}
+
+	if v.Add {
+		err := v.AddOpts.Validate()
+		if err != nil {
+			return err
+		}
+	} else if len(v.AddOpts.Source) > 0 || len(v.AddOpts.Path) > 0 || len(v.AddOpts.SecretName) > 0 ||
+		len(v.AddOpts.ConfigMapName) > 0 || len(v.AddOpts.ClaimName) > 0 || len(v.AddOpts.DefaultMode) > 0 ||
+		v.AddOpts.Overwrite {
+		return errors.New("--type|--path|--configmap-name|--secret-name|--claim-name|--source|--default-mode|--overwrite are only valid for --add operation")
+	}
+	// Removing all volumes for the resource type needs confirmation
+	if v.Remove && len(v.Name) == 0 && !v.Confirm {
+		return errors.New("must provide --confirm for removing more than one volume")
+	}
+	return nil
+}
+
+func (a *AddVolumeOptions) Validate() error {
+	if len(a.Type) == 0 && len(a.Source) == 0 {
+		return errors.New("must provide --type or --source for --add operation")
+	} else if a.TypeChanged && len(a.Source) > 0 {
+		return errors.New("either specify --type or --source but not both for --add operation")
+	}
+
+	if len(a.Type) > 0 {
+		switch strings.ToLower(a.Type) {
+		case "emptydir":
+		case "hostpath":
+			if len(a.Path) == 0 {
+				return errors.New("must provide --path for --type=hostPath")
+			}
+		case "secret":
+			if len(a.SecretName) == 0 {
+				return errors.New("must provide --secret-name for --type=secret")
+			}
+			if ok, _ := regexp.MatchString(`\b0?[0-7]{3}\b`, a.DefaultMode); !ok {
+				return errors.New("--default-mode must be between 0000 and 0777")
+			}
+		case "configmap":
+			if len(a.ConfigMapName) == 0 {
+				return errors.New("must provide --configmap-name for --type=configmap")
+			}
+			if ok, _ := regexp.MatchString(`\b0?[0-7]{3}\b`, a.DefaultMode); !ok {
+				return errors.New("--default-mode must be between 0000 and 0777")
+			}
+		case "persistentvolumeclaim", "pvc":
+			if len(a.ClaimName) == 0 && len(a.ClaimSize) == 0 {
+				return errors.New("must provide --claim-name or --claim-size (to create a new claim) for --type=pvc")
+			}
+		default:
+			return errors.New("invalid volume type. Supported types: emptyDir, hostPath, secret, persistentVolumeClaim")
+		}
+	} else if len(a.Path) > 0 || len(a.SecretName) > 0 || len(a.ClaimName) > 0 {
+		return errors.New("--path|--secret-name|--claim-name are only valid for --type option")
+	}
+
+	if len(a.Source) > 0 {
+		var source map[string]interface{}
+		err := json.Unmarshal([]byte(a.Source), &source)
+		if err != nil {
+			return err
+		}
+		if len(source) > 1 {
+			return errors.New("must provide only one volume for --source")
+		}
+
+		var vs kapi.VolumeSource
+		err = json.Unmarshal([]byte(a.Source), &vs)
+		if err != nil {
+			return err
+		}
+	}
+	if len(a.ClaimClass) > 0 {
+		selectedLowerType := strings.ToLower(a.Type)
+		if selectedLowerType != "persistentvolumeclaim" && selectedLowerType != "pvc" {
+			return errors.New("must provide --type as persistentVolumeClaim")
+		}
+		if len(a.ClaimSize) == 0 {
+			return errors.New("must provide --claim-size to create new pvc with claim-class")
+		}
+	}
+	return nil
+}
+
+func (v *VolumeOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command) error {
+	kc, err := f.ClientSet()
+	if err != nil {
+		return err
+	}
+	v.Client = kc.Core()
+
+	cmdNamespace, explicit, err := f.DefaultNamespace()
+	if err != nil {
+		return err
+	}
+	mapper, typer := f.Object()
+
 	numOps := 0
 	if v.Add {
 		numOps++
@@ -246,139 +351,6 @@ func (v *VolumeOptions) Validate(cmd *cobra.Command, args []string) error {
 		return errors.New("you may only specify one operation at a time")
 	}
 
-	output := kcmdutil.GetFlagString(cmd, "output")
-	if v.List && len(output) > 0 {
-		return errors.New("--list and --output may not be specified together")
-	}
-
-	err := v.AddOpts.Validate(v.Add)
-	if err != nil {
-		return err
-	}
-	// Removing all volumes for the resource type needs confirmation
-	if v.Remove && len(v.Name) == 0 && !v.Confirm {
-		return errors.New("must provide --confirm for removing more than one volume")
-	}
-	return nil
-}
-
-func (a *AddVolumeOptions) Validate(isAddOp bool) error {
-	if isAddOp {
-		if len(a.Type) == 0 && (len(a.ClaimName) > 0 || len(a.ClaimSize) > 0) {
-			a.Type = "persistentvolumeclaim"
-			a.TypeChanged = true
-		}
-		if len(a.Type) == 0 && (len(a.SecretName) > 0) {
-			a.Type = "secret"
-			a.TypeChanged = true
-		}
-		if len(a.Type) == 0 && (len(a.ConfigMapName) > 0) {
-			a.Type = "configmap"
-			a.TypeChanged = true
-		}
-		if len(a.Type) == 0 && (len(a.Path) > 0) {
-			a.Type = "hostpath"
-			a.TypeChanged = true
-		}
-		if len(a.Type) == 0 {
-			a.Type = "emptydir"
-		}
-
-		if len(a.Type) == 0 && len(a.Source) == 0 {
-			return errors.New("must provide --type or --source for --add operation")
-		} else if a.TypeChanged && len(a.Source) > 0 {
-			return errors.New("either specify --type or --source but not both for --add operation")
-		}
-
-		if len(a.Type) > 0 {
-			switch strings.ToLower(a.Type) {
-			case "emptydir":
-				if len(a.DefaultMode) > 0 {
-					return errors.New("--default-mode is only available for secrets and configmaps")
-				}
-			case "hostpath":
-				if len(a.Path) == 0 {
-					return errors.New("must provide --path for --type=hostPath")
-				}
-				if len(a.DefaultMode) > 0 {
-					return errors.New("--default-mode is only available for secrets and configmaps")
-				}
-			case "secret":
-				if len(a.SecretName) == 0 {
-					return errors.New("must provide --secret-name for --type=secret")
-				}
-				if len(a.DefaultMode) > 0 {
-					if ok, _ := regexp.MatchString(`\b0?[0-7]{3}\b`, a.DefaultMode); !ok {
-						return errors.New("--default-mode must be between 0000 and 0777")
-					}
-				}
-			case "configmap":
-				if len(a.ConfigMapName) == 0 {
-					return errors.New("must provide --configmap-name for --type=configmap")
-				}
-				if len(a.DefaultMode) > 0 {
-					if ok, _ := regexp.MatchString(`\b0?[0-7]{3}\b`, a.DefaultMode); !ok {
-						return errors.New("--default-mode must be between 0000 and 0777")
-					}
-				}
-			case "persistentvolumeclaim", "pvc":
-				if len(a.ClaimName) == 0 && len(a.ClaimSize) == 0 {
-					return errors.New("must provide --claim-name or --claim-size (to create a new claim) for --type=pvc")
-				}
-				if len(a.DefaultMode) > 0 {
-					return errors.New("--default-mode is only available for secrets and configmaps")
-				}
-			default:
-				return errors.New("invalid volume type. Supported types: emptyDir, hostPath, secret, persistentVolumeClaim")
-			}
-		} else if len(a.Path) > 0 || len(a.SecretName) > 0 || len(a.ClaimName) > 0 {
-			return errors.New("--path|--secret-name|--claim-name are only valid for --type option")
-		}
-
-		if len(a.Source) > 0 {
-			var source map[string]interface{}
-			err := json.Unmarshal([]byte(a.Source), &source)
-			if err != nil {
-				return err
-			}
-			if len(source) > 1 {
-				return errors.New("must provide only one volume for --source")
-			}
-
-			var vs kapi.VolumeSource
-			err = json.Unmarshal([]byte(a.Source), &vs)
-			if err != nil {
-				return err
-			}
-		}
-		if len(a.ClaimClass) > 0 {
-			selectedLowerType := strings.ToLower(a.Type)
-			if selectedLowerType != "persistentvolumeclaim" && selectedLowerType != "pvc" {
-				return errors.New("must provide --type as persistentVolumeClaim")
-			}
-			if len(a.ClaimSize) == 0 {
-				return errors.New("must provide --claim-size to create new pvc with claim-class")
-			}
-		}
-	} else if len(a.Source) > 0 || len(a.Path) > 0 || len(a.SecretName) > 0 || len(a.ConfigMapName) > 0 || len(a.ClaimName) > 0 || a.Overwrite {
-		return errors.New("--type|--path|--configmap-name|--secret-name|--claim-name|--source|--overwrite are only valid for --add operation")
-	}
-	return nil
-}
-
-func (v *VolumeOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, out, errOut io.Writer) error {
-	kc, err := f.ClientSet()
-	if err != nil {
-		return err
-	}
-	v.Client = kc.Core()
-
-	cmdNamespace, explicit, err := f.DefaultNamespace()
-	if err != nil {
-		return err
-	}
-	mapper, typer := f.Object()
-
 	v.Output = kcmdutil.GetFlagString(cmd, "output")
 	v.PrintObject = func(infos []*resource.Info) error {
 		return f.PrintResourceInfos(cmd, v.Local, infos, v.Out)
@@ -387,8 +359,6 @@ func (v *VolumeOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, out, 
 	v.Cmd = cmd
 	v.DefaultNamespace = cmdNamespace
 	v.ExplicitNamespace = explicit
-	v.Out = out
-	v.Err = errOut
 	v.Mapper = mapper
 	v.Typer = typer
 	v.CategoryExpander = f.CategoryExpander()
@@ -396,35 +366,72 @@ func (v *VolumeOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, out, 
 	v.UpdatePodSpecForObject = f.UpdatePodSpecForObject
 	v.Encoder = kcmdutil.InternalVersionJSONEncoder()
 
-	// In case of volume source ignore the default volume type
-	if len(v.AddOpts.Source) > 0 {
-		v.AddOpts.Type = ""
-	}
-	if len(v.AddOpts.ClaimSize) > 0 {
-		v.AddOpts.CreateClaim = true
-		if len(v.AddOpts.ClaimName) == 0 {
-			v.AddOpts.ClaimName = names.SimpleNameGenerator.GenerateName("pvc-")
+	// Complete AddOpts
+	if v.Add {
+		err := v.AddOpts.Complete()
+		if err != nil {
+			return err
 		}
-		q, err := kresource.ParseQuantity(v.AddOpts.ClaimSize)
+	}
+	return nil
+}
+
+func (a *AddVolumeOptions) Complete() error {
+	if len(a.Type) == 0 {
+		switch {
+		case len(a.ClaimName) > 0 || len(a.ClaimSize) > 0:
+			a.Type = "persistentvolumeclaim"
+			a.TypeChanged = true
+		case len(a.SecretName) > 0:
+			a.Type = "secret"
+			a.TypeChanged = true
+		case len(a.ConfigMapName) > 0:
+			a.Type = "configmap"
+			a.TypeChanged = true
+		case len(a.Path) > 0:
+			a.Type = "hostpath"
+			a.TypeChanged = true
+		default:
+			a.Type = "emptydir"
+		}
+	}
+	if a.Type == "configmap" || a.Type == "secret" {
+		if len(a.DefaultMode) == 0 {
+			a.DefaultMode = "644"
+		}
+	} else {
+		if len(a.DefaultMode) != 0 {
+			return errors.New("--default-mode is only available for secrets and configmaps")
+		}
+	}
+
+	// In case of volume source ignore the default volume type
+	if len(a.Source) > 0 {
+		a.Type = ""
+	}
+	if len(a.ClaimSize) > 0 {
+		a.CreateClaim = true
+		if len(a.ClaimName) == 0 {
+			a.ClaimName = names.SimpleNameGenerator.GenerateName("pvc-")
+		}
+		q, err := kresource.ParseQuantity(a.ClaimSize)
 		if err != nil {
 			return fmt.Errorf("--claim-size is not valid: %v", err)
 		}
-		v.AddOpts.ClaimSize = q.String()
+		a.ClaimSize = q.String()
 	}
-	if len(v.AddOpts.DefaultMode) == 0 {
-		v.AddOpts.DefaultMode = "644"
-	}
-	switch strings.ToLower(v.AddOpts.ClaimMode) {
+	switch strings.ToLower(a.ClaimMode) {
 	case strings.ToLower(string(kapi.ReadOnlyMany)), "rom":
-		v.AddOpts.ClaimMode = string(kapi.ReadOnlyMany)
+		a.ClaimMode = string(kapi.ReadOnlyMany)
 	case strings.ToLower(string(kapi.ReadWriteOnce)), "rwo":
-		v.AddOpts.ClaimMode = string(kapi.ReadWriteOnce)
+		a.ClaimMode = string(kapi.ReadWriteOnce)
 	case strings.ToLower(string(kapi.ReadWriteMany)), "rwm":
-		v.AddOpts.ClaimMode = string(kapi.ReadWriteMany)
+		a.ClaimMode = string(kapi.ReadWriteMany)
 	case "":
 	default:
 		return errors.New("--claim-mode must be one of ReadWriteOnce (rwo), ReadWriteMany (rwm), or ReadOnlyMany (rom)")
 	}
+
 	return nil
 }
 

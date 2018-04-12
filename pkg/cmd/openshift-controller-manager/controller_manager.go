@@ -29,7 +29,6 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/server/cm"
 	"github.com/openshift/origin/pkg/cmd/server/origin"
-	originrest "github.com/openshift/origin/pkg/cmd/server/origin/rest"
 	cmdflags "github.com/openshift/origin/pkg/cmd/util/flags"
 	"github.com/openshift/origin/pkg/version"
 )
@@ -72,20 +71,6 @@ func runOpenShiftControllerManager(masterConfig *configapi.MasterConfig, runServ
 		return err
 	}
 
-	// TODO refactor this controller so that it no longer relies on direct etcd access
-	// these restoptions are used to directly access small keysets on etcd that do NOT overlap with access
-	// by the main API server, so we aren't paying a large cost for the separation.
-	restOptsGetter, err := originrest.StorageOptions(*masterConfig)
-	if err != nil {
-		return err
-	}
-	allocationController := origin.SecurityAllocationController{
-		SecurityAllocator:          masterConfig.ProjectConfig.SecurityAllocator,
-		OpenshiftRESTOptionsGetter: restOptsGetter,
-		ExternalKubeInformers:      openshiftControllerInformers.GetExternalKubeInformers(),
-		KubeExternalClient:         kubeExternal,
-	}
-
 	originControllerManager := func(stopCh <-chan struct{}) {
 		if err := waitForHealthyAPIServer(kubeExternal.Discovery().RESTClient()); err != nil {
 			glog.Fatal(err)
@@ -98,7 +83,7 @@ func runOpenShiftControllerManager(masterConfig *configapi.MasterConfig, runServ
 
 		informersStarted := make(chan struct{})
 		controllerContext := newControllerContext(openshiftControllerOptions, masterConfig.ControllerConfig.Controllers, privilegedLoopbackConfig, kubeExternal, openshiftControllerInformers, stopCh, informersStarted)
-		if err := startControllers(*masterConfig, allocationController, controllerContext); err != nil {
+		if err := startControllers(*masterConfig, controllerContext); err != nil {
 			glog.Fatal(err)
 		}
 
@@ -263,13 +248,11 @@ func waitForHealthyAPIServer(client rest.Interface) error {
 
 // startControllers launches the controllers
 // allocation controller is passed in because it wants direct etcd access.  Naughty.
-func startControllers(options configapi.MasterConfig, allocationController origin.SecurityAllocationController, controllerContext origincontrollers.ControllerContext) error {
+func startControllers(options configapi.MasterConfig, controllerContext origincontrollers.ControllerContext) error {
 	openshiftControllerConfig, err := origincontrollers.BuildOpenshiftControllerConfig(options)
 	if err != nil {
 		return err
 	}
-
-	allocationController.RunSecurityAllocationController()
 
 	openshiftControllerInitializers, err := openshiftControllerConfig.GetControllerInitializers()
 	if err != nil {

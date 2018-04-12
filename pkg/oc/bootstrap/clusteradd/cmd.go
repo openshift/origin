@@ -14,6 +14,7 @@ import (
 	"github.com/openshift/origin/pkg/oc/bootstrap/clusteradd/components/service-catalog"
 	"github.com/openshift/origin/pkg/oc/bootstrap/clusteradd/components/template-service-broker"
 	"github.com/openshift/origin/pkg/oc/bootstrap/clusteradd/components/web-console"
+	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/components/persistent-volumes"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
@@ -61,6 +62,9 @@ var availableComponents = map[string]func(ctx componentinstall.Context) componen
 	},
 	"sample-templates": func(ctx componentinstall.Context) componentinstall.Component {
 		return &sample_templates.SampleTemplatesComponentOptions{InstallContext: ctx}
+	},
+	"persistent-volumes": func(ctx componentinstall.Context) componentinstall.Component {
+		return &persistent_volumes.SetupPersistentVolumesOptions{InstallContext: ctx}
 	},
 	"service-catalog": func(ctx componentinstall.Context) componentinstall.Component {
 		return &service_catalog.ServiceCatalogComponentOptions{InstallContext: ctx}

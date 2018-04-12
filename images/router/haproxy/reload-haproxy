@@ -4,7 +4,6 @@ set -o nounset
 
 config_file=/var/lib/haproxy/conf/haproxy.config
 pid_file=/var/lib/haproxy/run/haproxy.pid
-old_pid=""
 haproxy_conf_dir=/var/lib/haproxy/conf
 readonly max_wait_time=30
 readonly timeout_opts="-m 1 --connect-timeout 1"
@@ -71,11 +70,6 @@ function haproxyHealthCheck() {
 # It will sleep for 1/2 a second between attempts, so the time is retries / 2 secs
 retries=20
 
-
-# sort the path based map files for the haproxy map_beg function
-for mapfile in "$haproxy_conf_dir"/*.map; do
-  sort -r "$mapfile" -o "$mapfile"
-done
 
 old_pids=$(ps -A -opid,args | grep haproxy | egrep -v -e 'grep|reload-haproxy' | awk '{print $1}' | tr '\n' ' ')
 

@@ -13,6 +13,7 @@ import (
 	"k8s.io/kubernetes/pkg/controller"
 
 	routeinformer "github.com/openshift/client-go/route/informers/externalversions"
+	securityv1client "github.com/openshift/client-go/security/clientset/versioned"
 	appinformer "github.com/openshift/origin/pkg/apps/generated/informers/internalversion"
 	appsclientinternal "github.com/openshift/origin/pkg/apps/generated/internalclientset"
 	authorizationinformer "github.com/openshift/origin/pkg/authorization/generated/informers/internalversion"
@@ -117,6 +118,8 @@ type ControllerClientBuilder interface {
 
 	OpenshiftInternalSecurityClient(name string) (securityclient.Interface, error)
 	OpenshiftInternalSecurityClientOrDie(name string) securityclient.Interface
+	OpenshiftV1SecurityClient(name string) (securityv1client.Interface, error)
+	OpenshiftV1SecurityClientOrDie(name string) securityv1client.Interface
 }
 
 // InitFunc is used to launch a particular controller.  It may run additional "should I activate checks".
@@ -289,6 +292,22 @@ func (b OpenshiftControllerClientBuilder) OpenshiftInternalSecurityClient(name s
 // will panic.
 func (b OpenshiftControllerClientBuilder) OpenshiftInternalSecurityClientOrDie(name string) securityclient.Interface {
 	client, err := b.OpenshiftInternalSecurityClient(name)
+	if err != nil {
+		glog.Fatal(err)
+	}
+	return client
+}
+
+func (b OpenshiftControllerClientBuilder) OpenshiftV1SecurityClient(name string) (securityv1client.Interface, error) {
+	clientConfig, err := b.Config(name)
+	if err != nil {
+		return nil, err
+	}
+	return securityv1client.NewForConfig(clientConfig)
+}
+
+func (b OpenshiftControllerClientBuilder) OpenshiftV1SecurityClientOrDie(name string) securityv1client.Interface {
+	client, err := b.OpenshiftV1SecurityClient(name)
 	if err != nil {
 		glog.Fatal(err)
 	}

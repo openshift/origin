@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"os"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"text/template"
@@ -12,6 +13,8 @@ import (
 	"github.com/golang/glog"
 
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
+	templateutil "github.com/openshift/origin/pkg/router/template/util"
+	fileutil "github.com/openshift/origin/pkg/util/file"
 )
 
 func isTrue(s string) bool {
@@ -170,6 +173,25 @@ func endpointsForAlias(alias ServiceAliasConfig, svc ServiceUnit) []Endpoint {
 	return endpoints
 }
 
+// sortedMapData returns the sorted data in a haproxy map. The returned data is
+// in alphabetically reverse order. The sortSubGroups option sorts the
+// non-wildcard paths first and adds the sorted wildcard paths at the end.
+// Note: The reversed sorting ensures we do a longest path match first.
+func sortedMapData(name string, sortSubGroups bool) []string {
+	lines, err := fileutil.ReadLines(name)
+	if err != nil {
+		glog.Errorf("Error reading map file %s: %v", name, err)
+		return []string{}
+	}
+
+	if sortSubGroups {
+		return templateutil.SortMapPaths(lines, `^[^\.]*\.`)
+	}
+
+	sort.Sort(sort.Reverse(sort.StringSlice(lines)))
+	return lines
+}
+
 var helperFunctions = template.FuncMap{
 	"endpointsForAlias":        endpointsForAlias,        //returns the list of valid endpoints
 	"processEndpointsForAlias": processEndpointsForAlias, //returns the list of valid endpoints after processing them
@@ -184,4 +206,6 @@ var helperFunctions = template.FuncMap{
 
 	"isTrue":     isTrue,     //determines if a given variable is a true value
 	"firstMatch": firstMatch, //anchors provided regular expression and evaluates against given strings, returns the first matched string or ""
+
+	"sortedMapData": sortedMapData, //returns sorted map contents. The data can optionally be sorted on the non-wildcard and wildcard sub-groups
 }

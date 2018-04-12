@@ -36,8 +36,7 @@ controllerConfig:
   election: null
   serviceServingCert:
     signer: null
-controllerLeaseTTL: 0
-controllers: '*'
+controllers: ""
 corsAllowedOrigins: null
 dnsConfig:
   allowRecursiveQueries: false
@@ -363,7 +362,6 @@ oauthConfig:
   tokenConfig:
     accessTokenMaxAgeSeconds: 0
     authorizeTokenMaxAgeSeconds: 0
-pauseControllers: false
 policyConfig:
   userAgentMatchingConfig:
     defaultRejectionMessage: ""

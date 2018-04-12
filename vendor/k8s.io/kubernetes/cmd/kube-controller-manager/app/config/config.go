@@ -26,7 +26,7 @@ import (
 type ExtraConfig struct {
 	NodeStatusUpdateFrequency time.Duration
 
-	OpenShiftConfig string
+	OpenShiftContext OpenShiftContext
 }
 
 // Config is the main context object for the controller manager.

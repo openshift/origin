@@ -105,7 +105,7 @@ func (cfg *config) RunDeployer() error {
 	if err != nil {
 		return err
 	}
-	kc, err := kclientset.NewForConfig(kcfg)
+	kubeInternalClient, err := kclientset.NewForConfig(kcfg)
 	if err != nil {
 		return err
 	}
@@ -114,12 +114,13 @@ func (cfg *config) RunDeployer() error {
 		return err
 	}
 
-	deployer := NewDeployer(kc, openshiftInternalImageClient, cfg.Out, cfg.ErrOut, cfg.Until)
+	deployer := NewDeployer(kubeInternalClient, openshiftInternalImageClient, cfg.Out, cfg.ErrOut, cfg.Until)
 	return deployer.Deploy(cfg.Namespace, cfg.rcName)
 }
 
 // NewDeployer makes a new Deployer from a kube client.
-func NewDeployer(client kclientset.Interface, images imageclientinternal.Interface, out, errOut io.Writer, until string) *Deployer {
+func NewDeployer(client kclientset.Interface, images imageclientinternal.Interface, out, errOut io.Writer,
+	until string) *Deployer {
 	return &Deployer{
 		out:    out,
 		errOut: errOut,
@@ -134,9 +135,11 @@ func NewDeployer(client kclientset.Interface, images imageclientinternal.Interfa
 		strategyFor: func(config *appsapi.DeploymentConfig) (strategy.DeploymentStrategy, error) {
 			switch config.Spec.Strategy.Type {
 			case appsapi.DeploymentStrategyTypeRecreate:
-				return recreate.NewRecreateDeploymentStrategy(client, images.Image(), &kv1core.EventSinkImpl{Interface: kv1core.New(client.Core().RESTClient()).Events("")}, legacyscheme.Codecs.UniversalDecoder(), out, errOut, until), nil
+				return recreate.NewRecreateDeploymentStrategy(client, images.Image(),
+					&kv1core.EventSinkImpl{Interface: kv1core.New(client.Core().RESTClient()).Events("")}, legacyscheme.Codecs.UniversalDecoder(), out, errOut, until), nil
 			case appsapi.DeploymentStrategyTypeRolling:
-				recreateDeploymentStrategy := recreate.NewRecreateDeploymentStrategy(client, images.Image(), &kv1core.EventSinkImpl{Interface: kv1core.New(client.Core().RESTClient()).Events("")}, legacyscheme.Codecs.UniversalDecoder(), out, errOut, until)
+				recreateDeploymentStrategy := recreate.NewRecreateDeploymentStrategy(client, images.Image(),
+					&kv1core.EventSinkImpl{Interface: kv1core.New(client.Core().RESTClient()).Events("")}, legacyscheme.Codecs.UniversalDecoder(), out, errOut, until)
 				return rolling.NewRollingDeploymentStrategy(config.Namespace, client, images.Image(), legacyscheme.Codecs.UniversalDecoder(), recreateDeploymentStrategy, out, errOut, until), nil
 			default:
 				return nil, fmt.Errorf("unsupported strategy type: %s", config.Spec.Strategy.Type)

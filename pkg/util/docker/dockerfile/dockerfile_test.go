@@ -460,6 +460,32 @@ ENV PORT 8080
 EXPOSE ${PORT}-8090`,
 			want: []string{"8080"},
 		},
+		"EXPOSE redefined ENV": {
+			in: `FROM centos:7
+ENV PORT 8080
+ENV PORT 8081
+EXPOSE $PORT`,
+			want: []string{"8081"},
+		},
+		"Multiple EXPOSE": {
+			in: `FROM centos:7
+ENV PORT 8080
+EXPOSE $PORT
+ENV PORT2 8081
+EXPOSE $PORT2`,
+			want: []string{"8080", "8081"},
+		},
+		"Multiple EXPOSE and ENV redefined": {
+			in: `FROM centos:7
+ENV PORT 8080
+EXPOSE $PORT
+ENV PORT2 8081
+ENV PORT 8082
+EXPOSE $PORT2 $PORT
+ENV PORT=8083 PORT2=8084
+EXPOSE $PORT $PORT2`,
+			want: []string{"8080", "8081", "8082", "8083", "8084"},
+		},
 	}
 	for name, tc := range testCases {
 		node, err := parser.Parse(strings.NewReader(tc.in))

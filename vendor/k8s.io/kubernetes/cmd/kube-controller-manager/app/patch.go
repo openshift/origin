@@ -11,12 +11,12 @@ import (
 var InformerFactoryOverride informers.SharedInformerFactory
 
 func ShimForOpenShift(controllerManagerOptions *options.KubeControllerManagerOptions, controllerManager *config.Config) (func(), error) {
-	if len(controllerManager.Extra.OpenShiftConfig) == 0 {
+	if len(controllerManager.Extra.OpenShiftContext.OpenShiftConfig) == 0 {
 		return func() {}, nil
 	}
 
 	// TODO this gets removed when no longer take flags and no longer build a recycler template
-	openshiftConfig, err := getOpenShiftConfig(controllerManager.Extra.OpenShiftConfig)
+	openshiftConfig, err := getOpenShiftConfig(controllerManager.Extra.OpenShiftContext.OpenShiftConfig)
 	if err != nil {
 		return func() {}, err
 	}
@@ -33,7 +33,7 @@ func ShimForOpenShift(controllerManagerOptions *options.KubeControllerManagerOpt
 	}
 
 	// TODO this should be replaced by using a flex volume to inject service serving cert CAs into pods instead of adding it to the sa token
-	if err := applyOpenShiftServiceServingCertCAFunc(path.Dir(controllerManager.Extra.OpenShiftConfig), openshiftConfig); err != nil {
+	if err := applyOpenShiftServiceServingCertCAFunc(path.Dir(controllerManager.Extra.OpenShiftContext.OpenShiftConfig), openshiftConfig); err != nil {
 		return func() {}, err
 	}
 
