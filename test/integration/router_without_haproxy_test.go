@@ -403,7 +403,7 @@ func initializeRouterPlugins(routeclient routeinternalclientset.Interface, proje
 	templatePlugin := &templateplugin.TemplatePlugin{Router: r}
 	statusPlugin := controller.NewStatusAdmitter(templatePlugin, routeclient.Route(), routeLister, name, "", lease, tracker)
 	validationPlugin := controller.NewExtendedValidator(statusPlugin, controller.RejectionRecorder(statusPlugin))
-	uniquePlugin := controller.NewUniqueHost(validationPlugin, controller.HostForRoute, false, controller.RejectionRecorder(statusPlugin))
+	uniquePlugin := controller.NewUniqueHost(validationPlugin, false, controller.RejectionRecorder(statusPlugin))
 
 	return templatePlugin, uniquePlugin
 }

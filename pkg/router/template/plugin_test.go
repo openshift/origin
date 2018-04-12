@@ -332,7 +332,7 @@ func TestHandleEndpoints(t *testing.T) {
 	templatePlugin := newDefaultTemplatePlugin(router, true, nil)
 	// TODO: move tests that rely on unique hosts to pkg/router/controller and remove them from
 	// here
-	plugin := controller.NewUniqueHost(templatePlugin, controller.HostForRoute, false, controller.LogRejections)
+	plugin := controller.NewUniqueHost(templatePlugin, false, controller.LogRejections)
 
 	for _, tc := range testCases {
 		plugin.HandleEndpoints(tc.eventType, tc.endpoints)
@@ -442,7 +442,7 @@ func TestHandleTCPEndpoints(t *testing.T) {
 	templatePlugin := newDefaultTemplatePlugin(router, false, nil)
 	// TODO: move tests that rely on unique hosts to pkg/router/controller and remove them from
 	// here
-	plugin := controller.NewUniqueHost(templatePlugin, controller.HostForRoute, false, controller.LogRejections)
+	plugin := controller.NewUniqueHost(templatePlugin, false, controller.LogRejections)
 
 	for _, tc := range testCases {
 		plugin.HandleEndpoints(tc.eventType, tc.endpoints)
@@ -484,7 +484,7 @@ func TestHandleRoute(t *testing.T) {
 	templatePlugin := newDefaultTemplatePlugin(router, true, nil)
 	// TODO: move tests that rely on unique hosts to pkg/router/controller and remove them from
 	// here
-	plugin := controller.NewUniqueHost(templatePlugin, controller.HostForRoute, false, rejections)
+	plugin := controller.NewUniqueHost(templatePlugin, false, rejections)
 
 	uidCount := 0
 	nextUID := func() types.UID {
@@ -1033,7 +1033,7 @@ func TestNamespaceScopingFromEmpty(t *testing.T) {
 	templatePlugin := newDefaultTemplatePlugin(router, true, nil)
 	// TODO: move tests that rely on unique hosts to pkg/router/controller and remove them from
 	// here
-	plugin := controller.NewUniqueHost(templatePlugin, controller.HostForRoute, false, controller.LogRejections)
+	plugin := controller.NewUniqueHost(templatePlugin, false, controller.LogRejections)
 
 	// no namespaces allowed
 	plugin.HandleNamespaces(sets.String{})

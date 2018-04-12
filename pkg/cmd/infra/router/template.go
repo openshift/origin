@@ -413,6 +413,7 @@ func (o *TemplateRouterOptions) Run() error {
 	}
 
 	factory := o.RouterSelection.NewFactory(routeclient, projectclient.Project().Projects(), kc)
+	factory.RouteModifierFn = o.RouteUpdate
 
 	var plugin router.Plugin = templatePlugin
 	var recorder controller.RejectionRecorder = controller.LogRejections
@@ -430,7 +431,7 @@ func (o *TemplateRouterOptions) Run() error {
 	if o.ExtendedValidation {
 		plugin = controller.NewExtendedValidator(plugin, recorder)
 	}
-	plugin = controller.NewUniqueHost(plugin, o.RouteSelectionFunc(), o.RouterSelection.DisableNamespaceOwnershipCheck, recorder)
+	plugin = controller.NewUniqueHost(plugin, o.RouterSelection.DisableNamespaceOwnershipCheck, recorder)
 	plugin = controller.NewHostAdmitter(plugin, o.RouteAdmissionFunc(), o.AllowWildcardRoutes, o.RouterSelection.DisableNamespaceOwnershipCheck, recorder)
 
 	controller := factory.Create(plugin, false)

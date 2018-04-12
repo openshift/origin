@@ -235,7 +235,23 @@ func TestStatusResetsHost(t *testing.T) {
 	admitter := NewStatusAdmitter(p, c.Route(), lister, "test", "", noopLease{}, tracker)
 	err := admitter.HandleRoute(watch.Added, route)
 
-	checkResult(t, err, c, admitter, "route1.test.local", now, &now.Time, 0, 0)
+	route = checkResult(t, err, c, admitter, "route1.test.local", now, &now.Time, 0, 0)
+	ingress := findIngressForRoute(route, "test")
+	if ingress == nil {
+		t.Fatalf("no ingress found: %#v", route)
+	}
+	if ingress.Host != "route1.test.local" {
+		t.Fatalf("incorrect ingress: %#v", ingress)
+	}
+}
+
+func findIngressForRoute(route *routeapi.Route, routerName string) *routeapi.RouteIngress {
+	for i := range route.Status.Ingress {
+		if route.Status.Ingress[i].RouterName == routerName {
+			return &route.Status.Ingress[i]
+		}
+	}
+	return nil
 }
 
 func TestStatusAdmitsRouteOnForbidden(t *testing.T) {
@@ -273,7 +289,14 @@ func TestStatusAdmitsRouteOnForbidden(t *testing.T) {
 	lister := &routeLister{items: []*routeapi.Route{route}}
 	admitter := NewStatusAdmitter(p, c.Route(), lister, "test", "", noopLease{}, tracker)
 	err := admitter.HandleRoute(watch.Added, route)
-	checkResult(t, err, c, admitter, "route1.test.local", now, &touched.Time, 0, 0)
+	route = checkResult(t, err, c, admitter, "route1.test.local", now, &touched.Time, 0, 0)
+	ingress := findIngressForRoute(route, "test")
+	if ingress == nil {
+		t.Fatalf("no ingress found: %#v", route)
+	}
+	if ingress.Host != "route1.test.local" {
+		t.Fatalf("incorrect ingress: %#v", ingress)
+	}
 }
 
 func TestStatusBackoffOnConflict(t *testing.T) {

@@ -855,7 +855,7 @@ func TestDisableOwnershipChecksFuzzing(t *testing.T) {
 
 	admitAll := func(route *routeapi.Route) error { return nil }
 	recorder := rejectionRecorder{rejections: make(map[string]string)}
-	uniqueHostPlugin := NewUniqueHost(p, HostForRoute, true, recorder)
+	uniqueHostPlugin := NewUniqueHost(p, true, recorder)
 	admitter := NewHostAdmitter(uniqueHostPlugin, RouteAdmissionFunc(admitAll), true, true, recorder)
 
 	oldest := metav1.Time{Time: time.Now()}

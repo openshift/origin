@@ -45,6 +45,7 @@ type RouterControllerFactory struct {
 	FieldSelector   string
 	NamespaceLabels labels.Selector
 	ProjectLabels   labels.Selector
+	RouteModifierFn func(route *routeapi.Route)
 
 	informers map[reflect.Type]kcache.SharedIndexInformer
 }
@@ -122,6 +123,7 @@ func (f *RouterControllerFactory) registerInformerEventHandlers(rc *routercontro
 		f.registerSharedInformerEventHandlers(&kapi.Namespace{}, rc.HandleNamespace)
 	}
 	f.registerSharedInformerEventHandlers(&kapi.Endpoints{}, rc.HandleEndpoints)
+
 	f.registerSharedInformerEventHandlers(&routeapi.Route{}, rc.HandleRoute)
 
 	if rc.WatchNodes {
@@ -218,13 +220,30 @@ func (f *RouterControllerFactory) CreateRoutesSharedInformer() kcache.SharedInde
 			if err != nil {
 				return nil, err
 			}
+			if f.RouteModifierFn != nil {
+				for i := range routeList.Items {
+					f.RouteModifierFn(&routeList.Items[i])
+				}
+			}
 			// Return routes in order of age to avoid rejections during resync
 			sort.Sort(routeAge(routeList.Items))
 			return routeList, nil
 		},
 		WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
 			f.setSelectors(&options)
-			return f.RClient.Route().Routes(f.Namespace).Watch(options)
+			w, err := f.RClient.Route().Routes(f.Namespace).Watch(options)
+			if err != nil {
+				return nil, err
+			}
+			if f.RouteModifierFn != nil {
+				watch.Filter(w, func(in watch.Event) (watch.Event, bool) {
+					if route, ok := in.Object.(*routeapi.Route); ok {
+						f.RouteModifierFn(route)
+					}
+					return in, true
+				})
+			}
+			return w, nil
 		},
 	}
 	indexers := kcache.Indexers{kcache.NamespaceIndex: kcache.MetaNamespaceIndexFunc}

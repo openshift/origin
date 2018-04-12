@@ -27,8 +27,7 @@ func HostForRoute(route *routeapi.Route) string {
 // UniqueHost implements the router.Plugin interface to provide
 // a template based, backend-agnostic router.
 type UniqueHost struct {
-	plugin       router.Plugin
-	hostForRoute RouteHostFunc
+	plugin router.Plugin
 
 	recorder RejectionRecorder
 
@@ -43,14 +42,13 @@ type UniqueHost struct {
 // NewUniqueHost creates a plugin wrapper that ensures only unique routes are passed into
 // the underlying plugin. Recorder is an interface for indicating why a route was
 // rejected.
-func NewUniqueHost(plugin router.Plugin, fn RouteHostFunc, disableOwnershipCheck bool, recorder RejectionRecorder) *UniqueHost {
+func NewUniqueHost(plugin router.Plugin, disableOwnershipCheck bool, recorder RejectionRecorder) *UniqueHost {
 	routeActivationFn := hostindex.SameNamespace
 	if disableOwnershipCheck {
 		routeActivationFn = hostindex.OldestFirst
 	}
 	return &UniqueHost{
-		plugin:       plugin,
-		hostForRoute: fn,
+		plugin: plugin,
 
 		recorder: recorder,
 
@@ -92,15 +90,14 @@ func (p *UniqueHost) HandleRoute(eventType watch.EventType, route *routeapi.Rout
 	}
 
 	routeName := routeNameKey(route)
+	host := route.Spec.Host
 
-	host := p.hostForRoute(route)
 	if len(host) == 0 {
 		glog.V(4).Infof("Route %s has no host value", routeName)
 		p.recorder.RecordRouteRejection(route, "NoHostValue", "no host value was defined for the route")
 		p.plugin.HandleRoute(watch.Deleted, route)
 		return nil
 	}
-	route.Spec.Host = host
 
 	// Validate that the route host name conforms to DNS requirements.
 	// Defends against routes created before validation rules were added for host names.

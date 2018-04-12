@@ -232,6 +232,7 @@ func (o *F5RouterOptions) Run() error {
 	}
 
 	factory := o.RouterSelection.NewFactory(routeclient, projectclient.Project().Projects(), kc)
+	factory.RouteModifierFn = o.RouteUpdate
 
 	var plugin router.Plugin = f5Plugin
 	var recorder controller.RejectionRecorder = controller.LogRejections
@@ -249,7 +250,7 @@ func (o *F5RouterOptions) Run() error {
 	if o.ExtendedValidation {
 		plugin = controller.NewExtendedValidator(plugin, recorder)
 	}
-	plugin = controller.NewUniqueHost(plugin, o.RouteSelectionFunc(), o.RouterSelection.DisableNamespaceOwnershipCheck, recorder)
+	plugin = controller.NewUniqueHost(plugin, o.RouterSelection.DisableNamespaceOwnershipCheck, recorder)
 	plugin = controller.NewHostAdmitter(plugin, o.F5RouteAdmitterFunc(), o.AllowWildcardRoutes, o.RouterSelection.DisableNamespaceOwnershipCheck, recorder)
 
 	watchNodes := (len(o.InternalAddress) != 0 && len(o.VxlanGateway) != 0)
