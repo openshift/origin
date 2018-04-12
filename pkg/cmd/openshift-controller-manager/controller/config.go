@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"fmt"
 	"path"
 	"time"
 
@@ -12,6 +13,9 @@ import (
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
+	sccallocation "github.com/openshift/origin/pkg/security/controller"
+	"github.com/openshift/origin/pkg/security/mcs"
+	"github.com/openshift/origin/pkg/security/uid"
 )
 
 func envVars(host string, caData []byte, insecure bool, bearerTokenFile string) []kapi.EnvVar {
@@ -54,6 +58,8 @@ func getOpenShiftClientEnvVars(options configapi.MasterConfig) ([]kapi.EnvVar, e
 type OpenshiftControllerConfig struct {
 	ServiceAccountControllerOptions ServiceAccountControllerOptions
 
+	NamespaceSecurityAllocationConfig NamespaceSecurityAllocationConfig
+
 	BuildControllerConfig BuildControllerConfig
 
 	DeployerControllerConfig         DeployerControllerConfig
@@ -78,6 +84,8 @@ func (c *OpenshiftControllerConfig) GetControllerInitializers() (map[string]Init
 	ret := map[string]InitFunc{}
 
 	ret["openshift.io/serviceaccount"] = c.ServiceAccountControllerOptions.RunController
+
+	ret["openshift.io/namespace-security-allocation"] = c.NamespaceSecurityAllocationConfig.RunController
 
 	ret["openshift.io/default-rolebindings"] = RunDefaultRoleBindingController
 
@@ -183,6 +191,19 @@ func BuildOpenshiftControllerConfig(options configapi.MasterConfig) (*OpenshiftC
 	// TODO this goes away with a truly generic autoscaler
 	ret.HorizontalPodAutoscalerControllerConfig = HorizontalPodAutoscalerControllerConfig{
 		HeapsterNamespace: bootstrappolicy.DefaultOpenShiftInfraNamespace,
+	}
+
+	uidRange, err := uid.ParseRange(options.ProjectConfig.SecurityAllocator.UIDAllocatorRange)
+	if err != nil {
+		return nil, fmt.Errorf("unable to describe UID range: %v", err)
+	}
+	mcsRange, err := mcs.ParseRange(options.ProjectConfig.SecurityAllocator.MCSAllocatorRange)
+	if err != nil {
+		return nil, fmt.Errorf("unable to describe MCS category range: %v", err)
+	}
+	ret.NamespaceSecurityAllocationConfig = NamespaceSecurityAllocationConfig{
+		RequiredUIDRange: uidRange,
+		MCS:              sccallocation.DefaultMCSAllocation(uidRange, mcsRange, options.ProjectConfig.SecurityAllocator.MCSLabelsPerProject),
 	}
 
 	return ret, nil

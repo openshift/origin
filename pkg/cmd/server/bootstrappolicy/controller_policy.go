@@ -17,25 +17,26 @@ import (
 const saRolePrefix = "system:openshift:controller:"
 
 const (
-	InfraOriginNamespaceServiceAccountName                      = "origin-namespace-controller"
-	InfraServiceAccountControllerServiceAccountName             = "serviceaccount-controller"
-	InfraServiceAccountPullSecretsControllerServiceAccountName  = "serviceaccount-pull-secrets-controller"
-	InfraServiceAccountTokensControllerServiceAccountName       = "serviceaccount-tokens-controller"
-	InfraServiceServingCertServiceAccountName                   = "service-serving-cert-controller"
-	InfraBuildControllerServiceAccountName                      = "build-controller"
-	InfraBuildConfigChangeControllerServiceAccountName          = "build-config-change-controller"
-	InfraDeploymentConfigControllerServiceAccountName           = "deploymentconfig-controller"
-	InfraDeployerControllerServiceAccountName                   = "deployer-controller"
-	InfraImageTriggerControllerServiceAccountName               = "image-trigger-controller"
-	InfraImageImportControllerServiceAccountName                = "image-import-controller"
-	InfraSDNControllerServiceAccountName                        = "sdn-controller"
-	InfraClusterQuotaReconciliationControllerServiceAccountName = "cluster-quota-reconciliation-controller"
-	InfraUnidlingControllerServiceAccountName                   = "unidling-controller"
-	InfraServiceIngressIPControllerServiceAccountName           = "service-ingress-ip-controller"
-	InfraPersistentVolumeRecyclerControllerServiceAccountName   = "pv-recycler-controller"
-	InfraResourceQuotaControllerServiceAccountName              = "resourcequota-controller"
-	InfraDefaultRoleBindingsControllerServiceAccountName        = "default-rolebindings-controller"
-	InfraIngressToRouteControllerServiceAccountName             = "ingress-to-route-controller"
+	InfraOriginNamespaceServiceAccountName                       = "origin-namespace-controller"
+	InfraServiceAccountControllerServiceAccountName              = "serviceaccount-controller"
+	InfraServiceAccountPullSecretsControllerServiceAccountName   = "serviceaccount-pull-secrets-controller"
+	InfraServiceAccountTokensControllerServiceAccountName        = "serviceaccount-tokens-controller"
+	InfraServiceServingCertServiceAccountName                    = "service-serving-cert-controller"
+	InfraBuildControllerServiceAccountName                       = "build-controller"
+	InfraBuildConfigChangeControllerServiceAccountName           = "build-config-change-controller"
+	InfraDeploymentConfigControllerServiceAccountName            = "deploymentconfig-controller"
+	InfraDeployerControllerServiceAccountName                    = "deployer-controller"
+	InfraImageTriggerControllerServiceAccountName                = "image-trigger-controller"
+	InfraImageImportControllerServiceAccountName                 = "image-import-controller"
+	InfraSDNControllerServiceAccountName                         = "sdn-controller"
+	InfraClusterQuotaReconciliationControllerServiceAccountName  = "cluster-quota-reconciliation-controller"
+	InfraUnidlingControllerServiceAccountName                    = "unidling-controller"
+	InfraServiceIngressIPControllerServiceAccountName            = "service-ingress-ip-controller"
+	InfraPersistentVolumeRecyclerControllerServiceAccountName    = "pv-recycler-controller"
+	InfraResourceQuotaControllerServiceAccountName               = "resourcequota-controller"
+	InfraDefaultRoleBindingsControllerServiceAccountName         = "default-rolebindings-controller"
+	InfraIngressToRouteControllerServiceAccountName              = "ingress-to-route-controller"
+	InfraNamespaceSecurityAllocationControllerServiceAccountName = "namespace-security-allocation-controller"
 
 	// template instance controller watches for TemplateInstance object creation
 	// and instantiates templates as a result.
@@ -375,6 +376,15 @@ func init() {
 			rbac.NewRule("create").Groups(rbacGroup).Resources("rolebindings").RuleOrDie(),
 			rbac.NewRule("get", "list", "watch").Groups(kapiGroup).Resources("namespaces").RuleOrDie(),
 			rbac.NewRule("get", "list", "watch").Groups(rbacGroup).Resources("rolebindings").RuleOrDie(),
+			eventsRule(),
+		},
+	})
+
+	addControllerRole(rbac.ClusterRole{
+		ObjectMeta: metav1.ObjectMeta{Name: saRolePrefix + InfraNamespaceSecurityAllocationControllerServiceAccountName},
+		Rules: []rbac.PolicyRule{
+			rbac.NewRule("get", "create", "update").Groups(securityGroup).Resources("rangeallocations").RuleOrDie(),
+			rbac.NewRule("get", "list", "watch", "update").Groups(kapiGroup).Resources("namespaces").RuleOrDie(),
 			eventsRule(),
 		},
 	})
