@@ -348,6 +348,13 @@ func (c *ClusterUpConfig) makeKubeletFlags(out io.Writer, nodeConfigDir string) 
 		flags = append(flags, "--cgroup-driver=cgroupfs")
 	}
 
+	// TODO: OSX snowflake
+	// Default changed in kube 1.10. This ultimately breaks Docker For Mac as every hostPath
+	// mount must be shared or rslave.
+	if runtime.GOOS == "darwin" {
+		flags = append(flags, "--feature-gates=MountPropagation=false")
+	}
+
 	return flags, nil
 }
 
@@ -431,7 +438,6 @@ func (c *ClusterUpConfig) startKubelet(out io.Writer, masterConfigDir, nodeConfi
 	if err != nil {
 		return "", fmt.Errorf("error creating node config: %v", err)
 	}
-
 	return kubeletContainerID, nil
 }
 
