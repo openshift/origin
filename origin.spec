@@ -19,12 +19,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 3d23c1cdde9fe704e3628060c3f309246e4e144c
+%global commit 72cbabb4d5dd84a8c9059e82b3b22fbe893b56a4
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=10+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.10.0-0.19.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 KUBE_GIT_VERSION=v1.10.0+b81c8f8 OS_GIT_PATCH=0 KUBE_GIT_COMMIT=b81c8f8 KUBE_GIT_MINOR=10+ OS_GIT_COMMIT=3b49db9 KUBE_GIT_MAJOR=1 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.16-0-g121edf0 ETCD_GIT_COMMIT=121edf0
+%global os_git_vars OS_GIT_MINOR=10+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.10.0-0.20.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 KUBE_GIT_VERSION=v1.10.0+b81c8f8 OS_GIT_PATCH=0 KUBE_GIT_COMMIT=b81c8f8 KUBE_GIT_MINOR=10+ OS_GIT_COMMIT=add29ac KUBE_GIT_MAJOR=1 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.16-0-g121edf0 ETCD_GIT_COMMIT=121edf0
 }
 
 %if 0%{?skip_build}
@@ -67,7 +67,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.10.0
-Release:        0.20.0%{?dist}
+Release:        0.21.0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -576,6 +576,39 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Thu Apr 12 2018 Justin Pierce <jupierce@redhat.com> 3.10.0-0.21.0
+- up: remove redundant localcmd, tsb registraion and container network test
+  (mfojtik@redhat.com)
+- up: make setup persistent volumes a component (mfojtik@redhat.com)
+- Revert "Better warning for --build-loglevel with binary builds"
+  (bparees@users.noreply.github.com)
+- apps: replace kubectl scaler in deployer with scale client and polling
+  (mfojtik@redhat.com)
+- oc new-app: correctly evaluate env vars in multiple EXPOSE
+  (jwozniak@redhat.com)
+- Removed an unused variable from reload-haproxy (bbennett@redhat.com)
+- Add sorting template helper code to sort haproxy map files so that wildcard
+  routes don't take precedence over routes that start with a number. Make the
+  template processing follow a particular order (based on file name), so that
+  we can use temporary files to write map data and subsequently sort into the
+  actual config map file. Fixup helper to also sort cert_config but non-grouped
+  to keep existing behavior (backward compatibility). Based on discussions in
+  PR #19076 to fix issue #16724 (smitram@gmail.com)
+- up: set MountPropagation=false on osx to bypass shared mount
+  (mfojtik@redhat.com)
+- create new controller for managing SCC annotation on namespaces
+  (deads@redhat.com)
+- generated (deads@redhat.com)
+- Refactor validate and complete in oc set volume (nakayamakenjiro@gmail.com)
+- Generated bindata changes (mkhan@redhat.com)
+- Fix service catalog RBAC template (mkhan@redhat.com)
+- Switch preferred storage to apps/v1 (jliggitt@redhat.com)
+- UPSTREAM: <carry>: filter daemonset nodes by namespace node selectors
+  (deads@redhat.com)
+- remove dead controller fields (deads@redhat.com)
+- oc: ex: dockergc: fix example DS to us oc instead of openshift
+  (sjenning@redhat.com)
+
 * Wed Apr 11 2018 Justin Pierce <jupierce@redhat.com> 3.10.0-0.20.0
 - Fix race in clusterquota test, tighten expected text (jliggitt@redhat.com)
 - UPSTREAM: <carry> prevent save-artifact tar extraction from overwriting files
