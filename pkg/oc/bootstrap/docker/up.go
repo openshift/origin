@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net"
 	"os"
+	"os/exec"
 	"path"
 	"path/filepath"
 	"runtime"
@@ -44,7 +45,6 @@ import (
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/errors"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/host"
-	"github.com/openshift/origin/pkg/oc/bootstrap/docker/localcmd"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/openshift"
 	"github.com/openshift/origin/pkg/version"
 )
@@ -201,6 +201,7 @@ var (
 		"rhel-imagestreams",
 		"router",
 		"sample-templates",
+		"persistent-volumes",
 		"service-catalog",
 		"template-service-broker",
 		"web-console",
@@ -232,7 +233,7 @@ func (c *ClusterUpConfig) Complete(cmd *cobra.Command, out io.Writer) error {
 		if !os.IsNotExist(err) {
 			return err
 		}
-		c.defaultClientConfig = (*clientcmdapi.NewConfig())
+		c.defaultClientConfig = *clientcmdapi.NewConfig()
 	}
 
 	c.command = cmd
@@ -686,9 +687,9 @@ func (c *ClusterUpConfig) checkDockerInsecureRegistry(out io.Writer) error {
 // checkPortForwardingPrerequisites checks that socat is installed when port forwarding is enabled
 // Socat needs to be installed manually on MacOS
 func checkPortForwardingPrerequisites(out io.Writer) error {
-	err := localcmd.New("socat").Args("-V").Run()
+	commandOut, err := exec.Command("socat", "-V").CombinedOutput()
 	if err != nil {
-		glog.V(2).Infof("Error from socat command execution: %v", err)
+		glog.V(2).Infof("Error from socat command execution: %v\n%s", err, string(commandOut))
 		fmt.Fprintln(out, "WARNING: Port forwarding requires socat command line utility."+
 			"Cluster public ip may not be reachable. Please make sure socat installed in your operating system.")
 	}
@@ -810,10 +811,6 @@ func (c *ClusterUpConfig) PostClusterStartupMutations(out io.Writer) error {
 		return err
 	}
 
-	err = c.OpenShiftHelper().SetupPersistentStorage(restConfig, c.HostPersistentVolumesDir)
-	if err != nil {
-		return err
-	}
 	return nil
 }
 
