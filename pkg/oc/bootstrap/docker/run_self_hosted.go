@@ -95,7 +95,6 @@ func (c *ClusterUpConfig) StartSelfHosted(out io.Writer) error {
 	if err != nil {
 		return err
 	}
-
 	// if we're supposed to write the config, we'll do that and then exit
 	if c.WriteConfig {
 		fmt.Printf("Wrote config to: %q\n", c.BaseDir)
@@ -114,15 +113,6 @@ func (c *ClusterUpConfig) StartSelfHosted(out io.Writer) error {
 	}
 	glog.V(2).Infof("started kubelet in container %q\n", kubeletContainerID)
 
-	substitutions := map[string]string{
-		"/path/to/master/config-dir":              configDirs.masterConfigDir,
-		"/path/to/openshift-apiserver/config-dir": configDirs.openshiftAPIServerConfigDir,
-		"ETCD_VOLUME":                             "emptyDir:\n",
-	}
-	if len(c.HostDataDir) > 0 {
-		substitutions["ETCD_VOLUME"] = `hostPath:
-      path: ` + c.HostDataDir + "\n"
-	}
 	templateSubstitutionValues := map[string]string{
 		"MASTER_CONFIG_HOST_PATH":                       configDirs.masterConfigDir,
 		"OPENSHIFT_APISERVER_CONFIG_HOST_PATH":          configDirs.openshiftAPIServerConfigDir,
@@ -130,13 +120,6 @@ func (c *ClusterUpConfig) StartSelfHosted(out io.Writer) error {
 		"NODE_CONFIG_HOST_PATH":                         configDirs.nodeConfigDir,
 		"KUBEDNS_CONFIG_HOST_PATH":                      configDirs.kubeDNSConfigDir,
 		"LOGLEVEL":                                      fmt.Sprintf("%d", c.ServerLogLevel),
-	}
-
-	glog.V(1).Info("creating static pods")
-	for _, staticPodLocation := range staticPodLocations {
-		if err := staticpods.UpsertStaticPod(staticPodLocation, substitutions, configDirs.podManifestDir); err != nil {
-			return err
-		}
 	}
 
 	clientConfigBuilder, err := kclientcmd.LoadFromFile(filepath.Join(configDirs.masterConfigDir, "admin.kubeconfig"))
@@ -269,8 +252,24 @@ func (c *ClusterUpConfig) BuildConfig() (*configDirs, error) {
 			return nil, err
 		}
 	}
-
 	glog.V(2).Infof("configLocations = %#v", *configLocations)
+
+	substitutions := map[string]string{
+		"/path/to/master/config-dir":              configLocations.masterConfigDir,
+		"/path/to/openshift-apiserver/config-dir": configLocations.openshiftAPIServerConfigDir,
+		"ETCD_VOLUME":                             "emptyDir:\n",
+	}
+	if len(c.HostDataDir) > 0 {
+		substitutions["ETCD_VOLUME"] = `hostPath:
+      path: ` + c.HostDataDir + "\n"
+	}
+
+	glog.V(2).Infof("Creating static pod definitions in %q", configLocations.podManifestDir)
+	for _, staticPodLocation := range staticPodLocations {
+		if err := staticpods.UpsertStaticPod(staticPodLocation, substitutions, configLocations.podManifestDir); err != nil {
+			return nil, err
+		}
+	}
 
 	return configLocations, nil
 }
