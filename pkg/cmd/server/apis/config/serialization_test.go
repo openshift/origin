@@ -40,6 +40,9 @@ func fuzzInternalObject(t *testing.T, forVersion schema.GroupVersion, item runti
 			if obj.ImagePolicyConfig.AllowedRegistriesForImport == nil {
 				obj.ImagePolicyConfig.AllowedRegistriesForImport = &configapi.AllowedRegistries{}
 			}
+			if len(obj.ControllerConfig.Controllers) == 0 {
+				obj.ControllerConfig.Controllers = []string{"*"}
+			}
 			if election := obj.ControllerConfig.Election; election != nil {
 				if len(election.LockNamespace) == 0 {
 					election.LockNamespace = "kube-system"
