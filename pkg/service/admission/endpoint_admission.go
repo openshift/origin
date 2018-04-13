@@ -6,9 +6,8 @@ import (
 	"net"
 	"reflect"
 
-	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
-
-	admission "k8s.io/apiserver/pkg/admission"
+	"k8s.io/apiserver/pkg/admission"
+	"k8s.io/apiserver/pkg/admission/initializer"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 )
@@ -29,7 +28,7 @@ type restrictedEndpointsAdmission struct {
 	restrictedNetworks []*net.IPNet
 }
 
-var _ = oadmission.WantsAuthorizer(&restrictedEndpointsAdmission{})
+var _ = initializer.WantsAuthorizer(&restrictedEndpointsAdmission{})
 
 // ParseSimpleCIDRRules parses a list of CIDR strings
 func ParseSimpleCIDRRules(rules []string) (networks []*net.IPNet, err error) {

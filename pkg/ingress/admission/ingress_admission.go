@@ -12,10 +12,10 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apiserver/pkg/admission"
+	"k8s.io/apiserver/pkg/admission/initializer"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 	kextensions "k8s.io/kubernetes/pkg/apis/extensions"
 
-	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	configlatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 	"github.com/openshift/origin/pkg/ingress/admission/apis/ingressadmission"
 )
@@ -41,7 +41,7 @@ type ingressAdmission struct {
 	authorizer authorizer.Authorizer
 }
 
-var _ = oadmission.WantsAuthorizer(&ingressAdmission{})
+var _ = initializer.WantsAuthorizer(&ingressAdmission{})
 
 func NewIngressAdmission(config *ingressadmission.IngressAdmissionConfig) *ingressAdmission {
 	return &ingressAdmission{
