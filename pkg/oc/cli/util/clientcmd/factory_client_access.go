@@ -20,6 +20,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/client-go/util/homedir"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -47,7 +48,6 @@ type ClientAccessFactory interface {
 	kcmdutil.ClientAccessFactory
 	CLIClientBuilder
 
-	OpenShiftClientConfig() kclientcmd.ClientConfig
 	ImageResolutionOptions() FlagBinder
 }
 
@@ -117,8 +117,8 @@ func (f *discoveryFactory) DiscoveryClient() (discovery.CachedDiscoveryInterface
 	return kcmdutil.NewCachedDiscoveryClient(newLegacyDiscoveryClient(kubeClient.Discovery().RESTClient()), cacheDir, time.Duration(10*time.Minute)), nil
 }
 
-func (f *ring0Factory) OpenShiftClientConfig() kclientcmd.ClientConfig {
-	return f.clientConfig
+func (f *ring0Factory) RawConfig() (clientcmdapi.Config, error) {
+	return f.kubeClientAccessFactory.RawConfig()
 }
 
 func (f *ring0Factory) DiscoveryClient() (discovery.CachedDiscoveryInterface, error) {
@@ -305,7 +305,7 @@ func (f *ring0Factory) ResolveImage(image string) (string, error) {
 	if isDockerImageSource(options.Source) {
 		return f.kubeClientAccessFactory.ResolveImage(image)
 	}
-	config, err := f.OpenShiftClientConfig().ClientConfig()
+	config, err := f.kubeClientAccessFactory.ClientConfig()
 	if err != nil {
 		return "", err
 	}

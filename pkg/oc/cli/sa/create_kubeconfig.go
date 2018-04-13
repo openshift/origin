@@ -94,7 +94,7 @@ func (o *CreateKubeconfigOptions) Complete(args []string, f *clientcmd.Factory, 
 		return err
 	}
 
-	o.RawConfig, err = f.OpenShiftClientConfig().RawConfig()
+	o.RawConfig, err = f.RawConfig()
 	if err != nil {
 		return err
 	}

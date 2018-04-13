@@ -115,7 +115,7 @@ func (o *NewProjectOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, a
 			return err
 		}
 	} else {
-		clientConfig, err := f.OpenShiftClientConfig().ClientConfig()
+		clientConfig, err := f.ClientConfig()
 		if err != nil {
 			return err
 		}

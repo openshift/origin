@@ -100,7 +100,7 @@ func (o *ProjectOptions) Complete(f *clientcmd.Factory, args []string, out io.Wr
 		o.ProjectName = args[0]
 	}
 
-	o.Config, err = f.OpenShiftClientConfig().RawConfig()
+	o.Config, err = f.RawConfig()
 	if err != nil {
 		return err
 	}
@@ -126,7 +126,7 @@ func (o *ProjectOptions) Complete(f *clientcmd.Factory, args []string, out io.Wr
 
 		// since we failed to retrieve ClientConfig for the current server,
 		// fetch local OpenShift client config
-		o.ClientConfig, err = f.OpenShiftClientConfig().ClientConfig()
+		o.ClientConfig, err = f.ClientConfig()
 		if err != nil {
 			return err
 		}

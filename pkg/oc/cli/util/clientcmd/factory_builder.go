@@ -68,7 +68,7 @@ func (f *ring2Factory) Reaper(mapping *meta.RESTMapping) (kubectl.Reaper, error)
 		if err != nil {
 			return nil, err
 		}
-		config, err := f.clientAccessFactory.OpenShiftClientConfig().ClientConfig()
+		config, err := f.clientAccessFactory.ClientConfig()
 		if err != nil {
 			return nil, err
 		}
@@ -134,7 +134,7 @@ func (f *ring2Factory) Reaper(mapping *meta.RESTMapping) (kubectl.Reaper, error)
 			securityClient.Security().SecurityContextConstraints(),
 		), nil
 	case buildapi.IsKindOrLegacy("BuildConfig", gk):
-		config, err := f.clientAccessFactory.OpenShiftClientConfig().ClientConfig()
+		config, err := f.clientAccessFactory.ClientConfig()
 		if err != nil {
 			return nil, err
 		}

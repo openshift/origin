@@ -92,12 +92,12 @@ func (o *ProjectsOptions) Complete(f *clientcmd.Factory, args []string, commandN
 	o.CommandName = commandName
 
 	var err error
-	o.Config, err = f.OpenShiftClientConfig().RawConfig()
+	o.Config, err = f.RawConfig()
 	if err != nil {
 		return err
 	}
 
-	o.ClientConfig, err = f.OpenShiftClientConfig().ClientConfig()
+	o.ClientConfig, err = f.ClientConfig()
 	if err != nil {
 		return err
 	}
