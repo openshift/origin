@@ -529,9 +529,9 @@ func (oc *ovsController) DeleteHostSubnetRules(subnet *networkapi.HostSubnet) er
 	cookie := hostSubnetCookie(subnet)
 
 	otx := oc.ovs.NewTransaction()
-	otx.DeleteFlows("table=10, cookie=0x%08x, tun_src=%s", cookie, subnet.HostIP)
-	otx.DeleteFlows("table=50, cookie=0x%08x, arp, nw_dst=%s", cookie, subnet.Subnet)
-	otx.DeleteFlows("table=90, cookie=0x%08x, ip, nw_dst=%s", cookie, subnet.Subnet)
+	otx.DeleteFlows("table=10, cookie=0x%08x/0xffffffff, tun_src=%s", cookie, subnet.HostIP)
+	otx.DeleteFlows("table=50, cookie=0x%08x/0xffffffff, arp, nw_dst=%s", cookie, subnet.Subnet)
+	otx.DeleteFlows("table=90, cookie=0x%08x/0xffffffff, ip, nw_dst=%s", cookie, subnet.Subnet)
 	return otx.EndTransaction()
 }
 
