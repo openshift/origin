@@ -191,14 +191,14 @@ func (oc *ovsController) SetupOVS(clusterNetworkCIDR []string, serviceNetworkCID
 	// eg, "table=90, priority=100, ip, nw_dst=${remote_subnet_cidr}, actions=move:NXM_NX_REG0[]->NXM_NX_TUN_ID[0..31], set_field:${remote_node_ip}->tun_dst,output:1"
 	otx.AddFlow("table=90, priority=0, actions=drop")
 
-	// Table 100: egress routing; edited by UpdateNamespaceEgressRules()
-	// eg, "table=100, priority=100, reg0=${tenant_id}, ip, actions=set_field:${egress_ip_hex}->pkt_mark,output:2"
+	// Table 100: egress routing; edited by SetNamespaceEgress*()
+	otx.AddFlow("table=100, priority=200,tcp,tcp_dst=53,nw_dst=%s,actions=output:2", oc.localIP)
+	otx.AddFlow("table=100, priority=200,udp,udp_dst=53,nw_dst=%s,actions=output:2", oc.localIP)
+	// eg, "table=100, priority=100, reg0=${tenant_id}, ip, actions=set_field:${tun0_mac}->eth_dst,set_field:${egress_mark}->pkt_mark,goto_table:101"
 	otx.AddFlow("table=100, priority=0, actions=goto_table:101")
 
 	// Table 101: egress network policy dispatch; edited by UpdateEgressNetworkPolicy()
 	// eg, "table=101, reg0=${tenant_id}, priority=2, ip, nw_dst=${external_cidr}, actions=drop
-	otx.AddFlow("table=101, priority=%d,tcp,tcp_dst=53,nw_dst=%s,actions=output:2", networkapi.EgressNetworkPolicyMaxRules+1, oc.localIP)
-	otx.AddFlow("table=101, priority=%d,udp,udp_dst=53,nw_dst=%s,actions=output:2", networkapi.EgressNetworkPolicyMaxRules+1, oc.localIP)
 	otx.AddFlow("table=101, priority=0, actions=output:2")
 
 	// Table 110: outbound multicast filtering, updated by UpdateLocalMulticastFlows()
