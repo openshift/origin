@@ -68,6 +68,7 @@ func NewCommandStartEtcdServer(name, basename string, out, errout io.Writer) (*c
 		},
 	}
 
+	cmd.Deprecated = "openshift start etcd is deprecated, not supported for production, and will be removed in a future release.  Please use `etcd`."
 	flags := cmd.Flags()
 	// This command only supports reading from config
 	flags.StringVar(&options.ConfigFile, "config", "", "Location of the master configuration file to run from.")

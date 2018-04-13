@@ -99,6 +99,7 @@ func NewCommandStartAllInOne(basename string, out, errout io.Writer, stopCh <-ch
 		},
 	}
 	cmds.SetOutput(out)
+	cmds.Deprecated = "all-in-one is deprecated, not supported for production, and will be removed in a future release.  Please use `oc cluster up` for local development."
 
 	flags := cmds.Flags()
 
@@ -124,6 +125,7 @@ func NewCommandStartAllInOne(basename string, out, errout io.Writer, stopCh <-ch
 	startNodeNetwork, _ := NewCommandStartNetwork(basename, out, errout)
 	startEtcdServer, _ := NewCommandStartEtcdServer(RecommendedStartEtcdServerName, basename, out, errout)
 	startTSBServer := tsbcmd.NewCommandStartTemplateServiceBrokerServer(out, errout, wait.NeverStop)
+	startTSBServer.Deprecated = "openshift start template-service-broker is deprecated, not supported for production, and will be removed in a future release.  Please use `template-service-broker`."
 	cmds.AddCommand(startMaster)
 	cmds.AddCommand(startNode)
 	cmds.AddCommand(startNodeNetwork)
