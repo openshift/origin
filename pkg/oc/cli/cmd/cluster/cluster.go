@@ -27,8 +27,7 @@ var (
 		'join' command on another machine to connect to the first cluster.
 
 		To use an existing Docker connection, ensure that Docker commands are working and that you
-		can create new containers. For OS X and Windows clients, a docker-machine with the VirtualBox
-		driver can be created for you using the --create-machine option.
+		can create new containers.
 
 		By default, etcd data will not be preserved between container restarts. If you wish to
 		preserve your data, specify a value for --host-data-dir and the --use-existing-config flag.

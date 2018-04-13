@@ -19,17 +19,11 @@ const CmdDownRecommendedName = "down"
 
 var (
 	cmdDownLong = templates.LongDesc(`
-		Stops the container running OpenShift on Docker and associated containers.
-
-		If you started your OpenShift with a specific docker-machine, you need to specify the
-		same machine using the --docker-machine argument.`)
+		Stops the container running OpenShift on Docker and associated containers.`)
 
 	cmdDownExample = templates.Examples(`
 	  # Stop local OpenShift cluster
-	  %[1]s
-
-	  # Stop cluster running on Docker machine 'mymachine'
-	  %[1]s --docker-machine=mymachine`)
+	  %[1]s`)
 )
 
 type ClientStopConfig struct {

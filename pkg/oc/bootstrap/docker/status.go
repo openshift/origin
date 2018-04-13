@@ -27,17 +27,11 @@ const CmdStatusRecommendedName = "status"
 
 var (
 	cmdStatusLong = templates.LongDesc(`
-		Show the status of the local OpenShift cluster.
-
-		If you started your OpenShift with a specific docker-machine, you need to specify the
-		same machine using the --docker-machine argument.`)
+		Show the status of the local OpenShift cluster.`)
 
 	cmdStatusExample = templates.Examples(`
 		# See status of local OpenShift cluster
-		%[1]s
-
-		# See status of OpenShift cluster running on Docker machine 'mymachine'
-		%[1]s --docker-machine=mymachine`)
+		%[1]s`)
 )
 
 // NewCmdStatus implements the OpenShift cluster status command.
