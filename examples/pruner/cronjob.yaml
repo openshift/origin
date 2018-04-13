@@ -1,4 +1,4 @@
-apiVersion: batch/v2alpha1
+apiVersion: batch/v1beta1
 kind: CronJob
 metadata:
   name: prune-images
@@ -16,3 +16,4 @@ spec:
             image: openshift/origin:latest
             args: [ "admin", "prune", "images", "--confirm"]
           restartPolicy: OnFailure
+          serviceAccountName: image-pruner
