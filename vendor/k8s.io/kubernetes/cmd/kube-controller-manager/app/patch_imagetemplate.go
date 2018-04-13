@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	"k8s.io/kubernetes/pkg/version"
+	"github.com/openshift/origin/pkg/version"
 
 	"github.com/golang/glog"
 )
