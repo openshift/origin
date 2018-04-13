@@ -132,6 +132,7 @@ func (r *tarStrategy) Copy(source, destination *pathSpec, out, errOut io.Writer)
 	if err != nil {
 		return fmt.Errorf("cannot create local temporary file for tar: %v", err)
 	}
+	defer tmp.Close()
 	defer os.Remove(tmp.Name())
 
 	// Create tar
@@ -154,15 +155,9 @@ func (r *tarStrategy) Copy(source, destination *pathSpec, out, errOut io.Writer)
 		}
 	}
 
-	err = tmp.Close()
-	if err != nil {
-		return fmt.Errorf("error closing temporary tar file %s: %v", tmp.Name(), err)
+	if _, err := tmp.Seek(0, io.SeekStart); err != nil {
+		return fmt.Errorf("error resetting position in a temporary tar file %s: %v", tmp.Name(), err)
 	}
-	tmp, err = os.Open(tmp.Name())
-	if err != nil {
-		return fmt.Errorf("cannot open temporary tar file %s: %v", tmp.Name(), err)
-	}
-	defer tmp.Close()
 
 	// Extract tar
 	if destination.Local() {
