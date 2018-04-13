@@ -7,6 +7,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
+	"k8s.io/apiserver/pkg/authorization/authorizer"
 	"k8s.io/apiserver/pkg/registry/rest"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	restclient "k8s.io/client-go/rest"
@@ -30,6 +31,7 @@ type ExtraConfig struct {
 	SCCStorage            *sccstorage.REST
 	SecurityInformers     securityinformer.SharedInformerFactory
 	KubeInternalInformers kinternalinformers.SharedInformerFactory
+	Authorizer            authorizer.Authorizer
 
 	// TODO these should all become local eventually
 	Scheme   *runtime.Scheme
@@ -115,17 +117,18 @@ func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
 	if false && sccStorage == nil {
 		sccStorage = sccstorage.NewREST(c.GenericConfig.RESTOptionsGetter)
 	}
+	sccMatcher := oscc.NewDefaultSCCMatcher(c.ExtraConfig.SecurityInformers.Security().InternalVersion().SecurityContextConstraints().Lister(), c.ExtraConfig.Authorizer)
 	podSecurityPolicyReviewStorage := podsecuritypolicyreview.NewREST(
-		oscc.NewDefaultSCCMatcher(c.ExtraConfig.SecurityInformers.Security().InternalVersion().SecurityContextConstraints().Lister()),
+		sccMatcher,
 		c.ExtraConfig.KubeInternalInformers.Core().InternalVersion().ServiceAccounts().Lister(),
 		kubeInternalClient,
 	)
 	podSecurityPolicySubjectStorage := podsecuritypolicysubjectreview.NewREST(
-		oscc.NewDefaultSCCMatcher(c.ExtraConfig.SecurityInformers.Security().InternalVersion().SecurityContextConstraints().Lister()),
+		sccMatcher,
 		kubeInternalClient,
 	)
 	podSecurityPolicySelfSubjectReviewStorage := podsecuritypolicyselfsubjectreview.NewREST(
-		oscc.NewDefaultSCCMatcher(c.ExtraConfig.SecurityInformers.Security().InternalVersion().SecurityContextConstraints().Lister()),
+		sccMatcher,
 		kubeInternalClient,
 	)
 	uidRangeStorage := rangeallocations.NewREST(c.GenericConfig.RESTOptionsGetter)

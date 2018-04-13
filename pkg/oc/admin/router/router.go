@@ -906,7 +906,7 @@ func validateServiceAccount(client securityclientinternal.Interface, ns string, 
 	// get set of sccs applicable to the service account
 	userInfo := serviceaccount.UserInfo(ns, serviceAccount, "")
 	for _, scc := range sccList.Items {
-		if oscc.ConstraintAppliesTo(&scc, userInfo) {
+		if oscc.ConstraintAppliesTo(&scc, userInfo, "", nil) {
 			switch {
 			case hostPorts && scc.AllowHostPorts:
 				return nil

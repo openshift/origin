@@ -68,7 +68,7 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, _ rest.Validat
 	newStatus := securityapi.PodSecurityPolicyReviewStatus{}
 	for _, sa := range serviceAccounts {
 		userInfo := serviceaccount.UserInfo(ns, sa.Name, "")
-		saConstraints, err := r.sccMatcher.FindApplicableSCCs(userInfo)
+		saConstraints, err := r.sccMatcher.FindApplicableSCCs(userInfo, ns)
 		if err != nil {
 			errs = append(errs, fmt.Errorf("unable to find SecurityContextConstraints for ServiceAccount %s: %v", sa.Name, err))
 			continue
