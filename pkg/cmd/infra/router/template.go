@@ -27,7 +27,6 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
-	clientcmd "github.com/openshift/origin/pkg/client/cmd"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	"github.com/openshift/origin/pkg/cmd/util"
 	cmdversion "github.com/openshift/origin/pkg/cmd/version"
@@ -63,7 +62,7 @@ var routerLong = templates.LongDesc(`
 	that you must have a cluster-wide administrative role to view all namespaces.`)
 
 type TemplateRouterOptions struct {
-	Config *clientcmd.Config
+	Config *Config
 
 	TemplateRouter
 	RouterStats
@@ -138,12 +137,12 @@ func (o *RouterStats) Bind(flag *pflag.FlagSet) {
 // NewCommndTemplateRouter provides CLI handler for the template router backend
 func NewCommandTemplateRouter(name string) *cobra.Command {
 	options := &TemplateRouterOptions{
-		Config: clientcmd.NewConfig(),
+		Config: NewConfig(),
 	}
 	options.Config.FromFile = true
 
 	cmd := &cobra.Command{
-		Use:   fmt.Sprintf("%s%s", name, clientcmd.ConfigSyntax),
+		Use:   fmt.Sprintf("%s%s", name, ConfigSyntax),
 		Short: "Start a router",
 		Long:  routerLong,
 		Run: func(c *cobra.Command, args []string) {
