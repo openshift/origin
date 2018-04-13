@@ -31,7 +31,8 @@ os::cmd::expect_success_and_not_text 'oc get bc' 'does not exist'
 
   os::cmd::expect_failure_and_text 'env -u KUBERNETES_SERVICE_HOST oc get buildconfigs --context="test"' 'context was not found for specified context: test'
   os::cmd::expect_failure_and_text 'env -u KUBERNETES_SERVICE_HOST oc get buildconfigs --cluster="test"' 'no server found for cluster "test"'
-  os::cmd::expect_failure_and_text 'env -u KUBERNETES_SERVICE_HOST oc get buildconfigs --user="test"' 'auth info "test" does not exist'
+  # need some level of default (both upstream and here) to get the pretty auth message because you fail on namespace first.
+  os::cmd::expect_failure_and_text 'KUBERNETES_MASTER=anything env -u KUBERNETES_SERVICE_HOST oc get buildconfigs --user="test"' 'auth info "test" does not exist'
 
   os::cmd::expect_failure_and_text 'oc get bc --config=missing' 'missing: no such file or directory'
 

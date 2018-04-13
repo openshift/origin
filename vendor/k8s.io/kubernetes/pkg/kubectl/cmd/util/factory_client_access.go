@@ -179,7 +179,11 @@ func DefaultClientConfig(flags *pflag.FlagSet) clientcmd.ClientConfig {
 	// DEPRECATED: remove and replace with something more accurate
 	loadingRules.DefaultClientConfig = &clientcmd.DefaultClientConfig
 
-	flags.StringVar(&loadingRules.ExplicitPath, "kubeconfig", "", "Path to the kubeconfig file to use for CLI requests.")
+	if clientcmd.UseOpenShiftKubeConfigValues {
+		flags.StringVar(&loadingRules.ExplicitPath, clientcmd.OpenShiftKubeConfigFlagName, "", "Path to the kubeconfig file to use for CLI requests.")
+	} else {
+		flags.StringVar(&loadingRules.ExplicitPath, "kubeconfig", "", "Path to the kubeconfig file to use for CLI requests.")
+	}
 
 	overrides := &clientcmd.ConfigOverrides{ClusterDefaults: clientcmd.ClusterDefaults}
 
@@ -190,6 +194,9 @@ func DefaultClientConfig(flags *pflag.FlagSet) clientcmd.ClientConfig {
 	clientcmd.BindOverrideFlags(overrides, flags, flagNames)
 	clientConfig := clientcmd.NewInteractiveDeferredLoadingClientConfig(loadingRules, overrides, os.Stdin)
 
+	if clientcmd.UseOpenShiftKubeConfigValues {
+		return clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, overrides)
+	}
 	return clientConfig
 }
 

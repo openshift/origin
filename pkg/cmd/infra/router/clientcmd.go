@@ -1,4 +1,4 @@
-package cmd
+package router
 
 import (
 	"fmt"
@@ -17,7 +17,6 @@ import (
 
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
-	"github.com/openshift/origin/pkg/client/config"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	"github.com/openshift/origin/pkg/cmd/util"
 )
@@ -62,13 +61,6 @@ func (cfg *Config) Bind(flags *pflag.FlagSet) {
 	} else {
 		BindClientConfigSecurityFlags(&cfg.CommonConfig, flags)
 	}
-}
-
-// BindToFile is used when this config will not be bound to flags, but should load the config file
-// from disk if available.
-func (cfg *Config) BindToFile() *Config {
-	cfg.clientConfig = DefaultClientConfig(pflag.NewFlagSet("empty", pflag.ContinueOnError))
-	return cfg
 }
 
 // OpenShiftConfig returns the OpenShift configuration
@@ -205,9 +197,9 @@ func (cfg *Config) bindEnv() error {
 }
 
 func DefaultClientConfig(flags *pflag.FlagSet) kclientcmd.ClientConfig {
-	loadingRules := config.NewOpenShiftClientConfigLoadingRules()
-	flags.StringVar(&loadingRules.ExplicitPath, config.OpenShiftConfigFlagName, "", "Path to the config file to use for CLI requests.")
-	cobra.MarkFlagFilename(flags, config.OpenShiftConfigFlagName)
+	loadingRules := kclientcmd.NewDefaultClientConfigLoadingRules()
+	flags.StringVar(&loadingRules.ExplicitPath, kclientcmd.OpenShiftKubeConfigFlagName, "", "Path to the config file to use for CLI requests.")
+	cobra.MarkFlagFilename(flags, kclientcmd.OpenShiftKubeConfigFlagName)
 
 	// set our explicit defaults
 	defaultOverrides := &kclientcmd.ConfigOverrides{ClusterDefaults: kclientcmdapi.Cluster{Server: os.Getenv("KUBERNETES_MASTER")}}
