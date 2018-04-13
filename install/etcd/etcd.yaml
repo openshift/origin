@@ -11,7 +11,8 @@ spec:
   hostNetwork: true
   containers:
   - name: etcd
-    image: openshift/origin-control-plane:latest
+    image: OPENSHIFT_IMAGE
+    imagePullPolicy: OPENSHIFT_PULL_POLICY
     workingDir: /var/lib/etcd
     command: ["/bin/bash", "-c"]
     args:

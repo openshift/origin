@@ -115,6 +115,10 @@ func (c *ClusterUpConfig) StartSelfHosted(out io.Writer) error {
 		"OPENSHIFT_CONTROLLER_MANAGER_CONFIG_HOST_PATH": configDirs.openshiftControllerConfigDir,
 		"NODE_CONFIG_HOST_PATH":                         configDirs.nodeConfigDir,
 		"KUBEDNS_CONFIG_HOST_PATH":                      configDirs.kubeDNSConfigDir,
+		"OPENSHIFT_PULL_POLICY":                         c.defaultPullPolicy,
+		"OPENSHIFT_IMAGE":                               c.openshiftImage(),
+		"OPENSHIFT_TSB_IMAGE":                           c.ImageTemplate.ExpandOrDie("origin-template-service-broker"),
+		"OPENSHIFT_WEBCONSOLE_IMAGE":                    c.ImageTemplate.ExpandOrDie("web-console"),
 		"LOGLEVEL":                                      fmt.Sprintf("%d", c.ServerLogLevel),
 		"IMAGE":                                         c.openshiftImage(),
 	}
@@ -309,23 +313,28 @@ func (c *ClusterUpConfig) BuildConfig() (*configDirs, error) {
 		}
 
 	}
+
 	substitutions := map[string]string{
 		"/path/to/master/config-dir":              configs.masterConfigDir,
 		"/path/to/openshift-apiserver/config-dir": configs.openshiftAPIServerConfigDir,
 		"ETCD_VOLUME":                             "emptyDir:\n",
-		"openshift/origin-control-plane:latest":   c.openshiftImage(),
+		"OPENSHIFT_IMAGE":                         c.openshiftImage(),
+		"OPENSHIFT_PULL_POLICY":                   c.defaultPullPolicy,
 	}
+
 	if len(c.HostDataDir) > 0 {
 		substitutions["ETCD_VOLUME"] = `hostPath:
       path: ` + c.HostDataDir + "\n"
 	}
 
 	glog.V(2).Infof("Creating static pod definitions in %q", configs.podManifestDir)
+	glog.V(3).Infof("Substitutions: %#v", substitutions)
 	for _, staticPodLocation := range staticPodLocations {
 		if err := staticpods.UpsertStaticPod(staticPodLocation, substitutions, configs.podManifestDir); err != nil {
 			return nil, err
 		}
 	}
+
 	if c.isRemoteDocker {
 		configs.podManifestDir, err = c.copyToRemote(configs.podManifestDir, kubelet.PodManifestDirName)
 		if err != nil {

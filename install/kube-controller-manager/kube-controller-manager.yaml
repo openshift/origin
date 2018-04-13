@@ -11,7 +11,8 @@ spec:
   hostNetwork: true
   containers:
   - name: controllers
-    image: openshift/origin-control-plane:latest
+    image: OPENSHIFT_IMAGE
+    imagePullPolicy: OPENSHIFT_PULL_POLICY
     command: ["hyperkube", "kube-controller-manager"]
     args:
     - "--enable-dynamic-provisioning=true"

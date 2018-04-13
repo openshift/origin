@@ -3,8 +3,10 @@ kind: Template
 metadata:
   name: openshift-controller-manager
 parameters:
-- name: IMAGE
+- name: OPENSHIFT_IMAGE
   value: openshift/origin-control-plane:latest
+- name: OPENSHIFT_PULL_POLICY
+  value: Always
 - name: NAMESPACE
   value: openshift-controller-manager
 - name: LOGLEVEL
@@ -40,8 +42,8 @@ objects:
         hostNetwork: true
         containers:
         - name: c
-          image: ${IMAGE}
-          imagePullPolicy: IfNotPresent
+          image: ${OPENSHIFT_IMAGE}
+          imagePullPolicy: ${OPENSHIFT_PULL_POLICY}
           command: ["hypershift", "openshift-controller-manager"]
           args:
           - "--config=/etc/origin/master/master-config.yaml"
