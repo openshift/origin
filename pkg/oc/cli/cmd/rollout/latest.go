@@ -105,11 +105,15 @@ func (o *RolloutLatestOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command
 	if err != nil {
 		return err
 	}
-	appsClient, err := f.OpenshiftInternalAppsClient()
+	clientConfig, err := f.ClientConfig()
 	if err != nil {
 		return err
 	}
-	o.appsClient = appsClient.Apps()
+	appsClient, err := appsclientinternal.NewForConfig(clientConfig)
+	if err != nil {
+		return err
+	}
+	o.appsClient = appsClient
 
 	o.mapper, o.typer = f.Object()
 	o.infos, err = f.NewBuilder().

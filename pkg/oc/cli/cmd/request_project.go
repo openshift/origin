@@ -14,6 +14,7 @@ import (
 	cliconfig "github.com/openshift/origin/pkg/oc/cli/config"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
+	projectclientinternal "github.com/openshift/origin/pkg/project/generated/internalclientset"
 	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset/typed/project/internalversion"
 )
 
@@ -85,7 +86,9 @@ func NewCmdRequestProject(name, baseName string, f *clientcmd.Factory, out, erro
 		Example: fmt.Sprintf(requestProjectExample, baseName, name),
 		Run: func(cmd *cobra.Command, args []string) {
 			kcmdutil.CheckErr(o.Complete(f, cmd, args))
-			projectClient, err := f.OpenshiftInternalProjectClient()
+			clientConfig, err := f.ClientConfig()
+			kcmdutil.CheckErr(err)
+			projectClient, err := projectclientinternal.NewForConfig(clientConfig)
 			kcmdutil.CheckErr(err)
 			o.Client = projectClient.Project()
 			kcmdutil.CheckErr(o.Run())

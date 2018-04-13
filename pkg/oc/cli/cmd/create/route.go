@@ -13,6 +13,7 @@ import (
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
+	routeclientinternal "github.com/openshift/origin/pkg/route/generated/internalclientset"
 	fileutil "github.com/openshift/origin/pkg/util/file"
 )
 
@@ -95,7 +96,11 @@ func CreateEdgeRoute(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, ar
 	if err != nil {
 		return err
 	}
-	routeClient, err := f.OpenshiftInternalRouteClient()
+	clientConfig, err := f.ClientConfig()
+	if err != nil {
+		return err
+	}
+	routeClient, err := routeclientinternal.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
@@ -210,7 +215,11 @@ func CreatePassthroughRoute(f *clientcmd.Factory, out io.Writer, cmd *cobra.Comm
 	if err != nil {
 		return err
 	}
-	routeClient, err := f.OpenshiftInternalRouteClient()
+	clientConfig, err := f.ClientConfig()
+	if err != nil {
+		return err
+	}
+	routeClient, err := routeclientinternal.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
@@ -319,7 +328,11 @@ func CreateReencryptRoute(f *clientcmd.Factory, out io.Writer, cmd *cobra.Comman
 	if err != nil {
 		return err
 	}
-	routeClient, err := f.OpenshiftInternalRouteClient()
+	clientConfig, err := f.ClientConfig()
+	if err != nil {
+		return err
+	}
+	routeClient, err := routeclientinternal.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}

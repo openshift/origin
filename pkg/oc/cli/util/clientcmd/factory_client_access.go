@@ -38,15 +38,12 @@ import (
 )
 
 type ring0Factory struct {
-	*OpenshiftCLIClientBuilder
-
 	clientConfig            kclientcmd.ClientConfig
 	kubeClientAccessFactory kcmdutil.ClientAccessFactory
 }
 
 type ClientAccessFactory interface {
 	kcmdutil.ClientAccessFactory
-	CLIClientBuilder
 }
 
 func NewClientAccessFactory(optionalClientConfig kclientcmd.ClientConfig) ClientAccessFactory {
@@ -68,7 +65,6 @@ func NewClientAccessFactory(optionalClientConfig kclientcmd.ClientConfig) Client
 		clientConfig,
 		&discoveryFactory{clientConfig: clientConfig},
 	)
-	factory.OpenshiftCLIClientBuilder = &OpenshiftCLIClientBuilder{config: clientConfig}
 
 	return factory
 }

@@ -103,11 +103,15 @@ func (o *PruneDeploymentsOptions) Complete(f *clientcmd.Factory, cmd *cobra.Comm
 	if err != nil {
 		return err
 	}
-	appsClient, err := f.OpenshiftInternalAppsClient()
+	clientConfig, err := f.ClientConfig()
 	if err != nil {
 		return err
 	}
-	o.AppsClient = appsClient.Apps()
+	appsClient, err := appsclientinternal.NewForConfig(clientConfig)
+	if err != nil {
+		return err
+	}
+	o.AppsClient = appsClient
 	o.KClient = kClient
 
 	return nil

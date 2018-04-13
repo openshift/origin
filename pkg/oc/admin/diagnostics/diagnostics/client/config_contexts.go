@@ -12,6 +12,7 @@ import (
 
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/types"
 	osclientcmd "github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
+	projectclientinternal "github.com/openshift/origin/pkg/project/generated/internalclientset"
 )
 
 // ConfigContext diagnostics (one per context) validate that the client config context is complete and has connectivity to the master.
@@ -235,26 +236,30 @@ func (d ConfigContext) Check() types.DiagnosticResult {
 
 	// Actually send a request to see if context has connectivity.
 	// Note: we cannot reuse factories as they cache the clients, so build new factory for each context.
-	projectClient, err := osclientcmd.NewFactory(kclientcmd.NewDefaultClientConfig(*d.RawConfig, &kclientcmd.ConfigOverrides{Context: *context})).OpenshiftInternalProjectClient()
-	// client create now *fails* if cannot connect to server; so, address connectivity errors below
+	temporaryFactory := osclientcmd.NewFactory(kclientcmd.NewDefaultClientConfig(*d.RawConfig, &kclientcmd.ConfigOverrides{Context: *context}))
+	clientConfig, err := temporaryFactory.ClientConfig()
 	if err == nil {
-		if projects, projerr := projectClient.Project().Projects().List(metav1.ListOptions{}); projerr != nil {
-			err = projerr
-		} else { // success!
-			list := []string{}
-			for i, project := range projects.Items {
-				if i > 9 {
-					list = append(list, "...")
-					break
+		projectClient, err := projectclientinternal.NewForConfig(clientConfig)
+		// client create now *fails* if cannot connect to server; so, address connectivity errors below
+		if err == nil {
+			if projects, projerr := projectClient.Project().Projects().List(metav1.ListOptions{}); projerr != nil {
+				err = projerr
+			} else { // success!
+				list := []string{}
+				for i, project := range projects.Items {
+					if i > 9 {
+						list = append(list, "...")
+						break
+					}
+					list = append(list, project.Name)
 				}
-				list = append(list, project.Name)
+				if len(list) == 0 {
+					r.Info("DCli0003", msgText+"Successfully requested project list, but it is empty, so user has no access to anything.")
+				} else {
+					r.Info("DCli0004", msgText+fmt.Sprintf("Successfully requested project list; has access to project(s):\n  %v", list))
+				}
+				return r
 			}
-			if len(list) == 0 {
-				r.Info("DCli0003", msgText+"Successfully requested project list, but it is empty, so user has no access to anything.")
-			} else {
-				r.Info("DCli0004", msgText+fmt.Sprintf("Successfully requested project list; has access to project(s):\n  %v", list))
-			}
-			return r
 		}
 	}
 

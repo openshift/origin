@@ -11,6 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 
+	networkclientinternal "github.com/openshift/origin/pkg/network/generated/internalclientset"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/log"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/types"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/options"
@@ -123,7 +124,11 @@ func (o NetworkPodDiagnosticsOptions) buildNetworkPodDiagnostics() ([]types.Diag
 	if clientErr != nil {
 		return nil, clientErr
 	}
-	networkClient, err := factory.OpenshiftInternalNetworkClient()
+	clientConfig, err := factory.ClientConfig()
+	if err != nil {
+		return nil, err
+	}
+	networkClient, err := networkclientinternal.NewForConfig(clientConfig)
 	if err != nil {
 		return nil, err
 	}

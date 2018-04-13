@@ -15,6 +15,7 @@ import (
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
+	securityclientinternal "github.com/openshift/origin/pkg/security/generated/internalclientset"
 	securitytypedclient "github.com/openshift/origin/pkg/security/generated/internalclientset/typed/security/internalversion"
 )
 
@@ -168,7 +169,11 @@ func (o *SCCModificationOptions) CompleteUsers(f *clientcmd.Factory, cmd *cobra.
 		return kcmdutil.PrintObject(cmd, obj, out)
 	}
 
-	securityClient, err := f.OpenshiftInternalSecurityClient()
+	clientConfig, err := f.ClientConfig()
+	if err != nil {
+		return err
+	}
+	securityClient, err := securityclientinternal.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
@@ -204,7 +209,11 @@ func (o *SCCModificationOptions) CompleteGroups(f *clientcmd.Factory, cmd *cobra
 
 	o.DryRun = kcmdutil.GetFlagBool(cmd, "dry-run")
 
-	securityClient, err := f.OpenshiftInternalSecurityClient()
+	clientConfig, err := f.ClientConfig()
+	if err != nil {
+		return err
+	}
+	securityClient, err := securityclientinternal.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}

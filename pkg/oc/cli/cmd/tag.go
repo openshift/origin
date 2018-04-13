@@ -19,6 +19,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imageclientinternal "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
@@ -158,7 +159,11 @@ func (o *TagOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []s
 	o.out = out
 
 	// Setup clients.
-	client, err := f.OpenshiftInternalImageClient()
+	clientConfig, err := f.ClientConfig()
+	if err != nil {
+		return err
+	}
+	client, err := imageclientinternal.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}

@@ -27,9 +27,11 @@ import (
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsmanualclient "github.com/openshift/origin/pkg/apps/client/internalversion"
 	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset"
+	appsclientinternal "github.com/openshift/origin/pkg/apps/generated/internalclientset"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildmanualclient "github.com/openshift/origin/pkg/build/client/internalversion"
+	buildclientinternal "github.com/openshift/origin/pkg/build/generated/internalclientset"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	configcmd "github.com/openshift/origin/pkg/bulk"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
@@ -125,13 +127,18 @@ func (f *ring1Factory) Describer(mapping *meta.RESTMapping) (kprinters.Describer
 }
 
 func (f *ring1Factory) LogsForObject(object, options runtime.Object, timeout time.Duration) (*restclient.Request, error) {
+	clientConfig, err := f.clientAccessFactory.ClientConfig()
+	if err != nil {
+		return nil, err
+	}
+
 	switch t := object.(type) {
 	case *appsapi.DeploymentConfig:
 		dopts, ok := options.(*appsapi.DeploymentLogOptions)
 		if !ok {
 			return nil, errors.New("provided options object is not a DeploymentLogOptions")
 		}
-		appsClient, err := f.clientAccessFactory.OpenshiftInternalAppsClient()
+		appsClient, err := appsclientinternal.NewForConfig(clientConfig)
 		if err != nil {
 			return nil, err
 		}
@@ -144,7 +151,7 @@ func (f *ring1Factory) LogsForObject(object, options runtime.Object, timeout tim
 		if bopts.Version != nil {
 			return nil, errors.New("cannot specify a version and a build")
 		}
-		buildClient, err := f.clientAccessFactory.OpenshiftInternalBuildClient()
+		buildClient, err := buildclientinternal.NewForConfig(clientConfig)
 		if err != nil {
 			return nil, err
 		}
@@ -154,7 +161,7 @@ func (f *ring1Factory) LogsForObject(object, options runtime.Object, timeout tim
 		if !ok {
 			return nil, errors.New("provided options object is not a BuildLogOptions")
 		}
-		buildClient, err := f.clientAccessFactory.OpenshiftInternalBuildClient()
+		buildClient, err := buildclientinternal.NewForConfig(clientConfig)
 		if err != nil {
 			return nil, err
 		}

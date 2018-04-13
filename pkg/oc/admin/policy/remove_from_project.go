@@ -14,6 +14,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	authorizationclientinternal "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	oauthorizationtypedclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset/typed/authorization/internalversion"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
@@ -103,7 +104,11 @@ func (o *RemoveFromProjectOptions) Complete(f *clientcmd.Factory, cmd *cobra.Com
 
 	*target = append(*target, args...)
 
-	authorizationClient, err := f.OpenshiftInternalAuthorizationClient()
+	clientConfig, err := f.ClientConfig()
+	if err != nil {
+		return err
+	}
+	authorizationClient, err := authorizationclientinternal.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}

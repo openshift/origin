@@ -27,8 +27,10 @@ import (
 	"k8s.io/kubernetes/pkg/util/interrupt"
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsclientinternal "github.com/openshift/origin/pkg/apps/generated/internalclientset"
 	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imageclientinternal "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	generateapp "github.com/openshift/origin/pkg/oc/generate/app"
@@ -300,13 +302,13 @@ func (o *DebugOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, args [
 	}
 	o.Attach.PodClient = kc.Core()
 
-	appsClient, err := f.OpenshiftInternalAppsClient()
+	appsClient, err := appsclientinternal.NewForConfig(config)
 	if err != nil {
 		return err
 	}
 	o.AppsClient = appsClient.Apps()
 
-	imageClient, err := f.OpenshiftInternalImageClient()
+	imageClient, err := imageclientinternal.NewForConfig(config)
 	if err != nil {
 		return err
 	}

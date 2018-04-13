@@ -13,6 +13,7 @@ import (
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsclientinternal "github.com/openshift/origin/pkg/apps/generated/internalclientset"
 	appsinternalversion "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
@@ -104,7 +105,11 @@ func (o *CreateDeploymentConfigOptions) Complete(cmd *cobra.Command, f *clientcm
 		return err
 	}
 
-	appsClient, err := f.OpenshiftInternalAppsClient()
+	clientConfig, err := f.ClientConfig()
+	if err != nil {
+		return err
+	}
+	appsClient, err := appsclientinternal.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}

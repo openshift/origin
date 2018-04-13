@@ -10,11 +10,16 @@ import (
 	"github.com/openshift/origin/pkg/oc/cli/cmd"
 	"github.com/openshift/origin/pkg/oc/cli/config"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
+	projectclientinternal "github.com/openshift/origin/pkg/project/generated/internalclientset"
 )
 
 // CreateProject creates a project
 func CreateProject(f *clientcmd.Factory, name, display, desc, basecmd string, out io.Writer) error {
-	projectClient, err := f.OpenshiftInternalProjectClient()
+	clientConfig, err := f.ClientConfig()
+	if err != nil {
+		return err
+	}
+	projectClient, err := projectclientinternal.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
