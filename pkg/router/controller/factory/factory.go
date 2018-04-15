@@ -236,7 +236,7 @@ func (f *RouterControllerFactory) CreateRoutesSharedInformer() kcache.SharedInde
 				return nil, err
 			}
 			if f.RouteModifierFn != nil {
-				watch.Filter(w, func(in watch.Event) (watch.Event, bool) {
+				w = watch.Filter(w, func(in watch.Event) (watch.Event, bool) {
 					if route, ok := in.Object.(*routeapi.Route); ok {
 						f.RouteModifierFn(route)
 					}

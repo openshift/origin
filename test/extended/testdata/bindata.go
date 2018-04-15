@@ -10401,9 +10401,9 @@ objects:
 - apiVersion: v1
   kind: Pod
   metadata:
-    name: scoped-router
+    name: router-scoped
     labels:
-      test: scoped-router
+      test: router-scoped
   spec:
     terminationGracePeriodSeconds: 1
     containers:

@@ -39,20 +39,28 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 			if routes, _ := client.List(metav1.ListOptions{}); routes != nil {
 				outputIngress(routes.Items...)
 			}
-			exutil.DumpPodLogsStartingWith("scoped-router", oc)
+			exutil.DumpPodLogsStartingWith("router-", oc)
 		}
 	})
 
-	oc = exutil.NewCLI("scoped-router", exutil.KubeConfigPath())
+	oc = exutil.NewCLI("router-scoped", exutil.KubeConfigPath())
 
 	g.BeforeEach(func() {
 		ns = oc.Namespace()
 
-		imagePrefix := os.Getenv("OS_IMAGE_PREFIX")
-		if len(imagePrefix) == 0 {
-			imagePrefix = "openshift/origin"
+		image := os.Getenv("OS_IMAGE_PREFIX")
+		if len(image) == 0 {
+			image = "openshift/origin"
 		}
-		err := oc.AsAdmin().Run("new-app").Args("-f", configPath, "-p", "IMAGE="+imagePrefix+"-haproxy-router").Execute()
+		image += "-haproxy-router"
+
+		if dc, err := oc.AdminAppsClient().Apps().DeploymentConfigs("default").Get("router", metav1.GetOptions{}); err == nil {
+			if len(dc.Spec.Template.Spec.Containers) > 0 && dc.Spec.Template.Spec.Containers[0].Image != "" {
+				image = dc.Spec.Template.Spec.Containers[0].Image
+			}
+		}
+
+		err := oc.AsAdmin().Run("new-app").Args("-f", configPath, "-p", "IMAGE="+image).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
@@ -67,7 +75,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 
 			var routerIP string
 			err := wait.Poll(time.Second, changeTimeoutSeconds*time.Second, func() (bool, error) {
-				pod, err := oc.KubeFramework().ClientSet.CoreV1().Pods(oc.KubeFramework().Namespace.Name).Get("scoped-router", metav1.GetOptions{})
+				pod, err := oc.KubeFramework().ClientSet.CoreV1().Pods(oc.KubeFramework().Namespace.Name).Get("router-scoped", metav1.GetOptions{})
 				if err != nil {
 					return false, err
 				}

@@ -63,7 +63,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 
 			var routerIP string
 			err := wait.Poll(time.Second, changeTimeoutSeconds*time.Second, func() (bool, error) {
-				pod, err := oc.KubeFramework().ClientSet.CoreV1().Pods(oc.KubeFramework().Namespace.Name).Get("scoped-router", metav1.GetOptions{})
+				pod, err := oc.KubeFramework().ClientSet.CoreV1().Pods(oc.KubeFramework().Namespace.Name).Get("router-scoped", metav1.GetOptions{})
 				if err != nil {
 					return false, err
 				}
