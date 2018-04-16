@@ -44,6 +44,8 @@ type CreateClusterQuotaOptions struct {
 	Printer      ObjectPrinter
 }
 
+type ObjectPrinter func(runtime.Object, io.Writer) error
+
 // NewCmdCreateClusterQuota is a macro command to create a new cluster quota.
 func NewCmdCreateClusterQuota(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	o := &CreateClusterQuotaOptions{Out: out}

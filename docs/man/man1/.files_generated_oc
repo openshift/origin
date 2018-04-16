@@ -69,7 +69,6 @@ oc-adm-groups-sync.1
 oc-adm-groups.1
 oc-adm-ipfailover.1
 oc-adm-manage-node.1
-oc-adm-migrate-authorization.1
 oc-adm-migrate-etcd-ttl.1
 oc-adm-migrate-image-references.1
 oc-adm-migrate-legacy-hpa.1
@@ -164,7 +163,6 @@ oc-create-imagestreamtag.1
 oc-create-job.1
 oc-create-namespace.1
 oc-create-poddisruptionbudget.1
-oc-create-policybinding.1
 oc-create-priorityclass.1
 oc-create-quota.1
 oc-create-role.1
