@@ -28,7 +28,10 @@ import (
 	webconsoleinformerv1alpha1 "github.com/openshift/origin/pkg/cmd/openshift-operators/generated/informers/externalversions/webconsole/v1alpha1"
 )
 
-const targetNamespaceName = "openshift-web-console"
+const (
+	targetNamespaceName = "openshift-web-console"
+	workQueueKey        = "key"
+)
 
 type WebConsoleOperator struct {
 	operatorConfigClient webconsoleclientv1alpha1.OpenShiftWebConsoleConfigsGetter
@@ -224,9 +227,9 @@ func (c *WebConsoleOperator) processNextWorkItem() bool {
 // eventHandler queues the operator to check spec and status
 func (c *WebConsoleOperator) eventHandler() cache.ResourceEventHandler {
 	return cache.ResourceEventHandlerFuncs{
-		AddFunc:    func(obj interface{}) { c.queue.Add("key") },
-		UpdateFunc: func(old, new interface{}) { c.queue.Add("key") },
-		DeleteFunc: func(obj interface{}) { c.queue.Add("key") },
+		AddFunc:    func(obj interface{}) { c.queue.Add(workQueueKey) },
+		UpdateFunc: func(old, new interface{}) { c.queue.Add(workQueueKey) },
+		DeleteFunc: func(obj interface{}) { c.queue.Add(workQueueKey) },
 	}
 }
 
@@ -238,19 +241,19 @@ func (c *WebConsoleOperator) namespaceEventHandler() cache.ResourceEventHandler 
 		AddFunc: func(obj interface{}) {
 			ns, ok := obj.(*corev1.Namespace)
 			if !ok {
-				c.queue.Add("key")
+				c.queue.Add(workQueueKey)
 			}
 			if ns.Name == targetNamespaceName {
-				c.queue.Add("key")
+				c.queue.Add(workQueueKey)
 			}
 		},
 		UpdateFunc: func(old, new interface{}) {
 			ns, ok := old.(*corev1.Namespace)
 			if !ok {
-				c.queue.Add("key")
+				c.queue.Add(workQueueKey)
 			}
 			if ns.Name == targetNamespaceName {
-				c.queue.Add("key")
+				c.queue.Add(workQueueKey)
 			}
 		},
 		DeleteFunc: func(obj interface{}) {
@@ -268,7 +271,7 @@ func (c *WebConsoleOperator) namespaceEventHandler() cache.ResourceEventHandler 
 				}
 			}
 			if ns.Name == targetNamespaceName {
-				c.queue.Add("key")
+				c.queue.Add(workQueueKey)
 			}
 		},
 	}
