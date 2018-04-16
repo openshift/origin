@@ -115,6 +115,7 @@ func (c *ClusterUpConfig) StartSelfHosted(out io.Writer) error {
 		"NODE_CONFIG_HOST_PATH":                         configDirs.nodeConfigDir,
 		"KUBEDNS_CONFIG_HOST_PATH":                      configDirs.kubeDNSConfigDir,
 		"LOGLEVEL":                                      fmt.Sprintf("%d", c.ServerLogLevel),
+		"IMAGE":                                         c.openshiftImage(),
 	}
 
 	clientConfigBuilder, err := kclientcmd.LoadFromFile(filepath.Join(c.LocalDirFor(kubeapiserver.KubeAPIServerDirName), "admin.kubeconfig"))
@@ -311,6 +312,7 @@ func (c *ClusterUpConfig) BuildConfig() (*configDirs, error) {
 		"/path/to/master/config-dir":              configs.masterConfigDir,
 		"/path/to/openshift-apiserver/config-dir": configs.openshiftAPIServerConfigDir,
 		"ETCD_VOLUME":                             "emptyDir:\n",
+		"openshift/origin-control-plane:latest":   c.openshiftImage(),
 	}
 	if len(c.HostDataDir) > 0 {
 		substitutions["ETCD_VOLUME"] = `hostPath:
