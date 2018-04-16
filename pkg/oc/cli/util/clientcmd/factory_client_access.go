@@ -25,13 +25,14 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl"
+	"k8s.io/kubernetes/pkg/kubectl/cmd/set"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/kubectl/util/transport"
 
 	appsapiv1 "github.com/openshift/api/apps/v1"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	deploymentcmd "github.com/openshift/origin/pkg/oc/cli/deploymentconfigs"
 	routegen "github.com/openshift/origin/pkg/route/generator"
 )
@@ -40,21 +41,19 @@ type ring0Factory struct {
 	*OpenshiftCLIClientBuilder
 
 	clientConfig            kclientcmd.ClientConfig
-	imageResolutionOptions  FlagBinder
 	kubeClientAccessFactory kcmdutil.ClientAccessFactory
 }
 
 type ClientAccessFactory interface {
 	kcmdutil.ClientAccessFactory
 	CLIClientBuilder
-
-	ImageResolutionOptions() FlagBinder
 }
 
 func NewClientAccessFactory(optionalClientConfig kclientcmd.ClientConfig) ClientAccessFactory {
 	// if we call this factory construction method, we want the openshift style config loading
 	kclientcmd.UseOpenShiftKubeConfigValues = true
 	kclientcmd.ErrEmptyConfig = kclientcmd.NewErrConfigurationMissing()
+	set.ParseDockerImageReferenceToStringFunc = ParseDockerImageReferenceToStringFunc
 
 	flags := pflag.NewFlagSet("", pflag.ContinueOnError)
 	clientConfig := optionalClientConfig
@@ -62,8 +61,7 @@ func NewClientAccessFactory(optionalClientConfig kclientcmd.ClientConfig) Client
 		clientConfig = kcmdutil.DefaultClientConfig(flags)
 	}
 	factory := &ring0Factory{
-		clientConfig:           clientConfig,
-		imageResolutionOptions: &imageResolutionOptions{},
+		clientConfig: clientConfig,
 	}
 	factory.kubeClientAccessFactory = kcmdutil.NewClientAccessFactoryFromDiscovery(
 		flags,
@@ -276,49 +274,8 @@ func (f *ring0Factory) Pauser(info *resource.Info) ([]byte, error) {
 	}
 }
 
-// ImageResolutionOptions provides the "--source" flag to commands that deal with images
-// and need to provide extra capabilities for working with ImageStreamTags and
-// ImageStreamImages.
-type imageResolutionOptions struct {
-	bound  bool
-	Source string
-}
-
-func (o *imageResolutionOptions) Bound() bool {
-	return o.bound
-}
-
-func (o *imageResolutionOptions) Bind(f *pflag.FlagSet) {
-	if o.Bound() {
-		return
-	}
-	f.StringVarP(&o.Source, "source", "", "docker", "The image source type; valid types are 'imagestreamtag', 'istag', 'imagestreamimage', 'isimage', and 'docker'")
-	o.bound = true
-}
-
-func (f *ring0Factory) ImageResolutionOptions() FlagBinder {
-	return f.imageResolutionOptions
-}
-
 func (f *ring0Factory) ResolveImage(image string) (string, error) {
-	options := f.imageResolutionOptions.(*imageResolutionOptions)
-	if isDockerImageSource(options.Source) {
-		return f.kubeClientAccessFactory.ResolveImage(image)
-	}
-	config, err := f.kubeClientAccessFactory.ClientConfig()
-	if err != nil {
-		return "", err
-	}
-	imageClient, err := imageclient.NewForConfig(config)
-	if err != nil {
-		return "", err
-	}
-	namespace, _, err := f.DefaultNamespace()
-	if err != nil {
-		return "", err
-	}
-
-	return resolveImagePullSpec(imageClient.Image(), options.Source, image, namespace)
+	return f.kubeClientAccessFactory.ResolveImage(image)
 }
 
 func (f *ring0Factory) Resumer(info *resource.Info) ([]byte, error) {
@@ -415,4 +372,12 @@ func getProtocols(spec kapi.PodSpec) map[string]string {
 		}
 	}
 	return result
+}
+
+func ParseDockerImageReferenceToStringFunc(spec string) (string, error) {
+	ret, err := imageapi.ParseDockerImageReference(spec)
+	if err != nil {
+		return "", err
+	}
+	return ret.String(), nil
 }
