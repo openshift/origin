@@ -68,7 +68,7 @@ type BuildConfigController struct {
 
 func NewBuildConfigController(buildInternalClient buildinternalclient.Interface, kubeExternalClient kexternalclientset.Interface, buildConfigInformer buildinformer.BuildConfigInformer, buildInformer buildinformer.BuildInformer) *BuildConfigController {
 	eventBroadcaster := record.NewBroadcaster()
-	eventBroadcaster.StartRecordingToSink(&v1core.EventSinkImpl{Interface: v1core.New(kubeExternalClient.Core().RESTClient()).Events("")})
+	eventBroadcaster.StartRecordingToSink(&v1core.EventSinkImpl{Interface: kubeExternalClient.CoreV1().Events("")})
 
 	buildClient := buildclient.NewClientBuildClient(buildInternalClient)
 	buildConfigGetter := buildConfigInformer.Lister()
