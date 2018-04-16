@@ -11,7 +11,7 @@ spec:
   hostNetwork: true
   containers:
   - name: api
-    image: openshift/origin:latest
+    image: openshift/origin-control-plane:latest
     command: ["/bin/bash", "-c"]
     args:
     - |

@@ -16268,7 +16268,7 @@ spec:
   hostNetwork: true
   containers:
   - name: etcd
-    image: openshift/origin:latest
+    image: openshift/origin-control-plane:latest
     workingDir: /var/lib/etcd
     command: ["/bin/bash", "-c"]
     args:
@@ -16320,7 +16320,7 @@ spec:
   hostNetwork: true
   containers:
   - name: api
-    image: openshift/origin:latest
+    image: openshift/origin-control-plane:latest
     command: ["/bin/bash", "-c"]
     args:
     - |
@@ -16384,7 +16384,7 @@ spec:
   hostNetwork: true
   containers:
   - name: controllers
-    image: openshift/origin:latest
+    image: openshift/origin-control-plane:latest
     command: ["hyperkube", "kube-controller-manager"]
     args:
     - "--enable-dynamic-provisioning=true"
@@ -16448,7 +16448,7 @@ parameters:
 - name: NAMESPACE
   value: kube-dns
 - name: IMAGE
-  value: openshift/origin:latest
+  value: openshift/origin-control-plane:latest
 - name: LOGLEVEL
   value: "0"
 - name: KUBEDNS_CONFIG_HOST_PATH
@@ -16545,7 +16545,7 @@ metadata:
   name: kube-proxy
 parameters:
 - name: IMAGE
-  value: openshift/origin:latest
+  value: openshift/origin-control-plane:latest
 - name: NAMESPACE
   value: kube-proxy
 - name: LOGLEVEL
@@ -16641,7 +16641,7 @@ spec:
   hostNetwork: true
   containers:
   - name: scheduler
-    image: openshift/origin:latest
+    image: openshift/origin-control-plane:latest
     command: ["hyperkube", "kube-scheduler"]
     args:
     - "--leader-elect=true"
@@ -16690,7 +16690,7 @@ metadata:
   name: openshift-apiserver
 parameters:
 - name: IMAGE
-  value: openshift/origin:latest
+  value: openshift/origin-control-plane:latest
 - name: NAMESPACE
   value: openshift-apiserver
 - name: LOGLEVEL
@@ -16971,7 +16971,7 @@ metadata:
   name: openshift-controller-manager
 parameters:
 - name: IMAGE
-  value: openshift/origin:latest
+  value: openshift/origin-control-plane:latest
 - name: NAMESPACE
   value: openshift-controller-manager
 - name: LOGLEVEL
