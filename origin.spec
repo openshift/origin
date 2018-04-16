@@ -19,12 +19,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 72cbabb4d5dd84a8c9059e82b3b22fbe893b56a4
+%global commit 5398c53b6090ac504342a552cfc0bac129b40583
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=10+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.10.0-0.20.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 KUBE_GIT_VERSION=v1.10.0+b81c8f8 OS_GIT_PATCH=0 KUBE_GIT_COMMIT=b81c8f8 KUBE_GIT_MINOR=10+ OS_GIT_COMMIT=add29ac KUBE_GIT_MAJOR=1 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.16-0-g121edf0 ETCD_GIT_COMMIT=121edf0
+%global os_git_vars OS_GIT_MINOR=10+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.10.0-0.21.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 KUBE_GIT_VERSION=v1.10.0+b81c8f8 OS_GIT_PATCH=0 KUBE_GIT_COMMIT=b81c8f8 KUBE_GIT_MINOR=10+ OS_GIT_COMMIT=1e34465 KUBE_GIT_MAJOR=1 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.16-0-g121edf0 ETCD_GIT_COMMIT=121edf0
 }
 
 %if 0%{?skip_build}
@@ -67,7 +67,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.10.0
-Release:        0.21.0%{?dist}
+Release:        0.22.0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -576,6 +576,36 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Mon Apr 16 2018 Justin Pierce <jupierce@redhat.com> 3.10.0-0.22.0
+- generated (deads@redhat.com)
+- use the upstream construction for kubeconfig evaluation (deads@redhat.com)
+- UPSTREAM: <carry>: allow oc kubeconfig loading to have our flags and errors
+  (deads@redhat.com)
+- UPSTREAM: 62469: stop defaulting kubeconfig to http://localhost:8080
+  (deads@redhat.com)
+- remove duplicated kubeconfig loading methods (deads@redhat.com)
+- fix fuzzer test (deads@redhat.com)
+- remove dead code from login pretty message making (deads@redhat.com)
+- initial webconsole operator types (deads@redhat.com)
+- generated (deads@redhat.com)
+- UPSTREAM: 62416: kuberuntime: logs: reduce logging level on waitLogs msg
+  (sjenning@redhat.com)
+- UPSTREAM: 61480: Allow sockets to be mounted in subpath (hekumar@redhat.com)
+- reverting build pruning tests to previous version (cdaley@redhat.com)
+- catalog: create SSL cert for controller, enable prometheus scrape
+  (jaboyd@redhat.com)
+- Remove openvswitch from node system container (ccoleman@redhat.com)
+- update help doc oc cluster up (haowang@redhat.com)
+- Make DNS to the local node IP bypass auto-egress-IP routing (danw@redhat.com)
+- Fix use of cookies in HostSubnet deletion (danw@redhat.com)
+- dind: Fix crio configuration (rpenta@redhat.com)
+- Issue #19226 Removed docker machine doc from cluster up usage message
+  (kumarpraveen.nitdgp@gmail.com)
+- Remove unnecessary open&close cycle in rsync tar strategy
+  (maszulik@redhat.com)
+- Make NewCommandStartNode() handle SIGTERM and SIGINT (amcdermo@redhat.com)
+- Update image pruning example (maszulik@redhat.com)
+
 * Thu Apr 12 2018 Justin Pierce <jupierce@redhat.com> 3.10.0-0.21.0
 - up: remove redundant localcmd, tsb registraion and container network test
   (mfojtik@redhat.com)
