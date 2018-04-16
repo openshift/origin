@@ -162,8 +162,10 @@ func RunProcess(f *clientcmd.Factory, in io.Reader, out, errout io.Writer, cmd *
 		}
 	}
 
+	// the namespace
 	namespace, explicit, err := f.DefaultNamespace()
-	if err != nil {
+	// we only need to fail on namespace acquisition if we're actually taking action.  Otherwise the namespace can be enforced later
+	if err != nil && !local {
 		return err
 	}
 

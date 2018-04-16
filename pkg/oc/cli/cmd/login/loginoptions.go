@@ -25,7 +25,6 @@ import (
 	"github.com/openshift/origin/pkg/oc/cli/cmd/errors"
 	loginutil "github.com/openshift/origin/pkg/oc/cli/cmd/login/util"
 	cliconfig "github.com/openshift/origin/pkg/oc/cli/config"
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	cmderr "github.com/openshift/origin/pkg/oc/errors"
 	"github.com/openshift/origin/pkg/oc/util/tokencmd"
 	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset"
@@ -140,12 +139,12 @@ func (o *LoginOptions) getClientConfig() (*restclient.Config, error) {
 				clientConfig.CAFile = ""
 				clientConfig.CAData = nil
 			} else {
-				return nil, clientcmd.GetPrettyErrorForServer(err, o.Server)
+				return nil, getPrettyErrorForServer(err, o.Server)
 			}
 		// TLS record header errors, like oversized record which usually means
 		// the server only supports "http"
 		case tls.RecordHeaderError:
-			return nil, clientcmd.GetPrettyErrorForServer(err, o.Server)
+			return nil, getPrettyErrorForServer(err, o.Server)
 		default:
 			if _, ok := err.(*net.OpError); ok {
 				return nil, fmt.Errorf("%v - verify you have provided the correct host and port and that the server is currently running.", err)
@@ -314,7 +313,7 @@ func (o *LoginOptions) gatherProjectInfo() error {
 		}
 
 		current, err := projectClient.Project().Projects().Get(namespace, metav1.GetOptions{})
-		if err != nil && !kerrors.IsNotFound(err) && !clientcmd.IsForbidden(err) {
+		if err != nil && !kerrors.IsNotFound(err) && !kerrors.IsForbidden(err) {
 			return err
 		}
 		o.Project = current.Name

@@ -9,14 +9,12 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"regexp"
-	"strings"
 	"testing"
 
 	"github.com/MakeNowJust/heredoc"
 
 	"github.com/openshift/origin/pkg/client/config"
 	"github.com/openshift/origin/pkg/oauth/util"
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 
 	kapierrs "k8s.io/apimachinery/pkg/api/errors"
 	restclient "k8s.io/client-go/rest"
@@ -242,10 +240,6 @@ func TestDialToHTTPServer(t *testing.T) {
 		"succeed dialing": {
 			serverURL: server.URL,
 		},
-		"try using HTTPS against HTTP server": {
-			serverURL:       "https:" + strings.TrimPrefix(server.URL, "http:"),
-			evalExpectedErr: clientcmd.IsTLSOversizedRecord,
-		},
 	}
 
 	for name, test := range testCases {
@@ -352,10 +346,6 @@ func TestDialToHTTPSServer(t *testing.T) {
 		"succeed dialing": {
 			serverURL:     server.URL,
 			skipTLSVerify: true,
-		},
-		"certificate unknown": {
-			serverURL:       server.URL,
-			evalExpectedErr: clientcmd.IsCertificateAuthorityUnknown,
 		},
 	}
 

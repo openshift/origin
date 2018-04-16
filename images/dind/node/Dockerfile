@@ -91,3 +91,5 @@ RUN systemctl enable crio-node.service
 
 # Default crio storage to vfs. overlay on overlayfs is not supported in crio.
 RUN echo "CRIO_STORAGE_OPTIONS=--storage-driver vfs" > /etc/sysconfig/crio-storage
+RUN sed -i 's/^plugin_dir .*/plugin_dir = "\/opt\/cni\/bin\/"/g' /etc/crio/crio.conf
+RUN sed -i 's/^registries .*/registries = [\n\t"docker.io",\n\t"registry.fedoraproject.org",\n\t"registry.access.redhat.com",/g' /etc/crio/crio.conf

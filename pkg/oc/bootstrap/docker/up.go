@@ -35,7 +35,6 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	userv1client "github.com/openshift/client-go/user/clientset/versioned"
-	osclientcmd "github.com/openshift/origin/pkg/client/cmd"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	oauthclientinternal "github.com/openshift/origin/pkg/oauth/generated/internalclientset"
@@ -228,7 +227,7 @@ func (c *ClusterUpConfig) Complete(cmd *cobra.Command, out io.Writer) error {
 	// Get the default client config for login
 	var err error
 	flags := pflag.NewFlagSet("", pflag.ContinueOnError)
-	c.defaultClientConfig, err = osclientcmd.DefaultClientConfig(flags).RawConfig()
+	c.defaultClientConfig, err = kcmdutil.DefaultClientConfig(flags).RawConfig()
 	if err != nil {
 		if !os.IsNotExist(err) {
 			return err

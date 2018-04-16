@@ -2,31 +2,24 @@ package clientcmd
 
 import (
 	"errors"
-	"fmt"
-	"io/ioutil"
 	"net/http"
-	"os"
 	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
-	osclientcmd "github.com/openshift/origin/pkg/client/cmd"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
-	kclientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/client-go/util/homedir"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -59,12 +52,14 @@ type ClientAccessFactory interface {
 }
 
 func NewClientAccessFactory(optionalClientConfig kclientcmd.ClientConfig) ClientAccessFactory {
+	// if we call this factory construction method, we want the openshift style config loading
+	kclientcmd.UseOpenShiftKubeConfigValues = true
+	kclientcmd.ErrEmptyConfig = kclientcmd.NewErrConfigurationMissing()
+
 	flags := pflag.NewFlagSet("", pflag.ContinueOnError)
 	clientConfig := optionalClientConfig
 	if optionalClientConfig == nil {
-		// TODO: there should be two client configs, one for OpenShift, and one for Kubernetes
-		clientConfig = osclientcmd.DefaultClientConfig(flags)
-		clientConfig = defaultingClientConfig{clientConfig}
+		clientConfig = kcmdutil.DefaultClientConfig(flags)
 	}
 	factory := &ring0Factory{
 		clientConfig:           clientConfig,
@@ -387,92 +382,6 @@ func (f *ring0Factory) CanBeAutoscaled(kind schema.GroupKind) error {
 
 func (f *ring0Factory) EditorEnvs() []string {
 	return []string{"OC_EDITOR", "EDITOR"}
-}
-
-// defaultingClientConfig detects whether the provided config is the default, and if
-// so returns an error that indicates the user should set up their config.
-type defaultingClientConfig struct {
-	nested kclientcmd.ClientConfig
-}
-
-// RawConfig calls the nested method
-func (c defaultingClientConfig) RawConfig() (kclientcmdapi.Config, error) {
-	return c.nested.RawConfig()
-}
-
-// Namespace calls the nested method, and if an empty config error is returned
-// it checks for the same default as kubectl - the value of POD_NAMESPACE or
-// "default".
-func (c defaultingClientConfig) Namespace() (string, bool, error) {
-	namespace, ok, err := c.nested.Namespace()
-	if err == nil {
-		return namespace, ok, nil
-	}
-	if !kclientcmd.IsEmptyConfig(err) {
-		return "", false, err
-	}
-
-	// This way assumes you've set the POD_NAMESPACE environment variable using the downward API.
-	// This check has to be done first for backwards compatibility with the way InClusterConfig was originally set up
-	if ns := os.Getenv("POD_NAMESPACE"); ns != "" {
-		return ns, true, nil
-	}
-
-	// Fall back to the namespace associated with the service account token, if available
-	if data, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace"); err == nil {
-		if ns := strings.TrimSpace(string(data)); len(ns) > 0 {
-			return ns, true, nil
-		}
-	}
-
-	return metav1.NamespaceDefault, false, nil
-}
-
-// ConfigAccess implements ClientConfig
-func (c defaultingClientConfig) ConfigAccess() kclientcmd.ConfigAccess {
-	return c.nested.ConfigAccess()
-}
-
-type errConfigurationMissing struct {
-	err error
-}
-
-func (e errConfigurationMissing) Error() string {
-	return fmt.Sprintf("%v", e.err)
-}
-
-func IsConfigurationMissing(err error) bool {
-	switch err.(type) {
-	case errConfigurationMissing:
-		return true
-	}
-	return kclientcmd.IsContextNotFound(err)
-}
-
-// ClientConfig returns a complete client config
-func (c defaultingClientConfig) ClientConfig() (*restclient.Config, error) {
-	cfg, err := c.nested.ClientConfig()
-	if err == nil {
-		return cfg, nil
-	}
-
-	if !kclientcmd.IsEmptyConfig(err) {
-		return nil, err
-	}
-
-	// TODO: need to expose inClusterConfig upstream and use that
-	if icc, err := restclient.InClusterConfig(); err == nil {
-		glog.V(4).Infof("Using in-cluster configuration")
-		return icc, nil
-	}
-
-	return nil, errConfigurationMissing{fmt.Errorf(`Missing or incomplete configuration info.  Please login or point to an existing, complete config file:
-
-  1. Via the command-line flag --config
-  2. Via the KUBECONFIG environment variable
-  3. In your home directory as ~/.kube/config
-
-To view or setup config directly use the 'config' command.`)}
 }
 
 // computeDiscoverCacheDir takes the parentDir and the host and comes up with a "usually non-colliding" name.

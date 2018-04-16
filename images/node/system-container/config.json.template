@@ -342,16 +342,6 @@
         },
         {
 	    "type": "bind",
-	    "source": "$ORIGIN_CONFIG_DIR/openvswitch",
-	    "destination": "/etc/openvswitch",
-	    "options": [
-		"rbind",
-		"rw",
-		"mode=755"
-	    ]
-        },
-        {
-	    "type": "bind",
 	    "source": "$ORIGIN_DATA_DIR",
 	    "destination": "/var/lib/origin",
 	    "options": [
@@ -452,16 +442,6 @@
 		"rbind",
                 "rslave",
 		"ro"
-	    ]
-        },
-        {
-	    "type": "bind",
-	    "source": "$ORIGIN_CONFIG_DIR/sdn",
-	    "destination": "/etc/openshift-sdn",
-	    "options": [
-		"rbind",
-		"rw",
-		"mode=755"
 	    ]
         },
         {

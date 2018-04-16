@@ -7,7 +7,6 @@
         "KUBELET_DATA_DIR": "/var/lib/kubelet",
         "MASTER_SERVICE": "atomic-openshift-master.service",
         "DOCKER_SERVICE": "docker.service",
-        "OPENVSWITCH_SERVICE": "openvswitch.service",
         "ADDTL_MOUNTS": ""
     }
 }

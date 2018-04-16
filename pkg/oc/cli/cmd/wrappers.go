@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"path"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -19,7 +20,6 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
-	cmdconfig "github.com/openshift/origin/pkg/client/config"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/oc/cli/cmd/create"
 	"github.com/openshift/origin/pkg/oc/cli/describe"
@@ -735,13 +735,13 @@ var (
 // NewCmdConfig is a wrapper for the Kubernetes cli config command
 func NewCmdConfig(parentName, name string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
 	pathOptions := &kclientcmd.PathOptions{
-		GlobalFile:       cmdconfig.RecommendedHomeFile,
-		EnvVar:           cmdconfig.OpenShiftConfigPathEnvVar,
-		ExplicitFileFlag: cmdconfig.OpenShiftConfigFlagName,
+		GlobalFile:       kclientcmd.RecommendedHomeFile,
+		EnvVar:           kclientcmd.RecommendedConfigPathEnvVar,
+		ExplicitFileFlag: kclientcmd.OpenShiftKubeConfigFlagName,
 
-		GlobalFileSubpath: cmdconfig.OpenShiftConfigHomeDirFileName,
+		GlobalFileSubpath: path.Join(kclientcmd.RecommendedHomeDir, kclientcmd.RecommendedFileName),
 
-		LoadingRules: cmdconfig.NewOpenShiftClientConfigLoadingRules(),
+		LoadingRules: kclientcmd.NewDefaultClientConfigLoadingRules(),
 	}
 	pathOptions.LoadingRules.DoNotResolvePaths = true
 

@@ -5,6 +5,7 @@ import (
 	"io"
 	"sort"
 
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	restclient "k8s.io/client-go/rest"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
@@ -194,7 +195,7 @@ func (o ProjectsOptions) RunProjects() error {
 
 		if len(projects) > 0 && !o.DisplayShort {
 			if !currentProjectExists {
-				if clientcmd.IsForbidden(currentProjectErr) {
+				if kapierrors.IsForbidden(currentProjectErr) {
 					fmt.Printf("You do not have rights to view project %q. Please switch to an existing one.\n", currentProject)
 				}
 				return currentProjectErr

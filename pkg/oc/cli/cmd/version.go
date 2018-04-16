@@ -178,7 +178,7 @@ func (o VersionOptions) RunVersion() error {
 
 	select {
 	case err, closed := <-done:
-		if strings.HasSuffix(fmt.Sprintf("%v", err), "connection refused") || clientcmd.IsConfigurationMissing(err) || kclientcmd.IsConfigurationInvalid(err) {
+		if strings.HasSuffix(fmt.Sprintf("%v", err), "connection refused") || kclientcmd.IsEmptyConfig(err) || kclientcmd.IsConfigurationInvalid(err) {
 			return nil
 		}
 		if closed && err != nil {

@@ -12,9 +12,9 @@ import (
 
 	kutilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
+	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 
-	"github.com/openshift/origin/pkg/client/config"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	poddiag "github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/client/pod/in_pod"
 	networkpoddiag "github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/cluster/network/in_pod"
@@ -223,7 +223,7 @@ func (o *DiagnosticsOptions) bindCommonFlags(flags *flag.FlagSet) {
 func (o *DiagnosticsOptions) bindClientFlags(flags *flag.FlagSet) {
 	o.ClientFlags = flag.NewFlagSet("client", flag.ContinueOnError) // hide the extensive set of client flags
 	o.Factory = osclientcmd.New(o.ClientFlags)                      // that would otherwise be added to this command
-	flags.AddFlag(o.ClientFlags.Lookup(config.OpenShiftConfigFlagName))
+	flags.AddFlag(o.ClientFlags.Lookup(kclientcmd.OpenShiftKubeConfigFlagName))
 	flags.AddFlag(o.ClientFlags.Lookup("context")) // TODO: find k8s constant
 	flags.StringVar(&o.ClientClusterContext, options.FlagClusterContextName, "", "Client context to use for cluster administrator")
 	flags.BoolVar(&o.PreventModification, options.FlagPreventModificationName, false, "If true, may be set to prevent diagnostics making any changes via the API")

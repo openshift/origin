@@ -235,6 +235,7 @@ func ParseFlow(ptype ParseType, flow string, args ...interface{}) (*OvsFlow, err
 		}
 		flow = flow[end:]
 	}
+	flow = origFlow
 
 	// Sanity-checking and defaults
 	switch ptype {
@@ -258,6 +259,8 @@ func ParseFlow(ptype ParseType, flow string, args ...interface{}) (*OvsFlow, err
 		}
 		if parsed.Cookie == "" {
 			parsed.Cookie = "0"
+		} else if strings.Contains(parsed.Cookie, "/") {
+			return nil, fmt.Errorf("bad flow %q (cookie must be 'value', not 'value/mask')", flow)
 		}
 
 	case ParseForFilter:
@@ -269,6 +272,10 @@ func ParseFlow(ptype ParseType, flow string, args ...interface{}) (*OvsFlow, err
 		}
 		if err := checkUnimplementedField(flow, parsed, "out_group"); err != nil {
 			return nil, err
+		}
+
+		if parsed.Cookie != "" && !strings.Contains(parsed.Cookie, "/") {
+			return nil, fmt.Errorf("bad flow %q (cookie must be 'value/mask', not just 'value')", flow)
 		}
 
 		if len(parsed.Actions) != 0 {

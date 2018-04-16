@@ -10,10 +10,10 @@ import (
 	"github.com/golang/glog"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
-	clientconfig "github.com/openshift/origin/pkg/client/config"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	_ "github.com/openshift/origin/pkg/cmd/server/apis/config/install"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
@@ -38,7 +38,7 @@ var (
 	BasePorts    = []int{4001, 7001, 8443, 10250, DefaultDNSPort}
 	RouterPorts  = []int{80, 443}
 	AllPorts     = append(RouterPorts, BasePorts...)
-	SocatPidFile = filepath.Join(homedir.HomeDir(), clientconfig.OpenShiftConfigHomeDir, "socat-8443.pid")
+	SocatPidFile = filepath.Join(homedir.HomeDir(), kclientcmd.RecommendedHomeDir, "socat-8443.pid")
 )
 
 // Helper contains methods and utilities to help with OpenShift startup

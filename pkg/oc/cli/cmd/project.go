@@ -179,7 +179,7 @@ func (o ProjectOptions) RunProject() error {
 			}
 
 			switch err := confirmProjectAccess(currentProject, client, kubeclient); {
-			case clientcmd.IsForbidden(err):
+			case kapierrors.IsForbidden(err):
 				return fmt.Errorf("you do not have rights to view project %q.", currentProject)
 			case kapierrors.IsNotFound(err):
 				return fmt.Errorf("the project %q specified in your config does not exist.", currentProject)
@@ -228,7 +228,7 @@ func (o ProjectOptions) RunProject() error {
 			}
 
 			if err := confirmProjectAccess(argument, client, kubeclient); err != nil {
-				if isNotFound, isForbidden := kapierrors.IsNotFound(err), clientcmd.IsForbidden(err); isNotFound || isForbidden {
+				if isNotFound, isForbidden := kapierrors.IsNotFound(err), kapierrors.IsForbidden(err); isNotFound || isForbidden {
 					var msg string
 					if isForbidden {
 						msg = fmt.Sprintf("You are not a member of project %q.", argument)

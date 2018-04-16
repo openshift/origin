@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: BuildConfig
+metadata:
+  name: myphp
+spec:
+  failedBuildsHistoryLimit: 2
+  source:
+    type: Git
+    git:
+      uri: 'https://github.com/openshift/cakephp-ex.git'
+      ref: master
+  strategy:
+    type: Source
+    sourceStrategy:
+      env:
+        - name: FIELDREF_ENV
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.nofield
+      from:
+        kind: ImageStreamTag
+        namespace: openshift
+        name: 'php:7.0'
