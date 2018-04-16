@@ -39,7 +39,7 @@ if [[ -z "${source_tag}" ]]; then
   fi
 fi
 
-images="${OS_ALL_IMAGES}"
+images=( "${OS_ALL_IMAGES[@]}" )
 
 OS_PUSH_BASE_REPO="${OS_PUSH_BASE_REPO:-openshift/}"
 
