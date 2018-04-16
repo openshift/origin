@@ -425,6 +425,16 @@
 	    ]
         },
         {
+            "type": "bind",
+            "source": "/var/lib/kubelet",
+            "destination": "/var/lib/kubelet",
+            "options": [
+                "rbind",
+                "rw",
+                "mode=755"
+            ]
+        },
+        {
 	    "type": "bind",
 	    "source": "/var/log",
 	    "destination": "/var/log",
