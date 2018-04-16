@@ -5,8 +5,6 @@ import (
 	"os"
 	"strings"
 
-	"k8s.io/kubernetes/pkg/version"
-
 	"github.com/golang/glog"
 )
 
@@ -70,17 +68,21 @@ func (t *ImageTemplate) Expand(component string) (string, error) {
 			}
 		}
 		return "", false
-	}, Versions)
+	}, Versions(componentEnvKey(component, defaultImageEnvFormat)))
 	return value, err
 }
 
 func (t *ImageTemplate) imageComponentEnvExpander(key string) (string, bool) {
-	s := strings.Replace(strings.ToUpper(key), "-", "_", -1)
-	val := os.Getenv(fmt.Sprintf(t.EnvFormat, s))
+	val := os.Getenv(componentEnvKey(key, t.EnvFormat))
 	if len(val) == 0 {
 		return "", false
 	}
 	return val, true
+}
+
+func componentEnvKey(component, envFormat string) string {
+	s := strings.Replace(strings.ToUpper(component), "-", "_", -1)
+	return fmt.Sprintf(envFormat, s)
 }
 
 // ExpandStrict expands a string using a series of common format functions
@@ -113,24 +115,26 @@ func ExpandStrict(s string, fns ...KeyFunc) (string, error) {
 type KeyFunc func(key string) (string, bool)
 
 // Versions is a KeyFunc for retrieving information about the current version.
-func Versions(key string) (string, bool) {
-	switch key {
-	case "shortcommit":
-		s := OverrideVersion.GitCommit
-		if len(s) > 7 {
-			s = s[:7]
+func Versions(componentKey string) KeyFunc {
+	openshiftVersion := GetOpenshiftVersion(componentKey)
+	versionFunc := func(key string) (string, bool) {
+		switch key {
+		case "shortcommit":
+			s := openshiftVersion.GitCommit
+			if len(s) > 7 {
+				s = s[:7]
+			}
+			return s, true
+		case "version":
+			gitVersion := openshiftVersion.GitVersion
+			s := lastSemanticVersion(gitVersion)
+			return s, true
+		default:
+			return "", false
 		}
-		return s, true
-	case "version":
-		s := lastSemanticVersion(OverrideVersion.GitVersion)
-		return s, true
-	default:
-		return "", false
 	}
+	return versionFunc
 }
-
-// OverrideVersion is the latest version, exposed for testing.
-var OverrideVersion = version.Get()
 
 // lastSemanticVersion attempts to return a semantic version from the GitVersion - which
 // is either <semver>+<commit> or <semver> on release boundaries.
