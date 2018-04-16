@@ -46,6 +46,8 @@
 // install/kube-scheduler/kube-scheduler.yaml
 // install/openshift-apiserver/install.yaml
 // install/openshift-controller-manager/install.yaml
+// install/openshift-web-console-operator/install-rbac.yaml
+// install/openshift-web-console-operator/install.yaml
 // install/origin-web-console/console-config.yaml
 // install/origin-web-console/console-template.yaml
 // install/service-catalog-broker-resources/template-service-broker-registration.yaml
@@ -17062,6 +17064,136 @@ func installOpenshiftControllerManagerInstallYaml() (*asset, error) {
 	return a, nil
 }
 
+var _installOpenshiftWebConsoleOperatorInstallRbacYaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+parameters:
+- name: NAMESPACE
+  value: openshift-core-operators
+objects:
+
+# When we have an orchestrating operator
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRoleBinding
+  metadata:
+    name: system:openshift:operator:web-console
+  roleRef:
+    kind: ClusterRole
+    name: cluster-admin
+  subjects:
+  - kind: ServiceAccount
+    namespace: ${NAMESPACE}
+    name: openshift-web-console-operator
+`)
+
+func installOpenshiftWebConsoleOperatorInstallRbacYamlBytes() ([]byte, error) {
+	return _installOpenshiftWebConsoleOperatorInstallRbacYaml, nil
+}
+
+func installOpenshiftWebConsoleOperatorInstallRbacYaml() (*asset, error) {
+	bytes, err := installOpenshiftWebConsoleOperatorInstallRbacYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "install/openshift-web-console-operator/install-rbac.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _installOpenshiftWebConsoleOperatorInstallYaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+parameters:
+- name: IMAGE
+  value: openshift/origin:latest
+- name: NAMESPACE
+  # This namespace must not be changed.
+  value: openshift-core-operators
+- name: LOGLEVEL
+  value: "0"
+- name: COMPONENT_LOGLEVEL
+  value: "0"
+- name: COMPONENT_IMAGE
+  value: openshift/origin-web-console:latest
+- name: NODE_SELECTOR
+  value: "{}"
+objects:
+
+- apiVersion: apiextensions.k8s.io/v1beta1
+  kind: CustomResourceDefinition
+  metadata:
+    name: openshiftwebconsoleconfigs.webconsole.operator.openshift.io
+  spec:
+    scope: Cluster
+    group: webconsole.operator.openshift.io
+    version: v1alpha1
+    names:
+      kind: OpenShiftWebConsoleConfig
+      plural: openshiftwebconsoleconfigs
+      singular: openshiftwebconsoleconfig
+
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    namespace: ${NAMESPACE}
+    name: openshift-web-console-operator
+    labels:
+      app: openshift-web-console-operator
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: openshift-web-console-operator
+    template:
+      metadata:
+        name: openshift-web-console-operator
+        labels:
+          app: openshift-web-console-operator
+      spec:
+        serviceAccountName: openshift-web-console-operator
+        containers:
+        - name: operator
+          image: ${IMAGE}
+          imagePullPolicy: IfNotPresent
+          command: ["hypershift", "experimental", "openshift-webconsole-operator"]
+          args:
+          - "-v=${LOGLEVEL}"
+        nodeSelector: "${{NODE_SELECTOR}}"
+
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    namespace: ${NAMESPACE}
+    name: openshift-web-console-operator
+    labels:
+      app: openshift-web-console-operator
+
+- apiVersion: webconsole.operator.openshift.io/v1alpha1
+  kind: OpenShiftWebConsoleConfig
+  metadata:
+    name: instance
+  spec:
+    managementState: Managed
+    imagePullSpec: ${COMPONENT_IMAGE}
+    version: 3.10.0
+    logging:
+      level: ${{COMPONENT_LOGLEVEL}}
+`)
+
+func installOpenshiftWebConsoleOperatorInstallYamlBytes() ([]byte, error) {
+	return _installOpenshiftWebConsoleOperatorInstallYaml, nil
+}
+
+func installOpenshiftWebConsoleOperatorInstallYaml() (*asset, error) {
+	bytes, err := installOpenshiftWebConsoleOperatorInstallYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "install/openshift-web-console-operator/install.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _installOriginWebConsoleConsoleConfigYaml = []byte(`apiVersion: webconsole.config.openshift.io/v1
 kind: WebConsoleConfiguration
 clusterInfo:
@@ -17704,6 +17836,8 @@ var _bindata = map[string]func() (*asset, error){
 	"install/kube-scheduler/kube-scheduler.yaml": installKubeSchedulerKubeSchedulerYaml,
 	"install/openshift-apiserver/install.yaml": installOpenshiftApiserverInstallYaml,
 	"install/openshift-controller-manager/install.yaml": installOpenshiftControllerManagerInstallYaml,
+	"install/openshift-web-console-operator/install-rbac.yaml": installOpenshiftWebConsoleOperatorInstallRbacYaml,
+	"install/openshift-web-console-operator/install.yaml": installOpenshiftWebConsoleOperatorInstallYaml,
 	"install/origin-web-console/console-config.yaml": installOriginWebConsoleConsoleConfigYaml,
 	"install/origin-web-console/console-template.yaml": installOriginWebConsoleConsoleTemplateYaml,
 	"install/service-catalog-broker-resources/template-service-broker-registration.yaml": installServiceCatalogBrokerResourcesTemplateServiceBrokerRegistrationYaml,
@@ -17833,6 +17967,10 @@ var _bintree = &bintree{nil, map[string]*bintree{
 		}},
 		"openshift-controller-manager": &bintree{nil, map[string]*bintree{
 			"install.yaml": &bintree{installOpenshiftControllerManagerInstallYaml, map[string]*bintree{}},
+		}},
+		"openshift-web-console-operator": &bintree{nil, map[string]*bintree{
+			"install-rbac.yaml": &bintree{installOpenshiftWebConsoleOperatorInstallRbacYaml, map[string]*bintree{}},
+			"install.yaml": &bintree{installOpenshiftWebConsoleOperatorInstallYaml, map[string]*bintree{}},
 		}},
 		"origin-web-console": &bintree{nil, map[string]*bintree{
 			"console-config.yaml": &bintree{installOriginWebConsoleConsoleConfigYaml, map[string]*bintree{}},
