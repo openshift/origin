@@ -86,6 +86,8 @@ type DiscoveryClientFactory interface {
 // Generally provides discovery, negotiation, and no-dep calls.
 // TODO The polymorphic calls probably deserve their own interface.
 type ClientAccessFactory interface {
+	OpenShiftClientAccessFactory
+
 	// Returns a discovery client
 	DiscoveryClient() (discovery.CachedDiscoveryInterface, error)
 

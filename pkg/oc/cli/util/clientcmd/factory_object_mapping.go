@@ -192,7 +192,7 @@ func (f *ring1Factory) HistoryViewer(mapping *meta.RESTMapping) (kubectl.History
 
 func (f *ring1Factory) Rollbacker(mapping *meta.RESTMapping) (kubectl.Rollbacker, error) {
 	if appsapi.IsKindOrLegacy("DeploymentConfig", mapping.GroupVersionKind.GroupKind()) {
-		config, err := f.clientAccessFactory.OpenShiftClientConfig().ClientConfig()
+		config, err := f.clientAccessFactory.ClientConfig()
 		if err != nil {
 			return nil, err
 		}
@@ -202,7 +202,7 @@ func (f *ring1Factory) Rollbacker(mapping *meta.RESTMapping) (kubectl.Rollbacker
 }
 
 func (f *ring1Factory) StatusViewer(mapping *meta.RESTMapping) (kubectl.StatusViewer, error) {
-	config, err := f.clientAccessFactory.OpenShiftClientConfig().ClientConfig()
+	config, err := f.clientAccessFactory.ClientConfig()
 	if err != nil {
 		return nil, err
 	}

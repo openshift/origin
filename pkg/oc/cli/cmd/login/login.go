@@ -97,7 +97,7 @@ func NewCmdLogin(fullName string, f *osclientcmd.Factory, reader io.Reader, out,
 }
 
 func (o *LoginOptions) Complete(f *osclientcmd.Factory, cmd *cobra.Command, args []string, commandName string) error {
-	kubeconfig, err := f.OpenShiftClientConfig().RawConfig()
+	kubeconfig, err := f.RawConfig()
 	o.StartingKubeConfig = &kubeconfig
 	if err != nil {
 		if !os.IsNotExist(err) {

@@ -29,7 +29,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/third_party/forked/golang/netutil"
 	restclient "k8s.io/client-go/rest"
-	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
@@ -158,7 +157,7 @@ type StartBuildOptions struct {
 
 	Mapper       meta.RESTMapper
 	BuildClient  buildclient.BuildInterface
-	ClientConfig kclientcmd.ClientConfig
+	ClientConfig *restclient.Config
 
 	AsBinary    bool
 	ShortOutput bool
@@ -169,11 +168,15 @@ type StartBuildOptions struct {
 }
 
 func (o *StartBuildOptions) Complete(f *clientcmd.Factory, in io.Reader, out, errout io.Writer, cmd *cobra.Command, cmdFullName string, args []string) error {
+	var err error
 	o.In = in
 	o.Out = out
 	o.ErrOut = errout
 	o.Git = git.NewRepository()
-	o.ClientConfig = f.OpenShiftClientConfig()
+	o.ClientConfig, err = f.ClientConfig()
+	if err != nil {
+		return err
+	}
 	o.Mapper, _ = f.Object()
 
 	o.IncrementalOverride = cmd.Flags().Lookup("incremental").Changed
@@ -716,13 +719,10 @@ func (o *StartBuildOptions) RunStartBuildWebHook() error {
 	// when using HTTPS, try to reuse the local config transport if possible to get a client cert
 	// TODO: search all configs
 	if hook.Scheme == "https" {
-		config, err := o.ClientConfig.ClientConfig()
-		if err == nil {
-			if url, _, err := restclient.DefaultServerURL(config.Host, "", schema.GroupVersion{}, true); err == nil {
-				if netutil.CanonicalAddr(url) == netutil.CanonicalAddr(hook) && url.Scheme == hook.Scheme {
-					if rt, err := restclient.TransportFor(config); err == nil {
-						httpClient = &http.Client{Transport: rt}
-					}
+		if url, _, err := restclient.DefaultServerURL(o.ClientConfig.Host, "", schema.GroupVersion{}, true); err == nil {
+			if netutil.CanonicalAddr(url) == netutil.CanonicalAddr(hook) && url.Scheme == hook.Scheme {
+				if rt, err := restclient.TransportFor(o.ClientConfig); err == nil {
+					httpClient = &http.Client{Transport: rt}
 				}
 			}
 		}
