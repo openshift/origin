@@ -266,7 +266,10 @@ func DetectSource(repositories []*app.SourceRepository, d app.Detector, g *Gener
 	for _, repo := range repositories {
 		err := repo.Detect(d, g.Strategy == generate.StrategyDocker || g.Strategy == generate.StrategyPipeline)
 		if err != nil {
-			errs = append(errs, err)
+			if filterGitErrors(err) {
+				errs = append(errs, err)
+				continue
+			}
 			continue
 		}
 		switch g.Strategy {
@@ -590,4 +593,17 @@ func AddMissingComponentsToRefBuilder(
 		}
 	}
 	return result, kutilerrors.NewAggregate(errs)
+}
+
+// filterGitErrors strips out certain errors we may get from the git client that we do not care about in certain contexts,
+// specifically errors related to authentication or the lack of a git binary.
+func filterGitErrors(err error) bool {
+	// we filter errors, which is not an errors in our case
+	if !strings.Contains(err.Error(), "git binary not available") {
+		return false
+	}
+	if !strings.Contains(err.Error(), "Repository not found") {
+		return false
+	}
+	return true
 }
