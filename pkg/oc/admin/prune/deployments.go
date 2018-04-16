@@ -48,7 +48,7 @@ type PruneDeploymentsOptions struct {
 	Namespace       string
 
 	AppsClient appsclientinternal.DeploymentConfigsGetter
-	KClient    kclientset.Interface
+	KubeClient kclientset.Interface
 	Out        io.Writer
 }
 
@@ -99,7 +99,7 @@ func (o *PruneDeploymentsOptions) Complete(f *clientcmd.Factory, cmd *cobra.Comm
 	}
 	o.Out = out
 
-	kClient, err := f.ClientSet()
+	kubeClient, err := f.ClientSet()
 	if err != nil {
 		return err
 	}
@@ -112,7 +112,7 @@ func (o *PruneDeploymentsOptions) Complete(f *clientcmd.Factory, cmd *cobra.Comm
 		return err
 	}
 	o.AppsClient = appsClient
-	o.KClient = kClient
+	o.KubeClient = kubeClient
 
 	return nil
 }
@@ -142,7 +142,7 @@ func (o PruneDeploymentsOptions) Run() error {
 		deploymentConfigs = append(deploymentConfigs, &deploymentConfigList.Items[i])
 	}
 
-	deploymentList, err := o.KClient.Core().ReplicationControllers(o.Namespace).List(metav1.ListOptions{})
+	deploymentList, err := o.KubeClient.Core().ReplicationControllers(o.Namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -167,7 +167,7 @@ func (o PruneDeploymentsOptions) Run() error {
 	deploymentDeleter := &describingDeploymentDeleter{w: w}
 
 	if o.Confirm {
-		deploymentDeleter.delegate = prune.NewDeploymentDeleter(o.KClient.Core(), o.KClient.Core())
+		deploymentDeleter.delegate = prune.NewDeploymentDeleter(o.KubeClient.Core(), o.KubeClient.Core())
 	} else {
 		fmt.Fprintln(os.Stderr, "Dry run enabled - no modifications will be made. Add --confirm to remove deployments")
 	}

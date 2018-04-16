@@ -7,6 +7,7 @@ metadata:
 rules:
 - apiGroups:
   - ''  # Allow mutation of Origin policy so we can proxy to RBAC
+  - 'authorization.openshift.io'  # Allow mutation of openshift authoriation groupified so we can proxy to RBAC
   - 'rbac.authorization.k8s.io'  # Allow mutation of RBAC so we can test escalation
   attributeRestrictions: null
   resources:

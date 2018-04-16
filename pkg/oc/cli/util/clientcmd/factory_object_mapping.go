@@ -11,7 +11,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/dynamic"
 	restclient "k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/controller"
@@ -33,18 +32,17 @@ import (
 	buildmanualclient "github.com/openshift/origin/pkg/build/client/internalversion"
 	buildclientinternal "github.com/openshift/origin/pkg/build/generated/internalclientset"
 	buildutil "github.com/openshift/origin/pkg/build/util"
-	configcmd "github.com/openshift/origin/pkg/bulk"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	deploymentcmd "github.com/openshift/origin/pkg/oc/cli/deploymentconfigs"
 	"github.com/openshift/origin/pkg/oc/cli/describe"
 )
 
 type ring1Factory struct {
-	clientAccessFactory      ClientAccessFactory
+	clientAccessFactory      kcmdutil.ClientAccessFactory
 	kubeObjectMappingFactory kcmdutil.ObjectMappingFactory
 }
 
-func NewObjectMappingFactory(clientAccessFactory ClientAccessFactory) kcmdutil.ObjectMappingFactory {
+func NewObjectMappingFactory(clientAccessFactory kcmdutil.ClientAccessFactory) kcmdutil.ObjectMappingFactory {
 	return &ring1Factory{
 		clientAccessFactory:      clientAccessFactory,
 		kubeObjectMappingFactory: kcmdutil.NewObjectMappingFactory(clientAccessFactory),
@@ -60,45 +58,10 @@ func (f *ring1Factory) CategoryExpander() categories.CategoryExpander {
 }
 
 func (f *ring1Factory) ClientForMapping(mapping *meta.RESTMapping) (resource.RESTClient, error) {
-	// TODO only do this for legacy kinds
-	if latest.OriginKind(mapping.GroupVersionKind) {
-		cfg, err := f.clientAccessFactory.ClientConfig()
-		if err != nil {
-			return nil, err
-		}
-		if err := configcmd.SetLegacyOpenShiftDefaults(cfg); err != nil {
-			return nil, err
-		}
-		cfg.APIPath = "/apis"
-		if mapping.GroupVersionKind.Group == kapi.GroupName {
-			cfg.APIPath = "/oapi"
-		}
-		gv := mapping.GroupVersionKind.GroupVersion()
-		cfg.GroupVersion = &gv
-		return restclient.RESTClientFor(cfg)
-	}
 	return f.kubeObjectMappingFactory.ClientForMapping(mapping)
 }
 
 func (f *ring1Factory) UnstructuredClientForMapping(mapping *meta.RESTMapping) (resource.RESTClient, error) {
-	// TODO only do this for legacy kinds
-	if latest.OriginKind(mapping.GroupVersionKind) {
-		cfg, err := f.clientAccessFactory.ClientConfig()
-		if err != nil {
-			return nil, err
-		}
-		if err := configcmd.SetLegacyOpenShiftDefaults(cfg); err != nil {
-			return nil, err
-		}
-		cfg.APIPath = "/apis"
-		if mapping.GroupVersionKind.Group == kapi.GroupName {
-			cfg.APIPath = "/oapi"
-		}
-		gv := mapping.GroupVersionKind.GroupVersion()
-		cfg.ContentConfig = dynamic.ContentConfig()
-		cfg.GroupVersion = &gv
-		return restclient.RESTClientFor(cfg)
-	}
 	return f.kubeObjectMappingFactory.UnstructuredClientForMapping(mapping)
 }
 
@@ -123,6 +86,7 @@ func (f *ring1Factory) Describer(mapping *meta.RESTMapping) (kprinters.Describer
 		}
 		return describer, nil
 	}
+
 	return f.kubeObjectMappingFactory.Describer(mapping)
 }
 

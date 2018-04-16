@@ -48,7 +48,7 @@ func New(flags *pflag.FlagSet) *Factory {
 
 // Factory provides common options for OpenShift commands
 type Factory struct {
-	ClientAccessFactory
+	kcmdutil.ClientAccessFactory
 	kcmdutil.ObjectMappingFactory
 	kcmdutil.BuilderFactory
 }

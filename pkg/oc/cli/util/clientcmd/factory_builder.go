@@ -25,12 +25,12 @@ import (
 )
 
 type ring2Factory struct {
-	clientAccessFactory  ClientAccessFactory
+	clientAccessFactory  kcmdutil.ClientAccessFactory
 	objectMappingFactory kcmdutil.ObjectMappingFactory
 	kubeBuilderFactory   kcmdutil.BuilderFactory
 }
 
-func NewBuilderFactory(clientAccessFactory ClientAccessFactory, objectMappingFactory kcmdutil.ObjectMappingFactory) kcmdutil.BuilderFactory {
+func NewBuilderFactory(clientAccessFactory kcmdutil.ClientAccessFactory, objectMappingFactory kcmdutil.ObjectMappingFactory) kcmdutil.BuilderFactory {
 	return &ring2Factory{
 		clientAccessFactory:  clientAccessFactory,
 		objectMappingFactory: objectMappingFactory,
