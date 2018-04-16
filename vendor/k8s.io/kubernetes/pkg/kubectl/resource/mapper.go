@@ -55,6 +55,8 @@ func (m *Mapper) InfoForData(data []byte, source string) (*Info, error) {
 		return nil, fmt.Errorf("unable to decode %q: %v", source, err)
 	}
 
+	fixOAPIGroupKind(obj, gvk)
+
 	mapping, err := m.RESTMapping(gvk.GroupKind(), gvk.Version)
 	if err != nil {
 		return nil, fmt.Errorf("unable to recognize %q: %v", source, err)
@@ -95,6 +97,8 @@ func (m *Mapper) InfoForObject(obj runtime.Object, preferredGVKs []schema.GroupV
 	if len(groupVersionKinds) > 1 && len(preferredGVKs) > 0 {
 		groupVersionKind = preferredObjectKind(groupVersionKinds, preferredGVKs)
 	}
+
+	fixOAPIGroupKind(obj, &groupVersionKind)
 
 	mapping, err := m.RESTMapping(groupVersionKind.GroupKind(), groupVersionKind.Version)
 	if err != nil {
