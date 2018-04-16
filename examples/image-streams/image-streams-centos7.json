@@ -7,7 +7,7 @@
       "kind": "ImageStream",
       "metadata": {
         "annotations": {
-          "openshift.io/display-name": ".NET Core Builder Images"
+          "openshift.io/display-name": ".NET Core"
         },
         "name": "dotnet"
       },
