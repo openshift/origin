@@ -75,10 +75,10 @@ func TestControllerCheckReadiness(t *testing.T) {
 	// fakeclient, respond "allowed" to any subjectaccessreview
 	fakeclientset := &fake.Clientset{}
 	c := &TemplateInstanceController{
-		restmapper: restutil.DefaultMultiRESTMapper(),
-		kc:         fakeclientset,
-		config:     fakerestconfig,
-		clock:      clock,
+		dynamicRestMapper: restutil.DefaultMultiRESTMapper(),
+		kc:                fakeclientset,
+		config:            fakerestconfig,
+		clock:             clock,
 	}
 	fakeclientset.AddReactor("create", "subjectaccessreviews", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, &authorization.SubjectAccessReview{Status: authorization.SubjectAccessReviewStatus{Allowed: true}}, nil

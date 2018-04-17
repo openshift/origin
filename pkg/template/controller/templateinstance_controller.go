@@ -11,6 +11,7 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kerrs "k8s.io/apimachinery/pkg/util/errors"
@@ -18,10 +19,11 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/authentication/user"
+	"k8s.io/client-go/discovery"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/apis/authorization"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -40,7 +42,6 @@ import (
 	"github.com/openshift/origin/pkg/template/generated/informers/internalversion/template/internalversion"
 	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset"
 	templatelister "github.com/openshift/origin/pkg/template/generated/listers/template/internalversion"
-	restutil "github.com/openshift/origin/pkg/util/rest"
 )
 
 const readinessTimeout = time.Hour
@@ -51,9 +52,12 @@ const readinessTimeout = time.Hour
 // using its own service account, first verifying that the requester also has
 // permissions to instantiate.
 type TemplateInstanceController struct {
-	restmapper     meta.RESTMapper
-	config         *rest.Config
-	templateClient templateclient.Interface
+	// TODO replace this with use of a codec built against the dynamic client
+	// (discuss w/ deads what this means)
+	dynamicRestMapper meta.RESTMapper
+	config            *rest.Config
+	jsonConfig        *rest.Config
+	templateClient    templateclient.Interface
 
 	// FIXME: Remove then cient when the build configs are able to report the
 	//				status of the last build.
@@ -72,18 +76,18 @@ type TemplateInstanceController struct {
 }
 
 // NewTemplateInstanceController returns a new TemplateInstanceController.
-func NewTemplateInstanceController(config *rest.Config, kc kclientsetinternal.Interface, buildClient buildclient.Interface, templateClient templateclient.Interface, informer internalversion.TemplateInstanceInformer) *TemplateInstanceController {
+func NewTemplateInstanceController(dynamicRestMapper *discovery.DeferredDiscoveryRESTMapper, config *rest.Config, kc kclientsetinternal.Interface, buildClient buildclient.Interface, templateClient templateclient.Interface, informer internalversion.TemplateInstanceInformer) *TemplateInstanceController {
 	c := &TemplateInstanceController{
-		restmapper:       restutil.DefaultMultiRESTMapper(),
-		config:           config,
-		kc:               kc,
-		templateClient:   templateClient,
-		buildClient:      buildClient,
-		lister:           informer.Lister(),
-		informer:         informer.Informer(),
-		queue:            workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "openshift_template_instance_controller"),
-		readinessLimiter: workqueue.NewItemFastSlowRateLimiter(5*time.Second, 20*time.Second, 200),
-		clock:            clock.RealClock{},
+		dynamicRestMapper: dynamicRestMapper,
+		config:            config,
+		kc:                kc,
+		templateClient:    templateClient,
+		buildClient:       buildClient,
+		lister:            informer.Lister(),
+		informer:          informer.Informer(),
+		queue:             workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "openshift_template_instance_controller"),
+		readinessLimiter:  workqueue.NewItemFastSlowRateLimiter(5*time.Second, 20*time.Second, 200),
+		clock:             clock.RealClock{},
 	}
 
 	c.informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
@@ -96,6 +100,9 @@ func NewTemplateInstanceController(config *rest.Config, kc kclientsetinternal.In
 		DeleteFunc: func(obj interface{}) {
 		},
 	})
+
+	c.jsonConfig = rest.CopyConfig(c.config)
+	c.jsonConfig.ContentConfig = dynamic.ContentConfig()
 
 	prometheus.MustRegister(c)
 
@@ -215,7 +222,7 @@ func (c *TemplateInstanceController) checkReadiness(templateInstance *templateap
 			continue
 		}
 
-		mapping, err := c.restmapper.RESTMapping(object.Ref.GroupVersionKind().GroupKind())
+		mapping, err := c.dynamicRestMapper.RESTMapping(object.Ref.GroupVersionKind().GroupKind())
 		if err != nil {
 			return false, err
 		}
@@ -407,7 +414,7 @@ func (c *TemplateInstanceController) instantiate(templateInstance *templateapi.T
 		return err
 	}
 
-	errs := runtime.DecodeList(template.Objects, legacyscheme.Codecs.UniversalDecoder())
+	errs := runtime.DecodeList(template.Objects, unstructured.UnstructuredJSONScheme)
 	if len(errs) > 0 {
 		return kerrs.NewAggregate(errs)
 	}
@@ -424,19 +431,24 @@ func (c *TemplateInstanceController) instantiate(templateInstance *templateapi.T
 	}
 
 	for _, obj := range template.Objects {
-		meta, _ := meta.Accessor(obj)
+		meta, err := meta.Accessor(obj)
+		if err != nil {
+			return err
+		}
 		ref := meta.GetOwnerReferences()
 		ref = append(ref, templateInstanceOwnerRef)
 		meta.SetOwnerReferences(ref)
 	}
 
 	bulk := bulk.Bulk{
-		Mapper: &resource.Mapper{
-			RESTMapper:   c.restmapper,
-			ObjectTyper:  legacyscheme.Scheme,
-			ClientMapper: bulk.ClientMapperFromConfig(c.config),
+		DynamicMapper: &resource.Mapper{
+			RESTMapper:   c.dynamicRestMapper,
+			ObjectTyper:  discovery.NewUnstructuredObjectTyper(nil),
+			ClientMapper: bulk.ClientMapperFromConfig(c.jsonConfig),
 		},
+
 		Op: func(info *resource.Info, namespace string, obj runtime.Object) (runtime.Object, error) {
+
 			if len(info.Namespace) > 0 {
 				namespace = info.Namespace
 			}
