@@ -1,6 +1,12 @@
 #!/bin/bash
 source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
+platform="$(os::build::host_platform)"
+if [[ "${platform}" != "linux/amd64" ]]; then
+  os::log::warning "Completions cannot be verified on non-Linux systems (${platform})"
+  exit 0
+fi
+
 function cleanup() {
     return_code=$?
     rm -rf "${TMP_COMPLETION_ROOT}"
@@ -9,12 +15,6 @@ function cleanup() {
     exit "${return_code}"
 }
 trap "cleanup" EXIT
-
-platform="$(os::build::host_platform)"
-if [[ "${platform}" != "linux/amd64" ]]; then
-  os::log::warning "Completions cannot be verified on non-Linux systems (${platform})"
-  exit 0
-fi
 
 COMPLETION_ROOT_REL="contrib/completions"
 COMPLETION_ROOT="${OS_ROOT}/${COMPLETION_ROOT_REL}"
