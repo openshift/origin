@@ -37,7 +37,6 @@ import (
 	"k8s.io/client-go/discovery"
 	cacheddiscovery "k8s.io/client-go/discovery/cached"
 	kexternalinformers "k8s.io/client-go/informers"
-	kubeclientgoinformers "k8s.io/client-go/informers"
 	kubeclientgoclient "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	aggregatorapiserver "k8s.io/kube-aggregator/pkg/apiserver"
@@ -52,7 +51,6 @@ import (
 type InformerAccess interface {
 	GetInternalKubeInformers() kinternalinformers.SharedInformerFactory
 	GetExternalKubeInformers() kexternalinformers.SharedInformerFactory
-	GetClientGoKubeInformers() kubeclientgoinformers.SharedInformerFactory
 	GetImageInformers() imageinformer.SharedInformerFactory
 	GetQuotaInformers() quotainformer.SharedInformerFactory
 	GetSecurityInformers() securityinformer.SharedInformerFactory
@@ -139,7 +137,7 @@ func NewPluginInitializer(
 	// note: we are passing a combined quota registry here...
 	genericInitializer := initializer.New(
 		kubeClientGoClientSet,
-		informers.GetClientGoKubeInformers(),
+		informers.GetExternalKubeInformers(),
 		authorizer,
 		legacyscheme.Scheme,
 	)
@@ -169,7 +167,7 @@ func NewPluginInitializer(
 
 	webhookInitializer := webhookinitializer.NewPluginInitializer(
 		webhookAuthResolverWrapper,
-		aggregatorapiserver.NewClusterIPServiceResolver(informers.GetClientGoKubeInformers().Core().V1().Services().Lister()),
+		aggregatorapiserver.NewClusterIPServiceResolver(informers.GetExternalKubeInformers().Core().V1().Services().Lister()),
 	)
 
 	openshiftPluginInitializer := &oadmission.PluginInitializer{

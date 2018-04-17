@@ -9,7 +9,6 @@ import (
 	kexternalinformers "k8s.io/client-go/informers"
 	controllerapp "k8s.io/kubernetes/cmd/kube-controller-manager/app"
 	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 	"k8s.io/kubernetes/pkg/controller"
 
 	routeinformer "github.com/openshift/client-go/route/informers/externalversions"
@@ -40,7 +39,6 @@ type ControllerContext struct {
 	ClientBuilder ControllerClientBuilder
 
 	ExternalKubeInformers   kexternalinformers.SharedInformerFactory
-	InternalKubeInformers   kinternalinformers.SharedInformerFactory
 	AppInformers            appinformer.SharedInformerFactory
 	BuildInformers          buildinformer.SharedInformerFactory
 	ImageInformers          imageinformer.SharedInformerFactory
