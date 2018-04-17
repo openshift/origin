@@ -9,31 +9,31 @@ import:
 - package: k8s.io/kube-openapi
   version: 50ae88d24ede7b8bad68e23c805b5d3da5c8abaf
 - package: k8s.io/code-generator
-  repo:    git@github.com:openshift/kubernetes-code-generator
+  repo:    https://github.com/openshift/kubernetes-code-generator
   version: origin-3.10-kubernetes-1.10.0
 - package: k8s.io/apimachinery
-  repo:    git@github.com:openshift/kubernetes-apimachinery
+  repo:    https://github.com/openshift/kubernetes-apimachinery
   version: origin-3.10-kubernetes-1.10.0
 - package: k8s.io/api
-  repo:    git@github.com:openshift/kubernetes-api
+  repo:    https://github.com/openshift/kubernetes-api
   version: origin-3.10-kubernetes-1.10.0
 - package: k8s.io/client-go
-  repo:    git@github.com:openshift/kubernetes-client-go
+  repo:    https://github.com/openshift/kubernetes-client-go
   version: origin-3.10-kubernetes-1.10.0
 - package: k8s.io/metrics
-  repo:    git@github.com:openshift/kubernetes-metrics
+  repo:    https://github.com/openshift/kubernetes-metrics
   version: origin-3.10-kubernetes-1.10.0
 - package: k8s.io/apiserver
-  repo:    git@github.com:openshift/kubernetes-apiserver
+  repo:    https://github.com/openshift/kubernetes-apiserver
   version: origin-3.10-kubernetes-1.10.0
 - package: k8s.io/kube-aggregator
-  repo:    git@github.com:openshift/kube-aggregator
+  repo:    https://github.com/openshift/kube-aggregator
   version: origin-3.10-kubernetes-1.10.0
 - package: k8s.io/apiextensions-apiserver
-  repo:    git@github.com:openshift/kubernetes-apiextensions-apiserver
+  repo:    https://github.com/openshift/kubernetes-apiextensions-apiserver
   version: origin-3.10-kubernetes-1.10.0
 - package: k8s.io/kubernetes
-  repo:    git@github.com:openshift/kubernetes
+  repo:    https://github.com/openshift/kubernetes
   version: origin-3.10-kubernetes-1.10.0
 
 # openshift second
@@ -47,7 +47,7 @@ import:
 # forks third
 # master
 - package: github.com/google/certificate-transparency
-  repo:    git@github.com:openshift/google-certificate-transparency
+  repo:    https://github.com/openshift/google-certificate-transparency
   version: master
 # master
 - package: github.com/emicklei/go-restful-swagger12
@@ -63,26 +63,26 @@ import:
   version: release-2.5.3a
 # master
 - package: github.com/onsi/ginkgo
-  repo:    git@github.com:openshift/onsi-ginkgo
+  repo:    https://github.com/openshift/onsi-ginkgo
   version: release-v1.2.0
 - package: github.com/containers/image
-  repo:    git@github.com:openshift/containers-image
+  repo:    https://github.com/openshift/containers-image
   version: openshift-3.8
 # pod - sjenning
 - package: github.com/opencontainers/runc
-  repo:    git@github.com:openshift/opencontainers-runc
+  repo:    https://github.com/openshift/opencontainers-runc
   version: openshift-3.10-runc-595bea0
 # pod - sjenning
 - package: github.com/google/cadvisor
-  repo:    git@github.com:openshift/google-cadvisor
+  repo:    https://github.com/openshift/google-cadvisor
   version: openshift-3.10-cadvisor-v0.29.1
 # cli
 - package: github.com/docker/distribution
-  repo:    git@github.com:openshift/docker-distribution
+  repo:    https://github.com/openshift/docker-distribution
   version: openshift-3.10-docker-edc3ab2
 # close-write carry
 - package: github.com/docker/docker
-  repo:    git@github.com:openshift/moby-moby
+  repo:    https://github.com/openshift/moby-moby
   version: openshift-3.10-docker-b68221c
 
 # ours: shared with kube, but forced by openshift
@@ -135,7 +135,7 @@ import:
   version: ~0.6.0
 # builds
 - package: github.com/fsouza/go-dockerclient
-  repo:    git@github.com:openshift/go-dockerclient
+  repo:    https://github.com/openshift/go-dockerclient
   version: openshift-3.9
 # auth (for testing)
 - package: github.com/vjeantet/ldapserver
