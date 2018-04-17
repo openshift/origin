@@ -165,6 +165,7 @@ type ClusterUpConfig struct {
 	openshiftHelper     *openshift.Helper
 	command             *cobra.Command
 	defaultClientConfig clientcmdapi.Config
+	isRemoteDocker      bool
 
 	usingDefaultImages         bool
 	usingDefaultOpenShiftImage bool
@@ -237,6 +238,8 @@ func (c *ClusterUpConfig) Complete(cmd *cobra.Command, out io.Writer) error {
 
 	c.command = cmd
 
+	c.isRemoteDocker = len(os.Getenv("DOCKER_HOST")) > 0
+
 	// do some defaulting
 	if len(c.ImageTag) == 0 {
 		c.ImageTag = strings.TrimRight("v"+version.Get().Major+"."+version.Get().Minor, "+")
@@ -303,32 +306,49 @@ func (c *ClusterUpConfig) Complete(cmd *cobra.Command, out io.Writer) error {
 	}
 
 	if c.UseNsenterMount {
+		// This is default path when you run cluster up locally, with local docker daemon
 		c.HostVolumesDir = path.Join(c.BaseDir, "openshift.local.volumes")
-		if err := os.MkdirAll(c.HostVolumesDir, 0755); err != nil {
-			return err
+		// This is a snowflake when Docker runs on remote host
+		if c.isRemoteDocker {
+			c.HostVolumesDir = c.RemoteDirFor("openshift.local.volumes")
+		} else {
+			if err := os.MkdirAll(c.HostVolumesDir, 0755); err != nil {
+				return err
+			}
 		}
 	} else {
-		c.HostVolumesDir = path.Join(NonLinuxHostVolumeDirPrefix, c.BaseDir, "openshift.local.volumes")
+		// Snowflake for OSX Docker for Mac
+		c.HostVolumesDir = c.RemoteDirFor("openshift.local.volumes")
 	}
+
 	c.HostPersistentVolumesDir = path.Join(c.BaseDir, "openshift.local.pv")
-	if err := os.MkdirAll(c.HostPersistentVolumesDir, 0755); err != nil {
-		return err
+	if c.isRemoteDocker {
+		c.HostPersistentVolumesDir = c.RemoteDirFor("openshift.local.pv")
+	} else {
+		if err := os.MkdirAll(c.HostPersistentVolumesDir, 0755); err != nil {
+			return err
+		}
 	}
+
 	c.HostDataDir = path.Join(c.BaseDir, "etcd")
-	if err := os.MkdirAll(c.HostDataDir, 0755); err != nil {
-		return err
+	if c.isRemoteDocker {
+		c.HostDataDir = c.RemoteDirFor("etcd")
+	} else {
+		if err := os.MkdirAll(c.HostDataDir, 0755); err != nil {
+			return err
+		}
 	}
 
 	// Ensure that host directories exist.
 	// If not using the nsenter mounter, create a volume share on the host machine to
 	// mount OpenShift volumes.
-	taskPrinter.StartTask("Creating host directories")
 	if !c.UseNsenterMount {
-		if err := c.HostHelper().EnsureVolumeUseShareMount(); err != nil {
+		taskPrinter.StartTask("Creating shared mount directory on the remote host")
+		if err := c.HostHelper().EnsureVolumeUseShareMount(c.HostVolumesDir); err != nil {
 			return taskPrinter.ToError(err)
 		}
+		taskPrinter.Success()
 	}
-	taskPrinter.Success()
 
 	// Determine an IP to use for OpenShift.
 	// The result is that c.ServerIP will be populated with
@@ -909,7 +929,7 @@ func (c *ClusterUpConfig) OpenShiftHelper() *openshift.Helper {
 // HostHelper returns a helper object to check Host configuration
 func (c *ClusterUpConfig) HostHelper() *host.HostHelper {
 	if c.hostHelper == nil {
-		c.hostHelper = host.NewHostHelper(c.DockerHelper(), c.openshiftImage(), c.HostVolumesDir)
+		c.hostHelper = host.NewHostHelper(c.DockerHelper(), c.openshiftImage())
 	}
 	return c.hostHelper
 }

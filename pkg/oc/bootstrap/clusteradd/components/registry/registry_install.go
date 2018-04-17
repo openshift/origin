@@ -2,11 +2,13 @@ package registry
 
 import (
 	"fmt"
+	"os"
 	"path"
 
 	"github.com/openshift/origin/pkg/oc/bootstrap/clusteradd/componentinstall"
 	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/kubeapiserver"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/dockerhelper"
+	"github.com/openshift/origin/pkg/oc/bootstrap/docker/host"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/run"
 	"github.com/openshift/origin/pkg/oc/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -48,7 +50,13 @@ func (r *RegistryComponentOptions) Install(dockerClient dockerhelper.Interface, 
 		return err
 	}
 
-	masterConfigDir := path.Join(r.InstallContext.BaseDir(), kubeapiserver.KubeAPIServerDirName)
+	// If docker is on remote host, the base dir is different.
+	baseDir := r.InstallContext.BaseDir()
+	if len(os.Getenv("DOCKER_HOST")) > 0 {
+		baseDir = path.Join(host.RemoteHostOriginDir, r.InstallContext.BaseDir())
+	}
+
+	masterConfigDir := path.Join(baseDir, kubeapiserver.KubeAPIServerDirName)
 	flags := []string{
 		"adm",
 		"registry",

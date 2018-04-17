@@ -11,6 +11,7 @@ import (
 	goruntime "runtime"
 
 	"github.com/golang/glog"
+	"github.com/openshift/origin/pkg/oc/bootstrap/docker/host"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -110,7 +111,21 @@ func (c *RouterComponentOptions) Install(dockerClient dockerhelper.Interface, lo
 		return errors.NewError("cannot create aggregate router cert").WithCause(err)
 	}
 
+	dockerHelper := dockerhelper.NewHelper(dockerClient)
+
+	// This snowflake makes sure that when the Docker is on remote host, we copy the generated cert into
+	// the Docker host master config dir.
+	if len(os.Getenv("DOCKER_HOST")) > 0 {
+		hostHelper := host.NewHostHelper(dockerHelper, c.InstallContext.ClientImage())
+		remoteMasterConfigDir := path.Join(host.RemoteHostOriginDir, c.InstallContext.BaseDir(), kubeapiserver.KubeAPIServerDirName)
+		if err := hostHelper.CopyToHost(masterConfigDir, remoteMasterConfigDir); err != nil {
+			return err
+		}
+		masterConfigDir = remoteMasterConfigDir
+	}
+
 	routerCertPath := masterConfigDir + "/router.pem"
+
 	flags := []string{
 		"adm", "router",
 		"--host-ports=true",
