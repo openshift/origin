@@ -597,25 +597,15 @@ func BuildAdmissionPluginInitializers(
 		}
 	}
 
-	// TODO: drop this REST mapper once client is guaranteed to be non-nil
-	// See KUBE_API_VERSIONS comment above
-	restMapper := legacyscheme.Registry.RESTMapper()
-	admissionPostStartHook := func(_ genericapiserver.PostStartHookContext) error {
+	// Use a discovery client capable of being refreshed.
+	discoveryClient := cacheddiscovery.NewMemCacheClient(client.Discovery())
+	discoveryRESTMapper := discovery.NewDeferredDiscoveryRESTMapper(discoveryClient, meta.InterfacesForUnstructured)
+
+	restMapper := discoveryRESTMapper
+	admissionPostStartHook := func(context genericapiserver.PostStartHookContext) error {
+		discoveryRESTMapper.Reset()
+		go utilwait.Until(discoveryRESTMapper.Reset, 10*time.Second, context.StopCh)
 		return nil
-	}
-
-	// We have a functional client so we can use that to build our discovery backed REST mapper
-	if client != nil && client.Discovery() != nil {
-		// Use a discovery client capable of being refreshed.
-		discoveryClient := cacheddiscovery.NewMemCacheClient(client.Discovery())
-		discoveryRESTMapper := discovery.NewDeferredDiscoveryRESTMapper(discoveryClient, meta.InterfacesForUnstructured)
-
-		restMapper = discoveryRESTMapper
-		admissionPostStartHook = func(context genericapiserver.PostStartHookContext) error {
-			discoveryRESTMapper.Reset()
-			go utilwait.Until(discoveryRESTMapper.Reset, 10*time.Second, context.StopCh)
-			return nil
-		}
 	}
 
 	quotaConfiguration := quotainstall.NewQuotaConfigurationForAdmission()
