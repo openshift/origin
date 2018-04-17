@@ -11,6 +11,7 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kerrs "k8s.io/apimachinery/pkg/util/errors"
@@ -18,6 +19,9 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/authentication/user"
+	"k8s.io/client-go/discovery"
+	cacheddiscovery "k8s.io/client-go/discovery/cached"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
@@ -51,9 +55,11 @@ const readinessTimeout = time.Hour
 // using its own service account, first verifying that the requester also has
 // permissions to instantiate.
 type TemplateInstanceController struct {
-	restmapper     meta.RESTMapper
-	config         *rest.Config
-	templateClient templateclient.Interface
+	restmapper        meta.RESTMapper
+	dynamicRestMapper *discovery.DeferredDiscoveryRESTMapper
+	config            *rest.Config
+	jsonConfig        *rest.Config
+	templateClient    templateclient.Interface
 
 	// FIXME: Remove then cient when the build configs are able to report the
 	//				status of the last build.
@@ -96,6 +102,13 @@ func NewTemplateInstanceController(config *rest.Config, kc kclientsetinternal.In
 		DeleteFunc: func(obj interface{}) {
 		},
 	})
+
+	discoveryClient := cacheddiscovery.NewMemCacheClient(c.kc.Discovery())
+	c.dynamicRestMapper = discovery.NewDeferredDiscoveryRESTMapper(discoveryClient, meta.InterfacesForUnstructured)
+	c.dynamicRestMapper.Reset()
+
+	c.jsonConfig = rest.CopyConfig(c.config)
+	c.jsonConfig.ContentConfig = dynamic.ContentConfig()
 
 	prometheus.MustRegister(c)
 
@@ -284,6 +297,8 @@ func (c *TemplateInstanceController) Run(workers int, stopCh <-chan struct{}) {
 		go wait.Until(c.runWorker, time.Second, stopCh)
 	}
 
+	go wait.Until(c.dynamicRestMapper.Reset, 30*time.Second, stopCh)
+
 	<-stopCh
 }
 
@@ -407,7 +422,7 @@ func (c *TemplateInstanceController) instantiate(templateInstance *templateapi.T
 		return err
 	}
 
-	errs := runtime.DecodeList(template.Objects, legacyscheme.Codecs.UniversalDecoder())
+	errs := runtime.DecodeList(template.Objects, legacyscheme.Codecs.LegacyCodec(schema.GroupVersion{Group: "", Version: "v1"}), unstructured.UnstructuredJSONScheme)
 	if len(errs) > 0 {
 		return kerrs.NewAggregate(errs)
 	}
@@ -424,7 +439,10 @@ func (c *TemplateInstanceController) instantiate(templateInstance *templateapi.T
 	}
 
 	for _, obj := range template.Objects {
-		meta, _ := meta.Accessor(obj)
+		meta, err := meta.Accessor(obj)
+		if err != nil {
+			return err
+		}
 		ref := meta.GetOwnerReferences()
 		ref = append(ref, templateInstanceOwnerRef)
 		meta.SetOwnerReferences(ref)
@@ -436,7 +454,14 @@ func (c *TemplateInstanceController) instantiate(templateInstance *templateapi.T
 			ObjectTyper:  legacyscheme.Scheme,
 			ClientMapper: bulk.ClientMapperFromConfig(c.config),
 		},
+		DynamicMapper: &resource.Mapper{
+			RESTMapper:   c.dynamicRestMapper,
+			ObjectTyper:  legacyscheme.Scheme,
+			ClientMapper: bulk.ClientMapperFromConfig(c.jsonConfig),
+		},
+
 		Op: func(info *resource.Info, namespace string, obj runtime.Object) (runtime.Object, error) {
+
 			if len(info.Namespace) > 0 {
 				namespace = info.Namespace
 			}
