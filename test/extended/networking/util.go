@@ -312,6 +312,9 @@ func makeNamespaceScheduleToAllNodes(f *e2e.Framework) {
 	for {
 		ns, err := f.ClientSet.CoreV1().Namespaces().Get(f.Namespace.Name, metav1.GetOptions{})
 		expectNoError(err)
+		if ns.Annotations == nil {
+			ns.Annotations = make(map[string]string)
+		}
 		ns.Annotations["openshift.io/node-selector"] = ""
 		_, err = f.ClientSet.CoreV1().Namespaces().Update(ns)
 		if err == nil {
