@@ -52,7 +52,8 @@ fi
 }
 
 set::oauth() {
-htpasswd -c /etc/origin/master/htpasswd grafana
+touch -a /etc/origin/master/htpasswd
+htpasswd /etc/origin/master/htpasswd grafana
 sed -ie 's|AllowAllPasswordIdentityProvider|HTPasswdPasswordIdentityProvider\n      file: /etc/origin/master/htpasswd|' /etc/origin/master/master-config.yaml
 oc adm policy add-cluster-role-to-user cluster-reader grafana
 systemctl restart atomic-openshift-master-api.service
@@ -63,7 +64,7 @@ node::exporter(){
 oc annotate ns kube-system openshift.io/node-selector= --overwrite
 sed -i.bak "s/Xs/${graph_granularity}/" "${dashboard_file}"
 sed -i.bak "s/\${DS_PR}/${datasource_name}/" "${dashboard_file}"
-curl -H "Content-Type: application/json" -u admin:admin "${grafana_host}/api/dashboards/db" -X POST -d "@./node-exporter-full-dashboard.json"
+curl --insecure -H "Content-Type: application/json" -u admin:admin "${grafana_host}/api/dashboards/db" -X POST -d "@./node-exporter-full-dashboard.json"
 mv "${dashboard_file}.bak" "${dashboard_file}"
 }
 
@@ -98,13 +99,13 @@ EOF
 
 # setup grafana data source
 grafana_host="${protocol}$( oc get route grafana -o jsonpath='{.spec.host}' )"
-curl -H "Content-Type: application/json" -u admin:admin "${grafana_host}/api/datasources" -X POST -d "@${payload}"
+curl --insecure -H "Content-Type: application/json" -u admin:admin "${grafana_host}/api/datasources" -X POST -d "@${payload}"
 
 # deploy openshift dashboard
 dashboard_file="./openshift-cluster-monitoring.json"
 sed -i.bak "s/Xs/${graph_granularity}/" "${dashboard_file}"
 sed -i.bak "s/\${DS_PR}/${datasource_name}/" "${dashboard_file}"
-curl -H "Content-Type: application/json" -u admin:admin "${grafana_host}/api/dashboards/db" -X POST -d "@${dashboard_file}"
+curl --insecure -H "Content-Type: application/json" -u admin:admin "${grafana_host}/api/dashboards/db" -X POST -d "@${dashboard_file}"
 mv "${dashboard_file}.bak" "${dashboard_file}"
 
 ((node_exporter)) && node::exporter || echo "skip node exporter"
