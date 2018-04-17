@@ -8,6 +8,11 @@ import (
 	"github.com/spf13/viper"
 )
 
+const (
+	IF_EXISTS_DELETE = "delete"
+	IF_EXISTS_REUSE  = "reuse"
+)
+
 // ContextType is the root config struct
 type ContextType struct {
 	ClusterLoader struct {
@@ -22,6 +27,7 @@ type ContextType struct {
 type ClusterLoaderType struct {
 	Number     int `mapstructure:"num" yaml:"num"`
 	Basename   string
+	IfExists   string                    `json:"ifexists"`
 	Labels     map[string]string         `yaml:",omitempty"`
 	Tuning     string                    `yaml:",omitempty"`
 	Configmaps map[string]interface{}    `yaml:",omitempty"`

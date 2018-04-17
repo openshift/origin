@@ -20,6 +20,8 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
+const checkDeleteProjectInterval = 10 * time.Second
+const checkDeleteProjectTimeout = 3 * time.Minute
 const deploymentRunTimeout = 5 * time.Minute
 const testResultFile = "/tmp/TestResult"
 
@@ -75,11 +77,30 @@ var _ = g.Describe("[Feature:Performance][Serial][Slow] Load cluster", func() {
 				e2e.Logf("Our tuning set is: %v", tuning)
 			}
 			for j := 0; j < p.Number; j++ {
-				// Create namespaces as defined in Cluster Loader config
 				nsName := fmt.Sprintf("%s%d", p.Basename, j)
-				err := oc.Run("new-project").Args(nsName).Execute()
+
+				projectExists, err := ProjectExists(oc, nsName)
 				o.Expect(err).NotTo(o.HaveOccurred())
-				e2e.Logf("%d/%d : Created new namespace: %v", j+1, p.Number, nsName)
+
+				switch p.IfExists {
+				case IF_EXISTS_REUSE:
+					e2e.Logf("reuse project %v", nsName)
+					if !projectExists {
+						e2e.Failf("reusing project which does not exist: %v", nsName)
+					}
+				case IF_EXISTS_DELETE:
+					if projectExists {
+						err = DeleteProject(oc, nsName, checkDeleteProjectInterval, checkDeleteProjectTimeout)
+						o.Expect(err).NotTo(o.HaveOccurred())
+					}
+					// Create namespaces as defined in Cluster Loader config
+					err = oc.Run("new-project").Args(nsName).Execute()
+					o.Expect(err).NotTo(o.HaveOccurred())
+					e2e.Logf("%d/%d : Created new namespace: %v", j+1, p.Number, nsName)
+				default:
+					e2e.Failf("Unsupported ifexists value '%v' for project %v", p.IfExists, project)
+				}
+
 				// label namespace nsName
 				if p.Labels != nil {
 					_, err = SetNamespaceLabels(c, nsName, p.Labels)
