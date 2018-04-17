@@ -4,21 +4,17 @@ import (
 	"fmt"
 	"time"
 
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	servingcertcontroller "github.com/openshift/origin/pkg/service/controller/servingcert"
 )
 
-type ServiceServingCertsControllerOptions struct {
-	Signer *configapi.CertInfo
-}
-
-func (c *ServiceServingCertsControllerOptions) RunController(ctx ControllerContext) (bool, error) {
-	if c.Signer == nil || len(c.Signer.CertFile) == 0 || len(c.Signer.KeyFile) == 0 {
+func RunServiceServingCertsController(ctx ControllerContext) (bool, error) {
+	signer := ctx.OpenshiftControllerConfig.ServiceServingCert.Signer
+	if signer == nil || len(signer.CertFile) == 0 || len(signer.KeyFile) == 0 {
 		return false, nil
 	}
-	ca, err := crypto.GetCA(c.Signer.CertFile, c.Signer.KeyFile, "")
+	ca, err := crypto.GetCA(signer.CertFile, signer.KeyFile, "")
 	if err != nil {
 		return true, fmt.Errorf("service serving cert controller: %v", err)
 	}

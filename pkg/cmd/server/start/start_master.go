@@ -412,15 +412,16 @@ func (m *Master) Start() error {
 			)
 		}()
 
+		openshiftControllerConfig := openshift_controller_manager.ConvertMasterConfigToOpenshiftControllerConfig(m.config)
+		// if we're starting the API, then this one isn't supposed to serve
 		if m.api {
-			if err := openshift_controller_manager.RunOpenShiftControllerManagerCombined(m.config); err != nil {
-				return err
-			}
-		} else {
-			if err := openshift_controller_manager.RunOpenShiftControllerManager(m.config); err != nil {
-				return err
-			}
+			openshiftControllerConfig.ServingInfo = nil
 		}
+
+		if err := openshift_controller_manager.RunOpenShiftControllerManager(openshiftControllerConfig, privilegedLoopbackConfig); err != nil {
+			return err
+		}
+
 	}
 
 	if m.api {

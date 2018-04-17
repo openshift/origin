@@ -9,8 +9,6 @@ import (
 	"github.com/golang/glog"
 
 	"k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kutilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
 	kclientsetexternal "k8s.io/client-go/kubernetes"
 	v1core "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -18,31 +16,18 @@ import (
 	"k8s.io/client-go/tools/leaderelection"
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
 	"k8s.io/client-go/tools/record"
-	cmappoptions "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	"k8s.io/kubernetes/pkg/apis/componentconfig"
 	"k8s.io/kubernetes/pkg/controller"
 
 	origincontrollers "github.com/openshift/origin/pkg/cmd/openshift-controller-manager/controller"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	"github.com/openshift/origin/pkg/cmd/server/cm"
 	"github.com/openshift/origin/pkg/cmd/server/origin"
-	cmdflags "github.com/openshift/origin/pkg/cmd/util/flags"
 	"github.com/openshift/origin/pkg/version"
 )
 
-// RunOpenShiftControllerManagerCombined is only called when we're starting with the API server.  It means we can't start our own server.
-func RunOpenShiftControllerManagerCombined(masterConfig *configapi.MasterConfig) error {
-	return runOpenShiftControllerManager(masterConfig, false)
-}
-
-func RunOpenShiftControllerManager(masterConfig *configapi.MasterConfig) error {
-	return runOpenShiftControllerManager(masterConfig, true)
-}
-
-func runOpenShiftControllerManager(masterConfig *configapi.MasterConfig, runServer bool) error {
-	clientConfig, err := configapi.GetClientConfig(masterConfig.MasterClients.OpenShiftLoopbackKubeConfig, masterConfig.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
+func RunOpenShiftControllerManager(config *configapi.OpenshiftControllerConfig, clientConfig *rest.Config) error {
+	kubeExternal, err := kclientsetexternal.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
@@ -50,16 +35,12 @@ func runOpenShiftControllerManager(masterConfig *configapi.MasterConfig, runServ
 	if err != nil {
 		return err
 	}
-	kubeExternal, err := kclientsetexternal.NewForConfig(clientConfig)
-	if err != nil {
-		return err
-	}
 
-	// you can't double run healthz, so only do this next bit if we aren't starting the API
-	if runServer {
-		glog.Infof("Starting controllers on %s (%s)", masterConfig.ServingInfo.BindAddress, version.Get().String())
+	// only serve if we have serving information.
+	if config.ServingInfo != nil {
+		glog.Infof("Starting controllers on %s (%s)", config.ServingInfo.BindAddress, version.Get().String())
 
-		if err := origincontrollers.RunControllerServer(masterConfig.ServingInfo, kubeExternal); err != nil {
+		if err := origincontrollers.RunControllerServer(*config.ServingInfo, kubeExternal); err != nil {
 			return err
 		}
 	}
@@ -69,14 +50,9 @@ func runOpenShiftControllerManager(masterConfig *configapi.MasterConfig, runServ
 			glog.Fatal(err)
 		}
 
-		openshiftControllerOptions, err := getOpenshiftControllerOptions(masterConfig.KubernetesMasterConfig.ControllerArguments)
-		if err != nil {
-			glog.Fatal(err)
-		}
-
 		informersStarted := make(chan struct{})
-		controllerContext := newControllerContext(openshiftControllerOptions, masterConfig.ControllerConfig.Controllers, clientConfig, kubeExternal, openshiftControllerInformers, stopCh, informersStarted)
-		if err := startControllers(*masterConfig, controllerContext); err != nil {
+		controllerContext := newControllerContext(*config, clientConfig, kubeExternal, openshiftControllerInformers, stopCh, informersStarted)
+		if err := startControllers(controllerContext); err != nil {
 			glog.Fatal(err)
 		}
 
@@ -92,11 +68,8 @@ func runOpenShiftControllerManager(masterConfig *configapi.MasterConfig, runServ
 	if err != nil {
 		return err
 	}
-	openshiftLeaderElectionArgs, err := getLeaderElectionOptions(masterConfig.KubernetesMasterConfig.ControllerArguments)
-	if err != nil {
-		return err
-	}
-	rl, err := resourcelock.New(openshiftLeaderElectionArgs.ResourceLock,
+	rl, err := resourcelock.New(
+		"configmaps",
 		"kube-system",
 		"openshift-master-controllers", // this matches what ansible used to set
 		kubeExternal.CoreV1(),
@@ -109,9 +82,9 @@ func runOpenShiftControllerManager(masterConfig *configapi.MasterConfig, runServ
 	}
 	go leaderelection.RunOrDie(leaderelection.LeaderElectionConfig{
 		Lock:          rl,
-		LeaseDuration: openshiftLeaderElectionArgs.LeaseDuration.Duration,
-		RenewDeadline: openshiftLeaderElectionArgs.RenewDeadline.Duration,
-		RetryPeriod:   openshiftLeaderElectionArgs.RetryPeriod.Duration,
+		LeaseDuration: config.LeaderElection.LeaseDuration.Duration,
+		RenewDeadline: config.LeaderElection.RenewDeadline.Duration,
+		RetryPeriod:   config.LeaderElection.RetryPeriod.Duration,
 		Callbacks: leaderelection.LeaderCallbacks{
 			OnStartedLeading: originControllerManager,
 			OnStoppedLeading: func() {
@@ -124,8 +97,7 @@ func runOpenShiftControllerManager(masterConfig *configapi.MasterConfig, runServ
 }
 
 func newControllerContext(
-	openshiftControllerOptions origincontrollers.OpenshiftControllerOptions,
-	enabledControllers []string,
+	config configapi.OpenshiftControllerConfig,
 	inClientConfig *rest.Config,
 	kubeExternal kclientsetexternal.Interface,
 	informers origin.InformerAccess,
@@ -146,8 +118,7 @@ func newControllerContext(
 	}
 
 	openshiftControllerContext := origincontrollers.ControllerContext{
-		OpenshiftControllerOptions: openshiftControllerOptions,
-		EnabledControllers:         enabledControllers,
+		OpenshiftControllerConfig: config,
 
 		ClientBuilder: origincontrollers.OpenshiftControllerClientBuilder{
 			ControllerClientBuilder: controller.SAControllerClientBuilder{
@@ -175,49 +146,6 @@ func newControllerContext(
 	return openshiftControllerContext
 }
 
-// getOpenshiftControllerOptions parses the CLI args used by the kube-controllers (which control these options today), so that
-// we can defer making the controller options structs until we have a better idea what they should look like.
-// This does mean we pull in an upstream command that hopefully won't change much.
-func getOpenshiftControllerOptions(args map[string][]string) (origincontrollers.OpenshiftControllerOptions, error) {
-	cmoptions := cmappoptions.NewKubeControllerManagerOptions()
-	if err := cmdflags.Resolve(args, cm.OriginControllerManagerAddFlags(cmoptions)); len(err) > 0 {
-		return origincontrollers.OpenshiftControllerOptions{}, kutilerrors.NewAggregate(err)
-	}
-
-	return origincontrollers.OpenshiftControllerOptions{
-		HPAControllerOptions: origincontrollers.HPAControllerOptions{
-			SyncPeriod:               cmoptions.Generic.ComponentConfig.HorizontalPodAutoscalerSyncPeriod,
-			UpscaleForbiddenWindow:   cmoptions.Generic.ComponentConfig.HorizontalPodAutoscalerUpscaleForbiddenWindow,
-			DownscaleForbiddenWindow: cmoptions.Generic.ComponentConfig.HorizontalPodAutoscalerDownscaleForbiddenWindow,
-		},
-		ResourceQuotaOptions: origincontrollers.ResourceQuotaOptions{
-			ConcurrentSyncs: cmoptions.Generic.ComponentConfig.ConcurrentResourceQuotaSyncs,
-			SyncPeriod:      cmoptions.Generic.ComponentConfig.ResourceQuotaSyncPeriod,
-			MinResyncPeriod: cmoptions.Generic.ComponentConfig.MinResyncPeriod,
-		},
-		ServiceAccountTokenOptions: origincontrollers.ServiceAccountTokenOptions{
-			ConcurrentSyncs: cmoptions.Generic.ComponentConfig.ConcurrentSATokenSyncs,
-		},
-	}, nil
-}
-
-// getLeaderElectionOptions parses the CLI args used by the openshift controller leader election (which control these options today), so that
-// we can defer making the options structs until we have a better idea what they should look like.
-// This does mean we pull in an upstream command that hopefully won't change much.
-func getLeaderElectionOptions(args map[string][]string) (componentconfig.LeaderElectionConfiguration, error) {
-	cmoptions := cmappoptions.NewKubeControllerManagerOptions()
-	cmoptions.Generic.ComponentConfig.LeaderElection.RetryPeriod = metav1.Duration{Duration: 3 * time.Second}
-
-	if err := cmdflags.Resolve(args, cm.OriginControllerManagerAddFlags(cmoptions)); len(err) > 0 {
-		return componentconfig.LeaderElectionConfiguration{}, kutilerrors.NewAggregate(err)
-	}
-
-	leaderElection := cmoptions.Generic.ComponentConfig.LeaderElection
-	leaderElection.LeaderElect = true
-	leaderElection.ResourceLock = "configmaps"
-	return leaderElection, nil
-}
-
 func waitForHealthyAPIServer(client rest.Interface) error {
 	var healthzContent string
 	// If apiserver is not running we should wait for some time and fail only then. This is particularly
@@ -243,18 +171,8 @@ func waitForHealthyAPIServer(client rest.Interface) error {
 
 // startControllers launches the controllers
 // allocation controller is passed in because it wants direct etcd access.  Naughty.
-func startControllers(options configapi.MasterConfig, controllerContext origincontrollers.ControllerContext) error {
-	openshiftControllerConfig, err := origincontrollers.BuildOpenshiftControllerConfig(options)
-	if err != nil {
-		return err
-	}
-
-	openshiftControllerInitializers, err := openshiftControllerConfig.GetControllerInitializers()
-	if err != nil {
-		return err
-	}
-
-	for controllerName, initFn := range openshiftControllerInitializers {
+func startControllers(controllerContext origincontrollers.ControllerContext) error {
+	for controllerName, initFn := range origincontrollers.ControllerInitializers {
 		if !controllerContext.IsControllerEnabled(controllerName) {
 			glog.Warningf("%q is disabled", controllerName)
 			continue

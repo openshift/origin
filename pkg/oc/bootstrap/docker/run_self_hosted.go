@@ -80,6 +80,7 @@ var (
 			Namespace:         "openshift-controller-manager",
 			NamespaceObj:      newNamespaceBytes("openshift-controller-manager", nil),
 			PrivilegedSANames: []string{"openshift-controller-manager"},
+			RBACTemplate:      bootstrap.MustAsset("install/openshift-controller-manager/install-rbac.yaml"),
 			InstallTemplate:   bootstrap.MustAsset("install/openshift-controller-manager/install.yaml"),
 		},
 	}

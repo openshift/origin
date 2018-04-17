@@ -52,7 +52,7 @@ type OsdnMaster struct {
 	hostSubnetNodeIPs map[ktypes.UID]string
 }
 
-func Start(networkConfig osconfigapi.MasterNetworkConfig, networkClient networkclient.Interface,
+func Start(networkConfig osconfigapi.NetworkControllerConfig, networkClient networkclient.Interface,
 	kClient kclientset.Interface, kubeInformers informers.SharedInformerFactory,
 	networkInformers networkinternalinformers.SharedInformerFactory) error {
 	glog.Infof("Initializing SDN master of type %q", networkConfig.NetworkPluginName)
