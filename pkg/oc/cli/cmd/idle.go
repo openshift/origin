@@ -25,6 +25,7 @@ import (
 
 	appsv1client "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
 	appsmanualclient "github.com/openshift/origin/pkg/apps/client/v1"
+	appsclientinternal "github.com/openshift/origin/pkg/apps/generated/internalclientset"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	unidlingapi "github.com/openshift/origin/pkg/unidling/api"
 	utilunidling "github.com/openshift/origin/pkg/unidling/util"
@@ -555,11 +556,11 @@ func (o *IdleOptions) RunIdle(f *clientcmd.Factory) error {
 	if err != nil {
 		return err
 	}
-	appClient, err := f.OpenshiftInternalAppsClient()
+	clientConfig, err := f.ClientConfig()
 	if err != nil {
 		return err
 	}
-	clientConfig, err := f.ClientConfig()
+	appClient, err := appsclientinternal.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}

@@ -13,13 +13,16 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
+	buildclientinternal "github.com/openshift/origin/pkg/build/generated/internalclientset"
 	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
 	osutil "github.com/openshift/origin/pkg/cmd/util"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imageclientinternal "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	"github.com/openshift/origin/pkg/oc/cli/describe"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	imagegraph "github.com/openshift/origin/pkg/oc/graph/imagegraph/nodes"
+	projectclientinternal "github.com/openshift/origin/pkg/project/generated/internalclientset"
 	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset/typed/project/internalversion"
 )
 
@@ -92,15 +95,19 @@ func (o *BuildChainOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, a
 		return cmdutil.UsageErrorf(cmd, "Must pass an image stream tag. If only an image stream name is specified, 'latest' will be used for the tag.")
 	}
 
-	buildClient, err := f.OpenshiftInternalBuildClient()
+	clientConfig, err := f.ClientConfig()
 	if err != nil {
 		return err
 	}
-	imageClient, err := f.OpenshiftInternalImageClient()
+	buildClient, err := buildclientinternal.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
-	projectClient, err := f.OpenshiftInternalProjectClient()
+	imageClient, err := imageclientinternal.NewForConfig(clientConfig)
+	if err != nil {
+		return err
+	}
+	projectClient, err := projectclientinternal.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}

@@ -33,7 +33,7 @@ import (
 	configcmd "github.com/openshift/origin/pkg/bulk"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	"github.com/openshift/origin/pkg/oc/generate/app"
-	securityclient "github.com/openshift/origin/pkg/security/generated/internalclientset"
+	securityclientinternal "github.com/openshift/origin/pkg/security/generated/internalclientset"
 	oscc "github.com/openshift/origin/pkg/security/securitycontextconstraints"
 	fileutil "github.com/openshift/origin/pkg/util/file"
 )
@@ -611,7 +611,11 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out, errout io.Write
 	}
 
 	if !cfg.Local {
-		securityClient, err := f.OpenshiftInternalSecurityClient()
+		clientConfig, err := f.ClientConfig()
+		if err != nil {
+			return err
+		}
+		securityClient, err := securityclientinternal.NewForConfig(clientConfig)
 		if err != nil {
 			return err
 		}
@@ -886,7 +890,7 @@ func generateStatsPassword() string {
 	return strings.Join(password, "")
 }
 
-func validateServiceAccount(client securityclient.Interface, ns string, serviceAccount string, hostNetwork, hostPorts bool) error {
+func validateServiceAccount(client securityclientinternal.Interface, ns string, serviceAccount string, hostNetwork, hostPorts bool) error {
 	if !hostNetwork && !hostPorts {
 		return nil
 	}

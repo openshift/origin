@@ -17,6 +17,7 @@ import (
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	buildclientinternal "github.com/openshift/origin/pkg/build/generated/internalclientset"
 	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
@@ -139,7 +140,11 @@ func (o *OpenShiftLogsOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command
 		return errors.New("expected a resource")
 	}
 
-	client, err := f.OpenshiftInternalBuildClient()
+	clientConfig, err := f.ClientConfig()
+	if err != nil {
+		return err
+	}
+	client, err := buildclientinternal.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}

@@ -22,7 +22,7 @@ import (
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	"github.com/openshift/origin/pkg/oc/experimental/ipfailover/ipfailover"
 	"github.com/openshift/origin/pkg/oc/experimental/ipfailover/keepalived"
-	securityclient "github.com/openshift/origin/pkg/security/generated/internalclientset"
+	securityclientinternal "github.com/openshift/origin/pkg/security/generated/internalclientset"
 )
 
 var (
@@ -186,7 +186,11 @@ func Run(f *clientcmd.Factory, options *ipfailover.IPFailoverConfigCmdOptions, c
 	if err != nil {
 		return err
 	}
-	securityClient, err := f.OpenshiftInternalSecurityClient()
+	clientConfig, err := f.ClientConfig()
+	if err != nil {
+		return err
+	}
+	securityClient, err := securityclientinternal.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
@@ -210,7 +214,7 @@ func Run(f *clientcmd.Factory, options *ipfailover.IPFailoverConfigCmdOptions, c
 	return nil
 }
 
-func validateServiceAccount(client securityclient.Interface, ns string, serviceAccount string) error {
+func validateServiceAccount(client securityclientinternal.Interface, ns string, serviceAccount string) error {
 	sccList, err := client.Security().SecurityContextConstraints().List(metav1.ListOptions{})
 	if err != nil {
 		if !errors.IsUnauthorized(err) {

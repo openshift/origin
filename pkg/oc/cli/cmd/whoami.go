@@ -12,6 +12,7 @@ import (
 
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
+	userclientinternal "github.com/openshift/origin/pkg/user/generated/internalclientset"
 	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 )
 
@@ -91,7 +92,11 @@ func RunWhoAmI(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []s
 		return nil
 	}
 
-	client, err := f.OpenshiftInternalUserClient()
+	clientConfig, err := f.ClientConfig()
+	if err != nil {
+		return err
+	}
+	client, err := userclientinternal.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}

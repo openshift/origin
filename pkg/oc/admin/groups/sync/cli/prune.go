@@ -19,6 +19,7 @@ import (
 	"github.com/openshift/origin/pkg/oauthserver/ldaputil/ldapclient"
 	"github.com/openshift/origin/pkg/oc/admin/groups/sync"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
+	userclientinternal "github.com/openshift/origin/pkg/user/generated/internalclientset"
 	usertypedclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 )
 
@@ -148,7 +149,11 @@ func (o *PruneOptions) Complete(whitelistFile, blacklistFile, configFile string,
 		return err
 	}
 
-	userClient, err := f.OpenshiftInternalUserClient()
+	clientConfig, err := f.ClientConfig()
+	if err != nil {
+		return err
+	}
+	userClient, err := userclientinternal.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}

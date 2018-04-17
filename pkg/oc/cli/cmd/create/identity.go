@@ -13,6 +13,7 @@ import (
 
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
+	userclientinternal "github.com/openshift/origin/pkg/user/generated/internalclientset"
 	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 )
 
@@ -85,7 +86,11 @@ func (o *CreateIdentityOptions) Complete(cmd *cobra.Command, f *clientcmd.Factor
 
 	o.DryRun = cmdutil.GetFlagBool(cmd, "dry-run")
 
-	client, err := f.OpenshiftInternalUserClient()
+	clientConfig, err := f.ClientConfig()
+	if err != nil {
+		return err
+	}
+	client, err := userclientinternal.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}

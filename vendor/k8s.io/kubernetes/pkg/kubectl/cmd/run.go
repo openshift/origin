@@ -604,6 +604,7 @@ func createGeneratedObject(f cmdutil.Factory, cmd *cobra.Command, generator kube
 		return nil, err
 	}
 	groupVersionKind := groupVersionKinds[0]
+	cmdutil.FixOAPIGroupifiedGVK(&groupVersionKind)
 
 	if len(overrides) > 0 {
 		codec := runtime.NewCodec(cmdutil.InternalVersionJSONEncoder(), cmdutil.InternalVersionDecoder())

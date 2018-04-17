@@ -35,12 +35,15 @@ import (
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/git"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imageclientinternal "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	"github.com/openshift/origin/pkg/oc/generate"
 	newapp "github.com/openshift/origin/pkg/oc/generate/app"
 	newcmd "github.com/openshift/origin/pkg/oc/generate/cmd"
 	dockerutil "github.com/openshift/origin/pkg/oc/util/docker"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
+	routeclientinternal "github.com/openshift/origin/pkg/route/generated/internalclientset"
+	templateclientinternal "github.com/openshift/origin/pkg/template/generated/internalclientset"
 	"github.com/openshift/origin/pkg/util"
 )
 
@@ -581,15 +584,19 @@ func CompleteAppConfig(config *newcmd.AppConfig, f *clientcmd.Factory, c *cobra.
 	config.KubeClient = kclient
 	dockerClient, _ := getDockerClient()
 
-	imageClient, err := f.OpenshiftInternalImageClient()
+	clientConfig, err := f.ClientConfig()
 	if err != nil {
 		return err
 	}
-	templateClient, err := f.OpenshiftInternalTemplateClient()
+	imageClient, err := imageclientinternal.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
-	routeClient, err := f.OpenshiftInternalRouteClient()
+	templateClient, err := templateclientinternal.NewForConfig(clientConfig)
+	if err != nil {
+		return err
+	}
+	routeClient, err := routeclientinternal.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}

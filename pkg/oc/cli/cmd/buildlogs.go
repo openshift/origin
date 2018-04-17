@@ -15,6 +15,7 @@ import (
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildmanualclient "github.com/openshift/origin/pkg/build/client/internalversion"
+	buildclientinternal "github.com/openshift/origin/pkg/build/generated/internalclientset"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
@@ -83,7 +84,11 @@ func RunBuildLogs(fullName string, f *clientcmd.Factory, out io.Writer, cmd *cob
 		return err
 	}
 
-	buildClient, err := f.OpenshiftInternalBuildClient()
+	clientConfig, err := f.ClientConfig()
+	if err != nil {
+		return err
+	}
+	buildClient, err := buildclientinternal.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}

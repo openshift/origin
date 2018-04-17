@@ -17,6 +17,7 @@ import (
 	"github.com/openshift/origin/pkg/oc/graph/genericgraph"
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imageclientinternal "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	imagegraph "github.com/openshift/origin/pkg/oc/graph/imagegraph/nodes"
 )
@@ -70,7 +71,11 @@ func (o *TopImageStreamsOptions) Complete(f *clientcmd.Factory, cmd *cobra.Comma
 		namespace = metav1.NamespaceAll
 	}
 	o.out = out
-	imageClient, err := f.OpenshiftInternalImageClient()
+	clientConfig, err := f.ClientConfig()
+	if err != nil {
+		return err
+	}
+	imageClient, err := imageclientinternal.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}

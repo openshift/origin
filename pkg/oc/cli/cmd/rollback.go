@@ -19,6 +19,7 @@ import (
 	kprinters "k8s.io/kubernetes/pkg/printers"
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsclientinternal "github.com/openshift/origin/pkg/apps/generated/internalclientset"
 	appsinternalversion "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
 	describe "github.com/openshift/origin/pkg/oc/cli/describe"
@@ -146,7 +147,11 @@ func (o *RollbackOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, arg
 	if err != nil {
 		return err
 	}
-	appsClient, err := f.OpenshiftInternalAppsClient()
+	clientConfig, err := f.ClientConfig()
+	if err != nil {
+		return err
+	}
+	appsClient, err := appsclientinternal.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}

@@ -30,6 +30,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsclientinternal "github.com/openshift/origin/pkg/apps/generated/internalclientset"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/cmd/util"
@@ -47,7 +48,7 @@ func New(flags *pflag.FlagSet) *Factory {
 
 // Factory provides common options for OpenShift commands
 type Factory struct {
-	ClientAccessFactory
+	kcmdutil.ClientAccessFactory
 	kcmdutil.ObjectMappingFactory
 	kcmdutil.BuilderFactory
 }
@@ -317,6 +318,10 @@ func (f *Factory) PodForResource(resource string, timeout time.Duration) (string
 	if err != nil {
 		return "", err
 	}
+	clientConfig, err := f.ClientConfig()
+	if err != nil {
+		return "", err
+	}
 
 	switch resourceType {
 	case api.Resource("pods"):
@@ -337,7 +342,7 @@ func (f *Factory) PodForResource(resource string, timeout time.Duration) (string
 		}
 		return pod.Name, nil
 	case appsapi.Resource("deploymentconfigs"), appsapi.LegacyResource("deploymentconfigs"):
-		appsClient, err := f.OpenshiftInternalAppsClient()
+		appsClient, err := appsclientinternal.NewForConfig(clientConfig)
 		if err != nil {
 			return "", err
 		}

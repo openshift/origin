@@ -556,23 +556,31 @@ func testExtendedTestdataBuildsBuildPruningDefaultGroupBuildConfigYaml() (*asset
 	return a, nil
 }
 
-var _testExtendedTestdataBuildsBuildPruningDefaultLegacyBuildConfigYaml = []byte(`apiVersion: v1
-kind: BuildConfig
-metadata:
-  name: myphp
-spec:
-  source:
-    type: Git
-    git:
-      uri: 'https://github.com/openshift/cakephp-ex.git'
-  strategy:
-    type: Source
-    sourceStrategy:
-      from:
-        kind: ImageStreamTag
-        namespace: openshift
-        name: 'php:7.0'
-`)
+var _testExtendedTestdataBuildsBuildPruningDefaultLegacyBuildConfigYaml = []byte(`{
+  "apiVersion": "v1",
+  "kind": "BuildConfig",
+  "metadata": {
+    "name": "myphp"
+  },
+  "spec": {
+    "source": {
+      "type": "Git",
+      "git": {
+        "uri": "https://github.com/openshift/cakephp-ex.git"
+      }
+    },
+    "strategy": {
+      "type": "Source",
+      "sourceStrategy": {
+        "from": {
+          "kind": "ImageStreamTag",
+          "namespace": "openshift",
+          "name": "php:7.0"
+        }
+      }
+    }
+  }
+}`)
 
 func testExtendedTestdataBuildsBuildPruningDefaultLegacyBuildConfigYamlBytes() ([]byte, error) {
 	return _testExtendedTestdataBuildsBuildPruningDefaultLegacyBuildConfigYaml, nil

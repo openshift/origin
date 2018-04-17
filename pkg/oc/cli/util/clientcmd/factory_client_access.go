@@ -2,12 +2,10 @@ package clientcmd
 
 import (
 	"errors"
-	"net/http"
 	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -21,14 +19,12 @@ import (
 	restclient "k8s.io/client-go/rest"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
-	"k8s.io/client-go/util/homedir"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/set"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
-	"k8s.io/kubernetes/pkg/kubectl/util/transport"
 
 	appsapiv1 "github.com/openshift/api/apps/v1"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
@@ -38,85 +34,20 @@ import (
 )
 
 type ring0Factory struct {
-	*OpenshiftCLIClientBuilder
-
-	clientConfig            kclientcmd.ClientConfig
 	kubeClientAccessFactory kcmdutil.ClientAccessFactory
 }
 
-type ClientAccessFactory interface {
-	kcmdutil.ClientAccessFactory
-	CLIClientBuilder
-}
-
-func NewClientAccessFactory(optionalClientConfig kclientcmd.ClientConfig) ClientAccessFactory {
+func NewClientAccessFactory(optionalClientConfig kclientcmd.ClientConfig) kcmdutil.ClientAccessFactory {
 	// if we call this factory construction method, we want the openshift style config loading
 	kclientcmd.UseOpenShiftKubeConfigValues = true
 	kclientcmd.ErrEmptyConfig = kclientcmd.NewErrConfigurationMissing()
 	set.ParseDockerImageReferenceToStringFunc = ParseDockerImageReferenceToStringFunc
 
-	flags := pflag.NewFlagSet("", pflag.ContinueOnError)
-	clientConfig := optionalClientConfig
-	if optionalClientConfig == nil {
-		clientConfig = kcmdutil.DefaultClientConfig(flags)
-	}
 	factory := &ring0Factory{
-		clientConfig: clientConfig,
+		kubeClientAccessFactory: kcmdutil.NewClientAccessFactory(optionalClientConfig),
 	}
-	factory.kubeClientAccessFactory = kcmdutil.NewClientAccessFactoryFromDiscovery(
-		flags,
-		clientConfig,
-		&discoveryFactory{clientConfig: clientConfig},
-	)
-	factory.OpenshiftCLIClientBuilder = &OpenshiftCLIClientBuilder{config: clientConfig}
 
 	return factory
-}
-
-type discoveryFactory struct {
-	clientConfig kclientcmd.ClientConfig
-	cacheDir     string
-}
-
-func (f *discoveryFactory) BindFlags(flags *pflag.FlagSet) {
-	defaultCacheDir := filepath.Join(homedir.HomeDir(), ".kube", "http-cache")
-	flags.StringVar(&f.cacheDir, kcmdutil.FlagHTTPCacheDir, defaultCacheDir, "Default HTTP cache directory")
-}
-
-func (f *discoveryFactory) DiscoveryClient() (discovery.CachedDiscoveryInterface, error) {
-	// Output using whatever version was negotiated in the client cache. The
-	// version we decode with may not be the same as what the server requires.
-	cfg, err := f.clientConfig.ClientConfig()
-	if err != nil {
-		return nil, err
-	}
-	// given 25 groups with one-ish version each, discovery needs to make 50 requests
-	// double it just so we don't end up here again for a while.  This config is only used for discovery.
-	cfg.Burst = 100
-
-	if f.cacheDir != "" {
-		wt := cfg.WrapTransport
-		cfg.WrapTransport = func(rt http.RoundTripper) http.RoundTripper {
-			if wt != nil {
-				rt = wt(rt)
-			}
-			return transport.NewCacheRoundTripper(f.cacheDir, rt)
-		}
-	}
-
-	// at this point we've negotiated and can get the client
-	kubeClient, err := kclientset.NewForConfig(cfg)
-	if err != nil {
-		return nil, err
-
-	}
-
-	cacheDir := computeDiscoverCacheDir(filepath.Join(homedir.HomeDir(), ".kube", "cache", "discovery"), cfg.Host)
-	return kcmdutil.NewCachedDiscoveryClient(newLegacyDiscoveryClient(kubeClient.Discovery().RESTClient()), cacheDir, time.Duration(10*time.Minute)), nil
-}
-
-func (f *ring0Factory) RawConfig() (clientcmdapi.Config, error) {
-	return f.kubeClientAccessFactory.RawConfig()
 }
 
 func (f *ring0Factory) DiscoveryClient() (discovery.CachedDiscoveryInterface, error) {
@@ -135,8 +66,12 @@ func (f *ring0Factory) ClientConfig() (*restclient.Config, error) {
 	return f.kubeClientAccessFactory.ClientConfig()
 }
 
+func (f *ring0Factory) RawConfig() (clientcmdapi.Config, error) {
+	return f.kubeClientAccessFactory.RawConfig()
+}
+
 func (f *ring0Factory) BareClientConfig() (*restclient.Config, error) {
-	return f.clientConfig.ClientConfig()
+	return f.kubeClientAccessFactory.BareClientConfig()
 }
 
 func (f *ring0Factory) RESTClient() (*restclient.RESTClient, error) {

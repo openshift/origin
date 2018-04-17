@@ -23,8 +23,10 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imageclientinternal "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
+	userclientinternal "github.com/openshift/origin/pkg/user/generated/internalclientset"
 )
 
 var (
@@ -147,13 +149,17 @@ func (o *VerifyImageSignatureOptions) Complete(f *clientcmd.Factory, cmd *cobra.
 			return fmt.Errorf("unable to read --public-key: %v", err)
 		}
 	}
-	imageClient, err := f.OpenshiftInternalImageClient()
+	clientConfig, err := f.ClientConfig()
+	if err != nil {
+		return err
+	}
+	imageClient, err := imageclientinternal.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
 	o.ImageClient = imageClient.Image()
 
-	userClient, err := f.OpenshiftInternalUserClient()
+	userClient, err := userclientinternal.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
