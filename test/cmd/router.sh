@@ -15,7 +15,7 @@ USE_IMAGES=${USE_IMAGES:-$defaultimage}
 
 os::test::junit::declare_suite_start "cmd/router"
 # Test running a router
-os::cmd::expect_failure_and_text 'oc adm router --dry-run' 'does not exist'
+os::cmd::expect_failure_and_text 'oc adm router --dry-run' 'grant access with oc adm policy add-scc-to-user hostnetwork -z router'
 os::cmd::expect_failure_and_text 'oc adm router --dry-run -o yaml' 'service account "router" is not allowed to access the host network on nodes'
 os::cmd::expect_failure_and_text 'oc adm router --dry-run -o yaml' 'name: router'
 os::cmd::expect_failure_and_text 'oc adm router --dry-run --stats-port=1937 -o yaml' 'containerPort: 1937'

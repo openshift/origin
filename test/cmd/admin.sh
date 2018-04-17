@@ -318,7 +318,7 @@ os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/admin/router"
 # Test running a router
-os::cmd::expect_failure_and_text 'oc adm router --dry-run' 'does not exist'
+os::cmd::expect_failure_and_text 'oc adm router --dry-run' 'grant access with oc adm policy add-scc-to-user hostnetwork -z router'
 os::cmd::expect_success "oc adm policy add-scc-to-user privileged system:serviceaccount:default:router"
 os::cmd::expect_success_and_text "oc adm router -o yaml --service-account=router -n default" 'image:.*\-haproxy\-router:'
 os::cmd::expect_success "oc adm router --images='${USE_IMAGES}' --service-account=router -n default"
@@ -330,7 +330,7 @@ os::test::junit::declare_suite_end
 os::test::junit::declare_suite_start "cmd/admin/registry"
 # Test running a registry as a daemonset
 os::cmd::expect_success "oc delete clusterrolebinding/registry-registry-role"
-os::cmd::expect_failure_and_text 'oc adm registry --daemonset --dry-run' 'does not exist'
+os::cmd::expect_success 'oc adm registry --daemonset --dry-run'
 os::cmd::expect_success_and_text "oc adm registry --daemonset -o yaml" 'DaemonSet'
 os::cmd::expect_success "oc adm registry --daemonset --images='${USE_IMAGES}'"
 os::cmd::expect_success_and_text 'oc adm registry --daemonset' 'service exists'
@@ -340,7 +340,7 @@ os::cmd::expect_success "oc adm registry --daemonset -o yaml | oc delete -f - -n
 echo "registry daemonset: ok"
 
 # Test running a registry
-os::cmd::expect_failure_and_text 'oc adm registry --dry-run' 'does not exist'
+os::cmd::expect_success 'oc adm registry --dry-run'
 os::cmd::expect_success_and_text "oc adm registry -o yaml" 'image:.*\-docker\-registry'
 os::cmd::expect_success "oc adm registry --images='${USE_IMAGES}'"
 os::cmd::expect_success_and_text 'oc adm registry' 'service exists'
