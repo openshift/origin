@@ -38,6 +38,8 @@
 // examples/prometheus/prometheus.yaml
 // examples/service-catalog/service-catalog-rbac.yaml
 // examples/service-catalog/service-catalog.yaml
+// install/automationservicebroker/install-rbac.yaml
+// install/automationservicebroker/install.yaml
 // install/etcd/etcd.yaml
 // install/kube-apiserver/apiserver.yaml
 // install/kube-controller-manager/kube-controller-manager.yaml
@@ -16384,6 +16386,97 @@ func examplesServiceCatalogServiceCatalogYaml() (*asset, error) {
 	return a, nil
 }
 
+var _installAutomationservicebrokerInstallRbacYaml = []byte(`apiVersion: v1
+kind: Template
+metadata:
+  name: automation-broker-apb-rbac
+objects:
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRoleBinding
+  metadata:
+    name: automation-broker-apb
+  roleRef:
+    name: cluster-admin
+    kind: ClusterRole
+    apiGroup: rbac.authorization.k8s.io
+  subjects:
+  - kind: ServiceAccount
+    name: automation-broker-apb
+    namespace: "${NAMESPACE}"
+
+parameters:
+- description: Namespace of the project that is being deploy
+  displayname: broker client cert key
+  name: NAMESPACE
+  value: "openshift-automation-service-broker"
+`)
+
+func installAutomationservicebrokerInstallRbacYamlBytes() ([]byte, error) {
+	return _installAutomationservicebrokerInstallRbacYaml, nil
+}
+
+func installAutomationservicebrokerInstallRbacYaml() (*asset, error) {
+	bytes, err := installAutomationservicebrokerInstallRbacYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "install/automationservicebroker/install-rbac.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _installAutomationservicebrokerInstallYaml = []byte(`apiVersion: v1
+kind: Template
+metadata:
+  name: automation-broker-apb
+objects:
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    name: automation-broker-apb
+    namespace: "${NAMESPACE}"
+
+- apiVersion: batch/v1
+  kind: Job
+  metadata:
+    name: automation-broker-apb
+    namespace: "${NAMESPACE}"
+  spec:
+    backoffLimit: 5
+    activeDeadlineSeconds: 300
+    template:
+      spec:
+        restartPolicy: OnFailure
+        serviceAccount: automation-broker-apb
+        containers:
+        - image: docker.io/automationbroker/automation-broker-apb:latest
+          name: automation-broker-apb
+          args: [ "provision", "-e", "broker_name=${NAMESPACE}" ]
+
+
+parameters:
+- description: Namespace of the project that is being deploy
+  displayname: broker client cert key
+  name: NAMESPACE
+  value: "openshift-automation-service-broker"
+`)
+
+func installAutomationservicebrokerInstallYamlBytes() ([]byte, error) {
+	return _installAutomationservicebrokerInstallYaml, nil
+}
+
+func installAutomationservicebrokerInstallYaml() (*asset, error) {
+	bytes, err := installAutomationservicebrokerInstallYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "install/automationservicebroker/install.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _installEtcdEtcdYaml = []byte(`kind: Pod
 apiVersion: v1
 metadata:
@@ -18116,6 +18209,8 @@ var _bindata = map[string]func() (*asset, error){
 	"examples/prometheus/prometheus.yaml": examplesPrometheusPrometheusYaml,
 	"examples/service-catalog/service-catalog-rbac.yaml": examplesServiceCatalogServiceCatalogRbacYaml,
 	"examples/service-catalog/service-catalog.yaml": examplesServiceCatalogServiceCatalogYaml,
+	"install/automationservicebroker/install-rbac.yaml": installAutomationservicebrokerInstallRbacYaml,
+	"install/automationservicebroker/install.yaml": installAutomationservicebrokerInstallYaml,
 	"install/etcd/etcd.yaml": installEtcdEtcdYaml,
 	"install/kube-apiserver/apiserver.yaml": installKubeApiserverApiserverYaml,
 	"install/kube-controller-manager/kube-controller-manager.yaml": installKubeControllerManagerKubeControllerManagerYaml,
@@ -18233,6 +18328,10 @@ var _bintree = &bintree{nil, map[string]*bintree{
 		}},
 	}},
 	"install": &bintree{nil, map[string]*bintree{
+		"automationservicebroker": &bintree{nil, map[string]*bintree{
+			"install-rbac.yaml": &bintree{installAutomationservicebrokerInstallRbacYaml, map[string]*bintree{}},
+			"install.yaml": &bintree{installAutomationservicebrokerInstallYaml, map[string]*bintree{}},
+		}},
 		"etcd": &bintree{nil, map[string]*bintree{
 			"etcd.yaml": &bintree{installEtcdEtcdYaml, map[string]*bintree{}},
 		}},
