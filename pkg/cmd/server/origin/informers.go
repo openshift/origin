@@ -6,7 +6,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kexternalinformers "k8s.io/client-go/informers"
-	kclientsetexternal "k8s.io/client-go/kubernetes"
+	kubeclientgoclient "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -24,7 +24,6 @@ import (
 	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	buildinformer "github.com/openshift/origin/pkg/build/generated/informers/internalversion"
 	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	imageinformer "github.com/openshift/origin/pkg/image/generated/informers/internalversion"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	networkinformer "github.com/openshift/origin/pkg/network/generated/informers/internalversion"
@@ -138,8 +137,12 @@ type informerHolder struct {
 }
 
 // NewInformers is only exposed for the build's integration testing until it can be fixed more appropriately.
-func NewInformers(options configapi.MasterConfig) (*informerHolder, error) {
-	clientConfig, kubeInternal, kubeExternal, err := getAllClients(options)
+func NewInformers(clientConfig *rest.Config) (*informerHolder, error) {
+	kubeInternal, err := kclientsetinternal.NewForConfig(clientConfig)
+	if err != nil {
+		return nil, err
+	}
+	kubeExternal, err := kubeclientgoclient.NewForConfig(clientConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -317,17 +320,4 @@ func (i *informerHolder) ToGenericInformer() GenericResourceInformer {
 			return i.GetUserInformers().ForResource(resource)
 		}),
 	)
-}
-
-func getAllClients(options configapi.MasterConfig) (*rest.Config, kclientsetinternal.Interface, kclientsetexternal.Interface, error) {
-	kubeInternal, clientConfig, err := configapi.GetInternalKubeClient(options.MasterClients.OpenShiftLoopbackKubeConfig, options.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-	kubeExternal, _, err := configapi.GetExternalKubeClient(options.MasterClients.OpenShiftLoopbackKubeConfig, options.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	return clientConfig, kubeInternal, kubeExternal, nil
 }

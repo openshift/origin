@@ -137,7 +137,7 @@ func TSBClient(oc *exutil.CLI) (osbclient.Client, error) {
 
 func dumpObjectReadiness(oc *exutil.CLI, templateInstance *templateapi.TemplateInstance) error {
 	restmapper := restutil.DefaultMultiRESTMapper()
-	_, config, err := configapi.GetInternalKubeClient(exutil.KubeConfigPath(), nil)
+	config, err := configapi.GetClientConfig(exutil.KubeConfigPath(), nil)
 	if err != nil {
 		return err
 	}

@@ -38,7 +38,11 @@ func RunOpenShiftAPIServer(masterConfig *configapi.MasterConfig) error {
 
 	// informers are shared amongst all the various api components we build
 	// TODO the needs of the apiserver and the controllers are drifting. We should consider two different skins here
-	informers, err := origin.NewInformers(*masterConfig)
+	clientConfig, err := configapi.GetClientConfig(masterConfig.MasterClients.OpenShiftLoopbackKubeConfig, masterConfig.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
+	if err != nil {
+		return err
+	}
+	informers, err := origin.NewInformers(clientConfig)
 	if err != nil {
 		return err
 	}
