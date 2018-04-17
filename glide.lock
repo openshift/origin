@@ -1,5 +1,5 @@
-hash: 5368c1f7a27d6c64dc9da4b8515917874f617fb65be7b86fea959b8db47ec12f
-updated: 2018-04-17T10:03:57.349745-04:00
+hash: a8fa7880640db373c7b8ce46b532394100e0023698e7b510eba47ab211030e88
+updated: 2018-04-17T11:06:44.801266-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -818,7 +818,8 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: 80a1e2bf16952088360b492c175703755deea8d2
+  version: 7687c8d53cfeb44f96ffd2d49b5fddf4532841d4
+  repo: https://github.com/adambkaplan/api
   subpackages:
   - apps/v1
   - authorization/v1
