@@ -23,6 +23,10 @@ func InternalServerError(err error) *Response {
 	return NewResponse(http.StatusInternalServerError, nil, err)
 }
 
+func InvalidCustomLabelParameter(err error) *Response {
+	return NewResponse(http.StatusUnprocessableEntity, nil, err)
+}
+
 // ConvertUserToTemplateInstanceRequester copies analogous fields from user.Info to TemplateInstanceRequester
 func ConvertUserToTemplateInstanceRequester(u user.Info) templateapi.TemplateInstanceRequester {
 	templatereq := templateapi.TemplateInstanceRequester{}

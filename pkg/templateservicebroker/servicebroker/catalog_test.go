@@ -79,6 +79,7 @@ func TestServiceFromTemplate(t *testing.T) {
 									"param2",
 									"param3",
 									"param4",
+									customLabelsParamName,
 								},
 							},
 						},
@@ -109,6 +110,12 @@ func TestServiceFromTemplate(t *testing.T) {
 									"param4": {
 										Default: "",
 										Type:    schema.PrimitiveTypes{schema.StringType},
+									},
+									customLabelsParamName: {
+										Title:       customLabelsTitle,
+										Description: customLabelsDescription,
+										Default:     customLabelsDefault,
+										Type:        schema.PrimitiveTypes{schema.StringType},
 									},
 								},
 							},

@@ -1,6 +1,7 @@
 package servicebroker
 
 import (
+	"errors"
 	"net/http"
 	"reflect"
 	"testing"
@@ -11,7 +12,7 @@ import (
 	"github.com/openshift/origin/pkg/templateservicebroker/openservicebroker/api"
 
 	authorizationv1 "k8s.io/api/authorization/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/authentication/user"
@@ -46,7 +47,7 @@ func TestProvisionConflict(t *testing.T) {
 	faketemplateclient.AddReactor("update", "brokertemplateinstances", func(action clienttesting.Action) (bool, runtime.Object, error) {
 		if conflict > 0 {
 			conflict--
-			return true, nil, errors.NewConflict(templatev1.Resource("brokertemplateinstance"), "", nil)
+			return true, nil, k8serrors.NewConflict(templatev1.Resource("brokertemplateinstance"), "", nil)
 		}
 		return true, &templatev1.BrokerTemplateInstance{}, nil
 	})
@@ -70,5 +71,29 @@ func TestProvisionConflict(t *testing.T) {
 	resp = b.Provision(&user.DefaultInfo{}, "", &api.ProvisionRequest{})
 	if !reflect.DeepEqual(resp, api.NewResponse(http.StatusAccepted, api.ProvisionResponse{Operation: api.OperationProvisioning}, nil)) {
 		t.Errorf("got response %#v, expected 202", *resp)
+	}
+}
+
+func TestCustomLabels(t *testing.T) {
+	b := &Broker{}
+	fakeTemplate := templatev1.Template{}
+	fakeTemplate.ObjectLabels = make(map[string]string)
+
+	// empty Custom Label Parameter
+	resp := b.ensureCustomLabel(&fakeTemplate, "")
+	if resp != nil {
+		t.Errorf("got response %#v, expected nil", *resp)
+	}
+
+	// valid label values
+	resp = b.ensureCustomLabel(&fakeTemplate, "k1=v1, k2, k3=v3")
+	if resp != nil {
+		t.Errorf("got response %#v, expected nil", *resp)
+	}
+
+	// invalid values
+	resp = b.ensureCustomLabel(&fakeTemplate, "label1=L1*, label2=L2:")
+	if !reflect.DeepEqual(resp, api.InvalidCustomLabelParameter(errors.New(invalidCustomLabelMsg))) {
+		t.Errorf("got response %#v, expected 422/StatusUnprocessableEntity", *resp)
 	}
 }

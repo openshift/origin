@@ -16,7 +16,11 @@ import (
 )
 
 const (
-	noDescriptionProvided = "No description provided."
+	noDescriptionProvided   = "No description provided."
+	customLabelsParamName   = "customLabelParam"
+	customLabelsTitle       = "Custom Labels"
+	customLabelsDescription = "e.g. label1 = value1, label2 = value2, label3 = label 3, ... "
+	customLabelsDefault     = ""
 )
 
 // Map OpenShift template annotations to open service broker metadata field
@@ -55,6 +59,15 @@ func serviceFromTemplate(template *templateapiv1.Template) *api.Service {
 		}
 		paramOrdering = append(paramOrdering, param.Name)
 	}
+
+	// Add Custom Label Parameter
+	properties[customLabelsParamName] = &jsschema.Schema{
+		Title:       customLabelsTitle,
+		Description: customLabelsDescription,
+		Default:     customLabelsDefault,
+		Type:        []jsschema.PrimitiveType{jsschema.StringType},
+	}
+	paramOrdering = append(paramOrdering, customLabelsParamName)
 
 	bindable := strings.ToLower(template.Annotations[templateapi.BindableAnnotation]) != "false"
 

@@ -1,8 +1,11 @@
 package servicebroker
 
 import (
+	"errors"
 	"net/http"
 	"reflect"
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/golang/glog"
@@ -18,6 +21,10 @@ import (
 	templateapiv1 "github.com/openshift/api/template/v1"
 	"github.com/openshift/origin/pkg/templateservicebroker/openservicebroker/api"
 	"github.com/openshift/origin/pkg/templateservicebroker/util"
+)
+
+const (
+	invalidCustomLabelMsg = "Invalid Custom Label Parameter Value!"
 )
 
 // ensureSecret ensures the existence of a Secret object containing the template
@@ -278,6 +285,46 @@ func (b *Broker) ensureBrokerTemplateInstance(u user.Info, namespace, instanceID
 	return nil, api.InternalServerError(err)
 }
 
+// ensureCustomLabel ensures that the Custom Label Parameter string 'param'
+// gets parsed as labels and gets assigned to template's ObjectLabels[]
+func (b *Broker) ensureCustomLabel(template *templateapiv1.Template, param string) *api.Response {
+	customLabelParamStr := strings.TrimSpace(param)
+	if len(customLabelParamStr) > 0 {
+		// Validate and parse the custom label parameter.
+		//  - Must be a valid k8s label ([a-zA-Z0-9], dot, dash, underscore)
+		//  - Comma separated keys, or key=value pairs
+		//		e.g.
+		//			"k1=k2"
+		//			"k1, k2, k3,..."
+		//      "k1=v1, k2=v2, k3, k4, k5=v5, ... "
+		paramRegex := regexp.MustCompile("^[-_. a-zA-Z0-9,=]*$")
+		if paramRegex.MatchString(customLabelParamStr) {
+			customLabels := strings.Split(customLabelParamStr, ",")
+			for _, item := range customLabels {
+				label := strings.TrimSpace(item)
+				if len(label) > 0 {
+					keyAndValue := strings.Split(label, "=")
+					if len(keyAndValue[0]) > 0 {
+						k := strings.TrimSpace(keyAndValue[0])
+						v := ""
+						if len(keyAndValue) >= 2 {
+							v = strings.TrimSpace(keyAndValue[1])
+						}
+						// replace spaces with underscores
+						k = strings.Replace(k, " ", "_", -1)
+						v = strings.Replace(v, " ", "_", -1)
+						// add to Template's ObjectLabels[]
+						template.ObjectLabels[k] = v
+					}
+				}
+			}
+		} else {
+			return api.InvalidCustomLabelParameter(errors.New(invalidCustomLabelMsg))
+		}
+	}
+	return nil
+}
+
 // Provision instantiates a template from a ProvisionRequest, via the OpenShift
 // TemplateInstance API.
 func (b *Broker) Provision(u user.Info, instanceID string, preq *api.ProvisionRequest) *api.Response {
@@ -340,6 +387,12 @@ func (b *Broker) Provision(u user.Info, instanceID string, preq *api.ProvisionRe
 		Name:      instanceID,
 	}); err != nil {
 		return api.Forbidden(err)
+	}
+
+	// Add Custom Labels
+	resp := b.ensureCustomLabel(template, preq.Parameters[customLabelsParamName])
+	if resp != nil {
+		return resp
 	}
 
 	// The OSB API requires this function to be idempotent (restartable).  Thus
