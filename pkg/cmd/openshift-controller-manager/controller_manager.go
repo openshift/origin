@@ -161,7 +161,6 @@ func newControllerContext(
 				Namespace:            bootstrappolicy.DefaultOpenShiftInfraNamespace,
 			},
 		},
-		InternalKubeInformers:   informers.GetInternalKubeInformers(),
 		ExternalKubeInformers:   informers.GetExternalKubeInformers(),
 		AppInformers:            informers.GetAppInformers(),
 		AuthorizationInformers:  informers.GetAuthorizationInformers(),

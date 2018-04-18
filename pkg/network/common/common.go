@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"net"
 
+	kapi "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	networkapi "github.com/openshift/origin/pkg/network/apis/network"
@@ -124,7 +124,7 @@ func (ni *NetworkInfo) CheckClusterObjects(subnets []networkapi.HostSubnet, pods
 		}
 	}
 	for _, pod := range pods {
-		if pod.Spec.SecurityContext != nil && pod.Spec.SecurityContext.HostNetwork {
+		if pod.Spec.HostNetwork {
 			continue
 		}
 		if _, contains := ClusterNetworkListContains(ni.ClusterNetworks, net.ParseIP(pod.Status.PodIP)); !contains && pod.Status.PodIP != "" {

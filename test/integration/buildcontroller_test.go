@@ -172,7 +172,6 @@ func setupBuildControllerTest(counts controllerCount, t *testing.T) (buildtypedc
 			},
 		},
 		ExternalKubeInformers: informers.GetExternalKubeInformers(),
-		InternalKubeInformers: informers.GetInternalKubeInformers(),
 		AppInformers:          informers.GetAppInformers(),
 		BuildInformers:        informers.GetBuildInformers(),
 		ImageInformers:        informers.GetImageInformers(),
