@@ -10,7 +10,6 @@ import (
 	buildstrategy "github.com/openshift/origin/pkg/build/controller/strategy"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	sccadmission "github.com/openshift/origin/pkg/security/admission"
 )
 
 type BuildControllerConfig struct {
@@ -23,13 +22,6 @@ type BuildControllerConfig struct {
 
 // RunController starts the build sync loop for builds and buildConfig processing.
 func (c *BuildControllerConfig) RunController(ctx ControllerContext) (bool, error) {
-	sccAdmission := sccadmission.NewConstraint()
-	sccAdmission.SetSecurityInformers(ctx.SecurityInformers)
-	sccAdmission.SetInternalKubeClientSet(ctx.ClientBuilder.KubeInternalClientOrDie(bootstrappolicy.InfraBuildControllerServiceAccountName))
-	if err := sccAdmission.ValidateInitialization(); err != nil {
-		return true, err
-	}
-
 	buildDefaults, err := builddefaults.NewBuildDefaults(c.AdmissionPluginConfig)
 	if err != nil {
 		return true, err
