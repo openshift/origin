@@ -24,6 +24,9 @@ os::util::environment::use_sudo
 os::cleanup::tmpdir
 os::util::environment::setup_all_server_vars
 
+export USE_IMAGES='openshift/origin-${component}:latest'
+export TAG=latest
+
 os::log::system::start
 
 os::start::configure_server
@@ -32,7 +35,6 @@ os::start::server
 export KUBECONFIG="${ADMIN_KUBECONFIG}"
 
 os::start::registry
-sleep 60
 oc rollout status dc/docker-registry
 
 oc login ${MASTER_ADDR} -u ldap -p password --certificate-authority=${MASTER_CONFIG_DIR}/ca.crt
