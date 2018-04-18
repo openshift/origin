@@ -150,6 +150,10 @@
                                     {
                                         "mountPath": "/var/lib/jenkins",
                                         "name": "${JENKINS_SERVICE_NAME}-data"
+                                    },
+                                    {
+                                        "mountPath": "/tmp",
+                                        "name": "temp-dir"
                                     }
                                 ]
                             }
@@ -163,6 +167,10 @@
                                 "persistentVolumeClaim": {
                                     "claimName": "${JENKINS_SERVICE_NAME}"
                                 }
+                            },
+                            {
+                                "name": "temp-dir",
+                                "emptyDir": {}
                             }
                         ]
                     }
