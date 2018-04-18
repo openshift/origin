@@ -19,8 +19,8 @@ package gc
 import (
 	"fmt"
 	"io"
-	"runtime/debug"
 
+	"github.com/golang/glog"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -120,9 +120,12 @@ func (a *gcPermissionsEnforcement) Validate(attributes admission.Attributes) (er
 	for _, ref := range newBlockingRefs {
 		records, err := a.ownerRefToDeleteAttributeRecords(ref, attributes)
 		if err != nil {
+			glog.Errorf("MO BAD: %+v", a.restMapper)
 			return admission.NewForbidden(attributes,
-				fmt.Errorf("cannot set blockOwnerDeletion in this case because cannot find RESTMapping for APIVersion %s Kind %s: %v, %v :: %#v %+v %v %T \n%s",
-					ref.APIVersion, ref.Kind, reason, err, a.restMapper, a.restMapper, a.restMapper, a.restMapper, string(debug.Stack())))
+				fmt.Errorf("cannot set blockOwnerDeletion in this case because cannot find RESTMapping for APIVersion %s Kind %s: %v, %v\n%+v",
+					ref.APIVersion, ref.Kind, reason, err, a.restMapper))
+		} else {
+			glog.Errorf("MO GOOD: %+v", a.restMapper)
 		}
 		// Multiple records are returned if ref.Kind could map to multiple
 		// resources. User needs to have delete permission on all the
