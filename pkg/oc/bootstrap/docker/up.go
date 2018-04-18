@@ -399,6 +399,11 @@ func (c *ClusterUpConfig) Validate(errout io.Writer) error {
 	if c.dockerClient == nil {
 		return fmt.Errorf("missing dockerClient")
 	}
+	if !sets.NewString(c.UserEnabledComponents...).Equal(sets.NewString("*")) {
+		if _, err := os.Stat(filepath.Join(c.BaseDir, "etcd")); err == nil {
+			return fmt.Errorf("cannot use --enable when the cluster is already initialized, use cluster add instead")
+		}
+	}
 	cmdutil.WarnAboutCommaSeparation(errout, c.Environment, "--env")
 	return nil
 }
