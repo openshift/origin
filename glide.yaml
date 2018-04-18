@@ -91,7 +91,7 @@ import:
   version: 01a732e01d00cb9a81bb0ca050d3e6d2b947927b
 # master: etcd
 - package: github.com/coreos/etcd
-  version: v3.2.16
+  version: v3.3.3
 - package: google.golang.org/grpc
   version: v1.7.5
 - package: github.com/grpc-ecosystem/grpc-gateway
@@ -180,6 +180,13 @@ import:
 # why do we have this?
 - package: google.golang.org/appengine
   version: 12d5545dc1cfa6047a286d5e853841b6471f4c19
+
+  # to avoid go4.org website outages
+- package: go4.org
+  repo: https://github.com/go4org/go4
+  version: 03efcb870d84809319ea509714dd6d19a1498483
+  subpackages:
+  - errorutil
 
 # force glide to pull this in
 - package: github.com/google/uuid

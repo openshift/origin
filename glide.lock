@@ -1,5 +1,5 @@
-hash: cd1b2b62f8b1308def80c2261d71ffebf07fae4bd39ae00480e75f620b8498e8
-updated: 2018-04-17T09:45:43.895406-04:00
+hash: cd35bb57985d932922d92c24847fd91dbf388449a3c8984b7557cfba299eaae8
+updated: 2018-04-18T11:17:46.522793+02:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -185,7 +185,7 @@ imports:
 - name: github.com/coreos/bbolt
   version: 32c383e75ce054674c53b5a07e55de85332aee14
 - name: github.com/coreos/etcd
-  version: 121edf0467052d55876a817b89875fb39a99bf78
+  version: e348b1aedd9167360c466ae98f7343d3e22281f8
   subpackages:
   - alarm
   - auth
@@ -204,6 +204,7 @@ imports:
   - etcdserver/api/etcdhttp
   - etcdserver/api/v2http
   - etcdserver/api/v2http/httptypes
+  - etcdserver/api/v2v3
   - etcdserver/api/v3client
   - etcdserver/api/v3election
   - etcdserver/api/v3election/v3electionpb
@@ -236,7 +237,6 @@ imports:
   - pkg/idutil
   - pkg/ioutil
   - pkg/logutil
-  - pkg/monotime
   - pkg/netutil
   - pkg/osutil
   - pkg/pathutil
@@ -385,6 +385,8 @@ imports:
   version: 449fdfce4d962303d702fec724ef0ad181c92528
   subpackages:
   - spdy
+- name: github.com/dustin/go-humanize
+  version: bb3d318650d48840a39aa21a027c6630e198e626
 - name: github.com/elazarl/go-bindata-assetfs
   version: 3dcc96556217539f50599357fb481ac0dc7439b9
 - name: github.com/emicklei/go-restful
@@ -392,7 +394,7 @@ imports:
   subpackages:
   - log
 - name: github.com/emicklei/go-restful-swagger12
-  version: 5e28dc7157ebd9247a268c26dd1bee7818aa33f7
+  version: 14b2c9246e6851e0297450a3d5c7288c0485592e
   repo: https://github.com/openshift/emicklei-go-restful-swagger12
 - name: github.com/euank/go-kmsg-parser
   version: 5ba4d492e455a77d25dcf0d2c4acc9f2afebef4e
@@ -1053,7 +1055,7 @@ imports:
 - name: github.com/sirupsen/logrus
   version: 89742aefa4b206dcf400792f3bd35b542998eb3b
 - name: github.com/skynetservices/skydns
-  version: 775ef406696380ce92b76e72421e86b6868905d8
+  version: 04111322ced82c1520abbb1053745272f715bd5b
   repo: https://github.com/openshift/skynetservices-skydns
   subpackages:
   - cache
@@ -1061,6 +1063,8 @@ imports:
   - msg
   - server
   - singleflight
+- name: github.com/soheilhy/cmux
+  version: bb79a83465015a27a175925ebd155e660f55e9f1
 - name: github.com/spf13/afero
   version: b28a7effac979219c2a2ed6205a4d70e4b1bcd02
   subpackages:
@@ -1096,6 +1100,10 @@ imports:
   version: e7cb7fa329f456b3855136a2642b197bad7366ba
   subpackages:
   - capability
+- name: github.com/tmc/grpc-websocket-proxy
+  version: 89b8d40f7ca833297db804fcb3be53a76d01c238
+  subpackages:
+  - wsproxy
 - name: github.com/ugorji/go
   version: ded73eae5db7e7a0ef6f55aace87a2873c5d2b74
   subpackages:
@@ -1148,6 +1156,7 @@ imports:
   version: 07dd2e8dfe18522e9c447ba95f2fe95262f63bb2
 - name: go4.org
   version: 03efcb870d84809319ea509714dd6d19a1498483
+  repo: https://github.com/go4org/go4
   subpackages:
   - errorutil
 - name: golang.org/x/crypto
@@ -1281,6 +1290,7 @@ imports:
   - credentials
   - grpclb/grpc_lb_v1/messages
   - grpclog
+  - health
   - health/grpc_health_v1
   - internal
   - keepalive
@@ -1564,7 +1574,7 @@ imports:
   - plugin/pkg/authenticator/token/webhook
   - plugin/pkg/authorizer/webhook
 - name: k8s.io/client-go
-  version: 02a694aa912314cd4288c176a39b888888ad6765
+  version: 59deff23e848e82e0c2db847cf65c74446fee309
   repo: https://github.com/openshift/kubernetes-client-go.git
   subpackages:
   - discovery
@@ -1796,7 +1806,7 @@ imports:
   - pkg/util/proto
   - pkg/util/proto/validation
 - name: k8s.io/kubernetes
-  version: 4b6cb539104d70486c9eee6afa7a2f26d07c4b5a
+  version: e6e9f2d5e18b7948030382ed17c2e10ca914efcf
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/controller-manager/app

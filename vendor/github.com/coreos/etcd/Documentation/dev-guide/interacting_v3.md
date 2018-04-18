@@ -2,7 +2,8 @@
 
 Users mostly interact with etcd by putting or getting the value of a key. This section describes how to do that by using etcdctl, a command line tool for interacting with etcd server. The concepts described here should apply to the gRPC APIs or client library APIs.
 
-By default, etcdctl talks to the etcd server with the v2 API for backward compatibility. For etcdctl to speak to etcd using the v3 API, the API version must be set to version 3 via the `ETCDCTL_API` environment variable.
+By default, etcdctl talks to the etcd server with the v2 API for backward compatibility. For etcdctl to speak to etcd using the v3 API, the API version must be set to version 3 via the `ETCDCTL_API` environment variable. However note that any key that was created using the v2 API will not be able to be queried via the v3 API.  A v3 API ```etcdctl get``` of a v2 key will exit with 0 and no key data, this is the expected behaviour.
+
 
 ```bash
 export ETCDCTL_API=3
@@ -215,7 +216,7 @@ $ etcdctl del foo foo9
 Here is the command to delete key `zoo` with the deleted key value pair returned:
 
 ```bash
-$ etcdctl del --prev-kv zoo 
+$ etcdctl del --prev-kv zoo
 1   # one key is deleted
 zoo # deleted key
 val # the value of the deleted key
@@ -224,7 +225,7 @@ val # the value of the deleted key
 Here is the command to delete keys having prefix as `zoo`:
 
 ```bash
-$ etcdctl del --prefix zoo 
+$ etcdctl del --prefix zoo
 2 # two keys are deleted
 ```
 
@@ -290,7 +291,7 @@ barz1
 Here is the command to watch on multiple keys `foo` and `zoo`:
 
 ```bash
-$ etcdctl watch -i 
+$ etcdctl watch -i
 $ watch foo
 $ watch zoo
 # in another terminal: etcdctl put foo bar
@@ -430,9 +431,9 @@ Here is the command to keep the same lease alive:
 
 ```bash
 $ etcdctl lease keep-alive 32695410dcc0ca06
-lease 32695410dcc0ca06 keepalived with TTL(100)
-lease 32695410dcc0ca06 keepalived with TTL(100)
-lease 32695410dcc0ca06 keepalived with TTL(100)
+lease 32695410dcc0ca06 keepalived with TTL(10)
+lease 32695410dcc0ca06 keepalived with TTL(10)
+lease 32695410dcc0ca06 keepalived with TTL(10)
 ...
 ```
 
@@ -472,4 +473,3 @@ lease 694d5765fc71500b granted with TTL(500s), remaining(132s), attached keys([z
 # if the lease has expired or does not exist it will give the below response:
 Error:  etcdserver: requested lease not found
 ```
-

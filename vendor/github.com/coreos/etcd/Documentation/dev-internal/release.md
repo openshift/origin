@@ -4,6 +4,17 @@ The guide talks about how to release a new version of etcd.
 
 The procedure includes some manual steps for sanity checking, but it can probably be further scripted. Please keep this document up-to-date if making changes to the release process.
 
+## Release management
+
+etcd community members are assigned to manage the release each etcd major/minor version as well as manage patches
+and to each stable release branch. The managers are responsible for communicating the timelines and status of each
+release and for ensuring the stability of the release branch.
+
+| Releases | Manager |
+| -------- | ------- |
+| 3.1 patch (post 3.1.0) | Joe Betz [@jpbetz](https://github.com/jpbetz) |
+| 3.2 patch (post 3.2.0) | Gyuho Lee [@gyuho](https://github.com/gyuho) |
+
 ## Prepare release
 
 Set desired version as environment variable for following steps. Here is an example to release 2.3.0:
@@ -25,8 +36,10 @@ All releases version numbers follow the format of [semantic versioning 2.0.0](ht
 
 ### Patch version release
 
-- Discuss about commits that are backported to the patch release. The commits should not include merge commits.
-- Cherry-pick these commits starting from the oldest one into stable branch.
+- To request a backport, devlopers submit cherrypick PRs targeting the release branch. The commits should not include merge commits. The commits should be restricted to bug fixes and security patches.
+- The cherrypick PRs should target the appropriate release branch (`base:release-<major>-<minor>`). `hack/patch/cherrypick.sh` may be used to automatically generate cherrypick PRs.
+- The release patch manager reviews the cherrypick PRs. Please discuss carefully what is backported to the patch release. Each patch release should be strictly better than it's predecessor.
+- The release patch manager will cherry-pick these commits starting from the oldest one into stable branch.
 
 ## Write release note
 
@@ -53,7 +66,7 @@ All releases version numbers follow the format of [semantic versioning 2.0.0](ht
 Run release script in root directory:
 
 ```
-./scripts/release.sh ${VERSION}
+TAG=gcr.io/etcd-development/etcd ./scripts/release.sh ${VERSION}
 ```
 
 It generates all release binaries and images under directory ./release.
@@ -66,8 +79,8 @@ The following commands are used for public release sign:
 
 ```
 cd release
-for i in etcd-*{.zip,.tar.gz}; do gpg2 --default-key $SUBKEYID --armor --output ${i}.asc --detach-sign ${i}; done
-for i in etcd-*{.zip,.tar.gz}; do gpg2 --verify ${i}.asc ${i}; done
+for i in etcd-*{.zip,.tar.gz,.aci}; do gpg2 --default-key $SUBKEYID --armor --output ${i}.asc --detach-sign ${i}; done
+for i in etcd-*{.zip,.tar.gz,.aci}; do gpg2 --verify ${i}.asc ${i}; done
 
 # sign zipped source code files
 wget https://github.com/coreos/etcd/archive/${VERSION}.zip
@@ -90,13 +103,41 @@ The public key for GPG signing can be found at [CoreOS Application Signing Key](
 - Select whether it is a pre-release.
 - Publish the release!
 
+## Publish docker image in gcr.io
+
+- Push docker image:
+
+```
+gcloud docker -- login -u _json_key -p "$(cat /etc/gcp-key-etcd.json)" https://gcr.io
+
+for TARGET_ARCH in "-arm64" "-ppc64le" ""; do
+  gcloud docker -- push gcr.io/etcd-development/etcd:${VERSION}${TARGET_ARCH}
+done
+```
+
+- Add `latest` tag to the new image on [gcr.io](https://console.cloud.google.com/gcr/images/etcd-development/GLOBAL/etcd?project=etcd-development&authuser=1) if this is a stable release.
+
 ## Publish docker image in Quay.io
+
+- Build docker images with quay.io:
+
+```
+for TARGET_ARCH in "amd64" "arm64" "ppc64le"; do
+  TAG=quay.io/coreos/etcd GOARCH=${TARGET_ARCH} \
+    BINARYDIR=release/etcd-${VERSION}-linux-${TARGET_ARCH} \
+    BUILDDIR=release \
+    ./scripts/build-docker ${VERSION}
+done
+```
 
 - Push docker image:
 
 ```
 docker login quay.io
-docker push quay.io/coreos/etcd:${VERSION}
+
+for TARGET_ARCH in "-arm64" "-ppc64le" ""; do
+  docker push quay.io/coreos/etcd:${VERSION}${TARGET_ARCH}
+done
 ```
 
 - Add `latest` tag to the new image on [quay.io](https://quay.io/repository/coreos/etcd?tag=latest&tab=tags) if this is a stable release.

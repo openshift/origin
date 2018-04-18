@@ -15,6 +15,7 @@
 package integration
 
 import (
+	"context"
 	"math/rand"
 	"strings"
 	"testing"
@@ -25,8 +26,6 @@ import (
 	"github.com/coreos/etcd/integration"
 	"github.com/coreos/etcd/pkg/testutil"
 	"github.com/coreos/etcd/pkg/transport"
-
-	"golang.org/x/net/context"
 )
 
 var (
@@ -122,7 +121,7 @@ func testDialSetEndpoints(t *testing.T, setBefore bool) {
 	if !setBefore {
 		cli.SetEndpoints(eps[toKill%3], eps[(toKill+1)%3])
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), integration.RequestWaitTimeout)
 	if _, err = cli.Get(ctx, "foo", clientv3.WithSerializable()); err != nil {
 		t.Fatal(err)
 	}

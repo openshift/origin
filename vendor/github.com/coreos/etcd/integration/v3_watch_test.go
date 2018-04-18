@@ -16,6 +16,7 @@ package integration
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"reflect"
 	"sort"
@@ -27,7 +28,6 @@ import (
 	pb "github.com/coreos/etcd/etcdserver/etcdserverpb"
 	"github.com/coreos/etcd/mvcc/mvccpb"
 	"github.com/coreos/etcd/pkg/testutil"
-	"golang.org/x/net/context"
 )
 
 // TestV3WatchFromCurrentRevision tests Watch APIs from current revision.
@@ -223,20 +223,24 @@ func TestV3WatchFromCurrentRevision(t *testing.T) {
 		cresp, err := wStream.Recv()
 		if err != nil {
 			t.Errorf("#%d: wStream.Recv error: %v", i, err)
+			clus.Terminate(t)
 			continue
 		}
 		if !cresp.Created {
 			t.Errorf("#%d: did not create watchid, got %+v", i, cresp)
+			clus.Terminate(t)
 			continue
 		}
 		if cresp.Canceled {
 			t.Errorf("#%d: canceled watcher on create %+v", i, cresp)
+			clus.Terminate(t)
 			continue
 		}
 
 		createdWatchId := cresp.WatchId
 		if cresp.Header == nil || cresp.Header.Revision != 1 {
 			t.Errorf("#%d: header revision got +%v, wanted revison 1", i, cresp)
+			clus.Terminate(t)
 			continue
 		}
 

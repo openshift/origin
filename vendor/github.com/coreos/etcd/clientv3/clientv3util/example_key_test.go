@@ -15,12 +15,11 @@
 package clientv3util_test
 
 import (
+	"context"
 	"log"
 
 	"github.com/coreos/etcd/clientv3"
 	"github.com/coreos/etcd/clientv3/clientv3util"
-
-	"golang.org/x/net/context"
 )
 
 func ExampleKeyExists_put() {
