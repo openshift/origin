@@ -6,8 +6,11 @@ import (
 
 	"github.com/golang/glog"
 
+	apimachineryversion "k8s.io/apimachinery/pkg/version"
 	controllerapp "k8s.io/kubernetes/cmd/kube-controller-manager/app"
 	_ "k8s.io/kubernetes/plugin/pkg/scheduler/algorithmprovider"
+
+	"github.com/openshift/origin/pkg/version"
 )
 
 func computeKubeControllerManagerArgs(kubeconfigFile, saPrivateKeyFile, saRootCAFile, podEvictionTimeout, openshiftConfigFile string, dynamicProvisioningEnabled bool, qps float32, burst int) []string {
@@ -84,6 +87,18 @@ func computeKubeControllerManagerArgs(kubeconfigFile, saPrivateKeyFile, saRootCA
 }
 
 func runEmbeddedKubeControllerManager(kubeconfigFile, saPrivateKeyFile, saRootCAFile, podEvictionTimeout, openshiftConfigFile string, dynamicProvisioningEnabled bool, qps float32, burst int) {
+	// We do this in 3.9 only to allow the image version resolution to use the openshift version, not the kube version.
+	// In future releases, the --pv-recycler-pod-template-filepath-hostpath and --pv-recycler-pod-template-filepath-nfs
+	// flags must be set properly.  This shim is not used in some cases in 3.10 and will probably be removed entirely in 3.11.
+	openshiftVersion := version.Get()
+	controllerapp.OverrideVersion = &apimachineryversion.Info{
+		Major:      openshiftVersion.Major,
+		Minor:      openshiftVersion.Minor,
+		GitCommit:  openshiftVersion.GitCommit,
+		GitVersion: openshiftVersion.GitVersion,
+		BuildDate:  openshiftVersion.BuildDate,
+	}
+
 	cmd := controllerapp.NewControllerManagerCommand()
 	args := computeKubeControllerManagerArgs(kubeconfigFile, saPrivateKeyFile, saRootCAFile, podEvictionTimeout, openshiftConfigFile, dynamicProvisioningEnabled, qps, burst)
 	if err := cmd.ParseFlags(args); err != nil {
