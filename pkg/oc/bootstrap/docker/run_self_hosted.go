@@ -390,9 +390,7 @@ func (c *ClusterUpConfig) makeNodeConfig(masterConfigDir string) (string, error)
 func (c *ClusterUpConfig) makeKubeletFlags(out io.Writer, nodeConfigDir string) ([]string, error) {
 	container := kubelet.NewKubeletStartFlags()
 	container.ContainerBinds = append(container.ContainerBinds, nodeConfigDir+":/var/lib/origin/openshift.local.config/node:z")
-	container.Environment = c.Environment
 	container.NodeImage = c.openshiftImage()
-	container.Environment = c.Environment
 	container.UseSharedVolume = !c.UseNsenterMount
 
 	kubeletFlags, err := container.MakeKubeletFlags(c.GetDockerClient(), c.BaseDir)
@@ -449,7 +447,6 @@ func (c *ClusterUpConfig) startKubelet(out io.Writer, masterConfigDir, nodeConfi
 	}
 
 	container := kubelet.NewKubeletRunConfig()
-	container.Environment = c.Environment
 	container.ContainerBinds = append(container.ContainerBinds, nodeConfigDir+":/var/lib/origin/openshift.local.config/node:z")
 	container.ContainerBinds = append(container.ContainerBinds, masterConfigDir+":/var/lib/origin/openshift.local.config/master:z")
 	container.ContainerBinds = append(container.ContainerBinds, podManifestDir+":/var/lib/origin/pod-manifests:z")

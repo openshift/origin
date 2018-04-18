@@ -139,7 +139,6 @@ type ClusterUpConfig struct {
 	SpecifiedBaseDir  bool
 	HostName          string
 	UseExistingConfig bool
-	Environment       []string
 	ServerLogLevel    int
 
 	ComponentsToEnable       []string
@@ -184,7 +183,6 @@ func (c *ClusterUpConfig) Bind(flags *pflag.FlagSet) {
 	flags.BoolVar(&c.WriteConfig, "write-config", false, "Write the configuration files into host config dir")
 	flags.BoolVar(&c.PortForwarding, "forward-ports", c.PortForwarding, "Use Docker port-forwarding to communicate with origin container. Requires 'socat' locally.")
 	flags.IntVar(&c.ServerLogLevel, "server-loglevel", 0, "Log level for OpenShift server")
-	flags.StringArrayVarP(&c.Environment, "env", "e", c.Environment, "Specify a key-value pair for an environment variable to set on OpenShift container")
 	flags.StringSliceVar(&c.UserEnabledComponents, "enable", c.UserEnabledComponents, fmt.Sprintf(""+
 		"A list of components to enable.  '*' enables all on-by-default components, 'foo' enables the component "+
 		"named 'foo', '-foo' disables the component named 'foo'.\nAll components: %s\nDisabled-by-default components: %s",
@@ -390,7 +388,6 @@ func (c *ClusterUpConfig) Validate(errout io.Writer) error {
 	if c.dockerClient == nil {
 		return fmt.Errorf("missing dockerClient")
 	}
-	cmdutil.WarnAboutCommaSeparation(errout, c.Environment, "--env")
 	return nil
 }
 
