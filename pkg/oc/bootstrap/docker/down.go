@@ -61,6 +61,7 @@ func (c *ClientStopConfig) Stop() error {
 	if err = helper.StopAndRemoveContainer(openshift.ContainerName); err != nil {
 		glog.V(2).Infof("Error stopping origin container: %v", err)
 	}
+
 	names, err := helper.ListContainerNames()
 	if err != nil {
 		return err

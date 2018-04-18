@@ -111,7 +111,8 @@ func NewCmdAdd(name, fullName string, out, errout io.Writer) *cobra.Command {
 // Start runs the start tasks ensuring that they are executed in sequence
 func (c *ClusterAddConfig) Run() error {
 	componentsToInstall := []componentinstall.Component{}
-	installContext, err := componentinstall.NewComponentInstallContext(c.openshiftImage(), c.imageFormat(), c.BaseDir, c.ServerLogLevel)
+	installContext, err := componentinstall.NewComponentInstallContext(c.openshiftImage(), c.imageFormat(), c.BaseDir,
+		c.ServerLogLevel)
 	if err != nil {
 		return err
 	}
