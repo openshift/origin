@@ -4,7 +4,7 @@ metadata:
   name: openshift-controller-manager
 parameters:
 - name: IMAGE
-  value: openshift/origin:latest
+  value: openshift/origin-control-plane:latest
 - name: NAMESPACE
   value: openshift-controller-manager
 - name: LOGLEVEL

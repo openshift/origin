@@ -360,7 +360,7 @@ $ oc tag [--source=<sourcetype>] <source> <dest> [<dest> ...]
 For example:
 
 ```bash
-$ oc tag --source=docker openshift/origin:latest myproject/ruby:tip
+$ oc tag --source=docker openshift/origin-control-plane:latest myproject/ruby:tip
 ```
 
 ## Application Modification Commands

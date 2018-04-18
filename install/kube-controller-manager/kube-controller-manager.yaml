@@ -11,7 +11,7 @@ spec:
   hostNetwork: true
   containers:
   - name: controllers
-    image: openshift/origin:latest
+    image: openshift/origin-control-plane:latest
     command: ["hyperkube", "kube-controller-manager"]
     args:
     - "--enable-dynamic-provisioning=true"

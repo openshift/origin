@@ -22,7 +22,7 @@ items:
       spec:
         serviceAccountName: dockergc
         containers:
-        - image: openshift/origin:latest
+        - image: openshift/origin-node:latest
           command:
           - "/usr/bin/oc"
           args:

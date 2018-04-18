@@ -23,7 +23,6 @@ import (
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	networkapi "github.com/openshift/origin/pkg/network/apis/network"
-	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 
@@ -77,13 +76,6 @@ func TestExampleObjectSchemas(t *testing.T) {
 	// TODO: make this configurable and not the default https://github.com/openshift/origin/issues/662
 	capabilities.Setup(true, capabilities.PrivilegedSources{}, 0)
 	cases := map[string]map[string]runtime.Object{
-		"../examples/wordpress/template": {
-			"wordpress-mysql": &templateapi.Template{},
-		},
-		"../examples/hello-openshift": {
-			"hello-pod":     &kapi.Pod{},
-			"hello-project": &projectapi.Project{},
-		},
 		"../examples/sample-app": {
 			"github-webhook-example":             nil, // Skip.
 			"application-template-stibuild":      &templateapi.Template{},

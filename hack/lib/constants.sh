@@ -37,7 +37,6 @@ readonly OS_IMAGE_COMPILE_TARGETS_LINUX=(
 )
 readonly OS_SCRATCH_IMAGE_COMPILE_TARGETS_LINUX=(
   images/pod
-  examples/hello-openshift
 )
 readonly OS_IMAGE_COMPILE_BINARIES=("${OS_SCRATCH_IMAGE_COMPILE_TARGETS_LINUX[@]##*/}" "${OS_IMAGE_COMPILE_TARGETS_LINUX[@]##*/}")
 
@@ -106,8 +105,6 @@ readonly OS_BINARY_RELEASE_CLIENT_EXTRA=(
 function os::build::get_product_vars() {
   export OS_BUILD_LDFLAGS_IMAGE_PREFIX="${OS_IMAGE_PREFIX:-"openshift/origin"}"
   export OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS="${OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS:-"centos7"}"
-  export OS_BUILD_LDFLAGS_FEDERATION_SERVER_IMAGE_NAME="${OS_BUILD_LDFLAGS_FEDERATION_SERVER_IMAGE_NAME:-"${OS_BUILD_LDFLAGS_IMAGE_PREFIX}-federation"}"
-  export OS_BUILD_LDFLAGS_FEDERATION_ETCD_IMAGE="${OS_BUILD_LDFLAGS_FEDERATION_ETCD_IMAGE:-"quay.io/coreos/etcd:v3.1.7"}"
 }
 
 # os::build::ldflags calculates the -ldflags argument for building OpenShift
@@ -311,9 +308,10 @@ readonly -f os::build::clean_windows_versioninfo
 
 # OS_ALL_IMAGES is the list of images built by os::build::images.
 readonly OS_ALL_IMAGES=(
-  origin
-  origin-base
   origin-pod
+  origin-base
+  origin-control-plane
+  origin-node
   origin-deployer
   origin-docker-builder
   origin-keepalived-ipfailover
@@ -325,9 +323,6 @@ readonly OS_ALL_IMAGES=(
   origin-egress-dns-proxy
   origin-recycler
   origin-template-service-broker
-  hello-openshift
-  openvswitch
-  node
 )
 
 # os::build::images builds all images in this repo.
@@ -343,9 +338,6 @@ function os::build::images() {
     fi
   }
 
-  # Link or copy image binaries to the appropriate locations.
-  ln_or_cp "${OS_OUTPUT_BINPATH}/linux/amd64/hello-openshift" examples/hello-openshift/bin
-
   # determine the correct tag prefix
   tag_prefix="${OS_IMAGE_PREFIX:-"openshift/origin"}"
 
@@ -354,15 +346,14 @@ function os::build::images() {
   ( os::build::image "${tag_prefix}-template-service-broker" images/template-service-broker ) &
 
   # images that depend on "${tag_prefix}-base"
-  ( os::build::image "${tag_prefix}"                       images/origin ) &
-  ( os::build::image "${tag_prefix}-egress-router"         images/egress/router ) &
-  ( os::build::image "${tag_prefix}-egress-http-proxy"     images/egress/http-proxy ) &
-  ( os::build::image "${tag_prefix}-egress-dns-proxy"      images/egress/dns-proxy ) &
-  ( os::build::image "${tag_prefix}-federation"            images/federation ) &
+  ( os::build::image "${tag_prefix}-control-plane"      images/origin ) &
+  ( os::build::image "${tag_prefix}-egress-router"      images/egress/router ) &
+  ( os::build::image "${tag_prefix}-egress-http-proxy"  images/egress/http-proxy ) &
+  ( os::build::image "${tag_prefix}-egress-dns-proxy"   images/egress/dns-proxy ) &
 
   for i in `jobs -p`; do wait $i; done
 
-  # images that depend on "${tag_prefix}
+  # images that depend on "${tag_prefix}-control-plane
   ( os::build::image "${tag_prefix}-haproxy-router"        images/router/haproxy ) &
   ( os::build::image "${tag_prefix}-keepalived-ipfailover" images/ipfailover/keepalived ) &
   ( os::build::image "${tag_prefix}-deployer"              images/deployer ) &
@@ -370,15 +361,10 @@ function os::build::images() {
   ( os::build::image "${tag_prefix}-docker-builder"        images/builder/docker/docker-builder ) &
   ( os::build::image "${tag_prefix}-sti-builder"           images/builder/docker/sti-builder ) &
   ( os::build::image "${tag_prefix}-f5-router"             images/router/f5 ) &
-  ( os::build::image "openshift/node"                      images/node ) &
-
-  for i in `jobs -p`; do wait $i; done
-
-  # images that depend on "openshift/node"
-  ( os::build::image "openshift/openvswitch"               images/openvswitch ) &
-
-  # extra images (not part of infrastructure)
-  ( os::build::image "openshift/hello-openshift"           examples/hello-openshift ) &
+  ( os::build::image "${tag_prefix}-node"                  images/node ) &
+  # These images are deprecated and will be removed once ansible is updated to stop using them
+  ( os::build::image "openshift/origin" images/origin ) &
+  ( os::build::image "openshift/node"   images/node ) &
 
   for i in `jobs -p`; do wait $i; done
 }

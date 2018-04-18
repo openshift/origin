@@ -2,16 +2,10 @@
 # This is the official OpenShift Origin image. It has as its entrypoint the OpenShift
 # all-in-one binary.
 #
-# While this image can be used for a simple node it does not support OVS based
-# SDN or storage plugins required for EBS, GCE, Gluster, Ceph, or iSCSI volume
-# management. For those features please use 'openshift/node'
-#
-# The standard name for this image is openshift/origin
+# The standard name for this image is openshift/origin-control-plane
 #
 FROM openshift/origin-base
 
-COPY system-container/system-container-wrapper.sh /usr/local/bin/
-COPY system-container/config.json.template system-container/manifest.json system-container/service.template system-container/tmpfiles.template /exports/
 RUN INSTALL_PKGS="origin" && \
     yum --enablerepo=origin-local-release install -y ${INSTALL_PKGS} && \
     rpm -V ${INSTALL_PKGS} && \

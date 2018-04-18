@@ -13,7 +13,7 @@ spec:
         spec:
           containers:
           - name: prune-images
-            image: openshift/origin:latest
+            image: openshift/origin-control-plane:latest
             args: [ "admin", "prune", "images", "--confirm"]
           restartPolicy: OnFailure
           serviceAccountName: image-pruner

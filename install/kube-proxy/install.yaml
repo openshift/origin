@@ -4,7 +4,7 @@ metadata:
   name: kube-proxy
 parameters:
 - name: IMAGE
-  value: openshift/origin:latest
+  value: openshift/origin-control-plane:latest
 - name: NAMESPACE
   value: kube-proxy
 - name: LOGLEVEL
