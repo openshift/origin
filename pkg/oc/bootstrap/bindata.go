@@ -16164,6 +16164,8 @@ objects:
           - OriginatingIdentity=true
           - --feature-gates
           - AsyncBindingOperations=true
+          - --feature-gates
+          - ResponseSchema=true
           image: ${SERVICE_CATALOG_IMAGE}
           imagePullPolicy: IfNotPresent
           name: controller-manager
