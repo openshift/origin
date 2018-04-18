@@ -1,5 +1,5 @@
-hash: cd35bb57985d932922d92c24847fd91dbf388449a3c8984b7557cfba299eaae8
-updated: 2018-04-18T11:17:46.522793+02:00
+hash: 4adaa599ad419cfbddc76f0116bbd3c15ea91178504acc7cd63189ae28fe7fc5
+updated: 2018-04-18T11:25:47.759159+02:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -1105,7 +1105,7 @@ imports:
   subpackages:
   - wsproxy
 - name: github.com/ugorji/go
-  version: ded73eae5db7e7a0ef6f55aace87a2873c5d2b74
+  version: bdcc60b419d136a85cdf2e7cbcac34b3f1cd6e57
   subpackages:
   - codec
 - name: github.com/vishvananda/netlink
