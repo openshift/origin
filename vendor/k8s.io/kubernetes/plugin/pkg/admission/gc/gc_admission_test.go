@@ -139,7 +139,7 @@ func TestGCAdmission(t *testing.T) {
 			username:   "non-deleter",
 			resource:   api.SchemeGroupVersion.WithResource("pods"),
 			newObj:     &api.Pod{ObjectMeta: metav1.ObjectMeta{OwnerReferences: []metav1.OwnerReference{{Name: "first"}}}},
-			checkError: expectCantSetOwnerRefError,
+			checkError: expectNoError,
 		},
 		{
 			name:       "non-pod-deleter, create, no objectref change",
@@ -153,7 +153,7 @@ func TestGCAdmission(t *testing.T) {
 			username:   "non-pod-deleter",
 			resource:   api.SchemeGroupVersion.WithResource("pods"),
 			newObj:     &api.Pod{ObjectMeta: metav1.ObjectMeta{OwnerReferences: []metav1.OwnerReference{{Name: "first"}}}},
-			checkError: expectCantSetOwnerRefError,
+			checkError: expectNoError,
 		},
 		{
 			name:       "non-pod-deleter, create, objectref change, but not a pod",
