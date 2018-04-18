@@ -101,6 +101,9 @@ import:
 # required by etcd 3.3.3
 - package: github.com/ugorji/go
   version: bdcc60b419d136a85cdf2e7cbcac34b3f1cd6e57
+- package: github.com/gorilla/websocket
+  version: 4201258b820c74ac8e6922fc9e6b52f71fe46f8d
+
 
 # cli
 - package: github.com/gonum/blas

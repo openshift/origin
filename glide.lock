@@ -1,5 +1,5 @@
-hash: 4adaa599ad419cfbddc76f0116bbd3c15ea91178504acc7cd63189ae28fe7fc5
-updated: 2018-04-18T11:25:47.759159+02:00
+hash: 414ac4e59450bdf9bd609e07df132815c5130cbcebb56b66de41b4c2060c0114
+updated: 2018-04-18T11:36:40.076739+02:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -609,7 +609,7 @@ imports:
 - name: github.com/gorilla/sessions
   version: a3acf13e802c358d65f249324d14ed24aac11370
 - name: github.com/gorilla/websocket
-  version: 6eb6ad425a89d9da7a5549bc6da8f79ba5c17844
+  version: 4201258b820c74ac8e6922fc9e6b52f71fe46f8d
 - name: github.com/gregjones/httpcache
   version: 787624de3eb7bd915c329cba748687a3b22666a6
   subpackages:
