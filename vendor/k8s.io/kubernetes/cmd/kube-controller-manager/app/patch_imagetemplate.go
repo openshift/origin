@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	"k8s.io/kubernetes/pkg/version"
+	"k8s.io/apimachinery/pkg/version"
 
 	"github.com/golang/glog"
 )
@@ -114,6 +114,9 @@ type KeyFunc func(key string) (string, bool)
 
 // Versions is a KeyFunc for retrieving information about the current version.
 func Versions(key string) (string, bool) {
+	if OverrideVersion == nil {
+		glog.Fatal("Can not find Openshift version for retrieving matching images.  You'll need to use --pv-recycler-pod-template-filepath-hostpath and --pv-recycler-pod-template-filepath-nfs.")
+	}
 	switch key {
 	case "shortcommit":
 		s := OverrideVersion.GitCommit
@@ -130,7 +133,7 @@ func Versions(key string) (string, bool) {
 }
 
 // OverrideVersion is the latest version, exposed for testing.
-var OverrideVersion = version.Get()
+var OverrideVersion *version.Info
 
 // lastSemanticVersion attempts to return a semantic version from the GitVersion - which
 // is either <semver>+<commit> or <semver> on release boundaries.
