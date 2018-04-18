@@ -24,6 +24,9 @@ os::util::environment::use_sudo
 os::cleanup::tmpdir
 os::util::environment::setup_all_server_vars
 
+export USE_IMAGES='openshift/origin-${component}:latest'
+export TAG=latest
+
 os::log::system::start
 
 os::start::configure_server
