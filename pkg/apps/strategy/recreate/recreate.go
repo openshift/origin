@@ -5,7 +5,6 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"strings"
 	"time"
 
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -240,8 +239,9 @@ func (s *RecreateDeploymentStrategy) scaleAndWait(deployment *kapi.ReplicationCo
 			_, scaleErr := s.scaleClient.Scales(deployment.Namespace).Update(kapi.Resource("replicationcontrollers"), curScaleCopy)
 			return scaleErr
 		})
-		// FIXME: The error admission returns here should be 503 (come back later) or similar.
-		if errors.IsForbidden(updateScaleErr) && strings.Contains(updateScaleErr.Error(), "not yet ready to handle request") {
+		// In case the controller is slow to create binding or the caches are not yet synced, retry the
+		// forbidden errors. It is unlikely the deployer SA will be forbidden from scaling RC's.
+		if errors.IsForbidden(updateScaleErr) {
 			return false, nil
 		}
 		return true, updateScaleErr
