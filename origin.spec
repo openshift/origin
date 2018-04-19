@@ -17,12 +17,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit dc32f074c9e63c1879a5f55fbbebdf7942c51bc6
+%global commit c73b1c867f1f11d03535b40cc1d4f78b72fcae6f
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=10+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.10.0-0.22.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 KUBE_GIT_VERSION=v1.10.0+b81c8f8 OS_GIT_PATCH=0 KUBE_GIT_COMMIT=b81c8f8 KUBE_GIT_MINOR=10+ OS_GIT_COMMIT=2feb1ff KUBE_GIT_MAJOR=1 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.16-0-g121edf0 ETCD_GIT_COMMIT=121edf0
+%global os_git_vars OS_GIT_MINOR=10+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.10.0-0.23.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 KUBE_GIT_VERSION=v1.10.0+b81c8f8 OS_GIT_PATCH=0 KUBE_GIT_COMMIT=b81c8f8 KUBE_GIT_MINOR=10+ OS_GIT_COMMIT=8fba1d7 KUBE_GIT_MAJOR=1 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.16-0-g121edf0 ETCD_GIT_COMMIT=121edf0
 }
 
 %if 0%{?skip_build}
@@ -65,7 +65,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.10.0
-Release:        0.23.0%{?dist}
+Release:        0.24.0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -468,6 +468,15 @@ if [ "$1" -eq 0 ] ; then
 fi
 
 %changelog
+* Thu Apr 19 2018 Justin Pierce <jupierce@redhat.com> 3.10.0-0.24.0
+- Explicitly set the MTU on the tun0 interface (bbennett@redhat.com)
+- allow installing webconsole operator (deads@redhat.com)
+- generated (deads@redhat.com)
+- webconsole operator (deads@redhat.com)
+- Fix LDAP test to catch the correct output. (simo@redhat.com)
+- Add custom JSON marshaling implementations, metrics broken into standalone
+  lib (sejug@redhat.com)
+
 * Thu Apr 19 2018 Justin Pierce <jupierce@redhat.com> 3.10.0-0.23.0
 - Remove test reference to deleted content (ccoleman@redhat.com)
 - Remove decode code related to PSP Subject Reviews (mkhan@redhat.com)
