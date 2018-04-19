@@ -5,7 +5,7 @@ import (
 	extensionsv1beta1 "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
 	kextensionsclient "k8s.io/kubernetes/pkg/client/clientset_generated/clientset/typed/extensions/v1beta1"
 
-	appstypedclient "github.com/openshift/origin/pkg/apps/generated/clientset/typed/apps/v1"
+	appstypedclient "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
 )
 
 type delegatingScaleInterface struct {
