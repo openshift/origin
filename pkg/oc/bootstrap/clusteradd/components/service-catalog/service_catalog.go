@@ -21,7 +21,6 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	"github.com/openshift/origin/pkg/oc/bootstrap"
 	"github.com/openshift/origin/pkg/oc/bootstrap/clusteradd/componentinstall"
-	"github.com/openshift/origin/pkg/oc/bootstrap/clusteradd/components/register-template-service-broker"
 	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/kubeapiserver"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/errors"
@@ -125,15 +124,6 @@ func (c *ServiceCatalogComponentOptions) Install(dockerClient dockerhelper.Inter
 		return err
 	}
 
-	masterConfigDir := path.Join(c.InstallContext.BaseDir(), kubeapiserver.KubeAPIServerDirName)
-	// the template service broker may not be here, but as a best effort try to register
-	register_template_service_broker.RegisterTemplateServiceBroker(
-		dockerClient,
-		c.InstallContext.ClientImage(),
-		c.InstallContext.BaseDir(),
-		masterConfigDir,
-		logdir,
-	)
 	return nil
 }
 
