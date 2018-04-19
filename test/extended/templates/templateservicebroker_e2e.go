@@ -240,13 +240,7 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 		examplesecret, err := cli.KubeClient().CoreV1().Secrets(cli.Namespace()).Get("mysql", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		o.Expect(examplesecret.OwnerReferences).To(o.ContainElement(metav1.OwnerReference{
-			APIVersion:         templateapiv1.SchemeGroupVersion.String(),
-			Kind:               "TemplateInstance",
-			Name:               templateInstance.Name,
-			UID:                templateInstance.UID,
-			BlockOwnerDeletion: &blockOwnerDeletion,
-		}))
+		o.Expect(examplesecret.Labels[templateapi.TemplateInstanceOwner]).To(o.Equal(string(templateInstance.UID)))
 		o.Expect(examplesecret.Data["database-user"]).To(o.BeEquivalentTo("test"))
 		o.Expect(examplesecret.Data["database-password"]).To(o.MatchRegexp("^[a-zA-Z0-9]{16}$"))
 	}
@@ -336,21 +330,16 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 			list, err := meta.ExtractList(obj)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			if gvk.GroupKind() == kapi.Kind("Pod") {
-				// pods stick around for a while after deprovision because of
-				// graceful deletion.  As long as every pod deletion timestamp
-				// is set, that'll have to do.
-				for _, obj := range list {
-					meta, err := meta.Accessor(obj)
-					o.Expect(err).NotTo(o.HaveOccurred())
-					o.Expect(meta.GetDeletionTimestamp()).NotTo(o.BeNil())
+			// some objects stick around for a while after deprovision because of
+			// graceful deletion.  As long as every object's deletion timestamp
+			// is set, that'll have to do.
+			for _, obj := range list {
+				meta, err := meta.Accessor(obj)
+				o.Expect(err).NotTo(o.HaveOccurred())
+				if meta.GetDeletionTimestamp() != nil {
+					fmt.Fprintf(g.GinkgoWriter, "error: objects still exist with no deletion timestamp: %#v", list)
 				}
-
-			} else {
-				if len(list) > 0 {
-					fmt.Fprintf(g.GinkgoWriter, "error: found %d objects of GVK %s", len(list), gvk.String())
-				}
-				o.Expect(list).To(o.BeEmpty())
+				o.Expect(meta.GetDeletionTimestamp()).NotTo(o.BeNil())
 			}
 		}
 	}

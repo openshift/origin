@@ -39,4 +39,12 @@ const (
 	// BindableAnnotation indicates whether the template service broker should
 	// advertise the template as being bindable (default is true)
 	BindableAnnotation = "template.openshift.io/bindable"
+
+	// TemplateInstanceFinalizer is used to clean up the objects created by the template instance,
+	// when the template instance is deleted.
+	TemplateInstanceFinalizer = "template.openshift.io/finalizer"
+
+	// TemplateInstanceOwner is a label applied to all objects created from a template instance
+	// which contains the uid of the template instance.
+	TemplateInstanceOwner = "template.openshift.io/template-instance-owner"
 )

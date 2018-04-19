@@ -3150,11 +3150,20 @@ items:
     - templateinstances/status
     verbs:
     - update
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    annotations:
+      authorization.openshift.io/system-only: "true"
+      openshift.io/reconcile-protect: "false"
+    creationTimestamp: null
+    name: system:openshift:controller:template-instance-finalizer-controller
+  rules:
   - apiGroups:
     - template.openshift.io
     attributeRestrictions: null
     resources:
-    - templateinstances/finalizers
+    - templateinstances/status
     verbs:
     - update
 - apiVersion: v1
@@ -7287,7 +7296,7 @@ items:
     annotations:
       openshift.io/reconcile-protect: "false"
     creationTimestamp: null
-    name: admin
+    name: system:openshift:controller:template-instance-controller:admin
   roleRef:
     name: admin
   subjects:
@@ -7296,6 +7305,38 @@ items:
     namespace: openshift-infra
   userNames:
   - system:serviceaccount:openshift-infra:template-instance-controller
+- apiVersion: v1
+  groupNames: null
+  kind: ClusterRoleBinding
+  metadata:
+    annotations:
+      openshift.io/reconcile-protect: "false"
+    creationTimestamp: null
+    name: system:openshift:controller:template-instance-finalizer-controller
+  roleRef:
+    name: system:openshift:controller:template-instance-finalizer-controller
+  subjects:
+  - kind: ServiceAccount
+    name: template-instance-finalizer-controller
+    namespace: openshift-infra
+  userNames:
+  - system:serviceaccount:openshift-infra:template-instance-finalizer-controller
+- apiVersion: v1
+  groupNames: null
+  kind: ClusterRoleBinding
+  metadata:
+    annotations:
+      openshift.io/reconcile-protect: "false"
+    creationTimestamp: null
+    name: system:openshift:controller:template-instance-finalizer-controller:admin
+  roleRef:
+    name: admin
+  subjects:
+  - kind: ServiceAccount
+    name: template-instance-finalizer-controller
+    namespace: openshift-infra
+  userNames:
+  - system:serviceaccount:openshift-infra:template-instance-finalizer-controller
 - apiVersion: v1
   groupNames: null
   kind: ClusterRoleBinding
