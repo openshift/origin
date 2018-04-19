@@ -127,11 +127,7 @@ func (o PodDiagnosticsOptions) buildPodDiagnostics() ([]types.Diagnostic, error)
 			diagnostics = append(diagnostics, PodCheckDns{})
 
 		case PodCheckAuthName:
-			diagnostics = append(diagnostics, PodCheckAuth{
-				MasterCaPath: StandardMasterCaPath,
-				TokenPath:    StandardTokenPath,
-				MasterUrl:    StandardMasterUrl,
-			})
+			diagnostics = append(diagnostics, PodCheckAuth{})
 
 		default:
 			return diagnostics, fmt.Errorf("unknown diagnostic: %v", diagnosticName)
