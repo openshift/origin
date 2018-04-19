@@ -2,7 +2,6 @@ package admission
 
 import (
 	"k8s.io/apiserver/pkg/admission"
-	kauthorizer "k8s.io/apiserver/pkg/authorization/authorizer"
 	restclient "k8s.io/client-go/rest"
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 	"k8s.io/kubernetes/pkg/quota"
@@ -69,13 +68,6 @@ type WantsProjectCache interface {
 // WantsQuotaRegistry should be implemented by admission plugins that need a quota registry
 type WantsOriginQuotaRegistry interface {
 	SetOriginQuotaRegistry(quota.Registry)
-	admission.InitializationValidator
-}
-
-// WantsAuthorizer should be implemented by admission plugins that
-// need access to the Authorizer interface
-type WantsAuthorizer interface {
-	SetAuthorizer(kauthorizer.Authorizer)
 	admission.InitializationValidator
 }
 

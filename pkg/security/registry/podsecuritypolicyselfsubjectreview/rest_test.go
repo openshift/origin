@@ -20,34 +20,6 @@ import (
 	_ "github.com/openshift/origin/pkg/api/install"
 )
 
-func validPodTemplateSpec() kapi.PodTemplateSpec {
-	activeDeadlineSeconds := int64(1)
-	return kapi.PodTemplateSpec{
-		Spec: kapi.PodSpec{
-			Volumes: []kapi.Volume{
-				{Name: "vol", VolumeSource: kapi.VolumeSource{EmptyDir: &kapi.EmptyDirVolumeSource{}}},
-			},
-			Containers: []kapi.Container{
-				{
-					Name:                     "ctr",
-					Image:                    "image",
-					ImagePullPolicy:          "IfNotPresent",
-					TerminationMessagePolicy: kapi.TerminationMessageReadFile,
-				},
-			},
-			RestartPolicy: kapi.RestartPolicyAlways,
-			NodeSelector: map[string]string{
-				"key": "value",
-			},
-			NodeName:              "foobar",
-			DNSPolicy:             kapi.DNSClusterFirst,
-			ActiveDeadlineSeconds: &activeDeadlineSeconds,
-			ServiceAccountName:    "acct",
-			SchedulerName:         kapi.DefaultSchedulerName,
-		},
-	}
-}
-
 func TestPodSecurityPolicySelfSubjectReview(t *testing.T) {
 	testcases := map[string]struct {
 		sccs  []*securityapi.SecurityContextConstraints
