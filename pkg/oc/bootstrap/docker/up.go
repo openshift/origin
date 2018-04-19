@@ -98,6 +98,8 @@ func NewCmdUp(name, fullName string, out, errout io.Writer, clusterAdd *cobra.Co
 		PortForwarding: defaultPortForwarding(),
 		DNSPort:        openshift.DefaultDNSPort,
 
+		ImageTemplate: variable.NewDefaultImageTemplate(),
+
 		// We pass cluster add as a command to prevent anyone from ever cheating with their wiring. You either work from flags or
 		// or you don't work.  You cannot add glue of any sort.
 		ClusterAdd: clusterAdd,
@@ -122,8 +124,9 @@ func NewCmdUp(name, fullName string, out, errout io.Writer, clusterAdd *cobra.Co
 }
 
 type ClusterUpConfig struct {
-	Image                 string
-	ImageTag              string
+	ImageTemplate variable.ImageTemplate
+	ImageTag      string
+
 	DockerMachine         string
 	SkipRegistryCheck     bool
 	PortForwarding        bool
@@ -165,6 +168,7 @@ type ClusterUpConfig struct {
 	openshiftHelper     *openshift.Helper
 	command             *cobra.Command
 	defaultClientConfig clientcmdapi.Config
+	isRemoteDocker      bool
 
 	usingDefaultImages         bool
 	usingDefaultOpenShiftImage bool
@@ -173,9 +177,9 @@ type ClusterUpConfig struct {
 }
 
 func (c *ClusterUpConfig) Bind(flags *pflag.FlagSet) {
-	flags.StringVar(&c.ImageTag, "tag", "", "Specify the tag for OpenShift images")
+	flags.StringVar(&c.ImageTag, "tag", "", "Specify an explicit version for OpenShift images")
 	flags.MarkHidden("tag")
-	flags.StringVar(&c.Image, "image", variable.DefaultImagePrefix, "Specify the images to use for OpenShift")
+	flags.StringVar(&c.ImageTemplate.Format, "image", c.ImageTemplate.Format, "Specify the images to use for OpenShift")
 	flags.BoolVar(&c.SkipRegistryCheck, "skip-registry-check", false, "Skip Docker daemon registry check")
 	flags.StringVar(&c.PublicHostname, "public-hostname", "", "Public hostname for OpenShift cluster")
 	flags.StringVar(&c.RoutingSuffix, "routing-suffix", "", "Default suffix for server routes")
@@ -237,10 +241,18 @@ func (c *ClusterUpConfig) Complete(cmd *cobra.Command, out io.Writer) error {
 
 	c.command = cmd
 
-	// do some defaulting
-	if len(c.ImageTag) == 0 {
-		c.ImageTag = strings.TrimRight("v"+version.Get().Major+"."+version.Get().Minor, "+")
-	}
+	c.isRemoteDocker = len(os.Getenv("DOCKER_HOST")) > 0
+
+	c.ImageTemplate.Format = variable.Expand(c.ImageTemplate.Format, func(s string) (string, bool) {
+		if s == "version" {
+			if len(c.ImageTag) == 0 {
+				return strings.TrimRight("v"+version.Get().Major+"."+version.Get().Minor, "+"), true
+			}
+			return c.ImageTag, true
+		}
+		return "", false
+	}, variable.Identity)
+
 	if len(c.BaseDir) == 0 {
 		c.SpecifiedBaseDir = false
 		c.BaseDir = "openshift.local.clusterup"
@@ -303,32 +315,49 @@ func (c *ClusterUpConfig) Complete(cmd *cobra.Command, out io.Writer) error {
 	}
 
 	if c.UseNsenterMount {
+		// This is default path when you run cluster up locally, with local docker daemon
 		c.HostVolumesDir = path.Join(c.BaseDir, "openshift.local.volumes")
-		if err := os.MkdirAll(c.HostVolumesDir, 0755); err != nil {
-			return err
+		// This is a snowflake when Docker runs on remote host
+		if c.isRemoteDocker {
+			c.HostVolumesDir = c.RemoteDirFor("openshift.local.volumes")
+		} else {
+			if err := os.MkdirAll(c.HostVolumesDir, 0755); err != nil {
+				return err
+			}
 		}
 	} else {
-		c.HostVolumesDir = path.Join(NonLinuxHostVolumeDirPrefix, c.BaseDir, "openshift.local.volumes")
+		// Snowflake for OSX Docker for Mac
+		c.HostVolumesDir = c.RemoteDirFor("openshift.local.volumes")
 	}
+
 	c.HostPersistentVolumesDir = path.Join(c.BaseDir, "openshift.local.pv")
-	if err := os.MkdirAll(c.HostPersistentVolumesDir, 0755); err != nil {
-		return err
+	if c.isRemoteDocker {
+		c.HostPersistentVolumesDir = c.RemoteDirFor("openshift.local.pv")
+	} else {
+		if err := os.MkdirAll(c.HostPersistentVolumesDir, 0755); err != nil {
+			return err
+		}
 	}
+
 	c.HostDataDir = path.Join(c.BaseDir, "etcd")
-	if err := os.MkdirAll(c.HostDataDir, 0755); err != nil {
-		return err
+	if c.isRemoteDocker {
+		c.HostDataDir = c.RemoteDirFor("etcd")
+	} else {
+		if err := os.MkdirAll(c.HostDataDir, 0755); err != nil {
+			return err
+		}
 	}
 
 	// Ensure that host directories exist.
 	// If not using the nsenter mounter, create a volume share on the host machine to
 	// mount OpenShift volumes.
-	taskPrinter.StartTask("Creating host directories")
 	if !c.UseNsenterMount {
-		if err := c.HostHelper().EnsureVolumeUseShareMount(); err != nil {
+		taskPrinter.StartTask("Creating shared mount directory on the remote host")
+		if err := c.HostHelper().EnsureVolumeUseShareMount(c.HostVolumesDir); err != nil {
 			return taskPrinter.ToError(err)
 		}
+		taskPrinter.Success()
 	}
-	taskPrinter.Success()
 
 	// Determine an IP to use for OpenShift.
 	// The result is that c.ServerIP will be populated with
@@ -484,8 +513,7 @@ func (c *ClusterUpConfig) Start(out io.Writer) error {
 	taskPrinter.Success()
 
 	if len(c.ComponentsToEnable) > 0 {
-		args := append([]string{}, "--image="+c.Image)
-		args = append(args, "--tag="+c.ImageTag)
+		args := append([]string{}, "--image="+c.ImageTemplate.Format)
 		args = append(args, "--base-dir="+c.BaseDir)
 		args = append(args, c.ComponentsToEnable...)
 
@@ -814,7 +842,7 @@ func (c *ClusterUpConfig) PostClusterStartupMutations(out io.Writer) error {
 }
 
 func (c *ClusterUpConfig) imageFormat() string {
-	return fmt.Sprintf("%s-${component}:%s", c.Image, c.ImageTag)
+	return c.ImageTemplate.Format
 }
 
 // Login logs into the new server and sets up a default user and project
@@ -909,7 +937,7 @@ func (c *ClusterUpConfig) OpenShiftHelper() *openshift.Helper {
 // HostHelper returns a helper object to check Host configuration
 func (c *ClusterUpConfig) HostHelper() *host.HostHelper {
 	if c.hostHelper == nil {
-		c.hostHelper = host.NewHostHelper(c.DockerHelper(), c.openshiftImage(), c.HostVolumesDir)
+		c.hostHelper = host.NewHostHelper(c.DockerHelper(), c.openshiftImage())
 	}
 	return c.hostHelper
 }
@@ -923,7 +951,7 @@ func (c *ClusterUpConfig) DockerHelper() *dockerhelper.Helper {
 }
 
 func (c *ClusterUpConfig) openshiftImage() string {
-	return fmt.Sprintf("%s:%s", c.Image, c.ImageTag)
+	return c.ImageTemplate.ExpandOrDie("control-plane")
 }
 
 func (c *ClusterUpConfig) determineAdditionalIPs(ip string) ([]string, error) {

@@ -21,6 +21,7 @@ import (
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	projectapihelpers "github.com/openshift/origin/pkg/project/apis/project/helpers"
+	projectclientinternal "github.com/openshift/origin/pkg/project/generated/internalclientset"
 	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset/typed/project/internalversion"
 	projectutil "github.com/openshift/origin/pkg/project/util"
 
@@ -100,7 +101,7 @@ func (o *ProjectOptions) Complete(f *clientcmd.Factory, args []string, out io.Wr
 		o.ProjectName = args[0]
 	}
 
-	o.Config, err = f.OpenShiftClientConfig().RawConfig()
+	o.Config, err = f.RawConfig()
 	if err != nil {
 		return err
 	}
@@ -126,7 +127,7 @@ func (o *ProjectOptions) Complete(f *clientcmd.Factory, args []string, out io.Wr
 
 		// since we failed to retrieve ClientConfig for the current server,
 		// fetch local OpenShift client config
-		o.ClientConfig, err = f.OpenShiftClientConfig().ClientConfig()
+		o.ClientConfig, err = f.ClientConfig()
 		if err != nil {
 			return err
 		}
@@ -138,7 +139,7 @@ func (o *ProjectOptions) Complete(f *clientcmd.Factory, args []string, out io.Wr
 		if err != nil {
 			return nil, nil, err
 		}
-		projectClient, err := f.OpenshiftInternalProjectClient()
+		projectClient, err := projectclientinternal.NewForConfig(o.ClientConfig)
 		if err != nil {
 			return nil, nil, err
 		}

@@ -20,6 +20,7 @@ import (
 
 	imageapiv1 "github.com/openshift/api/image/v1"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imageclientinternal "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	"github.com/openshift/origin/pkg/oc/cli/describe"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
@@ -119,10 +120,15 @@ func (o *ImportImageOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 	}
 	o.Namespace = namespace
 
-	client, err := f.OpenshiftInternalImageClient()
+	clientConfig, err := f.ClientConfig()
 	if err != nil {
 		return err
 	}
+	client, err := imageclientinternal.NewForConfig(clientConfig)
+	if err != nil {
+		return err
+	}
+
 	o.imageClient = client.Image()
 	o.isClient = client.Image().ImageStreams(namespace)
 

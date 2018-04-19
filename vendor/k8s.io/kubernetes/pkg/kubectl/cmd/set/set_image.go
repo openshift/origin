@@ -53,6 +53,8 @@ type ImageOptions struct {
 	UpdatePodSpecForObject func(obj runtime.Object, fn func(*v1.PodSpec) error) (bool, error)
 	Resources              []string
 	ContainerImages        map[string]string
+
+	Source string
 }
 
 var (
@@ -98,6 +100,9 @@ func NewCmdImage(f cmdutil.Factory, out, err io.Writer) *cobra.Command {
 		},
 	}
 
+	options.Source = "docker"
+	cmd.Flags().StringVar(&options.Source, "source", options.Source, "The image source type; valid types are 'imagestreamtag', 'istag', 'imagestreamimage', 'isimage', and 'docker'")
+
 	cmdutil.AddPrinterFlags(cmd)
 	usage := "identifying the resource to get from a server."
 	cmdutil.AddFilenameOptionFlags(cmd, &options.FilenameOptions, usage)
@@ -117,7 +122,7 @@ func (o *ImageOptions) Complete(f cmdutil.Factory, cmd *cobra.Command, args []st
 	o.ChangeCause = f.Command(cmd, false)
 	o.DryRun = cmdutil.GetDryRunFlag(cmd)
 	o.Output = cmdutil.GetFlagString(cmd, "output")
-	o.ResolveImage = f.ResolveImage
+	o.ResolveImage = resolveImageFactory(f, cmd)
 	o.Cmd = cmd
 
 	cmdNamespace, enforceNamespace, err := f.DefaultNamespace()

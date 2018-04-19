@@ -80,13 +80,13 @@ func NewCmdLogout(name, fullName, ocLoginFullCommand string, f *osclientcmd.Fact
 }
 
 func (o *LogoutOptions) Complete(f *osclientcmd.Factory, cmd *cobra.Command, args []string) error {
-	kubeconfig, err := f.OpenShiftClientConfig().RawConfig()
+	kubeconfig, err := f.RawConfig()
 	o.StartingKubeConfig = &kubeconfig
 	if err != nil {
 		return err
 	}
 
-	o.Config, err = f.OpenShiftClientConfig().ClientConfig()
+	o.Config, err = f.ClientConfig()
 	if err != nil {
 		return err
 	}

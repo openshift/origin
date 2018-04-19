@@ -19,6 +19,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imageclientinternal "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
@@ -68,13 +69,13 @@ var (
 	  %[1]s tag openshift/ruby@sha256:6b646fa6bf5e5e4c7fa41056c27910e679c03ebe7f93e361e6515a9da7e258cc yourproject/ruby:tip
 
 	  # Tag an external Docker image.
-	  %[1]s tag --source=docker openshift/origin:latest yourproject/ruby:tip
+	  %[1]s tag --source=docker openshift/origin-control-plane:latest yourproject/ruby:tip
 
 	  # Tag an external Docker image and request pullthrough for it.
-	  %[1]s tag --source=docker openshift/origin:latest yourproject/ruby:tip --reference-policy=local
+	  %[1]s tag --source=docker openshift/origin-control-plane:latest yourproject/ruby:tip --reference-policy=local
 
 	  # Remove the specified spec tag from an image stream.
-	  %[1]s tag openshift/origin:latest -d`)
+	  %[1]s tag openshift/origin-control-plane:latest -d`)
 )
 
 const (
@@ -158,7 +159,11 @@ func (o *TagOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []s
 	o.out = out
 
 	// Setup clients.
-	client, err := f.OpenshiftInternalImageClient()
+	clientConfig, err := f.ClientConfig()
+	if err != nil {
+		return err
+	}
+	client, err := imageclientinternal.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}

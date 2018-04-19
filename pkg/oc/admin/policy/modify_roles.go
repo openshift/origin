@@ -17,6 +17,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	authorizationclientinternal "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
@@ -340,7 +341,11 @@ func (o *RoleModificationOptions) CompleteUserWithSA(f *clientcmd.Factory, cmd *
 		}
 	}
 
-	authorizationClient, err := f.OpenshiftInternalAuthorizationClient()
+	clientConfig, err := f.ClientConfig()
+	if err != nil {
+		return err
+	}
+	authorizationClient, err := authorizationclientinternal.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
@@ -380,7 +385,11 @@ func (o *RoleModificationOptions) Complete(f *clientcmd.Factory, cmd *cobra.Comm
 
 	o.Targets = *target
 
-	authorizationClient, err := f.OpenshiftInternalAuthorizationClient()
+	clientConfig, err := f.ClientConfig()
+	if err != nil {
+		return err
+	}
+	authorizationClient, err := authorizationclientinternal.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}

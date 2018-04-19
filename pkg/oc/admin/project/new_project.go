@@ -18,12 +18,14 @@ import (
 
 	oapi "github.com/openshift/origin/pkg/api"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	authorizationclientinternal "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	authorizationtypedclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset/typed/authorization/internalversion"
 	authorizationregistryutil "github.com/openshift/origin/pkg/authorization/registry/util"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/oc/admin/policy"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
+	projectclientinternal "github.com/openshift/origin/pkg/project/generated/internalclientset"
 	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset/typed/project/internalversion"
 )
 
@@ -91,12 +93,16 @@ func (o *NewProjectOptions) complete(f *clientcmd.Factory, args []string) error 
 
 	o.ProjectName = args[0]
 
-	projectClient, err := f.OpenshiftInternalProjectClient()
+	clientConfig, err := f.ClientConfig()
+	if err != nil {
+		return err
+	}
+	projectClient, err := projectclientinternal.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
 	o.ProjectClient = projectClient.Project()
-	authorizationClient, err := f.OpenshiftInternalAuthorizationClient()
+	authorizationClient, err := authorizationclientinternal.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}

@@ -28,6 +28,7 @@ import (
 	"github.com/openshift/origin/pkg/oc/generate/appjson"
 	appcmd "github.com/openshift/origin/pkg/oc/generate/cmd"
 	templateinternalclient "github.com/openshift/origin/pkg/template/client/internalversion"
+	templateclientinternal "github.com/openshift/origin/pkg/template/generated/internalclientset"
 	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset/typed/template/internalversion"
 )
 
@@ -137,7 +138,11 @@ func (o *AppJSONOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args
 	}
 	o.Namespace = ns
 
-	templateClient, err := f.OpenshiftInternalTemplateClient()
+	clientConfig, err := f.ClientConfig()
+	if err != nil {
+		return err
+	}
+	templateClient, err := templateclientinternal.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}

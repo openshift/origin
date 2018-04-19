@@ -172,7 +172,7 @@ type BuildControllerParams struct {
 // NewBuildController creates a new BuildController.
 func NewBuildController(params *BuildControllerParams) *BuildController {
 	eventBroadcaster := record.NewBroadcaster()
-	eventBroadcaster.StartRecordingToSink(&v1core.EventSinkImpl{Interface: v1core.New(params.KubeClientExternal.Core().RESTClient()).Events("")})
+	eventBroadcaster.StartRecordingToSink(&v1core.EventSinkImpl{Interface: params.KubeClientExternal.CoreV1().Events("")})
 
 	buildClient := buildclient.NewClientBuildClient(params.BuildClientInternal)
 	buildLister := params.BuildInformer.Lister()

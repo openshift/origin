@@ -12,6 +12,7 @@ import (
 	kubecmd "k8s.io/kubernetes/pkg/kubectl/cmd"
 	ktemplates "k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/resource"
 
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	"github.com/openshift/origin/pkg/cmd/templates"
@@ -315,6 +316,9 @@ func CommandFor(basename string) *cobra.Command {
 	case "kubectl":
 		cmd = kubecmd.NewKubectlCommand(kcmdutil.NewFactory(nil), in, out, errout)
 	default:
+		// we only need this change for `oc`.  `kubectl` should behave as close to `kubectl` as we can
+		resource.OAPIToGroupified = OAPIToGroupified
+		kcmdutil.OAPIToGroupifiedGVK = OAPIToGroupifiedGVK
 		cmd = NewCommandCLI("oc", "oc", in, out, errout)
 	}
 

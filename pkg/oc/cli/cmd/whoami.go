@@ -12,6 +12,7 @@ import (
 
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
+	userclientinternal "github.com/openshift/origin/pkg/user/generated/internalclientset"
 	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 )
 
@@ -61,7 +62,7 @@ func (o WhoAmIOptions) WhoAmI() (*userapi.User, error) {
 
 func RunWhoAmI(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []string, o *WhoAmIOptions) error {
 	if kcmdutil.GetFlagBool(cmd, "show-token") {
-		cfg, err := f.OpenShiftClientConfig().ClientConfig()
+		cfg, err := f.ClientConfig()
 		if err != nil {
 			return err
 		}
@@ -72,7 +73,7 @@ func RunWhoAmI(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []s
 		return nil
 	}
 	if kcmdutil.GetFlagBool(cmd, "show-context") {
-		cfg, err := f.OpenShiftClientConfig().RawConfig()
+		cfg, err := f.RawConfig()
 		if err != nil {
 			return err
 		}
@@ -83,7 +84,7 @@ func RunWhoAmI(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []s
 		return nil
 	}
 	if kcmdutil.GetFlagBool(cmd, "show-server") {
-		cfg, err := f.OpenShiftClientConfig().ClientConfig()
+		cfg, err := f.ClientConfig()
 		if err != nil {
 			return err
 		}
@@ -91,7 +92,11 @@ func RunWhoAmI(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []s
 		return nil
 	}
 
-	client, err := f.OpenshiftInternalUserClient()
+	clientConfig, err := f.ClientConfig()
+	if err != nil {
+		return err
+	}
+	client, err := userclientinternal.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}

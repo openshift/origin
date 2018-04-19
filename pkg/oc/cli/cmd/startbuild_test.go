@@ -60,7 +60,7 @@ func TestStartBuildWebHook(t *testing.T) {
 	buf := &bytes.Buffer{}
 	o := &StartBuildOptions{
 		Out:          buf,
-		ClientConfig: cfg,
+		ClientConfig: cfg.Client,
 		FromWebhook:  server.URL + "/webhook",
 		Mapper:       legacyscheme.Registry.RESTMapper(),
 	}
@@ -75,30 +75,6 @@ func TestStartBuildWebHook(t *testing.T) {
 		GitPostReceive: "unknownpath",
 	}
 	if err := o.Run(); err == nil {
-		t.Fatalf("unexpected non-error: %v", err)
-	}
-}
-
-func TestStartBuildWebHookHTTPS(t *testing.T) {
-	invoked := make(chan struct{}, 1)
-	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		invoked <- struct{}{}
-		w.WriteHeader(http.StatusOK)
-	}))
-	defer server.Close()
-
-	testErr := errors.New("not enabled")
-	cfg := &FakeClientConfig{
-		Err: testErr,
-	}
-	buf := &bytes.Buffer{}
-	o := &StartBuildOptions{
-		Out:          buf,
-		ClientConfig: cfg,
-		FromWebhook:  server.URL + "/webhook",
-		Mapper:       legacyscheme.Registry.RESTMapper(),
-	}
-	if err := o.Run(); err == nil || !strings.Contains(err.Error(), "certificate signed by unknown authority") {
 		t.Fatalf("unexpected non-error: %v", err)
 	}
 }
@@ -129,7 +105,7 @@ func TestStartBuildHookPostReceive(t *testing.T) {
 	buf := &bytes.Buffer{}
 	o := &StartBuildOptions{
 		Out:            buf,
-		ClientConfig:   cfg,
+		ClientConfig:   cfg.Client,
 		FromWebhook:    server.URL + "/webhook",
 		GitPostReceive: f.Name(),
 		Mapper:         legacyscheme.Registry.RESTMapper(),

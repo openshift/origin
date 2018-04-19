@@ -3,7 +3,7 @@
 #
 # The standard name for this image is openshift/origin-nginx-router
 #
-FROM openshift/origin
+FROM openshift/origin-control-plane
 
 RUN INSTALL_PKGS="nginx" && \
     yum install -y "epel-release" && \

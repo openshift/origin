@@ -79,8 +79,9 @@ var availableComponents = map[string]func(ctx componentinstall.Context) componen
 
 func NewCmdAdd(name, fullName string, out, errout io.Writer) *cobra.Command {
 	config := &ClusterAddConfig{
-		Out:    out,
-		ErrOut: errout,
+		Out:           out,
+		ErrOut:        errout,
+		ImageTemplate: variable.NewDefaultImageTemplate(),
 	}
 	cmd := &cobra.Command{
 		Use:     name,
@@ -111,7 +112,8 @@ func NewCmdAdd(name, fullName string, out, errout io.Writer) *cobra.Command {
 // Start runs the start tasks ensuring that they are executed in sequence
 func (c *ClusterAddConfig) Run() error {
 	componentsToInstall := []componentinstall.Component{}
-	installContext, err := componentinstall.NewComponentInstallContext(c.openshiftImage(), c.imageFormat(), c.BaseDir, c.ServerLogLevel)
+	installContext, err := componentinstall.NewComponentInstallContext(c.openshiftImage(), c.imageFormat(), c.BaseDir,
+		c.ServerLogLevel)
 	if err != nil {
 		return err
 	}
@@ -124,9 +126,10 @@ func (c *ClusterAddConfig) Run() error {
 }
 
 type ClusterAddConfig struct {
+	ImageTemplate variable.ImageTemplate
+	ImageTag      string
+
 	BaseDir             string
-	ImageTag            string
-	Image               string
 	ServerLogLevel      int
 	ComponentsToInstall []string
 
@@ -146,9 +149,16 @@ func (c *ClusterAddConfig) Complete(cmd *cobra.Command) error {
 	}
 
 	// do some defaulting
-	if len(c.ImageTag) == 0 {
-		c.ImageTag = strings.TrimRight("v"+version.Get().Major+"."+version.Get().Minor, "+")
-	}
+	c.ImageTemplate.Format = variable.Expand(c.ImageTemplate.Format, func(s string) (string, bool) {
+		if s == "version" {
+			if len(c.ImageTag) == 0 {
+				return strings.TrimRight("v"+version.Get().Major+"."+version.Get().Minor, "+"), true
+			}
+			return c.ImageTag, true
+		}
+		return "", false
+	}, variable.Identity)
+
 	if len(c.BaseDir) == 0 {
 		c.BaseDir = "openshift.local.clusterup"
 	}
@@ -191,13 +201,13 @@ func (c *ClusterAddConfig) Check() error {
 func (c *ClusterAddConfig) Bind(flags *pflag.FlagSet) {
 	flags.StringVar(&c.ImageTag, "tag", "", "Specify the tag for OpenShift images")
 	flags.MarkHidden("tag")
-	flags.StringVar(&c.Image, "image", variable.DefaultImagePrefix, "Specify the images to use for OpenShift")
+	flags.StringVar(&c.ImageTemplate.Format, "image", c.ImageTemplate.Format, "Specify the images to use for OpenShift")
 	flags.StringVar(&c.BaseDir, "base-dir", c.BaseDir, "Directory on Docker host for cluster up configuration")
 	flags.IntVar(&c.ServerLogLevel, "server-loglevel", 0, "Log level for OpenShift server")
 }
 
 func (c *ClusterAddConfig) openshiftImage() string {
-	return fmt.Sprintf("%s:%s", c.Image, c.ImageTag)
+	return c.ImageTemplate.ExpandOrDie("control-plane")
 }
 
 func (c *ClusterAddConfig) GetLogDir() string {
@@ -205,5 +215,5 @@ func (c *ClusterAddConfig) GetLogDir() string {
 }
 
 func (c *ClusterAddConfig) imageFormat() string {
-	return fmt.Sprintf("%s-${component}:%s", c.Image, c.ImageTag)
+	return c.ImageTemplate.Format
 }

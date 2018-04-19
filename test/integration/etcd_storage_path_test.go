@@ -1067,8 +1067,12 @@ func TestEtcd3StoragePath(t *testing.T) {
 
 		mapping, err := mapper.RESTMapping(gvk.GroupKind(), gvk.Version)
 		if err != nil {
-			t.Errorf("unexpected error getting mapping for %s from %s with GVK %s: %v", kind, pkgPath, gvk, err)
-			continue
+			t.Logf("unexpected error getting mapping for %s from %s with GVK %s: %v", kind, pkgPath, gvk, err)
+			mapping, err = legacyscheme.Registry.RESTMapper().RESTMapping(gvk.GroupKind(), gvk.Version)
+			if err != nil {
+				t.Errorf("unexpected error getting mapping for %s from %s with GVK %s: %v", kind, pkgPath, gvk, err)
+				continue
+			}
 		}
 
 		gvResource := gvk.GroupVersion().WithResource(mapping.Resource)

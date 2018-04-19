@@ -18,6 +18,7 @@ import (
 	"k8s.io/kubernetes/pkg/printers"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	authorizationclientinternal "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	oauthorizationtypedclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset/typed/authorization/internalversion"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
@@ -120,8 +121,11 @@ func (o *canIOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, args []
 		}
 	}
 
-	var err error
-	authorizationClient, err := f.OpenshiftInternalAuthorizationClient()
+	clientConfig, err := f.ClientConfig()
+	if err != nil {
+		return err
+	}
+	authorizationClient, err := authorizationclientinternal.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}

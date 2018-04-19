@@ -1,5 +1,4 @@
 #!/bin/bash
-source "${OS_ROOT}/contrib/node/install-sdn.sh"
 
 os::provision::join() {
   local IFS="$1"
@@ -49,7 +48,6 @@ os::provision::base-install() {
 
   echo "Installing openshift"
   os::provision::install-cmds "${origin_root}"
-  os::provision::install-sdn "${origin_root}" "$(os::build::get-bin-output-path "${OS_ROOT}")"
   os::provision::set-os-env "${origin_root}" "${config_root}"
 }
 

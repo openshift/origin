@@ -6,9 +6,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kexternalinformers "k8s.io/client-go/informers"
-	kubeclientgoinformers "k8s.io/client-go/informers"
 	kclientsetexternal "k8s.io/client-go/kubernetes"
-	kubeclientgoclient "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -126,7 +124,6 @@ func (i genericInformers) Start(stopCh <-chan struct{}) {
 type informerHolder struct {
 	internalKubeInformers  kinternalinformers.SharedInformerFactory
 	externalKubeInformers  kexternalinformers.SharedInformerFactory
-	clientGoKubeInformers  kubeclientgoinformers.SharedInformerFactory
 	appInformers           appinformer.SharedInformerFactory
 	authorizationInformers authorizationinformer.SharedInformerFactory
 	buildInformers         buildinformer.SharedInformerFactory
@@ -142,7 +139,7 @@ type informerHolder struct {
 
 // NewInformers is only exposed for the build's integration testing until it can be fixed more appropriately.
 func NewInformers(options configapi.MasterConfig) (*informerHolder, error) {
-	clientConfig, kubeInternal, kubeExternal, kubeClientGoExternal, err := getAllClients(options)
+	clientConfig, kubeInternal, kubeExternal, err := getAllClients(options)
 	if err != nil {
 		return nil, err
 	}
@@ -203,7 +200,6 @@ func NewInformers(options configapi.MasterConfig) (*informerHolder, error) {
 	return &informerHolder{
 		internalKubeInformers:  kinternalinformers.NewSharedInformerFactory(kubeInternal, defaultInformerResyncPeriod),
 		externalKubeInformers:  kexternalinformers.NewSharedInformerFactory(kubeExternal, defaultInformerResyncPeriod),
-		clientGoKubeInformers:  kubeclientgoinformers.NewSharedInformerFactory(kubeClientGoExternal, defaultInformerResyncPeriod),
 		appInformers:           appInformers,
 		authorizationInformers: authorizationinformer.NewSharedInformerFactory(authorizationClient, defaultInformerResyncPeriod),
 		buildInformers:         buildinformer.NewSharedInformerFactory(buildClient, defaultInformerResyncPeriod),
@@ -231,9 +227,6 @@ func (i *informerHolder) GetInternalKubeInformers() kinternalinformers.SharedInf
 }
 func (i *informerHolder) GetExternalKubeInformers() kexternalinformers.SharedInformerFactory {
 	return i.externalKubeInformers
-}
-func (i *informerHolder) GetClientGoKubeInformers() kubeclientgoinformers.SharedInformerFactory {
-	return i.clientGoKubeInformers
 }
 func (i *informerHolder) GetAppInformers() appinformer.SharedInformerFactory {
 	return i.appInformers
@@ -273,7 +266,6 @@ func (i *informerHolder) GetUserInformers() userinformer.SharedInformerFactory {
 func (i *informerHolder) Start(stopCh <-chan struct{}) {
 	i.internalKubeInformers.Start(stopCh)
 	i.externalKubeInformers.Start(stopCh)
-	i.clientGoKubeInformers.Start(stopCh)
 	i.appInformers.Start(stopCh)
 	i.authorizationInformers.Start(stopCh)
 	i.buildInformers.Start(stopCh)
@@ -327,19 +319,15 @@ func (i *informerHolder) ToGenericInformer() GenericResourceInformer {
 	)
 }
 
-func getAllClients(options configapi.MasterConfig) (*rest.Config, kclientsetinternal.Interface, kclientsetexternal.Interface, kubeclientgoclient.Interface, error) {
+func getAllClients(options configapi.MasterConfig) (*rest.Config, kclientsetinternal.Interface, kclientsetexternal.Interface, error) {
 	kubeInternal, clientConfig, err := configapi.GetInternalKubeClient(options.MasterClients.OpenShiftLoopbackKubeConfig, options.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, err
 	}
 	kubeExternal, _, err := configapi.GetExternalKubeClient(options.MasterClients.OpenShiftLoopbackKubeConfig, options.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
 	if err != nil {
-		return nil, nil, nil, nil, err
-	}
-	kubeClientGoClientSet, err := kubeclientgoclient.NewForConfig(clientConfig)
-	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, err
 	}
 
-	return clientConfig, kubeInternal, kubeExternal, kubeClientGoClientSet, nil
+	return clientConfig, kubeInternal, kubeExternal, nil
 }

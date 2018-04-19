@@ -21,6 +21,7 @@ import (
 	"github.com/openshift/origin/pkg/oc/admin/migrate"
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imageclientinternal "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	imagetypedclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
@@ -131,7 +132,11 @@ func (o *MigrateImageReferenceOptions) Complete(f *clientcmd.Factory, c *cobra.C
 		return err
 	}
 
-	imageClient, err := f.OpenshiftInternalImageClient()
+	clientConfig, err := f.ClientConfig()
+	if err != nil {
+		return err
+	}
+	imageClient, err := imageclientinternal.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}

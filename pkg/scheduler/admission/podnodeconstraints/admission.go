@@ -10,13 +10,13 @@ import (
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
-	admission "k8s.io/apiserver/pkg/admission"
+	"k8s.io/apiserver/pkg/admission"
+	"k8s.io/apiserver/pkg/admission/initializer"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 
 	"github.com/openshift/origin/pkg/api/meta"
-	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	configlatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 	"github.com/openshift/origin/pkg/scheduler/admission/apis/podnodeconstraints"
 )
@@ -79,7 +79,7 @@ func shouldCheckResource(resource schema.GroupResource, kind schema.GroupKind) (
 	return true, nil
 }
 
-var _ = oadmission.WantsAuthorizer(&podNodeConstraints{})
+var _ = initializer.WantsAuthorizer(&podNodeConstraints{})
 
 func readConfig(reader io.Reader) (*podnodeconstraints.PodNodeConstraintsConfig, error) {
 	if reader == nil || reflect.ValueOf(reader).IsNil() {

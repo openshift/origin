@@ -6,7 +6,7 @@ parameters:
 - name: NAMESPACE
   value: kube-dns
 - name: IMAGE
-  value: openshift/origin:latest
+  value: openshift/origin-control-plane:latest
 - name: LOGLEVEL
   value: "0"
 - name: KUBEDNS_CONFIG_HOST_PATH

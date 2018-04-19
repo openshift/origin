@@ -22,6 +22,7 @@ import (
 	securityapiv1 "github.com/openshift/api/security/v1"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
+	securityclientinternal "github.com/openshift/origin/pkg/security/generated/internalclientset"
 	securitytypedclient "github.com/openshift/origin/pkg/security/generated/internalclientset/typed/security/internalversion"
 )
 
@@ -103,7 +104,11 @@ func (o *sccSubjectReviewOptions) Complete(f *clientcmd.Factory, args []string, 
 	if err != nil {
 		return err
 	}
-	securityClient, err := f.OpenshiftInternalSecurityClient()
+	clientConfig, err := f.ClientConfig()
+	if err != nil {
+		return err
+	}
+	securityClient, err := securityclientinternal.NewForConfig(clientConfig)
 	if err != nil {
 		return fmt.Errorf("unable to obtain client: %v", err)
 	}

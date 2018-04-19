@@ -59,20 +59,17 @@ func (i *PluginInitializer) Initialize(plugin admission.Interface) {
 	if wantsOpenshiftQuotaClient, ok := plugin.(WantsOpenshiftInternalQuotaClient); ok {
 		wantsOpenshiftQuotaClient.SetOpenshiftInternalQuotaClient(i.OpenshiftInternalQuotaClient)
 	}
-	if WantsOpenshiftInternalTemplateClient, ok := plugin.(WantsOpenshiftInternalTemplateClient); ok {
-		WantsOpenshiftInternalTemplateClient.SetOpenshiftInternalTemplateClient(i.OpenshiftInternalTemplateClient)
+	if wantsOpenshiftInternalTemplateClient, ok := plugin.(WantsOpenshiftInternalTemplateClient); ok {
+		wantsOpenshiftInternalTemplateClient.SetOpenshiftInternalTemplateClient(i.OpenshiftInternalTemplateClient)
 	}
-	if WantsOpenshiftInternalUserClient, ok := plugin.(WantsOpenshiftInternalUserClient); ok {
-		WantsOpenshiftInternalUserClient.SetOpenshiftInternalUserClient(i.OpenshiftInternalUserClient)
+	if wantsOpenshiftInternalUserClient, ok := plugin.(WantsOpenshiftInternalUserClient); ok {
+		wantsOpenshiftInternalUserClient.SetOpenshiftInternalUserClient(i.OpenshiftInternalUserClient)
 	}
 	if wantsProjectCache, ok := plugin.(WantsProjectCache); ok {
 		wantsProjectCache.SetProjectCache(i.ProjectCache)
 	}
 	if wantsOriginQuotaRegistry, ok := plugin.(WantsOriginQuotaRegistry); ok {
 		wantsOriginQuotaRegistry.SetOriginQuotaRegistry(i.OriginQuotaRegistry)
-	}
-	if wantsAuthorizer, ok := plugin.(WantsAuthorizer); ok {
-		wantsAuthorizer.SetAuthorizer(i.Authorizer)
 	}
 	if kubeWantsAuthorizer, ok := plugin.(initializer.WantsAuthorizer); ok {
 		kubeWantsAuthorizer.SetAuthorizer(i.Authorizer)

@@ -15,6 +15,7 @@ import (
 
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
+	userclientinternal "github.com/openshift/origin/pkg/user/generated/internalclientset"
 	usertypedclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 )
 
@@ -79,7 +80,11 @@ func (o *NewGroupOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, arg
 		o.Users = append(o.Users, args[1:]...)
 	}
 
-	userClient, err := f.OpenshiftInternalUserClient()
+	clientConfig, err := f.ClientConfig()
+	if err != nil {
+		return err
+	}
+	userClient, err := userclientinternal.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}

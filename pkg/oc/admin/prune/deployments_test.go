@@ -15,7 +15,7 @@ func TestDeploymentPruneNamespaced(t *testing.T) {
 		Namespace: "foo",
 
 		AppsClient: osFake.Apps(),
-		KClient:    kFake,
+		KubeClient: kFake,
 		Out:        ioutil.Discard,
 	}
 

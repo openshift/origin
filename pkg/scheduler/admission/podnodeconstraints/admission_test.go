@@ -9,6 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apiserver/pkg/admission"
+	"k8s.io/apiserver/pkg/admission/initializer"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 	"k8s.io/kubernetes/pkg/apis/batch"
@@ -19,7 +20,6 @@ import (
 	_ "github.com/openshift/origin/pkg/api/install"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	"github.com/openshift/origin/pkg/scheduler/admission/apis/podnodeconstraints"
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 )
@@ -104,7 +104,7 @@ func TestPodNodeConstraints(t *testing.T) {
 		var expectedError error
 		errPrefix := fmt.Sprintf("%d", i)
 		prc := NewPodNodeConstraints(tc.config)
-		prc.(oadmission.WantsAuthorizer).SetAuthorizer(fakeAuthorizer(t))
+		prc.(initializer.WantsAuthorizer).SetAuthorizer(fakeAuthorizer(t))
 		err := prc.(admission.InitializationValidator).ValidateInitialization()
 		if err != nil {
 			checkAdmitError(t, err, expectedError, errPrefix)
@@ -124,7 +124,7 @@ func TestPodNodeConstraintsPodUpdate(t *testing.T) {
 	var expectedError error
 	errPrefix := "PodUpdate"
 	prc := NewPodNodeConstraints(testConfig())
-	prc.(oadmission.WantsAuthorizer).SetAuthorizer(fakeAuthorizer(t))
+	prc.(initializer.WantsAuthorizer).SetAuthorizer(fakeAuthorizer(t))
 	err := prc.(admission.InitializationValidator).ValidateInitialization()
 	if err != nil {
 		checkAdmitError(t, err, expectedError, errPrefix)
@@ -140,7 +140,7 @@ func TestPodNodeConstraintsNonHandledResources(t *testing.T) {
 	errPrefix := "ResourceQuotaTest"
 	var expectedError error
 	prc := NewPodNodeConstraints(testConfig())
-	prc.(oadmission.WantsAuthorizer).SetAuthorizer(fakeAuthorizer(t))
+	prc.(initializer.WantsAuthorizer).SetAuthorizer(fakeAuthorizer(t))
 	err := prc.(admission.InitializationValidator).ValidateInitialization()
 	if err != nil {
 		checkAdmitError(t, err, expectedError, errPrefix)
@@ -258,7 +258,7 @@ func TestPodNodeConstraintsResources(t *testing.T) {
 					var expectedError error
 					errPrefix := fmt.Sprintf("%s; %s; %s", tr.prefix, tp.prefix, top.operation)
 					prc := NewPodNodeConstraints(tc.config)
-					prc.(oadmission.WantsAuthorizer).SetAuthorizer(fakeAuthorizer(t))
+					prc.(initializer.WantsAuthorizer).SetAuthorizer(fakeAuthorizer(t))
 					err := prc.(admission.InitializationValidator).ValidateInitialization()
 					if err != nil {
 						checkAdmitError(t, err, expectedError, errPrefix)

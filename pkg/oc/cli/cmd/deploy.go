@@ -23,6 +23,7 @@ import (
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsinternalclient "github.com/openshift/origin/pkg/apps/client/internalversion"
+	appsclientinternal "github.com/openshift/origin/pkg/apps/generated/internalclientset"
 	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
 	"github.com/openshift/origin/pkg/oc/cli/describe"
@@ -145,7 +146,11 @@ func (o *DeployOptions) Complete(f *clientcmd.Factory, args []string, out io.Wri
 	if err != nil {
 		return err
 	}
-	client, err := f.OpenshiftInternalAppsClient()
+	clientConfig, err := f.ClientConfig()
+	if err != nil {
+		return err
+	}
+	client, err := appsclientinternal.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}

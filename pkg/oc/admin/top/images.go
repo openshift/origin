@@ -18,6 +18,7 @@ import (
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imageclientinternal "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	"github.com/openshift/origin/pkg/oc/graph/genericgraph"
 	imagegraph "github.com/openshift/origin/pkg/oc/graph/imagegraph/nodes"
@@ -77,7 +78,11 @@ func (o *TopImagesOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, ar
 		return err
 	}
 
-	imageClient, err := f.OpenshiftInternalImageClient()
+	clientConfig, err := f.ClientConfig()
+	if err != nil {
+		return err
+	}
+	imageClient, err := imageclientinternal.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}

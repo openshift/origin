@@ -32,6 +32,7 @@ import (
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	templatevalidation "github.com/openshift/origin/pkg/template/apis/template/validation"
 	templateinternalclient "github.com/openshift/origin/pkg/template/client/internalversion"
+	templateclientinternal "github.com/openshift/origin/pkg/template/generated/internalclientset"
 	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset/typed/template/internalversion"
 	"github.com/openshift/origin/pkg/template/generator"
 )
@@ -182,7 +183,11 @@ func RunProcess(f *clientcmd.Factory, in io.Reader, out, errout io.Writer, cmd *
 		mapper = legacyscheme.Registry.RESTMapper()
 		// client is deliberately left nil
 	} else {
-		templateClient, err := f.OpenshiftInternalTemplateClient()
+		clientConfig, err := f.ClientConfig()
+		if err != nil {
+			return err
+		}
+		templateClient, err := templateclientinternal.NewForConfig(clientConfig)
 		if err != nil {
 			return err
 		}

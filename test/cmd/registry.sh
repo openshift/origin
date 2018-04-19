@@ -17,7 +17,7 @@ os::cmd::expect_success_and_text "oc registry login -z 'default' --registry=loca
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/registry/info"
-os::cmd::expect_success 'oc tag --source=docker openshift/origin:latest newrepo:latest'
+os::cmd::expect_success 'oc tag --source=docker openshift/origin-control-plane:latest newrepo:latest'
 os::cmd::expect_success "oc registry info"
 os::cmd::expect_failure_and_text "oc registry info --internal --public" "only one of --internal or --public"
 os::test::junit::declare_suite_end

@@ -6,16 +6,16 @@ import (
 
 	"github.com/golang/glog"
 
+	kapi "k8s.io/api/core/v1"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ktypes "k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/informers"
+	kcoreinformers "k8s.io/client-go/informers/core/v1"
+	kclientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
-	kcoreinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion/core/internalversion"
 
 	osconfigapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/network"
@@ -53,7 +53,7 @@ type OsdnMaster struct {
 }
 
 func Start(networkConfig osconfigapi.MasterNetworkConfig, networkClient networkclient.Interface,
-	kClient kclientset.Interface, kubeInformers kinternalinformers.SharedInformerFactory,
+	kClient kclientset.Interface, kubeInformers informers.SharedInformerFactory,
 	networkInformers networkinternalinformers.SharedInformerFactory) error {
 	glog.Infof("Initializing SDN master of type %q", networkConfig.NetworkPluginName)
 
@@ -61,8 +61,8 @@ func Start(networkConfig osconfigapi.MasterNetworkConfig, networkClient networkc
 		kClient:       kClient,
 		networkClient: networkClient,
 
-		nodeInformer:         kubeInformers.Core().InternalVersion().Nodes(),
-		namespaceInformer:    kubeInformers.Core().InternalVersion().Namespaces(),
+		nodeInformer:         kubeInformers.Core().V1().Nodes(),
+		namespaceInformer:    kubeInformers.Core().V1().Namespaces(),
 		hostSubnetInformer:   networkInformers.Network().InternalVersion().HostSubnets(),
 		netNamespaceInformer: networkInformers.Network().InternalVersion().NetNamespaces(),
 

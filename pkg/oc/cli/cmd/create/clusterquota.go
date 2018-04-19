@@ -17,6 +17,7 @@ import (
 
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	quotaapi "github.com/openshift/origin/pkg/quota/apis/quota"
+	quotaclientinternal "github.com/openshift/origin/pkg/quota/generated/internalclientset"
 	quotaclient "github.com/openshift/origin/pkg/quota/generated/internalclientset/typed/quota/internalversion"
 )
 
@@ -43,6 +44,8 @@ type CreateClusterQuotaOptions struct {
 	Out          io.Writer
 	Printer      ObjectPrinter
 }
+
+type ObjectPrinter func(runtime.Object, io.Writer) error
 
 // NewCmdCreateClusterQuota is a macro command to create a new cluster quota.
 func NewCmdCreateClusterQuota(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
@@ -115,7 +118,11 @@ func (o *CreateClusterQuotaOptions) Complete(cmd *cobra.Command, f *clientcmd.Fa
 		}
 		o.ClusterQuota.Spec.Quota.Hard[kapi.ResourceName(tokens[0])] = quantity
 	}
-	quotaClient, err := f.OpenshiftInternalQuotaClient()
+	clientConfig, err := f.ClientConfig()
+	if err != nil {
+		return err
+	}
+	quotaClient, err := quotaclientinternal.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}

@@ -18,14 +18,15 @@ import (
 	"github.com/spf13/cobra"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imageclientinternal "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
+	userclientinternal "github.com/openshift/origin/pkg/user/generated/internalclientset"
 )
 
 var (
@@ -84,8 +85,6 @@ type VerifyImageSignatureOptions struct {
 
 	ImageClient imageclient.ImageInterface
 
-	clientConfig kclientcmd.ClientConfig
-
 	Out    io.Writer
 	ErrOut io.Writer
 }
@@ -96,9 +95,8 @@ const (
 
 func NewCmdVerifyImageSignature(name, fullName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
 	opts := &VerifyImageSignatureOptions{
-		ErrOut:       errOut,
-		Out:          out,
-		clientConfig: f.OpenShiftClientConfig(),
+		ErrOut: errOut,
+		Out:    out,
 		// TODO: This improves the error message users get when containers/image is not able
 		// to locate the pubring.gpg file (which is default).
 		// This should be improved/fixed in containers/image.
@@ -151,13 +149,17 @@ func (o *VerifyImageSignatureOptions) Complete(f *clientcmd.Factory, cmd *cobra.
 			return fmt.Errorf("unable to read --public-key: %v", err)
 		}
 	}
-	imageClient, err := f.OpenshiftInternalImageClient()
+	clientConfig, err := f.ClientConfig()
+	if err != nil {
+		return err
+	}
+	imageClient, err := imageclientinternal.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
 	o.ImageClient = imageClient.Image()
 
-	userClient, err := f.OpenshiftInternalUserClient()
+	userClient, err := userclientinternal.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
@@ -169,7 +171,8 @@ func (o *VerifyImageSignatureOptions) Complete(f *clientcmd.Factory, cmd *cobra.
 		return err
 	} else {
 		o.CurrentUser = me.Name
-		if config, err := o.clientConfig.ClientConfig(); err != nil {
+
+		if config, err := f.ClientConfig(); err != nil {
 			return err
 		} else {
 			if o.CurrentUserToken = config.BearerToken; len(o.CurrentUserToken) == 0 {

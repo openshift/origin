@@ -18,6 +18,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	authorizationclientinternal "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	oauthorizationtypedclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset/typed/authorization/internalversion"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
@@ -81,7 +82,11 @@ func (o *whoCanOptions) complete(f *clientcmd.Factory, cmd *cobra.Command, args 
 		return errors.New("you must specify two or three arguments: verb, resource, and optional resourceName")
 	}
 
-	authorizationClient, err := f.OpenshiftInternalAuthorizationClient()
+	clientConfig, err := f.ClientConfig()
+	if err != nil {
+		return err
+	}
+	authorizationClient, err := authorizationclientinternal.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}

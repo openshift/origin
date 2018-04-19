@@ -5,11 +5,9 @@
 
 %global gopath      %{_datadir}/gocode
 %global import_path github.com/openshift/origin
-# The following should only be used for cleanup of sdn-ovs upgrades
-%global kube_plugin_path /usr/libexec/kubernetes/kubelet-plugins/net/exec/redhat~openshift-ovs-subnet
 
 # docker_version is the version of docker requires by packages
-%global docker_version 1.12
+%global docker_version 1.13
 # openvswitch_version is the version of openvswitch requires by packages
 %global openvswitch_version 2.6.1
 # this is the version we obsolete up to. The packaging changed for Origin
@@ -186,11 +184,6 @@ Obsoletes:        openshift-sdn-ovs < %{package_refector_version}
 %description sdn-ovs
 %{summary}
 
-%package federation-services
-Summary:        %{produce_name} Federation Services
-
-%description federation-services
-
 %package template-service-broker
 Summary: Template Service Broker
 %description template-service-broker
@@ -260,7 +253,7 @@ PLATFORM="$(go env GOHOSTOS)/$(go env GOHOSTARCH)"
 install -d %{buildroot}%{_bindir}
 
 # Install linux components
-for bin in oc oadm openshift hypershift template-service-broker
+for bin in oc oadm openshift hypershift hyperkube template-service-broker
 do
   echo "+++ INSTALLING ${bin}"
   install -p -m 755 _output/local/bin/${PLATFORM}/${bin} %{buildroot}%{_bindir}/${bin}
@@ -283,9 +276,6 @@ install -p -m 755 _output/local/bin/darwin/amd64/oadm %{buildroot}/%{_datadir}/%
 install -p -m 755 _output/local/bin/windows/amd64/oadm.exe %{buildroot}/%{_datadir}/%{name}/windows/oadm.exe
 %endif
 
-# Install federation services
-install -p -m 755 _output/local/bin/${PLATFORM}/hyperkube %{buildroot}%{_bindir}/
-
 # Install pod
 install -p -m 755 _output/local/bin/${PLATFORM}/pod %{buildroot}%{_bindir}/
 
@@ -302,8 +292,7 @@ for cmd in \
     openshift-extract-image-content \
     openshift-f5-router \
     openshift-recycle \
-    openshift-router \
-    origin
+    openshift-router
 do
     ln -s openshift %{buildroot}%{_bindir}/$cmd
 done
@@ -313,10 +302,8 @@ ln -s oc %{buildroot}%{_bindir}/kubectl
 install -d -m 0755 %{buildroot}%{_sysconfdir}/origin/{master,node}
 
 # different service for origin vs aos
-install -m 0644 contrib/systemd/%{name}-master.service %{buildroot}%{_unitdir}/%{name}-master.service
-install -m 0644 contrib/systemd/%{name}-node.service %{buildroot}%{_unitdir}/%{name}-node.service
+# install -m 0644 contrib/systemd/%{name}-node.service %{buildroot}%{_unitdir}/%{name}-node.service
 # same sysconfig files for origin vs aos
-install -m 0644 contrib/systemd/origin-master.sysconfig %{buildroot}%{_sysconfdir}/sysconfig/%{name}-master
 install -m 0644 contrib/systemd/origin-node.sysconfig %{buildroot}%{_sysconfdir}/sysconfig/%{name}-node
 
 # Install man1 man pages
@@ -333,7 +320,6 @@ install -p -m 0755 _output/local/bin/${PLATFORM}/host-local %{buildroot}/opt/cni
 install -p -m 0755 _output/local/bin/${PLATFORM}/loopback %{buildroot}/opt/cni/bin
 
 install -d -m 0755 %{buildroot}%{_unitdir}/%{name}-node.service.d
-install -p -m 0644 contrib/systemd/openshift-sdn-ovs.conf %{buildroot}%{_unitdir}/%{name}-node.service.d/openshift-sdn-ovs.conf
 
 # Install bash completions
 install -d -m 755 %{buildroot}%{_sysconfdir}/bash_completion.d/
@@ -366,10 +352,6 @@ sed "s|@@CONF_FILE-VARIABLE@@|${OS_CONF_FILE}|" contrib/excluder/excluder-templa
 sed -i "s|@@PACKAGE_LIST-VARIABLE@@|docker*1.14* docker*1.15* docker*1.16* docker*1.17* docker*1.18* docker*1.19* docker*1.20*|" $RPM_BUILD_ROOT/usr/sbin/%{name}-docker-excluder
 chmod 0744 $RPM_BUILD_ROOT/usr/sbin/%{name}-docker-excluder
 
-# Install migration scripts
-install -d %{buildroot}%{_datadir}/%{name}/migration
-install -p -m 755 contrib/migration/* %{buildroot}%{_datadir}/%{name}/migration/
-
 %files
 %doc README.md
 %license LICENSE
@@ -385,7 +367,6 @@ install -p -m 755 contrib/migration/* %{buildroot}%{_datadir}/%{name}/migration/
 %{_bindir}/openshift-git-clone
 %{_bindir}/openshift-extract-image-content
 %{_bindir}/openshift-manage-dockerfile
-%{_bindir}/origin
 %{_sharedstatedir}/origin
 %{_sysconfdir}/bash_completion.d/openshift
 %defattr(-,root,root,0700)
@@ -394,95 +375,19 @@ install -p -m 755 contrib/migration/* %{buildroot}%{_datadir}/%{name}/migration/
 %ghost %config(noreplace) %{_sysconfdir}/origin/.config_managed
 %{_mandir}/man1/openshift*
 
-%pre
-# If /etc/openshift exists and /etc/origin doesn't, symlink it to /etc/origin
-if [ -d "%{_sysconfdir}/openshift" ]; then
-  if ! [ -d "%{_sysconfdir}/origin"  ]; then
-    ln -s %{_sysconfdir}/openshift %{_sysconfdir}/origin
-  fi
-fi
-if [ -d "%{_sharedstatedir}/openshift" ]; then
-  if ! [ -d "%{_sharedstatedir}/origin"  ]; then
-    ln -s %{_sharedstatedir}/openshift %{_sharedstatedir}/origin
-  fi
-fi
-
 %files tests
 %{_libexecdir}/%{name}
 %{_libexecdir}/%{name}/extended.test
 
 %files master
-%{_unitdir}/%{name}-master.service
-%config(noreplace) %{_sysconfdir}/sysconfig/%{name}-master
-%dir %{_datadir}/%{name}/migration/
-%{_datadir}/%{name}/migration/*
 %defattr(-,root,root,0700)
 %config(noreplace) %{_sysconfdir}/origin/master
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/admin.crt
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/admin.key
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/admin.kubeconfig
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/ca.crt
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/ca.key
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/ca.serial.txt
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/etcd.server.crt
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/etcd.server.key
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/master-config.yaml
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/master.etcd-client.crt
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/master.etcd-client.key
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/master.kubelet-client.crt
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/master.kubelet-client.key
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/master.server.crt
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/master.server.key
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/openshift-master.crt
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/openshift-master.key
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/openshift-master.kubeconfig
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/openshift-registry.crt
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/openshift-registry.key
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/openshift-registry.kubeconfig
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/openshift-router.crt
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/openshift-router.key
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/openshift-router.kubeconfig
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/policy.json
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/serviceaccounts.private.key
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/serviceaccounts.public.key
-%ghost %config(noreplace) %{_sysconfdir}/origin/.config_managed
-
-%post master
-%systemd_post %{name}-master.service
-# Create master config and certs if both do not exist
-if [[ ! -e %{_sysconfdir}/origin/master/master-config.yaml &&
-     ! -e %{_sysconfdir}/origin/master/ca.crt ]]; then
-  %{_bindir}/openshift start master --write-config=%{_sysconfdir}/origin/master
-  # Create node configs if they do not already exist
-  if ! find %{_sysconfdir}/origin/ -type f -name "node-config.yaml" | grep -E "node-config.yaml"; then
-    %{_bindir}/oc adm create-node-config --node-dir=%{_sysconfdir}/origin/node/ --node=localhost --hostnames=localhost,127.0.0.1 --node-client-certificate-authority=%{_sysconfdir}/origin/master/ca.crt --signer-cert=%{_sysconfdir}/origin/master/ca.crt --signer-key=%{_sysconfdir}/origin/master/ca.key --signer-serial=%{_sysconfdir}/origin/master/ca.serial.txt --certificate-authority=%{_sysconfdir}/origin/master/ca.crt
-  fi
-  # Generate a marker file that indicates config and certs were RPM generated
-  echo "# Config generated by RPM at "`date -u` > %{_sysconfdir}/origin/.config_managed
-fi
-
-
-%preun master
-%systemd_preun %{name}-master.service
-
-%postun master
-%systemd_postun
 
 %files node
-%{_unitdir}/%{name}-node.service
 %{_sysconfdir}/systemd/system.conf.d/origin-accounting.conf
 %config(noreplace) %{_sysconfdir}/sysconfig/%{name}-node
 %defattr(-,root,root,0700)
 %config(noreplace) %{_sysconfdir}/origin/node
-%ghost %config(noreplace) %{_sysconfdir}/origin/node/node-config.yaml
-%ghost %config(noreplace) %{_sysconfdir}/origin/.config_managed
-
-%post node
-%systemd_post %{name}-node.service
-# If accounting is not currently enabled systemd reexec
-if [[ `systemctl show docker %{name}-node | grep -q -e CPUAccounting=no -e MemoryAccounting=no; echo $?` == 0 ]]; then
-  systemctl daemon-reexec
-fi
 
 %preun node
 %systemd_preun %{name}-node.service
@@ -491,19 +396,9 @@ fi
 %systemd_postun
 
 %files sdn-ovs
-%dir %{_unitdir}/%{name}-node.service.d/
 %dir %{_sysconfdir}/cni/net.d
 %dir /opt/cni/bin
-%{_unitdir}/%{name}-node.service.d/openshift-sdn-ovs.conf
 /opt/cni/bin/*
-
-%posttrans sdn-ovs
-# This path was installed by older packages but the directory wasn't owned by
-# RPM so we need to clean it up otherwise kubelet throws an error trying to
-# load the directory as a plugin
-if [ -d %{kube_plugin_path} ]; then
-  rmdir %{kube_plugin_path}
-fi
 
 %files clients
 %license LICENSE
@@ -571,9 +466,6 @@ fi
 if [ "$1" -eq 0 ] ; then
   /usr/sbin/%{name}-docker-excluder unexclude
 fi
-
-%files federation-services
-%{_bindir}/hyperkube
 
 %changelog
 * Mon Apr 16 2018 Justin Pierce <jupierce@redhat.com> 3.10.0-0.22.0

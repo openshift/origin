@@ -106,7 +106,6 @@ type MasterConfig struct {
 type InformerAccess interface {
 	GetInternalKubeInformers() kinternalinformers.SharedInformerFactory
 	GetExternalKubeInformers() kinformers.SharedInformerFactory
-	GetClientGoKubeInformers() kubeclientgoinformers.SharedInformerFactory
 	GetAppInformers() appinformer.SharedInformerFactory
 	GetAuthorizationInformers() authorizationinformer.SharedInformerFactory
 	GetBuildInformers() buildinformer.SharedInformerFactory
@@ -228,7 +227,7 @@ func BuildMasterConfig(
 		PrivilegedLoopbackKubernetesClientsetExternal: privilegedLoopbackKubeClientsetExternal,
 
 		InternalKubeInformers:  informers.GetInternalKubeInformers(),
-		ClientGoKubeInformers:  informers.GetClientGoKubeInformers(),
+		ClientGoKubeInformers:  informers.GetExternalKubeInformers(),
 		AuthorizationInformers: informers.GetAuthorizationInformers(),
 		QuotaInformers:         informers.GetQuotaInformers(),
 		SecurityInformers:      informers.GetSecurityInformers(),

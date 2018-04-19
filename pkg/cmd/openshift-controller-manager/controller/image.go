@@ -15,7 +15,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kclientsetexternal "k8s.io/client-go/kubernetes"
-	kv1core "k8s.io/client-go/kubernetes/typed/core/v1"
 
 	buildclient "github.com/openshift/origin/pkg/build/client"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -43,7 +42,7 @@ func RunImageTriggerController(ctx ControllerContext) (bool, error) {
 
 	updater := podSpecUpdater{kclient}
 	bcInstantiator := buildclient.NewClientBuildConfigInstantiatorClient(buildClient)
-	broadcaster := imagetriggercontroller.NewTriggerEventBroadcaster(kv1core.New(kclient.CoreV1().RESTClient()))
+	broadcaster := imagetriggercontroller.NewTriggerEventBroadcaster(kclient.CoreV1())
 
 	sources := []imagetriggercontroller.TriggerSource{
 		{

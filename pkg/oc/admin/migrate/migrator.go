@@ -98,12 +98,7 @@ func (o *ResourceOptions) Bind(c *cobra.Command) {
 }
 
 func (o *ResourceOptions) Complete(f *clientcmd.Factory, c *cobra.Command) error {
-	// oc adm migrate authorization does not support printing and takes no parameters, so we ignore the error here
-	var flagErr error
-	o.Output, flagErr = c.Flags().GetString("output")
-	if flagErr != nil {
-		glog.V(4).Infof("Error getting output flag: %v", flagErr)
-	}
+	o.Output = kcmdutil.GetFlagString(c, "output")
 	switch {
 	case len(o.Output) > 0:
 		printer, err := kcmdutil.PrinterForOptions(kcmdutil.ExtractCmdPrintOptions(c, false))

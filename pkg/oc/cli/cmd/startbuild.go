@@ -29,7 +29,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/third_party/forked/golang/netutil"
 	restclient "k8s.io/client-go/rest"
-	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
@@ -37,7 +36,8 @@ import (
 
 	buildapiv1 "github.com/openshift/api/build/v1"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	buildclientinternal "github.com/openshift/origin/pkg/build/client/internalversion"
+	buildclientinternalmanual "github.com/openshift/origin/pkg/build/client/internalversion"
+	buildclientinternal "github.com/openshift/origin/pkg/build/generated/internalclientset"
 	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/git"
@@ -158,7 +158,7 @@ type StartBuildOptions struct {
 
 	Mapper       meta.RESTMapper
 	BuildClient  buildclient.BuildInterface
-	ClientConfig kclientcmd.ClientConfig
+	ClientConfig *restclient.Config
 
 	AsBinary    bool
 	ShortOutput bool
@@ -169,11 +169,15 @@ type StartBuildOptions struct {
 }
 
 func (o *StartBuildOptions) Complete(f *clientcmd.Factory, in io.Reader, out, errout io.Writer, cmd *cobra.Command, cmdFullName string, args []string) error {
+	var err error
 	o.In = in
 	o.Out = out
 	o.ErrOut = errout
 	o.Git = git.NewRepository()
-	o.ClientConfig = f.OpenShiftClientConfig()
+	o.ClientConfig, err = f.ClientConfig()
+	if err != nil {
+		return err
+	}
 	o.Mapper, _ = f.Object()
 
 	o.IncrementalOverride = cmd.Flags().Lookup("incremental").Changed
@@ -235,7 +239,11 @@ func (o *StartBuildOptions) Complete(f *clientcmd.Factory, in io.Reader, out, er
 		return err
 	}
 
-	c, err := f.OpenshiftInternalBuildClient()
+	clientConfig, err := f.ClientConfig()
+	if err != nil {
+		return err
+	}
+	c, err := buildclientinternal.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
@@ -371,7 +379,7 @@ func (o *StartBuildOptions) Run() error {
 		if len(o.BuildArgs) > 0 {
 			fmt.Fprintf(o.ErrOut, "WARNING: Specifying build arguments with binary builds is not supported.\n")
 		}
-		instantiateClient := buildclientinternal.NewBuildInstantiateBinaryClient(o.BuildClient.RESTClient(), o.Namespace)
+		instantiateClient := buildclientinternalmanual.NewBuildInstantiateBinaryClient(o.BuildClient.RESTClient(), o.Namespace)
 		if newBuild, err = streamPathToBuild(o.Git, o.In, o.ErrOut, instantiateClient, o.FromDir, o.FromFile, o.FromRepo, request); err != nil {
 			if kerrors.IsAlreadyExists(err) {
 				return transformIsAlreadyExistsError(err, o.Name)
@@ -408,7 +416,7 @@ func (o *StartBuildOptions) Run() error {
 			Follow: true,
 			NoWait: false,
 		}
-		logClient := buildclientinternal.NewBuildLogClient(o.BuildClient.RESTClient(), o.Namespace)
+		logClient := buildclientinternalmanual.NewBuildLogClient(o.BuildClient.RESTClient(), o.Namespace)
 		for {
 			rd, err := logClient.Logs(newBuild.Name, opts).Stream()
 			if err != nil {
@@ -456,7 +464,7 @@ func (o *StartBuildOptions) RunListBuildWebHooks() error {
 		return err
 	}
 
-	webhookClient := buildclientinternal.NewWebhookURLClient(o.BuildClient.RESTClient(), o.Namespace)
+	webhookClient := buildclientinternalmanual.NewWebhookURLClient(o.BuildClient.RESTClient(), o.Namespace)
 	for _, t := range config.Spec.Triggers {
 		hookType := ""
 		switch {
@@ -473,7 +481,7 @@ func (o *StartBuildOptions) RunListBuildWebHooks() error {
 		}
 		u, err := webhookClient.WebHookURL(o.Name, &t)
 		if err != nil {
-			if err != buildclientinternal.ErrTriggerIsNotAWebHook {
+			if err != buildclientinternalmanual.ErrTriggerIsNotAWebHook {
 				fmt.Fprintf(o.ErrOut, "error: unable to get webhook for %s: %v", o.Name, err)
 			}
 			continue
@@ -484,7 +492,7 @@ func (o *StartBuildOptions) RunListBuildWebHooks() error {
 	return nil
 }
 
-func streamPathToBuild(repo git.Repository, in io.Reader, out io.Writer, client buildclientinternal.BuildInstantiateBinaryInterface, fromDir, fromFile, fromRepo string, options *buildapi.BinaryBuildRequestOptions) (*buildapi.Build, error) {
+func streamPathToBuild(repo git.Repository, in io.Reader, out io.Writer, client buildclientinternalmanual.BuildInstantiateBinaryInterface, fromDir, fromFile, fromRepo string, options *buildapi.BinaryBuildRequestOptions) (*buildapi.Build, error) {
 	asDir, asFile, asRepo := len(fromDir) > 0, len(fromFile) > 0, len(fromRepo) > 0
 
 	if asRepo && !git.IsGitInstalled() {
@@ -716,13 +724,10 @@ func (o *StartBuildOptions) RunStartBuildWebHook() error {
 	// when using HTTPS, try to reuse the local config transport if possible to get a client cert
 	// TODO: search all configs
 	if hook.Scheme == "https" {
-		config, err := o.ClientConfig.ClientConfig()
-		if err == nil {
-			if url, _, err := restclient.DefaultServerURL(config.Host, "", schema.GroupVersion{}, true); err == nil {
-				if netutil.CanonicalAddr(url) == netutil.CanonicalAddr(hook) && url.Scheme == hook.Scheme {
-					if rt, err := restclient.TransportFor(config); err == nil {
-						httpClient = &http.Client{Transport: rt}
-					}
+		if url, _, err := restclient.DefaultServerURL(o.ClientConfig.Host, "", schema.GroupVersion{}, true); err == nil {
+			if netutil.CanonicalAddr(url) == netutil.CanonicalAddr(hook) && url.Scheme == hook.Scheme {
+				if rt, err := restclient.TransportFor(o.ClientConfig); err == nil {
+					httpClient = &http.Client{Transport: rt}
 				}
 			}
 		}

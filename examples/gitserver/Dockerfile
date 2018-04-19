@@ -3,7 +3,7 @@
 #
 # The standard name for this image is openshift/origin-gitserver
 #
-FROM openshift/origin
+FROM openshift/origin-control-plane
 
 COPY bin/gitserver /usr/bin/gitserver
 COPY hooks/ /var/lib/git-hooks/

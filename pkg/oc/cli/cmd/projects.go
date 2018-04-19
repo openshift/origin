@@ -19,6 +19,7 @@ import (
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	projectapihelpers "github.com/openshift/origin/pkg/project/apis/project/helpers"
+	projectclientinternal "github.com/openshift/origin/pkg/project/generated/internalclientset"
 	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset/typed/project/internalversion"
 
 	"github.com/spf13/cobra"
@@ -92,12 +93,12 @@ func (o *ProjectsOptions) Complete(f *clientcmd.Factory, args []string, commandN
 	o.CommandName = commandName
 
 	var err error
-	o.Config, err = f.OpenShiftClientConfig().RawConfig()
+	o.Config, err = f.RawConfig()
 	if err != nil {
 		return err
 	}
 
-	o.ClientConfig, err = f.OpenShiftClientConfig().ClientConfig()
+	o.ClientConfig, err = f.ClientConfig()
 	if err != nil {
 		return err
 	}
@@ -106,7 +107,7 @@ func (o *ProjectsOptions) Complete(f *clientcmd.Factory, args []string, commandN
 	if err != nil {
 		return err
 	}
-	projectClient, err := f.OpenshiftInternalProjectClient()
+	projectClient, err := projectclientinternal.NewForConfig(o.ClientConfig)
 	if err != nil {
 		return err
 	}

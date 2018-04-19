@@ -21,8 +21,8 @@ func (c *SDNControllerConfig) RunController(ctx ControllerContext) (bool, error)
 	if err := sdnmaster.Start(
 		c.NetworkConfig,
 		ctx.ClientBuilder.OpenshiftInternalNetworkClientOrDie(bootstrappolicy.InfraSDNControllerServiceAccountName),
-		ctx.ClientBuilder.KubeInternalClientOrDie(bootstrappolicy.InfraSDNControllerServiceAccountName),
-		ctx.InternalKubeInformers,
+		ctx.ClientBuilder.ClientOrDie(bootstrappolicy.InfraSDNControllerServiceAccountName),
+		ctx.ExternalKubeInformers,
 		ctx.NetworkInformers,
 	); err != nil {
 		return false, fmt.Errorf("failed to start SDN plugin controller: %v", err)

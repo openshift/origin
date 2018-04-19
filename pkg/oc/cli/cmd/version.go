@@ -8,6 +8,7 @@ import (
 	"time"
 
 	etcdversion "github.com/coreos/etcd/version"
+	"k8s.io/client-go/rest"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	kubeversiontypes "k8s.io/apimachinery/pkg/version"
@@ -32,7 +33,7 @@ type VersionOptions struct {
 	BaseName string
 	Out      io.Writer
 
-	ClientConfig kclientcmd.ClientConfig
+	ClientConfig *rest.Config
 	Clients      func() (kclientset.Interface, error)
 
 	Timeout time.Duration
@@ -72,7 +73,11 @@ func (o *VersionOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, out 
 	}
 
 	o.Clients = f.ClientSet
-	o.ClientConfig = f.OpenShiftClientConfig()
+	var err error
+	o.ClientConfig, err = f.ClientConfig()
+	if err != nil && !kclientcmd.IsEmptyConfig(err) {
+		return err
+	}
 
 	if !o.IsServer {
 		// retrieve config timeout and set cmd option
@@ -80,7 +85,7 @@ func (o *VersionOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, out 
 		// flag, as flag value would have to be parsed
 		// from a string potentially not formatted as
 		// a valid time.Duration value
-		config, err := o.ClientConfig.ClientConfig()
+		config, err := f.ClientConfig()
 		if err == nil {
 			o.Timeout = config.Timeout
 		}
@@ -129,12 +134,7 @@ func (o VersionOptions) RunVersion() error {
 
 		// confirm config exists before making request to server
 		var err error
-		clientConfig, err := o.ClientConfig.ClientConfig()
-		if err != nil {
-			done <- err
-			return
-		}
-		versionHost = clientConfig.Host
+		versionHost = o.ClientConfig.Host
 
 		kClient, err := o.Clients()
 		if err != nil {

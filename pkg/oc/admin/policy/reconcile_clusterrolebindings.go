@@ -19,6 +19,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	authorizationclientinternal "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	authorizationtypedclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset/typed/authorization/internalversion"
 	"github.com/openshift/origin/pkg/authorization/registry/util"
 	authorizationutil "github.com/openshift/origin/pkg/authorization/util"
@@ -119,7 +120,11 @@ func NewCmdReconcileClusterRoleBindings(name, fullName string, f *clientcmd.Fact
 }
 
 func (o *ReconcileClusterRoleBindingsOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, args []string, excludeUsers, excludeGroups []string) error {
-	authorizationClient, err := f.OpenshiftInternalAuthorizationClient()
+	clientConfig, err := f.ClientConfig()
+	if err != nil {
+		return err
+	}
+	authorizationClient, err := authorizationclientinternal.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
