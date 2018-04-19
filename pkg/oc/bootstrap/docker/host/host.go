@@ -54,7 +54,31 @@ func (h *HostHelper) CanUseNsenterMounter() (bool, error) {
 	return err == nil && rc == 0, err
 }
 
-func (h *HostHelper) CopyToHost(src, dst string) error {
+// MakeRemoteHostDir creates a specified directory on the remote host filesystem.
+// This is used when Docker runs in VM.
+func (h *HostHelper) MakeRemoteHostDir(dst string) error {
+	_, rc, err := h.runner().Image(h.image).
+		DiscardContainer().
+		Privileged().
+		HostPid().
+		Bind("/:/rootfs:rw").
+		Entrypoint("/bin/bash").
+		Command("-c", fmt.Sprintf("mkdir -p %q", path.Join("/rootfs", dst))).Run()
+	if err != nil {
+		return err
+	}
+	if rc != 0 {
+		return fmt.Errorf("unable to make remote host directory %q: %d", dst, rc)
+	}
+	return nil
+}
+
+// CopyToRemoteHost copies source directory to remote host filesystem.
+// This is used when Docker runs in VM.
+func (h *HostHelper) CopyToRemoteHost(src, dst string) error {
+	if err := h.MakeRemoteHostDir(dst); err != nil {
+		return err
+	}
 	containerID, err := h.runner().
 		Image(h.image).
 		DiscardContainer().
@@ -62,7 +86,7 @@ func (h *HostHelper) CopyToHost(src, dst string) error {
 		HostPid().
 		Bind("/:/rootfs:rw").
 		Entrypoint("/bin/bash").
-		Command("-c", fmt.Sprintf("mkdir -p /rootfs/%s && sleep infinity", dst)).Start()
+		Command("-c", "sleep infinity").Start()
 	if err != nil {
 		return err
 	}
@@ -78,7 +102,10 @@ func (h *HostHelper) CopyToHost(src, dst string) error {
 	return nil
 }
 
-func (h *HostHelper) CopyFromHost(src, dst string) error {
+// CopyFromRemoteHost copies the remote host directory into local filesystem.
+// This is used when Docker runs in VM.
+// TODO: Do we actually need this? We are not syncing anything back from the remote host.
+func (h *HostHelper) CopyFromRemoteHost(src, dst string) error {
 	containerID, err := h.runner().
 		Image(h.image).
 		DiscardContainer().

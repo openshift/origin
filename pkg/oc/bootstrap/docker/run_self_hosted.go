@@ -216,7 +216,7 @@ func (c *ClusterUpConfig) RemoteDirFor(componentName string) string {
 }
 
 func (c *ClusterUpConfig) copyToRemote(source, component string) (string, error) {
-	if err := c.hostHelper.CopyToHost(source, c.RemoteDirFor(component)); err != nil {
+	if err := c.hostHelper.CopyToRemoteHost(source, c.RemoteDirFor(component)); err != nil {
 		return "", err
 	}
 	return c.RemoteDirFor(component), nil

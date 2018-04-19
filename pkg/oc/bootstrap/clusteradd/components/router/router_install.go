@@ -118,7 +118,7 @@ func (c *RouterComponentOptions) Install(dockerClient dockerhelper.Interface, lo
 	if len(os.Getenv("DOCKER_HOST")) > 0 {
 		hostHelper := host.NewHostHelper(dockerHelper, c.InstallContext.ClientImage())
 		remoteMasterConfigDir := path.Join(host.RemoteHostOriginDir, c.InstallContext.BaseDir(), kubeapiserver.KubeAPIServerDirName)
-		if err := hostHelper.CopyToHost(masterConfigDir, remoteMasterConfigDir); err != nil {
+		if err := hostHelper.CopyToRemoteHost(masterConfigDir, remoteMasterConfigDir); err != nil {
 			return err
 		}
 		masterConfigDir = remoteMasterConfigDir
