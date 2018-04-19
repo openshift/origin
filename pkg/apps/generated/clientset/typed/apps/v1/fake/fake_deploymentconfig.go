@@ -8,7 +8,6 @@ import (
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	testing "k8s.io/client-go/testing"
-	v1beta1 "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
 )
 
 // FakeDeploymentConfigs implements DeploymentConfigInterface
@@ -142,26 +141,4 @@ func (c *FakeDeploymentConfigs) Rollback(deploymentConfigName string, deployment
 		return nil, err
 	}
 	return obj.(*apps_v1.DeploymentConfig), err
-}
-
-// GetScale takes name of the deploymentConfig, and returns the corresponding deploymentConfig object, and an error if there is any.
-func (c *FakeDeploymentConfigs) GetScale(deploymentConfigName string, options v1.GetOptions) (result *v1beta1.Scale, err error) {
-	obj, err := c.Fake.
-		Invokes(testing.NewGetSubresourceAction(deploymentconfigsResource, c.ns, "scale", deploymentConfigName), &v1beta1.Scale{})
-
-	if obj == nil {
-		return nil, err
-	}
-	return obj.(*v1beta1.Scale), err
-}
-
-// UpdateScale takes the representation of a scale and updates it. Returns the server's representation of the scale, and an error, if there is any.
-func (c *FakeDeploymentConfigs) UpdateScale(deploymentConfigName string, scale *v1beta1.Scale) (result *v1beta1.Scale, err error) {
-	obj, err := c.Fake.
-		Invokes(testing.NewUpdateSubresourceAction(deploymentconfigsResource, "scale", c.ns, scale), &v1beta1.Scale{})
-
-	if obj == nil {
-		return nil, err
-	}
-	return obj.(*v1beta1.Scale), err
 }
