@@ -181,6 +181,13 @@ import:
 - package: google.golang.org/appengine
   version: 12d5545dc1cfa6047a286d5e853841b6471f4c19
 
+# to avoid go4.org website outages on glide update
+- package: go4.org
+  repo: https://github.com/go4org/go4
+  version: 03efcb870d84809319ea509714dd6d19a1498483
+  subpackages:
+  - errorutil
+
 # force glide to pull this in
 - package: github.com/google/uuid
 
