@@ -41,20 +41,23 @@ When	Elapsed (s)
 17:34:51.999535 	 .    36 	... sent: header:<cluster_id:14841639068965178418 member_id:10276657743932975437 revision:15 raft_term:17 > kvs:<key:"abc" create_revision:6 mod_revision:14 version:9 value:"asda" > count:1
 ```
 
+## Metrics endpoint
+
+Each etcd server exports metrics under the `/metrics` path on its client port and optionally on interfaces given by `--listen-metrics-urls`.
+
 The metrics can be fetched with `curl`:
 
 ```sh
-$ curl -L http://localhost:2379/metrics
+$ curl -L http://localhost:2379/metrics | grep -v debugging # ignore unstable debugging metrics
 
-# HELP etcd_debugging_mvcc_keys_total Total number of keys.
-# TYPE etcd_debugging_mvcc_keys_total gauge
-etcd_debugging_mvcc_keys_total 0
-# HELP etcd_debugging_mvcc_pending_events_total Total number of pending events to be sent.
-# TYPE etcd_debugging_mvcc_pending_events_total gauge
-etcd_debugging_mvcc_pending_events_total 0
+# HELP etcd_disk_backend_commit_duration_seconds The latency distributions of commit called by backend.
+# TYPE etcd_disk_backend_commit_duration_seconds histogram
+etcd_disk_backend_commit_duration_seconds_bucket{le="0.002"} 72756
+etcd_disk_backend_commit_duration_seconds_bucket{le="0.004"} 401587
+etcd_disk_backend_commit_duration_seconds_bucket{le="0.008"} 405979
+etcd_disk_backend_commit_duration_seconds_bucket{le="0.016"} 406464
 ...
 ```
-
 
 ## Prometheus
 
@@ -63,7 +66,7 @@ Running a [Prometheus][prometheus] monitoring service is the easiest way to inge
 First, install Prometheus:
 
 ```sh
-PROMETHEUS_VERSION="1.3.1"
+PROMETHEUS_VERSION="2.0.0"
 wget https://github.com/prometheus/prometheus/releases/download/v$PROMETHEUS_VERSION/prometheus-$PROMETHEUS_VERSION.linux-amd64.tar.gz -O /tmp/prometheus-$PROMETHEUS_VERSION.linux-amd64.tar.gz
 tar -xvzf /tmp/prometheus-$PROMETHEUS_VERSION.linux-amd64.tar.gz --directory /tmp/ --strip-components=1
 /tmp/prometheus -version
@@ -95,13 +98,13 @@ nohup /tmp/prometheus \
 Now Prometheus will scrape etcd metrics every 10 seconds.
 
 
-## Alerting
+### Alerting
 
-There is a [set of default alerts for etcd v3 clusters](./etcd3_alert.rules).
+There is a set of default alerts for etcd v3 clusters for [Prometheus 1.x](./etcd3_alert.rules) as well as [Prometheus 2.x](./etcd3_alert.rules.yml).
 
 > Note: `job` labels may need to be adjusted to fit a particular need. The rules were written to apply to a single cluster so it is recommended to choose labels unique to a cluster.
 
-## Grafana
+### Grafana
 
 [Grafana][grafana] has built-in Prometheus support; just add a Prometheus data source:
 
@@ -114,6 +117,8 @@ Access: proxy
 
 Then import the default [etcd dashboard template][template] and customize. For instance, if Prometheus data source name is `my-etcd`, the `datasource` field values in JSON also need to be `my-etcd`.
 
+See the [demo][demo].
+
 Sample dashboard:
 
 ![](./etcd-sample-grafana.png)
@@ -122,3 +127,4 @@ Sample dashboard:
 [prometheus]: https://prometheus.io/
 [grafana]: http://grafana.org/
 [template]: ./grafana.json
+[demo]: http://dash.etcd.io/dashboard/db/test-etcd-kubernetes

@@ -22,6 +22,7 @@ import (
 	mrand "math/rand"
 	"os"
 	"reflect"
+	"sync"
 	"testing"
 	"time"
 
@@ -217,9 +218,10 @@ func TestStoreRange(t *testing.T) {
 			t.Errorf("#%d: rev = %d, want %d", i, ret.Rev, wrev)
 		}
 
-		wstart, wend := revBytesRange(tt.idxr.revs[0])
+		wstart := newRevBytes()
+		revToBytes(tt.idxr.revs[0], wstart)
 		wact := []testutil.Action{
-			{"range", []interface{}{keyBucketName, wstart, wend, int64(0)}},
+			{"range", []interface{}{keyBucketName, wstart, []byte(nil), int64(0)}},
 		}
 		if g := b.tx.Action(); !reflect.DeepEqual(g, wact) {
 			t.Errorf("#%d: tx action = %+v, want %+v", i, g, wact)
@@ -509,6 +511,107 @@ func TestRestoreContinueUnfinishedCompaction(t *testing.T) {
 	t.Errorf("key for rev %+v still exists, want deleted", bytesToRev(revbytes))
 }
 
+type hashKVResult struct {
+	hash       uint32
+	compactRev int64
+}
+
+// TestHashKVWhenCompacting ensures that HashKV returns correct hash when compacting.
+func TestHashKVWhenCompacting(t *testing.T) {
+	b, tmpPath := backend.NewDefaultTmpBackend()
+	s := NewStore(b, &lease.FakeLessor{}, nil)
+	defer os.Remove(tmpPath)
+
+	rev := 10000
+	for i := 2; i <= rev; i++ {
+		s.Put([]byte("foo"), []byte(fmt.Sprintf("bar%d", i)), lease.NoLease)
+	}
+
+	hashCompactc := make(chan hashKVResult, 1)
+
+	donec := make(chan struct{})
+	var wg sync.WaitGroup
+	for i := 0; i < 10; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for {
+				hash, _, compactRev, err := s.HashByRev(int64(rev))
+				if err != nil {
+					t.Fatal(err)
+				}
+				select {
+				case <-donec:
+					return
+				case hashCompactc <- hashKVResult{hash, compactRev}:
+				}
+			}
+		}()
+	}
+
+	go func() {
+		defer close(donec)
+		revHash := make(map[int64]uint32)
+		for round := 0; round < 1000; round++ {
+			r := <-hashCompactc
+			if revHash[r.compactRev] == 0 {
+				revHash[r.compactRev] = r.hash
+			}
+			if r.hash != revHash[r.compactRev] {
+				t.Fatalf("Hashes differ (current %v) != (saved %v)", r.hash, revHash[r.compactRev])
+			}
+		}
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for i := 100; i >= 0; i-- {
+			_, err := s.Compact(int64(rev - 1 - i))
+			if err != nil {
+				t.Fatal(err)
+			}
+			time.Sleep(10 * time.Millisecond)
+		}
+	}()
+
+	select {
+	case <-donec:
+		wg.Wait()
+	case <-time.After(10 * time.Second):
+		testutil.FatalStack(t, "timeout")
+	}
+}
+
+// TestHashKVZeroRevision ensures that "HashByRev(0)" computes
+// correct hash value with latest revision.
+func TestHashKVZeroRevision(t *testing.T) {
+	b, tmpPath := backend.NewDefaultTmpBackend()
+	s := NewStore(b, &lease.FakeLessor{}, nil)
+	defer os.Remove(tmpPath)
+
+	rev := 1000
+	for i := 2; i <= rev; i++ {
+		s.Put([]byte("foo"), []byte(fmt.Sprintf("bar%d", i)), lease.NoLease)
+	}
+	if _, err := s.Compact(int64(rev / 2)); err != nil {
+		t.Fatal(err)
+	}
+
+	hash1, _, _, err := s.HashByRev(int64(rev))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var hash2 uint32
+	hash2, _, _, err = s.HashByRev(0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if hash1 != hash2 {
+		t.Errorf("hash %d (rev %d) != hash %d (rev 0)", hash1, rev, hash2)
+	}
+}
+
 func TestTxnPut(t *testing.T) {
 	// assign arbitrary size
 	bytesN := 30
@@ -667,6 +770,11 @@ type fakeIndex struct {
 	indexCompactRespc     chan map[revision]struct{}
 }
 
+func (i *fakeIndex) Revisions(key, end []byte, atRev int64) []revision {
+	_, rev := i.Range(key, end, atRev)
+	return rev
+}
+
 func (i *fakeIndex) Get(key []byte, atRev int64) (rev, created revision, ver int64, err error) {
 	i.Recorder.Record(testutil.Action{Name: "get", Params: []interface{}{key, atRev}})
 	r := <-i.indexGetRespc
@@ -691,6 +799,10 @@ func (i *fakeIndex) RangeSince(key, end []byte, rev int64) []revision {
 }
 func (i *fakeIndex) Compact(rev int64) map[revision]struct{} {
 	i.Recorder.Record(testutil.Action{Name: "compact", Params: []interface{}{rev}})
+	return <-i.indexCompactRespc
+}
+func (i *fakeIndex) Keep(rev int64) map[revision]struct{} {
+	i.Recorder.Record(testutil.Action{Name: "keep", Params: []interface{}{rev}})
 	return <-i.indexCompactRespc
 }
 func (i *fakeIndex) Equal(b index) bool { return false }

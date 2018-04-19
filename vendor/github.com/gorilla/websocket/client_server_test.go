@@ -7,10 +7,11 @@ package websocket
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/base64"
 	"io"
 	"io/ioutil"
-	"net"
 	"net/http"
+	"net/http/cookiejar"
 	"net/http/httptest"
 	"net/url"
 	"reflect"
@@ -20,9 +21,10 @@ import (
 )
 
 var cstUpgrader = Upgrader{
-	Subprotocols:    []string{"p0", "p1"},
-	ReadBufferSize:  1024,
-	WriteBufferSize: 1024,
+	Subprotocols:      []string{"p0", "p1"},
+	ReadBufferSize:    1024,
+	WriteBufferSize:   1024,
+	EnableCompression: true,
 	Error: func(w http.ResponseWriter, r *http.Request, status int, reason error) {
 		http.Error(w, reason.Error(), status)
 	},
@@ -41,9 +43,16 @@ type cstServer struct {
 	URL string
 }
 
+const (
+	cstPath       = "/a/b"
+	cstRawQuery   = "x=y"
+	cstRequestURI = cstPath + "?" + cstRawQuery
+)
+
 func newServer(t *testing.T) *cstServer {
 	var s cstServer
 	s.Server = httptest.NewServer(cstHandler{t})
+	s.Server.URL += cstRequestURI
 	s.URL = makeWsProto(s.Server.URL)
 	return &s
 }
@@ -51,14 +60,20 @@ func newServer(t *testing.T) *cstServer {
 func newTLSServer(t *testing.T) *cstServer {
 	var s cstServer
 	s.Server = httptest.NewTLSServer(cstHandler{t})
+	s.Server.URL += cstRequestURI
 	s.URL = makeWsProto(s.Server.URL)
 	return &s
 }
 
 func (t cstHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "GET" {
-		t.Logf("method %s not allowed", r.Method)
-		http.Error(w, "method not allowed", 405)
+	if r.URL.Path != cstPath {
+		t.Logf("path=%v, want %v", r.URL.Path, cstPath)
+		http.Error(w, "bad path", 400)
+		return
+	}
+	if r.URL.RawQuery != cstRawQuery {
+		t.Logf("query=%v, want %v", r.URL.RawQuery, cstRawQuery)
+		http.Error(w, "bad path", 400)
 		return
 	}
 	subprotos := Subprotocols(r)
@@ -123,6 +138,85 @@ func sendRecv(t *testing.T, ws *Conn) {
 	}
 }
 
+func TestProxyDial(t *testing.T) {
+
+	s := newServer(t)
+	defer s.Close()
+
+	surl, _ := url.Parse(s.URL)
+
+	cstDialer.Proxy = http.ProxyURL(surl)
+
+	connect := false
+	origHandler := s.Server.Config.Handler
+
+	// Capture the request Host header.
+	s.Server.Config.Handler = http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			if r.Method == "CONNECT" {
+				connect = true
+				w.WriteHeader(200)
+				return
+			}
+
+			if !connect {
+				t.Log("connect not recieved")
+				http.Error(w, "connect not recieved", 405)
+				return
+			}
+			origHandler.ServeHTTP(w, r)
+		})
+
+	ws, _, err := cstDialer.Dial(s.URL, nil)
+	if err != nil {
+		t.Fatalf("Dial: %v", err)
+	}
+	defer ws.Close()
+	sendRecv(t, ws)
+
+	cstDialer.Proxy = http.ProxyFromEnvironment
+}
+
+func TestProxyAuthorizationDial(t *testing.T) {
+	s := newServer(t)
+	defer s.Close()
+
+	surl, _ := url.Parse(s.URL)
+	surl.User = url.UserPassword("username", "password")
+	cstDialer.Proxy = http.ProxyURL(surl)
+
+	connect := false
+	origHandler := s.Server.Config.Handler
+
+	// Capture the request Host header.
+	s.Server.Config.Handler = http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			proxyAuth := r.Header.Get("Proxy-Authorization")
+			expectedProxyAuth := "Basic " + base64.StdEncoding.EncodeToString([]byte("username:password"))
+			if r.Method == "CONNECT" && proxyAuth == expectedProxyAuth {
+				connect = true
+				w.WriteHeader(200)
+				return
+			}
+
+			if !connect {
+				t.Log("connect with proxy authorization not recieved")
+				http.Error(w, "connect with proxy authorization not recieved", 405)
+				return
+			}
+			origHandler.ServeHTTP(w, r)
+		})
+
+	ws, _, err := cstDialer.Dial(s.URL, nil)
+	if err != nil {
+		t.Fatalf("Dial: %v", err)
+	}
+	defer ws.Close()
+	sendRecv(t, ws)
+
+	cstDialer.Proxy = http.ProxyFromEnvironment
+}
+
 func TestDial(t *testing.T) {
 	s := newServer(t)
 	defer s.Close()
@@ -132,6 +226,54 @@ func TestDial(t *testing.T) {
 		t.Fatalf("Dial: %v", err)
 	}
 	defer ws.Close()
+	sendRecv(t, ws)
+}
+
+func TestDialCookieJar(t *testing.T) {
+	s := newServer(t)
+	defer s.Close()
+
+	jar, _ := cookiejar.New(nil)
+	d := cstDialer
+	d.Jar = jar
+
+	u, _ := parseURL(s.URL)
+
+	switch u.Scheme {
+	case "ws":
+		u.Scheme = "http"
+	case "wss":
+		u.Scheme = "https"
+	}
+
+	cookies := []*http.Cookie{&http.Cookie{Name: "gorilla", Value: "ws", Path: "/"}}
+	d.Jar.SetCookies(u, cookies)
+
+	ws, _, err := d.Dial(s.URL, nil)
+	if err != nil {
+		t.Fatalf("Dial: %v", err)
+	}
+	defer ws.Close()
+
+	var gorilla string
+	var sessionID string
+	for _, c := range d.Jar.Cookies(u) {
+		if c.Name == "gorilla" {
+			gorilla = c.Value
+		}
+
+		if c.Name == "sessionID" {
+			sessionID = c.Value
+		}
+	}
+	if gorilla != "ws" {
+		t.Error("Cookie not present in jar.")
+	}
+
+	if sessionID != "1234" {
+		t.Error("Set-Cookie not received from the server.")
+	}
+
 	sendRecv(t, ws)
 }
 
@@ -150,11 +292,9 @@ func TestDialTLS(t *testing.T) {
 		}
 	}
 
-	u, _ := url.Parse(s.URL)
 	d := cstDialer
-	d.NetDial = func(network, addr string) (net.Conn, error) { return net.Dial(network, u.Host) }
 	d.TLSClientConfig = &tls.Config{RootCAs: certs}
-	ws, _, err := d.Dial("wss://example.com/", nil)
+	ws, _, err := d.Dial(s.URL, nil)
 	if err != nil {
 		t.Fatalf("Dial: %v", err)
 	}
@@ -174,7 +314,7 @@ func xTestDialTLSBadCert(t *testing.T) {
 	}
 }
 
-func xTestDialTLSNoVerify(t *testing.T) {
+func TestDialTLSNoVerify(t *testing.T) {
 	s := newTLSServer(t)
 	defer s.Close()
 
@@ -226,6 +366,45 @@ func TestDialBadOrigin(t *testing.T) {
 	}
 	if resp.StatusCode != http.StatusForbidden {
 		t.Fatalf("status=%d, want %d", resp.StatusCode, http.StatusForbidden)
+	}
+}
+
+func TestDialBadHeader(t *testing.T) {
+	s := newServer(t)
+	defer s.Close()
+
+	for _, k := range []string{"Upgrade",
+		"Connection",
+		"Sec-Websocket-Key",
+		"Sec-Websocket-Version",
+		"Sec-Websocket-Protocol"} {
+		h := http.Header{}
+		h.Set(k, "bad")
+		ws, _, err := cstDialer.Dial(s.URL, http.Header{"Origin": {"bad"}})
+		if err == nil {
+			ws.Close()
+			t.Errorf("Dial with header %s returned nil", k)
+		}
+	}
+}
+
+func TestBadMethod(t *testing.T) {
+	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ws, err := cstUpgrader.Upgrade(w, r, nil)
+		if err == nil {
+			t.Errorf("handshake succeeded, expect fail")
+			ws.Close()
+		}
+	}))
+	defer s.Close()
+
+	resp, err := http.PostForm(s.URL, url.Values{})
+	if err != nil {
+		t.Fatalf("PostForm returned error %v", err)
+	}
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusMethodNotAllowed {
+		t.Errorf("Status = %d, want %d", resp.StatusCode, http.StatusMethodNotAllowed)
 	}
 }
 
@@ -289,8 +468,8 @@ func TestRespOnBadHandshake(t *testing.T) {
 	}
 }
 
-// If the Host header is specified in `Dial()`, the server must receive it as
-// the `Host:` header.
+// TestHostHeader confirms that the host header provided in the call to Dial is
+// sent to the server.
 func TestHostHeader(t *testing.T) {
 	s := newServer(t)
 	defer s.Close()
@@ -305,19 +484,29 @@ func TestHostHeader(t *testing.T) {
 			origHandler.ServeHTTP(w, r)
 		})
 
-	ws, resp, err := cstDialer.Dial(s.URL, http.Header{"Host": {"testhost"}})
+	ws, _, err := cstDialer.Dial(s.URL, http.Header{"Host": {"testhost"}})
 	if err != nil {
 		t.Fatalf("Dial: %v", err)
 	}
 	defer ws.Close()
 
-	if resp.StatusCode != http.StatusSwitchingProtocols {
-		t.Fatalf("resp.StatusCode = %v, want http.StatusSwitchingProtocols", resp.StatusCode)
-	}
-
 	if gotHost := <-specifiedHost; gotHost != "testhost" {
 		t.Fatalf("gotHost = %q, want \"testhost\"", gotHost)
 	}
 
+	sendRecv(t, ws)
+}
+
+func TestDialCompression(t *testing.T) {
+	s := newServer(t)
+	defer s.Close()
+
+	dialer := cstDialer
+	dialer.EnableCompression = true
+	ws, _, err := dialer.Dial(s.URL, nil)
+	if err != nil {
+		t.Fatalf("Dial: %v", err)
+	}
+	defer ws.Close()
 	sendRecv(t, ws)
 }

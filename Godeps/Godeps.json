@@ -4,8 +4,8 @@
 		{
 			"REBASE TODO": "git describe --long --tags --abbrev=7",
 			"ImportPath": "github.com/coreos/etcd/etcdserver",
-			"Comment": "v3.2.16-0-g121edf0",
-			"Rev": "121edf0467052d55876a817b89875fb39a99bf78"
+			"Comment": "v3.3.3-0-e348b1ae",
+			"Rev": "e348b1aedd9167360c466ae98f7343d3e22281f8"
 		},
 		{
 			"REBASE TODO": "git describe --long --tags --abbrev=7",

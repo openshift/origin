@@ -43,8 +43,8 @@ ANNOTATIONS {
 
 # alert if more than 1% of gRPC method calls have failed within the last 5 minutes
 ALERT HighNumberOfFailedGRPCRequests
-IF sum by(grpc_method) (rate(etcd_grpc_requests_failed_total{job="etcd"}[5m]))
-  / sum by(grpc_method) (rate(etcd_grpc_total{job="etcd"}[5m])) > 0.01
+IF 100 * (sum by(grpc_method) (rate(etcd_grpc_requests_failed_total{job="etcd"}[5m]))
+  / sum by(grpc_method) (rate(etcd_grpc_total{job="etcd"}[5m]))) > 1
 FOR 10m
 LABELS {
   severity = "warning"
@@ -56,8 +56,8 @@ ANNOTATIONS {
 
 # alert if more than 5% of gRPC method calls have failed within the last 5 minutes
 ALERT HighNumberOfFailedGRPCRequests
-IF sum by(grpc_method) (rate(etcd_grpc_requests_failed_total{job="etcd"}[5m]))
-  / sum by(grpc_method) (rate(etcd_grpc_total{job="etcd"}[5m])) > 0.05
+IF 100 * (sum by(grpc_method) (rate(etcd_grpc_requests_failed_total{job="etcd"}[5m]))
+  / sum by(grpc_method) (rate(etcd_grpc_total{job="etcd"}[5m]))) > 5
 FOR 5m
 LABELS {
   severity = "critical"
@@ -69,14 +69,14 @@ ANNOTATIONS {
 
 # alert if the 99th percentile of gRPC method calls take more than 150ms
 ALERT GRPCRequestsSlow
-IF histogram_quantile(0.99, rate(etcd_grpc_unary_requests_duration_seconds_bucket[5m])) > 0.15
+IF histogram_quantile(0.99, sum(rate(grpc_server_handling_seconds_bucket{job="etcd",grpc_type="unary"}[5m])) by (grpc_service, grpc_method, le)) > 0.15
 FOR 10m
 LABELS {
   severity = "critical"
 }
 ANNOTATIONS {
   summary = "slow gRPC requests",
-  description = "on etcd instance {{ $labels.instance }} gRPC requests to {{ $label.grpc_method }} are slow",
+  description = "on etcd instance {{ $labels.instance }} gRPC requests to {{ $labels.grpc_method }} are slow",
 }
 
 # HTTP requests alerts
@@ -84,8 +84,8 @@ ANNOTATIONS {
 
 # alert if more than 1% of requests to an HTTP endpoint have failed within the last 5 minutes
 ALERT HighNumberOfFailedHTTPRequests
-IF sum by(method) (rate(etcd_http_failed_total{job="etcd"}[5m]))
-  / sum by(method) (rate(etcd_http_received_total{job="etcd"}[5m])) > 0.01
+IF 100 * (sum(rate(grpc_server_handled_total{grpc_code!="OK",job="etcd"}[5m])) BY (grpc_service, grpc_method)
+  / sum(rate(grpc_server_handled_total{job="etcd"}[5m])) BY (grpc_service, grpc_method)) > 1
 FOR 10m
 LABELS {
   severity = "warning"
@@ -97,8 +97,8 @@ ANNOTATIONS {
 
 # alert if more than 5% of requests to an HTTP endpoint have failed within the last 5 minutes
 ALERT HighNumberOfFailedHTTPRequests
-IF sum by(method) (rate(etcd_http_failed_total{job="etcd"}[5m])) 
-  / sum by(method) (rate(etcd_http_received_total{job="etcd"}[5m])) > 0.05
+IF 100 * (sum(rate(grpc_server_handled_total{grpc_code!="OK",job="etcd"}[5m])) BY (grpc_service, grpc_method)
+  / sum(rate(grpc_server_handled_total{job="etcd"}[5m])) BY (grpc_service, grpc_method))  > 5
 FOR 5m
 LABELS {
   severity = "critical"
@@ -117,7 +117,7 @@ LABELS {
 }
 ANNOTATIONS {
   summary = "slow HTTP requests",
-  description = "on etcd instance {{ $labels.instance }} HTTP requests to {{ $label.method }} are slow",
+  description = "on etcd instance {{ $labels.instance }} HTTP requests to {{ $labels.method }} are slow",
 }
 
 # file descriptor alerts
@@ -154,14 +154,14 @@ ANNOTATIONS {
 
 # alert if 99th percentile of round trips take 150ms
 ALERT EtcdMemberCommunicationSlow
-IF histogram_quantile(0.99, rate(etcd_network_member_round_trip_time_seconds_bucket[5m])) > 0.15
+IF histogram_quantile(0.99, rate(etcd_network_peer_round_trip_time_seconds_bucket[5m])) > 0.15
 FOR 10m
 LABELS {
   severity = "warning"
 }
 ANNOTATIONS {
   summary = "etcd member communication is slow",
-  description = "etcd instance {{ $labels.instance }} member communication with {{ $label.To }} is slow",
+  description = "etcd instance {{ $labels.instance }} member communication with {{ $labels.To }} is slow",
 }
 
 # etcd proposal alerts

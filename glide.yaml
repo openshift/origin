@@ -91,13 +91,20 @@ import:
   version: 01a732e01d00cb9a81bb0ca050d3e6d2b947927b
 # master: etcd
 - package: github.com/coreos/etcd
-  version: v3.2.16
+  version: v3.3.3
 - package: google.golang.org/grpc
   version: v1.7.5
 - package: github.com/grpc-ecosystem/grpc-gateway
   version: v1.3.0
 - package: github.com/coreos/bbolt
   version: 32c383e75ce054674c53b5a07e55de85332aee14
+# required by etcd 3.3.3
+- package: github.com/ugorji/go
+  version: bdcc60b419d136a85cdf2e7cbcac34b3f1cd6e57
+- package: github.com/gorilla/websocket
+  version: 4201258b820c74ac8e6922fc9e6b52f71fe46f8d
+
+
 # cli
 - package: github.com/gonum/blas
   version: 37e82626499e1df7c54aeaba0959fd6e7e8dc1e4
@@ -127,9 +134,6 @@ import:
   version: v1.4.7
 
 # mine: specific to openshift
-# master
-- package: github.com/ugorji/go
-  version: ded73eae5db7e7a0ef6f55aace87a2873c5d2b74
 # networking
 - package: github.com/containernetworking/plugins
   version: ~0.6.0
@@ -180,6 +184,13 @@ import:
 # why do we have this?
 - package: google.golang.org/appengine
   version: 12d5545dc1cfa6047a286d5e853841b6471f4c19
+
+  # to avoid go4.org website outages
+- package: go4.org
+  repo: https://github.com/go4org/go4
+  version: 03efcb870d84809319ea509714dd6d19a1498483
+  subpackages:
+  - errorutil
 
 # force glide to pull this in
 - package: github.com/google/uuid

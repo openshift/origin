@@ -78,11 +78,11 @@ func SetFlagsFromEnv(prefix string, fs *flag.FlagSet) error {
 	})
 	usedEnvKey := make(map[string]bool)
 	fs.VisitAll(func(f *flag.Flag) {
-		err = setFlagFromEnv(fs, prefix, f.Name, usedEnvKey, alreadySet, true)
+		if serr := setFlagFromEnv(fs, prefix, f.Name, usedEnvKey, alreadySet, true); serr != nil {
+			err = serr
+		}
 	})
-
 	verifyEnv(prefix, usedEnvKey, alreadySet)
-
 	return err
 }
 
@@ -100,6 +100,7 @@ func SetPflagsFromEnv(prefix string, fs *pflag.FlagSet) error {
 			err = serr
 		}
 	})
+	verifyEnv(prefix, usedEnvKey, alreadySet)
 	return err
 }
 
@@ -118,7 +119,8 @@ func verifyEnv(prefix string, usedEnvKey, alreadySet map[string]bool) {
 			continue
 		}
 		if alreadySet[kv[0]] {
-			plog.Infof("recognized environment variable %s, but unused: shadowed by corresponding flag ", kv[0])
+			// TODO: exit with error in v3.4
+			plog.Warningf("recognized environment variable %s, but unused: shadowed by corresponding flag", kv[0])
 			continue
 		}
 		if strings.HasPrefix(env, prefix+"_") {

@@ -58,6 +58,7 @@ This is a generated documentation. Please read the proto files for more.
 | LeaseRevoke | LeaseRevokeRequest | LeaseRevokeResponse | LeaseRevoke revokes a lease. All keys attached to the lease will expire and be deleted. |
 | LeaseKeepAlive | LeaseKeepAliveRequest | LeaseKeepAliveResponse | LeaseKeepAlive keeps the lease alive by streaming keep alive requests from the client to the server and streaming keep alive responses from the server to the client. |
 | LeaseTimeToLive | LeaseTimeToLiveRequest | LeaseTimeToLiveResponse | LeaseTimeToLive retrieves lease information. |
+| LeaseLeases | LeaseLeasesRequest | LeaseLeasesResponse | LeaseLeases lists all existing leases. |
 
 
 
@@ -68,8 +69,10 @@ This is a generated documentation. Please read the proto files for more.
 | Alarm | AlarmRequest | AlarmResponse | Alarm activates, deactivates, and queries alarms regarding cluster health. |
 | Status | StatusRequest | StatusResponse | Status gets the status of the member. |
 | Defragment | DefragmentRequest | DefragmentResponse | Defragment defragments a member's backend database to recover storage space. |
-| Hash | HashRequest | HashResponse | Hash returns the hash of the local KV state for consistency checking purpose. This is designed for testing; do not use this in production when there are ongoing transactions. |
+| Hash | HashRequest | HashResponse | Hash computes the hash of the KV's backend. This is designed for testing; do not use this in production when there are ongoing transactions. |
+| HashKV | HashKVRequest | HashKVResponse | HashKV computes the hash of all MVCC keys up to a given revision. |
 | Snapshot | SnapshotRequest | SnapshotResponse | Snapshot sends a snapshot of the entire backend from a member over a stream to a client. |
+| MoveLeader | MoveLeaderRequest | MoveLeaderResponse | MoveLeader requests current leader node to transfer its leadership to transferee. |
 
 
 
@@ -401,6 +404,8 @@ CompactionRequest compacts the key-value store up to a given revision. All super
 | create_revision | create_revision is the creation revision of the given key | int64 |
 | mod_revision | mod_revision is the last modified revision of the given key. | int64 |
 | value | value is the value of the given key, in bytes. | bytes |
+| lease | lease is the lease id of the given key. | int64 |
+| range_end | range_end compares the given target to all keys in the range [key, range_end). See RangeRequest for more details on key ranges. | bytes |
 
 
 
@@ -438,6 +443,24 @@ Empty field.
 
 
 
+##### message `HashKVRequest` (etcdserver/etcdserverpb/rpc.proto)
+
+| Field | Description | Type |
+| ----- | ----------- | ---- |
+| revision | revision is the key-value store revision for the hash operation. | int64 |
+
+
+
+##### message `HashKVResponse` (etcdserver/etcdserverpb/rpc.proto)
+
+| Field | Description | Type |
+| ----- | ----------- | ---- |
+| header |  | ResponseHeader |
+| hash | hash is the hash value computed from the responding member's MVCC keys up to a given revision. | uint32 |
+| compact_revision | compact_revision is the compacted revision of key-value store when hash begins. | int64 |
+
+
+
 ##### message `HashRequest` (etcdserver/etcdserverpb/rpc.proto)
 
 Empty field.
@@ -449,7 +472,7 @@ Empty field.
 | Field | Description | Type |
 | ----- | ----------- | ---- |
 | header |  | ResponseHeader |
-| hash | hash is the hash value computed from the responding member's key-value store. | uint32 |
+| hash | hash is the hash value computed from the responding member's KV's backend. | uint32 |
 
 
 
@@ -457,7 +480,7 @@ Empty field.
 
 | Field | Description | Type |
 | ----- | ----------- | ---- |
-| TTL | TTL is the advisory time-to-live in seconds. | int64 |
+| TTL | TTL is the advisory time-to-live in seconds. Expired lease will return -1. | int64 |
 | ID | ID is the requested ID for the lease. If ID is set to 0, the lessor chooses an ID. | int64 |
 
 
@@ -491,6 +514,21 @@ Empty field.
 
 
 
+##### message `LeaseLeasesRequest` (etcdserver/etcdserverpb/rpc.proto)
+
+Empty field.
+
+
+
+##### message `LeaseLeasesResponse` (etcdserver/etcdserverpb/rpc.proto)
+
+| Field | Description | Type |
+| ----- | ----------- | ---- |
+| header |  | ResponseHeader |
+| leases |  | (slice of) LeaseStatus |
+
+
+
 ##### message `LeaseRevokeRequest` (etcdserver/etcdserverpb/rpc.proto)
 
 | Field | Description | Type |
@@ -504,6 +542,14 @@ Empty field.
 | Field | Description | Type |
 | ----- | ----------- | ---- |
 | header |  | ResponseHeader |
+
+
+
+##### message `LeaseStatus` (etcdserver/etcdserverpb/rpc.proto)
+
+| Field | Description | Type |
+| ----- | ----------- | ---- |
+| ID |  | int64 |
 
 
 
@@ -607,6 +653,22 @@ Empty field.
 
 
 
+##### message `MoveLeaderRequest` (etcdserver/etcdserverpb/rpc.proto)
+
+| Field | Description | Type |
+| ----- | ----------- | ---- |
+| targetID | targetID is the node ID for the new leader. | uint64 |
+
+
+
+##### message `MoveLeaderResponse` (etcdserver/etcdserverpb/rpc.proto)
+
+| Field | Description | Type |
+| ----- | ----------- | ---- |
+| header |  | ResponseHeader |
+
+
+
 ##### message `PutRequest` (etcdserver/etcdserverpb/rpc.proto)
 
 | Field | Description | Type |
@@ -668,6 +730,7 @@ Empty field.
 | request_range |  | RangeRequest |
 | request_put |  | PutRequest |
 | request_delete_range |  | DeleteRangeRequest |
+| request_txn |  | TxnRequest |
 
 
 
@@ -690,6 +753,7 @@ Empty field.
 | response_range |  | RangeResponse |
 | response_put |  | PutResponse |
 | response_delete_range |  | DeleteRangeResponse |
+| response_txn |  | TxnResponse |
 
 
 
