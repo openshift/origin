@@ -3,7 +3,6 @@ package controller
 import (
 	"errors"
 	"fmt"
-	"reflect"
 	"strings"
 	"time"
 
@@ -34,7 +33,6 @@ import (
 	"github.com/golang/glog"
 	"github.com/prometheus/client_golang/prometheus"
 
-	templateapiv1 "github.com/openshift/api/template/v1"
 	"github.com/openshift/origin/pkg/authorization/util"
 	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
 	"github.com/openshift/origin/pkg/bulk"
@@ -124,7 +122,7 @@ func (c *TemplateInstanceController) getTemplateInstance(key string) (*templatea
 
 // sync is the actual controller worker function.
 func (c *TemplateInstanceController) sync(key string) error {
-	templateInstance, err := c.getTemplateInstance(key)
+	templateInstanceOriginal, err := c.getTemplateInstance(key)
 	if apierrors.IsNotFound(err) {
 		return nil
 	}
@@ -132,22 +130,21 @@ func (c *TemplateInstanceController) sync(key string) error {
 		return err
 	}
 
-	if templateInstance.HasCondition(templateapi.TemplateInstanceReady, kapi.ConditionTrue) ||
-		templateInstance.HasCondition(templateapi.TemplateInstanceInstantiateFailure, kapi.ConditionTrue) {
+	if templateInstanceOriginal.HasCondition(templateapi.TemplateInstanceReady, kapi.ConditionTrue) ||
+		templateInstanceOriginal.HasCondition(templateapi.TemplateInstanceInstantiateFailure, kapi.ConditionTrue) {
 		return nil
 	}
 
 	glog.V(4).Infof("TemplateInstance controller: syncing %s", key)
 
-	// TODO: Rename this to templateInstanceCopy
-	templateInstance = templateInstance.DeepCopy()
+	templateInstanceCopy := templateInstanceOriginal.DeepCopy()
 
-	if len(templateInstance.Status.Objects) != len(templateInstance.Spec.Template.Objects) {
-		err = c.instantiate(templateInstance)
+	if len(templateInstanceCopy.Status.Objects) != len(templateInstanceCopy.Spec.Template.Objects) {
+		err = c.instantiate(templateInstanceCopy)
 		if err != nil {
 			glog.V(4).Infof("TemplateInstance controller: instantiate %s returned %v", key, err)
 
-			templateInstance.SetCondition(templateapi.TemplateInstanceCondition{
+			templateInstanceCopy.SetCondition(templateapi.TemplateInstanceCondition{
 				Type:    templateapi.TemplateInstanceInstantiateFailure,
 				Status:  kapi.ConditionTrue,
 				Reason:  "Failed",
@@ -157,20 +154,20 @@ func (c *TemplateInstanceController) sync(key string) error {
 		}
 	}
 
-	if !templateInstance.HasCondition(templateapi.TemplateInstanceInstantiateFailure, kapi.ConditionTrue) {
-		ready, err := c.checkReadiness(templateInstance)
+	if !templateInstanceCopy.HasCondition(templateapi.TemplateInstanceInstantiateFailure, kapi.ConditionTrue) {
+		ready, err := c.checkReadiness(templateInstanceCopy)
 		if err != nil && !kerrors.IsTimeout(err) {
 			// NB: kerrors.IsTimeout() is true in the case of an API server
 			// timeout, not the timeout caused by readinessTimeout expiring.
 			glog.V(4).Infof("TemplateInstance controller: checkReadiness %s returned %v", key, err)
 
-			templateInstance.SetCondition(templateapi.TemplateInstanceCondition{
+			templateInstanceCopy.SetCondition(templateapi.TemplateInstanceCondition{
 				Type:    templateapi.TemplateInstanceInstantiateFailure,
 				Status:  kapi.ConditionTrue,
 				Reason:  "Failed",
 				Message: formatError(err),
 			})
-			templateInstance.SetCondition(templateapi.TemplateInstanceCondition{
+			templateInstanceCopy.SetCondition(templateapi.TemplateInstanceCondition{
 				Type:    templateapi.TemplateInstanceReady,
 				Status:  kapi.ConditionFalse,
 				Reason:  "Failed",
@@ -179,7 +176,7 @@ func (c *TemplateInstanceController) sync(key string) error {
 			templateInstanceCompleted.WithLabelValues(string(templateapi.TemplateInstanceInstantiateFailure)).Inc()
 
 		} else if ready {
-			templateInstance.SetCondition(templateapi.TemplateInstanceCondition{
+			templateInstanceCopy.SetCondition(templateapi.TemplateInstanceCondition{
 				Type:   templateapi.TemplateInstanceReady,
 				Status: kapi.ConditionTrue,
 				Reason: "Created",
@@ -187,7 +184,7 @@ func (c *TemplateInstanceController) sync(key string) error {
 			templateInstanceCompleted.WithLabelValues(string(templateapi.TemplateInstanceReady)).Inc()
 
 		} else {
-			templateInstance.SetCondition(templateapi.TemplateInstanceCondition{
+			templateInstanceCopy.SetCondition(templateapi.TemplateInstanceCondition{
 				Type:    templateapi.TemplateInstanceReady,
 				Status:  kapi.ConditionFalse,
 				Reason:  "Waiting",
@@ -196,15 +193,16 @@ func (c *TemplateInstanceController) sync(key string) error {
 		}
 	}
 
-	_, err = c.templateClient.Template().TemplateInstances(templateInstance.Namespace).UpdateStatus(templateInstance)
+	// update, not update status, because we also added a finalizer to the object.
+	_, err = c.templateClient.Template().TemplateInstances(templateInstanceCopy.Namespace).UpdateStatus(templateInstanceCopy)
 	if err != nil {
 		utilruntime.HandleError(fmt.Errorf("TemplateInstance status update failed: %v", err))
 		return err
 	}
 
-	if !templateInstance.HasCondition(templateapi.TemplateInstanceReady, kapi.ConditionTrue) &&
-		!templateInstance.HasCondition(templateapi.TemplateInstanceInstantiateFailure, kapi.ConditionTrue) {
-		c.enqueueAfter(templateInstance, c.readinessLimiter.When(key))
+	if !templateInstanceCopy.HasCondition(templateapi.TemplateInstanceReady, kapi.ConditionTrue) &&
+		!templateInstanceCopy.HasCondition(templateapi.TemplateInstanceInstantiateFailure, kapi.ConditionTrue) {
+		c.enqueueAfter(templateInstanceCopy, c.readinessLimiter.When(key))
 	} else {
 		c.readinessLimiter.Forget(key)
 	}
@@ -421,25 +419,15 @@ func (c *TemplateInstanceController) instantiate(templateInstance *templateapi.T
 		return kerrs.NewAggregate(errs)
 	}
 
-	// We add an OwnerReference to all objects we create - this is also needed
-	// by the template service broker for cleanup.
-	blockOwnerDeletion := true
-	templateInstanceOwnerRef := metav1.OwnerReference{
-		APIVersion:         templateapiv1.SchemeGroupVersion.String(),
-		Kind:               "TemplateInstance",
-		Name:               templateInstance.Name,
-		UID:                templateInstance.UID,
-		BlockOwnerDeletion: &blockOwnerDeletion,
-	}
-
 	for _, obj := range template.Objects {
-		meta, err := meta.Accessor(obj)
-		if err != nil {
-			return err
+		meta, _ := meta.Accessor(obj)
+		labels := meta.GetLabels()
+		glog.Infof("object: %v, labels are: %v", obj, labels)
+		if labels == nil {
+			labels = make(map[string]string)
 		}
-		ref := meta.GetOwnerReferences()
-		ref = append(ref, templateInstanceOwnerRef)
-		meta.SetOwnerReferences(ref)
+		labels[templateapi.TemplateInstanceOwner] = string(templateInstance.UID)
+		meta.SetLabels(labels)
 	}
 
 	bulk := bulk.Bulk{
@@ -487,7 +475,9 @@ func (c *TemplateInstanceController) instantiate(templateInstance *templateapi.T
 		return utilerrors.NewAggregate(errs)
 	}
 
+	index := int64(-1)
 	bulk.Op = func(info *resource.Info, namespace string, obj runtime.Object) (runtime.Object, error) {
+		index++
 		// as cmd.Create, but be tolerant to the existence of objects that we
 		// created before.
 		helper := resource.NewHelper(info.Client, info.Mapping)
@@ -496,6 +486,7 @@ func (c *TemplateInstanceController) instantiate(templateInstance *templateapi.T
 		}
 		createObj, createErr := helper.Create(namespace, false, obj)
 		if kerrors.IsAlreadyExists(createErr) {
+			createObj, createErr = obj, nil
 			obj, err := helper.Get(namespace, info.Name, false)
 			if err != nil {
 				return nil, err
@@ -505,12 +496,16 @@ func (c *TemplateInstanceController) instantiate(templateInstance *templateapi.T
 			if err != nil {
 				return nil, err
 			}
-
-			for _, ownerRef := range meta.GetOwnerReferences() {
-				if reflect.DeepEqual(ownerRef, templateInstanceOwnerRef) {
-					createObj, createErr = obj, nil
-					break
-				}
+			labels := meta.GetLabels()
+			// no labels, so this isn't our object.
+			if labels == nil {
+				return createObj, createErr
+			}
+			owner, ok := labels[templateapi.TemplateInstanceOwner]
+			// if the labels match, it's already our object so pretend we created
+			// it successfully.
+			if ok && owner == string(templateInstance.UID) {
+				createObj, createErr = obj, nil
 			}
 		}
 
@@ -532,6 +527,7 @@ func (c *TemplateInstanceController) instantiate(templateInstance *templateapi.T
 					UID:        meta.GetUID(),
 					APIVersion: info.Mapping.GroupVersionKind.GroupVersion().String(),
 				},
+				Index: index,
 			},
 		)
 
@@ -545,6 +541,17 @@ func (c *TemplateInstanceController) instantiate(templateInstance *templateapi.T
 	templateInstance.Status.Objects = nil
 
 	errs = bulk.Run(&kapi.List{Items: template.Objects}, templateInstance.Namespace)
+	hasFinalizer := false
+	for _, v := range templateInstance.Finalizers {
+		if v == templateapi.TemplateInstanceFinalizer {
+			hasFinalizer = true
+			break
+		}
+	}
+	if !hasFinalizer {
+		templateInstance.Finalizers = append(templateInstance.Finalizers, templateapi.TemplateInstanceFinalizer)
+	}
+
 	if len(errs) > 0 {
 		return utilerrors.NewAggregate(errs)
 	}

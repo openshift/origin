@@ -40,7 +40,8 @@ const (
 
 	// template instance controller watches for TemplateInstance object creation
 	// and instantiates templates as a result.
-	InfraTemplateInstanceControllerServiceAccountName = "template-instance-controller"
+	InfraTemplateInstanceControllerServiceAccountName          = "template-instance-controller"
+	InfraTemplateInstanceFinalizerControllerServiceAccountName = "template-instance-finalizer-controller"
 
 	// template service broker is an open service broker-compliant API
 	// implementation which serves up OpenShift templates.  It uses the
@@ -163,7 +164,6 @@ func init() {
 		Rules: []rbac.PolicyRule{
 			rbac.NewRule("create").Groups(kAuthzGroup).Resources("subjectaccessreviews").RuleOrDie(),
 			rbac.NewRule("update").Groups(templateGroup).Resources("templateinstances/status").RuleOrDie(),
-			rbac.NewRule("update").Groups(templateGroup).Resources("templateinstances/finalizers").RuleOrDie(),
 		},
 	})
 
@@ -171,6 +171,19 @@ func init() {
 	templateInstanceController := rbac.NewClusterBinding(AdminRoleName).SAs(DefaultOpenShiftInfraNamespace, InfraTemplateInstanceControllerServiceAccountName).BindingOrDie()
 	addDefaultMetadata(&templateInstanceController)
 	controllerRoleBindings = append(controllerRoleBindings, templateInstanceController)
+
+	// template-instance-finalizer-controller
+	addControllerRole(rbac.ClusterRole{
+		ObjectMeta: metav1.ObjectMeta{Name: saRolePrefix + InfraTemplateInstanceFinalizerControllerServiceAccountName},
+		Rules: []rbac.PolicyRule{
+			rbac.NewRule("update").Groups(templateGroup).Resources("templateinstances/status").RuleOrDie(),
+		},
+	})
+
+	// template-instance-finalizer-controller
+	templateInstanceFinalizerController := rbac.NewClusterBinding(AdminRoleName).SAs(DefaultOpenShiftInfraNamespace, InfraTemplateInstanceFinalizerControllerServiceAccountName).BindingOrDie()
+	addDefaultMetadata(&templateInstanceFinalizerController)
+	controllerRoleBindings = append(controllerRoleBindings, templateInstanceFinalizerController)
 
 	// origin-namespace-controller
 	addControllerRole(rbac.ClusterRole{

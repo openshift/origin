@@ -10694,8 +10694,10 @@ items:
         apiVersion: v1
         metadata:
           name: secret
+          labels:
+            foo: bar
       - kind: Deployment
-        apiVersion: apps/v1beta1
+        apiVersion: apps/v1
         metadata:
           name: deployment
         spec:
