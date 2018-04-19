@@ -355,7 +355,7 @@ func (m *Master) Start() error {
 
 	controllersEnabled := m.controllers && len(m.config.ControllerConfig.Controllers) > 0
 	if controllersEnabled {
-		_, privilegedLoopbackConfig, err := configapi.GetExternalKubeClient(m.config.MasterClients.OpenShiftLoopbackKubeConfig, m.config.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
+		privilegedLoopbackConfig, err := configapi.GetClientConfig(m.config.MasterClients.OpenShiftLoopbackKubeConfig, m.config.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
 		if err != nil {
 			return err
 		}
@@ -426,7 +426,11 @@ func (m *Master) Start() error {
 	if m.api {
 		// informers are shared amongst all the various api components we build
 		// TODO the needs of the apiserver and the controllers are drifting. We should consider two different skins here
-		informers, err := origin.NewInformers(*m.config)
+		clientConfig, err := configapi.GetClientConfig(m.config.MasterClients.OpenShiftLoopbackKubeConfig, m.config.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
+		if err != nil {
+			return err
+		}
+		informers, err := origin.NewInformers(clientConfig)
 		if err != nil {
 			return err
 		}

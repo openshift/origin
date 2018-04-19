@@ -292,7 +292,7 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 
 		restmapper := restutil.DefaultMultiRESTMapper()
 
-		_, config, err := configapi.GetInternalKubeClient(exutil.KubeConfigPath(), nil)
+		config, err := configapi.GetClientConfig(exutil.KubeConfigPath(), nil)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// check the namespace is empty
