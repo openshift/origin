@@ -32,17 +32,11 @@ const (
 Please install Docker tools by following instructions at:
 
    https://docs.docker.com/mac/
-
-Once installed, run this command with the --create-machine
-argument to create a new Docker machine that will run OpenShift.
 `
 	NoDockerWindowsSolution = `
 Please install Docker tools by following instructions at:
 
    https://docs.docker.com/windows/
-
-Once installed, run this command with the --create-machine argument to create a
-new Docker machine that will run OpenShift.
 `
 	NoDockerLinuxSolution = `
 Ensure that Docker is installed and accessible in your environment.

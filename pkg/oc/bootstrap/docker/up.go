@@ -269,6 +269,14 @@ func (c *ClusterUpConfig) Complete(cmd *cobra.Command, out io.Writer) error {
 		c.BaseDir = absHostDir
 	}
 
+	// Check if users are not trying to re-run cluster up on existing configuration
+	// but with different components enabled.
+	if !sets.NewString(c.UserEnabledComponents...).Equal(sets.NewString("*")) {
+		if _, err := os.Stat(filepath.Join(c.BaseDir, "etcd")); err == nil {
+			return fmt.Errorf("cannot use --enable when the cluster is already initialized, use cluster add instead")
+		}
+	}
+
 	for _, currComponent := range knownComponents.UnsortedList() {
 		if isComponentEnabled(currComponent, componentsDisabledByDefault, c.UserEnabledComponents...) {
 			c.ComponentsToEnable = append(c.ComponentsToEnable, currComponent)
