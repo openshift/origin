@@ -16,6 +16,7 @@ import (
 
 	oapi "github.com/openshift/origin/pkg/api"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
+	metrics "github.com/openshift/origin/test/extended/cluster/metrics"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -179,8 +180,8 @@ var _ = g.Describe("[Feature:Performance][Serial][Slow] Load cluster", func() {
 		}
 
 		// Calculate and log test duration
-		metrics := []Metrics{NewTestDuration("cluster-loader-test", testStartTime, time.Since(testStartTime))}
-		err := LogMetrics(metrics)
+		m := []metrics.Metrics{metrics.NewTestDuration("cluster-loader-test", testStartTime, time.Since(testStartTime))}
+		err := metrics.LogMetrics(m)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// If config context set to cleanup on completion

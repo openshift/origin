@@ -8,6 +8,7 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/openshift/origin/pkg/cmd/openshift-experimental"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
@@ -66,6 +67,9 @@ func NewHyperShiftCommand() *cobra.Command {
 
 	startOpenShiftControllerManager := openshift_controller_manager.NewOpenShiftControllerManagerCommand(openshift_controller_manager.RecommendedStartControllerManagerName, "hypershift", os.Stdout, os.Stderr)
 	cmd.AddCommand(startOpenShiftControllerManager)
+
+	experimental := openshift_experimental.NewExperimentalCommand(os.Stdout, os.Stderr)
+	cmd.AddCommand(experimental)
 
 	return cmd
 }

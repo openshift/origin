@@ -44,9 +44,9 @@ const (
 	ConditionFalse   ConditionStatus = "False"
 	ConditionUnknown ConditionStatus = "Unknown"
 
-	OperatorStatusTypeAvailable = "Available"
-	OperatorStatusTypeMigrating = "Migrating"
-	OperatorStatusTypeFailing   = "Failing"
+	OperatorStatusTypeAvailable      = "Available"
+	OperatorStatusTypeMigrating      = "Migrating"
+	OperatorStatusTypeSyncSuccessful = "SyncSuccessful"
 )
 
 type OperatorCondition struct {
