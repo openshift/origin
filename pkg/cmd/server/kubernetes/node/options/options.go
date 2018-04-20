@@ -121,9 +121,12 @@ func ComputeKubeletFlags(startingArgs map[string][]string, options configapi.Nod
 	// TODO: this exists to support legacy cases where the node defaulted to the master's DNS.
 	//   we can remove this when we drop support for master DNS when CoreDNS is in use everywhere.
 	if len(args["cluster-dns"]) == 0 {
-		if externalKubeClient, _, err := configapi.GetExternalKubeClient(options.MasterKubeConfig, options.MasterClientConnectionOverrides); err == nil {
-			args["cluster-dns"] = getClusterDNS(externalKubeClient, args["cluster-dns"])
+		if clientConfig, err := configapi.GetClientConfig(options.MasterKubeConfig, options.MasterClientConnectionOverrides); err == nil {
+			if externalKubeClient, err := kclientsetexternal.NewForConfig(clientConfig); err == nil {
+				args["cluster-dns"] = getClusterDNS(externalKubeClient, args["cluster-dns"])
+			}
 		}
+
 	}
 
 	// there is a special case.  If you set `--cgroups-per-qos=false` and `--enforce-node-allocatable` is

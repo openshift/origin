@@ -40,19 +40,16 @@ func KubeConfigPath() string {
 }
 
 func GetClusterAdminKubeClient(adminKubeConfigFile string) (kclientset.Interface, error) {
-	c, _, err := configapi.GetInternalKubeClient(adminKubeConfigFile, nil)
+	clientConfig, err := GetClusterAdminClientConfig(adminKubeConfigFile)
 	if err != nil {
 		return nil, err
 	}
-	return c, nil
+
+	return kclientset.NewForConfig(clientConfig)
 }
 
 func GetClusterAdminClientConfig(adminKubeConfigFile string) (*restclient.Config, error) {
-	_, conf, err := configapi.GetInternalKubeClient(adminKubeConfigFile, nil)
-	if err != nil {
-		return nil, err
-	}
-	return conf, nil
+	return configapi.GetClientConfig(adminKubeConfigFile, nil)
 }
 
 // GetClusterAdminClientConfigOrDie returns a REST config for the cluster admin

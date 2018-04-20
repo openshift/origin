@@ -38,7 +38,7 @@ func envVars(host string, caData []byte, insecure bool, bearerTokenFile string) 
 }
 
 func getOpenShiftClientEnvVars(options configapi.MasterConfig) ([]kapi.EnvVar, error) {
-	_, kclientConfig, err := configapi.GetInternalKubeClient(
+	clientConfig, err := configapi.GetClientConfig(
 		options.MasterClients.OpenShiftLoopbackKubeConfig,
 		options.MasterClients.OpenShiftLoopbackClientConnectionOverrides,
 	)
@@ -46,9 +46,9 @@ func getOpenShiftClientEnvVars(options configapi.MasterConfig) ([]kapi.EnvVar, e
 		return nil, err
 	}
 	return envVars(
-		kclientConfig.Host,
-		kclientConfig.CAData,
-		kclientConfig.Insecure,
+		clientConfig.Host,
+		clientConfig.CAData,
+		clientConfig.Insecure,
 		path.Join(serviceaccountadmission.DefaultAPITokenMountPath, kapi.ServiceAccountTokenKey),
 	), nil
 }

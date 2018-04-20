@@ -110,7 +110,7 @@ func setupBuildControllerTest(counts controllerCount, t *testing.T) (buildtypedc
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	informers, err := origin.NewInformers(*master)
+	informers, err := origin.NewInformers(clusterAdminClientConfig)
 	if err != nil {
 		t.Fatal(err)
 	}

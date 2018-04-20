@@ -173,6 +173,14 @@ function os::test::extended::clusterup::noargs () {
       ${@}
 }
 
+# Test the usage of --enable flag
+function os::test::extended::clusterup::enable () {
+    local base_dir
+    base_dir=$(os::test::extended::clusterup::make_base_dir "enable")
+    os::cmd::expect_success "oc cluster up --loglevel=5 --base-dir=${base_dir} --tag=${ORIGIN_COMMIT} --enable=* --write-config"
+    os::cmd::expect_failure_and_text "oc cluster up --loglevel=5 --base-dir=${base_dir} --tag=${ORIGIN_COMMIT} --enable=foo" 'use cluster add instead'
+}
+
 # Tests creating a cluster with specific host directories
 function os::test::extended::clusterup::hostdirs () {
     local base_dir

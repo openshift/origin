@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"strconv"
@@ -13,11 +14,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
-	kclientsetexternal "k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	api "k8s.io/kubernetes/pkg/apis/core"
-	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
@@ -249,66 +248,37 @@ func SetProtobufClientDefaults(overrides *ClientConnectionOverrides) {
 // GetKubeConfigOrInClusterConfig loads in-cluster config if kubeConfigFile is empty or the file if not,
 // then applies overrides.
 func GetKubeConfigOrInClusterConfig(kubeConfigFile string, overrides *ClientConnectionOverrides) (*restclient.Config, error) {
-	var kubeConfig *restclient.Config
-	var err error
-	if len(kubeConfigFile) == 0 {
-		kubeConfig, err = restclient.InClusterConfig()
-	} else {
-		loadingRules := &clientcmd.ClientConfigLoadingRules{}
-		loadingRules.ExplicitPath = kubeConfigFile
-		loader := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, &clientcmd.ConfigOverrides{})
-
-		kubeConfig, err = loader.ClientConfig()
+	if len(kubeConfigFile) > 0 {
+		return GetClientConfig(kubeConfigFile, overrides)
 	}
+
+	clientConfig, err := restclient.InClusterConfig()
 	if err != nil {
 		return nil, err
 	}
-	applyClientConnectionOverrides(overrides, kubeConfig)
-	return kubeConfig, nil
+	applyClientConnectionOverrides(overrides, clientConfig)
+	clientConfig.WrapTransport = DefaultClientTransport
+
+	return clientConfig, nil
 }
 
-// TODO: clients should be copied and instantiated from a common client config, tweaked, then
-// given to individual controllers and other infrastructure components.
-func GetInternalKubeClient(kubeConfigFile string, overrides *ClientConnectionOverrides) (kclientsetinternal.Interface, *restclient.Config, error) {
-	loadingRules := &clientcmd.ClientConfigLoadingRules{}
-	loadingRules.ExplicitPath = kubeConfigFile
-	loader := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, &clientcmd.ConfigOverrides{})
-
-	kubeConfig, err := loader.ClientConfig()
+func GetClientConfig(kubeConfigFile string, overrides *ClientConnectionOverrides) (*restclient.Config, error) {
+	kubeConfigBytes, err := ioutil.ReadFile(kubeConfigFile)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-
-	applyClientConnectionOverrides(overrides, kubeConfig)
-
-	kubeConfig.WrapTransport = DefaultClientTransport
-	clientset, err := kclientsetinternal.NewForConfig(kubeConfig)
+	kubeConfig, err := clientcmd.NewClientConfigFromBytes(kubeConfigBytes)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-	return clientset, kubeConfig, nil
-}
-
-// TODO: clients should be copied and instantiated from a common client config, tweaked, then
-// given to individual controllers and other infrastructure components.
-func GetExternalKubeClient(kubeConfigFile string, overrides *ClientConnectionOverrides) (kclientsetexternal.Interface, *restclient.Config, error) {
-	loadingRules := &clientcmd.ClientConfigLoadingRules{}
-	loadingRules.ExplicitPath = kubeConfigFile
-	loader := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, &clientcmd.ConfigOverrides{})
-
-	kubeConfig, err := loader.ClientConfig()
+	clientConfig, err := kubeConfig.ClientConfig()
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
+	applyClientConnectionOverrides(overrides, clientConfig)
+	clientConfig.WrapTransport = DefaultClientTransport
 
-	applyClientConnectionOverrides(overrides, kubeConfig)
-
-	kubeConfig.WrapTransport = DefaultClientTransport
-	clientset, err := kclientsetexternal.NewForConfig(kubeConfig)
-	if err != nil {
-		return nil, nil, err
-	}
-	return clientset, kubeConfig, nil
+	return clientConfig, nil
 }
 
 // applyClientConnectionOverrides updates a kubeConfig with the overrides from the config.

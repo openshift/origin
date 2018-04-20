@@ -12,7 +12,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kutilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
-	clientgoclientset "k8s.io/client-go/kubernetes"
 	kclientsetexternal "k8s.io/client-go/kubernetes"
 	v1core "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/rest"
@@ -43,16 +42,15 @@ func RunOpenShiftControllerManager(masterConfig *configapi.MasterConfig) error {
 }
 
 func runOpenShiftControllerManager(masterConfig *configapi.MasterConfig, runServer bool) error {
-	openshiftControllerInformers, err := origin.NewInformers(*masterConfig)
+	clientConfig, err := configapi.GetClientConfig(masterConfig.MasterClients.OpenShiftLoopbackKubeConfig, masterConfig.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
 	if err != nil {
 		return err
 	}
-
-	_, config, err := configapi.GetExternalKubeClient(masterConfig.MasterClients.OpenShiftLoopbackKubeConfig, masterConfig.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
+	openshiftControllerInformers, err := origin.NewInformers(clientConfig)
 	if err != nil {
 		return err
 	}
-	clientGoKubeExternal, err := clientgoclientset.NewForConfig(config)
+	kubeExternal, err := kclientsetexternal.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
@@ -61,14 +59,9 @@ func runOpenShiftControllerManager(masterConfig *configapi.MasterConfig, runServ
 	if runServer {
 		glog.Infof("Starting controllers on %s (%s)", masterConfig.ServingInfo.BindAddress, version.Get().String())
 
-		if err := origincontrollers.RunControllerServer(masterConfig.ServingInfo, clientGoKubeExternal); err != nil {
+		if err := origincontrollers.RunControllerServer(masterConfig.ServingInfo, kubeExternal); err != nil {
 			return err
 		}
-	}
-
-	kubeExternal, privilegedLoopbackConfig, err := configapi.GetExternalKubeClient(masterConfig.MasterClients.OpenShiftLoopbackKubeConfig, masterConfig.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
-	if err != nil {
-		return err
 	}
 
 	originControllerManager := func(stopCh <-chan struct{}) {
@@ -82,7 +75,7 @@ func runOpenShiftControllerManager(masterConfig *configapi.MasterConfig, runServ
 		}
 
 		informersStarted := make(chan struct{})
-		controllerContext := newControllerContext(openshiftControllerOptions, masterConfig.ControllerConfig.Controllers, privilegedLoopbackConfig, kubeExternal, openshiftControllerInformers, stopCh, informersStarted)
+		controllerContext := newControllerContext(openshiftControllerOptions, masterConfig.ControllerConfig.Controllers, clientConfig, kubeExternal, openshiftControllerInformers, stopCh, informersStarted)
 		if err := startControllers(*masterConfig, controllerContext); err != nil {
 			glog.Fatal(err)
 		}
@@ -133,20 +126,23 @@ func runOpenShiftControllerManager(masterConfig *configapi.MasterConfig, runServ
 func newControllerContext(
 	openshiftControllerOptions origincontrollers.OpenshiftControllerOptions,
 	enabledControllers []string,
-	privilegedLoopbackConfig *rest.Config,
+	inClientConfig *rest.Config,
 	kubeExternal kclientsetexternal.Interface,
 	informers origin.InformerAccess,
 	stopCh <-chan struct{},
 	informersStarted chan struct{},
 ) origincontrollers.ControllerContext {
 
+	// copy to avoid messing with original
+	clientConfig := rest.CopyConfig(inClientConfig)
+
 	// divide up the QPS since it re-used separately for every client
 	// TODO, eventually make this configurable individually in some way.
-	if privilegedLoopbackConfig.QPS > 0 {
-		privilegedLoopbackConfig.QPS = privilegedLoopbackConfig.QPS/10 + 1
+	if clientConfig.QPS > 0 {
+		clientConfig.QPS = clientConfig.QPS/10 + 1
 	}
-	if privilegedLoopbackConfig.Burst > 0 {
-		privilegedLoopbackConfig.Burst = privilegedLoopbackConfig.Burst/10 + 1
+	if clientConfig.Burst > 0 {
+		clientConfig.Burst = clientConfig.Burst/10 + 1
 	}
 
 	openshiftControllerContext := origincontrollers.ControllerContext{
@@ -155,7 +151,7 @@ func newControllerContext(
 
 		ClientBuilder: origincontrollers.OpenshiftControllerClientBuilder{
 			ControllerClientBuilder: controller.SAControllerClientBuilder{
-				ClientConfig:         rest.AnonymousClientConfig(privilegedLoopbackConfig),
+				ClientConfig:         rest.AnonymousClientConfig(clientConfig),
 				CoreClient:           kubeExternal.Core(),
 				AuthenticationClient: kubeExternal.Authentication(),
 				Namespace:            bootstrappolicy.DefaultOpenShiftInfraNamespace,

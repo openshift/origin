@@ -133,11 +133,15 @@ func BuildMasterConfig(
 		return nil, err
 	}
 
-	kubeInternalClient, _, err := configapi.GetInternalKubeClient(options.MasterClients.OpenShiftLoopbackKubeConfig, options.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
+	privilegedLoopbackConfig, err := configapi.GetClientConfig(options.MasterClients.OpenShiftLoopbackKubeConfig, options.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
 	if err != nil {
 		return nil, err
 	}
-	privilegedLoopbackKubeClientsetExternal, privilegedLoopbackConfig, err := configapi.GetExternalKubeClient(options.MasterClients.OpenShiftLoopbackKubeConfig, options.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
+	kubeInternalClient, err := kclientsetinternal.NewForConfig(privilegedLoopbackConfig)
+	if err != nil {
+		return nil, err
+	}
+	privilegedLoopbackKubeClientsetExternal, err := kclientsetexternal.NewForConfig(privilegedLoopbackConfig)
 	if err != nil {
 		return nil, err
 	}
