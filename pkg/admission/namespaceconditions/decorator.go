@@ -9,7 +9,7 @@ import (
 
 // this is a list of namespaces with special meaning.  The kube ones are here in particular because
 // we don't control their creation or labeling on their creation
-var runLevelZeroNamespaces = sets.NewString("default", "kube-system", "kube-public")
+var runLevelZeroNamespaces = sets.NewString("kube-system", "kube-public")
 var runLevelOneNamespaces = sets.NewString("openshift-node", "openshift-infra", "openshift")
 
 func init() {
