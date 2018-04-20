@@ -10,11 +10,10 @@ import (
 	unidlingcontroller "github.com/openshift/origin/pkg/unidling/controller"
 )
 
-type UnidlingControllerConfig struct {
-	ResyncPeriod time.Duration
-}
+func RunUnidlingController(ctx ControllerContext) (bool, error) {
+	// TODO this should be configurable
+	resyncPeriod := 2 * time.Hour
 
-func (c *UnidlingControllerConfig) RunController(ctx ControllerContext) (bool, error) {
 	clientConfig := ctx.ClientBuilder.ConfigOrDie(bootstrappolicy.InfraUnidlingControllerServiceAccountName)
 	appsClient, err := appstypedclient.NewForConfig(clientConfig)
 	if err != nil {
@@ -31,7 +30,7 @@ func (c *UnidlingControllerConfig) RunController(ctx ControllerContext) (bool, e
 		coreClient,
 		appsclient.NewForConfigOrDie(ctx.ClientBuilder.ConfigOrDie(bootstrappolicy.InfraUnidlingControllerServiceAccountName)),
 		coreClient,
-		c.ResyncPeriod,
+		resyncPeriod,
 	)
 
 	go controller.Run(ctx.Stop)

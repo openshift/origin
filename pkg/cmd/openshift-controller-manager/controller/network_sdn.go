@@ -3,23 +3,18 @@ package controller
 import (
 	"fmt"
 
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/network"
 	sdnmaster "github.com/openshift/origin/pkg/network/master"
 )
 
-type SDNControllerConfig struct {
-	NetworkConfig configapi.MasterNetworkConfig
-}
-
-func (c *SDNControllerConfig) RunController(ctx ControllerContext) (bool, error) {
-	if !network.IsOpenShiftNetworkPlugin(c.NetworkConfig.NetworkPluginName) {
+func RunSDNController(ctx ControllerContext) (bool, error) {
+	if !network.IsOpenShiftNetworkPlugin(ctx.OpenshiftControllerConfig.Network.NetworkPluginName) {
 		return false, nil
 	}
 
 	if err := sdnmaster.Start(
-		c.NetworkConfig,
+		ctx.OpenshiftControllerConfig.Network,
 		ctx.ClientBuilder.OpenshiftInternalNetworkClientOrDie(bootstrappolicy.InfraSDNControllerServiceAccountName),
 		ctx.ClientBuilder.ClientOrDie(bootstrappolicy.InfraSDNControllerServiceAccountName),
 		ctx.ExternalKubeInformers,

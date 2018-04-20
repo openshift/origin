@@ -3,7 +3,6 @@ package controller
 import (
 	"github.com/golang/glog"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kexternalinformers "k8s.io/client-go/informers"
@@ -18,6 +17,7 @@ import (
 	authorizationinformer "github.com/openshift/origin/pkg/authorization/generated/informers/internalversion"
 	buildinformer "github.com/openshift/origin/pkg/build/generated/informers/internalversion"
 	buildclientinternal "github.com/openshift/origin/pkg/build/generated/internalclientset"
+	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	imageinformer "github.com/openshift/origin/pkg/image/generated/informers/internalversion"
 	imageclientinternal "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	networkinformer "github.com/openshift/origin/pkg/network/generated/informers/internalversion"
@@ -31,9 +31,7 @@ import (
 )
 
 type ControllerContext struct {
-	OpenshiftControllerOptions OpenshiftControllerOptions
-
-	EnabledControllers []string
+	OpenshiftControllerConfig configapi.OpenshiftControllerConfig
 
 	// ClientBuilder will provide a client for this controller to use
 	ClientBuilder ControllerClientBuilder
@@ -62,32 +60,8 @@ type GenericResourceInformer interface {
 	Start(stopCh <-chan struct{})
 }
 
-// OpenshiftControllerOptions contain the options used to run the controllers.  Eventually we need to construct a way to properly
-// configure these in a config struct.  This at least lets us know what we have.
-type OpenshiftControllerOptions struct {
-	HPAControllerOptions       HPAControllerOptions
-	ResourceQuotaOptions       ResourceQuotaOptions
-	ServiceAccountTokenOptions ServiceAccountTokenOptions
-}
-
-type HPAControllerOptions struct {
-	SyncPeriod               metav1.Duration
-	UpscaleForbiddenWindow   metav1.Duration
-	DownscaleForbiddenWindow metav1.Duration
-}
-
-type ResourceQuotaOptions struct {
-	ConcurrentSyncs int32
-	SyncPeriod      metav1.Duration
-	MinResyncPeriod metav1.Duration
-}
-
-type ServiceAccountTokenOptions struct {
-	ConcurrentSyncs int32
-}
-
 func (c ControllerContext) IsControllerEnabled(name string) bool {
-	return controllerapp.IsControllerEnabled(name, sets.String{}, c.EnabledControllers...)
+	return controllerapp.IsControllerEnabled(name, sets.String{}, c.OpenshiftControllerConfig.Controllers...)
 }
 
 type ControllerClientBuilder interface {

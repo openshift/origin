@@ -15,9 +15,9 @@ import (
 )
 
 func RunResourceQuotaManager(ctx ControllerContext) (bool, error) {
-	concurrentResourceQuotaSyncs := int(ctx.OpenshiftControllerOptions.ResourceQuotaOptions.ConcurrentSyncs)
-	resourceQuotaSyncPeriod := ctx.OpenshiftControllerOptions.ResourceQuotaOptions.SyncPeriod.Duration
-	replenishmentSyncPeriodFunc := calculateResyncPeriod(ctx.OpenshiftControllerOptions.ResourceQuotaOptions.MinResyncPeriod.Duration)
+	concurrentResourceQuotaSyncs := int(ctx.OpenshiftControllerConfig.ResourceQuota.ConcurrentSyncs)
+	resourceQuotaSyncPeriod := ctx.OpenshiftControllerConfig.ResourceQuota.SyncPeriod.Duration
+	replenishmentSyncPeriodFunc := calculateResyncPeriod(ctx.OpenshiftControllerConfig.ResourceQuota.MinResyncPeriod.Duration)
 	saName := "resourcequota-controller"
 	listerFuncForResource := generic.ListerFuncForResourceFunc(ctx.GenericResourceInformer.ForResource)
 	quotaConfiguration := quotainstall.NewQuotaConfigurationForControllers(listerFuncForResource)
@@ -47,12 +47,10 @@ func RunResourceQuotaManager(ctx ControllerContext) (bool, error) {
 	return true, nil
 }
 
-type ClusterQuotaReconciliationControllerConfig struct {
-	DefaultResyncPeriod            time.Duration
-	DefaultReplenishmentSyncPeriod time.Duration
-}
+func RunClusterQuotaReconciliationController(ctx ControllerContext) (bool, error) {
+	defaultResyncPeriod := 5 * time.Minute
+	defaultReplenishmentSyncPeriod := 12 * time.Hour
 
-func (c *ClusterQuotaReconciliationControllerConfig) RunController(ctx ControllerContext) (bool, error) {
 	saName := bootstrappolicy.InfraClusterQuotaReconciliationControllerServiceAccountName
 
 	clusterQuotaMappingController := clusterquotamapping.NewClusterQuotaMappingController(
@@ -79,8 +77,8 @@ func (c *ClusterQuotaReconciliationControllerConfig) RunController(ctx Controlle
 		ClusterQuotaClient:   ctx.ClientBuilder.OpenshiftInternalQuotaClientOrDie(saName).Quota().ClusterResourceQuotas(),
 
 		Registry:                  resourceQuotaRegistry,
-		ResyncPeriod:              c.DefaultResyncPeriod,
-		ReplenishmentResyncPeriod: controller.StaticResyncPeriodFunc(c.DefaultReplenishmentSyncPeriod),
+		ResyncPeriod:              defaultResyncPeriod,
+		ReplenishmentResyncPeriod: controller.StaticResyncPeriodFunc(defaultReplenishmentSyncPeriod),
 		DiscoveryFunc:             discoveryFunc,
 		IgnoredResourcesFunc:      quotaConfiguration.IgnoredResources,
 		InformersStarted:          ctx.InformersStarted,

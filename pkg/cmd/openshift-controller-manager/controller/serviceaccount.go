@@ -10,12 +10,8 @@ import (
 	serviceaccountcontrollers "github.com/openshift/origin/pkg/serviceaccounts/controllers"
 )
 
-type ServiceAccountControllerOptions struct {
-	ManagedNames []string
-}
-
-func (c *ServiceAccountControllerOptions) RunController(ctx ControllerContext) (bool, error) {
-	if len(c.ManagedNames) == 0 {
+func RunServiceAccountController(ctx ControllerContext) (bool, error) {
+	if len(ctx.OpenshiftControllerConfig.ServiceAccount.ManagedNames) == 0 {
 		glog.Infof("Skipped starting Service Account Manager, no managed names specified")
 		return false, nil
 	}
@@ -23,7 +19,7 @@ func (c *ServiceAccountControllerOptions) RunController(ctx ControllerContext) (
 	options := sacontroller.DefaultServiceAccountsControllerOptions()
 	options.ServiceAccounts = []kapiv1.ServiceAccount{}
 
-	for _, saName := range c.ManagedNames {
+	for _, saName := range ctx.OpenshiftControllerConfig.ServiceAccount.ManagedNames {
 		// the upstream controller does this one, so we don't have to
 		if saName == "default" {
 			continue

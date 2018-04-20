@@ -260,6 +260,7 @@
 // install/kube-proxy/install.yaml
 // install/kube-scheduler/kube-scheduler.yaml
 // install/openshift-apiserver/install.yaml
+// install/openshift-controller-manager/install-rbac.yaml
 // install/openshift-controller-manager/install.yaml
 // install/openshift-web-console-operator/install-rbac.yaml
 // install/openshift-web-console-operator/install.yaml
@@ -31888,6 +31889,142 @@ func installOpenshiftApiserverInstallYaml() (*asset, error) {
 	return a, nil
 }
 
+var _installOpenshiftControllerManagerInstallRbacYaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+parameters:
+- name: NAMESPACE
+  value: openshift-controller-manager
+- name: KUBE_SYSTEM
+  value: kube-system
+- name: OPENSHIFT_INFRA
+  value: openshift-infra
+objects:
+
+- apiVersion: rbac.authorization.k8s.io/v1beta1
+  kind: ClusterRole
+  metadata:
+    name: system:openshift:openshift-controller-manager
+  rules:
+  # we run cluster resource quota, so we have to be able to see all resources
+  - apiGroups:
+    - "*"
+    resources:
+    - "*"
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    - events.k8s.io
+    resources:
+    - events
+    verbs:
+    - create
+    - patch
+    - update
+
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRoleBinding
+  metadata:
+    name: system:openshift:openshift-controller-manager
+  roleRef:
+    kind: ClusterRole
+    name: system:openshift:openshift-controller-manager
+  subjects:
+  - kind: ServiceAccount
+    namespace: openshift-controller-manager
+    name: openshift-controller-manager
+
+# needed to get the legacy lock that we used to use
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: Role
+  metadata:
+    name: system:openshift:leader-locking-openshift-controller-manager
+    namespace: ${KUBE_SYSTEM}
+  rules:
+  - apiGroups:
+    - ""
+    resources:
+    - configmaps
+    verbs:
+    - create
+  - apiGroups:
+    - ""
+    resourceNames:
+    - openshift-master-controllers
+    resources:
+    - configmaps
+    verbs:
+    - get
+    - create
+    - update
+    - patch
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: RoleBinding
+  metadata:
+    namespace: ${KUBE_SYSTEM}
+    name: system:openshift:leader-locking-openshift-controller-manager
+  roleRef:
+    kind: Role
+    name: system:openshift:leader-locking-openshift-controller-manager
+  subjects:
+  - kind: ServiceAccount
+    namespace: ${NAMESPACE}
+    name: openshift-controller-manager
+
+# needed to support the "use separate service accounts" feature.
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: Role
+  metadata:
+    name: system:openshift:sa-creating-openshift-controller-manager
+    namespace: ${OPENSHIFT_INFRA}
+  rules:
+  - apiGroups:
+    - ""
+    resources:
+    - serviceaccounts
+    verbs:
+    - get
+    - create
+    - update
+  - apiGroups:
+    - ""
+    resources:
+    - secrets
+    verbs:
+    - get
+    - list
+    - create
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: RoleBinding
+  metadata:
+    namespace: ${OPENSHIFT_INFRA}
+    name: system:openshift:sa-creating-openshift-controller-manager
+  roleRef:
+    kind: Role
+    name: system:openshift:sa-creating-openshift-controller-manager
+  subjects:
+  - kind: ServiceAccount
+    namespace: ${NAMESPACE}
+    name: openshift-controller-manager
+`)
+
+func installOpenshiftControllerManagerInstallRbacYamlBytes() ([]byte, error) {
+	return _installOpenshiftControllerManagerInstallRbacYaml, nil
+}
+
+func installOpenshiftControllerManagerInstallRbacYaml() (*asset, error) {
+	bytes, err := installOpenshiftControllerManagerInstallRbacYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "install/openshift-controller-manager/install-rbac.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _installOpenshiftControllerManagerInstallYaml = []byte(`apiVersion: template.openshift.io/v1
 kind: Template
 metadata:
@@ -32935,6 +33072,7 @@ var _bindata = map[string]func() (*asset, error){
 	"install/kube-proxy/install.yaml": installKubeProxyInstallYaml,
 	"install/kube-scheduler/kube-scheduler.yaml": installKubeSchedulerKubeSchedulerYaml,
 	"install/openshift-apiserver/install.yaml": installOpenshiftApiserverInstallYaml,
+	"install/openshift-controller-manager/install-rbac.yaml": installOpenshiftControllerManagerInstallRbacYaml,
 	"install/openshift-controller-manager/install.yaml": installOpenshiftControllerManagerInstallYaml,
 	"install/openshift-web-console-operator/install-rbac.yaml": installOpenshiftWebConsoleOperatorInstallRbacYaml,
 	"install/openshift-web-console-operator/install.yaml": installOpenshiftWebConsoleOperatorInstallYaml,
@@ -33075,6 +33213,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 			"install.yaml": &bintree{installOpenshiftApiserverInstallYaml, map[string]*bintree{}},
 		}},
 		"openshift-controller-manager": &bintree{nil, map[string]*bintree{
+			"install-rbac.yaml": &bintree{installOpenshiftControllerManagerInstallRbacYaml, map[string]*bintree{}},
 			"install.yaml": &bintree{installOpenshiftControllerManagerInstallYaml, map[string]*bintree{}},
 		}},
 		"openshift-web-console-operator": &bintree{nil, map[string]*bintree{

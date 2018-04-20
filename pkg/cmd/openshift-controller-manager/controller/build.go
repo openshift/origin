@@ -1,32 +1,32 @@
 package controller
 
 import (
-	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	buildcontroller "github.com/openshift/origin/pkg/build/controller/build"
 	builddefaults "github.com/openshift/origin/pkg/build/controller/build/defaults"
 	buildoverrides "github.com/openshift/origin/pkg/build/controller/build/overrides"
 	buildconfigcontroller "github.com/openshift/origin/pkg/build/controller/buildconfig"
 	buildstrategy "github.com/openshift/origin/pkg/build/controller/strategy"
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+	"github.com/openshift/origin/pkg/cmd/util/variable"
 )
 
-type BuildControllerConfig struct {
-	DockerImage           string
-	S2IImage              string
-	AdmissionPluginConfig map[string]*configapi.AdmissionPluginConfig
-
-	Codec runtime.Codec
-}
-
 // RunController starts the build sync loop for builds and buildConfig processing.
-func (c *BuildControllerConfig) RunController(ctx ControllerContext) (bool, error) {
-	buildDefaults, err := builddefaults.NewBuildDefaults(c.AdmissionPluginConfig)
+func RunBuildController(ctx ControllerContext) (bool, error) {
+	groupVersion := schema.GroupVersion{Group: "", Version: "v1"}
+	annotationCodec := legacyscheme.Codecs.LegacyCodec(groupVersion)
+
+	imageTemplate := variable.NewDefaultImageTemplate()
+	imageTemplate.Format = ctx.OpenshiftControllerConfig.Build.ImageTemplateFormat.Format
+	imageTemplate.Latest = ctx.OpenshiftControllerConfig.Build.ImageTemplateFormat.Latest
+
+	buildDefaults, err := builddefaults.NewBuildDefaults(ctx.OpenshiftControllerConfig.Build.AdmissionPluginConfig)
 	if err != nil {
 		return true, err
 	}
-	buildOverrides, err := buildoverrides.NewBuildOverrides(c.AdmissionPluginConfig)
+	buildOverrides, err := buildoverrides.NewBuildOverrides(ctx.OpenshiftControllerConfig.Build.AdmissionPluginConfig)
 	if err != nil {
 		return true, err
 	}
@@ -52,19 +52,19 @@ func (c *BuildControllerConfig) RunController(ctx ControllerContext) (bool, erro
 		KubeClientExternal:  externalKubeClient,
 		BuildClientInternal: buildClient,
 		DockerBuildStrategy: &buildstrategy.DockerBuildStrategy{
-			Image: c.DockerImage,
+			Image: imageTemplate.ExpandOrDie("docker-builder"),
 			// TODO: this will be set to --storage-version (the internal schema we use)
-			Codec: c.Codec,
+			Codec: annotationCodec,
 		},
 		SourceBuildStrategy: &buildstrategy.SourceBuildStrategy{
-			Image: c.S2IImage,
+			Image: imageTemplate.ExpandOrDie("sti-builder"),
 			// TODO: this will be set to --storage-version (the internal schema we use)
-			Codec:          c.Codec,
+			Codec:          annotationCodec,
 			SecurityClient: securityClient.Security(),
 		},
 		CustomBuildStrategy: &buildstrategy.CustomBuildStrategy{
 			// TODO: this will be set to --storage-version (the internal schema we use)
-			Codec: c.Codec,
+			Codec: annotationCodec,
 		},
 		BuildDefaults:  buildDefaults,
 		BuildOverrides: buildOverrides,
