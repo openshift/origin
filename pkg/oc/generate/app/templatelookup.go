@@ -13,7 +13,6 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
-	"github.com/openshift/origin/pkg/template"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset/typed/template/internalversion"
 )
@@ -34,7 +33,7 @@ func (r TemplateSearcher) Search(precise bool, terms ...string) (ComponentMatche
 	matches := ComponentMatches{}
 	var errs []error
 	for _, term := range terms {
-		ref, err := template.ParseTemplateReference(term)
+		ref, err := parseTemplateReference(term)
 		if err != nil {
 			glog.V(2).Infof("template references must be of the form [<namespace>/]<name>, term %q did not qualify", term)
 			continue
@@ -45,7 +44,7 @@ func (r TemplateSearcher) Search(precise bool, terms ...string) (ComponentMatche
 		}
 
 		namespaces := r.Namespaces
-		if ref.HasNamespace() {
+		if ref.hasNamespace() {
 			namespaces = []string{ref.Namespace}
 		}
 
@@ -181,4 +180,42 @@ func (r *TemplateFileSearcher) Search(precise bool, terms ...string) (ComponentM
 	}
 
 	return matches, errs
+}
+
+// templateReference points to a stored template
+type templateReference struct {
+	Namespace string
+	Name      string
+}
+
+// parseTemplateReference parses the reference to a template into a
+// TemplateReference.
+func parseTemplateReference(s string) (templateReference, error) {
+	var ref templateReference
+	parts := strings.Split(s, "/")
+	switch len(parts) {
+	case 2:
+		// namespace/name
+		ref.Namespace = parts[0]
+		ref.Name = parts[1]
+		break
+	case 1:
+		// name
+		ref.Name = parts[0]
+		break
+	default:
+		return ref, fmt.Errorf("the template reference must be either the template name or namespace and template name separated by slashes")
+	}
+	return ref, nil
+}
+
+func (r templateReference) hasNamespace() bool {
+	return len(r.Namespace) > 0
+}
+
+func (r templateReference) String() string {
+	if r.hasNamespace() {
+		return fmt.Sprintf("%s/%s", r.Namespace, r.Name)
+	}
+	return r.Name
 }

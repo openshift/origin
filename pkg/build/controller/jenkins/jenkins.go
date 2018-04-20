@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/golang/glog"
+	"github.com/openshift/origin/pkg/template/templateprocessing"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
@@ -13,7 +14,6 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	serverapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
-	"github.com/openshift/origin/pkg/template"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	templateinternal "github.com/openshift/origin/pkg/template/client/internalversion"
 	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset"
@@ -104,7 +104,7 @@ func substituteTemplateParameters(params map[string]string, t *templateapi.Templ
 			errors = append(errors, fmt.Errorf("template parameter name cannot be empty (%q)", value))
 			continue
 		}
-		if v := template.GetParameterByName(t, name); v != nil {
+		if v := templateprocessing.GetParameterByName(t, name); v != nil {
 			v.Value = value
 			v.Generate = ""
 		} else {
