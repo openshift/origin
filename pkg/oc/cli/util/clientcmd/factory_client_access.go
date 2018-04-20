@@ -2,10 +2,7 @@ package clientcmd
 
 import (
 	"errors"
-	"path/filepath"
-	"regexp"
 	"strconv"
-	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -275,19 +272,6 @@ func (f *ring0Factory) CanBeAutoscaled(kind schema.GroupKind) error {
 func (f *ring0Factory) EditorEnvs() []string {
 	return []string{"OC_EDITOR", "EDITOR"}
 }
-
-// computeDiscoverCacheDir takes the parentDir and the host and comes up with a "usually non-colliding" name.
-func computeDiscoverCacheDir(parentDir, host string) string {
-	// strip the optional scheme from host if its there:
-	schemelessHost := strings.Replace(strings.Replace(host, "https://", "", 1), "http://", "", 1)
-	// now do a simple collapse of non-AZ09 characters.  Collisions are possible but unlikely.  Even if we do collide the problem is short lived
-	safeHost := overlyCautiousIllegalFileCharacters.ReplaceAllString(schemelessHost, "_")
-
-	return filepath.Join(parentDir, safeHost)
-}
-
-// overlyCautiousIllegalFileCharacters matches characters that *might* not be supported.  Windows is really restrictive, so this is really restrictive
-var overlyCautiousIllegalFileCharacters = regexp.MustCompile(`[^(\w/\.)]`)
 
 func getPorts(spec kapi.PodSpec) []string {
 	result := []string{}

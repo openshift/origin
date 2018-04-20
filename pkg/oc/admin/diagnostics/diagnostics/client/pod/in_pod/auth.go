@@ -15,9 +15,7 @@ import (
 	knet "k8s.io/apimachinery/pkg/util/net"
 	restclient "k8s.io/client-go/rest"
 
-	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/types"
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset"
 )
 
@@ -27,9 +25,6 @@ const (
 
 // PodCheckAuth is a Diagnostic to check that a pod can authenticate as expected
 type PodCheckAuth struct {
-	MasterUrl    string
-	MasterCaPath string
-	TokenPath    string
 }
 
 // Name is part of the Diagnostic interface and just returns name.
@@ -54,28 +49,20 @@ func (d PodCheckAuth) CanRun() (bool, error) {
 // Check is part of the Diagnostic interface; it runs the actual diagnostic logic
 func (d PodCheckAuth) Check() types.DiagnosticResult {
 	r := types.NewDiagnosticResult(PodCheckAuthName)
-	token, err := ioutil.ReadFile(d.TokenPath)
-	if err != nil {
-		r.Error("DP1001", err, fmt.Sprintf("could not read the service account token: %v", err))
-		return r
-	}
-	d.authenticateToMaster(string(token), r)
-	d.authenticateToRegistry(string(token), r)
+	d.authenticateToMaster(r)
+	d.authenticateToRegistry(r)
 	return r
 }
 
 // authenticateToMaster tests whether we can use the serviceaccount token
 // to reach the master and authenticate
-func (d PodCheckAuth) authenticateToMaster(token string, r types.DiagnosticResult) {
-	clientConfig := &clientcmd.Config{
-		MasterAddr:     flagtypes.Addr{Value: d.MasterUrl}.Default(),
-		KubernetesAddr: flagtypes.Addr{Value: d.MasterUrl}.Default(),
-		CommonConfig: restclient.Config{
-			TLSClientConfig: restclient.TLSClientConfig{CAFile: d.MasterCaPath},
-			BearerToken:     token,
-		},
+func (d PodCheckAuth) authenticateToMaster(r types.DiagnosticResult) {
+	clientConfig, err := restclient.InClusterConfig()
+	if err != nil {
+		r.Error("DP1001", err, fmt.Sprintf("could not get the in cluster config: %v", err))
+		return
 	}
-	userClient, err := userclient.NewForConfig(clientConfig.OpenShiftConfig())
+	userClient, err := userclient.NewForConfig(clientConfig)
 	if err != nil {
 		r.Error("DP1002", err, fmt.Sprintf("could not create API clients from the service account client config: %v", err))
 		return
@@ -102,7 +89,13 @@ func (d PodCheckAuth) authenticateToMaster(token string, r types.DiagnosticResul
 const registryHostname = "docker-registry.default.svc.cluster.local" // standard registry service DNS
 const registryPort = "5000"
 
-func (d PodCheckAuth) authenticateToRegistry(token string, r types.DiagnosticResult) {
+func (d PodCheckAuth) authenticateToRegistry(r types.DiagnosticResult) {
+	clientConfig, err := restclient.InClusterConfig()
+	if err != nil {
+		r.Error("DP1001", err, fmt.Sprintf("could not get the in cluster config: %v", err))
+		return
+	}
+
 	resolvConf, err := getResolvConf(r)
 	if err != nil {
 		return // any errors have been reported via "r", env is very borked, test cannot proceed
@@ -125,14 +118,14 @@ func (d PodCheckAuth) authenticateToRegistry(token string, r types.DiagnosticRes
 
 	// first try the secure connection in case they followed directions to secure the registry
 	// (https://docs.openshift.org/latest/install_config/install/docker_registry.html#securing-the-registry)
-	cacert, err := ioutil.ReadFile(d.MasterCaPath) // TODO: we assume same CA as master - better choice?
+	cacert, err := ioutil.ReadFile(clientConfig.TLSClientConfig.CAFile) // TODO: we assume same CA as master - better choice?
 	if err != nil {
-		r.Error("DP1008", err, fmt.Sprintf("Failed to read CA cert file %s:\n%v", d.MasterCaPath, err))
+		r.Error("DP1008", err, fmt.Sprintf("Failed to read CA cert file %s:\n%v", clientConfig.TLSClientConfig.CAFile, err))
 		return
 	}
 	pool := x509.NewCertPool()
 	if !pool.AppendCertsFromPEM(cacert) {
-		r.Error("DP1009", err, fmt.Sprintf("Could not use cert from CA cert file %s:\n%v", d.MasterCaPath, err))
+		r.Error("DP1009", err, fmt.Sprintf("Could not use cert from CA cert file %s:\n%v", clientConfig.TLSClientConfig.CAFile, err))
 		return
 	}
 	noSecClient := http.Client{
@@ -143,7 +136,7 @@ func (d PodCheckAuth) authenticateToRegistry(token string, r types.DiagnosticRes
 	}
 	secClient := noSecClient
 	secClient.Transport = knet.SetTransportDefaults(&http.Transport{TLSClientConfig: &tls.Config{RootCAs: pool}})
-	secError := processRegistryRequest(&secClient, fmt.Sprintf("https://%s:%s/v2/", registryHostname, registryPort), token, r)
+	secError := processRegistryRequest(&secClient, fmt.Sprintf("https://%s:%s/v2/", registryHostname, registryPort), clientConfig.BearerToken, r)
 	if secError == nil {
 		return // made the request successfully enough to diagnose
 	}
@@ -151,7 +144,7 @@ func (d PodCheckAuth) authenticateToRegistry(token string, r types.DiagnosticRes
 	case strings.Contains(secError.Error(), "tls: oversized record received"),
 		strings.Contains(secError.Error(), "server gave HTTP response to HTTPS"):
 		r.Debug("DP1015", "docker-registry not secured; falling back to cleartext connection")
-		if nosecError := processRegistryRequest(&noSecClient, fmt.Sprintf("http://%s:%s/v2/", registryHostname, registryPort), token, r); nosecError != nil {
+		if nosecError := processRegistryRequest(&noSecClient, fmt.Sprintf("http://%s:%s/v2/", registryHostname, registryPort), clientConfig.BearerToken, r); nosecError != nil {
 			r.Error("DP1013", nosecError, fmt.Sprintf("Unexpected error authenticating to the integrated registry:\n(%T) %[1]v", nosecError))
 		}
 	default:
