@@ -6,7 +6,7 @@ readonly OS_GO_PACKAGE=github.com/openshift/origin
 
 readonly OS_BUILD_ENV_GOLANG="${OS_BUILD_ENV_GOLANG:-1.8}"
 readonly OS_BUILD_ENV_IMAGE="${OS_BUILD_ENV_IMAGE:-openshift/origin-release:golang-${OS_BUILD_ENV_GOLANG}}"
-readonly OS_REQUIRED_GO_VERSION=go1.8
+readonly OS_REQUIRED_GO_VERSION="go${OS_BUILD_ENV_GOLANG}"
 
 readonly OS_GOFLAGS_TAGS="include_gcs include_oss containers_image_openpgp"
 readonly OS_GOFLAGS_TAGS_LINUX_AMD64="gssapi"
@@ -331,26 +331,24 @@ readonly -f os::build::clean_windows_versioninfo
 
 # OS_ALL_IMAGES is the list of images built by os::build::images.
 readonly OS_ALL_IMAGES=(
-  openshift/origin
-  openshift/origin-base
-  openshift/origin-pod
-  openshift/origin-deployer
-  openshift/origin-docker-builder
-  openshift/origin-docker-registry
-  openshift/origin-keepalived-ipfailover
-  openshift/origin-sti-builder
-  openshift/origin-haproxy-router
-  openshift/origin-f5-router
-  openshift/origin-egress-router
-  openshift/origin-egress-http-proxy
-  openshift/origin-recycler
-  openshift/origin-gitserver
-  openshift/origin-cluster-capacity
-  openshift/origin-service-catalog
-  openshift/origin-template-service-broker
-  openshift/hello-openshift
-  openshift/openvswitch
-  openshift/node
+  origin
+  origin-base
+  origin-pod
+  origin-deployer
+  origin-docker-builder
+  origin-keepalived-ipfailover
+  origin-sti-builder
+  origin-haproxy-router
+  origin-f5-router
+  origin-egress-router
+  origin-egress-http-proxy
+  origin-recycler
+  origin-cluster-capacity
+  origin-service-catalog
+  origin-template-service-broker
+  hello-openshift
+  openvswitch
+  node
 )
 
 # os::build::images builds all images in this repo.
