@@ -7,6 +7,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/openshift/origin/pkg/api/legacygroupification"
 	"github.com/spf13/cobra"
 
 	kubecmd "k8s.io/kubernetes/pkg/kubectl/cmd"
@@ -317,8 +318,8 @@ func CommandFor(basename string) *cobra.Command {
 		cmd = kubecmd.NewKubectlCommand(kcmdutil.NewFactory(nil), in, out, errout)
 	default:
 		// we only need this change for `oc`.  `kubectl` should behave as close to `kubectl` as we can
-		resource.OAPIToGroupified = OAPIToGroupified
-		kcmdutil.OAPIToGroupifiedGVK = OAPIToGroupifiedGVK
+		resource.OAPIToGroupified = legacygroupification.OAPIToGroupified
+		kcmdutil.OAPIToGroupifiedGVK = legacygroupification.OAPIToGroupifiedGVK
 		cmd = NewCommandCLI("oc", "oc", in, out, errout)
 	}
 

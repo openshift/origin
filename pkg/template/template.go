@@ -10,6 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
+	"github.com/openshift/origin/pkg/api/legacygroupification"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	. "github.com/openshift/origin/pkg/template/generator"
 	"github.com/openshift/origin/pkg/util"
@@ -83,6 +84,11 @@ func (p *Processor) Process(template *templateapi.Template) field.ErrorList {
 		// will be left in place, resolved during parameter substition, and the object will be created in the
 		// referenced namespace.
 		stripNamespace(item)
+
+		// this changes oapi GVKs to groupified GVKs so they can be submitted to modern, aggregated servers
+		gvk := item.GetObjectKind().GroupVersionKind()
+		legacygroupification.OAPIToGroupifiedGVK(&gvk)
+		item.GetObjectKind().SetGroupVersionKind(gvk)
 
 		newItem, err := p.SubstituteParameters(paramMap, item)
 		if err != nil {
