@@ -8,9 +8,7 @@ import (
 	"github.com/openshift/origin/pkg/route/controller/ingress"
 )
 
-type IngressToRouteControllerConfig struct{}
-
-func (c *IngressToRouteControllerConfig) RunController(ctx ControllerContext) (bool, error) {
+func RunIngressToRouteController(ctx ControllerContext) (bool, error) {
 	clientConfig := ctx.ClientBuilder.ConfigOrDie(bootstrappolicy.InfraIngressToRouteControllerServiceAccountName)
 	coreClient, err := coreclient.NewForConfig(clientConfig)
 	if err != nil {

@@ -23,8 +23,9 @@ import (
 const RecommendedStartControllerManagerName = "openshift-controller-manager"
 
 type OpenShiftControllerManager struct {
-	ConfigFile string
-	Output     io.Writer
+	ConfigFile     string
+	KubeConfigFile string
+	Output         io.Writer
 }
 
 var longDescription = templates.LongDesc(`
@@ -59,9 +60,11 @@ func NewOpenShiftControllerManagerCommand(name, basename string, out, errout io.
 
 	flags := cmd.Flags()
 	// This command only supports reading from config
-	flags.StringVar(&options.ConfigFile, "config", "", "Location of the master configuration file to run from.")
+	flags.StringVar(&options.ConfigFile, "config", options.ConfigFile, "Location of the master configuration file to run from.")
 	cmd.MarkFlagFilename("config", "yaml", "yml")
 	cmd.MarkFlagRequired("config")
+	flags.StringVar(&options.KubeConfigFile, "kubeconfig", options.KubeConfigFile, "Location of the master configuration file to run from.")
+	cmd.MarkFlagFilename("kubeconfig", "kubeconfig")
 
 	return cmd
 }
@@ -101,5 +104,11 @@ func (o *OpenShiftControllerManager) RunControllerManager() error {
 		return kerrors.NewInvalid(configapi.Kind("MasterConfig"), "master-config.yaml", validationResults.Errors)
 	}
 
-	return RunOpenShiftControllerManager(masterConfig)
+	config := ConvertMasterConfigToOpenshiftControllerConfig(masterConfig)
+	clientConfig, err := configapi.GetKubeConfigOrInClusterConfig(o.KubeConfigFile, config.ClientConnectionOverrides)
+	if err != nil {
+		return err
+	}
+
+	return RunOpenShiftControllerManager(config, clientConfig)
 }

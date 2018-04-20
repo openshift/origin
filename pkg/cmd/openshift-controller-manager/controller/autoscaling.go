@@ -16,11 +16,10 @@ import (
 // NB: this is funky -- it's actually a Kubernetes controller, but we run it as an OpenShift controller in order
 // to get a handle on OpenShift clients, so that our delegating scales getter can work.
 
-type HorizontalPodAutoscalerControllerConfig struct {
-	HeapsterNamespace string
-}
+// TODO this goes away with a truly generic autoscaler
+func RunHorizontalPodAutoscalerController(originCtx ControllerContext) (bool, error) {
+	heapsterNamespace := bootstrappolicy.DefaultOpenShiftInfraNamespace
 
-func (c *HorizontalPodAutoscalerControllerConfig) RunController(originCtx ControllerContext) (bool, error) {
 	hpaClientConfig, err := originCtx.ClientBuilder.Config(bootstrappolicy.InfraHorizontalPodAutoscalerControllerServiceAccountName)
 	if err != nil {
 		return true, err
@@ -33,7 +32,7 @@ func (c *HorizontalPodAutoscalerControllerConfig) RunController(originCtx Contro
 
 	metricsClient := hpametrics.NewHeapsterMetricsClient(
 		hpaClient,
-		c.HeapsterNamespace,
+		heapsterNamespace,
 		"https",
 		"heapster",
 		"",
@@ -64,9 +63,9 @@ func (c *HorizontalPodAutoscalerControllerConfig) RunController(originCtx Contro
 		restMapper,
 		replicaCalc,
 		originCtx.ExternalKubeInformers.Autoscaling().V1().HorizontalPodAutoscalers(),
-		originCtx.OpenshiftControllerOptions.HPAControllerOptions.SyncPeriod.Duration,
-		originCtx.OpenshiftControllerOptions.HPAControllerOptions.UpscaleForbiddenWindow.Duration,
-		originCtx.OpenshiftControllerOptions.HPAControllerOptions.DownscaleForbiddenWindow.Duration,
+		originCtx.OpenshiftControllerConfig.HPA.SyncPeriod.Duration,
+		originCtx.OpenshiftControllerConfig.HPA.UpscaleForbiddenWindow.Duration,
+		originCtx.OpenshiftControllerConfig.HPA.DownscaleForbiddenWindow.Duration,
 	).Run(originCtx.Stop)
 
 	return true, nil

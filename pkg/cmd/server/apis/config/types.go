@@ -1491,3 +1491,97 @@ type DefaultAdmissionConfig struct {
 	// Disable turns off an admission plugin that is enabled by default.
 	Disable bool
 }
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type OpenshiftControllerConfig struct {
+	metav1.TypeMeta
+
+	ClientConnectionOverrides *ClientConnectionOverrides
+
+	// ServingInfo describes how to start serving
+	ServingInfo *HTTPServingInfo
+
+	// Election defines the configuration for electing a controller instance to make changes to
+	// the cluster. If unspecified, the ControllerTTL value is checked to determine whether the
+	// legacy direct etcd election code will be used.
+	LeaderElection LeaderElectionConfig
+
+	// Controllers is a list of controllers to enable.  '*' enables all on-by-default controllers, 'foo' enables the controller "+
+	// named 'foo', '-foo' disables the controller named 'foo'.
+	// Defaults to "*".
+	Controllers []string
+
+	HPA                HPAControllerConfig
+	ResourceQuota      ResourceQuotaControllerConfig
+	ServiceServingCert ServiceServingCert
+	Deployer           DeployerControllerConfig
+	Build              BuildControllerConfig
+	ServiceAccount     ServiceAccountControllerConfig
+	Network            NetworkControllerConfig
+	Ingress            IngressControllerConfig
+	ImageImport        ImageImportControllerConfig
+	SecurityAllocator  SecurityAllocator
+}
+
+type DeployerControllerConfig struct {
+	ImageTemplateFormat ImageConfig
+}
+
+type BuildControllerConfig struct {
+	ImageTemplateFormat ImageConfig
+
+	// TODO slim this down to what is actually needed
+	AdmissionPluginConfig map[string]*AdmissionPluginConfig
+}
+
+type HPAControllerConfig struct {
+	SyncPeriod               metav1.Duration
+	UpscaleForbiddenWindow   metav1.Duration
+	DownscaleForbiddenWindow metav1.Duration
+}
+
+type ResourceQuotaControllerConfig struct {
+	ConcurrentSyncs int32
+	SyncPeriod      metav1.Duration
+	MinResyncPeriod metav1.Duration
+}
+
+type IngressControllerConfig struct {
+	// IngressIPNetworkCIDR controls the range to assign ingress ips from for services of type LoadBalancer on bare
+	// metal. If empty, ingress ips will not be assigned. It may contain a single CIDR that will be allocated from.
+	// For security reasons, you should ensure that this range does not overlap with the CIDRs reserved for external ips,
+	// nodes, pods, or services.
+	IngressIPNetworkCIDR string
+}
+
+// MasterNetworkConfig to be passed to the compiled in network plugin
+type NetworkControllerConfig struct {
+	NetworkPluginName string
+	// ClusterNetworks contains a list of cluster networks that defines the global overlay networks L3 space.
+	ClusterNetworks    []ClusterNetworkEntry
+	ServiceNetworkCIDR string
+}
+
+type ServiceAccountControllerConfig struct {
+	// ManagedNames is a list of service account names that will be auto-created in every namespace.
+	// If no names are specified, the ServiceAccountsController will not be started.
+	ManagedNames []string
+}
+
+type ImageImportControllerConfig struct {
+	// MaxScheduledImageImportsPerMinute is the maximum number of image streams that will be imported in the background per minute.
+	// The default value is 60. Set to -1 for unlimited.
+	MaxScheduledImageImportsPerMinute int
+	// DisableScheduledImport allows scheduled background import of images to be disabled.
+	DisableScheduledImport bool
+	// ScheduledImageImportMinimumIntervalSeconds is the minimum number of seconds that can elapse between when image streams
+	// scheduled for background import are checked against the upstream repository. The default value is 15 minutes.
+	ScheduledImageImportMinimumIntervalSeconds int
+}
+
+type LeaderElectionConfig struct {
+	LeaseDuration metav1.Duration
+	RenewDeadline metav1.Duration
+	RetryPeriod   metav1.Duration
+}

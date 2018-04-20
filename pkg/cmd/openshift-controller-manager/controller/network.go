@@ -9,17 +9,15 @@ import (
 	"github.com/openshift/origin/pkg/service/controller/ingressip"
 )
 
-type IngressIPControllerConfig struct {
-	IngressIPNetworkCIDR string
-	IngressIPSyncPeriod  time.Duration
-}
+func RunIngressIPController(ctx ControllerContext) (bool, error) {
+	// TODO configurable?
+	resyncPeriod := 10 * time.Minute
 
-func (c *IngressIPControllerConfig) RunController(ctx ControllerContext) (bool, error) {
-	if len(c.IngressIPNetworkCIDR) == 0 {
+	if len(ctx.OpenshiftControllerConfig.Ingress.IngressIPNetworkCIDR) == 0 {
 		return true, nil
 	}
 
-	_, ipNet, err := net.ParseCIDR(c.IngressIPNetworkCIDR)
+	_, ipNet, err := net.ParseCIDR(ctx.OpenshiftControllerConfig.Ingress.IngressIPNetworkCIDR)
 	if err != nil {
 		return false, fmt.Errorf("unable to start ingress IP controller: %v", err)
 	}
@@ -33,7 +31,7 @@ func (c *IngressIPControllerConfig) RunController(ctx ControllerContext) (bool, 
 		ctx.ExternalKubeInformers.Core().V1().Services().Informer(),
 		ctx.ClientBuilder.ClientOrDie(bootstrappolicy.InfraServiceIngressIPControllerServiceAccountName),
 		ipNet,
-		c.IngressIPSyncPeriod,
+		resyncPeriod,
 	)
 	go ingressIPController.Run(ctx.Stop)
 

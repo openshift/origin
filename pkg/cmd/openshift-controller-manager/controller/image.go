@@ -139,33 +139,25 @@ func (u podSpecUpdater) Update(obj runtime.Object) error {
 	}
 }
 
-type ImageSignatureImportControllerConfig struct {
-	ResyncPeriod          time.Duration
-	SignatureFetchTimeout time.Duration
-	SignatureImportLimit  int
-}
+func RunImageSignatureImportController(ctx ControllerContext) (bool, error) {
+	// TODO these should really be configurable
+	resyncPeriod := 1 * time.Hour
+	signatureFetchTimeout := 1 * time.Minute
+	signatureImportLimit := 3
 
-func (c *ImageSignatureImportControllerConfig) RunController(ctx ControllerContext) (bool, error) {
 	controller := imagesignaturecontroller.NewSignatureImportController(
 		context.Background(),
 		ctx.ClientBuilder.OpenshiftInternalImageClientOrDie(bootstrappolicy.InfraImageImportControllerServiceAccountName),
 		ctx.ImageInformers.Image().InternalVersion().Images(),
-		c.ResyncPeriod,
-		c.SignatureFetchTimeout,
-		c.SignatureImportLimit,
+		resyncPeriod,
+		signatureFetchTimeout,
+		signatureImportLimit,
 	)
 	go controller.Run(5, ctx.Stop)
 	return true, nil
 }
 
-type ImageImportControllerConfig struct {
-	MaxScheduledImageImportsPerMinute          int
-	ScheduledImageImportMinimumIntervalSeconds int
-	DisableScheduledImport                     bool
-	ResyncPeriod                               time.Duration
-}
-
-func (c *ImageImportControllerConfig) RunController(ctx ControllerContext) (bool, error) {
+func RunImageImportController(ctx ControllerContext) (bool, error) {
 	informer := ctx.ImageInformers.Image().InternalVersion().ImageStreams()
 	controller := imagecontroller.NewImageStreamController(
 		ctx.ClientBuilder.OpenshiftInternalImageClientOrDie(bootstrappolicy.InfraImageImportControllerServiceAccountName),
@@ -173,7 +165,8 @@ func (c *ImageImportControllerConfig) RunController(ctx ControllerContext) (bool
 	)
 	go controller.Run(5, ctx.Stop)
 
-	if c.DisableScheduledImport {
+	// TODO control this using enabled and disabled controllers
+	if ctx.OpenshiftControllerConfig.ImageImport.DisableScheduledImport {
 		return true, nil
 	}
 
@@ -181,11 +174,11 @@ func (c *ImageImportControllerConfig) RunController(ctx ControllerContext) (bool
 		ctx.ClientBuilder.OpenshiftInternalImageClientOrDie(bootstrappolicy.InfraImageImportControllerServiceAccountName),
 		informer,
 		imagecontroller.ScheduledImageStreamControllerOptions{
-			Resync: time.Duration(c.ScheduledImageImportMinimumIntervalSeconds) * time.Second,
+			Resync: time.Duration(ctx.OpenshiftControllerConfig.ImageImport.ScheduledImageImportMinimumIntervalSeconds) * time.Second,
 
-			Enabled:                  !c.DisableScheduledImport,
+			Enabled:                  !ctx.OpenshiftControllerConfig.ImageImport.DisableScheduledImport,
 			DefaultBucketSize:        4,
-			MaxImageImportsPerMinute: c.MaxScheduledImageImportsPerMinute,
+			MaxImageImportsPerMinute: ctx.OpenshiftControllerConfig.ImageImport.MaxScheduledImageImportsPerMinute,
 		},
 	)
 
