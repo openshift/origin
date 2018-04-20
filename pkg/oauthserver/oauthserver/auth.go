@@ -465,11 +465,15 @@ func (c *OAuthServerConfig) getAuthenticationHandler(mux mux, errorHandler handl
 func (c *OAuthServerConfig) getOAuthProvider(identityProvider configapi.IdentityProvider) (external.Provider, error) {
 	switch provider := identityProvider.Provider.(type) {
 	case (*configapi.GitHubIdentityProvider):
+		transport, err := transportFor(provider.CA, "", "")
+		if err != nil {
+			return nil, err
+		}
 		clientSecret, err := configapi.ResolveStringValue(provider.ClientSecret)
 		if err != nil {
 			return nil, err
 		}
-		return github.NewProvider(identityProvider.Name, provider.ClientID, clientSecret, provider.Organizations, provider.Teams), nil
+		return github.NewProvider(identityProvider.Name, provider.ClientID, clientSecret, provider.Hostname, transport, provider.Organizations, provider.Teams), nil
 
 	case (*configapi.GitLabIdentityProvider):
 		transport, err := transportFor(provider.CA, "", "")

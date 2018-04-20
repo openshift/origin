@@ -18,14 +18,29 @@ import (
 )
 
 const (
-	githubAuthorizeURL = "https://github.com/login/oauth/authorize"
-	githubTokenURL     = "https://github.com/login/oauth/access_token"
-	githubUserApiURL   = "https://api.github.com/user"
-	githubUserOrgURL   = "https://api.github.com/user/orgs"
-	githubUserTeamURL  = "https://api.github.com/user/teams"
-	githubUserEmailURL = "https://api.github.com/user/emails"
-	githubOAuthScope   = "user:email"
-	githubOrgScope     = "read:org"
+	// GitHub OAuth endpoints
+	defaultGithubAuthorizeURL = "https://github.com/login/oauth/authorize"
+	defaultGithubTokenURL     = "https://github.com/login/oauth/access_token"
+
+	// GitHub User API Endpoints
+	defaultGithubUserApiURL   = "https://api.github.com/user"
+	defaultGithubUserOrgURL   = "https://api.github.com/user/orgs"
+	defaultGithubUserTeamURL  = "https://api.github.com/user/teams"
+	defaultGithubUserEmailURL = "https://api.github.com/user/emails"
+
+	// GitHub Enterprise OAuth endpoints with hostname substitution
+	enterpriseGithubAuthorizeURL = "https://%s/login/oauth/authorize"
+	enterpriseGithubTokenURL     = "https://%s/login/oauth/access_token"
+
+	// GitHub User API endpoints with hostname substitution
+	enterpriseGithubUserApiURL   = "https://%s/api/v3/user"
+	enterpriseGithubUserOrgURL   = "https://%s/api/v3/user/orgs"
+	enterpriseGithubUserTeamURL  = "https://%s/api/v3/user/teams"
+	enterpriseGithubUserEmailURL = "https://%s/api/v3/user/emails"
+
+	// GitHub OAuth scopes, see provider.NewConfig
+	githubOAuthScope = "user:email"
+	githubOrgScope   = "read:org"
 
 	// https://developer.github.com/v3/#current-version
 	// https://developer.github.com/v3/media/#request-specific-version
@@ -38,6 +53,19 @@ type provider struct {
 	clientSecret         string
 	allowedOrganizations sets.String
 	allowedTeams         sets.String
+
+	// OAuth endpoints
+	githubAuthorizeURL string
+	githubTokenURL     string
+
+	// User API endpoints
+	githubUserApiURL   string
+	githubUserOrgURL   string
+	githubUserTeamURL  string
+	githubUserEmailURL string
+
+	// incorporates the CA bundle which may be required when GitHub Enterprise is used
+	transport http.RoundTripper
 }
 
 // https://developer.github.com/v3/users/#response
@@ -67,7 +95,9 @@ type githubTeam struct {
 	Organization githubOrg
 }
 
-func NewProvider(providerName, clientID, clientSecret string, organizations, teams []string) external.Provider {
+var _ external.Provider = &provider{}
+
+func NewProvider(providerName, clientID, clientSecret, hostname string, transport http.RoundTripper, organizations, teams []string) external.Provider {
 	allowedOrganizations := sets.NewString()
 	for _, org := range organizations {
 		if len(org) > 0 {
@@ -82,17 +112,36 @@ func NewProvider(providerName, clientID, clientSecret string, organizations, tea
 		}
 	}
 
-	return &provider{
+	p := &provider{
 		providerName:         providerName,
 		clientID:             clientID,
 		clientSecret:         clientSecret,
 		allowedOrganizations: allowedOrganizations,
 		allowedTeams:         allowedTeams,
+		transport:            transport,
 	}
+
+	if len(hostname) != 0 {
+		p.githubAuthorizeURL = fmt.Sprintf(enterpriseGithubAuthorizeURL, hostname)
+		p.githubTokenURL = fmt.Sprintf(enterpriseGithubTokenURL, hostname)
+		p.githubUserApiURL = fmt.Sprintf(enterpriseGithubUserApiURL, hostname)
+		p.githubUserOrgURL = fmt.Sprintf(enterpriseGithubUserOrgURL, hostname)
+		p.githubUserTeamURL = fmt.Sprintf(enterpriseGithubUserTeamURL, hostname)
+		p.githubUserEmailURL = fmt.Sprintf(enterpriseGithubUserEmailURL, hostname)
+	} else {
+		p.githubAuthorizeURL = defaultGithubAuthorizeURL
+		p.githubTokenURL = defaultGithubTokenURL
+		p.githubUserApiURL = defaultGithubUserApiURL
+		p.githubUserOrgURL = defaultGithubUserOrgURL
+		p.githubUserTeamURL = defaultGithubUserTeamURL
+		p.githubUserEmailURL = defaultGithubUserEmailURL
+	}
+
+	return p
 }
 
 func (p *provider) GetTransport() (http.RoundTripper, error) {
-	return nil, nil
+	return p.transport, nil
 }
 
 // NewConfig implements external/interfaces/Provider.NewConfig
@@ -108,8 +157,8 @@ func (p *provider) NewConfig() (*osincli.ClientConfig, error) {
 		ClientSecret:             p.clientSecret,
 		ErrorsInStatusCode:       true,
 		SendClientSecretInParams: true,
-		AuthorizeUrl:             githubAuthorizeURL,
-		TokenUrl:                 githubTokenURL,
+		AuthorizeUrl:             p.githubAuthorizeURL,
+		TokenUrl:                 p.githubTokenURL,
 		Scope:                    strings.Join(scopes, " "),
 	}
 	return config, nil
@@ -122,7 +171,7 @@ func (p provider) AddCustomParameters(req *osincli.AuthorizeRequest) {
 // GetUserIdentity implements external/interfaces/Provider.GetUserIdentity
 func (p *provider) GetUserIdentity(data *osincli.AccessData) (authapi.UserIdentityInfo, bool, error) {
 	userdata := githubUser{}
-	if _, err := getJSON(githubUserApiURL, data.AccessToken, &userdata); err != nil {
+	if _, err := p.getJSON(p.githubUserApiURL, data.AccessToken, &userdata); err != nil {
 		return nil, false, err
 	}
 	if userdata.ID == 0 {
@@ -130,7 +179,7 @@ func (p *provider) GetUserIdentity(data *osincli.AccessData) (authapi.UserIdenti
 	}
 
 	if len(p.allowedOrganizations) > 0 {
-		userOrgs, err := getUserOrgs(data.AccessToken)
+		userOrgs, err := p.getUserOrgs(data.AccessToken)
 		if err != nil {
 			return nil, false, err
 		}
@@ -141,7 +190,7 @@ func (p *provider) GetUserIdentity(data *osincli.AccessData) (authapi.UserIdenti
 		glog.V(4).Infof("User %s is a member of organizations %v)", userdata.Login, userOrgs.List())
 	}
 	if len(p.allowedTeams) > 0 {
-		userTeams, err := getUserTeams(data.AccessToken)
+		userTeams, err := p.getUserTeams(data.AccessToken)
 		if err != nil {
 			return nil, false, err
 		}
@@ -154,7 +203,7 @@ func (p *provider) GetUserIdentity(data *osincli.AccessData) (authapi.UserIdenti
 
 	// The returned email is empty if the user has not specified a public email address in their profile
 	if len(userdata.Email) == 0 {
-		email, err := getUserEmail(data.AccessToken)
+		email, err := p.getUserEmail(data.AccessToken)
 		if err == nil {
 			userdata.Email = email
 		} else {
@@ -178,9 +227,9 @@ func (p *provider) GetUserIdentity(data *osincli.AccessData) (authapi.UserIdenti
 }
 
 // getUserOrgs retrieves the organization membership for the user with the given access token.
-func getUserOrgs(token string) (sets.String, error) {
+func (p *provider) getUserOrgs(token string) (sets.String, error) {
 	userOrgs := sets.NewString()
-	err := page(githubUserOrgURL, token,
+	err := p.page(p.githubUserOrgURL, token,
 		func() interface{} {
 			return &[]githubOrg{}
 		},
@@ -197,9 +246,9 @@ func getUserOrgs(token string) (sets.String, error) {
 }
 
 // getUserTeams retrieves the team memberships for the user with the given access token.
-func getUserTeams(token string) (sets.String, error) {
+func (p *provider) getUserTeams(token string) (sets.String, error) {
 	userTeams := sets.NewString()
-	err := page(githubUserTeamURL, token,
+	err := p.page(p.githubUserTeamURL, token,
 		func() interface{} {
 			return &[]githubTeam{}
 		},
@@ -218,9 +267,9 @@ func getUserTeams(token string) (sets.String, error) {
 var errStopEmail = errors.New("done iterating over email because we found primary")
 
 // getUserEmail retrieves the primary email for the user with the given access token.
-func getUserEmail(token string) (string, error) {
+func (p *provider) getUserEmail(token string) (string, error) {
 	var email string
-	err := page(githubUserEmailURL, token,
+	err := p.page(p.githubUserEmailURL, token,
 		func() interface{} {
 			return &[]githubUserEmail{}
 		},
@@ -243,14 +292,14 @@ func getUserEmail(token string) (string, error) {
 }
 
 // page fetches the intialURL, and follows "next" links
-func page(initialURL, token string, newObj func() interface{}, processObj func(interface{}) error) error {
+func (p *provider) page(initialURL, token string, newObj func() interface{}, processObj func(interface{}) error) error {
 	// track urls we've fetched to avoid cycles
 	url := initialURL
 	fetchedURLs := sets.NewString(url)
 	for {
 		// fetch and process
 		obj := newObj()
-		links, err := getJSON(url, token, obj)
+		links, err := p.getJSON(url, token, obj)
 		if err != nil {
 			return err
 		}
@@ -277,12 +326,16 @@ func page(initialURL, token string, newObj func() interface{}, processObj func(i
 
 // getJSON fetches and deserializes JSON into the given object.
 // returns a (possibly empty) map of link relations to url strings, or an error.
-func getJSON(url string, token string, data interface{}) (map[string]string, error) {
-	req, _ := http.NewRequest("GET", url, nil)
-	req.Header.Set("Authorization", fmt.Sprintf("bearer %s", token))
+func (p *provider) getJSON(url string, token string, data interface{}) (map[string]string, error) {
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
 	req.Header.Set("Accept", githubAccept)
 
-	res, err := http.DefaultClient.Do(req)
+	res, err := p.transport.RoundTrip(req)
 	if err != nil {
 		return nil, err
 	}
@@ -296,6 +349,5 @@ func getJSON(url string, token string, data interface{}) (map[string]string, err
 		return nil, err
 	}
 
-	links := links.ParseLinks(res.Header.Get("Link"))
-	return links, nil
+	return links.ParseLinks(res.Header.Get("Link")), nil
 }

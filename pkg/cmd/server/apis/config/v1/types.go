@@ -983,6 +983,12 @@ type GitHubIdentityProvider struct {
 	Organizations []string `json:"organizations"`
 	// Teams optionally restricts which teams are allowed to log in. Format is <org>/<team>.
 	Teams []string `json:"teams"`
+	// Hostname is the optional domain (e.g. "mycompany.com") for use with a hosted instance of GitHub Enterprise.
+	// It must match the GitHub Enterprise settings value that is configured at /setup/settings#hostname.
+	Hostname string `json:"hostname"`
+	// CA is the optional trusted certificate authority bundle to use when making requests to the server.
+	// If empty, the default system roots are used.  This can only be configured when hostname is set to a non-empty value.
+	CA string `json:"ca"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
