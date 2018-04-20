@@ -13,32 +13,32 @@ type ContextType struct {
 	ClusterLoader struct {
 		Cleanup    bool
 		Projects   []ClusterLoaderType
-		Sync       SyncObjectType
-		TuningSets []TuningSetType
+		Sync       SyncObjectType  `yaml:",omitempty"`
+		TuningSets []TuningSetType `yaml:",omitempty"`
 	}
 }
 
 // ClusterLoaderType struct only used for Cluster Loader test config
 type ClusterLoaderType struct {
-	Number     int `mapstructure:"num"`
+	Number     int `mapstructure:"num" yaml:"num"`
 	Basename   string
-	Labels     map[string]string
-	Tuning     string
-	Configmaps map[string]interface{}
-	Secrets    map[string]interface{}
-	Pods       []ClusterLoaderObjectType
-	Templates  []ClusterLoaderObjectType
+	Labels     map[string]string         `yaml:",omitempty"`
+	Tuning     string                    `yaml:",omitempty"`
+	Configmaps map[string]interface{}    `yaml:",omitempty"`
+	Secrets    map[string]interface{}    `yaml:",omitempty"`
+	Pods       []ClusterLoaderObjectType `yaml:",omitempty"`
+	Templates  []ClusterLoaderObjectType `yaml:",omitempty"`
 }
 
 // ClusterLoaderObjectType is nested object type for cluster loader struct
 type ClusterLoaderObjectType struct {
-	Total      int
-	Number     int `mapstructure:"num"`
-	Image      string
-	Basename   string
-	File       string
-	Sync       SyncObjectType
-	Parameters map[string]interface{}
+	Total      int                    `yaml:",omitempty"`
+	Number     int                    `mapstructure:"num" yaml:"num"`
+	Image      string                 `yaml:",omitempty"`
+	Basename   string                 `yaml:",omitempty"`
+	File       string                 `yaml:",omitempty"`
+	Sync       SyncObjectType         `yaml:",omitempty"`
+	Parameters map[string]interface{} `yaml:",omitempty"`
 }
 
 // SyncObjectType is nested object type for cluster loader synchronisation functionality
