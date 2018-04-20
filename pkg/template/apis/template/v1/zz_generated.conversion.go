@@ -339,6 +339,7 @@ func autoConvert_v1_TemplateInstanceObject_To_template_TemplateInstanceObject(in
 	if err := core_v1.Convert_v1_ObjectReference_To_core_ObjectReference(&in.Ref, &out.Ref, s); err != nil {
 		return err
 	}
+	out.Index = in.Index
 	return nil
 }
 
@@ -351,6 +352,7 @@ func autoConvert_template_TemplateInstanceObject_To_v1_TemplateInstanceObject(in
 	if err := core_v1.Convert_core_ObjectReference_To_v1_ObjectReference(&in.Ref, &out.Ref, s); err != nil {
 		return err
 	}
+	out.Index = in.Index
 	return nil
 }
 

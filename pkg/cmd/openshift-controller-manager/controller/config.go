@@ -104,6 +104,7 @@ func (c *OpenshiftControllerConfig) GetControllerInitializers() (map[string]Init
 	ret["openshift.io/image-signature-import"] = c.ImageSignatureImportControllerConfig.RunController
 
 	ret["openshift.io/templateinstance"] = RunTemplateInstanceController
+	ret["openshift.io/templateinstancefinalizer"] = RunTemplateInstanceFinalizerController
 
 	ret["openshift.io/sdn"] = c.SDNControllerConfig.RunController
 	ret["openshift.io/unidling"] = c.UnidlingControllerConfig.RunController

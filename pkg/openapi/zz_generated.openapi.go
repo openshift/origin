@@ -10140,6 +10140,13 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Ref:         ref("k8s.io/api/core/v1.ObjectReference"),
 							},
 						},
+						"index": {
+							SchemaProps: spec.SchemaProps{
+								Description: "index is an index into Template.Spec.Template.Objects[]",
+								Type:        []string{"integer"},
+								Format:      "int64",
+							},
+						},
 					},
 				},
 			},

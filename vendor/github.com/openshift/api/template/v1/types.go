@@ -204,6 +204,9 @@ type TemplateInstanceObject struct {
 	// name and namespace are used; these can contain references to parameters
 	// which will be substituted following the usual rules.
 	Ref corev1.ObjectReference `json:"ref,omitempty" protobuf:"bytes,1,opt,name=ref"`
+
+	// index is an index into Template.Spec.Template.Objects[]
+	Index int64 `json:"index,omitempty" protobuf:"bytes,2,opt,name=index"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
