@@ -156,6 +156,8 @@ type DockerConfig struct {
 	// commands in Docker containers.
 	ExecHandlerName DockerExecHandlerType `json:"execHandlerName"`
 	// DockerShimSocket is the location of the dockershim socket the kubelet uses.
+	// Currently unix socket is supported on Linux, and tcp is supported on windows.
+	// Examples:'unix:///var/run/dockershim.sock', 'tcp://localhost:3735'
 	DockerShimSocket string `json:"dockerShimSocket"`
 	// DockershimRootDirectory is the dockershim root directory.
 	DockershimRootDirectory string `json:"dockerShimRootDirectory"`

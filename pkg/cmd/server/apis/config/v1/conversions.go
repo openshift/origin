@@ -200,7 +200,7 @@ func SetDefaults_DockerConfig(obj *DockerConfig) {
 		obj.ExecHandlerName = DockerExecHandlerNative
 	}
 	if len(obj.DockerShimSocket) == 0 {
-		obj.DockerShimSocket = "/var/run/dockershim.sock"
+		obj.DockerShimSocket = "unix:///var/run/dockershim.sock"
 	}
 	if len(obj.DockershimRootDirectory) == 0 {
 		obj.DockershimRootDirectory = "/var/lib/dockershim"

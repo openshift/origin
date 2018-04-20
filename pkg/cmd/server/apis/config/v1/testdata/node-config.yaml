@@ -12,7 +12,7 @@ dnsNameservers: null
 dnsRecursiveResolvConf: ""
 dockerConfig:
   dockerShimRootDirectory: /var/lib/dockershim
-  dockerShimSocket: /var/run/dockershim.sock
+  dockerShimSocket: unix:///var/run/dockershim.sock
   execHandlerName: native
 enableUnidling: false
 imageConfig:
