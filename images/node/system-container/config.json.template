@@ -500,7 +500,7 @@
 		"rbind",
 		"rslave"
 	    ]
-	},
+	}
         $ADDTL_MOUNTS
     ],
     "hooks": {},
