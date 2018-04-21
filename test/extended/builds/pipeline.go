@@ -35,6 +35,7 @@ const (
 	syncPluginName                       = "openshift-sync"
 	secretName                           = "secret-to-credential"
 	secretCredentialSyncLabel            = "credential.sync.jenkins.openshift.io"
+	envVarsPipelineGitRepoBuildConfig    = "test-build-app-pipeline"
 )
 
 func debugAnyJenkinsFailure(br *exutil.BuildResult, name string, oc *exutil.CLI, dumpMaster bool) {
@@ -64,16 +65,16 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 		mavenSlavePipelinePath        = exutil.FixturePath("..", "..", "examples", "jenkins", "pipeline", "maven-pipeline.yaml")
 		mavenSlaveGradlePipelinePath  = exutil.FixturePath("testdata", "builds", "gradle-pipeline.yaml")
 		//orchestrationPipelinePath = exutil.FixturePath("..", "..", "examples", "jenkins", "pipeline", "mapsapp-pipeline.yaml")
-		blueGreenPipelinePath                  = exutil.FixturePath("..", "..", "examples", "jenkins", "pipeline", "bluegreen-pipeline.yaml")
-		clientPluginPipelinePath               = exutil.FixturePath("..", "..", "examples", "jenkins", "pipeline", "openshift-client-plugin-pipeline.yaml")
-		envVarsPipelinePath                    = exutil.FixturePath("testdata", "samplepipeline-withenvs.yaml")
-		origPipelinePath                       = exutil.FixturePath("..", "..", "examples", "jenkins", "pipeline", "samplepipeline.yaml")
-		configMapPodTemplatePath               = exutil.FixturePath("testdata", "config-map-jenkins-slave-pods.yaml")
-		imagestreamPodTemplatePath             = exutil.FixturePath("testdata", "imagestream-jenkins-slave-pods.yaml")
-		imagestreamtagPodTemplatePath          = exutil.FixturePath("testdata", "imagestreamtag-jenkins-slave-pods.yaml")
-		podTemplateSlavePipelinePath           = exutil.FixturePath("testdata", "jenkins-slave-template.yaml")
-		multiNamespaceClientPluginPipelinePath = exutil.FixturePath("testdata", "multi-namespace-pipeline.yaml")
-		secretPath                             = exutil.FixturePath("testdata", "openshift-secret-to-jenkins-credential.yaml")
+		blueGreenPipelinePath = exutil.FixturePath("..", "..", "examples", "jenkins", "pipeline", "bluegreen-pipeline.yaml")
+		//clientPluginPipelinePath               = exutil.FixturePath("..", "..", "examples", "jenkins", "pipeline", "openshift-client-plugin-pipeline.yaml")
+		envVarsPipelinePath           = exutil.FixturePath("testdata", "samplepipeline-withenvs.yaml")
+		origPipelinePath              = exutil.FixturePath("..", "..", "examples", "jenkins", "pipeline", "samplepipeline.yaml")
+		configMapPodTemplatePath      = exutil.FixturePath("testdata", "config-map-jenkins-slave-pods.yaml")
+		imagestreamPodTemplatePath    = exutil.FixturePath("testdata", "imagestream-jenkins-slave-pods.yaml")
+		imagestreamtagPodTemplatePath = exutil.FixturePath("testdata", "imagestreamtag-jenkins-slave-pods.yaml")
+		podTemplateSlavePipelinePath  = exutil.FixturePath("testdata", "jenkins-slave-template.yaml")
+		//multiNamespaceClientPluginPipelinePath = exutil.FixturePath("testdata", "multi-namespace-pipeline.yaml")
+		secretPath = exutil.FixturePath("testdata", "openshift-secret-to-jenkins-credential.yaml")
 
 		oc                       = exutil.NewCLI("jenkins-pipeline", exutil.KubeConfigPath())
 		ticker                   *time.Ticker
@@ -196,7 +197,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 
 	// these tests are isolated so that PR testing the the jenkins-client-plugin can execute the extended
 	// tests with a ginkgo focus that runs only the tests within this ginkgo context
-	g.Context("jenkins-client-plugin tests", func() {
+	/*g.Context("jenkins-client-plugin tests", func() {
 
 		g.It("using the ephemeral template", func() {
 			defer cleanup()
@@ -308,7 +309,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 				o.Expect(err).NotTo(o.HaveOccurred())
 			})
 		})
-	})
+	})*/
 
 	g.Context("Sync plugin tests", func() {
 
@@ -774,6 +775,30 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 				g.By("clean up openshift resources for next potential run")
 				err = oc.Run("delete").Args("bc", "sample-pipeline-withenvs").Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
+			})
+
+			g.By("Pipeline with env vars and git repo source")
+
+			g.By("should propagate env vars to bc", func() {
+				g.By(fmt.Sprintf("creating git repo %v", envVarsPipelineGitRepoBuildConfig))
+				repo, err := exutil.NewGitRepo(envVarsPipelineGitRepoBuildConfig)
+				defer repo.Remove()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				jf := `node() {\necho "FOO1 is ${env.FOO1}"\necho"FOO2is${env.FOO2}"\necho"FOO3is${env.FOO3}"\necho"FOO4is${env.FOO4}"}`
+				err = repo.AddAndCommit("Jenkinsfile", jf)
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				// instantiate the bc
+				g.By(fmt.Sprintf("calling oc new-app %q --strategy=pipeline --build-env=FOO1=BAR1", repo.RepoPath))
+				err = oc.Run("new-app").Args(repo.RepoPath, "--strategy=pipeline", "--build-env=FOO1=BAR1").Execute()
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				bc, err := oc.BuildClient().Build().BuildConfigs(oc.Namespace()).Get(envVarsPipelineGitRepoBuildConfig, metav1.GetOptions{})
+				o.Expect(err).NotTo(o.HaveOccurred())
+				envs := bc.Spec.Strategy.JenkinsPipelineStrategy.Env
+				o.Expect(len(envs)).To(o.Equal(1))
+				o.Expect(envs[0].Name).To(o.Equal("FOO1"))
+				o.Expect(envs[0].Value).To(o.Equal("BAR1"))
 			})
 
 			g.By("Blue-green pipeline")

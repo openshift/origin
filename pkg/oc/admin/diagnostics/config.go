@@ -52,9 +52,10 @@ func (o DiagnosticsOptions) detectClientConfig() (expected bool, detected bool) 
 			}
 		}
 
-		if o.canOpenConfigFile(path, errmsg) && len(foundPath) == 0 {
+		if o.canOpenConfigFile(path, errmsg) {
 			successfulLoad = true
 			foundPath = path
+			break
 		}
 	}
 	if len(foundPath) > 0 {

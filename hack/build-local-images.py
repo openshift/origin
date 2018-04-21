@@ -56,7 +56,17 @@ image_namespace, _, image_prefix = os_image_prefix.rpartition("/")
 # "enable_default: True" can be added to skip the image build
 # with no arguments
 image_config = {
-    image_prefix: {
+    "control-plane": {
+        "directory": "origin",
+        "binaries": {
+            "openshift": "/usr/bin/openshift",
+            "oc": "/usr/bin/oc",
+            "hypershift": "/usr/bin/hypershift",
+            "hyperkube": "/usr/bin/hyperkube"
+        },
+        "files": {}
+    },
+    "control-plane": {
         "directory": "origin",
         "binaries": {
             "openshift": "/usr/bin/openshift",

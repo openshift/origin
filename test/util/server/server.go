@@ -343,7 +343,7 @@ func DefaultAllInOneOptions() (*configapi.MasterConfig, *configapi.NodeConfig, *
 		return nil, nil, nil, err
 	}
 
-	nodeConfig.DockerConfig.DockerShimSocket = path.Join(util.GetBaseDir(), "dockershim.sock")
+	nodeConfig.DockerConfig.DockerShimSocket = "unix://" + path.Join(util.GetBaseDir(), "dockershim.sock")
 	nodeConfig.DockerConfig.DockershimRootDirectory = path.Join(util.GetBaseDir(), "dockershim")
 
 	return masterConfig, nodeConfig, startOptions.NodeArgs.Components, nil
