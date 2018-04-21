@@ -41,9 +41,11 @@ import (
 	appsutil "github.com/openshift/origin/pkg/apps/util"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildtypedclientset "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
+	"github.com/openshift/origin/pkg/git"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imagetypeclientset "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	"github.com/openshift/origin/test/extended/testdata"
+	"github.com/openshift/origin/test/util"
 )
 
 const pvPrefix = "pv-"
@@ -1308,6 +1310,55 @@ func (r *podExecutor) Exec(script string) (string, error) {
 		return true, err
 	})
 	return out, waitErr
+}
+
+type GitRepo struct {
+	baseTempDir  string
+	upstream     git.Repository
+	upstreamPath string
+	repo         git.Repository
+	RepoPath     string
+}
+
+// AddAndCommit commits a file with its content to local repo
+func (r GitRepo) AddAndCommit(file, content string) error {
+	if err := ioutil.WriteFile(filepath.Join(r.RepoPath, file), []byte(content), 0666); err != nil {
+		return err
+	}
+	if err := r.repo.Add(r.RepoPath, file); err != nil {
+		return err
+	}
+	if err := r.repo.Commit(r.RepoPath, "added file "+file); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Remove performs cleanup of no longer needed directories with local and "remote" git repo
+func (r GitRepo) Remove() {
+	if r.baseTempDir != "" {
+		os.RemoveAll(r.baseTempDir)
+	}
+}
+
+// NewGitRepo creates temporary test directories with local and "remote" git repo
+func NewGitRepo(repoName string) (GitRepo, error) {
+	testDir, err := ioutil.TempDir(util.GetBaseDir(), repoName)
+	if err != nil {
+		return GitRepo{}, err
+	}
+	repoPath := filepath.Join(testDir, repoName)
+	upstreamPath := repoPath + `.git`
+	upstream := git.NewRepository()
+	if err = upstream.Init(upstreamPath, true); err != nil {
+		return GitRepo{baseTempDir: testDir}, err
+	}
+	repo := git.NewRepository()
+	if err = repo.Clone(repoPath, upstreamPath); err != nil {
+		return GitRepo{baseTempDir: testDir}, err
+	}
+
+	return GitRepo{testDir, upstream, upstreamPath, repo, repoPath}, nil
 }
 
 // WaitForUserBeAuthorized waits a minute until the cluster bootstrap roles are available

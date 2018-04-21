@@ -35,6 +35,7 @@ const (
 	syncPluginName                       = "openshift-sync"
 	secretName                           = "secret-to-credential"
 	secretCredentialSyncLabel            = "credential.sync.jenkins.openshift.io"
+	envVarsPipelineGitRepoBuildConfig    = "test-build-app-pipeline"
 )
 
 func debugAnyJenkinsFailure(br *exutil.BuildResult, name string, oc *exutil.CLI, dumpMaster bool) {
@@ -774,6 +775,30 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 				g.By("clean up openshift resources for next potential run")
 				err = oc.Run("delete").Args("bc", "sample-pipeline-withenvs").Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
+			})
+
+			g.By("Pipeline with env vars and git repo source")
+
+			g.By("should propagate env vars to bc", func() {
+				g.By(fmt.Sprintf("creating git repo %v", envVarsPipelineGitRepoBuildConfig))
+				repo, err := exutil.NewGitRepo(envVarsPipelineGitRepoBuildConfig)
+				defer repo.Remove()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				jf := `node() {\necho "FOO1 is ${env.FOO1}"\necho"FOO2is${env.FOO2}"\necho"FOO3is${env.FOO3}"\necho"FOO4is${env.FOO4}"}`
+				err = repo.AddAndCommit("Jenkinsfile", jf)
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				// instantiate the bc
+				g.By(fmt.Sprintf("calling oc new-app %q --strategy=pipeline --build-env=FOO1=BAR1", repo.RepoPath))
+				err = oc.Run("new-app").Args(repo.RepoPath, "--strategy=pipeline", "--build-env=FOO1=BAR1").Execute()
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				bc, err := oc.BuildClient().Build().BuildConfigs(oc.Namespace()).Get(envVarsPipelineGitRepoBuildConfig, metav1.GetOptions{})
+				o.Expect(err).NotTo(o.HaveOccurred())
+				envs := bc.Spec.Strategy.JenkinsPipelineStrategy.Env
+				o.Expect(len(envs)).To(o.Equal(1))
+				o.Expect(envs[0].Name).To(o.Equal("FOO1"))
+				o.Expect(envs[0].Value).To(o.Equal("BAR1"))
 			})
 
 			g.By("Blue-green pipeline")

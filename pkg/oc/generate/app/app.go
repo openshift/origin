@@ -199,7 +199,9 @@ func (s *BuildStrategyRef) BuildStrategy(env Environment, dockerStrategyOptions 
 	switch s.Strategy {
 	case generate.StrategyPipeline:
 		return &buildapi.BuildStrategy{
-			JenkinsPipelineStrategy: &buildapi.JenkinsPipelineBuildStrategy{},
+			JenkinsPipelineStrategy: &buildapi.JenkinsPipelineBuildStrategy{
+				Env: env.List(),
+			},
 		}, s.Base.BuildTriggers()
 
 	case generate.StrategyDocker:
