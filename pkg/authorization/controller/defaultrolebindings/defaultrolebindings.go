@@ -128,7 +128,7 @@ func (c *DefaultRoleBindingController) syncNamespace(namespaceName string) error
 		}
 
 		_, err := c.roleBindingClient.RoleBindings(namespaceName).Create(&desiredRoleBinding)
-		if err != nil {
+		if err != nil && !errors.IsAlreadyExists(err) {
 			errs = append(errs, err)
 		}
 	}
