@@ -1,4 +1,4 @@
-package image
+package apihelpers
 
 import (
 	"fmt"
@@ -243,19 +243,19 @@ func TestParseNamedDockerImageReference(t *testing.T) {
 		case err != nil && testCase.Err:
 			continue
 		}
-		if e, a := testCase.Registry, ref.Registry; e != a {
+		if e, a := testCase.Registry, ref.GetRegistry(); e != a {
 			t.Errorf("%s: registry: expected %q, got %q", testCase.From, e, a)
 		}
-		if e, a := testCase.Namespace, ref.Namespace; e != a {
+		if e, a := testCase.Namespace, ref.GetNamespace(); e != a {
 			t.Errorf("%s: namespace: expected %q, got %q", testCase.From, e, a)
 		}
-		if e, a := testCase.Name, ref.Name; e != a {
+		if e, a := testCase.Name, ref.GetName(); e != a {
 			t.Errorf("%s: name: expected %q, got %q", testCase.From, e, a)
 		}
-		if e, a := testCase.Tag, ref.Tag; e != a {
+		if e, a := testCase.Tag, ref.GetTag(); e != a {
 			t.Errorf("%s: tag: expected %q, got %q", testCase.From, e, a)
 		}
-		if e, a := testCase.ID, ref.ID; e != a {
+		if e, a := testCase.ID, ref.GetID(); e != a {
 			t.Errorf("%s: id: expected %q, got %q", testCase.From, e, a)
 		}
 	}
