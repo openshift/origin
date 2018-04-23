@@ -1,6 +1,8 @@
 package writerlease
 
 import (
+	"fmt"
+	"math/rand"
 	"sync"
 	"time"
 
@@ -39,12 +41,20 @@ type Lease interface {
 // WorkFunc is a retriable unit of work. It should return an error if the work couldn't be
 // completed successfully, or true if we can assume our lease has been extended. If the
 // lease could not be extended, we drop this unit of work.
-type WorkFunc func() (extendLease, retry bool)
+type WorkFunc func() (result WorkResult, retry bool)
+
+type WorkResult int
+
+const (
+	None WorkResult = iota
+	Extend
+	Release
+)
 
 // LimitRetries allows a work function to be retried up to retries times.
 func LimitRetries(retries int, fn WorkFunc) WorkFunc {
 	i := 0
-	return func() (bool, bool) {
+	return func() (WorkResult, bool) {
 		extend, retry := fn()
 		if retry {
 			retry = i < retries
@@ -95,7 +105,9 @@ func New(leaseDuration, retryInterval time.Duration) *WriterLease {
 		Steps:    5,
 		Jitter:   0.5,
 	}
+
 	return &WriterLease{
+		name:          fmt.Sprintf("%08d", rand.Int31()),
 		backoff:       backoff,
 		maxBackoff:    leaseDuration,
 		retryInterval: retryInterval,
@@ -244,32 +256,51 @@ func (l *WriterLease) work() bool {
 		glog.V(4).Infof("[%s] Lease owner or electing, running %s", l.name, key)
 	}
 
-	isLeader, retry := work.fn()
+	result, retry := work.fn()
 	if retry {
-		// come back in a bit
-		glog.V(4).Infof("[%s] Retrying %s", l.name, key)
-		l.queue.AddAfter(key, l.retryInterval)
-		l.queue.Done(key)
+		l.retryKey(key, result)
 		return true
 	}
-
-	l.finishKey(key, isLeader, work.id)
+	l.finishKey(key, result, work.id)
 	return true
 }
 
-func (l *WriterLease) finishKey(key string, isLeader bool, id int) {
+// retryKey schedules the key for a retry in the future.
+func (l *WriterLease) retryKey(key string, result WorkResult) {
 	l.lock.Lock()
 	defer l.lock.Unlock()
 
+	l.nextState(result)
+	l.queue.AddAfter(key, l.retryInterval)
+	l.queue.Done(key)
+
+	glog.V(4).Infof("[%s] Retrying work for %s in state=%d tick=%d expires=%s", l.name, key, l.state, l.tick, l.expires)
+}
+
+func (l *WriterLease) finishKey(key string, result WorkResult, id int) {
+	l.lock.Lock()
+	defer l.lock.Unlock()
+
+	l.nextState(result)
+	if work, ok := l.queued[key]; ok && work.id == id {
+		delete(l.queued, key)
+	}
+	l.queue.Done(key)
+	glog.V(4).Infof("[%s] Completed work for %s in state=%d tick=%d expires=%s", l.name, key, l.state, l.tick, l.expires)
+}
+
+// nextState must be called while holding the lock.
+func (l *WriterLease) nextState(result WorkResult) {
 	resolvedElection := l.state == Election
-	if isLeader {
+	switch result {
+	case Extend:
 		switch l.state {
 		case Election, Follower:
 			l.tick = 0
 			l.state = Leader
 		}
 		l.expires = l.nowFn().Add(l.maxBackoff)
-	} else {
+	case Release:
 		switch l.state {
 		case Election, Leader:
 			l.tick = 0
@@ -278,16 +309,13 @@ func (l *WriterLease) finishKey(key string, isLeader bool, id int) {
 			l.tick++
 		}
 		l.expires = l.nowFn().Add(l.nextBackoff())
-	}
-	if work, ok := l.queued[key]; ok && work.id == id {
-		delete(l.queued, key)
+	default:
+		resolvedElection = false
 	}
 	// close the channel before we remove the key from the queue to prevent races in Wait
 	if resolvedElection {
 		close(l.once)
 	}
-	l.queue.Done(key)
-	glog.V(4).Infof("[%s] Completed work for %s in state=%d tick=%d expires=%s", l.name, key, l.state, l.tick, l.expires)
 }
 
 func (l *WriterLease) nextBackoff() time.Duration {

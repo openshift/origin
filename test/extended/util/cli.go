@@ -14,6 +14,7 @@ import (
 	"time"
 
 	g "github.com/onsi/ginkgo"
+	o "github.com/onsi/gomega"
 
 	authorizationapiv1 "k8s.io/api/authorization/v1"
 	kapiv1 "k8s.io/api/core/v1"
@@ -44,33 +45,35 @@ import (
 // CLI provides function to call the OpenShift CLI and Kubernetes and OpenShift
 // clients.
 type CLI struct {
-	execPath         string
-	verb             string
-	configPath       string
-	adminConfigPath  string
-	username         string
-	outputDir        string
-	globalArgs       []string
-	commandArgs      []string
-	finalArgs        []string
-	stdin            *bytes.Buffer
-	stdout           io.Writer
-	stderr           io.Writer
-	verbose          bool
-	withoutNamespace bool
-	kubeFramework    *e2e.Framework
+	execPath           string
+	verb               string
+	configPath         string
+	adminConfigPath    string
+	username           string
+	outputDir          string
+	globalArgs         []string
+	commandArgs        []string
+	finalArgs          []string
+	namespacesToDelete []string
+	stdin              *bytes.Buffer
+	stdout             io.Writer
+	stderr             io.Writer
+	verbose            bool
+	withoutNamespace   bool
+	kubeFramework      *e2e.Framework
 }
 
 // NewCLI initialize the upstream E2E framework and set the namespace to match
 // with the project name. Note that this function does not initialize the project
 // role bindings for the namespace.
 func NewCLI(project, adminConfigPath string) *CLI {
-	// Avoid every caller needing to provide a unique project name
-	// SetupProject already treats this as a baseName
-	uniqueProject := names.SimpleNameGenerator.GenerateName(fmt.Sprintf("%s-", project))
-
 	client := &CLI{}
-	client.kubeFramework = e2e.NewDefaultFramework(uniqueProject)
+
+	// has to run before the default framework nukes the client
+	g.AfterEach(client.TeardownProject)
+
+	client.kubeFramework = e2e.NewDefaultFramework(project)
+	client.kubeFramework.SkipNamespaceCreation = true
 	client.outputDir = os.TempDir()
 	client.username = "admin"
 	client.execPath = "oc"
@@ -79,8 +82,7 @@ func NewCLI(project, adminConfigPath string) *CLI {
 	}
 	client.adminConfigPath = adminConfigPath
 
-	// Register custom ns setup func
-	setCreateTestingNSFunc(uniqueProject, client.SetupProject)
+	g.BeforeEach(client.SetupProject)
 
 	return client
 }
@@ -154,39 +156,43 @@ func (c *CLI) SetOutputDir(dir string) *CLI {
 }
 
 // SetupProject creates a new project and assign a random user to the project.
-// All resources will be then created within this project and Kubernetes E2E
-// suite will destroy the project after test case finish.
-func (c *CLI) SetupProject(name string, kubeClient kclientset.Interface, _ map[string]string) (*kapiv1.Namespace, error) {
-	newNamespace := names.SimpleNameGenerator.GenerateName(fmt.Sprintf("extended-test-%s-", name))
-	c.SetNamespace(newNamespace).ChangeUser(fmt.Sprintf("%s-user", c.Namespace()))
+// All resources will be then created within this project.
+func (c *CLI) SetupProject() {
+	newNamespace := names.SimpleNameGenerator.GenerateName(fmt.Sprintf("e2e-test-%s-", c.kubeFramework.BaseName))
+	c.SetNamespace(newNamespace).ChangeUser(fmt.Sprintf("%s-user", newNamespace))
 	e2e.Logf("The user is now %q", c.Username())
 
-	e2e.Logf("Creating project %q", c.Namespace())
+	e2e.Logf("Creating project %q", newNamespace)
 	_, err := c.ProjectClient().Project().ProjectRequests().Create(&projectapi.ProjectRequest{
-		ObjectMeta: metav1.ObjectMeta{Name: c.Namespace()},
+		ObjectMeta: metav1.ObjectMeta{Name: newNamespace},
 	})
-	if err != nil {
-		e2e.Logf("Failed to create a project and namespace %q: %v", c.Namespace(), err)
-		return nil, err
-	}
+	o.Expect(err).NotTo(o.HaveOccurred())
 
-	e2e.Logf("Waiting on permissions in project %q ...", c.Namespace())
+	// TODO: remove when https://github.com/kubernetes/kubernetes/pull/62606 merges and is in origin
+	c.namespacesToDelete = append(c.namespacesToDelete, newNamespace)
+
+	e2e.Logf("Waiting on permissions in project %q ...", newNamespace)
 	err = WaitForSelfSAR(1*time.Second, 60*time.Second, c.KubeClient(), authorizationapiv1.SelfSubjectAccessReviewSpec{
 		ResourceAttributes: &authorizationapiv1.ResourceAttributes{
-			Namespace: c.Namespace(),
+			Namespace: newNamespace,
 			Verb:      "create",
 			Group:     "",
 			Resource:  "pods",
 		},
 	})
-	if err != nil {
-		return nil, err
+	o.Expect(err).NotTo(o.HaveOccurred())
+}
+
+// TeardownProject removes projects created by this test.
+func (c *CLI) TeardownProject() {
+	if len(c.namespacesToDelete) > 0 {
+		timeout := e2e.DefaultNamespaceDeletionTimeout
+		if c.kubeFramework.NamespaceDeletionTimeout != 0 {
+			timeout = c.kubeFramework.NamespaceDeletionTimeout
+		}
+		e2e.DeleteNamespaces(c.kubeFramework.ClientSet, c.namespacesToDelete, nil)
+		e2e.WaitForNamespacesDeleted(c.kubeFramework.ClientSet, c.namespacesToDelete, timeout)
 	}
-
-	// TODO: Possibly check other resources like Builds depending on a different service account.
-	// (Builds now check for this in every test.)
-
-	return &kapiv1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: c.Namespace()}}, nil
 }
 
 // Verbose turns on printing verbose messages when executing OpenShift commands

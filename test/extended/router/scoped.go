@@ -11,12 +11,13 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
-	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
+	routeclientset "github.com/openshift/client-go/route/clientset/versioned"
+	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -26,25 +27,45 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 	defer g.GinkgoRecover()
 	var (
 		configPath = exutil.FixturePath("testdata", "scoped-router.yaml")
-		oc         = exutil.NewCLI("scoped-router", exutil.KubeConfigPath())
+		oc         *exutil.CLI
+		ns         string
 	)
 
-	g.BeforeEach(func() {
-		imagePrefix := os.Getenv("OS_IMAGE_PREFIX")
-		if len(imagePrefix) == 0 {
-			imagePrefix = "openshift/origin"
+	// this hook must be registered before the framework namespace teardown
+	// hook
+	g.AfterEach(func() {
+		if g.CurrentGinkgoTestDescription().Failed {
+			client := routeclientset.NewForConfigOrDie(oc.AdminConfig()).Route().Routes(ns)
+			if routes, _ := client.List(metav1.ListOptions{}); routes != nil {
+				outputIngress(routes.Items...)
+			}
+			exutil.DumpPodLogsStartingWith("router-", oc)
 		}
-		err := oc.AsAdmin().Run("new-app").Args("-f", configPath, "-p", "IMAGE="+imagePrefix+"-haproxy-router").Execute()
+	})
+
+	oc = exutil.NewCLI("router-scoped", exutil.KubeConfigPath())
+
+	g.BeforeEach(func() {
+		ns = oc.Namespace()
+
+		image := os.Getenv("OS_IMAGE_PREFIX")
+		if len(image) == 0 {
+			image = "openshift/origin"
+		}
+		image += "-haproxy-router"
+
+		if dc, err := oc.AdminAppsClient().Apps().DeploymentConfigs("default").Get("router", metav1.GetOptions{}); err == nil {
+			if len(dc.Spec.Template.Spec.Containers) > 0 && dc.Spec.Template.Spec.Containers[0].Image != "" {
+				image = dc.Spec.Template.Spec.Containers[0].Image
+			}
+		}
+
+		err := oc.AsAdmin().Run("new-app").Args("-f", configPath, "-p", "IMAGE="+image).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
 	g.Describe("The HAProxy router", func() {
 		g.It("should serve the correct routes when scoped to a single namespace and label set", func() {
-			defer func() {
-				if g.CurrentGinkgoTestDescription().Failed {
-					dumpScopedRouterLogs(oc, g.CurrentGinkgoTestDescription().FullTestText)
-				}
-			}()
 			oc.SetOutputDir(exutil.TestContext.OutputDir)
 			ns := oc.KubeFramework().Namespace.Name
 			execPodName := exutil.CreateExecPodOrFail(oc.AdminKubeClient().CoreV1(), ns, "execpod")
@@ -54,7 +75,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 
 			var routerIP string
 			err := wait.Poll(time.Second, changeTimeoutSeconds*time.Second, func() (bool, error) {
-				pod, err := oc.KubeFramework().ClientSet.CoreV1().Pods(oc.KubeFramework().Namespace.Name).Get("scoped-router", metav1.GetOptions{})
+				pod, err := oc.KubeFramework().ClientSet.CoreV1().Pods(oc.KubeFramework().Namespace.Name).Get("router-scoped", metav1.GetOptions{})
 				if err != nil {
 					return false, err
 				}
@@ -72,9 +93,6 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 			g.By("waiting for the healthz endpoint to respond")
 			healthzURI := fmt.Sprintf("http://%s:1936/healthz", routerIP)
 			err = waitForRouterOKResponseExec(ns, execPodName, healthzURI, routerIP, changeTimeoutSeconds)
-			if err != nil {
-				dumpScopedRouterLogs(oc, fmt.Sprintf("%s - %s", g.CurrentGinkgoTestDescription().TestText, "waiting for the healthz endpoint to respond"))
-			}
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for the valid route to respond")
@@ -89,11 +107,6 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 		})
 
 		g.It("should override the route host with a custom value", func() {
-			defer func() {
-				if g.CurrentGinkgoTestDescription().Failed {
-					dumpScopedRouterLogs(oc, g.CurrentGinkgoTestDescription().FullTestText)
-				}
-			}()
 			oc.SetOutputDir(exutil.TestContext.OutputDir)
 			ns := oc.KubeFramework().Namespace.Name
 			execPodName := exutil.CreateExecPodOrFail(oc.AdminKubeClient().CoreV1(), ns, "execpod")
@@ -145,6 +158,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 			r, err := oc.RouteClient().Route().Routes(ns).Get("route-1", metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			ingress := ingressForName(r, "test-override")
+			e2e.Logf("Selected: %#v, All: %#v", ingress, r.Status.Ingress)
 			o.Expect(ingress).NotTo(o.BeNil())
 			o.Expect(ingress.Host).To(o.Equal(fmt.Sprintf(pattern, "route-1", ns)))
 			status, condition := routeapi.IngressConditionStatus(ingress, routeapi.RouteAdmitted)
@@ -225,11 +239,6 @@ func getAuthenticatedRouteURLViaPod(ns, execPodName, url, host, user, pass strin
 		return "", fmt.Errorf("host command failed: %v\n%s", err, output)
 	}
 	return output, nil
-}
-
-func dumpScopedRouterLogs(oc *exutil.CLI, name string) {
-	log, _ := e2e.GetPodLogs(oc.AdminKubeClient(), oc.KubeFramework().Namespace.Name, "scoped-router", "router")
-	e2e.Logf("Scoped Router test %s logs:\n %s", name, log)
 }
 
 func ingressForName(r *routeapi.Route, name string) *routeapi.RouteIngress {

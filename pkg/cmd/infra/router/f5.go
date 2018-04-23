@@ -19,6 +19,7 @@ import (
 	projectinternalclientset "github.com/openshift/origin/pkg/project/generated/internalclientset"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	routeinternalclientset "github.com/openshift/origin/pkg/route/generated/internalclientset"
+	routelisters "github.com/openshift/origin/pkg/route/generated/listers/route/internalversion"
 	"github.com/openshift/origin/pkg/router"
 	"github.com/openshift/origin/pkg/router/controller"
 	f5plugin "github.com/openshift/origin/pkg/router/f5"
@@ -230,6 +231,9 @@ func (o *F5RouterOptions) Run() error {
 		return err
 	}
 
+	factory := o.RouterSelection.NewFactory(routeclient, projectclient.Project().Projects(), kc)
+	factory.RouteModifierFn = o.RouteUpdate
+
 	var plugin router.Plugin = f5Plugin
 	var recorder controller.RejectionRecorder = controller.LogRejections
 	if o.UpdateStatus {
@@ -238,17 +242,17 @@ func (o *F5RouterOptions) Run() error {
 		tracker := controller.NewSimpleContentionTracker(o.ResyncInterval / 10)
 		tracker.SetConflictMessage(fmt.Sprintf("The router detected another process is writing conflicting updates to route status with name %q. Please ensure that the configuration of all routers is consistent. Route status will not be updated as long as conflicts are detected.", o.RouterName))
 		go tracker.Run(wait.NeverStop)
-		status := controller.NewStatusAdmitter(plugin, routeclient.Route(), o.RouterName, o.RouterCanonicalHostname, lease, tracker)
+		routeLister := routelisters.NewRouteLister(factory.CreateRoutesSharedInformer().GetIndexer())
+		status := controller.NewStatusAdmitter(plugin, routeclient.Route(), routeLister, o.RouterName, o.RouterCanonicalHostname, lease, tracker)
 		recorder = status
 		plugin = status
 	}
 	if o.ExtendedValidation {
 		plugin = controller.NewExtendedValidator(plugin, recorder)
 	}
-	plugin = controller.NewUniqueHost(plugin, o.RouteSelectionFunc(), o.RouterSelection.DisableNamespaceOwnershipCheck, recorder)
+	plugin = controller.NewUniqueHost(plugin, o.RouterSelection.DisableNamespaceOwnershipCheck, recorder)
 	plugin = controller.NewHostAdmitter(plugin, o.F5RouteAdmitterFunc(), o.AllowWildcardRoutes, o.RouterSelection.DisableNamespaceOwnershipCheck, recorder)
 
-	factory := o.RouterSelection.NewFactory(routeclient, projectclient.Project().Projects(), kc)
 	watchNodes := (len(o.InternalAddress) != 0 && len(o.VxlanGateway) != 0)
 	controller := factory.Create(plugin, watchNodes)
 	controller.Run()

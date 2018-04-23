@@ -32,6 +32,7 @@ import (
 	cmdversion "github.com/openshift/origin/pkg/cmd/version"
 	projectinternalclientset "github.com/openshift/origin/pkg/project/generated/internalclientset"
 	routeinternalclientset "github.com/openshift/origin/pkg/route/generated/internalclientset"
+	routelisters "github.com/openshift/origin/pkg/route/generated/listers/route/internalversion"
 	"github.com/openshift/origin/pkg/router"
 	"github.com/openshift/origin/pkg/router/controller"
 	"github.com/openshift/origin/pkg/router/metrics"
@@ -405,11 +406,14 @@ func (o *TemplateRouterOptions) Run() error {
 		return err
 	}
 
-	svcFetcher := templateplugin.NewListWatchServiceLookup(kc.Core(), o.ResyncInterval)
+	svcFetcher := templateplugin.NewListWatchServiceLookup(kc.Core(), o.ResyncInterval, o.Namespace)
 	templatePlugin, err := templateplugin.NewTemplatePlugin(pluginCfg, svcFetcher)
 	if err != nil {
 		return err
 	}
+
+	factory := o.RouterSelection.NewFactory(routeclient, projectclient.Project().Projects(), kc)
+	factory.RouteModifierFn = o.RouteUpdate
 
 	var plugin router.Plugin = templatePlugin
 	var recorder controller.RejectionRecorder = controller.LogRejections
@@ -419,17 +423,17 @@ func (o *TemplateRouterOptions) Run() error {
 		tracker := controller.NewSimpleContentionTracker(o.ResyncInterval / 10)
 		tracker.SetConflictMessage(fmt.Sprintf("The router detected another process is writing conflicting updates to route status with name %q. Please ensure that the configuration of all routers is consistent. Route status will not be updated as long as conflicts are detected.", o.RouterName))
 		go tracker.Run(wait.NeverStop)
-		status := controller.NewStatusAdmitter(plugin, routeclient.Route(), o.RouterName, o.RouterCanonicalHostname, lease, tracker)
+		routeLister := routelisters.NewRouteLister(factory.CreateRoutesSharedInformer().GetIndexer())
+		status := controller.NewStatusAdmitter(plugin, routeclient.Route(), routeLister, o.RouterName, o.RouterCanonicalHostname, lease, tracker)
 		recorder = status
 		plugin = status
 	}
 	if o.ExtendedValidation {
 		plugin = controller.NewExtendedValidator(plugin, recorder)
 	}
-	plugin = controller.NewUniqueHost(plugin, o.RouteSelectionFunc(), o.RouterSelection.DisableNamespaceOwnershipCheck, recorder)
+	plugin = controller.NewUniqueHost(plugin, o.RouterSelection.DisableNamespaceOwnershipCheck, recorder)
 	plugin = controller.NewHostAdmitter(plugin, o.RouteAdmissionFunc(), o.AllowWildcardRoutes, o.RouterSelection.DisableNamespaceOwnershipCheck, recorder)
 
-	factory := o.RouterSelection.NewFactory(routeclient, projectclient.Project().Projects(), kc)
 	controller := factory.Create(plugin, false)
 	controller.Run()
 
