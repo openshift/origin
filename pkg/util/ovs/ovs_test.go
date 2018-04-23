@@ -2,6 +2,7 @@ package ovs
 
 import (
 	"fmt"
+	"io/ioutil"
 	"strings"
 	"testing"
 
@@ -29,8 +30,8 @@ func missingSetup() *fakeexec.FakeExec {
 	}
 }
 
-func addTestResult(t *testing.T, fexec *fakeexec.FakeExec, command string, output string, err error) {
-	fcmd := fakeexec.FakeCmd{
+func addTestResult(t *testing.T, fexec *fakeexec.FakeExec, command string, output string, err error) *fakeexec.FakeCmd {
+	fcmd := &fakeexec.FakeCmd{
 		CombinedOutputScript: []fakeexec.FakeCombinedOutputAction{
 			func() ([]byte, error) { return []byte(output), err },
 		},
@@ -41,13 +42,31 @@ func addTestResult(t *testing.T, fexec *fakeexec.FakeExec, command string, outpu
 			if execCommand != command {
 				t.Fatalf("Unexpected command: wanted %q got %q", command, execCommand)
 			}
-			return fakeexec.InitFakeCmd(&fcmd, cmd, args...)
+			return fakeexec.InitFakeCmd(fcmd, cmd, args...)
 		})
+
+	return fcmd
 }
 
 func ensureTestResults(t *testing.T, fexec *fakeexec.FakeExec) {
 	if fexec.CommandCalls != len(fexec.CommandScript) {
 		t.Fatalf("Only used %d of %d expected commands", fexec.CommandCalls, len(fexec.CommandScript))
+	}
+}
+
+func ensureInputFlows(t *testing.T, fakeCmd *fakeexec.FakeCmd, flows []string) {
+	allFlows := strings.Join(flows, "\n")
+
+	var fakeCmdFlows string
+	if fakeCmd != nil {
+		data, err := ioutil.ReadAll(fakeCmd.Stdin)
+		if err != nil {
+			t.Fatalf(err.Error())
+		}
+		fakeCmdFlows = string(data)
+	}
+	if strings.Compare(allFlows, fakeCmdFlows) != 0 {
+		t.Fatalf("Expected input flows: %q but got %q", allFlows, fakeCmdFlows)
 	}
 }
 
@@ -66,9 +85,10 @@ func TestTransactionSuccess(t *testing.T) {
 		t.Fatalf("Unexpected error from command: %v", err)
 	}
 	ensureTestResults(t, fexec)
+	ensureInputFlows(t, nil, []string{})
 
 	// Test Successful transaction
-	addTestResult(t, fexec, "ovs-ofctl -O OpenFlow13 bundle br0 -", "", nil)
+	fakeCmd := addTestResult(t, fexec, "ovs-ofctl -O OpenFlow13 bundle br0 -", "", nil)
 	otx = ovsif.NewTransaction()
 	otx.AddFlow("flow1")
 	otx.AddFlow("flow2")
@@ -77,6 +97,11 @@ func TestTransactionSuccess(t *testing.T) {
 		t.Fatalf("Unexpected error from command: %v", err)
 	}
 	ensureTestResults(t, fexec)
+	expectedInputFlows := []string{
+		"flow add flow1",
+		"flow add flow2",
+	}
+	ensureInputFlows(t, fakeCmd, expectedInputFlows)
 
 	// Test reuse transaction object
 	err = otx.EndTransaction()
@@ -86,15 +111,20 @@ func TestTransactionSuccess(t *testing.T) {
 	ensureTestResults(t, fexec)
 
 	// Test Failed transaction
-	addTestResult(t, fexec, "ovs-ofctl -O OpenFlow13 bundle br0 -", "", fmt.Errorf("Something bad happened"))
+	fakeCmd = addTestResult(t, fexec, "ovs-ofctl -O OpenFlow13 bundle br0 -", "", fmt.Errorf("Something bad happened"))
 	otx = ovsif.NewTransaction()
 	otx.AddFlow("flow1")
-	otx.AddFlow("flow2")
+	otx.DeleteFlows("flow2")
 	err = otx.EndTransaction()
 	if err == nil {
 		t.Fatalf("Failed to get expected error")
 	}
 	ensureTestResults(t, fexec)
+	expectedInputFlows = []string{
+		"flow add flow1",
+		"flow delete flow2",
+	}
+	ensureInputFlows(t, fakeCmd, expectedInputFlows)
 }
 
 func TestDumpFlows(t *testing.T) {
