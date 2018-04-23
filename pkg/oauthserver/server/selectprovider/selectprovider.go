@@ -7,20 +7,18 @@ import (
 	"html/template"
 	"net/http"
 
-	"github.com/openshift/origin/pkg/oauthserver/oauth/handlers"
+	"github.com/openshift/origin/pkg/oauthserver/api"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 )
 
 type SelectProviderRenderer interface {
-	Render(redirectors []handlers.ProviderInfo, w http.ResponseWriter, req *http.Request)
+	Render(redirectors []api.ProviderInfo, w http.ResponseWriter, req *http.Request)
 }
 
 type SelectProvider struct {
 	render            SelectProviderRenderer
 	forceInterstitial bool
 }
-
-var _ = handlers.AuthenticationSelectionHandler(&SelectProvider{})
 
 func NewSelectProvider(render SelectProviderRenderer, forceInterstitial bool) *SelectProvider {
 	return &SelectProvider{
@@ -30,7 +28,7 @@ func NewSelectProvider(render SelectProviderRenderer, forceInterstitial bool) *S
 }
 
 type ProviderData struct {
-	Providers []handlers.ProviderInfo
+	Providers []api.ProviderInfo
 }
 
 // NewSelectProviderRenderer creates a select provider renderer that takes in an optional custom template to
@@ -50,7 +48,7 @@ func NewSelectProviderRenderer(customSelectProviderTemplateFile string) (*select
 	return r, nil
 }
 
-func (s *SelectProvider) SelectAuthentication(providers []handlers.ProviderInfo, w http.ResponseWriter, req *http.Request) (*handlers.ProviderInfo, bool, error) {
+func (s *SelectProvider) SelectAuthentication(providers []api.ProviderInfo, w http.ResponseWriter, req *http.Request) (*api.ProviderInfo, bool, error) {
 	if len(providers) == 0 {
 		return nil, false, nil
 	}
@@ -73,7 +71,7 @@ func ValidateSelectProviderTemplate(templateContent []byte) []error {
 
 	// Execute the template with dummy values and check if they're there.
 	providerData := ProviderData{
-		Providers: []handlers.ProviderInfo{
+		Providers: []api.ProviderInfo{
 			{
 				Name: "provider_1",
 				URL:  "http://example.com/redirect_1/",
@@ -105,7 +103,7 @@ type selectProviderTemplateRenderer struct {
 	selectProviderTemplate *template.Template
 }
 
-func (r selectProviderTemplateRenderer) Render(providers []handlers.ProviderInfo, w http.ResponseWriter, req *http.Request) {
+func (r selectProviderTemplateRenderer) Render(providers []api.ProviderInfo, w http.ResponseWriter, req *http.Request) {
 	w.Header().Add("Content-Type", "text/html; charset=UTF-8")
 	w.WriteHeader(http.StatusOK)
 	if err := r.selectProviderTemplate.Execute(w, ProviderData{Providers: providers}); err != nil {
