@@ -19,7 +19,7 @@ const (
 	noDescriptionProvided   = "No description provided."
 	customLabelsParamName   = "customLabelParam"
 	customLabelsTitle       = "Custom Labels"
-	customLabelsDescription = "e.g. label1 = value1, label2 = value2, label3 = label 3, ... "
+	customLabelsDescription = "e.g. label1 = value1, label2, label3 = label3, ... "
 	customLabelsDefault     = ""
 )
 

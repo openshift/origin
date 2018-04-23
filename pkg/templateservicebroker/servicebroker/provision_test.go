@@ -86,7 +86,13 @@ func TestCustomLabels(t *testing.T) {
 	}
 
 	// valid label values
-	resp = b.ensureCustomLabel(&fakeTemplate, "k1=v1, k2, k3=v3")
+	resp = b.ensureCustomLabel(&fakeTemplate, "k1 = v1, k2, k3=v3")
+	if resp != nil {
+		t.Errorf("got response %#v, expected nil", *resp)
+	}
+
+	// valid label values
+	resp = b.ensureCustomLabel(&fakeTemplate, "k1, k2=v2,")
 	if resp != nil {
 		t.Errorf("got response %#v, expected nil", *resp)
 	}
@@ -94,6 +100,18 @@ func TestCustomLabels(t *testing.T) {
 	// invalid values
 	resp = b.ensureCustomLabel(&fakeTemplate, "label1=L1*, label2=L2:")
 	if !reflect.DeepEqual(resp, api.InvalidCustomLabelParameter(errors.New(invalidCustomLabelMsg))) {
+		t.Errorf("got response %#v, expected 422/StatusUnprocessableEntity", *resp)
+	}
+
+	// invalid values (empty key string)
+	resp = b.ensureCustomLabel(&fakeTemplate, "label1=L1, =L2")
+	if !reflect.DeepEqual(resp, api.InvalidCustomLabelParameter(errors.New(missingLabelKeyMsg))) {
+		t.Errorf("got response %#v, expected 422/StatusUnprocessableEntity", *resp)
+	}
+
+	// invalid values (spaces in key/value string)
+	resp = b.ensureCustomLabel(&fakeTemplate, " label 1=L1, label2=L 2 ")
+	if !reflect.DeepEqual(resp, api.InvalidCustomLabelParameter(errors.New(invalidKeyValueStrMsg))) {
 		t.Errorf("got response %#v, expected 422/StatusUnprocessableEntity", *resp)
 	}
 }
