@@ -17,12 +17,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 1b9db04cf90f4aba6b2136f287228f5cf2bdce68
+%global commit f099ec2767a7fc4b981ecf44dc13b7986accc4a7
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=10+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.10.0-0.26.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 KUBE_GIT_VERSION=v1.10.0+b81c8f8 OS_GIT_PATCH=0 KUBE_GIT_COMMIT=b81c8f8 KUBE_GIT_MINOR=10+ OS_GIT_COMMIT=d9cc562 KUBE_GIT_MAJOR=1 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.16-0-g121edf0 ETCD_GIT_COMMIT=121edf0
+%global os_git_vars OS_GIT_MINOR=10+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.10.0-0.27.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 KUBE_GIT_VERSION=v1.10.0+b81c8f8 OS_GIT_PATCH=0 KUBE_GIT_COMMIT=b81c8f8 KUBE_GIT_MINOR=10+ OS_GIT_COMMIT=38c69f9 KUBE_GIT_MAJOR=1 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.16-0-g121edf0 ETCD_GIT_COMMIT=121edf0
 }
 
 %if 0%{?skip_build}
@@ -65,7 +65,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.10.0
-Release:        0.27.0%{?dist}
+Release:        0.28.0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -468,6 +468,22 @@ if [ "$1" -eq 0 ] ; then
 fi
 
 %changelog
+* Mon Apr 23 2018 Justin Pierce <jupierce@redhat.com> 3.10.0-0.28.0
+- .NET Core: Fix quickstart example template (tom.deseyn@gmail.com)
+- new-app: remove check for volumes in new-app test (mfojtik@redhat.com)
+- Use the router's image instead of guessing in tests (ccoleman@redhat.com)
+- Make openshift e2e tests manage their own namespaces (ccoleman@redhat.com)
+- Move route host updating out of the unique_host plugin (ccoleman@redhat.com)
+- Avoid some status updates from being delayed to next sync
+  (ccoleman@redhat.com)
+- Service list/watches should be scoped to namespace (ccoleman@redhat.com)
+- Update the router unique host test (ccoleman@redhat.com)
+- The unique_host router filter can lose routes (ccoleman@redhat.com)
+- Distinguish warning message between --build-loglevel and --env with binary
+  builds (nakayamakenjiro@gmail.com)
+- Bug 1567532 - Unidle handling in router should ignore headless services.
+  (rpenta@redhat.com)
+
 * Sat Apr 21 2018 Justin Pierce <jupierce@redhat.com> 3.10.0-0.27.0
 - update build-local-images for controlplane (deads@redhat.com)
 - skip already exists errors for default role bindings (deads@redhat.com)
