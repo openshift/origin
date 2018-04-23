@@ -10401,9 +10401,9 @@ objects:
 - apiVersion: v1
   kind: Pod
   metadata:
-    name: scoped-router
+    name: router-scoped
     labels:
-      test: scoped-router
+      test: router-scoped
   spec:
     terminationGracePeriodSeconds: 1
     containers:
@@ -24324,7 +24324,7 @@ var _examplesQuickstartsDotnetJson = []byte(`{
         {
             "description": "Set this to a project file (e.g. csproj) or a folder containing a single project file.",
             "displayName": "Startup Project",
-            "name": "DOTNET_SDK_VERSION",
+            "name": "DOTNET_STARTUP_PROJECT",
             "value": "app"
         },
         {

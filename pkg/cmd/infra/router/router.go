@@ -86,30 +86,31 @@ func (o *RouterSelection) Bind(flag *pflag.FlagSet) {
 	flag.StringVar(&o.ListenAddr, "listen-addr", cmdutil.Env("ROUTER_LISTEN_ADDR", ""), "The name of an interface to listen on to expose metrics and health checking. If not specified, will not listen. Overrides stats port.")
 }
 
-// RouteSelectionFunc returns a func that identifies the host for a route.
-func (o *RouterSelection) RouteSelectionFunc() controller.RouteHostFunc {
+// RouteUpdate updates the route before it is seen by the cache.
+func (o *RouterSelection) RouteUpdate(route *routeapi.Route) {
 	if len(o.HostnameTemplate) == 0 {
-		return controller.HostForRoute
+		return
 	}
-	return func(route *routeapi.Route) string {
-		if !o.OverrideHostname && len(route.Spec.Host) > 0 {
-			return route.Spec.Host
-		}
-		s, err := variable.ExpandStrict(o.HostnameTemplate, func(key string) (string, bool) {
-			switch key {
-			case "name":
-				return route.Name, true
-			case "namespace":
-				return route.Namespace, true
-			default:
-				return "", false
-			}
-		})
-		if err != nil {
-			return ""
-		}
-		return strings.Trim(s, "\"'")
+	if !o.OverrideHostname && len(route.Spec.Host) > 0 {
+		return
 	}
+	s, err := variable.ExpandStrict(o.HostnameTemplate, func(key string) (string, bool) {
+		switch key {
+		case "name":
+			return route.Name, true
+		case "namespace":
+			return route.Namespace, true
+		default:
+			return "", false
+		}
+	})
+	if err != nil {
+		return
+	}
+
+	s = strings.Trim(s, "\"'")
+	glog.V(4).Infof("changing route %s to %s", route.Spec.Host, s)
+	route.Spec.Host = s
 }
 
 func (o *RouterSelection) AdmissionCheck(route *routeapi.Route) error {

@@ -15,6 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
+	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	unidlingapi "github.com/openshift/origin/pkg/unidling/api"
@@ -239,7 +240,7 @@ func createRouterEndpoints(endpoints *kapi.Endpoints, excludeUDP bool, lookupSvc
 			return []Endpoint{}
 		}
 
-		if service.Spec.ClusterIP == "" {
+		if !kapihelper.IsServiceIPSet(service) {
 			utilruntime.HandleError(fmt.Errorf("headless service %s/%s was marked as idled, but cannot setup unidling without a cluster IP", endpoints.Namespace, endpoints.Name))
 			return []Endpoint{}
 		}

@@ -17,9 +17,9 @@ func TestWaitForLeader(t *testing.T) {
 	go l.Run(ch)
 	calls := make(chan struct{}, 1)
 
-	l.Try("test", func() (bool, bool) {
+	l.Try("test", func() (WorkResult, bool) {
 		calls <- struct{}{}
-		return true, false
+		return Extend, false
 	})
 	if !l.Wait() {
 		t.Errorf("should have elected leader: %#v", l)
@@ -31,26 +31,21 @@ func TestWaitForLeader(t *testing.T) {
 
 func TestBecomeLeaderAfterRetry(t *testing.T) {
 	l := New(0, 0)
-	defer func() {
-		if len(l.queued) > 0 {
-			t.Fatalf("queue was not empty on shutdown: %#v", l.queued)
-		}
-	}()
 	ch := make(chan struct{})
 	defer close(ch)
 	go l.Run(ch)
 	calls := make(chan struct{}, 10)
 	i := 0
-	l.Try("test", func() (bool, bool) {
+	l.Try("test", func() (WorkResult, bool) {
 		calls <- struct{}{}
 		i++
-		return true, i < 5
+		return Extend, i < 5
 	})
 	if !l.Wait() {
 		t.Errorf("should have elected leader: %#v", l)
 	}
-	if len(calls) != 5 {
-		t.Errorf("incorrect number of calls: %d", len(calls))
+	for len(calls) != 5 {
+		time.Sleep(time.Millisecond)
 	}
 }
 
@@ -58,26 +53,21 @@ func TestBecomeFollowerAfterRetry(t *testing.T) {
 	l := New(0, 0)
 	l.backoff.Steps = 0
 	l.backoff.Duration = 0
-	defer func() {
-		if len(l.queued) > 0 {
-			t.Fatalf("queue was not empty on shutdown: %#v", l.queued)
-		}
-	}()
 	ch := make(chan struct{})
 	defer close(ch)
 	go l.Run(ch)
 	calls := make(chan struct{}, 10)
 	i := 0
-	l.Try("test", func() (bool, bool) {
+	l.Try("test", func() (WorkResult, bool) {
 		calls <- struct{}{}
 		i++
-		return false, i < 5
+		return Release, i < 5
 	})
 	if l.Wait() {
 		t.Errorf("should have become follower: %#v", l)
 	}
-	if len(calls) != 5 {
-		t.Errorf("incorrect number of calls: %d", len(calls))
+	for len(calls) != 5 {
+		time.Sleep(time.Millisecond)
 	}
 }
 
@@ -103,17 +93,17 @@ func TestRunOverlappingWork(t *testing.T) {
 	}()
 
 	first := make(chan struct{})
-	l.Try("test", func() (bool, bool) {
+	l.Try("test", func() (WorkResult, bool) {
 		first <- struct{}{}
 		t.Logf("waiting for second item to be added")
 		first <- struct{}{}
-		return true, false
+		return Extend, false
 	})
 	<-first
 	second := make(chan struct{}, 1)
-	l.Try("test", func() (bool, bool) {
+	l.Try("test", func() (WorkResult, bool) {
 		second <- struct{}{}
-		return true, false
+		return Extend, false
 	})
 	t.Logf("second item added")
 	<-first
@@ -136,13 +126,13 @@ func TestExtend(t *testing.T) {
 	calls := make(chan struct{})
 	go l.Run(ch)
 
-	l.Try("test", func() (bool, bool) {
+	l.Try("test", func() (WorkResult, bool) {
 		calls <- struct{}{}
-		return false, false
+		return Release, false
 	})
-	l.Try("test2", func() (bool, bool) {
+	l.Try("test2", func() (WorkResult, bool) {
 		calls <- struct{}{}
-		return false, false
+		return Release, false
 	})
 	<-calls
 	l.Extend("test2")
