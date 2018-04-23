@@ -213,7 +213,6 @@ func TestRESTGet(t *testing.T) {
 		t.Run(test.testName, func(t *testing.T) {
 			actualPodNamespace := ""
 			actualPodName := ""
-
 			getPodLogsFn := func(podNamespace, podName string, logOpts *kapi.PodLogOptions) (runtime.Object, error) {
 				actualPodNamespace = podNamespace
 				actualPodName = podName
