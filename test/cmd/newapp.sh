@@ -321,10 +321,8 @@ os::cmd::expect_success_and_text 'oc new-app ruby~https://github.com/openshift/s
 os::cmd::expect_success_and_text 'oc new-app ruby~https://github.com/openshift/ruby-hello-world.git --strategy=docker -o yaml' 'dockerStrategy'
 os::cmd::expect_success_and_text 'oc new-app https://github.com/openshift/ruby-hello-world.git --strategy=source -o yaml' 'sourceStrategy'
 
-# prints volume and root user info
-os::cmd::expect_success_and_text 'oc new-app --dry-run mysql' 'This image declares volumes'
+# prints root user info
 os::cmd::expect_success_and_not_text 'oc new-app --dry-run mysql' "runs as the 'root' user"
-os::cmd::expect_success_and_text 'oc new-app --dry-run --docker-image=mysql' 'This image declares volumes'
 os::cmd::expect_success_and_text 'oc new-app --dry-run --docker-image=mysql' "WARNING: Image \"mysql\" runs as the 'root' user"
 
 # verify multiple errors are displayed together, a nested error is returned, and that the usage message is displayed
