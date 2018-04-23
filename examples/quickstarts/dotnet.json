@@ -309,7 +309,7 @@
         {
             "description": "Set this to a project file (e.g. csproj) or a folder containing a single project file.",
             "displayName": "Startup Project",
-            "name": "DOTNET_SDK_VERSION",
+            "name": "DOTNET_STARTUP_PROJECT",
             "value": "app"
         },
         {
