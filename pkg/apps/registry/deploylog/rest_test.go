@@ -1,23 +1,18 @@
 package deploylog
 
 import (
-	"net/url"
-	"reflect"
 	"testing"
 	"time"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
-	genericrest "k8s.io/apiserver/pkg/registry/generic/rest"
 	clientgotesting "k8s.io/client-go/testing"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appstest "github.com/openshift/origin/pkg/apps/apis/apps/test"
@@ -84,16 +79,6 @@ var (
 	}
 )
 
-type fakeConnectionInfoGetter struct{}
-
-func (*fakeConnectionInfoGetter) GetConnectionInfo(nodeName types.NodeName) (*kubeletclient.ConnectionInfo, error) {
-	return &kubeletclient.ConnectionInfo{
-		Scheme:   "https",
-		Hostname: "some-host",
-		Port:     "12345",
-	}, nil
-}
-
 // mockREST mocks a DeploymentLog REST
 func mockREST(version, desired int64, status appsapi.DeploymentStatus) *REST {
 	// Fake deploymentConfig
@@ -106,8 +91,7 @@ func mockREST(version, desired int64, status appsapi.DeploymentStatus) *REST {
 	// Used for testing validation errors prior to getting replication controllers.
 	if desired > version {
 		return &REST{
-			dn:       fakeDn.Apps(),
-			connInfo: &fakeConnectionInfoGetter{},
+			dcClient: fakeDn.Apps(),
 			timeout:  defaultTimeout,
 		}
 	}
@@ -161,11 +145,10 @@ func mockREST(version, desired int64, status appsapi.DeploymentStatus) *REST {
 	}
 
 	return &REST{
-		dn:       fakeDn.Apps(),
-		rn:       fakeRn.Core(),
-		pn:       fakePn.Core(),
-		connInfo: &fakeConnectionInfoGetter{},
-		timeout:  defaultTimeout,
+		dcClient:  fakeDn.Apps(),
+		rcClient:  fakeRn.Core(),
+		podClient: fakePn.Core(),
+		timeout:   defaultTimeout,
 	}
 }
 
@@ -173,119 +156,88 @@ func TestRESTGet(t *testing.T) {
 	ctx := apirequest.NewDefaultContext()
 
 	tests := []struct {
-		testName    string
-		rest        *REST
-		name        string
-		opts        runtime.Object
-		expected    runtime.Object
-		expectedErr error
+		testName          string
+		rest              *REST
+		name              string
+		opts              runtime.Object
+		expectedNamespace string
+		expectedName      string
+		expectedErr       error
 	}{
 		{
-			testName: "running deployment",
-			rest:     mockREST(1, 1, appsapi.DeploymentStatusRunning),
-			name:     "config",
-			opts:     &appsapi.DeploymentLogOptions{Follow: true, Version: intp(1)},
-			expected: &genericrest.LocationStreamer{
-				Location: &url.URL{
-					Scheme:   "https",
-					Host:     "some-host:12345",
-					Path:     "/containerLogs/default/config-1-deploy/config-1-deploy-container",
-					RawQuery: "follow=true",
-				},
-				Transport:       nil,
-				ContentType:     "text/plain",
-				Flush:           true,
-				ResponseChecker: genericrest.NewGenericHttpResponseChecker(kapi.Resource("pod"), "config-1-deploy"),
-			},
-			expectedErr: nil,
+			testName:          "running deployment",
+			rest:              mockREST(1, 1, appsapi.DeploymentStatusRunning),
+			name:              "config",
+			opts:              &appsapi.DeploymentLogOptions{Follow: true, Version: intp(1)},
+			expectedNamespace: "default",
+			expectedName:      "config-1-deploy",
+			expectedErr:       nil,
 		},
 		{
-			testName: "complete deployment",
-			rest:     mockREST(5, 5, appsapi.DeploymentStatusComplete),
-			name:     "config",
-			opts:     &appsapi.DeploymentLogOptions{Follow: true, Version: intp(5)},
-			expected: &genericrest.LocationStreamer{
-				Location: &url.URL{
-					Scheme:   "https",
-					Host:     "some-host:12345",
-					Path:     "/containerLogs/default/config-5-application-pod-1/config-5-container-1",
-					RawQuery: "follow=true",
-				},
-				Transport:       nil,
-				ContentType:     "text/plain",
-				Flush:           true,
-				ResponseChecker: genericrest.NewGenericHttpResponseChecker(kapi.Resource("pod"), "config-5-application-pod-1"),
-			},
-			expectedErr: nil,
+			testName:          "complete deployment",
+			rest:              mockREST(5, 5, appsapi.DeploymentStatusComplete),
+			name:              "config",
+			opts:              &appsapi.DeploymentLogOptions{Follow: true, Version: intp(5)},
+			expectedNamespace: "default",
+			expectedName:      "config-5-application-pod-1",
+			expectedErr:       nil,
 		},
 		{
-			testName: "previous failed deployment",
-			rest:     mockREST(3, 2, appsapi.DeploymentStatusFailed),
-			name:     "config",
-			opts:     &appsapi.DeploymentLogOptions{Follow: false, Version: intp(2)},
-			expected: &genericrest.LocationStreamer{
-				Location: &url.URL{
-					Scheme: "https",
-					Host:   "some-host:12345",
-					Path:   "/containerLogs/default/config-2-deploy/config-2-deploy-container",
-				},
-				Transport:       nil,
-				ContentType:     "text/plain",
-				Flush:           false,
-				ResponseChecker: genericrest.NewGenericHttpResponseChecker(kapi.Resource("pod"), "config-2-deploy"),
-			},
-			expectedErr: nil,
+			testName:          "previous failed deployment",
+			rest:              mockREST(3, 2, appsapi.DeploymentStatusFailed),
+			name:              "config",
+			opts:              &appsapi.DeploymentLogOptions{Follow: false, Version: intp(2)},
+			expectedNamespace: "default",
+			expectedName:      "config-2-deploy",
+			expectedErr:       nil,
 		},
 		{
-			testName: "previous deployment",
-			rest:     mockREST(3, 2, appsapi.DeploymentStatusFailed),
-			name:     "config",
-			opts:     &appsapi.DeploymentLogOptions{Follow: false, Previous: true},
-			expected: &genericrest.LocationStreamer{
-				Location: &url.URL{
-					Scheme: "https",
-					Host:   "some-host:12345",
-					Path:   "/containerLogs/default/config-2-deploy/config-2-deploy-container",
-				},
-				Transport:       nil,
-				ContentType:     "text/plain",
-				Flush:           false,
-				ResponseChecker: genericrest.NewGenericHttpResponseChecker(kapi.Resource("pod"), "config-2-deploy"),
-			},
-			expectedErr: nil,
+			testName:          "previous deployment",
+			rest:              mockREST(3, 2, appsapi.DeploymentStatusFailed),
+			name:              "config",
+			opts:              &appsapi.DeploymentLogOptions{Follow: false, Previous: true},
+			expectedNamespace: "default",
+			expectedName:      "config-2-deploy",
+			expectedErr:       nil,
 		},
 		{
 			testName:    "non-existent previous deployment",
 			rest:        mockREST(1 /* won't be used */, 101, ""),
 			name:        "config",
 			opts:        &appsapi.DeploymentLogOptions{Follow: false, Previous: true},
-			expected:    nil,
 			expectedErr: errors.NewBadRequest("no previous deployment exists for deploymentConfig \"config\""),
 		},
 	}
 
 	for _, test := range tests {
-		got, err := test.rest.Get(ctx, test.name, test.opts)
-		if err != nil && test.expectedErr != nil && err.Error() != test.expectedErr.Error() {
-			t.Errorf("%s: error mismatch: expected %v, got %v", test.testName, test.expectedErr, err)
-			continue
-		}
-		if err != nil && test.expectedErr == nil {
-			t.Errorf("%s: error mismatch: expected no error, got %v", test.testName, err)
-			continue
-		}
-		if err == nil && test.expectedErr != nil {
-			t.Errorf("%s: error mismatch: expected %v, got no error", test.testName, test.expectedErr)
-			continue
-		}
-		if !reflect.DeepEqual(got, test.expected) {
-			t.Errorf("%s: location streamer mismatch: expected\n%#v\ngot\n%#v\n", test.testName, test.expected, got)
-			e := test.expected.(*genericrest.LocationStreamer)
-			a := got.(*genericrest.LocationStreamer)
-			if e.Location.String() != a.Location.String() {
-				t.Errorf("%s: expected url:\n%v\ngot:\n%v\n", test.testName, e.Location, a.Location)
+		t.Run(test.testName, func(t *testing.T) {
+			actualPodNamespace := ""
+			actualPodName := ""
+
+			getPodLogsFn := func(podNamespace, podName string, logOpts *kapi.PodLogOptions) (runtime.Object, error) {
+				actualPodNamespace = podNamespace
+				actualPodName = podName
+				return nil, nil
 			}
-		}
+
+			test.rest.getLogsFn = getPodLogsFn
+			_, err := test.rest.Get(ctx, test.name, test.opts)
+			if err != nil && test.expectedErr != nil && err.Error() != test.expectedErr.Error() {
+				t.Fatalf("error mismatch: expected %v, got %v", test.expectedErr, err)
+			}
+			if err != nil && test.expectedErr == nil {
+				t.Fatal(err)
+			}
+			if err == nil && test.expectedErr != nil {
+				t.Fatalf("error mismatch: expected %v, got no error", test.expectedErr)
+			}
+			if e, a := test.expectedNamespace, actualPodNamespace; e != a {
+				t.Errorf("expected %v, actual %v", e, a)
+			}
+			if e, a := test.expectedName, actualPodName; e != a {
+				t.Errorf("expected %v, actual %v", e, a)
+			}
+		})
 	}
 }
 
