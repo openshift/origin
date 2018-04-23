@@ -441,7 +441,8 @@ func (oc *ovsController) UpdateEgressNetworkPolicyRules(policies []networkapi.Eg
 		otx.DeleteFlows("table=101, reg0=%d", vnid)
 		otx.AddFlow("table=101, reg0=%d, priority=1, actions=drop", vnid)
 	} else /* vnid != 0 && len(policies) == 1 */ {
-		var flows []string
+		otx.DeleteFlows("table=101, reg0=%d", vnid)
+
 		dnsFound := false
 		for i, rule := range policies[0].Spec.Egress {
 			priority := len(policies[0].Spec.Egress) - i
@@ -475,15 +476,8 @@ func (oc *ovsController) UpdateEgressNetworkPolicyRules(policies []networkapi.Eg
 					dst = fmt.Sprintf(", nw_dst=%s", selector)
 				}
 
-				flows = append(flows, fmt.Sprintf("table=101, reg0=%d, priority=%d, ip%s, actions=%s", vnid, priority, dst, action))
+				otx.AddFlow("table=101, reg0=%d, priority=%d, ip%s, actions=%s", vnid, priority, dst, action)
 			}
-		}
-
-		// Temporarily drop all outgoing traffic, to avoid race conditions while modifying the other rules
-		otx.AddFlow("table=101, reg0=%d, cookie=1, priority=65535, actions=drop", vnid)
-		otx.DeleteFlows("table=101, reg0=%d, cookie=0/1", vnid)
-		for _, f := range flows {
-			otx.AddFlow(f)
 		}
 
 		if dnsFound {
@@ -493,7 +487,6 @@ func (oc *ovsController) UpdateEgressNetworkPolicyRules(policies []networkapi.Eg
 				otx.AddFlow("table=101, reg0=%d, priority=1, actions=drop", vnid)
 			}
 		}
-		otx.DeleteFlows("table=101, reg0=%d, cookie=1/1", vnid)
 	}
 
 	if txErr := otx.Commit(); txErr != nil {
