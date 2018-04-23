@@ -122,6 +122,7 @@ func makeVolumeSpec(src buildapiv1.LocalObjectBuildSource, mountPath string) s2i
 	return s2iapi.VolumeSpec{
 		Source:      filepath.Join(mountPath, src.LocalObjectRef().Name),
 		Destination: src.DestinationPath(),
+		Truncate:    src.IsSecret(),
 	}
 }
 

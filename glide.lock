@@ -1,5 +1,5 @@
-hash: 708e6d731ad3bea05df95202c09ba96ec42e7e34024e4852307dd5e27c2d97e2
-updated: 2018-04-19T11:53:00.7237-04:00
+hash: a5954c4b56d2e14a1790f598623499f9f6584f52ffcddb1acd3b78dfae0ccc56
+updated: 2018-04-23T14:19:48.435533-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -952,7 +952,8 @@ imports:
   - signal
   - strslice
 - name: github.com/openshift/source-to-image
-  version: 35514ac80ab25bbd682b18c0c771385a47a2b180
+  version: 0d600afa5f458dfb1f5ad202d4407f7c4453985a
+  repo: https://github.com/adambkaplan/source-to-image.git
   subpackages:
   - pkg/api
   - pkg/api/describe
@@ -1149,6 +1150,7 @@ imports:
   version: 07dd2e8dfe18522e9c447ba95f2fe95262f63bb2
 - name: go4.org
   version: 03efcb870d84809319ea509714dd6d19a1498483
+  repo: https://github.com/go4org/go4
   subpackages:
   - errorutil
 - name: golang.org/x/crypto
@@ -1797,7 +1799,7 @@ imports:
   - pkg/util/proto
   - pkg/util/proto/validation
 - name: k8s.io/kubernetes
-  version: e6e9f2d5e18b7948030382ed17c2e10ca914efcf
+  version: 7e6a9039568dc66bc33dfe9c936f587a7ac66742
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/controller-manager/app

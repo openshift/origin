@@ -402,6 +402,10 @@ func (i *integrationTest) exerciseInjectionBuild(tag, imageName string, injectio
 			t.Errorf("injectionList.Set() failed with error %s\n", err)
 		}
 	}
+	// Don't truncate the first injected item.
+	if len(injectionList) > 0 {
+		injectionList[0].Truncate = false
+	}
 	config := &api.Config{
 		DockerConfig:      docker.GetDefaultDockerConfig(),
 		BuilderImage:      imageName,
@@ -431,7 +435,7 @@ func (i *integrationTest) exerciseInjectionBuild(tag, imageName string, injectio
 	i.fileExists(containerID, "/sti-fake/relative-secret-delivered")
 
 	// Make sure the injected file does not exists in resulting image
-	files, err := util.ExpandInjectedFiles(fs.NewFileSystem(), injectionList)
+	files, err := util.ListFilesToTruncate(fs.NewFileSystem(), injectionList)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}

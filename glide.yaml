@@ -44,6 +44,9 @@ import:
   version: master
 - package: github.com/openshift/imagebuilder
   version: master
+- package: github.com/openshift/source-to-image
+  repo: https://github.com/adambkaplan/source-to-image.git
+  version: feature/build-configmaps
 
 # forks third
 # master

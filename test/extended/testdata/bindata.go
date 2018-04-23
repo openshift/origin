@@ -902,14 +902,14 @@ func testExtendedTestdataBuildsBuildSecretsS2iBinaryDirS2iBinAssemble() (*asset,
 var _testExtendedTestdataBuildsBuildSecretsS2iBinaryDirS2iBinRun = []byte(`#!/bin/bash
 
 # Ensure none of the build config inject secrets still exist in the file system
-for s in /tmp/secret? secret? /tmp/foo /tmp/bar /tmp/red foo bar red; do
+for s in /tmp/secret? secret?; do
     if [[ -s "${s}" ]]; then
         echo "Found secret file which should have been removed: ${s}"
         exit 1
     fi
 done
 
-# Print out the secrets copied into the image during assemble
+# Print out the secrets and configs copied into the image during assemble
 cd "${HOME}"
 for s in testsecret/* testsecret2/* test-config/* test-config-2/*; do
     echo -n "${s}=" && cat "${s}"
