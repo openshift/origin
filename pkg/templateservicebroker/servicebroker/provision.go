@@ -24,9 +24,9 @@ import (
 )
 
 const (
-	invalidCustomLabelMsg = "Invalid Custom Label Parameter Value!"
-	missingLabelKeyMsg    = "Label Key Cannot Be Empty!"
-	invalidKeyValueStrMsg = "Key/Value String Cannot Contain Spaces!"
+	invalidCustomLabelMsg = "Invalid Custom Label Parameter Value"
+	missingLabelKeyMsg    = "Label Key Cannot Be Empty"
+	invalidKeyValueStrMsg = "Key/Value String Cannot Contain Spaces"
 )
 
 // ensureSecret ensures the existence of a Secret object containing the template
