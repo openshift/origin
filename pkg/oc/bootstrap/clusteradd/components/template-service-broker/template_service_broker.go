@@ -41,9 +41,9 @@ func (c *TemplateServiceBrokerComponentOptions) Install(dockerClient dockerhelpe
 	imageTemplate.Latest = false
 
 	params := map[string]string{
-		"IMAGE":     imageTemplate.ExpandOrDie("template-service-broker"),
-		"LOGLEVEL":  fmt.Sprintf("%d", c.InstallContext.ComponentLogLevel()),
-		"NAMESPACE": tsbNamespace,
+		"OPENSHIFT_TSB_IMAGE": imageTemplate.ExpandOrDie("template-service-broker"),
+		"LOGLEVEL":            fmt.Sprintf("%d", c.InstallContext.ComponentLogLevel()),
+		"NAMESPACE":           tsbNamespace,
 	}
 	glog.V(2).Infof("instantiating template service broker template with parameters %v", params)
 

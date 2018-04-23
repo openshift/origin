@@ -11,7 +11,7 @@ metadata:
     openshift.io/support-url: https://access.redhat.com
     openshift.io/provider-display-name: Red Hat, Inc.
 parameters:
-- name: OPENSHIFT_WEBCONSOLE_IMAGE
+- name: IMAGE
   value: openshift/origin-web-console:latest
 - name: OPENSHIFT_PULL_POLICY
   value: Always

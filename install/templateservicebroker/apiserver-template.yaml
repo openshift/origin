@@ -3,7 +3,7 @@ kind: Template
 metadata:
   name: template-service-broker-apiserver
 parameters:
-- name: OPENSHIFT_TSB_IMAGE
+- name: IMAGE
   value: openshift/origin-template-service-broker:latest
 - name: OPENSHIFT_PULL_POLICY
   value: Always

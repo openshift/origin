@@ -117,8 +117,6 @@ func (c *ClusterUpConfig) StartSelfHosted(out io.Writer) error {
 		"KUBEDNS_CONFIG_HOST_PATH":                      configDirs.kubeDNSConfigDir,
 		"OPENSHIFT_PULL_POLICY":                         c.defaultPullPolicy,
 		"OPENSHIFT_IMAGE":                               c.openshiftImage(),
-		"OPENSHIFT_TSB_IMAGE":                           c.ImageTemplate.ExpandOrDie("origin-template-service-broker"),
-		"OPENSHIFT_WEBCONSOLE_IMAGE":                    c.ImageTemplate.ExpandOrDie("web-console"),
 		"LOGLEVEL":                                      fmt.Sprintf("%d", c.ServerLogLevel),
 		"IMAGE":                                         c.openshiftImage(),
 	}
