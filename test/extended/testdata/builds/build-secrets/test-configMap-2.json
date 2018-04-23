@@ -1,0 +1,13 @@
+{
+    "kind": "ConfigMap",
+    "apiVersion": "v1",
+    "metadata": {
+        "name": "test-config-2",
+        "creationTimestamp": null
+    },
+    "data": {
+        "foo": "bar",
+        "this": "that",
+        "red": "hat"
+    }
+}

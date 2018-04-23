@@ -101,6 +101,7 @@ type SourceRepository struct {
 	remoteURL       *s2igit.URL
 	contextDir      string
 	secrets         []buildapi.SecretBuildSource
+	configs         []buildapi.ConfigMapBuildSource
 	info            *SourceRepositoryInfo
 	sourceImage     ComponentReference
 	sourceImageFrom string
@@ -362,6 +363,11 @@ func (r *SourceRepository) Secrets() []buildapi.SecretBuildSource {
 	return r.secrets
 }
 
+// Configs returns the configs
+func (r *SourceRepository) Configs() []buildapi.ConfigMapBuildSource {
+	return r.configs
+}
+
 // SetSourceImage sets the source(input) image for a repository
 func (r *SourceRepository) SetSourceImage(c ComponentReference) {
 	r.sourceImage = c
@@ -390,41 +396,85 @@ func (r *SourceRepository) AddDockerfile(contents string) error {
 	return nil
 }
 
+type buildSource string
+
+const (
+	configBuildSource buildSource = "config"
+	secretBuildSource buildSource = "secret"
+)
+
+// AddBuildConfigs adds the defined secrets into a build. The input format for
+// the secrets is "<secretName>:<destinationDir>". The destinationDir is
+// optional and when not specified the default is the current working directory.
+func (r *SourceRepository) AddBuildConfigs(configs []string) error {
+	r.configs = []buildapi.ConfigMapBuildSource{}
+	return r.addBuildSources(configs, configBuildSource)
+}
+
 // AddBuildSecrets adds the defined secrets into a build. The input format for
 // the secrets is "<secretName>:<destinationDir>". The destinationDir is
 // optional and when not specified the default is the current working directory.
 func (r *SourceRepository) AddBuildSecrets(secrets []string) error {
-	injections := s2iapi.VolumeList{}
 	r.secrets = []buildapi.SecretBuildSource{}
-	for _, in := range secrets {
+	return r.addBuildSources(secrets, secretBuildSource)
+
+}
+
+func (r *SourceRepository) addBuildSources(sources []string, t buildSource) error {
+	injections := s2iapi.VolumeList{}
+	for _, in := range sources {
 		if err := injections.Set(in); err != nil {
 			return err
 		}
-	}
-	secretExists := func(name string) bool {
-		for _, s := range r.secrets {
-			if s.Secret.Name == name {
-				return true
-			}
-		}
-		return false
 	}
 	for _, in := range injections {
 		if r.GetStrategy() == generate.StrategyDocker && filepath.IsAbs(in.Destination) {
 			return fmt.Errorf("for the docker strategy, the secret destination directory %q must be a relative path", in.Destination)
 		}
-		if len(validation.ValidateSecretName(in.Source, false)) != 0 {
-			return fmt.Errorf("the %q must be valid secret name", in.Source)
+		switch t {
+		case configBuildSource:
+			if len(validation.ValidateConfigMapName(in.Source, false)) != 0 {
+				return fmt.Errorf("the %q must be valid secret name", in.Source)
+			}
+			if r.configExists(in.Source) {
+				return fmt.Errorf("the %q secret can be used just once", in.Source)
+			}
+			r.configs = append(r.configs, buildapi.ConfigMapBuildSource{
+				ConfigMap:      kapi.LocalObjectReference{Name: in.Source},
+				DestinationDir: in.Destination,
+			})
+		case secretBuildSource:
+			if len(validation.ValidateSecretName(in.Source, false)) != 0 {
+				return fmt.Errorf("the %q must be valid secret name", in.Source)
+			}
+			if r.secretExists(in.Source) {
+				return fmt.Errorf("the %q secret can be used just once", in.Source)
+			}
+			r.secrets = append(r.secrets, buildapi.SecretBuildSource{
+				Secret:         kapi.LocalObjectReference{Name: in.Source},
+				DestinationDir: in.Destination,
+			})
 		}
-		if secretExists(in.Source) {
-			return fmt.Errorf("the %q secret can be used just once", in.Source)
-		}
-		r.secrets = append(r.secrets, buildapi.SecretBuildSource{
-			Secret:         kapi.LocalObjectReference{Name: in.Source},
-			DestinationDir: in.Destination,
-		})
 	}
 	return nil
+}
+
+func (r *SourceRepository) secretExists(name string) bool {
+	for _, s := range r.secrets {
+		if s.Secret.Name == name {
+			return true
+		}
+	}
+	return false
+}
+
+func (r *SourceRepository) configExists(name string) bool {
+	for _, c := range r.configs {
+		if c.ConfigMap.Name == name {
+			return true
+		}
+	}
+	return false
 }
 
 // SourceRepositories is a list of SourceRepository objects
@@ -540,6 +590,7 @@ func StrategyAndSourceForRepository(repo *SourceRepository, image *ImageRef) (*B
 	source := &SourceRef{
 		Binary:       repo.binary,
 		Secrets:      repo.secrets,
+		Configs:      repo.configs,
 		RequiresAuth: repo.requiresAuth,
 	}
 

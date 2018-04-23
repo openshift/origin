@@ -6,7 +6,7 @@ import (
 	"github.com/openshift/origin/pkg/oc/generate"
 )
 
-func TestAddBuildSecrets(t *testing.T) {
+func TestAddBuildConfigsAndSecrets(t *testing.T) {
 	type result struct{ name, dest string }
 	type tc struct {
 		in     []string
@@ -43,6 +43,9 @@ func TestAddBuildSecrets(t *testing.T) {
 	if err := repo.AddBuildSecrets([]string{"secret1:/absolute/path"}); err == nil {
 		t.Errorf("expected error for docker strategy when destDir is absolute")
 	}
+	if err := repo.AddBuildConfigs([]string{"secret1:/absolute/path"}); err == nil {
+		t.Errorf("expected error for docker strategy when destDir is absolute")
+	}
 	for _, item := range table {
 		repo := &SourceRepository{}
 		err := repo.AddBuildSecrets(item.in)
@@ -50,17 +53,34 @@ func TestAddBuildSecrets(t *testing.T) {
 			t.Errorf("unexpected error: %v", err)
 			continue
 		}
+		err = repo.AddBuildConfigs(item.in)
+		if err != nil && len(item.expect) != 0 {
+			t.Errorf("unexpected error: %v", err)
+			continue
+		}
 		for _, expect := range item.expect {
-			got := repo.Secrets()
+			gotSecrets := repo.Secrets()
 			found := false
-			for _, s := range got {
+			for _, s := range gotSecrets {
 				if s.Secret.Name == expect.name && s.DestinationDir == expect.dest {
 					found = true
 					break
 				}
 			}
 			if !found {
-				t.Errorf("expected %+v secret in %#v not found", expect, got)
+				t.Errorf("expected %+v secret in %#v not found", expect, gotSecrets)
+				continue
+			}
+			gotConfigs := repo.Configs()
+			found = false
+			for _, c := range gotConfigs {
+				if c.ConfigMap.Name == expect.name && c.DestinationDir == expect.dest {
+					found = true
+					break
+				}
+			}
+			if !found {
+				t.Errorf("expected %+v configMap in %#v not found", expect, gotConfigs)
 			}
 		}
 	}

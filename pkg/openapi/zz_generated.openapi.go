@@ -3996,12 +3996,25 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								},
 							},
 						},
+						"configs": {
+							SchemaProps: spec.SchemaProps{
+								Description: "configs represents a list of configmaps and their destinations that will be used for the build.",
+								Type:        []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Ref: ref("github.com/openshift/api/build/v1.ConfigMapBuildSource"),
+										},
+									},
+								},
+							},
+						},
 					},
 					Required: []string{"type"},
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/api/build/v1.BinaryBuildSource", "github.com/openshift/api/build/v1.GitBuildSource", "github.com/openshift/api/build/v1.ImageSource", "github.com/openshift/api/build/v1.SecretBuildSource", "k8s.io/api/core/v1.LocalObjectReference"},
+				"github.com/openshift/api/build/v1.BinaryBuildSource", "github.com/openshift/api/build/v1.ConfigMapBuildSource", "github.com/openshift/api/build/v1.GitBuildSource", "github.com/openshift/api/build/v1.ImageSource", "github.com/openshift/api/build/v1.SecretBuildSource", "k8s.io/api/core/v1.LocalObjectReference"},
 		},
 		"github.com/openshift/api/build/v1.BuildSpec": {
 			Schema: spec.Schema{
@@ -4463,6 +4476,31 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{
 				"github.com/openshift/api/build/v1.SourceRevision"},
+		},
+		"github.com/openshift/api/build/v1.ConfigMapBuildSource": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "ConfigMapBuildSource describes a configmap and its destination directory that will be used only at the build time. The content of the configmap referenced here will be copied into the destination directory instead of mounting.",
+					Properties: map[string]spec.Schema{
+						"configMap": {
+							SchemaProps: spec.SchemaProps{
+								Description: "ConfigMap is a reference to an existing configmap that you want to use in your build.",
+								Ref:         ref("k8s.io/api/core/v1.LocalObjectReference"),
+							},
+						},
+						"destinationDir": {
+							SchemaProps: spec.SchemaProps{
+								Description: "DestinationDir is the directory where the files from the configmap should be available for the build time. For the Source build strategy, these will be injected into a container where the assemble script runs. For the Docker build strategy, these will be copied into the build directory, where the Dockerfile is located, so users can ADD or COPY them during docker build.",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+					},
+					Required: []string{"configMap"},
+				},
+			},
+			Dependencies: []string{
+				"k8s.io/api/core/v1.LocalObjectReference"},
 		},
 		"github.com/openshift/api/build/v1.CustomBuildStrategy": {
 			Schema: spec.Schema{
@@ -5139,13 +5177,13 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 					Properties: map[string]spec.Schema{
 						"secret": {
 							SchemaProps: spec.SchemaProps{
-								Description: "secret is a reference to an existing secret that you want to use in your build.",
+								Description: "Secret is a reference to an existing secret that you want to use in your build.",
 								Ref:         ref("k8s.io/api/core/v1.LocalObjectReference"),
 							},
 						},
 						"destinationDir": {
 							SchemaProps: spec.SchemaProps{
-								Description: "destinationDir is the directory where the files from the secret should be available for the build time. For the Source build strategy, these will be injected into a container where the assemble script runs. Later, when the script finishes, all files injected will be truncated to zero length. For the Docker build strategy, these will be copied into the build directory, where the Dockerfile is located, so users can ADD or COPY them during docker build.",
+								Description: "DestinationDir is the directory where the files from the secret should be available for the build time. For the Source build strategy, these will be injected into a container where the assemble script runs. Later, when the script finishes, all files injected will be truncated to zero length. For the Docker build strategy, these will be copied into the build directory, where the Dockerfile is located, so users can ADD or COPY them during docker build.",
 								Type:        []string{"string"},
 								Format:      "",
 							},

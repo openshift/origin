@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copy secrets into a location they can be output during image run
+# Copy secrets and configs into a location they can be output during image run
 
 mkdir -p "${HOME}/testsecret"
 if [[ -f /tmp/secret1 ]]; then
@@ -18,4 +18,26 @@ if [[ -f secret1  ]]; then
 else
     echo "Unable to locate testsecret2 fixture files"
     exit 2
+fi 
+
+mkdir -p "${HOME}/test-config"
+if [[ -f /tmp/foo  ]]; then
+    # Copy three configs defined in test-config fixture to directory
+    cp /tmp/foo "${HOME}/test-config"
+    cp /tmp/bar "${HOME}/test-config"
+    cp /tmp/red "${HOME}/test-config"
+else
+    echo "Unable to locate test-config fixture files"
+    exit 3
+fi 
+
+mkdir -p "${HOME}/test-config-2"
+if [[ -f foo  ]]; then
+    # Copy three configs defined in test-config-2 fixture to directory
+    cp foo "${HOME}/test-config-2"
+    cp bar "${HOME}/test-config-2"
+    cp red "${HOME}/test-config-2"
+else
+    echo "Unable to locate test-config-2 fixture files"
+    exit 4
 fi 

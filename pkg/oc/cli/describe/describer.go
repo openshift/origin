@@ -344,6 +344,13 @@ func describeCommonSpec(p buildapi.CommonSpec, out *tabwriter.Writer) {
 		}
 		formatString(out, "Build Secrets", strings.Join(result, ","))
 	}
+	if len(p.Source.Configs) > 0 {
+		result := []string{}
+		for _, c := range p.Source.Configs {
+			result = append(result, fmt.Sprintf("%s->%s", c.ConfigMap.Name, filepath.Clean(c.DestinationDir)))
+		}
+		formatString(out, "Build Configs", strings.Join(result, ","))
+	}
 	if len(p.Source.Images) == 1 && len(p.Source.Images[0].Paths) == 1 {
 		noneType = false
 		image := p.Source.Images[0]
