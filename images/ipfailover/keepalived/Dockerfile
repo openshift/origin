@@ -5,7 +5,7 @@
 #
 FROM openshift/origin-control-plane
 
-RUN INSTALL_PKGS="kmod keepalived iproute psmisc nmap-ncat net-tools" && \
+RUN INSTALL_PKGS="kmod keepalived iproute psmisc nmap-ncat net-tools ipset ipset-libs" && \
     yum install -y $INSTALL_PKGS && \
     rpm -V $INSTALL_PKGS && \
     yum clean all
