@@ -295,7 +295,11 @@ func applyClientConnectionOverrides(overrides *ClientConnectionOverrides, kubeCo
 // DefaultClientTransport sets defaults for a client Transport that are suitable
 // for use by infrastructure components.
 func DefaultClientTransport(rt http.RoundTripper) http.RoundTripper {
-	transport := rt.(*http.Transport)
+	transport, ok := rt.(*http.Transport)
+	if !ok {
+		return rt
+	}
+
 	// TODO: this should be configured by the caller, not in this method.
 	dialer := &net.Dialer{
 		Timeout:   30 * time.Second,
