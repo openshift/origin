@@ -16,6 +16,8 @@ for APIROOT in ${APIROOTS}; do
   cp -rf "${OS_ROOT}/${APIROOT}" "${_tmp}/"
 done
 
+go get -u golang.org/x/tools/cmd/goimports
+
 "${OS_ROOT}/hack/update-generated-protobuf.sh"
 for APIROOT in ${APIROOTS}; do
   TMP_APIROOT="${_tmp}/${APIROOT}"
