@@ -1,4 +1,4 @@
-package template
+package templateprocessing
 
 import (
 	"encoding/json"
@@ -420,12 +420,12 @@ func TestEvaluateLabels(t *testing.T) {
 
 func TestProcessTemplateParameters(t *testing.T) {
 	var template, expectedTemplate templateapi.Template
-	jsonData, _ := ioutil.ReadFile("../../test/templates/testdata/guestbook.json")
+	jsonData, _ := ioutil.ReadFile("../../../test/templates/testdata/guestbook.json")
 	if err := runtime.DecodeInto(legacyscheme.Codecs.UniversalDecoder(), jsonData, &template); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	expectedData, _ := ioutil.ReadFile("../../test/templates/testdata/guestbook_list.json")
+	expectedData, _ := ioutil.ReadFile("../../../test/templates/testdata/guestbook_list.json")
 	if err := runtime.DecodeInto(legacyscheme.Codecs.UniversalDecoder(), expectedData, &expectedTemplate); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

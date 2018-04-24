@@ -5,13 +5,13 @@ import (
 	"io"
 	"strings"
 
+	"github.com/openshift/origin/pkg/template/templateprocessing"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/oc/generate/app"
-	"github.com/openshift/origin/pkg/template"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	templateinternalclient "github.com/openshift/origin/pkg/template/client/internalversion"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -21,7 +21,7 @@ import (
 func TransformTemplate(tpl *templateapi.Template, templateProcessor templateinternalclient.TemplateProcessorInterface, namespace string, parameters map[string]string, ignoreUnknownParameters bool) (*templateapi.Template, error) {
 	// only set values that match what's expected by the template.
 	for k, value := range parameters {
-		v := template.GetParameterByName(tpl, k)
+		v := templateprocessing.GetParameterByName(tpl, k)
 		if v != nil {
 			v.Value = value
 			v.Generate = ""
