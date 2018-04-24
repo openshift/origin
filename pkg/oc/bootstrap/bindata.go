@@ -17322,6 +17322,8 @@ objects:
       kind: OpenShiftWebConsoleConfig
       plural: openshiftwebconsoleconfigs
       singular: openshiftwebconsoleconfig
+    subresources:
+      status: {}
 
 - apiVersion: apps/v1
   kind: Deployment
@@ -17369,6 +17371,7 @@ objects:
     version: 3.10.0
     logging:
       level: ${{COMPONENT_LOGLEVEL}}
+    replicas: 1
 `)
 
 func installOpenshiftWebConsoleOperatorInstallYamlBytes() ([]byte, error) {
