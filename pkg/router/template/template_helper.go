@@ -119,7 +119,7 @@ func genCertificateHostName(hostname string, wildcard bool) string {
 	return templateutil.GenCertificateHostName(hostname, wildcard)
 }
 
-// Returns the list of endpoints for the given route's service
+// processEndpointsForAlias returns the list of endpoints for the given route's service
 // action argument further processes the list e.g. shuffle
 // The default action is in-order traversal of internal data structure that stores
 //   the endpoints (does not change the return order if the data structure did not mutate)
@@ -148,7 +148,7 @@ func endpointsForAlias(alias ServiceAliasConfig, svc ServiceUnit) []Endpoint {
 	return endpoints
 }
 
-// Returns a haproxy backend config for a given service alias.
+// backendConfig returns a haproxy backend config for a given service alias.
 func backendConfig(name string, cfg ServiceAliasConfig, hascert bool) *haproxyutil.BackendConfig {
 	return &haproxyutil.BackendConfig{
 		Name:           name,
@@ -161,7 +161,7 @@ func backendConfig(name string, cfg ServiceAliasConfig, hascert bool) *haproxyut
 	}
 }
 
-// Generates haproxy certificate config map contents.
+// generateHAProxyCertConfigMap generates haproxy certificate config map contents.
 func generateHAProxyCertConfigMap(td templateData) []string {
 	lines := make([]string, 0)
 	for k, cfg := range td.State {
@@ -234,7 +234,7 @@ func getPrimaryAliasKey(aliases map[string]ServiceAliasConfig) string {
 	return keys[0]
 }
 
-// Generates a named haproxy certificate config map contents.
+// generateHAProxyMap generates a named haproxy certificate config map contents.
 func generateHAProxyMap(name string, td templateData) []string {
 	if name == certConfigMap {
 		return generateHAProxyCertConfigMap(td)
