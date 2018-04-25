@@ -362,9 +362,6 @@ function os::build::images() {
   ( os::build::image "${tag_prefix}-sti-builder"           images/builder/docker/sti-builder ) &
   ( os::build::image "${tag_prefix}-f5-router"             images/router/f5 ) &
   ( os::build::image "${tag_prefix}-node"                  images/node ) &
-  # These images are deprecated and will be removed once ansible is updated to stop using them
-  ( os::build::image "openshift/origin" images/origin ) &
-  ( os::build::image "openshift/node"   images/node ) &
 
   for i in `jobs -p`; do wait $i; done
 }
