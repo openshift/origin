@@ -66,11 +66,11 @@ script or `/etc/fstab` entries.
 Example of `/etc/fstab`:
 ```
 # device name   # mount point                  # FS    # options # extra
-/dev/sdb1       /mount/local-storage/ssd/disk1 ext4     defaults 1 2
-/dev/sdb2       /mount/local-storage/ssd/disk2 ext4     defaults 1 2
-/dev/sdb3       /mount/local-storage/ssd/disk3 ext4     defaults 1 2
-/dev/sdc1       /mount/local-storage/hdd/disk1 ext4     defaults 1 2
-/dev/sdc2       /mount/local-storage/hdd/disk2 ext4     defaults 1 2
+/dev/sdb1       /mnt/local-storage/ssd/disk1 ext4     defaults 1 2
+/dev/sdb2       /mnt/local-storage/ssd/disk2 ext4     defaults 1 2
+/dev/sdb3       /mnt/local-storage/ssd/disk3 ext4     defaults 1 2
+/dev/sdc1       /mnt/local-storage/hdd/disk1 ext4     defaults 1 2
+/dev/sdc2       /mnt/local-storage/hdd/disk2 ext4     defaults 1 2
 ```
 
 ## Prerequisites
