@@ -314,6 +314,14 @@ func addOutputEnvVars(buildOutput *kapi.ObjectReference, output *[]v1.EnvVar) er
 }
 
 // setupAdditionalSecrets creates secret volume mounts in the given pod for the given list of secrets
+func setupAdditionalConfigs(pod *v1.Pod, container *v1.Container, configs []buildapi.ConfigSpec) {
+	for _, configSpec := range configs {
+		mountConfigMapVolume(pod, container, configSpec.ConfigMapSource.Name, configSpec.MountPath, "config")
+		glog.V(3).Infof("Installed additional configMap in %s, in Pod %s/%s", configSpec.MountPath, pod.Namespace, pod.Name)
+	}
+}
+
+// setupAdditionalSecrets creates secret volume mounts in the given pod for the given list of secrets
 func setupAdditionalSecrets(pod *v1.Pod, container *v1.Container, secrets []buildapi.SecretSpec) {
 	for _, secretSpec := range secrets {
 		mountSecretVolume(pod, container, secretSpec.SecretSource.Name, secretSpec.MountPath, "secret")

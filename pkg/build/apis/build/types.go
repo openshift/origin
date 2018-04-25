@@ -850,6 +850,9 @@ type CustomBuildStrategy struct {
 	// Secrets is a list of additional secrets that will be included in the custom build pod
 	Secrets []SecretSpec
 
+	// Configs is a list of additional configMaps that will be included in the custom build pod
+	Configs []ConfigSpec
+
 	// BuildAPIVersion is the requested API version for the Build object serialized and passed to the custom builder
 	BuildAPIVersion string
 }
@@ -1428,5 +1431,14 @@ type SecretSpec struct {
 	SecretSource kapi.LocalObjectReference
 
 	// MountPath is the path at which to mount the secret
+	MountPath string
+}
+
+// ConfigSpec specifies a configMap to be included in a build pod and its corresponding mount point
+type ConfigSpec struct {
+	// ConfigMapSource is a reference to the configMap
+	ConfigMapSource kapi.LocalObjectReference
+
+	// MountPath is the path at which to mount the configMap
 	MountPath string
 }
