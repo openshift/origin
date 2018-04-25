@@ -486,10 +486,6 @@ func (args MasterArgs) GetServerCertHostnames() (sets.String, error) {
 
 	allHostnames := sets.NewString(
 		"localhost", "127.0.0.1",
-		"openshift.default.svc.cluster.local",
-		"openshift.default.svc",
-		"openshift.default",
-		"openshift",
 		"kubernetes.default.svc.cluster.local",
 		"kubernetes.default.svc",
 		"kubernetes.default",
