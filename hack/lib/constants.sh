@@ -311,6 +311,8 @@ readonly OS_ALL_IMAGES=(
   origin-pod
   origin-base
   origin-cli
+  origin-hypershift
+  origin-hyperkube
   origin-control-plane
   origin-node
   origin-deployer
@@ -341,22 +343,26 @@ function os::build::images() {
   # determine the correct tag prefix
   tag_prefix="${OS_IMAGE_PREFIX:-"openshift/origin"}"
 
-  # images that depend on "${tag_prefix}-source"
+  # images that depend on "${tag_prefix}-source" or "${tag_prefix}-base"
   ( os::build::image "${tag_prefix}-pod"                     images/pod ) &
   ( os::build::image "${tag_prefix}-template-service-broker" images/template-service-broker ) &
   ( os::build::image "${tag_prefix}-cli"                     images/cli ) &
-
-  # images that depend on "${tag_prefix}-base" or "${tag_prefix}-cli"
-  ( os::build::image "${tag_prefix}-control-plane"      images/origin ) &
-  ( os::build::image "${tag_prefix}-egress-router"      images/egress/router ) &
-  ( os::build::image "${tag_prefix}-egress-http-proxy"  images/egress/http-proxy ) &
-  ( os::build::image "${tag_prefix}-egress-dns-proxy"   images/egress/dns-proxy ) &
+  ( os::build::image "${tag_prefix}-hyperkube"               images/hyperkube ) &
+  ( os::build::image "${tag_prefix}-hypershift"              images/hypershift ) &
+  ( os::build::image "${tag_prefix}-egress-router"           images/egress/router ) &
+  ( os::build::image "${tag_prefix}-egress-http-proxy"       images/egress/http-proxy ) &
+  ( os::build::image "${tag_prefix}-egress-dns-proxy"        images/egress/dns-proxy ) &
+  ( os::build::image "${tag_prefix}-keepalived-ipfailover"   images/ipfailover/keepalived ) &
 
   for i in `jobs -p`; do wait $i; done
 
-  # images that depend on "${tag_prefix}-control-plane
+  # images that depend on "${tag_prefix}-cli"
+  ( os::build::image "${tag_prefix}-control-plane"         images/origin ) &
+
+  for i in `jobs -p`; do wait $i; done
+
+  # images that depend on "${tag_prefix}-control-plane"
   ( os::build::image "${tag_prefix}-haproxy-router"        images/router/haproxy ) &
-  ( os::build::image "${tag_prefix}-keepalived-ipfailover" images/ipfailover/keepalived ) &
   ( os::build::image "${tag_prefix}-deployer"              images/deployer ) &
   ( os::build::image "${tag_prefix}-recycler"              images/recycler ) &
   ( os::build::image "${tag_prefix}-docker-builder"        images/builder/docker/docker-builder ) &
