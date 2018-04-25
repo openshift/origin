@@ -2,7 +2,6 @@ package deploylog
 
 import (
 	"fmt"
-	"io"
 	"sort"
 	"time"
 
@@ -12,7 +11,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/wait"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	genericrest "k8s.io/apiserver/pkg/registry/generic/rest"
@@ -22,6 +20,7 @@ import (
 	"k8s.io/kubernetes/pkg/controller"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
+	apiserverrest "github.com/openshift/origin/pkg/apiserver/rest"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	"github.com/openshift/origin/pkg/apps/apis/apps/validation"
 	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
@@ -179,33 +178,11 @@ func (r *REST) getLogs(podNamespace, podName string, logOpts *kapi.PodLogOptions
 		return nil, err
 	}
 
-	return &passThroughStreamer{
+	return &apiserverrest.PassThroughStreamer{
 		In:          readerCloser,
 		Flush:       logOpts.Follow,
 		ContentType: "text/plain",
 	}, nil
-}
-
-type passThroughStreamer struct {
-	In          io.ReadCloser
-	Flush       bool
-	ContentType string
-}
-
-// a PipeStreamer must implement a rest.ResourceStreamer
-var _ rest.ResourceStreamer = &passThroughStreamer{}
-
-func (obj *passThroughStreamer) GetObjectKind() schema.ObjectKind {
-	return schema.EmptyObjectKind
-}
-
-func (obj *passThroughStreamer) DeepCopyObject() runtime.Object {
-	panic("passThroughStreamer does not implement DeepCopyObject")
-}
-
-// InputStream returns a stream with the contents of the embedded pipe.
-func (s *passThroughStreamer) InputStream(apiVersion, acceptHeader string) (stream io.ReadCloser, flush bool, contentType string, err error) {
-	return s.In, s.Flush, s.ContentType, nil
 }
 
 // waitForExistingDeployment will use the timeout to wait for a deployment to appear.
