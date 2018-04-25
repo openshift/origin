@@ -24802,6 +24802,13 @@
      "buildAPIVersion": {
       "type": "string",
       "description": "buildAPIVersion is the requested API version for the Build object serialized and passed to the custom builder"
+     },
+     "configs": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.ConfigSpec"
+      },
+      "description": "Configs is a list of additional configMaps that will be included in the custom build pod"
      }
     }
    },
@@ -24820,6 +24827,24 @@
      "mountPath": {
       "type": "string",
       "description": "mountPath is the path at which to mount the secret"
+     }
+    }
+   },
+   "v1.ConfigSpec": {
+    "id": "v1.ConfigSpec",
+    "description": "ConfigSpec specifies a configMap to be included in a build pod and its corresponding mount point",
+    "required": [
+     "configMapSource",
+     "mountPath"
+    ],
+    "properties": {
+     "configMapSource": {
+      "$ref": "v1.LocalObjectReference",
+      "description": "ConfigMapSource is a reference to the configMap"
+     },
+     "mountPath": {
+      "type": "string",
+      "description": "MountPath is the path at which to mount the configMap"
      }
     }
    },

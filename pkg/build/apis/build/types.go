@@ -850,11 +850,11 @@ type CustomBuildStrategy struct {
 	// Secrets is a list of additional secrets that will be included in the custom build pod
 	Secrets []SecretSpec
 
-	// Configs is a list of additional configMaps that will be included in the custom build pod
-	Configs []ConfigSpec
-
 	// BuildAPIVersion is the requested API version for the Build object serialized and passed to the custom builder
 	BuildAPIVersion string
+
+	// Configs is a list of additional configMaps that will be included in the custom build pod
+	Configs []ConfigSpec
 }
 
 // ImageOptimizationPolicy describes what optimizations the builder can perform when building images.

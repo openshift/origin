@@ -315,6 +315,16 @@ func (ConfigMapBuildSource) SwaggerDoc() map[string]string {
 	return map_ConfigMapBuildSource
 }
 
+var map_ConfigSpec = map[string]string{
+	"":                "ConfigSpec specifies a configMap to be included in a build pod and its corresponding mount point",
+	"configMapSource": "ConfigMapSource is a reference to the configMap",
+	"mountPath":       "MountPath is the path at which to mount the configMap",
+}
+
+func (ConfigSpec) SwaggerDoc() map[string]string {
+	return map_ConfigSpec
+}
+
 var map_CustomBuildStrategy = map[string]string{
 	"":                   "CustomBuildStrategy defines input parameters specific to Custom build.",
 	"from":               "from is reference to an DockerImage, ImageStreamTag, or ImageStreamImage from which the docker image should be pulled",
@@ -324,6 +334,7 @@ var map_CustomBuildStrategy = map[string]string{
 	"forcePull":          "forcePull describes if the controller should configure the build pod to always pull the images for the builder or only pull if it is not present locally",
 	"secrets":            "secrets is a list of additional secrets that will be included in the build pod",
 	"buildAPIVersion":    "buildAPIVersion is the requested API version for the Build object serialized and passed to the custom builder",
+	"configs":            "Configs is a list of additional configMaps that will be included in the custom build pod",
 }
 
 func (CustomBuildStrategy) SwaggerDoc() map[string]string {

@@ -4502,6 +4502,31 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"k8s.io/api/core/v1.LocalObjectReference"},
 		},
+		"github.com/openshift/api/build/v1.ConfigSpec": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "ConfigSpec specifies a configMap to be included in a build pod and its corresponding mount point",
+					Properties: map[string]spec.Schema{
+						"configMapSource": {
+							SchemaProps: spec.SchemaProps{
+								Description: "ConfigMapSource is a reference to the configMap",
+								Ref:         ref("k8s.io/api/core/v1.LocalObjectReference"),
+							},
+						},
+						"mountPath": {
+							SchemaProps: spec.SchemaProps{
+								Description: "MountPath is the path at which to mount the configMap",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+					},
+					Required: []string{"configMapSource", "mountPath"},
+				},
+			},
+			Dependencies: []string{
+				"k8s.io/api/core/v1.LocalObjectReference"},
+		},
 		"github.com/openshift/api/build/v1.CustomBuildStrategy": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
@@ -4566,12 +4591,25 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Format:      "",
 							},
 						},
+						"configs": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Configs is a list of additional configMaps that will be included in the custom build pod",
+								Type:        []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Ref: ref("github.com/openshift/api/build/v1.ConfigSpec"),
+										},
+									},
+								},
+							},
+						},
 					},
 					Required: []string{"from"},
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/api/build/v1.SecretSpec", "k8s.io/api/core/v1.EnvVar", "k8s.io/api/core/v1.LocalObjectReference", "k8s.io/api/core/v1.ObjectReference"},
+				"github.com/openshift/api/build/v1.ConfigSpec", "github.com/openshift/api/build/v1.SecretSpec", "k8s.io/api/core/v1.EnvVar", "k8s.io/api/core/v1.LocalObjectReference", "k8s.io/api/core/v1.ObjectReference"},
 		},
 		"github.com/openshift/api/build/v1.DockerBuildStrategy": {
 			Schema: spec.Schema{

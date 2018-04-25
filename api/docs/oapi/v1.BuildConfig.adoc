@@ -175,7 +175,11 @@ Populated by the system. Read-only. More info: http://kubernetes.io/docs/user-gu
 </div></details><details><summary>  <span title="(v1.BuildStrategy) strategy defines how to perform a build.">strategy</span>:
 </summary><details><summary>    <span title="(v1.CustomBuildStrategy) customStrategy holds the parameters to the Custom build strategy">customStrategy</span>:
 </summary><div style="margin-left:13px;">      <span title="(string) buildAPIVersion is the requested API version for the Build object serialized and passed to the custom builder">buildAPIVersion</span>:
-</div><details><summary>      <span title="(array) env contains additional environment variables you want to pass into a builder container.">env</span>:
+</div><details><summary>      <span title="(array) Configs is a list of additional configMaps that will be included in the custom build pod">configs</span>:
+</summary><details><summary>      - <span title="(v1.LocalObjectReference) ConfigMapSource is a reference to the configMap">configMapSource</span>:
+</summary><div style="margin-left:13px;">      -   <span title="(string) Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names">name</span>:
+</div></details><div style="margin-left:13px;">        <span title="(string) MountPath is the path at which to mount the configMap">mountPath</span>:
+</div></details><details><summary>      <span title="(array) env contains additional environment variables you want to pass into a builder container.">env</span>:
 </summary><div style="margin-left:13px;">      - <span title="(string) Name of the environment variable. Must be a C_IDENTIFIER.">name</span>:
 </div><div style="margin-left:13px;">        <span title="(string) Variable references $(VAR_NAME) are expanded using the previous defined environment variables in the container and any service environment variables. If a variable cannot be resolved, the reference in the input string will be unchanged. The $(VAR_NAME) syntax can be escaped with a double $$, ie: $$(VAR_NAME). Escaped references will never be expanded, regardless of whether the variable exists or not. Defaults to &#34;&#34;.">value</span>:
 </div><details><summary>        <span title="(v1.EnvVarSource) Source for the environment variable&#39;s value. Cannot be used if value is not empty.">valueFrom</span>:

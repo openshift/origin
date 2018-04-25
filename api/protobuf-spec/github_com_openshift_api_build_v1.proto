@@ -599,6 +599,15 @@ message ConfigMapBuildSource {
   optional string destinationDir = 2;
 }
 
+// ConfigSpec specifies a configMap to be included in a build pod and its corresponding mount point
+message ConfigSpec {
+  // ConfigMapSource is a reference to the configMap
+  optional k8s.io.api.core.v1.LocalObjectReference configMapSource = 1;
+
+  // MountPath is the path at which to mount the configMap
+  optional string mountPath = 2;
+}
+
 // CustomBuildStrategy defines input parameters specific to Custom build.
 message CustomBuildStrategy {
   // from is reference to an DockerImage, ImageStreamTag, or ImageStreamImage from which
@@ -627,6 +636,9 @@ message CustomBuildStrategy {
 
   // buildAPIVersion is the requested API version for the Build object serialized and passed to the custom builder
   optional string buildAPIVersion = 7;
+
+  // Configs is a list of additional configMaps that will be included in the custom build pod
+  repeated ConfigSpec configs = 8;
 }
 
 // DockerBuildStrategy defines input parameters specific to Docker build.

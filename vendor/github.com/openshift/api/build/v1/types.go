@@ -700,6 +700,9 @@ type CustomBuildStrategy struct {
 
 	// buildAPIVersion is the requested API version for the Build object serialized and passed to the custom builder
 	BuildAPIVersion string `json:"buildAPIVersion,omitempty" protobuf:"bytes,7,opt,name=buildAPIVersion"`
+
+	// Configs is a list of additional configMaps that will be included in the custom build pod
+	Configs []ConfigSpec `json:"configs,omitempty" protobuf:"bytes,8,rep,name=configs"`
 }
 
 // ImageOptimizationPolicy describes what optimizations the builder can perform when building images.
@@ -1274,5 +1277,14 @@ type SecretSpec struct {
 	SecretSource corev1.LocalObjectReference `json:"secretSource" protobuf:"bytes,1,opt,name=secretSource"`
 
 	// mountPath is the path at which to mount the secret
+	MountPath string `json:"mountPath" protobuf:"bytes,2,opt,name=mountPath"`
+}
+
+// ConfigSpec specifies a configMap to be included in a build pod and its corresponding mount point
+type ConfigSpec struct {
+	// ConfigMapSource is a reference to the configMap
+	ConfigMapSource corev1.LocalObjectReference `json:"configMapSource" protobuf:"bytes,1,opt,name=configMapSource"`
+
+	// MountPath is the path at which to mount the configMap
 	MountPath string `json:"mountPath" protobuf:"bytes,2,opt,name=mountPath"`
 }

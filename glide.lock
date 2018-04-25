@@ -1,5 +1,5 @@
 hash: a5954c4b56d2e14a1790f598623499f9f6584f52ffcddb1acd3b78dfae0ccc56
-updated: 2018-04-23T14:19:48.435533-04:00
+updated: 2018-04-24T21:39:51.327761-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -818,7 +818,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: a3a76f7befc5cb6281d7ee4ae57ac00f6558772f
+  version: b4c7cbe64744e6881efe36191afdc8a623cb2c58
   repo: https://github.com/adambkaplan/api.git
   subpackages:
   - apps/v1
@@ -945,7 +945,7 @@ imports:
   - user/informers/externalversions/user/v1
   - user/listers/user/v1
 - name: github.com/openshift/imagebuilder
-  version: 41f1eb4311d96c876f3951ece26d2a2c007b720b
+  version: a10081d6a43feab673788e24ac7db28623eaf14c
   subpackages:
   - dockerclient
   - imageprogress
@@ -1799,7 +1799,7 @@ imports:
   - pkg/util/proto
   - pkg/util/proto/validation
 - name: k8s.io/kubernetes
-  version: 7e6a9039568dc66bc33dfe9c936f587a7ac66742
+  version: d450cb1a62011f7ce4c23eb7b2a31eafdb73bb8f
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/controller-manager/app
