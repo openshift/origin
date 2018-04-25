@@ -19,8 +19,8 @@ import (
 )
 
 const (
-	registryNamespace = "ns"
-	registryName      = "registry"
+	registryNamespace = "default"
+	registryName      = "docker-registry"
 )
 
 var (
@@ -42,17 +42,19 @@ func controllerSetup(startingObjects []runtime.Object, t *testing.T, stopCh <-ch
 	kubeclient.PrependReactor("update", "*", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, action.(clientgotesting.UpdateAction).GetObject(), nil
 	})
-	kubeclient.PrependWatchReactor("services", clientgotesting.DefaultWatchReactor(fakeWatch, nil))
+	kubeclient.PrependWatchReactor("services",
+		func(action clientgotesting.Action) (handled bool, ret watch.Interface, err error) {
+			return true, fakeWatch, nil
+		})
 
 	informerFactory := informers.NewSharedInformerFactory(kubeclient, controller.NoResyncPeriodFunc())
 
 	controller := NewDockerRegistryServiceController(
 		informerFactory.Core().V1().Secrets(),
+		informerFactory.Core().V1().Services(),
 		kubeclient,
 		DockerRegistryServiceControllerOptions{
 			Resync:                10 * time.Minute,
-			RegistryNamespace:     registryNamespace,
-			RegistryServiceName:   registryName,
 			DockercfgController:   &DockercfgController{},
 			DockerURLsInitialized: make(chan struct{}),
 		},
@@ -153,7 +155,7 @@ func TestUpdateNewStyleSecret(t *testing.T) {
 	}
 
 	expectedDockercfgMap := credentialprovider.DockerConfig{}
-	for _, key := range []string{"172.16.123.123:1235", "registry.ns.svc:1235"} {
+	for _, key := range []string{"172.16.123.123:1235", "docker-registry.default.svc:1235"} {
 		expectedDockercfgMap[key] = credentialprovider.DockerConfigEntry{
 			Username: "serviceaccount",
 			Password: newStyleDockercfgSecret.Annotations[ServiceAccountTokenValueAnnotation],
@@ -243,7 +245,7 @@ func TestUpdateOldStyleSecretWithKey(t *testing.T) {
 	}
 
 	expectedDockercfgMap := credentialprovider.DockerConfig{}
-	for _, key := range []string{"172.16.123.123:1235", "registry.ns.svc:1235"} {
+	for _, key := range []string{"172.16.123.123:1235", "docker-registry.default.svc:1235"} {
 		expectedDockercfgMap[key] = credentialprovider.DockerConfigEntry{
 			Username: "serviceaccount",
 			Password: "token-value",
@@ -334,7 +336,7 @@ func TestUpdateOldStyleSecretWithoutKey(t *testing.T) {
 	}
 
 	expectedDockercfgMap := credentialprovider.DockerConfig{}
-	for _, key := range []string{"172.16.123.123:1235", "registry.ns.svc:1235"} {
+	for _, key := range []string{"172.16.123.123:1235", "docker-registry.default.svc:1235"} {
 		expectedDockercfgMap[key] = credentialprovider.DockerConfigEntry{
 			Username: "serviceaccount",
 			Password: "the-sa-bearer-token",
@@ -463,7 +465,7 @@ func TestClearSecretAndRecreate(t *testing.T) {
 	}
 
 	expectedDockercfgMap := credentialprovider.DockerConfig{}
-	for _, key := range []string{"172.16.123.123:1235", "registry.ns.svc:1235"} {
+	for _, key := range []string{"172.16.123.123:1235", "docker-registry.default.svc:1235"} {
 		expectedDockercfgMap[key] = credentialprovider.DockerConfigEntry{
 			Username: "serviceaccount",
 			Password: "the-token",

@@ -68,13 +68,12 @@ func RunServiceAccountPullSecretsController(ctx ControllerContext) (bool, error)
 	go dockercfgController.Run(5, ctx.Stop)
 
 	dockerRegistryControllerOptions := serviceaccountcontrollers.DockerRegistryServiceControllerOptions{
-		RegistryNamespace:     "default",
-		RegistryServiceName:   "docker-registry",
 		DockercfgController:   dockercfgController,
 		DockerURLsInitialized: dockerURLsInitialized,
 	}
 	go serviceaccountcontrollers.NewDockerRegistryServiceController(
 		ctx.ExternalKubeInformers.Core().V1().Secrets(),
+		ctx.ExternalKubeInformers.Core().V1().Services(),
 		kc,
 		dockerRegistryControllerOptions,
 	).Run(10, ctx.Stop)
