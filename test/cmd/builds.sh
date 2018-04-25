@@ -19,7 +19,7 @@ os::test::junit::declare_suite_start "cmd/builds"
 os::cmd::expect_success 'oc new-build centos/ruby-22-centos7 https://github.com/openshift/ruby-hello-world.git'
 os::cmd::expect_success 'oc get bc/ruby-hello-world'
 
-os::cmd::expect_success "cat '${OS_ROOT}/images/origin/Dockerfile' | oc new-build -D - --name=test"
+os::cmd::expect_success "cat '${OS_ROOT}/images/cli/Dockerfile' | oc new-build -D - --name=test"
 os::cmd::expect_success 'oc get bc/test'
 
 template='{{with .spec.output.to}}{{.kind}} {{.name}}{{end}}'

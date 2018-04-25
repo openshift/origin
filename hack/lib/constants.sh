@@ -310,6 +310,7 @@ readonly -f os::build::clean_windows_versioninfo
 readonly OS_ALL_IMAGES=(
   origin-pod
   origin-base
+  origin-cli
   origin-control-plane
   origin-node
   origin-deployer
@@ -343,8 +344,9 @@ function os::build::images() {
   # images that depend on "${tag_prefix}-source"
   ( os::build::image "${tag_prefix}-pod"                     images/pod ) &
   ( os::build::image "${tag_prefix}-template-service-broker" images/template-service-broker ) &
+  ( os::build::image "${tag_prefix}-cli"                     images/cli ) &
 
-  # images that depend on "${tag_prefix}-base"
+  # images that depend on "${tag_prefix}-base" or "${tag_prefix}-cli"
   ( os::build::image "${tag_prefix}-control-plane"      images/origin ) &
   ( os::build::image "${tag_prefix}-egress-router"      images/egress/router ) &
   ( os::build::image "${tag_prefix}-egress-http-proxy"  images/egress/http-proxy ) &
