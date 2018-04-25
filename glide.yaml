@@ -7,7 +7,7 @@ excludeDirs:
 import:
 # kube first
 - package: k8s.io/kube-openapi
-  version: 50ae88d24ede7b8bad68e23c805b5d3da5c8abaf
+  version: 0f2f0396e266ad24afbd02375ba74c0dda1e3611
 - package: k8s.io/code-generator
   repo:    https://github.com/openshift/kubernetes-code-generator.git
   version: origin-3.10-kubernetes-1.10.0

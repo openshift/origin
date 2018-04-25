@@ -123,6 +123,40 @@ func TestShell(t *testing.T) {
 	}
 }
 
+func TestMultiStageBase(t *testing.T) {
+	tmpDir, err := ioutil.TempDir("", "dockerbuild-conformance-")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	c, err := docker.NewClientFromEnv()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	e := NewClientExecutor(c)
+	defer e.Release()
+
+	out := &bytes.Buffer{}
+	e.Out, e.ErrOut = out, out
+	e.Directory = tmpDir
+	e.Tag = filepath.Base(tmpDir)
+	node, err := imagebuilder.ParseFile("testdata/Dockerfile.reusebase")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	b := imagebuilder.NewBuilder(nil)
+	stages := imagebuilder.NewStages(node, b)
+	if _, err := e.Stages(b, stages, ""); err != nil {
+		t.Fatal(err)
+	}
+	if out.String() != "/1\n" {
+		t.Errorf("Unexpected build output:\n%s", out.String())
+	}
+}
+
 // TestConformance* compares the result of running the direct build against a
 // sequential docker build. A dockerfile and git repo is loaded, then each step
 // in the file is run sequentially, committing after each step. The generated

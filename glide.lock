@@ -1,5 +1,5 @@
-hash: f9577985ef9884297c3c94191d038d50acde60bb9744c4d5523acc7a5d57003f
-updated: 2018-04-19T12:28:43.694392977+02:00
+hash: 8d9400ce356982e52e62591ee0287cc73b392f39979a20700aadebbfc83db87d
+updated: 2018-04-25T11:42:37.116792-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -944,14 +944,14 @@ imports:
   - user/informers/externalversions/user/v1
   - user/listers/user/v1
 - name: github.com/openshift/imagebuilder
-  version: 41f1eb4311d96c876f3951ece26d2a2c007b720b
+  version: a10081d6a43feab673788e24ac7db28623eaf14c
   subpackages:
   - dockerclient
   - imageprogress
   - signal
   - strslice
 - name: github.com/openshift/source-to-image
-  version: 35514ac80ab25bbd682b18c0c771385a47a2b180
+  version: 57a644844c76dad4d42b7045e47e6b73e66d58d7
   subpackages:
   - pkg/api
   - pkg/api/describe
@@ -1787,7 +1787,7 @@ imports:
   - pkg/registry/apiservice/etcd
   - pkg/registry/apiservice/rest
 - name: k8s.io/kube-openapi
-  version: 50ae88d24ede7b8bad68e23c805b5d3da5c8abaf
+  version: 0f2f0396e266ad24afbd02375ba74c0dda1e3611
   subpackages:
   - pkg/aggregator
   - pkg/builder
@@ -1797,7 +1797,7 @@ imports:
   - pkg/util/proto
   - pkg/util/proto/validation
 - name: k8s.io/kubernetes
-  version: e6e9f2d5e18b7948030382ed17c2e10ca914efcf
+  version: f56472afd3cc07125f8690303aec1215035cc267
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/controller-manager/app
@@ -2548,8 +2548,6 @@ imports:
   - plugin/pkg/auth/authorizer/rbac
   - plugin/pkg/auth/authorizer/rbac/bootstrappolicy
   - staging/src/k8s.io/apimachinery/pkg/labels
-  - staging/src/k8s.io/apimachinery/pkg/util/diff
-  - staging/src/k8s.io/apimachinery/pkg/util/wait
   - test/e2e
   - test/e2e/common
   - test/e2e/framework
