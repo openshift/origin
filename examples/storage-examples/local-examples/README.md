@@ -1,13 +1,11 @@
 # OpenShift Local Volume Examples  [WIP]
 
 OpenShift allows for using local devices as PersistentVolumes.
-This feature is alpha in 3.7 and must be explicitly enabled on all OpenShift
-masters, controllers and nodes (see below).
 
-## Alpha disclaimer
+## Beta disclaimer
 
-Local Volumes are alpha feature in 3.7. It requires several manual steps to
-enable, configure and deplouy the feature. It may be reworked in the furute and
+Local Volumes are beta feature in 3.10. It requires several manual steps to
+enable, configure and deplouy the feature. It may be reworked in the futute and
 it will be probably automated by openshift-ansible.
 
 
@@ -24,37 +22,9 @@ PVs for locally mounted devices. This provisioner is currently very limited
 and just scans pre-configured directories. It cannot dynamically provision
 volumes, it may be implemented in a future release.
 
-## Enabling Local Volumes
-
-All OpenShift masters and nodes must run with enabled feature
-`PersistentLocalVolumes=true`. Edit `master-config.yaml` on all master hosts and
-make sure that `apiServerArguments` and `controllerArguments` enable the feature:
-
-```yaml
-apiServerArguments:
-  feature-gates:
-  - PersistentLocalVolumes=true
-  ...
-
-controllerArguments:
-  feature-gates:
-  - PersistentLocalVolumes=true
-  ...
-```
-
-Similarly, the feature needs to be enabled on all nodes. Edit `node-config.yaml`
-on all nodes:
-
-```yaml
-kubeletArguments:
-  feature-gates:
-  - PersistentLocalVolumes=true
-  ...
-```
-
 ## Mounting Local Volumes
 
-While the feature is in alpha all local volumes must be manually mounted before
+While the feature is in beta all local volumes must be manually mounted before
 they can be consumed by Kubernetes as PersistentVolumes.
 
 All volumes must be mounted into
@@ -96,21 +66,18 @@ kind: ConfigMap
 metadata:
   name: local-volume-config
 data:
-    "local-ssd": | <1>
-      {
-        "hostDir": "/mnt/local-storage/ssd", <2>
-        "mountDir": "/mnt/local-storage/ssd" <3>
-      }
-    "local-hdd": |
-      {
-        "hostDir": "/mnt/local-storage/hdd",
-        "mountDir": "/mnt/local-storage/hdd"
-      }
+    storageClassMap: |
+        local-ssd: <1>
+            hostDir:  /mnt/local-storage/ssd <2>
+            mountDir: /mnt/local-storage/ssd <3>
+        local-hdd:
+            hostDir: /mnt/local-storage/hdd
+            mountDir: /mnt/local-storage/hdd
 ```
 * <1> Name of the StorageClass.
 * <2> Path to the directory on the host. It must be a subdirectory of `/mnt/local-storage`.
 * <3> Path to the directory in the provisioner pod. The same directory structure
-  as on the host is strongly suggested.
+  as on the host is strongly suggested and `mountDir` can be omitted in this case.
 
 With this configuration the provisioner will create:
 * One PersistentVolume with StorageClass `local-ssd` for every subdirectory in `/mnt/local-storage/ssd`.
@@ -118,6 +85,10 @@ With this configuration the provisioner will create:
 
 This configuration must be created before the provisioner is deployed by the
 template below!
+
+**WARNING**: syntax of the ConfigMap has changed between Origin 3.9 and 3.10.
+Since this is beta feature, the config map is not converted automatically during
+update.
 
 ## Local provisioner deployment
 
