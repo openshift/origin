@@ -17,7 +17,6 @@ LABEL io.k8s.display-name="OpenShift Origin Application Platform" \
       io.openshift.tags="openshift,core"
 
 ENV HOME=/root \
-    OPENSHIFT_CONTAINERIZED=true \
     KUBECONFIG=/var/lib/origin/openshift.local.config/master/admin.kubeconfig
 
 WORKDIR /var/lib/origin

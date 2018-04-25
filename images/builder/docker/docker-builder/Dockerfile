@@ -12,7 +12,16 @@
 #
 FROM openshift/origin-control-plane
 
-LABEL io.k8s.display-name="OpenShift Origin Docker Builder" \
-      io.k8s.description="This is a component of OpenShift Origin and is responsible for executing Docker image builds." \
+RUN INSTALL_PKGS=" \
+      which tar wget hostname sysvinit-tools util-linux \
+      socat tree findutils lsof bind-utils \
+      git tar bsdtar \
+      " && \
+    yum install -y ${INSTALL_PKGS} && \
+    rpm -V ${INSTALL_PKGS} && \
+    yum clean all
+
+LABEL io.k8s.display-name="OpenShift Origin Builder" \
+      io.k8s.description="This is a component of OpenShift Origin and is responsible for executing image builds." \
       io.openshift.tags="openshift,builder"
 ENTRYPOINT ["/usr/bin/openshift-docker-build"]
