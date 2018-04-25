@@ -1355,6 +1355,7 @@ func TestNewAppRunBuilds(t *testing.T) {
 					ContextDir: "openshift/pipeline",
 					Git:        &buildapi.GitBuildSource{URI: "https://github.com/openshift/nodejs-ex"},
 					Secrets:    []buildapi.SecretBuildSource{},
+					Configs:    []buildapi.ConfigMapBuildSource{},
 				}) {
 					return fmt.Errorf("invalid bc.Spec.Source, got %#v", bc.Spec.Source)
 				}
@@ -1395,6 +1396,7 @@ func TestNewAppRunBuilds(t *testing.T) {
 					ContextDir: "openshift/pipeline",
 					Git:        &buildapi.GitBuildSource{URI: "https://github.com/openshift/nodejs-ex"},
 					Secrets:    []buildapi.SecretBuildSource{},
+					Configs:    []buildapi.ConfigMapBuildSource{},
 				}) {
 					return fmt.Errorf("invalid bc.Spec.Source, got %#v", bc.Spec.Source.Git)
 				}
