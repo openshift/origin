@@ -3926,6 +3926,7 @@ items:
     verbs:
     - create
     - delete
+    - get
     - list
     - patch
     - update
