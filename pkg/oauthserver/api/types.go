@@ -79,3 +79,12 @@ func (i *DefaultUserIdentityInfo) GetProviderUserName() string {
 func (i *DefaultUserIdentityInfo) GetExtra() map[string]string {
 	return i.Extra
 }
+
+// ProviderInfo represents display information for an oauth identity provider.  This is used by the
+// selection provider template to render links to login using different identity providers.
+type ProviderInfo struct {
+	// Name is unique and corresponds to the name of the identity provider in the oauth configuration
+	Name string
+	// URL to login using this identity provider
+	URL string
+}

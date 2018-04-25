@@ -19,9 +19,8 @@ import (
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/controller"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
-	"k8s.io/kubernetes/pkg/registry/core/pod"
 
+	apiserverrest "github.com/openshift/origin/pkg/apiserver/rest"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	"github.com/openshift/origin/pkg/apps/apis/apps/validation"
 	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
@@ -36,29 +35,16 @@ const (
 	defaultInterval = 1 * time.Second
 )
 
-// podGetter implements the ResourceGetter interface. Used by LogLocation to
-// retrieve the deployer pod
-type podGetter struct {
-	pn kcoreclient.PodsGetter
-}
-
-// Get is responsible for retrieving the deployer pod
-func (g *podGetter) Get(ctx apirequest.Context, name string, options *metav1.GetOptions) (runtime.Object, error) {
-	namespace, ok := apirequest.NamespaceFrom(ctx)
-	if !ok {
-		return nil, errors.NewBadRequest("namespace parameter required.")
-	}
-	return g.pn.Pods(namespace).Get(name, *options)
-}
-
 // REST is an implementation of RESTStorage for the api server.
 type REST struct {
-	dn       appsclient.DeploymentConfigsGetter
-	rn       kcoreclient.ReplicationControllersGetter
-	pn       kcoreclient.PodsGetter
-	connInfo kubeletclient.ConnectionInfoGetter
-	timeout  time.Duration
-	interval time.Duration
+	dcClient  appsclient.DeploymentConfigsGetter
+	rcClient  kcoreclient.ReplicationControllersGetter
+	podClient kcoreclient.PodsGetter
+	timeout   time.Duration
+	interval  time.Duration
+
+	// for unit testing
+	getLogsFn func(podNamespace, podName string, logOpts *kapi.PodLogOptions) (runtime.Object, error)
 }
 
 // REST implements GetterWithOptions
@@ -68,15 +54,17 @@ var _ = rest.GetterWithOptions(&REST{})
 // one for deployments (replication controllers) and one for pods to get the necessary
 // attributes to assemble the URL to which the request shall be redirected in order to
 // get the deployment logs.
-func NewREST(dn appsclient.DeploymentConfigsGetter, rn kcoreclient.ReplicationControllersGetter, pn kcoreclient.PodsGetter, connectionInfo kubeletclient.ConnectionInfoGetter) *REST {
-	return &REST{
-		dn:       dn,
-		rn:       rn,
-		pn:       pn,
-		connInfo: connectionInfo,
-		timeout:  defaultTimeout,
-		interval: defaultInterval,
+func NewREST(dcClient appsclient.DeploymentConfigsGetter, rcClient kcoreclient.ReplicationControllersGetter, podClient kcoreclient.PodsGetter) *REST {
+	r := &REST{
+		dcClient:  dcClient,
+		rcClient:  rcClient,
+		podClient: podClient,
+		timeout:   defaultTimeout,
+		interval:  defaultInterval,
 	}
+	r.getLogsFn = r.getLogs
+
+	return r
 }
 
 // NewGetOptions returns a new options object for deployment logs
@@ -108,7 +96,7 @@ func (r *REST) Get(ctx apirequest.Context, name string, opts runtime.Object) (ru
 
 	// Fetch deploymentConfig and check latest version; if 0, there are no deployments
 	// for this config
-	config, err := r.dn.DeploymentConfigs(namespace).Get(name, metav1.GetOptions{})
+	config, err := r.dcClient.DeploymentConfigs(namespace).Get(name, metav1.GetOptions{})
 	if err != nil {
 		return nil, errors.NewNotFound(appsapi.Resource("deploymentconfig"), name)
 	}
@@ -154,11 +142,11 @@ func (r *REST) Get(ctx apirequest.Context, name string, opts runtime.Object) (ru
 		}
 		glog.V(4).Infof("Deployment %s is in %s state, waiting for it to start...", appsutil.LabelForDeployment(target), status)
 
-		if err := appsutil.WaitForRunningDeployerPod(r.pn, target, r.timeout); err != nil {
+		if err := appsutil.WaitForRunningDeployerPod(r.podClient, target, r.timeout); err != nil {
 			return nil, errors.NewBadRequest(fmt.Sprintf("failed to run deployer pod %s: %v", podName, err))
 		}
 
-		latest, ok, err := registry.WaitForRunningDeployment(r.rn, target, r.timeout)
+		latest, ok, err := registry.WaitForRunningDeployment(r.rcClient, target, r.timeout)
 		if err != nil {
 			return nil, errors.NewBadRequest(fmt.Sprintf("unable to wait for deployment %s to run: %v", appsutil.LabelForDeployment(target), err))
 		}
@@ -179,17 +167,21 @@ func (r *REST) Get(ctx apirequest.Context, name string, opts runtime.Object) (ru
 	}
 
 	logOpts := appsapi.DeploymentToPodLogOptions(deployLogOpts)
-	location, transport, err := pod.LogLocation(&podGetter{r.pn}, r.connInfo, ctx, podName, logOpts)
+	return r.getLogsFn(namespace, podName, logOpts)
+}
+
+func (r *REST) getLogs(podNamespace, podName string, logOpts *kapi.PodLogOptions) (runtime.Object, error) {
+	logRequest := r.podClient.Pods(podNamespace).GetLogs(podName, logOpts)
+
+	readerCloser, err := logRequest.Stream()
 	if err != nil {
-		return nil, errors.NewBadRequest(err.Error())
+		return nil, err
 	}
 
-	return &genericrest.LocationStreamer{
-		Location:        location,
-		Transport:       transport,
-		ContentType:     "text/plain",
-		Flush:           deployLogOpts.Follow,
-		ResponseChecker: genericrest.NewGenericHttpResponseChecker(kapi.Resource("pod"), podName),
+	return &apiserverrest.PassThroughStreamer{
+		In:          readerCloser,
+		Flush:       logOpts.Follow,
+		ContentType: "text/plain",
 	}, nil
 }
 
@@ -201,7 +193,7 @@ func (r *REST) waitForExistingDeployment(namespace, name string) (*kapi.Replicat
 	)
 
 	condition := func() (bool, error) {
-		target, err = r.rn.ReplicationControllers(namespace).Get(name, metav1.GetOptions{})
+		target, err = r.rcClient.ReplicationControllers(namespace).Get(name, metav1.GetOptions{})
 		switch {
 		case errors.IsNotFound(err):
 			return false, nil
@@ -224,7 +216,7 @@ func (r *REST) returnApplicationPodName(target *kapi.ReplicationController) (str
 	selector := labels.SelectorFromValidatedSet(labels.Set(target.Spec.Selector))
 	sortBy := func(pods []*kapiv1.Pod) sort.Interface { return controller.ByLogging(pods) }
 
-	firstPod, _, err := kcmdutil.GetFirstPod(r.pn, target.Namespace, selector.String(), r.timeout, sortBy)
+	firstPod, _, err := kcmdutil.GetFirstPod(r.podClient, target.Namespace, selector.String(), r.timeout, sortBy)
 	if err != nil {
 		return "", errors.NewInternalError(err)
 	}

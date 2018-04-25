@@ -30,7 +30,7 @@ import (
 	oauthclient "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	clientregistry "github.com/openshift/origin/pkg/oauth/registry/oauthclient"
-	oauthutil "github.com/openshift/origin/pkg/oauth/util"
+	"github.com/openshift/origin/pkg/oauth/urls"
 	"github.com/openshift/origin/pkg/oauthserver/authenticator/challenger/passwordchallenger"
 	"github.com/openshift/origin/pkg/oauthserver/authenticator/challenger/placeholderchallenger"
 	"github.com/openshift/origin/pkg/oauthserver/authenticator/password/allowanypassword"
@@ -136,10 +136,10 @@ func (c *OAuthServerConfig) WithOAuth(handler http.Handler, requestContextMapper
 		},
 		osinserver.NewDefaultErrorHandler(),
 	)
-	server.Install(mux, oauthutil.OpenShiftOAuthAPIPrefix)
+	server.Install(mux, urls.OpenShiftOAuthAPIPrefix)
 
 	tokenRequestEndpoints := tokenrequest.NewEndpoints(c.ExtraOAuthConfig.Options.MasterPublicURL, c.getOsinOAuthClient)
-	tokenRequestEndpoints.Install(mux, oauthutil.OpenShiftOAuthAPIPrefix)
+	tokenRequestEndpoints.Install(mux, urls.OpenShiftOAuthAPIPrefix)
 
 	// glog.Infof("oauth server configured as: %#v", server)
 	// glog.Infof("auth handler: %#v", authHandler)
@@ -157,7 +157,7 @@ func (c *OAuthServerConfig) getOsinOAuthClient() (*osincli.Client, error) {
 	}
 
 	osOAuthClientConfig := newOpenShiftOAuthClientConfig(browserClient.Name, browserClient.Secret, c.ExtraOAuthConfig.Options.MasterPublicURL, c.ExtraOAuthConfig.Options.MasterURL)
-	osOAuthClientConfig.RedirectUrl = oauthutil.OpenShiftOAuthTokenDisplayURL(c.ExtraOAuthConfig.Options.MasterPublicURL)
+	osOAuthClientConfig.RedirectUrl = urls.OpenShiftOAuthTokenDisplayURL(c.ExtraOAuthConfig.Options.MasterPublicURL)
 
 	osOAuthClient, err := osincli.NewClient(osOAuthClientConfig)
 	if err != nil {
@@ -211,8 +211,8 @@ func newOpenShiftOAuthClientConfig(clientId, clientSecret, masterPublicURL, mast
 		ClientSecret:             clientSecret,
 		ErrorsInStatusCode:       true,
 		SendClientSecretInParams: true,
-		AuthorizeUrl:             oauthutil.OpenShiftOAuthAuthorizeURL(masterPublicURL),
-		TokenUrl:                 oauthutil.OpenShiftOAuthTokenURL(masterURL),
+		AuthorizeUrl:             urls.OpenShiftOAuthAuthorizeURL(masterPublicURL),
+		TokenUrl:                 urls.OpenShiftOAuthTokenURL(masterURL),
 		Scope:                    "",
 	}
 	return config
@@ -293,7 +293,7 @@ func (c *OAuthServerConfig) getGrantHandler(mux mux, auth authenticator.Request,
 	// Since any OAuth client could require prompting, we will unconditionally
 	// start the GrantServer here.
 	grantServer := grant.NewGrant(c.getCSRF(), auth, grant.DefaultFormRenderer, clientregistry, authregistry)
-	grantServer.Install(mux, path.Join(oauthutil.OpenShiftOAuthAPIPrefix, osinserver.AuthorizePath, openShiftApproveSubpath))
+	grantServer.Install(mux, path.Join(urls.OpenShiftOAuthAPIPrefix, urls.AuthorizePath, openShiftApproveSubpath))
 
 	// Set defaults for standard clients. These can be overridden.
 	return handlers.NewPerClientGrant(
@@ -430,7 +430,7 @@ func (c *OAuthServerConfig) getAuthenticationHandler(mux mux, errorHandler handl
 			}
 		} else if requestHeaderProvider, isRequestHeader := identityProvider.Provider.(*configapi.RequestHeaderIdentityProvider); isRequestHeader {
 			// We might be redirecting to an external site, we need to fully resolve the request URL to the public master
-			baseRequestURL, err := url.Parse(oauthutil.OpenShiftOAuthAuthorizeURL(c.ExtraOAuthConfig.Options.MasterPublicURL))
+			baseRequestURL, err := url.Parse(urls.OpenShiftOAuthAuthorizeURL(c.ExtraOAuthConfig.Options.MasterPublicURL))
 			if err != nil {
 				return nil, err
 			}
@@ -445,7 +445,7 @@ func (c *OAuthServerConfig) getAuthenticationHandler(mux mux, errorHandler handl
 
 	if redirectors.Count() > 0 && len(challengers) == 0 {
 		// Add a default challenger that will warn and give a link to the web browser token-granting location
-		challengers["placeholder"] = placeholderchallenger.New(oauthutil.OpenShiftOAuthTokenRequestURL(c.ExtraOAuthConfig.Options.MasterPublicURL))
+		challengers["placeholder"] = placeholderchallenger.New(urls.OpenShiftOAuthTokenRequestURL(c.ExtraOAuthConfig.Options.MasterPublicURL))
 	}
 
 	var selectProviderTemplateFile string

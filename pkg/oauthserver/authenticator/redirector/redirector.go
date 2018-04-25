@@ -5,21 +5,8 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/openshift/origin/pkg/oauthserver/authenticator/tokens"
 	oauthhandlers "github.com/openshift/origin/pkg/oauthserver/oauth/handlers"
-)
-
-const (
-	// URLToken in the query of the redirectURL gets replaced with the original request URL, escaped as a query parameter.
-	// Example use: https://www.example.com/login?then=${url}
-	URLToken = "${url}"
-
-	// ServerRelativeURLToken in the query of the redirectURL gets replaced with the server-relative portion of the original request URL, escaped as a query parameter.
-	// Example use: https://www.example.com/login?then=${server-relative-url}
-	ServerRelativeURLToken = "${server-relative-url}"
-
-	// QueryToken in the query of the redirectURL gets replaced with the original request URL, unescaped.
-	// Example use: https://www.example.com/sso/oauth/authorize?${query}
-	QueryToken = "${query}"
 )
 
 // NewRedirector returns an oauthhandlers.AuthenticationRedirector that redirects to the specified redirectURL.
@@ -78,8 +65,8 @@ func buildRedirectURL(redirectTemplate string, baseRequestURL, requestURL *url.U
 		Path:     requestURL.Path,
 		RawQuery: requestURL.RawQuery,
 	}
-	redirectURL.RawQuery = strings.Replace(redirectURL.RawQuery, QueryToken, requestURL.RawQuery, -1)
-	redirectURL.RawQuery = strings.Replace(redirectURL.RawQuery, URLToken, url.QueryEscape(requestURL.String()), -1)
-	redirectURL.RawQuery = strings.Replace(redirectURL.RawQuery, ServerRelativeURLToken, url.QueryEscape(serverRelativeRequestURL.String()), -1)
+	redirectURL.RawQuery = strings.Replace(redirectURL.RawQuery, tokens.QueryToken, requestURL.RawQuery, -1)
+	redirectURL.RawQuery = strings.Replace(redirectURL.RawQuery, tokens.URLToken, url.QueryEscape(requestURL.String()), -1)
+	redirectURL.RawQuery = strings.Replace(redirectURL.RawQuery, tokens.ServerRelativeURLToken, url.QueryEscape(serverRelativeRequestURL.String()), -1)
 	return redirectURL, nil
 }

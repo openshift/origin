@@ -12,12 +12,12 @@ import (
 	"github.com/openshift/origin/pkg/oc/admin/policy"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/authentication/serviceaccount"
 	"k8s.io/client-go/util/retry"
 	kbatch "k8s.io/kubernetes/pkg/apis/batch"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kubernetes "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/staging/src/k8s.io/apimachinery/pkg/util/wait"
 
 	authorizationtypedclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset/typed/authorization/internalversion"
 	"github.com/openshift/origin/pkg/oc/bootstrap/clusteradd/componentinstall"

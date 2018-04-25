@@ -20,6 +20,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	kubernetes "github.com/openshift/origin/pkg/cmd/server/kubernetes/master"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
+	"github.com/openshift/origin/pkg/oauth/urls"
 	oauthutil "github.com/openshift/origin/pkg/oauth/util"
 	routeplugin "github.com/openshift/origin/pkg/route/allocation/simple"
 	routeallocationcontroller "github.com/openshift/origin/pkg/route/controller/allocation"
@@ -427,7 +428,7 @@ func (c *MasterConfig) withOAuthRedirection(handler, oauthServerHandler http.Han
 		return handler
 	}
 
-	glog.Infof("Starting OAuth2 API at %s", oauthutil.OpenShiftOAuthAPIPrefix)
+	glog.Infof("Starting OAuth2 API at %s", urls.OpenShiftOAuthAPIPrefix)
 	return WithPatternPrefixHandler(handler, oauthServerHandler, openShiftOAuthAPIPrefix, openShiftLoginPrefix, openShiftOAuthCallbackPrefix)
 }
 

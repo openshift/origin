@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/openshift/origin/pkg/template/templateprocessing"
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -28,7 +29,6 @@ import (
 	"github.com/openshift/origin/pkg/oc/cli/describe"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	"github.com/openshift/origin/pkg/oc/generate/app"
-	"github.com/openshift/origin/pkg/template"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	templatevalidation "github.com/openshift/origin/pkg/template/apis/template/validation"
 	templateinternalclient "github.com/openshift/origin/pkg/template/client/internalversion"
@@ -363,7 +363,7 @@ func RunProcess(f *clientcmd.Factory, in io.Reader, out, errout io.Writer, cmd *
 func injectUserVars(values app.Environment, t *templateapi.Template, ignoreUnknownParameters bool) []error {
 	var errors []error
 	for param, val := range values {
-		v := template.GetParameterByName(t, param)
+		v := templateprocessing.GetParameterByName(t, param)
 		if v != nil {
 			v.Value = val
 			v.Generate = ""
@@ -380,7 +380,7 @@ func processTemplateLocally(tpl *templateapi.Template) error {
 	if errs := templatevalidation.ValidateProcessedTemplate(tpl); len(errs) > 0 {
 		return errors.NewInvalid(templateapi.Kind("Template"), tpl.Name, errs)
 	}
-	processor := template.NewProcessor(map[string]generator.Generator{
+	processor := templateprocessing.NewProcessor(map[string]generator.Generator{
 		"expression": generator.NewExpressionValueGenerator(rand.New(rand.NewSource(time.Now().UnixNano()))),
 	})
 	if errs := processor.Process(tpl); len(errs) > 0 {

@@ -224,10 +224,9 @@ func (c *completedConfig) withAppsAPIServer(delegateAPIServer genericapiserver.D
 		GenericConfig: &genericapiserver.RecommendedConfig{Config: *c.GenericConfig.Config},
 		ExtraConfig: oappsapiserver.ExtraConfig{
 			KubeAPIServerClientConfig: c.ExtraConfig.KubeAPIServerClientConfig,
-			KubeletClientConfig:       c.ExtraConfig.KubeletClientConfig,
-			Codecs:                    legacyscheme.Codecs,
-			Registry:                  legacyscheme.Registry,
-			Scheme:                    legacyscheme.Scheme,
+			Codecs:   legacyscheme.Codecs,
+			Registry: legacyscheme.Registry,
+			Scheme:   legacyscheme.Scheme,
 		},
 	}
 	config := cfg.Complete()

@@ -17,7 +17,6 @@ import (
 	rbacregistry "k8s.io/kubernetes/pkg/registry/rbac"
 
 	"github.com/openshift/origin/pkg/authorization/util"
-	template "github.com/openshift/origin/pkg/template"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	"github.com/openshift/origin/pkg/template/apis/template/validation"
 )
@@ -60,7 +59,7 @@ func (templateInstanceStrategy) PrepareForCreate(ctx apirequest.Context, obj run
 	if templateInstance.Spec.Requester == nil {
 
 		if user, ok := apirequest.UserFrom(ctx); ok {
-			templateReq := template.ConvertUserToTemplateInstanceRequester(user)
+			templateReq := convertUserToTemplateInstanceRequester(user)
 			templateInstance.Spec.Requester = &templateReq
 		}
 	}
@@ -191,4 +190,25 @@ func (statusStrategy) Canonicalize(obj runtime.Object) {
 
 func (statusStrategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.Object) field.ErrorList {
 	return validation.ValidateTemplateInstanceUpdate(obj.(*templateapi.TemplateInstance), old.(*templateapi.TemplateInstance))
+}
+
+// convertUserToTemplateInstanceRequester copies analogous fields from user.Info to TemplateInstanceRequester
+func convertUserToTemplateInstanceRequester(u user.Info) templateapi.TemplateInstanceRequester {
+	templatereq := templateapi.TemplateInstanceRequester{}
+
+	if u != nil {
+		extra := map[string]templateapi.ExtraValue{}
+		if u.GetExtra() != nil {
+			for k, v := range u.GetExtra() {
+				extra[k] = templateapi.ExtraValue(v)
+			}
+		}
+
+		templatereq.Username = u.GetName()
+		templatereq.UID = u.GetUID()
+		templatereq.Groups = u.GetGroups()
+		templatereq.Extra = extra
+	}
+
+	return templatereq
 }

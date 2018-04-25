@@ -13,7 +13,7 @@ import (
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 	oauthvalidation "github.com/openshift/origin/pkg/oauth/apis/oauth/validation"
-	"github.com/openshift/origin/pkg/oauthserver/authenticator/redirector"
+	"github.com/openshift/origin/pkg/oauthserver/authenticator/tokens"
 	"github.com/openshift/origin/pkg/oauthserver/server/errorpage"
 	"github.com/openshift/origin/pkg/oauthserver/server/login"
 	"github.com/openshift/origin/pkg/oauthserver/server/selectprovider"
@@ -268,12 +268,12 @@ func ValidateRequestHeaderIdentityProvider(provider *configapi.RequestHeaderIden
 	if len(provider.ChallengeURL) > 0 {
 		url, urlErrs := ValidateURL(provider.ChallengeURL, fieldPath.Child("provider", "challengeURL"))
 		validationResults.AddErrors(urlErrs...)
-		if len(urlErrs) == 0 && !strings.Contains(url.RawQuery, redirector.URLToken) && !strings.Contains(url.RawQuery, redirector.QueryToken) {
+		if len(urlErrs) == 0 && !strings.Contains(url.RawQuery, tokens.URLToken) && !strings.Contains(url.RawQuery, tokens.QueryToken) {
 			validationResults.AddWarnings(
 				field.Invalid(
 					field.NewPath("provider", "challengeURL"),
 					provider.ChallengeURL,
-					fmt.Sprintf("query does not include %q or %q, redirect will not preserve original authorize parameters", redirector.URLToken, redirector.QueryToken),
+					fmt.Sprintf("query does not include %q or %q, redirect will not preserve original authorize parameters", tokens.URLToken, tokens.QueryToken),
 				),
 			)
 		}
@@ -282,12 +282,12 @@ func ValidateRequestHeaderIdentityProvider(provider *configapi.RequestHeaderIden
 		url, urlErrs := ValidateURL(provider.LoginURL, fieldPath.Child("provider", "loginURL"))
 		validationResults.AddErrors(urlErrs...)
 		if len(urlErrs) == 0 {
-			if !strings.Contains(url.RawQuery, redirector.URLToken) && !strings.Contains(url.RawQuery, redirector.QueryToken) {
+			if !strings.Contains(url.RawQuery, tokens.URLToken) && !strings.Contains(url.RawQuery, tokens.QueryToken) {
 				validationResults.AddWarnings(
 					field.Invalid(
 						fieldPath.Child("provider", "loginURL"),
 						provider.LoginURL,
-						fmt.Sprintf("query does not include %q or %q, redirect will not preserve original authorize parameters", redirector.URLToken, redirector.QueryToken),
+						fmt.Sprintf("query does not include %q or %q, redirect will not preserve original authorize parameters", tokens.URLToken, tokens.QueryToken),
 					),
 				)
 			}

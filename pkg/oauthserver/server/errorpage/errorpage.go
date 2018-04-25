@@ -9,12 +9,8 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
 	"github.com/golang/glog"
-	"github.com/openshift/origin/pkg/oauthserver/oauth/handlers"
 	"github.com/openshift/origin/pkg/util/httprequest"
 )
-
-var _ handlers.AuthenticationErrorHandler = &ErrorPage{}
-var _ handlers.GrantErrorHandler = &ErrorPage{}
 
 // ErrorPage implements auth and grant error handling by rendering an error page for browser-like clients
 type ErrorPage struct {

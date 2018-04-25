@@ -8,8 +8,8 @@ import (
 	"regexp"
 	"strings"
 
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	kcontainer "k8s.io/kubernetes/pkg/kubelet/container"
 
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/types"
 )
@@ -174,7 +174,7 @@ func (l *LogInterface) logPodInfo(kubeClient kclientset.Interface) {
 			continue
 		}
 
-		containerID := kcontainer.ParseContainerID(pod.Status.ContainerStatuses[0].ContainerID).ID
+		containerID := ParseContainerID(pod.Status.ContainerStatuses[0].ContainerID).ID
 		out, err := exec.Command("docker", []string{"inspect", "-f", "'{{.State.Pid}}'", containerID}...).Output()
 		if err != nil {
 			l.Result.Error("DLogNet1004", err, fmt.Sprintf("Fetching pid for container %q failed: %s", containerID, err))
@@ -205,4 +205,41 @@ func (l *LogInterface) getConfigFileForService(serviceName, serviceArgs string) 
 		return ""
 	}
 	return string(out[:])
+}
+
+// ContainerID is a type that identifies a container.
+type ContainerID struct {
+	// The type of the container runtime. e.g. 'docker', 'rkt'.
+	Type string
+	// The identification of the container, this is comsumable by
+	// the underlying container runtime. (Note that the container
+	// runtime interface still takes the whole struct as input).
+	ID string
+}
+
+// Convenience method for creating a ContainerID from an ID string.
+func ParseContainerID(containerID string) ContainerID {
+	var id ContainerID
+	if err := id.ParseString(containerID); err != nil {
+		utilruntime.HandleError(fmt.Errorf("unable to parse containerID: %v", err))
+	}
+	return id
+}
+
+func (c *ContainerID) ParseString(data string) error {
+	// Trim the quotes and split the type and ID.
+	parts := strings.Split(strings.Trim(data, "\""), "://")
+	if len(parts) != 2 {
+		return fmt.Errorf("invalid container ID: %q", data)
+	}
+	c.Type, c.ID = parts[0], parts[1]
+	return nil
+}
+
+func (c *ContainerID) String() string {
+	return fmt.Sprintf("%s://%s", c.Type, c.ID)
+}
+
+func (c *ContainerID) IsEmpty() bool {
+	return *c == ContainerID{}
 }

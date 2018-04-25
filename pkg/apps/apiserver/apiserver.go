@@ -1,7 +1,6 @@
 package apiserver
 
 import (
-	"fmt"
 	"sync"
 
 	"k8s.io/apimachinery/pkg/apimachinery/registered"
@@ -10,11 +9,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apiserver/pkg/registry/rest"
 	genericapiserver "k8s.io/apiserver/pkg/server"
-	kclientsetexternal "k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 
 	appsapiv1 "github.com/openshift/api/apps/v1"
 	appsclientinternal "github.com/openshift/origin/pkg/apps/generated/internalclientset"
@@ -27,7 +24,6 @@ import (
 
 type ExtraConfig struct {
 	KubeAPIServerClientConfig *restclient.Config
-	KubeletClientConfig       *kubeletclient.KubeletClientConfig
 
 	// TODO these should all become local eventually
 	Scheme   *runtime.Scheme
@@ -121,14 +117,6 @@ func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
 	if err != nil {
 		return nil, err
 	}
-	kubeExternalClient, err := kclientsetexternal.NewForConfig(c.ExtraConfig.KubeAPIServerClientConfig)
-	if err != nil {
-		return nil, err
-	}
-	nodeConnectionInfoGetter, err := kubeletclient.NewNodeConnectionInfoGetter(kubeExternalClient.CoreV1().Nodes(), *c.ExtraConfig.KubeletClientConfig)
-	if err != nil {
-		return nil, fmt.Errorf("unable to configure the node connection info getter: %v", err)
-	}
 
 	deployConfigStorage, deployConfigStatusStorage, deployConfigScaleStorage, err := deployconfigetcd.NewREST(c.GenericConfig.RESTOptionsGetter)
 	if err != nil {
@@ -148,7 +136,7 @@ func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
 	v1Storage["deploymentConfigs/scale"] = deployConfigScaleStorage
 	v1Storage["deploymentConfigs/status"] = deployConfigStatusStorage
 	v1Storage["deploymentConfigs/rollback"] = deployConfigRollbackStorage
-	v1Storage["deploymentConfigs/log"] = deploylogregistry.NewREST(openshiftInternalAppsClient.Apps(), kubeInternalClient.Core(), kubeInternalClient.Core(), nodeConnectionInfoGetter)
+	v1Storage["deploymentConfigs/log"] = deploylogregistry.NewREST(openshiftInternalAppsClient.Apps(), kubeInternalClient.Core(), kubeInternalClient.Core())
 	v1Storage["deploymentConfigs/instantiate"] = dcInstantiateStorage
 	return v1Storage, nil
 }

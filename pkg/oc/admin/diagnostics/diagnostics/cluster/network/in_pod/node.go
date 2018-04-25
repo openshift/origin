@@ -7,7 +7,6 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	kcontainer "k8s.io/kubernetes/pkg/kubelet/container"
 	kexec "k8s.io/utils/exec"
 
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/cluster/network/in_pod/util"
@@ -75,7 +74,7 @@ func checkNodeConnection(pod *kapi.Pod, nodeIP string, r types.DiagnosticResult)
 	}
 
 	kexecer := kexec.New()
-	containerID := kcontainer.ParseContainerID(pod.Status.ContainerStatuses[0].ContainerID).ID
+	containerID := util.ParseContainerID(pod.Status.ContainerStatuses[0].ContainerID).ID
 	pid, err := kexecer.Command("docker", "inspect", "-f", "{{.State.Pid}}", containerID).CombinedOutput()
 	if err != nil {
 		r.Error("DNodeNet1004", err, fmt.Sprintf("Fetching pid for pod %q, container %q failed. Error: %s", util.PrintPod(pod), containerID, err))

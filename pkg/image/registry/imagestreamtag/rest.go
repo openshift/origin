@@ -139,46 +139,54 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, createValidati
 		return nil, fmt.Errorf("%q must be of the form <stream_name>:<tag>", istag.Name)
 	}
 
-	target, err := r.imageStreamRegistry.GetImageStream(ctx, imageStreamName, &metav1.GetOptions{})
-	if err != nil {
-		if !kapierrors.IsNotFound(err) {
+	for i := 10; i > 0; i-- {
+		target, err := r.imageStreamRegistry.GetImageStream(ctx, imageStreamName, &metav1.GetOptions{})
+		if err != nil {
+			if !kapierrors.IsNotFound(err) {
+				return nil, err
+			}
+
+			// try to create the target if it doesn't exist
+			target = &imageapi.ImageStream{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      imageStreamName,
+					Namespace: namespace,
+				},
+			}
+		}
+
+		if target.Spec.Tags == nil {
+			target.Spec.Tags = make(map[string]imageapi.TagReference)
+		}
+
+		// The user wants to symlink a tag.
+		_, exists := target.Spec.Tags[imageTag]
+		if exists {
+			return nil, kapierrors.NewAlreadyExists(imageapi.Resource("imagestreamtag"), istag.Name)
+		}
+		if istag.Tag != nil {
+			target.Spec.Tags[imageTag] = *istag.Tag
+		}
+
+		// Check the stream creation timestamp and make sure we will not
+		// create a new image stream while deleting.
+		if target.CreationTimestamp.IsZero() {
+			target, err = r.imageStreamRegistry.CreateImageStream(ctx, target)
+		} else {
+			target, err = r.imageStreamRegistry.UpdateImageStream(ctx, target)
+		}
+		if kapierrors.IsAlreadyExists(err) || kapierrors.IsConflict(err) {
+			continue
+		}
+		if err != nil {
 			return nil, err
 		}
-
-		// try to create the target if it doesn't exist
-		target = &imageapi.ImageStream{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      imageStreamName,
-				Namespace: namespace,
-			},
-		}
+		image, _ := r.imageFor(ctx, imageTag, target)
+		return newISTag(imageTag, target, image, true)
 	}
-
-	if target.Spec.Tags == nil {
-		target.Spec.Tags = make(map[string]imageapi.TagReference)
-	}
-
-	// The user wants to symlink a tag.
-	_, exists := target.Spec.Tags[imageTag]
-	if exists {
-		return nil, kapierrors.NewAlreadyExists(imageapi.Resource("imagestreamtag"), istag.Name)
-	}
-	if istag.Tag != nil {
-		target.Spec.Tags[imageTag] = *istag.Tag
-	}
-
-	// Check the stream creation timestamp and make sure we will not
-	// create a new image stream while deleting.
-	if target.CreationTimestamp.IsZero() {
-		_, err = r.imageStreamRegistry.CreateImageStream(ctx, target)
-	} else {
-		_, err = r.imageStreamRegistry.UpdateImageStream(ctx, target)
-	}
-	if err != nil {
-		return nil, err
-	}
-
-	return istag, nil
+	// We tried to update resource, but we kept conflicting. Inform the client that we couldn't complete
+	// the operation but that they may try again.
+	return nil, kapierrors.NewServerTimeout(imageapi.Resource("imagestreamtags"), "create", 2)
 }
 
 func (r *REST) Update(ctx apirequest.Context, tagName string, objInfo rest.UpdatedObjectInfo, createValidation rest.ValidateObjectFunc, updateValidation rest.ValidateObjectUpdateFunc) (runtime.Object, bool, error) {

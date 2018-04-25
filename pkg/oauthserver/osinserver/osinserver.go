@@ -9,12 +9,8 @@ import (
 	"github.com/golang/glog"
 
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-)
 
-const (
-	AuthorizePath = "/authorize"
-	TokenPath     = "/token"
-	InfoPath      = "/info"
+	"github.com/openshift/origin/pkg/oauth/urls"
 )
 
 type Server struct {
@@ -56,9 +52,9 @@ func New(config *osin.ServerConfig, storage osin.Storage, authorize AuthorizeHan
 // provided prefix will serve all operations
 func (s *Server) Install(mux Mux, paths ...string) {
 	for _, prefix := range paths {
-		mux.HandleFunc(path.Join(prefix, AuthorizePath), s.handleAuthorize)
-		mux.HandleFunc(path.Join(prefix, TokenPath), s.handleToken)
-		mux.HandleFunc(path.Join(prefix, InfoPath), s.handleInfo)
+		mux.HandleFunc(path.Join(prefix, urls.AuthorizePath), s.handleAuthorize)
+		mux.HandleFunc(path.Join(prefix, urls.TokenPath), s.handleToken)
+		mux.HandleFunc(path.Join(prefix, urls.InfoPath), s.handleInfo)
 	}
 }
 

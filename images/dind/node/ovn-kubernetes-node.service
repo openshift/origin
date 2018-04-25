@@ -1,7 +1,9 @@
 [Unit]
 Description=Setup for ovn-kubernetes node
 Requires=openshift-node.service
+Requires=ovn-controller.service
 After=openshift-node.service
+After=ovn-controller.service
 After=ovn-kubernetes-node-setup.service
 
 [Service]

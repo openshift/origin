@@ -12,6 +12,7 @@ import (
 	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/oauth/apis/oauth/validation"
+	"github.com/openshift/origin/pkg/oauth/urls"
 	"github.com/openshift/origin/pkg/oauthserver/osinserver"
 )
 
@@ -53,8 +54,8 @@ func getOauthMetadata(masterPublicURL string) OauthAuthorizationServerMetadata {
 	config := osinserver.NewDefaultServerConfig()
 	return OauthAuthorizationServerMetadata{
 		Issuer:                masterPublicURL,
-		AuthorizationEndpoint: OpenShiftOAuthAuthorizeURL(masterPublicURL),
-		TokenEndpoint:         OpenShiftOAuthTokenURL(masterPublicURL),
+		AuthorizationEndpoint: urls.OpenShiftOAuthAuthorizeURL(masterPublicURL),
+		TokenEndpoint:         urls.OpenShiftOAuthTokenURL(masterPublicURL),
 		// Note: this list is incomplete, which is allowed per the draft spec
 		ScopesSupported:               scope.DefaultSupportedScopes(),
 		ResponseTypesSupported:        config.AllowedAuthorizeTypes,
