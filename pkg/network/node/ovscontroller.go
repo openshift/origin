@@ -3,6 +3,7 @@
 package node
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"net"
 	"sort"
@@ -34,7 +35,7 @@ const (
 	Vxlan0 = "vxlan0"
 
 	// rule versioning; increment each time flow rules change
-	ruleVersion = 6
+	ruleVersion = 7
 
 	ruleVersionTable = 253
 )
@@ -507,26 +508,34 @@ func (oc *ovsController) UpdateEgressNetworkPolicyRules(policies []networkapi.Eg
 	}
 }
 
+func hostSubnetCookie(subnet *networkapi.HostSubnet) uint32 {
+	hash := sha256.Sum256([]byte(subnet.UID))
+	return (uint32(hash[0]) << 24) | (uint32(hash[1]) << 16) | (uint32(hash[2]) << 8) | uint32(hash[3])
+}
+
 func (oc *ovsController) AddHostSubnetRules(subnet *networkapi.HostSubnet) error {
+	cookie := hostSubnetCookie(subnet)
 	otx := oc.ovs.NewTransaction()
 
-	otx.AddFlow("table=10, priority=100, tun_src=%s, actions=goto_table:30", subnet.HostIP)
+	otx.AddFlow("table=10, priority=100, cookie=0x%08x, tun_src=%s, actions=goto_table:30", cookie, subnet.HostIP)
 	if vnid, ok := subnet.Annotations[networkapi.FixedVNIDHostAnnotation]; ok {
-		otx.AddFlow("table=50, priority=100, arp, nw_dst=%s, actions=load:%s->NXM_NX_TUN_ID[0..31],set_field:%s->tun_dst,output:1", subnet.Subnet, vnid, subnet.HostIP)
-		otx.AddFlow("table=90, priority=100, ip, nw_dst=%s, actions=load:%s->NXM_NX_TUN_ID[0..31],set_field:%s->tun_dst,output:1", subnet.Subnet, vnid, subnet.HostIP)
+		otx.AddFlow("table=50, priority=100, cookie=0x%08x, arp, nw_dst=%s, actions=load:%s->NXM_NX_TUN_ID[0..31],set_field:%s->tun_dst,output:1", cookie, subnet.Subnet, vnid, subnet.HostIP)
+		otx.AddFlow("table=90, priority=100, cookie=0x%08x, ip, nw_dst=%s, actions=load:%s->NXM_NX_TUN_ID[0..31],set_field:%s->tun_dst,output:1", cookie, subnet.Subnet, vnid, subnet.HostIP)
 	} else {
-		otx.AddFlow("table=50, priority=100, arp, nw_dst=%s, actions=move:NXM_NX_REG0[]->NXM_NX_TUN_ID[0..31],set_field:%s->tun_dst,output:1", subnet.Subnet, subnet.HostIP)
-		otx.AddFlow("table=90, priority=100, ip, nw_dst=%s, actions=move:NXM_NX_REG0[]->NXM_NX_TUN_ID[0..31],set_field:%s->tun_dst,output:1", subnet.Subnet, subnet.HostIP)
+		otx.AddFlow("table=50, priority=100, cookie=0x%08x, arp, nw_dst=%s, actions=move:NXM_NX_REG0[]->NXM_NX_TUN_ID[0..31],set_field:%s->tun_dst,output:1", cookie, subnet.Subnet, subnet.HostIP)
+		otx.AddFlow("table=90, priority=100, cookie=0x%08x, ip, nw_dst=%s, actions=move:NXM_NX_REG0[]->NXM_NX_TUN_ID[0..31],set_field:%s->tun_dst,output:1", cookie, subnet.Subnet, subnet.HostIP)
 	}
 
 	return otx.EndTransaction()
 }
 
 func (oc *ovsController) DeleteHostSubnetRules(subnet *networkapi.HostSubnet) error {
+	cookie := hostSubnetCookie(subnet)
+
 	otx := oc.ovs.NewTransaction()
-	otx.DeleteFlows("table=10, tun_src=%s", subnet.HostIP)
-	otx.DeleteFlows("table=50, arp, nw_dst=%s", subnet.Subnet)
-	otx.DeleteFlows("table=90, ip, nw_dst=%s", subnet.Subnet)
+	otx.DeleteFlows("table=10, cookie=0x%08x/0xffffffff, tun_src=%s", cookie, subnet.HostIP)
+	otx.DeleteFlows("table=50, cookie=0x%08x/0xffffffff, arp, nw_dst=%s", cookie, subnet.Subnet)
+	otx.DeleteFlows("table=90, cookie=0x%08x/0xffffffff, ip, nw_dst=%s", cookie, subnet.Subnet)
 	return otx.EndTransaction()
 }
 

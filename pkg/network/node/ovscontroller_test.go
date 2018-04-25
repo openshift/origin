@@ -103,62 +103,6 @@ func assertFlowChanges(origFlows, newFlows []string, changes ...flowChange) erro
 	return nil
 }
 
-func TestOVSHostSubnet(t *testing.T) {
-	ovsif, oc, origFlows := setupOVSController(t)
-
-	hs := networkapi.HostSubnet{
-		TypeMeta: metav1.TypeMeta{
-			Kind: "HostSubnet",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "node2",
-		},
-		Host:   "node2",
-		HostIP: "192.168.1.2",
-		Subnet: "10.129.0.0/23",
-	}
-	err := oc.AddHostSubnetRules(&hs)
-	if err != nil {
-		t.Fatalf("Unexpected error adding HostSubnet rules: %v", err)
-	}
-
-	flows, err := ovsif.DumpFlows("")
-	if err != nil {
-		t.Fatalf("Unexpected error dumping flows: %v", err)
-	}
-	err = assertFlowChanges(origFlows, flows,
-		flowChange{
-			kind:  flowAdded,
-			match: []string{"table=10", "tun_src=192.168.1.2"},
-		},
-		flowChange{
-			kind:  flowAdded,
-			match: []string{"table=50", "arp", "arp_tpa=10.129.0.0/23", "192.168.1.2->tun_dst"},
-		},
-		flowChange{
-			kind:  flowAdded,
-			match: []string{"table=90", "ip", "nw_dst=10.129.0.0/23", "192.168.1.2->tun_dst"},
-		},
-	)
-	if err != nil {
-		t.Fatalf("Unexpected flow changes: %v\nOrig: %#v\nNew: %#v", err, origFlows, flows)
-	}
-
-	err = oc.DeleteHostSubnetRules(&hs)
-	if err != nil {
-		t.Fatalf("Unexpected error deleting HostSubnet rules: %v", err)
-	}
-	flows, err = ovsif.DumpFlows("")
-	if err != nil {
-		t.Fatalf("Unexpected error dumping flows: %v", err)
-	}
-	err = assertFlowChanges(origFlows, flows) // no changes
-
-	if err != nil {
-		t.Fatalf("Unexpected flow changes: %v\nOrig: %#v\nNew: %#v", err, origFlows, flows)
-	}
-}
-
 func TestOVSService(t *testing.T) {
 	ovsif, oc, origFlows := setupOVSController(t)
 
@@ -361,10 +305,9 @@ func TestGetPodDetails(t *testing.T) {
 	}
 }
 
-func TestOVSMulticast(t *testing.T) {
+func TestOVSLocalMulticast(t *testing.T) {
 	ovsif, oc, origFlows := setupOVSController(t)
 
-	// local flows
 	err := oc.UpdateLocalMulticastFlows(99, true, []int{4, 5, 6})
 	if err != nil {
 		t.Fatalf("Unexpected error adding multicast flows: %v", err)
@@ -402,67 +345,6 @@ func TestOVSMulticast(t *testing.T) {
 	}
 
 	err = oc.UpdateLocalMulticastFlows(99, false, []int{4, 5})
-	if err != nil {
-		t.Fatalf("Unexpected error adding multicast flows: %v", err)
-	}
-	flows, err = ovsif.DumpFlows("")
-	if err != nil {
-		t.Fatalf("Unexpected error dumping flows: %v", err)
-	}
-	err = assertFlowChanges(origFlows, flows) // no changes
-	if err != nil {
-		t.Fatalf("Unexpected flow changes: %v\nOrig: %#v\nNew: %#v", err, origFlows, flows)
-	}
-
-	// VXLAN
-	err = oc.UpdateVXLANMulticastFlows([]string{"192.168.1.2", "192.168.1.5", "192.168.1.3"})
-	if err != nil {
-		t.Fatalf("Unexpected error adding multicast flows: %v", err)
-	}
-	flows, err = ovsif.DumpFlows("")
-	if err != nil {
-		t.Fatalf("Unexpected error dumping flows: %v", err)
-	}
-	err = assertFlowChanges(origFlows, flows,
-		flowChange{
-			kind:    flowRemoved,
-			match:   []string{"table=111", "goto_table:120"},
-			noMatch: []string{"->tun_dst"},
-		},
-		flowChange{
-			kind:  flowAdded,
-			match: []string{"table=111", "192.168.1.2->tun_dst", "192.168.1.3->tun_dst", "192.168.1.5->tun_dst"},
-		},
-	)
-	if err != nil {
-		t.Fatalf("Unexpected flow changes: %v\nOrig: %#v\nNew: %#v", err, origFlows, flows)
-	}
-
-	err = oc.UpdateVXLANMulticastFlows([]string{"192.168.1.5", "192.168.1.3"})
-	if err != nil {
-		t.Fatalf("Unexpected error adding multicast flows: %v", err)
-	}
-	flows, err = ovsif.DumpFlows("")
-	if err != nil {
-		t.Fatalf("Unexpected error dumping flows: %v", err)
-	}
-	err = assertFlowChanges(origFlows, flows,
-		flowChange{
-			kind:    flowRemoved,
-			match:   []string{"table=111", "goto_table:120"},
-			noMatch: []string{"->tun_dst"},
-		},
-		flowChange{
-			kind:    flowAdded,
-			match:   []string{"table=111", "192.168.1.3->tun_dst", "192.168.1.5->tun_dst"},
-			noMatch: []string{"192.168.1.2"},
-		},
-	)
-	if err != nil {
-		t.Fatalf("Unexpected flow changes: %v\nOrig: %#v\nNew: %#v", err, origFlows, flows)
-	}
-
-	err = oc.UpdateVXLANMulticastFlows([]string{})
 	if err != nil {
 		t.Fatalf("Unexpected error adding multicast flows: %v", err)
 	}

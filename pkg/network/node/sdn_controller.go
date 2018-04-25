@@ -10,8 +10,6 @@ import (
 
 	"github.com/golang/glog"
 
-	networkapi "github.com/openshift/origin/pkg/network/apis/network"
-	"github.com/openshift/origin/pkg/network/common"
 	"github.com/openshift/origin/pkg/util/netutils"
 
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -205,20 +203,6 @@ func (plugin *OsdnNode) updateEgressNetworkPolicyRules(vnid uint32) {
 	namespaces := plugin.policy.GetNamespaces(vnid)
 	if err := plugin.oc.UpdateEgressNetworkPolicyRules(policies, vnid, namespaces, plugin.egressDNS); err != nil {
 		utilruntime.HandleError(fmt.Errorf("Error updating OVS flows for EgressNetworkPolicy: %v", err))
-	}
-}
-
-func (plugin *OsdnNode) AddHostSubnetRules(subnet *networkapi.HostSubnet) {
-	glog.Infof("AddHostSubnetRules for %s", common.HostSubnetToString(subnet))
-	if err := plugin.oc.AddHostSubnetRules(subnet); err != nil {
-		utilruntime.HandleError(fmt.Errorf("Error adding OVS flows for subnet %q: %v", subnet.Subnet, err))
-	}
-}
-
-func (plugin *OsdnNode) DeleteHostSubnetRules(subnet *networkapi.HostSubnet) {
-	glog.Infof("DeleteHostSubnetRules for %s", common.HostSubnetToString(subnet))
-	if err := plugin.oc.DeleteHostSubnetRules(subnet); err != nil {
-		utilruntime.HandleError(fmt.Errorf("Error deleting OVS flows for subnet %q: %v", subnet.Subnet, err))
 	}
 }
 
