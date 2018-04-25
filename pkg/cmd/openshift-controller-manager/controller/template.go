@@ -34,6 +34,7 @@ func RunTemplateInstanceFinalizerController(ctx ControllerContext) (bool, error)
 	}
 
 	go templatecontroller.NewTemplateInstanceFinalizerController(
+		ctx.DynamicRestMapper,
 		restConfig,
 		ctx.ClientBuilder.KubeInternalClientOrDie(saName),
 		ctx.ClientBuilder.OpenshiftInternalBuildClientOrDie(saName),

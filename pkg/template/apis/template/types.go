@@ -175,9 +175,6 @@ const (
 type TemplateInstanceObject struct {
 	// ref is a reference to the created object.
 	Ref kapi.ObjectReference
-
-	// index is an index into Template.Spec.Template.Objects[]
-	Index int64
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

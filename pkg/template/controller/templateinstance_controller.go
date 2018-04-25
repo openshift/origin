@@ -193,7 +193,6 @@ func (c *TemplateInstanceController) sync(key string) error {
 		}
 	}
 
-	// update, not update status, because we also added a finalizer to the object.
 	_, err = c.templateClient.Template().TemplateInstances(templateInstanceCopy.Namespace).UpdateStatus(templateInstanceCopy)
 	if err != nil {
 		utilruntime.HandleError(fmt.Errorf("TemplateInstance status update failed: %v", err))
@@ -420,9 +419,11 @@ func (c *TemplateInstanceController) instantiate(templateInstance *templateapi.T
 	}
 
 	for _, obj := range template.Objects {
-		meta, _ := meta.Accessor(obj)
+		meta, err := meta.Accessor(obj)
+		if err != nil {
+			return err
+		}
 		labels := meta.GetLabels()
-		glog.Infof("object: %v, labels are: %v", obj, labels)
 		if labels == nil {
 			labels = make(map[string]string)
 		}
@@ -475,9 +476,7 @@ func (c *TemplateInstanceController) instantiate(templateInstance *templateapi.T
 		return utilerrors.NewAggregate(errs)
 	}
 
-	index := int64(-1)
 	bulk.Op = func(info *resource.Info, namespace string, obj runtime.Object) (runtime.Object, error) {
-		index++
 		// as cmd.Create, but be tolerant to the existence of objects that we
 		// created before.
 		helper := resource.NewHelper(info.Client, info.Mapping)
@@ -527,7 +526,6 @@ func (c *TemplateInstanceController) instantiate(templateInstance *templateapi.T
 					UID:        meta.GetUID(),
 					APIVersion: info.Mapping.GroupVersionKind.GroupVersion().String(),
 				},
-				Index: index,
 			},
 		)
 
