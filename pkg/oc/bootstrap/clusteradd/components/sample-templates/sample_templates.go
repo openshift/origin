@@ -7,17 +7,17 @@ import (
 )
 
 var templateLocations = map[string]string{
-	"mongodb":                     "examples/db-templates/mongodb-persistent-template.json",
-	"mariadb":                     "examples/db-templates/mariadb-persistent-template.json",
-	"mysql":                       "examples/db-templates/mysql-persistent-template.json",
-	"postgresql":                  "examples/db-templates/postgresql-persistent-template.json",
-	"cakephp quickstart":          "examples/quickstarts/cakephp-mysql-persistent.json",
-	"dancer quickstart":           "examples/quickstarts/dancer-mysql-persistent.json",
-	"django quickstart":           "examples/quickstarts/django-postgresql-persistent.json",
-	"nodejs quickstart":           "examples/quickstarts/nodejs-mongodb-persistent.json",
-	"rails quickstart":            "examples/quickstarts/rails-postgresql-persistent.json",
-	"jenkins pipeline persistent": "examples/jenkins/jenkins-persistent-template.json",
-	"sample pipeline":             "examples/jenkins/pipeline/samplepipeline.yaml",
+	"mongodb":                    "examples/db-templates/mongodb-persistent-template.json",
+	"mariadb":                    "examples/db-templates/mariadb-persistent-template.json",
+	"mysql":                      "examples/db-templates/mysql-persistent-template.json",
+	"postgresql":                 "examples/db-templates/postgresql-persistent-template.json",
+	"cakephp quickstart":         "examples/quickstarts/cakephp-mysql-persistent.json",
+	"dancer quickstart":          "examples/quickstarts/dancer-mysql-persistent.json",
+	"django quickstart":          "examples/quickstarts/django-postgresql-persistent.json",
+	"nodejs quickstart":          "examples/quickstarts/nodejs-mongodb-persistent.json",
+	"rails quickstart":           "examples/quickstarts/rails-postgresql-persistent.json",
+	"jenkins pipeline ephemeral": "examples/jenkins/jenkins-ephemeral-template.json",
+	"sample pipeline":            "examples/jenkins/pipeline/samplepipeline.yaml",
 }
 
 type SampleTemplatesComponentOptions struct {
