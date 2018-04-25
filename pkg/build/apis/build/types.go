@@ -607,6 +607,10 @@ type BuildSource struct {
 	// Secrets represents a list of secrets and their destinations that will
 	// be used only for the build.
 	Secrets []SecretBuildSource
+
+	// Configs represents a list of configMaps and their destinations that will
+	// be used only for the build.
+	Configs []ConfigMapBuildSource
 }
 
 // ImageSource is used to describe build source that will be extracted from an image or used during a
@@ -653,6 +657,23 @@ type ImageSourcePath struct {
 	DestinationDir string
 }
 
+// LocalObjectBuildSource is a build source that is copied into a build from a Kubernetes
+// key-value store, such as a `Secret` or `ConfigMap`.
+type LocalObjectBuildSource interface {
+	// LocalObjectRef returns a reference to a local Kubernetes object by name.
+	LocalObjectRef() kapi.LocalObjectReference
+	// DestinationPath returns the directory where the files from the build source should be
+	// available for the build time.
+	// For the Source build strategy, these will be injected into a container
+	// where the assemble script runs.
+	// For the Docker build strategy, these will be copied into the build
+	// directory, where the Dockerfile is located, so users can ADD or COPY them
+	// during docker build.
+	DestinationPath() string
+	// IsSecret returns `true` if the build source is a `Secret` containing sensitive data.
+	IsSecret() bool
+}
+
 // SecretBuildSource describes a secret and its destination directory that will be
 // used only at the build time. The content of the secret referenced here will
 // be copied into the destination directory instead of mounting.
@@ -670,6 +691,48 @@ type SecretBuildSource struct {
 	// directory, where the Dockerfile is located, so users can ADD or COPY them
 	// during docker build.
 	DestinationDir string
+}
+
+func (s SecretBuildSource) LocalObjectRef() kapi.LocalObjectReference {
+	return s.Secret
+}
+
+func (s SecretBuildSource) DestinationPath() string {
+	return s.DestinationDir
+}
+
+func (s SecretBuildSource) IsSecret() bool {
+	return true
+}
+
+// ConfigMapBuildSource describes a configMap and its destination directory that will be
+// used only at the build time. The content of the configMap referenced here will
+// be copied into the destination directory instead of mounting.
+type ConfigMapBuildSource struct {
+	// ConfigMap is a reference to an existing configMap that you want to use in your
+	// build.
+	ConfigMap kapi.LocalObjectReference
+
+	// DestinationDir is the directory where the files from the secret should be
+	// available for the build time.
+	// For the Source build strategy, these will be injected into a container
+	// where the assemble script runs.
+	// For the Docker build strategy, these will be copied into the build
+	// directory, where the Dockerfile is located, so users can ADD or COPY them
+	// during docker build.
+	DestinationDir string
+}
+
+func (c ConfigMapBuildSource) LocalObjectRef() kapi.LocalObjectReference {
+	return c.ConfigMap
+}
+
+func (c ConfigMapBuildSource) DestinationPath() string {
+	return c.DestinationDir
+}
+
+func (c ConfigMapBuildSource) IsSecret() bool {
+	return false
 }
 
 type BinaryBuildSource struct {
@@ -789,6 +852,9 @@ type CustomBuildStrategy struct {
 
 	// BuildAPIVersion is the requested API version for the Build object serialized and passed to the custom builder
 	BuildAPIVersion string
+
+	// Configs is a list of additional configMaps that will be included in the custom build pod
+	Configs []ConfigSpec
 }
 
 // ImageOptimizationPolicy describes what optimizations the builder can perform when building images.
@@ -1365,5 +1431,14 @@ type SecretSpec struct {
 	SecretSource kapi.LocalObjectReference
 
 	// MountPath is the path at which to mount the secret
+	MountPath string
+}
+
+// ConfigSpec specifies a configMap to be included in a build pod and its corresponding mount point
+type ConfigSpec struct {
+	// ConfigMapSource is a reference to the configMap
+	ConfigMapSource kapi.LocalObjectReference
+
+	// MountPath is the path at which to mount the configMap
 	MountPath string
 }

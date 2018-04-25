@@ -8,8 +8,8 @@ for s in /tmp/secret? secret?; do
     fi
 done
 
-# Print out the secrets copied into the image during assemble
+# Print out the secrets and configs copied into the image during assemble
 cd "${HOME}"
-for s in testsecret/* testsecret2/*; do
+for s in testsecret/* testsecret2/* test-config/* test-config-2/*; do
     echo -n "${s}=" && cat "${s}"
 done

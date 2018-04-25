@@ -1,5 +1,5 @@
-hash: f9577985ef9884297c3c94191d038d50acde60bb9744c4d5523acc7a5d57003f
-updated: 2018-04-19T12:28:43.694392977+02:00
+hash: b56dee872c333a477f2d4f65ce94a5d706d99ffe936a26a8f86129dc79adf484
+updated: 2018-04-25T00:13:49.371607-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -818,7 +818,8 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: 80a1e2bf16952088360b492c175703755deea8d2
+  version: b4c7cbe64744e6881efe36191afdc8a623cb2c58
+  repo: https://github.com/adambkaplan/api.git
   subpackages:
   - apps/v1
   - authorization/v1
@@ -837,7 +838,8 @@ imports:
   - user/v1
   - webconsole/v1
 - name: github.com/openshift/client-go
-  version: b3f4c8b4682c151defdd33ce75acfbf5fb30bccc
+  version: 440d5cd0543fa0bb330cb4389a159665053ea6cf
+  repo: https://github.com/adambkaplan/client-go.git
   subpackages:
   - apps/clientset/versioned
   - apps/clientset/versioned/scheme
@@ -944,14 +946,15 @@ imports:
   - user/informers/externalversions/user/v1
   - user/listers/user/v1
 - name: github.com/openshift/imagebuilder
-  version: 41f1eb4311d96c876f3951ece26d2a2c007b720b
+  version: a10081d6a43feab673788e24ac7db28623eaf14c
   subpackages:
   - dockerclient
   - imageprogress
   - signal
   - strslice
 - name: github.com/openshift/source-to-image
-  version: 35514ac80ab25bbd682b18c0c771385a47a2b180
+  version: 0d600afa5f458dfb1f5ad202d4407f7c4453985a
+  repo: https://github.com/adambkaplan/source-to-image.git
   subpackages:
   - pkg/api
   - pkg/api/describe
@@ -1797,7 +1800,7 @@ imports:
   - pkg/util/proto
   - pkg/util/proto/validation
 - name: k8s.io/kubernetes
-  version: e6e9f2d5e18b7948030382ed17c2e10ca914efcf
+  version: d450cb1a62011f7ce4c23eb7b2a31eafdb73bb8f
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/controller-manager/app

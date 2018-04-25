@@ -266,8 +266,12 @@ type CGroupLimits struct {
 
 // VolumeSpec represents a single volume mount point.
 type VolumeSpec struct {
-	Source      string
+	// Source is a reference to the volume source.
+	Source string
+	// Destination is the path to mount the volume to - absolute or relative.
 	Destination string
+	// Truncate indicates if the mounted data should be truncated in the final image.
+	Truncate bool
 }
 
 // VolumeList contains list of VolumeSpec.
@@ -539,7 +543,7 @@ func (l *VolumeList) Set(value string) error {
 	}
 	mount[0] = strings.Trim(mount[0], `"'`)
 	mount[1] = strings.Trim(mount[1], `"'`)
-	s := VolumeSpec{Source: filepath.Clean(mount[0]), Destination: filepath.ToSlash(filepath.Clean(mount[1]))}
+	s := VolumeSpec{Source: filepath.Clean(mount[0]), Destination: filepath.ToSlash(filepath.Clean(mount[1])), Truncate: true}
 	if IsInvalidFilename(s.Source) || IsInvalidFilename(s.Destination) {
 		return fmt.Errorf("invalid characters in filename: %q", value)
 	}

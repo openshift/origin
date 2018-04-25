@@ -416,6 +416,10 @@ type BuildSource struct {
 	// secrets represents a list of secrets and their destinations that will
 	// be used only for the build.
 	Secrets []SecretBuildSource `json:"secrets,omitempty" protobuf:"bytes,8,rep,name=secrets"`
+
+	// configs represents a list of configmaps and their destinations that will
+	// be used for the build.
+	Configs []ConfigMapBuildSource `json:"configs,omitempty" protobuf:"bytes,9,rep,name=configs"`
 }
 
 // ImageSource is used to describe build source that will be extracted from an image or used during a
@@ -462,15 +466,32 @@ type ImageSourcePath struct {
 	DestinationDir string `json:"destinationDir" protobuf:"bytes,2,opt,name=destinationDir"`
 }
 
+// LocalObjectBuildSource is a build source that is copied into a build from a Kubernetes
+// key-value store, such as a `Secret` or `ConfigMap`.
+type LocalObjectBuildSource interface {
+	// LocalObjectRef returns a reference to a local Kubernetes object by name.
+	LocalObjectRef() corev1.LocalObjectReference
+	// DestinationPath returns the directory where the files from the build source should be
+	// available for the build time.
+	// For the Source build strategy, these will be injected into a container
+	// where the assemble script runs.
+	// For the Docker build strategy, these will be copied into the build
+	// directory, where the Dockerfile is located, so users can ADD or COPY them
+	// during docker build.
+	DestinationPath() string
+	// IsSecret returns `true` if the build source is a `Secret` containing sensitive data.
+	IsSecret() bool
+}
+
 // SecretBuildSource describes a secret and its destination directory that will be
 // used only at the build time. The content of the secret referenced here will
 // be copied into the destination directory instead of mounting.
 type SecretBuildSource struct {
-	// secret is a reference to an existing secret that you want to use in your
+	// Secret is a reference to an existing secret that you want to use in your
 	// build.
 	Secret corev1.LocalObjectReference `json:"secret" protobuf:"bytes,1,opt,name=secret"`
 
-	// destinationDir is the directory where the files from the secret should be
+	// DestinationDir is the directory where the files from the secret should be
 	// available for the build time.
 	// For the Source build strategy, these will be injected into a container
 	// where the assemble script runs. Later, when the script finishes, all files
@@ -479,6 +500,67 @@ type SecretBuildSource struct {
 	// directory, where the Dockerfile is located, so users can ADD or COPY them
 	// during docker build.
 	DestinationDir string `json:"destinationDir,omitempty" protobuf:"bytes,2,opt,name=destinationDir"`
+}
+
+// LocalObjectRef returns a reference to the `Secret` used for this build source.
+func (s SecretBuildSource) LocalObjectRef() corev1.LocalObjectReference {
+	return s.Secret
+}
+
+// DestinationPath returns the directory where the files from the secret should be
+// available for the build time.
+// For the Source build strategy, these will be injected into a container
+// where the assemble script runs. Later, when the script finishes, all files
+// injected will be truncated to zero length.
+// For the Docker build strategy, these will be copied into the build
+// directory, where the Dockerfile is located, so users can ADD or COPY them
+// during docker build.
+func (s SecretBuildSource) DestinationPath() string {
+	return s.DestinationDir
+}
+
+// IsSecret returns `true` if the build source is a `Secret` containing sensitive data.
+func (s SecretBuildSource) IsSecret() bool {
+	return true
+}
+
+// ConfigMapBuildSource describes a configmap and its destination directory that will be
+// used only at the build time. The content of the configmap referenced here will
+// be copied into the destination directory instead of mounting.
+type ConfigMapBuildSource struct {
+	// ConfigMap is a reference to an existing configmap that you want to use in your
+	// build.
+	ConfigMap corev1.LocalObjectReference `json:"configMap" protobuf:"bytes,1,opt,name=configMap"`
+
+	// DestinationDir is the directory where the files from the configmap should be
+	// available for the build time.
+	// For the Source build strategy, these will be injected into a container
+	// where the assemble script runs.
+	// For the Docker build strategy, these will be copied into the build
+	// directory, where the Dockerfile is located, so users can ADD or COPY them
+	// during docker build.
+	DestinationDir string `json:"destinationDir,omitempty" protobuf:"bytes,2,opt,name=destinationDir"`
+}
+
+// LocalObjectRef returns a reference to the `ConfigMap` used for this build source.
+func (c ConfigMapBuildSource) LocalObjectRef() corev1.LocalObjectReference {
+	return c.ConfigMap
+}
+
+// DestinationPath returns the directory where the files from the build source should be
+// available for the build time.
+// For the Source build strategy, these will be injected into a container
+// where the assemble script runs.
+// For the Docker build strategy, these will be copied into the build
+// directory, where the Dockerfile is located, so users can ADD or COPY them
+// during docker build.
+func (c ConfigMapBuildSource) DestinationPath() string {
+	return c.DestinationDir
+}
+
+// IsSecret returns `true` if the build source is a `Secret` containing sensitive data.
+func (c ConfigMapBuildSource) IsSecret() bool {
+	return false
 }
 
 // BinaryBuildSource describes a binary file to be used for the Docker and Source build strategies,
@@ -618,6 +700,9 @@ type CustomBuildStrategy struct {
 
 	// buildAPIVersion is the requested API version for the Build object serialized and passed to the custom builder
 	BuildAPIVersion string `json:"buildAPIVersion,omitempty" protobuf:"bytes,7,opt,name=buildAPIVersion"`
+
+	// Configs is a list of additional configMaps that will be included in the custom build pod
+	Configs []ConfigSpec `json:"configs,omitempty" protobuf:"bytes,8,rep,name=configs"`
 }
 
 // ImageOptimizationPolicy describes what optimizations the builder can perform when building images.
@@ -1192,5 +1277,14 @@ type SecretSpec struct {
 	SecretSource corev1.LocalObjectReference `json:"secretSource" protobuf:"bytes,1,opt,name=secretSource"`
 
 	// mountPath is the path at which to mount the secret
+	MountPath string `json:"mountPath" protobuf:"bytes,2,opt,name=mountPath"`
+}
+
+// ConfigSpec specifies a configMap to be included in a build pod and its corresponding mount point
+type ConfigSpec struct {
+	// ConfigMapSource is a reference to the configMap
+	ConfigMapSource corev1.LocalObjectReference `json:"configMapSource" protobuf:"bytes,1,opt,name=configMapSource"`
+
+	// MountPath is the path at which to mount the configMap
 	MountPath string `json:"mountPath" protobuf:"bytes,2,opt,name=mountPath"`
 }

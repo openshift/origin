@@ -183,6 +183,7 @@ var map_BuildSource = map[string]string{
 	"contextDir":   "contextDir specifies the sub-directory where the source code for the application exists. This allows to have buildable sources in directory other than root of repository.",
 	"sourceSecret": "sourceSecret is the name of a Secret that would be used for setting up the authentication for cloning private repository. The secret contains valid credentials for remote repository, where the data's key represent the authentication method to be used and value is the base64 encoded credentials. Supported auth methods are: ssh-privatekey.",
 	"secrets":      "secrets represents a list of secrets and their destinations that will be used only for the build.",
+	"configs":      "configs represents a list of configmaps and their destinations that will be used for the build.",
 }
 
 func (BuildSource) SwaggerDoc() map[string]string {
@@ -304,6 +305,26 @@ func (CommonWebHookCause) SwaggerDoc() map[string]string {
 	return map_CommonWebHookCause
 }
 
+var map_ConfigMapBuildSource = map[string]string{
+	"":               "ConfigMapBuildSource describes a configmap and its destination directory that will be used only at the build time. The content of the configmap referenced here will be copied into the destination directory instead of mounting.",
+	"configMap":      "ConfigMap is a reference to an existing configmap that you want to use in your build.",
+	"destinationDir": "DestinationDir is the directory where the files from the configmap should be available for the build time. For the Source build strategy, these will be injected into a container where the assemble script runs. For the Docker build strategy, these will be copied into the build directory, where the Dockerfile is located, so users can ADD or COPY them during docker build.",
+}
+
+func (ConfigMapBuildSource) SwaggerDoc() map[string]string {
+	return map_ConfigMapBuildSource
+}
+
+var map_ConfigSpec = map[string]string{
+	"":                "ConfigSpec specifies a configMap to be included in a build pod and its corresponding mount point",
+	"configMapSource": "ConfigMapSource is a reference to the configMap",
+	"mountPath":       "MountPath is the path at which to mount the configMap",
+}
+
+func (ConfigSpec) SwaggerDoc() map[string]string {
+	return map_ConfigSpec
+}
+
 var map_CustomBuildStrategy = map[string]string{
 	"":                   "CustomBuildStrategy defines input parameters specific to Custom build.",
 	"from":               "from is reference to an DockerImage, ImageStreamTag, or ImageStreamImage from which the docker image should be pulled",
@@ -313,6 +334,7 @@ var map_CustomBuildStrategy = map[string]string{
 	"forcePull":          "forcePull describes if the controller should configure the build pod to always pull the images for the builder or only pull if it is not present locally",
 	"secrets":            "secrets is a list of additional secrets that will be included in the build pod",
 	"buildAPIVersion":    "buildAPIVersion is the requested API version for the Build object serialized and passed to the custom builder",
+	"configs":            "Configs is a list of additional configMaps that will be included in the custom build pod",
 }
 
 func (CustomBuildStrategy) SwaggerDoc() map[string]string {
@@ -491,8 +513,8 @@ func (ProxyConfig) SwaggerDoc() map[string]string {
 
 var map_SecretBuildSource = map[string]string{
 	"":               "SecretBuildSource describes a secret and its destination directory that will be used only at the build time. The content of the secret referenced here will be copied into the destination directory instead of mounting.",
-	"secret":         "secret is a reference to an existing secret that you want to use in your build.",
-	"destinationDir": "destinationDir is the directory where the files from the secret should be available for the build time. For the Source build strategy, these will be injected into a container where the assemble script runs. Later, when the script finishes, all files injected will be truncated to zero length. For the Docker build strategy, these will be copied into the build directory, where the Dockerfile is located, so users can ADD or COPY them during docker build.",
+	"secret":         "Secret is a reference to an existing secret that you want to use in your build.",
+	"destinationDir": "DestinationDir is the directory where the files from the secret should be available for the build time. For the Source build strategy, these will be injected into a container where the assemble script runs. Later, when the script finishes, all files injected will be truncated to zero length. For the Docker build strategy, these will be copied into the build directory, where the Dockerfile is located, so users can ADD or COPY them during docker build.",
 }
 
 func (SecretBuildSource) SwaggerDoc() map[string]string {

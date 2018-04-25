@@ -13,9 +13,10 @@ import:
   subpackages:
   - digestset
   - reference
+# close-write carry
 - package: github.com/docker/docker
-  repo: git@github.com:openshift/moby-moby
-  version: 4f3616fb1c112e206b88cb7a9922bf49067a7756
+  repo:    https://github.com/openshift/moby-moby.git
+  version: openshift-3.10-docker-b68221c
   subpackages:
   - api
   - api/types

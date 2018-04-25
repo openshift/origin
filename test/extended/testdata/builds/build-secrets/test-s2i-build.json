@@ -24,6 +24,19 @@
             "name": "testsecret2"
           }
         }
+      ],
+      "configs": [
+        {
+          "configMap": {
+            "name": "test-config"
+          },
+          "destinationDir": "/tmp"
+        },
+        {
+          "configMap": {
+            "name": "test-config-2"
+          }
+        }
       ]
     },
     "strategy": {

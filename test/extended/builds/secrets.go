@@ -17,6 +17,8 @@ var _ = g.Describe("[Feature:Builds][Slow] can use build secrets", func() {
 		buildSecretBaseDir    = exutil.FixturePath("testdata", "builds", "build-secrets")
 		secretsFixture        = filepath.Join(buildSecretBaseDir, "test-secret.json")
 		secondSecretsFixture  = filepath.Join(buildSecretBaseDir, "test-secret-2.json")
+		configsFixture        = filepath.Join(buildSecretBaseDir, "test-configMap.json")
+		secondConfigsFixture  = filepath.Join(buildSecretBaseDir, "test-configMap-2.json")
 		isFixture             = filepath.Join(buildSecretBaseDir, "test-is.json")
 		dockerBuildFixture    = filepath.Join(buildSecretBaseDir, "test-docker-build.json")
 		dockerBuildDockerfile = filepath.Join(buildSecretBaseDir, "Dockerfile")
@@ -37,7 +39,7 @@ var _ = g.Describe("[Feature:Builds][Slow] can use build secrets", func() {
 			}
 		})
 
-		g.Describe("build with secrets", func() {
+		g.Describe("build with secrets and configs", func() {
 			oc.SetOutputDir(exutil.TestContext.OutputDir)
 
 			g.It("should contain secrets during the source strategy build", func() {
@@ -45,6 +47,11 @@ var _ = g.Describe("[Feature:Builds][Slow] can use build secrets", func() {
 				err := oc.Run("create").Args("-f", secretsFixture).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 				err = oc.Run("create").Args("-f", secondSecretsFixture).Execute()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				g.By("creating configMap fixtures")
+				err = oc.Run("create").Args("-f", configsFixture).Execute()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				err = oc.Run("create").Args("-f", secondConfigsFixture).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("creating test image stream")
@@ -72,6 +79,12 @@ var _ = g.Describe("[Feature:Builds][Slow] can use build secrets", func() {
 					"testsecret2/secret1=secret1",
 					"testsecret2/secret2=secret2",
 					"testsecret2/secret3=secret3",
+					"test-config/foo=bar",
+					"test-config/this=that",
+					"test-config/red=hat",
+					"test-config-2/foo=bar",
+					"test-config-2/this=that",
+					"test-config-2/red=hat",
 				})
 			})
 
@@ -80,6 +93,11 @@ var _ = g.Describe("[Feature:Builds][Slow] can use build secrets", func() {
 				err := oc.Run("create").Args("-f", secretsFixture).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 				err = oc.Run("create").Args("-f", secondSecretsFixture).Execute()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				g.By("creating configMap fixtures")
+				err = oc.Run("create").Args("-f", configsFixture).Execute()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				err = oc.Run("create").Args("-f", secondConfigsFixture).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("creating test image stream")
@@ -102,7 +120,7 @@ var _ = g.Describe("[Feature:Builds][Slow] can use build secrets", func() {
 				pod := exutil.GetPodForContainer(kapiv1.Container{Name: "test", Image: image})
 				oc.KubeFramework().TestContainerOutput("test-build-secret-docker", pod, 0, []string{
 					"secret1=secret1",
-					"relative-secret2=secret2",
+					"relative-this=that",
 				})
 			})
 		})

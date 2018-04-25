@@ -37,13 +37,16 @@ func FixInjectionsWithRelativePath(workdir string, injections api.VolumeList) ap
 	return newList
 }
 
-// ExpandInjectedFiles returns a flat list of all files that are injected into a
-// container. All files from nested directories are returned in the list.
-func ExpandInjectedFiles(fs fs.FileSystem, injections api.VolumeList) ([]string, error) {
+// ListFilesToTruncate returns a flat list of all files that are injected into a
+// container which need to be truncated. All files from nested directories are returned in the list.
+func ListFilesToTruncate(fs fs.FileSystem, injections api.VolumeList) ([]string, error) {
 	result := []string{}
 	for _, s := range injections {
 		if _, err := os.Stat(s.Source); err != nil {
 			return nil, err
+		}
+		if !s.Truncate {
+			continue
 		}
 		err := fs.Walk(s.Source, func(path string, f os.FileInfo, err error) error {
 			if err != nil {
@@ -91,11 +94,11 @@ func ExpandInjectedFiles(fs fs.FileSystem, injections api.VolumeList) ([]string,
 	return result, nil
 }
 
-// CreateInjectedFilesRemovalScript creates a shell script that contains truncation
+// CreateTruncateFilesScript creates a shell script that contains truncation
 // of all files we injected into the container. The path to the script is returned.
 // When the scriptName is provided, it is also truncated together with all
 // secrets.
-func CreateInjectedFilesRemovalScript(files []string, scriptName string) (string, error) {
+func CreateTruncateFilesScript(files []string, scriptName string) (string, error) {
 	rmScript := "set -e\n"
 	for _, s := range files {
 		rmScript += fmt.Sprintf("truncate -s0 %q\n", s)

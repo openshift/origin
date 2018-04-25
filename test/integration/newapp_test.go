@@ -1355,6 +1355,7 @@ func TestNewAppRunBuilds(t *testing.T) {
 					ContextDir: "openshift/pipeline",
 					Git:        &buildapi.GitBuildSource{URI: "https://github.com/openshift/nodejs-ex"},
 					Secrets:    []buildapi.SecretBuildSource{},
+					Configs:    []buildapi.ConfigMapBuildSource{},
 				}) {
 					return fmt.Errorf("invalid bc.Spec.Source, got %#v", bc.Spec.Source)
 				}
@@ -1395,6 +1396,7 @@ func TestNewAppRunBuilds(t *testing.T) {
 					ContextDir: "openshift/pipeline",
 					Git:        &buildapi.GitBuildSource{URI: "https://github.com/openshift/nodejs-ex"},
 					Secrets:    []buildapi.SecretBuildSource{},
+					Configs:    []buildapi.ConfigMapBuildSource{},
 				}) {
 					return fmt.Errorf("invalid bc.Spec.Source, got %#v", bc.Spec.Source.Git)
 				}
@@ -1830,6 +1832,7 @@ func TestNewAppBuildConfigEnvVarsAndSecrets(t *testing.T) {
 		config          *cmd.AppConfig
 		expected        []kapi.EnvVar
 		expectedSecrets map[string]string
+		expectedConfigs map[string]string
 		expectedErr     error
 	}{
 		{
@@ -1843,6 +1846,7 @@ func TestNewAppBuildConfigEnvVarsAndSecrets(t *testing.T) {
 					OutputDocker: true,
 					Environment:  []string{"BUILD_ENV_1=env_value_1", "BUILD_ENV_2=env_value_2"},
 					Secrets:      []string{"foo:/var", "bar"},
+					Configs:      []string{"red:/etc/conf", "hat"},
 				},
 
 				Resolvers: cmd.Resolvers{
@@ -1861,6 +1865,7 @@ func TestNewAppBuildConfigEnvVarsAndSecrets(t *testing.T) {
 			},
 			expected:        []kapi.EnvVar{},
 			expectedSecrets: map[string]string{"foo": "/var", "bar": "."},
+			expectedConfigs: map[string]string{"red": "/etc/conf", "hat": "."},
 			expectedErr:     nil,
 		},
 	}
@@ -1875,11 +1880,13 @@ func TestNewAppBuildConfigEnvVarsAndSecrets(t *testing.T) {
 		}
 		got := []kapi.EnvVar{}
 		gotSecrets := []buildapi.SecretBuildSource{}
+		gotConfigs := []buildapi.ConfigMapBuildSource{}
 		for _, obj := range res.List.Items {
 			switch tp := obj.(type) {
 			case *buildapi.BuildConfig:
 				got = tp.Spec.Strategy.SourceStrategy.Env
 				gotSecrets = tp.Spec.Source.Secrets
+				gotConfigs = tp.Spec.Source.Configs
 				break
 			}
 		}
@@ -1894,6 +1901,20 @@ func TestNewAppBuildConfigEnvVarsAndSecrets(t *testing.T) {
 			}
 			if !found {
 				t.Errorf("expected secret %q and destination %q, got %#v", secretName, destDir, gotSecrets)
+				continue
+			}
+		}
+
+		for configName, destDir := range test.expectedConfigs {
+			found := false
+			for _, got := range gotConfigs {
+				if got.ConfigMap.Name == configName && got.DestinationDir == destDir {
+					found = true
+					continue
+				}
+			}
+			if !found {
+				t.Errorf("expected config %q and destination %q, got %#v", configName, destDir, gotConfigs)
 				continue
 			}
 		}

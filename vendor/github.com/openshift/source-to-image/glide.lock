@@ -1,5 +1,5 @@
-hash: edca5c32b67b93cfc6992dfbd7b429f7e3e5c99929d0f7b156a7777132e19eb0
-updated: 2018-03-08T15:16:10.063277504-05:00
+hash: b76672c3c830cf8f151600883135ed3b669d44e748a5b54d655f89a9d6ce3a1d
+updated: 2018-04-19T09:21:36.074734051-04:00
 imports:
 - name: github.com/Azure/go-ansiterm
   version: 19f72df4d05d31cbe1c56bfc8045c96babff6c7e
@@ -11,8 +11,8 @@ imports:
   - digestset
   - reference
 - name: github.com/docker/docker
-  version: 4f3616fb1c112e206b88cb7a9922bf49067a7756
-  repo: git@github.com:openshift/moby-moby
+  version: fcdab531a6d9b133eaa3f2a3f6c11fd02a97de75
+  repo: https://github.com/openshift/moby-moby.git
   subpackages:
   - api
   - api/types
@@ -102,4 +102,6 @@ imports:
   subpackages:
   - unix
   - windows
+- name: gopkg.in/yaml.v2
+  version: 53feefa2559fb8dfa8d81baad31be332c97d6c77
 testImports: []

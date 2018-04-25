@@ -189,6 +189,7 @@ func (bs *SourceBuildStrategy) CreateBuildPod(build *buildapi.Build) (*v1.Pod, e
 	// location into the working directory.
 	// TODO: consider moving this into the git-clone container and doing the secret copying there instead.
 	setupInputSecrets(pod, &pod.Spec.Containers[0], build.Spec.Source.Secrets)
+	setupInputConfigs(pod, &pod.Spec.Containers[0], build.Spec.Source.Configs)
 	return pod, nil
 }
 
