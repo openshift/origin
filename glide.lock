@@ -1,5 +1,5 @@
-hash: a5954c4b56d2e14a1790f598623499f9f6584f52ffcddb1acd3b78dfae0ccc56
-updated: 2018-04-24T21:39:51.327761-04:00
+hash: b56dee872c333a477f2d4f65ce94a5d706d99ffe936a26a8f86129dc79adf484
+updated: 2018-04-25T00:13:49.371607-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -838,7 +838,8 @@ imports:
   - user/v1
   - webconsole/v1
 - name: github.com/openshift/client-go
-  version: b3f4c8b4682c151defdd33ce75acfbf5fb30bccc
+  version: 440d5cd0543fa0bb330cb4389a159665053ea6cf
+  repo: https://github.com/adambkaplan/client-go.git
   subpackages:
   - apps/clientset/versioned
   - apps/clientset/versioned/scheme

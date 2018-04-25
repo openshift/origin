@@ -41,7 +41,8 @@ import:
   repo: https://github.com/adambkaplan/api.git
   version: feature/build-source-configs
 - package: github.com/openshift/client-go
-  version: master
+  repo: https://github.com/adambkaplan/client-go.git
+  version: feature/build-configmaps
 - package: github.com/openshift/imagebuilder
   version: master
 - package: github.com/openshift/source-to-image
