@@ -43,8 +43,8 @@ func TestDockerCreateBuildPod(t *testing.T) {
 	}
 
 	container := actual.Spec.Containers[0]
-	if container.Name != dockerBuild {
-		t.Errorf("Expected %s, but got %s!", dockerBuild, container.Name)
+	if container.Name != DockerBuild {
+		t.Errorf("Expected %s, but got %s!", DockerBuild, container.Name)
 	}
 	if container.Image != strategy.Image {
 		t.Errorf("Expected %s image, got %s!", container.Image, strategy.Image)

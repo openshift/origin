@@ -57,7 +57,7 @@ func RunBuildController(ctx ControllerContext) (bool, error) {
 			Codec: annotationCodec,
 		},
 		SourceBuildStrategy: &buildstrategy.SourceBuildStrategy{
-			Image: imageTemplate.ExpandOrDie("sti-builder"),
+			Image: imageTemplate.ExpandOrDie("docker-builder"),
 			// TODO: this will be set to --storage-version (the internal schema we use)
 			Codec:          annotationCodec,
 			SecurityClient: securityClient.Security(),

@@ -315,7 +315,6 @@ readonly OS_ALL_IMAGES=(
   origin-deployer
   origin-docker-builder
   origin-keepalived-ipfailover
-  origin-sti-builder
   origin-haproxy-router
   origin-f5-router
   origin-egress-router
@@ -359,7 +358,6 @@ function os::build::images() {
   ( os::build::image "${tag_prefix}-deployer"              images/deployer ) &
   ( os::build::image "${tag_prefix}-recycler"              images/recycler ) &
   ( os::build::image "${tag_prefix}-docker-builder"        images/builder/docker/docker-builder ) &
-  ( os::build::image "${tag_prefix}-sti-builder"           images/builder/docker/sti-builder ) &
   ( os::build::image "${tag_prefix}-f5-router"             images/router/f5 ) &
   ( os::build::image "${tag_prefix}-node"                  images/node ) &
 
