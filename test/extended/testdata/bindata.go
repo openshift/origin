@@ -5487,7 +5487,7 @@ var _testExtendedTestdataForcepullTestJson = []byte(`{
 						"from": {
 							"kind": "ImageStreamTag",
 						        "namespace": "openshift",
-							"name": "ruby:latest"
+							"name": "ruby:2.2"
 						},
 						"env": [
 							{
