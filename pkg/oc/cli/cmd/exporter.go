@@ -11,24 +11,10 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/registry/core/endpoint"
-	"k8s.io/kubernetes/pkg/registry/core/namespace"
-	"k8s.io/kubernetes/pkg/registry/core/node"
-	"k8s.io/kubernetes/pkg/registry/core/persistentvolume"
-	"k8s.io/kubernetes/pkg/registry/core/persistentvolumeclaim"
-	"k8s.io/kubernetes/pkg/registry/core/pod"
-	"k8s.io/kubernetes/pkg/registry/core/replicationcontroller"
-	"k8s.io/kubernetes/pkg/registry/core/resourcequota"
-	"k8s.io/kubernetes/pkg/registry/core/secret"
-	"k8s.io/kubernetes/pkg/registry/core/serviceaccount"
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	deployrest "github.com/openshift/origin/pkg/apps/registry/deployconfig"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	buildrest "github.com/openshift/origin/pkg/build/registry/build"
-	buildconfigrest "github.com/openshift/origin/pkg/build/registry/buildconfig"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	osautil "github.com/openshift/origin/pkg/serviceaccounts/util"
@@ -66,18 +52,15 @@ func (e *DefaultExporter) Export(obj runtime.Object, exact bool) error {
 	} else {
 		glog.V(4).Infof("Object of type %v does not have ObjectMeta: %v", reflect.TypeOf(obj), err)
 	}
-	ctx := apirequest.NewContext()
 
 	switch t := obj.(type) {
 	case *kapi.Endpoints:
-		endpoint.Strategy.PrepareForCreate(ctx, obj)
 	case *kapi.ResourceQuota:
-		resourcequota.Strategy.PrepareForCreate(ctx, obj)
+		t.Status = kapi.ResourceQuotaStatus{}
 	case *kapi.LimitRange:
 	// TODO: this needs to be fixed
 	//  limitrange.Strategy.PrepareForCreate(obj)
 	case *kapi.Node:
-		node.Strategy.PrepareForCreate(ctx, obj)
 		if exact {
 			return nil
 		}
@@ -85,15 +68,13 @@ func (e *DefaultExporter) Export(obj runtime.Object, exact bool) error {
 		// we clear that without exact so that the node value can be reused.
 		t.Status = kapi.NodeStatus{}
 	case *kapi.Namespace:
-		namespace.Strategy.PrepareForCreate(ctx, obj)
 	case *kapi.PersistentVolumeClaim:
-		persistentvolumeclaim.Strategy.PrepareForCreate(ctx, obj)
+		t.Status = kapi.PersistentVolumeClaimStatus{}
 	case *kapi.PersistentVolume:
-		persistentvolume.Strategy.PrepareForCreate(ctx, obj)
 	case *kapi.ReplicationController:
-		replicationcontroller.Strategy.PrepareForCreate(ctx, obj)
+		t.Status = kapi.ReplicationControllerStatus{}
 	case *kapi.Pod:
-		pod.Strategy.PrepareForCreate(ctx, obj)
+		t.Status = kapi.PodStatus{}
 	case *kapi.PodTemplate:
 	case *kapi.Service:
 		// TODO: service does not yet have a strategy
@@ -110,7 +91,6 @@ func (e *DefaultExporter) Export(obj runtime.Object, exact bool) error {
 			}
 		}
 	case *kapi.Secret:
-		secret.Strategy.PrepareForCreate(ctx, obj)
 		if exact {
 			return nil
 		}
@@ -119,7 +99,6 @@ func (e *DefaultExporter) Export(obj runtime.Object, exact bool) error {
 			return ErrExportOmit
 		}
 	case *kapi.ServiceAccount:
-		serviceaccount.Strategy.PrepareForCreate(ctx, obj)
 		if exact {
 			return nil
 		}
@@ -146,22 +125,17 @@ func (e *DefaultExporter) Export(obj runtime.Object, exact bool) error {
 		t.Secrets = newMountableSecrets
 
 	case *appsapi.DeploymentConfig:
-		return deployrest.CommonStrategy.Export(ctx, obj, exact)
+		t.Status = appsapi.DeploymentConfigStatus{}
 
 	case *buildapi.BuildConfig:
-		// Use the legacy strategy to avoid setting prune defaults if
-		// the object wasn't created with them in the first place.
-		// TODO: use the exportstrategy pattern instead.
-		buildconfigrest.LegacyStrategy.PrepareForCreate(ctx, obj)
-		// TODO: should be handled by prepare for create
-		t.Status.LastVersion = 0
+		t.Status = buildapi.BuildConfigStatus{}
+
 		for i := range t.Spec.Triggers {
 			if p := t.Spec.Triggers[i].ImageChange; p != nil {
 				p.LastTriggeredImageID = ""
 			}
 		}
 	case *buildapi.Build:
-		buildrest.Strategy.PrepareForCreate(ctx, obj)
 		// TODO: should be handled by prepare for create
 		t.Status.Duration = 0
 		t.Status.Phase = buildapi.BuildPhaseNew

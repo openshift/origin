@@ -66,6 +66,8 @@ func NewCmdExport(fullName string, f *clientcmd.Factory, in io.Reader, out io.Wr
 			kcmdutil.CheckErr(err)
 		},
 	}
+	cmd.Deprecated = "Use the `get --export` command instead."
+
 	cmd.Flags().String("as-template", "", "Output a Template object with specified name instead of a List or single object.")
 	cmd.Flags().Bool("exact", false, "If true, preserve fields that may be cluster specific, such as service clusterIPs or generated names")
 	cmd.Flags().Bool("raw", false, "If true, do not alter the resources in any way after they are loaded.")
