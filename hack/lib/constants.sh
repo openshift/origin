@@ -34,6 +34,7 @@ readonly OS_SDN_COMPILE_TARGETS_LINUX=(
 )
 readonly OS_IMAGE_COMPILE_TARGETS_LINUX=(
   "${OS_SDN_COMPILE_TARGETS_LINUX[@]}"
+  cmd/openshift-node-config
 )
 readonly OS_SCRATCH_IMAGE_COMPILE_TARGETS_LINUX=(
   images/pod
