@@ -194,9 +194,9 @@ readonly -f os::util::list_go_src_dirs
 
 # os::util::list_go_deps outputs the list of dependencies for the project.
 function os::util::list_go_deps() {
-  go list -f '{{.ImportPath}}{{.Imports}}' ./pkg/... ./cmd/... | tr '[]' '  ' |
+  go list -f '{{.ImportPath}}{{.Imports}}' ./pkg/... ./cmd/... ./vendor/k8s.io/... | tr '[]' '  ' |
     sed -e 's|github.com/openshift/origin/vendor/||g' |
-    sed -e 's|github.com/openshift/origin/pkg/build/vendor/||g'
+    sed -e 's|k8s.io/kubernetes/staging/src/||g'
 }
 
 # os::util::list_test_packages_under lists all packages containing Golang test files that we
