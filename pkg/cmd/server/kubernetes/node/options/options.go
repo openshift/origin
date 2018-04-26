@@ -5,21 +5,16 @@ import (
 	"net"
 	"sort"
 	"strings"
-	"time"
 
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
-	kapiv1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
-	kclientsetexternal "k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/pkg/features"
-	kubeletcni "k8s.io/kubernetes/pkg/kubelet/network/cni"
-	kubelettypes "k8s.io/kubernetes/pkg/kubelet/types"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
+	"github.com/openshift/origin/pkg/network"
 )
 
 // ComputeKubeletFlags returns the flags to use when starting the kubelet.
@@ -62,9 +57,9 @@ func ComputeKubeletFlags(startingArgs map[string][]string, options configapi.Nod
 	setIfUnset(args, "fail-swap-on", "false")
 	setIfUnset(args, "cluster-dns", options.DNSIP)
 	setIfUnset(args, "cluster-domain", options.DNSDomain)
-	setIfUnset(args, "host-network-sources", kubelettypes.ApiserverSource, kubelettypes.FileSource)
-	setIfUnset(args, "host-pid-sources", kubelettypes.ApiserverSource, kubelettypes.FileSource)
-	setIfUnset(args, "host-ipc-sources", kubelettypes.ApiserverSource, kubelettypes.FileSource)
+	setIfUnset(args, "host-network-sources", "api", "file")
+	setIfUnset(args, "host-pid-sources", "api", "file")
+	setIfUnset(args, "host-ipc-sources", "api", "file")
 	setIfUnset(args, "http-check-frequency", "0s") // no remote HTTP pod creation access
 	setIfUnset(args, "file-check-frequency", fmt.Sprintf("%ds", fileCheckInterval))
 	setIfUnset(args, "pod-infra-container-image", imageTemplate.ExpandOrDie("pod"))
@@ -91,7 +86,7 @@ func ComputeKubeletFlags(startingArgs map[string][]string, options configapi.Nod
 
 	if network.IsOpenShiftNetworkPlugin(options.NetworkConfig.NetworkPluginName) {
 		// SDN plugin pod setup/teardown is implemented as a CNI plugin
-		setIfUnset(args, "network-plugin", kubeletcni.CNIPluginName)
+		setIfUnset(args, "network-plugin", "cni")
 	} else {
 		setIfUnset(args, "network-plugin", options.NetworkConfig.NetworkPluginName)
 	}
