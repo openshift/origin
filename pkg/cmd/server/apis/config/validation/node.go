@@ -28,8 +28,16 @@ func ValidateInClusterNodeConfig(config *configapi.NodeConfig, fldPath *field.Pa
 	if len(config.NodeName) == 0 && !hasBootstrapConfig {
 		validationResults.AddErrors(field.Required(fldPath.Child("nodeName"), ""))
 	}
-	if len(config.NodeIP) > 0 {
-		validationResults.AddErrors(ValidateSpecifiedIP(config.NodeIP, fldPath.Child("nodeIP"))...)
+	if len(config.DeprecatedNodeIP) > 0 {
+		validationResults.AddErrors(ValidateSpecifiedIP(config.DeprecatedNodeIP, fldPath.Child("nodeIP"))...)
+
+		if config.KubeletArguments != nil {
+			if ips, ok := config.KubeletArguments["node-ip"]; ok && (len(ips) > 0) {
+				if config.DeprecatedNodeIP != ips[0] {
+					validationResults.AddErrors(field.Invalid(fldPath.Child("nodeIP"), config.DeprecatedNodeIP, fmt.Sprintf("nodeIP config does not match with kubeletArguments[\"node-ip\"]: %s", ips[0])))
+				}
+			}
+		}
 	}
 
 	servingInfoPath := fldPath.Child("servingInfo")
