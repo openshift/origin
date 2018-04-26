@@ -16,8 +16,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	api "k8s.io/kubernetes/pkg/apis/core"
-	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 )
@@ -359,30 +357,6 @@ func GetOAuthClientCertCAs(options MasterConfig) ([]*x509.Certificate, error) {
 	}
 
 	return allCerts, nil
-}
-
-func GetKubeletClientConfig(options MasterConfig) *kubeletclient.KubeletClientConfig {
-	config := &kubeletclient.KubeletClientConfig{
-		Port: options.KubeletClientInfo.Port,
-		PreferredAddressTypes: []string{
-			string(api.NodeHostName),
-			string(api.NodeInternalIP),
-			string(api.NodeExternalIP),
-		},
-	}
-
-	if len(options.KubeletClientInfo.CA) > 0 {
-		config.EnableHttps = true
-		config.CAFile = options.KubeletClientInfo.CA
-	}
-
-	if len(options.KubeletClientInfo.ClientCert.CertFile) > 0 {
-		config.EnableHttps = true
-		config.CertFile = options.KubeletClientInfo.ClientCert.CertFile
-		config.KeyFile = options.KubeletClientInfo.ClientCert.KeyFile
-	}
-
-	return config
 }
 
 func IsPasswordAuthenticator(provider IdentityProvider) bool {
