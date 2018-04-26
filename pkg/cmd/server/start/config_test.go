@@ -259,22 +259,6 @@ func TestKubeClientForExternalKubernetesMasterWithConfig(t *testing.T) {
 	}
 }
 
-func TestKubeClientForNodeWithConfig(t *testing.T) {
-	expectedServer := "https://some-other-server:1234"
-	expectedUser := "myuser"
-
-	nodeArgs := NewDefaultNodeArgs()
-	nodeArgs.KubeConnectionArgs.ClientConfigLoadingRules, nodeArgs.KubeConnectionArgs.ClientConfig = makeKubeconfig(expectedServer, expectedUser)
-
-	actual, err := nodeArgs.KubeConnectionArgs.GetKubernetesAddress(nil)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if expectedServer != actual.String() {
-		t.Fatalf("expected %v, got %v", expectedServer, actual)
-	}
-}
-
 func TestKubeClientForExternalKubernetesMasterWithErrorKubeconfig(t *testing.T) {
 	masterArgs := NewDefaultMasterArgs()
 	masterArgs.KubeConnectionArgs.ClientConfigLoadingRules, masterArgs.KubeConnectionArgs.ClientConfig = makeErrorKubeconfig()
