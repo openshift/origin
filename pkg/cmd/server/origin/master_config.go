@@ -35,6 +35,7 @@ import (
 	buildinformer "github.com/openshift/origin/pkg/build/generated/informers/internalversion"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	kubernetes "github.com/openshift/origin/pkg/cmd/server/kubernetes/master"
+	nodeclient "github.com/openshift/origin/pkg/cmd/server/kubernetes/node/client"
 	originadmission "github.com/openshift/origin/pkg/cmd/server/origin/admission"
 	originrest "github.com/openshift/origin/pkg/cmd/server/origin/rest"
 	imageadmission "github.com/openshift/origin/pkg/image/admission"
@@ -153,7 +154,7 @@ func BuildMasterConfig(
 		return nil, fmt.Errorf("OPENSHIFT_DEFAULT_REGISTRY variable is invalid %q: %v", defaultRegistry, err)
 	}
 
-	kubeletClientConfig := configapi.GetKubeletClientConfig(options)
+	kubeletClientConfig := nodeclient.GetKubeletClientConfig(options)
 
 	authenticator, authenticatorPostStartHooks, err := NewAuthenticator(options, privilegedLoopbackConfig, informers)
 	if err != nil {
