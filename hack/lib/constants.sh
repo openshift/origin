@@ -326,6 +326,7 @@ readonly OS_ALL_IMAGES=(
   origin-egress-dns-proxy
   origin-recycler
   origin-template-service-broker
+  origin-tests
 )
 
 # os::build::images builds all images in this repo.
@@ -358,7 +359,8 @@ function os::build::images() {
   for i in `jobs -p`; do wait $i; done
 
   # images that depend on "${tag_prefix}-cli"
-  ( os::build::image "${tag_prefix}-control-plane"         images/origin ) &
+  ( os::build::image "${tag_prefix}-tests"         images/tests ) &
+  ( os::build::image "${tag_prefix}-control-plane" images/origin ) &
 
   for i in `jobs -p`; do wait $i; done
 
