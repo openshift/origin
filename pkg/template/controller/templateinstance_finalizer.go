@@ -2,7 +2,7 @@ package controller
 
 import (
 	"fmt"
-	"strings"
+	//	"strings"
 	"time"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -69,16 +69,17 @@ type TemplateInstanceFinalizerController struct {
 // NewTemplateInstanceFinalizerController returns a new TemplateInstanceFinalizerController.
 func NewTemplateInstanceFinalizerController(dynamicRestMapper *discovery.DeferredDiscoveryRESTMapper, config *rest.Config, kc kclientsetinternal.Interface, buildClient buildclient.Interface, templateClient templateclient.Interface, informer internalversion.TemplateInstanceInformer) *TemplateInstanceFinalizerController {
 	c := &TemplateInstanceFinalizerController{
-		restmapper:       restutil.DefaultMultiRESTMapper(),
-		config:           config,
-		kc:               kc,
-		templateClient:   templateClient,
-		buildClient:      buildClient,
-		lister:           informer.Lister(),
-		informer:         informer.Informer(),
-		queue:            workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "openshift_template_instance_controller"),
-		readinessLimiter: workqueue.NewItemFastSlowRateLimiter(5*time.Second, 20*time.Second, 200),
-		clock:            clock.RealClock{},
+		restmapper:        restutil.DefaultMultiRESTMapper(),
+		dynamicRestMapper: dynamicRestMapper,
+		config:            config,
+		kc:                kc,
+		templateClient:    templateClient,
+		buildClient:       buildClient,
+		lister:            informer.Lister(),
+		informer:          informer.Informer(),
+		queue:             workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "openshift_template_instance_controller"),
+		readinessLimiter:  workqueue.NewItemFastSlowRateLimiter(5*time.Second, 20*time.Second, 200),
+		clock:             clock.RealClock{},
 	}
 
 	c.informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
@@ -144,40 +145,62 @@ func (c *TemplateInstanceFinalizerController) sync(key string) error {
 		return kerrs.NewAggregate(errs)
 	}
 
+	//discoveryClient := c.kc.Discovery()
+
 	errs = []error{}
 	background := metav1.DeletePropagationBackground
 	deleteOpts := &metav1.DeleteOptions{PropagationPolicy: &background}
 	clientPool := dynamic.NewDynamicClientPool(c.jsonConfig)
 	for _, o := range templateInstance.Status.Objects {
+		glog.V(5).Infof("finalizer deleting object %#v", o)
+
 		gv, err := schema.ParseGroupVersion(o.Ref.APIVersion)
 		if err != nil {
-			errs = append(errs, fmt.Errorf("error deleting object %v: %v", o, err))
+			errs = append(errs, fmt.Errorf("error deleting object %#v: %v", o, err))
 			continue
 		}
+		gk := schema.GroupKind{
+			Group: gv.Group,
+			Kind:  o.Ref.Kind,
+		}
+		mapping, err := c.dynamicRestMapper.RESTMapping(gk, gv.Version)
+		if err != nil || mapping == nil {
+			errs = append(errs, fmt.Errorf("error mapping object %#v: %v", o, err))
+			continue
+		}
+
 		gvk := schema.GroupVersionKind{
 			Group:   gv.Group,
 			Version: gv.Version,
 			Kind:    o.Ref.Kind,
 		}
+
 		client, err := clientPool.ClientForGroupVersionKind(gvk)
 		if err != nil {
-			errs = append(errs, fmt.Errorf("error deleting object %v: %v", o, err))
-			continue
-		}
-		apiResource := &metav1.APIResource{Name: strings.ToLower(o.Ref.Kind) + "s"}
-		err = client.Resource(apiResource, o.Ref.Namespace).Delete(o.Ref.Name, deleteOpts)
-		if err != nil {
-			errs = append(errs, fmt.Errorf("error deleting object %v: %v", o, err))
+			errs = append(errs, fmt.Errorf("error getting client for object %#v: %v", o, err))
 			continue
 		}
 
 		/*
-			meta, _ := meta.Accessor(template.Objects[o.Index])
-			// template object's name+namespace may have been generated or parameterized, so we need
-			// the actual value from the object we created
-			meta.SetName(o.Ref.Name)
-			meta.SetNamespace(o.Ref.Namespace)
+			apiResources, err := discoveryClient.ServerResourcesForGroupVersion(o.Ref.APIVersion)
+			if err != nil {
+				errs = append(errs, fmt.Errorf("error deleting object %#v: %v", o, err))
+				continue
+			}
 		*/
+		namespaced := mapping.Scope.Name() == meta.RESTScopeNameNamespace
+		apiResource := &metav1.APIResource{Name: mapping.Resource, Group: gv.Group, Version: gv.Version, Kind: o.Ref.Kind, Namespaced: namespaced}
+		namespace := ""
+		if namespaced {
+			namespace = o.Ref.Namespace
+		}
+		err = client.Resource(apiResource, namespace).Delete(o.Ref.Name, deleteOpts)
+		if err != nil {
+			glog.Errorf("error deleting object %#v as %#v: %v", o, apiResource, err)
+			errs = append(errs, fmt.Errorf("error deleting object %#v as %#v: %v", o, apiResource, err))
+			continue
+		}
+
 	}
 	if len(errs) > 0 {
 		return kerrs.NewAggregate(errs)
