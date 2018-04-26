@@ -46,6 +46,7 @@ readonly OS_CROSS_COMPILE_TARGETS=(
   cmd/oc
   cmd/oadm
   cmd/template-service-broker
+  cmd/openshift-node-config
   vendor/k8s.io/kubernetes/cmd/hyperkube
 )
 readonly OS_CROSS_COMPILE_BINARIES=("${OS_CROSS_COMPILE_TARGETS[@]##*/}")
