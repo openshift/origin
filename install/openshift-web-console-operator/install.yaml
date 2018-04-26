@@ -1,7 +1,7 @@
 apiVersion: template.openshift.io/v1
 kind: Template
 parameters:
-- name: OPENSHIFT_IMAGE
+- name: IMAGE
   value: openshift/origin-control-plane:latest
 - name: OPENSHIFT_PULL_POLICY
   value: Always
@@ -52,7 +52,7 @@ objects:
         serviceAccountName: openshift-web-console-operator
         containers:
         - name: operator
-          image: ${OPENSHIFT_IMAGE}
+          image: ${IMAGE}
           imagePullPolicy: ${OPENSHIFT_PULL_POLICY}
           command: ["hypershift", "experimental", "openshift-webconsole-operator"]
           args:

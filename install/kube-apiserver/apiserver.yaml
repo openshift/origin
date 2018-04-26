@@ -11,7 +11,7 @@ spec:
   hostNetwork: true
   containers:
   - name: api
-    image: OPENSHIFT_IMAGE
+    image: IMAGE
     imagePullPolicy: OPENSHIFT_PULL_POLICY
     command: ["/bin/bash", "-c"]
     args:

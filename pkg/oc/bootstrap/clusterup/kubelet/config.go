@@ -22,6 +22,8 @@ const (
 type NodeStartConfig struct {
 	// ContainerBinds is a list of local/path:image/path pairs
 	ContainerBinds []string
+	// NodeImage is the docker image for the openshift cli
+	CLIImage string
 	// NodeImage is the docker image for openshift start node
 	NodeImage string
 
@@ -49,7 +51,7 @@ func (opt NodeStartConfig) MakeNodeConfig(dockerClient dockerhelper.Interface, b
 	}
 	createConfigCmd = append(createConfigCmd, opt.Args...)
 
-	containerId, rc, err := imageRunHelper.Image(opt.NodeImage).
+	containerId, rc, err := imageRunHelper.Image(opt.CLIImage).
 		Privileged().
 		HostNetwork().
 		HostPid().

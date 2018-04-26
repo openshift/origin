@@ -116,7 +116,7 @@ func NewCmdAdd(name, fullName string, out, errout io.Writer) *cobra.Command {
 // Start runs the start tasks ensuring that they are executed in sequence
 func (c *ClusterAddConfig) Run() error {
 	componentsToInstall := []componentinstall.Component{}
-	installContext, err := componentinstall.NewComponentInstallContext(c.openshiftImage(), c.imageFormat(), c.BaseDir,
+	installContext, err := componentinstall.NewComponentInstallContext(c.cliImage(), c.imageFormat(), c.BaseDir,
 		c.ServerLogLevel)
 	if err != nil {
 		return err
@@ -212,6 +212,10 @@ func (c *ClusterAddConfig) Bind(flags *pflag.FlagSet) {
 
 func (c *ClusterAddConfig) openshiftImage() string {
 	return c.ImageTemplate.ExpandOrDie("control-plane")
+}
+
+func (c *ClusterAddConfig) cliImage() string {
+	return c.ImageTemplate.ExpandOrDie("cli")
 }
 
 func (c *ClusterAddConfig) GetLogDir() string {

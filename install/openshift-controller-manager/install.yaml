@@ -3,7 +3,7 @@ kind: Template
 metadata:
   name: openshift-controller-manager
 parameters:
-- name: OPENSHIFT_IMAGE
+- name: IMAGE
   value: openshift/origin-control-plane:latest
 - name: OPENSHIFT_PULL_POLICY
   value: Always
@@ -42,7 +42,7 @@ objects:
         hostNetwork: true
         containers:
         - name: c
-          image: ${OPENSHIFT_IMAGE}
+          image: ${IMAGE}
           imagePullPolicy: ${OPENSHIFT_PULL_POLICY}
           command: ["hypershift", "openshift-controller-manager"]
           args:

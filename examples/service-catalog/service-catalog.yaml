@@ -70,7 +70,7 @@ objects:
         - env:
           - name: ETCD_DATA_DIR
             value: /data-dir
-          image: quay.io/coreos/etcd
+          image: quay.io/coreos/etcd:v3.3
           imagePullPolicy: IfNotPresent
           name: etcd
           resources: {}
