@@ -20,7 +20,6 @@ import (
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
-	"github.com/openshift/origin/pkg/network"
 )
 
 // ComputeKubeletFlags returns the flags to use when starting the kubelet.
@@ -117,18 +116,6 @@ func ComputeKubeletFlags(startingArgs map[string][]string, options configapi.Nod
 		}
 	}
 
-	// default cluster-dns to the master's DNS if possible, but only if we can reach the master
-	// TODO: this exists to support legacy cases where the node defaulted to the master's DNS.
-	//   we can remove this when we drop support for master DNS when CoreDNS is in use everywhere.
-	if len(args["cluster-dns"]) == 0 {
-		if clientConfig, err := configapi.GetClientConfig(options.MasterKubeConfig, options.MasterClientConnectionOverrides); err == nil {
-			if externalKubeClient, err := kclientsetexternal.NewForConfig(clientConfig); err == nil {
-				args["cluster-dns"] = getClusterDNS(externalKubeClient, args["cluster-dns"])
-			}
-		}
-
-	}
-
 	// there is a special case.  If you set `--cgroups-per-qos=false` and `--enforce-node-allocatable` is
 	// an empty string, `--enforce-node-allocatable=""` needs to be explicitly set
 	// cgroups-per-qos defaults to true
@@ -187,91 +174,5 @@ func hasArgPrefix(needle string, haystack []string) bool {
 		}
 	}
 
-	return false
-}
-
-func getClusterDNS(dnsClient kclientsetexternal.Interface, currClusterDNS []string) []string {
-	var clusterDNS net.IP
-	if len(currClusterDNS) == 0 {
-		if service, err := dnsClient.Core().Services(metav1.NamespaceDefault).Get("kubernetes", metav1.GetOptions{}); err == nil {
-			if includesServicePort(service.Spec.Ports, 53, "dns") {
-				// Use master service if service includes "dns" port 53.
-				clusterDNS = net.ParseIP(service.Spec.ClusterIP)
-			}
-		}
-	}
-	if clusterDNS == nil {
-		if endpoint, err := dnsClient.Core().Endpoints(metav1.NamespaceDefault).Get("kubernetes", metav1.GetOptions{}); err == nil {
-			if endpointIP, ok := firstEndpointIPWithNamedPort(endpoint, 53, "dns"); ok {
-				// Use first endpoint if endpoint includes "dns" port 53.
-				clusterDNS = net.ParseIP(endpointIP)
-			} else if endpointIP, ok := firstEndpointIP(endpoint, 53); ok {
-				// Test and use first endpoint if endpoint includes any port 53.
-				if err := cmdutil.WaitForSuccessfulDial(false, "tcp", fmt.Sprintf("%s:%d", endpointIP, 53), 50*time.Millisecond, 0, 2); err == nil {
-					clusterDNS = net.ParseIP(endpointIP)
-				}
-			}
-		}
-	}
-	if clusterDNS != nil && !clusterDNS.IsUnspecified() {
-		return []string{clusterDNS.String()}
-	}
-
-	return currClusterDNS
-}
-
-// TODO: more generic location
-func includesEndpointPort(ports []kapiv1.EndpointPort, port int) bool {
-	for _, p := range ports {
-		if p.Port == int32(port) {
-			return true
-		}
-	}
-	return false
-}
-
-// TODO: more generic location
-func includesServicePort(ports []kapiv1.ServicePort, port int, portName string) bool {
-	for _, p := range ports {
-		if p.Port == int32(port) && p.Name == portName {
-			return true
-		}
-	}
-	return false
-}
-
-// TODO: more generic location
-func firstEndpointIP(endpoints *kapiv1.Endpoints, port int) (string, bool) {
-	for _, s := range endpoints.Subsets {
-		if !includesEndpointPort(s.Ports, port) {
-			continue
-		}
-		for _, a := range s.Addresses {
-			return a.IP, true
-		}
-	}
-	return "", false
-}
-
-// TODO: more generic location
-func firstEndpointIPWithNamedPort(endpoints *kapiv1.Endpoints, port int, portName string) (string, bool) {
-	for _, s := range endpoints.Subsets {
-		if !includesNamedEndpointPort(s.Ports, port, portName) {
-			continue
-		}
-		for _, a := range s.Addresses {
-			return a.IP, true
-		}
-	}
-	return "", false
-}
-
-// TODO: more generic location
-func includesNamedEndpointPort(ports []kapiv1.EndpointPort, port int, portName string) bool {
-	for _, p := range ports {
-		if p.Port == int32(port) && p.Name == portName {
-			return true
-		}
-	}
 	return false
 }

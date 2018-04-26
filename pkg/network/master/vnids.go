@@ -140,7 +140,7 @@ func (vmap *masterVNIDMap) releaseNetID(nsName string) error {
 	return nil
 }
 
-func (vmap *masterVNIDMap) updateNetID(nsName string, action network.PodNetworkAction, args string) (uint32, error) {
+func (vmap *masterVNIDMap) updateNetID(nsName string, action networkapi.PodNetworkAction, args string) (uint32, error) {
 	var netid uint32
 	allocated := false
 
@@ -152,15 +152,15 @@ func (vmap *masterVNIDMap) updateNetID(nsName string, action network.PodNetworkA
 
 	// Determine new network ID
 	switch action {
-	case network.GlobalPodNetwork:
+	case networkapi.GlobalPodNetwork:
 		netid = network.GlobalVNID
-	case network.JoinPodNetwork:
+	case networkapi.JoinPodNetwork:
 		joinNsName := args
 		var found bool
 		if netid, found = vmap.getVNID(joinNsName); !found {
 			return 0, fmt.Errorf("netid not found for namespace %q", joinNsName)
 		}
-	case network.IsolatePodNetwork:
+	case networkapi.IsolatePodNetwork:
 		if nsName == kapi.NamespaceDefault {
 			return 0, fmt.Errorf("network isolation for namespace %q is not allowed", nsName)
 		}
@@ -240,12 +240,12 @@ func (vmap *masterVNIDMap) updateVNID(networkClient networkclient.Interface, ori
 	// Informer cache should not be mutated, so get a copy of the object
 	netns := origNetns.DeepCopy()
 
-	action, args, err := network.GetChangePodNetworkAnnotation(netns)
-	if err == network.ErrorPodNetworkAnnotationNotFound {
+	action, args, err := networkapi.GetChangePodNetworkAnnotation(netns)
+	if err == networkapi.ErrorPodNetworkAnnotationNotFound {
 		// Nothing to update
 		return nil
 	} else if !vmap.allowRenumbering {
-		network.DeleteChangePodNetworkAnnotation(netns)
+		networkapi.DeleteChangePodNetworkAnnotation(netns)
 		_, _ = networkClient.Network().NetNamespaces().Update(netns)
 		return fmt.Errorf("network plugin does not allow NetNamespace renumbering")
 	}
@@ -258,7 +258,7 @@ func (vmap *masterVNIDMap) updateVNID(networkClient networkclient.Interface, ori
 		return err
 	}
 	netns.NetID = netid
-	network.DeleteChangePodNetworkAnnotation(netns)
+	networkapi.DeleteChangePodNetworkAnnotation(netns)
 
 	if _, err := networkClient.Network().NetNamespaces().Update(netns); err != nil {
 		return err

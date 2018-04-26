@@ -11,9 +11,9 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
-
 	"github.com/openshift/origin/pkg/network"
+	networkapi "github.com/openshift/origin/pkg/network/apis/network"
+	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
 const JoinProjectsNetworkCommandName = "join-projects"
@@ -91,7 +91,7 @@ func (j *JoinOptions) Run() error {
 	errList := []error{}
 	for _, project := range projects {
 		if project.Name != j.joinProjectName {
-			if err = j.Options.UpdatePodNetwork(project.Name, network.JoinPodNetwork, j.joinProjectName); err != nil {
+			if err = j.Options.UpdatePodNetwork(project.Name, networkapi.JoinPodNetwork, j.joinProjectName); err != nil {
 				errList = append(errList, fmt.Errorf("project %q failed to join %q, error: %v", project.Name, j.joinProjectName, err))
 			}
 		}
