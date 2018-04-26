@@ -22,7 +22,7 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/server/apis/config"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
-	"github.com/openshift/origin/pkg/cmd/server/apis/config/validation"
+	"github.com/openshift/origin/pkg/cmd/server/apis/config/validation/ldap"
 	"github.com/openshift/origin/pkg/cmd/util/print"
 	"github.com/openshift/origin/pkg/oauthserver/ldaputil"
 	"github.com/openshift/origin/pkg/oauthserver/ldaputil/ldapclient"
@@ -346,7 +346,7 @@ func (o *SyncOptions) Validate() error {
 		return fmt.Errorf("sync source must be one of the following: %v", strings.Join(AllowedSourceTypes, ","))
 	}
 
-	results := validation.ValidateLDAPSyncConfig(o.Config)
+	results := ldap.ValidateLDAPSyncConfig(o.Config)
 	if o.GroupInterface == nil {
 		results.Errors = append(results.Errors, field.Required(field.NewPath("groupInterface"), ""))
 	}

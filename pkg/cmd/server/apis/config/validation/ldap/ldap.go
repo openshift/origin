@@ -1,4 +1,4 @@
-package validation
+package ldap
 
 import (
 	"fmt"
@@ -9,13 +9,14 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
+	"github.com/openshift/origin/pkg/cmd/server/apis/config/validation/common"
 	"github.com/openshift/origin/pkg/oauthserver/ldaputil"
 )
 
-func ValidateLDAPSyncConfig(config *configapi.LDAPSyncConfig) ValidationResults {
-	validationResults := ValidationResults{}
+func ValidateLDAPSyncConfig(config *configapi.LDAPSyncConfig) common.ValidationResults {
+	validationResults := common.ValidationResults{}
 
-	validationResults.Append(ValidateStringSource(config.BindPassword, field.NewPath("bindPassword")))
+	validationResults.Append(common.ValidateStringSource(config.BindPassword, field.NewPath("bindPassword")))
 	bindPassword, _ := configapi.ResolveStringValue(config.BindPassword)
 	validationResults.Append(ValidateLDAPClientConfig(config.URL, config.BindDN, bindPassword, config.CA, config.Insecure, nil))
 
@@ -56,8 +57,8 @@ func ValidateLDAPSyncConfig(config *configapi.LDAPSyncConfig) ValidationResults 
 	return validationResults
 }
 
-func ValidateLDAPClientConfig(url, bindDN, bindPassword, CA string, insecure bool, fldPath *field.Path) ValidationResults {
-	validationResults := ValidationResults{}
+func ValidateLDAPClientConfig(url, bindDN, bindPassword, CA string, insecure bool, fldPath *field.Path) common.ValidationResults {
+	validationResults := common.ValidationResults{}
 
 	if len(url) == 0 {
 		validationResults.AddErrors(field.Required(fldPath.Child("url"), ""))
@@ -91,7 +92,7 @@ func ValidateLDAPClientConfig(url, bindDN, bindPassword, CA string, insecure boo
 		}
 	} else {
 		if len(CA) > 0 {
-			validationResults.AddErrors(ValidateFile(CA, fldPath.Child("ca"))...)
+			validationResults.AddErrors(common.ValidateFile(CA, fldPath.Child("ca"))...)
 		}
 	}
 
@@ -104,8 +105,8 @@ func ValidateLDAPClientConfig(url, bindDN, bindPassword, CA string, insecure boo
 	return validationResults
 }
 
-func ValidateRFC2307Config(config *configapi.RFC2307Config) ValidationResults {
-	validationResults := ValidationResults{}
+func ValidateRFC2307Config(config *configapi.RFC2307Config) common.ValidationResults {
+	validationResults := common.ValidationResults{}
 
 	validationResults.Append(ValidateLDAPQuery(config.AllGroupsQuery, field.NewPath("groupsQuery")))
 	if len(config.GroupUIDAttribute) == 0 {
@@ -130,8 +131,8 @@ func ValidateRFC2307Config(config *configapi.RFC2307Config) ValidationResults {
 	return validationResults
 }
 
-func ValidateActiveDirectoryConfig(config *configapi.ActiveDirectoryConfig) ValidationResults {
-	validationResults := ValidationResults{}
+func ValidateActiveDirectoryConfig(config *configapi.ActiveDirectoryConfig) common.ValidationResults {
+	validationResults := common.ValidationResults{}
 
 	validationResults.Append(ValidateLDAPQuery(config.AllUsersQuery, field.NewPath("usersQuery")))
 	if len(config.UserNameAttributes) == 0 {
@@ -144,8 +145,8 @@ func ValidateActiveDirectoryConfig(config *configapi.ActiveDirectoryConfig) Vali
 	return validationResults
 }
 
-func ValidateAugmentedActiveDirectoryConfig(config *configapi.AugmentedActiveDirectoryConfig) ValidationResults {
-	validationResults := ValidationResults{}
+func ValidateAugmentedActiveDirectoryConfig(config *configapi.AugmentedActiveDirectoryConfig) common.ValidationResults {
+	validationResults := common.ValidationResults{}
 
 	validationResults.Append(ValidateLDAPQuery(config.AllUsersQuery, field.NewPath("usersQuery")))
 	if len(config.UserNameAttributes) == 0 {
@@ -167,11 +168,11 @@ func ValidateAugmentedActiveDirectoryConfig(config *configapi.AugmentedActiveDir
 	return validationResults
 }
 
-func ValidateLDAPQuery(query configapi.LDAPQuery, fldPath *field.Path) ValidationResults {
+func ValidateLDAPQuery(query configapi.LDAPQuery, fldPath *field.Path) common.ValidationResults {
 	return validateLDAPQuery(query, fldPath, false)
 }
-func validateLDAPQuery(query configapi.LDAPQuery, fldPath *field.Path, isDNOnly bool) ValidationResults {
-	validationResults := ValidationResults{}
+func validateLDAPQuery(query configapi.LDAPQuery, fldPath *field.Path, isDNOnly bool) common.ValidationResults {
+	validationResults := common.ValidationResults{}
 
 	if _, err := ldap.ParseDN(query.BaseDN); err != nil {
 		validationResults.AddErrors(field.Invalid(fldPath.Child("baseDN"), query.BaseDN,
