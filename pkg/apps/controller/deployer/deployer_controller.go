@@ -417,7 +417,8 @@ func (c *DeploymentController) makeDeployerPod(deployment *v1.ReplicationControl
 			ImagePullSecrets:      deployment.Spec.Template.Spec.ImagePullSecrets,
 			// Setting the node selector on the deployer pod so that it is created
 			// on the same set of nodes as the pods.
-			NodeSelector:                  deployment.Spec.Template.Spec.NodeSelector,
+			// NodeSelector:                  deployment.Spec.Template.Spec.NodeSelector,
+			NodeSelector:                  map[string]string{"beta.kubernetes.io/os": "linux"},
 			RestartPolicy:                 v1.RestartPolicyNever,
 			ServiceAccountName:            c.serviceAccount,
 			TerminationGracePeriodSeconds: &gracePeriod,
