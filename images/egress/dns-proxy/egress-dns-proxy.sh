@@ -101,10 +101,10 @@ function generate_haproxy_frontends_backends() {
         elif [[ "${dest}" =~ ^${PORT_REGEX}\ +${DOMAINNAME_REGEX}$ ]]; then
             read port target <<< "${dest}"
             targetport="${port}"
-            resolvers="resolvers dns-resolver"
+            resolvers="resolvers dns-resolver resolve-prefer ipv4"
         elif [[ "${dest}" =~ ^${PORT_REGEX}\ +${DOMAINNAME_REGEX}\ +${PORT_REGEX}$ ]]; then
             read port target targetport <<< "${dest}"
-            resolvers="resolvers dns-resolver"
+            resolvers="resolvers dns-resolver resolve-prefer ipv4"
         else
             die "Bad destination '${dest}'"
         fi
