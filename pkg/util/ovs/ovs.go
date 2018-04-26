@@ -139,8 +139,11 @@ func New(execer exec.Interface, bridge string, minVersion string) (Interface, er
 }
 
 func (ovsif *ovsExec) exec(cmd string, args ...string) (string, error) {
-	if cmd == OVS_OFCTL {
+	switch cmd {
+	case OVS_OFCTL:
 		args = append([]string{"-O", "OpenFlow13"}, args...)
+	case OVS_VSCTL:
+		args = append([]string{"--timeout=30"}, args...)
 	}
 	glog.V(4).Infof("Executing: %s %s", cmd, strings.Join(args, " "))
 
