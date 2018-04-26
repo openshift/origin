@@ -366,7 +366,8 @@ func (c *ClusterUpConfig) makeNodeConfig(masterConfigDir string) (string, error)
 
 	container := kubelet.NewNodeStartConfig()
 	container.ContainerBinds = append(container.ContainerBinds, masterConfigDir+":/var/lib/origin/openshift.local.masterconfig:z")
-	container.NodeImage = c.openshiftImage()
+	container.CLIImage = c.cliImage()
+	container.NodeImage = c.nodeImage()
 	container.Args = []string{
 		fmt.Sprintf("--certificate-authority=%s", "/var/lib/origin/openshift.local.masterconfig/ca.crt"),
 		fmt.Sprintf("--dns-bind-address=0.0.0.0:%d", c.DNSPort),
@@ -393,7 +394,7 @@ func (c *ClusterUpConfig) makeNodeConfig(masterConfigDir string) (string, error)
 func (c *ClusterUpConfig) makeKubeletFlags(out io.Writer, nodeConfigDir string) ([]string, error) {
 	container := kubelet.NewKubeletStartFlags()
 	container.ContainerBinds = append(container.ContainerBinds, nodeConfigDir+":/var/lib/origin/openshift.local.config/node:z")
-	container.NodeImage = c.openshiftImage()
+	container.NodeImage = c.nodeImage()
 	container.UseSharedVolume = !c.UseNsenterMount
 
 	kubeletFlags, err := container.MakeKubeletFlags(c.GetDockerClient(), c.BaseDir)
@@ -473,7 +474,7 @@ func (c *ClusterUpConfig) startKubelet(out io.Writer, masterConfigDir, nodeConfi
 	// /sys/devices/virtual/net/vethXXX/brport/hairpin_mode, so make this rw, not ro.
 	container.ContainerBinds = append(container.ContainerBinds, "/sys/devices/virtual/net:/sys/devices/virtual/net:rw")
 
-	container.NodeImage = c.openshiftImage()
+	container.NodeImage = c.nodeImage()
 	container.HTTPProxy = c.HTTPProxy
 	container.HTTPSProxy = c.HTTPSProxy
 	container.NoProxy = c.NoProxy
