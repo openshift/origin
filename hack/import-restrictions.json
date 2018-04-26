@@ -477,6 +477,8 @@
       "github.com/openshift/origin/pkg/cmd/server/etcd",
       "github.com/openshift/origin/pkg/cmd/templates",
       "github.com/openshift/origin/pkg/cmd/util",
+      "github.com/openshift/origin/pkg/cmd/util/print",
+      "github.com/openshift/origin/pkg/cmd/util/route",
       "github.com/openshift/origin/pkg/cmd/util/term",
       "github.com/openshift/origin/pkg/cmd/util/variable",
       "github.com/openshift/origin/pkg/git",
