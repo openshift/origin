@@ -386,6 +386,9 @@
     "checkedPackageRoots": [
       "github.com/openshift/origin/pkg/oc"
     ],
+    "ignoredSubTrees": [
+      "github.com/openshift/origin/pkg/oc/admin/groups/examples"
+    ],
     "allowedImportPackageRoots": [
       "vendor/github.com/aws/aws-sdk-go",
       "vendor/github.com/containers/image",
@@ -452,7 +455,6 @@
       "github.com/openshift/origin/pkg/apps/apis/apps/test",
       "github.com/openshift/origin/pkg/apps/client/internalversion",
       "github.com/openshift/origin/pkg/apps/client/v1",
-      "github.com/openshift/origin/pkg/apps/registry/deployconfig",
       "github.com/openshift/origin/pkg/apps/util",
       "github.com/openshift/origin/pkg/authorization/apis/authorization",
       "github.com/openshift/origin/pkg/authorization/reaper",
@@ -462,8 +464,6 @@
       "github.com/openshift/origin/pkg/build/apis/build/install",
       "github.com/openshift/origin/pkg/build/client",
       "github.com/openshift/origin/pkg/build/client/internalversion",
-      "github.com/openshift/origin/pkg/build/registry/build",
-      "github.com/openshift/origin/pkg/build/registry/buildconfig",
       "github.com/openshift/origin/pkg/build/util",
       "github.com/openshift/origin/pkg/bulk",
       "github.com/openshift/origin/pkg/client/config",
@@ -472,7 +472,7 @@
       "github.com/openshift/origin/pkg/cmd/server/apis/config",
       "github.com/openshift/origin/pkg/cmd/server/apis/config/install",
       "github.com/openshift/origin/pkg/cmd/server/apis/config/latest",
-      "github.com/openshift/origin/pkg/cmd/server/apis/config/validation",
+      "github.com/openshift/origin/pkg/cmd/server/apis/config/validation/ldap",
       "github.com/openshift/origin/pkg/cmd/server/bootstrappolicy",
       "github.com/openshift/origin/pkg/cmd/server/etcd",
       "github.com/openshift/origin/pkg/cmd/templates",
@@ -550,16 +550,6 @@
       "vendor/k8s.io/kubernetes/pkg/serviceaccount",
       "vendor/k8s.io/kubernetes/pkg/version",
 
-      "vendor/k8s.io/kubernetes/pkg/registry/core/endpoint",
-      "vendor/k8s.io/kubernetes/pkg/registry/core/namespace",
-      "vendor/k8s.io/kubernetes/pkg/registry/core/node",
-      "vendor/k8s.io/kubernetes/pkg/registry/core/persistentvolume",
-      "vendor/k8s.io/kubernetes/pkg/registry/core/persistentvolumeclaim",
-      "vendor/k8s.io/kubernetes/pkg/registry/core/pod",
-      "vendor/k8s.io/kubernetes/pkg/registry/core/replicationcontroller",
-      "vendor/k8s.io/kubernetes/pkg/registry/core/resourcequota",
-      "vendor/k8s.io/kubernetes/pkg/registry/core/secret",
-      "vendor/k8s.io/kubernetes/pkg/registry/core/serviceaccount",
       "vendor/k8s.io/kubernetes/pkg/registry/rbac/reconciliation",
       "vendor/k8s.io/kubernetes/pkg/registry/rbac/validation"
     ]
