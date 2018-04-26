@@ -14,7 +14,7 @@ import (
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/cmd/server/apis/config"
-	"github.com/openshift/origin/pkg/cmd/server/apis/config/validation"
+	"github.com/openshift/origin/pkg/cmd/server/apis/config/validation/ldap"
 	"github.com/openshift/origin/pkg/oauthserver/ldaputil"
 	"github.com/openshift/origin/pkg/oauthserver/ldaputil/ldapclient"
 	"github.com/openshift/origin/pkg/oc/admin/groups/sync"
@@ -163,7 +163,7 @@ func (o *PruneOptions) Complete(whitelistFile, blacklistFile, configFile string,
 }
 
 func (o *PruneOptions) Validate() error {
-	results := validation.ValidateLDAPSyncConfig(o.Config)
+	results := ldap.ValidateLDAPSyncConfig(o.Config)
 	if o.GroupInterface == nil {
 		results.Errors = append(results.Errors, field.Required(field.NewPath("groupInterface"), ""))
 	}

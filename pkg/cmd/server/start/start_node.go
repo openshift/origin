@@ -28,6 +28,7 @@ import (
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 	"github.com/openshift/origin/pkg/cmd/server/apis/config/validation"
+	"github.com/openshift/origin/pkg/cmd/server/apis/config/validation/common"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	"github.com/openshift/origin/pkg/cmd/server/kubernetes/network"
 	networkoptions "github.com/openshift/origin/pkg/cmd/server/kubernetes/network/options"
@@ -248,7 +249,7 @@ func (o NodeOptions) RunNode() error {
 		}
 	}
 
-	var validationResults validation.ValidationResults
+	var validationResults common.ValidationResults
 	switch {
 	case o.NodeArgs.Components.Calculated().Equal(NewNetworkComponentFlag().Calculated()):
 		if len(nodeConfig.NodeName) == 0 {
