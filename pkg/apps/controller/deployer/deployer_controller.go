@@ -387,6 +387,7 @@ func (c *DeploymentController) makeDeployerPod(deployment *v1.ReplicationControl
 			Annotations: map[string]string{
 				appsapi.DeploymentAnnotation:       deployment.Name,
 				appsapi.DeploymentConfigAnnotation: appsutil.DeploymentConfigNameFor(deployment),
+				"beta.kubernetes.io/os":            "linux",
 			},
 			Labels: map[string]string{
 				appsapi.DeployerPodForDeploymentLabel: deployment.Name,
