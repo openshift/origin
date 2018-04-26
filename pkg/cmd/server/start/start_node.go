@@ -484,8 +484,6 @@ func StartNode(nodeConfig configapi.NodeConfig, components *utilflags.ComponentF
 		node.EnsureKubeletAccess()
 		// TODO perform this "ensure" in ansible and skip it entirely.
 		node.EnsureVolumeDir(nodeConfig.VolumeDirectory)
-		// TODO accept an --openshift-config in our fork.  This overwrites the volume creation patch for the node.
-		kubeletapp.ProbeVolumePlugins = node.PatchUpstreamVolumePluginsForLocalQuota(nodeConfig)
 
 		go func() {
 			glog.Fatal(runKubeletInProcess(kubeletArgs))
