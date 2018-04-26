@@ -23,8 +23,6 @@ func availableHostDiagnostics() types.DiagnosticList {
 	return types.DiagnosticList{
 		&systemddiags.AnalyzeLogs{},
 		&systemddiags.UnitStatus{},
-		&hostdiags.MasterConfigCheck{},
-		&hostdiags.NodeConfigCheck{},
 		&hostdiags.EtcdWriteVolume{},
 	}
 }
@@ -55,10 +53,6 @@ func (o DiagnosticsOptions) buildHostDiagnostics() ([]types.Diagnostic, error) {
 			d = &systemddiags.AnalyzeLogs{SystemdUnits: systemdUnits}
 		case systemddiags.UnitStatusName:
 			d = &systemddiags.UnitStatus{SystemdUnits: systemdUnits}
-		case hostdiags.MasterConfigCheckName:
-			d = &hostdiags.MasterConfigCheck{MasterConfigFile: o.MasterConfigLocation}
-		case hostdiags.NodeConfigCheckName:
-			d = &hostdiags.NodeConfigCheck{NodeConfigFile: o.NodeConfigLocation}
 		case hostdiags.EtcdWriteName:
 			etcd := o.ParameterizedDiagnostics[hostdiags.EtcdWriteName].(*hostdiags.EtcdWriteVolume)
 			etcd.MasterConfigLocation = o.MasterConfigLocation
