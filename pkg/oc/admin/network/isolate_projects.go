@@ -12,6 +12,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/network"
+	networkapi "github.com/openshift/origin/pkg/network/apis/network"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
@@ -77,7 +78,7 @@ func (i *IsolateOptions) Run() error {
 			errList = append(errList, fmt.Errorf("network isolation for project %q is forbidden", project.Name))
 			continue
 		}
-		if err = i.Options.UpdatePodNetwork(project.Name, network.IsolatePodNetwork, ""); err != nil {
+		if err = i.Options.UpdatePodNetwork(project.Name, networkapi.IsolatePodNetwork, ""); err != nil {
 			errList = append(errList, fmt.Errorf("network isolation for project %q failed, error: %v", project.Name, err))
 		}
 	}

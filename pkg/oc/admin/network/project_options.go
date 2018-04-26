@@ -159,7 +159,7 @@ func (p *ProjectOptions) GetProjects() ([]*projectapi.Project, error) {
 	return projectList, nil
 }
 
-func (p *ProjectOptions) UpdatePodNetwork(nsName string, action network.PodNetworkAction, args string) error {
+func (p *ProjectOptions) UpdatePodNetwork(nsName string, action networkapi.PodNetworkAction, args string) error {
 	// Get corresponding NetNamespace for given namespace
 	netns, err := p.Oclient.Network().NetNamespaces().Get(nsName, metav1.GetOptions{})
 	if err != nil {
@@ -167,7 +167,7 @@ func (p *ProjectOptions) UpdatePodNetwork(nsName string, action network.PodNetwo
 	}
 
 	// Apply pod network change intent
-	network.SetChangePodNetworkAnnotation(netns, action, args)
+	networkapi.SetChangePodNetworkAnnotation(netns, action, args)
 
 	// Update NetNamespace object
 	_, err = p.Oclient.Network().NetNamespaces().Update(netns)
@@ -187,7 +187,7 @@ func (p *ProjectOptions) UpdatePodNetwork(nsName string, action network.PodNetwo
 			return false, err
 		}
 
-		if _, _, err = network.GetChangePodNetworkAnnotation(updatedNetNs); err == network.ErrorPodNetworkAnnotationNotFound {
+		if _, _, err = networkapi.GetChangePodNetworkAnnotation(updatedNetNs); err == networkapi.ErrorPodNetworkAnnotationNotFound {
 			return true, nil
 		}
 		// Pod network change not applied yet

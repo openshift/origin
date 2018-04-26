@@ -250,7 +250,7 @@ func (d *NetworkDiagnostic) makeNamespaceGlobal(nsName string) error {
 		return err
 	}
 
-	network.SetChangePodNetworkAnnotation(netns, network.GlobalPodNetwork, "")
+	networkapi.SetChangePodNetworkAnnotation(netns, networkapi.GlobalPodNetwork, "")
 
 	if _, err = d.NetNamespacesClient.NetNamespaces().Update(netns); err != nil {
 		return err
@@ -262,7 +262,7 @@ func (d *NetworkDiagnostic) makeNamespaceGlobal(nsName string) error {
 			return false, err
 		}
 
-		if _, _, err = network.GetChangePodNetworkAnnotation(updatedNetNs); err == network.ErrorPodNetworkAnnotationNotFound {
+		if _, _, err = networkapi.GetChangePodNetworkAnnotation(updatedNetNs); err == networkapi.ErrorPodNetworkAnnotationNotFound {
 			return true, nil
 		}
 		// Pod network change not applied yet

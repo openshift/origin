@@ -126,7 +126,7 @@ type OsdnNode struct {
 }
 
 // Called by higher layers to create the plugin SDN node instance
-func New(c *OsdnNodeConfig) (network.NodeInterface, error) {
+func New(c *OsdnNodeConfig) (*OsdnNode, error) {
 	var policy osdnPolicy
 	var pluginId int
 	var minOvsVersion string
