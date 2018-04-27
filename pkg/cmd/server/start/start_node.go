@@ -67,7 +67,7 @@ var nodeLong = templates.LongDesc(`
 	`)
 
 // NewCommandStartNode provides a CLI handler for 'start node' command
-func NewCommandStartNode(basename string, out, errout io.Writer, stopCh <-chan struct{}) (*cobra.Command, *NodeOptions) {
+func NewCommandStartNode(basename string, out, errout io.Writer) (*cobra.Command, *NodeOptions) {
 	options := &NodeOptions{
 		ExpireDays: crypto.DefaultCertificateLifetimeInDays,
 		Output:     out,
@@ -78,7 +78,7 @@ func NewCommandStartNode(basename string, out, errout io.Writer, stopCh <-chan s
 		Short: "Launch a node",
 		Long:  fmt.Sprintf(nodeLong, basename),
 		Run: func(c *cobra.Command, args []string) {
-			options.Run(c, errout, args, stopCh)
+			options.Run(c, errout, args)
 		},
 	}
 
@@ -121,7 +121,7 @@ func NewCommandStartNetwork(basename string, out, errout io.Writer) (*cobra.Comm
 		Short: "Launch node network",
 		Long:  fmt.Sprintf(networkLong, basename),
 		Run: func(c *cobra.Command, args []string) {
-			options.Run(c, errout, args, wait.NeverStop)
+			options.Run(c, errout, args)
 		},
 	}
 
@@ -142,13 +142,13 @@ func NewCommandStartNetwork(basename string, out, errout io.Writer) (*cobra.Comm
 	return cmd, options
 }
 
-func (options *NodeOptions) Run(c *cobra.Command, errout io.Writer, args []string, stopCh <-chan struct{}) {
+func (options *NodeOptions) Run(c *cobra.Command, errout io.Writer, args []string) {
 	kcmdutil.CheckErr(options.Complete(c))
 	kcmdutil.CheckErr(options.Validate(args))
 
 	startProfiler()
 
-	if err := options.StartNode(stopCh); err != nil {
+	if err := options.StartNode(); err != nil {
 		if kerrors.IsInvalid(err) {
 			if details := err.(*kerrors.StatusError).ErrStatus.Details; details != nil {
 				fmt.Fprintf(errout, "Invalid %s %s\n", details.Kind, details.Name)
@@ -207,7 +207,7 @@ func (o NodeOptions) Complete(cmd *cobra.Command) error {
 }
 
 // StartNode calls RunNode and then waits forever
-func (o NodeOptions) StartNode(stopCh <-chan struct{}) error {
+func (o NodeOptions) StartNode() error {
 	if err := o.RunNode(); err != nil {
 		return err
 	}
@@ -217,8 +217,7 @@ func (o NodeOptions) StartNode(stopCh <-chan struct{}) error {
 	}
 
 	go daemon.SdNotify(false, "READY=1")
-	<-stopCh
-	return nil
+	select {}
 }
 
 // RunNode takes the options and:

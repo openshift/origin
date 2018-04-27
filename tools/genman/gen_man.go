@@ -12,7 +12,6 @@ import (
 	mangen "github.com/openshift/origin/tools/genman/md2man"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/kubernetes/cmd/genutils"
 )
 
@@ -25,7 +24,7 @@ func main() {
 	if strings.HasSuffix(os.Args[2], "oc") {
 		genCmdMan("oc", cli.NewCommandCLI("oc", "oc", &bytes.Buffer{}, os.Stdout, ioutil.Discard))
 	} else if strings.HasSuffix(os.Args[2], "openshift") {
-		genCmdMan("openshift", openshift.NewCommandOpenShift("openshift", wait.NeverStop))
+		genCmdMan("openshift", openshift.NewCommandOpenShift("openshift"))
 	} else {
 		fmt.Fprintf(os.Stderr, "Root command not specified (oc | openshift).")
 		os.Exit(1)
