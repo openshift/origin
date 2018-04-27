@@ -15781,8 +15781,9 @@ objects:
   roleRef:
     kind: ClusterRole
     name: servicecatalog-serviceclass-viewer
-  groupNames:
-  - system:authenticated
+  subjects:
+  - kind: Group
+    name: system:authenticated
 
 - apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
