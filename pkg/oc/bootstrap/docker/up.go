@@ -968,6 +968,14 @@ func (c *ClusterUpConfig) openshiftImage() string {
 	return c.ImageTemplate.ExpandOrDie("control-plane")
 }
 
+func (c *ClusterUpConfig) cliImage() string {
+	return c.ImageTemplate.ExpandOrDie("cli")
+}
+
+func (c *ClusterUpConfig) nodeImage() string {
+	return c.ImageTemplate.ExpandOrDie("node")
+}
+
 func (c *ClusterUpConfig) determineAdditionalIPs(ip string) ([]string, error) {
 	additionalIPs := sets.NewString()
 	serverIPs, err := c.OpenShiftHelper().OtherIPs(ip)

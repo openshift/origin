@@ -107,7 +107,7 @@ func NewDefaultMasterArgs() *MasterArgs {
 		ListenArg:          NewDefaultListenArg(),
 		ImageFormatArgs:    NewDefaultImageFormatArgs(),
 		KubeConnectionArgs: NewDefaultKubeConnectionArgs(),
-		NetworkArgs:        NewDefaultNetworkArgs(),
+		NetworkArgs:        NewDefaultMasterNetworkArgs(),
 	}
 
 	return config

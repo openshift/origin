@@ -34,6 +34,7 @@ readonly OS_SDN_COMPILE_TARGETS_LINUX=(
 )
 readonly OS_IMAGE_COMPILE_TARGETS_LINUX=(
   "${OS_SDN_COMPILE_TARGETS_LINUX[@]}"
+  cmd/openshift-node-config
 )
 readonly OS_SCRATCH_IMAGE_COMPILE_TARGETS_LINUX=(
   images/pod
@@ -194,9 +195,9 @@ readonly -f os::util::list_go_src_dirs
 
 # os::util::list_go_deps outputs the list of dependencies for the project.
 function os::util::list_go_deps() {
-  go list -f '{{.ImportPath}}{{.Imports}}' ./pkg/... ./cmd/... | tr '[]' '  ' |
+  go list -f '{{.ImportPath}}{{.Imports}}' ./pkg/... ./cmd/... ./vendor/k8s.io/... | tr '[]' '  ' |
     sed -e 's|github.com/openshift/origin/vendor/||g' |
-    sed -e 's|github.com/openshift/origin/pkg/build/vendor/||g'
+    sed -e 's|k8s.io/kubernetes/staging/src/||g'
 }
 
 # os::util::list_test_packages_under lists all packages containing Golang test files that we
@@ -310,12 +311,14 @@ readonly -f os::build::clean_windows_versioninfo
 readonly OS_ALL_IMAGES=(
   origin-pod
   origin-base
+  origin-cli
+  origin-hypershift
+  origin-hyperkube
   origin-control-plane
   origin-node
   origin-deployer
   origin-docker-builder
   origin-keepalived-ipfailover
-  origin-sti-builder
   origin-haproxy-router
   origin-f5-router
   origin-egress-router
@@ -341,30 +344,31 @@ function os::build::images() {
   # determine the correct tag prefix
   tag_prefix="${OS_IMAGE_PREFIX:-"openshift/origin"}"
 
-  # images that depend on "${tag_prefix}-source"
+  # images that depend on "${tag_prefix}-source" or "${tag_prefix}-base"
   ( os::build::image "${tag_prefix}-pod"                     images/pod ) &
   ( os::build::image "${tag_prefix}-template-service-broker" images/template-service-broker ) &
-
-  # images that depend on "${tag_prefix}-base"
-  ( os::build::image "${tag_prefix}-control-plane"      images/origin ) &
-  ( os::build::image "${tag_prefix}-egress-router"      images/egress/router ) &
-  ( os::build::image "${tag_prefix}-egress-http-proxy"  images/egress/http-proxy ) &
-  ( os::build::image "${tag_prefix}-egress-dns-proxy"   images/egress/dns-proxy ) &
+  ( os::build::image "${tag_prefix}-cli"                     images/cli ) &
+  ( os::build::image "${tag_prefix}-hyperkube"               images/hyperkube ) &
+  ( os::build::image "${tag_prefix}-hypershift"              images/hypershift ) &
+  ( os::build::image "${tag_prefix}-egress-router"           images/egress/router ) &
+  ( os::build::image "${tag_prefix}-egress-http-proxy"       images/egress/http-proxy ) &
+  ( os::build::image "${tag_prefix}-egress-dns-proxy"        images/egress/dns-proxy ) &
+  ( os::build::image "${tag_prefix}-keepalived-ipfailover"   images/ipfailover/keepalived ) &
 
   for i in `jobs -p`; do wait $i; done
 
-  # images that depend on "${tag_prefix}-control-plane
+  # images that depend on "${tag_prefix}-cli"
+  ( os::build::image "${tag_prefix}-control-plane"         images/origin ) &
+
+  for i in `jobs -p`; do wait $i; done
+
+  # images that depend on "${tag_prefix}-control-plane"
   ( os::build::image "${tag_prefix}-haproxy-router"        images/router/haproxy ) &
-  ( os::build::image "${tag_prefix}-keepalived-ipfailover" images/ipfailover/keepalived ) &
   ( os::build::image "${tag_prefix}-deployer"              images/deployer ) &
   ( os::build::image "${tag_prefix}-recycler"              images/recycler ) &
   ( os::build::image "${tag_prefix}-docker-builder"        images/builder/docker/docker-builder ) &
-  ( os::build::image "${tag_prefix}-sti-builder"           images/builder/docker/sti-builder ) &
   ( os::build::image "${tag_prefix}-f5-router"             images/router/f5 ) &
   ( os::build::image "${tag_prefix}-node"                  images/node ) &
-  # These images are deprecated and will be removed once ansible is updated to stop using them
-  ( os::build::image "openshift/origin" images/origin ) &
-  ( os::build::image "openshift/node"   images/node ) &
 
   for i in `jobs -p`; do wait $i; done
 }

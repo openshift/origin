@@ -11,7 +11,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
-	cmdutil "github.com/openshift/origin/pkg/cmd/util"
+	"github.com/openshift/origin/pkg/cmd/util/route"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
@@ -135,7 +135,7 @@ func validate(cmd *cobra.Command, f *clientcmd.Factory, args []string) error {
 			// The upstream generator will incorrectly chose service.Port instead of service.TargetPort
 			// for the route TargetPort when no port is present.  Passing forcePort=true
 			// causes UnsecuredRoute to always set a Port so the upstream default is not used.
-			route, err := cmdutil.UnsecuredRoute(kc, namespace, info.Name, info.Name, kcmdutil.GetFlagString(cmd, "port"), true)
+			route, err := route.UnsecuredRoute(kc, namespace, info.Name, info.Name, kcmdutil.GetFlagString(cmd, "port"), true)
 			if err != nil {
 				return err
 			}

@@ -51,8 +51,8 @@ func TestCustomCreateBuildPod(t *testing.T) {
 	}
 
 	container := actual.Spec.Containers[0]
-	if container.Name != CustomBuild {
-		t.Errorf("Expected %s, but got %s!", CustomBuild, container.Name)
+	if container.Name != customBuild {
+		t.Errorf("Expected %s, but got %s!", customBuild, container.Name)
 	}
 	if container.ImagePullPolicy != v1.PullIfNotPresent {
 		t.Errorf("Expected %v, got %v", v1.PullIfNotPresent, container.ImagePullPolicy)

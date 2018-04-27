@@ -66,7 +66,7 @@ type OsdnProxy struct {
 
 // Called by higher layers to create the proxy plugin instance; only used by nodes
 func New(pluginName string, networkClient networkclient.Interface, kClient kclientset.Interface,
-	networkInformers networkinformers.SharedInformerFactory) (network.ProxyInterface, error) {
+	networkInformers networkinformers.SharedInformerFactory) (*OsdnProxy, error) {
 	return &OsdnProxy{
 		kClient:          kClient,
 		networkClient:    networkClient,

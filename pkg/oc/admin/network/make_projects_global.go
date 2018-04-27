@@ -10,9 +10,9 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
-
 	"github.com/openshift/origin/pkg/network"
+	networkapi "github.com/openshift/origin/pkg/network/apis/network"
+	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
 const MakeGlobalProjectsNetworkCommandName = "make-projects-global"
@@ -73,7 +73,7 @@ func (m *MakeGlobalOptions) Run() error {
 
 	errList := []error{}
 	for _, project := range projects {
-		if err = m.Options.UpdatePodNetwork(project.Name, network.GlobalPodNetwork, ""); err != nil {
+		if err = m.Options.UpdatePodNetwork(project.Name, networkapi.GlobalPodNetwork, ""); err != nil {
 			errList = append(errList, fmt.Errorf("removing network isolation for project %q failed, error: %v", project.Name, err))
 		}
 	}

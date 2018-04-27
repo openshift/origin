@@ -8,9 +8,11 @@ import (
 	"os"
 	"reflect"
 
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/admission/plugin/namespace/lifecycle"
+	"k8s.io/apiserver/pkg/apis/apiserver"
 	noderestriction "k8s.io/kubernetes/plugin/pkg/admission/noderestriction"
 	expandpvcadmission "k8s.io/kubernetes/plugin/pkg/admission/persistentvolume/resize"
 	saadmit "k8s.io/kubernetes/plugin/pkg/admission/serviceaccount"
@@ -190,7 +192,7 @@ func NewAdmissionChains(
 		for pluginName, config := range options.AdmissionConfig.PluginConfig {
 			pluginConfig[pluginName] = *config
 		}
-		upstreamAdmissionConfig, err := configapilatest.ConvertOpenshiftAdmissionConfigToKubeAdmissionConfig(pluginConfig)
+		upstreamAdmissionConfig, err := convertOpenshiftAdmissionConfigToKubeAdmissionConfig(pluginConfig)
 		if err != nil {
 			return nil, err
 		}
@@ -374,4 +376,31 @@ func splitStream(config io.Reader) (io.Reader, io.Reader, error) {
 	}
 
 	return bytes.NewBuffer(configBytes), bytes.NewBuffer(configBytes), nil
+}
+
+func convertOpenshiftAdmissionConfigToKubeAdmissionConfig(in map[string]configapi.AdmissionPluginConfig) (*apiserver.AdmissionConfiguration, error) {
+	ret := &apiserver.AdmissionConfiguration{}
+
+	for _, pluginName := range sets.StringKeySet(in).List() {
+		openshiftConfig := in[pluginName]
+
+		kubeConfig := apiserver.AdmissionPluginConfiguration{
+			Name: pluginName,
+			Path: openshiftConfig.Location,
+		}
+
+		if openshiftConfig.Configuration != nil {
+			configBytes, err := runtime.Encode(configapilatest.Codec, openshiftConfig.Configuration)
+			if err != nil {
+				return nil, err
+			}
+			kubeConfig.Configuration = &runtime.Unknown{
+				Raw: configBytes,
+			}
+		}
+
+		ret.Plugins = append(ret.Plugins, kubeConfig)
+	}
+
+	return ret, nil
 }

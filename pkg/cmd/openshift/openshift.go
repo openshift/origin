@@ -31,10 +31,7 @@ var (
 	openshiftLong = ktemplates.LongDesc(`
 		%[2]s
 
-		The %[3]s helps you build, deploy, and manage your applications on top of
-		Docker containers. To start an all-in-one server with the default configuration, run:
-
-		    $ %[1]s start &`)
+		The %[3]s helps you build, deploy, and manage containerized applications.`)
 )
 
 // CommandFor returns the appropriate command for this base name,
@@ -94,8 +91,7 @@ func NewCommandOpenShift(name string, stopCh <-chan struct{}) *cobra.Command {
 		Run:   kcmdutil.DefaultSubCommandRun(out),
 	}
 
-	startAllInOne, _ := start.NewCommandStartAllInOne(name, out, errout, stopCh)
-	root.AddCommand(startAllInOne)
+	root.AddCommand(start.NewCommandStart(name, out, errout, stopCh))
 	root.AddCommand(newCompletionCommand("completion", name+" completion"))
 	root.AddCommand(cmdversion.NewCmdVersion(name, osversion.Get(), os.Stdout))
 	root.AddCommand(newCmdOptions())

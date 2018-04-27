@@ -23,6 +23,7 @@ import (
 	kvalidation "k8s.io/kubernetes/pkg/apis/core/validation"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
+	"github.com/openshift/origin/pkg/cmd/server/apis/config/validation/common"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/server/cm"
 	oauthutil "github.com/openshift/origin/pkg/oauth/util"
@@ -31,35 +32,10 @@ import (
 	"github.com/openshift/origin/pkg/util/labelselector"
 )
 
-// TODO: this should just be two return arrays, no need to be clever
-type ValidationResults struct {
-	Warnings field.ErrorList
-	Errors   field.ErrorList
-}
+func ValidateMasterConfig(config *configapi.MasterConfig, fldPath *field.Path) common.ValidationResults {
+	validationResults := common.ValidationResults{}
 
-func (r *ValidationResults) Append(additionalResults ValidationResults) {
-	r.AddErrors(additionalResults.Errors...)
-	r.AddWarnings(additionalResults.Warnings...)
-}
-
-func (r *ValidationResults) AddErrors(errors ...*field.Error) {
-	if len(errors) == 0 {
-		return
-	}
-	r.Errors = append(r.Errors, errors...)
-}
-
-func (r *ValidationResults) AddWarnings(warnings ...*field.Error) {
-	if len(warnings) == 0 {
-		return
-	}
-	r.Warnings = append(r.Warnings, warnings...)
-}
-
-func ValidateMasterConfig(config *configapi.MasterConfig, fldPath *field.Path) ValidationResults {
-	validationResults := ValidationResults{}
-
-	if _, urlErrs := ValidateURL(config.MasterPublicURL, fldPath.Child("masterPublicURL")); len(urlErrs) > 0 {
+	if _, urlErrs := common.ValidateURL(config.MasterPublicURL, fldPath.Child("masterPublicURL")); len(urlErrs) > 0 {
 		validationResults.AddErrors(urlErrs...)
 	}
 
@@ -152,8 +128,8 @@ func ValidateMasterConfig(config *configapi.MasterConfig, fldPath *field.Path) V
 	return validationResults
 }
 
-func ValidateMasterAuthConfig(config configapi.MasterAuthConfig, fldPath *field.Path) ValidationResults {
-	validationResults := ValidationResults{}
+func ValidateMasterAuthConfig(config configapi.MasterAuthConfig, fldPath *field.Path) common.ValidationResults {
+	validationResults := common.ValidationResults{}
 
 	if len(config.OAuthMetadataFile) > 0 {
 		if _, _, err := oauthutil.LoadOAuthMetadataFile(config.OAuthMetadataFile); err != nil {
@@ -166,7 +142,7 @@ func ValidateMasterAuthConfig(config configapi.MasterAuthConfig, fldPath *field.
 		if len(wta.ConfigFile) == 0 {
 			validationResults.AddErrors(field.Required(configFile, ""))
 		} else {
-			validationResults.AddErrors(ValidateFile(wta.ConfigFile, configFile)...)
+			validationResults.AddErrors(common.ValidateFile(wta.ConfigFile, configFile)...)
 		}
 
 		cacheTTL := fldPath.Child("webhookTokenAuthenticators", "cacheTTL")
@@ -202,8 +178,8 @@ func ValidateMasterAuthConfig(config configapi.MasterAuthConfig, fldPath *field.
 	return validationResults
 }
 
-func ValidateAggregatorConfig(config configapi.AggregatorConfig, fldPath *field.Path) ValidationResults {
-	validationResults := ValidationResults{}
+func ValidateAggregatorConfig(config configapi.AggregatorConfig, fldPath *field.Path) common.ValidationResults {
+	validationResults := common.ValidationResults{}
 
 	validationResults.AddErrors(ValidateCertInfo(config.ProxyClientInfo, false, fldPath.Child("proxyClientInfo"))...)
 	if len(config.ProxyClientInfo.CertFile) == 0 && len(config.ProxyClientInfo.KeyFile) == 0 {
@@ -213,8 +189,8 @@ func ValidateAggregatorConfig(config configapi.AggregatorConfig, fldPath *field.
 	return validationResults
 }
 
-func ValidateAuditConfig(config configapi.AuditConfig, fldPath *field.Path) ValidationResults {
-	validationResults := ValidationResults{}
+func ValidateAuditConfig(config configapi.AuditConfig, fldPath *field.Path) common.ValidationResults {
+	validationResults := common.ValidationResults{}
 	if !config.Enabled {
 		return validationResults
 	}
@@ -295,8 +271,8 @@ func ValidateAuditConfig(config configapi.AuditConfig, fldPath *field.Path) Vali
 	return validationResults
 }
 
-func ValidateControllerConfig(config configapi.ControllerConfig, fldPath *field.Path) ValidationResults {
-	validationResults := ValidationResults{}
+func ValidateControllerConfig(config configapi.ControllerConfig, fldPath *field.Path) common.ValidationResults {
+	validationResults := common.ValidationResults{}
 
 	if election := config.Election; election != nil {
 		if len(election.LockName) == 0 {
@@ -324,8 +300,8 @@ func ValidateControllerConfig(config configapi.ControllerConfig, fldPath *field.
 	return validationResults
 }
 
-func ValidateAPILevels(apiLevels []string, knownAPILevels, deadAPILevels []string, fldPath *field.Path) ValidationResults {
-	validationResults := ValidationResults{}
+func ValidateAPILevels(apiLevels []string, knownAPILevels, deadAPILevels []string, fldPath *field.Path) common.ValidationResults {
+	validationResults := common.ValidationResults{}
 
 	if len(apiLevels) == 0 {
 		validationResults.AddErrors(field.Required(fldPath, ""))
@@ -386,8 +362,8 @@ func ValidateStorageVersionLevel(level string, knownAPILevels, deadAPILevels []s
 	return allErrs
 }
 
-func ValidateServiceAccountConfig(config configapi.ServiceAccountConfig, fldPath *field.Path) ValidationResults {
-	validationResults := ValidationResults{}
+func ValidateServiceAccountConfig(config configapi.ServiceAccountConfig, fldPath *field.Path) common.ValidationResults {
+	validationResults := common.ValidationResults{}
 
 	managedNames := sets.NewString(config.ManagedNames...)
 	managedNamesPath := fldPath.Child("managedNames")
@@ -409,7 +385,7 @@ func ValidateServiceAccountConfig(config configapi.ServiceAccountConfig, fldPath
 
 	if len(config.PrivateKeyFile) > 0 {
 		privateKeyFilePath := fldPath.Child("privateKeyFile")
-		if fileErrs := ValidateFile(config.PrivateKeyFile, privateKeyFilePath); len(fileErrs) > 0 {
+		if fileErrs := common.ValidateFile(config.PrivateKeyFile, privateKeyFilePath); len(fileErrs) > 0 {
 			validationResults.AddErrors(fileErrs...)
 		} else if _, err := cert.PrivateKeyFromFile(config.PrivateKeyFile); err != nil {
 			validationResults.AddErrors(field.Invalid(privateKeyFilePath, config.PrivateKeyFile, err.Error()))
@@ -423,7 +399,7 @@ func ValidateServiceAccountConfig(config configapi.ServiceAccountConfig, fldPath
 	}
 	for i, publicKeyFile := range config.PublicKeyFiles {
 		idxPath := fldPath.Child("publicKeyFiles").Index(i)
-		if fileErrs := ValidateFile(publicKeyFile, idxPath); len(fileErrs) > 0 {
+		if fileErrs := common.ValidateFile(publicKeyFile, idxPath); len(fileErrs) > 0 {
 			validationResults.AddErrors(fileErrs...)
 		} else if _, err := cert.PublicKeysFromFile(publicKeyFile); err != nil {
 			validationResults.AddErrors(field.Invalid(idxPath, publicKeyFile, err.Error()))
@@ -431,7 +407,7 @@ func ValidateServiceAccountConfig(config configapi.ServiceAccountConfig, fldPath
 	}
 
 	if len(config.MasterCA) > 0 {
-		validationResults.AddErrors(ValidateFile(config.MasterCA, fldPath.Child("masterCA"))...)
+		validationResults.AddErrors(common.ValidateFile(config.MasterCA, fldPath.Child("masterCA"))...)
 	} else {
 		validationResults.AddWarnings(field.Invalid(fldPath.Child("masterCA"), "", "master CA information will not be automatically injected into pods, which will prevent verification of the API server from inside a pod"))
 	}
@@ -494,18 +470,18 @@ func ValidateKubeletConnectionInfo(config configapi.KubeletConnectionInfo, fldPa
 	}
 
 	if len(config.CA) > 0 {
-		allErrs = append(allErrs, ValidateFile(config.CA, fldPath.Child("ca"))...)
+		allErrs = append(allErrs, common.ValidateFile(config.CA, fldPath.Child("ca"))...)
 	}
 	allErrs = append(allErrs, ValidateCertInfo(config.ClientCert, false, fldPath)...)
 
 	return allErrs
 }
 
-func ValidateKubernetesMasterConfig(config configapi.KubernetesMasterConfig, fldPath *field.Path) ValidationResults {
-	validationResults := ValidationResults{}
+func ValidateKubernetesMasterConfig(config configapi.KubernetesMasterConfig, fldPath *field.Path) common.ValidationResults {
+	validationResults := common.ValidationResults{}
 
 	if len(config.MasterIP) > 0 {
-		validationResults.AddErrors(ValidateSpecifiedIP(config.MasterIP, fldPath.Child("masterIP"))...)
+		validationResults.AddErrors(common.ValidateSpecifiedIP(config.MasterIP, fldPath.Child("masterIP"))...)
 	}
 
 	validationResults.AddErrors(ValidateCertInfo(config.ProxyClientInfo, false, fldPath.Child("proxyClientInfo"))...)
@@ -526,7 +502,7 @@ func ValidateKubernetesMasterConfig(config configapi.KubernetesMasterConfig, fld
 	}
 
 	if len(config.SchedulerConfigFile) > 0 {
-		validationResults.AddErrors(ValidateFile(config.SchedulerConfigFile, fldPath.Child("schedulerConfigFile"))...)
+		validationResults.AddErrors(common.ValidateFile(config.SchedulerConfigFile, fldPath.Child("schedulerConfigFile"))...)
 	}
 
 	if len(config.PodEvictionTimeout) > 0 {
@@ -579,8 +555,8 @@ func ValidatePolicyConfig(config configapi.PolicyConfig, fldPath *field.Path) fi
 	return allErrs
 }
 
-func ValidateProjectConfig(config configapi.ProjectConfig, fldPath *field.Path) ValidationResults {
-	validationResults := ValidationResults{}
+func ValidateProjectConfig(config configapi.ProjectConfig, fldPath *field.Path) common.ValidationResults {
+	validationResults := common.ValidationResults{}
 
 	if _, _, err := configapi.ParseNamespaceAndName(config.ProjectRequestTemplate); err != nil {
 		validationResults.AddErrors(field.Invalid(fldPath.Child("projectRequestTemplate"), config.ProjectRequestTemplate, "must be in the form: namespace/templateName"))
@@ -625,8 +601,8 @@ func ValidateRoutingConfig(config configapi.RoutingConfig, fldPath *field.Path) 
 	return allErrs
 }
 
-func ValidateAPIServerExtendedArguments(config configapi.ExtendedArguments, fldPath *field.Path) ValidationResults {
-	validationResults := ValidationResults{}
+func ValidateAPIServerExtendedArguments(config configapi.ExtendedArguments, fldPath *field.Path) common.ValidationResults {
+	validationResults := common.ValidationResults{}
 
 	validationResults.AddErrors(ValidateExtendedArguments(config, apiserveroptions.NewServerRunOptions().AddFlags, fldPath)...)
 
@@ -655,8 +631,8 @@ func deprecatedAdmissionPluginNames() sets.String {
 	return sets.NewString("openshift.io/OriginResourceQuota")
 }
 
-func ValidateAdmissionPluginConfig(pluginConfig map[string]*configapi.AdmissionPluginConfig, fieldPath *field.Path) ValidationResults {
-	validationResults := ValidationResults{}
+func ValidateAdmissionPluginConfig(pluginConfig map[string]*configapi.AdmissionPluginConfig, fieldPath *field.Path) common.ValidationResults {
+	validationResults := common.ValidationResults{}
 
 	deprecatedPlugins := deprecatedAdmissionPluginNames()
 
@@ -711,8 +687,8 @@ func ValidateIngressIPNetworkCIDR(config *configapi.MasterConfig, fldPath *field
 	return
 }
 
-func ValidateDeprecatedClusterNetworkConfig(config *configapi.MasterConfig, fldPath *field.Path) ValidationResults {
-	validationResults := ValidationResults{}
+func ValidateDeprecatedClusterNetworkConfig(config *configapi.MasterConfig, fldPath *field.Path) common.ValidationResults {
+	validationResults := common.ValidationResults{}
 
 	if len(config.NetworkConfig.ClusterNetworks) > 1 {
 		if config.NetworkConfig.DeprecatedHostSubnetLength != 0 {

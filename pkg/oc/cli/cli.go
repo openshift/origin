@@ -21,7 +21,6 @@ import (
 	"github.com/openshift/origin/pkg/oc/admin"
 	diagnostics "github.com/openshift/origin/pkg/oc/admin/diagnostics"
 	sync "github.com/openshift/origin/pkg/oc/admin/groups/sync/cli"
-	"github.com/openshift/origin/pkg/oc/admin/validate"
 	"github.com/openshift/origin/pkg/oc/cli/cmd"
 	"github.com/openshift/origin/pkg/oc/cli/cmd/cluster"
 	"github.com/openshift/origin/pkg/oc/cli/cmd/image"
@@ -284,7 +283,6 @@ func newExperimentalCommand(name, fullName string) *cobra.Command {
 
 	f := clientcmd.New(experimental.PersistentFlags())
 
-	experimental.AddCommand(validate.NewCommandValidate(validate.ValidateRecommendedName, fullName+" "+validate.ValidateRecommendedName, out, errout))
 	experimental.AddCommand(exipfailover.NewCmdIPFailoverConfig(f, fullName, "ipfailover", out, errout))
 	experimental.AddCommand(dockergc.NewCmdDockerGCConfig(f, fullName, "dockergc", out, errout))
 	experimental.AddCommand(buildchain.NewCmdBuildChain(name, fullName+" "+buildchain.BuildChainRecommendedCommandName, f, out))

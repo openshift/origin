@@ -16,6 +16,7 @@ import (
 	aggregatorapiserver "k8s.io/kube-aggregator/pkg/apiserver"
 	kubeapiserver "k8s.io/kubernetes/pkg/master"
 	kcorestorage "k8s.io/kubernetes/pkg/registry/core/rest"
+	rbacrest "k8s.io/kubernetes/pkg/registry/rbac/rest"
 
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	kubernetes "github.com/openshift/origin/pkg/cmd/server/kubernetes/master"
@@ -265,7 +266,7 @@ func (c *MasterConfig) Run(stopCh <-chan struct{}) error {
 	}
 
 	// add post-start hooks
-	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("authorization.openshift.io-bootstrapclusterroles", bootstrappolicy.Policy().EnsureRBACPolicy())
+	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("authorization.openshift.io-bootstrapclusterroles", bootstrapData(bootstrappolicy.Policy()).EnsureRBACPolicy())
 	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("authorization.openshift.io-ensureopenshift-infra", ensureOpenShiftInfraNamespace)
 	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("quota.openshift.io-clusterquotamapping", c.startClusterQuotaMapping)
 	for name, fn := range c.additionalPostStartHooks {
@@ -323,7 +324,7 @@ func (c *MasterConfig) RunKubeAPIServer(stopCh <-chan struct{}) error {
 		}
 	}
 
-	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("authorization.openshift.io-bootstrapclusterroles", bootstrappolicy.Policy().EnsureRBACPolicy())
+	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("authorization.openshift.io-bootstrapclusterroles", bootstrapData(bootstrappolicy.Policy()).EnsureRBACPolicy())
 	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("authorization.openshift.io-ensureopenshift-infra", ensureOpenShiftInfraNamespace)
 	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("quota.openshift.io-clusterquotamapping", c.startClusterQuotaMapping)
 	// add post-start hooks
@@ -470,4 +471,16 @@ func WithPatternPrefixHandler(handler http.Handler, patternHandler http.Handler,
 func (c *MasterConfig) startClusterQuotaMapping(context apiserver.PostStartHookContext) error {
 	go c.ClusterQuotaMappingController.Run(5, context.StopCh)
 	return nil
+}
+
+// bootstrapData casts our policy data to the rbacrest helper that can
+// materialize the policy.
+func bootstrapData(data *bootstrappolicy.PolicyData) *rbacrest.PolicyData {
+	return &rbacrest.PolicyData{
+		ClusterRoles:            data.ClusterRoles,
+		ClusterRoleBindings:     data.ClusterRoleBindings,
+		Roles:                   data.Roles,
+		RoleBindings:            data.RoleBindings,
+		ClusterRolesToAggregate: data.ClusterRolesToAggregate,
+	}
 }

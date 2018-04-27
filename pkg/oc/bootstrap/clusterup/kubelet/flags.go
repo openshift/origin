@@ -13,7 +13,7 @@ import (
 type KubeletStartFlags struct {
 	// ContainerBinds is a list of local/path:image/path pairs
 	ContainerBinds []string
-	// NodeImage is the docker image for openshift start node
+	// NodeImage is the docker image for openshift start node and the kubelet
 	NodeImage       string
 	Environment     []string
 	UseSharedVolume bool
