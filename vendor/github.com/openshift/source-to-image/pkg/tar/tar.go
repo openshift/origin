@@ -141,12 +141,28 @@ func New(fs fs.FileSystem) Tar {
 	}
 }
 
+// NewParanoid creates a new Tar that has restrictions
+// on what it can do while extracting files.
+func NewParanoid(fs fs.FileSystem) Tar {
+	return &stiTar{
+		FileSystem:           fs,
+		exclude:              DefaultExclusionPattern,
+		timeout:              defaultTimeout,
+		disallowOverwrite:    true,
+		disallowOutsidePaths: true,
+		disallowSpecialFiles: true,
+	}
+}
+
 // stiTar is an implementation of the Tar interface
 type stiTar struct {
 	fs.FileSystem
-	timeout          time.Duration
-	exclude          *regexp.Regexp
-	includeDirInPath bool
+	timeout              time.Duration
+	exclude              *regexp.Regexp
+	includeDirInPath     bool
+	disallowOverwrite    bool
+	disallowOutsidePaths bool
+	disallowSpecialFiles bool
 }
 
 // SetExclusionPattern sets the exclusion pattern for tar creation.  The
@@ -327,8 +343,27 @@ func (t *stiTar) ExtractTarStreamFromTarReader(dir string, tarReader Reader, log
 				glog.Errorf("Error reading next tar header: %v", err)
 				return err
 			}
+
+			if t.disallowSpecialFiles {
+				switch header.Typeflag {
+				case tar.TypeReg, tar.TypeRegA, tar.TypeLink, tar.TypeSymlink, tar.TypeDir, tar.TypeGNUSparse:
+				default:
+					glog.Warningf("Skipping special file %s, type: %v", header.Name, header.Typeflag)
+					continue
+				}
+			}
+
+			p := header.Name
+			if t.disallowOutsidePaths {
+				p = filepath.Clean(filepath.Join(dir, p))
+				if !strings.HasPrefix(p, dir) {
+					glog.Warningf("Skipping relative path file in tar: %s", header.Name)
+					continue
+				}
+			}
+
 			if header.FileInfo().IsDir() {
-				dirPath := filepath.Join(dir, header.Name)
+				dirPath := filepath.Join(dir, filepath.Clean(header.Name))
 				glog.V(3).Infof("Creating directory %s", dirPath)
 				if err = os.MkdirAll(dirPath, 0700); err != nil {
 					glog.Errorf("Error creating dir %q: %v", dirPath, err)
@@ -337,7 +372,7 @@ func (t *stiTar) ExtractTarStreamFromTarReader(dir string, tarReader Reader, log
 				t.Chmod(dirPath, header.FileInfo().Mode())
 			} else {
 				fileDir := filepath.Dir(header.Name)
-				dirPath := filepath.Join(dir, fileDir)
+				dirPath := filepath.Join(dir, filepath.Clean(fileDir))
 				glog.V(3).Infof("Creating directory %s", dirPath)
 				if err = os.MkdirAll(dirPath, 0700); err != nil {
 					glog.Errorf("Error creating dir %q: %v", dirPath, err)
@@ -376,6 +411,21 @@ func (t *stiTar) extractLink(dir string, header *tar.Header, tarReader io.Reader
 	dest := filepath.Join(dir, header.Name)
 	source := header.Linkname
 
+	if t.disallowOutsidePaths {
+		target := filepath.Clean(filepath.Join(dest, "..", source))
+		if !strings.HasPrefix(target, dir) {
+			glog.Warningf("Skipping symlink that points to relative path: %s", header.Linkname)
+			return nil
+		}
+	}
+
+	if t.disallowOverwrite {
+		if _, err := os.Stat(dest); !os.IsNotExist(err) {
+			glog.Warningf("Refusing to overwrite existing file: %s", dest)
+			return nil
+		}
+	}
+
 	glog.V(3).Infof("Creating symbolic link from %q to %q", dest, source)
 
 	// TODO: set mtime for symlink (unfortunately we can't use os.Chtimes() and probably should use syscall)
@@ -384,6 +434,13 @@ func (t *stiTar) extractLink(dir string, header *tar.Header, tarReader io.Reader
 
 func (t *stiTar) extractFile(dir string, header *tar.Header, tarReader io.Reader) error {
 	path := filepath.Join(dir, header.Name)
+	if t.disallowOverwrite {
+		if _, err := os.Stat(path); !os.IsNotExist(err) {
+			glog.Warningf("Refusing to overwrite existing file: %s", path)
+			return nil
+		}
+	}
+
 	glog.V(3).Infof("Creating %s", path)
 
 	file, err := os.Create(path)
