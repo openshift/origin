@@ -132,7 +132,7 @@ func (c *ClusterUpConfig) StartSelfHosted(out io.Writer) error {
 
 	clientConfig.Host = c.ServerIP + ":8443"
 	// wait for the apiserver to be ready
-	glog.Info("Waiting for the kube-apiserver to be ready.")
+	glog.Info("Waiting for the kube-apiserver to be ready ...")
 	if err := waitForHealthyKubeAPIServer(clientConfig); err != nil {
 		return err
 	}
@@ -504,6 +504,7 @@ func waitForHealthyKubeAPIServer(clientConfig *rest.Config) error {
 	var healthzContent string
 	// If apiserver is not running we should wait for some time and fail only then. This is particularly
 	// important when we start apiserver and controller manager at the same time.
+	var lastResponseError error
 	err := wait.PollImmediate(time.Second, 5*time.Minute, func() (bool, error) {
 		discoveryClient, err := discovery.NewDiscoveryClientForConfig(clientConfig)
 		if err != nil {
@@ -514,6 +515,7 @@ func waitForHealthyKubeAPIServer(clientConfig *rest.Config) error {
 		resp := discoveryClient.RESTClient().Get().AbsPath("/healthz").Do().StatusCode(&healthStatus)
 		if resp.Error() != nil {
 			glog.V(4).Infof("Server isn't healthy yet.  Waiting a little while. %v", resp.Error())
+			lastResponseError = resp.Error()
 			return false, nil
 		}
 		content, _ := resp.Raw()
@@ -526,7 +528,7 @@ func waitForHealthyKubeAPIServer(clientConfig *rest.Config) error {
 		return true, nil
 	})
 	if err != nil {
-		glog.Error(healthzContent)
+		glog.Errorf("API server error: %v (%s)", lastResponseError, healthzContent)
 	}
 
 	return err
