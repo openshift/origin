@@ -131,12 +131,9 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 				ticker.Stop()
 			}
 
-			oc.SetNamespace(j.Namespace())
 			e2e.Logf("Jenkins DC description follows. If there were issues, check to see if there were any restarts in the jenkins pod.")
 			exutil.DumpApplicationPodLogs("jenkins", oc)
 
-			// Destroy the Jenkins namespace
-			oc.Run("delete").Args("project", j.Namespace()).Execute()
 			if dcLogFollow != nil && dcLogStdOut != nil && dcLogStdErr != nil {
 				e2e.Logf("Waiting for Jenkins DC log follow to terminate")
 				dcLogFollow.Process.Wait()
@@ -149,15 +146,6 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 
 		g.BeforeEach(func() {
 			exutil.DumpDockerInfo()
-			testNamespace := oc.Namespace()
-
-			jenkinsNamespace := oc.Namespace() + "-jenkins"
-			g.By("Starting a Jenkins instance in namespace: " + jenkinsNamespace)
-
-			oc.Run("new-project").Args(jenkinsNamespace).Execute()
-			oc.SetNamespace(jenkinsNamespace)
-
-			time.Sleep(10 * time.Second) // Give project time to initialize
 
 			g.By("kick off the build for the jenkins ephemeral and application templates")
 
@@ -226,7 +214,7 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 			}
 
 			if os.Getenv(jenkins.EnableJenkinsMemoryStats) != "" {
-				ticker = jenkins.StartJenkinsMemoryTracking(oc, jenkinsNamespace)
+				ticker = jenkins.StartJenkinsMemoryTracking(oc, oc.Namespace())
 			}
 
 			// Start capturing logs from this deployment config.
@@ -234,12 +222,6 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 			// ensures that even if the Jenkins DC restarts, we should capture
 			// logs from the crash.
 			dcLogFollow, dcLogStdOut, dcLogStdErr, err = oc.Run("logs").Args("-f", "dc/jenkins").Background()
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			oc.SetNamespace(testNamespace)
-
-			g.By("set up policy for jenkins jobs in " + oc.Namespace())
-			err = oc.Run("policy").Args("add-role-to-user", "edit", "system:serviceaccount:"+j.Namespace()+":jenkins").Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			// Populate shared Jenkins namespace with artifacts that can be used by all tests
@@ -602,6 +584,8 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 
 				anotherNamespace := oc.Namespace() + "-multitag-target"
 				oc.Run("new-project").Args(anotherNamespace).Execute()
+				// no calls to delete these two projects here; leads to timing
+				// issues with the framework deleting all namespaces
 
 				time.Sleep(10 * time.Second) // Give project time to initialize policies.
 
