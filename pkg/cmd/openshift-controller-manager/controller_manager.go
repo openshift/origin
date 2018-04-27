@@ -9,7 +9,10 @@ import (
 	"github.com/golang/glog"
 
 	"k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/discovery"
+	cacheddiscovery "k8s.io/client-go/discovery/cached"
 	kclientsetexternal "k8s.io/client-go/kubernetes"
 	v1core "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/rest"
@@ -117,6 +120,12 @@ func newControllerContext(
 		clientConfig.Burst = clientConfig.Burst/10 + 1
 	}
 
+	discoveryClient := cacheddiscovery.NewMemCacheClient(kubeExternal.Discovery())
+	dynamicRestMapper := discovery.NewDeferredDiscoveryRESTMapper(discoveryClient, meta.InterfacesForUnstructured)
+	dynamicRestMapper.Reset()
+
+	go wait.Until(dynamicRestMapper.Reset, 30*time.Second, stopCh)
+
 	openshiftControllerContext := origincontrollers.ControllerContext{
 		OpenshiftControllerConfig: config,
 
@@ -139,8 +148,9 @@ func newControllerContext(
 		RouteInformers:          informers.GetRouteInformers(),
 		TemplateInformers:       informers.GetTemplateInformers(),
 		GenericResourceInformer: informers.ToGenericInformer(),
-		Stop:             stopCh,
-		InformersStarted: informersStarted,
+		Stop:              stopCh,
+		InformersStarted:  informersStarted,
+		DynamicRestMapper: dynamicRestMapper,
 	}
 
 	return openshiftControllerContext
