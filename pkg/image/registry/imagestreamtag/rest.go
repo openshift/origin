@@ -308,41 +308,56 @@ func (r *REST) Update(ctx apirequest.Context, tagName string, objInfo rest.Updat
 
 // Delete removes a tag from a stream. `id` is of the format <stream name>:<tag>.
 // The associated image that the tag points to is *not* deleted.
-// The tag history remains intact and is not deleted.
+// The tag history is removed.
 func (r *REST) Delete(ctx apirequest.Context, id string, options *metav1.DeleteOptions) (runtime.Object, bool, error) {
 	name, tag, err := nameAndTag(id)
 	if err != nil {
 		return nil, false, err
 	}
 
-	stream, err := r.imageStreamRegistry.GetImageStream(ctx, name, &metav1.GetOptions{})
-	if err != nil {
-		return nil, false, err
+	for i := 10; i > 0; i-- {
+		stream, err := r.imageStreamRegistry.GetImageStream(ctx, name, &metav1.GetOptions{})
+		if err != nil {
+			return nil, false, err
+		}
+		if options != nil {
+			if pre := options.Preconditions; pre != nil {
+				if pre.UID != nil && *pre.UID != stream.UID {
+					return nil, false, kapierrors.NewConflict(imageapi.Resource("imagestreamtags"), id, fmt.Errorf("the UID precondition was not met"))
+				}
+			}
+		}
+
+		notFound := true
+
+		// Try to delete the status tag
+		if _, ok := stream.Status.Tags[tag]; ok {
+			delete(stream.Status.Tags, tag)
+			notFound = false
+		}
+
+		// Try to delete the spec tag
+		if _, ok := stream.Spec.Tags[tag]; ok {
+			delete(stream.Spec.Tags, tag)
+			notFound = false
+		}
+
+		if notFound {
+			return nil, false, kapierrors.NewNotFound(imageapi.Resource("imagestreamtags"), id)
+		}
+
+		_, err = r.imageStreamRegistry.UpdateImageStream(ctx, stream)
+		if kapierrors.IsConflict(err) {
+			continue
+		}
+		if err != nil && !kapierrors.IsNotFound(err) {
+			return nil, false, err
+		}
+		return &metav1.Status{Status: metav1.StatusSuccess}, true, nil
 	}
-
-	notFound := true
-
-	// Try to delete the status tag
-	if _, ok := stream.Status.Tags[tag]; ok {
-		delete(stream.Status.Tags, tag)
-		notFound = false
-	}
-
-	// Try to delete the spec tag
-	if _, ok := stream.Spec.Tags[tag]; ok {
-		delete(stream.Spec.Tags, tag)
-		notFound = false
-	}
-
-	if notFound {
-		return nil, false, kapierrors.NewNotFound(imageapi.Resource("imagestreamtags"), tag)
-	}
-
-	if _, err = r.imageStreamRegistry.UpdateImageStream(ctx, stream); err != nil {
-		return nil, false, fmt.Errorf("cannot remove tag from image stream: %v", err)
-	}
-
-	return &metav1.Status{Status: metav1.StatusSuccess}, true, nil
+	// We tried to update resource, but we kept conflicting. Inform the client that we couldn't complete
+	// the operation but that they may try again.
+	return nil, false, kapierrors.NewServerTimeout(imageapi.Resource("imagestreamtags"), "delete", 2)
 }
 
 // imageFor retrieves the most recent image for a tag in a given imageStreem.
