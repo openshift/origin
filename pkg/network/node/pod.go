@@ -389,7 +389,7 @@ func maybeAddMacvlan(pod *kapi.Pod, netns string) error {
 
 	podNs, err := ns.GetNS(netns)
 	if err != nil {
-		return fmt.Errorf("could not open netns %q", netns)
+		return fmt.Errorf("could not open netns %q: %v", netns, err)
 	}
 	defer podNs.Close()
 
