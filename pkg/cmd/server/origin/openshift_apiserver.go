@@ -462,6 +462,7 @@ func (c *completedConfig) withSecurityAPIServer(delegateAPIServer genericapiserv
 			SCCStorage:            c.ExtraConfig.SCCStorage,
 			SecurityInformers:     c.ExtraConfig.SecurityInformers,
 			KubeInternalInformers: c.ExtraConfig.KubeInternalInformers,
+			Authorizer:            c.GenericConfig.Authorization.Authorizer,
 			Codecs:                legacyscheme.Codecs,
 			Registry:              legacyscheme.Registry,
 			Scheme:                legacyscheme.Scheme,

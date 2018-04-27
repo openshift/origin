@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apiserver/pkg/authorization/authorizer"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/client-go/tools/cache"
@@ -135,7 +136,7 @@ func TestAllowed(t *testing.T) {
 		}
 
 		csf := clientsetfake.NewSimpleClientset(namespace, serviceAccount)
-		storage := REST{oscc.NewDefaultSCCMatcher(sccCache), csf}
+		storage := REST{oscc.NewDefaultSCCMatcher(sccCache, &noopTestAuthorizer{}), csf}
 		ctx := apirequest.WithNamespace(apirequest.NewContext(), metav1.NamespaceAll)
 		obj, err := storage.Create(ctx, reviewRequest, rest.ValidateAllObjectFunc, false)
 		if err != nil {
@@ -262,7 +263,7 @@ func TestRequests(t *testing.T) {
 			}
 		}
 		csf := clientsetfake.NewSimpleClientset(namespace, serviceAccount)
-		storage := REST{oscc.NewDefaultSCCMatcher(sccCache), csf}
+		storage := REST{oscc.NewDefaultSCCMatcher(sccCache, &noopTestAuthorizer{}), csf}
 		ctx := apirequest.WithNamespace(apirequest.NewContext(), metav1.NamespaceAll)
 		_, err := storage.Create(ctx, testcase.request, rest.ValidateAllObjectFunc, false)
 		switch {
@@ -276,4 +277,10 @@ func TestRequests(t *testing.T) {
 		}
 	}
 
+}
+
+type noopTestAuthorizer struct{}
+
+func (s *noopTestAuthorizer) Authorize(a authorizer.Attributes) (authorizer.Decision, string, error) {
+	return authorizer.DecisionNoOpinion, "", nil
 }

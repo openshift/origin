@@ -203,7 +203,10 @@ os::cmd::expect_failure_and_text 'oc policy scc-subject-review -z system:service
 os::cmd::expect_failure_and_text 'oc policy scc-review -f ${OS_ROOT}/test/testdata/pspreview_unsupported_statefulset.yaml' 'error: StatefulSet "rd" with spec.volumeClaimTemplates currently not supported.'
 os::cmd::expect_success_and_text 'oc policy scc-subject-review -f ${OS_ROOT}/test/testdata/job.yaml -o=jsonpath={.status.AllowedBy.name}' 'anyuid'
 os::cmd::expect_success_and_text 'oc policy scc-subject-review -f ${OS_ROOT}/test/testdata/redis-slave.yaml -o=jsonpath={.status.AllowedBy.name}' 'anyuid'
-os::cmd::expect_success_and_text 'oc policy scc-subject-review -f ${OS_ROOT}/test/testdata/nginx_pod.yaml -o=jsonpath={.status.AllowedBy.name}' 'privileged'
+# In the past system:admin only had access to a few SCCs, so the following command resulted in the privileged SCC being used
+# Since SCCs are now authorized via RBAC, and system:admin can perform all RBAC actions == system:admin can access all SCCs now
+# Thus the following command now results in the use of the hostnetwork SCC which is the most restrictive SCC that still allows the pod to run
+os::cmd::expect_success_and_text 'oc policy scc-subject-review -f ${OS_ROOT}/test/testdata/nginx_pod.yaml -o=jsonpath={.status.AllowedBy.name}' 'hostnetwork'
 os::cmd::expect_success "oc login -u bob -p bobpassword"
 os::cmd::expect_success_and_text 'oc whoami' 'bob'
 os::cmd::expect_success 'oc new-project policy-second'

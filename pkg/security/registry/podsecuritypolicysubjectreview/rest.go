@@ -58,7 +58,7 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, _ rest.Validat
 	}
 
 	userInfo := &user.DefaultInfo{Name: pspsr.Spec.User, Groups: pspsr.Spec.Groups}
-	matchedConstraints, err := r.sccMatcher.FindApplicableSCCs(userInfo)
+	matchedConstraints, err := r.sccMatcher.FindApplicableSCCs(userInfo, ns)
 	if err != nil {
 		return nil, kapierrors.NewBadRequest(fmt.Sprintf("unable to find SecurityContextConstraints: %v", err))
 	}
@@ -66,7 +66,7 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, _ rest.Validat
 	saName := pspsr.Spec.Template.Spec.ServiceAccountName
 	if len(saName) > 0 {
 		saUserInfo := serviceaccount.UserInfo(ns, saName, "")
-		saConstraints, err := r.sccMatcher.FindApplicableSCCs(saUserInfo)
+		saConstraints, err := r.sccMatcher.FindApplicableSCCs(saUserInfo, ns)
 		if err != nil {
 			return nil, kapierrors.NewBadRequest(fmt.Sprintf("unable to find SecurityContextConstraints: %v", err))
 		}
