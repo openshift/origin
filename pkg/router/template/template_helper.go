@@ -192,6 +192,58 @@ func sortedMapData(name string, sortSubGroups bool) []string {
 	return lines
 }
 
+// getHTTPAliasesGroupedByHost returns HTTP(S) aliases grouped by their host.
+func getHTTPAliasesGroupedByHost(aliases map[string]ServiceAliasConfig) map[string]map[string]ServiceAliasConfig {
+	result := make(map[string]map[string]ServiceAliasConfig)
+
+	for k, a := range aliases {
+		if a.TLSTermination == routeapi.TLSTerminationPassthrough {
+			continue
+		}
+
+		if _, exists := result[a.Host]; !exists {
+			result[a.Host] = make(map[string]ServiceAliasConfig)
+		}
+		result[a.Host][k] = a
+	}
+
+	return result
+}
+
+// getPrimaryAliasKey returns the key of the primary alias for a group of aliases.
+// It is assumed that all input aliases have the same host.
+// In case of a single alias, the primary alias is the alias itself.
+// In case of multiple alias with no TSL termination (Edge or Passthrough),
+// the primary alias is the alphabetically last alias.
+// In case of multiple aliases, some of them with TLS termination, the primary alias is
+// the alphabetically last alias among the TLS aliases.
+func getPrimaryAliasKey(aliases map[string]ServiceAliasConfig) string {
+	if len(aliases) == 0 {
+		return ""
+	}
+
+	if len(aliases) == 1 {
+		for k := range aliases {
+			return k
+		}
+	}
+
+	keys := make([]string, len(aliases))
+	for k := range aliases {
+		keys = append(keys, k)
+	}
+
+	sort.Sort(sort.Reverse(sort.StringSlice(keys)))
+
+	for _, k := range keys {
+		if aliases[k].TLSTermination == routeapi.TLSTerminationEdge || aliases[k].TLSTermination == routeapi.TLSTerminationReencrypt {
+			return k
+		}
+	}
+
+	return keys[0]
+}
+
 var helperFunctions = template.FuncMap{
 	"endpointsForAlias":        endpointsForAlias,        //returns the list of valid endpoints
 	"processEndpointsForAlias": processEndpointsForAlias, //returns the list of valid endpoints after processing them
@@ -208,4 +260,7 @@ var helperFunctions = template.FuncMap{
 	"firstMatch": firstMatch, //anchors provided regular expression and evaluates against given strings, returns the first matched string or ""
 
 	"sortedMapData": sortedMapData, //returns sorted map contents. The data can optionally be sorted on the non-wildcard and wildcard sub-groups
+
+	"getHTTPAliasesGroupedByHost": getHTTPAliasesGroupedByHost, //returns HTTP(S) aliases grouped by their host
+	"getPrimaryAliasKey":          getPrimaryAliasKey,          //returns the key of the primary alias for a group of aliases
 }
