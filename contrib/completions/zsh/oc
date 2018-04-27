@@ -16127,6 +16127,8 @@ _oc_rsync()
     flags_with_completion=()
     flags_completion=()
 
+    flags+=("--compress")
+    local_nonpersistent_flags+=("--compress")
     flags+=("--container=")
     two_word_flags+=("-c")
     local_nonpersistent_flags+=("--container=")
