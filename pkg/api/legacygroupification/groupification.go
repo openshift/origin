@@ -150,7 +150,7 @@ var oapiKindsToGroup = map[string]string{
 	"ProjectRequest":       "project.openshift.io",
 	"ClusterResourceQuota": "quota.openshift.io", "ClusterResourceQuotaList": "quota.openshift.io",
 	"Route": "route.openshift.io", "RouteList": "route.openshift.io",
-	"SecurityContextConstraint": "security.openshift.io", "SecurityContextConstraintList": "security.openshift.io",
+	"SecurityContextConstraints": "security.openshift.io", "SecurityContextConstraintsList": "security.openshift.io",
 	"Template": "template.openshift.io", "TemplateList": "template.openshift.io",
 	"Group": "user.openshift.io", "GroupList": "user.openshift.io",
 	"Identity": "user.openshift.io", "IdentityList": "user.openshift.io",
