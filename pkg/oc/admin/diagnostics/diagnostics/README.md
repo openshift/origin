@@ -66,8 +66,7 @@ Having logs in journald is necessary for the current log analysis
 logic. Other usage may have logs going into files, output to stdout,
 combined node/master... it may not be too hard to extend analysis to
 other log sources but the priority has been to look at journald logs
-as created by components in systemd-based deployments (including docker,
-openvswitch, etc.).
+as created by components in systemd-based deployments (including docker, etc.).
 
 Client environment
 ==================
