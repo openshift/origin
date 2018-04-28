@@ -17,12 +17,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 77bef0655c9edae05954b4f4c42922d7afe1a4fe
+%global commit 939850d273e64302eb7446ed216f3a7a2665ff5e
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=10+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.10.0-0.29.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 KUBE_GIT_VERSION=v1.10.0+b81c8f8 OS_GIT_PATCH=0 KUBE_GIT_COMMIT=b81c8f8 KUBE_GIT_MINOR=10+ OS_GIT_COMMIT=55e6188 KUBE_GIT_MAJOR=1 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.16-0-g121edf0 ETCD_GIT_COMMIT=121edf0
+%global os_git_vars OS_GIT_MINOR=10+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.10.0-0.30.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 KUBE_GIT_VERSION=v1.10.0+b81c8f8 OS_GIT_PATCH=0 KUBE_GIT_COMMIT=b81c8f8 KUBE_GIT_MINOR=10+ OS_GIT_COMMIT=d3b6b35 KUBE_GIT_MAJOR=1 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.16-0-g121edf0 ETCD_GIT_COMMIT=121edf0
 }
 
 %if 0%{?skip_build}
@@ -65,7 +65,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.10.0
-Release:        0.30.0%{?dist}
+Release:        0.31.0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -468,6 +468,36 @@ if [ "$1" -eq 0 ] ; then
 fi
 
 %changelog
+* Sat Apr 28 2018 Justin Pierce <jupierce@redhat.com> 3.10.0-0.31.0
+- bump(*) (bparees@redhat.com)
+- quit launching jenkins in separate project for jenkins_plugin.go
+  (gmontero@redhat.com)
+- remove extran project deletes from pipeline.go (gmontero@redhat.com)
+- UPSTREAM: 63160: kubelet: logs: do not wait when following terminated
+  container (sjenning@redhat.com)
+- Fix hot deploy test for CakePHP upgrade PR (scuppett@redhat.com)
+- up: report apiserver last error on timeout (mfojtik@redhat.com)
+- ovs: add default 30s timeout to ovs-vsctl operations (dcbw@redhat.com)
+- Improve NGINX-based router (michael@nginx.com)
+- Print pod log for multicast test (ichavero@redhat.com)
+- generated (deads@redhat.com)
+- UPSTREAM: 62146: Fix daemon-set-controller bootstrap RBAC policy
+  (deads@redhat.com)
+- switch sample jenkins template to ephemeral to match auto provisioner
+  (gmontero@redhat.com)
+- UPSTREAM: 62913: make a simple dynamic client that is easy to use
+  (deads@redhat.com)
+- remove direct kubelet connection for binary builds (deads@redhat.com)
+- fix forcepull test to work w/ pullthrough imagespecs (bparees@redhat.com)
+- Allow authorization of SCC use via RBAC (mkhan@redhat.com)
+- remove useless logs from level 0 (bparees@redhat.com)
+- update generated bindata (mfojtik@redhat.com)
+- up: make OPENSHIFT_IMAGE and TAG parameters for templates and static pods
+  (mfojtik@redhat.com)
+- Fix service-catalog serviceclass-viewer role (pmorie@redhat.com)
+- Fix doc text on `migrate legacy-hpa` (sross@redhat.com)
+- Add --compress option to oc rsync (farandac@redhat.com)
+
 * Thu Apr 26 2018 Justin Pierce <jupierce@redhat.com> 3.10.0-0.30.0
 - generate openapi (jliggitt@redhat.com)
 - bump(*): kube-openapi update (jliggitt@redhat.com)
