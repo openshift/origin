@@ -2,13 +2,14 @@ package main
 
 import (
 	"fmt"
-	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"os"
 	"strings"
+
+	"gopkg.in/yaml.v2"
 )
 
-// Dependency represents a Golang dependency
+// Import represents a Golang dependency
 type Import struct {
 	Name    string `yaml:"name"`
 	Version string `yaml:"version"`
