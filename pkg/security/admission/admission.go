@@ -10,6 +10,8 @@ import (
 
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/apiserver/pkg/admission/initializer"
+	"k8s.io/apiserver/pkg/authorization/authorizer"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 	rbacregistry "k8s.io/kubernetes/pkg/registry/rbac"
 
@@ -36,13 +38,17 @@ func Register(plugins *admission.Plugins) {
 
 type constraint struct {
 	*admission.Handler
-	client    kclientset.Interface
-	sccLister securitylisters.SecurityContextConstraintsLister
+	client     kclientset.Interface
+	sccLister  securitylisters.SecurityContextConstraintsLister
+	authorizer authorizer.Authorizer
 }
 
-var _ admission.Interface = &constraint{}
-var _ = oadmission.WantsSecurityInformer(&constraint{})
-var _ = kadmission.WantsInternalKubeClientSet(&constraint{})
+var (
+	_ = admission.Interface(&constraint{})
+	_ = initializer.WantsAuthorizer(&constraint{})
+	_ = oadmission.WantsSecurityInformer(&constraint{})
+	_ = kadmission.WantsInternalKubeClientSet(&constraint{})
+)
 
 // NewConstraint creates a new SCC constraint admission plugin.
 func NewConstraint() *constraint {
@@ -90,8 +96,8 @@ func (c *constraint) Admit(a admission.Attributes) error {
 	// get all constraints that are usable by the user
 	glog.V(4).Infof("getting security context constraints for pod %s (generate: %s) in namespace %s with user info %v", pod.Name, pod.GenerateName, a.GetNamespace(), a.GetUserInfo())
 
-	sccMatcher := scc.NewDefaultSCCMatcher(c.sccLister)
-	matchedConstraints, err := sccMatcher.FindApplicableSCCs(a.GetUserInfo())
+	sccMatcher := scc.NewDefaultSCCMatcher(c.sccLister, c.authorizer)
+	matchedConstraints, err := sccMatcher.FindApplicableSCCs(a.GetUserInfo(), a.GetNamespace())
 	if err != nil {
 		return admission.NewForbidden(a, err)
 	}
@@ -100,7 +106,7 @@ func (c *constraint) Admit(a admission.Attributes) error {
 	if len(pod.Spec.ServiceAccountName) > 0 {
 		userInfo := serviceaccount.UserInfo(a.GetNamespace(), pod.Spec.ServiceAccountName, "")
 		glog.V(4).Infof("getting security context constraints for pod %s (generate: %s) with service account info %v", pod.Name, pod.GenerateName, userInfo)
-		saConstraints, err := sccMatcher.FindApplicableSCCs(userInfo)
+		saConstraints, err := sccMatcher.FindApplicableSCCs(userInfo, a.GetNamespace())
 		if err != nil {
 			return admission.NewForbidden(a, err)
 		}
@@ -183,6 +189,10 @@ func (c *constraint) SetInternalKubeClientSet(client kclientset.Interface) {
 	c.client = client
 }
 
+func (c *constraint) SetAuthorizer(authorizer authorizer.Authorizer) {
+	c.authorizer = authorizer
+}
+
 // ValidateInitialization implements InitializationValidator interface for constraint.
 func (c *constraint) ValidateInitialization() error {
 	if c.sccLister == nil {
@@ -190,6 +200,9 @@ func (c *constraint) ValidateInitialization() error {
 	}
 	if c.client == nil {
 		return fmt.Errorf("%s requires a client", PluginName)
+	}
+	if c.authorizer == nil {
+		return fmt.Errorf("%s requires an authorizer", PluginName)
 	}
 	return nil
 }

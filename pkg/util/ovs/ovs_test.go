@@ -141,8 +141,8 @@ func TestAddPort(t *testing.T) {
 		t.Fatalf("Unexpected error from ovs.New(): %v", err)
 	}
 
-	addTestResult(t, fexec, "ovs-vsctl --may-exist add-port br0 veth0", "", nil)
-	addTestResult(t, fexec, "ovs-vsctl get Interface veth0 ofport", "1\n", nil)
+	addTestResult(t, fexec, "ovs-vsctl --timeout=30 --may-exist add-port br0 veth0", "", nil)
+	addTestResult(t, fexec, "ovs-vsctl --timeout=30 get Interface veth0 ofport", "1\n", nil)
 	port, err := ovsif.AddPort("veth0", -1)
 	if err != nil {
 		t.Fatalf("Unexpected error from command: %v", err)
@@ -152,8 +152,8 @@ func TestAddPort(t *testing.T) {
 	}
 	ensureTestResults(t, fexec)
 
-	addTestResult(t, fexec, "ovs-vsctl --may-exist add-port br0 veth0 -- set Interface veth0 ofport_request=5", "", nil)
-	addTestResult(t, fexec, "ovs-vsctl get Interface veth0 ofport", "5\n", nil)
+	addTestResult(t, fexec, "ovs-vsctl --timeout=30 --may-exist add-port br0 veth0 -- set Interface veth0 ofport_request=5", "", nil)
+	addTestResult(t, fexec, "ovs-vsctl --timeout=30 get Interface veth0 ofport", "5\n", nil)
 	port, err = ovsif.AddPort("veth0", 5)
 	if err != nil {
 		t.Fatalf("Unexpected error from command: %v", err)
@@ -163,8 +163,8 @@ func TestAddPort(t *testing.T) {
 	}
 	ensureTestResults(t, fexec)
 
-	addTestResult(t, fexec, "ovs-vsctl --may-exist add-port br0 tun0 -- set Interface tun0 type=internal", "", nil)
-	addTestResult(t, fexec, "ovs-vsctl get Interface tun0 ofport", "1\n", nil)
+	addTestResult(t, fexec, "ovs-vsctl --timeout=30 --may-exist add-port br0 tun0 -- set Interface tun0 type=internal", "", nil)
+	addTestResult(t, fexec, "ovs-vsctl --timeout=30 get Interface tun0 ofport", "1\n", nil)
 	port, err = ovsif.AddPort("tun0", -1, "type=internal")
 	if err != nil {
 		t.Fatalf("Unexpected error from command: %v", err)
@@ -174,8 +174,8 @@ func TestAddPort(t *testing.T) {
 	}
 	ensureTestResults(t, fexec)
 
-	addTestResult(t, fexec, "ovs-vsctl --may-exist add-port br0 tun0 -- set Interface tun0 ofport_request=5 type=internal", "", nil)
-	addTestResult(t, fexec, "ovs-vsctl get Interface tun0 ofport", "5\n", nil)
+	addTestResult(t, fexec, "ovs-vsctl --timeout=30 --may-exist add-port br0 tun0 -- set Interface tun0 ofport_request=5 type=internal", "", nil)
+	addTestResult(t, fexec, "ovs-vsctl --timeout=30 get Interface tun0 ofport", "5\n", nil)
 	port, err = ovsif.AddPort("tun0", 5, "type=internal")
 	if err != nil {
 		t.Fatalf("Unexpected error from command: %v", err)
@@ -185,8 +185,8 @@ func TestAddPort(t *testing.T) {
 	}
 	ensureTestResults(t, fexec)
 
-	addTestResult(t, fexec, "ovs-vsctl --may-exist add-port br0 veth0 -- set Interface veth0 ofport_request=5", "", nil)
-	addTestResult(t, fexec, "ovs-vsctl get Interface veth0 ofport", "3\n", nil)
+	addTestResult(t, fexec, "ovs-vsctl --timeout=30 --may-exist add-port br0 veth0 -- set Interface veth0 ofport_request=5", "", nil)
+	addTestResult(t, fexec, "ovs-vsctl --timeout=30 get Interface veth0 ofport", "3\n", nil)
 	_, err = ovsif.AddPort("veth0", 5)
 	if err == nil {
 		t.Fatalf("Unexpectedly failed to get error")
@@ -196,9 +196,9 @@ func TestAddPort(t *testing.T) {
 	}
 	ensureTestResults(t, fexec)
 
-	addTestResult(t, fexec, "ovs-vsctl --may-exist add-port br0 veth0 -- set Interface veth0 ofport_request=5", "", nil)
-	addTestResult(t, fexec, "ovs-vsctl get Interface veth0 ofport", "-1\n", nil)
-	addTestResult(t, fexec, "ovs-vsctl get Interface veth0 error", "could not open network device veth0 (No such device)\n", nil)
+	addTestResult(t, fexec, "ovs-vsctl --timeout=30 --may-exist add-port br0 veth0 -- set Interface veth0 ofport_request=5", "", nil)
+	addTestResult(t, fexec, "ovs-vsctl --timeout=30 get Interface veth0 ofport", "-1\n", nil)
+	addTestResult(t, fexec, "ovs-vsctl --timeout=30 get Interface veth0 error", "could not open network device veth0 (No such device)\n", nil)
 	_, err = ovsif.AddPort("veth0", 5)
 	if err == nil {
 		t.Fatalf("Unexpectedly failed to get error")
@@ -213,19 +213,19 @@ func TestOVSVersion(t *testing.T) {
 	fexec := normalSetup()
 	defer ensureTestResults(t, fexec)
 
-	addTestResult(t, fexec, "ovs-vsctl --version", "2.5.0", nil)
+	addTestResult(t, fexec, "ovs-vsctl --timeout=30 --version", "2.5.0", nil)
 	_, err := New(fexec, "br0", "2.5.0")
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
-	addTestResult(t, fexec, "ovs-vsctl --version", "2.4.0", nil)
+	addTestResult(t, fexec, "ovs-vsctl --timeout=30 --version", "2.4.0", nil)
 	_, err = New(fexec, "br0", "2.5.0")
 	if err == nil {
 		t.Fatalf("Unexpectedly did not get error")
 	}
 
-	addTestResult(t, fexec, "ovs-vsctl --version", "3.2.0", nil)
+	addTestResult(t, fexec, "ovs-vsctl --timeout=30 --version", "3.2.0", nil)
 	_, err = New(fexec, "br0", "2.5.0")
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)

@@ -3,8 +3,10 @@ kind: Template
 metadata:
   name: openshift-apiserver
 parameters:
-- name: IMAGE
+- name: OPENSHIFT_IMAGE
   value: openshift/origin-control-plane:latest
+- name: OPENSHIFT_PULL_POLICY
+  value: Always
 - name: NAMESPACE
   value: openshift-apiserver
 - name: LOGLEVEL
@@ -39,8 +41,8 @@ objects:
         hostNetwork: true
         containers:
         - name: apiserver
-          image: ${IMAGE}
-          imagePullPolicy: IfNotPresent
+          image: ${OPENSHIFT_IMAGE}
+          imagePullPolicy: ${OPENSHIFT_PULL_POLICY}
           env:
           - name: ADDITIONAL_ALLOWED_REGISTRIES
             value: registry.centos.org

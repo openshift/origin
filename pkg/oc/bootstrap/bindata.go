@@ -15781,8 +15781,9 @@ objects:
   roleRef:
     kind: ClusterRole
     name: servicecatalog-serviceclass-viewer
-  groupNames:
-  - system:authenticated
+  subjects:
+  - kind: Group
+    name: system:authenticated
 
 - apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
@@ -16271,7 +16272,8 @@ spec:
   hostNetwork: true
   containers:
   - name: etcd
-    image: openshift/origin-control-plane:latest
+    image: OPENSHIFT_IMAGE
+    imagePullPolicy: OPENSHIFT_PULL_POLICY
     workingDir: /var/lib/etcd
     command: ["/bin/bash", "-c"]
     args:
@@ -16323,7 +16325,8 @@ spec:
   hostNetwork: true
   containers:
   - name: api
-    image: openshift/origin-control-plane:latest
+    image: OPENSHIFT_IMAGE
+    imagePullPolicy: OPENSHIFT_PULL_POLICY
     command: ["/bin/bash", "-c"]
     args:
     - |
@@ -16357,7 +16360,8 @@ spec:
       path: /etc/origin/cloudprovider
   - name: master-data
     hostPath:
-      path: /var/lib/origin`)
+      path: /var/lib/origin
+`)
 
 func installKubeApiserverApiserverYamlBytes() ([]byte, error) {
 	return _installKubeApiserverApiserverYaml, nil
@@ -16387,7 +16391,8 @@ spec:
   hostNetwork: true
   containers:
   - name: controllers
-    image: openshift/origin-control-plane:latest
+    image: OPENSHIFT_IMAGE
+    imagePullPolicy: OPENSHIFT_PULL_POLICY
     command: ["hyperkube", "kube-controller-manager"]
     args:
     - "--enable-dynamic-provisioning=true"
@@ -16426,7 +16431,8 @@ spec:
       path: /path/to/master/config-dir
   - name: master-cloud-provider
     hostPath:
-      path: /etc/origin/cloudprovider`)
+      path: /etc/origin/cloudprovider
+`)
 
 func installKubeControllerManagerKubeControllerManagerYamlBytes() ([]byte, error) {
 	return _installKubeControllerManagerKubeControllerManagerYaml, nil
@@ -16450,8 +16456,10 @@ metadata:
 parameters:
 - name: NAMESPACE
   value: kube-dns
-- name: IMAGE
+- name: OPENSHIFT_IMAGE
   value: openshift/origin-control-plane:latest
+- name: OPENSHIFT_PULL_POLICY
+  value: Always
 - name: LOGLEVEL
   value: "0"
 - name: KUBEDNS_CONFIG_HOST_PATH
@@ -16486,7 +16494,8 @@ objects:
         serviceAccountName: kube-dns
         containers:
         - name: kube-proxy
-          image: ${IMAGE}
+          image: ${OPENSHIFT_IMAGE}
+          imagePullPolicy: ${OPENSHIFT_PULL_POLICY}
           command: ["openshift", "start", "node"]
           args:
           - "--enable=dns"
@@ -16547,8 +16556,10 @@ kind: Template
 metadata:
   name: kube-proxy
 parameters:
-- name: IMAGE
-  value: openshift/origin-control-plane:latest
+- name: OPENSHIFT_IMAGE
+  value: openshift/origin-control-plane
+- name: OPENSHIFT_PULL_POLICY
+  value: Always
 - name: NAMESPACE
   value: kube-proxy
 - name: LOGLEVEL
@@ -16597,7 +16608,8 @@ objects:
         hostNetwork: true
         containers:
         - name: kube-proxy
-          image: ${IMAGE}
+          image: ${OPENSHIFT_IMAGE}
+          imagePullPolicy: ${OPENSHIFT_PULL_POLICY}
           command: ["openshift", "start", "node"]
           args:
           - "--enable=proxy"
@@ -16644,7 +16656,8 @@ spec:
   hostNetwork: true
   containers:
   - name: scheduler
-    image: openshift/origin-control-plane:latest
+    image: OPENSHIFT_IMAGE
+    imagePullPolicy: OPENSHIFT_PULL_POLICY
     command: ["hyperkube", "kube-scheduler"]
     args:
     - "--leader-elect=true"
@@ -16692,8 +16705,10 @@ kind: Template
 metadata:
   name: openshift-apiserver
 parameters:
-- name: IMAGE
+- name: OPENSHIFT_IMAGE
   value: openshift/origin-control-plane:latest
+- name: OPENSHIFT_PULL_POLICY
+  value: Always
 - name: NAMESPACE
   value: openshift-apiserver
 - name: LOGLEVEL
@@ -16728,8 +16743,8 @@ objects:
         hostNetwork: true
         containers:
         - name: apiserver
-          image: ${IMAGE}
-          imagePullPolicy: IfNotPresent
+          image: ${OPENSHIFT_IMAGE}
+          imagePullPolicy: ${OPENSHIFT_PULL_POLICY}
           env:
           - name: ADDITIONAL_ALLOWED_REGISTRIES
             value: registry.centos.org
@@ -17109,8 +17124,10 @@ kind: Template
 metadata:
   name: openshift-controller-manager
 parameters:
-- name: IMAGE
+- name: OPENSHIFT_IMAGE
   value: openshift/origin-control-plane:latest
+- name: OPENSHIFT_PULL_POLICY
+  value: Always
 - name: NAMESPACE
   value: openshift-controller-manager
 - name: LOGLEVEL
@@ -17146,8 +17163,8 @@ objects:
         hostNetwork: true
         containers:
         - name: c
-          image: ${IMAGE}
-          imagePullPolicy: IfNotPresent
+          image: ${OPENSHIFT_IMAGE}
+          imagePullPolicy: ${OPENSHIFT_PULL_POLICY}
           command: ["hypershift", "openshift-controller-manager"]
           args:
           - "--config=/etc/origin/master/master-config.yaml"
@@ -17240,8 +17257,10 @@ func installOpenshiftWebConsoleOperatorInstallRbacYaml() (*asset, error) {
 var _installOpenshiftWebConsoleOperatorInstallYaml = []byte(`apiVersion: template.openshift.io/v1
 kind: Template
 parameters:
-- name: IMAGE
-  value: openshift/origin:latest
+- name: OPENSHIFT_IMAGE
+  value: openshift/origin-control-plane:latest
+- name: OPENSHIFT_PULL_POLICY
+  value: Always
 - name: NAMESPACE
   # This namespace must not be changed.
   value: openshift-core-operators
@@ -17289,8 +17308,8 @@ objects:
         serviceAccountName: openshift-web-console-operator
         containers:
         - name: operator
-          image: ${IMAGE}
-          imagePullPolicy: IfNotPresent
+          image: ${OPENSHIFT_IMAGE}
+          imagePullPolicy: ${OPENSHIFT_PULL_POLICY}
           command: ["hypershift", "experimental", "openshift-webconsole-operator"]
           args:
           - "-v=${LOGLEVEL}"
@@ -17387,6 +17406,8 @@ metadata:
 parameters:
 - name: IMAGE
   value: openshift/origin-web-console:latest
+- name: OPENSHIFT_PULL_POLICY
+  value: Always
 - name: NAMESPACE
   # This namespace cannot be changed. Only `+"`"+`openshift-web-console`+"`"+` is supported.
   value: openshift-web-console
@@ -17423,7 +17444,7 @@ objects:
         containers:
         - name: webconsole
           image: ${IMAGE}
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: ${OPENSHIFT_PULL_POLICY}
           command:
           - "/usr/bin/origin-web-console"
           - "--audit-log-path=-"
@@ -17594,6 +17615,8 @@ metadata:
 parameters:
 - name: IMAGE
   value: openshift/origin-template-service-broker:latest
+- name: OPENSHIFT_PULL_POLICY
+  value: Always
 - name: NAMESPACE
   value: openshift-template-service-broker
 - name: LOGLEVEL
@@ -17627,7 +17650,7 @@ objects:
         containers:
         - name: c
           image: ${IMAGE}
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: ${OPENSHIFT_PULL_POLICY}
           command:
           - "/usr/bin/template-service-broker"
           - "start"

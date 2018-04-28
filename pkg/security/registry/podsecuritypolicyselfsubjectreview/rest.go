@@ -55,14 +55,14 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, _ rest.Validat
 		return nil, kapierrors.NewBadRequest("namespace parameter required.")
 	}
 
-	matchedConstraints, err := r.sccMatcher.FindApplicableSCCs(userInfo)
+	matchedConstraints, err := r.sccMatcher.FindApplicableSCCs(userInfo, ns)
 	if err != nil {
 		return nil, kapierrors.NewBadRequest(fmt.Sprintf("unable to find SecurityContextConstraints: %v", err))
 	}
 	saName := pspssr.Spec.Template.Spec.ServiceAccountName
 	if len(saName) > 0 {
 		saUserInfo := serviceaccount.UserInfo(ns, saName, "")
-		saConstraints, err := r.sccMatcher.FindApplicableSCCs(saUserInfo)
+		saConstraints, err := r.sccMatcher.FindApplicableSCCs(saUserInfo, ns)
 		if err != nil {
 			return nil, kapierrors.NewBadRequest(fmt.Sprintf("unable to find SecurityContextConstraints: %v", err))
 		}

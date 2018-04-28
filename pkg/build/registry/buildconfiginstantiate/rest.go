@@ -11,16 +11,15 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/util/httpstream/spdy"
-	knet "k8s.io/apimachinery/pkg/util/net"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/wait"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
+	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/remotecommand"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
-	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
-	"k8s.io/kubernetes/pkg/registry/core/pod"
 
 	buildapiv1 "github.com/openshift/api/build/v1"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
@@ -85,22 +84,27 @@ func (s *InstantiateREST) ProducesMIMETypes(verb string) []string {
 	return nil // no additional mime types
 }
 
-func NewBinaryStorage(generator *generator.BuildGenerator, buildClient buildtypedclient.BuildsGetter, podClient kcoreclient.PodsGetter, info kubeletclient.ConnectionInfoGetter) *BinaryInstantiateREST {
+func NewBinaryStorage(generator *generator.BuildGenerator, buildClient buildtypedclient.BuildsGetter, podClient kcoreclient.PodsGetter, inClientConfig *restclient.Config) *BinaryInstantiateREST {
+	clientConfig := restclient.CopyConfig(inClientConfig)
+	clientConfig.APIPath = "/api"
+	clientConfig.GroupVersion = &schema.GroupVersion{Version: "v1"}
+	clientConfig.NegotiatedSerializer = legacyscheme.Codecs
+
 	return &BinaryInstantiateREST{
-		Generator:      generator,
-		BuildClient:    buildClient,
-		PodGetter:      &podGetter{podClient},
-		ConnectionInfo: info,
-		Timeout:        5 * time.Minute,
+		Generator:    generator,
+		BuildClient:  buildClient,
+		PodClient:    podClient,
+		ClientConfig: clientConfig,
+		Timeout:      5 * time.Minute,
 	}
 }
 
 type BinaryInstantiateREST struct {
-	Generator      *generator.BuildGenerator
-	BuildClient    buildtypedclient.BuildsGetter
-	PodGetter      pod.ResourceGetter
-	ConnectionInfo kubeletclient.ConnectionInfoGetter
-	Timeout        time.Duration
+	Generator    *generator.BuildGenerator
+	BuildClient  buildtypedclient.BuildsGetter
+	PodClient    kcoreclient.PodsGetter
+	ClientConfig *restclient.Config
+	Timeout      time.Duration
 }
 
 var _ rest.Connecter = &BinaryInstantiateREST{}
@@ -261,26 +265,27 @@ func (h *binaryInstantiateHandler) handle(r io.Reader) (runtime.Object, error) {
 		opts.Container = buildstrategy.CustomBuild
 	}
 
-	location, transport, err := pod.AttachLocation(h.r.PodGetter, h.r.ConnectionInfo, h.ctx, buildPodName, opts)
+	restClient, err := restclient.RESTClientFor(h.r.ClientConfig)
 	if err != nil {
-		if errors.IsNotFound(err) {
-			return nil, errors.NewNotFound(kapi.Resource("pod"), buildPodName)
-		}
-		return nil, errors.NewBadRequest(err.Error())
+		return nil, err
 	}
-	tlsClientConfig, err := knet.TLSClientConfig(transport)
+
+	// TODO: consider abstracting into a client invocation or client helper
+	req := restClient.Post().
+		Resource("pods").
+		Name(buildPodName).
+		Namespace(build.Namespace).
+		SubResource("attach")
+	req.VersionedParams(opts, legacyscheme.ParameterCodec)
+
+	exec, err := remotecommand.NewSPDYExecutor(h.r.ClientConfig, "POST", req.URL())
 	if err != nil {
-		return nil, errors.NewInternalError(fmt.Errorf("unable to connect to node, could not retrieve TLS client config: %v", err))
+		return nil, err
 	}
-	upgrader := spdy.NewRoundTripper(tlsClientConfig, true)
-	exec, err := remotecommand.NewSPDYExecutorForTransports(upgrader, upgrader, "POST", location)
-	if err != nil {
-		return nil, errors.NewInternalError(fmt.Errorf("unable to connect to server: %v", err))
-	}
-	streamOptions := remotecommand.StreamOptions{
+	err = exec.Stream(remotecommand.StreamOptions{
 		Stdin: r,
-	}
-	if err := exec.Stream(streamOptions); err != nil {
+	})
+	if err != nil {
 		return nil, errors.NewInternalError(err)
 	}
 	cancel = false
@@ -303,16 +308,4 @@ func (h *binaryInstantiateHandler) cancelBuild(build *buildapi.Build) {
 			return true, err
 		}
 	})
-}
-
-type podGetter struct {
-	podsNamespacer kcoreclient.PodsGetter
-}
-
-func (g *podGetter) Get(ctx apirequest.Context, name string, options *metav1.GetOptions) (runtime.Object, error) {
-	ns, ok := apirequest.NamespaceFrom(ctx)
-	if !ok {
-		return nil, errors.NewBadRequest("namespace parameter required.")
-	}
-	return g.podsNamespacer.Pods(ns).Get(name, *options)
 }

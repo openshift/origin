@@ -25,7 +25,6 @@ import (
 	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	coreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
-	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 	rbacregistryvalidation "k8s.io/kubernetes/pkg/registry/rbac/validation"
 	rbacauthorizer "k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac"
 
@@ -77,7 +76,6 @@ import (
 type OpenshiftAPIExtraConfig struct {
 	KubeAPIServerClientConfig *restclient.Config
 	KubeClientInternal        kclientsetinternal.Interface
-	KubeletClientConfig       *kubeletclient.KubeletClientConfig
 	KubeInternalInformers     kinternalinformers.SharedInformerFactory
 
 	QuotaInformers    quotainformer.SharedInformerFactory
@@ -118,9 +116,6 @@ func (c *OpenshiftAPIExtraConfig) Validate() error {
 
 	if c.KubeClientInternal == nil {
 		ret = append(ret, fmt.Errorf("KubeClientInternal is required"))
-	}
-	if c.KubeletClientConfig == nil {
-		ret = append(ret, fmt.Errorf("KubeletClientConfig is required"))
 	}
 	if c.KubeInternalInformers == nil {
 		ret = append(ret, fmt.Errorf("KubeInternalInformers is required"))
@@ -276,10 +271,9 @@ func (c *completedConfig) withBuildAPIServer(delegateAPIServer genericapiserver.
 		GenericConfig: &genericapiserver.RecommendedConfig{Config: *c.GenericConfig.Config},
 		ExtraConfig: buildapiserver.ExtraConfig{
 			KubeAPIServerClientConfig: c.ExtraConfig.KubeAPIServerClientConfig,
-			KubeletClientConfig:       c.ExtraConfig.KubeletClientConfig,
-			Codecs:                    legacyscheme.Codecs,
-			Registry:                  legacyscheme.Registry,
-			Scheme:                    legacyscheme.Scheme,
+			Codecs:   legacyscheme.Codecs,
+			Registry: legacyscheme.Registry,
+			Scheme:   legacyscheme.Scheme,
 		},
 	}
 	config := cfg.Complete()
@@ -462,6 +456,7 @@ func (c *completedConfig) withSecurityAPIServer(delegateAPIServer genericapiserv
 			SCCStorage:            c.ExtraConfig.SCCStorage,
 			SecurityInformers:     c.ExtraConfig.SecurityInformers,
 			KubeInternalInformers: c.ExtraConfig.KubeInternalInformers,
+			Authorizer:            c.GenericConfig.Authorization.Authorizer,
 			Codecs:                legacyscheme.Codecs,
 			Registry:              legacyscheme.Registry,
 			Scheme:                legacyscheme.Scheme,

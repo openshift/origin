@@ -11,7 +11,8 @@ spec:
   hostNetwork: true
   containers:
   - name: scheduler
-    image: openshift/origin-control-plane:latest
+    image: OPENSHIFT_IMAGE
+    imagePullPolicy: OPENSHIFT_PULL_POLICY
     command: ["hyperkube", "kube-scheduler"]
     args:
     - "--leader-elect=true"

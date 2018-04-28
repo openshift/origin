@@ -11,6 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/diff"
 	kadmission "k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/authentication/user"
+	"k8s.io/apiserver/pkg/authorization/authorizer"
 	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -23,16 +24,17 @@ import (
 	oscc "github.com/openshift/origin/pkg/security/securitycontextconstraints"
 )
 
-func NewTestAdmission(lister securitylisters.SecurityContextConstraintsLister, kclient clientset.Interface) kadmission.Interface {
+func newTestAdmission(lister securitylisters.SecurityContextConstraintsLister, kclient clientset.Interface, authorizer authorizer.Authorizer) kadmission.Interface {
 	return &constraint{
-		Handler:   kadmission.NewHandler(kadmission.Create),
-		client:    kclient,
-		sccLister: lister,
+		Handler:    kadmission.NewHandler(kadmission.Create),
+		client:     kclient,
+		sccLister:  lister,
+		authorizer: authorizer,
 	}
 }
 
 func TestFailClosedOnInvalidPod(t *testing.T) {
-	plugin := NewTestAdmission(nil, nil)
+	plugin := newTestAdmission(nil, nil, nil)
 	pod := &v1kapi.Pod{}
 	attrs := kadmission.NewAttributesRecord(pod, nil, kapi.Kind("Pod").WithVersion("version"), pod.Namespace, pod.Name, kapi.Resource("pods").WithVersion("version"), "", kadmission.Create, &user.DefaultInfo{})
 	err := plugin.(kadmission.MutationInterface).Admit(attrs)
@@ -158,9 +160,11 @@ func TestAdmitCaps(t *testing.T) {
 }
 
 func testSCCAdmit(testCaseName string, sccs []*securityapi.SecurityContextConstraints, pod *kapi.Pod, shouldPass bool, t *testing.T) {
+	t.Helper()
 	tc := setupClientSet()
 	lister := createSCCLister(t, sccs)
-	plugin := NewTestAdmission(lister, tc)
+	testAuthorizer := &sccTestAuthorizer{t: t}
+	plugin := newTestAdmission(lister, tc, testAuthorizer)
 
 	attrs := kadmission.NewAttributesRecord(pod, nil, kapi.Kind("Pod").WithVersion("version"), pod.Namespace, pod.Name, kapi.Resource("pods").WithVersion("version"), "", kadmission.Create, &user.DefaultInfo{})
 	err := plugin.(kadmission.MutationInterface).Admit(attrs)
@@ -199,8 +203,10 @@ func TestAdmitSuccess(t *testing.T) {
 		saSCC,
 	})
 
+	testAuthorizer := &sccTestAuthorizer{t: t}
+
 	// create the admission plugin
-	p := NewTestAdmission(lister, tc)
+	p := newTestAdmission(lister, tc, testAuthorizer)
 
 	// specifies a UID in the range of the preallocated UID annotation
 	specifyUIDInRange := goodPod()
@@ -306,8 +312,10 @@ func TestAdmitFailure(t *testing.T) {
 		saSCC,
 	})
 
+	testAuthorizer := &sccTestAuthorizer{t: t}
+
 	// create the admission plugin
-	p := NewTestAdmission(lister, tc)
+	p := newTestAdmission(lister, tc, testAuthorizer)
 
 	// setup test data
 	uidNotInRange := goodPod()
@@ -683,6 +691,8 @@ func TestMatchingSecurityContextConstraints(t *testing.T) {
 	// single match cases
 	testCases := map[string]struct {
 		userInfo    user.Info
+		authorizer  *sccTestAuthorizer
+		namespace   string
 		expectedSCC string
 	}{
 		"find none": {
@@ -690,12 +700,14 @@ func TestMatchingSecurityContextConstraints(t *testing.T) {
 				Name:   "foo",
 				Groups: []string{"bar"},
 			},
+			authorizer: &sccTestAuthorizer{t: t},
 		},
 		"find user": {
 			userInfo: &user.DefaultInfo{
 				Name:   "user",
 				Groups: []string{"bar"},
 			},
+			authorizer:  &sccTestAuthorizer{t: t},
 			expectedSCC: "match user",
 		},
 		"find group": {
@@ -703,13 +715,40 @@ func TestMatchingSecurityContextConstraints(t *testing.T) {
 				Name:   "foo",
 				Groups: []string{"group"},
 			},
+			authorizer:  &sccTestAuthorizer{t: t},
+			expectedSCC: "match group",
+		},
+		"not find user via authz": {
+			userInfo: &user.DefaultInfo{
+				Name:   "foo",
+				Groups: []string{"bar"},
+			},
+			authorizer: &sccTestAuthorizer{t: t, user: "not-foo", scc: "match user"},
+			namespace:  "fancy",
+		},
+		"find user via authz cluster wide": {
+			userInfo: &user.DefaultInfo{
+				Name:   "foo",
+				Groups: []string{"bar"},
+			},
+			authorizer:  &sccTestAuthorizer{t: t, user: "foo", scc: "match user"},
+			namespace:   "fancy",
+			expectedSCC: "match user",
+		},
+		"find group via authz in namespace": {
+			userInfo: &user.DefaultInfo{
+				Name:   "foo",
+				Groups: []string{"bar"},
+			},
+			authorizer:  &sccTestAuthorizer{t: t, user: "foo", namespace: "room", scc: "match group"},
+			namespace:   "room",
 			expectedSCC: "match group",
 		},
 	}
 
 	for k, v := range testCases {
-		sccMatcher := oscc.NewDefaultSCCMatcher(lister)
-		sccs, err := sccMatcher.FindApplicableSCCs(v.userInfo)
+		sccMatcher := oscc.NewDefaultSCCMatcher(lister, v.authorizer)
+		sccs, err := sccMatcher.FindApplicableSCCs(v.userInfo, v.namespace)
 		if err != nil {
 			t.Errorf("%s received error %v", k, err)
 			continue
@@ -735,8 +774,10 @@ func TestMatchingSecurityContextConstraints(t *testing.T) {
 		Name:   "user",
 		Groups: []string{"group"},
 	}
-	sccMatcher := oscc.NewDefaultSCCMatcher(lister)
-	sccs, err := sccMatcher.FindApplicableSCCs(userInfo)
+	testAuthorizer := &sccTestAuthorizer{t: t}
+	namespace := "does-not-matter"
+	sccMatcher := oscc.NewDefaultSCCMatcher(lister, testAuthorizer)
+	sccs, err := sccMatcher.FindApplicableSCCs(userInfo, namespace)
 	if err != nil {
 		t.Fatalf("matching many sccs returned error %v", err)
 	}
@@ -810,9 +851,10 @@ func TestAdmitWithPrioritizedSCC(t *testing.T) {
 
 	tc := setupClientSet()
 	lister := createSCCLister(t, sccsToSort)
+	testAuthorizer := &sccTestAuthorizer{t: t}
 
 	// create the admission plugin
-	plugin := NewTestAdmission(lister, tc)
+	plugin := newTestAdmission(lister, tc, testAuthorizer)
 
 	testSCCAdmission(goodPod(), plugin, restricted.Name, "match the restricted SCC", t)
 
@@ -989,7 +1031,8 @@ func TestAdmitPreferNonmutatingWhenPossible(t *testing.T) {
 
 		tc := setupClientSet()
 		lister := createSCCLister(t, testCase.sccs)
-		plugin := NewTestAdmission(lister, tc)
+		testAuthorizer := &sccTestAuthorizer{t: t}
+		plugin := newTestAdmission(lister, tc, testAuthorizer)
 
 		attrs := kadmission.NewAttributesRecord(testCase.newPod, testCase.oldPod, kapi.Kind("Pod").WithVersion("version"), testCase.newPod.Namespace, testCase.newPod.Name, kapi.Resource("pods").WithVersion("version"), "", testCase.operation, &user.DefaultInfo{})
 		err := plugin.(kadmission.MutationInterface).Admit(attrs)
@@ -1018,6 +1061,7 @@ func TestAdmitPreferNonmutatingWhenPossible(t *testing.T) {
 // testSCCAdmission is a helper to admit the pod and ensure it was validated against the expected
 // SCC. Returns true when errors have been encountered.
 func testSCCAdmission(pod *kapi.Pod, plugin kadmission.Interface, expectedSCC, testName string, t *testing.T) bool {
+	t.Helper()
 	attrs := kadmission.NewAttributesRecord(pod, nil, kapi.Kind("Pod").WithVersion("version"), pod.Namespace, pod.Name, kapi.Resource("pods").WithVersion("version"), "", kadmission.Create, &user.DefaultInfo{})
 	err := plugin.(kadmission.MutationInterface).Admit(attrs)
 	if err != nil {
@@ -1200,6 +1244,7 @@ func setupClientSet() *clientsetfake.Clientset {
 }
 
 func createSCCListerAndIndexer(t *testing.T, sccs []*securityapi.SecurityContextConstraints) (securitylisters.SecurityContextConstraintsLister, cache.Indexer) {
+	t.Helper()
 	indexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
 	lister := securitylisters.NewSecurityContextConstraintsLister(indexer)
 	for _, scc := range sccs {
@@ -1211,6 +1256,38 @@ func createSCCListerAndIndexer(t *testing.T, sccs []*securityapi.SecurityContext
 }
 
 func createSCCLister(t *testing.T, sccs []*securityapi.SecurityContextConstraints) securitylisters.SecurityContextConstraintsLister {
+	t.Helper()
 	lister, _ := createSCCListerAndIndexer(t, sccs)
 	return lister
+}
+
+type sccTestAuthorizer struct {
+	t *testing.T
+
+	// this user, in this namespace, can use this SCC
+	user      string
+	namespace string
+	scc       string
+}
+
+func (s *sccTestAuthorizer) Authorize(a authorizer.Attributes) (authorizer.Decision, string, error) {
+	s.t.Helper()
+	if !isValidSCCAttributes(a) {
+		s.t.Errorf("invalid attributes seen: %#v", a)
+		return authorizer.DecisionDeny, "", nil
+	}
+
+	allowedNamespace := len(s.namespace) == 0 || s.namespace == a.GetNamespace()
+	if s.user == a.GetUser().GetName() && allowedNamespace && s.scc == a.GetName() {
+		return authorizer.DecisionAllow, "", nil
+	}
+
+	return authorizer.DecisionNoOpinion, "", nil
+}
+
+func isValidSCCAttributes(a authorizer.Attributes) bool {
+	return a.GetVerb() == "use" &&
+		a.GetAPIGroup() == "security.openshift.io" &&
+		a.GetResource() == "securitycontextconstraints" &&
+		a.IsResourceRequest()
 }

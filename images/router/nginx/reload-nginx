@@ -2,12 +2,25 @@
 
 set -o nounset
 
-config_file=/var/lib/nginx/conf/nginx.config
-if [ -f /var/lib/nginx/logs/nginx.pid ]; then
-  /usr/sbin/nginx -c ${config_file} -s reload
-  reload_status=$?
+config_file=/var/lib/nginx/conf/nginx.conf
+pid_file=/var/lib/nginx/run/nginx.pid
+
+if [ -f $pid_file ]; then
+  # NGINX is running. Reloading NGINX with the new configuration. 
+  /usr/sbin/nginx -c $config_file -s reload
+  status=$?
+  operation=reload
 else
-  /usr/sbin/nginx -c ${config_file}
-  reload_status=$?
+  # NGINX is not running. Starting NGINX with the initial configuration.
+  /usr/sbin/nginx -c $config_file
+  status=$?
+  operation=start
 fi
-exit $reload_status
+
+if [[ $status -ne 0 ]]; then
+  >&2 echo "Failed to $operation NGINX."
+else
+  echo "Router was successfully ${operation}ed."
+fi
+
+exit $status

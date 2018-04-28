@@ -11,6 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apiserver/pkg/authentication/user"
+	"k8s.io/apiserver/pkg/authorization/authorizer"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
@@ -20,39 +21,59 @@ import (
 	"github.com/openshift/origin/pkg/security/uid"
 )
 
-// SCCMatcher defines interface for SecurityContextConstraint matcher
 type SCCMatcher interface {
-	FindApplicableSCCs(user user.Info) ([]*securityapi.SecurityContextConstraints, error)
+	FindApplicableSCCs(user user.Info, namespace string) ([]*securityapi.SecurityContextConstraints, error)
 }
 
-// DefaultSCCMatcher implements default implementation for SCCMatcher interface
-type DefaultSCCMatcher struct {
-	cache securitylisters.SecurityContextConstraintsLister
+type defaultSCCMatcher struct {
+	cache      securitylisters.SecurityContextConstraintsLister
+	authorizer authorizer.Authorizer
 }
 
-// NewDefaultSCCMatcher builds and initializes a DefaultSCCMatcher
-func NewDefaultSCCMatcher(c securitylisters.SecurityContextConstraintsLister) SCCMatcher {
-	return DefaultSCCMatcher{cache: c}
+func NewDefaultSCCMatcher(c securitylisters.SecurityContextConstraintsLister, authorizer authorizer.Authorizer) SCCMatcher {
+	return &defaultSCCMatcher{cache: c, authorizer: authorizer}
 }
 
-// FindApplicableSCCs implements SCCMatcher interface for DefaultSCCMatcher
-func (d DefaultSCCMatcher) FindApplicableSCCs(userInfo user.Info) ([]*securityapi.SecurityContextConstraints, error) {
+// FindApplicableSCCs implements SCCMatcher interface
+func (d *defaultSCCMatcher) FindApplicableSCCs(userInfo user.Info, namespace string) ([]*securityapi.SecurityContextConstraints, error) {
 	var matchedConstraints []*securityapi.SecurityContextConstraints
 	constraints, err := d.cache.List(labels.Everything())
 	if err != nil {
 		return nil, err
 	}
 	for _, constraint := range constraints {
-		if ConstraintAppliesTo(constraint, userInfo) {
+		if ConstraintAppliesTo(constraint, userInfo, namespace, d.authorizer) {
 			matchedConstraints = append(matchedConstraints, constraint)
 		}
 	}
 	return matchedConstraints, nil
 }
 
+// authorizedForSCC returns true if info is authorized to perform the "use" verb on the SCC resource.
+func authorizedForSCC(constraint *securityapi.SecurityContextConstraints, info user.Info, namespace string, a authorizer.Authorizer) bool {
+	// check against the namespace that the pod is being created in to allow per-namespace SCC grants.
+	attr := authorizer.AttributesRecord{
+		User:            info,
+		Verb:            "use",
+		Namespace:       namespace,
+		Name:            constraint.Name,
+		APIGroup:        securityapi.GroupName,
+		Resource:        "securitycontextconstraints",
+		ResourceRequest: true,
+	}
+	decision, reason, err := a.Authorize(attr)
+	if err != nil {
+		glog.V(5).Infof("cannot authorize for SCC: %v %q %v", decision, reason, err)
+		return false
+	}
+	return decision == authorizer.DecisionAllow
+}
+
 // ConstraintAppliesTo inspects the constraint's users and groups against the userInfo to determine
 // if it is usable by the userInfo.
-func ConstraintAppliesTo(constraint *securityapi.SecurityContextConstraints, userInfo user.Info) bool {
+// TODO make this private and have the router SA check do a SAR check instead.
+// Anything we do here needs to work with a deny authorizer so the choices are limited to SAR / Authorizer
+func ConstraintAppliesTo(constraint *securityapi.SecurityContextConstraints, userInfo user.Info, namespace string, a authorizer.Authorizer) bool {
 	for _, user := range constraint.Users {
 		if userInfo.GetName() == user {
 			return true
@@ -62,6 +83,9 @@ func ConstraintAppliesTo(constraint *securityapi.SecurityContextConstraints, use
 		if constraintSupportsGroup(userGroup, constraint.Groups) {
 			return true
 		}
+	}
+	if a != nil {
+		return authorizedForSCC(constraint, userInfo, namespace, a)
 	}
 	return false
 }

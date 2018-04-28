@@ -49,13 +49,7 @@ var (
 	  %[1]s
 
 	  # To actually perform the update, the confirm flag must be appended
-	  %[1]s --confirm
-
-	  # Migrate a specific group-version-kind to the latest preferred version
-	  %[1]s --initial=extensions/v1beta1.ReplicaSet --confirm
-
-	  # Migrate a specific group-version-kind to a specific group-version-kind
-	  %[1]s --initial=v1.DeploymentConfig --final=apps.openshift.io/v1.DeploymentConfig --confirm`)
+	  %[1]s --confirm`)
 )
 
 func prettyPrintMigrations(versionKinds map[metav1.TypeMeta]metav1.TypeMeta) string {

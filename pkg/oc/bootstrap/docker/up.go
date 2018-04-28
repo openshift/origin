@@ -172,6 +172,8 @@ type ClusterUpConfig struct {
 	usingDefaultImages         bool
 	usingDefaultOpenShiftImage bool
 
+	defaultPullPolicy string
+
 	createdUser bool
 }
 
@@ -225,6 +227,13 @@ func init() {
 func (c *ClusterUpConfig) Complete(cmd *cobra.Command, out io.Writer) error {
 	// TODO: remove this when we move to container/apply based component installation
 	aggregatorinstall.Install(legacyscheme.GroupFactoryRegistry, legacyscheme.Registry, legacyscheme.Scheme)
+
+	// Set the ImagePullPolicy field in static pods and components based in whether users specified
+	// the --tag flag or not.
+	c.defaultPullPolicy = "Always"
+	if cmd.Flag("tag").Changed {
+		c.defaultPullPolicy = "IfNotPresent"
+	}
 
 	// Get the default client config for login
 	var err error

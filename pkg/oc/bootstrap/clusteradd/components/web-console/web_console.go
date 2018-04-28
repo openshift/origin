@@ -76,10 +76,10 @@ func (c *WebConsoleComponentOptions) Install(dockerClient dockerhelper.Interface
 	imageTemplate.Latest = false
 
 	params := map[string]string{
-		"API_SERVER_CONFIG": string(updatedConfig),
-		"IMAGE":             imageTemplate.ExpandOrDie("web-console"),
-		"LOGLEVEL":          fmt.Sprintf("%d", c.InstallContext.ComponentLogLevel()),
-		"NAMESPACE":         consoleNamespace,
+		"API_SERVER_CONFIG":          string(updatedConfig),
+		"OPENSHIFT_WEBCONSOLE_IMAGE": imageTemplate.ExpandOrDie("web-console"),
+		"LOGLEVEL":                   fmt.Sprintf("%d", c.InstallContext.ComponentLogLevel()),
+		"NAMESPACE":                  consoleNamespace,
 	}
 
 	component := componentinstall.Template{

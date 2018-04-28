@@ -1,8 +1,10 @@
 apiVersion: template.openshift.io/v1
 kind: Template
 parameters:
-- name: IMAGE
-  value: openshift/origin:latest
+- name: OPENSHIFT_IMAGE
+  value: openshift/origin-control-plane:latest
+- name: OPENSHIFT_PULL_POLICY
+  value: Always
 - name: NAMESPACE
   # This namespace must not be changed.
   value: openshift-core-operators
@@ -50,8 +52,8 @@ objects:
         serviceAccountName: openshift-web-console-operator
         containers:
         - name: operator
-          image: ${IMAGE}
-          imagePullPolicy: IfNotPresent
+          image: ${OPENSHIFT_IMAGE}
+          imagePullPolicy: ${OPENSHIFT_PULL_POLICY}
           command: ["hypershift", "experimental", "openshift-webconsole-operator"]
           args:
           - "-v=${LOGLEVEL}"

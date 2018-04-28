@@ -1,95 +1,363 @@
 {{/*
-    nginx.config: contains the main config with helper backends that are used to terminate
-    					encryption before finally sending to a host_be which is the backend that is the final
-    					backend for a route and contains all the endpoints for the service
+    nginx.conf: contains the main configuration file.
 */}}
-{{- define "/var/lib/nginx/conf/nginx.config" -}}
+{{- define "/var/lib/nginx/conf/nginx.conf" -}}
 {{- $workingDir := .WorkingDir }}
-#user       www www;  ## Default: nobody
-worker_processes  5;  ## Default: 1
-error_log  /var/lib/nginx/logs/error.log;
-pid        /var/lib/nginx/logs/nginx.pid;
+{{- $defaultDestinationCA := .DefaultDestinationCA }}
+{{ $httpAliases := getHTTPAliasesGroupedByHost .State }}
+{{ $httpsPort := env "ROUTER_SERVICE_HTTPS_PORT" "443" }}
+{{ $passthroughPort := env "ROUTER_SERVICE_PASSTHROUGH_PORT" ""}}
+{{ $logLevel := firstMatch "info|notice|warn|error|crit|alert|emerg" (env "ROUTER_LOG_LEVEL") "warn" }}
+worker_processes  auto;
+{{ with $syslogAddress := env "ROUTER_SYSLOG_ADDRESS" }}
+error_log syslog:server={{ $syslogAddress }},facility={{env "ROUTER_LOG_FACILITY" "local1"}} {{ $logLevel }}; 
+{{ else }}
+error_log  /var/lib/nginx/log/error.log {{ $logLevel }};
+{{ end }} 
+pid        /var/lib/nginx/run/nginx.pid;
 worker_rlimit_nofile 8192;
+worker_shutdown_timeout {{ env "ROUTER_DEFAULT_TUNNEL_TIMEOUT" "1h" }};
 
 events {
-  worker_connections  4096;  ## Default: 1024
+  worker_connections  {{env "ROUTER_MAX_CONNECTIONS" "20000"}};
 }
 
 http {
-  #include    conf/mime.types;
-  #include    /etc/nginx/proxy.conf;
-  #include    /etc/nginx/fastcgi.conf;
-  index    index.html index.htm index.php;
-
-  ssl_certificate     {{$workingDir}}/certs/default.pem;
-  ssl_certificate_key {{$workingDir}}/certs/default.pem;
-
   default_type application/octet-stream;
+
+{{ with $format := env "ROUTER_SYSLOG_FORMAT" }}
+  log_format main '{{ $format }}';
+{{ else }}
   log_format   main '$remote_addr - $remote_user [$time_local]  $status '
     '"$request" $body_bytes_sent "$http_referer" '
     '"$http_user_agent" "$http_x_forwarded_for"';
-  access_log   /var/lib/nginx/logs/access.log  main;
+{{ end }}
+{{ with $syslogAddress := env "ROUTER_SYSLOG_ADDRESS" }}
+  access_log syslog:server={{ $syslogAddress }},facility={{env "ROUTER_LOG_FACILITY" "local1"}},severity={{ $logLevel }} main;
+{{ else }}
+  access_log   /var/lib/nginx/log/access.log  main;
+{{ end }}
   sendfile     on;
   tcp_nopush   on;
-  server_names_hash_bucket_size 128; # this seems to be required for some vhosts
+  server_names_hash_bucket_size 256;
 
+  proxy_temp_path /var/lib/nginx/cache/proxy_temp;
+  client_body_temp_path /var/lib/nginx/cache/client_temp;
+  fastcgi_temp_path /var/lib/nginx/cache/fastcgi_temp;
+  uwsgi_temp_path /var/lib/nginx/cache/uwsgi_temp;
+  scgi_temp_path /var/lib/nginx/cache/scgi_temp;
 
+  keepalive_timeout {{ env "ROUTER_SLOWLORIS_HTTP_KEEPALIVE" "300s" }};
 
-{{- range $cfgIdx, $cfg := .State }}
+  client_body_timeout {{ env "ROUTER_DEFAULT_CLIENT_TIMEOUT" "30s" }};
+  client_header_timeout {{ env "ROUTER_DEFAULT_CLIENT_TIMEOUT" "30s" }};
+  send_timeout {{ env "ROUTER_DEFAULT_CLIENT_TIMEOUT" "30s" }};
+  proxy_connect_timeout {{ env "ROUTER_DEFAULT_CONNECT_TIMEOUT" "5s" }};
+  grpc_connect_timeout {{ env "ROUTER_DEFAULT_CONNECT_TIMEOUT" "5s" }};
+  proxy_read_timeout {{ env "ROUTER_DEFAULT_SERVER_TIMEOUT" "30s" }};
+  grpc_read_timeout {{ env "ROUTER_DEFAULT_SERVER_TIMEOUT" "30s" }};
+  proxy_send_timeout {{ env "ROUTER_DEFAULT_SERVER_TIMEOUT" "30s" }};
+  grpc_send_timeout {{ env "ROUTER_DEFAULT_SERVER_TIMEOUT" "30s" }};
 
-  upstream be_{{$cfg.Namespace}}_{{$cfg.Name}} {
-    {{- range $serviceUnitName, $weight := $cfg.ServiceUnitNames }}
-      {{- with $serviceUnit := index $.ServiceUnits $serviceUnitName }}
-        {{- range $idx, $endpoint := endpointsForAlias $cfg $serviceUnit }}
-    server {{$endpoint.IP}}:{{$endpoint.Port}};
-        {{ end -}}
-      {{ end -}}
-    {{ end -}}
+  # Prevent vulnerability to POODLE attacks (CVE‑2014‑3566) - omit SSLv3
+  ssl_protocols TLSv1 TLSv1.1 TLSv1.2;
+
+  # The default cipher suite can be selected from the three sets recommended by https://wiki.mozilla.org/Security/Server_Side_TLS,
+  # or the user can provide one using the ROUTER_CIPHERS environment variable.
+  # By default when a cipher set is not provided, intermediate is used.
+{{- if eq (env "ROUTER_CIPHERS" "intermediate") "modern" }}
+  # Modern cipher suite (no legacy browser support) from https://wiki.mozilla.org/Security/Server_Side_TLS
+  ssl_ciphers ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA384:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA256;
+{{ else }}
+  {{- if eq (env "ROUTER_CIPHERS" "intermediate") "intermediate" }}
+  # Intermediate cipher suite (default) from https://wiki.mozilla.org/Security/Server_Side_TLS
+  ssl_ciphers ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES256-SHA384:ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES256-SHA384:ECDHE-ECDSA-AES256-SHA:ECDHE-RSA-AES256-SHA:DHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA:DHE-RSA-AES256-SHA256:DHE-RSA-AES256-SHA:ECDHE-ECDSA-DES-CBC3-SHA:ECDHE-RSA-DES-CBC3-SHA:EDH-RSA-DES-CBC3-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:AES128-SHA256:AES256-SHA256:AES128-SHA:AES256-SHA:DES-CBC3-SHA:!DSS;
+  {{ else }}
+    {{- if eq (env "ROUTER_CIPHERS" "intermediate") "old" }}
+  # Old cipher suite (maximum compatibility but insecure) from https://wiki.mozilla.org/Security/Server_Side_TLS
+  ssl_ciphers ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:DHE-DSS-AES128-GCM-SHA256:kEDH+AESGCM:ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES256-SHA384:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA:ECDHE-ECDSA-AES256-SHA:DHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA:DHE-DSS-AES128-SHA256:DHE-RSA-AES256-SHA256:DHE-DSS-AES256-SHA:DHE-RSA-AES256-SHA:ECDHE-RSA-DES-CBC3-SHA:ECDHE-ECDSA-DES-CBC3-SHA:EDH-RSA-DES-CBC3-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:AES128-SHA256:AES256-SHA256:AES128-SHA:AES256-SHA:AES:DES-CBC3-SHA:HIGH:SEED:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!MD5:!PSK:!RSAPSK:!aDH:!aECDH:!EDH-DSS-DES-CBC3-SHA:!KRB5-DES-CBC3-SHA:!SRP;
+    {{- else }}
+  # user provided list of ciphers (Colon separated list as seen above)
+  # the env default is not used here since we can't get here with empty ROUTER_CIPHERS
+  ssl_ciphers {{env "ROUTER_CIPHERS" "ECDHE-ECDSA-CHACHA20-POLY1305"}};
+    {{- end }}
+  {{- end }}
+{{- end }}
+
+  map $http_upgrade $connection_upgrade {
+    default upgrade;
+    ''      close;
   }
 
-  server { # simple load balancing
- {{- if (eq $cfg.TLSTermination "") }}
-    listen          80;
- {{- else }}
-    listen          443 ssl;
- {{ end -}}
- 
-server_name     {{$cfg.Host}};
- {{- if and (ne $cfg.Host "") (or (eq $cfg.TLSTermination "edge") (eq $cfg.TLSTermination "reencrypt")) (eq $cfg.InsecureEdgeTerminationPolicy "Allow") }}
-  {{ $cert := index $cfg.Certificates $cfg.Host -}}
-  {{ if ne $cert.Contents "" }}
-    ssl on;
-    ssl_certificate     {{$workingDir}}/certs/{{$cfgIdx}}.pem;
-    ssl_certificate_key {{$workingDir}}/certs/{{$cfgIdx}}.pem;
-    ssl_session_timeout  5m;
-    ssl_protocols  TLSv1 TLSv1.1 TLSv1.2;
-    ssl_ciphers AES128-GCM-SHA256:ECDHE-RSA-AES128-SHA256:RC4:HIGH:!MD5:!aNULL:!eNULL:!NULL:!DH:!EDH:!AESGCM:!LOW:!EXP;
-    ssl_prefer_server_ciphers   on;
-  {{ end -}}
+  server {
+    listen {{if (gt .StatsPort 0)}}{{.StatsPort}}{{else}}1936{{end}};
 
- {{- else if and (ne $cfg.Host "") (or (eq $cfg.TLSTermination "edge") (eq $cfg.TLSTermination "reencrypt")) (eq $cfg.InsecureEdgeTerminationPolicy "Redirect") }}
- {{/*- else if (eq $cfg.InsecureEdgeTerminationPolicy "Redirect") */}}
-  {{ $cert := index $cfg.Certificates $cfg.Host -}}
-  {{ if ne $cert.Contents "" }}
-    ssl on;
-    ssl_certificate     {{$workingDir}}/certs/{{$cfgIdx}}.pem;
-    ssl_certificate_key {{$workingDir}}/certs/{{$cfgIdx}}.pem;
-    ssl_session_timeout  5m;
-    ssl_protocols  TLSv1 TLSv1.1 TLSv1.2;
-    ssl_ciphers AES128-GCM-SHA256:ECDHE-RSA-AES128-SHA256:RC4:HIGH:!MD5:!aNULL:!eNULL:!NULL:!DH:!EDH:!AESGCM:!LOW:!EXP;
-    ssl_prefer_server_ciphers   on;
-    if ($scheme = http) {
-        return   301 https://$host$request_uri;
+    access_log off;
+
+    default_type text/html;
+
+    location /healthz {
+      return 200 "healthy\n";
     }
-  {{ end -}}
- {{ end -}}
- 
-    access_log      /var/lib/nginx/logs/be_{{$cfgIdx}}.log main;
+
+    {{ if gt .StatsPort 0 }}
+    location = / {
+      return 302 /stub_status;
+    }
+
+    location /stub_status {
+      stub_status;
+    }
+    {{ end }}
+  }
+
+  # default server
+  server {
+    listen {{env "ROUTER_SERVICE_HTTP_PORT" "80"}} default_server{{ if isTrue (env "ROUTER_USE_PROXY_PROTOCOL") }} proxy_protocol{{ end }};
+    listen {{env "ROUTER_SERVICE_503_SERVER_PORT" "10445" }};
+{{ if eq $httpsPort $passthroughPort }}
+    listen 127.0.0.1:{{env "ROUTER_SERVICE_SNI_PORT" "10444"}} default_server ssl{{ if isTrue (env "ROUTER_USE_HTTP2") }} http2{{ end }} proxy_protocol;
+    set_real_ip_from 127.0.0.1;
+{{ else }}
+    listen {{ $httpsPort }} default_server ssl{{ if isTrue (env "ROUTER_USE_HTTP2") }} http2{{ end }}{{ if isTrue (env "ROUTER_USE_PROXY_PROTOCOL") }} proxy_protocol{{ end }};
+{{ end }}
+
+{{ if or (eq $httpsPort $passthroughPort) (isTrue (env "ROUTER_USE_PROXY_PROTOCOL")) }}
+    real_ip_header proxy_protocol;
+{{ end }}
+
+{{ if isTrue (env "ROUTER_USE_PROXY_PROTOCOL") }}
+    set_real_ip_from {{ env "ROUTER_PROXY_PROTOCOL_TRUSTED_SOURCE" "0.0.0.0/0" }};
+{{ end }}
+
+    server_name _;
+    
+    ssl_certificate {{ printf "%s/tls.crt" (env "DEFAULT_CERTIFICATE_DIR" "/etc/pki/tls/private") }};
+    ssl_certificate_key {{ printf "%s/tls.key" (env "DEFAULT_CERTIFICATE_DIR" "/etc/pki/tls/private") }};
+
+    error_page 503 /error-page-503.html; 
 
     location / {
-      proxy_pass      http://be_{{$cfg.Namespace}}_{{$cfg.Name}};
+      return 503;
+    }
+    
+    location = /error-page-503.html {
+      root /var/lib/nginx/conf;
     }
   }
-{{ end -}}{{/* end all routes */}}
+
+{{- range $cfgHost, $configs := $httpAliases }}
+  {{ range $cfg := $configs }}
+  upstream be_{{$cfg.Namespace}}_{{$cfg.Name}} {
+      {{ with $balanceAlgo := firstMatch "round_robin|least_conn|ip_hash" (index $cfg.Annotations "nginx.router.openshift.io/balance") (env "ROUTER_LOAD_BALANCE_ALGORITHM") }}
+        {{ if ne $balanceAlgo "round_robin" }}
+    {{ $balanceAlgo }};
+        {{ end }}
+      {{ end }}
+      {{ if gt $cfg.ActiveEndpoints 0 }}
+        {{- range $serviceUnitName, $weight := $cfg.ServiceUnitNames }}
+        # endpoints of {{$serviceUnitName}} 
+          {{- with $serviceUnit := index $.ServiceUnits $serviceUnitName }}
+            {{- range $idx, $endpoint := endpointsForAlias $cfg $serviceUnit }}
+    server {{$endpoint.IP}}:{{$endpoint.Port}} weight={{$weight}};
+            {{ end -}}
+          {{ end }}
+        {{ end -}}
+      {{ else }}
+    server 127.0.0.1:{{env "ROUTER_SERVICE_503_SERVER_PORT" "10445"}};
+      {{ end }}
+      {{ with $keepalive := (index $cfg.Annotations "nginx.router.openshift.io/keepalive") }}
+        {{ if and (isInteger $keepalive) (ne $keepalive "0") }}
+    keepalive {{ $keepalive }};
+        {{ end }}
+      {{ end }}
+    }
+  {{ end }}
+
+  {{ $primaryCfgIdx := getPrimaryAliasKey $configs }}
+  {{ $primaryCfg := index $configs $primaryCfgIdx }}
+
+  # the primary route is {{ $primaryCfgIdx }} 
+  server {
+    {{ if or (eq $primaryCfg.TLSTermination "") (or (eq $primaryCfg.InsecureEdgeTerminationPolicy "Allow") (eq $primaryCfg.InsecureEdgeTerminationPolicy "Redirect")) }}
+    listen {{env "ROUTER_SERVICE_HTTP_PORT" "80"}}{{ if isTrue (env "ROUTER_USE_PROXY_PROTOCOL") }} proxy_protocol{{ end }};
+    {{ end }}
+  
+    server_name {{genCertificateHostName $cfgHost $primaryCfg.IsWildcard }};
+
+    {{ if or (eq $httpsPort $passthroughPort) (isTrue (env "ROUTER_USE_PROXY_PROTOCOL")) }}
+    real_ip_header proxy_protocol;
+    {{ end }}
+
+    {{ if isTrue (env "ROUTER_USE_PROXY_PROTOCOL") }}
+    set_real_ip_from {{ env "ROUTER_PROXY_PROTOCOL_TRUSTED_SOURCE" "0.0.0.0/0" }};
+    {{ end }}
+
+    {{ if eq $primaryCfg.InsecureEdgeTerminationPolicy "Redirect" }}
+    if ($scheme = http) {
+      return 301 https://$host$request_uri;
+    }
+    {{ end }}
+
+    {{- if (or (eq $primaryCfg.TLSTermination "edge") (eq $primaryCfg.TLSTermination "reencrypt")) -}}
+      {{ $cert := index $primaryCfg.Certificates $cfgHost -}}
+      {{ if ne $cert.Contents "" }}
+    ssl_certificate     {{$workingDir}}/certs/{{$primaryCfgIdx}}.pem;
+    ssl_certificate_key {{$workingDir}}/certs/{{$primaryCfgIdx}}.pem;
+      {{ else }}
+    ssl_certificate {{ printf "%s/tls.crt" (env "DEFAULT_CERTIFICATE_DIR" "/etc/pki/tls/private") }};
+    ssl_certificate_key {{ printf "%s/tls.key" (env "DEFAULT_CERTIFICATE_DIR" "/etc/pki/tls/private") }};
+      {{ end }}
+      {{ if eq $httpsPort $passthroughPort }}
+    listen 127.0.0.1:{{env "ROUTER_SERVICE_SNI_PORT" "10444"}} ssl{{ if isTrue (env "ROUTER_USE_HTTP2") }} http2{{ end }} proxy_protocol;
+    set_real_ip_from 127.0.0.1;
+      {{ else }}
+    listen {{ $httpsPort }} ssl{{ if isTrue (env "ROUTER_USE_HTTP2") }} http2{{ end }}{{ if isTrue (env "ROUTER_USE_PROXY_PROTOCOL") }} proxy_protocol{{ end }};
+      {{ end }}
+    {{ end }}
+
+    {{ range $cfgIdx, $cfg := $configs }}
+    # this path belongs to the {{ $cfgIdx }} route
+    location {{ if eq $cfg.Path ""}}/{{ else }}{{$cfg.Path}}{{ end }} {
+      {{ if isTrue (index $cfg.Annotations "nginx.router.openshift.io/grpc") }}
+      grpc_set_header X-Real-IP $remote_addr;
+      grpc_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      grpc_set_header X-Forwarded-Host $host;
+      grpc_set_header X-Forwarded-Port $server_port;
+      grpc_set_header X-Forwarded-Proto $scheme;
+
+        {{ if eq $cfg.TLSTermination "reencrypt" }}
+      grpc_ssl_name {{ $cfg.Host }};
+          {{- if gt (len (index $cfg.Certificates (printf "%s_pod" $cfg.Host)).Contents) 0 }}
+      grpc_ssl_trusted_certificate {{ $workingDir }}/cacerts/{{$cfgIdx}}.pem;
+      grpc_ssl_verify on;
+          {{ else }}
+            {{ if gt (len $defaultDestinationCA) 0 }}
+      grpc_ssl_trusted_certificate {{ $defaultDestinationCA }};
+      grpc_ssl_verify on;
+            {{ else }}
+      grpc_ssl_verify off;
+            {{ end }}
+        {{ end }}
+      grpc_pass      grpcs://be_{{$cfg.Namespace}}_{{$cfg.Name}};
+        {{ else }}
+      grpc_pass      grpc://be_{{$cfg.Namespace}}_{{$cfg.Name}};
+        {{ end }}
+      {{ else }}
+      proxy_http_version 1.1;
+        {{ if isTrue (index $cfg.Annotations "nginx.router.openshift.io/websocket") }}
+      proxy_set_header Upgrade $http_upgrade;
+      proxy_set_header Connection $connection_upgrade;
+        {{ else }}
+          {{ with $keepalive := (index $cfg.Annotations "nginx.router.openshift.io/keepalive") }}
+            {{ if and (isInteger $keepalive) (ne $keepalive "0") }}
+      proxy_set_header Connection "";
+           {{ end }}
+          {{ end }}
+        {{ end }}
+
+      proxy_set_header Host $host;
+      proxy_set_header X-Real-IP $remote_addr;
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_set_header X-Forwarded-Host $host;
+      proxy_set_header X-Forwarded-Port $server_port;
+      proxy_set_header X-Forwarded-Proto $scheme;
+
+        {{ if eq $cfg.TLSTermination "reencrypt" }}
+      proxy_ssl_name {{ $cfg.Host }};
+          {{- if gt (len (index $cfg.Certificates (printf "%s_pod" $cfg.Host)).Contents) 0 }}
+      proxy_ssl_trusted_certificate {{ $workingDir }}/cacerts/{{$cfgIdx}}.pem;
+      proxy_ssl_verify on;
+          {{ else }}
+            {{ if gt (len $defaultDestinationCA) 0 }}
+      proxy_ssl_trusted_certificate {{ $defaultDestinationCA }};
+      proxy_ssl_verify on;
+            {{ else }}
+      proxy_ssl_verify off;
+            {{ end }}
+        {{ end }}
+      proxy_pass      https://be_{{$cfg.Namespace}}_{{$cfg.Name}};
+        {{ else }}
+      proxy_pass      http://be_{{$cfg.Namespace}}_{{$cfg.Name}};
+        {{ end }}
+      {{ end }}
+    }
+    {{ end }}
+  }
+{{ end -}}
 }
+
+{{ if $passthroughPort }}
+stream {
+  {{ with $format := env "ROUTER_SYSLOG_FORMAT_FOR_PASSTHROUGH" }}
+  log_format basic '{{ $format }}';
+  {{ else }}
+  log_format basic '$remote_addr [$time_local] '
+                     '$protocol $status $bytes_sent $bytes_received '
+                     '$session_time "$ssl_preread_server_name" $dest';
+  {{ end }}
+
+  proxy_timeout {{ env "ROUTER_DEFAULT_CLIENT_TIMEOUT" "30s" }};
+  proxy_connect_timeout {{ env "ROUTER_DEFAULT_CONNECT_TIMEOUT" "5s" }};
+  map_hash_bucket_size 256;
+
+
+  upstream https-route {
+    server 127.0.0.1:{{env "ROUTER_SERVICE_SNI_PORT" "10444"}};
+  }
+
+  {{- range $cfgIdx, $cfg := .State }}
+    {{ if eq $cfg.TLSTermination "passthrough" }}
+  upstream be_passthrough_{{$cfg.Namespace}}_{{$cfg.Name}} {
+      {{ with $balanceAlgo := firstMatch "round_robin|least_conn|ip_hash" (index $cfg.Annotations "nginx.router.openshift.io/balance") (env "ROUTER_TCP_BALANCE_SCHEME") }}
+        {{ if eq $balanceAlgo "ip_hash" }}
+    hash $remote_addr consistent;
+        {{ else if ne $balanceAlgo "round_robin" }}
+    {{ $balanceAlgo }};
+        {{ end }}
+      {{ end }}
+      {{ if gt $cfg.ActiveEndpoints 0 }}
+        {{- range $serviceUnitName, $weight := $cfg.ServiceUnitNames }}
+          {{- with $serviceUnit := index $.ServiceUnits $serviceUnitName }}
+            {{- range $idx, $endpoint := endpointsForAlias $cfg $serviceUnit }}
+    server {{$endpoint.IP}}:{{$endpoint.Port}};
+            {{ end -}}
+          {{ end -}}
+        {{ end -}}
+      {{ else }}
+    server 127.0.0.1:{{env "ROUTER_SERVICE_UNREACHABLE_PORT" "10446"}};
+      {{ end }}
+  }
+    {{ end }}
+  {{ end }}
+
+  map $ssl_preread_server_name $dest {
+  {{- range $cfgIdx, $cfg := .State }}
+    {{ if eq $cfg.TLSTermination "passthrough" }}
+    {{ $cfg.Host }} be_passthrough_{{$cfg.Namespace}}_{{$cfg.Name}}; 
+    {{ end }}
+  {{ end }}
+  {{ if eq $httpsPort $passthroughPort }} 
+    default https-route;
+  {{ else }}
+    default 127.0.0.1:{{env "ROUTER_SERVICE_UNREACHABLE_PORT" "10446"}};
+  {{ end }}
+  }
+
+  server {
+    listen {{ $passthroughPort }}{{ if isTrue (env "ROUTER_USE_PROXY_PROTOCOL") }} proxy_protocol{{ end }};
+    {{ with $syslogAddress := env "ROUTER_SYSLOG_ADDRESS" }}
+    access_log syslog:server={{ $syslogAddress }},facility={{env "ROUTER_LOG_FACILITY" "local1"}},severity={{ $logLevel }} basic;
+    {{ else }}
+    access_log /var/lib/nginx/log/stream_access.log basic;
+    {{ end }}
+    proxy_pass $dest;
+    ssl_preread on;
+    proxy_protocol on;
+    {{ if isTrue (env "ROUTER_USE_PROXY_PROTOCOL") }}
+    set_real_ip_from {{ env "ROUTER_PROXY_PROTOCOL_TRUSTED_SOURCE" "0.0.0.0/0" }};
+    {{ end }}
+  }
+}
+{{ end }}
 {{ end -}}{{/* end config file */}}

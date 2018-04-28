@@ -115,6 +115,8 @@ func (c *ClusterUpConfig) StartSelfHosted(out io.Writer) error {
 		"OPENSHIFT_CONTROLLER_MANAGER_CONFIG_HOST_PATH": configDirs.openshiftControllerConfigDir,
 		"NODE_CONFIG_HOST_PATH":                         configDirs.nodeConfigDir,
 		"KUBEDNS_CONFIG_HOST_PATH":                      configDirs.kubeDNSConfigDir,
+		"OPENSHIFT_PULL_POLICY":                         c.defaultPullPolicy,
+		"OPENSHIFT_IMAGE":                               c.openshiftImage(),
 		"LOGLEVEL":                                      fmt.Sprintf("%d", c.ServerLogLevel),
 		"IMAGE":                                         c.openshiftImage(),
 	}
@@ -132,7 +134,7 @@ func (c *ClusterUpConfig) StartSelfHosted(out io.Writer) error {
 
 	clientConfig.Host = c.ServerIP + ":8443"
 	// wait for the apiserver to be ready
-	glog.Info("Waiting for the kube-apiserver to be ready.")
+	glog.Info("Waiting for the kube-apiserver to be ready ...")
 	if err := waitForHealthyKubeAPIServer(clientConfig); err != nil {
 		return err
 	}
@@ -309,23 +311,28 @@ func (c *ClusterUpConfig) BuildConfig() (*configDirs, error) {
 		}
 
 	}
+
 	substitutions := map[string]string{
 		"/path/to/master/config-dir":              configs.masterConfigDir,
 		"/path/to/openshift-apiserver/config-dir": configs.openshiftAPIServerConfigDir,
 		"ETCD_VOLUME":                             "emptyDir:\n",
-		"openshift/origin-control-plane:latest":   c.openshiftImage(),
+		"OPENSHIFT_IMAGE":                         c.openshiftImage(),
+		"OPENSHIFT_PULL_POLICY":                   c.defaultPullPolicy,
 	}
+
 	if len(c.HostDataDir) > 0 {
 		substitutions["ETCD_VOLUME"] = `hostPath:
       path: ` + c.HostDataDir + "\n"
 	}
 
 	glog.V(2).Infof("Creating static pod definitions in %q", configs.podManifestDir)
+	glog.V(3).Infof("Substitutions: %#v", substitutions)
 	for _, staticPodLocation := range staticPodLocations {
 		if err := staticpods.UpsertStaticPod(staticPodLocation, substitutions, configs.podManifestDir); err != nil {
 			return nil, err
 		}
 	}
+
 	if c.isRemoteDocker {
 		configs.podManifestDir, err = c.copyToRemote(configs.podManifestDir, kubelet.PodManifestDirName)
 		if err != nil {
@@ -504,6 +511,7 @@ func waitForHealthyKubeAPIServer(clientConfig *rest.Config) error {
 	var healthzContent string
 	// If apiserver is not running we should wait for some time and fail only then. This is particularly
 	// important when we start apiserver and controller manager at the same time.
+	var lastResponseError error
 	err := wait.PollImmediate(time.Second, 5*time.Minute, func() (bool, error) {
 		discoveryClient, err := discovery.NewDiscoveryClientForConfig(clientConfig)
 		if err != nil {
@@ -514,6 +522,7 @@ func waitForHealthyKubeAPIServer(clientConfig *rest.Config) error {
 		resp := discoveryClient.RESTClient().Get().AbsPath("/healthz").Do().StatusCode(&healthStatus)
 		if resp.Error() != nil {
 			glog.V(4).Infof("Server isn't healthy yet.  Waiting a little while. %v", resp.Error())
+			lastResponseError = resp.Error()
 			return false, nil
 		}
 		content, _ := resp.Raw()
@@ -526,7 +535,7 @@ func waitForHealthyKubeAPIServer(clientConfig *rest.Config) error {
 		return true, nil
 	})
 	if err != nil {
-		glog.Error(healthzContent)
+		glog.Errorf("API server error: %v (%s)", lastResponseError, healthzContent)
 	}
 
 	return err

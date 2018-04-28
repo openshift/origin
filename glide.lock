@@ -1,5 +1,5 @@
 hash: 8d9400ce356982e52e62591ee0287cc73b392f39979a20700aadebbfc83db87d
-updated: 2018-04-25T11:42:37.116792-04:00
+updated: 2018-04-27T14:47:21.143446959-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -951,7 +951,7 @@ imports:
   - signal
   - strslice
 - name: github.com/openshift/source-to-image
-  version: 57a644844c76dad4d42b7045e47e6b73e66d58d7
+  version: 0c48fd2a6ca7979100f69c7da53c8de9446f8f00
   subpackages:
   - pkg/api
   - pkg/api/describe
@@ -1352,7 +1352,7 @@ imports:
   - storage/v1alpha1
   - storage/v1beta1
 - name: k8s.io/apiextensions-apiserver
-  version: beccac1d4d580600fc916aed05c5a9cea7a3e0d8
+  version: 3d5bebf0e6170d6749824eb6b186445801d9e2fc
   repo: https://github.com/openshift/kubernetes-apiextensions-apiserver.git
   subpackages:
   - pkg/apis/apiextensions
@@ -1386,7 +1386,7 @@ imports:
   - pkg/registry/customresourcedefinition
   - test/integration/testserver
 - name: k8s.io/apimachinery
-  version: d9f2381c8e7aeae6fbfed4b416470eb4df5562f7
+  version: 3f7c9b47f46d0fac987743bffeb7603a9df1721f
   repo: https://github.com/openshift/kubernetes-apimachinery.git
   subpackages:
   - pkg/api/equality
@@ -1454,7 +1454,7 @@ imports:
   - third_party/forked/golang/netutil
   - third_party/forked/golang/reflect
 - name: k8s.io/apiserver
-  version: 663bcc4caab0f1391a0086ff9a91afe52bca9b13
+  version: 19facbf859cd14d4a25e6cf85606017d258180bb
   repo: https://github.com/openshift/kubernetes-apiserver.git
   subpackages:
   - pkg/admission
@@ -1565,7 +1565,7 @@ imports:
   - plugin/pkg/authenticator/token/webhook
   - plugin/pkg/authorizer/webhook
 - name: k8s.io/client-go
-  version: 59deff23e848e82e0c2db847cf65c74446fee309
+  version: f88a5957d74ede087bca5b9147bac3262be1a04c
   repo: https://github.com/openshift/kubernetes-client-go.git
   subpackages:
   - discovery
@@ -1748,7 +1748,7 @@ imports:
   - util/testing
   - util/workqueue
 - name: k8s.io/code-generator
-  version: c65da8a8ad6dd88d0651d59ed0fecd30124f28a4
+  version: 37148bd476363b6cfdc14aa7a0ab9e8011a396f3
   repo: https://github.com/openshift/kubernetes-code-generator.git
 - name: k8s.io/gengo
   version: 01a732e01d00cb9a81bb0ca050d3e6d2b947927b
@@ -1757,7 +1757,7 @@ imports:
   subpackages:
   - metrics/api/v1/types
 - name: k8s.io/kube-aggregator
-  version: 7c941b8dfe9c0ccf82ce9e09ec296b85b15892d9
+  version: 52767e1a564300fc0b92ac2852a316cac35c5bc1
   repo: https://github.com/openshift/kube-aggregator.git
   subpackages:
   - pkg/apis/apiregistration
@@ -1797,7 +1797,7 @@ imports:
   - pkg/util/proto
   - pkg/util/proto/validation
 - name: k8s.io/kubernetes
-  version: f56472afd3cc07125f8690303aec1215035cc267
+  version: b59f32d4cc50f241b71aa15707ae6e7f43a9455f
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/controller-manager/app

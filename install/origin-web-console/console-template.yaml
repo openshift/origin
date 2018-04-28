@@ -13,6 +13,8 @@ metadata:
 parameters:
 - name: IMAGE
   value: openshift/origin-web-console:latest
+- name: OPENSHIFT_PULL_POLICY
+  value: Always
 - name: NAMESPACE
   # This namespace cannot be changed. Only `openshift-web-console` is supported.
   value: openshift-web-console
@@ -49,7 +51,7 @@ objects:
         containers:
         - name: webconsole
           image: ${IMAGE}
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: ${OPENSHIFT_PULL_POLICY}
           command:
           - "/usr/bin/origin-web-console"
           - "--audit-log-path=-"
