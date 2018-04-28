@@ -167,5 +167,14 @@ func launchTestMulticastPod(f *e2e.Framework, nodeName string, podName string) (
 		podIP = pod.Status.PodIP
 		return (podIP != "" && pod.Status.Phase != kapiv1.PodPending), nil
 	})
+
+	if err != nil {
+		logs, logErr := e2e.GetPodLogs(f.ClientSet, f.Namespace.Name, podName, fmt.Sprintf("%s-pod", podName))
+		if logErr != nil {
+			e2e.Failf("Error getting container logs: %s", logErr)
+		}
+		e2e.Logf("Could not launch pod %s\nPod logs:\n%s", podName, logs)
+	}
+
 	return podIP, err
 }
