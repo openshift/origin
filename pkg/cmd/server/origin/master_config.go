@@ -23,7 +23,6 @@ import (
 	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 	rbacinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion/rbac/internalversion"
-	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 	kubeapiserver "k8s.io/kubernetes/pkg/master"
 	rbacregistryvalidation "k8s.io/kubernetes/pkg/registry/rbac/validation"
 	rbacauthorizer "k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac"
@@ -74,8 +73,6 @@ type MasterConfig struct {
 	// RegistryHostnameRetriever retrieves the name of the integrated registry, or false if no such registry
 	// is available.
 	RegistryHostnameRetriever imageapi.RegistryHostnameRetriever
-
-	KubeletClientConfig *kubeletclient.KubeletClientConfig
 
 	// PrivilegedLoopbackClientConfig is the client configuration used to call OpenShift APIs from system components
 	// To apply different access control to a system component, create a client config specifically for that component.
@@ -153,8 +150,6 @@ func BuildMasterConfig(
 		return nil, fmt.Errorf("OPENSHIFT_DEFAULT_REGISTRY variable is invalid %q: %v", defaultRegistry, err)
 	}
 
-	kubeletClientConfig := configapi.GetKubeletClientConfig(options)
-
 	authenticator, authenticatorPostStartHooks, err := NewAuthenticator(options, privilegedLoopbackConfig, informers)
 	if err != nil {
 		return nil, err
@@ -223,8 +218,6 @@ func BuildMasterConfig(
 		ClusterQuotaMappingController: clusterQuotaMappingController,
 
 		RegistryHostnameRetriever: imageapi.DefaultRegistryHostnameRetriever(defaultRegistryFunc, options.ImagePolicyConfig.ExternalRegistryHostname, options.ImagePolicyConfig.InternalRegistryHostname),
-
-		KubeletClientConfig: kubeletClientConfig,
 
 		PrivilegedLoopbackClientConfig:                *privilegedLoopbackConfig,
 		PrivilegedLoopbackKubernetesClientsetInternal: kubeInternalClient,

@@ -11,7 +11,6 @@ import (
 	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	fakeinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
-	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 
 	_ "github.com/openshift/origin/pkg/api/install"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
@@ -94,7 +93,6 @@ func fakeOpenshiftAPIServerConfig() *OpenshiftAPIConfig {
 		},
 		ExtraConfig: OpenshiftAPIExtraConfig{
 			KubeClientInternal:            &kclientsetinternal.Clientset{},
-			KubeletClientConfig:           &kubeletclient.KubeletClientConfig{},
 			KubeInternalInformers:         internalkubeInformerFactory,
 			QuotaInformers:                quotaInformerFactory,
 			SecurityInformers:             securityInformerFactory,

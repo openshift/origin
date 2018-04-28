@@ -9,10 +9,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apiserver/pkg/registry/rest"
 	genericapiserver "k8s.io/apiserver/pkg/server"
-	kclientsetexternal "k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
 	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 
 	buildapiv1 "github.com/openshift/api/build/v1"
 	buildclientset "github.com/openshift/origin/pkg/build/generated/internalclientset"
@@ -33,7 +31,6 @@ import (
 
 type ExtraConfig struct {
 	KubeAPIServerClientConfig *restclient.Config
-	KubeletClientConfig       *kubeletclient.KubeletClientConfig
 
 	// TODO these should all become local eventually
 	Scheme   *runtime.Scheme
@@ -115,10 +112,6 @@ func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
 	if err != nil {
 		return nil, err
 	}
-	kubeExternalClient, err := kclientsetexternal.NewForConfig(c.ExtraConfig.KubeAPIServerClientConfig)
-	if err != nil {
-		return nil, err
-	}
 	buildClient, err := buildclientset.NewForConfig(c.GenericConfig.LoopbackClientConfig)
 	if err != nil {
 		return nil, err
@@ -126,10 +119,6 @@ func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
 	imageClient, err := imageclient.NewForConfig(c.ExtraConfig.KubeAPIServerClientConfig)
 	if err != nil {
 		return nil, err
-	}
-	nodeConnectionInfoGetter, err := kubeletclient.NewNodeConnectionInfoGetter(kubeExternalClient.CoreV1().Nodes(), *c.ExtraConfig.KubeletClientConfig)
-	if err != nil {
-		return nil, fmt.Errorf("unable to configure the node connection info getter: %v", err)
 	}
 
 	buildStorage, buildDetailsStorage, err := buildetcd.NewREST(c.GenericConfig.RESTOptionsGetter)
@@ -175,6 +164,6 @@ func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
 	v1Storage["buildConfigs"] = buildConfigStorage
 	v1Storage["buildConfigs/webhooks"] = buildConfigWebHooks
 	v1Storage["buildConfigs/instantiate"] = buildconfiginstantiate.NewStorage(buildGenerator)
-	v1Storage["buildConfigs/instantiatebinary"] = buildconfiginstantiate.NewBinaryStorage(buildGenerator, buildClient.Build(), kubeInternalClient.Core(), nodeConnectionInfoGetter)
+	v1Storage["buildConfigs/instantiatebinary"] = buildconfiginstantiate.NewBinaryStorage(buildGenerator, buildClient.Build(), kubeInternalClient.Core(), c.ExtraConfig.KubeAPIServerClientConfig)
 	return v1Storage, nil
 }
