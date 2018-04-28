@@ -231,7 +231,7 @@ func (c *ClusterUpConfig) Complete(cmd *cobra.Command) error {
 	// Set the ImagePullPolicy field in static pods and components based in whether users specified
 	// the --tag flag or not.
 	c.defaultPullPolicy = "Always"
-	if cmd.Flag("tag").Changed {
+	if cmd.Flag("image").Changed || cmd.Flag("tag").Changed {
 		c.defaultPullPolicy = "IfNotPresent"
 	}
 

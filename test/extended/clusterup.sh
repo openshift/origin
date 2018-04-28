@@ -169,7 +169,7 @@ function os::test::extended::clusterup::noargs () {
     os::test::extended::clusterup::standard_test \
       --base-dir=${base_dir} \
       --tag="$ORIGIN_COMMIT" \
-      --loglevel=5 \
+      --loglevel=4 \
       ${@}
 }
 
@@ -177,8 +177,8 @@ function os::test::extended::clusterup::noargs () {
 function os::test::extended::clusterup::enable () {
     local base_dir
     base_dir=$(os::test::extended::clusterup::make_base_dir "enable")
-    os::cmd::expect_success "oc cluster up --loglevel=5 --base-dir=${base_dir} --tag=${ORIGIN_COMMIT} --enable=* --write-config"
-    os::cmd::expect_failure_and_text "oc cluster up --loglevel=5 --base-dir=${base_dir} --tag=${ORIGIN_COMMIT} --enable=foo" 'use cluster add instead'
+    os::cmd::expect_success "oc cluster up --loglevel=4 --base-dir=${base_dir} --tag=${ORIGIN_COMMIT} --enable=* --write-config"
+    os::cmd::expect_failure_and_text "oc cluster up --loglevel=4 --base-dir=${base_dir} --tag=${ORIGIN_COMMIT} --enable=foo" 'use cluster add instead'
 }
 
 # Tests creating a cluster with specific host directories
@@ -349,19 +349,19 @@ readonly extra_args=(
     # Test the previous OCP release
     # TODO - enable this once v3.9 ships, v3.7 didn't have a TSB image so it's
     # annoying to test.
-    #"--loglevel=5 --image=registry.access.redhat.com/openshift3/ose --tag=v3.7"
+    #"--loglevel=4 --image=registry.access.redhat.com/openshift3/ose --tag=v3.7"
 
     # Test the previous origin release
     # TODO - enable this once oc cluster up v3.9 supports modifiying cluster
     # roles on a 3.7 cluster image (https://github.com/openshift/origin/issues/17867)
-    # "--loglevel=5 --image=docker.io/openshift/origin --tag=v3.7.0"
+    # "--loglevel=4 --image=docker.io/openshift/origin --tag=v3.7.0"
 
     # Test the current published release
     # disabling this based on irc with clayton.  This is more strict than openshift-ansible.
-    #"--loglevel=5"  # can't be empty, so pass something benign
+    #"--loglevel=4"  # can't be empty, so pass something benign
 
     # Test the code being delivered
-    "--loglevel=5 --server-loglevel=5 --tag=${ORIGIN_COMMIT}"
+    "--loglevel=4 --server-loglevel=4 --tag=${ORIGIN_COMMIT}"
 
 )
 tests=("${1:-"${default_tests[@]}"}")

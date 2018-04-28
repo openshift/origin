@@ -17,7 +17,6 @@ import (
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/errors"
-	"github.com/openshift/origin/pkg/oc/bootstrap/docker/exec"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/openshift"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
@@ -111,39 +110,6 @@ func (c *ClientStatusConfig) Status(f *clientcmd.Factory, out io.Writer) error {
 	}
 
 	fmt.Fprint(out, status(container, masterConfig))
-
-	notReady := 0
-
-	eh := exec.NewExecHelper(dockerClient, openshift.ContainerName)
-
-	stdout, _, _ := eh.Command("oc", "get", "dc", "docker-registry", "-n", "default", "-o", "template", "--template", "{{.status.availableReplicas}}").Output()
-	if stdout != "1" {
-		fmt.Fprintln(out, "Notice: Docker registry is not yet ready")
-		notReady++
-	}
-
-	stdout, _, _ = eh.Command("oc", "get", "dc", "router", "-n", "default", "-o", "template", "--template", "{{.status.availableReplicas}}").Output()
-	if stdout != "1" {
-		fmt.Fprintln(out, "Notice: Router is not yet ready")
-		notReady++
-	}
-
-	stdout, _, _ = eh.Command("oc", "get", "job", "persistent-volume-setup", "-n", "default", "-o", "template", "--template", "{{.status.succeeded}}").Output()
-	if stdout != "1" {
-		fmt.Fprintln(out, "Notice: Persistent volumes are not yet ready")
-		notReady++
-	}
-
-	stdout, _, _ = eh.Command("oc", "get", "is", "-n", "openshift", "-o", "template", "--template", `{{range .items}}{{if not .status.tags}}notready{{end}}{{end}}`).Output()
-	if len(stdout) > 0 {
-		fmt.Fprintln(out, "Notice: Imagestreams are not yet ready")
-		notReady++
-	}
-
-	if notReady > 0 {
-		fmt.Fprintf(out, "\nNotice: %d OpenShift component(s) are not yet ready (see above)\n", notReady)
-		return fmt.Errorf("")
-	}
 
 	return nil
 }
