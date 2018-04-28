@@ -26,7 +26,7 @@ func scrapeLogs(bldPrefix string, oc *exutil.CLI) {
 	lines := strings.Split(out, "\n")
 	found := false
 	for _, line := range lines {
-		if strings.Contains(line, "Pulling image") && strings.Contains(line, "centos/ruby") {
+		if strings.Contains(line, "Pulling image") && strings.Contains(line, "ruby") {
 			fmt.Fprintf(g.GinkgoWriter, "\n\nfound pull image line %s\n\n", line)
 			found = true
 			break
