@@ -1,5 +1,5 @@
 hash: 8d9400ce356982e52e62591ee0287cc73b392f39979a20700aadebbfc83db87d
-updated: 2018-04-27T14:47:21.143446959-04:00
+updated: 2018-04-29T00:27:34.322141459-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -392,7 +392,7 @@ imports:
   subpackages:
   - log
 - name: github.com/emicklei/go-restful-swagger12
-  version: 5e28dc7157ebd9247a268c26dd1bee7818aa33f7
+  version: 76d80a40857969dddc1a4c21d1eb82f7ea20e9f5
   repo: https://github.com/openshift/emicklei-go-restful-swagger12
 - name: github.com/euank/go-kmsg-parser
   version: 5ba4d492e455a77d25dcf0d2c4acc9f2afebef4e
@@ -1053,7 +1053,7 @@ imports:
 - name: github.com/sirupsen/logrus
   version: 89742aefa4b206dcf400792f3bd35b542998eb3b
 - name: github.com/skynetservices/skydns
-  version: 775ef406696380ce92b76e72421e86b6868905d8
+  version: d3e54b74891269f7d7aa1814af2ca080b294dd29
   repo: https://github.com/openshift/skynetservices-skydns
   subpackages:
   - cache
@@ -1797,7 +1797,7 @@ imports:
   - pkg/util/proto
   - pkg/util/proto/validation
 - name: k8s.io/kubernetes
-  version: b59f32d4cc50f241b71aa15707ae6e7f43a9455f
+  version: f4c3c7b8c96448de9b7502a208428b70a4143b8c
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/controller-manager/app
