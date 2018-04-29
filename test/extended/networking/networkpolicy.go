@@ -22,6 +22,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/kubernetes/pkg/apis/networking"
 	"k8s.io/kubernetes/test/e2e/framework"
+	imageutils "k8s.io/kubernetes/test/utils/image"
 
 	"fmt"
 	. "github.com/onsi/ginkgo"
@@ -348,7 +349,35 @@ func testCanConnect(f *framework.Framework, ns *kapiv1.Namespace, podName string
 
 	framework.Logf("Waiting for %s to complete.", podClient.Name)
 	err = framework.WaitForPodSuccessInNamespace(f.ClientSet, podClient.Name, ns.Name)
-	Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("checking %s could communicate with server.", podClient.Name))
+	if err != nil {
+		// Collect pod logs when we see a failure.
+		logs, logErr := framework.GetPodLogs(f.ClientSet, f.Namespace.Name, podName, fmt.Sprintf("%s-container", podName))
+		if logErr != nil {
+			framework.Failf("Error getting container logs: %s", logErr)
+		}
+
+		// Collect current NetworkPolicies applied in the test namespace.
+		policies, err := f.InternalClientset.Networking().NetworkPolicies(f.Namespace.Name).List(metav1.ListOptions{})
+		if err != nil {
+			framework.Logf("error getting current NetworkPolicies for %s namespace: %s", f.Namespace.Name, err)
+		}
+
+		// Collect the list of pods running in the test namespace.
+		podsInNS, err := framework.GetPodsInNamespace(f.ClientSet, f.Namespace.Name, map[string]string{})
+		if err != nil {
+			framework.Logf("error getting pods for %s namespace: %s", f.Namespace.Name, err)
+		}
+
+		pods := []string{}
+		for _, p := range podsInNS {
+			pods = append(pods, fmt.Sprintf("Pod: %s, Status: %s\n", p.Name, p.Status.String()))
+		}
+
+		framework.Failf("Pod %s should be able to connect to service %s, but was not able to connect.\nPod logs:\n%s\n\n Current NetworkPolicies:\n\t%v\n\n Pods:\n\t%v\n\n", podName, service.Name, logs, policies.Items, pods)
+
+		// Dump debug information for the test namespace.
+		framework.DumpDebugInfo(f.ClientSet, f.Namespace.Name)
+	}
 }
 
 func testCannotConnect(f *framework.Framework, ns *kapiv1.Namespace, podName string, service *kapiv1.Service, targetPort int) {
@@ -363,7 +392,38 @@ func testCannotConnect(f *framework.Framework, ns *kapiv1.Namespace, podName str
 
 	framework.Logf("Waiting for %s to complete.", podClient.Name)
 	err := framework.WaitForPodSuccessInNamespace(f.ClientSet, podClient.Name, ns.Name)
-	Expect(err).To(HaveOccurred(), fmt.Sprintf("checking %s could not communicate with server.", podName))
+
+	// We expect an error here since it's a cannot connect test.
+	// Dump debug information if the error was nil.
+	if err == nil {
+		// Collect pod logs when we see a failure.
+		logs, logErr := framework.GetPodLogs(f.ClientSet, f.Namespace.Name, podName, fmt.Sprintf("%s-container", podName))
+		if logErr != nil {
+			framework.Failf("Error getting container logs: %s", logErr)
+		}
+
+		// Collect current NetworkPolicies applied in the test namespace.
+		policies, err := f.InternalClientset.Networking().NetworkPolicies(f.Namespace.Name).List(metav1.ListOptions{})
+		if err != nil {
+			framework.Logf("error getting current NetworkPolicies for %s namespace: %s", f.Namespace.Name, err)
+		}
+
+		// Collect the list of pods running in the test namespace.
+		podsInNS, err := framework.GetPodsInNamespace(f.ClientSet, f.Namespace.Name, map[string]string{})
+		if err != nil {
+			framework.Logf("error getting pods for %s namespace: %s", f.Namespace.Name, err)
+		}
+
+		pods := []string{}
+		for _, p := range podsInNS {
+			pods = append(pods, fmt.Sprintf("Pod: %s, Status: %s\n", p.Name, p.Status.String()))
+		}
+
+		framework.Failf("Pod %s should not be able to connect to service %s, but was able to connect.\nPod logs:\n%s\n\n Current NetworkPolicies:\n\t%v\n\n Pods:\n\t %v\n\n", podName, service.Name, logs, policies.Items, pods)
+
+		// Dump debug information for the test namespace.
+		framework.DumpDebugInfo(f.ClientSet, f.Namespace.Name)
+	}
 }
 
 // Create a server pod with a listening container for each port in ports[].
@@ -378,13 +438,19 @@ func createServerPodAndService(f *framework.Framework, namespace *kapiv1.Namespa
 		// Build the containers for the server pod.
 		containers = append(containers, kapiv1.Container{
 			Name:  fmt.Sprintf("%s-container-%d", podName, port),
-			Image: "gcr.io/google_containers/redis:e2e",
-			Args: []string{
-				"/bin/sh",
-				"-c",
-				fmt.Sprintf("/bin/nc -kl %d", port),
+			Image: imageutils.GetE2EImage(imageutils.Porter),
+			Env: []kapiv1.EnvVar{
+				{
+					Name:  fmt.Sprintf("SERVE_PORT_%d", port),
+					Value: "foo",
+				},
 			},
-			Ports: []kapiv1.ContainerPort{{ContainerPort: int32(port)}},
+			Ports: []kapiv1.ContainerPort{
+				{
+					ContainerPort: int32(port),
+					Name:          fmt.Sprintf("serve-%d", port),
+				},
+			},
 		})
 
 		// Build the Service Ports for the service.
@@ -457,11 +523,12 @@ func createNetworkClientPod(f *framework.Framework, namespace *kapiv1.Namespace,
 			Containers: []kapiv1.Container{
 				{
 					Name:  fmt.Sprintf("%s-container", podName),
-					Image: "gcr.io/google_containers/redis:e2e",
+					Image: "busybox",
 					Args: []string{
 						"/bin/sh",
 						"-c",
-						fmt.Sprintf("/usr/bin/printf dummy-data | /bin/nc -w 8 %s %d", targetIP, targetPort),
+						fmt.Sprintf("for i in $(seq 1 5); do wget -T 8 %s:%d -O - && exit 0 || sleep 1; done; exit 1",
+							targetIP, targetPort),
 					},
 				},
 			},
