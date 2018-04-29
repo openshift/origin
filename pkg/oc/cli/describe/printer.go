@@ -32,20 +32,22 @@ import (
 )
 
 var (
-	buildColumns            = []string{"NAME", "TYPE", "FROM", "STATUS", "STARTED", "DURATION"}
-	buildConfigColumns      = []string{"NAME", "TYPE", "FROM", "LATEST"}
-	imageColumns            = []string{"NAME", "DOCKER REF"}
-	imageStreamTagColumns   = []string{"NAME", "DOCKER REF", "UPDATED", "IMAGENAME"}
-	imageStreamImageColumns = []string{"NAME", "DOCKER REF", "UPDATED", "IMAGENAME"}
-	imageStreamColumns      = []string{"NAME", "DOCKER REPO", "TAGS", "UPDATED"}
-	projectColumns          = []string{"NAME", "DISPLAY NAME", "STATUS"}
-	routeColumns            = []string{"NAME", "HOST/PORT", "PATH", "SERVICES", "PORT", "TERMINATION", "WILDCARD"}
-	deploymentConfigColumns = []string{"NAME", "REVISION", "DESIRED", "CURRENT", "TRIGGERED BY"}
-	templateColumns         = []string{"NAME", "DESCRIPTION", "PARAMETERS", "OBJECTS"}
-	policyColumns           = []string{"NAME", "ROLES", "LAST MODIFIED"}
-	policyBindingColumns    = []string{"NAME", "ROLE BINDINGS", "LAST MODIFIED"}
-	roleBindingColumns      = []string{"NAME", "ROLE", "USERS", "GROUPS", "SERVICE ACCOUNTS", "SUBJECTS"}
-	roleColumns             = []string{"NAME"}
+	buildColumns                = []string{"NAME", "TYPE", "FROM", "STATUS", "STARTED", "DURATION"}
+	buildConfigColumns          = []string{"NAME", "TYPE", "FROM", "LATEST"}
+	imageColumns                = []string{"NAME", "DOCKER REF"}
+	imageStreamTagColumns       = []string{"NAME", "DOCKER REF", "UPDATED"}
+	imageStreamTagWideColumns   = []string{"NAME", "DOCKER REF", "UPDATED", "IMAGENAME"}
+	imageStreamImageColumns     = []string{"NAME", "UPDATED"}
+	imageStreamImageWideColumns = []string{"NAME", "DOCKER REF", "UPDATED", "IMAGENAME"}
+	imageStreamColumns          = []string{"NAME", "DOCKER REPO", "TAGS", "UPDATED"}
+	projectColumns              = []string{"NAME", "DISPLAY NAME", "STATUS"}
+	routeColumns                = []string{"NAME", "HOST/PORT", "PATH", "SERVICES", "PORT", "TERMINATION", "WILDCARD"}
+	deploymentConfigColumns     = []string{"NAME", "REVISION", "DESIRED", "CURRENT", "TRIGGERED BY"}
+	templateColumns             = []string{"NAME", "DESCRIPTION", "PARAMETERS", "OBJECTS"}
+	policyColumns               = []string{"NAME", "ROLES", "LAST MODIFIED"}
+	policyBindingColumns        = []string{"NAME", "ROLE BINDINGS", "LAST MODIFIED"}
+	roleBindingColumns          = []string{"NAME", "ROLE", "USERS", "GROUPS", "SERVICE ACCOUNTS", "SUBJECTS"}
+	roleColumns                 = []string{"NAME"}
 
 	oauthClientColumns              = []string{"NAME", "SECRET", "WWW-CHALLENGE", "TOKEN-MAX-AGE", "REDIRECT URIS"}
 	oauthClientAuthorizationColumns = []string{"NAME", "USER NAME", "CLIENT NAME", "SCOPES"}
@@ -92,9 +94,9 @@ func addPrintHandlers(p kprinters.PrintHandler) {
 	p.Handler(policyRuleColumns, nil, printSubjectRulesReview)
 	p.Handler(policyRuleColumns, nil, printSelfSubjectRulesReview)
 	p.Handler(imageColumns, nil, printImage)
-	p.Handler(imageStreamTagColumns, nil, printImageStreamTag)
-	p.Handler(imageStreamTagColumns, nil, printImageStreamTagList)
-	p.Handler(imageStreamImageColumns, nil, printImageStreamImage)
+	p.Handler(imageStreamTagColumns, imageStreamTagWideColumns, printImageStreamTag)
+	p.Handler(imageStreamTagColumns, imageStreamTagWideColumns, printImageStreamTagList)
+	p.Handler(imageStreamImageColumns, imageStreamImageWideColumns, printImageStreamImage)
 	p.Handler(imageColumns, nil, printImageList)
 	p.Handler(imageStreamColumns, nil, printImageStream)
 	p.Handler(imageStreamColumns, nil, printImageStreamList)
@@ -423,8 +425,13 @@ func printImageStreamTag(ist *imageapi.ImageStreamTag, w io.Writer, opts kprinte
 			return err
 		}
 	}
-	if _, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s", name, ist.Image.DockerImageReference, created, ist.Image.Name); err != nil {
+	if _, err := fmt.Fprintf(w, "%s\t%s\t%s", name, ist.Image.DockerImageReference, created); err != nil {
 		return err
+	}
+	if opts.Wide {
+		if _, err := fmt.Fprintf(w, "\t%s", ist.Image.Name); err != nil {
+			return err
+		}
 	}
 	if err := appendItemLabels(ist.Labels, w, opts.ColumnLabels, opts.ShowLabels); err != nil {
 		return err
@@ -449,8 +456,14 @@ func printImageStreamImage(isi *imageapi.ImageStreamImage, w io.Writer, opts kpr
 			return err
 		}
 	}
-	if _, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s", name, isi.Image.DockerImageReference, created, isi.Image.Name); err != nil {
+	if _, err := fmt.Fprintf(w, "%s\t%s", name, created); err != nil {
 		return err
+	}
+	if opts.Wide {
+		if _, err := fmt.Fprintf(w, "\t%s\t%s", isi.Image.DockerImageReference, isi.Image.Name); err != nil {
+			return err
+		}
+
 	}
 	if err := appendItemLabels(isi.Labels, w, opts.ColumnLabels, opts.ShowLabels); err != nil {
 		return err
