@@ -3,6 +3,7 @@ package origin
 import (
 	"fmt"
 	"net/http"
+	_ "net/http/pprof"
 	"runtime"
 
 	"github.com/golang/glog"
