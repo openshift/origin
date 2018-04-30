@@ -94,6 +94,8 @@ import (
 	"k8s.io/kubernetes/pkg/util/rlimit"
 	"k8s.io/kubernetes/pkg/version"
 	"k8s.io/kubernetes/pkg/version/verflag"
+
+	"github.com/openshift/origin/pkg/cmd/server/origin"
 )
 
 const (
@@ -227,6 +229,9 @@ HTTP server: The kubelet can also listen for HTTP and respond to a simple API
 					glog.Fatal(err)
 				}
 			}
+
+			// inject openshift profiling logic into kubelet
+			origin.StartProfiler()
 
 			// run the kubelet
 			if err := Run(kubeletServer, kubeletDeps); err != nil {
