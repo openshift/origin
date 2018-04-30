@@ -490,6 +490,15 @@
 		"mode=755",
 		"size=65536k"
 	    ]
+	},
+	{
+	    "destination": "/opt/cni/bin",
+	    "type": "bind",
+	    "source": "/opt/cni/bin",
+	    "options": [
+		"rbind",
+		"rslave"
+	    ]
 	}
         $ADDTL_MOUNTS
     ],
