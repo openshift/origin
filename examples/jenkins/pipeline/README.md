@@ -186,4 +186,33 @@ On the first pipeline run, there will be a delay as Jenkins is instantiated for 
         $ oc start-build sample-pipeline-openshift-client-plugin
 
     Jenkins will: create an instance of the sample-pipeline-openshift-client-plugin job, and trigger various builds and deployments in openshift.
+    
+## NodeJS (and Declarative) Pipeline Example
 
+The `nodejs-sample-pipeline.yaml` build config references a pipeline that both
+
+* Provides an example that uses the sample NodeJS agent image shipped with the (OpenShift Jenkins Images repository)[https://github.com/openshift/jenkins]
+
+* Illustrates the current requirements for using the OpenShift Client Plugin DSL with the Declarative Pipeline syntax
+
+**NOTE given the client plugin DSL's use of the Global Variable plug point, any client plugin DSL must be embedded with the Declarative `script` closure
+
+To run this example:
+
+1. Ensure that you have a running OpenShift environment as described in the basic example
+
+2. Run this command to create a pipeline buildconfig in your project:
+
+        $ oc create -f https://raw.githubusercontent.com/openshift/origin/master/examples/jenkins/pipeline/nodejs-sample-pipeline.yaml
+
+    At this point if you run `oc get pods` you should see a jenkins pod, or at least a jenkins-deploy pod. This pod was created as a result of the new pipeline buildconfig being defined.
+
+On the first pipeline run, there will be a delay as Jenkins is instantiated for the project. 
+
+3. Launch a new build
+
+        $ oc start-build nodejs-sample-pipeline
+
+    Jenkins will: create an instance of the nodejs-sample-pipeline job, and trigger various builds and deployments in OpenShift, including the 
+    the launching of Pods based on the NodeJS Agent image.
+    
