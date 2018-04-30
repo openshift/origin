@@ -67,7 +67,7 @@ func (r *RegistryComponentOptions) Install(dockerClient dockerhelper.Interface, 
 		fmt.Sprintf("--cluster-ip=%s", RegistryServiceClusterIP),
 		fmt.Sprintf("--config=%s", path.Join(masterConfigDir, "admin.kubeconfig")),
 		fmt.Sprintf("--images=%s", r.InstallContext.ImageFormat()),
-		fmt.Sprintf("--mount-host=%s", path.Join(r.InstallContext.BaseDir(), "openshift.local.pv", "registry")),
+		fmt.Sprintf("--mount-host=%s", path.Join(baseDir, "openshift.local.pv", "registry")),
 	}
 	_, rc, err := imageRunHelper.Image(r.InstallContext.ClientImage()).
 		Privileged().
