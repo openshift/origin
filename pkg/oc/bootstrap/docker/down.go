@@ -2,7 +2,6 @@ package docker
 
 import (
 	"fmt"
-	"io"
 	"strconv"
 	"strings"
 
@@ -30,7 +29,7 @@ type ClientStopConfig struct {
 }
 
 // NewCmdDown creates a command that stops OpenShift
-func NewCmdDown(name, fullName string, out io.Writer) *cobra.Command {
+func NewCmdDown(name, fullName string) *cobra.Command {
 	config := &ClientStopConfig{}
 	cmd := &cobra.Command{
 		Use:     name,

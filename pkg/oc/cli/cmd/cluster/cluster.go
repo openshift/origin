@@ -32,7 +32,7 @@ var (
 		routing suffix, use the --routing-suffix flag.`)
 )
 
-func NewCmdCluster(name, fullName string, f *clientcmd.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
+func NewCmdCluster(name, fullName string, f *clientcmd.Factory, out, errout io.Writer) *cobra.Command {
 	// Parent command to which all subcommands are added.
 	cmds := &cobra.Command{
 		Use:   fmt.Sprintf("%s ACTION", name),
@@ -45,7 +45,7 @@ func NewCmdCluster(name, fullName string, f *clientcmd.Factory, in io.Reader, ou
 
 	cmds.AddCommand(clusterAdd)
 	cmds.AddCommand(docker.NewCmdUp(docker.CmdUpRecommendedName, fullName+" "+docker.CmdUpRecommendedName, out, errout, clusterAdd))
-	cmds.AddCommand(docker.NewCmdDown(docker.CmdDownRecommendedName, fullName+" "+docker.CmdDownRecommendedName, out))
+	cmds.AddCommand(docker.NewCmdDown(docker.CmdDownRecommendedName, fullName+" "+docker.CmdDownRecommendedName))
 	cmds.AddCommand(docker.NewCmdStatus(docker.CmdStatusRecommendedName, fullName+" "+docker.CmdStatusRecommendedName, f, out))
 	return cmds
 }
