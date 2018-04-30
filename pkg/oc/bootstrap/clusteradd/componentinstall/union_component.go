@@ -7,6 +7,6 @@ type Components []Component
 func (c Components) Name() string {
 	return "union"
 }
-func (c Components) Install(dockerClient dockerhelper.Interface, logdir string) error {
-	return InstallComponents(c, dockerClient, logdir)
+func (c Components) Install(dockerClient dockerhelper.Interface) error {
+	return InstallComponents(c, dockerClient)
 }

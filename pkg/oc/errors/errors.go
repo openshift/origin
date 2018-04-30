@@ -1,14 +1,7 @@
 package errors
 
 import (
-	"bytes"
 	"fmt"
-	"io"
-	"runtime/debug"
-
-	"github.com/golang/glog"
-
-	"github.com/openshift/origin/pkg/oc/util/prefixwriter"
 )
 
 type Error interface {
@@ -61,23 +54,6 @@ func (e *internalError) WithDetails(details string) Error {
 }
 
 func (e *internalError) WithSolution(solution string) Error {
-	e.solution = fmt.Sprintf(solution)
+	e.solution = solution
 	return e
-}
-
-func LogError(err error) {
-	if err == nil {
-		return
-	}
-	glog.V(1).Infof("Unexpected error: %v", err)
-	if glog.V(5) {
-		debug.PrintStack()
-	}
-}
-
-func PrintLog(out io.Writer, title string, content []byte) {
-	fmt.Fprintf(out, "%s:\n", title)
-	w := prefixwriter.New("  ", out)
-	w.Write(bytes.TrimSpace(content))
-	fmt.Fprintf(out, "\n")
 }

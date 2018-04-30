@@ -28,7 +28,7 @@ func (c *SampleTemplatesComponentOptions) Name() string {
 	return "sample-templates"
 }
 
-func (c *SampleTemplatesComponentOptions) Install(dockerClient dockerhelper.Interface, logdir string) error {
+func (c *SampleTemplatesComponentOptions) Install(dockerClient dockerhelper.Interface) error {
 	componentsToInstall := componentinstall.Components{}
 	for name, location := range templateLocations {
 		componentsToInstall = append(componentsToInstall,
@@ -40,5 +40,5 @@ func (c *SampleTemplatesComponentOptions) Install(dockerClient dockerhelper.Inte
 		)
 	}
 
-	return componentsToInstall.Install(dockerClient, logdir)
+	return componentsToInstall.Install(dockerClient)
 }

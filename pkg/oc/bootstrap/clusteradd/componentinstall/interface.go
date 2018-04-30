@@ -13,10 +13,10 @@ import (
 
 type Component interface {
 	Name() string
-	Install(dockerClient dockerhelper.Interface, logdir string) error
+	Install(dockerClient dockerhelper.Interface) error
 }
 
-func InstallComponents(components []Component, dockerClient dockerhelper.Interface, logdir string) error {
+func InstallComponents(components []Component, dockerClient dockerhelper.Interface) error {
 	componentNames := []string{}
 	errorCh := make(chan error, len(components))
 	waitGroupOne := sync.WaitGroup{}
@@ -29,7 +29,7 @@ func InstallComponents(components []Component, dockerClient dockerhelper.Interfa
 		go func() {
 			defer waitGroupOne.Done()
 
-			err := component.Install(dockerClient, logdir)
+			err := component.Install(dockerClient)
 			if err != nil {
 				glog.Errorf("Failed to install %q: %v", component.Name(), err)
 				errorCh <- err

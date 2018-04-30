@@ -1087,10 +1087,6 @@ func (c *ClusterUpConfig) GetKubeAPIServerConfigDir() string {
 	return path.Join(c.BaseDir, kubeapiserver.KubeAPIServerDirName)
 }
 
-func (c *ClusterUpConfig) GetLogDir() string {
-	return path.Join(c.BaseDir, "logs")
-}
-
 func (c *ClusterUpConfig) RESTConfig() (*rest.Config, error) {
 	clusterAdminKubeConfigBytes, err := c.ClusterAdminKubeConfigBytes()
 	if err != nil {

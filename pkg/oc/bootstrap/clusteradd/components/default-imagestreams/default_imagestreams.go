@@ -19,7 +19,7 @@ func (c *RHELImageStreamsComponentOptions) Name() string {
 	return "rhel-imagestreams"
 }
 
-func (c *RHELImageStreamsComponentOptions) Install(dockerClient dockerhelper.Interface, logdir string) error {
+func (c *RHELImageStreamsComponentOptions) Install(dockerClient dockerhelper.Interface) error {
 	component := componentinstall.List{
 		Name:      c.Name(),
 		Namespace: "openshift",
@@ -28,7 +28,7 @@ func (c *RHELImageStreamsComponentOptions) Install(dockerClient dockerhelper.Int
 
 	return component.MakeReady(
 		c.InstallContext.ClientImage(),
-		c.InstallContext.BaseDir()).Install(dockerClient, logdir)
+		c.InstallContext.BaseDir()).Install(dockerClient)
 }
 
 type CentosImageStreamsComponentOptions struct {
@@ -39,7 +39,7 @@ func (c *CentosImageStreamsComponentOptions) Name() string {
 	return "centos-imagestreams"
 }
 
-func (c *CentosImageStreamsComponentOptions) Install(dockerClient dockerhelper.Interface, logdir string) error {
+func (c *CentosImageStreamsComponentOptions) Install(dockerClient dockerhelper.Interface) error {
 	component := componentinstall.List{
 		Name:      c.Name(),
 		Namespace: "openshift",
@@ -48,5 +48,5 @@ func (c *CentosImageStreamsComponentOptions) Install(dockerClient dockerhelper.I
 
 	return component.MakeReady(
 		c.InstallContext.ClientImage(),
-		c.InstallContext.BaseDir()).Install(dockerClient, logdir)
+		c.InstallContext.BaseDir()).Install(dockerClient)
 }

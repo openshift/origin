@@ -98,7 +98,7 @@ func (c *SetupPersistentVolumesOptions) Name() string {
 	return "persistent-volumes"
 }
 
-func (c *SetupPersistentVolumesOptions) Install(dockerClient dockerhelper.Interface, logdir string) error {
+func (c *SetupPersistentVolumesOptions) Install(dockerClient dockerhelper.Interface) error {
 	kclient, err := kubernetes.NewForConfig(c.InstallContext.ClusterAdminClientConfig())
 	if err != nil {
 		return err

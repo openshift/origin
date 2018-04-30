@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"path/filepath"
 
 	"github.com/golang/glog"
 
@@ -52,7 +53,7 @@ func (r *RegistryComponentOptions) ensureRemoteRegistryStoragePermissions(dir st
 	return err
 }
 
-func (r *RegistryComponentOptions) Install(dockerClient dockerhelper.Interface, logdir string) error {
+func (r *RegistryComponentOptions) Install(dockerClient dockerhelper.Interface) error {
 	kubeAdminClient, err := kubernetes.NewForConfig(r.InstallContext.ClusterAdminClientConfig())
 	if err != nil {
 		return err
@@ -103,7 +104,7 @@ func (r *RegistryComponentOptions) Install(dockerClient dockerhelper.Interface, 
 		DiscardContainer().
 		HostNetwork().
 		HostPid().
-		SaveContainerLogs(r.Name(), logdir).
+		SaveContainerLogs(r.Name(), filepath.Join(r.InstallContext.BaseDir(), "logs")).
 		Bind(masterConfigDir + ":" + masterConfigDir).
 		Entrypoint("oc").
 		Command(flags...).Run()
