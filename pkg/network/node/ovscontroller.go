@@ -16,6 +16,7 @@ import (
 	"github.com/openshift/origin/pkg/network/common"
 	"github.com/openshift/origin/pkg/util/ovs"
 
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
@@ -425,23 +426,23 @@ func policyNames(policies []networkapi.EgressNetworkPolicy) string {
 
 func (oc *ovsController) UpdateEgressNetworkPolicyRules(policies []networkapi.EgressNetworkPolicy, vnid uint32, namespaces []string, egressDNS *common.EgressDNS) error {
 	otx := oc.ovs.NewTransaction()
-	var inputErr error
+	errs := []error{}
 
 	if len(policies) == 0 {
 		otx.DeleteFlows("table=101, reg0=%d", vnid)
 	} else if vnid == 0 {
-		inputErr = fmt.Errorf("EgressNetworkPolicy in global network namespace is not allowed (%s); ignoring", policyNames(policies))
+		errs = append(errs, fmt.Errorf("EgressNetworkPolicy in global network namespace is not allowed (%s); ignoring", policyNames(policies)))
 	} else if len(namespaces) > 1 {
 		// Rationale: In our current implementation, multiple namespaces share their network by using the same VNID.
 		// Even though Egress network policy is defined per namespace, its implementation is based on VNIDs.
 		// So in case of shared network namespaces, egress policy of one namespace will affect all other namespaces that are sharing the network which might not be desirable.
-		inputErr = fmt.Errorf("EgressNetworkPolicy not allowed in shared NetNamespace (%s); dropping all traffic", strings.Join(namespaces, ", "))
+		errs = append(errs, fmt.Errorf("EgressNetworkPolicy not allowed in shared NetNamespace (%s); dropping all traffic", strings.Join(namespaces, ", ")))
 		otx.DeleteFlows("table=101, reg0=%d", vnid)
 		otx.AddFlow("table=101, reg0=%d, priority=1, actions=drop", vnid)
 	} else if len(policies) > 1 {
 		// Rationale: If we have allowed more than one policy, we could end up with different network restrictions depending
 		// on the order of policies that were processed and also it doesn't give more expressive power than a single policy.
-		inputErr = fmt.Errorf("multiple EgressNetworkPolicies in same network namespace (%s) is not allowed; dropping all traffic", policyNames(policies))
+		errs = append(errs, fmt.Errorf("multiple EgressNetworkPolicies in same network namespace (%s) is not allowed; dropping all traffic", policyNames(policies)))
 		otx.DeleteFlows("table=101, reg0=%d", vnid)
 		otx.AddFlow("table=101, reg0=%d, priority=1, actions=drop", vnid)
 	} else /* vnid != 0 && len(policies) == 1 */ {
@@ -492,7 +493,7 @@ func (oc *ovsController) UpdateEgressNetworkPolicyRules(policies []networkapi.Eg
 
 		if dnsFound {
 			if err := common.CheckDNSResolver(); err != nil {
-				inputErr = fmt.Errorf("DNS resolver failed: %v, dropping all traffic for namespace: %q", err, namespaces[0])
+				errs = append(errs, fmt.Errorf("DNS resolver failed: %v, dropping all traffic for namespace: %q", err, namespaces[0]))
 				otx.DeleteFlows("table=101, reg0=%d", vnid)
 				otx.AddFlow("table=101, reg0=%d, priority=1, actions=drop", vnid)
 			}
@@ -500,12 +501,11 @@ func (oc *ovsController) UpdateEgressNetworkPolicyRules(policies []networkapi.Eg
 		otx.DeleteFlows("table=101, reg0=%d, cookie=1/1", vnid)
 	}
 
-	txErr := otx.EndTransaction()
-	if inputErr != nil {
-		return inputErr
-	} else {
-		return txErr
+	if txErr := otx.EndTransaction(); txErr != nil {
+		errs = append(errs, txErr)
 	}
+
+	return kerrors.NewAggregate(errs)
 }
 
 func hostSubnetCookie(subnet *networkapi.HostSubnet) uint32 {
