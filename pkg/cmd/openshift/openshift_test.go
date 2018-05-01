@@ -1,7 +1,6 @@
 package openshift
 
 import (
-	"strings"
 	"testing"
 
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -9,7 +8,7 @@ import (
 
 func TestCommandFor(t *testing.T) {
 	cmd := CommandFor("openshift-router", wait.NeverStop)
-	if !strings.HasPrefix(cmd.Use, "openshift-router ") {
+	if cmd.Use != "openshift-router" {
 		t.Errorf("expected command to start with prefix: %#v", cmd)
 	}
 
