@@ -2,22 +2,32 @@ package node
 
 import (
 	"fmt"
+	"reflect"
+	"sort"
 	"strings"
 	"testing"
 )
 
-// Checks the "testModeChan" of eip and ensures that the expected netlink event occurred
-// (or rather, that a netlink event would have occurred if "testModeChan" wasn't set).
-func assertNetlinkChange(eip *egressIPWatcher, expected string) error {
-	select {
-	case change := <-eip.testModeChan:
-		if change == expected {
-			return nil
+// Checks the "testModeChan" of eip and ensures that the expected netlink event(s)
+// occurred, in some order (or rather, that the event(s) *would have occurred* if
+// "testModeChan" wasn't set).
+func assertNetlinkChange(eip *egressIPWatcher, expected ...string) error {
+	actual := []string{}
+	for range expected {
+		select {
+		case change := <-eip.testModeChan:
+			actual = append(actual, change)
+		default:
+			break
 		}
-		return fmt.Errorf("Unexpected netlink change %q (expected %q)", change, expected)
-	default:
-		return fmt.Errorf("Missing netlink change (expected %q)", expected)
 	}
+
+	sort.Strings(expected)
+	sort.Strings(actual)
+	if reflect.DeepEqual(expected, actual) {
+		return nil
+	}
+	return fmt.Errorf("Unexpected netlink changes: expected %#v, got %#v", expected, actual)
 }
 
 // Checks the "testModeChan" of eip and ensures that no netlink events have occurred
@@ -224,11 +234,7 @@ func TestEgressIP(t *testing.T) {
 
 	// Change Namespace EgressIP
 	eip.updateNamespaceEgress(44, "172.17.0.102")
-	err = assertNetlinkChange(eip, "release 172.17.0.104")
-	if err != nil {
-		t.Fatalf("%v", err)
-	}
-	err = assertNetlinkChange(eip, "claim 172.17.0.102")
+	err = assertNetlinkChange(eip, "release 172.17.0.104", "claim 172.17.0.102")
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
@@ -435,7 +441,7 @@ func TestDuplicateNamespaceEgressIPs(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 
-	// Add duplicate back, then remove and re-add Node EgressIP, which should have no effect
+	// Add duplicate back, re-breaking it
 	eip.updateNamespaceEgress(43, "172.17.0.100")
 	err = assertOVSChanges(eip, &flows,
 		egressOVSChange{vnid: 42, egress: Dropped},
@@ -445,14 +451,25 @@ func TestDuplicateNamespaceEgressIPs(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 
+	// Now remove and re-add the Node EgressIP; the namespace should stay broken
+	// whether the IP is assigned to a node or not, but processing the change might
+	// cause the rules to get deleted and then added back in the opposite order,
+	// which assertNoOVSChanges() would complain about, so we have to use
+	// assertOVSChanges() instead.
 	eip.updateNodeEgress("172.17.0.3", []string{})
-	err = assertNoOVSChanges(eip, &flows)
+	err = assertOVSChanges(eip, &flows,
+		egressOVSChange{vnid: 42, egress: Dropped},
+		egressOVSChange{vnid: 43, egress: Dropped},
+	)
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
 
 	eip.updateNodeEgress("172.17.0.3", []string{"172.17.0.100"})
-	err = assertNoOVSChanges(eip, &flows)
+	err = assertOVSChanges(eip, &flows,
+		egressOVSChange{vnid: 42, egress: Dropped},
+		egressOVSChange{vnid: 43, egress: Dropped},
+	)
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
