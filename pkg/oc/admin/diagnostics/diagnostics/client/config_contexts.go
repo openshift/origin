@@ -239,9 +239,9 @@ func (d ConfigContext) Check() types.DiagnosticResult {
 	temporaryFactory := osclientcmd.NewFactory(kclientcmd.NewDefaultClientConfig(*d.RawConfig, &kclientcmd.ConfigOverrides{Context: *context}))
 	clientConfig, err := temporaryFactory.ClientConfig()
 	if err == nil {
-		projectClient, err := projectclientinternal.NewForConfig(clientConfig)
+		projectClient, cfgerr := projectclientinternal.NewForConfig(clientConfig)
 		// client create now *fails* if cannot connect to server; so, address connectivity errors below
-		if err == nil {
+		if cfgerr == nil {
 			if projects, projerr := projectClient.Project().Projects().List(metav1.ListOptions{}); projerr != nil {
 				err = projerr
 			} else { // success!
@@ -260,6 +260,8 @@ func (d ConfigContext) Check() types.DiagnosticResult {
 				}
 				return r
 			}
+		} else {
+			err = cfgerr
 		}
 	}
 
