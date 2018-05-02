@@ -214,13 +214,14 @@ func buildDirectImage(dir string, ignoreFailures bool, opts *docker.BuildImageOp
 	e.IgnoreUnrecognizedInstructions = ignoreFailures
 	e.StrictVolumeOwnership = !ignoreFailures
 	e.HostConfig = &docker.HostConfig{
-		NetworkMode: opts.NetworkMode,
-		CPUShares:   opts.CPUShares,
-		CPUPeriod:   opts.CPUPeriod,
-		CPUSetCPUs:  opts.CPUSetCPUs,
-		CPUQuota:    opts.CPUQuota,
-		Memory:      opts.Memory,
-		MemorySwap:  opts.Memswap,
+		NetworkMode:  opts.NetworkMode,
+		CPUShares:    opts.CPUShares,
+		CPUPeriod:    opts.CPUPeriod,
+		CPUSetCPUs:   opts.CPUSetCPUs,
+		CPUQuota:     opts.CPUQuota,
+		CgroupParent: opts.CgroupParent,
+		Memory:       opts.Memory,
+		MemorySwap:   opts.Memswap,
 	}
 
 	if len(opts.BuildBinds) > 0 {
