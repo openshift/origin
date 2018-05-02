@@ -360,7 +360,7 @@ func (e *Store) Create(ctx genericapirequest.Context, obj runtime.Object, create
 		}
 	}
 	if e.Decorator != nil {
-		if err := e.Decorator(obj); err != nil {
+		if err := e.Decorator(out); err != nil {
 			return nil, err
 		}
 	}
