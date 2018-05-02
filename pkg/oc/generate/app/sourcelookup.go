@@ -253,9 +253,19 @@ func (r *SourceRepository) LocalPath() (string, error) {
 	if r.url.IsLocal() {
 		r.localDir = filepath.Join(r.url.LocalPath(), r.contextDir)
 	} else {
-		gitRepo := git.NewRepository()
+		env := []string{
+			"GIT_SSH=/dev/null",
+			"GIT_CONFIG_NOSYSTEM=true",
+			"GIT_ASKPASS=true",
+		}
+		gitRepo := git.NewRepositoryWithEnv(env)
 		var err error
 		if r.localDir, err = ioutil.TempDir("", "gen"); err != nil {
+			return "", err
+		}
+		glog.V(4).Infof("Checking if %v requires authentication", r.url.StringNoFragment())
+		_, _, err = gitRepo.TimedListRemote(10*time.Second, r.url.StringNoFragment(), "--heads")
+		if err != nil {
 			return "", err
 		}
 		r.localDir, err = CloneAndCheckoutSources(gitRepo, r.url.StringNoFragment(), r.url.URL.Fragment, r.localDir, r.contextDir)
