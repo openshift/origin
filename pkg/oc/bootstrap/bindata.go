@@ -15775,6 +15775,21 @@ objects:
     - get
 
 - apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRole
+  metadata:
+    name: servicecatalog-admission-viewer
+  rules:
+  - apiGroups:
+    - admissionregistration.k8s.io
+    resources:
+    - validatingwebhookconfigurations
+    - mutatingwebhookconfigurations
+    verbs:
+    - list
+    - watch
+    - get
+
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     name: servicecatalog-serviceclass-viewer-binding
@@ -15783,6 +15798,18 @@ objects:
     name: servicecatalog-serviceclass-viewer
   groupNames:
   - system:authenticated
+
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRoleBinding
+  metadata:
+    name: servicecatalog-admission-viewer-binding
+  roleRef:
+    kind: ClusterRole
+    name: servicecatalog-admission-viewer
+  subjects:
+  - kind: ServiceAccount
+    name: service-catalog-apiserver
+    namespace: ${KUBE_SERVICE_CATALOG_NAMESPACE}
 
 - apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
@@ -16056,7 +16083,7 @@ objects:
           - service-catalog
           args:
           - apiserver
-          - --admission-control
+          - --enable-admission-plugins
           - KubernetesNamespaceLifecycle,DefaultServicePlan,ServiceBindingsLifecycle,ServicePlanChangeValidator,BrokerAuthSarCheck
           - --storage-type
           - etcd
