@@ -455,7 +455,7 @@ os::cmd::expect_success 'oc new-app https://github.com/openshift/ruby-hello-worl
 os::cmd::expect_success_and_not_text 'oc new-app https://github.com/openshift/ruby-hello-world --output-version=v1 -o=jsonpath="{.items[?(@.kind==\"BuildConfig\")].spec.source}"' 'dockerfile|binary'
 
 # We permit running new-app against a remote URL which returns a template
-os::cmd::expect_success 'oc new-app https://raw.githubusercontent.com/openshift/origin/master/examples/wordpress/template/wordpress-mysql.json --dry-run'
+os::cmd::expect_success 'oc new-app https://raw.githubusercontent.com/openshift/origin/release-3.7/examples/wordpress/template/wordpress-mysql.json --dry-run'
 
 echo "new-app: ok"
 os::test::junit::declare_suite_end
