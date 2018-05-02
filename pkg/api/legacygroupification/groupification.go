@@ -106,7 +106,10 @@ func OAPIToGroupified(uncast runtime.Object, gvk *schema.GroupVersionKind) {
 	case *route.Route, *routev1.Route, *route.RouteList, *routev1.RouteList:
 		gvk.Group = route.GroupName
 
-	case *security.SecurityContextConstraints, *securityv1.SecurityContextConstraints, *security.SecurityContextConstraintsList, *securityv1.SecurityContextConstraintsList:
+	case *security.SecurityContextConstraints, *securityv1.SecurityContextConstraints, *security.SecurityContextConstraintsList, *securityv1.SecurityContextConstraintsList,
+		*security.PodSecurityPolicySubjectReview, *securityv1.PodSecurityPolicySubjectReview,
+		*security.PodSecurityPolicySelfSubjectReview, *securityv1.PodSecurityPolicySelfSubjectReview,
+		*security.PodSecurityPolicyReview, *securityv1.PodSecurityPolicyReview:
 		gvk.Group = security.GroupName
 
 	case *template.Template, *templatev1.Template, *template.TemplateList, *templatev1.TemplateList:
@@ -150,8 +153,11 @@ var oapiKindsToGroup = map[string]string{
 	"ProjectRequest":       "project.openshift.io",
 	"ClusterResourceQuota": "quota.openshift.io", "ClusterResourceQuotaList": "quota.openshift.io",
 	"Route": "route.openshift.io", "RouteList": "route.openshift.io",
-	"SecurityContextConstraint": "security.openshift.io", "SecurityContextConstraintList": "security.openshift.io",
-	"Template": "template.openshift.io", "TemplateList": "template.openshift.io",
+	"SecurityContextConstraints": "security.openshift.io", "SecurityContextConstraintsList": "security.openshift.io",
+	"PodSecurityPolicySubjectReview":     "security.openshift.io",
+	"PodSecurityPolicySelfSubjectReview": "security.openshift.io",
+	"PodSecurityPolicyReview":            "security.openshift.io",
+	"Template":                           "template.openshift.io", "TemplateList": "template.openshift.io",
 	"Group": "user.openshift.io", "GroupList": "user.openshift.io",
 	"Identity": "user.openshift.io", "IdentityList": "user.openshift.io",
 	"UserIdentityMapping": "user.openshift.io",

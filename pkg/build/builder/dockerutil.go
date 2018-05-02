@@ -297,18 +297,13 @@ func buildDirectImage(dir string, ignoreFailures bool, opts *docker.BuildImageOp
 			return err
 		}
 		stages := imagebuilder.NewStages(node, b)
-		var stageExecutor *dockerclient.ClientExecutor
-		for _, stage := range stages {
-			stageExecutor = e.WithName(stage.Name)
-			if err := stageExecutor.Prepare(stage.Builder, stage.Node, ""); err != nil {
-				return err
-			}
-			if err := stageExecutor.Execute(stage.Builder, stage.Node); err != nil {
-				return err
-			}
-		}
-		return stageExecutor.Commit(stages[len(stages)-1].Builder)
 
+		lastExecutor, err := e.Stages(b, stages, "")
+		if err != nil {
+			return err
+		}
+
+		return lastExecutor.Commit(stages[len(stages)-1].Builder)
 	})
 }
 
