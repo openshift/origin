@@ -3,7 +3,7 @@ kind: Template
 metadata:
   name: kube-proxy
 parameters:
-- name: OPENSHIFT_IMAGE
+- name: IMAGE
   value: openshift/origin-control-plane
 - name: OPENSHIFT_PULL_POLICY
   value: Always
@@ -55,9 +55,9 @@ objects:
         hostNetwork: true
         containers:
         - name: kube-proxy
-          image: ${OPENSHIFT_IMAGE}
+          image: ${IMAGE}
           imagePullPolicy: ${OPENSHIFT_PULL_POLICY}
-          command: ["openshift", "start", "node"]
+          command: ["openshift", "start", "network"]
           args:
           - "--enable=proxy"
           - "--listen=https://0.0.0.0:8444"

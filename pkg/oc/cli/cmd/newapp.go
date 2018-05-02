@@ -22,6 +22,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	restclient "k8s.io/client-go/rest"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	ctl "k8s.io/kubernetes/pkg/kubectl"
@@ -33,6 +34,7 @@ import (
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	configcmd "github.com/openshift/origin/pkg/bulk"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
+	"github.com/openshift/origin/pkg/cmd/util/print"
 	"github.com/openshift/origin/pkg/git"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageclientinternal "github.com/openshift/origin/pkg/image/generated/internalclientset"
@@ -198,7 +200,7 @@ func (o *ObjectGeneratorOptions) Complete(baseName, commandName string, f *clien
 	o.BaseName = baseName
 	o.CommandName = commandName
 
-	o.PrintObject = cmdutil.VersionedPrintObject(kcmdutil.PrintObject, c, out)
+	o.PrintObject = print.VersionedPrintObject(legacyscheme.Scheme, legacyscheme.Registry, kcmdutil.PrintObject, c, out)
 	o.LogsForObject = f.LogsForObject
 	if err := CompleteAppConfig(o.Config, f, c, args); err != nil {
 		return err

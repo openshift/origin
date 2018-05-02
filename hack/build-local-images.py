@@ -56,13 +56,10 @@ image_namespace, _, image_prefix = os_image_prefix.rpartition("/")
 # "enable_default: True" can be added to skip the image build
 # with no arguments
 image_config = {
-    "control-plane": {
-        "directory": "origin",
+    "cli": {
+        "directory": "cli",
         "binaries": {
-            "openshift": "/usr/bin/openshift",
             "oc": "/usr/bin/oc",
-            "hypershift": "/usr/bin/hypershift",
-            "hyperkube": "/usr/bin/hyperkube"
         },
         "files": {}
     },
@@ -71,8 +68,20 @@ image_config = {
         "binaries": {
             "openshift": "/usr/bin/openshift",
             "oc": "/usr/bin/oc",
+        },
+        "files": {}
+    },
+    "hyperkube": {
+        "directory": "hyperkube",
+        "binaries": {
+            "hyperkube": "/usr/bin/hyperkube",
+        },
+        "files": {}
+    },
+    "hypershift": {
+        "directory": "hypershift",
+        "binaries": {
             "hypershift": "/usr/bin/hypershift",
-            "hyperkube": "/usr/bin/hyperkube"
         },
         "files": {}
     },
@@ -92,13 +101,6 @@ image_config = {
     },
     "docker-builder": {
         "directory": "builder/docker/docker-builder",
-        "binaries": {
-            "openshift": "/usr/bin/openshift"
-        },
-        "files": {}
-    },
-    "sti-builder": {
-        "directory": "builder/docker/sti-builder",
         "binaries": {
             "openshift": "/usr/bin/openshift"
         },
@@ -141,7 +143,9 @@ image_config = {
     "node": {
         "directory": "node",
         "binaries": {
-            "openshift": "/usr/bin/openshift"
+            "openshift": "/usr/bin/openshift",
+            "openshift-node-config": "/usr/bin/openshift-node-config",
+            "hyperkube": "/usr/bin/hyperkube"
         },
         "files": {}
     },
@@ -173,9 +177,6 @@ def full_name(image):
     the image namespace as well as the pre-
     fix, if applicable.
     """
-    if image in ["node", "openvswitch", image_prefix]:
-        return "{}/{}".format(image_namespace, image)
-
     return "{}/{}-{}".format(image_namespace, image_prefix, image)
 
 

@@ -39,8 +39,8 @@ func createProject(clientConfig *restclient.Config, name string) (*networkapi.Ne
 	return netns, nil
 }
 
-func updateNetNamespace(osClient networkclient.NetworkInterface, netns *networkapi.NetNamespace, action network.PodNetworkAction, args string) (*networkapi.NetNamespace, error) {
-	network.SetChangePodNetworkAnnotation(netns, action, args)
+func updateNetNamespace(osClient networkclient.NetworkInterface, netns *networkapi.NetNamespace, action networkapi.PodNetworkAction, args string) (*networkapi.NetNamespace, error) {
+	networkapi.SetChangePodNetworkAnnotation(netns, action, args)
 	_, err := osClient.NetNamespaces().Update(netns)
 	if err != nil {
 		return nil, err
@@ -53,7 +53,7 @@ func updateNetNamespace(osClient networkclient.NetworkInterface, netns *networka
 			return false, err
 		}
 
-		if _, _, err := network.GetChangePodNetworkAnnotation(netns); err == network.ErrorPodNetworkAnnotationNotFound {
+		if _, _, err := networkapi.GetChangePodNetworkAnnotation(netns); err == networkapi.ErrorPodNetworkAnnotationNotFound {
 			return true, nil
 		} else {
 			return false, nil
@@ -102,7 +102,7 @@ func TestOadmPodNetwork(t *testing.T) {
 		t.Fatalf("expected unique NetIDs, got %d, %d, %d", origNetns1.NetID, origNetns2.NetID, origNetns3.NetID)
 	}
 
-	newNetns2, err := updateNetNamespace(clusterAdminNetworkClient, origNetns2, network.JoinPodNetwork, "one")
+	newNetns2, err := updateNetNamespace(clusterAdminNetworkClient, origNetns2, networkapi.JoinPodNetwork, "one")
 	if err != nil {
 		t.Fatalf("error updating namespace: %v", err)
 	}
@@ -117,7 +117,7 @@ func TestOadmPodNetwork(t *testing.T) {
 		t.Fatalf("expected netns1 (%d) to be unchanged (%d)", newNetns1.NetID, origNetns1.NetID)
 	}
 
-	newNetns1, err = updateNetNamespace(clusterAdminNetworkClient, origNetns1, network.GlobalPodNetwork, "")
+	newNetns1, err = updateNetNamespace(clusterAdminNetworkClient, origNetns1, networkapi.GlobalPodNetwork, "")
 	if err != nil {
 		t.Fatalf("error updating namespace: %v", err)
 	}
@@ -132,7 +132,7 @@ func TestOadmPodNetwork(t *testing.T) {
 		t.Fatalf("expected netns2 (%d) to be unchanged (%d)", newNetns2.NetID, origNetns1.NetID)
 	}
 
-	newNetns1, err = updateNetNamespace(clusterAdminNetworkClient, newNetns1, network.IsolatePodNetwork, "")
+	newNetns1, err = updateNetNamespace(clusterAdminNetworkClient, newNetns1, networkapi.IsolatePodNetwork, "")
 	if err != nil {
 		t.Fatalf("error updating namespace: %v", err)
 	}

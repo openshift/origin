@@ -12,7 +12,7 @@
 %global openvswitch_version 2.6.1
 # this is the version we obsolete up to. The packaging changed for Origin
 # 1.0.6 and OSE 3.1 such that 'openshift' package names were no longer used.
-%global package_refector_version 3.0.2.900
+%global package_refactor_version 3.0.2.900
 %global golang_version 1.9.1
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
@@ -86,7 +86,7 @@ BuildRequires:  krb5-devel
 BuildRequires:  rsync
 Requires:       %{name}-clients = %{version}-%{release}
 Requires:       iptables
-Obsoletes:      openshift < %{package_refector_version}
+Obsoletes:      openshift < %{package_refactor_version}
 
 #
 # The following Bundled Provides entries are populated automatically by the
@@ -107,13 +107,22 @@ teams and applications. It provides a secure and multi-tenant configuration for
 Kubernetes allowing you to safely host many different applications and workloads
 on a unified cluster.
 
+%package hypershift
+Summary:        %{product_name} server commands
+
+%description hypershift
+%{summary}
+
+%package hyperkube
+Summary:        %{product_name} Kubernetes server commands
+
+%description hyperkube
+%{summary}
+
 %package master
 Summary:        %{product_name} Master
 Requires:       %{name} = %{version}-%{release}
-Requires(post):   systemd
-Requires(preun):  systemd
-Requires(postun): systemd
-Obsoletes:      openshift-master < %{package_refector_version}
+Obsoletes:      openshift-master < %{package_refactor_version}
 
 %description master
 %{summary}
@@ -127,6 +136,7 @@ Summary: %{product_name} Test Suite
 %package node
 Summary:        %{product_name} Node
 Requires:       %{name} = %{version}-%{release}
+Requires:       %{name}-hyperkube = %{version}-%{release}
 Requires:       docker >= %{docker_version}
 Requires:       util-linux
 Requires:       socat
@@ -138,7 +148,7 @@ Requires:       conntrack-tools
 Requires(post):   systemd
 Requires(preun):  systemd
 Requires(postun): systemd
-Obsoletes:      openshift-node < %{package_refector_version}
+Obsoletes:      openshift-node < %{package_refactor_version}
 Obsoletes:      tuned-profiles-%{name}-node
 Provides:       tuned-profiles-%{name}-node
 
@@ -147,8 +157,7 @@ Provides:       tuned-profiles-%{name}-node
 
 %package clients
 Summary:        %{product_name} Client binaries for Linux
-Obsoletes:      openshift-clients < %{package_refector_version}
-Requires:       git
+Obsoletes:      openshift-clients < %{package_refactor_version}
 Requires:       bash-completion
 
 %description clients
@@ -157,7 +166,7 @@ Requires:       bash-completion
 %if 0%{?make_redistributable}
 %package clients-redistributable
 Summary:        %{product_name} Client binaries for Linux, Mac OSX, and Windows
-Obsoletes:      openshift-clients-redistributable < %{package_refector_version}
+Obsoletes:      openshift-clients-redistributable < %{package_refactor_version}
 BuildRequires:  goversioninfo
 
 %description clients-redistributable
@@ -179,7 +188,7 @@ Requires:         bind-utils
 Requires:         ethtool
 Requires:         procps-ng
 Requires:         iproute
-Obsoletes:        openshift-sdn-ovs < %{package_refector_version}
+Obsoletes:        openshift-sdn-ovs < %{package_refactor_version}
 
 %description sdn-ovs
 %{summary}
@@ -253,7 +262,7 @@ PLATFORM="$(go env GOHOSTOS)/$(go env GOHOSTARCH)"
 install -d %{buildroot}%{_bindir}
 
 # Install linux components
-for bin in oc oadm openshift hypershift hyperkube template-service-broker
+for bin in oc oadm openshift hypershift hyperkube template-service-broker openshift-node-config
 do
   echo "+++ INSTALLING ${bin}"
   install -p -m 755 _output/local/bin/${PLATFORM}/${bin} %{buildroot}%{_bindir}/${bin}
@@ -356,8 +365,6 @@ chmod 0744 $RPM_BUILD_ROOT/usr/sbin/%{name}-docker-excluder
 %doc README.md
 %license LICENSE
 %{_bindir}/openshift
-%{_bindir}/hyperkube
-%{_bindir}/hypershift
 %{_bindir}/openshift-deploy
 %{_bindir}/openshift-f5-router
 %{_bindir}/openshift-recycle
@@ -379,11 +386,20 @@ chmod 0744 $RPM_BUILD_ROOT/usr/sbin/%{name}-docker-excluder
 %{_libexecdir}/%{name}
 %{_libexecdir}/%{name}/extended.test
 
+%files hypershift
+%{_bindir}/hypershift
+%defattr(-,root,root,0700)
+
+%files hyperkube
+%{_bindir}/hyperkube
+%defattr(-,root,root,0700)
+
 %files master
 %defattr(-,root,root,0700)
 %config(noreplace) %{_sysconfdir}/origin/master
 
 %files node
+%{_bindir}/openshift-node-config
 %{_sysconfdir}/systemd/system.conf.d/origin-accounting.conf
 %config(noreplace) %{_sysconfdir}/sysconfig/%{name}-node
 %defattr(-,root,root,0700)

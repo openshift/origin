@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+
+	"github.com/openshift/origin/pkg/cmd/server/apis/config"
+	"github.com/openshift/origin/pkg/cmd/server/apis/config/validation/common"
 )
 
 // ValidateEtcdConnectionInfo validates the connection info. If a server EtcdConfig is provided,
@@ -19,14 +21,14 @@ func ValidateEtcdConnectionInfo(config config.EtcdConnectionInfo, server *config
 		allErrs = append(allErrs, field.Required(fldPath.Child("urls"), ""))
 	}
 	for i, u := range config.URLs {
-		_, urlErrs := ValidateURL(u, fldPath.Child("urls").Index(i))
+		_, urlErrs := common.ValidateURL(u, fldPath.Child("urls").Index(i))
 		if len(urlErrs) > 0 {
 			allErrs = append(allErrs, urlErrs...)
 		}
 	}
 
 	if len(config.CA) > 0 {
-		allErrs = append(allErrs, ValidateFile(config.CA, fldPath.Child("ca"))...)
+		allErrs = append(allErrs, common.ValidateFile(config.CA, fldPath.Child("ca"))...)
 	}
 	allErrs = append(allErrs, ValidateCertInfo(config.ClientCert, false, fldPath)...)
 
@@ -51,8 +53,8 @@ func ValidateEtcdConnectionInfo(config config.EtcdConnectionInfo, server *config
 	return allErrs
 }
 
-func ValidateEtcdConfig(config *config.EtcdConfig, fldPath *field.Path) ValidationResults {
-	validationResults := ValidationResults{}
+func ValidateEtcdConfig(config *config.EtcdConfig, fldPath *field.Path) common.ValidationResults {
+	validationResults := common.ValidationResults{}
 
 	servingInfoPath := fldPath.Child("servingInfo")
 	validationResults.Append(ValidateServingInfo(config.ServingInfo, true, servingInfoPath))

@@ -11,6 +11,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
+	"github.com/openshift/origin/pkg/cmd/util/route"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	routeclientinternal "github.com/openshift/origin/pkg/route/generated/internalclientset"
@@ -116,7 +117,7 @@ func CreateEdgeRoute(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, ar
 	if err != nil {
 		return err
 	}
-	route, err := cmdutil.UnsecuredRoute(kc, ns, routeName, serviceName, kcmdutil.GetFlagString(cmd, "port"), false)
+	route, err := route.UnsecuredRoute(kc, ns, routeName, serviceName, kcmdutil.GetFlagString(cmd, "port"), false)
 	if err != nil {
 		return err
 	}
@@ -235,7 +236,7 @@ func CreatePassthroughRoute(f *clientcmd.Factory, out io.Writer, cmd *cobra.Comm
 	if err != nil {
 		return err
 	}
-	route, err := cmdutil.UnsecuredRoute(kc, ns, routeName, serviceName, kcmdutil.GetFlagString(cmd, "port"), false)
+	route, err := route.UnsecuredRoute(kc, ns, routeName, serviceName, kcmdutil.GetFlagString(cmd, "port"), false)
 	if err != nil {
 		return err
 	}
@@ -348,7 +349,7 @@ func CreateReencryptRoute(f *clientcmd.Factory, out io.Writer, cmd *cobra.Comman
 	if err != nil {
 		return err
 	}
-	route, err := cmdutil.UnsecuredRoute(kc, ns, routeName, serviceName, kcmdutil.GetFlagString(cmd, "port"), false)
+	route, err := route.UnsecuredRoute(kc, ns, routeName, serviceName, kcmdutil.GetFlagString(cmd, "port"), false)
 	if err != nil {
 		return err
 	}

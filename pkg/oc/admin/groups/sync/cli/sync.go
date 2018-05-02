@@ -15,14 +15,15 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	kyaml "k8s.io/apimachinery/pkg/util/yaml"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/cmd/server/apis/config"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
-	"github.com/openshift/origin/pkg/cmd/server/apis/config/validation"
-	cmdutil "github.com/openshift/origin/pkg/cmd/util"
+	"github.com/openshift/origin/pkg/cmd/server/apis/config/validation/ldap"
+	"github.com/openshift/origin/pkg/cmd/util/print"
 	"github.com/openshift/origin/pkg/oauthserver/ldaputil"
 	"github.com/openshift/origin/pkg/oauthserver/ldaputil/ldapclient"
 	"github.com/openshift/origin/pkg/oc/admin/groups/sync"
@@ -345,7 +346,7 @@ func (o *SyncOptions) Validate() error {
 		return fmt.Errorf("sync source must be one of the following: %v", strings.Join(AllowedSourceTypes, ","))
 	}
 
-	results := validation.ValidateLDAPSyncConfig(o.Config)
+	results := ldap.ValidateLDAPSyncConfig(o.Config)
 	if o.GroupInterface == nil {
 		results.Errors = append(results.Errors, field.Required(field.NewPath("groupInterface"), ""))
 	}
@@ -430,7 +431,7 @@ func (o *SyncOptions) Run(cmd *cobra.Command, f *clientcmd.Factory) error {
 	for _, item := range openshiftGroups {
 		list.Items = append(list.Items, item)
 	}
-	fn := cmdutil.VersionedPrintObject(kcmdutil.PrintObject, cmd, o.Out)
+	fn := print.VersionedPrintObject(legacyscheme.Scheme, legacyscheme.Registry, kcmdutil.PrintObject, cmd, o.Out)
 	if err := fn(list); err != nil {
 		return err
 	}

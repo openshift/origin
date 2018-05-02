@@ -6,6 +6,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/diff"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
@@ -33,7 +34,7 @@ func TestExport(t *testing.T) {
 			expectedObj: &appsapi.DeploymentConfig{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:       "config",
-					Generation: 1,
+					Generation: 0,
 				},
 				Spec:   appstest.OkDeploymentConfigSpec(),
 				Status: appsapi.DeploymentConfigStatus{},
@@ -157,7 +158,7 @@ func TestExport(t *testing.T) {
 		}
 
 		if !reflect.DeepEqual(test.object, test.expectedObj) {
-			t.Errorf("%s: object mismatch: expected \n%#v\ngot \n%#v\n", test.name, test.expectedObj, test.object)
+			t.Errorf("%s: object mismatch: %s", test.name, diff.ObjectReflectDiff(test.expectedObj, test.object))
 		}
 	}
 }

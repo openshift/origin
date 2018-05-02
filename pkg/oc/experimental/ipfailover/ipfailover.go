@@ -17,12 +17,13 @@ import (
 
 	configcmd "github.com/openshift/origin/pkg/bulk"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	cmdutil "github.com/openshift/origin/pkg/cmd/util"
+	"github.com/openshift/origin/pkg/cmd/util/print"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	"github.com/openshift/origin/pkg/oc/experimental/ipfailover/ipfailover"
 	"github.com/openshift/origin/pkg/oc/experimental/ipfailover/keepalived"
 	securityclientinternal "github.com/openshift/origin/pkg/security/generated/internalclientset"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 )
 
 var (
@@ -205,7 +206,7 @@ func Run(f *clientcmd.Factory, options *ipfailover.IPFailoverConfigCmdOptions, c
 	list.Items = append(configList, list.Items...)
 
 	if options.Action.ShouldPrint() {
-		return cmdutil.VersionedPrintObject(kcmdutil.PrintObject, cmd, options.Action.Out)(list)
+		return print.VersionedPrintObject(legacyscheme.Scheme, legacyscheme.Registry, kcmdutil.PrintObject, cmd, options.Action.Out)(list)
 	}
 
 	if errs := options.Action.WithMessage(fmt.Sprintf("Creating IP failover %s", name), "created").Run(list, namespace); len(errs) > 0 {
