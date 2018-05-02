@@ -17,12 +17,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 939850d273e64302eb7446ed216f3a7a2665ff5e
+%global commit 74b6e05e4c32a7ee6c549203f529b8298e43af10
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=10+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.10.0-0.30.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 KUBE_GIT_VERSION=v1.10.0+b81c8f8 OS_GIT_PATCH=0 KUBE_GIT_COMMIT=b81c8f8 KUBE_GIT_MINOR=10+ OS_GIT_COMMIT=d3b6b35 KUBE_GIT_MAJOR=1 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.16-0-g121edf0 ETCD_GIT_COMMIT=121edf0
+%global os_git_vars OS_GIT_MINOR=10+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.10.0-0.31.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 KUBE_GIT_VERSION=v1.10.0+b81c8f8 OS_GIT_PATCH=0 KUBE_GIT_COMMIT=b81c8f8 KUBE_GIT_MINOR=10+ OS_GIT_COMMIT=537fea0 KUBE_GIT_MAJOR=1 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.16-0-g121edf0 ETCD_GIT_COMMIT=121edf0
 }
 
 %if 0%{?skip_build}
@@ -65,7 +65,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.10.0
-Release:        0.31.0%{?dist}
+Release:        0.32.0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -468,6 +468,18 @@ if [ "$1" -eq 0 ] ; then
 fi
 
 %changelog
+* Tue May 01 2018 Justin Pierce <jupierce@redhat.com> 3.10.0-0.32.0
+- Add PSP review kinds to /oapi group map (mkhan@redhat.com)
+- UPSTREAM: <carry>: Add PSP review to /oapi Resources (mkhan@redhat.com)
+- Pluralize SCC Kind for /oapi group map (mkhan@redhat.com)
+- up: consolidate usage of out and remove tasks (mfojtik@redhat.com)
+- Fix UpdateEgressNetworkPolicyRules() to return both input and ovs transaction
+  errors (rpenta@redhat.com)
+- move jenkins_plugin.go from image_eco to builds (gmontero@redhat.com)
+- React to imagebuilder changes (ccoleman@redhat.com)
+- bump(github.com/openshift/imagebuilder) (ccoleman@redhat.com)
+- Allow imagestreamtag delete to retry conflicts (ccoleman@redhat.com)
+
 * Sat Apr 28 2018 Justin Pierce <jupierce@redhat.com> 3.10.0-0.31.0
 - bump(*) (bparees@redhat.com)
 - quit launching jenkins in separate project for jenkins_plugin.go
