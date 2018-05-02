@@ -16057,7 +16057,7 @@ objects:
           - service-catalog
           args:
           - apiserver
-          - --admission-control
+          - --enable-admission-plugins
           - KubernetesNamespaceLifecycle,DefaultServicePlan,ServiceBindingsLifecycle,ServicePlanChangeValidator,BrokerAuthSarCheck
           - --storage-type
           - etcd
@@ -16162,6 +16162,8 @@ objects:
           - "3"
           - --leader-election-namespace
           - kube-service-catalog
+          - --leader-elect-resource-lock
+          - configmaps
           - --broker-relist-interval
           - "5m"
           - --feature-gates
