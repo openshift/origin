@@ -25,6 +25,7 @@ import (
 	"github.com/openshift/origin/pkg/oc/bootstrap/clusteradd/componentinstall"
 	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/kubeapiserver"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/dockerhelper"
+	"github.com/openshift/origin/pkg/oc/bootstrap/docker/openshift"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/run"
 	"github.com/openshift/origin/pkg/oc/errors"
 )
@@ -125,6 +126,12 @@ func (c *RouterComponentOptions) Install(dockerClient dockerhelper.Interface, lo
 	}
 
 	routerCertPath := masterConfigDir + "/router.pem"
+
+	// Check that the default router ports are available
+	osHelper := openshift.NewHelper(dockerHelper, c.InstallContext.ClientImage(), openshift.ContainerName)
+	if portErr := osHelper.TestPorts(openshift.RouterPorts); portErr != nil {
+		return errors.NewError("required router ports are not available").WithCause(portErr)
+	}
 
 	flags := []string{
 		"adm", "router",

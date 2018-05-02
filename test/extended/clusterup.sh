@@ -321,6 +321,19 @@ function os::test::extended::clusterup::portinuse_cleanup () {
     docker rm -f port53
 }
 
+function os::test::extended::clusterup::webportinuse () {
+    local base_dir
+    base_dir=$(os::test::extended::clusterup::make_base_dir "web_port_in_use")
+    # Start listening on the host's 127.0.0.1 interface, port 80
+    os::cmd::expect_success "docker run -d --name=port80 --entrypoint=/bin/bash --net=host openshift/origin-gitserver:latest -c \"socat TCP-LISTEN:80,bind=127.0.0.1,fork SYSTEM:'echo hello'\""
+    arg=$@
+    os::cmd::expect_failure_and_text "oc cluster up --base-dir=${base_dir} $arg" "required router ports are not available"
+}
+
+function os::test::extended::clusterup::webportinuse_cleanup () {
+    os::test::extended::clusterup::cleanup
+    docker rm -f port80
+}
 
 readonly default_tests=(
     "service_catalog"
@@ -331,6 +344,7 @@ readonly default_tests=(
     "portinuse"
     "svcaccess"
     "console"
+    "webportinuse"
 
 # logging+metrics team needs to fix/enable these tests.
 #    "metrics"
