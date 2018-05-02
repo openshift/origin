@@ -1,4 +1,4 @@
-package builds
+package image_ecosystem
 
 import (
 	"bytes"
@@ -112,7 +112,7 @@ func validateCreateDelete(create bool, key, out string, err error) {
 	}
 }
 
-var _ = g.Describe("[Feature:Builds][jenkins][Slow] openshift pipeline plugin", func() {
+var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin", func() {
 	defer g.GinkgoRecover()
 	var oc = exutil.NewCLI("jenkins-plugin", exutil.KubeConfigPath())
 	var j *jenkins.JenkinsRef
