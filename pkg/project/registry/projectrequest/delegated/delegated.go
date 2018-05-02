@@ -82,7 +82,7 @@ func (r *REST) NewList() runtime.Object {
 var _ = rest.Creater(&REST{})
 
 var (
-	ForbiddenNames    = []string{"openshift", "kubernetes", "kube"}
+	ForbiddenNames    = []string{"openshift", "kubernetes", "kube", "default"}
 	ForbiddenPrefixes = []string{"openshift-", "kubernetes-", "kube-"}
 
 	defaultRoleBindingNames = bootstrappolicy.GetBootstrapServiceAccountProjectRoleBindingNames()
