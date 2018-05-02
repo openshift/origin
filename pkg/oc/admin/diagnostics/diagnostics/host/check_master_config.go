@@ -50,7 +50,7 @@ func (d *MasterConfigCheck) CanRun() (bool, error) {
 func (d *MasterConfigCheck) Check() types.DiagnosticResult {
 	r := types.NewDiagnosticResult(MasterConfigCheckName)
 
-	results := configvalidation.ValidateMasterConfig(masterConfig, nil)
+	results := configvalidation.ValidateMasterConfig(d.masterConfig, nil)
 	if len(results.Errors) > 0 {
 		errText := fmt.Sprintf("Validation of master config file '%s' failed:\n", d.MasterConfigFile)
 		for _, err := range results.Errors {
