@@ -473,7 +473,7 @@ backend be_tcp:{{$cfgIdx}}
 */}}
 {{ define "/var/lib/haproxy/conf/os_wildcard_domain.map" -}}
 {{     if isTrue (env "ROUTER_ALLOW_WILDCARD_ROUTES") -}}
-{{         range $idx, $line := generateHAProxyMap "os_wildcard_domain.map" . -}}
+{{         range $idx, $line := generateHAProxyMap . -}}
 {{$line}}
 {{         end -}}
 {{     end -}}{{/* end if router allows wildcard routes */ -}}
@@ -487,7 +487,7 @@ backend be_tcp:{{$cfgIdx}}
                                                 be_secure for reencrypt routes with InsecureEdgeTerminationPolicy Allow
 */}}
 {{ define "/var/lib/haproxy/conf/os_http_be.map" -}}
-{{     range $idx, $line := generateHAProxyMap "os_http_be.map" . -}}
+{{     range $idx, $line := generateHAProxyMap . -}}
 {{$line}}
 {{     end -}}
 {{ end -}}{{/* end http host map template */}}
@@ -499,7 +499,7 @@ backend be_tcp:{{$cfgIdx}}
                                               be_secure for reencrypt routes
 */}}
 {{ define "/var/lib/haproxy/conf/os_edge_reencrypt_be.map" -}}
-{{     range $idx, $line := generateHAProxyMap "os_edge_reencrypt_be.map" . -}}
+{{     range $idx, $line := generateHAProxyMap . -}}
 {{$line}}
 {{     end -}}
 {{ end -}}{{/* end edge http host map template */}}
@@ -511,7 +511,7 @@ backend be_tcp:{{$cfgIdx}}
     if acls match for routes that have the insecure option set to redirect.
 */}}
 {{ define "/var/lib/haproxy/conf/os_route_http_redirect.map" -}}
-{{     range $idx, $line := generateHAProxyMap "os_route_http_redirect.map" . -}}
+{{     range $idx, $line := generateHAProxyMap . -}}
 {{$line}}
 {{     end -}}
 {{ end -}}{{/* end redirect http host map template */}}
@@ -522,7 +522,7 @@ backend be_tcp:{{$cfgIdx}}
                         by attaching a prefix (be_tcp: or be_secure:) by use_backend statements if acls are matched.
 */}}
 {{ define "/var/lib/haproxy/conf/os_tcp_be.map" -}}
-{{     range $idx, $line := generateHAProxyMap "os_tcp_be.map" . -}}
+{{     range $idx, $line := generateHAProxyMap . -}}
 {{$line}}
 {{     end -}}
 {{ end -}}{{/* end tcp host map template */}}
@@ -533,7 +533,7 @@ backend be_tcp:{{$cfgIdx}}
     					through to the host_be.  Driven by the termination type of the ServiceAliasConfigs
 */}}
 {{ define "/var/lib/haproxy/conf/os_sni_passthrough.map" -}}
-{{     range $idx, $line := generateHAProxyMap "os_sni_passthrough.map" . -}}
+{{     range $idx, $line := generateHAProxyMap . -}}
 {{$line}}
 {{     end -}}
 {{ end -}}{{/* end sni passthrough map template */}}
@@ -547,7 +547,7 @@ backend be_tcp:{{$cfgIdx}}
          wildcards and/or use a deny set with !<domain> in the future.
 */}}
 {{ define "/var/lib/haproxy/conf/cert_config.map" -}}
-{{     range $idx, $line := generateHAProxyMap "cert_config.map" . -}}
+{{     range $idx, $line := generateHAProxyMap . -}}
 {{$line}}
 {{     end -}}
 {{ end -}}{{/* end cert_config map template */}}

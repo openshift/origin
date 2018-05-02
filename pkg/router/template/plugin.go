@@ -97,6 +97,22 @@ type routerInterface interface {
 	Commit()
 }
 
+// createTemplateWithHelper generates a new template with a map helper function.
+func createTemplateWithHelper(t *template.Template) (*template.Template, error) {
+	funcMap := template.FuncMap{
+		"generateHAProxyMap": func(data templateData) []string {
+			return generateHAProxyMap(filepath.Base(t.Name()), data)
+		},
+	}
+
+	clone, err := t.Clone()
+	if err != nil {
+		return nil, err
+	}
+
+	return clone.Funcs(funcMap), nil
+}
+
 // NewTemplatePlugin creates a new TemplatePlugin.
 func NewTemplatePlugin(cfg TemplatePluginConfig, lookupSvc ServiceLookup) (*TemplatePlugin, error) {
 	templateBaseName := filepath.Base(cfg.TemplatePath)
@@ -111,7 +127,12 @@ func NewTemplatePlugin(cfg TemplatePluginConfig, lookupSvc ServiceLookup) (*Temp
 			continue
 		}
 
-		templates[template.Name()] = template
+		templateWithHelper, err := createTemplateWithHelper(template)
+		if err != nil {
+			return nil, err
+		}
+
+		templates[template.Name()] = templateWithHelper
 	}
 
 	peerKey := ""
