@@ -16056,7 +16056,6 @@ objects:
           - service-catalog
           args:
           - apiserver
-          - --admission-control
           - KubernetesNamespaceLifecycle,DefaultServicePlan,ServiceBindingsLifecycle,ServicePlanChangeValidator,BrokerAuthSarCheck
           - --storage-type
           - etcd
