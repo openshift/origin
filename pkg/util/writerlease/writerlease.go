@@ -247,7 +247,8 @@ func (l *WriterLease) work() bool {
 		// if we are following, continue to defer work until the lease expires
 		if remaining := leaseExpires.Sub(l.nowFn()); remaining > 0 {
 			glog.V(4).Infof("[%s] Follower, %s remaining in lease", l.name, remaining)
-			l.queue.AddAfter(key, remaining)
+			time.Sleep(remaining)
+			l.queue.Add(key)
 			l.queue.Done(key)
 			return true
 		}
