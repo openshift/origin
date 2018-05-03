@@ -329,6 +329,28 @@ readonly OS_ALL_IMAGES=(
   origin-tests
 )
 
+# os::build::check_binaries ensures that binary sizes do not grow without approval.
+function os::build::check_binaries() {
+  platform=$(os::build::host_platform)
+  # enforce that certain binaries don't accidentally grow too large
+  # IMPORTANT: contact Clayton or another master team member before altering this code
+  if [[ -f "${OS_OUTPUT_BINPATH}/${platform}/oc" ]]; then
+    if [[ "$(du -m "${OS_OUTPUT_BINPATH}/${platform}/oc" | cut -f 1)" -gt "110" ]]; then
+		  os::log::fatal "oc binary has grown substantially. You must have approval before bumping this limit."
+    fi
+  fi
+  if [[ -f "${OS_OUTPUT_BINPATH}/${platform}/openshift-node-config" ]]; then
+    if [[ "$(du -m "${OS_OUTPUT_BINPATH}/${platform}/openshift-node-config" | cut -f 1)" -gt "22" ]]; then
+		  os::log::fatal "openshift-node-config binary has grown substantially. You must have approval before bumping this limit."
+    fi
+  fi
+  if [[ -f "${OS_OUTPUT_BINPATH}/${platform}/pod" ]]; then
+    if [[ "$(du -m "${OS_OUTPUT_BINPATH}/${platform}/pod" | cut -f 1)" -gt "2" ]]; then
+		  os::log::fatal "pod binary has grown substantially. You must have approval before bumping this limit."
+    fi
+  fi
+}
+
 # os::build::images builds all images in this repo.
 function os::build::images() {
   # Create link to file if the FS supports hardlinks, otherwise copy the file
