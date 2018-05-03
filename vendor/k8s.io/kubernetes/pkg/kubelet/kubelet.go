@@ -551,6 +551,13 @@ func NewMainKubelet(kubeCfg *kubeletconfiginternal.KubeletConfiguration,
 		keepTerminatedPodVolumes:                keepTerminatedPodVolumes,
 	}
 
+	if klet.cloud != nil {
+		klet.cloudproviderRequestParallelism = make(chan int, 1)
+		klet.cloudproviderRequestSync = make(chan int)
+		// TODO(jchaloup): Make it configurable via --cloud-provider-request-timeout
+		klet.cloudproviderRequestTimeout = 10 * time.Second
+	}
+
 	secretManager := secret.NewCachingSecretManager(
 		kubeDeps.KubeClient, secret.GetObjectTTLFromNodeFunc(klet.GetNode))
 	klet.secretManager = secretManager
@@ -1038,8 +1045,19 @@ type Kubelet struct {
 	// with cloud providers instead of in the core repo.
 	// More details here: https://github.com/kubernetes/kubernetes/issues/50986
 	autoDetectCloudProvider bool
+
 	// Indicates that the node initialization happens in an external cloud controller
 	externalCloudProvider bool
+
+	// To keep exclusive access to the cloudproviderRequestParallelism
+	cloudproviderRequestMux sync.Mutex
+	// Keep the count of requests processed in parallel (expected to be 1 at most at a given time)
+	cloudproviderRequestParallelism chan int
+	// Sync with finished requests
+	cloudproviderRequestSync chan int
+	// Request timeout
+	cloudproviderRequestTimeout time.Duration
+
 	// Reference to this node.
 	nodeRef *v1.ObjectReference
 
