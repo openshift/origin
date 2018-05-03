@@ -50,11 +50,12 @@ done </privileged-sa-list.txt
 ns=""
 if [ -s /namespace-file ]; then
 	ns="--namespace=$(cat /namespace-file) "
-	oc create ns $(cat /namespace-file) --config=/kubeconfig.kubeconfig --dry-run -o yaml | oc apply --config=/kubeconfig.kubeconfig -f -
 fi
 
 if [ -s /namespace.yaml ]; then
 	oc apply --config=/kubeconfig.kubeconfig -f /namespace.yaml
+elif [ -s /namespace-file ]; then
+	oc create ns $(cat /namespace-file) --config=/kubeconfig.kubeconfig --dry-run -o yaml | oc apply --config=/kubeconfig.kubeconfig -f -
 fi
 
 if [ -s /rbac.yaml ]; then
