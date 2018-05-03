@@ -35,6 +35,8 @@ type RouterSelection struct {
 
 	HostnameTemplate string
 	OverrideHostname bool
+	OverrideDomains  []string
+	RedactedDomains  sets.String
 
 	LabelSelector string
 	FieldSelector string
@@ -71,6 +73,7 @@ func (o *RouterSelection) Bind(flag *pflag.FlagSet) {
 	flag.DurationVar(&o.ResyncInterval, "resync-interval", controllerfactory.DefaultResyncInterval, "The interval at which the route list should be fully refreshed")
 	flag.StringVar(&o.HostnameTemplate, "hostname-template", cmdutil.Env("ROUTER_SUBDOMAIN", ""), "If specified, a template that should be used to generate the hostname for a route without spec.host (e.g. '${name}-${namespace}.myapps.mycompany.com')")
 	flag.BoolVar(&o.OverrideHostname, "override-hostname", isTrue(cmdutil.Env("ROUTER_OVERRIDE_HOSTNAME", "")), "Override the spec.host value for a route with --hostname-template")
+	flag.StringSliceVar(&o.OverrideDomains, "override-domains", envVarAsStrings("ROUTER_OVERRIDE_DOMAINS", "", ","), "List of comma separated domains to override if present in any routes. This overrides the spec.host value in any matching routes with --hostname-template")
 	flag.StringVar(&o.LabelSelector, "labels", cmdutil.Env("ROUTE_LABELS", ""), "A label selector to apply to the routes to watch")
 	flag.StringVar(&o.FieldSelector, "fields", cmdutil.Env("ROUTE_FIELDS", ""), "A field selector to apply to routes to watch")
 	flag.StringVar(&o.ProjectLabelSelector, "project-labels", cmdutil.Env("PROJECT_LABELS", ""), "A label selector to apply to projects to watch; if '*' watches all projects the client can access")
@@ -91,7 +94,7 @@ func (o *RouterSelection) RouteUpdate(route *routeapi.Route) {
 	if len(o.HostnameTemplate) == 0 {
 		return
 	}
-	if !o.OverrideHostname && len(route.Spec.Host) > 0 {
+	if !o.OverrideHostname && len(route.Spec.Host) > 0 && !hostInDomainList(route.Spec.Host, o.RedactedDomains) {
 		return
 	}
 	s, err := variable.ExpandStrict(o.HostnameTemplate, func(key string) (string, bool) {
@@ -166,6 +169,12 @@ func (o *RouterSelection) Complete() error {
 	if len(o.HostnameTemplate) == 0 && o.OverrideHostname {
 		return fmt.Errorf("--override-hostname requires that --hostname-template be specified")
 	}
+
+	o.RedactedDomains = sets.NewString(o.OverrideDomains...)
+	if len(o.RedactedDomains) > 0 && len(o.HostnameTemplate) == 0 {
+		return fmt.Errorf("--override-domains requires that --hostname-template be specified")
+	}
+
 	if len(o.LabelSelector) > 0 {
 		if _, err := labels.Parse(o.LabelSelector); err != nil {
 			return fmt.Errorf("label selector is not valid: %v", err)
