@@ -51,7 +51,7 @@ func (s *REST) List(ctx apirequest.Context, options *metainternal.ListOptions) (
 		return nil, err
 	}
 
-	ret := &authorizationapi.ClusterRoleList{}
+	ret := &authorizationapi.ClusterRoleList{ListMeta: roles.ListMeta}
 	for _, curr := range roles.Items {
 		role, err := util.ClusterRoleFromRBAC(&curr)
 		if err != nil {
@@ -59,7 +59,6 @@ func (s *REST) List(ctx apirequest.Context, options *metainternal.ListOptions) (
 		}
 		ret.Items = append(ret.Items, *role)
 	}
-	ret.ListMeta.ResourceVersion = roles.ResourceVersion
 	return ret, nil
 }
 
