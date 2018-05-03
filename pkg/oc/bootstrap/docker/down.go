@@ -3,6 +3,7 @@ package docker
 import (
 	"fmt"
 	"io"
+	"runtime"
 	"strconv"
 	"strings"
 
@@ -13,6 +14,7 @@ import (
 
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/openshift"
+	"github.com/openshift/origin/pkg/oc/bootstrap/docker/run"
 )
 
 const CmdDownRecommendedName = "down"
@@ -57,6 +59,11 @@ func (c *ClientStopConfig) Stop() error {
 	if err != nil {
 		glog.V(2).Infof("error: cannot kill socat: %v", err)
 	}
+	originContainer, err := client.ContainerInspect(openshift.ContainerName)
+	if err != nil {
+		glog.V(2).Infof("Unable to inspect origin container: %v", err)
+	}
+	originContainerImage := originContainer.Config.Image
 	glog.V(4).Infof("Stopping and removing origin container")
 	if err = helper.StopAndRemoveContainer(openshift.ContainerName); err != nil {
 		glog.V(2).Infof("Error stopping origin container: %v", err)
@@ -78,6 +85,26 @@ func (c *ClientStopConfig) Stop() error {
 		glog.V(4).Infof("Removing container %s", name)
 		if err = helper.RemoveContainer(name); err != nil {
 			glog.V(2).Infof("Error removing container %s: %v", name, err)
+		}
+	}
+	// FIXME: Docker For Mac snowflake
+	// The Docker For Mac does not stop the containers properly and does not report them as running via Docker API.
+	// However the k8s_POD and hypershift containers (static pod containers) are still running in the VM, hidden...
+	// That is causing issues when you want to run cluster up again as you have to restart the entire VM to get rid
+	// of these containers.
+	// See: https://github.com/docker/for-mac/issues/2844
+	if runtime.GOOS == "darwin" {
+		runner := run.NewRunHelper(helper).New()
+		cleanPodsCmd := "nsenter -t 1 -m -u -i -n /bin/sh -c '/containers/services/docker-ce/rootfs/usr/local/bin/docker ps --filter name=k8s_* -q" +
+			" | xargs /containers/services/docker-ce/rootfs/usr/local/bin/docker kill'"
+		out, rc, err := runner.Image(originContainerImage).
+			DiscardContainer().
+			Privileged().
+			HostPid().
+			Entrypoint("/bin/bash").
+			Command("-c", cleanPodsCmd).Run()
+		if rc != 0 || err != nil {
+			glog.V(5).Infof("Docker For Mac container cleanup failed: %s (%v)", out, err)
 		}
 	}
 	return nil
