@@ -8,6 +8,7 @@ import (
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	groups "github.com/openshift/origin/pkg/oc/admin/groups/sync/cli"
+	"github.com/openshift/origin/pkg/oc/admin/prune/authprune"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
@@ -35,5 +36,6 @@ func NewCommandPrune(name, fullName string, f *clientcmd.Factory, out, errOut io
 	cmds.AddCommand(NewCmdPruneDeployments(f, fullName, PruneDeploymentsRecommendedName, out))
 	cmds.AddCommand(NewCmdPruneImages(f, fullName, PruneImagesRecommendedName, out))
 	cmds.AddCommand(groups.NewCmdPrune(PruneGroupsRecommendedName, fullName+" "+PruneGroupsRecommendedName, f, out))
+	cmds.AddCommand(authprune.NewCmdPruneAuth(f, "auth", out))
 	return cmds
 }

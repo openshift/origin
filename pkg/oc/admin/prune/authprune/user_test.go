@@ -1,4 +1,4 @@
-package reaper
+package authprune
 
 import (
 	"reflect"
@@ -241,7 +241,7 @@ func TestUserReaper(t *testing.T) {
 		securityFake.Fake.PrependReactor("update", "*", kreactor)
 		securityFake.Fake.PrependReactor("delete", "*", kreactor)
 
-		reaper := NewUserReaper(userFake, userFake, authFake, authFake, oauthFake, securityFake.Security().SecurityContextConstraints())
+		reaper := NewUserReaper(userFake, authFake, oauthFake, securityFake.Security().SecurityContextConstraints())
 		err := reaper.Stop("", test.user, 0, nil)
 		if err != nil {
 			t.Errorf("%s: unexpected error: %v", test.name, err)

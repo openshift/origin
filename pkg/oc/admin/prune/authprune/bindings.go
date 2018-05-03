@@ -1,7 +1,9 @@
-package reaper
+package authprune
 
 import (
-	"github.com/golang/glog"
+	"fmt"
+	"io"
+
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
@@ -10,10 +12,12 @@ import (
 )
 
 // reapClusterBindings removes the subject from cluster-level role bindings
-func reapClusterBindings(removedSubject kapi.ObjectReference, c authclient.Interface) error {
+func reapClusterBindings(removedSubject kapi.ObjectReference, c authclient.Interface, out io.Writer) []error {
+	errors := []error{}
+
 	clusterBindings, err := c.Authorization().ClusterRoleBindings().List(metav1.ListOptions{})
 	if err != nil {
-		return err
+		return []error{err}
 	}
 	for _, binding := range clusterBindings.Items {
 		retainedSubjects := []kapi.ObjectReference{}
@@ -26,18 +30,22 @@ func reapClusterBindings(removedSubject kapi.ObjectReference, c authclient.Inter
 			updatedBinding := binding
 			updatedBinding.Subjects = retainedSubjects
 			if _, err := c.Authorization().ClusterRoleBindings().Update(&updatedBinding); err != nil && !kerrors.IsNotFound(err) {
-				glog.Infof("Cannot update clusterrolebinding/%s: %v", binding.Name, err)
+				errors = append(errors, err)
+			} else {
+				fmt.Fprintf(out, "clusterrolebinding.rbac.authorization.k8s.io/"+updatedBinding.Name+" updated\n")
 			}
 		}
 	}
-	return nil
+	return errors
 }
 
 // reapNamespacedBindings removes the subject from namespaced role bindings
-func reapNamespacedBindings(removedSubject kapi.ObjectReference, c authclient.Interface) error {
+func reapNamespacedBindings(removedSubject kapi.ObjectReference, c authclient.Interface, out io.Writer) []error {
+	errors := []error{}
+
 	namespacedBindings, err := c.Authorization().RoleBindings(metav1.NamespaceAll).List(metav1.ListOptions{})
 	if err != nil {
-		return err
+		return []error{err}
 	}
 	for _, binding := range namespacedBindings.Items {
 		retainedSubjects := []kapi.ObjectReference{}
@@ -50,9 +58,11 @@ func reapNamespacedBindings(removedSubject kapi.ObjectReference, c authclient.In
 			updatedBinding := binding
 			updatedBinding.Subjects = retainedSubjects
 			if _, err := c.Authorization().RoleBindings(binding.Namespace).Update(&updatedBinding); err != nil && !kerrors.IsNotFound(err) {
-				glog.Infof("Cannot update rolebinding/%s in %s: %v", binding.Name, binding.Namespace, err)
+				errors = append(errors, err)
+			} else {
+				fmt.Fprintf(out, "rolebinding.rbac.authorization.k8s.io/"+updatedBinding.Name+" updated\n")
 			}
 		}
 	}
-	return nil
+	return errors
 }
