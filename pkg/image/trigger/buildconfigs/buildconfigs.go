@@ -143,6 +143,10 @@ func (r *buildConfigReactor) ImageChanged(obj runtime.Object, tagRetriever trigg
 		if p == nil || (p.From != nil && p.From.Kind != "ImageStreamTag") {
 			continue
 		}
+		if p.Paused {
+			glog.V(5).Infof("Skipping paused build on bc: %s/%s for trigger: %s", bc.Namespace, bc.Name, t)
+			continue
+		}
 		var from *kapi.ObjectReference
 		if p.From != nil {
 			from = p.From
