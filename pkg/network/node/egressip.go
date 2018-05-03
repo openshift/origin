@@ -25,8 +25,8 @@ type nodeEgress struct {
 }
 
 type namespaceEgress struct {
-	vnid        uint32
-	requestedIP string
+	vnid         uint32
+	requestedIPs []string
 }
 
 type egressIPInfo struct {
@@ -233,10 +233,8 @@ func (eip *egressIPWatcher) handleAddOrUpdateNetNamespace(obj, _ interface{}, ev
 		if len(netns.EgressIPs) > 1 {
 			glog.Warningf("Ignoring extra EgressIPs (%v) in NetNamespace %q", netns.EgressIPs[1:], netns.Name)
 		}
-		eip.updateNamespaceEgress(netns.NetID, netns.EgressIPs[0])
-	} else {
-		eip.deleteNamespaceEgress(netns.NetID)
 	}
+	eip.updateNamespaceEgress(netns.NetID, netns.EgressIPs)
 }
 
 func (eip *egressIPWatcher) handleDeleteNetNamespace(obj interface{}) {
@@ -246,38 +244,42 @@ func (eip *egressIPWatcher) handleDeleteNetNamespace(obj interface{}) {
 	eip.deleteNamespaceEgress(netns.NetID)
 }
 
-func (eip *egressIPWatcher) updateNamespaceEgress(vnid uint32, egressIP string) {
+func (eip *egressIPWatcher) updateNamespaceEgress(vnid uint32, egressIPs []string) {
 	eip.Lock()
 	defer eip.Unlock()
 
 	ns := eip.namespacesByVNID[vnid]
 	if ns == nil {
-		if egressIP == "" {
+		if len(egressIPs) == 0 {
 			return
 		}
 		ns = &namespaceEgress{vnid: vnid}
 		eip.namespacesByVNID[vnid] = ns
-	} else if egressIP == "" {
+	} else if len(egressIPs) == 0 {
 		delete(eip.namespacesByVNID, vnid)
 	}
 
-	if ns.requestedIP == egressIP {
-		return
+	oldRequestedIPs := sets.NewString(ns.requestedIPs...)
+	newRequestedIPs := sets.NewString(egressIPs...)
+	ns.requestedIPs = egressIPs
+
+	// Process new and removed EgressIPs
+	for _, ip := range newRequestedIPs.Difference(oldRequestedIPs).UnsortedList() {
+		eip.addNamespace(ip, ns)
+	}
+	for _, ip := range oldRequestedIPs.Difference(newRequestedIPs).UnsortedList() {
+		eip.deleteNamespace(ip, ns)
 	}
 
-	if ns.requestedIP != "" {
-		eip.deleteNamespace(ns.requestedIP, ns)
-	}
-	ns.requestedIP = egressIP
-	if ns.requestedIP != "" {
-		eip.addNamespace(ns.requestedIP, ns)
-	}
+	// Make sure we update OVS even if nothing was added or removed; the order might
+	// have changed
+	eip.changedNamespaces = append(eip.changedNamespaces, ns)
 
 	eip.syncEgressIPs()
 }
 
 func (eip *egressIPWatcher) deleteNamespaceEgress(vnid uint32) {
-	eip.updateNamespaceEgress(vnid, "")
+	eip.updateNamespaceEgress(vnid, nil)
 }
 
 func (eip *egressIPWatcher) syncEgressIPs() {
@@ -335,13 +337,32 @@ func (eip *egressIPWatcher) syncEgressNodeState(eg *egressIPInfo) {
 }
 
 func (eip *egressIPWatcher) syncEgressNamespaceState(ns *namespaceEgress) error {
-	if ns.requestedIP == "" {
+	if len(ns.requestedIPs) == 0 {
 		return eip.oc.SetNamespaceEgressNormal(ns.vnid)
 	}
 
-	eg := eip.egressIPs[ns.requestedIP]
-	if eg != nil && eg.assignedNodeIP != "" {
-		return eip.oc.SetNamespaceEgressViaEgressIP(ns.vnid, eg.assignedNodeIP, eg.assignedIPTablesMark)
+	var active *egressIPInfo
+	for i, ip := range ns.requestedIPs {
+		eg := eip.egressIPs[ip]
+		if eg == nil {
+			continue
+		}
+		if len(eg.namespaces) > 1 {
+			active = nil
+			glog.V(4).Infof("VNID %d gets no egress due to multiply-assigned egress IP %s", ns.vnid, eg.ip)
+			break
+		}
+		if active == nil && i == 0 {
+			if eg.assignedNodeIP == "" {
+				glog.V(4).Infof("VNID %d cannot use unassigned egress IP %s", ns.vnid, eg.ip)
+			} else {
+				active = eg
+			}
+		}
+	}
+
+	if active != nil {
+		return eip.oc.SetNamespaceEgressViaEgressIP(ns.vnid, active.assignedNodeIP, active.assignedIPTablesMark)
 	} else {
 		return eip.oc.SetNamespaceEgressDropped(ns.vnid)
 	}
