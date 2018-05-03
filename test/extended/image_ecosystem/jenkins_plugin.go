@@ -135,13 +135,14 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 			exutil.DumpApplicationPodLogs("jenkins", oc)
 
 			if dcLogFollow != nil && dcLogStdOut != nil && dcLogStdErr != nil {
-				e2e.Logf("Waiting for Jenkins DC log follow to terminate")
-				dcLogFollow.Process.Wait()
+				e2e.Logf("Killing Jenkins DC log follow")
+				dcLogFollow.Process.Kill()
 				e2e.Logf("Jenkins server logs from test:\nstdout>\n%s\n\nstderr>\n%s\n\n", string(dcLogStdOut.Bytes()), string(dcLogStdErr.Bytes()))
 				dcLogFollow = nil
 			} else {
 				e2e.Logf("Logs were not captured!\n%v\n%v\n%v\n", dcLogFollow, dcLogStdOut, dcLogStdErr)
 			}
+
 		})
 
 		g.BeforeEach(func() {
