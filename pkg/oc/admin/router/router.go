@@ -759,20 +759,6 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out, errout io.Write
 				Name: "system:router",
 			},
 		},
-		&authapi.ClusterRoleBinding{
-			ObjectMeta: metav1.ObjectMeta{Name: generateAuthRoleBindingName(cfg.Name)},
-			Subjects: []kapi.ObjectReference{
-				{
-					Kind:      "ServiceAccount",
-					Name:      cfg.ServiceAccount,
-					Namespace: namespace,
-				},
-			},
-			RoleRef: kapi.ObjectReference{
-				Kind: "ClusterRole",
-				Name: "system:auth-delegator",
-			},
-		},
 	)
 
 	objects = append(objects, &appsapi.DeploymentConfig{
@@ -847,7 +833,7 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out, errout io.Write
 
 	levelPrefixFilter := func(e error) string {
 		// Avoid failing when service accounts or role bindings already exist.
-		if ignoreError(e, cfg.ServiceAccount, generateRoleBindingName(cfg.Name), generateAuthRoleBindingName(cfg.Name)) {
+		if ignoreError(e, cfg.ServiceAccount, generateRoleBindingName(cfg.Name)) {
 			return "warning"
 		}
 		return "error"
@@ -864,9 +850,9 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out, errout io.Write
 }
 
 // ignoreError will return true if the error is an already exists status error and
-// 1. it is for a cluster role binding matching in roleBindingNames, or
-// 2. it is for a service account named saName
-func ignoreError(e error, saName string, roleBindingNames ...string) bool {
+// 1. it is for a cluster role binding named roleBindingName, or
+// 2. it is for a service account name saName
+func ignoreError(e error, saName string, roleBindingName string) bool {
 	if !errors.IsAlreadyExists(e) {
 		return false
 	}
@@ -878,27 +864,15 @@ func ignoreError(e error, saName string, roleBindingNames ...string) bool {
 	if details == nil {
 		return false
 	}
-	if details.Kind == "serviceaccounts" {
-		return details.Name == saName
-	}
-	if details.Kind == "clusterrolebinding" /*pre-3.7*/ || details.Kind == "clusterrolebindings" /*3.7+*/ {
-		for _, name := range roleBindingNames {
-			if details.Name == name {
-				return true
-			}
-		}
-	}
-	return false
+	return (details.Kind == "serviceaccounts" && details.Name == saName) ||
+		(details.Kind == "clusterrolebinding" /*pre-3.7*/ && details.Name == roleBindingName) ||
+		(details.Kind == "clusterrolebindings" /*3.7+*/ && details.Name == roleBindingName)
 }
 
 // generateRoleBindingName generates a name for the rolebinding object if it is
 // being created.
 func generateRoleBindingName(name string) string {
 	return fmt.Sprintf("router-%s-role", name)
-}
-
-func generateAuthRoleBindingName(name string) string {
-	return fmt.Sprintf("router-%s-auth-role", name)
 }
 
 // generateStatsPassword creates a random password.
