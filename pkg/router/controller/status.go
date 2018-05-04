@@ -146,11 +146,12 @@ func performIngressConditionUpdate(action string, lease writerlease.Lease, track
 		// with different configurations from endlessly updating the route status.
 		if !created && tracker.IsContended(key, now, latest) {
 			glog.V(4).Infof("%s: skipped update due to another process altering the route with a different ingress status value: %s", action, key)
-			return writerlease.None, false
+			return writerlease.Release, false
 		}
 
 		switch _, err := oc.Routes(route.Namespace).UpdateStatus(route); {
 		case err == nil:
+			glog.V(4).Infof("%s: updated status of %s/%s", action, route.Namespace, route.Name)
 			tracker.Clear(key, latest)
 			return writerlease.Extend, false
 		case errors.IsForbidden(err):
@@ -160,6 +161,7 @@ func performIngressConditionUpdate(action string, lease writerlease.Lease, track
 			return writerlease.Extend, false
 		case errors.IsNotFound(err):
 			// route was deleted
+			glog.V(4).Infof("%s: route %s/%s was deleted before we could update status", action, route.Namespace, route.Name)
 			return writerlease.Release, false
 		case errors.IsConflict(err):
 			// just follow the normal process, and retry when we receive the update notification due to
