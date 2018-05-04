@@ -780,6 +780,9 @@ message ImageChangeTrigger {
   // will be used. Only one ImageChangeTrigger with an empty From reference is allowed in
   // a build configuration.
   optional k8s.io.api.core.v1.ObjectReference from = 2;
+
+  // paused is true if this trigger is temporarily disabled. Optional.
+  optional bool paused = 3;
 }
 
 // ImageLabel represents a label applied to the resulting image.

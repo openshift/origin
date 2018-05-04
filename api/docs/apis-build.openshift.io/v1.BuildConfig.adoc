@@ -351,6 +351,7 @@ Populated by the system. Read-only. More info: http://kubernetes.io/docs/user-gu
 </div><div style="margin-left:13px;">        <span title="(string) Specific resourceVersion to which this reference is made, if any. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#concurrency-control-and-consistency">resourceVersion</span>:
 </div><div style="margin-left:13px;">        <span title="(string) UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids">uid</span>:
 </div></details><div style="margin-left:13px;">      <span title="(string) lastTriggeredImageID is used internally by the ImageChangeController to save last used image ID for build">lastTriggeredImageID</span>:
+</div><div style="margin-left:13px;">      <span title="(boolean) paused is true if this trigger is temporarily disabled. Optional.">paused</span>:
 </div></details><div style="margin-left:13px;">    <span title="(string) type is the type of build trigger">type</span>:
 </div></details></details><details><summary><span title="(v1.BuildConfigStatus) status holds any relevant information about a build config">status</span>:
 </summary><div style="margin-left:13px;">  <span title="(integer) lastVersion is used to inform about number of last triggered build.">lastVersion</span>:
