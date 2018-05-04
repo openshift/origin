@@ -5458,6 +5458,60 @@ _oc_adm_policy()
     noun_aliases=()
 }
 
+_oc_adm_prune_auth()
+{
+    last_command="oc_adm_prune_auth"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--all")
+    local_nonpersistent_flags+=("--all")
+    flags+=("--filename=")
+    flags_with_completion+=("--filename")
+    flags_completion+=("__oc_handle_filename_extension_flag json|yaml|yml")
+    two_word_flags+=("-f")
+    flags_with_completion+=("-f")
+    flags_completion+=("__oc_handle_filename_extension_flag json|yaml|yml")
+    local_nonpersistent_flags+=("--filename=")
+    flags+=("--recursive")
+    flags+=("-R")
+    local_nonpersistent_flags+=("--recursive")
+    flags+=("--selector=")
+    two_word_flags+=("-l")
+    local_nonpersistent_flags+=("--selector=")
+    flags+=("--as=")
+    flags+=("--as-group=")
+    flags+=("--cache-dir=")
+    flags+=("--certificate-authority=")
+    flags+=("--client-certificate=")
+    flags+=("--client-key=")
+    flags+=("--cluster=")
+    flags+=("--config=")
+    flags+=("--context=")
+    flags+=("--insecure-skip-tls-verify")
+    flags+=("--loglevel=")
+    flags+=("--logspec=")
+    flags+=("--match-server-version")
+    flags+=("--namespace=")
+    two_word_flags+=("-n")
+    flags+=("--password=")
+    flags+=("--request-timeout=")
+    flags+=("--server=")
+    two_word_flags+=("-s")
+    flags+=("--token=")
+    flags+=("--user=")
+    flags+=("--username=")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
 _oc_adm_prune_builds()
 {
     last_command="oc_adm_prune_builds"
@@ -5670,6 +5724,7 @@ _oc_adm_prune()
 {
     last_command="oc_adm_prune"
     commands=()
+    commands+=("auth")
     commands+=("builds")
     commands+=("deployments")
     commands+=("groups")
