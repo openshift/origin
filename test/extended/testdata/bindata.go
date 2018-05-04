@@ -10859,6 +10859,8 @@ func testExtendedTestdataTemplatesTemplateinstance_objectkindsYaml() (*asset, er
 
 var _testExtendedTestdataTemplatesTemplateservicebroker_bindYaml = []byte(`apiVersion: v1
 kind: Template
+metadata:
+  name: tsbtemplate
 objects:
 - apiVersion: v1
   kind: Secret
@@ -10906,12 +10908,24 @@ objects:
           ports:
           - name: port
             port: 1234
-      - apiVersion: v1
+      - apiVersion: route.openshift.io/v1
         kind: Route
         metadata:
           annotations:
             template.openshift.io/expose-route-uri: http://{.spec.host}{.spec.path}
           name: route
+        spec:
+          host: host
+          path: /path
+          to:
+            kind: Service
+            name: service
+      - apiVersion: v1
+        kind: Route
+        metadata:
+          annotations:
+            template.openshift.io/expose-route-uri2: http://{.spec.host}{.spec.path}
+          name: legacyroute
         spec:
           host: host
           path: /path
