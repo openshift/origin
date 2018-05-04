@@ -38,12 +38,10 @@ func (d UnitStatus) Check() types.DiagnosticResult {
 
 	unitRequiresUnit(r, d.SystemdUnits["atomic-openshift-node"], d.SystemdUnits["iptables"], nodeRequiresIPTables)
 	unitRequiresUnit(r, d.SystemdUnits["atomic-openshift-node"], d.SystemdUnits["docker"], `Nodes use Docker to run containers.`)
-	unitRequiresUnit(r, d.SystemdUnits["atomic-openshift-node"], d.SystemdUnits["openvswitch"], fmt.Sprintf(sdUnitSDNreqOVS, "atomic-openshift-node"))
 	unitRequiresUnit(r, d.SystemdUnits["atomic-openshift-master-api"], d.SystemdUnits["atomic-openshift-node"], `Masters must currently also be nodes for access to cluster SDN networking`)
 
 	unitRequiresUnit(r, d.SystemdUnits["origin-node"], d.SystemdUnits["iptables"], nodeRequiresIPTables)
 	unitRequiresUnit(r, d.SystemdUnits["origin-node"], d.SystemdUnits["docker"], `Nodes use Docker to run containers.`)
-	unitRequiresUnit(r, d.SystemdUnits["origin-node"], d.SystemdUnits["openvswitch"], fmt.Sprintf(sdUnitSDNreqOVS, "origin-node"))
 	unitRequiresUnit(r, d.SystemdUnits["origin-master-api"], d.SystemdUnits["origin-node"], `Masters must currently also be nodes for access to cluster SDN networking`)
 
 	// Anything that is enabled but not running deserves notice
@@ -72,25 +70,6 @@ const (
 	nodeRequiresIPTables = `
 iptables is used by nodes for container networking.
 Connections to a container will fail without it.`
-
-	sdUnitSDNreqOVS = `
-systemd unit %[1]s is running but openvswitch is not.
-Normally %[1]s starts openvswitch once initialized.
-It is likely that openvswitch has crashed or been stopped.
-
-The software-defined network (SDN) enables networking between
-containers on different nodes. Containers will not be able to
-connect to each other without the openvswitch service carrying
-this traffic.
-
-An administrator can start openvswitch with:
-
-  # systemctl start openvswitch
-
-To ensure it is not repeatedly failing to run, check the status and logs with:
-
-  # systemctl status openvswitch
-  # journalctl -ru openvswitch `
 
 	sdUnitInactive = `
 The %[1]s systemd unit is intended to start at boot but is not currently active.
