@@ -50,5 +50,5 @@ func init() {
 // available throughout Kubernetes binaries.
 var defaultKubernetesFeatureGates = map[utilfeature.Feature]utilfeature.FeatureSpec{
 	CustomResourceValidation:   {Default: true, PreRelease: utilfeature.Beta},
-	CustomResourceSubresources: {Default: false, PreRelease: utilfeature.Alpha},
+	CustomResourceSubresources: {Default: true, PreRelease: utilfeature.Alpha},
 }
