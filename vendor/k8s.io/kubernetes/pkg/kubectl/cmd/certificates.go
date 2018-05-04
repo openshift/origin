@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"io"
 
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/pkg/apis/certificates"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
@@ -182,13 +183,23 @@ func (options *CertificateOptions) modifyCertificateCondition(f cmdutil.Factory,
 		if err != nil {
 			return err
 		}
-		csr := info.Object.(*certificates.CertificateSigningRequest)
-		csr, verb := modify(csr)
-		csr, err = c.Certificates().
-			CertificateSigningRequests().
-			UpdateApproval(csr)
-		if err != nil {
-			return err
+		verb := ""
+		for i := 0; ; i++ {
+			csr := info.Object.(*certificates.CertificateSigningRequest)
+			csr, verb = modify(csr)
+			csr, err = c.Certificates().
+				CertificateSigningRequests().
+				UpdateApproval(csr)
+			if errors.IsConflict(err) && i < 10 {
+				if err := info.Get(); err != nil {
+					return err
+				}
+				continue
+			}
+			if err != nil {
+				return err
+			}
+			break
 		}
 		found++
 		cmdutil.PrintSuccess(options.outputStyle == "name", out, info.Object, false, verb)
