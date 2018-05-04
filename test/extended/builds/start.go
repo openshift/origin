@@ -266,7 +266,7 @@ var _ = g.Describe("[Feature:Builds][Slow] starting a build using CLI", func() {
 					build := &buildapi.Build{}
 					cancelFn := func(b *buildapi.Build) bool {
 						build = b
-						return exutil.CheckBuildCancelledFn(b)
+						return exutil.CheckBuildCancelled(b)
 					}
 					err := exutil.WaitForABuild(oc.BuildClient().Build().Builds(oc.Namespace()), "sample-build-binary-invalidnodeselector-1", nil, nil, cancelFn)
 					o.Expect(err).NotTo(o.HaveOccurred())

@@ -617,17 +617,17 @@ func WaitForBuildResult(c buildtypedclientset.BuildResourceInterface, result *Bu
 	err := WaitForABuild(c, result.BuildName,
 		func(b *buildapi.Build) bool {
 			result.Build = b
-			result.BuildSuccess = CheckBuildSuccessFn(b)
+			result.BuildSuccess = CheckBuildSuccess(b)
 			return result.BuildSuccess
 		},
 		func(b *buildapi.Build) bool {
 			result.Build = b
-			result.BuildFailure = CheckBuildFailedFn(b)
+			result.BuildFailure = CheckBuildFailed(b)
 			return result.BuildFailure
 		},
 		func(b *buildapi.Build) bool {
 			result.Build = b
-			result.BuildCancelled = CheckBuildCancelledFn(b)
+			result.BuildCancelled = CheckBuildCancelled(b)
 			return result.BuildCancelled
 		},
 	)
@@ -647,13 +647,13 @@ func WaitForBuildResult(c buildtypedclientset.BuildResourceInterface, result *Bu
 // WaitForABuild waits for a Build object to match either isOK or isFailed conditions.
 func WaitForABuild(c buildtypedclientset.BuildResourceInterface, name string, isOK, isFailed, isCanceled func(*buildapi.Build) bool) error {
 	if isOK == nil {
-		isOK = CheckBuildSuccessFn
+		isOK = CheckBuildSuccess
 	}
 	if isFailed == nil {
-		isFailed = CheckBuildFailedFn
+		isFailed = CheckBuildFailed
 	}
 	if isCanceled == nil {
-		isCanceled = CheckBuildCancelledFn
+		isCanceled = CheckBuildCancelled
 	}
 
 	// wait 2 minutes for build to exist
@@ -698,18 +698,18 @@ func WaitForABuild(c buildtypedclientset.BuildResourceInterface, name string, is
 	return err
 }
 
-// CheckBuildSuccessFn returns true if the build succeeded
-var CheckBuildSuccessFn = func(b *buildapi.Build) bool {
+// CheckBuildSuccess returns true if the build succeeded
+func CheckBuildSuccess(b *buildapi.Build) bool {
 	return b.Status.Phase == buildapi.BuildPhaseComplete
 }
 
-// CheckBuildFailedFn return true if the build failed
-var CheckBuildFailedFn = func(b *buildapi.Build) bool {
+// CheckBuildFailed return true if the build failed
+func CheckBuildFailed(b *buildapi.Build) bool {
 	return b.Status.Phase == buildapi.BuildPhaseFailed || b.Status.Phase == buildapi.BuildPhaseError
 }
 
-// CheckBuildCancelledFn return true if the build was canceled
-var CheckBuildCancelledFn = func(b *buildapi.Build) bool {
+// CheckBuildCancelled return true if the build was canceled
+func CheckBuildCancelled(b *buildapi.Build) bool {
 	return b.Status.Phase == buildapi.BuildPhaseCancelled
 }
 
@@ -817,14 +817,14 @@ func TimedWaitForAnImageStreamTag(oc *CLI, namespace, name, tag string, waitTime
 	}
 }
 
-// CheckImageStreamLatestTagPopulatedFn returns true if the imagestream has a ':latest' tag filed
-var CheckImageStreamLatestTagPopulatedFn = func(i *imageapi.ImageStream) bool {
+// CheckImageStreamLatestTagPopulated returns true if the imagestream has a ':latest' tag filed
+func CheckImageStreamLatestTagPopulated(i *imageapi.ImageStream) bool {
 	_, ok := i.Status.Tags["latest"]
 	return ok
 }
 
-// CheckImageStreamTagNotFoundFn return true if the imagestream update was not successful
-var CheckImageStreamTagNotFoundFn = func(i *imageapi.ImageStream) bool {
+// CheckImageStreamTagNotFound return true if the imagestream update was not successful
+func CheckImageStreamTagNotFound(i *imageapi.ImageStream) bool {
 	return strings.Contains(i.Annotations[imageapi.DockerImageRepositoryCheckAnnotation], "not") ||
 		strings.Contains(i.Annotations[imageapi.DockerImageRepositoryCheckAnnotation], "error")
 }
@@ -1030,18 +1030,18 @@ func WaitForPods(c kcoreclient.PodInterface, label labels.Selector, predicate fu
 	return podNames, err
 }
 
-// CheckPodIsRunningFn returns true if the pod is running
-var CheckPodIsRunningFn = func(pod kapiv1.Pod) bool {
+// CheckPodIsRunning returns true if the pod is running
+func CheckPodIsRunning(pod kapiv1.Pod) bool {
 	return pod.Status.Phase == kapiv1.PodRunning
 }
 
-// CheckPodIsSucceededFn returns true if the pod status is "Succdeded"
-var CheckPodIsSucceededFn = func(pod kapiv1.Pod) bool {
+// CheckPodIsSucceeded returns true if the pod status is "Succdeded"
+func CheckPodIsSucceeded(pod kapiv1.Pod) bool {
 	return pod.Status.Phase == kapiv1.PodSucceeded
 }
 
-// CheckPodIsReadyFn returns true if the pod's ready probe determined that the pod is ready.
-var CheckPodIsReadyFn = func(pod kapiv1.Pod) bool {
+// CheckPodIsReady returns true if the pod's ready probe determined that the pod is ready.
+func CheckPodIsReady(pod kapiv1.Pod) bool {
 	if pod.Status.Phase != kapiv1.PodRunning {
 		return false
 	}
@@ -1052,6 +1052,11 @@ var CheckPodIsReadyFn = func(pod kapiv1.Pod) bool {
 		return cond.Status == kapiv1.ConditionTrue
 	}
 	return false
+}
+
+// CheckPodNoOp always returns true
+func CheckPodNoOp(pod kapiv1.Pod) bool {
+	return true
 }
 
 // WaitUntilPodIsGone waits until the named Pod will disappear
@@ -1292,7 +1297,7 @@ func NewPodExecutor(oc *CLI, name, image string) (*podExecutor, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error: %v\n(%s)", err, out)
 	}
-	_, err = WaitForPods(oc.KubeClient().CoreV1().Pods(oc.Namespace()), ParseLabelsOrDie("name="+name), CheckPodIsReadyFn, 1, 3*time.Minute)
+	_, err = WaitForPods(oc.KubeClient().CoreV1().Pods(oc.Namespace()), ParseLabelsOrDie("name="+name), CheckPodIsReady, 1, 3*time.Minute)
 	if err != nil {
 		return nil, err
 	}

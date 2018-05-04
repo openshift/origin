@@ -68,7 +68,7 @@ var _ = g.Describe("[Conformance][image_ecosystem][mongodb][Slow] openshift mong
 			podNames, err := exutil.WaitForPods(
 				oc.KubeClient().Core().Pods(oc.Namespace()),
 				exutil.ParseLabelsOrDie("name=mongodb-replicaset"),
-				exutil.CheckPodIsReadyFn,
+				exutil.CheckPodIsReady,
 				3,
 				8*time.Minute,
 			)
@@ -110,7 +110,7 @@ var _ = g.Describe("[Conformance][image_ecosystem][mongodb][Slow] openshift mong
 			podNames, err = exutil.WaitForPods(
 				oc.KubeClient().Core().Pods(oc.Namespace()),
 				exutil.ParseLabelsOrDie("name=mongodb-replicaset"),
-				exutil.CheckPodIsReadyFn,
+				exutil.CheckPodIsReady,
 				3,
 				4*time.Minute,
 			)
