@@ -15822,6 +15822,15 @@ objects:
     - list
     - watch
     - get
+  - apiGroups:
+    - "admissionregistration.k8s.io"
+    resources:
+    - validatingwebhookconfigurations
+    - mutatingwebhookconfigurations
+    verbs:
+    - list
+    - watch
+    - get
 
 - apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
@@ -15933,13 +15942,13 @@ objects:
 - apiVersion: rbac.authorization.k8s.io/v1
   kind: Role
   metadata:
-    name: endpoint-accessor
+    name: configmap-accessor
     namespace: ${KUBE_SERVICE_CATALOG_NAMESPACE}
   rules:
   - apiGroups:
     - ""
     resources:
-    - endpoints
+    - configmaps
     verbs:
     - list
     - watch
@@ -15948,13 +15957,38 @@ objects:
     - update
 
 - apiVersion: rbac.authorization.k8s.io/v1
+  kind: Role
+  metadata:
+    name: cluster-info-configmap
+    namespace: ${KUBE_SERVICE_CATALOG_NAMESPACE}
+  rules:
+  - apiGroups:     [""]
+    resources:     ["configmaps"]
+    resourceNames: ["cluster-info"]
+    verbs:         ["get","create","list","watch","update"]
+
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: RoleBinding
   metadata:
-    name: endpointer-accessor-binding
+    name: cluster-info-configmap-binding
+    namespace: ${KUBE_SERVICE_CATALOG_NAMESPACE}
+  roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: Role
+    name: cluster-info-configmap
+  subjects:
+  - kind: ServiceAccount
+    namespace: ${KUBE_SERVICE_CATALOG_NAMESPACE}
+    name: service-catalog-controller
+
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: RoleBinding
+  metadata:
+    name: configmap-accessor-binding
     namespace: ${KUBE_SERVICE_CATALOG_NAMESPACE}
   roleRef:
     kind: Role
-    name: endpoint-accessor
+    name: configmap-accessor
   subjects:
   - kind: ServiceAccount
     namespace: ${KUBE_SERVICE_CATALOG_NAMESPACE}
