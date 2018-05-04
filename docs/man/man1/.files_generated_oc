@@ -50,11 +50,9 @@ oc-adm-diagnostics-diagnosticpod.1
 oc-adm-diagnostics-etcdwritevolume.1
 oc-adm-diagnostics-inpod-networkcheck.1
 oc-adm-diagnostics-inpod-poddiagnostic.1
-oc-adm-diagnostics-masterconfigcheck.1
 oc-adm-diagnostics-masternode.1
 oc-adm-diagnostics-metricsapiproxy.1
 oc-adm-diagnostics-networkcheck.1
-oc-adm-diagnostics-nodeconfigcheck.1
 oc-adm-diagnostics-nodedefinitions.1
 oc-adm-diagnostics-routecertificatevalidation.1
 oc-adm-diagnostics-serviceexternalips.1
@@ -206,11 +204,9 @@ oc-ex-diagnostics-diagnosticpod.1
 oc-ex-diagnostics-etcdwritevolume.1
 oc-ex-diagnostics-inpod-networkcheck.1
 oc-ex-diagnostics-inpod-poddiagnostic.1
-oc-ex-diagnostics-masterconfigcheck.1
 oc-ex-diagnostics-masternode.1
 oc-ex-diagnostics-metricsapiproxy.1
 oc-ex-diagnostics-networkcheck.1
-oc-ex-diagnostics-nodeconfigcheck.1
 oc-ex-diagnostics-nodedefinitions.1
 oc-ex-diagnostics-routecertificatevalidation.1
 oc-ex-diagnostics-serviceexternalips.1
@@ -221,9 +217,6 @@ oc-ex-ipfailover.1
 oc-ex-options.1
 oc-ex-prune-groups.1
 oc-ex-sync-groups.1
-oc-ex-validate-master-config.1
-oc-ex-validate-node-config.1
-oc-ex-validate.1
 oc-ex.1
 oc-exec.1
 oc-explain.1

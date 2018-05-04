@@ -75,8 +75,8 @@ func testSTICreateBuildPod(t *testing.T, rootAllowed bool) {
 	}
 
 	container := actual.Spec.Containers[0]
-	if container.Name != stiBuild {
-		t.Errorf("Expected %s, but got %s!", stiBuild, container.Name)
+	if container.Name != StiBuild {
+		t.Errorf("Expected %s, but got %s!", StiBuild, container.Name)
 	}
 	if container.Image != strategy.Image {
 		t.Errorf("Expected %s image, got %s!", container.Image, strategy.Image)

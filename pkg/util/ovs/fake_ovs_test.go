@@ -9,13 +9,11 @@ import (
 func TestFakePorts(t *testing.T) {
 	ovsif := NewFake("br0")
 
-	_, err := ovsif.AddPort("tun0", 1)
-	if err == nil {
+	if _, err := ovsif.AddPort("tun0", 1); err == nil {
 		t.Fatalf("unexpected lack of error adding port on non-existent bridge")
 	}
 
-	err = ovsif.AddBridge()
-	if err != nil {
+	if err := ovsif.AddBridge(); err != nil {
 		t.Fatalf("unexpected error adding bridge: %v", err)
 	}
 	ofport, err := ovsif.AddPort("tun0", 17)
@@ -29,20 +27,105 @@ func TestFakePorts(t *testing.T) {
 	if ofport != 17 {
 		t.Fatalf("unexpected ofport %d returned from GetOFPort", ofport)
 	}
-	err = ovsif.DeletePort("tun0")
-	if err != nil {
+	if err = ovsif.DeletePort("tun0"); err != nil {
 		t.Fatalf("unexpected error deleting port: %v", err)
 	}
-	_, err = ovsif.GetOFPort("tun0")
-	if err == nil {
+	if _, err = ovsif.GetOFPort("tun0"); err == nil {
 		t.Fatalf("unexpected lack of error getting non-existent port")
+	}
+}
+
+func TestTransaction(t *testing.T) {
+	ovsif := NewFake("br0")
+	if err := ovsif.AddBridge(); err != nil {
+		t.Fatalf("unexpected error adding bridge: %v", err)
+	}
+
+	// Empty transaction
+	otx := ovsif.NewTransaction()
+	if err := otx.Commit(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if err := checkDump(ovsif, "", []string{}); err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	// Add flows transaction
+	otx.AddFlow("table=100, priority=100, reg0=1, actions=one")
+	otx.AddFlow("table=100, priority=200, reg0=2, cookie=1, actions=two")
+	if err := otx.Commit(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	expectedFlows := []string{
+		" cookie=1, table=100, priority=200, reg0=2, actions=two",
+		" cookie=0, table=100, priority=100, reg0=1, actions=one",
+	}
+	if err := checkDump(ovsif, "", expectedFlows); err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	// Add flows failed transaction, invalid action
+	otx.AddFlow("table=100, priority=300, reg0=3, actions=three")
+	otx.AddFlow("table=100, priority=400, reg0=2, actions")
+	if err := otx.Commit(); err == nil {
+		t.Fatalf("expected no error but got %v", err)
+	}
+	if err := checkDump(ovsif, "", expectedFlows); err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	// Delete flows transaction
+	otx.DeleteFlows("table=100, reg0=1")
+	if err := otx.Commit(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	expectedFlows = []string{
+		" cookie=1, table=100, priority=200, reg0=2, actions=two",
+	}
+	if err := checkDump(ovsif, "", expectedFlows); err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	// Delete flows failed transaction, invalid cookie(missing mask)
+	otx.DeleteFlows("table=100, cookie=1")
+	if err := otx.Commit(); err == nil {
+		t.Fatalf("expected no error but got %v", err)
+	}
+	if err := checkDump(ovsif, "", expectedFlows); err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	// Add and Delete flows transaction
+	otx.AddFlow("table=100, priority=300, reg0=3, actions=three")
+	otx.AddFlow("table=101, priority=100, reg0=1, actions=one")
+	otx.DeleteFlows("table=100")
+	otx.AddFlow("table=101, priority=200, reg0=2, actions=two")
+	if err := otx.Commit(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	expectedFlows = []string{
+		" cookie=0, table=101, priority=200, reg0=2, actions=two",
+		" cookie=0, table=101, priority=100, reg0=1, actions=one",
+	}
+	if err := checkDump(ovsif, "", expectedFlows); err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	// Add and Delete flows failed transaction, missing action
+	otx.AddFlow("table=101, priority=300, reg0=3, actions=three")
+	otx.DeleteFlows("table=101")
+	otx.AddFlow("table=101, priority=400, reg0=4, actions")
+	if err := otx.Commit(); err == nil {
+		t.Fatalf("expected no error but got %v", err)
+	}
+	if err := checkDump(ovsif, "", expectedFlows); err != nil {
+		t.Fatalf(err.Error())
 	}
 }
 
 func TestFind(t *testing.T) {
 	ovsif := NewFake("br0")
-	err := ovsif.AddBridge()
-	if err != nil {
+	if err := ovsif.AddBridge(); err != nil {
 		t.Fatalf("unexpected error adding bridge: %v", err)
 	}
 
@@ -114,8 +197,7 @@ func checkDump(ovsif Interface, filter string, cmpFlows []string) error {
 
 func TestFakeDumpFlows(t *testing.T) {
 	ovsif := NewFake("br0")
-	err := ovsif.AddBridge()
-	if err != nil {
+	if err := ovsif.AddBridge(); err != nil {
 		t.Fatalf("unexpected error adding bridge: %v", err)
 	}
 
@@ -165,13 +247,12 @@ func TestFakeDumpFlows(t *testing.T) {
 	otx.AddFlow("table=30, priority=300, ip, nw_dst=%s, actions=output:2", localSubnetGateway)
 	otx.AddFlow("table=35, priority=300, ip, nw_dst=%s, actions=ct(commit,exec(set_field:1->ct_mark),table=70)", localSubnetGateway)
 
-	err = otx.EndTransaction()
-	if err != nil {
+	if err := otx.Commit(); err != nil {
 		t.Fatalf("unexpected error from AddFlow: %v", err)
 	}
 
 	// fake DumpFlows sorts first by table, then by priority (decreasing), then by creation time
-	err = checkDump(ovsif, "", []string{
+	err := checkDump(ovsif, "", []string{
 		" cookie=0, table=0, priority=250, in_port=2, ip, nw_dst=224.0.0.0/4, actions=drop",
 		" cookie=0, table=0, priority=200, in_port=2, ip, actions=goto_table:30",
 		" cookie=0, table=0, priority=200, in_port=1, ip, nw_src=10.128.0.0/14, nw_dst=10.129.0.0/23, actions=move:NXM_NX_TUN_ID[0..31]->NXM_NX_REG0[],goto_table:10",
@@ -270,8 +351,7 @@ func matchActions(flows []string, actions ...string) bool {
 
 func TestFlowMatchesMasked(t *testing.T) {
 	ovsif := NewFake("br0")
-	err := ovsif.AddBridge()
-	if err != nil {
+	if err := ovsif.AddBridge(); err != nil {
 		t.Fatalf("unexpected error adding bridge: %v", err)
 	}
 
@@ -280,8 +360,7 @@ func TestFlowMatchesMasked(t *testing.T) {
 	otx.AddFlow("table=100, priority=200, reg0=2, actions=two")
 	otx.AddFlow("table=100, priority=300, reg0=3, cookie=1, actions=three")
 	otx.AddFlow("table=100, priority=400, reg0=4, cookie=0xe, actions=four")
-	err = otx.EndTransaction()
-	if err != nil {
+	if err := otx.Commit(); err != nil {
 		t.Fatalf("unexpected error from AddFlow: %v", err)
 	}
 	flows, err := ovsif.DumpFlows("")
@@ -294,8 +373,7 @@ func TestFlowMatchesMasked(t *testing.T) {
 
 	otx = ovsif.NewTransaction()
 	otx.DeleteFlows("table=100, cookie=0/0xFFFF")
-	err = otx.EndTransaction()
-	if err != nil {
+	if err = otx.Commit(); err != nil {
 		t.Fatalf("unexpected error from AddFlow: %v", err)
 	}
 	flows, err = ovsif.DumpFlows("")
@@ -308,8 +386,7 @@ func TestFlowMatchesMasked(t *testing.T) {
 
 	otx = ovsif.NewTransaction()
 	otx.DeleteFlows("table=100, cookie=2/2")
-	err = otx.EndTransaction()
-	if err != nil {
+	if err = otx.Commit(); err != nil {
 		t.Fatalf("unexpected error from AddFlow: %v", err)
 	}
 	flows, err = ovsif.DumpFlows("")

@@ -11,7 +11,7 @@ spec:
   hostNetwork: true
   containers:
   - name: etcd
-    image: OPENSHIFT_IMAGE
+    image: IMAGE
     imagePullPolicy: OPENSHIFT_PULL_POLICY
     workingDir: /var/lib/etcd
     command: ["/bin/bash", "-c"]

@@ -11,7 +11,6 @@ import (
 	"k8s.io/kubernetes/pkg/proxy/apis/kubeproxyconfig"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
-	"github.com/openshift/origin/pkg/network"
 	networkinformers "github.com/openshift/origin/pkg/network/generated/informers/internalversion"
 	networkclient "github.com/openshift/origin/pkg/network/generated/internalclientset"
 )
@@ -20,7 +19,7 @@ func NewSDNInterfaces(options configapi.NodeConfig, networkClient networkclient.
 	kubeClientset kclientset.Interface, kubeClient kinternalclientset.Interface,
 	internalKubeInformers kinternalinformers.SharedInformerFactory,
 	internalNetworkInformers networkinformers.SharedInformerFactory,
-	proxyconfig *kubeproxyconfig.KubeProxyConfiguration) (network.NodeInterface, network.ProxyInterface, error) {
+	proxyconfig *kubeproxyconfig.KubeProxyConfiguration) (NodeInterface, ProxyInterface, error) {
 
 	return nil, nil, fmt.Errorf("SDN not supported on this platform")
 }

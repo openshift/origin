@@ -14,5 +14,5 @@ config=/etc/origin/node/bootstrap-node-config.yaml
 if [[ -f /etc/origin/node/node-config.yaml ]]; then
   config=/etc/origin/node/node-config.yaml
 fi
-flags=$( /usr/bin/openshift start node --write-flags "--config=${config}" --loglevel=${DEBUG_LOGLEVEL:-2} )
+flags=$( /usr/bin/openshift-node-config "--config=${config}" )
 exec /usr/bin/hyperkube kubelet --v=${DEBUG_LOGLEVEL:-2} ${flags}

@@ -52,7 +52,7 @@ func (s *REST) List(ctx apirequest.Context, options *metainternal.ListOptions) (
 		return nil, err
 	}
 
-	ret := &authorizationapi.RoleBindingList{}
+	ret := &authorizationapi.RoleBindingList{ListMeta: bindings.ListMeta}
 	for _, curr := range bindings.Items {
 		role, err := util.RoleBindingFromRBAC(&curr)
 		if err != nil {
@@ -60,7 +60,6 @@ func (s *REST) List(ctx apirequest.Context, options *metainternal.ListOptions) (
 		}
 		ret.Items = append(ret.Items, *role)
 	}
-	ret.ListMeta.ResourceVersion = bindings.ResourceVersion
 	return ret, nil
 }
 

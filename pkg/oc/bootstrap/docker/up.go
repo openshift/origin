@@ -231,7 +231,7 @@ func (c *ClusterUpConfig) Complete(cmd *cobra.Command) error {
 	// Set the ImagePullPolicy field in static pods and components based in whether users specified
 	// the --tag flag or not.
 	c.defaultPullPolicy = "Always"
-	if cmd.Flag("tag").Changed {
+	if cmd.Flag("image").Changed || cmd.Flag("tag").Changed {
 		c.defaultPullPolicy = "IfNotPresent"
 	}
 
@@ -675,7 +675,16 @@ func checkExistingOpenShiftContainer(dockerHelper *dockerhelper.Helper) error {
 // checkOpenShiftImage checks whether the OpenShift image exists.
 // If not it tells the Docker daemon to pull it.
 func (c *ClusterUpConfig) checkOpenShiftImage() error {
-	return c.DockerHelper().CheckAndPull(c.openshiftImage(), c.Out)
+	if err := c.DockerHelper().CheckAndPull(c.openshiftImage(), c.Out); err != nil {
+		return err
+	}
+	if err := c.DockerHelper().CheckAndPull(c.cliImage(), c.Out); err != nil {
+		return err
+	}
+	if err := c.DockerHelper().CheckAndPull(c.nodeImage(), c.Out); err != nil {
+		return err
+	}
+	return nil
 }
 
 // checkDockerInsecureRegistry checks to see if the Docker daemon has an appropriate insecure registry argument set so that our services can access the registry
@@ -933,6 +942,22 @@ func (c *ClusterUpConfig) DockerHelper() *dockerhelper.Helper {
 
 func (c *ClusterUpConfig) openshiftImage() string {
 	return c.ImageTemplate.ExpandOrDie("control-plane")
+}
+
+func (c *ClusterUpConfig) hypershiftImage() string {
+	return c.ImageTemplate.ExpandOrDie("hypershift")
+}
+
+func (c *ClusterUpConfig) hyperkubeImage() string {
+	return c.ImageTemplate.ExpandOrDie("hyperkube")
+}
+
+func (c *ClusterUpConfig) cliImage() string {
+	return c.ImageTemplate.ExpandOrDie("cli")
+}
+
+func (c *ClusterUpConfig) nodeImage() string {
+	return c.ImageTemplate.ExpandOrDie("node")
 }
 
 func (c *ClusterUpConfig) determineAdditionalIPs(ip string) ([]string, error) {

@@ -6,6 +6,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openshift/origin/pkg/network"
+	networkapi "github.com/openshift/origin/pkg/network/apis/network"
 )
 
 func TestMasterVNIDMap(t *testing.T) {
@@ -34,27 +35,27 @@ func TestMasterVNIDMap(t *testing.T) {
 	checkCurrentVNIDs(t, vmap, 4, 3)
 
 	// update vnids
-	_, err = vmap.updateNetID("alpha", network.JoinPodNetwork, "bravo")
+	_, err = vmap.updateNetID("alpha", networkapi.JoinPodNetwork, "bravo")
 	checkNoErr(t, err)
-	_, err = vmap.updateNetID("alpha", network.JoinPodNetwork, "bogus")
+	_, err = vmap.updateNetID("alpha", networkapi.JoinPodNetwork, "bogus")
 	checkErr(t, err)
-	_, err = vmap.updateNetID("bogus", network.JoinPodNetwork, "alpha")
+	_, err = vmap.updateNetID("bogus", networkapi.JoinPodNetwork, "alpha")
 	checkErr(t, err)
 	checkCurrentVNIDs(t, vmap, 4, 2)
 
-	_, err = vmap.updateNetID("alpha", network.GlobalPodNetwork, "")
+	_, err = vmap.updateNetID("alpha", networkapi.GlobalPodNetwork, "")
 	checkNoErr(t, err)
-	_, err = vmap.updateNetID("charlie", network.GlobalPodNetwork, "")
+	_, err = vmap.updateNetID("charlie", networkapi.GlobalPodNetwork, "")
 	checkNoErr(t, err)
-	_, err = vmap.updateNetID("bogus", network.GlobalPodNetwork, "")
+	_, err = vmap.updateNetID("bogus", networkapi.GlobalPodNetwork, "")
 	checkErr(t, err)
 	checkCurrentVNIDs(t, vmap, 4, 1)
 
-	_, err = vmap.updateNetID("alpha", network.IsolatePodNetwork, "")
+	_, err = vmap.updateNetID("alpha", networkapi.IsolatePodNetwork, "")
 	checkNoErr(t, err)
-	_, err = vmap.updateNetID("bravo", network.IsolatePodNetwork, "")
+	_, err = vmap.updateNetID("bravo", networkapi.IsolatePodNetwork, "")
 	checkNoErr(t, err)
-	_, err = vmap.updateNetID("bogus", network.IsolatePodNetwork, "")
+	_, err = vmap.updateNetID("bogus", networkapi.IsolatePodNetwork, "")
 	checkErr(t, err)
 	checkCurrentVNIDs(t, vmap, 4, 2)
 

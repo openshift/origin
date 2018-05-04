@@ -66,65 +66,12 @@ function haproxyHealthCheck() {
 }
 
 
-# How many times to retry removal of the iptables rules (if requested at all)
-# It will sleep for 1/2 a second between attempts, so the time is retries / 2 secs
-retries=20
-
-
 old_pids=$(ps -A -opid,args | grep haproxy | egrep -v -e 'grep|reload-haproxy' | awk '{print $1}' | tr '\n' ' ')
 
 reload_status=0
-installed_iptables=0
 if [ -n "$old_pids" ]; then
-  if $(set | grep DROP_SYN_DURING_RESTART= > /dev/null) && [[ "$DROP_SYN_DURING_RESTART" == 'true' || "$DROP_SYN_DURING_RESTART" == '1' ]]; then
-    # We install the syn eater so that connections that come in during the restart don't
-    # go onto the wrong socket, which is then closed.
-    ports=$(grep -E -o '^\s*bind\s+:[[:digit:]]+\w' "$config_file" | cut -f2 -d: | paste -d, -s)
-    if [ -n "$ports" ]; then
-      # If this doesn't insert, we don't care, we still want to reload
-      /usr/sbin/iptables -I INPUT -p tcp -m multiport --dports $ports --syn -j DROP \
-			 -m comment --comment "Eat SYNs while reloading haproxy" || :
-      installed_iptables=1
-
-      # The sleep is needed to let the socket drain before the new
-      # haproxy starts and binds to the same port.  The value was
-      # determined by trial and error: I stopped seeing failures at
-      # 0.01 under load, so I put in a 10x margin.  At worst, we may
-      # leave a connection in the old process' listen buffer that
-      # won't get handled, and they'll get a reset.  I didn't want to
-      # set it too long, because that affects the overall time a
-      # reload takes which means that incoming connections aren't
-      # handled while the SYN eater is in place.
-      sleep 0.1
-    fi
-  fi
-
   /usr/sbin/haproxy -f $config_file -p $pid_file -x /var/lib/haproxy/run/haproxy.sock -sf $old_pids
   reload_status=$?
-
-  if [[ "$installed_iptables" == 1 ]]; then
-    # We NEVER want to leave the syn eater in place after the reload or haproxy
-    # will never get new connections.  So try to remove it twenty times, and if
-    # that fails, log the error and return failure so the pod logs a fatal error.
-    i=0
-    while (( i++ < retries )) ; do
-      /usr/sbin/iptables -D INPUT -p tcp -m multiport --dports $ports --syn -j DROP \
-                         -m comment --comment "Eat SYNs while reloading haproxy" || :
-
-      # Test the condition and end the loop if the rule has been removed
-      /usr/sbin/iptables -L INPUT | grep -F '/* Eat SYNs while reloading haproxy */' || break
-
-      >&2 echo "Unable to remove SYN eating rule, attempt $i.  Will retry..."
-
-      # But sleep for a bit before retrying
-      sleep 0.5
-    done
-    if (( i >= retries )); then
-      # We failed to remove the rule... log failure and exit to signal the caller
-      >&2 echo "Unable to remove the iptables SYN eating rule.  Aborting after $retries retries"
-      exit 1
-    fi
-  fi
 else
   /usr/sbin/haproxy -f $config_file -p $pid_file
   reload_status=$?

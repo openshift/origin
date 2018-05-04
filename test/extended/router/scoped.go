@@ -165,6 +165,65 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 			o.Expect(status).To(o.Equal(kapi.ConditionTrue))
 			o.Expect(condition.LastTransitionTime).NotTo(o.BeNil())
 		})
+
+		g.It("should override the route host for overridden domains with a custom value", func() {
+			oc.SetOutputDir(exutil.TestContext.OutputDir)
+			ns := oc.KubeFramework().Namespace.Name
+			execPodName := exutil.CreateExecPodOrFail(oc.AdminKubeClient().CoreV1(), ns, "execpod")
+			defer func() { oc.AdminKubeClient().CoreV1().Pods(ns).Delete(execPodName, metav1.NewDeleteOptions(1)) }()
+
+			g.By(fmt.Sprintf("creating a scoped router with overridden domains from a config file %q", configPath))
+
+			var routerIP string
+			err := wait.Poll(time.Second, changeTimeoutSeconds*time.Second, func() (bool, error) {
+				pod, err := oc.KubeFramework().ClientSet.CoreV1().Pods(ns).Get("router-override-domains", metav1.GetOptions{})
+				if err != nil {
+					return false, err
+				}
+				if len(pod.Status.PodIP) == 0 {
+					return false, nil
+				}
+				routerIP = pod.Status.PodIP
+				return true, nil
+			})
+
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			// router expected to listen on port 80
+			routerURL := fmt.Sprintf("http://%s", routerIP)
+			pattern := "%s-%s.apps.veto.test"
+
+			g.By("waiting for the healthz endpoint to respond")
+			healthzURI := fmt.Sprintf("http://%s:1936/healthz", routerIP)
+			err = waitForRouterOKResponseExec(ns, execPodName, healthzURI, routerIP, changeTimeoutSeconds)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("waiting for the valid route to respond")
+			err = waitForRouterOKResponseExec(ns, execPodName, routerURL+"/Letter", fmt.Sprintf(pattern, "route-override-domain-1", ns), changeTimeoutSeconds)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("checking that the stored domain name does not match a route")
+			host := "y.a.null.ptr"
+			err = expectRouteStatusCodeExec(ns, execPodName, routerURL+"/Letter", host, http.StatusServiceUnavailable)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			for _, host := range []string{"route-override-domain-1", "route-override-domain-2"} {
+				host = fmt.Sprintf(pattern, host, ns)
+				g.By(fmt.Sprintf("checking that %s matches a route", host))
+				err = expectRouteStatusCodeExec(ns, execPodName, routerURL+"/Letter", host, http.StatusOK)
+				o.Expect(err).NotTo(o.HaveOccurred())
+			}
+
+			g.By("checking that the router reported the correct ingress and override")
+			r, err := oc.RouteClient().Route().Routes(ns).Get("route-override-domain-2", metav1.GetOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred())
+			ingress := ingressForName(r, "test-override-domains")
+			o.Expect(ingress).NotTo(o.BeNil())
+			o.Expect(ingress.Host).To(o.Equal(fmt.Sprintf(pattern, "route-override-domain-2", ns)))
+			status, condition := routeapi.IngressConditionStatus(ingress, routeapi.RouteAdmitted)
+			o.Expect(status).To(o.Equal(kapi.ConditionTrue))
+			o.Expect(condition.LastTransitionTime).NotTo(o.BeNil())
+		})
 	})
 })
 

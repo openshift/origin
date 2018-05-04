@@ -3,7 +3,7 @@ kind: Template
 metadata:
   name: openshift-apiserver
 parameters:
-- name: OPENSHIFT_IMAGE
+- name: IMAGE
   value: openshift/origin-control-plane:latest
 - name: OPENSHIFT_PULL_POLICY
   value: Always
@@ -41,7 +41,7 @@ objects:
         hostNetwork: true
         containers:
         - name: apiserver
-          image: ${OPENSHIFT_IMAGE}
+          image: ${IMAGE}
           imagePullPolicy: ${OPENSHIFT_PULL_POLICY}
           env:
           - name: ADDITIONAL_ALLOWED_REGISTRIES

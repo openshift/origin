@@ -590,7 +590,6 @@ function os::start::internal::print_server_info() {
 #  - API_HOST
 #  - ADMIN_KUBECONFIG
 #  - USE_IMAGES
-#  - DROP_SYN_DURING_RESTART
 # Arguments:
 #  None
 # Returns:
@@ -613,14 +612,6 @@ function os::start::router() {
 		oc adm router --config="${ADMIN_KUBECONFIG}" --images="${USE_IMAGES}" --service-account=router --default-cert="${MASTER_CONFIG_DIR}/router.pem"
 	else
 		oc adm router --config="${ADMIN_KUBECONFIG}" --images="${USE_IMAGES}" --service-account=router
-	fi
-
-	# Set the SYN eater to make router reloads more robust
-	if [[ -n "${DROP_SYN_DURING_RESTART:-}" ]]; then
-		# Rewrite the DC for the router to add the environment variable into the pod definition
-		os::log::debug "Changing the router DC to drop SYN packets during a reload"
-		oc patch dc router -p '{"spec":{"template":{"spec":{"containers":[{"name":"router","securityContext":{"privileged":true}}],"securityContext":{"runAsUser": 0}}}}}'
-		oc set env dc/router -c router DROP_SYN_DURING_RESTART=true
 	fi
 }
 readonly -f os::start::router

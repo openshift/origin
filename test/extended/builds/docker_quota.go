@@ -18,9 +18,22 @@ var _ = g.Describe("[Feature:Builds][quota][Slow] docker build with a quota", fu
 		buildTestService = "build-test-svc"
 	)
 
+	fixtures := []struct {
+		name string
+		path string
+	}{
+		{
+			name: "docker build",
+			path: exutil.FixturePath("testdata", "builds", "test-docker-build-quota.json"),
+		},
+		{
+			name: "optimized docker build",
+			path: exutil.FixturePath("testdata", "builds", "test-docker-build-quota-optimized.json"),
+		},
+	}
+
 	var (
-		buildFixture = exutil.FixturePath("testdata", "builds", "test-docker-build-quota.json")
-		oc           = exutil.NewCLI("docker-build-quota", exutil.KubeConfigPath())
+		oc = exutil.NewCLI("docker-build-quota", exutil.KubeConfigPath())
 	)
 	g.Context("", func() {
 
@@ -42,27 +55,29 @@ var _ = g.Describe("[Feature:Builds][quota][Slow] docker build with a quota", fu
 		})
 
 		g.Describe("Building from a template", func() {
-			g.It("should create a docker build with a quota and run it", func() {
-				oc.SetOutputDir(exutil.TestContext.OutputDir)
+			for _, test := range fixtures {
+				g.It(fmt.Sprintf("should create a %s with a quota and run it", test.name), func() {
+					oc.SetOutputDir(exutil.TestContext.OutputDir)
 
-				g.By(fmt.Sprintf("calling oc create -f %q", buildFixture))
-				err := oc.Run("create").Args("-f", buildFixture).Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
+					g.By(fmt.Sprintf("calling oc create -f %q", test.path))
+					err := oc.Run("create").Args("-f", test.path).Execute()
+					o.Expect(err).NotTo(o.HaveOccurred())
 
-				g.By("starting a test build")
-				path := exutil.FixturePath("testdata", "builds", "build-quota")
-				o.Expect(os.Chmod(filepath.Join(path, ".s2i", "bin", "assemble"), 0755)).NotTo(o.HaveOccurred())
-				br, err := exutil.StartBuildAndWait(oc, "docker-build-quota", "--from-dir", path)
+					g.By("starting a test build")
+					path := exutil.FixturePath("testdata", "builds", "build-quota")
+					o.Expect(os.Chmod(filepath.Join(path, ".s2i", "bin", "assemble"), 0755)).NotTo(o.HaveOccurred())
+					br, err := exutil.StartBuildAndWait(oc, "docker-build-quota", "--from-dir", path)
 
-				g.By("expecting the build is in Failed phase")
-				br.AssertFailure()
+					g.By("expecting the build is in Failed phase")
+					br.AssertFailure()
 
-				g.By("expecting the build logs to contain the correct cgroups values")
-				out, err := br.Logs()
-				o.Expect(err).NotTo(o.HaveOccurred())
-				o.Expect(out).To(o.ContainSubstring("MEMORY=209715200"))
-				o.Expect(out).To(o.ContainSubstring("MEMORYSWAP=209715200"))
-			})
+					g.By("expecting the build logs to contain the correct cgroups values")
+					out, err := br.Logs()
+					o.Expect(err).NotTo(o.HaveOccurred())
+					o.Expect(out).To(o.ContainSubstring("MEMORY=209715200"))
+					o.Expect(out).To(o.ContainSubstring("MEMORYSWAP=209715200"))
+				})
+			}
 		})
 	})
 })

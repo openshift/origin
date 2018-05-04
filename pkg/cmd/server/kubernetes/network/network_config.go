@@ -16,6 +16,7 @@ import (
 	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 	"k8s.io/kubernetes/pkg/proxy/apis/kubeproxyconfig"
+	proxyconfig "k8s.io/kubernetes/pkg/proxy/config"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/kubernetes/network/transport"
@@ -46,9 +47,19 @@ type NetworkConfig struct {
 	DNSServer *dns.Server
 
 	// SDNNode is an optional SDN node interface
-	SDNNode network.NodeInterface
+	SDNNode NodeInterface
 	// SDNProxy is an optional service endpoints filterer
-	SDNProxy network.ProxyInterface
+	SDNProxy ProxyInterface
+}
+
+type ProxyInterface interface {
+	proxyconfig.EndpointsHandler
+
+	Start(proxyconfig.EndpointsHandler) error
+}
+
+type NodeInterface interface {
+	Start() error
 }
 
 // configureKubeConfigForClientCertRotation attempts to watch for client certificate rotation on the kubelet's cert

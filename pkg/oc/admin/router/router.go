@@ -19,19 +19,20 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/validation"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	authapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	configcmd "github.com/openshift/origin/pkg/bulk"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
-
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	configcmd "github.com/openshift/origin/pkg/bulk"
+	"github.com/openshift/origin/pkg/cmd/util/print"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
+	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	"github.com/openshift/origin/pkg/oc/generate/app"
 	securityclientinternal "github.com/openshift/origin/pkg/security/generated/internalclientset"
 	oscc "github.com/openshift/origin/pkg/security/securitycontextconstraints"
@@ -826,7 +827,7 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out, errout io.Write
 	list := &kapi.List{Items: objects}
 
 	if cfg.Action.ShouldPrint() {
-		fn := cmdutil.VersionedPrintObject(kcmdutil.PrintObject, cmd, out)
+		fn := print.VersionedPrintObject(legacyscheme.Scheme, legacyscheme.Registry, kcmdutil.PrintObject, cmd, out)
 		if err := fn(list); err != nil {
 			return fmt.Errorf("unable to print object: %v", err)
 		}

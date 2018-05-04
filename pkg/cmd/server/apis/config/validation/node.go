@@ -9,9 +9,10 @@ import (
 	kubeletoptions "k8s.io/kubernetes/cmd/kubelet/app/options"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
+	"github.com/openshift/origin/pkg/cmd/server/apis/config/validation/common"
 )
 
-func ValidateNodeConfig(config *configapi.NodeConfig, fldPath *field.Path) ValidationResults {
+func ValidateNodeConfig(config *configapi.NodeConfig, fldPath *field.Path) common.ValidationResults {
 	validationResults := ValidateInClusterNodeConfig(config, fldPath)
 	if bootstrap := config.KubeletArguments["bootstrap-kubeconfig"]; len(bootstrap) > 0 {
 		validationResults.AddErrors(ValidateKubeConfig(bootstrap[0], fldPath.Child("kubeletArguments", "bootstrap-kubeconfig"))...)
@@ -21,15 +22,15 @@ func ValidateNodeConfig(config *configapi.NodeConfig, fldPath *field.Path) Valid
 	return validationResults
 }
 
-func ValidateInClusterNodeConfig(config *configapi.NodeConfig, fldPath *field.Path) ValidationResults {
-	validationResults := ValidationResults{}
+func ValidateInClusterNodeConfig(config *configapi.NodeConfig, fldPath *field.Path) common.ValidationResults {
+	validationResults := common.ValidationResults{}
 
 	hasBootstrapConfig := len(config.KubeletArguments["bootstrap-kubeconfig"]) > 0
 	if len(config.NodeName) == 0 && !hasBootstrapConfig {
 		validationResults.AddErrors(field.Required(fldPath.Child("nodeName"), ""))
 	}
 	if len(config.NodeIP) > 0 {
-		validationResults.AddErrors(ValidateSpecifiedIP(config.NodeIP, fldPath.Child("nodeIP"))...)
+		validationResults.AddErrors(common.ValidateSpecifiedIP(config.NodeIP, fldPath.Child("nodeIP"))...)
 	}
 
 	servingInfoPath := fldPath.Child("servingInfo")
@@ -44,11 +45,11 @@ func ValidateInClusterNodeConfig(config *configapi.NodeConfig, fldPath *field.Pa
 	}
 	if len(config.DNSIP) > 0 {
 		if !hasBootstrapConfig || config.DNSIP != "0.0.0.0" {
-			validationResults.AddErrors(ValidateSpecifiedIP(config.DNSIP, fldPath.Child("dnsIP"))...)
+			validationResults.AddErrors(common.ValidateSpecifiedIP(config.DNSIP, fldPath.Child("dnsIP"))...)
 		}
 	}
 	for i, nameserver := range config.DNSNameservers {
-		validationResults.AddErrors(ValidateSpecifiedIPPort(nameserver, fldPath.Child("dnsNameservers").Index(i))...)
+		validationResults.AddErrors(common.ValidateSpecifiedIPPort(nameserver, fldPath.Child("dnsNameservers").Index(i))...)
 	}
 
 	validationResults.AddErrors(ValidateImageConfig(config.ImageConfig, fldPath.Child("imageConfig"))...)

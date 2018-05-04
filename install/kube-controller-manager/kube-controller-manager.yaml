@@ -11,7 +11,7 @@ spec:
   hostNetwork: true
   containers:
   - name: controllers
-    image: OPENSHIFT_IMAGE
+    image: IMAGE
     imagePullPolicy: OPENSHIFT_PULL_POLICY
     command: ["hyperkube", "kube-controller-manager"]
     args:

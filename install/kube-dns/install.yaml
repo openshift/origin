@@ -5,7 +5,7 @@ metadata:
 parameters:
 - name: NAMESPACE
   value: kube-dns
-- name: OPENSHIFT_IMAGE
+- name: IMAGE
   value: openshift/origin-control-plane:latest
 - name: OPENSHIFT_PULL_POLICY
   value: Always
@@ -43,9 +43,9 @@ objects:
         serviceAccountName: kube-dns
         containers:
         - name: kube-proxy
-          image: ${OPENSHIFT_IMAGE}
+          image: ${IMAGE}
           imagePullPolicy: ${OPENSHIFT_PULL_POLICY}
-          command: ["openshift", "start", "node"]
+          command: ["openshift", "start", "network"]
           args:
           - "--enable=dns"
           - "--config=/etc/origin/node/node-config.yaml"

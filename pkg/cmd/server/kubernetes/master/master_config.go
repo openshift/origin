@@ -77,6 +77,7 @@ import (
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	"github.com/openshift/origin/pkg/cmd/server/election"
+	nodeclient "github.com/openshift/origin/pkg/cmd/server/kubernetes/node/client"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	cmdflags "github.com/openshift/origin/pkg/cmd/util/flags"
 	oauthutil "github.com/openshift/origin/pkg/oauth/util"
@@ -504,7 +505,7 @@ func buildKubeApiserverConfig(
 
 			EventTTL: apiserverOptions.EventTTL,
 
-			KubeletClientConfig: *configapi.GetKubeletClientConfig(masterConfig),
+			KubeletClientConfig: *nodeclient.GetKubeletClientConfig(masterConfig),
 
 			EnableLogsSupport:     false, // don't expose server logs
 			EnableCoreControllers: true,

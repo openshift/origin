@@ -10,7 +10,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/apis/config"
 	_ "github.com/openshift/origin/pkg/cmd/server/apis/config/install"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
-	"github.com/openshift/origin/pkg/cmd/server/apis/config/validation"
+	"github.com/openshift/origin/pkg/cmd/server/apis/config/validation/ldap"
 )
 
 func TestLDAPSyncConfigFixtures(t *testing.T) {
@@ -47,7 +47,7 @@ func TestLDAPSyncConfigFixtures(t *testing.T) {
 			continue
 		}
 
-		if results := validation.ValidateLDAPSyncConfig(&config); len(results.Errors) > 0 {
+		if results := ldap.ValidateLDAPSyncConfig(&config); len(results.Errors) > 0 {
 			t.Errorf("validation of fixture at %q failed with %d errors:", fixture, len(results.Errors))
 			for _, err := range results.Errors {
 				t.Error(err)

@@ -62,6 +62,7 @@
 // test/extended/testdata/builds/test-cds-sourcebuild.json
 // test/extended/testdata/builds/test-context-build.json
 // test/extended/testdata/builds/test-docker-build-pullsecret.json
+// test/extended/testdata/builds/test-docker-build-quota-optimized.json
 // test/extended/testdata/builds/test-docker-build-quota.json
 // test/extended/testdata/builds/test-docker-build.json
 // test/extended/testdata/builds/test-docker-no-outputname.json
@@ -3105,6 +3106,57 @@ func testExtendedTestdataBuildsTestDockerBuildPullsecretJson() (*asset, error) {
 	return a, nil
 }
 
+var _testExtendedTestdataBuildsTestDockerBuildQuotaOptimizedJson = []byte(`{
+  "kind": "BuildConfig",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "docker-build-quota",
+    "creationTimestamp": null,
+    "labels": {
+      "name": "docker-build-quota"
+    }
+  },
+  "spec": {
+    "resources": {
+      "limits": {
+        "memory": "200Mi"
+      }
+    },
+    "source": {
+      "binary": {
+        "asFile": ""
+      }          
+    },
+    "strategy": {
+      "type": "Docker",
+      "dockerStrategy": {
+        "from": {
+          "kind": "DockerImage",
+          "name": "centos:7"
+        },
+        "noCache": true,
+        "imageOptimizationPolicy": "SkipLayers"
+      }
+    }
+  }
+}
+    `)
+
+func testExtendedTestdataBuildsTestDockerBuildQuotaOptimizedJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsTestDockerBuildQuotaOptimizedJson, nil
+}
+
+func testExtendedTestdataBuildsTestDockerBuildQuotaOptimizedJson() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsTestDockerBuildQuotaOptimizedJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/test-docker-build-quota-optimized.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataBuildsTestDockerBuildQuotaJson = []byte(`{
   "kind": "BuildConfig",
   "apiVersion": "v1",
@@ -3450,7 +3502,7 @@ items:
           name: inputimage:latest
         paths:
         - destinationDir: injected/dir
-          sourcePath: /opt/rh/rh-ruby23/root/usr/bin/ruby
+          sourcePath: /opt/rh/rh-ruby22/root/usr/bin/ruby
     strategy:
       customStrategy:
         from:
@@ -3497,7 +3549,7 @@ items:
           name: inputimage:latest
         paths:
         - destinationDir: injected/dir
-          sourcePath: /opt/rh/rh-ruby23/root/usr/bin/ruby
+          sourcePath: /opt/rh/rh-ruby22/root/usr/bin/ruby
     strategy:
       dockerStrategy:
         from:
@@ -3544,7 +3596,7 @@ items:
           name: inputimage:latest
         paths:
         - destinationDir: injected/dir
-          sourcePath: /opt/rh/rh-ruby23/root/usr/bin/ruby
+          sourcePath: /opt/rh/rh-ruby22/root/usr/bin/ruby
     strategy:
       sourceStrategy:
         from:
@@ -3588,7 +3640,7 @@ items:
       dockerStrategy:
         from: 
           kind: ImageStreamTag
-          name: ruby:2.3
+          name: ruby:2.2
           namespace: openshift
 - apiVersion: v1
   kind: BuildConfig
@@ -3610,7 +3662,7 @@ items:
           name: inputimage:latest
         paths:
         - destinationDir: injected/dir
-          sourcePath: /opt/rh/rh-ruby23/root/usr/bin/ruby
+          sourcePath: /opt/rh/rh-ruby22/root/usr/bin/ruby
     strategy:
       sourceStrategy:
         forcePull: true
@@ -3638,7 +3690,7 @@ items:
           name: inputimage:latest
         paths:
         - destinationDir: injected/dir
-          sourcePath: /opt/rh/rh-ruby23/root/usr/bin/ruby
+          sourcePath: /opt/rh/rh-ruby22/root/usr/bin/ruby
     strategy:
       dockerStrategy:
         forcePull: true
@@ -9843,7 +9895,7 @@ items:
           deploymentconfig: router-http-echo
       spec:
         containers:
-        - image: openshift/origin-base
+        - image: openshift/origin-node
           name: router-http-echo
           command:
             - /usr/bin/socat
@@ -10453,6 +10505,34 @@ objects:
         protocol: TCP
     serviceAccountName: default
 
+# a router that overrides domains
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    name: router-override-domains
+    labels:
+      test: router-override-domains
+  spec:
+    terminationGracePeriodSeconds: 1
+    containers:
+    - name: router
+      image: ${IMAGE}
+      imagePullPolicy: IfNotPresent
+      env:
+      - name: POD_NAMESPACE
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.namespace
+      args: ["--name=test-override-domains", "--namespace=$(POD_NAMESPACE)", "--loglevel=4", "--override-domains=null.ptr,void.str", "--hostname-template=${name}-${namespace}.apps.veto.test"]
+      hostNetwork: false
+      ports:
+      - containerPort: 80
+      - containerPort: 443
+      - containerPort: 1936
+        name: stats
+        protocol: TCP
+    serviceAccountName: default
+
 
 # ensure the router can access routes and endpoints
 - apiVersion: v1
@@ -10494,6 +10574,36 @@ objects:
       name: endpoints
     ports:
     - targetPort: http
+
+# routes that contain overridden domains
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: route-override-domain-1
+    labels:
+      test: router
+      select: override-domains
+  spec:
+    host: y.a.null.ptr
+    path: /Letter
+    to:
+      name: endpoints
+    ports:
+    - targetPort: 8080
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: route-override-domain-2
+    labels:
+      test: router
+      select: override-domains
+  spec:
+    host: main.void.str
+    path: /Letter
+    to:
+      name: endpoints
+    ports:
+    - targetPort: 8080
 
 # a service to be routed to
 - apiVersion: v1
@@ -10749,6 +10859,8 @@ func testExtendedTestdataTemplatesTemplateinstance_objectkindsYaml() (*asset, er
 
 var _testExtendedTestdataTemplatesTemplateservicebroker_bindYaml = []byte(`apiVersion: v1
 kind: Template
+metadata:
+  name: tsbtemplate
 objects:
 - apiVersion: v1
   kind: Secret
@@ -10796,12 +10908,24 @@ objects:
           ports:
           - name: port
             port: 1234
-      - apiVersion: v1
+      - apiVersion: route.openshift.io/v1
         kind: Route
         metadata:
           annotations:
             template.openshift.io/expose-route-uri: http://{.spec.host}{.spec.path}
           name: route
+        spec:
+          host: host
+          path: /path
+          to:
+            kind: Service
+            name: service
+      - apiVersion: v1
+        kind: Route
+        metadata:
+          annotations:
+            template.openshift.io/expose-route-uri2: http://{.spec.host}{.spec.path}
+          name: legacyroute
         spec:
           host: host
           path: /path
@@ -31188,7 +31312,7 @@ spec:
   hostNetwork: true
   containers:
   - name: etcd
-    image: OPENSHIFT_IMAGE
+    image: IMAGE
     imagePullPolicy: OPENSHIFT_PULL_POLICY
     workingDir: /var/lib/etcd
     command: ["/bin/bash", "-c"]
@@ -31241,7 +31365,7 @@ spec:
   hostNetwork: true
   containers:
   - name: api
-    image: OPENSHIFT_IMAGE
+    image: IMAGE
     imagePullPolicy: OPENSHIFT_PULL_POLICY
     command: ["/bin/bash", "-c"]
     args:
@@ -31307,7 +31431,7 @@ spec:
   hostNetwork: true
   containers:
   - name: controllers
-    image: OPENSHIFT_IMAGE
+    image: IMAGE
     imagePullPolicy: OPENSHIFT_PULL_POLICY
     command: ["hyperkube", "kube-controller-manager"]
     args:
@@ -31372,7 +31496,7 @@ metadata:
 parameters:
 - name: NAMESPACE
   value: kube-dns
-- name: OPENSHIFT_IMAGE
+- name: IMAGE
   value: openshift/origin-control-plane:latest
 - name: OPENSHIFT_PULL_POLICY
   value: Always
@@ -31410,9 +31534,9 @@ objects:
         serviceAccountName: kube-dns
         containers:
         - name: kube-proxy
-          image: ${OPENSHIFT_IMAGE}
+          image: ${IMAGE}
           imagePullPolicy: ${OPENSHIFT_PULL_POLICY}
-          command: ["openshift", "start", "node"]
+          command: ["openshift", "start", "network"]
           args:
           - "--enable=dns"
           - "--config=/etc/origin/node/node-config.yaml"
@@ -31472,7 +31596,7 @@ kind: Template
 metadata:
   name: kube-proxy
 parameters:
-- name: OPENSHIFT_IMAGE
+- name: IMAGE
   value: openshift/origin-control-plane
 - name: OPENSHIFT_PULL_POLICY
   value: Always
@@ -31524,9 +31648,9 @@ objects:
         hostNetwork: true
         containers:
         - name: kube-proxy
-          image: ${OPENSHIFT_IMAGE}
+          image: ${IMAGE}
           imagePullPolicy: ${OPENSHIFT_PULL_POLICY}
-          command: ["openshift", "start", "node"]
+          command: ["openshift", "start", "network"]
           args:
           - "--enable=proxy"
           - "--listen=https://0.0.0.0:8444"
@@ -31572,7 +31696,7 @@ spec:
   hostNetwork: true
   containers:
   - name: scheduler
-    image: OPENSHIFT_IMAGE
+    image: IMAGE
     imagePullPolicy: OPENSHIFT_PULL_POLICY
     command: ["hyperkube", "kube-scheduler"]
     args:
@@ -31621,7 +31745,7 @@ kind: Template
 metadata:
   name: openshift-apiserver
 parameters:
-- name: OPENSHIFT_IMAGE
+- name: IMAGE
   value: openshift/origin-control-plane:latest
 - name: OPENSHIFT_PULL_POLICY
   value: Always
@@ -31659,7 +31783,7 @@ objects:
         hostNetwork: true
         containers:
         - name: apiserver
-          image: ${OPENSHIFT_IMAGE}
+          image: ${IMAGE}
           imagePullPolicy: ${OPENSHIFT_PULL_POLICY}
           env:
           - name: ADDITIONAL_ALLOWED_REGISTRIES
@@ -32040,7 +32164,7 @@ kind: Template
 metadata:
   name: openshift-controller-manager
 parameters:
-- name: OPENSHIFT_IMAGE
+- name: IMAGE
   value: openshift/origin-control-plane:latest
 - name: OPENSHIFT_PULL_POLICY
   value: Always
@@ -32079,7 +32203,7 @@ objects:
         hostNetwork: true
         containers:
         - name: c
-          image: ${OPENSHIFT_IMAGE}
+          image: ${IMAGE}
           imagePullPolicy: ${OPENSHIFT_PULL_POLICY}
           command: ["hypershift", "openshift-controller-manager"]
           args:
@@ -32173,7 +32297,7 @@ func installOpenshiftWebConsoleOperatorInstallRbacYaml() (*asset, error) {
 var _installOpenshiftWebConsoleOperatorInstallYaml = []byte(`apiVersion: template.openshift.io/v1
 kind: Template
 parameters:
-- name: OPENSHIFT_IMAGE
+- name: IMAGE
   value: openshift/origin-control-plane:latest
 - name: OPENSHIFT_PULL_POLICY
   value: Always
@@ -32224,7 +32348,7 @@ objects:
         serviceAccountName: openshift-web-console-operator
         containers:
         - name: operator
-          image: ${OPENSHIFT_IMAGE}
+          image: ${IMAGE}
           imagePullPolicy: ${OPENSHIFT_PULL_POLICY}
           command: ["hypershift", "experimental", "openshift-webconsole-operator"]
           args:
@@ -32892,6 +33016,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/builds/test-cds-sourcebuild.json": testExtendedTestdataBuildsTestCdsSourcebuildJson,
 	"test/extended/testdata/builds/test-context-build.json": testExtendedTestdataBuildsTestContextBuildJson,
 	"test/extended/testdata/builds/test-docker-build-pullsecret.json": testExtendedTestdataBuildsTestDockerBuildPullsecretJson,
+	"test/extended/testdata/builds/test-docker-build-quota-optimized.json": testExtendedTestdataBuildsTestDockerBuildQuotaOptimizedJson,
 	"test/extended/testdata/builds/test-docker-build-quota.json": testExtendedTestdataBuildsTestDockerBuildQuotaJson,
 	"test/extended/testdata/builds/test-docker-build.json": testExtendedTestdataBuildsTestDockerBuildJson,
 	"test/extended/testdata/builds/test-docker-no-outputname.json": testExtendedTestdataBuildsTestDockerNoOutputnameJson,
@@ -33355,6 +33480,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"test-cds-sourcebuild.json": &bintree{testExtendedTestdataBuildsTestCdsSourcebuildJson, map[string]*bintree{}},
 					"test-context-build.json": &bintree{testExtendedTestdataBuildsTestContextBuildJson, map[string]*bintree{}},
 					"test-docker-build-pullsecret.json": &bintree{testExtendedTestdataBuildsTestDockerBuildPullsecretJson, map[string]*bintree{}},
+					"test-docker-build-quota-optimized.json": &bintree{testExtendedTestdataBuildsTestDockerBuildQuotaOptimizedJson, map[string]*bintree{}},
 					"test-docker-build-quota.json": &bintree{testExtendedTestdataBuildsTestDockerBuildQuotaJson, map[string]*bintree{}},
 					"test-docker-build.json": &bintree{testExtendedTestdataBuildsTestDockerBuildJson, map[string]*bintree{}},
 					"test-docker-no-outputname.json": &bintree{testExtendedTestdataBuildsTestDockerNoOutputnameJson, map[string]*bintree{}},

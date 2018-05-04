@@ -41,6 +41,7 @@ var (
 
 	APIGroupKube                  = ""
 	APIGroupApps                  = "apps"
+	APIGroupAdmission             = "admission.k8s.io"
 	APIGroupAdmissionRegistration = "admissionregistration.k8s.io"
 	APIGroupAPIExtensions         = "apiextensions.k8s.io"
 	APIGroupAPIRegistration       = "apiregistration.k8s.io"
@@ -81,6 +82,7 @@ var (
 		APIGroupExtensions:            {"v1beta1"},
 		APIGroupEvents:                {"v1beta1"},
 		APIGroupApps:                  {"v1", "v1beta1", "v1beta2"},
+		APIGroupAdmission:             {},
 		APIGroupAdmissionRegistration: {"v1beta1"},
 		APIGroupAPIExtensions:         {"v1beta1"},
 		APIGroupAPIRegistration:       {"v1", "v1beta1"},
@@ -90,6 +92,7 @@ var (
 		APIGroupAutoscaling:           {"v1", "v2beta1"},
 		APIGroupBatch:                 {"v1", "v1beta1", "v2alpha1"}, // v2alpha1 has to stay on to keep cronjobs on for backwards compatibility
 		APIGroupCertificates:          {"v1beta1"},
+		APIGroupImagePolicy:           {},
 		APIGroupNetworking:            {"v1"},
 		APIGroupPolicy:                {"v1beta1"},
 		APIGroupStorage:               {"v1", "v1beta1"},
@@ -120,8 +123,10 @@ var (
 		APIGroupExtensions:            {},
 		APIGroupAutoscaling:           {"v2alpha1"},
 		APIGroupBatch:                 {},
+		APIGroupImagePolicy:           {"v1alpha1"},
 		APIGroupPolicy:                {},
 		APIGroupApps:                  {},
+		APIGroupAdmission:             {"v1beta1"},
 		APIGroupAdmissionRegistration: {"v1alpha1"},
 		APIGroupAuthorizationRbac:     {"v1alpha1"},
 		APIGroupSettings:              {"v1alpha1"},

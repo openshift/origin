@@ -20,7 +20,7 @@ items:
           deploymentconfig: router-http-echo
       spec:
         containers:
-        - image: openshift/origin-base
+        - image: openshift/origin-node
           name: router-http-echo
           command:
             - /usr/bin/socat

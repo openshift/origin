@@ -161,12 +161,12 @@ func (fake *ovsFake) Clear(table, record string, columns ...string) error {
 }
 
 type ovsFakeTx struct {
-	fake *ovsFake
-	err  error
+	fake  *ovsFake
+	flows []string
 }
 
 func (fake *ovsFake) NewTransaction() Transaction {
-	return &ovsFakeTx{fake: fake, err: fake.ensureExists()}
+	return &ovsFakeTx{fake: fake, flows: []string{}}
 }
 
 // sort.Interface support
@@ -200,51 +200,85 @@ func fixFlowFields(flow *OvsFlow) {
 }
 
 func (tx *ovsFakeTx) AddFlow(flow string, args ...interface{}) {
-	if tx.err != nil {
-		return
+	if len(args) > 0 {
+		flow = fmt.Sprintf(flow, args...)
 	}
-	parsed, err := ParseFlow(ParseForAdd, flow, args...)
+	tx.flows = append(tx.flows, fmt.Sprintf("add %s", flow))
+}
+
+func (fake *ovsFake) addFlowHelper(flow string) error {
+	parsed, err := ParseFlow(ParseForAdd, flow)
 	if err != nil {
-		tx.err = err
-		return
+		return err
 	}
 	fixFlowFields(parsed)
 
 	// If there is already an exact match for this flow, then the new flow replaces it.
-	for i := range tx.fake.flows {
-		if FlowMatches(&tx.fake.flows[i], parsed) {
-			tx.fake.flows[i] = *parsed
-			return
+	for i := range fake.flows {
+		if FlowMatches(&fake.flows[i], parsed) {
+			fake.flows[i] = *parsed
+			return nil
 		}
 	}
 
-	tx.fake.flows = append(tx.fake.flows, *parsed)
-	sort.Sort(ovsFlows(tx.fake.flows))
+	fake.flows = append(fake.flows, *parsed)
+	sort.Sort(ovsFlows(fake.flows))
+	return nil
 }
 
 func (tx *ovsFakeTx) DeleteFlows(flow string, args ...interface{}) {
-	if tx.err != nil {
-		return
+	if len(args) > 0 {
+		flow = fmt.Sprintf(flow, args...)
 	}
-	parsed, err := ParseFlow(ParseForFilter, flow, args...)
+	tx.flows = append(tx.flows, fmt.Sprintf("delete %s", flow))
+}
+
+func (fake *ovsFake) deleteFlowsHelper(flow string) error {
+	parsed, err := ParseFlow(ParseForFilter, flow)
 	if err != nil {
-		tx.err = err
-		return
+		return err
 	}
 	fixFlowFields(parsed)
 
-	newFlows := make([]OvsFlow, 0, len(tx.fake.flows))
-	for _, flow := range tx.fake.flows {
+	newFlows := make([]OvsFlow, 0, len(fake.flows))
+	for _, flow := range fake.flows {
 		if !FlowMatches(&flow, parsed) {
 			newFlows = append(newFlows, flow)
 		}
 	}
-	tx.fake.flows = newFlows
+	fake.flows = newFlows
+	return nil
 }
 
-func (tx *ovsFakeTx) EndTransaction() error {
-	err := tx.err
-	tx.err = nil
+func (tx *ovsFakeTx) Commit() error {
+	var err error
+	if err = tx.fake.ensureExists(); err != nil {
+		return err
+	}
+
+	oldFlows := make(ovsFlows, len(tx.fake.flows))
+	copy(oldFlows, tx.fake.flows)
+
+	for _, flow := range tx.flows {
+		if strings.HasPrefix(flow, "add") {
+			flow = strings.TrimLeft(flow, "add")
+			err = tx.fake.addFlowHelper(flow)
+		} else if strings.HasPrefix(flow, "delete") {
+			flow = strings.TrimLeft(flow, "delete")
+			err = tx.fake.deleteFlowsHelper(flow)
+		} else {
+			err = fmt.Errorf("invalid flow %q", flow)
+		}
+		if err != nil {
+			// Transaction failed, restore to old state
+			tx.fake.flows = oldFlows
+			break
+		}
+	}
+
+	// Reset flows
+	tx.flows = []string{}
+
 	return err
 }
 
