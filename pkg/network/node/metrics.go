@@ -25,7 +25,8 @@ const (
 	PodIPsKey                   = "pod_ips"
 	PodOperationsErrorsKey      = "pod_operations_errors"
 	PodOperationsLatencyKey     = "pod_operations_latency"
-	VnidNotFoundErrorsKey       = "vnid_not_found_errors"
+	VNIDNotFoundErrorsKey       = "vnid_not_found_errors"
+	VNIDNotFoundLatencyKey      = "vnid_not_found_latency"
 
 	// Pod Operation types
 	PodOperationSetup    = "setup"
@@ -80,12 +81,21 @@ var (
 		[]string{"operation_type"},
 	)
 
-	VnidNotFoundErrors = prometheus.NewCounter(
+	VNIDNotFoundErrors = prometheus.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: SDNNamespace,
 			Subsystem: SDNSubsystem,
-			Name:      VnidNotFoundErrorsKey,
+			Name:      VNIDNotFoundErrorsKey,
 			Help:      "Number of VNID-not-found errors",
+		},
+	)
+
+	VNIDNotFoundLatency = prometheus.NewSummary(
+		prometheus.SummaryOpts{
+			Namespace: SDNNamespace,
+			Subsystem: SDNSubsystem,
+			Name:      VNIDNotFoundLatencyKey,
+			Help:      "Latency from when a VNID-not-found error occurs until the VNID appears",
 		},
 	)
 
@@ -107,7 +117,8 @@ func RegisterMetrics() {
 		prometheus.MustRegister(PodIPs)
 		prometheus.MustRegister(PodOperationsErrors)
 		prometheus.MustRegister(PodOperationsLatency)
-		prometheus.MustRegister(VnidNotFoundErrors)
+		prometheus.MustRegister(VNIDNotFoundErrors)
+		prometheus.MustRegister(VNIDNotFoundLatency)
 	})
 }
 
