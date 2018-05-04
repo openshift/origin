@@ -1,5 +1,4 @@
 reviewers:
-  - kargakis
   - stevekuznetsov
   - smarterclayton
   - miminar
@@ -14,7 +13,6 @@ reviewers:
   - danwinship
   - dmage
 approvers:
-  - kargakis
   - stevekuznetsov
   - smarterclayton
   - soltysh

@@ -1,13 +1,11 @@
 reviewers:
   - smarterclayton
   - deads2k
-  - kargakis
   - soltysh
   - bparees
   - jim-minter
   - csrwng
   - tnozicka
 approvers:
-  - kargakis
   - soltysh
   - tnozicka
