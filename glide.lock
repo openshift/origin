@@ -1,5 +1,5 @@
 hash: 8d9400ce356982e52e62591ee0287cc73b392f39979a20700aadebbfc83db87d
-updated: 2018-04-29T00:27:34.322141459-04:00
+updated: 2018-05-04T11:15:19.483669-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -392,7 +392,7 @@ imports:
   subpackages:
   - log
 - name: github.com/emicklei/go-restful-swagger12
-  version: 76d80a40857969dddc1a4c21d1eb82f7ea20e9f5
+  version: 5e28dc7157ebd9247a268c26dd1bee7818aa33f7
   repo: https://github.com/openshift/emicklei-go-restful-swagger12
 - name: github.com/euank/go-kmsg-parser
   version: 5ba4d492e455a77d25dcf0d2c4acc9f2afebef4e
@@ -951,7 +951,7 @@ imports:
   - signal
   - strslice
 - name: github.com/openshift/source-to-image
-  version: 0c48fd2a6ca7979100f69c7da53c8de9446f8f00
+  version: 27f0729d81fe0641486257252189b8dca856ea28
   subpackages:
   - pkg/api
   - pkg/api/describe
@@ -1053,7 +1053,7 @@ imports:
 - name: github.com/sirupsen/logrus
   version: 89742aefa4b206dcf400792f3bd35b542998eb3b
 - name: github.com/skynetservices/skydns
-  version: d3e54b74891269f7d7aa1814af2ca080b294dd29
+  version: 775ef406696380ce92b76e72421e86b6868905d8
   repo: https://github.com/openshift/skynetservices-skydns
   subpackages:
   - cache
@@ -1318,7 +1318,7 @@ imports:
 - name: gopkg.in/yaml.v2
   version: 670d4cfef0544295bc27a114dbac37980d83185a
 - name: k8s.io/api
-  version: 73d903622b7391f3312dcbac6483fed484e185f8
+  version: 3aa27dff093acb901f4e16b2d9f6aaadc15e22df
   repo: https://github.com/openshift/kubernetes-api.git
   subpackages:
   - admission/v1beta1
@@ -1454,7 +1454,7 @@ imports:
   - third_party/forked/golang/netutil
   - third_party/forked/golang/reflect
 - name: k8s.io/apiserver
-  version: 19facbf859cd14d4a25e6cf85606017d258180bb
+  version: 61528dc8d77f236a2a3a5419ae71da2ce37d1724
   repo: https://github.com/openshift/kubernetes-apiserver.git
   subpackages:
   - pkg/admission
@@ -1565,7 +1565,7 @@ imports:
   - plugin/pkg/authenticator/token/webhook
   - plugin/pkg/authorizer/webhook
 - name: k8s.io/client-go
-  version: f88a5957d74ede087bca5b9147bac3262be1a04c
+  version: 40e532458c6437b8fdcedfd82116bf2b245471d9
   repo: https://github.com/openshift/kubernetes-client-go.git
   subpackages:
   - discovery
@@ -1797,7 +1797,7 @@ imports:
   - pkg/util/proto
   - pkg/util/proto/validation
 - name: k8s.io/kubernetes
-  version: f4c3c7b8c96448de9b7502a208428b70a4143b8c
+  version: 6b96dc6af2d08487ab77179fbb42c3e392911328
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/controller-manager/app

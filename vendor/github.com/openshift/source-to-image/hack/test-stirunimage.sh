@@ -140,6 +140,10 @@ test_debug "s2i build with remote git repo"
 s2i build https://github.com/openshift/cakephp-ex docker.io/centos/php-70-centos7 test --loglevel=5 &> "${WORK_DIR}/s2i-git-proto.log"
 check_result $? "${WORK_DIR}/s2i-git-proto.log"
 
+test_debug "s2i build with runtime image"
+s2i build --ref=10.x --context-dir=helloworld https://github.com/wildfly/quickstart docker.io/openshift/wildfly-101-centos7 test-jee-app-thin --runtime-image=docker.io/openshift/wildfly-101-centos7 &> "${WORK_DIR}/s2i-runtime-image.log"
+check_result $? "${WORK_DIR}/s2i-runtime-image.log"
+
 test_debug "s2i build with --run==true option"
 if [[ "$OSTYPE" == "cygwin" ]]; then
   ( cd hack/windows/sigintwrap && make )

@@ -482,6 +482,11 @@ func verifyDirectory(t *testing.T, dir string, files []fileDesc) {
 
 func TestExtractTarStream(t *testing.T) {
 	modificationDate := time.Date(2011, time.March, 5, 23, 30, 1, 0, time.UTC)
+	var symLinkMode os.FileMode = 0777
+	if runtime.GOOS == "darwin" {
+		// Symlinks show up as Lrwxr-xr-x on macOS
+		symLinkMode = 0755
+	}
 	testFiles := []fileDesc{
 		{"dir01", modificationDate, 0700 | os.ModeDir, "", false, ""},
 		{"dir01/.git", modificationDate, 0755 | os.ModeDir, "", false, ""},
@@ -490,7 +495,7 @@ func TestExtractTarStream(t *testing.T) {
 		{"dir01/dir02/test1.txt", modificationDate, 0700, "Test1 file content", false, ""},
 		{"dir01/test2.git", modificationDate, 0660, "Test2 file content", false, ""},
 		{"dir01/dir03/test3.txt", modificationDate, 0444, "Test3 file content", false, ""},
-		{"dir01/symlink", modificationDate, os.ModeSymlink | 0777, "Test3 file content", false, "../dir01/dir03/test3.txt"},
+		{"dir01/symlink", modificationDate, os.ModeSymlink | symLinkMode, "Test3 file content", false, "../dir01/dir03/test3.txt"},
 	}
 	reader, writer := io.Pipe()
 	destDir, err := ioutil.TempDir("", "testExtract")
