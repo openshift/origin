@@ -38,6 +38,9 @@ func NewMapStringString(m *map[string]string) *MapStringString {
 
 // String implements github.com/spf13/pflag.Value
 func (m *MapStringString) String() string {
+	if m.Map == nil {
+		return ""
+	}
 	pairs := []string{}
 	for k, v := range *m.Map {
 		pairs = append(pairs, fmt.Sprintf("%s=%s", k, v))
