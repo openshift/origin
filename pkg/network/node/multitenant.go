@@ -49,7 +49,7 @@ func (mp *multiTenantPlugin) Start(node *OsdnNode) error {
 	otx := node.oc.NewTransaction()
 	otx.AddFlow("table=80, priority=200, reg0=0, actions=output:NXM_NX_REG2[]")
 	otx.AddFlow("table=80, priority=200, reg1=0, actions=output:NXM_NX_REG2[]")
-	if err := otx.EndTransaction(); err != nil {
+	if err := otx.Commit(); err != nil {
 		return err
 	}
 
@@ -141,7 +141,7 @@ func (mp *multiTenantPlugin) EnsureVNIDRules(vnid uint32) {
 
 	otx := mp.node.oc.NewTransaction()
 	otx.AddFlow("table=80, priority=100, reg0=%d, reg1=%d, actions=output:NXM_NX_REG2[]", vnid, vnid)
-	if err := otx.EndTransaction(); err != nil {
+	if err := otx.Commit(); err != nil {
 		utilruntime.HandleError(fmt.Errorf("Error adding OVS flow for VNID: %v", err))
 	}
 }
@@ -158,7 +158,7 @@ func (mp *multiTenantPlugin) SyncVNIDRules() {
 		mp.vnidInUse[uint32(vnid)] = false
 		otx.DeleteFlows("table=80, reg1=%d", vnid)
 	}
-	if err := otx.EndTransaction(); err != nil {
+	if err := otx.Commit(); err != nil {
 		utilruntime.HandleError(fmt.Errorf("Error deleting syncing OVS VNID rules: %v", err))
 	}
 }

@@ -805,7 +805,7 @@ func TestAlreadySetUp(t *testing.T) {
 
 		otx := ovsif.NewTransaction()
 		otx.AddFlow(tc.flow)
-		if err := otx.EndTransaction(); err != nil {
+		if err := otx.Commit(); err != nil {
 			t.Fatalf("(%d) unexpected error from AddFlow: %v", i, err)
 		}
 		if success := oc.AlreadySetUp(); success != tc.success {
@@ -919,7 +919,7 @@ func TestSyncVNIDRules(t *testing.T) {
 		for _, flow := range tc.flows {
 			otx.AddFlow(flow)
 		}
-		if err := otx.EndTransaction(); err != nil {
+		if err := otx.Commit(); err != nil {
 			t.Fatalf("(%d) unexpected error from AddFlow: %v", i, err)
 		}
 

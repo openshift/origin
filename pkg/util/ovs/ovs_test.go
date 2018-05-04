@@ -2,6 +2,7 @@ package ovs
 
 import (
 	"fmt"
+	"io/ioutil"
 	"strings"
 	"testing"
 
@@ -29,8 +30,8 @@ func missingSetup() *fakeexec.FakeExec {
 	}
 }
 
-func addTestResult(t *testing.T, fexec *fakeexec.FakeExec, command string, output string, err error) {
-	fcmd := fakeexec.FakeCmd{
+func addTestResult(t *testing.T, fexec *fakeexec.FakeExec, command string, output string, err error) *fakeexec.FakeCmd {
+	fcmd := &fakeexec.FakeCmd{
 		CombinedOutputScript: []fakeexec.FakeCombinedOutputAction{
 			func() ([]byte, error) { return []byte(output), err },
 		},
@@ -41,8 +42,10 @@ func addTestResult(t *testing.T, fexec *fakeexec.FakeExec, command string, outpu
 			if execCommand != command {
 				t.Fatalf("Unexpected command: wanted %q got %q", command, execCommand)
 			}
-			return fakeexec.InitFakeCmd(&fcmd, cmd, args...)
+			return fakeexec.InitFakeCmd(fcmd, cmd, args...)
 		})
+
+	return fcmd
 }
 
 func ensureTestResults(t *testing.T, fexec *fakeexec.FakeExec) {
@@ -51,45 +54,73 @@ func ensureTestResults(t *testing.T, fexec *fakeexec.FakeExec) {
 	}
 }
 
-func TestTransactionSuccess(t *testing.T) {
-	fexec := normalSetup()
-	addTestResult(t, fexec, "ovs-ofctl -O OpenFlow13 add-flow br0 flow1", "", nil)
-	addTestResult(t, fexec, "ovs-ofctl -O OpenFlow13 add-flow br0 flow2", "", nil)
+func ensureInputFlows(t *testing.T, fakeCmd *fakeexec.FakeCmd, flows []string) {
+	allFlows := strings.Join(flows, "\n")
 
-	ovsif, err := New(fexec, "br0", "")
-	if err != nil {
-		t.Fatalf("Unexpected error from ovs.New(): %v", err)
+	var fakeCmdFlows string
+	if fakeCmd != nil {
+		data, err := ioutil.ReadAll(fakeCmd.Stdin)
+		if err != nil {
+			t.Fatalf(err.Error())
+		}
+		fakeCmdFlows = string(data)
 	}
-
-	otx := ovsif.NewTransaction()
-	otx.AddFlow("flow1")
-	otx.AddFlow("flow2")
-	err = otx.EndTransaction()
-	if err != nil {
-		t.Fatalf("Unexpected error from command: %v", err)
+	if strings.Compare(allFlows, fakeCmdFlows) != 0 {
+		t.Fatalf("Expected input flows: %q but got %q", allFlows, fakeCmdFlows)
 	}
-
-	ensureTestResults(t, fexec)
 }
 
-func TestTransactionFailure(t *testing.T) {
+func TestTransactionSuccess(t *testing.T) {
 	fexec := normalSetup()
-	addTestResult(t, fexec, "ovs-ofctl -O OpenFlow13 add-flow br0 flow1", "", fmt.Errorf("Something bad happened"))
 
 	ovsif, err := New(fexec, "br0", "")
 	if err != nil {
 		t.Fatalf("Unexpected error from ovs.New(): %v", err)
 	}
 
+	// Test Empty transaction
 	otx := ovsif.NewTransaction()
+	if err = otx.Commit(); err != nil {
+		t.Fatalf("Unexpected error from command: %v", err)
+	}
+	ensureTestResults(t, fexec)
+	ensureInputFlows(t, nil, []string{})
+
+	// Test Successful transaction
+	fakeCmd := addTestResult(t, fexec, "ovs-ofctl -O OpenFlow13 bundle br0 -", "", nil)
+	otx = ovsif.NewTransaction()
 	otx.AddFlow("flow1")
 	otx.AddFlow("flow2")
-	err = otx.EndTransaction()
-	if err == nil {
+	if err = otx.Commit(); err != nil {
+		t.Fatalf("Unexpected error from command: %v", err)
+	}
+	ensureTestResults(t, fexec)
+	expectedInputFlows := []string{
+		"flow add flow1",
+		"flow add flow2",
+	}
+	ensureInputFlows(t, fakeCmd, expectedInputFlows)
+
+	// Test reuse transaction object
+	if err = otx.Commit(); err != nil {
+		t.Fatalf("Unexpected error from command: %v", err)
+	}
+	ensureTestResults(t, fexec)
+
+	// Test Failed transaction
+	fakeCmd = addTestResult(t, fexec, "ovs-ofctl -O OpenFlow13 bundle br0 -", "", fmt.Errorf("Something bad happened"))
+	otx = ovsif.NewTransaction()
+	otx.AddFlow("flow1")
+	otx.DeleteFlows("flow2")
+	if err = otx.Commit(); err == nil {
 		t.Fatalf("Failed to get expected error")
 	}
-
 	ensureTestResults(t, fexec)
+	expectedInputFlows = []string{
+		"flow add flow1",
+		"flow delete flow2",
+	}
+	ensureInputFlows(t, fakeCmd, expectedInputFlows)
 }
 
 func TestDumpFlows(t *testing.T) {
@@ -214,20 +245,17 @@ func TestOVSVersion(t *testing.T) {
 	defer ensureTestResults(t, fexec)
 
 	addTestResult(t, fexec, "ovs-vsctl --timeout=30 --version", "2.5.0", nil)
-	_, err := New(fexec, "br0", "2.5.0")
-	if err != nil {
+	if _, err := New(fexec, "br0", "2.5.0"); err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
 	addTestResult(t, fexec, "ovs-vsctl --timeout=30 --version", "2.4.0", nil)
-	_, err = New(fexec, "br0", "2.5.0")
-	if err == nil {
+	if _, err := New(fexec, "br0", "2.5.0"); err == nil {
 		t.Fatalf("Unexpectedly did not get error")
 	}
 
 	addTestResult(t, fexec, "ovs-vsctl --timeout=30 --version", "3.2.0", nil)
-	_, err = New(fexec, "br0", "2.5.0")
-	if err != nil {
+	if _, err := New(fexec, "br0", "2.5.0"); err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 }
