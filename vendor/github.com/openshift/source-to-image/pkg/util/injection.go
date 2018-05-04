@@ -37,65 +37,79 @@ func FixInjectionsWithRelativePath(workdir string, injections api.VolumeList) ap
 	return newList
 }
 
-// ExpandInjectedFiles returns a flat list of all files that are injected into a
-// container. All files from nested directories are returned in the list.
-func ExpandInjectedFiles(fs fs.FileSystem, injections api.VolumeList) ([]string, error) {
+// ListFilesToTruncate returns a flat list of all files that are injected into a
+// container which need to be truncated. All files from nested directories are returned in the list.
+func ListFilesToTruncate(fs fs.FileSystem, injections api.VolumeList) ([]string, error) {
 	result := []string{}
 	for _, s := range injections {
-		if _, err := os.Stat(s.Source); err != nil {
-			return nil, err
+		if s.Keep {
+			continue
 		}
-		err := fs.Walk(s.Source, func(path string, f os.FileInfo, err error) error {
-			if err != nil {
-				return err
-			}
-
-			// Detected files will be truncated. k8s' AtomicWriter creates
-			// directories and symlinks to directories in order to inject files.
-			// An attempt to truncate either a dir or symlink to a dir will fail.
-			// Thus, we need to dereference symlinks to see if they might point
-			// to a directory.
-			// Do not try to simplify this logic to simply return nil if a symlink
-			// is detected. During the tar transfer to an assemble image, symlinked
-			// files are turned concrete (i.e. they will be turned into regular files
-			// containing the content of their target). These newly concrete files
-			// need to be truncated as well.
-
-			if f.Mode()&os.ModeSymlink != 0 {
-				linkDest, err := filepath.EvalSymlinks(path)
-				if err != nil {
-					return fmt.Errorf("unable to evaluate symlink [%v]: %v", path, err)
-				}
-				// Evaluate the destination of the link.
-				f, err = os.Lstat(linkDest)
-				if err != nil {
-					// This is not a fatal error. If AtomicWrite tried multiple times, a symlink might not point
-					// to a valid destination.
-					glog.Warningf("Unable to lstat symlink destination [%s]->[%s]. err: %v. Partial atomic write?", path, linkDest, err)
-					return nil
-				}
-			}
-
-			if f.IsDir() {
-				return nil
-			}
-
-			newPath := filepath.ToSlash(filepath.Join(s.Destination, strings.TrimPrefix(path, s.Source)))
-			result = append(result, newPath)
-			return nil
-		})
+		files, err := ListFiles(fs, s)
 		if err != nil {
 			return nil, err
 		}
+		result = append(result, files...)
 	}
 	return result, nil
 }
 
-// CreateInjectedFilesRemovalScript creates a shell script that contains truncation
+// ListFiles returns a flat list of all files injected into a container for the given `VolumeSpec`.
+func ListFiles(fs fs.FileSystem, spec api.VolumeSpec) ([]string, error) {
+	result := []string{}
+	if _, err := os.Stat(spec.Source); err != nil {
+		return nil, err
+	}
+	err := fs.Walk(spec.Source, func(path string, f os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		// Detected files will be truncated. k8s' AtomicWriter creates
+		// directories and symlinks to directories in order to inject files.
+		// An attempt to truncate either a dir or symlink to a dir will fail.
+		// Thus, we need to dereference symlinks to see if they might point
+		// to a directory.
+		// Do not try to simplify this logic to simply return nil if a symlink
+		// is detected. During the tar transfer to an assemble image, symlinked
+		// files are turned concrete (i.e. they will be turned into regular files
+		// containing the content of their target). These newly concrete files
+		// need to be truncated as well.
+
+		if f.Mode()&os.ModeSymlink != 0 {
+			linkDest, err := filepath.EvalSymlinks(path)
+			if err != nil {
+				return fmt.Errorf("unable to evaluate symlink [%v]: %v", path, err)
+			}
+			// Evaluate the destination of the link.
+			f, err = os.Lstat(linkDest)
+			if err != nil {
+				// This is not a fatal error. If AtomicWrite tried multiple times, a symlink might not point
+				// to a valid destination.
+				glog.Warningf("Unable to lstat symlink destination [%s]->[%s]. err: %v. Partial atomic write?", path, linkDest, err)
+				return nil
+			}
+		}
+
+		if f.IsDir() {
+			return nil
+		}
+
+		newPath := filepath.ToSlash(filepath.Join(spec.Destination, strings.TrimPrefix(path, spec.Source)))
+		result = append(result, newPath)
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+// CreateTruncateFilesScript creates a shell script that contains truncation
 // of all files we injected into the container. The path to the script is returned.
 // When the scriptName is provided, it is also truncated together with all
 // secrets.
-func CreateInjectedFilesRemovalScript(files []string, scriptName string) (string, error) {
+func CreateTruncateFilesScript(files []string, scriptName string) (string, error) {
 	rmScript := "set -e\n"
 	for _, s := range files {
 		rmScript += fmt.Sprintf("truncate -s0 %q\n", s)

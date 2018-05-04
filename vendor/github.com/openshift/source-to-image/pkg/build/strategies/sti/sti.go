@@ -613,7 +613,7 @@ func (builder *STI) Execute(command string, user string, config *api.Config) err
 			return err
 		}
 		config.Injections = util.FixInjectionsWithRelativePath(workdir, config.Injections)
-		injectedFiles, err := util.ExpandInjectedFiles(builder.fs, config.Injections)
+		truncatedFiles, err := util.ListFilesToTruncate(builder.fs, config.Injections)
 		if err != nil {
 			builder.result.BuildInfo.FailureReason = utilstatus.NewFailureReason(
 				utilstatus.ReasonInstallScriptsFailed,
@@ -621,7 +621,7 @@ func (builder *STI) Execute(command string, user string, config *api.Config) err
 			)
 			return err
 		}
-		rmScript, err := util.CreateInjectedFilesRemovalScript(injectedFiles, "/tmp/rm-injections")
+		rmScript, err := util.CreateTruncateFilesScript(truncatedFiles, "/tmp/rm-injections")
 		if len(rmScript) != 0 {
 			defer os.Remove(rmScript)
 		}
