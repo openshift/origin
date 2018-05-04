@@ -3502,7 +3502,7 @@ items:
           name: inputimage:latest
         paths:
         - destinationDir: injected/dir
-          sourcePath: /opt/rh/rh-ruby23/root/usr/bin/ruby
+          sourcePath: /opt/rh/rh-ruby22/root/usr/bin/ruby
     strategy:
       customStrategy:
         from:
@@ -3549,7 +3549,7 @@ items:
           name: inputimage:latest
         paths:
         - destinationDir: injected/dir
-          sourcePath: /opt/rh/rh-ruby23/root/usr/bin/ruby
+          sourcePath: /opt/rh/rh-ruby22/root/usr/bin/ruby
     strategy:
       dockerStrategy:
         from:
@@ -3596,7 +3596,7 @@ items:
           name: inputimage:latest
         paths:
         - destinationDir: injected/dir
-          sourcePath: /opt/rh/rh-ruby23/root/usr/bin/ruby
+          sourcePath: /opt/rh/rh-ruby22/root/usr/bin/ruby
     strategy:
       sourceStrategy:
         from:
@@ -3640,7 +3640,7 @@ items:
       dockerStrategy:
         from: 
           kind: ImageStreamTag
-          name: ruby:2.3
+          name: ruby:2.2
           namespace: openshift
 - apiVersion: v1
   kind: BuildConfig
@@ -3662,7 +3662,7 @@ items:
           name: inputimage:latest
         paths:
         - destinationDir: injected/dir
-          sourcePath: /opt/rh/rh-ruby23/root/usr/bin/ruby
+          sourcePath: /opt/rh/rh-ruby22/root/usr/bin/ruby
     strategy:
       sourceStrategy:
         forcePull: true
@@ -3690,7 +3690,7 @@ items:
           name: inputimage:latest
         paths:
         - destinationDir: injected/dir
-          sourcePath: /opt/rh/rh-ruby23/root/usr/bin/ruby
+          sourcePath: /opt/rh/rh-ruby22/root/usr/bin/ruby
     strategy:
       dockerStrategy:
         forcePull: true
