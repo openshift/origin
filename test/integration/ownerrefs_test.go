@@ -34,7 +34,7 @@ func TestOwnerRefRestriction(t *testing.T) {
 			Name: "create-svc",
 		},
 		Rules: []authorizationapi.PolicyRule{
-			authorizationapi.NewRule("create").Groups(kapi.GroupName).Resources("services").RuleOrDie(),
+			authorizationapi.NewRule("create", "update").Groups(kapi.GroupName).Resources("services").RuleOrDie(),
 		},
 	})
 	if err != nil {
@@ -63,15 +63,9 @@ func TestOwnerRefRestriction(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	_, err = creatorClient.Core().Services("foo").Create(&kapi.Service{
+	actual, err := creatorClient.Core().Services("foo").Create(&kapi.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "my-service",
-			OwnerReferences: []metav1.OwnerReference{{
-				APIVersion: "foo",
-				Kind:       "bar",
-				Name:       "baz",
-				UID:        types.UID("baq"),
-			}},
 		},
 		Spec: kapi.ServiceSpec{
 			Ports: []kapi.ServicePort{
@@ -79,8 +73,18 @@ func TestOwnerRefRestriction(t *testing.T) {
 			},
 		},
 	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	actual.OwnerReferences = []metav1.OwnerReference{{
+		APIVersion: "foo",
+		Kind:       "bar",
+		Name:       "baz",
+		UID:        types.UID("baq"),
+	}}
+	actual, err = creatorClient.Core().Services("foo").Update(actual)
 	if err == nil {
-		t.Fatalf("missing err")
+		t.Fatalf("missing error")
 	}
 	if !kapierrors.IsForbidden(err) || !strings.Contains(err.Error(), "cannot set an ownerRef on a resource you can't delete") {
 		t.Fatalf("expecting cannot set an ownerRef on a resource you can't delete, got %v", err)
