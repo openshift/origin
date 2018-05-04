@@ -2,6 +2,7 @@ package util
 
 import (
 	"net/url"
+	"reflect"
 	"regexp"
 	"testing"
 
@@ -112,14 +113,16 @@ func TestSafeForLoggingS2IConfig(t *testing.T) {
 				Name:  "other_value",
 				Value: "http://user:password@proxy.com",
 			},
+			{
+				Name:  "NO_PROXY",
+				Value: ".cluster.local",
+			},
 		},
 		ScriptDownloadProxyConfig: &s2iapi.ProxyConfig{
 			HTTPProxy:  http,
 			HTTPSProxy: https,
 		},
 	}
-	checkEnvList(t, config.Environment, true)
-
 	stripped := SafeForLoggingS2IConfig(config)
 	if credsRegex.MatchString(stripped.ScriptsURL) {
 		t.Errorf("credentials left in scripts url: %v", stripped.ScriptsURL)
@@ -141,7 +144,6 @@ func TestSafeForLoggingS2IConfig(t *testing.T) {
 	if !redactedRegex.MatchString(stripped.ScriptDownloadProxyConfig.HTTPSProxy.String()) {
 		t.Errorf("redacted not present in scripts proxy: %v", stripped.ScriptDownloadProxyConfig.HTTPSProxy)
 	}
-
 	checkEnvList(t, stripped.Environment, false)
 
 	// make sure original object is untouched
@@ -163,8 +165,7 @@ func TestSafeForLoggingS2IConfig(t *testing.T) {
 	if redactedRegex.MatchString(config.ScriptDownloadProxyConfig.HTTPSProxy.String()) {
 		t.Errorf("credentials stripped from original scripts proxy: %v", config.ScriptDownloadProxyConfig.HTTPSProxy)
 	}
-	//checkEnvList(t, config.Environment, true)
-
+	checkEnvList(t, config.Environment, true)
 }
 
 func checkEnvList(t *testing.T, envs s2iapi.EnvironmentList, orig bool) {
@@ -178,7 +179,7 @@ func checkEnvList(t *testing.T, envs s2iapi.EnvironmentList, orig bool) {
 			}
 		} else {
 			if orig {
-				if !credsRegex.MatchString(env.Value) {
+				if !proxyRegex.MatchString(env.Name) && !credsRegex.MatchString(env.Value) {
 					t.Errorf("credentials improperly stripped from orig env value %v", env)
 				}
 				if redactedRegex.MatchString(env.Value) {
@@ -188,8 +189,8 @@ func checkEnvList(t *testing.T, envs s2iapi.EnvironmentList, orig bool) {
 				if credsRegex.MatchString(env.Value) {
 					t.Errorf("credentials not stripped from env value %v", env)
 				}
-				if !redactedRegex.MatchString(env.Value) {
-					t.Errorf("redacted should appear in env value %v", env)
+				if isURL(env.Value) && urlStringHasPassword(env.Value) {
+					t.Errorf("credentials should not appear in env value %v", env)
 				}
 			}
 		}
@@ -225,6 +226,10 @@ func TestSafeForLoggingBuild(t *testing.T) {
 								Name:  "other_value",
 								Value: "http://user:password@proxy.com",
 							},
+							{
+								Name:  "NO_PROXY",
+								Value: ".cluster.local",
+							},
 						},
 					},
 					DockerStrategy: &buildapiv1.DockerBuildStrategy{
@@ -240,6 +245,10 @@ func TestSafeForLoggingBuild(t *testing.T) {
 							{
 								Name:  "other_value",
 								Value: "http://user:password@proxy.com",
+							},
+							{
+								Name:  "NO_PROXY",
+								Value: ".cluster.local",
 							},
 						},
 					},
@@ -257,6 +266,10 @@ func TestSafeForLoggingBuild(t *testing.T) {
 								Name:  "other_value",
 								Value: "http://user:password@proxy.com",
 							},
+							{
+								Name:  "NO_PROXY",
+								Value: ".cluster.local",
+							},
 						},
 					},
 					JenkinsPipelineStrategy: &buildapiv1.JenkinsPipelineBuildStrategy{
@@ -273,6 +286,10 @@ func TestSafeForLoggingBuild(t *testing.T) {
 								Name:  "other_value",
 								Value: "http://user:password@proxy.com",
 							},
+							{
+								Name:  "NO_PROXY",
+								Value: ".cluster.local",
+							},
 						},
 					},
 				},
@@ -287,22 +304,105 @@ func TestSafeForLoggingBuild(t *testing.T) {
 	if credsRegex.MatchString(*stripped.Spec.Source.Git.HTTPSProxy) {
 		t.Errorf("credentials left in https proxy value: %v", stripped.Spec.Source.Git.HTTPSProxy)
 	}
-	checkEnv(t, stripped.Spec.Strategy.SourceStrategy.Env)
-	checkEnv(t, stripped.Spec.Strategy.DockerStrategy.Env)
-	checkEnv(t, stripped.Spec.Strategy.CustomStrategy.Env)
-	checkEnv(t, stripped.Spec.Strategy.JenkinsPipelineStrategy.Env)
+	checkEnv(t, stripped.Spec.Strategy.SourceStrategy.Env, false)
+	checkEnv(t, stripped.Spec.Strategy.DockerStrategy.Env, false)
+	checkEnv(t, stripped.Spec.Strategy.CustomStrategy.Env, false)
+	checkEnv(t, stripped.Spec.Strategy.JenkinsPipelineStrategy.Env, false)
+
+	// make sure original object was not touched
+	if redactedRegex.MatchString(*proxyBuild.Spec.Source.Git.HTTPProxy) {
+		t.Errorf("improperly redacted credentials in original http proxy value: %s", *stripped.Spec.Source.Git.HTTPProxy)
+	}
+	if redactedRegex.MatchString(*proxyBuild.Spec.Source.Git.HTTPSProxy) {
+		t.Errorf("improperly redacted credentials in https proxy value: %s", *stripped.Spec.Source.Git.HTTPSProxy)
+	}
+	checkEnv(t, proxyBuild.Spec.Strategy.SourceStrategy.Env, true)
+	checkEnv(t, proxyBuild.Spec.Strategy.DockerStrategy.Env, true)
+	checkEnv(t, proxyBuild.Spec.Strategy.CustomStrategy.Env, true)
+	checkEnv(t, proxyBuild.Spec.Strategy.JenkinsPipelineStrategy.Env, true)
 }
 
-func checkEnv(t *testing.T, envs []corev1.EnvVar) {
+func checkEnv(t *testing.T, envs []corev1.EnvVar, orig bool) {
 	for _, env := range envs {
 		if env.Name == "other_value" {
 			if !credsRegex.MatchString(env.Value) {
 				t.Errorf("credentials improperly stripped from env value %v", env)
 			}
 		} else {
-			if credsRegex.MatchString(env.Value) {
-				t.Errorf("credentials not stripped from env value %v", env)
+			if orig {
+				if redactedRegex.MatchString(env.Value) {
+					t.Errorf("credentials improperly stripped from original env value %v", env)
+				}
+				if isURL(env.Value) && urlStringHasPassword(env.Value) && !credsRegex.MatchString(env.Value) {
+					t.Errorf("credentials missing from original env value %v", env)
+				}
+			} else {
+				if credsRegex.MatchString(env.Value) {
+					t.Errorf("credentials not stripped from env value %v", env)
+				}
+				if isURL(env.Value) && urlStringHasPassword(env.Value) {
+					t.Errorf("credentials should not appear in env value %v", env)
+				}
 			}
+		}
+	}
+}
+
+func isURL(rawurl string) bool {
+	_, err := url.Parse(rawurl)
+	return err != nil
+}
+
+func urlStringHasPassword(rawurl string) bool {
+	url, err := url.Parse(rawurl)
+	if err != nil {
+		return false
+	}
+	return urlHasPassword(url)
+}
+
+func urlHasPassword(url *url.URL) bool {
+	if url.User == nil {
+		return false
+	}
+	_, hasPassword := url.User.Password()
+	return hasPassword
+}
+
+func TestSafeForLoggingURL(t *testing.T) {
+	cases := []string{
+		"https://user:password@hostname.com",
+		"https://user@hostname.com",
+		"https://www.redhat.com",
+		"http://somesite.com/home/page.html#fragment",
+		"http://somesite.com/home/page.html?q=search&foo=bar",
+	}
+	for _, rawURL := range cases {
+		url, err := url.Parse(rawURL)
+		if err != nil {
+			t.Fatalf("failed to parse URL %s", rawURL)
+		}
+		outURL := SafeForLoggingURL(url)
+		if url == outURL {
+			t.Errorf("urls %v, %v share same pointer reference", url, outURL)
+		}
+		if urlHasPassword(url) {
+			if reflect.DeepEqual(url, outURL) {
+				t.Errorf("url %v was not properly redacted", outURL)
+			}
+			if !redactedRegex.MatchString(outURL.String()) {
+				t.Errorf("url %v was not properly redacted", outURL)
+			}
+		} else {
+			if !reflect.DeepEqual(url, outURL) {
+				t.Errorf("expected url %v did not match output url %v", url, outURL)
+			}
+		}
+		if url.User == outURL.User && url.User != nil {
+			t.Errorf("urls %v, %v share reference to same UserInfo %v", url, outURL, url.User)
+		}
+		if urlHasPassword(outURL) {
+			t.Errorf("output url %v contains unredacted password", outURL)
 		}
 	}
 }

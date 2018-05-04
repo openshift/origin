@@ -41,6 +41,7 @@ var (
 	// InputContentPath is the path at which the build inputs will be available
 	// to all the build containers.
 	InputContentPath = filepath.Join(BuildWorkDirMount, "inputs")
+	proxyRegex       = regexp.MustCompile("(?i)proxy")
 )
 
 // GetBuildName returns name of the build pod.
@@ -238,9 +239,16 @@ func SafeForLoggingURL(u *url.URL) *url.URL {
 	if u == nil {
 		return nil
 	}
-	newUrl := *u
-	newUrl.User = url.User("redacted")
-	return &newUrl
+	newURL, err := url.Parse(u.String())
+	if err != nil {
+		return nil
+	}
+	if newURL.User != nil {
+		if _, passwordSet := newURL.User.Password(); passwordSet {
+			newURL.User = url.User("redacted")
+		}
+	}
+	return newURL
 }
 
 // SafeForLoggingEnvVar returns a copy of an EnvVar array with
@@ -248,7 +256,6 @@ func SafeForLoggingURL(u *url.URL) *url.URL {
 func SafeForLoggingEnvVar(env []corev1.EnvVar) []corev1.EnvVar {
 	newEnv := make([]corev1.EnvVar, len(env))
 	copy(newEnv, env)
-	proxyRegex := regexp.MustCompile("(?i)proxy")
 	for i, env := range newEnv {
 		if proxyRegex.MatchString(env.Name) {
 			newEnv[i].Value, _ = s2iutil.SafeForLoggingURL(env.Value)
@@ -260,7 +267,7 @@ func SafeForLoggingEnvVar(env []corev1.EnvVar) []corev1.EnvVar {
 // SafeForLoggingBuildCommonSpec returns a copy of a CommonSpec with
 // proxy credential env variable values redacted.
 func SafeForLoggingBuildCommonSpec(spec *buildapiv1.CommonSpec) *buildapiv1.CommonSpec {
-	newSpec := *spec
+	newSpec := spec.DeepCopy()
 	if newSpec.Source.Git != nil {
 		if newSpec.Source.Git.HTTPProxy != nil {
 			s, _ := s2iutil.SafeForLoggingURL(*newSpec.Source.Git.HTTPProxy)
@@ -285,7 +292,7 @@ func SafeForLoggingBuildCommonSpec(spec *buildapiv1.CommonSpec) *buildapiv1.Comm
 	if newSpec.Strategy.JenkinsPipelineStrategy != nil {
 		newSpec.Strategy.JenkinsPipelineStrategy.Env = SafeForLoggingEnvVar(newSpec.Strategy.JenkinsPipelineStrategy.Env)
 	}
-	return &newSpec
+	return newSpec
 }
 
 // SafeForLoggingBuild returns a copy of a Build with
