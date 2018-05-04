@@ -17,12 +17,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 74b6e05e4c32a7ee6c549203f529b8298e43af10
+%global commit a0467e0fc523ad74115c8dc6253492cf2d330f1f
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=10+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.10.0-0.31.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 KUBE_GIT_VERSION=v1.10.0+b81c8f8 OS_GIT_PATCH=0 KUBE_GIT_COMMIT=b81c8f8 KUBE_GIT_MINOR=10+ OS_GIT_COMMIT=537fea0 KUBE_GIT_MAJOR=1 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.16-0-g121edf0 ETCD_GIT_COMMIT=121edf0
+%global os_git_vars OS_GIT_MINOR=10+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.10.0-0.32.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 KUBE_GIT_VERSION=v1.10.0+b81c8f8 OS_GIT_PATCH=0 KUBE_GIT_COMMIT=b81c8f8 KUBE_GIT_MINOR=10+ OS_GIT_COMMIT=653f547 KUBE_GIT_MAJOR=1 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.16-0-g121edf0 ETCD_GIT_COMMIT=121edf0
 }
 
 %if 0%{?skip_build}
@@ -65,7 +65,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.10.0
-Release:        0.32.0%{?dist}
+Release:        0.33.0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -484,6 +484,96 @@ if [ "$1" -eq 0 ] ; then
 fi
 
 %changelog
+* Fri May 04 2018 Justin Pierce <jupierce@redhat.com> 3.10.0-0.33.0
+- allow template instance controller to create arbitrary resource types
+  (bparees@redhat.com)
+- update ownerref integration test for less stringent rules (deads@redhat.com)
+- Egress DNS proxy: prefer IPv4 addr during DNS resolution (rpenta@redhat.com)
+- Fix ruby version skew in imagestream extended tests (adam.kaplan@redhat.com)
+- UPSTREAM: 63403: don't block creation on lack of delete powers
+  (deads@redhat.com)
+- Ensure Continue token is proxied for openshift RBAC list calls
+  (jliggitt@redhat.com)
+- Bug 1572179 - Remove openvswitch check from UnitStatus diagnostic
+  (rpenta@redhat.com)
+- UPSTREAM: google/cadvisor: 1903: fix #1902 bug with retryDockerStatus
+  (sjenning@redhat.com)
+- Ensure environment variables and URLs are not modified for safe logging.
+  (adam.kaplan@redhat.com)
+- Revert "move jenkins_plugin.go from image_eco to builds"
+  (ccoleman@redhat.com)
+- Properly set cgroup parent on optimized builds (ccoleman@redhat.com)
+- React to service catalog changes (ccoleman@redhat.com)
+- OVS test: Validate stdin values to bundle() call (rpenta@redhat.com)
+- Revert https://github.com/openshift/origin/pull/19346 (rpenta@redhat.com)
+- Fix fake ovs transaction to support ovs controller testing
+  (rpenta@redhat.com)
+- Changed ovs.Transaction from pseudo to real atomic transaction
+  (rpenta@redhat.com)
+- Added internal bundle() method to ovsExec interface (rpenta@redhat.com)
+- Remove parts of oc status that depend on oc in node container
+  (ccoleman@redhat.com)
+- Remove the DROP_SYN_DURING_RESTART iptables rules (bbennett@redhat.com)
+- Handle project existence in cluster-loader
+  (hongkailiu@users.noreply.github.com)
+- ext_tests: make mongodb check tolerate any non zero pagecount
+  (jwozniak@redhat.com)
+- Move openshift-node-config into the node image (ccoleman@redhat.com)
+- Add an openshift/origin-tests image with the e2e suite (ccoleman@redhat.com)
+- Mark `oc export` deprecated and simplify what it does (ccoleman@redhat.com)
+- Remove an oc dependency on the RBAC server (ccoleman@redhat.com)
+- UPSTREAM: 63177: kubectl takes a dependency on the controllers
+  (ccoleman@redhat.com)
+- Move group coverage test after dependency orders changed
+  (ccoleman@redhat.com)
+- Remove systemd units that are no longer referenced (ccoleman@redhat.com)
+- Remove commands that require master and node validation (ccoleman@redhat.com)
+- LDAP sync commands should only import LDAP validation (ccoleman@redhat.com)
+- Use the openshift/origin-cli|node images where appropriate
+  (ccoleman@redhat.com)
+- Build a shim binary that converts node-config.yaml to kubelet args
+  (ccoleman@redhat.com)
+- Simplify some node defaulting and remove call to master (ccoleman@redhat.com)
+- Move references to kube-proxy out of interface packages (ccoleman@redhat.com)
+- Move admission config util to point of use package (ccoleman@redhat.com)
+- Move kubeletclient reference out of an api package (ccoleman@redhat.com)
+- Shared utility should not take a dependency on legacyscheme
+  (ccoleman@redhat.com)
+- hack/deps was missing some dependencies in the chain (ccoleman@redhat.com)
+- UPSTREAM: 63169: Remove unnecessary dependencies on api/core/v1
+  (ccoleman@redhat.com)
+- Move a route helper into its own package (ccoleman@redhat.com)
+- Create a hyperkube and hypershift image and RPMs (ccoleman@redhat.com)
+- Create a new origin-cli image and reparent control-plane
+  (ccoleman@redhat.com)
+- Move dependencies out of the base image and into children
+  (ccoleman@redhat.com)
+- Remove origin-sti-build image and use origin-docker-build for both
+  (ccoleman@redhat.com)
+- Remove node and origin images now that ansible is updated
+  (ccoleman@redhat.com)
+- UPSTREAM: 63349: Decorate function not called on Create (ccoleman@redhat.com)
+- UPSTREAM: 63321: kubelet: force filterContainerID to empty string when
+  removeAll is true (sjenning@redhat.com)
+- Allow routes from certain domains (ala defaulted domains) to be replaced with
+  the subdomain/hostname-template that the router environment is running under.
+  And fix typos as per @knobunc review Fixes issue #16797 (smitram@gmail.com)
+- service catalog: updates for upstream v0.1.16 (jaboyd@redhat.com)
+- add declarative pipeline example to readme (gmontero@redhat.com)
+- up: snowflake to deal with registry storage permissions on remote host
+  (mfojtik@redhat.com)
+- up: add remoteHostDir to baseDir for docker-registry mount-path
+  (mfojtik@redhat.com)
+- up: remove extra arguments (mfojtik@redhat.com)
+- Pause the work queue when following, instead of retrying
+  (ccoleman@redhat.com)
+- run SCC in default (deads@redhat.com)
+- router - add "option tcplog" to frontend public_ssl (jtanenba@redhat.com)
+- UPSTREAM: 62827: fix csi data race in csi_attacher_test.go
+  (hekumar@redhat.com)
+- UPSTREAM: 62668: add metrics to cinder volume (haka.jesse@gmail.com)
+- UPSTREAM: 62462: Private mount propagation (jsafrane@redhat.com)
+
 * Tue May 01 2018 Justin Pierce <jupierce@redhat.com> 3.10.0-0.32.0
 - Add PSP review kinds to /oapi group map (mkhan@redhat.com)
 - UPSTREAM: <carry>: Add PSP review to /oapi Resources (mkhan@redhat.com)
