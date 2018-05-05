@@ -281,9 +281,14 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 			Wait:
 				for i := 0; ; i++ {
 					select {
-					case _, ok := <-ch:
-						writes++
+					case obj, ok := <-ch:
 						o.Expect(ok).To(o.BeTrue())
+						if r, ok := obj.Object.(*routev1.Route); ok {
+							if r == nil || r.Name != "9" {
+								continue
+							}
+						}
+						writes++
 					case <-timer.C:
 						break Wait
 					}
