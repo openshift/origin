@@ -23,8 +23,15 @@ func TestVolumeListSet(t *testing.T) {
 		{`C:\test:/bar`, VolumeList{{Source: `C:\test`, Destination: "/bar"}}},
 		{`C:\test:bar`, VolumeList{{Source: `C:\test`, Destination: "bar"}}},
 		{`"/te"st":"/foo"`, VolumeList{}},
-		{"/test/foo:/ss;ss", VolumeList{}},
-		{"/test;foo:/ssss", VolumeList{}},
+		{"/test/foo:/ss;ss", VolumeList{
+			{Source: "/test/foo", Destination: "/ss"},
+			{Source: "ss", Destination: "."},
+		}},
+		{"/test;foo:/ssss", VolumeList{
+			{Source: "/test", Destination: "."},
+			{Source: "foo", Destination: "/ssss"},
+		}},
+		{"/test;foo:b@!dF1nl3m!", VolumeList{}},
 	}
 	for _, test := range table {
 		if len(test.Expected) != 0 {

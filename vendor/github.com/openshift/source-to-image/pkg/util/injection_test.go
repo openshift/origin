@@ -12,12 +12,12 @@ import (
 	"github.com/openshift/source-to-image/pkg/util/fs"
 )
 
-func TestCreateInjectedFilesRemovalScript(t *testing.T) {
+func TestCreateTruncateFilesScript(t *testing.T) {
 	files := []string{
 		"/foo",
 		"/bar/bar",
 	}
-	name, err := CreateInjectedFilesRemovalScript(files, "/tmp/rm-foo")
+	name, err := CreateTruncateFilesScript(files, "/tmp/rm-foo")
 	defer os.Remove(name)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", name)
@@ -38,21 +38,30 @@ func TestCreateInjectedFilesRemovalScript(t *testing.T) {
 	}
 }
 
-func TestExpandInjectedFiles(t *testing.T) {
+func TestListFilesToTruncate(t *testing.T) {
 	tmp, err := ioutil.TempDir("", "s2i-test-")
+	tmpKeep, err := ioutil.TempDir("", "s2i-test-")
 	tmpNested, err := ioutil.TempDir(tmp, "nested")
 	if err != nil {
 		t.Errorf("Unable to create temp directory: %v", err)
 	}
 	defer os.RemoveAll(tmp)
-	list := api.VolumeList{{Source: tmp, Destination: "/foo"}}
+	defer os.RemoveAll(tmpKeep)
+	list := api.VolumeList{
+		{Source: tmp, Destination: "/foo"},
+		{Source: tmpKeep, Destination: "/this", Keep: true},
+	}
 	f1, _ := ioutil.TempFile(tmp, "foo")
 	f2, _ := ioutil.TempFile(tmpNested, "bar")
-	files, err := ExpandInjectedFiles(fs.NewFileSystem(), list)
+	ioutil.TempFile(tmpKeep, "that")
+	files, err := ListFilesToTruncate(fs.NewFileSystem(), list)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
 	expected := []string{"/foo/" + filepath.Base(f1.Name()), "/foo/" + filepath.Base(tmpNested) + "/" + filepath.Base(f2.Name())}
+	if len(expected) != len(files) {
+		t.Errorf("Expected %d files in resulting list, got %+v", len(expected), files)
+	}
 	for _, exp := range expected {
 		found := false
 		for _, f := range files {

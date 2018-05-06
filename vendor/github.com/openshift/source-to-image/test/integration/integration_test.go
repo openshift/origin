@@ -114,6 +114,7 @@ func TestInjectionBuild(t *testing.T) {
 	integration(t).exerciseInjectionBuild(TagCleanBuild, FakeBuilderImage, []string{
 		tempdir + ":/tmp",
 		tempdir + ":",
+		tempdir + ":test;" + tempdir + ":test2",
 	})
 }
 
@@ -402,6 +403,12 @@ func (i *integrationTest) exerciseInjectionBuild(tag, imageName string, injectio
 			t.Errorf("injectionList.Set() failed with error %s\n", err)
 		}
 	}
+	// For test purposes, keep at least one injected source
+	var keptVolume *api.VolumeSpec
+	if len(injectionList) > 0 {
+		injectionList[0].Keep = true
+		keptVolume = &injectionList[0]
+	}
 	config := &api.Config{
 		DockerConfig:      docker.GetDefaultDockerConfig(),
 		BuilderImage:      imageName,
@@ -431,15 +438,35 @@ func (i *integrationTest) exerciseInjectionBuild(tag, imageName string, injectio
 	i.fileExists(containerID, "/sti-fake/relative-secret-delivered")
 
 	// Make sure the injected file does not exists in resulting image
-	files, err := util.ExpandInjectedFiles(fs.NewFileSystem(), injectionList)
+	testFs := fs.NewFileSystem()
+	files, err := util.ListFilesToTruncate(testFs, injectionList)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
 	for _, f := range files {
-		if exitCode := i.runInImage(tag, "test -s "+f); exitCode == 0 {
-			t.Errorf("The file %q must be empty", f)
+		if err = i.testFile(tag, f); err == nil {
+			t.Errorf("The file %q must be empty or not exist", f)
 		}
 	}
+	if keptVolume != nil {
+		keptFiles, err := util.ListFiles(testFs, *keptVolume)
+		if err != nil {
+			t.Errorf("Unexpected error: %v", err)
+		}
+		for _, f := range keptFiles {
+			if err = i.testFile(tag, f); err != nil {
+				t.Errorf("The file %q must exist and not be empty", f)
+			}
+		}
+	}
+}
+
+func (i *integrationTest) testFile(tag, path string) error {
+	exitCode := i.runInImage(tag, "test -s "+path)
+	if exitCode != 0 {
+		return fmt.Errorf("file %s does not exist or is empty in the container %s", path, tag)
+	}
+	return nil
 }
 
 func (i *integrationTest) exerciseIncrementalBuild(tag, imageName string, removePreviousImage bool, expectClean bool, checkOnBuild bool) {
