@@ -167,6 +167,19 @@ func TestIsCriticalPod(t *testing.T) {
 			},
 			expected: true,
 		},
+		{
+			// <carry> for openshift-system namespace resources pending priority/preemption
+			pod: v1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "pod3",
+					Namespace: "openshift-system",
+					Annotations: map[string]string{
+						"scheduler.alpha.kubernetes.io/critical-pod": "",
+					},
+				},
+			},
+			expected: true,
+		},
 	}
 	for i, data := range cases {
 		actual := IsCriticalPod(&data.pod)
