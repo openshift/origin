@@ -1346,6 +1346,7 @@ func TestNewAppRunBuilds(t *testing.T) {
 					ContextDir: "openshift/pipeline",
 					Git:        &buildapi.GitBuildSource{URI: "https://github.com/openshift/nodejs-ex"},
 					Secrets:    []buildapi.SecretBuildSource{},
+					ConfigMaps: []buildapi.ConfigMapBuildSource{},
 				}) {
 					return fmt.Errorf("invalid bc.Spec.Source, got %#v", bc.Spec.Source)
 				}
@@ -1386,6 +1387,7 @@ func TestNewAppRunBuilds(t *testing.T) {
 					ContextDir: "openshift/pipeline",
 					Git:        &buildapi.GitBuildSource{URI: "https://github.com/openshift/nodejs-ex"},
 					Secrets:    []buildapi.SecretBuildSource{},
+					ConfigMaps: []buildapi.ConfigMapBuildSource{},
 				}) {
 					return fmt.Errorf("invalid bc.Spec.Source, got %#v", bc.Spec.Source.Git)
 				}
@@ -1817,11 +1819,12 @@ func TestNewAppBuildConfigEnvVarsAndSecrets(t *testing.T) {
 	okRouteClient := &routefake.Clientset{}
 
 	tests := []struct {
-		name            string
-		config          *cmd.AppConfig
-		expected        []kapi.EnvVar
-		expectedSecrets map[string]string
-		expectedErr     error
+		name               string
+		config             *cmd.AppConfig
+		expected           []kapi.EnvVar
+		expectedSecrets    map[string]string
+		expectedConfigMaps map[string]string
+		expectedErr        error
 	}{
 		{
 			name: "explicit environment variables for buildConfig and deploymentConfig",
@@ -1834,6 +1837,7 @@ func TestNewAppBuildConfigEnvVarsAndSecrets(t *testing.T) {
 					OutputDocker: true,
 					Environment:  []string{"BUILD_ENV_1=env_value_1", "BUILD_ENV_2=env_value_2"},
 					Secrets:      []string{"foo:/var", "bar"},
+					ConfigMaps:   []string{"this:/tmp", "that"},
 				},
 
 				Resolvers: cmd.Resolvers{
@@ -1850,9 +1854,10 @@ func TestNewAppBuildConfigEnvVarsAndSecrets(t *testing.T) {
 				RouteClient:     okRouteClient.Route(),
 				OriginNamespace: "default",
 			},
-			expected:        []kapi.EnvVar{},
-			expectedSecrets: map[string]string{"foo": "/var", "bar": "."},
-			expectedErr:     nil,
+			expected:           []kapi.EnvVar{},
+			expectedSecrets:    map[string]string{"foo": "/var", "bar": "."},
+			expectedConfigMaps: map[string]string{"this": "/tmp", "that": "."},
+			expectedErr:        nil,
 		},
 	}
 
@@ -1866,11 +1871,13 @@ func TestNewAppBuildConfigEnvVarsAndSecrets(t *testing.T) {
 		}
 		got := []kapi.EnvVar{}
 		gotSecrets := []buildapi.SecretBuildSource{}
+		gotConfigMaps := []buildapi.ConfigMapBuildSource{}
 		for _, obj := range res.List.Items {
 			switch tp := obj.(type) {
 			case *buildapi.BuildConfig:
 				got = tp.Spec.Strategy.SourceStrategy.Env
 				gotSecrets = tp.Spec.Source.Secrets
+				gotConfigMaps = tp.Spec.Source.ConfigMaps
 				break
 			}
 		}
@@ -1885,6 +1892,20 @@ func TestNewAppBuildConfigEnvVarsAndSecrets(t *testing.T) {
 			}
 			if !found {
 				t.Errorf("expected secret %q and destination %q, got %#v", secretName, destDir, gotSecrets)
+				continue
+			}
+		}
+
+		for configName, destDir := range test.expectedConfigMaps {
+			found := false
+			for _, got := range gotConfigMaps {
+				if got.ConfigMap.Name == configName && got.DestinationDir == destDir {
+					found = true
+					continue
+				}
+			}
+			if !found {
+				t.Errorf("expected configMap %q and destination %q, got %#v", configName, destDir, gotConfigMaps)
 				continue
 			}
 		}

@@ -97,6 +97,26 @@ func TestBuildConfigWithSecrets(t *testing.T) {
 	}
 }
 
+func TestBuildConfigWithConfigMaps(t *testing.T) {
+	url, err := git.Parse("https://github.com/openshift/origin.git")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	source := &SourceRef{URL: url, ConfigMaps: []buildapi.ConfigMapBuildSource{
+		{ConfigMap: kapi.LocalObjectReference{Name: "foo"}, DestinationDir: "/var"},
+		{ConfigMap: kapi.LocalObjectReference{Name: "bar"}},
+	}}
+	build := &BuildRef{Source: source}
+	config, err := build.BuildConfig()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	configMaps := config.Spec.Source.ConfigMaps
+	if got := len(configMaps); got != 2 {
+		t.Errorf("expected 2 source configMaps in build config, got %d", got)
+	}
+}
+
 func TestBuildConfigBinaryWithImageSource(t *testing.T) {
 	source := &SourceRef{
 		Name: "binarybuild",
