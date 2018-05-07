@@ -59,6 +59,9 @@ var (
 	  # Create a build config from a remote repository and inject the npmrc into a build
 	  %[1]s %[2]s https://github.com/openshift/ruby-hello-world --build-secret npmrc:.npmrc
 
+	  # Create a build config from a remote repository and inject environment data into a build
+	  %[1]s %[2]s https://github.com/openshift/ruby-hello-world --build-config-map env:config
+
 	  # Create a build config that gets its input from a remote repository and another Docker image
 	  %[1]s %[2]s https://github.com/openshift/ruby-hello-world --source-image=openshift/jenkins-1-centos7 --source-image-path=/var/lib/jenkins:tmp`)
 
@@ -111,6 +114,7 @@ func NewCmdNewBuild(name, baseName string, f kcmdutil.Factory, in io.Reader, out
 	cmd.Flags().MarkDeprecated("image", "use --image-stream instead")
 	cmd.Flags().StringSliceVarP(&config.ImageStreams, "image-stream", "i", config.ImageStreams, "Name of an image stream to to use as a builder.")
 	cmd.Flags().StringSliceVar(&config.DockerImages, "docker-image", config.DockerImages, "Name of a Docker image to use as a builder.")
+	cmd.Flags().StringSliceVar(&config.ConfigMaps, "build-config-map", config.ConfigMaps, "ConfigMap and destination to use as an input for the build.")
 	cmd.Flags().StringSliceVar(&config.Secrets, "build-secret", config.Secrets, "Secret and destination to use as an input for the build.")
 	cmd.Flags().StringVar(&config.SourceSecret, "source-secret", "", "The name of an existing secret that should be used for cloning a private git repository.")
 	cmd.Flags().StringVar(&config.PushSecret, "push-secret", "", "The name of an existing secret that should be used for pushing the output image.")

@@ -101,6 +101,7 @@ type SourceRepository struct {
 	remoteURL       *s2igit.URL
 	contextDir      string
 	secrets         []buildapi.SecretBuildSource
+	configMaps      []buildapi.ConfigMapBuildSource
 	info            *SourceRepositoryInfo
 	sourceImage     ComponentReference
 	sourceImageFrom string
@@ -357,7 +358,12 @@ func (r *SourceRepository) ContextDir() string {
 	return r.contextDir
 }
 
-// Secrets returns the secrets
+// ConfigMaps returns the configMap build sources
+func (r *SourceRepository) ConfigMaps() []buildapi.ConfigMapBuildSource {
+	return r.configMaps
+}
+
+// Secrets returns the secret build sources
 func (r *SourceRepository) Secrets() []buildapi.SecretBuildSource {
 	return r.secrets
 }
@@ -387,6 +393,43 @@ func (r *SourceRepository) AddDockerfile(contents string) error {
 	r.info.Dockerfile = dockerfile
 	r.SetStrategy(generate.StrategyDocker)
 	r.forceAddDockerfile = true
+	return nil
+}
+
+// AddBuildConfigMaps adds the defined configMaps into the build. The input format for
+// the secrets is "<secretName>:<destinationDir>". The destinationDir is
+// optional and when not specified the default is the current working directory.
+func (r *SourceRepository) AddBuildConfigMaps(configMaps []string) error {
+	injections := s2iapi.VolumeList{}
+	r.configMaps = []buildapi.ConfigMapBuildSource{}
+	for _, in := range configMaps {
+		if err := injections.Set(in); err != nil {
+			return err
+		}
+	}
+	configMapExists := func(name string) bool {
+		for _, c := range r.configMaps {
+			if c.ConfigMap.Name == name {
+				return true
+			}
+		}
+		return false
+	}
+	for _, in := range injections {
+		if r.GetStrategy() == generate.StrategyDocker && filepath.IsAbs(in.Destination) {
+			return fmt.Errorf("for the docker strategy, the configMap destination directory %q must be a relative path", in.Destination)
+		}
+		if len(validation.ValidateConfigMapName(in.Source, false)) != 0 {
+			return fmt.Errorf("the %q must be a valid configMap name", in.Source)
+		}
+		if configMapExists(in.Source) {
+			return fmt.Errorf("the %q configMap can be used just once", in.Source)
+		}
+		r.configMaps = append(r.configMaps, buildapi.ConfigMapBuildSource{
+			ConfigMap:      kapi.LocalObjectReference{Name: in.Source},
+			DestinationDir: in.Destination,
+		})
+	}
 	return nil
 }
 
@@ -540,6 +583,7 @@ func StrategyAndSourceForRepository(repo *SourceRepository, image *ImageRef) (*B
 	source := &SourceRef{
 		Binary:       repo.binary,
 		Secrets:      repo.secrets,
+		ConfigMaps:   repo.configMaps,
 		RequiresAuth: repo.requiresAuth,
 	}
 

@@ -112,6 +112,7 @@ type SourceRef struct {
 	Name       string
 	ContextDir string
 	Secrets    []buildapi.SecretBuildSource
+	ConfigMaps []buildapi.ConfigMapBuildSource
 
 	SourceImage     *ImageRef
 	ImageSourcePath string
@@ -153,6 +154,7 @@ func (r *SourceRef) BuildSource() (*buildapi.BuildSource, []buildapi.BuildTrigge
 	}
 	source := &buildapi.BuildSource{}
 	source.Secrets = r.Secrets
+	source.ConfigMaps = r.ConfigMaps
 
 	if len(r.DockerfileContents) != 0 {
 		source.Dockerfile = &r.DockerfileContents
