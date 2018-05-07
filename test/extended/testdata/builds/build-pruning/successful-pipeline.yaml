@@ -1,0 +1,13 @@
+kind: "BuildConfig"
+apiVersion: "v1"
+metadata:
+  name: "successful-pipeline"
+spec:
+  successfulBuildsHistoryLimit: 2
+  strategy:
+    jenkinsPipelineStrategy:
+      jenkinsfile: |-
+        node() {
+          sh 'exit 0' 
+        }
+      type: JenkinsPipeline

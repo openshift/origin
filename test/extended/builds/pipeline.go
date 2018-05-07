@@ -21,6 +21,7 @@ import (
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	buildutil "github.com/openshift/origin/pkg/build/util"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/jenkins"
 )
@@ -76,15 +77,19 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 		podTemplateSlavePipelinePath           = exutil.FixturePath("testdata", "jenkins-slave-template.yaml")
 		multiNamespaceClientPluginPipelinePath = exutil.FixturePath("testdata", "multi-namespace-pipeline.yaml")
 		secretPath                             = exutil.FixturePath("testdata", "openshift-secret-to-jenkins-credential.yaml")
+		successfulPipeline                     = exutil.FixturePath("testdata", "builds", "build-pruning", "successful-pipeline.yaml")
+		failedPipeline                         = exutil.FixturePath("testdata", "builds", "build-pruning", "failed-pipeline.yaml")
+		pollingInterval                        = time.Second
+		timeout                                = time.Minute
+		oc                                     = exutil.NewCLI("jenkins-pipeline", exutil.KubeConfigPath())
+		ticker                                 *time.Ticker
+		j                                      *jenkins.JenkinsRef
+		dcLogFollow                            *exec.Cmd
+		dcLogStdOut, dcLogStdErr               *bytes.Buffer
+		pvs                                    = []*v1.PersistentVolume{}
+		nfspod                                 = &v1.Pod{}
 
-		oc                       = exutil.NewCLI("jenkins-pipeline", exutil.KubeConfigPath())
-		ticker                   *time.Ticker
-		j                        *jenkins.JenkinsRef
-		dcLogFollow              *exec.Cmd
-		dcLogStdOut, dcLogStdErr *bytes.Buffer
-		pvs                      = []*v1.PersistentVolume{}
-		nfspod                   = &v1.Pod{}
-		cleanup                  = func(jenkinsTemplatePath string) {
+		cleanup = func(jenkinsTemplatePath string) {
 			if g.CurrentGinkgoTestDescription().Failed {
 				exutil.DumpPodStates(oc)
 				exutil.DumpPodLogsStartingWith("", oc)
@@ -218,7 +223,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 		}
 	)
 
-	// these tests are isolated so that PR testing the the jenkins-client-plugin can execute the extended
+	// these tests are isolated so that PR testing the jenkins-client-plugin can execute the extended
 	// tests with a ginkgo focus that runs only the tests within this ginkgo context
 	g.Context("jenkins-client-plugin tests", func() {
 
@@ -1043,7 +1048,99 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 				err = oc.Run("delete").Args("bc", "sample-pipeline-withenvs").Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 			})
+
+			g.By("should prune pipeline builds based on the buildConfig settings", func() {
+
+				g.By("creating successful test pipeline")
+				err := oc.Run("create").Args("-f", successfulPipeline).Execute()
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				g.By("starting four test builds")
+				for i := 0; i < 4; i++ {
+					br, _ := exutil.StartBuildAndWait(oc, "successful-pipeline")
+					br.AssertSuccess()
+				}
+
+				buildConfig, err := oc.BuildClient().Build().BuildConfigs(oc.Namespace()).Get("successful-pipeline", metav1.GetOptions{})
+				if err != nil {
+					fmt.Fprintf(g.GinkgoWriter, "%v", err)
+				}
+
+				var builds *buildapi.BuildList
+
+				g.By("waiting up to one minute for pruning to complete")
+				err = wait.PollImmediate(pollingInterval, timeout, func() (bool, error) {
+					builds, err = oc.BuildClient().Build().Builds(oc.Namespace()).List(metav1.ListOptions{LabelSelector: buildutil.BuildConfigSelector("successful-pipeline").String()})
+					if err != nil {
+						fmt.Fprintf(g.GinkgoWriter, "%v", err)
+						return false, err
+					}
+					if int32(len(builds.Items)) == *buildConfig.Spec.SuccessfulBuildsHistoryLimit {
+						fmt.Fprintf(g.GinkgoWriter, "%v builds exist, retrying...", len(builds.Items))
+						return true, nil
+					}
+					return false, nil
+				})
+
+				if err != nil {
+					fmt.Fprintf(g.GinkgoWriter, "%v", err)
+				}
+
+				passed := false
+				if int32(len(builds.Items)) == 2 || int32(len(builds.Items)) == 3 {
+					passed = true
+				}
+				o.Expect(passed).To(o.BeTrue(), "there should be 2-3 completed builds left after pruning, but instead there were %v", len(builds.Items))
+
+				g.By("creating failed test pipeline")
+				err = oc.Run("create").Args("-f", failedPipeline).Execute()
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				g.By("starting four test builds")
+				for i := 0; i < 4; i++ {
+					br, _ := exutil.StartBuildAndWait(oc, "failed-pipeline")
+					br.AssertFailure()
+				}
+
+				buildConfig, err = oc.BuildClient().Build().BuildConfigs(oc.Namespace()).Get("failed-pipeline", metav1.GetOptions{})
+				if err != nil {
+					fmt.Fprintf(g.GinkgoWriter, "%v", err)
+				}
+
+				g.By("waiting up to one minute for pruning to complete")
+				err = wait.PollImmediate(pollingInterval, timeout, func() (bool, error) {
+					builds, err = oc.BuildClient().Build().Builds(oc.Namespace()).List(metav1.ListOptions{LabelSelector: buildutil.BuildConfigSelector("successful-pipeline").String()})
+					if err != nil {
+						fmt.Fprintf(g.GinkgoWriter, "%v", err)
+						return false, err
+					}
+					if int32(len(builds.Items)) == *buildConfig.Spec.FailedBuildsHistoryLimit {
+						fmt.Fprintf(g.GinkgoWriter, "%v builds exist, retrying...", len(builds.Items))
+						return true, nil
+					}
+					return false, nil
+				})
+
+				if err != nil {
+					fmt.Fprintf(g.GinkgoWriter, "%v", err)
+				}
+
+				passed = false
+				if int32(len(builds.Items)) == 2 || int32(len(builds.Items)) == 3 {
+					passed = true
+				}
+				o.Expect(passed).To(o.BeTrue(), "there should be 2-3 completed builds left after pruning, but instead there were %v", len(builds.Items))
+
+				g.By("clean up openshift resources for next potential run")
+				err = oc.Run("delete").Args("bc", "successful-pipeline").Execute()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				err = oc.Run("delete").Args("bc", "failed-pipeline").Execute()
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+			})
+
 		})
 
 	})
+
 })

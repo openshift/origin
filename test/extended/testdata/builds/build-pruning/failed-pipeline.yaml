@@ -1,0 +1,13 @@
+kind: "BuildConfig"
+apiVersion: "v1"
+metadata:
+  name: "failed-pipeline"
+spec:
+  failedBuildsHistoryLimit: 2
+  strategy:
+    jenkinsPipelineStrategy:
+      jenkinsfile: |-
+              node() {
+                sh 'exit 1'
+              }
+      type: JenkinsPipeline

@@ -11,8 +11,10 @@
 // test/extended/testdata/builds/build-pruning/default-legacy-build-config.yaml
 // test/extended/testdata/builds/build-pruning/errored-build-config.yaml
 // test/extended/testdata/builds/build-pruning/failed-build-config.yaml
+// test/extended/testdata/builds/build-pruning/failed-pipeline.yaml
 // test/extended/testdata/builds/build-pruning/imagestream.yaml
 // test/extended/testdata/builds/build-pruning/successful-build-config.yaml
+// test/extended/testdata/builds/build-pruning/successful-pipeline.yaml
 // test/extended/testdata/builds/build-quota/.s2i/bin/assemble
 // test/extended/testdata/builds/build-quota/Dockerfile
 // test/extended/testdata/builds/build-secrets/Dockerfile
@@ -682,6 +684,36 @@ func testExtendedTestdataBuildsBuildPruningFailedBuildConfigYaml() (*asset, erro
 	return a, nil
 }
 
+var _testExtendedTestdataBuildsBuildPruningFailedPipelineYaml = []byte(`kind: "BuildConfig"
+apiVersion: "v1"
+metadata:
+  name: "failed-pipeline"
+spec:
+  failedBuildsHistoryLimit: 2
+  strategy:
+    jenkinsPipelineStrategy:
+      jenkinsfile: |-
+              node() {
+                sh 'exit 1'
+              }
+      type: JenkinsPipeline
+`)
+
+func testExtendedTestdataBuildsBuildPruningFailedPipelineYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsBuildPruningFailedPipelineYaml, nil
+}
+
+func testExtendedTestdataBuildsBuildPruningFailedPipelineYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsBuildPruningFailedPipelineYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/build-pruning/failed-pipeline.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataBuildsBuildPruningImagestreamYaml = []byte(`apiVersion: v1
 kind: ImageStream
 metadata:
@@ -737,6 +769,36 @@ func testExtendedTestdataBuildsBuildPruningSuccessfulBuildConfigYaml() (*asset, 
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/builds/build-pruning/successful-build-config.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsBuildPruningSuccessfulPipelineYaml = []byte(`kind: "BuildConfig"
+apiVersion: "v1"
+metadata:
+  name: "successful-pipeline"
+spec:
+  successfulBuildsHistoryLimit: 2
+  strategy:
+    jenkinsPipelineStrategy:
+      jenkinsfile: |-
+        node() {
+          sh 'exit 0' 
+        }
+      type: JenkinsPipeline
+`)
+
+func testExtendedTestdataBuildsBuildPruningSuccessfulPipelineYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsBuildPruningSuccessfulPipelineYaml, nil
+}
+
+func testExtendedTestdataBuildsBuildPruningSuccessfulPipelineYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsBuildPruningSuccessfulPipelineYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/build-pruning/successful-pipeline.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -33131,8 +33193,10 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/builds/build-pruning/default-legacy-build-config.yaml": testExtendedTestdataBuildsBuildPruningDefaultLegacyBuildConfigYaml,
 	"test/extended/testdata/builds/build-pruning/errored-build-config.yaml": testExtendedTestdataBuildsBuildPruningErroredBuildConfigYaml,
 	"test/extended/testdata/builds/build-pruning/failed-build-config.yaml": testExtendedTestdataBuildsBuildPruningFailedBuildConfigYaml,
+	"test/extended/testdata/builds/build-pruning/failed-pipeline.yaml": testExtendedTestdataBuildsBuildPruningFailedPipelineYaml,
 	"test/extended/testdata/builds/build-pruning/imagestream.yaml": testExtendedTestdataBuildsBuildPruningImagestreamYaml,
 	"test/extended/testdata/builds/build-pruning/successful-build-config.yaml": testExtendedTestdataBuildsBuildPruningSuccessfulBuildConfigYaml,
+	"test/extended/testdata/builds/build-pruning/successful-pipeline.yaml": testExtendedTestdataBuildsBuildPruningSuccessfulPipelineYaml,
 	"test/extended/testdata/builds/build-quota/.s2i/bin/assemble": testExtendedTestdataBuildsBuildQuotaS2iBinAssemble,
 	"test/extended/testdata/builds/build-quota/Dockerfile": testExtendedTestdataBuildsBuildQuotaDockerfile,
 	"test/extended/testdata/builds/build-secrets/Dockerfile": testExtendedTestdataBuildsBuildSecretsDockerfile,
@@ -33567,8 +33631,10 @@ var _bintree = &bintree{nil, map[string]*bintree{
 						"default-legacy-build-config.yaml": &bintree{testExtendedTestdataBuildsBuildPruningDefaultLegacyBuildConfigYaml, map[string]*bintree{}},
 						"errored-build-config.yaml": &bintree{testExtendedTestdataBuildsBuildPruningErroredBuildConfigYaml, map[string]*bintree{}},
 						"failed-build-config.yaml": &bintree{testExtendedTestdataBuildsBuildPruningFailedBuildConfigYaml, map[string]*bintree{}},
+						"failed-pipeline.yaml": &bintree{testExtendedTestdataBuildsBuildPruningFailedPipelineYaml, map[string]*bintree{}},
 						"imagestream.yaml": &bintree{testExtendedTestdataBuildsBuildPruningImagestreamYaml, map[string]*bintree{}},
 						"successful-build-config.yaml": &bintree{testExtendedTestdataBuildsBuildPruningSuccessfulBuildConfigYaml, map[string]*bintree{}},
+						"successful-pipeline.yaml": &bintree{testExtendedTestdataBuildsBuildPruningSuccessfulPipelineYaml, map[string]*bintree{}},
 					}},
 					"build-quota": &bintree{nil, map[string]*bintree{
 						".s2i": &bintree{nil, map[string]*bintree{

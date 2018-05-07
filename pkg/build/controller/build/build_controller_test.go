@@ -732,6 +732,11 @@ func TestShouldIgnore(t *testing.T) {
 			build:        pipelineStrategy(mockBuild(buildapi.BuildPhaseRunning, buildapi.BuildOutput{})),
 			expectIgnore: true,
 		},
+		{
+			name:         "completed pipeline build",
+			build:        pipelineStrategy(mockBuild(buildapi.BuildPhaseComplete, buildapi.BuildOutput{})),
+			expectIgnore: true,
+		},
 	}
 
 	for _, test := range tests {
