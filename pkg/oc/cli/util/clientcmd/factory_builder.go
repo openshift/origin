@@ -8,16 +8,10 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/plugins"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	authorizationclientinternal "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	authorizationreaper "github.com/openshift/origin/pkg/authorization/reaper"
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	buildclientinternal "github.com/openshift/origin/pkg/build/generated/internalclientset"
 	oauthclientinternal "github.com/openshift/origin/pkg/oauth/generated/internalclientset"
-	buildcmd "github.com/openshift/origin/pkg/oc/cli/builds"
-	deploymentcmd "github.com/openshift/origin/pkg/oc/cli/deploymentconfigs"
 	securityclientinternal "github.com/openshift/origin/pkg/security/generated/internalclientset"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
 	userclientinternal "github.com/openshift/origin/pkg/user/generated/internalclientset"
@@ -72,20 +66,6 @@ func (f *ring2Factory) Reaper(mapping *meta.RESTMapping) (kubectl.Reaper, error)
 
 	gk := mapping.GroupVersionKind.GroupKind()
 	switch {
-	case appsapi.IsKindOrLegacy("DeploymentConfig", gk):
-		kc, err := f.clientAccessFactory.ClientSet()
-		if err != nil {
-			return nil, err
-		}
-		config, err := f.clientAccessFactory.ClientConfig()
-		if err != nil {
-			return nil, err
-		}
-		scaleClient, err := f.ScaleClient()
-		if err != nil {
-			return nil, err
-		}
-		return deploymentcmd.NewDeploymentConfigReaper(appsclient.NewForConfigOrDie(config), kc, scaleClient), nil
 	case authorizationapi.IsKindOrLegacy("Role", gk):
 		authClient, err := authorizationclientinternal.NewForConfig(clientConfig)
 		if err != nil {
@@ -142,12 +122,6 @@ func (f *ring2Factory) Reaper(mapping *meta.RESTMapping) (kubectl.Reaper, error)
 			authClient,
 			securityClient.Security().SecurityContextConstraints(),
 		), nil
-	case buildapi.IsKindOrLegacy("BuildConfig", gk):
-		config, err := f.clientAccessFactory.ClientConfig()
-		if err != nil {
-			return nil, err
-		}
-		return buildcmd.NewBuildConfigReaper(buildclientinternal.NewForConfigOrDie(config)), nil
 	}
 	return f.kubeBuilderFactory.Reaper(mapping)
 }
