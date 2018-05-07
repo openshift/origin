@@ -628,14 +628,6 @@ func GetDockerClient() (dockerhelper.Interface, error) {
 			glog.Infof("DOCKER_CERT_PATH=%s", dockerCertPath)
 		}
 	}
-	// FIXME: Workaround for docker engine API client on OS X - sets the default to
-	// the wrong DOCKER_HOST string
-	if runtime.GOOS == "darwin" {
-		dockerHost := os.Getenv("DOCKER_HOST")
-		if len(dockerHost) == 0 {
-			os.Setenv("DOCKER_HOST", "unix:///var/run/docker.sock")
-		}
-	}
 	dockerHost := os.Getenv("DOCKER_HOST")
 	if len(dockerHost) == 0 {
 		dockerHost = dockerclient.DefaultDockerHost

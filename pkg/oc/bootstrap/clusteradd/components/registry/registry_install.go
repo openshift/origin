@@ -77,7 +77,8 @@ func (r *RegistryComponentOptions) Install(dockerClient dockerhelper.Interface) 
 	if len(os.Getenv("DOCKER_HOST")) > 0 {
 		baseDir = path.Join(host.RemoteHostOriginDir, r.InstallContext.BaseDir())
 	}
-	registryStorageDir := path.Join(baseDir, "openshift.local.pv", "registry")
+
+	registryStorageDir := path.Join(baseDir, "openshift.local.pv")
 
 	// If docker is on remote host, ensure the permissions for registry
 	if len(os.Getenv("DOCKER_HOST")) > 0 {
@@ -85,6 +86,7 @@ func (r *RegistryComponentOptions) Install(dockerClient dockerhelper.Interface) 
 			return errors.NewError("error ensuring remote host registry directory permissions").WithCause(err)
 		}
 	}
+	registryStorageDir = path.Join(registryStorageDir, "registry")
 
 	masterConfigDir := path.Join(baseDir, kubeapiserver.KubeAPIServerDirName)
 	flags := []string{
