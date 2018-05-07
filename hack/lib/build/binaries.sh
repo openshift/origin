@@ -264,6 +264,8 @@ os::build::internal::build_binaries() {
           "$(dirname ${test})"
       done
     done
+
+    os::build::check_binaries
 }
 readonly -f os::build::build_binaries
 
