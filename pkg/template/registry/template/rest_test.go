@@ -17,18 +17,6 @@ import (
 	_ "k8s.io/kubernetes/pkg/apis/core/install"
 )
 
-func TestNewRESTInvalidType(t *testing.T) {
-	storage := NewREST()
-	_, err := storage.Create(nil, &kapi.Pod{}, rest.ValidateAllObjectFunc, false)
-	if err == nil {
-		t.Errorf("Expected type error.")
-	}
-
-	if _, err := legacyscheme.Registry.RESTMapper().KindFor(template.LegacyResource("processedtemplates").WithVersion("")); err != nil {
-		t.Errorf("no processed templates: %v", err)
-	}
-}
-
 func TestNewRESTDefaultsName(t *testing.T) {
 	storage := NewREST()
 	obj, err := storage.Create(nil, &template.Template{

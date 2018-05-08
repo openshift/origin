@@ -341,7 +341,7 @@ func (f *Factory) PodForResource(resource string, timeout time.Duration) (string
 			return "", err
 		}
 		return pod.Name, nil
-	case appsapi.Resource("deploymentconfigs"), appsapi.LegacyResource("deploymentconfigs"):
+	case appsapi.Resource("deploymentconfigs"):
 		appsClient, err := appsclientinternal.NewForConfig(clientConfig)
 		if err != nil {
 			return "", err

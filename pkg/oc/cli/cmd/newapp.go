@@ -715,7 +715,7 @@ func retryBuildConfig(info *resource.Info, err error) runtime.Object {
 		buildapi.GitLabWebHookBuildTriggerType:    {},
 		buildapi.BitbucketWebHookBuildTriggerType: {},
 	}
-	if buildapi.IsKindOrLegacy("BuildConfig", info.Mapping.GroupVersionKind.GroupKind()) && isInvalidTriggerError(err) {
+	if buildapi.Kind("BuildConfig") == info.Mapping.GroupVersionKind.GroupKind() && isInvalidTriggerError(err) {
 		bc, ok := info.Object.(*buildapi.BuildConfig)
 		if !ok {
 			return nil

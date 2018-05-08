@@ -61,14 +61,15 @@ var resourcesToCheck = map[schema.GroupResource]schema.GroupKind{
 	extensions.Resource("replicasets"): extensions.Kind("ReplicaSet"),
 	apps.Resource("statefulsets"):      apps.Kind("StatefulSet"),
 
-	appsapi.Resource("deploymentconfigs"):                             appsapi.Kind("DeploymentConfig"),
-	appsapi.LegacyResource("deploymentconfigs"):                       appsapi.LegacyKind("DeploymentConfig"),
-	securityapi.Resource("podsecuritypolicysubjectreviews"):           securityapi.Kind("PodSecurityPolicySubjectReview"),
-	securityapi.LegacyResource("podsecuritypolicysubjectreviews"):     securityapi.LegacyKind("PodSecurityPolicySubjectReview"),
-	securityapi.Resource("podsecuritypolicyselfsubjectreviews"):       securityapi.Kind("PodSecurityPolicySelfSubjectReview"),
-	securityapi.LegacyResource("podsecuritypolicyselfsubjectreviews"): securityapi.LegacyKind("PodSecurityPolicySelfSubjectReview"),
-	securityapi.Resource("podsecuritypolicyreviews"):                  securityapi.Kind("PodSecurityPolicyReview"),
-	securityapi.LegacyResource("podsecuritypolicyreviews"):            securityapi.LegacyKind("PodSecurityPolicyReview"),
+	{Group: "", Resource: "deploymentconfigs"}:                   {Group: "", Kind: "DeploymentConfig"},
+	{Group: "", Resource: "podsecuritypolicysubjectreviews"}:     {Group: "", Kind: "PodSecurityPolicySubjectReview"},
+	{Group: "", Resource: "podsecuritypolicyselfsubjectreviews"}: {Group: "", Kind: "PodSecurityPolicySelfSubjectReview"},
+	{Group: "", Resource: "podsecuritypolicyreviews"}:            {Group: "", Kind: "PodSecurityPolicyReview"},
+
+	appsapi.Resource("deploymentconfigs"):                       appsapi.Kind("DeploymentConfig"),
+	securityapi.Resource("podsecuritypolicysubjectreviews"):     securityapi.Kind("PodSecurityPolicySubjectReview"),
+	securityapi.Resource("podsecuritypolicyselfsubjectreviews"): securityapi.Kind("PodSecurityPolicySelfSubjectReview"),
+	securityapi.Resource("podsecuritypolicyreviews"):            securityapi.Kind("PodSecurityPolicyReview"),
 }
 
 // HasPodSpec returns true if the resource is known to have a pod spec.

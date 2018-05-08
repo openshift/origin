@@ -133,7 +133,7 @@ func (o *ReconcileClusterRolesOptions) Complete(cmd *cobra.Command, f *clientcmd
 		if err != nil {
 			return err
 		}
-		if !authorizationapi.IsResourceOrLegacy("clusterroles", resource) {
+		if authorizationapi.Resource("clusterroles") != resource {
 			return fmt.Errorf("%v is not a valid resource type for this command", resource)
 		}
 		if len(name) == 0 {
