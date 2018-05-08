@@ -116,10 +116,9 @@ func (r *UserReaper) Stop(namespace, name string, timeout time.Duration, gracePe
 	// The user does not "own" the identities
 	// If the admin wants to remove the identities, that is a distinct operation
 
-	// Remove the user
-	if err := r.userClient.User().Users().Delete(name, &metav1.DeleteOptions{}); err != nil && !kerrors.IsNotFound(err) {
+	if _, err := r.userClient.User().Users().Get(name, metav1.GetOptions{}); err != nil {
 		return err
 	}
-
-	return nil
+	// Remove the user
+	return r.userClient.User().Users().Delete(name, &metav1.DeleteOptions{})
 }

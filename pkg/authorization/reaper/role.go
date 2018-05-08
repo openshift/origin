@@ -39,9 +39,8 @@ func (r *RoleReaper) Stop(namespace, name string, timeout time.Duration, gracePe
 		}
 	}
 
-	if err := r.roleClient.Roles(namespace).Delete(name, &metav1.DeleteOptions{}); err != nil && !kerrors.IsNotFound(err) {
+	if _, err := r.roleClient.Roles(namespace).Get(name, metav1.GetOptions{}); err != nil {
 		return err
 	}
-
-	return nil
+	return r.roleClient.Roles(namespace).Delete(name, &metav1.DeleteOptions{})
 }

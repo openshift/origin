@@ -31,7 +31,7 @@ var (
 func TestUserReaper(t *testing.T) {
 	tests := []struct {
 		name         string
-		user         string
+		user         *authenticationapi.User
 		authObjects  []runtime.Object
 		oauthObjects []runtime.Object
 		userObjects  []runtime.Object
@@ -40,14 +40,19 @@ func TestUserReaper(t *testing.T) {
 	}{
 		{
 			name: "no objects",
-			user: "bob",
+			user: &authenticationapi.User{
+				ObjectMeta: metav1.ObjectMeta{Name: "bob"},
+			},
+
 			expected: []interface{}{
 				clientgotesting.DeleteActionImpl{ActionImpl: clientgotesting.ActionImpl{Verb: "delete", Resource: usersResource}, Name: "bob"},
 			},
 		},
 		{
 			name: "cluster bindings",
-			user: "bob",
+			user: &authenticationapi.User{
+				ObjectMeta: metav1.ObjectMeta{Name: "bob"},
+			},
 			authObjects: []runtime.Object{
 				&authorizationapi.ClusterRoleBinding{
 					ObjectMeta: metav1.ObjectMeta{Name: "binding-no-subjects"},
@@ -76,7 +81,9 @@ func TestUserReaper(t *testing.T) {
 		},
 		{
 			name: "namespaced bindings",
-			user: "bob",
+			user: &authenticationapi.User{
+				ObjectMeta: metav1.ObjectMeta{Name: "bob"},
+			},
 			authObjects: []runtime.Object{
 				&authorizationapi.RoleBinding{
 					ObjectMeta: metav1.ObjectMeta{Name: "binding-no-subjects", Namespace: "ns1"},
@@ -105,7 +112,9 @@ func TestUserReaper(t *testing.T) {
 		},
 		{
 			name: "sccs",
-			user: "bob",
+			user: &authenticationapi.User{
+				ObjectMeta: metav1.ObjectMeta{Name: "bob"},
+			},
 			sccs: []runtime.Object{
 				&securityapi.SecurityContextConstraints{
 					ObjectMeta: metav1.ObjectMeta{Name: "scc-no-subjects"},
@@ -131,7 +140,9 @@ func TestUserReaper(t *testing.T) {
 		},
 		{
 			name: "identities",
-			user: "bob",
+			user: &authenticationapi.User{
+				ObjectMeta: metav1.ObjectMeta{Name: "bob"},
+			},
 			userObjects: []runtime.Object{
 				&authenticationapi.Identity{
 					ObjectMeta: metav1.ObjectMeta{Name: "identity-no-user"},
@@ -157,7 +168,9 @@ func TestUserReaper(t *testing.T) {
 		},
 		{
 			name: "groups",
-			user: "bob",
+			user: &authenticationapi.User{
+				ObjectMeta: metav1.ObjectMeta{Name: "bob"},
+			},
 			userObjects: []runtime.Object{
 				&authenticationapi.Group{
 					ObjectMeta: metav1.ObjectMeta{Name: "group-no-users"},
@@ -190,7 +203,9 @@ func TestUserReaper(t *testing.T) {
 		},
 		{
 			name: "oauth client authorizations",
-			user: "bob",
+			user: &authenticationapi.User{
+				ObjectMeta: metav1.ObjectMeta{Name: "bob"},
+			},
 			oauthObjects: []runtime.Object{
 				&oauthapi.OAuthClientAuthorization{
 					ObjectMeta: metav1.ObjectMeta{Name: "other-user"},
@@ -218,6 +233,7 @@ func TestUserReaper(t *testing.T) {
 
 	for _, test := range tests {
 		authFake := authfake.NewSimpleClientset(test.authObjects...)
+		test.userObjects = append(test.userObjects, test.user)
 		userFake := userfake.NewSimpleClientset(test.userObjects...)
 		oauthFake := oauthfake.NewSimpleClientset(test.oauthObjects...)
 		securityFake := securityfake.NewSimpleClientset(test.sccs...)
@@ -242,7 +258,7 @@ func TestUserReaper(t *testing.T) {
 		securityFake.Fake.PrependReactor("delete", "*", kreactor)
 
 		reaper := NewUserReaper(userFake, userFake, authFake, authFake, oauthFake, securityFake.Security().SecurityContextConstraints())
-		err := reaper.Stop("", test.user, 0, nil)
+		err := reaper.Stop("", test.user.Name, 0, nil)
 		if err != nil {
 			t.Errorf("%s: unexpected error: %v", test.name, err)
 		}

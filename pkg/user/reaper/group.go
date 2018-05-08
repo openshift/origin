@@ -69,10 +69,9 @@ func (r *GroupReaper) Stop(namespace, name string, timeout time.Duration, graceP
 		}
 	}
 
-	// Remove the group
-	if err := r.groupClient.User().Groups().Delete(name, &metav1.DeleteOptions{}); err != nil && !kerrors.IsNotFound(err) {
+	if _, err := r.groupClient.User().Groups().Get(name, metav1.GetOptions{}); err != nil {
 		return err
 	}
-
-	return nil
+	// Remove the group
+	return r.groupClient.User().Groups().Delete(name, &metav1.DeleteOptions{})
 }
