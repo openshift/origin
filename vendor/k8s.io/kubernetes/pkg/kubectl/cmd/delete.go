@@ -191,13 +191,13 @@ func (o *DeleteOptions) Validate(cmd *cobra.Command) error {
 	if o.DeleteAll && len(o.Selector) > 0 {
 		return fmt.Errorf("cannot set --all and --selector at the same time")
 	}
-	if o.DeleteAll {
+	if o.DeleteAll || len(o.Selector) > 0 {
 		f := cmd.Flags().Lookup("ignore-not-found")
 		// The flag should never be missing
 		if f == nil {
 			return fmt.Errorf("missing --ignore-not-found flag")
 		}
-		// If the user didn't explicitly set the option, default to ignoring NotFound errors when used with --all
+		// If the user didn't explicitly set the option, default to ignoring NotFound errors when used with --all or -l
 		if !f.Changed {
 			o.IgnoreNotFound = true
 		}

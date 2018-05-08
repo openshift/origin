@@ -11,6 +11,81 @@ import (
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 )
 
+func buildServiceAliasConfig(name, namespace, host, path string, termination routeapi.TLSTerminationType, policy routeapi.InsecureEdgeTerminationPolicyType, wildcard bool) ServiceAliasConfig {
+	certs := make(map[string]Certificate)
+	if termination != routeapi.TLSTerminationPassthrough {
+		certs[host] = Certificate{
+			ID:       fmt.Sprintf("id_%s", host),
+			Contents: "abcdefghijklmnopqrstuvwxyz",
+		}
+	}
+
+	return ServiceAliasConfig{
+		Name:         name,
+		Namespace:    namespace,
+		Host:         host,
+		Path:         path,
+		IsWildcard:   wildcard,
+		Certificates: certs,
+
+		TLSTermination:                termination,
+		InsecureEdgeTerminationPolicy: policy,
+	}
+}
+
+func buildTestTemplateState() map[string]ServiceAliasConfig {
+	state := make(map[string]ServiceAliasConfig)
+
+	state["stg:api-route"] = buildServiceAliasConfig("api-route", "stg", "api-stg.127.0.0.1.nip.io", "", routeapi.TLSTerminationEdge, routeapi.InsecureEdgeTerminationPolicyRedirect, false)
+	state["prod:api-route"] = buildServiceAliasConfig("api-route", "prod", "api-prod.127.0.0.1.nip.io", "", routeapi.TLSTerminationEdge, routeapi.InsecureEdgeTerminationPolicyRedirect, false)
+	state["test:api-route"] = buildServiceAliasConfig("api-route", "test", "zzz-production.wildcard.test", "", routeapi.TLSTerminationEdge, routeapi.InsecureEdgeTerminationPolicyRedirect, false)
+	state["dev:api-route"] = buildServiceAliasConfig("api-route", "dev", "3dev.127.0.0.1.nip.io", "", routeapi.TLSTerminationEdge, routeapi.InsecureEdgeTerminationPolicyAllow, false)
+	state["prod:api-path-route"] = buildServiceAliasConfig("api-path-route", "prod", "api-prod.127.0.0.1.nip.io", "/x/y/z", routeapi.TLSTerminationEdge, routeapi.InsecureEdgeTerminationPolicyNone, false)
+
+	state["prod:pt-route"] = buildServiceAliasConfig("pt-route", "prod", "passthrough-prod.127.0.0.1.nip.io", "", routeapi.TLSTerminationPassthrough, routeapi.InsecureEdgeTerminationPolicyNone, false)
+
+	state["prod:wildcard-route"] = buildServiceAliasConfig("wildcard-route", "prod", "api-stg.127.0.0.1.nip.io", "", routeapi.TLSTerminationEdge, routeapi.InsecureEdgeTerminationPolicyNone, true)
+	state["devel2:foo-wildcard-route"] = buildServiceAliasConfig("foo-wildcard-route", "devel2", "devel1.foo.127.0.0.1.nip.io", "", routeapi.TLSTerminationEdge, routeapi.InsecureEdgeTerminationPolicyAllow, true)
+	state["devel2:foo-wildcard-test"] = buildServiceAliasConfig("foo-wildcard-test", "devel2", "something.foo.wildcard.test", "", routeapi.TLSTerminationEdge, routeapi.InsecureEdgeTerminationPolicyAllow, true)
+	state["dev:pt-route"] = buildServiceAliasConfig("pt-route", "dev", "passthrough-dev.127.0.0.1.nip.io", "", routeapi.TLSTerminationPassthrough, routeapi.InsecureEdgeTerminationPolicyNone, false)
+	state["dev:reencrypt-route"] = buildServiceAliasConfig("reencrypt-route", "dev", "reencrypt-dev.127.0.0.1.nip.io", "", routeapi.TLSTerminationReencrypt, routeapi.InsecureEdgeTerminationPolicyRedirect, false)
+
+	state["dev:admin-route"] = buildServiceAliasConfig("admin-route", "dev", "3app-admin.127.0.0.1.nip.io", "", routeapi.TLSTerminationEdge, routeapi.InsecureEdgeTerminationPolicyNone, false)
+
+	state["prod:backend-route"] = buildServiceAliasConfig("backend-route", "prod", "backend-app.127.0.0.1.nip.io", "", routeapi.TLSTerminationEdge, routeapi.InsecureEdgeTerminationPolicyRedirect, false)
+	state["zzz:zed-route"] = buildServiceAliasConfig("zed-route", "zzz", "zed.127.0.0.1.nip.io", "", routeapi.TLSTerminationEdge, routeapi.InsecureEdgeTerminationPolicyAllow, false)
+
+	return state
+}
+
+func checkExpectedOrderPrefixes(lines, expectedOrder []string) error {
+	if len(lines) != len(expectedOrder) {
+		return fmt.Errorf("sorted data length %d did not match expected length %d", len(lines), len(expectedOrder))
+	}
+
+	for idx, prefix := range expectedOrder {
+		if !strings.HasPrefix(lines[idx], prefix) {
+			return fmt.Errorf("sorted data %s at index %d did not match prefix expectation %s", lines[idx], idx, prefix)
+		}
+	}
+
+	return nil
+}
+
+func checkExpectedOrderSuffixes(lines, expectedOrder []string) error {
+	if len(lines) != len(expectedOrder) {
+		return fmt.Errorf("sorted data length %d did not match expected length %d", len(lines), len(expectedOrder))
+	}
+
+	for idx, suffix := range expectedOrder {
+		if !strings.HasSuffix(lines[idx], suffix) {
+			return fmt.Errorf("sorted data %s at index %d did not match suffix expectation %s", lines[idx], idx, suffix)
+		}
+	}
+
+	return nil
+}
+
 func TestFirstMatch(t *testing.T) {
 	testCases := []struct {
 		name    string
@@ -323,93 +398,136 @@ func createTempMapFile(prefix string, data []string) (string, error) {
 	return name, nil
 }
 
-func TestSortMapData(t *testing.T) {
-	testData := []string{
-		`^api-stg\.127\.0\.0\.1\.nip\.io(:[0-9]+)?(/.*)?$ stg:api-route`,
-		`^api-prod\.127\.0\.0\.1\.nip\.io(:[0-9]+)?(/.*)?$ prod:api-route`,
-		`^[^\.]*\.127\.0\.0\.1\.nip\.io(:[0-9]+)?(/.*)?$ prod:wildcard-route`,
-		`^3dev\.127\.0\.0\.1\.nip\.io(:[0-9]+)?(/.*)?$ dev:api-route`,
-		`^api-prod\.127\.0\.0\.1\.nip\.io(:[0-9]+)?/x/y/z(/.*)?$ prod:api-path-route`,
-		`^3app-admin\.127\.0\.0\.1\.nip\.io(:[0-9]+)?(/.*)?$ dev:admin-route`,
-		`^[^\.]*\.foo\.127\.0\.0\.1\.nip\.io(:[0-9]+)?(/.*)?$ devel2:foo-wildcard-route`,
-		`^zzz-production\.wildcard\.test(:[0-9]+)?/x/y/z(/.*)?$ test:api-route`,
-		`^backend-app\.127\.0\.0\.1\.nip\.io(:[0-9]+)?(/.*)?$ prod:backend-route`,
-		`^[^\.]*\.foo\.wildcard\.test(:[0-9]+)?(/.*)?$ devel2:foo-wildcard-test`,
+func TestGenerateHAProxyCertConfigMap(t *testing.T) {
+	td := templateData{
+		WorkingDir:   "/path/to",
+		State:        buildTestTemplateState(),
+		ServiceUnits: make(map[string]ServiceUnit),
 	}
 
 	expectedOrder := []string{
-		"test:api-route",
-		"prod:backend-route",
-		"stg:api-route",
-		"prod:api-path-route",
-		"prod:api-route",
-		"dev:api-route",
-		"dev:admin-route",
-		"devel2:foo-wildcard-test",
-		"devel2:foo-wildcard-route",
-		"prod:wildcard-route",
+		"/path/to/certs/zzz:zed-route.pem",
+		"/path/to/certs/test:api-route.pem",
+		"/path/to/certs/stg:api-route.pem",
+		"/path/to/certs/prod:wildcard-route.pem",
+		"/path/to/certs/prod:backend-route.pem",
+		"/path/to/certs/prod:api-route.pem",
+		"/path/to/certs/prod:api-path-route.pem",
+		"/path/to/certs/devel2:foo-wildcard-test.pem",
+		"/path/to/certs/devel2:foo-wildcard-route.pem",
+		"/path/to/certs/dev:reencrypt-route.pem",
+		"/path/to/certs/dev:api-route.pem",
+		"/path/to/certs/dev:admin-route.pem",
 	}
 
-	fileName, err := createTempMapFile("sort-map-data-test", testData)
-	if err != nil {
-		t.Errorf("TestSortMapData error: %v", err)
-	}
-
-	lines := sortedMapData(fileName, true)
-	if len(lines) != len(expectedOrder) {
-		t.Errorf("TestSortMapData sorted data length %d did not match expected length %d",
-			len(lines), len(expectedOrder))
-	}
-	for idx, suffix := range expectedOrder {
-		if !strings.HasSuffix(lines[idx], suffix) {
-			t.Errorf("TestSortMapData sorted data %s at index %d did not match expectation %s",
-				lines[idx], idx, suffix)
-		}
+	lines := generateHAProxyCertConfigMap(td)
+	if err := checkExpectedOrderPrefixes(lines, expectedOrder); err != nil {
+		t.Errorf("TestGenerateHAProxyCertConfigMap error: %v", err)
 	}
 }
 
-func TestSortMapCertConfigData(t *testing.T) {
-	testData := []string{
-		`/path/to/certs/stg:api-route.pem stg:api-route`,
-		`/path/to/certs/prod:api-route.pem prod:api-route`,
-		`/path/to/certs/prod:wildcard-route.pem prod:wildcard-route`,
-		`/path/to/certs/dev:api-route.pem dev:api-route`,
-		`/path/to/certs/prod:api-path-route prod:api-path-route`,
-		`/path/to/certs/dev:admin-route.pem dev:admin-route`,
-		`/path/to/certs/devel2:foo-wildcard-route.pem devel2:foo-wildcard-route`,
-		`/path/to/certs/test:api-route.pem test:api-route`,
-		`/path/to/certs/prod:backend-route.pem prod:backend-route`,
-		`/path/to/certs/devel2:foo-wildcard-test.pem devel2:foo-wildcard-test`,
+func TestGenerateHAProxyMap(t *testing.T) {
+	td := templateData{
+		WorkingDir:   "/path/to",
+		State:        buildTestTemplateState(),
+		ServiceUnits: make(map[string]ServiceUnit),
 	}
 
-	expectedOrder := []string{
+	wildcardDomainOrder := []string{
+		`^[^\.]*\.foo\.wildcard\.test(:[0-9]+)?(/.*)?$`,
+		`^[^\.]*\.foo\.127\.0\.0\.1\.nip\.io(:[0-9]+)?(/.*)?$`,
+		`^[^\.]*\.127\.0\.0\.1\.nip\.io(:[0-9]+)?(/.*)?$`,
+	}
+
+	lines := generateHAProxyMap("os_wildcard_domain.map", td)
+	if err := checkExpectedOrderPrefixes(lines, wildcardDomainOrder); err != nil {
+		t.Errorf("TestGenerateHAProxyMap os_tcp_be.map error: %v", err)
+	}
+
+	httpBackendOrder := []string{
+		"be_edge_http:zzz:zed-route",
+		"be_edge_http:dev:api-route",
+		"be_edge_http:devel2:foo-wildcard-test",
+		"be_edge_http:devel2:foo-wildcard-route",
+	}
+
+	lines = generateHAProxyMap("os_http_be.map", td)
+	if err := checkExpectedOrderSuffixes(lines, httpBackendOrder); err != nil {
+		t.Errorf("TestGenerateHAProxyMap os_http_be.map error: %v", err)
+	}
+
+	edgeReencryptOrder := []string{
+		"be_edge_http:test:api-route",
+		"be_edge_http:zzz:zed-route",
+		"be_secure:dev:reencrypt-route",
+		"be_edge_http:prod:backend-route",
+		"be_edge_http:stg:api-route",
+		"be_edge_http:prod:api-path-route",
+		"be_edge_http:prod:api-route",
+		"be_edge_http:dev:api-route",
+		"be_edge_http:dev:admin-route",
+		"be_edge_http:devel2:foo-wildcard-test",
+		"be_edge_http:devel2:foo-wildcard-route",
+		"be_edge_http:prod:wildcard-route",
+	}
+
+	lines = generateHAProxyMap("os_edge_reencrypt_be.map", td)
+	if err := checkExpectedOrderSuffixes(lines, edgeReencryptOrder); err != nil {
+		t.Errorf("TestGenerateHAProxyMap os_edge_reencrypt_be.map error: %v", err)
+	}
+
+	httpRedirectOrder := []string{
 		"test:api-route",
-		"stg:api-route",
-		"prod:wildcard-route",
+		"dev:reencrypt-route",
 		"prod:backend-route",
+		"stg:api-route",
 		"prod:api-route",
-		"prod:api-path-route",
-		"devel2:foo-wildcard-test",
-		"devel2:foo-wildcard-route",
-		"dev:api-route",
-		"dev:admin-route",
 	}
 
-	fileName, err := createTempMapFile("sort-map-cert-config-test", testData)
-	if err != nil {
-		t.Errorf("TestSortMapCertConfigData error: %v", err)
+	lines = generateHAProxyMap("os_route_http_redirect.map", td)
+	if err := checkExpectedOrderSuffixes(lines, httpRedirectOrder); err != nil {
+		t.Errorf("TestGenerateHAProxyMap os_route_http_redirect.map error: %v", err)
 	}
 
-	lines := sortedMapData(fileName, false)
-	if len(lines) != len(expectedOrder) {
-		t.Errorf("TestSortMapCertConfigData sorted data length %d did not match expected length %d",
-			len(lines), len(expectedOrder))
+	passthroughOrder := []string{
+		"dev:reencrypt-route",
+		"prod:pt-route",
+		"dev:pt-route",
 	}
-	for idx, suffix := range expectedOrder {
-		if !strings.HasSuffix(lines[idx], suffix) {
-			t.Errorf("TestSortMapCertConfigData sorted data %s at index %d did not match expectation %s",
-				lines[idx], idx, suffix)
-		}
+
+	lines = generateHAProxyMap("os_tcp_be.map", td)
+	if err := checkExpectedOrderSuffixes(lines, passthroughOrder); err != nil {
+		t.Errorf("TestGenerateHAProxyMap os_tcp_be.map error: %v", err)
+	}
+
+	sniPassthroughOrder := []string{
+		`^passthrough-prod\.127\.0\.0\.1\.nip\.io(:[0-9]+)?(/.*)?$`,
+		`^passthrough-dev\.127\.0\.0\.1\.nip\.io(:[0-9]+)?(/.*)?$`,
+	}
+
+	lines = generateHAProxyMap("os_sni_passthrough.map", td)
+	if err := checkExpectedOrderPrefixes(lines, sniPassthroughOrder); err != nil {
+		t.Errorf("TestGenerateHAProxyMap os_sni_passthrough.map error: %v", err)
+	}
+
+	certBackendOrder := []string{
+		"/path/to/certs/zzz:zed-route.pem",
+		"/path/to/certs/test:api-route.pem",
+		"/path/to/certs/stg:api-route.pem",
+		"/path/to/certs/prod:wildcard-route.pem",
+		"/path/to/certs/prod:backend-route.pem",
+		"/path/to/certs/prod:api-route.pem",
+		"/path/to/certs/prod:api-path-route.pem",
+		"/path/to/certs/devel2:foo-wildcard-test.pem",
+		"/path/to/certs/devel2:foo-wildcard-route.pem",
+		"/path/to/certs/dev:reencrypt-route.pem",
+		"/path/to/certs/dev:api-route.pem",
+		"/path/to/certs/dev:admin-route.pem",
+	}
+
+	lines = generateHAProxyMap("cert_config.map", td)
+	if err := checkExpectedOrderPrefixes(lines, certBackendOrder); err != nil {
+		t.Errorf("TestGenerateHAProxyMap cert_config.map error: %v", err)
 	}
 }
 
