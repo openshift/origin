@@ -17,12 +17,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 1694cc790a048b7deceb5ef5bd508cb92f1ea28c
+%global commit ffd30ea6e1de756d2a2c24a0575645a0ee80e911
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=10+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.10.0-0.35.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 KUBE_GIT_VERSION=v1.10.0+b81c8f8 OS_GIT_PATCH=0 KUBE_GIT_COMMIT=b81c8f8 KUBE_GIT_MINOR=10+ OS_GIT_COMMIT=2e245e9 KUBE_GIT_MAJOR=1 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.16-0-g121edf0 ETCD_GIT_COMMIT=121edf0
+%global os_git_vars OS_GIT_MINOR=10+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.10.0-0.36.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 KUBE_GIT_VERSION=v1.10.0+b81c8f8 OS_GIT_PATCH=0 KUBE_GIT_COMMIT=b81c8f8 KUBE_GIT_MINOR=10+ OS_GIT_COMMIT=95c073a KUBE_GIT_MAJOR=1 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.16-0-g121edf0 ETCD_GIT_COMMIT=121edf0
 }
 
 %if 0%{?skip_build}
@@ -65,7 +65,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.10.0
-Release:        0.36.0%{?dist}
+Release:        0.37.0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -484,6 +484,20 @@ if [ "$1" -eq 0 ] ; then
 fi
 
 %changelog
+* Mon May 07 2018 Justin Pierce <jupierce@redhat.com> 3.10.0-0.37.0
+- UPSTREAM: 63490: default the ignorenotfound for delete when selecting objects
+  (deads@redhat.com)
+- UPSTREAM: 63417: Panic when map string bool flag has no value
+  (ccoleman@redhat.com)
+- remove old reapers (deads@redhat.com)
+- Changes as per @smarterclayton review comments - make the haproxy map
+  generation function to be scoped to the template its operating under.
+  (smitram@gmail.com)
+- Fixes as per @mfojtik review comments .. missed fixed up the godoc for the
+  template helper code. (smitram@gmail.com)
+- Changes for review comments. (smitram@gmail.com)
+- Second version of helper code for sorting map files. (smitram@gmail.com)
+
 * Mon May 07 2018 Justin Pierce <jupierce@redhat.com> 3.10.0-0.36.0
 - Prevent accidental binary size regressions (ccoleman@redhat.com)
 - Notice multiple NetNamespace EgressIPs, but only use the first one
