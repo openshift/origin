@@ -80,7 +80,7 @@ func (o *CreateDeploymentConfigOptions) Complete(cmd *cobra.Command, f *clientcm
 
 	o.DryRun = cmdutil.GetFlagBool(cmd, "dry-run")
 	o.DC = &appsapi.DeploymentConfig{
-		ObjectMeta: metav1.ObjectMeta{Name: args[0]},
+		ObjectMeta: metav1.ObjectMeta{Name: args[0], Labels: labels},
 		Spec: appsapi.DeploymentConfigSpec{
 			Selector: labels,
 			Replicas: 1,
