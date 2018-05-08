@@ -301,9 +301,9 @@ os::test::junit::declare_suite_end
 os::test::junit::declare_suite_start "cmd/images${IMAGES_TESTS_POSTFIX:-}/merge-tags-on-apply"
 os::cmd::expect_success 'oc new-project merge-tags'
 os::cmd::expect_success 'oc create -f examples/image-streams/image-streams-centos7.json'
-os::cmd::expect_success_and_text 'oc get is ruby -o jsonpath={.spec.tags[*].name}' '2.0 2.2 2.3 2.4 latest'
+os::cmd::expect_success_and_text 'oc get is ruby -o jsonpath={.spec.tags[*].name}' '2.0 2.2 2.3 2.4 2.5 latest'
 os::cmd::expect_success 'oc apply -f test/testdata/images/modified-ruby-imagestream.json'
-os::cmd::expect_success_and_text 'oc get is ruby -o jsonpath={.spec.tags[*].name}' '2.0 2.2 2.3 2.4 latest newtag'
+os::cmd::expect_success_and_text 'oc get is ruby -o jsonpath={.spec.tags[*].name}' '2.0 2.2 2.3 2.4 2.5 latest newtag'
 os::cmd::expect_success_and_text 'oc get is ruby -o jsonpath={.spec.tags[3].annotations.version}' '2.4 patched'
 os::cmd::expect_success 'oc delete project merge-tags'
 echo "apply new imagestream tags: ok"

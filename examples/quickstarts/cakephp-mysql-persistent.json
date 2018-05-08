@@ -29,7 +29,6 @@
             },
             "stringData": {
                 "cakephp-secret-token": "${CAKEPHP_SECRET_TOKEN}",
-                "cakephp-security-cipher-seed": "${CAKEPHP_SECURITY_CIPHER_SEED}",
                 "cakephp-security-salt": "${CAKEPHP_SECURITY_SALT}",
                 "database-password": "${DATABASE_PASSWORD}",
                 "database-user": "${DATABASE_USER}"
@@ -100,7 +99,7 @@
                     }
                 },
                 "postCommit": {
-                    "script": "./lib/Cake/Console/cake test app AllTests"
+                    "script": "./vendor/bin/phpunit"
                 },
                 "source": {
                     "contextDir": "${CONTEXT_DIR}",
@@ -120,7 +119,7 @@
                         ],
                         "from": {
                             "kind": "ImageStreamTag",
-                            "name": "php:7.0",
+                            "name": "php:${PHP_VERSION}",
                             "namespace": "${NAMESPACE}"
                         }
                     },
@@ -226,15 +225,6 @@
                                         "valueFrom": {
                                             "secretKeyRef": {
                                                 "key": "cakephp-security-salt",
-                                                "name": "${NAME}"
-                                            }
-                                        }
-                                    },
-                                    {
-                                        "name": "CAKEPHP_SECURITY_CIPHER_SEED",
-                                        "valueFrom": {
-                                            "secretKeyRef": {
-                                                "key": "cakephp-security-cipher-seed",
                                                 "name": "${NAME}"
                                             }
                                         }
@@ -476,6 +466,13 @@
             "value": "openshift"
         },
         {
+            "description": "Version of PHP image to be used (5.6, 7.0, 7.1 or latest).",
+            "displayName": "PHP Version",
+            "name": "PHP_VERSION",
+            "required": true,
+            "value": "7.1"
+        },
+        {
             "description": "Maximum amount of memory the CakePHP container can use.",
             "displayName": "Memory Limit",
             "name": "MEMORY_LIMIT",
@@ -570,13 +567,6 @@
             "from": "[a-zA-Z0-9]{40}",
             "generate": "expression",
             "name": "CAKEPHP_SECURITY_SALT"
-        },
-        {
-            "description": "Security cipher seed for session hash.",
-            "displayName": "CakePHP Security Cipher Seed",
-            "from": "[0-9]{30}",
-            "generate": "expression",
-            "name": "CAKEPHP_SECURITY_CIPHER_SEED"
         },
         {
             "description": "How often to check script timestamps for updates, in seconds. 0 will result in OPcache checking for updates on every request.",
