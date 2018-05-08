@@ -186,9 +186,10 @@ func DefaultClientConfig(flags *pflag.FlagSet) clientcmd.ClientConfig {
 
 	if clientcmd.UseOpenShiftKubeConfigValues {
 		flags.StringVar(&loadingRules.ExplicitPath, clientcmd.OpenShiftKubeConfigFlagName, "", "Path to the kubeconfig file to use for CLI requests.")
-	} else {
-		flags.StringVar(&loadingRules.ExplicitPath, "kubeconfig", "", "Path to the kubeconfig file to use for CLI requests.")
+		flags.MarkHidden(clientcmd.OpenShiftKubeConfigFlagName)
+		flags.MarkDeprecated(clientcmd.OpenShiftKubeConfigFlagName, fmt.Sprintf("Use --%s instead.", "kubeconfig"))
 	}
+	flags.StringVar(&loadingRules.ExplicitPath, "kubeconfig", "", "Path to the kubeconfig file to use for CLI requests.")
 
 	overrides := &clientcmd.ConfigOverrides{ClusterDefaults: clientcmd.ClusterDefaults}
 
