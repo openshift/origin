@@ -8636,16 +8636,6 @@ var _testExtendedTestdataJenkinsPluginSharedResourcesTemplateJson = []byte(`{
       }
     },
     {
-      "kind": "ImageStream",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "nodejs-010-centos7"
-      },
-      "spec": {
-        "dockerImageRepository": "${NAMESPACE}/nodejs-010-centos7"
-      }
-    },
-    {
       "kind": "BuildConfig",
       "apiVersion": "v1",
       "metadata": {
@@ -8680,7 +8670,8 @@ var _testExtendedTestdataJenkinsPluginSharedResourcesTemplateJson = []byte(`{
           "sourceStrategy": {
             "from": {
               "kind": "ImageStreamTag",
-              "name": "nodejs-010-centos7:latest"
+              "namespace": "openshift",
+              "name": "nodejs:latest"
             }
           }
         },
