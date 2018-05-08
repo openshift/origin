@@ -77,7 +77,10 @@ var _ = g.Describe("[Feature:Performance][Serial][Slow] Load cluster", func() {
 				e2e.Logf("Our tuning set is: %v", tuning)
 			}
 			for j := 0; j < p.Number; j++ {
+				var allArgs []string
+				allArgs = append(allArgs, "--skip-config-write")
 				nsName := fmt.Sprintf("%s%d", p.Basename, j)
+				allArgs = append(allArgs, nsName)
 
 				projectExists, err := ProjectExists(oc, nsName)
 				o.Expect(err).NotTo(o.HaveOccurred())
@@ -94,7 +97,7 @@ var _ = g.Describe("[Feature:Performance][Serial][Slow] Load cluster", func() {
 						o.Expect(err).NotTo(o.HaveOccurred())
 					}
 					// Create namespaces as defined in Cluster Loader config
-					err = oc.Run("new-project").Args(nsName).Execute()
+					err = oc.Run("new-project").Args(allArgs...).Execute()
 					o.Expect(err).NotTo(o.HaveOccurred())
 					e2e.Logf("%d/%d : Created new namespace: %v", j+1, p.Number, nsName)
 				default:
