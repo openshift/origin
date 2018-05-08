@@ -214,7 +214,7 @@
                                 "image": " ",
                                 "livenessProbe": {
                                     "httpGet": {
-                                        "path": "/pagecount",
+                                        "path": "/",
                                         "port": 8080
                                     },
                                     "initialDelaySeconds": 30,
@@ -228,7 +228,7 @@
                                 ],
                                 "readinessProbe": {
                                     "httpGet": {
-                                        "path": "/pagecount",
+                                        "path": "/",
                                         "port": 8080
                                     },
                                     "initialDelaySeconds": 3,
