@@ -8,7 +8,6 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/clientcmd"
-	kclientcmd "k8s.io/client-go/tools/clientcmd"
 
 	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -149,7 +148,7 @@ func newLoginOptions(server string, username string, password string, insecure b
 func defaultClientConfig(flags *pflag.FlagSet) clientcmd.ClientConfig {
 	loadingRules := &clientcmd.ClientConfigLoadingRules{ExplicitPath: ""}
 
-	flags.StringVar(&loadingRules.ExplicitPath, kclientcmd.OpenShiftKubeConfigFlagName, "", "Path to the config file to use for CLI requests.")
+	flags.StringVar(&loadingRules.ExplicitPath, clientcmd.RecommendedConfigPathFlag, "", "Path to the kubeconfig file to use for CLI requests.")
 
 	overrides := &clientcmd.ConfigOverrides{}
 	overrideFlags := clientcmd.RecommendedConfigOverrideFlags("")

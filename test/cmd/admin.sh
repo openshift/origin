@@ -548,7 +548,7 @@ os::cmd::expect_success_and_text "oc adm top imagestreams" "default/busybox\W+65
 os::cmd::expect_success "oc delete is/busybox -n default"
 
 # log in as an image-pruner and test that oc adm prune images works against the atomic binary
-os::cmd::expect_success "oc adm policy add-cluster-role-to-user system:image-pruner pruner --config='${MASTER_CONFIG_DIR}/admin.kubeconfig'"
+os::cmd::expect_success "oc adm policy add-cluster-role-to-user system:image-pruner pruner --kubeconfig='${MASTER_CONFIG_DIR}/admin.kubeconfig'"
 os::cmd::expect_success "oc login --server=${KUBERNETES_MASTER} --certificate-authority='${MASTER_CONFIG_DIR}/ca.crt' -u pruner -p anything"
 os::cmd::expect_success_and_text "oc adm prune images" "Dry run enabled - no modifications will be made. Add --confirm to remove images"
 

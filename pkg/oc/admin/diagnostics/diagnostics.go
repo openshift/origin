@@ -224,6 +224,7 @@ func (o *DiagnosticsOptions) bindClientFlags(flags *flag.FlagSet) {
 	o.ClientFlags = flag.NewFlagSet("client", flag.ContinueOnError) // hide the extensive set of client flags
 	o.Factory = osclientcmd.New(o.ClientFlags)                      // that would otherwise be added to this command
 	flags.AddFlag(o.ClientFlags.Lookup(kclientcmd.OpenShiftKubeConfigFlagName))
+	flags.AddFlag(o.ClientFlags.Lookup(kclientcmd.RecommendedConfigPathFlag))
 	flags.AddFlag(o.ClientFlags.Lookup("context")) // TODO: find k8s constant
 	flags.StringVar(&o.ClientClusterContext, options.FlagClusterContextName, "", "Client context to use for cluster administrator")
 	flags.BoolVar(&o.PreventModification, options.FlagPreventModificationName, false, "If true, may be set to prevent diagnostics making any changes via the API")
