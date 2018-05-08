@@ -61,3 +61,10 @@ ${CODEGEN_PKG}/generate-groups.sh "deepcopy,client,lister,informer" \
   "operators:v1alpha1 webconsole:v1alpha1" \
   --go-header-file ${SCRIPT_ROOT}/hack/boilerplate.txt \
   ${verify}
+
+${CODEGEN_PKG}/generate-groups.sh "deepcopy" \
+  github.com/openshift/origin/pkg/cmd/openshift-service-serving-cert-signer/generated \
+  github.com/openshift/origin/pkg/cmd/openshift-service-serving-cert-signer/apis \
+  "serviceservingcertsigner:v1alpha1" \
+  --go-header-file ${SCRIPT_ROOT}/hack/boilerplate.txt \
+  ${verify}
