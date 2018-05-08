@@ -34,11 +34,13 @@ make sure that `apiServerArguments` and `controllerArguments` enable the feature
 apiServerArguments:
   feature-gates:
   - PersistentLocalVolumes=true
+  - VolumeScheduling=true
   ...
 
 controllerArguments:
   feature-gates:
   - PersistentLocalVolumes=true
+  - VolumeScheduling=true
   ...
 ```
 
@@ -49,6 +51,7 @@ on all nodes:
 kubeletArguments:
   feature-gates:
   - PersistentLocalVolumes=true
+  - VolumeScheduling=true
   ...
 ```
 
