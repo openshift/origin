@@ -25,7 +25,7 @@ import (
 
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsmanualclient "github.com/openshift/origin/pkg/apps/client/v1"
-	appsv1client "github.com/openshift/origin/pkg/apps/generated/clientset/typed/apps/v1"
+	appstypedclient "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	unidlingapi "github.com/openshift/origin/pkg/unidling/api"
 	utilunidling "github.com/openshift/origin/pkg/unidling/util"
@@ -546,13 +546,13 @@ func (o *IdleOptions) RunIdle(f *clientcmd.Factory) error {
 	if err != nil {
 		return err
 	}
-	appsV1Client, err := appsv1client.NewForConfig(clientConfig)
+	appsInternalClient, err := appstypedclient.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
 
 	externalKubeExtensionClient := kextensionsclient.New(kclient.Core().RESTClient())
-	delegScaleGetter := appsmanualclient.NewDelegatingScaleNamespacer(appsV1Client, externalKubeExtensionClient)
+	delegScaleGetter := appsmanualclient.NewDelegatingScaleNamespacer(appsInternalClient, externalKubeExtensionClient)
 	scaleAnnotater := utilunidling.NewScaleAnnotater(delegScaleGetter, appClient.Apps(), kclient.Core(), func(currentReplicas int32, annotations map[string]string) {
 		annotations[unidlingapi.IdledAtAnnotation] = nowTime.UTC().Format(time.RFC3339)
 		annotations[unidlingapi.PreviousScaleAnnotation] = fmt.Sprintf("%v", currentReplicas)

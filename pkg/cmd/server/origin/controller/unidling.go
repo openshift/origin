@@ -4,7 +4,7 @@ import (
 	"time"
 
 	appsv1client "github.com/openshift/origin/pkg/apps/client/v1"
-	appstypedclient "github.com/openshift/origin/pkg/apps/generated/clientset/typed/apps/v1"
+	appstypedclient "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
 	deployclient "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	unidlingcontroller "github.com/openshift/origin/pkg/unidling/controller"
