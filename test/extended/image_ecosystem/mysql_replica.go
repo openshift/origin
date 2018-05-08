@@ -1,5 +1,6 @@
 package image_ecosystem
 
+/*
 import (
 	"fmt"
 	"time"
@@ -186,8 +187,8 @@ func replicationTestFactory(oc *exutil.CLI, tc testCase) func() {
 			err = oc.Run("scale").Args("dc", "mysql-slave", "--replicas=4").Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 			assertReplicationIsWorking("mysql-master-2", "mysql-slave-1", 4)
-		*/
-	}
+*/
+/*	}
 }
 
 var _ = g.Describe("[image_ecosystem][mysql][Slow] openshift mysql replication", func() {
@@ -218,3 +219,4 @@ var _ = g.Describe("[image_ecosystem][mysql][Slow] openshift mysql replication",
 		}
 	})
 })
+*/

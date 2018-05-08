@@ -1,6 +1,6 @@
 package image_ecosystem
 
-import (
+/*import (
 	"fmt"
 	"time"
 
@@ -135,3 +135,4 @@ func readRecordFromPod(oc *exutil.CLI, podName string) error {
 	// (will become a member of replica set and will finish data sync)
 	return exutil.WaitForQueryOutputContains(oc, mongoPod, 1*time.Minute, false, findCmd, `{ "status" : "passed" }`)
 }
+*/
