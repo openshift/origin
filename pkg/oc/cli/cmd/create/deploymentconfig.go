@@ -73,10 +73,9 @@ func (o *CreateDeploymentConfigOptions) Complete(cmd *cobra.Command, f *clientcm
 		(argsLenAtDash == 0),
 		(argsLenAtDash > 1):
 		return fmt.Errorf("NAME is required: %v", args)
-
 	}
 
-	labels := map[string]string{"deployment-config.name": args[0]}
+	labels := map[string]string{"deployment-config.name": args[0], "app": args[0]}
 
 	o.DryRun = cmdutil.GetFlagBool(cmd, "dry-run")
 	o.DC = &appsapi.DeploymentConfig{
