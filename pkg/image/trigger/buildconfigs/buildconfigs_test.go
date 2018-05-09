@@ -242,6 +242,40 @@ func TestBuildConfigReactor(t *testing.T) {
 				map[string]string{"stream-1:1": "image-lookup-1"},
 			),
 		},
+
+		{
+			// won't fire because it is paused
+			tags: []fakeTagResponse{{Namespace: "other", Name: "stream-1:1", Ref: "image-lookup-1", RV: 2}},
+			obj: testBuildConfig([]buildapi.ImageChangeTrigger{
+				{
+					From:   &kapi.ObjectReference{Name: "stream-1:1", Namespace: "other", Kind: "ImageStreamTag"},
+					Paused: true,
+				},
+			}),
+		},
+
+		{
+			// will fire only for unpaused if multiple triggers are resolved
+			tags: []fakeTagResponse{
+				{Namespace: "other", Name: "stream-1:1", Ref: "image-lookup-1", RV: 2},
+				{Namespace: "other", Name: "stream-2:1", Ref: "image-lookup-2", RV: 2},
+			},
+			obj: testBuildConfig([]buildapi.ImageChangeTrigger{
+				{
+					From:   &kapi.ObjectReference{Name: "stream-1:1", Namespace: "other", Kind: "ImageStreamTag"},
+					Paused: true,
+				},
+				{
+					From: &kapi.ObjectReference{Name: "stream-2:1", Namespace: "other", Kind: "ImageStreamTag"},
+				},
+			}),
+			response: &buildapi.Build{},
+			expected: testBuildRequest(
+				&kapi.ObjectReference{Name: "stream-2:1", Namespace: "other", Kind: "ImageStreamTag"},
+				"image-lookup-2",
+				map[string]string{"stream-2:1": "image-lookup-2"},
+			),
+		},
 	}
 
 	for i, test := range testCases {
