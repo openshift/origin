@@ -39,7 +39,7 @@ func (c *ServiceCatalogComponentOptions) Name() string {
 	return "openshift-service-catalog"
 }
 
-func (c *ServiceCatalogComponentOptions) Install(dockerClient dockerhelper.Interface, logdir string) error {
+func (c *ServiceCatalogComponentOptions) Install(dockerClient dockerhelper.Interface) error {
 	kubeAdminClient, err := kubernetes.NewForConfig(c.InstallContext.ClusterAdminClientConfig())
 	if err != nil {
 		return err
@@ -118,7 +118,7 @@ func (c *ServiceCatalogComponentOptions) Install(dockerClient dockerhelper.Inter
 	err = component.MakeReady(
 		c.InstallContext.ClientImage(),
 		c.InstallContext.BaseDir(),
-		params).Install(dockerClient, logdir)
+		params).Install(dockerClient)
 
 	if err != nil {
 		return err

@@ -6,7 +6,6 @@ reviewers:
   - csrwng
   - soltysh
   - bparees
-  - kargakis
   - knobunc
   - dcbw
   - danwinship
@@ -16,7 +15,6 @@ approvers:
   - liggitt
   - mfojtik
   - csrwng
-  - kargakis
   - knobunc
   - dcbw
   - danwinship

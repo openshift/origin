@@ -2,7 +2,6 @@ reviewers:
   - smarterclayton
   - liggitt
   - mfojtik
-  - kargakis
   - soltysh
   - juanvallejo
   - csrwng
@@ -16,7 +15,6 @@ approvers:
   - smarterclayton
   - liggitt
   - mfojtik
-  - kargakis
   - enj
   - knobunc
   - dcbw

@@ -23,7 +23,7 @@ func (c *WebConsoleOperatorComponentOptions) Name() string {
 	return "openshift-web-console-operator"
 }
 
-func (c *WebConsoleOperatorComponentOptions) Install(dockerClient dockerhelper.Interface, logdir string) error {
+func (c *WebConsoleOperatorComponentOptions) Install(dockerClient dockerhelper.Interface) error {
 	//kubeAdminClient, err := kubernetes.NewForConfig(c.InstallContext.ClusterAdminClientConfig())
 	//if err != nil {
 	//	return errors.NewError("cannot obtain API clients").WithCause(err)
@@ -54,5 +54,5 @@ func (c *WebConsoleOperatorComponentOptions) Install(dockerClient dockerhelper.I
 	return component.MakeReady(
 		c.InstallContext.ClientImage(),
 		c.InstallContext.BaseDir(),
-		params).Install(dockerClient, logdir)
+		params).Install(dockerClient)
 }

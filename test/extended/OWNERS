@@ -4,7 +4,6 @@ reviewers:
   - stevekuznetsov
   - mfojtik
   - gabemontero
-  - kargakis
   - deads2k
   - jim-minter
   - knobunc
@@ -15,7 +14,6 @@ approvers:
   - bparees
   - stevekuznetsov
   - mfojtik
-  - kargakis
   - knobunc
   - dcbw
   - danwinship

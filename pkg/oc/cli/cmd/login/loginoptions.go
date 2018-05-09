@@ -25,7 +25,6 @@ import (
 	"github.com/openshift/origin/pkg/oc/cli/cmd/errors"
 	loginutil "github.com/openshift/origin/pkg/oc/cli/cmd/login/util"
 	cliconfig "github.com/openshift/origin/pkg/oc/cli/config"
-	cmderr "github.com/openshift/origin/pkg/oc/errors"
 	"github.com/openshift/origin/pkg/oc/util/tokencmd"
 	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
@@ -380,7 +379,7 @@ func (o *LoginOptions) SaveConfig() (bool, error) {
 		}
 
 		out := &bytes.Buffer{}
-		cmderr.PrintError(errors.ErrKubeConfigNotWriteable(o.PathOptions.GetDefaultFilename(), o.PathOptions.IsExplicitFile(), err), out)
+		fmt.Fprintf(out, errors.ErrKubeConfigNotWriteable(o.PathOptions.GetDefaultFilename(), o.PathOptions.IsExplicitFile(), err).Error())
 		return false, fmt.Errorf("%v", out)
 	}
 

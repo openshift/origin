@@ -3,6 +3,7 @@ package componentinstall
 import (
 	"io/ioutil"
 	"path"
+	"path/filepath"
 	"time"
 
 	"github.com/golang/glog"
@@ -56,7 +57,7 @@ func (opt *installReadyList) Name() string {
 	return opt.list.Name
 }
 
-func (opt *installReadyList) Install(dockerClient dockerhelper.Interface, logdir string) error {
+func (opt *installReadyList) Install(dockerClient dockerhelper.Interface) error {
 	imageRunHelper := run.NewRunHelper(dockerhelper.NewHelper(dockerClient)).New()
 
 	clusterAdminConfigBytes, err := ioutil.ReadFile(path.Join(opt.baseDir, kubeapiserver.KubeAPIServerDirName, "admin.kubeconfig"))
@@ -83,7 +84,7 @@ func (opt *installReadyList) Install(dockerClient dockerhelper.Interface, logdir
 			HostNetwork().
 			HostPid().
 			Entrypoint("sh").
-			SaveContainerLogs(opt.Name(), logdir).
+			SaveContainerLogs(opt.Name(), filepath.Join(opt.baseDir, "logs")).
 			Command("-c", "chmod 755 /apply.sh && /apply.sh").Run()
 		if err != nil {
 			lastErr = errors.NewError("failed to install %q: %v", opt.Name(), err).WithCause(err)

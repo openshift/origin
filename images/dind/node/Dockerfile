@@ -38,6 +38,9 @@ RUN rm -f /etc/cni/net.d/*
 # network plugins need to be able to work with one enabled.
 RUN systemctl enable iptables.service
 
+# Remove ratelimiting in the journal
+COPY journald.conf /etc/systemd/journald.conf
+
 # Ensure that master-to-kubelet communication will work with iptables
 COPY iptables /etc/sysconfig/
 

@@ -178,7 +178,6 @@ func (c *ClusterUpConfig) StartSelfHosted(out io.Writer) error {
 		c.BaseDir,
 		templateSubstitutionValues,
 		c.GetDockerClient(),
-		c.GetLogDir(),
 	)
 	if err != nil {
 		return err
@@ -221,7 +220,6 @@ func (c *ClusterUpConfig) StartSelfHosted(out io.Writer) error {
 		c.BaseDir,
 		templateSubstitutionValues,
 		c.GetDockerClient(),
-		c.GetLogDir(),
 	)
 	if err != nil {
 		return err
@@ -622,8 +620,7 @@ func newNamespaceBytes(namespace string, labels map[string]string) []byte {
 	return output
 }
 
-func installComponentTemplates(templates []componentInstallTemplate, imageFormat, baseDir string, params map[string]string, dockerClient dockerhelper.Interface,
-	logdir string) error {
+func installComponentTemplates(templates []componentInstallTemplate, imageFormat, baseDir string, params map[string]string, dockerClient dockerhelper.Interface) error {
 	components := []componentinstall.Component{}
 	cliImage := strings.Replace(imageFormat, "${component}", "cli", -1)
 	for _, template := range templates {
@@ -638,5 +635,5 @@ func installComponentTemplates(templates []componentInstallTemplate, imageFormat
 		components = append(components, template.Template.MakeReady(cliImage, baseDir, paramsWithImage))
 	}
 
-	return componentinstall.InstallComponents(components, dockerClient, logdir)
+	return componentinstall.InstallComponents(components, dockerClient)
 }
