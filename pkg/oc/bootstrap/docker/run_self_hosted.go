@@ -150,7 +150,7 @@ func (c *ClusterUpConfig) StartSelfHosted(out io.Writer) error {
 		"OPENSHIFT_CONTROLLER_MANAGER_CONFIG_HOST_PATH": configDirs.openshiftControllerConfigDir,
 		"NODE_CONFIG_HOST_PATH":                         configDirs.nodeConfigDir,
 		"KUBEDNS_CONFIG_HOST_PATH":                      configDirs.kubeDNSConfigDir,
-		"OPENSHIFT_PULL_POLICY":                         c.defaultPullPolicy,
+		"OPENSHIFT_PULL_POLICY":                         c.pullPolicy,
 		"LOGLEVEL":                                      fmt.Sprintf("%d", c.ServerLogLevel),
 	}
 
@@ -183,7 +183,7 @@ func (c *ClusterUpConfig) StartSelfHosted(out io.Writer) error {
 		return err
 	}
 
-	installContext, err := componentinstall.NewComponentInstallContext(c.cliImage(), c.imageFormat(), c.defaultPullPolicy, c.BaseDir, c.ServerLogLevel)
+	installContext, err := componentinstall.NewComponentInstallContext(c.cliImage(), c.imageFormat(), c.pullPolicy, c.BaseDir, c.ServerLogLevel)
 	if err != nil {
 		return err
 	}
@@ -347,7 +347,7 @@ func (c *ClusterUpConfig) BuildConfig() (*configDirs, error) {
 		"/path/to/master/config-dir":              configs.masterConfigDir,
 		"/path/to/openshift-apiserver/config-dir": configs.openshiftAPIServerConfigDir,
 		"ETCD_VOLUME":                             "emptyDir:\n",
-		"OPENSHIFT_PULL_POLICY":                   c.defaultPullPolicy,
+		"OPENSHIFT_PULL_POLICY":                   c.pullPolicy,
 	}
 
 	if len(c.HostDataDir) > 0 {

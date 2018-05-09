@@ -172,7 +172,7 @@ type ClusterUpConfig struct {
 	usingDefaultImages         bool
 	usingDefaultOpenShiftImage bool
 
-	defaultPullPolicy string
+	pullPolicy string
 
 	createdUser bool
 }
@@ -230,11 +230,11 @@ func (c *ClusterUpConfig) Complete(cmd *cobra.Command) error {
 
 	// Set the ImagePullPolicy field in static pods and components based in whether users specified
 	// the --tag flag or not.
-	c.defaultPullPolicy = "Always"
+	c.pullPolicy = "Always"
 	if len(c.ImageTag) > 0 {
-		c.defaultPullPolicy = "IfNotPresent"
+		c.pullPolicy = "IfNotPresent"
 	}
-	glog.V(5).Infof("Using %q as default image pull policy", c.defaultPullPolicy)
+	glog.V(5).Infof("Using %q as default image pull policy", c.pullPolicy)
 
 	// Get the default client config for login
 	var err error
