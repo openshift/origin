@@ -30,7 +30,7 @@ func (c *TemplateServiceBrokerComponentOptions) Name() string {
 	return "openshift-template-service-broker"
 }
 
-func (c *TemplateServiceBrokerComponentOptions) Install(dockerClient dockerhelper.Interface, logdir string) error {
+func (c *TemplateServiceBrokerComponentOptions) Install(dockerClient dockerhelper.Interface) error {
 	kubeAdminClient, err := kubernetes.NewForConfig(c.InstallContext.ClusterAdminClientConfig())
 	if err != nil {
 		return errors.NewError("cannot obtain API clients").WithCause(err)
@@ -71,7 +71,7 @@ func (c *TemplateServiceBrokerComponentOptions) Install(dockerClient dockerhelpe
 	err = component.MakeReady(
 		c.InstallContext.ClientImage(),
 		c.InstallContext.BaseDir(),
-		params).Install(dockerClient, logdir)
+		params).Install(dockerClient)
 
 	if err != nil {
 		return err
@@ -84,7 +84,6 @@ func (c *TemplateServiceBrokerComponentOptions) Install(dockerClient dockerhelpe
 		c.InstallContext.ImageFormat(),
 		c.InstallContext.BaseDir(),
 		masterConfigDir,
-		logdir,
 	)
 	return nil
 }

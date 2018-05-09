@@ -6,7 +6,7 @@ import (
 	"net/url"
 	"path"
 
-	yaml "gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v2"
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/golang/glog"
@@ -36,7 +36,7 @@ func (c *WebConsoleComponentOptions) Name() string {
 	return "openshift-web-console"
 }
 
-func (c *WebConsoleComponentOptions) Install(dockerClient dockerhelper.Interface, logdir string) error {
+func (c *WebConsoleComponentOptions) Install(dockerClient dockerhelper.Interface) error {
 	kubeAdminClient, err := kubernetes.NewForConfig(c.InstallContext.ClusterAdminClientConfig())
 	if err != nil {
 		return errors.NewError("cannot obtain API clients").WithCause(err)
@@ -105,7 +105,7 @@ func (c *WebConsoleComponentOptions) Install(dockerClient dockerhelper.Interface
 	return component.MakeReady(
 		c.InstallContext.ClientImage(),
 		c.InstallContext.BaseDir(),
-		params).Install(dockerClient, logdir)
+		params).Install(dockerClient)
 }
 
 func getMasterPublicHostPort(basedir string) (string, error) {

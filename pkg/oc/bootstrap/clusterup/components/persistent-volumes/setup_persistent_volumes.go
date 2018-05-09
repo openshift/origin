@@ -10,6 +10,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/openshift/origin/pkg/oc/admin/policy"
+	"github.com/openshift/origin/pkg/oc/bootstrap/docker/host"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -98,7 +99,7 @@ func (c *SetupPersistentVolumesOptions) Name() string {
 	return "persistent-volumes"
 }
 
-func (c *SetupPersistentVolumesOptions) Install(dockerClient dockerhelper.Interface, logdir string) error {
+func (c *SetupPersistentVolumesOptions) Install(dockerClient dockerhelper.Interface) error {
 	kclient, err := kubernetes.NewForConfig(c.InstallContext.ClusterAdminClientConfig())
 	if err != nil {
 		return err
@@ -124,6 +125,9 @@ func (c *SetupPersistentVolumesOptions) Install(dockerClient dockerhelper.Interf
 		return fmt.Errorf("error retrieving job to setup persistent volumes (%s/%s): %v", pvTargetNamespace, pvSetupJobName, err)
 	}
 	targetDir := path.Join(c.InstallContext.BaseDir(), "openshift.local.pv")
+	if len(os.Getenv("DOCKER_HOST")) > 0 {
+		targetDir = path.Join(host.RemoteHostOriginDir, targetDir)
+	}
 
 	if _, err := os.Stat(path.Join(targetDir, pvIgnoreMarkerFile)); !os.IsNotExist(err) {
 		glog.Infof("Found %q marker file, skipping persistent volume setup", path.Join(targetDir, pvIgnoreMarkerFile))

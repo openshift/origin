@@ -43,7 +43,7 @@ func (c *RouterComponentOptions) Name() string {
 	return "openshift-router"
 }
 
-func (c *RouterComponentOptions) Install(dockerClient dockerhelper.Interface, logdir string) error {
+func (c *RouterComponentOptions) Install(dockerClient dockerhelper.Interface) error {
 	kubeAdminClient, err := kclientset.NewForConfig(c.InstallContext.ClusterAdminClientConfig())
 	if err != nil {
 		return err
@@ -139,7 +139,7 @@ func (c *RouterComponentOptions) Install(dockerClient dockerhelper.Interface, lo
 		Privileged().
 		DiscardContainer().
 		HostNetwork().
-		SaveContainerLogs(componentName, logdir).
+		SaveContainerLogs(componentName, filepath.Join(c.InstallContext.BaseDir(), "logs")).
 		Bind(masterConfigDir + ":" + masterConfigDir).
 		Entrypoint("oc").
 		Command(flags...).Run()

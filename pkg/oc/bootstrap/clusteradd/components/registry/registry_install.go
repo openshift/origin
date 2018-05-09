@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"path/filepath"
 
 	"github.com/golang/glog"
 
@@ -52,7 +53,7 @@ func (r *RegistryComponentOptions) ensureRemoteRegistryStoragePermissions(dir st
 	return err
 }
 
-func (r *RegistryComponentOptions) Install(dockerClient dockerhelper.Interface, logdir string) error {
+func (r *RegistryComponentOptions) Install(dockerClient dockerhelper.Interface) error {
 	kubeAdminClient, err := kubernetes.NewForConfig(r.InstallContext.ClusterAdminClientConfig())
 	if err != nil {
 		return err
@@ -76,7 +77,8 @@ func (r *RegistryComponentOptions) Install(dockerClient dockerhelper.Interface, 
 	if len(os.Getenv("DOCKER_HOST")) > 0 {
 		baseDir = path.Join(host.RemoteHostOriginDir, r.InstallContext.BaseDir())
 	}
-	registryStorageDir := path.Join(baseDir, "openshift.local.pv", "registry")
+
+	registryStorageDir := path.Join(baseDir, "openshift.local.pv")
 
 	// If docker is on remote host, ensure the permissions for registry
 	if len(os.Getenv("DOCKER_HOST")) > 0 {
@@ -84,6 +86,7 @@ func (r *RegistryComponentOptions) Install(dockerClient dockerhelper.Interface, 
 			return errors.NewError("error ensuring remote host registry directory permissions").WithCause(err)
 		}
 	}
+	registryStorageDir = path.Join(registryStorageDir, "registry")
 
 	masterConfigDir := path.Join(baseDir, kubeapiserver.KubeAPIServerDirName)
 	flags := []string{
@@ -103,7 +106,7 @@ func (r *RegistryComponentOptions) Install(dockerClient dockerhelper.Interface, 
 		DiscardContainer().
 		HostNetwork().
 		HostPid().
-		SaveContainerLogs(r.Name(), logdir).
+		SaveContainerLogs(r.Name(), filepath.Join(r.InstallContext.BaseDir(), "logs")).
 		Bind(masterConfigDir + ":" + masterConfigDir).
 		Entrypoint("oc").
 		Command(flags...).Run()

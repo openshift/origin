@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path"
+	"path/filepath"
 	"time"
 
 	"github.com/golang/glog"
@@ -76,7 +77,7 @@ func (opt installReadyTemplate) Name() string {
 	return opt.template.Name
 }
 
-func (opt installReadyTemplate) Install(dockerClient dockerhelper.Interface, logdir string) error {
+func (opt installReadyTemplate) Install(dockerClient dockerhelper.Interface) error {
 	imageRunHelper := run.NewRunHelper(dockerhelper.NewHelper(dockerClient)).New()
 
 	glog.Infof("Installing %q\n", opt.Name())
@@ -104,7 +105,7 @@ func (opt installReadyTemplate) Install(dockerClient dockerhelper.Interface, log
 			Privileged().
 			DiscardContainer().
 			Copy(contentToCopy).
-			SaveContainerLogs(opt.Name(), logdir).
+			SaveContainerLogs(opt.Name(), filepath.Join(opt.baseDir, "logs")).
 			HostNetwork().
 			HostPid().
 			Entrypoint("sh").

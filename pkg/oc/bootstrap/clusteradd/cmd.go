@@ -126,7 +126,7 @@ func (c *ClusterAddConfig) Run() error {
 		component := availableComponents[componentName](installContext)
 		componentsToInstall = append(componentsToInstall, component)
 	}
-	return componentinstall.InstallComponents(componentsToInstall, c.dockerClient, c.GetLogDir())
+	return componentinstall.InstallComponents(componentsToInstall, c.dockerClient)
 }
 
 type ClusterAddConfig struct {
