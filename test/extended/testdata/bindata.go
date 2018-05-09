@@ -10795,8 +10795,10 @@ items:
         apiVersion: v1
         metadata:
           name: secret
+          labels:
+            foo: bar
       - kind: Deployment
-        apiVersion: apps/v1beta1
+        apiVersion: apps/v1
         metadata:
           name: deployment
         spec:
@@ -10899,24 +10901,12 @@ objects:
           ports:
           - name: port
             port: 1234
-      - apiVersion: route.openshift.io/v1
+      - apiVersion: v1
         kind: Route
         metadata:
           annotations:
             template.openshift.io/expose-route-uri: http://{.spec.host}{.spec.path}
           name: route
-        spec:
-          host: host
-          path: /path
-          to:
-            kind: Service
-            name: service
-      - apiVersion: v1
-        kind: Route
-        metadata:
-          annotations:
-            template.openshift.io/expose-route-uri2: http://{.spec.host}{.spec.path}
-          name: legacyroute
         spec:
           host: host
           path: /path

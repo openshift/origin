@@ -7,6 +7,7 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
+	kapierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
@@ -24,7 +25,8 @@ var _ = g.Describe("[Conformance][templates] templateinstance object kinds test"
 		cli     = exutil.NewCLI("templates", exutil.KubeConfigPath())
 	)
 
-	g.It("should create objects from varying API groups", func() {
+	g.It("should create and delete objects from varying API groups", func() {
+		g.By("creating a template instance")
 		err := cli.Run("create").Args("-f", fixture).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -60,5 +62,41 @@ var _ = g.Describe("[Conformance][templates] templateinstance object kinds test"
 
 		_, err = cli.RouteClient().Route().Routes(cli.Namespace()).Get("newroute", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
+
+		err = cli.TemplateClient().Template().TemplateInstances(cli.Namespace()).Delete("templateinstance", nil)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By("deleting the template instance")
+		err = wait.Poll(time.Second, time.Minute, func() (bool, error) {
+			_, err := cli.TemplateClient().Template().TemplateInstances(cli.Namespace()).Get("templateinstance", metav1.GetOptions{})
+			if kapierrs.IsNotFound(err) {
+				return true, nil
+			}
+			return false, err
+		})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		// check everything was deleted as expected
+		_, err = cli.KubeClient().CoreV1().Secrets(cli.Namespace()).Get("secret", metav1.GetOptions{})
+		if !kapierrs.IsNotFound(err) {
+			o.Expect(err).NotTo(o.HaveOccurred())
+		}
+
+		_, err = cli.KubeClient().AppsV1beta1().Deployments(cli.Namespace()).Get("deployment", metav1.GetOptions{})
+		if !kapierrs.IsNotFound(err) {
+			o.Expect(err).NotTo(o.HaveOccurred())
+		}
+
+		_, err = cli.RouteClient().Route().Routes(cli.Namespace()).Get("route", metav1.GetOptions{})
+		if !kapierrs.IsNotFound(err) {
+			o.Expect(err).NotTo(o.HaveOccurred())
+		}
+
+		_, err = cli.RouteClient().Route().Routes(cli.Namespace()).Get("newroute", metav1.GetOptions{})
+		if !kapierrs.IsNotFound(err) {
+			o.Expect(err).NotTo(o.HaveOccurred())
+		}
+
 	})
+
 })

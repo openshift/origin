@@ -812,7 +812,7 @@ items:
     annotations:
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
-    name: admin
+    name: system:openshift:controller:template-instance-controller:admin
   roleRef:
     apiGroup: rbac.authorization.k8s.io
     kind: ClusterRole
@@ -820,6 +820,36 @@ items:
   subjects:
   - kind: ServiceAccount
     name: template-instance-controller
+    namespace: openshift-infra
+- apiVersion: rbac.authorization.k8s.io/v1beta1
+  kind: ClusterRoleBinding
+  metadata:
+    annotations:
+      rbac.authorization.kubernetes.io/autoupdate: "true"
+    creationTimestamp: null
+    name: system:openshift:controller:template-instance-finalizer-controller
+  roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
+    name: system:openshift:controller:template-instance-finalizer-controller
+  subjects:
+  - kind: ServiceAccount
+    name: template-instance-finalizer-controller
+    namespace: openshift-infra
+- apiVersion: rbac.authorization.k8s.io/v1beta1
+  kind: ClusterRoleBinding
+  metadata:
+    annotations:
+      rbac.authorization.kubernetes.io/autoupdate: "true"
+    creationTimestamp: null
+    name: system:openshift:controller:template-instance-finalizer-controller:admin
+  roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
+    name: admin
+  subjects:
+  - kind: ServiceAccount
+    name: template-instance-finalizer-controller
     namespace: openshift-infra
 - apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
