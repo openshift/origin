@@ -17294,7 +17294,7 @@ var _installOpenshiftWebConsoleOperatorInstallYaml = []byte(`apiVersion: templat
 kind: Template
 parameters:
 - name: IMAGE
-  value: openshift/origin-control-plane:latest
+  value: openshift/origin-hypershift:latest
 - name: OPENSHIFT_PULL_POLICY
   value: Always
 - name: NAMESPACE

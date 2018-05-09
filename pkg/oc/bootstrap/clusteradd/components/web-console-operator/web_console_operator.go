@@ -39,13 +39,15 @@ func (c *WebConsoleOperatorComponentOptions) Install(dockerClient dockerhelper.I
 	imageTemplate.Latest = false
 
 	params := map[string]string{
-		"IMAGE":              c.InstallContext.ClientImage(),
-		"LOGLEVEL":           fmt.Sprintf("%d", c.InstallContext.ComponentLogLevel()),
-		"COMPONENT_IMAGE":    imageTemplate.ExpandOrDie("web-console"),
-		"COMPONENT_LOGLEVEL": fmt.Sprintf("%d", c.InstallContext.ComponentLogLevel()),
-		"NAMESPACE":          namespace,
+		"IMAGE":                 imageTemplate.ExpandOrDie("hypershift"),
+		"LOGLEVEL":              fmt.Sprintf("%d", c.InstallContext.ComponentLogLevel()),
+		"COMPONENT_IMAGE":       imageTemplate.ExpandOrDie("web-console"),
+		"COMPONENT_LOGLEVEL":    fmt.Sprintf("%d", c.InstallContext.ComponentLogLevel()),
+		"NAMESPACE":             namespace,
+		"OPENSHIFT_PULL_POLICY": c.InstallContext.ImagePullPolicy(),
 	}
-	glog.V(2).Infof("instantiating template service broker template with parameters %v", params)
+
+	glog.V(2).Infof("instantiating webconsole-operator template with parameters %v", params)
 
 	component := componentinstall.Template{
 		Name:            "openshift-web-console-operator",
@@ -55,7 +57,7 @@ func (c *WebConsoleOperatorComponentOptions) Install(dockerClient dockerhelper.I
 
 		// wait until the webconsole to an available endpoint
 		WaitCondition: func() (bool, error) {
-			glog.V(2).Infof("polling for webconsole endpoint availability")
+			glog.V(2).Infof("polling for web-console availability ...")
 			deployment, err := kubeAdminClient.AppsV1().Deployments("openshift-web-console").Get("webconsole", metav1.GetOptions{})
 			if apierrors.IsNotFound(err) {
 				return false, nil
