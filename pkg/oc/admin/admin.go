@@ -22,6 +22,7 @@ import (
 	migrateimages "github.com/openshift/origin/pkg/oc/admin/migrate/images"
 	migratehpa "github.com/openshift/origin/pkg/oc/admin/migrate/legacyhpa"
 	migratestorage "github.com/openshift/origin/pkg/oc/admin/migrate/storage"
+	migratetemplateinstances "github.com/openshift/origin/pkg/oc/admin/migrate/templateinstances"
 	"github.com/openshift/origin/pkg/oc/admin/network"
 	"github.com/openshift/origin/pkg/oc/admin/node"
 	"github.com/openshift/origin/pkg/oc/admin/policy"
@@ -97,6 +98,7 @@ func NewCommandAdmin(name, fullName string, in io.Reader, out io.Writer, errout 
 					migratestorage.NewCmdMigrateAPIStorage("storage", fullName+" "+migrate.MigrateRecommendedName+" storage", f, in, out, errout),
 					migrateetcd.NewCmdMigrateTTLs("etcd-ttl", fullName+" "+migrate.MigrateRecommendedName+" etcd-ttl", f, in, out, errout),
 					migratehpa.NewCmdMigrateLegacyHPA("legacy-hpa", fullName+" "+migrate.MigrateRecommendedName+" legacy-hpa", f, in, out, errout),
+					migratetemplateinstances.NewCmdMigrateTemplateInstances("template-instances", fullName+" "+migrate.MigrateRecommendedName+" template-instances", f, in, out, errout),
 				),
 				top.NewCommandTop(top.TopRecommendedName, fullName+" "+top.TopRecommendedName, f, out, errout),
 				image.NewCmdVerifyImageSignature(name, fullName+" "+image.VerifyRecommendedName, f, out, errout),
