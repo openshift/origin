@@ -17,12 +17,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit ffd30ea6e1de756d2a2c24a0575645a0ee80e911
+%global commit 5feea5c5efa468178d5ee8ac49ff2fc9596eea8b
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=10+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.10.0-0.36.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 KUBE_GIT_VERSION=v1.10.0+b81c8f8 OS_GIT_PATCH=0 KUBE_GIT_COMMIT=b81c8f8 KUBE_GIT_MINOR=10+ OS_GIT_COMMIT=95c073a KUBE_GIT_MAJOR=1 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.16-0-g121edf0 ETCD_GIT_COMMIT=121edf0
+%global os_git_vars OS_GIT_MINOR=10+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.10.0-0.37.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 KUBE_GIT_VERSION=v1.10.0+b81c8f8 OS_GIT_PATCH=0 KUBE_GIT_COMMIT=b81c8f8 KUBE_GIT_MINOR=10+ OS_GIT_COMMIT=eb79b86 KUBE_GIT_MAJOR=1 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.16-0-g121edf0 ETCD_GIT_COMMIT=121edf0
 }
 
 %if 0%{?skip_build}
@@ -65,7 +65,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.10.0
-Release:        0.37.0%{?dist}
+Release:        0.38.0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -484,6 +484,28 @@ if [ "$1" -eq 0 ] ; then
 fi
 
 %changelog
+* Wed May 09 2018 Justin Pierce <jupierce@redhat.com> 3.10.0-0.38.0
+- hack: bump the oc binary size limit to 115 because of darwin
+  (mfojtik@redhat.com)
+- up: fix base directory when running pv install against remote docker
+  (mfojtik@redhat.com)
+- up: remove logDir argument (mfojtik@redhat.com)
+- dind: bump up journald ratelimiting to ensure messages get logged
+  (dcbw@redhat.com)
+- Relaxing docker image source extended test (adam.kaplan@redhat.com)
+- Add option to ignore image reference errors (agladkov@redhat.com)
+- move jenkins_plugin back to ext builds test (gmontero@redhat.com)
+- Drop myself from owners files (kargakis@protonmail.ch)
+- move off nodejs v0.10 to v8 in tests (with eye to updating official sample)
+  (gmontero@redhat.com)
+- properly end jenkins log watch given change in namespace creation/deletion
+  (gmontero@redhat.com)
+- Add pmorie to approvers for pkg/oc/bootstrap (pmorie@redhat.com)
+- update docker config secret to include image-registry.openshift-image-
+  registry.svc (deads@redhat.com)
+- Apps: Fix DC recreate strategy to wait only for running pods
+  (tnozicka@gmail.com)
+
 * Mon May 07 2018 Justin Pierce <jupierce@redhat.com> 3.10.0-0.37.0
 - UPSTREAM: 63490: default the ignorenotfound for delete when selecting objects
   (deads@redhat.com)
