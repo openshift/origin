@@ -19,7 +19,6 @@ import (
 
 	// install all APIs
 	_ "github.com/openshift/origin/pkg/api/install"
-	"k8s.io/apimachinery/pkg/util/wait"
 	_ "k8s.io/kubernetes/pkg/apis/core/install"
 )
 
@@ -228,7 +227,7 @@ func executeAllInOneCommandWithConfigs(args []string) (*MasterArgs, *configapi.M
 		},
 	}
 
-	openshiftStartCommand, cfg := NewCommandStartAllInOne("openshift start", os.Stdout, os.Stderr, wait.NeverStop)
+	openshiftStartCommand, cfg := NewCommandStartAllInOne("openshift start", os.Stdout, os.Stderr)
 	root.AddCommand(openshiftStartCommand)
 	root.SetArgs(argsToUse)
 	root.Execute()

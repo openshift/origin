@@ -11,7 +11,6 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
-	"k8s.io/apimachinery/pkg/util/wait"
 	kcmd "k8s.io/kubernetes/pkg/kubectl/cmd"
 	ktemplates "k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -40,7 +39,7 @@ var (
 
 // CommandFor returns the appropriate command for this base name,
 // or the global OpenShift command
-func CommandFor(basename string, stopCh <-chan struct{}) *cobra.Command {
+func CommandFor(basename string) *cobra.Command {
 	var cmd *cobra.Command
 
 	out := os.Stdout
@@ -71,9 +70,9 @@ func CommandFor(basename string, stopCh <-chan struct{}) *cobra.Command {
 	case "openshift-extract-image-content":
 		cmd = builder.NewCommandExtractImageContent(basename)
 	case "origin":
-		cmd = NewCommandOpenShift(basename, wait.NeverStop)
+		cmd = NewCommandOpenShift(basename)
 	default:
-		cmd = NewCommandOpenShift("openshift", stopCh)
+		cmd = NewCommandOpenShift("openshift")
 	}
 
 	if cmd.UsageFunc() == nil {
@@ -85,7 +84,7 @@ func CommandFor(basename string, stopCh <-chan struct{}) *cobra.Command {
 }
 
 // NewCommandOpenShift creates the standard OpenShift command
-func NewCommandOpenShift(name string, stopCh <-chan struct{}) *cobra.Command {
+func NewCommandOpenShift(name string) *cobra.Command {
 	out, errout := os.Stdout, os.Stderr
 
 	root := &cobra.Command{
@@ -95,7 +94,7 @@ func NewCommandOpenShift(name string, stopCh <-chan struct{}) *cobra.Command {
 		Run:   kcmdutil.DefaultSubCommandRun(out),
 	}
 
-	startAllInOne, _ := start.NewCommandStartAllInOne(name, out, errout, stopCh)
+	startAllInOne, _ := start.NewCommandStartAllInOne(name, out, errout)
 	root.AddCommand(startAllInOne)
 	root.AddCommand(newCompletionCommand("completion", name+" completion"))
 	root.AddCommand(cmdversion.NewCmdVersion(name, osversion.Get(), os.Stdout))
