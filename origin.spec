@@ -19,12 +19,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit bdc561ed44c49373d930ce2045d6c671e723d153
+%global commit b47150b4313fa2bbad7f1ed939d546632e8b411b
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=9+ OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.9.27 OS_GIT_TREE_STATE=clean OS_GIT_PATCH=27 KUBE_GIT_VERSION=v1.9.1+a0ce1bc657 OS_GIT_CATALOG_VERSION=v0.1.9.1 KUBE_GIT_COMMIT=a0ce1bc OS_GIT_COMMIT=64dfafa OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.16 ETCD_GIT_COMMIT=121edf0
+%global os_git_vars OS_GIT_MINOR=9+ OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.9.28 OS_GIT_TREE_STATE=clean OS_GIT_PATCH=28 KUBE_GIT_VERSION=v1.9.1+a0ce1bc657 OS_GIT_CATALOG_VERSION=v0.1.9.1 KUBE_GIT_COMMIT=a0ce1bc OS_GIT_COMMIT=535734a OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.16 ETCD_GIT_COMMIT=121edf0
 }
 
 %if 0%{?skip_build}
@@ -66,7 +66,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.9.28
+Version:        3.9.29
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -606,6 +606,13 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Wed May 09 2018 Justin Pierce <jupierce@redhat.com> 3.9.29-1
+- UPSTREAM: 61331: Fix a bug where malformed paths don't get written to the
+  destination dir. (jliggitt@redhat.com)
+- new-app: remove check for volumes in new-app test (mfojtik@redhat.com)
+- node, syscontainer: bind mount /opt/cni/bin from the host
+  (vrutkovs@redhat.com)
+
 * Sun May 06 2018 Justin Pierce <jupierce@redhat.com> 3.9.28-1
 - Ensure Continue token is proxied for openshift RBAC list calls
   (jliggitt@redhat.com)
