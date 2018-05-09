@@ -1231,6 +1231,23 @@
             "referencePolicy": {
               "type": "Local"
             }
+          },
+          {
+            "annotations": {
+              "description": "Build and run Ruby 2.5 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-ruby-container/blob/master/2.5/README.md.",
+              "iconClass": "icon-ruby",
+              "openshift.io/display-name": "Ruby 2.5",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/ruby-ex.git",
+              "supports": "ruby:2.5,ruby",
+              "tags": "builder,ruby",
+              "version": "2.5"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/centos/ruby-25-centos7:latest"
+            },
+            "name": "2.5"
           }
         ]
       }

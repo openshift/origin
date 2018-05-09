@@ -118,7 +118,7 @@
                         ],
                         "from": {
                             "kind": "ImageStreamTag",
-                            "name": "python:3.5",
+                            "name": "python:${PYTHON_VERSION}",
                             "namespace": "${NAMESPACE}"
                         }
                     },
@@ -395,7 +395,7 @@
                             ],
                             "from": {
                                 "kind": "ImageStreamTag",
-                                "name": "postgresql:9.5",
+                                "name": "postgresql:${POSTGRESQL_VERSION}",
                                 "namespace": "${NAMESPACE}"
                             }
                         },
@@ -422,6 +422,20 @@
             "name": "NAMESPACE",
             "required": true,
             "value": "openshift"
+        },
+        {
+            "description": "Version of Python image to be used (3.4, 3.5, 3.6 or latest).",
+            "displayName": "Version of Python Image",
+            "name": "PYTHON_VERSION",
+            "required": true,
+            "value": "3.6"
+        },
+        {
+            "description": "Version of PostgreSQL image to be used (9.4, 9.5, 9.6 or latest).",
+            "displayName": "Version of PostgreSQL Image",
+            "name": "POSTGRESQL_VERSION",
+            "required": true,
+            "value": "9.6"
         },
         {
             "description": "Maximum amount of memory the Django container can use.",
