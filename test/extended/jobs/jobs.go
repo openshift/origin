@@ -29,7 +29,7 @@ var _ = g.Describe("[job][Conformance] openshift can execute jobs", func() {
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("waiting for a pod...")
-				podNames, err := exeutil.WaitForPods(oc.KubeClient().CoreV1().Pods(oc.Namespace()), exeutil.ParseLabelsOrDie(labels), exeutil.CheckPodIsSucceededFn, 1, 3*time.Minute)
+				podNames, err := exeutil.WaitForPods(oc.KubeClient().CoreV1().Pods(oc.Namespace()), exeutil.ParseLabelsOrDie(labels), exeutil.CheckPodIsSucceeded, 1, 3*time.Minute)
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(len(podNames)).Should(o.Equal(1))
 

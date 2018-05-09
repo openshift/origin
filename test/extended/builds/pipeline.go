@@ -882,10 +882,10 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 							case err != nil:
 								errs <- fmt.Errorf("error getting build: %s", err)
 								return
-							case exutil.CheckBuildFailedFn(build):
+							case exutil.CheckBuildFailed(build):
 								errs <- nil
 								return
-							case exutil.CheckBuildSuccessFn(build):
+							case exutil.CheckBuildSuccess(build):
 								br.BuildSuccess = true
 								errs <- nil
 								return
