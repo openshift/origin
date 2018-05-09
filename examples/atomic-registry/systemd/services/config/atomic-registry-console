@@ -1,7 +1,0 @@
-# Uncomment to enable debug messages
-#G_MESSAGES_DEBUG=cockpit-ws,cockpit-wrapper,cockpit-bridge
-REGISTRY_ONLY=true
-OPENSHIFT_OAUTH_CLIENT_ID=cockpit-oauth-client
-
-# Set to false to use your own SSL certificates
-KUBERNETES_INSECURE=true
