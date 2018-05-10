@@ -270,7 +270,7 @@ func (f *ring0Factory) CanBeAutoscaled(kind schema.GroupKind) error {
 }
 
 func (f *ring0Factory) EditorEnvs() []string {
-	return []string{"OC_EDITOR", "EDITOR"}
+	return []string{"OC_EDITOR", "KUBE_EDITOR", "EDITOR"}
 }
 
 func getPorts(spec kapi.PodSpec) []string {
