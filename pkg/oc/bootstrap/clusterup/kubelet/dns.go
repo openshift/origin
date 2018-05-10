@@ -46,7 +46,7 @@ func MakeKubeDNSConfig(existingNodeConfig string, basedir string) (string, error
 	nodeConfig := configObj.(*configapi.NodeConfig)
 	nodeConfig.DNSBindAddress = "0.0.0.0:53"
 	nodeConfig.DNSRecursiveResolvConf = "resolv.conf"
-	configBytes, err := runtime.Encode(configapilatest.Codec, nodeConfig)
+	configBytes, err := configapilatest.WriteYAML(nodeConfig)
 	if err != nil {
 		return "", err
 	}

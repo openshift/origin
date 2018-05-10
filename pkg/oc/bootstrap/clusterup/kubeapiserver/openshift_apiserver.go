@@ -36,7 +36,7 @@ func MakeOpenShiftAPIServerConfig(existingMasterConfig string, routingSuffix, ba
 	// hardcode the route suffix to the old default.  If anyone wants to change it, they can modify their config.
 	masterconfig.RoutingConfig.Subdomain = routingSuffix
 
-	configBytes, err := runtime.Encode(configapilatest.Codec, masterconfig)
+	configBytes, err := configapilatest.WriteYAML(masterconfig)
 	if err != nil {
 		return "", err
 	}
