@@ -6,10 +6,6 @@ source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
 host_platform="$(os::build::host_platform)"
 
-# Set build tags for these binaries
-readonly OS_GOFLAGS_TAGS="include_gcs include_oss containers_image_openpgp"
-readonly OS_GOFLAGS_TAGS_$(os::build::platform_arch)="gssapi"
-
 # by default, build for these platforms
 platforms=(
   linux/amd64

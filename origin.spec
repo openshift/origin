@@ -34,6 +34,16 @@
 %else
 %global do_build 1
 %endif
+%if 0%{?skip_prep}
+%global do_prep 0
+%else
+%global do_prep 1
+%endif
+%if 0%{?skip_dist}
+%global package_dist %{nil}
+%else
+%global package_dist %{dist}
+%endif
 
 %if 0%{?fedora} || 0%{?epel}
 %global need_redistributable_set 0
@@ -55,11 +65,12 @@
 %global product_name Origin
 %endif
 
+%{!?version: %global version 0.0.1}
+%{!?release: %global release 1}
+
 Name:           %{package_name}
-# Version is not kept up to date and is intended to be set by tito custom
-# builders provided in the .tito/lib directory of this project
-Version:        0.0.1
-Release:        0%{?dist}
+Version:        %{version}
+Release:        %{release}%{package_dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -234,13 +245,15 @@ of docker.  Exclude those versions of docker.
 %{name}-docker-excluder unexclude - docker packages can be updated
 
 %prep
+%if 0%{do_prep}
 %setup -q
+%endif
 
 %build
 %if 0%{do_build}
 %if 0%{make_redistributable}
 # Create Binaries for all supported arches
-%{os_git_vars} OS_BUILD_RELEASE_ARCHIVES=n hack/build-cross.sh
+%{os_git_vars} OS_BUILD_RELEASE_ARCHIVES=n make build-cross
 %{os_git_vars} hack/build-go.sh vendor/github.com/onsi/ginkgo/ginkgo
 %{os_git_vars} unset GOPATH; cmd/service-catalog/go/src/github.com/kubernetes-incubator/service-catalog/hack/build-cross.sh
 %{os_git_vars} unset GOPATH; cmd/cluster-capacity/go/src/github.com/kubernetes-incubator/cluster-capacity/hack/build-cross.sh
@@ -261,7 +274,7 @@ of docker.  Exclude those versions of docker.
 %ifarch s390x
   BUILD_PLATFORM="linux/s390x"
 %endif
-OS_ONLY_BUILD_PLATFORMS="${BUILD_PLATFORM}" %{os_git_vars} OS_BUILD_RELEASE_ARCHIVES=n hack/build-cross.sh
+OS_ONLY_BUILD_PLATFORMS="${BUILD_PLATFORM}" %{os_git_vars} OS_BUILD_RELEASE_ARCHIVES=n make build-cross
 OS_ONLY_BUILD_PLATFORMS="${BUILD_PLATFORM}" %{os_git_vars} hack/build-go.sh vendor/github.com/onsi/ginkgo/ginkgo
 OS_ONLY_BUILD_PLATFORMS="${BUILD_PLATFORM}" %{os_git_vars} unset GOPATH; cmd/service-catalog/go/src/github.com/kubernetes-incubator/service-catalog/hack/build-cross.sh
 OS_ONLY_BUILD_PLATFORMS="${BUILD_PLATFORM}" %{os_git_vars} unset GOPATH; cmd/cluster-capacity/go/src/github.com/kubernetes-incubator/cluster-capacity/hack/build-cross.sh

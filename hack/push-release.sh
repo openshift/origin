@@ -39,28 +39,7 @@ if [[ -z "${source_tag}" ]]; then
   fi
 fi
 
-images=(
-  origin
-  origin-base
-  origin-pod
-  origin-deployer
-  origin-docker-builder
-  origin-docker-registry
-  origin-keepalived-ipfailover
-  origin-sti-builder
-  origin-haproxy-router
-  origin-f5-router
-  origin-egress-router
-  origin-egress-http-proxy
-  origin-recycler
-  origin-gitserver
-  origin-cluster-capacity
-  origin-service-catalog
-  origin-template-service-broker
-  hello-openshift
-  openvswitch
-  node
-)
+images=( "${OS_ALL_IMAGES[@]}" )
 
 OS_PUSH_BASE_REPO="${OS_PUSH_BASE_REPO:-openshift/}"
 
