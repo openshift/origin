@@ -256,14 +256,14 @@ func (f *ring0Factory) Generators(cmdName string) map[string]kubectl.Generator {
 }
 
 func (f *ring0Factory) CanBeExposed(kind schema.GroupKind) error {
-	if appsapi.IsKindOrLegacy("DeploymentConfig", kind) {
+	if appsapi.Kind("DeploymentConfig") == kind {
 		return nil
 	}
 	return f.kubeClientAccessFactory.CanBeExposed(kind)
 }
 
 func (f *ring0Factory) CanBeAutoscaled(kind schema.GroupKind) error {
-	if appsapi.IsKindOrLegacy("DeploymentConfig", kind) {
+	if appsapi.Kind("DeploymentConfig") == kind {
 		return nil
 	}
 	return f.kubeClientAccessFactory.CanBeAutoscaled(kind)

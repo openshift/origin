@@ -64,20 +64,20 @@ func (f *ring2Factory) Reaper(mapping *meta.RESTMapping) (kubectl.Reaper, error)
 	}
 
 	gk := mapping.GroupVersionKind.GroupKind()
-	switch {
-	case authorizationapi.IsKindOrLegacy("Role", gk):
+	switch gk {
+	case authorizationapi.Kind("Role"):
 		kubeClient, err := f.clientAccessFactory.KubernetesClientSet()
 		if err != nil {
 			return nil, err
 		}
 		return authprune.NewRoleReaper(kubeClient.RbacV1(), kubeClient.RbacV1()), nil
-	case authorizationapi.IsKindOrLegacy("ClusterRole", gk):
+	case authorizationapi.Kind("ClusterRole"):
 		kubeClient, err := f.clientAccessFactory.KubernetesClientSet()
 		if err != nil {
 			return nil, err
 		}
 		return authprune.NewClusterRoleReaper(kubeClient.RbacV1(), kubeClient.RbacV1(), kubeClient.RbacV1()), nil
-	case userapi.IsKindOrLegacy("User", gk):
+	case userapi.Kind("User"):
 		userClient, err := userclientinternal.NewForConfig(clientConfig)
 		if err != nil {
 			return nil, err
@@ -100,7 +100,7 @@ func (f *ring2Factory) Reaper(mapping *meta.RESTMapping) (kubectl.Reaper, error)
 			oauthClient,
 			securityClient.Security().SecurityContextConstraints(),
 		), nil
-	case userapi.IsKindOrLegacy("Group", gk):
+	case userapi.Kind("Group"):
 		userClient, err := userclientinternal.NewForConfig(clientConfig)
 		if err != nil {
 			return nil, err

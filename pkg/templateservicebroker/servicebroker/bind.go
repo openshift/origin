@@ -191,7 +191,7 @@ func (b *Broker) Bind(u user.Info, instanceID, bindingID string, breq *api.BindR
 			kapi.Kind("Secret"),
 			kapi.Kind("Service"),
 			routeapi.Kind("Route"),
-			routeapi.LegacyKind("Route"):
+			schema.GroupKind{Group: "", Kind: "Route"}:
 		default:
 			continue
 		}

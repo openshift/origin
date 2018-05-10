@@ -202,8 +202,8 @@ func TestPodNodeConstraintsResources(t *testing.T) {
 		},
 		{
 			resource:      podTemplate,
-			kind:          appsapi.LegacyKind("PodTemplate"),
-			groupresource: appsapi.LegacyResource("podtemplates"),
+			kind:          kapi.Kind("PodTemplate"),
+			groupresource: kapi.Resource("podtemplates"),
 			prefix:        "PodTemplate",
 		},
 		{

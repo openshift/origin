@@ -151,7 +151,7 @@ func (f *ring1Factory) LogsForObject(object, options runtime.Object, timeout tim
 }
 
 func (f *ring1Factory) HistoryViewer(mapping *meta.RESTMapping) (kubectl.HistoryViewer, error) {
-	if appsapi.IsKindOrLegacy("DeploymentConfig", mapping.GroupVersionKind.GroupKind()) {
+	if appsapi.Kind("DeploymentConfig") == mapping.GroupVersionKind.GroupKind() {
 		kc, err := f.clientAccessFactory.ClientSet()
 		if err != nil {
 			return nil, err
@@ -162,7 +162,7 @@ func (f *ring1Factory) HistoryViewer(mapping *meta.RESTMapping) (kubectl.History
 }
 
 func (f *ring1Factory) Rollbacker(mapping *meta.RESTMapping) (kubectl.Rollbacker, error) {
-	if appsapi.IsKindOrLegacy("DeploymentConfig", mapping.GroupVersionKind.GroupKind()) {
+	if appsapi.Kind("DeploymentConfig") == mapping.GroupVersionKind.GroupKind() {
 		config, err := f.clientAccessFactory.ClientConfig()
 		if err != nil {
 			return nil, err
@@ -177,7 +177,7 @@ func (f *ring1Factory) StatusViewer(mapping *meta.RESTMapping) (kubectl.StatusVi
 	if err != nil {
 		return nil, err
 	}
-	if appsapi.IsKindOrLegacy("DeploymentConfig", mapping.GroupVersionKind.GroupKind()) {
+	if appsapi.Kind("DeploymentConfig") == mapping.GroupVersionKind.GroupKind() {
 		return deploymentcmd.NewDeploymentConfigStatusViewer(appsclient.NewForConfigOrDie(config)), nil
 	}
 	return f.kubeObjectMappingFactory.StatusViewer(mapping)

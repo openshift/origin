@@ -110,7 +110,7 @@ func (w *WebHookHandler) ProcessWebHook(writer http.ResponseWriter, req *http.Re
 
 	plugin, ok := w.plugins[hookType]
 	if !ok {
-		return errors.NewNotFound(buildapi.LegacyResource("buildconfighook"), hookType)
+		return errors.NewNotFound(buildapi.Resource("buildconfighook"), hookType)
 	}
 
 	config, err := w.buildConfigClient.BuildConfigs(apirequest.NamespaceValue(ctx)).Get(name, metav1.GetOptions{})

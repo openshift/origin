@@ -486,7 +486,7 @@ func (a *acceptNonExistentImageStream) Accept(from interface{}) bool {
 		return false
 	}
 	gk := gvk[0].GroupKind()
-	if !imageapi.IsKindOrLegacy("ImageStream", gk) {
+	if !(imageapi.Kind("ImageStream") == gk || imageapi.LegacyKind("ImageStream") == gk) {
 		return true
 	}
 	is, ok := from.(*imageapi.ImageStream)
@@ -531,7 +531,7 @@ func (a *acceptNonExistentImageStreamTag) Accept(from interface{}) bool {
 		return false
 	}
 	gk := gvk[0].GroupKind()
-	if !imageapi.IsKindOrLegacy("ImageStreamTag", gk) {
+	if !(imageapi.Kind("ImageStreamTag") == gk || imageapi.LegacyKind("ImageStreamTag") == gk) {
 		return true
 	}
 	ist, ok := from.(*imageapi.ImageStreamTag)
@@ -585,7 +585,7 @@ func (a *acceptBuildConfigs) Accept(from interface{}) bool {
 		return false
 	}
 	gk := gvk[0].GroupKind()
-	return buildapi.IsKindOrLegacy("BuildConfig", gk) || imageapi.IsKindOrLegacy("ImageStream", gk)
+	return buildapi.Kind("BuildConfig") == gk || imageapi.Kind("ImageStream") == gk
 }
 
 // NewAcceptBuildConfigs creates an acceptor accepting BuildConfig objects

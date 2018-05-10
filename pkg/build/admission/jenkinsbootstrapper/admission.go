@@ -63,7 +63,12 @@ func (a *jenkinsBootstrapper) Admit(attributes admission.Attributes) error {
 		return nil
 	}
 	gr := attributes.GetResource().GroupResource()
-	if !buildapi.IsResourceOrLegacy("buildconfigs", gr) && !buildapi.IsResourceOrLegacy("builds", gr) {
+	switch gr {
+	case buildapi.Resource("buildconfigs"),
+		buildapi.Resource("builds"),
+		buildapi.LegacyResource("buildconfigs"),
+		buildapi.LegacyResource("builds"):
+	default:
 		return nil
 	}
 	if !needsJenkinsTemplate(attributes.GetObject()) {
