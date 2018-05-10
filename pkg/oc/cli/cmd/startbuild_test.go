@@ -17,8 +17,11 @@ import (
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	cmdtesting "k8s.io/kubernetes/pkg/kubectl/cmd/testing"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	buildfake "github.com/openshift/origin/pkg/build/generated/internalclientset/fake"
+	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
 type FakeClientConfig struct {
@@ -78,7 +81,53 @@ func TestStartBuildWebHook(t *testing.T) {
 		t.Fatalf("unexpected non-error: %v", err)
 	}
 }
+func TestStartBuildOutPut(t *testing.T) {
+	stdin := bytes.NewReader([]byte{})
+	stdout := &bytes.Buffer{}
+	osClient := &buildfake.Clientset{}
+	buildclient := osClient.Build()
+	o := &StartBuildOptions{
+		In:          stdin,
+		Out:         stdout,
+		BuildClient: buildclient,
+		ShortOutput: true,
+		Name:        "ruby-sample-build",
+	}
+	if err := o.Run(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if out := stdout.String(); !strings.Contains(out, "build/") {
+		t.Errorf("Unexpected output warning: %q", out)
+	}
 
+}
+func TestStartBuildNegativeOutPut(t *testing.T) {
+	stdin := bytes.NewReader([]byte{})
+	buf := &bytes.Buffer{}
+	errBuf := &bytes.Buffer{}
+	o := &StartBuildOptions{
+		ShortOutput: true,
+		FromBuild:   "ruby-sample-build",
+	}
+	expectedErr := "Unsupported output format: invalid"
+	kf := cmdtesting.NewTestFactory()
+	of := &clientcmd.Factory{
+		ClientAccessFactory:  kf,
+		ObjectMappingFactory: kf,
+		BuilderFactory:       kf,
+	}
+	originCmd := NewCmdStartBuild("oc", of, stdin, buf, errBuf)
+	originCmd.Flags().Set("output", "invalid")
+	err := o.Complete(of, originCmd, "oc", []string{})
+	if err == nil {
+		t.Errorf("Did not get %v", expectedErr)
+	} else {
+		if !strings.Contains(err.Error(), expectedErr) {
+			t.Errorf("Expected error %v, but got %v", expectedErr, err.Error())
+		}
+	}
+
+}
 func TestStartBuildHookPostReceive(t *testing.T) {
 	invoked := make(chan *buildapi.GenericWebHookEvent, 1)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
