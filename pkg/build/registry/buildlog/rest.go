@@ -38,7 +38,7 @@ type REST struct {
 	getSimpleLogsFn func(podNamespace, podName string, logOpts *kapi.PodLogOptions) (runtime.Object, error)
 }
 
-const defaultTimeout time.Duration = 10 * time.Second
+const defaultTimeout time.Duration = 30 * time.Second
 
 // NewREST creates a new REST for BuildLog
 // Takes build registry and pod client to get necessary attributes to assemble

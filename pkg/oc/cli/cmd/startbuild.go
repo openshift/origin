@@ -42,8 +42,8 @@ import (
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/git"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
+	ocerrors "github.com/openshift/origin/pkg/oc/errors"
 	utilenv "github.com/openshift/origin/pkg/oc/util/env"
-	oerrors "github.com/openshift/origin/pkg/util/errors"
 )
 
 var (
@@ -161,9 +161,10 @@ type StartBuildOptions struct {
 	GitRepository  string
 	GitPostReceive string
 
-	Mapper       meta.RESTMapper
-	BuildClient  buildclient.BuildInterface
-	ClientConfig *restclient.Config
+	Mapper         meta.RESTMapper
+	BuildClient    buildclient.BuildInterface
+	BuildLogClient buildclientinternalmanual.BuildLogInterface
+	ClientConfig   *restclient.Config
 
 	AsBinary    bool
 	ShortOutput bool
@@ -286,6 +287,8 @@ func (o *StartBuildOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, c
 
 	o.Namespace = namespace
 	o.Name = name
+
+	o.BuildLogClient = buildclientinternalmanual.NewBuildLogClient(o.BuildClient.RESTClient(), o.Namespace)
 
 	// Handle environment variables
 	cmdutil.WarnAboutCommaSeparation(o.ErrOut, o.Env, "--env")
@@ -431,27 +434,9 @@ func (o *StartBuildOptions) Run() error {
 
 	// Stream the logs from the build
 	if o.Follow {
-		opts := buildapi.BuildLogOptions{
-			Follow: true,
-			NoWait: false,
-		}
-		logClient := buildclientinternalmanual.NewBuildLogClient(o.BuildClient.RESTClient(), o.Namespace)
-		for {
-			rd, err := logClient.Logs(newBuild.Name, opts).Stream()
-			if err != nil {
-				// retry the connection to build logs when we hit the timeout.
-				if oerrors.IsTimeoutErr(err) {
-					fmt.Fprintf(o.ErrOut, "timed out getting logs, retrying\n")
-					continue
-				}
-				fmt.Fprintf(o.ErrOut, "error getting logs (%v), waiting for build to complete\n", err)
-				break
-			}
-			defer rd.Close()
-			if _, err = io.Copy(o.Out, rd); err != nil {
-				fmt.Fprintf(o.ErrOut, "error streaming logs (%v), waiting for build to complete\n", err)
-			}
-			break
+		err = o.streamBuildLogs(newBuild)
+		if err != nil {
+			fmt.Fprintf(o.ErrOut, "Failed to stream the build logs - to view the logs, run oc logs build/%s\nError: %v\n", newBuild.Name, err)
 		}
 	}
 
@@ -460,6 +445,32 @@ func (o *StartBuildOptions) Run() error {
 	}
 
 	return nil
+}
+
+func (o *StartBuildOptions) streamBuildLogs(build *buildapi.Build) error {
+	opts := buildapi.BuildLogOptions{
+		Follow: true,
+		NoWait: false,
+	}
+	var err error
+	for {
+		rd, logErr := o.BuildLogClient.Logs(build.Name, opts).Stream()
+		if logErr != nil {
+			err = ocerrors.NewError("unable to stream the build logs").WithCause(logErr)
+			glog.V(4).Infof("Error: %v", err)
+			if o.WaitForComplete {
+				continue
+			}
+			break
+		}
+		defer rd.Close()
+		if _, streamErr := io.Copy(o.Out, rd); streamErr != nil {
+			err = ocerrors.NewError("unable to stream the build logs").WithCause(streamErr)
+			glog.V(4).Infof("Error: %v", err)
+		}
+		break
+	}
+	return err
 }
 
 // RunListBuildWebHooks prints the webhooks for the provided build config.
