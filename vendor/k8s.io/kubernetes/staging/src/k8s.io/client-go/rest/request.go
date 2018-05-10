@@ -357,8 +357,8 @@ func (r *Request) SetHeader(key string, values ...string) *Request {
 	return r
 }
 
-// Timeout makes the request use the given duration as a timeout. Sets the "timeout"
-// parameter.
+// Timeout makes the request use the given duration as an overall timeout for the
+// request. Additionally, if set passes the value as "timeout" parameter in URL.
 func (r *Request) Timeout(d time.Duration) *Request {
 	if r.err != nil {
 		return r
@@ -656,7 +656,6 @@ func (r *Request) request(fn func(*http.Request, *http.Response)) error {
 	}
 
 	// Right now we make about ten retry attempts if we get a Retry-After response.
-	// TODO: Change to a timeout based approach.
 	maxRetries := 10
 	retries := 0
 	for {
@@ -664,6 +663,14 @@ func (r *Request) request(fn func(*http.Request, *http.Response)) error {
 		req, err := http.NewRequest(r.verb, url, r.body)
 		if err != nil {
 			return err
+		}
+		if r.timeout > 0 {
+			if r.ctx == nil {
+				r.ctx = context.Background()
+			}
+			var cancelFn context.CancelFunc
+			r.ctx, cancelFn = context.WithTimeout(r.ctx, r.timeout)
+			defer cancelFn()
 		}
 		if r.ctx != nil {
 			req = req.WithContext(r.ctx)
