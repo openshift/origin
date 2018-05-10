@@ -121,45 +121,6 @@ type RoleBinding struct {
 	RoleRef kapi.ObjectReference
 }
 
-type RolesByName map[string]*Role
-
-// +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-// Policy is a object that holds all the Roles for a particular namespace.  There is at most
-// one Policy document per namespace.
-type Policy struct {
-	metav1.TypeMeta
-	metav1.ObjectMeta
-
-	// LastModified is the last time that any part of the Policy was created, updated, or deleted
-	LastModified metav1.Time
-
-	// Roles holds all the Roles held by this Policy, mapped by Role.Name
-	Roles RolesByName
-}
-
-type RoleBindingsByName map[string]*RoleBinding
-
-// +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-// PolicyBinding is a object that holds all the RoleBindings for a particular namespace.  There is
-// one PolicyBinding document per referenced Policy namespace
-type PolicyBinding struct {
-	metav1.TypeMeta
-	// Standard object's metadata.
-	metav1.ObjectMeta
-
-	// LastModified is the last time that any part of the PolicyBinding was created, updated, or deleted
-	LastModified metav1.Time
-
-	// PolicyRef is a reference to the Policy that contains all the Roles that this PolicyBinding's RoleBindings may reference
-	PolicyRef kapi.ObjectReference
-	// RoleBindings holds all the RoleBindings held by this PolicyBinding, mapped by RoleBinding.Name
-	RoleBindings RoleBindingsByName
-}
-
 // +genclient
 // +genclient:onlyVerbs=create
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -356,30 +317,6 @@ type Action struct {
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// PolicyList is a collection of Policies
-type PolicyList struct {
-	metav1.TypeMeta
-	// Standard object's metadata.
-	metav1.ListMeta
-
-	// Items is a list of policies
-	Items []Policy
-}
-
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-// PolicyBindingList is a collection of PolicyBindings
-type PolicyBindingList struct {
-	metav1.TypeMeta
-	// Standard object's metadata.
-	metav1.ListMeta
-
-	// Items is a list of policyBindings
-	Items []PolicyBinding
-}
-
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
 // RoleBindingList is a collection of RoleBindings
 type RoleBindingList struct {
 	metav1.TypeMeta
@@ -440,72 +377,6 @@ type ClusterRoleBinding struct {
 	// If the ClusterRoleRef cannot be resolved, the Authorizer must return an error.
 	// Since Policy is a singleton, this is sufficient knowledge to locate a role
 	RoleRef kapi.ObjectReference
-}
-
-type ClusterRolesByName map[string]*ClusterRole
-
-// +genclient
-// +genclient:nonNamespaced
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-// ClusterPolicy is a object that holds all the ClusterRoles for a particular namespace.  There is at most
-// one ClusterPolicy document per namespace.
-type ClusterPolicy struct {
-	metav1.TypeMeta
-	// Standard object's metadata.
-	metav1.ObjectMeta
-
-	// LastModified is the last time that any part of the ClusterPolicy was created, updated, or deleted
-	LastModified metav1.Time
-
-	// Roles holds all the ClusterRoles held by this ClusterPolicy, mapped by Role.Name
-	Roles ClusterRolesByName
-}
-
-type ClusterRoleBindingsByName map[string]*ClusterRoleBinding
-
-// +genclient
-// +genclient:nonNamespaced
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-// ClusterPolicyBinding is a object that holds all the ClusterRoleBindings for a particular namespace.  There is
-// one ClusterPolicyBinding document per referenced ClusterPolicy namespace
-type ClusterPolicyBinding struct {
-	metav1.TypeMeta
-	// Standard object's metadata.
-	metav1.ObjectMeta
-
-	// LastModified is the last time that any part of the ClusterPolicyBinding was created, updated, or deleted
-	LastModified metav1.Time
-
-	// ClusterPolicyRef is a reference to the ClusterPolicy that contains all the ClusterRoles that this ClusterPolicyBinding's RoleBindings may reference
-	PolicyRef kapi.ObjectReference
-	// RoleBindings holds all the RoleBindings held by this ClusterPolicyBinding, mapped by RoleBinding.Name
-	RoleBindings ClusterRoleBindingsByName
-}
-
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-// ClusterPolicyList is a collection of ClusterPolicies
-type ClusterPolicyList struct {
-	metav1.TypeMeta
-	// Standard object's metadata.
-	metav1.ListMeta
-
-	// Items is a list of ClusterPolicies
-	Items []ClusterPolicy
-}
-
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-// ClusterPolicyBindingList is a collection of ClusterPolicyBindings
-type ClusterPolicyBindingList struct {
-	metav1.TypeMeta
-	// Standard object's metadata.
-	metav1.ListMeta
-
-	// Items is a list of ClusterPolicyBindings
-	Items []ClusterPolicyBinding
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

@@ -107,19 +107,11 @@ func addPrintHandlers(p kprinters.PrintHandler) {
 	p.Handler(templateColumns, nil, printTemplate)
 	p.Handler(templateColumns, nil, printTemplateList)
 
-	p.Handler(policyColumns, nil, printPolicy)
-	p.Handler(policyColumns, nil, printPolicyList)
-	p.Handler(policyBindingColumns, nil, printPolicyBinding)
-	p.Handler(policyBindingColumns, nil, printPolicyBindingList)
 	p.Handler(roleBindingColumns, nil, printRoleBinding)
 	p.Handler(roleBindingColumns, nil, printRoleBindingList)
 	p.Handler(roleColumns, nil, printRole)
 	p.Handler(roleColumns, nil, printRoleList)
 
-	p.Handler(policyColumns, nil, printClusterPolicy)
-	p.Handler(policyColumns, nil, printClusterPolicyList)
-	p.Handler(policyBindingColumns, nil, printClusterPolicyBinding)
-	p.Handler(policyBindingColumns, nil, printClusterPolicyBindingList)
 	p.Handler(roleColumns, nil, printClusterRole)
 	p.Handler(roleColumns, nil, printClusterRoleList)
 	p.Handler(roleBindingColumns, nil, printClusterRoleBinding)
@@ -727,86 +719,6 @@ func printDeploymentConfigList(list *appsapi.DeploymentConfigList, w io.Writer, 
 		}
 	}
 	return nil
-}
-
-func printPolicy(policy *authorizationapi.Policy, w io.Writer, opts kprinters.PrintOptions) error {
-	roleNames := sets.String{}
-	for key := range policy.Roles {
-		roleNames.Insert(key)
-	}
-
-	name := formatResourceName(opts.Kind, policy.Name, opts.WithKind)
-	rolesString := strings.Join(roleNames.List(), ", ")
-
-	if opts.WithNamespace {
-		if _, err := fmt.Fprintf(w, "%s\t", policy.Namespace); err != nil {
-			return err
-		}
-	}
-	if _, err := fmt.Fprintf(w, "%s\t%s\t%v", name, rolesString, policy.LastModified); err != nil {
-		return err
-	}
-	if err := appendItemLabels(policy.Labels, w, opts.ColumnLabels, opts.ShowLabels); err != nil {
-		return err
-	}
-	return nil
-}
-
-func printPolicyList(list *authorizationapi.PolicyList, w io.Writer, opts kprinters.PrintOptions) error {
-	for _, policy := range list.Items {
-		if err := printPolicy(&policy, w, opts); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func printPolicyBinding(policyBinding *authorizationapi.PolicyBinding, w io.Writer, opts kprinters.PrintOptions) error {
-	roleBindingNames := sets.String{}
-	for key := range policyBinding.RoleBindings {
-		roleBindingNames.Insert(key)
-	}
-
-	name := formatResourceName(opts.Kind, policyBinding.Name, opts.WithKind)
-	roleBindingsString := strings.Join(roleBindingNames.List(), ", ")
-
-	if opts.WithNamespace {
-		if _, err := fmt.Fprintf(w, "%s\t", policyBinding.Namespace); err != nil {
-			return err
-		}
-	}
-	if _, err := fmt.Fprintf(w, "%s\t%s\t%v", name, roleBindingsString, policyBinding.LastModified); err != nil {
-		return err
-	}
-	if err := appendItemLabels(policyBinding.Labels, w, opts.ColumnLabels, opts.ShowLabels); err != nil {
-		return err
-	}
-	return nil
-}
-
-func printPolicyBindingList(list *authorizationapi.PolicyBindingList, w io.Writer, opts kprinters.PrintOptions) error {
-	for _, policyBinding := range list.Items {
-		if err := printPolicyBinding(&policyBinding, w, opts); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func printClusterPolicy(policy *authorizationapi.ClusterPolicy, w io.Writer, opts kprinters.PrintOptions) error {
-	return printPolicy(authorizationapi.ToPolicy(policy), w, opts)
-}
-
-func printClusterPolicyList(list *authorizationapi.ClusterPolicyList, w io.Writer, opts kprinters.PrintOptions) error {
-	return printPolicyList(authorizationapi.ToPolicyList(list), w, opts)
-}
-
-func printClusterPolicyBinding(policyBinding *authorizationapi.ClusterPolicyBinding, w io.Writer, opts kprinters.PrintOptions) error {
-	return printPolicyBinding(authorizationapi.ToPolicyBinding(policyBinding), w, opts)
-}
-
-func printClusterPolicyBindingList(list *authorizationapi.ClusterPolicyBindingList, w io.Writer, opts kprinters.PrintOptions) error {
-	return printPolicyBindingList(authorizationapi.ToPolicyBindingList(list), w, opts)
 }
 
 func printClusterRole(role *authorizationapi.ClusterRole, w io.Writer, opts kprinters.PrintOptions) error {

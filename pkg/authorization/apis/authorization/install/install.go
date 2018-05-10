@@ -25,7 +25,7 @@ func Install(groupFactoryRegistry announced.APIGroupFactoryRegistry, registry *r
 			GroupName:                  authorizationapi.GroupName,
 			VersionPreferenceOrder:     []string{authorizationapiv1.SchemeGroupVersion.Version},
 			AddInternalObjectsToScheme: internalObjectsToScheme,
-			RootScopedKinds:            sets.NewString("ClusterRole", "ClusterRoleBinding", "ClusterPolicy", "ClusterPolicyBinding", "SubjectAccessReview", "ResourceAccessReview", "ResourceAccessReviewResponse", "SubjectAccessReviewResponse"),
+			RootScopedKinds:            sets.NewString("ClusterRole", "ClusterRoleBinding", "SubjectAccessReview", "ResourceAccessReview", "ResourceAccessReviewResponse", "SubjectAccessReviewResponse"),
 		},
 		announced.VersionToSchemeFunc{
 			authorizationapiv1.SchemeGroupVersion.Version: authorizationapiv1.AddToScheme,

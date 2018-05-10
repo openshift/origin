@@ -117,12 +117,8 @@ func describerMap(clientConfig *rest.Config, kclient kclientset.Interface, host 
 		projectapi.Kind("Project"):                      &ProjectDescriber{projectClient, kclient},
 		templateapi.Kind("Template"):                    &TemplateDescriber{templateClient, meta.NewAccessor(), legacyscheme.Scheme, nil},
 		templateapi.Kind("TemplateInstance"):            &TemplateInstanceDescriber{kclient, templateClient, nil},
-		authorizationapi.Kind("Policy"):                 &PolicyDescriber{oauthorizationClient},
-		authorizationapi.Kind("PolicyBinding"):          &PolicyBindingDescriber{oauthorizationClient},
 		authorizationapi.Kind("RoleBinding"):            &RoleBindingDescriber{oauthorizationClient},
 		authorizationapi.Kind("Role"):                   &RoleDescriber{oauthorizationClient},
-		authorizationapi.Kind("ClusterPolicy"):          &ClusterPolicyDescriber{oauthorizationClient},
-		authorizationapi.Kind("ClusterPolicyBinding"):   &ClusterPolicyBindingDescriber{oauthorizationClient},
 		authorizationapi.Kind("ClusterRoleBinding"):     &ClusterRoleBindingDescriber{oauthorizationClient},
 		authorizationapi.Kind("ClusterRole"):            &ClusterRoleDescriber{oauthorizationClient},
 		authorizationapi.Kind("RoleBindingRestriction"): &RoleBindingRestrictionDescriber{oauthorizationClient},
@@ -1448,43 +1444,6 @@ func (d *GroupDescriber) Describe(namespace, name string, settings kprinters.Des
 	})
 }
 
-// policy describers
-
-// PolicyDescriber generates information about a Project
-type PolicyDescriber struct {
-	c oauthorizationclient.AuthorizationInterface
-}
-
-// Describe returns the description of a policy
-// TODO make something a lot prettier
-func (d *PolicyDescriber) Describe(namespace, name string, settings kprinters.DescriberSettings) (string, error) {
-	c := d.c.Policies(namespace)
-	policy, err := c.Get(name, metav1.GetOptions{})
-	if err != nil {
-		return "", err
-	}
-
-	return DescribePolicy(policy)
-}
-
-func DescribePolicy(policy *authorizationapi.Policy) (string, error) {
-	return tabbedString(func(out *tabwriter.Writer) error {
-		formatMeta(out, policy.ObjectMeta)
-		formatString(out, "Last Modified", policy.LastModified)
-
-		// using .List() here because I always want the sorted order that it provides
-		for _, key := range sets.StringKeySet(policy.Roles).List() {
-			role := policy.Roles[key]
-			fmt.Fprint(out, key+"\t"+PolicyRuleHeadings+"\n")
-			for _, rule := range role.Rules {
-				DescribePolicyRule(out, rule, "\t")
-			}
-		}
-
-		return nil
-	})
-}
-
 const PolicyRuleHeadings = "Verbs\tNon-Resource URLs\tResource Names\tAPI Groups\tResources"
 
 func DescribePolicyRule(out *tabwriter.Writer, rule authorizationapi.PolicyRule, indent string) {
@@ -1526,46 +1485,6 @@ func DescribeRole(role *authorizationapi.Role) (string, error) {
 		for _, rule := range role.Rules {
 			DescribePolicyRule(out, rule, "")
 
-		}
-
-		return nil
-	})
-}
-
-// PolicyBindingDescriber generates information about a Project
-type PolicyBindingDescriber struct {
-	c oauthorizationclient.AuthorizationInterface
-}
-
-// Describe returns the description of a policyBinding
-func (d *PolicyBindingDescriber) Describe(namespace, name string, settings kprinters.DescriberSettings) (string, error) {
-	c := d.c.PolicyBindings(namespace)
-	policyBinding, err := c.Get(name, metav1.GetOptions{})
-	if err != nil {
-		return "", err
-	}
-
-	return DescribePolicyBinding(policyBinding)
-}
-
-func DescribePolicyBinding(policyBinding *authorizationapi.PolicyBinding) (string, error) {
-
-	return tabbedString(func(out *tabwriter.Writer) error {
-		formatMeta(out, policyBinding.ObjectMeta)
-		formatString(out, "Last Modified", policyBinding.LastModified)
-		formatString(out, "Policy", policyBinding.PolicyRef.Namespace)
-
-		// using .List() here because I always want the sorted order that it provides
-		for _, key := range sets.StringKeySet(policyBinding.RoleBindings).List() {
-			roleBinding := policyBinding.RoleBindings[key]
-			users, groups, sas, others := authorizationapi.SubjectsStrings(roleBinding.Namespace, roleBinding.Subjects)
-
-			formatString(out, "RoleBinding["+key+"]", " ")
-			formatString(out, "\tRole", roleBinding.RoleRef.Name)
-			formatString(out, "\tUsers", strings.Join(users, ", "))
-			formatString(out, "\tGroups", strings.Join(groups, ", "))
-			formatString(out, "\tServiceAccounts", strings.Join(sas, ", "))
-			formatString(out, "\tSubjects", strings.Join(others, ", "))
 		}
 
 		return nil
@@ -1628,23 +1547,6 @@ func DescribeRoleBinding(roleBinding *authorizationapi.RoleBinding, role *author
 	})
 }
 
-// ClusterPolicyDescriber generates information about a Project
-type ClusterPolicyDescriber struct {
-	c oauthorizationclient.AuthorizationInterface
-}
-
-// Describe returns the description of a policy
-// TODO make something a lot prettier
-func (d *ClusterPolicyDescriber) Describe(namespace, name string, settings kprinters.DescriberSettings) (string, error) {
-	c := d.c.ClusterPolicies()
-	policy, err := c.Get(name, metav1.GetOptions{})
-	if err != nil {
-		return "", err
-	}
-
-	return DescribePolicy(authorizationapi.ToPolicy(policy))
-}
-
 type ClusterRoleDescriber struct {
 	c oauthorizationclient.AuthorizationInterface
 }
@@ -1658,22 +1560,6 @@ func (d *ClusterRoleDescriber) Describe(namespace, name string, settings kprinte
 	}
 
 	return DescribeRole(authorizationapi.ToRole(role))
-}
-
-// ClusterPolicyBindingDescriber generates information about a Project
-type ClusterPolicyBindingDescriber struct {
-	c oauthorizationclient.AuthorizationInterface
-}
-
-// Describe returns the description of a policyBinding
-func (d *ClusterPolicyBindingDescriber) Describe(namespace, name string, settings kprinters.DescriberSettings) (string, error) {
-	c := d.c.ClusterPolicyBindings()
-	policyBinding, err := c.Get(name, metav1.GetOptions{})
-	if err != nil {
-		return "", err
-	}
-
-	return DescribePolicyBinding(authorizationapi.ToPolicyBinding(policyBinding))
 }
 
 // ClusterRoleBindingDescriber generates information about a Project
