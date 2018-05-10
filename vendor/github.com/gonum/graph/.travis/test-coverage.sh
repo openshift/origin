@@ -1,43 +1,35 @@
 #!/bin/bash
 
-# based on http://stackoverflow.com/questions/21126011/is-it-possible-to-post-coverage-for-multiple-packages-to-coveralls
-# with script found at https://github.com/gopns/gopns/blob/master/test-coverage.sh
+PROFILE_OUT=$PWD/profile.out
+ACC_OUT=$PWD/acc.out
 
-echo "mode: set" > acc.out
-returnval=`go test -v -coverprofile=profile.out`
-echo ${returnval}
-if [[ ${returnval} != *FAIL* ]]
-then
-	if [ -f profile.out ]
-	then
-		cat profile.out | grep -v "mode: set" >> acc.out
-	fi
-else
-	exit 1
-fi
+testCover() {
+	# set the return value to 0 (succesful)
+	retval=0
+	# get the directory to check from the parameter. Default to '.'
+	d=${1:-.}
+	# skip if there are no Go files here
+	ls $d/*.go &> /dev/null || return $retval
+	# switch to the directory to check
+	pushd $d > /dev/null
+	# create the coverage profile
+	coverageresult=`go test -v -coverprofile=$PROFILE_OUT`
+	# output the result so we can check the shell output
+	echo ${coverageresult}
+	# append the results to acc.out if coverage didn't fail, else set the retval to 1 (failed)
+	( [[ ${coverageresult} == *FAIL* ]] && retval=1 ) || ( [ -f $PROFILE_OUT ] && grep -v "mode: set" $PROFILE_OUT >> $ACC_OUT )
+	# return to our working dir
+	popd > /dev/null
+	# return our return value
+	return $retval
+}
 
-for Dir in $(find ./* -maxdepth 10 -type d );
-do
-	if ls $Dir/*.go &> /dev/null;
-	then
-		echo $Dir
-		returnval=`go test -v -coverprofile=profile.out $Dir`
-		echo ${returnval}
-		if [[ ${returnval} != *FAIL* ]]
-		then
-    		if [ -f profile.out ]
-    		then
-        		cat profile.out | grep -v "mode: set" >> acc.out
-    		fi
-    	else
-    		exit 1
-    	fi
-    fi
-done
-if [ -n "$COVERALLS_TOKEN" ]
-then
-	$HOME/gopath/bin/goveralls -coverprofile=acc.out -service=travis-ci -repotoken $COVERALLS_TOKEN
-fi
+# Init acc.out
+echo "mode: set" > $ACC_OUT
 
-rm -rf ./profile.out
-rm -rf ./acc.out
+# Run test coverage on all directories containing go files
+find . -maxdepth 10 -type d | while read d; do testCover $d || exit; done
+
+# Upload the coverage profile to coveralls.io
+[ -n "$COVERALLS_TOKEN" ] && goveralls -coverprofile=$ACC_OUT -service=travis-ci -repotoken $COVERALLS_TOKEN
+

@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package path_test
+package path
 
 import (
 	"math"
@@ -10,47 +10,47 @@ import (
 	"testing"
 
 	"github.com/gonum/graph"
-	"github.com/gonum/graph/path"
+	"github.com/gonum/graph/path/internal/testgraphs"
 )
 
 func TestBellmanFordFrom(t *testing.T) {
-	for _, test := range shortestPathTests {
-		g := test.g()
-		for _, e := range test.edges {
-			g.SetEdge(e, e.Cost)
+	for _, test := range testgraphs.ShortestPathTests {
+		g := test.Graph()
+		for _, e := range test.Edges {
+			g.SetEdge(e)
 		}
 
-		pt, ok := path.BellmanFordFrom(test.query.From(), g.(graph.Graph))
-		if test.hasNegativeCycle {
+		pt, ok := BellmanFordFrom(test.Query.From(), g.(graph.Graph))
+		if test.HasNegativeCycle {
 			if ok {
-				t.Errorf("%q: expected negative cycle", test.name)
+				t.Errorf("%q: expected negative cycle", test.Name)
 			}
 			continue
 		}
 		if !ok {
-			t.Fatalf("%q: unexpected negative cycle", test.name)
+			t.Fatalf("%q: unexpected negative cycle", test.Name)
 		}
 
-		if pt.From().ID() != test.query.From().ID() {
-			t.Fatalf("%q: unexpected from node ID: got:%d want:%d", pt.From().ID(), test.query.From().ID())
+		if pt.From().ID() != test.Query.From().ID() {
+			t.Fatalf("%q: unexpected from node ID: got:%d want:%d", pt.From().ID(), test.Query.From().ID())
 		}
 
-		p, weight := pt.To(test.query.To())
-		if weight != test.weight {
+		p, weight := pt.To(test.Query.To())
+		if weight != test.Weight {
 			t.Errorf("%q: unexpected weight from Between: got:%f want:%f",
-				test.name, weight, test.weight)
+				test.Name, weight, test.Weight)
 		}
-		if weight := pt.WeightTo(test.query.To()); weight != test.weight {
+		if weight := pt.WeightTo(test.Query.To()); weight != test.Weight {
 			t.Errorf("%q: unexpected weight from Weight: got:%f want:%f",
-				test.name, weight, test.weight)
+				test.Name, weight, test.Weight)
 		}
 
 		var got []int
 		for _, n := range p {
 			got = append(got, n.ID())
 		}
-		ok = len(got) == 0 && len(test.want) == 0
-		for _, sp := range test.want {
+		ok = len(got) == 0 && len(test.WantPaths) == 0
+		for _, sp := range test.WantPaths {
 			if reflect.DeepEqual(got, sp) {
 				ok = true
 				break
@@ -58,13 +58,13 @@ func TestBellmanFordFrom(t *testing.T) {
 		}
 		if !ok {
 			t.Errorf("%q: unexpected shortest path:\ngot: %v\nwant from:%v",
-				test.name, p, test.want)
+				test.Name, p, test.WantPaths)
 		}
 
-		np, weight := pt.To(test.none.To())
-		if pt.From().ID() == test.none.From().ID() && (np != nil || !math.IsInf(weight, 1)) {
+		np, weight := pt.To(test.NoPathFor.To())
+		if pt.From().ID() == test.NoPathFor.From().ID() && (np != nil || !math.IsInf(weight, 1)) {
 			t.Errorf("%q: unexpected path:\ngot: path=%v weight=%f\nwant:path=<nil> weight=+Inf",
-				test.name, np, weight)
+				test.Name, np, weight)
 		}
 	}
 }

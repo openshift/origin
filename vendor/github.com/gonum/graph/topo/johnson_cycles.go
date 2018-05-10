@@ -8,7 +8,8 @@ import (
 	"sort"
 
 	"github.com/gonum/graph"
-	"github.com/gonum/graph/internal"
+	"github.com/gonum/graph/internal/ordered"
+	"github.com/gonum/graph/internal/set"
 )
 
 // johnson implements Johnson's "Finding all the elementary
@@ -17,8 +18,8 @@ import (
 // Comments in the johnson methods are kept in sync with the comments
 // and labels from the paper.
 type johnson struct {
-	adjacent johnsonGraph      // SCC adjacency list.
-	b        []internal.IntSet // Johnson's "B-list".
+	adjacent johnsonGraph // SCC adjacency list.
+	b        []set.Ints   // Johnson's "B-list".
 	blocked  []bool
 	s        int
 
@@ -32,7 +33,7 @@ func CyclesIn(g graph.Directed) [][]graph.Node {
 	jg := johnsonGraphFrom(g)
 	j := johnson{
 		adjacent: jg,
-		b:        make([]internal.IntSet, len(jg.orig)),
+		b:        make([]set.Ints, len(jg.orig)),
 		blocked:  make([]bool, len(jg.orig)),
 	}
 
@@ -57,7 +58,7 @@ func CyclesIn(g graph.Directed) [][]graph.Node {
 			}
 			if len(j.adjacent.succ[v.ID()]) > 0 {
 				j.blocked[i] = false
-				j.b[i] = make(internal.IntSet)
+				j.b[i] = make(set.Ints)
 			}
 		}
 		//L3:
@@ -125,26 +126,26 @@ type johnsonGraph struct {
 	orig  []graph.Node
 	index map[int]int
 
-	nodes internal.IntSet
-	succ  map[int]internal.IntSet
+	nodes set.Ints
+	succ  map[int]set.Ints
 }
 
 // johnsonGraphFrom returns a deep copy of the graph g.
 func johnsonGraphFrom(g graph.Directed) johnsonGraph {
 	nodes := g.Nodes()
-	sort.Sort(byID(nodes))
+	sort.Sort(ordered.ByID(nodes))
 	c := johnsonGraph{
 		orig:  nodes,
 		index: make(map[int]int, len(nodes)),
 
-		nodes: make(internal.IntSet, len(nodes)),
-		succ:  make(map[int]internal.IntSet),
+		nodes: make(set.Ints, len(nodes)),
+		succ:  make(map[int]set.Ints),
 	}
 	for i, u := range nodes {
 		c.index[u.ID()] = i
 		for _, v := range g.From(u) {
 			if c.succ[u.ID()] == nil {
-				c.succ[u.ID()] = make(internal.IntSet)
+				c.succ[u.ID()] = make(set.Ints)
 				c.nodes.Add(u.ID())
 			}
 			c.nodes.Add(v.ID())
@@ -153,12 +154,6 @@ func johnsonGraphFrom(g graph.Directed) johnsonGraph {
 	}
 	return c
 }
-
-type byID []graph.Node
-
-func (n byID) Len() int           { return len(n) }
-func (n byID) Less(i, j int) bool { return n[i].ID() < n[j].ID() }
-func (n byID) Swap(i, j int)      { n[i], n[j] = n[j], n[i] }
 
 // order returns the order of the graph.
 func (g johnsonGraph) order() int { return g.nodes.Count() }
@@ -210,8 +205,8 @@ func (g johnsonGraph) sccSubGraph(sccs [][]graph.Node, min int) johnsonGraph {
 	sub := johnsonGraph{
 		orig:  g.orig,
 		index: g.index,
-		nodes: make(internal.IntSet),
-		succ:  make(map[int]internal.IntSet),
+		nodes: make(set.Ints),
+		succ:  make(map[int]set.Ints),
 	}
 
 	var n int
@@ -224,7 +219,7 @@ func (g johnsonGraph) sccSubGraph(sccs [][]graph.Node, min int) johnsonGraph {
 			for _, v := range scc {
 				if _, ok := g.succ[u.ID()][v.ID()]; ok {
 					if sub.succ[u.ID()] == nil {
-						sub.succ[u.ID()] = make(internal.IntSet)
+						sub.succ[u.ID()] = make(set.Ints)
 						sub.nodes.Add(u.ID())
 					}
 					sub.nodes.Add(v.ID())
@@ -265,19 +260,19 @@ func (g johnsonGraph) From(n graph.Node) []graph.Node {
 }
 
 func (johnsonGraph) Has(graph.Node) bool {
-	panic("search: unintended use of johnsonGraph")
+	panic("topo: unintended use of johnsonGraph")
 }
-func (johnsonGraph) HasEdge(_, _ graph.Node) bool {
-	panic("search: unintended use of johnsonGraph")
+func (johnsonGraph) HasEdgeBetween(_, _ graph.Node) bool {
+	panic("topo: unintended use of johnsonGraph")
 }
 func (johnsonGraph) Edge(_, _ graph.Node) graph.Edge {
-	panic("search: unintended use of johnsonGraph")
+	panic("topo: unintended use of johnsonGraph")
 }
 func (johnsonGraph) HasEdgeFromTo(_, _ graph.Node) bool {
-	panic("search: unintended use of johnsonGraph")
+	panic("topo: unintended use of johnsonGraph")
 }
 func (johnsonGraph) To(graph.Node) []graph.Node {
-	panic("search: unintended use of johnsonGraph")
+	panic("topo: unintended use of johnsonGraph")
 }
 
 type johnsonGraphNode int

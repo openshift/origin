@@ -118,7 +118,7 @@ import:
   version: f74b330d45c56584a6ea7a27f5c64ea2900631e9
 # cli
 - package: github.com/gonum/graph
-  version: bde6d0fbd9dec5a997e906611fe0364001364c41
+  version: 50b27dea7ebbfb052dfaf91681afc6fde28d8796
 # cli
 - package: github.com/gonum/internal
   version: e57e4534cf9b3b00ef6c0175f59d8d2d34f60914

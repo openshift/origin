@@ -21,6 +21,7 @@ import (
 	"strings"
 
 	"github.com/gonum/graph"
+	"github.com/gonum/graph/internal/ordered"
 )
 
 // Node is a DOT graph node.
@@ -123,7 +124,7 @@ type edge struct {
 
 func (p *printer) print(g graph.Graph, name string, needsIndent, isSubgraph bool) error {
 	nodes := g.Nodes()
-	sort.Sort(byID(nodes))
+	sort.Sort(ordered.ByID(nodes))
 
 	p.buf.WriteString(p.prefix)
 	if needsIndent {
@@ -201,7 +202,7 @@ func (p *printer) print(g graph.Graph, name string, needsIndent, isSubgraph bool
 	havePrintedEdgeHeader := false
 	for _, n := range nodes {
 		to := g.From(n)
-		sort.Sort(byID(to))
+		sort.Sort(ordered.ByID(to))
 		for _, t := range to {
 			if isDirected {
 				if p.visited[edge{inGraph: name, from: n.ID(), to: t.ID()}] {
@@ -218,7 +219,7 @@ func (p *printer) print(g graph.Graph, name string, needsIndent, isSubgraph bool
 
 			if !havePrintedEdgeHeader {
 				p.buf.WriteByte('\n')
-				p.buf.WriteString(strings.TrimRight(p.prefix, " \t\xa0")) // Trim whitespace suffix.
+				p.buf.WriteString(strings.TrimRight(p.prefix, " \t\n")) // Trim whitespace suffix.
 				p.newline()
 				p.buf.WriteString("// Edge definitions.")
 				havePrintedEdgeHeader = true
@@ -375,9 +376,3 @@ func (p *printer) closeBlock(b string) {
 	p.newline()
 	p.buf.WriteString(b)
 }
-
-type byID []graph.Node
-
-func (n byID) Len() int           { return len(n) }
-func (n byID) Less(i, j int) bool { return n[i].ID() < n[j].ID() }
-func (n byID) Swap(i, j int)      { n[i], n[j] = n[j], n[i] }

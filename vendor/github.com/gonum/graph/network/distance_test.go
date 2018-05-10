@@ -9,8 +9,8 @@ import (
 	"testing"
 
 	"github.com/gonum/floats"
-	"github.com/gonum/graph/concrete"
 	"github.com/gonum/graph/path"
+	"github.com/gonum/graph/simple"
 )
 
 var undirectedCentralityTests = []struct {
@@ -143,14 +143,14 @@ func TestDistanceCentralityUndirected(t *testing.T) {
 	prec := 1 - int(math.Log10(tol))
 
 	for i, test := range undirectedCentralityTests {
-		g := concrete.NewGraph()
+		g := simple.NewUndirectedGraph(0, math.Inf(1))
 		for u, e := range test.g {
 			// Add nodes that are not defined by an edge.
-			if !g.Has(concrete.Node(u)) {
-				g.AddNode(concrete.Node(u))
+			if !g.Has(simple.Node(u)) {
+				g.AddNode(simple.Node(u))
 			}
 			for v := range e {
-				g.SetEdge(concrete.Edge{F: concrete.Node(u), T: concrete.Node(v)}, 1)
+				g.SetEdge(simple.Edge{F: simple.Node(u), T: simple.Node(v), W: 1})
 			}
 		}
 		p, ok := path.FloydWarshall(g)
@@ -333,14 +333,14 @@ func TestDistanceCentralityDirected(t *testing.T) {
 	prec := 1 - int(math.Log10(tol))
 
 	for i, test := range directedCentralityTests {
-		g := concrete.NewDirectedGraph()
+		g := simple.NewDirectedGraph(0, math.Inf(1))
 		for u, e := range test.g {
 			// Add nodes that are not defined by an edge.
-			if !g.Has(concrete.Node(u)) {
-				g.AddNode(concrete.Node(u))
+			if !g.Has(simple.Node(u)) {
+				g.AddNode(simple.Node(u))
 			}
 			for v := range e {
-				g.SetEdge(concrete.Edge{F: concrete.Node(u), T: concrete.Node(v)}, 1)
+				g.SetEdge(simple.Edge{F: simple.Node(u), T: simple.Node(v), W: 1})
 			}
 		}
 		p, ok := path.FloydWarshall(g)

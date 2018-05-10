@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	"github.com/gonum/floats"
-	"github.com/gonum/graph/concrete"
+	"github.com/gonum/graph/simple"
 )
 
 var pageRankTests = []struct {
@@ -81,14 +81,14 @@ var pageRankTests = []struct {
 
 func TestPageRank(t *testing.T) {
 	for i, test := range pageRankTests {
-		g := concrete.NewDirectedGraph()
+		g := simple.NewDirectedGraph(0, math.Inf(1))
 		for u, e := range test.g {
 			// Add nodes that are not defined by an edge.
-			if !g.Has(concrete.Node(u)) {
-				g.AddNode(concrete.Node(u))
+			if !g.Has(simple.Node(u)) {
+				g.AddNode(simple.Node(u))
 			}
 			for v := range e {
-				g.SetEdge(concrete.Edge{F: concrete.Node(u), T: concrete.Node(v)}, 0)
+				g.SetEdge(simple.Edge{F: simple.Node(u), T: simple.Node(v)})
 			}
 		}
 		got := PageRank(g, test.damp, test.tol)
@@ -105,14 +105,14 @@ func TestPageRank(t *testing.T) {
 
 func TestPageRankSparse(t *testing.T) {
 	for i, test := range pageRankTests {
-		g := concrete.NewDirectedGraph()
+		g := simple.NewDirectedGraph(0, math.Inf(1))
 		for u, e := range test.g {
 			// Add nodes that are not defined by an edge.
-			if !g.Has(concrete.Node(u)) {
-				g.AddNode(concrete.Node(u))
+			if !g.Has(simple.Node(u)) {
+				g.AddNode(simple.Node(u))
 			}
 			for v := range e {
-				g.SetEdge(concrete.Edge{F: concrete.Node(u), T: concrete.Node(v)}, 0)
+				g.SetEdge(simple.Edge{F: simple.Node(u), T: simple.Node(v)})
 			}
 		}
 		got := PageRankSparse(g, test.damp, test.tol)
@@ -142,7 +142,7 @@ type keyFloatVal struct {
 	val  float64
 }
 
-func (kv keyFloatVal) String() string { return fmt.Sprintf("%d:%.*f", kv.key, kv.prec, kv.val) }
+func (kv keyFloatVal) String() string { return fmt.Sprintf("%c:%.*f", kv.key+'A', kv.prec, kv.val) }
 
 type orderedFloatsMap []keyFloatVal
 

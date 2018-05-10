@@ -5,10 +5,11 @@
 package dot
 
 import (
+	"math"
 	"testing"
 
 	"github.com/gonum/graph"
-	"github.com/gonum/graph/concrete"
+	"github.com/gonum/graph/simple"
 )
 
 // set is an integer set.
@@ -53,20 +54,20 @@ var (
 )
 
 func directedGraphFrom(g []set) graph.Directed {
-	dg := concrete.NewDirectedGraph()
+	dg := simple.NewDirectedGraph(0, math.Inf(1))
 	for u, e := range g {
 		for v := range e {
-			dg.SetEdge(concrete.Edge{F: concrete.Node(u), T: concrete.Node(v)}, 0)
+			dg.SetEdge(simple.Edge{F: simple.Node(u), T: simple.Node(v)})
 		}
 	}
 	return dg
 }
 
 func undirectedGraphFrom(g []set) graph.Graph {
-	dg := concrete.NewGraph()
+	dg := simple.NewUndirectedGraph(0, math.Inf(1))
 	for u, e := range g {
 		for v := range e {
-			dg.SetEdge(concrete.Edge{F: concrete.Node(u), T: concrete.Node(v)}, 0)
+			dg.SetEdge(simple.Edge{F: simple.Node(u), T: simple.Node(v)})
 		}
 	}
 	return dg
@@ -83,24 +84,24 @@ func (n namedNode) ID() int       { return n.id }
 func (n namedNode) DOTID() string { return n.name }
 
 func directedNamedIDGraphFrom(g []set) graph.Directed {
-	dg := concrete.NewDirectedGraph()
+	dg := simple.NewDirectedGraph(0, math.Inf(1))
 	for u, e := range g {
 		nu := namedNode{id: u, name: alpha[u : u+1]}
 		for v := range e {
 			nv := namedNode{id: v, name: alpha[v : v+1]}
-			dg.SetEdge(concrete.Edge{F: nu, T: nv}, 0)
+			dg.SetEdge(simple.Edge{F: nu, T: nv})
 		}
 	}
 	return dg
 }
 
 func undirectedNamedIDGraphFrom(g []set) graph.Graph {
-	dg := concrete.NewGraph()
+	dg := simple.NewUndirectedGraph(0, math.Inf(1))
 	for u, e := range g {
 		nu := namedNode{id: u, name: alpha[u : u+1]}
 		for v := range e {
 			nv := namedNode{id: v, name: alpha[v : v+1]}
-			dg.SetEdge(concrete.Edge{F: nu, T: nv}, 0)
+			dg.SetEdge(simple.Edge{F: nu, T: nv})
 		}
 	}
 	return dg
@@ -116,7 +117,7 @@ func (n attrNode) ID() int                    { return n.id }
 func (n attrNode) DOTAttributes() []Attribute { return n.attr }
 
 func directedNodeAttrGraphFrom(g []set, attr [][]Attribute) graph.Directed {
-	dg := concrete.NewDirectedGraph()
+	dg := simple.NewDirectedGraph(0, math.Inf(1))
 	for u, e := range g {
 		var at []Attribute
 		if u < len(attr) {
@@ -128,14 +129,14 @@ func directedNodeAttrGraphFrom(g []set, attr [][]Attribute) graph.Directed {
 				at = attr[v]
 			}
 			nv := attrNode{id: v, attr: at}
-			dg.SetEdge(concrete.Edge{F: nu, T: nv}, 0)
+			dg.SetEdge(simple.Edge{F: nu, T: nv})
 		}
 	}
 	return dg
 }
 
 func undirectedNodeAttrGraphFrom(g []set, attr [][]Attribute) graph.Graph {
-	dg := concrete.NewGraph()
+	dg := simple.NewUndirectedGraph(0, math.Inf(1))
 	for u, e := range g {
 		var at []Attribute
 		if u < len(attr) {
@@ -147,7 +148,7 @@ func undirectedNodeAttrGraphFrom(g []set, attr [][]Attribute) graph.Graph {
 				at = attr[v]
 			}
 			nv := attrNode{id: v, attr: at}
-			dg.SetEdge(concrete.Edge{F: nu, T: nv}, 0)
+			dg.SetEdge(simple.Edge{F: nu, T: nv})
 		}
 	}
 	return dg
@@ -164,7 +165,7 @@ func (n namedAttrNode) DOTID() string              { return n.name }
 func (n namedAttrNode) DOTAttributes() []Attribute { return n.attr }
 
 func directedNamedIDNodeAttrGraphFrom(g []set, attr [][]Attribute) graph.Directed {
-	dg := concrete.NewDirectedGraph()
+	dg := simple.NewDirectedGraph(0, math.Inf(1))
 	for u, e := range g {
 		var at []Attribute
 		if u < len(attr) {
@@ -176,14 +177,14 @@ func directedNamedIDNodeAttrGraphFrom(g []set, attr [][]Attribute) graph.Directe
 				at = attr[v]
 			}
 			nv := namedAttrNode{id: v, name: alpha[v : v+1], attr: at}
-			dg.SetEdge(concrete.Edge{F: nu, T: nv}, 0)
+			dg.SetEdge(simple.Edge{F: nu, T: nv})
 		}
 	}
 	return dg
 }
 
 func undirectedNamedIDNodeAttrGraphFrom(g []set, attr [][]Attribute) graph.Graph {
-	dg := concrete.NewGraph()
+	dg := simple.NewUndirectedGraph(0, math.Inf(1))
 	for u, e := range g {
 		var at []Attribute
 		if u < len(attr) {
@@ -195,7 +196,7 @@ func undirectedNamedIDNodeAttrGraphFrom(g []set, attr [][]Attribute) graph.Graph
 				at = attr[v]
 			}
 			nv := namedAttrNode{id: v, name: alpha[v : v+1], attr: at}
-			dg.SetEdge(concrete.Edge{F: nu, T: nv}, 0)
+			dg.SetEdge(simple.Edge{F: nu, T: nv})
 		}
 	}
 	return dg
@@ -209,23 +210,24 @@ type attrEdge struct {
 
 func (e attrEdge) From() graph.Node           { return e.from }
 func (e attrEdge) To() graph.Node             { return e.to }
+func (e attrEdge) Weight() float64            { return 0 }
 func (e attrEdge) DOTAttributes() []Attribute { return e.attr }
 
 func directedEdgeAttrGraphFrom(g []set, attr map[edge][]Attribute) graph.Directed {
-	dg := concrete.NewDirectedGraph()
+	dg := simple.NewDirectedGraph(0, math.Inf(1))
 	for u, e := range g {
 		for v := range e {
-			dg.SetEdge(attrEdge{from: concrete.Node(u), to: concrete.Node(v), attr: attr[edge{from: u, to: v}]}, 0)
+			dg.SetEdge(attrEdge{from: simple.Node(u), to: simple.Node(v), attr: attr[edge{from: u, to: v}]})
 		}
 	}
 	return dg
 }
 
 func undirectedEdgeAttrGraphFrom(g []set, attr map[edge][]Attribute) graph.Graph {
-	dg := concrete.NewGraph()
+	dg := simple.NewUndirectedGraph(0, math.Inf(1))
 	for u, e := range g {
 		for v := range e {
-			dg.SetEdge(attrEdge{from: concrete.Node(u), to: concrete.Node(v), attr: attr[edge{from: u, to: v}]}, 0)
+			dg.SetEdge(attrEdge{from: simple.Node(u), to: simple.Node(v), attr: attr[edge{from: u, to: v}]})
 		}
 	}
 	return dg
@@ -244,6 +246,7 @@ type portedEdge struct {
 
 func (e portedEdge) From() graph.Node { return e.from }
 func (e portedEdge) To() graph.Node   { return e.to }
+func (e portedEdge) Weight() float64  { return 0 }
 
 // TODO(kortschak): Figure out a better way to handle the fact that
 // headedness is an undefined concept in undirected graphs. We sort
@@ -261,7 +264,7 @@ func (e portedEdge) ToPort() (port, compass string) {
 }
 
 func directedPortedAttrGraphFrom(g []set, attr [][]Attribute, ports map[edge]portedEdge) graph.Directed {
-	dg := concrete.NewDirectedGraph()
+	dg := simple.NewDirectedGraph(0, math.Inf(1))
 	for u, e := range g {
 		var at []Attribute
 		if u < len(attr) {
@@ -275,14 +278,14 @@ func directedPortedAttrGraphFrom(g []set, attr [][]Attribute, ports map[edge]por
 			pe := ports[edge{from: u, to: v}]
 			pe.from = nu
 			pe.to = attrNode{id: v, attr: at}
-			dg.SetEdge(pe, 0)
+			dg.SetEdge(pe)
 		}
 	}
 	return dg
 }
 
 func undirectedPortedAttrGraphFrom(g []set, attr [][]Attribute, ports map[edge]portedEdge) graph.Graph {
-	dg := concrete.NewGraph()
+	dg := simple.NewUndirectedGraph(0, math.Inf(1))
 	for u, e := range g {
 		var at []Attribute
 		if u < len(attr) {
@@ -296,7 +299,7 @@ func undirectedPortedAttrGraphFrom(g []set, attr [][]Attribute, ports map[edge]p
 			pe := ports[edge{from: u, to: v}]
 			pe.from = nu
 			pe.to = attrNode{id: v, attr: at}
-			dg.SetEdge(pe, 0)
+			dg.SetEdge(pe)
 		}
 	}
 	return dg
@@ -318,26 +321,26 @@ func (g graphAttributer) DOTAttributers() (graph, node, edge Attributer) {
 }
 
 type structuredGraph struct {
-	*concrete.Graph
+	*simple.UndirectedGraph
 	sub []Graph
 }
 
 func undirectedStructuredGraphFrom(c []edge, g ...[]set) graph.Graph {
-	s := &structuredGraph{Graph: concrete.NewGraph()}
+	s := &structuredGraph{UndirectedGraph: simple.NewUndirectedGraph(0, math.Inf(1))}
 	var base int
 	for i, sg := range g {
-		sub := concrete.NewGraph()
+		sub := simple.NewUndirectedGraph(0, math.Inf(1))
 		for u, e := range sg {
 			for v := range e {
-				ce := concrete.Edge{F: concrete.Node(u + base), T: concrete.Node(v + base)}
-				sub.SetEdge(ce, 0)
+				ce := simple.Edge{F: simple.Node(u + base), T: simple.Node(v + base)}
+				sub.SetEdge(ce)
 			}
 		}
 		s.sub = append(s.sub, namedGraph{id: i, Graph: sub})
 		base += len(sg)
 	}
 	for _, e := range c {
-		s.SetEdge(concrete.Edge{F: concrete.Node(e.from), T: concrete.Node(e.to)}, 0)
+		s.SetEdge(simple.Edge{F: simple.Node(e.from), T: simple.Node(e.to)})
 	}
 	return s
 }
@@ -367,25 +370,25 @@ func undirectedSubGraphFrom(g []set, s map[int][]set) graph.Graph {
 	var base int
 	subs := make(map[int]subGraph)
 	for i, sg := range s {
-		sub := concrete.NewGraph()
+		sub := simple.NewUndirectedGraph(0, math.Inf(1))
 		for u, e := range sg {
 			for v := range e {
-				ce := concrete.Edge{F: concrete.Node(u + base), T: concrete.Node(v + base)}
-				sub.SetEdge(ce, 0)
+				ce := simple.Edge{F: simple.Node(u + base), T: simple.Node(v + base)}
+				sub.SetEdge(ce)
 			}
 		}
 		subs[i] = subGraph{id: i, Graph: sub}
 		base += len(sg)
 	}
 
-	dg := concrete.NewGraph()
+	dg := simple.NewUndirectedGraph(0, math.Inf(1))
 	for u, e := range g {
 		var nu graph.Node
 		if sg, ok := subs[u]; ok {
 			sg.id += base
 			nu = sg
 		} else {
-			nu = concrete.Node(u + base)
+			nu = simple.Node(u + base)
 		}
 		for v := range e {
 			var nv graph.Node
@@ -393,9 +396,9 @@ func undirectedSubGraphFrom(g []set, s map[int][]set) graph.Graph {
 				sg.id += base
 				nv = sg
 			} else {
-				nv = concrete.Node(v + base)
+				nv = simple.Node(v + base)
 			}
-			dg.SetEdge(concrete.Edge{F: nu, T: nv}, 0)
+			dg.SetEdge(simple.Edge{F: nu, T: nv})
 		}
 	}
 	return dg

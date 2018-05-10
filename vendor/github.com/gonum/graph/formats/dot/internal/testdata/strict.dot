@@ -1,0 +1,4 @@
+strict digraph {
+	A -> B
+	A -> B
+}

@@ -2,18 +2,19 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package traverse_test
+package traverse
 
 import (
 	"fmt"
+	"math"
 	"reflect"
 	"sort"
 	"testing"
 
 	"github.com/gonum/graph"
-	"github.com/gonum/graph/concrete"
-	"github.com/gonum/graph/internal"
-	"github.com/gonum/graph/traverse"
+	"github.com/gonum/graph/graphs/gen"
+	"github.com/gonum/graph/internal/ordered"
+	"github.com/gonum/graph/simple"
 )
 
 var (
@@ -67,7 +68,7 @@ var breadthFirstTests = []struct {
 }{
 	{
 		g:     wpBronKerboschGraph,
-		from:  concrete.Node(1),
+		from:  simple.Node(1),
 		final: map[graph.Node]bool{nil: true},
 		want: [][]int{
 			{1},
@@ -82,7 +83,7 @@ var breadthFirstTests = []struct {
 			// Do not traverse an edge between 3 and 5.
 			return (e.From().ID() != 3 || e.To().ID() != 5) && (e.From().ID() != 5 || e.To().ID() != 3)
 		},
-		from:  concrete.Node(1),
+		from:  simple.Node(1),
 		final: map[graph.Node]bool{nil: true},
 		want: [][]int{
 			{1},
@@ -92,9 +93,9 @@ var breadthFirstTests = []struct {
 	},
 	{
 		g:     wpBronKerboschGraph,
-		from:  concrete.Node(1),
-		until: func(n graph.Node, _ int) bool { return n == concrete.Node(3) },
-		final: map[graph.Node]bool{concrete.Node(3): true},
+		from:  simple.Node(1),
+		until: func(n graph.Node, _ int) bool { return n == simple.Node(3) },
+		final: map[graph.Node]bool{simple.Node(3): true},
 		want: [][]int{
 			{1},
 			{0, 2, 4},
@@ -102,7 +103,7 @@ var breadthFirstTests = []struct {
 	},
 	{
 		g:     batageljZaversnikGraph,
-		from:  concrete.Node(13),
+		from:  simple.Node(13),
 		final: map[graph.Node]bool{nil: true},
 		want: [][]int{
 			{13},
@@ -114,14 +115,14 @@ var breadthFirstTests = []struct {
 	},
 	{
 		g:     batageljZaversnikGraph,
-		from:  concrete.Node(13),
+		from:  simple.Node(13),
 		until: func(_ graph.Node, d int) bool { return d > 2 },
 		final: map[graph.Node]bool{
-			concrete.Node(11): true,
-			concrete.Node(12): true,
-			concrete.Node(18): true,
-			concrete.Node(19): true,
-			concrete.Node(20): true,
+			simple.Node(11): true,
+			simple.Node(12): true,
+			simple.Node(18): true,
+			simple.Node(19): true,
+			simple.Node(20): true,
 		},
 		want: [][]int{
 			{13},
@@ -133,17 +134,17 @@ var breadthFirstTests = []struct {
 
 func TestBreadthFirst(t *testing.T) {
 	for i, test := range breadthFirstTests {
-		g := concrete.NewGraph()
+		g := simple.NewUndirectedGraph(0, math.Inf(1))
 		for u, e := range test.g {
 			// Add nodes that are not defined by an edge.
-			if !g.Has(concrete.Node(u)) {
-				g.AddNode(concrete.Node(u))
+			if !g.Has(simple.Node(u)) {
+				g.AddNode(simple.Node(u))
 			}
 			for v := range e {
-				g.SetEdge(concrete.Edge{F: concrete.Node(u), T: concrete.Node(v)}, 0)
+				g.SetEdge(simple.Edge{F: simple.Node(u), T: simple.Node(v)})
 			}
 		}
-		w := traverse.BreadthFirst{
+		w := BreadthFirst{
 			EdgeFilter: test.edge,
 		}
 		var got [][]int
@@ -179,7 +180,7 @@ var depthFirstTests = []struct {
 }{
 	{
 		g:     wpBronKerboschGraph,
-		from:  concrete.Node(1),
+		from:  simple.Node(1),
 		final: map[graph.Node]bool{nil: true},
 		want:  []int{0, 1, 2, 3, 4, 5},
 	},
@@ -189,31 +190,31 @@ var depthFirstTests = []struct {
 			// Do not traverse an edge between 3 and 5.
 			return (e.From().ID() != 3 || e.To().ID() != 5) && (e.From().ID() != 5 || e.To().ID() != 3)
 		},
-		from:  concrete.Node(1),
+		from:  simple.Node(1),
 		final: map[graph.Node]bool{nil: true},
 		want:  []int{0, 1, 2, 3, 4},
 	},
 	{
 		g:     wpBronKerboschGraph,
-		from:  concrete.Node(1),
-		until: func(n graph.Node) bool { return n == concrete.Node(3) },
-		final: map[graph.Node]bool{concrete.Node(3): true},
+		from:  simple.Node(1),
+		until: func(n graph.Node) bool { return n == simple.Node(3) },
+		final: map[graph.Node]bool{simple.Node(3): true},
 	},
 	{
 		g:     batageljZaversnikGraph,
-		from:  concrete.Node(0),
+		from:  simple.Node(0),
 		final: map[graph.Node]bool{nil: true},
 		want:  []int{0},
 	},
 	{
 		g:     batageljZaversnikGraph,
-		from:  concrete.Node(3),
+		from:  simple.Node(3),
 		final: map[graph.Node]bool{nil: true},
 		want:  []int{1, 2, 3, 4, 5},
 	},
 	{
 		g:     batageljZaversnikGraph,
-		from:  concrete.Node(13),
+		from:  simple.Node(13),
 		final: map[graph.Node]bool{nil: true},
 		want:  []int{6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20},
 	},
@@ -221,17 +222,17 @@ var depthFirstTests = []struct {
 
 func TestDepthFirst(t *testing.T) {
 	for i, test := range depthFirstTests {
-		g := concrete.NewGraph()
+		g := simple.NewUndirectedGraph(0, math.Inf(1))
 		for u, e := range test.g {
 			// Add nodes that are not defined by an edge.
-			if !g.Has(concrete.Node(u)) {
-				g.AddNode(concrete.Node(u))
+			if !g.Has(simple.Node(u)) {
+				g.AddNode(simple.Node(u))
 			}
 			for v := range e {
-				g.SetEdge(concrete.Edge{F: concrete.Node(u), T: concrete.Node(v)}, 0)
+				g.SetEdge(simple.Edge{F: simple.Node(u), T: simple.Node(v)})
 			}
 		}
-		w := traverse.DepthFirst{
+		w := DepthFirst{
 			EdgeFilter: test.edge,
 		}
 		var got []int
@@ -282,34 +283,34 @@ var walkAllTests = []struct {
 
 func TestWalkAll(t *testing.T) {
 	for i, test := range walkAllTests {
-		g := concrete.NewGraph()
+		g := simple.NewUndirectedGraph(0, math.Inf(1))
 
 		for u, e := range test.g {
-			if !g.Has(concrete.Node(u)) {
-				g.AddNode(concrete.Node(u))
+			if !g.Has(simple.Node(u)) {
+				g.AddNode(simple.Node(u))
 			}
 			for v := range e {
-				if !g.Has(concrete.Node(v)) {
-					g.AddNode(concrete.Node(v))
+				if !g.Has(simple.Node(v)) {
+					g.AddNode(simple.Node(v))
 				}
-				g.SetEdge(concrete.Edge{F: concrete.Node(u), T: concrete.Node(v)}, 0)
+				g.SetEdge(simple.Edge{F: simple.Node(u), T: simple.Node(v)})
 			}
 		}
 		type walker interface {
 			WalkAll(g graph.Undirected, before, after func(), during func(graph.Node))
 		}
 		for _, w := range []walker{
-			&traverse.BreadthFirst{},
-			&traverse.DepthFirst{},
+			&BreadthFirst{},
+			&DepthFirst{},
 		} {
 			var (
 				c  []graph.Node
 				cc [][]graph.Node
 			)
 			switch w := w.(type) {
-			case *traverse.BreadthFirst:
+			case *BreadthFirst:
 				w.EdgeFilter = test.edge
-			case *traverse.DepthFirst:
+			case *DepthFirst:
 				w.EdgeFilter = test.edge
 			default:
 				panic(fmt.Sprintf("bad walker type: %T", w))
@@ -333,7 +334,7 @@ func TestWalkAll(t *testing.T) {
 				sort.Ints(ids)
 				got[j] = ids
 			}
-			sort.Sort(internal.BySliceValues(got))
+			sort.Sort(ordered.BySliceValues(got))
 			if !reflect.DeepEqual(got, test.want) {
 				t.Errorf("unexpected connected components for test %d using %T:\ngot: %v\nwant:%v", i, w, got, test.want)
 			}
@@ -353,4 +354,81 @@ func linksTo(i ...int) set {
 		s[v] = struct{}{}
 	}
 	return s
+}
+
+var (
+	gnpUndirected_10_tenth   = gnpUndirected(10, 0.1)
+	gnpUndirected_100_tenth  = gnpUndirected(100, 0.1)
+	gnpUndirected_1000_tenth = gnpUndirected(1000, 0.1)
+	gnpUndirected_10_half    = gnpUndirected(10, 0.5)
+	gnpUndirected_100_half   = gnpUndirected(100, 0.5)
+	gnpUndirected_1000_half  = gnpUndirected(1000, 0.5)
+)
+
+func gnpUndirected(n int, p float64) graph.Undirected {
+	g := simple.NewUndirectedGraph(0, math.Inf(1))
+	gen.Gnp(g, n, p, nil)
+	return g
+}
+
+func benchmarkWalkAllBreadthFirst(b *testing.B, g graph.Undirected) {
+	n := len(g.Nodes())
+	b.ResetTimer()
+	var bft BreadthFirst
+	for i := 0; i < b.N; i++ {
+		bft.WalkAll(g, nil, nil, nil)
+	}
+	if bft.visited.Len() != n {
+		b.Fatalf("unexpected number of nodes visited: want: %d got %d", n, bft.visited.Len())
+	}
+}
+
+func BenchmarkWalkAllBreadthFirstGnp_10_tenth(b *testing.B) {
+	benchmarkWalkAllBreadthFirst(b, gnpUndirected_10_tenth)
+}
+func BenchmarkWalkAllBreadthFirstGnp_100_tenth(b *testing.B) {
+	benchmarkWalkAllBreadthFirst(b, gnpUndirected_100_tenth)
+}
+func BenchmarkWalkAllBreadthFirstGnp_1000_tenth(b *testing.B) {
+	benchmarkWalkAllBreadthFirst(b, gnpUndirected_1000_tenth)
+}
+func BenchmarkWalkAllBreadthFirstGnp_10_half(b *testing.B) {
+	benchmarkWalkAllBreadthFirst(b, gnpUndirected_10_half)
+}
+func BenchmarkWalkAllBreadthFirstGnp_100_half(b *testing.B) {
+	benchmarkWalkAllBreadthFirst(b, gnpUndirected_100_half)
+}
+func BenchmarkWalkAllBreadthFirstGnp_1000_half(b *testing.B) {
+	benchmarkWalkAllBreadthFirst(b, gnpUndirected_1000_half)
+}
+
+func benchmarkWalkAllDepthFirst(b *testing.B, g graph.Undirected) {
+	n := len(g.Nodes())
+	b.ResetTimer()
+	var dft DepthFirst
+	for i := 0; i < b.N; i++ {
+		dft.WalkAll(g, nil, nil, nil)
+	}
+	if dft.visited.Len() != n {
+		b.Fatalf("unexpected number of nodes visited: want: %d got %d", n, dft.visited.Len())
+	}
+}
+
+func BenchmarkWalkAllDepthFirstGnp_10_tenth(b *testing.B) {
+	benchmarkWalkAllDepthFirst(b, gnpUndirected_10_tenth)
+}
+func BenchmarkWalkAllDepthFirstGnp_100_tenth(b *testing.B) {
+	benchmarkWalkAllDepthFirst(b, gnpUndirected_100_tenth)
+}
+func BenchmarkWalkAllDepthFirstGnp_1000_tenth(b *testing.B) {
+	benchmarkWalkAllDepthFirst(b, gnpUndirected_1000_tenth)
+}
+func BenchmarkWalkAllDepthFirstGnp_10_half(b *testing.B) {
+	benchmarkWalkAllDepthFirst(b, gnpUndirected_10_half)
+}
+func BenchmarkWalkAllDepthFirstGnp_100_half(b *testing.B) {
+	benchmarkWalkAllDepthFirst(b, gnpUndirected_100_half)
+}
+func BenchmarkWalkAllDepthFirstGnp_1000_half(b *testing.B) {
+	benchmarkWalkAllDepthFirst(b, gnpUndirected_1000_half)
 }

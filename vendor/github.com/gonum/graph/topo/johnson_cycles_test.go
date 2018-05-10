@@ -2,25 +2,25 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package topo_test
+package topo
 
 import (
+	"math"
 	"reflect"
 	"sort"
 	"testing"
 
-	"github.com/gonum/graph/concrete"
-	"github.com/gonum/graph/internal"
-	"github.com/gonum/graph/topo"
+	"github.com/gonum/graph/internal/ordered"
+	"github.com/gonum/graph/simple"
 )
 
 var cyclesInTests = []struct {
-	g    []set
+	g    []intset
 	sccs [][]int
 	want [][]int
 }{
 	{
-		g: []set{
+		g: []intset{
 			0: linksTo(1),
 			1: linksTo(2, 7),
 			2: linksTo(3, 6),
@@ -36,7 +36,7 @@ var cyclesInTests = []struct {
 		},
 	},
 	{
-		g: []set{
+		g: []intset{
 			0: linksTo(1, 2, 3),
 			1: linksTo(2),
 			2: linksTo(3),
@@ -47,7 +47,7 @@ var cyclesInTests = []struct {
 		},
 	},
 	{
-		g: []set{
+		g: []intset{
 			0: linksTo(1),
 			1: linksTo(0, 2),
 			2: linksTo(1),
@@ -58,7 +58,7 @@ var cyclesInTests = []struct {
 		},
 	},
 	{
-		g: []set{
+		g: []intset{
 			0: linksTo(1),
 			1: linksTo(2, 3),
 			2: linksTo(4, 5),
@@ -70,7 +70,7 @@ var cyclesInTests = []struct {
 		want: nil,
 	},
 	{
-		g: []set{
+		g: []intset{
 			0: linksTo(1),
 			1: linksTo(2, 3, 4),
 			2: linksTo(0, 3),
@@ -86,18 +86,18 @@ var cyclesInTests = []struct {
 
 func TestCyclesIn(t *testing.T) {
 	for i, test := range cyclesInTests {
-		g := concrete.NewDirectedGraph()
-		g.AddNode(concrete.Node(-10)) // Make sure we test graphs with sparse IDs.
+		g := simple.NewDirectedGraph(0, math.Inf(1))
+		g.AddNode(simple.Node(-10)) // Make sure we test graphs with sparse IDs.
 		for u, e := range test.g {
 			// Add nodes that are not defined by an edge.
-			if !g.Has(concrete.Node(u)) {
-				g.AddNode(concrete.Node(u))
+			if !g.Has(simple.Node(u)) {
+				g.AddNode(simple.Node(u))
 			}
 			for v := range e {
-				g.SetEdge(concrete.Edge{F: concrete.Node(u), T: concrete.Node(v)}, 0)
+				g.SetEdge(simple.Edge{F: simple.Node(u), T: simple.Node(v)})
 			}
 		}
-		cycles := topo.CyclesIn(g)
+		cycles := CyclesIn(g)
 		var got [][]int
 		if cycles != nil {
 			got = make([][]int, len(cycles))
@@ -111,7 +111,7 @@ func TestCyclesIn(t *testing.T) {
 			}
 			got[j] = ids
 		}
-		sort.Sort(internal.BySliceValues(got))
+		sort.Sort(ordered.BySliceValues(got))
 		if !reflect.DeepEqual(got, test.want) {
 			t.Errorf("unexpected johnson result for %d:\n\tgot:%#v\n\twant:%#v", i, got, test.want)
 		}

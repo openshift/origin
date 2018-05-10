@@ -8,17 +8,8 @@ import (
 	"container/heap"
 
 	"github.com/gonum/graph"
-	"github.com/gonum/graph/internal"
+	"github.com/gonum/graph/internal/set"
 )
-
-// Heuristic returns an estimate of the cost of travelling between two nodes.
-type Heuristic func(x, y graph.Node) float64
-
-// HeuristicCoster wraps the HeuristicCost method. A graph implementing the
-// interface provides a heuristic between any two given nodes.
-type HeuristicCoster interface {
-	HeuristicCost(x, y graph.Node) float64
-}
 
 // AStar finds the A*-shortest path from s to t in g using the heuristic h. The path and
 // its cost are returned in a Shortest along with paths and costs to all nodes explored
@@ -31,16 +22,16 @@ type HeuristicCoster interface {
 //
 // If h is nil, AStar will use the g.HeuristicCost method if g implements HeuristicCoster,
 // falling back to NullHeuristic otherwise. If the graph does not implement graph.Weighter,
-// graph.UniformCost is used. AStar will panic if g has an A*-reachable negative edge weight.
+// UniformCost is used. AStar will panic if g has an A*-reachable negative edge weight.
 func AStar(s, t graph.Node, g graph.Graph, h Heuristic) (path Shortest, expanded int) {
 	if !g.Has(s) || !g.Has(t) {
 		return Shortest{from: s}, 0
 	}
-	var weight graph.WeightFunc
-	if g, ok := g.(graph.Weighter); ok {
-		weight = g.Weight
+	var weight Weighting
+	if wg, ok := g.(graph.Weighter); ok {
+		weight = wg.Weight
 	} else {
-		weight = graph.UniformCost
+		weight = UniformCost(g)
 	}
 	if h == nil {
 		if g, ok := g.(HeuristicCoster); ok {
@@ -53,7 +44,7 @@ func AStar(s, t graph.Node, g graph.Graph, h Heuristic) (path Shortest, expanded
 	path = newShortestFrom(s, g.Nodes())
 	tid := t.ID()
 
-	visited := make(internal.IntSet)
+	visited := make(set.Ints)
 	open := &aStarQueue{indexOf: make(map[int]int)}
 	heap.Push(open, aStarNode{node: s, gscore: 0, fscore: h(s, t)})
 
@@ -75,7 +66,10 @@ func AStar(s, t graph.Node, g graph.Graph, h Heuristic) (path Shortest, expanded
 			}
 			j := path.indexOf[vid]
 
-			w := weight(g.Edge(u.node, v))
+			w, ok := weight(u.node, v)
+			if !ok {
+				panic("A*: unexpected invalid weight")
+			}
 			if w < 0 {
 				panic("A*: negative edge weight")
 			}

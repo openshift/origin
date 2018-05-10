@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package path_test
+package path
 
 import (
 	"math"
@@ -10,9 +10,9 @@ import (
 	"testing"
 
 	"github.com/gonum/graph"
-	"github.com/gonum/graph/concrete"
-	"github.com/gonum/graph/path"
 	"github.com/gonum/graph/path/internal"
+	"github.com/gonum/graph/path/internal/testgraphs"
+	"github.com/gonum/graph/simple"
 	"github.com/gonum/graph/topo"
 )
 
@@ -21,7 +21,7 @@ var aStarTests = []struct {
 	g    graph.Graph
 
 	s, t      int
-	heuristic path.Heuristic
+	heuristic Heuristic
 	wantPath  []int
 }{
 	{
@@ -127,19 +127,19 @@ var aStarTests = []struct {
 
 func TestAStar(t *testing.T) {
 	for _, test := range aStarTests {
-		pt, _ := path.AStar(concrete.Node(test.s), concrete.Node(test.t), test.g, test.heuristic)
+		pt, _ := AStar(simple.Node(test.s), simple.Node(test.t), test.g, test.heuristic)
 
-		p, cost := pt.To(concrete.Node(test.t))
+		p, cost := pt.To(simple.Node(test.t))
 
 		if !topo.IsPathIn(test.g, p) {
 			t.Error("got path that is not path in input graph for %q", test.name)
 		}
 
-		bfp, ok := path.BellmanFordFrom(concrete.Node(test.s), test.g)
+		bfp, ok := BellmanFordFrom(simple.Node(test.s), test.g)
 		if !ok {
 			t.Fatalf("unexpected negative cycle in %q", test.name)
 		}
-		if want := bfp.WeightTo(concrete.Node(test.t)); cost != want {
+		if want := bfp.WeightTo(simple.Node(test.t)); cost != want {
 			t.Errorf("unexpected cost for %q: got:%v want:%v", test.name, cost, want)
 		}
 
@@ -154,7 +154,7 @@ func TestAStar(t *testing.T) {
 }
 
 func TestExhaustiveAStar(t *testing.T) {
-	g := concrete.NewGraph()
+	g := simple.NewUndirectedGraph(0, math.Inf(1))
 	nodes := []locatedNode{
 		{id: 1, x: 0, y: 6},
 		{id: 2, x: 1, y: 0},
@@ -179,7 +179,7 @@ func TestExhaustiveAStar(t *testing.T) {
 		{from: g.Node(5), to: g.Node(6), cost: 9},
 	}
 	for _, e := range edges {
-		g.SetEdge(e, e.cost)
+		g.SetEdge(e)
 	}
 
 	heuristic := func(u, v graph.Node) float64 {
@@ -192,10 +192,10 @@ func TestExhaustiveAStar(t *testing.T) {
 		t.Fatalf("non-monotonic heuristic at edge:%v for goal:%v", edge, goal)
 	}
 
-	ps := path.DijkstraAllPaths(g)
+	ps := DijkstraAllPaths(g)
 	for _, start := range g.Nodes() {
 		for _, goal := range g.Nodes() {
-			pt, _ := path.AStar(start, goal, g, heuristic)
+			pt, _ := AStar(start, goal, g, heuristic)
 			gotPath, gotWeight := pt.To(goal)
 			wantPath, wantWeight, _ := ps.Between(start, goal)
 			if gotWeight != wantWeight {
@@ -224,18 +224,18 @@ type weightedEdge struct {
 
 func (e weightedEdge) From() graph.Node { return e.from }
 func (e weightedEdge) To() graph.Node   { return e.to }
+func (e weightedEdge) Weight() float64  { return e.cost }
 
-type costEdgeListGraph interface {
-	graph.Weighter
-	path.EdgeListerGraph
-}
-
-func isMonotonic(g costEdgeListGraph, h path.Heuristic) (ok bool, at graph.Edge, goal graph.Node) {
+func isMonotonic(g UndirectedWeightLister, h Heuristic) (ok bool, at graph.Edge, goal graph.Node) {
 	for _, goal := range g.Nodes() {
 		for _, edge := range g.Edges() {
 			from := edge.From()
 			to := edge.To()
-			if h(from, goal) > g.Weight(edge)+h(to, goal) {
+			w, ok := g.Weight(from, to)
+			if !ok {
+				panic("A*: unexpected invalid weight")
+			}
+			if h(from, goal) > w+h(to, goal) {
 				return false, edge, goal
 			}
 		}
@@ -244,14 +244,14 @@ func isMonotonic(g costEdgeListGraph, h path.Heuristic) (ok bool, at graph.Edge,
 }
 
 func TestAStarNullHeuristic(t *testing.T) {
-	for _, test := range shortestPathTests {
-		g := test.g()
-		for _, e := range test.edges {
-			g.SetEdge(e, e.Cost)
+	for _, test := range testgraphs.ShortestPathTests {
+		g := test.Graph()
+		for _, e := range test.Edges {
+			g.SetEdge(e)
 		}
 
 		var (
-			pt path.Shortest
+			pt Shortest
 
 			panicked bool
 		)
@@ -259,38 +259,38 @@ func TestAStarNullHeuristic(t *testing.T) {
 			defer func() {
 				panicked = recover() != nil
 			}()
-			pt, _ = path.AStar(test.query.From(), test.query.To(), g.(graph.Graph), nil)
+			pt, _ = AStar(test.Query.From(), test.Query.To(), g.(graph.Graph), nil)
 		}()
-		if panicked || test.negative {
-			if !test.negative {
-				t.Errorf("%q: unexpected panic", test.name)
+		if panicked || test.HasNegativeWeight {
+			if !test.HasNegativeWeight {
+				t.Errorf("%q: unexpected panic", test.Name)
 			}
 			if !panicked {
-				t.Errorf("%q: expected panic for negative edge weight", test.name)
+				t.Errorf("%q: expected panic for negative edge weight", test.Name)
 			}
 			continue
 		}
 
-		if pt.From().ID() != test.query.From().ID() {
-			t.Fatalf("%q: unexpected from node ID: got:%d want:%d", pt.From().ID(), test.query.From().ID())
+		if pt.From().ID() != test.Query.From().ID() {
+			t.Fatalf("%q: unexpected from node ID: got:%d want:%d", pt.From().ID(), test.Query.From().ID())
 		}
 
-		p, weight := pt.To(test.query.To())
-		if weight != test.weight {
+		p, weight := pt.To(test.Query.To())
+		if weight != test.Weight {
 			t.Errorf("%q: unexpected weight from Between: got:%f want:%f",
-				test.name, weight, test.weight)
+				test.Name, weight, test.Weight)
 		}
-		if weight := pt.WeightTo(test.query.To()); weight != test.weight {
+		if weight := pt.WeightTo(test.Query.To()); weight != test.Weight {
 			t.Errorf("%q: unexpected weight from Weight: got:%f want:%f",
-				test.name, weight, test.weight)
+				test.Name, weight, test.Weight)
 		}
 
 		var got []int
 		for _, n := range p {
 			got = append(got, n.ID())
 		}
-		ok := len(got) == 0 && len(test.want) == 0
-		for _, sp := range test.want {
+		ok := len(got) == 0 && len(test.WantPaths) == 0
+		for _, sp := range test.WantPaths {
 			if reflect.DeepEqual(got, sp) {
 				ok = true
 				break
@@ -298,13 +298,13 @@ func TestAStarNullHeuristic(t *testing.T) {
 		}
 		if !ok {
 			t.Errorf("%q: unexpected shortest path:\ngot: %v\nwant from:%v",
-				test.name, p, test.want)
+				test.Name, p, test.WantPaths)
 		}
 
-		np, weight := pt.To(test.none.To())
-		if pt.From().ID() == test.none.From().ID() && (np != nil || !math.IsInf(weight, 1)) {
+		np, weight := pt.To(test.NoPathFor.To())
+		if pt.From().ID() == test.NoPathFor.From().ID() && (np != nil || !math.IsInf(weight, 1)) {
 			t.Errorf("%q: unexpected path:\ngot: path=%v weight=%f\nwant:path=<nil> weight=+Inf",
-				test.name, np, weight)
+				test.Name, np, weight)
 		}
 	}
 }

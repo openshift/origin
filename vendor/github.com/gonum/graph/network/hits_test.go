@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	"github.com/gonum/floats"
-	"github.com/gonum/graph/concrete"
+	"github.com/gonum/graph/simple"
 )
 
 var hitsTests = []struct {
@@ -43,14 +43,14 @@ var hitsTests = []struct {
 
 func TestHITS(t *testing.T) {
 	for i, test := range hitsTests {
-		g := concrete.NewDirectedGraph()
+		g := simple.NewDirectedGraph(0, math.Inf(1))
 		for u, e := range test.g {
 			// Add nodes that are not defined by an edge.
-			if !g.Has(concrete.Node(u)) {
-				g.AddNode(concrete.Node(u))
+			if !g.Has(simple.Node(u)) {
+				g.AddNode(simple.Node(u))
 			}
 			for v := range e {
-				g.SetEdge(concrete.Edge{F: concrete.Node(u), T: concrete.Node(v)}, 0)
+				g.SetEdge(simple.Edge{F: simple.Node(u), T: simple.Node(v)})
 			}
 		}
 		got := HITS(g, test.tol)

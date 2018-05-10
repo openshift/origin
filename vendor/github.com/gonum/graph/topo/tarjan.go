@@ -8,8 +8,10 @@ import (
 	"fmt"
 	"sort"
 
+	"golang.org/x/tools/container/intsets"
+
 	"github.com/gonum/graph"
-	"github.com/gonum/graph/internal"
+	"github.com/gonum/graph/internal/ordered"
 )
 
 // Unorderable is an error containing sets of unorderable graph.Nodes.
@@ -29,6 +31,8 @@ func (e Unorderable) Error() string {
 	return fmt.Sprintf("topo: no topological ordering: cyclic components: %v", [][]graph.Node(e))
 }
 
+func lexical(nodes []graph.Node) { sort.Sort(ordered.ByID(nodes)) }
+
 // Sort performs a topological sort of the directed graph g returning the 'from' to 'to'
 // sort order. If a topological ordering is not possible, an Unorderable error is returned
 // listing cyclic components in g with each cyclic component's members sorted by ID. When
@@ -36,17 +40,37 @@ func (e Unorderable) Error() string {
 // the sorted nodes is marked with a nil graph.Node.
 func Sort(g graph.Directed) (sorted []graph.Node, err error) {
 	sccs := TarjanSCC(g)
-	sorted = make([]graph.Node, 0, len(sccs))
+	return sortedFrom(sccs, lexical)
+}
+
+// SortStabilized performs a topological sort of the directed graph g returning the 'from'
+// to 'to' sort order, or the order defined by the in place order sort function where there
+// is no unambiguous topological ordering. If a topological ordering is not possible, an
+// Unorderable error is returned listing cyclic components in g with each cyclic component's
+// members sorted by the provided order function. If order is nil, nodes are ordered lexically
+// by node ID. When an Unorderable error is returned, each cyclic component's topological
+// position within the sorted nodes is marked with a nil graph.Node.
+func SortStabilized(g graph.Directed, order func([]graph.Node)) (sorted []graph.Node, err error) {
+	if order == nil {
+		order = lexical
+	}
+	sccs := tarjanSCCstabilized(g, order)
+	return sortedFrom(sccs, order)
+}
+
+func sortedFrom(sccs [][]graph.Node, order func([]graph.Node)) ([]graph.Node, error) {
+	sorted := make([]graph.Node, 0, len(sccs))
 	var sc Unorderable
 	for _, s := range sccs {
 		if len(s) != 1 {
-			sort.Sort(byID(s))
+			order(s)
 			sc = append(sc, s)
 			sorted = append(sorted, nil)
 			continue
 		}
 		sorted = append(sorted, s[0])
 	}
+	var err error
 	if sc != nil {
 		for i, j := 0, len(sc)-1; i < j; i, j = i+1, j-1 {
 			sc[i], sc[j] = sc[j], sc[i]
@@ -73,13 +97,32 @@ func reverse(p []graph.Node) {
 // only a little extra testing.)
 //
 func TarjanSCC(g graph.Directed) [][]graph.Node {
+	return tarjanSCCstabilized(g, nil)
+}
+
+func tarjanSCCstabilized(g graph.Directed, order func([]graph.Node)) [][]graph.Node {
 	nodes := g.Nodes()
+	var succ func(graph.Node) []graph.Node
+	if order == nil {
+		succ = g.From
+	} else {
+		order(nodes)
+		reverse(nodes)
+
+		succ = func(n graph.Node) []graph.Node {
+			to := g.From(n)
+			order(to)
+			reverse(to)
+			return to
+		}
+	}
+
 	t := tarjan{
-		succ: g.From,
+		succ: succ,
 
 		indexTable: make(map[int]int, len(nodes)),
 		lowLink:    make(map[int]int, len(nodes)),
-		onStack:    make(internal.IntSet, len(nodes)),
+		onStack:    &intsets.Sparse{},
 	}
 	for _, v := range nodes {
 		if t.indexTable[v.ID()] == 0 {
@@ -100,7 +143,7 @@ type tarjan struct {
 	index      int
 	indexTable map[int]int
 	lowLink    map[int]int
-	onStack    internal.IntSet
+	onStack    *intsets.Sparse
 
 	stack []graph.Node
 
@@ -117,7 +160,7 @@ func (t *tarjan) strongconnect(v graph.Node) {
 	t.indexTable[vID] = t.index
 	t.lowLink[vID] = t.index
 	t.stack = append(t.stack, v)
-	t.onStack.Add(vID)
+	t.onStack.Insert(vID)
 
 	// Consider successors of v.
 	for _, w := range t.succ(v) {
