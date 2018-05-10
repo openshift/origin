@@ -127,6 +127,7 @@ os::cmd::expect_success 'oc adm groups add-users group1 baz'
 os::cmd::expect_success_and_text 'oc get groups/group1 --no-headers' 'baz'
 os::cmd::expect_success 'oc adm groups remove-users group1 bar'
 os::cmd::expect_success_and_not_text 'oc get groups/group1 --no-headers' 'bar'
+os::cmd::expect_success_and_text 'oc adm prune auth users/baz' 'group.user.openshift.io/group1 updated'
 echo "groups: ok"
 os::test::junit::declare_suite_end
 
@@ -180,6 +181,12 @@ os::cmd::expect_success 'oc adm policy remove-scc-from-user privileged -z fake-s
 os::cmd::expect_success_and_not_text 'oc get scc/privileged -o yaml' "system:serviceaccount:$(oc project -q):fake-sa"
 os::cmd::expect_success 'oc adm policy remove-scc-from-group privileged fake-group'
 os::cmd::expect_success_and_not_text 'oc get scc/privileged -o yaml' 'fake-group'
+
+# check pruning
+os::cmd::expect_success 'oc adm policy add-scc-to-user privileged fake-user'
+os::cmd::expect_success_and_text 'oc adm prune auth users/fake-user' 'securitycontextconstraints.security.openshift.io/privileged updated'
+os::cmd::expect_success 'oc adm policy add-scc-to-group privileged fake-group'
+os::cmd::expect_success_and_text 'oc adm prune auth groups/fake-group' 'securitycontextconstraints.security.openshift.io/privileged updated'
 echo "admin-scc: ok"
 os::test::junit::declare_suite_end
 
@@ -277,6 +284,18 @@ os::cmd::expect_success "oc delete clusterrole/edit"
 os::cmd::expect_failure "oc get rolebinding/edit"
 os::cmd::expect_success "oc adm policy reconcile-cluster-roles --confirm"
 os::cmd::expect_success "oc adm policy reconcile-cluster-role-bindings --confirm"
+
+os::cmd::expect_success "oc process -f test/extended/testdata/roles/policy-roles.yaml -p NAMESPACE='${project}' | oc create -f -"
+os::cmd::expect_success "oc get rolebinding/basic-users"
+os::cmd::expect_success_and_text "oc adm prune auth role/basic-user" "rolebinding.rbac.authorization.k8s.io/basic-users deleted"
+os::cmd::expect_success "oc get role/basic-user"
+os::cmd::expect_success "oc delete role/basic-user"
+
+os::cmd::expect_success "oc create -f test/extended/testdata/roles/policy-clusterroles.yaml"
+os::cmd::expect_success "oc get clusterrolebinding/basic-users2"
+os::cmd::expect_success_and_text "oc adm prune auth clusterrole/basic-user2"  "clusterrolebinding.rbac.authorization.k8s.io/basic-users2 deleted"
+os::cmd::expect_success "oc get clusterrole/basic-user2"
+os::cmd::expect_success "oc delete clusterrole/basic-user2"
 echo "admin-role-reapers: ok"
 os::test::junit::declare_suite_end
 

@@ -10,12 +10,11 @@ import (
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	authorizationclientinternal "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
-	authorizationreaper "github.com/openshift/origin/pkg/authorization/reaper"
 	oauthclientinternal "github.com/openshift/origin/pkg/oauth/generated/internalclientset"
+	"github.com/openshift/origin/pkg/oc/admin/prune/authprune"
 	securityclientinternal "github.com/openshift/origin/pkg/security/generated/internalclientset"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
 	userclientinternal "github.com/openshift/origin/pkg/user/generated/internalclientset"
-	authenticationreaper "github.com/openshift/origin/pkg/user/reaper"
 )
 
 type ring2Factory struct {
@@ -67,17 +66,17 @@ func (f *ring2Factory) Reaper(mapping *meta.RESTMapping) (kubectl.Reaper, error)
 	gk := mapping.GroupVersionKind.GroupKind()
 	switch {
 	case authorizationapi.IsKindOrLegacy("Role", gk):
-		authClient, err := authorizationclientinternal.NewForConfig(clientConfig)
+		kubeClient, err := f.clientAccessFactory.KubernetesClientSet()
 		if err != nil {
 			return nil, err
 		}
-		return authorizationreaper.NewRoleReaper(authClient.Authorization(), authClient.Authorization()), nil
+		return authprune.NewRoleReaper(kubeClient.RbacV1(), kubeClient.RbacV1()), nil
 	case authorizationapi.IsKindOrLegacy("ClusterRole", gk):
-		authClient, err := authorizationclientinternal.NewForConfig(clientConfig)
+		kubeClient, err := f.clientAccessFactory.KubernetesClientSet()
 		if err != nil {
 			return nil, err
 		}
-		return authorizationreaper.NewClusterRoleReaper(authClient.Authorization(), authClient.Authorization(), authClient.Authorization()), nil
+		return authprune.NewClusterRoleReaper(kubeClient.RbacV1(), kubeClient.RbacV1(), kubeClient.RbacV1()), nil
 	case userapi.IsKindOrLegacy("User", gk):
 		userClient, err := userclientinternal.NewForConfig(clientConfig)
 		if err != nil {
@@ -95,10 +94,8 @@ func (f *ring2Factory) Reaper(mapping *meta.RESTMapping) (kubectl.Reaper, error)
 		if err != nil {
 			return nil, err
 		}
-		return authenticationreaper.NewUserReaper(
+		return authprune.NewUserReaper(
 			userClient,
-			userClient,
-			authClient,
 			authClient,
 			oauthClient,
 			securityClient.Security().SecurityContextConstraints(),
@@ -116,9 +113,8 @@ func (f *ring2Factory) Reaper(mapping *meta.RESTMapping) (kubectl.Reaper, error)
 		if err != nil {
 			return nil, err
 		}
-		return authenticationreaper.NewGroupReaper(
+		return authprune.NewGroupReaper(
 			userClient,
-			authClient,
 			authClient,
 			securityClient.Security().SecurityContextConstraints(),
 		), nil
