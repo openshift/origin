@@ -21,7 +21,8 @@ var ControllerInitializers = map[string]InitFunc{
 	"openshift.io/image-import":           RunImageImportController,
 	"openshift.io/image-signature-import": RunImageSignatureImportController,
 
-	"openshift.io/templateinstance": RunTemplateInstanceController,
+	"openshift.io/templateinstance":          RunTemplateInstanceController,
+	"openshift.io/templateinstancefinalizer": RunTemplateInstanceFinalizerController,
 
 	"openshift.io/sdn":              RunSDNController,
 	"openshift.io/unidling":         RunUnidlingController,

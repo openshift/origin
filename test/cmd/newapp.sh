@@ -274,8 +274,8 @@ os::cmd::expect_success_and_text 'oc new-app --search ruby-helloworld-sample' 'r
 os::cmd::expect_success_and_text 'oc new-app --search ruby-hellow' 'ruby-helloworld-sample'
 os::cmd::expect_success_and_text 'oc new-app --search --template=ruby-hel' 'ruby-helloworld-sample'
 os::cmd::expect_success_and_text 'oc new-app --search --template=ruby-helloworld-sam -o yaml' 'ruby-helloworld-sample'
-os::cmd::expect_success_and_text 'oc new-app --search rub' "Tags:\s+2.3, 2.4, latest"
-os::cmd::expect_success_and_text 'oc new-app --search --image-stream=rub' "Tags:\s+2.3, 2.4, latest"
+os::cmd::expect_success_and_text 'oc new-app --search rub' "Tags:\s+2.3, 2.4, 2.5, latest"
+os::cmd::expect_success_and_text 'oc new-app --search --image-stream=rub' "Tags:\s+2.3, 2.4, 2.5, latest"
 # check search - check correct usage of filters
 os::cmd::expect_failure_and_not_text 'oc new-app --search --image-stream=ruby-heloworld-sample' 'application-template-stibuild'
 os::cmd::expect_failure 'oc new-app --search --template=php'
@@ -329,6 +329,7 @@ os::cmd::try_until_success 'oc get imagestreamtags ruby:2.0'
 os::cmd::try_until_success 'oc get imagestreamtags ruby:2.2'
 os::cmd::try_until_success 'oc get imagestreamtags ruby:2.3'
 os::cmd::try_until_success 'oc get imagestreamtags ruby:2.4'
+os::cmd::try_until_success 'oc get imagestreamtags ruby:2.5'
 os::cmd::try_until_success 'oc get imagestreamtags wildfly:latest'
 os::cmd::try_until_success 'oc get imagestreamtags wildfly:12.0'
 os::cmd::try_until_success 'oc get imagestreamtags wildfly:11.0'
@@ -346,7 +347,7 @@ os::cmd::expect_success_and_text 'oc new-app --search --image-stream=perl' "Tags
 os::cmd::expect_success_and_text 'oc new-app --search --image-stream=php' "Tags:\s+7.0, 7.1, latest"
 os::cmd::expect_success_and_text 'oc new-app --search --image-stream=postgresql' "Tags:\s+9.5, 9.6, latest"
 os::cmd::expect_success_and_text 'oc new-app -S --image-stream=python' "Tags:\s+2.7, 3.5, 3.6, latest"
-os::cmd::expect_success_and_text 'oc new-app -S --image-stream=ruby' "Tags:\s+2.3, 2.4, latest"
+os::cmd::expect_success_and_text 'oc new-app -S --image-stream=ruby' "Tags:\s+2.3, 2.4, 2.5, latest"
 os::cmd::expect_success_and_text 'oc new-app -S --image-stream=wildfly' "Tags:\s+10.0, 10.1, 11.0, 12.0, 8.1, 9.0, latest"
 os::cmd::expect_success_and_text 'oc new-app --search --template=ruby-helloworld-sample' 'ruby-helloworld-sample'
 # check search - no matches
@@ -411,15 +412,16 @@ os::cmd::expect_success_and_text 'oc new-build --binary --image=ruby --strategy=
 # latest tag, new-app should fail.
 # when latest exists, we default to it and match it.
 os::cmd::expect_success 'oc new-app --image-stream ruby https://github.com/sclorg/rails-ex --dry-run'
-# when latest does not exist, there are multiple partial matches (2.2, 2.3, 2.4)
+# when latest does not exist, there are multiple partial matches (2.2, 2.3, 2.4, 2.5)
 os::cmd::expect_success 'oc delete imagestreamtag ruby:latest'
 os::cmd::expect_failure_and_text 'oc new-app --image-stream ruby https://github.com/sclorg/rails-ex --dry-run' 'error: multiple images or templates matched \"ruby\":'
-# when only 2.3 exists, there is a single partial match (2.3)
+# when only 2.5 exists, there is a single partial match (2.5)
 os::cmd::expect_success 'oc delete imagestreamtag ruby:2.2'
 os::cmd::expect_success 'oc delete imagestreamtag ruby:2.3'
+os::cmd::expect_success 'oc delete imagestreamtag ruby:2.4'
 os::cmd::expect_failure_and_text 'oc new-app --image-stream ruby https://github.com/openshift/rails-ex --dry-run' 'error: only a partial match was found for \"ruby\":'
 # when the tag is specified explicitly, the operation is successful
-os::cmd::expect_success 'oc new-app --image-stream ruby:2.4 https://github.com/openshift/rails-ex --dry-run'
+os::cmd::expect_success 'oc new-app --image-stream ruby:2.5 https://github.com/openshift/rails-ex --dry-run'
 os::cmd::expect_success 'oc delete imagestreams --all'
 
 # newapp does not attempt to create an imagestream that already exists for a Docker image

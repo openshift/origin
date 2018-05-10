@@ -117,7 +117,7 @@
                         ],
                         "from": {
                             "kind": "ImageStreamTag",
-                            "name": "nodejs:6",
+                            "name": "nodejs:${NODEJS_VERSION}",
                             "namespace": "${NAMESPACE}"
                         }
                     },
@@ -213,7 +213,7 @@
                                 "image": " ",
                                 "livenessProbe": {
                                     "httpGet": {
-                                        "path": "/pagecount",
+                                        "path": "/",
                                         "port": 8080
                                     },
                                     "initialDelaySeconds": 30,
@@ -227,7 +227,7 @@
                                 ],
                                 "readinessProbe": {
                                     "httpGet": {
-                                        "path": "/pagecount",
+                                        "path": "/",
                                         "port": 8080
                                     },
                                     "initialDelaySeconds": 3,
@@ -420,7 +420,7 @@
                             ],
                             "from": {
                                 "kind": "ImageStreamTag",
-                                "name": "mongodb:3.2",
+                                "name": "mongodb:${MONGODB_VERSION}",
                                 "namespace": "${NAMESPACE}"
                             }
                         },
@@ -447,6 +447,20 @@
             "name": "NAMESPACE",
             "required": true,
             "value": "openshift"
+        },
+        {
+            "description": "Version of NodeJS image to be used (6, 8, or latest).",
+            "displayName": "Version of NodeJS Image",
+            "name": "NODEJS_VERSION",
+            "required": true,
+            "value": "8"
+        },
+        {
+            "description": "Version of MongoDB image to be used (3.2, 3.4, or latest).",
+            "displayName": "Version of MongoDB Image",
+            "name": "MONGODB_VERSION",
+            "required": true,
+            "value": "3.4"
         },
         {
             "description": "Maximum amount of memory the Node.js container can use.",

@@ -1,0 +1,27 @@
+package v310_00
+
+const WebConsoleConfig = `apiVersion: webconsole.config.openshift.io/v1
+kind: WebConsoleConfiguration
+clusterInfo:
+  consolePublicURL: https://127.0.0.1:8443/console/
+  loggingPublicURL: ""
+  logoutPublicURL: ""
+  masterPublicURL: https://127.0.0.1:8443
+  metricsPublicURL: ""
+extensions:
+  scriptURLs: []
+  stylesheetURLs: []
+  properties: null
+features:
+  inactivityTimeoutMinutes: 0
+  clusterResourceOverridesEnabled: false
+servingInfo:
+  bindAddress: 0.0.0.0:8443
+  bindNetwork: tcp4
+  certFile: /var/serving-cert/tls.crt
+  clientCA: ""
+  keyFile: /var/serving-cert/tls.key
+  maxRequestsInFlight: 0
+  namedCertificates: null
+  requestTimeoutSeconds: 0
+`

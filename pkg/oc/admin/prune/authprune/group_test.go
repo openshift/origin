@@ -1,4 +1,4 @@
-package reaper
+package authprune
 
 import (
 	"reflect"
@@ -153,7 +153,7 @@ func TestGroupReaper(t *testing.T) {
 		securityFake.Fake.PrependReactor("update", "*", kreactor)
 		securityFake.Fake.PrependReactor("delete", "*", kreactor)
 
-		reaper := NewGroupReaper(userFake, authFake, authFake, securityFake.Security().SecurityContextConstraints())
+		reaper := NewGroupReaper(userFake, authFake, securityFake.Security().SecurityContextConstraints())
 		err := reaper.Stop("", test.group, 0, nil)
 		if err != nil {
 			t.Errorf("%s: unexpected error: %v", test.name, err)

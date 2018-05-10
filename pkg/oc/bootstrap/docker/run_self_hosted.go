@@ -183,7 +183,7 @@ func (c *ClusterUpConfig) StartSelfHosted(out io.Writer) error {
 		return err
 	}
 
-	installContext, err := componentinstall.NewComponentInstallContext(c.openshiftImage(), c.imageFormat(), c.BaseDir, c.ServerLogLevel)
+	installContext, err := componentinstall.NewComponentInstallContext(c.cliImage(), c.imageFormat(), c.defaultPullPolicy, c.BaseDir, c.ServerLogLevel)
 	if err != nil {
 		return err
 	}

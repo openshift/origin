@@ -231,9 +231,10 @@ func (c *ClusterUpConfig) Complete(cmd *cobra.Command) error {
 	// Set the ImagePullPolicy field in static pods and components based in whether users specified
 	// the --tag flag or not.
 	c.defaultPullPolicy = "Always"
-	if cmd.Flag("image").Changed || cmd.Flag("tag").Changed {
+	if len(c.ImageTag) > 0 {
 		c.defaultPullPolicy = "IfNotPresent"
 	}
+	glog.V(5).Infof("Using %q as default image pull policy", c.defaultPullPolicy)
 
 	// Get the default client config for login
 	var err error
@@ -500,6 +501,9 @@ func (c *ClusterUpConfig) Start(out io.Writer) error {
 	if len(c.ComponentsToEnable) > 0 {
 		args := append([]string{}, "--image="+c.ImageTemplate.Format)
 		args = append(args, "--base-dir="+c.BaseDir)
+		if len(c.ImageTag) > 0 {
+			args = append(args, "--tag="+c.ImageTag)
+		}
 		args = append(args, c.ComponentsToEnable...)
 
 		if err := c.ClusterAdd.ParseFlags(args); err != nil {

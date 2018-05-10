@@ -71,6 +71,7 @@ oc-adm-migrate-etcd-ttl.1
 oc-adm-migrate-image-references.1
 oc-adm-migrate-legacy-hpa.1
 oc-adm-migrate-storage.1
+oc-adm-migrate-template-instances.1
 oc-adm-migrate.1
 oc-adm-new-project.1
 oc-adm-options.1
@@ -99,6 +100,7 @@ oc-adm-policy-scc-review.1
 oc-adm-policy-scc-subject-review.1
 oc-adm-policy-who-can.1
 oc-adm-policy.1
+oc-adm-prune-auth.1
 oc-adm-prune-builds.1
 oc-adm-prune-deployments.1
 oc-adm-prune-groups.1

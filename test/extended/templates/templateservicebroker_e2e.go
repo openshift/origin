@@ -8,8 +8,6 @@ import (
 	o "github.com/onsi/gomega"
 	"github.com/pborman/uuid"
 	"golang.org/x/net/context"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	"k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
@@ -17,7 +15,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/authentication/user"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	rbacapi "k8s.io/kubernetes/pkg/apis/rbac"
 	"k8s.io/kubernetes/test/e2e/framework"
@@ -240,13 +241,7 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 		examplesecret, err := cli.KubeClient().CoreV1().Secrets(cli.Namespace()).Get("mysql", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		o.Expect(examplesecret.OwnerReferences).To(o.ContainElement(metav1.OwnerReference{
-			APIVersion:         templateapiv1.SchemeGroupVersion.String(),
-			Kind:               "TemplateInstance",
-			Name:               templateInstance.Name,
-			UID:                templateInstance.UID,
-			BlockOwnerDeletion: &blockOwnerDeletion,
-		}))
+		o.Expect(examplesecret.Labels[templateapi.TemplateInstanceOwner]).To(o.Equal(string(templateInstance.UID)))
 		o.Expect(examplesecret.Data["database-user"]).To(o.BeEquivalentTo("test"))
 		o.Expect(examplesecret.Data["database-password"]).To(o.MatchRegexp("^[a-zA-Z0-9]{16}$"))
 	}
@@ -295,64 +290,64 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 		config, err := configapi.GetClientConfig(exutil.KubeConfigPath(), nil)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		// check the namespace is empty
-		for gvk := range legacyscheme.Scheme.AllKnownTypes() {
-			if gvk.Version == runtime.APIVersionInternal {
-				continue
-			}
+		err = wait.Poll(time.Second*1, 5*time.Minute, func() (bool, error) {
 
-			switch gvk.GroupKind() {
-			case kapi.Kind("Event"),
-				kapi.Kind("ServiceAccount"),
-				kapi.Kind("Secret"),
-				kapi.Kind("RoleBinding"),
-				rbacapi.Kind("RoleBinding"),
-				authorizationapi.LegacyKind("RoleBinding"),
-				authorizationapi.Kind("RoleBinding"),
-				schema.GroupKind{Group: "events.k8s.io", Kind: "Event"}:
-				continue
-			}
+			// check the namespace is empty
+			for gvk := range legacyscheme.Scheme.AllKnownTypes() {
+				if gvk.Version == runtime.APIVersionInternal {
+					continue
+				}
 
-			mapping, err := restmapper.RESTMapping(gvk.GroupKind())
-			if meta.IsNoMatchError(err) {
-				continue
-			}
-			o.Expect(err).NotTo(o.HaveOccurred())
+				switch gvk.GroupKind() {
+				case kapi.Kind("Event"),
+					kapi.Kind("ServiceAccount"),
+					kapi.Kind("Secret"),
+					kapi.Kind("RoleBinding"),
+					rbacapi.Kind("RoleBinding"),
+					authorizationapi.LegacyKind("RoleBinding"),
+					authorizationapi.Kind("RoleBinding"),
+					schema.GroupKind{Group: "events.k8s.io", Kind: "Event"}:
+					continue
+				}
 
-			if mapping.Scope.Name() != meta.RESTScopeNameNamespace {
-				continue
-			}
+				mapping, err := restmapper.RESTMapping(gvk.GroupKind())
+				if meta.IsNoMatchError(err) {
+					continue
+				}
+				o.Expect(err).NotTo(o.HaveOccurred())
 
-			restcli, err := bulk.ClientMapperFromConfig(config).ClientForMapping(mapping)
-			o.Expect(err).NotTo(o.HaveOccurred())
+				if mapping.Scope.Name() != meta.RESTScopeNameNamespace {
+					continue
+				}
 
-			// list all objects
-			obj, err := restcli.Get().Resource(mapping.Resource).Namespace(cli.Namespace()).Do().Get()
-			if kerrors.IsNotFound(err) || kerrors.IsMethodNotSupported(err) {
-				continue
-			}
-			o.Expect(err).NotTo(o.HaveOccurred())
+				restcli, err := bulk.ClientMapperFromConfig(config).ClientForMapping(mapping)
+				o.Expect(err).NotTo(o.HaveOccurred())
 
-			list, err := meta.ExtractList(obj)
-			o.Expect(err).NotTo(o.HaveOccurred())
+				// list all objects
+				obj, err := restcli.Get().Resource(mapping.Resource).Namespace(cli.Namespace()).Do().Get()
+				if kerrors.IsNotFound(err) || kerrors.IsMethodNotSupported(err) {
+					continue
+				}
+				o.Expect(err).NotTo(o.HaveOccurred())
 
-			if gvk.GroupKind() == kapi.Kind("Pod") {
-				// pods stick around for a while after deprovision because of
-				// graceful deletion.  As long as every pod deletion timestamp
+				list, err := meta.ExtractList(obj)
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				// some objects stick around for a while after deprovision because of
+				// graceful deletion.  As long as every object's deletion timestamp
 				// is set, that'll have to do.
 				for _, obj := range list {
 					meta, err := meta.Accessor(obj)
 					o.Expect(err).NotTo(o.HaveOccurred())
-					o.Expect(meta.GetDeletionTimestamp()).NotTo(o.BeNil())
+					if meta.GetDeletionTimestamp() != nil {
+						fmt.Fprintf(g.GinkgoWriter, "error: object still exists with no deletion timestamp: %#v", obj)
+						return false, nil
+					}
 				}
-
-			} else {
-				if len(list) > 0 {
-					fmt.Fprintf(g.GinkgoWriter, "error: found %d objects of GVK %s", len(list), gvk.String())
-				}
-				o.Expect(list).To(o.BeEmpty())
 			}
-		}
+			return true, nil
+		})
+		o.Expect(err).NotTo(o.HaveOccurred())
 	}
 
 	g.Context("", func() {
