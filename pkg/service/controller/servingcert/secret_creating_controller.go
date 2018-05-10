@@ -22,8 +22,8 @@ import (
 	"k8s.io/kubernetes/pkg/controller"
 
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
-	"github.com/openshift/origin/pkg/cmd/server/crypto/extensions"
 	ocontroller "github.com/openshift/origin/pkg/controller"
+	"github.com/openshift/origin/pkg/service/controller/servingcert/cryptoextensions"
 )
 
 const (
@@ -234,7 +234,7 @@ func (sc *ServiceServingCertController) syncService(key string) error {
 	servingCert, err := sc.ca.MakeServerCert(
 		sets.NewString(dnsName, fqDNSName),
 		certificateLifetime,
-		extensions.ServiceServerCertificateExtensionV1(serviceCopy),
+		cryptoextensions.ServiceServerCertificateExtensionV1(serviceCopy),
 	)
 	if err != nil {
 		return err

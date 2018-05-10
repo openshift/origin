@@ -23,7 +23,7 @@ import (
 	"k8s.io/kubernetes/pkg/controller"
 
 	"github.com/openshift/origin/pkg/cmd/server/admin"
-	"github.com/openshift/origin/pkg/cmd/server/crypto/extensions"
+	"github.com/openshift/origin/pkg/service/controller/servingcert/cryptoextensions"
 )
 
 func controllerSetup(startingObjects []runtime.Object, stopChannel chan struct{}, t *testing.T) ( /*caName*/ string, *fake.Clientset, *watch.RaceFreeFakeWatcher, *watch.RaceFreeFakeWatcher, *ServiceServingCertController, informers.SharedInformerFactory) {
@@ -95,7 +95,7 @@ func checkGeneratedCertificate(t *testing.T, certData []byte, service *v1.Servic
 
 	found := true
 	for _, ext := range cert.Extensions {
-		if extensions.OpenShiftServerSigningServiceUIDOID.Equal(ext.Id) {
+		if cryptoextensions.OpenShiftServerSigningServiceUIDOID.Equal(ext.Id) {
 			var value string
 			if _, err := asn1.Unmarshal(ext.Value, &value); err != nil {
 				t.Errorf("unable to parse certificate extension: %v", ext.Value)

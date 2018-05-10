@@ -1,4 +1,4 @@
-package extensions
+package cryptoextensions
 
 import (
 	"crypto/x509"
