@@ -38,13 +38,16 @@ func ImageList(images ...imageapi.Image) imageapi.ImageList {
 }
 
 // AgedImage creates a test image with specified age.
-func AgedImage(id, ref string, ageInMinutes int64) imageapi.Image {
-	return CreatedImage(id, ref, time.Now().Add(time.Duration(ageInMinutes)*time.Minute*-1))
+func AgedImage(id, ref string, ageInMinutes int64, layers ...string) imageapi.Image {
+	return CreatedImage(id, ref, time.Now().Add(time.Duration(ageInMinutes)*time.Minute*-1), layers...)
 }
 
 // CreatedImage creates a test image with the CreationTime set to the given timestamp.
-func CreatedImage(id, ref string, created time.Time) imageapi.Image {
-	image := ImageWithLayers(id, ref, nil, Layer1, Layer2, Layer3, Layer4, Layer5)
+func CreatedImage(id, ref string, created time.Time, layers ...string) imageapi.Image {
+	if len(layers) == 0 {
+		layers = []string{Layer1, Layer2, Layer3, Layer4, Layer5}
+	}
+	image := ImageWithLayers(id, ref, nil, layers...)
 	image.CreationTimestamp = metav1.NewTime(created)
 	return image
 }

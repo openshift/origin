@@ -198,3 +198,8 @@ func EnsureImageComponentConfigNode(g osgraph.MutableUniqueGraph, name string) g
 func EnsureImageComponentLayerNode(g osgraph.MutableUniqueGraph, name string) graph.Node {
 	return ensureImageComponentNode(g, name, ImageComponentTypeLayer)
 }
+
+// EnsureImageComponentLayerNode adds a graph node for the image layer if it does not already exist.
+func EnsureImageComponentManifestNode(g osgraph.MutableUniqueGraph, name string) graph.Node {
+	return ensureImageComponentNode(g, name, ImageComponentTypeManifest)
+}

@@ -2,19 +2,26 @@ package imageprune
 
 import (
 	"bytes"
+	"errors"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"reflect"
+	"regexp"
+	"sort"
+	"sync"
 	"testing"
 	"time"
+
+	"github.com/golang/glog"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/rest/fake"
 	clientgotesting "k8s.io/client-go/testing"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
@@ -23,7 +30,8 @@ import (
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/fake"
+	fakeimageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/fake"
+	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	"github.com/openshift/origin/pkg/oc/admin/prune/imageprune/testutil"
 	"github.com/openshift/origin/pkg/oc/graph/genericgraph"
 	imagegraph "github.com/openshift/origin/pkg/oc/graph/imagegraph/nodes"
@@ -44,29 +52,36 @@ func TestImagePruning(t *testing.T) {
 	registryURL := "https://" + registryHost
 
 	tests := []struct {
-		name                       string
-		pruneOverSizeLimit         *bool
-		allImages                  *bool
-		pruneRegistry              *bool
-		ignoreInvalidRefs          *bool
-		keepTagRevisions           *int
-		namespace                  string
-		images                     imageapi.ImageList
-		pods                       kapi.PodList
-		streams                    imageapi.ImageStreamList
-		rcs                        kapi.ReplicationControllerList
-		bcs                        buildapi.BuildConfigList
-		builds                     buildapi.BuildList
-		dss                        kapisext.DaemonSetList
-		deployments                kapisext.DeploymentList
-		dcs                        appsapi.DeploymentConfigList
-		rss                        kapisext.ReplicaSetList
-		limits                     map[string][]*kapi.LimitRange
-		expectedImageDeletions     []string
-		expectedStreamUpdates      []string
-		expectedLayerLinkDeletions []string
-		expectedBlobDeletions      []string
-		expectedErrorString        string
+		name                          string
+		pruneOverSizeLimit            *bool
+		allImages                     *bool
+		pruneRegistry                 *bool
+		ignoreInvalidRefs             *bool
+		keepTagRevisions              *int
+		namespace                     string
+		images                        imageapi.ImageList
+		pods                          kapi.PodList
+		streams                       imageapi.ImageStreamList
+		rcs                           kapi.ReplicationControllerList
+		bcs                           buildapi.BuildConfigList
+		builds                        buildapi.BuildList
+		dss                           kapisext.DaemonSetList
+		deployments                   kapisext.DeploymentList
+		dcs                           appsapi.DeploymentConfigList
+		rss                           kapisext.ReplicaSetList
+		limits                        map[string][]*kapi.LimitRange
+		imageDeleterErr               error
+		imageStreamDeleterErr         error
+		layerDeleterErr               error
+		manifestDeleterErr            error
+		blobDeleterErrorGetter        errorForSHA
+		expectedImageDeletions        []string
+		expectedStreamUpdates         []string
+		expectedLayerLinkDeletions    []string
+		expectedManifestLinkDeletions []string
+		expectedBlobDeletions         []string
+		expectedFailures              []string
+		expectedErrorString           string
 	}{
 		{
 			name:   "1 pod - phase pending - don't prune",
@@ -110,6 +125,7 @@ func TestImagePruning(t *testing.T) {
 			pods:   testutil.PodList(testutil.Pod("foo", "pod1", kapi.PodSucceeded, registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
 			expectedImageDeletions: []string{"sha256:0000000000000000000000000000000000000000000000000000000000000000"},
 			expectedBlobDeletions: []string{
+				registryURL + "|sha256:0000000000000000000000000000000000000000000000000000000000000000",
 				registryURL + "|" + testutil.Layer1,
 				registryURL + "|" + testutil.Layer2,
 				registryURL + "|" + testutil.Layer3,
@@ -151,6 +167,7 @@ func TestImagePruning(t *testing.T) {
 			),
 			expectedImageDeletions: []string{"sha256:0000000000000000000000000000000000000000000000000000000000000000"},
 			expectedBlobDeletions: []string{
+				registryURL + "|sha256:0000000000000000000000000000000000000000000000000000000000000000",
 				registryURL + "|" + testutil.Layer1,
 				registryURL + "|" + testutil.Layer2,
 				registryURL + "|" + testutil.Layer3,
@@ -169,6 +186,7 @@ func TestImagePruning(t *testing.T) {
 			),
 			expectedImageDeletions: []string{"sha256:0000000000000000000000000000000000000000000000000000000000000000"},
 			expectedBlobDeletions: []string{
+				registryURL + "|sha256:0000000000000000000000000000000000000000000000000000000000000000",
 				registryURL + "|" + testutil.Layer1,
 				registryURL + "|" + testutil.Layer2,
 				registryURL + "|" + testutil.Layer3,
@@ -185,6 +203,7 @@ func TestImagePruning(t *testing.T) {
 			),
 			expectedImageDeletions: []string{"sha256:0000000000000000000000000000000000000000000000000000000000000000"},
 			expectedBlobDeletions: []string{
+				registryURL + "|sha256:0000000000000000000000000000000000000000000000000000000000000000",
 				registryURL + "|" + testutil.Layer1,
 				registryURL + "|" + testutil.Layer2,
 				registryURL + "|" + testutil.Layer3,
@@ -201,6 +220,7 @@ func TestImagePruning(t *testing.T) {
 			),
 			expectedImageDeletions: []string{"sha256:0000000000000000000000000000000000000000000000000000000000000000"},
 			expectedBlobDeletions: []string{
+				registryURL + "|sha256:0000000000000000000000000000000000000000000000000000000000000000",
 				registryURL + "|" + testutil.Layer1,
 				registryURL + "|" + testutil.Layer2,
 				registryURL + "|" + testutil.Layer3,
@@ -217,6 +237,7 @@ func TestImagePruning(t *testing.T) {
 			),
 			expectedImageDeletions: []string{"sha256:0000000000000000000000000000000000000000000000000000000000000000"},
 			expectedBlobDeletions: []string{
+				registryURL + "|sha256:0000000000000000000000000000000000000000000000000000000000000000",
 				registryURL + "|" + testutil.Layer1,
 				registryURL + "|" + testutil.Layer2,
 				registryURL + "|" + testutil.Layer3,
@@ -247,6 +268,7 @@ func TestImagePruning(t *testing.T) {
 			),
 			dss: testutil.DSList(testutil.DS("foo", "rc1", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
 			expectedImageDeletions: []string{"sha256:0000000000000000000000000000000000000000000000000000000000000001"},
+			expectedBlobDeletions:  []string{registryURL + "|sha256:0000000000000000000000000000000000000000000000000000000000000001"},
 		},
 
 		{
@@ -257,6 +279,7 @@ func TestImagePruning(t *testing.T) {
 			),
 			rss: testutil.RSList(testutil.RS("foo", "rc1", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
 			expectedImageDeletions: []string{"sha256:0000000000000000000000000000000000000000000000000000000000000001"},
+			expectedBlobDeletions:  []string{registryURL + "|sha256:0000000000000000000000000000000000000000000000000000000000000001"},
 		},
 
 		{
@@ -267,6 +290,7 @@ func TestImagePruning(t *testing.T) {
 			),
 			deployments:            testutil.DeploymentList(testutil.Deployment("foo", "rc1", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
 			expectedImageDeletions: []string{"sha256:0000000000000000000000000000000000000000000000000000000000000001"},
+			expectedBlobDeletions:  []string{registryURL + "|sha256:0000000000000000000000000000000000000000000000000000000000000001"},
 		},
 
 		{
@@ -371,8 +395,121 @@ func TestImagePruning(t *testing.T) {
 					),
 				)),
 			),
-			expectedImageDeletions: []string{"sha256:0000000000000000000000000000000000000000000000000000000000000004"},
-			expectedStreamUpdates:  []string{"foo/bar|sha256:0000000000000000000000000000000000000000000000000000000000000004"},
+			expectedImageDeletions:        []string{"sha256:0000000000000000000000000000000000000000000000000000000000000004"},
+			expectedStreamUpdates:         []string{"foo/bar|sha256:0000000000000000000000000000000000000000000000000000000000000004"},
+			expectedManifestLinkDeletions: []string{registryURL + "|foo/bar|sha256:0000000000000000000000000000000000000000000000000000000000000004"},
+			expectedBlobDeletions:         []string{registryURL + "|" + "sha256:0000000000000000000000000000000000000000000000000000000000000004"},
+		},
+
+		{
+			name: "continue on blob deletion failure",
+			images: testutil.ImageList(
+				testutil.UnmanagedImage("sha256:0000000000000000000000000000000000000000000000000000000000000000", "otherregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", false, "", ""),
+				testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
+				testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003"),
+				testutil.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000004", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000004", nil, "layer1", "layer2"),
+			),
+			streams: testutil.StreamList(
+				testutil.Stream(registryHost, "foo", "bar", testutil.Tags(
+					testutil.Tag("latest",
+						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000000", "otherregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000"),
+						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
+						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003"),
+						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000004", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000004"),
+					),
+				)),
+			),
+			blobDeleterErrorGetter: func(dgst string) error {
+				if dgst == "layer1" {
+					return errors.New("err")
+				}
+				return nil
+			},
+			expectedImageDeletions:        []string{"sha256:0000000000000000000000000000000000000000000000000000000000000004"},
+			expectedStreamUpdates:         []string{"foo/bar|sha256:0000000000000000000000000000000000000000000000000000000000000004"},
+			expectedManifestLinkDeletions: []string{registryURL + "|foo/bar|sha256:0000000000000000000000000000000000000000000000000000000000000004"},
+			expectedLayerLinkDeletions:    []string{registryURL + "|foo/bar|layer1", registryURL + "|foo/bar|layer2"},
+			expectedBlobDeletions: []string{
+				registryURL + "|" + "layer1",
+				registryURL + "|" + "layer2",
+				registryURL + "|" + "sha256:0000000000000000000000000000000000000000000000000000000000000004",
+			},
+			expectedFailures: []string{registryURL + "|" + "layer1|err"},
+		},
+
+		{
+			name: "keep image when all blob deletions fail",
+			images: testutil.ImageList(
+				testutil.UnmanagedImage("sha256:0000000000000000000000000000000000000000000000000000000000000000", "otherregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", false, "", ""),
+				testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
+				testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003"),
+				testutil.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000004", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000004", nil, "layer1", "layer2"),
+			),
+			streams: testutil.StreamList(
+				testutil.Stream(registryHost, "foo", "bar", testutil.Tags(
+					testutil.Tag("latest",
+						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000000", "otherregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000"),
+						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
+						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003"),
+						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000004", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000004"),
+					),
+				)),
+			),
+			blobDeleterErrorGetter:        func(dgst string) error { return errors.New("err") },
+			expectedImageDeletions:        []string{},
+			expectedStreamUpdates:         []string{"foo/bar|sha256:0000000000000000000000000000000000000000000000000000000000000004"},
+			expectedManifestLinkDeletions: []string{registryURL + "|foo/bar|sha256:0000000000000000000000000000000000000000000000000000000000000004"},
+			expectedLayerLinkDeletions:    []string{registryURL + "|foo/bar|layer1", registryURL + "|foo/bar|layer2"},
+			expectedBlobDeletions:         []string{registryURL + "|layer1", registryURL + "|layer2", registryURL + "|" + "sha256:0000000000000000000000000000000000000000000000000000000000000004"},
+			expectedFailures:              []string{registryURL + "|" + "layer1|err", registryURL + "|" + "layer2|err", registryURL + "|sha256:0000000000000000000000000000000000000000000000000000000000000004|err"},
+		},
+
+		{
+			name: "continue on manifest link deletion failure",
+			images: testutil.ImageList(
+				testutil.UnmanagedImage("sha256:0000000000000000000000000000000000000000000000000000000000000000", "otherregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", false, "", ""),
+				testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
+				testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003"),
+				testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000004", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000004"),
+			),
+			streams: testutil.StreamList(
+				testutil.Stream(registryHost, "foo", "bar", testutil.Tags(
+					testutil.Tag("latest",
+						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000000", "otherregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000"),
+						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
+						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003"),
+						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000004", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000004"),
+					),
+				)),
+			),
+			manifestDeleterErr:            fmt.Errorf("err"),
+			expectedImageDeletions:        []string{"sha256:0000000000000000000000000000000000000000000000000000000000000004"},
+			expectedStreamUpdates:         []string{"foo/bar|sha256:0000000000000000000000000000000000000000000000000000000000000004"},
+			expectedManifestLinkDeletions: []string{registryURL + "|foo/bar|sha256:0000000000000000000000000000000000000000000000000000000000000004"},
+			expectedBlobDeletions:         []string{registryURL + "|" + "sha256:0000000000000000000000000000000000000000000000000000000000000004"},
+			expectedFailures:              []string{registryURL + "|foo/bar|sha256:0000000000000000000000000000000000000000000000000000000000000004|err"},
+		},
+
+		{
+			name: "stop on image stream update failure",
+			images: testutil.ImageList(
+				testutil.UnmanagedImage("sha256:0000000000000000000000000000000000000000000000000000000000000000", "otherregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", false, "", ""),
+				testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
+				testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003"),
+				testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000004", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000004"),
+			),
+			streams: testutil.StreamList(
+				testutil.Stream(registryHost, "foo", "bar", testutil.Tags(
+					testutil.Tag("latest",
+						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000000", "otherregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000"),
+						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
+						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003"),
+						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000004", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000004"),
+					),
+				)),
+			),
+			imageStreamDeleterErr: fmt.Errorf("err"),
+			expectedFailures:      []string{"foo/bar|err"},
 		},
 
 		{
@@ -453,7 +590,7 @@ func TestImagePruning(t *testing.T) {
 				"foo/bar|sha256:0000000000000000000000000000000000000000000000000000000000000000",
 				"foo/bar|sha256:0000000000000000000000000000000000000000000000000000000000000002",
 			},
-			expectedBlobDeletions: []string{registryURL + "|layer1"},
+			expectedBlobDeletions: []string{registryURL + "|sha256:0000000000000000000000000000000000000000000000000000000000000001", registryURL + "|layer1"},
 		},
 
 		{
@@ -471,6 +608,7 @@ func TestImagePruning(t *testing.T) {
 				)),
 			),
 			expectedImageDeletions: []string{"sha256:0000000000000000000000000000000000000000000000000000000000000002"},
+			expectedBlobDeletions:  []string{registryURL + "|sha256:0000000000000000000000000000000000000000000000000000000000000002"},
 		},
 
 		{
@@ -526,6 +664,18 @@ func TestImagePruning(t *testing.T) {
 				"foo/bar|sha256:0000000000000000000000000000000000000000000000000000000000000004",
 				"foo/bar|sha256:0000000000000000000000000000000000000000000000000000000000000005",
 			},
+			expectedManifestLinkDeletions: []string{
+				registryURL + "|foo/bar|sha256:0000000000000000000000000000000000000000000000000000000000000001",
+				registryURL + "|foo/bar|sha256:0000000000000000000000000000000000000000000000000000000000000003",
+				registryURL + "|foo/bar|sha256:0000000000000000000000000000000000000000000000000000000000000004",
+				registryURL + "|foo/bar|sha256:0000000000000000000000000000000000000000000000000000000000000005",
+			},
+			expectedBlobDeletions: []string{
+				registryURL + "|sha256:0000000000000000000000000000000000000000000000000000000000000001",
+				registryURL + "|" + "sha256:0000000000000000000000000000000000000000000000000000000000000003",
+				registryURL + "|" + "sha256:0000000000000000000000000000000000000000000000000000000000000004",
+				registryURL + "|" + "sha256:0000000000000000000000000000000000000000000000000000000000000005",
+			},
 		},
 
 		{
@@ -558,6 +708,7 @@ func TestImagePruning(t *testing.T) {
 			),
 			expectedImageDeletions: []string{"sha256:0000000000000000000000000000000000000000000000000000000000000000"},
 			expectedStreamUpdates:  []string{},
+			expectedBlobDeletions:  []string{registryURL + "|sha256:0000000000000000000000000000000000000000000000000000000000000000"},
 		},
 
 		{
@@ -568,6 +719,7 @@ func TestImagePruning(t *testing.T) {
 			),
 			expectedImageDeletions: []string{"sha256:0000000000000000000000000000000000000000000000000000000000000000"},
 			expectedStreamUpdates:  []string{},
+			expectedBlobDeletions:  []string{registryURL + "|sha256:0000000000000000000000000000000000000000000000000000000000000000"},
 		},
 
 		{
@@ -587,6 +739,7 @@ func TestImagePruning(t *testing.T) {
 			),
 			expectedImageDeletions: []string{"sha256:0000000000000000000000000000000000000000000000000000000000000000"},
 			expectedStreamUpdates:  []string{},
+			expectedBlobDeletions:  []string{registryURL + "|sha256:0000000000000000000000000000000000000000000000000000000000000000"},
 		},
 
 		{
@@ -608,6 +761,14 @@ func TestImagePruning(t *testing.T) {
 				"sha256:0000000000000000000000000000000000000000000000000000000000000005",
 			},
 			expectedStreamUpdates: []string{},
+			expectedBlobDeletions: []string{
+				registryURL + "|sha256:0000000000000000000000000000000000000000000000000000000000000000",
+				registryURL + "|sha256:0000000000000000000000000000000000000000000000000000000000000001",
+				registryURL + "|" + "sha256:0000000000000000000000000000000000000000000000000000000000000002",
+				registryURL + "|" + "sha256:0000000000000000000000000000000000000000000000000000000000000003",
+				registryURL + "|" + "sha256:0000000000000000000000000000000000000000000000000000000000000004",
+				registryURL + "|" + "sha256:0000000000000000000000000000000000000000000000000000000000000005",
+			},
 		},
 
 		{
@@ -618,6 +779,7 @@ func TestImagePruning(t *testing.T) {
 			),
 			expectedImageDeletions: []string{"sha256:0000000000000000000000000000000000000000000000000000000000000000"},
 			expectedStreamUpdates:  []string{},
+			expectedBlobDeletions:  []string{registryURL + "|sha256:0000000000000000000000000000000000000000000000000000000000000000"},
 		},
 
 		{
@@ -640,6 +802,14 @@ func TestImagePruning(t *testing.T) {
 				"sha256:0000000000000000000000000000000000000000000000000000000000000005",
 			},
 			expectedStreamUpdates: []string{},
+			expectedBlobDeletions: []string{
+				registryURL + "|sha256:0000000000000000000000000000000000000000000000000000000000000000",
+				registryURL + "|sha256:0000000000000000000000000000000000000000000000000000000000000001",
+				registryURL + "|sha256:0000000000000000000000000000000000000000000000000000000000000002",
+				registryURL + "|sha256:0000000000000000000000000000000000000000000000000000000000000003",
+				registryURL + "|sha256:0000000000000000000000000000000000000000000000000000000000000004",
+				registryURL + "|sha256:0000000000000000000000000000000000000000000000000000000000000005",
+			},
 		},
 
 		{
@@ -693,11 +863,56 @@ func TestImagePruning(t *testing.T) {
 				registryURL + "|foo/bar|layer7",
 				registryURL + "|foo/bar|layer8",
 			},
+			expectedManifestLinkDeletions: []string{registryURL + "|foo/bar|sha256:0000000000000000000000000000000000000000000000000000000000000004"},
 			expectedBlobDeletions: []string{
+				registryURL + "|sha256:0000000000000000000000000000000000000000000000000000000000000004",
 				registryURL + "|layer5",
 				registryURL + "|layer6",
 				registryURL + "|layer7",
 				registryURL + "|layer8",
+			},
+		},
+
+		{
+			name: "continue on layer link error",
+			images: testutil.ImageList(
+				testutil.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000001", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001", &testutil.Config1, "layer1", "layer2", "layer3", "layer4"),
+				testutil.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002", &testutil.Config2, "layer1", "layer2", "layer3", "layer4"),
+				testutil.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003", nil, "layer1", "layer2", "layer3", "layer4"),
+				testutil.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000004", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000004", nil, "layer5", "layer6", "layer7", "layer8"),
+			),
+			streams: testutil.StreamList(
+				testutil.Stream(registryHost, "foo", "bar", testutil.Tags(
+					testutil.Tag("latest",
+						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000001", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001"),
+						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
+						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003"),
+						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000004", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000004"),
+					),
+				)),
+			),
+			layerDeleterErr:               fmt.Errorf("err"),
+			expectedImageDeletions:        []string{"sha256:0000000000000000000000000000000000000000000000000000000000000004"},
+			expectedStreamUpdates:         []string{"foo/bar|sha256:0000000000000000000000000000000000000000000000000000000000000004"},
+			expectedManifestLinkDeletions: []string{registryURL + "|foo/bar|sha256:0000000000000000000000000000000000000000000000000000000000000004"},
+			expectedBlobDeletions: []string{
+				registryURL + "|sha256:0000000000000000000000000000000000000000000000000000000000000004",
+				registryURL + "|layer5",
+				registryURL + "|layer6",
+				registryURL + "|layer7",
+				registryURL + "|layer8",
+			},
+			expectedLayerLinkDeletions: []string{
+				registryURL + "|foo/bar|layer5",
+				registryURL + "|foo/bar|layer6",
+				registryURL + "|foo/bar|layer7",
+				registryURL + "|foo/bar|layer8",
+			},
+			expectedFailures: []string{
+				registryURL + "|foo/bar|layer5|err",
+				registryURL + "|foo/bar|layer6|err",
+				registryURL + "|foo/bar|layer7|err",
+				registryURL + "|foo/bar|layer8|err",
 			},
 		},
 
@@ -729,7 +944,10 @@ func TestImagePruning(t *testing.T) {
 				registryURL + "|foo/bar|layer7",
 				registryURL + "|foo/bar|layer8",
 			},
+			expectedManifestLinkDeletions: []string{registryURL + "|foo/bar|sha256:0000000000000000000000000000000000000000000000000000000000000004"},
 			expectedBlobDeletions: []string{
+				registryURL + "|sha256:0000000000000000000000000000000000000000000000000000000000000004",
+				registryURL + "|sha256:0000000000000000000000000000000000000000000000000000000000000005",
 				registryURL + "|" + testutil.Config2,
 				registryURL + "|layer5",
 				registryURL + "|layer6",
@@ -741,12 +959,54 @@ func TestImagePruning(t *testing.T) {
 		},
 
 		{
+			name: "continue on image deletion failure",
+			images: testutil.ImageList(
+				testutil.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000001", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001", &testutil.Config1, "layer1", "layer2", "layer3", "layer4"),
+				testutil.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002", &testutil.Config1, "layer1", "layer2", "layer3", "layer4"),
+				testutil.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003", &testutil.Config1, "layer1", "layer2", "layer3", "layer4"),
+				testutil.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000004", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000004", &testutil.Config2, "layer5", "layer6", "layer7", "layer8"),
+				testutil.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000005", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000005", &testutil.Config2, "layer5", "layer6", "layer9", "layerX"),
+			),
+			streams: testutil.StreamList(
+				testutil.Stream(registryHost, "foo", "bar", testutil.Tags(
+					testutil.Tag("latest",
+						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000001", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001"),
+						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
+						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003"),
+						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000004", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000004"),
+					),
+				)),
+			),
+			imageDeleterErr:        fmt.Errorf("err"),
+			expectedImageDeletions: []string{"sha256:0000000000000000000000000000000000000000000000000000000000000004", "sha256:0000000000000000000000000000000000000000000000000000000000000005"},
+			expectedStreamUpdates:  []string{"foo/bar|sha256:0000000000000000000000000000000000000000000000000000000000000004"},
+			expectedLayerLinkDeletions: []string{
+				registryURL + "|foo/bar|" + testutil.Config2,
+				registryURL + "|foo/bar|layer5",
+				registryURL + "|foo/bar|layer6",
+				registryURL + "|foo/bar|layer7",
+				registryURL + "|foo/bar|layer8",
+			},
+			expectedManifestLinkDeletions: []string{registryURL + "|foo/bar|sha256:0000000000000000000000000000000000000000000000000000000000000004"},
+			expectedBlobDeletions: []string{
+				registryURL + "|sha256:0000000000000000000000000000000000000000000000000000000000000004",
+				registryURL + "|sha256:0000000000000000000000000000000000000000000000000000000000000005",
+				registryURL + "|layer7",
+				registryURL + "|layer8",
+				registryURL + "|layer9",
+				registryURL + "|layerX",
+			},
+			expectedFailures: []string{"sha256:0000000000000000000000000000000000000000000000000000000000000004|err", "sha256:0000000000000000000000000000000000000000000000000000000000000005|err"},
+		},
+
+		{
 			name: "layers shared with young images are not pruned",
 			images: testutil.ImageList(
 				testutil.AgedImage("sha256:0000000000000000000000000000000000000000000000000000000000000001", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001", 43200),
 				testutil.AgedImage("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002", 5),
 			),
 			expectedImageDeletions: []string{"sha256:0000000000000000000000000000000000000000000000000000000000000001"},
+			expectedBlobDeletions:  []string{registryURL + "|sha256:0000000000000000000000000000000000000000000000000000000000000001"},
 		},
 
 		{
@@ -769,8 +1029,10 @@ func TestImagePruning(t *testing.T) {
 			limits: map[string][]*kapi.LimitRange{
 				"foo": testutil.LimitList(100, 200),
 			},
-			expectedImageDeletions: []string{"sha256:0000000000000000000000000000000000000000000000000000000000000003"},
-			expectedStreamUpdates:  []string{"foo/bar|sha256:0000000000000000000000000000000000000000000000000000000000000003"},
+			expectedImageDeletions:        []string{"sha256:0000000000000000000000000000000000000000000000000000000000000003"},
+			expectedStreamUpdates:         []string{"foo/bar|sha256:0000000000000000000000000000000000000000000000000000000000000003"},
+			expectedManifestLinkDeletions: []string{registryURL + "|foo/bar|sha256:0000000000000000000000000000000000000000000000000000000000000003"},
+			expectedBlobDeletions:         []string{registryURL + "|sha256:0000000000000000000000000000000000000000000000000000000000000003"},
 		},
 
 		{
@@ -802,6 +1064,14 @@ func TestImagePruning(t *testing.T) {
 			},
 			expectedImageDeletions: []string{"sha256:0000000000000000000000000000000000000000000000000000000000000002", "sha256:0000000000000000000000000000000000000000000000000000000000000004"},
 			expectedStreamUpdates:  []string{"foo/bar|sha256:0000000000000000000000000000000000000000000000000000000000000002", "bar/foo|sha256:0000000000000000000000000000000000000000000000000000000000000004"},
+			expectedManifestLinkDeletions: []string{
+				registryURL + "|foo/bar|sha256:0000000000000000000000000000000000000000000000000000000000000002",
+				registryURL + "|bar/foo|sha256:0000000000000000000000000000000000000000000000000000000000000004",
+			},
+			expectedBlobDeletions: []string{
+				registryURL + "|sha256:0000000000000000000000000000000000000000000000000000000000000002",
+				registryURL + "|sha256:0000000000000000000000000000000000000000000000000000000000000004",
+			},
 		},
 
 		{
@@ -876,8 +1146,10 @@ func TestImagePruning(t *testing.T) {
 			limits: map[string][]*kapi.LimitRange{
 				"foo": testutil.LimitList(100, 200),
 			},
-			expectedImageDeletions: []string{"sha256:0000000000000000000000000000000000000000000000000000000000000003"},
-			expectedStreamUpdates:  []string{"foo/bar|sha256:0000000000000000000000000000000000000000000000000000000000000003"},
+			expectedImageDeletions:        []string{"sha256:0000000000000000000000000000000000000000000000000000000000000003"},
+			expectedManifestLinkDeletions: []string{registryURL + "|foo/bar|sha256:0000000000000000000000000000000000000000000000000000000000000003"},
+			expectedBlobDeletions:         []string{registryURL + "|sha256:0000000000000000000000000000000000000000000000000000000000000003"},
+			expectedStreamUpdates:         []string{"foo/bar|sha256:0000000000000000000000000000000000000000000000000000000000000003"},
 		},
 
 		{
@@ -908,20 +1180,23 @@ func TestImagePruning(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			options := PrunerOptions{
-				Namespace:   test.namespace,
-				AllImages:   test.allImages,
-				Images:      &test.images,
-				Streams:     &test.streams,
-				Pods:        &test.pods,
-				RCs:         &test.rcs,
-				BCs:         &test.bcs,
-				Builds:      &test.builds,
-				DSs:         &test.dss,
-				Deployments: &test.deployments,
-				DCs:         &test.dcs,
-				RSs:         &test.rss,
-				LimitRanges: test.limits,
-				RegistryURL: &url.URL{Scheme: "https", Host: registryHost},
+				Namespace:             test.namespace,
+				AllImages:             test.allImages,
+				Images:                &test.images,
+				ImageWatcher:          watch.NewFake(),
+				Streams:               &test.streams,
+				StreamWatcher:         watch.NewFake(),
+				Pods:                  &test.pods,
+				RCs:                   &test.rcs,
+				BCs:                   &test.bcs,
+				Builds:                &test.builds,
+				DSs:                   &test.dss,
+				Deployments:           &test.deployments,
+				DCs:                   &test.dcs,
+				RSs:                   &test.rss,
+				LimitRanges:           test.limits,
+				RegistryClientFactory: FakeRegistryClientFactory,
+				RegistryURL:           &url.URL{Scheme: "https", Host: registryHost},
 			}
 			if test.pruneOverSizeLimit != nil {
 				options.PruneOverSizeLimit = test.pruneOverSizeLimit
@@ -955,14 +1230,33 @@ func TestImagePruning(t *testing.T) {
 				return
 			}
 
-			imageDeleter := &fakeImageDeleter{invocations: sets.NewString()}
-			streamDeleter := &fakeImageStreamDeleter{invocations: sets.NewString()}
-			layerLinkDeleter := &fakeLayerLinkDeleter{invocations: sets.NewString()}
-			blobDeleter := &fakeBlobDeleter{invocations: sets.NewString()}
-			manifestDeleter := &fakeManifestDeleter{invocations: sets.NewString()}
+			imageDeleter, imageDeleterFactory := newFakeImageDeleter(test.imageDeleterErr)
+			streamDeleter := &fakeImageStreamDeleter{err: test.imageStreamDeleterErr, invocations: sets.NewString()}
+			layerLinkDeleter := &fakeLayerLinkDeleter{err: test.layerDeleterErr, invocations: sets.NewString()}
+			blobDeleter := &fakeBlobDeleter{getError: test.blobDeleterErrorGetter, invocations: sets.NewString()}
+			manifestDeleter := &fakeManifestDeleter{err: test.manifestDeleterErr, invocations: sets.NewString()}
 
-			if err := p.Prune(imageDeleter, streamDeleter, layerLinkDeleter, blobDeleter, manifestDeleter); err != nil {
-				t.Fatalf("unexpected error: %v", err)
+			deletions, failures := p.Prune(imageDeleterFactory, streamDeleter, layerLinkDeleter, blobDeleter, manifestDeleter)
+
+			expectedFailures := sets.NewString(test.expectedFailures...)
+			renderedFailures := sets.NewString()
+			for _, f := range failures {
+				rendered := renderFailure(registryURL, &f)
+				if renderedFailures.Has(rendered) {
+					t.Errorf("got the following failure more than once: %v", rendered)
+					continue
+				}
+				renderedFailures.Insert(rendered)
+			}
+			for f := range renderedFailures {
+				if expectedFailures.Has(f) {
+					expectedFailures.Delete(f)
+					continue
+				}
+				t.Errorf("got unexpected failure: %v", f)
+			}
+			for f := range expectedFailures {
+				t.Errorf("the following expected failure was not returned: %v", f)
 			}
 
 			expectedImageDeletions := sets.NewString(test.expectedImageDeletions...)
@@ -980,12 +1274,79 @@ func TestImagePruning(t *testing.T) {
 				t.Errorf("unexpected layer link deletions: %s", diff.ObjectDiff(a, e))
 			}
 
+			expectedManifestLinkDeletions := sets.NewString(test.expectedManifestLinkDeletions...)
+			if a, e := manifestDeleter.invocations, expectedManifestLinkDeletions; !reflect.DeepEqual(a, e) {
+				t.Errorf("unexpected manifest link deletions: %s", diff.ObjectDiff(a, e))
+			}
+
 			expectedBlobDeletions := sets.NewString(test.expectedBlobDeletions...)
 			if a, e := blobDeleter.invocations, expectedBlobDeletions; !reflect.DeepEqual(a, e) {
 				t.Errorf("unexpected blob deletions: %s", diff.ObjectDiff(a, e))
 			}
+
+			// TODO: shall we return deletion for each layer link unlinked from the image stream??
+			imageStreamUpdates := sets.NewString()
+			expectedAllDeletions := sets.NewString()
+			for _, s := range []sets.String{expectedImageDeletions, expectedLayerLinkDeletions, expectedBlobDeletions} {
+				expectedAllDeletions.Insert(s.List()...)
+			}
+			for _, d := range deletions {
+				rendered, isImageStreamUpdate, isManifestLinkDeletion := renderDeletion(registryURL, &d)
+				if isManifestLinkDeletion {
+					continue
+				}
+				if isImageStreamUpdate {
+					imageStreamUpdates.Insert(rendered)
+					continue
+				}
+				if expectedAllDeletions.Has(rendered) {
+					expectedAllDeletions.Delete(rendered)
+				} else {
+					t.Errorf("got unexpected deletion: %#+v (rendered: %q)", d, rendered)
+				}
+			}
+			for _, f := range failures {
+				rendered, _, _ := renderDeletion(registryURL, &Deletion{Node: f.Node, Parent: f.Parent})
+				expectedAllDeletions.Delete(rendered)
+			}
+			for del, ok := expectedAllDeletions.PopAny(); ok; del, ok = expectedAllDeletions.PopAny() {
+				t.Errorf("expected deletion %q did not happen", del)
+			}
+
+			expectedStreamUpdateNames := sets.NewString()
+			for u := range expectedStreamUpdates {
+				expectedStreamUpdateNames.Insert(regexp.MustCompile(`[@|:]`).Split(u, 2)[0])
+			}
+			if a, e := imageStreamUpdates, expectedStreamUpdateNames; !reflect.DeepEqual(a, e) {
+				t.Errorf("unexpected image stream updates in deletions: %s", diff.ObjectDiff(a, e))
+			}
 		})
 	}
+}
+
+func renderDeletion(registryURL string, deletion *Deletion) (rendered string, isImageStreamUpdate, isManifestLinkDeletion bool) {
+	switch t := deletion.Node.(type) {
+	case *imagegraph.ImageNode:
+		return t.Image.Name, false, false
+	case *imagegraph.ImageComponentNode:
+		// deleting blob
+		if deletion.Parent == nil {
+			return fmt.Sprintf("%s|%s", registryURL, t.Component), false, false
+		}
+		streamName := "unknown"
+		if sn, ok := deletion.Parent.(*imagegraph.ImageStreamNode); ok {
+			streamName = getName(sn.ImageStream)
+		}
+		return fmt.Sprintf("%s|%s|%s", registryURL, streamName, t.Component), false, t.Type == imagegraph.ImageComponentTypeManifest
+	case *imagegraph.ImageStreamNode:
+		return getName(t.ImageStream), true, false
+	}
+	return "unknown", false, false
+}
+
+func renderFailure(registryURL string, failure *Failure) string {
+	rendered, _, _ := renderDeletion(registryURL, &Deletion{Node: failure.Node, Parent: failure.Parent})
+	return rendered + "|" + failure.Err.Error()
 }
 
 func TestImageDeleter(t *testing.T) {
@@ -1001,7 +1362,7 @@ func TestImageDeleter(t *testing.T) {
 	}
 
 	for name, test := range tests {
-		imageClient := imageclient.Clientset{}
+		imageClient := fakeimageclient.Clientset{}
 		imageClient.AddReactor("delete", "images", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 			return true, nil, test.imageDeletionError
 		})
@@ -1096,6 +1457,7 @@ func TestRegistryPruning(t *testing.T) {
 				"https://registry1.io|foo/bar|layer2",
 			),
 			expectedBlobDeletions: sets.NewString(
+				"https://registry1.io|sha256:0000000000000000000000000000000000000000000000000000000000000001",
 				"https://registry1.io|"+testutil.Config1,
 				"https://registry1.io|layer1",
 				"https://registry1.io|layer2",
@@ -1132,6 +1494,8 @@ func TestRegistryPruning(t *testing.T) {
 			),
 			expectedLayerLinkDeletions: sets.NewString(),
 			expectedBlobDeletions: sets.NewString(
+				"https://registry1.io|sha256:0000000000000000000000000000000000000000000000000000000000000001",
+				"https://registry1.io|sha256:0000000000000000000000000000000000000000000000000000000000000002",
 				"https://registry1.io|"+testutil.Config1,
 				"https://registry1.io|"+testutil.Config2,
 				"https://registry1.io|layer1",
@@ -1169,9 +1533,9 @@ func TestRegistryPruning(t *testing.T) {
 			expectedLayerLinkDeletions: sets.NewString(
 				"https://registry1.io|foo/bar|layer1",
 				"https://registry1.io|foo/bar|layer2",
-				// TODO: ideally, pruner should remove layers of id2 from foo/bar as well
 			),
 			expectedBlobDeletions: sets.NewString(
+				"https://registry1.io|sha256:0000000000000000000000000000000000000000000000000000000000000001",
 				"https://registry1.io|layer1",
 				"https://registry1.io|layer2",
 			),
@@ -1217,7 +1581,9 @@ func TestRegistryPruning(t *testing.T) {
 				KeepTagRevisions: &keepTagRevisions,
 				PruneRegistry:    &test.pruneRegistry,
 				Images:           &test.images,
+				ImageWatcher:     watch.NewFake(),
 				Streams:          &test.streams,
+				StreamWatcher:    watch.NewFake(),
 				Pods:             &kapi.PodList{},
 				RCs:              &kapi.ReplicationControllerList{},
 				BCs:              &buildapi.BuildConfigList{},
@@ -1226,20 +1592,21 @@ func TestRegistryPruning(t *testing.T) {
 				Deployments:      &kapisext.DeploymentList{},
 				DCs:              &appsapi.DeploymentConfigList{},
 				RSs:              &kapisext.ReplicaSetList{},
-				RegistryURL:      &url.URL{Scheme: "https", Host: "registry1.io"},
+				RegistryClientFactory: FakeRegistryClientFactory,
+				RegistryURL:           &url.URL{Scheme: "https", Host: "registry1.io"},
 			}
 			p, err := NewPruner(options)
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
 
-			imageDeleter := &fakeImageDeleter{invocations: sets.NewString()}
+			_, imageDeleterFactory := newFakeImageDeleter(nil)
 			streamDeleter := &fakeImageStreamDeleter{invocations: sets.NewString()}
 			layerLinkDeleter := &fakeLayerLinkDeleter{invocations: sets.NewString()}
 			blobDeleter := &fakeBlobDeleter{invocations: sets.NewString()}
 			manifestDeleter := &fakeManifestDeleter{invocations: sets.NewString()}
 
-			p.Prune(imageDeleter, streamDeleter, layerLinkDeleter, blobDeleter, manifestDeleter)
+			p.Prune(imageDeleterFactory, streamDeleter, layerLinkDeleter, blobDeleter, manifestDeleter)
 
 			if a, e := layerLinkDeleter.invocations, test.expectedLayerLinkDeletions; !reflect.DeepEqual(a, e) {
 				t.Errorf("unexpected layer link deletions: %s", diff.ObjectDiff(a, e))
@@ -1290,16 +1657,18 @@ func TestImageWithStrongAndWeakRefsIsNotPruned(t *testing.T) {
 	rss := testutil.RSList()
 
 	options := PrunerOptions{
-		Images:      &images,
-		Streams:     &streams,
-		Pods:        &pods,
-		RCs:         &rcs,
-		BCs:         &bcs,
-		Builds:      &builds,
-		DSs:         &dss,
-		Deployments: &deployments,
-		DCs:         &dcs,
-		RSs:         &rss,
+		Images:        &images,
+		ImageWatcher:  watch.NewFake(),
+		Streams:       &streams,
+		StreamWatcher: watch.NewFake(),
+		Pods:          &pods,
+		RCs:           &rcs,
+		BCs:           &bcs,
+		Builds:        &builds,
+		DSs:           &dss,
+		Deployments:   &deployments,
+		DCs:           &dcs,
+		RSs:           &rss,
 	}
 	keepYoungerThan := 24 * time.Hour
 	keepTagRevisions := 2
@@ -1310,14 +1679,19 @@ func TestImageWithStrongAndWeakRefsIsNotPruned(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	imageDeleter := &fakeImageDeleter{invocations: sets.NewString()}
+	imageDeleter, imageDeleterFactory := newFakeImageDeleter(nil)
 	streamDeleter := &fakeImageStreamDeleter{invocations: sets.NewString()}
 	layerLinkDeleter := &fakeLayerLinkDeleter{invocations: sets.NewString()}
 	blobDeleter := &fakeBlobDeleter{invocations: sets.NewString()}
 	manifestDeleter := &fakeManifestDeleter{invocations: sets.NewString()}
 
-	if err := p.Prune(imageDeleter, streamDeleter, layerLinkDeleter, blobDeleter, manifestDeleter); err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	deletions, failures := p.Prune(imageDeleterFactory, streamDeleter, layerLinkDeleter, blobDeleter, manifestDeleter)
+	if len(failures) != 0 {
+		t.Errorf("got unexpected failures: %#+v", failures)
+	}
+
+	if len(deletions) > 0 {
+		t.Fatalf("got unexpected deletions: %#+v", deletions)
 	}
 
 	if imageDeleter.invocations.Len() > 0 {
@@ -1349,11 +1723,358 @@ func TestImageIsPrunable(t *testing.T) {
 	}
 }
 
+func TestPrunerGetNextJob(t *testing.T) {
+	flag.Lookup("v").Value.Set(fmt.Sprint(*logLevel))
+
+	glog.V(2).Infof("debug")
+	algo := pruneAlgorithm{
+		keepYoungerThan: time.Now(),
+	}
+	p := &pruner{algorithm: algo, processedImages: make(map[*imagegraph.ImageNode]*Job)}
+	images := testutil.ImageList(
+		testutil.AgedImage("sha256:0000000000000000000000000000000000000000000000000000000000000003", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003", 1, "layer1"),
+		testutil.AgedImage("sha256:0000000000000000000000000000000000000000000000000000000000000002", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002", 2, "layer1", "layer2"),
+		testutil.AgedImage("sha256:0000000000000000000000000000000000000000000000000000000000000001", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001", 3, "Layer1", "Layer2", "Layer3"),
+		testutil.AgedImage("sha256:0000000000000000000000000000000000000000000000000000000000000013", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000013", 4, "Layer1", "LayeR2", "LayeR3"),
+		testutil.AgedImage("sha256:0000000000000000000000000000000000000000000000000000000000000012", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000012", 5, "LayeR1", "LayeR2"),
+		testutil.AgedImage("sha256:0000000000000000000000000000000000000000000000000000000000000011", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000011", 6, "layer1", "Layer2", "LAYER3", "LAYER4"),
+		testutil.AgedImage("sha256:0000000000000000000000000000000000000000000000000000000000000010", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000010", 7, "layer1", "layer2", "layer3", "layer4"),
+	)
+	p.g = genericgraph.New()
+	err := p.addImagesToGraph(&images)
+	if err != nil {
+		t.Fatalf("failed to add images: %v", err)
+	}
+
+	is := images.Items
+	imageStreams := testutil.StreamList(
+		testutil.Stream("example.com", "foo", "bar", testutil.Tags(
+			testutil.Tag("latest",
+				testutil.TagEvent(is[3].Name, is[3].DockerImageReference),
+				testutil.TagEvent(is[4].Name, is[4].DockerImageReference),
+				testutil.TagEvent(is[5].Name, is[5].DockerImageReference)))),
+		testutil.Stream("example.com", "foo", "baz", testutil.Tags(
+			testutil.Tag("devel",
+				testutil.TagEvent(is[3].Name, is[3].DockerImageReference),
+				testutil.TagEvent(is[2].Name, is[2].DockerImageReference),
+				testutil.TagEvent(is[1].Name, is[1].DockerImageReference)),
+			testutil.Tag("prod",
+				testutil.TagEvent(is[2].Name, is[2].DockerImageReference)))))
+	if err := p.addImageStreamsToGraph(&imageStreams, nil); err != nil {
+		t.Fatalf("failed to add image streams: %v", err)
+	}
+
+	imageNodes := getImageNodes(p.g.Nodes())
+	if len(imageNodes) == 0 {
+		t.Fatalf("not images nodes")
+	}
+	prunable := calculatePrunableImages(p.g, imageNodes, algo)
+	sort.Sort(byLayerCountAndAge(prunable))
+	p.queue = makeQueue(prunable)
+
+	checkQueue := func(desc string, expected ...*imageapi.Image) {
+		for i, item := 0, p.queue; i < len(expected) || item != nil; i++ {
+			if i >= len(expected) {
+				t.Errorf("[%s] unexpected image at #%d: %s", desc, i, item.node.Image.Name)
+			} else if item == nil {
+				t.Errorf("[%s] expected image %q not found at #%d", desc, expected[i].Name, i)
+			} else if item.node.Image.Name != expected[i].Name {
+				t.Errorf("[%s] unexpected image at #%d: %s != %s", desc, i, item.node.Image.Name, expected[i].Name)
+			}
+			if item != nil {
+				item = item.next
+			}
+		}
+		if t.Failed() {
+			t.FailNow()
+		}
+	}
+
+	/* layerrefs: layer1:4, Layer1:2, LayeR1:1, layer2:2, Layer2:2, LayeR2:2,
+	 * layer3:1, Layer3:1, LayeR3:1, LAYER3:1, layer4:1, LAYER4:1 */
+	checkQueue("initial state", &is[6], &is[5], &is[3], &is[2], &is[4], &is[1], &is[0])
+	job := expectBlockedOrJob(t, p, "pop first", false, &is[6], []string{"layer4", "layer3"})(p.getNextJob())
+	p.processedImages[job.Image] = job
+	imgnd6 := job.Image
+
+	/* layerrefs: layer1:3, Layer1:2, LayeR1:1, layer2:1, Layer2:2, LayeR2:2,
+	 * layer3:0, Layer3:1, LayeR3:1, LAYER3:1, layer4:0, LAYER4:1 */
+	checkQueue("1 removed", &is[5], &is[3], &is[2], &is[4], &is[1], &is[0])
+	job = expectBlockedOrJob(t, p, "pop second", false, &is[5], []string{"LAYER3", "LAYER4"})(p.getNextJob())
+	p.processedImages[job.Image] = job
+	imgnd5 := job.Image
+
+	/* layerrefs: layer1:2, Layer1:2, LayeR1:1, layer2:1, Layer2:1, LayeR2:2,
+	 * Layer3:1, LayeR3:1, LAYER3:0, LAYER4:0 */
+	checkQueue("2 removed", &is[3], &is[2], &is[4], &is[1], &is[0])
+	job = expectBlockedOrJob(t, p, "pop third", false, &is[3], []string{"LayeR3"})(p.getNextJob())
+	p.processedImages[job.Image] = job
+	imgnd3 := job.Image
+
+	// layerrefs: layer1:2, Layer1:1, LayeR1:1, layer2:1, Layer2:1, LayeR2:1, Layer3:1, LayeR3:0
+	checkQueue("3 removed", &is[2], &is[4], &is[1], &is[0])
+	// all the remaining images are blocked now except for the is[0]
+	job = expectBlockedOrJob(t, p, "pop fourth", false, &is[0], nil)(p.getNextJob())
+	p.processedImages[job.Image] = job
+	imgnd0 := job.Image
+
+	// layerrefs: layer1:1, Layer1:1, LayeR1:1, layer2:1, Layer2:1, LayeR2:1, Layer3:1
+	checkQueue("4 removed and blocked", &is[2], &is[4], &is[1])
+	// all the remaining images are blocked now
+	expectBlockedOrJob(t, p, "blocked", true, nil, nil)(p.getNextJob())
+
+	// layerrefs: layer1:1, Layer1:2, LayeR1:1, layer2:1, Layer2:1, LayeR2:1, Layer3:1
+	checkQueue("3 to go", &is[2], &is[4], &is[1])
+	// unblock one of the images
+	p.g.RemoveNode(imgnd3)
+	job = expectBlockedOrJob(t, p, "pop fifth", false, &is[4],
+		[]string{"LayeR1", "LayeR2"})(p.getNextJob())
+	p.processedImages[job.Image] = job
+	imgnd4 := job.Image
+
+	// layerrefs: layer1:1, Layer1:2, LayeR1:0, layer2:1, Layer2:1, LayeR2:0, Layer3:1
+	checkQueue("2 to go", &is[2], &is[1])
+	expectBlockedOrJob(t, p, "blocked with two items#1", true, nil, nil)(p.getNextJob())
+	checkQueue("still 2 to go", &is[2], &is[1])
+
+	p.g.RemoveNode(imgnd0)
+	delete(p.processedImages, imgnd0)
+	expectBlockedOrJob(t, p, "blocked with two items#2", true, nil, nil)(p.getNextJob())
+	p.g.RemoveNode(imgnd6)
+	delete(p.processedImages, imgnd6)
+	expectBlockedOrJob(t, p, "blocked with two items#3", true, nil, nil)(p.getNextJob())
+	p.g.RemoveNode(imgnd4)
+	delete(p.processedImages, imgnd4)
+	expectBlockedOrJob(t, p, "blocked with two items#4", true, nil, nil)(p.getNextJob())
+	p.g.RemoveNode(imgnd5)
+	delete(p.processedImages, imgnd5)
+
+	job = expectBlockedOrJob(t, p, "pop sixth", false, &is[2],
+		[]string{"Layer1", "Layer2", "Layer3"})(p.getNextJob())
+	p.processedImages[job.Image] = job
+
+	// layerrefs: layer1:1, Layer1:0, layer2:1, Layer2:0, Layer3:0
+	checkQueue("1 to go", &is[1])
+	job = expectBlockedOrJob(t, p, "pop last", false, &is[1],
+		[]string{"layer1", "layer2"})(p.getNextJob())
+	p.processedImages[job.Image] = job
+
+	// layerrefs: layer1:0, layer2:0
+	checkQueue("queue empty")
+	expectBlockedOrJob(t, p, "empty", false, nil, nil)(p.getNextJob())
+}
+
+func expectBlockedOrJob(
+	t *testing.T,
+	p *pruner,
+	desc string,
+	blocked bool,
+	image *imageapi.Image,
+	layers []string,
+) func(job *Job, blocked bool) *Job {
+	return func(job *Job, b bool) *Job {
+		if b != blocked {
+			t.Fatalf("[%s] unexpected blocked: %t != %t", desc, b, blocked)
+		}
+
+		if blocked {
+			return job
+		}
+
+		if image == nil && job != nil {
+			t.Fatalf("[%s] got unexpected job %#+v", desc, job)
+		}
+		if image != nil && job == nil {
+			t.Fatalf("[%s] got nil instead of job", desc)
+		}
+		if job == nil {
+			return nil
+		}
+
+		if a, e := job.Image.Image.Name, image.Name; a != e {
+			t.Errorf("[%s] unexpected image in job: %s != %s", desc, a, e)
+		}
+
+		expLayers := sets.NewString(imagegraph.EnsureImageComponentManifestNode(
+			p.g, job.Image.Image.Name).(*imagegraph.ImageComponentNode).String())
+		for _, l := range layers {
+			expLayers.Insert(imagegraph.EnsureImageComponentLayerNode(
+				p.g, l).(*imagegraph.ImageComponentNode).String())
+		}
+		actLayers := sets.NewString()
+		for c, ret := range job.Components {
+			if ret.PrunableGlobally {
+				actLayers.Insert(c.String())
+			}
+		}
+		if a, e := actLayers, expLayers; !reflect.DeepEqual(a, e) {
+			t.Errorf("[%s] unexpected image components: %s", desc, diff.ObjectDiff(a.List(), e.List()))
+		}
+
+		if t.Failed() {
+			t.FailNow()
+		}
+
+		return job
+	}
+}
+
+func TestChangeImageStreamsWhilePruning(t *testing.T) {
+	flag.Lookup("v").Value.Set(fmt.Sprint(*logLevel))
+
+	images := testutil.ImageList(
+		testutil.AgedImage("sha256:0000000000000000000000000000000000000000000000000000000000000001", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001", 5),
+		testutil.AgedImage("sha256:0000000000000000000000000000000000000000000000000000000000000002", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002", 4),
+		testutil.AgedImage("sha256:0000000000000000000000000000000000000000000000000000000000000003", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003", 3),
+		testutil.AgedImage("sha256:0000000000000000000000000000000000000000000000000000000000000004", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003", 2),
+		testutil.AgedImage("sha256:0000000000000000000000000000000000000000000000000000000000000005", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003", 1),
+	)
+
+	streams := testutil.StreamList(testutil.Stream("registry1", "foo", "bar", testutil.Tags()))
+	streamWatcher := watch.NewFake()
+	pods := testutil.PodList()
+	rcs := testutil.RCList()
+	bcs := testutil.BCList()
+	builds := testutil.BuildList()
+	dss := testutil.DSList()
+	deployments := testutil.DeploymentList()
+	dcs := testutil.DCList()
+	rss := testutil.RSList()
+
+	options := PrunerOptions{
+		Images:        &images,
+		ImageWatcher:  watch.NewFake(),
+		Streams:       &streams,
+		StreamWatcher: streamWatcher,
+		Pods:          &pods,
+		RCs:           &rcs,
+		BCs:           &bcs,
+		Builds:        &builds,
+		DSs:           &dss,
+		Deployments:   &deployments,
+		DCs:           &dcs,
+		RSs:           &rss,
+		RegistryClientFactory: FakeRegistryClientFactory,
+		RegistryURL:           &url.URL{Scheme: "https", Host: "registry1.io"},
+		NumWorkers:            1,
+	}
+	keepYoungerThan := 30 * time.Second
+	keepTagRevisions := 2
+	options.KeepYoungerThan = &keepYoungerThan
+	options.KeepTagRevisions = &keepTagRevisions
+	p, err := NewPruner(options)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	pruneFinished := make(chan struct{})
+	deletions, failures := []Deletion{}, []Failure{}
+	imageDeleter, imageDeleterFactory := newBlockingImageDeleter(t)
+
+	// run the pruning loop in a go routine
+	go func() {
+		deletions, failures = p.Prune(
+			imageDeleterFactory,
+			&fakeImageStreamDeleter{invocations: sets.NewString()},
+			&fakeLayerLinkDeleter{invocations: sets.NewString()},
+			&fakeBlobDeleter{invocations: sets.NewString()},
+			&fakeManifestDeleter{invocations: sets.NewString()},
+		)
+		if len(failures) != 0 {
+			t.Errorf("got unexpected failures: %#+v", failures)
+		}
+		close(pruneFinished)
+	}()
+
+	expectedImageDeletions := sets.NewString()
+	expectedBlobDeletions := sets.NewString()
+
+	img := imageDeleter.waitForRequest()
+	if a, e := img.Name, images.Items[0].Name; a != e {
+		t.Fatalf("got unexpected image deletion request: %s != %s", a, e)
+	}
+	expectedImageDeletions.Insert(images.Items[0].Name)
+	expectedBlobDeletions.Insert("registry1|" + images.Items[0].Name)
+
+	// let the pruner wait for reply and meanwhile reference an image with a new image stream
+	stream := testutil.Stream("registry1", "foo", "new", testutil.Tags(
+		testutil.Tag("latest",
+			testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000002", "registry1/foo/new@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
+		)))
+	streamWatcher.Add(&stream)
+	imageDeleter.unblock()
+
+	// the pruner shall skip the newly referenced image
+	img = imageDeleter.waitForRequest()
+	if a, e := img.Name, images.Items[2].Name; a != e {
+		t.Fatalf("got unexpected image deletion request: %s != %s", a, e)
+	}
+	expectedImageDeletions.Insert(images.Items[2].Name)
+	expectedBlobDeletions.Insert("registry1|" + images.Items[2].Name)
+
+	// now lets modify the existing image stream to reference some more images
+	stream = testutil.Stream("registry1", "foo", "bar", testutil.Tags(
+		testutil.Tag("latest",
+			testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000000", "registry1/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000"),
+			testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000004", "registry1/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000004"),
+		)))
+	streamWatcher.Modify(&stream)
+	imageDeleter.unblock()
+
+	// the pruner shall skip the newly referenced image
+	img = imageDeleter.waitForRequest()
+	if a, e := img.Name, images.Items[4].Name; a != e {
+		t.Fatalf("got unexpected image deletion request: %s != %s", a, e)
+	}
+	expectedImageDeletions.Insert(images.Items[4].Name)
+	expectedBlobDeletions.Insert("registry1|" + images.Items[4].Name)
+	imageDeleter.unblock()
+
+	// no more images - wait for the pruner to finish
+	select {
+	case <-pruneFinished:
+	case <-time.After(time.Second):
+		t.Errorf("tester: timeout while waiting for pruner to finish")
+	}
+
+	if a, e := imageDeleter.d.invocations, expectedImageDeletions; !reflect.DeepEqual(a, e) {
+		t.Errorf("unexpected image deletions: %s", diff.ObjectDiff(a, e))
+	}
+
+	expectedAllDeletions := sets.NewString(
+		append(expectedImageDeletions.List(), expectedBlobDeletions.List()...)...)
+	for _, d := range deletions {
+		rendered, _, isManifestLinkDeletion := renderDeletion("registry1", &d)
+		if isManifestLinkDeletion {
+			// TODO: update tests to count and verify the number of manifest link deletions
+			continue
+		}
+		if expectedAllDeletions.Has(rendered) {
+			expectedAllDeletions.Delete(rendered)
+		} else {
+			t.Errorf("got unexpected deletion: %#+v (rendered: %q)", d, rendered)
+		}
+	}
+	for del, ok := expectedAllDeletions.PopAny(); ok; del, ok = expectedAllDeletions.PopAny() {
+		t.Errorf("expected deletion %q did not happen", del)
+	}
+}
+
+func streamListToClient(list *imageapi.ImageStreamList) imageclient.ImageStreamsGetter {
+	streams := make([]runtime.Object, 0, len(list.Items))
+	for i := range list.Items {
+		streams = append(streams, &list.Items[i])
+	}
+
+	return fakeimageclient.NewSimpleClientset(streams...).Image()
+}
+
 func keepTagRevisions(n int) *int {
 	return &n
 }
 
 type fakeImageDeleter struct {
+	mutex       sync.Mutex
 	invocations sets.String
 	err         error
 }
@@ -1361,11 +2082,68 @@ type fakeImageDeleter struct {
 var _ ImageDeleter = &fakeImageDeleter{}
 
 func (p *fakeImageDeleter) DeleteImage(image *imageapi.Image) error {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
 	p.invocations.Insert(image.Name)
 	return p.err
 }
 
+func newFakeImageDeleter(err error) (*fakeImageDeleter, ImagePrunerFactoryFunc) {
+	deleter := &fakeImageDeleter{
+		err:         err,
+		invocations: sets.NewString(),
+	}
+	return deleter, func() (ImageDeleter, error) {
+		return deleter, nil
+	}
+}
+
+type blockingImageDeleter struct {
+	t        *testing.T
+	d        *fakeImageDeleter
+	requests chan *imageapi.Image
+	reply    chan struct{}
+}
+
+func (bid *blockingImageDeleter) DeleteImage(img *imageapi.Image) error {
+	bid.requests <- img
+	select {
+	case <-bid.reply:
+	case <-time.After(time.Second):
+		bid.t.Fatalf("worker: timeout while waiting for image deletion confirmation")
+	}
+	return bid.d.DeleteImage(img)
+}
+
+func (bid *blockingImageDeleter) waitForRequest() *imageapi.Image {
+	select {
+	case img := <-bid.requests:
+		return img
+	case <-time.After(time.Second):
+		bid.t.Fatalf("tester: timeout while waiting on worker's request")
+		return nil
+	}
+}
+
+func (bid *blockingImageDeleter) unblock() {
+	bid.reply <- struct{}{}
+}
+
+func newBlockingImageDeleter(t *testing.T) (*blockingImageDeleter, ImagePrunerFactoryFunc) {
+	deleter, _ := newFakeImageDeleter(nil)
+	blocking := blockingImageDeleter{
+		t:        t,
+		d:        deleter,
+		requests: make(chan *imageapi.Image),
+		reply:    make(chan struct{}),
+	}
+	return &blocking, func() (ImageDeleter, error) {
+		return &blocking, nil
+	}
+}
+
 type fakeImageStreamDeleter struct {
+	mutex        sync.Mutex
 	invocations  sets.String
 	err          error
 	streamImages map[string][]string
@@ -1375,6 +2153,8 @@ type fakeImageStreamDeleter struct {
 var _ ImageStreamDeleter = &fakeImageStreamDeleter{}
 
 func (p *fakeImageStreamDeleter) GetImageStream(stream *imageapi.ImageStream) (*imageapi.ImageStream, error) {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
 	if p.streamImages == nil {
 		p.streamImages = make(map[string][]string)
 	}
@@ -1424,19 +2204,28 @@ func (p *fakeImageStreamDeleter) NotifyImageStreamPrune(stream *imageapi.ImageSt
 	return
 }
 
+type errorForSHA func(dgst string) error
+
 type fakeBlobDeleter struct {
+	mutex       sync.Mutex
 	invocations sets.String
-	err         error
+	getError    errorForSHA
 }
 
 var _ BlobDeleter = &fakeBlobDeleter{}
 
 func (p *fakeBlobDeleter) DeleteBlob(registryClient *http.Client, registryURL *url.URL, blob string) error {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
 	p.invocations.Insert(fmt.Sprintf("%s|%s", registryURL.String(), blob))
-	return p.err
+	if p.getError == nil {
+		return nil
+	}
+	return p.getError(blob)
 }
 
 type fakeLayerLinkDeleter struct {
+	mutex       sync.Mutex
 	invocations sets.String
 	err         error
 }
@@ -1444,11 +2233,14 @@ type fakeLayerLinkDeleter struct {
 var _ LayerLinkDeleter = &fakeLayerLinkDeleter{}
 
 func (p *fakeLayerLinkDeleter) DeleteLayerLink(registryClient *http.Client, registryURL *url.URL, repo, layer string) error {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
 	p.invocations.Insert(fmt.Sprintf("%s|%s|%s", registryURL.String(), repo, layer))
 	return p.err
 }
 
 type fakeManifestDeleter struct {
+	mutex       sync.Mutex
 	invocations sets.String
 	err         error
 }
@@ -1456,6 +2248,8 @@ type fakeManifestDeleter struct {
 var _ ManifestDeleter = &fakeManifestDeleter{}
 
 func (p *fakeManifestDeleter) DeleteManifest(registryClient *http.Client, registryURL *url.URL, repo, manifest string) error {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
 	p.invocations.Insert(fmt.Sprintf("%s|%s|%s", registryURL.String(), repo, manifest))
 	return p.err
 }

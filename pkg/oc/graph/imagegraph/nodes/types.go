@@ -13,8 +13,9 @@ type ImageComponentType string
 const (
 	ImageComponentNodeKind = "ImageComponent"
 
-	ImageComponentTypeConfig ImageComponentType = `Config`
-	ImageComponentTypeLayer  ImageComponentType = `Layer`
+	ImageComponentTypeConfig   ImageComponentType = `Config`
+	ImageComponentTypeLayer    ImageComponentType = `Layer`
+	ImageComponentTypeManifest ImageComponentType = `Manifest`
 )
 
 var (
