@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/gonum/graph/concrete"
+	"github.com/gonum/graph/simple"
 )
 
 type testNode struct {
@@ -75,10 +75,7 @@ func addNodes(g *MutableDirectedGraph) error {
 				return fmt.Errorf("attempt to add duplicate edge between %q and %q", n.realNode.UniqueName, childName)
 			}
 
-			g.SetEdge(concrete.Edge{
-				F: n.realNode,
-				T: childNode,
-			}, 0)
+			g.SetEdge(simple.Edge{F: n.realNode, T: childNode})
 		}
 	}
 	return nil

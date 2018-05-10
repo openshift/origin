@@ -41,7 +41,7 @@ func TestNamespaceEdgeMatching(t *testing.T) {
 	fn("other", g)
 	AddAllDeploymentConfigsDeploymentEdges(g)
 
-	if len(g.Edges()) != 4 {
+	if len(g.Edges()) != 6 {
 		t.Fatal(g)
 	}
 	for _, edge := range g.Edges() {

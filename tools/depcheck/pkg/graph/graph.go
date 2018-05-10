@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	"github.com/gonum/graph"
-	"github.com/gonum/graph/concrete"
 	"github.com/gonum/graph/encoding/dot"
+	"github.com/gonum/graph/simple"
 )
 
 type Node struct {
@@ -48,14 +48,14 @@ func labelNameForNode(importPath string) string {
 
 func NewMutableDirectedGraph(roots []string) *MutableDirectedGraph {
 	return &MutableDirectedGraph{
-		DirectedGraph: concrete.NewDirectedGraph(),
+		DirectedGraph: simple.NewDirectedGraph(1.0, 0.0),
 		nodesByName:   make(map[string]graph.Node),
 		rootNodeNames: roots,
 	}
 }
 
 type MutableDirectedGraph struct {
-	*concrete.DirectedGraph
+	*simple.DirectedGraph
 
 	nodesByName   map[string]graph.Node
 	rootNodeNames []string
@@ -159,10 +159,7 @@ func (g *MutableDirectedGraph) Copy() *MutableDirectedGraph {
 				continue
 			}
 
-			newGraph.SetEdge(concrete.Edge{
-				F: n,
-				T: to,
-			}, 0)
+			newGraph.SetEdge(simple.Edge{F: n, T: to})
 		}
 	}
 

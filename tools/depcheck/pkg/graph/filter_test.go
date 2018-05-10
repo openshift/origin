@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gonum/graph/concrete"
+	"github.com/gonum/graph/simple"
 )
 
 type testFilterNode struct {
@@ -101,10 +101,7 @@ func buildTestGraph(nodes []*testFilterNode) (*MutableDirectedGraph, error) {
 				continue
 			}
 
-			g.SetEdge(concrete.Edge{
-				F: from,
-				T: to,
-			}, 0)
+			g.SetEdge(simple.Edge{F: from, T: to})
 		}
 	}
 
