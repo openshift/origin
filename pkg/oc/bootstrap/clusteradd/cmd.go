@@ -22,7 +22,6 @@ import (
 	"github.com/openshift/origin/pkg/oc/bootstrap/clusteradd/components/sample-templates"
 	"github.com/openshift/origin/pkg/oc/bootstrap/clusteradd/components/service-catalog"
 	"github.com/openshift/origin/pkg/oc/bootstrap/clusteradd/components/template-service-broker"
-	"github.com/openshift/origin/pkg/oc/bootstrap/clusteradd/components/web-console"
 	"github.com/openshift/origin/pkg/oc/bootstrap/clusteradd/components/web-console-operator"
 	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/components/persistent-volumes"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker"
@@ -74,9 +73,6 @@ var availableComponents = map[string]func(ctx componentinstall.Context) componen
 		return &template_service_broker.TemplateServiceBrokerComponentOptions{InstallContext: ctx}
 	},
 	"web-console": func(ctx componentinstall.Context) componentinstall.Component {
-		return &web_console.WebConsoleComponentOptions{InstallContext: ctx}
-	},
-	"web-console-operator": func(ctx componentinstall.Context) componentinstall.Component {
 		return &web_console_operator.WebConsoleOperatorComponentOptions{InstallContext: ctx}
 	},
 }
@@ -102,7 +98,7 @@ func NewCmdAdd(name, fullName string, out, errout io.Writer) *cobra.Command {
 			if err := config.Check(); err != nil {
 				return err
 			}
-			if err := config.Run(); err != nil {
+			if err := config.Run(c); err != nil {
 				return err
 			}
 
@@ -114,10 +110,13 @@ func NewCmdAdd(name, fullName string, out, errout io.Writer) *cobra.Command {
 }
 
 // Start runs the start tasks ensuring that they are executed in sequence
-func (c *ClusterAddConfig) Run() error {
+func (c *ClusterAddConfig) Run(cmd *cobra.Command) error {
+	defaultPullPolicy := "Always"
+	if len(c.ImageTag) > 0 {
+		defaultPullPolicy = "IfNotPresent"
+	}
 	componentsToInstall := []componentinstall.Component{}
-	installContext, err := componentinstall.NewComponentInstallContext(c.cliImage(), c.imageFormat(), c.BaseDir,
-		c.ServerLogLevel)
+	installContext, err := componentinstall.NewComponentInstallContext(c.cliImage(), c.imageFormat(), defaultPullPolicy, c.BaseDir, c.ServerLogLevel)
 	if err != nil {
 		return err
 	}

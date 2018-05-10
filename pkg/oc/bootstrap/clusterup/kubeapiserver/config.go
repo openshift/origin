@@ -1,12 +1,17 @@
 package kubeapiserver
 
 import (
+	"io/ioutil"
 	"os"
 	"path"
+
+	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/docker/docker/api/types"
 	"github.com/golang/glog"
 
+	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
+	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/run"
 	"github.com/openshift/origin/pkg/oc/errors"
@@ -69,6 +74,26 @@ func (opt KubeAPIServerStartConfig) MakeMasterConfig(dockerClient dockerhelper.I
 		if removeErr := os.RemoveAll(masterDir); removeErr != nil {
 			glog.V(2).Infof("Error removing temporary config dir %s: %v", masterDir, removeErr)
 		}
+		return "", err
+	}
+
+	// update some listen information to include starting the DNS server
+	masterconfigFilename := path.Join(masterDir, "master-config.yaml")
+	originalBytes, err := ioutil.ReadFile(masterconfigFilename)
+	if err != nil {
+		return "", err
+	}
+	configObj, err := runtime.Decode(configapilatest.Codec, originalBytes)
+	if err != nil {
+		return "", err
+	}
+	masterconfig := configObj.(*configapi.MasterConfig)
+	masterconfig.KubernetesMasterConfig.APIServerArguments["feature-gates"] = []string{"CustomResourceSubresources=true"}
+	configBytes, err := runtime.Encode(configapilatest.Codec, masterconfig)
+	if err != nil {
+		return "", err
+	}
+	if err := ioutil.WriteFile(masterconfigFilename, configBytes, 0644); err != nil {
 		return "", err
 	}
 

@@ -122,12 +122,12 @@ func (c WebConsoleOperator) sync() error {
 		var versionAvailability operatorsv1alpha1.VersionAvailablity
 		operatorConfig.Status.TaskSummary = "sync-[3.10.0,3.10.1)"
 		operatorConfig.Status.TargetAvailability = nil
-		versionAvailability, errors = sync_v310_00_to_00(c, operatorConfig)
+		versionAvailability, errors = sync_v310_00_to_00(c, operatorConfig, operatorConfig.Status.CurrentAvailability)
 		operatorConfig.Status.CurrentAvailability = &versionAvailability
 
 	default:
 		operatorConfig.Status.TaskSummary = "unrecognized"
-		if _, err := c.operatorConfigClient.OpenShiftWebConsoleConfigs().Update(operatorConfig); err != nil {
+		if _, err := c.operatorConfigClient.OpenShiftWebConsoleConfigs().UpdateStatus(operatorConfig); err != nil {
 			utilruntime.HandleError(err)
 		}
 
@@ -163,8 +163,11 @@ func (c WebConsoleOperator) sync() error {
 		}
 	}
 	v1alpha1helpers.SetOperatorCondition(&operatorConfig.Status.Conditions, syncSuccessfulCondition)
+	if syncSuccessfulCondition.Status == operatorsv1alpha1.ConditionTrue {
+		operatorConfig.Status.ObservedGeneration = operatorConfig.ObjectMeta.Generation
+	}
 
-	if _, err := c.operatorConfigClient.OpenShiftWebConsoleConfigs().Update(operatorConfig); err != nil {
+	if _, err := c.operatorConfigClient.OpenShiftWebConsoleConfigs().UpdateStatus(operatorConfig); err != nil {
 		errors = append(errors, err)
 	}
 

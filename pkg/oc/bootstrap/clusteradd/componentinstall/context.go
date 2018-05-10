@@ -12,11 +12,21 @@ import (
 const adminKubeConfigFileName = "admin.kubeconfig"
 
 type Context interface {
+	// ClusterAdminClientConfig is the cluster admin client configuration components can use to make their client.
 	ClusterAdminClientConfig() *restclient.Config
+
+	// BaseDir is the base directory that component should use to store files/logs/etc.
 	BaseDir() string
 	ClientImage() string
+	// ImageFormat provides information about the image pull spec format. This is handy when trying to use different registries or image names.
 	ImageFormat() string
+
+	// ComponentLogLevel provides information about verbosity the component should log the messages.
 	ComponentLogLevel() int
+
+	// ImagePullPolicy provides information about what pull policy for images should be used. This is usually based on the presence of the `--tag`
+	// flag which in that case the pull policy will be IfNotExists instead of Always. That allows local development without pulling the images.
+	ImagePullPolicy() string
 }
 
 type installContext struct {
@@ -24,6 +34,7 @@ type installContext struct {
 	clientImage string
 	imageFormat string
 	baseDir     string
+	pullPolicy  string
 	logLevel    int
 }
 
@@ -52,7 +63,11 @@ func (c *installContext) ClientImage() string {
 	return c.clientImage
 }
 
-func NewComponentInstallContext(clientImageName, imageFormat, baseDir string, logLevel int) (Context, error) {
+func (c *installContext) ImagePullPolicy() string {
+	return c.pullPolicy
+}
+
+func NewComponentInstallContext(clientImageName, imageFormat, pullPolicy, baseDir string, logLevel int) (Context, error) {
 	clusterAdminConfigBytes, err := ioutil.ReadFile(path.Join(baseDir, kubeapiserver.KubeAPIServerDirName, adminKubeConfigFileName))
 	if err != nil {
 		return nil, err
@@ -67,5 +82,6 @@ func NewComponentInstallContext(clientImageName, imageFormat, baseDir string, lo
 		baseDir:     baseDir,
 		logLevel:    logLevel,
 		imageFormat: imageFormat,
+		pullPolicy:  pullPolicy,
 	}, nil
 }

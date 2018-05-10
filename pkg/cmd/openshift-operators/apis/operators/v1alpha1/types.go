@@ -67,9 +67,27 @@ type VersionAvailablity struct {
 	ReadyReplicas int32 `json:"readyReplicas"`
 	// errors indicates what failures are associated with the operator trying to manage this version
 	Errors []string `json:"errors"`
+	// generations allows an operator to track what the generation of "important" resources was the last time we updated them
+	Generations []GenerationHistory `json:"generations"`
+}
+
+type GenerationHistory struct {
+	// group is the group of the thing you're tracking
+	Group string `json:"group"`
+	// resource is the resource type of the thing you're tracking
+	Resource string `json:"resource"`
+	// namespace is where the thing you're tracking is
+	Namespace string `json:"namespace"`
+	// name is the name of the thing you're tracking
+	Name string `json:"name"`
+	// lastGeneration is the last generation of the workload controller involved
+	LastGeneration int64 `json:"lastGeneration"`
 }
 
 type OperatorStatus struct {
+	// observedGeneration is the last generation change you've dealt with
+	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
+
 	// conditions is a list of conditions and their status
 	Conditions []OperatorCondition `json:"conditions,omitempty"`
 
