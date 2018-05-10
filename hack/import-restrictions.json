@@ -384,6 +384,25 @@
 
   {
     "checkedPackageRoots": [
+      "github.com/openshift/origin/pkg/service/controller/servingcert"
+    ],
+    "allowedImportPackageRoots": [
+      "vendor/k8s.io/apimachinery",
+      "vendor/k8s.io/api",
+      "vendor/k8s.io/client-go",
+
+      "github.com/openshift/origin/pkg/service/controller/servingcert"
+    ],
+    "allowedImportPackages": [
+      "vendor/github.com/golang/glog",
+      "github.com/openshift/origin/pkg/cmd/server/crypto",
+      "github.com/openshift/origin/pkg/controller"
+
+    ]
+  },
+
+  {
+    "checkedPackageRoots": [
       "github.com/openshift/origin/pkg/oc"
     ],
     "ignoredSubTrees": [

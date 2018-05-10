@@ -19,7 +19,6 @@ import (
 	listers "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
-	"k8s.io/kubernetes/pkg/controller"
 
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	ocontroller "github.com/openshift/origin/pkg/controller"
@@ -162,7 +161,7 @@ func (sc *ServiceServingCertController) enqueueService(obj interface{}) {
 	if !ok {
 		return
 	}
-	key, err := controller.KeyFunc(obj)
+	key, err := cache.DeletionHandlingMetaNamespaceKeyFunc(obj)
 	if err != nil {
 		glog.Errorf("Couldn't get key for object %+v: %v", obj, err)
 		return

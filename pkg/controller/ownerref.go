@@ -1,8 +1,8 @@
 package controller
 
 import (
+	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 )
 
 // EnsureOwnerRef adds the ownerref if needed. Removes ownerrefs with conflicting UIDs.
@@ -15,7 +15,7 @@ func EnsureOwnerRef(metadata metav1.Object, newOwnerRef metav1.OwnerReference) b
 			existingOwnerRef.Name == newOwnerRef.Name {
 
 			// if we're completely the same, there's nothing to do
-			if kapihelper.Semantic.DeepEqual(existingOwnerRef, newOwnerRef) {
+			if equality.Semantic.DeepEqual(existingOwnerRef, newOwnerRef) {
 				return false
 			}
 
