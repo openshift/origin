@@ -31,12 +31,14 @@ type Listener struct {
 	Authorizer    authorizer.Authorizer
 	Record        authorizer.AttributesRecord
 
-	Checks []healthz.HealthzChecker
+	LiveChecks  []healthz.HealthzChecker
+	ReadyChecks []healthz.HealthzChecker
 }
 
 func (l Listener) handler() http.Handler {
 	mux := http.NewServeMux()
-	healthz.InstallHandler(mux, l.Checks...)
+	healthz.InstallHandler(mux, l.LiveChecks...)
+	healthz.InstallPathHandler(mux, "/healthz/ready", l.ReadyChecks...)
 
 	if l.Authenticator != nil {
 		protected := http.NewServeMux()

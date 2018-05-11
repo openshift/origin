@@ -12,6 +12,7 @@ import (
 
 	"github.com/golang/glog"
 
+	templateplugin "github.com/openshift/origin/pkg/router/template"
 	"k8s.io/apiserver/pkg/server/healthz"
 	"k8s.io/kubernetes/pkg/probe"
 	probehttp "k8s.io/kubernetes/pkg/probe/http"
@@ -33,6 +34,28 @@ func HTTPBackendAvailable(u *url.URL) healthz.HealthzChecker {
 		}
 		return nil
 	})
+}
+
+// HasSynced returns a healthz check that verifies the router has been synced at least
+// once.
+func HasSynced(router **templateplugin.TemplatePlugin) healthz.HealthzChecker {
+	return healthz.NamedCheck("has-synced", func(r *http.Request) error {
+		if router != nil {
+			if (*router).Router.SyncedAtLeastOnce() == true {
+				return nil
+			} else {
+				return fmt.Errorf("Router not synced")
+			}
+		}
+		return nil
+	})
+}
+
+func ControllerLive() healthz.HealthzChecker {
+	return healthz.NamedCheck("controller", func(r *http.Request) error {
+		return nil
+	})
+
 }
 
 // ProxyProtocolHTTPBackendAvailable returns a healthz check that verifies a backend supporting

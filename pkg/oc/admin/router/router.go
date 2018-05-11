@@ -243,9 +243,8 @@ const (
 	// Default port numbers to expose and bind/listen on.
 	defaultPorts = "80:80,443:443"
 
-	// Default stats and healthz port.
-	defaultStatsPort   = 1936
-	defaultHealthzPort = defaultStatsPort
+	// Default stats port.
+	defaultStatsPort = 1936
 )
 
 // NewCmdRouter implements the OpenShift CLI router command.
@@ -436,21 +435,21 @@ func generateSecretsConfig(cfg *RouterConfig, namespace string, defaultCert []by
 	return secrets, volumes, mounts, nil
 }
 
-func generateProbeConfigForRouter(cfg *RouterConfig, ports []kapi.ContainerPort) *kapi.Probe {
+func generateProbeConfigForRouter(path string, cfg *RouterConfig, ports []kapi.ContainerPort) *kapi.Probe {
 	var probe *kapi.Probe
 
 	if cfg.Type == "haproxy-router" {
 		probe = &kapi.Probe{}
-		healthzPort := defaultHealthzPort
+		probePort := defaultStatsPort
 		if cfg.StatsPort > 0 {
-			healthzPort = cfg.StatsPort
+			probePort = cfg.StatsPort
 		}
 
 		probe.Handler.HTTPGet = &kapi.HTTPGetAction{
-			Path: "/healthz",
+			Path: path,
 			Port: intstr.IntOrString{
 				Type:   intstr.Int,
-				IntVal: int32(healthzPort),
+				IntVal: int32(probePort),
 			},
 		}
 
@@ -466,7 +465,7 @@ func generateProbeConfigForRouter(cfg *RouterConfig, ports []kapi.ContainerPort)
 }
 
 func generateLivenessProbeConfig(cfg *RouterConfig, ports []kapi.ContainerPort) *kapi.Probe {
-	probe := generateProbeConfigForRouter(cfg, ports)
+	probe := generateProbeConfigForRouter("/healthz", cfg, ports)
 	if probe != nil {
 		probe.InitialDelaySeconds = 10
 	}
@@ -474,7 +473,7 @@ func generateLivenessProbeConfig(cfg *RouterConfig, ports []kapi.ContainerPort) 
 }
 
 func generateReadinessProbeConfig(cfg *RouterConfig, ports []kapi.ContainerPort) *kapi.Probe {
-	probe := generateProbeConfigForRouter(cfg, ports)
+	probe := generateProbeConfigForRouter("healthz/ready", cfg, ports)
 	if probe != nil {
 		probe.InitialDelaySeconds = 10
 	}
