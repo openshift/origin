@@ -135,11 +135,35 @@ function start() {
   local bin_path
   bin_path="$(os::build::get-bin-output-path "${OS_ROOT}")"
   cat >"${rc_file}" <<EOF
-export KUBECONFIG="${admin_config}"
-export PATH="\$PATH:${bin_path}"
+# Adds \$2 to the path of \$1 if not already present
+# \$3 is pre or post and governs whether to prepend or append
+function pathmunge {
+    if [[ "\${1}" =~ (^|:)\${2}(\$|:) ]] ; then
+        # Already exists in the original
+        echo "\${1}"
+    else
+        if [[ "\${1}" == "" ]] ; then
+            # No existing path, just return the new
+            echo "\${2}"
+        else
+            # An existing path, but ours is not in it, add it
+            if [[ "\${3}" == "pre" ]]; then
+                echo "\${2}:\${1}"
+            else
+                echo "\${1}:\${2}"
+            fi
+        fi
+    fi
+}
+
+
+export KUBECONFIG="\$(pathmunge "\$KUBECONFIG" "${admin_config}" "post")"
+export PATH="\$(pathmunge "\$PATH" "${bin_path}" "post")"
 
 export OPENSHIFT_CLUSTER_ID="${cluster_id}"
 export OPENSHIFT_CONFIG_ROOT="${config_root}"
+
+oc config use-context "dind-${cluster_id}"
 
 for file in "${origin_root}/contrib/completions/bash"/* ; do
     source "\${file}"
@@ -149,6 +173,10 @@ EOF
   if [[ -n "${wait_for_cluster}" ]]; then
     wait-for-cluster "${config_root}" "${node_count}"
   fi
+
+  # Give our dind context a name
+  current_context="$(oc --config="${admin_config}" config current-context)"
+  oc --config="${admin_config}" config rename-context "${current_context}" "dind-${cluster_id}"
 
   if [[ "${KUBECONFIG:-}" != "${admin_config}"  ||
           ":${PATH}:" != *":${bin_path}:"* ]]; then
