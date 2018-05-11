@@ -11,16 +11,19 @@ import (
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/ghodss/yaml"
-
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
+	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
+	kyaml "k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/util/retry"
@@ -33,8 +36,6 @@ import (
 	appstypedclientset "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
 	exutil "github.com/openshift/origin/test/extended/util"
-	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/selection"
 )
 
 type updateConfigFunc func(d *appsapi.DeploymentConfig)
@@ -489,30 +490,18 @@ func waitForDCModification(oc *exutil.CLI, namespace string, name string, timeou
 	return event.Object.(*appsapi.DeploymentConfig), nil
 }
 
-// createFixture will create the provided fixture and return the resource and the
-// name separately.
-// TODO: Probably move to a more general location like test/extended/util/cli.go
-func createFixture(oc *exutil.CLI, fixture string) (string, string, error) {
-	resource, err := oc.Run("create").Args("-f", fixture, "-o", "name").Output()
-	if err != nil {
-		return "", "", err
-	}
-	parts := strings.Split(resource, "/")
-	if len(parts) != 2 {
-		return "", "", fmt.Errorf("expected type/name syntax, got: %s", resource)
-	}
-	return resource, parts[1], nil
-}
-
 func createDeploymentConfig(oc *exutil.CLI, fixture string) (*appsapi.DeploymentConfig, error) {
-	_, name, err := createFixture(oc, fixture)
+	dcFixture, err := readDCFixture(fixture)
+	if err != nil {
+		return nil, err
+	}
+	dc, err := oc.AppsClient().Apps().DeploymentConfigs(oc.Namespace()).Create(dcFixture)
 	if err != nil {
 		return nil, err
 	}
 	var pollErr error
-	var dc *appsapi.DeploymentConfig
 	err = wait.PollImmediate(1*time.Second, 1*time.Minute, func() (bool, error) {
-		dc, err = oc.AppsClient().Apps().DeploymentConfigs(oc.Namespace()).Get(name, metav1.GetOptions{})
+		dc, err = oc.AppsClient().Apps().DeploymentConfigs(oc.Namespace()).Get(dc.Name, metav1.GetOptions{})
 		if err != nil {
 			pollErr = err
 			return false, nil
@@ -625,24 +614,20 @@ func readDCFixture(path string) (*appsapi.DeploymentConfig, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	dcv1 := new(appsapiv1.DeploymentConfig)
-	err = yaml.Unmarshal(data, dcv1)
+	content, err := kyaml.ToJSON(data)
 	if err != nil {
 		return nil, err
 	}
-
-	dc := new(appsapi.DeploymentConfig)
-	err = legacyscheme.Scheme.Convert(dcv1, dc, nil)
-	return dc, err
-}
-
-func readDCFixtureOrDie(path string) *appsapi.DeploymentConfig {
-	data, err := readDCFixture(path)
+	appsScheme := runtime.NewScheme()
+	appsCodecs := serializer.NewCodecFactory(appsScheme)
+	appsapiv1.AddToScheme(appsScheme)
+	obj, err := runtime.Decode(appsCodecs.UniversalDecoder(appsapiv1.SchemeGroupVersion), content)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
-	return data
+	var dc appsapi.DeploymentConfig
+	err = legacyscheme.Scheme.Convert(obj, &dc, nil)
+	return &dc, err
 }
 
 type deployerPodInvariantChecker struct {
