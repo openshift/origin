@@ -7,6 +7,6 @@ import:
   repo:    git@github.com:openshift/kubernetes-code-generator
   version: origin-3.10-kubernetes-1.10.0
 - package: k8s.io/apimachinery
-  version: kubernetes-1.10.0
+  version: kubernetes-1.10.2
 - package: k8s.io/api
-  version: kubernetes-1.10.0
+  version: kubernetes-1.10.2

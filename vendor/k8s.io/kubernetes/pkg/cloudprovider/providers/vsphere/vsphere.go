@@ -592,7 +592,8 @@ func (vs *VSphere) InstanceExistsByProviderID(ctx context.Context, providerID st
 		return false, err
 	}
 	for _, node := range nodes {
-		if node.VMUUID == GetUUIDFromProviderID(providerID) {
+		// ProviderID is UUID for nodes v1.9.3+
+		if node.VMUUID == GetUUIDFromProviderID(providerID) || node.NodeName == providerID {
 			nodeName = node.NodeName
 			break
 		}
@@ -780,6 +781,11 @@ func (vs *VSphere) DetachDisk(volPath string, nodeName k8stypes.NodeName) error 
 		defer cancel()
 		vsi, err := vs.getVSphereInstance(nodeName)
 		if err != nil {
+			// If node doesn't exist, disk is already detached from node.
+			if err == vclib.ErrNoVMFound {
+				glog.Infof("Node %q does not exist, disk %s is already detached from node.", convertToString(nodeName), volPath)
+				return nil
+			}
 			return err
 		}
 		// Ensure client is logged in and session is valid

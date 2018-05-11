@@ -1,5 +1,5 @@
-hash: 8d9400ce356982e52e62591ee0287cc73b392f39979a20700aadebbfc83db87d
-updated: 2018-05-04T11:15:19.483669-04:00
+hash: 3660dfcb0ddb84294830d5a0a0592a746e0ff5767f145c541e898d65a9b41932
+updated: 2018-05-12T02:44:02.885408-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -501,7 +501,7 @@ imports:
 - name: github.com/google/btree
   version: e89373fe6b4a7413d7acd6da1725b83ef713e6e4
 - name: github.com/google/cadvisor
-  version: 2e02d28350c5fbbad9cfb7e5a1733468b75ab3f9
+  version: 5287e255428f16a3c0c8083107dfa0c980d7cdac
   repo: https://github.com/openshift/google-cadvisor.git
   subpackages:
   - accelerators
@@ -719,7 +719,7 @@ imports:
 - name: github.com/Microsoft/hcsshim
   version: 6ea7fe54f719d95721e7d9b26ac0add224c9b923
 - name: github.com/miekg/dns
-  version: 83c435cc65d2862736428b9b4d07d0ab10ad3e4d
+  version: eac804ceef194db2da6ee80c728d7658c8c805ff
 - name: github.com/mindprince/gonvml
   version: fee913ce8fb235edf54739d259ca0ecc226c7b8a
 - name: github.com/mistifyio/go-zfs
@@ -818,7 +818,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: 80a1e2bf16952088360b492c175703755deea8d2
+  version: 221b49e66590f67765dfc861cb5e53465738befa
   subpackages:
   - apps/v1
   - authorization/v1
@@ -837,7 +837,7 @@ imports:
   - user/v1
   - webconsole/v1
 - name: github.com/openshift/client-go
-  version: b3f4c8b4682c151defdd33ce75acfbf5fb30bccc
+  version: bc04fb8d39938c59a84f0e60f6803fb19882c8fc
   subpackages:
   - apps/clientset/versioned
   - apps/clientset/versioned/scheme
@@ -1318,7 +1318,7 @@ imports:
 - name: gopkg.in/yaml.v2
   version: 670d4cfef0544295bc27a114dbac37980d83185a
 - name: k8s.io/api
-  version: 3aa27dff093acb901f4e16b2d9f6aaadc15e22df
+  version: 7aef0029aaf37044a0afeca5ef27e4dbfc5415bc
   repo: https://github.com/openshift/kubernetes-api.git
   subpackages:
   - admission/v1beta1
@@ -1352,7 +1352,7 @@ imports:
   - storage/v1alpha1
   - storage/v1beta1
 - name: k8s.io/apiextensions-apiserver
-  version: 3d5bebf0e6170d6749824eb6b186445801d9e2fc
+  version: bdb14b22f7539ab240d3aeb781796ec0ed700f51
   repo: https://github.com/openshift/kubernetes-apiextensions-apiserver.git
   subpackages:
   - pkg/apis/apiextensions
@@ -1386,7 +1386,7 @@ imports:
   - pkg/registry/customresourcedefinition
   - test/integration/testserver
 - name: k8s.io/apimachinery
-  version: 3f7c9b47f46d0fac987743bffeb7603a9df1721f
+  version: c1bb24dfabdac7cd8af922d4ad340b86977b8f3b
   repo: https://github.com/openshift/kubernetes-apimachinery.git
   subpackages:
   - pkg/api/equality
@@ -1454,7 +1454,7 @@ imports:
   - third_party/forked/golang/netutil
   - third_party/forked/golang/reflect
 - name: k8s.io/apiserver
-  version: 61528dc8d77f236a2a3a5419ae71da2ce37d1724
+  version: 96c171d4c097216d9b8654eec7d8a0b0f4723edf
   repo: https://github.com/openshift/kubernetes-apiserver.git
   subpackages:
   - pkg/admission
@@ -1565,7 +1565,7 @@ imports:
   - plugin/pkg/authenticator/token/webhook
   - plugin/pkg/authorizer/webhook
 - name: k8s.io/client-go
-  version: 40e532458c6437b8fdcedfd82116bf2b245471d9
+  version: e9fe49a24dc83d03eb9015cbdf866c4673322c08
   repo: https://github.com/openshift/kubernetes-client-go.git
   subpackages:
   - discovery
@@ -1748,7 +1748,7 @@ imports:
   - util/testing
   - util/workqueue
 - name: k8s.io/code-generator
-  version: 37148bd476363b6cfdc14aa7a0ab9e8011a396f3
+  version: 006eedfdf16ff9bda1d82e13062f5e17be611d23
   repo: https://github.com/openshift/kubernetes-code-generator.git
 - name: k8s.io/gengo
   version: 01a732e01d00cb9a81bb0ca050d3e6d2b947927b
@@ -1757,7 +1757,7 @@ imports:
   subpackages:
   - metrics/api/v1/types
 - name: k8s.io/kube-aggregator
-  version: 52767e1a564300fc0b92ac2852a316cac35c5bc1
+  version: b60a89f5f50ec7836d783d857eb4731a1f27a8ab
   repo: https://github.com/openshift/kube-aggregator.git
   subpackages:
   - pkg/apis/apiregistration
@@ -1797,7 +1797,7 @@ imports:
   - pkg/util/proto
   - pkg/util/proto/validation
 - name: k8s.io/kubernetes
-  version: 6b96dc6af2d08487ab77179fbb42c3e392911328
+  version: a99cf76890767bdb25a1ada89fc8d6dfdd65fc24
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/controller-manager/app
@@ -2565,7 +2565,7 @@ imports:
   - third_party/forked/gonum/graph/simple
   - third_party/forked/gonum/graph/traverse
 - name: k8s.io/metrics
-  version: 189abc117eb81f7d175c212fdb09e334e10a7182
+  version: 4a67951624d9f54f108ffe953a967435d4e791ac
   repo: https://github.com/openshift/kubernetes-metrics.git
   subpackages:
   - pkg/apis/custom_metrics

@@ -183,6 +183,7 @@ function safe-format-and-mount() {
   mkdir -p "${mountpoint}"
   echo "Mounting '${device}' at '${mountpoint}'"
   mount -o discard,defaults "${device}" "${mountpoint}"
+  chmod a+w "${mountpoint}"
 }
 
 # Gets a devices UUID and bind mounts the device to mount location in
@@ -2041,6 +2042,35 @@ function setup-coredns-manifest {
   sed -i -e "s@{{ *pillar\['service_cluster_ip_range'\] *}}@${SERVICE_CLUSTER_IP_RANGE}@g" "${coredns_file}"
 }
 
+# Sets up the manifests of Fluentd configmap and yamls for k8s addons.
+function setup-fluentd {
+  local -r dst_dir="$1"
+  local -r fluentd_gcp_yaml="${dst_dir}/fluentd-gcp/fluentd-gcp-ds.yaml"
+  # Ingest logs against new resources like "k8s_container" and "k8s_node" if
+  # LOGGING_STACKDRIVER_RESOURCE_TYPES is "new".
+  # Ingest logs against old resources like "gke_container" and "gce_instance" if
+  # LOGGING_STACKDRIVER_RESOURCE_TYPES is "old".
+  if [[ "${LOGGING_STACKDRIVER_RESOURCE_TYPES:-old}" == "new" ]]; then
+    local -r fluentd_gcp_configmap_yaml="${dst_dir}/fluentd-gcp/fluentd-gcp-configmap.yaml"
+    fluentd_gcp_configmap_name="fluentd-gcp-config"
+  else
+    local -r fluentd_gcp_configmap_yaml="${dst_dir}/fluentd-gcp/fluentd-gcp-configmap-old.yaml"
+    fluentd_gcp_configmap_name="fluentd-gcp-config-old"
+  fi
+  sed -i -e "s@{{ fluentd_gcp_configmap_name }}@${fluentd_gcp_configmap_name}@g" "${fluentd_gcp_yaml}"
+  fluentd_gcp_version="${FLUENTD_GCP_VERSION:-0.2-1.5.30-1-k8s}"
+  sed -i -e "s@{{ fluentd_gcp_version }}@${fluentd_gcp_version}@g" "${fluentd_gcp_yaml}"
+  if [[ "${STACKDRIVER_METADATA_AGENT_URL:-}" != "" ]]; then
+    metadata_agent_url="${STACKDRIVER_METADATA_AGENT_URL}"
+  else
+    metadata_agent_url="http://${HOSTNAME}:8799"
+  fi
+  sed -i -e "s@{{ stackdriver_metadata_agent_url }}@${metadata_agent_url}@g" "${fluentd_gcp_yaml}"
+  update-prometheus-to-sd-parameters ${fluentd_gcp_yaml}
+  start-fluentd-resource-update ${fluentd_gcp_yaml}
+  update-container-runtime ${fluentd_gcp_configmap_yaml}
+}
+
 # Sets up the manifests of kube-dns for k8s addons.
 function setup-kube-dns-manifest {
   local -r kubedns_file="${dst_dir}/dns/kube-dns.yaml"
@@ -2142,15 +2172,17 @@ EOF
   if [[ "${ENABLE_CLUSTER_MONITORING:-}" == "stackdriver" ]] ||
      ([[ "${ENABLE_CLUSTER_LOGGING:-}" == "true" ]] &&
      [[ "${LOGGING_DESTINATION:-}" == "gcp" ]]); then
-    if [[ "${ENABLE_METADATA_AGENT:-}" == "stackdriver" ]] &&
-       [[ "${METADATA_AGENT_VERSION:-}" != "" ]]; then
+    if [[ "${ENABLE_METADATA_AGENT:-}" == "stackdriver" ]]; then
       metadata_agent_cpu_request="${METADATA_AGENT_CPU_REQUEST:-40m}"
       metadata_agent_memory_request="${METADATA_AGENT_MEMORY_REQUEST:-50Mi}"
+      metadata_agent_cluster_level_cpu_request="${METADATA_AGENT_CLUSTER_LEVEL_CPU_REQUEST:-40m}"
+      metadata_agent_cluster_level_memory_request="${METADATA_AGENT_CLUSTER_LEVEL_MEMORY_REQUEST:-50Mi}"
       setup-addon-manifests "addons" "metadata-agent/stackdriver"
-      daemon_set_yaml="${dst_dir}/metadata-agent/stackdriver/metadata-agent.yaml"
-      sed -i -e "s@{{ metadata_agent_version }}@${METADATA_AGENT_VERSION}@g" "${daemon_set_yaml}"
-      sed -i -e "s@{{ metadata_agent_cpu_request }}@${metadata_agent_cpu_request}@g" "${daemon_set_yaml}"
-      sed -i -e "s@{{ metadata_agent_memory_request }}@${metadata_agent_memory_request}@g" "${daemon_set_yaml}"
+      metadata_agent_yaml="${dst_dir}/metadata-agent/stackdriver/metadata-agent.yaml"
+      sed -i -e "s@{{ metadata_agent_cpu_request }}@${metadata_agent_cpu_request}@g" "${metadata_agent_yaml}"
+      sed -i -e "s@{{ metadata_agent_memory_request }}@${metadata_agent_memory_request}@g" "${metadata_agent_yaml}"
+      sed -i -e "s@{{ metadata_agent_cluster_level_cpu_request }}@${metadata_agent_cluster_level_cpu_request}@g" "${metadata_agent_yaml}"
+      sed -i -e "s@{{ metadata_agent_cluster_level_memory_request }}@${metadata_agent_cluster_level_memory_request}@g" "${metadata_agent_yaml}"
     fi
   fi
   if [[ "${ENABLE_METRICS_SERVER:-}" == "true" ]]; then
@@ -2177,16 +2209,10 @@ EOF
   if [[ "${ENABLE_NODE_LOGGING:-}" == "true" ]] && \
      [[ "${LOGGING_DESTINATION:-}" == "gcp" ]]; then
     setup-addon-manifests "addons" "fluentd-gcp"
+    setup-fluentd ${dst_dir}
     local -r event_exporter_yaml="${dst_dir}/fluentd-gcp/event-exporter.yaml"
-    local -r fluentd_gcp_yaml="${dst_dir}/fluentd-gcp/fluentd-gcp-ds.yaml"
-    local -r fluentd_gcp_configmap_yaml="${dst_dir}/fluentd-gcp/fluentd-gcp-configmap.yaml"
     update-event-exporter ${event_exporter_yaml}
-    fluentd_gcp_version="${FLUENTD_GCP_VERSION:-0.2-1.5.28-1}"
-    sed -i -e "s@{{ fluentd_gcp_version }}@${fluentd_gcp_version}@g" "${fluentd_gcp_yaml}"
     update-prometheus-to-sd-parameters ${event_exporter_yaml}
-    update-prometheus-to-sd-parameters ${fluentd_gcp_yaml}
-    start-fluentd-resource-update ${fluentd_gcp_yaml}
-    update-container-runtime ${fluentd_gcp_configmap_yaml}
   fi
   if [[ "${ENABLE_CLUSTER_UI:-}" == "true" ]]; then
     setup-addon-manifests "addons" "dashboard"
