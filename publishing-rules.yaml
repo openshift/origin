@@ -2,9 +2,13 @@ skip-godeps: true
 rules:
 - destination: kubernetes
   branches:
-  - name: release-1.9.1
+  - name: origin-3.10-kubernetes-1.10.2
     source:
       branch: master
+      dir: vendor/k8s.io/kubernetes
+  - name: release-1.9.1
+    source:
+      branch: release-3.9
       dir: vendor/k8s.io/kubernetes
 - destination: kubernetes-gengo
   branches:

@@ -1,53 +1,53 @@
 skip-godeps: true
 rules:
-# origin-3.10-kubernetes-1.10.0
+# origin-3.10-kubernetes-1.10.2
 - destination: kubernetes-code-generator
   branches:
-  - name: origin-3.10-kubernetes-1.10.0
+  - name: origin-3.10-kubernetes-1.10.2
     source:
-      branch: origin-3.10-kubernetes-1.10.0
+      branch: origin-3.10-kubernetes-1.10.2
       dir: staging/src/k8s.io/code-generator
 - destination: kubernetes-apimachinery
   branches:
-  - name: origin-3.10-kubernetes-1.10.0
+  - name: origin-3.10-kubernetes-1.10.2
     source:
-      branch: origin-3.10-kubernetes-1.10.0
+      branch: origin-3.10-kubernetes-1.10.2
       dir: staging/src/k8s.io/apimachinery
 - destination: kubernetes-api
   branches:
-  - name: origin-3.10-kubernetes-1.10.0
+  - name: origin-3.10-kubernetes-1.10.2
     source:
-      branch: origin-3.10-kubernetes-1.10.0
+      branch: origin-3.10-kubernetes-1.10.2
       dir: staging/src/k8s.io/api
 - destination: kubernetes-client-go
   branches:
-  - name: origin-3.10-kubernetes-1.10.0
+  - name: origin-3.10-kubernetes-1.10.2
     source:
-      branch: origin-3.10-kubernetes-1.10.0
+      branch: origin-3.10-kubernetes-1.10.2
       dir: staging/src/k8s.io/client-go
 - destination: kubernetes-metrics
   branches:
-  - name: origin-3.10-kubernetes-1.10.0
+  - name: origin-3.10-kubernetes-1.10.2
     source:
-      branch: origin-3.10-kubernetes-1.10.0
+      branch: origin-3.10-kubernetes-1.10.2
       dir: staging/src/k8s.io/metrics
 - destination: kubernetes-apiserver
   branches:
-  - name: origin-3.10-kubernetes-1.10.0
+  - name: origin-3.10-kubernetes-1.10.2
     source:
-      branch: origin-3.10-kubernetes-1.10.0
+      branch: origin-3.10-kubernetes-1.10.2
       dir: staging/src/k8s.io/apiserver
 - destination: kubernetes-kube-aggregator
   branches:
-  - name: origin-3.10-kubernetes-1.10.0
+  - name: origin-3.10-kubernetes-1.10.2
     source:
-      branch: origin-3.10-kubernetes-1.10.0
+      branch: origin-3.10-kubernetes-1.10.2
       dir: staging/src/k8s.io/kube-aggregator
 - destination: kubernetes-apiextensions-apiserver
   branches:
-  - name: origin-3.10-kubernetes-1.10.0
+  - name: origin-3.10-kubernetes-1.10.2
     source:
-      branch: origin-3.10-kubernetes-1.10.0
+      branch: origin-3.10-kubernetes-1.10.2
       dir: staging/src/k8s.io/apiextensions-apiserver
 
 # release-1.9.1
