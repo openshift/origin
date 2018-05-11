@@ -3,9 +3,9 @@ package controller
 import (
 	"testing"
 
+	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 )
 
 func TestEnsureOwnerRef(t *testing.T) {
@@ -120,7 +120,7 @@ func TestEnsureOwnerRef(t *testing.T) {
 				t.Errorf("expected %v, got %v", tc.expectedReturn, actualReturn)
 				return
 			}
-			if !kapihelper.Semantic.DeepEqual(tc.expectedOwners, tc.obj.OwnerReferences) {
+			if !equality.Semantic.DeepEqual(tc.expectedOwners, tc.obj.OwnerReferences) {
 				t.Errorf("expected %v, got %v", tc.expectedOwners, tc.obj.OwnerReferences)
 				return
 			}

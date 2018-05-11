@@ -6,23 +6,23 @@ import (
 	"encoding/pem"
 	"fmt"
 	"io/ioutil"
+	"path"
 	"reflect"
 	"testing"
 	"time"
 
 	"k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/equality"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
-	informers "k8s.io/client-go/informers"
+	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes/fake"
 	clientgotesting "k8s.io/client-go/testing"
-	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
-	"k8s.io/kubernetes/pkg/controller"
 
-	"github.com/openshift/origin/pkg/cmd/server/admin"
+	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	"github.com/openshift/origin/pkg/service/controller/servingcert/cryptoextensions"
 )
 
@@ -31,15 +31,15 @@ func controllerSetup(startingObjects []runtime.Object, stopChannel chan struct{}
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	caInfo := admin.DefaultServiceSignerCAInfo(certDir)
 
-	caOptions := admin.CreateSignerCertOptions{
-		CertFile: caInfo.CertFile,
-		KeyFile:  caInfo.KeyFile,
-		Name:     admin.DefaultServiceServingCertSignerName(),
-		Output:   ioutil.Discard,
-	}
-	ca, err := caOptions.CreateSignerCert()
+	signerName := fmt.Sprintf("%s@%d", "openshift-service-serving-signer", time.Now().Unix())
+	ca, err := crypto.MakeCA(
+		path.Join(certDir, "service-signer.crt"),
+		path.Join(certDir, "service-signer.key"),
+		path.Join(certDir, "service-signer.serial"),
+		signerName,
+		0,
+	)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -56,7 +56,7 @@ func controllerSetup(startingObjects []runtime.Object, stopChannel chan struct{}
 	kubeclient.PrependWatchReactor("services", clientgotesting.DefaultWatchReactor(fakeWatch, nil))
 	kubeclient.PrependWatchReactor("secrets", clientgotesting.DefaultWatchReactor(fakeSecretWatch, nil))
 
-	informerFactory := informers.NewSharedInformerFactory(kubeclient, controller.NoResyncPeriodFunc())
+	informerFactory := informers.NewSharedInformerFactory(kubeclient, 0)
 
 	controller := NewServiceServingCertController(
 		informerFactory.Core().V1().Services(),
@@ -66,7 +66,7 @@ func controllerSetup(startingObjects []runtime.Object, stopChannel chan struct{}
 	controller.serviceHasSynced = func() bool { return true }
 	controller.secretHasSynced = func() bool { return true }
 
-	return caOptions.Name, kubeclient, fakeWatch, fakeSecretWatch, controller, informerFactory
+	return signerName, kubeclient, fakeWatch, fakeSecretWatch, controller, informerFactory
 }
 
 func checkGeneratedCertificate(t *testing.T, certData []byte, service *v1.Service) {
@@ -563,7 +563,7 @@ func TestRecreateSecretControllerFlow(t *testing.T) {
 				t.Errorf("expected %v, got %v", expectedSecretAnnotations, newSecret.Annotations)
 				continue
 			}
-			if !kapihelper.Semantic.DeepEqual(expectedOwnerRef, newSecret.OwnerReferences) {
+			if !equality.Semantic.DeepEqual(expectedOwnerRef, newSecret.OwnerReferences) {
 				t.Errorf("expected %v, got %v", expectedOwnerRef, newSecret.OwnerReferences)
 				continue
 			}
