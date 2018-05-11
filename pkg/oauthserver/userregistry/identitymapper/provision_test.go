@@ -2,15 +2,20 @@ package identitymapper
 
 import (
 	"fmt"
-	"reflect"
 	"testing"
 
+	"github.com/davecgh/go-spew/spew"
+
+	"k8s.io/apimachinery/pkg/api/equality"
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/diff"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	clienttesting "k8s.io/client-go/testing"
 
 	userapi "github.com/openshift/api/user/v1"
+	userv1fakeclient "github.com/openshift/client-go/user/clientset/versioned/fake"
 	authapi "github.com/openshift/origin/pkg/oauthserver/api"
-	"github.com/openshift/origin/pkg/user/registry/test"
 )
 
 type testNewIdentityGetter struct {
@@ -52,11 +57,10 @@ func TestProvision(t *testing.T) {
 		ProviderName     string
 		ProviderUserName string
 
-		ExistingIdentity           *userapi.Identity
-		ExistingUser               *userapi.User
+		ExistingObjects            []runtime.Object
 		NewIdentityGetterResponses []interface{}
 
-		ExpectedActions  []test.Action
+		ValidateActions  func(t *testing.T, actions []clienttesting.Action)
 		ExpectedError    bool
 		ExpectedUserName string
 	}{
@@ -64,16 +68,25 @@ func TestProvision(t *testing.T) {
 			ProviderName:     "idp",
 			ProviderUserName: "bob",
 
-			ExistingIdentity: nil,
-			ExistingUser:     nil,
 			NewIdentityGetterResponses: []interface{}{
 				makeUser("bobUserUID", "bob", "idp:bob"),
 			},
 
-			ExpectedActions: []test.Action{
-				{Name: "GetIdentity", Object: "idp:bob"},
+			ValidateActions: func(t *testing.T, actions []clienttesting.Action) {
+				if len(actions) != 2 {
+					t.Fatal(spew.Sdump(actions))
+				}
+				if !actions[0].Matches("get", "identities") || actions[0].(clienttesting.GetAction).GetName() != "idp:bob" {
+					t.Error(spew.Sdump(actions))
+				}
 				// ... new identity user getter creates user
-				{Name: "CreateIdentity", Object: makeIdentity("", "idp", "bob", "bobUserUID", "bob")},
+				if !actions[1].Matches("create", "identities") {
+					t.Error(spew.Sdump(actions))
+				}
+				actual := actions[1].(clienttesting.CreateAction).GetObject().(*userapi.Identity)
+				if expected := makeIdentity("", "idp", "bob", "bobUserUID", "bob"); !equality.Semantic.DeepEqual(expected, actual) {
+					t.Error(diff.ObjectDiff(expected, actual))
+				}
 			},
 			ExpectedUserName: "bob",
 		},
@@ -81,19 +94,30 @@ func TestProvision(t *testing.T) {
 			ProviderName:     "idp",
 			ProviderUserName: "bob",
 
-			ExistingIdentity: nil,
-			ExistingUser:     nil,
 			NewIdentityGetterResponses: []interface{}{
 				kerrs.NewAlreadyExists(userapi.Resource("User"), "bob"),
 				makeUser("bobUserUID", "bob", "idp:bob"),
 			},
 
-			ExpectedActions: []test.Action{
-				{Name: "GetIdentity", Object: "idp:bob"},
+			ValidateActions: func(t *testing.T, actions []clienttesting.Action) {
+				if len(actions) != 3 {
+					t.Fatal(spew.Sdump(actions))
+				}
+				if !actions[0].Matches("get", "identities") || actions[0].(clienttesting.GetAction).GetName() != "idp:bob" {
+					t.Error(spew.Sdump(actions))
+				}
 				// ... new identity user getter returns error
-				{Name: "GetIdentity", Object: "idp:bob"},
+				if !actions[1].Matches("get", "identities") || actions[1].(clienttesting.GetAction).GetName() != "idp:bob" {
+					t.Error(spew.Sdump(actions))
+				}
 				// ... new identity user getter creates user
-				{Name: "CreateIdentity", Object: makeIdentity("", "idp", "bob", "bobUserUID", "bob")},
+				if !actions[2].Matches("create", "identities") {
+					t.Error(spew.Sdump(actions))
+				}
+				actual := actions[2].(clienttesting.CreateAction).GetObject().(*userapi.Identity)
+				if expected := makeIdentity("", "idp", "bob", "bobUserUID", "bob"); !equality.Semantic.DeepEqual(expected, actual) {
+					t.Error(diff.ObjectDiff(expected, actual))
+				}
 			},
 			ExpectedUserName: "bob",
 		},
@@ -101,19 +125,30 @@ func TestProvision(t *testing.T) {
 			ProviderName:     "idp",
 			ProviderUserName: "bob",
 
-			ExistingIdentity: nil,
-			ExistingUser:     nil,
 			NewIdentityGetterResponses: []interface{}{
 				kerrs.NewConflict(userapi.Resource("User"), "bob", fmt.Errorf("conflict")),
 				makeUser("bobUserUID", "bob", "idp:bob"),
 			},
 
-			ExpectedActions: []test.Action{
-				{Name: "GetIdentity", Object: "idp:bob"},
+			ValidateActions: func(t *testing.T, actions []clienttesting.Action) {
+				if len(actions) != 3 {
+					t.Fatal(spew.Sdump(actions))
+				}
+				if !actions[0].Matches("get", "identities") || actions[0].(clienttesting.GetAction).GetName() != "idp:bob" {
+					t.Error(spew.Sdump(actions))
+				}
 				// ... new identity user getter returns error
-				{Name: "GetIdentity", Object: "idp:bob"},
+				if !actions[1].Matches("get", "identities") || actions[1].(clienttesting.GetAction).GetName() != "idp:bob" {
+					t.Error(spew.Sdump(actions))
+				}
 				// ... new identity user getter creates user
-				{Name: "CreateIdentity", Object: makeIdentity("", "idp", "bob", "bobUserUID", "bob")},
+				if !actions[2].Matches("create", "identities") {
+					t.Error(spew.Sdump(actions))
+				}
+				actual := actions[2].(clienttesting.CreateAction).GetObject().(*userapi.Identity)
+				if expected := makeIdentity("", "idp", "bob", "bobUserUID", "bob"); !equality.Semantic.DeepEqual(expected, actual) {
+					t.Error(diff.ObjectDiff(expected, actual))
+				}
 			},
 			ExpectedUserName: "bob",
 		},
@@ -121,8 +156,6 @@ func TestProvision(t *testing.T) {
 			ProviderName:     "idp",
 			ProviderUserName: "bob",
 
-			ExistingIdentity: nil,
-			ExistingUser:     nil,
 			NewIdentityGetterResponses: []interface{}{
 				kerrs.NewConflict(userapi.Resource("User"), "bob", fmt.Errorf("conflict")),
 				kerrs.NewConflict(userapi.Resource("User"), "bob", fmt.Errorf("conflict")),
@@ -130,36 +163,52 @@ func TestProvision(t *testing.T) {
 				kerrs.NewConflict(userapi.Resource("User"), "bob", fmt.Errorf("conflict")),
 			},
 
-			ExpectedActions: []test.Action{
+			ValidateActions: func(t *testing.T, actions []clienttesting.Action) {
+				if len(actions) != 4 {
+					t.Fatal(spew.Sdump(actions))
+				}
 				// original attempt
-				{Name: "GetIdentity", Object: "idp:bob"},
+				if !actions[0].Matches("get", "identities") || actions[0].(clienttesting.GetAction).GetName() != "idp:bob" {
+					t.Error(spew.Sdump(actions))
+				}
 				// ... new identity user getter returns error
 				// retry #1
-				{Name: "GetIdentity", Object: "idp:bob"},
+				if !actions[1].Matches("get", "identities") || actions[1].(clienttesting.GetAction).GetName() != "idp:bob" {
+					t.Error(spew.Sdump(actions))
+				}
 				// ... new identity user getter returns error
 				// retry #2
-				{Name: "GetIdentity", Object: "idp:bob"},
+				if !actions[2].Matches("get", "identities") || actions[2].(clienttesting.GetAction).GetName() != "idp:bob" {
+					t.Error(spew.Sdump(actions))
+				}
 				// ... new identity user getter returns error
 				// retry #3
-				{Name: "GetIdentity", Object: "idp:bob"},
+				if !actions[3].Matches("get", "identities") || actions[3].(clienttesting.GetAction).GetName() != "idp:bob" {
+					t.Error(spew.Sdump(actions))
+				}
 				// ... new identity user getter returns error
 			},
+
 			ExpectedError: true,
 		},
 		"no identity, unknown error does not retry": {
 			ProviderName:     "idp",
 			ProviderUserName: "bob",
 
-			ExistingIdentity: nil,
-			ExistingUser:     nil,
 			NewIdentityGetterResponses: []interface{}{
 				fmt.Errorf("other error"),
 			},
 
-			ExpectedActions: []test.Action{
-				{Name: "GetIdentity", Object: "idp:bob"},
+			ValidateActions: func(t *testing.T, actions []clienttesting.Action) {
+				if len(actions) != 1 {
+					t.Fatal(spew.Sdump(actions))
+				}
+				if !actions[0].Matches("get", "identities") || actions[0].(clienttesting.GetAction).GetName() != "idp:bob" {
+					t.Error(spew.Sdump(actions))
+				}
 				// ... new identity user getter returns error
 			},
+
 			ExpectedError: true,
 		},
 
@@ -167,12 +216,16 @@ func TestProvision(t *testing.T) {
 			ProviderName:     "idp",
 			ProviderUserName: "bob",
 
-			ExistingIdentity:           makeIdentity("bobIdentityUID", "idp", "bob", "", ""),
-			ExistingUser:               nil,
+			ExistingObjects:            []runtime.Object{makeIdentity("bobIdentityUID", "idp", "bob", "", "")},
 			NewIdentityGetterResponses: []interface{}{},
 
-			ExpectedActions: []test.Action{
-				{Name: "GetIdentity", Object: "idp:bob"},
+			ValidateActions: func(t *testing.T, actions []clienttesting.Action) {
+				if len(actions) != 1 {
+					t.Fatal(spew.Sdump(actions))
+				}
+				if !actions[0].Matches("get", "identities") || actions[0].(clienttesting.GetAction).GetName() != "idp:bob" {
+					t.Error(spew.Sdump(actions))
+				}
 			},
 			ExpectedError: true,
 		},
@@ -180,13 +233,19 @@ func TestProvision(t *testing.T) {
 			ProviderName:     "idp",
 			ProviderUserName: "bob",
 
-			ExistingIdentity:           makeIdentity("bobIdentityUID", "idp", "bob", "bobUserUID", "bob"),
-			ExistingUser:               nil,
+			ExistingObjects:            []runtime.Object{makeIdentity("bobIdentityUID", "idp", "bob", "bobUserUID", "bob")},
 			NewIdentityGetterResponses: []interface{}{},
 
-			ExpectedActions: []test.Action{
-				{Name: "GetIdentity", Object: "idp:bob"},
-				{Name: "GetUser", Object: "bob"},
+			ValidateActions: func(t *testing.T, actions []clienttesting.Action) {
+				if len(actions) != 2 {
+					t.Fatal(spew.Sdump(actions))
+				}
+				if !actions[0].Matches("get", "identities") || actions[0].(clienttesting.GetAction).GetName() != "idp:bob" {
+					t.Error(spew.Sdump(actions))
+				}
+				if !actions[1].Matches("get", "users") || actions[1].(clienttesting.GetAction).GetName() != "bob" {
+					t.Error(spew.Sdump(actions))
+				}
 			},
 			ExpectedError: true,
 		},
@@ -194,13 +253,22 @@ func TestProvision(t *testing.T) {
 			ProviderName:     "idp",
 			ProviderUserName: "bob",
 
-			ExistingIdentity:           makeIdentity("bobIdentityUID", "idp", "bob", "bobUserUIDInvalid", "bob"),
-			ExistingUser:               makeUser("bobUserUID", "bob", "idp:bob"),
+			ExistingObjects: []runtime.Object{
+				makeIdentity("bobIdentityUID", "idp", "bob", "bobUserUIDInvalid", "bob"),
+				makeUser("bobUserUID", "bob", "idp:bob"),
+			},
 			NewIdentityGetterResponses: []interface{}{},
 
-			ExpectedActions: []test.Action{
-				{Name: "GetIdentity", Object: "idp:bob"},
-				{Name: "GetUser", Object: "bob"},
+			ValidateActions: func(t *testing.T, actions []clienttesting.Action) {
+				if len(actions) != 2 {
+					t.Fatal(spew.Sdump(actions))
+				}
+				if !actions[0].Matches("get", "identities") || actions[0].(clienttesting.GetAction).GetName() != "idp:bob" {
+					t.Error(spew.Sdump(actions))
+				}
+				if !actions[1].Matches("get", "users") || actions[1].(clienttesting.GetAction).GetName() != "bob" {
+					t.Error(spew.Sdump(actions))
+				}
 			},
 			ExpectedError: true,
 		},
@@ -208,13 +276,22 @@ func TestProvision(t *testing.T) {
 			ProviderName:     "idp",
 			ProviderUserName: "bob",
 
-			ExistingIdentity:           makeIdentity("bobIdentityUID", "idp", "bob", "bobUserUID", "bob"),
-			ExistingUser:               makeUser("bobUserUID", "bob" /*, "idp:bob"*/),
+			ExistingObjects: []runtime.Object{
+				makeIdentity("bobIdentityUID", "idp", "bob", "bobUserUID", "bob"),
+				makeUser("bobUserUID", "bob" /*, "idp:bob"*/),
+			},
 			NewIdentityGetterResponses: []interface{}{},
 
-			ExpectedActions: []test.Action{
-				{Name: "GetIdentity", Object: "idp:bob"},
-				{Name: "GetUser", Object: "bob"},
+			ValidateActions: func(t *testing.T, actions []clienttesting.Action) {
+				if len(actions) != 2 {
+					t.Fatal(spew.Sdump(actions))
+				}
+				if !actions[0].Matches("get", "identities") || actions[0].(clienttesting.GetAction).GetName() != "idp:bob" {
+					t.Error(spew.Sdump(actions))
+				}
+				if !actions[1].Matches("get", "users") || actions[1].(clienttesting.GetAction).GetName() != "bob" {
+					t.Error(spew.Sdump(actions))
+				}
 			},
 			ExpectedError: true,
 		},
@@ -222,71 +299,53 @@ func TestProvision(t *testing.T) {
 			ProviderName:     "idp",
 			ProviderUserName: "bob",
 
-			ExistingIdentity:           makeIdentity("bobIdentityUID", "idp", "bob", "bobUserUID", "bob"),
-			ExistingUser:               makeUser("bobUserUID", "bob", "idp:bob"),
+			ExistingObjects: []runtime.Object{
+				makeIdentity("bobIdentityUID", "idp", "bob", "bobUserUID", "bob"),
+				makeUser("bobUserUID", "bob", "idp:bob"),
+			},
 			NewIdentityGetterResponses: []interface{}{},
 
-			ExpectedActions: []test.Action{
-				{Name: "GetIdentity", Object: "idp:bob"},
-				{Name: "GetUser", Object: "bob"},
+			ValidateActions: func(t *testing.T, actions []clienttesting.Action) {
+				if len(actions) != 2 {
+					t.Fatal(spew.Sdump(actions))
+				}
+				if !actions[0].Matches("get", "identities") || actions[0].(clienttesting.GetAction).GetName() != "idp:bob" {
+					t.Error(spew.Sdump(actions))
+				}
+				if !actions[1].Matches("get", "users") || actions[1].(clienttesting.GetAction).GetName() != "bob" {
+					t.Error(spew.Sdump(actions))
+				}
 			},
 			ExpectedUserName: "bob",
 		},
 	}
 
 	for k, tc := range testcases {
-		actions := []test.Action{}
-		identityRegistry := &test.IdentityRegistry{
-			GetIdentities: map[string]*userapi.Identity{},
-			Actions:       &actions,
-		}
-		userRegistry := &test.UserRegistry{
-			GetUsers: map[string]*userapi.User{},
-			Actions:  &actions,
-		}
-		if tc.ExistingIdentity != nil {
-			identityRegistry.GetIdentities[tc.ExistingIdentity.Name] = tc.ExistingIdentity
-		}
-		if tc.ExistingUser != nil {
-			userRegistry.GetUsers[tc.ExistingUser.Name] = tc.ExistingUser
-		}
+		t.Run(k, func(t *testing.T) {
+			fakeClient := userv1fakeclient.NewSimpleClientset(tc.ExistingObjects...)
 
-		newIdentityUserGetter := &testNewIdentityGetter{responses: tc.NewIdentityGetterResponses}
-
-		provisionMapper := &provisioningIdentityMapper{
-			identity:             identityRegistry,
-			user:                 userRegistry,
-			provisioningStrategy: newIdentityUserGetter,
-		}
-
-		identity := authapi.NewDefaultUserIdentityInfo(tc.ProviderName, tc.ProviderUserName)
-		user, err := provisionMapper.UserFor(identity)
-		if tc.ExpectedError != (err != nil) {
-			t.Errorf("%s: Expected error=%v, got %v", k, tc.ExpectedError, err)
-			continue
-		}
-		if !tc.ExpectedError && user.GetName() != tc.ExpectedUserName {
-			t.Errorf("%s: Expected username %v, got %v", k, tc.ExpectedUserName, user.GetName())
-			continue
-		}
-
-		if newIdentityUserGetter.called != len(tc.NewIdentityGetterResponses) {
-			t.Errorf("%s: Expected %d calls to UserForNewIdentity, got %d", k, len(tc.NewIdentityGetterResponses), newIdentityUserGetter.called)
-		}
-
-		for i, action := range actions {
-			if len(tc.ExpectedActions) <= i {
-				t.Fatalf("%s: expected %d actions, got extras: %#v", k, len(tc.ExpectedActions), actions[i:])
-				continue
+			newIdentityUserGetter := &testNewIdentityGetter{responses: tc.NewIdentityGetterResponses}
+			provisionMapper := &provisioningIdentityMapper{
+				identity:             fakeClient.UserV1().Identities(),
+				user:                 fakeClient.UserV1().Users(),
+				provisioningStrategy: newIdentityUserGetter,
 			}
-			expectedAction := tc.ExpectedActions[i]
-			if !reflect.DeepEqual(expectedAction, action) {
-				t.Fatalf("%s: expected\n\t%s %#v\nGot\n\t%s %#v", k, expectedAction.Name, expectedAction.Object, action.Name, action.Object)
-				continue
+
+			identity := authapi.NewDefaultUserIdentityInfo(tc.ProviderName, tc.ProviderUserName)
+			user, err := provisionMapper.UserFor(identity)
+			if tc.ExpectedError != (err != nil) {
+				t.Fatalf("Expected error=%v, got %v", tc.ExpectedError, err)
 			}
-		}
-		if len(actions) < len(tc.ExpectedActions) {
-			t.Errorf("Missing %d additional actions:\n\t%#v", len(tc.ExpectedActions)-len(actions), tc.ExpectedActions[len(actions):])
-		}
+			if !tc.ExpectedError && user.GetName() != tc.ExpectedUserName {
+				t.Fatalf("Expected username %v, got %v", tc.ExpectedUserName, user.GetName())
+			}
+
+			if newIdentityUserGetter.called != len(tc.NewIdentityGetterResponses) {
+				t.Errorf(" Expected %d calls to UserForNewIdentity, got %d", len(tc.NewIdentityGetterResponses), newIdentityUserGetter.called)
+			}
+
+			tc.ValidateActions(t, fakeClient.Actions())
+		})
+
 	}
 }
