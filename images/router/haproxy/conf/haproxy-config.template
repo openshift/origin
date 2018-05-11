@@ -44,7 +44,7 @@ global
 # By default when a cipher set is not provided, intermediate is used.
 {{- if eq (env "ROUTER_CIPHERS" "intermediate") "modern" }}
   # Force TLSv1.2. Compliant to recommended Modern compatibility.
-  ssl-default-bind-options ssl-min-ver TLSv1.2
+  ssl-default-bind-options no-sslv3 no-tlsv10 no-tlsv11
 
   # Modern cipher suite (no legacy browser support) from https://wiki.mozilla.org/Security/Server_Side_TLS
   tune.ssl.default-dh-param 2048
