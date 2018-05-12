@@ -49,12 +49,17 @@ func NewBuildByStrategy() admission.Interface {
 
 func (a *buildByStrategy) Admit(attr admission.Attributes) error {
 	gr := attr.GetResource().GroupResource()
-	if !buildapi.IsResourceOrLegacy("buildconfigs", gr) && !buildapi.IsResourceOrLegacy("builds", gr) {
-		return nil
-	}
-	// Explicitly exclude the builds/details subresource because it's only
-	// updating commit info and cannot change build type.
-	if buildapi.IsResourceOrLegacy("builds", gr) && attr.GetSubresource() == "details" {
+	switch gr {
+	case buildapi.Resource("buildconfigs"),
+		buildapi.LegacyResource("buildconfigs"):
+	case buildapi.Resource("builds"),
+		buildapi.LegacyResource("builds"):
+		// Explicitly exclude the builds/details subresource because it's only
+		// updating commit info and cannot change build type.
+		if attr.GetSubresource() == "details" {
+			return nil
+		}
+	default:
 		return nil
 	}
 
@@ -177,8 +182,9 @@ func (a *buildByStrategy) checkBuildConfigAuthorization(buildConfig *buildapi.Bu
 
 func (a *buildByStrategy) checkBuildRequestAuthorization(req *buildapi.BuildRequest, attr admission.Attributes) error {
 	gr := attr.GetResource().GroupResource()
-	switch {
-	case buildapi.IsResourceOrLegacy("builds", gr):
+	switch gr {
+	case buildapi.Resource("builds"),
+		buildapi.LegacyResource("builds"):
 		build, err := a.buildClient.Build().Builds(attr.GetNamespace()).Get(req.Name, metav1.GetOptions{})
 		if err != nil {
 			return admission.NewForbidden(attr, err)
@@ -188,7 +194,9 @@ func (a *buildByStrategy) checkBuildRequestAuthorization(req *buildapi.BuildRequ
 			return admission.NewForbidden(attr, err)
 		}
 		return a.checkBuildAuthorization(internalBuild, attr)
-	case buildapi.IsResourceOrLegacy("buildconfigs", gr):
+
+	case buildapi.Resource("buildconfigs"),
+		buildapi.LegacyResource("buildconfigs"):
 		buildConfig, err := a.buildClient.Build().BuildConfigs(attr.GetNamespace()).Get(req.Name, metav1.GetOptions{})
 		if err != nil {
 			return admission.NewForbidden(attr, err)

@@ -404,7 +404,7 @@ func TestInvokeWebhookMissingPlugin(t *testing.T) {
 		t.Errorf("Unexpected error: %v", err)
 	}
 	if !responder.called ||
-		!strings.Contains(responder.err.Error(), `buildconfighook "missingplugin" not found`) {
+		!strings.Contains(responder.err.Error(), `buildconfighook.build.openshift.io "missingplugin" not found`) {
 		t.Errorf("Expected BadRequest, got %s, expected error %s!", responder.err.Error(), `buildconfighook.build.openshift.io "missingplugin" not found`)
 	}
 }

@@ -16519,7 +16519,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "ImageStreamTag",
-              "name": "2.4"
+              "name": "2.5"
             },
             "name": "latest",
             "referencePolicy": {
@@ -17915,7 +17915,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
             },
             "from": {
               "kind": "ImageStreamTag",
-              "name": "2.4"
+              "name": "2.5"
             },
             "name": "latest",
             "referencePolicy": {

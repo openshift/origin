@@ -250,7 +250,7 @@ func TestCheckReadiness(t *testing.T) {
 			expectedReady: true,
 		},
 		{
-			groupKind: routeapi.LegacyKind("Route"),
+			groupKind: schema.GroupKind{Group: "", Kind: "Route"},
 			object: &routeapi.Route{
 				Spec: routeapi.RouteSpec{
 					Host: "",
@@ -259,7 +259,7 @@ func TestCheckReadiness(t *testing.T) {
 			expectedReady: false,
 		},
 		{
-			groupKind: routeapi.LegacyKind("Route"),
+			groupKind: schema.GroupKind{Group: "", Kind: "Route"},
 			object: &routeapi.Route{
 				Spec: routeapi.RouteSpec{
 					Host: "app.example.com",

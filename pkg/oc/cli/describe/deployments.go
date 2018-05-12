@@ -293,7 +293,13 @@ func printDeploymentConfigSpec(kc kclientset.Interface, dc appsapi.DeploymentCon
 
 	// Autoscaling info
 	// FIXME: The CrossVersionObjectReference should specify the Group
-	printAutoscalingInfo([]schema.GroupResource{appsapi.Resource("DeploymentConfig"), appsapi.LegacyResource("DeploymentConfig")}, dc.Namespace, dc.Name, kc, w)
+	printAutoscalingInfo(
+		[]schema.GroupResource{
+			appsapi.Resource("DeploymentConfig"),
+			// this needs to remain as long as HPA supports putting in the "wrong" DC scheme
+			appsapi.LegacyResource("DeploymentConfig"),
+		},
+		dc.Namespace, dc.Name, kc, w)
 
 	// Triggers
 	printTriggers(spec.Triggers, w)

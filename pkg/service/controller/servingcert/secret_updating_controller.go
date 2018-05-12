@@ -16,11 +16,10 @@ import (
 	listers "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
-	"k8s.io/kubernetes/pkg/controller"
 
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
-	"github.com/openshift/origin/pkg/cmd/server/crypto/extensions"
 	ocontroller "github.com/openshift/origin/pkg/controller"
+	"github.com/openshift/origin/pkg/service/controller/servingcert/cryptoextensions"
 )
 
 // ServiceServingCertUpdateController is responsible for synchronizing Service objects stored
@@ -101,7 +100,7 @@ func (sc *ServiceServingCertUpdateController) Run(workers int, stopCh <-chan str
 }
 
 func (sc *ServiceServingCertUpdateController) enqueueSecret(obj interface{}) {
-	key, err := controller.KeyFunc(obj)
+	key, err := cache.DeletionHandlingMetaNamespaceKeyFunc(obj)
 	if err != nil {
 		glog.Errorf("Couldn't get key for object %+v: %v", obj, err)
 		return
@@ -188,7 +187,7 @@ func (sc *ServiceServingCertUpdateController) syncSecret(key string) error {
 	servingCert, err := sc.ca.MakeServerCert(
 		sets.NewString(dnsName, fqDNSName),
 		certificateLifetime,
-		extensions.ServiceServerCertificateExtensionV1(service),
+		cryptoextensions.ServiceServerCertificateExtensionV1(service),
 	)
 	if err != nil {
 		return err

@@ -18,6 +18,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"sync"
 	"time"
@@ -26,10 +27,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/authentication/user"
-
-	"sort"
-
-	cmdutil "github.com/openshift/origin/pkg/cmd/util"
+	"k8s.io/client-go/util/cert"
 )
 
 var versions = map[string]uint16{
@@ -245,23 +243,6 @@ func (c *TLSCertificateConfig) GetPEMBytes() ([]byte, []byte, error) {
 	return certBytes, keyBytes, nil
 }
 
-func GetTLSCARoots(caFile string) (*TLSCARoots, error) {
-	if len(caFile) == 0 {
-		return nil, errors.New("caFile missing")
-	}
-
-	caPEMBlock, err := ioutil.ReadFile(caFile)
-	if err != nil {
-		return nil, err
-	}
-	roots, err := cmdutil.CertificatesFromPEM(caPEMBlock)
-	if err != nil {
-		return nil, fmt.Errorf("Error reading %s: %s", caFile, err)
-	}
-
-	return &TLSCARoots{roots}, nil
-}
-
 func GetTLSCertificateConfig(certFile, keyFile string) (*TLSCertificateConfig, error) {
 	if len(certFile) == 0 {
 		return nil, errors.New("certFile missing")
@@ -274,7 +255,7 @@ func GetTLSCertificateConfig(certFile, keyFile string) (*TLSCertificateConfig, e
 	if err != nil {
 		return nil, err
 	}
-	certs, err := cmdutil.CertificatesFromPEM(certPEMBlock)
+	certs, err := cert.ParseCertsPEM(certPEMBlock)
 	if err != nil {
 		return nil, fmt.Errorf("Error reading %s: %s", certFile, err)
 	}

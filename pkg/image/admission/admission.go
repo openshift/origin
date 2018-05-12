@@ -106,7 +106,7 @@ func (a *imageLimitRangerPlugin) SupportsAttributes(attr admission.Attributes) b
 		return false
 	}
 	gk := attr.GetKind().GroupKind()
-	return imageapi.IsKindOrLegacy("ImageStreamMapping", gk)
+	return imageapi.Kind("ImageStreamMapping") == gk || imageapi.LegacyKind("ImageStreamMapping") == gk
 }
 
 // SupportsLimit provides a check to see if the limitRange is applicable to image objects.
