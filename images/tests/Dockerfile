@@ -6,7 +6,10 @@
 #
 FROM openshift/origin-cli
 
-RUN INSTALL_PKGS="origin-tests" && \
+RUN INSTALL_PKGS=" \
+      origin-tests \
+      git \
+      " && \
     yum --enablerepo=origin-local-release install -y ${INSTALL_PKGS} && \
     rpm -V ${INSTALL_PKGS} && \
     yum clean all
