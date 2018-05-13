@@ -33,7 +33,7 @@ func MakeOpenShiftControllerConfig(existingMasterConfig string, basedir string) 
 	masterconfig := configObj.(*configapi.MasterConfig)
 	masterconfig.ServingInfo.BindAddress = "0.0.0.0:8444"
 
-	configBytes, err := runtime.Encode(configapilatest.Codec, masterconfig)
+	configBytes, err := configapilatest.WriteYAML(masterconfig)
 	if err != nil {
 		return "", err
 	}
