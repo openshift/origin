@@ -81,7 +81,6 @@ type MigrateTemplateInstancesOptions struct {
 func NewCmdMigrateTemplateInstances(name, fullName string, f *clientcmd.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
 	options := &MigrateTemplateInstancesOptions{
 		ResourceOptions: migrate.ResourceOptions{
-			In:     in,
 			Out:    out,
 			ErrOut: errout,
 

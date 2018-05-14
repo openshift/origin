@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/golang/glog"
@@ -54,10 +55,52 @@ func timeStampNow() string {
 	return time.Now().Format("0102 15:04:05.000000")
 }
 
+// used to check if an io.Writer is a *bufio.Writer or similar
+type flusher interface {
+	Flush() error
+}
+
+// used to check if an io.Writer is a *os.File or similar
+type syncer interface {
+	Sync() error
+}
+
+var _ io.Writer = &syncedWriter{}
+
+// syncedWriter makes the given writer goroutine safe
+// it will attempt to flush and sync on each write
+type syncedWriter struct {
+	lock   sync.Mutex
+	writer io.Writer
+}
+
+func (w *syncedWriter) Write(p []byte) (int, error) {
+	w.lock.Lock()
+	n, err := w.write(p)
+	w.lock.Unlock()
+	return n, err
+}
+
+// must only be called when w.lock is held
+func (w *syncedWriter) write(p []byte) (int, error) {
+	n, err := w.writer.Write(p)
+	// attempt to flush buffered IO
+	if f, ok := w.writer.(flusher); ok {
+		f.Flush() // ignore error
+	}
+	// attempt to sync file
+	if s, ok := w.writer.(syncer); ok {
+		s.Sync() // ignore error
+	}
+	return n, err
+}
+
 // ResourceOptions assists in performing migrations on any object that
 // can be retrieved via the API.
 type ResourceOptions struct {
-	In          io.Reader
+	// To prevent any issues with multiple workers trying
+	// to read from this, the field was simply removed
+	// In       io.Reader
 	Out, ErrOut io.Writer
 
 	Unstructured  bool
@@ -78,6 +121,18 @@ type ResourceOptions struct {
 	FilterFn  MigrateFilterFunc
 	DryRun    bool
 	Summarize bool
+
+	// Number of parallel workers to use.
+	// Any migrate command that sets this must make sure that
+	// its SaveFn, PrintFn and FilterFn are goroutine safe.
+	// If multiple workers may attempt to write to Out or ErrOut
+	// at the same time, SyncOut must also be set to true.
+	// This should not be exposed as a CLI flag.  Instead it
+	// should have a fixed value that is high enough to saturate
+	// the desired bandwidth when parallel processing is desired.
+	Workers int
+	// If true, Out and ErrOut will be wrapped to make them goroutine safe.
+	SyncOut bool
 }
 
 func (o *ResourceOptions) Bind(c *cobra.Command) {
@@ -218,6 +273,21 @@ func (o *ResourceOptions) Complete(f *clientcmd.Factory, c *cobra.Command) error
 		break
 	}
 
+	// we need at least one worker
+	if o.Workers == 0 {
+		o.Workers = 1
+	}
+
+	// make sure we do not print to std out / err from multiple workers at once
+	if len(o.Output) > 0 && o.Workers > 1 {
+		o.SyncOut = true
+	}
+	// the command requires synchronized output
+	if o.SyncOut {
+		o.Out = &syncedWriter{writer: o.Out}
+		o.ErrOut = &syncedWriter{writer: o.ErrOut}
+	}
+
 	o.Builder = f.NewBuilder().
 		AllNamespaces(allNamespaces).
 		FilenameParam(false, &resource.FilenameOptions{Recursive: false, Filenames: o.Filenames}).
@@ -225,20 +295,23 @@ func (o *ResourceOptions) Complete(f *clientcmd.Factory, c *cobra.Command) error
 		DefaultNamespace().
 		RequireObject(true).
 		SelectAllParam(true).
-		Flatten()
+		Flatten().
+		RequestChunksOf(500)
 
 	if o.Unstructured {
-		o.Builder = o.Builder.Unstructured()
+		o.Builder.Unstructured()
 	} else {
-		o.Builder = o.Builder.Internal()
+		o.Builder.Internal()
 	}
 
 	if !allNamespaces {
 		o.Builder.NamespaceParam(namespace)
 	}
+
 	if len(o.Filenames) == 0 {
 		o.Builder.ResourceTypes(o.Include...)
 	}
+
 	return nil
 }
 
@@ -246,30 +319,51 @@ func (o *ResourceOptions) Validate() error {
 	if len(o.Filenames) == 0 && len(o.Include) == 0 {
 		return fmt.Errorf("you must specify at least one resource or resource type to migrate with --include or --filenames")
 	}
+	if o.Workers < 1 {
+		return fmt.Errorf("invalid value %d for workers, must be at least 1", o.Workers)
+	}
 	return nil
 }
 
 func (o *ResourceOptions) Visitor() *ResourceVisitor {
 	return &ResourceVisitor{
 		Out:      o.Out,
-		Builder:  o.Builder,
+		Builder:  &resourceBuilder{builder: o.Builder},
 		SaveFn:   o.SaveFn,
 		PrintFn:  o.PrintFn,
 		FilterFn: o.FilterFn,
 		DryRun:   o.DryRun,
+		Workers:  o.Workers,
 	}
+}
+
+// Builder allows for mocking of resource.Builder
+type Builder interface {
+	// Visitor returns a resource.Visitor that ignores errors that match the given resource.ErrMatchFuncs
+	Visitor(fns ...resource.ErrMatchFunc) (resource.Visitor, error)
+}
+
+type resourceBuilder struct {
+	builder *resource.Builder
+}
+
+func (r *resourceBuilder) Visitor(fns ...resource.ErrMatchFunc) (resource.Visitor, error) {
+	result := r.builder.Do().IgnoreErrors(fns...)
+	return result, result.Err()
 }
 
 type ResourceVisitor struct {
 	Out io.Writer
 
-	Builder *resource.Builder
+	Builder Builder
 
 	SaveFn   MigrateActionFunc
 	PrintFn  MigrateActionFunc
 	FilterFn MigrateFilterFunc
 
 	DryRun bool
+
+	Workers int
 }
 
 func (o *ResourceVisitor) Visit(fn MigrateVisitFunc) error {
@@ -286,44 +380,66 @@ func (o *ResourceVisitor) Visit(fn MigrateVisitFunc) error {
 	}
 	out := o.Out
 
-	result := o.Builder.Do()
-	if result.Err() != nil {
-		return result.Err()
-	}
-
 	// Ignore any resource that does not support GET
-	result.IgnoreErrors(errors.IsMethodNotSupported, errors.IsNotFound)
-
-	t := migrateTracker{
-		out:       out,
-		migrateFn: fn,
-		actionFn:  actionFn,
-		dryRun:    dryRun,
-
-		resourcesWithErrors: sets.NewString(),
+	visitor, err := o.Builder.Visitor(errors.IsMethodNotSupported, errors.IsNotFound)
+	if err != nil {
+		return err
 	}
 
-	err := result.Visit(func(info *resource.Info, err error) error {
-		if err == nil && o.FilterFn != nil {
-			var ok bool
-			if ok, err = o.FilterFn(info); err == nil && !ok {
-				t.found++
-				t.ignored++
-				if glog.V(2) {
-					t.report("ignored:", info, nil)
-				}
-				return nil
+	// the producer (result.Visit) uses this to send data to the workers
+	work := make(chan workData, 10*o.Workers) // 10 slots per worker
+	// the workers use this to send processed work to the consumer (migrateTracker)
+	results := make(chan resultData, 10*o.Workers) // 10 slots per worker
+
+	// migrateTracker tracks stats for this migrate run
+	t := &migrateTracker{
+		out:                 out,
+		dryRun:              dryRun,
+		resourcesWithErrors: sets.NewString(),
+		results:             results,
+	}
+
+	// use a wait group to track when workers have finished processing
+	workersWG := sync.WaitGroup{}
+	// spawn and track all workers
+	for w := 0; w < o.Workers; w++ {
+		workersWG.Add(1)
+		go func() {
+			defer workersWG.Done()
+			worker := &migrateWorker{
+				retries:   10, // how many times should this worker retry per resource
+				work:      work,
+				results:   results,
+				migrateFn: fn,
+				actionFn:  actionFn,
+				filterFn:  o.FilterFn,
 			}
-		}
-		if err != nil {
-			t.resourcesWithErrors.Insert(info.Mapping.Resource)
-			t.errors++
-			t.report("error:", info, err)
-			return nil
-		}
-		t.attempt(info, 10)
+			worker.run()
+		}()
+	}
+
+	// use another wait group to track when the consumer (migrateTracker) has finished tracking stats
+	consumerWG := sync.WaitGroup{}
+	consumerWG.Add(1)
+	go func() {
+		defer consumerWG.Done()
+		t.run()
+	}()
+
+	err = visitor.Visit(func(info *resource.Info, err error) error {
+		// send data from producer visitor to workers
+		work <- workData{info: info, err: err}
 		return nil
 	})
+
+	// signal that we are done sending work
+	close(work)
+	// wait for the workers to finish processing
+	workersWG.Wait()
+	// signal that all workers have processed and sent completed work
+	close(results)
+	// wait for the consumer to finish recording the results from processing
+	consumerWG.Wait()
 
 	if summarize {
 		if dryRun {
@@ -394,17 +510,33 @@ const (
 	attemptResultIgnore
 )
 
+// workData stores a single item of work that needs to be processed by a worker
+type workData struct {
+	info *resource.Info
+	err  error
+}
+
+// resultData stores the processing result from a worker
+// note that in the case of retries, a single workData can produce multiple resultData
+type resultData struct {
+	found  bool
+	retry  bool
+	result attemptResult
+	data   workData
+}
+
 // migrateTracker abstracts transforming and saving resources and can be used to keep track
 // of how many total resources have been updated.
 type migrateTracker struct {
-	out       io.Writer
-	migrateFn MigrateVisitFunc
-	actionFn  MigrateActionFunc
-	dryRun    bool
+	out io.Writer
+
+	dryRun bool
 
 	found, ignored, unchanged, errors int
 
 	resourcesWithErrors sets.String
+
+	results <-chan resultData
 }
 
 // report prints a message to out that includes info about the current resource. If the optional error is
@@ -421,40 +553,89 @@ func (t *migrateTracker) report(prefix string, info *resource.Info, err error) {
 	}
 }
 
-// attempt will try to invoke the migrateFn and saveFn on info, retrying any recalculation requests up
-// to retries times.
-func (t *migrateTracker) attempt(info *resource.Info, retries int) {
-	t.found++
-	result, err := t.try(info, retries)
-	switch {
-	case err != nil:
-		t.resourcesWithErrors.Insert(info.Mapping.Resource)
-		t.errors++
-		t.report("error:", info, err)
-	case result == attemptResultIgnore:
-		t.ignored++
-		if glog.V(2) {
-			t.report("ignored:", info, nil)
+// run executes until t.results is closed
+// it processes each result and updates its stats as appropriate
+func (t *migrateTracker) run() {
+	for r := range t.results {
+		if r.found {
+			t.found++
 		}
-	case result == attemptResultUnchanged:
-		t.unchanged++
-		if glog.V(2) {
-			t.report("unchanged:", info, nil)
+		if r.retry {
+			t.report("retry:", r.data.info, r.data.err)
+			continue // retry attempts do not have results to process
 		}
-	case result == attemptResultSuccess:
-		if glog.V(1) {
-			if t.dryRun {
-				t.report("migrated (dry run):", info, nil)
-			} else {
-				t.report("migrated:", info, nil)
+
+		switch r.result {
+		case attemptResultError:
+			t.report("error:", r.data.info, r.data.err)
+			t.errors++
+			t.resourcesWithErrors.Insert(r.data.info.Mapping.Resource)
+		case attemptResultIgnore:
+			t.ignored++
+			if glog.V(2) {
+				t.report("ignored:", r.data.info, nil)
+			}
+		case attemptResultUnchanged:
+			t.unchanged++
+			if glog.V(2) {
+				t.report("unchanged:", r.data.info, nil)
+			}
+		case attemptResultSuccess:
+			if glog.V(1) {
+				if t.dryRun {
+					t.report("migrated (dry run):", r.data.info, nil)
+				} else {
+					t.report("migrated:", r.data.info, nil)
+				}
 			}
 		}
 	}
 }
 
+// migrateWorker processes data sent from t.work and sends the results to t.results
+type migrateWorker struct {
+	retries   int
+	work      <-chan workData
+	results   chan<- resultData
+	migrateFn MigrateVisitFunc
+	actionFn  MigrateActionFunc
+	filterFn  MigrateFilterFunc
+}
+
+// run processes data until t.work is closed
+func (t *migrateWorker) run() {
+	for data := range t.work {
+		// if we have no error and a filter func, determine if we need to ignore this resource
+		if data.err == nil && t.filterFn != nil {
+			ok, err := t.filterFn(data.info)
+			// error if we cannot figure out how to filter this resource
+			if err != nil {
+				t.results <- resultData{found: true, result: attemptResultError, data: workData{info: data.info, err: err}}
+				continue
+			}
+			// we want to ignore this resource
+			if !ok {
+				t.results <- resultData{found: true, result: attemptResultIgnore, data: data}
+				continue
+			}
+		}
+
+		// there was an error so do not attempt to process this data
+		if data.err != nil {
+			t.results <- resultData{result: attemptResultError, data: data}
+			continue
+		}
+
+		// we have no error and the resource was not ignored, so attempt to process it
+		// try to invoke the migrateFn and saveFn on info, retrying any recalculation requests up to t.retries times
+		result, err := t.try(data.info, t.retries)
+		t.results <- resultData{found: true, result: result, data: workData{info: data.info, err: err}}
+	}
+}
+
 // try will mutate the info and attempt to save, recalculating if there are any retries left.
 // The result of the attempt or an error will be returned.
-func (t *migrateTracker) try(info *resource.Info, retries int) (attemptResult, error) {
+func (t *migrateWorker) try(info *resource.Info, retries int) (attemptResult, error) {
 	reporter, err := t.migrateFn(info)
 	if err != nil {
 		return attemptResultError, err
@@ -473,7 +654,8 @@ func (t *migrateTracker) try(info *resource.Info, retries int) (attemptResult, e
 			if canRetry(err) {
 				if retries > 0 {
 					if bool(glog.V(1)) && err != ErrRecalculate {
-						t.report("retry:", info, err)
+						// signal that we had to retry on this resource
+						t.results <- resultData{retry: true, data: workData{info: info, err: err}}
 					}
 					result, err := t.try(info, retries-1)
 					switch result {
