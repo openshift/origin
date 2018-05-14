@@ -18,7 +18,6 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/config"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/resource"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
-	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/oc/cli/cmd/create"
@@ -474,7 +473,7 @@ var (
 
 // NewCmdRun is a wrapper for the Kubernetes cli run command
 func NewCmdRun(fullName string, f *clientcmd.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
-	opts := &kcmd.RunOptions{DefaultRestartAlwaysGenerator: "deploymentconfig/v1", DefaultGenerator: kcmdutil.RunPodV1GeneratorName}
+	opts := &kcmd.RunOptions{DefaultRestartAlwaysGenerator: "deploymentconfig/v1"}
 	cmd := kcmd.NewCmdRunWithOptions(f, opts, in, out, errout)
 	cmd.Long = runLong
 	cmd.Example = fmt.Sprintf(runExample, fullName)
