@@ -37,7 +37,7 @@ func InstallLegacyApps(scheme *runtime.Scheme, registry *registered.APIRegistrat
 
 func InstallLegacyAuthorization(scheme *runtime.Scheme, registry *registered.APIRegistrationManager) {
 	InstallLegacy(authorizationapi.GroupName, authorizationapi.AddToSchemeInCoreGroup, authorizationapiv1.AddToSchemeInCoreGroup,
-		sets.NewString("ClusterRole", "ClusterRoleBinding", "ClusterPolicy", "ClusterPolicyBinding", "ResourceAccessReviewResponse", "SubjectAccessReviewResponse"),
+		sets.NewString("ClusterRole", "ClusterRoleBinding", "ResourceAccessReviewResponse", "SubjectAccessReviewResponse"),
 		registry, scheme,
 	)
 }

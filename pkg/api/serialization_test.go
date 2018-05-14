@@ -49,44 +49,6 @@ func originFuzzer(t *testing.T, seed int64) *fuzz.Fuzzer {
 	f := fuzzer.FuzzerFor(kapitesting.FuzzerFuncs, rand.NewSource(seed), legacyscheme.Codecs)
 	f.Funcs(
 		// Roles and RoleBindings maps are never nil
-		func(j *authorizationapi.Policy, c fuzz.Continue) {
-			c.FuzzNoCustom(j)
-			if j.Roles == nil {
-				j.Roles = make(map[string]*authorizationapi.Role)
-			}
-			for k, v := range j.Roles {
-				if v == nil {
-					delete(j.Roles, k)
-				}
-			}
-		},
-		func(j *authorizationapi.PolicyBinding, c fuzz.Continue) {
-			c.FuzzNoCustom(j)
-			if j.RoleBindings == nil {
-				j.RoleBindings = make(map[string]*authorizationapi.RoleBinding)
-			}
-			for k, v := range j.RoleBindings {
-				if v == nil {
-					delete(j.RoleBindings, k)
-				}
-			}
-		},
-		func(j *authorizationapi.ClusterPolicy, c fuzz.Continue) {
-			c.FuzzNoCustom(j)
-			if j.Roles == nil {
-				j.Roles = make(map[string]*authorizationapi.ClusterRole)
-			}
-			for k, v := range j.Roles {
-				if v == nil {
-					delete(j.Roles, k)
-				}
-			}
-		},
-		func(j *authorizationapi.ClusterPolicyBinding, c fuzz.Continue) {
-			if j.RoleBindings == nil {
-				j.RoleBindings = make(map[string]*authorizationapi.ClusterRoleBinding)
-			}
-		},
 		func(j *authorizationapi.RoleBinding, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
 			for i := range j.Subjects {

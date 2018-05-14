@@ -37,18 +37,10 @@ func (f *genericInformer) Lister() cache.GenericLister {
 func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource) (GenericInformer, error) {
 	switch resource {
 	// Group=authorization.openshift.io, Version=internalVersion
-	case authorization.SchemeGroupVersion.WithResource("clusterpolicies"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Authorization().InternalVersion().ClusterPolicies().Informer()}, nil
-	case authorization.SchemeGroupVersion.WithResource("clusterpolicybindings"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Authorization().InternalVersion().ClusterPolicyBindings().Informer()}, nil
 	case authorization.SchemeGroupVersion.WithResource("clusterroles"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Authorization().InternalVersion().ClusterRoles().Informer()}, nil
 	case authorization.SchemeGroupVersion.WithResource("clusterrolebindings"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Authorization().InternalVersion().ClusterRoleBindings().Informer()}, nil
-	case authorization.SchemeGroupVersion.WithResource("policies"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Authorization().InternalVersion().Policies().Informer()}, nil
-	case authorization.SchemeGroupVersion.WithResource("policybindings"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Authorization().InternalVersion().PolicyBindings().Informer()}, nil
 	case authorization.SchemeGroupVersion.WithResource("roles"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Authorization().InternalVersion().Roles().Informer()}, nil
 	case authorization.SchemeGroupVersion.WithResource("rolebindings"):
