@@ -21,7 +21,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kutilerrors "k8s.io/apimachinery/pkg/util/errors"
 	knet "k8s.io/apimachinery/pkg/util/net"
-	discovery "k8s.io/client-go/discovery"
+	apimachineryversion "k8s.io/apimachinery/pkg/version"
+	"k8s.io/client-go/discovery"
 	restclient "k8s.io/client-go/rest"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
@@ -740,7 +741,7 @@ func getRegistryClient(clientConfig *restclient.Config, registryCABundle string,
 
 // getClientAndMasterVersions returns version info for client and master binaries. If it takes too long to get
 // a response from the master, timeout error is returned.
-func getClientAndMasterVersions(client discovery.DiscoveryInterface, timeout time.Duration) (clientVersion, masterVersion *version.Info, err error) {
+func getClientAndMasterVersions(client discovery.DiscoveryInterface, timeout time.Duration) (clientVersion, masterVersion *apimachineryversion.Info, err error) {
 	done := make(chan error)
 
 	go func() {
@@ -749,7 +750,7 @@ func getClientAndMasterVersions(client discovery.DiscoveryInterface, timeout tim
 		ocVersionBody, err := client.RESTClient().Get().AbsPath("/version/openshift").Do().Raw()
 		switch {
 		case err == nil:
-			var ocServerInfo version.Info
+			var ocServerInfo apimachineryversion.Info
 			err = json.Unmarshal(ocVersionBody, &ocServerInfo)
 			if err != nil && len(ocVersionBody) > 0 {
 				done <- err

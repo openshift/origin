@@ -5,18 +5,13 @@ import (
 	"io"
 
 	"github.com/spf13/cobra"
-)
 
-// VersionInfo provides semantic version information
-// in a human-friendly format
-// TODO: may be expanded for various short and formatting options if necessary.
-type VersionInfo interface {
-	String() string
-}
+	"k8s.io/apimachinery/pkg/version"
+)
 
 // NewCmdVersion provides a shim around version for
 // non-client packages that require version information
-func NewCmdVersion(fullName string, versionInfo VersionInfo, out io.Writer) *cobra.Command {
+func NewCmdVersion(fullName string, versionInfo version.Info, out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "version",
 		Short: "Display version",

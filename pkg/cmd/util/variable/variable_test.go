@@ -1,4 +1,4 @@
-package version
+package variable
 
 import (
 	"testing"
@@ -21,7 +21,7 @@ func TestLastSemanticVersion(t *testing.T) {
 		{"v1.3.0-alpha.1+abcdef-dirty", "v1.3.0-alpha.1"},
 	}
 	for _, test := range testCases {
-		out := Info{GitVersion: test.in}.LastSemanticVersion()
+		out := lastSemanticVersion(test.in)
 		if out != test.out {
 			t.Errorf("expected %s for %s, got %s", test.out, test.in, out)
 		}

@@ -16,6 +16,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/sets"
+	apimachineryversion "k8s.io/apimachinery/pkg/version"
 	fakediscovery "k8s.io/client-go/discovery/fake"
 	"k8s.io/client-go/kubernetes/scheme"
 	restclient "k8s.io/client-go/rest"
@@ -156,7 +157,7 @@ func TestImagePruneErrOnBadReference(t *testing.T) {
 
 type fakeVersionDiscovery struct {
 	*fakediscovery.FakeDiscovery
-	masterVersion version.Info
+	masterVersion apimachineryversion.Info
 }
 
 func (f *fakeVersionDiscovery) RESTClient() restclient.Interface {
