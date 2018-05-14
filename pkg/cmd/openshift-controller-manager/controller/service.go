@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/openshift/library-go/pkg/crypto"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	"github.com/openshift/origin/pkg/cmd/server/crypto"
-	servingcertcontroller "github.com/openshift/origin/pkg/service/controller/servingcert"
+	servingcertcontroller "github.com/openshift/service-serving-cert-signer/pkg/controller/servingcert"
 )
 
 func RunServiceServingCertsController(ctx ControllerContext) (bool, error) {

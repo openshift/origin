@@ -6,11 +6,11 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	"k8s.io/apimachinery/pkg/util/sets"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/kubernetes/pkg/features"
 
+	"github.com/openshift/library-go/pkg/crypto"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
