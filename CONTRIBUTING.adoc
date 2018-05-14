@@ -137,7 +137,7 @@ $ hack/env make release
 In order to make use of the binaries from your shell, add the build output
 directory to the `$PATH`:
 ----
-$ export PATH="${PATH}:$( source hack/lib/init.sh; echo "${OS_OUTPUT_BINPATH}/$( os::build::host_platform )/" )"
+$ export PATH="$( source hack/lib/init.sh; echo "${OS_OUTPUT_BINPATH}/$( os::build::host_platform )/" ):${PATH}"
 ----
 
 See more information in https://github.com/openshift/origin/blob/master/HACKING.md#building-on-non-linux-systems[`HACKING.md`]
