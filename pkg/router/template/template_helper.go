@@ -270,4 +270,5 @@ var helperFunctions = template.FuncMap{
 	"getPrimaryAliasKey":          getPrimaryAliasKey,          //returns the key of the primary alias for a group of aliases
 
 	"generateHAProxyMap": generateHAProxyMap, //generates a haproxy map content
+	"split":              strings.Split,      //split slices s into all substrings separated by sep and returns a slice of the substrings between those separators
 }
