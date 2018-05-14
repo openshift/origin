@@ -1,8 +1,6 @@
 [Unit]
 After=${DOCKER_SERVICE}
 Wants=${DOCKER_SERVICE}
-After=$NAME-dep.service
-After=${MASTER_SERVICE}
 Requires=dnsmasq.service
 After=dnsmasq.service
 

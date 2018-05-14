@@ -77,7 +77,6 @@ type MigrateLegacyHPAOptions struct {
 func NewCmdMigrateLegacyHPA(name, fullName string, f *clientcmd.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
 	options := &MigrateLegacyHPAOptions{
 		ResourceOptions: migrate.ResourceOptions{
-			In:     in,
 			Out:    out,
 			ErrOut: errout,
 

@@ -5,7 +5,6 @@
         "ORIGIN_CONFIG_DIR": "/etc/origin",
         "ORIGIN_DATA_DIR": "/var/lib/origin",
         "KUBELET_DATA_DIR": "/var/lib/kubelet",
-        "MASTER_SERVICE": "atomic-openshift-master.service",
         "DOCKER_SERVICE": "docker.service",
         "ADDTL_MOUNTS": ""
     }

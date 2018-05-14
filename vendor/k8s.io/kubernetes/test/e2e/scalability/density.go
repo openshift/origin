@@ -170,8 +170,8 @@ func density30AddonResourceVerifier(numNodes int) map[string]framework.ResourceC
 		if numNodes <= 100 {
 			apiserverCPU = 1.8
 			apiserverMem = 1700 * (1024 * 1024)
-			controllerCPU = 0.5
-			controllerMem = 500 * (1024 * 1024)
+			controllerCPU = 0.6
+			controllerMem = 530 * (1024 * 1024)
 			schedulerCPU = 0.4
 			schedulerMem = 180 * (1024 * 1024)
 		}
@@ -224,8 +224,10 @@ func density30AddonResourceVerifier(numNodes int) map[string]framework.ResourceC
 
 func logPodStartupStatus(c clientset.Interface, expectedPods int, observedLabels map[string]string, period time.Duration, stopCh chan struct{}) {
 	label := labels.SelectorFromSet(labels.Set(observedLabels))
-	podStore := testutils.NewPodStore(c, metav1.NamespaceAll, label, fields.Everything())
+	podStore, err := testutils.NewPodStore(c, metav1.NamespaceAll, label, fields.Everything())
+	framework.ExpectNoError(err)
 	defer podStore.Stop()
+
 	ticker := time.NewTicker(period)
 	defer ticker.Stop()
 	for {
