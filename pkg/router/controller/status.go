@@ -313,7 +313,7 @@ type SimpleContentionTracker struct {
 func NewSimpleContentionTracker(interval time.Duration) *SimpleContentionTracker {
 	return &SimpleContentionTracker{
 		expires:        interval,
-		maxContentions: 10,
+		maxContentions: 5,
 
 		ids: make(map[string]trackerElement),
 	}
@@ -397,7 +397,7 @@ func (t *SimpleContentionTracker) IsContended(id string, now time.Time, ingress 
 
 	// if the object is contended, exit early
 	if last.state == stateContended {
-		glog.V(4).Infof("Object %s is being written to by another actor", id)
+		glog.V(4).Infof("Object %s is being contended by another writer", id)
 		return true
 	}
 
@@ -408,6 +408,7 @@ func (t *SimpleContentionTracker) IsContended(id string, now time.Time, ingress 
 			state: stateContended,
 		}
 		t.contentions++
+		glog.V(4).Infof("Object %s was previously correct and is now incorrect", id)
 		return true
 	}
 
