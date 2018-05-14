@@ -130,6 +130,10 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/openshift/api/build/v1.StageInfo":                                                     schema_openshift_api_build_v1_StageInfo(ref),
 		"github.com/openshift/api/build/v1.StepInfo":                                                      schema_openshift_api_build_v1_StepInfo(ref),
 		"github.com/openshift/api/build/v1.WebHookTrigger":                                                schema_openshift_api_build_v1_WebHookTrigger(ref),
+		"github.com/openshift/api/config/v1.CertInfo":                                                     schema_openshift_api_config_v1_CertInfo(ref),
+		"github.com/openshift/api/config/v1.HTTPServingInfo":                                              schema_openshift_api_config_v1_HTTPServingInfo(ref),
+		"github.com/openshift/api/config/v1.NamedCertificate":                                             schema_openshift_api_config_v1_NamedCertificate(ref),
+		"github.com/openshift/api/config/v1.ServingInfo":                                                  schema_openshift_api_config_v1_ServingInfo(ref),
 		"github.com/openshift/api/image/v1.DockerImageReference":                                          schema_openshift_api_image_v1_DockerImageReference(ref),
 		"github.com/openshift/api/image/v1.Image":                                                         schema_openshift_api_image_v1_Image(ref),
 		"github.com/openshift/api/image/v1.ImageImportSpec":                                               schema_openshift_api_image_v1_ImageImportSpec(ref),
@@ -247,13 +251,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/openshift/api/user/v1.User":                                                           schema_openshift_api_user_v1_User(ref),
 		"github.com/openshift/api/user/v1.UserIdentityMapping":                                            schema_openshift_api_user_v1_UserIdentityMapping(ref),
 		"github.com/openshift/api/user/v1.UserList":                                                       schema_openshift_api_user_v1_UserList(ref),
-		"github.com/openshift/api/webconsole/v1.CertInfo":                                                 schema_openshift_api_webconsole_v1_CertInfo(ref),
 		"github.com/openshift/api/webconsole/v1.ClusterInfo":                                              schema_openshift_api_webconsole_v1_ClusterInfo(ref),
 		"github.com/openshift/api/webconsole/v1.ExtensionsConfiguration":                                  schema_openshift_api_webconsole_v1_ExtensionsConfiguration(ref),
 		"github.com/openshift/api/webconsole/v1.FeaturesConfiguration":                                    schema_openshift_api_webconsole_v1_FeaturesConfiguration(ref),
-		"github.com/openshift/api/webconsole/v1.HTTPServingInfo":                                          schema_openshift_api_webconsole_v1_HTTPServingInfo(ref),
-		"github.com/openshift/api/webconsole/v1.NamedCertificate":                                         schema_openshift_api_webconsole_v1_NamedCertificate(ref),
-		"github.com/openshift/api/webconsole/v1.ServingInfo":                                              schema_openshift_api_webconsole_v1_ServingInfo(ref),
 		"github.com/openshift/api/webconsole/v1.WebConsoleConfiguration":                                  schema_openshift_api_webconsole_v1_WebConsoleConfiguration(ref),
 		"k8s.io/api/admissionregistration/v1alpha1.Initializer":                                           schema_k8sio_api_admissionregistration_v1alpha1_Initializer(ref),
 		"k8s.io/api/admissionregistration/v1alpha1.InitializerConfiguration":                              schema_k8sio_api_admissionregistration_v1alpha1_InitializerConfiguration(ref),
@@ -6665,6 +6665,258 @@ func schema_openshift_api_build_v1_WebHookTrigger(ref common.ReferenceCallback) 
 	}
 }
 
+func schema_openshift_api_config_v1_CertInfo(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "CertInfo relates a certificate with a private key",
+				Properties: map[string]spec.Schema{
+					"certFile": {
+						SchemaProps: spec.SchemaProps{
+							Description: "CertFile is a file containing a PEM-encoded certificate",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"keyFile": {
+						SchemaProps: spec.SchemaProps{
+							Description: "KeyFile is a file containing a PEM-encoded private key for the certificate specified by CertFile",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"certFile", "keyFile"},
+			},
+		},
+		Dependencies: []string{},
+	}
+}
+
+func schema_openshift_api_config_v1_HTTPServingInfo(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "HTTPServingInfo holds configuration for serving HTTP",
+				Properties: map[string]spec.Schema{
+					"bindAddress": {
+						SchemaProps: spec.SchemaProps{
+							Description: "BindAddress is the ip:port to serve on",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"bindNetwork": {
+						SchemaProps: spec.SchemaProps{
+							Description: "BindNetwork is the type of network to bind to - defaults to \"tcp4\", accepts \"tcp\", \"tcp4\", and \"tcp6\"",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"certFile": {
+						SchemaProps: spec.SchemaProps{
+							Description: "CertFile is a file containing a PEM-encoded certificate",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"keyFile": {
+						SchemaProps: spec.SchemaProps{
+							Description: "KeyFile is a file containing a PEM-encoded private key for the certificate specified by CertFile",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"clientCA": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ClientCA is the certificate bundle for all the signers that you'll recognize for incoming client certificates",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"namedCertificates": {
+						SchemaProps: spec.SchemaProps{
+							Description: "NamedCertificates is a list of certificates to use to secure requests to specific hostnames",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/openshift/api/config/v1.NamedCertificate"),
+									},
+								},
+							},
+						},
+					},
+					"minTLSVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "MinTLSVersion is the minimum TLS version supported. Values must match version names from https://golang.org/pkg/crypto/tls/#pkg-constants",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"cipherSuites": {
+						SchemaProps: spec.SchemaProps{
+							Description: "CipherSuites contains an overridden list of ciphers for the server to support. Values must match cipher suite IDs from https://golang.org/pkg/crypto/tls/#pkg-constants",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+					"maxRequestsInFlight": {
+						SchemaProps: spec.SchemaProps{
+							Description: "MaxRequestsInFlight is the number of concurrent requests allowed to the server. If zero, no limit.",
+							Type:        []string{"integer"},
+							Format:      "int64",
+						},
+					},
+					"requestTimeoutSeconds": {
+						SchemaProps: spec.SchemaProps{
+							Description: "RequestTimeoutSeconds is the number of seconds before requests are timed out. The default is 60 minutes, if -1 there is no limit on requests.",
+							Type:        []string{"integer"},
+							Format:      "int64",
+						},
+					},
+				},
+				Required: []string{"bindAddress", "bindNetwork", "certFile", "keyFile", "clientCA", "namedCertificates", "maxRequestsInFlight", "requestTimeoutSeconds"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/config/v1.NamedCertificate"},
+	}
+}
+
+func schema_openshift_api_config_v1_NamedCertificate(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "NamedCertificate specifies a certificate/key, and the names it should be served for",
+				Properties: map[string]spec.Schema{
+					"names": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Names is a list of DNS names this certificate should be used to secure A name can be a normal DNS name, or can contain leading wildcard segments.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+					"certFile": {
+						SchemaProps: spec.SchemaProps{
+							Description: "CertFile is a file containing a PEM-encoded certificate",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"keyFile": {
+						SchemaProps: spec.SchemaProps{
+							Description: "KeyFile is a file containing a PEM-encoded private key for the certificate specified by CertFile",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"names", "certFile", "keyFile"},
+			},
+		},
+		Dependencies: []string{},
+	}
+}
+
+func schema_openshift_api_config_v1_ServingInfo(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ServingInfo holds information about serving web pages",
+				Properties: map[string]spec.Schema{
+					"bindAddress": {
+						SchemaProps: spec.SchemaProps{
+							Description: "BindAddress is the ip:port to serve on",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"bindNetwork": {
+						SchemaProps: spec.SchemaProps{
+							Description: "BindNetwork is the type of network to bind to - defaults to \"tcp4\", accepts \"tcp\", \"tcp4\", and \"tcp6\"",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"certFile": {
+						SchemaProps: spec.SchemaProps{
+							Description: "CertFile is a file containing a PEM-encoded certificate",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"keyFile": {
+						SchemaProps: spec.SchemaProps{
+							Description: "KeyFile is a file containing a PEM-encoded private key for the certificate specified by CertFile",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"clientCA": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ClientCA is the certificate bundle for all the signers that you'll recognize for incoming client certificates",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"namedCertificates": {
+						SchemaProps: spec.SchemaProps{
+							Description: "NamedCertificates is a list of certificates to use to secure requests to specific hostnames",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/openshift/api/config/v1.NamedCertificate"),
+									},
+								},
+							},
+						},
+					},
+					"minTLSVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "MinTLSVersion is the minimum TLS version supported. Values must match version names from https://golang.org/pkg/crypto/tls/#pkg-constants",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"cipherSuites": {
+						SchemaProps: spec.SchemaProps{
+							Description: "CipherSuites contains an overridden list of ciphers for the server to support. Values must match cipher suite IDs from https://golang.org/pkg/crypto/tls/#pkg-constants",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"bindAddress", "bindNetwork", "certFile", "keyFile", "clientCA", "namedCertificates"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/config/v1.NamedCertificate"},
+	}
+}
+
 func schema_openshift_api_image_v1_DockerImageReference(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -12260,34 +12512,6 @@ func schema_openshift_api_user_v1_UserList(ref common.ReferenceCallback) common.
 	}
 }
 
-func schema_openshift_api_webconsole_v1_CertInfo(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "CertInfo relates a certificate with a private key",
-				Properties: map[string]spec.Schema{
-					"certFile": {
-						SchemaProps: spec.SchemaProps{
-							Description: "CertFile is a file containing a PEM-encoded certificate",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"keyFile": {
-						SchemaProps: spec.SchemaProps{
-							Description: "KeyFile is a file containing a PEM-encoded private key for the certificate specified by CertFile",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-				},
-				Required: []string{"certFile", "keyFile"},
-			},
-		},
-		Dependencies: []string{},
-	}
-}
-
 func schema_openshift_api_webconsole_v1_ClusterInfo(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -12421,230 +12645,6 @@ func schema_openshift_api_webconsole_v1_FeaturesConfiguration(ref common.Referen
 	}
 }
 
-func schema_openshift_api_webconsole_v1_HTTPServingInfo(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "HTTPServingInfo holds configuration for serving HTTP",
-				Properties: map[string]spec.Schema{
-					"bindAddress": {
-						SchemaProps: spec.SchemaProps{
-							Description: "BindAddress is the ip:port to serve on",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"bindNetwork": {
-						SchemaProps: spec.SchemaProps{
-							Description: "BindNetwork is the type of network to bind to - defaults to \"tcp4\", accepts \"tcp\", \"tcp4\", and \"tcp6\"",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"certFile": {
-						SchemaProps: spec.SchemaProps{
-							Description: "CertFile is a file containing a PEM-encoded certificate",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"keyFile": {
-						SchemaProps: spec.SchemaProps{
-							Description: "KeyFile is a file containing a PEM-encoded private key for the certificate specified by CertFile",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"clientCA": {
-						SchemaProps: spec.SchemaProps{
-							Description: "ClientCA is the certificate bundle for all the signers that you'll recognize for incoming client certificates",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"namedCertificates": {
-						SchemaProps: spec.SchemaProps{
-							Description: "NamedCertificates is a list of certificates to use to secure requests to specific hostnames",
-							Type:        []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/openshift/api/webconsole/v1.NamedCertificate"),
-									},
-								},
-							},
-						},
-					},
-					"minTLSVersion": {
-						SchemaProps: spec.SchemaProps{
-							Description: "MinTLSVersion is the minimum TLS version supported. Values must match version names from https://golang.org/pkg/crypto/tls/#pkg-constants",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"cipherSuites": {
-						SchemaProps: spec.SchemaProps{
-							Description: "CipherSuites contains an overridden list of ciphers for the server to support. Values must match cipher suite IDs from https://golang.org/pkg/crypto/tls/#pkg-constants",
-							Type:        []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Type:   []string{"string"},
-										Format: "",
-									},
-								},
-							},
-						},
-					},
-					"maxRequestsInFlight": {
-						SchemaProps: spec.SchemaProps{
-							Description: "MaxRequestsInFlight is the number of concurrent requests allowed to the server. If zero, no limit.",
-							Type:        []string{"integer"},
-							Format:      "int64",
-						},
-					},
-					"requestTimeoutSeconds": {
-						SchemaProps: spec.SchemaProps{
-							Description: "RequestTimeoutSeconds is the number of seconds before requests are timed out. The default is 60 minutes, if -1 there is no limit on requests.",
-							Type:        []string{"integer"},
-							Format:      "int64",
-						},
-					},
-				},
-				Required: []string{"bindAddress", "bindNetwork", "certFile", "keyFile", "clientCA", "namedCertificates", "maxRequestsInFlight", "requestTimeoutSeconds"},
-			},
-		},
-		Dependencies: []string{
-			"github.com/openshift/api/webconsole/v1.NamedCertificate"},
-	}
-}
-
-func schema_openshift_api_webconsole_v1_NamedCertificate(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "NamedCertificate specifies a certificate/key, and the names it should be served for",
-				Properties: map[string]spec.Schema{
-					"names": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Names is a list of DNS names this certificate should be used to secure A name can be a normal DNS name, or can contain leading wildcard segments.",
-							Type:        []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Type:   []string{"string"},
-										Format: "",
-									},
-								},
-							},
-						},
-					},
-					"certFile": {
-						SchemaProps: spec.SchemaProps{
-							Description: "CertFile is a file containing a PEM-encoded certificate",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"keyFile": {
-						SchemaProps: spec.SchemaProps{
-							Description: "KeyFile is a file containing a PEM-encoded private key for the certificate specified by CertFile",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-				},
-				Required: []string{"names", "certFile", "keyFile"},
-			},
-		},
-		Dependencies: []string{},
-	}
-}
-
-func schema_openshift_api_webconsole_v1_ServingInfo(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "ServingInfo holds information about serving web pages",
-				Properties: map[string]spec.Schema{
-					"bindAddress": {
-						SchemaProps: spec.SchemaProps{
-							Description: "BindAddress is the ip:port to serve on",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"bindNetwork": {
-						SchemaProps: spec.SchemaProps{
-							Description: "BindNetwork is the type of network to bind to - defaults to \"tcp4\", accepts \"tcp\", \"tcp4\", and \"tcp6\"",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"certFile": {
-						SchemaProps: spec.SchemaProps{
-							Description: "CertFile is a file containing a PEM-encoded certificate",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"keyFile": {
-						SchemaProps: spec.SchemaProps{
-							Description: "KeyFile is a file containing a PEM-encoded private key for the certificate specified by CertFile",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"clientCA": {
-						SchemaProps: spec.SchemaProps{
-							Description: "ClientCA is the certificate bundle for all the signers that you'll recognize for incoming client certificates",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"namedCertificates": {
-						SchemaProps: spec.SchemaProps{
-							Description: "NamedCertificates is a list of certificates to use to secure requests to specific hostnames",
-							Type:        []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/openshift/api/webconsole/v1.NamedCertificate"),
-									},
-								},
-							},
-						},
-					},
-					"minTLSVersion": {
-						SchemaProps: spec.SchemaProps{
-							Description: "MinTLSVersion is the minimum TLS version supported. Values must match version names from https://golang.org/pkg/crypto/tls/#pkg-constants",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"cipherSuites": {
-						SchemaProps: spec.SchemaProps{
-							Description: "CipherSuites contains an overridden list of ciphers for the server to support. Values must match cipher suite IDs from https://golang.org/pkg/crypto/tls/#pkg-constants",
-							Type:        []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Type:   []string{"string"},
-										Format: "",
-									},
-								},
-							},
-						},
-					},
-				},
-				Required: []string{"bindAddress", "bindNetwork", "certFile", "keyFile", "clientCA", "namedCertificates"},
-			},
-		},
-		Dependencies: []string{
-			"github.com/openshift/api/webconsole/v1.NamedCertificate"},
-	}
-}
-
 func schema_openshift_api_webconsole_v1_WebConsoleConfiguration(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -12668,7 +12668,7 @@ func schema_openshift_api_webconsole_v1_WebConsoleConfiguration(ref common.Refer
 					"servingInfo": {
 						SchemaProps: spec.SchemaProps{
 							Description: "ServingInfo is the HTTP serving information for these assets",
-							Ref:         ref("github.com/openshift/api/webconsole/v1.HTTPServingInfo"),
+							Ref:         ref("github.com/openshift/api/config/v1.HTTPServingInfo"),
 						},
 					},
 					"clusterInfo": {
@@ -12694,7 +12694,7 @@ func schema_openshift_api_webconsole_v1_WebConsoleConfiguration(ref common.Refer
 			},
 		},
 		Dependencies: []string{
-			"github.com/openshift/api/webconsole/v1.ClusterInfo", "github.com/openshift/api/webconsole/v1.ExtensionsConfiguration", "github.com/openshift/api/webconsole/v1.FeaturesConfiguration", "github.com/openshift/api/webconsole/v1.HTTPServingInfo"},
+			"github.com/openshift/api/config/v1.HTTPServingInfo", "github.com/openshift/api/webconsole/v1.ClusterInfo", "github.com/openshift/api/webconsole/v1.ExtensionsConfiguration", "github.com/openshift/api/webconsole/v1.FeaturesConfiguration"},
 	}
 }
 
