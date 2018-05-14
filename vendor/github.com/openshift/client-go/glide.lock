@@ -1,5 +1,5 @@
-hash: 671262e74cab335d4e743b58e9770862b04e0be8d2fc70a7b48acdcbef3e6d6b
-updated: 2018-04-09T10:52:09.598399021-04:00
+hash: 4fdf7505a3c35be1f1c503f8bc5c0fdfb23ca5ce4f00152d3dde79ca0e441c1b
+updated: 2018-05-11T10:05:35.323633-04:00
 imports:
 - name: github.com/davecgh/go-spew
   version: 782f4967f2dc4564575ca782fe2d04090b5faca8
@@ -41,7 +41,7 @@ imports:
 - name: github.com/json-iterator/go
   version: 13f86432b882000a51c6e610c620974462691a97
 - name: github.com/openshift/api
-  version: 80a1e2bf16952088360b492c175703755deea8d2
+  version: 221b49e66590f67765dfc861cb5e53465738befa
   subpackages:
   - apps/v1
   - authorization/v1
@@ -170,7 +170,7 @@ imports:
   - pkg/watch
   - third_party/forked/golang/reflect
 - name: k8s.io/client-go
-  version: 23781f4d6632d88e869066eaebb743857aa1ef9b
+  version: 33f2870a2b83179c823ddc90e5513f9e5fe43b38
   subpackages:
   - discovery
   - discovery/fake
@@ -198,7 +198,7 @@ imports:
   - util/integer
   - util/retry
 - name: k8s.io/code-generator
-  version: c65da8a8ad6dd88d0651d59ed0fecd30124f28a4
+  version: 37148bd476363b6cfdc14aa7a0ab9e8011a396f3
   repo: git@github.com:openshift/kubernetes-code-generator
 - name: k8s.io/gengo
   version: 01a732e01d00cb9a81bb0ca050d3e6d2b947927b

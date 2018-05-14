@@ -383,6 +383,7 @@ func TestFormatResourceName(t *testing.T) {
 		{schema.GroupKind{}, "name", "name"},
 		{schema.GroupKind{Kind: "Kind"}, "", "kind/"}, // should not happen in practice
 		{schema.GroupKind{Kind: "Kind"}, "name", "kind/name"},
+		{schema.GroupKind{Group: "group", Kind: "Kind"}, "name", "kind.group/name"},
 	}
 	for _, tt := range tests {
 		if got := printers.FormatResourceName(tt.kind, tt.name, true); got != tt.want {

@@ -25,7 +25,7 @@ source "${KUBE_ROOT}/cluster/gce/${KUBE_CONFIG_FILE-"config-default.sh"}"
 source "${KUBE_ROOT}/cluster/common.sh"
 source "${KUBE_ROOT}/hack/lib/util.sh"
 
-if [[ "${NODE_OS_DISTRIBUTION}" == "gci" || "${NODE_OS_DISTRIBUTION}" == "ubuntu" ]]; then
+if [[ "${NODE_OS_DISTRIBUTION}" == "gci" || "${NODE_OS_DISTRIBUTION}" == "ubuntu" || "${NODE_OS_DISTRIBUTION}" == "custom" ]]; then
   source "${KUBE_ROOT}/cluster/gce/${NODE_OS_DISTRIBUTION}/node-helper.sh"
 else
   echo "Cannot operate on cluster using node os distro: ${NODE_OS_DISTRIBUTION}" >&2
@@ -652,7 +652,7 @@ function build-kube-env {
   local server_binary_tar_url=$SERVER_BINARY_TAR_URL
   local kube_manifests_tar_url="${KUBE_MANIFESTS_TAR_URL:-}"
   if [[ "${master}" == "true" && "${MASTER_OS_DISTRIBUTION}" == "ubuntu" ]] || \
-     [[ "${master}" == "false" && "${NODE_OS_DISTRIBUTION}" == "ubuntu" ]] ; then
+     [[ "${master}" == "false" && ("${NODE_OS_DISTRIBUTION}" == "ubuntu" || "${NODE_OS_DISTRIBUTION}" == "custom") ]]; then
     # TODO: Support fallback .tar.gz settings on Container Linux
     server_binary_tar_url=$(split_csv "${SERVER_BINARY_TAR_URL}")
     kube_manifests_tar_url=$(split_csv "${KUBE_MANIFESTS_TAR_URL}")
@@ -678,7 +678,10 @@ ALLOCATE_NODE_CIDRS: $(yaml-quote ${ALLOCATE_NODE_CIDRS:-false})
 ENABLE_CLUSTER_MONITORING: $(yaml-quote ${ENABLE_CLUSTER_MONITORING:-none})
 ENABLE_METRICS_SERVER: $(yaml-quote ${ENABLE_METRICS_SERVER:-false})
 ENABLE_METADATA_AGENT: $(yaml-quote ${ENABLE_METADATA_AGENT:-none})
-METADATA_AGENT_VERSION: $(yaml-quote ${METADATA_AGENT_VERSION:-})
+METADATA_AGENT_CPU_REQUEST: $(yaml-quote ${METADATA_AGENT_CPU_REQUEST:-})
+METADATA_AGENT_MEMORY_REQUEST: $(yaml-quote ${METADATA_AGENT_MEMORY_REQUEST:-})
+METADATA_AGENT_CLUSTER_LEVEL_CPU_REQUEST: $(yaml-quote ${METADATA_AGENT_CLUSTER_LEVEL_CPU_REQUEST:-})
+METADATA_AGENT_CLUSTER_LEVEL_MEMORY_REQUEST: $(yaml-quote ${METADATA_AGENT_CLUSTER_LEVEL_MEMORY_REQUEST:-})
 DOCKER_REGISTRY_MIRROR_URL: $(yaml-quote ${DOCKER_REGISTRY_MIRROR_URL:-})
 ENABLE_L7_LOADBALANCING: $(yaml-quote ${ENABLE_L7_LOADBALANCING:-none})
 ENABLE_CLUSTER_LOGGING: $(yaml-quote ${ENABLE_CLUSTER_LOGGING:-false})
@@ -769,8 +772,8 @@ EOF
 TERMINATED_POD_GC_THRESHOLD: $(yaml-quote ${TERMINATED_POD_GC_THRESHOLD})
 EOF
   fi
-  if [[ "${master}" == "true" && ("${MASTER_OS_DISTRIBUTION}" == "trusty" || "${MASTER_OS_DISTRIBUTION}" == "gci") || "${MASTER_OS_DISTRIBUTION}" == "ubuntu" ]] || \
-     [[ "${master}" == "false" && ("${NODE_OS_DISTRIBUTION}" == "trusty" || "${NODE_OS_DISTRIBUTION}" == "gci") || "${NODE_OS_DISTRIBUTION}" = "ubuntu" ]] ; then
+  if [[ "${master}" == "true" && ("${MASTER_OS_DISTRIBUTION}" == "trusty" || "${MASTER_OS_DISTRIBUTION}" == "gci" || "${MASTER_OS_DISTRIBUTION}" == "ubuntu") ]] || \
+     [[ "${master}" == "false" && ("${NODE_OS_DISTRIBUTION}" == "trusty" || "${NODE_OS_DISTRIBUTION}" == "gci" || "${NODE_OS_DISTRIBUTION}" = "ubuntu" || "${NODE_OS_DISTRIBUTION}" = "custom") ]] ; then
     cat >>$file <<EOF
 KUBE_MANIFESTS_TAR_URL: $(yaml-quote ${kube_manifests_tar_url})
 KUBE_MANIFESTS_TAR_HASH: $(yaml-quote ${KUBE_MANIFESTS_TAR_HASH})
@@ -1728,12 +1731,6 @@ function create-subnetworks() {
     --region ${REGION} \
     ${IP_ALIAS_SUBNETWORK} 2>/dev/null)
   if [[ -z ${subnet} ]]; then
-    # Only allow auto-creation for default subnets
-    if [[ ${IP_ALIAS_SUBNETWORK} != ${INSTANCE_PREFIX}-subnet-default ]]; then
-      echo "${color_red}Subnetwork ${NETWORK}:${IP_ALIAS_SUBNETWORK} does not exist${color_norm}"
-      exit 1
-    fi
-
     echo "Creating subnet ${NETWORK}:${IP_ALIAS_SUBNETWORK}"
     gcloud beta compute networks subnets create \
       ${IP_ALIAS_SUBNETWORK} \
@@ -1820,35 +1817,38 @@ function delete-network() {
 }
 
 function delete-subnetworks() {
-  if [[ ${ENABLE_IP_ALIASES:-} != "true" ]]; then
-    # If running in custom mode network we need to delete subnets
-    mode="$(check-network-mode)"
-    if [[ "${mode}" == "CUSTOM" ]]; then
-      if [[ "${ENABLE_BIG_CLUSTER_SUBNETS}" = "true" ]]; then
-        echo "Deleting default subnets..."
-        # This value should be kept in sync with number of regions.
-        local parallelism=9
-        gcloud compute networks subnets list --network="${NETWORK}" --project "${NETWORK_PROJECT}" --format='value(region.basename())' | \
-          xargs -i -P ${parallelism} gcloud --quiet compute networks subnets delete "${NETWORK}" --project "${NETWORK_PROJECT}" --region="{}" || true
-      elif [[ "${CREATE_CUSTOM_NETWORK:-}" == "true" ]]; then
-        echo "Deleting custom subnet..."
-        gcloud --quiet compute networks subnets delete "${SUBNETWORK}" --project "${NETWORK_PROJECT}" --region="${REGION}" || true
-      fi
+  # If running in custom mode network we need to delete subnets manually.
+  mode="$(check-network-mode)"
+  if [[ "${mode}" == "CUSTOM" ]]; then
+    if [[ "${ENABLE_BIG_CLUSTER_SUBNETS}" = "true" ]]; then
+      echo "Deleting default subnets..."
+      # This value should be kept in sync with number of regions.
+      local parallelism=9
+      gcloud compute networks subnets list --network="${NETWORK}" --project "${NETWORK_PROJECT}" --format='value(region.basename())' | \
+        xargs -i -P ${parallelism} gcloud --quiet compute networks subnets delete "${NETWORK}" --project "${NETWORK_PROJECT}" --region="{}" || true
+    elif [[ "${CREATE_CUSTOM_NETWORK:-}" == "true" ]]; then
+      echo "Deleting custom subnet..."
+      gcloud --quiet compute networks subnets delete "${SUBNETWORK}" --project "${NETWORK_PROJECT}" --region="${REGION}" || true
     fi
     return
   fi
 
-  # Only delete automatically created subnets.
-  if [[ ${IP_ALIAS_SUBNETWORK} == ${INSTANCE_PREFIX}-subnet-default ]]; then
-    echo "Removing auto-created subnet ${NETWORK}:${IP_ALIAS_SUBNETWORK}"
-    if [[ -n $(gcloud beta compute networks subnets describe \
+  # If we reached here, it means we're not using custom network.
+  # So the only thing we need to check is if IP-aliases was turned
+  # on and we created a subnet for it. If so, we should delete it.
+  if [[ ${ENABLE_IP_ALIASES:-} == "true" ]]; then
+    # Only delete the subnet if we created it (i.e it's not pre-existing).
+    if [[ -z "${KUBE_GCE_IP_ALIAS_SUBNETWORK:-}" ]]; then
+      echo "Removing auto-created subnet ${NETWORK}:${IP_ALIAS_SUBNETWORK}"
+      if [[ -n $(gcloud beta compute networks subnets describe \
+            --project "${NETWORK_PROJECT}" \
+            --region ${REGION} \
+            ${IP_ALIAS_SUBNETWORK} 2>/dev/null) ]]; then
+        gcloud beta --quiet compute networks subnets delete \
           --project "${NETWORK_PROJECT}" \
           --region ${REGION} \
-          ${IP_ALIAS_SUBNETWORK} 2>/dev/null) ]]; then
-      gcloud beta --quiet compute networks subnets delete \
-        --project "${NETWORK_PROJECT}" \
-        --region ${REGION} \
-        ${IP_ALIAS_SUBNETWORK}
+          ${IP_ALIAS_SUBNETWORK}
+      fi
     fi
   fi
 }
