@@ -73,8 +73,15 @@ retries=20
 
 
 # sort the path based map files for the haproxy map_beg function
+# Leaving any wildcard route at the end of the resulting file,
+# See https://github.com/openshift/origin/issues/16724 for more details.
 for mapfile in "$haproxy_conf_dir"/*.map; do
-  sort -r "$mapfile" -o "$mapfile"
+  mapname=$(basename "$mapfile")
+  grep -v -F '^[^\.]*\' "$mapfile" | sort -r -o "/tmp/$mapname"
+  grep -F '^[^\.]*\' "$mapfile" | sort -r >> "/tmp/$mapname"
+  # using cat and rm instead of mv to preserve original file mode+ownership.
+  cat "/tmp/$mapname" > "$mapfile"
+  rm -f "/tmp/$mapname"
 done
 
 old_pids=$(ps -A -opid,args | grep haproxy | egrep -v -e 'grep|reload-haproxy' | awk '{print $1}' | tr '\n' ' ')
