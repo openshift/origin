@@ -136,7 +136,7 @@ function start() {
   bin_path="$(os::build::get-bin-output-path "${OS_ROOT}")"
   cat >"${rc_file}" <<EOF
 export KUBECONFIG="${admin_config}"
-export PATH="\$PATH:${bin_path}"
+export PATH="${bin_path}:\$PATH"
 
 export OPENSHIFT_CLUSTER_ID="${cluster_id}"
 export OPENSHIFT_CONFIG_ROOT="${config_root}"
