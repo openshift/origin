@@ -20,9 +20,9 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 
-	"github.com/openshift/origin/pkg/cmd/server/crypto"
-	ocontroller "github.com/openshift/origin/pkg/controller"
-	"github.com/openshift/origin/pkg/service/controller/servingcert/cryptoextensions"
+	"github.com/openshift/library-go/pkg/crypto"
+	ocontroller "github.com/openshift/library-go/pkg/controller"
+	"github.com/openshift/service-serving-cert-signer/pkg/controller/servingcert/cryptoextensions"
 )
 
 const (
