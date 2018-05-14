@@ -12,14 +12,6 @@ type FakeAuthorizationV1 struct {
 	*testing.Fake
 }
 
-func (c *FakeAuthorizationV1) ClusterPolicies() v1.ClusterPolicyInterface {
-	return &FakeClusterPolicies{c}
-}
-
-func (c *FakeAuthorizationV1) ClusterPolicyBindings() v1.ClusterPolicyBindingInterface {
-	return &FakeClusterPolicyBindings{c}
-}
-
 func (c *FakeAuthorizationV1) ClusterRoles() v1.ClusterRoleInterface {
 	return &FakeClusterRoles{c}
 }
@@ -34,14 +26,6 @@ func (c *FakeAuthorizationV1) LocalResourceAccessReviews(namespace string) v1.Lo
 
 func (c *FakeAuthorizationV1) LocalSubjectAccessReviews(namespace string) v1.LocalSubjectAccessReviewInterface {
 	return &FakeLocalSubjectAccessReviews{c, namespace}
-}
-
-func (c *FakeAuthorizationV1) Policies(namespace string) v1.PolicyInterface {
-	return &FakePolicies{c, namespace}
-}
-
-func (c *FakeAuthorizationV1) PolicyBindings(namespace string) v1.PolicyBindingInterface {
-	return &FakePolicyBindings{c, namespace}
 }
 
 func (c *FakeAuthorizationV1) ResourceAccessReviews() v1.ResourceAccessReviewInterface {

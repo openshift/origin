@@ -1,5 +1,5 @@
 hash: ce0210531a96e7705ee37f95e133bc8f04449108d83b7b6475afb65712dc10e3
-updated: 2018-05-14T10:18:03.164582862-04:00
+updated: 2018-05-15T07:26:45.406556611-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -818,11 +818,12 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: 221b49e66590f67765dfc861cb5e53465738befa
+  version: 54917e0ae540d86047a321158f860f2143c1c81d
   subpackages:
   - apps/v1
   - authorization/v1
   - build/v1
+  - config/v1
   - image/docker10
   - image/dockerpre012
   - image/v1
@@ -837,7 +838,7 @@ imports:
   - user/v1
   - webconsole/v1
 - name: github.com/openshift/client-go
-  version: bc04fb8d39938c59a84f0e60f6803fb19882c8fc
+  version: c6778f7b6f84c0d3a26cb3bae1d8fd6282bb8025
   subpackages:
   - apps/clientset/versioned
   - apps/clientset/versioned/scheme
@@ -1807,7 +1808,7 @@ imports:
   - pkg/util/proto
   - pkg/util/proto/validation
 - name: k8s.io/kubernetes
-  version: 9c719205e1eb5f7f7de3b2170476329bf33f78e6
+  version: d1702ec28ea20dfa3111587b45875232702414ca
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/controller-manager/app
@@ -2486,6 +2487,7 @@ imports:
   - pkg/volume/csi
   - pkg/volume/downwardapi
   - pkg/volume/empty_dir
+  - pkg/volume/emptydirquota
   - pkg/volume/fc
   - pkg/volume/flexvolume
   - pkg/volume/flocker
