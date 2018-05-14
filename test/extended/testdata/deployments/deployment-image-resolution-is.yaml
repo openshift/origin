@@ -1,0 +1,18 @@
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: deployment-image-resolution
+spec:
+  tags:
+  - name: pullthrough
+    from:
+      kind: DockerImage
+      name: docker.io/centos:centos7
+    referencePolicy:
+      type: Local
+  - name: direct
+    from:
+      kind: DockerImage
+      name: docker.io/centos:centos7
+    referencePolicy:
+     type: Source

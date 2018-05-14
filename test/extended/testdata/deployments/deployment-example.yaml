@@ -1,54 +1,51 @@
-apiVersion: v1
-items:
-- apiVersion: v1
-  kind: DeploymentConfig
-  metadata:
-    labels:
-      app: example
-    name: example
-  spec:
-    replicas: 1
-    template:
-      metadata:
-        labels:
-          app: example
-      spec:
-        containers:
-        - imagePullPolicy: Always
-          name: ruby
-          command:
-          - /bin/sleep
-          - "100"
-          ports:
-          - containerPort: 8080
-            protocol: TCP
-        - imagePullPolicy: Always
-          name: mongodb
-          command:
-          - /bin/sleep
-          - "100"
-          ports:
-          - containerPort: 5000
-            protocol: TCP
-    test: false
-    triggers:
-    - type: ConfigChange
-    - imageChangeParams:
-        automatic: true
-        containerNames:
-        - ruby
-        from:
-          kind: ImageStreamTag
-          name: ruby:latest
-          namespace: openshift
-      type: ImageChange
-    - imageChangeParams:
-        automatic: true
-        containerNames:
-        - mongodb
-        from:
-          kind: ImageStreamTag
-          name: mongodb:latest
-          namespace: openshift
-      type: ImageChange
-kind: List
+apiVersion: apps.openshift.io/v1
+kind: DeploymentConfig
+metadata:
+  labels:
+    app: example
+  name: example
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: example
+    spec:
+      containers:
+      - imagePullPolicy: IfNotPresent
+        name: ruby
+        command:
+        - /bin/sleep
+        - "100"
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+      - imagePullPolicy: IfNotPresent
+        name: mongodb
+        command:
+        - /bin/sleep
+        - "100"
+        ports:
+        - containerPort: 5000
+          protocol: TCP
+  test: false
+  triggers:
+  - type: ConfigChange
+  - imageChangeParams:
+      automatic: true
+      containerNames:
+      - ruby
+      from:
+        kind: ImageStreamTag
+        name: ruby:latest
+        namespace: openshift
+    type: ImageChange
+  - imageChangeParams:
+      automatic: true
+      containerNames:
+      - mongodb
+      from:
+        kind: ImageStreamTag
+        name: mongodb:latest
+        namespace: openshift
+    type: ImageChange

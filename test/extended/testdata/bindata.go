@@ -91,6 +91,7 @@
 // test/extended/testdata/deployments/deployment-example.yaml
 // test/extended/testdata/deployments/deployment-history-limit.yaml
 // test/extended/testdata/deployments/deployment-ignores-deployer.yaml
+// test/extended/testdata/deployments/deployment-image-resolution-is.yaml
 // test/extended/testdata/deployments/deployment-image-resolution.yaml
 // test/extended/testdata/deployments/deployment-min-ready-seconds.yaml
 // test/extended/testdata/deployments/deployment-simple.yaml
@@ -4600,7 +4601,7 @@ func testExtendedTestdataCustomSecretBuilderBuildSh() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataDeploymentsCustomDeploymentYaml = []byte(`apiVersion: v1
+var _testExtendedTestdataDeploymentsCustomDeploymentYaml = []byte(`apiVersion: apps.openshift.io/v1
 kind: DeploymentConfig
 metadata:
   name: custom-deployment
@@ -4661,60 +4662,57 @@ func testExtendedTestdataDeploymentsCustomDeploymentYaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataDeploymentsDeploymentExampleYaml = []byte(`apiVersion: v1
-items:
-- apiVersion: v1
-  kind: DeploymentConfig
-  metadata:
-    labels:
-      app: example
-    name: example
-  spec:
-    replicas: 1
-    template:
-      metadata:
-        labels:
-          app: example
-      spec:
-        containers:
-        - imagePullPolicy: Always
-          name: ruby
-          command:
-          - /bin/sleep
-          - "100"
-          ports:
-          - containerPort: 8080
-            protocol: TCP
-        - imagePullPolicy: Always
-          name: mongodb
-          command:
-          - /bin/sleep
-          - "100"
-          ports:
-          - containerPort: 5000
-            protocol: TCP
-    test: false
-    triggers:
-    - type: ConfigChange
-    - imageChangeParams:
-        automatic: true
-        containerNames:
-        - ruby
-        from:
-          kind: ImageStreamTag
-          name: ruby:latest
-          namespace: openshift
-      type: ImageChange
-    - imageChangeParams:
-        automatic: true
-        containerNames:
-        - mongodb
-        from:
-          kind: ImageStreamTag
-          name: mongodb:latest
-          namespace: openshift
-      type: ImageChange
-kind: List
+var _testExtendedTestdataDeploymentsDeploymentExampleYaml = []byte(`apiVersion: apps.openshift.io/v1
+kind: DeploymentConfig
+metadata:
+  labels:
+    app: example
+  name: example
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: example
+    spec:
+      containers:
+      - imagePullPolicy: IfNotPresent
+        name: ruby
+        command:
+        - /bin/sleep
+        - "100"
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+      - imagePullPolicy: IfNotPresent
+        name: mongodb
+        command:
+        - /bin/sleep
+        - "100"
+        ports:
+        - containerPort: 5000
+          protocol: TCP
+  test: false
+  triggers:
+  - type: ConfigChange
+  - imageChangeParams:
+      automatic: true
+      containerNames:
+      - ruby
+      from:
+        kind: ImageStreamTag
+        name: ruby:latest
+        namespace: openshift
+    type: ImageChange
+  - imageChangeParams:
+      automatic: true
+      containerNames:
+      - mongodb
+      from:
+        kind: ImageStreamTag
+        name: mongodb:latest
+        namespace: openshift
+    type: ImageChange
 `)
 
 func testExtendedTestdataDeploymentsDeploymentExampleYamlBytes() ([]byte, error) {
@@ -4732,7 +4730,7 @@ func testExtendedTestdataDeploymentsDeploymentExampleYaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataDeploymentsDeploymentHistoryLimitYaml = []byte(`apiVersion: v1
+var _testExtendedTestdataDeploymentsDeploymentHistoryLimitYaml = []byte(`apiVersion: apps.openshift.io/v1
 kind: DeploymentConfig
 metadata:
   name: history-limit
@@ -4772,7 +4770,7 @@ func testExtendedTestdataDeploymentsDeploymentHistoryLimitYaml() (*asset, error)
 	return a, nil
 }
 
-var _testExtendedTestdataDeploymentsDeploymentIgnoresDeployerYaml = []byte(`apiVersion: v1
+var _testExtendedTestdataDeploymentsDeploymentIgnoresDeployerYaml = []byte(`apiVersion: apps.openshift.io/v1
 kind: DeploymentConfig
 metadata:
   annotations:
@@ -4812,71 +4810,85 @@ func testExtendedTestdataDeploymentsDeploymentIgnoresDeployerYaml() (*asset, err
 	return a, nil
 }
 
-var _testExtendedTestdataDeploymentsDeploymentImageResolutionYaml = []byte(`apiVersion: v1
-kind: List
-items:
-- apiVersion: v1
-  kind: ImageStream
-  metadata:
-    name: deployment-image-resolution
-  spec:
-    tags:
-    - name: pullthrough
+var _testExtendedTestdataDeploymentsDeploymentImageResolutionIsYaml = []byte(`apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: deployment-image-resolution
+spec:
+  tags:
+  - name: pullthrough
+    from:
+      kind: DockerImage
+      name: docker.io/centos:centos7
+    referencePolicy:
+      type: Local
+  - name: direct
+    from:
+      kind: DockerImage
+      name: docker.io/centos:centos7
+    referencePolicy:
+     type: Source`)
+
+func testExtendedTestdataDeploymentsDeploymentImageResolutionIsYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataDeploymentsDeploymentImageResolutionIsYaml, nil
+}
+
+func testExtendedTestdataDeploymentsDeploymentImageResolutionIsYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataDeploymentsDeploymentImageResolutionIsYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/deployments/deployment-image-resolution-is.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataDeploymentsDeploymentImageResolutionYaml = []byte(`apiVersion: apps.openshift.io/v1
+kind: DeploymentConfig
+metadata:
+  name: deployment-image-resolution
+spec:
+  strategy:
+    type: Rolling
+    rollingParams:
+  template:
+    metadata:
+      labels:
+        name: deployment-image-resolution
+    spec:
+      containers:
+      - name: first
+        image: ""
+        imagePullPolicy: IfNotPresent
+        command:
+          - /bin/sleep
+          - infinity
+      - name: second
+        image: " "
+        imagePullPolicy: IfNotPresent
+        command:
+          - /bin/sleep
+          - infinity
+  triggers:
+  - type: ConfigChange
+  - imageChangeParams:
+      automatic: true
+      containerNames:
+      - first
       from:
-        kind: DockerImage
-        name: docker.io/centos:centos7
-      referencePolicy:
-        type: Local
-    - name: direct
+        kind: ImageStreamTag
+        name: deployment-image-resolution:pullthrough
+    type: ImageChange
+  - imageChangeParams:
+      automatic: true
+      containerNames:
+      - second
       from:
-        kind: DockerImage
-        name: docker.io/centos:centos7
-      referencePolicy:
-        type: Source
-- apiVersion: v1
-  kind: DeploymentConfig
-  metadata:
-    name: deployment-image-resolution
-  spec:
-    strategy:
-      type: Rolling
-      rollingParams:
-    template:
-      metadata:
-        labels:
-          name: deployment-image-resolution
-      spec:
-        containers:
-        - name: first
-          image: ""
-          imagePullPolicy: IfNotPresent
-          command:
-            - /bin/sleep
-            - infinity
-        - name: second
-          image: ""
-          imagePullPolicy: IfNotPresent
-          command:
-            - /bin/sleep
-            - infinity
-    triggers:
-    - type: ConfigChange
-    - imageChangeParams:
-        automatic: true
-        containerNames:
-        - first
-        from:
-          kind: ImageStreamTag
-          name: deployment-image-resolution:pullthrough
-      type: ImageChange
-    - imageChangeParams:
-        automatic: true
-        containerNames:
-        - second
-        from:
-          kind: ImageStreamTag
-          name: deployment-image-resolution:direct
-      type: ImageChange
+        kind: ImageStreamTag
+        name: deployment-image-resolution:direct
+    type: ImageChange
+
 `)
 
 func testExtendedTestdataDeploymentsDeploymentImageResolutionYamlBytes() ([]byte, error) {
@@ -4894,7 +4906,7 @@ func testExtendedTestdataDeploymentsDeploymentImageResolutionYaml() (*asset, err
 	return a, nil
 }
 
-var _testExtendedTestdataDeploymentsDeploymentMinReadySecondsYaml = []byte(`apiVersion: v1
+var _testExtendedTestdataDeploymentsDeploymentMinReadySecondsYaml = []byte(`apiVersion: apps.openshift.io/v1
 kind: DeploymentConfig
 metadata:
   name: minreadytest
@@ -4933,7 +4945,7 @@ func testExtendedTestdataDeploymentsDeploymentMinReadySecondsYaml() (*asset, err
 	return a, nil
 }
 
-var _testExtendedTestdataDeploymentsDeploymentSimpleYaml = []byte(`apiVersion: v1
+var _testExtendedTestdataDeploymentsDeploymentSimpleYaml = []byte(`apiVersion: apps.openshift.io/v1
 kind: DeploymentConfig
 metadata:
   name: deployment-simple
@@ -4979,7 +4991,7 @@ func testExtendedTestdataDeploymentsDeploymentSimpleYaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataDeploymentsDeploymentTriggerYaml = []byte(`apiVersion: v1
+var _testExtendedTestdataDeploymentsDeploymentTriggerYaml = []byte(`apiVersion: apps.openshift.io/v1
 kind: DeploymentConfig
 metadata:
   labels:
@@ -5025,7 +5037,7 @@ func testExtendedTestdataDeploymentsDeploymentTriggerYaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataDeploymentsDeploymentWithRefEnvYaml = []byte(`apiVersion: v1
+var _testExtendedTestdataDeploymentsDeploymentWithRefEnvYaml = []byte(`apiVersion: apps.openshift.io/v1
 kind: DeploymentConfig
 metadata:
   name: deployment-simple
@@ -5075,7 +5087,7 @@ func testExtendedTestdataDeploymentsDeploymentWithRefEnvYaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataDeploymentsFailingPreHookYaml = []byte(`apiVersion: v1
+var _testExtendedTestdataDeploymentsFailingPreHookYaml = []byte(`apiVersion: apps.openshift.io/v1
 kind: DeploymentConfig
 metadata:
   name: hook
@@ -5124,7 +5136,7 @@ func testExtendedTestdataDeploymentsFailingPreHookYaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataDeploymentsGenerationTestYaml = []byte(`apiVersion: v1
+var _testExtendedTestdataDeploymentsGenerationTestYaml = []byte(`apiVersion: apps.openshift.io/v1
 kind: DeploymentConfig
 metadata:
   name: generation-test
@@ -5173,52 +5185,49 @@ func testExtendedTestdataDeploymentsGenerationTestYaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataDeploymentsMultiIctDeploymentYaml = []byte(`apiVersion: v1
-items:
-- apiVersion: v1
-  kind: DeploymentConfig
-  metadata:
-    labels:
-      app: example
-    name: example
-  spec:
-    replicas: 1
-    template:
-      metadata:
-        labels:
-          app: example
-      spec:
-        containers:
-        - imagePullPolicy: Always
-          name: ruby
-          command:
-          - /bin/sleep
-          - "100"
-          ports:
-          - containerPort: 8080
-            protocol: TCP
-        - imagePullPolicy: Always
-          name: ruby2
-          command:
-          - /bin/sleep
-          - "100"
-          ports:
-          - containerPort: 8081
-            protocol: TCP
-    test: false
-    triggers:
-    - type: ConfigChange
-    - imageChangeParams:
-        automatic: true
-        containerNames:
-        - ruby
-        - ruby2
-        from:
-          kind: ImageStreamTag
-          name: ruby:latest
-          namespace: openshift
-      type: ImageChange
-kind: List
+var _testExtendedTestdataDeploymentsMultiIctDeploymentYaml = []byte(`apiVersion: apps.openshift.io/v1
+kind: DeploymentConfig
+metadata:
+  labels:
+    app: example
+  name: example
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: example
+    spec:
+      containers:
+      - imagePullPolicy: IfNotPresent
+        name: ruby
+        command:
+        - /bin/sleep
+        - "100"
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+      - imagePullPolicy: IfNotPresent
+        name: ruby2
+        command:
+        - /bin/sleep
+        - "100"
+        ports:
+        - containerPort: 8081
+          protocol: TCP
+  test: false
+  triggers:
+  - type: ConfigChange
+  - imageChangeParams:
+      automatic: true
+      containerNames:
+      - ruby
+      - ruby2
+      from:
+        kind: ImageStreamTag
+        name: ruby:latest
+        namespace: openshift
+    type: ImageChange
 `)
 
 func testExtendedTestdataDeploymentsMultiIctDeploymentYamlBytes() ([]byte, error) {
@@ -5236,7 +5245,7 @@ func testExtendedTestdataDeploymentsMultiIctDeploymentYaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataDeploymentsPausedDeploymentYaml = []byte(`apiVersion: v1
+var _testExtendedTestdataDeploymentsPausedDeploymentYaml = []byte(`apiVersion: apps.openshift.io/v1
 kind: DeploymentConfig
 metadata:
   name: paused
@@ -5272,7 +5281,7 @@ func testExtendedTestdataDeploymentsPausedDeploymentYaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataDeploymentsReadinessTestYaml = []byte(`apiVersion: v1
+var _testExtendedTestdataDeploymentsReadinessTestYaml = []byte(`apiVersion: apps.openshift.io/v1
 kind: DeploymentConfig
 metadata:
   name: readiness
@@ -5316,7 +5325,7 @@ func testExtendedTestdataDeploymentsReadinessTestYaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataDeploymentsTagImagesDeploymentYaml = []byte(`apiVersion: v1
+var _testExtendedTestdataDeploymentsTagImagesDeploymentYaml = []byte(`apiVersion: apps.openshift.io/v1
 kind: DeploymentConfig
 metadata:
   name: tag-images
@@ -5369,7 +5378,7 @@ func testExtendedTestdataDeploymentsTagImagesDeploymentYaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataDeploymentsTestDeploymentBrokenYaml = []byte(`apiVersion: v1
+var _testExtendedTestdataDeploymentsTestDeploymentBrokenYaml = []byte(`apiVersion: apps.openshift.io/v1
 kind: DeploymentConfig
 metadata:
   name: brokendeployment
@@ -5417,7 +5426,7 @@ func testExtendedTestdataDeploymentsTestDeploymentBrokenYaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataDeploymentsTestDeploymentTestYaml = []byte(`apiVersion: v1
+var _testExtendedTestdataDeploymentsTestDeploymentTestYaml = []byte(`apiVersion: apps.openshift.io/v1
 kind: DeploymentConfig
 metadata:
   name: deployment-test
@@ -33108,6 +33117,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/deployments/deployment-example.yaml": testExtendedTestdataDeploymentsDeploymentExampleYaml,
 	"test/extended/testdata/deployments/deployment-history-limit.yaml": testExtendedTestdataDeploymentsDeploymentHistoryLimitYaml,
 	"test/extended/testdata/deployments/deployment-ignores-deployer.yaml": testExtendedTestdataDeploymentsDeploymentIgnoresDeployerYaml,
+	"test/extended/testdata/deployments/deployment-image-resolution-is.yaml": testExtendedTestdataDeploymentsDeploymentImageResolutionIsYaml,
 	"test/extended/testdata/deployments/deployment-image-resolution.yaml": testExtendedTestdataDeploymentsDeploymentImageResolutionYaml,
 	"test/extended/testdata/deployments/deployment-min-ready-seconds.yaml": testExtendedTestdataDeploymentsDeploymentMinReadySecondsYaml,
 	"test/extended/testdata/deployments/deployment-simple.yaml": testExtendedTestdataDeploymentsDeploymentSimpleYaml,
@@ -33580,6 +33590,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"deployment-example.yaml": &bintree{testExtendedTestdataDeploymentsDeploymentExampleYaml, map[string]*bintree{}},
 					"deployment-history-limit.yaml": &bintree{testExtendedTestdataDeploymentsDeploymentHistoryLimitYaml, map[string]*bintree{}},
 					"deployment-ignores-deployer.yaml": &bintree{testExtendedTestdataDeploymentsDeploymentIgnoresDeployerYaml, map[string]*bintree{}},
+					"deployment-image-resolution-is.yaml": &bintree{testExtendedTestdataDeploymentsDeploymentImageResolutionIsYaml, map[string]*bintree{}},
 					"deployment-image-resolution.yaml": &bintree{testExtendedTestdataDeploymentsDeploymentImageResolutionYaml, map[string]*bintree{}},
 					"deployment-min-ready-seconds.yaml": &bintree{testExtendedTestdataDeploymentsDeploymentMinReadySecondsYaml, map[string]*bintree{}},
 					"deployment-simple.yaml": &bintree{testExtendedTestdataDeploymentsDeploymentSimpleYaml, map[string]*bintree{}},
