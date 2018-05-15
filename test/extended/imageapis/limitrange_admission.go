@@ -42,7 +42,7 @@ var _ = g.Describe("[Feature:ImageQuota][registry][Serial] Image limit range", f
 
 	g.It(fmt.Sprintf("[Skipped] should deny a push of built image exceeding %s limit", imageapi.LimitTypeImage), func() {
 		g.Skip("FIXME: fill image metadata for schema1 in the registry")
-		oc.SetOutputDir(exutil.TestContext.OutputDir)
+
 		defer tearDown(oc)
 
 		dClient, err := testutil.NewDockerClient()
@@ -71,7 +71,7 @@ var _ = g.Describe("[Feature:ImageQuota][registry][Serial] Image limit range", f
 	})
 
 	g.It(fmt.Sprintf("should deny a push of built image exceeding limit on %s resource", imageapi.ResourceImageStreamImages), func() {
-		oc.SetOutputDir(exutil.TestContext.OutputDir)
+
 		defer tearDown(oc)
 
 		limits := kapi.ResourceList{
@@ -124,7 +124,7 @@ var _ = g.Describe("[Feature:ImageQuota][registry][Serial] Image limit range", f
 	})
 
 	g.It(fmt.Sprintf("should deny a docker image reference exceeding limit on %s resource", imageapi.ResourceImageStreamTags), func() {
-		oc.SetOutputDir(exutil.TestContext.OutputDir)
+
 		defer tearDown(oc)
 
 		tag2Image, err := buildAndPushTestImagesTo(oc, "src", "tag", 2)
@@ -184,7 +184,6 @@ var _ = g.Describe("[Feature:ImageQuota][registry][Serial] Image limit range", f
 	})
 
 	g.It(fmt.Sprintf("should deny an import of a repository exceeding limit on %s resource", imageapi.ResourceImageStreamTags), func() {
-		oc.SetOutputDir(exutil.TestContext.OutputDir)
 
 		maxBulkImport, err := getMaxImagesBulkImportedPerRepository()
 		if err != nil {

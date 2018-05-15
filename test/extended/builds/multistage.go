@@ -34,7 +34,7 @@ COPY --from=test /usr/bin/curl /test/
 			g.By("waiting for builder service account")
 			err := exutil.WaitForBuilderAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()))
 			o.Expect(err).NotTo(o.HaveOccurred())
-			oc.SetOutputDir(exutil.TestContext.OutputDir)
+
 		})
 
 		g.AfterEach(func() {

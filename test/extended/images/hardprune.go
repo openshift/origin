@@ -90,7 +90,7 @@ var _ = g.Describe("[Feature:ImagePrune][registry][Serial] Image hard prune", fu
 	}
 
 	testHardPrune := func(dryRun bool) {
-		oc.SetOutputDir(exutil.TestContext.OutputDir)
+
 		outSink := g.GinkgoWriter
 		registryURL, err := GetDockerRegistryURL(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -424,7 +424,6 @@ func LogRegistryPod(oc *exutil.CLI) error {
 	}
 
 	ocLocal := *oc
-	ocLocal.SetOutputDir(exutil.ArtifactDirPath())
 	path, err := ocLocal.Run("logs").Args("dc/docker-registry").OutputToFile("pod-" + pod.Name + ".log")
 	if err == nil {
 		fmt.Fprintf(g.GinkgoWriter, "written registry pod log to %s\n", path)

@@ -40,7 +40,6 @@ var _ = g.Describe("[Feature:Builds][Slow][Smoke] result image should have prope
 
 		g.Describe("S2I build from a template", func() {
 			g.It(fmt.Sprintf("should create a image from %q template with proper Docker labels", stiBuildFixture), func() {
-				oc.SetOutputDir(exutil.TestContext.OutputDir)
 
 				g.By(fmt.Sprintf("calling oc create -f %q", imageStreamFixture))
 				err := oc.Run("create").Args("-f", imageStreamFixture).Execute()
@@ -69,7 +68,6 @@ var _ = g.Describe("[Feature:Builds][Slow][Smoke] result image should have prope
 
 		g.Describe("Docker build from a template", func() {
 			g.It(fmt.Sprintf("should create a image from %q template with proper Docker labels", dockerBuildFixture), func() {
-				oc.SetOutputDir(exutil.TestContext.OutputDir)
 
 				g.By(fmt.Sprintf("calling oc create -f %q", imageStreamFixture))
 				err := oc.Run("create").Args("-f", imageStreamFixture).Execute()

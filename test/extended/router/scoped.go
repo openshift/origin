@@ -66,7 +66,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 
 	g.Describe("The HAProxy router", func() {
 		g.It("should serve the correct routes when scoped to a single namespace and label set", func() {
-			oc.SetOutputDir(exutil.TestContext.OutputDir)
+
 			ns := oc.KubeFramework().Namespace.Name
 			execPodName := exutil.CreateExecPodOrFail(oc.AdminKubeClient().CoreV1(), ns, "execpod")
 			defer func() { oc.AdminKubeClient().CoreV1().Pods(ns).Delete(execPodName, metav1.NewDeleteOptions(1)) }()
@@ -107,7 +107,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 		})
 
 		g.It("should override the route host with a custom value", func() {
-			oc.SetOutputDir(exutil.TestContext.OutputDir)
+
 			ns := oc.KubeFramework().Namespace.Name
 			execPodName := exutil.CreateExecPodOrFail(oc.AdminKubeClient().CoreV1(), ns, "execpod")
 			defer func() { oc.AdminKubeClient().CoreV1().Pods(ns).Delete(execPodName, metav1.NewDeleteOptions(1)) }()
@@ -167,7 +167,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 		})
 
 		g.It("should override the route host for overridden domains with a custom value", func() {
-			oc.SetOutputDir(exutil.TestContext.OutputDir)
+
 			ns := oc.KubeFramework().Namespace.Name
 			execPodName := exutil.CreateExecPodOrFail(oc.AdminKubeClient().CoreV1(), ns, "execpod")
 			defer func() { oc.AdminKubeClient().CoreV1().Pods(ns).Delete(execPodName, metav1.NewDeleteOptions(1)) }()
