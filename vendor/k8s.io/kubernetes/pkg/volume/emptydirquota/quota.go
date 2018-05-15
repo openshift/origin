@@ -1,4 +1,4 @@
-package emptydir
+package emptydirquota
 
 import (
 	"bytes"
