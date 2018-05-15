@@ -89,8 +89,7 @@ func (f *ring1Factory) objectLoader() (meta.RESTMapper, runtime.ObjectTyper, err
 		groupResources, err = discovery.GetAPIGroupResources(discoveryClient)
 	}
 	if err != nil {
-		glog.V(3).Infof("Unable to retrieve API resources, falling back to hardcoded types: %v", err)
-		return legacyscheme.Registry.RESTMapper(), legacyscheme.Scheme, nil
+		return nil, nil, err
 	}
 
 	// allow conversion between typed and unstructured objects
