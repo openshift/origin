@@ -69,8 +69,8 @@ var (
 		},
 	}
 
-	runlevelOneLabel      = map[string]string{"openshift.io/run-level": "1"}
-	runLevelOneComponents = []componentInstallTemplate{
+	runlevelOneLabel          = map[string]string{"openshift.io/run-level": "1"}
+	runLevelOneKubeComponents = []componentInstallTemplate{
 		{
 			ComponentImage: "control-plane",
 			Template: componentinstall.Template{
@@ -89,6 +89,8 @@ var (
 				InstallTemplate: bootstrap.MustAsset("install/kube-dns/install.yaml"),
 			},
 		},
+	}
+	runLevelOneOpenShiftComponents = []componentInstallTemplate{
 		{
 			ComponentImage: "hypershift",
 			Template: componentinstall.Template{
@@ -172,6 +174,10 @@ func (c *ClusterUpConfig) StartSelfHosted(out io.Writer) error {
 		return err
 	}
 
+	runLevelOneComponents := append([]componentInstallTemplate{}, runLevelOneKubeComponents...)
+	if !c.KubeOnly {
+		runLevelOneComponents = append(runLevelOneComponents, runLevelOneOpenShiftComponents...)
+	}
 	err = installComponentTemplates(
 		runLevelOneComponents,
 		c.ImageTemplate.Format,
@@ -186,6 +192,11 @@ func (c *ClusterUpConfig) StartSelfHosted(out io.Writer) error {
 	installContext, err := componentinstall.NewComponentInstallContext(c.cliImage(), c.imageFormat(), c.pullPolicy, c.BaseDir, c.ServerLogLevel)
 	if err != nil {
 		return err
+	}
+
+	// if we're only supposed to install kubernetes, don't install anything else.
+	if c.KubeOnly {
+		return nil
 	}
 
 	// wait for the openshift apiserver before we create the rest of the components, since they may rely on openshift resources
