@@ -60,6 +60,7 @@ function ensure-node-config() {
        --node-dir="${node_config_path}" \
        --node="${host}" \
        --master="${master_host}" \
+       --dns-ip="172.30.0.1" \
        --hostnames="${host},${ip_addrs}" \
        --network-plugin="${OPENSHIFT_NETWORK_PLUGIN}" \
        --node-client-certificate-authority="${master_config_path}/ca.crt" \
