@@ -1,20 +1,13 @@
 package node
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 
 	"github.com/golang/glog"
 
-	kapiv1 "k8s.io/api/core/v1"
-	"k8s.io/kubernetes/cmd/kubelet/app"
-	"k8s.io/kubernetes/pkg/volume"
-
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-	"github.com/openshift/origin/pkg/volume/emptydir"
 )
 
 // TODO this is a best effort check at the moment that should either move to kubelet or be removed entirely
@@ -82,61 +75,4 @@ func initializeVolumeDir(rootDirectory string) error {
 		}
 	}
 	return nil
-}
-
-// TODO this needs to move into the forked kubelet with a `--openshift-config` flag
-// PatchUpstreamVolumePluginsForLocalQuota checks if the node config specifies a local storage
-// perFSGroup quota, and if so will test that the volumeDirectory is on a
-// filesystem suitable for quota enforcement. If checks pass the k8s emptyDir
-// volume plugin will be replaced with a wrapper version which adds quota
-// functionality.
-func PatchUpstreamVolumePluginsForLocalQuota(nodeConfig configapi.NodeConfig) func() []volume.VolumePlugin {
-	// This looks a little weird written this way but it allows straight lifting from here to kube at a future time
-	// and will allow us to wrap the exec.
-
-	existingProbeVolumePlugins := app.ProbeVolumePlugins
-	return func() []volume.VolumePlugin {
-		if nodeConfig.VolumeConfig.LocalQuota.PerFSGroup == nil {
-			return existingProbeVolumePlugins()
-		}
-
-		glog.V(4).Info("Replacing empty-dir volume plugin with quota wrapper")
-		wrappedEmptyDirPlugin := false
-
-		quotaApplicator, err := emptydir.NewQuotaApplicator(nodeConfig.VolumeDirectory)
-		if err != nil {
-			glog.Fatalf("Could not set up local quota, %s", err)
-		}
-
-		// Create a volume spec with emptyDir we can use to search for the
-		// emptyDir plugin with CanSupport:
-		emptyDirSpec := &volume.Spec{
-			Volume: &kapiv1.Volume{
-				VolumeSource: kapiv1.VolumeSource{
-					EmptyDir: &kapiv1.EmptyDirVolumeSource{},
-				},
-			},
-		}
-
-		ret := existingProbeVolumePlugins()
-		for idx, plugin := range ret {
-			// Can't really do type checking or use a constant here as they are not exported:
-			if plugin.CanSupport(emptyDirSpec) {
-				wrapper := emptydir.EmptyDirQuotaPlugin{
-					VolumePlugin:    plugin,
-					Quota:           *nodeConfig.VolumeConfig.LocalQuota.PerFSGroup,
-					QuotaApplicator: quotaApplicator,
-				}
-				ret[idx] = &wrapper
-				wrappedEmptyDirPlugin = true
-			}
-		}
-		// Because we can't look for the k8s emptyDir plugin by any means that would
-		// survive a refactor, error out if we couldn't find it:
-		if !wrappedEmptyDirPlugin {
-			glog.Fatal(errors.New("No plugin handling EmptyDir was found, unable to apply local quotas"))
-		}
-
-		return ret
-	}
 }
