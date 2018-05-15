@@ -31,7 +31,6 @@ var _ = g.Describe("[image_ecosystem][mysql][Slow] openshift mysql image", func(
 
 		g.Describe("Creating from a template", func() {
 			g.It(fmt.Sprintf("should instantiate the template"), func() {
-				oc.SetOutputDir(exutil.TestContext.OutputDir)
 
 				g.By(fmt.Sprintf("calling oc process -f %q", templatePath))
 				configFile, err := oc.Run("process").Args("-f", templatePath).OutputToFile("config.json")

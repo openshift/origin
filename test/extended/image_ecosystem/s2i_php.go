@@ -38,7 +38,6 @@ var _ = g.Describe("[image_ecosystem][php][Slow] hot deploy for openshift php im
 
 		g.Describe("CakePHP example", func() {
 			g.It(fmt.Sprintf("should work with hot deploy"), func() {
-				oc.SetOutputDir(exutil.TestContext.OutputDir)
 
 				exutil.CheckOpenShiftNamespaceImageStreams(oc)
 				g.By(fmt.Sprintf("calling oc new-app -f %q -p %q", cakephpTemplate, hotDeployParam))

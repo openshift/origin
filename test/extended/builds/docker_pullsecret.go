@@ -42,7 +42,6 @@ var _ = g.Describe("[Feature:Builds][pullsecret][Conformance] docker build using
 
 		g.Describe("Building from a template", func() {
 			g.It("should create a docker build that pulls using a secret run it", func() {
-				oc.SetOutputDir(exutil.TestContext.OutputDir)
 
 				g.By(fmt.Sprintf("calling oc create -f %q", buildFixture))
 				err := oc.Run("create").Args("-f", buildFixture).Execute()

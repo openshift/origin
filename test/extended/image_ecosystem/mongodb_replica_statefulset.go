@@ -46,7 +46,7 @@ var _ = g.Describe("[Conformance][image_ecosystem][mongodb][Slow] openshift mong
 			}
 		})
 		g.It(fmt.Sprintf("should instantiate the template"), func() {
-			oc.SetOutputDir(exutil.TestContext.OutputDir)
+
 
 			err := oc.Run("create").Args("-f", templatePath).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())

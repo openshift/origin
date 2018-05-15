@@ -44,7 +44,6 @@ var _ = g.Describe("[Feature:Builds][Slow] builds with a context directory", fun
 
 		g.Describe("s2i context directory build", func() {
 			g.It(fmt.Sprintf("should s2i build an application using a context directory"), func() {
-				oc.SetOutputDir(exutil.TestContext.OutputDir)
 
 				exutil.CheckOpenShiftNamespaceImageStreams(oc)
 				g.By(fmt.Sprintf("calling oc create -f %q", appFixture))
@@ -99,7 +98,6 @@ var _ = g.Describe("[Feature:Builds][Slow] builds with a context directory", fun
 
 		g.Describe("docker context directory build", func() {
 			g.It(fmt.Sprintf("should docker build an application using a context directory"), func() {
-				oc.SetOutputDir(exutil.TestContext.OutputDir)
 
 				exutil.CheckOpenShiftNamespaceImageStreams(oc)
 				g.By(fmt.Sprintf("calling oc create -f %q", appFixture))

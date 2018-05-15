@@ -50,7 +50,6 @@ type CLI struct {
 	configPath         string
 	adminConfigPath    string
 	username           string
-	outputDir          string
 	globalArgs         []string
 	commandArgs        []string
 	finalArgs          []string
@@ -74,7 +73,6 @@ func NewCLI(project, adminConfigPath string) *CLI {
 
 	client.kubeFramework = e2e.NewDefaultFramework(project)
 	client.kubeFramework.SkipNamespaceCreation = true
-	client.outputDir = os.TempDir()
 	client.username = "admin"
 	client.execPath = "oc"
 	if len(adminConfigPath) == 0 {
@@ -122,7 +120,7 @@ func (c *CLI) ChangeUser(name string) *CLI {
 		FatalErr(err)
 	}
 
-	c.configPath = filepath.Join(c.outputDir, name+".kubeconfig")
+	c.configPath = filepath.Join(e2e.TestContext.OutputDir, name+".kubeconfig")
 	err = clientcmd.WriteToFile(*kubeConfig, c.configPath)
 	if err != nil {
 		FatalErr(err)
@@ -147,12 +145,6 @@ func (c *CLI) SetNamespace(ns string) *CLI {
 func (c CLI) WithoutNamespace() *CLI {
 	c.withoutNamespace = true
 	return &c
-}
-
-// SetOutputDir change the default output directory for temporary files
-func (c *CLI) SetOutputDir(dir string) *CLI {
-	c.outputDir = dir
-	return c
 }
 
 // SetupProject creates a new project and assign a random user to the project.
@@ -471,7 +463,6 @@ func (c *CLI) Run(commands ...string) *CLI {
 		adminConfigPath: c.adminConfigPath,
 		configPath:      c.configPath,
 		username:        c.username,
-		outputDir:       c.outputDir,
 		globalArgs: append(commands, []string{
 			fmt.Sprintf("--config=%s", c.configPath),
 		}...),
@@ -627,7 +618,7 @@ func (c *CLI) OutputToFile(filename string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	path := filepath.Join(c.outputDir, c.Namespace()+"-"+filename)
+	path := filepath.Join(e2e.TestContext.OutputDir, c.Namespace()+"-"+filename)
 	return path, ioutil.WriteFile(path, []byte(content), 0644)
 }
 

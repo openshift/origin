@@ -44,7 +44,6 @@ var _ = g.Describe("[image_ecosystem][perl][Slow] hot deploy for openshift perl 
 
 		g.Describe("hot deploy test", func() {
 			g.It("should work", func() {
-				oc.SetOutputDir(exutil.TestContext.OutputDir)
 
 				exutil.CheckOpenShiftNamespaceImageStreams(oc)
 				g.By(fmt.Sprintf("calling oc new-app -f %q", perlTemplate))

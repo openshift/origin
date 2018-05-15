@@ -57,7 +57,6 @@ func NewSampleRepoTest(c sampleRepoConfig) func() {
 
 			g.Describe("Building "+c.repoName+" app from new-app", func() {
 				g.It(fmt.Sprintf("should build a "+c.repoName+" image and run it in a pod"), func() {
-					oc.SetOutputDir(exutil.TestContext.OutputDir)
 
 					err := exutil.WaitForOpenShiftNamespaceImageStreams(oc)
 					o.Expect(err).NotTo(o.HaveOccurred())

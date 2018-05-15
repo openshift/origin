@@ -188,7 +188,6 @@ func testPruneImages(oc *exutil.CLI, schemaVersion int) {
 	isName := "prune"
 	repoName := oc.Namespace() + "/" + isName
 
-	oc.SetOutputDir(exutil.TestContext.OutputDir)
 	outSink := g.GinkgoWriter
 
 	cleanUp := NewCleanUpContainer(oc)
@@ -291,7 +290,6 @@ func testPruneImages(oc *exutil.CLI, schemaVersion int) {
 func testSoftPruneImages(oc *exutil.CLI) {
 	isName := "prune"
 
-	oc.SetOutputDir(exutil.TestContext.OutputDir)
 	outSink := g.GinkgoWriter
 
 	cleanUp := NewCleanUpContainer(oc)
@@ -326,7 +324,6 @@ func testPruneAllImages(oc *exutil.CLI, setAllImagesToFalse bool, schemaVersion 
 	isName := fmt.Sprintf("prune-schema%d-all-images-%t", schemaVersion, setAllImagesToFalse)
 	repository := oc.Namespace() + "/" + isName
 
-	oc.SetOutputDir(exutil.TestContext.OutputDir)
 	outSink := g.GinkgoWriter
 
 	cleanUp := NewCleanUpContainer(oc)

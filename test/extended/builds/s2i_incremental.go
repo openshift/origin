@@ -46,7 +46,6 @@ var _ = g.Describe("[Feature:Builds][Slow] incremental s2i build", func() {
 
 		g.Describe("Building from a template", func() {
 			g.It(fmt.Sprintf("should create a build from %q template and run it", templateFixture), func() {
-				oc.SetOutputDir(exutil.TestContext.OutputDir)
 
 				g.By(fmt.Sprintf("calling oc new-app -f %q", templateFixture))
 				err := oc.Run("new-app").Args("-f", templateFixture).Execute()

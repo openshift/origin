@@ -64,7 +64,6 @@ var _ = g.Describe("[Feature:Builds][Slow] can use private repositories as build
 		})
 
 		testGitAuth := func(gitServerYaml, urlTemplate string, secretFunc func() string) {
-			oc.SetOutputDir(exutil.TestContext.OutputDir)
 
 			g.By("obtaining the configured API server host from config")
 			adminClientConfig, err := testutil.GetClusterAdminClientConfig(exutil.KubeConfigPath())

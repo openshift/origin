@@ -42,7 +42,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 					dumpWeightedRouterLogs(oc, g.CurrentGinkgoTestDescription().FullTestText)
 				}
 			}()
-			oc.SetOutputDir(exutil.TestContext.OutputDir)
+
 			ns := oc.KubeFramework().Namespace.Name
 			execPodName := exutil.CreateExecPodOrFail(oc.AdminKubeClient().Core(), ns, "execpod")
 			defer func() { oc.AdminKubeClient().Core().Pods(ns).Delete(execPodName, metav1.NewDeleteOptions(1)) }()
