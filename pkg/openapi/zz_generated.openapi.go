@@ -39,10 +39,6 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/openshift/api/apps/v1.RollingDeploymentStrategyParams":                                schema_openshift_api_apps_v1_RollingDeploymentStrategyParams(ref),
 		"github.com/openshift/api/apps/v1.TagImageHook":                                                   schema_openshift_api_apps_v1_TagImageHook(ref),
 		"github.com/openshift/api/authorization/v1.Action":                                                schema_openshift_api_authorization_v1_Action(ref),
-		"github.com/openshift/api/authorization/v1.ClusterPolicy":                                         schema_openshift_api_authorization_v1_ClusterPolicy(ref),
-		"github.com/openshift/api/authorization/v1.ClusterPolicyBinding":                                  schema_openshift_api_authorization_v1_ClusterPolicyBinding(ref),
-		"github.com/openshift/api/authorization/v1.ClusterPolicyBindingList":                              schema_openshift_api_authorization_v1_ClusterPolicyBindingList(ref),
-		"github.com/openshift/api/authorization/v1.ClusterPolicyList":                                     schema_openshift_api_authorization_v1_ClusterPolicyList(ref),
 		"github.com/openshift/api/authorization/v1.ClusterRole":                                           schema_openshift_api_authorization_v1_ClusterRole(ref),
 		"github.com/openshift/api/authorization/v1.ClusterRoleBinding":                                    schema_openshift_api_authorization_v1_ClusterRoleBinding(ref),
 		"github.com/openshift/api/authorization/v1.ClusterRoleBindingList":                                schema_openshift_api_authorization_v1_ClusterRoleBindingList(ref),
@@ -55,10 +51,6 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/openshift/api/authorization/v1.NamedClusterRoleBinding":                               schema_openshift_api_authorization_v1_NamedClusterRoleBinding(ref),
 		"github.com/openshift/api/authorization/v1.NamedRole":                                             schema_openshift_api_authorization_v1_NamedRole(ref),
 		"github.com/openshift/api/authorization/v1.NamedRoleBinding":                                      schema_openshift_api_authorization_v1_NamedRoleBinding(ref),
-		"github.com/openshift/api/authorization/v1.Policy":                                                schema_openshift_api_authorization_v1_Policy(ref),
-		"github.com/openshift/api/authorization/v1.PolicyBinding":                                         schema_openshift_api_authorization_v1_PolicyBinding(ref),
-		"github.com/openshift/api/authorization/v1.PolicyBindingList":                                     schema_openshift_api_authorization_v1_PolicyBindingList(ref),
-		"github.com/openshift/api/authorization/v1.PolicyList":                                            schema_openshift_api_authorization_v1_PolicyList(ref),
 		"github.com/openshift/api/authorization/v1.PolicyRule":                                            schema_openshift_api_authorization_v1_PolicyRule(ref),
 		"github.com/openshift/api/authorization/v1.ResourceAccessReview":                                  schema_openshift_api_authorization_v1_ResourceAccessReview(ref),
 		"github.com/openshift/api/authorization/v1.ResourceAccessReviewResponse":                          schema_openshift_api_authorization_v1_ResourceAccessReviewResponse(ref),
@@ -130,6 +122,10 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/openshift/api/build/v1.StageInfo":                                                     schema_openshift_api_build_v1_StageInfo(ref),
 		"github.com/openshift/api/build/v1.StepInfo":                                                      schema_openshift_api_build_v1_StepInfo(ref),
 		"github.com/openshift/api/build/v1.WebHookTrigger":                                                schema_openshift_api_build_v1_WebHookTrigger(ref),
+		"github.com/openshift/api/config/v1.CertInfo":                                                     schema_openshift_api_config_v1_CertInfo(ref),
+		"github.com/openshift/api/config/v1.HTTPServingInfo":                                              schema_openshift_api_config_v1_HTTPServingInfo(ref),
+		"github.com/openshift/api/config/v1.NamedCertificate":                                             schema_openshift_api_config_v1_NamedCertificate(ref),
+		"github.com/openshift/api/config/v1.ServingInfo":                                                  schema_openshift_api_config_v1_ServingInfo(ref),
 		"github.com/openshift/api/image/v1.DockerImageReference":                                          schema_openshift_api_image_v1_DockerImageReference(ref),
 		"github.com/openshift/api/image/v1.Image":                                                         schema_openshift_api_image_v1_Image(ref),
 		"github.com/openshift/api/image/v1.ImageImportSpec":                                               schema_openshift_api_image_v1_ImageImportSpec(ref),
@@ -247,13 +243,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/openshift/api/user/v1.User":                                                           schema_openshift_api_user_v1_User(ref),
 		"github.com/openshift/api/user/v1.UserIdentityMapping":                                            schema_openshift_api_user_v1_UserIdentityMapping(ref),
 		"github.com/openshift/api/user/v1.UserList":                                                       schema_openshift_api_user_v1_UserList(ref),
-		"github.com/openshift/api/webconsole/v1.CertInfo":                                                 schema_openshift_api_webconsole_v1_CertInfo(ref),
 		"github.com/openshift/api/webconsole/v1.ClusterInfo":                                              schema_openshift_api_webconsole_v1_ClusterInfo(ref),
 		"github.com/openshift/api/webconsole/v1.ExtensionsConfiguration":                                  schema_openshift_api_webconsole_v1_ExtensionsConfiguration(ref),
 		"github.com/openshift/api/webconsole/v1.FeaturesConfiguration":                                    schema_openshift_api_webconsole_v1_FeaturesConfiguration(ref),
-		"github.com/openshift/api/webconsole/v1.HTTPServingInfo":                                          schema_openshift_api_webconsole_v1_HTTPServingInfo(ref),
-		"github.com/openshift/api/webconsole/v1.NamedCertificate":                                         schema_openshift_api_webconsole_v1_NamedCertificate(ref),
-		"github.com/openshift/api/webconsole/v1.ServingInfo":                                              schema_openshift_api_webconsole_v1_ServingInfo(ref),
 		"github.com/openshift/api/webconsole/v1.WebConsoleConfiguration":                                  schema_openshift_api_webconsole_v1_WebConsoleConfiguration(ref),
 		"k8s.io/api/admissionregistration/v1alpha1.Initializer":                                           schema_k8sio_api_admissionregistration_v1alpha1_Initializer(ref),
 		"k8s.io/api/admissionregistration/v1alpha1.InitializerConfiguration":                              schema_k8sio_api_admissionregistration_v1alpha1_InitializerConfiguration(ref),
@@ -2130,216 +2122,6 @@ func schema_openshift_api_authorization_v1_Action(ref common.ReferenceCallback) 
 	}
 }
 
-func schema_openshift_api_authorization_v1_ClusterPolicy(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "ClusterPolicy is a object that holds all the ClusterRoles for a particular namespace.  There is at most one ClusterPolicy document per namespace.",
-				Properties: map[string]spec.Schema{
-					"kind": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"apiVersion": {
-						SchemaProps: spec.SchemaProps{
-							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"metadata": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Standard object's metadata.",
-							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
-						},
-					},
-					"lastModified": {
-						SchemaProps: spec.SchemaProps{
-							Description: "LastModified is the last time that any part of the ClusterPolicy was created, updated, or deleted",
-							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
-						},
-					},
-					"roles": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Roles holds all the ClusterRoles held by this ClusterPolicy, mapped by ClusterRole.Name",
-							Type:        []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/openshift/api/authorization/v1.NamedClusterRole"),
-									},
-								},
-							},
-						},
-					},
-				},
-				Required: []string{"lastModified", "roles"},
-			},
-		},
-		Dependencies: []string{
-			"github.com/openshift/api/authorization/v1.NamedClusterRole", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta", "k8s.io/apimachinery/pkg/apis/meta/v1.Time"},
-	}
-}
-
-func schema_openshift_api_authorization_v1_ClusterPolicyBinding(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "ClusterPolicyBinding is a object that holds all the ClusterRoleBindings for a particular namespace.  There is one ClusterPolicyBinding document per referenced ClusterPolicy namespace",
-				Properties: map[string]spec.Schema{
-					"kind": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"apiVersion": {
-						SchemaProps: spec.SchemaProps{
-							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"metadata": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Standard object's metadata.",
-							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
-						},
-					},
-					"lastModified": {
-						SchemaProps: spec.SchemaProps{
-							Description: "LastModified is the last time that any part of the ClusterPolicyBinding was created, updated, or deleted",
-							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
-						},
-					},
-					"policyRef": {
-						SchemaProps: spec.SchemaProps{
-							Description: "PolicyRef is a reference to the ClusterPolicy that contains all the ClusterRoles that this ClusterPolicyBinding's RoleBindings may reference",
-							Ref:         ref("k8s.io/api/core/v1.ObjectReference"),
-						},
-					},
-					"roleBindings": {
-						SchemaProps: spec.SchemaProps{
-							Description: "RoleBindings holds all the ClusterRoleBindings held by this ClusterPolicyBinding, mapped by ClusterRoleBinding.Name",
-							Type:        []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/openshift/api/authorization/v1.NamedClusterRoleBinding"),
-									},
-								},
-							},
-						},
-					},
-				},
-				Required: []string{"lastModified", "policyRef", "roleBindings"},
-			},
-		},
-		Dependencies: []string{
-			"github.com/openshift/api/authorization/v1.NamedClusterRoleBinding", "k8s.io/api/core/v1.ObjectReference", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta", "k8s.io/apimachinery/pkg/apis/meta/v1.Time"},
-	}
-}
-
-func schema_openshift_api_authorization_v1_ClusterPolicyBindingList(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "ClusterPolicyBindingList is a collection of ClusterPolicyBindings",
-				Properties: map[string]spec.Schema{
-					"kind": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"apiVersion": {
-						SchemaProps: spec.SchemaProps{
-							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"metadata": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Standard object's metadata.",
-							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"),
-						},
-					},
-					"items": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Items is a list of ClusterPolicyBindings",
-							Type:        []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/openshift/api/authorization/v1.ClusterPolicyBinding"),
-									},
-								},
-							},
-						},
-					},
-				},
-				Required: []string{"items"},
-			},
-		},
-		Dependencies: []string{
-			"github.com/openshift/api/authorization/v1.ClusterPolicyBinding", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
-	}
-}
-
-func schema_openshift_api_authorization_v1_ClusterPolicyList(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "ClusterPolicyList is a collection of ClusterPolicies",
-				Properties: map[string]spec.Schema{
-					"kind": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"apiVersion": {
-						SchemaProps: spec.SchemaProps{
-							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"metadata": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Standard object's metadata.",
-							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"),
-						},
-					},
-					"items": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Items is a list of ClusterPolicies",
-							Type:        []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/openshift/api/authorization/v1.ClusterPolicy"),
-									},
-								},
-							},
-						},
-					},
-				},
-				Required: []string{"items"},
-			},
-		},
-		Dependencies: []string{
-			"github.com/openshift/api/authorization/v1.ClusterPolicy", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
-	}
-}
-
 func schema_openshift_api_authorization_v1_ClusterRole(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -2967,216 +2749,6 @@ func schema_openshift_api_authorization_v1_NamedRoleBinding(ref common.Reference
 		},
 		Dependencies: []string{
 			"github.com/openshift/api/authorization/v1.RoleBinding"},
-	}
-}
-
-func schema_openshift_api_authorization_v1_Policy(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "Policy is a object that holds all the Roles for a particular namespace.  There is at most one Policy document per namespace.",
-				Properties: map[string]spec.Schema{
-					"kind": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"apiVersion": {
-						SchemaProps: spec.SchemaProps{
-							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"metadata": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Standard object's metadata.",
-							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
-						},
-					},
-					"lastModified": {
-						SchemaProps: spec.SchemaProps{
-							Description: "LastModified is the last time that any part of the Policy was created, updated, or deleted",
-							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
-						},
-					},
-					"roles": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Roles holds all the Roles held by this Policy, mapped by Role.Name",
-							Type:        []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/openshift/api/authorization/v1.NamedRole"),
-									},
-								},
-							},
-						},
-					},
-				},
-				Required: []string{"lastModified", "roles"},
-			},
-		},
-		Dependencies: []string{
-			"github.com/openshift/api/authorization/v1.NamedRole", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta", "k8s.io/apimachinery/pkg/apis/meta/v1.Time"},
-	}
-}
-
-func schema_openshift_api_authorization_v1_PolicyBinding(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "PolicyBinding is a object that holds all the RoleBindings for a particular namespace.  There is one PolicyBinding document per referenced Policy namespace",
-				Properties: map[string]spec.Schema{
-					"kind": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"apiVersion": {
-						SchemaProps: spec.SchemaProps{
-							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"metadata": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Standard object's metadata.",
-							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
-						},
-					},
-					"lastModified": {
-						SchemaProps: spec.SchemaProps{
-							Description: "LastModified is the last time that any part of the PolicyBinding was created, updated, or deleted",
-							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
-						},
-					},
-					"policyRef": {
-						SchemaProps: spec.SchemaProps{
-							Description: "PolicyRef is a reference to the Policy that contains all the Roles that this PolicyBinding's RoleBindings may reference",
-							Ref:         ref("k8s.io/api/core/v1.ObjectReference"),
-						},
-					},
-					"roleBindings": {
-						SchemaProps: spec.SchemaProps{
-							Description: "RoleBindings holds all the RoleBindings held by this PolicyBinding, mapped by RoleBinding.Name",
-							Type:        []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/openshift/api/authorization/v1.NamedRoleBinding"),
-									},
-								},
-							},
-						},
-					},
-				},
-				Required: []string{"lastModified", "policyRef", "roleBindings"},
-			},
-		},
-		Dependencies: []string{
-			"github.com/openshift/api/authorization/v1.NamedRoleBinding", "k8s.io/api/core/v1.ObjectReference", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta", "k8s.io/apimachinery/pkg/apis/meta/v1.Time"},
-	}
-}
-
-func schema_openshift_api_authorization_v1_PolicyBindingList(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "PolicyBindingList is a collection of PolicyBindings",
-				Properties: map[string]spec.Schema{
-					"kind": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"apiVersion": {
-						SchemaProps: spec.SchemaProps{
-							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"metadata": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Standard object's metadata.",
-							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"),
-						},
-					},
-					"items": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Items is a list of PolicyBindings",
-							Type:        []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/openshift/api/authorization/v1.PolicyBinding"),
-									},
-								},
-							},
-						},
-					},
-				},
-				Required: []string{"items"},
-			},
-		},
-		Dependencies: []string{
-			"github.com/openshift/api/authorization/v1.PolicyBinding", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
-	}
-}
-
-func schema_openshift_api_authorization_v1_PolicyList(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "PolicyList is a collection of Policies",
-				Properties: map[string]spec.Schema{
-					"kind": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"apiVersion": {
-						SchemaProps: spec.SchemaProps{
-							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"metadata": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Standard object's metadata.",
-							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"),
-						},
-					},
-					"items": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Items is a list of Policies",
-							Type:        []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/openshift/api/authorization/v1.Policy"),
-									},
-								},
-							},
-						},
-					},
-				},
-				Required: []string{"items"},
-			},
-		},
-		Dependencies: []string{
-			"github.com/openshift/api/authorization/v1.Policy", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 	}
 }
 
@@ -6662,6 +6234,258 @@ func schema_openshift_api_build_v1_WebHookTrigger(ref common.ReferenceCallback) 
 		},
 		Dependencies: []string{
 			"github.com/openshift/api/build/v1.SecretLocalReference"},
+	}
+}
+
+func schema_openshift_api_config_v1_CertInfo(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "CertInfo relates a certificate with a private key",
+				Properties: map[string]spec.Schema{
+					"certFile": {
+						SchemaProps: spec.SchemaProps{
+							Description: "CertFile is a file containing a PEM-encoded certificate",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"keyFile": {
+						SchemaProps: spec.SchemaProps{
+							Description: "KeyFile is a file containing a PEM-encoded private key for the certificate specified by CertFile",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"certFile", "keyFile"},
+			},
+		},
+		Dependencies: []string{},
+	}
+}
+
+func schema_openshift_api_config_v1_HTTPServingInfo(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "HTTPServingInfo holds configuration for serving HTTP",
+				Properties: map[string]spec.Schema{
+					"bindAddress": {
+						SchemaProps: spec.SchemaProps{
+							Description: "BindAddress is the ip:port to serve on",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"bindNetwork": {
+						SchemaProps: spec.SchemaProps{
+							Description: "BindNetwork is the type of network to bind to - defaults to \"tcp4\", accepts \"tcp\", \"tcp4\", and \"tcp6\"",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"certFile": {
+						SchemaProps: spec.SchemaProps{
+							Description: "CertFile is a file containing a PEM-encoded certificate",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"keyFile": {
+						SchemaProps: spec.SchemaProps{
+							Description: "KeyFile is a file containing a PEM-encoded private key for the certificate specified by CertFile",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"clientCA": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ClientCA is the certificate bundle for all the signers that you'll recognize for incoming client certificates",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"namedCertificates": {
+						SchemaProps: spec.SchemaProps{
+							Description: "NamedCertificates is a list of certificates to use to secure requests to specific hostnames",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/openshift/api/config/v1.NamedCertificate"),
+									},
+								},
+							},
+						},
+					},
+					"minTLSVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "MinTLSVersion is the minimum TLS version supported. Values must match version names from https://golang.org/pkg/crypto/tls/#pkg-constants",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"cipherSuites": {
+						SchemaProps: spec.SchemaProps{
+							Description: "CipherSuites contains an overridden list of ciphers for the server to support. Values must match cipher suite IDs from https://golang.org/pkg/crypto/tls/#pkg-constants",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+					"maxRequestsInFlight": {
+						SchemaProps: spec.SchemaProps{
+							Description: "MaxRequestsInFlight is the number of concurrent requests allowed to the server. If zero, no limit.",
+							Type:        []string{"integer"},
+							Format:      "int64",
+						},
+					},
+					"requestTimeoutSeconds": {
+						SchemaProps: spec.SchemaProps{
+							Description: "RequestTimeoutSeconds is the number of seconds before requests are timed out. The default is 60 minutes, if -1 there is no limit on requests.",
+							Type:        []string{"integer"},
+							Format:      "int64",
+						},
+					},
+				},
+				Required: []string{"bindAddress", "bindNetwork", "certFile", "keyFile", "clientCA", "namedCertificates", "maxRequestsInFlight", "requestTimeoutSeconds"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/config/v1.NamedCertificate"},
+	}
+}
+
+func schema_openshift_api_config_v1_NamedCertificate(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "NamedCertificate specifies a certificate/key, and the names it should be served for",
+				Properties: map[string]spec.Schema{
+					"names": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Names is a list of DNS names this certificate should be used to secure A name can be a normal DNS name, or can contain leading wildcard segments.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+					"certFile": {
+						SchemaProps: spec.SchemaProps{
+							Description: "CertFile is a file containing a PEM-encoded certificate",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"keyFile": {
+						SchemaProps: spec.SchemaProps{
+							Description: "KeyFile is a file containing a PEM-encoded private key for the certificate specified by CertFile",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"names", "certFile", "keyFile"},
+			},
+		},
+		Dependencies: []string{},
+	}
+}
+
+func schema_openshift_api_config_v1_ServingInfo(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ServingInfo holds information about serving web pages",
+				Properties: map[string]spec.Schema{
+					"bindAddress": {
+						SchemaProps: spec.SchemaProps{
+							Description: "BindAddress is the ip:port to serve on",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"bindNetwork": {
+						SchemaProps: spec.SchemaProps{
+							Description: "BindNetwork is the type of network to bind to - defaults to \"tcp4\", accepts \"tcp\", \"tcp4\", and \"tcp6\"",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"certFile": {
+						SchemaProps: spec.SchemaProps{
+							Description: "CertFile is a file containing a PEM-encoded certificate",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"keyFile": {
+						SchemaProps: spec.SchemaProps{
+							Description: "KeyFile is a file containing a PEM-encoded private key for the certificate specified by CertFile",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"clientCA": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ClientCA is the certificate bundle for all the signers that you'll recognize for incoming client certificates",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"namedCertificates": {
+						SchemaProps: spec.SchemaProps{
+							Description: "NamedCertificates is a list of certificates to use to secure requests to specific hostnames",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/openshift/api/config/v1.NamedCertificate"),
+									},
+								},
+							},
+						},
+					},
+					"minTLSVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "MinTLSVersion is the minimum TLS version supported. Values must match version names from https://golang.org/pkg/crypto/tls/#pkg-constants",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"cipherSuites": {
+						SchemaProps: spec.SchemaProps{
+							Description: "CipherSuites contains an overridden list of ciphers for the server to support. Values must match cipher suite IDs from https://golang.org/pkg/crypto/tls/#pkg-constants",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"bindAddress", "bindNetwork", "certFile", "keyFile", "clientCA", "namedCertificates"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/config/v1.NamedCertificate"},
 	}
 }
 
@@ -12260,34 +12084,6 @@ func schema_openshift_api_user_v1_UserList(ref common.ReferenceCallback) common.
 	}
 }
 
-func schema_openshift_api_webconsole_v1_CertInfo(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "CertInfo relates a certificate with a private key",
-				Properties: map[string]spec.Schema{
-					"certFile": {
-						SchemaProps: spec.SchemaProps{
-							Description: "CertFile is a file containing a PEM-encoded certificate",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"keyFile": {
-						SchemaProps: spec.SchemaProps{
-							Description: "KeyFile is a file containing a PEM-encoded private key for the certificate specified by CertFile",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-				},
-				Required: []string{"certFile", "keyFile"},
-			},
-		},
-		Dependencies: []string{},
-	}
-}
-
 func schema_openshift_api_webconsole_v1_ClusterInfo(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -12421,230 +12217,6 @@ func schema_openshift_api_webconsole_v1_FeaturesConfiguration(ref common.Referen
 	}
 }
 
-func schema_openshift_api_webconsole_v1_HTTPServingInfo(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "HTTPServingInfo holds configuration for serving HTTP",
-				Properties: map[string]spec.Schema{
-					"bindAddress": {
-						SchemaProps: spec.SchemaProps{
-							Description: "BindAddress is the ip:port to serve on",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"bindNetwork": {
-						SchemaProps: spec.SchemaProps{
-							Description: "BindNetwork is the type of network to bind to - defaults to \"tcp4\", accepts \"tcp\", \"tcp4\", and \"tcp6\"",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"certFile": {
-						SchemaProps: spec.SchemaProps{
-							Description: "CertFile is a file containing a PEM-encoded certificate",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"keyFile": {
-						SchemaProps: spec.SchemaProps{
-							Description: "KeyFile is a file containing a PEM-encoded private key for the certificate specified by CertFile",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"clientCA": {
-						SchemaProps: spec.SchemaProps{
-							Description: "ClientCA is the certificate bundle for all the signers that you'll recognize for incoming client certificates",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"namedCertificates": {
-						SchemaProps: spec.SchemaProps{
-							Description: "NamedCertificates is a list of certificates to use to secure requests to specific hostnames",
-							Type:        []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/openshift/api/webconsole/v1.NamedCertificate"),
-									},
-								},
-							},
-						},
-					},
-					"minTLSVersion": {
-						SchemaProps: spec.SchemaProps{
-							Description: "MinTLSVersion is the minimum TLS version supported. Values must match version names from https://golang.org/pkg/crypto/tls/#pkg-constants",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"cipherSuites": {
-						SchemaProps: spec.SchemaProps{
-							Description: "CipherSuites contains an overridden list of ciphers for the server to support. Values must match cipher suite IDs from https://golang.org/pkg/crypto/tls/#pkg-constants",
-							Type:        []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Type:   []string{"string"},
-										Format: "",
-									},
-								},
-							},
-						},
-					},
-					"maxRequestsInFlight": {
-						SchemaProps: spec.SchemaProps{
-							Description: "MaxRequestsInFlight is the number of concurrent requests allowed to the server. If zero, no limit.",
-							Type:        []string{"integer"},
-							Format:      "int64",
-						},
-					},
-					"requestTimeoutSeconds": {
-						SchemaProps: spec.SchemaProps{
-							Description: "RequestTimeoutSeconds is the number of seconds before requests are timed out. The default is 60 minutes, if -1 there is no limit on requests.",
-							Type:        []string{"integer"},
-							Format:      "int64",
-						},
-					},
-				},
-				Required: []string{"bindAddress", "bindNetwork", "certFile", "keyFile", "clientCA", "namedCertificates", "maxRequestsInFlight", "requestTimeoutSeconds"},
-			},
-		},
-		Dependencies: []string{
-			"github.com/openshift/api/webconsole/v1.NamedCertificate"},
-	}
-}
-
-func schema_openshift_api_webconsole_v1_NamedCertificate(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "NamedCertificate specifies a certificate/key, and the names it should be served for",
-				Properties: map[string]spec.Schema{
-					"names": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Names is a list of DNS names this certificate should be used to secure A name can be a normal DNS name, or can contain leading wildcard segments.",
-							Type:        []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Type:   []string{"string"},
-										Format: "",
-									},
-								},
-							},
-						},
-					},
-					"certFile": {
-						SchemaProps: spec.SchemaProps{
-							Description: "CertFile is a file containing a PEM-encoded certificate",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"keyFile": {
-						SchemaProps: spec.SchemaProps{
-							Description: "KeyFile is a file containing a PEM-encoded private key for the certificate specified by CertFile",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-				},
-				Required: []string{"names", "certFile", "keyFile"},
-			},
-		},
-		Dependencies: []string{},
-	}
-}
-
-func schema_openshift_api_webconsole_v1_ServingInfo(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "ServingInfo holds information about serving web pages",
-				Properties: map[string]spec.Schema{
-					"bindAddress": {
-						SchemaProps: spec.SchemaProps{
-							Description: "BindAddress is the ip:port to serve on",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"bindNetwork": {
-						SchemaProps: spec.SchemaProps{
-							Description: "BindNetwork is the type of network to bind to - defaults to \"tcp4\", accepts \"tcp\", \"tcp4\", and \"tcp6\"",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"certFile": {
-						SchemaProps: spec.SchemaProps{
-							Description: "CertFile is a file containing a PEM-encoded certificate",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"keyFile": {
-						SchemaProps: spec.SchemaProps{
-							Description: "KeyFile is a file containing a PEM-encoded private key for the certificate specified by CertFile",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"clientCA": {
-						SchemaProps: spec.SchemaProps{
-							Description: "ClientCA is the certificate bundle for all the signers that you'll recognize for incoming client certificates",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"namedCertificates": {
-						SchemaProps: spec.SchemaProps{
-							Description: "NamedCertificates is a list of certificates to use to secure requests to specific hostnames",
-							Type:        []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/openshift/api/webconsole/v1.NamedCertificate"),
-									},
-								},
-							},
-						},
-					},
-					"minTLSVersion": {
-						SchemaProps: spec.SchemaProps{
-							Description: "MinTLSVersion is the minimum TLS version supported. Values must match version names from https://golang.org/pkg/crypto/tls/#pkg-constants",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"cipherSuites": {
-						SchemaProps: spec.SchemaProps{
-							Description: "CipherSuites contains an overridden list of ciphers for the server to support. Values must match cipher suite IDs from https://golang.org/pkg/crypto/tls/#pkg-constants",
-							Type:        []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Type:   []string{"string"},
-										Format: "",
-									},
-								},
-							},
-						},
-					},
-				},
-				Required: []string{"bindAddress", "bindNetwork", "certFile", "keyFile", "clientCA", "namedCertificates"},
-			},
-		},
-		Dependencies: []string{
-			"github.com/openshift/api/webconsole/v1.NamedCertificate"},
-	}
-}
-
 func schema_openshift_api_webconsole_v1_WebConsoleConfiguration(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -12668,7 +12240,7 @@ func schema_openshift_api_webconsole_v1_WebConsoleConfiguration(ref common.Refer
 					"servingInfo": {
 						SchemaProps: spec.SchemaProps{
 							Description: "ServingInfo is the HTTP serving information for these assets",
-							Ref:         ref("github.com/openshift/api/webconsole/v1.HTTPServingInfo"),
+							Ref:         ref("github.com/openshift/api/config/v1.HTTPServingInfo"),
 						},
 					},
 					"clusterInfo": {
@@ -12694,7 +12266,7 @@ func schema_openshift_api_webconsole_v1_WebConsoleConfiguration(ref common.Refer
 			},
 		},
 		Dependencies: []string{
-			"github.com/openshift/api/webconsole/v1.ClusterInfo", "github.com/openshift/api/webconsole/v1.ExtensionsConfiguration", "github.com/openshift/api/webconsole/v1.FeaturesConfiguration", "github.com/openshift/api/webconsole/v1.HTTPServingInfo"},
+			"github.com/openshift/api/config/v1.HTTPServingInfo", "github.com/openshift/api/webconsole/v1.ClusterInfo", "github.com/openshift/api/webconsole/v1.ExtensionsConfiguration", "github.com/openshift/api/webconsole/v1.FeaturesConfiguration"},
 	}
 }
 

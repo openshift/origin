@@ -778,15 +778,6 @@ var unexposedGVKWhiteList = createUnexposedWhiteList(
 	// TODO failing, but its new and alpha
 	gvk("storage.k8s.io", "v1alpha1", "VolumeAttachment"),
 
-	// All {cluster}policy{binding} objects are deprecated
-	gvk("", "v1", "ClusterPolicyBinding"),
-	gvk("authorization.openshift.io", "v1", "ClusterPolicyBinding"),
-	gvk("", "v1", "ClusterPolicy"),
-	gvk("authorization.openshift.io", "v1", "ClusterPolicy"),
-	gvk("", "v1", "PolicyBinding"),
-	gvk("authorization.openshift.io", "v1", "PolicyBinding"),
-	gvk("", "v1", "Policy"),
-	gvk("authorization.openshift.io", "v1", "Policy"),
 	gvk("", "v1", "ResourceAccessReviewResponse"),
 	gvk("authorization.openshift.io", "v1", "ResourceAccessReviewResponse"),
 	gvk("", "v1", "SubjectAccessReviewResponse"),

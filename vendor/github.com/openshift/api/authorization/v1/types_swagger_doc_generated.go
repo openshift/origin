@@ -28,49 +28,6 @@ func (Action) SwaggerDoc() map[string]string {
 	return map_Action
 }
 
-var map_ClusterPolicy = map[string]string{
-	"":             "ClusterPolicy is a object that holds all the ClusterRoles for a particular namespace.  There is at most one ClusterPolicy document per namespace.",
-	"metadata":     "Standard object's metadata.",
-	"lastModified": "LastModified is the last time that any part of the ClusterPolicy was created, updated, or deleted",
-	"roles":        "Roles holds all the ClusterRoles held by this ClusterPolicy, mapped by ClusterRole.Name",
-}
-
-func (ClusterPolicy) SwaggerDoc() map[string]string {
-	return map_ClusterPolicy
-}
-
-var map_ClusterPolicyBinding = map[string]string{
-	"":             "ClusterPolicyBinding is a object that holds all the ClusterRoleBindings for a particular namespace.  There is one ClusterPolicyBinding document per referenced ClusterPolicy namespace",
-	"metadata":     "Standard object's metadata.",
-	"lastModified": "LastModified is the last time that any part of the ClusterPolicyBinding was created, updated, or deleted",
-	"policyRef":    "PolicyRef is a reference to the ClusterPolicy that contains all the ClusterRoles that this ClusterPolicyBinding's RoleBindings may reference",
-	"roleBindings": "RoleBindings holds all the ClusterRoleBindings held by this ClusterPolicyBinding, mapped by ClusterRoleBinding.Name",
-}
-
-func (ClusterPolicyBinding) SwaggerDoc() map[string]string {
-	return map_ClusterPolicyBinding
-}
-
-var map_ClusterPolicyBindingList = map[string]string{
-	"":         "ClusterPolicyBindingList is a collection of ClusterPolicyBindings",
-	"metadata": "Standard object's metadata.",
-	"items":    "Items is a list of ClusterPolicyBindings",
-}
-
-func (ClusterPolicyBindingList) SwaggerDoc() map[string]string {
-	return map_ClusterPolicyBindingList
-}
-
-var map_ClusterPolicyList = map[string]string{
-	"":         "ClusterPolicyList is a collection of ClusterPolicies",
-	"metadata": "Standard object's metadata.",
-	"items":    "Items is a list of ClusterPolicies",
-}
-
-func (ClusterPolicyList) SwaggerDoc() map[string]string {
-	return map_ClusterPolicyList
-}
-
 var map_ClusterRole = map[string]string{
 	"":                "ClusterRole is a logical grouping of PolicyRules that can be referenced as a unit by ClusterRoleBindings.",
 	"metadata":        "Standard object's metadata.",
@@ -190,49 +147,6 @@ var map_NamedRoleBinding = map[string]string{
 
 func (NamedRoleBinding) SwaggerDoc() map[string]string {
 	return map_NamedRoleBinding
-}
-
-var map_Policy = map[string]string{
-	"":             "Policy is a object that holds all the Roles for a particular namespace.  There is at most one Policy document per namespace.",
-	"metadata":     "Standard object's metadata.",
-	"lastModified": "LastModified is the last time that any part of the Policy was created, updated, or deleted",
-	"roles":        "Roles holds all the Roles held by this Policy, mapped by Role.Name",
-}
-
-func (Policy) SwaggerDoc() map[string]string {
-	return map_Policy
-}
-
-var map_PolicyBinding = map[string]string{
-	"":             "PolicyBinding is a object that holds all the RoleBindings for a particular namespace.  There is one PolicyBinding document per referenced Policy namespace",
-	"metadata":     "Standard object's metadata.",
-	"lastModified": "LastModified is the last time that any part of the PolicyBinding was created, updated, or deleted",
-	"policyRef":    "PolicyRef is a reference to the Policy that contains all the Roles that this PolicyBinding's RoleBindings may reference",
-	"roleBindings": "RoleBindings holds all the RoleBindings held by this PolicyBinding, mapped by RoleBinding.Name",
-}
-
-func (PolicyBinding) SwaggerDoc() map[string]string {
-	return map_PolicyBinding
-}
-
-var map_PolicyBindingList = map[string]string{
-	"":         "PolicyBindingList is a collection of PolicyBindings",
-	"metadata": "Standard object's metadata.",
-	"items":    "Items is a list of PolicyBindings",
-}
-
-func (PolicyBindingList) SwaggerDoc() map[string]string {
-	return map_PolicyBindingList
-}
-
-var map_PolicyList = map[string]string{
-	"":         "PolicyList is a collection of Policies",
-	"metadata": "Standard object's metadata.",
-	"items":    "Items is a list of Policies",
-}
-
-func (PolicyList) SwaggerDoc() map[string]string {
-	return map_PolicyList
 }
 
 var map_PolicyRule = map[string]string{
