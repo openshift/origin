@@ -407,7 +407,7 @@ func TestAttributeRestrictionsCovering(t *testing.T) {
 			{Verbs: sets.NewString("create"), Resources: sets.NewString("builds"), AttributeRestrictions: &authorizationapi.Role{}},
 			{Verbs: sets.NewString("update"), Resources: sets.NewString("builds"), AttributeRestrictions: &authorizationapi.IsPersonalSubjectAccessReview{}},
 			{Verbs: sets.NewString("delete"), Resources: sets.NewString("builds"), AttributeRestrictions: &authorizationapi.ClusterRole{}},
-			{Verbs: sets.NewString("impersonate"), Resources: sets.NewString("builds"), AttributeRestrictions: &authorizationapi.ClusterPolicyBinding{}},
+			{Verbs: sets.NewString("impersonate"), Resources: sets.NewString("builds"), AttributeRestrictions: &authorizationapi.ClusterRoleBinding{}},
 		},
 
 		expectedCovered:        true,
@@ -421,7 +421,7 @@ func TestAttributeRestrictionsCovering(t *testing.T) {
 			{Verbs: sets.NewString("create"), Resources: sets.NewString("builds"), AttributeRestrictions: &authorizationapi.Role{}},
 			{Verbs: sets.NewString("update"), Resources: sets.NewString("builds"), AttributeRestrictions: &authorizationapi.IsPersonalSubjectAccessReview{}},
 			{Verbs: sets.NewString("delete"), Resources: sets.NewString("builds"), AttributeRestrictions: &authorizationapi.ClusterRole{}},
-			{Verbs: sets.NewString("impersonate"), Resources: sets.NewString("builds"), AttributeRestrictions: &authorizationapi.ClusterPolicyBinding{}},
+			{Verbs: sets.NewString("impersonate"), Resources: sets.NewString("builds"), AttributeRestrictions: &authorizationapi.ClusterRoleBinding{}},
 		},
 
 		expectedCovered:        true,

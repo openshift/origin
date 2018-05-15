@@ -11,7 +11,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
-	"github.com/openshift/origin/pkg/cmd/server/crypto"
+	"github.com/openshift/library-go/pkg/crypto"
 )
 
 const CreateSignerCertCommandName = "create-signer-cert"

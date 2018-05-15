@@ -47,10 +47,6 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(SchemeGroupVersion,
 		&Role{},
 		&RoleBinding{},
-		&Policy{},
-		&PolicyBinding{},
-		&PolicyList{},
-		&PolicyBindingList{},
 		&RoleBindingList{},
 		&RoleList{},
 
@@ -66,10 +62,6 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 
 		&ClusterRole{},
 		&ClusterRoleBinding{},
-		&ClusterPolicy{},
-		&ClusterPolicyBinding{},
-		&ClusterPolicyList{},
-		&ClusterPolicyBindingList{},
 		&ClusterRoleBindingList{},
 		&ClusterRoleList{},
 
@@ -83,10 +75,6 @@ func addLegacyKnownTypes(scheme *runtime.Scheme) error {
 	types := []runtime.Object{
 		&Role{},
 		&RoleBinding{},
-		&Policy{},
-		&PolicyBinding{},
-		&PolicyList{},
-		&PolicyBindingList{},
 		&RoleBindingList{},
 		&RoleList{},
 
@@ -102,10 +90,6 @@ func addLegacyKnownTypes(scheme *runtime.Scheme) error {
 
 		&ClusterRole{},
 		&ClusterRoleBinding{},
-		&ClusterPolicy{},
-		&ClusterPolicyBinding{},
-		&ClusterPolicyList{},
-		&ClusterPolicyBindingList{},
 		&ClusterRoleBindingList{},
 		&ClusterRoleList{},
 

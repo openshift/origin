@@ -2,10 +2,6 @@
 
 package internalversion
 
-type ClusterPolicyExpansion interface{}
-
-type ClusterPolicyBindingExpansion interface{}
-
 type ClusterRoleExpansion interface{}
 
 type ClusterRoleBindingExpansion interface{}
@@ -13,10 +9,6 @@ type ClusterRoleBindingExpansion interface{}
 type LocalResourceAccessReviewExpansion interface{}
 
 type LocalSubjectAccessReviewExpansion interface{}
-
-type PolicyExpansion interface{}
-
-type PolicyBindingExpansion interface{}
 
 type ResourceAccessReviewExpansion interface{}
 
