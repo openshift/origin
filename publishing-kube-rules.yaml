@@ -1,4 +1,9 @@
 skip-godeps: true
+recursive-delete-patterns:
+- BUILD
+- "*/BUILD"
+- BUILD.bazel
+- "*/BUILD.bazel"
 rules:
 # origin-3.10-kubernetes-1.10.2
 - destination: kubernetes-code-generator
