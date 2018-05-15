@@ -12,6 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
@@ -373,10 +374,9 @@ func launchRateLimitedRouter(t *testing.T, routeclient routeinternalclientset.In
 	}
 
 	factory := controllerfactory.NewDefaultRouterControllerFactory(routeclient, projectclient.Project().Projects(), kc)
-	routeLister := routelisters.NewRouteLister(factory.CreateRoutesSharedInformer().GetIndexer())
 
 	var plugin router.Plugin
-	templatePlugin, plugin := initializeRouterPlugins(routeclient, projectclient, routeLister, name, reloadInterval, rateLimitingFunc)
+	templatePlugin, plugin := initializeRouterPlugins(routeclient, projectclient, factory.CreateRoutesSharedInformer(), name, reloadInterval, rateLimitingFunc)
 
 	if maxDelay > 0 {
 		plugin = NewDelayPlugin(plugin, maxDelay)
@@ -388,7 +388,7 @@ func launchRateLimitedRouter(t *testing.T, routeclient routeinternalclientset.In
 	return templatePlugin
 }
 
-func initializeRouterPlugins(routeclient routeinternalclientset.Interface, projectclient projectinternalclientset.Interface, routeLister routelisters.RouteLister, name string, reloadInterval time.Duration, rateLimitingFunc ratelimiter.HandlerFunc) (*templateplugin.TemplatePlugin, router.Plugin) {
+func initializeRouterPlugins(routeclient routeinternalclientset.Interface, projectclient projectinternalclientset.Interface, informer cache.SharedIndexInformer, name string, reloadInterval time.Duration, rateLimitingFunc ratelimiter.HandlerFunc) (*templateplugin.TemplatePlugin, router.Plugin) {
 	r := templateplugin.NewFakeTemplateRouter()
 
 	r.EnableRateLimiter(reloadInterval, func() error {
@@ -396,7 +396,9 @@ func initializeRouterPlugins(routeclient routeinternalclientset.Interface, proje
 		return rateLimitingFunc()
 	})
 
-	tracker := controller.NewSimpleContentionTracker(time.Minute)
+	routeLister := routelisters.NewRouteLister(informer.GetIndexer())
+
+	tracker := controller.NewSimpleContentionTracker(informer, name, time.Minute)
 	go tracker.Run(wait.NeverStop)
 	lease := writerlease.New(time.Minute, 3*time.Second)
 	go lease.Run(wait.NeverStop)
@@ -412,8 +414,7 @@ func initializeRouterPlugins(routeclient routeinternalclientset.Interface, proje
 // api via the provided clients.
 func launchRouter(routeclient routeinternalclientset.Interface, projectclient projectinternalclientset.Interface, kc kclientset.Interface, routerSelection infrarouter.RouterSelection) *templateplugin.TemplatePlugin {
 	factory := routerSelection.NewFactory(routeclient, projectclient.Project().Projects(), kc)
-	routeLister := routelisters.NewRouteLister(factory.CreateRoutesSharedInformer().GetIndexer())
-	templatePlugin, plugin := initializeRouterPlugins(routeclient, projectclient, routeLister, "test-router", 0, func() error {
+	templatePlugin, plugin := initializeRouterPlugins(routeclient, projectclient, factory.CreateRoutesSharedInformer(), "test-router", 0, func() error {
 		return nil
 	})
 	ctrl := factory.Create(plugin, false)

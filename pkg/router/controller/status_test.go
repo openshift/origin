@@ -13,6 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/watch"
 	clientgotesting "k8s.io/client-go/testing"
+	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
@@ -115,7 +116,7 @@ type fakeTracker struct {
 	results   map[string]bool
 }
 
-func (t *fakeTracker) IsContended(id string, now time.Time, ingress *routeapi.RouteIngress) bool {
+func (t *fakeTracker) IsChangeContended(id string, now time.Time, ingress *routeapi.RouteIngress) bool {
 	if t.contended == nil {
 		t.contended = make(map[string]recorded)
 	}
@@ -744,11 +745,7 @@ func makePass(t *testing.T, host string, admitter *StatusAdmitter, srcObj *route
 
 	if expectUpdate {
 		now := nowFn()
-		var nowTime *time.Time
-		if !conflict {
-			nowTime = &now.Time
-		}
-		return checkResult(t, err, c, admitter, inputObj.Spec.Host, now, nowTime, 0, 0)
+		return checkResult(t, err, c, admitter, inputObj.Spec.Host, now, nil, 0, 0)
 	}
 
 	if err != nil {
@@ -763,89 +760,133 @@ func makePass(t *testing.T, host string, admitter *StatusAdmitter, srcObj *route
 	return nil
 }
 
-// This test tries an extended interaction between two "old" and two "new"
-// router replicas.
-func TestProtractedStatusFightBetweenRouters(t *testing.T) {
+func TestRouterContention(t *testing.T) {
 	p := &fakePlugin{}
 	stopCh := make(chan struct{})
 	defer close(stopCh)
-
-	oldHost := "route1.test.local"
-	newHost := "route1.test-new.local"
-	oldHost2 := "route2.test.local"
-	newHost2 := "route2.test-new.local"
-	newHost3 := "route3.test-new.local"
 
 	now := metav1.Now()
 	nowFn = func() metav1.Time { return now }
 
 	initObj := &routeapi.Route{
 		ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")},
-		Spec:       routeapi.RouteSpec{Host: newHost},
+		Spec:       routeapi.RouteSpec{Host: "route1.new.local"},
 		Status:     routeapi.RouteStatus{},
 	}
 
 	// NB: contention period is 1 minute
-	t1, t2, t3, t4 := NewSimpleContentionTracker(time.Minute), NewSimpleContentionTracker(time.Minute), NewSimpleContentionTracker(time.Minute), NewSimpleContentionTracker(time.Minute)
-	lister1, lister2, lister3, lister4 := &routeLister{}, &routeLister{}, &routeLister{}, &routeLister{}
+	i1 := &fakeInformer{}
+	t1 := NewSimpleContentionTracker(i1, "test", time.Minute)
+	lister1 := &routeLister{}
 
-	oldAdmitter1 := NewStatusAdmitter(p, nil, lister1, "test", "", noopLease{}, t1)
-	oldAdmitter2 := NewStatusAdmitter(p, nil, lister2, "test", "", noopLease{}, t2)
-	newAdmitter1 := NewStatusAdmitter(p, nil, lister3, "test", "", noopLease{}, t3)
-	newAdmitter2 := NewStatusAdmitter(p, nil, lister4, "test", "", noopLease{}, t4)
+	r1 := NewStatusAdmitter(p, nil, lister1, "test", "", noopLease{}, t1)
 
-	t.Logf("Setup up the two 'old' routers")
-	currObj := makePass(t, oldHost, oldAdmitter1, initObj, true, false)
-	makePass(t, oldHost, oldAdmitter2, currObj, false, false)
+	// update
+	currObj := makePass(t, "route1.test.local", r1, initObj, true, false)
+	// no-op
+	makePass(t, "route1.test.local", r1, currObj, false, false)
 
-	t.Logf("Phase in the two 'new' routers (with the second getting a conflict)...")
-	now = metav1.Time{Time: now.Add(10 * time.Minute)}
+	// another caller changes the status, we should change it back
+	findIngressForRoute(currObj, "test").Host = "route1.other.local"
+	currObj = makePass(t, "route1.test.local", r1, currObj, true, false)
+
+	// if we observe a single change to our ingress, record it but still update
+	otherObj := currObj.DeepCopy()
+	ingress := findIngressForRoute(otherObj, "test")
+	ingress.Host = "route1.other1.local"
+	t1.Changed(string(otherObj.UID), ingress)
+	if t1.IsChangeContended(string(otherObj.UID), nowFn().Time, ingress) {
+		t.Fatal("change shouldn't be contended yet")
+	}
+	currObj = makePass(t, "route1.test.local", r1, otherObj, true, false)
+
+	// updating the route sets us back to candidate, but if we observe our own write
+	// we stay in candidate
+	ingress = findIngressForRoute(currObj, "test").DeepCopy()
+	t1.Changed(string(currObj.UID), ingress)
+	if t1.IsChangeContended(string(currObj.UID), nowFn().Time, ingress) {
+		t.Fatal("change should not be contended")
+	}
+	makePass(t, "route1.test.local", r1, currObj, false, false)
+
+	// updating the route sets us back to candidate, and if we detect another change to
+	// ingress we will go into conflict, even with our original write
+	ingress = ingressChangeWithNewHost(currObj, "test", "route1.other2.local")
+	t1.Changed(string(currObj.UID), ingress)
+	if !t1.IsChangeContended(string(currObj.UID), nowFn().Time, ingress) {
+		t.Fatal("change should be contended")
+	}
+	makePass(t, "route1.test.local", r1, currObj, false, false)
+
+	// another contending write occurs, but the tracker isn't flushed so
+	// we stay contended
+	ingress = ingressChangeWithNewHost(currObj, "test", "route1.other3.local")
+	t1.Changed(string(currObj.UID), ingress)
+	t1.flush()
+	if !t1.IsChangeContended(string(currObj.UID), nowFn().Time, ingress) {
+		t.Fatal("change should be contended")
+	}
+	makePass(t, "route1.test.local", r1, currObj, false, false)
+
+	// after the interval expires, we no longer contend
+	now = metav1.Time{Time: now.Add(3 * time.Minute)}
 	nowFn = func() metav1.Time { return now }
-	makePass(t, newHost, newAdmitter2, currObj, true, true)
-	currObj = makePass(t, newHost, newAdmitter1, currObj, true, false)
+	t1.flush()
+	findIngressForRoute(currObj, "test").Host = "route1.other.local"
+	currObj = makePass(t, "route1.test.local", r1, currObj, true, false)
 
-	t.Logf("...which should cause 'new' router #2 to receive an update and ignore it...")
-	now = metav1.Time{Time: now.Add(1 * time.Second)}
-	nowFn = func() metav1.Time { return now }
-	makePass(t, newHost, newAdmitter2, currObj, false, false)
+	// multiple changes to host name don't cause contention
+	currObj = makePass(t, "route2.test.local", r1, currObj, true, false)
+	currObj = makePass(t, "route3.test.local", r1, currObj, true, false)
+	t1.Changed(string(currObj.UID), findIngressForRoute(currObj, "test"))
+	currObj = makePass(t, "route4.test.local", r1, currObj, true, false)
+	t1.Changed(string(currObj.UID), findIngressForRoute(currObj, "test"))
+	currObj = makePass(t, "route5.test.local", r1, currObj, true, false)
+	t1.Changed(string(currObj.UID), findIngressForRoute(currObj, "test"))
+	t1.Changed(string(currObj.UID), findIngressForRoute(currObj, "test"))
+	currObj = makePass(t, "route6.test.local", r1, currObj, true, false)
+}
 
-	t.Logf("...and cause the two 'old' routers to react (#2 conflicts)...")
-	makePass(t, oldHost, oldAdmitter2, currObj, true, true)
-	currObj = makePass(t, oldHost, oldAdmitter1, currObj, true, true)
+func ingressChangeWithNewHost(route *routeapi.Route, routerName, newHost string) *routeapi.RouteIngress {
+	ingress := findIngressForRoute(route, routerName).DeepCopy()
+	ingress.Host = newHost
+	return ingress
+}
 
-	t.Logf("...causing 'old' #2 and 'new' #1 and #2 to receive updates...")
-	now = metav1.Time{Time: now.Add(1 * time.Second)}
-	nowFn = func() metav1.Time { return now }
+type fakeInformer struct {
+	handlers []cache.ResourceEventHandler
+}
 
-	t.Logf("...where none of them react (leaving the 'old' status during the rolling update)")
-	makePass(t, newHost, newAdmitter1, currObj, false, false)
-	makePass(t, oldHost, oldAdmitter2, currObj, false, false)
-	makePass(t, newHost, newAdmitter2, currObj, false, false)
+func (i *fakeInformer) Update(old, obj interface{}) {
+	for _, h := range i.handlers {
+		h.OnUpdate(old, obj)
+	}
+}
 
-	t.Logf("If we now send out a route update, 'old' router #1 should update the status...")
-	now = metav1.Time{Time: now.Add(4 * time.Second)}
-	nowFn = func() metav1.Time { return now }
-	currObj = makePass(t, oldHost2, oldAdmitter1, currObj, true, false)
+func (i *fakeInformer) AddEventHandler(handler cache.ResourceEventHandler) {
+	i.handlers = append(i.handlers, handler)
+}
 
-	t.Logf("...and the other routers should ignore the update...")
-	makePass(t, newHost2, newAdmitter1, currObj, false, false)
-	makePass(t, newHost2, newAdmitter2, currObj, false, false)
-	makePass(t, oldHost2, oldAdmitter2, currObj, false, false)
+func (i *fakeInformer) AddEventHandlerWithResyncPeriod(handler cache.ResourceEventHandler, resyncPeriod time.Duration) {
+	panic("not implemented")
+}
 
-	t.Logf("...and should receive an second update due to 'old' router #1, and ignore that as well")
-	now = metav1.Time{Time: now.Add(1 * time.Second)}
-	nowFn = func() metav1.Time { return now }
-	makePass(t, newHost2, newAdmitter2, currObj, false, false)
-	makePass(t, oldHost2, oldAdmitter1, currObj, false, false)
-	makePass(t, oldHost2, oldAdmitter2, currObj, false, false)
+func (i *fakeInformer) GetStore() cache.Store {
+	panic("not implemented")
+}
 
-	t.Logf("If an update occurs after the contention period has elapsed...")
-	now = metav1.Time{Time: now.Add(1 * time.Minute)}
-	nowFn = func() metav1.Time { return now }
+func (i *fakeInformer) GetController() cache.Controller {
+	panic("not implemented")
+}
 
-	t.Logf("both of the 'new' routers should try to update the status, since the cache has expired")
-	makePass(t, newHost3, newAdmitter1, currObj, true, true)
-	currObj = makePass(t, newHost3, newAdmitter2, currObj, true, false)
+func (i *fakeInformer) Run(stopCh <-chan struct{}) {
+	panic("not implemented")
+}
 
-	makePass(t, newHost3, newAdmitter1, currObj, false, false)
+func (i *fakeInformer) HasSynced() bool {
+	panic("not implemented")
+}
+
+func (i *fakeInformer) LastSyncResourceVersion() string {
+	panic("not implemented")
 }
