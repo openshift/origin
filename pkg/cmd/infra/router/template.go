@@ -27,7 +27,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
-	"github.com/openshift/origin/pkg/cmd/server/crypto"
+	"github.com/openshift/library-go/pkg/crypto"
 	"github.com/openshift/origin/pkg/cmd/util"
 	cmdversion "github.com/openshift/origin/pkg/cmd/version"
 	projectinternalclientset "github.com/openshift/origin/pkg/project/generated/internalclientset"

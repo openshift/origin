@@ -19,12 +19,12 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	projectapiv1 "github.com/openshift/api/project/v1"
+	"github.com/openshift/library-go/pkg/crypto"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	"github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset"
 	testutil "github.com/openshift/origin/test/util"

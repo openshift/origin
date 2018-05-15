@@ -1345,7 +1345,7 @@ func TestOldLocalSubjectAccessReviewEndpoint(t *testing.T) {
 
 	// install the legacy types into the client for decoding
 	legacy.InstallLegacy(authorizationapi.GroupName, authorizationapi.AddToSchemeInCoreGroup, authorizationapiv1.AddToSchemeInCoreGroup,
-		sets.NewString("ClusterRole", "ClusterRoleBinding", "ClusterPolicy", "ClusterPolicyBinding", "ResourceAccessReviewResponse", "SubjectAccessReviewResponse"),
+		sets.NewString("ClusterRole", "ClusterRoleBinding", "ResourceAccessReviewResponse", "SubjectAccessReviewResponse"),
 		authorizationclientscheme.Registry, authorizationclientscheme.Scheme,
 	)
 
@@ -1488,7 +1488,7 @@ func TestOldLocalResourceAccessReviewEndpoint(t *testing.T) {
 
 	// install the legacy types into the client for decoding
 	legacy.InstallLegacy(authorizationapi.GroupName, authorizationapi.AddToSchemeInCoreGroup, authorizationapiv1.AddToSchemeInCoreGroup,
-		sets.NewString("ClusterRole", "ClusterRoleBinding", "ClusterPolicy", "ClusterPolicyBinding", "ResourceAccessReviewResponse", "SubjectAccessReviewResponse"),
+		sets.NewString("ClusterRole", "ClusterRoleBinding", "ResourceAccessReviewResponse", "SubjectAccessReviewResponse"),
 		authorizationclientscheme.Registry, authorizationclientscheme.Scheme,
 	)
 

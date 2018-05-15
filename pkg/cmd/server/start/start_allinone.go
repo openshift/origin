@@ -21,9 +21,9 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/master/ports"
 
+	"github.com/openshift/library-go/pkg/crypto"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
-	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	"github.com/openshift/origin/pkg/cmd/server/origin"
 	tsbcmd "github.com/openshift/origin/pkg/templateservicebroker/cmd/server"
 	"k8s.io/apimachinery/pkg/util/wait"

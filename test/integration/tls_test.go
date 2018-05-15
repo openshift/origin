@@ -4,7 +4,7 @@ import (
 	"crypto/tls"
 	"testing"
 
-	"github.com/openshift/origin/pkg/cmd/server/crypto"
+	"github.com/openshift/library-go/pkg/crypto"
 	testserver "github.com/openshift/origin/test/util/server"
 )
 

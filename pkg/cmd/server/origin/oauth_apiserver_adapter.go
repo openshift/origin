@@ -8,7 +8,7 @@ import (
 	utilflag "k8s.io/apiserver/pkg/util/flag"
 
 	routeclient "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1"
-	"github.com/openshift/origin/pkg/cmd/server/crypto"
+	"github.com/openshift/library-go/pkg/crypto"
 	"github.com/openshift/origin/pkg/oauthserver/oauthserver"
 )
 

@@ -7,7 +7,7 @@ import (
 
 	kapiv1 "k8s.io/api/core/v1"
 
-	"github.com/openshift/origin/pkg/cmd/server/crypto"
+	"github.com/openshift/library-go/pkg/crypto"
 )
 
 var (

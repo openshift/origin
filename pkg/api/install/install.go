@@ -416,50 +416,6 @@ func init() {
 				return true, imageconversionv1.Convert_image_ImageStreamMapping_To_v1_ImageStreamMapping(a, b, s)
 			}
 
-		case *authorizationv1.ClusterPolicyBinding:
-			switch b := objB.(type) {
-			case *authorizationapi.ClusterPolicyBinding:
-				return true, authorizationconversionv1.Convert_v1_ClusterPolicyBinding_To_authorization_ClusterPolicyBinding(a, b, s)
-			}
-		case *authorizationapi.ClusterPolicyBinding:
-			switch b := objB.(type) {
-			case *authorizationv1.ClusterPolicyBinding:
-				return true, authorizationconversionv1.Convert_authorization_ClusterPolicyBinding_To_v1_ClusterPolicyBinding(a, b, s)
-			}
-
-		case *authorizationv1.PolicyBinding:
-			switch b := objB.(type) {
-			case *authorizationapi.PolicyBinding:
-				return true, authorizationconversionv1.Convert_v1_PolicyBinding_To_authorization_PolicyBinding(a, b, s)
-			}
-		case *authorizationapi.PolicyBinding:
-			switch b := objB.(type) {
-			case *authorizationv1.PolicyBinding:
-				return true, authorizationconversionv1.Convert_authorization_PolicyBinding_To_v1_PolicyBinding(a, b, s)
-			}
-
-		case *authorizationv1.ClusterPolicy:
-			switch b := objB.(type) {
-			case *authorizationapi.ClusterPolicy:
-				return true, authorizationconversionv1.Convert_v1_ClusterPolicy_To_authorization_ClusterPolicy(a, b, s)
-			}
-		case *authorizationapi.ClusterPolicy:
-			switch b := objB.(type) {
-			case *authorizationv1.ClusterPolicy:
-				return true, authorizationconversionv1.Convert_authorization_ClusterPolicy_To_v1_ClusterPolicy(a, b, s)
-			}
-
-		case *authorizationv1.Policy:
-			switch b := objB.(type) {
-			case *authorizationapi.Policy:
-				return true, authorizationconversionv1.Convert_v1_Policy_To_authorization_Policy(a, b, s)
-			}
-		case *authorizationapi.Policy:
-			switch b := objB.(type) {
-			case *authorizationv1.Policy:
-				return true, authorizationconversionv1.Convert_authorization_Policy_To_v1_Policy(a, b, s)
-			}
-
 		case *authorizationv1.ClusterRole:
 			switch b := objB.(type) {
 			case *authorizationapi.ClusterRole:
