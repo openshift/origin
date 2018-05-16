@@ -132,6 +132,7 @@ type ClusterUpConfig struct {
 	PortForwarding        bool
 	ClusterAdd            *cobra.Command
 	UserEnabledComponents []string
+	KubeOnly              bool
 
 	Out io.Writer
 
@@ -192,6 +193,8 @@ func (c *ClusterUpConfig) Bind(flags *pflag.FlagSet) {
 		"A list of components to enable.  '*' enables all on-by-default components, 'foo' enables the component "+
 		"named 'foo', '-foo' disables the component named 'foo'.\nAll components: %s\nDisabled-by-default components: %s",
 		strings.Join(knownComponents.List(), ", "), strings.Join(componentsDisabledByDefault.List(), ", ")))
+	flags.BoolVar(&c.KubeOnly, "kube-only", c.KubeOnly, "Only install Kubernetes, no OpenShift apiserver or controllers.  Alpha, for development only.  Can result in an unstable cluster.")
+	flags.MarkHidden("kube-only")
 	flags.StringVar(&c.HTTPProxy, "http-proxy", "", "HTTP proxy to use for master and builds")
 	flags.StringVar(&c.HTTPSProxy, "https-proxy", "", "HTTPS proxy to use for master and builds")
 	flags.StringArrayVar(&c.NoProxy, "no-proxy", c.NoProxy, "List of hosts or subnets for which a proxy should not be used")
@@ -492,6 +495,13 @@ func (c *ClusterUpConfig) Start(out io.Writer) error {
 	}
 	if err := c.PostClusterStartupMutations(out); err != nil {
 		return err
+	}
+
+	// if we're only supposed to install kube, only install kube.  Maybe later we'll add back components.
+	if c.KubeOnly {
+		c.printProgress("Server Information")
+		c.serverInfo(out)
+		return nil
 	}
 
 	// Add default redirect URIs to an OAuthClient to enable local web-console development.
