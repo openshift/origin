@@ -25,7 +25,6 @@ import (
 	builderutil "github.com/openshift/origin/pkg/build/builder/util"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/git"
-	"github.com/openshift/origin/pkg/version"
 )
 
 type builder interface {
@@ -70,14 +69,6 @@ func newBuilderConfigFromEnvironment(out io.Writer, needsDocker bool) (*builderC
 			return nil, fmt.Errorf("unable to serialize build: %v", err)
 		}
 		glog.V(4).Infof("redacted build: %v", string(bytes))
-	}
-
-	masterVersion := os.Getenv(builderutil.OriginVersion)
-	thisVersion := version.Get().String()
-	if len(masterVersion) != 0 && masterVersion != thisVersion {
-		glog.V(3).Infof("warning: OpenShift server version %q differs from this image %q\n", masterVersion, thisVersion)
-	} else {
-		glog.V(4).Infof("Master version %q, Builder version %q", masterVersion, thisVersion)
 	}
 
 	// sourceSecretsDir (SOURCE_SECRET_PATH)

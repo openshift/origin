@@ -49,7 +49,6 @@ func (bs *CustomBuildStrategy) CreateBuildPod(build *buildapi.Build) (*v1.Pod, e
 	if build.Spec.Source.Git != nil {
 		addSourceEnvVars(build.Spec.Source, &containerEnv)
 	}
-	addOriginVersionVar(&containerEnv)
 
 	if build.Spec.Output.To != nil {
 		addOutputEnvVars(build.Spec.Output.To, &containerEnv)
