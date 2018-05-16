@@ -8,10 +8,12 @@ import (
 	"time"
 
 	etcdversion "github.com/coreos/etcd/version"
-	"k8s.io/client-go/rest"
+	"github.com/spf13/cobra"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	apimachineryversion "k8s.io/apimachinery/pkg/version"
 	kubeversiontypes "k8s.io/apimachinery/pkg/version"
+	"k8s.io/client-go/rest"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
@@ -21,8 +23,6 @@ import (
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	"github.com/openshift/origin/pkg/oc/util/tokencmd"
 	"github.com/openshift/origin/pkg/version"
-
-	"github.com/spf13/cobra"
 )
 
 var (
@@ -162,7 +162,7 @@ func (o VersionOptions) RunVersion() error {
 		ocVersionBody, err := kClient.Discovery().RESTClient().Get().AbsPath("/version/openshift").Do().Raw()
 		switch {
 		case err == nil:
-			var ocServerInfo version.Info
+			var ocServerInfo apimachineryversion.Info
 			err = json.Unmarshal(ocVersionBody, &ocServerInfo)
 			if err != nil && len(ocVersionBody) > 0 {
 				done <- err

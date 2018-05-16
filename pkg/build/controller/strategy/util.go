@@ -232,9 +232,14 @@ func addSourceEnvVars(source buildapi.BuildSource, output *[]v1.EnvVar) {
 	*output = append(*output, sourceVars...)
 }
 
+// TODO figure out why we provide this information to a pod
 func addOriginVersionVar(output *[]v1.EnvVar) {
-	version := v1.EnvVar{Name: buildapi.OriginVersion, Value: version.Get().String()}
-	*output = append(*output, version)
+	versionEnv := v1.EnvVar{Name: buildapi.OriginVersion, Value: version.Get().String()}
+	// this mirrors old behavior.
+	if len(version.Get().String()) == 0 {
+		versionEnv.Value = "unknown"
+	}
+	*output = append(*output, versionEnv)
 }
 
 // addOutputEnvVars adds env variables that provide information about the output
