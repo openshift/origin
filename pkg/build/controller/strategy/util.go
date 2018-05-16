@@ -18,7 +18,6 @@ import (
 	"github.com/openshift/origin/pkg/api/apihelpers"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	"github.com/openshift/origin/pkg/version"
 )
 
 const (
@@ -230,16 +229,6 @@ func addSourceEnvVars(source buildapi.BuildSource, output *[]v1.EnvVar) {
 		sourceVars = append(sourceVars, v1.EnvVar{Name: "SOURCE_REF", Value: source.Git.Ref})
 	}
 	*output = append(*output, sourceVars...)
-}
-
-// TODO figure out why we provide this information to a pod
-func addOriginVersionVar(output *[]v1.EnvVar) {
-	versionEnv := v1.EnvVar{Name: buildapi.OriginVersion, Value: version.Get().String()}
-	// this mirrors old behavior.
-	if len(version.Get().String()) == 0 {
-		versionEnv.Value = "unknown"
-	}
-	*output = append(*output, versionEnv)
 }
 
 // addOutputEnvVars adds env variables that provide information about the output

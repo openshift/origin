@@ -36,7 +36,6 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*v1.Pod, e
 	}
 
 	addSourceEnvVars(build.Spec.Source, &containerEnv)
-	addOriginVersionVar(&containerEnv)
 
 	if len(strategy.Env) > 0 {
 		buildutil.MergeTrustedEnvWithoutDuplicates(buildutil.CopyApiEnvVarToV1EnvVar(strategy.Env), &containerEnv, true)

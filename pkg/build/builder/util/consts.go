@@ -2,10 +2,6 @@ package util
 
 const (
 
-	// OriginVersion is an environment variable key that indicates the version of origin that
-	// created this build definition.
-	OriginVersion = "ORIGIN_VERSION"
-
 	// AllowedUIDs is an environment variable that contains ranges of UIDs that are allowed in
 	// Source builder images
 	AllowedUIDs = "ALLOWED_UIDS"
