@@ -46,7 +46,7 @@ var _ = g.Describe("[Feature:ImageQuota][registry][Serial] Image resource quota"
 	}
 
 	g.It(fmt.Sprintf("should deny a push of built image exceeding %s quota", imageapi.ResourceImageStreams), func() {
-		oc.SetOutputDir(exutil.TestContext.OutputDir)
+
 		defer tearDown(oc)
 		dClient, err := testutil.NewDockerClient()
 		o.Expect(err).NotTo(o.HaveOccurred())

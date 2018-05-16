@@ -38,7 +38,6 @@ var _ = g.Describe("[Feature:Builds][Slow] can use build secrets", func() {
 		})
 
 		g.Describe("build with secrets", func() {
-			oc.SetOutputDir(exutil.TestContext.OutputDir)
 
 			g.It("should contain secrets during the source strategy build", func() {
 				g.By("creating secret fixtures")

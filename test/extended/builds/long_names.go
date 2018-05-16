@@ -30,7 +30,6 @@ var _ = g.Describe("[Feature:Builds][Slow] extremely long build/bc names are not
 		})
 
 		g.Describe("build with long names", func() {
-			oc.SetOutputDir(exutil.TestContext.OutputDir)
 
 			g.It("delete builds with long names without collateral damage", func() {
 				g.By("creating long_names fixtures")

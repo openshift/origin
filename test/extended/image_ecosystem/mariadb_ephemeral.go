@@ -34,8 +34,6 @@ var _ = g.Describe("[image_ecosystem][mariadb][Slow] openshift mariadb image", f
 			g.It(fmt.Sprintf("should instantiate the template"), func() {
 				exutil.CheckOpenShiftNamespaceImageStreams(oc)
 
-				oc.SetOutputDir(exutil.TestContext.OutputDir)
-
 				g.By(fmt.Sprintf("calling oc process -f %q", templatePath))
 				configFile, err := oc.Run("process").Args("-f", templatePath).OutputToFile("config.json")
 				o.Expect(err).NotTo(o.HaveOccurred())

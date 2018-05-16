@@ -45,7 +45,6 @@ var _ = g.Describe("[image_ecosystem][python][Slow] hot deploy for openshift pyt
 
 		g.Describe("Django example", func() {
 			g.It(fmt.Sprintf("should work with hot deploy"), func() {
-				oc.SetOutputDir(exutil.TestContext.OutputDir)
 
 				err := exutil.WaitForOpenShiftNamespaceImageStreams(oc)
 				o.Expect(err).NotTo(o.HaveOccurred())

@@ -86,7 +86,6 @@ func CreatePostgreSQLReplicationHelpers(c kcoreclient.PodInterface, masterDeploy
 
 func PostgreSQLReplicationTestFactory(oc *exutil.CLI, image string) func() {
 	return func() {
-		oc.SetOutputDir(exutil.TestContext.OutputDir)
 
 		err := testutil.WaitForPolicyUpdate(oc.InternalKubeClient().Authorization(), oc.Namespace(), "create", templateapi.Resource("templates"), true)
 		o.Expect(err).NotTo(o.HaveOccurred())

@@ -19,7 +19,6 @@ var _ = g.Describe("[job][Conformance] openshift can execute jobs", func() {
 	g.Describe("controller", func() {
 		g.It("should create and run a job in user project", func() {
 			for _, ver := range []string{"v1"} {
-				oc.SetOutputDir(exeutil.TestContext.OutputDir)
 				configPath := exeutil.FixturePath("testdata", "jobs", fmt.Sprintf("%s.yaml", ver))
 				name := fmt.Sprintf("simple%s", ver)
 				labels := fmt.Sprintf("app=%s", name)

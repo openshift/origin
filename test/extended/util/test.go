@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"path/filepath"
 	"regexp"
 	"strings"
 	"testing"
@@ -35,7 +34,6 @@ import (
 )
 
 var (
-	reportDir      string
 	reportFileName string
 	syntheticSuite string
 	quiet          bool
@@ -56,9 +54,6 @@ func InitTest() {
 	e2e.RegisterClusterFlags()
 	flag.StringVar(&syntheticSuite, "suite", "", "DEPRECATED: Optional suite selector to filter which tests are run. Use focus.")
 
-	extendedOutputDir := filepath.Join(os.TempDir(), "openshift-extended-tests")
-	os.MkdirAll(extendedOutputDir, 0777)
-
 	TestContext.DeleteNamespace = os.Getenv("DELETE_NAMESPACE") != "false"
 	TestContext.VerifyServiceAccount = true
 	TestContext.RepoRoot = os.Getenv("KUBE_REPO_ROOT")
@@ -78,15 +73,12 @@ func InitTest() {
 	}
 	TestContext.Host = cfg.Host
 
-	reportDir = os.Getenv("TEST_REPORT_DIR")
-
 	reportFileName = os.Getenv("TEST_REPORT_FILE_NAME")
 	if reportFileName == "" {
 		reportFileName = "junit"
 	}
 
 	quiet = os.Getenv("TEST_OUTPUT_QUIET") == "true"
-	flag.StringVar(&TestContext.OutputDir, "extended-tests-output-dir", extendedOutputDir, "Output directory for interesting/useful test data, like performance data, benchmarks, and other metrics.")
 
 	// Ensure that Kube tests run privileged (like they do upstream)
 	TestContext.CreateTestingNS = createTestingNS
@@ -97,11 +89,15 @@ func InitTest() {
 func ExecuteTest(t *testing.T, suite string) {
 	var r []ginkgo.Reporter
 
-	if reportDir != "" {
-		if err := os.MkdirAll(reportDir, 0755); err != nil {
+	if dir := os.Getenv("TEST_REPORT_DIR"); len(dir) > 0 {
+		TestContext.ReportDir = dir
+	}
+
+	if TestContext.ReportDir != "" {
+		if err := os.MkdirAll(TestContext.ReportDir, 0755); err != nil {
 			glog.Errorf("Failed creating report directory: %v", err)
 		}
-		defer e2e.CoreDump(reportDir)
+		defer e2e.CoreDump(TestContext.ReportDir)
 	}
 
 	switch syntheticSuite {
@@ -122,8 +118,8 @@ func ExecuteTest(t *testing.T, suite string) {
 
 	gomega.RegisterFailHandler(ginkgo.Fail)
 
-	if reportDir != "" {
-		r = append(r, reporters.NewJUnitReporter(path.Join(reportDir, fmt.Sprintf("%s_%02d.xml", reportFileName, config.GinkgoConfig.ParallelNode))))
+	if TestContext.ReportDir != "" {
+		r = append(r, reporters.NewJUnitReporter(path.Join(TestContext.ReportDir, fmt.Sprintf("%s_%02d.xml", reportFileName, config.GinkgoConfig.ParallelNode))))
 	}
 
 	ginkgo.WalkTests(func(name string, node types.TestNode) {

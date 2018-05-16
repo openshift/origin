@@ -32,7 +32,6 @@ var _ = g.Describe("[cli][Slow] can use rsync to upload files to pods", func() {
 
 	var podName string
 	g.JustBeforeEach(func() {
-		oc.SetOutputDir(exutil.TestContext.OutputDir)
 
 		g.By(fmt.Sprintf("calling oc new-app -f %q", templatePath))
 		err := oc.Run("new-app").Args("-f", templatePath).Execute()

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 
+	configv1 "github.com/openshift/api/config/v1"
 	webconsoleconfigv1 "github.com/openshift/api/webconsole/v1"
 	webconsolev1alpha1 "github.com/openshift/origin/pkg/cmd/openshift-operators/apis/webconsole/v1alpha1"
 	"github.com/openshift/origin/pkg/cmd/openshift-operators/util/resourcemerge"
@@ -76,13 +77,13 @@ func ensureExtensionsConfiguration(modified *bool, existing *webconsoleconfigv1.
 	resourcemerge.SetMapStringStringIfSet(modified, &existing.Properties, required.Properties)
 }
 
-func ensureHTTPServingInfo(modified *bool, existing *webconsoleconfigv1.HTTPServingInfo, required webconsoleconfigv1.HTTPServingInfo) {
+func ensureHTTPServingInfo(modified *bool, existing *configv1.HTTPServingInfo, required configv1.HTTPServingInfo) {
 	ensureServingInfo(modified, &existing.ServingInfo, required.ServingInfo)
 	resourcemerge.SetInt64(modified, &existing.MaxRequestsInFlight, required.MaxRequestsInFlight)
 	resourcemerge.SetInt64(modified, &existing.RequestTimeoutSeconds, required.RequestTimeoutSeconds)
 }
 
-func ensureServingInfo(modified *bool, existing *webconsoleconfigv1.ServingInfo, required webconsoleconfigv1.ServingInfo) {
+func ensureServingInfo(modified *bool, existing *configv1.ServingInfo, required configv1.ServingInfo) {
 	ensureCertInfo(modified, &existing.CertInfo, required.CertInfo)
 
 	resourcemerge.SetStringIfSet(modified, &existing.BindAddress, required.BindAddress)
@@ -101,14 +102,14 @@ func ensureServingInfo(modified *bool, existing *webconsoleconfigv1.ServingInfo,
 	}
 }
 
-func ensureCertInfo(modified *bool, existing *webconsoleconfigv1.CertInfo, required webconsoleconfigv1.CertInfo) {
+func ensureCertInfo(modified *bool, existing *configv1.CertInfo, required configv1.CertInfo) {
 	// cert info is always overwritten as whole, but only if it is set
 	if len(required.CertFile) == 0 && len(required.KeyFile) == 0 {
 		return
 	}
 
 	if existing == nil {
-		*existing = webconsoleconfigv1.CertInfo{}
+		*existing = configv1.CertInfo{}
 	}
 	if *existing != required {
 		*modified = true

@@ -16,6 +16,7 @@ import (
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	"github.com/openshift/origin/pkg/oc/bootstrap/clusteradd/componentinstall"
+	"github.com/openshift/origin/pkg/oc/bootstrap/clusteradd/components/automation-service-broker"
 	"github.com/openshift/origin/pkg/oc/bootstrap/clusteradd/components/default-imagestreams"
 	"github.com/openshift/origin/pkg/oc/bootstrap/clusteradd/components/registry"
 	"github.com/openshift/origin/pkg/oc/bootstrap/clusteradd/components/router"
@@ -48,6 +49,9 @@ var (
 
 // availableComponents lists the components that are available for installation.
 var availableComponents = map[string]func(ctx componentinstall.Context) componentinstall.Component{
+	"automation-service-broker": func(ctx componentinstall.Context) componentinstall.Component {
+		return &automation_service_broker.AutomationServiceBrokerComponentOptions{InstallContext: ctx}
+	},
 	"centos-imagestreams": func(ctx componentinstall.Context) componentinstall.Component {
 		return &default_imagestreams.CentosImageStreamsComponentOptions{InstallContext: ctx}
 	},

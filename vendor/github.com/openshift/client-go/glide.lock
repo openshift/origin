@@ -1,5 +1,5 @@
 hash: 4fdf7505a3c35be1f1c503f8bc5c0fdfb23ca5ce4f00152d3dde79ca0e441c1b
-updated: 2018-05-11T10:05:35.323633-04:00
+updated: 2018-05-14T16:14:11.89856536-04:00
 imports:
 - name: github.com/davecgh/go-spew
   version: 782f4967f2dc4564575ca782fe2d04090b5faca8
@@ -13,7 +13,7 @@ imports:
   - proto
   - sortkeys
 - name: github.com/golang/glog
-  version: 44145f04b68cf362d9c4df2182967c2275eaefed
+  version: 23def4e6c14b4da8ac2ed8007337bc5eb5007998
 - name: github.com/golang/protobuf
   version: 1643683e1b54a9e88ad26d98f81400c8c9d9f4f9
   subpackages:
@@ -41,7 +41,7 @@ imports:
 - name: github.com/json-iterator/go
   version: 13f86432b882000a51c6e610c620974462691a97
 - name: github.com/openshift/api
-  version: 221b49e66590f67765dfc861cb5e53465738befa
+  version: 54917e0ae540d86047a321158f860f2143c1c81d
   subpackages:
   - apps/v1
   - authorization/v1

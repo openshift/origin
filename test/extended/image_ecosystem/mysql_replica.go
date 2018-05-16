@@ -67,7 +67,7 @@ func CreateMySQLReplicationHelpers(c kcoreclient.PodInterface, masterDeployment,
 
 func replicationTestFactory(oc *exutil.CLI, tc testCase) func() {
 	return func() {
-		oc.SetOutputDir(exutil.TestContext.OutputDir)
+
 
 		err := testutil.WaitForPolicyUpdate(oc.InternalKubeClient().Authorization(), oc.Namespace(), "create", templateapi.Resource("templates"), true)
 		o.Expect(err).NotTo(o.HaveOccurred())

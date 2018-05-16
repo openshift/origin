@@ -8,18 +8,10 @@ import (
 
 // Interface provides access to all the informers in this group version.
 type Interface interface {
-	// ClusterPolicies returns a ClusterPolicyInformer.
-	ClusterPolicies() ClusterPolicyInformer
-	// ClusterPolicyBindings returns a ClusterPolicyBindingInformer.
-	ClusterPolicyBindings() ClusterPolicyBindingInformer
 	// ClusterRoles returns a ClusterRoleInformer.
 	ClusterRoles() ClusterRoleInformer
 	// ClusterRoleBindings returns a ClusterRoleBindingInformer.
 	ClusterRoleBindings() ClusterRoleBindingInformer
-	// Policies returns a PolicyInformer.
-	Policies() PolicyInformer
-	// PolicyBindings returns a PolicyBindingInformer.
-	PolicyBindings() PolicyBindingInformer
 	// Roles returns a RoleInformer.
 	Roles() RoleInformer
 	// RoleBindings returns a RoleBindingInformer.
@@ -39,16 +31,6 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 	return &version{factory: f, namespace: namespace, tweakListOptions: tweakListOptions}
 }
 
-// ClusterPolicies returns a ClusterPolicyInformer.
-func (v *version) ClusterPolicies() ClusterPolicyInformer {
-	return &clusterPolicyInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
-}
-
-// ClusterPolicyBindings returns a ClusterPolicyBindingInformer.
-func (v *version) ClusterPolicyBindings() ClusterPolicyBindingInformer {
-	return &clusterPolicyBindingInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
-}
-
 // ClusterRoles returns a ClusterRoleInformer.
 func (v *version) ClusterRoles() ClusterRoleInformer {
 	return &clusterRoleInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
@@ -57,16 +39,6 @@ func (v *version) ClusterRoles() ClusterRoleInformer {
 // ClusterRoleBindings returns a ClusterRoleBindingInformer.
 func (v *version) ClusterRoleBindings() ClusterRoleBindingInformer {
 	return &clusterRoleBindingInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
-}
-
-// Policies returns a PolicyInformer.
-func (v *version) Policies() PolicyInformer {
-	return &policyInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
-}
-
-// PolicyBindings returns a PolicyBindingInformer.
-func (v *version) PolicyBindings() PolicyBindingInformer {
-	return &policyBindingInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // Roles returns a RoleInformer.
