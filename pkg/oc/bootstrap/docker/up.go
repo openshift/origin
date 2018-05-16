@@ -205,12 +205,14 @@ var (
 		"router",
 		"sample-templates",
 		"persistent-volumes",
+		"automation-service-broker",
 		"service-catalog",
 		"template-service-broker",
 		"web-console",
 	)
 
 	componentsDisabledByDefault = sets.NewString(
+		"automation-service-broker",
 		"service-catalog",
 		"template-service-broker")
 )
