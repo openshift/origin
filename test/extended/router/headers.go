@@ -108,6 +108,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router] router header
 })
 
 func dumpRouterHeadersLogs(oc *exutil.CLI, name string) {
+	exutil.DumpPodLogsStartingWithInNamespace("router", "default", oc.AsAdmin())
 	log, _ := e2e.GetPodLogs(oc.AdminKubeClient(), oc.KubeFramework().Namespace.Name, "router-headers", "router")
 	e2e.Logf("Weighted Router test %s logs:\n %s", name, log)
 }
