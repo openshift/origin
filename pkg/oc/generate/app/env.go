@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/joho/godotenv"
-	utilenv "github.com/openshift/origin/pkg/oc/util/env"
+	"k8s.io/apimachinery/pkg/util/validation"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 )
 
@@ -39,10 +39,9 @@ func ParseEnvironment(vals ...string) (Environment, []string, []error) {
 	duplicates := []string{}
 	env := make(Environment)
 	for _, s := range vals {
-		valid := utilenv.IsValidEnvironmentArgument(s)
 		p := strings.SplitN(s, "=", 2)
-		if !valid || len(p) != 2 {
-			errs = append(errs, fmt.Errorf("invalid parameter assignment in %q", s))
+		if err := validation.IsEnvVarName(p[0]); len(err) != 0 || len(p) != 2 {
+			errs = append(errs, fmt.Errorf("invalid parameter assignment in %q, %v", s, err))
 			continue
 		}
 		key, val := p[0], p[1]
@@ -166,7 +165,7 @@ func LoadEnvironmentFile(filename string, stdin io.Reader) (Environment, error) 
 		return nil, fmt.Errorf("Cannot read variables from file %q: %s", errorFilename, err)
 	}
 	for k, v := range env {
-		if !utilenv.IsValidEnvironmentArgument(fmt.Sprintf("%s=%s", k, v)) {
+		if err := validation.IsEnvVarName(k); len(err) != 0 {
 			return nil, fmt.Errorf("invalid parameter assignment in %s=%s", k, v)
 		}
 	}
