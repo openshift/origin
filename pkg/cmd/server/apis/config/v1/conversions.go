@@ -214,7 +214,7 @@ func SetDefaults_ServingInfo(obj *ServingInfo) {
 }
 func SetDefaults_ImagePolicyConfig(obj *ImagePolicyConfig) {
 	if obj.MaxImagesBulkImportedPerRepository == 0 {
-		obj.MaxImagesBulkImportedPerRepository = 5
+		obj.MaxImagesBulkImportedPerRepository = 50
 	}
 	if obj.MaxScheduledImageImportsPerMinute == 0 {
 		obj.MaxScheduledImageImportsPerMinute = 60

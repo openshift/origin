@@ -286,7 +286,7 @@ func fuzzInternalObject(t *testing.T, forVersion schema.GroupVersion, item runti
 		func(obj *configapi.ImagePolicyConfig, c fuzz.Continue) {
 			c.FuzzNoCustom(obj)
 			if obj.MaxImagesBulkImportedPerRepository == 0 {
-				obj.MaxImagesBulkImportedPerRepository = 5
+				obj.MaxImagesBulkImportedPerRepository = 50
 			}
 			if obj.MaxScheduledImageImportsPerMinute == 0 {
 				obj.MaxScheduledImageImportsPerMinute = 60

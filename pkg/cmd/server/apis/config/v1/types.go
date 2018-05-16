@@ -383,7 +383,7 @@ type JenkinsPipelineConfig struct {
 // ImagePolicyConfig holds the necessary configuration options for limits and behavior for importing images
 type ImagePolicyConfig struct {
 	// MaxImagesBulkImportedPerRepository controls the number of images that are imported when a user
-	// does a bulk import of a Docker repository. This number defaults to 5 to prevent users from
+	// does a bulk import of a Docker repository. This number defaults to 50 to prevent users from
 	// importing large numbers of images accidentally. Set -1 for no limit.
 	MaxImagesBulkImportedPerRepository int `json:"maxImagesBulkImportedPerRepository"`
 	// DisableScheduledImport allows scheduled background import of images to be disabled.
