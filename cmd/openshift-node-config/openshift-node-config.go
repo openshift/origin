@@ -47,6 +47,11 @@ func main() {
 			if err != nil {
 				return fmt.Errorf("unable to read node config: %v", err)
 			}
+
+			if err := node.FinalizeNodeConfig(nodeConfig); err != nil {
+				return err
+			}
+
 			if glog.V(2) {
 				out, _ := yaml.Marshal(nodeConfig)
 				glog.V(2).Infof("Node config:\n%s", out)

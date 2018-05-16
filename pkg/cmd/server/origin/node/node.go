@@ -6,8 +6,10 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/golang/glog"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	nodeoptions "github.com/openshift/origin/pkg/cmd/server/kubernetes/node/options"
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 )
 
 // safeArgRegexp matches only characters that are known safe. DO NOT add to this list
@@ -22,6 +24,21 @@ func shellEscapeArg(s string) string {
 		return s
 	}
 	return strconv.Quote(s)
+}
+
+// FinalizeNodeConfig controls the node configuration before it is used by the Kubelet
+func FinalizeNodeConfig(nodeConfig *configapi.NodeConfig) error {
+	if nodeConfig.DNSIP == "0.0.0.0" {
+		glog.V(4).Infof("Defaulting to the DNSIP config to the node's IP")
+		nodeConfig.DNSIP = nodeConfig.NodeIP
+		// TODO: the Kubelet should do this defaulting (to the IP it recognizes)
+		if len(nodeConfig.DNSIP) == 0 {
+			if ip, err := cmdutil.DefaultLocalIP4(); err == nil {
+				nodeConfig.DNSIP = ip.String()
+			}
+		}
+	}
+	return nil
 }
 
 // WriteKubeletFlags writes the correct set of flags to start a Kubelet from the provided node config to

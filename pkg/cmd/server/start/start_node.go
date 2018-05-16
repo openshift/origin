@@ -237,16 +237,9 @@ func (o NodeOptions) RunNode() error {
 	if addr := o.NodeArgs.ListenArg.ListenAddr; addr.Provided {
 		nodeConfig.ServingInfo.BindAddress = addr.HostPort(o.NodeArgs.ListenArg.ListenAddr.DefaultPort)
 	}
-	// do a local resolution of node config DNS IP, supports bootstrapping cases
-	if nodeConfig.DNSIP == "0.0.0.0" {
-		glog.V(4).Infof("Defaulting to the DNSIP config to the node's IP")
-		nodeConfig.DNSIP = nodeConfig.NodeIP
-		// TODO: the Kubelet should do this defaulting (to the IP it recognizes)
-		if len(nodeConfig.DNSIP) == 0 {
-			if ip, err := cmdutil.DefaultLocalIP4(); err == nil {
-				nodeConfig.DNSIP = ip.String()
-			}
-		}
+
+	if err := originnode.FinalizeNodeConfig(nodeConfig); err != nil {
+		return err
 	}
 
 	var validationResults common.ValidationResults
