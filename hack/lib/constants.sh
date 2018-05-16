@@ -167,7 +167,7 @@ function os::util::list_go_src_files() {
 		-o -wholename './.*' \
 		-o -wholename './pkg/assets/bindata.go' \
 		-o -wholename './pkg/assets/*/bindata.go' \
-		-o -wholename './pkg/oc/bootstrap/bindata.go' \
+		-o -wholename './pkg/oc/clusterup/manifests/bindata.go' \
 		-o -wholename './openshift.local.*' \
 		-o -wholename './test/extended/testdata/bindata.go' \
 		-o -wholename '*/vendor/*' \
