@@ -509,7 +509,7 @@ os::cmd::expect_success 'oc new-app https://github.com/openshift/ruby-hello-worl
 os::cmd::expect_success_and_not_text 'oc new-app https://github.com/openshift/ruby-hello-world --output-version=v1 -o=jsonpath="{.items[?(@.kind==\"BuildConfig\")].spec.source}"' 'dockerfile|binary'
 
 # We permit running new-app against a remote URL which returns a template
-os::cmd::expect_success 'oc new-app https://raw.githubusercontent.com/openshift/origin/master/examples/wordpress/template/wordpress-mysql.json --dry-run'
+os::cmd::expect_success 'oc new-app https://raw.githubusercontent.com/openshift/origin/release-3.9/examples/wordpress/template/wordpress-mysql.json --dry-run'
 
 # ensure that --strategy sets the build strategy
 os::cmd::expect_success_and_text 'oc new-build --name sourcetest python~https://github.com/sclorg/django-ex --source-image centos:latest --source-image-path /tmp --strategy source --dry-run -o yaml' 'sourceStrategy'

@@ -248,7 +248,7 @@ func DumpPodLogsStartingWithInNamespace(prefix, namespace string, oc *CLI) {
 
 func DumpPodLogs(pods []kapiv1.Pod, oc *CLI) {
 	for _, pod := range pods {
-		descOutput, err := oc.AsAdmin().Run("describe").Args("pod/" + pod.Name).Output()
+		descOutput, err := oc.AsAdmin().WithoutNamespace().Run("describe").Args("pod/"+pod.Name, "-n", pod.Namespace).Output()
 		if err == nil {
 			e2e.Logf("Describing pod %q\n%s\n\n", pod.Name, descOutput)
 		} else {
@@ -256,7 +256,7 @@ func DumpPodLogs(pods []kapiv1.Pod, oc *CLI) {
 		}
 
 		dumpContainer := func(container *kapiv1.Container) {
-			depOutput, err := oc.AsAdmin().Run("logs").Args("pod/"+pod.Name, "-c", container.Name).Output()
+			depOutput, err := oc.AsAdmin().WithoutNamespace().Run("logs").Args("pod/"+pod.Name, "-c", container.Name, "-n", pod.Namespace).Output()
 			if err == nil {
 				e2e.Logf("Log for pod %q/%q\n---->\n%s\n<----end of log for %[1]q/%[2]q\n", pod.Name, container.Name, depOutput)
 			} else {
