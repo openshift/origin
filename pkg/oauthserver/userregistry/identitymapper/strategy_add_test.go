@@ -3,8 +3,13 @@ package identitymapper
 import (
 	"testing"
 
+	"k8s.io/apimachinery/pkg/api/equality"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/diff"
+	clienttesting "k8s.io/client-go/testing"
+
+	"github.com/davecgh/go-spew/spew"
 	userapi "github.com/openshift/api/user/v1"
-	"github.com/openshift/origin/pkg/user/registry/test"
 )
 
 func TestStrategyAdd(t *testing.T) {
@@ -14,12 +19,22 @@ func TestStrategyAdd(t *testing.T) {
 			PreferredUsername: "bob",
 			Identity:          makeIdentity("", "idp", "bob", "", ""),
 
-			CreateResponse: makeUser("bobUserUID", "bob", "idp:bob"),
-
-			ExpectedActions: []test.Action{
-				{Name: "GetUser", Object: "bob"},
-				{Name: "CreateUser", Object: makeUser("", "bob", "idp:bob")},
+			ValidateActions: func(t *testing.T, actions []clienttesting.Action) {
+				if len(actions) != 2 {
+					t.Fatal(spew.Sdump(actions))
+				}
+				if !actions[0].Matches("get", "users") || actions[0].(clienttesting.GetAction).GetName() != "bob" {
+					t.Error(spew.Sdump(actions))
+				}
+				if !actions[1].Matches("create", "users") {
+					t.Error(spew.Sdump(actions))
+				}
+				actual := actions[1].(clienttesting.CreateAction).GetObject().(*userapi.User)
+				if expected := makeUser("", "bob", "idp:bob"); !equality.Semantic.DeepEqual(expected, actual) {
+					t.Error(diff.ObjectDiff(expected, actual))
+				}
 			},
+
 			ExpectedUserName:   "bob",
 			ExpectedInitialize: true,
 		},
@@ -28,13 +43,24 @@ func TestStrategyAdd(t *testing.T) {
 			PreferredUsername: "bob",
 			Identity:          makeIdentity("", "idp", "bob", "", ""),
 
-			ExistingUsers:  []*userapi.User{makeUser("bobUserUID", "bob")},
-			UpdateResponse: makeUser("bobUserUID", "bob", "idp:bob"),
+			ExistingUsers: []runtime.Object{makeUser("bobUserUID", "bob")},
 
-			ExpectedActions: []test.Action{
-				{Name: "GetUser", Object: "bob"},
-				{Name: "UpdateUser", Object: makeUser("bobUserUID", "bob", "idp:bob")},
+			ValidateActions: func(t *testing.T, actions []clienttesting.Action) {
+				if len(actions) != 2 {
+					t.Fatal(spew.Sdump(actions))
+				}
+				if !actions[0].Matches("get", "users") || actions[0].(clienttesting.GetAction).GetName() != "bob" {
+					t.Error(spew.Sdump(actions))
+				}
+				if !actions[1].Matches("update", "users") {
+					t.Error(spew.Sdump(actions))
+				}
+				actual := actions[1].(clienttesting.CreateAction).GetObject().(*userapi.User)
+				if expected := makeUser("bobUserUID", "bob", "idp:bob"); !equality.Semantic.DeepEqual(expected, actual) {
+					t.Error(diff.ObjectDiff(expected, actual))
+				}
 			},
+
 			ExpectedUserName:   "bob",
 			ExpectedInitialize: true,
 		},
@@ -43,12 +69,22 @@ func TestStrategyAdd(t *testing.T) {
 			PreferredUsername: "bob",
 			Identity:          makeIdentity("", "idp", "bob", "", ""),
 
-			ExistingUsers:  []*userapi.User{makeUser("bobUserUID", "bob", "otheridp:user")},
-			UpdateResponse: makeUser("bobUserUID", "bob", "otheridp:user", "idp:bob"),
+			ExistingUsers: []runtime.Object{makeUser("bobUserUID", "bob", "otheridp:user")},
 
-			ExpectedActions: []test.Action{
-				{Name: "GetUser", Object: "bob"},
-				{Name: "UpdateUser", Object: makeUser("bobUserUID", "bob", "otheridp:user", "idp:bob")},
+			ValidateActions: func(t *testing.T, actions []clienttesting.Action) {
+				if len(actions) != 2 {
+					t.Fatal(spew.Sdump(actions))
+				}
+				if !actions[0].Matches("get", "users") || actions[0].(clienttesting.GetAction).GetName() != "bob" {
+					t.Error(spew.Sdump(actions))
+				}
+				if !actions[1].Matches("update", "users") {
+					t.Error(spew.Sdump(actions))
+				}
+				actual := actions[1].(clienttesting.CreateAction).GetObject().(*userapi.User)
+				if expected := makeUser("bobUserUID", "bob", "otheridp:user", "idp:bob"); !equality.Semantic.DeepEqual(expected, actual) {
+					t.Error(diff.ObjectDiff(expected, actual))
+				}
 			},
 			ExpectedUserName:   "bob",
 			ExpectedInitialize: false,
