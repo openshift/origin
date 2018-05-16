@@ -385,6 +385,7 @@ func run(s *options.KubeletServer, kubeDeps *kubelet.Dependencies) (err error) {
 		var kubeClient clientset.Interface
 		var eventClient v1core.EventsGetter
 		var heartbeatClient v1core.CoreV1Interface
+		var closeAllConns func()
 		var externalKubeClient clientset.Interface
 
 		clientConfig, err := CreateAPIServerClientConfig(s)
@@ -396,11 +397,12 @@ func run(s *options.KubeletServer, kubeDeps *kubelet.Dependencies) (err error) {
 				if err != nil {
 					return err
 				}
-				// we set exitIfExpired to true because we use this client configuration to request new certs - if we are unable
-				// to request new certs, we will be unable to continue normal operation
-				if err := kubeletcertificate.UpdateTransport(wait.NeverStop, clientConfig, clientCertificateManager, true); err != nil {
-					return err
-				}
+			}
+			// we set exitIfExpired to true because we use this client configuration to request new certs - if we are unable
+			// to request new certs, we will be unable to continue normal operation
+			closeAllConns, err = kubeletcertificate.UpdateTransport(wait.NeverStop, clientConfig, clientCertificateManager, true)
+			if err != nil {
+				return err
 			}
 
 			kubeClient, err = clientset.NewForConfig(clientConfig)
@@ -446,6 +448,7 @@ func run(s *options.KubeletServer, kubeDeps *kubelet.Dependencies) (err error) {
 		kubeDeps.ExternalKubeClient = externalKubeClient
 		if heartbeatClient != nil {
 			kubeDeps.HeartbeatClient = heartbeatClient
+			kubeDeps.OnHeartbeatFailure = closeAllConns
 		}
 		if eventClient != nil {
 			kubeDeps.EventClient = eventClient
