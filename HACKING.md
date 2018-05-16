@@ -776,14 +776,27 @@ not correctly sampled
   * `block` -  will start a block wait time analysis and write `./block.pprof`
   * `web` - start the pprof webserver in process at http://127.0.0.1:6060/debug/pprof
 (you can open this in a browser). This supports `OPENSHIFT_PROFILE_HOST=`
-and `OPENSHIFT_PROFILE_PORT=` to change default ip `127.0.0.1` and default port `6060`.
+and `OPENSHIFT_PROFILE_PORT=` to change default ip `127.0.0.1` and default port `6060`. 
+This works for master components only.
+  * In case of openshift-node, we need to get data from port on which kubelet is running 10250 and (default port). We can
+   get the pprof data using following command:
+   
+ 	`oc get --raw /debug/pprof/profile --server https://node_name:10250 > /tmp/sample.pprof`	
+	
+	  `profile` in the above URL could be replaced with `heap`, `block` or `mutex`.
+    * We can open the file using:
+      
+  	`$ go tool pprof /tmp/sample.pprof`
+    
+   
 
 In order to start the server in CPU profiling mode, run:
 
     $ OPENSHIFT_PROFILE=cpu sudo ./_output/local/bin/linux/amd64/openshift start
 
 Or, if running OpenShift under systemd, append this to
-`/etc/sysconfig/atomic-openshift-{master,node}`
+`/etc/sysconfig/atomic-openshift-master`
+
 
     OPENSHIFT_PROFILE=cpu
 
