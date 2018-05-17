@@ -2,7 +2,9 @@ package common
 
 import (
 	"fmt"
+	"io/ioutil"
 	"net"
+	"os"
 	"os/exec"
 	"strings"
 	"sync"
@@ -10,6 +12,7 @@ import (
 
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/util/sets"
 	kexec "k8s.io/utils/exec"
 )
 
@@ -36,6 +39,9 @@ type DNS struct {
 	lock sync.Mutex
 	// Holds dns name and its corresponding information
 	dnsMap map[string]dnsValue
+
+	// DNS resolvers
+	nameservers []string
 }
 
 func CheckDNSResolver() error {
@@ -45,11 +51,17 @@ func CheckDNSResolver() error {
 	return nil
 }
 
-func NewDNS(execer kexec.Interface) *DNS {
-	return &DNS{
-		execer: execer,
-		dnsMap: map[string]dnsValue{},
+func NewDNS(execer kexec.Interface, resolverConfigFile string) (*DNS, error) {
+	nameservers, err := getDNSResolvers(resolverConfigFile)
+	if err != nil {
+		return nil, err
 	}
+
+	return &DNS{
+		execer:      execer,
+		dnsMap:      map[string]dnsValue{},
+		nameservers: nameservers,
+	}, nil
 }
 
 func (d *DNS) Size() int {
@@ -105,24 +117,59 @@ func (d *DNS) Update() (error, bool) {
 }
 
 func (d *DNS) updateOne(dns string) (error, bool) {
-	// Due to lack of any go bindings for dns resolver that actually provides TTL value, we are relying on 'dig' shell command.
-	// Output Format:
-	// <domain-name>.		<<ttl from nameserver>	IN	CNAME	<domain-name>.
-	// <domain-name>.		<<ttl from nameserver>	IN	A	<IP addr>
-	out, err := d.execer.Command(dig, "+nocmd", "+noall", "+answer", "+ttlid", "a", dns).CombinedOutput()
-	if err != nil || len(out) == 0 {
-		return fmt.Errorf("failed to fetch IP addr and TTL value for domain: %q, err: %v", dns, err), false
-	}
-	outStr := strings.Trim(string(out[:]), "\n")
-
 	res, ok := d.dnsMap[dns]
 	if !ok {
 		// Should not happen, all operations on dnsMap are synchronized by d.lock
 		return fmt.Errorf("DNS value not found in dnsMap for domain: %q", dns), false
 	}
 
-	var minTTL time.Duration
+	nameservers := []string{""}
+	if len(d.nameservers) > 0 {
+		nameservers = d.nameservers
+	}
+
 	var ips []net.IP
+	var minTTL time.Duration
+	for _, ns := range nameservers {
+		var nsips []net.IP
+		var err error
+
+		nsips, minTTL, err = d.getIPsAndMinTTL(dns, ns, minTTL)
+		if err != nil {
+			return err, false
+		}
+		ips = append(ips, nsips...)
+	}
+	ips = removeDuplicateIPs(ips)
+
+	changed := false
+	if !ipsEqual(res.ips, ips) {
+		changed = true
+	}
+	res.ips = ips
+	res.ttl = minTTL
+	res.nextQueryTime = time.Now().Add(res.ttl)
+	d.dnsMap[dns] = res
+	return nil, changed
+}
+
+func (d *DNS) getIPsAndMinTTL(dns, nameserver string, minTTL time.Duration) ([]net.IP, time.Duration, error) {
+	ips := []net.IP{}
+
+	// Due to lack of any go bindings for dns resolver that actually provides TTL value, we are relying on 'dig' shell command.
+	// Output Format:
+	// <domain-name>.		<<ttl from nameserver>	IN	CNAME	<domain-name>.
+	// <domain-name>.		<<ttl from nameserver>	IN	A	<IP addr>
+	server := ""
+	if len(nameserver) != 0 {
+		server = fmt.Sprintf("@%s", nameserver)
+	}
+	out, err := d.execer.Command(dig, "+nocmd", "+noall", "+answer", "+ttlid", "a", dns, server).CombinedOutput()
+	if err != nil || len(out) == 0 {
+		return ips, minTTL, fmt.Errorf("failed to fetch IP addr and TTL value for domain: %q, err: %v", dns, err)
+	}
+	outStr := strings.Trim(string(out[:]), "\n")
+
 	for _, line := range strings.Split(outStr, "\n") {
 		fields := strings.Fields(line)
 		if len(fields) != 5 {
@@ -148,15 +195,7 @@ func (d *DNS) updateOne(dns string) (error, bool) {
 		}
 	}
 
-	changed := false
-	if !ipsEqual(res.ips, ips) {
-		changed = true
-	}
-	res.ips = ips
-	res.ttl = minTTL
-	res.nextQueryTime = time.Now().Add(res.ttl)
-	d.dnsMap[dns] = res
-	return nil, changed
+	return ips, minTTL, nil
 }
 
 func (d *DNS) GetMinQueryTime() (time.Time, bool) {
@@ -193,4 +232,56 @@ func ipsEqual(oldips, newips []net.IP) bool {
 		}
 	}
 	return true
+}
+
+// getDNSResolvers extracts nameservers from the given resolver config file
+func getDNSResolvers(resolverConfigFile string) ([]string, error) {
+	nameservers := []string{}
+	if len(resolverConfigFile) == 0 {
+		return nameservers, nil
+	}
+
+	file, err := os.Open(resolverConfigFile)
+	if err != nil {
+		return nameservers, err
+	}
+	defer file.Close()
+
+	data, err := ioutil.ReadAll(file)
+	if err != nil {
+		return nameservers, err
+	}
+
+	lines := strings.Split(string(data), "\n")
+	for i := range lines {
+		line := strings.TrimSpace(lines[i])
+		if strings.HasPrefix(line, "#") {
+			continue
+		}
+		fields := strings.Fields(line)
+		if len(fields) == 0 {
+			continue
+		}
+		if fields[0] == "nameserver" && len(fields) >= 2 {
+			nameservers = append(nameservers, fields[1])
+		}
+	}
+
+	return nameservers, nil
+}
+
+func removeDuplicateIPs(ips []net.IP) []net.IP {
+	ipSet := sets.NewString()
+	for _, ip := range ips {
+		ipSet.Insert(ip.String())
+	}
+
+	uniqueIPs := []net.IP{}
+	for _, str := range ipSet.List() {
+		ip := net.ParseIP(str)
+		if ip != nil {
+			uniqueIPs = append(uniqueIPs, ip)
+		}
+	}
+	return uniqueIPs
 }
