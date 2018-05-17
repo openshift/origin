@@ -107,7 +107,8 @@ func (d *DNS) Update() (error, bool) {
 func (d *DNS) updateOne(dns string) (error, bool) {
 	// Due to lack of any go bindings for dns resolver that actually provides TTL value, we are relying on 'dig' shell command.
 	// Output Format:
-	// <domain-name>.		<<ttl from authoritative ns>	IN	A	<IP addr>
+	// <domain-name>.		<<ttl from nameserver>	IN	CNAME	<domain-name>.
+	// <domain-name>.		<<ttl from nameserver>	IN	A	<IP addr>
 	out, err := d.execer.Command(dig, "+nocmd", "+noall", "+answer", "+ttlid", "a", dns).CombinedOutput()
 	if err != nil || len(out) == 0 {
 		return fmt.Errorf("failed to fetch IP addr and TTL value for domain: %q, err: %v", dns, err), false
@@ -125,6 +126,10 @@ func (d *DNS) updateOne(dns string) (error, bool) {
 	for _, line := range strings.Split(outStr, "\n") {
 		fields := strings.Fields(line)
 		if len(fields) != 5 {
+			continue
+		}
+		// Ignore other than 'A' records like CNAME, etc.
+		if fields[3] != "A" {
 			continue
 		}
 
