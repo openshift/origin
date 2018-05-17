@@ -54,7 +54,7 @@ os::test::junit::declare_suite_start "extended/ldap-groups/setup"
 os::cmd::try_until_text "oc get imagestream openldap --template='${is_event_template}'" 'latest' "$((60*TIME_SEC))"
 
 # kick off a build and wait for it to finish
-oc start-build openldap --follow
+oc start-build openldap --follow --wait
 
 server_ready_template=(                                  \
 "{{with \$items := .items}}"                             \

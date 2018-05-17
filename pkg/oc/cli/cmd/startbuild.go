@@ -440,7 +440,7 @@ func (o *StartBuildOptions) Run() error {
 		}
 	}
 
-	if o.Follow || o.WaitForComplete {
+	if o.WaitForComplete {
 		return WaitForBuildComplete(o.BuildClient.Builds(o.Namespace), newBuild.Name)
 	}
 
