@@ -783,11 +783,6 @@ func (c *ClusterUpConfig) checkAvailablePorts() error {
 		return errors.NewError(fmt.Sprintf("DNS port %d is not available", openshift.DefaultDNSPort))
 	}
 
-	for _, port := range openshift.RouterPorts {
-		if unavailable.Has(port) {
-			glog.Warningf("Port %d is already in use and may cause routing issues for applications.\n", port)
-		}
-	}
 	return nil
 }
 
