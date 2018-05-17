@@ -4,7 +4,23 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 )
+
+func Chown(pathComponent string, ownerUID, ownerGID int) error {
+	if runtime.GOOS == "windows" {
+		return nil
+	}
+	return os.Chown(pathComponent, ownerUID, ownerGID)
+}
+
+func Lchown(dest string, uid, gid int) error {
+	if runtime.GOOS == "windows" {
+		return nil
+	}
+
+	return os.Lchown(dest, uid, gid)
+}
 
 // CopyFile copies the file at source to dest
 // Copied from vendor/github.com/mrunalp/fileutils/fileutils.go
@@ -46,7 +62,7 @@ func CopyFile(source string, dest string) error {
 	}
 
 	// Chown the file
-	if err := os.Lchown(dest, os.Getuid(), os.Getgid()); err != nil {
+	if err := Lchown(dest, os.Getuid(), os.Getgid()); err != nil {
 		return err
 	}
 
@@ -93,7 +109,7 @@ func CopyDirectory(source string, dest string) error {
 					return err
 				}
 
-				if err := os.Lchown(filepath.Join(dest, relPath), os.Getuid(), os.Getgid()); err != nil {
+				if err := Lchown(filepath.Join(dest, relPath), os.Getuid(), os.Getgid()); err != nil {
 					return err
 				}
 			}
@@ -129,9 +145,15 @@ func MkdirAllNewAs(path string, mode os.FileMode, ownerUID, ownerGID int) error 
 	// walk back to "/" looking for directories which do not exist
 	// and add them to the paths array for chown after creation
 	dirPath := path
+	root := "/"
+
+	if runtime.GOOS == "windows" {
+		root = "C:\\"
+	}
+
 	for {
 		dirPath = filepath.Dir(dirPath)
-		if dirPath == "/" {
+		if dirPath == root {
 			break
 		}
 		if _, err := os.Stat(dirPath); err != nil && os.IsNotExist(err) {
@@ -146,7 +168,7 @@ func MkdirAllNewAs(path string, mode os.FileMode, ownerUID, ownerGID int) error 
 	// even if it existed, we will chown the requested path + any subpaths that
 	// didn't exist when we called MkdirAll
 	for _, pathComponent := range paths {
-		if err := os.Chown(pathComponent, ownerUID, ownerGID); err != nil {
+		if err := Chown(pathComponent, ownerUID, ownerGID); err != nil {
 			return err
 		}
 	}
