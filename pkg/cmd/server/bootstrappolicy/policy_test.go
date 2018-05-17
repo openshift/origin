@@ -35,7 +35,6 @@ func TestCreateBootstrapPolicyFile(t *testing.T) {
 	defer os.Remove(f.Name())
 	cmd := admin.NewCommandCreateBootstrapPolicyFile("", "", nil)
 	cmd.Flag("filename").Value.Set(f.Name())
-	cmd.Flag("openshift-namespace").Value.Set("openshift-custom-ns")
 	cmd.Run(cmd, nil)
 	data, err := ioutil.ReadFile(f.Name())
 	if err != nil {
