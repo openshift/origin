@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -14,18 +15,15 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 	clientgotesting "k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 
 	oauthapiv1 "github.com/openshift/api/oauth/v1"
 	routeapi "github.com/openshift/api/route/v1"
 	routefake "github.com/openshift/client-go/route/clientset/versioned/fake"
-	_ "github.com/openshift/origin/pkg/oauth/apis/oauth/install"
 )
 
 var (
-	encoder                 = legacyscheme.Codecs.LegacyCodec(oauthapiv1.SchemeGroupVersion)
-	decoder                 = legacyscheme.Codecs.UniversalDecoder()
+	encoder                 = codecFactory.LegacyCodec(oauthapiv1.SchemeGroupVersion)
+	decoder                 = codecFactory.UniversalDecoder()
 	serviceAccountsResource = schema.GroupVersionResource{Group: "", Version: "v1", Resource: "serviceaccounts"}
 	secretsResource         = schema.GroupVersionResource{Group: "", Version: "v1", Resource: "secrets"}
 	secretKind              = schema.GroupVersionKind{Group: "", Version: "v1", Kind: "Secret"}
@@ -578,7 +576,7 @@ func TestGetClient(t *testing.T) {
 			routeClient:   tc.routeClient.Route(),
 			delegate:      delegate,
 			grantMethod:   oauthapiv1.GrantHandlerPrompt,
-			decoder:       legacyscheme.Codecs.UniversalDecoder(),
+			decoder:       codecFactory.UniversalDecoder(),
 		}
 		client, err := getter.Get(tc.clientName, metav1.GetOptions{})
 		switch {
@@ -595,7 +593,7 @@ func TestGetClient(t *testing.T) {
 			continue
 		}
 
-		if !kapihelper.Semantic.DeepEqual(tc.expectedClient, client) {
+		if !equality.Semantic.DeepEqual(tc.expectedClient, client) {
 			t.Errorf("%s: expected %#v, got %#v", tc.name, tc.expectedClient, client)
 			continue
 		}
