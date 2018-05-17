@@ -1935,6 +1935,13 @@ items:
     - list
     - watch
   - apiGroups:
+    - authentication.k8s.io
+    attributeRestrictions: null
+    resources:
+    - tokenreviews
+    verbs:
+    - create
+  - apiGroups:
     - authorization.k8s.io
     attributeRestrictions: null
     resources:
