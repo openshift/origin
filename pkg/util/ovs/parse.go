@@ -263,7 +263,6 @@ func ParseFlow(ptype ParseType, flow string, args ...interface{}) (*OvsFlow, err
 			return nil, fmt.Errorf("bad flow %q (cookie must be 'value', not 'value/mask')", flow)
 		}
 
-
 	case ParseForFilter:
 		if err := checkNotAllowedField(flow, parsed, "priority", ptype); err != nil {
 			return nil, err
