@@ -10,12 +10,6 @@ rules:
     source:
       branch: release-3.9
       dir: vendor/k8s.io/kubernetes
-- destination: kubernetes-gengo
-  branches:
-  - name: openshift-3.9
-    source:
-      branch: master
-      dir: vendor/k8s.io/gengo
 - destination: google-certificate-transparency
   branches:
   - name: master
@@ -54,19 +48,19 @@ rules:
       dir: vendor/github.com/containers/image
 - destination: opencontainers-runc
   branches:
-  - name: openshift-3.9
+  - name: openshift-3.10-runc-595bea0
     source:
       branch: master
       dir: vendor/github.com/opencontainers/runc
 - destination: google-cadvisor
   branches:
-  - name: release-v0.28.3
+  - name: openshift-3.10-cadvisor-v0.29.1
     source:
       branch: master
       dir: vendor/github.com/google/cadvisor
 - destination: docker-distribution
   branches:
-  - name: release-2.6.0
+  - name: openshift-3.10-docker-edc3ab2
     source:
       branch: master
       dir: vendor/github.com/docker/distribution
