@@ -15,6 +15,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/kubernetes/pkg/apis/rbac"
+	rbacclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/rbac/internalversion"
 
 	oapi "github.com/openshift/origin/pkg/api"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
@@ -249,10 +251,11 @@ func TestProjectWatch(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	addBob := &policy.RoleModificationOptions{
-		RoleNamespace:       "",
-		RoleName:            bootstrappolicy.EditRoleName,
-		RoleBindingAccessor: policy.NewLocalRoleBindingAccessor("ns-02", authorizationclient.NewForConfigOrDie(joeConfig).Authorization()),
-		Users:               []string{"bob"},
+		RoleBindingNamespace: "ns-02",
+		RoleName:             bootstrappolicy.EditRoleName,
+		RoleKind:             "ClusterRole",
+		RbacClient:           rbacclient.NewForConfigOrDie(joeConfig),
+		Users:                []string{"bob"},
 	}
 	if err := addBob.AddRole(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -516,6 +519,7 @@ func TestInvalidRoleRefs(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	clusterAdminRbacClient := rbacclient.NewForConfigOrDie(clusterAdminClientConfig)
 	clusterAdminAuthorizationClient := authorizationclient.NewForConfigOrDie(clusterAdminClientConfig).Authorization()
 
 	_, bobConfig, err := testutil.GetClientForUser(clusterAdminClientConfig, "bob")
@@ -535,27 +539,32 @@ func TestInvalidRoleRefs(t *testing.T) {
 	}
 
 	roleName := "missing-role"
-	if _, err := clusterAdminAuthorizationClient.ClusterRoles().Create(&authorizationapi.ClusterRole{ObjectMeta: metav1.ObjectMeta{Name: roleName}}); err != nil {
+	if _, err := clusterAdminRbacClient.ClusterRoles().Create(&rbac.ClusterRole{ObjectMeta: metav1.ObjectMeta{Name: roleName}}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	modifyRole := &policy.RoleModificationOptions{RoleName: roleName, Users: []string{"someuser"}}
+	modifyRole := &policy.RoleModificationOptions{
+		RoleName:   roleName,
+		RoleKind:   "ClusterRole",
+		RbacClient: clusterAdminRbacClient,
+		Users:      []string{"someuser"},
+	}
 	// mess up rolebindings in "foo"
-	modifyRole.RoleBindingAccessor = policy.NewLocalRoleBindingAccessor("foo", authorizationclient.NewForConfigOrDie(clusterAdminClientConfig).Authorization())
+	modifyRole.RoleBindingNamespace = "foo"
 	if err := modifyRole.AddRole(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	// mess up rolebindings in "bar"
-	modifyRole.RoleBindingAccessor = policy.NewLocalRoleBindingAccessor("bar", authorizationclient.NewForConfigOrDie(clusterAdminClientConfig).Authorization())
+	modifyRole.RoleBindingNamespace = "bar"
 	if err := modifyRole.AddRole(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	// mess up clusterrolebindings
-	modifyRole.RoleBindingAccessor = policy.NewClusterRoleBindingAccessor(authorizationclient.NewForConfigOrDie(clusterAdminClientConfig).Authorization())
+	modifyRole.RoleBindingNamespace = ""
 	if err := modifyRole.AddRole(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	// Orphan the rolebindings by deleting the role
-	if err := clusterAdminAuthorizationClient.ClusterRoles().Delete(roleName, nil); err != nil {
+	if err := clusterAdminRbacClient.ClusterRoles().Delete(roleName, nil); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 

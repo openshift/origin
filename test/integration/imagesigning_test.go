@@ -10,8 +10,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/diff"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	rbacclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/rbac/internalversion"
 
-	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
@@ -51,7 +51,7 @@ func TestImageAddSignature(t *testing.T) {
 		t.Fatalf("expected forbidden error, not: %v", err)
 	}
 
-	makeUserAnImageSigner(authorizationclient.NewForConfigOrDie(clusterAdminClientConfig), userKubeClient, testUserName)
+	makeUserAnImageSigner(rbacclient.NewForConfigOrDie(clusterAdminClientConfig), userKubeClient, testUserName)
 
 	// try to create the signature again
 	created, err = userClient.Image().ImageSignatures().Create(&signature)
@@ -102,7 +102,7 @@ func TestImageAddSignature(t *testing.T) {
 func TestImageRemoveSignature(t *testing.T) {
 	clusterAdminClientConfig, userKubeClient, _, userClient, image, fn := testSetupImageSignatureTest(t, testUserName)
 	defer fn()
-	makeUserAnImageSigner(authorizationclient.NewForConfigOrDie(clusterAdminClientConfig), userKubeClient, testUserName)
+	makeUserAnImageSigner(rbacclient.NewForConfigOrDie(clusterAdminClientConfig), userKubeClient, testUserName)
 
 	// create some signatures
 	sigData := []struct {
@@ -235,13 +235,13 @@ func testSetupImageSignatureTest(t *testing.T, userName string) (clusterAdminCli
 	}
 }
 
-func makeUserAnImageSigner(authorizationClient authorizationclient.Interface, userClient kclientset.Interface, userName string) error {
+func makeUserAnImageSigner(rbacClient *rbacclient.RbacClient, userClient kclientset.Interface, userName string) error {
 	// give bob permissions to update image signatures
 	addImageSignerRole := &policy.RoleModificationOptions{
-		RoleNamespace:       "",
-		RoleName:            bootstrappolicy.ImageSignerRoleName,
-		RoleBindingAccessor: policy.NewClusterRoleBindingAccessor(authorizationClient.Authorization()),
-		Users:               []string{userName},
+		RoleName:   bootstrappolicy.ImageSignerRoleName,
+		RoleKind:   "ClusterRole",
+		RbacClient: rbacClient,
+		Users:      []string{userName},
 	}
 	if err := addImageSignerRole.AddRole(); err != nil {
 		return err

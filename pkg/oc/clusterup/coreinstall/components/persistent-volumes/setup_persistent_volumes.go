@@ -18,8 +18,8 @@ import (
 	kbatch "k8s.io/kubernetes/pkg/apis/batch"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kubernetes "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	rbacclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/rbac/internalversion"
 
-	authorizationtypedclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset/typed/authorization/internalversion"
 	"github.com/openshift/origin/pkg/oc/clusteradd/componentinstall"
 	"github.com/openshift/origin/pkg/oc/clusterup/docker/dockerhelper"
 	securityclient "github.com/openshift/origin/pkg/security/generated/internalclientset"
@@ -107,11 +107,11 @@ func (c *SetupPersistentVolumesOptions) Install(dockerClient dockerhelper.Interf
 	if err != nil {
 		return err
 	}
-	authorizationClient, err := authorizationtypedclient.NewForConfig(c.InstallContext.ClusterAdminClientConfig())
+	rbacClient, err := rbacclient.NewForConfig(c.InstallContext.ClusterAdminClientConfig())
 	if err != nil {
 		return err
 	}
-	if err := ensurePVInstallerSA(authorizationClient, kclient, securityClient); err != nil {
+	if err := ensurePVInstallerSA(rbacClient, kclient, securityClient); err != nil {
 		return err
 	}
 
@@ -138,7 +138,7 @@ func (c *SetupPersistentVolumesOptions) Install(dockerClient dockerhelper.Interf
 	return nil
 }
 
-func ensurePVInstallerSA(authorizationClient authorizationtypedclient.ClusterRoleBindingsGetter, kclient kubernetes.Interface, securityClient securityclient.Interface) error {
+func ensurePVInstallerSA(rbacClient *rbacclient.RbacClient, kclient kubernetes.Interface, securityClient securityclient.Interface) error {
 	sa, err := kclient.Core().ServiceAccounts(pvTargetNamespace).Get(pvInstallerSA, metav1.GetOptions{})
 	if err != nil {
 		if !kerrors.IsNotFound(err) {
@@ -165,7 +165,7 @@ func ensurePVInstallerSA(authorizationClient authorizationtypedclient.ClusterRol
 
 		saUser := serviceaccount.MakeUsername(pvTargetNamespace, pvInstallerSA)
 		err = retry.RetryOnConflict(retry.DefaultBackoff, func() error {
-			return addClusterRole(authorizationClient, "cluster-admin", saUser)
+			return addClusterRole(rbacClient, "cluster-admin", saUser)
 		})
 
 		// TODO: we do need to figure out why this is sometimes giving a 404. on GET https://127.0.0.1:8443/apis/authorization.openshift.io/v1/clusterrolebindings
@@ -220,12 +220,12 @@ func persistentStorageSetupJob(name, dir, image string, pvCount int) *kbatch.Job
 	return job
 }
 
-func addClusterRole(authorizationClient authorizationtypedclient.ClusterRoleBindingsGetter, role, user string) error {
-	clusterRoleBindingAccessor := policy.NewClusterRoleBindingAccessor(authorizationClient)
+func addClusterRole(rbacClient *rbacclient.RbacClient, role, user string) error {
 	addClusterReaderRole := policy.RoleModificationOptions{
-		RoleName:            role,
-		RoleBindingAccessor: clusterRoleBindingAccessor,
-		Users:               []string{user},
+		RoleName:   role,
+		RoleKind:   "ClusterRole",
+		RbacClient: rbacClient,
+		Users:      []string{user},
 	}
 	return addClusterReaderRole.AddRole()
 }

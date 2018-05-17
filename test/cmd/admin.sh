@@ -457,7 +457,7 @@ os::cmd::expect_success "oc new-project '${otherproject}'"
 os::cmd::expect_success "oc create -f test/extended/testdata/roles/empty-role.yaml -n '${project}'"
 os::cmd::expect_success 'oc adm policy add-role-to-user admin local-admin  -n '${otherproject}''
 os::cmd::expect_success 'oc login -u local-admin -p pw'
-os::cmd::expect_failure_and_text 'oc policy add-role-to-user empty-role other --role-namespace='${project}' -n '${otherproject}'' "invalid origin role binding empty-role: attempts to reference role in namespace \"${project}\" instead of current namespace \"${otherproject}\""
+os::cmd::expect_failure_and_text 'oc policy add-role-to-user empty-role other --role-namespace='${project}' -n '${otherproject}'' "role binding in namespace \"${otherproject}\" can't reference role in different namespace \"${project}\""
 os::cmd::expect_success 'oc login -u system:admin'
 os::cmd::expect_success "oc delete role/empty-role -n '${project}'"
 echo "rolebinding-local-only: ok"

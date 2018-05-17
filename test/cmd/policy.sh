@@ -129,7 +129,7 @@ $testpod
 __EOF__' 'allowedServiceAccounts: null'
 
 os::cmd::expect_success_and_text 'oc adm policy add-role-to-group view testgroup -o yaml' 'name: view'
-os::cmd::expect_success_and_text 'oc adm policy add-cluster-role-to-group cluster-reader testgroup -o yaml' '\- testgroup'
+os::cmd::expect_success_and_text 'oc adm policy add-cluster-role-to-group cluster-reader testgroup -o yaml' 'name: testgroup'
 os::cmd::expect_success_and_text 'oc adm policy add-cluster-role-to-user cluster-reader namespaced-user -o yaml' 'name: namespaced\-user'
 
 os::cmd::expect_success_and_text 'oc adm policy add-role-to-group view testgroup --dry-run' 'role "view" added: "testgroup" \(dry run\)'

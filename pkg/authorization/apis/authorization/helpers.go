@@ -47,18 +47,6 @@ func (r PolicyRule) CompactString() string {
 	return fmt.Sprintf(formatString, formatArgs...)
 }
 
-type RoleBindingSorter []RoleBinding
-
-func (s RoleBindingSorter) Len() int {
-	return len(s)
-}
-func (s RoleBindingSorter) Less(i, j int) bool {
-	return s[i].Name < s[j].Name
-}
-func (s RoleBindingSorter) Swap(i, j int) {
-	s[i], s[j] = s[j], s[i]
-}
-
 func BuildSubjects(users, groups []string) []kapi.ObjectReference {
 	subjects := []kapi.ObjectReference{}
 

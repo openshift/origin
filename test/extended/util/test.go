@@ -23,9 +23,9 @@ import (
 	kclientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/retry"
+	rbacclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/rbac/internalversion"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
-	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/oc/admin/policy"
 	securityclient "github.com/openshift/origin/pkg/security/generated/internalclientset"
@@ -230,11 +230,11 @@ func createTestingNS(baseName string, c kclientset.Interface, labels map[string]
 
 		// The intra-pod test requires that the service account have
 		// permission to retrieve service endpoints.
-		authorizationClient, err := authorizationclient.NewForConfig(clientConfig)
+		rbacClient, err := rbacclient.NewForConfig(clientConfig)
 		if err != nil {
 			return ns, err
 		}
-		addRoleToE2EServiceAccounts(authorizationClient, []kapiv1.Namespace{*ns}, bootstrappolicy.ViewRoleName)
+		addRoleToE2EServiceAccounts(rbacClient, []kapiv1.Namespace{*ns}, bootstrappolicy.ViewRoleName)
 
 		// in practice too many kube tests ignore scheduling constraints
 		allowAllNodeScheduling(c, ns.Name)
@@ -434,16 +434,17 @@ func addE2EServiceAccountsToSCC(securityClient securityclient.Interface, namespa
 	}
 }
 
-func addRoleToE2EServiceAccounts(c authorizationclient.Interface, namespaces []kapiv1.Namespace, roleName string) {
+func addRoleToE2EServiceAccounts(rbacClient *rbacclient.RbacClient, namespaces []kapiv1.Namespace, roleName string) {
 	err := retry.RetryOnConflict(longRetry, func() error {
 		for _, ns := range namespaces {
 			if strings.HasPrefix(ns.Name, "e2e-") && ns.Status.Phase != kapiv1.NamespaceTerminating {
 				sa := fmt.Sprintf("system:serviceaccount:%s:default", ns.Name)
 				addRole := &policy.RoleModificationOptions{
-					RoleNamespace:       "",
-					RoleName:            roleName,
-					RoleBindingAccessor: policy.NewLocalRoleBindingAccessor(ns.Name, c.Authorization()),
-					Users:               []string{sa},
+					RoleBindingNamespace: ns.Name,
+					RoleKind:             "ClusterRole",
+					RoleName:             roleName,
+					RbacClient:           rbacClient,
+					Users:                []string{sa},
 				}
 				if err := addRole.AddRole(); err != nil {
 					e2e.Logf("Warning: Failed to add role to e2e service account: %v", err)

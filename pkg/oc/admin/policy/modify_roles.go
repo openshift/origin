@@ -12,12 +12,12 @@ import (
 	"k8s.io/apimachinery/pkg/api/validation"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/kubernetes/pkg/apis/rbac"
+	rbacclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/rbac/internalversion"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	authorizationclientinternal "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
+	authorizationutil "github.com/openshift/origin/pkg/authorization/util"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
@@ -43,15 +43,16 @@ var (
 )
 
 type RoleModificationOptions struct {
-	RoleNamespace       string
-	RoleName            string
-	RoleBindingName     string
-	RoleBindingAccessor RoleBindingAccessor
+	RoleName             string
+	RoleKind             string
+	RoleBindingName      string
+	RoleBindingNamespace string
+	RbacClient           rbacclient.RbacInterface
 
 	Targets  []string
 	Users    []string
 	Groups   []string
-	Subjects []kapi.ObjectReference
+	Subjects []rbac.Subject
 
 	DryRun bool
 	Output string
@@ -62,14 +63,19 @@ type RoleModificationOptions struct {
 // NewCmdAddRoleToGroup implements the OpenShift cli add-role-to-group command
 func NewCmdAddRoleToGroup(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	options := &RoleModificationOptions{}
+	roleNamespace := ""
 
 	cmd := &cobra.Command{
 		Use:   name + " ROLE GROUP [GROUP ...]",
 		Short: "Add a role to groups for the current project",
 		Long:  `Add a role to groups for the current project`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := options.Complete(f, cmd, args, &options.Groups, "group", true, out); err != nil {
+			if err := options.Complete(f, cmd, args, &options.Groups, "group", out); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
+			}
+
+			if err := options.checkRoleBindingNamespace(f, roleNamespace); err != nil {
+				kcmdutil.CheckErr(err)
 			}
 
 			if err := options.AddRole(); err != nil {
@@ -84,7 +90,7 @@ func NewCmdAddRoleToGroup(name, fullName string, f *clientcmd.Factory, out io.Wr
 	}
 
 	cmd.Flags().StringVar(&options.RoleBindingName, "rolebinding-name", "", "Name of the rolebinding to modify or create. If left empty creates a new rolebinding with a default name")
-	cmd.Flags().StringVar(&options.RoleNamespace, "role-namespace", "", "namespace where the role is located: empty means a role defined in cluster policy")
+	cmd.Flags().StringVar(&roleNamespace, "role-namespace", "", "namespace where the role is located: empty means a role defined in cluster policy")
 
 	kcmdutil.AddDryRunFlag(cmd)
 	kcmdutil.AddPrinterFlags(cmd)
@@ -95,6 +101,7 @@ func NewCmdAddRoleToGroup(name, fullName string, f *clientcmd.Factory, out io.Wr
 func NewCmdAddRoleToUser(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	options := &RoleModificationOptions{}
 	saNames := []string{}
+	roleNamespace := ""
 
 	cmd := &cobra.Command{
 		Use:     name + " ROLE (USER | -z SERVICEACCOUNT) [USER ...]",
@@ -102,8 +109,12 @@ func NewCmdAddRoleToUser(name, fullName string, f *clientcmd.Factory, out io.Wri
 		Long:    `Add a role to users or serviceaccounts for the current project`,
 		Example: fmt.Sprintf(addRoleToUserExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := options.CompleteUserWithSA(f, cmd, args, saNames, true, out); err != nil {
+			if err := options.CompleteUserWithSA(f, cmd, args, saNames, out); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
+			}
+
+			if err := options.checkRoleBindingNamespace(f, roleNamespace); err != nil {
+				kcmdutil.CheckErr(err)
 			}
 
 			if err := options.AddRole(); err != nil {
@@ -117,7 +128,7 @@ func NewCmdAddRoleToUser(name, fullName string, f *clientcmd.Factory, out io.Wri
 	}
 
 	cmd.Flags().StringVar(&options.RoleBindingName, "rolebinding-name", "", "Name of the rolebinding to modify or create. If left empty creates a new rolebinding with a default name")
-	cmd.Flags().StringVar(&options.RoleNamespace, "role-namespace", "", "namespace where the role is located: empty means a role defined in cluster policy")
+	cmd.Flags().StringVar(&roleNamespace, "role-namespace", "", "namespace where the role is located: empty means a role defined in cluster policy")
 	cmd.Flags().StringSliceVarP(&saNames, "serviceaccount", "z", saNames, "service account in the current namespace to use as a user")
 
 	kcmdutil.AddDryRunFlag(cmd)
@@ -128,14 +139,19 @@ func NewCmdAddRoleToUser(name, fullName string, f *clientcmd.Factory, out io.Wri
 // NewCmdRemoveRoleFromGroup implements the OpenShift cli remove-role-from-group command
 func NewCmdRemoveRoleFromGroup(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	options := &RoleModificationOptions{}
+	roleNamespace := ""
 
 	cmd := &cobra.Command{
 		Use:   name + " ROLE GROUP [GROUP ...]",
 		Short: "Remove a role from groups for the current project",
 		Long:  `Remove a role from groups for the current project`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := options.Complete(f, cmd, args, &options.Groups, "group", true, out); err != nil {
+			if err := options.Complete(f, cmd, args, &options.Groups, "group", out); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
+			}
+
+			if err := options.checkRoleBindingNamespace(f, roleNamespace); err != nil {
+				kcmdutil.CheckErr(err)
 			}
 
 			if err := options.RemoveRole(); err != nil {
@@ -149,7 +165,7 @@ func NewCmdRemoveRoleFromGroup(name, fullName string, f *clientcmd.Factory, out 
 	}
 
 	cmd.Flags().StringVar(&options.RoleBindingName, "rolebinding-name", "", "Name of the rolebinding to modify. If left empty it will operate on all rolebindings")
-	cmd.Flags().StringVar(&options.RoleNamespace, "role-namespace", "", "namespace where the role is located: empty means a role defined in cluster policy")
+	cmd.Flags().StringVar(&roleNamespace, "role-namespace", "", "namespace where the role is located: empty means a role defined in cluster policy")
 
 	kcmdutil.AddDryRunFlag(cmd)
 	kcmdutil.AddPrinterFlags(cmd)
@@ -160,14 +176,19 @@ func NewCmdRemoveRoleFromGroup(name, fullName string, f *clientcmd.Factory, out 
 func NewCmdRemoveRoleFromUser(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	options := &RoleModificationOptions{}
 	saNames := []string{}
+	roleNamespace := ""
 
 	cmd := &cobra.Command{
 		Use:   name + " ROLE USER [USER ...]",
 		Short: "Remove a role from users for the current project",
 		Long:  `Remove a role from users for the current project`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := options.CompleteUserWithSA(f, cmd, args, saNames, true, out); err != nil {
+			if err := options.CompleteUserWithSA(f, cmd, args, saNames, out); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
+			}
+
+			if err := options.checkRoleBindingNamespace(f, roleNamespace); err != nil {
+				kcmdutil.CheckErr(err)
 			}
 
 			if err := options.RemoveRole(); err != nil {
@@ -181,7 +202,7 @@ func NewCmdRemoveRoleFromUser(name, fullName string, f *clientcmd.Factory, out i
 	}
 
 	cmd.Flags().StringVar(&options.RoleBindingName, "rolebinding-name", "", "Name of the rolebinding to modify. If left empty it will operate on all rolebindings")
-	cmd.Flags().StringVar(&options.RoleNamespace, "role-namespace", "", "namespace where the role is located: empty means a role defined in cluster policy")
+	cmd.Flags().StringVar(&roleNamespace, "role-namespace", "", "namespace where the role is located: empty means a role defined in cluster policy")
 	cmd.Flags().StringSliceVarP(&saNames, "serviceaccount", "z", saNames, "service account in the current namespace to use as a user")
 
 	kcmdutil.AddDryRunFlag(cmd)
@@ -191,14 +212,14 @@ func NewCmdRemoveRoleFromUser(name, fullName string, f *clientcmd.Factory, out i
 
 // NewCmdAddClusterRoleToGroup implements the OpenShift cli add-cluster-role-to-group command
 func NewCmdAddClusterRoleToGroup(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	options := &RoleModificationOptions{}
+	options := &RoleModificationOptions{RoleKind: "ClusterRole"}
 
 	cmd := &cobra.Command{
 		Use:   name + " <role> <group> [group]...",
 		Short: "Add a role to groups for all projects in the cluster",
 		Long:  `Add a role to groups for all projects in the cluster`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := options.Complete(f, cmd, args, &options.Groups, "group", false, out); err != nil {
+			if err := options.Complete(f, cmd, args, &options.Groups, "group", out); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
 			}
 
@@ -221,14 +242,14 @@ func NewCmdAddClusterRoleToGroup(name, fullName string, f *clientcmd.Factory, ou
 // NewCmdAddClusterRoleToUser implements the OpenShift cli add-cluster-role-to-user command
 func NewCmdAddClusterRoleToUser(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	saNames := []string{}
-	options := &RoleModificationOptions{}
+	options := &RoleModificationOptions{RoleKind: "ClusterRole"}
 
 	cmd := &cobra.Command{
 		Use:   name + " <role> <user | -z serviceaccount> [user]...",
 		Short: "Add a role to users for all projects in the cluster",
 		Long:  `Add a role to users for all projects in the cluster`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := options.CompleteUserWithSA(f, cmd, args, saNames, false, out); err != nil {
+			if err := options.CompleteUserWithSA(f, cmd, args, saNames, out); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
 			}
 
@@ -252,14 +273,14 @@ func NewCmdAddClusterRoleToUser(name, fullName string, f *clientcmd.Factory, out
 
 // NewCmdRemoveClusterRoleFromGroup implements the OpenShift cli remove-cluster-role-from-group command
 func NewCmdRemoveClusterRoleFromGroup(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	options := &RoleModificationOptions{}
+	options := &RoleModificationOptions{RoleKind: "ClusterRole"}
 
 	cmd := &cobra.Command{
 		Use:   name + " <role> <group> [group]...",
 		Short: "Remove a role from groups for all projects in the cluster",
 		Long:  `Remove a role from groups for all projects in the cluster`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := options.Complete(f, cmd, args, &options.Groups, "group", false, out); err != nil {
+			if err := options.Complete(f, cmd, args, &options.Groups, "group", out); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
 			}
 
@@ -283,14 +304,14 @@ func NewCmdRemoveClusterRoleFromGroup(name, fullName string, f *clientcmd.Factor
 // NewCmdRemoveClusterRoleFromUser implements the OpenShift cli remove-cluster-role-from-user command
 func NewCmdRemoveClusterRoleFromUser(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	saNames := []string{}
-	options := &RoleModificationOptions{}
+	options := &RoleModificationOptions{RoleKind: "ClusterRole"}
 
 	cmd := &cobra.Command{
 		Use:   name + " <role> <user> [user]...",
 		Short: "Remove a role from users for all projects in the cluster",
 		Long:  `Remove a role from users for all projects in the cluster`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := options.CompleteUserWithSA(f, cmd, args, saNames, false, out); err != nil {
+			if err := options.CompleteUserWithSA(f, cmd, args, saNames, out); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
 			}
 
@@ -312,7 +333,44 @@ func NewCmdRemoveClusterRoleFromUser(name, fullName string, f *clientcmd.Factory
 	return cmd
 }
 
-func (o *RoleModificationOptions) CompleteUserWithSA(f *clientcmd.Factory, cmd *cobra.Command, args []string, saNames []string, isNamespaced bool, out io.Writer) error {
+func (o *RoleModificationOptions) checkRoleBindingNamespace(f *clientcmd.Factory, roleNamespace string) error {
+	var err error
+	o.RoleBindingNamespace, _, err = f.DefaultNamespace()
+	if err != nil {
+		return err
+	}
+	if len(roleNamespace) > 0 {
+		if o.RoleBindingNamespace != roleNamespace {
+			return fmt.Errorf("role binding in namespace %q can't reference role in different namespace %q",
+				o.RoleBindingNamespace, roleNamespace)
+		}
+		o.RoleKind = "Role"
+	} else {
+		o.RoleKind = "ClusterRole"
+	}
+	return nil
+}
+
+func (o *RoleModificationOptions) innerComplete(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer) error {
+	clientConfig, err := f.ClientConfig()
+	if err != nil {
+		return err
+	}
+	o.RbacClient, err = rbacclient.NewForConfig(clientConfig)
+	if err != nil {
+		return err
+	}
+
+	o.DryRun = kcmdutil.GetFlagBool(cmd, "dry-run")
+	o.Output = kcmdutil.GetFlagString(cmd, "output")
+	o.PrintObj = func(obj runtime.Object) error {
+		return kcmdutil.PrintObject(cmd, obj, out)
+	}
+
+	return nil
+}
+
+func (o *RoleModificationOptions) CompleteUserWithSA(f *clientcmd.Factory, cmd *cobra.Command, args []string, saNames []string, out io.Writer) error {
 	if len(args) < 1 {
 		return errors.New("you must specify a role")
 	}
@@ -341,41 +399,25 @@ func (o *RoleModificationOptions) CompleteUserWithSA(f *clientcmd.Factory, cmd *
 		}
 	}
 
-	clientConfig, err := f.ClientConfig()
-	if err != nil {
-		return err
-	}
-	authorizationClient, err := authorizationclientinternal.NewForConfig(clientConfig)
+	err := o.innerComplete(f, cmd, out)
 	if err != nil {
 		return err
 	}
 
-	o.DryRun = kcmdutil.GetFlagBool(cmd, "dry-run")
-	o.Output = kcmdutil.GetFlagString(cmd, "output")
-	o.PrintObj = func(obj runtime.Object) error {
-		return kcmdutil.PrintObject(cmd, obj, out)
-	}
-
-	roleBindingNamespace, _, err := f.DefaultNamespace()
+	defaultNamespace, _, err := f.DefaultNamespace()
 	if err != nil {
 		return err
-	}
-
-	if isNamespaced {
-		o.RoleBindingAccessor = NewLocalRoleBindingAccessor(roleBindingNamespace, authorizationClient.Authorization())
-	} else {
-		o.RoleBindingAccessor = NewClusterRoleBindingAccessor(authorizationClient.Authorization())
 	}
 
 	for _, sa := range saNames {
 		o.Targets = append(o.Targets, sa)
-		o.Subjects = append(o.Subjects, kapi.ObjectReference{Namespace: roleBindingNamespace, Name: sa, Kind: "ServiceAccount"})
+		o.Subjects = append(o.Subjects, rbac.Subject{Namespace: defaultNamespace, Name: sa, Kind: rbac.ServiceAccountKind})
 	}
 
 	return nil
 }
 
-func (o *RoleModificationOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string, target *[]string, targetName string, isNamespaced bool, out io.Writer) error {
+func (o *RoleModificationOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string, target *[]string, targetName string, out io.Writer) error {
 	if len(args) < 2 {
 		return fmt.Errorf("you must specify at least two arguments: <role> <%s> [%s]...", targetName, targetName)
 	}
@@ -385,109 +427,63 @@ func (o *RoleModificationOptions) Complete(f *clientcmd.Factory, cmd *cobra.Comm
 
 	o.Targets = *target
 
-	clientConfig, err := f.ClientConfig()
-	if err != nil {
-		return err
-	}
-	authorizationClient, err := authorizationclientinternal.NewForConfig(clientConfig)
-	if err != nil {
-		return err
-	}
-
-	o.DryRun = kcmdutil.GetFlagBool(cmd, "dry-run")
-	o.Output = kcmdutil.GetFlagString(cmd, "output")
-	o.PrintObj = func(obj runtime.Object) error {
-		return kcmdutil.PrintObject(cmd, obj, out)
-	}
-
-	if isNamespaced {
-		roleBindingNamespace, _, err := f.DefaultNamespace()
-		if err != nil {
-			return err
-		}
-		o.RoleBindingAccessor = NewLocalRoleBindingAccessor(roleBindingNamespace, authorizationClient.Authorization())
-
-	} else {
-		o.RoleBindingAccessor = NewClusterRoleBindingAccessor(authorizationClient.Authorization())
-
-	}
-
-	return nil
+	return o.innerComplete(f, cmd, out)
 }
 
-func (o *RoleModificationOptions) getUserSpecifiedBinding() (*authorizationapi.RoleBinding, bool /* isUpdate */, error) {
+func (o *RoleModificationOptions) getRoleBinding() (*roleBindingAbstraction, bool /* isUpdate */, error) {
+	var roleBindingName string
+
 	// Look for an existing rolebinding by name.
-	roleBinding, err := o.RoleBindingAccessor.GetRoleBinding(o.RoleBindingName)
-	if err != nil && !kapierrors.IsNotFound(err) {
-		return nil, false, err
+	if len(o.RoleBindingName) > 0 {
+		roleBinding, err := getRoleBindingAbstraction(o.RbacClient, o.RoleBindingName, o.RoleBindingNamespace)
+		if err != nil && !kapierrors.IsNotFound(err) {
+			return nil, false, err
+		}
+
+		if roleBinding != nil {
+			// Check that we update the rolebinding for the intended role.
+			if roleBinding.RoleName() != o.RoleName {
+				return nil, false, fmt.Errorf("rolebinding %s found for role %s, not %s",
+					o.RoleBindingName, roleBinding.RoleName(), o.RoleName)
+			}
+			if roleBinding.RoleKind() != o.RoleKind {
+				return nil, false, fmt.Errorf("rolebinding %s found for %q, not %q",
+					o.RoleBindingName, roleBinding.RoleKind(), o.RoleKind)
+			}
+
+			return roleBinding, true, nil
+		}
 	}
 
-	if (err != nil && kapierrors.IsNotFound(err)) || roleBinding == nil {
-		// Create a new rolebinding with the desired name.
-		roleBinding = &authorizationapi.RoleBinding{}
-		roleBinding.Name = o.RoleBindingName
-		return roleBinding, false, nil
+	// Create a new rolebinding with the desired name.
+	if len(o.RoleBindingName) > 0 {
+		roleBindingName = o.RoleBindingName
+	} else {
+		// If unspecified will always use the default naming
+		var err error
+		roleBindingName, err = getUniqueName(o.RbacClient, o.RoleName, o.RoleBindingNamespace)
+		if err != nil {
+			return nil, false, err
+		}
 	}
-
-	// Check that we update the rolebinding for the intended role.
-	if roleBinding.RoleRef.Name != o.RoleName || roleBinding.RoleRef.Namespace != o.RoleNamespace {
-		return nil, false, fmt.Errorf("rolebinding %s found for role %s, not %s", roleBinding.Name, roleBinding.RoleRef.Name, o.RoleName)
-	}
-
-	return roleBinding, true, nil
-}
-
-func (o *RoleModificationOptions) getUnspecifiedBinding() (*authorizationapi.RoleBinding, bool /* isUpdate */, error) {
-	// Always create a new role binding with the default naming
-	roleBinding := &authorizationapi.RoleBinding{}
-	roleBindingNames, err := o.RoleBindingAccessor.GetExistingRoleBindingNames()
+	roleBinding, err := newRoleBindingAbstraction(o.RbacClient, roleBindingName, o.RoleBindingNamespace, o.RoleName, o.RoleKind)
 	if err != nil {
 		return nil, false, err
 	}
-
-	roleBinding.Name = getUniqueName(o.RoleName, roleBindingNames)
-
 	return roleBinding, false, nil
 }
 
 func (o *RoleModificationOptions) AddRole() error {
-	var (
-		roleBinding *authorizationapi.RoleBinding
-		err         error
-		isUpdate    bool
-	)
 
-	if len(o.RoleBindingName) > 0 {
-		roleBinding, isUpdate, err = o.getUserSpecifiedBinding()
-	} else {
-		roleBinding, isUpdate, err = o.getUnspecifiedBinding()
-	}
-
+	roleBinding, isUpdate, err := o.getRoleBinding()
 	if err != nil {
 		return err
 	}
 
-	roleBinding.RoleRef.Namespace = o.RoleNamespace
-	roleBinding.RoleRef.Name = o.RoleName
-
-	newSubjects := authorizationapi.BuildSubjects(o.Users, o.Groups)
-	newSubjects = append(newSubjects, o.Subjects...)
-
-subjectCheck:
-	for _, newSubject := range newSubjects {
-		for _, existingSubject := range roleBinding.Subjects {
-			if existingSubject.Kind == newSubject.Kind &&
-				existingSubject.Name == newSubject.Name &&
-				existingSubject.Namespace == newSubject.Namespace {
-				continue subjectCheck
-			}
-		}
-
-		roleBinding.Subjects = append(roleBinding.Subjects, newSubject)
-	}
+	roleBinding.SetSubjects(addSubjects(o.Users, o.Groups, o.Subjects, roleBinding.Subjects()))
 
 	if len(o.Output) > 0 {
-		return o.PrintObj(roleBinding)
+		return o.PrintObj(roleBinding.Object())
 	}
 
 	if o.DryRun {
@@ -495,9 +491,9 @@ subjectCheck:
 	}
 
 	if isUpdate {
-		err = o.RoleBindingAccessor.UpdateRoleBinding(roleBinding)
+		err = roleBinding.Update()
 	} else {
-		err = o.RoleBindingAccessor.CreateRoleBinding(roleBinding)
+		err = roleBinding.Create()
 		// If the rolebinding was created in the meantime, rerun
 		if kapierrors.IsAlreadyExists(err) {
 			return o.AddRole()
@@ -510,55 +506,100 @@ subjectCheck:
 	return nil
 }
 
+func addSubjects(users []string, groups []string, subjects []rbac.Subject, existingSubjects []rbac.Subject) []rbac.Subject {
+	newSubjects := authorizationutil.BuildRBACSubjects(users, groups)
+	newSubjects = append(newSubjects, subjects...)
+
+subjectCheck:
+	for _, newSubject := range newSubjects {
+		for _, existingSubject := range existingSubjects {
+			if existingSubject.Kind == newSubject.Kind &&
+				existingSubject.Name == newSubject.Name &&
+				existingSubject.Namespace == newSubject.Namespace {
+				continue subjectCheck
+			}
+		}
+
+		existingSubjects = append(existingSubjects, newSubject)
+	}
+
+	return existingSubjects
+}
+
 func (o *RoleModificationOptions) RemoveRole() error {
-	var roleBindings []*authorizationapi.RoleBinding
+	var roleBindings []*roleBindingAbstraction
 	var err error
 	if len(o.RoleBindingName) > 0 {
-		existingRoleBinding, err := o.RoleBindingAccessor.GetRoleBinding(o.RoleBindingName)
+		existingRoleBinding, err := getRoleBindingAbstraction(o.RbacClient, o.RoleBindingName, o.RoleBindingNamespace)
 		if err != nil {
 			return err
 		}
 		// Check that we update the rolebinding for the intended role.
-		if existingRoleBinding.RoleRef.Name != o.RoleName || existingRoleBinding.RoleRef.Namespace != o.RoleNamespace {
-			return fmt.Errorf("rolebinding %s contains role %s in namespace %s, instead of role %s in namespace %s",
-				o.RoleBindingName, existingRoleBinding.RoleRef.Name, existingRoleBinding.RoleRef.Namespace, o.RoleName, o.RoleNamespace)
+		if existingRoleBinding.RoleName() != o.RoleName {
+			return fmt.Errorf("rolebinding %s contains role %s, instead of role %s",
+				o.RoleBindingName, existingRoleBinding.RoleName(), o.RoleName)
+		}
+		if existingRoleBinding.RoleKind() != o.RoleKind {
+			return fmt.Errorf("rolebinding %s contains role %s of kind %q, not %q",
+				o.RoleBindingName, o.RoleName, existingRoleBinding.RoleKind(), o.RoleKind)
 		}
 
-		roleBindings = make([]*authorizationapi.RoleBinding, 1)
+		roleBindings = make([]*roleBindingAbstraction, 1)
 		roleBindings[0] = existingRoleBinding
 	} else {
-		roleBindings, err = o.RoleBindingAccessor.GetExistingRoleBindingsForRole(o.RoleNamespace, o.RoleName)
+		roleBindings, err = getRoleBindingAbstractionsForRole(o.RbacClient, o.RoleName, o.RoleKind, o.RoleBindingNamespace)
 		if err != nil {
 			return err
 		}
 	}
 	if len(roleBindings) == 0 {
-		return fmt.Errorf("unable to locate RoleBinding for %v/%v", o.RoleNamespace, o.RoleName)
+		return fmt.Errorf("unable to locate RoleBinding %s for %s %q", o.RoleBindingName, o.RoleKind, o.RoleName)
 	}
 
-	updatedBindings := &authorizationapi.RoleBindingList{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "List",
-			APIVersion: "v1",
-		},
-		ListMeta: metav1.ListMeta{},
-	}
-
-	subjectsToRemove := authorizationapi.BuildSubjects(o.Users, o.Groups)
+	subjectsToRemove := authorizationutil.BuildRBACSubjects(o.Users, o.Groups)
 	subjectsToRemove = append(subjectsToRemove, o.Subjects...)
 
 	found := 0
 	cnt := 0
+	for _, roleBinding := range roleBindings {
+		var resultingSubjects []rbac.Subject
+		resultingSubjects, cnt = removeSubjects(roleBinding.Subjects(), subjectsToRemove)
+		roleBinding.SetSubjects(resultingSubjects)
+		found += cnt
+	}
+
 	if len(o.Output) > 0 {
-		for _, binding := range roleBindings {
-			binding.Subjects, cnt = removeSubjects(binding.Subjects, subjectsToRemove)
-			updatedBindings.Items = append(updatedBindings.Items, *binding)
-			found += cnt
-		}
 		if found == 0 {
 			return fmt.Errorf("unable to find target %v", o.Targets)
 		}
-		return o.PrintObj(updatedBindings)
+		var updated runtime.Object
+		if len(o.RoleBindingNamespace) > 0 {
+			updatedBindings := &rbac.RoleBindingList{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "List",
+					APIVersion: "v1",
+				},
+				ListMeta: metav1.ListMeta{},
+			}
+			for _, binding := range roleBindings {
+				updatedBindings.Items = append(updatedBindings.Items, *(binding.Object().(*rbac.RoleBinding)))
+			}
+			updated = updatedBindings
+		} else {
+			updatedBindings := &rbac.ClusterRoleBindingList{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "List",
+					APIVersion: "v1",
+				},
+				ListMeta: metav1.ListMeta{},
+			}
+			for _, binding := range roleBindings {
+				updatedBindings.Items = append(updatedBindings.Items, *(binding.Object().(*rbac.ClusterRoleBinding)))
+			}
+			updated = updatedBindings
+		}
+
+		return o.PrintObj(updated)
 	}
 
 	if o.DryRun {
@@ -566,13 +607,10 @@ func (o *RoleModificationOptions) RemoveRole() error {
 	}
 
 	for _, roleBinding := range roleBindings {
-		roleBinding.Subjects, cnt = removeSubjects(roleBinding.Subjects, subjectsToRemove)
-		found += cnt
-
-		if len(roleBinding.Subjects) > 0 || roleBinding.Annotations[ReconcileProtectAnnotation] == "true" {
-			err = o.RoleBindingAccessor.UpdateRoleBinding(roleBinding)
+		if len(roleBinding.Subjects()) > 0 || roleBinding.Annotation(rbac.AutoUpdateAnnotationKey) == "false" {
+			err = roleBinding.Update()
 		} else {
-			err = o.RoleBindingAccessor.DeleteRoleBinding(roleBinding.Name)
+			err = roleBinding.Delete()
 		}
 		if err != nil {
 			return err
@@ -585,8 +623,8 @@ func (o *RoleModificationOptions) RemoveRole() error {
 	return nil
 }
 
-func removeSubjects(haystack, needles []kapi.ObjectReference) ([]kapi.ObjectReference, int) {
-	newSubjects := []kapi.ObjectReference{}
+func removeSubjects(haystack, needles []rbac.Subject) ([]rbac.Subject, int) {
+	newSubjects := []rbac.Subject{}
 	found := 0
 
 existingLoop:

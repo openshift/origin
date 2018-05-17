@@ -8,10 +8,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/pkg/apis/authorization"
 	authorizationtypedclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
+	rbacclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/rbac/internalversion"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	oauthorizationtypedclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset/typed/authorization/internalversion"
-	regutil "github.com/openshift/origin/pkg/authorization/registry/util"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/types"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/util"
 	policycmd "github.com/openshift/origin/pkg/oc/admin/policy"
@@ -19,7 +18,7 @@ import (
 
 // ClusterRoleBindings is a Diagnostic to check that the default cluster role bindings match expectations
 type ClusterRoleBindings struct {
-	ClusterRoleBindingsClient oauthorizationtypedclient.ClusterRoleBindingInterface
+	ClusterRoleBindingsClient rbacclient.ClusterRoleBindingInterface
 	SARClient                 authorizationtypedclient.SelfSubjectAccessReviewsGetter
 }
 
@@ -89,13 +88,8 @@ func (d *ClusterRoleBindings) Check() types.DiagnosticResult {
 			r.Error("CRBD1002", err, fmt.Sprintf("Unable to get clusterrolebinding/%s: %v", changedClusterRoleBinding.Name, err))
 			continue
 		}
-		actualRBACClusterRole, err := regutil.ClusterRoleBindingToRBAC(actualClusterRole)
-		if err != nil {
-			r.Error("CRBD1008", err, fmt.Sprintf("Unable to convert clusterrolebinding/%s to RBAC: %v", actualClusterRole.Name, err))
-			continue
-		}
 
-		missingSubjects, extraSubjects := policycmd.DiffSubjects(changedClusterRoleBinding.Subjects, actualRBACClusterRole.Subjects)
+		missingSubjects, extraSubjects := policycmd.DiffSubjects(changedClusterRoleBinding.Subjects, actualClusterRole.Subjects)
 		switch {
 		case len(missingSubjects) > 0:
 			// Only a warning, because they can remove things like self-provisioner role from system:unauthenticated, and it's not an error

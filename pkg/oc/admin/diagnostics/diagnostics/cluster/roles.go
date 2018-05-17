@@ -8,10 +8,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/pkg/apis/authorization"
 	authorizationtypedclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
+	rbacclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/rbac/internalversion"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	oauthorizationtypedclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset/typed/authorization/internalversion"
-	regutil "github.com/openshift/origin/pkg/authorization/registry/util"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/types"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/util"
 	policycmd "github.com/openshift/origin/pkg/oc/admin/policy"
@@ -20,7 +19,7 @@ import (
 
 // ClusterRoles is a Diagnostic to check that the default cluster roles match expectations
 type ClusterRoles struct {
-	ClusterRolesClient oauthorizationtypedclient.ClusterRoleInterface
+	ClusterRolesClient rbacclient.ClusterRoleInterface
 	SARClient          authorizationtypedclient.SelfSubjectAccessReviewsGetter
 }
 
@@ -114,16 +113,10 @@ func (d *ClusterRoles) Check() types.DiagnosticResult {
 			continue
 		}
 
-		actualRBACClusterRole, err := regutil.ClusterRoleToRBAC(actualClusterRole)
-		if err != nil {
-			r.Error("CRD1009", err, fmt.Sprintf("Unable to convert clusterrole/%s to RBAC cluster role: %v", actualClusterRole.Name, err))
-			continue
-		}
-
-		_, missingRules := rbacregistryvalidation.Covers(actualRBACClusterRole.Rules, changedClusterRole.Rules)
+		_, missingRules := rbacregistryvalidation.Covers(actualClusterRole.Rules, changedClusterRole.Rules)
 		if len(missingRules) == 0 {
 			r.Info("CRD1003", fmt.Sprintf(clusterRoleReduced, changedClusterRole.Name))
-			_, extraRules := rbacregistryvalidation.Covers(changedClusterRole.Rules, actualRBACClusterRole.Rules)
+			_, extraRules := rbacregistryvalidation.Covers(changedClusterRole.Rules, actualClusterRole.Rules)
 			for _, extraRule := range extraRules {
 				r.Info("CRD1008", fmt.Sprintf("clusterrole/%s has extra permission %v.", changedClusterRole.Name, extraRule))
 			}

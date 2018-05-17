@@ -9,6 +9,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/clientcmd"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
+	rbacclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/rbac/internalversion"
 
 	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -47,15 +48,16 @@ func TestLogin(t *testing.T) {
 	if loginOptions.Username != username {
 		t.Fatalf("Unexpected user after authentication: %#v", loginOptions)
 	}
+	rbacClient := rbacclient.NewForConfigOrDie(clusterAdminClientConfig)
 	authorizationInterface := authorizationclient.NewForConfigOrDie(clusterAdminClientConfig).Authorization()
 
 	newProjectOptions := &newproject.NewProjectOptions{
-		ProjectClient:     projectclient.NewForConfigOrDie(clusterAdminClientConfig).Project(),
-		RoleBindingClient: authorizationInterface,
-		SARClient:         authorizationInterface.SubjectAccessReviews(),
-		ProjectName:       project,
-		AdminRole:         bootstrappolicy.AdminRoleName,
-		AdminUser:         username,
+		ProjectClient: projectclient.NewForConfigOrDie(clusterAdminClientConfig).Project(),
+		RbacClient:    rbacClient,
+		SARClient:     authorizationInterface.SubjectAccessReviews(),
+		ProjectName:   project,
+		AdminRole:     bootstrappolicy.AdminRoleName,
+		AdminUser:     username,
 	}
 	if err := newProjectOptions.Run(false); err != nil {
 		t.Fatalf("unexpected error, a project is required to continue: %v", err)

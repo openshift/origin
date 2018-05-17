@@ -16,13 +16,11 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 	"k8s.io/kubernetes/pkg/apis/rbac"
+	rbacclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/rbac/internalversion"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	authorizationclientinternal "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
-	authorizationtypedclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset/typed/authorization/internalversion"
-	"github.com/openshift/origin/pkg/authorization/registry/util"
 	authorizationutil "github.com/openshift/origin/pkg/authorization/util"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
@@ -48,7 +46,7 @@ type ReconcileClusterRoleBindingsOptions struct {
 	Err    io.Writer
 	Output string
 
-	RoleBindingClient authorizationtypedclient.ClusterRoleBindingInterface
+	RoleBindingClient rbacclient.ClusterRoleBindingInterface
 }
 
 var (
@@ -126,11 +124,11 @@ func (o *ReconcileClusterRoleBindingsOptions) Complete(cmd *cobra.Command, f *cl
 	if err != nil {
 		return err
 	}
-	authorizationClient, err := authorizationclientinternal.NewForConfig(clientConfig)
+	rbacClient, err := rbacclient.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
-	o.RoleBindingClient = authorizationClient.Authorization().ClusterRoleBindings()
+	o.RoleBindingClient = rbacClient.ClusterRoleBindings()
 
 	o.Output = kcmdutil.GetFlagString(cmd, "output")
 
@@ -170,7 +168,7 @@ func (o *ReconcileClusterRoleBindingsOptions) RunReconcileClusterRoleBindings(cm
 	}
 
 	if len(skippedClusterRoleBindings) > 0 {
-		fmt.Fprintf(o.Err, "Skipped reconciling roles with the annotation %s=true\n", ReconcileProtectAnnotation)
+		fmt.Fprintf(o.Err, "Skipped reconciling roles with the annotation %s=false\n", rbac.AutoUpdateAnnotationKey)
 		for _, role := range skippedClusterRoleBindings {
 			fmt.Fprintf(o.Err, "skipped: clusterrolebinding/%s\n", role.Name)
 		}
@@ -234,19 +232,15 @@ func (o *ReconcileClusterRoleBindingsOptions) ChangedClusterRoleBindings() ([]*r
 		if err != nil {
 			return nil, nil, err
 		}
-		actualRBACClusterRoleBinding, err := util.ClusterRoleBindingToRBAC(actualClusterRoleBinding)
-		if err != nil {
-			return nil, nil, err
-		}
 
 		// Copy any existing labels/annotations, so the displayed update is correct
 		// This assumes bootstrap role bindings will not set any labels/annotations
 		// These aren't actually used during update; the latest labels/annotations are pulled from the existing object again
-		expectedClusterRoleBinding.Labels = actualRBACClusterRoleBinding.Labels
-		expectedClusterRoleBinding.Annotations = actualRBACClusterRoleBinding.Annotations
+		expectedClusterRoleBinding.Labels = actualClusterRoleBinding.Labels
+		expectedClusterRoleBinding.Annotations = actualClusterRoleBinding.Annotations
 
-		if updatedClusterRoleBinding, needsUpdating := computeUpdatedBinding(*expectedClusterRoleBinding, *actualRBACClusterRoleBinding, o.ExcludeSubjects, o.Union); needsUpdating {
-			if actualClusterRoleBinding.Annotations[ReconcileProtectAnnotation] == "true" {
+		if updatedClusterRoleBinding, needsUpdating := computeUpdatedBinding(*expectedClusterRoleBinding, *actualClusterRoleBinding, o.ExcludeSubjects, o.Union); needsUpdating {
+			if actualClusterRoleBinding.Annotations[rbac.AutoUpdateAnnotationKey] == "false" {
 				skippedRoleBindings = append(skippedRoleBindings, updatedClusterRoleBinding)
 			} else {
 				changedRoleBindings = append(changedRoleBindings, updatedClusterRoleBinding)
@@ -273,12 +267,7 @@ func (o *ReconcileClusterRoleBindingsOptions) ReplaceChangedRoleBindings(changed
 		}
 
 		if kapierrors.IsNotFound(err) {
-			roleBinding, err := util.ClusterRoleBindingFromRBAC(changedRoleBindings[i])
-			if err != nil {
-				errs = append(errs, err)
-				continue
-			}
-			createdRoleBinding, err := o.RoleBindingClient.Create(roleBinding)
+			createdRoleBinding, err := o.RoleBindingClient.Create(changedRoleBindings[i])
 			if err != nil {
 				errs = append(errs, err)
 				continue
@@ -286,16 +275,11 @@ func (o *ReconcileClusterRoleBindingsOptions) ReplaceChangedRoleBindings(changed
 			fmt.Fprintf(o.Out, "clusterrolebinding/%s\n", createdRoleBinding.Name)
 			continue
 		}
-		rbacRoleBinding, err := util.ClusterRoleBindingToRBAC(roleBinding)
-		if err != nil {
-			errs = append(errs, err)
-			continue
-		}
 
 		// RoleRef is immutable, to reset this, we have to delete/recreate
 		if !kapihelper.Semantic.DeepEqual(roleBinding.RoleRef, changedRoleBindings[i].RoleRef) {
-			rbacRoleBinding.RoleRef = changedRoleBindings[i].RoleRef
-			rbacRoleBinding.Subjects = changedRoleBindings[i].Subjects
+			roleBinding.RoleRef = changedRoleBindings[i].RoleRef
+			roleBinding.Subjects = changedRoleBindings[i].Subjects
 
 			// TODO: for extra credit, determine whether the right to delete/create this rolebinding for the current user came from this rolebinding before deleting it
 			err := o.RoleBindingClient.Delete(roleBinding.Name, nil)
@@ -303,12 +287,7 @@ func (o *ReconcileClusterRoleBindingsOptions) ReplaceChangedRoleBindings(changed
 				errs = append(errs, err)
 				continue
 			}
-			roleBinding, err := util.ClusterRoleBindingFromRBAC(changedRoleBindings[i])
-			if err != nil {
-				errs = append(errs, err)
-				continue
-			}
-			createdRoleBinding, err := o.RoleBindingClient.Create(roleBinding)
+			createdRoleBinding, err := o.RoleBindingClient.Create(changedRoleBindings[i])
 			if err != nil {
 				errs = append(errs, err)
 				continue
@@ -317,12 +296,7 @@ func (o *ReconcileClusterRoleBindingsOptions) ReplaceChangedRoleBindings(changed
 			continue
 		}
 
-		rbacRoleBinding.Subjects = changedRoleBindings[i].Subjects
-		roleBinding, err = util.ClusterRoleBindingFromRBAC(rbacRoleBinding)
-		if err != nil {
-			errs = append(errs, err)
-			continue
-		}
+		roleBinding.Subjects = changedRoleBindings[i].Subjects
 		updatedRoleBinding, err := o.RoleBindingClient.Update(roleBinding)
 		if err != nil {
 			errs = append(errs, err)

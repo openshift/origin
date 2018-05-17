@@ -10,12 +10,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/kubernetes/pkg/apis/rbac"
+	rbacclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/rbac/internalversion"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	authorizationclientinternal "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
-	oauthorizationtypedclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset/typed/authorization/internalversion"
+	authorizationutil "github.com/openshift/origin/pkg/authorization/util"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
@@ -26,7 +25,7 @@ const (
 
 type RemoveFromProjectOptions struct {
 	BindingNamespace string
-	Client           oauthorizationtypedclient.RoleBindingsGetter
+	Client           rbacclient.RoleBindingsGetter
 
 	Groups []string
 	Users  []string
@@ -108,11 +107,10 @@ func (o *RemoveFromProjectOptions) Complete(f *clientcmd.Factory, cmd *cobra.Com
 	if err != nil {
 		return err
 	}
-	authorizationClient, err := authorizationclientinternal.NewForConfig(clientConfig)
+	o.Client, err = rbacclient.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
-	o.Client = authorizationClient.Authorization()
 	if o.BindingNamespace, _, err = f.DefaultNamespace(); err != nil {
 		return err
 	}
@@ -138,7 +136,7 @@ func (o *RemoveFromProjectOptions) Run() error {
 		return err
 	}
 	// maintain David's hack from #1973 (see #1975, #1976 and https://bugzilla.redhat.com/show_bug.cgi?id=1215969)
-	sort.Sort(sort.Reverse(authorizationapi.RoleBindingSorter(roleBindings.Items)))
+	sort.Sort(sort.Reverse(roleBindingSorter(roleBindings.Items)))
 
 	usersRemoved := sets.String{}
 	groupsRemoved := sets.String{}
@@ -149,7 +147,7 @@ func (o *RemoveFromProjectOptions) Run() error {
 		dryRunText = " (dry run)"
 	}
 
-	updatedBindings := &authorizationapi.RoleBindingList{
+	updatedBindings := &rbac.RoleBindingList{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "List",
 			APIVersion: "v1",
@@ -157,16 +155,16 @@ func (o *RemoveFromProjectOptions) Run() error {
 		ListMeta: metav1.ListMeta{},
 	}
 
-	subjectsToRemove := authorizationapi.BuildSubjects(o.Users, o.Groups)
+	subjectsToRemove := authorizationutil.BuildRBACSubjects(o.Users, o.Groups)
 
 	for _, currBinding := range roleBindings.Items {
-		originalSubjects := make([]kapi.ObjectReference, len(currBinding.Subjects))
+		originalSubjects := make([]rbac.Subject, len(currBinding.Subjects))
 		copy(originalSubjects, currBinding.Subjects)
-		oldUsers, oldGroups, oldSAs, oldOthers := authorizationapi.SubjectsStrings(currBinding.Namespace, originalSubjects)
+		oldUsers, oldGroups, oldSAs, oldOthers := rbac.SubjectsStrings(originalSubjects)
 		oldUsersSet, oldGroupsSet, oldSAsSet, oldOtherSet := sets.NewString(oldUsers...), sets.NewString(oldGroups...), sets.NewString(oldSAs...), sets.NewString(oldOthers...)
 
 		currBinding.Subjects, _ = removeSubjects(currBinding.Subjects, subjectsToRemove)
-		newUsers, newGroups, newSAs, newOthers := authorizationapi.SubjectsStrings(currBinding.Namespace, currBinding.Subjects)
+		newUsers, newGroups, newSAs, newOthers := rbac.SubjectsStrings(currBinding.Subjects)
 		newUsersSet, newGroupsSet, newSAsSet, newOtherSet := sets.NewString(newUsers...), sets.NewString(newGroups...), sets.NewString(newSAs...), sets.NewString(newOthers...)
 
 		if len(currBinding.Subjects) == len(originalSubjects) {
@@ -189,8 +187,8 @@ func (o *RemoveFromProjectOptions) Run() error {
 			}
 		}
 
-		roleDisplayName := fmt.Sprintf("%s/%s", currBinding.RoleRef.Namespace, currBinding.RoleRef.Name)
-		if len(currBinding.RoleRef.Namespace) == 0 {
+		roleDisplayName := fmt.Sprintf("%s/%s", currBinding.Namespace, currBinding.RoleRef.Name)
+		if currBinding.RoleRef.Kind == "ClusterRole" {
 			roleDisplayName = currBinding.RoleRef.Name
 		}
 
@@ -224,4 +222,16 @@ func (o *RemoveFromProjectOptions) Run() error {
 	}
 
 	return nil
+}
+
+type roleBindingSorter []rbac.RoleBinding
+
+func (s roleBindingSorter) Len() int {
+	return len(s)
+}
+func (s roleBindingSorter) Less(i, j int) bool {
+	return s[i].Name < s[j].Name
+}
+func (s roleBindingSorter) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
 }

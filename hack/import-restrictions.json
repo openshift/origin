@@ -455,7 +455,6 @@
       "github.com/openshift/origin/pkg/apps/util",
       "github.com/openshift/origin/pkg/authorization/apis/authorization",
       "github.com/openshift/origin/pkg/authorization/apis/authorization/install",
-      "github.com/openshift/origin/pkg/authorization/registry/util",
       "github.com/openshift/origin/pkg/authorization/util",
       "github.com/openshift/origin/pkg/build/apis/build",
       "github.com/openshift/origin/pkg/build/apis/build/install",

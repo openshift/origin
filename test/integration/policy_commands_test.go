@@ -6,9 +6,10 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/kubernetes/pkg/apis/rbac"
+	rbacclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/rbac/internalversion"
 
-	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
-	authorizationinterfaces "github.com/openshift/origin/pkg/authorization/interfaces"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	policy "github.com/openshift/origin/pkg/oc/admin/policy"
 	testutil "github.com/openshift/origin/test/util"
@@ -33,13 +34,15 @@ func TestPolicyCommands(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	haroldAuthorizationClient := authorizationclient.NewForConfigOrDie(haroldConfig).Authorization()
+	haroldAuthorizationClient := rbacclient.NewForConfigOrDie(haroldConfig)
 
 	addViewer := policy.RoleModificationOptions{
-		RoleName:            bootstrappolicy.ViewRoleName,
-		RoleBindingAccessor: policy.NewLocalRoleBindingAccessor(projectName, haroldAuthorizationClient),
-		Users:               []string{"valerie"},
-		Groups:              []string{"my-group"},
+		RoleBindingNamespace: projectName,
+		RoleName:             bootstrappolicy.ViewRoleName,
+		RoleKind:             "ClusterRole",
+		RbacClient:           haroldAuthorizationClient,
+		Users:                []string{"valerie"},
+		Groups:               []string{"my-group"},
 	}
 
 	if err := addViewer.AddRole(); err != nil {
@@ -50,12 +53,13 @@ func TestPolicyCommands(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	binding := authorizationinterfaces.NewLocalRoleBindingAdapter(viewers)
-	if !binding.Users().Has("valerie") {
-		t.Errorf("expected valerie in users: %v", binding.Users())
+
+	users, groups, _, _ := rbac.SubjectsStrings(viewers.Subjects)
+	if !sets.NewString(users...).Has("valerie") {
+		t.Errorf("expected valerie in users: %v", users)
 	}
-	if !binding.Groups().Has("my-group") {
-		t.Errorf("expected my-group in groups: %v", binding.Groups())
+	if !sets.NewString(groups...).Has("my-group") {
+		t.Errorf("expected my-group in groups: %v", groups)
 	}
 
 	removeValerie := policy.RemoveFromProjectOptions{
@@ -72,12 +76,12 @@ func TestPolicyCommands(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	binding = authorizationinterfaces.NewLocalRoleBindingAdapter(viewers)
-	if binding.Users().Has("valerie") {
-		t.Errorf("unexpected valerie in users: %v", binding.Users())
+	users, groups, _, _ = rbac.SubjectsStrings(viewers.Subjects)
+	if sets.NewString(users...).Has("valerie") {
+		t.Errorf("unexpected valerie in users: %v", users)
 	}
-	if !binding.Groups().Has("my-group") {
-		t.Errorf("expected my-group in groups: %v", binding.Groups())
+	if !sets.NewString(groups...).Has("my-group") {
+		t.Errorf("expected my-group in groups: %v", groups)
 	}
 
 	removeMyGroup := policy.RemoveFromProjectOptions{
@@ -96,12 +100,12 @@ func TestPolicyCommands(t *testing.T) {
 	if !errors.IsNotFound(err) {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	binding = authorizationinterfaces.NewLocalRoleBindingAdapter(viewers)
-	if binding.Users().Has("valerie") {
-		t.Errorf("unexpected valerie in users: %v", binding.Users())
+	users, groups, _, _ = rbac.SubjectsStrings(viewers.Subjects)
+	if sets.NewString(users...).Has("valerie") {
+		t.Errorf("unexpected valerie in users: %v", users)
 	}
-	if binding.Groups().Has("my-group") {
-		t.Errorf("unexpected my-group in groups: %v", binding.Groups())
+	if sets.NewString(groups...).Has("my-group") {
+		t.Errorf("unexpected my-group in groups: %v", groups)
 	}
 
 }

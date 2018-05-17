@@ -4,9 +4,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapisext "k8s.io/kubernetes/pkg/apis/extensions"
+	"k8s.io/kubernetes/pkg/apis/rbac"
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	authapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	routesapi "github.com/openshift/origin/pkg/route/apis/route"
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 )
@@ -28,7 +28,7 @@ type sccAdapter interface {
 }
 
 type clusterRoleBindingsAdapter interface {
-	listClusterRoleBindings() (*authapi.ClusterRoleBindingList, error)
+	listClusterRoleBindings() (*rbac.ClusterRoleBindingList, error)
 }
 
 //deploymentConfigAdapter is an abstraction to retrieve resource for validating dcs
