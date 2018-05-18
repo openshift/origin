@@ -64,7 +64,7 @@ func Versions(key string) (string, bool) {
 		}
 		return s, true
 	case "version":
-		s := overrideVersion.LastSemanticVersion()
+		s := lastSemanticVersion(overrideVersion.GitVersion)
 		return s, true
 	default:
 		return "", false
@@ -78,3 +78,10 @@ func Env(key string) (string, bool) {
 
 // overrideVersion is the latest version, exposed for testing.
 var overrideVersion = version.Get()
+
+// lastSemanticVersion attempts to return a semantic version from the GitVersion - which
+// is either <semver>+<commit> or <semver> on release boundaries.
+func lastSemanticVersion(version string) string {
+	parts := strings.Split(version, "+")
+	return parts[0]
+}

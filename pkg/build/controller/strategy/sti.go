@@ -47,7 +47,6 @@ func (bs *SourceBuildStrategy) CreateBuildPod(build *buildapi.Build) (*v1.Pod, e
 	}
 
 	addSourceEnvVars(build.Spec.Source, &containerEnv)
-	addOriginVersionVar(&containerEnv)
 
 	strategy := build.Spec.Strategy.SourceStrategy
 	if len(strategy.Env) > 0 {

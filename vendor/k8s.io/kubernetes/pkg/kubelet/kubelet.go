@@ -237,6 +237,7 @@ type Dependencies struct {
 	DockerClientConfig      *dockershim.ClientConfig
 	EventClient             v1core.EventsGetter
 	HeartbeatClient         v1core.CoreV1Interface
+	OnHeartbeatFailure      func()
 	KubeClient              clientset.Interface
 	ExternalKubeClient      clientset.Interface
 	Mounter                 mount.Interface
@@ -493,6 +494,7 @@ func NewMainKubelet(kubeCfg *kubeletconfiginternal.KubeletConfiguration,
 		nodeName:                       nodeName,
 		kubeClient:                     kubeDeps.KubeClient,
 		heartbeatClient:                kubeDeps.HeartbeatClient,
+		onRepeatedHeartbeatFailure:     kubeDeps.OnHeartbeatFailure,
 		rootDirectory:                  rootDirectory,
 		resyncInterval:                 kubeCfg.SyncFrequency.Duration,
 		sourcesReady:                   config.NewSourcesReady(kubeDeps.PodConfig.SeenAllSources),
@@ -533,6 +535,13 @@ func NewMainKubelet(kubeCfg *kubeletconfiginternal.KubeletConfiguration,
 		iptablesDropBit:                         int(kubeCfg.IPTablesDropBit),
 		experimentalHostUserNamespaceDefaulting: utilfeature.DefaultFeatureGate.Enabled(features.ExperimentalHostUserNamespaceDefaultingGate),
 		keepTerminatedPodVolumes:                keepTerminatedPodVolumes,
+	}
+
+	if klet.cloud != nil {
+		klet.cloudproviderRequestParallelism = make(chan int, 1)
+		klet.cloudproviderRequestSync = make(chan int)
+		// TODO(jchaloup): Make it configurable via --cloud-provider-request-timeout
+		klet.cloudproviderRequestTimeout = 10 * time.Second
 	}
 
 	secretManager := secret.NewCachingSecretManager(
@@ -935,6 +944,9 @@ type Kubelet struct {
 	iptClient       utilipt.Interface
 	rootDirectory   string
 
+	// onRepeatedHeartbeatFailure is called when a heartbeat operation fails more than once. optional.
+	onRepeatedHeartbeatFailure func()
+
 	// podWorkers handle syncing Pods in response to events.
 	podWorkers PodWorkers
 
@@ -1041,6 +1053,16 @@ type Kubelet struct {
 
 	// Indicates that the node initialization happens in an external cloud controller
 	externalCloudProvider bool
+
+	// To keep exclusive access to the cloudproviderRequestParallelism
+	cloudproviderRequestMux sync.Mutex
+	// Keep the count of requests processed in parallel (expected to be 1 at most at a given time)
+	cloudproviderRequestParallelism chan int
+	// Sync with finished requests
+	cloudproviderRequestSync chan int
+	// Request timeout
+	cloudproviderRequestTimeout time.Duration
+
 	// Reference to this node.
 	nodeRef *v1.ObjectReference
 

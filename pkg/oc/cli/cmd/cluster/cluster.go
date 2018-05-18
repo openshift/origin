@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/openshift/origin/pkg/oc/bootstrap/clusteradd"
+	"github.com/openshift/origin/pkg/oc/clusteradd"
 	"github.com/spf13/cobra"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
-	"github.com/openshift/origin/pkg/oc/bootstrap/docker"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
+	"github.com/openshift/origin/pkg/oc/clusterup"
 )
 
 const ClusterRecommendedName = "cluster"
@@ -44,8 +44,8 @@ func NewCmdCluster(name, fullName string, f *clientcmd.Factory, out, errout io.W
 	clusterAdd := clusteradd.NewCmdAdd(clusteradd.CmdAddRecommendedName, fullName+" "+clusteradd.CmdAddRecommendedName, out, errout)
 
 	cmds.AddCommand(clusterAdd)
-	cmds.AddCommand(docker.NewCmdUp(docker.CmdUpRecommendedName, fullName+" "+docker.CmdUpRecommendedName, out, errout, clusterAdd))
-	cmds.AddCommand(docker.NewCmdDown(docker.CmdDownRecommendedName, fullName+" "+docker.CmdDownRecommendedName))
-	cmds.AddCommand(docker.NewCmdStatus(docker.CmdStatusRecommendedName, fullName+" "+docker.CmdStatusRecommendedName, f, out))
+	cmds.AddCommand(clusterup.NewCmdUp(clusterup.CmdUpRecommendedName, fullName+" "+clusterup.CmdUpRecommendedName, out, errout, clusterAdd))
+	cmds.AddCommand(clusterup.NewCmdDown(clusterup.CmdDownRecommendedName, fullName+" "+clusterup.CmdDownRecommendedName))
+	cmds.AddCommand(clusterup.NewCmdStatus(clusterup.CmdStatusRecommendedName, fullName+" "+clusterup.CmdStatusRecommendedName, f, out))
 	return cmds
 }

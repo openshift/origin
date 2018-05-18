@@ -24,7 +24,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	cmdversion "github.com/openshift/origin/pkg/cmd/version"
-	osversion "github.com/openshift/origin/pkg/version/openshift"
+	osversion "github.com/openshift/origin/pkg/version"
 )
 
 var (

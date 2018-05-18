@@ -791,8 +791,6 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out, errout io.Write
 			if t.Annotations == nil {
 				t.Annotations = make(map[string]string)
 			}
-			t.Annotations["prometheus.io/scrape"] = "true"
-			t.Annotations["prometheus.io/port"] = "1936"
 			t.Annotations["prometheus.openshift.io/username"] = cfg.StatsUsername
 			t.Annotations["prometheus.openshift.io/password"] = cfg.StatsPassword
 			t.Spec.ClusterIP = clusterIP

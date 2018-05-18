@@ -12,20 +12,17 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	apiserverserviceaccount "k8s.io/apiserver/pkg/authentication/serviceaccount"
 	kcoreclient "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/serviceaccount"
 
 	oauthapi "github.com/openshift/api/oauth/v1"
 	routeapi "github.com/openshift/api/route/v1"
 	routeclient "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1"
 	scopeauthorizer "github.com/openshift/origin/pkg/authorization/authorizer/scope"
-	"github.com/openshift/origin/pkg/oauth/registry/oauthclient"
 )
 
 const (
@@ -43,9 +40,24 @@ const (
 	// IngressKind = "Ingress"
 )
 
-var modelPrefixes = []string{
-	OAuthRedirectModelAnnotationURIPrefix,
-	OAuthRedirectModelAnnotationReferencePrefix,
+var (
+	modelPrefixes = []string{
+		OAuthRedirectModelAnnotationURIPrefix,
+		OAuthRedirectModelAnnotationReferencePrefix,
+	}
+
+	emptyGroupKind       = schema.GroupKind{} // Used with static redirect URIs
+	routeGroupKind       = routeapi.SchemeGroupVersion.WithKind(routeKind).GroupKind()
+	legacyRouteGroupKind = routeapi.LegacySchemeGroupVersion.WithKind(routeKind).GroupKind() // to support redirect reference with old group
+
+	scheme       = runtime.NewScheme()
+	codecFactory = serializer.NewCodecFactory(scheme)
+)
+
+func init() {
+	corev1.AddToScheme(scheme)
+	oauthapi.AddToScheme(scheme)
+	oauthapi.AddToSchemeInCoreGroup(scheme)
 }
 
 // namesToObjMapperFunc is linked to a given GroupKind.
@@ -54,12 +66,14 @@ var modelPrefixes = []string{
 // These values can be overridden by user specified data. Errors returned are informative and non-fatal.
 type namesToObjMapperFunc func(namespace string, names sets.String) (map[string]redirectURIList, []error)
 
-var emptyGroupKind = schema.GroupKind{} // Used with static redirect URIs
-var routeGroupKind = routeapi.SchemeGroupVersion.WithKind(routeKind).GroupKind()
-var legacyRouteGroupKind = routeapi.LegacySchemeGroupVersion.WithKind(routeKind).GroupKind() // to support redirect reference with old group
-
 // TODO add ingress support
 // var ingressGroupKind = routeapi.SchemeGroupVersion.WithKind(IngressKind).GroupKind()
+
+// OAuthClientGetter  exposes a way to get a specific client.  This is useful for other registries to get scope limitations
+// on particular clients.   This interface will make its easier to write a future cache on it
+type OAuthClientGetter interface {
+	Get(name string, options metav1.GetOptions) (*oauthapi.OAuthClient, error)
+}
 
 type saOAuthClientAdapter struct {
 	saClient      kcoreclient.ServiceAccountsGetter
@@ -69,7 +83,7 @@ type saOAuthClientAdapter struct {
 	// TODO add ingress support
 	//ingressClient ??
 
-	delegate    oauthclient.Getter
+	delegate    OAuthClientGetter
 	grantMethod oauthapi.GrantHandlerType
 
 	decoder runtime.Decoder
@@ -189,19 +203,19 @@ func (uri *redirectURI) merge(m *model) {
 	}
 }
 
-var _ oauthclient.Getter = &saOAuthClientAdapter{}
+var _ OAuthClientGetter = &saOAuthClientAdapter{}
 
 func NewServiceAccountOAuthClientGetter(
 	saClient kcoreclient.ServiceAccountsGetter,
 	secretClient kcoreclient.SecretsGetter,
 	eventClient kcoreclient.EventInterface,
 	routeClient routeclient.RoutesGetter,
-	delegate oauthclient.Getter,
+	delegate OAuthClientGetter,
 	grantMethod oauthapi.GrantHandlerType,
-) oauthclient.Getter {
+) OAuthClientGetter {
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartRecordingToSink(&kcoreclient.EventSinkImpl{Interface: eventClient})
-	recorder := eventBroadcaster.NewRecorder(legacyscheme.Scheme, clientv1.EventSource{Component: "service-account-oauth-client-getter"})
+	recorder := eventBroadcaster.NewRecorder(scheme, clientv1.EventSource{Component: "service-account-oauth-client-getter"})
 	return &saOAuthClientAdapter{
 		saClient:      saClient,
 		secretClient:  secretClient,
@@ -209,7 +223,7 @@ func NewServiceAccountOAuthClientGetter(
 		routeClient:   routeClient,
 		delegate:      delegate,
 		grantMethod:   grantMethod,
-		decoder:       legacyscheme.Codecs.UniversalDecoder(),
+		decoder:       codecFactory.UniversalDecoder(),
 	}
 }
 
@@ -230,7 +244,7 @@ func (a *saOAuthClientAdapter) Get(name string, options metav1.GetOptions) (*oau
 	// Create a warning event combining the collected annotation errors upon failure.
 	defer func() {
 		if err != nil && len(saErrors) > 0 && len(failReason) > 0 {
-			a.eventRecorder.Event(sa, kapi.EventTypeWarning, failReason, utilerrors.NewAggregate(saErrors).Error())
+			a.eventRecorder.Event(sa, corev1.EventTypeWarning, failReason, utilerrors.NewAggregate(saErrors).Error())
 		}
 	}()
 
@@ -459,9 +473,29 @@ func (a *saOAuthClientAdapter) getServiceAccountTokens(sa *corev1.ServiceAccount
 	tokens := []string{}
 	for i := range allSecrets.Items {
 		secret := &allSecrets.Items[i]
-		if serviceaccount.IsServiceAccountToken(secret, sa) {
-			tokens = append(tokens, string(secret.Data[kapi.ServiceAccountTokenKey]))
+		if IsServiceAccountToken(secret, sa) {
+			tokens = append(tokens, string(secret.Data[corev1.ServiceAccountTokenKey]))
 		}
 	}
 	return tokens, nil
+}
+
+// IsServiceAccountToken returns true if the secret is a valid api token for the service account
+func IsServiceAccountToken(secret *corev1.Secret, sa *corev1.ServiceAccount) bool {
+	if secret.Type != corev1.SecretTypeServiceAccountToken {
+		return false
+	}
+
+	name := secret.Annotations[corev1.ServiceAccountNameKey]
+	uid := secret.Annotations[corev1.ServiceAccountUIDKey]
+	if name != sa.Name {
+		// Name must match
+		return false
+	}
+	if len(uid) > 0 && uid != string(sa.UID) {
+		// If UID is specified, it must match
+		return false
+	}
+
+	return true
 }

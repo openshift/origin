@@ -1,17 +1,18 @@
 package identitymapper
 
 import (
-	"reflect"
 	"testing"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	clienttesting "k8s.io/client-go/testing"
 
 	userapi "github.com/openshift/api/user/v1"
+	userv1fakeclient "github.com/openshift/client-go/user/clientset/versioned/fake"
 	userclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
-	"github.com/openshift/origin/pkg/user/registry/test"
 )
 
 type testInitializer struct {
@@ -31,12 +32,10 @@ type strategyTestCase struct {
 	Identity          *userapi.Identity
 
 	// User registry setup
-	ExistingUsers  []*userapi.User
-	CreateResponse *userapi.User
-	UpdateResponse *userapi.User
+	ExistingUsers []runtime.Object
 
 	// Expectations
-	ExpectedActions    []test.Action
+	ValidateActions    func(t *testing.T, actions []clienttesting.Action)
 	ExpectedError      bool
 	ExpectedUserName   string
 	ExpectedInitialize bool
@@ -83,44 +82,26 @@ func makeUserIdentityMapping(identityUID string, providerName string, providerUs
 }
 
 func (tc strategyTestCase) run(k string, t *testing.T) {
-	actions := []test.Action{}
-	userRegistry := &test.UserRegistry{
-		GetUsers: map[string]*userapi.User{},
-		Actions:  &actions,
-	}
-	for _, u := range tc.ExistingUsers {
-		userRegistry.GetUsers[u.Name] = u
-	}
+	t.Run(k, func(t *testing.T) {
+		fakeClient := userv1fakeclient.NewSimpleClientset(tc.ExistingUsers...)
 
-	testInit := &testInitializer{}
-	strategy := tc.MakeStrategy(userRegistry, testInit)
+		testInit := &testInitializer{}
+		strategy := tc.MakeStrategy(fakeClient.UserV1().Users(), testInit)
 
-	user, err := strategy.UserForNewIdentity(apirequest.NewContext(), tc.PreferredUsername, tc.Identity)
-	if tc.ExpectedError != (err != nil) {
-		t.Errorf("%s: Expected error=%v, got %v", k, tc.ExpectedError, err)
-		return
-	}
-	if !tc.ExpectedError && user.Name != tc.ExpectedUserName {
-		t.Errorf("%s: Expected username %v, got %v", k, tc.ExpectedUserName, user.Name)
-		return
-	}
-
-	if tc.ExpectedInitialize != testInit.called {
-		t.Errorf("%s: Expected initialize=%v, got initialize=%v", k, tc.ExpectedInitialize, testInit.called)
-	}
-
-	for i, action := range actions {
-		if len(tc.ExpectedActions) <= i {
-			t.Errorf("%s: expected %d actions, got extras: %#v", k, len(tc.ExpectedActions), actions[i:])
+		user, err := strategy.UserForNewIdentity(apirequest.NewContext(), tc.PreferredUsername, tc.Identity)
+		if tc.ExpectedError != (err != nil) {
+			t.Errorf("%s: Expected error=%v, got %v", k, tc.ExpectedError, err)
 			return
 		}
-		expectedAction := tc.ExpectedActions[i]
-		if !reflect.DeepEqual(expectedAction, action) {
-			t.Errorf("%s: expected\n\t%s %#v\nGot\n\t%s %#v", k, expectedAction.Name, expectedAction.Object, action.Name, action.Object)
-			continue
+		if !tc.ExpectedError && user.Name != tc.ExpectedUserName {
+			t.Errorf("%s: Expected username %v, got %v", k, tc.ExpectedUserName, user.Name)
+			return
 		}
-	}
-	if len(actions) < len(tc.ExpectedActions) {
-		t.Errorf("Missing %d additional actions:\n\t%#v", len(tc.ExpectedActions)-len(actions), tc.ExpectedActions[len(actions):])
-	}
+
+		if tc.ExpectedInitialize != testInit.called {
+			t.Errorf("%s: Expected initialize=%v, got initialize=%v", k, tc.ExpectedInitialize, testInit.called)
+		}
+
+		tc.ValidateActions(t, fakeClient.Actions())
+	})
 }

@@ -15,9 +15,9 @@ pushd "${OS_ROOT}" > /dev/null
 "$(os::util::find::gopath_binary go-bindata)" \
     -nocompress \
     -nometadata \
-    -prefix "bootstrap" \
-    -pkg "bootstrap" \
-    -o "${OUTPUT_PARENT}/pkg/oc/bootstrap/bindata.go" \
+    -prefix "manifests" \
+    -pkg "manifests" \
+    -o "${OUTPUT_PARENT}/pkg/oc/clusterup/manifests/bindata.go" \
     -ignore "OWNERS" \
     -ignore "README.md" \
     -ignore ".*\.go$" \

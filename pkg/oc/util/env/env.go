@@ -8,18 +8,14 @@ import (
 	"strings"
 
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/validation"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 )
 
 var argumentEnvironment = regexp.MustCompile(`(?ms)^(.+)\=(.*)$`)
-var validArgumentEnvironment = regexp.MustCompile(`(?ms)^(\w+)\=(.*)$`)
 
 func IsEnvironmentArgument(s string) bool {
 	return argumentEnvironment.MatchString(s)
-}
-
-func IsValidEnvironmentArgument(s string) bool {
-	return validArgumentEnvironment.MatchString(s)
 }
 
 func SplitEnvironmentFromResources(args []string) (resources, envArgs []string, ok bool) {
@@ -50,8 +46,6 @@ func parseIntoEnvVar(spec []string, defaultReader io.Reader, envVarType string) 
 	var remove []string
 	for _, envSpec := range spec {
 		switch {
-		case !IsValidEnvironmentArgument(envSpec) && !strings.HasSuffix(envSpec, "-"):
-			return nil, nil, fmt.Errorf("%ss must be of the form key=value and can only contain letters, numbers, and underscores", envVarType)
 		case envSpec == "-":
 			if defaultReader == nil {
 				return nil, nil, fmt.Errorf("when '-' is used, STDIN must be open")
@@ -63,18 +57,19 @@ func parseIntoEnvVar(spec []string, defaultReader io.Reader, envVarType string) 
 			env = append(env, fileEnv...)
 		case strings.Contains(envSpec, "="):
 			parts := strings.SplitN(envSpec, "=", 2)
-			if len(parts) != 2 {
-				return nil, nil, fmt.Errorf("invalid %s: %v", envVarType, envSpec)
+			n, v := parts[0], parts[1]
+			if errs := validation.IsEnvVarName(n); len(errs) != 0 {
+				return nil, nil, fmt.Errorf("%ss must be of the form key=value, but is %q", envVarType, envSpec)
 			}
-			exists.Insert(parts[0])
+			exists.Insert(n)
 			env = append(env, kapi.EnvVar{
-				Name:  parts[0],
-				Value: parts[1],
+				Name:  n,
+				Value: v,
 			})
 		case strings.HasSuffix(envSpec, "-"):
 			remove = append(remove, envSpec[:len(envSpec)-1])
 		default:
-			return nil, nil, fmt.Errorf("unknown %s: %v", envVarType, envSpec)
+			return nil, nil, fmt.Errorf("%ss must be of the form key=value, but is %q", envVarType, envSpec)
 		}
 	}
 	for _, removeLabel := range remove {

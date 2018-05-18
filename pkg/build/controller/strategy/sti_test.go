@@ -90,7 +90,7 @@ func testSTICreateBuildPod(t *testing.T, rootAllowed bool) {
 
 	// strategy ENV variables are whitelisted(filtered) into the container environment, and not all
 	// the values are allowed, so don't expect to see the filtered values in the result.
-	expectedKeys := map[string]string{"BUILD": "", "SOURCE_REPOSITORY": "", "SOURCE_URI": "", "SOURCE_CONTEXT_DIR": "", "SOURCE_REF": "", "ORIGIN_VERSION": "", "BUILD_LOGLEVEL": "", "PUSH_DOCKERCFG_PATH": "", "PULL_DOCKERCFG_PATH": ""}
+	expectedKeys := map[string]string{"BUILD": "", "SOURCE_REPOSITORY": "", "SOURCE_URI": "", "SOURCE_CONTEXT_DIR": "", "SOURCE_REF": "", "BUILD_LOGLEVEL": "", "PUSH_DOCKERCFG_PATH": "", "PULL_DOCKERCFG_PATH": ""}
 	if !rootAllowed {
 		expectedKeys["ALLOWED_UIDS"] = ""
 		expectedKeys["DROP_CAPS"] = ""

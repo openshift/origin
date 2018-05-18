@@ -94,10 +94,7 @@ func ApplyConfigMap(client coreclientv1.ConfigMapsGetter, required *corev1.Confi
 
 	modified := resourcemerge.BoolPtr(false)
 	resourcemerge.EnsureObjectMeta(modified, &existing.ObjectMeta, required.ObjectMeta)
-	if !*modified {
-		return false, nil
-	}
-	if equality.Semantic.DeepEqual(existing.Data, required.Data) {
+	if equality.Semantic.DeepEqual(existing.Data, required.Data) && !*modified {
 		return false, nil
 	}
 	existing.Data = required.Data

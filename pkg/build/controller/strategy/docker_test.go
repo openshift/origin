@@ -55,7 +55,7 @@ func TestDockerCreateBuildPod(t *testing.T) {
 	if actual.Spec.RestartPolicy != v1.RestartPolicyNever {
 		t.Errorf("Expected never, got %#v", actual.Spec.RestartPolicy)
 	}
-	expectedKeys := map[string]string{"BUILD": "", "SOURCE_REPOSITORY": "", "SOURCE_URI": "", "SOURCE_CONTEXT_DIR": "", "SOURCE_REF": "", "ORIGIN_VERSION": "", "BUILD_LOGLEVEL": "", "PUSH_DOCKERCFG_PATH": "", "PULL_DOCKERCFG_PATH": ""}
+	expectedKeys := map[string]string{"BUILD": "", "SOURCE_REPOSITORY": "", "SOURCE_URI": "", "SOURCE_CONTEXT_DIR": "", "SOURCE_REF": "", "BUILD_LOGLEVEL": "", "PUSH_DOCKERCFG_PATH": "", "PULL_DOCKERCFG_PATH": ""}
 	gotKeys := map[string]string{}
 	for _, k := range container.Env {
 		gotKeys[k.Name] = ""

@@ -363,6 +363,7 @@
     ],
     "allowedImportPackages": [
       "vendor/github.com/golang/glog",
+      "vendor/github.com/davecgh/go-spew/spew",
       "github.com/openshift/origin/pkg/authorization/authorizer/scope",
       "github.com/openshift/origin/pkg/oauth/apis/oauth/validation",
       "github.com/openshift/origin/pkg/oauth/scope",
@@ -373,10 +374,6 @@
       "github.com/openshift/origin/pkg/cmd/server/apis/config/install",
       "github.com/openshift/origin/pkg/cmd/server/apis/config/latest",
       "github.com/openshift/origin/pkg/serviceaccounts/oauthclient",
-      "github.com/openshift/origin/pkg/user/apis/user/v1",
-      "github.com/openshift/origin/pkg/user/apis/user",
-      "github.com/openshift/origin/pkg/user/registry/test",
-      "github.com/openshift/origin/pkg/user/registry/useridentitymapping",
       "github.com/openshift/origin/pkg/util/http/links",
       "github.com/openshift/origin/pkg/util/httprequest"
     ]
@@ -417,7 +414,6 @@
       "vendor/github.com/spf13/pflag",
       "vendor/golang.org",
       "vendor/gopkg.in/ldap.v2",
-      "vendor/gopkg.in/yaml.v2",
       "vendor/k8s.io/api",
       "vendor/k8s.io/apimachinery",
       "vendor/k8s.io/apiserver",
@@ -469,6 +465,7 @@
       "github.com/openshift/origin/pkg/bulk",
       "github.com/openshift/origin/pkg/client/config",
       "github.com/openshift/origin/pkg/cmd/flagtypes",
+      "github.com/openshift/origin/pkg/cmd/openshift-operators/generated/clientset/versioned",
       "github.com/openshift/origin/pkg/cmd/server/admin",
       "github.com/openshift/origin/pkg/cmd/server/apis/config",
       "github.com/openshift/origin/pkg/cmd/server/apis/config/install",

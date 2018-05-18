@@ -18,7 +18,7 @@ RUN INSTALL_PKGS=" \
       socat ethtool device-mapper iptables nmap-ncat e2fsprogs \
       xfsprogs device-mapper-persistent-data ceph-common \
       libmnl libnetfilter_conntrack conntrack-tools \
-      libnfnetlink iptables iproute bridge-utils procps-ng ethtool socat openssl \
+      libnfnetlink iproute bridge-utils procps-ng openssl \
       binutils xz kmod-libs kmod sysvinit-tools device-mapper-libs dbus \
       iscsi-initiator-utils bind-utils \
       " && \

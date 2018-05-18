@@ -234,7 +234,7 @@ func (c *RouterController) Commit() {
 
 // processRoute logs and propagates a route event to the plugin
 func (c *RouterController) processRoute(eventType watch.EventType, route *routeapi.Route) {
-	glog.V(4).Infof("Processing Route: %s/%s -> %s", route.Namespace, route.Name, route.Spec.To.Name)
+	glog.V(4).Infof("Processing route: %s/%s -> %s %s", route.Namespace, route.Name, route.Spec.To.Name, route.UID)
 	glog.V(4).Infof("           Alias: %s", route.Spec.Host)
 	if len(route.Spec.Path) > 0 {
 		glog.V(4).Infof("           Path: %s", route.Spec.Path)
