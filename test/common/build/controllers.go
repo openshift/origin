@@ -356,67 +356,82 @@ func waitForWatch(t testingT, name string, w watchapi.Interface) *watchapi.Event
 }
 
 func RunImageChangeTriggerTest(t testingT, clusterAdminBuildClient buildtypedclient.BuildInterface, clusterAdminImageClient imagetypedclient.ImageInterface) {
+	fmt.Println("# RunImageChangeTriggerTest")
 	const (
 		tag              = "latest"
 		streamName       = "test-image-trigger-repo"
 		registryHostname = "registry:8080"
 	)
-
 	testutil.SetAdditionalAllowedRegistries(registryHostname)
+	fmt.Println("# RunImageChangeTriggerTest testutil.SetAdditionalAllowedRegistries")
 
 	imageStream := mockImageStream2(registryHostname, tag)
 	imageStreamMapping := mockImageStreamMapping(imageStream.Name, "someimage", tag, registryHostname+"/openshift/test-image-trigger:"+tag)
 
 	config := imageChangeBuildConfig("sti-imagestreamtag", stiStrategy("ImageStreamTag", streamName+":"+tag))
+	fmt.Println("# RunImageChangeTriggerTest imageChangeBuildConfig")
 	_, err := clusterAdminBuildClient.BuildConfigs(testutil.Namespace()).Create(config)
+	fmt.Println("# RunImageChangeTriggerTest clusterAdminBuildClient.BuildConfigs")
 	if err != nil {
 		t.Fatalf("Couldn't create BuildConfig: %v", err)
 	}
 
 	watch, err := clusterAdminBuildClient.Builds(testutil.Namespace()).Watch(metav1.ListOptions{})
+	fmt.Println("# RunImageChangeTriggerTest clusterAdminBuildClient.Builds")
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to Builds %v", err)
 	}
 	defer watch.Stop()
 
 	watch2, err := clusterAdminBuildClient.BuildConfigs(testutil.Namespace()).Watch(metav1.ListOptions{})
+	fmt.Println("# RunImageChangeTriggerTest clusterAdminBuildClient.BuildConfigs")
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to BuildConfigs %v", err)
 	}
 	defer watch2.Stop()
 
 	imageStream, err = clusterAdminImageClient.ImageStreams(testutil.Namespace()).Create(imageStream)
+	fmt.Println("# RunImageChangeTriggerTest clusterAdminImageClient.ImageStreams")
 	if err != nil {
 		t.Fatalf("Couldn't create ImageStream: %v", err)
 	}
 
 	// give the imagechangecontroller's buildconfig cache time to be updated with the buildconfig object
 	// so it doesn't get a miss when looking up the BC while processing the imagestream update event.
+	fmt.Println("# RunImageChangeTriggerTest pre sleep")
 	time.Sleep(10 * time.Second)
+	fmt.Println("# RunImageChangeTriggerTest post sleep")
 	_, err = clusterAdminImageClient.ImageStreamMappings(testutil.Namespace()).Create(imageStreamMapping)
+	fmt.Println("# RunImageChangeTriggerTest clusterAdminImageClient.ImageStreamMappings")
 	if err != nil {
 		t.Fatalf("Couldn't create Image: %v", err)
 	}
 
 	// wait for initial build event from the creation of the imagerepo with tag latest
 	event := waitForWatch(t, "initial build added", watch)
+	fmt.Println("# RunImageChangeTriggerTest waitForWatch")
 	if e, a := watchapi.Added, event.Type; e != a {
 		t.Fatalf("expected watch event type %s, got %s", e, a)
 	}
 	newBuild := event.Object.(*buildapi.Build)
+	fmt.Println("# RunImageChangeTriggerTest newBuild")
 	strategy := newBuild.Spec.Strategy
+	fmt.Println("# RunImageChangeTriggerTest strategy")
 	if strategy.SourceStrategy.From.Name != registryHostname+"/openshift/test-image-trigger:"+tag {
 		i, _ := clusterAdminImageClient.ImageStreams(testutil.Namespace()).Get(imageStream.Name, metav1.GetOptions{})
 		bc, _ := clusterAdminBuildClient.BuildConfigs(testutil.Namespace()).Get(config.Name, metav1.GetOptions{})
 		t.Fatalf("Expected build with base image %s, got %s\n, imagerepo is %v\ntrigger is %s\n", registryHostname+"/openshift/test-image-trigger:"+tag, strategy.SourceStrategy.From.Name, i, bc.Spec.Triggers[0].ImageChange)
 	}
+	fmt.Println("# RunImageChangeTriggerTest post strategy")
 	// Wait for an update on the specific build that was added
 	watch3, err := clusterAdminBuildClient.Builds(testutil.Namespace()).Watch(metav1.ListOptions{FieldSelector: fields.OneTermEqualSelector("metadata.name", newBuild.Name).String(), ResourceVersion: newBuild.ResourceVersion})
+	fmt.Println("# RunImageChangeTriggerTest clusterAdminBuildClient.Builds")
 	defer watch3.Stop()
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to Builds %v", err)
 	}
 	event = waitForWatch(t, "initial build update", watch3)
+	fmt.Println("# RunImageChangeTriggerTest waitForWatch3")
 	if e, a := watchapi.Modified, event.Type; e != a {
 		t.Fatalf("expected watch event type %s, got %s", e, a)
 	}
@@ -432,14 +447,17 @@ func RunImageChangeTriggerTest(t testingT, clusterAdminBuildClient buildtypedcli
 	// wait for build config to be updated
 WaitLoop:
 	for {
+		fmt.Println("# RunImageChangeTriggerTest WaitLoop")
 		select {
 		case e := <-watch2.ResultChan():
 			event = &e
 			continue
 		case <-time.After(BuildControllerTestWait):
+			fmt.Println("# RunImageChangeTriggerTest break WaitLoop")
 			break WaitLoop
 		}
 	}
+	fmt.Println("# RunImageChangeTriggerTest post WaitLoop")
 	updatedConfig := event.Object.(*buildapi.BuildConfig)
 	if err != nil {
 		t.Fatalf("Couldn't get BuildConfig: %v", err)
@@ -449,18 +467,23 @@ WaitLoop:
 		t.Fatalf("Expected imageID equal to pull spec, got %#v", updatedConfig.Spec.Triggers[0].ImageChange)
 	}
 
+	fmt.Println("# RunImageChangeTriggerTest updateConfig")
 	// clear out the build/buildconfig watches before triggering a new build
 WaitLoop2:
 	for {
+		fmt.Println("# RunImageChangeTriggerTest WaitLoop2")
 		select {
 		case <-watch.ResultChan():
+			fmt.Println("# RunImageChangeTriggerTest WaitLoop2 watch")
 			continue
 		case <-watch2.ResultChan():
+			fmt.Println("# RunImageChangeTriggerTest WaitLoop2 watch2")
 			continue
 		case <-time.After(60 * time.Second):
 			break WaitLoop2
 		}
 	}
+	fmt.Println("# RunImageChangeTriggerTest post WaitLoop2")
 
 	// trigger a build by posting a new image
 	if _, err := clusterAdminImageClient.ImageStreamMappings(testutil.Namespace()).Create(&imageapi.ImageStreamMapping{
@@ -478,7 +501,9 @@ WaitLoop2:
 	}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	fmt.Println("# RunImageChangeTriggerTest waitForWatch")
 	event = waitForWatch(t, "second build created", watch)
+	fmt.Println("# RunImageChangeTriggerTest post waitForWatch")
 	if e, a := watchapi.Added, event.Type; e != a {
 		t.Fatalf("expected watch event type %s, got %s", e, a)
 	}
@@ -492,9 +517,12 @@ WaitLoop2:
 
 	// Listen to events on specific  build
 	watch4, err := clusterAdminBuildClient.Builds(testutil.Namespace()).Watch(metav1.ListOptions{FieldSelector: fields.OneTermEqualSelector("metadata.name", newBuild.Name).String(), ResourceVersion: newBuild.ResourceVersion})
+	fmt.Println("# RunImageChangeTriggerTest watch 4")
 	defer watch4.Stop()
 
+	fmt.Println("# RunImageChangeTriggerTest waitForWatch4")
 	event = waitForWatch(t, "update on second build", watch4)
+	fmt.Println("# RunImageChangeTriggerTest post waitForWatch4")
 	if e, a := watchapi.Modified, event.Type; e != a {
 		t.Fatalf("expected watch event type %s, got %s", e, a)
 	}
@@ -509,6 +537,7 @@ WaitLoop2:
 
 WaitLoop3:
 	for {
+		fmt.Println("# RunImageChangeTriggerTest WaitLoop3")
 		select {
 		case e := <-watch2.ResultChan():
 			event = &e
@@ -517,6 +546,7 @@ WaitLoop3:
 			break WaitLoop3
 		}
 	}
+	fmt.Println("# RunImageChangeTriggerTest post WaitLoop3")
 	updatedConfig = event.Object.(*buildapi.BuildConfig)
 	if e, a := registryHostname+"/openshift/test-image-trigger:ref-2-random", updatedConfig.Spec.Triggers[0].ImageChange.LastTriggeredImageID; e != a {
 		t.Errorf("unexpected trigger id: expected %v, got %v", e, a)
