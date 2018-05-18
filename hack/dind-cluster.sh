@@ -134,31 +134,11 @@ function start() {
   admin_config="$(get-admin-config "${CONFIG_ROOT}")"
   local bin_path
   bin_path="$(os::build::get-bin-output-path "${OS_ROOT}")"
-  cat >"${rc_file}" <<EOF
-# Adds \$2 to the path of \$1 if not already present
-# \$3 is pre or post and governs whether to prepend or append
-function pathmunge {
-    if [[ "\${1}" =~ (^|:)\${2}(\$|:) ]] ; then
-        # Already exists in the original
-        echo "\${1}"
-    else
-        if [[ "\${1}" == "" ]] ; then
-            # No existing path, just return the new
-            echo "\${2}"
-        else
-            # An existing path, but ours is not in it, add it
-            if [[ "\${3}" == "pre" ]]; then
-                echo "\${2}:\${1}"
-            else
-                echo "\${1}:\${2}"
-            fi
-        fi
-    fi
-}
+    cat >"${rc_file}" <<EOF
+$(declare -f pathmunge)
 
-
-export KUBECONFIG="\$(pathmunge "\$KUBECONFIG" "${admin_config}" "post")"
-export PATH="\$(pathmunge "\$PATH" "${bin_path}" "post")"
+export KUBECONFIG="\$(pathmunge "\${KUBECONFIG:-\${HOME}/.kube/config}" "${admin_config}" "post")"
+export PATH="\$(pathmunge "\${PATH}" "${bin_path}" "post")"
 
 export OPENSHIFT_CLUSTER_ID="${cluster_id}"
 export OPENSHIFT_CONFIG_ROOT="${config_root}"
@@ -188,6 +168,29 @@ cluster's rc file to configure the bash environment:
   $ oc get nodes
 "
   fi
+}
+
+# This is embedded in the rc file we generate
+function pathmunge() {
+    : 'Adds $2 to $1 if not already present, using : as a separator'
+    : '$3 must be "pre" or "post" (default) and governs whether to prepend or append to the path'
+    : 'Returns the new composite string'
+    if [[ "${1}" =~ (^|:)${2}($|:) ]] ; then
+        # Already exists in the original
+        echo "${1}"
+    else
+        if [[ "${1}" == "" ]] ; then
+            # No existing path, just return the new
+            echo "${2}"
+        else
+            # An existing path, but ours is not in it, add it
+            if [[ "${3:post}" == "pre" ]]; then
+                echo "${2}:${1}"
+            else
+                echo "${1}:${2}"
+            fi
+        fi
+    fi
 }
 
 function add-network-interface-to-nodes () {
