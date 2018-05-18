@@ -17,12 +17,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 0a3953090aab1070bb7c5cc61bc453a406e67f77
+%global commit f9a5dfd08e010be655a3069b41300651b6e518ca
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=10+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.10.0-0.46.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 KUBE_GIT_VERSION=v1.10.0+b81c8f8 OS_GIT_PATCH=0 KUBE_GIT_COMMIT=b81c8f8 KUBE_GIT_MINOR=10+ OS_GIT_COMMIT=fccdaf1 KUBE_GIT_MAJOR=1 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.16-0-g121edf0 ETCD_GIT_COMMIT=121edf0
+%global os_git_vars OS_GIT_MINOR=10+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.10.0-0.47.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 KUBE_GIT_VERSION=v1.10.0+b81c8f8 OS_GIT_PATCH=0 KUBE_GIT_COMMIT=b81c8f8 KUBE_GIT_MINOR=10+ OS_GIT_COMMIT=25acf23 KUBE_GIT_MAJOR=1 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.16-0-g121edf0 ETCD_GIT_COMMIT=121edf0
 }
 
 %if 0%{?skip_build}
@@ -65,7 +65,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.10.0
-Release:        0.47.0%{?dist}
+Release:        0.48.0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -484,6 +484,52 @@ if [ "$1" -eq 0 ] ; then
 fi
 
 %changelog
+* Fri May 18 2018 Justin Pierce <jupierce@redhat.com> 3.10.0-0.48.0
+- Ignore node created self targeting mirror pods in PodNodeConstraints
+  (mkhan@redhat.com)
+- Set the default kubeconfig when empty (bbennett@redhat.com)
+- Add legacy rbac endpoint integration tests (mrogers@redhat.com)
+- snip dependencies in a future library-go package (deads@redhat.com)
+- bump(*) (agladkov@redhat.com)
+- Add extended tests for oc image mirror (agladkov@redhat.com)
+- vanity rename of clusterup package (deads@redhat.com)
+- UPSTREAM: 63966: kubectl: fix Flatten() when used without Latest()
+  (mfojtik@redhat.com)
+- plumb the values for the webconsole to the operator (deads@redhat.com)
+- stop adding controller version to build pod (deads@redhat.com)
+- Use the route informer to detect conflicts (ccoleman@redhat.com)
+- up: fix tsb image template parameter (mfojtik@redhat.com)
+- Remove jpeeler from cmd/OWNERS (jpeeler@redhat.com)
+- openshift-node-config: resolve cluster-ip when 0.0.0.0 is specified
+  (gscrivan@redhat.com)
+- UPSTREAM: 62543: Timeout on instances.NodeAddresses cloud provider request
+  (jchaloup@redhat.com)
+- UPSTREAM: 63903: Revert "Openstack: register metadata.hostname as node name"
+  (jliggitt@redhat.com)
+- UPSTREAM: 63903: Revert "Split out the hostname when default dhcp_domain is
+  used in nova.conf" (jliggitt@redhat.com)
+- UPSTREAM: 63903: Revert "Specify DHCP domain for hostname"
+  (jliggitt@redhat.com)
+- unwind the version packages (deads@redhat.com)
+- Use more routes and expect the stress test to hit the hard cap
+  (ccoleman@redhat.com)
+- allow cluster up to produce a non-openshift cluster (deads@redhat.com)
+- oc new-app: allow 'dot' in ENV variable names and annotations
+  (jwozniak@redhat.com)
+- UPSTREAM: 63831: Close all kubelet->API connections on heartbeat failure
+  (jliggitt@redhat.com)
+- UPSTREAM: 63831: Always track kubelet -> API connections
+  (jliggitt@redhat.com)
+- remove internal openshift refs from oauthserver (deads@redhat.com)
+- images: remove duplicate packages (jwozniak@redhat.com)
+- UPSTREAM: docker/distribution: <carry>: do not strip docker.io image path in
+  client (sjenning@redhat.com)
+- Revert "router: assign system:auth-delegator role" (spasquie@redhat.com)
+- router: assign system:auth-delegator role (spasquie@redhat.com)
+- router: remove useless annotations (spasquie@redhat.com)
+- policy: fix system:router permissions (spasquie@redhat.com)
+- Move image stream tag and image columns to -o wide (ccoleman@redhat.com)
+
 * Tue May 15 2018 Justin Pierce <jupierce@redhat.com> 3.10.0-0.47.0
 - Remove --extended-test-output-dir and use --report-dir in e2e
   (ccoleman@redhat.com)
