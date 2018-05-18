@@ -15,6 +15,7 @@ import (
 	"k8s.io/kubernetes/pkg/apis/batch"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/extensions"
+	"k8s.io/kubernetes/pkg/auth/nodeidentifier"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 
 	_ "github.com/openshift/origin/pkg/api/install"
@@ -99,11 +100,39 @@ func TestPodNodeConstraints(t *testing.T) {
 			expectedResource: "pods/binding",
 			expectedErrorMsg: "",
 		},
+		// 7: expect nodeName to succeed with node user self targeting mirror pod
+		{
+			config:           testConfig(),
+			resource:         nodeNameMirrorPod(),
+			userinfo:         &user.DefaultInfo{Name: "system:node:frank", Groups: []string{user.NodesGroup}},
+			expectedErrorMsg: "",
+		},
+		// 8: expect nodeName to fail with node user self targeting non-mirror pod
+		{
+			config:           testConfig(),
+			resource:         nodeNamePod(),
+			userinfo:         &user.DefaultInfo{Name: "system:node:frank", Groups: []string{user.NodesGroup}},
+			expectedErrorMsg: "node selection by nodeName is prohibited by policy for your role",
+		},
+		// 9: expect nodeName to fail with node user non-self targeting mirror pod
+		{
+			config:           testConfig(),
+			resource:         nodeNameMirrorPod(),
+			userinfo:         &user.DefaultInfo{Name: "system:node:bob", Groups: []string{user.NodesGroup}},
+			expectedErrorMsg: "node selection by nodeName is prohibited by policy for your role",
+		},
+		// 10: expect nodeName to fail with node user non-self targeting non-mirror pod
+		{
+			config:           testConfig(),
+			resource:         nodeNamePod(),
+			userinfo:         &user.DefaultInfo{Name: "system:node:bob", Groups: []string{user.NodesGroup}},
+			expectedErrorMsg: "node selection by nodeName is prohibited by policy for your role",
+		},
 	}
 	for i, tc := range tests {
 		var expectedError error
 		errPrefix := fmt.Sprintf("%d", i)
-		prc := NewPodNodeConstraints(tc.config)
+		prc := NewPodNodeConstraints(tc.config, nodeidentifier.NewDefaultNodeIdentifier())
 		prc.(initializer.WantsAuthorizer).SetAuthorizer(fakeAuthorizer(t))
 		err := prc.(admission.InitializationValidator).ValidateInitialization()
 		if err != nil {
@@ -123,7 +152,7 @@ func TestPodNodeConstraintsPodUpdate(t *testing.T) {
 	ns := metav1.NamespaceDefault
 	var expectedError error
 	errPrefix := "PodUpdate"
-	prc := NewPodNodeConstraints(testConfig())
+	prc := NewPodNodeConstraints(testConfig(), nodeidentifier.NewDefaultNodeIdentifier())
 	prc.(initializer.WantsAuthorizer).SetAuthorizer(fakeAuthorizer(t))
 	err := prc.(admission.InitializationValidator).ValidateInitialization()
 	if err != nil {
@@ -139,7 +168,7 @@ func TestPodNodeConstraintsNonHandledResources(t *testing.T) {
 	ns := metav1.NamespaceDefault
 	errPrefix := "ResourceQuotaTest"
 	var expectedError error
-	prc := NewPodNodeConstraints(testConfig())
+	prc := NewPodNodeConstraints(testConfig(), nodeidentifier.NewDefaultNodeIdentifier())
 	prc.(initializer.WantsAuthorizer).SetAuthorizer(fakeAuthorizer(t))
 	err := prc.(admission.InitializationValidator).ValidateInitialization()
 	if err != nil {
@@ -257,7 +286,7 @@ func TestPodNodeConstraintsResources(t *testing.T) {
 				for _, top := range testops {
 					var expectedError error
 					errPrefix := fmt.Sprintf("%s; %s; %s", tr.prefix, tp.prefix, top.operation)
-					prc := NewPodNodeConstraints(tc.config)
+					prc := NewPodNodeConstraints(tc.config, nodeidentifier.NewDefaultNodeIdentifier())
 					prc.(initializer.WantsAuthorizer).SetAuthorizer(fakeAuthorizer(t))
 					err := prc.(admission.InitializationValidator).ValidateInitialization()
 					if err != nil {
@@ -308,6 +337,13 @@ func nodeNameNodeSelectorPod() *kapi.Pod {
 
 func nodeNamePod() *kapi.Pod {
 	pod := &kapi.Pod{}
+	pod.Spec.NodeName = "frank"
+	return pod
+}
+
+func nodeNameMirrorPod() *kapi.Pod {
+	pod := &kapi.Pod{}
+	pod.Annotations = map[string]string{kapi.MirrorPodAnnotationKey: "true"}
 	pod.Spec.NodeName = "frank"
 	return pod
 }
