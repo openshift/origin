@@ -160,7 +160,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 					break Wait
 				}
 			}
-			o.Expect(writes).To(o.BeNumerically("<", 10))
+			o.Expect(writes).To(o.BeNumerically("<=", 10))
 
 			verifyCommandEquivalent(oc.KubeClient(), rs, "md5sum /var/lib/haproxy/conf/*")
 		})
@@ -174,7 +174,8 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 					[]string{
 						"--loglevel=4",
 						fmt.Sprintf("--namespace=%s", ns),
-						"--resync-interval=2m",
+						// the contention tracker is resync / 10, so this will give us 2 minutes of contention tracking
+						"--resync-interval=20m",
 						"--name=conflicting",
 						"--override-hostname",
 						// causes each pod to have a different value
@@ -189,7 +190,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 			g.By("creating multiple routes")
 			client := routeclientset.NewForConfigOrDie(oc.AdminConfig()).Route().Routes(ns)
 			var rv string
-			for i := 0; i < 10; i++ {
+			for i := 0; i < 20; i++ {
 				_, err := client.Create(&routev1.Route{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: fmt.Sprintf("%d", i),
@@ -210,7 +211,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 				if err != nil {
 					return false, err
 				}
-				o.Expect(routes.Items).To(o.HaveLen(10))
+				o.Expect(routes.Items).To(o.HaveLen(20))
 				other := 0
 				conflicting := 0
 				for _, route := range routes.Items {
@@ -233,7 +234,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 				}
 				// if other routers are writing status, wait until we get a complete
 				// set since we don't have a way to tell other routers to ignore us
-				if conflicting < 3 && other%10 != 0 {
+				if conflicting < 3 && other%20 != 0 {
 					return false, nil
 				}
 				outputIngress(routes.Items...)
@@ -248,7 +249,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 			func() {
 				defer w.Stop()
-				timer := time.NewTimer(10 * time.Second)
+				timer := time.NewTimer(15 * time.Second)
 				ch := w.ResultChan()
 			Wait:
 				for i := 0; ; i++ {
@@ -260,7 +261,8 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 						break Wait
 					}
 				}
-				o.Expect(writes).To(o.BeNumerically("<", 10))
+				// we expect to see no more than 10 writes per router (we should hit the hard limit)
+				o.Expect(writes).To(o.BeNumerically("<", 30))
 			}()
 
 			// the os_http_be.map file will vary, so only check the haproxy config
