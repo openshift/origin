@@ -12,9 +12,16 @@ import (
 
 // TestResourceVisitor_Visit is used to check for race conditions
 func TestResourceVisitor_Visit(t *testing.T) {
-	// set glog levels so we write to Out
-	flag.CommandLine.Lookup("v").Value.Set("2")
-	flag.CommandLine.Lookup("stderrthreshold").Value.Set("INFO")
+	// get log level flag for glog
+	verbosity := flag.CommandLine.Lookup("v").Value
+	// save its original value
+	origVerbosity := verbosity.String()
+	// set log level high enough so we write to ResourceOptions.Out on each success
+	verbosity.Set("1")
+	// restore the original flag value when we return
+	defer func() {
+		verbosity.Set(origVerbosity)
+	}()
 
 	type fields struct {
 		Out      mapWriter
