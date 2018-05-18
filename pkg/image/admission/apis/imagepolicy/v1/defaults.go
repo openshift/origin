@@ -45,7 +45,16 @@ func SetDefaults_ImagePolicyConfig(obj *ImagePolicyConfig) {
 				}
 			}
 		}
+	} else {
+		// default the resolution policy to the global default
+		for i := range obj.ResolutionRules {
+			if len(obj.ResolutionRules[i].Policy) != 0 {
+				continue
+			}
+			obj.ResolutionRules[i].Policy = obj.ResolveImages
+		}
 	}
+
 }
 
 func addDefaultingFuncs(scheme *runtime.Scheme) error {
