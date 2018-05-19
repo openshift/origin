@@ -32,6 +32,10 @@
                 "name": "${DATABASE_SERVICE_NAME}"
             },
             "stringData": {
+                "database-type": "mongodb",
+                "database-uri": "mongodb://${DATABASE_SERVICE_NAME}:27017",
+                "database-host": "${DATABASE_SERVICE_NAME}",
+                "database-port": "27017",
                 "database-admin-password": "${MONGODB_ADMIN_PASSWORD}",
                 "database-name": "${MONGODB_DATABASE}",
                 "database-password": "${MONGODB_PASSWORD}",

@@ -29,6 +29,10 @@
                 "name": "${DATABASE_SERVICE_NAME}"
             },
             "stringData": {
+                "database-type": "redis",
+                "database-uri": "redis://${DATABASE_SERVICE_NAME}:6379",
+                "database-host": "${DATABASE_SERVICE_NAME}",
+                "database-port": "6379",
                 "database-password": "${REDIS_PASSWORD}"
             }
         },

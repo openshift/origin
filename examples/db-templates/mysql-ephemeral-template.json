@@ -32,6 +32,10 @@
                 "name": "${DATABASE_SERVICE_NAME}"
             },
             "stringData": {
+                "database-type": "mysql",
+                "database-uri": "mysql://${DATABASE_SERVICE_NAME}:3306",
+                "database-host": "${DATABASE_SERVICE_NAME}",
+                "database-port": "3306",
                 "database-name": "${MYSQL_DATABASE}",
                 "database-password": "${MYSQL_PASSWORD}",
                 "database-root-password": "${MYSQL_ROOT_PASSWORD}",

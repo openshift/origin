@@ -12574,6 +12574,10 @@ var _examplesDbTemplatesMariadbEphemeralTemplateJson = []byte(`{
                 "name": "${DATABASE_SERVICE_NAME}"
             },
             "stringData": {
+                "database-type": "mysql",
+                "database-uri": "mysql://${DATABASE_SERVICE_NAME}:3306",
+                "database-host": "${DATABASE_SERVICE_NAME}",
+                "database-port": "3306",
                 "database-name": "${MYSQL_DATABASE}",
                 "database-password": "${MYSQL_PASSWORD}",
                 "database-root-password": "${MYSQL_ROOT_PASSWORD}",
@@ -12848,6 +12852,10 @@ var _examplesDbTemplatesMariadbPersistentTemplateJson = []byte(`{
                 "name": "${DATABASE_SERVICE_NAME}"
             },
             "stringData": {
+                "database-type": "mysql",
+                "database-uri": "mysql://${DATABASE_SERVICE_NAME}:3306",
+                "database-host": "${DATABASE_SERVICE_NAME}",
+                "database-port": "3306",
                 "database-name": "${MYSQL_DATABASE}",
                 "database-password": "${MYSQL_PASSWORD}",
                 "database-root-password": "${MYSQL_ROOT_PASSWORD}",
@@ -13146,6 +13154,10 @@ var _examplesDbTemplatesMongodbEphemeralTemplateJson = []byte(`{
                 "name": "${DATABASE_SERVICE_NAME}"
             },
             "stringData": {
+                "database-type": "mongodb",
+                "database-uri": "mongodb://${DATABASE_SERVICE_NAME}:27017",
+                "database-host": "${DATABASE_SERVICE_NAME}",
+                "database-port": "27017",
                 "database-admin-password": "${MONGODB_ADMIN_PASSWORD}",
                 "database-name": "${MONGODB_DATABASE}",
                 "database-password": "${MONGODB_PASSWORD}",
@@ -13439,6 +13451,10 @@ var _examplesDbTemplatesMongodbPersistentTemplateJson = []byte(`{
                 "name": "${DATABASE_SERVICE_NAME}"
             },
             "stringData": {
+                "database-type": "mongodb",
+                "database-uri": "mongodb://${DATABASE_SERVICE_NAME}:27017",
+                "database-host": "${DATABASE_SERVICE_NAME}",
+                "database-port": "27017",
                 "database-admin-password": "${MONGODB_ADMIN_PASSWORD}",
                 "database-name": "${MONGODB_DATABASE}",
                 "database-password": "${MONGODB_PASSWORD}",
@@ -13756,6 +13772,10 @@ var _examplesDbTemplatesMysqlEphemeralTemplateJson = []byte(`{
                 "name": "${DATABASE_SERVICE_NAME}"
             },
             "stringData": {
+                "database-type": "mysql",
+                "database-uri": "mysql://${DATABASE_SERVICE_NAME}:3306",
+                "database-host": "${DATABASE_SERVICE_NAME}",
+                "database-port": "3306",
                 "database-name": "${MYSQL_DATABASE}",
                 "database-password": "${MYSQL_PASSWORD}",
                 "database-root-password": "${MYSQL_ROOT_PASSWORD}",
@@ -14049,6 +14069,10 @@ var _examplesDbTemplatesMysqlPersistentTemplateJson = []byte(`{
                 "name": "${DATABASE_SERVICE_NAME}"
             },
             "stringData": {
+                "database-type": "mysql",
+                "database-uri": "mysql://${DATABASE_SERVICE_NAME}:3306",
+                "database-host": "${DATABASE_SERVICE_NAME}",
+                "database-port": "3306",
                 "database-name": "${MYSQL_DATABASE}",
                 "database-password": "${MYSQL_PASSWORD}",
                 "database-root-password": "${MYSQL_ROOT_PASSWORD}",
@@ -14346,6 +14370,10 @@ var _examplesDbTemplatesPostgresqlEphemeralTemplateJson = []byte(`{
                 "name": "${DATABASE_SERVICE_NAME}"
             },
             "stringData": {
+                "database-type": "postgresql",
+                "database-uri": "postgres://${DATABASE_SERVICE_NAME}:5432",
+                "database-host": "${DATABASE_SERVICE_NAME}",
+                "database-port": "5432",
                 "database-name": "${POSTGRESQL_DATABASE}",
                 "database-password": "${POSTGRESQL_PASSWORD}",
                 "database-user": "${POSTGRESQL_USER}"
@@ -14620,6 +14648,10 @@ var _examplesDbTemplatesPostgresqlPersistentTemplateJson = []byte(`{
                 "name": "${DATABASE_SERVICE_NAME}"
             },
             "stringData": {
+                "database-type": "postgresql",
+                "database-uri": "postgres://${DATABASE_SERVICE_NAME}:5432",
+                "database-host": "${DATABASE_SERVICE_NAME}",
+                "database-port": "5432",
                 "database-name": "${POSTGRESQL_DATABASE}",
                 "database-password": "${POSTGRESQL_PASSWORD}",
                 "database-user": "${POSTGRESQL_USER}"
@@ -14916,6 +14948,10 @@ var _examplesDbTemplatesRedisEphemeralTemplateJson = []byte(`{
                 "name": "${DATABASE_SERVICE_NAME}"
             },
             "stringData": {
+                "database-type": "redis",
+                "database-uri": "redis://${DATABASE_SERVICE_NAME}:6379",
+                "database-host": "${DATABASE_SERVICE_NAME}",
+                "database-port": "6379",
                 "database-password": "${REDIS_PASSWORD}"
             }
         },
@@ -15153,6 +15189,10 @@ var _examplesDbTemplatesRedisPersistentTemplateJson = []byte(`{
                 "name": "${DATABASE_SERVICE_NAME}"
             },
             "stringData": {
+                "database-type": "redis",
+                "database-uri": "redis://${DATABASE_SERVICE_NAME}:6379",
+                "database-host": "${DATABASE_SERVICE_NAME}",
+                "database-port": "6379",
                 "database-password": "${REDIS_PASSWORD}"
             }
         },

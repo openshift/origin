@@ -31,6 +31,10 @@
                 "name": "${DATABASE_SERVICE_NAME}"
             },
             "stringData": {
+                "database-type": "postgresql",
+                "database-uri": "postgres://${DATABASE_SERVICE_NAME}:5432",
+                "database-host": "${DATABASE_SERVICE_NAME}",
+                "database-port": "5432",
                 "database-name": "${POSTGRESQL_DATABASE}",
                 "database-password": "${POSTGRESQL_PASSWORD}",
                 "database-user": "${POSTGRESQL_USER}"
