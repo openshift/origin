@@ -120,7 +120,7 @@ func (c *CLI) ChangeUser(name string) *CLI {
 		FatalErr(err)
 	}
 
-	c.configPath = filepath.Join(e2e.TestContext.OutputDir, name+".kubeconfig")
+	c.configPath = filepath.Join("", name+".kubeconfig")
 	err = clientcmd.WriteToFile(*kubeConfig, c.configPath)
 	if err != nil {
 		FatalErr(err)

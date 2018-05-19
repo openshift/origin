@@ -232,7 +232,7 @@ var _ = g.Describe("idling and unidling", func() {
 		g.By("Creating the idling file")
 		serviceNames := resources["service"]
 
-		targetFile, err := ioutil.TempFile(exutil.TestContext.OutputDir, "idling-services-")
+		targetFile, err := ioutil.TempFile("", "idling-services-")
 		o.Expect(err).ToNot(o.HaveOccurred())
 		defer targetFile.Close()
 		idlingFile = targetFile.Name()
