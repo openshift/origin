@@ -16285,6 +16285,7 @@ objects:
           - "6443"
           - -v
           - "3"
+          - --cluster-id-configmap-namespace=kube-service-catalog
           - --leader-election-namespace
           - kube-service-catalog
           - --leader-elect-resource-lock
