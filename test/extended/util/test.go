@@ -256,7 +256,6 @@ var (
 
 		// Doesn't work on scaled up clusters
 		`\[Feature:ImagePrune\]`,
-		`\[Feature:ImageMirror\]`,
 		// Quota isn't turned on by default, we should do that and then reenable these tests
 		`\[Feature:ImageQuota\]`,
 		// Currently disabled by default
