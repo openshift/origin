@@ -34,7 +34,6 @@ CLI commands support both local (specific to the given command) and global (work
 |`--client-key` *filename*   | Look in *filename* for the TLS client key. |
 |`--certificate-authority` *filename* | Look in *filename* for the CA certificate. |
 |`--auth-path` *filename*    | Look in *filename* for the auth info (for HTTPS). |
-|`--api-version` *version*   | Specify API version *version* to use against the server. |
 |`--insecure-skip-tls-verify` | Skip SSL certificate validation (makes HTTPS insecure). |
 |`--help` (`-h`)             | Display help for the specified command. |
 
