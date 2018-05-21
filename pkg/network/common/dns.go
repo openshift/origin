@@ -3,7 +3,6 @@ package common
 import (
 	"fmt"
 	"net"
-	"os/exec"
 	"sync"
 	"time"
 
@@ -12,12 +11,9 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
-	kexec "k8s.io/utils/exec"
 )
 
 const (
-	dig = "dig"
-
 	defaultTTL = 30 * time.Minute
 )
 
@@ -31,9 +27,6 @@ type dnsValue struct {
 }
 
 type DNS struct {
-	// Runs shell commands
-	execer kexec.Interface
-
 	// Protects dnsMap operations
 	lock sync.Mutex
 	// Holds dns name and its corresponding information
@@ -45,21 +38,13 @@ type DNS struct {
 	port string
 }
 
-func CheckDNSResolver() error {
-	if _, err := exec.LookPath(dig); err != nil {
-		return fmt.Errorf("%s is not installed", dig)
-	}
-	return nil
-}
-
-func NewDNS(execer kexec.Interface, resolverConfigFile string) (*DNS, error) {
+func NewDNS(resolverConfigFile string) (*DNS, error) {
 	config, err := dns.ClientConfigFromFile(resolverConfigFile)
 	if err != nil || config == nil {
 		return nil, fmt.Errorf("cannot initialize the resolver: %v", err)
 	}
 
 	return &DNS{
-		execer:      execer,
 		dnsMap:      map[string]dnsValue{},
 		nameservers: filterIPv4Servers(config.Servers),
 		port:        config.Port,
