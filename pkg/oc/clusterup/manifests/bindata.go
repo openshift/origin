@@ -49,6 +49,7 @@
 // install/openshift-apiserver/install.yaml
 // install/openshift-controller-manager/install-rbac.yaml
 // install/openshift-controller-manager/install.yaml
+// install/openshift-logging/install.yaml
 // install/openshift-web-console-operator/install-rbac.yaml
 // install/openshift-web-console-operator/install.yaml
 // install/origin-web-console/console-config.yaml
@@ -17654,6 +17655,87 @@ func installOpenshiftControllerManagerInstallYaml() (*asset, error) {
 	return a, nil
 }
 
+var _installOpenshiftLoggingInstallYaml = []byte(`apiVersion: v1
+kind: Template
+metadata:
+  name: openshift-logging-apb
+objects:
+- apiVersion: v1
+  kind: Secret
+  metadata:
+    namespace: ${NAMESPACE}
+    name: openshift-logging-apb-admin-config
+  type: Opaque
+  data:
+    admin.kubeconfig: "${ADMIN_KUBECONFIG}"
+
+- apiVersion: v1
+  kind: Secret
+  metadata:
+    namespace: ${NAMESPACE}
+    name: openshift-logging-apb-certs
+  type: Opaque
+
+- apiVersion: batch/v1
+  kind: Job
+  metadata:
+    name: openshift-logging-apb
+    namespace: "${NAMESPACE}"
+  spec:
+    backoffLimit: 5
+    activeDeadlineSeconds: 1800
+    template:
+      spec:
+        restartPolicy: OnFailure
+        containers:
+        - image: docker.io/ansibleplaybookbundle/openshift-logging-apb:latest
+          name: openshift-logging-apb
+          args: [ "provision", "-e", "public_hostname=${PUBLIC_HOSTNAME}" ]
+          volumeMounts:
+          - mountPath: /tmp/logging-config
+            name: admin-kubeconfig
+          - mountPath: /tmp/logging-certs
+            name: certs
+        volumes:
+        - name: admin-kubeconfig
+          secret:
+            defaultMode: 444
+            secretName: openshift-logging-apb-admin-config
+        - name: certs
+          secret:
+            defaultMode: 444
+            secretName: openshift-logging-apb-certs
+
+parameters:
+- description: Namespace of the project that is being deploy
+  displayname: broker client cert key
+  name: NAMESPACE
+  value: "openshift-logging"
+
+- description: Cluster public hostname
+  displayname: public hostname
+  name: PUBLIC_HOSTNAME
+
+- description: admin.kubeconfig file
+  displayname: admin.kubeconfig
+  name: ADMIN_KUBECONFIG
+`)
+
+func installOpenshiftLoggingInstallYamlBytes() ([]byte, error) {
+	return _installOpenshiftLoggingInstallYaml, nil
+}
+
+func installOpenshiftLoggingInstallYaml() (*asset, error) {
+	bytes, err := installOpenshiftLoggingInstallYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "install/openshift-logging/install.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _installOpenshiftWebConsoleOperatorInstallRbacYaml = []byte(`apiVersion: template.openshift.io/v1
 kind: Template
 parameters:
@@ -18462,6 +18544,7 @@ var _bindata = map[string]func() (*asset, error){
 	"install/openshift-apiserver/install.yaml": installOpenshiftApiserverInstallYaml,
 	"install/openshift-controller-manager/install-rbac.yaml": installOpenshiftControllerManagerInstallRbacYaml,
 	"install/openshift-controller-manager/install.yaml": installOpenshiftControllerManagerInstallYaml,
+	"install/openshift-logging/install.yaml": installOpenshiftLoggingInstallYaml,
 	"install/openshift-web-console-operator/install-rbac.yaml": installOpenshiftWebConsoleOperatorInstallRbacYaml,
 	"install/openshift-web-console-operator/install.yaml": installOpenshiftWebConsoleOperatorInstallYaml,
 	"install/origin-web-console/console-config.yaml": installOriginWebConsoleConsoleConfigYaml,
@@ -18598,6 +18681,9 @@ var _bintree = &bintree{nil, map[string]*bintree{
 		"openshift-controller-manager": &bintree{nil, map[string]*bintree{
 			"install-rbac.yaml": &bintree{installOpenshiftControllerManagerInstallRbacYaml, map[string]*bintree{}},
 			"install.yaml": &bintree{installOpenshiftControllerManagerInstallYaml, map[string]*bintree{}},
+		}},
+		"openshift-logging": &bintree{nil, map[string]*bintree{
+			"install.yaml": &bintree{installOpenshiftLoggingInstallYaml, map[string]*bintree{}},
 		}},
 		"openshift-web-console-operator": &bintree{nil, map[string]*bintree{
 			"install-rbac.yaml": &bintree{installOpenshiftWebConsoleOperatorInstallRbacYaml, map[string]*bintree{}},

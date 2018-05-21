@@ -130,7 +130,7 @@ func (opt installReadyTemplate) Install(dockerClient dockerhelper.Interface) err
 		return nil
 	}
 
-	if err := wait.PollImmediate(time.Second, 5*time.Minute, opt.template.WaitCondition); err != nil {
+	if err := wait.PollImmediate(time.Second, 20*time.Minute, opt.template.WaitCondition); err != nil {
 		return err
 	}
 
