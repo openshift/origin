@@ -347,7 +347,10 @@ func RunBuildControllerPodSyncTest(t testingT, buildClient buildtypedclient.Buil
 
 func waitForWatch(t testingT, name string, w watchapi.Interface) *watchapi.Event {
 	select {
-	case e := <-w.ResultChan():
+	case e, ok := <-w.ResultChan():
+		if !ok {
+			t.Fatalf("Channel closed waiting for watch: %s", name)
+		}
 		return &e
 	case <-time.After(BuildControllersWatchTimeout):
 		t.Fatalf("Timed out waiting for watch: %s", name)
@@ -430,13 +433,17 @@ func RunImageChangeTriggerTest(t testingT, clusterAdminBuildClient buildtypedcli
 	}
 
 	// wait for build config to be updated
+	timeout := time.After(BuildControllerTestWait)
 WaitLoop:
 	for {
 		select {
-		case e := <-watch2.ResultChan():
+		case e, ok := <-watch2.ResultChan():
+			if !ok {
+				t.Fatalf("Channel closed waiting for watch: build config update in WaitLoop")
+			}
 			event = &e
 			continue
-		case <-time.After(BuildControllerTestWait):
+		case <-timeout:
 			break WaitLoop
 		}
 	}
@@ -450,14 +457,21 @@ WaitLoop:
 	}
 
 	// clear out the build/buildconfig watches before triggering a new build
+	timeout = time.After(60 * time.Second)
 WaitLoop2:
 	for {
 		select {
-		case <-watch.ResultChan():
+		case _, ok := <-watch.ResultChan():
+			if !ok {
+				t.Fatalf("Channel closed waiting for watch: build update in WaitLoop2")
+			}
 			continue
-		case <-watch2.ResultChan():
+		case _, ok := <-watch2.ResultChan():
+			if !ok {
+				t.Fatalf("Channel closed waiting for watch: build config update in WaitLoop2")
+			}
 			continue
-		case <-time.After(60 * time.Second):
+		case <-timeout:
 			break WaitLoop2
 		}
 	}
@@ -507,13 +521,17 @@ WaitLoop2:
 		t.Fatalf("Expected build with label %s=%s from build config got %s=%s", "testlabel", "testvalue", "testlabel", newBuild.Labels["testlabel"])
 	}
 
+	timeout = time.After(BuildControllerTestWait)
 WaitLoop3:
 	for {
 		select {
-		case e := <-watch2.ResultChan():
+		case e, ok := <-watch2.ResultChan():
+			if !ok {
+				t.Fatalf("Channel closed waiting for watch: build config update in WaitLoop3")
+			}
 			event = &e
 			continue
-		case <-time.After(BuildControllerTestWait):
+		case <-timeout:
 			break WaitLoop3
 		}
 	}
