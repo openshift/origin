@@ -445,6 +445,8 @@ func RunImageChangeTriggerTest(t testingT, clusterAdminBuildClient buildtypedcli
 	}
 
 	// wait for build config to be updated
+
+	timeout := time.After(BuildControllerTestWait)
 WaitLoop:
 	for {
 		fmt.Println("# RunImageChangeTriggerTest WaitLoop")
@@ -452,8 +454,8 @@ WaitLoop:
 		case e := <-watch2.ResultChan():
 			event = &e
 			continue
-		case <-time.After(BuildControllerTestWait):
-			fmt.Println("# RunImageChangeTriggerTest break WaitLoop")
+		case <-timeout:
+			fmt.Println(time.Now().UTC(), "# RunImageChangeTriggerTest break WaitLoop")
 			break WaitLoop
 		}
 	}
@@ -469,17 +471,19 @@ WaitLoop:
 
 	fmt.Println("# RunImageChangeTriggerTest updateConfig")
 	// clear out the build/buildconfig watches before triggering a new build
+	timeout = time.After(60 * time.Second)
 WaitLoop2:
 	for {
-		fmt.Println("# RunImageChangeTriggerTest WaitLoop2")
+		//fmt.Println("# RunImageChangeTriggerTest WaitLoop2")
 		select {
 		case <-watch.ResultChan():
-			fmt.Println("# RunImageChangeTriggerTest WaitLoop2 watch")
+			//fmt.Println("# RunImageChangeTriggerTest WaitLoop2 watch")
 			continue
 		case <-watch2.ResultChan():
-			fmt.Println("# RunImageChangeTriggerTest WaitLoop2 watch2")
+			//fmt.Println("# RunImageChangeTriggerTest WaitLoop2 watch2")
 			continue
-		case <-time.After(60 * time.Second):
+		case <-timeout:
+			fmt.Println(time.Now().UTC(), "# RunImageChangeTriggerTest break WaitLoop2")
 			break WaitLoop2
 		}
 	}
@@ -535,6 +539,7 @@ WaitLoop2:
 		t.Fatalf("Expected build with label %s=%s from build config got %s=%s", "testlabel", "testvalue", "testlabel", newBuild.Labels["testlabel"])
 	}
 
+	timeout = time.After(BuildControllerTestWait)
 WaitLoop3:
 	for {
 		fmt.Println("# RunImageChangeTriggerTest WaitLoop3")
@@ -542,7 +547,7 @@ WaitLoop3:
 		case e := <-watch2.ResultChan():
 			event = &e
 			continue
-		case <-time.After(BuildControllerTestWait):
+		case <-timeout:
 			break WaitLoop3
 		}
 	}
