@@ -1,5 +1,5 @@
 hash: ce0210531a96e7705ee37f95e133bc8f04449108d83b7b6475afb65712dc10e3
-updated: 2018-05-16T14:43:03.299925392+02:00
+updated: 2018-05-15T07:26:45.406556611-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -409,11 +409,6 @@ imports:
 - name: github.com/fsouza/go-dockerclient
   version: 7511300f03c521cfc8e07e88ea8c915add790f50
   repo: https://github.com/openshift/go-dockerclient.git
-- name: github.com/garyburd/redigo
-  version: b8dc90050f24c1a73a52f107f3f575be67b21b7c
-  subpackages:
-  - internal
-  - redis
 - name: github.com/getsentry/raven-go
   version: 32a13797442ccb601b11761d74232773c1402d14
 - name: github.com/ghodss/yaml
@@ -605,8 +600,6 @@ imports:
   - testhelper
 - name: github.com/gorilla/context
   version: 215affda49addc4c8ef7e2534915df2c8c35c6cd
-- name: github.com/gorilla/handlers
-  version: 13a38d26174b16d5b4bf6f1094c1389ec9879572
 - name: github.com/gorilla/mux
   version: 8096f47503459bcc74d1f4c487b7e6e42e5746b5
 - name: github.com/gorilla/securecookie
@@ -1096,11 +1089,6 @@ imports:
   version: 4c012f6dcd9546820e378d0bdda4d8fc772cdfea
 - name: github.com/spf13/viper
   version: 7fb2782df3d83e0036cc89f461ed0422628776f4
-- name: github.com/stevvooe/resumable
-  version: 2aaf90b2ceea5072cb503ef2a620b08ff3119870
-  subpackages:
-  - sha256
-  - sha512
 - name: github.com/storageos/go-api
   version: 3a4032328d99c1b43fbda3d85bd3c80fa06e1707
   subpackages:

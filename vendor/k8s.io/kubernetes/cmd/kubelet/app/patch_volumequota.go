@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"path"
 
 	"github.com/golang/glog"
 	yaml "gopkg.in/yaml.v2"
@@ -39,10 +38,10 @@ type VolumeConfig struct {
 
 // LocalQuota contains options for controlling local volume quota on the node.
 type LocalQuota struct {
-	// perFSGroupInGiB can be specified to enable a quota on local storage use in GiB per unique FSGroup ID.
+	// perFSGroup can be specified to enable a quota on local storage use per unique FSGroup ID.
 	// At present this is only implemented for emptyDir volumes, and if the underlying
 	// volumeDirectory is on an XFS filesystem.
-	PerFSGroupInGiB int64 `yaml:"perFSGroupInGiB"`
+	PerFSGroup string `yaml:"perFSGroup"`
 }
 
 // THIS IS PART OF AN OPENSHIFT CARRY PATCH
@@ -52,7 +51,9 @@ type LocalQuota struct {
 // volume plugin will be replaced with a wrapper version which adds quota
 // functionality.
 func PatchVolumePluginsForLocalQuota(rootdir string, plugins *[]volume.VolumePlugin) error {
-	volumeConfigFilePath := path.Join(rootdir, "volume-config.yaml")
+	// This is hardcoded in the short term so the we can pull the
+	// node and volume config files out of the same configmap
+	volumeConfigFilePath := "/etc/origin/node/volume-config.yaml"
 
 	if _, err := os.Stat(volumeConfigFilePath); os.IsNotExist(err) {
 		return nil
@@ -73,6 +74,11 @@ func PatchVolumePluginsForLocalQuota(rootdir string, plugins *[]volume.VolumePlu
 		return fmt.Errorf("expected kind \"%s\" and apiVersion \"%s\" for volume config file", volumeConfigKind, volumeConfigAPIVersion)
 	}
 
+	quota, err := resource.ParseQuantity(volumeConfig.LocalQuota.PerFSGroup)
+	if err != nil {
+		return fmt.Errorf("unable to parse \"%s\" as a quantity", volumeConfig.LocalQuota.PerFSGroup)
+	}
+
 	glog.V(2).Info("replacing empty-dir volume plugin with quota wrapper")
 
 	quotaApplicator, err := emptydirquota.NewQuotaApplicator(rootdir)
@@ -90,14 +96,13 @@ func PatchVolumePluginsForLocalQuota(rootdir string, plugins *[]volume.VolumePlu
 		},
 	}
 
-	quota := resource.NewQuantity(volumeConfig.LocalQuota.PerFSGroupInGiB*1024*1024*1024, resource.BinarySI)
 	wrappedEmptyDirPlugin := false
 	for idx, plugin := range *plugins {
 		// Can't really do type checking or use a constant here as they are not exported:
 		if plugin.CanSupport(emptyDirSpec) {
 			wrapper := emptydirquota.EmptyDirQuotaPlugin{
 				VolumePlugin:    plugin,
-				Quota:           *quota,
+				Quota:           quota,
 				QuotaApplicator: quotaApplicator,
 			}
 			(*plugins)[idx] = &wrapper
