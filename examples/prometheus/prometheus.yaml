@@ -612,7 +612,11 @@ objects:
         # only scrape infrastructure components
         - source_labels: [__meta_kubernetes_namespace]
           action: keep
-          regex: 'default|logging|metrics|kube-.+|openshift|openshift-.+'
+          regex: 'default|metrics|kube-.+|openshift|openshift-.+'
+        # drop logging components managed by other scrape targets
+        - source_labels: [__meta_kubernetes_namespace]
+          action: drop
+          regex: 'openshift-logging'
         # drop infrastructure components managed by other scrape targets
         - source_labels: [__meta_kubernetes_service_name]
           action: drop
@@ -642,6 +646,61 @@ objects:
         - source_labels: [__meta_kubernetes_service_name]
           action: replace
           target_label: kubernetes_name
+
+      # Scrape aggregated logging endpoints.
+      #
+      # The relabeling allows the actual service scrape endpoint to be configured
+      # via the following annotations:
+      #
+      # * `prometheus.io/scrape`: Only scrape services that have a value of `true`
+      # * `prometheus.io/scheme`: If the metrics endpoint is secured then you will need
+      # to set this to `https` & most likely set the `tls_config` of the scrape config.
+      # * `prometheus.io/path`: If the metrics path is not `/metrics` override this.
+      # * `prometheus.io/port`: If the metrics are exposed on a different port to the
+      # service then set this appropriately.
+      - job_name: 'kubernetes-logging-service-endpoints'
+
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+          insecure_skip_verify: true
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+
+        kubernetes_sd_configs:
+        - role: endpoints
+          namespaces:
+            names:
+            - 'openshift-logging'
+
+        relabel_configs:
+          # drop infrastructure components managed by other scrape targets
+          - source_labels: [__meta_kubernetes_service_name]
+            action: drop
+            regex: 'prometheus-node-exporter'
+          # only those that have requested scraping
+          - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scheme]
+            action: replace
+            target_label: __scheme__
+            regex: (https?)
+          - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_path]
+            action: replace
+            target_label: __metrics_path__
+            regex: (.+)
+          - source_labels: [__address__, __meta_kubernetes_service_annotation_prometheus_io_port]
+            action: replace
+            target_label: __address__
+            regex: (.+)(?::\d+);(\d+)
+            replacement: $1:$2
+          - action: labelmap
+            regex: __meta_kubernetes_service_label_(.+)
+          - source_labels: [__meta_kubernetes_namespace]
+            action: replace
+            target_label: kubernetes_namespace
+          - source_labels: [__meta_kubernetes_service_name]
+            action: replace
+            target_label: kubernetes_name
 
       # Scrape config for node-exporter, which is expected to be running on port 9100.
       - job_name: 'kubernetes-nodes-exporter'
