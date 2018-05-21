@@ -323,7 +323,8 @@ function os::test::extended::clusterup::portinuse_cleanup () {
 
 
 readonly default_tests=(
-    "service_catalog"
+# FIXME: Disabled temporarely as the jenkins:2 images is failing import from RH registry
+#    "service_catalog"
     "noargs"
     "hostdirs"
     "publichostname"
