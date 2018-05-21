@@ -42,7 +42,11 @@ func NewEgressDNS() *EgressDNS {
 }
 
 func (e *EgressDNS) Add(policy networkapi.EgressNetworkPolicy) {
-	dnsInfo := NewDNS(kexec.New())
+	dnsInfo, err := NewDNS(kexec.New(), "/etc/resolv.conf")
+	if err != nil {
+		utilruntime.HandleError(err)
+	}
+
 	for _, rule := range policy.Spec.Egress {
 		if len(rule.To.DNSName) > 0 {
 			if err := dnsInfo.Add(rule.To.DNSName); err != nil {
