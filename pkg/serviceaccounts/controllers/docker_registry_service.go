@@ -103,7 +103,7 @@ type DockerRegistryServiceController struct {
 	serviceLister  listers.ServiceLister
 	servicesSynced func() bool
 
-	syncRegistryLocationHandler func(key string) error
+	syncRegistryLocationHandler func() error
 
 	secretCache       cache.Store
 	secretsSynced     func() bool
@@ -115,6 +115,11 @@ type DockerRegistryServiceController struct {
 	secretsToUpdate       workqueue.RateLimitingInterface
 
 	dockerURLsInitialized chan struct{}
+
+	// initialSecretsCheckDone is used to indicate that the controller should perform a full resync of all secrets
+	// regardless of whether the registry location changed or not. This check is usually done on controller start
+	// to verify the content of dockercfg entries in secrets
+	initialSecretsCheckDone bool
 }
 
 // Runs controller loops and returns immediately
@@ -190,7 +195,7 @@ func (e *DockerRegistryServiceController) watchForDockerURLChanges() {
 		}
 		defer e.registryLocationQueue.Done(key)
 
-		if err := e.syncRegistryLocationHandler(key.(string)); err == nil {
+		if err := e.syncRegistryLocationHandler(); err == nil {
 			// this means the request was successfully handled.  We should "forget" the item so that any retry
 			// later on is reset
 			e.registryLocationQueue.Forget(key)
@@ -238,11 +243,11 @@ func getDockerRegistryLocations(lister listers.ServiceLister, location serviceLo
 }
 
 // syncRegistryLocationChange goes through all service account dockercfg secrets and updates them to point at a new docker-registry location
-func (e *DockerRegistryServiceController) syncRegistryLocationChange(key string) error {
+func (e *DockerRegistryServiceController) syncRegistryLocationChange() error {
 	newLocations := e.getDockerRegistryLocations()
 	newDockerRegistryLocations := sets.NewString(newLocations...)
 	existingURLs := e.getRegistryURLs()
-	if existingURLs.Equal(newDockerRegistryLocations) {
+	if existingURLs.Equal(newDockerRegistryLocations) && e.initialSecretsCheckDone {
 		glog.V(4).Infof("No effective update: %v", newDockerRegistryLocations)
 		return nil
 	}
@@ -250,6 +255,7 @@ func (e *DockerRegistryServiceController) syncRegistryLocationChange(key string)
 	// make sure that new dockercfg secrets get the correct locations
 	e.dockercfgController.SetDockerURLs(newDockerRegistryLocations.List()...)
 	e.setRegistryURLs(newDockerRegistryLocations.List()...)
+	e.initialSecretsCheckDone = true
 
 	// we've changed the docker registry URL.  Add items to the work queue for all known secrets
 	// new secrets will already get the updated value.
