@@ -160,6 +160,8 @@ type PrunerOptions struct {
 	RegistryClient *http.Client
 	// RegistryURL is the URL of the integrated Docker registry.
 	RegistryURL *url.URL
+	// IgnoreInvalidRefs indicates that all invalid references should be ignored.
+	IgnoreInvalidRefs bool
 }
 
 // Pruner knows how to prune istags, images, layers and image configs.
@@ -173,10 +175,11 @@ type Pruner interface {
 
 // pruner is an object that knows how to prune a data set
 type pruner struct {
-	g              genericgraph.Graph
-	algorithm      pruneAlgorithm
-	registryClient *http.Client
-	registryURL    *url.URL
+	g                 genericgraph.Graph
+	algorithm         pruneAlgorithm
+	registryClient    *http.Client
+	registryURL       *url.URL
+	ignoreInvalidRefs bool
 }
 
 var _ Pruner = &pruner{}
@@ -253,9 +256,10 @@ func NewPruner(options PrunerOptions) (Pruner, kerrors.Aggregate) {
 	algorithm.namespace = options.Namespace
 
 	p := &pruner{
-		algorithm:      algorithm,
-		registryClient: options.RegistryClient,
-		registryURL:    options.RegistryURL,
+		algorithm:         algorithm,
+		registryClient:    options.RegistryClient,
+		registryURL:       options.RegistryURL,
+		ignoreInvalidRefs: options.IgnoreInvalidRefs,
 	}
 
 	if err := p.buildGraph(options); err != nil {
@@ -493,8 +497,10 @@ func (p *pruner) addPodSpecToGraph(referrer *kapi.ObjectReference, spec *kapi.Po
 
 		ref, err := imageapi.ParseDockerImageReference(container.Image)
 		if err != nil {
-			glog.V(4).Infof("Unable to parse DockerImageReference %q of %s: %v - skipping", container.Image, getKindName(referrer), err)
-			errs = append(errs, newErrBadReferenceToImage(container.Image, referrer, err.Error()))
+			glog.Warningf("Unable to parse DockerImageReference %q of %s: %v - skipping", container.Image, getKindName(referrer), err)
+			if !p.ignoreInvalidRefs {
+				errs = append(errs, newErrBadReferenceToImage(container.Image, referrer, err.Error()))
+			}
 			continue
 		}
 
@@ -662,6 +668,25 @@ func (p *pruner) addBuildsToGraph(builds *buildapi.BuildList) []error {
 	return errs
 }
 
+// resolveISTagName parses  and tries to find it in the graph. If the parsing fails,
+// an error is returned. If the istag cannot be found, nil is returned.
+func (p *pruner) resolveISTagName(g genericgraph.Graph, referrer *kapi.ObjectReference, istagName string) (*imagegraph.ImageStreamTagNode, error) {
+	name, tag, err := imageapi.ParseImageStreamTagName(istagName)
+	if err != nil {
+		if p.ignoreInvalidRefs {
+			glog.Warningf("Failed to parse ImageStreamTag name %q: %v", istagName, err)
+			return nil, nil
+		}
+		return nil, newErrBadReferenceTo("ImageStreamTag", istagName, referrer, err.Error())
+	}
+	node := g.Find(imagegraph.ImageStreamTagNodeName(makeISTag(referrer.Namespace, name, tag)))
+	if istNode, ok := node.(*imagegraph.ImageStreamTagNode); ok {
+		return istNode, nil
+	}
+
+	return nil, nil
+}
+
 // addBuildStrategyImageReferencesToGraph ads references from the build strategy's parent node to the image
 // the build strategy references.
 //
@@ -687,23 +712,27 @@ func (p *pruner) addBuildStrategyImageReferencesToGraph(referrer *kapi.ObjectRef
 		}
 		ref, err := imageapi.ParseDockerImageReference(from.Name)
 		if err != nil {
-			msg := fmt.Sprintf("failed to parse DockerImage name %q of %s: %v", from.Name, getKindName(referrer), err)
-			glog.V(4).Infof(msg)
-			return []error{newErrBadReferenceToImage(from.Name, referrer, err.Error())}
+			glog.Warningf("Failed to parse DockerImage name %q of %s: %v", from.Name, getKindName(referrer), err)
+			if !p.ignoreInvalidRefs {
+				return []error{newErrBadReferenceToImage(from.Name, referrer, err.Error())}
+			}
+			return nil
 		}
 		imageID = ref.ID
 
 	case "ImageStreamImage":
 		_, id, err := imageapi.ParseImageStreamImageName(from.Name)
 		if err != nil {
-			msg := fmt.Sprintf("failed to parse ImageStreamImage name %q of %s: %v", from.Name, getKindName(referrer), err)
-			glog.V(4).Infof(msg)
-			return []error{newErrBadReferenceTo("ImageStreamImage", from.Name, referrer, err.Error())}
+			glog.Warningf("Failed to parse ImageStreamImage name %q of %s: %v", from.Name, getKindName(referrer), err)
+			if !p.ignoreInvalidRefs {
+				return []error{newErrBadReferenceTo("ImageStreamImage", from.Name, referrer, err.Error())}
+			}
+			return nil
 		}
 		imageID = id
 
 	case "ImageStreamTag":
-		istNode, err := resolveISTagName(p.g, referrer, from.Name)
+		istNode, err := p.resolveISTagName(p.g, referrer, from.Name)
 		if err != nil {
 			glog.V(4).Infof(err.Error())
 			return []error{err}
@@ -1331,19 +1360,4 @@ func makeISTag(namespace, name, tag string) *imageapi.ImageStreamTag {
 
 func makeISTagWithStream(is *imageapi.ImageStream, tag string) *imageapi.ImageStreamTag {
 	return makeISTag(is.Namespace, is.Name, tag)
-}
-
-// resolveISTagName parses ImageStreamTag's name and tries to find it in the graph. If the parsing fails,
-// an error is returned. If the istag cannot be found, nil is returned.
-func resolveISTagName(g genericgraph.Graph, referrer *kapi.ObjectReference, istagName string) (*imagegraph.ImageStreamTagNode, error) {
-	name, tag, err := imageapi.ParseImageStreamTagName(istagName)
-	if err != nil {
-		return nil, newErrBadReferenceTo("ImageStreamTag", istagName, referrer, err.Error())
-	}
-	node := g.Find(imagegraph.ImageStreamTagNodeName(makeISTag(referrer.Namespace, name, tag)))
-	if istNode, ok := node.(*imagegraph.ImageStreamTagNode); ok {
-		return istNode, nil
-	}
-
-	return nil, nil
 }

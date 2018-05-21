@@ -48,6 +48,7 @@ func TestImagePruning(t *testing.T) {
 		pruneOverSizeLimit         *bool
 		allImages                  *bool
 		pruneRegistry              *bool
+		ignoreInvalidRefs          *bool
 		keepTagRevisions           *int
 		namespace                  string
 		images                     imageapi.ImageList
@@ -852,6 +853,34 @@ func TestImagePruning(t *testing.T) {
 		},
 
 		{
+			name:               "build with ignored bad image reference",
+			pruneOverSizeLimit: newBool(true),
+			ignoreInvalidRefs:  newBool(true),
+			images: testutil.ImageList(
+				testutil.UnmanagedImage("sha256:0000000000000000000000000000000000000000000000000000000000000000", "otherregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", false, "", ""),
+				testutil.SizedImage("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002", 100, nil),
+				testutil.SizedImage("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003", 200, nil),
+			),
+			streams: testutil.StreamList(
+				testutil.Stream(registryHost, "foo", "bar", testutil.Tags(
+					testutil.Tag("latest",
+						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000000", "otherregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000"),
+						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
+						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003"),
+					),
+				)),
+			),
+			builds: testutil.BuildList(
+				testutil.Build("foo", "build1", "source", "DockerImage", "foo", registryHost+"/foo/bar@sha256:many-zeros-and-3"),
+			),
+			limits: map[string][]*kapi.LimitRange{
+				"foo": testutil.LimitList(100, 200),
+			},
+			expectedImageDeletions: []string{"sha256:0000000000000000000000000000000000000000000000000000000000000003"},
+			expectedStreamUpdates:  []string{"foo/bar|sha256:0000000000000000000000000000000000000000000000000000000000000003"},
+		},
+
+		{
 			name:                "build with bad image reference",
 			builds:              testutil.BuildList(testutil.Build("foo", "build1", "source", "DockerImage", "foo", registryHost+"/foo/bar@invalid-digest")),
 			expectedErrorString: fmt.Sprintf(`Build[foo/build1]: invalid docker image reference "%s/foo/bar@invalid-digest": invalid reference format`, registryHost),
@@ -908,6 +937,9 @@ func TestImagePruning(t *testing.T) {
 			if test.pruneRegistry != nil {
 				options.PruneRegistry = test.pruneRegistry
 			}
+			if test.ignoreInvalidRefs != nil {
+				options.IgnoreInvalidRefs = *test.ignoreInvalidRefs
+			}
 			p, err := NewPruner(options)
 			if err != nil {
 				if len(test.expectedErrorString) > 0 {
@@ -915,7 +947,7 @@ func TestImagePruning(t *testing.T) {
 						t.Fatalf("got unexpected error: %q != %q", a, e)
 					}
 				} else {
-					t.Fatalf("got unexpected error: %v", test.expectedErrorString)
+					t.Fatalf("got unexpected error: %v", err)
 				}
 				return
 			} else if len(test.expectedErrorString) > 0 {
