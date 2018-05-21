@@ -221,6 +221,7 @@ func DefaultMasterOptionsWithTweaks(useDefaultPort bool) (*configapi.MasterConfi
 		{DomainName: "gcr.io"},
 		{DomainName: "quay.io"},
 		{DomainName: "registry.centos.org"},
+		{DomainName: "registry.fedoraproject.org"},
 		{DomainName: "registry.redhat.io"},
 	}
 
