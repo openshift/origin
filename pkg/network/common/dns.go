@@ -11,6 +11,7 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
+	kexec "k8s.io/utils/exec"
 )
 
 const (
@@ -27,6 +28,9 @@ type dnsValue struct {
 }
 
 type DNS struct {
+	// Runs shell commands
+	execer kexec.Interface
+
 	// Protects dnsMap operations
 	lock sync.Mutex
 	// Holds dns name and its corresponding information
@@ -38,13 +42,14 @@ type DNS struct {
 	port string
 }
 
-func NewDNS(resolverConfigFile string) (*DNS, error) {
+func NewDNS(execer kexec.Interface, resolverConfigFile string) (*DNS, error) {
 	config, err := dns.ClientConfigFromFile(resolverConfigFile)
 	if err != nil || config == nil {
 		return nil, fmt.Errorf("cannot initialize the resolver: %v", err)
 	}
 
 	return &DNS{
+		execer:      execer,
 		dnsMap:      map[string]dnsValue{},
 		nameservers: filterIPv4Servers(config.Servers),
 		port:        config.Port,
@@ -112,8 +117,6 @@ func (d *DNS) updateOne(dns string) (error, bool) {
 
 	ips, minTTL, err := d.getIPsAndMinTTL(dns)
 	if err != nil {
-		res.nextQueryTime = time.Now().Add(defaultTTL)
-		d.dnsMap[dns] = res
 		return err, false
 	}
 
@@ -130,7 +133,6 @@ func (d *DNS) updateOne(dns string) (error, bool) {
 
 func (d *DNS) getIPsAndMinTTL(domain string) ([]net.IP, time.Duration, error) {
 	ips := []net.IP{}
-	ttlSet := false
 	var minTTL uint32
 
 	for _, server := range d.nameservers {
@@ -142,7 +144,7 @@ func (d *DNS) getIPsAndMinTTL(domain string) ([]net.IP, time.Duration, error) {
 			dialServer = net.JoinHostPort(server, d.port)
 		}
 		c := new(dns.Client)
-		c.Timeout = 5 * time.Second
+		c.Timeout = 2 * time.Second
 		in, _, err := c.Exchange(msg, dialServer)
 		if err != nil {
 			return nil, defaultTTL, err
@@ -153,25 +155,20 @@ func (d *DNS) getIPsAndMinTTL(domain string) ([]net.IP, time.Duration, error) {
 
 		if in != nil && len(in.Answer) > 0 {
 			for _, a := range in.Answer {
-				if !ttlSet || a.Header().Ttl < minTTL {
-					minTTL = a.Header().Ttl
-					ttlSet = true
-				}
-
 				switch t := a.(type) {
 				case *dns.A:
 					ips = append(ips, t.A)
+
+					if minTTL == 0 || t.Hdr.Ttl < minTTL {
+						minTTL = t.Hdr.Ttl
+					}
 				}
 			}
 		}
 	}
 
-	if !ttlSet || (len(ips) == 0) {
-		return nil, defaultTTL, fmt.Errorf("IPv4 addr not found for domain: %q, nameservers: %v", domain, d.nameservers)
-	}
-
 	ttl, err := time.ParseDuration(fmt.Sprintf("%ds", minTTL))
-	if err != nil {
+	if err != nil || minTTL == 0 {
 		utilruntime.HandleError(fmt.Errorf("Invalid TTL value for domain: %q, err: %v, defaulting ttl=%s", domain, err, defaultTTL.String()))
 		ttl = defaultTTL
 	}

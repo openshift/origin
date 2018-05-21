@@ -9,6 +9,7 @@ import (
 
 	ktypes "k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	kexec "k8s.io/utils/exec"
 )
 
 type EgressDNSUpdate struct {
@@ -41,7 +42,7 @@ func NewEgressDNS() *EgressDNS {
 }
 
 func (e *EgressDNS) Add(policy networkapi.EgressNetworkPolicy) {
-	dnsInfo, err := NewDNS("/etc/resolv.conf")
+	dnsInfo, err := NewDNS(kexec.New(), "/etc/resolv.conf")
 	if err != nil {
 		utilruntime.HandleError(err)
 	}
