@@ -140,10 +140,9 @@ func NewCommandTemplateRouter(name string) *cobra.Command {
 	options := &TemplateRouterOptions{
 		Config: NewConfig(),
 	}
-	options.Config.FromFile = true
 
 	cmd := &cobra.Command{
-		Use:   fmt.Sprintf("%s%s", name, ConfigSyntax),
+		Use:   name,
 		Short: "Start a router",
 		Long:  routerLong,
 		Run: func(c *cobra.Command, args []string) {
@@ -315,7 +314,10 @@ func (o *TemplateRouterOptions) Run() error {
 			check = metrics.ProxyProtocolHTTPBackendAvailable(u)
 		}
 
-		kubeconfig := o.Config.KubeConfig()
+		kubeconfig, _, err := o.Config.KubeConfig()
+		if err != nil {
+			return err
+		}
 		client, err := authorizationclient.NewForConfig(kubeconfig)
 		if err != nil {
 			return err
@@ -397,11 +399,15 @@ func (o *TemplateRouterOptions) Run() error {
 	if err != nil {
 		return err
 	}
-	routeclient, err := routeinternalclientset.NewForConfig(o.Config.OpenShiftConfig())
+	config, _, err := o.Config.KubeConfig()
 	if err != nil {
 		return err
 	}
-	projectclient, err := projectinternalclientset.NewForConfig(o.Config.OpenShiftConfig())
+	routeclient, err := routeinternalclientset.NewForConfig(config)
+	if err != nil {
+		return err
+	}
+	projectclient, err := projectinternalclientset.NewForConfig(config)
 	if err != nil {
 		return err
 	}
