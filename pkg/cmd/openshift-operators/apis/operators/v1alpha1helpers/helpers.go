@@ -5,7 +5,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	operatorsv1alpha1 "github.com/openshift/origin/pkg/cmd/openshift-operators/apis/operators/v1alpha1"
+	operatorsv1alpha1 "github.com/openshift/api/operator/v1alpha1"
 )
 
 func SetErrors(versionAvailability *operatorsv1alpha1.VersionAvailablity, errors ...error) {

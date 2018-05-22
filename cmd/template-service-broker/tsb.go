@@ -7,11 +7,13 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/golang/glog"
+	"github.com/openshift/origin/pkg/version"
+
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/util/logs"
 
-	"github.com/golang/glog"
-	"github.com/openshift/origin/pkg/cmd/util/serviceability"
+	"github.com/openshift/library-go/pkg/serviceability"
 	tsbcmd "github.com/openshift/origin/pkg/templateservicebroker/cmd/server"
 
 	// install all APIs
@@ -32,7 +34,7 @@ func main() {
 		runtime.GOMAXPROCS(runtime.NumCPU())
 	}
 
-	defer serviceability.BehaviorOnPanic(os.Getenv("OPENSHIFT_ON_PANIC"))()
+	defer serviceability.BehaviorOnPanic(os.Getenv("OPENSHIFT_ON_PANIC"), version.Get())()
 	defer serviceability.Profile(os.Getenv("OPENSHIFT_PROFILE")).Stop()
 
 	cmd := tsbcmd.NewCommandStartTemplateServiceBrokerServer(os.Stdout, os.Stderr, wait.NeverStop)

@@ -22,7 +22,7 @@ import (
 	"k8s.io/client-go/util/workqueue"
 	apiregistrationclientv1beta1 "k8s.io/kube-aggregator/pkg/client/clientset_generated/clientset/typed/apiregistration/v1beta1"
 
-	operatorsv1alpha1 "github.com/openshift/origin/pkg/cmd/openshift-operators/apis/operators/v1alpha1"
+	operatorsv1alpha1 "github.com/openshift/api/operator/v1alpha1"
 	"github.com/openshift/origin/pkg/cmd/openshift-operators/apis/operators/v1alpha1helpers"
 	webconsoleclientv1alpha1 "github.com/openshift/origin/pkg/cmd/openshift-operators/generated/clientset/versioned/typed/webconsole/v1alpha1"
 	webconsoleinformerv1alpha1 "github.com/openshift/origin/pkg/cmd/openshift-operators/generated/informers/externalversions/webconsole/v1alpha1"
