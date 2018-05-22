@@ -2,6 +2,7 @@ package image_ecosystem
 
 import (
 	"fmt"
+	"strconv"
 	"time"
 
 	g "github.com/onsi/ginkgo"
@@ -19,7 +20,8 @@ var _ = g.Describe("[image_ecosystem][php][Slow] hot deploy for openshift php im
 		oc              = exutil.NewCLI("s2i-php", exutil.KubeConfigPath())
 		hotDeployParam  = "OPCACHE_REVALIDATE_FREQ=0"
 		modifyCommand   = []string{"sed", "-ie", `s/\$result\['c'\]/1337/`, "src/Template/Pages/home.ctp"}
-		pageCountFn     = func(count int) string { return fmt.Sprintf(`<span class="code" id="count-value">%d</span>`, count) }
+		pageRegexpCount = `<span class="code" id="count-value">([^0][0-9]*)</span>`
+		pageExactCount  = `<span class="code" id="count-value">%d</span>`
 		dcName          = "cakephp-mysql-example-1"
 		dcLabel         = exutil.ParseLabelsOrDie(fmt.Sprintf("deployment=%s", dcName))
 	)
@@ -58,23 +60,41 @@ var _ = g.Describe("[image_ecosystem][php][Slow] hot deploy for openshift php im
 				err = e2e.WaitForEndpoint(oc.KubeFramework().ClientSet, oc.Namespace(), "cakephp-mysql-example")
 				o.Expect(err).NotTo(o.HaveOccurred())
 
-				assertPageCountIs := func(i int) {
+				assertPageCountRegexp := func(priorValue string) string {
 					_, err := exutil.WaitForPods(oc.KubeClient().Core().Pods(oc.Namespace()), dcLabel, exutil.CheckPodIsRunning, 1, 4*time.Minute)
 					o.ExpectWithOffset(1, err).NotTo(o.HaveOccurred())
 
-					result, err := CheckPageContains(oc, "cakephp-mysql-example", "", pageCountFn(i))
+					result, val, err := CheckPageRegexp(oc, "cakephp-mysql-example", "", pageRegexpCount, 1)
 					o.ExpectWithOffset(1, err).NotTo(o.HaveOccurred())
 					o.ExpectWithOffset(1, result).To(o.BeTrue())
+					if len(priorValue) > 0 {
+						p, err := strconv.Atoi(priorValue)
+						o.Expect(err).NotTo(o.HaveOccurred())
+						v, err := strconv.Atoi(val)
+						g.By(fmt.Sprintf("comparing prior value %d with lastest value %d", p, v))
+						o.Expect(err).NotTo(o.HaveOccurred())
+						o.Expect(v).To(o.BeNumerically(">", p))
+					}
+					return val
 				}
 
 				g.By("checking page count")
-
-				assertPageCountIs(1)
-				assertPageCountIs(2)
+				val := assertPageCountRegexp("")
+				assertPageCountRegexp(val)
 
 				g.By("modifying the source code with hot deploy enabled")
 				err = RunInPodContainer(oc, dcLabel, modifyCommand)
 				o.Expect(err).NotTo(o.HaveOccurred())
+
+				assertPageCountIs := func(i int) {
+					_, err := exutil.WaitForPods(oc.KubeClient().Core().Pods(oc.Namespace()), dcLabel, exutil.CheckPodIsRunning, 1, 4*time.Minute)
+					o.ExpectWithOffset(1, err).NotTo(o.HaveOccurred())
+
+					result, err := CheckPageContains(oc, "cakephp-mysql-example", "", fmt.Sprintf(pageExactCount, i))
+					o.ExpectWithOffset(1, err).NotTo(o.HaveOccurred())
+					o.ExpectWithOffset(1, result).To(o.BeTrue())
+				}
+
 				g.By("checking page count after modifying the source code")
 				assertPageCountIs(1337)
 			})
