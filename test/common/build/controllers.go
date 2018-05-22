@@ -471,30 +471,31 @@ WaitLoop:
 
 	fmt.Println("# RunImageChangeTriggerTest updateConfig")
 	// clear out the build/buildconfig watches before triggering a new build
-	timeout = time.After(60 * time.Second)
+	timeout = time.After(80 * time.Second)
 	var localEvent watchapi.Event
 	samplingX, samplingRate, samplingMax := 0, 1, 10
+	ok := false
 WaitLoop2:
 	for {
 		samplingX++
 		//fmt.Println("# RunImageChangeTriggerTest WaitLoop2")
 		select {
-		case localEvent = <-watch.ResultChan():
+		case localEvent, ok = <-watch.ResultChan():
 			if samplingX < samplingMax {
 				if samplingX%samplingRate == 0 {
-					glog.Infof("# RunImageChangeTriggerTest log WaitLoop2 watch", samplingX, localEvent)
-					fmt.Println("# RunImageChangeTriggerTest WaitLoop2 watch", samplingX, localEvent)
+					glog.Infof("# RunImageChangeTriggerTest log WaitLoop2 watch", samplingX, localEvent, ok)
+					fmt.Println("# RunImageChangeTriggerTest WaitLoop2 watch", samplingX, localEvent, ok)
 				}
 			} else {
 				samplingMax *= 10
 				samplingRate *= 10
 			}
 			continue
-		case localEvent = <-watch2.ResultChan():
+		case localEvent, ok = <-watch2.ResultChan():
 			if samplingX < samplingMax {
 				if samplingX%samplingRate == 0 {
-					glog.Infof("# RunImageChangeTriggerTest log WaitLoop2 watch2", samplingX, localEvent)
-					fmt.Println("# RunImageChangeTriggerTest WaitLoop2 watch2", samplingX, localEvent)
+					glog.Infof("# RunImageChangeTriggerTest log WaitLoop2 watch2", samplingX, localEvent, ok)
+					fmt.Println("# RunImageChangeTriggerTest WaitLoop2 watch2", samplingX, localEvent, ok)
 				}
 			} else {
 				samplingMax *= 10
