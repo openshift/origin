@@ -1,6 +1,6 @@
 package image_ecosystem
 
-/*import (
+import (
 	"fmt"
 	"time"
 
@@ -19,23 +19,14 @@ var _ = g.Describe("[Conformance][image_ecosystem][mongodb][Slow] openshift mong
 	const templatePath = "https://raw.githubusercontent.com/sclorg/mongodb-container/master/examples/petset/mongodb-petset-persistent.yaml"
 
 	oc := exutil.NewCLI("mongodb-petset-replica", exutil.KubeConfigPath()).Verbose()
-
-	g.Context("", func() {
-		g.BeforeEach(func() {
-			exutil.DumpDockerInfo()
-			_, err := exutil.SetupNFSBackedPersistentVolumes(oc, "256Mi", 3)
-			o.Expect(err).NotTo(o.HaveOccurred())
-		})
-
-		g.AfterEach(func() {
-			defer exutil.RemoveNFSBackedPersistentVolumes(oc)
-			defer exutil.RemoveStatefulSets(oc, "mongodb-replicaset")
-
-			if g.CurrentGinkgoTestDescription().Failed {
-				exutil.DumpPodStates(oc)
-				exutil.DumpPodLogsStartingWith("", oc)
-				exutil.DumpPersistentVolumeInfo(oc)
-			}
+	var pvs = []*kapiv1.PersistentVolume{}
+	var nfspod = &kapiv1.Pod{}
+	var cleanup = func() {
+		g.By("start cleanup")
+		if g.CurrentGinkgoTestDescription().Failed {
+			exutil.DumpPodStates(oc)
+			exutil.DumpPodLogsStartingWith("", oc)
+			exutil.DumpPersistentVolumeInfo(oc)
 			for i := 0; i < 3; i++ {
 				podLogs, err := oc.Run("logs").Args(fmt.Sprintf("mongodb-replicaset-%d", i), "--timestamps").Output()
 				if err != nil {
@@ -44,14 +35,43 @@ var _ = g.Describe("[Conformance][image_ecosystem][mongodb][Slow] openshift mong
 				}
 				e2e.Logf("pod logs for %s:\n%s", podLogs, err)
 			}
-		})
-		g.It(fmt.Sprintf("should instantiate the template"), func() {
+		}
 
+		client := oc.AsAdmin().KubeFramework().ClientSet
+		g.By("removing mongo")
+		exutil.RemoveStatefulSets(oc, "mongodb-replicaset")
+
+		g.By("deleting PVCs")
+		exutil.DeletePVCsForDeployment(client, oc, "mongo")
+
+		g.By("removing nfs pvs")
+		for _, pv := range pvs {
+			e2e.DeletePersistentVolume(client, pv.Name)
+		}
+
+		g.By("removing nfs pod")
+		e2e.DeletePodWithWait(oc.AsAdmin().KubeFramework(), client, nfspod)
+	}
+
+	g.Context("", func() {
+		g.BeforeEach(func() {
+			exutil.DumpDockerInfo()
+
+			g.By("PV/PVC dump before setup")
+			exutil.DumpPersistentVolumeInfo(oc)
+
+			var err error
+			nfspod, pvs, err = exutil.SetupK8SNFSServerAndVolume(oc, 3)
+			o.Expect(err).NotTo(o.HaveOccurred())
+		})
+
+		g.It(fmt.Sprintf("should instantiate the template"), func() {
+			// per k8s e2e volume_util.go:VolumeTestCleanup, nuke any client pods
+			// before nfs server to assist with umount issues; as such, need to clean
+			// up prior to the AfterEach processing, to guaranteed deletion order
+			defer cleanup()
 
 			err := oc.Run("create").Args("-f", templatePath).Execute()
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			err = exutil.AddNamespaceLabelToPersistentVolumeClaimsInTemplate(oc, "mongodb-petset-replication")
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("creating a new app")
@@ -63,6 +83,9 @@ var _ = g.Describe("[Conformance][image_ecosystem][mongodb][Slow] openshift mong
 				"-p", "MONGODB_SERVICE_NAME=mongodb-replicaset",
 			).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("PV/PVC dump after setup")
+			exutil.DumpPersistentVolumeInfo(oc)
 
 			g.By("waiting for all pods to reach ready status")
 			podNames, err := exutil.WaitForPods(
@@ -135,4 +158,3 @@ func readRecordFromPod(oc *exutil.CLI, podName string) error {
 	// (will become a member of replica set and will finish data sync)
 	return exutil.WaitForQueryOutputContains(oc, mongoPod, 1*time.Minute, false, findCmd, `{ "status" : "passed" }`)
 }
-*/
