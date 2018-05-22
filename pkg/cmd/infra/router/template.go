@@ -242,6 +242,7 @@ func (o *TemplateRouterOptions) Validate() error {
 // Run launches a template router using the provided options. It never exits.
 func (o *TemplateRouterOptions) Run() error {
 	glog.Infof("Starting template router (%s)", version.Get())
+	var ptrTemplatePlugin *templateplugin.TemplatePlugin
 
 	var reloadCallbacks []func()
 
@@ -309,9 +310,15 @@ func (o *TemplateRouterOptions) Run() error {
 		if err != nil {
 			return fmt.Errorf("ROUTER_METRICS_READY_HTTP_URL must be a valid URL or empty: %v", err)
 		}
-		check := metrics.HTTPBackendAvailable(u)
+		checkBackend := metrics.HTTPBackendAvailable(u)
 		if isTrue(util.Env("ROUTER_USE_PROXY_PROTOCOL", "")) {
-			check = metrics.ProxyProtocolHTTPBackendAvailable(u)
+			checkBackend = metrics.ProxyProtocolHTTPBackendAvailable(u)
+		}
+		checkSync := metrics.HasSynced(&ptrTemplatePlugin)
+		checkController := metrics.ControllerLive()
+		liveChecks := []healthz.HealthzChecker{checkController}
+		if !(isTrue(util.Env("ROUTER_BIND_PORTS_BEFORE_SYNC", ""))) {
+			liveChecks = append(liveChecks, checkBackend)
 		}
 
 		kubeconfig, _, err := o.Config.KubeConfig()
@@ -355,7 +362,8 @@ func (o *TemplateRouterOptions) Run() error {
 				Resource:        "routers",
 				Name:            o.RouterName,
 			},
-			Checks: []healthz.HealthzChecker{check},
+			LiveChecks:  liveChecks,
+			ReadyChecks: []healthz.HealthzChecker{checkBackend, checkSync},
 		}
 		if certFile := util.Env("ROUTER_METRICS_TLS_CERT_FILE", ""); len(certFile) > 0 {
 			certificate, err := tls.LoadX509KeyPair(certFile, util.Env("ROUTER_METRICS_TLS_KEY_FILE", ""))
@@ -417,6 +425,7 @@ func (o *TemplateRouterOptions) Run() error {
 	if err != nil {
 		return err
 	}
+	ptrTemplatePlugin = templatePlugin
 
 	factory := o.RouterSelection.NewFactory(routeclient, projectclient.Project().Projects(), kc)
 	factory.RouteModifierFn = o.RouteUpdate
