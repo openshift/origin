@@ -23866,7 +23866,6 @@
      "allowedCapabilities",
      "allowHostDirVolumePlugin",
      "volumes",
-     "allowedFlexVolumes",
      "allowHostNetwork",
      "allowHostPorts",
      "allowHostPID",
@@ -24002,6 +24001,9 @@
    "v1.AllowedFlexVolume": {
     "id": "v1.AllowedFlexVolume",
     "description": "AllowedFlexVolume represents a single Flexvolume that is allowed to be used.",
+    "required": [
+     "driver"
+    ],
     "properties": {
      "driver": {
       "type": "string",

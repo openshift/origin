@@ -4,7 +4,6 @@ package versioned
 
 import (
 	glog "github.com/golang/glog"
-	operatorsv1alpha1 "github.com/openshift/origin/pkg/cmd/openshift-operators/generated/clientset/versioned/typed/operators/v1alpha1"
 	webconsolev1alpha1 "github.com/openshift/origin/pkg/cmd/openshift-operators/generated/clientset/versioned/typed/webconsole/v1alpha1"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
@@ -13,9 +12,6 @@ import (
 
 type Interface interface {
 	Discovery() discovery.DiscoveryInterface
-	OperatorsV1alpha1() operatorsv1alpha1.OperatorsV1alpha1Interface
-	// Deprecated: please explicitly pick a version if possible.
-	Operators() operatorsv1alpha1.OperatorsV1alpha1Interface
 	WebconsoleV1alpha1() webconsolev1alpha1.WebconsoleV1alpha1Interface
 	// Deprecated: please explicitly pick a version if possible.
 	Webconsole() webconsolev1alpha1.WebconsoleV1alpha1Interface
@@ -25,19 +21,7 @@ type Interface interface {
 // version included in a Clientset.
 type Clientset struct {
 	*discovery.DiscoveryClient
-	operatorsV1alpha1  *operatorsv1alpha1.OperatorsV1alpha1Client
 	webconsoleV1alpha1 *webconsolev1alpha1.WebconsoleV1alpha1Client
-}
-
-// OperatorsV1alpha1 retrieves the OperatorsV1alpha1Client
-func (c *Clientset) OperatorsV1alpha1() operatorsv1alpha1.OperatorsV1alpha1Interface {
-	return c.operatorsV1alpha1
-}
-
-// Deprecated: Operators retrieves the default version of OperatorsClient.
-// Please explicitly pick a version.
-func (c *Clientset) Operators() operatorsv1alpha1.OperatorsV1alpha1Interface {
-	return c.operatorsV1alpha1
 }
 
 // WebconsoleV1alpha1 retrieves the WebconsoleV1alpha1Client
@@ -67,10 +51,6 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 	}
 	var cs Clientset
 	var err error
-	cs.operatorsV1alpha1, err = operatorsv1alpha1.NewForConfig(&configShallowCopy)
-	if err != nil {
-		return nil, err
-	}
 	cs.webconsoleV1alpha1, err = webconsolev1alpha1.NewForConfig(&configShallowCopy)
 	if err != nil {
 		return nil, err
@@ -88,7 +68,6 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 // panics if there is an error in the config.
 func NewForConfigOrDie(c *rest.Config) *Clientset {
 	var cs Clientset
-	cs.operatorsV1alpha1 = operatorsv1alpha1.NewForConfigOrDie(c)
 	cs.webconsoleV1alpha1 = webconsolev1alpha1.NewForConfigOrDie(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClientForConfigOrDie(c)
@@ -98,7 +77,6 @@ func NewForConfigOrDie(c *rest.Config) *Clientset {
 // New creates a new Clientset for the given RESTClient.
 func New(c rest.Interface) *Clientset {
 	var cs Clientset
-	cs.operatorsV1alpha1 = operatorsv1alpha1.New(c)
 	cs.webconsoleV1alpha1 = webconsolev1alpha1.New(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClient(c)
