@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"net"
 	"os"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -37,9 +38,17 @@ func TestAddDNS(t *testing.T) {
 	ip := net.ParseIP("10.11.12.13")
 	tests := []dnsTest{
 		{
-			testCase:          "Test valid domain name",
+			testCase:          "Test valid domain name with resolver returning only A record",
 			domainName:        "example.com",
 			dnsResolverOutput: "example.com. 600 IN A 10.11.12.13",
+			ips:               []net.IP{ip},
+			ttl:               600,
+			expectFailure:     false,
+		},
+		{
+			testCase:          "Test valid domain name with resolver returning both CNAME and A records",
+			domainName:        "example.com",
+			dnsResolverOutput: "example.com. 200 IN CNAME foo.example.com.\nfoo.example.com. 600 IN A 10.11.12.13",
 			ips:               []net.IP{ip},
 			ttl:               600,
 			expectFailure:     false,
@@ -211,9 +220,12 @@ func dummyServer(output string) func(dns.ResponseWriter, *dns.Msg) {
 		m := new(dns.Msg)
 		m.SetReply(req)
 
-		m.Answer = make([]dns.RR, 1)
-		mx, _ := dns.NewRR(output)
-		m.Answer[0] = mx
+		answers := strings.Split(output, "\n")
+		m.Answer = make([]dns.RR, len(answers))
+		for i, ans := range answers {
+			mx, _ := dns.NewRR(ans)
+			m.Answer[i] = mx
+		}
 		w.WriteMsg(m)
 	}
 }
