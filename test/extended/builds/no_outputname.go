@@ -31,8 +31,6 @@ var _ = g.Describe("[Feature:Builds][Conformance] build without output image", f
 		})
 
 		g.Describe("building from templates", func() {
-			fmt.Printf("DEBUG: outputdir=%s\n", exutil.TestContext.OutputDir)
-
 			g.It(fmt.Sprintf("should create an image from a docker template without an output image reference defined"), func() {
 				err := oc.Run("create").Args("-f", dockerImageFixture).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
