@@ -3,20 +3,18 @@ package new
 import (
 	"errors"
 	"fmt"
-	"io"
 
 	"github.com/spf13/cobra"
 
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
-	kprinters "k8s.io/kubernetes/pkg/printers"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
 
-	userapi "github.com/openshift/origin/pkg/user/apis/user"
-	userclientinternal "github.com/openshift/origin/pkg/user/generated/internalclientset"
-	usertypedclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
+	userapiv1 "github.com/openshift/api/user/v1"
+	userv1client "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
+	"github.com/openshift/origin/pkg/oc/util/ocscheme"
 )
 
 const NewGroupRecommendedName = "new"
@@ -39,17 +37,28 @@ var (
 )
 
 type NewGroupOptions struct {
-	GroupClient usertypedclient.GroupInterface
+	PrintFlags  *genericclioptions.PrintFlags
+	GroupClient userv1client.GroupInterface
 
 	Group string
 	Users []string
 
-	Out     io.Writer
-	Printer kprinters.ResourcePrinterFunc
+	DryRun bool
+
+	Printer printers.ResourcePrinter
+
+	genericclioptions.IOStreams
+}
+
+func NewNewGroupOptions(streams genericclioptions.IOStreams) *NewGroupOptions {
+	return &NewGroupOptions{
+		PrintFlags: genericclioptions.NewPrintFlags("created").WithTypeSetter(ocscheme.PrintingInternalScheme),
+		IOStreams:  streams,
+	}
 }
 
 func NewCmdNewGroup(name, fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	options := &NewGroupOptions{Out: streams.Out}
+	o := NewNewGroupOptions(streams)
 
 	cmd := &cobra.Command{
 		Use:     name + " GROUP [USER ...]",
@@ -57,16 +66,17 @@ func NewCmdNewGroup(name, fullName string, f kcmdutil.Factory, streams genericcl
 		Long:    newLong,
 		Example: fmt.Sprintf(newExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := options.Complete(f, cmd, args); err != nil {
+			if err := o.Complete(f, cmd, args); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
 			}
-			kcmdutil.CheckErr(options.Validate())
-			kcmdutil.CheckErr(options.AddGroup())
+			kcmdutil.CheckErr(o.Validate())
+			kcmdutil.CheckErr(o.AddGroup())
 		},
 	}
 
-	kcmdutil.AddPrinterFlags(cmd)
+	o.PrintFlags.AddFlags(cmd)
 
+	cmd.Flags().BoolVar(&o.DryRun, "dry-run", o.DryRun, "Display the group that would be created, without actually creating the group.")
 	return cmd
 }
 
@@ -84,26 +94,21 @@ func (o *NewGroupOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args 
 	if err != nil {
 		return err
 	}
-	userClient, err := userclientinternal.NewForConfig(clientConfig)
+	userClient, err := userv1client.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
 
-	o.GroupClient = userClient.User().Groups()
+	if o.DryRun {
+		o.PrintFlags.Complete("%s (dry run)")
+	}
 
-	printer, err := kcmdutil.PrinterForOptions(kcmdutil.ExtractCmdPrintOptions(cmd, false))
+	o.Printer, err = o.PrintFlags.ToPrinter()
 	if err != nil {
 		return err
 	}
 
-	if printer != nil {
-		o.Printer = printer.PrintObj
-	} else {
-		o.Printer = func(obj runtime.Object, out io.Writer) error {
-			return kcmdutil.PrintObject(cmd, obj, out)
-		}
-	}
-
+	o.GroupClient = userClient.Groups()
 	return nil
 }
 
@@ -125,7 +130,7 @@ func (o *NewGroupOptions) Validate() error {
 }
 
 func (o *NewGroupOptions) AddGroup() error {
-	group := &userapi.Group{}
+	group := &userapiv1.Group{}
 	group.Name = o.Group
 
 	usedNames := sets.String{}
@@ -138,10 +143,15 @@ func (o *NewGroupOptions) AddGroup() error {
 		group.Users = append(group.Users, user)
 	}
 
-	actualGroup, err := o.GroupClient.Create(group)
+	if o.DryRun {
+		return o.Printer.PrintObj(group, o.Out)
+	}
+
+	var err error
+	group, err = o.GroupClient.Create(group)
 	if err != nil {
 		return err
 	}
 
-	return o.Printer(actualGroup, o.Out)
+	return o.Printer.PrintObj(group, o.Out)
 }

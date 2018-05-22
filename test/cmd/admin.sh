@@ -118,10 +118,18 @@ os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/admin/groups"
 os::cmd::expect_success_and_text 'oc adm groups new shortoutputgroup -o name' 'group.user.openshift.io/shortoutputgroup'
+# test --dry-run flag for this command
+os::cmd::expect_success_and_text 'oc adm groups new mygroup --dry-run' 'group.user.openshift.io/mygroup created \(dry run\)'
+os::cmd::expect_success_and_text 'oc adm groups new mygroup --dry-run -o name' 'group.user.openshift.io/mygroup'
+# ensure group was not actually created
+os::cmd::expect_failure_and_text 'oc get groups mygroup' 'groups.user.openshift.io "mygroup" not found'
+os::cmd::expect_success_and_text 'oc adm groups new shortoutputgroup -o name --dry-run' 'group.user.openshift.io/shortoutputgroup'
 os::cmd::expect_failure_and_text 'oc adm groups new shortoutputgroup' 'groups.user.openshift.io "shortoutputgroup" already exists'
-os::cmd::expect_failure_and_text 'oc adm groups new errorgroup -o blah' 'error: output format "blah" not recognized'
+os::cmd::expect_failure_and_text 'oc adm groups new errorgroup -o blah' 'unable to match a printer suitable for the output format "blah"'
 os::cmd::expect_failure_and_text 'oc get groups/errorgroup' 'groups.user.openshift.io "errorgroup" not found'
-os::cmd::expect_success_and_text 'oc adm groups new group1 foo bar' 'group1.*foo, bar'
+# update cmd to use --template once it is wired across all Origin commands.
+# see
+os::cmd::expect_success_and_text 'oc adm groups new group1 foo bar -o yaml' '\- foo'
 os::cmd::expect_success_and_text 'oc get groups/group1 --no-headers' 'foo, bar'
 os::cmd::expect_success 'oc adm groups add-users group1 baz'
 os::cmd::expect_success_and_text 'oc get groups/group1 --no-headers' 'baz'
@@ -471,8 +479,10 @@ os::test::junit::declare_suite_start "cmd/admin/user-group-cascade"
 os::cmd::expect_success 'oc login -u cascaded-user -p pw'
 os::cmd::expect_success 'oc login -u orphaned-user -p pw'
 os::cmd::expect_success 'oc login -u system:admin'
-os::cmd::expect_success_and_text 'oc adm groups new cascaded-group cascaded-user orphaned-user' 'cascaded-group.*cascaded-user, orphaned-user'
-os::cmd::expect_success_and_text 'oc adm groups new orphaned-group cascaded-user orphaned-user' 'orphaned-group.*cascaded-user, orphaned-user'
+# switch to using --template once template printing is available to all cmds through the genericclioptions printer
+os::cmd::expect_success_and_text 'oc adm groups new cascaded-group cascaded-user orphaned-user -o yaml' '\- cascaded\-user'
+# switch to using --template once template printing is available to all cmds through the genericclioptions printer
+os::cmd::expect_success_and_text 'oc adm groups new orphaned-group cascaded-user orphaned-user -o yaml' '\- orphaned\-user'
 # Add roles, sccs to users/groups
 os::cmd::expect_success 'oc adm policy add-scc-to-user           restricted    cascaded-user  orphaned-user'
 os::cmd::expect_success 'oc adm policy add-scc-to-group          restricted    cascaded-group orphaned-group'
