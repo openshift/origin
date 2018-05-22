@@ -35,6 +35,37 @@ message HTTPServingInfo {
   optional int64 requestTimeoutSeconds = 3;
 }
 
+// LeaderElection provides information to elect a leader
+message LeaderElection {
+  // disable allows leader election to be suspended while allowing a fully defaulted "normal" startup case.
+  optional bool disable = 1;
+
+  // namespace indicates which namespace the resource is in
+  optional string namespace = 2;
+
+  // name indicates what name to use for the resource
+  optional string name = 3;
+
+  // leaseDuration is the duration that non-leader candidates will wait
+  // after observing a leadership renewal until attempting to acquire
+  // leadership of a led but unrenewed leader slot. This is effectively the
+  // maximum duration that a leader can be stopped before it is replaced
+  // by another candidate. This is only applicable if leader election is
+  // enabled.
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.Duration leaseDuration = 4;
+
+  // renewDeadline is the interval between attempts by the acting master to
+  // renew a leadership slot before it stops leading. This must be less
+  // than or equal to the lease duration. This is only applicable if leader
+  // election is enabled.
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.Duration renewDeadline = 5;
+
+  // retryPeriod is the duration the clients should wait between attempting
+  // acquisition and renewal of a leadership. This is only applicable if
+  // leader election is enabled.
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.Duration retryPeriod = 6;
+}
+
 // NamedCertificate specifies a certificate/key, and the names it should be served for
 message NamedCertificate {
   // Names is a list of DNS names this certificate should be used to secure

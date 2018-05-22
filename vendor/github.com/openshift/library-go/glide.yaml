@@ -10,3 +10,7 @@ import:
   version: kubernetes-1.10.2
 - package: github.com/openshift/api
   version: master
+
+# sig-master
+- package: github.com/getsentry/raven-go
+  version: 32a13797442ccb601b11761d74232773c1402d14

@@ -31,6 +31,20 @@ func (HTTPServingInfo) SwaggerDoc() map[string]string {
 	return map_HTTPServingInfo
 }
 
+var map_LeaderElection = map[string]string{
+	"":              "LeaderElection provides information to elect a leader",
+	"disable":       "disable allows leader election to be suspended while allowing a fully defaulted \"normal\" startup case.",
+	"namespace":     "namespace indicates which namespace the resource is in",
+	"name":          "name indicates what name to use for the resource",
+	"leaseDuration": "leaseDuration is the duration that non-leader candidates will wait after observing a leadership renewal until attempting to acquire leadership of a led but unrenewed leader slot. This is effectively the maximum duration that a leader can be stopped before it is replaced by another candidate. This is only applicable if leader election is enabled.",
+	"renewDeadline": "renewDeadline is the interval between attempts by the acting master to renew a leadership slot before it stops leading. This must be less than or equal to the lease duration. This is only applicable if leader election is enabled.",
+	"retryPeriod":   "retryPeriod is the duration the clients should wait between attempting acquisition and renewal of a leadership. This is only applicable if leader election is enabled.",
+}
+
+func (LeaderElection) SwaggerDoc() map[string]string {
+	return map_LeaderElection
+}
+
 var map_NamedCertificate = map[string]string{
 	"":      "NamedCertificate specifies a certificate/key, and the names it should be served for",
 	"names": "Names is a list of DNS names this certificate should be used to secure A name can be a normal DNS name, or can contain leading wildcard segments.",

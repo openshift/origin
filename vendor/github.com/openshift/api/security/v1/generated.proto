@@ -223,6 +223,7 @@ message SecurityContextConstraints {
   // AllowedFlexVolumes is a whitelist of allowed Flexvolumes.  Empty or nil indicates that all
   // Flexvolumes may be used.  This parameter is effective only when the usage of the Flexvolumes
   // is allowed in the "Volumes" field.
+  // +optional
   repeated AllowedFlexVolume allowedFlexVolumes = 21;
 
   // AllowHostNetwork determines if the policy allows the use of HostNetwork in the pod spec.
