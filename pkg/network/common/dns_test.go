@@ -2,37 +2,29 @@ package common
 
 import (
 	"fmt"
+	"io/ioutil"
 	"net"
-	"strings"
+	"os"
+	"sync"
 	"testing"
+	"time"
 
-	kexec "k8s.io/utils/exec"
-	fakeexec "k8s.io/utils/exec/testing"
+	"github.com/miekg/dns"
 )
 
-func addTestResult(t *testing.T, fexec *fakeexec.FakeExec, command string, output string, err error) {
-	fcmd := fakeexec.FakeCmd{
-		CombinedOutputScript: []fakeexec.FakeCombinedOutputAction{
-			func() ([]byte, error) { return []byte(output), err },
-		},
-	}
-	fexec.CommandScript = append(fexec.CommandScript,
-		func(cmd string, args ...string) kexec.Cmd {
-			execCommand := strings.Join(append([]string{cmd}, args...), " ")
-			if execCommand != command {
-				t.Fatalf("Unexpected command: wanted %q got %q", command, execCommand)
-			}
-			return fakeexec.InitFakeCmd(&fcmd, cmd, args...)
-		})
-}
-
-func ensureTestResults(t *testing.T, fexec *fakeexec.FakeExec) {
-	if fexec.CommandCalls != len(fexec.CommandScript) {
-		t.Fatalf("Only used %d of %d expected commands", fexec.CommandCalls, len(fexec.CommandScript))
-	}
-}
-
 func TestAddDNS(t *testing.T) {
+	s, addr, err := runLocalUDPServer("127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("unable to run test server: %v", err)
+	}
+	defer s.Shutdown()
+
+	configFileName, err := createResolveConfFile(addr)
+	if err != nil {
+		t.Fatalf("unable to create test resolver: %v", err)
+	}
+	defer os.Remove(configFileName)
+
 	type dnsTest struct {
 		testCase          string
 		domainName        string
@@ -45,12 +37,12 @@ func TestAddDNS(t *testing.T) {
 	ip := net.ParseIP("10.11.12.13")
 	tests := []dnsTest{
 		{
-			testCase:   "Test valid domain name",
-			domainName: "example.com",
-			dnsResolverOutput: "example.com.		600	IN	A	10.11.12.13",
-			ips:           []net.IP{ip},
-			ttl:           600,
-			expectFailure: false,
+			testCase:          "Test valid domain name",
+			domainName:        "example.com",
+			dnsResolverOutput: "example.com. 600 IN A 10.11.12.13",
+			ips:               []net.IP{ip},
+			ttl:               600,
+			expectFailure:     false,
 		},
 		{
 			testCase:          "Test invalid domain name",
@@ -61,24 +53,28 @@ func TestAddDNS(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		fexec := &fakeexec.FakeExec{}
-		dns := NewDNS(fexec)
-		addTestResult(t, fexec, fmt.Sprintf("dig +nocmd +noall +answer +ttlid a %s", test.domainName), test.dnsResolverOutput, nil)
+		serverFn := dummyServer(test.dnsResolverOutput)
+		dns.HandleFunc(test.domainName, serverFn)
+		defer dns.HandleRemove(test.domainName)
 
-		err := dns.Add(test.domainName)
+		n, err := NewDNS(configFileName)
+		if err != nil {
+			t.Fatalf("Test case: %s failed, err: %v", test.testCase, err)
+		}
+
+		err = n.Add(test.domainName)
 		if test.expectFailure && err == nil {
 			t.Fatalf("Test case: %s failed, expected failure but got success", test.testCase)
 		} else if !test.expectFailure && err != nil {
 			t.Fatalf("Test case: %s failed, err: %v", test.testCase, err)
 		}
-		ensureTestResults(t, fexec)
 
 		if test.expectFailure {
-			if _, ok := dns.dnsMap[test.domainName]; ok {
+			if _, ok := n.dnsMap[test.domainName]; ok {
 				t.Fatalf("Test case: %s failed, unexpected domain %q found in dns map", test.testCase, test.domainName)
 			}
 		} else {
-			d, ok := dns.dnsMap[test.domainName]
+			d, ok := n.dnsMap[test.domainName]
 			if !ok {
 				t.Fatalf("Test case: %s failed, domain %q not found in dns map", test.testCase, test.domainName)
 			}
@@ -96,6 +92,18 @@ func TestAddDNS(t *testing.T) {
 }
 
 func TestUpdateDNS(t *testing.T) {
+	s, addr, err := runLocalUDPServer("127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("unable to run test server: %v", err)
+	}
+	defer s.Shutdown()
+
+	configFileName, err := createResolveConfFile(addr)
+	if err != nil {
+		t.Fatalf("unable to create test resolver: %v", err)
+	}
+	defer os.Remove(configFileName)
+
 	type dnsTest struct {
 		testCase   string
 		domainName string
@@ -115,15 +123,15 @@ func TestUpdateDNS(t *testing.T) {
 	updateIP := net.ParseIP("10.11.12.14")
 	tests := []dnsTest{
 		{
-			testCase:   "Test dns update of valid domain",
-			domainName: "example.com",
-			addResolverOutput: "example.com.		600	IN	A	10.11.12.13",
-			addIPs: []net.IP{addIP},
-			addTTL: 600,
-			updateResolverOutput: "example.com.		500	IN	A	10.11.12.14",
-			updateIPs:     []net.IP{updateIP},
-			updateTTL:     500,
-			expectFailure: false,
+			testCase:             "Test dns update of valid domain",
+			domainName:           "example.com",
+			addResolverOutput:    "example.com. 600 IN A 10.11.12.13",
+			addIPs:               []net.IP{addIP},
+			addTTL:               600,
+			updateResolverOutput: "example.com. 500 IN A 10.11.12.14",
+			updateIPs:            []net.IP{updateIP},
+			updateTTL:            500,
+			expectFailure:        false,
 		},
 		{
 			testCase:             "Test dns update of invalid domain",
@@ -135,26 +143,33 @@ func TestUpdateDNS(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		fexec := &fakeexec.FakeExec{}
-		dns := NewDNS(fexec)
-		addTestResult(t, fexec, fmt.Sprintf("dig +nocmd +noall +answer +ttlid a %s", test.domainName), test.addResolverOutput, nil)
+		serverFn := dummyServer(test.addResolverOutput)
+		dns.HandleFunc(test.domainName, serverFn)
+		defer dns.HandleRemove(test.domainName)
 
-		dns.Add(test.domainName)
-		ensureTestResults(t, fexec)
+		n, err := NewDNS(configFileName)
+		if err != nil {
+			t.Fatalf("Test case: %s failed, err: %v", test.testCase, err)
+		}
 
-		orig := dns.Get(test.domainName)
-		addTestResult(t, fexec, fmt.Sprintf("dig +nocmd +noall +answer +ttlid a %s", test.domainName), test.updateResolverOutput, nil)
+		n.Add(test.domainName)
 
-		err, _ := dns.updateOne(test.domainName)
+		orig := n.Get(test.domainName)
+
+		dns.HandleRemove(test.domainName)
+		serverFn = dummyServer(test.updateResolverOutput)
+		dns.HandleFunc(test.domainName, serverFn)
+		defer dns.HandleRemove(test.domainName)
+
+		err, _ = n.updateOne(test.domainName)
 		if test.expectFailure && err == nil {
 			t.Fatalf("Test case: %s failed, expected failure but got success", test.testCase)
 		} else if !test.expectFailure && err != nil {
 			t.Fatalf("Test case: %s failed, err: %v", test.testCase, err)
 		}
 
-		ensureTestResults(t, fexec)
-		updated := dns.Get(test.domainName)
-		sz := dns.Size()
+		updated := n.Get(test.domainName)
+		sz := n.Size()
 
 		if !test.expectFailure && sz != 1 {
 			t.Fatalf("Test case: %s failed, expected dns map size: 1, got %d", test.testCase, sz)
@@ -189,4 +204,59 @@ func TestUpdateDNS(t *testing.T) {
 			}
 		}
 	}
+}
+
+func dummyServer(output string) func(dns.ResponseWriter, *dns.Msg) {
+	return func(w dns.ResponseWriter, req *dns.Msg) {
+		m := new(dns.Msg)
+		m.SetReply(req)
+
+		m.Answer = make([]dns.RR, 1)
+		mx, _ := dns.NewRR(output)
+		m.Answer[0] = mx
+		w.WriteMsg(m)
+	}
+}
+
+func runLocalUDPServer(addr string) (*dns.Server, string, error) {
+	pc, err := net.ListenPacket("udp", addr)
+	if err != nil {
+		return nil, "", err
+	}
+	server := &dns.Server{PacketConn: pc, ReadTimeout: time.Hour, WriteTimeout: time.Hour}
+
+	waitLock := sync.Mutex{}
+	waitLock.Lock()
+	server.NotifyStartedFunc = waitLock.Unlock
+
+	// fin must be buffered so the goroutine below won't block
+	// forever if fin is never read from.
+	fin := make(chan error, 1)
+
+	go func() {
+		fin <- server.ActivateAndServe()
+		pc.Close()
+	}()
+
+	waitLock.Lock()
+	return server, pc.LocalAddr().String(), nil
+}
+
+func createResolveConfFile(addr string) (string, error) {
+	configFile, err := ioutil.TempFile("/tmp/", "resolv")
+	if err != nil {
+		return "", fmt.Errorf("cannot create DNS resolver config file: %v", err)
+	}
+
+	data := fmt.Sprintf(`
+nameserver %s
+#nameserver 192.168.10.11
+
+options rotate timeout:1 attempts:1`, addr)
+
+	if _, err := configFile.WriteString(data); err != nil {
+		return "", fmt.Errorf("unable to write data to resolver config file: %v", err)
+	}
+
+	return configFile.Name(), nil
 }
