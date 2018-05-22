@@ -120,7 +120,11 @@ func (c *CLI) ChangeUser(name string) *CLI {
 		FatalErr(err)
 	}
 
-	c.configPath = filepath.Join("", name+".kubeconfig")
+	f, err := ioutil.TempFile("", "configfile")
+	if err != nil {
+		FatalErr(err)
+	}
+	c.configPath = f.Name()
 	err = clientcmd.WriteToFile(*kubeConfig, c.configPath)
 	if err != nil {
 		FatalErr(err)
@@ -177,6 +181,9 @@ func (c *CLI) SetupProject() {
 
 // TeardownProject removes projects created by this test.
 func (c *CLI) TeardownProject() {
+	if len(c.configPath) > 0 {
+		os.Remove(c.configPath)
+	}
 	if len(c.namespacesToDelete) > 0 {
 		timeout := e2e.DefaultNamespaceDeletionTimeout
 		if c.kubeFramework.NamespaceDeletionTimeout != 0 {
