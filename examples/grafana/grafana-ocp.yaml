@@ -64,7 +64,7 @@ objects:
         - name: data
           emptyDir: {}
         containers:
-        - image: "mrsiano/grafana-ocp:latest"
+        - image: "mrsiano/openshift-grafana:5.2.0"
           name: grafana-ocp
           ports:
           - name: grafana-http
