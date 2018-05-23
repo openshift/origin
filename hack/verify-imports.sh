@@ -16,4 +16,8 @@ os::util::ensure::built_binary_exists 'import-verifier'
 
 os::test::junit::declare_suite_start "verify/imports"
 os::cmd::expect_success "import-verifier ${OS_ROOT}/hack/import-restrictions.json"
+
+# quick and dirty check that nothing under vendored kubernetes imports something from origin
+os::cmd::expect_failure "egrep -r '\"github.com/openshift/origin/[^\"]+\"$' vendor/k8s.io/kubernetes"
+
 os::test::junit::declare_suite_end
