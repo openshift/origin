@@ -91,18 +91,12 @@ func NewCmdPrune(name, fullName string, f *clientcmd.Factory, out io.Writer) *co
 
 	cmd := &cobra.Command{
 		Use:     fmt.Sprintf("%s [WHITELIST] [--whitelist=WHITELIST-FILE] [--blacklist=BLACKLIST-FILE] --sync-config=CONFIG-SOURCE", name),
-		Short:   "Prune OpenShift groups referencing missing records on an external provider.",
+		Short:   "Remove old OpenShift groups referencing missing records on an external provider",
 		Long:    pruneLong,
 		Example: fmt.Sprintf(pruneExamples, fullName),
 		Run: func(c *cobra.Command, args []string) {
-			if err := options.Complete(whitelistFile, blacklistFile, configFile, args, f); err != nil {
-				cmdutil.CheckErr(cmdutil.UsageErrorf(c, err.Error()))
-			}
-
-			if err := options.Validate(); err != nil {
-				cmdutil.CheckErr(cmdutil.UsageErrorf(c, err.Error()))
-			}
-
+			cmdutil.CheckErr(options.Complete(whitelistFile, blacklistFile, configFile, args, f))
+			cmdutil.CheckErr(options.Validate())
 			err := options.Run(c, f)
 			if err != nil {
 				if aggregate, ok := err.(kerrs.Aggregate); ok {
