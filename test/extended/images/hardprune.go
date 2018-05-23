@@ -22,7 +22,7 @@ import (
 	testutil "github.com/openshift/origin/test/util"
 )
 
-var _ = g.Describe("[Feature:ImagePrune][registry][Serial] Image hard prune", func() {
+var _ = g.Describe("[Feature:ImagePrune][registry][Serial][Suite:openshift/registry/serial] Image hard prune", func() {
 	defer g.GinkgoRecover()
 	var oc = exutil.NewCLI("prune-images", exutil.KubeConfigPath())
 	var originalAcceptSchema2 *bool
