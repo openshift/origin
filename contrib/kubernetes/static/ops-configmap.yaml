@@ -1,0 +1,204 @@
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: ops-node
+data:
+  auth-users-1: |
+    content that would be in the first authorized keys file
+  auth-users-2: |
+    content that would be in the second authorized keys file
+  arbitrary-file: |
+    an arbitrary file that should be placed on the node
+  monitoring-config.yaml: |
+    # default settings/vars for host monitoring container startup/configuration
+    #
+    ---
+    oso_cluster_id: local-dev
+    oso_host_type: master
+    oso_master_ha: True
+
+    oso_master_primary: True
+
+    container_metrics_config:
+      use_cgroups: True
+      usage_checks:
+      - name_match_regex: '^oso-.*-(host-monitoring)$'
+        name_format_regex: '\\1'
+      - name_match_regex: '^oso-.*-zaio$'
+
+
+    metric_sender_config:
+      host:
+        name: "host-monitoring-{{ lookup('env', 'container_uuid')[0:4] }}"
+      zagg:
+        active: True
+        url: https://oso-cent7-zagg-web
+        user: admin
+        pass: supersecret
+        ssl_verify: False
+        verbose: False
+        debug: False
+      hawk:
+        active: False
+        url: http://localhost:8553
+        user: blah
+        pass: blah
+        ssl_verify: False
+        verbose: False
+        debug: False
+      pcp:
+        metrics:
+        - hinv.ncpu
+        - kernel.all.load
+        - kernel.all.pswitch
+        - kernel.all.uptime
+        - kernel.uname.distro
+        - kernel.uname.machine
+        - kernel.uname.nodename
+        - kernel.uname.nodename
+        - kernel.uname.release
+        - kernel.uname.sysname
+        - kernel.uname.version
+        - mem.freemem
+        - mem.physmem
+        - mem.util.available
+        - mem.util.bufmem
+        - mem.util.cached
+        - mem.util.used
+        - proc.nprocs
+        - swap.free
+        - swap.length
+        - swap.used
+      heartbeat:
+        templates:
+        - Template Heartbeat        # So we can send heartbeats
+        - Template OS Linux         # So we can send host related metrics
+        - Template Docker           # So we can send docker related metrics
+        - Template Openshift Node   # So we can send node related metrics
+        - Template Operations Tools # So ops-runner works
+        - Template Performance Copilot # So we can report PCP metrics
+        - Template Openshift Master # So we can send master related metrics
+        - Template AWS
+        hostgroups:
+        - local-dev
+        - local-env
+      synthetic_clusterwide:
+        host:
+          name: local-dev-synthetic
+        heartbeat:
+          templates:
+          - Template Heartbeat         # So we can send heartbeats
+          - Template OpenShift Cluster # So we can hold cluster-wide items
+    zagg_client_config:
+      host:
+        name: "host-monitoring-{{ lookup('env', 'container_uuid')[0:4] }}"
+      zagg:
+        url: http://oso-cent7-zagg-web
+        user: admin
+        pass: supersecret
+        ssl_verify: False
+        verbose: False
+        debug: False
+      pcp:
+        metrics:
+        - hinv.ncpu
+        - kernel.all.load
+        - kernel.all.pswitch
+        - kernel.all.uptime
+        - kernel.uname.distro
+        - kernel.uname.machine
+        - kernel.uname.nodename
+        - kernel.uname.nodename
+        - kernel.uname.release
+        - kernel.uname.sysname
+        - kernel.uname.version
+        - mem.freemem
+        - mem.physmem
+        - mem.util.available
+        - mem.util.bufmem
+        - mem.util.cached
+        - mem.util.used
+        - proc.nprocs
+        - swap.free
+        - swap.length
+        - swap.used
+      heartbeat:
+        templates:
+        - Template Heartbeat        # So we can send heartbeats
+        - Template OS Linux         # So we can send host related metrics
+        - Template Docker           # So we can send docker related metrics
+        - Template Openshift Node   # So we can send node related metrics
+        - Template Operations Tools # So ops-runner works
+        - Template Performance Copilot # So we can report PCP metrics
+        - Template Openshift Master # So we can send master related metrics
+        - Template AWS
+        hostgroups:
+        - local-dev
+        - local-env
+      synthetic_clusterwide:
+        host:
+          name: local-dev-synthetic
+        heartbeat:
+          templates:
+          - Template Heartbeat         # So we can send heartbeats
+          - Template OpenShift Cluster # So we can hold cluster-wide items
+
+    host_monitoring_cron:
+    - name: send pcp ping every 5 minutes
+      minute: "*/5"
+      job: ops-runner -f -s 15 -n cspp.pcp.ping /usr/bin/cron-send-pcp-ping
+
+    - name: run pcp checks every 5 minutes
+      minute: "*/5"
+      job: ops-runner -f -s 15 -n ozpc.send.pcp /usr/bin/ops-metric-pcp-client
+
+    - name: run pcp sampler every 5 minutes
+      minute: "*/5"
+      job: ops-runner -f -s 15 -n cspsp.kernal.all.cpu /usr/bin/cron-send-pcp-sampled-metrics -m kernel.all.cpu.idle -m kernel.all.cpu.nice -m kernel.all.cpu.steal -m kernel.all.cpu.sys -m kernel.all.cpu.user -m kernel.all.cpu.wait.total -m kernel.all.cpu.irq.hard -m kernel.all.cpu.irq.soft
+
+    - name: Do a full heartbeat
+      minute: "10"
+      hour: "*"
+      job: ops-runner -f -s 15 -s 3600 -n ozc.send.heartbeat.full /usr/bin/ops-metric-client --send-heartbeat
+
+    - name: Do a full heartbeat for synthetic host
+      minute: "10"
+      hour: "*"
+      job: ops-runner -f -s 15 -s 3600 -n ozc.send.synthetic.heartbeat.full /usr/bin/ops-metric-client --send-heartbeat --synthetic
+
+    - name: Do a quick heartbeat
+      minute: "*"
+      job: ops-runner -f -s 15 -n ozc.send.heartbeat.quick /usr/bin/ops-metric-client -k heartbeat.ping -o 1
+
+    - name: Do a quick heartbeat for synthetic host
+      minute: "*/5"
+      job: ops-runner -f -s 15 -n ozc.send.synthetic.heartbeat.quick /usr/bin/ops-metric-client -k heartbeat.ping -o 1 --synthetic
+
+    - name: run filesystem space checks every 10 minutes
+      minute: "*/10"
+      job: ops-runner -f -s 15 -n csfm.filesys.full /usr/bin/cron-send-filesystem-metrics
+
+    - name: run disk TPS checks every 2 minutes
+      minute: "*/2"
+      job: ops-runner -f -s 15 -n csdim.disk.tps /usr/bin/cron-send-disk-metrics
+
+    - name: run network checks every 3 minutes
+      minute: "*/3"
+      job: ops-runner -f -s 15 -n csnm.network.int /usr/bin/cron-send-network-metrics
+
+    # We might want to break docker checks out at some point.
+    - name: run docker storage space checks every 10 minutes
+      minute: "*/10"
+      job: ops-runner -f -s 15 -n csdm.docker.storage /usr/bin/cron-send-docker-metrics
+
+    - name: run docker info timer
+      minute: "*/10"
+      job: ops-runner -f -s 15 -n csdt.docker.timer /usr/bin/cron-send-docker-rimer
+
+    - name: run docker dns test on existing containers
+      minute: "*/5"
+      job: ops-runner -f -s 15 -n csdedr.docker.existing.dns.resolution /usr/bin/cron-send-docker-existing-dns-resolution
+
+    - name: run docker conatiner usage collector
+      minute: "*"
+      job: ops-runner -f -s 15 -n csdcu.disc.docker.container /usr/bin/cron-send-docker-containers-usage
