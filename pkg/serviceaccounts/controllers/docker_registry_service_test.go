@@ -63,7 +63,20 @@ func controllerSetup(startingObjects []runtime.Object, t *testing.T, stopCh <-ch
 	return kubeclient, fakeWatch, controller, informerFactory
 }
 
-func wrapHandler(indicator chan bool, handler func(string) error, t *testing.T) func(string) error {
+func wrapHandler(indicator chan bool, handler func() error, t *testing.T) func() error {
+	return func() error {
+		defer func() { indicator <- true }()
+
+		err := handler()
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+
+		return err
+	}
+}
+
+func wrapStringHandler(indicator chan bool, handler func(string) error, t *testing.T) func(string) error {
 	return func(key string) error {
 		defer func() { indicator <- true }()
 
@@ -129,7 +142,7 @@ func TestUpdateNewStyleSecret(t *testing.T) {
 
 	kubeclient, fakeWatch, controller, informerFactory := controllerSetup([]runtime.Object{newStyleDockercfgSecret}, t, stopChannel)
 	controller.syncRegistryLocationHandler = wrapHandler(received, controller.syncRegistryLocationChange, t)
-	controller.syncSecretHandler = wrapHandler(updatedSecret, controller.syncSecretUpdate, t)
+	controller.syncSecretHandler = wrapStringHandler(updatedSecret, controller.syncSecretUpdate, t)
 	informerFactory.Start(stopChannel)
 	go controller.Run(5, stopChannel)
 
@@ -218,7 +231,7 @@ func TestUpdateOldStyleSecretWithKey(t *testing.T) {
 
 	kubeclient, fakeWatch, controller, informerFactory := controllerSetup([]runtime.Object{oldStyleDockercfgSecret}, t, stopChannel)
 	controller.syncRegistryLocationHandler = wrapHandler(received, controller.syncRegistryLocationChange, t)
-	controller.syncSecretHandler = wrapHandler(updatedSecret, controller.syncSecretUpdate, t)
+	controller.syncSecretHandler = wrapStringHandler(updatedSecret, controller.syncSecretUpdate, t)
 	informerFactory.Start(stopChannel)
 	go controller.Run(5, stopChannel)
 
@@ -309,7 +322,7 @@ func TestUpdateOldStyleSecretWithoutKey(t *testing.T) {
 		return true, tokenSecret, nil
 	})
 	controller.syncRegistryLocationHandler = wrapHandler(received, controller.syncRegistryLocationChange, t)
-	controller.syncSecretHandler = wrapHandler(updatedSecret, controller.syncSecretUpdate, t)
+	controller.syncSecretHandler = wrapStringHandler(updatedSecret, controller.syncSecretUpdate, t)
 	informerFactory.Start(stopChannel)
 	go controller.Run(5, stopChannel)
 
@@ -400,7 +413,7 @@ func TestClearSecretAndRecreate(t *testing.T) {
 
 	kubeclient, fakeWatch, controller, informerFactory := controllerSetup([]runtime.Object{registryService, oldStyleDockercfgSecret}, t, stopChannel)
 	controller.syncRegistryLocationHandler = wrapHandler(received, controller.syncRegistryLocationChange, t)
-	controller.syncSecretHandler = wrapHandler(updatedSecret, controller.syncSecretUpdate, t)
+	controller.syncSecretHandler = wrapStringHandler(updatedSecret, controller.syncSecretUpdate, t)
 	informerFactory.Start(stopChannel)
 	go controller.Run(5, stopChannel)
 

@@ -103,7 +103,7 @@ type DockerRegistryServiceController struct {
 	serviceLister  listers.ServiceLister
 	servicesSynced func() bool
 
-	syncRegistryLocationHandler func(key string) error
+	syncRegistryLocationHandler func() error
 
 	secretCache       cache.Store
 	secretsSynced     func() bool
@@ -157,10 +157,9 @@ func (e *DockerRegistryServiceController) waitForDockerURLs(ready chan<- struct{
 		return
 	}
 
-	// after syncing, determine the current state and assume that we're up to date for it if you don't do this,
-	// you'll get an initial storm as you mess with all the dockercfg secrets every time you startup
+	// after syncing, make sure the dockercfgController is up to date before releasing it
+	// this controller will do a single scan of all existing secrets to be sure that they're up to date
 	urls := e.getDockerRegistryLocations()
-	e.setRegistryURLs(urls...)
 	e.dockercfgController.SetDockerURLs(urls...)
 	close(e.dockerURLsInitialized)
 	close(ready)
@@ -190,7 +189,7 @@ func (e *DockerRegistryServiceController) watchForDockerURLChanges() {
 		}
 		defer e.registryLocationQueue.Done(key)
 
-		if err := e.syncRegistryLocationHandler(key.(string)); err == nil {
+		if err := e.syncRegistryLocationHandler(); err == nil {
 			// this means the request was successfully handled.  We should "forget" the item so that any retry
 			// later on is reset
 			e.registryLocationQueue.Forget(key)
@@ -238,7 +237,7 @@ func getDockerRegistryLocations(lister listers.ServiceLister, location serviceLo
 }
 
 // syncRegistryLocationChange goes through all service account dockercfg secrets and updates them to point at a new docker-registry location
-func (e *DockerRegistryServiceController) syncRegistryLocationChange(key string) error {
+func (e *DockerRegistryServiceController) syncRegistryLocationChange() error {
 	newLocations := e.getDockerRegistryLocations()
 	newDockerRegistryLocations := sets.NewString(newLocations...)
 	existingURLs := e.getRegistryURLs()
