@@ -1,7 +1,6 @@
 package integration
 
 import (
-	"golang.org/x/net/html"
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httptest"
@@ -9,6 +8,8 @@ import (
 	"reflect"
 	"testing"
 	"time"
+
+	"golang.org/x/net/html"
 
 	"github.com/RangelReale/osincli"
 
@@ -151,10 +152,21 @@ func TestOAuthServiceAccountClientEvent(t *testing.T) {
 
 		runTestOAuthFlow(t, testServer, sa, secret, redirect, testCase.expectBadRequest)
 
-		// Check events
-		evList, err := testServer.clusterAdminKubeClient.Core().Events(projectName).List(metav1.ListOptions{})
+		// Check events with a short poll to stop flakes
+		var evList *kapi.EventList
+		err = wait.Poll(time.Second, 5*time.Second, func() (bool, error) {
+			evList, err = testServer.clusterAdminKubeClient.Core().Events(projectName).List(metav1.ListOptions{})
+			if err != nil {
+				return false, err
+			}
+			if len(evList.Items) < testCase.numEvents {
+				return false, nil
+			}
+			return true, nil
+		})
+
 		if err != nil {
-			t.Fatalf("%s: err listing events", tcName)
+			t.Fatalf("%s: err polling for events", tcName)
 		}
 
 		events := collectEventsWithReason(evList, testCase.expectedEventReason)
