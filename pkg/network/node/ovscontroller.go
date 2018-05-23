@@ -443,7 +443,6 @@ func (oc *ovsController) UpdateEgressNetworkPolicyRules(policies []networkapi.Eg
 	} else /* vnid != 0 && len(policies) == 1 */ {
 		otx.DeleteFlows("table=101, reg0=%d", vnid)
 
-		dnsFound := false
 		for i, rule := range policies[0].Spec.Egress {
 			priority := len(policies[0].Spec.Egress) - i
 
@@ -458,7 +457,6 @@ func (oc *ovsController) UpdateEgressNetworkPolicyRules(policies []networkapi.Eg
 			if len(rule.To.CIDRSelector) > 0 {
 				selectors = append(selectors, rule.To.CIDRSelector)
 			} else if len(rule.To.DNSName) > 0 {
-				dnsFound = true
 				ips := egressDNS.GetIPs(policies[0], rule.To.DNSName)
 				for _, ip := range ips {
 					selectors = append(selectors, ip.String())
@@ -477,14 +475,6 @@ func (oc *ovsController) UpdateEgressNetworkPolicyRules(policies []networkapi.Eg
 				}
 
 				otx.AddFlow("table=101, reg0=%d, priority=%d, ip%s, actions=%s", vnid, priority, dst, action)
-			}
-		}
-
-		if dnsFound {
-			if err := common.CheckDNSResolver(); err != nil {
-				errs = append(errs, fmt.Errorf("DNS resolver failed: %v, dropping all traffic for namespace: %q", err, namespaces[0]))
-				otx.DeleteFlows("table=101, reg0=%d", vnid)
-				otx.AddFlow("table=101, reg0=%d, priority=1, actions=drop", vnid)
 			}
 		}
 	}
