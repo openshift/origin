@@ -62,7 +62,7 @@ os::cmd::expect_success "oc create -f '${test_data_location}/proxy'"
 
 # kick off a build and wait for it to finish
 os::cmd::expect_success "oc set env dc/gssapiproxy-server HOST='${host}' REALM='${realm}' BACKEND='${backend}'"
-os::cmd::expect_success "oc start-build --from-dir='${test_data_location}/proxy' --follow gssapiproxy"
+os::cmd::expect_success "oc start-build --from-dir='${test_data_location}/proxy' --follow --wait gssapiproxy"
 
 os_images=(fedora ubuntu)
 
