@@ -82,7 +82,7 @@ func (c *TemplateServiceBrokerComponentOptions) Install(dockerClient dockerhelpe
 	// the service catalog may not be here, but as a best effort try to register
 	register_template_service_broker.RegisterTemplateServiceBroker(
 		dockerClient,
-		c.InstallContext.ImageFormat(),
+		c.InstallContext.ClientImage(),
 		c.InstallContext.BaseDir(),
 		masterConfigDir,
 	)
