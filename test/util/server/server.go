@@ -207,9 +207,26 @@ func DefaultMasterOptionsWithTweaks(useDefaultPort bool) (*configapi.MasterConfi
 		masterConfig.EtcdClientInfo.URLs = []string{"https://" + masterConfig.EtcdConfig.Address}
 	}
 
+	// List public registries that make sense to allow importing images from by default.
+	// By default all registries have set to be "secure", iow. the port for them is
+	// defaulted to "443".
+	// If the registry you are adding here is insecure, you can add 'Insecure: true' to
+	// make it default to port '80'.
+	// If the registry you are adding use custom port, you have to specify the port as
+	// part of the domain name.
+	recommendedAllowedRegistriesForImport := configapi.AllowedRegistries{
+		{DomainName: "docker.io"},
+		{DomainName: "*.docker.io"},  // registry-1.docker.io
+		{DomainName: "*.redhat.com"}, // registry.connect.redhat.com and registry.access.redhat.com
+		{DomainName: "gcr.io"},
+		{DomainName: "quay.io"},
+		{DomainName: "registry.centos.org"},
+		{DomainName: "registry.redhat.io"},
+	}
+
 	masterConfig.ImagePolicyConfig.ScheduledImageImportMinimumIntervalSeconds = 1
 	allowedRegistries := append(
-		*configapi.DefaultAllowedRegistriesForImport,
+		recommendedAllowedRegistriesForImport,
 		configapi.RegistryLocation{DomainName: "127.0.0.1:*"},
 	)
 	for r := range util.GetAdditionalAllowedRegistries() {
