@@ -1,6 +1,6 @@
 package image_ecosystem
 
-/*import (
+import (
 	"fmt"
 	"time"
 
@@ -13,7 +13,7 @@ package image_ecosystem
 	testutil "github.com/openshift/origin/test/util"
 
 	kapiv1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	//metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kcoreclient "k8s.io/client-go/kubernetes/typed/core/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
@@ -160,8 +160,10 @@ func replicationTestFactory(oc *exutil.CLI, tc testCase, cleanup func()) func() 
 			oc.Run("get").Args("pod", master.PodName(), "-o", "yaml").Execute()
 		}
 		o.Expect(err).NotTo(o.HaveOccurred())
-		_, slaves, _ := assertReplicationIsWorking("mysql-master-2", "mysql-slave-1", 1)
+		assertReplicationIsWorking("mysql-master-2", "mysql-slave-1", 1)
+		/*_, slaves, _ := assertReplicationIsWorking("mysql-master-2", "mysql-slave-1", 1)
 
+		// NOTE: slave restart with PVs does not work since https://github.com/sclorg/mysql-container/pull/215/
 		g.By("after slave is restarted by deleting the pod")
 		err = oc.Run("delete").Args("pod", "-l", "deployment=mysql-slave-1").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -175,7 +177,7 @@ func replicationTestFactory(oc *exutil.CLI, tc testCase, cleanup func()) func() 
 
 		pods, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).List(metav1.ListOptions{LabelSelector: exutil.ParseLabelsOrDie("deployment=mysql-slave-1").String()})
 		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(len(pods.Items)).To(o.Equal(1))
+		o.Expect(len(pods.Items)).To(o.Equal(1))*/
 
 		// NOTE: Commented out, current template does not support multiple replicas.
 		/*
@@ -187,8 +189,8 @@ func replicationTestFactory(oc *exutil.CLI, tc testCase, cleanup func()) func() 
 			err = oc.Run("scale").Args("dc", "mysql-slave", "--replicas=4").Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 			assertReplicationIsWorking("mysql-master-2", "mysql-slave-1", 4)
-*/
-/*}
+		*/
+	}
 }
 
 var _ = g.Describe("[image_ecosystem][mysql][Slow] openshift mysql replication", func() {
@@ -235,4 +237,3 @@ var _ = g.Describe("[image_ecosystem][mysql][Slow] openshift mysql replication",
 		}
 	})
 })
-*/
