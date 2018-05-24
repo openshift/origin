@@ -182,6 +182,13 @@ func (options *GetOptions) Complete(f cmdutil.Factory, cmd *cobra.Command, args 
 	}
 
 	var err error
+
+	// ensure we are able to obtain a rest client configuration
+	// with current environment before proceeding
+	if _, err = f.ClientConfig(); err != nil {
+		return err
+	}
+
 	options.Namespace, options.ExplicitNamespace, err = f.DefaultNamespace()
 	if err != nil {
 		return err
