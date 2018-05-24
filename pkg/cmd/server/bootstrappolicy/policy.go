@@ -678,6 +678,7 @@ func GetOpenshiftBootstrapClusterRoles() []rbac.ClusterRole {
 				rbac.NewRule(read...).Groups(extensionsGroup).Resources("networkpolicies").RuleOrDie(),
 				rbac.NewRule(read...).Groups(networkingGroup).Resources("networkpolicies").RuleOrDie(),
 				rbac.NewRule("get").Groups(networkGroup, legacyNetworkGroup).Resources("clusternetworks").RuleOrDie(),
+				rbac.NewRule("create", "update", "patch").Groups(kapiGroup).Resources("events").RuleOrDie(),
 			},
 		},
 
