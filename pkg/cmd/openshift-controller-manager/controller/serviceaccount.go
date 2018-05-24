@@ -68,9 +68,10 @@ func RunServiceAccountPullSecretsController(ctx ControllerContext) (bool, error)
 	go dockercfgController.Run(5, ctx.Stop)
 
 	dockerRegistryControllerOptions := serviceaccountcontrollers.DockerRegistryServiceControllerOptions{
-		DockercfgController:   dockercfgController,
-		DockerURLsInitialized: dockerURLsInitialized,
-		ClusterDNSSuffix:      "cluster.local",
+		DockercfgController:    dockercfgController,
+		DockerURLsInitialized:  dockerURLsInitialized,
+		ClusterDNSSuffix:       "cluster.local",
+		AdditionalRegistryURLs: ctx.OpenshiftControllerConfig.DockerPullSecret.RegistryURLs,
 	}
 	go serviceaccountcontrollers.NewDockerRegistryServiceController(
 		ctx.ExternalKubeInformers.Core().V1().Secrets(),

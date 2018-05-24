@@ -65,15 +65,16 @@ type DockercfgDeletedController struct {
 // Run processes the queue.
 func (e *DockercfgDeletedController) Run(stopCh <-chan struct{}) {
 	defer utilruntime.HandleCrash()
+	glog.Infof("Starting DockercfgDeletedController controller")
+	defer glog.Infof("Shutting down DockercfgDeletedController controller")
 
 	// Wait for the stores to fill
 	if !cache.WaitForCacheSync(stopCh, e.secretController.HasSynced) {
 		return
 	}
+	glog.V(1).Infof("caches synced")
 
-	glog.V(5).Infof("Worker started")
 	<-stopCh
-	glog.V(1).Infof("Shutting down")
 }
 
 // secretDeleted reacts to a Secret being deleted by looking to see if it's a dockercfg secret for a service account, in which case it

@@ -123,7 +123,7 @@ func TestNoChangeNoOp(t *testing.T) {
 	}
 }
 
-func TestUpdateNewStyleSecretAndDNSSuffix(t *testing.T) {
+func TestUpdateNewStyleSecretAndDNSSuffixAndAdditionalURLs(t *testing.T) {
 	stopChannel := make(chan struct{})
 	defer close(stopChannel)
 	received := make(chan bool)
@@ -143,6 +143,8 @@ func TestUpdateNewStyleSecretAndDNSSuffix(t *testing.T) {
 
 	kubeclient, fakeWatch, controller, informerFactory := controllerSetup([]runtime.Object{newStyleDockercfgSecret}, t, stopChannel)
 	controller.clusterDNSSuffix = "something.else"
+	// this bit also tests the additional registryURL options
+	controller.additionalRegistryURLs = []string{"foo.bar.com"}
 	controller.syncRegistryLocationHandler = wrapHandler(received, controller.syncRegistryLocationChange, t)
 	controller.syncSecretHandler = wrapStringHandler(updatedSecret, controller.syncSecretUpdate, t)
 	controller.initialSecretsCheckDone = false
@@ -180,7 +182,7 @@ func TestUpdateNewStyleSecretAndDNSSuffix(t *testing.T) {
 	}
 
 	expectedDockercfgMap := credentialprovider.DockerConfig{}
-	for _, key := range []string{"172.16.123.123:1235", "docker-registry.default.svc:1235", "docker-registry.default.svc.something.else:1235"} {
+	for _, key := range []string{"foo.bar.com", "172.16.123.123:1235", "docker-registry.default.svc:1235", "docker-registry.default.svc.something.else:1235"} {
 		expectedDockercfgMap[key] = credentialprovider.DockerConfigEntry{
 			Username: "serviceaccount",
 			Password: newStyleDockercfgSecret.Annotations[ServiceAccountTokenValueAnnotation],
