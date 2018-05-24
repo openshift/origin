@@ -614,11 +614,6 @@ func (c *CLI) BackgroundRC() (*exec.Cmd, io.ReadCloser, error) {
 	return cmd, stdout, err
 }
 
-// Stdout returns the current stdout writer
-func (c *CLI) Stdout() io.Writer {
-	return c.stdout
-}
-
 // OutputToFile executes the command and store output to a file
 func (c *CLI) OutputToFile(filename string) (string, error) {
 	content, err := c.Output()
