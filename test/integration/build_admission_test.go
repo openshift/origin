@@ -9,7 +9,6 @@ import (
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	authorizationtypedclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
@@ -229,7 +228,7 @@ func setupBuildStrategyTest(t *testing.T, includeControllers bool) (clusterAdmin
 	if err := addJoe.AddRole(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if err := testutil.WaitForPolicyUpdate(projectAdminKubeClient.Authorization(), namespace, "create", buildapi.Resource(authorizationapi.DockerBuildResource), true); err != nil {
+	if err := testutil.WaitForPolicyUpdate(projectAdminKubeClient.Authorization(), namespace, "create", buildapi.Resource(bootstrappolicy.DockerBuildResource), true); err != nil {
 		t.Fatalf(err.Error())
 	}
 
@@ -285,16 +284,16 @@ func removeBuildStrategyRoleResources(t *testing.T, clusterAdminAuthorizationCli
 		}
 	}
 
-	if err := testutil.WaitForPolicyUpdate(selfSarClient, testutil.Namespace(), "create", buildapi.Resource(authorizationapi.DockerBuildResource), false); err != nil {
+	if err := testutil.WaitForPolicyUpdate(selfSarClient, testutil.Namespace(), "create", buildapi.Resource(bootstrappolicy.DockerBuildResource), false); err != nil {
 		t.Fatal(err)
 	}
-	if err := testutil.WaitForPolicyUpdate(selfSarClient, testutil.Namespace(), "create", buildapi.Resource(authorizationapi.SourceBuildResource), false); err != nil {
+	if err := testutil.WaitForPolicyUpdate(selfSarClient, testutil.Namespace(), "create", buildapi.Resource(bootstrappolicy.SourceBuildResource), false); err != nil {
 		t.Fatal(err)
 	}
-	if err := testutil.WaitForPolicyUpdate(selfSarClient, testutil.Namespace(), "create", buildapi.Resource(authorizationapi.CustomBuildResource), false); err != nil {
+	if err := testutil.WaitForPolicyUpdate(selfSarClient, testutil.Namespace(), "create", buildapi.Resource(bootstrappolicy.CustomBuildResource), false); err != nil {
 		t.Fatal(err)
 	}
-	if err := testutil.WaitForPolicyUpdate(selfSarClient, testutil.Namespace(), "create", buildapi.Resource(authorizationapi.JenkinsPipelineBuildResource), false); err != nil {
+	if err := testutil.WaitForPolicyUpdate(selfSarClient, testutil.Namespace(), "create", buildapi.Resource(bootstrappolicy.JenkinsPipelineBuildResource), false); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -313,7 +312,7 @@ func grantRestrictedBuildStrategyRoleResources(t *testing.T, clusterAdminAuthori
 		}
 	}
 
-	if err := testutil.WaitForPolicyUpdate(selfSarClient, testutil.Namespace(), "create", buildapi.Resource(authorizationapi.CustomBuildResource), true); err != nil {
+	if err := testutil.WaitForPolicyUpdate(selfSarClient, testutil.Namespace(), "create", buildapi.Resource(bootstrappolicy.CustomBuildResource), true); err != nil {
 		t.Fatal(err)
 	}
 }
