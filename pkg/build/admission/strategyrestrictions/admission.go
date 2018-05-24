@@ -16,10 +16,10 @@ import (
 	rbacregistry "k8s.io/kubernetes/pkg/registry/rbac"
 
 	buildclient "github.com/openshift/client-go/build/clientset/versioned"
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/authorization/util"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"k8s.io/kubernetes/pkg/apis/authorization"
 )
 
@@ -103,15 +103,15 @@ func (a *buildByStrategy) ValidateInitialization() error {
 func resourceForStrategyType(strategy buildapi.BuildStrategy) (schema.GroupResource, error) {
 	switch {
 	case strategy.DockerStrategy != nil && strategy.DockerStrategy.ImageOptimizationPolicy != nil && *strategy.DockerStrategy.ImageOptimizationPolicy != buildapi.ImageOptimizationNone:
-		return buildapi.Resource(authorizationapi.OptimizedDockerBuildResource), nil
+		return buildapi.Resource(bootstrappolicy.OptimizedDockerBuildResource), nil
 	case strategy.DockerStrategy != nil:
-		return buildapi.Resource(authorizationapi.DockerBuildResource), nil
+		return buildapi.Resource(bootstrappolicy.DockerBuildResource), nil
 	case strategy.CustomStrategy != nil:
-		return buildapi.Resource(authorizationapi.CustomBuildResource), nil
+		return buildapi.Resource(bootstrappolicy.CustomBuildResource), nil
 	case strategy.SourceStrategy != nil:
-		return buildapi.Resource(authorizationapi.SourceBuildResource), nil
+		return buildapi.Resource(bootstrappolicy.SourceBuildResource), nil
 	case strategy.JenkinsPipelineStrategy != nil:
-		return buildapi.Resource(authorizationapi.JenkinsPipelineBuildResource), nil
+		return buildapi.Resource(bootstrappolicy.JenkinsPipelineBuildResource), nil
 	default:
 		return schema.GroupResource{}, fmt.Errorf("unrecognized build strategy: %#v", strategy)
 	}

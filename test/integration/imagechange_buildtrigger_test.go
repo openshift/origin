@@ -91,7 +91,7 @@ func TestSimpleImageChangeBuildTriggerFromImageStreamTagCustom(t *testing.T) {
 	}
 	options.AddRole()
 
-	if err := testutil.WaitForPolicyUpdate(projectAdminKubeClient.Authorization(), testutil.Namespace(), "create", buildapi.Resource(authorizationapi.CustomBuildResource), true); err != nil {
+	if err := testutil.WaitForPolicyUpdate(projectAdminKubeClient.Authorization(), testutil.Namespace(), "create", buildapi.Resource(bootstrappolicy.CustomBuildResource), true); err != nil {
 		t.Fatal(err)
 	}
 
@@ -122,7 +122,7 @@ func TestSimpleImageChangeBuildTriggerFromImageStreamTagCustomWithConfigChange(t
 	}
 	options.AddRole()
 
-	if err := testutil.WaitForPolicyUpdate(projectAdminKubeClient.Authorization(), testutil.Namespace(), "create", buildapi.Resource(authorizationapi.CustomBuildResource), true); err != nil {
+	if err := testutil.WaitForPolicyUpdate(projectAdminKubeClient.Authorization(), testutil.Namespace(), "create", buildapi.Resource(bootstrappolicy.CustomBuildResource), true); err != nil {
 		t.Fatal(err)
 	}
 
