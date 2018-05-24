@@ -3,6 +3,7 @@ package automation_service_broker
 import (
 	"github.com/golang/glog"
 
+	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openshift/origin/pkg/oc/clusteradd/componentinstall"
@@ -34,6 +35,11 @@ func (c *AutomationServiceBrokerComponentOptions) Install(dockerClient dockerhel
 		"NAMESPACE": asbNamespace,
 	}
 	glog.V(2).Infof("instantiating automation service broker template with parameters %v", params)
+
+	err = kubeAdminClient.BatchV1().Jobs(asbNamespace).Delete("automation-broker-apb", metav1.NewDeleteOptions(0))
+	if err != nil && !kerrs.IsNotFound(err) {
+		return err
+	}
 
 	component := componentinstall.Template{
 		Name:            "automation-service-broker",
