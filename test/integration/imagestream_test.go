@@ -6,13 +6,16 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/diff"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	"k8s.io/client-go/kubernetes"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
+	imageclientv1 "github.com/openshift/client-go/image/clientset/versioned"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	stratsupport "github.com/openshift/origin/pkg/apps/strategy/support"
 	imagetest "github.com/openshift/origin/pkg/image/admission/testutil"
@@ -394,11 +397,6 @@ func TestImageStreamTagLifecycleHook(t *testing.T) {
 	}
 	defer testserver.CleanupMasterEtcd(t, masterConfig)
 
-	clusterAdminKubeClientset, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-
 	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -415,11 +413,11 @@ func TestImageStreamTagLifecycleHook(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	imageClientset := imageclient.NewForConfigOrDie(testutil.GetClusterAdminClientConfigOrDie(clusterAdminKubeConfig)).Image()
-
+	kubeClient := kubernetes.NewForConfigOrDie(clusterAdminClientConfig)
+	imageClient := imageclientv1.NewForConfigOrDie(clusterAdminClientConfig)
 	// can tag to a stream that exists
-	exec := stratsupport.NewHookExecutor(nil, imageClientset, clusterAdminKubeClientset.Core(), os.Stdout, legacyscheme.Codecs.UniversalDecoder())
-	err = exec.Execute(
+	exec := stratsupport.NewLifecycleHookController(kubeClient, imageClient, os.Stdout)
+	err = exec.RunHook(
 		&appsapi.LifecycleHook{
 			TagImages: []appsapi.TagImageHook{
 				{
@@ -428,12 +426,12 @@ func TestImageStreamTagLifecycleHook(t *testing.T) {
 				},
 			},
 		},
-		&kapi.ReplicationController{
+		&corev1.ReplicationController{
 			ObjectMeta: metav1.ObjectMeta{Name: "rc-1", Namespace: testutil.Namespace()},
-			Spec: kapi.ReplicationControllerSpec{
-				Template: &kapi.PodTemplateSpec{
-					Spec: kapi.PodSpec{
-						Containers: []kapi.Container{
+			Spec: corev1.ReplicationControllerSpec{
+				Template: &corev1.PodTemplateSpec{
+					Spec: corev1.PodSpec{
+						Containers: []corev1.Container{
 							{
 								Name:  "test",
 								Image: "someimage:other",
@@ -443,7 +441,7 @@ func TestImageStreamTagLifecycleHook(t *testing.T) {
 				},
 			},
 		},
-		"test", "test",
+		"test", time.Duration(10*time.Minute),
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -456,8 +454,8 @@ func TestImageStreamTagLifecycleHook(t *testing.T) {
 	}
 
 	// can execute a second time the same tag and it should work
-	exec = stratsupport.NewHookExecutor(nil, imageClientset, clusterAdminKubeClientset.Core(), os.Stdout, legacyscheme.Codecs.UniversalDecoder())
-	err = exec.Execute(
+	exec = stratsupport.NewLifecycleHookController(kubeClient, imageClient, os.Stdout)
+	err = exec.RunHook(
 		&appsapi.LifecycleHook{
 			TagImages: []appsapi.TagImageHook{
 				{
@@ -466,12 +464,12 @@ func TestImageStreamTagLifecycleHook(t *testing.T) {
 				},
 			},
 		},
-		&kapi.ReplicationController{
+		&corev1.ReplicationController{
 			ObjectMeta: metav1.ObjectMeta{Name: "rc-1", Namespace: testutil.Namespace()},
-			Spec: kapi.ReplicationControllerSpec{
-				Template: &kapi.PodTemplateSpec{
-					Spec: kapi.PodSpec{
-						Containers: []kapi.Container{
+			Spec: corev1.ReplicationControllerSpec{
+				Template: &corev1.PodTemplateSpec{
+					Spec: corev1.PodSpec{
+						Containers: []corev1.Container{
 							{
 								Name:  "test",
 								Image: "someimage:other",
@@ -481,15 +479,15 @@ func TestImageStreamTagLifecycleHook(t *testing.T) {
 				},
 			},
 		},
-		"test", "test",
+		"test", time.Duration(10*time.Minute),
 	)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// can lifecycle tag a new image stream
-	exec = stratsupport.NewHookExecutor(nil, imageClientset, clusterAdminKubeClientset.Core(), os.Stdout, legacyscheme.Codecs.UniversalDecoder())
-	err = exec.Execute(
+	exec = stratsupport.NewLifecycleHookController(kubeClient, imageClient, os.Stdout)
+	err = exec.RunHook(
 		&appsapi.LifecycleHook{
 			TagImages: []appsapi.TagImageHook{
 				{
@@ -498,12 +496,12 @@ func TestImageStreamTagLifecycleHook(t *testing.T) {
 				},
 			},
 		},
-		&kapi.ReplicationController{
+		&corev1.ReplicationController{
 			ObjectMeta: metav1.ObjectMeta{Name: "rc-1", Namespace: testutil.Namespace()},
-			Spec: kapi.ReplicationControllerSpec{
-				Template: &kapi.PodTemplateSpec{
-					Spec: kapi.PodSpec{
-						Containers: []kapi.Container{
+			Spec: corev1.ReplicationControllerSpec{
+				Template: &corev1.PodTemplateSpec{
+					Spec: corev1.PodSpec{
+						Containers: []corev1.Container{
 							{
 								Name:  "test",
 								Image: "someimage:other",
@@ -513,7 +511,7 @@ func TestImageStreamTagLifecycleHook(t *testing.T) {
 				},
 			},
 		},
-		"test", "test",
+		"test", time.Duration(10*time.Minute),
 	)
 	if err != nil {
 		t.Fatal(err)

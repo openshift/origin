@@ -324,8 +324,7 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 			g.By(fmt.Sprintf("checking the logs for substrings\n%s", out))
 			o.Expect(out).To(o.ContainSubstring("deployment-test-1 to 2"))
-			o.Expect(out).To(o.ContainSubstring("--> pre: Success"))
-			o.Expect(out).To(o.ContainSubstring("--> Success"))
+			o.Expect(out).To(o.ContainSubstring("--> pre: Lifecycle hook succeeded"))
 
 			g.By("verifying the deployment is marked complete and scaled to zero")
 			o.Expect(waitForLatestCondition(oc, "deployment-test", deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
@@ -373,7 +372,7 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 
 				g.By(fmt.Sprintf("checking the logs for substrings\n%s", out))
 				o.Expect(out).To(o.ContainSubstring(fmt.Sprintf("deployment-test-%d up to 1", i+2)))
-				o.Expect(out).To(o.ContainSubstring("--> pre: Success"))
+				o.Expect(out).To(o.ContainSubstring("pre: Lifecycle hook succeeded"))
 				o.Expect(out).To(o.ContainSubstring("test pre hook executed"))
 				o.Expect(out).To(o.ContainSubstring("--> Success"))
 			}
@@ -583,7 +582,7 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 			o.Expect(waitForLatestCondition(oc, "custom-deployment", deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
 
 			g.By(fmt.Sprintf("checking the logs for substrings\n%s", out))
-			o.Expect(out).To(o.ContainSubstring("--> pre: Running hook pod ..."))
+			o.Expect(out).To(o.ContainSubstring("pre: Running lifecycle hook pod ..."))
 			o.Expect(out).To(o.ContainSubstring("test pre hook executed"))
 			o.Expect(out).To(o.ContainSubstring("--> Scaling custom-deployment-1 to 2"))
 			o.Expect(out).To(o.ContainSubstring("--> Reached 50%"))
@@ -827,9 +826,9 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By(fmt.Sprintf("checking the logs for substrings\n%s", out))
-			o.Expect(out).To(o.ContainSubstring("--> pre: Running hook pod ..."))
+			o.Expect(out).To(o.ContainSubstring("--> pre: Running lifecycle hook pod ..."))
 			o.Expect(out).To(o.ContainSubstring("pre hook logs"))
-			o.Expect(out).To(o.ContainSubstring("--> pre: Retrying hook pod (retry #1)"))
+			o.Expect(out).To(o.ContainSubstring("--> pre: Retrying lifecycle hook pod (retry #1)"))
 		})
 	})
 

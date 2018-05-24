@@ -7,13 +7,14 @@ import (
 	"time"
 
 	autoscalingv1 "k8s.io/api/autoscaling/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/kubernetes/fake"
+	kcoreclient "k8s.io/client-go/kubernetes/typed/core/v1"
 	scalefake "k8s.io/client-go/scale/fake"
 	clientgotesting "k8s.io/client-go/testing"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 
 	appsv1 "github.com/openshift/api/apps/v1"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
@@ -26,7 +27,7 @@ import (
 
 func getUpdateAcceptor(timeout time.Duration, minReadySeconds int32) strategy.UpdateAcceptor {
 	return &testAcceptor{
-		acceptFn: func(deployment *kapi.ReplicationController) error {
+		acceptFn: func(deployment *corev1.ReplicationController) error {
 			return nil
 		},
 	}
@@ -65,15 +66,15 @@ func recreateParams(timeout int64, preFailurePolicy, midFailurePolicy, postFailu
 }
 
 type testAcceptor struct {
-	acceptFn func(*kapi.ReplicationController) error
+	acceptFn func(*corev1.ReplicationController) error
 }
 
-func (t *testAcceptor) Accept(deployment *kapi.ReplicationController) error {
+func (t *testAcceptor) Accept(deployment *corev1.ReplicationController) error {
 	return t.acceptFn(deployment)
 }
 
 type fakeControllerClient struct {
-	deployment *kapi.ReplicationController
+	deployment *corev1.ReplicationController
 	fakeClient *fake.Clientset
 
 	scaleEvents []*autoscalingv1.Scale
@@ -98,14 +99,14 @@ func (c *fakeControllerClient) fakeScaleClient() *scalefake.FakeScaleClient {
 		updateAction := action.(clientgotesting.UpdateAction)
 		scaleObj := updateAction.GetObject().(*autoscalingv1.Scale)
 		c.scaleEvents = append(c.scaleEvents, scaleObj)
-		c.deployment.Spec.Replicas = scaleObj.Spec.Replicas
+		c.deployment.Spec.Replicas = &scaleObj.Spec.Replicas
 		c.deployment.Status.Replicas = scaleObj.Spec.Replicas
 		return true, scaleObj, nil
 	})
 	return scaleFakeClient
 }
 
-func newFakeControllerClient(deployment *kapi.ReplicationController) *fakeControllerClient {
+func newFakeControllerClient(deployment *corev1.ReplicationController) *fakeControllerClient {
 	c := &fakeControllerClient{deployment: deployment}
 	c.fakeClient = fake.NewSimpleClientset(c.deployment)
 	return c
@@ -116,23 +117,23 @@ type fakePodClient struct {
 }
 
 func (c *fakePodClient) Pods(ns string) kcoreclient.PodInterface {
-	deployerPod := &kapi.Pod{}
+	deployerPod := &corev1.Pod{}
 	deployerPod.Name = c.deployerName
 	deployerPod.Namespace = ns
-	deployerPod.Status = kapi.PodStatus{}
-	return fake.NewSimpleClientset(deployerPod).Core().Pods(ns)
+	deployerPod.Status = corev1.PodStatus{}
+	return fake.NewSimpleClientset(deployerPod).CoreV1().Pods(ns)
 }
 
 type hookExecutorImpl struct {
-	executeFunc func(hook *appsapi.LifecycleHook, deployment *kapi.ReplicationController, suffix, label string) error
+	executeFunc func(hook *appsapi.LifecycleHook, deployment *corev1.ReplicationController, stage string, timeout time.Duration) error
 }
 
-func (h *hookExecutorImpl) Execute(hook *appsapi.LifecycleHook, rc *kapi.ReplicationController, suffix, label string) error {
-	return h.executeFunc(hook, rc, suffix, label)
+func (h *hookExecutorImpl) RunHook(hook *appsapi.LifecycleHook, rc *corev1.ReplicationController, stage string, timeout time.Duration) error {
+	return h.executeFunc(hook, rc, stage, timeout)
 }
 
 func TestRecreate_initialDeployment(t *testing.T) {
-	var deployment *kapi.ReplicationController
+	var deployment *corev1.ReplicationController
 	strategy := &RecreateDeploymentStrategy{
 		out:               &bytes.Buffer{},
 		errOut:            &bytes.Buffer{},
@@ -143,7 +144,8 @@ func TestRecreate_initialDeployment(t *testing.T) {
 
 	config := appstest.OkDeploymentConfig(1)
 	config.Spec.Strategy = recreateParams(30, "", "", "")
-	deployment, _ = appsutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
+	deployment, _ = appsutil.MakeDeploymentV1(config, legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).
+		GroupVersions[0]))
 
 	controllerClient := newFakeControllerClient(deployment)
 	strategy.rcClient = controllerClient
@@ -163,7 +165,8 @@ func TestRecreate_initialDeployment(t *testing.T) {
 func TestRecreate_deploymentPreHookSuccess(t *testing.T) {
 	config := appstest.OkDeploymentConfig(1)
 	config.Spec.Strategy = recreateParams(30, appsapi.LifecycleHookFailurePolicyAbort, "", "")
-	deployment, _ := appsutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
+	deployment, _ := appsutil.MakeDeploymentV1(config, legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).
+		GroupVersions[0]))
 	controllerClient := newFakeControllerClient(deployment)
 
 	hookExecuted := false
@@ -176,7 +179,7 @@ func TestRecreate_deploymentPreHookSuccess(t *testing.T) {
 		rcClient:          controllerClient,
 		scaleClient:       controllerClient.fakeScaleClient(),
 		hookExecutor: &hookExecutorImpl{
-			executeFunc: func(hook *appsapi.LifecycleHook, deployment *kapi.ReplicationController, suffix, label string) error {
+			executeFunc: func(hook *appsapi.LifecycleHook, deployment *corev1.ReplicationController, stage string, timeout time.Duration) error {
 				hookExecuted = true
 				return nil
 			},
@@ -196,7 +199,8 @@ func TestRecreate_deploymentPreHookSuccess(t *testing.T) {
 func TestRecreate_deploymentPreHookFail(t *testing.T) {
 	config := appstest.OkDeploymentConfig(1)
 	config.Spec.Strategy = recreateParams(30, appsapi.LifecycleHookFailurePolicyAbort, "", "")
-	deployment, _ := appsutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
+	deployment, _ := appsutil.MakeDeploymentV1(config, legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).
+		GroupVersions[0]))
 	controllerClient := newFakeControllerClient(deployment)
 
 	strategy := &RecreateDeploymentStrategy{
@@ -208,7 +212,7 @@ func TestRecreate_deploymentPreHookFail(t *testing.T) {
 		rcClient:          controllerClient,
 		scaleClient:       controllerClient.fakeScaleClient(),
 		hookExecutor: &hookExecutorImpl{
-			executeFunc: func(hook *appsapi.LifecycleHook, deployment *kapi.ReplicationController, suffix, label string) error {
+			executeFunc: func(hook *appsapi.LifecycleHook, deployment *corev1.ReplicationController, stage string, duration time.Duration) error {
 				return fmt.Errorf("hook execution failure")
 			},
 		},
@@ -228,7 +232,7 @@ func TestRecreate_deploymentPreHookFail(t *testing.T) {
 func TestRecreate_deploymentMidHookSuccess(t *testing.T) {
 	config := appstest.OkDeploymentConfig(1)
 	config.Spec.Strategy = recreateParams(30, "", appsapi.LifecycleHookFailurePolicyAbort, "")
-	deployment, _ := appsutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(appsv1.SchemeGroupVersion))
+	deployment, _ := appsutil.MakeDeploymentV1(config, legacyscheme.Codecs.LegacyCodec(appsv1.SchemeGroupVersion))
 	controllerClient := newFakeControllerClient(deployment)
 
 	strategy := &RecreateDeploymentStrategy{
@@ -240,7 +244,7 @@ func TestRecreate_deploymentMidHookSuccess(t *testing.T) {
 		eventClient:       fake.NewSimpleClientset().Core(),
 		getUpdateAcceptor: getUpdateAcceptor,
 		hookExecutor: &hookExecutorImpl{
-			executeFunc: func(hook *appsapi.LifecycleHook, deployment *kapi.ReplicationController, suffix, label string) error {
+			executeFunc: func(hook *appsapi.LifecycleHook, deployment *corev1.ReplicationController, stage string, timeout time.Duration) error {
 				return fmt.Errorf("hook execution failure")
 			},
 		},
@@ -260,7 +264,8 @@ func TestRecreate_deploymentMidHookSuccess(t *testing.T) {
 func TestRecreate_deploymentPostHookSuccess(t *testing.T) {
 	config := appstest.OkDeploymentConfig(1)
 	config.Spec.Strategy = recreateParams(30, "", "", appsapi.LifecycleHookFailurePolicyAbort)
-	deployment, _ := appsutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
+	deployment, _ := appsutil.MakeDeploymentV1(config, legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).
+		GroupVersions[0]))
 	controllerClient := newFakeControllerClient(deployment)
 
 	hookExecuted := false
@@ -273,7 +278,7 @@ func TestRecreate_deploymentPostHookSuccess(t *testing.T) {
 		eventClient:       fake.NewSimpleClientset().Core(),
 		getUpdateAcceptor: getUpdateAcceptor,
 		hookExecutor: &hookExecutorImpl{
-			executeFunc: func(hook *appsapi.LifecycleHook, deployment *kapi.ReplicationController, suffix, label string) error {
+			executeFunc: func(hook *appsapi.LifecycleHook, deployment *corev1.ReplicationController, stage string, timeout time.Duration) error {
 				hookExecuted = true
 				return nil
 			},
@@ -293,7 +298,8 @@ func TestRecreate_deploymentPostHookSuccess(t *testing.T) {
 func TestRecreate_deploymentPostHookFail(t *testing.T) {
 	config := appstest.OkDeploymentConfig(1)
 	config.Spec.Strategy = recreateParams(30, "", "", appsapi.LifecycleHookFailurePolicyAbort)
-	deployment, _ := appsutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
+	deployment, _ := appsutil.MakeDeploymentV1(config, legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).
+		GroupVersions[0]))
 	controllerClient := newFakeControllerClient(deployment)
 
 	hookExecuted := false
@@ -306,7 +312,7 @@ func TestRecreate_deploymentPostHookFail(t *testing.T) {
 		eventClient:       fake.NewSimpleClientset().Core(),
 		getUpdateAcceptor: getUpdateAcceptor,
 		hookExecutor: &hookExecutorImpl{
-			executeFunc: func(hook *appsapi.LifecycleHook, deployment *kapi.ReplicationController, suffix, label string) error {
+			executeFunc: func(hook *appsapi.LifecycleHook, deployment *corev1.ReplicationController, stage string, timeout time.Duration) error {
 				hookExecuted = true
 				return fmt.Errorf("post hook failure")
 			},
@@ -324,24 +330,26 @@ func TestRecreate_deploymentPostHookFail(t *testing.T) {
 }
 
 func TestRecreate_acceptorSuccess(t *testing.T) {
-	var deployment *kapi.ReplicationController
+	var deployment *corev1.ReplicationController
 	strategy := &RecreateDeploymentStrategy{
 		out:         &bytes.Buffer{},
 		errOut:      &bytes.Buffer{},
-		eventClient: fake.NewSimpleClientset().Core(),
+		eventClient: fake.NewSimpleClientset().CoreV1(),
 		decoder:     legacyscheme.Codecs.UniversalDecoder(),
 	}
 
 	acceptorCalled := false
 	acceptor := &testAcceptor{
-		acceptFn: func(deployment *kapi.ReplicationController) error {
+		acceptFn: func(deployment *corev1.ReplicationController) error {
 			acceptorCalled = true
 			return nil
 		},
 	}
 
-	oldDeployment, _ := appsutil.MakeDeployment(appstest.OkDeploymentConfig(1), legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
-	deployment, _ = appsutil.MakeDeployment(appstest.OkDeploymentConfig(2), legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
+	oldDeployment, _ := appsutil.MakeDeploymentV1(appstest.OkDeploymentConfig(1), legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(
+		corev1.GroupName).GroupVersions[0]))
+	deployment, _ = appsutil.MakeDeploymentV1(appstest.OkDeploymentConfig(2), legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(corev1.
+		GroupName).GroupVersions[0]))
 	controllerClient := newFakeControllerClient(deployment)
 	strategy.rcClient = controllerClient
 	strategy.scaleClient = controllerClient.fakeScaleClient()
@@ -369,7 +377,7 @@ func TestRecreate_acceptorSuccess(t *testing.T) {
 }
 
 func TestRecreate_acceptorSuccessWithColdCaches(t *testing.T) {
-	var deployment *kapi.ReplicationController
+	var deployment *corev1.ReplicationController
 	strategy := &RecreateDeploymentStrategy{
 		out:         &bytes.Buffer{},
 		errOut:      &bytes.Buffer{},
@@ -379,14 +387,16 @@ func TestRecreate_acceptorSuccessWithColdCaches(t *testing.T) {
 
 	acceptorCalled := false
 	acceptor := &testAcceptor{
-		acceptFn: func(deployment *kapi.ReplicationController) error {
+		acceptFn: func(deployment *corev1.ReplicationController) error {
 			acceptorCalled = true
 			return nil
 		},
 	}
 
-	oldDeployment, _ := appsutil.MakeDeployment(appstest.OkDeploymentConfig(1), legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
-	deployment, _ = appsutil.MakeDeployment(appstest.OkDeploymentConfig(2), legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
+	oldDeployment, _ := appsutil.MakeDeploymentV1(appstest.OkDeploymentConfig(1), legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(
+		kapi.GroupName).GroupVersions[0]))
+	deployment, _ = appsutil.MakeDeploymentV1(appstest.OkDeploymentConfig(2), legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.
+		GroupName).GroupVersions[0]))
 	controllerClient := newFakeControllerClient(deployment)
 
 	strategy.rcClient = controllerClient
@@ -414,7 +424,7 @@ func TestRecreate_acceptorSuccessWithColdCaches(t *testing.T) {
 }
 
 func TestRecreate_acceptorFail(t *testing.T) {
-	var deployment *kapi.ReplicationController
+	var deployment *corev1.ReplicationController
 
 	strategy := &RecreateDeploymentStrategy{
 		out:         &bytes.Buffer{},
@@ -424,13 +434,15 @@ func TestRecreate_acceptorFail(t *testing.T) {
 	}
 
 	acceptor := &testAcceptor{
-		acceptFn: func(deployment *kapi.ReplicationController) error {
+		acceptFn: func(deployment *corev1.ReplicationController) error {
 			return fmt.Errorf("rejected")
 		},
 	}
 
-	oldDeployment, _ := appsutil.MakeDeployment(appstest.OkDeploymentConfig(1), legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
-	deployment, _ = appsutil.MakeDeployment(appstest.OkDeploymentConfig(2), legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
+	oldDeployment, _ := appsutil.MakeDeploymentV1(appstest.OkDeploymentConfig(1), legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(
+		kapi.GroupName).GroupVersions[0]))
+	deployment, _ = appsutil.MakeDeploymentV1(appstest.OkDeploymentConfig(2), legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.
+		GroupName).GroupVersions[0]))
 	rcClient := newFakeControllerClient(deployment)
 	strategy.rcClient = rcClient
 	strategy.scaleClient = rcClient.fakeScaleClient()

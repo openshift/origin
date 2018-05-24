@@ -400,9 +400,10 @@ os::cmd::expect_success 'oc whoami'
 os::log::info "Testing deployment logs and failing pre and mid hooks ..."
 # test hook selectors
 os::cmd::expect_success "oc create -f ${OS_ROOT}/test/testdata/complete-dc-hooks.yaml"
-os::cmd::try_until_text 'oc get pods -l openshift.io/deployer-pod.type=hook-pre  -o jsonpath={.items[*].status.phase}' '^Succeeded$'
-os::cmd::try_until_text 'oc get pods -l openshift.io/deployer-pod.type=hook-mid  -o jsonpath={.items[*].status.phase}' '^Succeeded$'
-os::cmd::try_until_text 'oc get pods -l openshift.io/deployer-pod.type=hook-post -o jsonpath={.items[*].status.phase}' '^Succeeded$'
+os::cmd::expect_success 'oc rollout status dc/complete-dc-hooks'
+os::cmd::expect_success_and_text 'oc get rc/complete-dc-hooks-1 -o jsonpath={.metadata..annotations.openshift\\.io/deployment-hook-result\\.pre}' "success"
+os::cmd::expect_success_and_text 'oc get rc/complete-dc-hooks-1 -o jsonpath={.metadata..annotations.openshift\\.io/deployment-hook-result\\.mid}' "success"
+os::cmd::expect_success_and_text 'oc get rc/complete-dc-hooks-1 -o jsonpath={.metadata..annotations.openshift\\.io/deployment-hook-result\\.post}' "success"
 # test the pre hook on a rolling deployment
 os::cmd::expect_success 'oc create -f test/testdata/failing-dc.yaml'
 os::cmd::try_until_success 'oc get rc/failing-dc-1'

@@ -20,13 +20,13 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/kubernetes"
 	scaleclient "k8s.io/client-go/scale"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	autoscalingv1 "k8s.io/kubernetes/pkg/apis/autoscaling/v1"
 	api "k8s.io/kubernetes/pkg/apis/core"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapiv1 "k8s.io/kubernetes/pkg/apis/core/v1"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	kdeplutil "k8s.io/kubernetes/pkg/controller/deployment/util"
 	"k8s.io/kubernetes/pkg/kubectl"
@@ -36,11 +36,11 @@ import (
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 )
 
-func NewReplicationControllerV1Scaler(client kclientset.Interface) kubectl.Scaler {
+func NewReplicationControllerV1Scaler(client kubernetes.Interface) kubectl.Scaler {
 	return kubectl.NewScaler(NewReplicationControllerV1ScaleClient(client))
 }
 
-func NewReplicationControllerV1ScaleClient(client kclientset.Interface) scaleclient.ScalesGetter {
+func NewReplicationControllerV1ScaleClient(client kubernetes.Interface) scaleclient.ScalesGetter {
 	return scaleclient.New(client.Core().RESTClient(), rcv1mapper{}, dynamic.LegacyAPIPathResolverFunc, rcv1mapper{})
 }
 

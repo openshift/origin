@@ -3,15 +3,18 @@ package rolling
 import (
 	"bytes"
 	"fmt"
+	"reflect"
 	"testing"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/kubernetes/fake"
 	clientgotesting "k8s.io/client-go/testing"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	"k8s.io/kubernetes/pkg/kubectl"
+	"k8s.io/kubernetes/staging/src/k8s.io/apimachinery/pkg/util/diff"
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appstest "github.com/openshift/origin/pkg/apps/apis/apps/test"
@@ -29,7 +32,7 @@ func TestRolling_deployInitial(t *testing.T) {
 		rcClient:    fake.NewSimpleClientset().Core(),
 		eventClient: fake.NewSimpleClientset().Core(),
 		initialStrategy: &testStrategy{
-			deployFn: func(from *kapi.ReplicationController, to *kapi.ReplicationController, desiredReplicas int, updateAcceptor strat.UpdateAcceptor) error {
+			deployFn: func(from *corev1.ReplicationController, to *corev1.ReplicationController, desiredReplicas int, updateAcceptor strat.UpdateAcceptor) error {
 				initialStrategyInvoked = true
 				return nil
 			},
@@ -45,7 +48,8 @@ func TestRolling_deployInitial(t *testing.T) {
 
 	config := appstest.OkDeploymentConfig(1)
 	config.Spec.Strategy = appstest.OkRollingStrategy()
-	deployment, _ := appsutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
+	deployment, _ := appsutil.MakeDeploymentV1(config, legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(corev1.GroupName).
+		GroupVersions[0]))
 	strategy.out, strategy.errOut = &bytes.Buffer{}, &bytes.Buffer{}
 	err := strategy.Deploy(nil, deployment, 2)
 	if err != nil {
@@ -59,12 +63,14 @@ func TestRolling_deployInitial(t *testing.T) {
 func TestRolling_deployRolling(t *testing.T) {
 	latestConfig := appstest.OkDeploymentConfig(1)
 	latestConfig.Spec.Strategy = appstest.OkRollingStrategy()
-	latest, _ := appsutil.MakeDeployment(latestConfig, legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
+	latest, _ := appsutil.MakeDeploymentV1(latestConfig, legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(corev1.GroupName).
+		GroupVersions[0]))
 	config := appstest.OkDeploymentConfig(2)
 	config.Spec.Strategy = appstest.OkRollingStrategy()
-	deployment, _ := appsutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
+	deployment, _ := appsutil.MakeDeploymentV1(config, legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(corev1.GroupName).
+		GroupVersions[0]))
 
-	deployments := map[string]*kapi.ReplicationController{
+	deployments := map[string]*corev1.ReplicationController{
 		latest.Name:     latest,
 		deployment.Name: deployment,
 	}
@@ -76,7 +82,7 @@ func TestRolling_deployRolling(t *testing.T) {
 		return true, deployments[name], nil
 	})
 	client.AddReactor("update", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-		updated := action.(clientgotesting.UpdateAction).GetObject().(*kapi.ReplicationController)
+		updated := action.(clientgotesting.UpdateAction).GetObject().(*corev1.ReplicationController)
 		deploymentUpdated = true
 		return true, updated, nil
 	})
@@ -87,7 +93,7 @@ func TestRolling_deployRolling(t *testing.T) {
 		rcClient:    client.Core(),
 		eventClient: fake.NewSimpleClientset().Core(),
 		initialStrategy: &testStrategy{
-			deployFn: func(from *kapi.ReplicationController, to *kapi.ReplicationController, desiredReplicas int, updateAcceptor strat.UpdateAcceptor) error {
+			deployFn: func(from *corev1.ReplicationController, to *corev1.ReplicationController, desiredReplicas int, updateAcceptor strat.UpdateAcceptor) error {
 				t.Fatalf("unexpected call to initial strategy")
 				return nil
 			},
@@ -110,12 +116,23 @@ func TestRolling_deployRolling(t *testing.T) {
 		t.Fatalf("expected rolling update to be invoked")
 	}
 
-	if e, a := latest, rollingConfig.OldRc; e != a {
-		t.Errorf("expected rollingConfig.OldRc %v, got %v", e, a)
+	var (
+		latestInternal     = &kapi.ReplicationController{}
+		deploymentInternal = &kapi.ReplicationController{}
+	)
+	if err := legacyscheme.Scheme.Convert(latest, latestInternal, nil); err != nil {
+		t.Fatalf("unable to convert: %v", err)
+	}
+	if err := legacyscheme.Scheme.Convert(deployment, deploymentInternal, nil); err != nil {
+		t.Fatalf("unable to convert: %v", err)
 	}
 
-	if e, a := deployment, rollingConfig.NewRc; e != a {
-		t.Errorf("expected rollingConfig.NewRc %v, got %v", e, a)
+	if !reflect.DeepEqual(latestInternal, rollingConfig.OldRc) {
+		t.Errorf("unexpected rollingConfig.OldRc:%s\n", diff.ObjectGoPrintDiff(latestInternal, rollingConfig.OldRc))
+	}
+
+	if !reflect.DeepEqual(deploymentInternal, rollingConfig.NewRc) {
+		t.Errorf("unexpected rollingConfig.NewRc:%s\n", diff.ObjectGoPrintDiff(latestInternal, rollingConfig.OldRc))
 	}
 
 	if e, a := 1*time.Second, rollingConfig.Interval; e != a {
@@ -146,21 +163,22 @@ func TestRolling_deployRolling(t *testing.T) {
 }
 
 type hookExecutorImpl struct {
-	executeFunc func(hook *appsapi.LifecycleHook, deployment *kapi.ReplicationController, suffix, label string) error
+	executeFunc func(hook *appsapi.LifecycleHook, deployment *corev1.ReplicationController, stage string, duration time.Duration) error
 }
 
-func (h *hookExecutorImpl) Execute(hook *appsapi.LifecycleHook, rc *kapi.ReplicationController, suffix, label string) error {
-	return h.executeFunc(hook, rc, suffix, label)
+func (h *hookExecutorImpl) RunHook(hook *appsapi.LifecycleHook, rc *corev1.ReplicationController, stage string, duration time.Duration) error {
+	return h.executeFunc(hook, rc, stage, duration)
 }
 
 func TestRolling_deployRollingHooks(t *testing.T) {
 	config := appstest.OkDeploymentConfig(1)
 	config.Spec.Strategy = appstest.OkRollingStrategy()
-	latest, _ := appsutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
+	latest, _ := appsutil.MakeDeploymentV1(config, legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(corev1.GroupName).
+		GroupVersions[0]))
 
 	var hookError error
 
-	deployments := map[string]*kapi.ReplicationController{latest.Name: latest}
+	deployments := map[string]*corev1.ReplicationController{latest.Name: latest}
 
 	client := &fake.Clientset{}
 	client.AddReactor("get", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
@@ -168,7 +186,7 @@ func TestRolling_deployRollingHooks(t *testing.T) {
 		return true, deployments[name], nil
 	})
 	client.AddReactor("update", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-		updated := action.(clientgotesting.UpdateAction).GetObject().(*kapi.ReplicationController)
+		updated := action.(clientgotesting.UpdateAction).GetObject().(*corev1.ReplicationController)
 		return true, updated, nil
 	})
 
@@ -177,7 +195,7 @@ func TestRolling_deployRollingHooks(t *testing.T) {
 		rcClient:    client.Core(),
 		eventClient: fake.NewSimpleClientset().Core(),
 		initialStrategy: &testStrategy{
-			deployFn: func(from *kapi.ReplicationController, to *kapi.ReplicationController, desiredReplicas int, updateAcceptor strat.UpdateAcceptor) error {
+			deployFn: func(from *corev1.ReplicationController, to *corev1.ReplicationController, desiredReplicas int, updateAcceptor strat.UpdateAcceptor) error {
 				t.Fatalf("unexpected call to initial strategy")
 				return nil
 			},
@@ -186,7 +204,7 @@ func TestRolling_deployRollingHooks(t *testing.T) {
 			return nil
 		},
 		hookExecutor: &hookExecutorImpl{
-			executeFunc: func(hook *appsapi.LifecycleHook, deployment *kapi.ReplicationController, suffix, label string) error {
+			executeFunc: func(hook *appsapi.LifecycleHook, deployment *corev1.ReplicationController, stage string, duration time.Duration) error {
 				return hookError
 			},
 		},
@@ -209,7 +227,8 @@ func TestRolling_deployRollingHooks(t *testing.T) {
 	for _, tc := range cases {
 		config := appstest.OkDeploymentConfig(2)
 		config.Spec.Strategy.RollingParams = tc.params
-		deployment, _ := appsutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
+		deployment, _ := appsutil.MakeDeploymentV1(config, legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(corev1.GroupName).
+			GroupVersions[0]))
 		deployments[deployment.Name] = deployment
 		hookError = nil
 		if tc.hookShouldFail {
@@ -239,7 +258,7 @@ func TestRolling_deployInitialHooks(t *testing.T) {
 		rcClient:    fake.NewSimpleClientset().Core(),
 		eventClient: fake.NewSimpleClientset().Core(),
 		initialStrategy: &testStrategy{
-			deployFn: func(from *kapi.ReplicationController, to *kapi.ReplicationController, desiredReplicas int, updateAcceptor strat.UpdateAcceptor) error {
+			deployFn: func(from *corev1.ReplicationController, to *corev1.ReplicationController, desiredReplicas int, updateAcceptor strat.UpdateAcceptor) error {
 				return nil
 			},
 		},
@@ -247,7 +266,7 @@ func TestRolling_deployInitialHooks(t *testing.T) {
 			return nil
 		},
 		hookExecutor: &hookExecutorImpl{
-			executeFunc: func(hook *appsapi.LifecycleHook, deployment *kapi.ReplicationController, suffix, label string) error {
+			executeFunc: func(hook *appsapi.LifecycleHook, deployment *corev1.ReplicationController, stage string, duration time.Duration) error {
 				return hookError
 			},
 		},
@@ -270,7 +289,8 @@ func TestRolling_deployInitialHooks(t *testing.T) {
 	for i, tc := range cases {
 		config := appstest.OkDeploymentConfig(2)
 		config.Spec.Strategy.RollingParams = tc.params
-		deployment, _ := appsutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
+		deployment, _ := appsutil.MakeDeploymentV1(config, legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(corev1.GroupName).
+			GroupVersions[0]))
 		hookError = nil
 		if tc.hookShouldFail {
 			hookError = fmt.Errorf("hook failure")
@@ -290,10 +310,10 @@ func TestRolling_deployInitialHooks(t *testing.T) {
 }
 
 type testStrategy struct {
-	deployFn func(from *kapi.ReplicationController, to *kapi.ReplicationController, desiredReplicas int, updateAcceptor strat.UpdateAcceptor) error
+	deployFn func(from *corev1.ReplicationController, to *corev1.ReplicationController, desiredReplicas int, updateAcceptor strat.UpdateAcceptor) error
 }
 
-func (s *testStrategy) DeployWithAcceptor(from *kapi.ReplicationController, to *kapi.ReplicationController, desiredReplicas int, updateAcceptor strat.UpdateAcceptor) error {
+func (s *testStrategy) DeployWithAcceptor(from *corev1.ReplicationController, to *corev1.ReplicationController, desiredReplicas int, updateAcceptor strat.UpdateAcceptor) error {
 	return s.deployFn(from, to, desiredReplicas, updateAcceptor)
 }
 
@@ -329,16 +349,16 @@ func rollingParams(preFailurePolicy, postFailurePolicy appsapi.LifecycleHookFail
 
 func getUpdateAcceptor(timeout time.Duration, minReadySeconds int32) strat.UpdateAcceptor {
 	return &testAcceptor{
-		acceptFn: func(deployment *kapi.ReplicationController) error {
+		acceptFn: func(deployment *corev1.ReplicationController) error {
 			return nil
 		},
 	}
 }
 
 type testAcceptor struct {
-	acceptFn func(*kapi.ReplicationController) error
+	acceptFn func(*corev1.ReplicationController) error
 }
 
-func (t *testAcceptor) Accept(deployment *kapi.ReplicationController) error {
+func (t *testAcceptor) Accept(deployment *corev1.ReplicationController) error {
 	return t.acceptFn(deployment)
 }
