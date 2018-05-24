@@ -140,10 +140,9 @@ func NewCommandF5Router(name string) *cobra.Command {
 	options := &F5RouterOptions{
 		Config: NewConfig(),
 	}
-	options.Config.FromFile = true
 
 	cmd := &cobra.Command{
-		Use:   fmt.Sprintf("%s%s", name, ConfigSyntax),
+		Use:   name,
 		Short: "Start an F5 route synchronizer",
 		Long:  f5Long,
 		Run: func(c *cobra.Command, args []string) {
@@ -222,11 +221,15 @@ func (o *F5RouterOptions) Run() error {
 	if err != nil {
 		return err
 	}
-	routeclient, err := routeinternalclientset.NewForConfig(o.Config.OpenShiftConfig())
+	config, _, err := o.Config.KubeConfig()
 	if err != nil {
 		return err
 	}
-	projectclient, err := projectinternalclientset.NewForConfig(o.Config.OpenShiftConfig())
+	routeclient, err := routeinternalclientset.NewForConfig(config)
+	if err != nil {
+		return err
+	}
+	projectclient, err := projectinternalclientset.NewForConfig(config)
 	if err != nil {
 		return err
 	}

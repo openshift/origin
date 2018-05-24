@@ -1,6 +1,6 @@
 apiVersion: v1
 items:
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
@@ -8,37 +8,32 @@ items:
       openshift.io/description: A super-user that can perform any action in the cluster.
         When granted to a user within a project, they have full control over quota
         and membership and can perform every action on every resource in the project.
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: cluster-admin
   rules:
   - apiGroups:
     - '*'
-    attributeRestrictions: null
     resources:
     - '*'
     verbs:
     - '*'
-  - apiGroups: null
-    attributeRestrictions: null
-    nonResourceURLs:
+  - nonResourceURLs:
     - '*'
-    resources: []
     verbs:
     - '*'
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: sudoer
   rules:
   - apiGroups:
     - ""
     - user.openshift.io
-    attributeRestrictions: null
     resourceNames:
     - system:admin
     resources:
@@ -49,7 +44,6 @@ items:
   - apiGroups:
     - ""
     - user.openshift.io
-    attributeRestrictions: null
     resourceNames:
     - system:masters
     resources:
@@ -57,34 +51,32 @@ items:
     - systemgroups
     verbs:
     - impersonate
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:scope-impersonation
   rules:
   - apiGroups:
     - authentication.k8s.io
-    attributeRestrictions: null
     resources:
     - userextras/scopes.authorization.openshift.io
     verbs:
     - impersonate
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: cluster-reader
   rules:
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - bindings
     - componentstatuses
@@ -121,7 +113,6 @@ items:
     - watch
   - apiGroups:
     - admissionregistration.k8s.io
-    attributeRestrictions: null
     resources:
     - mutatingwebhookconfigurations
     - validatingwebhookconfigurations
@@ -131,7 +122,6 @@ items:
     - watch
   - apiGroups:
     - apps
-    attributeRestrictions: null
     resources:
     - controllerrevisions
     - daemonsets
@@ -151,7 +141,6 @@ items:
     - watch
   - apiGroups:
     - apiextensions.k8s.io
-    attributeRestrictions: null
     resources:
     - customresourcedefinitions
     - customresourcedefinitions/status
@@ -161,7 +150,6 @@ items:
     - watch
   - apiGroups:
     - apiregistration.k8s.io
-    attributeRestrictions: null
     resources:
     - apiservices
     - apiservices/status
@@ -171,7 +159,6 @@ items:
     - watch
   - apiGroups:
     - autoscaling
-    attributeRestrictions: null
     resources:
     - horizontalpodautoscalers
     - horizontalpodautoscalers/status
@@ -181,7 +168,6 @@ items:
     - watch
   - apiGroups:
     - batch
-    attributeRestrictions: null
     resources:
     - cronjobs
     - cronjobs/status
@@ -193,7 +179,6 @@ items:
     - watch
   - apiGroups:
     - extensions
-    attributeRestrictions: null
     resources:
     - daemonsets
     - daemonsets/status
@@ -221,7 +206,6 @@ items:
     - watch
   - apiGroups:
     - events.k8s.io
-    attributeRestrictions: null
     resources:
     - events
     verbs:
@@ -230,7 +214,6 @@ items:
     - watch
   - apiGroups:
     - networking.k8s.io
-    attributeRestrictions: null
     resources:
     - networkpolicies
     verbs:
@@ -239,7 +222,6 @@ items:
     - watch
   - apiGroups:
     - policy
-    attributeRestrictions: null
     resources:
     - poddisruptionbudgets
     - poddisruptionbudgets/status
@@ -250,7 +232,6 @@ items:
     - watch
   - apiGroups:
     - rbac.authorization.k8s.io
-    attributeRestrictions: null
     resources:
     - clusterrolebindings
     - clusterroles
@@ -262,7 +243,6 @@ items:
     - watch
   - apiGroups:
     - settings.k8s.io
-    attributeRestrictions: null
     resources:
     - podpresets
     verbs:
@@ -271,7 +251,6 @@ items:
     - watch
   - apiGroups:
     - storage.k8s.io
-    attributeRestrictions: null
     resources:
     - storageclasses
     - volumeattachments
@@ -281,7 +260,6 @@ items:
     - watch
   - apiGroups:
     - certificates.k8s.io
-    attributeRestrictions: null
     resources:
     - certificatesigningrequests
     - certificatesigningrequests/approval
@@ -293,7 +271,6 @@ items:
   - apiGroups:
     - ""
     - authorization.openshift.io
-    attributeRestrictions: null
     resources:
     - clusterrolebindings
     - clusterroles
@@ -307,7 +284,6 @@ items:
   - apiGroups:
     - ""
     - build.openshift.io
-    attributeRestrictions: null
     resources:
     - buildconfigs
     - buildconfigs/webhooks
@@ -321,7 +297,6 @@ items:
   - apiGroups:
     - ""
     - apps.openshift.io
-    attributeRestrictions: null
     resources:
     - deploymentconfigs
     - deploymentconfigs/log
@@ -334,7 +309,6 @@ items:
   - apiGroups:
     - ""
     - image.openshift.io
-    attributeRestrictions: null
     resources:
     - images
     - imagesignatures
@@ -349,7 +323,6 @@ items:
   - apiGroups:
     - ""
     - image.openshift.io
-    attributeRestrictions: null
     resources:
     - imagestreams/layers
     verbs:
@@ -357,7 +330,6 @@ items:
   - apiGroups:
     - ""
     - oauth.openshift.io
-    attributeRestrictions: null
     resources:
     - oauthclientauthorizations
     verbs:
@@ -367,7 +339,6 @@ items:
   - apiGroups:
     - ""
     - project.openshift.io
-    attributeRestrictions: null
     resources:
     - projectrequests
     - projects
@@ -378,7 +349,6 @@ items:
   - apiGroups:
     - ""
     - quota.openshift.io
-    attributeRestrictions: null
     resources:
     - appliedclusterresourcequotas
     - clusterresourcequotas
@@ -390,7 +360,6 @@ items:
   - apiGroups:
     - ""
     - route.openshift.io
-    attributeRestrictions: null
     resources:
     - routes
     - routes/status
@@ -401,7 +370,6 @@ items:
   - apiGroups:
     - ""
     - network.openshift.io
-    attributeRestrictions: null
     resources:
     - clusternetworks
     - egressnetworkpolicies
@@ -414,7 +382,6 @@ items:
   - apiGroups:
     - ""
     - security.openshift.io
-    attributeRestrictions: null
     resources:
     - securitycontextconstraints
     verbs:
@@ -423,7 +390,6 @@ items:
     - watch
   - apiGroups:
     - security.openshift.io
-    attributeRestrictions: null
     resources:
     - rangeallocations
     verbs:
@@ -433,7 +399,6 @@ items:
   - apiGroups:
     - ""
     - template.openshift.io
-    attributeRestrictions: null
     resources:
     - processedtemplates
     - templateconfigs
@@ -446,7 +411,6 @@ items:
   - apiGroups:
     - ""
     - template.openshift.io
-    attributeRestrictions: null
     resources:
     - brokertemplateinstances
     - templateinstances/status
@@ -457,7 +421,6 @@ items:
   - apiGroups:
     - ""
     - user.openshift.io
-    attributeRestrictions: null
     resources:
     - groups
     - identities
@@ -470,7 +433,6 @@ items:
   - apiGroups:
     - ""
     - authorization.openshift.io
-    attributeRestrictions: null
     resources:
     - localresourceaccessreviews
     - localsubjectaccessreviews
@@ -482,7 +444,6 @@ items:
     - create
   - apiGroups:
     - authorization.k8s.io
-    attributeRestrictions: null
     resources:
     - localsubjectaccessreviews
     - selfsubjectaccessreviews
@@ -492,7 +453,6 @@ items:
     - create
   - apiGroups:
     - authentication.k8s.io
-    attributeRestrictions: null
     resources:
     - tokenreviews
     verbs:
@@ -500,7 +460,6 @@ items:
   - apiGroups:
     - ""
     - security.openshift.io
-    attributeRestrictions: null
     resources:
     - podsecuritypolicyreviews
     - podsecuritypolicyselfsubjectreviews
@@ -509,7 +468,6 @@ items:
     - create
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - nodes/metrics
     - nodes/spec
@@ -517,23 +475,18 @@ items:
     - get
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - nodes/stats
     verbs:
     - create
     - get
-  - apiGroups: null
-    attributeRestrictions: null
-    nonResourceURLs:
+  - nonResourceURLs:
     - '*'
-    resources: []
     verbs:
     - get
   - apiGroups:
     - ""
     - build.openshift.io
-    attributeRestrictions: null
     resources:
     - buildlogs
     verbs:
@@ -542,112 +495,103 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - resourcequotausages
     verbs:
     - get
     - list
     - watch
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: cluster-debugger
   rules:
-  - apiGroups: null
-    attributeRestrictions: null
-    nonResourceURLs:
+  - nonResourceURLs:
     - /debug/pprof
     - /debug/pprof/*
     - /metrics
-    resources: []
     verbs:
     - get
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:build-strategy-docker
   rules:
   - apiGroups:
     - ""
     - build.openshift.io
-    attributeRestrictions: null
     resources:
     - builds/docker
     - builds/optimizeddocker
     verbs:
     - create
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:build-strategy-custom
   rules:
   - apiGroups:
     - ""
     - build.openshift.io
-    attributeRestrictions: null
     resources:
     - builds/custom
     verbs:
     - create
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:build-strategy-source
   rules:
   - apiGroups:
     - ""
     - build.openshift.io
-    attributeRestrictions: null
     resources:
     - builds/source
     verbs:
     - create
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:build-strategy-jenkinspipeline
   rules:
   - apiGroups:
     - ""
     - build.openshift.io
-    attributeRestrictions: null
     resources:
     - builds/jenkinspipeline
     verbs:
     - create
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: storage-admin
   rules:
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - persistentvolumes
     verbs:
@@ -661,7 +605,6 @@ items:
     - watch
   - apiGroups:
     - storage.k8s.io
-    attributeRestrictions: null
     resources:
     - storageclasses
     verbs:
@@ -675,7 +618,6 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - events
     - persistentvolumeclaims
@@ -683,12 +625,12 @@ items:
     - get
     - list
     - watch
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       rbac.authorization.k8s.io/aggregate-to-admin: "true"
@@ -697,7 +639,6 @@ items:
   - apiGroups:
     - ""
     - authorization.openshift.io
-    attributeRestrictions: null
     resources:
     - rolebindings
     - roles
@@ -713,7 +654,6 @@ items:
   - apiGroups:
     - ""
     - authorization.openshift.io
-    attributeRestrictions: null
     resources:
     - localresourceaccessreviews
     - localsubjectaccessreviews
@@ -723,7 +663,6 @@ items:
   - apiGroups:
     - ""
     - security.openshift.io
-    attributeRestrictions: null
     resources:
     - podsecuritypolicyreviews
     - podsecuritypolicyselfsubjectreviews
@@ -733,7 +672,6 @@ items:
   - apiGroups:
     - ""
     - authorization.openshift.io
-    attributeRestrictions: null
     resources:
     - rolebindingrestrictions
     verbs:
@@ -743,7 +681,6 @@ items:
   - apiGroups:
     - ""
     - build.openshift.io
-    attributeRestrictions: null
     resources:
     - buildconfigs
     - buildconfigs/webhooks
@@ -760,7 +697,6 @@ items:
   - apiGroups:
     - ""
     - build.openshift.io
-    attributeRestrictions: null
     resources:
     - builds/log
     verbs:
@@ -770,7 +706,6 @@ items:
   - apiGroups:
     - ""
     - build.openshift.io
-    attributeRestrictions: null
     resources:
     - buildconfigs/instantiate
     - buildconfigs/instantiatebinary
@@ -780,14 +715,12 @@ items:
   - apiGroups:
     - ""
     - build.openshift.io
-    attributeRestrictions: null
     resources:
     - builds/details
     verbs:
     - update
   - apiGroups:
     - build.openshift.io
-    attributeRestrictions: null
     resources:
     - jenkins
     verbs:
@@ -797,7 +730,6 @@ items:
   - apiGroups:
     - ""
     - apps.openshift.io
-    attributeRestrictions: null
     resources:
     - deploymentconfigs
     - deploymentconfigs/scale
@@ -813,7 +745,6 @@ items:
   - apiGroups:
     - ""
     - apps.openshift.io
-    attributeRestrictions: null
     resources:
     - deploymentconfigrollbacks
     - deploymentconfigs/instantiate
@@ -823,7 +754,6 @@ items:
   - apiGroups:
     - ""
     - apps.openshift.io
-    attributeRestrictions: null
     resources:
     - deploymentconfigs/log
     - deploymentconfigs/status
@@ -834,7 +764,6 @@ items:
   - apiGroups:
     - ""
     - image.openshift.io
-    attributeRestrictions: null
     resources:
     - imagestreamimages
     - imagestreammappings
@@ -853,7 +782,6 @@ items:
   - apiGroups:
     - ""
     - image.openshift.io
-    attributeRestrictions: null
     resources:
     - imagestreams/status
     verbs:
@@ -863,7 +791,6 @@ items:
   - apiGroups:
     - ""
     - image.openshift.io
-    attributeRestrictions: null
     resources:
     - imagestreams/layers
     verbs:
@@ -872,7 +799,6 @@ items:
   - apiGroups:
     - ""
     - image.openshift.io
-    attributeRestrictions: null
     resources:
     - imagestreamimports
     verbs:
@@ -880,7 +806,6 @@ items:
   - apiGroups:
     - ""
     - project.openshift.io
-    attributeRestrictions: null
     resources:
     - projects
     verbs:
@@ -891,7 +816,6 @@ items:
   - apiGroups:
     - ""
     - quota.openshift.io
-    attributeRestrictions: null
     resources:
     - appliedclusterresourcequotas
     verbs:
@@ -901,7 +825,6 @@ items:
   - apiGroups:
     - ""
     - route.openshift.io
-    attributeRestrictions: null
     resources:
     - routes
     verbs:
@@ -916,7 +839,6 @@ items:
   - apiGroups:
     - ""
     - route.openshift.io
-    attributeRestrictions: null
     resources:
     - routes/custom-host
     verbs:
@@ -924,7 +846,6 @@ items:
   - apiGroups:
     - ""
     - route.openshift.io
-    attributeRestrictions: null
     resources:
     - routes/status
     verbs:
@@ -934,7 +855,6 @@ items:
   - apiGroups:
     - ""
     - route.openshift.io
-    attributeRestrictions: null
     resources:
     - routes/status
     verbs:
@@ -942,7 +862,6 @@ items:
   - apiGroups:
     - ""
     - template.openshift.io
-    attributeRestrictions: null
     resources:
     - processedtemplates
     - templateconfigs
@@ -960,7 +879,6 @@ items:
   - apiGroups:
     - extensions
     - networking.k8s.io
-    attributeRestrictions: null
     resources:
     - networkpolicies
     verbs:
@@ -975,7 +893,6 @@ items:
   - apiGroups:
     - ""
     - build.openshift.io
-    attributeRestrictions: null
     resources:
     - buildlogs
     verbs:
@@ -989,7 +906,6 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - resourcequotausages
     verbs:
@@ -999,18 +915,17 @@ items:
   - apiGroups:
     - ""
     - authorization.openshift.io
-    attributeRestrictions: null
     resources:
     - resourceaccessreviews
     - subjectaccessreviews
     verbs:
     - create
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       rbac.authorization.k8s.io/aggregate-to-edit: "true"
@@ -1019,7 +934,6 @@ items:
   - apiGroups:
     - ""
     - build.openshift.io
-    attributeRestrictions: null
     resources:
     - buildconfigs
     - buildconfigs/webhooks
@@ -1036,7 +950,6 @@ items:
   - apiGroups:
     - ""
     - build.openshift.io
-    attributeRestrictions: null
     resources:
     - builds/log
     verbs:
@@ -1046,7 +959,6 @@ items:
   - apiGroups:
     - ""
     - build.openshift.io
-    attributeRestrictions: null
     resources:
     - buildconfigs/instantiate
     - buildconfigs/instantiatebinary
@@ -1056,14 +968,12 @@ items:
   - apiGroups:
     - ""
     - build.openshift.io
-    attributeRestrictions: null
     resources:
     - builds/details
     verbs:
     - update
   - apiGroups:
     - build.openshift.io
-    attributeRestrictions: null
     resources:
     - jenkins
     verbs:
@@ -1072,7 +982,6 @@ items:
   - apiGroups:
     - ""
     - apps.openshift.io
-    attributeRestrictions: null
     resources:
     - deploymentconfigs
     - deploymentconfigs/scale
@@ -1088,7 +997,6 @@ items:
   - apiGroups:
     - ""
     - apps.openshift.io
-    attributeRestrictions: null
     resources:
     - deploymentconfigrollbacks
     - deploymentconfigs/instantiate
@@ -1098,7 +1006,6 @@ items:
   - apiGroups:
     - ""
     - apps.openshift.io
-    attributeRestrictions: null
     resources:
     - deploymentconfigs/log
     - deploymentconfigs/status
@@ -1109,7 +1016,6 @@ items:
   - apiGroups:
     - ""
     - image.openshift.io
-    attributeRestrictions: null
     resources:
     - imagestreamimages
     - imagestreammappings
@@ -1128,7 +1034,6 @@ items:
   - apiGroups:
     - ""
     - image.openshift.io
-    attributeRestrictions: null
     resources:
     - imagestreams/status
     verbs:
@@ -1138,7 +1043,6 @@ items:
   - apiGroups:
     - ""
     - image.openshift.io
-    attributeRestrictions: null
     resources:
     - imagestreams/layers
     verbs:
@@ -1147,7 +1051,6 @@ items:
   - apiGroups:
     - ""
     - image.openshift.io
-    attributeRestrictions: null
     resources:
     - imagestreamimports
     verbs:
@@ -1155,7 +1058,6 @@ items:
   - apiGroups:
     - ""
     - project.openshift.io
-    attributeRestrictions: null
     resources:
     - projects
     verbs:
@@ -1163,7 +1065,6 @@ items:
   - apiGroups:
     - ""
     - quota.openshift.io
-    attributeRestrictions: null
     resources:
     - appliedclusterresourcequotas
     verbs:
@@ -1173,7 +1074,6 @@ items:
   - apiGroups:
     - ""
     - route.openshift.io
-    attributeRestrictions: null
     resources:
     - routes
     verbs:
@@ -1188,7 +1088,6 @@ items:
   - apiGroups:
     - ""
     - route.openshift.io
-    attributeRestrictions: null
     resources:
     - routes/custom-host
     verbs:
@@ -1196,7 +1095,6 @@ items:
   - apiGroups:
     - ""
     - route.openshift.io
-    attributeRestrictions: null
     resources:
     - routes/status
     verbs:
@@ -1206,7 +1104,6 @@ items:
   - apiGroups:
     - ""
     - template.openshift.io
-    attributeRestrictions: null
     resources:
     - processedtemplates
     - templateconfigs
@@ -1224,7 +1121,6 @@ items:
   - apiGroups:
     - extensions
     - networking.k8s.io
-    attributeRestrictions: null
     resources:
     - networkpolicies
     verbs:
@@ -1239,7 +1135,6 @@ items:
   - apiGroups:
     - ""
     - build.openshift.io
-    attributeRestrictions: null
     resources:
     - buildlogs
     verbs:
@@ -1253,19 +1148,18 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - resourcequotausages
     verbs:
     - get
     - list
     - watch
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       rbac.authorization.k8s.io/aggregate-to-view: "true"
@@ -1274,7 +1168,6 @@ items:
   - apiGroups:
     - ""
     - build.openshift.io
-    attributeRestrictions: null
     resources:
     - buildconfigs
     - buildconfigs/webhooks
@@ -1286,7 +1179,6 @@ items:
   - apiGroups:
     - ""
     - build.openshift.io
-    attributeRestrictions: null
     resources:
     - builds/log
     verbs:
@@ -1295,7 +1187,6 @@ items:
     - watch
   - apiGroups:
     - build.openshift.io
-    attributeRestrictions: null
     resources:
     - jenkins
     verbs:
@@ -1303,7 +1194,6 @@ items:
   - apiGroups:
     - ""
     - apps.openshift.io
-    attributeRestrictions: null
     resources:
     - deploymentconfigs
     - deploymentconfigs/scale
@@ -1314,7 +1204,6 @@ items:
   - apiGroups:
     - ""
     - apps.openshift.io
-    attributeRestrictions: null
     resources:
     - deploymentconfigs/log
     - deploymentconfigs/status
@@ -1325,7 +1214,6 @@ items:
   - apiGroups:
     - ""
     - image.openshift.io
-    attributeRestrictions: null
     resources:
     - imagestreamimages
     - imagestreammappings
@@ -1338,7 +1226,6 @@ items:
   - apiGroups:
     - ""
     - image.openshift.io
-    attributeRestrictions: null
     resources:
     - imagestreams/status
     verbs:
@@ -1348,7 +1235,6 @@ items:
   - apiGroups:
     - ""
     - project.openshift.io
-    attributeRestrictions: null
     resources:
     - projects
     verbs:
@@ -1356,7 +1242,6 @@ items:
   - apiGroups:
     - ""
     - quota.openshift.io
-    attributeRestrictions: null
     resources:
     - appliedclusterresourcequotas
     verbs:
@@ -1366,7 +1251,6 @@ items:
   - apiGroups:
     - ""
     - route.openshift.io
-    attributeRestrictions: null
     resources:
     - routes
     verbs:
@@ -1376,7 +1260,6 @@ items:
   - apiGroups:
     - ""
     - route.openshift.io
-    attributeRestrictions: null
     resources:
     - routes/status
     verbs:
@@ -1386,7 +1269,6 @@ items:
   - apiGroups:
     - ""
     - template.openshift.io
-    attributeRestrictions: null
     resources:
     - processedtemplates
     - templateconfigs
@@ -1399,7 +1281,6 @@ items:
   - apiGroups:
     - ""
     - build.openshift.io
-    attributeRestrictions: null
     resources:
     - buildlogs
     verbs:
@@ -1408,26 +1289,24 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - resourcequotausages
     verbs:
     - get
     - list
     - watch
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       openshift.io/description: A user that can get basic information about projects.
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: basic-user
   rules:
   - apiGroups:
     - ""
     - user.openshift.io
-    attributeRestrictions: null
     resourceNames:
     - "~"
     resources:
@@ -1437,7 +1316,6 @@ items:
   - apiGroups:
     - ""
     - project.openshift.io
-    attributeRestrictions: null
     resources:
     - projectrequests
     verbs:
@@ -1445,7 +1323,6 @@ items:
   - apiGroups:
     - ""
     - authorization.openshift.io
-    attributeRestrictions: null
     resources:
     - clusterroles
     verbs:
@@ -1453,7 +1330,6 @@ items:
     - list
   - apiGroups:
     - rbac.authorization.k8s.io
-    attributeRestrictions: null
     resources:
     - clusterroles
     verbs:
@@ -1462,7 +1338,6 @@ items:
     - watch
   - apiGroups:
     - storage.k8s.io
-    attributeRestrictions: null
     resources:
     - storageclasses
     verbs:
@@ -1471,7 +1346,6 @@ items:
   - apiGroups:
     - ""
     - project.openshift.io
-    attributeRestrictions: null
     resources:
     - projects
     verbs:
@@ -1480,84 +1354,73 @@ items:
   - apiGroups:
     - ""
     - authorization.openshift.io
-    attributeRestrictions: null
     resources:
     - selfsubjectrulesreviews
     verbs:
     - create
   - apiGroups:
     - authorization.k8s.io
-    attributeRestrictions: null
     resources:
     - selfsubjectaccessreviews
     verbs:
     - create
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: self-access-reviewer
   rules:
   - apiGroups:
     - ""
     - authorization.openshift.io
-    attributeRestrictions: null
     resources:
     - selfsubjectrulesreviews
     verbs:
     - create
   - apiGroups:
     - authorization.k8s.io
-    attributeRestrictions: null
     resources:
     - selfsubjectaccessreviews
     verbs:
     - create
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
       openshift.io/description: A user that can request projects.
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: self-provisioner
   rules:
   - apiGroups:
     - ""
     - project.openshift.io
-    attributeRestrictions: null
     resources:
     - projectrequests
     verbs:
     - create
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
       openshift.io/description: A user that can get basic cluster status information.
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: cluster-status
   rules:
-  - apiGroups: null
-    attributeRestrictions: null
-    nonResourceURLs:
+  - nonResourceURLs:
     - /healthz
     - /healthz/*
-    resources: []
     verbs:
     - get
-  - apiGroups: null
-    attributeRestrictions: null
-    nonResourceURLs:
-    - /
-    - /.well-known
-    - /.well-known/*
+  - nonResourceURLs:
+    - /version
+    - /version/*
     - /api
     - /api/*
     - /apis
@@ -1565,30 +1428,29 @@ items:
     - /oapi
     - /oapi/*
     - /openapi/v2
-    - /osapi
-    - /osapi/
-    - /swagger-2.0.0.pb-v1
-    - /swagger.json
     - /swaggerapi
     - /swaggerapi/*
-    - /version
-    - /version/*
-    resources: []
+    - /swagger.json
+    - /swagger-2.0.0.pb-v1
+    - /osapi
+    - /osapi/
+    - /.well-known
+    - /.well-known/*
+    - /
     verbs:
     - get
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:image-auditor
   rules:
   - apiGroups:
     - ""
     - image.openshift.io
-    attributeRestrictions: null
     resources:
     - images
     verbs:
@@ -1597,56 +1459,53 @@ items:
     - patch
     - update
     - watch
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       openshift.io/description: Grants the right to pull images from within a project.
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:image-puller
   rules:
   - apiGroups:
     - ""
     - image.openshift.io
-    attributeRestrictions: null
     resources:
     - imagestreams/layers
     verbs:
     - get
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       openshift.io/description: Grants the right to push and pull images from within
         a project.
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:image-pusher
   rules:
   - apiGroups:
     - ""
     - image.openshift.io
-    attributeRestrictions: null
     resources:
     - imagestreams/layers
     verbs:
     - get
     - update
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       openshift.io/description: Grants the right to build, push and pull images from
         within a project.  Used primarily with service accounts for builds.
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:image-builder
   rules:
   - apiGroups:
     - ""
     - image.openshift.io
-    attributeRestrictions: null
     resources:
     - imagestreams/layers
     verbs:
@@ -1655,7 +1514,6 @@ items:
   - apiGroups:
     - ""
     - image.openshift.io
-    attributeRestrictions: null
     resources:
     - imagestreams
     verbs:
@@ -1663,7 +1521,6 @@ items:
   - apiGroups:
     - ""
     - build.openshift.io
-    attributeRestrictions: null
     resources:
     - builds/details
     verbs:
@@ -1671,23 +1528,21 @@ items:
   - apiGroups:
     - ""
     - build.openshift.io
-    attributeRestrictions: null
     resources:
     - builds
     verbs:
     - get
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:image-pruner
   rules:
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - pods
     - replicationcontrollers
@@ -1696,7 +1551,6 @@ items:
     - list
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - limitranges
     verbs:
@@ -1704,7 +1558,6 @@ items:
   - apiGroups:
     - ""
     - build.openshift.io
-    attributeRestrictions: null
     resources:
     - buildconfigs
     - builds
@@ -1714,7 +1567,6 @@ items:
   - apiGroups:
     - ""
     - apps.openshift.io
-    attributeRestrictions: null
     resources:
     - deploymentconfigs
     verbs:
@@ -1723,7 +1575,6 @@ items:
   - apiGroups:
     - apps
     - extensions
-    attributeRestrictions: null
     resources:
     - daemonsets
     verbs:
@@ -1732,7 +1583,6 @@ items:
   - apiGroups:
     - apps
     - extensions
-    attributeRestrictions: null
     resources:
     - deployments
     verbs:
@@ -1741,7 +1591,6 @@ items:
   - apiGroups:
     - apps
     - extensions
-    attributeRestrictions: null
     resources:
     - replicasets
     verbs:
@@ -1750,7 +1599,6 @@ items:
   - apiGroups:
     - ""
     - image.openshift.io
-    attributeRestrictions: null
     resources:
     - images
     verbs:
@@ -1758,7 +1606,6 @@ items:
   - apiGroups:
     - ""
     - image.openshift.io
-    attributeRestrictions: null
     resources:
     - images
     - imagestreams
@@ -1768,24 +1615,22 @@ items:
   - apiGroups:
     - ""
     - image.openshift.io
-    attributeRestrictions: null
     resources:
     - imagestreams/status
     verbs:
     - update
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:image-signer
   rules:
   - apiGroups:
     - ""
     - image.openshift.io
-    attributeRestrictions: null
     resources:
     - images
     - imagestreams/layers
@@ -1794,32 +1639,29 @@ items:
   - apiGroups:
     - ""
     - image.openshift.io
-    attributeRestrictions: null
     resources:
     - imagesignatures
     verbs:
     - create
     - delete
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       openshift.io/description: Grants the right to deploy within a project.  Used
         primarily with service accounts for automated deployments.
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:deployer
   rules:
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - replicationcontrollers
     verbs:
     - delete
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - replicationcontrollers
     verbs:
@@ -1829,7 +1671,6 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - replicationcontrollers/scale
     verbs:
@@ -1837,7 +1678,6 @@ items:
     - update
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - pods
     verbs:
@@ -1847,14 +1687,12 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - pods/log
     verbs:
     - get
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - events
     verbs:
@@ -1863,64 +1701,57 @@ items:
   - apiGroups:
     - ""
     - image.openshift.io
-    attributeRestrictions: null
     resources:
     - imagestreamtags
     verbs:
     - update
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:master
   rules:
   - apiGroups:
     - '*'
-    attributeRestrictions: null
     resources:
     - '*'
     verbs:
     - '*'
-  - apiGroups: null
-    attributeRestrictions: null
-    nonResourceURLs:
+  - nonResourceURLs:
     - '*'
-    resources: []
     verbs:
     - '*'
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:oauth-token-deleter
   rules:
   - apiGroups:
     - ""
     - oauth.openshift.io
-    attributeRestrictions: null
     resources:
     - oauthaccesstokens
     - oauthauthorizetokens
     verbs:
     - delete
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:router
   rules:
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - endpoints
     verbs:
@@ -1928,7 +1759,6 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - services
     verbs:
@@ -1936,14 +1766,12 @@ items:
     - watch
   - apiGroups:
     - authentication.k8s.io
-    attributeRestrictions: null
     resources:
     - tokenreviews
     verbs:
     - create
   - apiGroups:
     - authorization.k8s.io
-    attributeRestrictions: null
     resources:
     - subjectaccessreviews
     verbs:
@@ -1951,7 +1779,6 @@ items:
   - apiGroups:
     - ""
     - route.openshift.io
-    attributeRestrictions: null
     resources:
     - routes
     verbs:
@@ -1960,23 +1787,21 @@ items:
   - apiGroups:
     - ""
     - route.openshift.io
-    attributeRestrictions: null
     resources:
     - routes/status
     verbs:
     - update
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:registry
   rules:
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - limitranges
     - resourcequotas
@@ -1985,7 +1810,6 @@ items:
   - apiGroups:
     - ""
     - image.openshift.io
-    attributeRestrictions: null
     resources:
     - images
     - imagestreamtags
@@ -1995,7 +1819,6 @@ items:
   - apiGroups:
     - ""
     - image.openshift.io
-    attributeRestrictions: null
     resources:
     - imagestreamimages
     - imagestreams/secrets
@@ -2004,7 +1827,6 @@ items:
   - apiGroups:
     - ""
     - image.openshift.io
-    attributeRestrictions: null
     resources:
     - images
     - imagestreams
@@ -2014,41 +1836,38 @@ items:
   - apiGroups:
     - ""
     - image.openshift.io
-    attributeRestrictions: null
     resources:
     - imagestreammappings
     verbs:
     - create
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:node-proxier
   rules:
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - endpoints
     - services
     verbs:
     - list
     - watch
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:node-admin
   rules:
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - nodes
     verbs:
@@ -2057,14 +1876,12 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - nodes
     verbs:
     - proxy
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - nodes/log
     - nodes/metrics
@@ -2073,18 +1890,17 @@ items:
     - nodes/stats
     verbs:
     - '*'
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:node-reader
   rules:
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - nodes
     verbs:
@@ -2093,7 +1909,6 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - nodes/metrics
     - nodes/spec
@@ -2101,31 +1916,28 @@ items:
     - get
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - nodes/stats
     verbs:
     - create
     - get
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:node
   rules:
   - apiGroups:
     - authentication.k8s.io
-    attributeRestrictions: null
     resources:
     - tokenreviews
     verbs:
     - create
   - apiGroups:
     - authorization.k8s.io
-    attributeRestrictions: null
     resources:
     - localsubjectaccessreviews
     - subjectaccessreviews
@@ -2133,7 +1945,6 @@ items:
     - create
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - services
     verbs:
@@ -2142,7 +1953,6 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - nodes
     verbs:
@@ -2152,7 +1962,6 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - nodes
     verbs:
@@ -2161,7 +1970,6 @@ items:
     - update
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - nodes/status
     verbs:
@@ -2169,7 +1977,6 @@ items:
     - update
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - events
     verbs:
@@ -2178,7 +1985,6 @@ items:
     - update
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - pods
     verbs:
@@ -2187,7 +1993,6 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - pods
     verbs:
@@ -2196,21 +2001,18 @@ items:
     - get
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - pods/status
     verbs:
     - update
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - pods/eviction
     verbs:
     - create
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - configmaps
     - secrets
@@ -2218,7 +2020,6 @@ items:
     - get
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - persistentvolumeclaims
     - persistentvolumes
@@ -2226,21 +2027,18 @@ items:
     - get
   - apiGroups:
     - storage.k8s.io
-    attributeRestrictions: null
     resources:
     - volumeattachments
     verbs:
     - get
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - endpoints
     verbs:
     - get
   - apiGroups:
     - certificates.k8s.io
-    attributeRestrictions: null
     resources:
     - certificatesigningrequests
     verbs:
@@ -2248,19 +2046,18 @@ items:
     - get
     - list
     - watch
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:sdn-reader
   rules:
   - apiGroups:
     - ""
     - network.openshift.io
-    attributeRestrictions: null
     resources:
     - egressnetworkpolicies
     - hostsubnets
@@ -2271,7 +2068,6 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - namespaces
     - nodes
@@ -2281,7 +2077,6 @@ items:
     - watch
   - apiGroups:
     - extensions
-    attributeRestrictions: null
     resources:
     - networkpolicies
     verbs:
@@ -2290,7 +2085,6 @@ items:
     - watch
   - apiGroups:
     - networking.k8s.io
-    attributeRestrictions: null
     resources:
     - networkpolicies
     verbs:
@@ -2300,24 +2094,22 @@ items:
   - apiGroups:
     - ""
     - network.openshift.io
-    attributeRestrictions: null
     resources:
     - clusternetworks
     verbs:
     - get
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:sdn-manager
   rules:
   - apiGroups:
     - ""
     - network.openshift.io
-    attributeRestrictions: null
     resources:
     - hostsubnets
     - netnamespaces
@@ -2330,7 +2122,6 @@ items:
   - apiGroups:
     - ""
     - network.openshift.io
-    attributeRestrictions: null
     resources:
     - clusternetworks
     verbs:
@@ -2338,46 +2129,41 @@ items:
     - get
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - nodes
     verbs:
     - get
     - list
     - watch
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:webhook
   rules:
   - apiGroups:
     - ""
     - build.openshift.io
-    attributeRestrictions: null
     resources:
     - buildconfigs/webhooks
     verbs:
     - create
     - get
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:discovery
   rules:
-  - apiGroups: null
-    attributeRestrictions: null
-    nonResourceURLs:
-    - /
-    - /.well-known
-    - /.well-known/*
+  - nonResourceURLs:
+    - /version
+    - /version/*
     - /api
     - /api/*
     - /apis
@@ -2385,29 +2171,28 @@ items:
     - /oapi
     - /oapi/*
     - /openapi/v2
-    - /osapi
-    - /osapi/
-    - /swagger-2.0.0.pb-v1
-    - /swagger.json
     - /swaggerapi
     - /swaggerapi/*
-    - /version
-    - /version/*
-    resources: []
+    - /swagger.json
+    - /swagger-2.0.0.pb-v1
+    - /osapi
+    - /osapi/
+    - /.well-known
+    - /.well-known/*
+    - /
     verbs:
     - get
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:persistent-volume-provisioner
   rules:
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - persistentvolumes
     verbs:
@@ -2418,7 +2203,6 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - persistentvolumeclaims
     verbs:
@@ -2428,7 +2212,6 @@ items:
     - watch
   - apiGroups:
     - storage.k8s.io
-    attributeRestrictions: null
     resources:
     - storageclasses
     verbs:
@@ -2437,7 +2220,6 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - events
     verbs:
@@ -2446,18 +2228,17 @@ items:
     - patch
     - update
     - watch
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: registry-admin
   rules:
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - secrets
     - serviceaccounts
@@ -2473,7 +2254,6 @@ items:
   - apiGroups:
     - ""
     - image.openshift.io
-    attributeRestrictions: null
     resources:
     - imagestreamimages
     - imagestreammappings
@@ -2492,7 +2272,6 @@ items:
   - apiGroups:
     - ""
     - image.openshift.io
-    attributeRestrictions: null
     resources:
     - imagestreamimports
     verbs:
@@ -2500,7 +2279,6 @@ items:
   - apiGroups:
     - ""
     - image.openshift.io
-    attributeRestrictions: null
     resources:
     - imagestreams/layers
     verbs:
@@ -2509,7 +2287,6 @@ items:
   - apiGroups:
     - ""
     - authorization.openshift.io
-    attributeRestrictions: null
     resources:
     - rolebindings
     - roles
@@ -2524,7 +2301,6 @@ items:
     - watch
   - apiGroups:
     - rbac.authorization.k8s.io
-    attributeRestrictions: null
     resources:
     - rolebindings
     - roles
@@ -2540,7 +2316,6 @@ items:
   - apiGroups:
     - ""
     - authorization.openshift.io
-    attributeRestrictions: null
     resources:
     - localresourceaccessreviews
     - localsubjectaccessreviews
@@ -2549,14 +2324,12 @@ items:
     - create
   - apiGroups:
     - authorization.k8s.io
-    attributeRestrictions: null
     resources:
     - localsubjectaccessreviews
     verbs:
     - create
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - namespaces
     verbs:
@@ -2564,7 +2337,6 @@ items:
   - apiGroups:
     - ""
     - project.openshift.io
-    attributeRestrictions: null
     resources:
     - projects
     verbs:
@@ -2573,24 +2345,22 @@ items:
   - apiGroups:
     - ""
     - authorization.openshift.io
-    attributeRestrictions: null
     resources:
     - resourceaccessreviews
     - subjectaccessreviews
     verbs:
     - create
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: registry-editor
   rules:
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - secrets
     - serviceaccounts
@@ -2606,7 +2376,6 @@ items:
   - apiGroups:
     - ""
     - image.openshift.io
-    attributeRestrictions: null
     resources:
     - imagestreamimages
     - imagestreammappings
@@ -2625,7 +2394,6 @@ items:
   - apiGroups:
     - ""
     - image.openshift.io
-    attributeRestrictions: null
     resources:
     - imagestreamimports
     verbs:
@@ -2633,7 +2401,6 @@ items:
   - apiGroups:
     - ""
     - image.openshift.io
-    attributeRestrictions: null
     resources:
     - imagestreams/layers
     verbs:
@@ -2641,7 +2408,6 @@ items:
     - update
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - namespaces
     verbs:
@@ -2649,24 +2415,22 @@ items:
   - apiGroups:
     - ""
     - project.openshift.io
-    attributeRestrictions: null
     resources:
     - projects
     verbs:
     - get
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: registry-viewer
   rules:
   - apiGroups:
     - ""
     - image.openshift.io
-    attributeRestrictions: null
     resources:
     - imagestreamimages
     - imagestreammappings
@@ -2679,14 +2443,12 @@ items:
   - apiGroups:
     - ""
     - image.openshift.io
-    attributeRestrictions: null
     resources:
     - imagestreams/layers
     verbs:
     - get
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - namespaces
     verbs:
@@ -2694,178 +2456,173 @@ items:
   - apiGroups:
     - ""
     - project.openshift.io
-    attributeRestrictions: null
     resources:
     - projects
     verbs:
     - get
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:openshift:templateservicebroker-client
   rules:
-  - apiGroups: null
-    attributeRestrictions: null
-    nonResourceURLs:
+  - nonResourceURLs:
     - /brokers/template.openshift.io/*
-    resources: []
     verbs:
     - delete
     - get
     - put
     - update
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:replication-controller
-  rules: []
-- apiVersion: v1
+  rules: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:endpoint-controller
-  rules: []
-- apiVersion: v1
+  rules: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:replicaset-controller
-  rules: []
-- apiVersion: v1
+  rules: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:garbage-collector-controller
-  rules: []
-- apiVersion: v1
+  rules: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:job-controller
-  rules: []
-- apiVersion: v1
+  rules: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:hpa-controller
-  rules: []
-- apiVersion: v1
+  rules: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:daemonset-controller
-  rules: []
-- apiVersion: v1
+  rules: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:disruption-controller
-  rules: []
-- apiVersion: v1
+  rules: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:namespace-controller
-  rules: []
-- apiVersion: v1
+  rules: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:gc-controller
-  rules: []
-- apiVersion: v1
+  rules: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:certificate-signing-controller
-  rules: []
-- apiVersion: v1
+  rules: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:statefulset-controller
-  rules: []
-- apiVersion: v1
+  rules: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:build-controller
-  rules: []
-- apiVersion: v1
+  rules: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:deploymentconfig-controller
-  rules: []
-- apiVersion: v1
+  rules: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:deployment-controller
-  rules: []
-- apiVersion: v1
+  rules: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:openshift:controller:build-controller
   rules:
   - apiGroups:
     - ""
     - build.openshift.io
-    attributeRestrictions: null
     resources:
     - builds
     verbs:
@@ -2878,7 +2635,6 @@ items:
   - apiGroups:
     - ""
     - build.openshift.io
-    attributeRestrictions: null
     resources:
     - builds/finalizers
     verbs:
@@ -2886,7 +2642,6 @@ items:
   - apiGroups:
     - ""
     - build.openshift.io
-    attributeRestrictions: null
     resources:
     - buildconfigs
     verbs:
@@ -2894,7 +2649,6 @@ items:
   - apiGroups:
     - ""
     - build.openshift.io
-    attributeRestrictions: null
     resources:
     - builds/custom
     - builds/docker
@@ -2906,7 +2660,6 @@ items:
   - apiGroups:
     - ""
     - image.openshift.io
-    attributeRestrictions: null
     resources:
     - imagestreams
     verbs:
@@ -2914,7 +2667,6 @@ items:
     - list
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - secrets
     verbs:
@@ -2922,7 +2674,6 @@ items:
     - list
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - configmaps
     verbs:
@@ -2930,7 +2681,6 @@ items:
     - list
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - pods
     verbs:
@@ -2940,14 +2690,12 @@ items:
     - list
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - namespaces
     verbs:
     - get
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - serviceaccounts
     verbs:
@@ -2956,33 +2704,30 @@ items:
   - apiGroups:
     - ""
     - security.openshift.io
-    attributeRestrictions: null
     resources:
     - podsecuritypolicysubjectreviews
     verbs:
     - create
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - events
     verbs:
     - create
     - patch
     - update
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:openshift:controller:build-config-change-controller
   rules:
   - apiGroups:
     - ""
     - build.openshift.io
-    attributeRestrictions: null
     resources:
     - buildconfigs
     verbs:
@@ -2992,7 +2737,6 @@ items:
   - apiGroups:
     - ""
     - build.openshift.io
-    attributeRestrictions: null
     resources:
     - buildconfigs/instantiate
     verbs:
@@ -3000,32 +2744,29 @@ items:
   - apiGroups:
     - ""
     - build.openshift.io
-    attributeRestrictions: null
     resources:
     - builds
     verbs:
     - delete
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - events
     verbs:
     - create
     - patch
     - update
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:openshift:controller:deployer-controller
   rules:
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - pods
     verbs:
@@ -3037,14 +2778,12 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - replicationcontrollers
     verbs:
     - delete
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - replicationcontrollers
     verbs:
@@ -3054,7 +2793,6 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - replicationcontrollers/scale
     verbs:
@@ -3062,25 +2800,23 @@ items:
     - update
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - events
     verbs:
     - create
     - patch
     - update
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:openshift:controller:deploymentconfig-controller
   rules:
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - replicationcontrollers
     verbs:
@@ -3093,7 +2829,6 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - replicationcontrollers/scale
     verbs:
@@ -3102,7 +2837,6 @@ items:
   - apiGroups:
     - ""
     - apps.openshift.io
-    attributeRestrictions: null
     resources:
     - deploymentconfigs/status
     verbs:
@@ -3110,7 +2844,6 @@ items:
   - apiGroups:
     - ""
     - apps.openshift.io
-    attributeRestrictions: null
     resources:
     - deploymentconfigs/finalizers
     verbs:
@@ -3118,7 +2851,6 @@ items:
   - apiGroups:
     - ""
     - apps.openshift.io
-    attributeRestrictions: null
     resources:
     - deploymentconfigs
     verbs:
@@ -3127,64 +2859,59 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - events
     verbs:
     - create
     - patch
     - update
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:openshift:controller:template-instance-controller
   rules:
   - apiGroups:
     - authorization.k8s.io
-    attributeRestrictions: null
     resources:
     - subjectaccessreviews
     verbs:
     - create
   - apiGroups:
     - template.openshift.io
-    attributeRestrictions: null
     resources:
     - templateinstances/status
     verbs:
     - update
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:openshift:controller:template-instance-finalizer-controller
   rules:
   - apiGroups:
     - template.openshift.io
-    attributeRestrictions: null
     resources:
     - templateinstances/status
     verbs:
     - update
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:openshift:controller:origin-namespace-controller
   rules:
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - namespaces
     verbs:
@@ -3193,7 +2920,6 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - namespaces/finalize
     - namespaces/status
@@ -3201,25 +2927,23 @@ items:
     - update
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - events
     verbs:
     - create
     - patch
     - update
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:openshift:controller:serviceaccount-controller
   rules:
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - serviceaccounts
     verbs:
@@ -3232,25 +2956,23 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - events
     verbs:
     - create
     - patch
     - update
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:openshift:controller:serviceaccount-pull-secrets-controller
   rules:
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - serviceaccounts
     verbs:
@@ -3261,7 +2983,6 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - secrets
     verbs:
@@ -3274,7 +2995,6 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - services
     verbs:
@@ -3283,26 +3003,24 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - events
     verbs:
     - create
     - patch
     - update
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:openshift:controller:image-trigger-controller
   rules:
   - apiGroups:
     - ""
     - image.openshift.io
-    attributeRestrictions: null
     resources:
     - imagestreams
     verbs:
@@ -3310,7 +3028,6 @@ items:
     - watch
   - apiGroups:
     - extensions
-    attributeRestrictions: null
     resources:
     - daemonsets
     verbs:
@@ -3319,7 +3036,6 @@ items:
   - apiGroups:
     - apps
     - extensions
-    attributeRestrictions: null
     resources:
     - deployments
     verbs:
@@ -3327,7 +3043,6 @@ items:
     - update
   - apiGroups:
     - apps
-    attributeRestrictions: null
     resources:
     - statefulsets
     verbs:
@@ -3335,7 +3050,6 @@ items:
     - update
   - apiGroups:
     - batch
-    attributeRestrictions: null
     resources:
     - cronjobs
     verbs:
@@ -3344,7 +3058,6 @@ items:
   - apiGroups:
     - ""
     - apps.openshift.io
-    attributeRestrictions: null
     resources:
     - deploymentconfigs
     verbs:
@@ -3353,7 +3066,6 @@ items:
   - apiGroups:
     - ""
     - build.openshift.io
-    attributeRestrictions: null
     resources:
     - buildconfigs/instantiate
     verbs:
@@ -3361,7 +3073,6 @@ items:
   - apiGroups:
     - ""
     - build.openshift.io
-    attributeRestrictions: null
     resources:
     - builds/custom
     - builds/docker
@@ -3372,25 +3083,23 @@ items:
     - create
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - events
     verbs:
     - create
     - patch
     - update
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:openshift:controller:service-serving-cert-controller
   rules:
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - services
     verbs:
@@ -3399,7 +3108,6 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - secrets
     verbs:
@@ -3411,26 +3119,24 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - events
     verbs:
     - create
     - patch
     - update
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:openshift:controller:image-import-controller
   rules:
   - apiGroups:
     - ""
     - image.openshift.io
-    attributeRestrictions: null
     resources:
     - imagestreams
     verbs:
@@ -3442,7 +3148,6 @@ items:
   - apiGroups:
     - ""
     - image.openshift.io
-    attributeRestrictions: null
     resources:
     - images
     verbs:
@@ -3456,33 +3161,30 @@ items:
   - apiGroups:
     - ""
     - image.openshift.io
-    attributeRestrictions: null
     resources:
     - imagestreamimports
     verbs:
     - create
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - events
     verbs:
     - create
     - patch
     - update
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:openshift:controller:sdn-controller
   rules:
   - apiGroups:
     - ""
     - network.openshift.io
-    attributeRestrictions: null
     resources:
     - clusternetworks
     verbs:
@@ -3492,7 +3194,6 @@ items:
   - apiGroups:
     - ""
     - network.openshift.io
-    attributeRestrictions: null
     resources:
     - hostsubnets
     verbs:
@@ -3505,7 +3206,6 @@ items:
   - apiGroups:
     - ""
     - network.openshift.io
-    attributeRestrictions: null
     resources:
     - netnamespaces
     verbs:
@@ -3517,7 +3217,6 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - pods
     verbs:
@@ -3525,7 +3224,6 @@ items:
     - list
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - services
     verbs:
@@ -3534,7 +3232,6 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - namespaces
     verbs:
@@ -3543,7 +3240,6 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - nodes
     verbs:
@@ -3552,32 +3248,29 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - nodes/status
     verbs:
     - update
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - events
     verbs:
     - create
     - patch
     - update
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:openshift:controller:cluster-quota-reconciliation-controller
   rules:
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - configmaps
     verbs:
@@ -3585,7 +3278,6 @@ items:
     - list
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - secrets
     verbs:
@@ -3594,32 +3286,29 @@ items:
   - apiGroups:
     - ""
     - quota.openshift.io
-    attributeRestrictions: null
     resources:
     - clusterresourcequotas/status
     verbs:
     - update
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - events
     verbs:
     - create
     - patch
     - update
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:openshift:controller:unidling-controller
   rules:
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - endpoints
     - replicationcontrollers/scale
@@ -3628,7 +3317,6 @@ items:
     - update
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - replicationcontrollers
     verbs:
@@ -3638,7 +3326,6 @@ items:
   - apiGroups:
     - ""
     - apps.openshift.io
-    attributeRestrictions: null
     resources:
     - deploymentconfigs
     verbs:
@@ -3648,7 +3335,6 @@ items:
   - apiGroups:
     - apps
     - extensions
-    attributeRestrictions: null
     resources:
     - deployments/scale
     - replicasets/scale
@@ -3658,7 +3344,6 @@ items:
   - apiGroups:
     - ""
     - apps.openshift.io
-    attributeRestrictions: null
     resources:
     - deploymentconfigs/scale
     verbs:
@@ -3666,7 +3351,6 @@ items:
     - update
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - events
     verbs:
@@ -3674,25 +3358,23 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - events
     verbs:
     - create
     - patch
     - update
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:openshift:controller:service-ingress-ip-controller
   rules:
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - services
     verbs:
@@ -3701,32 +3383,29 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - services/status
     verbs:
     - update
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - events
     verbs:
     - create
     - patch
     - update
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:openshift:controller:ingress-to-route-controller
   rules:
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - secrets
     - services
@@ -3736,7 +3415,6 @@ items:
     - watch
   - apiGroups:
     - extensions
-    attributeRestrictions: null
     resources:
     - ingress
     verbs:
@@ -3745,7 +3423,6 @@ items:
     - watch
   - apiGroups:
     - route.openshift.io
-    attributeRestrictions: null
     resources:
     - routes
     verbs:
@@ -3758,7 +3435,6 @@ items:
     - watch
   - apiGroups:
     - route.openshift.io
-    attributeRestrictions: null
     resources:
     - routes/custom-host
     verbs:
@@ -3766,25 +3442,23 @@ items:
     - update
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - events
     verbs:
     - create
     - patch
     - update
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:openshift:controller:pv-recycler-controller
   rules:
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - persistentvolumes
     verbs:
@@ -3796,14 +3470,12 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - persistentvolumes/status
     verbs:
     - update
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - persistentvolumeclaims
     verbs:
@@ -3813,14 +3485,12 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - persistentvolumeclaims/status
     verbs:
     - update
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - pods
     verbs:
@@ -3831,117 +3501,105 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - events
     verbs:
     - create
     - patch
     - update
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:openshift:controller:resourcequota-controller
   rules:
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - resourcequotas/status
     verbs:
     - update
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - resourcequotas
     verbs:
     - list
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - services
     verbs:
     - list
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - configmaps
     verbs:
     - list
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - secrets
     verbs:
     - list
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - replicationcontrollers
     verbs:
     - list
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - events
     verbs:
     - create
     - patch
     - update
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:openshift:controller:horizontal-pod-autoscaler
   rules:
   - apiGroups:
     - ""
     - apps.openshift.io
-    attributeRestrictions: null
     resources:
     - deploymentconfigs/scale
     verbs:
     - get
     - update
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:openshift:controller:template-service-broker
   rules:
   - apiGroups:
     - authorization.k8s.io
-    attributeRestrictions: null
     resources:
     - subjectaccessreviews
     verbs:
     - create
   - apiGroups:
     - authorization.openshift.io
-    attributeRestrictions: null
     resources:
     - subjectaccessreviews
     verbs:
     - create
   - apiGroups:
     - template.openshift.io
-    attributeRestrictions: null
     resources:
     - brokertemplateinstances
     verbs:
@@ -3951,14 +3609,12 @@ items:
     - update
   - apiGroups:
     - template.openshift.io
-    attributeRestrictions: null
     resources:
     - brokertemplateinstances/finalizers
     verbs:
     - update
   - apiGroups:
     - template.openshift.io
-    attributeRestrictions: null
     resources:
     - templateinstances
     verbs:
@@ -3968,7 +3624,6 @@ items:
     - get
   - apiGroups:
     - template.openshift.io
-    attributeRestrictions: null
     resources:
     - templates
     verbs:
@@ -3977,7 +3632,6 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - secrets
     verbs:
@@ -3986,7 +3640,6 @@ items:
     - get
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - configmaps
     - services
@@ -3994,46 +3647,41 @@ items:
     - get
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - routes
     verbs:
     - get
   - apiGroups:
     - route.openshift.io
-    attributeRestrictions: null
     resources:
     - routes
     verbs:
     - get
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - events
     verbs:
     - create
     - patch
     - update
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:openshift:controller:default-rolebindings-controller
   rules:
   - apiGroups:
     - rbac.authorization.k8s.io
-    attributeRestrictions: null
     resources:
     - rolebindings
     verbs:
     - create
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - namespaces
     verbs:
@@ -4042,7 +3690,6 @@ items:
     - watch
   - apiGroups:
     - rbac.authorization.k8s.io
-    attributeRestrictions: null
     resources:
     - rolebindings
     verbs:
@@ -4051,25 +3698,23 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - events
     verbs:
     - create
     - patch
     - update
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:openshift:controller:namespace-security-allocation-controller
   rules:
   - apiGroups:
     - security.openshift.io
-    attributeRestrictions: null
     resources:
     - rangeallocations
     verbs:
@@ -4078,7 +3723,6 @@ items:
     - update
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - namespaces
     verbs:
@@ -4088,19 +3732,18 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - events
     verbs:
     - create
     - patch
     - update
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -4108,7 +3751,6 @@ items:
   rules:
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - persistentvolumeclaims
     - persistentvolumes
@@ -4117,7 +3759,6 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - nodes
     verbs:
@@ -4126,7 +3767,6 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - nodes/status
     verbs:
@@ -4134,7 +3774,6 @@ items:
     - update
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - pods
     verbs:
@@ -4142,7 +3781,6 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - events
     verbs:
@@ -4151,7 +3789,6 @@ items:
     - update
   - apiGroups:
     - storage.k8s.io
-    attributeRestrictions: null
     resources:
     - volumeattachments
     verbs:
@@ -4160,12 +3797,12 @@ items:
     - get
     - list
     - watch
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -4173,24 +3810,20 @@ items:
   rules:
   - apiGroups:
     - '*'
-    attributeRestrictions: null
     resources:
     - '*'
     verbs:
     - '*'
-  - apiGroups: null
-    attributeRestrictions: null
-    nonResourceURLs:
+  - nonResourceURLs:
     - '*'
-    resources: []
     verbs:
     - '*'
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -4198,7 +3831,6 @@ items:
   rules:
   - apiGroups:
     - batch
-    attributeRestrictions: null
     resources:
     - cronjobs
     verbs:
@@ -4208,7 +3840,6 @@ items:
     - watch
   - apiGroups:
     - batch
-    attributeRestrictions: null
     resources:
     - jobs
     verbs:
@@ -4221,21 +3852,18 @@ items:
     - watch
   - apiGroups:
     - batch
-    attributeRestrictions: null
     resources:
     - cronjobs/status
     verbs:
     - update
   - apiGroups:
     - batch
-    attributeRestrictions: null
     resources:
     - cronjobs/finalizers
     verbs:
     - update
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - pods
     verbs:
@@ -4243,19 +3871,18 @@ items:
     - list
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - events
     verbs:
     - create
     - patch
     - update
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -4264,7 +3891,6 @@ items:
   - apiGroups:
     - apps
     - extensions
-    attributeRestrictions: null
     resources:
     - daemonsets
     verbs:
@@ -4274,7 +3900,6 @@ items:
   - apiGroups:
     - apps
     - extensions
-    attributeRestrictions: null
     resources:
     - daemonsets/status
     verbs:
@@ -4282,14 +3907,12 @@ items:
   - apiGroups:
     - apps
     - extensions
-    attributeRestrictions: null
     resources:
     - daemonsets/finalizers
     verbs:
     - update
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - nodes
     verbs:
@@ -4297,7 +3920,6 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - pods
     verbs:
@@ -4308,14 +3930,12 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - pods/binding
     verbs:
     - create
   - apiGroups:
     - apps
-    attributeRestrictions: null
     resources:
     - controllerrevisions
     verbs:
@@ -4328,19 +3948,18 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - events
     verbs:
     - create
     - patch
     - update
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -4349,7 +3968,6 @@ items:
   - apiGroups:
     - apps
     - extensions
-    attributeRestrictions: null
     resources:
     - deployments
     verbs:
@@ -4360,7 +3978,6 @@ items:
   - apiGroups:
     - apps
     - extensions
-    attributeRestrictions: null
     resources:
     - deployments/status
     verbs:
@@ -4368,7 +3985,6 @@ items:
   - apiGroups:
     - apps
     - extensions
-    attributeRestrictions: null
     resources:
     - deployments/finalizers
     verbs:
@@ -4376,7 +3992,6 @@ items:
   - apiGroups:
     - apps
     - extensions
-    attributeRestrictions: null
     resources:
     - replicasets
     verbs:
@@ -4389,7 +4004,6 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - pods
     verbs:
@@ -4399,19 +4013,18 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - events
     verbs:
     - create
     - patch
     - update
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -4420,7 +4033,6 @@ items:
   - apiGroups:
     - apps
     - extensions
-    attributeRestrictions: null
     resources:
     - deployments
     verbs:
@@ -4430,7 +4042,6 @@ items:
   - apiGroups:
     - apps
     - extensions
-    attributeRestrictions: null
     resources:
     - replicasets
     verbs:
@@ -4439,7 +4050,6 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - replicationcontrollers
     verbs:
@@ -4448,7 +4058,6 @@ items:
     - watch
   - apiGroups:
     - policy
-    attributeRestrictions: null
     resources:
     - poddisruptionbudgets
     verbs:
@@ -4457,7 +4066,6 @@ items:
     - watch
   - apiGroups:
     - apps
-    attributeRestrictions: null
     resources:
     - statefulsets
     verbs:
@@ -4466,26 +4074,24 @@ items:
     - watch
   - apiGroups:
     - policy
-    attributeRestrictions: null
     resources:
     - poddisruptionbudgets/status
     verbs:
     - update
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - events
     verbs:
     - create
     - patch
     - update
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -4493,7 +4099,6 @@ items:
   rules:
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - pods
     - services
@@ -4503,7 +4108,6 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - endpoints
     verbs:
@@ -4514,26 +4118,24 @@ items:
     - update
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - endpoints/restricted
     verbs:
     - create
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - events
     verbs:
     - create
     - patch
     - update
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -4541,7 +4143,6 @@ items:
   rules:
   - apiGroups:
     - '*'
-    attributeRestrictions: null
     resources:
     - '*'
     verbs:
@@ -4553,19 +4154,18 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - events
     verbs:
     - create
     - patch
     - update
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -4573,7 +4173,6 @@ items:
   rules:
   - apiGroups:
     - autoscaling
-    attributeRestrictions: null
     resources:
     - horizontalpodautoscalers
     verbs:
@@ -4582,14 +4181,12 @@ items:
     - watch
   - apiGroups:
     - autoscaling
-    attributeRestrictions: null
     resources:
     - horizontalpodautoscalers/status
     verbs:
     - update
   - apiGroups:
     - '*'
-    attributeRestrictions: null
     resources:
     - '*/scale'
     verbs:
@@ -4597,14 +4194,12 @@ items:
     - update
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - pods
     verbs:
     - list
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resourceNames:
     - 'http:heapster:'
     - 'https:heapster:'
@@ -4614,14 +4209,12 @@ items:
     - get
   - apiGroups:
     - metrics.k8s.io
-    attributeRestrictions: null
     resources:
     - pods
     verbs:
     - list
   - apiGroups:
     - custom.metrics.k8s.io
-    attributeRestrictions: null
     resources:
     - '*'
     verbs:
@@ -4629,19 +4222,18 @@ items:
     - list
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - events
     verbs:
     - create
     - patch
     - update
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -4649,7 +4241,6 @@ items:
   rules:
   - apiGroups:
     - batch
-    attributeRestrictions: null
     resources:
     - jobs
     verbs:
@@ -4659,21 +4250,18 @@ items:
     - watch
   - apiGroups:
     - batch
-    attributeRestrictions: null
     resources:
     - jobs/status
     verbs:
     - update
   - apiGroups:
     - batch
-    attributeRestrictions: null
     resources:
     - jobs/finalizers
     verbs:
     - update
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - pods
     verbs:
@@ -4684,19 +4272,18 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - events
     verbs:
     - create
     - patch
     - update
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -4704,7 +4291,6 @@ items:
   rules:
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - namespaces
     verbs:
@@ -4714,7 +4300,6 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - namespaces/finalize
     - namespaces/status
@@ -4722,7 +4307,6 @@ items:
     - update
   - apiGroups:
     - '*'
-    attributeRestrictions: null
     resources:
     - '*'
     verbs:
@@ -4730,12 +4314,12 @@ items:
     - deletecollection
     - get
     - list
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -4743,7 +4327,6 @@ items:
   rules:
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - nodes
     verbs:
@@ -4754,7 +4337,6 @@ items:
     - update
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - nodes/status
     verbs:
@@ -4762,14 +4344,12 @@ items:
     - update
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - pods/status
     verbs:
     - update
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - pods
     verbs:
@@ -4777,19 +4357,18 @@ items:
     - list
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - events
     verbs:
     - create
     - patch
     - update
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -4797,7 +4376,6 @@ items:
   rules:
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - persistentvolumes
     verbs:
@@ -4809,14 +4387,12 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - persistentvolumes/status
     verbs:
     - update
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - persistentvolumeclaims
     verbs:
@@ -4826,14 +4402,12 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - persistentvolumeclaims/status
     verbs:
     - update
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - pods
     verbs:
@@ -4844,7 +4418,6 @@ items:
     - watch
   - apiGroups:
     - storage.k8s.io
-    attributeRestrictions: null
     resources:
     - storageclasses
     verbs:
@@ -4853,7 +4426,6 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - endpoints
     - services
@@ -4863,14 +4435,12 @@ items:
     - get
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - secrets
     verbs:
     - get
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - nodes
     verbs:
@@ -4878,26 +4448,24 @@ items:
     - list
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - events
     verbs:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - events
     verbs:
     - create
     - patch
     - update
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -4905,7 +4473,6 @@ items:
   rules:
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - pods
     verbs:
@@ -4914,17 +4481,16 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - nodes
     verbs:
     - list
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -4933,7 +4499,6 @@ items:
   - apiGroups:
     - apps
     - extensions
-    attributeRestrictions: null
     resources:
     - replicasets
     verbs:
@@ -4944,7 +4509,6 @@ items:
   - apiGroups:
     - apps
     - extensions
-    attributeRestrictions: null
     resources:
     - replicasets/status
     verbs:
@@ -4952,14 +4516,12 @@ items:
   - apiGroups:
     - apps
     - extensions
-    attributeRestrictions: null
     resources:
     - replicasets/finalizers
     verbs:
     - update
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - pods
     verbs:
@@ -4970,19 +4532,18 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - events
     verbs:
     - create
     - patch
     - update
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -4990,7 +4551,6 @@ items:
   rules:
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - replicationcontrollers
     verbs:
@@ -5000,21 +4560,18 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - replicationcontrollers/status
     verbs:
     - update
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - replicationcontrollers/finalizers
     verbs:
     - update
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - pods
     verbs:
@@ -5025,19 +4582,18 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - events
     verbs:
     - create
     - patch
     - update
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -5045,7 +4601,6 @@ items:
   rules:
   - apiGroups:
     - '*'
-    attributeRestrictions: null
     resources:
     - '*'
     verbs:
@@ -5053,26 +4608,24 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - resourcequotas/status
     verbs:
     - update
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - events
     verbs:
     - create
     - patch
     - update
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -5080,7 +4633,6 @@ items:
   rules:
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - nodes
     verbs:
@@ -5088,26 +4640,24 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - nodes/status
     verbs:
     - patch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - events
     verbs:
     - create
     - patch
     - update
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -5115,26 +4665,24 @@ items:
   rules:
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - serviceaccounts
     verbs:
     - create
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - events
     verbs:
     - create
     - patch
     - update
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -5142,7 +4690,6 @@ items:
   rules:
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - services
     verbs:
@@ -5151,14 +4698,12 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - services/status
     verbs:
     - update
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - nodes
     verbs:
@@ -5166,19 +4711,18 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - events
     verbs:
     - create
     - patch
     - update
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -5186,7 +4730,6 @@ items:
   rules:
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - pods
     verbs:
@@ -5194,7 +4737,6 @@ items:
     - watch
   - apiGroups:
     - apps
-    attributeRestrictions: null
     resources:
     - statefulsets
     verbs:
@@ -5203,21 +4745,18 @@ items:
     - watch
   - apiGroups:
     - apps
-    attributeRestrictions: null
     resources:
     - statefulsets/status
     verbs:
     - update
   - apiGroups:
     - apps
-    attributeRestrictions: null
     resources:
     - statefulsets/finalizers
     verbs:
     - update
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - pods
     verbs:
@@ -5228,7 +4767,6 @@ items:
     - update
   - apiGroups:
     - apps
-    attributeRestrictions: null
     resources:
     - controllerrevisions
     verbs:
@@ -5241,7 +4779,6 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - persistentvolumeclaims
     verbs:
@@ -5249,19 +4786,18 @@ items:
     - get
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - events
     verbs:
     - create
     - patch
     - update
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -5269,7 +4805,6 @@ items:
   rules:
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - nodes
     verbs:
@@ -5279,19 +4814,18 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - events
     verbs:
     - create
     - patch
     - update
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -5299,7 +4833,6 @@ items:
   rules:
   - apiGroups:
     - certificates.k8s.io
-    attributeRestrictions: null
     resources:
     - certificatesigningrequests
     verbs:
@@ -5309,7 +4842,6 @@ items:
     - watch
   - apiGroups:
     - certificates.k8s.io
-    attributeRestrictions: null
     resources:
     - certificatesigningrequests/approval
     - certificatesigningrequests/status
@@ -5317,26 +4849,24 @@ items:
     - update
   - apiGroups:
     - authorization.k8s.io
-    attributeRestrictions: null
     resources:
     - subjectaccessreviews
     verbs:
     - create
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - events
     verbs:
     - create
     - patch
     - update
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -5344,7 +4874,6 @@ items:
   rules:
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - persistentvolumeclaims
     verbs:
@@ -5354,7 +4883,6 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - pods
     verbs:
@@ -5363,19 +4891,18 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - events
     verbs:
     - create
     - patch
     - update
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -5383,7 +4910,6 @@ items:
   rules:
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - persistentvolumes
     verbs:
@@ -5393,19 +4919,18 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - events
     verbs:
     - create
     - patch
     - update
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -5413,7 +4938,6 @@ items:
   rules:
   - apiGroups:
     - authorization.k8s.io
-    attributeRestrictions: null
     resources:
     - selfsubjectaccessreviews
     - selfsubjectrulesreviews
@@ -5423,56 +4947,56 @@ items:
     clusterRoleSelectors:
     - matchLabels:
         rbac.authorization.k8s.io/aggregate-to-admin: "true"
-  apiVersion: v1
+  apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       openshift.io/description: A user that has edit rights within the project and
         can change the project's membership.
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
     name: admin
-  rules: []
+  rules: null
 - aggregationRule:
     clusterRoleSelectors:
     - matchLabels:
         rbac.authorization.k8s.io/aggregate-to-edit: "true"
-  apiVersion: v1
+  apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       openshift.io/description: A user that can create and edit most objects in a
         project, but can not update the project's membership.
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
     name: edit
-  rules: []
+  rules: null
 - aggregationRule:
     clusterRoleSelectors:
     - matchLabels:
         rbac.authorization.k8s.io/aggregate-to-view: "true"
-  apiVersion: v1
+  apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       openshift.io/description: A user who can view but not edit any resources within
         the project. They can not view secrets or membership.
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
     name: view
-  rules: []
-- apiVersion: v1
+  rules: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -5481,7 +5005,6 @@ items:
   rules:
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - pods
     - pods/attach
@@ -5499,7 +5022,6 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - configmaps
     - endpoints
@@ -5521,7 +5043,6 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - bindings
     - events
@@ -5538,7 +5059,6 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - namespaces
     verbs:
@@ -5547,14 +5067,12 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - serviceaccounts
     verbs:
     - impersonate
   - apiGroups:
     - apps
-    attributeRestrictions: null
     resources:
     - daemonsets
     - deployments
@@ -5575,7 +5093,6 @@ items:
     - watch
   - apiGroups:
     - autoscaling
-    attributeRestrictions: null
     resources:
     - horizontalpodautoscalers
     verbs:
@@ -5589,7 +5106,6 @@ items:
     - watch
   - apiGroups:
     - batch
-    attributeRestrictions: null
     resources:
     - cronjobs
     - jobs
@@ -5604,7 +5120,6 @@ items:
     - watch
   - apiGroups:
     - extensions
-    attributeRestrictions: null
     resources:
     - daemonsets
     - deployments
@@ -5626,7 +5141,6 @@ items:
     - watch
   - apiGroups:
     - policy
-    attributeRestrictions: null
     resources:
     - poddisruptionbudgets
     verbs:
@@ -5640,7 +5154,6 @@ items:
     - watch
   - apiGroups:
     - networking.k8s.io
-    attributeRestrictions: null
     resources:
     - networkpolicies
     verbs:
@@ -5654,14 +5167,12 @@ items:
     - watch
   - apiGroups:
     - authorization.k8s.io
-    attributeRestrictions: null
     resources:
     - localsubjectaccessreviews
     verbs:
     - create
   - apiGroups:
     - rbac.authorization.k8s.io
-    attributeRestrictions: null
     resources:
     - rolebindings
     - roles
@@ -5674,12 +5185,12 @@ items:
     - patch
     - update
     - watch
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -5688,7 +5199,6 @@ items:
   rules:
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - pods
     - pods/attach
@@ -5706,7 +5216,6 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - configmaps
     - endpoints
@@ -5728,7 +5237,6 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - bindings
     - events
@@ -5745,7 +5253,6 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - namespaces
     verbs:
@@ -5754,14 +5261,12 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - serviceaccounts
     verbs:
     - impersonate
   - apiGroups:
     - apps
-    attributeRestrictions: null
     resources:
     - daemonsets
     - deployments
@@ -5782,7 +5287,6 @@ items:
     - watch
   - apiGroups:
     - autoscaling
-    attributeRestrictions: null
     resources:
     - horizontalpodautoscalers
     verbs:
@@ -5796,7 +5300,6 @@ items:
     - watch
   - apiGroups:
     - batch
-    attributeRestrictions: null
     resources:
     - cronjobs
     - jobs
@@ -5811,7 +5314,6 @@ items:
     - watch
   - apiGroups:
     - extensions
-    attributeRestrictions: null
     resources:
     - daemonsets
     - deployments
@@ -5833,7 +5335,6 @@ items:
     - watch
   - apiGroups:
     - policy
-    attributeRestrictions: null
     resources:
     - poddisruptionbudgets
     verbs:
@@ -5847,7 +5348,6 @@ items:
     - watch
   - apiGroups:
     - networking.k8s.io
-    attributeRestrictions: null
     resources:
     - networkpolicies
     verbs:
@@ -5859,12 +5359,12 @@ items:
     - patch
     - update
     - watch
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -5873,7 +5373,6 @@ items:
   rules:
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - configmaps
     - endpoints
@@ -5889,7 +5388,6 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - bindings
     - events
@@ -5906,7 +5404,6 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - namespaces
     verbs:
@@ -5915,7 +5412,6 @@ items:
     - watch
   - apiGroups:
     - apps
-    attributeRestrictions: null
     resources:
     - daemonsets
     - deployments
@@ -5930,7 +5426,6 @@ items:
     - watch
   - apiGroups:
     - autoscaling
-    attributeRestrictions: null
     resources:
     - horizontalpodautoscalers
     verbs:
@@ -5939,7 +5434,6 @@ items:
     - watch
   - apiGroups:
     - batch
-    attributeRestrictions: null
     resources:
     - cronjobs
     - jobs
@@ -5949,7 +5443,6 @@ items:
     - watch
   - apiGroups:
     - extensions
-    attributeRestrictions: null
     resources:
     - daemonsets
     - deployments
@@ -5965,7 +5458,6 @@ items:
     - watch
   - apiGroups:
     - policy
-    attributeRestrictions: null
     resources:
     - poddisruptionbudgets
     verbs:
@@ -5974,19 +5466,18 @@ items:
     - watch
   - apiGroups:
     - networking.k8s.io
-    attributeRestrictions: null
     resources:
     - networkpolicies
     verbs:
     - get
     - list
     - watch
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -5994,7 +5485,6 @@ items:
   rules:
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - events
     - namespaces
@@ -6006,19 +5496,18 @@ items:
     - watch
   - apiGroups:
     - extensions
-    attributeRestrictions: null
     resources:
     - deployments
     verbs:
     - get
     - list
     - watch
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -6026,33 +5515,30 @@ items:
   rules:
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - nodes
     verbs:
     - get
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - nodes/status
     verbs:
     - patch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - events
     verbs:
     - create
     - patch
     - update
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -6060,7 +5546,6 @@ items:
   rules:
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - nodes
     verbs:
@@ -6069,14 +5554,12 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - nodes
     verbs:
     - proxy
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - nodes/log
     - nodes/metrics
@@ -6085,12 +5568,12 @@ items:
     - nodes/stats
     verbs:
     - '*'
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -6098,7 +5581,6 @@ items:
   rules:
   - apiGroups:
     - certificates.k8s.io
-    attributeRestrictions: null
     resources:
     - certificatesigningrequests
     verbs:
@@ -6106,12 +5588,12 @@ items:
     - get
     - list
     - watch
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -6119,24 +5601,22 @@ items:
   rules:
   - apiGroups:
     - authentication.k8s.io
-    attributeRestrictions: null
     resources:
     - tokenreviews
     verbs:
     - create
   - apiGroups:
     - authorization.k8s.io
-    attributeRestrictions: null
     resources:
     - subjectaccessreviews
     verbs:
     - create
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -6144,7 +5624,6 @@ items:
   rules:
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - endpoints
     - services
@@ -6152,12 +5631,12 @@ items:
     - get
     - list
     - watch
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -6165,7 +5644,6 @@ items:
   rules:
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - events
     verbs:
@@ -6174,7 +5652,6 @@ items:
     - update
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - endpoints
     - secrets
@@ -6183,14 +5660,12 @@ items:
     - create
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - secrets
     verbs:
     - delete
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - endpoints
     - namespaces
@@ -6200,7 +5675,6 @@ items:
     - get
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - endpoints
     - secrets
@@ -6209,25 +5683,23 @@ items:
     - update
   - apiGroups:
     - authentication.k8s.io
-    attributeRestrictions: null
     resources:
     - tokenreviews
     verbs:
     - create
   - apiGroups:
     - '*'
-    attributeRestrictions: null
     resources:
     - '*'
     verbs:
     - list
     - watch
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -6235,7 +5707,6 @@ items:
   rules:
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - events
     verbs:
@@ -6244,14 +5715,12 @@ items:
     - update
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - endpoints
     verbs:
     - create
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resourceNames:
     - kube-scheduler
     resources:
@@ -6263,7 +5732,6 @@ items:
     - update
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - nodes
     verbs:
@@ -6272,7 +5740,6 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - pods
     verbs:
@@ -6282,7 +5749,6 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - bindings
     - pods/binding
@@ -6290,7 +5756,6 @@ items:
     - create
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - pods/status
     verbs:
@@ -6298,7 +5763,6 @@ items:
     - update
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - replicationcontrollers
     - services
@@ -6309,7 +5773,6 @@ items:
   - apiGroups:
     - apps
     - extensions
-    attributeRestrictions: null
     resources:
     - replicasets
     verbs:
@@ -6318,7 +5781,6 @@ items:
     - watch
   - apiGroups:
     - apps
-    attributeRestrictions: null
     resources:
     - statefulsets
     verbs:
@@ -6327,7 +5789,6 @@ items:
     - watch
   - apiGroups:
     - policy
-    attributeRestrictions: null
     resources:
     - poddisruptionbudgets
     verbs:
@@ -6336,7 +5797,6 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - persistentvolumeclaims
     - persistentvolumes
@@ -6344,12 +5804,12 @@ items:
     - get
     - list
     - watch
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -6357,19 +5817,18 @@ items:
   rules:
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - endpoints
     - services
     verbs:
     - list
     - watch
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -6377,7 +5836,6 @@ items:
   rules:
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - nodes
     verbs:
@@ -6385,19 +5843,18 @@ items:
     - patch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - events
     verbs:
     - create
     - patch
     - update
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -6405,17 +5862,16 @@ items:
   rules:
   - apiGroups:
     - certificates.k8s.io
-    attributeRestrictions: null
     resources:
     - certificatesigningrequests/nodeclient
     verbs:
     - create
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -6423,17 +5879,16 @@ items:
   rules:
   - apiGroups:
     - certificates.k8s.io
-    attributeRestrictions: null
     resources:
     - certificatesigningrequests/selfnodeclient
     verbs:
     - create
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -6441,7 +5896,6 @@ items:
   rules:
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - persistentvolumes
     verbs:
@@ -6452,1414 +5906,1356 @@ items:
     - watch
   - apiGroups:
     - storage.k8s.io
-    attributeRestrictions: null
     resources:
     - storageclasses
     verbs:
     - get
     - list
     - watch
-- apiVersion: v1
-  groupNames:
-  - system:masters
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:masters
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:master
   subjects:
-  - kind: SystemGroup
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
     name: system:masters
-  userNames: null
-- apiVersion: v1
-  groupNames:
-  - system:node-admins
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:node-admins
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:node-admin
   subjects:
-  - kind: SystemUser
+  - apiGroup: rbac.authorization.k8s.io
+    kind: User
     name: system:master
-  - kind: SystemGroup
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
     name: system:node-admins
-  userNames:
-  - system:master
-- apiVersion: v1
-  groupNames:
-  - system:cluster-admins
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: cluster-admins
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: cluster-admin
   subjects:
-  - kind: SystemGroup
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
     name: system:cluster-admins
-  - kind: SystemUser
+  - apiGroup: rbac.authorization.k8s.io
+    kind: User
     name: system:admin
-  userNames:
-  - system:admin
-- apiVersion: v1
-  groupNames:
-  - system:cluster-readers
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: cluster-readers
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: cluster-reader
   subjects:
-  - kind: SystemGroup
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
     name: system:cluster-readers
-  userNames: null
-- apiVersion: v1
-  groupNames:
-  - system:authenticated
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: basic-users
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: basic-user
   subjects:
-  - kind: SystemGroup
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
     name: system:authenticated
-  userNames: null
-- apiVersion: v1
-  groupNames:
-  - system:authenticated
-  - system:unauthenticated
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: self-access-reviewers
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: self-access-reviewer
   subjects:
-  - kind: SystemGroup
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
     name: system:authenticated
-  - kind: SystemGroup
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
     name: system:unauthenticated
-  userNames: null
-- apiVersion: v1
-  groupNames:
-  - system:authenticated:oauth
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: self-provisioners
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: self-provisioner
   subjects:
-  - kind: SystemGroup
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
     name: system:authenticated:oauth
-  userNames: null
-- apiVersion: v1
-  groupNames:
-  - system:authenticated
-  - system:unauthenticated
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:oauth-token-deleters
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:oauth-token-deleter
   subjects:
-  - kind: SystemGroup
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
     name: system:authenticated
-  - kind: SystemGroup
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
     name: system:unauthenticated
-  userNames: null
-- apiVersion: v1
-  groupNames:
-  - system:authenticated
-  - system:unauthenticated
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: cluster-status-binding
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: cluster-status
   subjects:
-  - kind: SystemGroup
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
     name: system:authenticated
-  - kind: SystemGroup
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
     name: system:unauthenticated
-  userNames: null
-- apiVersion: v1
-  groupNames:
-  - system:nodes
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:node-proxiers
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:node-proxier
   subjects:
-  - kind: SystemGroup
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
     name: system:nodes
-  userNames: null
-- apiVersion: v1
-  groupNames:
-  - system:nodes
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:sdn-readers
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:sdn-reader
   subjects:
-  - kind: SystemGroup
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
     name: system:nodes
-  userNames: null
-- apiVersion: v1
-  groupNames:
-  - system:authenticated
-  - system:unauthenticated
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:webhooks
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:webhook
   subjects:
-  - kind: SystemGroup
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
     name: system:authenticated
-  - kind: SystemGroup
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
     name: system:unauthenticated
-  userNames: null
-- apiVersion: v1
-  groupNames:
-  - system:authenticated
-  - system:unauthenticated
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:discovery-binding
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:discovery
   subjects:
-  - kind: SystemGroup
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
     name: system:authenticated
-  - kind: SystemGroup
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
     name: system:unauthenticated
-  userNames: null
-- apiVersion: v1
-  groupNames:
-  - system:authenticated
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:build-strategy-docker-binding
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:build-strategy-docker
   subjects:
-  - kind: SystemGroup
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
     name: system:authenticated
-  userNames: null
-- apiVersion: v1
-  groupNames:
-  - system:authenticated
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:build-strategy-source-binding
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:build-strategy-source
   subjects:
-  - kind: SystemGroup
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
     name: system:authenticated
-  userNames: null
-- apiVersion: v1
-  groupNames:
-  - system:authenticated
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:build-strategy-jenkinspipeline-binding
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:build-strategy-jenkinspipeline
   subjects:
-  - kind: SystemGroup
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
     name: system:authenticated
-  userNames: null
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:node-bootstrapper
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:node-bootstrapper
   subjects:
   - kind: ServiceAccount
     name: node-bootstrapper
     namespace: openshift-infra
-  userNames:
-  - system:serviceaccount:openshift-infra:node-bootstrapper
-- apiVersion: v1
-  groupNames:
-  - system:authenticated
-  - system:unauthenticated
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:scope-impersonation
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:scope-impersonation
   subjects:
-  - kind: SystemGroup
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
     name: system:authenticated
-  - kind: SystemGroup
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
     name: system:unauthenticated
-  userNames: null
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:nodes
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:node
-  subjects: []
-  userNames: null
-- apiVersion: v1
-  groupNames: null
+  subjects: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
     name: system:controller:attachdetach-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:controller:attachdetach-controller
   subjects:
   - kind: ServiceAccount
     name: attachdetach-controller
     namespace: kube-system
-  userNames:
-  - system:serviceaccount:kube-system:attachdetach-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
     name: system:controller:clusterrole-aggregation-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:controller:clusterrole-aggregation-controller
   subjects:
   - kind: ServiceAccount
     name: clusterrole-aggregation-controller
     namespace: kube-system
-  userNames:
-  - system:serviceaccount:kube-system:clusterrole-aggregation-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
     name: system:controller:cronjob-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:controller:cronjob-controller
   subjects:
   - kind: ServiceAccount
     name: cronjob-controller
     namespace: kube-system
-  userNames:
-  - system:serviceaccount:kube-system:cronjob-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
     name: system:controller:daemon-set-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:controller:daemon-set-controller
   subjects:
   - kind: ServiceAccount
     name: daemon-set-controller
     namespace: kube-system
-  userNames:
-  - system:serviceaccount:kube-system:daemon-set-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
     name: system:controller:deployment-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:controller:deployment-controller
   subjects:
   - kind: ServiceAccount
     name: deployment-controller
     namespace: kube-system
-  userNames:
-  - system:serviceaccount:kube-system:deployment-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
     name: system:controller:disruption-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:controller:disruption-controller
   subjects:
   - kind: ServiceAccount
     name: disruption-controller
     namespace: kube-system
-  userNames:
-  - system:serviceaccount:kube-system:disruption-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
     name: system:controller:endpoint-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:controller:endpoint-controller
   subjects:
   - kind: ServiceAccount
     name: endpoint-controller
     namespace: kube-system
-  userNames:
-  - system:serviceaccount:kube-system:endpoint-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
     name: system:controller:generic-garbage-collector
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:controller:generic-garbage-collector
   subjects:
   - kind: ServiceAccount
     name: generic-garbage-collector
     namespace: kube-system
-  userNames:
-  - system:serviceaccount:kube-system:generic-garbage-collector
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
     name: system:controller:horizontal-pod-autoscaler
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:controller:horizontal-pod-autoscaler
   subjects:
   - kind: ServiceAccount
     name: horizontal-pod-autoscaler
     namespace: kube-system
-  userNames:
-  - system:serviceaccount:kube-system:horizontal-pod-autoscaler
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
     name: system:controller:job-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:controller:job-controller
   subjects:
   - kind: ServiceAccount
     name: job-controller
     namespace: kube-system
-  userNames:
-  - system:serviceaccount:kube-system:job-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
     name: system:controller:namespace-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:controller:namespace-controller
   subjects:
   - kind: ServiceAccount
     name: namespace-controller
     namespace: kube-system
-  userNames:
-  - system:serviceaccount:kube-system:namespace-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
     name: system:controller:node-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:controller:node-controller
   subjects:
   - kind: ServiceAccount
     name: node-controller
     namespace: kube-system
-  userNames:
-  - system:serviceaccount:kube-system:node-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
     name: system:controller:persistent-volume-binder
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:controller:persistent-volume-binder
   subjects:
   - kind: ServiceAccount
     name: persistent-volume-binder
     namespace: kube-system
-  userNames:
-  - system:serviceaccount:kube-system:persistent-volume-binder
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
     name: system:controller:pod-garbage-collector
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:controller:pod-garbage-collector
   subjects:
   - kind: ServiceAccount
     name: pod-garbage-collector
     namespace: kube-system
-  userNames:
-  - system:serviceaccount:kube-system:pod-garbage-collector
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
     name: system:controller:replicaset-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:controller:replicaset-controller
   subjects:
   - kind: ServiceAccount
     name: replicaset-controller
     namespace: kube-system
-  userNames:
-  - system:serviceaccount:kube-system:replicaset-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
     name: system:controller:replication-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:controller:replication-controller
   subjects:
   - kind: ServiceAccount
     name: replication-controller
     namespace: kube-system
-  userNames:
-  - system:serviceaccount:kube-system:replication-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
     name: system:controller:resourcequota-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:controller:resourcequota-controller
   subjects:
   - kind: ServiceAccount
     name: resourcequota-controller
     namespace: kube-system
-  userNames:
-  - system:serviceaccount:kube-system:resourcequota-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
     name: system:controller:route-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:controller:route-controller
   subjects:
   - kind: ServiceAccount
     name: route-controller
     namespace: kube-system
-  userNames:
-  - system:serviceaccount:kube-system:route-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
     name: system:controller:service-account-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:controller:service-account-controller
   subjects:
   - kind: ServiceAccount
     name: service-account-controller
     namespace: kube-system
-  userNames:
-  - system:serviceaccount:kube-system:service-account-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
     name: system:controller:service-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:controller:service-controller
   subjects:
   - kind: ServiceAccount
     name: service-controller
     namespace: kube-system
-  userNames:
-  - system:serviceaccount:kube-system:service-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
     name: system:controller:statefulset-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:controller:statefulset-controller
   subjects:
   - kind: ServiceAccount
     name: statefulset-controller
     namespace: kube-system
-  userNames:
-  - system:serviceaccount:kube-system:statefulset-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
     name: system:controller:ttl-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:controller:ttl-controller
   subjects:
   - kind: ServiceAccount
     name: ttl-controller
     namespace: kube-system
-  userNames:
-  - system:serviceaccount:kube-system:ttl-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
     name: system:controller:certificate-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:controller:certificate-controller
   subjects:
   - kind: ServiceAccount
     name: certificate-controller
     namespace: kube-system
-  userNames:
-  - system:serviceaccount:kube-system:certificate-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
     name: system:controller:pvc-protection-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:controller:pvc-protection-controller
   subjects:
   - kind: ServiceAccount
     name: pvc-protection-controller
     namespace: kube-system
-  userNames:
-  - system:serviceaccount:kube-system:pvc-protection-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
     name: system:controller:pv-protection-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:controller:pv-protection-controller
   subjects:
   - kind: ServiceAccount
     name: pv-protection-controller
     namespace: kube-system
-  userNames:
-  - system:serviceaccount:kube-system:pv-protection-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:openshift:controller:build-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:openshift:controller:build-controller
   subjects:
   - kind: ServiceAccount
     name: build-controller
     namespace: openshift-infra
-  userNames:
-  - system:serviceaccount:openshift-infra:build-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:openshift:controller:build-config-change-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:openshift:controller:build-config-change-controller
   subjects:
   - kind: ServiceAccount
     name: build-config-change-controller
     namespace: openshift-infra
-  userNames:
-  - system:serviceaccount:openshift-infra:build-config-change-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:openshift:controller:deployer-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:openshift:controller:deployer-controller
   subjects:
   - kind: ServiceAccount
     name: deployer-controller
     namespace: openshift-infra
-  userNames:
-  - system:serviceaccount:openshift-infra:deployer-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:openshift:controller:deploymentconfig-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:openshift:controller:deploymentconfig-controller
   subjects:
   - kind: ServiceAccount
     name: deploymentconfig-controller
     namespace: openshift-infra
-  userNames:
-  - system:serviceaccount:openshift-infra:deploymentconfig-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:openshift:controller:template-instance-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:openshift:controller:template-instance-controller
   subjects:
   - kind: ServiceAccount
     name: template-instance-controller
     namespace: openshift-infra
-  userNames:
-  - system:serviceaccount:openshift-infra:template-instance-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:openshift:controller:template-instance-controller:admin
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: admin
   subjects:
   - kind: ServiceAccount
     name: template-instance-controller
     namespace: openshift-infra
-  userNames:
-  - system:serviceaccount:openshift-infra:template-instance-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:openshift:controller:template-instance-finalizer-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:openshift:controller:template-instance-finalizer-controller
   subjects:
   - kind: ServiceAccount
     name: template-instance-finalizer-controller
     namespace: openshift-infra
-  userNames:
-  - system:serviceaccount:openshift-infra:template-instance-finalizer-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:openshift:controller:template-instance-finalizer-controller:admin
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: admin
   subjects:
   - kind: ServiceAccount
     name: template-instance-finalizer-controller
     namespace: openshift-infra
-  userNames:
-  - system:serviceaccount:openshift-infra:template-instance-finalizer-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:openshift:controller:origin-namespace-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:openshift:controller:origin-namespace-controller
   subjects:
   - kind: ServiceAccount
     name: origin-namespace-controller
     namespace: openshift-infra
-  userNames:
-  - system:serviceaccount:openshift-infra:origin-namespace-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:openshift:controller:serviceaccount-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:openshift:controller:serviceaccount-controller
   subjects:
   - kind: ServiceAccount
     name: serviceaccount-controller
     namespace: openshift-infra
-  userNames:
-  - system:serviceaccount:openshift-infra:serviceaccount-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:openshift:controller:serviceaccount-pull-secrets-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:openshift:controller:serviceaccount-pull-secrets-controller
   subjects:
   - kind: ServiceAccount
     name: serviceaccount-pull-secrets-controller
     namespace: openshift-infra
-  userNames:
-  - system:serviceaccount:openshift-infra:serviceaccount-pull-secrets-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:openshift:controller:image-trigger-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:openshift:controller:image-trigger-controller
   subjects:
   - kind: ServiceAccount
     name: image-trigger-controller
     namespace: openshift-infra
-  userNames:
-  - system:serviceaccount:openshift-infra:image-trigger-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:openshift:controller:service-serving-cert-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:openshift:controller:service-serving-cert-controller
   subjects:
   - kind: ServiceAccount
     name: service-serving-cert-controller
     namespace: openshift-infra
-  userNames:
-  - system:serviceaccount:openshift-infra:service-serving-cert-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:openshift:controller:image-import-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:openshift:controller:image-import-controller
   subjects:
   - kind: ServiceAccount
     name: image-import-controller
     namespace: openshift-infra
-  userNames:
-  - system:serviceaccount:openshift-infra:image-import-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:openshift:controller:sdn-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:openshift:controller:sdn-controller
   subjects:
   - kind: ServiceAccount
     name: sdn-controller
     namespace: openshift-infra
-  userNames:
-  - system:serviceaccount:openshift-infra:sdn-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:openshift:controller:cluster-quota-reconciliation-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:openshift:controller:cluster-quota-reconciliation-controller
   subjects:
   - kind: ServiceAccount
     name: cluster-quota-reconciliation-controller
     namespace: openshift-infra
-  userNames:
-  - system:serviceaccount:openshift-infra:cluster-quota-reconciliation-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:openshift:controller:unidling-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:openshift:controller:unidling-controller
   subjects:
   - kind: ServiceAccount
     name: unidling-controller
     namespace: openshift-infra
-  userNames:
-  - system:serviceaccount:openshift-infra:unidling-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:openshift:controller:service-ingress-ip-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:openshift:controller:service-ingress-ip-controller
   subjects:
   - kind: ServiceAccount
     name: service-ingress-ip-controller
     namespace: openshift-infra
-  userNames:
-  - system:serviceaccount:openshift-infra:service-ingress-ip-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:openshift:controller:ingress-to-route-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:openshift:controller:ingress-to-route-controller
   subjects:
   - kind: ServiceAccount
     name: ingress-to-route-controller
     namespace: openshift-infra
-  userNames:
-  - system:serviceaccount:openshift-infra:ingress-to-route-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:openshift:controller:pv-recycler-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:openshift:controller:pv-recycler-controller
   subjects:
   - kind: ServiceAccount
     name: pv-recycler-controller
     namespace: openshift-infra
-  userNames:
-  - system:serviceaccount:openshift-infra:pv-recycler-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:openshift:controller:resourcequota-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:openshift:controller:resourcequota-controller
   subjects:
   - kind: ServiceAccount
     name: resourcequota-controller
     namespace: openshift-infra
-  userNames:
-  - system:serviceaccount:openshift-infra:resourcequota-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:openshift:controller:horizontal-pod-autoscaler
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:openshift:controller:horizontal-pod-autoscaler
   subjects:
   - kind: ServiceAccount
     name: horizontal-pod-autoscaler
     namespace: openshift-infra
-  userNames:
-  - system:serviceaccount:openshift-infra:horizontal-pod-autoscaler
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:controller:horizontal-pod-autoscaler
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:controller:horizontal-pod-autoscaler
   subjects:
   - kind: ServiceAccount
     name: horizontal-pod-autoscaler
     namespace: openshift-infra
-  userNames:
-  - system:serviceaccount:openshift-infra:horizontal-pod-autoscaler
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:openshift:controller:template-service-broker
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:openshift:controller:template-service-broker
   subjects:
   - kind: ServiceAccount
     name: template-service-broker
     namespace: openshift-infra
-  userNames:
-  - system:serviceaccount:openshift-infra:template-service-broker
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:image-puller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:image-puller
   subjects:
   - kind: ServiceAccount
     name: default-rolebindings-controller
     namespace: openshift-infra
-  userNames:
-  - system:serviceaccount:openshift-infra:default-rolebindings-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:image-builder
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:image-builder
   subjects:
   - kind: ServiceAccount
     name: default-rolebindings-controller
     namespace: openshift-infra
-  userNames:
-  - system:serviceaccount:openshift-infra:default-rolebindings-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:deployer
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:deployer
   subjects:
   - kind: ServiceAccount
     name: default-rolebindings-controller
     namespace: openshift-infra
-  userNames:
-  - system:serviceaccount:openshift-infra:default-rolebindings-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:openshift:controller:default-rolebindings-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:openshift:controller:default-rolebindings-controller
   subjects:
   - kind: ServiceAccount
     name: default-rolebindings-controller
     namespace: openshift-infra
-  userNames:
-  - system:serviceaccount:openshift-infra:default-rolebindings-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:openshift:controller:namespace-security-allocation-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:openshift:controller:namespace-security-allocation-controller
   subjects:
   - kind: ServiceAccount
     name: namespace-security-allocation-controller
     namespace: openshift-infra
-  userNames:
-  - system:serviceaccount:openshift-infra:namespace-security-allocation-controller
-- apiVersion: v1
-  groupNames:
-  - system:masters
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
     name: cluster-admin
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: cluster-admin
   subjects:
-  - kind: SystemGroup
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
     name: system:masters
-  userNames: null
-- apiVersion: v1
-  groupNames:
-  - system:authenticated
-  - system:unauthenticated
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
     name: system:discovery
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:discovery
   subjects:
-  - kind: SystemGroup
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
     name: system:authenticated
-  - kind: SystemGroup
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
     name: system:unauthenticated
-  userNames: null
-- apiVersion: v1
-  groupNames:
-  - system:authenticated
-  - system:unauthenticated
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
     name: system:basic-user
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:basic-user
   subjects:
-  - kind: SystemGroup
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
     name: system:authenticated
-  - kind: SystemGroup
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
     name: system:unauthenticated
-  userNames: null
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
     name: system:node-proxier
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:node-proxier
   subjects:
-  - kind: SystemUser
+  - apiGroup: rbac.authorization.k8s.io
+    kind: User
     name: system:kube-proxy
-  userNames:
-  - system:kube-proxy
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
     name: system:kube-controller-manager
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:kube-controller-manager
   subjects:
-  - kind: SystemUser
+  - apiGroup: rbac.authorization.k8s.io
+    kind: User
     name: system:kube-controller-manager
-  userNames:
-  - system:kube-controller-manager
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
     name: system:kube-dns
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:kube-dns
   subjects:
   - kind: ServiceAccount
     name: kube-dns
     namespace: kube-system
-  userNames:
-  - system:serviceaccount:kube-system:kube-dns
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
     name: system:kube-scheduler
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:kube-scheduler
   subjects:
-  - kind: SystemUser
+  - apiGroup: rbac.authorization.k8s.io
+    kind: User
     name: system:kube-scheduler
-  userNames:
-  - system:kube-scheduler
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
     name: system:aws-cloud-provider
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:aws-cloud-provider
   subjects:
   - kind: ServiceAccount
     name: aws-cloud-provider
     namespace: kube-system
-  userNames:
-  - system:serviceaccount:kube-system:aws-cloud-provider
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
     name: system:node
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:node
-  subjects: []
-  userNames: null
-- apiVersion: v1
-  groupNames: null
+  subjects: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
     name: system:volume-scheduler
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:volume-scheduler
   subjects:
-  - kind: SystemUser
+  - apiGroup: rbac.authorization.k8s.io
+    kind: User
     name: system:kube-scheduler
-  userNames:
-  - system:kube-scheduler
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: Role
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -7868,7 +7264,6 @@ items:
   rules:
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - configmaps
     verbs:
@@ -7877,7 +7272,6 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resourceNames:
     - cluster-info
     resources:
@@ -7886,18 +7280,17 @@ items:
     - update
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - events
     verbs:
     - create
     - patch
     - update
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: Role
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -7906,18 +7299,17 @@ items:
   rules:
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resourceNames:
     - extension-apiserver-authentication
     resources:
     - configmaps
     verbs:
     - get
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: Role
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -7926,18 +7318,17 @@ items:
   rules:
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - secrets
     verbs:
     - get
     - list
     - watch
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: Role
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -7946,7 +7337,6 @@ items:
   rules:
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - configmaps
     verbs:
@@ -7954,11 +7344,11 @@ items:
     - get
     - list
     - watch
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: Role
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -7967,7 +7357,6 @@ items:
   rules:
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - secrets
     verbs:
@@ -7977,18 +7366,17 @@ items:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - events
     verbs:
     - create
     - patch
     - update
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: Role
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -7997,14 +7385,12 @@ items:
   rules:
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - configmaps
     verbs:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resourceNames:
     - kube-controller-manager
     resources:
@@ -8012,11 +7398,11 @@ items:
     verbs:
     - get
     - update
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: Role
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -8025,14 +7411,12 @@ items:
   rules:
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - configmaps
     verbs:
     - watch
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resourceNames:
     - kube-scheduler
     resources:
@@ -8040,19 +7424,18 @@ items:
     verbs:
     - get
     - update
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: Role
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: shared-resource-viewer
-    namespace: openshift-custom-ns
+    namespace: openshift
   rules:
   - apiGroups:
     - ""
     - template.openshift.io
-    attributeRestrictions: null
     resources:
     - templates
     verbs:
@@ -8062,7 +7445,6 @@ items:
   - apiGroups:
     - ""
     - image.openshift.io
-    attributeRestrictions: null
     resources:
     - imagestreamimages
     - imagestreams
@@ -8074,180 +7456,164 @@ items:
   - apiGroups:
     - ""
     - image.openshift.io
-    attributeRestrictions: null
     resources:
     - imagestreams/layers
     verbs:
     - get
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: Role
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:node-config-reader
     namespace: openshift-node
   rules:
   - apiGroups:
     - ""
-    attributeRestrictions: null
     resources:
     - configmaps
     verbs:
     - get
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: RoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
     name: system:controller:bootstrap-signer
     namespace: kube-public
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: Role
     name: system:controller:bootstrap-signer
-    namespace: kube-public
   subjects:
   - kind: ServiceAccount
     name: bootstrap-signer
     namespace: kube-system
-  userNames:
-  - system:serviceaccount:kube-system:bootstrap-signer
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: RoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
     name: system::leader-locking-kube-controller-manager
     namespace: kube-system
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: Role
     name: system::leader-locking-kube-controller-manager
-    namespace: kube-system
   subjects:
   - kind: ServiceAccount
     name: kube-controller-manager
     namespace: kube-system
-  userNames:
-  - system:serviceaccount:kube-system:kube-controller-manager
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: RoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
     name: system::leader-locking-kube-scheduler
     namespace: kube-system
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: Role
     name: system::leader-locking-kube-scheduler
-    namespace: kube-system
   subjects:
   - kind: ServiceAccount
     name: kube-scheduler
     namespace: kube-system
-  userNames:
-  - system:serviceaccount:kube-system:kube-scheduler
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: RoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
     name: system:controller:bootstrap-signer
     namespace: kube-system
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: Role
     name: system:controller:bootstrap-signer
-    namespace: kube-system
   subjects:
   - kind: ServiceAccount
     name: bootstrap-signer
     namespace: kube-system
-  userNames:
-  - system:serviceaccount:kube-system:bootstrap-signer
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: RoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
     name: system:controller:cloud-provider
     namespace: kube-system
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: Role
     name: system:controller:cloud-provider
-    namespace: kube-system
   subjects:
   - kind: ServiceAccount
     name: cloud-provider
     namespace: kube-system
-  userNames:
-  - system:serviceaccount:kube-system:cloud-provider
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: RoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
     name: system:controller:token-cleaner
     namespace: kube-system
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: Role
     name: system:controller:token-cleaner
-    namespace: kube-system
   subjects:
   - kind: ServiceAccount
     name: token-cleaner
     namespace: kube-system
-  userNames:
-  - system:serviceaccount:kube-system:token-cleaner
-- apiVersion: v1
-  groupNames:
-  - system:authenticated
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: RoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: shared-resource-viewers
-    namespace: openshift-custom-ns
+    namespace: openshift
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: Role
     name: shared-resource-viewer
-    namespace: openshift-custom-ns
   subjects:
-  - kind: SystemGroup
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
     name: system:authenticated
-  userNames: null
-- apiVersion: v1
-  groupNames:
-  - system:nodes
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: RoleBinding
   metadata:
     annotations:
-      openshift.io/reconcile-protect: "false"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:node-config-reader
     namespace: openshift-node
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: Role
     name: system:node-config-reader
-    namespace: openshift-node
   subjects:
-  - kind: SystemGroup
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
     name: system:nodes
-  userNames: null
 kind: List
 metadata: {}

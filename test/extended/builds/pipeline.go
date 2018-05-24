@@ -18,6 +18,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -81,10 +82,9 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 		j                        *jenkins.JenkinsRef
 		dcLogFollow              *exec.Cmd
 		dcLogStdOut, dcLogStdErr *bytes.Buffer
-		cleanup                  = func() {
-			defer exutil.RemoveDeploymentConfigs(oc, "jenkins")
-			defer exutil.RemoveNFSBackedPersistentVolumes(oc)
-
+		pvs                      = []*v1.PersistentVolume{}
+		nfspod                   = &v1.Pod{}
+		cleanup                  = func(jenkinsTemplatePath string) {
 			if g.CurrentGinkgoTestDescription().Failed {
 				exutil.DumpPodStates(oc)
 				exutil.DumpPodLogsStartingWith("", oc)
@@ -92,6 +92,24 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 			}
 			if os.Getenv(jenkins.EnableJenkinsMemoryStats) != "" {
 				ticker.Stop()
+			}
+
+			client := oc.AsAdmin().KubeFramework().ClientSet
+			g.By("removing jenkins")
+			exutil.RemoveDeploymentConfigs(oc, "jenkins")
+
+			// per k8s e2e volume_util.go:VolumeTestCleanup, nuke any client pods
+			// before nfs server to assist with umount issues; as such, need to clean
+			// up prior to the AfterEach processing, to guaranteed deletion order
+			if jenkinsTemplatePath == jenkinsPersistentTemplatePath {
+				g.By("deleting PVCs")
+				exutil.DeletePVCsForDeployment(client, oc, "jenkins")
+				g.By("removing nfs pvs")
+				for _, pv := range pvs {
+					e2e.DeletePersistentVolume(client, pv.Name)
+				}
+				g.By("removing nfs pod")
+				e2e.DeletePodWithWait(oc.AsAdmin().KubeFramework(), client, nfspod)
 			}
 		}
 		setupJenkins = func(jenkinsTemplatePath string) {
@@ -113,12 +131,12 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 
 			// create persistent volumes if running persistent jenkins
 			if jenkinsTemplatePath == jenkinsPersistentTemplatePath {
+				g.By("PV/PVC dump before setup")
+				exutil.DumpPersistentVolumeInfo(oc)
+
 				jenkinsTemplateName = "jenkins-persistent"
 
-				err = exutil.AddNamespaceLabelToPersistentVolumeClaimsInTemplate(oc, jenkinsTemplateName)
-				o.Expect(err).NotTo(o.HaveOccurred())
-
-				_, err := exutil.SetupNFSBackedPersistentVolumes(oc, "2Gi", 3)
+				nfspod, pvs, err = exutil.SetupK8SNFSServerAndVolume(oc, 3)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 			}
@@ -152,6 +170,11 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 			g.By(fmt.Sprintf("calling oc new-app useSnapshotImage %v with license text %s and newAppArgs %#v", useSnapshotImage, licensePrefix, newAppArgs))
 			err = oc.Run("new-app").Args(newAppArgs...).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
+
+			if jenkinsTemplatePath == jenkinsPersistentTemplatePath {
+				g.By("PV/PVC dump after setup")
+				exutil.DumpPersistentVolumeInfo(oc)
+			}
 
 			g.By("waiting for jenkins deployment")
 			err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().Apps(), oc.Namespace(), "jenkins", 1, false, oc)
@@ -200,7 +223,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 	g.Context("jenkins-client-plugin tests", func() {
 
 		g.It("using the ephemeral template", func() {
-			defer cleanup()
+			defer cleanup(jenkinsEphemeralTemplatePath)
 			setupJenkins(jenkinsEphemeralTemplatePath)
 
 			g.By("Pipeline using jenkins-client-plugin")
@@ -314,7 +337,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 	g.Context("Sync plugin tests", func() {
 
 		g.It("using the persistent template", func() {
-			defer cleanup()
+			defer cleanup(jenkinsPersistentTemplatePath)
 			setupJenkins(jenkinsPersistentTemplatePath)
 			// additionally ensure that the build works in a memory constrained
 			// environment
@@ -436,7 +459,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 		})
 
 		g.It("using the ephemeral template", func() {
-			defer cleanup()
+			defer cleanup(jenkinsEphemeralTemplatePath)
 			setupJenkins(jenkinsEphemeralTemplatePath)
 
 			g.By("Pipelines with maven slave")

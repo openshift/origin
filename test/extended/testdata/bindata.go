@@ -5444,8 +5444,9 @@ spec:
         execNewPod:
           containerName: myapp
           command:
-          - /bin/echo
-          - test pre hook executed
+          - /bin/bash
+          - -c
+          - "echo 'test pre hook executed' && sleep 5"
   template:
     metadata:
       labels:

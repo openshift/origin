@@ -13,12 +13,18 @@ import (
 	"strings"
 	"testing"
 
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	restclient "k8s.io/client-go/rest"
+	restfake "k8s.io/client-go/rest/fake"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	buildclient "github.com/openshift/origin/pkg/build/client/internalversion"
+	"github.com/openshift/origin/pkg/oauth/generated/clientset/scheme"
 )
 
 type FakeClientConfig struct {
@@ -279,6 +285,100 @@ func TestHttpBinary(t *testing.T) {
 
 		if out := stdout.String(); tc.expectWarning != strings.Contains(out, "may not be an archive") {
 			t.Errorf("[%s] Expected archive warning: %v, got: %q", tc.description, tc.expectWarning, out)
+		}
+	}
+}
+
+type logTestCase struct {
+	RequestErr     error
+	IOErr          error
+	ExpectedLogMsg string
+	ExpectedErrMsg string
+}
+
+type failReader struct {
+	Err error
+}
+
+func (r *failReader) Read(p []byte) (n int, err error) {
+	return 0, r.Err
+}
+
+func TestStreamBuildLogs(t *testing.T) {
+	cases := []logTestCase{
+		{
+			ExpectedLogMsg: "hello",
+		},
+		{
+			RequestErr:     errors.New("simulated failure"),
+			ExpectedErrMsg: "unable to stream the build logs",
+		},
+		{
+			RequestErr: &kerrors.StatusError{
+				ErrStatus: metav1.Status{
+					Reason:  metav1.StatusReasonTimeout,
+					Message: "timeout",
+				},
+			},
+			ExpectedErrMsg: "unable to stream the build logs",
+		},
+		{
+			IOErr:          errors.New("failed to read"),
+			ExpectedErrMsg: "unable to stream the build logs",
+		},
+	}
+
+	for _, tc := range cases {
+		out := &bytes.Buffer{}
+		build := &buildapi.Build{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-build",
+				Namespace: "test-namespace",
+			},
+		}
+		// Set up dummy RESTClient to handle requests
+		fakeREST := &restfake.RESTClient{
+			NegotiatedSerializer: scheme.Codecs,
+			GroupVersion:         schema.GroupVersion{Group: "build.openshift.io", Version: "v1"},
+			Client: restfake.CreateHTTPClient(func(*http.Request) (*http.Response, error) {
+				if tc.RequestErr != nil {
+					return nil, tc.RequestErr
+				}
+				var body io.Reader
+				if tc.IOErr != nil {
+					body = &failReader{
+						Err: tc.IOErr,
+					}
+				} else {
+					body = bytes.NewBufferString(tc.ExpectedLogMsg)
+				}
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Body:       ioutil.NopCloser(body),
+				}, nil
+			}),
+		}
+
+		o := &StartBuildOptions{
+			Out:            out,
+			ErrOut:         out,
+			BuildLogClient: buildclient.NewBuildLogClient(fakeREST, build.Namespace),
+		}
+
+		err := o.streamBuildLogs(build)
+		if tc.RequestErr == nil && tc.IOErr == nil {
+			if err != nil {
+				t.Errorf("received unexpected error streaming build logs: %v", err)
+			}
+			if out.String() != tc.ExpectedLogMsg {
+				t.Errorf("expected log \"%s\", got \"%s\"", tc.ExpectedLogMsg, out.String())
+			}
+		} else {
+			if err == nil {
+				t.Errorf("no error was received, expected error message: %s", tc.ExpectedErrMsg)
+			} else if !strings.Contains(err.Error(), tc.ExpectedErrMsg) {
+				t.Errorf("expected error message \"%s\", got \"%s\"", tc.ExpectedErrMsg, err)
+			}
 		}
 	}
 }

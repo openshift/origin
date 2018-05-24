@@ -6,7 +6,7 @@
 {{- $defaultDestinationCA := .DefaultDestinationCA }}
 {{ $httpAliases := getHTTPAliasesGroupedByHost .State }}
 {{ $httpsPort := env "ROUTER_SERVICE_HTTPS_PORT" "443" }}
-{{ $passthroughPort := env "ROUTER_SERVICE_PASSTHROUGH_PORT" ""}}
+{{ $passthroughPort := env "ROUTER_SERVICE_PASSTHROUGH_PORT" "443" }}
 {{ $logLevel := firstMatch "info|notice|warn|error|crit|alert|emerg" (env "ROUTER_LOG_LEVEL") "warn" }}
 worker_processes  auto;
 {{ with $syslogAddress := env "ROUTER_SYSLOG_ADDRESS" }}
@@ -287,23 +287,52 @@ http {
 {{ end -}}
 }
 
-{{ if $passthroughPort }}
 stream {
   {{ with $format := env "ROUTER_SYSLOG_FORMAT_FOR_PASSTHROUGH" }}
-  log_format basic '{{ $format }}';
+  log_format passthrough '{{ $format }}';
   {{ else }}
-  log_format basic '$remote_addr [$time_local] '
+  log_format passthrough '$remote_addr [$time_local] '
                      '$protocol $status $bytes_sent $bytes_received '
-                     '$session_time "$ssl_preread_server_name" $dest';
+                     '$session_time "$ssl_preread_server_name" "$dest_passthrough"';
+  {{ end }}
+  {{ with $format := env "ROUTER_SYSLOG_FORMAT_FOR_INTERNAL_PASSTHROUGH" }}
+  log_format internal_passthrough '{{ $format }}';
+  {{ else }}
+  log_format internal_passthrough '$remote_addr [$time_local] '
+                     '$protocol $status $bytes_sent $bytes_received '
+                     '$session_time "$ssl_preread_server_name" $dest_internal_passthrough"';
   {{ end }}
 
   proxy_timeout {{ env "ROUTER_DEFAULT_CLIENT_TIMEOUT" "30s" }};
   proxy_connect_timeout {{ env "ROUTER_DEFAULT_CONNECT_TIMEOUT" "5s" }};
   map_hash_bucket_size 256;
 
-
   upstream https-route {
     server 127.0.0.1:{{env "ROUTER_SERVICE_SNI_PORT" "10444"}};
+  }
+
+  map $ssl_preread_server_name $dest_passthrough {
+  {{- range $cfgIdx, $cfg := .State }}
+    {{ if eq $cfg.TLSTermination "passthrough" }}
+    {{ $cfg.Host }} 127.0.0.1:{{ env "ROUTER_SERVICE_INTERNAL_PASSTHROUGH_PORT" "10447" }}; 
+    {{ end }}
+  {{ end }}
+    default https-route;
+  }
+
+  server {
+    listen {{ $passthroughPort }}{{ if isTrue (env "ROUTER_USE_PROXY_PROTOCOL") }} proxy_protocol{{ end }};
+    {{ with $syslogAddress := env "ROUTER_SYSLOG_ADDRESS" }}
+    access_log syslog:server={{ $syslogAddress }},facility={{env "ROUTER_LOG_FACILITY" "local1"}},severity={{ $logLevel }} passthrough;
+    {{ else }}
+    access_log /var/lib/nginx/log/passthrough_access.log passthrough;
+    {{ end }}
+    proxy_pass $dest_passthrough;
+    ssl_preread on;
+    proxy_protocol on;
+    {{ if isTrue (env "ROUTER_USE_PROXY_PROTOCOL") }}
+    set_real_ip_from {{ env "ROUTER_PROXY_PROTOCOL_TRUSTED_SOURCE" "0.0.0.0/0" }};
+    {{ end }}
   }
 
   {{- range $cfgIdx, $cfg := .State }}
@@ -331,33 +360,28 @@ stream {
     {{ end }}
   {{ end }}
 
-  map $ssl_preread_server_name $dest {
+  map $ssl_preread_server_name $dest_internal_passthrough {
   {{- range $cfgIdx, $cfg := .State }}
     {{ if eq $cfg.TLSTermination "passthrough" }}
     {{ $cfg.Host }} be_passthrough_{{$cfg.Namespace}}_{{$cfg.Name}}; 
     {{ end }}
   {{ end }}
-  {{ if eq $httpsPort $passthroughPort }} 
-    default https-route;
-  {{ else }}
     default 127.0.0.1:{{env "ROUTER_SERVICE_UNREACHABLE_PORT" "10446"}};
-  {{ end }}
   }
 
   server {
-    listen {{ $passthroughPort }}{{ if isTrue (env "ROUTER_USE_PROXY_PROTOCOL") }} proxy_protocol{{ end }};
+    listen {{ env "ROUTER_SERVICE_INTERNAL_PASSTHROUGH_PORT" "10447" }} proxy_protocol;
+
     {{ with $syslogAddress := env "ROUTER_SYSLOG_ADDRESS" }}
-    access_log syslog:server={{ $syslogAddress }},facility={{env "ROUTER_LOG_FACILITY" "local1"}},severity={{ $logLevel }} basic;
+    access_log syslog:server={{ $syslogAddress }},facility={{env "ROUTER_LOG_FACILITY" "local1"}},severity={{ $logLevel }} internal_passthrough;
     {{ else }}
-    access_log /var/lib/nginx/log/stream_access.log basic;
+    access_log /var/lib/nginx/log/internal_passthrough_access.log internal_passthrough;
     {{ end }}
-    proxy_pass $dest;
+
     ssl_preread on;
-    proxy_protocol on;
-    {{ if isTrue (env "ROUTER_USE_PROXY_PROTOCOL") }}
-    set_real_ip_from {{ env "ROUTER_PROXY_PROTOCOL_TRUSTED_SOURCE" "0.0.0.0/0" }};
-    {{ end }}
+    set_real_ip_from 127.0.0.1;
+
+    proxy_pass $dest_internal_passthrough;  
   }
 }
-{{ end }}
 {{ end -}}{{/* end config file */}}

@@ -3,19 +3,17 @@ package common
 import (
 	"fmt"
 	"net"
-	"os/exec"
-	"strings"
 	"sync"
 	"time"
 
+	"github.com/miekg/dns"
+
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	kexec "k8s.io/utils/exec"
+	"k8s.io/apimachinery/pkg/util/sets"
 )
 
 const (
-	dig = "dig"
-
 	defaultTTL = 30 * time.Minute
 )
 
@@ -29,27 +27,28 @@ type dnsValue struct {
 }
 
 type DNS struct {
-	// Runs shell commands
-	execer kexec.Interface
-
 	// Protects dnsMap operations
 	lock sync.Mutex
 	// Holds dns name and its corresponding information
 	dnsMap map[string]dnsValue
+
+	// DNS resolvers
+	nameservers []string
+	// DNS port
+	port string
 }
 
-func CheckDNSResolver() error {
-	if _, err := exec.LookPath(dig); err != nil {
-		return fmt.Errorf("%s is not installed", dig)
+func NewDNS(resolverConfigFile string) (*DNS, error) {
+	config, err := dns.ClientConfigFromFile(resolverConfigFile)
+	if err != nil || config == nil {
+		return nil, fmt.Errorf("cannot initialize the resolver: %v", err)
 	}
-	return nil
-}
 
-func NewDNS(execer kexec.Interface) *DNS {
 	return &DNS{
-		execer: execer,
-		dnsMap: map[string]dnsValue{},
-	}
+		dnsMap:      map[string]dnsValue{},
+		nameservers: filterIPv4Servers(config.Servers),
+		port:        config.Port,
+	}, nil
 }
 
 func (d *DNS) Size() int {
@@ -105,42 +104,15 @@ func (d *DNS) Update() (error, bool) {
 }
 
 func (d *DNS) updateOne(dns string) (error, bool) {
-	// Due to lack of any go bindings for dns resolver that actually provides TTL value, we are relying on 'dig' shell command.
-	// Output Format:
-	// <domain-name>.		<<ttl from authoritative ns>	IN	A	<IP addr>
-	out, err := d.execer.Command(dig, "+nocmd", "+noall", "+answer", "+ttlid", "a", dns).CombinedOutput()
-	if err != nil || len(out) == 0 {
-		return fmt.Errorf("failed to fetch IP addr and TTL value for domain: %q, err: %v", dns, err), false
-	}
-	outStr := strings.Trim(string(out[:]), "\n")
-
 	res, ok := d.dnsMap[dns]
 	if !ok {
 		// Should not happen, all operations on dnsMap are synchronized by d.lock
 		return fmt.Errorf("DNS value not found in dnsMap for domain: %q", dns), false
 	}
 
-	var minTTL time.Duration
-	var ips []net.IP
-	for _, line := range strings.Split(outStr, "\n") {
-		fields := strings.Fields(line)
-		if len(fields) != 5 {
-			continue
-		}
-
-		ttl, err := time.ParseDuration(fmt.Sprintf("%ss", fields[1]))
-		if err != nil {
-			utilruntime.HandleError(fmt.Errorf("Invalid TTL value for domain: %q, err: %v, defaulting ttl=%s", dns, err, defaultTTL.String()))
-			ttl = defaultTTL
-		}
-		if (minTTL.Seconds() == 0) || (minTTL.Seconds() > ttl.Seconds()) {
-			minTTL = ttl
-		}
-
-		ip := net.ParseIP(fields[4])
-		if ip != nil {
-			ips = append(ips, ip)
-		}
+	ips, minTTL, err := d.getIPsAndMinTTL(dns)
+	if err != nil {
+		return err, false
 	}
 
 	changed := false
@@ -152,6 +124,51 @@ func (d *DNS) updateOne(dns string) (error, bool) {
 	res.nextQueryTime = time.Now().Add(res.ttl)
 	d.dnsMap[dns] = res
 	return nil, changed
+}
+
+func (d *DNS) getIPsAndMinTTL(domain string) ([]net.IP, time.Duration, error) {
+	ips := []net.IP{}
+	var minTTL uint32
+
+	for _, server := range d.nameservers {
+		msg := new(dns.Msg)
+		msg.SetQuestion(dns.Fqdn(domain), dns.TypeA)
+
+		dialServer := server
+		if _, _, err := net.SplitHostPort(server); err != nil {
+			dialServer = net.JoinHostPort(server, d.port)
+		}
+		c := new(dns.Client)
+		c.Timeout = 2 * time.Second
+		in, _, err := c.Exchange(msg, dialServer)
+		if err != nil {
+			return nil, defaultTTL, err
+		}
+		if in != nil && in.Rcode != dns.RcodeSuccess {
+			return nil, defaultTTL, fmt.Errorf("failed to get a valid answer: %v", in)
+		}
+
+		if in != nil && len(in.Answer) > 0 {
+			for _, a := range in.Answer {
+				switch t := a.(type) {
+				case *dns.A:
+					ips = append(ips, t.A)
+
+					if minTTL == 0 || t.Hdr.Ttl < minTTL {
+						minTTL = t.Hdr.Ttl
+					}
+				}
+			}
+		}
+	}
+
+	ttl, err := time.ParseDuration(fmt.Sprintf("%ds", minTTL))
+	if err != nil || minTTL == 0 {
+		utilruntime.HandleError(fmt.Errorf("Invalid TTL value for domain: %q, err: %v, defaulting ttl=%s", domain, err, defaultTTL.String()))
+		ttl = defaultTTL
+	}
+
+	return removeDuplicateIPs(ips), ttl, nil
 }
 
 func (d *DNS) GetMinQueryTime() (time.Time, bool) {
@@ -188,4 +205,39 @@ func ipsEqual(oldips, newips []net.IP) bool {
 		}
 	}
 	return true
+}
+
+func filterIPv4Servers(servers []string) []string {
+	ipv4Servers := []string{}
+	for _, server := range servers {
+		ipString := server
+		if host, _, err := net.SplitHostPort(server); err == nil {
+			ipString = host
+		}
+
+		if ip := net.ParseIP(ipString); ip != nil {
+			if ip.To4() != nil {
+				ipv4Servers = append(ipv4Servers, server)
+			}
+		}
+	}
+
+	return ipv4Servers
+}
+
+func removeDuplicateIPs(ips []net.IP) []net.IP {
+	ipSet := sets.NewString()
+	for _, ip := range ips {
+		ipSet.Insert(ip.String())
+	}
+
+	uniqueIPs := []net.IP{}
+	for _, str := range ipSet.List() {
+		ip := net.ParseIP(str)
+		if ip != nil {
+			uniqueIPs = append(uniqueIPs, ip)
+		}
+	}
+
+	return uniqueIPs
 }

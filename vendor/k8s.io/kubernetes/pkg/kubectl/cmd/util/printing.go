@@ -228,7 +228,7 @@ func maybeWrapSortingPrinter(printer printers.ResourcePrinter, printOpts printer
 	if len(printOpts.SortBy) != 0 {
 		return &kubectl.SortingPrinter{
 			Delegate:  printer,
-			SortField: fmt.Sprintf("{%s}", printOpts.SortBy),
+			SortField: fmt.Sprintf("%s", printOpts.SortBy),
 		}
 	}
 	return printer

@@ -12,6 +12,7 @@ import (
 	"github.com/openshift/origin/test/extended/util/db"
 	testutil "github.com/openshift/origin/test/util"
 
+	kapiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kcoreclient "k8s.io/client-go/kubernetes/typed/core/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
@@ -30,29 +31,50 @@ var _ = g.Describe("[image_ecosystem][postgresql][Slow][local] openshift postgre
 	defer g.GinkgoRecover()
 
 	var oc = exutil.NewCLI("postgresql-replication", exutil.KubeConfigPath())
+	var pvs = []*kapiv1.PersistentVolume{}
+	var nfspod = &kapiv1.Pod{}
+	var cleanup = func() {
+		// per k8s e2e volume_util.go:VolumeTestCleanup, nuke any client pods
+		// before nfs server to assist with umount issues; as such, need to clean
+		// up prior to the AfterEach processing, to guaranteed deletion order
+		g.By("start cleanup")
+		if g.CurrentGinkgoTestDescription().Failed {
+			exutil.DumpPodStates(oc)
+			exutil.DumpPodLogsStartingWith("", oc)
+			exutil.DumpImageStreams(oc)
+			exutil.DumpPersistentVolumeInfo(oc)
+		}
+
+		client := oc.AsAdmin().KubeFramework().ClientSet
+		g.By("removing postgresql")
+		exutil.RemoveDeploymentConfigs(oc, "postgresql-master", "postgresql-slave")
+
+		g.By("deleting PVCs")
+		exutil.DeletePVCsForDeployment(client, oc, "postgre")
+
+		g.By("removing nfs pvs")
+		for _, pv := range pvs {
+			e2e.DeletePersistentVolume(client, pv.Name)
+		}
+
+		g.By("removing nfs pod")
+		e2e.DeletePodWithWait(oc.AsAdmin().KubeFramework(), client, nfspod)
+	}
 
 	g.Context("", func() {
 		g.BeforeEach(func() {
 			exutil.DumpDockerInfo()
 
-			_, err := exutil.SetupNFSBackedPersistentVolumes(oc, "1Gi", 5)
+			g.By("PV/PVC dump before setup")
+			exutil.DumpPersistentVolumeInfo(oc)
+
+			var err error
+			nfspod, pvs, err = exutil.SetupK8SNFSServerAndVolume(oc, 8)
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
-		g.AfterEach(func() {
-			defer exutil.RemoveNFSBackedPersistentVolumes(oc)
-			defer exutil.RemoveDeploymentConfigs(oc, "postgresql-master", "postgresql-slave")
-
-			if g.CurrentGinkgoTestDescription().Failed {
-				exutil.DumpPodStates(oc)
-				exutil.DumpPodLogsStartingWith("", oc)
-				exutil.DumpImageStreams(oc)
-				exutil.DumpPersistentVolumeInfo(oc)
-			}
-		})
-
 		for _, image := range postgreSQLImages {
-			g.It(fmt.Sprintf("postgresql replication works for %s", image), PostgreSQLReplicationTestFactory(oc, image))
+			g.It(fmt.Sprintf("postgresql replication works for %s", image), PostgreSQLReplicationTestFactory(oc, image, cleanup))
 		}
 	})
 })
@@ -84,8 +106,12 @@ func CreatePostgreSQLReplicationHelpers(c kcoreclient.PodInterface, masterDeploy
 	return master, slaves, helper
 }
 
-func PostgreSQLReplicationTestFactory(oc *exutil.CLI, image string) func() {
+func PostgreSQLReplicationTestFactory(oc *exutil.CLI, image string, cleanup func()) func() {
 	return func() {
+		// per k8s e2e volume_util.go:VolumeTestCleanup, nuke any client pods
+		// before nfs server to assist with umount issues; as such, need to clean
+		// up prior to the AfterEach processing, to guaranteed deletion order
+		defer cleanup()
 
 		err := testutil.WaitForPolicyUpdate(oc.InternalKubeClient().Authorization(), oc.Namespace(), "create", templateapi.Resource("templates"), true)
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -95,14 +121,14 @@ func PostgreSQLReplicationTestFactory(oc *exutil.CLI, image string) func() {
 		err = oc.Run("create").Args("-f", postgreSQLReplicationTemplate).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		err = exutil.AddNamespaceLabelToPersistentVolumeClaimsInTemplate(oc, "pg-replica-example")
-		o.Expect(err).NotTo(o.HaveOccurred())
-
 		err = oc.Run("new-app").Args("--template", "pg-replica-example", "-p", fmt.Sprintf("IMAGESTREAMTAG=%s", image)).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		err = oc.Run("new-app").Args("-f", postgreSQLEphemeralTemplate, "-p", fmt.Sprintf("DATABASE_SERVICE_NAME=%s", postgreSQLHelperName)).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By("PV/PVC dump after setup")
+		exutil.DumpPersistentVolumeInfo(oc)
 
 		// oc.KubeFramework().WaitForAnEndpoint currently will wait forever;  for now, prefacing with our WaitForADeploymentToComplete,
 		// which does have a timeout, since in most cases a failure in the service coming up stems from a failed deployment

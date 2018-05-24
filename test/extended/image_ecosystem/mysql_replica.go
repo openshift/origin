@@ -1,7 +1,6 @@
 package image_ecosystem
 
-/*
-import (
+/*import (
 	"fmt"
 	"time"
 
@@ -13,6 +12,7 @@ import (
 	"github.com/openshift/origin/test/extended/util/db"
 	testutil "github.com/openshift/origin/test/util"
 
+	kapiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kcoreclient "k8s.io/client-go/kubernetes/typed/core/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
@@ -65,18 +65,18 @@ func CreateMySQLReplicationHelpers(c kcoreclient.PodInterface, masterDeployment,
 	return master, slaves, helper
 }
 
-func replicationTestFactory(oc *exutil.CLI, tc testCase) func() {
+func replicationTestFactory(oc *exutil.CLI, tc testCase, cleanup func()) func() {
 	return func() {
-
+		// per k8s e2e volume_util.go:VolumeTestCleanup, nuke any client pods
+		// before nfs server to assist with umount issues; as such, need to clean
+		// up prior to the AfterEach processing, to guaranteed deletion order
+		defer cleanup()
 
 		err := testutil.WaitForPolicyUpdate(oc.InternalKubeClient().Authorization(), oc.Namespace(), "create", templateapi.Resource("templates"), true)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		exutil.CheckOpenShiftNamespaceImageStreams(oc)
 		err = oc.Run("create").Args("-f", tc.TemplatePath).Execute()
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		err = exutil.AddNamespaceLabelToPersistentVolumeClaimsInTemplate(oc, tc.TemplateName)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		err = oc.Run("new-app").Args("--template", tc.TemplateName).Execute()
@@ -188,34 +188,50 @@ func replicationTestFactory(oc *exutil.CLI, tc testCase) func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 			assertReplicationIsWorking("mysql-master-2", "mysql-slave-1", 4)
 */
-/*	}
+/*}
 }
 
 var _ = g.Describe("[image_ecosystem][mysql][Slow] openshift mysql replication", func() {
 	defer g.GinkgoRecover()
 
 	var oc = exutil.NewCLI("mysql-replication", exutil.KubeConfigPath())
+	var pvs = []*kapiv1.PersistentVolume{}
+	var nfspod = &kapiv1.Pod{}
+	var cleanup = func() {
+		g.By("start cleanup")
+		if g.CurrentGinkgoTestDescription().Failed {
+			exutil.DumpPodStates(oc)
+			exutil.DumpPodLogsStartingWith("", oc)
+			exutil.DumpPersistentVolumeInfo(oc)
+		}
+
+		client := oc.AsAdmin().KubeFramework().ClientSet
+		g.By("removing mysql")
+		exutil.RemoveDeploymentConfigs(oc, "mysql-master", "mysql-slave")
+
+		g.By("deleting PVC")
+		exutil.DeletePVCsForDeployment(client, oc, "mysql")
+
+		g.By("removing nfs pvs")
+		for _, pv := range pvs {
+			e2e.DeletePersistentVolume(client, pv.Name)
+		}
+
+		g.By("removing nfs pod")
+		e2e.DeletePodWithWait(oc.AsAdmin().KubeFramework(), client, nfspod)
+	}
+
 	g.Context("", func() {
 		g.BeforeEach(func() {
 			exutil.DumpDockerInfo()
 
-			_, err := exutil.SetupNFSBackedPersistentVolumes(oc, "1Gi", 5)
+			var err error
+			nfspod, pvs, err = exutil.SetupK8SNFSServerAndVolume(oc, 8)
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
-		g.AfterEach(func() {
-			defer exutil.RemoveNFSBackedPersistentVolumes(oc)
-			defer exutil.RemoveDeploymentConfigs(oc, "mysql-master", "mysql-slave")
-
-			if g.CurrentGinkgoTestDescription().Failed {
-				exutil.DumpPodStates(oc)
-				exutil.DumpPodLogsStartingWith("", oc)
-				exutil.DumpPersistentVolumeInfo(oc)
-			}
-		})
-
 		for _, tc := range testCases {
-			g.It(fmt.Sprintf("MySQL replication template for %s: %s", tc.Version, tc.TemplatePath), replicationTestFactory(oc, tc))
+			g.It(fmt.Sprintf("MySQL replication template for %s: %s", tc.Version, tc.TemplatePath), replicationTestFactory(oc, tc, cleanup))
 		}
 	})
 })
