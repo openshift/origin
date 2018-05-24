@@ -8,20 +8,21 @@ import (
 	"github.com/golang/glog"
 
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/version"
 )
 
 // BehaviorOnPanic is a helper for setting the crash mode of OpenShift when a panic is caught.
 // It returns a function that should be the defer handler for the caller.
-func BehaviorOnPanic(modeString string) func() {
+func BehaviorOnPanic(modeString string, productVersion version.Info) func() {
 	modes := []string{}
 	if err := json.Unmarshal([]byte(modeString), &modes); err != nil {
-		return behaviorOnPanic(modeString)
+		return behaviorOnPanic(modeString, productVersion)
 	}
 
 	fns := []func(){}
 
 	for _, mode := range modes {
-		fns = append(fns, behaviorOnPanic(mode))
+		fns = append(fns, behaviorOnPanic(mode, productVersion))
 	}
 
 	return func() {
@@ -31,7 +32,7 @@ func BehaviorOnPanic(modeString string) func() {
 	}
 }
 
-func behaviorOnPanic(mode string) func() {
+func behaviorOnPanic(mode string, productVersion version.Info) func() {
 	doNothing := func() {}
 
 	switch {
@@ -55,7 +56,7 @@ func behaviorOnPanic(mode string) func() {
 
 	case strings.HasPrefix(mode, "sentry:"):
 		url := strings.TrimPrefix(mode, "sentry:")
-		m, err := NewSentryMonitor(url)
+		m, err := NewSentryMonitor(url, productVersion)
 		if err != nil {
 			glog.Errorf("Unable to start Sentry for panic tracing: %v", err)
 			return doNothing

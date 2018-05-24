@@ -1,6 +1,10 @@
-hash: 1b949b57ca83a0cb48a3aa4eaa0df0434b0674fa6ddc9cc177d52c33fbad0f18
-updated: 2018-05-11T11:39:21.543138172-04:00
+hash: a665637ac7338d1a40dced5da890dfc63521d0efd2fb02bf2503d1dc6291265c
+updated: 2018-05-14T15:43:35.83097902-04:00
 imports:
+- name: github.com/certifi/gocertifi
+  version: deb3ae2ef2610fde3330947281941c562861188b
+- name: github.com/getsentry/raven-go
+  version: 32a13797442ccb601b11761d74232773c1402d14
 - name: github.com/gogo/protobuf
   version: c0656edd0d9eab7c66d1eb0c568f9039345796f7
   subpackages:
@@ -11,7 +15,13 @@ imports:
 - name: github.com/google/gofuzz
   version: 44d81051d367757e1c7c6a5a86423ece9afcf63c
 - name: github.com/openshift/api
-  version: 221b49e66590f67765dfc861cb5e53465738befa
+  version: db404b1ed5b9f97ae179a75b9ff474b23521e250
+  subpackages:
+  - config/v1
+- name: github.com/pkg/errors
+  version: 645ef00459ed84a119197bfb8d8205042c6df63d
+- name: github.com/pkg/profile
+  version: 5b67d428864e92711fcbd2f8629456121a56d91f
 - name: github.com/spf13/pflag
   version: 4c012f6dcd9546820e378d0bdda4d8fc772cdfea
 - name: golang.org/x/net
@@ -58,6 +68,7 @@ imports:
   - pkg/util/validation
   - pkg/util/validation/field
   - pkg/util/wait
+  - pkg/version
   - pkg/watch
   - third_party/forked/golang/reflect
 - name: k8s.io/apiserver

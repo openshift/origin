@@ -8,6 +8,7 @@ import (
 	"github.com/pkg/profile"
 )
 
+// Stop is a function to defer in your main call to provide profile info.
 type Stop interface {
 	Stop()
 }
@@ -16,6 +17,7 @@ type stopper struct{}
 
 func (stopper) Stop() {}
 
+// Profile returns an interface to defer for a profile: `defer serviceability.Profile(os.Getenv("OPENSHIFT_PROFILE")).Stop()` is common.
 func Profile(mode string) Stop {
 	var stop Stop
 	switch mode {

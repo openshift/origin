@@ -5,10 +5,11 @@ import (
 	"time"
 
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/version"
 )
 
 func TestPanicDelayingDeath(t *testing.T) {
-	BehaviorOnPanic(`["crash-after-delay:10s"]`)
+	BehaviorOnPanic(`["crash-after-delay:10s"]`, version.Info{})
 
 	utilruntime.ReallyCrash = false
 	go func() {

@@ -8,18 +8,19 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/openshift/origin/pkg/cmd/openshift-experimental"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
 	utilflag "k8s.io/apiserver/pkg/util/flag"
 	"k8s.io/apiserver/pkg/util/logs"
 
+	"github.com/openshift/library-go/pkg/serviceability"
 	"github.com/openshift/origin/pkg/cmd/openshift-apiserver"
 	"github.com/openshift/origin/pkg/cmd/openshift-controller-manager"
+	"github.com/openshift/origin/pkg/cmd/openshift-experimental"
 	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver"
 	"github.com/openshift/origin/pkg/cmd/server/start"
-	"github.com/openshift/origin/pkg/cmd/util/serviceability"
+	"github.com/openshift/origin/pkg/version"
 )
 
 func main() {
@@ -30,7 +31,7 @@ func main() {
 
 	logs.InitLogs()
 	defer logs.FlushLogs()
-	defer serviceability.BehaviorOnPanic(os.Getenv("OPENSHIFT_ON_PANIC"))()
+	defer serviceability.BehaviorOnPanic(os.Getenv("OPENSHIFT_ON_PANIC"), version.Get())()
 	defer serviceability.Profile(os.Getenv("OPENSHIFT_PROFILE")).Stop()
 
 	if len(os.Getenv("GOMAXPROCS")) == 0 {

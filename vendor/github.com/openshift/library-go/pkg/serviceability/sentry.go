@@ -7,7 +7,7 @@ import (
 
 	"github.com/getsentry/raven-go"
 
-	"github.com/openshift/origin/pkg/version"
+	"k8s.io/apimachinery/pkg/version"
 )
 
 // SentryMonitor encapsulates a Sentry client and set of default tags
@@ -18,12 +18,12 @@ type SentryMonitor struct {
 
 // NewSentryMonitor creates a class that can capture panics and errors from OpenShift
 // and Kubernetes that can roll up to a Sentry server.
-func NewSentryMonitor(url string) (*SentryMonitor, error) {
+func NewSentryMonitor(url string, version version.Info) (*SentryMonitor, error) {
 	client, err := raven.NewClient(url, nil)
 	if err != nil {
 		return nil, err
 	}
-	client.SetRelease(version.Get().GitCommit)
+	client.SetRelease(version.GitCommit)
 	return &SentryMonitor{
 		client: client,
 	}, nil

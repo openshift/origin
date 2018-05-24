@@ -1,5 +1,9 @@
 package v1
 
+import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
 // HTTPServingInfo holds configuration for serving HTTP
 type HTTPServingInfo struct {
 	// ServingInfo is the HTTP serving information
@@ -48,4 +52,31 @@ type NamedCertificate struct {
 	Names []string `json:"names" protobuf:"bytes,1,rep,name=names"`
 	// CertInfo is the TLS cert info for serving secure traffic
 	CertInfo `json:",inline" protobuf:"bytes,2,opt,name=certInfo"`
+}
+
+// LeaderElection provides information to elect a leader
+type LeaderElection struct {
+	// disable allows leader election to be suspended while allowing a fully defaulted "normal" startup case.
+	Disable bool `json:"disable,omitempty" protobuf:"varint,1,opt,name=disable"`
+	// namespace indicates which namespace the resource is in
+	Namespace string `json:"namespace,omitempty" protobuf:"bytes,2,opt,name=namespace"`
+	// name indicates what name to use for the resource
+	Name string `json:"name,omitempty" protobuf:"bytes,3,opt,name=name"`
+
+	// leaseDuration is the duration that non-leader candidates will wait
+	// after observing a leadership renewal until attempting to acquire
+	// leadership of a led but unrenewed leader slot. This is effectively the
+	// maximum duration that a leader can be stopped before it is replaced
+	// by another candidate. This is only applicable if leader election is
+	// enabled.
+	LeaseDuration metav1.Duration `json:"leaseDuration,omitempty" protobuf:"bytes,4,opt,name=leaseDuration"`
+	// renewDeadline is the interval between attempts by the acting master to
+	// renew a leadership slot before it stops leading. This must be less
+	// than or equal to the lease duration. This is only applicable if leader
+	// election is enabled.
+	RenewDeadline metav1.Duration `json:"renewDeadline,omitempty" protobuf:"bytes,5,opt,name=renewDeadline"`
+	// retryPeriod is the duration the clients should wait between attempting
+	// acquisition and renewal of a leadership. This is only applicable if
+	// leader election is enabled.
+	RetryPeriod metav1.Duration `json:"retryPeriod,omitempty" protobuf:"bytes,6,opt,name=retryPeriod"`
 }
