@@ -17,5 +17,9 @@ var (
 func addKnownTypes(scheme *runtime.Scheme) error {
 	metav1.AddToGroupVersion(scheme, SchemeGroupVersion)
 
+	scheme.AddKnownTypes(SchemeGroupVersion,
+		&GenericOperatorConfig{},
+	)
+
 	return nil
 }

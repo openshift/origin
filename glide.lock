@@ -1,5 +1,5 @@
 hash: ce0210531a96e7705ee37f95e133bc8f04449108d83b7b6475afb65712dc10e3
-updated: 2018-05-22T11:35:27.341407558-04:00
+updated: 2018-05-24T16:52:31.949847316+02:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -818,7 +818,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: 5214a21b7f2adb6b36372ee65a785bdcb4f52d6b
+  version: 1adcd4e8b64faf3eaa8166a62e92f95cc7ee1d60
   subpackages:
   - apps/v1
   - authorization/v1
@@ -829,6 +829,7 @@ imports:
   - image/v1
   - network/v1
   - oauth/v1
+  - operator/v1alpha1
   - pkg/serialization
   - project/v1
   - quota/v1
@@ -838,7 +839,7 @@ imports:
   - user/v1
   - webconsole/v1
 - name: github.com/openshift/client-go
-  version: 6963117e446ee8bed234d56e27c32e3d3a11770e
+  version: 0d482887777e2d8bc9aeaade933c2a7f5180bb6d
   subpackages:
   - apps/clientset/versioned
   - apps/clientset/versioned/scheme
@@ -952,10 +953,11 @@ imports:
   - signal
   - strslice
 - name: github.com/openshift/library-go
-  version: 4cdb80cd7ae96dfaca3115bd433f97b1a9d3a88a
+  version: f8ad11bbeed0f89ddc8a9adbb4127f7e58fd77d3
   subpackages:
   - pkg/controller
   - pkg/crypto
+  - pkg/serviceability
 - name: github.com/openshift/service-serving-cert-signer
   version: ff33759721d44aab5426ff6071391b4545da8b4b
   subpackages:
@@ -1081,8 +1083,6 @@ imports:
   version: e31f36ffc91a2ba9ddb72a4b6a607ff9b3d3cb63
 - name: github.com/spf13/cobra
   version: 6644d46b81fa1831979c4cded0106e774e0ef0ab
-  subpackages:
-  - doc
 - name: github.com/spf13/jwalterweatherman
   version: 33c24e77fb80341fe7130ee7c594256ff08ccc46
 - name: github.com/spf13/pflag
@@ -1465,7 +1465,7 @@ imports:
   - third_party/forked/golang/netutil
   - third_party/forked/golang/reflect
 - name: k8s.io/apiserver
-  version: 96c171d4c097216d9b8654eec7d8a0b0f4723edf
+  version: 65267fefb070176415cb4071fb02aacf997d0b4b
   repo: https://github.com/openshift/kubernetes-apiserver.git
   subpackages:
   - pkg/admission
@@ -1808,7 +1808,7 @@ imports:
   - pkg/util/proto
   - pkg/util/proto/validation
 - name: k8s.io/kubernetes
-  version: 48e4040dfae5691fe877037c75ac7c8c061260a7
+  version: b013bc9d0c08523265fc89fbd0192186fe4843a3
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/controller-manager/app

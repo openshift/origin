@@ -5,6 +5,7 @@ syntax = 'proto2';
 
 package github.com.openshift.api.operator.v1alpha1;
 
+import "github.com/openshift/api/config/v1/generated.proto";
 import "k8s.io/apimachinery/pkg/apis/meta/v1/generated.proto";
 import "k8s.io/apimachinery/pkg/runtime/generated.proto";
 import "k8s.io/apimachinery/pkg/runtime/schema/generated.proto";
@@ -12,6 +13,18 @@ import "k8s.io/apimachinery/pkg/util/intstr/generated.proto";
 
 // Package-wide variables from generator "generated".
 option go_package = "v1alpha1";
+
+// DelegatedAuthentication allows authentication to be disabled.
+message DelegatedAuthentication {
+  // disabled indicates that authentication should be disabled.  By default it will use delegated authentication.
+  optional bool disabled = 1;
+}
+
+// DelegatedAuthorization allows authorization to be disabled.
+message DelegatedAuthorization {
+  // disabled indicates that authorization should be disabled.  By default it will use delegated authorization.
+  optional bool disabled = 1;
+}
 
 // GenerationHistory keeps track of the generation for a given resource so that decisions about forced updated can be made.
 message GenerationHistory {
@@ -29,6 +42,21 @@ message GenerationHistory {
 
   // lastGeneration is the last generation of the workload controller involved
   optional int64 lastGeneration = 5;
+}
+
+// GenericOperatorConfig provides information to configure an operator
+message GenericOperatorConfig {
+  // ServingInfo is the HTTP serving information for the controller's endpoints
+  optional github.com.openshift.api.config.v1.HTTPServingInfo servingInfo = 1;
+
+  // leaderElection provides information to elect a leader. Only override this if you have a specific need
+  optional github.com.openshift.api.config.v1.LeaderElection leaderElection = 2;
+
+  // authentication allows configuration of authentication for the endpoints
+  optional DelegatedAuthentication authentication = 3;
+
+  // authorization allows configuration of authentication for the endpoints
+  optional DelegatedAuthorization authorization = 4;
 }
 
 // LoggingConfig holds information about configuring logging

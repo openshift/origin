@@ -14,3 +14,12 @@ import:
 # sig-master
 - package: github.com/getsentry/raven-go
   version: 32a13797442ccb601b11761d74232773c1402d14
+# sig-master - transitive through raven-go, this matches the kube level
+- package: github.com/pkg/errors
+  version: v0.8.0
+
+# matches kube
+- package: github.com/spf13/cobra
+  version: 6644d46b81fa1831979c4cded0106e774e0ef0ab
+- package: github.com/spf13/pflag
+  version: 4c012f6dcd9546820e378d0bdda4d8fc772cdfea
