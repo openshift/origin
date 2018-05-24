@@ -17,12 +17,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 853394b8ef08683530612fc30a96f8925614496b
+%global commit ed16c6c110f83beffbba2735aaf934a04c97b02d
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=10+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.10.0-0.49.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 KUBE_GIT_VERSION=v1.10.0+b81c8f8 OS_GIT_PATCH=0 KUBE_GIT_COMMIT=b81c8f8 KUBE_GIT_MINOR=10+ OS_GIT_COMMIT=c119d26 KUBE_GIT_MAJOR=1 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.16-0-g121edf0 ETCD_GIT_COMMIT=121edf0
+%global os_git_vars OS_GIT_MINOR=10+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.10.0-0.50.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 KUBE_GIT_VERSION=v1.10.0+b81c8f8 OS_GIT_PATCH=0 KUBE_GIT_COMMIT=b81c8f8 KUBE_GIT_MINOR=10+ OS_GIT_COMMIT=9227b1b KUBE_GIT_MAJOR=1 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.16-0-g121edf0 ETCD_GIT_COMMIT=121edf0
 }
 
 %if 0%{?skip_build}
@@ -65,7 +65,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.10.0
-Release:        0.50.0%{?dist}
+Release:        0.51.0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -483,6 +483,51 @@ if [ "$1" -eq 0 ] ; then
 fi
 
 %changelog
+* Wed May 23 2018 Justin Pierce <jupierce@redhat.com> 3.10.0-0.51.0
+- ensure nothing in kubernetes depends on origin (jliggitt@redhat.com)
+- tests: add debug information for watch failure (jwozniak@redhat.com)
+- make the docker registry secret always prime (deads@redhat.com)
+- Add test to dependency graph (ccoleman@redhat.com)
+- Generate temporary test user kubeconfig into temp (ccoleman@redhat.com)
+- move cakephp ext test count check to greater than zero (gmontero@redhat.com)
+- Fix TSB Registration (jmontleo@redhat.com)
+- Generated (mkhan@redhat.com)
+- Update bootstrap policy file encoding (mrogers@redhat.com)
+- Added namespaces to log messages in the hybid proxy (bbennett@redhat.com)
+- Added DNS test case that returns both CNAME and A records (rpenta@redhat.com)
+- Cleanup prune groups command to align with other commands
+  (maszulik@redhat.com)
+- Updated DNS test cases to use dns go library instead of dig command
+  (rpenta@redhat.com)
+- Remove bind-utils package from node image and origin spec (rpenta@redhat.com)
+- Remove exec interface in dns.go, no longer needed (rpenta@redhat.com)
+- Use dns go bindings instead of dig command for dns resolution in egress
+  network policy (rpenta@redhat.com)
+- switch over to k8s nfs image extension for image_eco, build extended tests
+  (gmontero@redhat.com)
+- UPSTREAM: 63416: Retry certificate approval on conflict errors
+  (ccoleman@redhat.com)
+- Differentiate liveness and readiness probes for router (jtanenba@redhat.com)
+- UPSTREAM: 63716: Add InstallPathHandler which allows for more then one path
+  to be associated with health checking. (jtanenba@redhat.com)
+- Remove unnecessary output files (ccoleman@redhat.com)
+- UPSTREAM: <drop>: stop wrapping --sort-by value in {} (jvallejo@redhat.com)
+- UPSTREAM: 64028: Tolarate negative values when calculating job scale progress
+  (maszulik@redhat.com)
+- apps: add sleep to test hook fixture so logs can catch up
+  (mfojtik@redhat.com)
+- Remove containerized openshift handling in network diagnostics
+  (rpenta@redhat.com)
+- Remove deprecated envvar-based credential support from images
+  (jliggitt@redhat.com)
+- oc: start-build waits only if --wait flag is set (adam.kaplan@redhat.com)
+- UPSTREAM: 63926: Avoid unnecessary calls to the cloud provider
+  (miciah.masters@gmail.com)
+- Improve resilience of oc start-build log streaming (adam.kaplan@redhat.com)
+- support dns resolution (rchopra@redhat.com)
+- CL skip config write by default (sejug@redhat.com)
+- Fix passthrough routing in NGINX Router (michael@nginx.com)
+
 * Mon May 21 2018 Justin Pierce <jupierce@redhat.com> 3.10.0-0.50.0
 - 
 
