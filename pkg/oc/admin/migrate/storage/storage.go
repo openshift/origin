@@ -67,6 +67,10 @@ const (
 	// 1 byte == 8 bits
 	// we use a float to avoid truncating on division
 	byteToBits = 8.0
+
+	// consider any network IO limit less than 30 Mbps to be "slow"
+	// we use this as a heuristic to prevent ResourceExpired errors caused by paging
+	slowBandwidth = 30
 )
 
 type MigrateAPIStorageOptions struct {
@@ -238,6 +242,11 @@ func (o *MigrateAPIStorageOptions) Complete(f *clientcmd.Factory, c *cobra.Comma
 	// bandwidth > 0 means limit accordingly
 	if o.bandwidth > 0 {
 		o.limiter = newTokenLimiter(o.bandwidth, o.Workers)
+
+		// disable paging when using a low rate limit to prevent ResourceExpired errors
+		if o.bandwidth < slowBandwidth {
+			o.Builder.RequestChunksOf(0)
+		}
 	}
 
 	return nil
