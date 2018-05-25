@@ -17,3 +17,12 @@ for group in apps authorization build image network oauth project quota route se
     --go-header-file ${SCRIPT_ROOT}/hack/boilerplate.txt \
     ${verify}
 done
+
+for group in servicecertsigner; do
+  ${CODEGEN_PKG}/generate-groups.sh "client,lister,informer" \
+    github.com/openshift/client-go/${group} \
+    github.com/openshift/api \
+    "${group}:v1alpha1" \
+    --go-header-file ${SCRIPT_ROOT}/hack/boilerplate.txt \
+    ${verify}
+done
