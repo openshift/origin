@@ -1,5 +1,5 @@
 hash: ce0210531a96e7705ee37f95e133bc8f04449108d83b7b6475afb65712dc10e3
-updated: 2018-05-15T07:26:45.406556611-04:00
+updated: 2018-05-22T11:35:27.341407558-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -305,7 +305,7 @@ imports:
 - name: github.com/dgrijalva/jwt-go
   version: 01aeca54ebda6e0fbfafd0a524d234159c05ec20
 - name: github.com/docker/distribution
-  version: a8549110ba0fed84a3b91dc12c84457c775224f1
+  version: 6cfa6534641b02893986566aa0fb098ce59e4018
   repo: https://github.com/openshift/docker-distribution.git
   subpackages:
   - context
@@ -603,7 +603,7 @@ imports:
 - name: github.com/gorilla/mux
   version: 8096f47503459bcc74d1f4c487b7e6e42e5746b5
 - name: github.com/gorilla/securecookie
-  version: e59506cc896acb7f7bf732d4fdf5e25f7ccd8983
+  version: b009e17e9cb1a3b7b447cf9dc0110fcaebcc1b6b
 - name: github.com/gorilla/sessions
   version: a3acf13e802c358d65f249324d14ed24aac11370
 - name: github.com/gorilla/websocket
@@ -719,7 +719,7 @@ imports:
 - name: github.com/Microsoft/hcsshim
   version: 6ea7fe54f719d95721e7d9b26ac0add224c9b923
 - name: github.com/miekg/dns
-  version: eac804ceef194db2da6ee80c728d7658c8c805ff
+  version: e57bf427e68187a27e22adceac868350d7a7079b
 - name: github.com/mindprince/gonvml
   version: fee913ce8fb235edf54739d259ca0ecc226c7b8a
 - name: github.com/mistifyio/go-zfs
@@ -818,7 +818,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: 54917e0ae540d86047a321158f860f2143c1c81d
+  version: 5214a21b7f2adb6b36372ee65a785bdcb4f52d6b
   subpackages:
   - apps/v1
   - authorization/v1
@@ -838,7 +838,7 @@ imports:
   - user/v1
   - webconsole/v1
 - name: github.com/openshift/client-go
-  version: c6778f7b6f84c0d3a26cb3bae1d8fd6282bb8025
+  version: 6963117e446ee8bed234d56e27c32e3d3a11770e
   subpackages:
   - apps/clientset/versioned
   - apps/clientset/versioned/scheme
@@ -945,14 +945,14 @@ imports:
   - user/informers/externalversions/user/v1
   - user/listers/user/v1
 - name: github.com/openshift/imagebuilder
-  version: a10081d6a43feab673788e24ac7db28623eaf14c
+  version: 11c1f088aac583ad8aee6c6eb6b8491becf26c25
   subpackages:
   - dockerclient
   - imageprogress
   - signal
   - strslice
 - name: github.com/openshift/library-go
-  version: 20e418d78cdab88870e7d100c906e5101c272c56
+  version: 4cdb80cd7ae96dfaca3115bd433f97b1a9d3a88a
   subpackages:
   - pkg/controller
   - pkg/crypto
@@ -1576,7 +1576,7 @@ imports:
   - plugin/pkg/authenticator/token/webhook
   - plugin/pkg/authorizer/webhook
 - name: k8s.io/client-go
-  version: e9fe49a24dc83d03eb9015cbdf866c4673322c08
+  version: 97e9fe0143f70c7ec27f2840aee0cf18950034e5
   repo: https://github.com/openshift/kubernetes-client-go.git
   subpackages:
   - discovery
@@ -1808,7 +1808,7 @@ imports:
   - pkg/util/proto
   - pkg/util/proto/validation
 - name: k8s.io/kubernetes
-  version: d1702ec28ea20dfa3111587b45875232702414ca
+  version: 48e4040dfae5691fe877037c75ac7c8c061260a7
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/controller-manager/app

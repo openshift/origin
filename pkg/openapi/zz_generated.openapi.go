@@ -124,6 +124,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/openshift/api/build/v1.WebHookTrigger":                                                schema_openshift_api_build_v1_WebHookTrigger(ref),
 		"github.com/openshift/api/config/v1.CertInfo":                                                     schema_openshift_api_config_v1_CertInfo(ref),
 		"github.com/openshift/api/config/v1.HTTPServingInfo":                                              schema_openshift_api_config_v1_HTTPServingInfo(ref),
+		"github.com/openshift/api/config/v1.LeaderElection":                                               schema_openshift_api_config_v1_LeaderElection(ref),
 		"github.com/openshift/api/config/v1.NamedCertificate":                                             schema_openshift_api_config_v1_NamedCertificate(ref),
 		"github.com/openshift/api/config/v1.ServingInfo":                                                  schema_openshift_api_config_v1_ServingInfo(ref),
 		"github.com/openshift/api/image/v1.DockerImageReference":                                          schema_openshift_api_image_v1_DockerImageReference(ref),
@@ -181,6 +182,12 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/openshift/api/oauth/v1.OAuthRedirectReference":                                        schema_openshift_api_oauth_v1_OAuthRedirectReference(ref),
 		"github.com/openshift/api/oauth/v1.RedirectReference":                                             schema_openshift_api_oauth_v1_RedirectReference(ref),
 		"github.com/openshift/api/oauth/v1.ScopeRestriction":                                              schema_openshift_api_oauth_v1_ScopeRestriction(ref),
+		"github.com/openshift/api/operator/v1alpha1.GenerationHistory":                                    schema_openshift_api_operator_v1alpha1_GenerationHistory(ref),
+		"github.com/openshift/api/operator/v1alpha1.LoggingConfig":                                        schema_openshift_api_operator_v1alpha1_LoggingConfig(ref),
+		"github.com/openshift/api/operator/v1alpha1.OperatorCondition":                                    schema_openshift_api_operator_v1alpha1_OperatorCondition(ref),
+		"github.com/openshift/api/operator/v1alpha1.OperatorSpec":                                         schema_openshift_api_operator_v1alpha1_OperatorSpec(ref),
+		"github.com/openshift/api/operator/v1alpha1.OperatorStatus":                                       schema_openshift_api_operator_v1alpha1_OperatorStatus(ref),
+		"github.com/openshift/api/operator/v1alpha1.VersionAvailablity":                                   schema_openshift_api_operator_v1alpha1_VersionAvailablity(ref),
 		"github.com/openshift/api/project/v1.Project":                                                     schema_openshift_api_project_v1_Project(ref),
 		"github.com/openshift/api/project/v1.ProjectList":                                                 schema_openshift_api_project_v1_ProjectList(ref),
 		"github.com/openshift/api/project/v1.ProjectRequest":                                              schema_openshift_api_project_v1_ProjectRequest(ref),
@@ -223,6 +230,10 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/openshift/api/security/v1.SecurityContextConstraintsList":                             schema_openshift_api_security_v1_SecurityContextConstraintsList(ref),
 		"github.com/openshift/api/security/v1.ServiceAccountPodSecurityPolicyReviewStatus":                schema_openshift_api_security_v1_ServiceAccountPodSecurityPolicyReviewStatus(ref),
 		"github.com/openshift/api/security/v1.SupplementalGroupsStrategyOptions":                          schema_openshift_api_security_v1_SupplementalGroupsStrategyOptions(ref),
+		"github.com/openshift/api/servicecertsigner/v1alpha1.DelegatedAuthentication":                     schema_openshift_api_servicecertsigner_v1alpha1_DelegatedAuthentication(ref),
+		"github.com/openshift/api/servicecertsigner/v1alpha1.DelegatedAuthorization":                      schema_openshift_api_servicecertsigner_v1alpha1_DelegatedAuthorization(ref),
+		"github.com/openshift/api/servicecertsigner/v1alpha1.ServiceServingCertSignerConfig":              schema_openshift_api_servicecertsigner_v1alpha1_ServiceServingCertSignerConfig(ref),
+		"github.com/openshift/api/servicecertsigner/v1alpha1.ServiceServingCertSignerOperatorConfig":      schema_openshift_api_servicecertsigner_v1alpha1_ServiceServingCertSignerOperatorConfig(ref),
 		"github.com/openshift/api/template/v1.BrokerTemplateInstance":                                     schema_openshift_api_template_v1_BrokerTemplateInstance(ref),
 		"github.com/openshift/api/template/v1.BrokerTemplateInstanceList":                                 schema_openshift_api_template_v1_BrokerTemplateInstanceList(ref),
 		"github.com/openshift/api/template/v1.BrokerTemplateInstanceSpec":                                 schema_openshift_api_template_v1_BrokerTemplateInstanceSpec(ref),
@@ -6363,6 +6374,59 @@ func schema_openshift_api_config_v1_HTTPServingInfo(ref common.ReferenceCallback
 	}
 }
 
+func schema_openshift_api_config_v1_LeaderElection(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "LeaderElection provides information to elect a leader",
+				Properties: map[string]spec.Schema{
+					"disable": {
+						SchemaProps: spec.SchemaProps{
+							Description: "disable allows leader election to be suspended while allowing a fully defaulted \"normal\" startup case.",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+					"namespace": {
+						SchemaProps: spec.SchemaProps{
+							Description: "namespace indicates which namespace the resource is in",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"name": {
+						SchemaProps: spec.SchemaProps{
+							Description: "name indicates what name to use for the resource",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"leaseDuration": {
+						SchemaProps: spec.SchemaProps{
+							Description: "leaseDuration is the duration that non-leader candidates will wait after observing a leadership renewal until attempting to acquire leadership of a led but unrenewed leader slot. This is effectively the maximum duration that a leader can be stopped before it is replaced by another candidate. This is only applicable if leader election is enabled.",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Duration"),
+						},
+					},
+					"renewDeadline": {
+						SchemaProps: spec.SchemaProps{
+							Description: "renewDeadline is the interval between attempts by the acting master to renew a leadership slot before it stops leading. This must be less than or equal to the lease duration. This is only applicable if leader election is enabled.",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Duration"),
+						},
+					},
+					"retryPeriod": {
+						SchemaProps: spec.SchemaProps{
+							Description: "retryPeriod is the duration the clients should wait between attempting acquisition and renewal of a leadership. This is only applicable if leader election is enabled.",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Duration"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/apimachinery/pkg/apis/meta/v1.Duration"},
+	}
+}
+
 func schema_openshift_api_config_v1_NamedCertificate(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -9270,6 +9334,292 @@ func schema_openshift_api_oauth_v1_ScopeRestriction(ref common.ReferenceCallback
 	}
 }
 
+func schema_openshift_api_operator_v1alpha1_GenerationHistory(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "GenerationHistory keeps track of the generation for a given resource so that decisions about forced updated can be made.",
+				Properties: map[string]spec.Schema{
+					"group": {
+						SchemaProps: spec.SchemaProps{
+							Description: "group is the group of the thing you're tracking",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"resource": {
+						SchemaProps: spec.SchemaProps{
+							Description: "resource is the resource type of the thing you're tracking",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"namespace": {
+						SchemaProps: spec.SchemaProps{
+							Description: "namespace is where the thing you're tracking is",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"name": {
+						SchemaProps: spec.SchemaProps{
+							Description: "name is the name of the thing you're tracking",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"lastGeneration": {
+						SchemaProps: spec.SchemaProps{
+							Description: "lastGeneration is the last generation of the workload controller involved",
+							Type:        []string{"integer"},
+							Format:      "int64",
+						},
+					},
+				},
+				Required: []string{"group", "resource", "namespace", "name", "lastGeneration"},
+			},
+		},
+		Dependencies: []string{},
+	}
+}
+
+func schema_openshift_api_operator_v1alpha1_LoggingConfig(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "LoggingConfig holds information about configuring logging",
+				Properties: map[string]spec.Schema{
+					"level": {
+						SchemaProps: spec.SchemaProps{
+							Description: "level is passed to glog.",
+							Type:        []string{"integer"},
+							Format:      "int64",
+						},
+					},
+					"vmodule": {
+						SchemaProps: spec.SchemaProps{
+							Description: "vmodule is passed to glog.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"level", "vmodule"},
+			},
+		},
+		Dependencies: []string{},
+	}
+}
+
+func schema_openshift_api_operator_v1alpha1_OperatorCondition(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "OperatorCondition is just the standard condition fields.",
+				Properties: map[string]spec.Schema{
+					"type": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"status": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"lastTransitionTime": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
+						},
+					},
+					"reason": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"message": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+				},
+				Required: []string{"type", "status"},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/apimachinery/pkg/apis/meta/v1.Time"},
+	}
+}
+
+func schema_openshift_api_operator_v1alpha1_OperatorSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "OperatorSpec contains common fields for an operator to need.  It is intended to be anonymous included inside of the Spec struct for you particular operator.",
+				Properties: map[string]spec.Schema{
+					"managementState": {
+						SchemaProps: spec.SchemaProps{
+							Description: "managementState indicates whether and how the operator should manage the component",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"imagePullSpec": {
+						SchemaProps: spec.SchemaProps{
+							Description: "imagePullSpec is the image to use for the component.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"version": {
+						SchemaProps: spec.SchemaProps{
+							Description: "version is the desired state in major.minor.micro-patch.  Usually patch is ignored.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"logging": {
+						SchemaProps: spec.SchemaProps{
+							Description: "logging contains glog parameters for the component pods.  It's always a command line arg for the moment",
+							Ref:         ref("github.com/openshift/api/operator/v1alpha1.LoggingConfig"),
+						},
+					},
+				},
+				Required: []string{"managementState", "imagePullSpec", "version"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/operator/v1alpha1.LoggingConfig"},
+	}
+}
+
+func schema_openshift_api_operator_v1alpha1_OperatorStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "OperatorStatus contains common fields for an operator to need.  It is intended to be anonymous included inside of the Status struct for you particular operator.",
+				Properties: map[string]spec.Schema{
+					"observedGeneration": {
+						SchemaProps: spec.SchemaProps{
+							Description: "observedGeneration is the last generation change you've dealt with",
+							Type:        []string{"integer"},
+							Format:      "int64",
+						},
+					},
+					"conditions": {
+						SchemaProps: spec.SchemaProps{
+							Description: "conditions is a list of conditions and their status",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/openshift/api/operator/v1alpha1.OperatorCondition"),
+									},
+								},
+							},
+						},
+					},
+					"state": {
+						SchemaProps: spec.SchemaProps{
+							Description: "state indicates what the operator has observed to be its current operational status.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"taskSummary": {
+						SchemaProps: spec.SchemaProps{
+							Description: "taskSummary is a high level summary of what the controller is currently attempting to do.  It is high-level, human-readable and not guaranteed in any way. (I needed this for debugging and realized it made a great summary).",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"currentVersionAvailability": {
+						SchemaProps: spec.SchemaProps{
+							Description: "currentVersionAvailability is availability information for the current version.  If it is unmanged or removed, this doesn't exist.",
+							Ref:         ref("github.com/openshift/api/operator/v1alpha1.VersionAvailablity"),
+						},
+					},
+					"targetVersionAvailability": {
+						SchemaProps: spec.SchemaProps{
+							Description: "targetVersionAvailability is availability information for the target version if we are migrating",
+							Ref:         ref("github.com/openshift/api/operator/v1alpha1.VersionAvailablity"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/operator/v1alpha1.OperatorCondition", "github.com/openshift/api/operator/v1alpha1.VersionAvailablity"},
+	}
+}
+
+func schema_openshift_api_operator_v1alpha1_VersionAvailablity(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "VersionAvailablity gives information about the synchronization and operational status of a particular version of the component",
+				Properties: map[string]spec.Schema{
+					"version": {
+						SchemaProps: spec.SchemaProps{
+							Description: "version is the level this availability applies to",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"updatedReplicas": {
+						SchemaProps: spec.SchemaProps{
+							Description: "updatedReplicas indicates how many replicas are at the desired state",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+					"readyReplicas": {
+						SchemaProps: spec.SchemaProps{
+							Description: "readyReplicas indicates how many replicas are ready and at the desired state",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+					"errors": {
+						SchemaProps: spec.SchemaProps{
+							Description: "errors indicates what failures are associated with the operator trying to manage this version",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+					"generations": {
+						SchemaProps: spec.SchemaProps{
+							Description: "generations allows an operator to track what the generation of \"important\" resources was the last time we updated them",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/openshift/api/operator/v1alpha1.GenerationHistory"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"version", "updatedReplicas", "readyReplicas", "errors", "generations"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/operator/v1alpha1.GenerationHistory"},
+	}
+}
+
 func schema_openshift_api_project_v1_Project(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -10221,6 +10571,7 @@ func schema_openshift_api_security_v1_AllowedFlexVolume(ref common.ReferenceCall
 						},
 					},
 				},
+				Required: []string{"driver"},
 			},
 		},
 		Dependencies: []string{},
@@ -10953,7 +11304,7 @@ func schema_openshift_api_security_v1_SecurityContextConstraints(ref common.Refe
 						},
 					},
 				},
-				Required: []string{"priority", "allowPrivilegedContainer", "defaultAddCapabilities", "requiredDropCapabilities", "allowedCapabilities", "allowHostDirVolumePlugin", "volumes", "allowedFlexVolumes", "allowHostNetwork", "allowHostPorts", "allowHostPID", "allowHostIPC", "readOnlyRootFilesystem"},
+				Required: []string{"priority", "allowPrivilegedContainer", "defaultAddCapabilities", "requiredDropCapabilities", "allowedCapabilities", "allowHostDirVolumePlugin", "volumes", "allowHostNetwork", "allowHostPorts", "allowHostPID", "allowHostIPC", "readOnlyRootFilesystem"},
 			},
 		},
 		Dependencies: []string{
@@ -11081,6 +11432,151 @@ func schema_openshift_api_security_v1_SupplementalGroupsStrategyOptions(ref comm
 		},
 		Dependencies: []string{
 			"github.com/openshift/api/security/v1.IDRange"},
+	}
+}
+
+func schema_openshift_api_servicecertsigner_v1alpha1_DelegatedAuthentication(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "DelegatedAuthentication allows authentication to be disabled.",
+				Properties: map[string]spec.Schema{
+					"disabled": {
+						SchemaProps: spec.SchemaProps{
+							Description: "disabled indicates that authentication should be disabled.  By default it will use delegated authentication.",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{},
+	}
+}
+
+func schema_openshift_api_servicecertsigner_v1alpha1_DelegatedAuthorization(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "DelegatedAuthorization allows authorization to be disabled.",
+				Properties: map[string]spec.Schema{
+					"disabled": {
+						SchemaProps: spec.SchemaProps{
+							Description: "disabled indicates that authorization should be disabled.  By default it will use delegated authorization.",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{},
+	}
+}
+
+func schema_openshift_api_servicecertsigner_v1alpha1_ServiceServingCertSignerConfig(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ServiceServingCertSignerConfig provides information to configure a serving serving cert signing controller",
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"servingInfo": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ServingInfo is the HTTP serving information for the controller's endpoints",
+							Ref:         ref("github.com/openshift/api/config/v1.HTTPServingInfo"),
+						},
+					},
+					"authentication": {
+						SchemaProps: spec.SchemaProps{
+							Description: "authentication allows configuration of authentication for the endpoints",
+							Ref:         ref("github.com/openshift/api/servicecertsigner/v1alpha1.DelegatedAuthentication"),
+						},
+					},
+					"authorization": {
+						SchemaProps: spec.SchemaProps{
+							Description: "authorization allows configuration of authentication for the endpoints",
+							Ref:         ref("github.com/openshift/api/servicecertsigner/v1alpha1.DelegatedAuthorization"),
+						},
+					},
+					"signer": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Signer holds the signing information used to automatically sign serving certificates.",
+							Ref:         ref("github.com/openshift/api/config/v1.CertInfo"),
+						},
+					},
+				},
+				Required: []string{"signer"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/config/v1.CertInfo", "github.com/openshift/api/config/v1.HTTPServingInfo", "github.com/openshift/api/servicecertsigner/v1alpha1.DelegatedAuthentication", "github.com/openshift/api/servicecertsigner/v1alpha1.DelegatedAuthorization"},
+	}
+}
+
+func schema_openshift_api_servicecertsigner_v1alpha1_ServiceServingCertSignerOperatorConfig(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ServiceServingCertSignerOperatorConfig provides information to configure an operator to manage the serving serving cert signing controllers",
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"servingInfo": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ServingInfo is the HTTP serving information for the controller's endpoints",
+							Ref:         ref("github.com/openshift/api/config/v1.HTTPServingInfo"),
+						},
+					},
+					"leaderElection": {
+						SchemaProps: spec.SchemaProps{
+							Description: "leaderElection provides information to elect a leader. Only override this if you have a specific need",
+							Ref:         ref("github.com/openshift/api/config/v1.LeaderElection"),
+						},
+					},
+					"authentication": {
+						SchemaProps: spec.SchemaProps{
+							Description: "authentication allows configuration of authentication for the endpoints",
+							Ref:         ref("github.com/openshift/api/servicecertsigner/v1alpha1.DelegatedAuthentication"),
+						},
+					},
+					"authorization": {
+						SchemaProps: spec.SchemaProps{
+							Description: "authorization allows configuration of authentication for the endpoints",
+							Ref:         ref("github.com/openshift/api/servicecertsigner/v1alpha1.DelegatedAuthorization"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/config/v1.HTTPServingInfo", "github.com/openshift/api/config/v1.LeaderElection", "github.com/openshift/api/servicecertsigner/v1alpha1.DelegatedAuthentication", "github.com/openshift/api/servicecertsigner/v1alpha1.DelegatedAuthorization"},
 	}
 }
 

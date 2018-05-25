@@ -268,15 +268,22 @@ func TestMultiNoCodecs(t *testing.T) {
 }
 
 func TestMissingKey(t *testing.T) {
-	s1 := New(nil, nil)
-
-	var dst []byte
-	err := s1.Decode("sid", "value", &dst)
-	if err != errHashKeyNotSet {
-		t.Fatalf("Expected %#v, got %#v", errHashKeyNotSet, err)
+	emptyKeys := [][]byte{
+		nil,
+		[]byte(""),
 	}
-	if err2, ok := err.(Error); !ok || !err2.IsUsage() {
-		t.Errorf("Expected missing hash key to be IsUsage(); was %#v", err)
+
+	for _, key := range emptyKeys {
+		s1 := New(key, nil)
+
+		var dst []byte
+		err := s1.Decode("sid", "value", &dst)
+		if err != errHashKeyNotSet {
+			t.Fatalf("Expected %#v, got %#v", errHashKeyNotSet, err)
+		}
+		if err2, ok := err.(Error); !ok || !err2.IsUsage() {
+			t.Errorf("Expected missing hash key to be IsUsage(); was %#v", err)
+		}
 	}
 }
 

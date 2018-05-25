@@ -141,7 +141,7 @@ func New(hashKey, blockKey []byte) *SecureCookie {
 		maxLength: 4096,
 		sz:        GobEncoder{},
 	}
-	if hashKey == nil {
+	if len(hashKey) == 0 {
 		s.err = errHashKeyNotSet
 	}
 	if blockKey != nil {

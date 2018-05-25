@@ -4,8 +4,6 @@ package fake
 
 import (
 	clientset "github.com/openshift/origin/pkg/cmd/openshift-operators/generated/clientset/versioned"
-	operatorsv1alpha1 "github.com/openshift/origin/pkg/cmd/openshift-operators/generated/clientset/versioned/typed/operators/v1alpha1"
-	fakeoperatorsv1alpha1 "github.com/openshift/origin/pkg/cmd/openshift-operators/generated/clientset/versioned/typed/operators/v1alpha1/fake"
 	webconsolev1alpha1 "github.com/openshift/origin/pkg/cmd/openshift-operators/generated/clientset/versioned/typed/webconsole/v1alpha1"
 	fakewebconsolev1alpha1 "github.com/openshift/origin/pkg/cmd/openshift-operators/generated/clientset/versioned/typed/webconsole/v1alpha1/fake"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -55,16 +53,6 @@ func (c *Clientset) Discovery() discovery.DiscoveryInterface {
 }
 
 var _ clientset.Interface = &Clientset{}
-
-// OperatorsV1alpha1 retrieves the OperatorsV1alpha1Client
-func (c *Clientset) OperatorsV1alpha1() operatorsv1alpha1.OperatorsV1alpha1Interface {
-	return &fakeoperatorsv1alpha1.FakeOperatorsV1alpha1{Fake: &c.Fake}
-}
-
-// Operators retrieves the OperatorsV1alpha1Client
-func (c *Clientset) Operators() operatorsv1alpha1.OperatorsV1alpha1Interface {
-	return &fakeoperatorsv1alpha1.FakeOperatorsV1alpha1{Fake: &c.Fake}
-}
 
 // WebconsoleV1alpha1 retrieves the WebconsoleV1alpha1Client
 func (c *Clientset) WebconsoleV1alpha1() webconsolev1alpha1.WebconsoleV1alpha1Interface {

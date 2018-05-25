@@ -46,6 +46,11 @@ const (
 	NodeReadersGroup        = "system:node-readers"
 )
 
+// Service Account Names that are not controller related
+const (
+	InfraNodeBootstrapServiceAccountName = "node-bootstrapper"
+)
+
 // Roles
 const (
 	ClusterAdminRoleName       = "cluster-admin"
@@ -141,4 +146,20 @@ const (
 	BuildStrategyCustomRoleBindingName          = BuildStrategyCustomRoleName + "-binding"
 	BuildStrategySourceRoleBindingName          = BuildStrategySourceRoleName + "-binding"
 	BuildStrategyJenkinsPipelineRoleBindingName = BuildStrategyJenkinsPipelineRoleName + "-binding"
+)
+
+// Resources and Subresources
+const (
+	// Authorization resources
+	DockerBuildResource          = "builds/docker"
+	OptimizedDockerBuildResource = "builds/optimizeddocker"
+	SourceBuildResource          = "builds/source"
+	CustomBuildResource          = "builds/custom"
+	JenkinsPipelineBuildResource = "builds/jenkinspipeline"
+
+	// These are valid under the "nodes" resource
+	NodeMetricsSubresource = "metrics"
+	NodeStatsSubresource   = "stats"
+	NodeSpecSubresource    = "spec"
+	NodeLogSubresource     = "log"
 )

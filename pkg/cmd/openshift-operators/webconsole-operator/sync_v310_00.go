@@ -6,8 +6,8 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
+	operatorsv1alpha1 "github.com/openshift/api/operator/v1alpha1"
 	webconsoleconfigv1 "github.com/openshift/api/webconsole/v1"
-	operatorsv1alpha1 "github.com/openshift/origin/pkg/cmd/openshift-operators/apis/operators/v1alpha1"
 	"github.com/openshift/origin/pkg/cmd/openshift-operators/apis/operators/v1alpha1helpers"
 	webconsolev1alpha1 "github.com/openshift/origin/pkg/cmd/openshift-operators/apis/webconsole/v1alpha1"
 	"github.com/openshift/origin/pkg/cmd/openshift-operators/util/resourceapply"

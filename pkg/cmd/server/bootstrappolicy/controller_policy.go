@@ -8,8 +8,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	rbac "k8s.io/kubernetes/pkg/apis/rbac"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-
 	// we need the conversions registered for our init block
 	_ "github.com/openshift/origin/pkg/authorization/apis/authorization/install"
 )
@@ -51,8 +49,6 @@ const (
 	// This is a special constant which maps to the service account name used by the underlying
 	// Kubernetes code, so that we can build out the extra policy required to scale OpenShift resources.
 	InfraHorizontalPodAutoscalerControllerServiceAccountName = "horizontal-pod-autoscaler"
-
-	InfraNodeBootstrapServiceAccountName = "node-bootstrapper"
 )
 
 var (
@@ -231,11 +227,11 @@ func init() {
 			// trigger controller must be able to modify these build types
 			// TODO: move to a new custom binding that can be removed separately from end user access?
 			rbac.NewRule("create").Groups(buildGroup, legacyBuildGroup).Resources(
-				authorizationapi.SourceBuildResource,
-				authorizationapi.DockerBuildResource,
-				authorizationapi.CustomBuildResource,
-				authorizationapi.OptimizedDockerBuildResource,
-				authorizationapi.JenkinsPipelineBuildResource,
+				SourceBuildResource,
+				DockerBuildResource,
+				CustomBuildResource,
+				OptimizedDockerBuildResource,
+				JenkinsPipelineBuildResource,
 			).RuleOrDie(),
 
 			eventsRule(),

@@ -43,11 +43,12 @@ func TestImageStreamImport(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	err = testutil.CreateNamespace(clusterAdminKubeConfig, testutil.Namespace())
+	_, userConfig, err := testserver.CreateNewProject(clusterAdminConfig, testutil.Namespace(), "unprivileged-image-stream-importer")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	clusterAdminImageClient := imageclient.NewForConfigOrDie(clusterAdminConfig).Image()
+	userImageClient := imageclient.NewForConfigOrDie(userConfig).Image()
 
 	// can't give invalid image specs, should be invalid
 	isi, err := clusterAdminImageClient.ImageStreamImports(testutil.Namespace()).Create(&imageapi.ImageStreamImport{
@@ -66,6 +67,40 @@ func TestImageStreamImport(t *testing.T) {
 	}
 	// does not create stream
 	if _, err := clusterAdminImageClient.ImageStreams(testutil.Namespace()).Get("doesnotexist", metav1.GetOptions{}); err == nil || !errors.IsNotFound(err) {
+		t.Fatal(err)
+	}
+
+	// can't create on non-whitelisted images
+	isi, err = userImageClient.ImageStreamImports(testutil.Namespace()).Create(&imageapi.ImageStreamImport{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "doesnotexist",
+		},
+		Spec: imageapi.ImageStreamImportSpec{
+			Images: []imageapi.ImageImportSpec{
+				{From: kapi.ObjectReference{Kind: "DockerImage", Name: "mycompany.com/test/forbidden-image"}, To: &kapi.LocalObjectReference{Name: "tag"}},
+			},
+		},
+	})
+	if err == nil || !errors.IsInvalid(err) {
+		t.Fatalf("unexpected responses: %#v %#v %#v", err, isi, isi.Status.Import)
+	}
+	// does not create stream
+	if _, err := userImageClient.ImageStreams(testutil.Namespace()).Get("doesnotexist", metav1.GetOptions{}); err == nil || !errors.IsNotFound(err) {
+		t.Fatal(err)
+	}
+	// verify we can't create a tag outside the whitelist either
+	if _, err := userImageClient.ImageStreams(testutil.Namespace()).Create(&imageapi.ImageStream{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "import-whitelist",
+		},
+		Spec: imageapi.ImageStreamSpec{
+			Tags: map[string]imageapi.TagReference{
+				"invalid": {
+					From: &kapi.ObjectReference{Name: "mycompany.com/test/forbidden-image", Kind: "DockerImage"},
+				},
+			},
+		},
+	}); err == nil || !errors.IsInvalid(err) || !strings.Contains(err.Error(), "Forbidden: registry \"mycompany.com\" not allowed by whitelist") {
 		t.Fatal(err)
 	}
 

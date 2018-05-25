@@ -3,8 +3,8 @@ package v1alpha1
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	operatorsv1alpha1api "github.com/openshift/api/operator/v1alpha1"
 	webconsolev1 "github.com/openshift/api/webconsole/v1"
-	operatorsv1alpha1api "github.com/openshift/origin/pkg/cmd/openshift-operators/apis/operators/v1alpha1"
 )
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

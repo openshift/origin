@@ -204,10 +204,10 @@ func GetOpenshiftBootstrapClusterRoles() []rbac.ClusterRole {
 				// permissions to check PSP, these creates are non-mutating
 				rbac.NewRule("create").Groups(securityGroup, legacySecurityGroup).Resources("podsecuritypolicysubjectreviews", "podsecuritypolicyselfsubjectreviews", "podsecuritypolicyreviews").RuleOrDie(),
 				// Allow read access to node metrics
-				rbac.NewRule("get").Groups(kapiGroup).Resources("nodes/"+authorizationapi.NodeMetricsSubresource, "nodes/"+authorizationapi.NodeSpecSubresource).RuleOrDie(),
+				rbac.NewRule("get").Groups(kapiGroup).Resources("nodes/"+NodeMetricsSubresource, "nodes/"+NodeSpecSubresource).RuleOrDie(),
 				// Allow read access to stats
 				// Node stats requests are submitted as POSTs.  These creates are non-mutating
-				rbac.NewRule("get", "create").Groups(kapiGroup).Resources("nodes/" + authorizationapi.NodeStatsSubresource).RuleOrDie(),
+				rbac.NewRule("get", "create").Groups(kapiGroup).Resources("nodes/" + NodeStatsSubresource).RuleOrDie(),
 
 				rbac.NewRule("get").URLs(rbac.NonResourceAll).RuleOrDie(),
 
@@ -229,7 +229,7 @@ func GetOpenshiftBootstrapClusterRoles() []rbac.ClusterRole {
 				Name: BuildStrategyDockerRoleName,
 			},
 			Rules: []rbac.PolicyRule{
-				rbac.NewRule("create").Groups(buildGroup, legacyBuildGroup).Resources(authorizationapi.DockerBuildResource, authorizationapi.OptimizedDockerBuildResource).RuleOrDie(),
+				rbac.NewRule("create").Groups(buildGroup, legacyBuildGroup).Resources(DockerBuildResource, OptimizedDockerBuildResource).RuleOrDie(),
 			},
 		},
 		{
@@ -237,7 +237,7 @@ func GetOpenshiftBootstrapClusterRoles() []rbac.ClusterRole {
 				Name: BuildStrategyCustomRoleName,
 			},
 			Rules: []rbac.PolicyRule{
-				rbac.NewRule("create").Groups(buildGroup, legacyBuildGroup).Resources(authorizationapi.CustomBuildResource).RuleOrDie(),
+				rbac.NewRule("create").Groups(buildGroup, legacyBuildGroup).Resources(CustomBuildResource).RuleOrDie(),
 			},
 		},
 		{
@@ -245,7 +245,7 @@ func GetOpenshiftBootstrapClusterRoles() []rbac.ClusterRole {
 				Name: BuildStrategySourceRoleName,
 			},
 			Rules: []rbac.PolicyRule{
-				rbac.NewRule("create").Groups(buildGroup, legacyBuildGroup).Resources(authorizationapi.SourceBuildResource).RuleOrDie(),
+				rbac.NewRule("create").Groups(buildGroup, legacyBuildGroup).Resources(SourceBuildResource).RuleOrDie(),
 			},
 		},
 		{
@@ -253,7 +253,7 @@ func GetOpenshiftBootstrapClusterRoles() []rbac.ClusterRole {
 				Name: BuildStrategyJenkinsPipelineRoleName,
 			},
 			Rules: []rbac.PolicyRule{
-				rbac.NewRule("create").Groups(buildGroup, legacyBuildGroup).Resources(authorizationapi.JenkinsPipelineBuildResource).RuleOrDie(),
+				rbac.NewRule("create").Groups(buildGroup, legacyBuildGroup).Resources(JenkinsPipelineBuildResource).RuleOrDie(),
 			},
 		},
 		{
@@ -602,7 +602,7 @@ func GetOpenshiftBootstrapClusterRoles() []rbac.ClusterRole {
 				rbac.NewRule(read...).Groups(kapiGroup).Resources("nodes").RuleOrDie(),
 				// Allow all API calls to the nodes
 				rbac.NewRule("proxy").Groups(kapiGroup).Resources("nodes").RuleOrDie(),
-				rbac.NewRule("*").Groups(kapiGroup).Resources("nodes/proxy", "nodes/"+authorizationapi.NodeMetricsSubresource, "nodes/"+authorizationapi.NodeSpecSubresource, "nodes/"+authorizationapi.NodeStatsSubresource, "nodes/"+authorizationapi.NodeLogSubresource).RuleOrDie(),
+				rbac.NewRule("*").Groups(kapiGroup).Resources("nodes/proxy", "nodes/"+NodeMetricsSubresource, "nodes/"+NodeSpecSubresource, "nodes/"+NodeStatsSubresource, "nodes/"+NodeLogSubresource).RuleOrDie(),
 			},
 		},
 		{
@@ -613,10 +613,10 @@ func GetOpenshiftBootstrapClusterRoles() []rbac.ClusterRole {
 				// Allow read-only access to the API objects
 				rbac.NewRule(read...).Groups(kapiGroup).Resources("nodes").RuleOrDie(),
 				// Allow read access to node metrics
-				rbac.NewRule("get").Groups(kapiGroup).Resources("nodes/"+authorizationapi.NodeMetricsSubresource, "nodes/"+authorizationapi.NodeSpecSubresource).RuleOrDie(),
+				rbac.NewRule("get").Groups(kapiGroup).Resources("nodes/"+NodeMetricsSubresource, "nodes/"+NodeSpecSubresource).RuleOrDie(),
 				// Allow read access to stats
 				// Node stats requests are submitted as POSTs.  These creates are non-mutating
-				rbac.NewRule("get", "create").Groups(kapiGroup).Resources("nodes/" + authorizationapi.NodeStatsSubresource).RuleOrDie(),
+				rbac.NewRule("get", "create").Groups(kapiGroup).Resources("nodes/" + NodeStatsSubresource).RuleOrDie(),
 				// TODO: expose other things like /healthz on the node once we figure out non-resource URL policy across systems
 			},
 		},
@@ -678,6 +678,7 @@ func GetOpenshiftBootstrapClusterRoles() []rbac.ClusterRole {
 				rbac.NewRule(read...).Groups(extensionsGroup).Resources("networkpolicies").RuleOrDie(),
 				rbac.NewRule(read...).Groups(networkingGroup).Resources("networkpolicies").RuleOrDie(),
 				rbac.NewRule("get").Groups(networkGroup, legacyNetworkGroup).Resources("clusternetworks").RuleOrDie(),
+				rbac.NewRule("create", "update", "patch").Groups(kapiGroup).Resources("events").RuleOrDie(),
 			},
 		},
 

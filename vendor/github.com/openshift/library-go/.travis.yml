@@ -3,8 +3,11 @@ language: go
 go:
   - 1.9
 
+install:
+  - go get -u github.com/golang/lint/golint
+
 script:
-  - make build test
+  - make verify build test
 
 notifications:
   irc: "chat.freenode.net#openshift-dev"

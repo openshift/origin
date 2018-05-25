@@ -189,7 +189,7 @@ func BuildAndPushImageOfSizeWithBuilder(
 		return err
 	}
 
-	dataSize := calculateRoughDataSize(oc.Stdout(), size, numberOfLayers)
+	dataSize := calculateRoughDataSize(size, numberOfLayers)
 
 	lines := make([]string, numberOfLayers+1)
 	lines[0] = "FROM scratch"
@@ -322,7 +322,7 @@ func buildImageOfSizeWithDocker(
 		return "", nil, err
 	}
 
-	dataSize := calculateRoughDataSize(oc.Stdout(), size, numberOfLayers)
+	dataSize := calculateRoughDataSize(size, numberOfLayers)
 
 	lines := make([]string, numberOfLayers+1)
 	lines[0] = "FROM scratch"
@@ -488,19 +488,9 @@ func getDockerVersion(logger io.Writer) (major, minor int, version string, err e
 
 // calculateRoughDataSize returns a rough size of data blob to generate in order to build an image of wanted
 // size. Image is comprised of numberOfLayers layers of the same size.
-func calculateRoughDataSize(logger io.Writer, wantedImageSize uint64, numberOfLayers int) uint64 {
-	major, minor, version, err := getDockerVersion(logger)
-	if err != nil {
-		// TODO(miminar): shall we use some better logging mechanism?
-		logger.Write([]byte(fmt.Sprintf("Failed to get docker version: %v\n", err)))
-	}
-	if major > 1 || major == 1 && minor >= 9 || version == "" {
-		// running Docker version 1.9+
-		return uint64(float64(wantedImageSize) / (float64(numberOfLayers) * layerSizeMultiplierForLatestDocker))
-	}
-
-	// running Docker daemon < 1.9
-	return uint64(float64(wantedImageSize) / (float64(numberOfLayers) * layerSizeMultiplierForDocker18))
+func calculateRoughDataSize(wantedImageSize uint64, numberOfLayers int) uint64 {
+	// running Docker version 1.9+
+	return uint64(float64(wantedImageSize) / (float64(numberOfLayers) * layerSizeMultiplierForLatestDocker))
 }
 
 // MirrorBlobInRegistry forces a blob of external image to be mirrored in the registry. The function expects
