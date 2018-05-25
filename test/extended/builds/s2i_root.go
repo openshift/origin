@@ -10,8 +10,12 @@ import (
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	exutil "github.com/openshift/origin/test/extended/util"
-	s2istatus "github.com/openshift/source-to-image/pkg/util/status"
 )
+
+const rootDockerfile = `FROM centos/nodejs-6-centos7
+LABEL io.openshift.s2i.assemble-user="0"
+USER 0
+`
 
 var _ = g.Describe("[Feature:Builds][Conformance] s2i build with a root user image", func() {
 	defer g.GinkgoRecover()
@@ -34,7 +38,7 @@ var _ = g.Describe("[Feature:Builds][Conformance] s2i build with a root user ima
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("creating a root build container")
-			err = oc.Run("new-build").Args("-D", "FROM centos/nodejs-6-centos7\nUSER 0", "--name", "nodejsroot").Execute()
+			err = oc.Run("new-build").Args("-D", rootDockerfile, "--name", "nodejsroot").Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			err = exutil.WaitForABuild(oc.InternalBuildClient().Build().Builds(oc.Namespace()), "nodejsroot-1", nil, nil, nil)
@@ -58,8 +62,8 @@ var _ = g.Describe("[Feature:Builds][Conformance] s2i build with a root user ima
 			build, err := oc.InternalBuildClient().Build().Builds(oc.Namespace()).Get("nodejsfail-1", metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(build.Status.Phase).To(o.Equal(buildapi.BuildPhaseFailed))
-			o.Expect(build.Status.Reason).To(o.BeEquivalentTo(s2istatus.ReasonPullBuilderImageFailed))
-			o.Expect(build.Status.Message).To(o.BeEquivalentTo(s2istatus.ReasonMessagePullBuilderImageFailed))
+			o.Expect(build.Status.Reason).To(o.BeEquivalentTo(buildapi.StatusReasonGenericBuildFailed))
+			o.Expect(build.Status.Message).To(o.BeEquivalentTo(buildapi.StatusMessageGenericBuildFailed))
 
 			podname := build.Annotations[buildapi.BuildPodNameAnnotation]
 			pod, err := oc.KubeClient().Core().Pods(oc.Namespace()).Get(podname, metav1.GetOptions{})
