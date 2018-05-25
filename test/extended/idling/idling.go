@@ -259,7 +259,7 @@ var _ = g.Describe("idling and unidling", func() {
 			})
 
 			g.It("should idle the service and DeploymentConfig properly", func() {
-				checkSingleIdle(oc, idlingFile, resources, "deploymentconfig", "DeploymentConfig")
+				checkSingleIdle(oc, idlingFile, resources, "deploymentconfig.apps.openshift.io", "DeploymentConfig")
 			})
 		})
 
