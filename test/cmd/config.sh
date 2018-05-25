@@ -29,8 +29,8 @@ os::cmd::expect_success_and_not_text 'oc get bc' 'does not exist'
   os::cmd::expect_failure_and_text 'env -u KUBERNETES_SERVICE_HOST oc get buildconfigs --context=""' 'Missing or incomplete configuration info'
   os::cmd::expect_failure_and_text 'env -u KUBERNETES_SERVICE_HOST oc get buildconfigs --cluster=""' 'Missing or incomplete configuration info'
 
-  os::cmd::expect_failure_and_text 'env -u KUBERNETES_SERVICE_HOST oc get buildconfigs --context="test"' 'context was not found for specified context: test'
-  os::cmd::expect_failure_and_text 'env -u KUBERNETES_SERVICE_HOST oc get buildconfigs --cluster="test"' 'no server found for cluster "test"'
+  os::cmd::expect_failure_and_text 'env -u KUBERNETES_SERVICE_HOST oc get buildconfigs --context="test"' 'context "test" does not exist'
+  os::cmd::expect_failure_and_text 'env -u KUBERNETES_SERVICE_HOST oc get buildconfigs --cluster="test"' 'cluster "test" does not exist'
   os::cmd::expect_failure_and_text 'env -u KUBERNETES_SERVICE_HOST oc get buildconfigs --user="test"' 'auth info "test" does not exist'
 
   os::cmd::expect_failure_and_text 'oc get bc --config=missing' 'missing: no such file or directory'
