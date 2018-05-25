@@ -1,9 +1,11 @@
 package storage
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/golang/glog"
@@ -13,13 +15,16 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
+	apimachineryversion "k8s.io/apimachinery/pkg/version"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/util/flowcontrol"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
 	"github.com/openshift/origin/pkg/oc/admin/migrate"
+	"github.com/openshift/origin/pkg/version"
 )
 
 var (
@@ -80,6 +85,11 @@ type MigrateAPIStorageOptions struct {
 	bandwidth int
 	// used to enforce bandwidth value
 	limiter *tokenLimiter
+
+	// skip minor version mismatch check between client and server.
+	skipVersionCheck bool
+
+	clients func() (kclientset.Interface, error)
 }
 
 // NewCmdMigrateAPIStorage implements a MigrateStorage command
@@ -201,6 +211,8 @@ func NewCmdMigrateAPIStorage(name, fullName string, f kcmdutil.Factory, in io.Re
 	flags.IntVar(&options.bandwidth, "bandwidth", 10,
 		"Average network bandwidth measured in megabits per second (Mbps) to use during storage migration.  Zero means no limit.  This flag is alpha and may change in the future.")
 
+	flags.BoolVar(&options.skipVersionCheck, "skip-versioncheck", false, "Skip minor version check between client and server.")
+
 	// remove flags that do not make sense
 	flags.MarkDeprecated("confirm", "storage migration does not support dry run, this flag is ignored")
 	flags.MarkHidden("confirm")
@@ -217,6 +229,7 @@ func (o *MigrateAPIStorageOptions) Complete(f kcmdutil.Factory, c *cobra.Command
 	}
 	// force confirm, dry run does not make sense for this command
 	o.Confirm = true
+	o.clients = f.ClientSet
 
 	o.ResourceOptions.SaveFn = o.save
 	if err := o.ResourceOptions.Complete(f, c); err != nil {
@@ -251,10 +264,42 @@ func (o *MigrateAPIStorageOptions) Complete(f kcmdutil.Factory, c *cobra.Command
 	return nil
 }
 
+// versionCheck checks returns error if client and server are used different minor version.
+func (o MigrateAPIStorageOptions) minorVersionCheck() error {
+	kClient, err := o.clients()
+	if err != nil {
+		return err
+	}
+
+	ocVersionBody, err := kClient.Discovery().RESTClient().Get().AbsPath("/version/openshift").Do().Raw()
+	if err != nil {
+		return err
+	}
+
+	var ocServerInfo apimachineryversion.Info
+	err = json.Unmarshal(ocVersionBody, &ocServerInfo)
+	if err != nil {
+		return err
+	}
+	s := strings.Split(fmt.Sprintf("%s", ocServerInfo), ".")
+	c := strings.Split(fmt.Sprintf("%s", version.Get()), ".")
+	if s[0] != c[0] || s[1] != c[1] {
+		return fmt.Errorf("minor version of client (%v) and server (%v) are different. This may cause a problem on storage migration.", version.Get(), ocServerInfo)
+	}
+	return nil
+}
+
 func (o MigrateAPIStorageOptions) Validate() error {
 	if o.bandwidth < 0 {
 		return fmt.Errorf("invalid value %d for --bandwidth, must be at least 0", o.bandwidth)
 	}
+
+	if !o.skipVersionCheck {
+		if err := o.minorVersionCheck(); err != nil {
+			return fmt.Errorf("failed to version check: %v", err)
+		}
+	}
+
 	return o.ResourceOptions.Validate()
 }
 
