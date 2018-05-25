@@ -29,6 +29,9 @@ type DockerRegistryServiceControllerOptions struct {
 	// If zero, re-list will be delayed as long as possible
 	Resync time.Duration
 
+	// ClusterDNSSuffix is the suffix for in cluster DNS that can be added to service names
+	ClusterDNSSuffix string
+
 	DockercfgController *DockercfgController
 
 	// DockerURLsInitialized is used to send a signal to the DockercfgController that it has the correct set of docker urls
@@ -49,6 +52,7 @@ var serviceLocations = []serviceLocation{
 func NewDockerRegistryServiceController(secrets informers.SecretInformer, serviceInformer informers.ServiceInformer, cl kclientset.Interface, options DockerRegistryServiceControllerOptions) *DockerRegistryServiceController {
 	e := &DockerRegistryServiceController{
 		client:                cl,
+		clusterDNSSuffix:      options.ClusterDNSSuffix,
 		dockercfgController:   options.DockercfgController,
 		registryLocationQueue: workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
 		secretsToUpdate:       workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
@@ -97,6 +101,9 @@ func NewDockerRegistryServiceController(secrets informers.SecretInformer, servic
 // DockerRegistryServiceController manages ServiceToken secrets for Service objects
 type DockerRegistryServiceController struct {
 	client kclientset.Interface
+
+	// clusterDNSSuffix is the suffix for in cluster DNS that can be added to service names
+	clusterDNSSuffix string
 
 	dockercfgController *DockercfgController
 
@@ -220,12 +227,12 @@ func (e *DockerRegistryServiceController) watchForDockerURLChanges() {
 func (e *DockerRegistryServiceController) getDockerRegistryLocations() []string {
 	ret := []string{}
 	for _, location := range serviceLocations {
-		ret = append(ret, getDockerRegistryLocations(e.serviceLister, location)...)
+		ret = append(ret, getDockerRegistryLocations(e.serviceLister, location, e.clusterDNSSuffix)...)
 	}
 	return ret
 }
 
-func getDockerRegistryLocations(lister listers.ServiceLister, location serviceLocation) []string {
+func getDockerRegistryLocations(lister listers.ServiceLister, location serviceLocation, clusterDNSSuffix string) []string {
 	service, err := lister.Services(location.namespace).Get(location.name)
 	if err != nil {
 		return []string{}
@@ -233,10 +240,15 @@ func getDockerRegistryLocations(lister listers.ServiceLister, location serviceLo
 
 	hasClusterIP := (len(service.Spec.ClusterIP) > 0) && (net.ParseIP(service.Spec.ClusterIP) != nil)
 	if hasClusterIP && len(service.Spec.Ports) > 0 {
-		return []string{
+		ret := []string{
 			net.JoinHostPort(service.Spec.ClusterIP, fmt.Sprintf("%d", service.Spec.Ports[0].Port)),
 			net.JoinHostPort(fmt.Sprintf("%s.%s.svc", service.Name, service.Namespace), fmt.Sprintf("%d", service.Spec.Ports[0].Port)),
 		}
+		if len(clusterDNSSuffix) > 0 {
+			ret = append(ret, net.JoinHostPort(fmt.Sprintf("%s.%s.svc."+clusterDNSSuffix, service.Name, service.Namespace), fmt.Sprintf("%d", service.Spec.Ports[0].Port)))
+		}
+
+		return ret
 	}
 
 	return []string{}
