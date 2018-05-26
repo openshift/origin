@@ -19,12 +19,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit b47150b4313fa2bbad7f1ed939d546632e8b411b
+%global commit 5cccfdf421d8bbcb0508671bccc3ac7b4b466c58
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=9+ OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.9.28 OS_GIT_TREE_STATE=clean OS_GIT_PATCH=28 KUBE_GIT_VERSION=v1.9.1+a0ce1bc657 OS_GIT_CATALOG_VERSION=v0.1.9.1 KUBE_GIT_COMMIT=a0ce1bc OS_GIT_COMMIT=535734a OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.16 ETCD_GIT_COMMIT=121edf0
+%global os_git_vars OS_GIT_MINOR=9+ OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.9.29 OS_GIT_TREE_STATE=clean OS_GIT_PATCH=29 KUBE_GIT_VERSION=v1.9.1+a0ce1bc657 OS_GIT_CATALOG_VERSION=v0.1.9.1 KUBE_GIT_COMMIT=a0ce1bc OS_GIT_COMMIT=4b54558 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.16 ETCD_GIT_COMMIT=121edf0
 }
 
 %if 0%{?skip_build}
@@ -66,7 +66,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.9.29
+Version:        3.9.30
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -606,6 +606,40 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Sat May 26 2018 Justin Pierce <jupierce@redhat.com> 3.9.30-1
+- Revert "UPSTREAM: 61459: etcd client add dial timeout" (jliggitt@redhat.com)
+- UPSTREAM: 61459: etcd client add dial timeout (xuzhonghu@huawei.com)
+- update config test (jvallejo@redhat.com)
+- UPSTREAM: <carry>: ensure config usable before proceeding
+  (jvallejo@redhat.com)
+- UPSTREAM: opencontainers/runc: 1805: fix systemd cpu quota for -1
+  (sjenning@redhat.com)
+- make the docker registry secret always prime (deads@redhat.com)
+- update docker config secret to include image-registry.openshift-image-
+  registry.svc (deads@redhat.com)
+- UPSTREAM: 57020: ignore images in used by running containers when GC
+  (sjenning@redhat.com)
+- Add option to ignore image reference errors (agladkov@redhat.com)
+- Remove test reference to deleted content (ccoleman@redhat.com)
+- hack/verify-gofmt.sh | xargs -n 1 gofmt -s -w (jchaloup@redhat.com)
+- Dump route logs when test fails (ccoleman@redhat.com)
+- Use the correct example repo (deleted from master) (ccoleman@redhat.com)
+- The kube major/minor version is missing from /version (ccoleman@redhat.com)
+- UPSTREAM: 63832: Close all kubelet->API connections on heartbeat failure
+  (jliggitt@redhat.com)
+- UPSTREAM: 63832: Always track kubelet -> API connections
+  (jliggitt@redhat.com)
+- UPSTREAM: docker/distribution: <carry>: do not strip docker.io image path in
+  client (sjenning@redhat.com)
+- UPSTREAM: 62874: dockershim/sandbox: clean up pod network even if SetUpPod()
+  failed (dcbw@redhat.com)
+- Bug fix to sort non-wildcard and wildcard groups separately.
+  (smitram@gmail.com)
+- UPSTREAM: 59440: Use SetInformers method to register for Node events
+  (hekumar@redhat.com)
+- reload-haproxy: changes how map files are sorted (jmprusi@keepalive.io)
+- Revert "handle SIGINT/TERM in cmd/openshift" (amcdermo@redhat.com)
+
 * Wed May 09 2018 Justin Pierce <jupierce@redhat.com> 3.9.29-1
 - UPSTREAM: 61331: Fix a bug where malformed paths don't get written to the
   destination dir. (jliggitt@redhat.com)
