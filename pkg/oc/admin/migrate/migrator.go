@@ -687,7 +687,7 @@ func DefaultRetriable(info *resource.Info, err error) error {
 	switch {
 	case err == nil:
 		return nil
-	case isNotFoundForInfo(info, err):
+	case errors.IsNotFound(err):
 		// tolerate the deletion of resources during migration
 		// report unchanged since we did not actually migrate this object
 		return ErrUnchanged
@@ -697,7 +697,7 @@ func DefaultRetriable(info *resource.Info, err error) error {
 		if refreshErr := info.Get(); refreshErr != nil {
 			// tolerate the deletion of resources during migration
 			// report unchanged since we did not actually migrate this object
-			if isNotFoundForInfo(info, refreshErr) {
+			if errors.IsNotFound(refreshErr) {
 				return ErrUnchanged
 			}
 			return ErrNotRetriable{err}
@@ -708,29 +708,4 @@ func DefaultRetriable(info *resource.Info, err error) error {
 	default:
 		return err
 	}
-}
-
-// isNotFoundForInfo returns true iff the error is a not found for the specific info object.
-func isNotFoundForInfo(info *resource.Info, err error) bool {
-	if err == nil || !errors.IsNotFound(err) {
-		return false
-	}
-	status, ok := err.(errors.APIStatus)
-	if !ok {
-		return false
-	}
-	details := status.Status().Details
-	if details == nil {
-		return false
-	}
-	// get schema.GroupKind and Resource from the mapping since the actual object may not have type meta filled out
-	gk := info.Mapping.GroupVersionKind.GroupKind()
-	mappingResource := info.Mapping.Resource
-	// based on case-insensitive string comparisons, the error matches info iff
-	// the names match
-	// the error's kind matches the mapping's kind or the mapping's resource
-	// the groups match, but only if both the error and info specify a group
-	return strings.EqualFold(details.Name, info.Name) &&
-		(strings.EqualFold(details.Kind, gk.Kind) || strings.EqualFold(details.Kind, mappingResource)) &&
-		(len(details.Group) == 0 || len(gk.Group) == 0 || strings.EqualFold(details.Group, gk.Group))
 }
