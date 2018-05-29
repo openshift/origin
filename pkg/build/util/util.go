@@ -44,6 +44,10 @@ var (
 	proxyRegex       = regexp.MustCompile("(?i)proxy")
 )
 
+var (
+	proxyRegex = regexp.MustCompile("(?i)proxy")
+)
+
 // GetBuildName returns name of the build pod.
 func GetBuildName(pod metav1.Object) string {
 	if pod == nil {
@@ -309,7 +313,6 @@ func SafeForLoggingBuild(build *buildapiv1.Build) *buildapiv1.Build {
 func SafeForLoggingEnvironmentList(env s2iapi.EnvironmentList) s2iapi.EnvironmentList {
 	newEnv := make(s2iapi.EnvironmentList, len(env))
 	copy(newEnv, env)
-	proxyRegex := regexp.MustCompile("(?i)proxy")
 	for i, env := range newEnv {
 		if proxyRegex.MatchString(env.Name) {
 			newEnv[i].Value, _ = s2iutil.SafeForLoggingURL(env.Value)
