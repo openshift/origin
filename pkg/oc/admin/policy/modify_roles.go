@@ -569,7 +569,7 @@ func (o *RoleModificationOptions) RemoveRole() error {
 		roleBinding.Subjects, cnt = removeSubjects(roleBinding.Subjects, subjectsToRemove)
 		found += cnt
 
-		if len(roleBinding.Subjects) > 0 {
+		if len(roleBinding.Subjects) > 0 || roleBinding.Annotations[ReconcileProtectAnnotation] == "true" {
 			err = o.RoleBindingAccessor.UpdateRoleBinding(roleBinding)
 		} else {
 			err = o.RoleBindingAccessor.DeleteRoleBinding(roleBinding.Name)

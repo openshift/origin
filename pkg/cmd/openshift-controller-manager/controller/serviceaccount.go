@@ -70,6 +70,7 @@ func RunServiceAccountPullSecretsController(ctx ControllerContext) (bool, error)
 	dockerRegistryControllerOptions := serviceaccountcontrollers.DockerRegistryServiceControllerOptions{
 		DockercfgController:   dockercfgController,
 		DockerURLsInitialized: dockerURLsInitialized,
+		ClusterDNSSuffix:      "cluster.local",
 	}
 	go serviceaccountcontrollers.NewDockerRegistryServiceController(
 		ctx.ExternalKubeInformers.Core().V1().Secrets(),

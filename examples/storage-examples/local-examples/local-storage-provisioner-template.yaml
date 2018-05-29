@@ -67,6 +67,7 @@ objects:
           volumeMounts:
           - mountPath: /mnt/local-storage
             name: local-storage
+            mountPropagation: HostToContainer
           - mountPath: /etc/provisioner/config
             name: provisioner-config
             readOnly: true
