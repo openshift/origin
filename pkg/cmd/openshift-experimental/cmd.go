@@ -4,6 +4,7 @@ import (
 	"io"
 	"os"
 
+	"github.com/openshift/origin/pkg/cmd/openshift-service-serving-cert-signer"
 	"github.com/spf13/cobra"
 
 	"github.com/openshift/origin/pkg/cmd/openshift-operators/webconsole-operator"
@@ -20,6 +21,7 @@ func NewExperimentalCommand(out, errout io.Writer) *cobra.Command {
 	}
 
 	cmd.AddCommand(webconsole_operator.NewWebConsoleOperatorCommand(webconsole_operator.RecommendedWebConsoleOperatorName, out, errout))
+	cmd.AddCommand(openshift_service_serving_cert_signer.NewOpenShiftServiceServingCertSignerCommand("openshift-service-serving-cert-signer", out, errout))
 
 	return cmd
 }
