@@ -1,0 +1,64 @@
+#! /bin/bash
+
+set -euo pipefail
+
+pods_dir=/etc/origin/node/pods
+pods_disabled_dir=/etc/origin/node/pods.disabled
+
+static_pod_file=etcd.yaml
+
+# Make sure both directories exist
+mkdir -p $pods_dir $pods_disabled_dir
+
+function get_container_values() {
+    child_container=$(docker ps -q --filter "label=io.kubernetes.container.name=etcd" --latest)
+    container=$(docker ps -q --filter "label=openshift.io/component=etcd" --filter "label=io.kubernetes.container.name=POD" --latest)
+}
+
+
+# See how we were called.
+case "$1" in
+start)
+    # See if etcd pod is started
+    if [ -f "${pods_dir}/${static_pod_file}" ]; then
+        echo "etcd already started"
+        exit 0
+    fi
+
+    # Start the etcd pod
+    mv "${pods_disabled_dir}/${static_pod_file}" "${pods_dir}"
+
+    sleep 1 # avoid race condition
+
+    # Wait for the pod to come up
+    while ! docker ps -q --filter "label=io.kubernetes.container.name=etcd" &> /dev/null ; do
+        sleep 1
+    done
+
+    get_container_values
+    docker logs --follow "$child_container"
+    exit $?
+    ;;
+
+stop)
+    # See if etcd pod is started
+    if [ -f "${pods_disabled_dir}/${static_pod_file}" ]; then
+        echo "etcd already stopped"
+        exit 0
+    fi
+   
+    get_container_values
+
+    # Start the etcd pod
+    mv "${pods_dir}/${static_pod_file}" "${pods_disabled_dir}"
+
+    exec timeout 600 docker wait $child_container
+    ;;
+
+# No status or restart as systemd handles those for us.
+
+*)
+    echo $"Usage: $0 {start|stop}"
+    exit 2
+esac
+

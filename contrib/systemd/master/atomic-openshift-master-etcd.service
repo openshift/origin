@@ -1,0 +1,16 @@
+[Unit]
+Description=Atomic OpenShift Master Etcd
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=simple
+TimeoutStartSec=10m
+ExecStart=/usr/local/bin/atomic-openshift-master-etcd start
+ExecStop=-/usr/local/bin/atomic-openshift-master-etcd stop
+Restart=always
+RestartSec=30
+
+[Install]
+WantedBy=default.target
+
