@@ -22,6 +22,8 @@ s2i::build_test_image() {
   cd "${S2I_ROOT}"
 
   s2i::build_test_image sti-fake
+  s2i::build_test_image sti-fake-assemble-root
+  s2i::build_test_image sti-fake-assemble-user
   s2i::build_test_image sti-fake-env
   s2i::build_test_image sti-fake-user
   s2i::build_test_image sti-fake-scripts

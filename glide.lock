@@ -1,5 +1,5 @@
-hash: ce0210531a96e7705ee37f95e133bc8f04449108d83b7b6475afb65712dc10e3
-updated: 2018-05-22T11:35:27.341407558-04:00
+hash: 1496155d58c2a4f8e190e212ee66826648aa211d5a1bd02958b9afab36c62dbd
+updated: 2018-05-29T16:48:17.311682-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -962,7 +962,7 @@ imports:
   - pkg/controller/servingcert
   - pkg/controller/servingcert/cryptoextensions
 - name: github.com/openshift/source-to-image
-  version: 27f0729d81fe0641486257252189b8dca856ea28
+  version: cfe7e9f503d38ceca35cc7f04fef5fdd822e8c5a
   subpackages:
   - pkg/api
   - pkg/api/describe
