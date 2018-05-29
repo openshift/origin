@@ -200,6 +200,9 @@ func (e *DockercfgController) Run(workers int, stopCh <-chan struct{}) {
 	defer utilruntime.HandleCrash()
 	defer e.queue.ShutDown()
 
+	glog.Infof("Starting DockercfgController controller")
+	defer glog.Infof("Shutting down DockercfgController controller")
+
 	// Wait for the store to sync before starting any work in this controller.
 	ready := make(chan struct{})
 	go e.waitForDockerURLs(ready, stopCh)
@@ -208,18 +211,18 @@ func (e *DockercfgController) Run(workers int, stopCh <-chan struct{}) {
 	case <-stopCh:
 		return
 	}
+	glog.V(1).Infof("urls found")
 
 	// Wait for the stores to fill
 	if !cache.WaitForCacheSync(stopCh, e.serviceAccountController.HasSynced, e.secretController.HasSynced) {
 		return
 	}
+	glog.V(1).Infof("caches synced")
 
-	glog.V(5).Infof("Starting workers")
 	for i := 0; i < workers; i++ {
 		go wait.Until(e.worker, time.Second, stopCh)
 	}
 	<-stopCh
-	glog.V(1).Infof("Shutting down")
 }
 
 func (c *DockercfgController) waitForDockerURLs(ready chan<- struct{}, stopCh <-chan struct{}) {
