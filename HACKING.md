@@ -778,7 +778,7 @@ not correctly sampled
 (you can open this in a browser). This supports `OPENSHIFT_PROFILE_HOST=`
 and `OPENSHIFT_PROFILE_PORT=` to change default ip `127.0.0.1` and default port `6060`. 
 This works for master components only.
-  * In case of openshift-node, we need to get data from port on which kubelet is running 10250 and (default port). We can
+  * In case of openshift-node, we need to get data from port on which kubelet is running 10250 (default port). We can
    get the pprof data using following command:
    
  	`oc get --raw /debug/pprof/profile --server https://node_name:10250 > /tmp/sample.pprof`	
