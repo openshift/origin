@@ -137,6 +137,10 @@ import:
 # retrieve latest version that fixes deadlock on kqueue
 - package: github.com/fsnotify/fsnotify
   version: v1.4.7
+# require 94e38aa1586e8a6c8a75770bddf5ff84c48a106b or newer to fix https://github.com/kubernetes/kubernetes/issues/64291
+# drop in 1.10.4+ or 1.11
+- package: github.com/evanphx/json-patch
+  version: 94e38aa1586e8a6c8a75770bddf5ff84c48a106b
 
 # mine: specific to openshift
 # master
