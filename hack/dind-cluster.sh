@@ -610,7 +610,6 @@ function copy-ovn-runtime() {
   local ovn_go_controller_built_binaries_path="${ovn_root}/go-controller/_output/go/bin"
   cp "${ovn_go_controller_built_binaries_path}/ovnkube" "${target}"
   cp "${ovn_go_controller_built_binaries_path}/ovn-kube-util" "${target}"
-  cp "${ovn_go_controller_built_binaries_path}/ovn-k8s-overlay" "${target}"
   cp "${ovn_go_controller_built_binaries_path}/ovn-k8s-cni-overlay" "${target}"
 }
 

@@ -24,7 +24,6 @@ function ovn-kubernetes-node-setup() {
   ln -sf /data/ovn-kube-util /usr/local/bin/
   ln -sf /data/ovn-k8s-cni-overlay /opt/cni/bin/
   ln -sf /data/ovn-k8s-gateway-helper /usr/local/bin/
-  ln -sf /data/ovn-k8s-overlay /usr/local/bin
   ln -sf /data/ovn-k8s-util /usr/local/bin/
   ln -sf /data/ovn-k8s-watcher /usr/local/bin/
   mkdir -p /usr/lib/python2.7/site-packages
