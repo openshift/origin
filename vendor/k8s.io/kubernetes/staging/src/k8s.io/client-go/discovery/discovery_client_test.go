@@ -134,18 +134,18 @@ func TestGetServerGroupsWithTimeout(t *testing.T) {
 	}))
 	defer server.Close()
 	defer close(done)
-	tmp := defaultTimeout
-	defaultTimeout = 2 * time.Second
-	client := NewDiscoveryClientForConfigOrDie(&restclient.Config{Host: server.URL})
+	client := NewDiscoveryClientForConfigOrDie(&restclient.Config{Host: server.URL, Timeout: 2 * time.Second})
 	_, err := client.ServerGroups()
 	// the error we're getting here is wrapped in errors.errorString which makes
 	// it impossible to unwrap and check it's attributes, so instead we're checking
 	// the textual output which is presenting http.httpError with timeout set to true
-	if err == nil || !strings.Contains(err.Error(), "timeout:true") {
+	if err == nil {
+		t.Fatal("missing error")
+	}
+	if !strings.Contains(err.Error(), "timeout:true") &&
+		!strings.Contains(err.Error(), "context.deadlineExceededError") {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	done <- true
-	defaultTimeout = tmp
 }
 
 func TestGetServerResourcesWithV1Server(t *testing.T) {
