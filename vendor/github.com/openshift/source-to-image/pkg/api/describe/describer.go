@@ -103,13 +103,14 @@ func describeBuilderImage(client docker.Client, config *api.Config, out io.Write
 		Tag:                config.Tag,
 		IncrementalAuthentication: config.IncrementalAuthentication,
 	}
-	pr, err := docker.GetBuilderImage(client, c)
+	dkr := docker.New(client, c.PullAuthentication)
+	builderImage, err := docker.GetBuilderImage(dkr, c)
 	if err == nil {
-		build.GenerateConfigFromLabels(c, pr)
+		build.GenerateConfigFromLabels(c, builderImage)
 		if len(c.DisplayName) > 0 {
 			fmt.Fprintf(out, "Builder Name:\t%s\n", c.DisplayName)
 		}
-		fmt.Fprintf(out, "Builder Image:\t%s\n", config.BuilderImage)
+		fmt.Fprintf(out, "Builder Image:\t%s\n", c.BuilderImage)
 		if len(c.BuilderImageVersion) > 0 {
 			fmt.Fprintf(out, "Builder Image Version:\t%s\n", c.BuilderImageVersion)
 		}
