@@ -17,7 +17,7 @@ func init() {
 	}
 }
 
-func ReadDeploymentOrDie(objBytes []byte) *appsv1.Deployment {
+func ReadDeploymentV1OrDie(objBytes []byte) *appsv1.Deployment {
 	requiredObj, err := runtime.Decode(appsCodecs.UniversalDecoder(appsv1.SchemeGroupVersion), objBytes)
 	if err != nil {
 		panic(err)
@@ -25,7 +25,7 @@ func ReadDeploymentOrDie(objBytes []byte) *appsv1.Deployment {
 	return requiredObj.(*appsv1.Deployment)
 }
 
-func ReadDaemonSetOrDie(objBytes []byte) *appsv1.DaemonSet {
+func ReadDaemonSetV1OrDie(objBytes []byte) *appsv1.DaemonSet {
 	requiredObj, err := runtime.Decode(appsCodecs.UniversalDecoder(appsv1.SchemeGroupVersion), objBytes)
 	if err != nil {
 		panic(err)

@@ -6,6 +6,7 @@ syntax = 'proto2';
 package github.com.openshift.api.servicecertsigner.v1alpha1;
 
 import "github.com/openshift/api/config/v1/generated.proto";
+import "github.com/openshift/api/operator/v1alpha1/generated.proto";
 import "k8s.io/apimachinery/pkg/apis/meta/v1/generated.proto";
 import "k8s.io/apimachinery/pkg/runtime/generated.proto";
 import "k8s.io/apimachinery/pkg/runtime/schema/generated.proto";
@@ -25,6 +26,38 @@ message DelegatedAuthorization {
   optional bool disabled = 1;
 }
 
+// ServiceCertSignerOperatorConfig provides information to configure an operator to manage the service cert signing controllers
+message ServiceCertSignerOperatorConfig {
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
+
+  optional ServiceCertSignerOperatorConfigSpec spec = 2;
+
+  optional ServiceCertSignerOperatorConfigStatus status = 3;
+}
+
+// ServiceCertSignerOperatorConfigList is a collection of items
+message ServiceCertSignerOperatorConfigList {
+  // Standard object's metadata.
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ListMeta metadata = 1;
+
+  // Items contains the items
+  repeated ServiceCertSignerOperatorConfig items = 2;
+}
+
+message ServiceCertSignerOperatorConfigSpec {
+  optional github.com.openshift.api.operator.v1alpha1.OperatorSpec operatorSpec = 1;
+
+  // serviceServingCertSignerConfig holds a sparse config that the user wants for this component.  It only needs to be the overrides from the defaults
+  // it will end up overlaying in the following order:
+  // 1. hardcoded default
+  // 2. this config
+  optional k8s.io.apimachinery.pkg.runtime.RawExtension serviceServingCertSignerConfig = 2;
+}
+
+message ServiceCertSignerOperatorConfigStatus {
+  optional github.com.openshift.api.operator.v1alpha1.OperatorStatus operatorStatus = 1;
+}
+
 // ServiceServingCertSignerConfig provides information to configure a serving serving cert signing controller
 message ServiceServingCertSignerConfig {
   // ServingInfo is the HTTP serving information for the controller's endpoints
@@ -38,20 +71,5 @@ message ServiceServingCertSignerConfig {
 
   // Signer holds the signing information used to automatically sign serving certificates.
   optional github.com.openshift.api.config.v1.CertInfo signer = 4;
-}
-
-// ServiceServingCertSignerOperatorConfig provides information to configure an operator to manage the serving serving cert signing controllers
-message ServiceServingCertSignerOperatorConfig {
-  // ServingInfo is the HTTP serving information for the controller's endpoints
-  optional github.com.openshift.api.config.v1.HTTPServingInfo servingInfo = 4;
-
-  // leaderElection provides information to elect a leader. Only override this if you have a specific need
-  optional github.com.openshift.api.config.v1.LeaderElection leaderElection = 5;
-
-  // authentication allows configuration of authentication for the endpoints
-  optional DelegatedAuthentication authentication = 2;
-
-  // authorization allows configuration of authentication for the endpoints
-  optional DelegatedAuthorization authorization = 3;
 }
 

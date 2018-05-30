@@ -1,6 +1,7 @@
 package webconsole_operator
 
 import (
+	"fmt"
 	"time"
 
 	"k8s.io/client-go/informers"
@@ -11,16 +12,12 @@ import (
 	webconsoleinformers "github.com/openshift/origin/pkg/cmd/openshift-operators/generated/informers/externalversions"
 )
 
-type WebConsoleOperatorStarter struct {
-	ClientConfig *rest.Config
-}
-
-func (o *WebConsoleOperatorStarter) Run(stopCh <-chan struct{}) {
-	kubeClient, err := kubernetes.NewForConfig(o.ClientConfig)
+func RunWebConsoleOperator(clientConfig *rest.Config, stopCh <-chan struct{}) error {
+	kubeClient, err := kubernetes.NewForConfig(clientConfig)
 	if err != nil {
 		panic(err)
 	}
-	webconsoleClient, err := webconsoleclient.NewForConfig(o.ClientConfig)
+	webconsoleClient, err := webconsoleclient.NewForConfig(clientConfig)
 	if err != nil {
 		panic(err)
 	}
@@ -40,4 +37,6 @@ func (o *WebConsoleOperatorStarter) Run(stopCh <-chan struct{}) {
 	kubeInformersNamespaced.Start(stopCh)
 
 	operator.Run(1, stopCh)
+
+	return fmt.Errorf("stopped")
 }

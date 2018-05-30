@@ -182,7 +182,10 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/openshift/api/oauth/v1.OAuthRedirectReference":                                        schema_openshift_api_oauth_v1_OAuthRedirectReference(ref),
 		"github.com/openshift/api/oauth/v1.RedirectReference":                                             schema_openshift_api_oauth_v1_RedirectReference(ref),
 		"github.com/openshift/api/oauth/v1.ScopeRestriction":                                              schema_openshift_api_oauth_v1_ScopeRestriction(ref),
+		"github.com/openshift/api/operator/v1alpha1.DelegatedAuthentication":                              schema_openshift_api_operator_v1alpha1_DelegatedAuthentication(ref),
+		"github.com/openshift/api/operator/v1alpha1.DelegatedAuthorization":                               schema_openshift_api_operator_v1alpha1_DelegatedAuthorization(ref),
 		"github.com/openshift/api/operator/v1alpha1.GenerationHistory":                                    schema_openshift_api_operator_v1alpha1_GenerationHistory(ref),
+		"github.com/openshift/api/operator/v1alpha1.GenericOperatorConfig":                                schema_openshift_api_operator_v1alpha1_GenericOperatorConfig(ref),
 		"github.com/openshift/api/operator/v1alpha1.LoggingConfig":                                        schema_openshift_api_operator_v1alpha1_LoggingConfig(ref),
 		"github.com/openshift/api/operator/v1alpha1.OperatorCondition":                                    schema_openshift_api_operator_v1alpha1_OperatorCondition(ref),
 		"github.com/openshift/api/operator/v1alpha1.OperatorSpec":                                         schema_openshift_api_operator_v1alpha1_OperatorSpec(ref),
@@ -232,8 +235,11 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/openshift/api/security/v1.SupplementalGroupsStrategyOptions":                          schema_openshift_api_security_v1_SupplementalGroupsStrategyOptions(ref),
 		"github.com/openshift/api/servicecertsigner/v1alpha1.DelegatedAuthentication":                     schema_openshift_api_servicecertsigner_v1alpha1_DelegatedAuthentication(ref),
 		"github.com/openshift/api/servicecertsigner/v1alpha1.DelegatedAuthorization":                      schema_openshift_api_servicecertsigner_v1alpha1_DelegatedAuthorization(ref),
+		"github.com/openshift/api/servicecertsigner/v1alpha1.ServiceCertSignerOperatorConfig":             schema_openshift_api_servicecertsigner_v1alpha1_ServiceCertSignerOperatorConfig(ref),
+		"github.com/openshift/api/servicecertsigner/v1alpha1.ServiceCertSignerOperatorConfigList":         schema_openshift_api_servicecertsigner_v1alpha1_ServiceCertSignerOperatorConfigList(ref),
+		"github.com/openshift/api/servicecertsigner/v1alpha1.ServiceCertSignerOperatorConfigSpec":         schema_openshift_api_servicecertsigner_v1alpha1_ServiceCertSignerOperatorConfigSpec(ref),
+		"github.com/openshift/api/servicecertsigner/v1alpha1.ServiceCertSignerOperatorConfigStatus":       schema_openshift_api_servicecertsigner_v1alpha1_ServiceCertSignerOperatorConfigStatus(ref),
 		"github.com/openshift/api/servicecertsigner/v1alpha1.ServiceServingCertSignerConfig":              schema_openshift_api_servicecertsigner_v1alpha1_ServiceServingCertSignerConfig(ref),
-		"github.com/openshift/api/servicecertsigner/v1alpha1.ServiceServingCertSignerOperatorConfig":      schema_openshift_api_servicecertsigner_v1alpha1_ServiceServingCertSignerOperatorConfig(ref),
 		"github.com/openshift/api/template/v1.BrokerTemplateInstance":                                     schema_openshift_api_template_v1_BrokerTemplateInstance(ref),
 		"github.com/openshift/api/template/v1.BrokerTemplateInstanceList":                                 schema_openshift_api_template_v1_BrokerTemplateInstanceList(ref),
 		"github.com/openshift/api/template/v1.BrokerTemplateInstanceSpec":                                 schema_openshift_api_template_v1_BrokerTemplateInstanceSpec(ref),
@@ -9334,6 +9340,46 @@ func schema_openshift_api_oauth_v1_ScopeRestriction(ref common.ReferenceCallback
 	}
 }
 
+func schema_openshift_api_operator_v1alpha1_DelegatedAuthentication(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "DelegatedAuthentication allows authentication to be disabled.",
+				Properties: map[string]spec.Schema{
+					"disabled": {
+						SchemaProps: spec.SchemaProps{
+							Description: "disabled indicates that authentication should be disabled.  By default it will use delegated authentication.",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{},
+	}
+}
+
+func schema_openshift_api_operator_v1alpha1_DelegatedAuthorization(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "DelegatedAuthorization allows authorization to be disabled.",
+				Properties: map[string]spec.Schema{
+					"disabled": {
+						SchemaProps: spec.SchemaProps{
+							Description: "disabled indicates that authorization should be disabled.  By default it will use delegated authorization.",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{},
+	}
+}
+
 func schema_openshift_api_operator_v1alpha1_GenerationHistory(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -9380,6 +9426,58 @@ func schema_openshift_api_operator_v1alpha1_GenerationHistory(ref common.Referen
 			},
 		},
 		Dependencies: []string{},
+	}
+}
+
+func schema_openshift_api_operator_v1alpha1_GenericOperatorConfig(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "GenericOperatorConfig provides information to configure an operator",
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"servingInfo": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ServingInfo is the HTTP serving information for the controller's endpoints",
+							Ref:         ref("github.com/openshift/api/config/v1.HTTPServingInfo"),
+						},
+					},
+					"leaderElection": {
+						SchemaProps: spec.SchemaProps{
+							Description: "leaderElection provides information to elect a leader. Only override this if you have a specific need",
+							Ref:         ref("github.com/openshift/api/config/v1.LeaderElection"),
+						},
+					},
+					"authentication": {
+						SchemaProps: spec.SchemaProps{
+							Description: "authentication allows configuration of authentication for the endpoints",
+							Ref:         ref("github.com/openshift/api/operator/v1alpha1.DelegatedAuthentication"),
+						},
+					},
+					"authorization": {
+						SchemaProps: spec.SchemaProps{
+							Description: "authorization allows configuration of authentication for the endpoints",
+							Ref:         ref("github.com/openshift/api/operator/v1alpha1.DelegatedAuthorization"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/config/v1.HTTPServingInfo", "github.com/openshift/api/config/v1.LeaderElection", "github.com/openshift/api/operator/v1alpha1.DelegatedAuthentication", "github.com/openshift/api/operator/v1alpha1.DelegatedAuthorization"},
 	}
 }
 
@@ -11475,6 +11573,204 @@ func schema_openshift_api_servicecertsigner_v1alpha1_DelegatedAuthorization(ref 
 	}
 }
 
+func schema_openshift_api_servicecertsigner_v1alpha1_ServiceCertSignerOperatorConfig(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ServiceCertSignerOperatorConfig provides information to configure an operator to manage the service cert signing controllers",
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+						},
+					},
+					"spec": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("github.com/openshift/api/servicecertsigner/v1alpha1.ServiceCertSignerOperatorConfigSpec"),
+						},
+					},
+					"status": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("github.com/openshift/api/servicecertsigner/v1alpha1.ServiceCertSignerOperatorConfigStatus"),
+						},
+					},
+				},
+				Required: []string{"metadata", "spec", "status"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/servicecertsigner/v1alpha1.ServiceCertSignerOperatorConfigSpec", "github.com/openshift/api/servicecertsigner/v1alpha1.ServiceCertSignerOperatorConfigStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+	}
+}
+
+func schema_openshift_api_servicecertsigner_v1alpha1_ServiceCertSignerOperatorConfigList(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ServiceCertSignerOperatorConfigList is a collection of items",
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Standard object's metadata.",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"),
+						},
+					},
+					"items": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Items contains the items",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/openshift/api/servicecertsigner/v1alpha1.ServiceCertSignerOperatorConfig"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"items"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/servicecertsigner/v1alpha1.ServiceCertSignerOperatorConfig", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+	}
+}
+
+func schema_openshift_api_servicecertsigner_v1alpha1_ServiceCertSignerOperatorConfigSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Properties: map[string]spec.Schema{
+					"managementState": {
+						SchemaProps: spec.SchemaProps{
+							Description: "managementState indicates whether and how the operator should manage the component",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"imagePullSpec": {
+						SchemaProps: spec.SchemaProps{
+							Description: "imagePullSpec is the image to use for the component.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"version": {
+						SchemaProps: spec.SchemaProps{
+							Description: "version is the desired state in major.minor.micro-patch.  Usually patch is ignored.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"logging": {
+						SchemaProps: spec.SchemaProps{
+							Description: "logging contains glog parameters for the component pods.  It's always a command line arg for the moment",
+							Ref:         ref("github.com/openshift/api/operator/v1alpha1.LoggingConfig"),
+						},
+					},
+					"serviceServingCertSignerConfig": {
+						SchemaProps: spec.SchemaProps{
+							Description: "serviceServingCertSignerConfig holds a sparse config that the user wants for this component.  It only needs to be the overrides from the defaults it will end up overlaying in the following order: 1. hardcoded default 2. this config",
+							Ref:         ref("k8s.io/apimachinery/pkg/runtime.RawExtension"),
+						},
+					},
+				},
+				Required: []string{"managementState", "imagePullSpec", "version", "serviceServingCertSignerConfig"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/operator/v1alpha1.LoggingConfig", "k8s.io/apimachinery/pkg/runtime.RawExtension"},
+	}
+}
+
+func schema_openshift_api_servicecertsigner_v1alpha1_ServiceCertSignerOperatorConfigStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Properties: map[string]spec.Schema{
+					"observedGeneration": {
+						SchemaProps: spec.SchemaProps{
+							Description: "observedGeneration is the last generation change you've dealt with",
+							Type:        []string{"integer"},
+							Format:      "int64",
+						},
+					},
+					"conditions": {
+						SchemaProps: spec.SchemaProps{
+							Description: "conditions is a list of conditions and their status",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/openshift/api/operator/v1alpha1.OperatorCondition"),
+									},
+								},
+							},
+						},
+					},
+					"state": {
+						SchemaProps: spec.SchemaProps{
+							Description: "state indicates what the operator has observed to be its current operational status.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"taskSummary": {
+						SchemaProps: spec.SchemaProps{
+							Description: "taskSummary is a high level summary of what the controller is currently attempting to do.  It is high-level, human-readable and not guaranteed in any way. (I needed this for debugging and realized it made a great summary).",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"currentVersionAvailability": {
+						SchemaProps: spec.SchemaProps{
+							Description: "currentVersionAvailability is availability information for the current version.  If it is unmanged or removed, this doesn't exist.",
+							Ref:         ref("github.com/openshift/api/operator/v1alpha1.VersionAvailablity"),
+						},
+					},
+					"targetVersionAvailability": {
+						SchemaProps: spec.SchemaProps{
+							Description: "targetVersionAvailability is availability information for the target version if we are migrating",
+							Ref:         ref("github.com/openshift/api/operator/v1alpha1.VersionAvailablity"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/operator/v1alpha1.OperatorCondition", "github.com/openshift/api/operator/v1alpha1.VersionAvailablity"},
+	}
+}
+
 func schema_openshift_api_servicecertsigner_v1alpha1_ServiceServingCertSignerConfig(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -11525,58 +11821,6 @@ func schema_openshift_api_servicecertsigner_v1alpha1_ServiceServingCertSignerCon
 		},
 		Dependencies: []string{
 			"github.com/openshift/api/config/v1.CertInfo", "github.com/openshift/api/config/v1.HTTPServingInfo", "github.com/openshift/api/servicecertsigner/v1alpha1.DelegatedAuthentication", "github.com/openshift/api/servicecertsigner/v1alpha1.DelegatedAuthorization"},
-	}
-}
-
-func schema_openshift_api_servicecertsigner_v1alpha1_ServiceServingCertSignerOperatorConfig(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "ServiceServingCertSignerOperatorConfig provides information to configure an operator to manage the serving serving cert signing controllers",
-				Properties: map[string]spec.Schema{
-					"kind": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"apiVersion": {
-						SchemaProps: spec.SchemaProps{
-							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"servingInfo": {
-						SchemaProps: spec.SchemaProps{
-							Description: "ServingInfo is the HTTP serving information for the controller's endpoints",
-							Ref:         ref("github.com/openshift/api/config/v1.HTTPServingInfo"),
-						},
-					},
-					"leaderElection": {
-						SchemaProps: spec.SchemaProps{
-							Description: "leaderElection provides information to elect a leader. Only override this if you have a specific need",
-							Ref:         ref("github.com/openshift/api/config/v1.LeaderElection"),
-						},
-					},
-					"authentication": {
-						SchemaProps: spec.SchemaProps{
-							Description: "authentication allows configuration of authentication for the endpoints",
-							Ref:         ref("github.com/openshift/api/servicecertsigner/v1alpha1.DelegatedAuthentication"),
-						},
-					},
-					"authorization": {
-						SchemaProps: spec.SchemaProps{
-							Description: "authorization allows configuration of authentication for the endpoints",
-							Ref:         ref("github.com/openshift/api/servicecertsigner/v1alpha1.DelegatedAuthorization"),
-						},
-					},
-				},
-			},
-		},
-		Dependencies: []string{
-			"github.com/openshift/api/config/v1.HTTPServingInfo", "github.com/openshift/api/config/v1.LeaderElection", "github.com/openshift/api/servicecertsigner/v1alpha1.DelegatedAuthentication", "github.com/openshift/api/servicecertsigner/v1alpha1.DelegatedAuthorization"},
 	}
 }
 

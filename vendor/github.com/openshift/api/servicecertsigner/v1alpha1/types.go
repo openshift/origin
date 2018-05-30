@@ -2,8 +2,10 @@ package v1alpha1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 
 	configv1 "github.com/openshift/api/config/v1"
+	operatorsv1alpha1api "github.com/openshift/api/operator/v1alpha1"
 )
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -36,20 +38,40 @@ type DelegatedAuthorization struct {
 	Disabled bool `json:"disabled,omitempty" protobuf:"varint,1,opt,name=disabled"`
 }
 
+// +genclient
+// +genclient:nonNamespaced
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// ServiceServingCertSignerOperatorConfig provides information to configure an operator to manage the serving serving cert signing controllers
-type ServiceServingCertSignerOperatorConfig struct {
+// ServiceCertSignerOperatorConfig provides information to configure an operator to manage the service cert signing controllers
+type ServiceCertSignerOperatorConfig struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata" protobuf:"bytes,1,opt,name=metadata"`
+
+	Spec   ServiceCertSignerOperatorConfigSpec   `json:"spec" protobuf:"bytes,2,opt,name=spec"`
+	Status ServiceCertSignerOperatorConfigStatus `json:"status" protobuf:"bytes,3,opt,name=status"`
+}
+
+type ServiceCertSignerOperatorConfigSpec struct {
+	operatorsv1alpha1api.OperatorSpec `json:",inline" protobuf:"bytes,1,opt,name=operatorSpec"`
+
+	// serviceServingCertSignerConfig holds a sparse config that the user wants for this component.  It only needs to be the overrides from the defaults
+	// it will end up overlaying in the following order:
+	// 1. hardcoded default
+	// 2. this config
+	ServiceServingCertSignerConfig runtime.RawExtension `json:"serviceServingCertSignerConfig" protobuf:"bytes,2,opt,name=serviceServingCertSignerConfig"`
+}
+
+type ServiceCertSignerOperatorConfigStatus struct {
+	operatorsv1alpha1api.OperatorStatus `json:",inline" protobuf:"bytes,1,opt,name=operatorStatus"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// ServiceCertSignerOperatorConfigList is a collection of items
+type ServiceCertSignerOperatorConfigList struct {
 	metav1.TypeMeta `json:",inline"`
-
-	// ServingInfo is the HTTP serving information for the controller's endpoints
-	ServingInfo configv1.HTTPServingInfo `json:"servingInfo,omitempty" protobuf:"bytes,4,opt,name=servingInfo"`
-
-	// leaderElection provides information to elect a leader. Only override this if you have a specific need
-	LeaderElection configv1.LeaderElection `json:"leaderElection,omitempty" protobuf:"bytes,5,opt,name=leaderElection"`
-
-	// authentication allows configuration of authentication for the endpoints
-	Authentication DelegatedAuthentication `json:"authentication,omitempty" protobuf:"bytes,2,opt,name=authentication"`
-	// authorization allows configuration of authentication for the endpoints
-	Authorization DelegatedAuthorization `json:"authorization,omitempty" protobuf:"bytes,3,opt,name=authorization"`
+	// Standard object's metadata.
+	metav1.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	// Items contains the items
+	Items []ServiceCertSignerOperatorConfig `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
