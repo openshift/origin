@@ -17,7 +17,7 @@ func init() {
 	}
 }
 
-func ReadConfigMapOrDie(objBytes []byte) *corev1.ConfigMap {
+func ReadConfigMapV1OrDie(objBytes []byte) *corev1.ConfigMap {
 	requiredObj, err := runtime.Decode(coreCodecs.UniversalDecoder(corev1.SchemeGroupVersion), objBytes)
 	if err != nil {
 		panic(err)
@@ -25,7 +25,7 @@ func ReadConfigMapOrDie(objBytes []byte) *corev1.ConfigMap {
 	return requiredObj.(*corev1.ConfigMap)
 }
 
-func ReadNamespaceOrDie(objBytes []byte) *corev1.Namespace {
+func ReadNamespaceV1OrDie(objBytes []byte) *corev1.Namespace {
 	requiredObj, err := runtime.Decode(coreCodecs.UniversalDecoder(corev1.SchemeGroupVersion), objBytes)
 	if err != nil {
 		panic(err)
@@ -33,7 +33,7 @@ func ReadNamespaceOrDie(objBytes []byte) *corev1.Namespace {
 	return requiredObj.(*corev1.Namespace)
 }
 
-func ReadServiceAccountOrDie(objBytes []byte) *corev1.ServiceAccount {
+func ReadServiceAccountV1OrDie(objBytes []byte) *corev1.ServiceAccount {
 	requiredObj, err := runtime.Decode(coreCodecs.UniversalDecoder(corev1.SchemeGroupVersion), objBytes)
 	if err != nil {
 		panic(err)
@@ -41,7 +41,7 @@ func ReadServiceAccountOrDie(objBytes []byte) *corev1.ServiceAccount {
 	return requiredObj.(*corev1.ServiceAccount)
 }
 
-func ReadServiceOrDie(objBytes []byte) *corev1.Service {
+func ReadServiceV1OrDie(objBytes []byte) *corev1.Service {
 	requiredObj, err := runtime.Decode(coreCodecs.UniversalDecoder(corev1.SchemeGroupVersion), objBytes)
 	if err != nil {
 		panic(err)

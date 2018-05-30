@@ -62,15 +62,16 @@ type DockercfgTokenDeletedController struct {
 // Runs controller loops and returns on shutdown
 func (e *DockercfgTokenDeletedController) Run(stopCh <-chan struct{}) {
 	defer utilruntime.HandleCrash()
+	glog.Infof("Starting DockercfgTokenDeletedController controller")
+	defer glog.Infof("Shutting down DockercfgTokenDeletedController controller")
 
 	// Wait for the stores to fill
 	if !cache.WaitForCacheSync(stopCh, e.secretController.HasSynced) {
 		return
 	}
+	glog.V(1).Infof("caches synced")
 
-	glog.V(5).Infof("Worker started")
 	<-stopCh
-	glog.V(1).Infof("Shutting down")
 }
 
 // secretDeleted reacts to a token secret being deleted by looking for a corresponding dockercfg secret and deleting it if it exists

@@ -256,15 +256,9 @@ func (c *ClusterUpConfig) LocalDirFor(componentName string) string {
 }
 
 // RemoteDirFor returns a directory path on remote host
+// DEPRECATED:
 func (c *ClusterUpConfig) RemoteDirFor(componentName string) string {
 	return filepath.Join(host.RemoteHostOriginDir, c.BaseDir, componentName)
-}
-
-func (c *ClusterUpConfig) copyToRemote(source, component string) (string, error) {
-	if err := c.hostHelper.CopyToHost(source, c.RemoteDirFor(component)); err != nil {
-		return "", err
-	}
-	return c.RemoteDirFor(component), nil
 }
 
 func (c *ClusterUpConfig) BuildConfig() (*configDirs, error) {
@@ -279,16 +273,9 @@ func (c *ClusterUpConfig) BuildConfig() (*configDirs, error) {
 
 	originalMasterConfigDir := configs.masterConfigDir
 	originalNodeConfigDir := configs.nodeConfigDir
-	var err error
 
 	if _, err := os.Stat(configs.masterConfigDir); os.IsNotExist(err) {
 		_, err = c.makeMasterConfig()
-		if err != nil {
-			return nil, err
-		}
-	}
-	if c.isRemoteDocker {
-		configs.masterConfigDir, err = c.copyToRemote(configs.masterConfigDir, kubeapiserver.KubeAPIServerDirName)
 		if err != nil {
 			return nil, err
 		}
@@ -300,21 +287,9 @@ func (c *ClusterUpConfig) BuildConfig() (*configDirs, error) {
 			return nil, err
 		}
 	}
-	if c.isRemoteDocker {
-		configs.openshiftAPIServerConfigDir, err = c.copyToRemote(configs.openshiftAPIServerConfigDir, kubeapiserver.OpenShiftAPIServerDirName)
-		if err != nil {
-			return nil, err
-		}
-	}
 
 	if _, err := os.Stat(configs.openshiftControllerConfigDir); os.IsNotExist(err) {
 		_, err = c.makeOpenShiftControllerConfig(originalMasterConfigDir)
-		if err != nil {
-			return nil, err
-		}
-	}
-	if c.isRemoteDocker {
-		configs.openshiftControllerConfigDir, err = c.copyToRemote(configs.openshiftControllerConfigDir, kubeapiserver.OpenShiftControllerManagerDirName)
 		if err != nil {
 			return nil, err
 		}
@@ -326,12 +301,6 @@ func (c *ClusterUpConfig) BuildConfig() (*configDirs, error) {
 			return nil, err
 		}
 	}
-	if c.isRemoteDocker {
-		configs.nodeConfigDir, err = c.copyToRemote(configs.nodeConfigDir, kubelet.NodeConfigDirName)
-		if err != nil {
-			return nil, err
-		}
-	}
 
 	if _, err := os.Stat(configs.kubeDNSConfigDir); os.IsNotExist(err) {
 		_, err = c.makeKubeDNSConfig(originalNodeConfigDir)
@@ -339,12 +308,6 @@ func (c *ClusterUpConfig) BuildConfig() (*configDirs, error) {
 			return nil, err
 		}
 
-	}
-	if c.isRemoteDocker {
-		configs.kubeDNSConfigDir, err = c.copyToRemote(configs.kubeDNSConfigDir, kubelet.KubeDNSDirName)
-		if err != nil {
-			return nil, err
-		}
 	}
 
 	if _, err := os.Stat(configs.podManifestDir); os.IsNotExist(err) {
@@ -379,12 +342,6 @@ func (c *ClusterUpConfig) BuildConfig() (*configDirs, error) {
 		}
 	}
 
-	if c.isRemoteDocker {
-		configs.podManifestDir, err = c.copyToRemote(configs.podManifestDir, kubelet.PodManifestDirName)
-		if err != nil {
-			return nil, err
-		}
-	}
 	glog.V(2).Infof("configLocations = %#v", *configs)
 
 	return configs, nil

@@ -6,8 +6,8 @@ import (
 
 	configv1 "github.com/openshift/api/config/v1"
 	webconsoleconfigv1 "github.com/openshift/api/webconsole/v1"
+	"github.com/openshift/library-go/pkg/operator/resource/resourcemerge"
 	webconsolev1alpha1 "github.com/openshift/origin/pkg/cmd/openshift-operators/apis/webconsole/v1alpha1"
-	"github.com/openshift/origin/pkg/cmd/openshift-operators/util/resourcemerge"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 )

@@ -17,7 +17,7 @@ func init() {
 	}
 }
 
-func ReadClusterRoleBindingOrDie(objBytes []byte) *rbacv1.ClusterRoleBinding {
+func ReadClusterRoleBindingV1OrDie(objBytes []byte) *rbacv1.ClusterRoleBinding {
 	requiredObj, err := runtime.Decode(rbacCodecs.UniversalDecoder(rbacv1.SchemeGroupVersion), objBytes)
 	if err != nil {
 		panic(err)

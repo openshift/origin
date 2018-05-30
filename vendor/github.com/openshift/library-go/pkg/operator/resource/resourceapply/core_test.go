@@ -4,14 +4,14 @@ import (
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
+
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/client-go/kubernetes/fake"
 	clienttesting "k8s.io/client-go/testing"
-
-	corev1 "k8s.io/api/core/v1"
 )
 
 func TestApplyConfigMap(t *testing.T) {
@@ -143,7 +143,7 @@ func TestApplyConfigMap(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			client := fake.NewSimpleClientset(test.existing...)
-			actualModified, err := ApplyConfigMap(client.CoreV1(), test.input)
+			_, actualModified, err := ApplyConfigMap(client.CoreV1(), test.input)
 			if err != nil {
 				t.Fatal(err)
 			}

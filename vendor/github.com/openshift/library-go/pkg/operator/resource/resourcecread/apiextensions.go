@@ -17,7 +17,7 @@ func init() {
 	}
 }
 
-func ReadCustomResourceDefinitionOrDie(objBytes []byte) *apiextensionsv1beta1.CustomResourceDefinition {
+func ReadCustomResourceDefinitionV1Beta1OrDie(objBytes []byte) *apiextensionsv1beta1.CustomResourceDefinition {
 	requiredObj, err := runtime.Decode(apiExtensionsCodecs.UniversalDecoder(apiextensionsv1beta1.SchemeGroupVersion), objBytes)
 	if err != nil {
 		panic(err)

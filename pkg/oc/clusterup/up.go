@@ -327,13 +327,8 @@ func (c *ClusterUpConfig) Complete(cmd *cobra.Command) error {
 	if c.UseNsenterMount {
 		// This is default path when you run cluster up locally, with local docker daemon
 		c.HostVolumesDir = path.Join(c.BaseDir, "openshift.local.volumes")
-		// This is a snowflake when Docker runs on remote host
-		if c.isRemoteDocker {
-			c.HostVolumesDir = c.RemoteDirFor("openshift.local.volumes")
-		} else {
-			if err := os.MkdirAll(c.HostVolumesDir, 0755); err != nil {
-				return err
-			}
+		if err := os.MkdirAll(c.HostVolumesDir, 0755); err != nil {
+			return err
 		}
 	} else {
 		// Snowflake for OSX Docker for Mac
@@ -341,21 +336,13 @@ func (c *ClusterUpConfig) Complete(cmd *cobra.Command) error {
 	}
 
 	c.HostPersistentVolumesDir = path.Join(c.BaseDir, "openshift.local.pv")
-	if c.isRemoteDocker {
-		c.HostPersistentVolumesDir = c.RemoteDirFor("openshift.local.pv")
-	} else {
-		if err := os.MkdirAll(c.HostPersistentVolumesDir, 0755); err != nil {
-			return err
-		}
+	if err := os.MkdirAll(c.HostPersistentVolumesDir, 0755); err != nil {
+		return err
 	}
 
 	c.HostDataDir = path.Join(c.BaseDir, "etcd")
-	if c.isRemoteDocker {
-		c.HostDataDir = c.RemoteDirFor("etcd")
-	} else {
-		if err := os.MkdirAll(c.HostDataDir, 0755); err != nil {
-			return err
-		}
+	if err := os.MkdirAll(c.HostDataDir, 0755); err != nil {
+		return err
 	}
 
 	// Ensure that host directories exist.

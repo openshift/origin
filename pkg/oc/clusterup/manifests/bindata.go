@@ -17508,6 +17508,16 @@ objects:
     subresources:
       status: {}
 
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    namespace: openshift-core-operators
+    name: openshift-web-console-operator-config
+  data:
+    operator-config.yaml: |
+      apiVersion: operator.openshift.io/v1alpha1
+      kind: GenericOperatorConfig
+
 - apiVersion: apps/v1
   kind: Deployment
   metadata:
@@ -17533,8 +17543,22 @@ objects:
           imagePullPolicy: ${OPENSHIFT_PULL_POLICY}
           command: ["hypershift", "experimental", "openshift-webconsole-operator"]
           args:
+          - "--config=/var/run/configmaps/config/operator-config.yaml"
           - "-v=${LOGLEVEL}"
+          volumeMounts:
+          - mountPath: /var/run/configmaps/config
+            name: config
         nodeSelector: "${{NODE_SELECTOR}}"
+        volumes:
+        - name: serving-cert
+          secret:
+            defaultMode: 400
+            secretName: openshift-web-console-operator-serving-cert
+            optional: true
+        - name: config
+          configMap:
+            defaultMode: 440
+            name: openshift-web-console-operator-config
 
 - apiVersion: v1
   kind: ServiceAccount

@@ -1504,6 +1504,7 @@ type OpenshiftControllerConfig struct {
 	Deployer           DeployerControllerConfig
 	Build              BuildControllerConfig
 	ServiceAccount     ServiceAccountControllerConfig
+	DockerPullSecret   DockerPullSecretControllerConfig
 	Network            NetworkControllerConfig
 	Ingress            IngressControllerConfig
 	ImageImport        ImageImportControllerConfig
@@ -1553,6 +1554,11 @@ type ServiceAccountControllerConfig struct {
 	// ManagedNames is a list of service account names that will be auto-created in every namespace.
 	// If no names are specified, the ServiceAccountsController will not be started.
 	ManagedNames []string
+}
+
+type DockerPullSecretControllerConfig struct {
+	// RegistryURLs is a list of urls that the docker pull secrets should be valid for.
+	RegistryURLs []string
 }
 
 type ImageImportControllerConfig struct {

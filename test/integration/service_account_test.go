@@ -165,9 +165,15 @@ func TestAutomaticCreationOfPullSecrets(t *testing.T) {
 	saNamespace := api.NamespaceDefault
 	saName := serviceaccountadmission.DefaultServiceAccountName
 
-	masterConfig, clusterAdminConfig, err := testserver.StartTestMaster()
+	masterConfig, err := testserver.DefaultMasterOptions()
 	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+		t.Fatalf("error creating config: %v", err)
+	}
+	masterConfig.ImagePolicyConfig.InternalRegistryHostname = "internal.registry.com:8080"
+	masterConfig.ImagePolicyConfig.ExternalRegistryHostname = "external.registry.com"
+	clusterAdminConfig, err := testserver.StartConfiguredMaster(masterConfig)
+	if err != nil {
+		t.Fatalf("error starting server: %v", err)
 	}
 	defer testserver.CleanupMasterEtcd(t, masterConfig)
 	clusterAdminKubeClient, err := testutil.GetClusterAdminKubeClient(clusterAdminConfig)
@@ -192,17 +198,23 @@ func TestAutomaticCreationOfPullSecrets(t *testing.T) {
 	if len(saPullSecret) == 0 {
 		t.Errorf("pull secret was not created")
 	}
+	if !strings.Contains(saPullSecret, masterConfig.ImagePolicyConfig.InternalRegistryHostname) {
+		t.Errorf("missing %q in %v", masterConfig.ImagePolicyConfig.InternalRegistryHostname, saPullSecret)
+	}
+	if !strings.Contains(saPullSecret, masterConfig.ImagePolicyConfig.ExternalRegistryHostname) {
+		t.Errorf("missing %q in %v", masterConfig.ImagePolicyConfig.ExternalRegistryHostname, saPullSecret)
+	}
 }
 
 func waitForServiceAccountPullSecret(client kclientset.Interface, ns, name string, attempts int, interval time.Duration) (string, string, error) {
 	for i := 0; i <= attempts; i++ {
 		time.Sleep(interval)
-		secretName, token, err := getServiceAccountPullSecret(client, ns, name)
+		secretName, dockerCfg, err := getServiceAccountPullSecret(client, ns, name)
 		if err != nil {
 			return "", "", err
 		}
-		if len(token) > 0 {
-			return secretName, token, nil
+		if len(dockerCfg) > 2 {
+			return secretName, dockerCfg, nil
 		}
 	}
 	return "", "", nil
@@ -317,9 +329,15 @@ func TestEnforcingServiceAccount(t *testing.T) {
 }
 
 func TestDockercfgTokenDeletedController(t *testing.T) {
-	masterConfig, clusterAdminConfig, err := testserver.StartTestMaster()
+	masterConfig, err := testserver.DefaultMasterOptions()
 	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+		t.Fatalf("error creating config: %v", err)
+	}
+	masterConfig.ImagePolicyConfig.InternalRegistryHostname = "internal.registry.com:8080"
+	masterConfig.ImagePolicyConfig.ExternalRegistryHostname = "external.registry.com"
+	clusterAdminConfig, err := testserver.StartConfiguredMaster(masterConfig)
+	if err != nil {
+		t.Fatalf("error starting server: %v", err)
 	}
 	defer testserver.CleanupMasterEtcd(t, masterConfig)
 	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminConfig)
