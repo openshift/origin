@@ -202,6 +202,32 @@ func TestModifyNamedClusterRoleBinding(t *testing.T) {
 				},
 			},
 		},
+		// name provided - remove from autoupdate protected
+		"remove-from-protected-clusterrolebinding": {
+			action:               "remove",
+			inputRole:            "edit",
+			inputRoleBindingName: "custom",
+			inputSubjects: []string{
+				"bar",
+			},
+			expectedRoleBindingName: "custom",
+			expectedSubjects:        nil,
+			existingClusterRoleBindings: &authorizationapi.ClusterRoleBindingList{
+				Items: []authorizationapi.ClusterRoleBinding{{
+					ObjectMeta: metav1.ObjectMeta{
+						Annotations: map[string]string{ReconcileProtectAnnotation: "true"},
+						Name:        "custom",
+					},
+					Subjects: []kapi.ObjectReference{{
+						Name: "bar",
+						Kind: authorizationapi.UserKind,
+					}},
+					RoleRef: kapi.ObjectReference{
+						Name: "edit",
+					}},
+				},
+			},
+		},
 	}
 	for tcName, tc := range tests {
 		// Set up modifier options and run AddRole()
