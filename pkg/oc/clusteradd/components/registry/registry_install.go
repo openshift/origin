@@ -2,7 +2,6 @@ package registry
 
 import (
 	"fmt"
-	"os"
 	"path"
 	"path/filepath"
 
@@ -15,7 +14,6 @@ import (
 	"github.com/openshift/origin/pkg/oc/clusteradd/componentinstall"
 	"github.com/openshift/origin/pkg/oc/clusterup/coreinstall/kubeapiserver"
 	"github.com/openshift/origin/pkg/oc/clusterup/docker/dockerhelper"
-	"github.com/openshift/origin/pkg/oc/clusterup/docker/host"
 	"github.com/openshift/origin/pkg/oc/clusterup/docker/run"
 	"github.com/openshift/origin/pkg/oc/errors"
 )
@@ -58,7 +56,7 @@ func (r *RegistryComponentOptions) Install(dockerClient dockerhelper.Interface) 
 	if err != nil {
 		return err
 	}
-	_, err = kubeAdminClient.Core().Services(DefaultNamespace).Get(SvcDockerRegistry, metav1.GetOptions{})
+	_, err = kubeAdminClient.CoreV1().Services(DefaultNamespace).Get(SvcDockerRegistry, metav1.GetOptions{})
 	if err == nil {
 		// If there's no error, the registry already exists
 		return nil
@@ -72,23 +70,8 @@ func (r *RegistryComponentOptions) Install(dockerClient dockerhelper.Interface) 
 		return err
 	}
 
-	// If docker is on remote host, the base dir is different.
-	baseDir := r.InstallContext.BaseDir()
-	if len(os.Getenv("DOCKER_HOST")) > 0 {
-		baseDir = path.Join(host.RemoteHostOriginDir, r.InstallContext.BaseDir())
-	}
-
-	registryStorageDir := path.Join(baseDir, "openshift.local.pv")
-
-	// If docker is on remote host, ensure the permissions for registry
-	if len(os.Getenv("DOCKER_HOST")) > 0 {
-		if err := r.ensureRemoteRegistryStoragePermissions(registryStorageDir, dockerClient); err != nil {
-			return errors.NewError("error ensuring remote host registry directory permissions").WithCause(err)
-		}
-	}
-	registryStorageDir = path.Join(registryStorageDir, "registry")
-
-	masterConfigDir := path.Join(baseDir, kubeapiserver.KubeAPIServerDirName)
+	registryStorageDir := path.Join(r.InstallContext.BaseDir(), "openshift.local.pv", "registry")
+	masterConfigDir := path.Join(r.InstallContext.BaseDir(), kubeapiserver.KubeAPIServerDirName)
 	flags := []string{
 		"adm",
 		"registry",
