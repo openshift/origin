@@ -16,6 +16,7 @@ import (
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/util/wait"
 	restclient "k8s.io/client-go/rest"
+	"k8s.io/client-go/util/flowcontrol"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
@@ -49,7 +50,11 @@ func GetClusterAdminKubeClient(adminKubeConfigFile string) (kclientset.Interface
 }
 
 func GetClusterAdminClientConfig(adminKubeConfigFile string) (*restclient.Config, error) {
-	return configapi.GetClientConfig(adminKubeConfigFile, nil)
+	conf, err := configapi.GetClientConfig(adminKubeConfigFile, nil)
+	if err != nil {
+		return nil, err
+	}
+	return turnOffRateLimiting(conf), nil
 }
 
 // GetClusterAdminClientConfigOrDie returns a REST config for the cluster admin
@@ -69,6 +74,9 @@ func GetClientForUser(clusterAdminConfig *restclient.Config, username string) (k
 	}
 
 	user, err := userClient.User().Users().Get(username, metav1.GetOptions{})
+	if err != nil && !kerrs.IsNotFound(err) {
+		return nil, nil, err
+	}
 	if err != nil {
 		user = &userapi.User{
 			ObjectMeta: metav1.ObjectMeta{Name: username},
@@ -93,8 +101,9 @@ func GetClientForUser(clusterAdminConfig *restclient.Config, username string) (k
 
 	randomToken := uuid.NewRandom()
 	accesstoken := base64.RawURLEncoding.EncodeToString([]byte(randomToken))
+	// make sure the token is long enough to pass validation
 	for i := len(accesstoken); i < 32; i++ {
-		accesstoken = accesstoken + "A"
+		accesstoken += "A"
 	}
 	token := &oauthapi.OAuthAccessToken{
 		ObjectMeta: metav1.ObjectMeta{Name: accesstoken},
@@ -106,7 +115,7 @@ func GetClientForUser(clusterAdminConfig *restclient.Config, username string) (k
 		return nil, nil, err
 	}
 
-	userClientConfig := restclient.AnonymousClientConfig(clusterAdminConfig)
+	userClientConfig := restclient.AnonymousClientConfig(turnOffRateLimiting(clusterAdminConfig))
 	userClientConfig.BearerToken = token.Name
 
 	kubeClientset, err := kclientset.NewForConfig(userClientConfig)
@@ -140,7 +149,7 @@ func GetScopedClientForUser(clusterAdminClientConfig *restclient.Config, usernam
 		return nil, nil, err
 	}
 
-	scopedConfig := restclient.AnonymousClientConfig(clusterAdminClientConfig)
+	scopedConfig := restclient.AnonymousClientConfig(turnOffRateLimiting(clusterAdminClientConfig))
 	scopedConfig.BearerToken = token.Name
 	kubeClient, err := kclientset.NewForConfig(scopedConfig)
 	if err != nil {
@@ -182,7 +191,7 @@ func GetClientForServiceAccount(adminClient kclientset.Interface, clientConfig r
 		return nil, nil, err
 	}
 
-	saClientConfig := restclient.AnonymousClientConfig(&clientConfig)
+	saClientConfig := restclient.AnonymousClientConfig(turnOffRateLimiting(&clientConfig))
 	saClientConfig.BearerToken = token
 
 	kubeClientset, err := kclientset.NewForConfig(saClientConfig)
@@ -193,7 +202,7 @@ func GetClientForServiceAccount(adminClient kclientset.Interface, clientConfig r
 	return kubeClientset, saClientConfig, nil
 }
 
-// WaitForResourceQuotaSync watches given resource quota until its hard limit is updated to match the desired
+// WaitForResourceQuotaLimitSync watches given resource quota until its hard limit is updated to match the desired
 // spec or timeout occurs.
 func WaitForResourceQuotaLimitSync(
 	client kcoreclient.ResourceQuotaInterface,
@@ -201,7 +210,6 @@ func WaitForResourceQuotaLimitSync(
 	hardLimit kapi.ResourceList,
 	timeout time.Duration,
 ) error {
-
 	startTime := time.Now()
 	endTime := startTime.Add(timeout)
 
@@ -259,4 +267,16 @@ func isLimitSynced(received, expected kapi.ResourceList) bool {
 		return false
 	}
 	return true
+}
+
+// turnOffRateLimiting reduces the chance that a flaky test can be written while using this package
+func turnOffRateLimiting(config *restclient.Config) *restclient.Config {
+	configCopy := *config
+	configCopy.QPS = 10000
+	configCopy.Burst = 10000
+	configCopy.RateLimiter = flowcontrol.NewFakeAlwaysRateLimiter()
+	// We do not set a timeout because that will cause watches to fail
+	// Integration tests are already limited to 5 minutes
+	// configCopy.Timeout = time.Minute
+	return &configCopy
 }
