@@ -16,11 +16,13 @@ func rangeList(str string) *user.RangeList {
 
 func TestCheckAllowedUser(t *testing.T) {
 	tests := []struct {
-		name        string
-		allowedUIDs *user.RangeList
-		user        string
-		onbuild     []string
-		expectErr   bool
+		name         string
+		allowedUIDs  *user.RangeList
+		user         string
+		onbuild      []string
+		expectErr    bool
+		assembleUser string
+		labels       map[string]string
 	}{
 		{
 			name:        "AllowedUIDs is not set",
@@ -117,14 +119,73 @@ func TestCheckAllowedUser(t *testing.T) {
 			onbuild:     []string{"RUN echo \"hello world\"", "USER 10:wheel"},
 			expectErr:   false,
 		},
+		{
+			name:         "AllowedUIDs is set, numeric user, assemble user override ok",
+			allowedUIDs:  rangeList("1-"),
+			user:         "200",
+			assembleUser: "10",
+			expectErr:    false,
+		},
+		{
+			name:         "AllowedUIDs is set, numeric user, root assemble user",
+			allowedUIDs:  rangeList("1-"),
+			user:         "200",
+			assembleUser: "0",
+			expectErr:    true,
+		},
+		{
+			name:        "AllowedUIDs is set, numeric user, assemble user label ok",
+			allowedUIDs: rangeList("1-"),
+			user:        "200",
+			labels:      map[string]string{AssembleUserLabel: "10"},
+			expectErr:   false,
+		},
+		{
+			name:        "AllowedUIDs is set, numeric user, assemble user label root",
+			allowedUIDs: rangeList("1-"),
+			user:        "200",
+			labels:      map[string]string{AssembleUserLabel: "0"},
+			expectErr:   true,
+		},
+		{
+			name:        "AllowedUIDs is set, root image user, assemble user label ok",
+			allowedUIDs: rangeList("1-"),
+			user:        "0",
+			labels:      map[string]string{AssembleUserLabel: "10"},
+			expectErr:   false,
+		},
+		{
+			name:         "AllowedUIDs is set, root image user, assemble user override ok",
+			allowedUIDs:  rangeList("1-"),
+			user:         "0",
+			assembleUser: "10",
+			expectErr:    false,
+		},
+		{
+			name:        "AllowedUIDs is set, root image user, onbuild root named user with group, assemble user label ok",
+			allowedUIDs: rangeList("1-"),
+			user:        "0",
+			labels:      map[string]string{AssembleUserLabel: "10"},
+			onbuild:     []string{"RUN echo \"hello world\"", "USER root:wheel", "RUN echo \"i am gROOT\"", "USER 10"},
+			expectErr:   true,
+		},
+		{
+			name:         "AllowedUIDs is set, root image user, onbuild root named user with group, assemble user override ok",
+			allowedUIDs:  rangeList("1-"),
+			user:         "0",
+			assembleUser: "10",
+			onbuild:      []string{"RUN echo \"hello world\"", "USER root:wheel", "RUN echo \"i am gROOT\"", "USER 10"},
+			expectErr:    true,
+		},
 	}
 
 	for _, tc := range tests {
 		docker := &FakeDocker{
 			GetImageUserResult: tc.user,
 			OnBuildResult:      tc.onbuild,
+			Labels:             tc.labels,
 		}
-		err := CheckAllowedUser(docker, "", *tc.allowedUIDs, len(tc.onbuild) > 0)
+		err := CheckAllowedUser(docker, "", *tc.allowedUIDs, len(tc.onbuild) > 0, tc.assembleUser)
 		if err != nil && !tc.expectErr {
 			t.Errorf("%s: unexpected error: %v", tc.name, err)
 		}

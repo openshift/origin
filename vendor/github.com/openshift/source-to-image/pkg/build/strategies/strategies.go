@@ -29,7 +29,8 @@ func Strategy(client docker.Client, config *api.Config, overrides build.Override
 
 	startTime := time.Now()
 
-	image, err := docker.GetBuilderImage(client, config)
+	dkr := docker.New(client, config.PullAuthentication)
+	image, err := docker.GetBuilderImage(dkr, config)
 	buildInfo.Stages = api.RecordStageAndStepInfo(buildInfo.Stages, api.StagePullImages, api.StepPullBuilderImage, startTime, time.Now())
 	if err != nil {
 		buildInfo.FailureReason = utilstatus.NewFailureReason(
@@ -40,7 +41,7 @@ func Strategy(client docker.Client, config *api.Config, overrides build.Override
 	}
 	config.HasOnBuild = image.OnBuild
 
-	if config.AssembleUser, err = docker.GetAssembleUser(client, config); err != nil {
+	if config.AssembleUser, err = docker.GetAssembleUser(dkr, config); err != nil {
 		buildInfo.FailureReason = utilstatus.NewFailureReason(
 			utilstatus.ReasonPullBuilderImageFailed,
 			utilstatus.ReasonMessagePullBuilderImageFailed,

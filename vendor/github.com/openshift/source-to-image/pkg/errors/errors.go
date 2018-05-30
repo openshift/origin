@@ -233,7 +233,27 @@ func NewUserNotAllowedError(image string, onbuild bool) error {
 	return Error{
 		Message:    msg,
 		ErrorCode:  UserNotAllowedError,
-		Suggestion: fmt.Sprintf("modify image %q to use a numeric user within the allowed range or build without the --allowed-uids flag", image),
+		Suggestion: fmt.Sprintf("modify image %q to use a numeric user within the allowed range, or build without the --allowed-uids flag", image),
+	}
+}
+
+// NewAssembleUserNotAllowedError returns a new error that indicates that the build
+// could not run because the build or image uses an assemble user outside of the range
+// of allowed users.
+func NewAssembleUserNotAllowedError(image string, usesConfig bool) error {
+	var msg, suggestion string
+	if usesConfig {
+		msg = "assemble user must be numeric and within the range of allowed users"
+		suggestion = "build without the allowed-uids or assemble-user configurations set"
+	} else {
+		assembleLabel := "io.openshift.s2i.assemble-user"
+		msg = fmt.Sprintf("image %q includes the %q label whose value is not within the allowed range", image, assembleLabel)
+		suggestion = fmt.Sprintf("modify the %q label in image %q to use a numeric user within the allowed range, or build without the allowed-uids configuration set", assembleLabel, image)
+	}
+	return Error{
+		Message:    msg,
+		ErrorCode:  UserNotAllowedError,
+		Suggestion: suggestion,
 	}
 }
 
