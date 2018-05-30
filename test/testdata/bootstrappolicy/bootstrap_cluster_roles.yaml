@@ -1812,6 +1812,7 @@ items:
   - apiGroups:
     - ""
     resources:
+    - imagestreams
     - limitranges
     - resourcequotas
     verbs:
