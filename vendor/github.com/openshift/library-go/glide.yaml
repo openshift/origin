@@ -6,6 +6,8 @@ import:
   version: kubernetes-1.10.2
 - package: k8s.io/apiserver
   version: kubernetes-1.10.2
+- package: k8s.io/apiextensions-apiserver
+  version: kubernetes-1.10.2
 - package: k8s.io/client-go
   version: kubernetes-1.10.2
 - package: github.com/openshift/api

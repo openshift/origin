@@ -1,8 +1,9 @@
 package cmd
 
 import (
-	"github.com/spf13/cobra"
 	"os"
+
+	"github.com/spf13/cobra"
 
 	"github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/api/describe"
@@ -46,8 +47,8 @@ func NewCmdRebuild(cfg *api.Config) *cobra.Command {
 
 			client, err := docker.NewEngineAPIClient(cfg.DockerConfig)
 			s2ierr.CheckError(err)
-
-			pr, err := docker.GetRebuildImage(client, cfg)
+			dkr := docker.New(client, cfg.PullAuthentication)
+			pr, err := docker.GetRebuildImage(dkr, cfg)
 			s2ierr.CheckError(err)
 			err = build.GenerateConfigFromLabels(cfg, pr)
 			s2ierr.CheckError(err)

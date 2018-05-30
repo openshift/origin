@@ -101,3 +101,26 @@ func ApplyConfigMap(client coreclientv1.ConfigMapsGetter, required *corev1.Confi
 	actual, err := client.ConfigMaps(required.Namespace).Update(existing)
 	return actual, true, err
 }
+
+// ApplySecret merges objectmeta, requires data
+func ApplySecret(client coreclientv1.SecretsGetter, required *corev1.Secret) (*corev1.Secret, bool, error) {
+	existing, err := client.Secrets(required.Namespace).Get(required.Name, metav1.GetOptions{})
+	if apierrors.IsNotFound(err) {
+		actual, err := client.Secrets(required.Namespace).Create(required)
+		return actual, true, err
+	}
+	if err != nil {
+		return nil, false, err
+	}
+
+	modified := resourcemerge.BoolPtr(false)
+	resourcemerge.EnsureObjectMeta(modified, &existing.ObjectMeta, required.ObjectMeta)
+	dataSame := equality.Semantic.DeepEqual(existing.Data, required.Data)
+	if dataSame && !*modified {
+		return existing, false, nil
+	}
+	existing.Data = required.Data
+
+	actual, err := client.Secrets(required.Namespace).Update(existing)
+	return actual, true, err
+}
