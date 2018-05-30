@@ -342,6 +342,10 @@ backend be_secure:{{$cfgIdx}}
   acl whitelist src {{ $ip_whiteList }}
   tcp-request content reject if !whitelist
     {{- end }}
+    {{- with $xff_whiteList := firstMatch $cidrListPattern (index $cfg.Annotations "haproxy.router.openshift.io/xff_whitelist") }}
+  acl xff_whitelist hdr(X-Forwarded-For) -m sub {{ $xff_whiteList }}
+  tcp-request content reject if !xff_whitelist
+    {{- end }}
     {{- with $value := firstMatch $timeSpecPattern (index $cfg.Annotations "haproxy.router.openshift.io/timeout")}}
   timeout server  {{$value}}
     {{- end }}
