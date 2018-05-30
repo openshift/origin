@@ -33,7 +33,7 @@ import (
 )
 
 var (
-	apiresources_example = templates.Examples(`
+	apiresourcesExample = templates.Examples(`
 		# Print the supported API Resources
 		kubectl api-resources
 
@@ -78,7 +78,7 @@ func NewCmdApiResources(f cmdutil.Factory, out io.Writer) *cobra.Command {
 		Use:     "api-resources",
 		Short:   "Print the supported API resources on the server",
 		Long:    "Print the supported API resources on the server",
-		Example: apiresources_example,
+		Example: apiresourcesExample,
 		Run: func(cmd *cobra.Command, args []string) {
 			cmdutil.CheckErr(options.Complete(cmd))
 			cmdutil.CheckErr(options.Validate(cmd))
@@ -108,7 +108,7 @@ func (o *ApiResourcesOptions) Validate(cmd *cobra.Command) error {
 		return fmt.Errorf("output must be one of '' or 'wide': %v", outputFormat)
 	}
 	if !supportedOutputTypes.Has(outputFormat) {
-		return fmt.Errorf("--output %v is not available in kubectl api-resources", outputFormat)
+		return fmt.Errorf("--output %v is not available", outputFormat)
 	}
 	return nil
 }
