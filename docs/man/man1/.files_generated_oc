@@ -118,6 +118,8 @@ oc-adm-uncordon.1
 oc-adm-verify-image-signature.1
 oc-adm.1
 oc-annotate.1
+oc-api-resources.1
+oc-api-versions.1
 oc-apply-edit-last-applied.1
 oc-apply-set-last-applied.1
 oc-apply-view-last-applied.1
