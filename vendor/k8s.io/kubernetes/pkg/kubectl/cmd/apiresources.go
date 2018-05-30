@@ -60,6 +60,7 @@ type ApiResourcesOptions struct {
 	Namespaced bool
 	Verbs      []string
 	NoHeaders  bool
+	Cached     bool
 }
 
 // groupResource contains the APIGroup and APIResource
@@ -89,6 +90,7 @@ func NewCmdApiResources(f cmdutil.Factory, out io.Writer) *cobra.Command {
 	cmd.Flags().StringVar(&options.APIGroup, "api-group", "", "Limit to resources in the specified API group.")
 	cmd.Flags().BoolVar(&options.Namespaced, "namespaced", true, "Namespaced indicates if a resource is namespaced or not.")
 	cmd.Flags().StringSliceVar(&options.Verbs, "verbs", options.Verbs, "Limit to resources that support the specified verbs.")
+	cmd.Flags().BoolVar(&options.Cached, "cached", options.Cached, "Use the cached list of resources if available.")
 	return cmd
 }
 
@@ -120,8 +122,10 @@ func (o *ApiResourcesOptions) RunApiResources(cmd *cobra.Command, f cmdutil.Fact
 		return err
 	}
 
-	// Always request fresh data from the server
-	discoveryclient.Invalidate()
+	if !o.Cached {
+		// Always request fresh data from the server
+		discoveryclient.Invalidate()
+	}
 
 	lists, err := discoveryclient.ServerPreferredResources()
 	if err != nil {
