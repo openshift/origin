@@ -158,6 +158,8 @@ func TestFrontProxy(t *testing.T) {
 				"openshift",
 				"openshift-infra",
 				"openshift-node",
+				"openshift-pv-recycler",
+				"openshift-system",
 			),
 		},
 	} {

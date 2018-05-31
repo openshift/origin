@@ -134,7 +134,7 @@ func newControllerContext(
 				ClientConfig:         rest.AnonymousClientConfig(clientConfig),
 				CoreClient:           kubeExternal.Core(),
 				AuthenticationClient: kubeExternal.Authentication(),
-				Namespace:            bootstrappolicy.DefaultOpenShiftInfraNamespace,
+				Namespace:            bootstrappolicy.DefaultOpenShiftSystemNamespace,
 			},
 		},
 		ExternalKubeInformers:   informers.GetExternalKubeInformers(),

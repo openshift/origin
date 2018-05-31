@@ -26,7 +26,7 @@ func TestBootstrappedConstraints(t *testing.T) {
 	expectedGroups, expectedUsers := getExpectedAccess()
 	expectedVolumes := []securityapi.FSType{securityapi.FSTypeEmptyDir, securityapi.FSTypeSecret, securityapi.FSTypeDownwardAPI, securityapi.FSTypeConfigMap, securityapi.FSTypePersistentVolumeClaim}
 
-	groups, users := GetBoostrapSCCAccess(DefaultOpenShiftInfraNamespace)
+	groups, users := GetBoostrapSCCAccess()
 	bootstrappedConstraints := GetBootstrapSecurityContextConstraints(groups, users)
 
 	if len(expectedConstraintNames) != len(bootstrappedConstraints) {
@@ -61,7 +61,7 @@ func TestBootstrappedConstraintsWithAddedUser(t *testing.T) {
 	expectedGroups, expectedUsers := getExpectedAccess()
 
 	// get default access and add our own user to it
-	groups, users := GetBoostrapSCCAccess(DefaultOpenShiftInfraNamespace)
+	groups, users := GetBoostrapSCCAccess()
 	users[SecurityContextConstraintPrivileged] = append(users[SecurityContextConstraintPrivileged], "foo")
 	bootstrappedConstraints := GetBootstrapSecurityContextConstraints(groups, users)
 
@@ -88,7 +88,7 @@ func getExpectedAccess() (map[string][]string, map[string][]string) {
 		SecurityContextConstraintRestricted: {AuthenticatedGroup},
 	}
 
-	buildControllerUsername := serviceaccount.MakeUsername(DefaultOpenShiftInfraNamespace, InfraBuildControllerServiceAccountName)
+	buildControllerUsername := serviceaccount.MakeUsername(DefaultOpenShiftSystemNamespace, InfraBuildControllerServiceAccountName)
 	pvRecyclerControllerUsername := serviceaccount.MakeUsername(DefaultOpenShiftInfraNamespace, InfraPersistentVolumeRecyclerControllerServiceAccountName)
 	users := map[string][]string{
 		SecurityContextConstraintPrivileged:         {SystemAdminUsername, buildControllerUsername},

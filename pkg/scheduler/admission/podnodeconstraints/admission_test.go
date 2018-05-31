@@ -77,7 +77,7 @@ func TestPodNodeConstraints(t *testing.T) {
 		{
 			config:           testConfig(),
 			resource:         nodeSelectorPod(),
-			userinfo:         serviceaccount.UserInfo("openshift-infra", "daemonset-controller", ""),
+			userinfo:         serviceaccount.UserInfo("openshift-system", "daemonset-controller", ""),
 			reviewResponse:   reviewResponse(true, ""),
 			expectedResource: "pods/binding",
 			expectedErrorMsg: "",
@@ -86,7 +86,7 @@ func TestPodNodeConstraints(t *testing.T) {
 		{
 			config:           testConfig(),
 			resource:         nodeNamePod(),
-			userinfo:         serviceaccount.UserInfo("openshift-infra", "daemonset-controller", ""),
+			userinfo:         serviceaccount.UserInfo("openshift-system", "daemonset-controller", ""),
 			reviewResponse:   reviewResponse(true, ""),
 			expectedResource: "pods/binding",
 			expectedErrorMsg: "",
@@ -464,7 +464,7 @@ func (a *fakeTestAuthorizer) Authorize(attributes authorizer.Attributes) (author
 		return authorizer.DecisionNoOpinion, "", fmt.Errorf("No valid UserInfo for Context")
 	}
 	// User with pods/bindings. permission:
-	if ui.GetName() == "system:serviceaccount:openshift-infra:daemonset-controller" {
+	if ui.GetName() == "system:serviceaccount:openshift-system:daemonset-controller" {
 		return authorizer.DecisionAllow, "", nil
 	}
 	// User without pods/bindings. permission:
