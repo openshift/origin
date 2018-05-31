@@ -1,6 +1,8 @@
-hash: 6af5571e1900f8e742914f2932b8c406f8e4c1db0a272f46334208b2d5e61cd1
-updated: 2018-05-24T10:28:32.466950996-04:00
+hash: 9326118fde05a9e8947a7335cf93b62e0892d7f5d300543f648646a96eb3c069
+updated: 2018-05-25T14:18:12.564619838-04:00
 imports:
+- name: github.com/blang/semver
+  version: b38d23b8782a487059e8fc8773e9a5b228a77cb6
 - name: github.com/certifi/gocertifi
   version: deb3ae2ef2610fde3330947281941c562861188b
 - name: github.com/davecgh/go-spew
@@ -126,7 +128,7 @@ imports:
   - storage/v1alpha1
   - storage/v1beta1
 - name: k8s.io/apiextensions-apiserver
-  version: da4bd3c07ca5294e56067dfbf971e82657f18858
+  version: e8ab413e0ae1e19df66d60088a1e11c97b73fdd9
   subpackages:
   - pkg/apis/apiextensions
   - pkg/apis/apiextensions/v1beta1

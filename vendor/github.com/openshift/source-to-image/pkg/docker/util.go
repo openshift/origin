@@ -272,56 +272,68 @@ func PullImage(name string, d Docker, policy api.PullPolicy) (*PullResult, error
 	return &PullResult{Image: image, OnBuild: d.IsImageOnBuild(name)}, err
 }
 
-// CheckAllowedUser retrieves the user for a Docker image and checks that user
-// against an allowed range of uids.
+// CheckAllowedUser retrieves the execution users for a Docker image and
+// checks that user against an allowed range of uids.
 // - If the range of users is not empty, then the user on the Docker image
 // needs to be a numeric user
 // - The user's uid must be contained by the range(s) specified by the uids
 // Rangelist
+// - If build image uses an assemble user (via a command override or an
+// image label), that user must be within the allowed range of uids.
 // - If the image contains ONBUILD instructions and those instructions also
-// contain a USER directive, then the user specified by that USER directive
+// contain any USER directives, then all users specified by those USER directives
 // must meet the uid range criteria as well.
-func CheckAllowedUser(d Docker, imageName string, uids user.RangeList, isOnbuild bool) error {
+func CheckAllowedUser(d Docker, imageName string, uids user.RangeList, isOnbuild bool, assembleUserConfig string) error {
 	if uids == nil || uids.Empty() {
 		return nil
 	}
-	imageUserSpec, err := d.GetImageUser(imageName)
-	if err != nil {
-		return err
-	}
-	imageUser := extractUser(imageUserSpec)
-	if !user.IsUserAllowed(imageUser, &uids) {
-		return s2ierr.NewUserNotAllowedError(imageName, false)
-	}
+
+	// OnBuild users always need to be checked for layered builds
+	// Only return error if a user is not allowed, otherwise continue
 	if isOnbuild {
-		cmds, err := d.GetOnBuild(imageName)
+		onBuildUsers, err := extractOnBuildUsers(d, imageName)
 		if err != nil {
 			return err
 		}
-		if !isOnbuildAllowed(cmds, &uids) {
-			return s2ierr.NewUserNotAllowedError(imageName, true)
+		for _, usr := range onBuildUsers {
+			if !user.IsUserAllowed(usr, &uids) {
+				return s2ierr.NewUserNotAllowedError(imageName, true)
+			}
 		}
 	}
+
+	// P1: Assemble user configuration
+	if len(assembleUserConfig) > 0 {
+		if !user.IsUserAllowed(assembleUserConfig, &uids) {
+			// Pass in the override, since assembleUser can come from the image label
+			return s2ierr.NewAssembleUserNotAllowedError(imageName, true)
+		}
+		return nil
+	}
+
+	// P2: Assemble user label in image
+	assembleUser, err := extractAssembleUser(d, imageName)
+	if err != nil {
+		return err
+	}
+	if len(assembleUser) > 0 {
+		if !user.IsUserAllowed(assembleUser, &uids) {
+			// Pass in the override, since assembleUser can come from the image label
+			return s2ierr.NewAssembleUserNotAllowedError(imageName, false)
+		}
+		return nil
+	}
+
+	// Default - image user
+	imageUser, err := extractImageUser(d, imageName)
+	if err != nil {
+		return err
+	}
+	if !user.IsUserAllowed(imageUser, &uids) {
+		return s2ierr.NewUserNotAllowedError(imageName, false)
+	}
+
 	return nil
-}
-
-var dockerLineDelim = regexp.MustCompile(`[\t\v\f\r ]+`)
-
-// isOnbuildAllowed checks a list of Docker ONBUILD instructions for user
-// directives. It ensures that any users specified by the directives falls
-// within the specified range list of users.
-func isOnbuildAllowed(directives []string, allowed *user.RangeList) bool {
-	for _, line := range directives {
-		parts := dockerLineDelim.Split(line, 2)
-		if strings.ToLower(parts[0]) != "user" {
-			continue
-		}
-		uname := extractUser(parts[1])
-		if !user.IsUserAllowed(uname, allowed) {
-			return false
-		}
-	}
-	return true
 }
 
 func extractUser(userSpec string) string {
@@ -330,6 +342,35 @@ func extractUser(userSpec string) string {
 		return strings.TrimSpace(parts[0])
 	}
 	return strings.TrimSpace(userSpec)
+}
+
+func extractImageUser(d Docker, imageName string) (string, error) {
+	imageUserSpec, err := d.GetImageUser(imageName)
+	if err != nil {
+		return "", err
+	}
+	imageUser := extractUser(imageUserSpec)
+	return imageUser, nil
+}
+
+var dockerLineDelim = regexp.MustCompile(`[\t\v\f\r ]+`)
+
+// extractOnBuildUsers checks a list of Docker ONBUILD instructions for user
+// directives. It returns a list of users specified in the ONBUILD directives.
+func extractOnBuildUsers(d Docker, imageName string) ([]string, error) {
+	cmds, err := d.GetOnBuild(imageName)
+	var users []string
+	if err != nil {
+		return users, err
+	}
+	for _, line := range cmds {
+		parts := dockerLineDelim.Split(line, 2)
+		if strings.ToLower(parts[0]) != "user" {
+			continue
+		}
+		users = append(users, extractUser(parts[1]))
+	}
+	return users, nil
 }
 
 // CheckReachable returns if the Docker daemon is reachable from s2i
@@ -344,7 +385,7 @@ func pullAndCheck(image string, docker Docker, pullPolicy api.PullPolicy, config
 		return nil, err
 	}
 
-	err = CheckAllowedUser(docker, image, config.AllowedUIDs, r.OnBuild)
+	err = CheckAllowedUser(docker, image, config.AllowedUIDs, r.OnBuild, config.AssembleUser)
 	if err != nil {
 		return nil, err
 	}
@@ -356,22 +397,20 @@ func pullAndCheck(image string, docker Docker, pullPolicy api.PullPolicy, config
 // make the Docker image specified as BuilderImage available locally. It
 // returns information about the base image, containing metadata necessary for
 // choosing the right STI build strategy.
-func GetBuilderImage(client Client, config *api.Config) (*PullResult, error) {
-	d := New(client, config.PullAuthentication)
-	return pullAndCheck(config.BuilderImage, d, config.BuilderPullPolicy, config)
+func GetBuilderImage(docker Docker, config *api.Config) (*PullResult, error) {
+	return pullAndCheck(config.BuilderImage, docker, config.BuilderPullPolicy, config)
 }
 
 // GetRebuildImage obtains the metadata information for the image specified in
 // a s2i rebuild operation. Assumptions are made that the build is available
 // locally since it should have been previously built.
-func GetRebuildImage(client Client, config *api.Config) (*PullResult, error) {
-	d := New(client, config.PullAuthentication)
-	return pullAndCheck(config.Tag, d, config.BuilderPullPolicy, config)
+func GetRebuildImage(docker Docker, config *api.Config) (*PullResult, error) {
+	return pullAndCheck(config.Tag, docker, config.BuilderPullPolicy, config)
 }
 
 // GetRuntimeImage processes the config and performs operations necessary to
 // make the Docker image specified as RuntimeImage available locally.
-func GetRuntimeImage(config *api.Config, docker Docker) error {
+func GetRuntimeImage(docker Docker, config *api.Config) error {
 	_, err := pullAndCheck(config.RuntimeImage, docker, config.RuntimeImagePullPolicy, config)
 	return err
 }
@@ -405,12 +444,15 @@ func GetDefaultDockerConfig() *api.DockerConfig {
 // This functions receives the config to check if the AssembleUser was defined in command line
 // If the cmd is blank, it tries to fetch the value from the Builder Image defined Label (assemble-user)
 // Otherwise it follows the common flow, using the USER defined in Dockerfile
-func GetAssembleUser(client Client, config *api.Config) (string, error) {
+func GetAssembleUser(docker Docker, config *api.Config) (string, error) {
 	if len(config.AssembleUser) > 0 {
 		return config.AssembleUser, nil
 	}
-	d := New(client, config.PullAuthentication)
-	imageData, err := d.GetLabels(config.BuilderImage)
+	return extractAssembleUser(docker, config.BuilderImage)
+}
+
+func extractAssembleUser(docker Docker, imageName string) (string, error) {
+	imageData, err := docker.GetLabels(imageName)
 	if err != nil {
 		return "", err
 	}

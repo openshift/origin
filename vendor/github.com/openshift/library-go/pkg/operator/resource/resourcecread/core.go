@@ -25,6 +25,14 @@ func ReadConfigMapV1OrDie(objBytes []byte) *corev1.ConfigMap {
 	return requiredObj.(*corev1.ConfigMap)
 }
 
+func ReadSecretV1OrDie(objBytes []byte) *corev1.Secret {
+	requiredObj, err := runtime.Decode(coreCodecs.UniversalDecoder(corev1.SchemeGroupVersion), objBytes)
+	if err != nil {
+		panic(err)
+	}
+	return requiredObj.(*corev1.Secret)
+}
+
 func ReadNamespaceV1OrDie(objBytes []byte) *corev1.Namespace {
 	requiredObj, err := runtime.Decode(coreCodecs.UniversalDecoder(corev1.SchemeGroupVersion), objBytes)
 	if err != nil {
