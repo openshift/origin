@@ -18,6 +18,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
@@ -83,6 +84,11 @@ var (
 	privkeyVolumeName = "external-host-private-key-volume"
 	privkeyName       = "router.pem"
 	privkeyPath       = secretsPath + "/" + privkeyName
+
+	defaultMutualTLSAuth = "none"
+	clientCertConfigDir  = "/etc/pki/tls/client-certs"
+	clientCertConfigCA   = "ca.pem"
+	clientCertConfigCRL  = "crl.pem"
 
 	defaultCertificatePath = path.Join(defaultCertificateDir, "tls.crt")
 )
@@ -237,6 +243,23 @@ type RouterConfig struct {
 	Threads int32
 
 	Local bool
+
+	// MutualTLSAuth controls access to the router using a mutually agreed
+	// upon TLS authentication mechanism (example client certificates).
+	// One of: required | optional | none  - the default is none.
+	MutualTLSAuth string
+
+	// MutualTLSAuthCA contains the CA certificates that will be used
+	// to verify a client's certificate.
+	MutualTLSAuthCA string
+
+	// MutualTLSAuthCRL contains the certificate revocation list used to
+	// verify a client's certificate.
+	MutualTLSAuthCRL string
+
+	// MutualTLSAuthFilter contains the value to filter requests based on
+	// a client certificate subject field substring match.
+	MutualTLSAuthFilter string
 }
 
 const (
@@ -271,6 +294,8 @@ func NewCmdRouter(f kcmdutil.Factory, parentName, name string, out, errout io.Wr
 		StatsPort:     defaultStatsPort,
 		HostNetwork:   true,
 		HostPorts:     true,
+
+		MutualTLSAuth: defaultMutualTLSAuth,
 	}
 
 	cmd := &cobra.Command{
@@ -325,15 +350,25 @@ func NewCmdRouter(f kcmdutil.Factory, parentName, name string, out, errout io.Wr
 	cmd.Flags().BoolVar(&cfg.Local, "local", cfg.Local, "If true, do not contact the apiserver")
 	cmd.Flags().Int32Var(&cfg.Threads, "threads", cfg.Threads, "Specifies the number of threads for the haproxy router.")
 
+	cmd.Flags().StringVar(&cfg.MutualTLSAuth, "mutual-tls-auth", cfg.MutualTLSAuth, "Controls access to the router using mutually agreed upon TLS configuration (example client certificates). You can choose one of 'required', 'optional', or 'none'. The default is none.")
+	cmd.Flags().StringVar(&cfg.MutualTLSAuthCA, "mutual-tls-auth-ca", cfg.MutualTLSAuthCA, "Optional path to a file containing one or more CA certificates used for mutual TLS authentication. The CA certificate[s] are used by the router to verify a client's certificate.")
+	cmd.Flags().StringVar(&cfg.MutualTLSAuthCRL, "mutual-tls-auth-crl", cfg.MutualTLSAuthCRL, "Optional path to a file containing the certificate revocation list used for mutual TLS authentication. The certificate revocation list is used by the router to verify a client's certificate.")
+	cmd.Flags().StringVar(&cfg.MutualTLSAuthFilter, "mutual-tls-auth-filter", cfg.MutualTLSAuthFilter, "Optional regular expression to filter the client certificates. If the client certificate subject field does _not_ match this regular expression, requests will be rejected by the router.")
+
 	cfg.Action.BindForOutput(cmd.Flags())
 	cmd.Flags().String("output-version", "", "The preferred API versions of the output objects")
 
 	return cmd
 }
 
+// generateMutualTLSSecretName generates a mutual TLS auth secret name.
+func generateMutualTLSSecretName(prefix string) string {
+	return fmt.Sprintf("%s-mutual-tls-auth", prefix)
+}
+
 // generateSecretsConfig generates any Secret and Volume objects, such
 // as SSH private keys, that are necessary for the router container.
-func generateSecretsConfig(cfg *RouterConfig, namespace string, defaultCert []byte, certName string) ([]*kapi.Secret, []kapi.Volume, []kapi.VolumeMount, error) {
+func generateSecretsConfig(cfg *RouterConfig, namespace, certName string, defaultCert, mtlsAuthCA, mtlsAuthCRL []byte) ([]*kapi.Secret, []kapi.Volume, []kapi.VolumeMount, error) {
 	var secrets []*kapi.Secret
 	var volumes []kapi.Volume
 	var mounts []kapi.VolumeMount
@@ -439,6 +474,42 @@ func generateSecretsConfig(cfg *RouterConfig, namespace string, defaultCert []by
 		MountPath: defaultCertificateDir,
 	}
 	mounts = append(mounts, mount)
+
+	mtlsSecretData := map[string][]byte{}
+	if len(mtlsAuthCA) > 0 {
+		mtlsSecretData[clientCertConfigCA] = mtlsAuthCA
+	}
+	if len(mtlsAuthCRL) > 0 {
+		mtlsSecretData[clientCertConfigCRL] = mtlsAuthCRL
+	}
+
+	if len(mtlsSecretData) > 0 {
+		secretName := generateMutualTLSSecretName(cfg.Name)
+		secret := &kapi.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: secretName,
+			},
+			Data: mtlsSecretData,
+		}
+		secrets = append(secrets, secret)
+
+		volume := kapi.Volume{
+			Name: "mutual-tls-config",
+			VolumeSource: kapi.VolumeSource{
+				Secret: &kapi.SecretVolumeSource{
+					SecretName: secretName,
+				},
+			},
+		}
+		volumes = append(volumes, volume)
+
+		mount := kapi.VolumeMount{
+			Name:      volume.Name,
+			ReadOnly:  true,
+			MountPath: clientCertConfigDir,
+		}
+		mounts = append(mounts, mount)
+	}
 
 	return secrets, volumes, mounts, nil
 }
@@ -608,6 +679,14 @@ func RunCmdRouter(f kcmdutil.Factory, cmd *cobra.Command, out, errout io.Writer,
 		if err != nil {
 			return fmt.Errorf("error getting client: %v", err)
 		}
+
+		if len(cfg.MutualTLSAuthCA) > 0 || len(cfg.MutualTLSAuthCRL) > 0 {
+			secretName := generateMutualTLSSecretName(cfg.Name)
+			if _, err := kClient.Core().Secrets(namespace).Get(secretName, metav1.GetOptions{}); err == nil {
+				return fmt.Errorf("router could not be created: mutual tls secret %q already exists", secretName)
+			}
+		}
+
 		service, err := kClient.Core().Services(namespace).Get(name, metav1.GetOptions{})
 		if err != nil {
 			if !generate {
@@ -658,6 +737,20 @@ func RunCmdRouter(f kcmdutil.Factory, cmd *cobra.Command, out, errout io.Writer,
 	defaultCert, err := fileutil.LoadData(cfg.DefaultCertificate)
 	if err != nil {
 		return fmt.Errorf("router could not be created; error reading default certificate file: %v", err)
+	}
+
+	mtlsAuthOptions := []string{"required", "optional", "none"}
+	allowedMutualTLSAuthOptions := sets.NewString(mtlsAuthOptions...)
+	if !allowedMutualTLSAuthOptions.Has(cfg.MutualTLSAuth) {
+		return fmt.Errorf("invalid mutual tls auth option %v, expected one of %v", cfg.MutualTLSAuth, mtlsAuthOptions)
+	}
+	mtlsAuthCA, err := fileutil.LoadData(cfg.MutualTLSAuthCA)
+	if err != nil {
+		return fmt.Errorf("reading ca certificates for mutual tls auth: %v", err)
+	}
+	mtlsAuthCRL, err := fileutil.LoadData(cfg.MutualTLSAuthCRL)
+	if err != nil {
+		return fmt.Errorf("reading certificate revocation list for mutual tls auth: %v", err)
 	}
 
 	if len(cfg.StatsPassword) == 0 {
@@ -719,6 +812,20 @@ func RunCmdRouter(f kcmdutil.Factory, cmd *cobra.Command, out, errout io.Writer,
 		env["ROUTER_METRICS_TLS_CERT_FILE"] = "/etc/pki/tls/metrics/tls.crt"
 		env["ROUTER_METRICS_TLS_KEY_FILE"] = "/etc/pki/tls/metrics/tls.key"
 	}
+	mtlsAuth := strings.TrimSpace(cfg.MutualTLSAuth)
+	if len(mtlsAuth) > 0 && mtlsAuth != defaultMutualTLSAuth {
+		env["ROUTER_MUTUAL_TLS_AUTH"] = cfg.MutualTLSAuth
+		if len(mtlsAuthCA) > 0 {
+			env["ROUTER_MUTUAL_TLS_AUTH_CA"] = path.Join(clientCertConfigDir, clientCertConfigCA)
+		}
+		if len(mtlsAuthCRL) > 0 {
+			env["ROUTER_MUTUAL_TLS_AUTH_CRL"] = path.Join(clientCertConfigDir, clientCertConfigCRL)
+		}
+		if len(cfg.MutualTLSAuthFilter) > 0 {
+			env["ROUTER_MUTUAL_TLS_AUTH_FILTER"] = strings.Replace(cfg.MutualTLSAuthFilter, " ", "\\ ", -1)
+		}
+	}
+
 	env.Add(secretEnv)
 	if len(defaultCert) > 0 {
 		if cfg.SecretsAsEnv {
@@ -729,7 +836,7 @@ func RunCmdRouter(f kcmdutil.Factory, cmd *cobra.Command, out, errout io.Writer,
 	}
 	env.Add(app.Environment{"DEFAULT_CERTIFICATE_DIR": defaultCertificateDir})
 	var certName = fmt.Sprintf("%s-certs", cfg.Name)
-	secrets, volumes, routerMounts, err := generateSecretsConfig(cfg, namespace, defaultCert, certName)
+	secrets, volumes, routerMounts, err := generateSecretsConfig(cfg, namespace, certName, defaultCert, mtlsAuthCA, mtlsAuthCRL)
 	if err != nil {
 		return fmt.Errorf("router could not be created: %v", err)
 	}

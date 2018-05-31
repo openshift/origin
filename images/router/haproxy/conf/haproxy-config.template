@@ -225,6 +225,9 @@ frontend fe_sni
     {{- if isTrue (env "ROUTER_STRICT_SNI") }} strict-sni {{ end }}
     {{- ""}} crt {{firstMatch ".+" .DefaultCertificate "/var/lib/haproxy/conf/default_pub_keys.pem"}}
     {{- ""}} crt-list /var/lib/haproxy/conf/cert_config.map accept-proxy
+    {{- with (env "ROUTER_MUTUAL_TLS_AUTH_CA") }} ca-file {{.}} {{ end }}
+    {{- with (env "ROUTER_MUTUAL_TLS_AUTH_CRL") }} crl-file {{.}} {{ end }}
+    {{- with (env "ROUTER_MUTUAL_TLS_AUTH") }} verify {{.}} {{ end }}
     {{- if isTrue (env "ROUTER_ENABLE_HTTP2") }} alpn h2,http/1.1{{ end }}
   mode http
 
@@ -234,6 +237,37 @@ frontend fe_sni
   # DNS labels are case insensitive (RFC 4343), we need to convert the hostname into lowercase
   # before matching, or any requests containing uppercase characters will never match.
   http-request set-header Host %[req.hdr(Host),lower]
+
+  {{ if ne (env "ROUTER_MUTUAL_TLS_AUTH" "none") "none" }}
+    {{- with (env "ROUTER_MUTUAL_TLS_AUTH_FILTER") }}
+  # If a mutual TLS auth subject filter environment variable is set, we deny
+  # requests if the DN field in the client certificate doesn't match that value.
+  # Please note that this match is a regular expression match.
+  # Example: For DN set to: /CN=header.test/ST=CA/C=US/O=Security/OU=OpenShift3,
+  #          A. ROUTER_MUTUAL_TLS_AUTH_FILTER="header.test"   OR
+  #             ROUTER_MUTUAL_TLS_AUTH_FILTER="head"          OR
+  #             ROUTER_MUTUAL_TLS_AUTH_FILTER="^/CN=header.test/ST=CA/C=US/O=Security/OU=OpenShift3$" /* exact match example */
+  #             the filter would match the DN field (substring or exact match)
+  #             and the request will be passed on to the backend.
+  #          B. ROUTER_MUTUAL_TLS_AUTH_FILTER="legacy-web-client", the request
+  #             will be rejected.
+  acl cert_cn_matches ssl_c_s_dn -m reg {{.}}
+  http-request deny unless cert_cn_matches
+    {{- end }}
+
+  # Add X-SSL* headers to pass client certificate information to the backend.
+  http-request set-header X-SSL                  %[ssl_fc]
+  http-request set-header X-SSL-Client-Verify    %[ssl_c_verify]
+  http-request set-header X-SSL-Client-Serial    %{+Q}[ssl_c_serial,hex]
+  http-request set-header X-SSL-Client-Version   %{+Q}[ssl_c_version]
+  http-request set-header X-SSL-Client-SHA1      %{+Q}[ssl_c_sha1,hex]
+  http-request set-header X-SSL-Client-DN        %{+Q}[ssl_c_s_dn]
+  http-request set-header X-SSL-Client-CN        %{+Q}[ssl_c_s_dn(cn)]
+  http-request set-header X-SSL-Issuer           %{+Q}[ssl_c_i_dn]
+  http-request set-header X-SSL-Client-NotBefore %{+Q}[ssl_c_notbefore]
+  http-request set-header X-SSL-Client-NotAfter  %{+Q}[ssl_c_notafter]
+  http-request set-header X-SSL-Client-DER       %{+Q}[ssl_c_der,base64]
+  {{- end }}
 
   # map to backend
   # Search from most specific to general path (host case).
@@ -261,6 +295,9 @@ backend be_no_sni
 frontend fe_no_sni
   # terminate ssl on edge
   bind 127.0.0.1:{{env "ROUTER_SERVICE_NO_SNI_PORT" "10443"}} ssl no-sslv3 crt {{firstMatch ".+" .DefaultCertificate "/var/lib/haproxy/conf/default_pub_keys.pem"}} accept-proxy
+    {{- with (env "ROUTER_MUTUAL_TLS_AUTH_CA") }} ca-file {{.}} {{ end }}
+    {{- with (env "ROUTER_MUTUAL_TLS_AUTH_CRL") }} crl-file {{.}} {{ end }}
+    {{- with (env "ROUTER_MUTUAL_TLS_AUTH") }} verify {{.}} {{ end }}
   mode http
 
   # Strip off Proxy headers to prevent HTTpoxy (https://httpoxy.org/)
@@ -270,6 +307,29 @@ frontend fe_no_sni
   # before matching, or any requests containing uppercase characters will never match.
   http-request set-header Host %[req.hdr(Host),lower]
 
+  {{ if ne (env "ROUTER_MUTUAL_TLS_AUTH" "none") "none" }}
+    {{- with (env "ROUTER_MUTUAL_TLS_AUTH_FILTER") }}
+  # If a mutual TLS auth subject filter environment variable is set, we deny
+  # requests if the DN field in the client certificate doesn't match that value.
+  # Please note that this match is a regular expression match.
+  # See the config section 'frontend fe_sni' for examples.
+  acl cert_cn_matches ssl_c_s_dn -m reg {{.}}
+  http-request deny unless cert_cn_matches
+    {{- end }}
+
+  # Add X-SSL* headers to pass client certificate information to the backend.
+  http-request set-header X-SSL                  %[ssl_fc]
+  http-request set-header X-SSL-Client-Verify    %[ssl_c_verify]
+  http-request set-header X-SSL-Client-Serial    %{+Q}[ssl_c_serial,hex]
+  http-request set-header X-SSL-Client-Version   %{+Q}[ssl_c_version]
+  http-request set-header X-SSL-Client-SHA1      %{+Q}[ssl_c_sha1,hex]
+  http-request set-header X-SSL-Client-DN        %{+Q}[ssl_c_s_dn]
+  http-request set-header X-SSL-Client-CN        %{+Q}[ssl_c_s_dn(cn)]
+  http-request set-header X-SSL-Issuer           %{+Q}[ssl_c_i_dn]
+  http-request set-header X-SSL-Client-NotBefore %{+Q}[ssl_c_notbefore]
+  http-request set-header X-SSL-Client-NotAfter  %{+Q}[ssl_c_notafter]
+  http-request set-header X-SSL-Client-DER       %{+Q}[ssl_c_der,base64]
+  {{- end }}
 
   # map to backend
   # Search from most specific to general path (host case).
