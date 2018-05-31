@@ -64,7 +64,7 @@ function generate_script_config() {
     if [[ "${port}" == "0" ]]; then
       echo "   script \"true\""
     else
-      echo "   script \"</dev/tcp/${serviceip}/${port}\""
+      echo "   script \"/bin/bash -c '</dev/tcp/${serviceip}/${port}'\""
     fi
   fi
 
