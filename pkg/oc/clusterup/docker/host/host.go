@@ -2,10 +2,7 @@ package host
 
 import (
 	"fmt"
-	"path"
 
-	"github.com/docker/docker/api/types"
-	"github.com/golang/glog"
 	"github.com/openshift/origin/pkg/oc/clusterup/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/oc/clusterup/docker/errors"
 	"github.com/openshift/origin/pkg/oc/clusterup/docker/run"
@@ -52,51 +49,6 @@ func (h *HostHelper) CanUseNsenterMounter() (bool, error) {
 		Entrypoint("/bin/bash").
 		Command("-c", cmdTestNsenterMount).Run()
 	return err == nil && rc == 0, err
-}
-
-func (h *HostHelper) CopyToHost(src, dst string) error {
-	containerID, err := h.runner().
-		Image(h.image).
-		DiscardContainer().
-		Privileged().
-		HostPid().
-		Bind("/:/rootfs:rw").
-		Entrypoint("/bin/bash").
-		Command("-c", fmt.Sprintf("mkdir -p /rootfs/%s && sleep infinity", dst)).Start()
-	if err != nil {
-		return err
-	}
-	defer func() {
-		h.client.ContainerStop(containerID, 1)
-		h.client.ContainerRemove(containerID, types.ContainerRemoveOptions{})
-	}()
-	err = dockerhelper.UploadFileToContainer(h.client, containerID, src, path.Join("/rootfs", dst))
-	if err != nil {
-		return err
-	}
-	glog.V(2).Infof("Succesfully copied %s to %s:%s", src, containerID, dst)
-	return nil
-}
-
-func (h *HostHelper) CopyFromHost(src, dst string) error {
-	containerID, err := h.runner().
-		Image(h.image).
-		DiscardContainer().
-		Privileged().
-		HostPid().
-		Bind("/:/rootfs:rw").
-		Entrypoint("/bin/bash").
-		Command("-c", "sleep infinity").Start()
-	if err != nil {
-		return err
-	}
-	defer h.client.ContainerStop(containerID, 1)
-	err = dockerhelper.DownloadDirFromContainer(h.client, containerID, src, path.Join("/rootfs", dst))
-	if err != nil {
-		return err
-	}
-	glog.V(2).Infof("Succesfully copied %s to %s:%s", src, containerID, dst)
-	return nil
 }
 
 // EnsureVolumeUseShareMount ensures that the host Docker VM has a shared directory that can be used

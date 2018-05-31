@@ -13,12 +13,12 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	kprinters "k8s.io/kubernetes/pkg/printers"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 )
 
 const (
@@ -74,7 +74,7 @@ func (o CreateBootstrapPolicyFileOptions) CreateBootstrapPolicyFile() error {
 		return err
 	}
 
-	policyTemplate := &templateapi.Template{}
+	policyList := &kapi.List{}
 	policy := bootstrappolicy.Policy()
 
 	for i := range policy.ClusterRoles {
@@ -82,7 +82,7 @@ func (o CreateBootstrapPolicyFileOptions) CreateBootstrapPolicyFile() error {
 		if err != nil {
 			return err
 		}
-		policyTemplate.Objects = append(policyTemplate.Objects, versionedObject)
+		policyList.Items = append(policyList.Items, versionedObject)
 	}
 
 	for i := range policy.ClusterRoleBindings {
@@ -90,7 +90,7 @@ func (o CreateBootstrapPolicyFileOptions) CreateBootstrapPolicyFile() error {
 		if err != nil {
 			return err
 		}
-		policyTemplate.Objects = append(policyTemplate.Objects, versionedObject)
+		policyList.Items = append(policyList.Items, versionedObject)
 	}
 
 	// iterate in a defined order
@@ -101,7 +101,7 @@ func (o CreateBootstrapPolicyFileOptions) CreateBootstrapPolicyFile() error {
 			if err != nil {
 				return err
 			}
-			policyTemplate.Objects = append(policyTemplate.Objects, versionedObject)
+			policyList.Items = append(policyList.Items, versionedObject)
 		}
 	}
 
@@ -113,17 +113,17 @@ func (o CreateBootstrapPolicyFileOptions) CreateBootstrapPolicyFile() error {
 			if err != nil {
 				return err
 			}
-			policyTemplate.Objects = append(policyTemplate.Objects, versionedObject)
+			policyList.Items = append(policyList.Items, versionedObject)
 		}
 	}
 
-	versionedPolicyTemplate, err := legacyscheme.Scheme.ConvertToVersion(policyTemplate, latest.Version)
+	versionedPolicyList, err := legacyscheme.Scheme.ConvertToVersion(policyList, latest.Version)
 	if err != nil {
 		return err
 	}
 
 	buffer := &bytes.Buffer{}
-	(&kprinters.JSONPrinter{}).PrintObj(versionedPolicyTemplate, buffer)
+	(&kprinters.JSONPrinter{}).PrintObj(versionedPolicyList, buffer)
 
 	if err := ioutil.WriteFile(o.File, buffer.Bytes(), 0644); err != nil {
 		return err

@@ -34,6 +34,9 @@ type DockerRegistryServiceControllerOptions struct {
 
 	DockercfgController *DockercfgController
 
+	// AdditionalRegistryURLs is a list of URLs that are always included
+	AdditionalRegistryURLs []string
+
 	// DockerURLsInitialized is used to send a signal to the DockercfgController that it has the correct set of docker urls
 	DockerURLsInitialized chan struct{}
 }
@@ -51,12 +54,13 @@ var serviceLocations = []serviceLocation{
 // NewDockerRegistryServiceController returns a new *DockerRegistryServiceController.
 func NewDockerRegistryServiceController(secrets informers.SecretInformer, serviceInformer informers.ServiceInformer, cl kclientset.Interface, options DockerRegistryServiceControllerOptions) *DockerRegistryServiceController {
 	e := &DockerRegistryServiceController{
-		client:                cl,
-		clusterDNSSuffix:      options.ClusterDNSSuffix,
-		dockercfgController:   options.DockercfgController,
-		registryLocationQueue: workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
-		secretsToUpdate:       workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
-		dockerURLsInitialized: options.DockerURLsInitialized,
+		client:                 cl,
+		additionalRegistryURLs: options.AdditionalRegistryURLs,
+		clusterDNSSuffix:       options.ClusterDNSSuffix,
+		dockercfgController:    options.DockercfgController,
+		registryLocationQueue:  workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
+		secretsToUpdate:        workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
+		dockerURLsInitialized:  options.DockerURLsInitialized,
 	}
 
 	// we're only watching two of these, but we already watch all services for the service serving cert signer
@@ -104,6 +108,8 @@ type DockerRegistryServiceController struct {
 
 	// clusterDNSSuffix is the suffix for in cluster DNS that can be added to service names
 	clusterDNSSuffix string
+	// additionalRegistryURLs is a list of URLs that are always included
+	additionalRegistryURLs []string
 
 	dockercfgController *DockercfgController
 
@@ -134,6 +140,9 @@ func (e *DockerRegistryServiceController) Run(workers int, stopCh <-chan struct{
 	defer utilruntime.HandleCrash()
 	defer e.registryLocationQueue.ShutDown()
 
+	glog.Infof("Starting DockerRegistryServiceController controller")
+	defer glog.Infof("Shutting down DockerRegistryServiceController controller")
+
 	// Wait for the store to sync before starting any work in this controller.
 	ready := make(chan struct{})
 	go e.waitForDockerURLs(ready, stopCh)
@@ -142,14 +151,13 @@ func (e *DockerRegistryServiceController) Run(workers int, stopCh <-chan struct{
 	case <-stopCh:
 		return
 	}
+	glog.V(1).Infof("caches synced")
 
-	glog.V(5).Infof("Starting workers")
 	go wait.Until(e.watchForDockerURLChanges, time.Second, stopCh)
 	for i := 0; i < workers; i++ {
 		go wait.Until(e.watchForDockercfgSecretUpdates, time.Second, stopCh)
 	}
 	<-stopCh
-	glog.V(1).Infof("Shutting down")
 }
 
 // enqueue adds to our queue.  We only have one entry, but we never have to check it since we already know the things
@@ -225,10 +233,11 @@ func (e *DockerRegistryServiceController) watchForDockerURLChanges() {
 
 // getDockerRegistryLocations returns the dns form and the ip form of the secret
 func (e *DockerRegistryServiceController) getDockerRegistryLocations() []string {
-	ret := []string{}
+	ret := append([]string{}, e.additionalRegistryURLs...)
 	for _, location := range serviceLocations {
 		ret = append(ret, getDockerRegistryLocations(e.serviceLister, location, e.clusterDNSSuffix)...)
 	}
+	glog.V(4).Infof("found docker registry urls: %v", ret)
 	return ret
 }
 
@@ -260,9 +269,10 @@ func (e *DockerRegistryServiceController) syncRegistryLocationChange() error {
 	newDockerRegistryLocations := sets.NewString(newLocations...)
 	existingURLs := e.getRegistryURLs()
 	if existingURLs.Equal(newDockerRegistryLocations) && e.initialSecretsCheckDone {
-		glog.V(4).Infof("No effective update: %v", newDockerRegistryLocations)
+		glog.V(3).Infof("No effective update: %v", newDockerRegistryLocations)
 		return nil
 	}
+	glog.V(1).Infof("Updating registry URLs from %v to %v", existingURLs, newDockerRegistryLocations)
 
 	// make sure that new dockercfg secrets get the correct locations
 	e.dockercfgController.SetDockerURLs(newDockerRegistryLocations.List()...)

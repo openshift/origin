@@ -17,9 +17,9 @@ import (
 // NEVER ADD TO THIS LIST
 // TODO kill this list
 var MissingCommands = sets.NewString(
-	"namespace", "rolling-update",
-	"cluster-info", "api-versions",
-	"stop",
+	"namespace",
+	"rolling-update",
+	"cluster-info",
 
 	// are on admin commands
 	"cordon",
@@ -30,12 +30,7 @@ var MissingCommands = sets.NewString(
 	"certificate",
 
 	// TODO commands to assess
-	"apiversions",
-	"clusterinfo",
-	"resize",
-	"rollingupdate",
 	"run-container",
-	"update",
 	"alpha",
 )
 

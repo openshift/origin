@@ -45,7 +45,11 @@ import:
   version: master
 - package: github.com/openshift/library-go
   version: master
+# master already branched for 3.11
 - package: github.com/openshift/service-serving-cert-signer
+  version: release-3.10
+# master already branched for 3.11
+- package: github.com/openshift/source-to-image
   version: release-3.10
 
 # forks third
@@ -72,10 +76,10 @@ import:
 - package: github.com/containers/image
   repo:    https://github.com/openshift/containers-image.git
   version: openshift-3.8
-# pod - sjenning
+# pod - sjenning - from branch openshift-3.10-runc-595bea0
 - package: github.com/opencontainers/runc
   repo:    https://github.com/openshift/opencontainers-runc.git
-  version: openshift-3.10-runc-595bea0
+  version: da78c1f1ff59f174e7307e9ff76e06308aefac4e
 # pod - sjenning
 - package: github.com/google/cadvisor
   repo:    https://github.com/openshift/google-cadvisor.git

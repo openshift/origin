@@ -19,7 +19,7 @@ func NewExperimentalCommand(out, errout io.Writer) *cobra.Command {
 		},
 	}
 
-	cmd.AddCommand(webconsole_operator.NewWebConsoleOperatorCommand(webconsole_operator.RecommendedWebConsoleOperatorName, out, errout))
+	cmd.AddCommand(webconsole_operator.NewWebConsoleOperatorCommand(webconsole_operator.RecommendedWebConsoleOperatorName))
 
 	return cmd
 }

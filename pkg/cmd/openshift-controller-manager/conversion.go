@@ -25,6 +25,14 @@ func ConvertMasterConfigToOpenshiftControllerConfig(input *configapi.MasterConfi
 	// deep copy to make sure no linger references are shared
 	in := input.DeepCopy()
 
+	registryURLs := []string{}
+	if len(in.ImagePolicyConfig.ExternalRegistryHostname) > 0 {
+		registryURLs = append(registryURLs, in.ImagePolicyConfig.ExternalRegistryHostname)
+	}
+	if len(in.ImagePolicyConfig.InternalRegistryHostname) > 0 {
+		registryURLs = append(registryURLs, in.ImagePolicyConfig.InternalRegistryHostname)
+	}
+
 	ret := &configapi.OpenshiftControllerConfig{
 		ClientConnectionOverrides: in.MasterClients.OpenShiftLoopbackClientConnectionOverrides,
 		ServingInfo:               &in.ServingInfo,
@@ -55,6 +63,9 @@ func ConvertMasterConfigToOpenshiftControllerConfig(input *configapi.MasterConfi
 		},
 		ServiceAccount: configapi.ServiceAccountControllerConfig{
 			ManagedNames: in.ServiceAccountConfig.ManagedNames,
+		},
+		DockerPullSecret: configapi.DockerPullSecretControllerConfig{
+			RegistryURLs: registryURLs,
 		},
 		Network: configapi.NetworkControllerConfig{
 			ClusterNetworks:    in.NetworkConfig.ClusterNetworks,

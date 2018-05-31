@@ -12,6 +12,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"math/big"
 	mathrand "math/rand"
@@ -221,7 +222,41 @@ type TLSCARoots struct {
 	Roots []*x509.Certificate
 }
 
-func (c *TLSCertificateConfig) writeCertConfig(certFile, keyFile string) error {
+func (c *TLSCertificateConfig) writeCertConfigFile(certFile, keyFile string) error {
+	// ensure parent dir
+	if err := os.MkdirAll(filepath.Dir(certFile), os.FileMode(0755)); err != nil {
+		return err
+	}
+	certFileWriter, err := os.OpenFile(certFile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+	if err != nil {
+		return err
+	}
+	if err := os.MkdirAll(filepath.Dir(keyFile), os.FileMode(0755)); err != nil {
+		return err
+	}
+	keyFileWriter, err := os.OpenFile(keyFile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+	if err != nil {
+		return err
+	}
+
+	if err := writeCertificates(certFileWriter, c.Certs...); err != nil {
+		return err
+	}
+	if err := writeKeyFile(keyFileWriter, c.Key); err != nil {
+		return err
+	}
+
+	if err := certFileWriter.Close(); err != nil {
+		return err
+	}
+	if err := keyFileWriter.Close(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *TLSCertificateConfig) WriteCertConfig(certFile, keyFile io.Writer) error {
 	if err := writeCertificates(certFile, c.Certs...); err != nil {
 		return err
 	}
@@ -230,6 +265,7 @@ func (c *TLSCertificateConfig) writeCertConfig(certFile, keyFile string) error {
 	}
 	return nil
 }
+
 func (c *TLSCertificateConfig) GetPEMBytes() ([]byte, []byte, error) {
 	certBytes, err := encodeCertificates(c.Certs...)
 	if err != nil {
@@ -421,21 +457,12 @@ func GetCA(certFile, keyFile, serialFile string) (*CA, error) {
 // if serialFile is empty, a RandomSerialGenerator will be used
 func MakeCA(certFile, keyFile, serialFile, name string, expireDays int) (*CA, error) {
 	glog.V(2).Infof("Generating new CA for %s cert, and key in %s, %s", name, certFile, keyFile)
-	// Create CA cert
-	rootcaPublicKey, rootcaPrivateKey, err := NewKeyPair()
+
+	caConfig, err := MakeCAConfig(name, expireDays)
 	if err != nil {
 		return nil, err
 	}
-	rootcaTemplate := newSigningCertificateTemplate(pkix.Name{CommonName: name}, expireDays, time.Now)
-	rootcaCert, err := signCertificate(rootcaTemplate, rootcaPublicKey, rootcaTemplate, rootcaPrivateKey)
-	if err != nil {
-		return nil, err
-	}
-	caConfig := &TLSCertificateConfig{
-		Certs: []*x509.Certificate{rootcaCert},
-		Key:   rootcaPrivateKey,
-	}
-	if err := caConfig.writeCertConfig(certFile, keyFile); err != nil {
+	if err := caConfig.writeCertConfigFile(certFile, keyFile); err != nil {
 		return nil, err
 	}
 
@@ -457,6 +484,24 @@ func MakeCA(certFile, keyFile, serialFile, name string, expireDays int) (*CA, er
 		SerialGenerator: serialGenerator,
 		Config:          caConfig,
 	}, nil
+}
+
+func MakeCAConfig(name string, expireDays int) (*TLSCertificateConfig, error) {
+	// Create CA cert
+	rootcaPublicKey, rootcaPrivateKey, err := NewKeyPair()
+	if err != nil {
+		return nil, err
+	}
+	rootcaTemplate := newSigningCertificateTemplate(pkix.Name{CommonName: name}, expireDays, time.Now)
+	rootcaCert, err := signCertificate(rootcaTemplate, rootcaPublicKey, rootcaTemplate, rootcaPrivateKey)
+	if err != nil {
+		return nil, err
+	}
+	caConfig := &TLSCertificateConfig{
+		Certs: []*x509.Certificate{rootcaCert},
+		Key:   rootcaPrivateKey,
+	}
+	return caConfig, nil
 }
 
 func (ca *CA) EnsureServerCert(certFile, keyFile string, hostnames sets.String, expireDays int) (*TLSCertificateConfig, bool, error) {
@@ -494,7 +539,7 @@ func (ca *CA) MakeAndWriteServerCert(certFile, keyFile string, hostnames sets.St
 	if err != nil {
 		return nil, err
 	}
-	if err := server.writeCertConfig(certFile, keyFile); err != nil {
+	if err := server.writeCertConfigFile(certFile, keyFile); err != nil {
 		return server, err
 	}
 	return server, nil
@@ -819,29 +864,27 @@ func encodeKey(key crypto.PrivateKey) ([]byte, error) {
 	return b.Bytes(), nil
 }
 
-func writeCertificates(path string, certs ...*x509.Certificate) error {
-	// ensure parent dir
-	if err := os.MkdirAll(filepath.Dir(path), os.FileMode(0755)); err != nil {
-		return err
-	}
-
+func writeCertificates(f io.Writer, certs ...*x509.Certificate) error {
 	bytes, err := encodeCertificates(certs...)
 	if err != nil {
 		return err
 	}
-	return ioutil.WriteFile(path, bytes, os.FileMode(0644))
-}
-func writeKeyFile(path string, key crypto.PrivateKey) error {
-	// ensure parent dir
-	if err := os.MkdirAll(filepath.Dir(path), os.FileMode(0755)); err != nil {
+	if _, err := f.Write(bytes); err != nil {
 		return err
 	}
 
-	b, err := encodeKey(key)
+	return nil
+}
+func writeKeyFile(f io.Writer, key crypto.PrivateKey) error {
+	bytes, err := encodeKey(key)
 	if err != nil {
 		return err
 	}
-	return ioutil.WriteFile(path, b, os.FileMode(0600))
+	if _, err := f.Write(bytes); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func stringsNotInSlice(needles []string, haystack []string) []string {

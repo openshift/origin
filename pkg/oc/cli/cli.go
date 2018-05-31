@@ -174,6 +174,8 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 				importer.NewCmdImport(fullName, f, in, out, errout),
 				image.NewCmdImage(fullName, f, in, out, errout),
 				registry.NewCmd(fullName, f, in, out, errout),
+				cmd.NewCmdApiVersions(fullName, f, out),
+				cmd.NewCmdApiResources(fullName, f, out),
 			},
 		},
 		{

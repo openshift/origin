@@ -4,14 +4,15 @@ import (
 	"fmt"
 
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	operatorsv1alpha1 "github.com/openshift/api/operator/v1alpha1"
 	webconsoleconfigv1 "github.com/openshift/api/webconsole/v1"
+	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
+	"github.com/openshift/library-go/pkg/operator/resource/resourcecread"
 	"github.com/openshift/origin/pkg/cmd/openshift-operators/apis/operators/v1alpha1helpers"
 	webconsolev1alpha1 "github.com/openshift/origin/pkg/cmd/openshift-operators/apis/webconsole/v1alpha1"
-	"github.com/openshift/origin/pkg/cmd/openshift-operators/util/resourceapply"
-	"github.com/openshift/origin/pkg/cmd/openshift-operators/util/resourceread"
 	"github.com/openshift/origin/pkg/cmd/openshift-operators/webconsole-operator/v310_00"
 )
 
@@ -24,28 +25,34 @@ func sync_v310_00_to_00(c WebConsoleOperator, operatorConfig *webconsolev1alpha1
 	errors := []error{}
 	var err error
 
-	_, err = ensureNamespace_v310_00_to_00(c)
+	requiredNamespace := resourceread.ReadNamespaceV1OrDie([]byte(v310_00.NamespaceYaml))
+	_, _, err = resourceapply.ApplyNamespace(c.corev1Client, requiredNamespace)
 	if err != nil {
 		errors = append(errors, err)
 	}
 
-	_, err = ensureService_v310_00_to_00(c)
+	requiredService := resourceread.ReadServiceV1OrDie([]byte(v310_00.ServiceYaml))
+	_, _, err = resourceapply.ApplyService(c.corev1Client, requiredService)
 	if err != nil {
 		errors = append(errors, err)
 	}
 
-	_, err = ensureServiceAccount_v310_00_to_00(c)
+	requiredSA := resourceread.ReadServiceAccountV1OrDie([]byte(v310_00.ServiceAccountYaml))
+	_, saModified, err := resourceapply.ApplyServiceAccount(c.corev1Client, requiredSA)
 	if err != nil {
 		errors = append(errors, err)
 	}
 
 	// TODO create a new configmap whenever the data value changes
-	configMapModified, err := ensureConfigMap_v310_00_to_00(c, operatorConfig.Spec)
+	_, configMapModified, err := ensureConfigMap_v310_00_to_00(c, operatorConfig.Spec)
 	if err != nil {
 		errors = append(errors, err)
 	}
 
 	forceDeployment := operatorConfig.ObjectMeta.Generation != operatorConfig.Status.ObservedGeneration
+	if saModified { // SA modification can cause new tokens
+		forceDeployment = true
+	}
 	if configMapModified {
 		forceDeployment = true
 	}
@@ -73,39 +80,24 @@ func sync_v310_00_to_00(c WebConsoleOperator, operatorConfig *webconsolev1alpha1
 	return versionAvailability, errors
 }
 
-func ensureNamespace_v310_00_to_00(c WebConsoleOperator) (bool, error) {
-	required := resourceread.ReadNamespaceOrDie([]byte(v310_00.NamespaceYaml))
-	return resourceapply.ApplyNamespace(c.corev1Client, required)
-}
-
-func ensureService_v310_00_to_00(c WebConsoleOperator) (bool, error) {
-	required := resourceread.ReadServiceOrDie([]byte(v310_00.ServiceYaml))
-	return resourceapply.ApplyService(c.corev1Client, required)
-}
-
-func ensureServiceAccount_v310_00_to_00(c WebConsoleOperator) (bool, error) {
-	required := resourceread.ReadServiceAccountOrDie([]byte(v310_00.ServiceAccountYaml))
-	return resourceapply.ApplyServiceAccount(c.corev1Client, required)
-}
-
-func ensureConfigMap_v310_00_to_00(c WebConsoleOperator, options webconsolev1alpha1.OpenShiftWebConsoleConfigSpec) (bool, error) {
+func ensureConfigMap_v310_00_to_00(c WebConsoleOperator, options webconsolev1alpha1.OpenShiftWebConsoleConfigSpec) (*corev1.ConfigMap, bool, error) {
 	requiredConfig, err := ensureWebConsoleConfig(v310_00.WebConsoleConfig, options)
 	if err != nil {
-		return false, err
+		return nil, false, err
 	}
 
 	newWebConsoleConfig, err := runtime.Encode(webconsoleCodecs.LegacyCodec(webconsoleconfigv1.SchemeGroupVersion), requiredConfig)
 	if err != nil {
-		return false, err
+		return nil, false, err
 	}
-	requiredConfigMap := resourceread.ReadConfigMapOrDie([]byte(v310_00.ConfigMapYaml))
+	requiredConfigMap := resourceread.ReadConfigMapV1OrDie([]byte(v310_00.ConfigMapYaml))
 	requiredConfigMap.Data[v310_00.ConfigConfigMapKey] = string(newWebConsoleConfig)
 
 	return resourceapply.ApplyConfigMap(c.corev1Client, requiredConfigMap)
 }
 
 func ensureDeployment_v310_00_to_00(c WebConsoleOperator, options *webconsolev1alpha1.OpenShiftWebConsoleConfig, previousAvailability *operatorsv1alpha1.VersionAvailablity, forceDeployment bool) (*appsv1.Deployment, bool, error) {
-	required := resourceread.ReadDeploymentOrDie([]byte(v310_00.DeploymentYaml))
+	required := resourceread.ReadDeploymentV1OrDie([]byte(v310_00.DeploymentYaml))
 	required.Spec.Template.Spec.Containers[0].Image = options.Spec.ImagePullSpec
 	required.Spec.Template.Spec.Containers[0].Args = append(required.Spec.Template.Spec.Containers[0].Args, fmt.Sprintf("-v=%d", options.Spec.Logging.Level))
 	required.Spec.Replicas = &options.Spec.Replicas

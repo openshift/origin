@@ -18,6 +18,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/config"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/resource"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
+	"k8s.io/kubernetes/pkg/kubectl/util/i18n"
 
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/oc/cli/cmd/create"
@@ -787,4 +788,40 @@ func NewCmdAuth(fullName string, f *clientcmd.Factory, out, errout io.Writer) *c
 
 func NewCmdPlugin(fullName string, f *clientcmd.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
 	return kcmd.NewCmdPlugin(f, in, out, errout)
+}
+
+var (
+	apiresourcesExample = templates.Examples(`
+		# Print the supported API Resources
+		%[1]s api-resources
+
+		# Print the supported API Resources with more information
+		%[1]s api-resources -o wide
+
+		# Print the supported namespaced resources
+		%[1]s api-resources --namespaced=true
+
+		# Print the supported non-namespaced resources
+		%[1]s api-resources --namespaced=false
+
+		# Print the supported API Resources with specific APIGroup
+		%[1]s api-resources --api-group=extensions`)
+)
+
+func NewCmdApiResources(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+	cmd := kcmd.NewCmdApiResources(f, out)
+	cmd.Example = fmt.Sprintf(apiresourcesExample, fullName)
+	return cmd
+}
+
+var (
+	apiversionsExample = templates.Examples(i18n.T(`
+		# Print the supported API versions
+		%[1]s api-versions`))
+)
+
+func NewCmdApiVersions(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+	cmd := kcmd.NewCmdApiVersions(f, out)
+	cmd.Example = fmt.Sprintf(apiversionsExample, fullName)
+	return cmd
 }

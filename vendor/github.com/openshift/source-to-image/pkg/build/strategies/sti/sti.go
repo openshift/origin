@@ -270,7 +270,7 @@ func (builder *STI) Prepare(config *api.Config) error {
 
 	if len(config.RuntimeImage) > 0 {
 		startTime := time.Now()
-		dockerpkg.GetRuntimeImage(config, builder.runtimeDocker)
+		dockerpkg.GetRuntimeImage(builder.runtimeDocker, config)
 		builder.result.BuildInfo.Stages = api.RecordStageAndStepInfo(builder.result.BuildInfo.Stages, api.StagePullImages, api.StepPullRuntimeImage, startTime, time.Now())
 
 		if err != nil {

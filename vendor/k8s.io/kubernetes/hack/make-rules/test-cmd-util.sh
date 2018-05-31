@@ -4837,6 +4837,11 @@ runTests() {
 
   record_command run_RESTMapper_evaluation_tests
 
+  # find all resources
+  kubectl "${kube_flags[@]}" api-resources
+  # find all namespaced resources that support list by name and get them
+  kubectl "${kube_flags[@]}" api-resources --verbs=list --namespaced -o name | xargs -n 1 kubectl "${kube_flags[@]}" get -o name
+
   ################
   # Cluster Role #
   ################

@@ -21,7 +21,6 @@ import (
 	"github.com/openshift/origin/pkg/api/v1"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 
 	// install all APIs
 	_ "github.com/openshift/origin/pkg/api/install"
@@ -40,11 +39,10 @@ func TestCreateBootstrapPolicyFile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	template := &templateapi.Template{}
-	if _, _, err := legacyscheme.Codecs.UniversalDecoder().Decode(data, nil, template); err != nil {
+	list := &api.List{}
+	if _, _, err := legacyscheme.Codecs.UniversalDecoder().Decode(data, nil, list); err != nil {
 		t.Fatal(err)
 	}
-	list := &api.List{Items: template.Objects}
 	testObjects(t, list, "bootstrap_policy_file.yaml")
 }
 

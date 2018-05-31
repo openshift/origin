@@ -300,6 +300,20 @@ func (np *networkPolicyPlugin) selectPods(npns *npNamespace, lsel *metav1.LabelS
 func (np *networkPolicyPlugin) parseNetworkPolicy(npns *npNamespace, policy *networking.NetworkPolicy) (*npPolicy, error) {
 	npp := &npPolicy{policy: *policy}
 
+	affectsIngress := false
+	for _, ptype := range policy.Spec.PolicyTypes {
+		if ptype == networking.PolicyTypeIngress {
+			affectsIngress = true
+		}
+	}
+	if !affectsIngress {
+		// The rest of this file assumes that all policies affect ingress: a policy that
+		// only affects egress is, for our purposes, equivalent to one that affects
+		// ingress but does not select any pods.
+		npp.selectedIPs = []string{""}
+		return npp, nil
+	}
+
 	var destFlows []string
 	if len(policy.Spec.PodSelector.MatchLabels) > 0 || len(policy.Spec.PodSelector.MatchExpressions) > 0 {
 		npp.watchesPods = true
@@ -345,7 +359,7 @@ func (np *networkPolicyPlugin) parseNetworkPolicy(npns *npNamespace, policy *net
 			peerFlows = []string{""}
 		}
 		for _, peer := range rule.From {
-			if peer.PodSelector != nil {
+			if peer.PodSelector != nil && peer.NamespaceSelector == nil {
 				if len(peer.PodSelector.MatchLabels) == 0 && len(peer.PodSelector.MatchExpressions) == 0 {
 					// The PodSelector is empty, meaning it selects all pods in this namespace
 					peerFlows = append(peerFlows, fmt.Sprintf("reg0=%d, ", npns.vnid))
@@ -355,7 +369,7 @@ func (np *networkPolicyPlugin) parseNetworkPolicy(npns *npNamespace, policy *net
 						peerFlows = append(peerFlows, fmt.Sprintf("reg0=%d, ip, nw_src=%s, ", npns.vnid, ip))
 					}
 				}
-			} else {
+			} else if peer.NamespaceSelector != nil && peer.PodSelector == nil {
 				if len(peer.NamespaceSelector.MatchLabels) == 0 && len(peer.NamespaceSelector.MatchExpressions) == 0 {
 					// The NamespaceSelector is empty, meaning it selects all namespaces
 					peerFlows = append(peerFlows, "")
