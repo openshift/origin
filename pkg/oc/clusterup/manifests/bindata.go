@@ -17209,8 +17209,8 @@ parameters:
   value: openshift-controller-manager
 - name: KUBE_SYSTEM
   value: kube-system
-- name: OPENSHIFT_INFRA
-  value: openshift-infra
+- name: OPENSHIFT_SYSTEM
+  value: openshift-system
 objects:
 
 - apiVersion: rbac.authorization.k8s.io/v1beta1
@@ -17291,7 +17291,7 @@ objects:
   kind: Role
   metadata:
     name: system:openshift:sa-creating-openshift-controller-manager
-    namespace: ${OPENSHIFT_INFRA}
+    namespace: ${OPENSHIFT_SYSTEM}
   rules:
   - apiGroups:
     - ""
@@ -17312,7 +17312,7 @@ objects:
 - apiVersion: rbac.authorization.k8s.io/v1
   kind: RoleBinding
   metadata:
-    namespace: ${OPENSHIFT_INFRA}
+    namespace: ${OPENSHIFT_SYSTEM}
     name: system:openshift:sa-creating-openshift-controller-manager
   roleRef:
     kind: Role
