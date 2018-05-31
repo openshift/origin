@@ -44,8 +44,8 @@ const (
 	serverNodeConfig        = serverConfigPath + "/node-" + defaultNodeName + "/node-config.yaml"
 	aggregatorKey           = "aggregator-front-proxy.key"
 	aggregatorCert          = "aggregator-front-proxy.crt"
-	aggregatorCACert        = "front-proxy-ca.crt"
-	aggregatorCAKey         = "front-proxy-ca.key"
+	aggregatorCACert        = "frontproxy-ca.crt"
+	aggregatorCAKey         = "frontproxy-ca.key"
 	aggregatorCASerial      = "frontend-proxy-ca.serial.txt"
 	aggregatorKeyPath       = serverConfigPath + "/master/" + aggregatorKey
 	aggregatorCertPath      = serverConfigPath + "/master/" + aggregatorCert
@@ -782,6 +782,7 @@ func (h *Helper) updateConfig(configDir string, opt *StartOptions) error {
 		cmdOutput := &bytes.Buffer{}
 		createSignerCertOptions := &admin.CreateSignerCertOptions{
 			CertFile:   cacertPath,
+			Name:       admin.DefaultFrontProxySignerName(),
 			KeyFile:    cakeyPath,
 			SerialFile: caserialPath,
 			Output:     cmdOutput,
