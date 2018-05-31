@@ -45,6 +45,7 @@ var AllValidators = []func([]util.Commit) error{
 	ValidateUpstreamCommitModifiesSingleGodepsRepo,
 	ValidateUpstreamCommitModifiesOnlyGodeps,
 	ValidateUpstreamCommitModifiesOnlyDeclaredGodepRepo,
+	ValidateUpstreamCommitModifiesOnlyKubernetes,
 }
 
 // ValidateUpstreamCommitsWithoutGodepsChanges returns an error if any
@@ -121,6 +122,31 @@ func ValidateUpstreamCommitModifiesOnlyGodeps(commits []util.Commit) error {
 	}
 	if len(problemCommits) > 0 {
 		label := "The following UPSTREAM commits modify files outside Godeps"
+		msg := renderGodepFilesError(label, problemCommits, RenderAllFiles)
+		return fmt.Errorf(msg)
+	}
+	return nil
+}
+
+// ValidateUpstreamCommitModifiesOnlyKubernetes ensures that an
+// upstream commit doesn't modify any code outside of kube/kube.
+func ValidateUpstreamCommitModifiesOnlyKubernetes(commits []util.Commit) error {
+	problemCommits := []util.Commit{}
+	for _, commit := range commits {
+		if commit.DeclaresUpstreamChange() {
+			reposChanged, err := commit.GodepsReposChanged()
+			if err != nil {
+				return err
+			}
+			for _, changedRepo := range reposChanged {
+				if !strings.Contains(changedRepo, "k8s.io/kubernetes") {
+					problemCommits = append(problemCommits, commit)
+				}
+			}
+		}
+	}
+	if len(problemCommits) > 0 {
+		label := "The following UPSTREAM commits modify vendored repos other than k8s.io/kubernetes"
 		msg := renderGodepFilesError(label, problemCommits, RenderAllFiles)
 		return fmt.Errorf(msg)
 	}
