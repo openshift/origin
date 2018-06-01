@@ -56,8 +56,12 @@ func (p *PackageList) Add(pkg Package) {
 // Any errors that occur for import paths listed in ignoredPaths are non-fatal.
 // Any errors that occur for any other import paths will result in a fatal error.
 // Returns a PackageList containing dependency and importPath data for each package.
-func getPackageMetadata(entrypoints []string, ignoredPaths []string) (*PackageList, error) {
+func getPackageMetadata(entrypoints, ignoredPaths, buildTags []string) (*PackageList, error) {
 	args := []string{"list", "-e", "--json"}
+	if len(buildTags) > 0 {
+		args = append(args, append([]string{"--tags"}, buildTags...)...)
+	}
+
 	golist := exec.Command("go", append(args, entrypoints...)...)
 
 	r, w := io.Pipe()
