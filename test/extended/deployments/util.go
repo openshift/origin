@@ -522,7 +522,13 @@ func failureTrap(oc *exutil.CLI, name string, failed bool) {
 	if !failed {
 		return
 	}
-	out, err := oc.Run("get").Args("dc/"+name, "-o", "yaml").Output()
+	out, err := oc.Run("describe").Args("dc/" + name).Output()
+	if err != nil {
+		e2e.Logf("Error describing Deployment Config %s: %v", name, err)
+		return
+	}
+	e2e.Logf("\n%s\n", out)
+	out, err = oc.Run("get").Args("dc/"+name, "-o", "yaml").Output()
 	if err != nil {
 		e2e.Logf("Error getting Deployment Config %s: %v", name, err)
 		return
@@ -541,6 +547,9 @@ func failureTrap(oc *exutil.CLI, name string, failed bool) {
 		}
 		e2e.Logf("\n%s\n", out)
 	}
+	if len(rcs) == 0 {
+		e2e.Logf("--> DeploymentConfig %s has no replication controller", name)
+	}
 	p, _ := deploymentPods(pods)
 	for _, v := range p {
 		for _, pod := range v {
@@ -553,6 +562,9 @@ func failureTrap(oc *exutil.CLI, name string, failed bool) {
 			out, _ = oc.Run("logs").Args("pod/"+pod.Name, "--timestamps=true").Output()
 			e2e.Logf("--- pod %s logs\n%s---\n", pod.Name, out)
 		}
+	}
+	if len(p) == 0 {
+		e2e.Logf("--> DeploymentConfig %s has no deployer pods", name)
 	}
 
 	for _, pod := range pods {
