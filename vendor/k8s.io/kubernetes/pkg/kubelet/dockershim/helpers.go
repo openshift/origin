@@ -322,13 +322,12 @@ func ensureSandboxImageExists(client libdocker.Interface, image string) error {
 		return fmt.Errorf("failed to inspect sandbox image %q: %v", image, err)
 	}
 
-	repoToPull, _, _, err := parsers.ParseImageName(image)
-	if err != nil {
+	if _, _, _, err := parsers.ParseImageName(image); err != nil {
 		return err
 	}
 
 	keyring := credentialprovider.NewDockerKeyring()
-	creds, withCredentials := keyring.Lookup(repoToPull)
+	creds, withCredentials := keyring.Lookup(image)
 	if !withCredentials {
 		glog.V(3).Infof("Pulling image %q without credentials", image)
 

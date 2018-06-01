@@ -31,8 +31,7 @@ import (
 // secrets if necessary.
 func (m *kubeGenericRuntimeManager) PullImage(image kubecontainer.ImageSpec, pullSecrets []v1.Secret) (string, error) {
 	img := image.Image
-	repoToPull, _, _, err := parsers.ParseImageName(img)
-	if err != nil {
+	if _, _, _, err := parsers.ParseImageName(img); err != nil {
 		return "", err
 	}
 
@@ -42,7 +41,7 @@ func (m *kubeGenericRuntimeManager) PullImage(image kubecontainer.ImageSpec, pul
 	}
 
 	imgSpec := &runtimeapi.ImageSpec{Image: img}
-	creds, withCredentials := keyring.Lookup(repoToPull)
+	creds, withCredentials := keyring.Lookup(imgSpec.Image)
 	if !withCredentials {
 		glog.V(3).Infof("Pulling image %q without credentials", img)
 
