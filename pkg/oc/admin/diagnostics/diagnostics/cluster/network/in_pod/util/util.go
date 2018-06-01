@@ -37,29 +37,15 @@ const (
 	NetworkDiagDefaultTestPodPort     = 8080
 )
 
-func trimRegistryPath(image string) string {
-	// Image format could be: [<dns-name>/]openshift/origin-deployer[:<tag>]
-	// Return image without registry dns: openshift/origin-deployer[:<tag>]
-	tokens := strings.Split(image, "/")
-	sz := len(tokens)
-	trimmedImage := image
-	if sz >= 2 {
-		trimmedImage = fmt.Sprintf("%s/%s", tokens[sz-2], tokens[sz-1])
-	}
-	return trimmedImage
-}
-
 func GetNetworkDiagDefaultPodImage() string {
 	imageTemplate := variable.NewDefaultImageTemplate()
 	imageTemplate.Format = variable.DefaultImagePrefix + ":${version}"
-	image := imageTemplate.ExpandOrDie("")
-	return trimRegistryPath(image)
+	return imageTemplate.ExpandOrDie("")
 }
 
 func GetNetworkDiagDefaultTestPodImage() string {
 	imageTemplate := variable.NewDefaultImageTemplate()
-	image := imageTemplate.ExpandOrDie("deployer")
-	return trimRegistryPath(image)
+	return imageTemplate.ExpandOrDie("deployer")
 }
 
 func GetOpenShiftNetworkPlugin(clusterNetworkClient networktypedclient.ClusterNetworksGetter) (string, bool, error) {
