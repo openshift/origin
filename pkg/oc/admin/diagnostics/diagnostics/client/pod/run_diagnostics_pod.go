@@ -17,13 +17,13 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	poddiag "github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/client/pod/in_pod"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/types"
+	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/util"
 	osclientcmd "github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
 const (
-	DiagnosticPodName  = "DiagnosticPod"
-	ImageTemplateParam = "images"
-	LatestImageParam   = "latest-images"
+	DiagnosticPodName      = "DiagnosticPod"
+	FlagDiagnosticPodImage = "images"
 )
 
 // DiagnosticPod is a diagnostic that runs a diagnostic pod and relays the results.
@@ -33,7 +33,7 @@ type DiagnosticPod struct {
 	Level               int
 	Factory             *osclientcmd.Factory
 	PreventModification bool
-	ImageTemplate       variable.ImageTemplate
+	Image               string
 }
 
 var _ types.ParameterizedDiagnostic = (*DiagnosticPod)(nil)
@@ -54,8 +54,7 @@ func (d *DiagnosticPod) Requirements() (client bool, host bool) {
 
 func (d *DiagnosticPod) AvailableParameters() []types.Parameter {
 	return []types.Parameter{
-		{ImageTemplateParam, "Image template to use in creating a pod", &d.ImageTemplate.Format, variable.NewDefaultImageTemplate().Format},
-		{LatestImageParam, "If true, when expanding the image template, use latest version, not release version", &d.ImageTemplate.Latest, false},
+		{FlagDiagnosticPodImage, "Image to use for diagnostic pod", &d.Image, getDefaultImage()},
 	}
 }
 
@@ -79,7 +78,10 @@ func (d *DiagnosticPod) runDiagnosticPod(r types.DiagnosticResult) {
 	if loglevel > 2 {
 		loglevel = 2 // need to show summary at least
 	}
-	imageName := d.ImageTemplate.ExpandOrDie("deployer")
+
+	if len(d.Image) == 0 {
+		d.Image = getDefaultImage()
+	}
 	pod, err := d.KubeClient.Core().Pods(d.Namespace).Create(&kapi.Pod{
 		ObjectMeta: metav1.ObjectMeta{GenerateName: "pod-diagnostic-test-"},
 		Spec: kapi.PodSpec{
@@ -87,14 +89,14 @@ func (d *DiagnosticPod) runDiagnosticPod(r types.DiagnosticResult) {
 			Containers: []kapi.Container{
 				{
 					Name:    "pod-diagnostics",
-					Image:   imageName,
+					Image:   d.Image,
 					Command: []string{"oc", "adm", "diagnostics", poddiag.InPodDiagnosticRecommendedName, "-l", strconv.Itoa(loglevel)},
 				},
 			},
 		},
 	})
 	if err != nil {
-		r.Error("DCli2001", err, fmt.Sprintf("Creating diagnostic pod with image %s failed. Error: (%[2]T) %[2]v", imageName, err))
+		r.Error("DCli2001", err, fmt.Sprintf("Creating diagnostic pod with image %s failed. Error: (%[2]T) %[2]v", d.Image, err))
 		return
 	}
 
@@ -108,7 +110,7 @@ func (d *DiagnosticPod) runDiagnosticPod(r types.DiagnosticResult) {
 		done <- true
 	}()
 	go func() {
-		d.processDiagnosticPodResults(pod, imageName, r)
+		d.processDiagnosticPodResults(pod, r)
 		done <- true
 	}()
 
@@ -122,13 +124,13 @@ func (d *DiagnosticPod) runDiagnosticPod(r types.DiagnosticResult) {
 	}
 }
 
-func (d *DiagnosticPod) processDiagnosticPodResults(protoPod *kapi.Pod, imageName string, r types.DiagnosticResult) {
+func (d *DiagnosticPod) processDiagnosticPodResults(protoPod *kapi.Pod, r types.DiagnosticResult) {
 	pod, err := d.KubeClient.Core().Pods(d.Namespace).Get(protoPod.ObjectMeta.Name, metav1.GetOptions{}) // status is filled in post-create
 	if err != nil {
 		r.Error("DCli2003", err, fmt.Sprintf("Retrieving the diagnostic pod definition failed. Error: (%T) %[1]v", err))
 		return
 	}
-	r.Debug("DCli2004", fmt.Sprintf("Created diagnostic pod named %v running image %s.", pod.ObjectMeta.Name, imageName))
+	r.Debug("DCli2004", fmt.Sprintf("Created diagnostic pod named %v running image %s.", pod.ObjectMeta.Name, d.Image))
 
 	bytelim := int64(1024000)
 	podLogsOpts := &kapi.PodLogOptions{
@@ -195,7 +197,13 @@ func (d *DiagnosticPod) processDiagnosticPodResults(protoPod *kapi.Pod, imageNam
 		} else if warnings > 0 {
 			r.Warn("DCli2013", nil, "See the warnings below in the output from the diagnostic pod:\n"+podLogs)
 		} else {
-			r.Info("DCli2008", fmt.Sprintf("Output from the diagnostic pod (image %s):\n", imageName)+podLogs)
+			r.Info("DCli2008", fmt.Sprintf("Output from the diagnostic pod (image %s):\n", d.Image)+podLogs)
 		}
 	}
+}
+
+func getDefaultImage() string {
+	imageTemplate := variable.NewDefaultImageTemplate()
+	image := imageTemplate.ExpandOrDie("deployer")
+	return util.TrimRegistryPath(image)
 }
