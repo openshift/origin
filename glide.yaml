@@ -163,6 +163,9 @@ import:
 # auth (for sally)
 - package: github.com/gorilla/sessions
   version: a3acf13e802c358d65f249324d14ed24aac11370
+# auth (for oc kerberos on linux + mac)
+- package: github.com/apcera/gssapi
+  version: release-2.6.3
 # new-app
 - package: github.com/joho/godotenv
   version: 6d367c18edf6ca7fd004efd6863e4c5728fa858e
