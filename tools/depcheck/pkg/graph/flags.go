@@ -28,6 +28,8 @@ type GraphOptions struct {
 	Excludes []string
 	// Filters are package go-import paths. Any package paths nested under these are truncated.
 	Filters []string
+	// BuildTags match files containing conditional compilation flags to be included during package traversal
+	BuildTags []string
 }
 
 func (o *GraphOptions) Complete() error {
@@ -134,6 +136,7 @@ type GraphFlags struct {
 
 	RepoImportPath string
 	Entrypoints    []string
+	BuildTags      []string
 }
 
 // calculate roots receives a set of entrypoints and traverses through
@@ -144,6 +147,7 @@ func (o *GraphFlags) calculateRoots(excludes []string) ([]string, error) {
 	packages, err := getPackageMetadata(
 		o.Entrypoints,
 		excludes,
+		o.BuildTags,
 	)
 	if err != nil {
 		return nil, err
@@ -158,7 +162,9 @@ func (o *GraphFlags) calculateRoots(excludes []string) ([]string, error) {
 }
 
 func (o *GraphFlags) ToOptions(out, errout io.Writer) (*GraphOptions, error) {
-	opts := &GraphOptions{}
+	opts := &GraphOptions{
+		BuildTags: o.BuildTags,
+	}
 
 	if len(o.RepoImportPath) == 0 {
 		return nil, errors.New("the go-import path for the repository must be specified via --root")
@@ -212,6 +218,7 @@ func (o *GraphFlags) ToOptions(out, errout io.Writer) (*GraphOptions, error) {
 	packages, err := getPackageMetadata(
 		ensureVendorEntrypoint(o.Entrypoints, o.RepoImportPath),
 		opts.Excludes,
+		opts.BuildTags,
 	)
 	if err != nil {
 		return nil, err
@@ -233,6 +240,7 @@ func (o *GraphFlags) AddFlags(cmd *cobra.Command) {
 	cmd.Flags().BoolVar(&o.Openshift, "openshift", o.Openshift, "generate and use OpenShift-specific lists of excluded packages and filters.")
 	cmd.Flags().StringVar(&o.RepoImportPath, "root", o.RepoImportPath, "Go import-path of repository to analyze (e.g. github.com/openshift/origin)")
 	cmd.Flags().StringSliceVar(&o.Entrypoints, "entry", o.Entrypoints, "filepaths for packages within the specified --root relative to the repo's import path (e.g. ./cmd/...). Paths ending in an ellipsis (...) are traversed recursively.")
+	cmd.Flags().StringSliceVar(&o.BuildTags, "tag", o.BuildTags, "list of build tags (not matching target system) of files to include during Go package traversal.")
 	cmd.Flags().StringVarP(&o.Exclude, "exclude", "e", "", "optional path to json file containing a list of import-paths of packages within the specified repository to recursively exclude.")
 	cmd.Flags().StringVarP(&o.Filter, "filter", "c", "", "optional path to json file containing a list of import-paths of packages to collapse sub-packages into.")
 }
