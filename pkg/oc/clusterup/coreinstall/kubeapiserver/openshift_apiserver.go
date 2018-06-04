@@ -36,6 +36,17 @@ func MakeOpenShiftAPIServerConfig(existingMasterConfig string, routingSuffix, ba
 	// hardcode the route suffix to the old default.  If anyone wants to change it, they can modify their config.
 	masterconfig.RoutingConfig.Subdomain = routingSuffix
 
+	// default openshift image policy admission
+	if masterconfig.AdmissionConfig.PluginConfig == nil {
+		masterconfig.AdmissionConfig.PluginConfig = map[string]*configapi.AdmissionPluginConfig{}
+	}
+
+	// Add default ImagePolicyConfig into openshift api master config
+	policyConfig := runtime.Unknown{Raw: []byte(`{"kind":"ImagePolicyConfig","apiVersion":"v1","executionRules":[{"name":"execution-denied",
+"onResources":[{"resource":"pods"},{"resource":"builds"}],"reject":true,"matchImageAnnotations":[{"key":"images.openshift.io/deny-execution",
+"value":"true"}],"skipOnResolutionFailure":true}]}`)}
+	masterconfig.AdmissionConfig.PluginConfig["openshift.io/ImagePolicy"] = &configapi.AdmissionPluginConfig{Configuration: &policyConfig}
+
 	configBytes, err := configapilatest.WriteYAML(masterconfig)
 	if err != nil {
 		return "", err
