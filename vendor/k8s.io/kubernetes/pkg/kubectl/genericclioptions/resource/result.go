@@ -204,7 +204,7 @@ func (r *Result) ResourceMapping() (*meta.RESTMapping, error) {
 			return nil, fmt.Errorf("a resource mapping could not be loaded from %v", reflect.TypeOf(r.sources[i]))
 		}
 		mapping := m.ResourceMapping()
-		mappings[mapping.Resource] = mapping
+		mappings[mapping.GroupVersionKind.GroupVersion().WithResource(mapping.Resource)] = mapping
 	}
 	if len(mappings) != 1 {
 		return nil, fmt.Errorf("expected only a single resource type")

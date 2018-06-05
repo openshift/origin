@@ -22,7 +22,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
-	"k8s.io/client-go/restmapper"
+	// "k8s.io/client-go/restmapper"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 )
@@ -53,9 +53,9 @@ func (f *TestConfigFlags) ToRESTMapper() (meta.RESTMapper, error) {
 		return f.restMapper, nil
 	}
 	if f.discoveryClient != nil {
-		mapper := restmapper.NewDeferredDiscoveryRESTMapper(f.discoveryClient)
-		expander := restmapper.NewShortcutExpander(mapper, f.discoveryClient)
-		return expander, nil
+		// mapper := restmapper.NewDeferredDiscoveryRESTMapper(f.discoveryClient)
+		// expander := restmapper.NewShortcutExpander(mapper, f.discoveryClient)
+		return nil, nil
 	}
 	return nil, fmt.Errorf("no restmapper")
 }

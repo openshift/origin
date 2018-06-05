@@ -34,7 +34,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/client-go/restmapper"
+	// "k8s.io/client-go/restmapper"
 )
 
 var FileExtensions = []string{".json", ".yaml", ".yml"}
@@ -42,11 +42,29 @@ var InputExtensions = append(FileExtensions, "stdin")
 
 const defaultHttpGetAttempts int = 3
 
+// CategoryExpander maps category strings to GroupResouces.
+// Categories are classification or 'tag' of a group of resources.
+type CategoryExpander interface {
+	Expand(category string) ([]schema.GroupResource, bool)
+}
+
+// SimpleCategoryExpander implements CategoryExpander interface
+// using a static mapping of categories to GroupResource mapping.
+type SimpleCategoryExpander struct {
+	Expansions map[string][]schema.GroupResource
+}
+
+// Expand fulfills CategoryExpander
+func (e SimpleCategoryExpander) Expand(category string) ([]schema.GroupResource, bool) {
+	ret, ok := e.Expansions[category]
+	return ret, ok
+}
+
 // Builder provides convenience functions for taking arguments and parameters
 // from the command line and converting them to a list of resources to iterate
 // over using the Visitor interface.
 type Builder struct {
-	categoryExpander restmapper.CategoryExpander
+	categoryExpander CategoryExpander
 
 	// mapper is set explicitly by resource builders
 	mapper *mapper
@@ -140,7 +158,7 @@ type resourceTuple struct {
 
 type FakeClientFunc func(version schema.GroupVersion) (RESTClient, error)
 
-func NewFakeBuilder(fakeClientFn FakeClientFunc, restMapper meta.RESTMapper, categoryExpander restmapper.CategoryExpander) *Builder {
+func NewFakeBuilder(fakeClientFn FakeClientFunc, restMapper meta.RESTMapper, categoryExpander CategoryExpander) *Builder {
 	ret := newBuilder(nil, restMapper, categoryExpander)
 	ret.fakeClientFn = fakeClientFn
 	return ret
@@ -150,7 +168,7 @@ func NewFakeBuilder(fakeClientFn FakeClientFunc, restMapper meta.RESTMapper, cat
 // internal or unstructured must be specified.
 // TODO: Add versioned client (although versioned is still lossy)
 // TODO remove internal and unstructured mapper and instead have them set the negotiated serializer for use in the client
-func newBuilder(clientConfigFn ClientConfigFunc, restMapper meta.RESTMapper, categoryExpander restmapper.CategoryExpander) *Builder {
+func newBuilder(clientConfigFn ClientConfigFunc, restMapper meta.RESTMapper, categoryExpander CategoryExpander) *Builder {
 	return &Builder{
 		clientConfigFn:   clientConfigFn,
 		restMapper:       restMapper,
@@ -161,10 +179,10 @@ func newBuilder(clientConfigFn ClientConfigFunc, restMapper meta.RESTMapper, cat
 
 func NewBuilder(restClientGetter RESTClientGetter) *Builder {
 	restMapper, mapperErr := restClientGetter.ToRESTMapper()
-	discoveryClient, discoveryErr := restClientGetter.ToDiscoveryClient()
-	var categoryExpander restmapper.CategoryExpander
+	_, discoveryErr := restClientGetter.ToDiscoveryClient()
+	var categoryExpander CategoryExpander
 	if discoveryErr == nil {
-		categoryExpander = restmapper.NewDiscoveryCategoryExpander(discoveryClient)
+		// categoryExpander = restmapper.NewDiscoveryCategoryExpander(discoveryClient)
 	}
 
 	return newBuilder(
@@ -748,7 +766,7 @@ func (b *Builder) resourceTupleMappings() (map[string]*meta.RESTMapping, error) 
 		}
 
 		mappings[r.Resource] = mapping
-		canonical[mapping.Resource] = struct{}{}
+		canonical[mapping.GroupVersionKind.GroupVersion().WithResource(mapping.Resource)] = struct{}{}
 	}
 	if len(canonical) > 1 && b.singleResourceType {
 		return nil, fmt.Errorf("you may only specify a single resource type")
@@ -889,7 +907,7 @@ func (b *Builder) visitByResource() *Result {
 	}
 	clients := make(map[string]RESTClient)
 	for _, mapping := range mappings {
-		s := fmt.Sprintf("%s/%s", mapping.GroupVersionKind.GroupVersion().String(), mapping.Resource.Resource)
+		s := fmt.Sprintf("%s/%s", mapping.GroupVersionKind.GroupVersion().String(), mapping.Resource)
 		if _, ok := clients[s]; ok {
 			continue
 		}
@@ -907,7 +925,7 @@ func (b *Builder) visitByResource() *Result {
 		if !ok {
 			return result.withError(fmt.Errorf("resource %q is not recognized: %v", tuple.Resource, mappings))
 		}
-		s := fmt.Sprintf("%s/%s", mapping.GroupVersionKind.GroupVersion().String(), mapping.Resource.Resource)
+		s := fmt.Sprintf("%s/%s", mapping.GroupVersionKind.GroupVersion().String(), mapping.Resource)
 		client, ok := clients[s]
 		if !ok {
 			return result.withError(fmt.Errorf("could not find a client for resource %q", tuple.Resource))
