@@ -71,7 +71,6 @@ func internalValidateServiceBinding(binding *sc.ServiceBinding, create bool) fie
 		validateServiceBindingName,
 		field.NewPath("metadata"))...)
 	allErrs = append(allErrs, validateServiceBindingSpec(&binding.Spec, field.NewPath("spec"), create)...)
-	allErrs = append(allErrs, validateServiceBindingStatus(&binding.Status, field.NewPath("status"), create)...)
 	if create {
 		allErrs = append(allErrs, validateServiceBindingCreate(binding)...)
 	} else {
@@ -237,5 +236,6 @@ func ValidateServiceBindingUpdate(new *sc.ServiceBinding, old *sc.ServiceBinding
 func ValidateServiceBindingStatusUpdate(new *sc.ServiceBinding, old *sc.ServiceBinding) field.ErrorList {
 	allErrs := field.ErrorList{}
 	allErrs = append(allErrs, internalValidateServiceBinding(new, false)...)
+	allErrs = append(allErrs, validateServiceBindingStatus(&new.Status, field.NewPath("status"), false)...)
 	return allErrs
 }
