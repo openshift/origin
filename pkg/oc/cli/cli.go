@@ -13,6 +13,7 @@ import (
 	kubecmd "k8s.io/kubernetes/pkg/kubectl/cmd"
 	ktemplates "k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
@@ -100,6 +101,8 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 	loginCmd := login.NewCmdLogin(fullName, f, in, out, errout)
 	secretcmds := secrets.NewCmdSecrets(secrets.SecretsRecommendedName, fullName+" "+secrets.SecretsRecommendedName, f, out, errout)
 
+	ioStreams := genericclioptions.IOStreams{In: in, Out: out, ErrOut: errout}
+
 	groups := ktemplates.CommandGroups{
 		{
 			Message: "Basic Commands:",
@@ -136,7 +139,7 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 				set.NewCmdSet(fullName, f, in, out, errout),
 				cmd.NewCmdLabel(fullName, f, out),
 				cmd.NewCmdAnnotate(fullName, f, out),
-				cmd.NewCmdExpose(fullName, f, out),
+				cmd.NewCmdExpose(fullName, f, ioStreams),
 				cmd.NewCmdDelete(fullName, f, out, errout),
 				cmd.NewCmdScale(fullName, f, out, errout),
 				cmd.NewCmdAutoscale(fullName, f, out),
