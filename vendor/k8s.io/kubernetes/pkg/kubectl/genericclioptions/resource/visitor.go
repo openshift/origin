@@ -145,7 +145,7 @@ func (i *Info) Refresh(obj runtime.Object, ignoreError bool) error {
 func (i *Info) String() string {
 	basicInfo := fmt.Sprintf("Name: %q, Namespace: %q\nObject: %+q", i.Name, i.Namespace, i.Object)
 	if i.Mapping != nil {
-		mappingInfo := fmt.Sprintf("Resource: %q, GroupVersionKind: %q", i.Mapping.Resource.String(),
+		mappingInfo := fmt.Sprintf("Resource: %q, GroupVersionKind: %q", i.Mapping.Resource,
 			i.Mapping.GroupVersionKind.String())
 		return fmt.Sprint(mappingInfo, "\n", basicInfo)
 	}

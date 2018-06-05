@@ -140,7 +140,7 @@ func (o *ResourceBuilderFlags) ToBuilder(restClientGetter RESTClientGetter, reso
 		NamespaceParam(namespace).DefaultNamespace()
 
 	if o.Scheme != nil {
-		builder.WithScheme(o.Scheme, o.Scheme.PrioritizedVersionsAllGroups()...)
+		builder.WithScheme(o.Scheme /*o.Scheme.PrioritizedVersionsAllGroups()...*/)
 	} else {
 		builder.Unstructured()
 	}
