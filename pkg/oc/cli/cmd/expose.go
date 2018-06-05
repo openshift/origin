@@ -5,6 +5,7 @@ import (
 
 	"github.com/spf13/cobra"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kcmd "k8s.io/kubernetes/pkg/kubectl/cmd"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -51,8 +52,30 @@ var (
 	  (or the name of the service otherwise). You may not specify a "--protocol" or "--target-port" option when using this generator.`)
 )
 
+type ExposeOptions struct {
+	Hostname       string
+	Path           string
+	WildcardPolicy string
+
+	Namespace        string
+	EnforceNamespace bool
+	Clientset        internalclientset.Interface
+	Builder          func() *resource.Builder
+	Args             []string
+	Generator        string
+	Filenames        []string
+	Port             string
+	Protocol         string
+}
+
+func NewExposeOptions() *ExposeOptions {
+	return &ExposeOptions{}
+}
+
 // NewCmdExpose is a wrapper for the Kubernetes cli expose command
 func NewCmdExpose(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
+	o := NewExposeOptions()
+
 	cmd := kcmd.NewCmdExposeService(f, streams)
 	cmd.Short = "Expose a replicated application as a service or route"
 	cmd.Long = exposeLong
@@ -70,72 +93,83 @@ func NewCmdExpose(fullName string, f kcmdutil.Factory, streams genericclioptions
 	cmd.Flag("port").Usage = "The port that the resource should serve on."
 	defRun := cmd.Run
 	cmd.Run = func(cmd *cobra.Command, args []string) {
-		err := validate(cmd, f, args)
-		kcmdutil.CheckErr(err)
+		kcmdutil.CheckErr(o.Complete(cmd, f, args))
+		kcmdutil.CheckErr(o.Validate(cmd))
 		defRun(cmd, args)
 	}
-	cmd.Flags().String("hostname", "", "Set a hostname for the new route")
-	cmd.Flags().String("path", "", "Set a path for the new route")
-	cmd.Flags().String("wildcard-policy", "", "Sets the WildcardPolicy for the hostname, the default is \"None\". Valid values are \"None\" and \"Subdomain\"")
+
+	cmd.Flags().StringVar(&o.Hostname, "hostname", o.Hostname, "Set a hostname for the new route")
+	cmd.Flags().StringVar(&o.Path, "path", o.Path, "Set a path for the new route")
+	cmd.Flags().StringVar(&o.WildcardPolicy, "wildcard-policy", o.WildcardPolicy, "Sets the WildcardPolicy for the hostname, the default is \"None\". Valid values are \"None\" and \"Subdomain\"")
+
 	return cmd
 }
 
-// validate adds one layer of validation prior to calling the upstream
+func (o *ExposeOptions) Complete(cmd *cobra.Command, f kcmdutil.Factory, args []string) error {
+	var err error
+	o.Namespace, o.EnforceNamespace, err = f.ToRawKubeConfigLoader().Namespace()
+	if err != nil {
+		return err
+	}
+
+	o.Clientset, err = f.ClientSet()
+	if err != nil {
+		return err
+	}
+
+	o.Builder = f.NewBuilder
+	o.Args = args
+	o.Generator = kcmdutil.GetFlagString(cmd, "generator")
+	o.Filenames = kcmdutil.GetFlagStringSlice(cmd, "filename")
+	o.Port = kcmdutil.GetFlagString(cmd, "port")
+	o.Protocol = kcmdutil.GetFlagString(cmd, "protocol")
+
+	return nil
+}
+
+// Validate adds one layer of validation prior to calling the upstream
 // expose command.
-func validate(cmd *cobra.Command, f kcmdutil.Factory, args []string) error {
-	namespace, enforceNamespace, err := f.ToRawKubeConfigLoader().Namespace()
-	if err != nil {
-		return err
-	}
-
-	kc, err := f.ClientSet()
-	if err != nil {
-		return err
-	}
-
-	r := f.NewBuilder().
+func (o *ExposeOptions) Validate(cmd *cobra.Command) error {
+	r := o.Builder().
 		WithScheme(ocscheme.ReadingInternalScheme).
 		ContinueOnError().
-		NamespaceParam(namespace).DefaultNamespace().
-		FilenameParam(enforceNamespace, &resource.FilenameOptions{Recursive: false, Filenames: kcmdutil.GetFlagStringSlice(cmd, "filename")}).
-		ResourceTypeOrNameArgs(false, args...).
+		NamespaceParam(o.Namespace).DefaultNamespace().
+		FilenameParam(o.EnforceNamespace, &resource.FilenameOptions{Recursive: false, Filenames: o.Filenames}).
+		ResourceTypeOrNameArgs(false, o.Args...).
 		Flatten().
 		Do()
 	infos, err := r.Infos()
 	if err != nil {
-		return kcmdutil.UsageErrorf(cmd, err.Error())
+		return err
 	}
 
-	wildcardpolicy := kcmdutil.GetFlagString(cmd, "wildcard-policy")
-	if len(wildcardpolicy) > 0 && (wildcardpolicy != "Subdomain" && wildcardpolicy != "None") {
+	if len(o.WildcardPolicy) > 0 && (o.WildcardPolicy != "Subdomain" && o.WildcardPolicy != "None") {
 		return fmt.Errorf("only \"Subdomain\" or \"None\" are supported for wildcard-policy")
 	}
 
 	if len(infos) > 1 {
-		return fmt.Errorf("multiple resources provided: %v", args)
+		return fmt.Errorf("multiple resources provided: %v", o.Args)
 	}
 	info := infos[0]
 	mapping := info.ResourceMapping()
 
-	generator := kcmdutil.GetFlagString(cmd, "generator")
 	switch mapping.GroupVersionKind.GroupKind() {
 	case kapi.Kind("Service"):
-		switch generator {
+		switch o.Generator {
 		case "service/v1", "service/v2":
 			// Set default protocol back for generating services
-			if len(kcmdutil.GetFlagString(cmd, "protocol")) == 0 {
+			if len(o.Protocol) == 0 {
 				cmd.Flags().Set("protocol", "TCP")
 			}
 		case "":
 			// Default exposing services as a route
-			generator = "route/v1"
-			cmd.Flags().Set("generator", generator)
+			cmd.Flags().Set("generator", "route/v1")
 			fallthrough
 		case "route/v1":
 			// The upstream generator will incorrectly chose service.Port instead of service.TargetPort
 			// for the route TargetPort when no port is present.  Passing forcePort=true
 			// causes UnsecuredRoute to always set a Port so the upstream default is not used.
-			route, err := route.UnsecuredRoute(kc, namespace, info.Name, info.Name, kcmdutil.GetFlagString(cmd, "port"), true)
+			route, err := route.UnsecuredRoute(o.Clientset, o.Namespace, info.Name, info.Name, o.Port, true)
 			if err != nil {
 				return err
 			}
@@ -145,13 +179,12 @@ func validate(cmd *cobra.Command, f kcmdutil.Factory, args []string) error {
 		}
 
 	default:
-		switch generator {
+		switch o.Generator {
 		case "route/v1":
 			return fmt.Errorf("cannot expose a %s as a route", mapping.GroupVersionKind.Kind)
 		case "":
 			// Default exposing everything except services as a service
-			generator = "service/v2"
-			cmd.Flags().Set("generator", generator)
+			cmd.Flags().Set("generator", "service/v2")
 			fallthrough
 		case "service/v1", "service/v2":
 			// Set default protocol back for generating services
