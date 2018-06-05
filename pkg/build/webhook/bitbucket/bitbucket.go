@@ -152,9 +152,10 @@ func getInfoFromEvent(body io.ReadCloser) (string, *buildapi.SourceRevision, err
 	if err = json.Unmarshal(data, &event); err != nil {
 		return "", nil, err
 	}
-	if len(event.Push.Changes) == 0 {
+	if len(event.Push.Changes) == 0 || len(event.Push.Changes[0].Commits) == 0 {
 		return "", nil, fmt.Errorf("Unable to extract valid event from payload: %s", string(data))
 	}
+
 	lastCommit := event.Push.Changes[0].Commits[0]
 	author := buildapi.SourceControlUser{
 		Name: lastCommit.Author.Username,
