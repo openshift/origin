@@ -625,9 +625,26 @@ func (c *controller) reconcileClusterServicePlanFromClusterServiceBrokerCatalog(
 	toUpdate.Spec.ServiceInstanceUpdateParameterSchema = servicePlan.Spec.ServiceInstanceUpdateParameterSchema
 	toUpdate.Spec.ServiceBindingCreateParameterSchema = servicePlan.Spec.ServiceBindingCreateParameterSchema
 
-	if _, err := c.serviceCatalogClient.ClusterServicePlans().Update(toUpdate); err != nil {
+	updatedPlan, err := c.serviceCatalogClient.ClusterServicePlans().Update(toUpdate)
+	if err != nil {
 		glog.Error(pcb.Messagef("Error updating %s: %v", pretty.ClusterServicePlanName(servicePlan), err))
 		return err
+	}
+
+	if updatedPlan.Status.RemovedFromBrokerCatalog {
+		updatedPlan.Status.RemovedFromBrokerCatalog = false
+		glog.V(4).Info(pcb.Messagef("Resetting RemovedFromBrokerCatalog status on %s", pretty.ClusterServicePlanName(updatedPlan)))
+
+		_, err := c.serviceCatalogClient.ClusterServicePlans().UpdateStatus(updatedPlan)
+		if err != nil {
+			s := fmt.Sprintf("Error updating status of %s: %v", pretty.ClusterServicePlanName(updatedPlan), err)
+			glog.Error(pcb.Message(s))
+			c.recorder.Eventf(broker, corev1.EventTypeWarning, errorSyncingCatalogReason, s)
+			if err := c.updateClusterServiceBrokerCondition(broker, v1beta1.ServiceBrokerConditionReady, v1beta1.ConditionFalse, errorSyncingCatalogReason, errorSyncingCatalogMessage+s); err != nil {
+				return err
+			}
+			return err
+		}
 	}
 
 	return nil
