@@ -235,7 +235,20 @@ func copyFromPod(f cmdutil.Factory, cmd *cobra.Command, cmderr io.Writer, src, d
 	}()
 	prefix := getPrefix(src.File)
 	prefix = path.Clean(prefix)
+	// remove extraneous path shortcuts - these could occur if a path contained extra "../"
+	// and attempted to navigate beyond "/" in a remote filesystem
+	prefix = stripPathShortcuts(prefix)
 	return untarAll(reader, dest.File, prefix)
+}
+
+// stripPathShortcuts removes any leading or trailing "../" from a given path
+func stripPathShortcuts(p string) string {
+	newPath := path.Clean(p)
+	if len(newPath) > 0 && string(newPath[0]) == "/" {
+		return newPath[1:]
+	}
+
+	return newPath
 }
 
 func makeTar(srcPath, destPath string, writer io.Writer) error {
