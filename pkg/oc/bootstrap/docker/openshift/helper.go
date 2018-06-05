@@ -16,6 +16,7 @@ import (
 	"github.com/blang/semver"
 	"github.com/golang/glog"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/util/homedir"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
@@ -707,6 +708,11 @@ func (h *Helper) updateConfig(configDir string, opt *StartOptions) error {
 	cfg.AdmissionConfig.PluginConfig["GenericAdmissionWebhook"] = &configapi.AdmissionPluginConfig{
 		Configuration: &configapi.DefaultAdmissionConfig{},
 	}
+
+	policyConfig := runtime.Unknown{Raw: []byte(`{"kind":"ImagePolicyConfig","apiVersion":"v1","executionRules":[{"name":"execution-denied",
+  "onResources":[{"resource":"pods"},{"resource":"builds"}],"reject":true,"matchImageAnnotations":[{"key":"images.openshift.io/deny-execution",
+  "value":"true"}],"skipOnResolutionFailure":true}]}`)}
+	cfg.AdmissionConfig.PluginConfig["openshift.io/ImagePolicy"] = &configapi.AdmissionPluginConfig{Configuration: &policyConfig}
 
 	if cfg.KubernetesMasterConfig.APIServerArguments == nil {
 		cfg.KubernetesMasterConfig.APIServerArguments = configapi.ExtendedArguments{}
