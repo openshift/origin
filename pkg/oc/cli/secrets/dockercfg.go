@@ -70,6 +70,7 @@ func NewCmdCreateDockerConfigSecret(name, fullName string, f kcmdutil.Factory, o
 		Long:       createDockercfgLong,
 		Example:    fmt.Sprintf(createDockercfgExample, fullName, newSecretFullName, ocEditFullName),
 		Deprecated: "use oc create secret",
+		Hidden:     true,
 		Run: func(c *cobra.Command, args []string) {
 			if err := o.Complete(f, args); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageErrorf(c, err.Error()))

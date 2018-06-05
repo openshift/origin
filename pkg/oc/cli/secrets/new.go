@@ -81,6 +81,7 @@ func NewCmdCreateSecret(name, fullName string, f *clientcmd.Factory, out io.Writ
 		Long:       newLong,
 		Example:    fmt.Sprintf(newExample, fullName),
 		Deprecated: "use oc create secret",
+		Hidden:     true,
 		Run: func(c *cobra.Command, args []string) {
 			if err := options.Complete(args, f); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageErrorf(c, err.Error()))

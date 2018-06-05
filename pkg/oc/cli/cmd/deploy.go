@@ -108,6 +108,8 @@ func NewCmdDeploy(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.C
 		Long:       fmt.Sprintf(deployLong, fullName),
 		Example:    fmt.Sprintf(deployExample, fullName),
 		SuggestFor: []string{"deployment"},
+		Deprecated: "use the oc rollout latest and oc rollout status",
+		Hidden:     true,
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.Complete(f, args, out); err != nil {
 				kcmdutil.CheckErr(err)
@@ -122,7 +124,6 @@ func NewCmdDeploy(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.C
 			}
 		},
 	}
-	cmd.Deprecated = "Use the `rollout latest` and `rollout cancel` commands instead."
 
 	cmd.Flags().BoolVar(&options.deployLatest, "latest", false, "If true, start a new deployment now.")
 	cmd.Flags().MarkDeprecated("latest", fmt.Sprintf("use '%s rollout latest' instead", fullName))
