@@ -22,7 +22,6 @@ import (
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 )
 
@@ -41,6 +40,5 @@ func defaultObjectPauser(obj runtime.Object) ([]byte, error) {
 }
 
 func internalVersionJSONEncoder() runtime.Encoder {
-	encoder := legacyscheme.Codecs.LegacyCodec(legacyscheme.Scheme.PrioritizedVersionsAllGroups()...)
-	return unstructured.JSONFallbackEncoder{Encoder: encoder}
+	return unstructured.UnstructuredJSONScheme
 }

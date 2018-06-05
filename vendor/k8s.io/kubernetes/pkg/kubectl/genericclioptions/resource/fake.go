@@ -18,11 +18,11 @@ package resource
 
 import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/restmapper"
+	// "k8s.io/client-go/restmapper"
 )
 
 // FakeCategoryExpander is for testing only
-var FakeCategoryExpander restmapper.CategoryExpander = restmapper.SimpleCategoryExpander{
+var FakeCategoryExpander CategoryExpander = SimpleCategoryExpander{
 	Expansions: map[string][]schema.GroupResource{
 		"all": {
 			{Group: "", Resource: "pods"},

@@ -21,14 +21,13 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
-	"time"
 
 	"github.com/spf13/pflag"
 
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
-	"k8s.io/client-go/restmapper"
+	// "k8s.io/client-go/restmapper"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
 )
@@ -197,25 +196,26 @@ func (f *ConfigFlags) ToDiscoveryClient() (discovery.CachedDiscoveryInterface, e
 
 	// retrieve a user-provided value for the "cache-dir"
 	// defaulting to ~/.kube/http-cache if no user-value is given.
-	httpCacheDir := defaultCacheDir
-	if f.CacheDir != nil {
-		httpCacheDir = *f.CacheDir
-	}
+	// httpCacheDir := defaultCacheDir
+	// if f.CacheDir != nil {
+	// 	httpCacheDir = *f.CacheDir
+	// }
 
-	discoveryCacheDir := computeDiscoverCacheDir(filepath.Join(homedir.HomeDir(), ".kube", "cache", "discovery"), config.Host)
-	return discovery.NewCachedDiscoveryClientForConfig(config, discoveryCacheDir, httpCacheDir, time.Duration(10*time.Minute))
+	// discoveryCacheDir := computeDiscoverCacheDir(filepath.Join(homedir.HomeDir(), ".kube", "cache", "discovery"), config.Host)
+	// return discovery.NewCachedDiscoveryClientForConfig(config, discoveryCacheDir, httpCacheDir, time.Duration(10*time.Minute))
+	return discovery.NewDiscoveryClientForConfig(config)
 }
 
 // ToRESTMapper returns a mapper.
 func (f *ConfigFlags) ToRESTMapper() (meta.RESTMapper, error) {
-	discoveryClient, err := f.ToDiscoveryClient()
-	if err != nil {
-		return nil, err
-	}
+	// 	discoveryClient, err := f.ToDiscoveryClient()
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	mapper := restmapper.NewDeferredDiscoveryRESTMapper(discoveryClient)
-	expander := restmapper.NewShortcutExpander(mapper, discoveryClient)
-	return expander, nil
+	// mapper := restmapper.NewDeferredDiscoveryRESTMapper(discoveryClient)
+	// expander := restmapper.NewShortcutExpander(mapper, discoveryClient)
+	return nil, nil
 }
 
 // AddFlags binds client configuration flags to a given flagset
