@@ -45,7 +45,15 @@ func ParseNormalizedNamed(s string) (Named, error) {
 		return nil, errors.New("invalid reference format: repository name must be lowercase")
 	}
 
-	ref, err := Parse(domain + "/" + remainder)
+	image := domain + "/" + remainder
+	if !hasDomain(s) {
+		// If the original request did not have a domain
+		// component then continue parsing with that rather
+		// than defaulting to whatever splitDockerDomain()
+		// would add (e.g., "docker.io").
+		image = s
+	}
+	ref, err := Parse(image)
 	if err != nil {
 		return nil, err
 	}
@@ -155,4 +163,12 @@ func ParseAnyReferenceWithSet(ref string, ds *digestset.Set) (Reference, error) 
 	}
 
 	return ParseNormalizedNamed(ref)
+}
+
+func hasDomain(name string) bool {
+	i := strings.IndexRune(name, '/')
+	if i == -1 || (!strings.ContainsAny(name[:i], ".:") && name[:i] != "localhost") {
+		return false
+	}
+	return true
 }
