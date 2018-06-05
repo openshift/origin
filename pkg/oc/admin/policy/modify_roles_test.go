@@ -5,8 +5,10 @@ import (
 	"reflect"
 	"testing"
 
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/pkg/apis/rbac"
+	rbacclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/rbac/internalversion"
 
 	fakeauthorizationclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 )
@@ -20,6 +22,7 @@ func TestModifyNamedClusterRoleBinding(t *testing.T) {
 		expectedRoleBindingName     string
 		expectedSubjects            []rbac.Subject
 		existingClusterRoleBindings *rbac.ClusterRoleBindingList
+		expectedRoleBindingList     []string
 	}{
 		// no name provided - create "edit" for role "edit"
 		"create-clusterrolebinding": {
@@ -37,6 +40,7 @@ func TestModifyNamedClusterRoleBinding(t *testing.T) {
 			existingClusterRoleBindings: &rbac.ClusterRoleBindingList{
 				Items: []rbac.ClusterRoleBinding{},
 			},
+			expectedRoleBindingList: []string{"edit"},
 		},
 		// name provided - create "custom" for role "edit"
 		"create-named-clusterrolebinding": {
@@ -55,6 +59,7 @@ func TestModifyNamedClusterRoleBinding(t *testing.T) {
 			existingClusterRoleBindings: &rbac.ClusterRoleBindingList{
 				Items: []rbac.ClusterRoleBinding{},
 			},
+			expectedRoleBindingList: []string{"custom"},
 		},
 		// name provided - modify "custom"
 		"update-named-clusterrolebinding": {
@@ -102,6 +107,7 @@ func TestModifyNamedClusterRoleBinding(t *testing.T) {
 					}},
 				},
 			},
+			expectedRoleBindingList: []string{"custom", "edit"},
 		},
 		// name provided - remove from "custom"
 		"remove-named-clusterrolebinding": {
@@ -149,6 +155,7 @@ func TestModifyNamedClusterRoleBinding(t *testing.T) {
 					}},
 				},
 			},
+			expectedRoleBindingList: []string{"custom", "edit"},
 		},
 		// no name provided - creates "edit-0"
 		"update-default-clusterrolebinding": {
@@ -191,6 +198,7 @@ func TestModifyNamedClusterRoleBinding(t *testing.T) {
 					}},
 				},
 			},
+			expectedRoleBindingList: []string{"custom", "edit", "edit-0"},
 		},
 		// no name provided - removes "baz"
 		"remove-default-clusterrolebinding": {
@@ -237,6 +245,7 @@ func TestModifyNamedClusterRoleBinding(t *testing.T) {
 					}},
 				},
 			},
+			expectedRoleBindingList: []string{"custom", "edit"},
 		},
 		// name provided - remove from autoupdate protected
 		"remove-from-protected-clusterrolebinding": {
@@ -265,6 +274,36 @@ func TestModifyNamedClusterRoleBinding(t *testing.T) {
 					}},
 				},
 			},
+			expectedRoleBindingList: []string{"custom"},
+		},
+		// name not provided - do not add duplicate
+		"do-not-add-duplicate-clusterrolebinding": {
+			action:                  "add",
+			inputRole:               "edit",
+			inputSubjects:           []string{"foo"},
+			expectedRoleBindingName: "edit",
+			expectedSubjects: []rbac.Subject{{
+				APIGroup: rbac.GroupName,
+				Name:     "foo",
+				Kind:     rbac.UserKind,
+			}},
+			existingClusterRoleBindings: &rbac.ClusterRoleBindingList{
+				Items: []rbac.ClusterRoleBinding{{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "edit",
+					},
+					Subjects: []rbac.Subject{{
+						APIGroup: rbac.GroupName,
+						Name:     "foo",
+						Kind:     rbac.UserKind,
+					}},
+					RoleRef: rbac.RoleRef{
+						Name: "edit",
+						Kind: "ClusterRole",
+					}},
+				},
+			},
+			expectedRoleBindingList: []string{"edit"},
 		},
 	}
 	for tcName, tc := range tests {
@@ -277,7 +316,7 @@ func TestModifyNamedClusterRoleBinding(t *testing.T) {
 			RbacClient:      fakeauthorizationclient.NewSimpleClientset(tc.existingClusterRoleBindings).Rbac(),
 		}
 
-		modifyRoleAndCheck(t, o, tcName, tc.action, tc.expectedRoleBindingName, tc.expectedSubjects)
+		modifyRoleAndCheck(t, o, tcName, tc.action, tc.expectedRoleBindingName, tc.expectedSubjects, tc.expectedRoleBindingList)
 	}
 }
 
@@ -290,6 +329,7 @@ func TestModifyNamedLocalRoleBinding(t *testing.T) {
 		expectedRoleBindingName string
 		expectedSubjects        []rbac.Subject
 		existingRoleBindings    *rbac.RoleBindingList
+		expectedRoleBindingList []string
 	}{
 		// no name provided - create "edit" for role "edit"
 		"create-rolebinding": {
@@ -307,6 +347,7 @@ func TestModifyNamedLocalRoleBinding(t *testing.T) {
 			existingRoleBindings: &rbac.RoleBindingList{
 				Items: []rbac.RoleBinding{},
 			},
+			expectedRoleBindingList: []string{"edit"},
 		},
 		// name provided - create "custom" for role "edit"
 		"create-named-binding": {
@@ -325,6 +366,7 @@ func TestModifyNamedLocalRoleBinding(t *testing.T) {
 			existingRoleBindings: &rbac.RoleBindingList{
 				Items: []rbac.RoleBinding{},
 			},
+			expectedRoleBindingList: []string{"custom"},
 		},
 		// no name provided - modify "edit"
 		"update-default-binding": {
@@ -369,6 +411,7 @@ func TestModifyNamedLocalRoleBinding(t *testing.T) {
 					}},
 				},
 			},
+			expectedRoleBindingList: []string{"custom", "edit", "edit-0"},
 		},
 		// no name provided - remove "bar"
 		"remove-default-binding": {
@@ -417,6 +460,7 @@ func TestModifyNamedLocalRoleBinding(t *testing.T) {
 					}},
 				},
 			},
+			expectedRoleBindingList: []string{"custom", "edit"},
 		},
 		// name provided - modify "custom"
 		"update-named-binding": {
@@ -466,6 +510,7 @@ func TestModifyNamedLocalRoleBinding(t *testing.T) {
 					}},
 				},
 			},
+			expectedRoleBindingList: []string{"custom", "edit"},
 		},
 		// name provided - modify "custom"
 		"remove-named-binding": {
@@ -515,6 +560,7 @@ func TestModifyNamedLocalRoleBinding(t *testing.T) {
 					}},
 				},
 			},
+			expectedRoleBindingList: []string{"custom", "edit"},
 		},
 	}
 	for tcName, tc := range tests {
@@ -528,11 +574,38 @@ func TestModifyNamedLocalRoleBinding(t *testing.T) {
 			Users:                tc.inputSubjects,
 		}
 
-		modifyRoleAndCheck(t, o, tcName, tc.action, tc.expectedRoleBindingName, tc.expectedSubjects)
+		modifyRoleAndCheck(t, o, tcName, tc.action, tc.expectedRoleBindingName, tc.expectedSubjects, tc.expectedRoleBindingList)
 	}
 }
 
-func modifyRoleAndCheck(t *testing.T, o *RoleModificationOptions, tcName, action string, expectedName string, expectedSubjects []rbac.Subject) {
+func getRoleBindingAbstractionsList(rbacClient rbacclient.RbacInterface, namespace string) ([]*roleBindingAbstraction, error) {
+	ret := make([]*roleBindingAbstraction, 0)
+	// see if we can find an existing binding that points to the role in question.
+	if len(namespace) > 0 {
+		roleBindings, err := rbacClient.RoleBindings(namespace).List(metav1.ListOptions{})
+		if err != nil && !kapierrors.IsNotFound(err) {
+			return nil, err
+		}
+		for i := range roleBindings.Items {
+			// shallow copy outside of the loop so that we can take its address
+			roleBinding := roleBindings.Items[i]
+			ret = append(ret, &roleBindingAbstraction{rbacClient: rbacClient, roleBinding: &roleBinding})
+		}
+	} else {
+		clusterRoleBindings, err := rbacClient.ClusterRoleBindings().List(metav1.ListOptions{})
+		if err != nil && !kapierrors.IsNotFound(err) {
+			return nil, err
+		}
+		for i := range clusterRoleBindings.Items {
+			// shallow copy outside of the loop so that we can take its address
+			clusterRoleBinding := clusterRoleBindings.Items[i]
+			ret = append(ret, &roleBindingAbstraction{rbacClient: rbacClient, clusterRoleBinding: &clusterRoleBinding})
+		}
+	}
+
+	return ret, nil
+}
+func modifyRoleAndCheck(t *testing.T, o *RoleModificationOptions, tcName, action string, expectedName string, expectedSubjects []rbac.Subject, expectedBindings []string) {
 	var err error
 	switch action {
 	case "add":
@@ -553,5 +626,24 @@ func modifyRoleAndCheck(t *testing.T, o *RoleModificationOptions, tcName, action
 
 	if !reflect.DeepEqual(expectedSubjects, roleBinding.Subjects()) {
 		t.Errorf("%s: err expected users: %v, actual: %v", tcName, expectedSubjects, roleBinding.Subjects())
+	}
+
+	roleBindings, err := getRoleBindingAbstractionsList(o.RbacClient, o.RoleBindingNamespace)
+	foundBindings := make([]string, len(expectedBindings))
+	for _, roleBinding := range roleBindings {
+		var foundBinding string
+		for i := range expectedBindings {
+			if expectedBindings[i] == roleBinding.Name() {
+				foundBindings[i] = roleBinding.Name()
+				foundBinding = roleBinding.Name()
+				break
+			}
+		}
+		if len(foundBinding) == 0 {
+			t.Errorf("%s: found unexpected binding %q", tcName, roleBinding.Name())
+		}
+	}
+	if !reflect.DeepEqual(expectedBindings, foundBindings) {
+		t.Errorf("%s: err expected bindings: %v, actual: %v", tcName, expectedBindings, foundBindings)
 	}
 }

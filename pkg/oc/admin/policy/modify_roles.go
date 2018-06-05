@@ -431,29 +431,29 @@ func (o *RoleModificationOptions) Complete(f *clientcmd.Factory, cmd *cobra.Comm
 }
 
 func (o *RoleModificationOptions) getRoleBinding() (*roleBindingAbstraction, bool /* isUpdate */, error) {
-	var roleBindingName string
-
-	// Look for an existing rolebinding by name.
-	if len(o.RoleBindingName) > 0 {
-		roleBinding, err := getRoleBindingAbstraction(o.RbacClient, o.RoleBindingName, o.RoleBindingNamespace)
-		if err != nil && !kapierrors.IsNotFound(err) {
-			return nil, false, err
+	roleBinding, err := getRoleBindingAbstraction(o.RbacClient, o.RoleBindingName, o.RoleBindingNamespace)
+	if err != nil {
+		if kapierrors.IsNotFound(err) {
+			return nil, false, nil
 		}
-
-		if roleBinding != nil {
-			// Check that we update the rolebinding for the intended role.
-			if roleBinding.RoleName() != o.RoleName {
-				return nil, false, fmt.Errorf("rolebinding %s found for role %s, not %s",
-					o.RoleBindingName, roleBinding.RoleName(), o.RoleName)
-			}
-			if roleBinding.RoleKind() != o.RoleKind {
-				return nil, false, fmt.Errorf("rolebinding %s found for %q, not %q",
-					o.RoleBindingName, roleBinding.RoleKind(), o.RoleKind)
-			}
-
-			return roleBinding, true, nil
-		}
+		return nil, false, err
 	}
+
+	// Check that we update the rolebinding for the intended role.
+	if roleBinding.RoleName() != o.RoleName {
+		return nil, false, fmt.Errorf("rolebinding %s found for role %s, not %s",
+			o.RoleBindingName, roleBinding.RoleName(), o.RoleName)
+	}
+	if roleBinding.RoleKind() != o.RoleKind {
+		return nil, false, fmt.Errorf("rolebinding %s found for %q, not %q",
+			o.RoleBindingName, roleBinding.RoleKind(), o.RoleKind)
+	}
+
+	return roleBinding, true, nil
+}
+
+func (o *RoleModificationOptions) newRoleBinding() (*roleBindingAbstraction, error) {
+	var roleBindingName string
 
 	// Create a new rolebinding with the desired name.
 	if len(o.RoleBindingName) > 0 {
@@ -463,21 +463,54 @@ func (o *RoleModificationOptions) getRoleBinding() (*roleBindingAbstraction, boo
 		var err error
 		roleBindingName, err = getUniqueName(o.RbacClient, o.RoleName, o.RoleBindingNamespace)
 		if err != nil {
-			return nil, false, err
+			return nil, err
 		}
 	}
 	roleBinding, err := newRoleBindingAbstraction(o.RbacClient, roleBindingName, o.RoleBindingNamespace, o.RoleName, o.RoleKind)
 	if err != nil {
-		return nil, false, err
+		return nil, err
 	}
-	return roleBinding, false, nil
+	return roleBinding, nil
 }
 
 func (o *RoleModificationOptions) AddRole() error {
+	var (
+		roleBinding *roleBindingAbstraction
+		isUpdate    bool
+		err         error
+	)
 
-	roleBinding, isUpdate, err := o.getRoleBinding()
-	if err != nil {
-		return err
+	// Look for an existing rolebinding by name.
+	if len(o.RoleBindingName) > 0 {
+		roleBinding, isUpdate, err = o.getRoleBinding()
+		if err != nil {
+			return err
+		}
+	} else {
+		// Check if we already have a role binding that matches
+		checkBindings, err := getRoleBindingAbstractionsForRole(o.RbacClient, o.RoleName, o.RoleKind, o.RoleBindingNamespace)
+		if err != nil {
+			return err
+		}
+		if len(checkBindings) > 0 {
+			for _, checkBinding := range checkBindings {
+				newSubjects := addSubjects(o.Users, o.Groups, o.Subjects, checkBinding.Subjects())
+				if len(newSubjects) == len(checkBinding.Subjects()) {
+					// we already have a rolebinding that matches
+					if len(o.Output) > 0 {
+						return o.PrintObj(checkBinding.Object())
+					}
+					return nil
+				}
+			}
+		}
+	}
+
+	if roleBinding == nil {
+		roleBinding, err = o.newRoleBinding()
+		if err != nil {
+			return err
+		}
 	}
 
 	roleBinding.SetSubjects(addSubjects(o.Users, o.Groups, o.Subjects, roleBinding.Subjects()))
@@ -507,23 +540,25 @@ func (o *RoleModificationOptions) AddRole() error {
 }
 
 func addSubjects(users []string, groups []string, subjects []rbac.Subject, existingSubjects []rbac.Subject) []rbac.Subject {
-	newSubjects := authorizationutil.BuildRBACSubjects(users, groups)
-	newSubjects = append(newSubjects, subjects...)
+	subjectsToAdd := authorizationutil.BuildRBACSubjects(users, groups)
+	subjectsToAdd = append(subjectsToAdd, subjects...)
+	newSubjects := make([]rbac.Subject, len(existingSubjects))
+	copy(newSubjects, existingSubjects)
 
 subjectCheck:
-	for _, newSubject := range newSubjects {
-		for _, existingSubject := range existingSubjects {
-			if existingSubject.Kind == newSubject.Kind &&
-				existingSubject.Name == newSubject.Name &&
-				existingSubject.Namespace == newSubject.Namespace {
+	for _, subjectToAdd := range subjectsToAdd {
+		for _, newSubject := range newSubjects {
+			if newSubject.Kind == subjectToAdd.Kind &&
+				newSubject.Name == subjectToAdd.Name &&
+				newSubject.Namespace == subjectToAdd.Namespace {
 				continue subjectCheck
 			}
 		}
 
-		existingSubjects = append(existingSubjects, newSubject)
+		newSubjects = append(newSubjects, subjectToAdd)
 	}
 
-	return existingSubjects
+	return newSubjects
 }
 
 func (o *RoleModificationOptions) RemoveRole() error {
