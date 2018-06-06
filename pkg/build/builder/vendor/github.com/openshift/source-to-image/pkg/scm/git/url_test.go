@@ -209,7 +209,7 @@ func TestParse(t *testing.T) {
 	)
 
 	for _, test := range tests {
-		url, err := Parse(test.rawurl)
+		parsedURL, err := Parse(test.rawurl)
 		if test.expectedError != (err != nil) {
 			t.Errorf("%s: Parse() returned err: %v", test.rawurl, err)
 		}
@@ -217,16 +217,16 @@ func TestParse(t *testing.T) {
 			continue
 		}
 
-		if !reflect.DeepEqual(url, test.expectedGitURL) {
-			t.Errorf("%s: Parse() returned\n\t%#v\nWanted\n\t%#v", test.rawurl, url, test.expectedGitURL)
+		if !reflect.DeepEqual(parsedURL, test.expectedGitURL) {
+			t.Errorf("%s: Parse() returned\n\t%#v\nWanted\n\t%#v", test.rawurl, parsedURL, test.expectedGitURL)
 		}
 
-		if url.String() != test.rawurl {
-			t.Errorf("%s: String() returned %s", test.rawurl, url.String())
+		if parsedURL.String() != test.rawurl {
+			t.Errorf("%s: String() returned %s", test.rawurl, parsedURL.String())
 		}
 
-		if url.StringNoFragment() != strings.SplitN(test.rawurl, "#", 2)[0] {
-			t.Errorf("%s: StringNoFragment() returned %s", test.rawurl, url.StringNoFragment())
+		if parsedURL.StringNoFragment() != strings.SplitN(test.rawurl, "#", 2)[0] {
+			t.Errorf("%s: StringNoFragment() returned %s", test.rawurl, parsedURL.StringNoFragment())
 		}
 	}
 }

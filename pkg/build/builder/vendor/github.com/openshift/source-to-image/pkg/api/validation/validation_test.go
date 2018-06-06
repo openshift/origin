@@ -30,7 +30,7 @@ func TestValidation(t *testing.T) {
 				DockerNetworkMode: "foobar",
 				BuilderPullPolicy: api.DefaultBuilderPullPolicy,
 			},
-			[]Error{{ErrorInvalidValue, "dockerNetworkMode"}},
+			[]Error{{Type: ErrorInvalidValue, Field: "dockerNetworkMode"}},
 		},
 		{
 			&api.Config{
@@ -90,7 +90,7 @@ func TestValidation(t *testing.T) {
 				BuilderPullPolicy: api.DefaultBuilderPullPolicy,
 				Labels:            map[string]string{"some": "thing", "": "emptykey"},
 			},
-			[]Error{{ErrorInvalidValue, "labels"}},
+			[]Error{{Type: ErrorInvalidValue, Field: "labels"}},
 		},
 	}
 	for _, test := range testCases {

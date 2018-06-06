@@ -463,7 +463,7 @@ func TestSaveArtifacts(t *testing.T) {
 	bh := testBuildHandler()
 	bh.config.WorkingDir = "/working-dir"
 	bh.config.Tag = "image/tag"
-	fs := bh.fs.(*testfs.FakeFileSystem)
+	fakeFS := bh.fs.(*testfs.FakeFileSystem)
 	fd := bh.docker.(*docker.FakeDocker)
 	th := bh.tar.(*test.FakeTar)
 	err := bh.Save(bh.config)
@@ -471,9 +471,9 @@ func TestSaveArtifacts(t *testing.T) {
 		t.Errorf("Unexpected error when saving artifacts: %v", err)
 	}
 	expectedArtifactDir := "/working-dir/upload/artifacts"
-	if filepath.ToSlash(fs.MkdirDir) != expectedArtifactDir {
+	if filepath.ToSlash(fakeFS.MkdirDir) != expectedArtifactDir {
 		t.Errorf("Mkdir was not called with the expected directory: %s",
-			fs.MkdirDir)
+			fakeFS.MkdirDir)
 	}
 	if fd.RunContainerOpts.Image != bh.config.Tag {
 		t.Errorf("Unexpected image sent to RunContainer: %s",
@@ -489,7 +489,7 @@ func TestSaveArtifactsCustomTag(t *testing.T) {
 	bh.config.WorkingDir = "/working-dir"
 	bh.config.IncrementalFromTag = "custom/tag"
 	bh.config.Tag = "image/tag"
-	fs := bh.fs.(*testfs.FakeFileSystem)
+	fakeFS := bh.fs.(*testfs.FakeFileSystem)
 	fd := bh.docker.(*docker.FakeDocker)
 	th := bh.tar.(*test.FakeTar)
 	err := bh.Save(bh.config)
@@ -497,9 +497,9 @@ func TestSaveArtifactsCustomTag(t *testing.T) {
 		t.Errorf("Unexpected error when saving artifacts: %v", err)
 	}
 	expectedArtifactDir := "/working-dir/upload/artifacts"
-	if filepath.ToSlash(fs.MkdirDir) != expectedArtifactDir {
+	if filepath.ToSlash(fakeFS.MkdirDir) != expectedArtifactDir {
 		t.Errorf("Mkdir was not called with the expected directory: %s",
-			fs.MkdirDir)
+			fakeFS.MkdirDir)
 	}
 	if fd.RunContainerOpts.Image != bh.config.IncrementalFromTag {
 		t.Errorf("Unexpected image sent to RunContainer: %s",
@@ -700,8 +700,8 @@ func TestPrepareUseCustomRuntimeArtifacts(t *testing.T) {
 func TestPrepareFailForEmptyRuntimeArtifacts(t *testing.T) {
 	builder := newFakeSTI(&FakeSTI{})
 
-	docker := builder.docker.(*docker.FakeDocker)
-	docker.AssembleInputFilesResult = ""
+	fakeDocker := builder.docker.(*docker.FakeDocker)
+	fakeDocker.AssembleInputFilesResult = ""
 
 	config := builder.config
 	config.RuntimeImage = "my-app"
@@ -748,8 +748,8 @@ func TestPrepareRuntimeArtifactsValidation(t *testing.T) {
 			if mappingFromUser {
 				config.RuntimeArtifacts.Set(testCase.mapping)
 			} else {
-				docker := builder.docker.(*docker.FakeDocker)
-				docker.AssembleInputFilesResult = testCase.mapping
+				fakeDocker := builder.docker.(*docker.FakeDocker)
+				fakeDocker.AssembleInputFilesResult = testCase.mapping
 			}
 
 			err := builder.Prepare(config)
@@ -769,8 +769,8 @@ func TestPrepareSetRuntimeArtifacts(t *testing.T) {
 
 		builder := newFakeSTI(&FakeSTI{})
 
-		docker := builder.docker.(*docker.FakeDocker)
-		docker.AssembleInputFilesResult = mapping
+		fakeDocker := builder.docker.(*docker.FakeDocker)
+		fakeDocker.AssembleInputFilesResult = mapping
 
 		config := builder.config
 		config.RuntimeImage = "my-app"

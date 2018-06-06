@@ -13,7 +13,7 @@ s2i::cleanup() {
 
 readonly img_count="$(docker images | grep -c sti_test/sti-fake || :)"
 
-if [ "${img_count}" != "10" ]; then
+if [ "${img_count}" != "12" ]; then
     echo "Missing test images, run 'hack/build-test-images.sh' and try again."
     exit 1
 fi

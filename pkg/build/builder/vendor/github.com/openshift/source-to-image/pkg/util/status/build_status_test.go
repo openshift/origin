@@ -71,7 +71,7 @@ func TestUpdateStageDuration(t *testing.T) {
 	buildInfo.Stages = api.RecordStageAndStepInfo(buildInfo.Stages, api.StagePullImages, api.StepPullBuilderImage, time.Now(), endTime)
 
 	if buildInfo.Stages[0].DurationMilliseconds != (endTime.Sub(startTime).Nanoseconds() / int64(time.Millisecond)) {
-		t.Errorf("Stage Duration was not updated, expected %#v, got %#v", (endTime.Sub(startTime).Nanoseconds() / int64(time.Millisecond)), buildInfo.Stages[0].DurationMilliseconds)
+		t.Errorf("Stage Duration was not updated, expected %#v, got %#v", endTime.Sub(startTime).Nanoseconds()/int64(time.Millisecond), buildInfo.Stages[0].DurationMilliseconds)
 	}
 
 }

@@ -79,11 +79,11 @@ check_result $? "${WORK_DIR}/s2i-git-clone.log"
 
 test_debug "s2i build with relative path without file://"
 
-s2i build cakephp-ex openshift/php-55-centos7 test --loglevel=5 &> "${WORK_DIR}/s2i-rel-noproto.log"
+s2i build cakephp-ex docker.io/centos/php-70-centos7 test --loglevel=5 &> "${WORK_DIR}/s2i-rel-noproto.log"
 check_result $? "${WORK_DIR}/s2i-rel-noproto.log"
 
 test_debug "s2i build with volume options"
-s2i build cakephp-ex openshift/php-55-centos7 test --volume "${WORK_DIR}:/home/:z" --loglevel=5 &> "${WORK_DIR}/s2i-volume-correct.log"
+s2i build cakephp-ex docker.io/centos/php-70-centos7 test --volume "${WORK_DIR}:/home/:z" --loglevel=5 &> "${WORK_DIR}/s2i-volume-correct.log"
 check_result $? "${WORK_DIR}/s2i-volume-correct.log"
 
 popd
@@ -96,12 +96,12 @@ else
   S2I_WORK_DIR_URL="file://${S2I_WORK_DIR}/cakephp-ex"
 fi
 
-s2i build "${S2I_WORK_DIR_URL}" openshift/php-55-centos7 test --loglevel=5 &> "${WORK_DIR}/s2i-abs-proto.log"
+s2i build "${S2I_WORK_DIR_URL}" docker.io/centos/php-70-centos7 test --loglevel=5 &> "${WORK_DIR}/s2i-abs-proto.log"
 check_result $? "${WORK_DIR}/s2i-abs-proto.log"
 
 test_debug "s2i build with absolute path without file://"
 
-s2i build "${S2I_WORK_DIR}/cakephp-ex" openshift/php-55-centos7 test --loglevel=5 &> "${WORK_DIR}/s2i-abs-noproto.log"
+s2i build "${S2I_WORK_DIR}/cakephp-ex" docker.io/centos/php-70-centos7 test --loglevel=5 &> "${WORK_DIR}/s2i-abs-noproto.log"
 check_result $? "${WORK_DIR}/s2i-abs-noproto.log"
 
 ## don't do ssh tests here because credentials are needed (even for the git user), which
@@ -110,7 +110,7 @@ check_result $? "${WORK_DIR}/s2i-abs-noproto.log"
 test_debug "s2i build with non-git repo file location"
 
 rm -rf "${WORK_DIR}/cakephp-ex/.git"
-s2i build "${S2I_WORK_DIR}/cakephp-ex" openshift/php-55-centos7 test --loglevel=5 --loglevel=5 &> "${WORK_DIR}/s2i-non-repo.log"
+s2i build "${S2I_WORK_DIR}/cakephp-ex" docker.io/centos/php-70-centos7 test --loglevel=5 --loglevel=5 &> "${WORK_DIR}/s2i-non-repo.log"
 check_result $? ""
 grep "Copying sources" "${WORK_DIR}/s2i-non-repo.log"
 check_result $? "${WORK_DIR}/s2i-non-repo.log"
@@ -123,13 +123,13 @@ check_result $? "${WORK_DIR}/s2i-rebuild.log"
 
 test_debug "s2i usage"
 
-s2i usage openshift/ruby-20-centos7 --loglevel=5 &> "${WORK_DIR}/s2i-usage.log"
+s2i usage docker.io/centos/ruby-24-centos7 --loglevel=5 &> "${WORK_DIR}/s2i-usage.log"
 check_result $? ""
 grep "Sample invocation" "${WORK_DIR}/s2i-usage.log"
 check_result $? "${WORK_DIR}/s2i-usage.log"
 
 test_debug "s2i build with overriding assemble/run scripts"
-s2i build https://github.com/openshift/source-to-image openshift/php-55-centos7 test --context-dir=test_apprepo >& "${WORK_DIR}/s2i-override-build.log"
+s2i build https://github.com/openshift/source-to-image docker.io/centos/php-70-centos7 test --context-dir=test_apprepo >& "${WORK_DIR}/s2i-override-build.log"
 grep "Running custom assemble" "${WORK_DIR}/s2i-override-build.log"
 check_result $? "${WORK_DIR}/s2i-override-build.log"
 docker run test >& "${WORK_DIR}/s2i-override-run.log"
@@ -137,7 +137,7 @@ grep "Running custom run" "${WORK_DIR}/s2i-override-run.log"
 check_result $? "${WORK_DIR}/s2i-override-run.log"
 
 test_debug "s2i build with remote git repo"
-s2i build https://github.com/openshift/cakephp-ex openshift/php-55-centos7 test --loglevel=5 &> "${WORK_DIR}/s2i-git-proto.log"
+s2i build https://github.com/openshift/cakephp-ex docker.io/centos/php-70-centos7 test --loglevel=5 &> "${WORK_DIR}/s2i-git-proto.log"
 check_result $? "${WORK_DIR}/s2i-git-proto.log"
 
 test_debug "s2i build with --run==true option"
@@ -145,7 +145,7 @@ if [[ "$OSTYPE" == "cygwin" ]]; then
   ( cd hack/windows/sigintwrap && make )
   hack/windows/sigintwrap/sigintwrap 's2i build --ref=10.x --context-dir=helloworld https://github.com/wildfly/quickstart openshift/wildfly-101-centos7 test-jee-app --run=true --loglevel=5' &> "${WORK_DIR}/s2i-run.log" &
 else
-  s2i build --ref=10.x --context-dir=helloworld https://github.com/wildfly/quickstart openshift/wildfly-101-centos7 test-jee-app --run=true --loglevel=5 &> "${WORK_DIR}/s2i-run.log" &
+  s2i build --ref=10.x --context-dir=helloworld https://github.com/wildfly/quickstart docker.io/openshift/wildfly-101-centos7 test-jee-app --run=true --loglevel=5 &> "${WORK_DIR}/s2i-run.log" &
 fi
 S2I_PID=$!
 TIME_SEC=1000
