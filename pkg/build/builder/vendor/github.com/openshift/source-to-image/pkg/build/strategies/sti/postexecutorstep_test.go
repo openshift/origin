@@ -33,11 +33,11 @@ func TestStorePreviousImageStep(t *testing.T) {
 		builder.config.RemovePreviousImage = true
 		builder.config.Tag = testCase.expectedPreviousImageTag
 
-		docker := builder.docker.(*docker.FakeDocker)
-		docker.GetImageIDResult = testCase.expectedPreviousImageID
-		docker.GetImageIDError = testCase.imageIDError
+		fakeDocker := builder.docker.(*docker.FakeDocker)
+		fakeDocker.GetImageIDResult = testCase.expectedPreviousImageID
+		fakeDocker.GetImageIDError = testCase.imageIDError
 
-		step := &storePreviousImageStep{builder: builder, docker: docker}
+		step := &storePreviousImageStep{builder: builder, docker: fakeDocker}
 
 		ctx := &postExecutorStepContext{}
 
@@ -45,8 +45,8 @@ func TestStorePreviousImageStep(t *testing.T) {
 			t.Fatalf("should exit without error, but it returned %v", err)
 		}
 
-		if docker.GetImageIDImage != testCase.expectedPreviousImageTag {
-			t.Errorf("should invoke docker.GetImageID(%q) but invoked with %q", testCase.expectedPreviousImageTag, docker.GetImageIDImage)
+		if fakeDocker.GetImageIDImage != testCase.expectedPreviousImageTag {
+			t.Errorf("should invoke fakeDocker.GetImageID(%q) but invoked with %q", testCase.expectedPreviousImageTag, fakeDocker.GetImageIDImage)
 		}
 
 		if ctx.previousImageID != testCase.expectedPreviousImageID {
@@ -80,10 +80,10 @@ func TestRemovePreviousImageStep(t *testing.T) {
 		builder.incremental = true
 		builder.config.RemovePreviousImage = true
 
-		docker := builder.docker.(*docker.FakeDocker)
-		docker.RemoveImageError = testCase.removeImageError
+		fakeDocker := builder.docker.(*docker.FakeDocker)
+		fakeDocker.RemoveImageError = testCase.removeImageError
 
-		step := &removePreviousImageStep{builder: builder, docker: docker}
+		step := &removePreviousImageStep{builder: builder, docker: fakeDocker}
 
 		ctx := &postExecutorStepContext{previousImageID: testCase.expectedPreviousImageID}
 
@@ -91,8 +91,8 @@ func TestRemovePreviousImageStep(t *testing.T) {
 			t.Fatalf("should exit without error, but it returned %v", err)
 		}
 
-		if docker.RemoveImageName != testCase.expectedPreviousImageID {
-			t.Errorf("should invoke docker.RemoveImage(%q) but invoked with %q", testCase.expectedPreviousImageID, docker.RemoveImageName)
+		if fakeDocker.RemoveImageName != testCase.expectedPreviousImageID {
+			t.Errorf("should invoke fakeDocker.RemoveImage(%q) but invoked with %q", testCase.expectedPreviousImageID, fakeDocker.RemoveImageName)
 		}
 	}
 }
@@ -147,11 +147,11 @@ func TestCommitImageStep(t *testing.T) {
 		builder.config.Labels = configLabels
 		builder.env = expectedEnv
 
-		docker := builder.docker.(*docker.FakeDocker)
-		docker.CommitContainerResult = expectedImageID
-		docker.GetImageUserResult = expectedImageUser
-		docker.GetImageEntrypointResult = expectedEntrypoint
-		docker.Labels = baseImageLabels
+		fakeDocker := builder.docker.(*docker.FakeDocker)
+		fakeDocker.CommitContainerResult = expectedImageID
+		fakeDocker.GetImageUserResult = expectedImageUser
+		fakeDocker.GetImageEntrypointResult = expectedEntrypoint
+		fakeDocker.Labels = baseImageLabels
 
 		ctx := &postExecutorStepContext{
 			containerID: expectedContainerID,
@@ -164,7 +164,7 @@ func TestCommitImageStep(t *testing.T) {
 			ctx.destination = testCase.destination
 		}
 
-		step := &commitImageStep{builder: builder, docker: docker}
+		step := &commitImageStep{builder: builder, docker: fakeDocker}
 
 		if err := step.execute(ctx); err != nil {
 			t.Fatalf("should exit without error, but it returned %v", err)
@@ -174,7 +174,7 @@ func TestCommitImageStep(t *testing.T) {
 			t.Errorf("should set ImageID field to %q but it's %q", expectedImageID, ctx.imageID)
 		}
 
-		commitOpts := docker.CommitContainerOpts
+		commitOpts := fakeDocker.CommitContainerOpts
 
 		if len(commitOpts.Command) != 1 {
 			t.Errorf("should commit container with Command: %q, but committed with %q", testCase.expectedImageCmd, commitOpts.Command)

@@ -64,7 +64,7 @@ func ExpandInjectedFiles(fs fs.FileSystem, injections api.VolumeList) ([]string,
 			if f.Mode()&os.ModeSymlink != 0 {
 				linkDest, err := filepath.EvalSymlinks(path)
 				if err != nil {
-					return fmt.Errorf("Unable to evaluate symlink [%v]: %v", path, err)
+					return fmt.Errorf("unable to evaluate symlink [%v]: %v", path, err)
 				}
 				// Evaluate the destination of the link.
 				f, err = os.Lstat(linkDest)

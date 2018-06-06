@@ -180,8 +180,8 @@ func TestInstallRequiredFromSource(t *testing.T) {
 			t.Errorf("expected %q has result URL %s, got %#v", s, filepath.FromSlash(sourcesRootAbbrev+"/.s2i/bin/"+s), result)
 		}
 		chmodCalled := false
-		fs := config.fs.(*testfs.FakeFileSystem)
-		for _, f := range fs.ChmodFile {
+		filesystem := config.fs.(*testfs.FakeFileSystem)
+		for _, f := range filesystem.ChmodFile {
 			if filepath.ToSlash(f) == "/workdir/upload/scripts/"+s {
 				chmodCalled = true
 			}

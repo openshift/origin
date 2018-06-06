@@ -1,5 +1,5 @@
-hash: 12a6b90f5033f90f3f2c6601d01d7a3947b3b0c35bfa5187f0df2e09b511edb1
-updated: 2018-02-28T08:28:24.709125924-05:00
+hash: ad6b55325f0360c18428391d973800fda7d10fc17a58dc6c22fce3169692785c
+updated: 2018-06-05T16:46:55.570197-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -966,7 +966,7 @@ imports:
   subpackages:
   - imageprogress
 - name: github.com/openshift/source-to-image
-  version: db2b4645da20597632c9945e665c4ed01329afcf
+  version: 78a27e06ad8295a842ff756b6b16a3ace06a8e14
   subpackages:
   - pkg/api
   - pkg/errors

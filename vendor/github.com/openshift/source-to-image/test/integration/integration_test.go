@@ -44,6 +44,8 @@ const (
 	FakeNumericUserImage            = "sti_test/sti-fake-numericuser"
 	FakeImageOnBuildRootUser        = "sti_test/sti-fake-onbuild-rootuser"
 	FakeImageOnBuildNumericUser     = "sti_test/sti-fake-onbuild-numericuser"
+	FakeImageAssembleRoot           = "sti_test/sti-fake-assemble-root"
+	FakeImageAssembleUser           = "sti_test/sti-fake-assemble-user"
 
 	TagCleanBuild                              = "test/sti-fake-app"
 	TagCleanBuildUser                          = "test/sti-fake-app-user"
@@ -62,6 +64,8 @@ const (
 	TagCleanBuildAllowedUIDsNumericUser        = "test/sti-fake-alloweduids-numericuser"
 	TagCleanBuildAllowedUIDsOnBuildRoot        = "test/sti-fake-alloweduids-onbuildroot"
 	TagCleanBuildAllowedUIDsOnBuildNumericUser = "test/sti-fake-alloweduids-onbuildnumeric"
+	TagCleanBuildAllowedUIDsAssembleRoot       = "test/sti-fake-alloweduids-assembleroot"
+	TagCleanBuildAllowedUIDsAssembleUser       = "test/sti-fake-alloweduids-assembleuser"
 
 	// Need to serve the scripts from local host so any potential changes to the
 	// scripts are made available for integration testing.
@@ -254,6 +258,14 @@ func TestAllowedUIDsOnBuildRootUser(t *testing.T) {
 
 func TestAllowedUIDsOnBuildNumericUser(t *testing.T) {
 	integration(t).exerciseCleanAllowedUIDsBuild(TagCleanBuildAllowedUIDsNumericUser, FakeImageOnBuildNumericUser, false)
+}
+
+func TestAllowedUIDsAssembleRoot(t *testing.T) {
+	integration(t).exerciseCleanAllowedUIDsBuild(TagCleanBuildAllowedUIDsAssembleRoot, FakeImageAssembleRoot, true)
+}
+
+func TestAllowedUIDsAssembleUser(t *testing.T) {
+	integration(t).exerciseCleanAllowedUIDsBuild(TagCleanBuildAllowedUIDsAssembleUser, FakeImageAssembleUser, false)
 }
 
 func (i *integrationTest) exerciseCleanAllowedUIDsBuild(tag, imageName string, expectError bool) {

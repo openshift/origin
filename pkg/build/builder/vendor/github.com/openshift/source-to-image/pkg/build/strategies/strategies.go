@@ -25,11 +25,12 @@ func Strategy(client docker.Client, config *api.Config, overrides build.Override
 	var buildInfo api.BuildInfo
 	var err error
 
-	fs := fs.NewFileSystem()
+	fileSystem := fs.NewFileSystem()
 
 	startTime := time.Now()
 
-	image, err := docker.GetBuilderImage(client, config)
+	dkr := docker.New(client, config.PullAuthentication)
+	image, err := docker.GetBuilderImage(dkr, config)
 	buildInfo.Stages = api.RecordStageAndStepInfo(buildInfo.Stages, api.StagePullImages, api.StepPullBuilderImage, startTime, time.Now())
 	if err != nil {
 		buildInfo.FailureReason = utilstatus.NewFailureReason(
@@ -40,7 +41,7 @@ func Strategy(client docker.Client, config *api.Config, overrides build.Override
 	}
 	config.HasOnBuild = image.OnBuild
 
-	if config.AssembleUser, err = docker.GetAssembleUser(client, config); err != nil {
+	if config.AssembleUser, err = docker.GetAssembleUser(dkr, config); err != nil {
 		buildInfo.FailureReason = utilstatus.NewFailureReason(
 			utilstatus.ReasonPullBuilderImageFailed,
 			utilstatus.ReasonMessagePullBuilderImageFailed,
@@ -51,7 +52,7 @@ func Strategy(client docker.Client, config *api.Config, overrides build.Override
 	// if we're blocking onbuild, just do a normal s2i build flow
 	// which won't do a docker build and invoke the onbuild commands
 	if image.OnBuild && !config.BlockOnBuild {
-		builder, err = onbuild.New(client, config, fs, overrides)
+		builder, err = onbuild.New(client, config, fileSystem, overrides)
 		if err != nil {
 			buildInfo.FailureReason = utilstatus.NewFailureReason(
 				utilstatus.ReasonGenericS2IBuildFailed,
@@ -62,7 +63,7 @@ func Strategy(client docker.Client, config *api.Config, overrides build.Override
 		return builder, buildInfo, nil
 	}
 
-	builder, err = sti.New(client, config, fs, overrides)
+	builder, err = sti.New(client, config, fileSystem, overrides)
 	if err != nil {
 		buildInfo.FailureReason = utilstatus.NewFailureReason(
 			utilstatus.ReasonGenericS2IBuildFailed,
