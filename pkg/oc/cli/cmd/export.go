@@ -54,10 +54,12 @@ func NewCmdExport(fullName string, f *clientcmd.Factory, in io.Reader, out io.Wr
 	exporter := &DefaultExporter{}
 	var filenames []string
 	cmd := &cobra.Command{
-		Use:     "export RESOURCE/NAME ... [flags]",
-		Short:   "Export resources so they can be used elsewhere",
-		Long:    exportLong,
-		Example: fmt.Sprintf(exportExample, fullName),
+		Use:        "export RESOURCE/NAME ... [flags]",
+		Short:      "Export resources so they can be used elsewhere",
+		Long:       exportLong,
+		Example:    fmt.Sprintf(exportExample, fullName),
+		Deprecated: "use the oc get --export",
+		Hidden:     true,
 		Run: func(cmd *cobra.Command, args []string) {
 			err := RunExport(f, exporter, in, out, cmd, args, filenames)
 			if err == kcmdutil.ErrExit {
@@ -66,7 +68,6 @@ func NewCmdExport(fullName string, f *clientcmd.Factory, in io.Reader, out io.Wr
 			kcmdutil.CheckErr(err)
 		},
 	}
-	cmd.Deprecated = "Use the `get --export` command instead."
 
 	cmd.Flags().String("as-template", "", "Output a Template object with specified name instead of a List or single object.")
 	cmd.Flags().Bool("exact", false, "If true, preserve fields that may be cluster specific, such as service clusterIPs or generated names")

@@ -41,7 +41,8 @@ func NewCmdBuildLogs(fullName string, f *clientcmd.Factory, out io.Writer) *cobr
 		Short:      "Show logs from a build",
 		Long:       buildLogsLong,
 		Example:    fmt.Sprintf(buildLogsExample, fullName),
-		Deprecated: fmt.Sprintf("use \"oc %v build/<build-name>\" instead.", LogsRecommendedCommandName),
+		Deprecated: fmt.Sprintf("use oc %v build/<build-name>", LogsRecommendedCommandName),
+		Hidden:     true,
 		Run: func(cmd *cobra.Command, args []string) {
 			err := RunBuildLogs(fullName, f, out, cmd, opts, args)
 
