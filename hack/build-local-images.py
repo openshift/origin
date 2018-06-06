@@ -57,6 +57,7 @@ image_namespace, _, image_prefix = os_image_prefix.rpartition("/")
 # with no arguments
 image_config = {
     "cli": {
+        "tag": "latest",
         "directory": "cli",
         "binaries": {
             "oc": "/usr/bin/oc",
@@ -64,6 +65,7 @@ image_config = {
         "files": {}
     },
     "control-plane": {
+        "tag": "latest",
         "directory": "origin",
         "binaries": {
             "openshift": "/usr/bin/openshift",
@@ -72,6 +74,7 @@ image_config = {
         "files": {}
     },
     "hyperkube": {
+        "tag": "latest",
         "directory": "hyperkube",
         "binaries": {
             "hyperkube": "/usr/bin/hyperkube",
@@ -79,6 +82,7 @@ image_config = {
         "files": {}
     },
     "hypershift": {
+        "tag": "latest",
         "directory": "hypershift",
         "binaries": {
             "hypershift": "/usr/bin/hypershift",
@@ -86,6 +90,7 @@ image_config = {
         "files": {}
     },
     "deployer": {
+        "tag": "latest",
         "directory": "deployer",
         "binaries": {
             "openshift": "/usr/bin/openshift"
@@ -93,6 +98,7 @@ image_config = {
         "files": {}
     },
     "recycler": {
+        "tag": "latest",
         "directory": "recycler",
         "binaries": {
             "openshift": "/usr/bin/openshift"
@@ -100,6 +106,7 @@ image_config = {
         "files": {}
     },
     "docker-builder": {
+        "tag": "latest",
         "directory": "builder/docker/docker-builder",
         "binaries": {
             "openshift": "/usr/bin/openshift"
@@ -107,6 +114,7 @@ image_config = {
         "files": {}
     },
     "f5-router": {
+        "tag": "latest",
         "directory": "router/f5",
         "binaries": {
             "openshift": "/usr/bin/openshift"
@@ -114,6 +122,7 @@ image_config = {
         "files": {}
     },
     "nginx-router": {
+        "tag": "latest",
         "directory": "router/nginx",
         "binaries": {
             "openshift": "/usr/bin/openshift"
@@ -123,6 +132,7 @@ image_config = {
         }
     },
     "haproxy-router": {
+        "tag": "latest",
         "directory": "router/haproxy",
         "binaries": {
             "openshift": "/usr/bin/openshift"
@@ -132,6 +142,7 @@ image_config = {
         }
     },
     "keepalived-ipfailover": {
+        "tag": "latest",
         "directory": "ipfailover/keepalived",
         "binaries": {
             "openshift": "/usr/bin/openshift"
@@ -141,6 +152,7 @@ image_config = {
         }
     },
     "node": {
+        "tag": "latest",
         "directory": "node",
         "binaries": {
             "openshift": "/usr/bin/openshift",
@@ -150,6 +162,7 @@ image_config = {
         "files": {}
     },
     "template-service-broker": {
+        "tag": "latest",
         "directory": "template-service-broker",
         "binaries": {
             "template-service-broker": "/usr/bin/template-service-broker"
@@ -224,7 +237,8 @@ for image in image_config:
     build_occurred = True
     print "[INFO] Building {}...".format(image)
     with open(join(context_dir, "Dockerfile"), "w+") as dockerfile:
-        dockerfile.write("FROM {}\n".format(full_name(image)))
+        dockerfile.write("FROM {}:{}\n".format(full_name(image), image_config[image]["tag"]))
+
 
     binary_dir_args = ["_output", "local", "bin", "linux", "amd64"]
     config = image_config[image]
