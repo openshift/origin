@@ -2,6 +2,7 @@ reviewers:
   - dcbw
   - smarterclayton
   - knobunc
+  - ironcladlou
   - stevekuznetsov
   - rajatchopra
   - JacobTanenbaum
@@ -10,4 +11,5 @@ approvers:
   - dcbw
   - smarterclayton
   - knobunc
+  - ironcladlou
   - stevekuznetsov
