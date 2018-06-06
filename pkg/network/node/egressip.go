@@ -53,8 +53,8 @@ type egressIPWatcher struct {
 	namespacesByVNID map[uint32]*namespaceEgress
 	egressIPs        map[string]*egressIPInfo
 
-	changedEgressIPs  []*egressIPInfo
-	changedNamespaces []*namespaceEgress
+	changedEgressIPs  map[*egressIPInfo]bool
+	changedNamespaces map[*namespaceEgress]bool
 
 	localEgressLink netlink.Link
 	localEgressNet  *net.IPNet
@@ -70,6 +70,9 @@ func newEgressIPWatcher(oc *ovsController, localIP string, masqueradeBit *int32)
 		nodesByNodeIP:    make(map[string]*nodeEgress),
 		namespacesByVNID: make(map[uint32]*namespaceEgress),
 		egressIPs:        make(map[string]*egressIPInfo),
+
+		changedEgressIPs:  make(map[*egressIPInfo]bool),
+		changedNamespaces: make(map[*namespaceEgress]bool),
 	}
 	if masqueradeBit != nil {
 		eip.masqueradeBit = 1 << uint32(*masqueradeBit)
@@ -114,9 +117,9 @@ func (eip *egressIPWatcher) ensureEgressIPInfo(egressIP string) *egressIPInfo {
 }
 
 func (eip *egressIPWatcher) egressIPChanged(eg *egressIPInfo) {
-	eip.changedEgressIPs = append(eip.changedEgressIPs, eg)
+	eip.changedEgressIPs[eg] = true
 	for _, ns := range eg.namespaces {
-		eip.changedNamespaces = append(eip.changedNamespaces, ns)
+		eip.changedNamespaces[ns] = true
 	}
 }
 
@@ -285,28 +288,18 @@ func (eip *egressIPWatcher) deleteNamespaceEgress(vnid uint32) {
 }
 
 func (eip *egressIPWatcher) syncEgressIPs() {
-	changedEgressIPs := make(map[*egressIPInfo]bool)
-	for _, eg := range eip.changedEgressIPs {
-		changedEgressIPs[eg] = true
-	}
-	eip.changedEgressIPs = eip.changedEgressIPs[:0]
-
-	changedNamespaces := make(map[*namespaceEgress]bool)
-	for _, ns := range eip.changedNamespaces {
-		changedNamespaces[ns] = true
-	}
-	eip.changedNamespaces = eip.changedNamespaces[:0]
-
-	for eg := range changedEgressIPs {
+	for eg := range eip.changedEgressIPs {
 		eip.syncEgressNodeState(eg)
 	}
+	eip.changedEgressIPs = make(map[*egressIPInfo]bool)
 
-	for ns := range changedNamespaces {
+	for ns := range eip.changedNamespaces {
 		err := eip.syncEgressNamespaceState(ns)
 		if err != nil {
 			utilruntime.HandleError(fmt.Errorf("Error updating Namespace egress rules for VNID %d: %v", ns.vnid, err))
 		}
 	}
+	eip.changedNamespaces = make(map[*namespaceEgress]bool)
 }
 
 func (eip *egressIPWatcher) syncEgressNodeState(eg *egressIPInfo) {
