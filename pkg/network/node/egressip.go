@@ -271,9 +271,11 @@ func (eip *egressIPWatcher) updateNamespaceEgress(vnid uint32, egressIPs []strin
 		eip.deleteNamespace(ip, ns)
 	}
 
-	// Make sure we update OVS even if nothing was added or removed; the order might
-	// have changed
-	eip.changedNamespaces = append(eip.changedNamespaces, ns)
+	// Even IPs that weren't added/removed need to be considered "changed", to
+	// ensure we correctly process reorderings, duplicates added/removed, etc.
+	for _, ip := range newRequestedIPs.Intersection(oldRequestedIPs).UnsortedList() {
+		eip.egressIPChanged(eip.egressIPs[ip])
+	}
 
 	eip.syncEgressIPs()
 }
@@ -310,8 +312,8 @@ func (eip *egressIPWatcher) syncEgressIPs() {
 func (eip *egressIPWatcher) syncEgressNodeState(eg *egressIPInfo) {
 	// The egressIPInfo should have an assigned node IP if and only if the
 	// egress IP is active (ie, it is assigned to exactly 1 node and exactly
-	// 1 namespace).
-	egressIPActive := (len(eg.nodes) == 1 && len(eg.namespaces) == 1)
+	// 1 namespace, and it's the first one for its namespace).
+	egressIPActive := (len(eg.nodes) == 1 && len(eg.namespaces) == 1 && eg.ip == eg.namespaces[0].requestedIPs[0])
 	if egressIPActive && eg.assignedNodeIP != eg.nodes[0].nodeIP {
 		glog.V(4).Infof("Assigning egress IP %s to node %s", eg.ip, eg.nodes[0].nodeIP)
 		eg.assignedNodeIP = eg.nodes[0].nodeIP
