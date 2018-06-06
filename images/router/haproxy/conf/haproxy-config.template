@@ -121,6 +121,9 @@ defaults
 listen stats
   bind :{{if (gt .StatsPort 0)}}{{.StatsPort}}{{else}}1936{{end}}
   mode http
+  {{- if and (ne (env "ROUTER_SYSLOG_ADDRESS") "") (ne (env "ROUTER_SYSLOG_FORMAT_HTTP") "") }}
+  log-format {{env "ROUTER_SYSLOG_FORMAT_HTTP"}}
+  {{- end }}
   # Health check monitoring uri.
   monitor-uri /healthz
 
@@ -146,6 +149,9 @@ frontend public
     {{- end }}
     {{- if isTrue (env "ROUTER_USE_PROXY_PROTOCOL") }} accept-proxy{{ end }}
   mode http
+  {{- if and (ne (env "ROUTER_SYSLOG_ADDRESS") "") (ne (env "ROUTER_SYSLOG_FORMAT_HTTP") "") }}
+  log-format {{env "ROUTER_SYSLOG_FORMAT_HTTP"}}
+  {{- end }}
   tcp-request inspect-delay 5s
   tcp-request content accept if HTTP
 
@@ -220,6 +226,9 @@ frontend fe_sni
     {{- ""}} crt {{firstMatch ".+" .DefaultCertificate "/var/lib/haproxy/conf/default_pub_keys.pem"}}
     {{- ""}} crt-list /var/lib/haproxy/conf/cert_config.map accept-proxy
   mode http
+  {{- if and (ne (env "ROUTER_SYSLOG_ADDRESS") "") (ne (env "ROUTER_SYSLOG_FORMAT_HTTP") "") }}
+  log-format {{env "ROUTER_SYSLOG_FORMAT_HTTP"}}
+  {{- end }}
 
   # Strip off Proxy headers to prevent HTTpoxy (https://httpoxy.org/)
   http-request del-header Proxy
@@ -255,6 +264,9 @@ frontend fe_no_sni
   # terminate ssl on edge
   bind 127.0.0.1:{{env "ROUTER_SERVICE_NO_SNI_PORT" "10443"}} ssl no-sslv3 crt {{firstMatch ".+" .DefaultCertificate "/var/lib/haproxy/conf/default_pub_keys.pem"}} accept-proxy
   mode http
+  {{- if and (ne (env "ROUTER_SYSLOG_ADDRESS") "") (ne (env "ROUTER_SYSLOG_FORMAT_HTTP") "") }}
+  log-format {{env "ROUTER_SYSLOG_FORMAT_HTTP"}}
+  {{- end }}
 
   # Strip off Proxy headers to prevent HTTpoxy (https://httpoxy.org/)
   http-request del-header Proxy
@@ -278,6 +290,9 @@ frontend fe_no_sni
 
 backend openshift_default
   mode http
+  {{- if and (ne (env "ROUTER_SYSLOG_ADDRESS") "") (ne (env "ROUTER_SYSLOG_FORMAT_HTTP") "") }}
+  log-format {{env "ROUTER_SYSLOG_FORMAT_HTTP"}}
+  {{- end }}
   option forwardfor
   #option http-keep-alive
   option http-pretend-keepalive
