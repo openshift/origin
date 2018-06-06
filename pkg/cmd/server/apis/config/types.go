@@ -150,7 +150,7 @@ var (
 		{DomainName: "gcr.io"},
 		{DomainName: "quay.io"},
 		{DomainName: "registry.centos.org"},
-		{DomainName: "registry.redhat.io"},
+		{DomainName: "*.redhat.io"},
 		// FIXME: Probably need to have more fine-tuned pattern defined
 		{DomainName: "*.amazonaws.com"},
 	}
