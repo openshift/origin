@@ -356,7 +356,7 @@ func (p *fakeHAProxy) showServers(name string) string {
 
 	if name != p.backendName {
 		if _, ok := onePodAndOneDynamicServerBackends[name]; ok {
-			return fmt.Sprintf(onePodAndOneDynamicServerBackendTemplate, name)
+			return fmt.Sprintf(onePodAndOneDynamicServerBackendTemplate, name, name)
 		}
 		if len(name) > 0 {
 			return fmt.Sprintf("Can't find backend.\n")

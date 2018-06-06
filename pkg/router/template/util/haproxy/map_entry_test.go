@@ -579,11 +579,15 @@ func TestGenerateTCPMapEntry(t *testing.T) {
 		testCases := []*testCase{}
 		for _, termination := range getTestTerminations() {
 			for _, policy := range getTestInsecurePolicies() {
+				backendKey := fmt.Sprintf("be_secure:%s", tt.backendKey)
+				if termination == routeapi.TLSTerminationPassthrough {
+					backendKey = fmt.Sprintf("be_tcp:%s", tt.backendKey)
+				}
 				testCases = append(testCases, &testCase{
 					name: fmt.Sprintf("%s:termination=%s:policy=%s", tt.name, termination, policy),
 					cfg:  testBackendConfig(tt.backendKey, tt.hostname, tt.path, tt.wildcard, termination, policy, false),
 
-					expectation: buildTestExpectation(tt.backendKey, tt.expectedKey, termination),
+					expectation: buildTestExpectation(backendKey, tt.expectedKey, termination),
 				})
 			}
 		}

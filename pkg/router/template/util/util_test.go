@@ -212,42 +212,6 @@ func TestGenCertificateHostName(t *testing.T) {
 }
 
 func TestGenerateBackendNamePrefix(t *testing.T) {
-	tests := []struct {
-		name        string
-		termination routeapi.TLSTerminationType
-		expected    string
-	}{
-		{
-			name:        "empty termination",
-			termination: routeapi.TLSTerminationType(""),
-			expected:    "be_http",
-		},
-		{
-			name:        "edge termination",
-			termination: routeapi.TLSTerminationEdge,
-			expected:    "be_edge_http",
-		},
-		{
-			name:        "reencrypt termination",
-			termination: routeapi.TLSTerminationReencrypt,
-			expected:    "be_secure",
-		},
-		{
-			name:        "passthru termination",
-			termination: routeapi.TLSTerminationPassthrough,
-			expected:    "be_tcp",
-		},
-	}
-
-	for _, tc := range tests {
-		prefix := GenerateBackendNamePrefix(tc.termination)
-		if prefix != tc.expected {
-			t.Errorf("%s: expected %s to match %s, but didn't", tc.name, tc.expected, prefix)
-		}
-	}
-}
-
-func TestGenerateBackendNamePrefix(t *testing.T) {
 	testPrefixes := []struct {
 		name           string
 		termination    routeapi.TLSTerminationType
@@ -283,7 +247,7 @@ func TestGenerateBackendNamePrefix(t *testing.T) {
 	for _, tc := range testPrefixes {
 		prefix := GenerateBackendNamePrefix(tc.termination)
 		if prefix != tc.expectedPrefix {
-			t.Errorf("%s: expected %s to get %s, but got %s", tc.name, tc.expectedPrefix, prefix)
+			t.Errorf("TestGenerateBackendNamePrefix: expected %s to get %s, but got %s", tc.name, tc.expectedPrefix, prefix)
 		}
 	}
 }
