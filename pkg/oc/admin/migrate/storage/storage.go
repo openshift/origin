@@ -288,16 +288,23 @@ func (o *MigrateAPIStorageOptions) save(info *resource.Info, reporter migrate.Re
 
 		// a nil limiter means "no limit"
 		if o.limiter != nil {
-			// we have to wait until after the GET to determine how much data we will PUT
-			// thus we need to double the amount to account for both operations
-			// we also need to account for the initial list operation which is roughly another GET per object
-			// thus we can amortize the cost of the list by adding another GET to our calculations
-			// so we have 2 GETs + 1 PUT == 3 * size of data
-			latency := o.limiter.take(3 * len(data))
-			// mimic rest.Request.tryThrottle logging logic
-			if latency > longThrottleLatency {
-				glog.V(4).Infof("Throttling request took %v, request: %s:%s", latency, "GET", r.URL().String())
-			}
+			// we rate limit after performing all operations to make us less sensitive to conflicts
+			// use a defer to make sure we always rate limit after a successful GET even if the PUT fails
+			defer func() {
+				// we have to wait until after the GET to determine how much data we will PUT
+				// thus we need to double the amount to account for both operations
+				// we also need to account for the initial list operation which is roughly another GET per object
+				// thus we can amortize the cost of the list by adding another GET to our calculations
+				// so we have 2 GETs + 1 PUT == 3 * size of data
+				// this is a slight overestimate since every retry attempt will still try to account for
+				// the initial list operation.  this should not be an issue since retries are not that common
+				// and the rate limiting is best effort anyway.  going slightly slower is acceptable.
+				latency := o.limiter.take(3 * len(data))
+				// mimic rest.Request.tryThrottle logging logic
+				if latency > longThrottleLatency {
+					glog.V(4).Infof("Throttling request took %v, request: %s:%s", latency, "GET", r.URL().String())
+				}
+			}()
 		}
 
 		update := info.Client.Put().
