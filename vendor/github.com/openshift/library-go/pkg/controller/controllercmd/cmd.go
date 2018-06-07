@@ -6,6 +6,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -51,7 +52,7 @@ func NewControllerCommandConfig(componentName string, version version.Info, star
 // leader election and other "normal" behaviors.
 func (c *ControllerCommandConfig) NewCommand() *cobra.Command {
 	cmd := &cobra.Command{
-		RunE: func(cmd *cobra.Command, args []string) error {
+		Run: func(cmd *cobra.Command, args []string) {
 			// boiler plate for the "normal" command
 			rand.Seed(time.Now().UTC().UnixNano())
 			logs.InitLogs()
@@ -61,13 +62,12 @@ func (c *ControllerCommandConfig) NewCommand() *cobra.Command {
 			serviceability.StartProfiler()
 
 			if err := c.basicFlags.Validate(); err != nil {
-				return err
+				glog.Fatal(err)
 			}
 
 			if err := c.StartController(); err != nil {
-				return err
+				glog.Fatal(err)
 			}
-			return nil
 		},
 	}
 
