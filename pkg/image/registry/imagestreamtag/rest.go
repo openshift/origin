@@ -9,6 +9,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
+	"k8s.io/kubernetes/pkg/printers"
+	printerstorage "k8s.io/kubernetes/pkg/printers/storage"
 
 	oapi "github.com/openshift/origin/pkg/api"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
@@ -16,6 +18,7 @@ import (
 	"github.com/openshift/origin/pkg/image/registry/image"
 	"github.com/openshift/origin/pkg/image/registry/imagestream"
 	"github.com/openshift/origin/pkg/image/util"
+	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
 )
 
 // REST implements the RESTStorage interface for ImageStreamTag
@@ -24,6 +27,7 @@ type REST struct {
 	imageRegistry       image.Registry
 	imageStreamRegistry imagestream.Registry
 	strategy            Strategy
+	rest.TableConvertor
 }
 
 // NewREST returns a new REST.
@@ -32,6 +36,7 @@ func NewREST(imageRegistry image.Registry, imageStreamRegistry imagestream.Regis
 		imageRegistry:       imageRegistry,
 		imageStreamRegistry: imageStreamRegistry,
 		strategy:            NewStrategy(registryWhitelister),
+		TableConvertor:      printerstorage.TableConvertor{TablePrinter: printers.NewTablePrinter().With(printersinternal.AddHandlers)},
 	}
 }
 

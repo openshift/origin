@@ -9,15 +9,19 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 	restclient "k8s.io/client-go/rest"
 	rbacinternalversion "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/rbac/internalversion"
+	"k8s.io/kubernetes/pkg/printers"
+	printerstorage "k8s.io/kubernetes/pkg/printers/storage"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/authorization/registry/util"
 	authclient "github.com/openshift/origin/pkg/client/impersonatingclient"
+	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
 	utilregistry "github.com/openshift/origin/pkg/util/registry"
 )
 
 type REST struct {
 	privilegedClient restclient.Interface
+	rest.TableConvertor
 }
 
 var _ rest.Lister = &REST{}
@@ -26,7 +30,10 @@ var _ rest.CreaterUpdater = &REST{}
 var _ rest.GracefulDeleter = &REST{}
 
 func NewREST(client restclient.Interface) utilregistry.NoWatchStorage {
-	return utilregistry.WrapNoWatchStorageError(&REST{privilegedClient: client})
+	return utilregistry.WrapNoWatchStorageError(&REST{
+		privilegedClient: client,
+		TableConvertor:   printerstorage.TableConvertor{TablePrinter: printers.NewTablePrinter().With(printersinternal.AddHandlers)},
+	})
 }
 
 func (s *REST) New() runtime.Object {
