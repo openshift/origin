@@ -113,7 +113,7 @@ func GetTestPod(testPodImage, testPodProtocol, podName, nodeName string, testPod
 		},
 	}
 
-	if getTrimmedImage(testPodImage) == getTrimmedImage(util.GetNetworkDiagDefaultTestPodImage()) {
+	if testPodImage == util.GetNetworkDiagDefaultTestPodImage() {
 		pod.Spec.Containers[0].Command = []string{
 			"socat", "-T", "1", "-d",
 			fmt.Sprintf("%s-l:%d,reuseaddr,fork,crlf", testPodProtocol, testPodPort),
@@ -121,14 +121,6 @@ func GetTestPod(testPodImage, testPodProtocol, podName, nodeName string, testPod
 		}
 	}
 	return pod
-}
-
-func getTrimmedImage(image string) string {
-	// Image format could be: [<dns-name>/]openshift/origin-deployer[:<tag>]
-	tokens := strings.Split(image, "/")
-	trimImageWithTag := tokens[len(tokens)-1]
-
-	return strings.Split(trimImageWithTag, ":")[0]
 }
 
 func GetTestService(serviceName, podName, podProtocol, nodeName string, podPort int) *kapi.Service {
