@@ -109,6 +109,7 @@ func (g *configRESTOptionsGetter) GetRESTOptions(resource schema.GroupResource) 
 		DeleteCollectionWorkers: g.deleteCollectionWorkers,
 		EnableGarbageCollection: g.enableGarbageCollection,
 		ResourcePrefix:          g.storageFactory.ResourcePrefix(resource),
+		CountMetricPollPeriod:   config.CountMetricPollPeriod,
 	}
 	g.restOptionsMap[resource] = resourceOptions
 
