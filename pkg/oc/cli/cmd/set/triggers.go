@@ -3,8 +3,6 @@ package set
 import (
 	"encoding/json"
 	"fmt"
-	"io"
-	"os"
 	"reflect"
 	"strings"
 	"text/tabwriter"
@@ -15,6 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapps "k8s.io/kubernetes/pkg/apis/apps"
 	kbatch "k8s.io/kubernetes/pkg/apis/batch"
@@ -23,7 +22,8 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
-	"k8s.io/kubernetes/pkg/kubectl/resource"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
+	oldresource "k8s.io/kubernetes/pkg/kubectl/resource"
 
 	ometa "github.com/openshift/origin/pkg/api/meta"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
@@ -31,6 +31,7 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	triggerapi "github.com/openshift/origin/pkg/image/apis/image/v1/trigger"
 	"github.com/openshift/origin/pkg/image/trigger/annotations"
+	"github.com/openshift/origin/pkg/oauth/generated/clientset/scheme"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	"github.com/openshift/origin/pkg/oc/generate/app"
 )
@@ -82,98 +83,88 @@ var (
 )
 
 type TriggersOptions struct {
-	Out io.Writer
-	Err io.Writer
+	PrintFlags *genericclioptions.PrintFlags
+	oldresource.FilenameOptions
+	genericclioptions.IOStreams
 
-	Filenames []string
-	Selector  string
-	All       bool
-	Output    string
-
-	Builder *resource.Builder
-	Infos   []*resource.Info
-
-	Encoder runtime.Encoder
-
-	Cmd *cobra.Command
-
-	Local       bool
-	ShortOutput bool
-	Mapper      meta.RESTMapper
-
-	PrintTable  bool
-	PrintObject func([]*resource.Info) error
-
-	Remove    bool
-	RemoveAll bool
-	Auto      bool
-	Manual    bool
-	Reset     bool
-
+	Selector            string
+	All                 bool
+	Local               bool
+	Remove              bool
+	RemoveAll           bool
+	Auto                bool
+	Manual              bool
+	Reset               bool
 	ContainerNames      string
 	FromConfig          bool
+	FromImage           string
 	FromGitHub          *bool
 	FromWebHook         *bool
 	FromWebHookAllowEnv *bool
 	FromGitLab          *bool
 	FromBitbucket       *bool
-	FromImage           string
 	// FromImageNamespace is the namespace for the FromImage
 	FromImageNamespace string
+
+	PrintTable        bool
+	Mapper            meta.RESTMapper
+	PrintObj          printers.ResourcePrinterFunc
+	Builder           func() *oldresource.Builder
+	Encoder           runtime.Encoder
+	Namespace         string
+	ExplicitNamespace bool
+	DryRun            bool
+	Args              []string
+}
+
+func NewTriggersOptions(streams genericclioptions.IOStreams) *TriggersOptions {
+	return &TriggersOptions{
+		PrintFlags: genericclioptions.NewPrintFlags("triggers updated").WithTypeSetter(scheme.Scheme),
+		IOStreams:  streams,
+	}
 }
 
 // NewCmdTriggers implements the set triggers command
 func NewCmdTriggers(fullName string, f *clientcmd.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	options := &TriggersOptions{
-		Out: streams.Out,
-		Err: streams.ErrOut,
-	}
+	o := NewTriggersOptions(streams)
 	cmd := &cobra.Command{
 		Use:     "triggers RESOURCE/NAME [--from-config|--from-image|--from-github|--from-webhook] [--auto|--manual]",
 		Short:   "Update the triggers on one or more objects",
 		Long:    triggersLong,
 		Example: fmt.Sprintf(triggersExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
-			kcmdutil.CheckErr(options.Complete(f, cmd, args))
-			kcmdutil.CheckErr(options.Validate())
-			if err := options.Run(); err != nil {
-				// TODO: move me to kcmdutil
-				if err == kcmdutil.ErrExit {
-					os.Exit(1)
-				}
-				kcmdutil.CheckErr(err)
-			}
+			kcmdutil.CheckErr(o.Complete(f, cmd, args))
+			kcmdutil.CheckErr(o.Validate())
+			kcmdutil.CheckErr(o.Run())
 		},
 	}
+	usage := "to use to edit the resource"
+	kcmdutil.AddFilenameOptionFlags(cmd, &o.FilenameOptions, usage)
+	cmd.Flags().StringVarP(&o.Selector, "selector", "l", o.Selector, "Selector (label query) to filter on")
+	cmd.Flags().BoolVar(&o.All, "all", o.All, "If true, select all resources in the namespace of the specified resource types")
+	cmd.Flags().BoolVar(&o.Remove, "remove", o.Remove, "If true, remove the specified trigger(s).")
+	cmd.Flags().BoolVar(&o.RemoveAll, "remove-all", o.RemoveAll, "If true, remove all triggers.")
+	cmd.Flags().BoolVar(&o.Auto, "auto", o.Auto, "If true, enable all triggers, or just the specified trigger")
+	cmd.Flags().BoolVar(&o.Manual, "manual", o.Manual, "If true, set all triggers to manual, or just the specified trigger")
+	cmd.Flags().BoolVar(&o.Local, "local", o.Local, "If true, set image will NOT contact api-server but run locally.")
+	cmd.Flags().BoolVar(&o.FromConfig, "from-config", o.FromConfig, "If set, configuration changes will result in a change")
+	cmd.Flags().StringVarP(&o.ContainerNames, "containers", "c", o.ContainerNames, "Comma delimited list of container names this trigger applies to on deployments; defaults to the name of the only container")
+	cmd.Flags().StringVar(&o.FromImage, "from-image", o.FromImage, "An image stream tag to trigger off of")
+	o.FromGitHub = cmd.Flags().Bool("from-github", false, "If true, a GitHub webhook - a secret value will be generated automatically")
+	o.FromWebHook = cmd.Flags().Bool("from-webhook", false, "If true, a generic webhook - a secret value will be generated automatically")
+	o.FromWebHookAllowEnv = cmd.Flags().Bool("from-webhook-allow-env", false, "If true, a generic webhook which can provide environment variables - a secret value will be generated automatically")
+	o.FromGitLab = cmd.Flags().Bool("from-gitlab", false, "If true, a GitLab webhook - a secret value will be generated automatically")
+	o.FromBitbucket = cmd.Flags().Bool("from-bitbucket", false, "If true, a Bitbucket webhook - a secret value will be generated automatically")
 
-	kcmdutil.AddPrinterFlags(cmd)
-	cmd.Flags().StringVarP(&options.Selector, "selector", "l", options.Selector, "Selector (label query) to filter on")
-	cmd.Flags().BoolVar(&options.All, "all", options.All, "If true, select all resources in the namespace of the specified resource types")
-	cmd.Flags().StringSliceVarP(&options.Filenames, "filename", "f", options.Filenames, "Filename, directory, or URL to file to use to edit the resource.")
-
-	cmd.Flags().BoolVar(&options.Remove, "remove", options.Remove, "If true, remove the specified trigger(s).")
-	cmd.Flags().BoolVar(&options.RemoveAll, "remove-all", options.RemoveAll, "If true, remove all triggers.")
-	cmd.Flags().BoolVar(&options.Auto, "auto", options.Auto, "If true, enable all triggers, or just the specified trigger")
-	cmd.Flags().BoolVar(&options.Manual, "manual", options.Manual, "If true, set all triggers to manual, or just the specified trigger")
-	cmd.Flags().BoolVar(&options.Local, "local", false, "If true, set image will NOT contact api-server but run locally.")
-
-	cmd.Flags().BoolVar(&options.FromConfig, "from-config", options.FromConfig, "If set, configuration changes will result in a change")
-	cmd.Flags().StringVarP(&options.ContainerNames, "containers", "c", options.ContainerNames, "Comma delimited list of container names this trigger applies to on deployments; defaults to the name of the only container")
-	cmd.Flags().StringVar(&options.FromImage, "from-image", options.FromImage, "An image stream tag to trigger off of")
-	options.FromGitHub = cmd.Flags().Bool("from-github", false, "If true, a GitHub webhook - a secret value will be generated automatically")
-	options.FromWebHook = cmd.Flags().Bool("from-webhook", false, "If true, a generic webhook - a secret value will be generated automatically")
-	options.FromWebHookAllowEnv = cmd.Flags().Bool("from-webhook-allow-env", false, "If true, a generic webhook which can provide environment variables - a secret value will be generated automatically")
-	options.FromGitLab = cmd.Flags().Bool("from-gitlab", false, "If true, a GitLab webhook - a secret value will be generated automatically")
-	options.FromBitbucket = cmd.Flags().Bool("from-bitbucket", false, "If true, a Bitbucket webhook - a secret value will be generated automatically")
-
+	o.PrintFlags.AddFlags(cmd)
 	kcmdutil.AddDryRunFlag(cmd)
-	cmd.MarkFlagFilename("filename", "yaml", "yml", "json")
 
 	return cmd
 }
 
 func (o *TriggersOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string) error {
-	cmdNamespace, explicit, err := f.DefaultNamespace()
+	var err error
+	o.Namespace, o.ExplicitNamespace, err = f.DefaultNamespace()
 	if err != nil {
 		return err
 	}
@@ -194,8 +185,6 @@ func (o *TriggersOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, arg
 		o.FromBitbucket = nil
 	}
 
-	o.Cmd = cmd
-
 	if len(o.FromImage) > 0 {
 		ref, err := imageapi.ParseDockerImageReference(o.FromImage)
 		if err != nil {
@@ -208,7 +197,7 @@ func (o *TriggersOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, arg
 			return fmt.Errorf("the value of --from-image must include the tag you wish to pull from")
 		}
 		o.FromImage = ref.NameString()
-		o.FromImageNamespace = defaultNamespace(ref.Namespace, cmdNamespace)
+		o.FromImageNamespace = defaultNamespace(ref.Namespace, o.Namespace)
 	}
 
 	count := o.count()
@@ -220,29 +209,20 @@ func (o *TriggersOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, arg
 		o.Auto = true
 	}
 
-	mapper, _ := f.Object()
-	o.Builder = f.NewBuilder().
-		Internal().
-		LocalParam(o.Local).
-		ContinueOnError().
-		NamespaceParam(cmdNamespace).DefaultNamespace().
-		FilenameParam(explicit, &resource.FilenameOptions{Recursive: false, Filenames: o.Filenames}).
-		Flatten()
-
-	if !o.Local {
-		o.Builder = o.Builder.
-			LabelSelectorParam(o.Selector).
-			ResourceTypeOrNameArgs(o.All, args...)
-	}
-
-	o.Output = kcmdutil.GetFlagString(cmd, "output")
-	o.PrintObject = func(infos []*resource.Info) error {
-		return f.PrintResourceInfos(cmd, o.Local, infos, o.Out)
-	}
-
+	o.Args = args
+	o.DryRun = kcmdutil.GetDryRunFlag(cmd)
+	o.Mapper, _ = f.Object()
 	o.Encoder = kcmdutil.InternalVersionJSONEncoder()
-	o.ShortOutput = kcmdutil.GetFlagString(cmd, "output") == "name"
-	o.Mapper = mapper
+	o.Builder = f.NewBuilder
+
+	if o.DryRun {
+		o.PrintFlags.Complete("%s (dry run)")
+	}
+	printer, err := o.PrintFlags.ToPrinter()
+	if err != nil {
+		return err
+	}
+	o.PrintObj = printer.PrintObj
 
 	return nil
 }
@@ -293,17 +273,27 @@ func (o *TriggersOptions) Validate() error {
 }
 
 func (o *TriggersOptions) Run() error {
-	infos := o.Infos
-	singleItemImplied := len(o.Infos) <= 1
-	if o.Builder != nil {
-		loaded, err := o.Builder.Do().IntoSingleItemImplied(&singleItemImplied).Infos()
-		if err != nil {
-			return err
-		}
-		infos = loaded
+	b := o.Builder().
+		Internal().
+		LocalParam(o.Local).
+		ContinueOnError().
+		NamespaceParam(o.Namespace).DefaultNamespace().
+		FilenameParam(o.ExplicitNamespace, &o.FilenameOptions).
+		Flatten()
+
+	if !o.Local {
+		b = b.
+			LabelSelectorParam(o.Selector).
+			ResourceTypeOrNameArgs(o.All, o.Args...)
 	}
 
-	if o.PrintTable && len(o.Output) == 0 {
+	singleItemImplied := false
+	infos, err := b.Do().IntoSingleItemImplied(&singleItemImplied).Infos()
+	if err != nil {
+		return err
+	}
+
+	if o.PrintTable {
 		return o.printTriggers(infos)
 	}
 
@@ -311,50 +301,50 @@ func (o *TriggersOptions) Run() error {
 		o.updateTriggers(triggers)
 		return nil
 	}
-	patches := CalculatePatches(infos, o.Encoder, func(info *resource.Info) (bool, error) {
+	// FIXME-REBASE
+	patches := CalculatePatches(infos, o.Encoder /*scheme.DefaultJSONEncoder()*/, func(info *oldresource.Info) (bool, error) {
 		return UpdateTriggersForObject(info.Object, updateTriggerFn)
 	})
 	if singleItemImplied && len(patches) == 0 {
 		return fmt.Errorf("%s/%s does not support triggers", infos[0].Mapping.Resource, infos[0].Name)
 	}
-	if len(o.Output) > 0 || o.Local || kcmdutil.GetDryRunFlag(o.Cmd) {
-		return o.PrintObject(infos)
-	}
 
-	failed := false
+	allErrs := []error{}
 	for _, patch := range patches {
 		info := patch.Info
 		if patch.Err != nil {
-			failed = true
-			fmt.Fprintf(o.Err, "error: %s/%s %v\n", info.Mapping.Resource, info.Name, patch.Err)
+			allErrs = append(allErrs, fmt.Errorf("error: %s/%s %v\n", info.Mapping.Resource, info.Name, patch.Err))
 			continue
 		}
 
 		if string(patch.Patch) == "{}" || len(patch.Patch) == 0 {
-			fmt.Fprintf(o.Err, "info: %s %q was not changed\n", info.Mapping.Resource, info.Name)
 			continue
 		}
 
-		glog.V(4).Infof("Calculated patch %s", patch.Patch)
+		if o.Local || o.DryRun {
+			if err := o.PrintObj(info.Object, o.Out); err != nil {
+				allErrs = append(allErrs, err)
+			}
+			continue
+		}
 
-		obj, err := resource.NewHelper(info.Client, info.Mapping).Patch(info.Namespace, info.Name, types.StrategicMergePatchType, patch.Patch)
+		actual, err := oldresource.NewHelper(info.Client, info.Mapping).Patch(info.Namespace, info.Name, types.StrategicMergePatchType, patch.Patch)
 		if err != nil {
-			handlePodUpdateError(o.Err, err, "triggered")
-			failed = true
+			allErrs = append(allErrs, fmt.Errorf("failed to patch build hook: %v\n", err))
 			continue
 		}
 
-		info.Refresh(obj, true)
-		kcmdutil.PrintSuccess(o.ShortOutput, o.Out, info.Object, false, "updated")
+		if err := o.PrintObj(actual, o.Out); err != nil {
+			// FIXME-REBASE
+			// allErrs = append(allErrs, err)
+		}
 	}
-	if failed {
-		return kcmdutil.ErrExit
-	}
-	return nil
+	return utilerrors.NewAggregate(allErrs)
+
 }
 
 // printTriggers displays a tabular output of the triggers for each object.
-func (o *TriggersOptions) printTriggers(infos []*resource.Info) error {
+func (o *TriggersOptions) printTriggers(infos []*oldresource.Info) error {
 	w := tabwriter.NewWriter(o.Out, 0, 2, 2, ' ', 0)
 	defer w.Flush()
 	fmt.Fprintf(w, "NAME\tTYPE\tVALUE\tAUTO\n")

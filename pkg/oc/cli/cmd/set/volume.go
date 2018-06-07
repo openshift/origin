@@ -4,14 +4,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
-	"os"
 	"path"
 	"regexp"
 	"strconv"
 	"strings"
 
-	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
 	"k8s.io/api/core/v1"
@@ -22,6 +19,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apiserver/pkg/storage/names"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
@@ -29,8 +27,11 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
-	"k8s.io/kubernetes/pkg/kubectl/resource"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
+	"k8s.io/kubernetes/pkg/kubectl/polymorphichelpers"
+	oldresource "k8s.io/kubernetes/pkg/kubectl/resource"
 
+	"github.com/openshift/origin/pkg/oauth/generated/clientset/scheme"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
@@ -99,23 +100,24 @@ var (
 )
 
 type VolumeOptions struct {
+	PrintFlags *genericclioptions.PrintFlags
+	oldresource.FilenameOptions
+	genericclioptions.IOStreams
+
 	DefaultNamespace       string
 	ExplicitNamespace      bool
-	Out                    io.Writer
-	Err                    io.Writer
 	Mapper                 meta.RESTMapper
 	Typer                  runtime.ObjectTyper
 	CategoryExpander       categories.CategoryExpander
-	RESTClientFactory      func(mapping *meta.RESTMapping) (resource.RESTClient, error)
+	RESTClientFactory      func(mapping *meta.RESTMapping) (oldresource.RESTClient, error)
 	UpdatePodSpecForObject func(obj runtime.Object, fn func(*v1.PodSpec) error) (bool, error)
 	Client                 kcoreclient.PersistentVolumeClaimsGetter
 	Encoder                runtime.Encoder
-	Cmd                    *cobra.Command
+	Builder                func() *oldresource.Builder
 
 	// Resource selection
-	Selector  string
-	All       bool
-	Filenames []string
+	Selector string
+	All      bool
 
 	// Operations
 	Add    bool
@@ -123,12 +125,13 @@ type VolumeOptions struct {
 	List   bool
 
 	// Common optional params
-	Name        string
-	Containers  string
-	Confirm     bool
-	Local       bool
-	Output      string
-	PrintObject func([]*resource.Info) error
+	Name       string
+	Containers string
+	Confirm    bool
+	Local      bool
+	Args       []string
+	PrintObj   printers.ResourcePrinterFunc
+	DryRun     bool
 
 	// Add op params
 	AddOpts *AddVolumeOptions
@@ -154,13 +157,20 @@ type AddVolumeOptions struct {
 	TypeChanged bool
 }
 
-func NewCmdVolume(fullName string, f *clientcmd.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	addOpts := &AddVolumeOptions{}
-	opts := &VolumeOptions{
-		AddOpts: addOpts,
-		Out:     streams.Out,
-		Err:     streams.ErrOut,
+func NewVolumeOptions(streams genericclioptions.IOStreams) *VolumeOptions {
+	return &VolumeOptions{
+		PrintFlags: genericclioptions.NewPrintFlags("volume updated").WithTypeSetter(scheme.Scheme),
+
+		Containers: "*",
+		AddOpts: &AddVolumeOptions{
+			ClaimMode: "ReadWriteOnce",
+		},
+		IOStreams: streams,
 	}
+}
+
+func NewCmdVolume(fullName string, f *clientcmd.Factory, streams genericclioptions.IOStreams) *cobra.Command {
+	o := NewVolumeOptions(streams)
 	cmd := &cobra.Command{
 		Use:     "volumes RESOURCE/NAME --add|--remove|--list",
 		Short:   "Update volumes on a pod template",
@@ -168,51 +178,39 @@ func NewCmdVolume(fullName string, f *clientcmd.Factory, streams genericclioptio
 		Example: fmt.Sprintf(volumeExample, fullName),
 		Aliases: []string{"volume"},
 		Run: func(cmd *cobra.Command, args []string) {
-			addOpts.TypeChanged = cmd.Flag("type").Changed
-
-			kcmdutil.CheckErr(opts.Complete(f, cmd))
-
-			err := opts.Validate(cmd, args)
-			if err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
-			}
-
-			err = opts.RunVolume(args, f)
-			if err == kcmdutil.ErrExit {
-				os.Exit(1)
-			}
-			kcmdutil.CheckErr(err)
+			kcmdutil.CheckErr(o.Complete(f, cmd, args))
+			kcmdutil.CheckErr(o.Validate())
+			kcmdutil.CheckErr(o.RunVolume())
 		},
 	}
-	cmd.Flags().StringVarP(&opts.Selector, "selector", "l", "", "Selector (label query) to filter on")
-	cmd.Flags().BoolVar(&opts.All, "all", false, "If true, select all resources in the namespace of the specified resource types")
-	cmd.Flags().StringSliceVarP(&opts.Filenames, "filename", "f", opts.Filenames, "Filename, directory, or URL to file to use to edit the resource.")
-	cmd.Flags().BoolVar(&opts.Add, "add", false, "If true, add volume and/or volume mounts for containers")
-	cmd.Flags().BoolVar(&opts.Remove, "remove", false, "If true, remove volume and/or volume mounts for containers")
-	cmd.Flags().BoolVar(&opts.List, "list", false, "If true, list volumes and volume mounts for containers")
-	cmd.Flags().BoolVar(&opts.Local, "local", false, "If true, set image will NOT contact api-server but run locally.")
+	usage := "to use to edit the resource"
+	kcmdutil.AddFilenameOptionFlags(cmd, &o.FilenameOptions, usage)
+	cmd.Flags().StringVarP(&o.Selector, "selector", "l", o.Selector, "Selector (label query) to filter on")
+	cmd.Flags().BoolVar(&o.All, "all", o.All, "If true, select all resources in the namespace of the specified resource types")
+	cmd.Flags().BoolVar(&o.Add, "add", o.Add, "If true, add volume and/or volume mounts for containers")
+	cmd.Flags().BoolVar(&o.Remove, "remove", o.Remove, "If true, remove volume and/or volume mounts for containers")
+	cmd.Flags().BoolVar(&o.List, "list", o.List, "If true, list volumes and volume mounts for containers")
+	cmd.Flags().BoolVar(&o.Local, "local", o.Local, "If true, set image will NOT contact api-server but run locally.")
+	cmd.Flags().StringVar(&o.Name, "name", o.Name, "Name of the volume. If empty, auto generated for add operation")
+	cmd.Flags().StringVarP(&o.Containers, "containers", "c", o.Containers, "The names of containers in the selected pod templates to change - may use wildcards")
+	cmd.Flags().BoolVar(&o.Confirm, "confirm", o.Confirm, "If true, confirm that you really want to remove multiple volumes")
 
-	cmd.Flags().StringVar(&opts.Name, "name", "", "Name of the volume. If empty, auto generated for add operation")
-	cmd.Flags().StringVarP(&opts.Containers, "containers", "c", "*", "The names of containers in the selected pod templates to change - may use wildcards")
-	cmd.Flags().BoolVar(&opts.Confirm, "confirm", false, "If true, confirm that you really want to remove multiple volumes")
+	cmd.Flags().StringVarP(&o.AddOpts.Type, "type", "t", o.AddOpts.Type, "Type of the volume source for add operation. Supported options: emptyDir, hostPath, secret, configmap, persistentVolumeClaim")
+	cmd.Flags().StringVarP(&o.AddOpts.MountPath, "mount-path", "m", o.AddOpts.MountPath, "Mount path inside the container. Optional param for --add or --remove")
+	cmd.Flags().StringVar(&o.AddOpts.SubPath, "sub-path", o.AddOpts.SubPath, "Path within the local volume from which the container's volume should be mounted. Optional param for --add or --remove")
+	cmd.Flags().StringVar(&o.AddOpts.DefaultMode, "default-mode", o.AddOpts.DefaultMode, "The default mode bits to create files with. Can be between 0000 and 0777. Defaults to 0644.")
+	cmd.Flags().BoolVar(&o.AddOpts.Overwrite, "overwrite", o.AddOpts.Overwrite, "If true, replace existing volume source with the provided name and/or volume mount for the given resource")
+	cmd.Flags().StringVar(&o.AddOpts.Path, "path", o.AddOpts.Path, "Host path. Must be provided for hostPath volume type")
+	cmd.Flags().StringVar(&o.AddOpts.ConfigMapName, "configmap-name", o.AddOpts.ConfigMapName, "Name of the persisted config map. Must be provided for configmap volume type")
+	cmd.Flags().StringVar(&o.AddOpts.SecretName, "secret-name", o.AddOpts.SecretName, "Name of the persisted secret. Must be provided for secret volume type")
+	cmd.Flags().StringVar(&o.AddOpts.ClaimName, "claim-name", o.AddOpts.ClaimName, "Persistent volume claim name. Must be provided for persistentVolumeClaim volume type")
+	cmd.Flags().StringVar(&o.AddOpts.ClaimClass, "claim-class", o.AddOpts.ClaimClass, "StorageClass to use for the persistent volume claim")
+	cmd.Flags().StringVar(&o.AddOpts.ClaimSize, "claim-size", o.AddOpts.ClaimSize, "If specified along with a persistent volume type, create a new claim with the given size in bytes. Accepts SI notation: 10, 10G, 10Gi")
+	cmd.Flags().StringVar(&o.AddOpts.ClaimMode, "claim-mode", o.AddOpts.ClaimMode, "Set the access mode of the claim to be created. Valid values are ReadWriteOnce (rwo), ReadWriteMany (rwm), or ReadOnlyMany (rom)")
+	cmd.Flags().StringVar(&o.AddOpts.Source, "source", o.AddOpts.Source, "Details of volume source as json string. This can be used if the required volume type is not supported by --type option. (e.g.: '{\"gitRepo\": {\"repository\": <git-url>, \"revision\": <commit-hash>}}')")
 
-	cmd.Flags().StringVarP(&addOpts.Type, "type", "t", "", "Type of the volume source for add operation. Supported options: emptyDir, hostPath, secret, configmap, persistentVolumeClaim")
-	cmd.Flags().StringVarP(&addOpts.MountPath, "mount-path", "m", "", "Mount path inside the container. Optional param for --add or --remove")
-	cmd.Flags().StringVar(&addOpts.SubPath, "sub-path", "", "Path within the local volume from which the container's volume should be mounted. Optional param for --add or --remove")
-	cmd.Flags().StringVarP(&addOpts.DefaultMode, "default-mode", "", "", "The default mode bits to create files with. Can be between 0000 and 0777. Defaults to 0644.")
-	cmd.Flags().BoolVar(&addOpts.Overwrite, "overwrite", false, "If true, replace existing volume source with the provided name and/or volume mount for the given resource")
-	cmd.Flags().StringVar(&addOpts.Path, "path", "", "Host path. Must be provided for hostPath volume type")
-	cmd.Flags().StringVar(&addOpts.ConfigMapName, "configmap-name", "", "Name of the persisted config map. Must be provided for configmap volume type")
-	cmd.Flags().StringVar(&addOpts.SecretName, "secret-name", "", "Name of the persisted secret. Must be provided for secret volume type")
-	cmd.Flags().StringVar(&addOpts.ClaimName, "claim-name", "", "Persistent volume claim name. Must be provided for persistentVolumeClaim volume type")
-	cmd.Flags().StringVar(&addOpts.ClaimClass, "claim-class", "", "StorageClass to use for the persistent volume claim")
-	cmd.Flags().StringVar(&addOpts.ClaimSize, "claim-size", "", "If specified along with a persistent volume type, create a new claim with the given size in bytes. Accepts SI notation: 10, 10G, 10Gi")
-	cmd.Flags().StringVar(&addOpts.ClaimMode, "claim-mode", "ReadWriteOnce", "Set the access mode of the claim to be created. Valid values are ReadWriteOnce (rwo), ReadWriteMany (rwm), or ReadOnlyMany (rom)")
-	cmd.Flags().StringVar(&addOpts.Source, "source", "", "Details of volume source as json string. This can be used if the required volume type is not supported by --type option. (e.g.: '{\"gitRepo\": {\"repository\": <git-url>, \"revision\": <commit-hash>}}')")
-
+	o.PrintFlags.AddFlags(cmd)
 	kcmdutil.AddDryRunFlag(cmd)
-	kcmdutil.AddPrinterFlags(cmd)
-	cmd.MarkFlagFilename("filename", "yaml", "yml", "json")
 
 	// deprecate --list option
 	cmd.Flags().MarkDeprecated("list", "Volumes and volume mounts can be listed by providing a resource with no additional options.")
@@ -220,35 +218,35 @@ func NewCmdVolume(fullName string, f *clientcmd.Factory, streams genericclioptio
 	return cmd
 }
 
-func (v *VolumeOptions) Validate(cmd *cobra.Command, args []string) error {
-	if len(v.Selector) > 0 {
-		if _, err := labels.Parse(v.Selector); err != nil {
+func (o *VolumeOptions) Validate() error {
+	if len(o.Selector) > 0 {
+		if _, err := labels.Parse(o.Selector); err != nil {
 			return errors.New("--selector=<selector> must be a valid label selector")
 		}
-		if v.All {
+		if o.All {
 			return errors.New("you may specify either --selector or --all but not both")
 		}
 	}
-	if len(v.Filenames) == 0 && len(args) < 1 {
+	if len(o.Filenames) == 0 && len(o.Args) < 1 {
 		return errors.New("provide one or more resources to add, list, or delete volumes on as TYPE/NAME")
 	}
 
-	if v.List && len(v.Output) > 0 {
+	if o.List && o.PrintFlags.OutputFormat != nil && len(*o.PrintFlags.OutputFormat) > 0 {
 		return errors.New("--list and --output may not be specified together")
 	}
 
-	if v.Add {
-		err := v.AddOpts.Validate()
+	if o.Add {
+		err := o.AddOpts.Validate()
 		if err != nil {
 			return err
 		}
-	} else if len(v.AddOpts.Source) > 0 || len(v.AddOpts.Path) > 0 || len(v.AddOpts.SecretName) > 0 ||
-		len(v.AddOpts.ConfigMapName) > 0 || len(v.AddOpts.ClaimName) > 0 || len(v.AddOpts.DefaultMode) > 0 ||
-		v.AddOpts.Overwrite {
+	} else if len(o.AddOpts.Source) > 0 || len(o.AddOpts.Path) > 0 || len(o.AddOpts.SecretName) > 0 ||
+		len(o.AddOpts.ConfigMapName) > 0 || len(o.AddOpts.ClaimName) > 0 || len(o.AddOpts.DefaultMode) > 0 ||
+		o.AddOpts.Overwrite {
 		return errors.New("--type|--path|--configmap-name|--secret-name|--claim-name|--source|--default-mode|--overwrite are only valid for --add operation")
 	}
 	// Removing all volumes for the resource type needs confirmation
-	if v.Remove && len(v.Name) == 0 && !v.Confirm {
+	if o.Remove && len(o.Name) == 0 && !o.Confirm {
 		return errors.New("must provide --confirm for removing more than one volume")
 	}
 	return nil
@@ -321,56 +319,59 @@ func (a *AddVolumeOptions) Validate() error {
 	return nil
 }
 
-func (v *VolumeOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command) error {
+func (o *VolumeOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string) error {
 	kc, err := f.ClientSet()
 	if err != nil {
 		return err
 	}
-	v.Client = kc.Core()
+	o.Client = kc.Core()
 
-	cmdNamespace, explicit, err := f.DefaultNamespace()
+	o.DefaultNamespace, o.ExplicitNamespace, err = f.DefaultNamespace()
 	if err != nil {
 		return err
 	}
-	mapper, typer := f.Object()
+	o.Mapper, o.Typer = f.Object()
 
 	numOps := 0
-	if v.Add {
+	if o.Add {
 		numOps++
 	}
-	if v.Remove {
+	if o.Remove {
 		numOps++
 	}
-	if v.List {
+	if o.List {
 		numOps++
 	}
 
 	switch {
 	case numOps == 0:
-		v.List = true
+		o.List = true
 	case numOps > 1:
 		return errors.New("you may only specify one operation at a time")
 	}
 
-	v.Output = kcmdutil.GetFlagString(cmd, "output")
-	v.PrintObject = func(infos []*resource.Info) error {
-		return f.PrintResourceInfos(cmd, v.Local, infos, v.Out)
-	}
+	o.Args = args
+	o.Builder = f.NewBuilder
+	o.CategoryExpander = f.CategoryExpander()
+	o.RESTClientFactory = f.ClientForMapping
+	o.Encoder = kcmdutil.InternalVersionJSONEncoder()
+	o.UpdatePodSpecForObject = polymorphichelpers.UpdatePodSpecForObjectFn
 
-	v.Cmd = cmd
-	v.DefaultNamespace = cmdNamespace
-	v.ExplicitNamespace = explicit
-	v.Mapper = mapper
-	v.Typer = typer
-	v.CategoryExpander = f.CategoryExpander()
-	v.RESTClientFactory = f.ClientForMapping
-	v.UpdatePodSpecForObject = f.UpdatePodSpecForObject
-	v.Encoder = kcmdutil.InternalVersionJSONEncoder()
+	o.AddOpts.TypeChanged = cmd.Flag("type").Changed
+
+	o.DryRun = kcmdutil.GetDryRunFlag(cmd)
+	if o.DryRun {
+		o.PrintFlags.Complete("%s (dry run)")
+	}
+	printer, err := o.PrintFlags.ToPrinter()
+	if err != nil {
+		return err
+	}
+	o.PrintObj = printer.PrintObj
 
 	// Complete AddOpts
-	if v.Add {
-		err := v.AddOpts.Complete()
-		if err != nil {
+	if o.Add {
+		if err := o.AddOpts.Complete(); err != nil {
 			return err
 		}
 	}
@@ -436,19 +437,19 @@ func (a *AddVolumeOptions) Complete() error {
 	return nil
 }
 
-func (v *VolumeOptions) RunVolume(args []string, f *clientcmd.Factory) error {
-	b := f.NewBuilder().
+func (o *VolumeOptions) RunVolume() error {
+	b := o.Builder().
 		Internal().
-		LocalParam(v.Local).
+		LocalParam(o.Local).
 		ContinueOnError().
-		NamespaceParam(v.DefaultNamespace).DefaultNamespace().
-		FilenameParam(v.ExplicitNamespace, &resource.FilenameOptions{Recursive: false, Filenames: v.Filenames}).
+		NamespaceParam(o.DefaultNamespace).DefaultNamespace().
+		FilenameParam(o.ExplicitNamespace, &o.FilenameOptions).
 		Flatten()
 
-	if !v.Local {
+	if !o.Local {
 		b = b.
-			LabelSelectorParam(v.Selector).
-			ResourceTypeOrNameArgs(v.All, args...)
+			LabelSelectorParam(o.Selector).
+			ResourceTypeOrNameArgs(o.All, o.Args...)
 	}
 
 	singleItemImplied := false
@@ -456,106 +457,102 @@ func (v *VolumeOptions) RunVolume(args []string, f *clientcmd.Factory) error {
 	if err != nil {
 		return err
 	}
-
-	if v.List {
-		listingErrors := v.printVolumes(infos)
-		if len(listingErrors) > 0 {
+	if o.List {
+		if listingErrors := o.printVolumes(infos); len(listingErrors) > 0 {
 			return kcmdutil.ErrExit
 		}
 		return nil
 	}
 
-	updateInfos := []*resource.Info{}
+	updateInfos := []*oldresource.Info{}
 	// if a claim should be created, generate the info we'll add to the flow
-	if v.Add && v.AddOpts.CreateClaim {
-		claim := v.AddOpts.createClaim()
-		m, err := v.Mapper.RESTMapping(kapi.Kind("PersistentVolumeClaim"))
+	if o.Add && o.AddOpts.CreateClaim {
+		claim := o.AddOpts.createClaim()
+		m, err := o.Mapper.RESTMapping(kapi.Kind("PersistentVolumeClaim"))
 		if err != nil {
 			return err
 		}
-		mapper := resource.ClientMapperFunc(v.RESTClientFactory)
+		mapper := oldresource.ClientMapperFunc(o.RESTClientFactory)
 		client, err := mapper.ClientForMapping(m)
 		if err != nil {
 			return err
 		}
-		info := &resource.Info{
+		info := &oldresource.Info{
 			Mapping:   m,
 			Client:    client,
-			Namespace: v.DefaultNamespace,
+			Namespace: o.DefaultNamespace,
 			Object:    claim,
 		}
 		infos = append(infos, info)
 		updateInfos = append(updateInfos, info)
 	}
 
-	patches, patchError := v.getVolumeUpdatePatches(infos, singleItemImplied)
+	patches, patchError := o.getVolumeUpdatePatches(infos, singleItemImplied)
 
 	if patchError != nil {
 		return patchError
 	}
-	if len(v.Output) > 0 || v.Local || kcmdutil.GetDryRunFlag(v.Cmd) {
-		return v.PrintObject(infos)
+	if o.Local || o.DryRun {
+		// FIXME-REBASE
+		for _, info := range infos {
+			if err := o.PrintObj(info.Object, o.Out); err != nil {
+				return err
+			}
+		}
 	}
 
-	failed := false
+	allErrs := []error{}
 	for _, info := range updateInfos {
 		var obj runtime.Object
 		if len(info.ResourceVersion) == 0 {
-			obj, err = resource.NewHelper(info.Client, info.Mapping).Create(info.Namespace, false, info.Object)
+			obj, err = oldresource.NewHelper(info.Client, info.Mapping).Create(info.Namespace, false, info.Object)
 		} else {
-			obj, err = resource.NewHelper(info.Client, info.Mapping).Replace(info.Namespace, info.Name, true, info.Object)
+			obj, err = oldresource.NewHelper(info.Client, info.Mapping).Replace(info.Namespace, info.Name, true, info.Object)
 		}
 		if err != nil {
-			handlePodUpdateError(v.Err, err, "volume")
-			failed = true
+			allErrs = append(allErrs, fmt.Errorf("failed to patch volume update to pod template: %v\n", err))
 			continue
 		}
 		info.Refresh(obj, true)
-		fmt.Fprintf(v.Out, "%s/%s\n", info.Mapping.Resource, info.Name)
 	}
 	for _, patch := range patches {
 		info := patch.Info
 		if patch.Err != nil {
-			failed = true
-			fmt.Fprintf(v.Err, "error: %s/%s %v\n", info.Mapping.Resource, info.Name, patch.Err)
+			allErrs = append(allErrs, fmt.Errorf("error: %s/%s %v\n", info.Mapping.Resource, info.Name, patch.Err))
 			continue
 		}
 
 		if string(patch.Patch) == "{}" || len(patch.Patch) == 0 {
-			fmt.Fprintf(v.Err, "info: %s %q was not changed\n", info.Mapping.Resource, info.Name)
 			continue
 		}
 
-		glog.V(4).Infof("Calculated patch %s", patch.Patch)
-
-		obj, err := resource.NewHelper(info.Client, info.Mapping).Patch(info.Namespace, info.Name, types.StrategicMergePatchType, patch.Patch)
+		actual, err := oldresource.NewHelper(info.Client, info.Mapping).Patch(info.Namespace, info.Name, types.StrategicMergePatchType, patch.Patch)
 		if err != nil {
-			handlePodUpdateError(v.Err, err, "volume")
-			failed = true
+			allErrs = append(allErrs, fmt.Errorf("failed to patch volume update to pod template: %v\n", err))
 			continue
 		}
 
-		info.Refresh(obj, true)
-		kcmdutil.PrintSuccess(false, v.Out, info.Object, false, "updated")
+		if err := o.PrintObj(actual, o.Out); err != nil {
+			// FIXME-REBASE
+			// allErrs = append(allErrs, err)
+		}
 	}
-	if failed {
-		return kcmdutil.ErrExit
-	}
-	return nil
+	return utilerrors.NewAggregate(allErrs)
 }
 
-func (v *VolumeOptions) getVolumeUpdatePatches(infos []*resource.Info, singleItemImplied bool) ([]*Patch, error) {
+func (o *VolumeOptions) getVolumeUpdatePatches(infos []*oldresource.Info, singleItemImplied bool) ([]*Patch, error) {
 	skipped := 0
-	patches := CalculatePatches(infos, v.Encoder, func(info *resource.Info) (bool, error) {
+	// FIXME-REBASE
+	patches := CalculatePatches(infos, o.Encoder /*scheme.DefaultJSONEncoder()*/, func(info *oldresource.Info) (bool, error) {
 		transformed := false
-		ok, err := v.UpdatePodSpecForObject(info.Object, clientcmd.ConvertInteralPodSpecToExternal(func(spec *kapi.PodSpec) error {
+		ok, err := o.UpdatePodSpecForObject(info.Object, clientcmd.ConvertInteralPodSpecToExternal(func(spec *kapi.PodSpec) error {
 			var e error
 			switch {
-			case v.Add:
-				e = v.addVolumeToSpec(spec, info, singleItemImplied)
+			case o.Add:
+				e = o.addVolumeToSpec(spec, info, singleItemImplied)
 				transformed = true
-			case v.Remove:
-				e = v.removeVolumeFromSpec(spec, info)
+			case o.Remove:
+				e = o.removeVolumeFromSpec(spec, info)
 				transformed = true
 			}
 			return e
@@ -612,45 +609,45 @@ func setVolumeSourceByType(kv *kapi.Volume, opts *AddVolumeOptions) error {
 	return nil
 }
 
-func (v *VolumeOptions) printVolumes(infos []*resource.Info) []error {
+func (o *VolumeOptions) printVolumes(infos []*oldresource.Info) []error {
 	listingErrors := []error{}
 	for _, info := range infos {
-		_, err := v.UpdatePodSpecForObject(info.Object, clientcmd.ConvertInteralPodSpecToExternal(func(spec *kapi.PodSpec) error {
-			return v.listVolumeForSpec(spec, info)
+		_, err := o.UpdatePodSpecForObject(info.Object, clientcmd.ConvertInteralPodSpecToExternal(func(spec *kapi.PodSpec) error {
+			return o.listVolumeForSpec(spec, info)
 		}))
 		if err != nil {
 			listingErrors = append(listingErrors, err)
-			fmt.Fprintf(v.Err, "error: %s/%s %v\n", info.Mapping.Resource, info.Name, err)
+			fmt.Fprintf(o.ErrOut, "error: %s/%s %v\n", info.Mapping.Resource, info.Name, err)
 		}
 	}
 	return listingErrors
 }
 
-func (v *AddVolumeOptions) createClaim() *kapi.PersistentVolumeClaim {
+func (a *AddVolumeOptions) createClaim() *kapi.PersistentVolumeClaim {
 	pvc := &kapi.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: v.ClaimName,
+			Name: a.ClaimName,
 		},
 		Spec: kapi.PersistentVolumeClaimSpec{
-			AccessModes: []kapi.PersistentVolumeAccessMode{kapi.PersistentVolumeAccessMode(v.ClaimMode)},
+			AccessModes: []kapi.PersistentVolumeAccessMode{kapi.PersistentVolumeAccessMode(a.ClaimMode)},
 			Resources: kapi.ResourceRequirements{
 				Requests: kapi.ResourceList{
-					kapi.ResourceName(kapi.ResourceStorage): kresource.MustParse(v.ClaimSize),
+					kapi.ResourceName(kapi.ResourceStorage): kresource.MustParse(a.ClaimSize),
 				},
 			},
 		},
 	}
-	if len(v.ClaimClass) > 0 {
+	if len(a.ClaimClass) > 0 {
 		pvc.Annotations = map[string]string{
-			storageAnnClass: v.ClaimClass,
+			storageAnnClass: a.ClaimClass,
 		}
 	}
 	return pvc
 }
 
-func (v *VolumeOptions) setVolumeSource(kv *kapi.Volume) error {
+func (o *VolumeOptions) setVolumeSource(kv *kapi.Volume) error {
 	var err error
-	opts := v.AddOpts
+	opts := o.AddOpts
 	if len(opts.Type) > 0 {
 		err = setVolumeSourceByType(kv, opts)
 	} else if len(opts.Source) > 0 {
@@ -659,28 +656,28 @@ func (v *VolumeOptions) setVolumeSource(kv *kapi.Volume) error {
 	return err
 }
 
-func (v *VolumeOptions) setVolumeMount(spec *kapi.PodSpec, info *resource.Info) error {
-	opts := v.AddOpts
-	containers, _ := selectContainers(spec.Containers, v.Containers)
-	if len(containers) == 0 && v.Containers != "*" {
-		fmt.Fprintf(v.Err, "warning: %s/%s does not have any containers matching %q\n", info.Mapping.Resource, info.Name, v.Containers)
+func (o *VolumeOptions) setVolumeMount(spec *kapi.PodSpec, info *oldresource.Info) error {
+	opts := o.AddOpts
+	containers, _ := selectContainers(spec.Containers, o.Containers)
+	if len(containers) == 0 && o.Containers != "*" {
+		fmt.Fprintf(o.ErrOut, "warning: %s/%s does not have any containers matching %q\n", info.Mapping.Resource, info.Name, o.Containers)
 		return nil
 	}
 
 	for _, c := range containers {
 		for _, m := range c.VolumeMounts {
-			if path.Clean(m.MountPath) == path.Clean(opts.MountPath) && m.Name != v.Name {
+			if path.Clean(m.MountPath) == path.Clean(opts.MountPath) && m.Name != o.Name {
 				return fmt.Errorf("volume mount '%s' already exists for container '%s'", opts.MountPath, c.Name)
 			}
 		}
 		for i, m := range c.VolumeMounts {
-			if m.Name == v.Name && opts.Overwrite {
+			if m.Name == o.Name && opts.Overwrite {
 				c.VolumeMounts = append(c.VolumeMounts[:i], c.VolumeMounts[i+1:]...)
 				break
 			}
 		}
 		volumeMount := &kapi.VolumeMount{
-			Name:      v.Name,
+			Name:      o.Name,
 			MountPath: path.Clean(opts.MountPath),
 		}
 		if len(opts.SubPath) > 0 {
@@ -691,8 +688,8 @@ func (v *VolumeOptions) setVolumeMount(spec *kapi.PodSpec, info *resource.Info) 
 	return nil
 }
 
-func (v *VolumeOptions) getVolumeName(spec *kapi.PodSpec, singleResource bool) (string, bool, error) {
-	opts := v.AddOpts
+func (o *VolumeOptions) getVolumeName(spec *kapi.PodSpec, singleResource bool) (string, bool, error) {
+	opts := o.AddOpts
 	if opts.Overwrite {
 		// Multiple resources can have same mount-path for different volumes,
 		// so restrict it for single resource to uniquely find the volume
@@ -700,7 +697,7 @@ func (v *VolumeOptions) getVolumeName(spec *kapi.PodSpec, singleResource bool) (
 			return "", false, fmt.Errorf("you must specify --name for the volume name when dealing with multiple resources")
 		}
 		if len(opts.MountPath) > 0 {
-			containers, _ := selectContainers(spec.Containers, v.Containers)
+			containers, _ := selectContainers(spec.Containers, o.Containers)
 			var name string
 			matchCount := 0
 			for _, c := range containers {
@@ -725,52 +722,52 @@ func (v *VolumeOptions) getVolumeName(spec *kapi.PodSpec, singleResource bool) (
 		return "", false, fmt.Errorf("ambiguous --overwrite, specify --name or --mount-path")
 	}
 
-	oldName, claimFound := v.checkForExistingClaim(spec)
+	oldName, claimFound := o.checkForExistingClaim(spec)
 
 	if claimFound {
 		return oldName, true, nil
 	}
 	// Generate volume name
 	name := names.SimpleNameGenerator.GenerateName(volumePrefix)
-	if len(v.Output) == 0 {
-		fmt.Fprintf(v.Err, "info: Generated volume name: %s\n", name)
+	if o.PrintFlags.OutputFormat == nil || len(*o.PrintFlags.OutputFormat) == 0 {
+		fmt.Fprintf(o.ErrOut, "info: Generated volume name: %s\n", name)
 	}
 	return name, false, nil
 }
 
-func (v *VolumeOptions) checkForExistingClaim(spec *kapi.PodSpec) (string, bool) {
+func (o *VolumeOptions) checkForExistingClaim(spec *kapi.PodSpec) (string, bool) {
 	for _, vol := range spec.Volumes {
 		oldSource := vol.VolumeSource.PersistentVolumeClaim
-		if oldSource != nil && v.AddOpts.ClaimName == oldSource.ClaimName {
+		if oldSource != nil && o.AddOpts.ClaimName == oldSource.ClaimName {
 			return vol.Name, true
 		}
 	}
 	return "", false
 }
 
-func (v *VolumeOptions) addVolumeToSpec(spec *kapi.PodSpec, info *resource.Info, singleResource bool) error {
-	opts := v.AddOpts
+func (o *VolumeOptions) addVolumeToSpec(spec *kapi.PodSpec, info *oldresource.Info, singleResource bool) error {
+	opts := o.AddOpts
 	claimFound := false
-	if len(v.Name) == 0 {
+	if len(o.Name) == 0 {
 		var err error
-		v.Name, claimFound, err = v.getVolumeName(spec, singleResource)
+		o.Name, claimFound, err = o.getVolumeName(spec, singleResource)
 		if err != nil {
 			return err
 		}
 	} else {
-		_, claimFound = v.checkForExistingClaim(spec)
+		_, claimFound = o.checkForExistingClaim(spec)
 	}
 
 	newVolume := &kapi.Volume{
-		Name: v.Name,
+		Name: o.Name,
 	}
 	setSource := true
 	vNameFound := false
 	for i, vol := range spec.Volumes {
-		if v.Name == vol.Name {
+		if o.Name == vol.Name {
 			vNameFound = true
 			if !opts.Overwrite && !claimFound {
-				return fmt.Errorf("volume '%s' already exists. Use --overwrite to replace", v.Name)
+				return fmt.Errorf("volume '%s' already exists. Use --overwrite to replace", o.Name)
 			}
 			if !opts.TypeChanged && len(opts.Source) == 0 {
 				newVolume.VolumeSource = vol.VolumeSource
@@ -782,12 +779,12 @@ func (v *VolumeOptions) addVolumeToSpec(spec *kapi.PodSpec, info *resource.Info,
 	}
 	// if --overwrite was passed, but volume did not previously
 	// exist, log a warning that no volumes were overwritten
-	if !vNameFound && opts.Overwrite && len(v.Output) == 0 {
-		fmt.Fprintf(v.Err, "warning: volume %q did not previously exist and was not overriden. A new volume with this name has been created instead.", v.Name)
+	if !vNameFound && opts.Overwrite && (o.PrintFlags.OutputFormat == nil || len(*o.PrintFlags.OutputFormat) == 0) {
+		fmt.Fprintf(o.ErrOut, "warning: volume %q did not previously exist and was not overriden. A new volume with this name has been created instead.", o.Name)
 	}
 
 	if setSource {
-		err := v.setVolumeSource(newVolume)
+		err := o.setVolumeSource(newVolume)
 		if err != nil {
 			return err
 		}
@@ -795,7 +792,7 @@ func (v *VolumeOptions) addVolumeToSpec(spec *kapi.PodSpec, info *resource.Info,
 	spec.Volumes = append(spec.Volumes, *newVolume)
 
 	if len(opts.MountPath) > 0 {
-		err := v.setVolumeMount(spec, info)
+		err := o.setVolumeMount(spec, info)
 		if err != nil {
 			return err
 		}
@@ -803,12 +800,12 @@ func (v *VolumeOptions) addVolumeToSpec(spec *kapi.PodSpec, info *resource.Info,
 	return nil
 }
 
-func (v *VolumeOptions) removeSpecificVolume(spec *kapi.PodSpec, containers, skippedContainers []*kapi.Container) error {
+func (o *VolumeOptions) removeSpecificVolume(spec *kapi.PodSpec, containers, skippedContainers []*kapi.Container) error {
 	for _, c := range containers {
 		newMounts := c.VolumeMounts[:0]
 		for _, m := range c.VolumeMounts {
 			// Remove all volume mounts that match specified name
-			if v.Name != m.Name {
+			if o.Name != m.Name {
 				newMounts = append(newMounts, m)
 			}
 		}
@@ -819,7 +816,7 @@ func (v *VolumeOptions) removeSpecificVolume(spec *kapi.PodSpec, containers, ski
 	found := false
 	for _, c := range skippedContainers {
 		for _, m := range c.VolumeMounts {
-			if v.Name == m.Name {
+			if o.Name == m.Name {
 				found = true
 				break
 			}
@@ -831,33 +828,33 @@ func (v *VolumeOptions) removeSpecificVolume(spec *kapi.PodSpec, containers, ski
 	if !found {
 		foundVolume := false
 		for i, vol := range spec.Volumes {
-			if v.Name == vol.Name {
+			if o.Name == vol.Name {
 				spec.Volumes = append(spec.Volumes[:i], spec.Volumes[i+1:]...)
 				foundVolume = true
 				break
 			}
 		}
 		if !foundVolume {
-			return fmt.Errorf("volume '%s' not found", v.Name)
+			return fmt.Errorf("volume '%s' not found", o.Name)
 		}
 	}
 	return nil
 }
 
-func (v *VolumeOptions) removeVolumeFromSpec(spec *kapi.PodSpec, info *resource.Info) error {
-	containers, skippedContainers := selectContainers(spec.Containers, v.Containers)
-	if len(containers) == 0 && v.Containers != "*" {
-		fmt.Fprintf(v.Err, "warning: %s/%s does not have any containers matching %q\n", info.Mapping.Resource, info.Name, v.Containers)
+func (o *VolumeOptions) removeVolumeFromSpec(spec *kapi.PodSpec, info *oldresource.Info) error {
+	containers, skippedContainers := selectContainers(spec.Containers, o.Containers)
+	if len(containers) == 0 && o.Containers != "*" {
+		fmt.Fprintf(o.ErrOut, "warning: %s/%s does not have any containers matching %q\n", info.Mapping.Resource, info.Name, o.Containers)
 		return nil
 	}
 
-	if len(v.Name) == 0 {
+	if len(o.Name) == 0 {
 		for _, c := range containers {
 			c.VolumeMounts = []kapi.VolumeMount{}
 		}
 		spec.Volumes = []kapi.Volume{}
 	} else {
-		err := v.removeSpecificVolume(spec, containers, skippedContainers)
+		err := o.removeSpecificVolume(spec, containers, skippedContainers)
 		if err != nil {
 			return err
 		}
@@ -921,18 +918,18 @@ func describeVolumeSource(source *kapi.VolumeSource) string {
 	}
 }
 
-func (v *VolumeOptions) listVolumeForSpec(spec *kapi.PodSpec, info *resource.Info) error {
-	containers, _ := selectContainers(spec.Containers, v.Containers)
-	if len(containers) == 0 && v.Containers != "*" {
-		fmt.Fprintf(v.Err, "warning: %s/%s does not have any containers matching %q\n", info.Mapping.Resource, info.Name, v.Containers)
+func (o *VolumeOptions) listVolumeForSpec(spec *kapi.PodSpec, info *oldresource.Info) error {
+	containers, _ := selectContainers(spec.Containers, o.Containers)
+	if len(containers) == 0 && o.Containers != "*" {
+		fmt.Fprintf(o.ErrOut, "warning: %s/%s does not have any containers matching %q\n", info.Mapping.Resource, info.Name, o.Containers)
 		return nil
 	}
 
-	fmt.Fprintf(v.Out, "%s/%s\n", info.Mapping.Resource, info.Name)
-	checkName := (len(v.Name) > 0)
+	fmt.Fprintf(o.Out, "%s/%s\n", info.Mapping.Resource, info.Name)
+	checkName := (len(o.Name) > 0)
 	found := false
 	for _, vol := range spec.Volumes {
-		if checkName && v.Name != vol.Name {
+		if checkName && o.Name != vol.Name {
 			continue
 		}
 		found = true
@@ -940,36 +937,36 @@ func (v *VolumeOptions) listVolumeForSpec(spec *kapi.PodSpec, info *resource.Inf
 		refInfo := ""
 		if vol.VolumeSource.PersistentVolumeClaim != nil {
 			claimName := vol.VolumeSource.PersistentVolumeClaim.ClaimName
-			claim, err := v.Client.PersistentVolumeClaims(info.Namespace).Get(claimName, metav1.GetOptions{})
+			claim, err := o.Client.PersistentVolumeClaims(info.Namespace).Get(claimName, metav1.GetOptions{})
 			switch {
 			case err == nil:
 				refInfo = fmt.Sprintf("(%s)", describePersistentVolumeClaim(claim))
 			case apierrs.IsNotFound(err):
 				refInfo = "(does not exist)"
 			default:
-				fmt.Fprintf(v.Err, "error: unable to retrieve persistent volume claim %s referenced in %s/%s: %v", claimName, info.Mapping.Resource, info.Name, err)
+				fmt.Fprintf(o.ErrOut, "error: unable to retrieve persistent volume claim %s referenced in %s/%s: %v", claimName, info.Mapping.Resource, info.Name, err)
 			}
 		}
 		if len(refInfo) > 0 {
 			refInfo = " " + refInfo
 		}
 
-		fmt.Fprintf(v.Out, "  %s%s as %s\n", describeVolumeSource(&vol.VolumeSource), refInfo, vol.Name)
+		fmt.Fprintf(o.Out, "  %s%s as %s\n", describeVolumeSource(&vol.VolumeSource), refInfo, vol.Name)
 		for _, c := range containers {
 			for _, m := range c.VolumeMounts {
 				if vol.Name != m.Name {
 					continue
 				}
 				if len(spec.Containers) == 1 {
-					fmt.Fprintf(v.Out, "    mounted at %s\n", m.MountPath)
+					fmt.Fprintf(o.Out, "    mounted at %s\n", m.MountPath)
 				} else {
-					fmt.Fprintf(v.Out, "    mounted at %s in container %s\n", m.MountPath, c.Name)
+					fmt.Fprintf(o.Out, "    mounted at %s in container %s\n", m.MountPath, c.Name)
 				}
 			}
 		}
 	}
 	if checkName && !found {
-		return fmt.Errorf("volume %q not found", v.Name)
+		return fmt.Errorf("volume %q not found", o.Name)
 	}
 
 	return nil
