@@ -64,6 +64,7 @@ func NewCmdCreateSSHAuthSecret(name, fullName string, f kcmdutil.Factory, out io
 		Long:       createSSHAuthSecretLong,
 		Example:    fmt.Sprintf(createSSHAuthSecretExample, fullName, newSecretFullName, ocEditFullName),
 		Deprecated: "use oc create secret",
+		Hidden:     true,
 		Run: func(c *cobra.Command, args []string) {
 			if err := o.Complete(f, args); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageErrorf(c, err.Error()))

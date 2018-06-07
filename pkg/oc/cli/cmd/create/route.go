@@ -164,7 +164,12 @@ func CreateEdgeRoute(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, ar
 	}
 
 	shortOutput := kcmdutil.GetFlagString(cmd, "output") == "name"
-	kcmdutil.PrintSuccess(shortOutput, out, actualRoute, dryRun, "created")
+	if !shortOutput && kcmdutil.GetFlagString(cmd, "output") != "" {
+		kcmdutil.PrintObject(cmd, actualRoute, out)
+	} else {
+		kcmdutil.PrintSuccess(shortOutput, out, actualRoute, dryRun, "created")
+	}
+
 	return nil
 }
 
@@ -267,7 +272,12 @@ func CreatePassthroughRoute(f *clientcmd.Factory, out io.Writer, cmd *cobra.Comm
 	}
 
 	shortOutput := kcmdutil.GetFlagString(cmd, "output") == "name"
-	kcmdutil.PrintSuccess(shortOutput, out, actualRoute, dryRun, "created")
+	if !shortOutput && kcmdutil.GetFlagString(cmd, "output") != "" {
+		kcmdutil.PrintObject(cmd, actualRoute, out)
+	} else {
+		kcmdutil.PrintSuccess(shortOutput, out, actualRoute, dryRun, "created")
+	}
+
 	return nil
 }
 
@@ -402,7 +412,12 @@ func CreateReencryptRoute(f *clientcmd.Factory, out io.Writer, cmd *cobra.Comman
 	}
 
 	shortOutput := kcmdutil.GetFlagString(cmd, "output") == "name"
-	kcmdutil.PrintSuccess(shortOutput, out, actualRoute, dryRun, "created")
+	if !shortOutput && kcmdutil.GetFlagString(cmd, "output") != "" {
+		kcmdutil.PrintObject(cmd, actualRoute, out)
+	} else {
+		kcmdutil.PrintSuccess(shortOutput, out, actualRoute, dryRun, "created")
+	}
+
 	return nil
 }
 

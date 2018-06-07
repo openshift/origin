@@ -7,6 +7,7 @@ reviewers:
   - soltysh
   - jim-minter
   - knobunc
+  - ironcladlou
   - dcbw
   - danwinship
   - adelton
@@ -19,5 +20,6 @@ approvers:
   - enj
   - liggitt
   - knobunc
+  - ironcladlou
   - dcbw
   - danwinship
