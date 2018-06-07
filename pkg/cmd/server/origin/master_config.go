@@ -41,6 +41,7 @@ import (
 	imageinformer "github.com/openshift/origin/pkg/image/generated/informers/internalversion"
 	networkinformer "github.com/openshift/origin/pkg/network/generated/informers/internalversion"
 	oauthinformer "github.com/openshift/origin/pkg/oauth/generated/informers/internalversion"
+	_ "github.com/openshift/origin/pkg/printers/internalversion"
 	projectauth "github.com/openshift/origin/pkg/project/auth"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"

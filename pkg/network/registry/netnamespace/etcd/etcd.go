@@ -5,9 +5,12 @@ import (
 	"k8s.io/apiserver/pkg/registry/generic"
 	"k8s.io/apiserver/pkg/registry/generic/registry"
 	"k8s.io/apiserver/pkg/registry/rest"
+	"k8s.io/kubernetes/pkg/printers"
+	printerstorage "k8s.io/kubernetes/pkg/printers/storage"
 
 	networkapi "github.com/openshift/origin/pkg/network/apis/network"
 	"github.com/openshift/origin/pkg/network/registry/netnamespace"
+	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
 	"github.com/openshift/origin/pkg/util/restoptions"
 )
 
@@ -24,6 +27,8 @@ func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 		NewFunc:                  func() runtime.Object { return &networkapi.NetNamespace{} },
 		NewListFunc:              func() runtime.Object { return &networkapi.NetNamespaceList{} },
 		DefaultQualifiedResource: networkapi.Resource("netnamespaces"),
+
+		TableConvertor: printerstorage.TableConvertor{TablePrinter: printers.NewTablePrinter().With(printersinternal.AddHandlers)},
 
 		CreateStrategy: netnamespace.Strategy,
 		UpdateStrategy: netnamespace.Strategy,

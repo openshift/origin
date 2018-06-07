@@ -5,7 +5,10 @@ import (
 	"k8s.io/apiserver/pkg/registry/generic"
 	genericregistry "k8s.io/apiserver/pkg/registry/generic/registry"
 	"k8s.io/apiserver/pkg/registry/rest"
+	"k8s.io/kubernetes/pkg/printers"
+	printerstorage "k8s.io/kubernetes/pkg/printers/storage"
 
+	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 )
 
@@ -20,6 +23,8 @@ func NewREST(optsGetter generic.RESTOptionsGetter) *REST {
 		NewFunc:                  func() runtime.Object { return &securityapi.RangeAllocation{} },
 		NewListFunc:              func() runtime.Object { return &securityapi.RangeAllocationList{} },
 		DefaultQualifiedResource: securityapi.Resource("rangeallocations"),
+
+		TableConvertor: printerstorage.TableConvertor{TablePrinter: printers.NewTablePrinter().With(printersinternal.AddHandlers)},
 
 		CreateStrategy: strategyInstance,
 		UpdateStrategy: strategyInstance,
