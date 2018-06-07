@@ -75,13 +75,25 @@ func splitDockerDomain(name string) (domain, remainder string) {
 	return
 }
 
-// familiarizeName creates a repo from a named repo
+// familiarizeName returns a shortened version of the name familiar
+// to to the Docker UI. Familiar names have the default domain
+// "docker.io" and "library/" repository prefix removed.
+// For example, "docker.io/library/redis" will have the familiar
+// name "redis" and "docker.io/dmcgowan/myapp" will be "dmcgowan/myapp".
+// Returns a familiarized named only reference.
 func familiarizeName(named namedRepository) repository {
 	repo := repository{
 		domain: named.Domain(),
 		path:   named.Path(),
 	}
 
+	if repo.domain == defaultDomain {
+		repo.domain = ""
+		// Handle official repositories which have the pattern "library/<official repo name>"
+		if split := strings.Split(repo.path, "/"); len(split) == 2 && split[0] == officialRepoName {
+			repo.path = split[1]
+		}
+	}
 	return repo
 }
 
