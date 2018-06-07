@@ -14,7 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kprinters "k8s.io/kubernetes/pkg/printers"
-	printersinternal "k8s.io/kubernetes/pkg/printers/internalversion"
+	kprintersinternal "k8s.io/kubernetes/pkg/printers/internalversion"
 
 	oapi "github.com/openshift/origin/pkg/api"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
@@ -81,12 +81,14 @@ var (
 
 func init() {
 	// TODO this should be eliminated
-	printersinternal.AddHandlers = addPrintHandlers
+	kprintersinternal.AddHandlers = func(p kprinters.PrintHandler) {
+		kprintersinternal.AddKubeHandlers(p)
+		AddHandlers(p)
+	}
 }
 
-func addPrintHandlers(p kprinters.PrintHandler) {
-	printersinternal.AddKubeHandlers(p)
-
+// AddHandlers adds print handlers for internal openshift API objects
+func AddHandlers(p kprinters.PrintHandler) {
 	p.Handler(buildColumns, nil, printBuild)
 	p.Handler(buildColumns, nil, printBuildList)
 	p.Handler(buildConfigColumns, nil, printBuildConfig)
