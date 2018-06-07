@@ -55,6 +55,7 @@ image_namespace, image_prefix = os_image_prefix.split("/", 2)
 
 image_config = {
     image_prefix: {
+        "tag": "v3.9.0",
         "directory": "origin",
         "binaries": {
             "openshift": "/usr/bin/openshift",
@@ -64,6 +65,7 @@ image_config = {
         "files": {}
     },
     "deployer": {
+        "tag": "v3.9.0",
         "directory": "deployer",
         "binaries": {
             "openshift": "/usr/bin/openshift"
@@ -71,6 +73,7 @@ image_config = {
         "files": {}
     },
     "recycler": {
+        "tag": "v3.9.0",
         "directory": "recycler",
         "binaries": {
             "openshift": "/usr/bin/openshift"
@@ -78,6 +81,7 @@ image_config = {
         "files": {}
     },
     "docker-builder": {
+        "tag": "v3.9.0",
         "directory": "builder/docker/docker-builder",
         "binaries": {
             "openshift": "/usr/bin/openshift"
@@ -85,6 +89,7 @@ image_config = {
         "files": {}
     },
     "sti-builder": {
+        "tag": "v3.9.0",
         "directory": "builder/docker/sti-builder",
         "binaries": {
             "openshift": "/usr/bin/openshift"
@@ -92,6 +97,7 @@ image_config = {
         "files": {}
     },
     "f5-router": {
+        "tag": "v3.9.0",
         "directory": "router/f5",
         "binaries": {
             "openshift": "/usr/bin/openshift"
@@ -99,6 +105,7 @@ image_config = {
         "files": {}
     },
     "nginx-router": {
+        "tag": "v3.9.0",
         "directory": "router/nginx",
         "binaries": {
             "openshift": "/usr/bin/openshift"
@@ -108,6 +115,7 @@ image_config = {
         }
     },
     "haproxy-router": {
+        "tag": "v3.9.0",
         "directory": "router/haproxy",
         "binaries": {
             "openshift": "/usr/bin/openshift"
@@ -117,6 +125,7 @@ image_config = {
         }
     },
     "keepalived-ipfailover": {
+        "tag": "v3.9.0",
         "directory": "ipfailover/keepalived",
         "binaries": {
             "openshift": "/usr/bin/openshift"
@@ -126,6 +135,7 @@ image_config = {
         }
     },
     "node": {
+        "tag": "v3.9.0",
         "directory": "node",
         "binaries": {
             "openshift": "/usr/bin/openshift"
@@ -133,6 +143,7 @@ image_config = {
         "files": {}
     },
     "openvswitch": {
+        "tag": "v3.9.0",
         "directory": "openvswitch",
         "binaries": {
             "openshift": "/usr/bin/openshift"
@@ -140,6 +151,7 @@ image_config = {
         "files": {}
     },
     "service-catalog": {
+        "tag": "v3.9.0",
         "directory": "service-catalog",
         "vendor_dir": "cmd/service-catalog/go/src/github.com/kubernetes-incubator/service-catalog",
         "binaries": {
@@ -149,6 +161,7 @@ image_config = {
         "enable_default": False,
     },
     "template-service-broker": {
+        "tag": "v3.9.0",
         "directory": "template-service-broker",
         "binaries": {
             "template-service-broker": "/usr/bin/template-service-broker"
@@ -226,7 +239,8 @@ for image in image_config:
     build_occurred = True
     print "[INFO] Building {}...".format(image)
     with open(join(context_dir, "Dockerfile"), "w+") as dockerfile:
-        dockerfile.write("FROM {}\n".format(full_name(image)))
+        dockerfile.write("FROM {}:{}\n".format(full_name(image), image_config[image]["tag"]))
+
 
     binary_dir_args = ["_output", "local", "bin", "linux", "amd64"]
     config = image_config[image]
