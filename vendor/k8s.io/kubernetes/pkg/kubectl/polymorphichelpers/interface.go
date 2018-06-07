@@ -58,7 +58,8 @@ var StatusViewerFn StatusViewerFunc = statusViewer
 type UpdatePodSpecForObjectFunc func(obj runtime.Object, fn func(*v1.PodSpec) error) (bool, error)
 
 // UpdatePodSpecForObjectFn gives a way to easily override the function for unit testing if needed
-var UpdatePodSpecForObjectFn UpdatePodSpecForObjectFunc = updatePodSpecForObject
+// var UpdatePodSpecForObjectFn UpdatePodSpecForObjectFunc = updatePodSpecForObject
+var UpdatePodSpecForObjectFn UpdatePodSpecForObjectFunc = updatePodSpecForObjectOrigin
 
 // MapBasedSelectorForObjectFunc will call the provided function on mapping the baesd selector for object,
 // return "" if object is not supported, or return an error.
