@@ -13,6 +13,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kvalidation "k8s.io/apimachinery/pkg/util/validation"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
+	kext "k8s.io/kubernetes/pkg/apis/extensions"
 
 	buildapiv1 "github.com/openshift/api/build/v1"
 	"github.com/openshift/origin/pkg/api/apihelpers"
@@ -25,10 +26,11 @@ const (
 	dockerSocketPath      = "/var/run/docker.sock"
 	sourceSecretMountPath = "/var/run/secrets/openshift.io/source"
 
-	DockerPushSecretMountPath      = "/var/run/secrets/openshift.io/push"
-	DockerPullSecretMountPath      = "/var/run/secrets/openshift.io/pull"
-	SecretBuildSourceBaseMountPath = "/var/run/secrets/openshift.io/build"
-	SourceImagePullSecretMountPath = "/var/run/secrets/openshift.io/source-image"
+	DockerPushSecretMountPath         = "/var/run/secrets/openshift.io/push"
+	DockerPullSecretMountPath         = "/var/run/secrets/openshift.io/pull"
+	ConfigMapBuildSourceBaseMountPath = "/var/run/configs/openshift.io/build"
+	SecretBuildSourceBaseMountPath    = "/var/run/secrets/openshift.io/build"
+	SourceImagePullSecretMountPath    = "/var/run/secrets/openshift.io/source-image"
 
 	// ExtractImageContentContainer is the name of the container that will
 	// pull down input images and extract their content for input to the build.
@@ -122,10 +124,26 @@ func setupCrioSocket(pod *v1.Pod) {
 			crioSocketVolumeMount)
 }
 
+// mountConfigMapVolume is a helper method responsible for actual mounting configMap
+// volumes into a pod.
+func mountConfigMapVolume(pod *v1.Pod, container *v1.Container, configMapName, mountPath, volumeSuffix string) {
+	mountVolume(pod, container, configMapName, mountPath, volumeSuffix, kext.ConfigMap)
+}
+
 // mountSecretVolume is a helper method responsible for actual mounting secret
 // volumes into a pod.
 func mountSecretVolume(pod *v1.Pod, container *v1.Container, secretName, mountPath, volumeSuffix string) {
-	volumeName := apihelpers.GetName(secretName, volumeSuffix, kvalidation.DNS1123LabelMaxLength)
+	mountVolume(pod, container, secretName, mountPath, volumeSuffix, kext.Secret)
+}
+
+// mountVolume is a helper method responsible for mounting volumes into a pod.
+// The following file system types for the volume are supported:
+//
+// 1. ConfigMap
+// 2. EmptyDir
+// 3. Secret
+func mountVolume(pod *v1.Pod, container *v1.Container, objName, mountPath, volumeSuffix string, fsType kext.FSType) {
+	volumeName := apihelpers.GetName(objName, volumeSuffix, kvalidation.DNS1123LabelMaxLength)
 
 	// coerce from RFC1123 subdomain to RFC1123 label.
 	volumeName = strings.Replace(volumeName, ".", "-", -1)
@@ -139,15 +157,7 @@ func mountSecretVolume(pod *v1.Pod, container *v1.Container, secretName, mountPa
 	}
 	mode := int32(0600)
 	if !volumeExists {
-		volume := v1.Volume{
-			Name: volumeName,
-			VolumeSource: v1.VolumeSource{
-				Secret: &v1.SecretVolumeSource{
-					SecretName:  secretName,
-					DefaultMode: &mode,
-				},
-			},
-		}
+		volume := makeVolume(volumeName, objName, mode, fsType)
 		pod.Spec.Volumes = append(pod.Spec.Volumes, volume)
 	}
 
@@ -157,6 +167,35 @@ func mountSecretVolume(pod *v1.Pod, container *v1.Container, secretName, mountPa
 		ReadOnly:  true,
 	}
 	container.VolumeMounts = append(container.VolumeMounts, volumeMount)
+}
+
+func makeVolume(volumeName, refName string, mode int32, fsType kext.FSType) v1.Volume {
+	// TODO: Add support for key-based paths for secrets and configMaps?
+	vol := v1.Volume{
+		Name:         volumeName,
+		VolumeSource: v1.VolumeSource{},
+	}
+	switch fsType {
+	case kext.ConfigMap:
+		vol.VolumeSource.ConfigMap = &v1.ConfigMapVolumeSource{
+			LocalObjectReference: v1.LocalObjectReference{
+				Name: refName,
+			},
+			DefaultMode: &mode,
+		}
+	case kext.EmptyDir:
+		vol.VolumeSource.EmptyDir = &v1.EmptyDirVolumeSource{}
+	case kext.Secret:
+		vol.VolumeSource.Secret = &v1.SecretVolumeSource{
+			SecretName:  refName,
+			DefaultMode: &mode,
+		}
+	default:
+		glog.V(3).Infof("File system %s is not supported for volumes. Using empty directory instead.", fsType)
+		vol.VolumeSource.EmptyDir = &v1.EmptyDirVolumeSource{}
+	}
+
+	return vol
 }
 
 // setupDockerSecrets mounts Docker Registry secrets into Pod running the build,
@@ -203,6 +242,15 @@ func setupSourceSecrets(pod *v1.Pod, container *v1.Container, sourceSecret *kapi
 	container.Env = append(container.Env, []v1.EnvVar{
 		{Name: "SOURCE_SECRET_PATH", Value: sourceSecretMountPath},
 	}...)
+}
+
+// setupInputConfigMaps mounts the configMaps referenced by the ConfigMapBuildSource
+// into a builder container.
+func setupInputConfigMaps(pod *v1.Pod, container *v1.Container, configs []buildapi.ConfigMapBuildSource) {
+	for _, c := range configs {
+		mountConfigMapVolume(pod, container, c.ConfigMap.Name, filepath.Join(ConfigMapBuildSourceBaseMountPath, c.ConfigMap.Name), "build")
+		glog.V(3).Infof("%s will be used as a build config in %s", c.ConfigMap.Name, ConfigMapBuildSourceBaseMountPath)
+	}
 }
 
 // setupInputSecrets mounts the secrets referenced by the SecretBuildSource

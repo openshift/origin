@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -64,6 +65,51 @@ type GitClient interface {
 	SubmoduleUpdate(dir string, init, recursive bool) error
 	TimedListRemote(timeout time.Duration, url string, args ...string) (string, string, error)
 	GetInfo(location string) (*git.SourceInfo, []error)
+}
+
+// localObjectBuildSource is a build source that is copied into a build from a Kubernetes
+// key-value store, such as a `Secret` or `ConfigMap`.
+type localObjectBuildSource interface {
+	// LocalObjectRef returns a reference to a local Kubernetes object by name.
+	LocalObjectRef() corev1.LocalObjectReference
+	// DestinationPath returns the directory where the files from the build source should be
+	// available for the build time.
+	// For the Source build strategy, these will be injected into a container
+	// where the assemble script runs.
+	// For the Docker build strategy, these will be copied into the build
+	// directory, where the Dockerfile is located, so users can ADD or COPY them
+	// during docker build.
+	DestinationPath() string
+	// IsSecret returns `true` if the build source is a `Secret` containing sensitive data.
+	IsSecret() bool
+}
+
+type configMapSource buildapiv1.ConfigMapBuildSource
+
+func (c configMapSource) LocalObjectRef() corev1.LocalObjectReference {
+	return c.ConfigMap
+}
+
+func (c configMapSource) DestinationPath() string {
+	return c.DestinationDir
+}
+
+func (c configMapSource) IsSecret() bool {
+	return false
+}
+
+type secretSource buildapiv1.SecretBuildSource
+
+func (s secretSource) LocalObjectRef() corev1.LocalObjectReference {
+	return s.Secret
+}
+
+func (s secretSource) DestinationPath() string {
+	return s.DestinationDir
+}
+
+func (s secretSource) IsSecret() bool {
+	return true
 }
 
 // buildInfo returns a slice of KeyValue pairs with build metadata to be
