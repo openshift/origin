@@ -218,6 +218,7 @@ func validateSource(input *buildapi.BuildSource, isCustomStrategy, isDockerStrat
 	}
 
 	allErrs = append(allErrs, validateSecrets(input.Secrets, isDockerStrategy, fldPath.Child("secrets"))...)
+	allErrs = append(allErrs, validateConfigMaps(input.ConfigMaps, isDockerStrategy, fldPath.Child("configMaps"))...)
 
 	allErrs = append(allErrs, validateSecretRef(input.SourceSecret, fldPath.Child("sourceSecret"))...)
 
@@ -270,6 +271,25 @@ func validateGitSource(git *buildapi.GitBuildSource, fldPath *field.Path) field.
 	if git.HTTPSProxy != nil && len(*git.HTTPSProxy) != 0 {
 		if _, err := buildutil.ParseProxyURL(*git.HTTPSProxy); err != nil {
 			allErrs = append(allErrs, field.Invalid(fldPath.Child("httpsproxy"), *git.HTTPSProxy, err.Error()))
+		}
+	}
+	return allErrs
+}
+
+func validateConfigMaps(configs []buildapi.ConfigMapBuildSource, isDockerStrategy bool, fldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
+	for i, c := range configs {
+		if len(c.ConfigMap.Name) == 0 {
+			allErrs = append(allErrs, field.Required(fldPath.Index(i).Child("configMap"), ""))
+		}
+		if reasons := validation.ValidateConfigMapName(c.ConfigMap.Name, false); len(reasons) != 0 {
+			allErrs = append(allErrs, field.Invalid(fldPath.Index(i).Child("configMap"), c, "must be valid configMap name"))
+		}
+		if strings.HasPrefix(path.Clean(c.DestinationDir), "..") {
+			allErrs = append(allErrs, field.Invalid(fldPath.Index(i).Child("destinationDir"), c.DestinationDir, "destination dir cannot start with '..'"))
+		}
+		if isDockerStrategy && filepath.IsAbs(c.DestinationDir) {
+			allErrs = append(allErrs, field.Invalid(fldPath.Index(i).Child("destinationDir"), c.DestinationDir, "for the docker strategy the destinationDir has to be relative path"))
 		}
 	}
 	return allErrs

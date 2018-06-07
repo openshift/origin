@@ -65,8 +65,8 @@ func TestDockerCreateBuildPod(t *testing.T) {
 	}
 
 	// the pod has 6 volumes but the git source secret is not mounted into the main container.
-	if len(container.VolumeMounts) != 5 {
-		t.Fatalf("Expected 5 volumes in container, got %d", len(container.VolumeMounts))
+	if len(container.VolumeMounts) != 7 {
+		t.Fatalf("Expected 7 volumes in container, got %d", len(container.VolumeMounts))
 	}
 	if *actual.Spec.ActiveDeadlineSeconds != 60 {
 		t.Errorf("Expected ActiveDeadlineSeconds 60, got %d", *actual.Spec.ActiveDeadlineSeconds)
@@ -76,8 +76,8 @@ func TestDockerCreateBuildPod(t *testing.T) {
 			t.Fatalf("Expected %s in VolumeMount[%d], got %s", expected, i, container.VolumeMounts[i].MountPath)
 		}
 	}
-	if len(actual.Spec.Volumes) != 6 {
-		t.Fatalf("Expected 6 volumes in Build pod, got %d", len(actual.Spec.Volumes))
+	if len(actual.Spec.Volumes) != 8 {
+		t.Fatalf("Expected 8 volumes in Build pod, got %d", len(actual.Spec.Volumes))
 	}
 	if !kapihelper.Semantic.DeepEqual(container.Resources, util.CopyApiResourcesToV1Resources(&build.Spec.Resources)) {
 		t.Fatalf("Expected actual=expected, %v != %v", container.Resources, build.Spec.Resources)
@@ -149,6 +149,22 @@ func mockDockerBuild() *buildapi.Build {
 					},
 					ContextDir:   "my/test/dir",
 					SourceSecret: &kapi.LocalObjectReference{Name: "secretFoo"},
+					Secrets: []buildapi.SecretBuildSource{
+						{
+							Secret: kapi.LocalObjectReference{
+								Name: "super-secret",
+							},
+							DestinationDir: "a/path/for/secret",
+						},
+					},
+					ConfigMaps: []buildapi.ConfigMapBuildSource{
+						{
+							ConfigMap: kapi.LocalObjectReference{
+								Name: "build-config",
+							},
+							DestinationDir: "a/path/for/config",
+						},
+					},
 				},
 				Strategy: buildapi.BuildStrategy{
 					DockerStrategy: &buildapi.DockerBuildStrategy{

@@ -60,8 +60,8 @@ func TestCustomCreateBuildPod(t *testing.T) {
 	if actual.Spec.RestartPolicy != v1.RestartPolicyNever {
 		t.Errorf("Expected never, got %#v", actual.Spec.RestartPolicy)
 	}
-	if len(container.VolumeMounts) != 3 {
-		t.Fatalf("Expected 3 volumes in container, got %d", len(container.VolumeMounts))
+	if len(container.VolumeMounts) != 4 {
+		t.Fatalf("Expected 4 volumes in container, got %d", len(container.VolumeMounts))
 	}
 	if *actual.Spec.ActiveDeadlineSeconds != 60 {
 		t.Errorf("Expected ActiveDeadlineSeconds 60, got %d", *actual.Spec.ActiveDeadlineSeconds)
@@ -74,8 +74,8 @@ func TestCustomCreateBuildPod(t *testing.T) {
 	if !kapihelper.Semantic.DeepEqual(container.Resources, util.CopyApiResourcesToV1Resources(&build.Spec.Resources)) {
 		t.Fatalf("Expected actual=expected, %v != %v", container.Resources, build.Spec.Resources)
 	}
-	if len(actual.Spec.Volumes) != 3 {
-		t.Fatalf("Expected 3 volumes in Build pod, got %d", len(actual.Spec.Volumes))
+	if len(actual.Spec.Volumes) != 4 {
+		t.Fatalf("Expected 4 volumes in Build pod, got %d", len(actual.Spec.Volumes))
 	}
 	buildJSON, _ := runtime.Encode(legacyscheme.Codecs.LegacyCodec(buildapi.LegacySchemeGroupVersion), build)
 	errorCases := map[int][]string{
@@ -212,6 +212,14 @@ func mockCustomBuild(forcePull, emptySource bool) *buildapi.Build {
 						},
 						ExposeDockerSocket: true,
 						ForcePull:          forcePull,
+						Secrets: []buildapi.SecretSpec{
+							{
+								SecretSource: kapi.LocalObjectReference{
+									Name: "secret",
+								},
+								MountPath: "secret",
+							},
+						},
 					},
 				},
 				Output: buildapi.BuildOutput{

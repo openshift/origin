@@ -137,7 +137,7 @@ func (d *DockerBuilder) Build() error {
 	}
 
 	startTime := metav1.Now()
-	err = d.dockerBuild(buildDir, buildTag, d.build.Spec.Source.Secrets)
+	err = d.dockerBuild(buildDir, buildTag)
 
 	timing.RecordNewStep(ctx, buildapiv1.StageBuild, buildapiv1.StepDockerBuild, startTime, metav1.Now())
 
@@ -205,59 +205,82 @@ func (d *DockerBuilder) Build() error {
 	return nil
 }
 
+// copyConfigMaps copies all files from the directory where the configMap is
+// mounted in the builder pod to a directory where the is the Dockerfile, so
+// users can ADD or COPY the files inside their Dockerfile.
+func (d *DockerBuilder) copyConfigMaps(configs []buildapiv1.ConfigMapBuildSource, targetDir string) error {
+	var err error
+	for _, c := range configs {
+		err = d.copyLocalObject(configMapSource(c), strategy.ConfigMapBuildSourceBaseMountPath, targetDir)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // copySecrets copies all files from the directory where the secret is
 // mounted in the builder pod to a directory where the is the Dockerfile, so
 // users can ADD or COPY the files inside their Dockerfile.
-func (d *DockerBuilder) copySecrets(secrets []buildapiv1.SecretBuildSource, buildDir string) error {
+func (d *DockerBuilder) copySecrets(secrets []buildapiv1.SecretBuildSource, targetDir string) error {
+	var err error
 	for _, s := range secrets {
-		dstDir := filepath.Join(buildDir, s.DestinationDir)
-		if err := os.MkdirAll(dstDir, 0777); err != nil {
+		err = d.copyLocalObject(secretSource(s), strategy.SecretBuildSourceBaseMountPath, targetDir)
+		if err != nil {
 			return err
 		}
-		glog.V(3).Infof("Copying files from the build secret %q to %q", s.Secret.Name, dstDir)
+	}
+	return nil
+}
 
-		// Secrets contain nested directories and fairly baroque links. To prevent extra data being
-		// copied, perform the following steps:
-		//
-		// 1. Only top level files and directories within the secret directory are candidates
-		// 2. Any item starting with '..' is ignored
-		// 3. Destination directories are created first with 0777
-		// 4. Use the '-L' option to cp to copy only contents.
-		//
-		srcDir := filepath.Join(strategy.SecretBuildSourceBaseMountPath, s.Secret.Name)
-		if err := filepath.Walk(srcDir, func(path string, info os.FileInfo, err error) error {
-			if err != nil {
-				return err
-			}
-			if srcDir == path {
-				return nil
-			}
+func (d *DockerBuilder) copyLocalObject(s localObjectBuildSource, sourceDir, targetDir string) error {
+	dstDir := filepath.Join(targetDir, s.DestinationPath())
+	if err := os.MkdirAll(dstDir, 0777); err != nil {
+		return err
+	}
+	glog.V(3).Infof("Copying files from the build source %q to %q", s.LocalObjectRef().Name, dstDir)
 
-			// skip any contents that begin with ".."
-			if strings.HasPrefix(filepath.Base(path), "..") {
-				if info.IsDir() {
-					return filepath.SkipDir
-				}
-				return nil
-			}
-
-			// ensure all directories are traversable
-			if info.IsDir() {
-				if err := os.MkdirAll(dstDir, 0777); err != nil {
-					return err
-				}
-			}
-			out, err := exec.Command("cp", "-vLRf", path, dstDir+"/").Output()
-			if err != nil {
-				glog.V(4).Infof("Secret %q failed to copy: %q", s.Secret.Name, string(out))
-				return err
-			}
-			// See what is copied when debugging.
-			glog.V(5).Infof("Result of secret copy %s\n%s", s.Secret.Name, string(out))
+	// Build sources contain nested directories and fairly baroque links. To prevent extra data being
+	// copied, perform the following steps:
+	//
+	// 1. Only top level files and directories within the secret directory are candidates
+	// 2. Any item starting with '..' is ignored
+	// 3. Destination directories are created first with 0777
+	// 4. Use the '-L' option to cp to copy only contents.
+	//
+	srcDir := filepath.Join(sourceDir, s.LocalObjectRef().Name)
+	if err := filepath.Walk(srcDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if srcDir == path {
 			return nil
-		}); err != nil {
+		}
+
+		// skip any contents that begin with ".."
+		if strings.HasPrefix(filepath.Base(path), "..") {
+			if info.IsDir() {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+
+		// ensure all directories are traversable
+		if info.IsDir() {
+			if err := os.MkdirAll(dstDir, 0777); err != nil {
+				return err
+			}
+		}
+		out, err := exec.Command("cp", "-vLRf", path, dstDir+"/").Output()
+		if err != nil {
+			glog.V(4).Infof("Build source %q failed to copy: %q", s.LocalObjectRef().Name, string(out))
 			return err
 		}
+		// See what is copied when debugging.
+		glog.V(5).Infof("Result of build source copy %s\n%s", s.LocalObjectRef().Name, string(out))
+		return nil
+	}); err != nil {
+		return err
 	}
 	return nil
 }
@@ -282,7 +305,7 @@ func (d *DockerBuilder) setupPullSecret() (*docker.AuthConfigurations, error) {
 }
 
 // dockerBuild performs a docker build on the source that has been retrieved
-func (d *DockerBuilder) dockerBuild(dir string, tag string, secrets []buildapiv1.SecretBuildSource) error {
+func (d *DockerBuilder) dockerBuild(dir string, tag string) error {
 	var noCache bool
 	var forcePull bool
 	var buildArgs []docker.BuildArg
@@ -304,7 +327,10 @@ func (d *DockerBuilder) dockerBuild(dir string, tag string, secrets []buildapiv1
 	if err != nil {
 		return err
 	}
-	if err := d.copySecrets(secrets, dir); err != nil {
+	if err := d.copySecrets(d.build.Spec.Source.Secrets, dir); err != nil {
+		return err
+	}
+	if err = d.copyConfigMaps(d.build.Spec.Source.ConfigMaps, dir); err != nil {
 		return err
 	}
 
