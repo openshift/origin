@@ -132,6 +132,14 @@ func apiVersionsToAPIGroup(apiVersions *metav1.APIVersions) (apiGroup metav1.API
 	return
 }
 
+func (d *DiscoveryClient) Fresh() bool {
+	return false
+}
+
+func (d *DiscoveryClient) Invalidate() {
+
+}
+
 // ServerGroups returns the supported groups, with information like supported versions and the
 // preferred version.
 func (d *DiscoveryClient) ServerGroups() (apiGroupList *metav1.APIGroupList, err error) {

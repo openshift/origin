@@ -13,6 +13,7 @@ import (
 	kubecmd "k8s.io/kubernetes/pkg/kubectl/cmd"
 	ktemplates "k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
@@ -96,6 +97,8 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 	loginCmd := login.NewCmdLogin(fullName, f, in, out, errout)
 	secretcmds := secrets.NewCmdSecrets(secrets.SecretsRecommendedName, fullName+" "+secrets.SecretsRecommendedName, f, out, errout)
 
+	ioStreams := genericclioptions.IOStreams{In: in, Out: out, ErrOut: errout}
+
 	groups := ktemplates.CommandGroups{
 		{
 			Message: "Basic Commands:",
@@ -129,10 +132,10 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 				cmd.NewCmdGet(fullName, f, out, errout),
 				cmd.NewCmdDescribe(fullName, f, out, errout),
 				cmd.NewCmdEdit(fullName, f, out, errout),
-				set.NewCmdSet(fullName, f, in, out, errout),
+				set.NewCmdSet(fullName, f, ioStreams),
 				cmd.NewCmdLabel(fullName, f, out),
 				cmd.NewCmdAnnotate(fullName, f, out),
-				cmd.NewCmdExpose(fullName, f, out),
+				cmd.NewCmdExpose(fullName, f, ioStreams),
 				cmd.NewCmdDelete(fullName, f, out, errout),
 				cmd.NewCmdScale(fullName, f, out, errout),
 				cmd.NewCmdAutoscale(fullName, f, out),
@@ -199,7 +202,7 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 		"deploy",
 		// These commands are deprecated and should not appear in help
 		moved(fullName, "set env", cmds, set.NewCmdEnv(fullName, f, in, out, errout)),
-		moved(fullName, "set volume", cmds, set.NewCmdVolume(fullName, f, out, errout)),
+		moved(fullName, "set volume", cmds, set.NewCmdVolume(fullName, f, ioStreams)),
 		moved(fullName, "logs", cmds, cmd.NewCmdBuildLogs(fullName, f, out)),
 		moved(fullName, "secrets link", secretcmds, secrets.NewCmdLinkSecret("add", fullName, f, out)),
 		moved(fullName, "create secret", secretcmds, secrets.NewCmdCreateSecret(secrets.NewSecretRecommendedCommandName, fullName, f, out)),
