@@ -753,3 +753,10 @@ func CheckVolumeModeFilesystem(volumeSpec *volume.Spec) (bool, error) {
 	}
 	return true, nil
 }
+
+// CheckPersistentVolumeClaimModeBlock checks VolumeMode.
+// If the mode is Block, return true otherwise return false.
+func CheckPersistentVolumeClaimModeBlock(pvc *v1.PersistentVolumeClaim) bool {
+	return utilfeature.DefaultFeatureGate.Enabled(features.BlockVolume) && pvc.Spec.VolumeMode != nil && *pvc.Spec.VolumeMode == v1.PersistentVolumeBlock
+}
+
