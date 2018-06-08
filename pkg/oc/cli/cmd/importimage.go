@@ -16,6 +16,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	kprinters "k8s.io/kubernetes/pkg/printers"
 
 	imageapiv1 "github.com/openshift/api/image/v1"
@@ -46,7 +47,7 @@ var (
 )
 
 // NewCmdImportImage implements the OpenShift cli import-image command.
-func NewCmdImportImage(fullName string, f kcmdutil.Factory, out, errout io.Writer) *cobra.Command {
+func NewCmdImportImage(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
 	opts := &ImportImageOptions{}
 	cmd := &cobra.Command{
 		Use:     "import-image IMAGESTREAM[:TAG]",
@@ -54,7 +55,7 @@ func NewCmdImportImage(fullName string, f kcmdutil.Factory, out, errout io.Write
 		Long:    importImageLong,
 		Example: fmt.Sprintf(importImageExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
-			kcmdutil.CheckErr(opts.Complete(f, cmd, args, fullName, out, errout))
+			kcmdutil.CheckErr(opts.Complete(f, cmd, args, fullName, streams.Out, streams.ErrOut))
 			kcmdutil.CheckErr(opts.Validate(cmd))
 			kcmdutil.CheckErr(opts.Run())
 		},

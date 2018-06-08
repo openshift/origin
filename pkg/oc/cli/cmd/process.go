@@ -21,6 +21,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
@@ -74,14 +75,14 @@ var (
 )
 
 // NewCmdProcess implements the OpenShift cli process command
-func NewCmdProcess(fullName string, f kcmdutil.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
+func NewCmdProcess(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "process (TEMPLATE | -f FILENAME) [-p=KEY=VALUE]",
 		Short:   "Process a template into list of resources",
 		Long:    processLong,
 		Example: fmt.Sprintf(processExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
-			err := RunProcess(f, in, out, errout, cmd, args)
+			err := RunProcess(f, streams.In, streams.Out, streams.ErrOut, cmd, args)
 			kcmdutil.CheckErr(err)
 		},
 	}

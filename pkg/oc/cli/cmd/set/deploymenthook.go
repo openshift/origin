@@ -13,6 +13,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 
 	appsv1 "github.com/openshift/api/apps/v1"
@@ -92,10 +93,10 @@ type DeploymentHookOptions struct {
 }
 
 // NewCmdDeploymentHook implements the set deployment-hook command
-func NewCmdDeploymentHook(fullName string, f kcmdutil.Factory, out, errOut io.Writer) *cobra.Command {
+func NewCmdDeploymentHook(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
 	options := &DeploymentHookOptions{
-		Out: out,
-		Err: errOut,
+		Out: streams.Out,
+		Err: streams.ErrOut,
 	}
 	cmd := &cobra.Command{
 		Use:     "deployment-hook DEPLOYMENTCONFIG --pre|--post|--mid -- CMD",

@@ -11,7 +11,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
-	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	buildclientinternal "github.com/openshift/origin/pkg/build/generated/internalclientset"
 	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
@@ -65,7 +66,7 @@ type BuildChainOptions struct {
 }
 
 // NewCmdBuildChain implements the OpenShift experimental build-chain command
-func NewCmdBuildChain(name, fullName string, f cmdutil.Factory, out io.Writer) *cobra.Command {
+func NewCmdBuildChain(name, fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
 	options := &BuildChainOptions{
 		namespaces: sets.NewString(),
 	}
@@ -75,9 +76,9 @@ func NewCmdBuildChain(name, fullName string, f cmdutil.Factory, out io.Writer) *
 		Long:    buildChainLong,
 		Example: fmt.Sprintf(buildChainExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
-			cmdutil.CheckErr(options.Complete(f, cmd, args, out))
-			cmdutil.CheckErr(options.Validate())
-			cmdutil.CheckErr(options.RunBuildChain())
+			kcmdutil.CheckErr(options.Complete(f, cmd, args, streams.Out))
+			kcmdutil.CheckErr(options.Validate())
+			kcmdutil.CheckErr(options.RunBuildChain())
 		},
 	}
 
@@ -89,9 +90,9 @@ func NewCmdBuildChain(name, fullName string, f cmdutil.Factory, out io.Writer) *
 }
 
 // Complete completes the required options for build-chain
-func (o *BuildChainOptions) Complete(f cmdutil.Factory, cmd *cobra.Command, args []string, out io.Writer) error {
+func (o *BuildChainOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string, out io.Writer) error {
 	if len(args) != 1 {
-		return cmdutil.UsageErrorf(cmd, "Must pass an image stream tag. If only an image stream name is specified, 'latest' will be used for the tag.")
+		return kcmdutil.UsageErrorf(cmd, "Must pass an image stream tag. If only an image stream name is specified, 'latest' will be used for the tag.")
 	}
 
 	clientConfig, err := f.ToRESTConfig()

@@ -12,6 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgotesting "k8s.io/client-go/testing"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildfake "github.com/openshift/origin/pkg/build/generated/internalclientset/fake"
@@ -39,7 +40,7 @@ func TestCancelBuildDefaultFlags(t *testing.T) {
 		},
 	}
 
-	cmd := NewCmdCancelBuild("oc", CancelBuildRecommendedCommandName, nil, nil, nil, nil)
+	cmd := NewCmdCancelBuild("oc", CancelBuildRecommendedCommandName, nil, genericclioptions.NewTestIOStreamsDiscard())
 
 	for _, v := range tests {
 		f := cmd.Flag(v.flagName)

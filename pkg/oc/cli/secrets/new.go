@@ -15,6 +15,7 @@ import (
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	"github.com/spf13/cobra"
 )
@@ -70,9 +71,9 @@ type CreateSecretOptions struct {
 	AllowUnknownTypes bool
 }
 
-func NewCmdCreateSecret(name, fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
+func NewCmdCreateSecret(name, fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
 	options := NewCreateSecretOptions()
-	options.Out = out
+	options.Out = streams.Out
 
 	cmd := &cobra.Command{
 		Use:        fmt.Sprintf("%s NAME [KEY=]SOURCE ...", name),
@@ -94,7 +95,7 @@ func NewCmdCreateSecret(name, fullName string, f kcmdutil.Factory, out io.Writer
 				secret, err := options.BundleSecret()
 				kcmdutil.CheckErr(err)
 
-				kcmdutil.CheckErr(kcmdutil.PrintObject(c, secret, out))
+				kcmdutil.CheckErr(kcmdutil.PrintObject(c, secret, streams.Out))
 				return
 			}
 

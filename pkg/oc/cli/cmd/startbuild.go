@@ -33,6 +33,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	buildapiv1 "github.com/openshift/api/build/v1"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
@@ -86,11 +87,11 @@ var (
 )
 
 // NewCmdStartBuild implements the OpenShift cli start-build command
-func NewCmdStartBuild(fullName string, f kcmdutil.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
+func NewCmdStartBuild(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
 	o := &StartBuildOptions{
-		In:     in,
-		Out:    out,
-		ErrOut: errout,
+		In:     streams.In,
+		Out:    streams.Out,
+		ErrOut: streams.ErrOut,
 	}
 
 	cmd := &cobra.Command{

@@ -3,7 +3,6 @@ package login
 import (
 	"errors"
 	"fmt"
-	"io"
 	"net/url"
 	"os"
 
@@ -14,6 +13,7 @@ import (
 	kclientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	"k8s.io/kubernetes/pkg/kubectl/util/term"
 
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
@@ -45,11 +45,11 @@ var (
 )
 
 // NewCmdLogin implements the OpenShift cli login command
-func NewCmdLogin(fullName string, f kcmdutil.Factory, reader io.Reader, out, errOut io.Writer) *cobra.Command {
+func NewCmdLogin(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
 	options := &LoginOptions{
-		Reader: reader,
-		Out:    out,
-		ErrOut: errOut,
+		Reader: streams.In,
+		Out:    streams.Out,
+		ErrOut: streams.ErrOut,
 	}
 
 	cmds := &cobra.Command{
@@ -69,13 +69,13 @@ func NewCmdLogin(fullName string, f kcmdutil.Factory, reader io.Reader, out, err
 			err := RunLogin(cmd, options)
 
 			if kapierrors.IsUnauthorized(err) {
-				fmt.Fprintln(out, "Login failed (401 Unauthorized)")
-				fmt.Fprintln(out, "Verify you have provided correct credentials.")
+				fmt.Fprintln(streams.Out, "Login failed (401 Unauthorized)")
+				fmt.Fprintln(streams.Out, "Verify you have provided correct credentials.")
 
 				if err, isStatusErr := err.(*kapierrors.StatusError); isStatusErr {
 					if details := err.Status().Details; details != nil {
 						for _, cause := range details.Causes {
-							fmt.Fprintln(out, cause.Message)
+							fmt.Fprintln(streams.Out, cause.Message)
 						}
 					}
 				}

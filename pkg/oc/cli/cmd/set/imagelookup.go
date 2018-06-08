@@ -15,6 +15,7 @@ import (
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 
 	ometa "github.com/openshift/origin/pkg/api/meta"
@@ -43,7 +44,7 @@ var (
 		will import the latest MySQL image from the DockerHub, set that image stream to handle the
 		"mysql" name within the project, and then launch a deployment that points to the image we
 		imported.
-		
+
 		You may also force image lookup for all of the images on a resource with this command. An
 		annotation is placed on the object which forces an image stream tag lookup in the current
 		namespace for any image that matches, regardless of whether the image stream has lookup
@@ -106,10 +107,10 @@ type ImageLookupOptions struct {
 }
 
 // NewCmdImageLookup implements the set image-lookup command
-func NewCmdImageLookup(fullName, parentName string, f kcmdutil.Factory, out, errOut io.Writer) *cobra.Command {
+func NewCmdImageLookup(fullName, parentName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
 	options := &ImageLookupOptions{
-		Out:     out,
-		Err:     errOut,
+		Out:     streams.Out,
+		Err:     streams.ErrOut,
 		Enabled: true,
 	}
 	cmd := &cobra.Command{

@@ -17,7 +17,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
-	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 	"k8s.io/kubernetes/pkg/kubectl/scheme"
 	kprinters "k8s.io/kubernetes/pkg/printers"
@@ -49,8 +50,8 @@ var (
 		%[1]s openshift.local.config/master/master-config.yaml --patch='{"auditConfig": {"enabled": true}}'`)
 )
 
-func NewCmdPatch(name, fullName string, f cmdutil.Factory, out io.Writer) *cobra.Command {
-	o := &PatchOptions{Out: out}
+func NewCmdPatch(name, fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
+	o := &PatchOptions{Out: streams.Out}
 
 	cmd := &cobra.Command{
 		Use:     name + " FILENAME -p PATCH",
@@ -58,37 +59,37 @@ func NewCmdPatch(name, fullName string, f cmdutil.Factory, out io.Writer) *cobra
 		Long:    patch_long,
 		Example: patch_example,
 		Run: func(cmd *cobra.Command, args []string) {
-			cmdutil.CheckErr(o.Complete(f, cmd, args))
-			cmdutil.CheckErr(o.Validate())
-			cmdutil.CheckErr(o.RunPatch())
+			kcmdutil.CheckErr(o.Complete(f, cmd, args))
+			kcmdutil.CheckErr(o.Validate())
+			kcmdutil.CheckErr(o.RunPatch())
 		},
 	}
 	cmd.Flags().StringVarP(&o.Patch, "patch", "p", "", "The patch to be applied to the resource JSON file.")
 	cmd.MarkFlagRequired("patch")
 	cmd.Flags().String("type", "strategic", fmt.Sprintf("The type of patch being provided; one of %v", sets.StringKeySet(patchTypes).List()))
-	cmdutil.AddPrinterFlags(cmd)
+	kcmdutil.AddPrinterFlags(cmd)
 
 	return cmd
 }
 
-func (o *PatchOptions) Complete(f cmdutil.Factory, cmd *cobra.Command, args []string) error {
+func (o *PatchOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string) error {
 	if len(args) != 1 {
 		return fmt.Errorf("exactly one FILENAME is allowed: %v", args)
 	}
 	o.Filename = args[0]
 
-	patchTypeString := strings.ToLower(cmdutil.GetFlagString(cmd, "type"))
+	patchTypeString := strings.ToLower(kcmdutil.GetFlagString(cmd, "type"))
 	ok := false
 	o.PatchType, ok = patchTypes[patchTypeString]
 	if !ok {
-		return cmdutil.UsageErrorf(cmd, fmt.Sprintf("--type must be one of %v, not %q", sets.StringKeySet(patchTypes).List(), patchTypeString))
+		return kcmdutil.UsageErrorf(cmd, fmt.Sprintf("--type must be one of %v, not %q", sets.StringKeySet(patchTypes).List(), patchTypeString))
 	}
 
 	o.Builder = f.NewBuilder().Local()
 
 	var err error
 	decoders := []runtime.Decoder{scheme.Codecs.UniversalDeserializer(), configapi.Codecs.UniversalDeserializer(), unstructured.UnstructuredJSONScheme}
-	printOpts := cmdutil.ExtractCmdPrintOptions(cmd, false)
+	printOpts := kcmdutil.ExtractCmdPrintOptions(cmd, false)
 	printOpts.OutputFormatType = "yaml"
 
 	o.Printer, err = kprinters.GetStandardPrinter(configapi.Scheme, nil, decoders, *printOpts)

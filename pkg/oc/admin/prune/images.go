@@ -33,6 +33,7 @@ import (
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
 	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
@@ -77,9 +78,9 @@ var (
 		Insecure connection is allowed in the following cases unless certificate-authority is
 		specified:
 
-		 1. --force-insecure is given  
-		 2. provided registry-url is prefixed with http://  
-		 3. registry url is a private or link-local address  
+		 1. --force-insecure is given
+		 2. provided registry-url is prefixed with http://
+		 3. registry url is a private or link-local address
 		 4. user's config allows for insecure connection (the user logged in to the cluster with
 			--insecure-skip-tls-verify or allowed for insecure connection)`)
 
@@ -139,7 +140,7 @@ type PruneImagesOptions struct {
 }
 
 // NewCmdPruneImages implements the OpenShift cli prune images command.
-func NewCmdPruneImages(f kcmdutil.Factory, parentName, name string, out io.Writer) *cobra.Command {
+func NewCmdPruneImages(f kcmdutil.Factory, parentName, name string, streams genericclioptions.IOStreams) *cobra.Command {
 	allImages := true
 	opts := &PruneImagesOptions{
 		Confirm:            false,
@@ -158,7 +159,7 @@ func NewCmdPruneImages(f kcmdutil.Factory, parentName, name string, out io.Write
 		Example: fmt.Sprintf(imagesExample, parentName, name),
 
 		Run: func(cmd *cobra.Command, args []string) {
-			kcmdutil.CheckErr(opts.Complete(f, cmd, args, out))
+			kcmdutil.CheckErr(opts.Complete(f, cmd, args, streams.Out))
 			kcmdutil.CheckErr(opts.Validate())
 			kcmdutil.CheckErr(opts.Run())
 		},
