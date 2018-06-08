@@ -2,11 +2,11 @@ package importer
 
 import (
 	"fmt"
-	"io"
 
 	"github.com/spf13/cobra"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
@@ -19,16 +19,16 @@ var (
 )
 
 // NewCmdImport exposes commands for modifying objects.
-func NewCmdImport(fullName string, f *clientcmd.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
+func NewCmdImport(fullName string, f *clientcmd.Factory, streams genericclioptions.IOStreams) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "import COMMAND",
 		Short: "Commands that import applications",
 		Long:  importLong,
-		Run:   cmdutil.DefaultSubCommandRun(errout),
+		Run:   cmdutil.DefaultSubCommandRun(streams.ErrOut),
 	}
 
 	name := fmt.Sprintf("%s import", fullName)
 
-	cmd.AddCommand(NewCmdAppJSON(name, f, in, out, errout))
+	cmd.AddCommand(NewCmdAppJSON(name, f, streams.In, streams.Out, streams.ErrOut))
 	return cmd
 }

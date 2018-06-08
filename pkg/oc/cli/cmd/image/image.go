@@ -2,11 +2,11 @@ package image
 
 import (
 	"fmt"
-	"io"
 
 	"github.com/spf13/cobra"
 	ktemplates "k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/oc/cli/cmd/image/mirror"
@@ -21,12 +21,12 @@ var (
 )
 
 // NewCmdImage exposes commands for modifying images.
-func NewCmdImage(fullName string, f *clientcmd.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
+func NewCmdImage(fullName string, f *clientcmd.Factory, streams genericclioptions.IOStreams) *cobra.Command {
 	image := &cobra.Command{
 		Use:   "image COMMAND",
 		Short: "Useful commands for managing images",
 		Long:  imageLong,
-		Run:   cmdutil.DefaultSubCommandRun(errout),
+		Run:   cmdutil.DefaultSubCommandRun(streams.ErrOut),
 	}
 
 	name := fmt.Sprintf("%s image", fullName)
@@ -35,7 +35,7 @@ func NewCmdImage(fullName string, f *clientcmd.Factory, in io.Reader, out, errou
 		{
 			Message: "Advanced commands:",
 			Commands: []*cobra.Command{
-				mirror.NewCmdMirrorImage(name, out, errout),
+				mirror.NewCmdMirrorImage(name, streams.Out, streams.ErrOut),
 			},
 		},
 	}

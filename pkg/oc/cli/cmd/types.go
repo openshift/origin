@@ -13,6 +13,7 @@ import (
 
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 )
 
 type concept struct {
@@ -222,7 +223,7 @@ var (
 	  %[1]s describe is ruby-centos7`)
 )
 
-func NewCmdTypes(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdTypes(fullName string, f *clientcmd.Factory, streams genericclioptions.IOStreams) *cobra.Command {
 	buf := &bytes.Buffer{}
 	for _, c := range concepts {
 		writeConcept(buf, c)
@@ -232,7 +233,7 @@ func NewCmdTypes(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Co
 		Short:   "An introduction to concepts and types",
 		Long:    fmt.Sprintf(typesLong, buf.String()),
 		Example: fmt.Sprintf(typesExample, fullName),
-		Run:     kcmdutil.DefaultSubCommandRun(out),
+		Run:     kcmdutil.DefaultSubCommandRun(streams.Out),
 	}
 	return cmd
 }

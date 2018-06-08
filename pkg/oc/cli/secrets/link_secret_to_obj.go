@@ -3,13 +3,13 @@ package secrets
 import (
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"strings"
 
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	"github.com/spf13/cobra"
 )
@@ -44,8 +44,8 @@ type LinkSecretOptions struct {
 }
 
 // NewCmdLinkSecret creates a command object for linking a secret reference to a service account
-func NewCmdLinkSecret(name, fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
-	o := &LinkSecretOptions{SecretOptions{Out: out}, false, false, nil}
+func NewCmdLinkSecret(name, fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
+	o := &LinkSecretOptions{SecretOptions{Out: streams.Out}, false, false, nil}
 
 	cmd := &cobra.Command{
 		Use:     fmt.Sprintf("%s serviceaccounts-name secret-name [another-secret-name]...", name),

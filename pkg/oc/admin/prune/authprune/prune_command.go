@@ -12,6 +12,7 @@ import (
 
 	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 )
 
@@ -35,9 +36,9 @@ type PruneAuthOptions struct {
 }
 
 // NewCmdPruneRoles implements the OpenShift cli prune roles command.
-func NewCmdPruneAuth(f kcmdutil.Factory, name string, out io.Writer) *cobra.Command {
+func NewCmdPruneAuth(f kcmdutil.Factory, name string, streams genericclioptions.IOStreams) *cobra.Command {
 	o := &PruneAuthOptions{
-		Out: out,
+		Out: streams.Out,
 	}
 
 	cmd := &cobra.Command{

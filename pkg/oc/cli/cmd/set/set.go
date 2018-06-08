@@ -35,7 +35,7 @@ func NewCmdSet(fullName string, f *clientcmd.Factory, streams genericclioptions.
 		{
 			Message: "Replication controllers, deployments, and daemon sets:",
 			Commands: []*cobra.Command{
-				NewCmdEnv(name, f, streams.In, streams.Out, streams.ErrOut),
+				NewCmdEnv(name, f, streams),
 				NewCmdResources(name, f, streams),
 				NewCmdVolume(name, f, streams),
 				NewCmdProbe(name, f, streams.Out, streams.ErrOut),

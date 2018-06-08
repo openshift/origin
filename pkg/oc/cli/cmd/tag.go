@@ -17,6 +17,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageclientinternal "github.com/openshift/origin/pkg/image/generated/internalclientset"
@@ -84,7 +85,7 @@ const (
 )
 
 // NewCmdTag implements the OpenShift cli tag command.
-func NewCmdTag(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdTag(fullName string, f *clientcmd.Factory, streams genericclioptions.IOStreams) *cobra.Command {
 	opts := &TagOptions{}
 
 	cmd := &cobra.Command{
@@ -93,7 +94,7 @@ func NewCmdTag(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Comm
 		Long:    tagLong,
 		Example: fmt.Sprintf(tagExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
-			kcmdutil.CheckErr(opts.Complete(f, cmd, args, out))
+			kcmdutil.CheckErr(opts.Complete(f, cmd, args, streams.Out))
 			kcmdutil.CheckErr(opts.Validate())
 			kcmdutil.CheckErr(opts.Run())
 		},

@@ -8,6 +8,7 @@ import (
 
 	"github.com/openshift/origin/pkg/oc/generate/app"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	configcmd "github.com/openshift/origin/pkg/bulk"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
@@ -117,7 +118,7 @@ func TestNewAppDefaultFlags(t *testing.T) {
 		},
 	}
 
-	cmd := NewCmdNewApplication("oc", NewAppRecommendedCommandName, nil, nil, nil, nil)
+	cmd := NewCmdNewApplication("oc", NewAppRecommendedCommandName, nil, genericclioptions.NewTestIOStreamsDiscard())
 
 	for _, v := range tests {
 		f := cmd.Flag(v.flagName)

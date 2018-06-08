@@ -11,6 +11,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	kcmd "k8s.io/kubernetes/pkg/kubectl/cmd"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
@@ -22,7 +23,7 @@ import (
 func TestLogsFlagParity(t *testing.T) {
 	kubeCmd := kcmd.NewCmdLogs(nil, ioutil.Discard, ioutil.Discard)
 	f := clientcmd.NewFactory(nil)
-	originCmd := NewCmdLogs("oc", "logs", f, ioutil.Discard, ioutil.Discard)
+	originCmd := NewCmdLogs("oc", "logs", f, genericclioptions.NewTestIOStreamsDiscard())
 
 	kubeCmd.LocalFlags().VisitAll(func(kubeFlag *pflag.Flag) {
 		originFlag := originCmd.LocalFlags().Lookup(kubeFlag.Name)
