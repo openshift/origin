@@ -12,6 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	"github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/apis/config/validation/ldap"
@@ -81,9 +82,9 @@ func NewPruneOptions() *PruneOptions {
 	}
 }
 
-func NewCmdPrune(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdPrune(name, fullName string, f *clientcmd.Factory, streams genericclioptions.IOStreams) *cobra.Command {
 	options := NewPruneOptions()
-	options.Out = out
+	options.Out = streams.Out
 
 	whitelistFile := ""
 	blacklistFile := ""

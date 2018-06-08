@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	projectfake "github.com/openshift/origin/pkg/project/generated/internalclientset/fake"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 )
 
 // TestRequestProjectDefaultFlags ensures that flags default values are set.
@@ -30,7 +31,7 @@ func TestRequestProjectDefaultFlags(t *testing.T) {
 		},
 	}
 
-	cmd := NewCmdRequestProject("oc", RequestProjectRecommendedCommandName, nil, nil, nil)
+	cmd := NewCmdRequestProject("oc", RequestProjectRecommendedCommandName, nil, genericclioptions.NewTestIOStreamsDiscard())
 
 	for _, v := range tests {
 		f := cmd.Flag(v.flagName)

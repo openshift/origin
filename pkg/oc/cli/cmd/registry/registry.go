@@ -2,11 +2,11 @@ package registry
 
 import (
 	"fmt"
-	"io"
 
 	"github.com/spf13/cobra"
 	ktemplates "k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/oc/cli/cmd/registry/info"
@@ -22,12 +22,12 @@ var (
 )
 
 // NewCmd exposes commands for working with the registry.
-func NewCmd(fullName string, f *clientcmd.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
+func NewCmd(fullName string, f *clientcmd.Factory, streams genericclioptions.IOStreams) *cobra.Command {
 	image := &cobra.Command{
 		Use:   "registry COMMAND",
 		Short: "Commands for working with the registry",
 		Long:  imageLong,
-		Run:   cmdutil.DefaultSubCommandRun(errout),
+		Run:   cmdutil.DefaultSubCommandRun(streams.ErrOut),
 	}
 
 	name := fmt.Sprintf("%s registry", fullName)
@@ -36,8 +36,8 @@ func NewCmd(fullName string, f *clientcmd.Factory, in io.Reader, out, errout io.
 		{
 			Message: "Advanced commands:",
 			Commands: []*cobra.Command{
-				info.New(name, f, out, errout),
-				login.New(name, f, out, errout),
+				info.New(name, f, streams.Out, streams.ErrOut),
+				login.New(name, f, streams.Out, streams.ErrOut),
 			},
 		},
 	}

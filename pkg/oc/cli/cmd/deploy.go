@@ -19,6 +19,7 @@ import (
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
@@ -97,7 +98,7 @@ var (
 )
 
 // NewCmdDeploy creates a new `deploy` command.
-func NewCmdDeploy(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdDeploy(fullName string, f *clientcmd.Factory, streams genericclioptions.IOStreams) *cobra.Command {
 	options := &DeployOptions{
 		baseCommandName: fullName,
 	}
@@ -109,7 +110,7 @@ func NewCmdDeploy(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.C
 		Example:    fmt.Sprintf(deployExample, fullName),
 		SuggestFor: []string{"deployment"},
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := options.Complete(f, args, out); err != nil {
+			if err := options.Complete(f, args, streams.Out); err != nil {
 				kcmdutil.CheckErr(err)
 			}
 

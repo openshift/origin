@@ -12,6 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	buildclientinternal "github.com/openshift/origin/pkg/build/generated/internalclientset"
 	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
@@ -66,7 +67,7 @@ type BuildChainOptions struct {
 }
 
 // NewCmdBuildChain implements the OpenShift experimental build-chain command
-func NewCmdBuildChain(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdBuildChain(name, fullName string, f *clientcmd.Factory, streams genericclioptions.IOStreams) *cobra.Command {
 	options := &BuildChainOptions{
 		namespaces: sets.NewString(),
 	}
@@ -76,7 +77,7 @@ func NewCmdBuildChain(name, fullName string, f *clientcmd.Factory, out io.Writer
 		Long:    buildChainLong,
 		Example: fmt.Sprintf(buildChainExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
-			cmdutil.CheckErr(options.Complete(f, cmd, args, out))
+			cmdutil.CheckErr(options.Complete(f, cmd, args, streams.Out))
 			cmdutil.CheckErr(options.Validate())
 			cmdutil.CheckErr(options.RunBuildChain())
 		},

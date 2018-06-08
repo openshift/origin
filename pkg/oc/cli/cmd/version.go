@@ -18,6 +18,7 @@ import (
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	kubeversion "k8s.io/kubernetes/pkg/version"
 
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
@@ -44,7 +45,7 @@ type VersionOptions struct {
 }
 
 // NewCmdVersion creates a command for displaying the version of this binary
-func NewCmdVersion(fullName string, f *clientcmd.Factory, out io.Writer, options VersionOptions) *cobra.Command {
+func NewCmdVersion(fullName string, f *clientcmd.Factory, streams genericclioptions.IOStreams, options VersionOptions) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "version",
 		Short: "Display client and server versions",
@@ -52,7 +53,7 @@ func NewCmdVersion(fullName string, f *clientcmd.Factory, out io.Writer, options
 		Run: func(cmd *cobra.Command, args []string) {
 			options.BaseName = fullName
 
-			if err := options.Complete(cmd, f, out); err != nil {
+			if err := options.Complete(cmd, f, streams.Out); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
 			}
 

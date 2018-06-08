@@ -2,7 +2,6 @@ package in_pod
 
 import (
 	"fmt"
-	"io"
 	"runtime/debug"
 
 	"github.com/spf13/cobra"
@@ -10,6 +9,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	networkclientinternal "github.com/openshift/origin/pkg/network/generated/internalclientset"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/log"
@@ -46,10 +46,10 @@ var (
 )
 
 // NewCommandNetworkPodDiagnostics is the command for running network diagnostics.
-func NewCommandNetworkPodDiagnostics(name string, out io.Writer) *cobra.Command {
+func NewCommandNetworkPodDiagnostics(name string, streams genericclioptions.IOStreams) *cobra.Command {
 	o := &NetworkPodDiagnosticsOptions{
 		RequestedDiagnostics: []string{},
-		LogOptions:           &log.LoggerOptions{Out: out},
+		LogOptions:           &log.LoggerOptions{Out: streams.Out},
 	}
 
 	cmd := &cobra.Command{
@@ -59,7 +59,7 @@ func NewCommandNetworkPodDiagnostics(name string, out io.Writer) *cobra.Command 
 		Run:    util.CommandRunFunc(o),
 		Hidden: true,
 	}
-	cmd.SetOutput(out) // for output re: usage / help
+	cmd.SetOutput(streams.Out) // for output re: usage / help
 
 	options.BindLoggerOptionFlags(cmd.Flags(), o.LogOptions, options.RecommendedLoggerOptionFlags())
 
