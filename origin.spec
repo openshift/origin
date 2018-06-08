@@ -17,12 +17,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 9d2085ce82be268547f567dc5f4c886c9c43be58
+%global commit cd7321cf1eb264f4bc916266047f745185c6a3eb
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=10+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.10.0-0.63.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 KUBE_GIT_VERSION=v1.10.0+b81c8f8 OS_GIT_PATCH=0 KUBE_GIT_COMMIT=b81c8f8 KUBE_GIT_MINOR=10+ OS_GIT_COMMIT=9749b63 KUBE_GIT_MAJOR=1 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.16-0-g121edf0 ETCD_GIT_COMMIT=121edf0
+%global os_git_vars OS_GIT_MINOR=10+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.10.0-0.64.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 KUBE_GIT_VERSION=v1.10.0+b81c8f8 OS_GIT_PATCH=0 KUBE_GIT_COMMIT=b81c8f8 KUBE_GIT_MINOR=10+ OS_GIT_COMMIT=bf63a34 KUBE_GIT_MAJOR=1 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.16-0-g121edf0 ETCD_GIT_COMMIT=121edf0
 }
 
 %if 0%{?skip_build}
@@ -65,7 +65,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.10.0
-Release:        0.64.0%{?dist}
+Release:        0.65.0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -483,6 +483,16 @@ if [ "$1" -eq 0 ] ; then
 fi
 
 %changelog
+* Fri Jun 08 2018 Justin Pierce <jupierce@redhat.com> 3.10.0-0.65.0
+- UPSTREAM: 64855: Fix setup of ephemeral storage (hekumar@redhat.com)
+- UPSTREAM: 64883: Fix up legacy printer table adapter (jliggitt@redhat.com)
+- Adapt virtual resources to TableConvertor (jliggitt@redhat.com)
+- Register table convertors for openshift rest handlers (jliggitt@redhat.com)
+- Expose openshift print handlers (jliggitt@redhat.com)
+- Poll metrics for openshift resources (ccoleman@redhat.com)
+- move internal printers to shared package (jliggitt@redhat.com)
+- fix typo (bparees@redhat.com)
+
 * Thu Jun 07 2018 Justin Pierce <jupierce@redhat.com> 3.10.0-0.64.0
 - UPSTREAM: 64797: Handle deleted DaemonSet properly (maszulik@redhat.com)
 - Fix a bug when a namespace has two egress IPs on same node (danw@redhat.com)
