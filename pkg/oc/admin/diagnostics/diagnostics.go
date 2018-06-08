@@ -2,7 +2,6 @@ package diagnostics
 
 import (
 	"fmt"
-	"io"
 	"os"
 	"runtime/debug"
 	"strings"
@@ -14,6 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	poddiag "github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/client/pod/in_pod"
@@ -107,12 +107,12 @@ var (
 )
 
 // NewCmdDiagnostics is the base command for running a standard set of diagnostics with generic options only.
-func NewCmdDiagnostics(name string, fullName string, out io.Writer) *cobra.Command {
+func NewCmdDiagnostics(name string, fullName string, streams genericclioptions.IOStreams) *cobra.Command {
 	available := availableDiagnostics()
 	o := &DiagnosticsOptions{
 		RequestedDiagnostics:     available.Names().Difference(defaultSkipDiagnostics()),
 		ParameterizedDiagnostics: types.NewParameterizedDiagnosticMap(available...),
-		LogOptions:               &log.LoggerOptions{Out: out},
+		LogOptions:               &log.LoggerOptions{Out: streams.Out},
 	}
 
 	cmd := &cobra.Command{
@@ -121,32 +121,32 @@ func NewCmdDiagnostics(name string, fullName string, out io.Writer) *cobra.Comma
 		Long:  fmt.Sprintf(longDescription, fullName),
 		Run:   util.CommandRunFunc(o),
 	}
-	cmd.SetOutput(out) // for output re: usage / help
+	cmd.SetOutput(streams.Out) // for output re: usage / help
 	o.bindCommonFlags(cmd.Flags())
 	o.bindClientFlags(cmd.Flags())
 	o.bindHostFlags(cmd.Flags())
 
 	// add "all" subcommand
-	cmd.AddCommand(NewCmdDiagnosticsAll(AllDiagnosticsRecommendedName, fullName+" "+AllDiagnosticsRecommendedName, out, available))
+	cmd.AddCommand(NewCmdDiagnosticsAll(AllDiagnosticsRecommendedName, fullName+" "+AllDiagnosticsRecommendedName, streams, available))
 	// add individual diagnostic subcommands
 	for _, diag := range available {
-		cmd.AddCommand(NewCmdDiagnosticsIndividual(strings.ToLower(diag.Name()), fullName+" "+strings.ToLower(diag.Name()), out, diag))
+		cmd.AddCommand(NewCmdDiagnosticsIndividual(strings.ToLower(diag.Name()), fullName+" "+strings.ToLower(diag.Name()), streams, diag))
 	}
 	// add hidden in-pod subcommands
 	cmd.AddCommand(
-		poddiag.NewCommandPodDiagnostics(poddiag.InPodDiagnosticRecommendedName, out),
-		networkpoddiag.NewCommandNetworkPodDiagnostics(networkpoddiag.InPodNetworkCheckRecommendedName, out),
+		poddiag.NewCommandPodDiagnostics(poddiag.InPodDiagnosticRecommendedName, streams),
+		networkpoddiag.NewCommandNetworkPodDiagnostics(networkpoddiag.InPodNetworkCheckRecommendedName, streams),
 	)
 
 	return cmd
 }
 
 // NewCmdDiagnosticsAll is the command for running ALL diagnostics and providing all flags.
-func NewCmdDiagnosticsAll(name string, fullName string, out io.Writer, available types.DiagnosticList) *cobra.Command {
+func NewCmdDiagnosticsAll(name string, fullName string, streams genericclioptions.IOStreams, available types.DiagnosticList) *cobra.Command {
 	o := &DiagnosticsOptions{
 		RequestedDiagnostics:     available.Names(),
 		ParameterizedDiagnostics: types.NewParameterizedDiagnosticMap(available...),
-		LogOptions:               &log.LoggerOptions{Out: out},
+		LogOptions:               &log.LoggerOptions{Out: streams.Out},
 	}
 
 	cmd := &cobra.Command{
@@ -155,7 +155,7 @@ func NewCmdDiagnosticsAll(name string, fullName string, out io.Writer, available
 		Long:  fmt.Sprintf(longDescriptionAll, fullName),
 		Run:   util.CommandRunFunc(o),
 	}
-	cmd.SetOutput(out) // for output re: usage / help
+	cmd.SetOutput(streams.Out) // for output re: usage / help
 	o.bindCommonFlags(cmd.Flags())
 	o.bindClientFlags(cmd.Flags())
 	o.bindHostFlags(cmd.Flags())
@@ -164,11 +164,11 @@ func NewCmdDiagnosticsAll(name string, fullName string, out io.Writer, available
 }
 
 // NewCmdDiagnosticsIndividual is a parameterized subcommand providing a single diagnostic and its flags.
-func NewCmdDiagnosticsIndividual(name string, fullName string, out io.Writer, diagnostic types.Diagnostic) *cobra.Command {
+func NewCmdDiagnosticsIndividual(name string, fullName string, streams genericclioptions.IOStreams, diagnostic types.Diagnostic) *cobra.Command {
 	o := &DiagnosticsOptions{
 		RequestedDiagnostics:     sets.NewString(diagnostic.Name()),
 		ParameterizedDiagnostics: types.NewParameterizedDiagnosticMap(diagnostic),
-		LogOptions:               &log.LoggerOptions{Out: out},
+		LogOptions:               &log.LoggerOptions{Out: streams.Out},
 	}
 
 	cmd := &cobra.Command{
@@ -178,7 +178,7 @@ func NewCmdDiagnosticsIndividual(name string, fullName string, out io.Writer, di
 		Run:     util.CommandRunFunc(o),
 		Aliases: []string{diagnostic.Name()},
 	}
-	cmd.SetOutput(out) // for output re: usage / help
+	cmd.SetOutput(streams.Out) // for output re: usage / help
 	o.bindCommonFlags(cmd.Flags())
 	needClient, needHost := diagnostic.Requirements()
 	if pd, ok := diagnostic.(types.ParameterizedDiagnostic); ok {

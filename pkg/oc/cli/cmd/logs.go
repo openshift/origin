@@ -14,6 +14,7 @@ import (
 	kcmd "k8s.io/kubernetes/pkg/kubectl/cmd"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
@@ -74,18 +75,18 @@ type OpenShiftLogsOptions struct {
 }
 
 // NewCmdLogs creates a new logs command that supports OpenShift resources.
-func NewCmdLogs(name, baseName string, f *clientcmd.Factory, out io.Writer, errOut io.Writer) *cobra.Command {
+func NewCmdLogs(name, baseName string, f *clientcmd.Factory, streams genericclioptions.IOStreams) *cobra.Command {
 	o := OpenShiftLogsOptions{
 		KubeLogOptions: &kcmd.LogsOptions{},
 	}
 
-	cmd := kcmd.NewCmdLogs(f, out, errOut)
+	cmd := kcmd.NewCmdLogs(f, streams.Out, streams.ErrOut)
 	cmd.Short = "Print the logs for a resource"
 	cmd.Long = logsLong
 	cmd.Example = fmt.Sprintf(logsExample, baseName, name)
 	cmd.SuggestFor = []string{"builds", "deployments"}
 	cmd.Run = func(cmd *cobra.Command, args []string) {
-		kcmdutil.CheckErr(o.Complete(f, cmd, args, out))
+		kcmdutil.CheckErr(o.Complete(f, cmd, args, streams.Out))
 
 		if err := o.Validate(); err != nil {
 			kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
