@@ -112,6 +112,8 @@ func (d *DNS) updateOne(dns string) (error, bool) {
 
 	ips, minTTL, err := d.getIPsAndMinTTL(dns)
 	if err != nil {
+		res.nextQueryTime = time.Now().Add(defaultTTL)
+		d.dnsMap[dns] = res
 		return err, false
 	}
 
