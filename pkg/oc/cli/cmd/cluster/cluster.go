@@ -2,12 +2,12 @@ package cluster
 
 import (
 	"fmt"
-	"io"
 
 	"github.com/openshift/origin/pkg/oc/clusteradd"
 	"github.com/spf13/cobra"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	"github.com/openshift/origin/pkg/oc/clusterup"
 )
@@ -31,20 +31,20 @@ var (
 		routing suffix, use the --routing-suffix flag.`)
 )
 
-func NewCmdCluster(name, fullName string, f kcmdutil.Factory, out, errout io.Writer) *cobra.Command {
+func NewCmdCluster(name, fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
 	// Parent command to which all subcommands are added.
 	cmds := &cobra.Command{
 		Use:   fmt.Sprintf("%s ACTION", name),
 		Short: "Start and stop OpenShift cluster",
 		Long:  clusterLong,
-		Run:   kcmdutil.DefaultSubCommandRun(errout),
+		Run:   kcmdutil.DefaultSubCommandRun(streams.ErrOut),
 	}
 
-	clusterAdd := clusteradd.NewCmdAdd(clusteradd.CmdAddRecommendedName, fullName+" "+clusteradd.CmdAddRecommendedName, out, errout)
+	clusterAdd := clusteradd.NewCmdAdd(clusteradd.CmdAddRecommendedName, fullName+" "+clusteradd.CmdAddRecommendedName, streams.Out, streams.ErrOut)
 
 	cmds.AddCommand(clusterAdd)
-	cmds.AddCommand(clusterup.NewCmdUp(clusterup.CmdUpRecommendedName, fullName+" "+clusterup.CmdUpRecommendedName, f, out, errout, clusterAdd))
+	cmds.AddCommand(clusterup.NewCmdUp(clusterup.CmdUpRecommendedName, fullName+" "+clusterup.CmdUpRecommendedName, f, streams.Out, streams.ErrOut, clusterAdd))
 	cmds.AddCommand(clusterup.NewCmdDown(clusterup.CmdDownRecommendedName, fullName+" "+clusterup.CmdDownRecommendedName))
-	cmds.AddCommand(clusterup.NewCmdStatus(clusterup.CmdStatusRecommendedName, fullName+" "+clusterup.CmdStatusRecommendedName, f, out))
+	cmds.AddCommand(clusterup.NewCmdStatus(clusterup.CmdStatusRecommendedName, fullName+" "+clusterup.CmdStatusRecommendedName, f, streams.Out))
 	return cmds
 }

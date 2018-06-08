@@ -1,21 +1,18 @@
 package set
 
 import (
-	"bytes"
 	"testing"
 
 	"github.com/spf13/cobra"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	kcmdtesting "k8s.io/kubernetes/pkg/kubectl/cmd/testing"
 )
 
 func TestLocalAndDryRunFlags(t *testing.T) {
-	in := &bytes.Buffer{}
-	out := &bytes.Buffer{}
-	errout := &bytes.Buffer{}
 	tf := kcmdtesting.NewTestFactory().WithNamespace("test")
 	defer tf.Cleanup()
-	setCmd := NewCmdSet("", tf, in, out, errout)
+	setCmd := NewCmdSet("", tf, genericclioptions.NewTestIOStreamsDiscard())
 	ensureLocalAndDryRunFlagsOnChildren(t, setCmd, "")
 }
 

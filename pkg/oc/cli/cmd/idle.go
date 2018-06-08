@@ -24,6 +24,7 @@ import (
 	kinternalclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 
 	appsv1client "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
@@ -52,10 +53,10 @@ var (
 )
 
 // NewCmdIdle implements the OpenShift cli idle command
-func NewCmdIdle(fullName string, f kcmdutil.Factory, out, errOut io.Writer) *cobra.Command {
+func NewCmdIdle(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
 	o := &IdleOptions{
-		out:         out,
-		errOut:      errOut,
+		out:         streams.Out,
+		errOut:      streams.ErrOut,
 		cmdFullName: fullName,
 	}
 

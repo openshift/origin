@@ -21,6 +21,7 @@ import (
 	kinternalclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 	"k8s.io/kubernetes/pkg/kubectl/polymorphichelpers"
 
@@ -117,11 +118,11 @@ type EnvOptions struct {
 }
 
 // NewCmdEnv implements the OpenShift cli env command
-func NewCmdEnv(fullName string, f kcmdutil.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
+func NewCmdEnv(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
 	options := &EnvOptions{
-		Out: out,
-		Err: errout,
-		In:  in,
+		In:  streams.In,
+		Out: streams.Out,
+		Err: streams.ErrOut,
 	}
 	cmd := &cobra.Command{
 		Use:     "env RESOURCE/NAME KEY_1=VAL_1 ... KEY_N=VAL_N",

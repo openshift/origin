@@ -66,7 +66,7 @@ var (
 )
 
 // NewCmdProject implements the OpenShift cli rollback command
-func NewCmdProject(fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
+func NewCmdProject(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
 	options := &ProjectOptions{}
 
 	cmd := &cobra.Command{
@@ -77,7 +77,7 @@ func NewCmdProject(fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Co
 		Run: func(cmd *cobra.Command, args []string) {
 			options.PathOptions = cliconfig.NewPathOptions(cmd)
 
-			if err := options.Complete(f, args, out); err != nil {
+			if err := options.Complete(f, args, streams.Out); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
 			}
 

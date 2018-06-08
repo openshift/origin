@@ -211,7 +211,7 @@ func (o *ObjectGeneratorOptions) Complete(baseName, commandName string, f kcmdut
 }
 
 // NewCmdNewApplication implements the OpenShift cli new-app command.
-func NewCmdNewApplication(name, baseName string, f kcmdutil.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
+func NewCmdNewApplication(name, baseName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
 	config := newcmd.NewAppConfig()
 	config.Deploy = true
 	o := &NewAppOptions{&ObjectGeneratorOptions{Config: config}}
@@ -223,7 +223,7 @@ func NewCmdNewApplication(name, baseName string, f kcmdutil.Factory, in io.Reade
 		Example:    fmt.Sprintf(newAppExample, baseName, name),
 		SuggestFor: []string{"app", "application"},
 		Run: func(c *cobra.Command, args []string) {
-			kcmdutil.CheckErr(o.Complete(baseName, name, f, c, args, in, out, errout))
+			kcmdutil.CheckErr(o.Complete(baseName, name, f, c, args, streams.In, streams.Out, streams.ErrOut))
 			err := o.RunNewApp()
 			if err == kcmdutil.ErrExit {
 				os.Exit(1)

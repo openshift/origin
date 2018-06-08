@@ -2,7 +2,6 @@ package dockergc
 
 import (
 	"fmt"
-	"io"
 	"os"
 	"os/exec"
 	"sort"
@@ -15,6 +14,7 @@ import (
 
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	dockertypes "github.com/docker/docker/api/types"
 	dockerfilters "github.com/docker/docker/api/types/filters"
@@ -65,7 +65,7 @@ var (
 	  %[1]s %[2]s`)
 )
 
-func NewCmdDockerGCConfig(f kcmdutil.Factory, parentName, name string, out, errout io.Writer) *cobra.Command {
+func NewCmdDockerGCConfig(f kcmdutil.Factory, parentName, name string, streams genericclioptions.IOStreams) *cobra.Command {
 	options := &dockerGCConfigCmdOptions{
 		DryRun:                      false,
 		MinimumGCAge:                DefaultMinimumGCAge,

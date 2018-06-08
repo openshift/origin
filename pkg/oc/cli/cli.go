@@ -103,99 +103,101 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 	cmds.PersistentFlags().AddGoFlagSet(flag.CommandLine)
 	f := kcmdutil.NewFactory(matchVersionKubeConfigFlags)
 
-	loginCmd := login.NewCmdLogin(fullName, f, in, out, errout)
-	secretcmds := secrets.NewCmdSecrets(secrets.SecretsRecommendedName, fullName+" "+secrets.SecretsRecommendedName, f, out, errout)
+	ioStreams := genericclioptions.IOStreams{In: in, Out: out, ErrOut: errout}
+
+	loginCmd := login.NewCmdLogin(fullName, f, ioStreams)
+	secretcmds := secrets.NewCmdSecrets(secrets.SecretsRecommendedName, fullName+" "+secrets.SecretsRecommendedName, f, ioStreams)
 
 	groups := ktemplates.CommandGroups{
 		{
 			Message: "Basic Commands:",
 			Commands: []*cobra.Command{
-				cmd.NewCmdTypes(fullName, f, out),
+				cmd.NewCmdTypes(fullName, f, ioStreams),
 				loginCmd,
-				cmd.NewCmdRequestProject(cmd.RequestProjectRecommendedCommandName, fullName, f, out, errout),
-				cmd.NewCmdNewApplication(cmd.NewAppRecommendedCommandName, fullName, f, in, out, errout),
-				cmd.NewCmdStatus(cmd.StatusRecommendedName, fullName, fullName+" "+cmd.StatusRecommendedName, f, out),
-				cmd.NewCmdProject(fullName+" project", f, out),
-				cmd.NewCmdProjects(fullName, f, out),
-				cmd.NewCmdExplain(fullName, f, out, errout),
-				cluster.NewCmdCluster(cluster.ClusterRecommendedName, fullName+" "+cluster.ClusterRecommendedName, f, out, errout),
+				cmd.NewCmdRequestProject(cmd.RequestProjectRecommendedCommandName, fullName, f, ioStreams),
+				cmd.NewCmdNewApplication(cmd.NewAppRecommendedCommandName, fullName, f, ioStreams),
+				cmd.NewCmdStatus(cmd.StatusRecommendedName, fullName, fullName+" "+cmd.StatusRecommendedName, f, ioStreams),
+				cmd.NewCmdProject(fullName+" project", f, ioStreams),
+				cmd.NewCmdProjects(fullName, f, ioStreams),
+				cmd.NewCmdExplain(fullName, f, ioStreams),
+				cluster.NewCmdCluster(cluster.ClusterRecommendedName, fullName+" "+cluster.ClusterRecommendedName, f, ioStreams),
 			},
 		},
 		{
 			Message: "Build and Deploy Commands:",
 			Commands: []*cobra.Command{
-				rollout.NewCmdRollout(fullName, f, out, errout),
-				cmd.NewCmdRollback(fullName, f, out),
-				cmd.NewCmdNewBuild(cmd.NewBuildRecommendedCommandName, fullName, f, in, out, errout),
-				cmd.NewCmdStartBuild(fullName, f, in, out, errout),
-				cmd.NewCmdCancelBuild(cmd.CancelBuildRecommendedCommandName, fullName, f, in, out, errout),
-				cmd.NewCmdImportImage(fullName, f, out, errout),
-				cmd.NewCmdTag(fullName, f, out),
+				rollout.NewCmdRollout(fullName, f, ioStreams),
+				cmd.NewCmdRollback(fullName, f, ioStreams),
+				cmd.NewCmdNewBuild(cmd.NewBuildRecommendedCommandName, fullName, f, ioStreams),
+				cmd.NewCmdStartBuild(fullName, f, ioStreams),
+				cmd.NewCmdCancelBuild(cmd.CancelBuildRecommendedCommandName, fullName, f, ioStreams),
+				cmd.NewCmdImportImage(fullName, f, ioStreams),
+				cmd.NewCmdTag(fullName, f, ioStreams),
 			},
 		},
 		{
 			Message: "Application Management Commands:",
 			Commands: []*cobra.Command{
-				cmd.NewCmdGet(fullName, f, out, errout),
-				cmd.NewCmdDescribe(fullName, f, out, errout),
-				cmd.NewCmdEdit(fullName, f, out, errout),
-				set.NewCmdSet(fullName, f, in, out, errout),
-				cmd.NewCmdLabel(fullName, f, out),
-				cmd.NewCmdAnnotate(fullName, f, out),
-				cmd.NewCmdExpose(fullName, f, out),
-				cmd.NewCmdDelete(fullName, f, out, errout),
-				cmd.NewCmdScale(fullName, f, out, errout),
-				cmd.NewCmdAutoscale(fullName, f, out),
+				cmd.NewCmdGet(fullName, f, ioStreams),
+				cmd.NewCmdDescribe(fullName, f, ioStreams),
+				cmd.NewCmdEdit(fullName, f, ioStreams),
+				set.NewCmdSet(fullName, f, ioStreams),
+				cmd.NewCmdLabel(fullName, f, ioStreams),
+				cmd.NewCmdAnnotate(fullName, f, ioStreams),
+				cmd.NewCmdExpose(fullName, f, ioStreams),
+				cmd.NewCmdDelete(fullName, f, ioStreams),
+				cmd.NewCmdScale(fullName, f, ioStreams),
+				cmd.NewCmdAutoscale(fullName, f, ioStreams),
 				secretcmds,
-				sa.NewCmdServiceAccounts(sa.ServiceAccountsRecommendedName, fullName+" "+sa.ServiceAccountsRecommendedName, f, out, errout),
+				sa.NewCmdServiceAccounts(sa.ServiceAccountsRecommendedName, fullName+" "+sa.ServiceAccountsRecommendedName, f, ioStreams),
 			},
 		},
 		{
 			Message: "Troubleshooting and Debugging Commands:",
 			Commands: []*cobra.Command{
-				cmd.NewCmdLogs(cmd.LogsRecommendedCommandName, fullName, f, out, errout),
-				cmd.NewCmdRsh(cmd.RshRecommendedName, fullName, f, in, out, errout),
-				rsync.NewCmdRsync(rsync.RsyncRecommendedName, fullName, f, out, errout),
-				cmd.NewCmdPortForward(fullName, f, out, errout),
-				cmd.NewCmdDebug(fullName, f, in, out, errout),
-				cmd.NewCmdExec(fullName, f, in, out, errout),
-				cmd.NewCmdProxy(fullName, f, out),
-				cmd.NewCmdAttach(fullName, f, in, out, errout),
-				cmd.NewCmdRun(fullName, f, in, out, errout),
-				cmd.NewCmdCp(fullName, f, in, out, errout),
-				cmd.NewCmdWait(fullName, f, in, out, errout),
+				cmd.NewCmdLogs(cmd.LogsRecommendedCommandName, fullName, f, ioStreams),
+				cmd.NewCmdRsh(cmd.RshRecommendedName, fullName, f, ioStreams),
+				rsync.NewCmdRsync(rsync.RsyncRecommendedName, fullName, f, ioStreams),
+				cmd.NewCmdPortForward(fullName, f, ioStreams),
+				cmd.NewCmdDebug(fullName, f, ioStreams),
+				cmd.NewCmdExec(fullName, f, ioStreams),
+				cmd.NewCmdProxy(fullName, f, ioStreams),
+				cmd.NewCmdAttach(fullName, f, ioStreams),
+				cmd.NewCmdRun(fullName, f, ioStreams),
+				cmd.NewCmdCp(fullName, f, ioStreams),
+				cmd.NewCmdWait(fullName, f, ioStreams),
 			},
 		},
 		{
 			Message: "Advanced Commands:",
 			Commands: []*cobra.Command{
-				admin.NewCommandAdmin("adm", fullName+" "+"adm", f, in, out, errout),
-				cmd.NewCmdCreate(fullName, f, out, errout),
-				cmd.NewCmdReplace(fullName, f, out),
-				cmd.NewCmdApply(fullName, f, out, errout),
-				cmd.NewCmdPatch(fullName, f, out),
-				cmd.NewCmdProcess(fullName, f, in, out, errout),
-				cmd.NewCmdExport(fullName, f, in, out),
-				cmd.NewCmdExtract(fullName, f, in, out, errout),
-				cmd.NewCmdIdle(fullName, f, out, errout),
-				observe.NewCmdObserve(fullName, f, out, errout),
-				policy.NewCmdPolicy(policy.PolicyRecommendedName, fullName+" "+policy.PolicyRecommendedName, f, out, errout),
-				cmd.NewCmdAuth(fullName, f, out, errout),
-				cmd.NewCmdConvert(fullName, f, out),
-				importer.NewCmdImport(fullName, f, in, out, errout),
-				image.NewCmdImage(fullName, f, in, out, errout),
-				registry.NewCmd(fullName, f, in, out, errout),
-				cmd.NewCmdApiVersions(fullName, f, out),
-				cmd.NewCmdApiResources(fullName, f, out),
+				admin.NewCommandAdmin("adm", fullName+" "+"adm", f, ioStreams),
+				cmd.NewCmdCreate(fullName, f, ioStreams),
+				cmd.NewCmdReplace(fullName, f, ioStreams),
+				cmd.NewCmdApply(fullName, f, ioStreams),
+				cmd.NewCmdPatch(fullName, f, ioStreams),
+				cmd.NewCmdProcess(fullName, f, ioStreams),
+				cmd.NewCmdExport(fullName, f, ioStreams),
+				cmd.NewCmdExtract(fullName, f, ioStreams),
+				cmd.NewCmdIdle(fullName, f, ioStreams),
+				observe.NewCmdObserve(fullName, f, ioStreams),
+				policy.NewCmdPolicy(policy.PolicyRecommendedName, fullName+" "+policy.PolicyRecommendedName, f, ioStreams),
+				cmd.NewCmdAuth(fullName, f, ioStreams),
+				cmd.NewCmdConvert(fullName, f, ioStreams),
+				importer.NewCmdImport(fullName, f, ioStreams),
+				image.NewCmdImage(fullName, f, ioStreams),
+				registry.NewCmd(fullName, f, ioStreams),
+				cmd.NewCmdApiVersions(fullName, f, ioStreams),
+				cmd.NewCmdApiResources(fullName, f, ioStreams),
 			},
 		},
 		{
 			Message: "Settings Commands:",
 			Commands: []*cobra.Command{
-				login.NewCmdLogout("logout", fullName+" logout", fullName+" login", f, in, out),
-				cmd.NewCmdConfig(fullName, "config", f, out, errout),
-				cmd.NewCmdWhoAmI(cmd.WhoAmIRecommendedCommandName, fullName+" "+cmd.WhoAmIRecommendedCommandName, f, out),
-				cmd.NewCmdCompletion(fullName, out),
+				login.NewCmdLogout("logout", fullName+" logout", fullName+" login", f, ioStreams),
+				cmd.NewCmdConfig(fullName, "config", f, ioStreams),
+				cmd.NewCmdWhoAmI(cmd.WhoAmIRecommendedCommandName, fullName+" "+cmd.WhoAmIRecommendedCommandName, f, ioStreams),
+				cmd.NewCmdCompletion(fullName, ioStreams),
 			},
 		},
 	}
@@ -209,28 +211,28 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 		"options",
 		"deploy",
 		// These commands are deprecated and should not appear in help
-		moved(fullName, "set env", cmds, set.NewCmdEnv(fullName, f, in, out, errout)),
-		moved(fullName, "set volume", cmds, set.NewCmdVolume(fullName, f, out, errout)),
-		moved(fullName, "logs", cmds, cmd.NewCmdBuildLogs(fullName, f, out)),
-		moved(fullName, "secrets link", secretcmds, secrets.NewCmdLinkSecret("add", fullName, f, out)),
-		moved(fullName, "create secret", secretcmds, secrets.NewCmdCreateSecret(secrets.NewSecretRecommendedCommandName, fullName, f, out)),
-		moved(fullName, "create secret", secretcmds, secrets.NewCmdCreateDockerConfigSecret(secrets.CreateDockerConfigSecretRecommendedName, fullName, f, out, ocSecretsNewFullName, ocEditFullName)),
-		moved(fullName, "create secret", secretcmds, secrets.NewCmdCreateBasicAuthSecret(secrets.CreateBasicAuthSecretRecommendedCommandName, fullName, f, in, out, ocSecretsNewFullName, ocEditFullName)),
-		moved(fullName, "create secret", secretcmds, secrets.NewCmdCreateSSHAuthSecret(secrets.CreateSSHAuthSecretRecommendedCommandName, fullName, f, out, ocSecretsNewFullName, ocEditFullName)),
+		moved(fullName, "set env", cmds, set.NewCmdEnv(fullName, f, ioStreams)),
+		moved(fullName, "set volume", cmds, set.NewCmdVolume(fullName, f, ioStreams)),
+		moved(fullName, "logs", cmds, cmd.NewCmdBuildLogs(fullName, f, ioStreams)),
+		moved(fullName, "secrets link", secretcmds, secrets.NewCmdLinkSecret("add", fullName, f, ioStreams)),
+		moved(fullName, "create secret", secretcmds, secrets.NewCmdCreateSecret(secrets.NewSecretRecommendedCommandName, fullName, f, ioStreams)),
+		moved(fullName, "create secret", secretcmds, secrets.NewCmdCreateDockerConfigSecret(secrets.CreateDockerConfigSecretRecommendedName, fullName, f, ioStreams, ocSecretsNewFullName, ocEditFullName)),
+		moved(fullName, "create secret", secretcmds, secrets.NewCmdCreateBasicAuthSecret(secrets.CreateBasicAuthSecretRecommendedCommandName, fullName, f, ioStreams, ocSecretsNewFullName, ocEditFullName)),
+		moved(fullName, "create secret", secretcmds, secrets.NewCmdCreateSSHAuthSecret(secrets.CreateSSHAuthSecretRecommendedCommandName, fullName, f, ioStreams, ocSecretsNewFullName, ocEditFullName)),
 	}
 
 	changeSharedFlagDefaults(cmds)
 	templates.ActsAsRootCommand(cmds, filters, groups...).
 		ExposeFlags(loginCmd, "certificate-authority", "insecure-skip-tls-verify", "token")
 
-	cmds.AddCommand(newExperimentalCommand("ex", name+"ex", f))
+	cmds.AddCommand(newExperimentalCommand("ex", name+"ex", f, ioStreams))
 
-	cmds.AddCommand(cmd.NewCmdPlugin(fullName, f, in, out, errout))
+	cmds.AddCommand(cmd.NewCmdPlugin(fullName, f, ioStreams))
 	if name == fullName {
-		cmds.AddCommand(cmd.NewCmdVersion(fullName, f, out, cmd.VersionOptions{PrintClientFeatures: true}))
+		cmds.AddCommand(cmd.NewCmdVersion(fullName, f, ioStreams, cmd.VersionOptions{PrintClientFeatures: true}))
 	}
-	cmds.AddCommand(cmd.NewCmdOptions(out))
-	cmds.AddCommand(cmd.NewCmdDeploy(fullName, f, out))
+	cmds.AddCommand(cmd.NewCmdOptions(ioStreams))
+	cmds.AddCommand(cmd.NewCmdDeploy(fullName, f, ioStreams))
 
 	if cmds.Flag("namespace") != nil {
 		if cmds.Flag("namespace").Annotations == nil {
@@ -279,33 +281,30 @@ func changeSharedFlagDefaults(rootCmd *cobra.Command) {
 	}
 }
 
-func newExperimentalCommand(name, fullName string, f kcmdutil.Factory) *cobra.Command {
-	out := os.Stdout
-	errout := os.Stderr
-
+func newExperimentalCommand(name, fullName string, f kcmdutil.Factory, ioStreams genericclioptions.IOStreams) *cobra.Command {
 	experimental := &cobra.Command{
 		Use:   name,
 		Short: "Experimental commands under active development",
 		Long:  "The commands grouped here are under development and may change without notice.",
 		Run: func(c *cobra.Command, args []string) {
-			c.SetOutput(out)
+			c.SetOutput(ioStreams.Out)
 			c.Help()
 		},
 		BashCompletionFunction: admin.BashCompletionFunc,
 	}
 
-	experimental.AddCommand(exipfailover.NewCmdIPFailoverConfig(f, fullName, "ipfailover", out, errout))
-	experimental.AddCommand(dockergc.NewCmdDockerGCConfig(f, fullName, "dockergc", out, errout))
-	experimental.AddCommand(buildchain.NewCmdBuildChain(name, fullName+" "+buildchain.BuildChainRecommendedCommandName, f, out))
-	experimental.AddCommand(configcmd.NewCmdConfig(configcmd.ConfigRecommendedName, fullName+" "+configcmd.ConfigRecommendedName, f, out, errout))
-	deprecatedDiag := diagnostics.NewCmdDiagnostics(diagnostics.DiagnosticsRecommendedName, fullName+" "+diagnostics.DiagnosticsRecommendedName, f, out)
+	experimental.AddCommand(exipfailover.NewCmdIPFailoverConfig(f, fullName, "ipfailover", ioStreams))
+	experimental.AddCommand(dockergc.NewCmdDockerGCConfig(f, fullName, "dockergc", ioStreams))
+	experimental.AddCommand(buildchain.NewCmdBuildChain(name, fullName+" "+buildchain.BuildChainRecommendedCommandName, f, ioStreams))
+	experimental.AddCommand(configcmd.NewCmdConfig(configcmd.ConfigRecommendedName, fullName+" "+configcmd.ConfigRecommendedName, f, ioStreams))
+	deprecatedDiag := diagnostics.NewCmdDiagnostics(diagnostics.DiagnosticsRecommendedName, fullName+" "+diagnostics.DiagnosticsRecommendedName, f, ioStreams)
 	deprecatedDiag.Deprecated = fmt.Sprintf(`use "oc adm %[1]s" to run diagnostics instead.`, diagnostics.DiagnosticsRecommendedName)
 	experimental.AddCommand(deprecatedDiag)
-	experimental.AddCommand(cmd.NewCmdOptions(out))
+	experimental.AddCommand(cmd.NewCmdOptions(ioStreams))
 
 	// these groups also live under `oc adm groups {sync,prune}` and are here only for backwards compatibility
-	experimental.AddCommand(sync.NewCmdSync("sync-groups", fullName+" "+"sync-groups", f, out))
-	experimental.AddCommand(sync.NewCmdPrune("prune-groups", fullName+" "+"prune-groups", f, out))
+	experimental.AddCommand(sync.NewCmdSync("sync-groups", fullName+" "+"sync-groups", f, ioStreams))
+	experimental.AddCommand(sync.NewCmdPrune("prune-groups", fullName+" "+"prune-groups", f, ioStreams))
 	return experimental
 }
 

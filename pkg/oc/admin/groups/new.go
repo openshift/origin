@@ -11,6 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	kprinters "k8s.io/kubernetes/pkg/printers"
 
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
@@ -47,8 +48,8 @@ type NewGroupOptions struct {
 	Printer kprinters.ResourcePrinterFunc
 }
 
-func NewCmdNewGroup(name, fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
-	options := &NewGroupOptions{Out: out}
+func NewCmdNewGroup(name, fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
+	options := &NewGroupOptions{Out: streams.Out}
 
 	cmd := &cobra.Command{
 		Use:     name + " GROUP [USER ...]",
