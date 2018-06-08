@@ -5,7 +5,10 @@ import (
 	"k8s.io/apiserver/pkg/registry/generic"
 	"k8s.io/apiserver/pkg/registry/generic/registry"
 	"k8s.io/apiserver/pkg/registry/rest"
+	"k8s.io/kubernetes/pkg/printers"
+	printerstorage "k8s.io/kubernetes/pkg/printers/storage"
 
+	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	"github.com/openshift/origin/pkg/template/registry/template"
 	"github.com/openshift/origin/pkg/util/restoptions"
@@ -24,6 +27,8 @@ func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 		NewFunc:                  func() runtime.Object { return &templateapi.Template{} },
 		NewListFunc:              func() runtime.Object { return &templateapi.TemplateList{} },
 		DefaultQualifiedResource: templateapi.Resource("templates"),
+
+		TableConvertor: printerstorage.TableConvertor{TablePrinter: printers.NewTablePrinter().With(printersinternal.AddHandlers)},
 
 		CreateStrategy: template.Strategy,
 		UpdateStrategy: template.Strategy,

@@ -14,11 +14,14 @@ import (
 	kstorage "k8s.io/apiserver/pkg/storage"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
+	"k8s.io/kubernetes/pkg/printers"
+	printerstorage "k8s.io/kubernetes/pkg/printers/storage"
 	nsregistry "k8s.io/kubernetes/pkg/registry/core/namespace"
 
 	oapi "github.com/openshift/origin/pkg/api"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
+	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	projectauth "github.com/openshift/origin/pkg/project/auth"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
@@ -38,6 +41,8 @@ type REST struct {
 
 	authCache    *projectauth.AuthorizationCache
 	projectCache *projectcache.ProjectCache
+
+	rest.TableConvertor
 }
 
 var _ rest.Lister = &REST{}
@@ -55,6 +60,8 @@ func NewREST(client kcoreclient.NamespaceInterface, lister projectauth.Lister, a
 
 		authCache:    authCache,
 		projectCache: projectCache,
+
+		TableConvertor: printerstorage.TableConvertor{TablePrinter: printers.NewTablePrinter().With(printersinternal.AddHandlers)},
 	}
 }
 

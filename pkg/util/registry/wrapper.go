@@ -3,6 +3,7 @@ package registry
 import (
 	"k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1beta1 "k8s.io/apimachinery/pkg/apis/meta/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
@@ -13,6 +14,7 @@ import (
 type NoWatchStorage interface {
 	rest.Getter
 	rest.Lister
+	rest.TableConvertor
 	rest.CreaterUpdater
 	rest.GracefulDeleter
 }
@@ -37,6 +39,10 @@ func (s *noWatchStorageErrWrapper) Get(ctx request.Context, name string, options
 func (s *noWatchStorageErrWrapper) List(ctx request.Context, options *internalversion.ListOptions) (runtime.Object, error) {
 	obj, err := s.delegate.List(ctx, options)
 	return obj, errors.SyncStatusError(ctx, err)
+}
+
+func (s *noWatchStorageErrWrapper) ConvertToTable(ctx request.Context, object runtime.Object, tableOptions runtime.Object) (*metav1beta1.Table, error) {
+	return s.delegate.ConvertToTable(ctx, object, tableOptions)
 }
 
 func (s *noWatchStorageErrWrapper) Create(ctx request.Context, in runtime.Object, createValidation rest.ValidateObjectFunc, includeUninitialized bool) (runtime.Object, error) {

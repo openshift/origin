@@ -3,6 +3,7 @@ package describe
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"net/url"
 	"regexp"
 	"strings"
@@ -21,6 +22,7 @@ import (
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildinternalclient "github.com/openshift/origin/pkg/build/client/internalversion"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 )
 
 const emptyString = "<none>"
@@ -448,4 +450,23 @@ func roleBindingRestrictionType(rbr *authorizationapi.RoleBindingRestriction) st
 		return "ServiceAccount"
 	}
 	return ""
+}
+
+// PrintTemplateParameters the Template parameters with their default values
+func PrintTemplateParameters(params []templateapi.Parameter, output io.Writer) error {
+	w := tabwriter.NewWriter(output, 20, 5, 3, ' ', 0)
+	defer w.Flush()
+	parameterColumns := []string{"NAME", "DESCRIPTION", "GENERATOR", "VALUE"}
+	fmt.Fprintf(w, "%s\n", strings.Join(parameterColumns, "\t"))
+	for _, p := range params {
+		value := p.Value
+		if len(p.Generate) != 0 {
+			value = p.From
+		}
+		_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", p.Name, p.Description, p.Generate, value)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }

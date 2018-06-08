@@ -148,7 +148,7 @@ func (s *SignatureImportController) syncImageSignatures(key string) error {
 	// Having no signatures means no-op (we don't remove stored signatures when
 	// the sig-store no longer have them).
 	if len(currentSignatures) == 0 {
-		glog.V(4).Infof("No signatures dowloaded for %s", image.Name)
+		glog.V(4).Infof("No signatures downloaded for %s", image.Name)
 		return nil
 	}
 
