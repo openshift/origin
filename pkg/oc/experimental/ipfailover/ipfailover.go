@@ -2,7 +2,6 @@ package ipfailover
 
 import (
 	"fmt"
-	"io"
 	"os"
 	"strings"
 
@@ -14,6 +13,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	configcmd "github.com/openshift/origin/pkg/bulk"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -60,11 +60,11 @@ var (
 	  %[1]s %[2]s ipf-alt --selector="hagroup=us-west-ha" --virtual-ips="1.2.3.4" -o yaml --images=myrepo/myipfailover:mytag`)
 )
 
-func NewCmdIPFailoverConfig(f *clientcmd.Factory, parentName, name string, out, errout io.Writer) *cobra.Command {
+func NewCmdIPFailoverConfig(f *clientcmd.Factory, parentName, name string, streams genericclioptions.IOStreams) *cobra.Command {
 	options := &ipfailover.IPFailoverConfigCmdOptions{
 		Action: configcmd.BulkAction{
-			Out:    out,
-			ErrOut: errout,
+			Out:    streams.Out,
+			ErrOut: streams.ErrOut,
 		},
 		ImageTemplate:    variable.NewDefaultImageTemplate(),
 		ServiceAccount:   "ipfailover",

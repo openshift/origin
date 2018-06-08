@@ -29,6 +29,7 @@ import (
 	kcmd "k8s.io/kubernetes/pkg/kubectl/cmd"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
@@ -212,7 +213,7 @@ func (o *ObjectGeneratorOptions) Complete(baseName, commandName string, f *clien
 }
 
 // NewCmdNewApplication implements the OpenShift cli new-app command.
-func NewCmdNewApplication(name, baseName string, f *clientcmd.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
+func NewCmdNewApplication(name, baseName string, f *clientcmd.Factory, streams genericclioptions.IOStreams) *cobra.Command {
 	config := newcmd.NewAppConfig()
 	config.Deploy = true
 	o := &NewAppOptions{&ObjectGeneratorOptions{Config: config}}
@@ -224,7 +225,7 @@ func NewCmdNewApplication(name, baseName string, f *clientcmd.Factory, in io.Rea
 		Example:    fmt.Sprintf(newAppExample, baseName, name),
 		SuggestFor: []string{"app", "application"},
 		Run: func(c *cobra.Command, args []string) {
-			kcmdutil.CheckErr(o.Complete(baseName, name, f, c, args, in, out, errout))
+			kcmdutil.CheckErr(o.Complete(baseName, name, f, c, args, streams.In, streams.Out, streams.ErrOut))
 			err := o.RunNewApp()
 			if err == kcmdutil.ErrExit {
 				os.Exit(1)

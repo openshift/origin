@@ -15,6 +15,7 @@ import (
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	clientcfg "github.com/openshift/origin/pkg/client/config"
 	cliconfig "github.com/openshift/origin/pkg/oc/cli/config"
@@ -66,7 +67,7 @@ var (
 )
 
 // NewCmdProject implements the OpenShift cli rollback command
-func NewCmdProject(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdProject(fullName string, f *clientcmd.Factory, streams genericclioptions.IOStreams) *cobra.Command {
 	options := &ProjectOptions{}
 
 	cmd := &cobra.Command{
@@ -77,7 +78,7 @@ func NewCmdProject(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.
 		Run: func(cmd *cobra.Command, args []string) {
 			options.PathOptions = cliconfig.NewPathOptions(cmd)
 
-			if err := options.Complete(f, args, out); err != nil {
+			if err := options.Complete(f, args, streams.Out); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
 			}
 

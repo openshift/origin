@@ -14,6 +14,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	kprinters "k8s.io/kubernetes/pkg/printers"
 
@@ -50,7 +51,7 @@ var (
 	  %[1]s export service -o json`)
 )
 
-func NewCmdExport(fullName string, f *clientcmd.Factory, in io.Reader, out io.Writer) *cobra.Command {
+func NewCmdExport(fullName string, f *clientcmd.Factory, streams genericclioptions.IOStreams) *cobra.Command {
 	exporter := &DefaultExporter{}
 	var filenames []string
 	cmd := &cobra.Command{
@@ -61,7 +62,7 @@ func NewCmdExport(fullName string, f *clientcmd.Factory, in io.Reader, out io.Wr
 		Deprecated: "use the oc get --export",
 		Hidden:     true,
 		Run: func(cmd *cobra.Command, args []string) {
-			err := RunExport(f, exporter, in, out, cmd, args, filenames)
+			err := RunExport(f, exporter, streams.In, streams.Out, cmd, args, filenames)
 			if err == kcmdutil.ErrExit {
 				os.Exit(1)
 			}

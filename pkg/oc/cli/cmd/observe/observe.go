@@ -35,6 +35,7 @@ import (
 	"k8s.io/client-go/util/jsonpath"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
@@ -160,7 +161,7 @@ var (
 )
 
 // NewCmdObserve creates the observe command.
-func NewCmdObserve(fullName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
+func NewCmdObserve(fullName string, f *clientcmd.Factory, streams genericclioptions.IOStreams) *cobra.Command {
 	options := &ObserveOptions{
 		baseCommandName: fullName,
 		retryCount:      2,
@@ -175,7 +176,7 @@ func NewCmdObserve(fullName string, f *clientcmd.Factory, out, errOut io.Writer)
 		Long:    fmt.Sprintf(observeLong, fullName),
 		Example: fmt.Sprintf(observeExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := options.Complete(f, cmd, args, out, errOut); err != nil {
+			if err := options.Complete(f, cmd, args, streams.Out, streams.ErrOut); err != nil {
 				cmdutil.CheckErr(err)
 			}
 

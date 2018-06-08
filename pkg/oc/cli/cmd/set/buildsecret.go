@@ -13,6 +13,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
@@ -33,7 +34,7 @@ var (
 		on which to set or remove secrets. Alternatively, all build configs in the namespace can
 		be selected with the --all flag.`)
 
-	buildSecretExample = templates.Examples(`  
+	buildSecretExample = templates.Examples(`
 		# Clear push secret on a build config
 		%[1]s build-secret --push --remove bc/mybuild
 
@@ -78,10 +79,10 @@ type BuildSecretOptions struct {
 }
 
 // NewCmdBuildSecret implements the set build-secret command
-func NewCmdBuildSecret(fullName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
+func NewCmdBuildSecret(fullName string, f *clientcmd.Factory, streams genericclioptions.IOStreams) *cobra.Command {
 	options := &BuildSecretOptions{
-		Out: out,
-		Err: errOut,
+		Out: streams.Out,
+		Err: streams.ErrOut,
 	}
 	cmd := &cobra.Command{
 		Use:     "build-secret BUILDCONFIG SECRETNAME",

@@ -18,6 +18,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
@@ -114,10 +115,10 @@ type ProbeOptions struct {
 }
 
 // NewCmdProbe implements the set probe command
-func NewCmdProbe(fullName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
+func NewCmdProbe(fullName string, f *clientcmd.Factory, streams genericclioptions.IOStreams) *cobra.Command {
 	options := &ProbeOptions{
-		Out: out,
-		Err: errOut,
+		Out: streams.Out,
+		Err: streams.ErrOut,
 
 		ContainerSelector: "*",
 	}

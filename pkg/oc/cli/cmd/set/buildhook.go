@@ -11,6 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
@@ -34,7 +35,7 @@ var (
 		as a new entrypoint command on the image with the --command argument, or as a set of
 		arguments to the image's entrypoint (default).`)
 
-	buildHookExample = templates.Examples(`  
+	buildHookExample = templates.Examples(`
 		# Clear post-commit hook on a build config
 	  %[1]s build-hook bc/mybuild --post-commit --remove
 
@@ -79,10 +80,10 @@ type BuildHookOptions struct {
 }
 
 // NewCmdBuildHook implements the set build-hook command
-func NewCmdBuildHook(fullName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
+func NewCmdBuildHook(fullName string, f *clientcmd.Factory, streams genericclioptions.IOStreams) *cobra.Command {
 	options := &BuildHookOptions{
-		Out: out,
-		Err: errOut,
+		Out: streams.Out,
+		Err: streams.ErrOut,
 	}
 	cmd := &cobra.Command{
 		Use:     "build-hook BUILDCONFIG --post-commit [--command] [--script] -- CMD",

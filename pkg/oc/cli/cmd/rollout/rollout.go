@@ -8,6 +8,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/rollout"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
@@ -33,23 +34,23 @@ var (
 )
 
 // NewCmdRollout facilitates kubectl rollout subcommands
-func NewCmdRollout(fullName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
+func NewCmdRollout(fullName string, f *clientcmd.Factory, streams genericclioptions.IOStreams) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "rollout SUBCOMMAND",
 		Short: "Manage a Kubernetes deployment or OpenShift deployment config",
 		Long:  rolloutLong,
-		Run:   cmdutil.DefaultSubCommandRun(errOut),
+		Run:   cmdutil.DefaultSubCommandRun(streams.ErrOut),
 	}
 
 	// subcommands
-	cmd.AddCommand(NewCmdRolloutHistory(fullName, f, out))
-	cmd.AddCommand(NewCmdRolloutPause(fullName, f, out))
-	cmd.AddCommand(NewCmdRolloutResume(fullName, f, out))
-	cmd.AddCommand(NewCmdRolloutUndo(fullName, f, out))
-	cmd.AddCommand(NewCmdRolloutLatest(fullName, f, out))
-	cmd.AddCommand(NewCmdRolloutStatus(fullName, f, out))
-	cmd.AddCommand(NewCmdRolloutCancel(fullName, f, out))
-	cmd.AddCommand(NewCmdRolloutRetry(fullName, f, out))
+	cmd.AddCommand(NewCmdRolloutHistory(fullName, f, streams.Out))
+	cmd.AddCommand(NewCmdRolloutPause(fullName, f, streams.Out))
+	cmd.AddCommand(NewCmdRolloutResume(fullName, f, streams.Out))
+	cmd.AddCommand(NewCmdRolloutUndo(fullName, f, streams.Out))
+	cmd.AddCommand(NewCmdRolloutLatest(fullName, f, streams.Out))
+	cmd.AddCommand(NewCmdRolloutStatus(fullName, f, streams.Out))
+	cmd.AddCommand(NewCmdRolloutCancel(fullName, f, streams.Out))
+	cmd.AddCommand(NewCmdRolloutRetry(fullName, f, streams.Out))
 
 	return cmd
 }

@@ -28,6 +28,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/categories"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
@@ -153,12 +154,12 @@ type AddVolumeOptions struct {
 	TypeChanged bool
 }
 
-func NewCmdVolume(fullName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
+func NewCmdVolume(fullName string, f *clientcmd.Factory, streams genericclioptions.IOStreams) *cobra.Command {
 	addOpts := &AddVolumeOptions{}
 	opts := &VolumeOptions{
 		AddOpts: addOpts,
-		Out:     out,
-		Err:     errOut,
+		Out:     streams.Out,
+		Err:     streams.ErrOut,
 	}
 	cmd := &cobra.Command{
 		Use:     "volumes RESOURCE/NAME --add|--remove|--list",

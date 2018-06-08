@@ -22,6 +22,7 @@ import (
 	kcmd "k8s.io/kubernetes/pkg/kubectl/cmd"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/kubectl/util/term"
 	"k8s.io/kubernetes/pkg/util/interrupt"
@@ -113,14 +114,14 @@ var (
 )
 
 // NewCmdDebug creates a command for debugging pods.
-func NewCmdDebug(fullName string, f *clientcmd.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
+func NewCmdDebug(fullName string, f *clientcmd.Factory, streams genericclioptions.IOStreams) *cobra.Command {
 	options := &DebugOptions{
 		Timeout: 15 * time.Minute,
 		Attach: kcmd.AttachOptions{
 			StreamOptions: kcmd.StreamOptions{
-				In:    in,
-				Out:   out,
-				Err:   errout,
+				In:    streams.In,
+				Out:   streams.Out,
+				Err:   streams.ErrOut,
 				TTY:   true,
 				Stdin: true,
 			},
@@ -136,7 +137,7 @@ func NewCmdDebug(fullName string, f *clientcmd.Factory, in io.Reader, out, errou
 		Long:    debugLong,
 		Example: fmt.Sprintf(debugExample, fmt.Sprintf("%s debug", fullName)),
 		Run: func(cmd *cobra.Command, args []string) {
-			kcmdutil.CheckErr(options.Complete(cmd, f, args, in, out, errout))
+			kcmdutil.CheckErr(options.Complete(cmd, f, args, streams.In, streams.Out, streams.ErrOut))
 			kcmdutil.CheckErr(options.Validate())
 			kcmdutil.CheckErr(options.Debug())
 		},

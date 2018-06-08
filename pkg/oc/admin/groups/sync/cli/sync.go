@@ -19,6 +19,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	"github.com/openshift/origin/pkg/cmd/server/apis/config"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
@@ -129,9 +130,9 @@ func NewSyncOptions() *SyncOptions {
 	}
 }
 
-func NewCmdSync(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdSync(name, fullName string, f *clientcmd.Factory, streams genericclioptions.IOStreams) *cobra.Command {
 	options := NewSyncOptions()
-	options.Out = out
+	options.Out = streams.Out
 
 	typeArg := string(GroupSyncSourceLDAP)
 	whitelistFile := ""

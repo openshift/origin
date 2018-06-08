@@ -13,6 +13,7 @@ import (
 	"k8s.io/kubernetes/pkg/credentialprovider"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	"github.com/spf13/cobra"
 )
@@ -61,8 +62,8 @@ type CreateDockerConfigOptions struct {
 }
 
 // NewCmdCreateDockerConfigSecret creates a command object for making a dockercfg secret
-func NewCmdCreateDockerConfigSecret(name, fullName string, f kcmdutil.Factory, out io.Writer, newSecretFullName, ocEditFullName string) *cobra.Command {
-	o := &CreateDockerConfigOptions{Out: out}
+func NewCmdCreateDockerConfigSecret(name, fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams, newSecretFullName, ocEditFullName string) *cobra.Command {
+	o := &CreateDockerConfigOptions{Out: streams.Out}
 
 	cmd := &cobra.Command{
 		Use:        fmt.Sprintf("%s SECRET --docker-server=DOCKER_REGISTRY_SERVER --docker-username=DOCKER_USER --docker-password=DOCKER_PASSWORD --docker-email=DOCKER_EMAIL", name),
@@ -84,7 +85,7 @@ func NewCmdCreateDockerConfigSecret(name, fullName string, f kcmdutil.Factory, o
 				secret, err := o.NewDockerSecret()
 				kcmdutil.CheckErr(err)
 
-				kcmdutil.CheckErr(kcmdutil.PrintObject(c, secret, out))
+				kcmdutil.CheckErr(kcmdutil.PrintObject(c, secret, streams.Out))
 				return
 			}
 
