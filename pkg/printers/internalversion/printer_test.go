@@ -1,4 +1,4 @@
-package describe
+package internalversion
 
 import (
 	"bytes"
@@ -69,7 +69,7 @@ var MissingPrinterCoverageExceptions = []reflect.Type{
 
 func TestPrinterCoverage(t *testing.T) {
 	printer := kprinters.NewHumanReadablePrinter(nil, nil, kprinters.PrintOptions{})
-	addPrintHandlers(printer)
+	AddHandlers(printer)
 
 main:
 	for _, apiType := range legacyscheme.Scheme.KnownTypes(api.SchemeGroupVersion) {

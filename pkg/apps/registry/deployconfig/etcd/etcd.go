@@ -16,11 +16,14 @@ import (
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
 	autoscalingvalidation "k8s.io/kubernetes/pkg/apis/autoscaling/validation"
 	"k8s.io/kubernetes/pkg/apis/extensions"
+	"k8s.io/kubernetes/pkg/printers"
+	printerstorage "k8s.io/kubernetes/pkg/printers/storage"
 	"k8s.io/kubernetes/staging/src/k8s.io/apimachinery/pkg/labels"
 
 	appsapiv1 "github.com/openshift/api/apps/v1"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	"github.com/openshift/origin/pkg/apps/registry/deployconfig"
+	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
 	"github.com/openshift/origin/pkg/util/restoptions"
 )
 
@@ -51,6 +54,8 @@ func NewREST(optsGetter restoptions.Getter) (*REST, *StatusREST, *ScaleREST, err
 		NewFunc:                  func() runtime.Object { return &appsapi.DeploymentConfig{} },
 		NewListFunc:              func() runtime.Object { return &appsapi.DeploymentConfigList{} },
 		DefaultQualifiedResource: appsapi.Resource("deploymentconfigs"),
+
+		TableConvertor: printerstorage.TableConvertor{TablePrinter: printers.NewTablePrinter().With(printersinternal.AddHandlers)},
 
 		CreateStrategy: deployconfig.GroupStrategy,
 		UpdateStrategy: deployconfig.GroupStrategy,

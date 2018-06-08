@@ -12,8 +12,11 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/apiserver/pkg/storage"
 	kcorelisters "k8s.io/kubernetes/pkg/client/listers/core/internalversion"
+	"k8s.io/kubernetes/pkg/printers"
+	printerstorage "k8s.io/kubernetes/pkg/printers/storage"
 
 	oapi "github.com/openshift/origin/pkg/api"
+	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
 	quotaapi "github.com/openshift/origin/pkg/quota/apis/quota"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 	quotalister "github.com/openshift/origin/pkg/quota/generated/listers/quota/internalversion"
@@ -23,6 +26,7 @@ type AppliedClusterResourceQuotaREST struct {
 	quotaMapper     clusterquotamapping.ClusterQuotaMapper
 	quotaLister     quotalister.ClusterResourceQuotaLister
 	namespaceLister kcorelisters.NamespaceLister
+	rest.TableConvertor
 }
 
 func NewREST(quotaMapper clusterquotamapping.ClusterQuotaMapper, quotaLister quotalister.ClusterResourceQuotaLister, namespaceLister kcorelisters.NamespaceLister) *AppliedClusterResourceQuotaREST {
@@ -30,6 +34,7 @@ func NewREST(quotaMapper clusterquotamapping.ClusterQuotaMapper, quotaLister quo
 		quotaMapper:     quotaMapper,
 		quotaLister:     quotaLister,
 		namespaceLister: namespaceLister,
+		TableConvertor:  printerstorage.TableConvertor{TablePrinter: printers.NewTablePrinter().With(printersinternal.AddHandlers)},
 	}
 }
 
