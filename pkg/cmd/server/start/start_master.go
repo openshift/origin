@@ -535,6 +535,17 @@ func (m *Master) Start() error {
 	}
 
 	if m.api {
+		// start etcd if configured to run in process
+		if m.config.EtcdConfig != nil {
+			etcdserver.RunEtcd(m.config.EtcdConfig)
+		}
+
+		// ensure connectivity to etcd before calling BuildMasterConfig,
+		// which constructs storage whose etcd clients require connectivity to etcd at construction time
+		if err := testEtcdConnectivity(m.config.EtcdClientInfo); err != nil {
+			return err
+		}
+
 		// informers are shared amongst all the various api components we build
 		// TODO the needs of the apiserver and the controllers are drifting. We should consider two different skins here
 		informers, err := NewInformers(*m.config)
@@ -575,20 +586,9 @@ func (m *Master) Start() error {
 
 // StartAPI starts the components of the master that are considered part of the API - the Kubernetes
 // API and core controllers, the Origin API, the group, policy, project, and authorization caches,
-// etcd, the asset server (for the UI), the OAuth server endpoints, and the DNS server.
+// the asset server (for the UI), the OAuth server endpoints, and the DNS server.
 // TODO: allow to be more granularly targeted
 func StartAPI(oc *origin.MasterConfig) error {
-	// start etcd
-	if oc.Options.EtcdConfig != nil {
-		etcdserver.RunEtcd(oc.Options.EtcdConfig)
-	}
-
-	// verify we can connect to etcd with the provided config
-	// TODO remove when this becomes a health check in 3.8
-	if err := testEtcdConnectivity(oc.Options.EtcdClientInfo); err != nil {
-		return err
-	}
-
 	// start DNS before the informers are started because it adds a ClusterIP index.
 	if oc.Options.DNSConfig != nil {
 		oc.RunDNSServer()
@@ -607,6 +607,7 @@ func testEtcdConnectivity(etcdClientInfo configapi.EtcdConnectionInfo) error {
 	if err != nil {
 		return err
 	}
+	defer etcdClient3.Close()
 	if err := etcd.TestEtcdClientV3(etcdClient3); err != nil {
 		return err
 	}
