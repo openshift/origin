@@ -6,7 +6,7 @@
 #
 FROM openshift/origin-base
 
-RUN INSTALL_PKGS="origin-clients" && \
+RUN INSTALL_PKGS="origin-clients git" && \
     yum --enablerepo=origin-local-release install -y ${INSTALL_PKGS} && \
     rpm -V ${INSTALL_PKGS} && \
     yum clean all
