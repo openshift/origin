@@ -3,6 +3,7 @@ reviewers:
   - smarterclayton
   - knobunc
   - ironcladlou
+  - squeed
   - stevekuznetsov
   - rajatchopra
   - JacobTanenbaum
@@ -12,4 +13,5 @@ approvers:
   - smarterclayton
   - knobunc
   - ironcladlou
+  - squeed
   - stevekuznetsov

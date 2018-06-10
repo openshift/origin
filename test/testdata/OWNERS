@@ -8,6 +8,7 @@ reviewers:
   - jim-minter
   - knobunc
   - ironcladlou
+  - squeed
   - dcbw
   - danwinship
   - adelton
@@ -21,5 +22,6 @@ approvers:
   - liggitt
   - knobunc
   - ironcladlou
+  - squeed
   - dcbw
   - danwinship
