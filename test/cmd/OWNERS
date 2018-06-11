@@ -3,6 +3,7 @@ reviewers:
   - pecameron
   - knobunc
   - ironcladlou
+  - squeed
   - dcbw
   - danwinship
   - soltysh
@@ -10,6 +11,7 @@ approvers:
   - stevekuznetsov
   - knobunc
   - ironcladlou
+  - squeed
   - dcbw
   - danwinship
   - soltysh

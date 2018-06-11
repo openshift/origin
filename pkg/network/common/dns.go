@@ -112,6 +112,8 @@ func (d *DNS) updateOne(dns string) (error, bool) {
 
 	ips, minTTL, err := d.getIPsAndMinTTL(dns)
 	if err != nil {
+		res.nextQueryTime = time.Now().Add(defaultTTL)
+		d.dnsMap[dns] = res
 		return err, false
 	}
 
@@ -128,6 +130,7 @@ func (d *DNS) updateOne(dns string) (error, bool) {
 
 func (d *DNS) getIPsAndMinTTL(domain string) ([]net.IP, time.Duration, error) {
 	ips := []net.IP{}
+	ttlSet := false
 	var minTTL uint32
 
 	for _, server := range d.nameservers {
@@ -154,16 +157,21 @@ func (d *DNS) getIPsAndMinTTL(domain string) ([]net.IP, time.Duration, error) {
 				case *dns.A:
 					ips = append(ips, t.A)
 
-					if minTTL == 0 || t.Hdr.Ttl < minTTL {
+					if !ttlSet || t.Hdr.Ttl < minTTL {
 						minTTL = t.Hdr.Ttl
+						ttlSet = true
 					}
 				}
 			}
 		}
 	}
 
+	if !ttlSet {
+		return nil, defaultTTL, fmt.Errorf("IPv4 addr not found for domain: %q, nameservers: %v", domain, d.nameservers)
+	}
+
 	ttl, err := time.ParseDuration(fmt.Sprintf("%ds", minTTL))
-	if err != nil || minTTL == 0 {
+	if err != nil {
 		utilruntime.HandleError(fmt.Errorf("Invalid TTL value for domain: %q, err: %v, defaulting ttl=%s", domain, err, defaultTTL.String()))
 		ttl = defaultTTL
 	}

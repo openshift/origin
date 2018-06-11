@@ -10,6 +10,7 @@ reviewers:
   - mrogers950
   - simo5
   - knobunc
+  - squeed
   - dcbw
 approvers:
   - smarterclayton
@@ -17,4 +18,5 @@ approvers:
   - mfojtik
   - enj
   - knobunc
+  - squeed
   - dcbw
