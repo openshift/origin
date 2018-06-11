@@ -1,6 +1,8 @@
 package internaloauth
 
 import (
+	"errors"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kauthenticator "k8s.io/apiserver/pkg/authentication/authenticator"
 	kuser "k8s.io/apiserver/pkg/authentication/user"
@@ -9,6 +11,8 @@ import (
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset/typed/oauth/internalversion"
 )
+
+var errLookup = errors.New("token lookup failed")
 
 type tokenAuthenticator struct {
 	tokens      oauthclient.OAuthAccessTokenInterface
@@ -29,7 +33,7 @@ func NewTokenAuthenticator(tokens oauthclient.OAuthAccessTokenInterface, users u
 func (a *tokenAuthenticator) AuthenticateToken(name string) (kuser.Info, bool, error) {
 	token, err := a.tokens.Get(name, metav1.GetOptions{})
 	if err != nil {
-		return nil, false, err
+		return nil, false, errLookup // mask the error so we do not leak token data in logs
 	}
 
 	user, err := a.users.Get(token.UserName, metav1.GetOptions{})
