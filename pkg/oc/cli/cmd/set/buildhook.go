@@ -2,18 +2,20 @@ package set
 
 import (
 	"fmt"
-	"io"
-	"os"
 
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/kubectl/resource"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
+	oldresource "k8s.io/kubernetes/pkg/kubectl/resource"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	"github.com/openshift/origin/pkg/oauth/generated/clientset/scheme"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
@@ -34,7 +36,7 @@ var (
 		as a new entrypoint command on the image with the --command argument, or as a set of
 		arguments to the image's entrypoint (default).`)
 
-	buildHookExample = templates.Examples(`  
+	buildHookExample = templates.Examples(`
 		# Clear post-commit hook on a build config
 	  %[1]s build-hook bc/mybuild --post-commit --remove
 
@@ -49,127 +51,101 @@ var (
 )
 
 type BuildHookOptions struct {
-	Out io.Writer
-	Err io.Writer
+	PrintFlags *genericclioptions.PrintFlags
+	oldresource.FilenameOptions
+	genericclioptions.IOStreams
 
-	Builder *resource.Builder
-	Infos   []*resource.Info
-
-	Encoder runtime.Encoder
-
-	Filenames []string
-	Selector  string
-	All       bool
-	Output    string
-
-	Cmd *cobra.Command
-
-	Local       bool
-	ShortOutput bool
-	Mapper      meta.RESTMapper
-
-	PrintObject func([]*resource.Info) error
-
+	Selector   string
+	All        bool
+	Output     string
+	Local      bool
 	Script     string
 	Entrypoint bool
 	Remove     bool
 	PostCommit bool
 
-	Command []string
+	Mapper            meta.RESTMapper
+	PrintObj          printers.ResourcePrinterFunc
+	Builder           func() *oldresource.Builder
+	Encoder           runtime.Encoder
+	Namespace         string
+	ExplicitNamespace bool
+	Command           []string
+	Resources         []string
+	DryRun            bool
+}
+
+func NewBuildHookOptions(streams genericclioptions.IOStreams) *BuildHookOptions {
+	return &BuildHookOptions{
+		PrintFlags: genericclioptions.NewPrintFlags("hooks updated").WithTypeSetter(scheme.Scheme),
+		IOStreams:  streams,
+	}
 }
 
 // NewCmdBuildHook implements the set build-hook command
-func NewCmdBuildHook(fullName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
-	options := &BuildHookOptions{
-		Out: out,
-		Err: errOut,
-	}
+func NewCmdBuildHook(fullName string, f *clientcmd.Factory, streams genericclioptions.IOStreams) *cobra.Command {
+	o := NewBuildHookOptions(streams)
 	cmd := &cobra.Command{
 		Use:     "build-hook BUILDCONFIG --post-commit [--command] [--script] -- CMD",
 		Short:   "Update a build hook on a build config",
 		Long:    buildHookLong,
 		Example: fmt.Sprintf(buildHookExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
-			kcmdutil.CheckErr(options.Complete(f, cmd, args))
-			kcmdutil.CheckErr(options.Validate())
-			if err := options.Run(); err != nil {
-				// TODO: move me to kcmdutil
-				if err == kcmdutil.ErrExit {
-					os.Exit(1)
-				}
-				kcmdutil.CheckErr(err)
-			}
+			kcmdutil.CheckErr(o.Complete(f, cmd, args))
+			kcmdutil.CheckErr(o.Validate())
+			kcmdutil.CheckErr(o.Run())
 		},
 	}
+	usage := "to use to edit the resource"
+	kcmdutil.AddFilenameOptionFlags(cmd, &o.FilenameOptions, usage)
+	cmd.Flags().StringVarP(&o.Selector, "selector", "l", o.Selector, "Selector (label query) to filter build configs")
+	cmd.Flags().BoolVar(&o.All, "all", o.All, "If true, select all build configs in the namespace")
+	cmd.Flags().BoolVar(&o.PostCommit, "post-commit", o.PostCommit, "If true, set the post-commit build hook on a build config")
+	cmd.Flags().BoolVar(&o.Entrypoint, "command", o.Entrypoint, "If true, set the entrypoint of the hook container to the given command")
+	cmd.Flags().StringVar(&o.Script, "script", o.Script, "Specify a script to run for the build-hook")
+	cmd.Flags().BoolVar(&o.Remove, "remove", o.Remove, "If true, remove the build hook.")
+	cmd.Flags().BoolVar(&o.Local, "local", o.Local, "If true, set image will NOT contact api-server but run locally.")
 
-	kcmdutil.AddPrinterFlags(cmd)
-	cmd.Flags().StringVarP(&options.Selector, "selector", "l", options.Selector, "Selector (label query) to filter build configs")
-	cmd.Flags().BoolVar(&options.All, "all", options.All, "If true, select all build configs in the namespace")
-	cmd.Flags().StringSliceVarP(&options.Filenames, "filename", "f", options.Filenames, "Filename, directory, or URL to file to use to edit the resource.")
-
-	cmd.Flags().BoolVar(&options.PostCommit, "post-commit", options.PostCommit, "If true, set the post-commit build hook on a build config")
-	cmd.Flags().BoolVar(&options.Entrypoint, "command", options.Entrypoint, "If true, set the entrypoint of the hook container to the given command")
-	cmd.Flags().StringVar(&options.Script, "script", options.Script, "Specify a script to run for the build-hook")
-	cmd.Flags().BoolVar(&options.Remove, "remove", options.Remove, "If true, remove the build hook.")
-	cmd.Flags().BoolVar(&options.Local, "local", false, "If true, set image will NOT contact api-server but run locally.")
-
-	cmd.MarkFlagFilename("filename", "yaml", "yml", "json")
+	o.PrintFlags.AddFlags(cmd)
 	kcmdutil.AddDryRunFlag(cmd)
 
 	return cmd
 }
 
 func (o *BuildHookOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string) error {
-	resources := args
+	o.Resources = args
 	if i := cmd.ArgsLenAtDash(); i != -1 {
-		resources = args[:i]
+		o.Resources = args[:i]
 		o.Command = args[i:]
 	}
 	if len(o.Filenames) == 0 && len(args) < 1 {
-		return kcmdutil.UsageErrorf(cmd, "one or more build configs must be specified as <name> or <resource>/<name>")
+		return fmt.Errorf("one or more build configs must be specified as <name> or <resource>/<name>")
 	}
 
-	cmdNamespace, explicit, err := f.DefaultNamespace()
+	var err error
+	o.Namespace, o.ExplicitNamespace, err = f.DefaultNamespace()
 	if err != nil {
 		return err
 	}
 
-	o.Cmd = cmd
-
-	mapper, _ := f.Object()
-	o.Builder = f.NewBuilder().
-		Internal().
-		LocalParam(o.Local).
-		ContinueOnError().
-		NamespaceParam(cmdNamespace).DefaultNamespace().
-		FilenameParam(explicit, &resource.FilenameOptions{Recursive: false, Filenames: o.Filenames}).
-		LabelSelectorParam(o.Selector).
-		ResourceNames("buildconfigs", resources...).
-		Flatten()
-
-	if !o.Local {
-		o.Builder = o.Builder.
-			LabelSelectorParam(o.Selector).
-			ResourceNames("buildconfigs", resources...)
-		if o.All {
-			o.Builder.ResourceTypes("buildconfigs").SelectAllParam(o.All)
-		}
-	}
-
-	o.Output = kcmdutil.GetFlagString(cmd, "output")
-	o.PrintObject = func(infos []*resource.Info) error {
-		return f.PrintResourceInfos(cmd, o.Local, infos, o.Out)
-	}
-
+	o.DryRun = kcmdutil.GetDryRunFlag(cmd)
+	o.Mapper, _ = f.Object()
 	o.Encoder = kcmdutil.InternalVersionJSONEncoder()
-	o.ShortOutput = kcmdutil.GetFlagString(cmd, "output") == "name"
-	o.Mapper = mapper
+	o.Builder = f.NewBuilder
+
+	if o.DryRun {
+		o.PrintFlags.Complete("%s (dry run)")
+	}
+	printer, err := o.PrintFlags.ToPrinter()
+	if err != nil {
+		return err
+	}
+	o.PrintObj = printer.PrintObj
 
 	return nil
 }
 
 func (o *BuildHookOptions) Validate() error {
-
 	if !o.PostCommit {
 		return fmt.Errorf("you must specify a type of hook to set")
 	}
@@ -196,17 +172,31 @@ func (o *BuildHookOptions) Validate() error {
 }
 
 func (o *BuildHookOptions) Run() error {
-	infos := o.Infos
-	singleItemImplied := len(o.Infos) <= 1
-	if o.Builder != nil {
-		loaded, err := o.Builder.Do().IntoSingleItemImplied(&singleItemImplied).Infos()
-		if err != nil {
-			return err
+	b := o.Builder().
+		Internal().
+		LocalParam(o.Local).
+		ContinueOnError().
+		NamespaceParam(o.Namespace).DefaultNamespace().
+		FilenameParam(o.ExplicitNamespace, &o.FilenameOptions).
+		Flatten()
+
+	if !o.Local {
+		b = b.
+			LabelSelectorParam(o.Selector).
+			ResourceNames("buildconfigs", o.Resources...)
+		if o.All {
+			b = b.ResourceTypes("buildconfigs").SelectAllParam(o.All)
 		}
-		infos = loaded
 	}
 
-	patches := CalculatePatches(infos, o.Encoder, func(info *resource.Info) (bool, error) {
+	singleItemImplied := false
+	infos, err := b.Do().IntoSingleItemImplied(&singleItemImplied).Infos()
+	if err != nil {
+		return err
+	}
+
+	// FIXME-REBASE
+	patches := CalculatePatches(infos, o.Encoder /*scheme.DefaultJSONEncoder()*/, func(info *oldresource.Info) (bool, error) {
 		bc, ok := info.Object.(*buildapi.BuildConfig)
 		if !ok {
 			return false, nil
@@ -219,37 +209,37 @@ func (o *BuildHookOptions) Run() error {
 		return fmt.Errorf("%s/%s is not a build config", infos[0].Mapping.Resource, infos[0].Name)
 	}
 
-	if len(o.Output) > 0 || o.Local || kcmdutil.GetDryRunFlag(o.Cmd) {
-		return o.PrintObject(infos)
-	}
-
-	failed := false
+	allErrs := []error{}
 	for _, patch := range patches {
 		info := patch.Info
 		if patch.Err != nil {
-			fmt.Fprintf(o.Err, "error: %s/%s %v\n", info.Mapping.Resource, info.Name, patch.Err)
+			allErrs = append(allErrs, fmt.Errorf("error: %s/%s %v\n", info.Mapping.Resource, info.Name, patch.Err))
 			continue
 		}
 
 		if string(patch.Patch) == "{}" || len(patch.Patch) == 0 {
-			fmt.Fprintf(o.Err, "info: %s %q was not changed\n", info.Mapping.Resource, info.Name)
 			continue
 		}
 
-		obj, err := resource.NewHelper(info.Client, info.Mapping).Patch(info.Namespace, info.Name, types.StrategicMergePatchType, patch.Patch)
+		if o.Local || o.DryRun {
+			if err := o.PrintObj(info.Object, o.Out); err != nil {
+				allErrs = append(allErrs, err)
+			}
+			continue
+		}
+
+		actual, err := oldresource.NewHelper(info.Client, info.Mapping).Patch(info.Namespace, info.Name, types.StrategicMergePatchType, patch.Patch)
 		if err != nil {
-			fmt.Fprintf(o.Err, "error: %v\n", err)
-			failed = true
+			allErrs = append(allErrs, fmt.Errorf("failed to patch build hook: %v\n", err))
 			continue
 		}
 
-		info.Refresh(obj, true)
-		kcmdutil.PrintSuccess(o.ShortOutput, o.Out, info.Object, false, "updated")
+		if err := o.PrintObj(actual, o.Out); err != nil {
+			// FIXME-REBASE
+			// allErrs = append(allErrs, err)
+		}
 	}
-	if failed {
-		return kcmdutil.ErrExit
-	}
-	return nil
+	return utilerrors.NewAggregate(allErrs)
 }
 
 func (o *BuildHookOptions) updateBuildConfig(bc *buildapi.BuildConfig) {
