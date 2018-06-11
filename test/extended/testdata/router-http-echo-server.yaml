@@ -21,6 +21,7 @@ items:
       spec:
         containers:
         - image: openshift/origin-base
+          imagePullPolicy: Never
           name: router-http-echo
           command:
             - /usr/bin/socat

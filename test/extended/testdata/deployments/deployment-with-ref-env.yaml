@@ -29,5 +29,5 @@ spec:
       containers:
       - image: "openshift/origin-base:latest"
         command: [ "/bin/bash", "-c", "sleep infinity" ]
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Never
         name: myapp

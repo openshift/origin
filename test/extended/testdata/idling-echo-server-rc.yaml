@@ -18,6 +18,7 @@ items:
       spec:
         containers:
         - image: openshift/origin-base
+          imagePullPolicy: Never
           name: idling-echo
           command:
             - /usr/bin/socat

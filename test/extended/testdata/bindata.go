@@ -4985,7 +4985,7 @@ spec:
       containers:
       - image: "openshift/origin-base:latest"
         command: [ "/bin/bash", "-c", "sleep infinity" ]
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Never
         name: myapp
 `)
 
@@ -6675,6 +6675,7 @@ items:
       spec:
         containers:
         - image: openshift/origin-base
+          imagePullPolicy: Never
           name: idling-echo
           command:
             - /usr/bin/socat
@@ -6744,6 +6745,7 @@ items:
       spec:
         containers:
         - image: openshift/origin-base
+          imagePullPolicy: Never
           name: idling-tcp-echo
           command:
             - /usr/bin/socat
@@ -6753,6 +6755,7 @@ items:
           - containerPort: 8675
             protocol: TCP
         - image: openshift/origin-base
+          imagePullPolicy: Never
           name: idling-udp-echo
           command:
             - /usr/bin/socat
@@ -9401,6 +9404,7 @@ items:
       spec:
         containers:
         - image: openshift/origin-base
+          imagePullPolicy: Never
           name: router-http-echo
           command:
             - /usr/bin/socat
