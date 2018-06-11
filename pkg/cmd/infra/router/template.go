@@ -314,7 +314,10 @@ func (o *TemplateRouterOptions) Run() error {
 		if isTrue(util.Env("ROUTER_USE_PROXY_PROTOCOL", "")) {
 			checkBackend = metrics.ProxyProtocolHTTPBackendAvailable(u)
 		}
-		checkSync := metrics.HasSynced(&ptrTemplatePlugin)
+		checkSync, err := metrics.HasSynced(&ptrTemplatePlugin)
+		if err != nil {
+			return err
+		}
 		checkController := metrics.ControllerLive()
 		liveChecks := []healthz.HealthzChecker{checkController}
 		if !(isTrue(util.Env("ROUTER_BIND_PORTS_BEFORE_SYNC", ""))) {
