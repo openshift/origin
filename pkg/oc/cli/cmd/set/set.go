@@ -35,6 +35,7 @@ func NewCmdSet(fullName string, f *clientcmd.Factory, streams genericclioptions.
 		{
 			Message: "Replication controllers, deployments, and daemon sets:",
 			Commands: []*cobra.Command{
+				// FIXME-REBASE: replace with upstream version since it's cleaner and it has full parity
 				NewCmdEnv(name, f, streams),
 				NewCmdResources(name, f, streams),
 				NewCmdVolume(name, f, streams),
