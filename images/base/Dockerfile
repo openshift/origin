@@ -10,7 +10,7 @@ COPY *.repo /etc/yum.repos.d/
 RUN INSTALL_PKGS=" \
       which git tar wget hostname sysvinit-tools util-linux bsdtar \
       socat ethtool device-mapper iptables tree findutils nmap-ncat e2fsprogs \
-      xfsprogs lsof device-mapper-persistent-data ceph-common \
+      xfsprogs lsof device-mapper-persistent-data ceph-common curl \
       " && \
     yum install -y centos-release-ceph-luminous && \
     rpm -V centos-release-ceph-luminous && \
