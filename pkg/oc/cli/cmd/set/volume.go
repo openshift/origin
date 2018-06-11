@@ -9,7 +9,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
 	"k8s.io/api/core/v1"
@@ -20,6 +19,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apiserver/pkg/storage/names"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
@@ -457,7 +457,6 @@ func (o *VolumeOptions) RunVolume() error {
 	if err != nil {
 		return err
 	}
-
 	if o.List {
 		if listingErrors := o.printVolumes(infos); len(listingErrors) > 0 {
 			return kcmdutil.ErrExit
@@ -494,7 +493,7 @@ func (o *VolumeOptions) RunVolume() error {
 		return patchError
 	}
 	if o.Local || o.DryRun {
-		// FIXME-REBASE: I don't want to deal with conversions without all the machinery in place
+		// FIXME-REBASE
 		for _, info := range infos {
 			if err := o.PrintObj(info.Object, o.Out); err != nil {
 				return err
@@ -502,7 +501,7 @@ func (o *VolumeOptions) RunVolume() error {
 		}
 	}
 
-	failed := false
+	allErrs := []error{}
 	for _, info := range updateInfos {
 		var obj runtime.Object
 		if len(info.ResourceVersion) == 0 {
@@ -511,48 +510,40 @@ func (o *VolumeOptions) RunVolume() error {
 			obj, err = oldresource.NewHelper(info.Client, info.Mapping).Replace(info.Namespace, info.Name, true, info.Object)
 		}
 		if err != nil {
-			handlePodUpdateError(o.ErrOut, err, "volume")
-			failed = true
+			allErrs = append(allErrs, fmt.Errorf("failed to patch volume update to pod template: %v\n", err))
 			continue
 		}
 		info.Refresh(obj, true)
-		fmt.Fprintf(o.Out, "%s/%s\n", info.Mapping.Resource, info.Name)
 	}
 	for _, patch := range patches {
 		info := patch.Info
 		if patch.Err != nil {
-			failed = true
-			fmt.Fprintf(o.ErrOut, "error: %s/%s %v\n", info.Mapping.Resource, info.Name, patch.Err)
+			allErrs = append(allErrs, fmt.Errorf("error: %s/%s %v\n", info.Mapping.Resource, info.Name, patch.Err))
 			continue
 		}
 
 		if string(patch.Patch) == "{}" || len(patch.Patch) == 0 {
-			fmt.Fprintf(o.ErrOut, "info: %s %q was not changed\n", info.Mapping.Resource, info.Name)
 			continue
 		}
 
-		glog.V(4).Infof("Calculated patch %s", patch.Patch)
-
-		obj, err := oldresource.NewHelper(info.Client, info.Mapping).Patch(info.Namespace, info.Name, types.StrategicMergePatchType, patch.Patch)
+		actual, err := oldresource.NewHelper(info.Client, info.Mapping).Patch(info.Namespace, info.Name, types.StrategicMergePatchType, patch.Patch)
 		if err != nil {
-			handlePodUpdateError(o.ErrOut, err, "volume")
-			failed = true
+			allErrs = append(allErrs, fmt.Errorf("failed to patch volume update to pod template: %v\n", err))
 			continue
 		}
 
-		info.Refresh(obj, true)
-		kcmdutil.PrintSuccess(false, o.Out, info.Object, false, "updated")
+		if err := o.PrintObj(actual, o.Out); err != nil {
+			// FIXME-REBASE
+			// allErrs = append(allErrs, err)
+		}
 	}
-	if failed {
-		return kcmdutil.ErrExit
-	}
-	return nil
+	return utilerrors.NewAggregate(allErrs)
 }
 
 func (o *VolumeOptions) getVolumeUpdatePatches(infos []*oldresource.Info, singleItemImplied bool) ([]*Patch, error) {
 	skipped := 0
 	// FIXME-REBASE
-	patches := CalculatePatches(infos, o.Encoder, func(info *oldresource.Info) (bool, error) {
+	patches := CalculatePatches(infos, o.Encoder /*scheme.DefaultJSONEncoder()*/, func(info *oldresource.Info) (bool, error) {
 		transformed := false
 		ok, err := o.UpdatePodSpecForObject(info.Object, clientcmd.ConvertInteralPodSpecToExternal(func(spec *kapi.PodSpec) error {
 			var e error
