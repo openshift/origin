@@ -1064,6 +1064,14 @@ type GitLabIdentityProvider struct {
 	ClientID string
 	// ClientSecret is the oauth client secret
 	ClientSecret StringSource
+	// Legacy determines if OAuth2 or OIDC should be used
+	// If true, OAuth2 is used
+	// If false, OIDC is used
+	// If nil and the URL's host is gitlab.com, OIDC is used
+	// Otherwise, OAuth2 is used
+	// In a future release, nil will default to using OIDC
+	// Eventually this flag will be removed and only OIDC will be used
+	Legacy *bool
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
