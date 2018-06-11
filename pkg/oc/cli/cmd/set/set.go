@@ -46,7 +46,7 @@ func NewCmdSet(fullName string, f *clientcmd.Factory, streams genericclioptions.
 		{
 			Message: "Manage secrets:",
 			Commands: []*cobra.Command{
-				NewCmdBuildSecret(name, f, streams.Out, streams.ErrOut),
+				NewCmdBuildSecret(name, f, streams),
 			},
 		},
 		{
