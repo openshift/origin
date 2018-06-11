@@ -2,19 +2,21 @@ package set
 
 import (
 	"fmt"
-	"io"
-	"os"
 
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/kubectl/resource"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
+	oldresource "k8s.io/kubernetes/pkg/kubectl/resource"
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
+	"github.com/openshift/origin/pkg/oauth/generated/clientset/scheme"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	utilenv "github.com/openshift/origin/pkg/oc/util/env"
 )
@@ -56,138 +58,109 @@ var (
 )
 
 type DeploymentHookOptions struct {
-	Out io.Writer
-	Err io.Writer
+	PrintFlags *genericclioptions.PrintFlags
+	oldresource.FilenameOptions
+	genericclioptions.IOStreams
 
-	Builder *resource.Builder
-	Infos   []*resource.Info
+	Container        string
+	Selector         string
+	All              bool
+	Local            bool
+	Pre              bool
+	Mid              bool
+	Post             bool
+	Remove           bool
+	FailurePolicyStr string
 
-	Encoder runtime.Encoder
+	Mapper            meta.RESTMapper
+	PrintObj          printers.ResourcePrinterFunc
+	Builder           func() *oldresource.Builder
+	Encoder           runtime.Encoder
+	Command           []string
+	Resources         []string
+	Environment       []string
+	Volumes           []string
+	Namespace         string
+	ExplicitNamespace bool
+	DryRun            bool
+	FailurePolicy     appsapi.LifecycleHookFailurePolicy
+}
 
-	Filenames []string
-	Container string
-	Selector  string
-	All       bool
-
-	Output string
-
-	ShortOutput bool
-	Local       bool
-	Mapper      meta.RESTMapper
-
-	PrintObject func([]*resource.Info) error
-
-	Pre    bool
-	Mid    bool
-	Post   bool
-	Remove bool
-
-	Cmd *cobra.Command
-
-	Command     []string
-	Environment []string
-	Volumes     []string
-
-	FailurePolicy appsapi.LifecycleHookFailurePolicy
+func NewDeploymentHookOptions(streams genericclioptions.IOStreams) *DeploymentHookOptions {
+	return &DeploymentHookOptions{
+		PrintFlags:       genericclioptions.NewPrintFlags("hooks updated").WithTypeSetter(scheme.Scheme),
+		IOStreams:        streams,
+		FailurePolicyStr: "ignore",
+	}
 }
 
 // NewCmdDeploymentHook implements the set deployment-hook command
-func NewCmdDeploymentHook(fullName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
-	options := &DeploymentHookOptions{
-		Out: out,
-		Err: errOut,
-	}
+func NewCmdDeploymentHook(fullName string, f *clientcmd.Factory, streams genericclioptions.IOStreams) *cobra.Command {
+	o := NewDeploymentHookOptions(streams)
 	cmd := &cobra.Command{
 		Use:     "deployment-hook DEPLOYMENTCONFIG --pre|--post|--mid -- CMD",
 		Short:   "Update a deployment hook on a deployment config",
 		Long:    deploymentHookLong,
 		Example: fmt.Sprintf(deploymentHookExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
-			kcmdutil.CheckErr(options.Complete(f, cmd, args))
-			kcmdutil.CheckErr(options.Validate())
-			if err := options.Run(); err != nil {
-				// TODO: move me to kcmdutil
-				if err == kcmdutil.ErrExit {
-					os.Exit(1)
-				}
-				kcmdutil.CheckErr(err)
-			}
+			kcmdutil.CheckErr(o.Complete(f, cmd, args))
+			kcmdutil.CheckErr(o.Validate())
+			kcmdutil.CheckErr(o.Run())
 		},
 	}
-
-	kcmdutil.AddPrinterFlags(cmd)
-	cmd.Flags().StringVarP(&options.Container, "container", "c", options.Container, "The name of the container in the selected deployment config to use for the deployment hook")
-	cmd.Flags().StringVarP(&options.Selector, "selector", "l", options.Selector, "Selector (label query) to filter deployment configs")
-	cmd.Flags().BoolVar(&options.All, "all", options.All, "If true, select all deployment configs in the namespace")
-	cmd.Flags().StringSliceVarP(&options.Filenames, "filename", "f", options.Filenames, "Filename, directory, or URL to file to use to edit the resource.")
-
-	cmd.Flags().BoolVar(&options.Remove, "remove", options.Remove, "If true, remove the specified deployment hook(s).")
-	cmd.Flags().BoolVar(&options.Pre, "pre", options.Pre, "Set or remove a pre deployment hook")
-	cmd.Flags().BoolVar(&options.Mid, "mid", options.Mid, "Set or remove a mid deployment hook")
-	cmd.Flags().BoolVar(&options.Post, "post", options.Post, "Set or remove a post deployment hook")
-
-	cmd.Flags().StringArrayVarP(&options.Environment, "environment", "e", options.Environment, "Environment variable to use in the deployment hook pod")
-	cmd.Flags().StringSliceVarP(&options.Volumes, "volumes", "v", options.Volumes, "Volumes from the pod template to use in the deployment hook pod")
+	usage := "to use to edit the resource"
+	kcmdutil.AddFilenameOptionFlags(cmd, &o.FilenameOptions, usage)
+	cmd.Flags().StringVarP(&o.Container, "container", "c", o.Container, "The name of the container in the selected deployment config to use for the deployment hook")
+	cmd.Flags().StringVarP(&o.Selector, "selector", "l", o.Selector, "Selector (label query) to filter deployment configs")
+	cmd.Flags().BoolVar(&o.All, "all", o.All, "If true, select all deployment configs in the namespace")
+	cmd.Flags().BoolVar(&o.Remove, "remove", o.Remove, "If true, remove the specified deployment hook(s).")
+	cmd.Flags().BoolVar(&o.Pre, "pre", o.Pre, "Set or remove a pre deployment hook")
+	cmd.Flags().BoolVar(&o.Mid, "mid", o.Mid, "Set or remove a mid deployment hook")
+	cmd.Flags().BoolVar(&o.Post, "post", o.Post, "Set or remove a post deployment hook")
+	cmd.Flags().StringArrayVarP(&o.Environment, "environment", "e", o.Environment, "Environment variable to use in the deployment hook pod")
+	cmd.Flags().StringSliceVarP(&o.Volumes, "volumes", "v", o.Volumes, "Volumes from the pod template to use in the deployment hook pod")
 	cmd.Flags().MarkShorthandDeprecated("volumes", "Use --volumes instead.")
+	cmd.Flags().StringVar(&o.FailurePolicyStr, "failure-policy", o.FailurePolicyStr, "The failure policy for the deployment hook. Valid values are: abort,retry,ignore")
+	cmd.Flags().BoolVar(&o.Local, "local", o.Local, "If true, set deployment hook will NOT contact api-server but run locally.")
 
-	cmd.Flags().String("failure-policy", "ignore", "The failure policy for the deployment hook. Valid values are: abort,retry,ignore")
-
-	cmd.Flags().BoolVar(&options.Local, "local", false, "If true, set deployment hook will NOT contact api-server but run locally.")
-
-	cmd.MarkFlagFilename("filename", "yaml", "yml", "json")
+	o.PrintFlags.AddFlags(cmd)
 	kcmdutil.AddDryRunFlag(cmd)
 
 	return cmd
 }
 
 func (o *DeploymentHookOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string) error {
-	resources := args
+	o.Resources = args
 	if i := cmd.ArgsLenAtDash(); i != -1 {
-		resources = args[:i]
+		o.Resources = args[:i]
 		o.Command = args[i:]
 	}
 	if len(o.Filenames) == 0 && len(args) < 1 {
-		return kcmdutil.UsageErrorf(cmd, "one or more deployment configs must be specified as <name> or dc/<name>")
+		return fmt.Errorf("one or more deployment configs must be specified as <name> or dc/<name>")
 	}
 
-	cmdNamespace, explicit, err := f.DefaultNamespace()
+	var err error
+	o.Namespace, o.ExplicitNamespace, err = f.DefaultNamespace()
 	if err != nil {
 		return err
 	}
 
-	o.Cmd = cmd
-
-	mapper, _ := f.Object()
-	o.Builder = f.NewBuilder().
-		Internal().
-		LocalParam(o.Local).
-		ContinueOnError().
-		NamespaceParam(cmdNamespace).DefaultNamespace().
-		FilenameParam(explicit, &resource.FilenameOptions{Recursive: false, Filenames: o.Filenames}).
-		Flatten()
-	if !o.Local {
-		o.Builder = o.Builder.
-			ResourceNames("deploymentconfigs", resources...).
-			LabelSelectorParam(o.Selector).
-			Latest()
-		if o.All {
-			o.Builder.ResourceTypes("deploymentconfigs").SelectAllParam(o.All)
-		}
-
-	}
-
-	o.Output = kcmdutil.GetFlagString(cmd, "output")
-	o.PrintObject = func(infos []*resource.Info) error {
-		return f.PrintResourceInfos(cmd, o.Local, infos, o.Out)
-	}
-
+	o.DryRun = kcmdutil.GetDryRunFlag(cmd)
+	o.Mapper, _ = f.Object()
 	o.Encoder = kcmdutil.InternalVersionJSONEncoder()
-	o.ShortOutput = kcmdutil.GetFlagString(cmd, "output") == "name"
-	o.Mapper = mapper
+	o.Builder = f.NewBuilder
 
-	failurePolicyString := kcmdutil.GetFlagString(cmd, "failure-policy")
-	if len(failurePolicyString) > 0 {
-		switch failurePolicyString {
+	if o.DryRun {
+		o.PrintFlags.Complete("%s (dry run)")
+	}
+	printer, err := o.PrintFlags.ToPrinter()
+	if err != nil {
+		return err
+	}
+	o.PrintObj = printer.PrintObj
+
+	if len(o.FailurePolicyStr) > 0 {
+		switch o.FailurePolicyStr {
 		case "abort":
 			o.FailurePolicy = appsapi.LifecycleHookFailurePolicyAbort
 		case "ignore":
@@ -195,7 +168,7 @@ func (o *DeploymentHookOptions) Complete(f *clientcmd.Factory, cmd *cobra.Comman
 		case "retry":
 			o.FailurePolicy = appsapi.LifecycleHookFailurePolicyRetry
 		default:
-			return kcmdutil.UsageErrorf(cmd, "valid values for --failure-policy are: abort, retry, ignore")
+			return fmt.Errorf("valid values for --failure-policy are: abort, retry, ignore")
 		}
 	}
 
@@ -203,7 +176,6 @@ func (o *DeploymentHookOptions) Complete(f *clientcmd.Factory, cmd *cobra.Comman
 }
 
 func (o *DeploymentHookOptions) Validate() error {
-
 	if o.Remove {
 		if len(o.Command) > 0 ||
 			len(o.Volumes) > 0 ||
@@ -235,23 +207,39 @@ func (o *DeploymentHookOptions) Validate() error {
 		return fmt.Errorf("you must specify a command for the deployment hook")
 	}
 
-	cmdutil.WarnAboutCommaSeparation(o.Err, o.Environment, "--environment")
+	cmdutil.WarnAboutCommaSeparation(o.ErrOut, o.Environment, "--environment")
 
 	return nil
 }
 
 func (o *DeploymentHookOptions) Run() error {
-	infos := o.Infos
-	singleItemImplied := len(o.Infos) <= 1
-	if o.Builder != nil {
-		loaded, err := o.Builder.Do().IntoSingleItemImplied(&singleItemImplied).Infos()
-		if err != nil {
-			return err
+	b := o.Builder().
+		Internal().
+		LocalParam(o.Local).
+		ContinueOnError().
+		NamespaceParam(o.Namespace).DefaultNamespace().
+		FilenameParam(o.ExplicitNamespace, &o.FilenameOptions).
+		Flatten()
+
+	if !o.Local {
+		b = b.
+			ResourceNames("deploymentconfigs", o.Resources...).
+			LabelSelectorParam(o.Selector).
+			Latest()
+		if o.All {
+			b = b.ResourceTypes("deploymentconfigs").SelectAllParam(o.All)
 		}
-		infos = loaded
+
 	}
 
-	patches := CalculatePatches(infos, o.Encoder, func(info *resource.Info) (bool, error) {
+	singleItemImplied := false
+	infos, err := b.Do().IntoSingleItemImplied(&singleItemImplied).Infos()
+	if err != nil {
+		return err
+	}
+
+	// FIXME-REBASE
+	patches := CalculatePatches(infos, o.Encoder /*scheme.DefaultJSONEncoder()*/, func(info *oldresource.Info) (bool, error) {
 		dc, ok := info.Object.(*appsapi.DeploymentConfig)
 		if !ok {
 			return false, nil
@@ -264,37 +252,37 @@ func (o *DeploymentHookOptions) Run() error {
 		return fmt.Errorf("%s/%s is not a deployment config or does not have an applicable strategy", infos[0].Mapping.Resource, infos[0].Name)
 	}
 
-	if len(o.Output) > 0 || o.Local || kcmdutil.GetDryRunFlag(o.Cmd) {
-		return o.PrintObject(infos)
-	}
-
-	failed := false
+	allErrs := []error{}
 	for _, patch := range patches {
 		info := patch.Info
 		if patch.Err != nil {
-			fmt.Fprintf(o.Err, "error: %s/%s %v\n", info.Mapping.Resource, info.Name, patch.Err)
+			allErrs = append(allErrs, fmt.Errorf("error: %s/%s %v\n", info.Mapping.Resource, info.Name, patch.Err))
 			continue
 		}
 
 		if string(patch.Patch) == "{}" || len(patch.Patch) == 0 {
-			fmt.Fprintf(o.Err, "info: %s %q was not changed\n", info.Mapping.Resource, info.Name)
 			continue
 		}
 
-		obj, err := resource.NewHelper(info.Client, info.Mapping).Patch(info.Namespace, info.Name, types.StrategicMergePatchType, patch.Patch)
+		if o.Local || o.DryRun {
+			if err := o.PrintObj(info.Object, o.Out); err != nil {
+				allErrs = append(allErrs, err)
+			}
+			continue
+		}
+
+		actual, err := oldresource.NewHelper(info.Client, info.Mapping).Patch(info.Namespace, info.Name, types.StrategicMergePatchType, patch.Patch)
 		if err != nil {
-			fmt.Fprintf(o.Err, "error: %v\n", err)
-			failed = true
+			allErrs = append(allErrs, fmt.Errorf("failed to patch deployment hook: %v\n", err))
 			continue
 		}
 
-		info.Refresh(obj, true)
-		kcmdutil.PrintSuccess(o.ShortOutput, o.Out, info.Object, false, "updated")
+		if err := o.PrintObj(actual, o.Out); err != nil {
+			// FIXME-REBASE
+			// allErrs = append(allErrs, err)
+		}
 	}
-	if failed {
-		return kcmdutil.ErrExit
-	}
-	return nil
+	return utilerrors.NewAggregate(allErrs)
 }
 
 func (o *DeploymentHookOptions) updateDeploymentConfig(dc *appsapi.DeploymentConfig) (bool, error) {
@@ -393,7 +381,7 @@ func (o *DeploymentHookOptions) lifecycleHook(dc *appsapi.DeploymentConfig) (*ap
 			}
 		}
 		if !found {
-			fmt.Fprintf(o.Err, "warning: deployment config %q does not have a container named %q\n", dc.Name, o.Container)
+			fmt.Fprintf(o.ErrOut, "warning: deployment config %q does not have a container named %q\n", dc.Name, o.Container)
 		}
 		hook.ExecNewPod.ContainerName = o.Container
 	}
@@ -417,7 +405,7 @@ func (o *DeploymentHookOptions) lifecycleHook(dc *appsapi.DeploymentConfig) (*ap
 				}
 			}
 			if !found {
-				fmt.Fprintf(o.Err, "warning: deployment config %q does not have a volume named %q\n", dc.Name, v)
+				fmt.Fprintf(o.ErrOut, "warning: deployment config %q does not have a volume named %q\n", dc.Name, v)
 			}
 		}
 		hook.ExecNewPod.Volumes = o.Volumes
