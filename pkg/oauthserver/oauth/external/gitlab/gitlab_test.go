@@ -18,7 +18,8 @@ func TestGitLab(t *testing.T) {
 		providerName: "gitlab",
 		authorizeURL: "https://gitlab.com/oauth/authorize",
 		tokenURL:     "https://gitlab.com/oauth/token",
-		userAPIURL:   "https://gitlab.com/api/v3/user",
+		userAPIURLV3: "https://gitlab.com/api/v3/user",
+		userAPIURLV4: "https://gitlab.com/api/v4/user",
 		clientID:     "clientid",
 		clientSecret: "clientsecret",
 	}
