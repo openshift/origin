@@ -6,6 +6,8 @@ import (
 
 	"github.com/golang/glog"
 
+	"k8s.io/apimachinery/pkg/util/wait"
+
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/dns"
 )
@@ -52,7 +54,7 @@ func (c *MasterConfig) RunDNSServer() {
 
 	go func() {
 		s := dns.NewServer(config, services, endpoints, "apiserver")
-		err := s.ListenAndServe()
+		err := s.ListenAndServe(wait.NeverStop)
 		glog.Fatalf("Could not start DNS: %v", err)
 	}()
 
