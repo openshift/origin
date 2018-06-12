@@ -374,11 +374,11 @@ var globalDeploymentConfigGetterUsers = sets.NewString(
 	"system:serviceaccount:kube-system:generic-garbage-collector",
 	"system:serviceaccount:kube-system:namespace-controller",
 	"system:serviceaccount:kube-system:clusterrole-aggregation-controller",
-	"system:serviceaccount:openshift-infra:image-trigger-controller",
-	"system:serviceaccount:openshift-infra:deploymentconfig-controller",
-	"system:serviceaccount:openshift-infra:template-instance-controller",
-	"system:serviceaccount:openshift-infra:template-instance-finalizer-controller",
-	"system:serviceaccount:openshift-infra:unidling-controller",
+	"system:serviceaccount:openshift-system:image-trigger-controller",
+	"system:serviceaccount:openshift-system:deploymentconfig-controller",
+	"system:serviceaccount:openshift-system:template-instance-controller",
+	"system:serviceaccount:openshift-system:template-instance-finalizer-controller",
+	"system:serviceaccount:openshift-system:unidling-controller",
 )
 
 type resourceAccessReviewTest struct {
@@ -628,8 +628,8 @@ func TestAuthorizationResourceAccessReview(t *testing.T) {
 		}
 		test.response.Users.Insert(globalClusterReaderUsers.List()...)
 		test.response.Users.Insert(globalDeploymentConfigGetterUsers.List()...)
-		test.response.Users.Delete("system:serviceaccount:openshift-infra:template-instance-controller")
-		test.response.Users.Delete("system:serviceaccount:openshift-infra:template-instance-finalizer-controller")
+		test.response.Users.Delete("system:serviceaccount:openshift-system:template-instance-controller")
+		test.response.Users.Delete("system:serviceaccount:openshift-system:template-instance-finalizer-controller")
 		test.response.Groups.Insert(globalClusterReaderGroups.List()...)
 		test.run(t)
 	}
@@ -1513,7 +1513,7 @@ func TestOldLocalResourceAccessReviewEndpoint(t *testing.T) {
 
 		expectedResponse := &authorizationapi.ResourceAccessReviewResponse{
 			Namespace: namespace,
-			Users:     sets.NewString("harold", "system:serviceaccount:kube-system:clusterrole-aggregation-controller", "system:serviceaccount:kube-system:generic-garbage-collector", "system:serviceaccount:kube-system:namespace-controller", "system:serviceaccount:openshift-infra:template-instance-controller", "system:serviceaccount:openshift-infra:template-instance-finalizer-controller", "system:serviceaccount:hammer-project:builder", "system:admin", "system:serviceaccount:openshift-infra:default-rolebindings-controller"),
+			Users:     sets.NewString("harold", "system:serviceaccount:kube-system:clusterrole-aggregation-controller", "system:serviceaccount:kube-system:generic-garbage-collector", "system:serviceaccount:kube-system:namespace-controller", "system:serviceaccount:openshift-system:template-instance-controller", "system:serviceaccount:openshift-system:template-instance-finalizer-controller", "system:serviceaccount:hammer-project:builder", "system:admin", "system:serviceaccount:openshift-system:default-rolebindings-controller"),
 			Groups:    sets.NewString("system:cluster-admins", "system:masters", "system:cluster-readers", "system:serviceaccounts:hammer-project"),
 		}
 		if (actualResponse.Namespace != expectedResponse.Namespace) ||
@@ -1544,7 +1544,7 @@ func TestOldLocalResourceAccessReviewEndpoint(t *testing.T) {
 
 		expectedResponse := &authorizationapi.ResourceAccessReviewResponse{
 			Namespace: namespace,
-			Users:     sets.NewString("harold", "system:serviceaccount:kube-system:clusterrole-aggregation-controller", "system:serviceaccount:kube-system:generic-garbage-collector", "system:serviceaccount:kube-system:namespace-controller", "system:serviceaccount:openshift-infra:template-instance-controller", "system:serviceaccount:openshift-infra:template-instance-finalizer-controller", "system:serviceaccount:hammer-project:builder", "system:admin", "system:serviceaccount:openshift-infra:default-rolebindings-controller"),
+			Users:     sets.NewString("harold", "system:serviceaccount:kube-system:clusterrole-aggregation-controller", "system:serviceaccount:kube-system:generic-garbage-collector", "system:serviceaccount:kube-system:namespace-controller", "system:serviceaccount:openshift-system:template-instance-controller", "system:serviceaccount:openshift-system:template-instance-finalizer-controller", "system:serviceaccount:hammer-project:builder", "system:admin", "system:serviceaccount:openshift-system:default-rolebindings-controller"),
 			Groups:    sets.NewString("system:cluster-admins", "system:masters", "system:cluster-readers", "system:serviceaccounts:hammer-project"),
 		}
 		if (actualResponse.Namespace != expectedResponse.Namespace) ||

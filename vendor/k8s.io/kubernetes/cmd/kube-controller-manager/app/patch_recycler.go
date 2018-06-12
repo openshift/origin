@@ -69,8 +69,8 @@ func applyOpenShiftDefaultRecycler(controllerManager *config.Config, openshiftCo
 func createRecylerTemplate(recyclerImage string) (string, error) {
 	uid := int64(0)
 	template := volume.NewPersistentVolumeRecyclerPodTemplate()
-	template.Namespace = "openshift-infra"
-	template.Spec.ServiceAccountName = "pv-recycler-controller"
+	template.Namespace = "openshift-pv-recycler"
+	template.Spec.ServiceAccountName = "pv-recycler"
 	template.Spec.Containers[0].Image = recyclerImage
 	template.Spec.Containers[0].Command = []string{"/usr/bin/openshift-recycle"}
 	template.Spec.Containers[0].Args = []string{"/scrub"}
@@ -125,12 +125,22 @@ func createPVRecyclerSA(openshiftConfig string, clientBuilder controller.Control
 
 	// Create the namespace if we can't verify it exists.
 	// Tolerate errors, since we don't know whether this component has namespace creation permissions.
-	if _, err := coreClient.CoreV1().Namespaces().Create(&v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "openshift-infra"}}); err != nil {
+	if _, err := coreClient.CoreV1().Namespaces().Create(
+		&v1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "openshift-pv-recycler",
+				Labels: map[string]string{
+					// this causes the namespace to be skipped by openshift admission plugins that require the openshift apiserver
+					"openshift.io/run-level": "1",
+				},
+			},
+		},
+	); err != nil {
 
 	}
 
 	// Create the service account
-	_, err = coreClient.CoreV1().ServiceAccounts("openshift-infra").Create(&v1.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Namespace: "openshift-infra", Name: "pv-recycler-controller"}})
+	_, err = coreClient.CoreV1().ServiceAccounts("openshift-pv-recycler").Create(&v1.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Namespace: "openshift-pv-recycler", Name: "pv-recycler"}})
 	if apierrors.IsAlreadyExists(err) {
 		return nil
 	}

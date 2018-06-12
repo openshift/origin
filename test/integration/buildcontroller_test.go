@@ -168,7 +168,7 @@ func setupBuildControllerTest(counts controllerCount, t *testing.T) (buildtypedc
 				ClientConfig:         restclient.AnonymousClientConfig(clusterAdminClientConfig),
 				CoreClient:           externalKubeClient.Core(),
 				AuthenticationClient: externalKubeClient.Authentication(),
-				Namespace:            bootstrappolicy.DefaultOpenShiftInfraNamespace,
+				Namespace:            bootstrappolicy.DefaultOpenShiftSystemNamespace,
 			},
 		},
 		ExternalKubeInformers: informers.GetExternalKubeInformers(),

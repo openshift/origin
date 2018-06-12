@@ -4,6 +4,7 @@ package bootstrappolicy
 const (
 	DefaultOpenShiftSharedResourcesNamespace = "openshift"
 	DefaultOpenShiftInfraNamespace           = "openshift-infra"
+	DefaultOpenShiftSystemNamespace          = "openshift-system"
 	DefaultOpenShiftNodeNamespace            = "openshift-node"
 )
 

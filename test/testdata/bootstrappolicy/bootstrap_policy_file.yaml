@@ -6196,6 +6196,24 @@ items:
   - kind: ServiceAccount
     name: node-bootstrapper
     namespace: openshift-infra
+  - kind: ServiceAccount
+    name: node-bootstrapper
+    namespace: openshift-system
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRoleBinding
+  metadata:
+    annotations:
+      rbac.authorization.kubernetes.io/autoupdate: "true"
+    creationTimestamp: null
+    name: system:openshift:controller:pv-recycler-controller
+  roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
+    name: system:openshift:controller:pv-recycler-controller
+  subjects:
+  - kind: ServiceAccount
+    name: pv-recycler
+    namespace: openshift-pv-recycler
 - apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
@@ -6665,7 +6683,7 @@ items:
   subjects:
   - kind: ServiceAccount
     name: build-controller
-    namespace: openshift-infra
+    namespace: openshift-system
 - apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
@@ -6680,7 +6698,7 @@ items:
   subjects:
   - kind: ServiceAccount
     name: build-config-change-controller
-    namespace: openshift-infra
+    namespace: openshift-system
 - apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
@@ -6695,7 +6713,7 @@ items:
   subjects:
   - kind: ServiceAccount
     name: deployer-controller
-    namespace: openshift-infra
+    namespace: openshift-system
 - apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
@@ -6710,7 +6728,7 @@ items:
   subjects:
   - kind: ServiceAccount
     name: deploymentconfig-controller
-    namespace: openshift-infra
+    namespace: openshift-system
 - apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
@@ -6725,7 +6743,7 @@ items:
   subjects:
   - kind: ServiceAccount
     name: template-instance-controller
-    namespace: openshift-infra
+    namespace: openshift-system
 - apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
@@ -6740,7 +6758,7 @@ items:
   subjects:
   - kind: ServiceAccount
     name: template-instance-controller
-    namespace: openshift-infra
+    namespace: openshift-system
 - apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
@@ -6755,7 +6773,7 @@ items:
   subjects:
   - kind: ServiceAccount
     name: template-instance-finalizer-controller
-    namespace: openshift-infra
+    namespace: openshift-system
 - apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
@@ -6770,7 +6788,7 @@ items:
   subjects:
   - kind: ServiceAccount
     name: template-instance-finalizer-controller
-    namespace: openshift-infra
+    namespace: openshift-system
 - apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
@@ -6785,7 +6803,7 @@ items:
   subjects:
   - kind: ServiceAccount
     name: origin-namespace-controller
-    namespace: openshift-infra
+    namespace: openshift-system
 - apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
@@ -6800,7 +6818,7 @@ items:
   subjects:
   - kind: ServiceAccount
     name: serviceaccount-controller
-    namespace: openshift-infra
+    namespace: openshift-system
 - apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
@@ -6815,7 +6833,7 @@ items:
   subjects:
   - kind: ServiceAccount
     name: serviceaccount-pull-secrets-controller
-    namespace: openshift-infra
+    namespace: openshift-system
 - apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
@@ -6830,7 +6848,7 @@ items:
   subjects:
   - kind: ServiceAccount
     name: image-trigger-controller
-    namespace: openshift-infra
+    namespace: openshift-system
 - apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
@@ -6845,7 +6863,7 @@ items:
   subjects:
   - kind: ServiceAccount
     name: service-serving-cert-controller
-    namespace: openshift-infra
+    namespace: openshift-system
 - apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
@@ -6860,7 +6878,7 @@ items:
   subjects:
   - kind: ServiceAccount
     name: image-import-controller
-    namespace: openshift-infra
+    namespace: openshift-system
 - apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
@@ -6875,7 +6893,7 @@ items:
   subjects:
   - kind: ServiceAccount
     name: sdn-controller
-    namespace: openshift-infra
+    namespace: openshift-system
 - apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
@@ -6890,7 +6908,7 @@ items:
   subjects:
   - kind: ServiceAccount
     name: cluster-quota-reconciliation-controller
-    namespace: openshift-infra
+    namespace: openshift-system
 - apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
@@ -6905,7 +6923,7 @@ items:
   subjects:
   - kind: ServiceAccount
     name: unidling-controller
-    namespace: openshift-infra
+    namespace: openshift-system
 - apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
@@ -6920,7 +6938,7 @@ items:
   subjects:
   - kind: ServiceAccount
     name: service-ingress-ip-controller
-    namespace: openshift-infra
+    namespace: openshift-system
 - apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
@@ -6935,7 +6953,7 @@ items:
   subjects:
   - kind: ServiceAccount
     name: ingress-to-route-controller
-    namespace: openshift-infra
+    namespace: openshift-system
 - apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
@@ -6950,7 +6968,7 @@ items:
   subjects:
   - kind: ServiceAccount
     name: pv-recycler-controller
-    namespace: openshift-infra
+    namespace: openshift-system
 - apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
@@ -6965,7 +6983,7 @@ items:
   subjects:
   - kind: ServiceAccount
     name: resourcequota-controller
-    namespace: openshift-infra
+    namespace: openshift-system
 - apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
@@ -6980,7 +6998,7 @@ items:
   subjects:
   - kind: ServiceAccount
     name: horizontal-pod-autoscaler
-    namespace: openshift-infra
+    namespace: openshift-system
 - apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
@@ -6995,7 +7013,7 @@ items:
   subjects:
   - kind: ServiceAccount
     name: horizontal-pod-autoscaler
-    namespace: openshift-infra
+    namespace: openshift-system
 - apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
@@ -7010,7 +7028,7 @@ items:
   subjects:
   - kind: ServiceAccount
     name: template-service-broker
-    namespace: openshift-infra
+    namespace: openshift-system
 - apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
@@ -7025,7 +7043,7 @@ items:
   subjects:
   - kind: ServiceAccount
     name: default-rolebindings-controller
-    namespace: openshift-infra
+    namespace: openshift-system
 - apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
@@ -7040,7 +7058,7 @@ items:
   subjects:
   - kind: ServiceAccount
     name: default-rolebindings-controller
-    namespace: openshift-infra
+    namespace: openshift-system
 - apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
@@ -7055,7 +7073,7 @@ items:
   subjects:
   - kind: ServiceAccount
     name: default-rolebindings-controller
-    namespace: openshift-infra
+    namespace: openshift-system
 - apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
@@ -7070,7 +7088,7 @@ items:
   subjects:
   - kind: ServiceAccount
     name: default-rolebindings-controller
-    namespace: openshift-infra
+    namespace: openshift-system
 - apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
@@ -7085,7 +7103,7 @@ items:
   subjects:
   - kind: ServiceAccount
     name: namespace-security-allocation-controller
-    namespace: openshift-infra
+    namespace: openshift-system
 - apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:

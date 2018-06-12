@@ -943,9 +943,14 @@ func GetOpenshiftBootstrapClusterRoleBindings() []rbac.ClusterRoleBinding {
 		newOriginClusterBinding(BuildStrategyJenkinsPipelineRoleBindingName, BuildStrategyJenkinsPipelineRoleName).
 			Groups(AuthenticatedGroup).
 			BindingOrDie(),
-		// Allow node-bootstrapper SA to bootstrap nodes by default.
+		// Allow node-bootstrapper SA to bootstrap nodes by default.  It sets it up for multiple namespaces.
 		rbac.NewClusterBinding(NodeBootstrapRoleName).
 			SAs(DefaultOpenShiftInfraNamespace, InfraNodeBootstrapServiceAccountName).
+			SAs(DefaultOpenShiftSystemNamespace, InfraNodeBootstrapServiceAccountName).
+			BindingOrDie(),
+		// Allow openshift-pv-recycle SA to do its work.  This matches our default value
+		rbac.NewClusterBinding("system:openshift:controller:pv-recycler-controller").
+			SAs("openshift-pv-recycler", "pv-recycler").
 			BindingOrDie(),
 		// Everyone should be able to add a scope to their impersonation request.  It is purely tightening.
 		// This does not grant access to impersonate in general, only tighten if you already have permission.

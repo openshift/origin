@@ -182,7 +182,7 @@ func (o *ReconcileSCCOptions) RunReconcileSCCs(cmd *cobra.Command, f *clientcmd.
 func (o *ReconcileSCCOptions) ChangedSCCs() ([]*securityapi.SecurityContextConstraints, error) {
 	changedSCCs := []*securityapi.SecurityContextConstraints{}
 
-	groups, users := bootstrappolicy.GetBoostrapSCCAccess(o.InfraNamespace)
+	groups, users := bootstrappolicy.GetBoostrapSCCAccess()
 	bootstrapSCCs := bootstrappolicy.GetBootstrapSecurityContextConstraints(groups, users)
 
 	for _, expectedSCC := range bootstrapSCCs {

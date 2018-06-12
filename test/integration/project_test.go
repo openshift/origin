@@ -595,7 +595,7 @@ func TestInvalidRoleRefs(t *testing.T) {
 		for _, project := range projects.Items {
 			projectNames.Insert(project.Name)
 		}
-		if !projectNames.HasAll("foo", "bar", "openshift-infra", "openshift", "default") {
+		if !projectNames.HasAll("foo", "bar", "openshift-infra", "openshift-system", "openshift", "default") {
 			t.Errorf("Expected projects foo and bar, got %v", projectNames.List())
 		}
 	}

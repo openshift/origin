@@ -59,7 +59,7 @@ var (
 )
 
 func bindControllerRole(saName string, roleName string) {
-	roleBinding := rbac.NewClusterBinding(roleName).SAs(DefaultOpenShiftInfraNamespace, saName).BindingOrDie()
+	roleBinding := rbac.NewClusterBinding(roleName).SAs(DefaultOpenShiftSystemNamespace, saName).BindingOrDie()
 	addDefaultMetadata(&roleBinding)
 	controllerRoleBindings = append(controllerRoleBindings, roleBinding)
 }
@@ -68,7 +68,7 @@ func addControllerRole(role rbac.ClusterRole) {
 	if !strings.HasPrefix(role.Name, saRolePrefix) {
 		glog.Fatalf(`role %q must start with %q`, role.Name, saRolePrefix)
 	}
-	addControllerRoleToSA(DefaultOpenShiftInfraNamespace, role.Name[len(saRolePrefix):], role)
+	addControllerRoleToSA(DefaultOpenShiftSystemNamespace, role.Name[len(saRolePrefix):], role)
 }
 
 func addControllerRoleToSA(saNamespace, saName string, role rbac.ClusterRole) {
@@ -164,7 +164,7 @@ func init() {
 	})
 
 	// template-instance-controller
-	templateInstanceController := rbac.NewClusterBinding(AdminRoleName).SAs(DefaultOpenShiftInfraNamespace, InfraTemplateInstanceControllerServiceAccountName).BindingOrDie()
+	templateInstanceController := rbac.NewClusterBinding(AdminRoleName).SAs(DefaultOpenShiftSystemNamespace, InfraTemplateInstanceControllerServiceAccountName).BindingOrDie()
 	templateInstanceController.Name = "system:openshift:controller:" + InfraTemplateInstanceControllerServiceAccountName + ":admin"
 	addDefaultMetadata(&templateInstanceController)
 	controllerRoleBindings = append(controllerRoleBindings, templateInstanceController)
@@ -178,7 +178,7 @@ func init() {
 	})
 
 	// template-instance-finalizer-controller
-	templateInstanceFinalizerController := rbac.NewClusterBinding(AdminRoleName).SAs(DefaultOpenShiftInfraNamespace, InfraTemplateInstanceFinalizerControllerServiceAccountName).BindingOrDie()
+	templateInstanceFinalizerController := rbac.NewClusterBinding(AdminRoleName).SAs(DefaultOpenShiftSystemNamespace, InfraTemplateInstanceFinalizerControllerServiceAccountName).BindingOrDie()
 	templateInstanceFinalizerController.Name = "system:openshift:controller:" + InfraTemplateInstanceFinalizerControllerServiceAccountName + ":admin"
 	addDefaultMetadata(&templateInstanceFinalizerController)
 	controllerRoleBindings = append(controllerRoleBindings, templateInstanceFinalizerController)

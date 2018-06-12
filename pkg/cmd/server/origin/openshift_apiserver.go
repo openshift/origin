@@ -669,8 +669,7 @@ func (c *completedConfig) startProjectAuthorizationCache(context genericapiserve
 }
 
 func (c *completedConfig) bootstrapSCC(context genericapiserver.PostStartHookContext) error {
-	ns := bootstrappolicy.DefaultOpenShiftInfraNamespace
-	bootstrapSCCGroups, bootstrapSCCUsers := bootstrappolicy.GetBoostrapSCCAccess(ns)
+	bootstrapSCCGroups, bootstrapSCCUsers := bootstrappolicy.GetBoostrapSCCAccess()
 
 	var securityClient securityclient.Interface
 	err := wait.Poll(1*time.Second, 30*time.Second, func() (bool, error) {
