@@ -71,7 +71,9 @@ func (b *ControllerBuilder) Run() error {
 	}
 
 	if b.leaderElection == nil {
-		b.startFunc(clientConfig, wait.NeverStop)
+		if err := b.startFunc(clientConfig, wait.NeverStop); err != nil {
+			return err
+		}
 		return fmt.Errorf("exited")
 	}
 
