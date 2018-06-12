@@ -22,6 +22,7 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/golang/glog"
 )
@@ -54,6 +55,29 @@ func (ping) Name() string {
 // PingHealthz is a health check that returns true.
 func (ping) Check(_ *http.Request) error {
 	return nil
+}
+
+// LogHealthz returns true if logging is not blocked
+var LogHealthz HealthzChecker = log{}
+
+type log struct{}
+
+func (log) Name() string {
+	return "log"
+}
+
+func (log) Check(_ *http.Request) error {
+	done := make(chan struct{})
+	go func() {
+		glog.Info("/healthz/log check")
+		close(done)
+	}()
+	select {
+	case <-done:
+		return nil
+	case <-time.After(time.Second):
+		return fmt.Errorf("logging blocked")
+	}
 }
 
 // NamedCheck returns a healthz checker for the given name and function.

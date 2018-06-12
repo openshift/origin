@@ -106,6 +106,7 @@ var expectedIndex = []string{
 	"/healthz",
 	"/healthz/autoregister-completion",
 	"/healthz/etcd",
+	"/healthz/log",
 	"/healthz/ping",
 	"/healthz/poststarthook/apiservice-openapi-controller",
 	"/healthz/poststarthook/apiservice-registration-controller",

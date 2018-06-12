@@ -34,7 +34,7 @@ func RunControllerServer(servingInfo configapi.HTTPServingInfo, kubeExternal cli
 
 	mux := genericmux.NewPathRecorderMux("master-healthz")
 
-	healthz.InstallHandler(mux, healthz.PingHealthz)
+	healthz.InstallHandler(mux, healthz.PingHealthz, healthz.LogHealthz)
 	initReadinessCheckRoute(mux, "/healthz/ready", func() bool { return true })
 	genericroutes.Profiling{}.Install(mux)
 	genericroutes.MetricsWithReset{}.Install(mux)
