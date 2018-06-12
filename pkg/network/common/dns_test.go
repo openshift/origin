@@ -50,7 +50,7 @@ func TestAddDNS(t *testing.T) {
 			domainName:        "example.com",
 			dnsResolverOutput: "example.com. 200 IN CNAME foo.example.com.\nfoo.example.com. 600 IN A 10.11.12.13",
 			ips:               []net.IP{ip},
-			ttl:               600,
+			ttl:               200,
 			expectFailure:     false,
 		},
 		{
