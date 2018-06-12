@@ -1,5 +1,15 @@
 #!/bin/bash
 
+# Undoes the effects of the migrate-network-policy.sh script by
+# re-isolating and re-making-global the previously isolated/global
+# projects.
+#
+# This only undoes the changes originally made by the migration script
+# (or other changes that were intentionally made to look the same as
+# the changes made by the migration script). It does not attempt to
+# convert arbitrary NetworkPolicy objects into multitenant-style
+# isolation.
+
 set -o errexit
 set -o nounset
 set -o pipefail
