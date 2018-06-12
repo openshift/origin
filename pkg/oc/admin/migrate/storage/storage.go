@@ -373,5 +373,5 @@ func (t *tokenLimiter) getDuration(n int) time.Duration {
 // we use a burst value that scales linearly with the number of workers
 func newTokenLimiter(bandwidth, workers int) *tokenLimiter {
 	burst := 100 * kbToBytes * workers // 100 KB of burst per worker
-	return &tokenLimiter{burst: burst, rateLimiter: rate.NewLimiter(rate.Limit(bandwidth*mbToKB*kbToBytes/byteToBits), burst), nowFunc: time.Now}
+	return &tokenLimiter{burst: burst, rateLimiter: rate.NewLimiter(rate.Limit(bandwidth*mbToKB*kbToBytes)/byteToBits, burst), nowFunc: time.Now}
 }
