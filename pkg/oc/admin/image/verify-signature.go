@@ -245,6 +245,8 @@ func (o VerifyImageSignatureOptions) Run() error {
 	if o.Save || o.RemoveAll {
 		_, err := o.ImageClient.Images().Update(img)
 		return err
+	} else {
+		fmt.Fprintf(o.Out, "Neither --save nor --remove-all were passed, image %q not updated to %v\n", o.InputImage, img)
 	}
 	return nil
 }
