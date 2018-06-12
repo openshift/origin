@@ -39,7 +39,8 @@ func NewCmdSet(fullName string, f *clientcmd.Factory, streams genericclioptions.
 				NewCmdEnv(name, f, streams),
 				NewCmdResources(name, f, streams),
 				NewCmdVolume(name, f, streams),
-				NewCmdProbe(name, f, streams.Out, streams.ErrOut),
+				// TODO: this seems reasonable to upstream
+				NewCmdProbe(name, f, streams),
 				NewCmdDeploymentHook(name, f, streams),
 				NewCmdImage(name, f, streams),
 			},
