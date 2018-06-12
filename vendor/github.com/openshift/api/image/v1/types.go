@@ -417,6 +417,43 @@ type DockerImageReference struct {
 	ID string `protobuf:"bytes,5,opt,name=iD"`
 }
 
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// ImageStreamLayers describes information about the layers referenced by images in this
+// image stream.
+type ImageStreamLayers struct {
+	metav1.TypeMeta `json:",inline"`
+	// Standard object's metadata.
+	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	// blobs is a map of blob name to metadata about the blob.
+	Blobs map[string]ImageLayerData `json:"blobs" protobuf:"bytes,2,rep,name=blobs"`
+	// images is a map between an image name and the names of the blobs and manifests that
+	// comprise the image.
+	Images map[string]ImageBlobReferences `json:"images" protobuf:"bytes,3,rep,name=images"`
+}
+
+// ImageBlobReferences describes the blob references within an image.
+type ImageBlobReferences struct {
+	// layers is the list of blobs that compose this image, from base layer to top layer.
+	// All layers referenced by this array will be defined in the blobs map. Some images
+	// may have zero layers.
+	// +optional
+	Layers []string `json:"layers" protobuf:"bytes,1,rep,name=layers"`
+	// manifest, if set, is the blob that contains the image manifest. Some images do
+	// not have separate manifest blobs and this field will be set to nil if so.
+	// +optional
+	Manifest *string `json:"manifest" protobuf:"bytes,2,opt,name=manifest"`
+}
+
+// ImageLayerData contains metadata about an image layer.
+type ImageLayerData struct {
+	// Size of the layer in bytes as defined by the underlying store. This field is
+	// optional if the necessary information about size is not available.
+	LayerSize *int64 `json:"size" protobuf:"varint,1,opt,name=size"`
+	// MediaType of the referenced object.
+	MediaType string `json:"mediaType" protobuf:"bytes,2,opt,name=mediaType"`
+}
+
 // +genclient
 // +genclient:onlyVerbs=create
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
