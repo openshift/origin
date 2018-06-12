@@ -287,7 +287,7 @@ func (s *rsyncDaemonStrategy) Validate() error {
 }
 
 func newRsyncDaemonStrategy(f kcmdutil.Factory, c *cobra.Command, o *RsyncOptions) (copyStrategy, error) {
-	flags := []string{"-a", "--omit-dir-times", "--numeric-ids"}
+	flags := rsyncDefaultFlags
 	flags = append(flags, rsyncFlagsFromOptions(o)...)
 
 	remoteExec, err := newRemoteExecutor(f, o)

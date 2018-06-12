@@ -35,7 +35,11 @@ var (
 		https://www.itefix.net/cwrsync.
 
 		If no container is specified, the first container of the pod is used
-		for the copy.`)
+		for the copy.
+
+		The following flags are passed to rsync by default:
+		--archive --no-owner --no-group --omit-dir-times --numeric-ids
+		`)
 
 	rsyncExample = templates.Examples(`
 	  # Synchronize a local directory with a pod directory
@@ -43,6 +47,8 @@ var (
 
 	  # Synchronize a pod directory with a local directory
 	  %[1]s POD:/remote/dir/ ./local/dir`)
+
+	rsyncDefaultFlags = []string{"--archive", "--no-owner", "--no-group", "--omit-dir-times", "--numeric-ids"}
 )
 
 // copyStrategy

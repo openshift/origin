@@ -51,7 +51,8 @@ func newRsyncStrategy(f kcmdutil.Factory, c *cobra.Command, o *RsyncOptions) (co
 	}
 	// The blocking-io flag is used to resolve a sync issue when
 	// copying from the pod to the local machine
-	flags := []string{"-a", "--blocking-io", "--omit-dir-times", "--numeric-ids"}
+	flags := []string{"--blocking-io"}
+	flags = append(flags, rsyncDefaultFlags...)
 	flags = append(flags, rsyncFlagsFromOptions(o)...)
 
 	podName := o.Source.PodName
