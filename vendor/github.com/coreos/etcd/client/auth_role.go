@@ -33,7 +33,7 @@ type Role struct {
 type Permissions struct {
 	KV rwPermission `json:"kv"`
 }
-
+// MODIFIED!
 type rwPermission struct {
 	Read  []string `json:"read"`
 	Write []string `json:"write"`
