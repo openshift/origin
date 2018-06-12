@@ -3,6 +3,7 @@ package etcd
 import (
 	"context"
 
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/registry/generic"
@@ -47,7 +48,8 @@ func NewREST(
 	subjectAccessReviewRegistry authorizationclient.SubjectAccessReviewInterface,
 	limitVerifier imageadmission.LimitVerifier,
 	registryWhitelister whitelist.RegistryWhitelister,
-) (*REST, *StatusREST, *InternalREST, error) {
+	imageLayerIndex ImageLayerIndex,
+) (*REST, *LayersREST, *StatusREST, *InternalREST, error) {
 	store := registry.Store{
 		NewFunc:                  func() runtime.Object { return &imageapi.ImageStream{} },
 		NewListFunc:              func() runtime.Object { return &imageapi.ImageStreamList{} },
@@ -72,8 +74,10 @@ func NewREST(
 		AttrFunc:    storage.AttrFunc(storage.DefaultNamespaceScopedAttr).WithFieldMutation(imageapi.ImageStreamSelector),
 	}
 	if err := store.CompleteWithOptions(options); err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
+
+	layersREST := &LayersREST{index: imageLayerIndex, store: &store}
 
 	statusStrategy := imagestream.NewStatusStrategy(strategy)
 	statusStore := store
@@ -89,7 +93,7 @@ func NewREST(
 	internalStore.UpdateStrategy = internalStrategy
 
 	internalREST := &InternalREST{store: &internalStore}
-	return rest, statusREST, internalREST, nil
+	return rest, layersREST, statusREST, internalREST, nil
 }
 
 // StatusREST implements the REST endpoint for changing the status of an image stream.
@@ -137,6 +141,72 @@ func (r *InternalREST) Create(ctx context.Context, obj runtime.Object, createVal
 // Update alters both the spec and status of the object.
 func (r *InternalREST) Update(ctx context.Context, name string, objInfo rest.UpdatedObjectInfo, createValidation rest.ValidateObjectFunc, updateValidation rest.ValidateObjectUpdateFunc) (runtime.Object, bool, error) {
 	return r.store.Update(ctx, name, objInfo, createValidation, updateValidation)
+}
+
+// LayersREST implements the REST endpoint for changing both the spec and status of an image stream.
+type LayersREST struct {
+	store *registry.Store
+	index ImageLayerIndex
+}
+
+var _ rest.Getter = &LayersREST{}
+
+func (r *LayersREST) New() runtime.Object {
+	return &imageapi.ImageStreamLayers{}
+}
+
+// Get returns the layers for an image stream.
+func (r *LayersREST) Get(ctx context.Context, name string, options *metav1.GetOptions) (runtime.Object, error) {
+	if !r.index.HasSynced() {
+		return nil, errors.NewServerTimeout(r.store.DefaultQualifiedResource, "get", 2)
+	}
+	obj, err := r.store.Get(ctx, name, options)
+	if err != nil {
+		return nil, err
+	}
+	is := obj.(*imageapi.ImageStream)
+	isl := &imageapi.ImageStreamLayers{
+		ObjectMeta: is.ObjectMeta,
+		Blobs:      make(map[string]imageapi.ImageLayerData),
+		Images:     make(map[string]imageapi.ImageBlobReferences),
+	}
+
+	for _, status := range is.Status.Tags {
+		for _, item := range status.Items {
+			if len(item.Image) == 0 {
+				continue
+			}
+
+			obj, _, _ := r.index.GetByKey(item.Image)
+			entry, ok := obj.(*ImageLayers)
+			if !ok {
+				continue
+			}
+
+			if _, ok := isl.Images[item.Image]; !ok {
+				var reference imageapi.ImageBlobReferences
+				for _, layer := range entry.Layers {
+					reference.Layers = append(reference.Layers, layer.Name)
+					if _, ok := isl.Blobs[layer.Name]; !ok {
+						isl.Blobs[layer.Name] = imageapi.ImageLayerData{LayerSize: &layer.LayerSize, MediaType: layer.MediaType}
+					}
+				}
+				if blob := entry.Manifest; blob != nil {
+					reference.Manifest = &blob.Name
+					if _, ok := isl.Blobs[blob.Name]; !ok {
+						if blob.LayerSize == 0 {
+							// only send media type since we don't the size of the manifest
+							isl.Blobs[blob.Name] = imageapi.ImageLayerData{MediaType: blob.MediaType}
+						} else {
+							isl.Blobs[blob.Name] = imageapi.ImageLayerData{LayerSize: &blob.LayerSize, MediaType: blob.MediaType}
+						}
+					}
+				}
+				isl.Images[item.Image] = reference
+			}
+		}
+	}
+	return isl, nil
 }
 
 // LegacyREST allows us to wrap and alter some behavior
