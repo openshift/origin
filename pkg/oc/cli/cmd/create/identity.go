@@ -2,19 +2,17 @@ package create
 
 import (
 	"fmt"
-	"io"
 	"strings"
 
 	"github.com/spf13/cobra"
 
-	"k8s.io/apimachinery/pkg/runtime"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
-	userapi "github.com/openshift/origin/pkg/user/apis/user"
-	userclientinternal "github.com/openshift/origin/pkg/user/generated/internalclientset"
-	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
+	userv1 "github.com/openshift/api/user/v1"
+	userv1client "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 )
 
 const IdentityRecommendedName = "identity"
@@ -36,22 +34,19 @@ var (
 )
 
 type CreateIdentityOptions struct {
+	CreateSubcommandOptions *CreateSubcommandOptions
+
 	ProviderName     string
 	ProviderUserName string
 
-	IdentityClient userclient.IdentityInterface
-
-	DryRun bool
-
-	OutputFormat string
-	Out          io.Writer
-	Printer      ObjectPrinter
+	IdentityClient userv1client.IdentitiesGetter
 }
 
 // NewCmdCreateIdentity is a macro command to create a new identity
-func NewCmdCreateIdentity(name, fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
-	o := &CreateIdentityOptions{Out: out}
-
+func NewCmdCreateIdentity(name, fullName string, f genericclioptions.RESTClientGetter, streams genericclioptions.IOStreams) *cobra.Command {
+	o := &CreateIdentityOptions{
+		CreateSubcommandOptions: NewCreateSubcommandOptions(streams),
+	}
 	cmd := &cobra.Command{
 		Use:     name + " <PROVIDER_NAME>:<PROVIDER_USER_NAME>",
 		Short:   "Manually create an identity (only needed if automatic creation is disabled).",
@@ -59,91 +54,55 @@ func NewCmdCreateIdentity(name, fullName string, f kcmdutil.Factory, out io.Writ
 		Example: fmt.Sprintf(identityExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			cmdutil.CheckErr(o.Complete(cmd, f, args))
-			cmdutil.CheckErr(o.Validate())
 			cmdutil.CheckErr(o.Run())
 		},
 	}
 
+	o.CreateSubcommandOptions.PrintFlags.AddFlags(cmd)
 	cmdutil.AddDryRunFlag(cmd)
-	cmdutil.AddPrinterFlags(cmd)
+
 	return cmd
 }
 
-func (o *CreateIdentityOptions) Complete(cmd *cobra.Command, f kcmdutil.Factory, args []string) error {
-	switch len(args) {
-	case 0:
-		return fmt.Errorf("identity name in the format <PROVIDER_NAME>:<PROVIDER_USER_NAME> is required")
-	case 1:
-		parts := strings.Split(args[0], ":")
-		if len(parts) != 2 {
-			return fmt.Errorf("identity name in the format <PROVIDER_NAME>:<PROVIDER_USER_NAME> is required")
-		}
-		o.ProviderName = parts[0]
-		o.ProviderUserName = parts[1]
-	default:
-		return fmt.Errorf("exactly one argument (username) is supported, not: %v", args)
-	}
-
-	o.DryRun = cmdutil.GetFlagBool(cmd, "dry-run")
-
+func (o *CreateIdentityOptions) Complete(cmd *cobra.Command, f genericclioptions.RESTClientGetter, args []string) error {
 	clientConfig, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}
-	client, err := userclientinternal.NewForConfig(clientConfig)
+	o.IdentityClient, err = userv1client.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
-	o.IdentityClient = client.User().Identities()
 
-	o.OutputFormat = cmdutil.GetFlagString(cmd, "output")
-
-	o.Printer = func(obj runtime.Object, out io.Writer) error {
-		return cmdutil.PrintObject(cmd, obj, out)
+	if err := o.CreateSubcommandOptions.Complete(f, cmd, args); err != nil {
+		return err
 	}
 
-	return nil
-}
-
-func (o *CreateIdentityOptions) Validate() error {
-	if len(o.ProviderName) == 0 {
-		return fmt.Errorf("provider name is required")
+	parts := strings.Split(o.CreateSubcommandOptions.Name, ":")
+	if len(parts) != 2 {
+		return fmt.Errorf("identity name in the format <PROVIDER_NAME>:<PROVIDER_USER_NAME> is required")
 	}
-	if len(o.ProviderUserName) == 0 {
-		return fmt.Errorf("provider user name is required")
-	}
-	if o.IdentityClient == nil {
-		return fmt.Errorf("IdentityClient is required")
-	}
-	if o.Out == nil {
-		return fmt.Errorf("Out is required")
-	}
-	if o.Printer == nil {
-		return fmt.Errorf("Printer is required")
-	}
+	o.ProviderName = parts[0]
+	o.ProviderUserName = parts[1]
 
 	return nil
 }
 
 func (o *CreateIdentityOptions) Run() error {
-	identity := &userapi.Identity{}
-	identity.ProviderName = o.ProviderName
-	identity.ProviderUserName = o.ProviderUserName
+	identity := &userv1.Identity{
+		// this is ok because we know exactly how we want to be serialized
+		TypeMeta:         metav1.TypeMeta{APIVersion: userv1.SchemeGroupVersion.String(), Kind: "Identity"},
+		ProviderName:     o.ProviderName,
+		ProviderUserName: o.ProviderUserName,
+	}
 
-	actualIdentity := identity
-
-	var err error
-	if !o.DryRun {
-		actualIdentity, err = o.IdentityClient.Create(identity)
+	if !o.CreateSubcommandOptions.DryRun {
+		var err error
+		identity, err = o.IdentityClient.Identities().Create(identity)
 		if err != nil {
 			return err
 		}
 	}
 
-	if useShortOutput := o.OutputFormat == "name"; useShortOutput || len(o.OutputFormat) == 0 {
-		cmdutil.PrintSuccess(useShortOutput, o.Out, actualIdentity, o.DryRun, "created")
-		return nil
-	}
-
-	return o.Printer(actualIdentity, o.Out)
+	return o.CreateSubcommandOptions.Printer.PrintObj(identity, o.CreateSubcommandOptions.Out)
 }

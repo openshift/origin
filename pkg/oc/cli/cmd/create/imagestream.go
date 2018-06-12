@@ -2,19 +2,16 @@ package create
 
 import (
 	"fmt"
-	"io"
 
 	"github.com/spf13/cobra"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	imageclientinternal "github.com/openshift/origin/pkg/image/generated/internalclientset"
-	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
+	imagev1 "github.com/openshift/api/image/v1"
+	imagev1client "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 )
 
 const ImageStreamRecommendedName = "imagestream"
@@ -38,26 +35,18 @@ var (
 )
 
 type CreateImageStreamOptions struct {
-	IS     *imageapi.ImageStream
-	Client imageclient.ImageStreamsGetter
+	CreateSubcommandOptions *CreateSubcommandOptions
 
-	DryRun bool
+	LookupLocal bool
 
-	OutputFormat string
-	Out          io.Writer
-	Printer      ObjectPrinter
+	Client imagev1client.ImageStreamsGetter
 }
 
 // NewCmdCreateImageStream is a macro command to create a new image stream
-func NewCmdCreateImageStream(name, fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
+func NewCmdCreateImageStream(name, fullName string, f genericclioptions.RESTClientGetter, streams genericclioptions.IOStreams) *cobra.Command {
 	o := &CreateImageStreamOptions{
-		Out: out,
-		IS: &imageapi.ImageStream{
-			ObjectMeta: metav1.ObjectMeta{},
-			Spec:       imageapi.ImageStreamSpec{},
-		},
+		CreateSubcommandOptions: NewCreateSubcommandOptions(streams),
 	}
-
 	cmd := &cobra.Command{
 		Use:     name + " NAME",
 		Short:   "Create a new empty image stream.",
@@ -65,87 +54,50 @@ func NewCmdCreateImageStream(name, fullName string, f kcmdutil.Factory, out io.W
 		Example: fmt.Sprintf(imageStreamExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			cmdutil.CheckErr(o.Complete(cmd, f, args))
-			cmdutil.CheckErr(o.Validate())
 			cmdutil.CheckErr(o.Run())
 		},
 		Aliases: []string{"is"},
 	}
+	cmd.Flags().BoolVar(&o.LookupLocal, "lookup-local", o.LookupLocal, "If true, the image stream will be the source for any top-level image reference in this project.")
 
-	cmd.Flags().BoolVar(&o.IS.Spec.LookupPolicy.Local, "lookup-local", false, "If true, the image stream will be the source for any top-level image reference in this project.")
-	cmdutil.AddPrinterFlags(cmd)
+	o.CreateSubcommandOptions.PrintFlags.AddFlags(cmd)
 	cmdutil.AddDryRunFlag(cmd)
+
 	return cmd
 }
 
-func (o *CreateImageStreamOptions) Complete(cmd *cobra.Command, f kcmdutil.Factory, args []string) error {
-	var err error
-	o.DryRun = cmdutil.GetFlagBool(cmd, "dry-run")
-
-	switch len(args) {
-	case 0:
-		return fmt.Errorf("image stream name is required")
-	case 1:
-		o.IS.Name = args[0]
-	default:
-		return fmt.Errorf("exactly one argument (name) is supported, not: %v", args)
-	}
-
-	o.IS.Namespace, _, err = f.ToRawKubeConfigLoader().Namespace()
-	if err != nil {
-		return err
-	}
-
+func (o *CreateImageStreamOptions) Complete(cmd *cobra.Command, f genericclioptions.RESTClientGetter, args []string) error {
 	clientConfig, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}
-	client, err := imageclientinternal.NewForConfig(clientConfig)
+	o.Client, err = imagev1client.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
-	o.Client = client.Image()
 
-	o.OutputFormat = cmdutil.GetFlagString(cmd, "output")
-
-	o.Printer = func(obj runtime.Object, out io.Writer) error {
-		return cmdutil.PrintObject(cmd, obj, out)
-	}
-
-	return nil
-}
-
-func (o *CreateImageStreamOptions) Validate() error {
-	if o.IS == nil {
-		return fmt.Errorf("IS is required")
-	}
-	if o.Client == nil {
-		return fmt.Errorf("Client is required")
-	}
-	if o.Out == nil {
-		return fmt.Errorf("Out is required")
-	}
-	if o.Printer == nil {
-		return fmt.Errorf("Printer is required")
-	}
-
-	return nil
+	return o.CreateSubcommandOptions.Complete(f, cmd, args)
 }
 
 func (o *CreateImageStreamOptions) Run() error {
-	actualObj := o.IS
+	imageStream := &imagev1.ImageStream{
+		// this is ok because we know exactly how we want to be serialized
+		TypeMeta:   metav1.TypeMeta{APIVersion: imagev1.SchemeGroupVersion.String(), Kind: "ImageStream"},
+		ObjectMeta: metav1.ObjectMeta{Name: o.CreateSubcommandOptions.Name},
+		Spec: imagev1.ImageStreamSpec{
+			LookupPolicy: imagev1.ImageLookupPolicy{
+				Local: o.LookupLocal,
+			},
+		},
+	}
 
-	var err error
-	if !o.DryRun {
-		actualObj, err = o.Client.ImageStreams(o.IS.Namespace).Create(o.IS)
+	if !o.CreateSubcommandOptions.DryRun {
+		var err error
+		imageStream, err = o.Client.ImageStreams(o.CreateSubcommandOptions.Namespace).Create(imageStream)
 		if err != nil {
 			return err
 		}
 	}
 
-	if useShortOutput := o.OutputFormat == "name"; useShortOutput || len(o.OutputFormat) == 0 {
-		cmdutil.PrintSuccess(useShortOutput, o.Out, actualObj, o.DryRun, "created")
-		return nil
-	}
-
-	return o.Printer(actualObj, o.Out)
+	return o.CreateSubcommandOptions.Printer.PrintObj(imageStream, o.CreateSubcommandOptions.Out)
 }

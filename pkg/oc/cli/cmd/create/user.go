@@ -2,18 +2,16 @@ package create
 
 import (
 	"fmt"
-	"io"
 
 	"github.com/spf13/cobra"
 
-	"k8s.io/apimachinery/pkg/runtime"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
-	userapi "github.com/openshift/origin/pkg/user/apis/user"
-	userclientinternal "github.com/openshift/origin/pkg/user/generated/internalclientset"
-	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
+	userv1 "github.com/openshift/api/user/v1"
+	userv1client "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 )
 
 const UserRecommendedName = "user"
@@ -35,22 +33,18 @@ var (
 )
 
 type CreateUserOptions struct {
-	Name     string
+	CreateSubcommandOptions *CreateSubcommandOptions
+
 	FullName string
 
-	UserClient userclient.UserInterface
-
-	DryRun bool
-
-	OutputFormat string
-	Out          io.Writer
-	Printer      ObjectPrinter
+	UserClient userv1client.UsersGetter
 }
 
 // NewCmdCreateUser is a macro command to create a new user
-func NewCmdCreateUser(name, fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
-	o := &CreateUserOptions{Out: out}
-
+func NewCmdCreateUser(name, fullName string, f genericclioptions.RESTClientGetter, streams genericclioptions.IOStreams) *cobra.Command {
+	o := &CreateUserOptions{
+		CreateSubcommandOptions: NewCreateSubcommandOptions(streams),
+	}
 	cmd := &cobra.Command{
 		Use:     name + " USERNAME",
 		Short:   "Manually create a user (only needed if automatic creation is disabled).",
@@ -58,84 +52,46 @@ func NewCmdCreateUser(name, fullName string, f kcmdutil.Factory, out io.Writer) 
 		Example: fmt.Sprintf(userExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			cmdutil.CheckErr(o.Complete(cmd, f, args))
-			cmdutil.CheckErr(o.Validate())
 			cmdutil.CheckErr(o.Run())
 		},
 	}
 	cmd.Flags().StringVar(&o.FullName, "full-name", o.FullName, "Display name of the user")
+
+	o.CreateSubcommandOptions.PrintFlags.AddFlags(cmd)
 	cmdutil.AddDryRunFlag(cmd)
-	cmdutil.AddPrinterFlags(cmd)
+
 	return cmd
 }
 
-func (o *CreateUserOptions) Complete(cmd *cobra.Command, f kcmdutil.Factory, args []string) error {
-	switch len(args) {
-	case 0:
-		return fmt.Errorf("username is required")
-	case 1:
-		o.Name = args[0]
-	default:
-		return fmt.Errorf("exactly one argument (username) is supported, not: %v", args)
-	}
-
-	o.DryRun = cmdutil.GetFlagBool(cmd, "dry-run")
-
+func (o *CreateUserOptions) Complete(cmd *cobra.Command, f genericclioptions.RESTClientGetter, args []string) error {
 	clientConfig, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}
-	client, err := userclientinternal.NewForConfig(clientConfig)
+	o.UserClient, err = userv1client.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
 
-	o.UserClient = client.User()
-
-	o.OutputFormat = cmdutil.GetFlagString(cmd, "output")
-
-	o.Printer = func(obj runtime.Object, out io.Writer) error {
-		return cmdutil.PrintObject(cmd, obj, out)
-	}
-
-	return nil
-}
-
-func (o *CreateUserOptions) Validate() error {
-	if len(o.Name) == 0 {
-		return fmt.Errorf("username is required")
-	}
-	if o.UserClient == nil {
-		return fmt.Errorf("UserClient is required")
-	}
-	if o.Out == nil {
-		return fmt.Errorf("Out is required")
-	}
-	if o.Printer == nil {
-		return fmt.Errorf("Printer is required")
-	}
-
-	return nil
+	return o.CreateSubcommandOptions.Complete(f, cmd, args)
 }
 
 func (o *CreateUserOptions) Run() error {
-	user := &userapi.User{}
-	user.Name = o.Name
-	user.FullName = o.FullName
-
-	actualUser := user
-
+	user := &userv1.User{
+		// this is ok because we know exactly how we want to be serialized
+		TypeMeta: metav1.TypeMeta{APIVersion: userv1.SchemeGroupVersion.String(), Kind: "User"},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: o.CreateSubcommandOptions.Name,
+		},
+		FullName: o.FullName,
+	}
 	var err error
-	if !o.DryRun {
-		actualUser, err = o.UserClient.Users().Create(user)
+	if !o.CreateSubcommandOptions.DryRun {
+		user, err = o.UserClient.Users().Create(user)
 		if err != nil {
 			return err
 		}
 	}
 
-	if useShortOutput := o.OutputFormat == "name"; useShortOutput || len(o.OutputFormat) == 0 {
-		cmdutil.PrintSuccess(useShortOutput, o.Out, actualUser, o.DryRun, "created")
-		return nil
-	}
-
-	return o.Printer(actualUser, o.Out)
+	return o.CreateSubcommandOptions.Printer.PrintObj(user, o.CreateSubcommandOptions.Out)
 }

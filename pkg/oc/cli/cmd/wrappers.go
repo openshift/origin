@@ -190,15 +190,15 @@ func NewCmdCreate(parentName string, f kcmdutil.Factory, streams genericclioptio
 	templates.NormalizeAll(cmd)
 
 	// create subcommands
-	cmd.AddCommand(create.NewCmdCreateRoute(parentName, f, streams.Out, streams.ErrOut))
-	cmd.AddCommand(create.NewCmdCreateDeploymentConfig(create.DeploymentConfigRecommendedName, parentName+" create "+create.DeploymentConfigRecommendedName, f, streams.Out))
-	cmd.AddCommand(create.NewCmdCreateClusterQuota(create.ClusterQuotaRecommendedName, parentName+" create "+create.ClusterQuotaRecommendedName, f, streams.Out))
+	cmd.AddCommand(create.NewCmdCreateRoute(parentName, f, streams))
+	cmd.AddCommand(create.NewCmdCreateDeploymentConfig(create.DeploymentConfigRecommendedName, parentName+" create "+create.DeploymentConfigRecommendedName, f, streams))
+	cmd.AddCommand(create.NewCmdCreateClusterQuota(create.ClusterQuotaRecommendedName, parentName+" create "+create.ClusterQuotaRecommendedName, f, streams))
 
-	cmd.AddCommand(create.NewCmdCreateUser(create.UserRecommendedName, parentName+" create "+create.UserRecommendedName, f, streams.Out))
-	cmd.AddCommand(create.NewCmdCreateIdentity(create.IdentityRecommendedName, parentName+" create "+create.IdentityRecommendedName, f, streams.Out))
-	cmd.AddCommand(create.NewCmdCreateUserIdentityMapping(create.UserIdentityMappingRecommendedName, parentName+" create "+create.UserIdentityMappingRecommendedName, f, streams.Out))
-	cmd.AddCommand(create.NewCmdCreateImageStream(create.ImageStreamRecommendedName, parentName+" create "+create.ImageStreamRecommendedName, f, streams.Out))
-	cmd.AddCommand(create.NewCmdCreateImageStreamTag(create.ImageStreamTagRecommendedName, parentName+" create "+create.ImageStreamTagRecommendedName, f, streams.Out))
+	cmd.AddCommand(create.NewCmdCreateUser(create.UserRecommendedName, parentName+" create "+create.UserRecommendedName, f, streams))
+	cmd.AddCommand(create.NewCmdCreateIdentity(create.IdentityRecommendedName, parentName+" create "+create.IdentityRecommendedName, f, streams))
+	cmd.AddCommand(create.NewCmdCreateUserIdentityMapping(create.UserIdentityMappingRecommendedName, parentName+" create "+create.UserIdentityMappingRecommendedName, f, streams))
+	cmd.AddCommand(create.NewCmdCreateImageStream(create.ImageStreamRecommendedName, parentName+" create "+create.ImageStreamRecommendedName, f, streams))
+	cmd.AddCommand(create.NewCmdCreateImageStreamTag(create.ImageStreamTagRecommendedName, parentName+" create "+create.ImageStreamTagRecommendedName, f, streams))
 
 	adjustCmdExamples(cmd, parentName, "create")
 

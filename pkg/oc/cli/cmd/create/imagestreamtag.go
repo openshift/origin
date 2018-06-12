@@ -2,21 +2,19 @@ package create
 
 import (
 	"fmt"
-	"io"
 	"strings"
 
 	"github.com/spf13/cobra"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
+	imagev1 "github.com/openshift/api/image/v1"
+	imagev1client "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	imageclientinternal "github.com/openshift/origin/pkg/image/generated/internalclientset"
-	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	utilenv "github.com/openshift/origin/pkg/oc/util/env"
 )
 
@@ -26,9 +24,9 @@ var (
 	imageStreamTagLong = templates.LongDesc(`
 		Create a new image stream tag
 
-		Image streams tags allow you to track, tag, and import images from other registries. They also 
-		define an access controlled destination that you can push images to. An image stream tag can 
-		reference images from many different registries and control how those images are referenced by 
+		Image streams tags allow you to track, tag, and import images from other registries. They also
+		define an access controlled destination that you can push images to. An image stream tag can
+		reference images from many different registries and control how those images are referenced by
 		pods, deployments, and builds.
 
 		If --resolve-local is passed, the image stream will be used as the source when pods reference
@@ -42,30 +40,25 @@ var (
 )
 
 type CreateImageStreamTagOptions struct {
-	ISTag  *imageapi.ImageStreamTag
-	Client imageclient.ImageStreamTagsGetter
+	CreateSubcommandOptions *CreateSubcommandOptions
 
-	FromImage   string
-	From        string
-	Annotations []string
+	Client imagev1client.ImageStreamTagsGetter
 
-	DryRun bool
-
-	OutputFormat string
-	Out          io.Writer
-	Printer      ObjectPrinter
+	FromImage          string
+	From               string
+	Annotations        []string
+	Scheduled          bool
+	Insecure           bool
+	Reference          bool
+	ReferencePolicyStr string
+	ReferencePolicy    imagev1.TagReferencePolicyType
 }
 
 // NewCmdCreateImageStreamTag is a command to create a new image stream tag.
-func NewCmdCreateImageStreamTag(name, fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
+func NewCmdCreateImageStreamTag(name, fullName string, f genericclioptions.RESTClientGetter, streams genericclioptions.IOStreams) *cobra.Command {
 	o := &CreateImageStreamTagOptions{
-		Out: out,
-		ISTag: &imageapi.ImageStreamTag{
-			ObjectMeta: metav1.ObjectMeta{},
-			Tag:        &imageapi.TagReference{},
-		},
+		CreateSubcommandOptions: NewCreateSubcommandOptions(streams),
 	}
-
 	cmd := &cobra.Command{
 		Use:     name + " NAME",
 		Short:   "Create a new image stream tag.",
@@ -73,34 +66,66 @@ func NewCmdCreateImageStreamTag(name, fullName string, f kcmdutil.Factory, out i
 		Example: fmt.Sprintf(imageStreamTagExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			cmdutil.CheckErr(o.Complete(cmd, f, args))
-			cmdutil.CheckErr(o.Validate())
 			cmdutil.CheckErr(o.Run())
 		},
 		Aliases: []string{"istag"},
 	}
+	cmd.Flags().StringVar(&o.FromImage, "from-image", o.FromImage, "Use the provided remote image with this tag.")
+	cmd.Flags().StringVar(&o.From, "from", o.From, "Use the provided image stream tag or image stream image as the source: [<namespace>/]name[:<tag>|@<id>]")
+	cmd.Flags().StringSliceVarP(&o.Annotations, "annotation", "A", o.Annotations, "Set an annotation on this image stream tag.")
+	cmd.Flags().MarkShorthandDeprecated("annotation", "please use --annotation instead.")
+	cmd.Flags().BoolVar(&o.Scheduled, "scheduled", o.Scheduled, "If set the remote source of this image will be periodically checked for imports.")
+	cmd.Flags().BoolVar(&o.Insecure, "insecure", o.Insecure, "Allow importing from registries that are not fully secured by HTTPS.")
+	cmd.Flags().StringVar(&o.ReferencePolicyStr, "reference-policy", o.ReferencePolicyStr, "If set to 'Local', referenced images will be pulled from the integrated registry. Ignored when reference is true.")
+	cmd.Flags().BoolVar(&o.Reference, "reference", o.Reference, "If true, the tag value will be used whenever the image stream tag is referenced.")
 
-	cmd.Flags().StringVar(&o.FromImage, "from-image", "", "Use the provided remote image with this tag.")
-	cmd.Flags().StringVar(&o.From, "from", "", "Use the provided image stream tag or image stream image as the source: [<namespace>/]name[:<tag>|@<id>]")
-	cmd.Flags().StringSliceVarP(&o.Annotations, "annotation", "A", nil, "Set an annotation on this image stream tag.")
-	cmd.Flags().BoolVar(&o.ISTag.Tag.ImportPolicy.Scheduled, "scheduled", false, "If set the remote source of this image will be periodically checked for imports.")
-	cmd.Flags().BoolVar(&o.ISTag.Tag.ImportPolicy.Insecure, "insecure", false, "Allow importing from registries that are not fully secured by HTTPS.")
-	cmd.Flags().StringVar((*string)(&o.ISTag.Tag.ReferencePolicy.Type), "reference-policy", (string)(o.ISTag.Tag.ReferencePolicy.Type), "If set to 'Local', referenced images will be pulled from the integrated registry. Ignored when reference is true.")
-	cmd.Flags().BoolVar(&o.ISTag.Tag.Reference, "reference", o.ISTag.Tag.Reference, "If true, the tag value will be used whenever the image stream tag is referenced.")
-	cmdutil.AddPrinterFlags(cmd)
+	o.CreateSubcommandOptions.PrintFlags.AddFlags(cmd)
 	cmdutil.AddDryRunFlag(cmd)
+
 	return cmd
 }
 
-func (o *CreateImageStreamTagOptions) Complete(cmd *cobra.Command, f kcmdutil.Factory, args []string) error {
-	o.DryRun = cmdutil.GetFlagBool(cmd, "dry-run")
+func (o *CreateImageStreamTagOptions) Complete(cmd *cobra.Command, f genericclioptions.RESTClientGetter, args []string) error {
+	if len(o.ReferencePolicyStr) > 0 {
+		switch strings.ToLower(o.ReferencePolicyStr) {
+		case "source":
+			o.ReferencePolicy = imagev1.SourceTagReferencePolicy
+		case "local":
+			o.ReferencePolicy = imagev1.LocalTagReferencePolicy
+		default:
+			return fmt.Errorf("valid values for --reference-policy are: source, local")
+		}
+	}
 
-	switch len(args) {
-	case 0:
-		return fmt.Errorf("image stream tag name is required")
-	case 1:
-		o.ISTag.Name = args[0]
-	default:
-		return fmt.Errorf("exactly one argument (name:tag) is supported, not: %v", args)
+	clientConfig, err := f.ToRESTConfig()
+	if err != nil {
+		return err
+	}
+	o.Client, err = imagev1client.NewForConfig(clientConfig)
+	if err != nil {
+		return err
+	}
+
+	return o.CreateSubcommandOptions.Complete(f, cmd, args)
+}
+
+func (o *CreateImageStreamTagOptions) Run() error {
+	isTag := &imagev1.ImageStreamTag{
+		// this is ok because we know exactly how we want to be serialized
+		TypeMeta: metav1.TypeMeta{APIVersion: imagev1.SchemeGroupVersion.String(), Kind: "ImageStreamTag"},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: o.CreateSubcommandOptions.Name,
+		},
+		Tag: &imagev1.TagReference{
+			ImportPolicy: imagev1.TagImportPolicy{
+				Scheduled: o.Scheduled,
+				Insecure:  o.Insecure,
+			},
+			ReferencePolicy: imagev1.TagReferencePolicy{
+				Type: o.ReferencePolicy,
+			},
+			Reference: o.Reference,
+		},
 	}
 
 	annotations, remove, err := utilenv.ParseAnnotation(o.Annotations, nil)
@@ -112,35 +137,14 @@ func (o *CreateImageStreamTagOptions) Complete(cmd *cobra.Command, f kcmdutil.Fa
 	}
 
 	// to preserve backwards compatibility we are forced to set this
-	o.ISTag.Annotations = annotations
-	o.ISTag.Tag.Annotations = annotations
-
-	o.ISTag.Namespace, _, err = f.ToRawKubeConfigLoader().Namespace()
-	if err != nil {
-		return err
-	}
-
-	clientConfig, err := f.ToRESTConfig()
-	if err != nil {
-		return err
-	}
-	client, err := imageclientinternal.NewForConfig(clientConfig)
-	if err != nil {
-		return err
-	}
-	o.Client = client.Image()
-
-	o.OutputFormat = cmdutil.GetFlagString(cmd, "output")
-
-	o.Printer = func(obj runtime.Object, out io.Writer) error {
-		return cmdutil.PrintObject(cmd, obj, out)
-	}
+	isTag.Annotations = annotations
+	isTag.Tag.Annotations = annotations
 
 	switch {
 	case len(o.FromImage) > 0 && len(o.From) > 0:
 		return fmt.Errorf("--from and --from-image may not be used together")
 	case len(o.FromImage) > 0:
-		o.ISTag.Tag.From = &kapi.ObjectReference{
+		isTag.Tag.From = &corev1.ObjectReference{
 			Name: o.FromImage,
 			Kind: "DockerImage",
 		}
@@ -163,48 +167,19 @@ func (o *CreateImageStreamTagOptions) Complete(cmd *cobra.Command, f kcmdutil.Fa
 		if len(ref.ID) > 0 {
 			kind = "ImageStreamImage"
 		}
-		o.ISTag.Tag.From = &kapi.ObjectReference{
+		isTag.Tag.From = &corev1.ObjectReference{
 			Kind:      kind,
 			Name:      name,
 			Namespace: ref.Namespace,
 		}
 	}
 
-	return nil
-}
-
-func (o *CreateImageStreamTagOptions) Validate() error {
-	if o.ISTag == nil {
-		return fmt.Errorf("ISTag is required")
-	}
-	if o.Client == nil {
-		return fmt.Errorf("Client is required")
-	}
-	if o.Out == nil {
-		return fmt.Errorf("Out is required")
-	}
-	if o.Printer == nil {
-		return fmt.Errorf("Printer is required")
-	}
-
-	return nil
-}
-
-func (o *CreateImageStreamTagOptions) Run() error {
-	actualObj := o.ISTag
-
-	var err error
-	if !o.DryRun {
-		actualObj, err = o.Client.ImageStreamTags(o.ISTag.Namespace).Create(o.ISTag)
+	if !o.CreateSubcommandOptions.DryRun {
+		isTag, err = o.Client.ImageStreamTags(o.CreateSubcommandOptions.Namespace).Create(isTag)
 		if err != nil {
 			return err
 		}
 	}
 
-	if useShortOutput := o.OutputFormat == "name"; useShortOutput || len(o.OutputFormat) == 0 {
-		cmdutil.PrintSuccess(useShortOutput, o.Out, actualObj, o.DryRun, "created")
-		return nil
-	}
-
-	return o.Printer(actualObj, o.Out)
+	return o.CreateSubcommandOptions.Printer.PrintObj(isTag, o.CreateSubcommandOptions.Out)
 }
