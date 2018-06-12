@@ -30,6 +30,8 @@ type dnsmasqMonitor struct {
 	metricError   *prometheus.CounterVec
 	metricRestart prometheus.Counter
 
+	ready func() bool
+
 	// dnsIP is the IP address this DNS server is reachable at from dnsmasq
 	dnsIP string
 	// dnsDomain is the domain name for this DNS server that dnsmasq should forward to
@@ -57,7 +59,10 @@ func (m *dnsmasqMonitor) initMetrics() {
 	}
 }
 
-func (m *dnsmasqMonitor) Start() error {
+func (m *dnsmasqMonitor) Start(stopCh <-chan struct{}) error {
+	if m.ready == nil {
+		m.ready = func() bool { return true }
+	}
 	m.initMetrics()
 	conn, err := utildbus.New().SystemBus()
 	if err != nil {
@@ -66,7 +71,7 @@ func (m *dnsmasqMonitor) Start() error {
 	if err := conn.BusObject().Call("org.freedesktop.DBus.AddMatch", 0, fmt.Sprintf("type='signal',path='%s',interface='%s'", dbusDnsmasqPath, dbusDnsmasqInterface)).Store(); err != nil {
 		return fmt.Errorf("unable to add a match rule to the system DBus: %v", err)
 	}
-	go m.run(conn, utilwait.NeverStop)
+	go m.run(conn, stopCh)
 	return nil
 }
 
@@ -74,6 +79,9 @@ func (m *dnsmasqMonitor) run(conn utildbus.Connection, stopCh <-chan struct{}) {
 	ch := make(chan *godbus.Signal, 20)
 	defer func() {
 		utilruntime.HandleCrash()
+		glog.V(2).Infof("dnsmasq monitor shutting down")
+		// clear our configuration on shutdown
+		m.refresh(conn, false)
 		// unregister the handler
 		conn.Signal(ch)
 	}()
@@ -89,7 +97,7 @@ func (m *dnsmasqMonitor) run(conn utildbus.Connection, stopCh <-chan struct{}) {
 			case "uk.org.thekelleys.dnsmasq.Up":
 				m.metricRestart.Inc()
 				glog.V(2).Infof("dnsmasq restarted, refreshing server configuration")
-				if err := m.refresh(conn); err != nil {
+				if err := m.refresh(conn, m.ready()); err != nil {
 					utilruntime.HandleError(fmt.Errorf("unable to refresh dnsmasq status on dnsmasq startup: %v", err))
 					m.metricError.WithLabelValues("restart").Inc()
 				} else {
@@ -101,7 +109,11 @@ func (m *dnsmasqMonitor) run(conn utildbus.Connection, stopCh <-chan struct{}) {
 
 	// no matter what, always keep trying to refresh dnsmasq
 	go utilwait.Until(func() {
-		if err := m.refresh(conn); err != nil {
+		for !m.ready() {
+			glog.V(4).Infof("Waiting for DNS data to be available to update dnsmasq")
+			time.Sleep(time.Second)
+		}
+		if err := m.refresh(conn, true); err != nil {
 			utilruntime.HandleError(fmt.Errorf("unable to periodically refresh dnsmasq status: %v", err))
 			m.metricError.WithLabelValues("periodic").Inc()
 		} else {
@@ -113,14 +125,19 @@ func (m *dnsmasqMonitor) run(conn utildbus.Connection, stopCh <-chan struct{}) {
 }
 
 // refresh invokes dnsmasq with the requested configuration
-func (m *dnsmasqMonitor) refresh(conn utildbus.Connection) error {
+func (m *dnsmasqMonitor) refresh(conn utildbus.Connection, ready bool) error {
 	m.lock.Lock()
 	defer m.lock.Unlock()
-	addresses := []string{
-		fmt.Sprintf("/in-addr.arpa/%s", m.dnsIP),
-		fmt.Sprintf("/%s/%s", m.dnsDomain, m.dnsIP),
+	var addresses []string
+	if ready {
+		addresses = []string{
+			fmt.Sprintf("/in-addr.arpa/%s", m.dnsIP),
+			fmt.Sprintf("/%s/%s", m.dnsDomain, m.dnsIP),
+		}
+		glog.V(4).Infof("Instructing dnsmasq to set the following servers: %v", addresses)
+	} else {
+		glog.V(2).Infof("DNS data is not ready, removing configuration from dnsmasq")
 	}
-	glog.V(5).Infof("Instructing dnsmasq to set the following servers: %v", addresses)
 	return conn.Object(dbusDnsmasqInterface, dbusDnsmasqPath).
 		Call("uk.org.thekelleys.SetDomainServers", 0, addresses).
 		Store()

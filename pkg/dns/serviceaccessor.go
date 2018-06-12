@@ -18,6 +18,7 @@ import (
 // ServiceAccessor is the interface used by the ServiceResolver to access
 // services.
 type ServiceAccessor interface {
+	HasSynced() bool
 	kcoreclient.ServicesGetter
 	ServiceByClusterIP(ip string) (*api.Service, error)
 }
@@ -25,7 +26,8 @@ type ServiceAccessor interface {
 // cachedServiceAccessor provides a cache of services that can answer queries
 // about service lookups efficiently.
 type cachedServiceAccessor struct {
-	store cache.Indexer
+	store     cache.Indexer
+	hasSynced func() bool
 }
 
 // cachedServiceAccessor implements ServiceAccessor
@@ -48,7 +50,14 @@ func NewCachedServiceAccessor(serviceInformer kcoreinformers.ServiceInformer) (S
 	if err != nil {
 		return nil, err
 	}
-	return &cachedServiceAccessor{store: serviceInformer.Informer().GetIndexer()}, nil
+	return &cachedServiceAccessor{
+		store:     serviceInformer.Informer().GetIndexer(),
+		hasSynced: serviceInformer.Informer().HasSynced,
+	}, nil
+}
+
+func (a *cachedServiceAccessor) HasSynced() bool {
+	return a.hasSynced()
 }
 
 // ServiceByClusterIP returns the first service that matches the provided clusterIP value.
@@ -139,6 +148,7 @@ func (a cachedServiceNamespacer) ProxyGet(scheme, name, port, path string, param
 // EndpointsAccessor is the interface used by the ServiceResolver to access
 // endpoints.
 type EndpointsAccessor interface {
+	HasSynced() bool
 	kcorelisters.EndpointsLister
 	// EndpointsByHostnameIP retrieves the Endpoints object containing a hostname
 	// that resolves to IP. Only endpoint addresses with a hostname field will match.
@@ -152,6 +162,7 @@ type EndpointsAccessor interface {
 type cachedEndpointsAccessor struct {
 	store cache.Indexer
 	kcorelisters.EndpointsLister
+	hasSynced func() bool
 }
 
 // cachedEndpointsAccessor implements EndpointsAccessor
@@ -175,6 +186,7 @@ func NewCachedEndpointsAccessor(endpointsInformer kcoreinformers.EndpointsInform
 		return nil, err
 	}
 	return &cachedEndpointsAccessor{
+		hasSynced:       endpointsInformer.Informer().HasSynced,
 		store:           endpointsInformer.Informer().GetIndexer(),
 		EndpointsLister: endpointsInformer.Lister(),
 	}, nil
@@ -192,6 +204,10 @@ func (a *cachedEndpointsAccessor) EndpointsByHostnameIP(ip string) ([]*api.Endpo
 		endpoints = append(endpoints, item.(*api.Endpoints))
 	}
 	return endpoints, nil
+}
+
+func (a *cachedEndpointsAccessor) HasSynced() bool {
+	return a.hasSynced()
 }
 
 // indexEndpointsByAddressHostnameIP
@@ -224,4 +240,8 @@ var errNotSupported = fmt.Errorf("hostname lookups not supported")
 // EndpointsByHostnameIP always returns an error.
 func (a SimpleEndpointsAccessor) EndpointsByHostnameIP(_ string) ([]*api.Endpoints, error) {
 	return nil, errNotSupported
+}
+
+func (a SimpleEndpointsAccessor) HasSynced() bool {
+	return true
 }
