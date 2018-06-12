@@ -2,19 +2,19 @@ package create
 
 import (
 	"fmt"
-	"io"
 
 	"github.com/spf13/cobra"
 
+	kapiv1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
+	userv1 "github.com/openshift/api/user/v1"
+	userv1client "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
-	userapi "github.com/openshift/origin/pkg/user/apis/user"
-	userclientinternal "github.com/openshift/origin/pkg/user/generated/internalclientset"
-	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 )
 
 const UserIdentityMappingRecommendedName = "useridentitymapping"
@@ -32,22 +32,19 @@ var (
 )
 
 type CreateUserIdentityMappingOptions struct {
+	*CreateSubcommandOptions
+
 	User     string
 	Identity string
 
-	UserIdentityMappingClient userclient.UserIdentityMappingInterface
-
-	DryRun bool
-
-	OutputFormat string
-	Out          io.Writer
-	Printer      ObjectPrinter
+	UserIdentityMappingClient userv1client.UserIdentityMappingsGetter
 }
 
 // NewCmdCreateUserIdentityMapping is a macro command to create a new identity
-func NewCmdCreateUserIdentityMapping(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	o := &CreateUserIdentityMappingOptions{Out: out}
-
+func NewCmdCreateUserIdentityMapping(name, fullName string, f *clientcmd.Factory, streams genericclioptions.IOStreams) *cobra.Command {
+	o := &CreateUserIdentityMappingOptions{
+		CreateSubcommandOptions: NewCreateSubcommandOptions(streams),
+	}
 	cmd := &cobra.Command{
 		Use:     name + " <IDENTITY_NAME> <USER_NAME>",
 		Short:   "Manually map an identity to a user.",
@@ -55,12 +52,13 @@ func NewCmdCreateUserIdentityMapping(name, fullName string, f *clientcmd.Factory
 		Example: fmt.Sprintf(userIdentityMappingExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			cmdutil.CheckErr(o.Complete(cmd, f, args))
-			cmdutil.CheckErr(o.Validate())
 			cmdutil.CheckErr(o.Run())
 		},
 	}
-	cmdutil.AddPrinterFlags(cmd)
+
+	o.PrintFlags.AddFlags(cmd)
 	cmdutil.AddDryRunFlag(cmd)
+
 	return cmd
 }
 
@@ -77,66 +75,53 @@ func (o *CreateUserIdentityMappingOptions) Complete(cmd *cobra.Command, f *clien
 		return fmt.Errorf("exactly two arguments (identity and user name) are supported, not: %v", args)
 	}
 
-	o.DryRun = cmdutil.GetFlagBool(cmd, "dry-run")
-
 	clientConfig, err := f.ClientConfig()
 	if err != nil {
 		return err
 	}
-	client, err := userclientinternal.NewForConfig(clientConfig)
+	o.UserIdentityMappingClient, err = userv1client.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
-	o.UserIdentityMappingClient = client.User().UserIdentityMappings()
 
-	o.OutputFormat = cmdutil.GetFlagString(cmd, "output")
-
-	o.Printer = func(obj runtime.Object, out io.Writer) error {
-		return cmdutil.PrintObject(cmd, obj, out)
+	// this is copied from CreateSubcommandOptions.Complete because this command
+	// parses incoming arguments differently
+	o.Mapper, _ = f.Object()
+	o.Namespace, o.EnforceNamespace, err = f.DefaultNamespace()
+	if err != nil {
+		return err
 	}
 
-	return nil
-}
-
-func (o *CreateUserIdentityMappingOptions) Validate() error {
-	if len(o.Identity) == 0 {
-		return fmt.Errorf("identity is required")
+	o.DryRun = cmdutil.GetDryRunFlag(cmd)
+	if o.DryRun {
+		o.PrintFlags.Complete("%s (dry run)")
 	}
-	if len(o.User) == 0 {
-		return fmt.Errorf("user is required")
+	printer, err := o.PrintFlags.ToPrinter()
+	if err != nil {
+		return err
 	}
-	if o.UserIdentityMappingClient == nil {
-		return fmt.Errorf("UserIdentityMappingClient is required")
-	}
-	if o.Out == nil {
-		return fmt.Errorf("Out is required")
-	}
-	if o.Printer == nil {
-		return fmt.Errorf("Printer is required")
+	o.PrintObj = func(obj runtime.Object) error {
+		return printer.PrintObj(obj, o.Out)
 	}
 
 	return nil
 }
 
 func (o *CreateUserIdentityMappingOptions) Run() error {
-	mapping := &userapi.UserIdentityMapping{}
-	mapping.Identity = kapi.ObjectReference{Name: o.Identity}
-	mapping.User = kapi.ObjectReference{Name: o.User}
-
-	actualMapping := mapping
+	mapping := &userv1.UserIdentityMapping{
+		// this is ok because we know exactly how we want to be serialized
+		TypeMeta: metav1.TypeMeta{APIVersion: userv1.SchemeGroupVersion.String(), Kind: "UserIdentityMapping"},
+		Identity: kapiv1.ObjectReference{Name: o.Identity},
+		User:     kapiv1.ObjectReference{Name: o.User},
+	}
 
 	var err error
 	if !o.DryRun {
-		actualMapping, err = o.UserIdentityMappingClient.Create(mapping)
+		mapping, err = o.UserIdentityMappingClient.UserIdentityMappings().Create(mapping)
 		if err != nil {
 			return err
 		}
 	}
 
-	if useShortOutput := o.OutputFormat == "name"; useShortOutput || len(o.OutputFormat) == 0 {
-		cmdutil.PrintSuccess(useShortOutput, o.Out, actualMapping, o.DryRun, "created")
-		return nil
-	}
-
-	return o.Printer(actualMapping, o.Out)
+	return o.PrintObj(mapping)
 }
