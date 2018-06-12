@@ -62,7 +62,7 @@ func NewCmdSet(fullName string, f *clientcmd.Factory, streams genericclioptions.
 		{
 			Message: "Control load balancing:",
 			Commands: []*cobra.Command{
-				NewCmdRouteBackends(name, f, streams.Out, streams.ErrOut),
+				NewCmdRouteBackends(name, f, streams),
 			},
 		},
 	}
