@@ -35,32 +35,34 @@ func NewCmdSet(fullName string, f *clientcmd.Factory, streams genericclioptions.
 		{
 			Message: "Replication controllers, deployments, and daemon sets:",
 			Commands: []*cobra.Command{
+				// FIXME-REBASE: replace with upstream version since it's cleaner and it has full parity
 				NewCmdEnv(name, f, streams),
 				NewCmdResources(name, f, streams),
 				NewCmdVolume(name, f, streams),
-				NewCmdProbe(name, f, streams.Out, streams.ErrOut),
-				NewCmdDeploymentHook(name, f, streams.Out, streams.ErrOut),
+				// TODO: this seems reasonable to upstream
+				NewCmdProbe(name, f, streams),
+				NewCmdDeploymentHook(name, f, streams),
 				NewCmdImage(name, f, streams),
 			},
 		},
 		{
 			Message: "Manage secrets:",
 			Commands: []*cobra.Command{
-				NewCmdBuildSecret(name, f, streams.Out, streams.ErrOut),
+				NewCmdBuildSecret(name, f, streams),
 			},
 		},
 		{
 			Message: "Manage application flows:",
 			Commands: []*cobra.Command{
-				NewCmdImageLookup(name, fullName, f, streams.Out, streams.ErrOut),
-				NewCmdTriggers(name, f, streams.Out, streams.ErrOut),
-				NewCmdBuildHook(name, f, streams.Out, streams.ErrOut),
+				NewCmdImageLookup(name, fullName, f, streams),
+				NewCmdTriggers(name, f, streams),
+				NewCmdBuildHook(name, f, streams),
 			},
 		},
 		{
 			Message: "Control load balancing:",
 			Commands: []*cobra.Command{
-				NewCmdRouteBackends(name, f, streams.Out, streams.ErrOut),
+				NewCmdRouteBackends(name, f, streams),
 			},
 		},
 	}
