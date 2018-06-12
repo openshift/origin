@@ -878,6 +878,60 @@ The server guarantees that the objects returned when using continue will be iden
 * application/vnd.kubernetes.protobuf
 
 
+[[Get-apis-image.openshift.io-v1-namespaces-namespace-imagestreams-name-layers]]
+=== Get layers of a ImageStream in a namespace
+Read layers of the specified ImageStream
+
+==== HTTP request
+----
+GET /apis/image.openshift.io/v1/namespaces/$NAMESPACE/imagestreams/$NAME/layers HTTP/1.1
+Authorization: Bearer $TOKEN
+Accept: application/json
+Connection: close
+----
+
+==== Curl request
+----
+$ curl -k \
+    -H "Authorization: Bearer $TOKEN" \
+    -H 'Accept: application/json' \
+    https://$ENDPOINT/apis/image.openshift.io/v1/namespaces/$NAMESPACE/imagestreams/$NAME/layers
+----
+
+==== Path parameters
+[cols="1,5", options="header"]
+|===
+|Parameter|Description
+|name|name of the ImageStreamLayers
+|namespace|object name and auth scope, such as for teams and projects
+|===
+
+==== Query parameters
+[cols="1,5", options="header"]
+|===
+|Parameter|Description
+|pretty|If 'true', then the output is pretty printed.
+|===
+
+==== Responses
+[cols="1,5", options="header"]
+|===
+|HTTP Code|Schema
+|200 OK|v1.ImageStreamLayers
+|401 Unauthorized|
+|===
+
+==== Consumes
+
+* \*/*
+
+==== Produces
+
+* application/json
+* application/yaml
+* application/vnd.kubernetes.protobuf
+
+
 [[Get-apis-image.openshift.io-v1-namespaces-namespace-imagestreams-name-secrets]]
 === Get secrets of a ImageStream in a namespace
 Read secrets of the specified ImageStream

@@ -469,6 +469,43 @@ type ImageStreamImage struct {
 // DockerImageReference points to a Docker image.
 type DockerImageReference = reference.DockerImageReference
 
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// ImageStreamLayers describes information about the layers referenced by images in this
+// image stream.
+type ImageStreamLayers struct {
+	metav1.TypeMeta
+	// Standard object's metadata.
+	metav1.ObjectMeta
+	// blobs is a map of blob name to metadata about the blob.
+	Blobs map[string]ImageLayerData
+	// images is a map between an image name and the names of the blobs and manifests that
+	// comprise the image.
+	Images map[string]ImageBlobReferences
+}
+
+// ImageBlobReferences describes the blob references within an image.
+type ImageBlobReferences struct {
+	// layers is the list of blobs that compose this image, from base layer to top layer.
+	// All layers referenced by this array will be defined in the blobs map. Some images
+	// may have zero layers.
+	// +optional
+	Layers []string
+	// manifest, if set, is the blob that contains the image manifest. Some images do
+	// not have separate manifest blobs and this field will be set to nil if so.
+	// +optional
+	Manifest *string
+}
+
+// ImageLayerData contains metadata about an image layer.
+type ImageLayerData struct {
+	// Size of the layer in bytes as defined by the underlying store. This field is
+	// optional if the necessary information about size is not available.
+	LayerSize *int64
+	// MediaType of the referenced object.
+	MediaType string
+}
+
 // +genclient
 // +genclient:onlyVerbs=create
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
