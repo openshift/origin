@@ -879,6 +879,7 @@ var ephemeralWhiteList = createEphemeralWhiteList(
 	gvr("image.openshift.io", "v1", "imagestreamimages"),   // not stored in etcd
 	gvr("", "v1", "imagestreammappings"),                   // not stored in etcd
 	gvr("image.openshift.io", "v1", "imagestreammappings"), // not stored in etcd
+	gvr("image.openshift.io", "v1", "imagestreamlayerses"), // not stored in etcd
 	// --
 
 	// github.com/openshift/origin/pkg/project/apis/project/v1

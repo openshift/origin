@@ -53,12 +53,14 @@ func newStorage(t *testing.T) (*REST, *StatusREST, *InternalREST, *etcdtesting.E
 	server, etcdStorage := etcdtesting.NewUnsecuredEtcd3TestClientServer(t)
 	etcdStorage.Codec = legacyscheme.Codecs.LegacyCodec(schema.GroupVersion{Group: "image.openshift.io", Version: "v1"})
 	registry := imageapi.DefaultRegistryHostnameRetriever(noDefaultRegistry, "", "")
-	imageStorage, statusStorage, internalStorage, err := NewREST(
+	imageStorage, _, statusStorage, internalStorage, err := NewREST(
 		restoptions.NewSimpleGetter(etcdStorage),
 		registry,
 		&fakeSubjectAccessReviewRegistry{},
 		&admfake.ImageStreamLimitVerifier{},
-		&fake.RegistryWhitelister{})
+		&fake.RegistryWhitelister{},
+		NewEmptyLayerIndex(),
+	)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -75,12 +75,14 @@ func setup(t *testing.T) (etcd.KV, *etcdtesting.EtcdTestServer, *REST) {
 		t.Fatal(err)
 	}
 	registry := imageapi.DefaultRegistryHostnameRetriever(testDefaultRegistry, "", "")
-	imageStreamStorage, imageStreamStatus, internalStorage, err := imagestreametcd.NewREST(
+	imageStreamStorage, _, imageStreamStatus, internalStorage, err := imagestreametcd.NewREST(
 		restoptions.NewSimpleGetter(etcdStorage),
 		registry,
 		&fakeSubjectAccessReviewRegistry{},
 		&admfake.ImageStreamLimitVerifier{},
-		rw)
+		rw,
+		imagestreametcd.NewEmptyLayerIndex(),
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
