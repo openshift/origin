@@ -19,7 +19,7 @@ const defaultName = "openshift.local"
 // RunEtcd starts an etcd server and runs it forever
 func RunEtcd(etcdServerConfig *configapi.EtcdConfig) {
 	cfg := embed.NewConfig()
-	cfg.Debug = true
+	cfg.Debug = bool(glog.V(4))
 	cfg.Name = defaultName
 	cfg.Dir = etcdServerConfig.StorageDir
 

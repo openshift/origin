@@ -1,5 +1,5 @@
 hash: e6bc2aa3a92ae1c76ecc6478c9246eccf1dc123587b350b111dca8593b5cc078
-updated: 2018-05-30T13:59:24.748433138-04:00
+updated: 2018-06-07T15:41:54.543777833-05:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -305,7 +305,7 @@ imports:
 - name: github.com/dgrijalva/jwt-go
   version: 01aeca54ebda6e0fbfafd0a524d234159c05ec20
 - name: github.com/docker/distribution
-  version: 6cfa6534641b02893986566aa0fb098ce59e4018
+  version: 114d1c11fb9258426f7197995cf4a3dfe46ef472
   repo: https://github.com/openshift/docker-distribution.git
   subpackages:
   - context
@@ -446,7 +446,7 @@ imports:
   - sortkeys
   - types
 - name: github.com/golang/glog
-  version: 44145f04b68cf362d9c4df2182967c2275eaefed
+  version: 23def4e6c14b4da8ac2ed8007337bc5eb5007998
 - name: github.com/golang/groupcache
   version: 02826c3e79038b59d737d3b1c0a1d937f71a4433
   subpackages:
@@ -719,7 +719,7 @@ imports:
 - name: github.com/Microsoft/hcsshim
   version: 6ea7fe54f719d95721e7d9b26ac0add224c9b923
 - name: github.com/miekg/dns
-  version: e57bf427e68187a27e22adceac868350d7a7079b
+  version: 5a2b9fab83ff0f8bfc99684bd5f43a37abe560f1
 - name: github.com/mindprince/gonvml
   version: fee913ce8fb235edf54739d259ca0ecc226c7b8a
 - name: github.com/mistifyio/go-zfs
@@ -818,7 +818,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: 7c345a55a8b2e4b233bf8449021e9a91052dfdd7
+  version: 6ef6704e604af539af656171d5c0bde774923a43
   subpackages:
   - apps/v1
   - authorization/v1
@@ -953,7 +953,7 @@ imports:
   - signal
   - strslice
 - name: github.com/openshift/library-go
-  version: 13539e67a7ab38391bed80b360e82812dfab232a
+  version: 3601ae4dd46a04c1b8a81b789de67f58f48895b2
   subpackages:
   - pkg/config/client
   - pkg/config/leaderelection
@@ -1582,7 +1582,7 @@ imports:
   - plugin/pkg/authenticator/token/webhook
   - plugin/pkg/authorizer/webhook
 - name: k8s.io/client-go
-  version: 97e9fe0143f70c7ec27f2840aee0cf18950034e5
+  version: f59bfc0a5f43d848e78c03060d2be1cd03251e52
   repo: https://github.com/openshift/kubernetes-client-go.git
   subpackages:
   - discovery
@@ -1814,7 +1814,7 @@ imports:
   - pkg/util/proto
   - pkg/util/proto/validation
 - name: k8s.io/kubernetes
-  version: fd5cb2dd5ce4d3b25bd8bfdef1afc811b8a70803
+  version: 3ded9a6dc915fef5b6b27dade59668870da01010
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/controller-manager/app
