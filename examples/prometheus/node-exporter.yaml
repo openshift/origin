@@ -1,4 +1,4 @@
-# node-exporter is an optional component that collects host level metrics from the nodes 
+# node-exporter is an optional component that collects host level metrics from the nodes
 # in the cluster. This group of resources will require the 'hostaccess' level of privilege, which
 # should only be granted to namespaces that administrators can access.
 apiVersion: v1
@@ -48,10 +48,10 @@ items:
         hostNetwork: true
         hostPID: true
         containers:
-        - image: openshift/prometheus-node-exporter:v0.14.0
+        - image: openshift/prometheus-node-exporter:v0.16.0
           args:
-          - "--collector.procfs=/host/proc"
-          - "--collector.sysfs=/host/sys"
+          - "--path.procfs=/host/proc"
+          - "--path.sysfs=/host/sys"
           name: node-exporter
           ports:
           - containerPort: 9100
