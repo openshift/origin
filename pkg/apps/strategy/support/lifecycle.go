@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	kapi "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
@@ -15,17 +16,17 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
+	kcoreclient "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 
+	appsapi "github.com/openshift/api/apps/v1"
+	imageapi "github.com/openshift/api/image/v1"
+	imageclient "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	"github.com/openshift/origin/pkg/api/apihelpers"
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsinternal "github.com/openshift/origin/pkg/apps/apis/apps"
 	strategyutil "github.com/openshift/origin/pkg/apps/strategy/util"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	"github.com/openshift/origin/pkg/util"
 )
 
@@ -339,7 +340,7 @@ func makeHookPod(hook *appsapi.LifecycleHook, rc *kapi.ReplicationController, st
 	}
 
 	// Assigning to a variable since its address is required
-	defaultActiveDeadline := appsapi.MaxDeploymentDurationSeconds
+	defaultActiveDeadline := appsinternal.MaxDeploymentDurationSeconds
 	if strategy.ActiveDeadlineSeconds != nil {
 		defaultActiveDeadline = *(strategy.ActiveDeadlineSeconds)
 	}
@@ -389,11 +390,11 @@ func makeHookPod(hook *appsapi.LifecycleHook, rc *kapi.ReplicationController, st
 		ObjectMeta: metav1.ObjectMeta{
 			Name: apihelpers.GetPodName(rc.Name, suffix),
 			Annotations: map[string]string{
-				appsapi.DeploymentAnnotation: rc.Name,
+				appsinternal.DeploymentAnnotation: rc.Name,
 			},
 			Labels: map[string]string{
-				appsapi.DeploymentPodTypeLabel:        suffix,
-				appsapi.DeployerPodForDeploymentLabel: rc.Name,
+				appsinternal.DeploymentPodTypeLabel:        suffix,
+				appsinternal.DeployerPodForDeploymentLabel: rc.Name,
 			},
 		},
 		Spec: kapi.PodSpec{
@@ -489,7 +490,7 @@ type acceptAvailablePods struct {
 // Accept all pods for a replication controller once they are available.
 func (c *acceptAvailablePods) Accept(rc *kapi.ReplicationController) error {
 	allReplicasAvailable := func(r *kapi.ReplicationController) bool {
-		return r.Status.AvailableReplicas == r.Spec.Replicas
+		return r.Spec.Replicas != nil && r.Status.AvailableReplicas == *r.Spec.Replicas
 	}
 
 	if allReplicasAvailable(rc) {

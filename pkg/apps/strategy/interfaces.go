@@ -4,7 +4,7 @@ import (
 	"strconv"
 	"strings"
 
-	kapi "k8s.io/kubernetes/pkg/apis/core"
+	kapi "k8s.io/api/core/v1"
 )
 
 // DeploymentStrategy knows how to make a deployment active.

@@ -6,19 +6,16 @@ import (
 	"testing"
 	"time"
 
+	kapi "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/kubernetes/typed/core/v1/fake"
 	clientgotesting "k8s.io/client-go/testing"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	"k8s.io/kubernetes/pkg/kubectl"
 
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	appstest "github.com/openshift/origin/pkg/apps/apis/apps/test"
+	appsapi "github.com/openshift/api/apps/v1"
+	appstest "github.com/openshift/api/apps/v1/test"
 	strat "github.com/openshift/origin/pkg/apps/strategy"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
-
-	_ "github.com/openshift/origin/pkg/api/install"
 )
 
 func TestRolling_deployInitial(t *testing.T) {
