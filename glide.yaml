@@ -99,7 +99,8 @@ import:
   version: 01a732e01d00cb9a81bb0ca050d3e6d2b947927b
 # master: etcd
 - package: github.com/coreos/etcd
-  version: v3.2.16
+  repo:    https://github.com/openshift/coreos-etcd.git
+  version: origin-3.10-etcd-v3.2.16
 - package: google.golang.org/grpc
   version: v1.7.5
 - package: github.com/grpc-ecosystem/grpc-gateway
