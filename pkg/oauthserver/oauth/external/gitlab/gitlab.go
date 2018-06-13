@@ -20,11 +20,17 @@ const (
 	// Uses the GitLab User-API (http://doc.gitlab.com/ce/api/users.html#current-user)
 	// and OAuth-Provider (http://doc.gitlab.com/ce/integration/oauth_provider.html)
 	// with default OAuth scope (http://doc.gitlab.com/ce/api/users.html#current-user)
-	// Requires GitLab 7.7.0 or higher
+	// Requires GitLab 7.7.0 or higher (released prior to 2015-09-22, we support it in OS v3.1+)
 	gitlabAuthorizePath = "/oauth/authorize"
 	gitlabTokenPath     = "/oauth/token"
-	gitlabUserAPIPath   = "/api/v3/user"
 	gitlabOAuthScope    = "api"
+
+	// the only thing different about the APIs is the endpoint
+	// the JSON data is the same
+	// v3 was removed in GitLab 11 2018-06-22 (deprecated in GitLab 9.5 2017-08-22)
+	gitlabUserAPIPathV3 = "/api/v3/user"
+	// v4 was added in GitLab 9 2017-03-22
+	gitlabUserAPIPathV4 = "/api/v4/user"
 )
 
 type provider struct {
@@ -32,7 +38,8 @@ type provider struct {
 	transport    http.RoundTripper
 	authorizeURL string
 	tokenURL     string
-	userAPIURL   string
+	userAPIURLV3 string
+	userAPIURLV4 string
 	clientID     string
 	clientSecret string
 }
@@ -42,6 +49,7 @@ type gitlabUser struct {
 	Username string
 	Email    string
 	Name     string
+	Error    string
 }
 
 func NewProvider(providerName string, transport http.RoundTripper, URL, clientID, clientSecret string) (external.Provider, error) {
@@ -56,7 +64,8 @@ func NewProvider(providerName string, transport http.RoundTripper, URL, clientID
 		transport:    transport,
 		authorizeURL: appendPath(*u, gitlabAuthorizePath),
 		tokenURL:     appendPath(*u, gitlabTokenPath),
-		userAPIURL:   appendPath(*u, gitlabUserAPIPath),
+		userAPIURLV3: appendPath(*u, gitlabUserAPIPathV3),
+		userAPIURLV4: appendPath(*u, gitlabUserAPIPathV4),
 		clientID:     clientID,
 		clientSecret: clientSecret,
 	}, nil
@@ -91,32 +100,9 @@ func (p *provider) AddCustomParameters(req *osincli.AuthorizeRequest) {
 
 // GetUserIdentity implements external/interfaces/Provider.GetUserIdentity
 func (p *provider) GetUserIdentity(data *osincli.AccessData) (authapi.UserIdentityInfo, bool, error) {
-	req, _ := http.NewRequest("GET", p.userAPIURL, nil)
-	req.Header.Set("Authorization", fmt.Sprintf("bearer %s", data.AccessToken))
-
-	client := http.DefaultClient
-	if p.transport != nil {
-		client = &http.Client{Transport: p.transport}
-	}
-	res, err := client.Do(req)
+	userdata, err := p.getUserData(data.AccessToken)
 	if err != nil {
 		return nil, false, err
-	}
-	defer res.Body.Close()
-
-	body, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		return nil, false, err
-	}
-
-	userdata := gitlabUser{}
-	err = json.Unmarshal(body, &userdata)
-	if err != nil {
-		return nil, false, err
-	}
-
-	if userdata.ID == 0 {
-		return nil, false, errors.New("Could not retrieve GitLab id")
 	}
 
 	identity := authapi.NewDefaultUserIdentityInfo(p.providerName, fmt.Sprintf("%d", userdata.ID))
@@ -132,4 +118,50 @@ func (p *provider) GetUserIdentity(data *osincli.AccessData) (authapi.UserIdenti
 	glog.V(4).Infof("Got identity=%#v", identity)
 
 	return identity, true, nil
+}
+
+func (p *provider) getUserData(token string) (*gitlabUser, error) {
+	// try the v4 API first
+	userdata, err := p.getUserDataURL(token, p.userAPIURLV4)
+	if err == nil {
+		return userdata, nil
+	}
+	// fallback to the v3 API
+	return p.getUserDataURL(token, p.userAPIURLV3)
+}
+
+func (p *provider) getUserDataURL(token, url string) (*gitlabUser, error) {
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("Authorization", fmt.Sprintf("bearer %s", token))
+
+	client := &http.Client{Transport: p.transport}
+	res, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	userdata := &gitlabUser{}
+	if err := json.Unmarshal(body, userdata); err != nil {
+		return nil, err
+	}
+
+	if len(userdata.Error) > 0 {
+		return nil, errors.New(userdata.Error)
+	}
+
+	if userdata.ID == 0 {
+		return nil, errors.New("could not retrieve GitLab id")
+	}
+
+	return userdata, nil
 }
