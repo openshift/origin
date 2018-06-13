@@ -35,6 +35,10 @@ func updatePodSpecForObjectOrigin(obj runtime.Object, fn func(*v1.PodSpec) error
 
 	// FIXME-REBASE: we should probably get rid of these:
 	// k8s internals
+	case *core.Pod:
+		return true, ConvertExteralPodSpecToInternal(fn)(&t.Spec)
+	case *core.ReplicationController:
+		return true, ConvertExteralPodSpecToInternal(fn)(&t.Spec.Template.Spec)
 	case *extensions.Deployment:
 		return true, ConvertExteralPodSpecToInternal(fn)(&t.Spec.Template.Spec)
 	case *extensions.DaemonSet:
