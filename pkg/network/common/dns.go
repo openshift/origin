@@ -142,7 +142,7 @@ func (d *DNS) getIPsAndMinTTL(domain string) ([]net.IP, time.Duration, error) {
 			dialServer = net.JoinHostPort(server, d.port)
 		}
 		c := new(dns.Client)
-		c.Timeout = 2 * time.Second
+		c.Timeout = 5 * time.Second
 		in, _, err := c.Exchange(msg, dialServer)
 		if err != nil {
 			return nil, defaultTTL, err
