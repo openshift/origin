@@ -192,12 +192,12 @@ func TestNodeStatusWithCloudProviderNodeIP(t *testing.T) {
 		Err: nil,
 	}
 	kubelet.cloud = fakeCloud
-	kubelet.cloudproviderRequestParallelism = make(chan int, 1)
-	kubelet.cloudproviderRequestSync = make(chan int)
-	kubelet.cloudproviderRequestTimeout = 10 * time.Second
+	kubelet.cloudResourceSyncManager = NewCloudResourceSyncManager(kubelet.cloud, kubelet.nodeName, kubelet.nodeStatusUpdateFrequency)
+	stopCh := make(chan struct{})
+	go kubelet.cloudResourceSyncManager.Run(stopCh)
 
 	kubelet.setNodeAddress(&existingNode)
-
+	close(stopCh)
 	expectedAddresses := []v1.NodeAddress{
 		{
 			Type:    v1.NodeExternalIP,
