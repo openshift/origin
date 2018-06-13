@@ -1,5 +1,5 @@
-hash: 9326118fde05a9e8947a7335cf93b62e0892d7f5d300543f648646a96eb3c069
-updated: 2018-05-25T14:18:12.564619838-04:00
+hash: d915b042f3861d7eb106e802b551e32b7476a9f77358ac2b8084b204ee7a3455
+updated: 2018-06-13T10:38:18.855094478-04:00
 imports:
 - name: github.com/blang/semver
   version: b38d23b8782a487059e8fc8773e9a5b228a77cb6
@@ -49,7 +49,7 @@ imports:
 - name: github.com/json-iterator/go
   version: 13f86432b882000a51c6e610c620974462691a97
 - name: github.com/openshift/api
-  version: 1adcd4e8b64faf3eaa8166a62e92f95cc7ee1d60
+  version: 6ef6704e604af539af656171d5c0bde774923a43
   subpackages:
   - config/v1
   - operator/v1alpha1

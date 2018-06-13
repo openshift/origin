@@ -38,13 +38,13 @@ import:
 
 # openshift second
 - package: github.com/openshift/api
-  version: master
+  version: release-3.10
 - package: github.com/openshift/client-go
-  version: master
+  version: release-3.10
 - package: github.com/openshift/imagebuilder
   version: master
 - package: github.com/openshift/library-go
-  version: master
+  version: release-3.10
 # master already branched for 3.11
 - package: github.com/openshift/service-serving-cert-signer
   version: release-3.10
@@ -106,6 +106,9 @@ import:
   version: v1.3.0
 - package: github.com/coreos/bbolt
   version: 32c383e75ce054674c53b5a07e55de85332aee14
+# master: don't print ugly
+- package: github.com/golang/glog
+  version: 44145f04b68cf362d9c4df2182967c2275eaefed
 # cli
 - package: github.com/gonum/blas
   version: 37e82626499e1df7c54aeaba0959fd6e7e8dc1e4
