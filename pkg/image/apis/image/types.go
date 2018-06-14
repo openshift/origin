@@ -3,6 +3,8 @@ package image
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
+
+	"github.com/openshift/origin/pkg/image/apis/image/reference"
 )
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -465,13 +467,7 @@ type ImageStreamImage struct {
 }
 
 // DockerImageReference points to a Docker image.
-type DockerImageReference struct {
-	Registry  string
-	Namespace string
-	Name      string
-	Tag       string
-	ID        string
-}
+type DockerImageReference = reference.DockerImageReference
 
 // +genclient
 // +genclient:onlyVerbs=create

@@ -34,7 +34,7 @@ import (
 	"github.com/openshift/origin/pkg/build/builder/util/dockerfile"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/git"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imagereference "github.com/openshift/origin/pkg/image/apis/image/reference"
 	utilglog "github.com/openshift/origin/pkg/util/glog"
 )
 
@@ -363,7 +363,7 @@ func addBuildParameters(dir string, build *buildapiv1.Build, sourceInfo *git.Sou
 	if build.Spec.Strategy.DockerStrategy != nil && build.Spec.Strategy.DockerStrategy.From != nil && build.Spec.Strategy.DockerStrategy.From.Kind == "DockerImage" {
 		// Reduce the name to a minimal canonical form for the daemon
 		name := build.Spec.Strategy.DockerStrategy.From.Name
-		if ref, err := imageapi.ParseDockerImageReference(name); err == nil {
+		if ref, err := imagereference.Parse(name); err == nil {
 			name = ref.DaemonMinimal().Exact()
 		}
 		err := replaceLastFrom(node, name)

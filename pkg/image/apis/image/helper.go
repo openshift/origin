@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"net"
 	"net/url"
 	"regexp"
 	"sort"
@@ -18,6 +17,7 @@ import (
 	"github.com/golang/glog"
 
 	"github.com/openshift/origin/pkg/image/apis/image/internal/digest"
+	"github.com/openshift/origin/pkg/image/apis/image/reference"
 )
 
 const (
@@ -145,189 +145,14 @@ func ParseImageStreamTagName(istag string) (name string, tag string, err error) 
 	return
 }
 
-// IsRegistryDockerHub returns true if the given registry name belongs to
-// Docker hub.
-func IsRegistryDockerHub(registry string) bool {
-	switch registry {
-	case DockerDefaultRegistry, DockerDefaultV1Registry, DockerDefaultV2Registry:
-		return true
-	default:
-		return false
-	}
-}
-
 // ParseDockerImageReference parses a Docker pull spec string into a
 // DockerImageReference.
-func ParseDockerImageReference(spec string) (DockerImageReference, error) {
-	var ref DockerImageReference
-
-	namedRef, err := parseNamedDockerImageReference(spec)
+func ParseDockerImageReference(spec string) (reference.DockerImageReference, error) {
+	ref, err := reference.Parse(spec)
 	if err != nil {
 		return ref, err
 	}
-
-	ref.Registry = namedRef.Registry
-	ref.Namespace = namedRef.Namespace
-	ref.Name = namedRef.Name
-	ref.Tag = namedRef.Tag
-	ref.ID = namedRef.ID
-
 	return ref, nil
-}
-
-// Equal returns true if the other DockerImageReference is equivalent to the
-// reference r. The comparison applies defaults to the Docker image reference,
-// so that e.g., "foobar" equals "docker.io/library/foobar:latest".
-func (r DockerImageReference) Equal(other DockerImageReference) bool {
-	defaultedRef := r.DockerClientDefaults()
-	otherDefaultedRef := other.DockerClientDefaults()
-	return defaultedRef == otherDefaultedRef
-}
-
-// DockerClientDefaults sets the default values used by the Docker client.
-func (r DockerImageReference) DockerClientDefaults() DockerImageReference {
-	if len(r.Registry) == 0 {
-		r.Registry = DockerDefaultRegistry
-	}
-	if len(r.Namespace) == 0 && IsRegistryDockerHub(r.Registry) {
-		r.Namespace = DockerDefaultNamespace
-	}
-	if len(r.Tag) == 0 {
-		r.Tag = DefaultImageTag
-	}
-	return r
-}
-
-// Minimal reduces a DockerImageReference to its minimalist form.
-func (r DockerImageReference) Minimal() DockerImageReference {
-	if r.Tag == DefaultImageTag {
-		r.Tag = ""
-	}
-	return r
-}
-
-// AsRepository returns the reference without tags or IDs.
-func (r DockerImageReference) AsRepository() DockerImageReference {
-	r.Tag = ""
-	r.ID = ""
-	return r
-}
-
-// RepositoryName returns the registry relative name
-func (r DockerImageReference) RepositoryName() string {
-	r.Tag = ""
-	r.ID = ""
-	r.Registry = ""
-	return r.Exact()
-}
-
-// RegistryHostPort returns the registry hostname and the port.
-// If the port is not specified in the registry hostname we default to 443.
-// This will also default to Docker client defaults if the registry hostname is empty.
-func (r DockerImageReference) RegistryHostPort(insecure bool) (string, string) {
-	registryHost := r.AsV2().DockerClientDefaults().Registry
-	if strings.Contains(registryHost, ":") {
-		hostname, port, _ := net.SplitHostPort(registryHost)
-		return hostname, port
-	}
-	if insecure {
-		return registryHost, "80"
-	}
-	return registryHost, "443"
-}
-
-// RepositoryName returns the registry relative name
-func (r DockerImageReference) RegistryURL() *url.URL {
-	return &url.URL{
-		Scheme: "https",
-		Host:   r.AsV2().Registry,
-	}
-}
-
-// DaemonMinimal clears defaults that Docker assumes.
-func (r DockerImageReference) DaemonMinimal() DockerImageReference {
-	switch r.Registry {
-	case DockerDefaultV1Registry, DockerDefaultV2Registry:
-		r.Registry = DockerDefaultRegistry
-	}
-	if IsRegistryDockerHub(r.Registry) && r.Namespace == DockerDefaultNamespace {
-		r.Namespace = ""
-	}
-	return r.Minimal()
-}
-
-func (r DockerImageReference) AsV2() DockerImageReference {
-	switch r.Registry {
-	case DockerDefaultV1Registry, DockerDefaultRegistry:
-		r.Registry = DockerDefaultV2Registry
-	}
-	return r
-}
-
-// MostSpecific returns the most specific image reference that can be constructed from the
-// current ref, preferring an ID over a Tag. Allows client code dealing with both tags and IDs
-// to get the most specific reference easily.
-func (r DockerImageReference) MostSpecific() DockerImageReference {
-	if len(r.ID) == 0 {
-		return r
-	}
-	if _, err := digest.ParseDigest(r.ID); err == nil {
-		r.Tag = ""
-		return r
-	}
-	if len(r.Tag) == 0 {
-		r.Tag, r.ID = r.ID, ""
-		return r
-	}
-	return r
-}
-
-// NameString returns the name of the reference with its tag or ID.
-func (r DockerImageReference) NameString() string {
-	switch {
-	case len(r.Name) == 0:
-		return ""
-	case len(r.Tag) > 0:
-		return r.Name + ":" + r.Tag
-	case len(r.ID) > 0:
-		var ref string
-		if _, err := digest.ParseDigest(r.ID); err == nil {
-			// if it parses as a digest, its v2 pull by id
-			ref = "@" + r.ID
-		} else {
-			// if it doesn't parse as a digest, it's presumably a v1 registry by-id tag
-			ref = ":" + r.ID
-		}
-		return r.Name + ref
-	default:
-		return r.Name
-	}
-}
-
-// Exact returns a string representation of the set fields on the DockerImageReference
-func (r DockerImageReference) Exact() string {
-	name := r.NameString()
-	if len(name) == 0 {
-		return name
-	}
-	s := r.Registry
-	if len(s) > 0 {
-		s += "/"
-	}
-
-	if len(r.Namespace) != 0 {
-		s += r.Namespace + "/"
-	}
-	return s + name
-}
-
-// String converts a DockerImageReference to a Docker pull spec (which implies a default namespace
-// according to V1 Docker registry rules). Use Exact() if you want no defaulting.
-func (r DockerImageReference) String() string {
-	if len(r.Namespace) == 0 && IsRegistryDockerHub(r.Registry) {
-		r.Namespace = DockerDefaultNamespace
-	}
-	return r.Exact()
 }
 
 // SplitImageStreamTag turns the name of an ImageStreamTag into Name and Tag.
@@ -790,7 +615,7 @@ func ResolveImageID(stream *ImageStream, imageID string) (*TagEvent, error) {
 // MostAccuratePullSpec returns a docker image reference that uses the current ID if possible, the current tag otherwise, and
 // returns false if the reference if the spec could not be parsed. The returned spec has all client defaults applied.
 func MostAccuratePullSpec(pullSpec string, id, tag string) (string, bool) {
-	ref, err := ParseDockerImageReference(pullSpec)
+	ref, err := reference.Parse(pullSpec)
 	if err != nil {
 		return pullSpec, false
 	}

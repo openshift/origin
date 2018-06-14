@@ -1,4 +1,4 @@
-package image
+package reference
 
 import (
 	"fmt"
@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestParseNamedDockerImageReference(t *testing.T) {
+func TestParse(t *testing.T) {
 	testCases := []struct {
 		From                               string
 		Registry, Namespace, Name, Tag, ID string
@@ -232,7 +232,7 @@ func TestParseNamedDockerImageReference(t *testing.T) {
 	}
 
 	for _, testCase := range testCases {
-		ref, err := parseNamedDockerImageReference(testCase.From)
+		ref, err := Parse(testCase.From)
 		switch {
 		case err != nil && !testCase.Err:
 			t.Errorf("%s: unexpected error: %v", testCase.From, err)
