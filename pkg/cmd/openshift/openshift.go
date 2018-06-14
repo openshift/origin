@@ -16,8 +16,6 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
-	"github.com/openshift/origin/pkg/cmd/infra/builder"
-	"github.com/openshift/origin/pkg/cmd/infra/deployer"
 	irouter "github.com/openshift/origin/pkg/cmd/infra/router"
 	"github.com/openshift/origin/pkg/cmd/recycle"
 	"github.com/openshift/origin/pkg/cmd/server/start"
@@ -55,20 +53,8 @@ func CommandFor(basename string, stopCh <-chan struct{}) *cobra.Command {
 		cmd = irouter.NewCommandTemplateRouter(basename)
 	case "openshift-f5-router":
 		cmd = irouter.NewCommandF5Router(basename)
-	case "openshift-deploy":
-		cmd = deployer.NewCommandDeployer(basename)
 	case "openshift-recycle":
 		cmd = recycle.NewCommandRecycle(basename, out)
-	case "openshift-sti-build":
-		cmd = builder.NewCommandS2IBuilder(basename)
-	case "openshift-docker-build":
-		cmd = builder.NewCommandDockerBuilder(basename)
-	case "openshift-git-clone":
-		cmd = builder.NewCommandGitClone(basename)
-	case "openshift-manage-dockerfile":
-		cmd = builder.NewCommandManageDockerfile(basename)
-	case "openshift-extract-image-content":
-		cmd = builder.NewCommandExtractImageContent(basename)
 	case "origin":
 		cmd = NewCommandOpenShift(basename, stopCh)
 	default:

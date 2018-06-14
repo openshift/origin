@@ -10,7 +10,7 @@
 #
 # The standard name for this image is openshift/origin-deployer
 #
-FROM openshift/origin-control-plane
+FROM openshift/origin-cli
 
 LABEL io.k8s.display-name="OpenShift Origin Deployer" \
       io.k8s.description="This is a component of OpenShift Origin and executes the user deployment process to roll out new containers. It may be used as a base image for building your own custom deployer image." \

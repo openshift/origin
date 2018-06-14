@@ -66,14 +66,15 @@ readonly OS_GOVET_BLACKLIST=(
 #If you update this list, be sure to get the images/origin/Dockerfile
 readonly OPENSHIFT_BINARY_SYMLINKS=(
   openshift-router
-  openshift-deploy
   openshift-recycle
+)
+readonly OC_BINARY_SYMLINKS=(
+  openshift-deploy
   openshift-sti-build
   openshift-docker-build
   openshift-git-clone
   openshift-manage-dockerfile
   openshift-extract-image-content
-  origin
 )
 readonly OC_BINARY_COPY=(
   kubectl
@@ -381,18 +382,18 @@ function os::build::images() {
   for i in `jobs -p`; do wait $i; done
 
   # images that depend on "${tag_prefix}-cli"
-  ( os::build::image "${tag_prefix}-tests"         images/tests ) &
-  ( os::build::image "${tag_prefix}-control-plane" images/origin ) &
+  ( os::build::image "${tag_prefix}-tests"          images/tests ) &
+  ( os::build::image "${tag_prefix}-control-plane"  images/origin ) &
+  ( os::build::image "${tag_prefix}-deployer"       images/deployer ) &
+  ( os::build::image "${tag_prefix}-docker-builder" images/builder/docker/docker-builder ) &
 
   for i in `jobs -p`; do wait $i; done
 
   # images that depend on "${tag_prefix}-control-plane"
-  ( os::build::image "${tag_prefix}-haproxy-router"        images/router/haproxy ) &
-  ( os::build::image "${tag_prefix}-deployer"              images/deployer ) &
-  ( os::build::image "${tag_prefix}-recycler"              images/recycler ) &
-  ( os::build::image "${tag_prefix}-docker-builder"        images/builder/docker/docker-builder ) &
-  ( os::build::image "${tag_prefix}-f5-router"             images/router/f5 ) &
-  ( os::build::image "${tag_prefix}-node"                  images/node ) &
+  ( os::build::image "${tag_prefix}-haproxy-router" images/router/haproxy ) &
+  ( os::build::image "${tag_prefix}-recycler"       images/recycler ) &
+  ( os::build::image "${tag_prefix}-f5-router"      images/router/f5 ) &
+  ( os::build::image "${tag_prefix}-node"           images/node ) &
 
   for i in `jobs -p`; do wait $i; done
 }
