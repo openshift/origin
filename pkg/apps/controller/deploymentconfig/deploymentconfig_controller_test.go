@@ -27,7 +27,7 @@ import (
 	appstest "github.com/openshift/origin/pkg/apps/apis/apps/test"
 	appsfake "github.com/openshift/origin/pkg/apps/generated/internalclientset/fake"
 	"github.com/openshift/origin/pkg/apps/generated/listers/apps/internalversion"
-	appsutil "github.com/openshift/origin/pkg/apps/util"
+	appsutil "github.com/openshift/origin/pkg/apps/utilinternal"
 )
 
 func alwaysReady() bool { return true }

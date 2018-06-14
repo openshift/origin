@@ -16,7 +16,7 @@ import (
 	"github.com/openshift/origin/pkg/apps/apis/apps/validation"
 	appsclientinternal "github.com/openshift/origin/pkg/apps/generated/internalclientset"
 	apps "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
-	appsutil "github.com/openshift/origin/pkg/apps/util"
+	appsutil "github.com/openshift/origin/pkg/apps/utilinternal"
 )
 
 // REST provides a rollback generation endpoint. Only the Create method is implemented.

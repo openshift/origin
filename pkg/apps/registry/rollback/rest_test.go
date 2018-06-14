@@ -19,7 +19,7 @@ import (
 	_ "github.com/openshift/origin/pkg/apps/apis/apps/install"
 	appstest "github.com/openshift/origin/pkg/apps/apis/apps/test"
 	appsfake "github.com/openshift/origin/pkg/apps/generated/internalclientset/fake"
-	appsutil "github.com/openshift/origin/pkg/apps/util"
+	appsutil "github.com/openshift/origin/pkg/apps/utilinternal"
 )
 
 var codec = legacyscheme.Codecs.LegacyCodec(appsv1.SchemeGroupVersion)

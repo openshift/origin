@@ -6,7 +6,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	appsutil "github.com/openshift/origin/pkg/apps/util"
+	appsutil "github.com/openshift/origin/pkg/apps/utilinternal"
 	appsgraph "github.com/openshift/origin/pkg/oc/graph/appsgraph/nodes"
 	osgraph "github.com/openshift/origin/pkg/oc/graph/genericgraph"
 	kubegraph "github.com/openshift/origin/pkg/oc/graph/kubegraph/nodes"

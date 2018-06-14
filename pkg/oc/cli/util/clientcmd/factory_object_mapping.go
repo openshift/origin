@@ -27,7 +27,7 @@ import (
 	appsmanualclient "github.com/openshift/origin/pkg/apps/client/internalversion"
 	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset"
 	appsclientinternal "github.com/openshift/origin/pkg/apps/generated/internalclientset"
-	appsutil "github.com/openshift/origin/pkg/apps/util"
+	appsutil "github.com/openshift/origin/pkg/apps/utilinternal"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildmanualclient "github.com/openshift/origin/pkg/build/client/internalversion"
 	buildclientinternal "github.com/openshift/origin/pkg/build/generated/internalclientset"

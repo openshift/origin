@@ -15,7 +15,7 @@ import (
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsapitest "github.com/openshift/origin/pkg/apps/apis/apps/test"
 	appsfake "github.com/openshift/origin/pkg/apps/generated/internalclientset/fake"
-	appsutil "github.com/openshift/origin/pkg/apps/util"
+	appsutil "github.com/openshift/origin/pkg/apps/utilinternal"
 )
 
 func TestDeploymentConfigDescriber(t *testing.T) {

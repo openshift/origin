@@ -21,7 +21,7 @@ import (
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsinternalversion "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
-	appsutil "github.com/openshift/origin/pkg/apps/util"
+	appsutil "github.com/openshift/origin/pkg/apps/utilinternal"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	appsedges "github.com/openshift/origin/pkg/oc/graph/appsgraph"
 	appsgraph "github.com/openshift/origin/pkg/oc/graph/appsgraph/nodes"
