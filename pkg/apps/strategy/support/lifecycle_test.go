@@ -12,21 +12,23 @@ import (
 	"time"
 
 	kapi "k8s.io/api/core/v1"
-	kapihelper "k8s.io/api/core/v1/helper"
+	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/watch"
-	"k8s.io/client-go/kubernetes/typed/core/v1/fake"
+	"k8s.io/client-go/kubernetes/fake"
 	clientgotesting "k8s.io/client-go/testing"
+	scheme "k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	appsapi "github.com/openshift/api/apps/v1"
 	appsv1 "github.com/openshift/api/apps/v1"
-	appstest "github.com/openshift/api/apps/v1/test"
+	"github.com/openshift/origin/pkg/api/apihelpers"
+	appsinternal "github.com/openshift/origin/pkg/apps/apis/apps"
+	appstest "github.com/openshift/origin/pkg/apps/apis/apps/test/v1"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
 
-	"github.com/openshift/origin/pkg/api/apihelpers"
 	_ "github.com/openshift/origin/pkg/api/install"
 )
 
@@ -63,14 +65,14 @@ func TestHookExecutor_executeExecNewCreatePodFailure(t *testing.T) {
 		},
 	}
 	dc := appstest.OkDeploymentConfig(1)
-	deployment, _ := appsutil.MakeDeployment(dc, legacyscheme.Codecs.LegacyCodec(appsv1.SchemeGroupVersion))
+	deployment, _ := appsutil.MakeDeployment(dc, scheme.Codecs.LegacyCodec(appsv1.SchemeGroupVersion))
 	client := newTestClient(dc)
 	client.AddReactor("create", "pods", func(a clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, nil, errors.New("could not create the pod")
 	})
 	executor := &hookExecutor{
 		pods:    client.Core(),
-		decoder: legacyscheme.Codecs.UniversalDecoder(),
+		decoder: scheme.Codecs.UniversalDecoder(),
 	}
 
 	if err := executor.executeExecNewPod(hook, deployment, "hook", "test"); err == nil {
@@ -87,7 +89,10 @@ func TestHookExecutor_executeExecNewPodSucceeded(t *testing.T) {
 	}
 
 	config := appstest.OkDeploymentConfig(1)
-	deployment, _ := appsutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(appsv1.SchemeGroupVersion))
+	deployment, err := appsutil.MakeDeployment(config, scheme.Codecs.LegacyCodec(appsv1.SchemeGroupVersion))
+	if err != nil {
+		t.Fatal(err)
+	}
 	deployment.Spec.Template.Spec.NodeSelector = map[string]string{"labelKey1": "labelValue1", "labelKey2": "labelValue2"}
 
 	client := newTestClient(config)
@@ -117,16 +122,14 @@ func TestHookExecutor_executeExecNewPodSucceeded(t *testing.T) {
 	executor := &hookExecutor{
 		pods:    client.Core(),
 		out:     podLogs,
-		decoder: legacyscheme.Codecs.UniversalDecoder(),
+		decoder: scheme.Codecs.UniversalDecoder(),
 		getPodLogs: func(*kapi.Pod) (io.ReadCloser, error) {
 			return ioutil.NopCloser(strings.NewReader("test")), nil
 		},
 	}
 
-	err := executor.executeExecNewPod(hook, deployment, "hook", "test")
-
-	if err != nil {
-		t.Fatalf("unexpected error: %s", err)
+	if err := executor.executeExecNewPod(hook, deployment, "hook", "test"); err != nil {
+		t.Fatalf("unexpected error: %s %#v", err, deployment)
 	}
 
 	if e, a := "--> test: Running hook pod ...\ntest--> test: Success\n", podLogs.String(); e != a {
@@ -141,8 +144,8 @@ func TestHookExecutor_executeExecNewPodSucceeded(t *testing.T) {
 		t.Fatalf("expected ActiveDeadlineSeconds to be set on the deployment hook executor pod")
 	}
 
-	if *createdPod.Spec.ActiveDeadlineSeconds >= appsapi.MaxDeploymentDurationSeconds {
-		t.Fatalf("expected ActiveDeadlineSeconds %+v to be lower than %+v", *createdPod.Spec.ActiveDeadlineSeconds, appsapi.MaxDeploymentDurationSeconds)
+	if *createdPod.Spec.ActiveDeadlineSeconds >= appsinternal.MaxDeploymentDurationSeconds {
+		t.Fatalf("expected ActiveDeadlineSeconds %+v to be lower than %+v", *createdPod.Spec.ActiveDeadlineSeconds, appsinternal.MaxDeploymentDurationSeconds)
 	}
 }
 
@@ -155,7 +158,7 @@ func TestHookExecutor_executeExecNewPodFailed(t *testing.T) {
 	}
 
 	config := appstest.OkDeploymentConfig(1)
-	deployment, _ := appsutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(appsv1.SchemeGroupVersion))
+	deployment, _ := appsutil.MakeDeployment(config, scheme.Codecs.LegacyCodec(appsv1.SchemeGroupVersion))
 
 	client := newTestClient(config)
 	podCreated := make(chan struct{})
@@ -182,7 +185,7 @@ func TestHookExecutor_executeExecNewPodFailed(t *testing.T) {
 	executor := &hookExecutor{
 		pods:    client.Core(),
 		out:     ioutil.Discard,
-		decoder: legacyscheme.Codecs.UniversalDecoder(),
+		decoder: scheme.Codecs.UniversalDecoder(),
 		getPodLogs: func(*kapi.Pod) (io.ReadCloser, error) {
 			return ioutil.NopCloser(strings.NewReader("test")), nil
 		},
@@ -204,10 +207,12 @@ func TestHookExecutor_makeHookPodInvalidContainerRef(t *testing.T) {
 	}
 
 	config := appstest.OkDeploymentConfig(1)
-	deployment, _ := appsutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(appsv1.SchemeGroupVersion))
+	deployment, err := appsutil.MakeDeployment(config, scheme.Codecs.LegacyCodec(appsv1.SchemeGroupVersion))
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	_, err := makeHookPod(hook, deployment, &config.Spec.Strategy, "hook", nowFunc().Time)
-	if err == nil {
+	if _, err := makeHookPod(hook, deployment, &config.Spec.Strategy, "hook", nowFunc().Time); err == nil {
 		t.Fatalf("expected an error")
 	}
 }
@@ -215,7 +220,7 @@ func TestHookExecutor_makeHookPodInvalidContainerRef(t *testing.T) {
 func TestHookExecutor_makeHookPod(t *testing.T) {
 	deploymentName := "deployment-1"
 	deploymentNamespace := "test"
-	maxDeploymentDurationSeconds := appsapi.MaxDeploymentDurationSeconds
+	maxDeploymentDurationSeconds := appsinternal.MaxDeploymentDurationSeconds
 	gracePeriod := int64(10)
 
 	tests := []struct {
@@ -249,11 +254,11 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: apihelpers.GetPodName(deploymentName, "hook"),
 					Labels: map[string]string{
-						appsapi.DeploymentPodTypeLabel:        "hook",
-						appsapi.DeployerPodForDeploymentLabel: deploymentName,
+						appsinternal.DeploymentPodTypeLabel:        "hook",
+						appsinternal.DeployerPodForDeploymentLabel: deploymentName,
 					},
 					Annotations: map[string]string{
-						appsapi.DeploymentAnnotation: deploymentName,
+						appsinternal.DeploymentAnnotation: deploymentName,
 					},
 				},
 				Spec: kapi.PodSpec{
@@ -328,11 +333,11 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: apihelpers.GetPodName(deploymentName, "hook"),
 					Labels: map[string]string{
-						appsapi.DeploymentPodTypeLabel:        "hook",
-						appsapi.DeployerPodForDeploymentLabel: deploymentName,
+						appsinternal.DeploymentPodTypeLabel:        "hook",
+						appsinternal.DeployerPodForDeploymentLabel: deploymentName,
 					},
 					Annotations: map[string]string{
-						appsapi.DeploymentAnnotation: deploymentName,
+						appsinternal.DeploymentAnnotation: deploymentName,
 					},
 				},
 				Spec: kapi.PodSpec{
@@ -387,13 +392,13 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: apihelpers.GetPodName(deploymentName, "hook"),
 					Labels: map[string]string{
-						appsapi.DeploymentPodTypeLabel:        "hook",
-						appsapi.DeployerPodForDeploymentLabel: deploymentName,
+						appsinternal.DeploymentPodTypeLabel:        "hook",
+						appsinternal.DeployerPodForDeploymentLabel: deploymentName,
 						"label1": "value1",
 					},
 					Annotations: map[string]string{
-						appsapi.DeploymentAnnotation: deploymentName,
-						"annotation2":                "value2",
+						appsinternal.DeploymentAnnotation: deploymentName,
+						"annotation2":                     "value2",
 					},
 				},
 				Spec: kapi.PodSpec{
@@ -436,7 +441,7 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 				},
 			},
 			strategyLabels: map[string]string{
-				appsapi.DeployerPodForDeploymentLabel: "ignoredValue",
+				appsinternal.DeployerPodForDeploymentLabel: "ignoredValue",
 				"label1": "value1",
 			},
 			strategyAnnotations: map[string]string{"annotation2": "value2"},
@@ -453,11 +458,11 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: apihelpers.GetPodName(deploymentName, "hook"),
 					Labels: map[string]string{
-						appsapi.DeploymentPodTypeLabel:        "hook",
-						appsapi.DeployerPodForDeploymentLabel: deploymentName,
+						appsinternal.DeploymentPodTypeLabel:        "hook",
+						appsinternal.DeployerPodForDeploymentLabel: deploymentName,
 					},
 					Annotations: map[string]string{
-						appsapi.DeploymentAnnotation: deploymentName,
+						appsinternal.DeploymentAnnotation: deploymentName,
 					},
 				},
 				Spec: kapi.PodSpec{
@@ -511,7 +516,7 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 		}
 		// Copy the ActiveDeadlineSeconds the deployer pod is running for 5 seconds already
 		test.expected.Spec.ActiveDeadlineSeconds = pod.Spec.ActiveDeadlineSeconds
-		if !kapihelper.Semantic.DeepEqual(pod, test.expected) {
+		if !equality.Semantic.DeepEqual(pod, test.expected) {
 			t.Errorf("unexpected pod diff: %v", diff.ObjectReflectDiff(pod, test.expected))
 		}
 	}
@@ -526,7 +531,7 @@ func TestHookExecutor_makeHookPodRestart(t *testing.T) {
 	}
 
 	config := appstest.OkDeploymentConfig(1)
-	deployment, _ := appsutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(appsv1.SchemeGroupVersion))
+	deployment, _ := appsutil.MakeDeployment(config, scheme.Codecs.LegacyCodec(appsv1.SchemeGroupVersion))
 
 	pod, err := makeHookPod(hook, deployment, &config.Spec.Strategy, "hook", nowFunc().Time)
 	if err != nil {
@@ -616,7 +621,7 @@ func deployment(name, namespace string, strategyLabels, strategyAnnotations map[
 			},
 		},
 	}
-	deployment, _ := appsutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(appsv1.SchemeGroupVersion))
+	deployment, _ := appsutil.MakeDeployment(config, scheme.Codecs.LegacyCodec(appsv1.SchemeGroupVersion))
 	deployment.Namespace = namespace
 	return config, deployment
 }

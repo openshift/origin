@@ -383,19 +383,13 @@ func NewControllerRef(config *appsapi.DeploymentConfig) *metav1.OwnerReference {
 
 // MakeDeployment creates a deployment represented as an internal ReplicationController and based on the given
 // DeploymentConfig. The controller replica count will be zero.
-// DEPRECATED: Will be replaced with external version eventually.
 func MakeDeployment(config *appsapi.DeploymentConfig, codec runtime.Codec) (*core.ReplicationController, error) {
 	obj, err := MakeDeploymentV1(config, codec)
 	if err != nil {
 		return nil, err
 	}
 	kapiv1.SetObjectDefaults_ReplicationController(obj)
-	converted, err := scheme.Scheme.ConvertToVersion(obj, core.SchemeGroupVersion)
-	if err != nil {
-		return nil, err
-	}
-	deployment := converted.(*core.ReplicationController)
-	return deployment, nil
+	return obj, nil
 }
 
 // MakeDeploymentV1 creates a deployment represented as a ReplicationController and based on the given

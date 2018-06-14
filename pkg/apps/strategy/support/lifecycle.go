@@ -18,7 +18,6 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	kcoreclient "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/cache"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	appsapi "github.com/openshift/api/apps/v1"
 	imageapi "github.com/openshift/api/image/v1"
@@ -334,10 +333,7 @@ func makeHookPod(hook *appsapi.LifecycleHook, rc *kapi.ReplicationController, st
 	mergedEnv = append(mergedEnv, kapi.EnvVar{Name: "OPENSHIFT_DEPLOYMENT_NAMESPACE", Value: rc.Namespace})
 
 	// Inherit resources from the base container
-	resources := kapi.ResourceRequirements{}
-	if err := legacyscheme.Scheme.Convert(&baseContainer.Resources, &resources, nil); err != nil {
-		return nil, fmt.Errorf("couldn't clone ResourceRequirements: %v", err)
-	}
+	resources := *baseContainer.Resources.DeepCopy()
 
 	// Assigning to a variable since its address is required
 	defaultActiveDeadline := appsinternal.MaxDeploymentDurationSeconds

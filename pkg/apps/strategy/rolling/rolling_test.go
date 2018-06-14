@@ -13,9 +13,9 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl"
 
 	appsapi "github.com/openshift/api/apps/v1"
-	appstest "github.com/openshift/api/apps/v1/test"
 	strat "github.com/openshift/origin/pkg/apps/strategy"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
+	appstest "github.com/openshift/origin/pkg/apps/util/test"
 )
 
 func TestRolling_deployInitial(t *testing.T) {
