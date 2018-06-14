@@ -811,12 +811,16 @@ func (cm *haproxyConfigManager) findMatchingBlueprint(route *routeapi.Route) *ro
 		if route.Spec.TLS == nil && candidate.Spec.TLS == nil {
 			return candidate
 		}
-		if route.Spec.TLS != nil && candidate.Spec.TLS != nil {
+		tlsSpec := route.Spec.TLS
+		if tlsSpec == nil {
+			tlsSpec = &routeapi.TLSConfig{Termination: routeapi.TLSTerminationType("")}
+		}
+		if tlsSpec != nil && candidate.Spec.TLS != nil {
 			// So we need compare the TLS fields but don't care
 			// if InsecureEdgeTerminationPolicy doesn't match.
 			candidateCopy := candidate.DeepCopy()
-			candidateCopy.Spec.TLS.InsecureEdgeTerminationPolicy = route.Spec.TLS.InsecureEdgeTerminationPolicy
-			if reflect.DeepEqual(route.Spec.TLS, candidateCopy.Spec.TLS) {
+			candidateCopy.Spec.TLS.InsecureEdgeTerminationPolicy = tlsSpec.InsecureEdgeTerminationPolicy
+			if reflect.DeepEqual(tlsSpec, candidateCopy.Spec.TLS) {
 				return candidateCopy
 			}
 		}
