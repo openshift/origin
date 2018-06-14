@@ -16,8 +16,6 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
-	irouter "github.com/openshift/origin/pkg/cmd/infra/router"
-	"github.com/openshift/origin/pkg/cmd/recycle"
 	"github.com/openshift/origin/pkg/cmd/server/start"
 	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
@@ -40,8 +38,6 @@ var (
 func CommandFor(basename string, stopCh <-chan struct{}) *cobra.Command {
 	var cmd *cobra.Command
 
-	out := os.Stdout
-
 	// Make case-insensitive and strip executable suffix if present
 	if runtime.GOOS == "windows" {
 		basename = strings.ToLower(basename)
@@ -49,14 +45,6 @@ func CommandFor(basename string, stopCh <-chan struct{}) *cobra.Command {
 	}
 
 	switch basename {
-	case "openshift-router":
-		cmd = irouter.NewCommandTemplateRouter(basename)
-	case "openshift-f5-router":
-		cmd = irouter.NewCommandF5Router(basename)
-	case "openshift-recycle":
-		cmd = recycle.NewCommandRecycle(basename, out)
-	case "origin":
-		cmd = NewCommandOpenShift(basename, stopCh)
 	default:
 		cmd = NewCommandOpenShift("openshift", stopCh)
 	}
