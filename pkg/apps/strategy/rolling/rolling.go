@@ -8,28 +8,22 @@ import (
 	"os"
 	"time"
 
+	kapi "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
-	"k8s.io/kubernetes/pkg/kubectl"
+	kcoreclient "k8s.io/client-go/kubernetes/typed/core/v1"
 
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	imageclient "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
+	appsinternal "github.com/openshift/origin/pkg/apps/apis/apps"
 	strat "github.com/openshift/origin/pkg/apps/strategy"
 	stratsupport "github.com/openshift/origin/pkg/apps/strategy/support"
 	stratutil "github.com/openshift/origin/pkg/apps/strategy/util"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
-	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 )
 
 const (
-	// TODO: This should perhaps be made public upstream. See:
-	// https://github.com/kubernetes/kubernetes/issues/7851
-	sourceIdAnnotation = "kubectl.kubernetes.io/update-source-id"
-
 	defaultApiRetryPeriod  = 1 * time.Second
 	defaultApiRetryTimeout = 10 * time.Second
 )
@@ -62,7 +56,7 @@ type RollingDeploymentStrategy struct {
 	// tags is a client used to perform tag actions
 	tags imageclient.ImageStreamTagsGetter
 	// rollingUpdate knows how to perform a rolling update.
-	rollingUpdate func(config *kubectl.RollingUpdaterConfig) error
+	rollingUpdate func(config *RollingUpdaterConfig) error
 	// decoder is used to access the encoded config on a deployment.
 	decoder runtime.Decoder
 	// hookExecutor can execute a lifecycle hook.
@@ -86,7 +80,7 @@ type acceptingDeploymentStrategy interface {
 }
 
 // NewRollingDeploymentStrategy makes a new RollingDeploymentStrategy.
-func NewRollingDeploymentStrategy(namespace string, client kclientset.Interface, tags imageclient.ImageStreamTagsGetter, decoder runtime.Decoder, initialStrategy acceptingDeploymentStrategy, out, errOut io.Writer, until string) *RollingDeploymentStrategy {
+func NewRollingDeploymentStrategy(namespace string, client kcoreclient.CoreV1Interface, tags imageclient.ImageStreamTagsGetter, decoder runtime.Decoder, initialStrategy acceptingDeploymentStrategy, out, errOut io.Writer, until string) *RollingDeploymentStrategy {
 	if out == nil {
 		out = ioutil.Discard
 	}
@@ -100,18 +94,18 @@ func NewRollingDeploymentStrategy(namespace string, client kclientset.Interface,
 		until:           until,
 		decoder:         decoder,
 		initialStrategy: initialStrategy,
-		rcClient:        client.Core(),
-		eventClient:     client.Core(),
+		rcClient:        client,
+		eventClient:     client,
 		tags:            tags,
 		apiRetryPeriod:  defaultApiRetryPeriod,
 		apiRetryTimeout: defaultApiRetryTimeout,
-		rollingUpdate: func(config *kubectl.RollingUpdaterConfig) error {
-			updater := kubectl.NewRollingUpdater(namespace, client.Core(), client.Core(), appsutil.NewReplicationControllerV1ScaleClient(client))
+		rollingUpdate: func(config *RollingUpdaterConfig) error {
+			updater := NewRollingUpdater(namespace, client, client, appsutil.NewReplicationControllerV1ScaleClient(client))
 			return updater.Update(config)
 		},
-		hookExecutor: stratsupport.NewHookExecutor(client.Core(), tags, client.Core(), os.Stdout, decoder),
+		hookExecutor: stratsupport.NewHookExecutor(client, tags, client, os.Stdout, decoder),
 		getUpdateAcceptor: func(timeout time.Duration, minReadySeconds int32) strat.UpdateAcceptor {
-			return stratsupport.NewAcceptAvailablePods(out, client.Core(), timeout)
+			return stratsupport.NewAcceptAvailablePods(out, client, timeout)
 		},
 	}
 }
@@ -133,7 +127,7 @@ func (s *RollingDeploymentStrategy) Deploy(from *kapi.ReplicationController, to 
 	if from == nil {
 		// Execute any pre-hook.
 		if params.Pre != nil {
-			if err := s.hookExecutor.Execute(params.Pre, to, appsapi.PreHookPodSuffix, "pre"); err != nil {
+			if err := s.hookExecutor.Execute(params.Pre, to, appsinternal.PreHookPodSuffix, "pre"); err != nil {
 				return fmt.Errorf("pre hook failed: %s", err)
 			}
 		}
@@ -146,7 +140,7 @@ func (s *RollingDeploymentStrategy) Deploy(from *kapi.ReplicationController, to 
 
 		// Execute any post-hook. Errors are logged and ignored.
 		if params.Post != nil {
-			if err := s.hookExecutor.Execute(params.Post, to, appsapi.PostHookPodSuffix, "post"); err != nil {
+			if err := s.hookExecutor.Execute(params.Post, to, appsinternal.PostHookPodSuffix, "post"); err != nil {
 				return fmt.Errorf("post hook failed: %s", err)
 			}
 		}
@@ -162,7 +156,7 @@ func (s *RollingDeploymentStrategy) Deploy(from *kapi.ReplicationController, to 
 	// Prepare for a rolling update.
 	// Execute any pre-hook.
 	if params.Pre != nil {
-		if err := s.hookExecutor.Execute(params.Pre, to, appsapi.PreHookPodSuffix, "pre"); err != nil {
+		if err := s.hookExecutor.Execute(params.Pre, to, appsinternal.PreHookPodSuffix, "pre"); err != nil {
 			return fmt.Errorf("pre hook failed: %s", err)
 		}
 	}
@@ -220,10 +214,15 @@ func (s *RollingDeploymentStrategy) Deploy(from *kapi.ReplicationController, to 
 	//
 	// Related upstream issue:
 	// https://github.com/kubernetes/kubernetes/pull/7183
-	to.Spec.Replicas = 1
+	one := int32(1)
+	to.Spec.Replicas = &one
+
+	if params.MaxSurge == nil || params.MaxUnavailable == nil {
+		return fmt.Errorf("no maxSurge or maxUnavailable parameters set, cannot perform a rolling update")
+	}
 
 	// Perform a rolling update.
-	rollingConfig := &kubectl.RollingUpdaterConfig{
+	rollingConfig := &RollingUpdaterConfig{
 		Out:             &rollingUpdaterWriter{w: s.out},
 		OldRc:           from,
 		NewRc:           to,
@@ -231,9 +230,9 @@ func (s *RollingDeploymentStrategy) Deploy(from *kapi.ReplicationController, to 
 		Interval:        time.Duration(*params.IntervalSeconds) * time.Second,
 		Timeout:         time.Duration(*params.TimeoutSeconds) * time.Second,
 		MinReadySeconds: config.Spec.MinReadySeconds,
-		CleanupPolicy:   kubectl.PreserveRollingUpdateCleanupPolicy,
-		MaxSurge:        params.MaxSurge,
-		MaxUnavailable:  params.MaxUnavailable,
+		CleanupPolicy:   PreserveRollingUpdateCleanupPolicy,
+		MaxSurge:        *params.MaxSurge,
+		MaxUnavailable:  *params.MaxUnavailable,
 		OnProgress: func(oldRc, newRc *kapi.ReplicationController, percentage int) error {
 			if expect, ok := strat.Percentage(s.until); ok && percentage >= expect {
 				return strat.NewConditionReachedErr(fmt.Sprintf("Reached %s (currently %d%%)", s.until, percentage))
@@ -247,7 +246,7 @@ func (s *RollingDeploymentStrategy) Deploy(from *kapi.ReplicationController, to 
 
 	// Execute any post-hook.
 	if params.Post != nil {
-		if err := s.hookExecutor.Execute(params.Post, to, appsapi.PostHookPodSuffix, "post"); err != nil {
+		if err := s.hookExecutor.Execute(params.Post, to, appsinternal.PostHookPodSuffix, "post"); err != nil {
 			return fmt.Errorf("post hook failed: %s", err)
 		}
 	}

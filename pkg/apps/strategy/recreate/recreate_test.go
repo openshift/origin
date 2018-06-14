@@ -7,21 +7,18 @@ import (
 	"time"
 
 	autoscalingv1 "k8s.io/api/autoscaling/v1"
+	kapi "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	kcoreclient "k8s.io/client-go/kubernetes/typed/core/v1"
+	"k8s.io/client-go/kubernetes/typed/core/v1/fake"
 	scalefake "k8s.io/client-go/scale/fake"
 	clientgotesting "k8s.io/client-go/testing"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 
+	appsapi "github.com/openshift/api/apps/v1"
 	appsv1 "github.com/openshift/api/apps/v1"
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	appstest "github.com/openshift/origin/pkg/apps/apis/apps/test"
 	"github.com/openshift/origin/pkg/apps/strategy"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
-
-	_ "github.com/openshift/origin/pkg/api/install"
+	appstest "github.com/openshift/origin/pkg/apps/util/test"
 )
 
 func getUpdateAcceptor(timeout time.Duration, minReadySeconds int32) strategy.UpdateAcceptor {

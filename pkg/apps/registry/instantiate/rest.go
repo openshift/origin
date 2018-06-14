@@ -22,7 +22,7 @@ import (
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	"github.com/openshift/origin/pkg/apps/apis/apps/validation"
-	appsutil "github.com/openshift/origin/pkg/apps/util"
+	appsutil "github.com/openshift/origin/pkg/apps/utilinternal"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageclientinternal "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	images "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"

@@ -17,7 +17,7 @@ import (
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appstest "github.com/openshift/origin/pkg/apps/apis/apps/test"
 	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset"
-	appsutil "github.com/openshift/origin/pkg/apps/util"
+	appsutil "github.com/openshift/origin/pkg/apps/utilinternal"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )

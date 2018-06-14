@@ -8,24 +8,23 @@ import (
 	"strings"
 	"time"
 
+	kapi "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
+	kcoreclient "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/scale"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/retry"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	imageclient "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
+	appsinternal "github.com/openshift/origin/pkg/apps/apis/apps"
 	strat "github.com/openshift/origin/pkg/apps/strategy"
 	stratsupport "github.com/openshift/origin/pkg/apps/strategy/support"
 	stratutil "github.com/openshift/origin/pkg/apps/strategy/util"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
-	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 )
 
 // RecreateDeploymentStrategy is a simple strategy appropriate as a default.
@@ -60,7 +59,7 @@ type RecreateDeploymentStrategy struct {
 
 // NewRecreateDeploymentStrategy makes a RecreateDeploymentStrategy backed by
 // a real HookExecutor and client.
-func NewRecreateDeploymentStrategy(client kclientset.Interface, tagClient imageclient.ImageStreamTagsGetter,
+func NewRecreateDeploymentStrategy(client kcoreclient.CoreV1Interface, tagClient imageclient.ImageStreamTagsGetter,
 	events record.EventSink, decoder runtime.Decoder, out, errOut io.Writer, until string) *RecreateDeploymentStrategy {
 	if out == nil {
 		out = ioutil.Discard
@@ -74,15 +73,15 @@ func NewRecreateDeploymentStrategy(client kclientset.Interface, tagClient imagec
 		errOut:      errOut,
 		events:      events,
 		until:       until,
-		rcClient:    client.Core(),
+		rcClient:    client,
 		scaleClient: appsutil.NewReplicationControllerV1ScaleClient(client),
-		eventClient: client.Core(),
-		podClient:   client.Core(),
+		eventClient: client,
+		podClient:   client,
 		getUpdateAcceptor: func(timeout time.Duration, minReadySeconds int32) strat.UpdateAcceptor {
-			return stratsupport.NewAcceptAvailablePods(out, client.Core(), timeout)
+			return stratsupport.NewAcceptAvailablePods(out, client, timeout)
 		},
 		decoder:      decoder,
-		hookExecutor: stratsupport.NewHookExecutor(client.Core(), tagClient, client.Core(), os.Stdout, decoder),
+		hookExecutor: stratsupport.NewHookExecutor(client, tagClient, client, os.Stdout, decoder),
 	}
 }
 
@@ -104,7 +103,7 @@ func (s *RecreateDeploymentStrategy) DeployWithAcceptor(from *kapi.ReplicationCo
 		return fmt.Errorf("couldn't decode config from deployment %s: %v", to.Name, err)
 	}
 
-	recreateTimeout := time.Duration(appsapi.DefaultRecreateTimeoutSeconds) * time.Second
+	recreateTimeout := time.Duration(appsinternal.DefaultRecreateTimeoutSeconds) * time.Second
 	params := config.Spec.Strategy.RecreateParams
 	rollingParams := config.Spec.Strategy.RollingParams
 
@@ -124,7 +123,7 @@ func (s *RecreateDeploymentStrategy) DeployWithAcceptor(from *kapi.ReplicationCo
 
 	// Execute any pre-hook.
 	if params != nil && params.Pre != nil {
-		if err := s.hookExecutor.Execute(params.Pre, to, appsapi.PreHookPodSuffix, "pre"); err != nil {
+		if err := s.hookExecutor.Execute(params.Pre, to, appsinternal.PreHookPodSuffix, "pre"); err != nil {
 			return fmt.Errorf("pre hook failed: %s", err)
 		}
 	}
@@ -153,7 +152,7 @@ func (s *RecreateDeploymentStrategy) DeployWithAcceptor(from *kapi.ReplicationCo
 	}
 
 	if params != nil && params.Mid != nil {
-		if err := s.hookExecutor.Execute(params.Mid, to, appsapi.MidHookPodSuffix, "mid"); err != nil {
+		if err := s.hookExecutor.Execute(params.Mid, to, appsinternal.MidHookPodSuffix, "mid"); err != nil {
 			return fmt.Errorf("mid hook failed: %s", err)
 		}
 	}
@@ -186,7 +185,7 @@ func (s *RecreateDeploymentStrategy) DeployWithAcceptor(from *kapi.ReplicationCo
 		}
 
 		// Complete the scale up.
-		if to.Spec.Replicas != int32(desiredReplicas) {
+		if to.Spec.Replicas == nil || *to.Spec.Replicas != int32(desiredReplicas) {
 			fmt.Fprintf(s.out, "--> Scaling %s to %d\n", to.Name, desiredReplicas)
 			updatedTo, err := s.scaleAndWait(to, desiredReplicas, recreateTimeout)
 			if err != nil {
@@ -209,7 +208,7 @@ func (s *RecreateDeploymentStrategy) DeployWithAcceptor(from *kapi.ReplicationCo
 
 	// Execute any post-hook.
 	if params != nil && params.Post != nil {
-		if err := s.hookExecutor.Execute(params.Post, to, appsapi.PostHookPodSuffix, "post"); err != nil {
+		if err := s.hookExecutor.Execute(params.Post, to, appsinternal.PostHookPodSuffix, "post"); err != nil {
 			return fmt.Errorf("post hook failed: %s", err)
 		}
 	}
@@ -218,7 +217,7 @@ func (s *RecreateDeploymentStrategy) DeployWithAcceptor(from *kapi.ReplicationCo
 }
 
 func (s *RecreateDeploymentStrategy) scaleAndWait(deployment *kapi.ReplicationController, replicas int, retryTimeout time.Duration) (*kapi.ReplicationController, error) {
-	if int32(replicas) == deployment.Spec.Replicas && int32(replicas) == deployment.Status.Replicas {
+	if deployment.Spec.Replicas != nil && int32(replicas) == *deployment.Spec.Replicas {
 		return deployment, nil
 	}
 	alreadyScaled := false

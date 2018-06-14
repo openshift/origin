@@ -8,26 +8,24 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
-	"k8s.io/client-go/kubernetes"
 
+	kapi "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kv1core "k8s.io/client-go/kubernetes/typed/core/v1"
+	"k8s.io/client-go/kubernetes/scheme"
+	kcoreclient "k8s.io/client-go/kubernetes/typed/core/v1"
 	restclient "k8s.io/client-go/rest"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsapi "github.com/openshift/api/apps/v1"
+	imageclient "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	"github.com/openshift/origin/pkg/apps/strategy"
 	"github.com/openshift/origin/pkg/apps/strategy/recreate"
 	"github.com/openshift/origin/pkg/apps/strategy/rolling"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
 	"github.com/openshift/origin/pkg/cmd/util"
 	cmdversion "github.com/openshift/origin/pkg/cmd/version"
-	imageclientinternal "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	"github.com/openshift/origin/pkg/version"
 )
 
@@ -106,46 +104,42 @@ func (cfg *config) RunDeployer() error {
 	if err != nil {
 		return err
 	}
-	kubeInternalClient, err := kclientset.NewForConfig(kcfg)
+	kubeClient, err := kcoreclient.NewForConfig(kcfg)
 	if err != nil {
 		return err
 	}
-	openshiftInternalImageClient, err := imageclientinternal.NewForConfig(kcfg)
-	if err != nil {
-		return err
-	}
-	kubeClient, err := kubernetes.NewForConfig(kcfg)
+	openshiftImageClient, err := imageclient.NewForConfig(kcfg)
 	if err != nil {
 		return err
 	}
 
-	deployer := NewDeployer(kubeClient, kubeInternalClient, openshiftInternalImageClient, cfg.Out, cfg.ErrOut, cfg.Until)
+	deployer := NewDeployer(kubeClient, openshiftImageClient, cfg.Out, cfg.ErrOut, cfg.Until)
 	return deployer.Deploy(cfg.Namespace, cfg.rcName)
 }
 
 // NewDeployer makes a new Deployer from a kube client.
-func NewDeployer(kubeClient kubernetes.Interface, client kclientset.Interface, images imageclientinternal.Interface, out, errOut io.Writer,
+func NewDeployer(client kcoreclient.CoreV1Interface, images imageclient.ImageV1Interface, out, errOut io.Writer,
 	until string) *Deployer {
 	return &Deployer{
 		out:    out,
 		errOut: errOut,
 		until:  until,
 		getDeployment: func(namespace, name string) (*kapi.ReplicationController, error) {
-			return client.Core().ReplicationControllers(namespace).Get(name, metav1.GetOptions{})
+			return client.ReplicationControllers(namespace).Get(name, metav1.GetOptions{})
 		},
 		getDeployments: func(namespace, configName string) (*kapi.ReplicationControllerList, error) {
-			return client.Core().ReplicationControllers(namespace).List(metav1.ListOptions{LabelSelector: appsutil.ConfigSelector(configName).String()})
+			return client.ReplicationControllers(namespace).List(metav1.ListOptions{LabelSelector: appsutil.ConfigSelector(configName).String()})
 		},
 		scaler: appsutil.NewReplicationControllerV1Scaler(client),
 		strategyFor: func(config *appsapi.DeploymentConfig) (strategy.DeploymentStrategy, error) {
 			switch config.Spec.Strategy.Type {
 			case appsapi.DeploymentStrategyTypeRecreate:
-				return recreate.NewRecreateDeploymentStrategy(client, images.Image(),
-					&kv1core.EventSinkImpl{Interface: kubeClient.CoreV1().Events("")}, legacyscheme.Codecs.UniversalDecoder(), out, errOut, until), nil
+				return recreate.NewRecreateDeploymentStrategy(client, images,
+					&kcoreclient.EventSinkImpl{Interface: client.Events("")}, scheme.Codecs.UniversalDecoder(), out, errOut, until), nil
 			case appsapi.DeploymentStrategyTypeRolling:
-				recreateDeploymentStrategy := recreate.NewRecreateDeploymentStrategy(client, images.Image(),
-					&kv1core.EventSinkImpl{Interface: kubeClient.CoreV1().Events("")}, legacyscheme.Codecs.UniversalDecoder(), out, errOut, until)
-				return rolling.NewRollingDeploymentStrategy(config.Namespace, client, images.Image(), legacyscheme.Codecs.UniversalDecoder(), recreateDeploymentStrategy, out, errOut, until), nil
+				recreateDeploymentStrategy := recreate.NewRecreateDeploymentStrategy(client, images,
+					&kcoreclient.EventSinkImpl{Interface: client.Events("")}, scheme.Codecs.UniversalDecoder(), out, errOut, until)
+				return rolling.NewRollingDeploymentStrategy(config.Namespace, client, images, scheme.Codecs.UniversalDecoder(), recreateDeploymentStrategy, out, errOut, until), nil
 			default:
 				return nil, fmt.Errorf("unsupported strategy type: %s", config.Spec.Strategy.Type)
 			}
@@ -185,7 +179,7 @@ func (d *Deployer) Deploy(namespace, rcName string) error {
 	}
 
 	// Decode the config from the deployment.
-	config, err := appsutil.DecodeDeploymentConfig(to, legacyscheme.Codecs.UniversalDecoder())
+	config, err := appsutil.DecodeDeploymentConfig(to, scheme.Codecs.UniversalDecoder())
 	if err != nil {
 		return fmt.Errorf("couldn't decode deployment config from deployment %s: %v", to.Name, err)
 	}
@@ -241,7 +235,7 @@ func (d *Deployer) Deploy(namespace, rcName string) error {
 			continue
 		}
 		// Skip the deployment if it's already scaled down.
-		if candidate.Spec.Replicas == 0 {
+		if candidate.Spec.Replicas != nil && *candidate.Spec.Replicas == 0 {
 			continue
 		}
 		// Scale the deployment down to zero.

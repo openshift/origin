@@ -7,7 +7,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	appsutil "github.com/openshift/origin/pkg/apps/util"
+	appsutil "github.com/openshift/origin/pkg/apps/utilinternal"
 )
 
 // Resolver knows how to resolve the set of candidate objects to prune

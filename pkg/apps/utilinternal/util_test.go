@@ -1,4 +1,4 @@
-package util
+package utilinternal
 
 import (
 	"reflect"
@@ -7,10 +7,12 @@ import (
 	"testing"
 	"time"
 
-	kapi "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	appsv1 "github.com/openshift/api/apps/v1"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appstest "github.com/openshift/origin/pkg/apps/apis/apps/test"
 
 	_ "github.com/openshift/origin/pkg/api/install"

@@ -25,7 +25,7 @@ import (
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
 	appslister "github.com/openshift/origin/pkg/apps/generated/listers/apps/internalversion"
-	appsutil "github.com/openshift/origin/pkg/apps/util"
+	appsutil "github.com/openshift/origin/pkg/apps/utilinternal"
 )
 
 const (

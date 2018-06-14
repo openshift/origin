@@ -8,7 +8,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl"
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	appsutil "github.com/openshift/origin/pkg/apps/util"
+	appsutil "github.com/openshift/origin/pkg/apps/utilinternal"
 
 	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset"
 	appsinternal "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"

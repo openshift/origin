@@ -38,7 +38,7 @@ import (
 	"github.com/openshift/origin/pkg/api/apihelpers"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appstypeclientset "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
-	appsutil "github.com/openshift/origin/pkg/apps/util"
+	appsutil "github.com/openshift/origin/pkg/apps/utilinternal"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildtypedclientset "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
 	"github.com/openshift/origin/pkg/git"

@@ -25,7 +25,7 @@ import (
 	"github.com/openshift/origin/pkg/apps/apis/apps/validation"
 	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
 	"github.com/openshift/origin/pkg/apps/registry"
-	appsutil "github.com/openshift/origin/pkg/apps/util"
+	appsutil "github.com/openshift/origin/pkg/apps/utilinternal"
 )
 
 const (

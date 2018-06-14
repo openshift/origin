@@ -6,19 +6,15 @@ import (
 	"strconv"
 	"testing"
 
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
+	kapi "k8s.io/api/core/v1"
+	"k8s.io/client-go/kubernetes/scheme"
 
+	appsapi "github.com/openshift/api/apps/v1"
 	appsv1 "github.com/openshift/api/apps/v1"
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appstest "github.com/openshift/origin/pkg/apps/apis/apps/test"
 	"github.com/openshift/origin/pkg/apps/strategy"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
 	cmdtest "github.com/openshift/origin/pkg/apps/util/test"
-
-	// install all APIs
-	_ "github.com/openshift/origin/pkg/api/install"
-	_ "k8s.io/kubernetes/pkg/apis/core/install"
 )
 
 func TestDeployer_getDeploymentFail(t *testing.T) {

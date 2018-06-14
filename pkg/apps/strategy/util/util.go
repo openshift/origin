@@ -8,11 +8,11 @@ import (
 	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
+	kapi "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	kapiref "k8s.io/kubernetes/pkg/api/ref"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
+	kcoreclient "k8s.io/client-go/kubernetes/typed/core/v1"
+	"k8s.io/client-go/tools/reference"
 
 	appsutil "github.com/openshift/origin/pkg/apps/util"
 )
@@ -27,7 +27,7 @@ func RecordConfigEvent(client kcoreclient.EventsGetter, deployment *kapi.Replica
 	} else {
 		glog.Errorf("Unable to decode deployment config from %s/%s: %v", deployment.Namespace, deployment.Name, err)
 	}
-	ref, err := kapiref.GetReference(legacyscheme.Scheme, obj)
+	ref, err := reference.GetReference(legacyscheme.Scheme, obj)
 	if err != nil {
 		glog.Errorf("Unable to get reference for %#v: %v", obj, err)
 		return
