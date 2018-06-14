@@ -420,7 +420,7 @@ func StartConfiguredNode(nodeConfig *configapi.NodeConfig, components *utilflags
 		return err
 	}
 
-	if err := start.StartNode(*nodeConfig, components); err != nil {
+	if err := start.StartNode(*nodeConfig, components, wait.NeverStop); err != nil {
 		return err
 	}
 

@@ -16,6 +16,7 @@ import (
 	"github.com/spf13/cobra"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/util/flag"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -26,7 +27,6 @@ import (
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/origin"
 	tsbcmd "github.com/openshift/origin/pkg/templateservicebroker/cmd/server"
-	"k8s.io/apimachinery/pkg/util/wait"
 )
 
 type AllInOneOptions struct {
@@ -310,7 +310,7 @@ func (o AllInOneOptions) StartAllInOne() error {
 		ConfigFile: o.NodeConfigFile,
 		Output:     o.MasterOptions.Output,
 	}
-	if err := nodeOptions.RunNode(); err != nil {
+	if err := nodeOptions.RunNode(wait.NeverStop); err != nil {
 		return err
 	}
 
