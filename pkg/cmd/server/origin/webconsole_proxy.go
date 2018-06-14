@@ -43,7 +43,7 @@ func withAssetServerRedirect(handler http.Handler, accessor *webConsolePublicURL
 func (c *MasterConfig) withConsoleRedirection(handler, assetServerHandler http.Handler, accessor *webConsolePublicURLAccessor) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		// blacklist well known paths so we do not risk recursion deadlocks
-		for _, prefix := range []string{"/apis", "/api", "/oapi", "/healtz", "/version"} {
+		for _, prefix := range []string{"/apis", "/api", "/oapi", "/healthz", "/version"} {
 			if req.URL.Path == prefix || strings.HasPrefix(req.URL.Path, prefix+"/") {
 				// Dispatch to the next handler
 				handler.ServeHTTP(w, req)

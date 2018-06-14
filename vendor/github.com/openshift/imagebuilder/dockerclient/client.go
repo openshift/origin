@@ -704,7 +704,8 @@ func (e *ClientExecutor) Run(run imagebuilder.Run, config docker.Config) error {
 		return err
 	}
 	if status.ExitCode != 0 {
-		return fmt.Errorf("running '%s' failed with exit code %d", strings.Join(args, " "), status.ExitCode)
+		glog.V(4).Infof("Failed command (code %d): %v", status.ExitCode, args)
+		return fmt.Errorf("running '%s' failed with exit code %d", strings.Join(run.Args, " "), status.ExitCode)
 	}
 
 	if err := e.Volumes.Restore(e.Container.ID, e.Client); err != nil {

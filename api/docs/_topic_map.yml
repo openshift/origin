@@ -103,11 +103,6 @@
   Topics:
   - Name: v1beta1.CronJob
     File: v1beta1.CronJob
-- Name: /apis/batch/v2alpha1
-  Dir: apis-batch
-  Topics:
-  - Name: v2alpha1.CronJob
-    File: v2alpha1.CronJob
 - Name: /apis/extensions/v1beta1
   Dir: apis-extensions
   Topics:

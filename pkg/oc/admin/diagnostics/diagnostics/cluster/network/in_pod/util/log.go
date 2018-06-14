@@ -23,7 +23,6 @@ func (l *LogInterface) LogNode(kubeClient kclientset.Interface) {
 	l.LogSystem()
 	l.LogServices()
 
-	l.Run("brctl show", "bridges")
 	l.Run("docker ps -a", "docker-ps")
 	l.Run("ovs-ofctl -O OpenFlow13 dump-flows br0", "flows")
 	l.Run("ovs-ofctl -O OpenFlow13 show br0", "ovs-show")
