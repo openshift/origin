@@ -333,7 +333,8 @@ func (o *ProbeOptions) Run() error {
 
 		if o.Local || o.DryRun {
 			if err := o.PrintObj(info.Object, o.Out); err != nil {
-				allErrs = append(allErrs, err)
+				// FIXME-REBASE
+				// allErrs = append(allErrs, err)
 			}
 			continue
 		}
