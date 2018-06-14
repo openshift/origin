@@ -25,7 +25,6 @@ import (
 	kapiv1 "k8s.io/kubernetes/pkg/apis/core/v1"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kcontainer "k8s.io/kubernetes/pkg/kubelet/container"
-	knetwork "k8s.io/kubernetes/pkg/kubelet/network"
 	kubehostport "k8s.io/kubernetes/pkg/kubelet/dockershim/network/hostport"
 	kbandwidth "k8s.io/kubernetes/pkg/util/bandwidth"
 	utildbus "k8s.io/kubernetes/pkg/util/dbus"
@@ -41,7 +40,7 @@ import (
 )
 
 const (
-	podInterfaceName = knetwork.DefaultInterfaceName
+	podInterfaceName = "eth0"
 )
 
 type podHandler interface {

@@ -12,7 +12,6 @@ import (
 	kubeletoptions "k8s.io/kubernetes/cmd/kubelet/app/options"
 	"k8s.io/kubernetes/pkg/kubelet/apis/kubeletconfig"
 	"k8s.io/kubernetes/pkg/kubelet/config"
-	"k8s.io/kubernetes/pkg/kubelet/rkt"
 	kubetypes "k8s.io/kubernetes/pkg/kubelet/types"
 	kubeletutil "k8s.io/kubernetes/pkg/kubelet/util"
 	"k8s.io/kubernetes/pkg/proxy/apis/kubeproxyconfig"
@@ -31,7 +30,7 @@ func TestKubeletDefaults(t *testing.T) {
 				DockershimRootDirectory:   "/var/lib/dockershim",
 				DockerEndpoint:            "unix:///var/run/docker.sock",
 				ImagePullProgressDeadline: metav1.Duration{Duration: 1 * time.Minute},
-				RktAPIEndpoint:            rkt.DefaultRktAPIServiceEndpoint,
+				RktAPIEndpoint:            "localhost:15441",
 				PodSandboxImage:           "k8s.gcr.io/pause-" + goruntime.GOARCH + ":3.1", // overridden
 				DockerDisableSharedPID:    true,
 				ContainerRuntime:          "docker",
