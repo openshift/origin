@@ -113,6 +113,10 @@
                                     {
                                         "name": "JNLP_SERVICE_NAME",
                                         "value": "${JNLP_SERVICE_NAME}"
+                                    },
+                                    {
+                                        "name": "ENABLE_FATAL_ERROR_LOG_FILE",
+                                        "value": "${ENABLE_FATAL_ERROR_LOG_FILE}"
                                     }
                                 ],
                                 "image": " ",
@@ -316,6 +320,12 @@
             "displayName": "Jenkins ImageStreamTag",
             "name": "JENKINS_IMAGE_STREAM_TAG",
             "value": "jenkins:2"
+        },
+        {
+            "description": "When a fatal error occurs, an error log is created with information and the state obtained at the time of the fatal error.",
+            "displayName": "Fatal Error Log File",
+            "name": "ENABLE_FATAL_ERROR_LOG_FILE",
+            "value": "false"
         }
     ]
 }

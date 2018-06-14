@@ -272,7 +272,7 @@
             "value": "1Gi"
         },
         {
-            "description": "Version of MySQL image to be used (5.5, 5.6, 5.7, or latest).",
+            "description": "Version of MySQL image to be used (5.7, or latest).",
             "displayName": "Version of MySQL Image",
             "name": "MYSQL_VERSION",
             "required": true,
