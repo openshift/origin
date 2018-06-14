@@ -66,7 +66,6 @@ var expectedIndex = []string{
 	"/apis/batch",
 	"/apis/batch/v1",
 	"/apis/batch/v1beta1",
-	"/apis/batch/v2alpha1",
 	"/apis/build.openshift.io",
 	"/apis/build.openshift.io/v1",
 	"/apis/certificates.k8s.io",

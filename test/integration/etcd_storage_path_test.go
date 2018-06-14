@@ -988,6 +988,7 @@ func TestEtcd3StoragePath(t *testing.T) {
 			"scheduling.k8s.io/v1alpha1=true",
 			"settings.k8s.io/v1alpha1=true",
 			"storage.k8s.io/v1alpha1=true",
+			"batch/v2alpha1=true",
 		},
 	}
 	masterConfig.AdmissionConfig.PluginConfig["ServiceAccount"] = &serverapi.AdmissionPluginConfig{

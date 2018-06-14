@@ -90,7 +90,7 @@ var (
 		APIGroupAuthorization:         {"v1", "v1beta1"},
 		APIGroupAuthorizationRbac:     {"v1", "v1beta1"},
 		APIGroupAutoscaling:           {"v1", "v2beta1"},
-		APIGroupBatch:                 {"v1", "v1beta1", "v2alpha1"}, // v2alpha1 has to stay on to keep cronjobs on for backwards compatibility
+		APIGroupBatch:                 {"v1", "v1beta1"},
 		APIGroupCertificates:          {"v1beta1"},
 		APIGroupImagePolicy:           {},
 		APIGroupNetworking:            {"v1"},
@@ -122,7 +122,7 @@ var (
 		APIGroupKube:                  {"v1beta3"},
 		APIGroupExtensions:            {},
 		APIGroupAutoscaling:           {"v2alpha1"},
-		APIGroupBatch:                 {},
+		APIGroupBatch:                 {"v2alpha1"},
 		APIGroupImagePolicy:           {"v1alpha1"},
 		APIGroupPolicy:                {},
 		APIGroupApps:                  {},
