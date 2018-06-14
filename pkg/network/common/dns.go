@@ -142,7 +142,7 @@ func (d *DNS) getIPsAndMinTTL(domain string) ([]net.IP, time.Duration, error) {
 			dialServer = net.JoinHostPort(server, d.port)
 		}
 		c := new(dns.Client)
-		c.Timeout = 2 * time.Second
+		c.Timeout = 5 * time.Second
 		in, _, err := c.Exchange(msg, dialServer)
 		if err != nil {
 			return nil, defaultTTL, err
@@ -153,20 +153,20 @@ func (d *DNS) getIPsAndMinTTL(domain string) ([]net.IP, time.Duration, error) {
 
 		if in != nil && len(in.Answer) > 0 {
 			for _, a := range in.Answer {
+				if !ttlSet || a.Header().Ttl < minTTL {
+					minTTL = a.Header().Ttl
+					ttlSet = true
+				}
+
 				switch t := a.(type) {
 				case *dns.A:
 					ips = append(ips, t.A)
-
-					if !ttlSet || t.Hdr.Ttl < minTTL {
-						minTTL = t.Hdr.Ttl
-						ttlSet = true
-					}
 				}
 			}
 		}
 	}
 
-	if !ttlSet {
+	if !ttlSet || (len(ips) == 0) {
 		return nil, defaultTTL, fmt.Errorf("IPv4 addr not found for domain: %q, nameservers: %v", domain, d.nameservers)
 	}
 
