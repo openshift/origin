@@ -3071,10 +3071,8 @@ var _testExtendedTestdataBuildsTestContextBuildJson = []byte(`{
       "spec": {
         "triggers": [],
         "source": {
-          "type": "Git",
-          "git": {
-            "uri":"https://github.com/sclorg/s2i-ruby-container"
-          },
+          "type": "binary",
+          "binary": {},
           "contextDir": "2.3"
         },
         "strategy": {
@@ -3211,7 +3209,8 @@ var _testExtendedTestdataBuildsTestContextBuildJson = []byte(`{
       }
     }
   ]
-}`)
+}
+`)
 
 func testExtendedTestdataBuildsTestContextBuildJsonBytes() ([]byte, error) {
 	return _testExtendedTestdataBuildsTestContextBuildJson, nil

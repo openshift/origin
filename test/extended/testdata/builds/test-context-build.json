@@ -12,10 +12,8 @@
       "spec": {
         "triggers": [],
         "source": {
-          "type": "Git",
-          "git": {
-            "uri":"https://github.com/sclorg/s2i-ruby-container"
-          },
+          "type": "binary",
+          "binary": {},
           "contextDir": "2.3"
         },
         "strategy": {
