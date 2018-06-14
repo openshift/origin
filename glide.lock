@@ -1,5 +1,5 @@
-hash: ce2c9c5c1323a030dfa6afeaba2801780a27b7c1b38b1ee1de2b00baf254377d
-updated: 2018-06-13T11:06:49.527989847-04:00
+hash: 1511c1c08d724d5b2f6c586490bfa154f305c5b0038fb2a4bf3c0404aabc72a6
+updated: 2018-06-13T17:31:37.381725-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -185,7 +185,8 @@ imports:
 - name: github.com/coreos/bbolt
   version: 32c383e75ce054674c53b5a07e55de85332aee14
 - name: github.com/coreos/etcd
-  version: 121edf0467052d55876a817b89875fb39a99bf78
+  version: 135cf9b40738d17886f499b40bc176fc892ba5e9
+  repo: https://github.com/openshift/coreos-etcd.git
   subpackages:
   - alarm
   - auth
@@ -501,7 +502,7 @@ imports:
 - name: github.com/google/btree
   version: e89373fe6b4a7413d7acd6da1725b83ef713e6e4
 - name: github.com/google/cadvisor
-  version: 5287e255428f16a3c0c8083107dfa0c980d7cdac
+  version: 7de6d3a20159d0d4c404436989dcdbbcfb3b20ae
   repo: https://github.com/openshift/google-cadvisor.git
   subpackages:
   - accelerators
