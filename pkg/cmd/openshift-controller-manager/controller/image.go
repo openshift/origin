@@ -83,8 +83,8 @@ func RunImageTriggerController(ctx ControllerContext) (bool, error) {
 	})
 	sources = append(sources, imagetriggercontroller.TriggerSource{
 		Resource:  schema.GroupResource{Group: "batch", Resource: "cronjobs"},
-		Informer:  ctx.ExternalKubeInformers.Batch().V2alpha1().CronJobs().Informer(),
-		Store:     ctx.ExternalKubeInformers.Batch().V2alpha1().CronJobs().Informer().GetIndexer(),
+		Informer:  ctx.ExternalKubeInformers.Batch().V1beta1().CronJobs().Informer(),
+		Store:     ctx.ExternalKubeInformers.Batch().V1beta1().CronJobs().Informer().GetIndexer(),
 		TriggerFn: triggerannotations.NewAnnotationTriggerIndexer,
 		Reactor:   &triggerannotations.AnnotationReactor{Updater: updater},
 	})
