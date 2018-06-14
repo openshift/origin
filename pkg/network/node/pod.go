@@ -26,7 +26,7 @@ import (
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kcontainer "k8s.io/kubernetes/pkg/kubelet/container"
 	knetwork "k8s.io/kubernetes/pkg/kubelet/network"
-	kubehostport "k8s.io/kubernetes/pkg/kubelet/network/hostport"
+	kubehostport "k8s.io/kubernetes/pkg/kubelet/dockershim/network/hostport"
 	kbandwidth "k8s.io/kubernetes/pkg/util/bandwidth"
 	utildbus "k8s.io/kubernetes/pkg/util/dbus"
 	utiliptables "k8s.io/kubernetes/pkg/util/iptables"
@@ -525,7 +525,7 @@ func (m *podManager) setup(req *cniserver.PodRequest) (cnitypes.Result, *running
 	if err := kapiv1.Convert_core_Pod_To_v1_Pod(pod, &v1Pod, nil); err != nil {
 		return nil, nil, err
 	}
-	podPortMapping := kubehostport.ConstructPodPortMapping(&v1Pod, podIP)
+	podPortMapping := constructPodPortMapping(&v1Pod, podIP)
 	if mappings := m.shouldSyncHostports(podPortMapping); mappings != nil {
 		if err := m.hostportSyncer.OpenPodHostportsAndSync(podPortMapping, Tun0, mappings); err != nil {
 			return nil, nil, err
@@ -588,4 +588,29 @@ func (m *podManager) teardown(req *cniserver.PodRequest) error {
 	}
 
 	return kerrors.NewAggregate(errList)
+}
+
+// constructPodPortMapping creates a PodPortMapping from the ports specified in the pod's
+// containers.
+func constructPodPortMapping(pod *v1.Pod, podIP net.IP) *kubehostport.PodPortMapping {
+	portMappings := make([]*kubehostport.PortMapping, 0)
+	for _, c := range pod.Spec.Containers {
+		for _, port := range c.Ports {
+			portMappings = append(portMappings, &kubehostport.PortMapping{
+				Name:          port.Name,
+				HostPort:      port.HostPort,
+				ContainerPort: port.ContainerPort,
+				Protocol:      port.Protocol,
+				HostIP:        port.HostIP,
+			})
+		}
+	}
+
+	return &kubehostport.PodPortMapping{
+		Namespace:    pod.Namespace,
+		Name:         pod.Name,
+		PortMappings: portMappings,
+		HostNetwork:  pod.Spec.HostNetwork,
+		IP:           podIP,
+	}
 }

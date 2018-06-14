@@ -29,7 +29,7 @@ import (
 	serviceadmit "github.com/openshift/origin/pkg/service/admission"
 
 	"k8s.io/kubernetes/plugin/pkg/admission/noderestriction"
-	expandpvcadmission "k8s.io/kubernetes/plugin/pkg/admission/persistentvolume/resize"
+	expandpvcadmission "k8s.io/kubernetes/plugin/pkg/admission/storage/persistentvolume/resize"
 	storageclassdefaultadmission "k8s.io/kubernetes/plugin/pkg/admission/storage/storageclass/setdefault"
 
 	imagepolicyapi "github.com/openshift/origin/pkg/image/admission/apis/imagepolicy"

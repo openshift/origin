@@ -6,8 +6,8 @@ import (
 	os "os"
 
 	build "github.com/openshift/origin/pkg/build/apis/build/install"
-	announced "k8s.io/apimachinery/pkg/apimachinery/announced"
-	registered "k8s.io/apimachinery/pkg/apimachinery/registered"
+	
+	
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"

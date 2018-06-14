@@ -16,7 +16,7 @@ import (
 	"github.com/openshift/origin/pkg/network/node/cniserver"
 
 	utiltesting "k8s.io/client-go/util/testing"
-	khostport "k8s.io/kubernetes/pkg/kubelet/network/hostport"
+	khostport "k8s.io/kubernetes/pkg/kubelet/dockershim/network/hostport"
 
 	cnitypes "github.com/containernetworking/cni/pkg/types"
 	cni020 "github.com/containernetworking/cni/pkg/types/020"

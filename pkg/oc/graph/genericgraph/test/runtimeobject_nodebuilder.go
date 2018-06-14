@@ -10,8 +10,8 @@ import (
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/kubectl/categories"
-	"k8s.io/kubernetes/pkg/kubectl/resource"
+	"k8s.io/client-go/restmapper"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 
 	_ "github.com/openshift/origin/pkg/api/install"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"

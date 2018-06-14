@@ -5,8 +5,8 @@ import (
 
 	"github.com/golang/glog"
 
-	"k8s.io/apimachinery/pkg/apimachinery/announced"
-	"k8s.io/apimachinery/pkg/apimachinery/registered"
+	
+	
 	"k8s.io/apimachinery/pkg/runtime"
 	kapiserverinstall "k8s.io/apiserver/pkg/apis/apiserver/install"
 

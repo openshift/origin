@@ -20,7 +20,7 @@ import (
 	clientetcd "github.com/openshift/origin/pkg/oauth/registry/oauthclient/etcd"
 	clientauthetcd "github.com/openshift/origin/pkg/oauth/registry/oauthclientauthorization/etcd"
 	saoauth "github.com/openshift/origin/pkg/serviceaccounts/oauthclient"
-	"k8s.io/apimachinery/pkg/apimachinery/registered"
+	
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 

@@ -14,7 +14,7 @@ import (
 	"k8s.io/apiserver/pkg/admission/plugin/namespace/lifecycle"
 	"k8s.io/apiserver/pkg/apis/apiserver"
 	noderestriction "k8s.io/kubernetes/plugin/pkg/admission/noderestriction"
-	expandpvcadmission "k8s.io/kubernetes/plugin/pkg/admission/persistentvolume/resize"
+	expandpvcadmission "k8s.io/kubernetes/plugin/pkg/admission/storage/persistentvolume/resize"
 	saadmit "k8s.io/kubernetes/plugin/pkg/admission/serviceaccount"
 	storageclassdefaultadmission "k8s.io/kubernetes/plugin/pkg/admission/storage/storageclass/setdefault"
 

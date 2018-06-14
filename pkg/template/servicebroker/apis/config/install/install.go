@@ -1,8 +1,8 @@
 package install
 
 import (
-	"k8s.io/apimachinery/pkg/apimachinery/announced"
-	"k8s.io/apimachinery/pkg/apimachinery/registered"
+	
+	
 	"k8s.io/apimachinery/pkg/runtime"
 
 	configapi "github.com/openshift/origin/pkg/template/servicebroker/apis/config"
