@@ -30,6 +30,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/kubectl/categories"
 	"k8s.io/kubernetes/pkg/kubectl/validation"
 )
@@ -219,6 +220,8 @@ func (b *Builder) LocalParam(local bool) *Builder {
 func (b *Builder) Local() *Builder {
 	mapper := *b.mapper
 	mapper.ClientMapper = DisabledClientForMapping{ClientMapper: mapper.ClientMapper}
+	// use the compiled in mappings, and tolerate unknown mappings
+	mapper.RESTMapper = NewRelaxedRESTMapper(legacyscheme.Registry.RESTMapper())
 	b.mapper = &mapper
 	return b
 }
