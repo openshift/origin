@@ -32,8 +32,13 @@ func (o DiagnosticsOptions) detectClientConfig() (expected bool, detected bool) 
 		return false, false
 	}
 	o.Logger().Notice("CED2011", "Determining if client configuration exists for client/cluster diagnostics")
-	confFlagName := kclientcmd.OpenShiftKubeConfigFlagName
+	confFlagName := kclientcmd.RecommendedConfigPathFlag
 	confFlagValue := o.ClientFlags.Lookup(confFlagName).Value.String()
+	// fallback to the old flag when the value is empty, but the flagname presented
+	// everywhere should be the new one
+	if len(confFlagValue) == 0 {
+		confFlagValue = o.ClientFlags.Lookup(kclientcmd.OpenShiftKubeConfigFlagName).Value.String()
+	}
 	successfulLoad := false
 
 	var foundPath string

@@ -76,6 +76,10 @@ func DefaultClientConfig(flags *pflag.FlagSet) kclientcmd.ClientConfig {
 	loadingRules := kclientcmd.NewDefaultClientConfigLoadingRules()
 	flags.StringVar(&loadingRules.ExplicitPath, kclientcmd.OpenShiftKubeConfigFlagName, "", "Path to the config file to use for CLI requests.")
 	cobra.MarkFlagFilename(flags, kclientcmd.OpenShiftKubeConfigFlagName)
+	flags.MarkHidden(kclientcmd.OpenShiftKubeConfigFlagName)
+	flags.MarkDeprecated(kclientcmd.OpenShiftKubeConfigFlagName, fmt.Sprintf("Use --%s instead.", kclientcmd.RecommendedConfigPathFlag))
+	flags.StringVar(&loadingRules.ExplicitPath, kclientcmd.RecommendedConfigPathFlag, "", "Path to the kubeconfig file to use for CLI requests.")
+	cobra.MarkFlagFilename(flags, kclientcmd.RecommendedConfigPathFlag)
 
 	// set our explicit defaults
 	defaultOverrides := &kclientcmd.ConfigOverrides{ClusterDefaults: kclientcmdapi.Cluster{Server: os.Getenv("KUBERNETES_MASTER")}}

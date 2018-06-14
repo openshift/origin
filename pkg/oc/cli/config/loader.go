@@ -8,18 +8,21 @@ import (
 )
 
 func NewPathOptions(cmd *cobra.Command) *kclientcmd.PathOptions {
-	return NewPathOptionsWithConfig(kcmdutil.GetFlagString(cmd, kclientcmd.OpenShiftKubeConfigFlagName))
+	return NewPathOptionsWithConfig(
+		kcmdutil.GetFlagString(cmd, kclientcmd.RecommendedConfigPathFlag),
+		kcmdutil.GetFlagString(cmd, kclientcmd.OpenShiftKubeConfigFlagName))
 }
 
-func NewPathOptionsWithConfig(configPath string) *kclientcmd.PathOptions {
+func NewPathOptionsWithConfig(configPath, deprecatedConfigPath string) *kclientcmd.PathOptions {
 	return &kclientcmd.PathOptions{
 		GlobalFile: kclientcmd.RecommendedHomeFile,
 
 		EnvVar:           kclientcmd.RecommendedConfigPathEnvVar,
-		ExplicitFileFlag: kclientcmd.OpenShiftKubeConfigFlagName,
+		ExplicitFileFlag: kclientcmd.RecommendedConfigPathFlag,
 
 		LoadingRules: &kclientcmd.ClientConfigLoadingRules{
-			ExplicitPath: configPath,
+			ExplicitPath:           configPath,
+			DeprecatedExplicitPath: deprecatedConfigPath,
 		},
 	}
 }

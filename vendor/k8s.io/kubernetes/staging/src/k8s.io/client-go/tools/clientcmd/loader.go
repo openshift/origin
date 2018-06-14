@@ -113,8 +113,9 @@ func (g *ClientConfigGetter) IsDefaultConfig(config *restclient.Config) bool {
 // EnvVarPathFiles if set (a list of files if set) OR the HomeDirectoryPath
 // ExplicitPath is special, because if a user specifically requests a certain file be used and error is reported if this file is not present
 type ClientConfigLoadingRules struct {
-	ExplicitPath string
-	Precedence   []string
+	ExplicitPath           string
+	DeprecatedExplicitPath string
+	Precedence             []string
 
 	// MigrationRules is a map of destination files to source files.  If a destination file is not present, then the source file is checked.
 	// If the source file is present, then it is copied to the destination file BEFORE any further loading happens.
@@ -179,6 +180,12 @@ func (rules *ClientConfigLoadingRules) Load() (*clientcmdapi.Config, error) {
 			return nil, err
 		}
 		kubeConfigFiles = append(kubeConfigFiles, rules.ExplicitPath)
+
+	} else if len(rules.DeprecatedExplicitPath) > 0 {
+		if _, err := os.Stat(rules.DeprecatedExplicitPath); os.IsNotExist(err) {
+			return nil, err
+		}
+		kubeConfigFiles = append(kubeConfigFiles, rules.DeprecatedExplicitPath)
 
 	} else {
 		kubeConfigFiles = append(kubeConfigFiles, rules.Precedence...)
@@ -324,12 +331,15 @@ func (rules *ClientConfigLoadingRules) GetDefaultFilename() string {
 
 // IsExplicitFile implements ConfigAccess
 func (rules *ClientConfigLoadingRules) IsExplicitFile() bool {
-	return len(rules.ExplicitPath) > 0
+	return len(rules.ExplicitPath) > 0 || len(rules.DeprecatedExplicitPath) > 0
 }
 
 // GetExplicitFile implements ConfigAccess
 func (rules *ClientConfigLoadingRules) GetExplicitFile() string {
-	return rules.ExplicitPath
+	if len(rules.ExplicitPath) > 0 {
+		return rules.ExplicitPath
+	}
+	return rules.DeprecatedExplicitPath
 }
 
 // IsDefaultConfig returns true if the provided configuration matches the default

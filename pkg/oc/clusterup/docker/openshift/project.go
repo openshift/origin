@@ -23,7 +23,7 @@ func CreateProject(f *clientcmd.Factory, name, display, desc, basecmd string, ou
 	if err != nil {
 		return err
 	}
-	pathOptions := config.NewPathOptionsWithConfig("")
+	pathOptions := config.NewPathOptionsWithConfig("", "")
 	opt := &cmd.NewProjectOptions{
 		ProjectName: name,
 		DisplayName: display,
@@ -51,7 +51,7 @@ func CreateProject(f *clientcmd.Factory, name, display, desc, basecmd string, ou
 }
 
 func setCurrentProject(f *clientcmd.Factory, name string, out io.Writer) error {
-	pathOptions := config.NewPathOptionsWithConfig("")
+	pathOptions := config.NewPathOptionsWithConfig("", "")
 	opt := &cmd.ProjectOptions{PathOptions: pathOptions}
 	opt.Complete(f, []string{name}, out)
 	return opt.RunProject()

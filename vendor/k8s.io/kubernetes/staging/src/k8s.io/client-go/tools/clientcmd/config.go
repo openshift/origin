@@ -49,7 +49,8 @@ type PathOptions struct {
 	// EnvVar is the env var name that points to the list of kubeconfig files to load
 	EnvVar string
 	// ExplicitFileFlag is the name of the flag to use for prompting for the kubeconfig file
-	ExplicitFileFlag string
+	ExplicitFileFlag           string
+	DeprecatedExplicitFileFlag string
 
 	// GlobalFileSubpath is an optional value used for displaying help
 	GlobalFileSubpath string

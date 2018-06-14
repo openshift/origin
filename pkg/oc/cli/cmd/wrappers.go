@@ -736,7 +736,7 @@ func NewCmdConfig(parentName, name string, f *clientcmd.Factory, out, errOut io.
 	pathOptions := &kclientcmd.PathOptions{
 		GlobalFile:       kclientcmd.RecommendedHomeFile,
 		EnvVar:           kclientcmd.RecommendedConfigPathEnvVar,
-		ExplicitFileFlag: kclientcmd.OpenShiftKubeConfigFlagName,
+		ExplicitFileFlag: kclientcmd.RecommendedConfigPathFlag,
 
 		GlobalFileSubpath: path.Join(kclientcmd.RecommendedHomeDir, kclientcmd.RecommendedFileName),
 
