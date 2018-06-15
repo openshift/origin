@@ -1,6 +1,7 @@
 package authprune
 
 import (
+	"io/ioutil"
 	"reflect"
 	"testing"
 
@@ -39,11 +40,9 @@ func TestUserReaper(t *testing.T) {
 		expected     []interface{}
 	}{
 		{
-			name: "no objects",
-			user: "bob",
-			expected: []interface{}{
-				clientgotesting.DeleteActionImpl{ActionImpl: clientgotesting.ActionImpl{Verb: "delete", Resource: usersResource}, Name: "bob"},
-			},
+			name:     "no objects",
+			user:     "bob",
+			expected: []interface{}{},
 		},
 		{
 			name: "cluster bindings",
@@ -71,7 +70,6 @@ func TestUserReaper(t *testing.T) {
 					RoleRef:    kapi.ObjectReference{Name: "role"},
 					Subjects:   []kapi.ObjectReference{},
 				}},
-				clientgotesting.DeleteActionImpl{ActionImpl: clientgotesting.ActionImpl{Verb: "delete", Resource: usersResource}, Name: "bob"},
 			},
 		},
 		{
@@ -100,7 +98,6 @@ func TestUserReaper(t *testing.T) {
 					RoleRef:    kapi.ObjectReference{Name: "role"},
 					Subjects:   []kapi.ObjectReference{},
 				}},
-				clientgotesting.DeleteActionImpl{ActionImpl: clientgotesting.ActionImpl{Verb: "delete", Resource: usersResource}, Name: "bob"},
 			},
 		},
 		{
@@ -126,7 +123,6 @@ func TestUserReaper(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{Name: "scc-one-subject"},
 					Users:      []string{},
 				}},
-				clientgotesting.DeleteActionImpl{ActionImpl: clientgotesting.ActionImpl{Verb: "delete", Resource: usersResource}, Name: "bob"},
 			},
 		},
 		{
@@ -150,10 +146,7 @@ func TestUserReaper(t *testing.T) {
 					User:       kapi.ObjectReference{Name: "bob2"},
 				},
 			},
-			expected: []interface{}{
-				// Make sure identities are not messed with, only the user is removed
-				clientgotesting.DeleteActionImpl{ActionImpl: clientgotesting.ActionImpl{Verb: "delete", Resource: usersResource}, Name: "bob"},
-			},
+			expected: []interface{}{},
 		},
 		{
 			name: "groups",
@@ -185,7 +178,6 @@ func TestUserReaper(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{Name: "group-multiple-users"},
 					Users:      []string{"bob2", "steve"},
 				}},
-				clientgotesting.DeleteActionImpl{ActionImpl: clientgotesting.ActionImpl{Verb: "delete", Resource: usersResource}, Name: "bob"},
 			},
 		},
 		{
@@ -211,7 +203,6 @@ func TestUserReaper(t *testing.T) {
 			expected: []interface{}{
 				clientgotesting.DeleteActionImpl{ActionImpl: clientgotesting.ActionImpl{Verb: "delete", Resource: oAuthClientAuthorizationsResource}, Name: "bob-authorization-1"},
 				clientgotesting.DeleteActionImpl{ActionImpl: clientgotesting.ActionImpl{Verb: "delete", Resource: oAuthClientAuthorizationsResource}, Name: "bob-authorization-2"},
-				clientgotesting.DeleteActionImpl{ActionImpl: clientgotesting.ActionImpl{Verb: "delete", Resource: usersResource}, Name: "bob"},
 			},
 		},
 	}
@@ -241,8 +232,7 @@ func TestUserReaper(t *testing.T) {
 		securityFake.Fake.PrependReactor("update", "*", kreactor)
 		securityFake.Fake.PrependReactor("delete", "*", kreactor)
 
-		reaper := NewUserReaper(userFake, authFake, oauthFake, securityFake.Security().SecurityContextConstraints())
-		err := reaper.Stop("", test.user, 0, nil)
+		err := reapForUser(userFake, authFake, oauthFake, securityFake.Security().SecurityContextConstraints(), test.user, ioutil.Discard)
 		if err != nil {
 			t.Errorf("%s: unexpected error: %v", test.name, err)
 		}

@@ -3,54 +3,15 @@ package authprune
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
-	"time"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/kubectl"
 
-	"github.com/golang/glog"
 	authclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	securitytypedclient "github.com/openshift/origin/pkg/security/generated/internalclientset/typed/security/internalversion"
-	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset"
 )
-
-func NewGroupReaper(
-	userClient userclient.Interface,
-	authorizationClient authclient.Interface,
-	sccClient securitytypedclient.SecurityContextConstraintsInterface,
-) kubectl.Reaper {
-	return &GroupReaper{
-		userClient:          userClient,
-		authorizationClient: authorizationClient,
-		sccClient:           sccClient,
-	}
-}
-
-type GroupReaper struct {
-	userClient          userclient.Interface
-	authorizationClient authclient.Interface
-	sccClient           securitytypedclient.SecurityContextConstraintsInterface
-}
-
-// Stop on a reaper is actually used for deletion.  In this case, we'll delete referencing identities, clusterBindings, and bindings,
-// then delete the group
-func (r *GroupReaper) Stop(namespace, name string, timeout time.Duration, gracePeriod *metav1.DeleteOptions) error {
-	err := reapForGroup(r.authorizationClient, r.sccClient, name, ioutil.Discard)
-	if err != nil {
-		glog.Infof("Cannot prune for user/%s: %v", name, err)
-	}
-
-	// Remove the group
-	if err := r.userClient.User().Groups().Delete(name, &metav1.DeleteOptions{}); err != nil && !kerrors.IsNotFound(err) {
-		return err
-	}
-
-	return nil
-}
 
 func reapForGroup(
 	authorizationClient authclient.Interface,

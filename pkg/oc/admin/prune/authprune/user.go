@@ -3,58 +3,17 @@ package authprune
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
-	"time"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/kubectl"
 
-	"github.com/golang/glog"
 	authclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset"
 	securitytypedclient "github.com/openshift/origin/pkg/security/generated/internalclientset/typed/security/internalversion"
 	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset"
 )
-
-func NewUserReaper(
-	userClient userclient.Interface,
-	authorizationClient authclient.Interface,
-	oauthClient oauthclient.Interface,
-	sccClient securitytypedclient.SecurityContextConstraintsInterface,
-) kubectl.Reaper {
-	return &UserReaper{
-		userClient:          userClient,
-		authorizationClient: authorizationClient,
-		oauthClient:         oauthClient,
-		sccClient:           sccClient,
-	}
-}
-
-type UserReaper struct {
-	userClient          userclient.Interface
-	authorizationClient authclient.Interface
-	oauthClient         oauthclient.Interface
-	sccClient           securitytypedclient.SecurityContextConstraintsInterface
-}
-
-// Stop on a reaper is actually used for deletion.  In this case, we'll delete referencing identities, clusterBindings, and bindings,
-// then delete the user
-func (r *UserReaper) Stop(namespace, name string, timeout time.Duration, gracePeriod *metav1.DeleteOptions) error {
-	err := reapForUser(r.userClient, r.authorizationClient, r.oauthClient, r.sccClient, name, ioutil.Discard)
-	if err != nil {
-		glog.Infof("Cannot prune for user/%s: %v", name, err)
-	}
-
-	// Remove the user
-	if err := r.userClient.User().Users().Delete(name, &metav1.DeleteOptions{}); err != nil && !kerrors.IsNotFound(err) {
-		return err
-	}
-
-	return nil
-}
 
 func reapForUser(
 	userClient userclient.Interface,
