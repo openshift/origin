@@ -333,7 +333,6 @@ func NewCmdDescribe(fullName string, f kcmdutil.Factory, out, errOut io.Writer) 
 	cmd := kcmd.NewCmdDescribe(f, out, errOut)
 	cmd.Long = describeLong
 	cmd.Example = fmt.Sprintf(describeExample, fullName)
-	cmd.ValidArgs = describe.DescribableResources()
 	return cmd
 }
 

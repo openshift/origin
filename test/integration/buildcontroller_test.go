@@ -14,7 +14,7 @@ import (
 	kclientsetexternal "k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
 	kctrlmgr "k8s.io/kubernetes/cmd/kube-controller-manager/app"
-	cmapp "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
+	kubecontrollerconfig "k8s.io/kubernetes/cmd/kube-controller-manager/app/config"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/controller"
@@ -119,7 +119,6 @@ func setupBuildControllerTest(counts controllerCount, t *testing.T) (buildtypedc
 
 	// this test wants to duplicate the controllers, so it needs to duplicate the wiring.
 	// TODO have this simply start the particular controller it wants multiple times
-	controllerManagerOptions := cmapp.NewKubeControllerManagerOptions()
 	rootClientBuilder := controller.SimpleControllerClientBuilder{
 		ClientConfig: clusterAdminClientConfig,
 	}
@@ -158,7 +157,7 @@ func setupBuildControllerTest(counts controllerCount, t *testing.T) (buildtypedc
 				informers.GetExternalKubeInformers(),
 			},
 		},
-		ComponentConfig:    controllerManagerOptions.Generic.ComponentConfig,
+		ComponentConfig:    kubecontrollerconfig.Config{}.ComponentConfig,
 		AvailableResources: availableResources,
 		Stop:               wait.NeverStop,
 	}

@@ -154,7 +154,7 @@ func (o TemplateServiceBrokerServerOptions) RunTemplateServiceBrokerServer(stopC
 		return err
 	}
 
-	server, err := config.Complete().New(genericapiserver.EmptyDelegate)
+	server, err := config.Complete().New(genericapiserver.NewEmptyDelegate())
 	if err != nil {
 		return err
 	}

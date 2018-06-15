@@ -188,7 +188,7 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, createValidati
 
 	// only load secrets if we need them
 	credentials := importer.NewLazyCredentialsForSecrets(func() ([]corev1.Secret, error) {
-		secrets, err := r.isV1Client.ImageStreams(namespace).Secrets(isi.Name, metav1.ListOptions{})
+		secrets, err := r.isV1Client.ImageStreams(namespace).Secrets(isi.Name, metav1.GetOptions{})
 		if err != nil {
 			return nil, err
 		}

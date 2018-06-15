@@ -19,6 +19,7 @@ import (
 	"github.com/golang/glog"
 	"gopkg.in/natefinch/lumberjack.v2"
 
+	extensionsapiserver "k8s.io/apiextensions-apiserver/pkg/apiserver"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -49,6 +50,7 @@ import (
 	pluginwebhook "k8s.io/apiserver/plugin/pkg/audit/webhook"
 	"k8s.io/kube-aggregator/pkg/apis/apiregistration"
 	apiregistrationv1beta1 "k8s.io/kube-aggregator/pkg/apis/apiregistration/v1beta1"
+	aggregatorscheme "k8s.io/kube-aggregator/pkg/apiserver/scheme"
 	openapicommon "k8s.io/kube-openapi/pkg/common"
 	kapiserveroptions "k8s.io/kubernetes/cmd/kube-apiserver/app/options"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
@@ -507,8 +509,7 @@ func buildKubeApiserverConfig(
 
 			KubeletClientConfig: *nodeclient.GetKubeletClientConfig(masterConfig),
 
-			EnableLogsSupport:     false, // don't expose server logs
-			EnableCoreControllers: true,
+			EnableLogsSupport: false, // don't expose server logs
 		},
 	}
 
@@ -621,7 +622,7 @@ func defaultOpenAPIConfig(config configapi.MasterConfig) *openapicommon.Config {
 			},
 		}
 	}
-	defNamer := apiserverendpointsopenapi.NewDefinitionNamer(legacyscheme.Scheme)
+	defNamer := apiserverendpointsopenapi.NewDefinitionNamer(legacyscheme.Scheme, extensionsapiserver.Scheme, aggregatorscheme.Scheme)
 	return &openapicommon.Config{
 		ProtocolList:      []string{"https"},
 		GetDefinitions:    openapigenerated.GetOpenAPIDefinitions,

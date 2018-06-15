@@ -130,7 +130,6 @@ var (
 		"AlwaysDeny",
 		"DenyEscalatingExec",
 		"DenyExecOnPrivileged",
-		"InitialResources",
 		"NamespaceAutoProvision",
 		"NamespaceExists",
 		"SecurityContextDeny",

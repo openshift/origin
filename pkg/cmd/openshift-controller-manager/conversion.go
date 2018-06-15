@@ -13,8 +13,12 @@ import (
 
 func ConvertMasterConfigToOpenshiftControllerConfig(input *configapi.MasterConfig) *configapi.OpenshiftControllerConfig {
 	// this is the old flag binding logic
-	flagOptions := kcmoptions.NewKubeControllerManagerOptions()
-	flagOptions.Generic.ComponentConfig.LeaderElection.RetryPeriod = metav1.Duration{Duration: 3 * time.Second}
+	flagOptions, err := kcmoptions.NewKubeControllerManagerOptions()
+	if err != nil {
+		// coder error
+		panic(err)
+	}
+	flagOptions.GenericComponent.LeaderElection.RetryPeriod = metav1.Duration{Duration: 3 * time.Second}
 	flagFunc := cm.OriginControllerManagerAddFlags(flagOptions)
 	errors := cmdflags.Resolve(input.KubernetesMasterConfig.ControllerArguments, flagFunc)
 	if len(errors) > 0 {
@@ -38,19 +42,19 @@ func ConvertMasterConfigToOpenshiftControllerConfig(input *configapi.MasterConfi
 		ServingInfo:               &in.ServingInfo,
 		Controllers:               in.ControllerConfig.Controllers,
 		LeaderElection: configapi.LeaderElectionConfig{
-			RetryPeriod:   flagOptions.Generic.ComponentConfig.LeaderElection.RetryPeriod,
-			RenewDeadline: flagOptions.Generic.ComponentConfig.LeaderElection.RenewDeadline,
-			LeaseDuration: flagOptions.Generic.ComponentConfig.LeaderElection.LeaseDuration,
+			RetryPeriod:   flagOptions.GenericComponent.LeaderElection.RetryPeriod,
+			RenewDeadline: flagOptions.GenericComponent.LeaderElection.RenewDeadline,
+			LeaseDuration: flagOptions.GenericComponent.LeaderElection.LeaseDuration,
 		},
 		HPA: configapi.HPAControllerConfig{
-			DownscaleForbiddenWindow: flagOptions.Generic.ComponentConfig.HorizontalPodAutoscalerDownscaleForbiddenWindow,
-			SyncPeriod:               flagOptions.Generic.ComponentConfig.HorizontalPodAutoscalerSyncPeriod,
-			UpscaleForbiddenWindow:   flagOptions.Generic.ComponentConfig.HorizontalPodAutoscalerUpscaleForbiddenWindow,
+			DownscaleForbiddenWindow: flagOptions.HPAController.HorizontalPodAutoscalerDownscaleForbiddenWindow,
+			SyncPeriod:               flagOptions.HPAController.HorizontalPodAutoscalerSyncPeriod,
+			UpscaleForbiddenWindow:   flagOptions.HPAController.HorizontalPodAutoscalerUpscaleForbiddenWindow,
 		},
 		ResourceQuota: configapi.ResourceQuotaControllerConfig{
-			ConcurrentSyncs: flagOptions.Generic.ComponentConfig.ConcurrentResourceQuotaSyncs,
-			SyncPeriod:      flagOptions.Generic.ComponentConfig.ResourceQuotaSyncPeriod,
-			MinResyncPeriod: flagOptions.Generic.ComponentConfig.MinResyncPeriod,
+			ConcurrentSyncs: flagOptions.ResourceQuotaController.ConcurrentResourceQuotaSyncs,
+			SyncPeriod:      flagOptions.ResourceQuotaController.ResourceQuotaSyncPeriod,
+			MinResyncPeriod: flagOptions.GenericComponent.MinResyncPeriod,
 		},
 		ServiceServingCert: in.ControllerConfig.ServiceServingCert,
 		Deployer: configapi.DeployerControllerConfig{

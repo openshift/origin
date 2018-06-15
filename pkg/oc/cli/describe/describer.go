@@ -150,18 +150,6 @@ func describerMap(clientConfig *rest.Config, kclient kclientset.Interface, host 
 	return m
 }
 
-// DescribableResources lists all of the resource types we can describe
-func DescribableResources() []string {
-	// Include describable resources in kubernetes
-	keys := kinternalprinters.DescribableResources()
-
-	for k := range describerMap(&rest.Config{}, nil, "", false) {
-		resource := strings.ToLower(k.Kind)
-		keys = append(keys, resource)
-	}
-	return keys
-}
-
 // DescriberFor returns a describer for a given kind of resource
 func DescriberFor(kind schema.GroupKind, clientConfig *rest.Config, kclient kclientset.Interface, host string) (kprinters.Describer, bool) {
 	f, ok := describerMap(clientConfig, kclient, host, true)[kind]

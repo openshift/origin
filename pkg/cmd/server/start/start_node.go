@@ -502,7 +502,7 @@ func StartNode(nodeConfig configapi.NodeConfig, components *utilflags.ComponentF
 
 // runKubeletInProcess runs the kubelet command using the provide args
 func runKubeletInProcess(kubeletArgs []string) error {
-	cmd := kubeletapp.NewKubeletCommand()
+	cmd := kubeletapp.NewKubeletCommand(wait.NeverStop)
 	if err := cmd.ParseFlags(kubeletArgs); err != nil {
 		return err
 	}

@@ -22,6 +22,7 @@ import (
 	"github.com/elazarl/goproxy"
 	docker "github.com/fsouza/go-dockerclient"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -2435,6 +2436,6 @@ func (c *NewAppFakeImageStreams) Patch(name string, pt ktypes.PatchType, data []
 	return c.proxy.Patch(name, pt, data, subresources...)
 }
 
-func (c *NewAppFakeImageStreams) Secrets(imageStreamName string, opts metav1.ListOptions) (result *kapi.SecretList, err error) {
+func (c *NewAppFakeImageStreams) Secrets(imageStreamName string, opts metav1.GetOptions) (result *corev1.SecretList, err error) {
 	return c.proxy.Secrets(imageStreamName, opts)
 }
