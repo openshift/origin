@@ -32,7 +32,6 @@ import (
 	"github.com/openshift/origin/pkg/template/client/internalversion"
 	"github.com/openshift/origin/pkg/templateservicebroker/openservicebroker/api"
 	"github.com/openshift/origin/pkg/templateservicebroker/openservicebroker/client"
-	restutil "github.com/openshift/origin/pkg/util/rest"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -285,7 +284,7 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 		o.Expect(err).To(o.HaveOccurred())
 		o.Expect(kerrors.IsNotFound(err)).To(o.BeTrue())
 
-		restmapper := restutil.DefaultMultiRESTMapper()
+		restmapper := cli.RESTMapper()
 
 		config, err := configapi.GetClientConfig(exutil.KubeConfigPath(), nil)
 		o.Expect(err).NotTo(o.HaveOccurred())

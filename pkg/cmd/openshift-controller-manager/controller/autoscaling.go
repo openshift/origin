@@ -1,9 +1,6 @@
 package controller
 
 import (
-	apimeta "k8s.io/apimachinery/pkg/api/meta"
-	"k8s.io/client-go/discovery"
-	discocache "k8s.io/client-go/discovery/cached"
 	"k8s.io/client-go/dynamic"
 	kubeclientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/scale"
@@ -43,15 +40,10 @@ func RunHorizontalPodAutoscalerController(originCtx ControllerContext) (bool, er
 		0.1, // this is the default
 	)
 
-	// TODO: we need something like deferred discovery REST mapper that calls invalidate
-	// on cache misses.
-	cachedDiscovery := discocache.NewMemCacheClient(hpaClient.Discovery())
-	restMapper := discovery.NewDeferredDiscoveryRESTMapper(cachedDiscovery, apimeta.InterfacesForUnstructured)
-	restMapper.Reset()
 	// we don't use cached discovery because DiscoveryScaleKindResolver does its own caching,
 	// so we want to re-fetch every time when we actually ask for it
 	scaleKindResolver := scale.NewDiscoveryScaleKindResolver(hpaClient.Discovery())
-	scaleClient, err := scale.NewForConfig(hpaClientConfig, restMapper, dynamic.LegacyAPIPathResolverFunc, scaleKindResolver)
+	scaleClient, err := scale.NewForConfig(hpaClientConfig, originCtx.RestMapper, dynamic.LegacyAPIPathResolverFunc, scaleKindResolver)
 	if err != nil {
 		return false, err
 	}
@@ -60,7 +52,7 @@ func RunHorizontalPodAutoscalerController(originCtx ControllerContext) (bool, er
 		hpaClient.CoreV1(),
 		scaleClient,
 		hpaClient.AutoscalingV1(),
-		restMapper,
+		originCtx.RestMapper,
 		replicaCalc,
 		originCtx.ExternalKubeInformers.Autoscaling().V1().HorizontalPodAutoscalers(),
 		originCtx.OpenshiftControllerConfig.HPA.SyncPeriod.Duration,

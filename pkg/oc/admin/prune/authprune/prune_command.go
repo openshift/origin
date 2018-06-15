@@ -145,34 +145,34 @@ func (o *PruneAuthOptions) RunPrune() error {
 }
 
 func isRole(mapping *meta.RESTMapping) bool {
-	if mapping.GroupVersionKind.Group != "rbac.authorization.k8s.io" && mapping.GroupVersionKind.Group != "authorization.openshift.io" {
+	if mapping.Resource.Group != "rbac.authorization.k8s.io" && mapping.Resource.Group != "authorization.openshift.io" {
 		return false
 	}
-	if mapping.Resource != "roles" {
+	if mapping.Resource.Resource != "roles" {
 		return false
 	}
 	return true
 }
 
 func isClusterRole(mapping *meta.RESTMapping) bool {
-	if mapping.GroupVersionKind.Group != "rbac.authorization.k8s.io" && mapping.GroupVersionKind.Group != "authorization.openshift.io" {
+	if mapping.Resource.Group != "rbac.authorization.k8s.io" && mapping.Resource.Group != "authorization.openshift.io" {
 		return false
 	}
-	if mapping.Resource != "clusterroles" {
+	if mapping.Resource.Resource != "clusterroles" {
 		return false
 	}
 	return true
 }
 
 func isUser(mapping *meta.RESTMapping) bool {
-	if mapping.GroupVersionKind.Group == "user.openshift.io" && mapping.Resource == "users" {
+	if mapping.Resource.Group == "user.openshift.io" && mapping.Resource.Resource == "users" {
 		return true
 	}
 	return false
 }
 
 func isGroup(mapping *meta.RESTMapping) bool {
-	if mapping.GroupVersionKind.Group == "user.openshift.io" && mapping.Resource == "groups" {
+	if mapping.Resource.Group == "user.openshift.io" && mapping.Resource.Resource == "groups" {
 		return true
 	}
 	return false

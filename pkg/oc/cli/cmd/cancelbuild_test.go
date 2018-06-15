@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"k8s.io/apimachinery/pkg/api/meta/testrestmapper"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgotesting "k8s.io/client-go/testing"
@@ -163,7 +164,7 @@ func TestCancelBuildRun(t *testing.T) {
 			test.opts.HasError = true
 			t.Logf("got error: %v", err)
 		}
-		test.opts.Mapper = legacyscheme.Registry.RESTMapper()
+		test.opts.Mapper = testrestmapper.TestOnlyStaticRESTMapper(legacyscheme.Scheme)
 		test.opts.BuildNames = []string{"ruby-ex"}
 		test.opts.States = []string{"new", "pending", "running"}
 

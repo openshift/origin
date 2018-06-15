@@ -22,7 +22,6 @@ import (
 	"github.com/openshift/origin/pkg/template/controller"
 	osbclient "github.com/openshift/origin/pkg/templateservicebroker/openservicebroker/client"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
-	restutil "github.com/openshift/origin/pkg/util/rest"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -136,7 +135,7 @@ func TSBClient(oc *exutil.CLI) (osbclient.Client, error) {
 }
 
 func dumpObjectReadiness(oc *exutil.CLI, templateInstance *templateapi.TemplateInstance) error {
-	restmapper := restutil.DefaultMultiRESTMapper()
+	restmapper := oc.RESTMapper()
 	config, err := configapi.GetClientConfig(exutil.KubeConfigPath(), nil)
 	if err != nil {
 		return err

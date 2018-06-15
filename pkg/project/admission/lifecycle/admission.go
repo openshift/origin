@@ -12,7 +12,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apiserver/pkg/admission"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 
@@ -35,6 +34,8 @@ func Register(plugins *admission.Plugins) {
 type lifecycle struct {
 	client kclientset.Interface
 	cache  *cache.ProjectCache
+
+	restMapper meta.RESTMapper
 
 	// creatableResources is a set of resources that can be created even if the namespace is terminating
 	creatableResources map[schema.GroupResource]bool
@@ -72,11 +73,7 @@ func (e *lifecycle) Admit(a admission.Attributes) (err error) {
 		return nil
 	}
 
-	groupMeta, err := legacyscheme.Registry.Group(a.GetKind().Group)
-	if err != nil {
-		return err
-	}
-	mapping, err := groupMeta.RESTMapper.RESTMapping(a.GetKind().GroupKind())
+	mapping, err := e.restMapper.RESTMapping(a.GetKind().GroupKind())
 	if err != nil {
 		glog.V(4).Infof("Ignoring life-cycle enforcement for resource %v; no associated default version and kind could be found.", a.GetResource())
 		return nil
@@ -134,9 +131,16 @@ func (q *lifecycle) SetInternalKubeClientSet(c kclientset.Interface) {
 	q.client = c
 }
 
+func (a *lifecycle) SetRESTMapper(restMapper meta.RESTMapper) {
+	a.restMapper = restMapper
+}
+
 func (e *lifecycle) ValidateInitialization() error {
 	if e.cache == nil {
 		return fmt.Errorf("project lifecycle plugin needs a project cache")
+	}
+	if e.restMapper == nil {
+		return fmt.Errorf("missing restMapper")
 	}
 	return nil
 }

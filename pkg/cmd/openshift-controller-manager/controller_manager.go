@@ -7,11 +7,10 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+	"k8s.io/client-go/restmapper"
 
 	"k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/discovery"
 	cacheddiscovery "k8s.io/client-go/discovery/cached"
 	kclientsetexternal "k8s.io/client-go/kubernetes"
 	v1core "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -121,7 +120,7 @@ func newControllerContext(
 	}
 
 	discoveryClient := cacheddiscovery.NewMemCacheClient(kubeExternal.Discovery())
-	dynamicRestMapper := discovery.NewDeferredDiscoveryRESTMapper(discoveryClient, meta.InterfacesForUnstructured)
+	dynamicRestMapper := restmapper.NewDeferredDiscoveryRESTMapper(discoveryClient)
 	dynamicRestMapper.Reset()
 
 	go wait.Until(dynamicRestMapper.Reset, 30*time.Second, stopCh)

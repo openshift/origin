@@ -16,7 +16,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/sets"
+	discocache "k8s.io/client-go/discovery/cached"
 	restclient "k8s.io/client-go/rest"
+	"k8s.io/client-go/restmapper"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/flowcontrol"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
@@ -26,7 +28,6 @@ import (
 	"github.com/openshift/origin/pkg/api/latest"
 	serverapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/etcd"
-	osclientcmd "github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 
@@ -1015,8 +1016,8 @@ func TestEtcd3StoragePath(t *testing.T) {
 	}
 
 	loader := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(&clientcmd.ClientConfigLoadingRules{ExplicitPath: kubeConfigFile}, &clientcmd.ConfigOverrides{})
-	f := osclientcmd.NewFactory(loader)
-	mapper, _ := f.Object()
+	mapper := restmapper.NewDeferredDiscoveryRESTMapper(discocache.NewMemCacheClient(kubeClient.Discovery()))
+	mapper.Reset()
 
 	clientConfig, err := loader.ClientConfig()
 	if err != nil {
@@ -1059,15 +1060,11 @@ func TestEtcd3StoragePath(t *testing.T) {
 
 		mapping, err := mapper.RESTMapping(gvk.GroupKind(), gvk.Version)
 		if err != nil {
-			t.Logf("unexpected error getting mapping for %s from %s with GVK %s: %v", kind, pkgPath, gvk, err)
-			mapping, err = legacyscheme.Registry.RESTMapper().RESTMapping(gvk.GroupKind(), gvk.Version)
-			if err != nil {
-				t.Errorf("unexpected error getting mapping for %s from %s with GVK %s: %v", kind, pkgPath, gvk, err)
-				continue
-			}
+			t.Errorf("unexpected error getting mapping for %s from %s with GVK %s: %v", kind, pkgPath, gvk, err)
+			continue
 		}
 
-		gvResource := gvk.GroupVersion().WithResource(mapping.Resource)
+		gvResource := gvk.GroupVersion().WithResource(mapping.Resource.Resource)
 		etcdSeen[gvResource] = empty{}
 
 		testData, hasTest := etcdStorageData[gvResource]
@@ -1347,7 +1344,7 @@ func (c *allClient) create(stub, ns string, mapping *meta.RESTMapping, all *[]cl
 		return err
 	}
 	namespaced := mapping.Scope.Name() == meta.RESTScopeNameNamespace
-	output, err := req.NamespaceIfScoped(ns, namespaced).Resource(mapping.Resource).Body(strings.NewReader(stub)).Do().Get()
+	output, err := req.NamespaceIfScoped(ns, namespaced).Resource(mapping.Resource.Resource).Body(strings.NewReader(stub)).Do().Get()
 	if err != nil {
 		return err
 	}
@@ -1361,15 +1358,11 @@ func (c *allClient) destroy(obj runtime.Object, mapping *meta.RESTMapping) error
 		return err
 	}
 	namespaced := mapping.Scope.Name() == meta.RESTScopeNameNamespace
-	name, err := mapping.MetadataAccessor.Name(obj)
+	metadata, err := meta.Accessor(obj)
 	if err != nil {
 		return err
 	}
-	ns, err := mapping.MetadataAccessor.Namespace(obj)
-	if err != nil {
-		return err
-	}
-	return req.NamespaceIfScoped(ns, namespaced).Resource(mapping.Resource).Name(name).Do().Error()
+	return req.NamespaceIfScoped(metadata.GetNamespace(), namespaced).Resource(mapping.Resource.Resource).Name(metadata.GetName()).Do().Error()
 }
 
 func (c *allClient) cleanup(all *[]cleanupData) error {

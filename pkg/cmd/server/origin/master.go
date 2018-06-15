@@ -67,6 +67,7 @@ func (c *MasterConfig) newOpenshiftAPIConfig(kubeAPIServerConfig apiserver.Confi
 			ProjectRequestTemplate:             c.Options.ProjectConfig.ProjectRequestTemplate,
 			ProjectRequestMessage:              c.Options.ProjectConfig.ProjectRequestMessage,
 			ClusterQuotaMappingController:      c.ClusterQuotaMappingController,
+			RESTMapper:                         c.RESTMapper,
 			SCCStorage:                         sccStorage,
 		},
 	}

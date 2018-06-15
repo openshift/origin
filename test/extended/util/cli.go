@@ -15,13 +15,16 @@ import (
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
+	"k8s.io/apimachinery/pkg/api/meta"
 
 	authorizationapiv1 "k8s.io/api/authorization/v1"
 	kapiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apiserver/pkg/storage/names"
+	"k8s.io/client-go/discovery/cached"
 	kclientset "k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
+	"k8s.io/client-go/restmapper"
 	clientcmd "k8s.io/client-go/tools/clientcmd"
 	kinternalclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
@@ -198,6 +201,12 @@ func (c *CLI) TeardownProject() {
 func (c *CLI) Verbose() *CLI {
 	c.verbose = true
 	return c
+}
+
+func (c *CLI) RESTMapper() meta.RESTMapper {
+	ret := restmapper.NewDeferredDiscoveryRESTMapper(cached.NewMemCacheClient(c.KubeClient().Discovery()))
+	ret.Reset()
+	return ret
 }
 
 func (c *CLI) AppsClient() appsclientset.Interface {

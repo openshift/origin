@@ -14,6 +14,7 @@ import (
 	admissionmetrics "k8s.io/apiserver/pkg/admission/metrics"
 	"k8s.io/apiserver/pkg/audit"
 	genericapiserver "k8s.io/apiserver/pkg/server"
+	cacheddiscovery "k8s.io/client-go/discovery/cached"
 	kinformers "k8s.io/client-go/informers"
 	kubeclientgoinformers "k8s.io/client-go/informers"
 	rbacinformers "k8s.io/client-go/informers/rbac/v1"

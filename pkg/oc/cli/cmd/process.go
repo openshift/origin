@@ -173,14 +173,11 @@ func RunProcess(f kcmdutil.Factory, in io.Reader, out, errout io.Writer, cmd *co
 		objects []runtime.Object
 		infos   []*resource.Info
 
-		mapper meta.RESTMapper
 		client templateclient.TemplateInterface
 	)
 
 	if local {
 		// TODO: Change f.Object() so that it can fall back to local RESTMapper safely (currently glog.Fatals)
-		mapper = legacyscheme.Registry.RESTMapper()
-		// client is deliberately left nil
 	} else {
 		clientConfig, err := f.ClientConfig()
 		if err != nil {
@@ -191,11 +188,6 @@ func RunProcess(f kcmdutil.Factory, in io.Reader, out, errout io.Writer, cmd *co
 			return err
 		}
 		client = templateClient.Template()
-		mapper, _ = f.Object()
-	}
-	mapping, err := mapper.RESTMapping(templateapi.Kind("Template"))
-	if err != nil {
-		return err
 	}
 
 	// When templateName is not empty, then we fetch the template from the
@@ -332,9 +324,7 @@ func RunProcess(f kcmdutil.Factory, in io.Reader, out, errout io.Writer, cmd *co
 	}
 	var version schema.GroupVersion
 	outputVersionString := kcmdutil.GetFlagString(cmd, "output-version")
-	if len(outputVersionString) == 0 {
-		version = mapping.GroupVersionKind.GroupVersion()
-	} else {
+	if len(outputVersionString) > 0 {
 		version, err = schema.ParseGroupVersion(outputVersionString)
 		if err != nil {
 			return err

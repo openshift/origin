@@ -142,6 +142,10 @@ func (o *StatusOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, baseCLI
 	if err != nil {
 		return err
 	}
+	restMapper, err := f.ToRESTMapper()
+	if err != nil {
+		return err
+	}
 
 	if o.allNamespaces {
 		o.namespace = metav1.NamespaceAll
@@ -167,6 +171,7 @@ func (o *StatusOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, baseCLI
 
 	o.describer = &describe.ProjectStatusDescriber{
 		KubeClient:    kclientset,
+		RESTMapper:    restMapper,
 		ProjectClient: projectClient.Project(),
 		BuildClient:   buildClient.Build(),
 		ImageClient:   imageClient.Image(),
