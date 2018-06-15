@@ -19,6 +19,7 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	genericmux "k8s.io/apiserver/pkg/server/mux"
+	kubeinformers "k8s.io/client-go/informers"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
@@ -77,6 +78,7 @@ type OpenshiftAPIExtraConfig struct {
 	KubeAPIServerClientConfig *restclient.Config
 	KubeClientInternal        kclientsetinternal.Interface
 	KubeInternalInformers     kinternalinformers.SharedInformerFactory
+	KubeInformers             kubeinformers.SharedInformerFactory
 
 	QuotaInformers    quotainformer.SharedInformerFactory
 	SecurityInformers securityinformer.SharedInformerFactory
@@ -119,6 +121,9 @@ func (c *OpenshiftAPIExtraConfig) Validate() error {
 	}
 	if c.KubeInternalInformers == nil {
 		ret = append(ret, fmt.Errorf("KubeInternalInformers is required"))
+	}
+	if c.KubeInformers == nil {
+		ret = append(ret, fmt.Errorf("KubeInformers is required"))
 	}
 	if c.QuotaInformers == nil {
 		ret = append(ret, fmt.Errorf("QuotaInformers is required"))
@@ -236,7 +241,7 @@ func (c *completedConfig) withAuthorizationAPIServer(delegateAPIServer genericap
 		GenericConfig: &genericapiserver.RecommendedConfig{Config: *c.GenericConfig.Config},
 		ExtraConfig: authorizationapiserver.ExtraConfig{
 			KubeAPIServerClientConfig: c.ExtraConfig.KubeAPIServerClientConfig,
-			KubeInternalInformers:     c.ExtraConfig.KubeInternalInformers,
+			KubeInformers:             c.ExtraConfig.KubeInformers,
 			RuleResolver:              c.ExtraConfig.RuleResolver,
 			SubjectLocator:            c.ExtraConfig.SubjectLocator,
 			Codecs:                    legacyscheme.Codecs,

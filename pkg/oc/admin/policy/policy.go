@@ -4,17 +4,17 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/spf13/cobra"
+	rbacv1 "k8s.io/api/rbac/v1"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/uuid"
-	"k8s.io/kubernetes/pkg/apis/rbac"
-	rbacclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/rbac/internalversion"
+	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
+	rbacv1helpers "k8s.io/kubernetes/pkg/apis/rbac/v1"
 	ktemplates "k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-
-	"github.com/spf13/cobra"
 
 	"github.com/openshift/origin/pkg/cmd/templates"
 )
@@ -99,7 +99,7 @@ func NewCmdPolicy(name, fullName string, f cmdutil.Factory, out, errout io.Write
 	return cmds
 }
 
-func getUniqueName(rbacClient rbacclient.RbacInterface, basename string, namespace string) (string, error) {
+func getUniqueName(rbacClient rbacv1client.RbacV1Interface, basename string, namespace string) (string, error) {
 	existingNames := sets.String{}
 
 	if len(namespace) > 0 {
@@ -135,19 +135,19 @@ func getUniqueName(rbacClient rbacclient.RbacInterface, basename string, namespa
 }
 
 type roleBindingAbstraction struct {
-	rbacClient         rbacclient.RbacInterface
-	roleBinding        *rbac.RoleBinding
-	clusterRoleBinding *rbac.ClusterRoleBinding
+	rbacClient         rbacv1client.RbacV1Interface
+	roleBinding        *rbacv1.RoleBinding
+	clusterRoleBinding *rbacv1.ClusterRoleBinding
 }
 
-func newRoleBindingAbstraction(rbacClient rbacclient.RbacInterface, name string, namespace string, roleName string, roleKind string) (*roleBindingAbstraction, error) {
+func newRoleBindingAbstraction(rbacClient rbacv1client.RbacV1Interface, name string, namespace string, roleName string, roleKind string) (*roleBindingAbstraction, error) {
 	r := roleBindingAbstraction{rbacClient: rbacClient}
 	if len(namespace) > 0 {
 		switch roleKind {
 		case "Role":
-			r.roleBinding = &(rbac.NewRoleBinding(roleName, namespace).RoleBinding)
+			r.roleBinding = &(rbacv1helpers.NewRoleBinding(roleName, namespace).RoleBinding)
 		case "ClusterRole":
-			r.roleBinding = &(rbac.NewRoleBindingForClusterRole(roleName, namespace).RoleBinding)
+			r.roleBinding = &(rbacv1helpers.NewRoleBindingForClusterRole(roleName, namespace).RoleBinding)
 		default:
 			return nil, fmt.Errorf("Unknown Role Kind: %q", roleKind)
 		}
@@ -158,7 +158,7 @@ func newRoleBindingAbstraction(rbacClient rbacclient.RbacInterface, name string,
 		if roleKind != "ClusterRole" {
 			return nil, fmt.Errorf("Cluster Role Bindings can only reference Cluster Roles")
 		}
-		r.clusterRoleBinding = &(rbac.NewClusterBinding(roleName).ClusterRoleBinding)
+		r.clusterRoleBinding = &(rbacv1helpers.NewClusterBinding(roleName).ClusterRoleBinding)
 		if name != roleName {
 			r.clusterRoleBinding.Name = name
 		}
@@ -166,7 +166,7 @@ func newRoleBindingAbstraction(rbacClient rbacclient.RbacInterface, name string,
 	return &r, nil
 }
 
-func getRoleBindingAbstraction(rbacClient rbacclient.RbacInterface, name string, namespace string) (*roleBindingAbstraction, error) {
+func getRoleBindingAbstraction(rbacClient rbacv1client.RbacV1Interface, name string, namespace string) (*roleBindingAbstraction, error) {
 	var err error
 	r := roleBindingAbstraction{rbacClient: rbacClient}
 	if len(namespace) > 0 {
@@ -180,7 +180,7 @@ func getRoleBindingAbstraction(rbacClient rbacclient.RbacInterface, name string,
 	return &r, nil
 }
 
-func getRoleBindingAbstractionsForRole(rbacClient rbacclient.RbacInterface, roleName string, roleKind string, namespace string) ([]*roleBindingAbstraction, error) {
+func getRoleBindingAbstractionsForRole(rbacClient rbacv1client.RbacV1Interface, roleName string, roleKind string, namespace string) ([]*roleBindingAbstraction, error) {
 	ret := make([]*roleBindingAbstraction, 0)
 	// see if we can find an existing binding that points to the role in question.
 	if len(namespace) > 0 {
@@ -244,7 +244,7 @@ func (r roleBindingAbstraction) Annotation(key string) string {
 	}
 }
 
-func (r roleBindingAbstraction) Subjects() []rbac.Subject {
+func (r roleBindingAbstraction) Subjects() []rbacv1.Subject {
 	if r.roleBinding != nil {
 		return r.roleBinding.Subjects
 	} else {
@@ -252,7 +252,7 @@ func (r roleBindingAbstraction) Subjects() []rbac.Subject {
 	}
 }
 
-func (r roleBindingAbstraction) SetSubjects(subjects []rbac.Subject) {
+func (r roleBindingAbstraction) SetSubjects(subjects []rbacv1.Subject) {
 	if r.roleBinding != nil {
 		r.roleBinding.Subjects = subjects
 	} else {

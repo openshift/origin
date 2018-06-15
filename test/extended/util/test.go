@@ -21,9 +21,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	kclientset "k8s.io/client-go/kubernetes"
+	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/retry"
-	rbacclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/rbac/internalversion"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -230,7 +230,7 @@ func createTestingNS(baseName string, c kclientset.Interface, labels map[string]
 
 		// The intra-pod test requires that the service account have
 		// permission to retrieve service endpoints.
-		rbacClient, err := rbacclient.NewForConfig(clientConfig)
+		rbacClient, err := rbacv1client.NewForConfig(clientConfig)
 		if err != nil {
 			return ns, err
 		}
@@ -435,7 +435,7 @@ func addE2EServiceAccountsToSCC(securityClient securityclient.Interface, namespa
 	}
 }
 
-func addRoleToE2EServiceAccounts(rbacClient *rbacclient.RbacClient, namespaces []kapiv1.Namespace, roleName string) {
+func addRoleToE2EServiceAccounts(rbacClient rbacv1client.RbacV1Interface, namespaces []kapiv1.Namespace, roleName string) {
 	err := retry.RetryOnConflict(longRetry, func() error {
 		for _, ns := range namespaces {
 			if strings.HasPrefix(ns.Name, "e2e-") && ns.Status.Phase != kapiv1.NamespaceTerminating {

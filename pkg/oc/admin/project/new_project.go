@@ -13,7 +13,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	errorsutil "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
-	rbacclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/rbac/internalversion"
+	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
@@ -37,7 +37,7 @@ type NewProjectOptions struct {
 	NodeSelector string
 
 	ProjectClient projectclient.ProjectInterface
-	RbacClient    *rbacclient.RbacClient
+	RbacClient    rbacv1client.RbacV1Interface
 	SARClient     authorizationtypedclient.SubjectAccessReviewInterface
 
 	AdminRole string
@@ -101,7 +101,7 @@ func (o *NewProjectOptions) complete(f kcmdutil.Factory, args []string) error {
 		return err
 	}
 	o.ProjectClient = projectClient.Project()
-	o.RbacClient, err = rbacclient.NewForConfig(clientConfig)
+	o.RbacClient, err = rbacv1client.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}

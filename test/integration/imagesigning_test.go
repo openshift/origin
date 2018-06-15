@@ -10,7 +10,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/diff"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	rbacclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/rbac/internalversion"
 
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
@@ -18,6 +17,7 @@ import (
 	"github.com/openshift/origin/pkg/oc/admin/policy"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
+	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	"k8s.io/client-go/rest"
 )
 
@@ -51,7 +51,7 @@ func TestImageAddSignature(t *testing.T) {
 		t.Fatalf("expected forbidden error, not: %v", err)
 	}
 
-	makeUserAnImageSigner(rbacclient.NewForConfigOrDie(clusterAdminClientConfig), userKubeClient, testUserName)
+	makeUserAnImageSigner(rbacv1client.NewForConfigOrDie(clusterAdminClientConfig), userKubeClient, testUserName)
 
 	// try to create the signature again
 	created, err = userClient.Image().ImageSignatures().Create(&signature)
@@ -102,7 +102,7 @@ func TestImageAddSignature(t *testing.T) {
 func TestImageRemoveSignature(t *testing.T) {
 	clusterAdminClientConfig, userKubeClient, _, userClient, image, fn := testSetupImageSignatureTest(t, testUserName)
 	defer fn()
-	makeUserAnImageSigner(rbacclient.NewForConfigOrDie(clusterAdminClientConfig), userKubeClient, testUserName)
+	makeUserAnImageSigner(rbacv1client.NewForConfigOrDie(clusterAdminClientConfig), userKubeClient, testUserName)
 
 	// create some signatures
 	sigData := []struct {
@@ -235,7 +235,7 @@ func testSetupImageSignatureTest(t *testing.T, userName string) (clusterAdminCli
 	}
 }
 
-func makeUserAnImageSigner(rbacClient *rbacclient.RbacClient, userClient kclientset.Interface, userName string) error {
+func makeUserAnImageSigner(rbacClient rbacv1client.RbacV1Interface, userClient kclientset.Interface, userName string) error {
 	// give bob permissions to update image signatures
 	addImageSignerRole := &policy.RoleModificationOptions{
 		RoleName:   bootstrappolicy.ImageSignerRoleName,

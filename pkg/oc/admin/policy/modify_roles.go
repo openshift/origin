@@ -8,12 +8,13 @@ import (
 
 	"github.com/spf13/cobra"
 
+	rbacv1 "k8s.io/api/rbac/v1"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/validation"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	"k8s.io/kubernetes/pkg/apis/rbac"
-	rbacclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/rbac/internalversion"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
@@ -46,12 +47,12 @@ type RoleModificationOptions struct {
 	RoleKind             string
 	RoleBindingName      string
 	RoleBindingNamespace string
-	RbacClient           rbacclient.RbacInterface
+	RbacClient           rbacv1client.RbacV1Interface
 
 	Targets  []string
 	Users    []string
 	Groups   []string
-	Subjects []rbac.Subject
+	Subjects []rbacv1.Subject
 
 	DryRun bool
 	Output string
@@ -355,7 +356,7 @@ func (o *RoleModificationOptions) innerComplete(f kcmdutil.Factory, cmd *cobra.C
 	if err != nil {
 		return err
 	}
-	o.RbacClient, err = rbacclient.NewForConfig(clientConfig)
+	o.RbacClient, err = rbacv1client.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
@@ -410,7 +411,7 @@ func (o *RoleModificationOptions) CompleteUserWithSA(f kcmdutil.Factory, cmd *co
 
 	for _, sa := range saNames {
 		o.Targets = append(o.Targets, sa)
-		o.Subjects = append(o.Subjects, rbac.Subject{Namespace: defaultNamespace, Name: sa, Kind: rbac.ServiceAccountKind})
+		o.Subjects = append(o.Subjects, rbacv1.Subject{Namespace: defaultNamespace, Name: sa, Kind: rbac.ServiceAccountKind})
 	}
 
 	return nil
@@ -538,10 +539,10 @@ func (o *RoleModificationOptions) AddRole() error {
 	return nil
 }
 
-func addSubjects(users []string, groups []string, subjects []rbac.Subject, existingSubjects []rbac.Subject) []rbac.Subject {
+func addSubjects(users []string, groups []string, subjects []rbacv1.Subject, existingSubjects []rbacv1.Subject) []rbacv1.Subject {
 	subjectsToAdd := authorizationutil.BuildRBACSubjects(users, groups)
 	subjectsToAdd = append(subjectsToAdd, subjects...)
-	newSubjects := make([]rbac.Subject, len(existingSubjects))
+	newSubjects := make([]rbacv1.Subject, len(existingSubjects))
 	copy(newSubjects, existingSubjects)
 
 subjectCheck:
@@ -596,7 +597,7 @@ func (o *RoleModificationOptions) RemoveRole() error {
 	found := 0
 	cnt := 0
 	for _, roleBinding := range roleBindings {
-		var resultingSubjects []rbac.Subject
+		var resultingSubjects []rbacv1.Subject
 		resultingSubjects, cnt = removeSubjects(roleBinding.Subjects(), subjectsToRemove)
 		roleBinding.SetSubjects(resultingSubjects)
 		found += cnt
@@ -608,7 +609,7 @@ func (o *RoleModificationOptions) RemoveRole() error {
 		}
 		var updated runtime.Object
 		if len(o.RoleBindingNamespace) > 0 {
-			updatedBindings := &rbac.RoleBindingList{
+			updatedBindings := &rbacv1.RoleBindingList{
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "List",
 					APIVersion: "v1",
@@ -616,11 +617,11 @@ func (o *RoleModificationOptions) RemoveRole() error {
 				ListMeta: metav1.ListMeta{},
 			}
 			for _, binding := range roleBindings {
-				updatedBindings.Items = append(updatedBindings.Items, *(binding.Object().(*rbac.RoleBinding)))
+				updatedBindings.Items = append(updatedBindings.Items, *(binding.Object().(*rbacv1.RoleBinding)))
 			}
 			updated = updatedBindings
 		} else {
-			updatedBindings := &rbac.ClusterRoleBindingList{
+			updatedBindings := &rbacv1.ClusterRoleBindingList{
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "List",
 					APIVersion: "v1",
@@ -628,7 +629,7 @@ func (o *RoleModificationOptions) RemoveRole() error {
 				ListMeta: metav1.ListMeta{},
 			}
 			for _, binding := range roleBindings {
-				updatedBindings.Items = append(updatedBindings.Items, *(binding.Object().(*rbac.ClusterRoleBinding)))
+				updatedBindings.Items = append(updatedBindings.Items, *(binding.Object().(*rbacv1.ClusterRoleBinding)))
 			}
 			updated = updatedBindings
 		}
@@ -641,7 +642,7 @@ func (o *RoleModificationOptions) RemoveRole() error {
 	}
 
 	for _, roleBinding := range roleBindings {
-		if len(roleBinding.Subjects()) > 0 || roleBinding.Annotation(rbac.AutoUpdateAnnotationKey) == "false" {
+		if len(roleBinding.Subjects()) > 0 || roleBinding.Annotation(rbacv1.AutoUpdateAnnotationKey) == "false" {
 			err = roleBinding.Update()
 		} else {
 			err = roleBinding.Delete()
@@ -657,8 +658,8 @@ func (o *RoleModificationOptions) RemoveRole() error {
 	return nil
 }
 
-func removeSubjects(haystack, needles []rbac.Subject) ([]rbac.Subject, int) {
-	newSubjects := []rbac.Subject{}
+func removeSubjects(haystack, needles []rbacv1.Subject) ([]rbacv1.Subject, int) {
+	newSubjects := []rbacv1.Subject{}
 	found := 0
 
 existingLoop:

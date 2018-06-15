@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	clientcmd "k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
@@ -97,6 +98,10 @@ func (o DiagnosticsOptions) buildClusterDiagnostics(rawConfig *clientcmdapi.Conf
 	if err != nil {
 		return nil, err
 	}
+	kubeClient, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return nil, err
+	}
 
 	diagnostics := []types.Diagnostic{}
 	for _, diagnosticName := range requestedDiagnostics {
@@ -110,7 +115,7 @@ func (o DiagnosticsOptions) buildClusterDiagnostics(rawConfig *clientcmdapi.Conf
 			ac.KubeClient = kclusterClient
 			ac.ProjectClient = projectClient.Project()
 			ac.RouteClient = routeClient
-			ac.RbacClient = rbacClient
+			ac.RbacClient = kubeClient.RbacV1()
 			ac.SARClient = kclusterClient.Authorization()
 			ac.AppsClient = appsClient
 			ac.PreventModification = o.PreventModification
@@ -125,9 +130,9 @@ func (o DiagnosticsOptions) buildClusterDiagnostics(rawConfig *clientcmdapi.Conf
 		case clustdiags.ClusterRouterName:
 			d = &clustdiags.ClusterRouter{KubeClient: kclusterClient, DCClient: appsClient.Apps()}
 		case clustdiags.ClusterRolesName:
-			d = &clustdiags.ClusterRoles{ClusterRolesClient: rbacClient.ClusterRoles(), SARClient: kclusterClient.Authorization()}
+			d = &clustdiags.ClusterRoles{ClusterRolesClient: kubeClient.RbacV1().ClusterRoles(), SARClient: kclusterClient.Authorization()}
 		case clustdiags.ClusterRoleBindingsName:
-			d = &clustdiags.ClusterRoleBindings{ClusterRoleBindingsClient: rbacClient.ClusterRoleBindings(), SARClient: kclusterClient.Authorization()}
+			d = &clustdiags.ClusterRoleBindings{ClusterRoleBindingsClient: kubeClient.RbacV1().ClusterRoleBindings(), SARClient: kclusterClient.Authorization()}
 		case clustdiags.MetricsApiProxyName:
 			d = &clustdiags.MetricsApiProxy{KubeClient: kclusterClient}
 		case clustdiags.ServiceExternalIPsName:

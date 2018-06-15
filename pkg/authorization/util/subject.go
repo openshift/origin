@@ -1,38 +1,38 @@
 package util
 
 import (
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apiserver/pkg/authentication/serviceaccount"
-	"k8s.io/kubernetes/pkg/apis/rbac"
 )
 
-func BuildRBACSubjects(users, groups []string) []rbac.Subject {
-	subjects := []rbac.Subject{}
+func BuildRBACSubjects(users, groups []string) []rbacv1.Subject {
+	subjects := []rbacv1.Subject{}
 
 	for _, user := range users {
 		saNamespace, saName, err := serviceaccount.SplitUsername(user)
 		if err == nil {
-			subjects = append(subjects, rbac.Subject{Kind: rbac.ServiceAccountKind, Namespace: saNamespace, Name: saName})
+			subjects = append(subjects, rbacv1.Subject{Kind: rbacv1.ServiceAccountKind, Namespace: saNamespace, Name: saName})
 		} else {
-			subjects = append(subjects, rbac.Subject{Kind: rbac.UserKind, APIGroup: rbac.GroupName, Name: user})
+			subjects = append(subjects, rbacv1.Subject{Kind: rbacv1.UserKind, APIGroup: rbacv1.GroupName, Name: user})
 		}
 	}
 
 	for _, group := range groups {
-		subjects = append(subjects, rbac.Subject{Kind: rbac.GroupKind, APIGroup: rbac.GroupName, Name: group})
+		subjects = append(subjects, rbacv1.Subject{Kind: rbacv1.GroupKind, APIGroup: rbacv1.GroupName, Name: group})
 	}
 
 	return subjects
 }
 
-func RBACSubjectsToUsersAndGroups(subjects []rbac.Subject, defaultNamespace string) (users []string, groups []string) {
+func RBACSubjectsToUsersAndGroups(subjects []rbacv1.Subject, defaultNamespace string) (users []string, groups []string) {
 	for _, subject := range subjects {
 
 		switch {
-		case subject.APIGroup == rbac.GroupName && subject.Kind == rbac.GroupKind:
+		case subject.APIGroup == rbacv1.GroupName && subject.Kind == rbacv1.GroupKind:
 			groups = append(groups, subject.Name)
-		case subject.APIGroup == rbac.GroupName && subject.Kind == rbac.UserKind:
+		case subject.APIGroup == rbacv1.GroupName && subject.Kind == rbacv1.UserKind:
 			users = append(users, subject.Name)
-		case subject.APIGroup == "" && subject.Kind == rbac.ServiceAccountKind:
+		case subject.APIGroup == "" && subject.Kind == rbacv1.ServiceAccountKind:
 			// default the namespace to namespace we're working in if
 			// it's available. This allows rolebindings that reference
 			// SAs in the local namespace to avoid having to qualify

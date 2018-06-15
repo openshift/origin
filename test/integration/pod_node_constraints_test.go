@@ -5,11 +5,11 @@ import (
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	"k8s.io/kubernetes/pkg/apis/batch"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	rbacclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/rbac/internalversion"
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset"
@@ -129,7 +129,7 @@ func setupUserPodNodeConstraintsTest(t *testing.T, pluginConfig *pluginapi.PodNo
 	addUser := &policy.RoleModificationOptions{
 		RoleName:   bootstrappolicy.AdminRoleName,
 		RoleKind:   "ClusterRole",
-		RbacClient: rbacclient.NewForConfigOrDie(clusterAdminClientConfig),
+		RbacClient: rbacv1client.NewForConfigOrDie(clusterAdminClientConfig),
 		Users:      []string{user},
 	}
 	if err := addUser.AddRole(); err != nil {

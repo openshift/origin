@@ -8,13 +8,14 @@ import (
 
 	"github.com/ghodss/yaml"
 
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/api/rbac/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	api "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/apis/rbac"
+	rbacv1helpers "k8s.io/kubernetes/pkg/apis/rbac/v1"
 	rulevalidation "k8s.io/kubernetes/pkg/registry/rbac/validation"
 	kbootstrappolicy "k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac/bootstrappolicy"
 
@@ -139,18 +140,18 @@ func testObjects(t *testing.T, list *api.List, fixtureFilename string) {
 // Some roles should always cover others
 func TestCovers(t *testing.T) {
 	allRoles := bootstrappolicy.GetBootstrapClusterRoles()
-	var admin []rbac.PolicyRule
-	var editor []rbac.PolicyRule
-	var viewer []rbac.PolicyRule
-	var registryAdmin *rbac.ClusterRole
-	var registryEditor *rbac.ClusterRole
-	var registryViewer *rbac.ClusterRole
-	var systemMaster *rbac.ClusterRole
-	var systemDiscovery *rbac.ClusterRole
-	var clusterAdmin *rbac.ClusterRole
-	var storageAdmin *rbac.ClusterRole
-	var imageBuilder *rbac.ClusterRole
-	var nodeRole *rbac.ClusterRole
+	var admin []rbacv1.PolicyRule
+	var editor []rbacv1.PolicyRule
+	var viewer []rbacv1.PolicyRule
+	var registryAdmin *rbacv1.ClusterRole
+	var registryEditor *rbacv1.ClusterRole
+	var registryViewer *rbacv1.ClusterRole
+	var systemMaster *rbacv1.ClusterRole
+	var systemDiscovery *rbacv1.ClusterRole
+	var clusterAdmin *rbacv1.ClusterRole
+	var storageAdmin *rbacv1.ClusterRole
+	var imageBuilder *rbacv1.ClusterRole
+	var nodeRole *rbacv1.ClusterRole
 
 	for i := range allRoles {
 		role := allRoles[i]
@@ -225,14 +226,14 @@ func TestCovers(t *testing.T) {
 	if covers, miss := rulevalidation.Covers(nodeRole.Rules, kbootstrappolicy.NodeRules()); !covers {
 		t.Errorf("upstream node role has extra permissions:")
 		for _, r := range miss {
-			t.Logf("\t%s", r.CompactString())
+			t.Logf("\t%s", rbacv1helpers.CompactString(r))
 		}
 	}
 	// Make sure our node role doesn't have any extra permissions
 	if covers, miss := rulevalidation.Covers(kbootstrappolicy.NodeRules(), nodeRole.Rules); !covers {
 		t.Errorf("openshift node role has extra permissions:")
 		for _, r := range miss {
-			t.Logf("\t%s", r.CompactString())
+			t.Logf("\t%s", rbacv1helpers.CompactString(r))
 		}
 	}
 }

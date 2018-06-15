@@ -8,15 +8,15 @@ import (
 
 	"github.com/spf13/cobra"
 
+	rbacv1 "k8s.io/api/rbac/v1"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kutilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
+	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
-	"k8s.io/kubernetes/pkg/apis/rbac"
-	rbacclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/rbac/internalversion"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
@@ -39,13 +39,13 @@ type ReconcileClusterRoleBindingsOptions struct {
 	Confirmed bool
 	Union     bool
 
-	ExcludeSubjects []rbac.Subject
+	ExcludeSubjects []rbacv1.Subject
 
 	Out    io.Writer
 	Err    io.Writer
 	Output string
 
-	RoleBindingClient rbacclient.ClusterRoleBindingInterface
+	RoleBindingClient rbacv1client.ClusterRoleBindingInterface
 }
 
 var (
@@ -123,7 +123,7 @@ func (o *ReconcileClusterRoleBindingsOptions) Complete(cmd *cobra.Command, f kcm
 	if err != nil {
 		return err
 	}
-	rbacClient, err := rbacclient.NewForConfig(clientConfig)
+	rbacClient, err := rbacv1client.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
@@ -167,7 +167,7 @@ func (o *ReconcileClusterRoleBindingsOptions) RunReconcileClusterRoleBindings(cm
 	}
 
 	if len(skippedClusterRoleBindings) > 0 {
-		fmt.Fprintf(o.Err, "Skipped reconciling roles with the annotation %s=false\n", rbac.AutoUpdateAnnotationKey)
+		fmt.Fprintf(o.Err, "Skipped reconciling roles with the annotation %s=false\n", rbacv1.AutoUpdateAnnotationKey)
 		for _, role := range skippedClusterRoleBindings {
 			fmt.Fprintf(o.Err, "skipped: clusterrolebinding/%s\n", role.Name)
 		}
@@ -207,9 +207,9 @@ func (o *ReconcileClusterRoleBindingsOptions) RunReconcileClusterRoleBindings(cm
 // ChangedClusterRoleBindings returns the role bindings that must be created and/or updated to
 // match the recommended bootstrap policy. If roles to reconcile are provided, but not all are
 // found, all partial results are returned.
-func (o *ReconcileClusterRoleBindingsOptions) ChangedClusterRoleBindings() ([]*rbac.ClusterRoleBinding, []*rbac.ClusterRoleBinding, error) {
-	changedRoleBindings := []*rbac.ClusterRoleBinding{}
-	skippedRoleBindings := []*rbac.ClusterRoleBinding{}
+func (o *ReconcileClusterRoleBindingsOptions) ChangedClusterRoleBindings() ([]*rbacv1.ClusterRoleBinding, []*rbacv1.ClusterRoleBinding, error) {
+	changedRoleBindings := []*rbacv1.ClusterRoleBinding{}
+	skippedRoleBindings := []*rbacv1.ClusterRoleBinding{}
 
 	rolesToReconcile := sets.NewString(o.RolesToReconcile...)
 	rolesNotFound := sets.NewString(o.RolesToReconcile...)
@@ -239,7 +239,7 @@ func (o *ReconcileClusterRoleBindingsOptions) ChangedClusterRoleBindings() ([]*r
 		expectedClusterRoleBinding.Annotations = actualClusterRoleBinding.Annotations
 
 		if updatedClusterRoleBinding, needsUpdating := computeUpdatedBinding(*expectedClusterRoleBinding, *actualClusterRoleBinding, o.ExcludeSubjects, o.Union); needsUpdating {
-			if actualClusterRoleBinding.Annotations[rbac.AutoUpdateAnnotationKey] == "false" {
+			if actualClusterRoleBinding.Annotations[rbacv1.AutoUpdateAnnotationKey] == "false" {
 				skippedRoleBindings = append(skippedRoleBindings, updatedClusterRoleBinding)
 			} else {
 				changedRoleBindings = append(changedRoleBindings, updatedClusterRoleBinding)
@@ -256,10 +256,10 @@ func (o *ReconcileClusterRoleBindingsOptions) ChangedClusterRoleBindings() ([]*r
 }
 
 // ReplaceChangedRoleBindings will reconcile all the changed system role bindings back to the recommended bootstrap policy
-func (o *ReconcileClusterRoleBindingsOptions) ReplaceChangedRoleBindings(changedRoleBindings []*rbac.ClusterRoleBinding) error {
+func (o *ReconcileClusterRoleBindingsOptions) ReplaceChangedRoleBindings(changedRoleBindings []*rbacv1.ClusterRoleBinding) error {
 	errs := []error{}
 	for i := range changedRoleBindings {
-		roleBinding, err := o.RoleBindingClient.Get(changedRoleBindings[i].Name, metav1.GetOptions{})
+		rbacRoleBinding, err := o.RoleBindingClient.Get(changedRoleBindings[i].Name, metav1.GetOptions{})
 		if err != nil && !kapierrors.IsNotFound(err) {
 			errs = append(errs, err)
 			continue
@@ -276,12 +276,12 @@ func (o *ReconcileClusterRoleBindingsOptions) ReplaceChangedRoleBindings(changed
 		}
 
 		// RoleRef is immutable, to reset this, we have to delete/recreate
-		if !kapihelper.Semantic.DeepEqual(roleBinding.RoleRef, changedRoleBindings[i].RoleRef) {
-			roleBinding.RoleRef = changedRoleBindings[i].RoleRef
-			roleBinding.Subjects = changedRoleBindings[i].Subjects
+		if !kapihelper.Semantic.DeepEqual(rbacRoleBinding.RoleRef, changedRoleBindings[i].RoleRef) {
+			rbacRoleBinding.RoleRef = changedRoleBindings[i].RoleRef
+			rbacRoleBinding.Subjects = changedRoleBindings[i].Subjects
 
 			// TODO: for extra credit, determine whether the right to delete/create this rolebinding for the current user came from this rolebinding before deleting it
-			err := o.RoleBindingClient.Delete(roleBinding.Name, nil)
+			err := o.RoleBindingClient.Delete(rbacRoleBinding.Name, nil)
 			if err != nil {
 				errs = append(errs, err)
 				continue
@@ -295,8 +295,8 @@ func (o *ReconcileClusterRoleBindingsOptions) ReplaceChangedRoleBindings(changed
 			continue
 		}
 
-		roleBinding.Subjects = changedRoleBindings[i].Subjects
-		updatedRoleBinding, err := o.RoleBindingClient.Update(roleBinding)
+		rbacRoleBinding.Subjects = changedRoleBindings[i].Subjects
+		updatedRoleBinding, err := o.RoleBindingClient.Update(rbacRoleBinding)
 		if err != nil {
 			errs = append(errs, err)
 			continue
@@ -308,7 +308,7 @@ func (o *ReconcileClusterRoleBindingsOptions) ReplaceChangedRoleBindings(changed
 	return kutilerrors.NewAggregate(errs)
 }
 
-func computeUpdatedBinding(expected rbac.ClusterRoleBinding, actual rbac.ClusterRoleBinding, excludeSubjects []rbac.Subject, union bool) (*rbac.ClusterRoleBinding, bool) {
+func computeUpdatedBinding(expected rbacv1.ClusterRoleBinding, actual rbacv1.ClusterRoleBinding, excludeSubjects []rbacv1.Subject, union bool) (*rbacv1.ClusterRoleBinding, bool) {
 	needsUpdating := false
 
 	// Always reset the roleref if it is different
@@ -343,7 +343,7 @@ func computeUpdatedBinding(expected rbac.ClusterRoleBinding, actual rbac.Cluster
 	return &updated, true
 }
 
-func contains(list []rbac.Subject, item rbac.Subject) bool {
+func contains(list []rbacv1.Subject, item rbacv1.Subject) bool {
 	for _, listItem := range list {
 		if kapihelper.Semantic.DeepEqual(listItem, item) {
 			return true
@@ -356,7 +356,7 @@ func contains(list []rbac.Subject, item rbac.Subject) bool {
 //   list1Only = list1 - list2
 //   list2Only = list2 - list1
 // if both returned lists are empty, the provided lists are equal
-func DiffSubjects(list1 []rbac.Subject, list2 []rbac.Subject) (list1Only []rbac.Subject, list2Only []rbac.Subject) {
+func DiffSubjects(list1 []rbacv1.Subject, list2 []rbacv1.Subject) (list1Only []rbacv1.Subject, list2Only []rbacv1.Subject) {
 	for _, list1Item := range list1 {
 		if !contains(list2, list1Item) {
 			if !contains(list1Only, list1Item) {

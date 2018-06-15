@@ -5,13 +5,13 @@ import (
 	"reflect"
 	"testing"
 
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/authentication/user"
 	kauthorizer "k8s.io/apiserver/pkg/authorization/authorizer"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	apiserverrest "k8s.io/apiserver/pkg/registry/rest"
-	rbacapi "k8s.io/kubernetes/pkg/apis/rbac"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/authorization/registry/resourceaccessreview"
@@ -25,7 +25,7 @@ type resourceAccessTest struct {
 }
 
 type testAuthorizer struct {
-	subjects []rbacapi.Subject
+	subjects []rbacv1.Subject
 	err      string
 
 	actualAttributes kauthorizer.Attributes
@@ -39,7 +39,7 @@ func (a *testAuthorizer) Authorize(attributes kauthorizer.Attributes) (decision 
 
 	return kauthorizer.DecisionNoOpinion, "", errors.New("Unsupported")
 }
-func (a *testAuthorizer) AllowedSubjects(attributes kauthorizer.Attributes) ([]rbacapi.Subject, error) {
+func (a *testAuthorizer) AllowedSubjects(attributes kauthorizer.Attributes) ([]rbacv1.Subject, error) {
 	a.actualAttributes = attributes
 	if len(a.err) == 0 {
 		return a.subjects, nil
@@ -103,11 +103,11 @@ func TestEmptyReturn(t *testing.T) {
 func TestNoErrors(t *testing.T) {
 	test := &resourceAccessTest{
 		authorizer: &testAuthorizer{
-			subjects: []rbacapi.Subject{
-				{APIGroup: rbacapi.GroupName, Kind: rbacapi.UserKind, Name: "one"},
-				{APIGroup: rbacapi.GroupName, Kind: rbacapi.UserKind, Name: "two"},
-				{APIGroup: rbacapi.GroupName, Kind: rbacapi.GroupKind, Name: "three"},
-				{APIGroup: rbacapi.GroupName, Kind: rbacapi.GroupKind, Name: "four"},
+			subjects: []rbacv1.Subject{
+				{APIGroup: rbacv1.GroupName, Kind: rbacv1.UserKind, Name: "one"},
+				{APIGroup: rbacv1.GroupName, Kind: rbacv1.UserKind, Name: "two"},
+				{APIGroup: rbacv1.GroupName, Kind: rbacv1.GroupKind, Name: "three"},
+				{APIGroup: rbacv1.GroupName, Kind: rbacv1.GroupKind, Name: "four"},
 			},
 		},
 		reviewRequest: &authorizationapi.LocalResourceAccessReview{

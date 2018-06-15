@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	rbacv1 "k8s.io/api/rbac/v1"
 	kapierror "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -15,13 +16,14 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/discovery"
+	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	appsapi "k8s.io/kubernetes/pkg/apis/apps"
 	kubeauthorizationapi "k8s.io/kubernetes/pkg/apis/authorization"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	extensionsapi "k8s.io/kubernetes/pkg/apis/extensions"
-	"k8s.io/kubernetes/pkg/apis/rbac"
+	rbacv1helpers "k8s.io/kubernetes/pkg/apis/rbac/v1"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
 	rbacclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/rbac/internalversion"
@@ -282,7 +284,7 @@ func TestAuthorizationResolution(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	clusterAdminAuthorizationClient := rbacclient.NewForConfigOrDie(clusterAdminClientConfig)
+	clusterAdminAuthorizationClient := rbacv1client.NewForConfigOrDie(clusterAdminClientConfig)
 
 	addValerie := &policy.RoleModificationOptions{
 		RoleName:   bootstrappolicy.ViewRoleName,
@@ -312,10 +314,10 @@ func TestAuthorizationResolution(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	roleWithGroup := &rbac.ClusterRole{}
+	roleWithGroup := &rbacv1.ClusterRole{}
 	roleWithGroup.Name = "with-group"
 	roleWithGroup.Rules = append(roleWithGroup.Rules,
-		rbac.NewRule("list").
+		rbacv1helpers.NewRule("list").
 			Groups(buildapi.GroupName).
 			Resources("builds").
 			RuleOrDie())
@@ -527,7 +529,7 @@ func TestAuthorizationResourceAccessReview(t *testing.T) {
 		RoleBindingNamespace: "hammer-project",
 		RoleName:             bootstrappolicy.ViewRoleName,
 		RoleKind:             "ClusterRole",
-		RbacClient:           rbacclient.NewForConfigOrDie(haroldConfig),
+		RbacClient:           rbacv1client.NewForConfigOrDie(haroldConfig),
 		Users:                []string{"valerie"},
 	}
 	if err := addValerie.AddRole(); err != nil {
@@ -538,7 +540,7 @@ func TestAuthorizationResourceAccessReview(t *testing.T) {
 		RoleBindingNamespace: "mallet-project",
 		RoleName:             bootstrappolicy.EditRoleName,
 		RoleKind:             "ClusterRole",
-		RbacClient:           rbacclient.NewForConfigOrDie(markConfig),
+		RbacClient:           rbacv1client.NewForConfigOrDie(markConfig),
 		Users:                []string{"edgar"},
 	}
 	if err := addEdgar.AddRole(); err != nil {
@@ -1033,7 +1035,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		RoleBindingNamespace: "hammer-project",
 		RoleName:             bootstrappolicy.EditRoleName,
 		RoleKind:             "ClusterRole",
-		RbacClient:           rbacclient.NewForConfigOrDie(clusterAdminClientConfig),
+		RbacClient:           rbacv1client.NewForConfigOrDie(clusterAdminClientConfig),
 		Users:                []string{"system:anonymous"},
 	}
 	if err := addAnonymous.AddRole(); err != nil {
@@ -1044,7 +1046,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		RoleBindingNamespace: "default",
 		RoleName:             bootstrappolicy.ViewRoleName,
 		RoleKind:             "ClusterRole",
-		RbacClient:           rbacclient.NewForConfigOrDie(clusterAdminClientConfig),
+		RbacClient:           rbacv1client.NewForConfigOrDie(clusterAdminClientConfig),
 		Users:                []string{"danny"},
 	}
 	if err := addDanny.AddRole(); err != nil {
@@ -1100,7 +1102,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		RoleBindingNamespace: "hammer-project",
 		RoleName:             bootstrappolicy.ViewRoleName,
 		RoleKind:             "ClusterRole",
-		RbacClient:           rbacclient.NewForConfigOrDie(haroldConfig),
+		RbacClient:           rbacv1client.NewForConfigOrDie(haroldConfig),
 		Users:                []string{"valerie"},
 	}
 	if err := addValerie.AddRole(); err != nil {
@@ -1111,7 +1113,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		RoleBindingNamespace: "mallet-project",
 		RoleName:             bootstrappolicy.EditRoleName,
 		RoleKind:             "ClusterRole",
-		RbacClient:           rbacclient.NewForConfigOrDie(markConfig),
+		RbacClient:           rbacv1client.NewForConfigOrDie(markConfig),
 		Users:                []string{"edgar"},
 	}
 	if err := addEdgar.AddRole(); err != nil {

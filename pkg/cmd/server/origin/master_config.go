@@ -16,13 +16,13 @@ import (
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	kinformers "k8s.io/client-go/informers"
 	kubeclientgoinformers "k8s.io/client-go/informers"
+	rbacinformers "k8s.io/client-go/informers/rbac/v1"
 	kclientsetexternal "k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
-	rbacinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion/rbac/internalversion"
 	kubeapiserver "k8s.io/kubernetes/pkg/master"
 	rbacregistryvalidation "k8s.io/kubernetes/pkg/registry/rbac/validation"
 	rbacauthorizer "k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac"
@@ -191,7 +191,7 @@ func BuildMasterConfig(
 		return nil, err
 	}
 
-	subjectLocator := NewSubjectLocator(informers.GetInternalKubeInformers().Rbac().InternalVersion())
+	subjectLocator := NewSubjectLocator(informers.GetExternalKubeInformers().Rbac().V1())
 
 	config := &MasterConfig{
 		Options: options,
@@ -207,13 +207,13 @@ func BuildMasterConfig(
 
 		RESTOptionsGetter: restOptsGetter,
 
-		RuleResolver:   NewRuleResolver(informers.GetInternalKubeInformers().Rbac().InternalVersion()),
+		RuleResolver:   NewRuleResolver(informers.GetExternalKubeInformers().Rbac().V1()),
 		SubjectLocator: subjectLocator,
 
 		ProjectAuthorizationCache: newProjectAuthorizationCache(
 			subjectLocator,
 			informers.GetInternalKubeInformers().Core().InternalVersion().Namespaces().Informer(),
-			informers.GetInternalKubeInformers().Rbac().InternalVersion(),
+			informers.GetExternalKubeInformers().Rbac().V1(),
 		),
 		ProjectCache:                  projectCache,
 		ClusterQuotaMappingController: clusterQuotaMappingController,
@@ -273,10 +273,10 @@ func newProjectCache(informers InformerAccess, privilegedLoopbackConfig *restcli
 		defaultNodeSelector), nil
 }
 
-func newProjectAuthorizationCache(subjectLocator rbacauthorizer.SubjectLocator, namespaces cache.SharedIndexInformer, internalRBACInformers rbacinformers.Interface) *projectauth.AuthorizationCache {
+func newProjectAuthorizationCache(subjectLocator rbacauthorizer.SubjectLocator, namespaces cache.SharedIndexInformer, rbacInformers rbacinformers.Interface) *projectauth.AuthorizationCache {
 	return projectauth.NewAuthorizationCache(
 		namespaces,
 		projectauth.NewAuthorizerReviewer(subjectLocator),
-		internalRBACInformers,
+		rbacInformers,
 	)
 }

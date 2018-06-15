@@ -7,11 +7,12 @@ import (
 
 	"github.com/spf13/cobra"
 
+	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/kubernetes/pkg/apis/rbac"
-	rbacclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/rbac/internalversion"
+	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
+	rbacv1helpers "k8s.io/kubernetes/pkg/apis/rbac/v1"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	authorizationutil "github.com/openshift/origin/pkg/authorization/util"
@@ -24,7 +25,7 @@ const (
 
 type RemoveFromProjectOptions struct {
 	BindingNamespace string
-	Client           rbacclient.RoleBindingsGetter
+	Client           rbacv1client.RoleBindingsGetter
 
 	Groups []string
 	Users  []string
@@ -106,7 +107,7 @@ func (o *RemoveFromProjectOptions) Complete(f kcmdutil.Factory, cmd *cobra.Comma
 	if err != nil {
 		return err
 	}
-	o.Client, err = rbacclient.NewForConfig(clientConfig)
+	o.Client, err = rbacv1client.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
@@ -146,7 +147,7 @@ func (o *RemoveFromProjectOptions) Run() error {
 		dryRunText = " (dry run)"
 	}
 
-	updatedBindings := &rbac.RoleBindingList{
+	updatedBindings := &rbacv1.RoleBindingList{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "List",
 			APIVersion: "v1",
@@ -157,13 +158,13 @@ func (o *RemoveFromProjectOptions) Run() error {
 	subjectsToRemove := authorizationutil.BuildRBACSubjects(o.Users, o.Groups)
 
 	for _, currBinding := range roleBindings.Items {
-		originalSubjects := make([]rbac.Subject, len(currBinding.Subjects))
+		originalSubjects := make([]rbacv1.Subject, len(currBinding.Subjects))
 		copy(originalSubjects, currBinding.Subjects)
-		oldUsers, oldGroups, oldSAs, oldOthers := rbac.SubjectsStrings(originalSubjects)
+		oldUsers, oldGroups, oldSAs, oldOthers := rbacv1helpers.SubjectsStrings(originalSubjects)
 		oldUsersSet, oldGroupsSet, oldSAsSet, oldOtherSet := sets.NewString(oldUsers...), sets.NewString(oldGroups...), sets.NewString(oldSAs...), sets.NewString(oldOthers...)
 
 		currBinding.Subjects, _ = removeSubjects(currBinding.Subjects, subjectsToRemove)
-		newUsers, newGroups, newSAs, newOthers := rbac.SubjectsStrings(currBinding.Subjects)
+		newUsers, newGroups, newSAs, newOthers := rbacv1helpers.SubjectsStrings(currBinding.Subjects)
 		newUsersSet, newGroupsSet, newSAsSet, newOtherSet := sets.NewString(newUsers...), sets.NewString(newGroups...), sets.NewString(newSAs...), sets.NewString(newOthers...)
 
 		if len(currBinding.Subjects) == len(originalSubjects) {
@@ -223,7 +224,7 @@ func (o *RemoveFromProjectOptions) Run() error {
 	return nil
 }
 
-type roleBindingSorter []rbac.RoleBinding
+type roleBindingSorter []rbacv1.RoleBinding
 
 func (s roleBindingSorter) Len() int {
 	return len(s)

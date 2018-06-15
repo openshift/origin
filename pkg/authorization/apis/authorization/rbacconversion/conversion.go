@@ -3,6 +3,7 @@ package rbacconversion
 import (
 	"fmt"
 
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/conversion"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -262,6 +263,20 @@ func Convert_rbac_PolicyRules_To_authorization_PolicyRules(in []rbac.PolicyRule)
 	return rules
 }
 
+func Convert_rbacv1_PolicyRules_To_authorization_PolicyRules(in []rbacv1.PolicyRule) []authorizationapi.PolicyRule {
+	rules := make([]authorizationapi.PolicyRule, 0, len(in))
+	for _, rule := range in {
+		r := authorizationapi.PolicyRule{
+			APIGroups:       rule.APIGroups,
+			Verbs:           sets.NewString(rule.Verbs...),
+			Resources:       sets.NewString(rule.Resources...),
+			ResourceNames:   sets.NewString(rule.ResourceNames...),
+			NonResourceURLs: sets.NewString(rule.NonResourceURLs...),
+		}
+		rules = append(rules, r)
+	}
+	return rules
+}
 func copyMapExcept(in map[string]string, except string) map[string]string {
 	out := map[string]string{}
 	for k, v := range in {

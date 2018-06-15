@@ -6,9 +6,9 @@ import (
 	"strings"
 	"testing"
 
+	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/kubernetes/pkg/apis/rbac"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 )
@@ -85,7 +85,7 @@ func TestClusterRoleEvaluator(t *testing.T) {
 		name            string
 		scopes          []string
 		namespace       string
-		clusterRoles    []rbac.ClusterRole
+		clusterRoles    []rbacv1.ClusterRole
 		policyGetterErr error
 		numRules        int
 		err             string
@@ -117,10 +117,10 @@ func TestClusterRoleEvaluator(t *testing.T) {
 		{
 			name:            "missing-role",
 			policyGetterErr: fmt.Errorf(`clusterrole "missing" not found`),
-			clusterRoles: []rbac.ClusterRole{
+			clusterRoles: []rbacv1.ClusterRole{
 				{
 					ObjectMeta: metav1.ObjectMeta{Name: "admin"},
-					Rules:      []rbac.PolicyRule{{}},
+					Rules:      []rbacv1.PolicyRule{{}},
 				},
 			},
 			scopes:   []string{ClusterRoleIndicator + "missing:*"},
@@ -129,10 +129,10 @@ func TestClusterRoleEvaluator(t *testing.T) {
 		},
 		{
 			name: "mismatched-namespace",
-			clusterRoles: []rbac.ClusterRole{
+			clusterRoles: []rbacv1.ClusterRole{
 				{
 					ObjectMeta: metav1.ObjectMeta{Name: "admin"},
-					Rules:      []rbac.PolicyRule{{}},
+					Rules:      []rbacv1.PolicyRule{{}},
 				},
 			},
 			namespace: "current-ns",
@@ -141,10 +141,10 @@ func TestClusterRoleEvaluator(t *testing.T) {
 		},
 		{
 			name: "all-namespaces",
-			clusterRoles: []rbac.ClusterRole{
+			clusterRoles: []rbacv1.ClusterRole{
 				{
 					ObjectMeta: metav1.ObjectMeta{Name: "admin"},
-					Rules:      []rbac.PolicyRule{{}},
+					Rules:      []rbacv1.PolicyRule{{}},
 				},
 			},
 			namespace: "current-ns",
@@ -153,10 +153,10 @@ func TestClusterRoleEvaluator(t *testing.T) {
 		},
 		{
 			name: "matching-namespaces",
-			clusterRoles: []rbac.ClusterRole{
+			clusterRoles: []rbacv1.ClusterRole{
 				{
 					ObjectMeta: metav1.ObjectMeta{Name: "admin"},
-					Rules:      []rbac.PolicyRule{{}},
+					Rules:      []rbacv1.PolicyRule{{}},
 				},
 			},
 			namespace: "current-ns",
@@ -165,10 +165,10 @@ func TestClusterRoleEvaluator(t *testing.T) {
 		},
 		{
 			name: "colon-role",
-			clusterRoles: []rbac.ClusterRole{
+			clusterRoles: []rbacv1.ClusterRole{
 				{
 					ObjectMeta: metav1.ObjectMeta{Name: "admin:two"},
-					Rules:      []rbac.PolicyRule{{}},
+					Rules:      []rbacv1.PolicyRule{{}},
 				},
 			},
 			namespace: "current-ns",
@@ -211,62 +211,62 @@ func TestEscalationProtection(t *testing.T) {
 		scopes    []string
 		namespace string
 
-		clusterRoles  []rbac.ClusterRole
-		expectedRules []rbac.PolicyRule
+		clusterRoles  []rbacv1.ClusterRole
+		expectedRules []rbacv1.PolicyRule
 	}{
 		{
 			name: "simple match secrets",
-			clusterRoles: []rbac.ClusterRole{
+			clusterRoles: []rbacv1.ClusterRole{
 				{
 					ObjectMeta: metav1.ObjectMeta{Name: "admin"},
-					Rules:      []rbac.PolicyRule{{APIGroups: []string{""}, Resources: []string{"pods", "secrets"}}},
+					Rules:      []rbacv1.PolicyRule{{APIGroups: []string{""}, Resources: []string{"pods", "secrets"}}},
 				},
 			},
-			expectedRules: []rbac.PolicyRule{authorizationapi.DiscoveryRule, {APIGroups: []string{""}, Resources: []string{"pods"}}},
+			expectedRules: []rbacv1.PolicyRule{authorizationapi.DiscoveryRule, {APIGroups: []string{""}, Resources: []string{"pods"}}},
 			scopes:        []string{ClusterRoleIndicator + "admin:*"},
 		},
 		{
 			name: "no longer match old group secrets",
-			clusterRoles: []rbac.ClusterRole{
+			clusterRoles: []rbacv1.ClusterRole{
 				{
 					ObjectMeta: metav1.ObjectMeta{Name: "admin"},
-					Rules:      []rbac.PolicyRule{{APIGroups: []string{}, Resources: []string{"pods", "secrets"}}},
+					Rules:      []rbacv1.PolicyRule{{APIGroups: []string{}, Resources: []string{"pods", "secrets"}}},
 				},
 			},
-			expectedRules: []rbac.PolicyRule{authorizationapi.DiscoveryRule, {APIGroups: []string{}, Resources: []string{"pods", "secrets"}}},
+			expectedRules: []rbacv1.PolicyRule{authorizationapi.DiscoveryRule, {APIGroups: []string{}, Resources: []string{"pods", "secrets"}}},
 			scopes:        []string{ClusterRoleIndicator + "admin:*"},
 		},
 		{
 			name: "skip non-matching group secrets",
-			clusterRoles: []rbac.ClusterRole{
+			clusterRoles: []rbacv1.ClusterRole{
 				{
 					ObjectMeta: metav1.ObjectMeta{Name: "admin"},
-					Rules:      []rbac.PolicyRule{{APIGroups: []string{"foo"}, Resources: []string{"pods", "secrets"}}},
+					Rules:      []rbacv1.PolicyRule{{APIGroups: []string{"foo"}, Resources: []string{"pods", "secrets"}}},
 				},
 			},
-			expectedRules: []rbac.PolicyRule{authorizationapi.DiscoveryRule, {APIGroups: []string{"foo"}, Resources: []string{"pods", "secrets"}}},
+			expectedRules: []rbacv1.PolicyRule{authorizationapi.DiscoveryRule, {APIGroups: []string{"foo"}, Resources: []string{"pods", "secrets"}}},
 			scopes:        []string{ClusterRoleIndicator + "admin:*"},
 		},
 		{
 			name: "access tokens",
-			clusterRoles: []rbac.ClusterRole{
+			clusterRoles: []rbacv1.ClusterRole{
 				{
 					ObjectMeta: metav1.ObjectMeta{Name: "admin"},
-					Rules:      []rbac.PolicyRule{{APIGroups: []string{"", "and-foo"}, Resources: []string{"pods", "oauthaccesstokens"}}},
+					Rules:      []rbacv1.PolicyRule{{APIGroups: []string{"", "and-foo"}, Resources: []string{"pods", "oauthaccesstokens"}}},
 				},
 			},
-			expectedRules: []rbac.PolicyRule{authorizationapi.DiscoveryRule, {APIGroups: []string{"", "and-foo"}, Resources: []string{"pods"}}},
+			expectedRules: []rbacv1.PolicyRule{authorizationapi.DiscoveryRule, {APIGroups: []string{"", "and-foo"}, Resources: []string{"pods"}}},
 			scopes:        []string{ClusterRoleIndicator + "admin:*"},
 		},
 		{
 			name: "allow the escalation",
-			clusterRoles: []rbac.ClusterRole{
+			clusterRoles: []rbacv1.ClusterRole{
 				{
 					ObjectMeta: metav1.ObjectMeta{Name: "admin"},
-					Rules:      []rbac.PolicyRule{{APIGroups: []string{""}, Resources: []string{"pods", "secrets"}}},
+					Rules:      []rbacv1.PolicyRule{{APIGroups: []string{""}, Resources: []string{"pods", "secrets"}}},
 				},
 			},
-			expectedRules: []rbac.PolicyRule{authorizationapi.DiscoveryRule, {APIGroups: []string{""}, Resources: []string{"pods", "secrets"}}},
+			expectedRules: []rbacv1.PolicyRule{authorizationapi.DiscoveryRule, {APIGroups: []string{""}, Resources: []string{"pods", "secrets"}}},
 			scopes:        []string{ClusterRoleIndicator + "admin:*:!"},
 		},
 	}
@@ -284,23 +284,23 @@ func TestEscalationProtection(t *testing.T) {
 }
 
 type fakePolicyGetter struct {
-	clusterRoles []rbac.ClusterRole
+	clusterRoles []rbacv1.ClusterRole
 	err          error
 }
 
-func (f *fakePolicyGetter) List(label labels.Selector) ([]*rbac.ClusterRole, error) {
-	ret := []*rbac.ClusterRole{}
+func (f *fakePolicyGetter) List(label labels.Selector) ([]*rbacv1.ClusterRole, error) {
+	ret := []*rbacv1.ClusterRole{}
 	for _, v := range f.clusterRoles {
 		ret = append(ret, &v)
 	}
 	return ret, f.err
 }
 
-func (f *fakePolicyGetter) Get(id string) (*rbac.ClusterRole, error) {
+func (f *fakePolicyGetter) Get(id string) (*rbacv1.ClusterRole, error) {
 	for _, v := range f.clusterRoles {
 		if v.ObjectMeta.Name == id {
 			return &v, nil
 		}
 	}
-	return &rbac.ClusterRole{}, f.err
+	return &rbacv1.ClusterRole{}, f.err
 }

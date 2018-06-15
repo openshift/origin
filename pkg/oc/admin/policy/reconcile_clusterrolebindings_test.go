@@ -3,28 +3,28 @@ package policy
 import (
 	"testing"
 
+	rbacv1 "k8s.io/api/rbac/v1"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
-	"k8s.io/kubernetes/pkg/apis/rbac"
 )
 
-func binding(roleName string, subjects []rbac.Subject) *rbac.ClusterRoleBinding {
-	return &rbac.ClusterRoleBinding{RoleRef: rbac.RoleRef{Name: roleName}, Subjects: subjects}
+func binding(roleName string, subjects []rbacv1.Subject) *rbacv1.ClusterRoleBinding {
+	return &rbacv1.ClusterRoleBinding{RoleRef: rbacv1.RoleRef{Name: roleName}, Subjects: subjects}
 }
 
-func subjects(names ...string) []rbac.Subject {
-	r := []rbac.Subject{}
+func subjects(names ...string) []rbacv1.Subject {
+	r := []rbacv1.Subject{}
 	for _, name := range names {
-		r = append(r, rbac.Subject{Name: name})
+		r = append(r, rbacv1.Subject{Name: name})
 	}
 	return r
 }
 
 func TestDiffObjectReferenceLists(t *testing.T) {
 	tests := map[string]struct {
-		A             []rbac.Subject
-		B             []rbac.Subject
-		ExpectedOnlyA []rbac.Subject
-		ExpectedOnlyB []rbac.Subject
+		A             []rbacv1.Subject
+		B             []rbacv1.Subject
+		ExpectedOnlyA []rbacv1.Subject
+		ExpectedOnlyB []rbacv1.Subject
 	}{
 		"empty": {},
 
@@ -68,12 +68,12 @@ func TestDiffObjectReferenceLists(t *testing.T) {
 
 func TestComputeUpdate(t *testing.T) {
 	tests := map[string]struct {
-		ExpectedBinding *rbac.ClusterRoleBinding
-		ActualBinding   *rbac.ClusterRoleBinding
-		ExcludeSubjects []rbac.Subject
+		ExpectedBinding *rbacv1.ClusterRoleBinding
+		ActualBinding   *rbacv1.ClusterRoleBinding
+		ExcludeSubjects []rbacv1.Subject
 		Union           bool
 
-		ExpectedUpdatedBinding *rbac.ClusterRoleBinding
+		ExpectedUpdatedBinding *rbacv1.ClusterRoleBinding
 		ExpectedUpdateNeeded   bool
 	}{
 		"match without union": {

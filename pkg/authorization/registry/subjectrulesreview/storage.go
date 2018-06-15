@@ -5,14 +5,15 @@ import (
 	"fmt"
 	"sort"
 
+	rbacv1 "k8s.io/api/rbac/v1"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	kutilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apiserver/pkg/authentication/user"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
-	"k8s.io/kubernetes/pkg/apis/rbac"
-	rbaclisters "k8s.io/kubernetes/pkg/client/listers/rbac/internalversion"
+	rbaclisters "k8s.io/client-go/listers/rbac/v1"
+	rbacv1helpers "k8s.io/kubernetes/pkg/apis/rbac/v1"
 	rbacregistryvalidation "k8s.io/kubernetes/pkg/registry/rbac/validation"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
@@ -64,7 +65,7 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, _ rest.ValidateOb
 
 	ret := &authorizationapi.SubjectRulesReview{
 		Status: authorizationapi.SubjectRulesReviewStatus{
-			Rules: rbacconversion.Convert_rbac_PolicyRules_To_authorization_PolicyRules(rules), //TODO can we fix this ?
+			Rules: rbacconversion.Convert_rbacv1_PolicyRules_To_authorization_PolicyRules(rules), //TODO can we fix this ?
 		},
 	}
 
@@ -75,7 +76,7 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, _ rest.ValidateOb
 	return ret, nil
 }
 
-func GetEffectivePolicyRules(ctx context.Context, ruleResolver rbacregistryvalidation.AuthorizationRuleResolver, clusterRoleGetter rbaclisters.ClusterRoleLister) ([]rbac.PolicyRule, []error) {
+func GetEffectivePolicyRules(ctx context.Context, ruleResolver rbacregistryvalidation.AuthorizationRuleResolver, clusterRoleGetter rbaclisters.ClusterRoleLister) ([]rbacv1.PolicyRule, []error) {
 	namespace := apirequest.NamespaceValue(ctx)
 	if len(namespace) == 0 {
 		return nil, []error{kapierrors.NewBadRequest(fmt.Sprintf("namespace is required on this type: %v", namespace))}
@@ -86,7 +87,7 @@ func GetEffectivePolicyRules(ctx context.Context, ruleResolver rbacregistryvalid
 	}
 
 	var errors []error
-	var rules []rbac.PolicyRule
+	var rules []rbacv1.PolicyRule
 	namespaceRules, err := ruleResolver.RulesFor(user, namespace)
 	if err != nil {
 		errors = append(errors, err)
@@ -105,20 +106,20 @@ func GetEffectivePolicyRules(ctx context.Context, ruleResolver rbacregistryvalid
 	if compactedRules, err := rbacregistryvalidation.CompactRules(rules); err == nil {
 		rules = compactedRules
 	}
-	sort.Sort(rbac.SortableRuleSlice(rules))
+	sort.Sort(rbacv1helpers.SortableRuleSlice(rules))
 
 	return rules, errors
 }
 
-func filterRulesByScopes(rules []rbac.PolicyRule, scopes []string, namespace string, clusterRoleGetter rbaclisters.ClusterRoleLister) ([]rbac.PolicyRule, error) {
+func filterRulesByScopes(rules []rbacv1.PolicyRule, scopes []string, namespace string, clusterRoleGetter rbaclisters.ClusterRoleLister) ([]rbacv1.PolicyRule, error) {
 	scopeRules, err := scope.ScopesToRules(scopes, namespace, clusterRoleGetter)
 	if err != nil {
 		return nil, err
 	}
 
-	filteredRules := []rbac.PolicyRule{}
+	filteredRules := []rbacv1.PolicyRule{}
 	for _, rule := range rules {
-		if allowed, _ := rbacregistryvalidation.Covers(scopeRules, []rbac.PolicyRule{rule}); allowed {
+		if allowed, _ := rbacregistryvalidation.Covers(scopeRules, []rbacv1.PolicyRule{rule}); allowed {
 			filteredRules = append(filteredRules, rule)
 		}
 	}

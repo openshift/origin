@@ -11,11 +11,11 @@ import (
 	kvalidation "k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/apiserver/pkg/storage/names"
+	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	"k8s.io/kubernetes/pkg/apis/authorization"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	authorizationtypedclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
-	rbacclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/rbac/internalversion"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset"
@@ -33,7 +33,7 @@ type AppCreate struct {
 	KubeClient          kclientset.Interface
 	ProjectClient       projectclient.ProjectInterface
 	RouteClient         *routeclient.Clientset
-	RbacClient          *rbacclient.RbacClient
+	RbacClient          rbacv1client.RbacV1Interface
 	AppsClient          *appsclient.Clientset
 	SARClient           authorizationtypedclient.SelfSubjectAccessReviewsGetter
 	Factory             kcmdutil.Factory
