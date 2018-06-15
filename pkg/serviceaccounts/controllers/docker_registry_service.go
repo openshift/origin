@@ -287,6 +287,13 @@ func (e *DockerRegistryServiceController) syncRegistryLocationChange() error {
 			if t.Type != v1.SecretTypeDockercfg {
 				continue
 			}
+			if t.Annotations == nil {
+				continue
+			}
+			// Do not manage dockercfg secrets we haven't created (eg. secrets created by user for private repositories).
+			if _, hasTokenSecret := t.Annotations[ServiceAccountTokenSecretNameKey]; !hasTokenSecret {
+				continue
+			}
 		default:
 			utilruntime.HandleError(fmt.Errorf("object passed to %T that is not expected: %T", e, obj))
 			continue
