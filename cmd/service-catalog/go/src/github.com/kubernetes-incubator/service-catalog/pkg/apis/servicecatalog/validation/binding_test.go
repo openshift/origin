@@ -21,6 +21,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog"
 )
@@ -567,6 +568,7 @@ func TestValidateServiceBinding(t *testing.T) {
 
 	for _, tc := range cases {
 		errs := internalValidateServiceBinding(tc.binding, tc.create)
+		errs = append(errs, validateServiceBindingStatus(&tc.binding.Status, field.NewPath("status"), false)...)
 		if len(errs) != 0 && tc.valid {
 			t.Errorf("%v: unexpected error: %v", tc.name, errs)
 			continue
