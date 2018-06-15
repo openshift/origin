@@ -5,12 +5,14 @@ import (
 	"path/filepath"
 	"reflect"
 
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/api/meta/testrestmapper"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/restmapper"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/client-go/restmapper"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 
 	_ "github.com/openshift/origin/pkg/api/install"
@@ -131,26 +133,19 @@ func BuildGraph(path string) (osgraph.Graph, []runtime.Object, error) {
 		return g, objs, err
 	}
 
-	mapper := legacyscheme.Registry.RESTMapper()
-
-	builder := resource.NewBuilder(
-		&resource.Mapper{
-			RESTMapper:   mapper,
-			ObjectTyper:  legacyscheme.Scheme,
-			ClientMapper: resource.DisabledClientForMapping{},
-			Decoder:      legacyscheme.Codecs.UniversalDecoder(),
+	builder := resource.NewFakeBuilder(
+		func(version schema.GroupVersion) (resource.RESTClient, error) {
+			return nil, fmt.Errorf("unsupported client for resource builder")
 		},
-		&resource.Mapper{
-			RESTMapper:   mapper,
-			ObjectTyper:  legacyscheme.Scheme,
-			ClientMapper: resource.DisabledClientForMapping{},
-			Decoder:      unstructured.UnstructuredJSONScheme,
+		func() (meta.RESTMapper, error) {
+			return testrestmapper.TestOnlyStaticRESTMapper(legacyscheme.Scheme), nil
 		},
-		categories.SimpleCategoryExpander{},
-	)
+		func() (restmapper.CategoryExpander, error) {
+			return resource.FakeCategoryExpander, nil
+		})
 
 	r := builder.
-		Internal().
+		WithScheme(legacyscheme.Scheme, legacyscheme.Scheme.PrioritizedVersionsAllGroups()...).
 		FilenameParam(false, &resource.FilenameOptions{Recursive: false, Filenames: []string{abspath}}).
 		Flatten().
 		Do()

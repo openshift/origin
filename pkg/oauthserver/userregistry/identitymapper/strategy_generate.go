@@ -1,16 +1,15 @@
 package identitymapper
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
+	userapi "github.com/openshift/api/user/v1"
+	userclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
-	apirequest "k8s.io/apiserver/pkg/endpoints/request"
-
-	userapi "github.com/openshift/api/user/v1"
-	userclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 )
 
 // UserNameGenerator returns a username
@@ -43,7 +42,7 @@ func NewStrategyGenerate(user userclient.UserInterface, initializer Initializer)
 	return &StrategyGenerate{user, DefaultGenerator, initializer}
 }
 
-func (s *StrategyGenerate) UserForNewIdentity(ctx apirequest.Context, preferredUserName string, identity *userapi.Identity) (*userapi.User, error) {
+func (s *StrategyGenerate) UserForNewIdentity(ctx context.Context, preferredUserName string, identity *userapi.Identity) (*userapi.User, error) {
 
 	// Iterate through the max allowed generated usernames
 	// If an existing user references this identity, associate the identity with that user and return

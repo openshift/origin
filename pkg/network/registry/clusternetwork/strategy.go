@@ -1,9 +1,10 @@
 package clusternetwork
 
 import (
+	"context"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
@@ -22,11 +23,11 @@ var Strategy = sdnStrategy{legacyscheme.Scheme}
 
 var _ rest.GarbageCollectionDeleteStrategy = sdnStrategy{}
 
-func (sdnStrategy) DefaultGarbageCollectionPolicy(ctx apirequest.Context) rest.GarbageCollectionPolicy {
+func (sdnStrategy) DefaultGarbageCollectionPolicy(ctx context.Context) rest.GarbageCollectionPolicy {
 	return rest.Unsupported
 }
 
-func (sdnStrategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.Object) {}
+func (sdnStrategy) PrepareForUpdate(ctx context.Context, obj, old runtime.Object) {}
 
 // NamespaceScoped is false for sdns
 func (sdnStrategy) NamespaceScoped() bool {
@@ -37,7 +38,7 @@ func (sdnStrategy) GenerateName(base string) string {
 	return base
 }
 
-func (sdnStrategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) {
+func (sdnStrategy) PrepareForCreate(ctx context.Context, obj runtime.Object) {
 }
 
 // Canonicalize normalizes the object after validation.
@@ -45,7 +46,7 @@ func (sdnStrategy) Canonicalize(obj runtime.Object) {
 }
 
 // Validate validates a new sdn
-func (sdnStrategy) Validate(ctx apirequest.Context, obj runtime.Object) field.ErrorList {
+func (sdnStrategy) Validate(ctx context.Context, obj runtime.Object) field.ErrorList {
 	return validation.ValidateClusterNetwork(obj.(*networkapi.ClusterNetwork))
 }
 
@@ -59,6 +60,6 @@ func (sdnStrategy) AllowUnconditionalUpdate() bool {
 }
 
 // ValidateUpdate is the default update validation for a ClusterNetwork
-func (sdnStrategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.Object) field.ErrorList {
+func (sdnStrategy) ValidateUpdate(ctx context.Context, obj, old runtime.Object) field.ErrorList {
 	return validation.ValidateClusterNetworkUpdate(obj.(*networkapi.ClusterNetwork), old.(*networkapi.ClusterNetwork))
 }

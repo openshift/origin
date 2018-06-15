@@ -1,13 +1,13 @@
 package imagestreamtag
 
 import (
+	"context"
 	"fmt"
 
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/generic"
 	kstorage "k8s.io/apiserver/pkg/storage"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
@@ -36,7 +36,7 @@ func (s Strategy) NamespaceScoped() bool {
 	return true
 }
 
-func (s Strategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) {
+func (s Strategy) PrepareForCreate(ctx context.Context, obj runtime.Object) {
 	newIST := obj.(*imageapi.ImageStreamTag)
 	if newIST.Tag != nil && len(newIST.Tag.Name) == 0 {
 		_, tag, _ := imageapi.SplitImageStreamTag(newIST.Name)
@@ -50,7 +50,7 @@ func (s Strategy) GenerateName(base string) string {
 	return base
 }
 
-func (s Strategy) Validate(ctx apirequest.Context, obj runtime.Object) field.ErrorList {
+func (s Strategy) Validate(ctx context.Context, obj runtime.Object) field.ErrorList {
 	istag := obj.(*imageapi.ImageStreamTag)
 
 	return validation.ValidateImageStreamTagWithWhitelister(s.registryWhitelister, istag)
@@ -68,7 +68,7 @@ func (Strategy) AllowUnconditionalUpdate() bool {
 func (Strategy) Canonicalize(obj runtime.Object) {
 }
 
-func (s Strategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.Object) {
+func (s Strategy) PrepareForUpdate(ctx context.Context, obj, old runtime.Object) {
 	newIST := obj.(*imageapi.ImageStreamTag)
 	oldIST := old.(*imageapi.ImageStreamTag)
 
@@ -82,7 +82,7 @@ func (s Strategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.Obje
 	newIST.Image = oldIST.Image
 }
 
-func (s Strategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.Object) field.ErrorList {
+func (s Strategy) ValidateUpdate(ctx context.Context, obj, old runtime.Object) field.ErrorList {
 	newIST := obj.(*imageapi.ImageStreamTag)
 	oldIST := old.(*imageapi.ImageStreamTag)
 

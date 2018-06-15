@@ -391,7 +391,7 @@ func (c *MasterConfig) buildHandlerChain(genericConfig *apiserver.Config, stopCh
 			go accessor.Run(stopCh)
 
 			// these are after the kube handler
-			handler := c.versionSkewFilter(apiHandler, genericConfig.RequestContextMapper)
+			handler := c.versionSkewFilter(apiHandler)
 
 			// this is the normal kube handler chain
 			handler = apiserver.DefaultBuildHandlerChain(handler, genericConfig)

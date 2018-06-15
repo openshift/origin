@@ -1,6 +1,7 @@
 package trigger
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"reflect"
@@ -182,25 +183,25 @@ func fakeBuildConfigInstantiator(buildcfg *buildapi.BuildConfig, imageStream *im
 		Secrets:         fake.NewSimpleClientset().Core(),
 		ServiceAccounts: fake.NewSimpleClientset(&builderAccount).Core(),
 		Client: buildgenerator.TestingClient{
-			GetBuildConfigFunc: func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*buildapi.BuildConfig, error) {
+			GetBuildConfigFunc: func(ctx context.Context, name string, options *metav1.GetOptions) (*buildapi.BuildConfig, error) {
 				return buildcfg, nil
 			},
-			UpdateBuildConfigFunc: func(ctx apirequest.Context, buildConfig *buildapi.BuildConfig) error {
+			UpdateBuildConfigFunc: func(ctx context.Context, buildConfig *buildapi.BuildConfig) error {
 				return instantiator.buildConfigUpdater.Update(buildConfig)
 			},
-			CreateBuildFunc: func(ctx apirequest.Context, build *buildapi.Build) error {
+			CreateBuildFunc: func(ctx context.Context, build *buildapi.Build) error {
 				return nil
 			},
-			GetBuildFunc: func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*buildapi.Build, error) {
+			GetBuildFunc: func(ctx context.Context, name string, options *metav1.GetOptions) (*buildapi.Build, error) {
 				return nil, nil
 			},
-			GetImageStreamFunc: func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*imageapi.ImageStream, error) {
+			GetImageStreamFunc: func(ctx context.Context, name string, options *metav1.GetOptions) (*imageapi.ImageStream, error) {
 				return imageStream, nil
 			},
-			GetImageStreamTagFunc: func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*imageapi.ImageStreamTag, error) {
+			GetImageStreamTagFunc: func(ctx context.Context, name string, options *metav1.GetOptions) (*imageapi.ImageStreamTag, error) {
 				return nil, nil
 			},
-			GetImageStreamImageFunc: func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*imageapi.ImageStreamImage, error) {
+			GetImageStreamImageFunc: func(ctx context.Context, name string, options *metav1.GetOptions) (*imageapi.ImageStreamImage, error) {
 				return nil, nil
 			},
 		}}

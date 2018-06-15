@@ -15,7 +15,6 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	genericapifilters "k8s.io/apiserver/pkg/endpoints/filters"
-	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/features"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	genericfilters "k8s.io/apiserver/pkg/server/filters"
@@ -208,20 +207,19 @@ func (c completedOAuthConfig) New(delegationTarget genericapiserver.DelegationTa
 }
 
 func (c *OAuthServerConfig) buildHandlerChainForOAuth(startingHandler http.Handler, genericConfig *genericapiserver.Config) http.Handler {
-	handler, err := c.WithOAuth(startingHandler, genericConfig.RequestContextMapper)
+	handler, err := c.WithOAuth(startingHandler)
 	if err != nil {
 		// the existing errors all cause the server to die anyway
 		panic(err)
 	}
 	if utilfeature.DefaultFeatureGate.Enabled(features.AdvancedAuditing) {
-		handler = genericapifilters.WithAudit(handler, genericConfig.RequestContextMapper, genericConfig.AuditBackend, genericConfig.AuditPolicyChecker, genericConfig.LongRunningFunc)
+		handler = genericapifilters.WithAudit(handler, genericConfig.AuditBackend, genericConfig.AuditPolicyChecker, genericConfig.LongRunningFunc)
 	}
 
-	handler = genericfilters.WithMaxInFlightLimit(handler, genericConfig.MaxRequestsInFlight, genericConfig.MaxMutatingRequestsInFlight, genericConfig.RequestContextMapper, genericConfig.LongRunningFunc)
+	handler = genericfilters.WithMaxInFlightLimit(handler, genericConfig.MaxRequestsInFlight, genericConfig.MaxMutatingRequestsInFlight, genericConfig.LongRunningFunc)
 	handler = genericfilters.WithCORS(handler, genericConfig.CorsAllowedOriginList, nil, nil, nil, "true")
-	handler = genericfilters.WithTimeoutForNonLongRunningRequests(handler, genericConfig.RequestContextMapper, genericConfig.LongRunningFunc, genericConfig.RequestTimeout)
-	handler = genericapifilters.WithRequestInfo(handler, genericapiserver.NewRequestInfoResolver(genericConfig), genericConfig.RequestContextMapper)
-	handler = apirequest.WithRequestContext(handler, genericConfig.RequestContextMapper)
+	handler = genericfilters.WithTimeoutForNonLongRunningRequests(handler, genericConfig.LongRunningFunc, genericConfig.RequestTimeout)
+	handler = genericapifilters.WithRequestInfo(handler, genericapiserver.NewRequestInfoResolver(genericConfig))
 	handler = genericfilters.WithPanicRecovery(handler)
 	return handler
 }

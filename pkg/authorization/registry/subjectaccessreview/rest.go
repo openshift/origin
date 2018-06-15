@@ -1,6 +1,7 @@
 package subjectaccessreview
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
@@ -35,7 +36,7 @@ func (r *REST) New() runtime.Object {
 }
 
 // Create registers a given new ResourceAccessReview instance to r.registry.
-func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, _ rest.ValidateObjectFunc, _ bool) (runtime.Object, error) {
+func (r *REST) Create(ctx context.Context, obj runtime.Object, _ rest.ValidateObjectFunc, _ bool) (runtime.Object, error) {
 	subjectAccessReview, ok := obj.(*authorizationapi.SubjectAccessReview)
 	if !ok {
 		return nil, kapierrors.NewBadRequest(fmt.Sprintf("not a subjectAccessReview: %#v", obj))

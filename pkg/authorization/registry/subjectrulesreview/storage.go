@@ -1,6 +1,7 @@
 package subjectrulesreview
 
 import (
+	"context"
 	"fmt"
 	"sort"
 
@@ -35,7 +36,7 @@ func (r *REST) New() runtime.Object {
 }
 
 // Create registers a given new ResourceAccessReview instance to r.registry.
-func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, _ rest.ValidateObjectFunc, _ bool) (runtime.Object, error) {
+func (r *REST) Create(ctx context.Context, obj runtime.Object, _ rest.ValidateObjectFunc, _ bool) (runtime.Object, error) {
 	rulesReview, ok := obj.(*authorizationapi.SubjectRulesReview)
 	if !ok {
 		return nil, kapierrors.NewBadRequest(fmt.Sprintf("not a SubjectRulesReview: %#v", obj))
@@ -69,7 +70,7 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, _ rest.Validat
 	return ret, nil
 }
 
-func GetEffectivePolicyRules(ctx apirequest.Context, ruleResolver rbacregistryvalidation.AuthorizationRuleResolver, clusterRoleGetter rbaclisters.ClusterRoleLister) ([]rbac.PolicyRule, []error) {
+func GetEffectivePolicyRules(ctx context.Context, ruleResolver rbacregistryvalidation.AuthorizationRuleResolver, clusterRoleGetter rbaclisters.ClusterRoleLister) ([]rbac.PolicyRule, []error) {
 	namespace := apirequest.NamespaceValue(ctx)
 	if len(namespace) == 0 {
 		return nil, []error{kapierrors.NewBadRequest(fmt.Sprintf("namespace is required on this type: %v", namespace))}

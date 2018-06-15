@@ -1,6 +1,7 @@
 package identitymapper
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -10,7 +11,6 @@ import (
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/diff"
-	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	clienttesting "k8s.io/client-go/testing"
 
 	userapi "github.com/openshift/api/user/v1"
@@ -23,7 +23,7 @@ type testNewIdentityGetter struct {
 	responses []interface{}
 }
 
-func (t *testNewIdentityGetter) UserForNewIdentity(ctx apirequest.Context, preferredUserName string, identity *userapi.Identity) (*userapi.User, error) {
+func (t *testNewIdentityGetter) UserForNewIdentity(ctx context.Context, preferredUserName string, identity *userapi.Identity) (*userapi.User, error) {
 	t.called++
 	if len(t.responses) < t.called {
 		return nil, fmt.Errorf("Called at least %d times, only %d responses registered", t.called, len(t.responses))

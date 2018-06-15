@@ -1,6 +1,7 @@
 package mirror
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"regexp"
@@ -175,7 +176,7 @@ func (o *pushOptions) Complete(args []string) error {
 	return nil
 }
 
-func (o *pushOptions) Repository(ctx apirequest.Context, context *registryclient.Context, t DestinationType, ref imageapi.DockerImageReference) (distribution.Repository, error) {
+func (o *pushOptions) Repository(ctx context.Context, context *registryclient.Context, t DestinationType, ref imageapi.DockerImageReference) (distribution.Repository, error) {
 	switch t {
 	case DestinationRegistry:
 		return context.Repository(ctx, ref.DockerClientDefaults().RegistryURL(), ref.RepositoryName(), o.Insecure)
@@ -465,7 +466,7 @@ func (o *pushOptions) plan() (*plan, error) {
 	return plan, nil
 }
 
-func processManifestList(ctx apirequest.Context, srcDigest godigest.Digest, srcManifest distribution.Manifest, manifests distribution.ManifestService, ref imageapi.DockerImageReference, filterFn func(*manifestlist.ManifestDescriptor) bool) ([]distribution.Manifest, distribution.Manifest, godigest.Digest, error) {
+func processManifestList(ctx context.Context, srcDigest godigest.Digest, srcManifest distribution.Manifest, manifests distribution.ManifestService, ref imageapi.DockerImageReference, filterFn func(*manifestlist.ManifestDescriptor) bool) ([]distribution.Manifest, distribution.Manifest, godigest.Digest, error) {
 	var srcManifests []distribution.Manifest
 	switch t := srcManifest.(type) {
 	case *manifestlist.DeserializedManifestList:
@@ -528,7 +529,7 @@ func processManifestList(ctx apirequest.Context, srcDigest godigest.Digest, srcM
 	}
 }
 
-func copyBlob(ctx apirequest.Context, plan *workPlan, c *repositoryBlobCopy, blob distribution.Descriptor, force, skipMount bool, errOut io.Writer) error {
+func copyBlob(ctx context.Context, plan *workPlan, c *repositoryBlobCopy, blob distribution.Descriptor, force, skipMount bool, errOut io.Writer) error {
 	// if we aren't forcing upload, check to see if the blob aleady exists
 	if !force {
 		_, err := c.to.Stat(ctx, blob.Digest)
@@ -643,7 +644,7 @@ func copyBlob(ctx apirequest.Context, plan *workPlan, c *repositoryBlobCopy, blo
 }
 
 func copyManifests(
-	ctx apirequest.Context,
+	ctx context.Context,
 	plan *repositoryManifestPlan,
 	out io.Writer,
 ) []error {
@@ -704,7 +705,7 @@ func copyManifests(
 
 // TDOO: remove when quay.io switches to v2 schema
 func putManifestInCompatibleSchema(
-	ctx apirequest.Context,
+	ctx context.Context,
 	srcManifest distribution.Manifest,
 	tag string,
 	toManifests distribution.ManifestService,
@@ -753,7 +754,7 @@ func putManifestInCompatibleSchema(
 }
 
 // TDOO: remove when quay.io switches to v2 schema
-func convertToSchema1(ctx apirequest.Context, blobs distribution.BlobService, schema2Manifest *schema2.DeserializedManifest, ref reference.Named) (distribution.Manifest, error) {
+func convertToSchema1(ctx context.Context, blobs distribution.BlobService, schema2Manifest *schema2.DeserializedManifest, ref reference.Named) (distribution.Manifest, error) {
 	targetDescriptor := schema2Manifest.Target()
 	configJSON, err := blobs.Get(ctx, targetDescriptor.Digest)
 	if err != nil {

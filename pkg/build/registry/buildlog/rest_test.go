@@ -1,6 +1,7 @@
 package buildlog
 
 import (
+	"context"
 	"strconv"
 	"strings"
 	"testing"
@@ -175,7 +176,7 @@ func TestWaitForBuildTimeout(t *testing.T) {
 	}
 }
 
-func resourceLocationHelper(BuildPhase buildapi.BuildPhase, podPhase string, ctx apirequest.Context, version int) (string, string, string, error) {
+func resourceLocationHelper(BuildPhase buildapi.BuildPhase, podPhase string, ctx context.Context, version int) (string, string, string, error) {
 	expectedBuild := mockBuild(BuildPhase, podPhase, version)
 	buildClient := buildfakeclient.NewSimpleClientset(expectedBuild)
 

@@ -1,13 +1,13 @@
 package oauthclientauthorization
 
 import (
+	"context"
 	"fmt"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
@@ -30,11 +30,11 @@ func NewStrategy(clientGetter oauthclient.Getter) strategy {
 
 var _ rest.GarbageCollectionDeleteStrategy = strategy{}
 
-func (strategy) DefaultGarbageCollectionPolicy(ctx apirequest.Context) rest.GarbageCollectionPolicy {
+func (strategy) DefaultGarbageCollectionPolicy(ctx context.Context) rest.GarbageCollectionPolicy {
 	return rest.Unsupported
 }
 
-func (strategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.Object) {
+func (strategy) PrepareForUpdate(ctx context.Context, obj, old runtime.Object) {
 	auth := obj.(*oauthapi.OAuthClientAuthorization)
 	auth.Name = fmt.Sprintf("%s:%s", auth.UserName, auth.ClientName)
 }
@@ -48,7 +48,7 @@ func (strategy) GenerateName(base string) string {
 	return base
 }
 
-func (strategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) {
+func (strategy) PrepareForCreate(ctx context.Context, obj runtime.Object) {
 	auth := obj.(*oauthapi.OAuthClientAuthorization)
 	auth.Name = fmt.Sprintf("%s:%s", auth.UserName, auth.ClientName)
 }
@@ -58,7 +58,7 @@ func (strategy) Canonicalize(obj runtime.Object) {
 }
 
 // Validate validates a new client
-func (s strategy) Validate(ctx apirequest.Context, obj runtime.Object) field.ErrorList {
+func (s strategy) Validate(ctx context.Context, obj runtime.Object) field.ErrorList {
 	auth := obj.(*oauthapi.OAuthClientAuthorization)
 	validationErrors := validation.ValidateClientAuthorization(auth)
 
@@ -74,7 +74,7 @@ func (s strategy) Validate(ctx apirequest.Context, obj runtime.Object) field.Err
 }
 
 // ValidateUpdate validates a client auth update
-func (s strategy) ValidateUpdate(ctx apirequest.Context, obj runtime.Object, old runtime.Object) field.ErrorList {
+func (s strategy) ValidateUpdate(ctx context.Context, obj runtime.Object, old runtime.Object) field.ErrorList {
 	clientAuth := obj.(*oauthapi.OAuthClientAuthorization)
 	oldClientAuth := old.(*oauthapi.OAuthClientAuthorization)
 	validationErrors := validation.ValidateClientAuthorizationUpdate(clientAuth, oldClientAuth)

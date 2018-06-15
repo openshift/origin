@@ -1,6 +1,7 @@
 package template
 
 import (
+	"context"
 	"math/rand"
 	"time"
 
@@ -9,7 +10,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
@@ -38,7 +38,7 @@ func (s *REST) New() runtime.Object {
 }
 
 // Create processes a Template and creates a new list of objects
-func (s *REST) Create(ctx apirequest.Context, obj runtime.Object, _ rest.ValidateObjectFunc, _ bool) (runtime.Object, error) {
+func (s *REST) Create(ctx context.Context, obj runtime.Object, _ rest.ValidateObjectFunc, _ bool) (runtime.Object, error) {
 	tpl, ok := obj.(*templateapi.Template)
 	if !ok {
 		return nil, errors.NewBadRequest("not a template")

@@ -1,6 +1,8 @@
 package imagestreammapping
 
 import (
+	"context"
+
 	"github.com/golang/glog"
 
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -9,7 +11,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apimachinery/pkg/util/wait"
-	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 
@@ -52,7 +53,7 @@ func (r *REST) New() runtime.Object {
 // with a resource conflict, the update will be retried if the newer
 // ImageStream has no tag diffs from the previous state. If tag diffs are
 // detected, the conflict error is returned.
-func (s *REST) Create(ctx apirequest.Context, obj runtime.Object, createValidation rest.ValidateObjectFunc, _ bool) (runtime.Object, error) {
+func (s *REST) Create(ctx context.Context, obj runtime.Object, createValidation rest.ValidateObjectFunc, _ bool) (runtime.Object, error) {
 	if err := rest.BeforeCreate(s.strategy, ctx, obj); err != nil {
 		return nil, err
 	}
@@ -149,7 +150,7 @@ func (s *REST) Create(ctx apirequest.Context, obj runtime.Object, createValidati
 }
 
 // findStreamForMapping retrieves an ImageStream whose DockerImageRepository matches dockerRepo.
-func (s *REST) findStreamForMapping(ctx apirequest.Context, mapping *imageapi.ImageStreamMapping) (*imageapi.ImageStream, error) {
+func (s *REST) findStreamForMapping(ctx context.Context, mapping *imageapi.ImageStreamMapping) (*imageapi.ImageStream, error) {
 	if len(mapping.Name) > 0 {
 		return s.imageStreamRegistry.GetImageStream(ctx, mapping.Name, &metav1.GetOptions{})
 	}

@@ -1,9 +1,10 @@
 package imagestreammapping
 
 import (
+	"context"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/storage/names"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
@@ -35,7 +36,7 @@ func (s Strategy) NamespaceScoped() bool {
 }
 
 // PrepareForCreate clears fields that are not allowed to be set by end users on creation.
-func (s Strategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) {
+func (s Strategy) PrepareForCreate(ctx context.Context, obj runtime.Object) {
 	ism := obj.(*imageapi.ImageStreamMapping)
 	if len(ism.Image.DockerImageReference) == 0 {
 		internalRegistry, ok := s.registryHostRetriever.InternalRegistryHostname()
@@ -58,7 +59,7 @@ func (s Strategy) Canonicalize(obj runtime.Object) {
 }
 
 // Validate validates a new ImageStreamMapping.
-func (s Strategy) Validate(ctx apirequest.Context, obj runtime.Object) field.ErrorList {
+func (s Strategy) Validate(ctx context.Context, obj runtime.Object) field.ErrorList {
 	mapping := obj.(*imageapi.ImageStreamMapping)
 	return validation.ValidateImageStreamMapping(mapping)
 }

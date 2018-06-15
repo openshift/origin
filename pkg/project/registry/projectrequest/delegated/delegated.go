@@ -1,6 +1,7 @@
 package delegated
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -90,7 +91,7 @@ var (
 	roleBindingKind         = "RoleBinding"
 )
 
-func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, createValidation rest.ValidateObjectFunc, includeUninitialized bool) (runtime.Object, error) {
+func (r *REST) Create(ctx context.Context, obj runtime.Object, createValidation rest.ValidateObjectFunc, includeUninitialized bool) (runtime.Object, error) {
 	if err := rest.BeforeCreate(projectrequestregistry.Strategy, ctx, obj); err != nil {
 		return nil, err
 	}
@@ -255,7 +256,7 @@ func (r *REST) getTemplate() (*templateapi.Template, error) {
 
 var _ = rest.Lister(&REST{})
 
-func (r *REST) List(ctx apirequest.Context, options *metainternal.ListOptions) (runtime.Object, error) {
+func (r *REST) List(ctx context.Context, options *metainternal.ListOptions) (runtime.Object, error) {
 	userInfo, exists := apirequest.UserFrom(ctx)
 	if !exists {
 		return nil, errors.New("a user must be provided")

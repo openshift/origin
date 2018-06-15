@@ -1,6 +1,7 @@
 package podsecuritypolicysubjectreview
 
 import (
+	"context"
 	"fmt"
 	"sort"
 
@@ -42,7 +43,7 @@ func (r *REST) New() runtime.Object {
 }
 
 // Create registers a given new PodSecurityPolicySubjectReview instance to r.registry.
-func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, _ rest.ValidateObjectFunc, _ bool) (runtime.Object, error) {
+func (r *REST) Create(ctx context.Context, obj runtime.Object, _ rest.ValidateObjectFunc, _ bool) (runtime.Object, error) {
 	pspsr, ok := obj.(*securityapi.PodSecurityPolicySubjectReview)
 	if !ok {
 		return nil, kapierrors.NewBadRequest(fmt.Sprintf("not a PodSecurityPolicySubjectReview: %#v", obj))

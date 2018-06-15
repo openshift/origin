@@ -1,12 +1,12 @@
 package image
 
 import (
+	"context"
 	"fmt"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/apiserver/pkg/storage/names"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
@@ -31,7 +31,7 @@ var Strategy = imageStrategy{legacyscheme.Scheme, names.SimpleNameGenerator}
 
 var _ rest.GarbageCollectionDeleteStrategy = imageStrategy{}
 
-func (imageStrategy) DefaultGarbageCollectionPolicy(ctx apirequest.Context) rest.GarbageCollectionPolicy {
+func (imageStrategy) DefaultGarbageCollectionPolicy(ctx context.Context) rest.GarbageCollectionPolicy {
 	return rest.Unsupported
 }
 
@@ -42,7 +42,7 @@ func (imageStrategy) NamespaceScoped() bool {
 
 // PrepareForCreate clears fields that are not allowed to be set by end users on creation.
 // It extracts the latest information from the manifest (if available) and sets that onto the object.
-func (s imageStrategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) {
+func (s imageStrategy) PrepareForCreate(ctx context.Context, obj runtime.Object) {
 	newImage := obj.(*imageapi.Image)
 	// ignore errors, change in place
 	if err := util.ImageWithMetadata(newImage); err != nil {
@@ -57,7 +57,7 @@ func (s imageStrategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Obje
 }
 
 // Validate validates a new image.
-func (imageStrategy) Validate(ctx apirequest.Context, obj runtime.Object) field.ErrorList {
+func (imageStrategy) Validate(ctx context.Context, obj runtime.Object) field.ErrorList {
 	image := obj.(*imageapi.Image)
 	return validation.ValidateImage(image)
 }
@@ -79,7 +79,7 @@ func (imageStrategy) Canonicalize(obj runtime.Object) {
 // It extracts the latest info from the manifest and sets that on the object. It allows a user
 // to update the manifest so that it matches the digest (in case an older server stored a manifest
 // that was malformed, it can always be corrected).
-func (s imageStrategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.Object) {
+func (s imageStrategy) PrepareForUpdate(ctx context.Context, obj, old runtime.Object) {
 	newImage := obj.(*imageapi.Image)
 	oldImage := old.(*imageapi.Image)
 
@@ -137,7 +137,7 @@ func (s imageStrategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime
 }
 
 // ValidateUpdate is the default update validation for an end user.
-func (imageStrategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.Object) field.ErrorList {
+func (imageStrategy) ValidateUpdate(ctx context.Context, obj, old runtime.Object) field.ErrorList {
 	return validation.ValidateImageUpdate(obj.(*imageapi.Image), old.(*imageapi.Image))
 }
 

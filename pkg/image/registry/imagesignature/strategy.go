@@ -1,9 +1,10 @@
 package imagesignature
 
 import (
+	"context"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
@@ -23,7 +24,7 @@ func (s *strategy) NamespaceScoped() bool {
 	return false
 }
 
-func (s *strategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) {
+func (s *strategy) PrepareForCreate(ctx context.Context, obj runtime.Object) {
 	signature := obj.(*imageapi.ImageSignature)
 
 	signature.Conditions = nil
@@ -38,7 +39,7 @@ func (s *strategy) GenerateName(base string) string {
 	return base
 }
 
-func (s *strategy) Validate(ctx apirequest.Context, obj runtime.Object) field.ErrorList {
+func (s *strategy) Validate(ctx context.Context, obj runtime.Object) field.ErrorList {
 	signature := obj.(*imageapi.ImageSignature)
 
 	return validation.ValidateImageSignature(signature)

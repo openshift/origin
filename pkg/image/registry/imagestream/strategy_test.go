@@ -1,6 +1,7 @@
 package imagestream
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"reflect"
@@ -603,7 +604,7 @@ type fakeImageStreamGetter struct {
 	stream *imageapi.ImageStream
 }
 
-func (f *fakeImageStreamGetter) Get(ctx apirequest.Context, name string, opts *metav1.GetOptions) (runtime.Object, error) {
+func (f *fakeImageStreamGetter) Get(ctx context.Context, name string, opts *metav1.GetOptions) (runtime.Object, error) {
 	return f.stream, nil
 }
 

@@ -1,6 +1,7 @@
 package buildlog
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"time"
@@ -10,12 +11,10 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-
 	"k8s.io/apimachinery/pkg/util/wait"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	genericrest "k8s.io/apiserver/pkg/registry/generic/rest"
 	"k8s.io/apiserver/pkg/registry/rest"
-
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 
@@ -56,7 +55,7 @@ func NewREST(buildClient buildtypedclient.BuildsGetter, podClient kcoreclient.Po
 var _ = rest.GetterWithOptions(&REST{})
 
 // Get returns a streamer resource with the contents of the build log
-func (r *REST) Get(ctx apirequest.Context, name string, opts runtime.Object) (runtime.Object, error) {
+func (r *REST) Get(ctx context.Context, name string, opts runtime.Object) (runtime.Object, error) {
 	buildLogOpts, ok := opts.(*buildapi.BuildLogOptions)
 	if !ok {
 		return nil, errors.NewBadRequest("did not get an expected options.")
@@ -311,7 +310,7 @@ func (r *REST) New() runtime.Object {
 }
 
 // pipeLogs retrieves the logs for a particular container and streams them into the provided writer.
-func (r *REST) pipeLogs(ctx apirequest.Context, namespace, buildPodName string, containerLogOpts *kapi.PodLogOptions, writer io.Writer) error {
+func (r *REST) pipeLogs(ctx context.Context, namespace, buildPodName string, containerLogOpts *kapi.PodLogOptions, writer io.Writer) error {
 	glog.V(4).Infof("pulling build pod logs for %s/%s, container %s", namespace, buildPodName, containerLogOpts.Container)
 
 	logRequest := r.PodClient.Pods(namespace).GetLogs(buildPodName, containerLogOpts)

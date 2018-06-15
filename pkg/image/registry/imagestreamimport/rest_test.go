@@ -1,6 +1,7 @@
 package imagestreamimport
 
 import (
+	"context"
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -19,7 +20,7 @@ func (_ fakeImageCreater) New() runtime.Object {
 	return nil
 }
 
-func (_ fakeImageCreater) Create(ctx apirequest.Context, obj runtime.Object, _ rest.ValidateObjectFunc, _ bool) (runtime.Object, error) {
+func (_ fakeImageCreater) Create(ctx context.Context, obj runtime.Object, _ rest.ValidateObjectFunc, _ bool) (runtime.Object, error) {
 	return obj, nil
 }
 

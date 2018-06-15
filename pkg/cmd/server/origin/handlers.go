@@ -81,7 +81,7 @@ func (f *userAgentFilter) matches(verb, userAgent string) bool {
 
 // versionSkewFilter adds a filter that may deny requests from skewed
 // oc clients, since we know that those clients will strip unknown fields which can lead to unexpected outcomes
-func (c *MasterConfig) versionSkewFilter(handler http.Handler, contextMapper apirequest.RequestContextMapper) http.Handler {
+func (c *MasterConfig) versionSkewFilter(handler http.Handler) http.Handler {
 	filterConfig := c.Options.PolicyConfig.UserAgentMatchingConfig
 	if len(filterConfig.RequiredClients) == 0 && len(filterConfig.DeniedClients) == 0 {
 		return handler
@@ -120,11 +120,10 @@ func (c *MasterConfig) versionSkewFilter(handler http.Handler, contextMapper api
 	}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		if ctx, ok := contextMapper.Get(req); ok {
-			if requestInfo, ok := apirequest.RequestInfoFrom(ctx); ok && requestInfo != nil && !requestInfo.IsResourceRequest {
-				handler.ServeHTTP(w, req)
-				return
-			}
+		ctx := req.Context()
+		if requestInfo, ok := apirequest.RequestInfoFrom(ctx); ok && requestInfo != nil && !requestInfo.IsResourceRequest {
+			handler.ServeHTTP(w, req)
+			return
 		}
 
 		userAgent := req.Header.Get("User-Agent")

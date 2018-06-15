@@ -1,6 +1,7 @@
 package templateinstance
 
 import (
+	"context"
 	"errors"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -38,7 +39,7 @@ func (templateInstanceStrategy) NamespaceScoped() bool {
 }
 
 // PrepareForUpdate clears fields that are not allowed to be set by end users on update.
-func (templateInstanceStrategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.Object) {
+func (templateInstanceStrategy) PrepareForUpdate(ctx context.Context, obj, old runtime.Object) {
 	curr := obj.(*templateapi.TemplateInstance)
 	prev := old.(*templateapi.TemplateInstance)
 
@@ -50,7 +51,7 @@ func (templateInstanceStrategy) Canonicalize(obj runtime.Object) {
 }
 
 // PrepareForCreate clears fields that are not allowed to be set by end users on creation.
-func (templateInstanceStrategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) {
+func (templateInstanceStrategy) PrepareForCreate(ctx context.Context, obj runtime.Object) {
 	templateInstance := obj.(*templateapi.TemplateInstance)
 
 	// if request not set, pull from context; note: the requester can be set via the service catalog
@@ -68,7 +69,7 @@ func (templateInstanceStrategy) PrepareForCreate(ctx apirequest.Context, obj run
 }
 
 // Validate validates a new templateinstance.
-func (s *templateInstanceStrategy) Validate(ctx apirequest.Context, obj runtime.Object) field.ErrorList {
+func (s *templateInstanceStrategy) Validate(ctx context.Context, obj runtime.Object) field.ErrorList {
 	user, ok := apirequest.UserFrom(ctx)
 	if !ok {
 		return field.ErrorList{field.InternalError(field.NewPath(""), errors.New("user not found in context"))}
@@ -91,7 +92,7 @@ func (templateInstanceStrategy) AllowUnconditionalUpdate() bool {
 }
 
 // ValidateUpdate is the default update validation for an end user.
-func (s *templateInstanceStrategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.Object) field.ErrorList {
+func (s *templateInstanceStrategy) ValidateUpdate(ctx context.Context, obj, old runtime.Object) field.ErrorList {
 	user, ok := apirequest.UserFrom(ctx)
 	if !ok {
 		return field.ErrorList{field.InternalError(field.NewPath(""), errors.New("user not found in context"))}
@@ -178,7 +179,7 @@ func (statusStrategy) AllowUnconditionalUpdate() bool {
 	return false
 }
 
-func (statusStrategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.Object) {
+func (statusStrategy) PrepareForUpdate(ctx context.Context, obj, old runtime.Object) {
 	curr := obj.(*templateapi.TemplateInstance)
 	prev := old.(*templateapi.TemplateInstance)
 
@@ -188,7 +189,7 @@ func (statusStrategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.
 func (statusStrategy) Canonicalize(obj runtime.Object) {
 }
 
-func (statusStrategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.Object) field.ErrorList {
+func (statusStrategy) ValidateUpdate(ctx context.Context, obj, old runtime.Object) field.ErrorList {
 	return validation.ValidateTemplateInstanceUpdate(obj.(*templateapi.TemplateInstance), old.(*templateapi.TemplateInstance))
 }
 
