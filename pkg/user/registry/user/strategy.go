@@ -1,17 +1,14 @@
 package user
 
 import (
-	"fmt"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/validation/field"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/registry/rest"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
-	"k8s.io/kubernetes/pkg/registry/generic"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/fielderrors"
-
-	"github.com/openshift/origin/pkg/user/api"
-	"github.com/openshift/origin/pkg/user/api/validation"
+	userapi "github.com/openshift/origin/pkg/user/apis/user"
+	"github.com/openshift/origin/pkg/user/apis/user/validation"
 )
 
 // userStrategy implements behavior for Users
@@ -21,9 +18,15 @@ type userStrategy struct {
 
 // Strategy is the default logic that applies when creating and updating User
 // objects via the REST API.
-var Strategy = userStrategy{kapi.Scheme}
+var Strategy = userStrategy{legacyscheme.Scheme}
 
-func (userStrategy) PrepareForUpdate(obj, old runtime.Object) {}
+var _ rest.GarbageCollectionDeleteStrategy = userStrategy{}
+
+func (userStrategy) DefaultGarbageCollectionPolicy(ctx apirequest.Context) rest.GarbageCollectionPolicy {
+	return rest.Unsupported
+}
+
+func (userStrategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.Object) {}
 
 // NamespaceScoped is false for users
 func (userStrategy) NamespaceScoped() bool {
@@ -34,12 +37,12 @@ func (userStrategy) GenerateName(base string) string {
 	return base
 }
 
-func (userStrategy) PrepareForCreate(obj runtime.Object) {
+func (userStrategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) {
 }
 
 // Validate validates a new user
-func (userStrategy) Validate(ctx kapi.Context, obj runtime.Object) fielderrors.ValidationErrorList {
-	return validation.ValidateUser(obj.(*api.User))
+func (userStrategy) Validate(ctx apirequest.Context, obj runtime.Object) field.ErrorList {
+	return validation.ValidateUser(obj.(*userapi.User))
 }
 
 // AllowCreateOnUpdate is false for users
@@ -51,26 +54,11 @@ func (userStrategy) AllowUnconditionalUpdate() bool {
 	return false
 }
 
+// Canonicalize normalizes the object after validation.
+func (userStrategy) Canonicalize(obj runtime.Object) {
+}
+
 // ValidateUpdate is the default update validation for an end user.
-func (userStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) fielderrors.ValidationErrorList {
-	return validation.ValidateUserUpdate(obj.(*api.User), old.(*api.User))
-}
-
-// MatchUser returns a generic matcher for a given label and field selector.
-func MatchUser(label labels.Selector, field fields.Selector) generic.Matcher {
-	return generic.MatcherFunc(func(obj runtime.Object) (bool, error) {
-		userObj, ok := obj.(*api.User)
-		if !ok {
-			return false, fmt.Errorf("not a user")
-		}
-		fields := UserToSelectableFields(userObj)
-		return label.Matches(labels.Set(userObj.Labels)) && field.Matches(fields), nil
-	})
-}
-
-// UserToSelectableFields returns a label set that represents the object
-func UserToSelectableFields(user *api.User) labels.Set {
-	return labels.Set{
-		"name": user.Name,
-	}
+func (userStrategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.Object) field.ErrorList {
+	return validation.ValidateUserUpdate(obj.(*userapi.User), old.(*userapi.User))
 }

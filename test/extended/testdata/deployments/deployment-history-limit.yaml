@@ -1,0 +1,23 @@
+apiVersion: apps.openshift.io/v1
+kind: DeploymentConfig
+metadata:
+  name: history-limit
+spec:
+  replicas: 1
+  strategy:
+    type: Rolling
+  template:
+    metadata:
+      labels:
+        name: history-limit
+    spec:
+      containers:
+      - image: "docker.io/centos:centos7"
+        imagePullPolicy: IfNotPresent
+        name: myapp
+        command:
+        - /bin/sleep
+        - "100"
+  triggers:
+  - type: ConfigChange
+  revisionHistoryLimit: 3

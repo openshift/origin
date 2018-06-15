@@ -1,57 +1,55 @@
 #!/bin/bash
+source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
-set -o errexit
-set -o nounset
-set -o pipefail
+SCRIPT_ROOT=$(dirname ${BASH_SOURCE})/..
+CODEGEN_PKG=${CODEGEN_PKG:-$(cd ${SCRIPT_ROOT}; ls -d -1 ./vendor/k8s.io/code-generator 2>/dev/null || echo ../../../k8s.io/code-generator)}
+verify="${VERIFY:-}"
 
-OS_ROOT=$(dirname "${BASH_SOURCE}")/..
-source "${OS_ROOT}/hack/common.sh"
+go install ./${CODEGEN_PKG}/cmd/deepcopy-gen
 
-# Go to the top of the tree.
-cd "${OS_ROOT}"
+function codegen::join() { local IFS="$1"; shift; echo "$*"; }
 
-os::build::setup_env
+# enumerate group versions
+ALL_FQ_APIS=(
+    github.com/openshift/origin/pkg/build/controller/build/apis/defaults
+    github.com/openshift/origin/pkg/build/controller/build/apis/defaults/v1
+    github.com/openshift/origin/pkg/build/controller/build/apis/overrides
+    github.com/openshift/origin/pkg/build/controller/build/apis/overrides/v1
+    github.com/openshift/origin/pkg/build/controller/build/pluginconfig/testing
+    github.com/openshift/origin/pkg/cmd/server/apis/config
+    github.com/openshift/origin/pkg/cmd/server/apis/config/v1
+    github.com/openshift/origin/pkg/cmd/server/apis/config/v1/testing
+    github.com/openshift/origin/pkg/image/admission/apis/imagepolicy
+    github.com/openshift/origin/pkg/image/admission/apis/imagepolicy/v1
+    github.com/openshift/origin/pkg/ingress/admission/apis/ingressadmission
+    github.com/openshift/origin/pkg/ingress/admission/apis/ingressadmission/v1
+    github.com/openshift/origin/pkg/project/admission/lifecycle/testing
+    github.com/openshift/origin/pkg/project/admission/apis/requestlimit
+    github.com/openshift/origin/pkg/project/admission/apis/requestlimit/v1
+    github.com/openshift/origin/pkg/quota/admission/apis/clusterresourceoverride
+    github.com/openshift/origin/pkg/quota/admission/apis/clusterresourceoverride/v1
+    github.com/openshift/origin/pkg/quota/admission/apis/runonceduration
+    github.com/openshift/origin/pkg/quota/admission/apis/runonceduration/v1
+    github.com/openshift/origin/pkg/router/f5/testing
+    github.com/openshift/origin/pkg/scheduler/admission/apis/podnodeconstraints
+    github.com/openshift/origin/pkg/scheduler/admission/apis/podnodeconstraints/v1
+    github.com/openshift/origin/pkg/template/servicebroker/apis/config
+    github.com/openshift/origin/pkg/template/servicebroker/apis/config/v1
+    github.com/openshift/origin/pkg/util/testing
+    github.com/openshift/origin/test/integration/testing
+    github.com/openshift/origin/pkg/apps/apis/apps
+    github.com/openshift/origin/pkg/authorization/apis/authorization
+    github.com/openshift/origin/pkg/build/apis/build
+    github.com/openshift/origin/pkg/image/apis/image
+    github.com/openshift/origin/pkg/network/apis/network
+    github.com/openshift/origin/pkg/oauth/apis/oauth
+    github.com/openshift/origin/pkg/project/apis/project
+    github.com/openshift/origin/pkg/quota/apis/quota
+    github.com/openshift/origin/pkg/route/apis/route
+    github.com/openshift/origin/pkg/security/apis/security
+    github.com/openshift/origin/pkg/template/apis/template
+    github.com/openshift/origin/pkg/user/apis/user
+)
 
-function result_file_name() {
-	local version=$1
-	if [ "${version}" == "api" ]; then
-		mkdir -p "${OUTPUT_DIR_ROOT}" || echo $? > /dev/null
-		echo "${OUTPUT_DIR_ROOT}/deep_copy_generated.go"
-	else
-		mkdir -p "${OUTPUT_DIR_ROOT}/${version}" || echo $? > /dev/null
-		echo "${OUTPUT_DIR_ROOT}/${version}/deep_copy_generated.go"
-	fi
-}
-
-function generate_version() {
-	local version=$1
-	local TMPFILE="/tmp/deep_copy_generated.$(date +%s).go"
-
-	echo "Generating for version ${version}"
-
-	cat >> $TMPFILE <<EOF
-package ${version}
-
-// AUTO-GENERATED FUNCTIONS START HERE
-EOF
-
-	go run cmd/gendeepcopy/deep_copy.go -v ${version} -f - -o "${version}=" >>  $TMPFILE
-
-	cat >> $TMPFILE <<EOF
-// AUTO-GENERATED FUNCTIONS END HERE
-EOF
-
-	gofmt -w -s $TMPFILE
-	mv $TMPFILE `result_file_name ${version}`
-}
-
-OUTPUT_DIR_ROOT_REL=${1:-""}
-OUTPUT_DIR_ROOT="${OS_ROOT}/${OUTPUT_DIR_ROOT_REL}/pkg/api"
-VERSIONS="api v1beta3 v1"
-# To avoid compile errors, remove the currently existing files.
-for ver in $VERSIONS; do
-	rm -f `result_file_name ${ver}`
-done
-for ver in $VERSIONS; do
-	generate_version "${ver}"
-done
+echo "Generating deepcopy funcs"
+${GOPATH}/bin/deepcopy-gen --input-dirs $(codegen::join , "${ALL_FQ_APIS[@]}") -O zz_generated.deepcopy --bounding-dirs $(codegen::join , "${ALL_FQ_APIS[@]}") --go-header-file ${SCRIPT_ROOT}/hack/boilerplate.txt ${verify} "$@"

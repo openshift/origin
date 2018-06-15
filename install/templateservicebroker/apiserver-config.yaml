@@ -1,0 +1,4 @@
+kind: TemplateServiceBrokerConfig
+apiVersion: config.templateservicebroker.openshift.io/v1
+templateNamespaces:
+- openshift

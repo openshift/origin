@@ -1,0 +1,147 @@
+apiVersion: v1
+items:
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    creationTimestamp: 2015-07-22T11:25:00Z
+    name: ruby-hello-world
+    namespace: default
+    resourceVersion: "1125"
+    selfLink: /osapi/v1/namespaces/default/buildconfigs/ruby-hello-world
+    uid: 4a10e762-3064-11e5-8da2-080027c5bfa9
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: ruby-hello-world:latest
+        namespace: test
+    resources: {}
+    source:
+      git:
+        uri: https://github.com/openshift/ruby-hello-world
+      type: Git
+    strategy:
+      dockerStrategy:
+        from:
+          kind: ImageStreamTag
+          name: ruby-22-centos7:latest
+          namespace: master
+      type: Docker
+    triggers:
+    - github:
+        secret: q_ZtlnBcu7ca48ie8dNi
+      type: GitHub
+    - generic:
+        secret: 3kYKtANjVRCOPoM0uLNp
+      type: Generic
+    - imageChange:
+        lastTriggeredImageID: centos/ruby-22-centos7:latest
+      type: ImageChange
+  status:
+    lastVersion: 1
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    creationTimestamp: 2015-07-24T07:41:19Z
+    labels:
+      name: ruby-sample-build
+      template: application-template-stibuild
+    name: ruby-sample-build
+    namespace: test
+    resourceVersion: "9848"
+    selfLink: /osapi/v1/namespaces/test/buildconfigs/ruby-sample-build
+    uid: 5f52f442-31d7-11e5-868e-080027c5bfa9
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: origin-ruby-sample:latest
+        namespace: another
+    resources: {}
+    source:
+      git:
+        uri: https://github.com/openshift/ruby-hello-world.git
+      type: Git
+    strategy:
+      sourceStrategy:
+        from:
+          kind: ImageStreamTag
+          name: ruby-22-centos7:latest
+          namespace: master
+      type: Source
+    triggers:
+    - github:
+        secret: secret101
+      type: GitHub
+    - generic:
+        secret: secret101
+      type: Generic
+    - imageChange:
+        lastTriggeredImageID: centos/ruby-22-centos7:latest
+      type: ImageChange
+  status:
+    lastVersion: 1
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    creationTimestamp: 2015-07-22T12:07:57Z
+    name: ruby-sample-build-invalidtag
+    namespace: test
+    resourceVersion: "1605"
+    selfLink: /osapi/v1/namespaces/test/buildconfigs/ruby-sample-build-invalidtag
+    uid: 4a633dd5-306a-11e5-8da2-080027c5bfa9
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: origin-ruby-sample:latest
+    resources: {}
+    source:
+      git:
+        uri: git://github.com/openshift/ruby-hello-world.git
+      type: Git
+    strategy:
+      sourceStrategy:
+        from:
+          kind: DockerImage
+          name: centos/ruby-22-centos7
+        incremental: true
+      type: Source
+    triggers:
+    - imageChange: {}
+      type: ImageChange
+  status:
+    lastVersion: 0
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    creationTimestamp: 2015-07-22T12:07:57Z
+    name: ruby-sample-build-validtag
+    namespace: test
+    resourceVersion: "1604"
+    selfLink: /osapi/v1/namespaces/test/buildconfigs/ruby-sample-build-validtag
+    uid: 4a623b89-306a-11e5-8da2-080027c5bfa9
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: origin-ruby-sample:latest
+    resources: {}
+    source:
+      git:
+        uri: git://github.com/openshift/ruby-hello-world.git
+      type: Git
+    strategy:
+      sourceStrategy:
+        from:
+          kind: DockerImage
+          name: centos/ruby-22-centos7
+        incremental: true
+      type: Source
+    triggers:
+    - imageChange: {}
+      type: ImageChange
+  status:
+    lastVersion: 0
+kind: List
+metadata: {}

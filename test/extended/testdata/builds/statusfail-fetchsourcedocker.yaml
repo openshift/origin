@@ -1,0 +1,14 @@
+kind: BuildConfig
+apiVersion: v1
+metadata:
+  name: statusfail-fetchsourcedocker
+spec:
+  source:
+    git:
+      uri: "https://failure/docker/status"
+  strategy:
+    type: Docker
+    dockerStrategy:
+      from:
+        kind: DockerImage
+        name: centos/ruby-23-centos7:latest

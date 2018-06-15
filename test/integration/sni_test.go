@@ -1,5 +1,3 @@
-// +build integration,etcd
-
 package integration
 
 import (
@@ -11,16 +9,18 @@ import (
 	"os"
 	"testing"
 
-	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	knet "k8s.io/apimachinery/pkg/util/net"
+
+	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
 
 const (
-	// oadm ca create-signer-cert --cert=sni-ca.crt --key=sni-ca.key --name=sni-signer --serial=sni-serial.txt
+	// oc adm ca create-signer-cert --cert=sni-ca.crt --key=sni-ca.key --name=sni-signer --serial=sni-serial.txt
 	sniCACert = "sni-ca.crt"
 
-	// oadm ca create-server-cert --cert=sni.crt --key=sni.key --hostnames=127.0.0.1,customhost.com,*.wildcardhost.com --signer-cert=sni-ca.crt --signer-key=sni-ca.key --signer-serial=sni-serial.txt
+	// oc adm ca create-server-cert --cert=sni.crt --key=sni.key --hostnames=127.0.0.1,customhost.com,*.wildcardhost.com --signer-cert=sni-ca.crt --signer-key=sni-ca.key --signer-serial=sni-serial.txt
 	sniServerCert = "sni-server.crt"
 	sniServerKey  = "sni-server.key"
 )
@@ -45,6 +45,7 @@ func TestSNI(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	defer testserver.CleanupMasterEtcd(t, masterOptions)
 
 	// Set custom cert
 	masterOptions.ServingInfo.NamedCertificates = []configapi.NamedCertificate{
@@ -201,14 +202,14 @@ func TestSNI(t *testing.T) {
 			continue
 		}
 
-		transport := &http.Transport{
+		transport := knet.SetTransportDefaults(&http.Transport{
 			// Custom Dial func to always dial the real master, no matter what host is asked for
 			Dial: func(network, addr string) (net.Conn, error) {
 				// t.Logf("%s: Dialing for %s", k, addr)
 				return net.Dial(network, masterPublicURL.Host)
 			},
 			TLSClientConfig: tc.TLSConfig,
-		}
+		})
 		resp, err := transport.RoundTrip(req)
 		if tc.ExpectedOK && err != nil {
 			t.Errorf("%s: unexpected error: %v", k, err)

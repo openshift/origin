@@ -1,0 +1,18 @@
+[Unit]
+Description=Setup for ovn-kubernetes node
+Requires=openshift-node.service
+Requires=ovn-controller.service
+After=openshift-node.service
+After=ovn-controller.service
+After=ovn-kubernetes-node-setup.service
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/ovn-kubernetes-node.sh
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=openshift-node.service
+WantedBy=ovn-kubernetes-node-setup.service
+

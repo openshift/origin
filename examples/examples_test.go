@@ -8,24 +8,33 @@ import (
 	"testing"
 
 	"github.com/golang/glog"
-	kapi "k8s.io/kubernetes/pkg/api"
-	kvalidation "k8s.io/kubernetes/pkg/api/validation"
+	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/yaml"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
+	kvalidation "k8s.io/kubernetes/pkg/apis/core/validation"
 	"k8s.io/kubernetes/pkg/capabilities"
-	"k8s.io/kubernetes/pkg/runtime"
 
-	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/api/validation"
-	buildapi "github.com/openshift/origin/pkg/build/api"
-	deployapi "github.com/openshift/origin/pkg/deploy/api"
-	imageapi "github.com/openshift/origin/pkg/image/api"
-	projectapi "github.com/openshift/origin/pkg/project/api"
-	routeapi "github.com/openshift/origin/pkg/route/api"
-	templateapi "github.com/openshift/origin/pkg/template/api"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	networkapi "github.com/openshift/origin/pkg/network/apis/network"
+	routeapi "github.com/openshift/origin/pkg/route/apis/route"
+	templateapi "github.com/openshift/origin/pkg/template/apis/template"
+
+	// install all APIs
+	_ "github.com/openshift/origin/pkg/api/install"
+	_ "k8s.io/kubernetes/pkg/apis/core/install"
+	_ "k8s.io/kubernetes/pkg/apis/extensions/install"
 )
 
 type mockService struct{}
 
-func (mockService) ListServices(kapi.Context) (*kapi.ServiceList, error) {
+func (mockService) ListServices(apirequest.Context) (*kapi.ServiceList, error) {
 	return &kapi.ServiceList{}, nil
 }
 
@@ -50,6 +59,12 @@ func walkJSONFiles(inDir string, fn func(name, path string, data []byte)) error 
 		if err != nil {
 			return err
 		}
+		if ext == ".yaml" {
+			data, err = yaml.ToJSON(data)
+			if err != nil {
+				return err
+			}
+		}
 		fn(name, path, data)
 		return nil
 	})
@@ -61,10 +76,6 @@ func TestExampleObjectSchemas(t *testing.T) {
 	// TODO: make this configurable and not the default https://github.com/openshift/origin/issues/662
 	capabilities.Setup(true, capabilities.PrivilegedSources{}, 0)
 	cases := map[string]map[string]runtime.Object{
-		"../examples/hello-openshift": {
-			"hello-pod":     &kapi.Pod{},
-			"hello-project": &projectapi.Project{},
-		},
 		"../examples/sample-app": {
 			"github-webhook-example":             nil, // Skip.
 			"application-template-stibuild":      &templateapi.Template{},
@@ -85,28 +96,37 @@ func TestExampleObjectSchemas(t *testing.T) {
 			"mysql-persistent-template":      &templateapi.Template{},
 			"postgresql-persistent-template": &templateapi.Template{},
 			"mongodb-persistent-template":    &templateapi.Template{},
+			"mariadb-persistent-template":    &templateapi.Template{},
+			"redis-persistent-template":      &templateapi.Template{},
 			"mysql-ephemeral-template":       &templateapi.Template{},
 			"postgresql-ephemeral-template":  &templateapi.Template{},
 			"mongodb-ephemeral-template":     &templateapi.Template{},
+			"mariadb-ephemeral-template":     &templateapi.Template{},
+			"redis-ephemeral-template":       &templateapi.Template{},
 		},
-		"../test/extended/fixtures/ldap": {
+		"../test/extended/testdata/ldap": {
 			"ldapserver-buildconfig":         &buildapi.BuildConfig{},
-			"ldapserver-deploymentconfig":    &deployapi.DeploymentConfig{},
+			"ldapserver-deploymentconfig":    &appsapi.DeploymentConfig{},
 			"ldapserver-imagestream":         &imageapi.ImageStream{},
 			"ldapserver-imagestream-testenv": &imageapi.ImageStream{},
 			"ldapserver-service":             &kapi.Service{},
 		},
-		"../test/integration/fixtures": {
-			"test-deployment-config":    &deployapi.DeploymentConfig{},
-			"test-image":                &imageapi.Image{},
-			"test-image-stream":         &imageapi.ImageStream{},
-			"test-image-stream-mapping": nil, // skip &imageapi.ImageStreamMapping{},
-			"test-route":                &routeapi.Route{},
-			"test-service":              &kapi.Service{},
-			"test-buildcli":             &kapi.List{},
-			"test-buildcli-beta2":       &kapi.List{},
+		"../test/integration/testdata": {
+			// TODO fix this test to  handle json and yaml
+			"project-request-template-with-quota": nil, // skip a yaml file
+			"test-replication-controller":         nil, // skip &api.ReplicationController
+			"test-deployment-config":              &appsapi.DeploymentConfig{},
+			"test-image":                          &imageapi.Image{},
+			"test-image-stream":                   &imageapi.ImageStream{},
+			"test-image-stream-mapping":           nil, // skip &imageapi.ImageStreamMapping{},
+			"test-route":                          &routeapi.Route{},
+			"test-service":                        &kapi.Service{},
+			"test-service-with-finalizer":         &kapi.Service{},
+			"test-buildcli":                       &kapi.List{},
+			"test-buildcli-beta2":                 &kapi.List{},
+			"test-egress-network-policy":          &networkapi.EgressNetworkPolicy{},
 		},
-		"../test/templates/fixtures": {
+		"../test/templates/testdata": {
 			"crunchydata-pod": nil, // Explicitly fails validation, but should pass transformation
 			"guestbook_list":  &templateapi.Template{},
 			"guestbook":       &templateapi.Template{},
@@ -126,7 +146,7 @@ func TestExampleObjectSchemas(t *testing.T) {
 				t.Logf("%q is skipped", path)
 				return
 			}
-			if err := latest.Codec.DecodeInto(data, expectedType); err != nil {
+			if err := runtime.DecodeInto(legacyscheme.Codecs.UniversalDecoder(), data, expectedType); err != nil {
 				t.Errorf("%s did not decode correctly: %v\n%s", path, err, string(data))
 				return
 			}
@@ -153,13 +173,13 @@ func validateObject(path string, obj runtime.Object, t *testing.T) {
 		}
 
 		if namespaceRequired {
-			objectMeta, err := kapi.ObjectMetaFor(obj)
-			if err != nil {
-				t.Errorf("Expected no error, Got %v", err)
+			objectMeta, objectMetaErr := meta.Accessor(obj)
+			if objectMetaErr != nil {
+				t.Errorf("Expected no error, Got %v", objectMetaErr)
 				return
 			}
 
-			objectMeta.Namespace = kapi.NamespaceDefault
+			objectMeta.SetNamespace(metav1.NamespaceDefault)
 		}
 	}
 
@@ -175,8 +195,8 @@ func validateObject(path string, obj runtime.Object, t *testing.T) {
 		}
 
 	case *kapi.List, *imageapi.ImageStreamList:
-		if list, err := runtime.ExtractList(typedObj); err == nil {
-			runtime.DecodeList(list, kapi.Scheme)
+		if list, err := meta.ExtractList(typedObj); err == nil {
+			runtime.DecodeList(list, legacyscheme.Codecs.UniversalDecoder())
 			for i := range list {
 				validateObject(path, list[i], t)
 			}

@@ -1,0 +1,25 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<project>
+    <actions/>
+    <description></description>
+    <keepDependencies>false</keepDependencies>
+    <scm class="hudson.scm.NullSCM"/>
+    <canRoam>true</canRoam>
+    <disabled>false</disabled>
+    <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
+    <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
+    <triggers/>
+    <concurrentBuild>false</concurrentBuild>
+    <builders>
+
+        <com.openshift.jenkins.plugins.pipeline.OpenShiftDeleterLabels>
+          <namespace>${PROJECT_NAME}</namespace>
+          <types>bc,is</types>                                                                                                                                                                                                             
+          <keys>foo</keys>                                                                                                                                                                                                                 
+          <values>bar</values>                                                                                                                                                                                                             
+        </com.openshift.jenkins.plugins.pipeline.OpenShiftDeleterLabels>
+
+    </builders>
+    <publishers/>
+    <buildWrappers/>
+</project>

@@ -1,0 +1,7 @@
+apiVersion: v1
+grantMethod: auto
+kind: OAuthClient
+metadata:
+  name: test-oauth-client
+redirectURIs:
+- https://localhost:9000

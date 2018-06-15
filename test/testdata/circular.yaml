@@ -1,0 +1,39 @@
+apiVersion: v1
+kind: Template
+metadata:
+  name: circular
+objects:
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    name: newapp-circular-template
+  spec:
+    nodeSelector: null
+    output:
+      to:
+        kind: ImageStreamTag
+        name: newapp-circular-template:latest
+    postCommit: {}
+    resources: {}
+    runPolicy: Serial
+    source:
+      git:
+        uri: https://github.com/openshift/ruby-hello-world
+      type: Git
+    strategy:
+      dockerStrategy:
+        from:
+          kind: ImageStreamTag
+          name: newapp-circular-template:latest
+      type: Docker
+    triggers:
+    - github:
+        secret: faSaQS1VY-gdRMwge4eV
+      type: GitHub
+    - generic:
+        secret: u-_J-vtKR5K3GykKwCuK
+      type: Generic
+    - imageChange: {}
+      type: ImageChange
+  status:
+    lastVersion: 0

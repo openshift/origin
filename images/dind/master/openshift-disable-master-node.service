@@ -1,0 +1,11 @@
+[Unit]
+Description=Disable scheduling for master node
+Requires=openshift-node.service
+After=openshift-node.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/openshift-disable-master-node.sh
+
+[Install]
+WantedBy=openshift-node.service

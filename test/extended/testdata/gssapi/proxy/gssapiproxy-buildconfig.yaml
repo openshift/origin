@@ -1,0 +1,25 @@
+kind: "BuildConfig"
+apiVersion: "v1"
+metadata:
+  name: "gssapiproxy"
+  labels:
+    name: "gssapiproxy"
+spec:
+  triggers: []
+  source:
+    type: "Binary"
+    binary: {}
+  strategy:
+    type: "Docker"
+    env:
+      -
+        name: "BUILD_LOGLEVEL"
+        value: "5"
+    dockerStrategy:
+      from:
+        kind: "DockerImage"
+        name: "fedora:23"
+  output:
+    to:
+      kind: "ImageStreamTag"
+      name: "gssapiproxy:latest"

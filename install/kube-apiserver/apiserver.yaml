@@ -1,0 +1,49 @@
+kind: Pod
+apiVersion: v1
+metadata:
+  name: master-api
+  namespace: kube-system
+  labels:
+    openshift.io/control-plane: "true"
+    openshift.io/component: api
+spec:
+  restartPolicy: Always
+  hostNetwork: true
+  containers:
+  - name: api
+    image: IMAGE
+    imagePullPolicy: OPENSHIFT_PULL_POLICY
+    command: ["/bin/bash", "-c"]
+    args:
+    - |
+      #!/bin/bash
+      set -euo pipefail
+      if [[ -f /etc/origin/master/master.env ]]; then
+        set -o allexport
+        source /etc/origin/master/master.env
+      fi
+      exec hypershift openshift-kube-apiserver --config=/etc/origin/master/master-config.yaml
+    securityContext:
+      privileged: true
+    volumeMounts:
+     - mountPath: /etc/origin/master/
+       name: master-config
+     - mountPath: /etc/origin/cloudprovider/
+       name: master-cloud-provider
+     - mountPath: /var/lib/origin/
+       name: master-data
+    livenessProbe:
+      httpGet:
+        scheme: HTTPS
+        port: 8443
+        path: healthz
+  volumes:
+  - name: master-config
+    hostPath:
+      path: /path/to/master/config-dir
+  - name: master-cloud-provider
+    hostPath:
+      path: /etc/origin/cloudprovider
+  - name: master-data
+    hostPath:
+      path: /var/lib/origin

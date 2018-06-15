@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: vsmpod
+spec:
+  containers:
+  - name: test-container
+    image: test-image
+  volumes:
+  - name: test-volume
+    metadata:
+      defaultMode: 0

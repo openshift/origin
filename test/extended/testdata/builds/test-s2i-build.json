@@ -1,0 +1,55 @@
+{
+  "kind": "BuildConfig",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "test",
+    "labels": {
+      "name": "test"
+    }
+  },
+  "spec": {
+    "triggers": [],
+    "source": {
+      "type": "Git",
+      "git": {
+        "uri":"https://github.com/sclorg/s2i-ruby-container"
+      },
+      "contextDir": "2.3/test/puma-test-app"
+    },
+    "strategy": {
+      "type": "Source",
+      "sourceStrategy": {
+        "env": [
+          {
+            "name": "BUILD_LOGLEVEL",
+            "value": "5"
+          }
+        ],
+        "from": {
+          "kind": "DockerImage",
+          "name": "centos/ruby-23-centos7"
+        }
+      }
+    },
+    "output": {
+      "to": {
+        "kind": "ImageStreamTag",
+        "name": "test:latest"
+      },
+      "imageLabels": [
+        {
+          "name": "user-specified-label",
+          "value": "arbitrary-value"
+        },
+        {
+          "name": "io.k8s.display-name",
+          "value": "overridden"
+        },
+        {
+          "name": "io.openshift.builder-version",
+          "value": "overridden2"
+        }
+      ]
+    }
+  }
+}

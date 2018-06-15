@@ -1,0 +1,21 @@
+[Unit]
+After=${DOCKER_SERVICE}
+Wants=${DOCKER_SERVICE}
+Requires=dnsmasq.service
+After=dnsmasq.service
+
+[Service]
+Type=notify
+EnvironmentFile=/etc/sysconfig/$NAME
+
+ExecStartPre=/bin/bash -c 'export -p > /run/$NAME-env'
+ExecStart=$EXEC_START
+ExecStop=$EXEC_STOP
+SyslogIdentifier=$NAME
+Restart=always
+RestartSec=5s
+WorkingDirectory=$DESTDIR
+RuntimeDirectory=${NAME}
+
+[Install]
+WantedBy=${DOCKER_SERVICE}

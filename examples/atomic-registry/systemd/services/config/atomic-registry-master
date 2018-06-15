@@ -1,0 +1,4 @@
+# loglevel 1-5
+OPTIONS=--loglevel=1
+CONFIG_FILE=/etc/atomic-registry/master/master-config.yaml
+KUBECONFIG=/etc/atomic-registry/master/admin.kubeconfig

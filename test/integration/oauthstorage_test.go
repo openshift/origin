@@ -1,5 +1,3 @@
-// +build integration,etcd
-
 package integration
 
 import (
@@ -10,26 +8,16 @@ import (
 	"github.com/RangelReale/osin"
 	"github.com/RangelReale/osincli"
 	"golang.org/x/oauth2"
-	kapi "k8s.io/kubernetes/pkg/api"
-	etcdstorage "k8s.io/kubernetes/pkg/storage/etcd"
-	"k8s.io/kubernetes/pkg/tools/etcdtest"
 
-	"github.com/openshift/origin/pkg/api/latest"
-	"github.com/openshift/origin/pkg/oauth/api"
-	accesstokenregistry "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken"
-	accesstokenetcd "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken/etcd"
-	authorizetokenregistry "github.com/openshift/origin/pkg/oauth/registry/oauthauthorizetoken"
-	authorizetokenetcd "github.com/openshift/origin/pkg/oauth/registry/oauthauthorizetoken/etcd"
-	clientregistry "github.com/openshift/origin/pkg/oauth/registry/oauthclient"
-	clientetcd "github.com/openshift/origin/pkg/oauth/registry/oauthclient/etcd"
-	"github.com/openshift/origin/pkg/oauth/server/osinserver"
-	registrystorage "github.com/openshift/origin/pkg/oauth/server/osinserver/registrystorage"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	oauthapi "github.com/openshift/api/oauth/v1"
+	oauthclient "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
+	"github.com/openshift/origin/pkg/oauthserver/osinserver"
+	"github.com/openshift/origin/pkg/oauthserver/osinserver/registrystorage"
 	testutil "github.com/openshift/origin/test/util"
+	testserver "github.com/openshift/origin/test/util/server"
 )
-
-func init() {
-	testutil.RequireEtcd()
-}
 
 type testUser struct {
 	UserName string
@@ -37,46 +25,54 @@ type testUser struct {
 	Err      error
 }
 
-func (u *testUser) ConvertToAuthorizeToken(_ interface{}, token *api.OAuthAuthorizeToken) error {
+func (u *testUser) ConvertToAuthorizeToken(_ interface{}, token *oauthapi.OAuthAuthorizeToken) error {
 	token.UserName = u.UserName
 	token.UserUID = u.UserUID
 	return u.Err
 }
 
-func (u *testUser) ConvertToAccessToken(_ interface{}, token *api.OAuthAccessToken) error {
+func (u *testUser) ConvertToAccessToken(_ interface{}, token *oauthapi.OAuthAccessToken) error {
 	token.UserName = u.UserName
 	token.UserUID = u.UserUID
 	return u.Err
 }
 
-func (u *testUser) ConvertFromAuthorizeToken(*api.OAuthAuthorizeToken) (interface{}, error) {
+func (u *testUser) ConvertFromAuthorizeToken(*oauthapi.OAuthAuthorizeToken) (interface{}, error) {
 	return u.UserName, u.Err
 }
 
-func (u *testUser) ConvertFromAccessToken(*api.OAuthAccessToken) (interface{}, error) {
+func (u *testUser) ConvertFromAccessToken(*oauthapi.OAuthAccessToken) (interface{}, error) {
 	return u.UserName, u.Err
 }
 
 func TestOAuthStorage(t *testing.T) {
-	testutil.DeleteAllEtcdKeys()
-	interfaces, _ := latest.InterfacesFor(latest.Version)
-	etcdClient := testutil.NewEtcdClient()
-	etcdHelper := etcdstorage.NewEtcdStorage(etcdClient, interfaces.Codec, etcdtest.PathPrefix())
+	masterOptions, err := testserver.DefaultMasterOptions()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	defer testserver.CleanupMasterEtcd(t, masterOptions)
 
-	accessTokenStorage := accesstokenetcd.NewREST(etcdHelper)
-	accessTokenRegistry := accesstokenregistry.NewRegistry(accessTokenStorage)
-	authorizeTokenStorage := authorizetokenetcd.NewREST(etcdHelper)
-	authorizeTokenRegistry := authorizetokenregistry.NewRegistry(authorizeTokenStorage)
-	clientStorage := clientetcd.NewREST(etcdHelper)
-	clientRegistry := clientregistry.NewRegistry(clientStorage)
+	clusterAdminKubeConfig, err := testserver.StartConfiguredMasterAPI(masterOptions)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
+	if err != nil {
+		t.Fatal(err)
+	}
+	oauthClient, err := oauthclient.NewForConfig(clusterAdminClientConfig)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	user := &testUser{UserName: "test", UserUID: "1"}
-	storage := registrystorage.New(accessTokenRegistry, authorizeTokenRegistry, clientRegistry, user)
+	storage := registrystorage.New(oauthClient.OAuthAccessTokens(), oauthClient.OAuthAuthorizeTokens(), oauthClient.OAuthClients(), user, 0)
 
 	oauthServer := osinserver.New(
 		osinserver.NewDefaultServerConfig(),
 		storage,
-		osinserver.AuthorizeHandlerFunc(func(ar *osin.AuthorizeRequest, w http.ResponseWriter) (bool, error) {
+		osinserver.AuthorizeHandlerFunc(func(ar *osin.AuthorizeRequest, resp *osin.Response, w http.ResponseWriter) (bool, error) {
 			ar.UserData = "test"
 			ar.Authorized = true
 			return false, nil
@@ -110,16 +106,23 @@ func TestOAuthStorage(t *testing.T) {
 		ch <- token
 	}))
 
-	clientRegistry.CreateClient(kapi.NewContext(), &api.OAuthClient{
-		ObjectMeta:   kapi.ObjectMeta{Name: "test"},
-		Secret:       "secret",
-		RedirectURIs: []string{assertServer.URL + "/assert"},
+	oauthClient.OAuthClients().Create(&oauthapi.OAuthClient{
+		ObjectMeta:        metav1.ObjectMeta{Name: "test"},
+		Secret:            "secret",
+		AdditionalSecrets: []string{"secret1"},
+		RedirectURIs:      []string{assertServer.URL + "/assert"},
 	})
 	storedClient, err := storage.GetClient("test")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if storedClient.GetSecret() != "secret" {
+	if !osin.CheckClientSecret(storedClient, "secret") {
+		t.Fatalf("unexpected stored client: %#v", storedClient)
+	}
+	if !osin.CheckClientSecret(storedClient, "secret1") {
+		t.Fatalf("unexpected stored client: %#v", storedClient)
+	}
+	if osin.CheckClientSecret(storedClient, "secret2") {
 		t.Fatalf("unexpected stored client: %#v", storedClient)
 	}
 
@@ -140,7 +143,7 @@ func TestOAuthStorage(t *testing.T) {
 	config := &oauth2.Config{
 		ClientID:     "test",
 		ClientSecret: "",
-		Scopes:       []string{"a_scope"},
+		Scopes:       []string{"user:info"},
 		RedirectURL:  assertServer.URL + "/assert",
 		Endpoint: oauth2.Endpoint{
 			AuthURL:  server.URL + "/authorize",
@@ -166,7 +169,7 @@ func TestOAuthStorage(t *testing.T) {
 		t.Errorf("unexpected access token: %#v", token)
 	}
 
-	actualToken, err := accessTokenRegistry.GetAccessToken(kapi.NewContext(), token.AccessToken)
+	actualToken, err := oauthClient.OAuthAccessTokens().Get(token.AccessToken, metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

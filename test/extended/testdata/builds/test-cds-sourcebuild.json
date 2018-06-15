@@ -1,0 +1,42 @@
+{
+  "kind": "List",
+  "apiVersion": "v1",
+  "metadata": {},
+  "items": [
+    {
+      "kind": "ImageStream",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "origin-ruby-sample"
+      },
+      "spec": {},
+      "status": {
+        "dockerImageRepository": ""
+      }
+    },
+    {
+      "kind": "BuildConfig",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "source-build"
+      },
+      "spec": {
+        "completionDeadlineSeconds": 5,
+        "triggers": [],
+        "source":{
+          "type":"Dockerfile",
+          "dockerfile":"FROM centos:7\nRUN sleep 10m"
+        },
+        "strategy": {
+          "type": "Source",
+          "sourceStrategy": {
+            "from": {
+              "kind": "DockerImage",
+              "name": "centos/ruby-22-centos7"
+            }
+          }
+        }
+      }
+    }
+  ]
+}

@@ -1,5 +1,3 @@
-// +build integration,etcd
-
 package integration
 
 import (
@@ -8,27 +6,22 @@ import (
 	"sync"
 	"testing"
 
-	kapi "k8s.io/kubernetes/pkg/api"
-	kerrs "k8s.io/kubernetes/pkg/api/errors"
-	etcdstorage "k8s.io/kubernetes/pkg/storage/etcd"
-	"k8s.io/kubernetes/pkg/types"
+	"github.com/coreos/etcd/clientv3"
+	"golang.org/x/net/context"
 
-	authapi "github.com/openshift/origin/pkg/auth/api"
-	"github.com/openshift/origin/pkg/auth/userregistry/identitymapper"
+	corev1 "k8s.io/api/core/v1"
+	kerrs "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+
+	userapi "github.com/openshift/api/user/v1"
+	userclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	"github.com/openshift/origin/pkg/cmd/server/etcd"
-	"github.com/openshift/origin/pkg/cmd/server/origin"
-	"github.com/openshift/origin/pkg/user/api"
-	identityregistry "github.com/openshift/origin/pkg/user/registry/identity"
-	identityetcd "github.com/openshift/origin/pkg/user/registry/identity/etcd"
-	userregistry "github.com/openshift/origin/pkg/user/registry/user"
-	useretcd "github.com/openshift/origin/pkg/user/registry/user/etcd"
+	authapi "github.com/openshift/origin/pkg/oauthserver/api"
+	"github.com/openshift/origin/pkg/oauthserver/userregistry/identitymapper"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
-
-func init() {
-	testutil.RequireEtcd()
-}
 
 func makeIdentityInfo(providerName, providerUserName string, extra map[string]string) authapi.UserIdentityInfo {
 	info := authapi.NewDefaultUserIdentityInfo("idp", "bob")
@@ -38,75 +31,66 @@ func makeIdentityInfo(providerName, providerUserName string, extra map[string]st
 	return info
 }
 
-func makeUser(name string, identities ...string) *api.User {
-	return &api.User{
-		ObjectMeta: kapi.ObjectMeta{
+func makeUser(name string, identities ...string) *userapi.User {
+	return &userapi.User{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
 		Identities: identities,
 	}
 }
-func makeIdentity(providerName, providerUserName string) *api.Identity {
-	return &api.Identity{
-		ObjectMeta: kapi.ObjectMeta{
+func makeIdentity(providerName, providerUserName string) *userapi.Identity {
+	return &userapi.Identity{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: providerName + ":" + providerUserName,
 		},
 		ProviderName:     providerName,
 		ProviderUserName: providerUserName,
 	}
 }
-func makeIdentityWithUserReference(providerName, providerUserName string, userName string, userUID types.UID) *api.Identity {
+func makeIdentityWithUserReference(providerName, providerUserName string, userName string, userUID types.UID) *userapi.Identity {
 	identity := makeIdentity(providerName, providerUserName)
 	identity.User.Name = userName
 	identity.User.UID = userUID
 	return identity
 }
-func makeMapping(user, identity string) *api.UserIdentityMapping {
-	return &api.UserIdentityMapping{
-		ObjectMeta: kapi.ObjectMeta{Name: identity},
-		User:       kapi.ObjectReference{Name: user},
-		Identity:   kapi.ObjectReference{Name: identity},
+func makeMapping(user, identity string) *userapi.UserIdentityMapping {
+	return &userapi.UserIdentityMapping{
+		ObjectMeta: metav1.ObjectMeta{Name: identity},
+		User:       corev1.ObjectReference{Name: user},
+		Identity:   corev1.ObjectReference{Name: identity},
 	}
 }
 
 func TestUserInitialization(t *testing.T) {
-
-	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMaster()
+	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	defer testserver.CleanupMasterEtcd(t, masterConfig)
 
-	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
+	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-
-	etcdClient, err := etcd.GetAndTestEtcdClient(masterConfig.EtcdClientInfo)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	etcdHelper, err := origin.NewEtcdStorage(etcdClient, masterConfig.EtcdStorageConfig.OpenShiftStorageVersion, masterConfig.EtcdStorageConfig.OpenShiftStoragePrefix)
+	userClient, err := userclient.NewForConfig(clusterAdminClientConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	userRegistry := userregistry.NewRegistry(useretcd.NewREST(etcdHelper))
-	identityRegistry := identityregistry.NewRegistry(identityetcd.NewREST(etcdHelper))
-
-	lookup, err := identitymapper.NewIdentityUserMapper(identityRegistry, userRegistry, identitymapper.MappingMethodLookup)
+	lookup, err := identitymapper.NewIdentityUserMapper(userClient.Identities(), userClient.Users(), userClient.UserIdentityMappings(), identitymapper.MappingMethodLookup)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	generate, err := identitymapper.NewIdentityUserMapper(identityRegistry, userRegistry, identitymapper.MappingMethodGenerate)
+	generate, err := identitymapper.NewIdentityUserMapper(userClient.Identities(), userClient.Users(), userClient.UserIdentityMappings(), identitymapper.MappingMethodGenerate)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	add, err := identitymapper.NewIdentityUserMapper(identityRegistry, userRegistry, identitymapper.MappingMethodAdd)
+	add, err := identitymapper.NewIdentityUserMapper(userClient.Identities(), userClient.Users(), userClient.UserIdentityMappings(), identitymapper.MappingMethodAdd)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	claim, err := identitymapper.NewIdentityUserMapper(identityRegistry, userRegistry, identitymapper.MappingMethodClaim)
+	claim, err := identitymapper.NewIdentityUserMapper(userClient.Identities(), userClient.Users(), userClient.UserIdentityMappings(), identitymapper.MappingMethodClaim)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -115,10 +99,10 @@ func TestUserInitialization(t *testing.T) {
 		Identity authapi.UserIdentityInfo
 		Mapper   authapi.UserIdentityMapper
 
-		CreateIdentity *api.Identity
-		CreateUser     *api.User
-		CreateMapping  *api.UserIdentityMapping
-		UpdateUser     *api.User
+		CreateIdentity *userapi.Identity
+		CreateUser     *userapi.User
+		CreateMapping  *userapi.UserIdentityMapping
+		UpdateUser     *userapi.User
 
 		ExpectedErr        error
 		ExpectedUserName   string
@@ -129,7 +113,7 @@ func TestUserInitialization(t *testing.T) {
 			Identity: makeIdentityInfo("idp", "bob", nil),
 			Mapper:   lookup,
 
-			ExpectedErr: kerrs.NewNotFound("UserIdentityMapping", "idp:bob"),
+			ExpectedErr: identitymapper.NewLookupError(makeIdentityInfo("idp", "bob", nil), kerrs.NewNotFound(userapi.Resource("useridentitymapping"), "idp:bob")),
 		},
 		"lookup existing identity": {
 			Identity: makeIdentityInfo("idp", "bob", nil),
@@ -190,7 +174,7 @@ func TestUserInitialization(t *testing.T) {
 
 			CreateIdentity: makeIdentity("idp", "bob"),
 
-			ExpectedErr: kerrs.NewNotFound("UserIdentityMapping", "idp:bob"),
+			ExpectedErr: kerrs.NewNotFound(userapi.Resource("useridentitymapping"), "idp:bob"),
 		},
 		"generate with existing mapped identity with invalid user UID": {
 			Identity: makeIdentityInfo("idp", "bob", nil),
@@ -199,7 +183,7 @@ func TestUserInitialization(t *testing.T) {
 			CreateUser:     makeUser("mappeduser"),
 			CreateIdentity: makeIdentityWithUserReference("idp", "bob", "mappeduser", "invalidUID"),
 
-			ExpectedErr:        kerrs.NewNotFound("UserIdentityMapping", "idp:bob"),
+			ExpectedErr:        kerrs.NewNotFound(userapi.Resource("useridentitymapping"), "idp:bob"),
 			ExpectedIdentities: []string{"idp:bob"},
 		},
 		"generate with existing mapped identity without user backreference": {
@@ -212,7 +196,7 @@ func TestUserInitialization(t *testing.T) {
 			// Update user to a version which does not reference the identity
 			UpdateUser: makeUser("mappeduser"),
 
-			ExpectedErr: kerrs.NewNotFound("UserIdentityMapping", "idp:bob"),
+			ExpectedErr: kerrs.NewNotFound(userapi.Resource("useridentitymapping"), "idp:bob"),
 		},
 		"generate returns existing mapping": {
 			Identity: makeIdentityInfo("idp", "bob", nil),
@@ -274,7 +258,7 @@ func TestUserInitialization(t *testing.T) {
 
 			CreateIdentity: makeIdentity("idp", "bob"),
 
-			ExpectedErr: kerrs.NewNotFound("UserIdentityMapping", "idp:bob"),
+			ExpectedErr: kerrs.NewNotFound(userapi.Resource("useridentitymapping"), "idp:bob"),
 		},
 		"add with existing mapped identity with invalid user UID": {
 			Identity: makeIdentityInfo("idp", "bob", nil),
@@ -283,7 +267,7 @@ func TestUserInitialization(t *testing.T) {
 			CreateUser:     makeUser("mappeduser"),
 			CreateIdentity: makeIdentityWithUserReference("idp", "bob", "mappeduser", "invalidUID"),
 
-			ExpectedErr: kerrs.NewNotFound("UserIdentityMapping", "idp:bob"),
+			ExpectedErr: kerrs.NewNotFound(userapi.Resource("useridentitymapping"), "idp:bob"),
 		},
 		"add with existing mapped identity without user backreference": {
 			Identity: makeIdentityInfo("idp", "bob", nil),
@@ -295,7 +279,7 @@ func TestUserInitialization(t *testing.T) {
 			// Update user to a version which does not reference the identity
 			UpdateUser: makeUser("mappeduser"),
 
-			ExpectedErr: kerrs.NewNotFound("UserIdentityMapping", "idp:bob"),
+			ExpectedErr: kerrs.NewNotFound(userapi.Resource("useridentitymapping"), "idp:bob"),
 		},
 		"add returns existing mapping": {
 			Identity: makeIdentityInfo("idp", "bob", nil),
@@ -364,7 +348,7 @@ func TestUserInitialization(t *testing.T) {
 
 			CreateIdentity: makeIdentity("idp", "bob"),
 
-			ExpectedErr: kerrs.NewNotFound("UserIdentityMapping", "idp:bob"),
+			ExpectedErr: kerrs.NewNotFound(userapi.Resource("useridentitymapping"), "idp:bob"),
 		},
 		"claim with existing mapped identity with invalid user UID": {
 			Identity: makeIdentityInfo("idp", "bob", nil),
@@ -373,7 +357,7 @@ func TestUserInitialization(t *testing.T) {
 			CreateUser:     makeUser("mappeduser"),
 			CreateIdentity: makeIdentityWithUserReference("idp", "bob", "mappeduser", "invalidUID"),
 
-			ExpectedErr: kerrs.NewNotFound("UserIdentityMapping", "idp:bob"),
+			ExpectedErr: kerrs.NewNotFound(userapi.Resource("useridentitymapping"), "idp:bob"),
 		},
 		"claim with existing mapped identity without user backreference": {
 			Identity: makeIdentityInfo("idp", "bob", nil),
@@ -385,7 +369,7 @@ func TestUserInitialization(t *testing.T) {
 			// Update user to a version which does not reference the identity
 			UpdateUser: makeUser("mappeduser"),
 
-			ExpectedErr: kerrs.NewNotFound("UserIdentityMapping", "idp:bob"),
+			ExpectedErr: kerrs.NewNotFound(userapi.Resource("useridentitymapping"), "idp:bob"),
 		},
 		"claim returns existing mapping": {
 			Identity: makeIdentityInfo("idp", "bob", nil),
@@ -400,32 +384,37 @@ func TestUserInitialization(t *testing.T) {
 		},
 	}
 
+	client, err := etcd.MakeEtcdClientV3(masterConfig.EtcdClientInfo)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	for k, testcase := range testcases {
 		// Cleanup
-		if _, err := etcdClient.Delete(path.Join(masterConfig.EtcdStorageConfig.OpenShiftStoragePrefix, useretcd.EtcdPrefix), true); err != nil && !etcdstorage.IsEtcdNotFound(err) {
+		if _, err := client.KV.Delete(context.Background(), path.Join("/", masterConfig.EtcdStorageConfig.OpenShiftStoragePrefix, "/users"), clientv3.WithPrefix()); err != nil {
 			t.Fatalf("Could not clean up users: %v", err)
 		}
-		if _, err := etcdClient.Delete(path.Join(masterConfig.EtcdStorageConfig.OpenShiftStoragePrefix, identityetcd.EtcdPrefix), true); err != nil && !etcdstorage.IsEtcdNotFound(err) {
+		if _, err := client.KV.Delete(context.Background(), path.Join("/", masterConfig.EtcdStorageConfig.OpenShiftStoragePrefix, "/useridentities"), clientv3.WithPrefix()); err != nil {
 			t.Fatalf("Could not clean up identities: %v", err)
 		}
 
 		// Pre-create items
 		if testcase.CreateUser != nil {
-			_, err := clusterAdminClient.Users().Create(testcase.CreateUser)
+			_, err := userClient.Users().Create(testcase.CreateUser)
 			if err != nil {
 				t.Errorf("%s: Could not create user: %v", k, err)
 				continue
 			}
 		}
 		if testcase.CreateIdentity != nil {
-			_, err := clusterAdminClient.Identities().Create(testcase.CreateIdentity)
+			_, err := userClient.Identities().Create(testcase.CreateIdentity)
 			if err != nil {
 				t.Errorf("%s: Could not create identity: %v", k, err)
 				continue
 			}
 		}
 		if testcase.CreateMapping != nil {
-			_, err := clusterAdminClient.UserIdentityMappings().Update(testcase.CreateMapping)
+			_, err := userClient.UserIdentityMappings().Update(testcase.CreateMapping)
 			if err != nil {
 				t.Errorf("%s: Could not create mapping: %v", k, err)
 				continue
@@ -433,14 +422,14 @@ func TestUserInitialization(t *testing.T) {
 		}
 		if testcase.UpdateUser != nil {
 			if testcase.UpdateUser.ResourceVersion == "" {
-				existingUser, err := clusterAdminClient.Users().Get(testcase.UpdateUser.Name)
+				existingUser, err := userClient.Users().Get(testcase.UpdateUser.Name, metav1.GetOptions{})
 				if err != nil {
 					t.Errorf("%s: Could not get user to update: %v", k, err)
 					continue
 				}
 				testcase.UpdateUser.ResourceVersion = existingUser.ResourceVersion
 			}
-			_, err := clusterAdminClient.Users().Update(testcase.UpdateUser)
+			_, err := userClient.Users().Update(testcase.UpdateUser)
 			if err != nil {
 				t.Errorf("%s: Could not update user: %v", k, err)
 				continue
@@ -473,7 +462,7 @@ func TestUserInitialization(t *testing.T) {
 					return
 				}
 
-				user, err := clusterAdminClient.Users().Get(userInfo.GetName())
+				user, err := userClient.Users().Get(userInfo.GetName(), metav1.GetOptions{})
 				if err != nil {
 					t.Errorf("%s: Error getting user: %v", k, err)
 				}

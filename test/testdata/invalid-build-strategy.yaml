@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Template
+objects:
+- apiVersion: v1
+  kind: BuildConfig
+  spec:
+    strategy:
+      type: foobar

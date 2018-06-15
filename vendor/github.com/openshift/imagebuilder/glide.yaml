@@ -1,0 +1,35 @@
+package: github.com/openshift/imagebuilder
+import:
+- package: github.com/docker/docker
+  version: b68221c37ee597950364788204546f9c9d0e46a1
+  subpackages:
+  - api/types
+  - api/types/blkiodev
+  - api/types/container
+  - api/types/filters
+  - api/types/mount
+  - api/types/network
+  - api/types/registry
+  - api/types/strslice
+  - api/types/swarm
+  - api/types/swarm/runtime
+  - api/types/versions
+  - builder/dockerfile/command
+  - builder/dockerfile/parser
+  - opts
+  - pkg/archive
+  - pkg/fileutils
+  - pkg/homedir
+  - pkg/idtools
+  - pkg/ioutils
+  - pkg/jsonmessage
+  - pkg/longpath
+  - pkg/mount
+  - pkg/pools
+  - pkg/stdcopy
+  - pkg/system
+  - pkg/term
+  - pkg/term/windows
+- package: github.com/fsouza/go-dockerclient
+  repo: https://github.com/openshift/go-dockerclient.git
+  version: openshift-3.9

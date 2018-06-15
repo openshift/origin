@@ -12,7 +12,7 @@ echo "This command will update Origin with the latest stable_proposed branch or 
 echo "in your OpenShift fork of Kubernetes."
 echo
 echo "This command is destructive and will alter the contents of your GOPATH projects"
-echo 
+echo
 echo "Hit ENTER to continue or CTRL+C to cancel"
 read
 
@@ -32,7 +32,7 @@ popd > /dev/null
 pushd $GOPATH/src/k8s.io/kubernetes > /dev/null
 git checkout stable_proposed
 echo "Restoring any newer Kubernetes dependencies ..."
-rm -rf _output Godeps/_workspace/pkg
+rm -rf _output
 godep restore
 popd > /dev/null
 

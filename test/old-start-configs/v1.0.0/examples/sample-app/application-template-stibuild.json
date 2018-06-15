@@ -1,6 +1,6 @@
 {
   "kind": "Template",
-  "apiVersion": "v1beta3",
+  "apiVersion": "v1",
   "metadata": {
     "name": "ruby-helloworld-sample",
     "creationTimestamp": null,
@@ -13,7 +13,7 @@
   "objects": [
     {
       "kind": "Service",
-      "apiVersion": "v1beta3",
+      "apiVersion": "v1",
       "metadata": {
         "name": "frontend",
         "creationTimestamp": null
@@ -31,7 +31,6 @@
         "selector": {
           "name": "frontend"
         },
-        "portalIP": "",
         "type": "ClusterIP",
         "sessionAffinity": "None"
       },
@@ -41,7 +40,7 @@
     },
     {
       "kind": "Route",
-      "apiVersion": "v1beta3",
+      "apiVersion": "v1",
       "metadata": {
         "name": "route-edge",
         "creationTimestamp": null
@@ -63,7 +62,7 @@
     },
     {
       "kind": "ImageStream",
-      "apiVersion": "v1beta3",
+      "apiVersion": "v1",
       "metadata": {
         "name": "origin-ruby-sample",
         "creationTimestamp": null
@@ -75,13 +74,13 @@
     },
     {
       "kind": "ImageStream",
-      "apiVersion": "v1beta3",
+      "apiVersion": "v1",
       "metadata": {
         "name": "ruby-20-centos7",
         "creationTimestamp": null
       },
       "spec": {
-        "dockerImageRepository": "openshift/ruby-20-centos7"
+        "dockerImageRepository": "centos/ruby-22-centos7"
       },
       "status": {
         "dockerImageRepository": ""
@@ -89,7 +88,7 @@
     },
     {
       "kind": "BuildConfig",
-      "apiVersion": "v1beta3",
+      "apiVersion": "v1",
       "metadata": {
         "name": "ruby-sample-build",
         "creationTimestamp": null,
@@ -146,7 +145,7 @@
     },
     {
       "kind": "DeploymentConfig",
-      "apiVersion": "v1beta3",
+      "apiVersion": "v1",
       "metadata": {
         "name": "frontend",
         "creationTimestamp": null
@@ -274,7 +273,7 @@
     },
     {
       "kind": "Service",
-      "apiVersion": "v1beta3",
+      "apiVersion": "v1",
       "metadata": {
         "name": "database",
         "creationTimestamp": null
@@ -292,7 +291,6 @@
         "selector": {
           "name": "database"
         },
-        "portalIP": "",
         "type": "ClusterIP",
         "sessionAffinity": "None"
       },
@@ -302,7 +300,7 @@
     },
     {
       "kind": "DeploymentConfig",
-      "apiVersion": "v1beta3",
+      "apiVersion": "v1",
       "metadata": {
         "name": "database",
         "creationTimestamp": null
@@ -364,7 +362,7 @@
             "containers": [
               {
                 "name": "ruby-helloworld-database",
-                "image": "openshift/mysql-55-centos7:latest",
+                "image": "centos/mysql-56-centos7:latest",
                 "ports": [
                   {
                     "containerPort": 3306,

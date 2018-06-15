@@ -1,0 +1,50 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<project>
+  <actions/>
+  <description></description>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <io.fabric8.jenkins.openshiftsync.BuildConfigProjectProperty plugin="openshift-sync@0.0.13">
+      <uid></uid>
+      <namespace></namespace>
+      <name></name>
+      <resourceVersion></resourceVersion>
+      <contextDir></contextDir>
+    </io.fabric8.jenkins.openshiftsync.BuildConfigProjectProperty>
+  </properties>
+  <scm class="com.openshift.jenkins.plugins.pipeline.OpenShiftImageStreams" plugin="openshift-pipeline@1.0.23">
+    <imageStreamName>testimage</imageStreamName>
+    <tag>v1</tag>
+    <apiURL></apiURL>
+    <namespace>${PROJECT_NAME}</namespace>
+    <authToken></authToken>
+  </scm>
+  <canRoam>true</canRoam>
+  <disabled>false</disabled>
+  <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
+  <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
+  <triggers>
+    <hudson.triggers.SCMTrigger>
+      <spec>* * * * *</spec>
+      <ignorePostCommitHooks>false</ignorePostCommitHooks>
+    </hudson.triggers.SCMTrigger>
+  </triggers>
+  <concurrentBuild>false</concurrentBuild>
+  <builders>
+    <com.openshift.jenkins.plugins.pipeline.OpenShiftImageTagger plugin="openshift-pipeline@1.0.23">
+      <apiURL></apiURL>
+      <namespace>openshift</namespace>
+      <authToken></authToken>
+      <verbose>false</verbose>
+      <testTag>latest</testTag>
+      <prodTag>develop</prodTag>
+      <testStream>jenkins</testStream>
+      <prodStream>localjenkins</prodStream>
+      <destinationNamespace>${PROJECT_NAME}</destinationNamespace>
+      <destinationAuthToken></destinationAuthToken>
+      <alias>false</alias>
+    </com.openshift.jenkins.plugins.pipeline.OpenShiftImageTagger>
+  </builders>
+  <publishers/>
+  <buildWrappers/>
+</project>

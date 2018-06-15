@@ -2,67 +2,65 @@ package etcd
 
 import (
 	"errors"
+	"strings"
 
-	kapi "k8s.io/kubernetes/pkg/api"
-	kerrs "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
-	"k8s.io/kubernetes/pkg/registry/generic"
-	etcdgeneric "k8s.io/kubernetes/pkg/registry/generic/etcd"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/storage"
-	"k8s.io/kubernetes/pkg/util/fielderrors"
-	"k8s.io/kubernetes/pkg/util/sets"
+	kerrs "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/validation/field"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/registry/generic"
+	"k8s.io/apiserver/pkg/registry/generic/registry"
+	"k8s.io/apiserver/pkg/registry/rest"
+	"k8s.io/kubernetes/pkg/printers"
+	printerstorage "k8s.io/kubernetes/pkg/printers/storage"
 
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	"github.com/openshift/origin/pkg/user/api"
-	"github.com/openshift/origin/pkg/user/api/validation"
+	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
+	userapi "github.com/openshift/origin/pkg/user/apis/user"
+	"github.com/openshift/origin/pkg/user/apis/user/validation"
 	"github.com/openshift/origin/pkg/user/registry/user"
-	"github.com/openshift/origin/pkg/util"
+	"github.com/openshift/origin/pkg/util/restoptions"
 )
 
 // rest implements a RESTStorage for users against etcd
 type REST struct {
-	etcdgeneric.Etcd
+	*registry.Store
 }
 
-const EtcdPrefix = "/users"
+var _ rest.StandardStorage = &REST{}
 
 // NewREST returns a RESTStorage object that will work against users
-func NewREST(s storage.Interface) *REST {
-	store := &etcdgeneric.Etcd{
-		NewFunc:     func() runtime.Object { return &api.User{} },
-		NewListFunc: func() runtime.Object { return &api.UserList{} },
-		KeyRootFunc: func(ctx kapi.Context) string {
-			return EtcdPrefix
-		},
-		KeyFunc: func(ctx kapi.Context, name string) (string, error) {
-			return util.NoNamespaceKeyFunc(ctx, EtcdPrefix, name)
-		},
-		ObjectNameFunc: func(obj runtime.Object) (string, error) {
-			return obj.(*api.User).Name, nil
-		},
-		PredicateFunc: func(label labels.Selector, field fields.Selector) generic.Matcher {
-			return user.MatchUser(label, field)
-		},
-		EndpointName: "users",
+func NewREST(optsGetter restoptions.Getter) (*REST, error) {
+	store := &registry.Store{
+		NewFunc:                  func() runtime.Object { return &userapi.User{} },
+		NewListFunc:              func() runtime.Object { return &userapi.UserList{} },
+		DefaultQualifiedResource: userapi.Resource("users"),
 
-		Storage: s,
+		TableConvertor: printerstorage.TableConvertor{TablePrinter: printers.NewTablePrinter().With(printersinternal.AddHandlers)},
+
+		CreateStrategy: user.Strategy,
+		UpdateStrategy: user.Strategy,
+		DeleteStrategy: user.Strategy,
 	}
 
-	store.CreateStrategy = user.Strategy
-	store.UpdateStrategy = user.Strategy
+	options := &generic.StoreOptions{RESTOptions: optsGetter}
+	if err := store.CompleteWithOptions(options); err != nil {
+		return nil, err
+	}
 
-	return &REST{*store}
+	return &REST{store}, nil
 }
 
 // Get retrieves the item from etcd.
-func (r *REST) Get(ctx kapi.Context, name string) (runtime.Object, error) {
+func (r *REST) Get(ctx apirequest.Context, name string, options *metav1.GetOptions) (runtime.Object, error) {
 	// "~" means the currently authenticated user
 	if name == "~" {
-		user, ok := kapi.UserFrom(ctx)
+		user, ok := apirequest.UserFrom(ctx)
 		if !ok || user.GetName() == "" {
-			return nil, kerrs.NewForbidden("user", "~", errors.New("requests to ~ must be authenticated"))
+			return nil, kerrs.NewForbidden(userapi.Resource("user"), "~", errors.New("requests to ~ must be authenticated"))
 		}
 		name = user.GetName()
 
@@ -70,27 +68,36 @@ func (r *REST) Get(ctx kapi.Context, name string) (runtime.Object, error) {
 		contextGroups := sets.NewString(user.GetGroups()...)
 		contextGroups.Delete(bootstrappolicy.UnauthenticatedGroup, bootstrappolicy.AuthenticatedGroup)
 
-		if ok, _ := validation.ValidateUserName(name, false); !ok {
-			// The user the authentication layer has identified cannot possibly be a persisted user
+		// build a virtual user object using the context data
+		virtualUser := &userapi.User{ObjectMeta: metav1.ObjectMeta{Name: name, UID: types.UID(user.GetUID())}, Groups: contextGroups.List()}
+
+		if reasons := validation.ValidateUserName(name, false); len(reasons) != 0 {
+			// The user the authentication layer has identified cannot be a valid persisted user
 			// Return an API representation of the virtual user
-			return &api.User{ObjectMeta: kapi.ObjectMeta{Name: name}, Groups: contextGroups.List()}, nil
+			return virtualUser, nil
 		}
 
-		obj, err := r.Etcd.Get(ctx, name)
+		// see if the context user exists in storage
+		obj, err := r.Store.Get(ctx, name, options)
+
+		// valid persisted user
 		if err == nil {
 			return obj, nil
 		}
 
+		// server is broken
 		if !kerrs.IsNotFound(err) {
-			return nil, err
+			return nil, kerrs.NewInternalError(err)
 		}
 
-		return &api.User{ObjectMeta: kapi.ObjectMeta{Name: name}, Groups: contextGroups.List()}, nil
+		// impersonation, remote token authn, etc
+		return virtualUser, nil
 	}
 
-	if ok, details := validation.ValidateUserName(name, false); !ok {
-		return nil, fielderrors.NewFieldInvalid("metadata.name", name, details)
+	// do not bother looking up users that cannot be persisted
+	if reasons := validation.ValidateUserName(name, false); len(reasons) != 0 {
+		return nil, field.Invalid(field.NewPath("metadata", "name"), name, strings.Join(reasons, ", "))
 	}
 
-	return r.Etcd.Get(ctx, name)
+	return r.Store.Get(ctx, name, options)
 }

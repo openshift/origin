@@ -1,0 +1,18 @@
+{
+  "kind": "Image",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "test",
+    "creationTimestamp": null
+  },
+  "dockerImageReference": "openshift/ruby-19-centos:latest",
+  "dockerImageMetadata": {
+    "kind": "DockerImage",
+    "apiVersion": "1.0",
+    "Id": "",
+    "Created": null,
+    "ContainerConfig": {},
+    "Config": {}
+  },
+  "dockerImageMetadataVersion": "1.0"
+}

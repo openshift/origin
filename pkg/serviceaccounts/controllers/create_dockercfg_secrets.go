@@ -3,31 +3,48 @@ package controllers
 import (
 	"encoding/json"
 	"fmt"
-	"reflect"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/golang/glog"
-	"k8s.io/kubernetes/pkg/api"
-	kapierrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/client/cache"
-	client "k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/pkg/controller/framework"
-	"k8s.io/kubernetes/pkg/credentialprovider"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
-	"k8s.io/kubernetes/pkg/registry/secret"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util"
-	"k8s.io/kubernetes/pkg/util/sets"
-	"k8s.io/kubernetes/pkg/util/wait"
-	"k8s.io/kubernetes/pkg/watch"
 
-	"github.com/openshift/origin/pkg/util/namer"
+	"k8s.io/api/core/v1"
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/wait"
+	informers "k8s.io/client-go/informers/core/v1"
+	kclientset "k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/util/retry"
+	"k8s.io/client-go/util/workqueue"
+	"k8s.io/kubernetes/pkg/controller"
+	"k8s.io/kubernetes/pkg/credentialprovider"
+	"k8s.io/kubernetes/pkg/registry/core/secret"
+
+	oapi "github.com/openshift/origin/pkg/api"
+	osautil "github.com/openshift/origin/pkg/serviceaccounts/util"
 )
 
-const ServiceAccountTokenSecretNameKey = "openshift.io/token-secret.name"
+const (
+	ServiceAccountTokenSecretNameKey = "openshift.io/token-secret.name"
+	MaxRetriesBeforeResync           = 5
+
+	// ServiceAccountTokenValueAnnotation stores the actual value of the token so that a dockercfg secret can be
+	// made without having a value dockerURL
+	ServiceAccountTokenValueAnnotation = "openshift.io/token-secret.value"
+
+	// CreateDockercfgSecretsController is the name of this controller that should be
+	// attached to all token secrets this controller create
+	CreateDockercfgSecretsController = "openshift.io/create-dockercfg-secrets"
+
+	// PendingTokenAnnotation contains the name of the token secret that is waiting for the
+	// token data population
+	PendingTokenAnnotation = "openshift.io/create-dockercfg-secrets.pending-token"
+)
 
 // DockercfgControllerOptions contains options for the DockercfgController
 type DockercfgControllerOptions struct {
@@ -35,309 +52,462 @@ type DockercfgControllerOptions struct {
 	// If zero, re-list will be delayed as long as possible
 	Resync time.Duration
 
-	DefaultDockerURL string
+	// DockerURLsInitialized is used to send a signal to this controller that it has the correct set of docker urls
+	// This is normally signaled from the DockerRegistryServiceController which watches for updates to the internal
+	// docker registry service.
+	DockerURLsInitialized chan struct{}
 }
 
 // NewDockercfgController returns a new *DockercfgController.
-func NewDockercfgController(cl client.Interface, options DockercfgControllerOptions) *DockercfgController {
+func NewDockercfgController(serviceAccounts informers.ServiceAccountInformer, secrets informers.SecretInformer, cl kclientset.Interface, options DockercfgControllerOptions) *DockercfgController {
 	e := &DockercfgController{
 		client: cl,
+		queue:  workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
+		dockerURLsInitialized: options.DockerURLsInitialized,
 	}
 
-	_, e.serviceAccountController = framework.NewInformer(
-		&cache.ListWatch{
-			ListFunc: func() (runtime.Object, error) {
-				return e.client.ServiceAccounts(api.NamespaceAll).List(labels.Everything(), fields.Everything())
+	serviceAccountCache := serviceAccounts.Informer().GetStore()
+	e.serviceAccountController = serviceAccounts.Informer().GetController()
+	serviceAccounts.Informer().AddEventHandlerWithResyncPeriod(
+		cache.ResourceEventHandlerFuncs{
+			AddFunc: func(obj interface{}) {
+				serviceAccount := obj.(*v1.ServiceAccount)
+				glog.V(5).Infof("Adding service account %s", serviceAccount.Name)
+				e.enqueueServiceAccount(serviceAccount)
 			},
-			WatchFunc: func(rv string) (watch.Interface, error) {
-				return e.client.ServiceAccounts(api.NamespaceAll).Watch(labels.Everything(), fields.Everything(), rv)
+			UpdateFunc: func(old, cur interface{}) {
+				serviceAccount := cur.(*v1.ServiceAccount)
+				glog.V(5).Infof("Updating service account %s", serviceAccount.Name)
+				// Resync on service object relist.
+				e.enqueueServiceAccount(serviceAccount)
 			},
 		},
-		&api.ServiceAccount{},
 		options.Resync,
-		framework.ResourceEventHandlerFuncs{
-			AddFunc:    e.serviceAccountAdded,
-			UpdateFunc: e.serviceAccountUpdated,
-		},
 	)
+	e.serviceAccountCache = NewEtcdMutationCache(serviceAccountCache)
 
-	e.dockerURL = options.DefaultDockerURL
+	e.secretCache = secrets.Informer().GetIndexer()
+	e.secretController = secrets.Informer().GetController()
+	secrets.Informer().AddEventHandlerWithResyncPeriod(
+		cache.FilteringResourceEventHandler{
+			FilterFunc: func(obj interface{}) bool {
+				switch t := obj.(type) {
+				case *v1.Secret:
+					return t.Type == v1.SecretTypeServiceAccountToken
+				default:
+					utilruntime.HandleError(fmt.Errorf("object passed to %T that is not expected: %T", e, obj))
+					return false
+				}
+			},
+			Handler: cache.ResourceEventHandlerFuncs{
+				AddFunc:    func(cur interface{}) { e.handleTokenSecretUpdate(nil, cur) },
+				UpdateFunc: func(old, cur interface{}) { e.handleTokenSecretUpdate(old, cur) },
+				DeleteFunc: e.handleTokenSecretDelete,
+			},
+		},
+		options.Resync,
+	)
+	e.syncHandler = e.syncServiceAccount
 
 	return e
 }
 
 // DockercfgController manages dockercfg secrets for ServiceAccount objects
 type DockercfgController struct {
-	stopChan chan struct{}
+	client kclientset.Interface
 
-	client client.Interface
+	dockerURLLock         sync.Mutex
+	dockerURLs            []string
+	dockerURLsInitialized chan struct{}
 
-	dockerURL     string
-	dockerURLLock sync.Mutex
+	serviceAccountCache      MutationCache
+	serviceAccountController cache.Controller
+	secretCache              cache.Store
+	secretController         cache.Controller
 
-	serviceAccountController *framework.Controller
+	queue workqueue.RateLimitingInterface
+
+	// syncHandler does the work. It's factored out for unit testing
+	syncHandler func(serviceKey string) error
 }
 
-// Runs controller loops and returns immediately
-func (e *DockercfgController) Run() {
-	if e.stopChan == nil {
-		e.stopChan = make(chan struct{})
-		go e.serviceAccountController.Run(e.stopChan)
+// handleTokenSecretUpdate checks if the service account token secret is populated with
+// token data and triggers re-sync of service account when the data are observed.
+func (e *DockercfgController) handleTokenSecretUpdate(oldObj, newObj interface{}) {
+	secret := newObj.(*v1.Secret)
+	if secret.Annotations[oapi.DeprecatedKubeCreatedByAnnotation] != CreateDockercfgSecretsController {
+		return
+	}
+	isPopulated := len(secret.Data[v1.ServiceAccountTokenKey]) > 0
+
+	wasPopulated := false
+	if oldObj != nil {
+		oldSecret := oldObj.(*v1.Secret)
+		wasPopulated = len(oldSecret.Data[v1.ServiceAccountTokenKey]) > 0
+		glog.V(5).Infof("Updating token secret %s/%s", secret.Namespace, secret.Name)
+	} else {
+		glog.V(5).Infof("Adding token secret %s/%s", secret.Namespace, secret.Name)
+	}
+
+	if !wasPopulated && isPopulated {
+		e.enqueueServiceAccountForToken(secret)
 	}
 }
 
-// Stop gracefully shuts down this controller
-func (e *DockercfgController) Stop() {
-	if e.stopChan != nil {
-		close(e.stopChan)
-		e.stopChan = nil
+// handleTokenSecretDelete handles token secrets deletion and re-sync the service account
+// which will cause a token to be re-created.
+func (e *DockercfgController) handleTokenSecretDelete(obj interface{}) {
+	secret, isSecret := obj.(*v1.Secret)
+	if !isSecret {
+		tombstone, objIsTombstone := obj.(cache.DeletedFinalStateUnknown)
+		if !objIsTombstone {
+			glog.V(2).Infof("Expected tombstone object when deleting token, got %v", obj)
+			return
+		}
+		secret, isSecret = tombstone.Obj.(*v1.Secret)
+		if !isSecret {
+			glog.V(2).Infof("Expected tombstone object to contain secret, got: %v", obj)
+			return
+		}
+	}
+	if secret.Annotations[oapi.DeprecatedKubeCreatedByAnnotation] != CreateDockercfgSecretsController {
+		return
+	}
+	if len(secret.Data[v1.ServiceAccountTokenKey]) > 0 {
+		// Let deleted_token_secrets handle deletion of populated tokens
+		return
+	}
+	e.enqueueServiceAccountForToken(secret)
+}
+
+func (e *DockercfgController) enqueueServiceAccountForToken(tokenSecret *v1.Secret) {
+	serviceAccount := &v1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      tokenSecret.Annotations[v1.ServiceAccountNameKey],
+			Namespace: tokenSecret.Namespace,
+			UID:       types.UID(tokenSecret.Annotations[v1.ServiceAccountUIDKey]),
+		},
+	}
+	key, err := controller.KeyFunc(serviceAccount)
+	if err != nil {
+		utilruntime.HandleError(fmt.Errorf("error syncing token secret %s/%s: %v", tokenSecret.Namespace, tokenSecret.Name, err))
+		return
+	}
+	e.queue.Add(key)
+}
+
+func (e *DockercfgController) Run(workers int, stopCh <-chan struct{}) {
+	defer utilruntime.HandleCrash()
+	defer e.queue.ShutDown()
+
+	glog.Infof("Starting DockercfgController controller")
+	defer glog.Infof("Shutting down DockercfgController controller")
+
+	// Wait for the store to sync before starting any work in this controller.
+	ready := make(chan struct{})
+	go e.waitForDockerURLs(ready, stopCh)
+	select {
+	case <-ready:
+	case <-stopCh:
+		return
+	}
+	glog.V(1).Infof("urls found")
+
+	// Wait for the stores to fill
+	if !cache.WaitForCacheSync(stopCh, e.serviceAccountController.HasSynced, e.secretController.HasSynced) {
+		return
+	}
+	glog.V(1).Infof("caches synced")
+
+	for i := 0; i < workers; i++ {
+		go wait.Until(e.worker, time.Second, stopCh)
+	}
+	<-stopCh
+}
+
+func (c *DockercfgController) waitForDockerURLs(ready chan<- struct{}, stopCh <-chan struct{}) {
+	defer utilruntime.HandleCrash()
+
+	// wait for the initialization to complete to be informed of a stop
+	select {
+	case <-c.dockerURLsInitialized:
+	case <-stopCh:
+		return
+	}
+
+	close(ready)
+}
+
+func (e *DockercfgController) enqueueServiceAccount(serviceAccount *v1.ServiceAccount) {
+	if !needsDockercfgSecret(serviceAccount) {
+		return
+	}
+
+	key, err := controller.KeyFunc(serviceAccount)
+	if err != nil {
+		glog.Errorf("Couldn't get key for object %+v: %v", serviceAccount, err)
+		return
+	}
+
+	e.queue.Add(key)
+}
+
+// worker runs a worker thread that just dequeues items, processes them, and marks them done.
+// It enforces that the syncHandler is never invoked concurrently with the same key.
+func (e *DockercfgController) worker() {
+	for {
+		if !e.work() {
+			return
+		}
 	}
 }
 
-func (e *DockercfgController) SetDockerURL(newDockerURL string) {
+// work returns true if the worker thread should continue
+func (e *DockercfgController) work() bool {
+	key, quit := e.queue.Get()
+	if quit {
+		return false
+	}
+	defer e.queue.Done(key)
+
+	if err := e.syncHandler(key.(string)); err == nil {
+		// this means the request was successfully handled.  We should "forget" the item so that any retry
+		// later on is reset
+		e.queue.Forget(key)
+
+	} else {
+		// if we had an error it means that we didn't handle it, which means that we want to requeue the work
+		if e.queue.NumRequeues(key) > MaxRetriesBeforeResync {
+			utilruntime.HandleError(fmt.Errorf("error syncing service, it will be tried again on a resync %v: %v", key, err))
+			e.queue.Forget(key)
+		} else {
+			glog.V(4).Infof("error syncing service, it will be retried %v: %v", key, err)
+			e.queue.AddRateLimited(key)
+		}
+	}
+
+	return true
+}
+
+func (e *DockercfgController) SetDockerURLs(newDockerURLs ...string) {
 	e.dockerURLLock.Lock()
 	defer e.dockerURLLock.Unlock()
 
-	e.dockerURL = newDockerURL
+	e.dockerURLs = newDockerURLs
 }
 
-// serviceAccountAdded reacts to a ServiceAccount creation by creating a corresponding ServiceAccountToken Secret
-func (e *DockercfgController) serviceAccountAdded(obj interface{}) {
-	serviceAccount := obj.(*api.ServiceAccount)
-
-	if err := e.createDockercfgSecretIfNeeded(serviceAccount); err != nil {
-		util.HandleError(err)
-	}
-}
-
-// serviceAccountUpdated reacts to a ServiceAccount update (or re-list) by ensuring a corresponding ServiceAccountToken Secret exists
-func (e *DockercfgController) serviceAccountUpdated(oldObj interface{}, newObj interface{}) {
-	newServiceAccount := newObj.(*api.ServiceAccount)
-
-	if err := e.createDockercfgSecretIfNeeded(newServiceAccount); err != nil {
-		util.HandleError(err)
-	}
-}
-
-const (
-	// These constants are here to create a name that is short enough to survive chopping by generate name
-	maxNameLength             = 63
-	randomLength              = 5
-	maxSecretPrefixNameLength = maxNameLength - randomLength
-)
-
-func getDockercfgSecretNamePrefix(serviceAccount *api.ServiceAccount) string {
-	return namer.GetName(serviceAccount.Name, "dockercfg-", maxSecretPrefixNameLength)
-}
-func getTokenSecretNamePrefix(serviceAccount *api.ServiceAccount) string {
-	return namer.GetName(serviceAccount.Name, "token-", maxSecretPrefixNameLength)
-}
-
-// createDockercfgSecretIfNeeded makes sure at least one ServiceAccountToken secret exists, and is included in the serviceAccount's Secrets list
-func (e *DockercfgController) createDockercfgSecretIfNeeded(serviceAccount *api.ServiceAccount) error {
-
+func needsDockercfgSecret(serviceAccount *v1.ServiceAccount) bool {
 	mountableDockercfgSecrets, imageDockercfgPullSecrets := getGeneratedDockercfgSecretNames(serviceAccount)
 
 	// look for an ImagePullSecret in the form
+	if len(imageDockercfgPullSecrets) > 0 && len(mountableDockercfgSecrets) > 0 {
+		return false
+	}
+
+	return true
+}
+
+func (e *DockercfgController) syncServiceAccount(key string) error {
+	obj, exists, err := e.serviceAccountCache.GetByKey(key)
+	if err != nil {
+		glog.V(4).Infof("Unable to retrieve service account %v from store: %v", key, err)
+		return err
+	}
+	if !exists {
+		glog.V(4).Infof("Service account has been deleted %v", key)
+		return nil
+	}
+	if !needsDockercfgSecret(obj.(*v1.ServiceAccount)) {
+		return nil
+	}
+
+	serviceAccount := obj.(*v1.ServiceAccount).DeepCopyObject().(*v1.ServiceAccount)
+
+	mountableDockercfgSecrets, imageDockercfgPullSecrets := getGeneratedDockercfgSecretNames(serviceAccount)
+
+	// If we have a pull secret in one list, use it for the other.  It must only be in one list because
+	// otherwise we wouldn't "needsDockercfgSecret"
 	foundPullSecret := len(imageDockercfgPullSecrets) > 0
 	foundMountableSecret := len(mountableDockercfgSecrets) > 0
-
-	switch {
-	// if we already have a docker pull secret, simply return
-	case foundPullSecret && foundMountableSecret:
-		return nil
-
-	case foundPullSecret && !foundMountableSecret, !foundPullSecret && foundMountableSecret:
-		dockercfgSecretName := ""
+	if foundPullSecret || foundMountableSecret {
 		switch {
 		case foundPullSecret:
-			dockercfgSecretName = imageDockercfgPullSecrets.List()[0]
+			serviceAccount.Secrets = append(serviceAccount.Secrets, v1.ObjectReference{Name: imageDockercfgPullSecrets.List()[0]})
 		case foundMountableSecret:
-			dockercfgSecretName = mountableDockercfgSecrets.List()[0]
+			serviceAccount.ImagePullSecrets = append(serviceAccount.ImagePullSecrets, v1.LocalObjectReference{Name: mountableDockercfgSecrets.List()[0]})
 		}
+		// Clear the pending token annotation when updating
+		delete(serviceAccount.Annotations, PendingTokenAnnotation)
 
-		err := e.createDockerPullSecretReference(serviceAccount, dockercfgSecretName)
-		if kapierrors.IsConflict(err) {
-			// nothing to do.  Our choice was stale or we got a conflict.  Either way that means that the service account was updated.  We simply need to return because we'll get an update notification later
-			return nil
+		updatedSA, err := e.client.Core().ServiceAccounts(serviceAccount.Namespace).Update(serviceAccount)
+		if err == nil {
+			e.serviceAccountCache.Mutation(updatedSA)
 		}
-
 		return err
-
 	}
 
-	// if we get here, then we need to create a new dockercfg secret
-	// before we do expensive things, make sure our view of the service account is up to date
-	if liveServiceAccount, err := e.client.ServiceAccounts(serviceAccount.Namespace).Get(serviceAccount.Name); err != nil {
-		return err
-	} else if liveServiceAccount.ResourceVersion != serviceAccount.ResourceVersion {
-		// our view of the service account is not up to date
-		// we'll get notified of an update event later and get to try again
-		// this only prevent interactions between successive runs of this controller's event handlers, but that is useful
-		glog.V(2).Infof("View of ServiceAccount %s/%s is not up to date, skipping dockercfg creation", serviceAccount.Namespace, serviceAccount.Name)
-		return nil
-	}
-
-	dockercfgSecret, err := e.createDockerPullSecret(serviceAccount)
+	dockercfgSecret, created, err := e.createDockerPullSecret(serviceAccount)
 	if err != nil {
 		return err
 	}
+	if !created {
+		glog.V(5).Infof("The dockercfg secret was not created for service account %s/%s, will retry", serviceAccount.Namespace, serviceAccount.Name)
+		return nil
+	}
 
-	err = e.createDockerPullSecretReference(serviceAccount, dockercfgSecret.Name)
-	if kapierrors.IsConflict(err) {
+	first := true
+	err = retry.RetryOnConflict(retry.DefaultBackoff, func() error {
+		if !first {
+			obj, exists, err := e.serviceAccountCache.GetByKey(key)
+			if err != nil {
+				return err
+			}
+			if !exists || !needsDockercfgSecret(obj.(*v1.ServiceAccount)) || serviceAccount.UID != obj.(*v1.ServiceAccount).UID {
+				// somehow a dockercfg secret appeared or the SA disappeared.  cleanup the secret we made and return
+				glog.V(2).Infof("Deleting secret because the work is already done %s/%s", dockercfgSecret.Namespace, dockercfgSecret.Name)
+				e.client.Core().Secrets(dockercfgSecret.Namespace).Delete(dockercfgSecret.Name, nil)
+				return nil
+			}
+
+			serviceAccount = obj.(*v1.ServiceAccount).DeepCopyObject().(*v1.ServiceAccount)
+		}
+		first = false
+
+		serviceAccount.Secrets = append(serviceAccount.Secrets, v1.ObjectReference{Name: dockercfgSecret.Name})
+		serviceAccount.ImagePullSecrets = append(serviceAccount.ImagePullSecrets, v1.LocalObjectReference{Name: dockercfgSecret.Name})
+		// Clear the pending token annotation when updating
+		delete(serviceAccount.Annotations, PendingTokenAnnotation)
+
+		updatedSA, err := e.client.Core().ServiceAccounts(serviceAccount.Namespace).Update(serviceAccount)
+		if err == nil {
+			e.serviceAccountCache.Mutation(updatedSA)
+		}
+		return err
+	})
+
+	if err != nil {
 		// nothing to do.  Our choice was stale or we got a conflict.  Either way that means that the service account was updated.  We simply need to return because we'll get an update notification later
 		// we do need to clean up our dockercfgSecret.  token secrets are cleaned up by the controller handling service account dockercfg secret deletes
 		glog.V(2).Infof("Deleting secret %s/%s (err=%v)", dockercfgSecret.Namespace, dockercfgSecret.Name, err)
-		if err := e.client.Secrets(dockercfgSecret.Namespace).Delete(dockercfgSecret.Name); (err != nil) && !kapierrors.IsNotFound(err) {
-			util.HandleError(err)
-		}
-		return nil
+		e.client.Core().Secrets(dockercfgSecret.Namespace).Delete(dockercfgSecret.Name, nil)
 	}
-
 	return err
 }
 
-// createDockerPullSecretReference updates a service account to reference the dockercfgSecret as a Secret and an ImagePullSecret
-func (e *DockercfgController) createDockerPullSecretReference(staleServiceAccount *api.ServiceAccount, dockercfgSecretName string) error {
-	liveServiceAccount, err := e.client.ServiceAccounts(staleServiceAccount.Namespace).Get(staleServiceAccount.Name)
-	if err != nil {
-		return err
-	}
-
-	mountableDockercfgSecrets, imageDockercfgPullSecrets := getGeneratedDockercfgSecretNames(liveServiceAccount)
-	staleDockercfgMountableSecrets, staleImageDockercfgPullSecrets := getGeneratedDockercfgSecretNames(staleServiceAccount)
-
-	// if we're trying to create a reference based on stale lists of dockercfg secrets, let the caller know
-	if !reflect.DeepEqual(staleDockercfgMountableSecrets.List(), mountableDockercfgSecrets.List()) || !reflect.DeepEqual(staleImageDockercfgPullSecrets.List(), imageDockercfgPullSecrets.List()) {
-		return kapierrors.NewConflict("ServiceAccount", staleServiceAccount.Name, fmt.Errorf("cannot add reference to %s based on stale data.  decision made for %v,%v, but live version is %v,%v", dockercfgSecretName, staleDockercfgMountableSecrets.List(), staleImageDockercfgPullSecrets.List(), mountableDockercfgSecrets.List(), imageDockercfgPullSecrets.List()))
-	}
-
-	changed := false
-	if !mountableDockercfgSecrets.Has(dockercfgSecretName) {
-		liveServiceAccount.Secrets = append(liveServiceAccount.Secrets, api.ObjectReference{Name: dockercfgSecretName})
-		changed = true
-	}
-
-	if !imageDockercfgPullSecrets.Has(dockercfgSecretName) {
-		liveServiceAccount.ImagePullSecrets = append(liveServiceAccount.ImagePullSecrets, api.LocalObjectReference{Name: dockercfgSecretName})
-		changed = true
-	}
-
-	if changed {
-		if _, err = e.client.ServiceAccounts(liveServiceAccount.Namespace).Update(liveServiceAccount); err != nil {
-			// TODO: retry on API conflicts in case the conflict was unrelated to our generated dockercfg secrets?
-			return err
-		}
-	}
-	return nil
-}
-
-const (
-	tokenSecretWaitInterval = 20 * time.Millisecond
-	tokenSecretWaitTimes    = 100
-)
-
 // createTokenSecret creates a token secret for a given service account.  Returns the name of the token
-func (e *DockercfgController) createTokenSecret(serviceAccount *api.ServiceAccount) (*api.Secret, error) {
-	tokenSecret := &api.Secret{
-		ObjectMeta: api.ObjectMeta{
-			Name:      secret.Strategy.GenerateName(getTokenSecretNamePrefix(serviceAccount)),
+func (e *DockercfgController) createTokenSecret(serviceAccount *v1.ServiceAccount) (*v1.Secret, bool, error) {
+	pendingTokenName := serviceAccount.Annotations[PendingTokenAnnotation]
+
+	// If this service account has no record of a pending token name, record one
+	if len(pendingTokenName) == 0 {
+		pendingTokenName = secret.Strategy.GenerateName(osautil.GetTokenSecretNamePrefixV1(serviceAccount))
+		if serviceAccount.Annotations == nil {
+			serviceAccount.Annotations = map[string]string{}
+		}
+		serviceAccount.Annotations[PendingTokenAnnotation] = pendingTokenName
+		updatedServiceAccount, err := e.client.Core().ServiceAccounts(serviceAccount.Namespace).Update(serviceAccount)
+		// Conflicts mean we'll get called to sync this service account again
+		if kapierrors.IsConflict(err) {
+			return nil, false, nil
+		}
+		if err != nil {
+			return nil, false, err
+		}
+		serviceAccount = updatedServiceAccount
+	}
+
+	// Return the token from cache
+	existingTokenSecretObj, exists, err := e.secretCache.GetByKey(serviceAccount.Namespace + "/" + pendingTokenName)
+	if err != nil {
+		return nil, false, err
+	}
+	if exists {
+		existingTokenSecret := existingTokenSecretObj.(*v1.Secret)
+		return existingTokenSecret, len(existingTokenSecret.Data[v1.ServiceAccountTokenKey]) > 0, nil
+	}
+
+	// Try to create the named pending token
+	tokenSecret := &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      pendingTokenName,
 			Namespace: serviceAccount.Namespace,
 			Annotations: map[string]string{
-				api.ServiceAccountNameKey: serviceAccount.Name,
-				api.ServiceAccountUIDKey:  string(serviceAccount.UID),
+				v1.ServiceAccountNameKey:               serviceAccount.Name,
+				v1.ServiceAccountUIDKey:                string(serviceAccount.UID),
+				oapi.DeprecatedKubeCreatedByAnnotation: CreateDockercfgSecretsController,
 			},
 		},
-		Type: api.SecretTypeServiceAccountToken,
+		Type: v1.SecretTypeServiceAccountToken,
 		Data: map[string][]byte{},
 	}
 
-	_, err := e.client.Secrets(tokenSecret.Namespace).Create(tokenSecret)
+	glog.V(4).Infof("Creating token secret %q for service account %s/%s", tokenSecret.Name, serviceAccount.Namespace, serviceAccount.Name)
+	token, err := e.client.Core().Secrets(tokenSecret.Namespace).Create(tokenSecret)
+	// Already exists but not in cache means we'll get an add watch event and resync
+	if kapierrors.IsAlreadyExists(err) {
+		return nil, false, nil
+	}
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
-
-	// now we have to wait for the service account token controller to make this valid
-	// TODO remove this once we have a create-token endpoint
-	for i := 0; i <= tokenSecretWaitTimes; i++ {
-		liveTokenSecret, err := e.client.Secrets(tokenSecret.Namespace).Get(tokenSecret.Name)
-		if err != nil {
-			return nil, err
-		}
-
-		if len(liveTokenSecret.Data[api.ServiceAccountTokenKey]) > 0 {
-			return liveTokenSecret, nil
-		}
-
-		time.Sleep(wait.Jitter(tokenSecretWaitInterval, 0.0))
-
-	}
-
-	// the token wasn't ever created, attempt deletion
-	glog.Warningf("Deleting unfilled token secret %s/%s", tokenSecret.Namespace, tokenSecret.Name)
-	if err := e.client.Secrets(tokenSecret.Namespace).Delete(tokenSecret.Name); (err != nil) && !kapierrors.IsNotFound(err) {
-		util.HandleError(err)
-	}
-	return nil, fmt.Errorf("token never generated for %s", tokenSecret.Name)
+	return token, len(token.Data[v1.ServiceAccountTokenKey]) > 0, nil
 }
 
 // createDockerPullSecret creates a dockercfg secret based on the token secret
-func (e *DockercfgController) createDockerPullSecret(serviceAccount *api.ServiceAccount) (*api.Secret, error) {
-	tokenSecret, err := e.createTokenSecret(serviceAccount)
+func (e *DockercfgController) createDockerPullSecret(serviceAccount *v1.ServiceAccount) (*v1.Secret, bool, error) {
+	tokenSecret, isPopulated, err := e.createTokenSecret(serviceAccount)
 	if err != nil {
-		return nil, err
+		return nil, false, err
+	}
+	if !isPopulated {
+		glog.V(5).Infof("Token secret for service account %s/%s is not populated yet", serviceAccount.Namespace, serviceAccount.Name)
+		return nil, false, nil
 	}
 
-	dockercfgSecret := &api.Secret{
-		ObjectMeta: api.ObjectMeta{
-			Name:      secret.Strategy.GenerateName(getDockercfgSecretNamePrefix(serviceAccount)),
+	dockercfgSecret := &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      secret.Strategy.GenerateName(osautil.GetDockercfgSecretNamePrefixV1(serviceAccount)),
 			Namespace: tokenSecret.Namespace,
 			Annotations: map[string]string{
-				api.ServiceAccountNameKey:        serviceAccount.Name,
-				api.ServiceAccountUIDKey:         string(serviceAccount.UID),
-				ServiceAccountTokenSecretNameKey: string(tokenSecret.Name),
+				v1.ServiceAccountNameKey:           serviceAccount.Name,
+				v1.ServiceAccountUIDKey:            string(serviceAccount.UID),
+				ServiceAccountTokenSecretNameKey:   string(tokenSecret.Name),
+				ServiceAccountTokenValueAnnotation: string(tokenSecret.Data[v1.ServiceAccountTokenKey]),
 			},
 		},
-		Type: api.SecretTypeDockercfg,
+		Type: v1.SecretTypeDockercfg,
 		Data: map[string][]byte{},
 	}
+	glog.V(4).Infof("Creating dockercfg secret %q for service account %s/%s", dockercfgSecret.Name, serviceAccount.Namespace, serviceAccount.Name)
 
 	// prevent updating the DockerURL until we've created the secret
 	e.dockerURLLock.Lock()
 	defer e.dockerURLLock.Unlock()
 
-	dockercfg := &credentialprovider.DockerConfig{
-		e.dockerURL: credentialprovider.DockerConfigEntry{
+	dockercfg := credentialprovider.DockerConfig{}
+	for _, dockerURL := range e.dockerURLs {
+		dockercfg[dockerURL] = credentialprovider.DockerConfigEntry{
 			Username: "serviceaccount",
-			Password: string(tokenSecret.Data[api.ServiceAccountTokenKey]),
+			Password: string(tokenSecret.Data[v1.ServiceAccountTokenKey]),
 			Email:    "serviceaccount@example.org",
-		},
+		}
 	}
-	dockercfgContent, err := json.Marshal(dockercfg)
+	dockercfgContent, err := json.Marshal(&dockercfg)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
-	dockercfgSecret.Data[api.DockerConfigKey] = dockercfgContent
+	dockercfgSecret.Data[v1.DockerConfigKey] = dockercfgContent
 
 	// Save the secret
-	createdSecret, err := e.client.Secrets(tokenSecret.Namespace).Create(dockercfgSecret)
-
-	return createdSecret, err
+	createdSecret, err := e.client.Core().Secrets(tokenSecret.Namespace).Create(dockercfgSecret)
+	return createdSecret, err == nil, err
 }
 
-func getSecretReferences(serviceAccount *api.ServiceAccount) sets.String {
-	references := sets.NewString()
-	for _, secret := range serviceAccount.Secrets {
-		references.Insert(secret.Name)
-	}
-	return references
-}
-
-func getGeneratedDockercfgSecretNames(serviceAccount *api.ServiceAccount) (sets.String, sets.String) {
+func getGeneratedDockercfgSecretNames(serviceAccount *v1.ServiceAccount) (sets.String, sets.String) {
 	mountableDockercfgSecrets := sets.String{}
 	imageDockercfgPullSecrets := sets.String{}
 
-	secretNamePrefix := getDockercfgSecretNamePrefix(serviceAccount)
+	secretNamePrefix := osautil.GetDockercfgSecretNamePrefixV1(serviceAccount)
 
 	for _, s := range serviceAccount.Secrets {
 		if strings.HasPrefix(s.Name, secretNamePrefix) {

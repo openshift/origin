@@ -1,0 +1,34 @@
+{
+  "kind": "BuildConfig",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "test-sti",
+    "labels": {
+      "name": "test-sti"
+    }
+  },
+  "spec": {
+    "triggers": [],
+    "source": {
+      "type": "Git",
+      "git": {
+        "uri": "https://github.com/openshift/ruby-hello-world"
+      }
+    },
+    "strategy": {
+      "type": "Source",
+      "sourceStrategy": {
+        "env": [
+          {
+            "name": "BUILD_LOGLEVEL",
+            "value": "5"
+          }
+        ],
+        "from": {
+          "kind": "DockerImage",
+          "name": "centos/ruby-22-centos7"
+        }
+      }
+    }
+  }
+}

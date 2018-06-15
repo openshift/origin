@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: BuildConfig
+metadata:
+  annotations:
+    openshift.io/generated-by: OpenShiftNewApp
+  creationTimestamp: 2015-11-18T14:41:17Z
+  labels:
+    app: gitauthtest
+    template: gitserver
+  name: gitauthtest
+spec:
+  output: {}
+  resources: {}
+  source:
+    git:
+      uri: http://gitserver-tokenauth.linux.nip.io/ruby-hello-world
+    sourceSecret:
+      name: builder-token-nbme5
+    type: Git
+  strategy:
+    sourceStrategy:
+      from:
+        kind: ImageStreamTag
+        name: ruby:latest
+        namespace: openshift
+    type: Source
+  triggers: []
+status:
+  lastVersion: 1

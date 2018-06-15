@@ -1,21 +1,21 @@
 package test
 
 import (
-	"github.com/openshift/origin/pkg/user/api"
+	userapi "github.com/openshift/origin/pkg/user/apis/user"
 )
 
 type UserIdentityMappingRegistry struct {
 	Err                        error
 	Created                    bool
-	UserIdentityMapping        *api.UserIdentityMapping
-	CreatedUserIdentityMapping *api.UserIdentityMapping
+	UserIdentityMapping        *userapi.UserIdentityMapping
+	CreatedUserIdentityMapping *userapi.UserIdentityMapping
 }
 
-func (r *UserIdentityMappingRegistry) GetUserIdentityMapping(name string) (*api.UserIdentityMapping, error) {
+func (r *UserIdentityMappingRegistry) GetUserIdentityMapping(name string) (*userapi.UserIdentityMapping, error) {
 	return r.UserIdentityMapping, r.Err
 }
 
-func (r *UserIdentityMappingRegistry) CreateOrUpdateUserIdentityMapping(mapping *api.UserIdentityMapping) (*api.UserIdentityMapping, bool, error) {
+func (r *UserIdentityMappingRegistry) CreateOrUpdateUserIdentityMapping(mapping *userapi.UserIdentityMapping) (*userapi.UserIdentityMapping, bool, error) {
 	r.CreatedUserIdentityMapping = mapping
 	return r.CreatedUserIdentityMapping, r.Created, r.Err
 }

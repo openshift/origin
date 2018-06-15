@@ -1,0 +1,76 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<project>
+    <actions/>
+    <description></description>
+    <keepDependencies>false</keepDependencies>
+    <scm class="hudson.scm.NullSCM"/>
+    <canRoam>true</canRoam>
+    <disabled>false</disabled>
+    <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
+    <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
+    <triggers/>
+    <concurrentBuild>false</concurrentBuild>
+    <builders>
+
+        <com.openshift.jenkins.plugins.pipeline.OpenShiftDeleterJsonYaml>
+          <namespace>${PROJECT_NAME}</namespace>
+	  <jsonyaml>{
+    "kind": "List",
+    "apiVersion": "v1",
+    "metadata": {},
+    "items": [
+	{
+    
+	    "kind": "ImageStream",
+	    "apiVersion": "v1",
+	    "metadata": {
+		"name": "forcepull-extended-test-builder",
+		"creationTimestamp": null
+	    },
+	    "spec": {},
+	    "status": {
+		"dockerImageRepository": ""
+	    }
+    
+	},
+	{
+	    "kind": "BuildConfig",
+	    "apiVersion": "v1",
+	    "metadata": {
+		"name": "forcepull-bldr",
+		"creationTimestamp": null,
+		"labels": {
+		    "name": "forcepull-bldr"
+		}
+	    },
+	    "spec": {
+		"triggers": [],
+		"source": {
+		    "type": "Git",
+		    "git": {
+			"uri": "https://github.com/openshift/ruby-hello-world.git"
+		    }
+		},
+		"strategy": {
+		    "type": "Docker",
+		    "dockerStrategy": {
+			"nocache": true
+		    }
+		},
+		"output":{
+		    "to":{
+			"kind":"ImageStreamTag",
+			"name":"forcepull-extended-test-builder:latest"
+		    }
+		}
+	    }
+	}
+    ]
+}
+	  </jsonyaml>
+        </com.openshift.jenkins.plugins.pipeline.OpenShiftDeleterJsonYaml>
+
+    </builders>
+    <publishers/>
+    <buildWrappers/>
+</project>

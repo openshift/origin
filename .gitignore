@@ -1,13 +1,19 @@
 /_output
-/_tools
 /openshift.local.*
 /third-party
 /.project
 /.vagrant
+/.vscode
+/.settings
 /cpu.pprof
+/assets/app/config.local.js
 /assets/nbproject
 /examples/sample-app/openshift.local.*
 /examples/sample-app/logs/openshift.log
+/dind-*.rc
+/os-version-defs
+/.make/
+/cmd/oc/oc.syso
 *.swp
 .vimrc
 .vagrant-openshift.json*
@@ -18,3 +24,5 @@ origin.iml
 .tag*
 .project
 *.go~
+tags
+.envrc

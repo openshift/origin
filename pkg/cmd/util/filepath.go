@@ -46,18 +46,6 @@ func MakeRelative(path, base string) (string, error) {
 	return path, nil
 }
 
-// RelativizePaths updates the given refs to be relative paths, relative to the given base directory
-func RelativizePaths(refs []*string, base string) error {
-	for _, ref := range refs {
-		rel, err := MakeRelative(*ref, base)
-		if err != nil {
-			return err
-		}
-		*ref = rel
-	}
-	return nil
-}
-
 // RelativizePathWithNoBacksteps updates the given refs to be relative paths, relative to the given base directory as long as they do not require backsteps.
 // Any path requiring a backstep is left as-is as long it is absolute.  Any non-absolute path that can't be relativized produces an error
 func RelativizePathWithNoBacksteps(refs []*string, base string) error {

@@ -1,0 +1,53 @@
+kind: List
+apiVersion: v1
+items:
+- kind: ImageStream
+  apiVersion: v1
+  metadata:
+    name: bc-with-pr-ref
+- kind: ImageStream
+  apiVersion: v1
+  metadata:
+    name: bc-with-pr-ref-docker
+- kind: BuildConfig
+  apiVersion: v1
+  metadata:
+    name: bc-with-pr-ref
+  spec:
+    source:
+      type: Git
+      git:
+        uri: https://github.com/sclorg/django-ex.git
+        ref: refs/pull/121/head
+    strategy:
+      type: Source
+      sourceStrategy:
+        from:
+          kind: ImageStreamTag
+          name: python:latest
+          namespace: openshift
+    output:
+      to:
+        kind: ImageStreamTag
+        name: bc-with-pr-ref:latest
+- kind: BuildConfig
+  apiVersion: v1
+  metadata:
+    name: bc-with-pr-ref-docker
+  spec:
+    source:
+      type: Git
+      git:
+        uri: https://github.com/sclorg/django-ex.git
+        ref: refs/pull/121/head
+      dockerfile: FROM centos/python-36-centos7
+    strategy:
+      type: Docker
+      dockerStrategy:
+        from:
+          kind: DockerImage
+          name: centos/python-36-centos7
+    output:
+      to:
+        kind: ImageStreamTag
+        name: bc-with-pr-ref-docker:latest

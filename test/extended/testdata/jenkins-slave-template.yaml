@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: Template
+metadata:
+  name: jenkins-slave-pipeline
+objects:
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    creationTimestamp: null
+    name: openshift-jee-sample
+  spec:
+    strategy:
+      jenkinsPipelineStrategy:
+        jenkinsfile: |-
+          try {
+             timeout(time: 20, unit: 'MINUTES') {
+        
+                node("jenkins-slave") {
+                  sh "mvn --version"
+                }
+
+             }
+          } catch (err) {
+             echo "in catch block"
+             echo "Caught: ${err}"
+             currentBuild.result = 'FAILURE'
+             throw err
+          }
+      type: JenkinsPipeline

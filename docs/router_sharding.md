@@ -1,8 +1,8 @@
-- how is router configuration visualized from a user perspective
-- how is router configuration visualized from an admin perspective
-- how is a user notified of a route binding and final dns
-- how does a user request default dns name vs custom dns name
-- router fronting with DNS, how are entries created
+- How is router configuration visualized from a user perspective
+- How is router configuration visualized from an admin perspective
+- How is a user notified of a route binding and final dns
+- How does a user request default dns name vs. custom dns name
+- Router fronting with DNS, how are entries created
 
 ## Description
 
@@ -32,7 +32,7 @@ The following use cases should be satisfied by this proposal:
 ## Configuring Routers
 
 Administering routers as a top level object allows administrators to use custom commands specific
-to routers.  This provides a more use friendly mechanism of configuration and customizing routers.
+to routers.  This provides a more user friendly mechanism of configuration and customizing routers.
 However, this also introduces more code for an object that will likely be dealt with as a pod
 anyway.  Routers should be a low touch configuration item that do not require many custom commands
 for daily administration.
@@ -44,7 +44,7 @@ Pros:
 - Routers are known to OpenShift; the system ensures the proper configuration is running
 - Custom administration syntax
 - Deal with routers as infra
-- The system knows about routers for route route binding and visualization with no extra effort
+- The system knows about routers for route binding and visualization with no extra effort
 
 Cons: 
 
@@ -100,7 +100,7 @@ The `Route` REST API will be changed to validate that:
 1.  The `DNS` and `Phase` fields of a `Route` are not set during create
 2.  The value of `DNS` and `Phase` fields do not change during update
 3.  The `RouteDNS` represents the final DNS name that will be used for the requested route.  For example
-if the user requests the route `test` for their app in namespace `myapp` they will be allocted to a shard 
+if the user requests the route `test` for their app in namespace `myapp` they will be allocated to a shard 
 and given a name in the form of `myapp-test.shard1.v3.rhcloud.com`.  This field may only change during
 router allocation or reallocation and is only changed by the system.  If the user owns their own
 domain then this field will be populated from `Route.Host` and remain unchanged during allocation.

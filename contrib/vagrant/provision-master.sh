@@ -1,72 +1,62 @@
 #!/bin/bash
 
-set -ex
 source $(dirname $0)/provision-config.sh
 
-FIXUP_NET_UDEV=$5
+os::provision::base-provision "${OS_ROOT}" true
 
-NETWORK_PLUGIN=$(os::util::get-network-plugin ${6:-""})
+os::provision::build-origin "${OS_ROOT}" "${SKIP_BUILD}"
+os::provision::build-etcd "${OS_ROOT}" "${SKIP_BUILD}"
 
-if [ "${FIXUP_NET_UDEV}" == "true" ]; then
-  NETWORK_CONF_PATH=/etc/sysconfig/network-scripts/
-  rm -f ${NETWORK_CONF_PATH}ifcfg-enp*
-  if [[ -f "${NETWORK_CONF_PATH}ifcfg-eth1" ]]; then
-    sed -i 's/^NM_CONTROLLED=no/#NM_CONTROLLED=no/' ${NETWORK_CONF_PATH}ifcfg-eth1
-    if ! grep -q "NAME=" ${NETWORK_CONF_PATH}ifcfg-eth1; then
-      echo "NAME=openshift" >> ${NETWORK_CONF_PATH}ifcfg-eth1
-    fi
-    nmcli con reload
-    nmcli dev disconnect eth1
-    nmcli con up "openshift"
-  fi
+os::provision::base-install "${OS_ROOT}" "${CONFIG_ROOT}"
+
+if [[ "${SDN_NODE}" = "true" ]]; then
+  # Running an sdn node on the master when using an openshift sdn
+  # plugin ensures connectivity between the openshift service and
+  # pods.  This enables kube API calls that query a service and
+  # require that the endpoints of the service be reachable from the
+  # master.  This capability is used extensively in the kube e2e
+  # tests.
+  NODE_NAMES+=(${SDN_NODE_NAME})
+  NODE_IPS+=(${MASTER_IP})
+  # Force the addition of a hosts entry for the sdn node.
+  os::provision::add-to-hosts-file "${MASTER_IP}" "${SDN_NODE_NAME}" 1
 fi
 
-# Setup hosts file to ensure name resolution to each member of the cluster
-minion_ip_array=(${MINION_IPS//,/ })
-os::util::setup-hosts-file "${MASTER_NAME}" "${MASTER_IP}" MINION_NAMES \
-  minion_ip_array
+os::provision::init-certs "${CONFIG_ROOT}" "${NETWORK_PLUGIN}" \
+  "${MASTER_NAME}" "${MASTER_IP}" NODE_NAMES NODE_IPS
 
-# Install the required packages
-yum install -y docker-io git golang e2fsprogs hg net-tools bridge-utils which
+# Copy configuration to local storage when the configuration path is
+# mounted over nfs to prevent etcd from experiencing nfs-related
+# locking errors.
+CONFIG_MOUNT_TYPE=$(df -P -T "${CONFIG_ROOT}" | tail -n +2 | awk '{print $2}')
+if [[ "${CONFIG_MOUNT_TYPE}" = "nfs" ]]; then
+  DEPLOYED_CONFIG_ROOT="/"
+  echo "WARNING: NFS detected. Cluster state will not be retained if the cluster is redeployed."
+  os::provision::copy-config "${CONFIG_ROOT}"
+else
+  DEPLOYED_CONFIG_ROOT="${CONFIG_ROOT}"
+fi
 
-# Build openshift
-echo "Building openshift"
-pushd "${ORIGIN_ROOT}"
-  ./hack/build-go.sh
-  os::util::install-cmds "${ORIGIN_ROOT}"
-  ./hack/install-etcd.sh
-popd
+echo "Launching openshift daemons"
+NODE_LIST="$(os::provision::join , ${NODE_NAMES[@]})"
+cmd="/usr/bin/openshift start master --loglevel=${LOG_LEVEL} \
+ --master=https://${MASTER_IP}:8443 \
+ --network-plugin=${NETWORK_PLUGIN}"
+os::provision::start-os-service "openshift-master" "OpenShift Master" \
+    "${cmd}" "${DEPLOYED_CONFIG_ROOT}"
 
-os::util::init-certs "${ORIGIN_ROOT}" "${NETWORK_PLUGIN}" "${MASTER_NAME}" \
-  "${MASTER_IP}" MINION_NAMES minion_ip_array
+if [[ "${SDN_NODE}" = "true" ]]; then
+  os::provision::start-node-service "${DEPLOYED_CONFIG_ROOT}" \
+      "${SDN_NODE_NAME}"
 
-# Start docker
-systemctl enable docker.service
-systemctl start docker.service
-
-# Create systemd service
-node_list=$(os::util::join , ${MINION_NAMES[@]})
-cat <<EOF > /usr/lib/systemd/system/openshift-master.service
-[Unit]
-Description=OpenShift Master
-Requires=docker.service network.service
-After=network.service
-
-[Service]
-ExecStart=/usr/bin/openshift start master --master=https://${MASTER_IP}:8443 --nodes=${node_list} --network-plugin=${NETWORK_PLUGIN}
-WorkingDirectory=${ORIGIN_ROOT}/
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-# Start the service
-systemctl daemon-reload
-systemctl start openshift-master.service
-
-# setup SDN
-$(dirname $0)/provision-sdn.sh
-
-# Set up the KUBECONFIG environment variable for use by oc
-os::util::set-oc-env "${ORIGIN_ROOT}" "/root/.bash_profile"
-os::util::set-oc-env "${ORIGIN_ROOT}" "/home/vagrant/.bash_profile"
+  # Disable scheduling for the sdn node - its purpose is only to ensure
+  # pod network connectivity on the master.
+  #
+  # This will be performed separately for dind to allow as much time
+  # as possible for the node to register itself.  Vagrant can deploy
+  # in parallel but dind deploys serially for simplicity.
+  if ! os::provision::in-container; then
+    os::provision::disable-node "${OS_ROOT}" "${DEPLOYED_CONFIG_ROOT}" \
+        "${SDN_NODE_NAME}"
+  fi
+fi

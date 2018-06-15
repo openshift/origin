@@ -2,12 +2,14 @@ package generator
 
 import (
 	"fmt"
+	"strconv"
 
-	kapi "k8s.io/kubernetes/pkg/api"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/kubernetes/pkg/kubectl"
-	"k8s.io/kubernetes/pkg/runtime"
 
-	"github.com/openshift/origin/pkg/route/api"
+	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 )
 
 // RouteGenerator generates routes from a given set of parameters
@@ -19,10 +21,13 @@ var _ kubectl.Generator = RouteGenerator{}
 // ParamNames returns the parameters required for generating a route
 func (RouteGenerator) ParamNames() []kubectl.GeneratorParam {
 	return []kubectl.GeneratorParam{
-		{"labels", false},
-		{"default-name", true},
-		{"name", false},
-		{"hostname", false},
+		{Name: "labels", Required: false},
+		{Name: "default-name", Required: true},
+		{Name: "port", Required: false},
+		{Name: "name", Required: false},
+		{Name: "hostname", Required: false},
+		{Name: "path", Required: false},
+		{Name: "wildcard-policy", Required: false},
 	}
 }
 
@@ -58,16 +63,33 @@ func (RouteGenerator) Generate(genericParams map[string]interface{}) (runtime.Ob
 		}
 	}
 
-	return &api.Route{
-		ObjectMeta: kapi.ObjectMeta{
+	route := &routeapi.Route{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:   name,
 			Labels: labels,
 		},
-		Spec: api.RouteSpec{
-			Host: params["hostname"],
-			To: kapi.ObjectReference{
+		Spec: routeapi.RouteSpec{
+			Host:           params["hostname"],
+			WildcardPolicy: routeapi.WildcardPolicyType(params["wildcard-policy"]),
+			Path:           params["path"],
+			To: routeapi.RouteTargetReference{
 				Name: params["default-name"],
 			},
 		},
-	}, nil
+	}
+
+	portString := params["port"]
+	if len(portString) > 0 {
+		var targetPort intstr.IntOrString
+		if port, err := strconv.Atoi(portString); err == nil {
+			targetPort = intstr.FromInt(port)
+		} else {
+			targetPort = intstr.FromString(portString)
+		}
+		route.Spec.Port = &routeapi.RoutePort{
+			TargetPort: targetPort,
+		}
+	}
+
+	return route, nil
 }

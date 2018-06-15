@@ -1,0 +1,120 @@
+kind: List
+apiVersion: v1
+items:
+- kind: ImageStream
+  apiVersion: v1
+  metadata:
+    name: local-busybox
+
+- kind: BuildConfig
+  apiVersion: v1
+  metadata:
+    name: local-busybox
+  spec:
+    strategy:
+      type: Docker
+    source:
+      type: Git
+      dockerfile: "FROM busybox:latest\n"
+    output:
+      to:
+        kind: ImageStreamTag
+        name: local-busybox:latest
+    triggers:
+    - type: ConfigChange
+
+- kind: DeploymentConfig
+  apiVersion: v1
+  metadata:
+    name: local-busybox1
+  spec:
+    replicas: 0
+    selector:
+      deploymentconfig: local-busybox1
+    template:
+      metadata:
+        labels:
+          deploymentconfig: local-busybox1
+      spec:
+        containers:
+        - name: local-busybox
+    triggers:
+    - type: ImageChange
+      imageChangeParams:
+        automatic: true
+        containerNames:
+        - local-busybox
+        from:
+          kind: ImageStreamTag
+          name: local-busybox:latest
+
+- kind: DeploymentConfig
+  apiVersion: v1
+  metadata:
+    name: local-busybox2
+  spec:
+    replicas: 0
+    selector:
+      deploymentconfig: local-busybox2
+    template:
+      metadata:
+        labels:
+          deploymentconfig: local-busybox2
+      spec:
+        containers:
+        - name: local-busybox
+          command:
+          - foo
+          - bar
+          args:
+          - baz
+          - qux
+    triggers:
+    - type: ImageChange
+      imageChangeParams:
+        automatic: true
+        containerNames:
+        - local-busybox
+        from:
+          kind: ImageStreamTag
+          name: local-busybox:latest
+
+- kind: DeploymentConfig
+  apiVersion: v1
+  metadata:
+    name: busybox1
+  spec:
+    replicas: 0
+    selector:
+      deploymentconfig: busybox1
+    template:
+      metadata:
+        labels:
+          deploymentconfig: busybox1
+      spec:
+        containers:
+        - name: busybox
+          image: busybox
+
+- kind: DeploymentConfig
+  apiVersion: v1
+  metadata:
+    name: busybox2
+  spec:
+    replicas: 0
+    selector:
+      deploymentconfig: busybox2
+    template:
+      metadata:
+        labels:
+          deploymentconfig: busybox2
+      spec:
+        containers:
+        - name: busybox
+          image: busybox
+          command:
+          - foo
+          - bar
+          args:
+          - baz
+          - qux

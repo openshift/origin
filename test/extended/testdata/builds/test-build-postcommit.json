@@ -1,0 +1,61 @@
+{
+    "kind": "List",
+    "apiVersion": "v1",
+    "metadata": {},
+    "items": [
+        {
+            "kind": "ImageStream",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "busybox",
+                "creationTimestamp": null,
+                "labels": {
+                    "build": "busybox"
+                }
+            },
+            "spec": {
+                "tags": [
+                    {
+                        "name": "1",
+                        "annotations": {
+                            "openshift.io/imported-from": "busybox:1"
+                        },
+                        "from": {
+                            "kind": "DockerImage",
+                            "name": "busybox:1"
+                        },
+                        "importPolicy": {}
+                    }
+                ]
+            }
+        },
+        {
+            "kind": "BuildConfig",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "busybox",
+                "creationTimestamp": null,
+                "labels": {
+                    "build": "busybox"
+                }
+            },
+            "spec": {
+                "source": {
+                    "type": "Dockerfile",
+                    "dockerfile": "FROM busybox:1"
+                },
+                "strategy": {
+                    "type": "Docker",
+                    "dockerStrategy": {
+                        "from": {
+                            "kind": "ImageStreamTag",
+                            "name": "busybox:1"
+                        }
+                    }
+                }, 
+                "resources": {},
+                "postCommit": {}
+            }
+        }
+    ]
+}

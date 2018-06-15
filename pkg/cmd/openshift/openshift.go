@@ -1,48 +1,48 @@
 package openshift
 
 import (
+	"flag"
 	"fmt"
+	"io"
 	"os"
 	"runtime"
 	"strings"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 
-	"github.com/openshift/origin/pkg/cmd/admin"
-	"github.com/openshift/origin/pkg/cmd/admin/validate"
-	"github.com/openshift/origin/pkg/cmd/cli"
-	"github.com/openshift/origin/pkg/cmd/cli/cmd"
-	"github.com/openshift/origin/pkg/cmd/experimental/buildchain"
-	diagnostics "github.com/openshift/origin/pkg/cmd/experimental/diagnostics"
-	exipfailover "github.com/openshift/origin/pkg/cmd/experimental/ipfailover"
-	syncgroups "github.com/openshift/origin/pkg/cmd/experimental/syncgroups/cli"
-	"github.com/openshift/origin/pkg/cmd/experimental/tokens"
+	kcmd "k8s.io/kubernetes/pkg/kubectl/cmd"
+	ktemplates "k8s.io/kubernetes/pkg/kubectl/cmd/templates"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	"github.com/openshift/origin/pkg/cmd/infra/builder"
 	"github.com/openshift/origin/pkg/cmd/infra/deployer"
 	irouter "github.com/openshift/origin/pkg/cmd/infra/router"
+	"github.com/openshift/origin/pkg/cmd/recycle"
 	"github.com/openshift/origin/pkg/cmd/server/start"
-	"github.com/openshift/origin/pkg/cmd/server/start/kubernetes"
 	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
-	"github.com/openshift/origin/pkg/version"
+	cmdversion "github.com/openshift/origin/pkg/cmd/version"
+	osversion "github.com/openshift/origin/pkg/version"
 )
 
-const openshiftLong = `
-%[2]s
+var (
+	openshiftLong = ktemplates.LongDesc(`
+		%[2]s
 
-The %[3]s helps you build, deploy, and manage your applications on top of
-Docker containers. To start an all-in-one server with the default configuration, run:
+		The %[3]s helps you build, deploy, and manage your applications on top of
+		Docker containers. To start an all-in-one server with the default configuration, run:
 
-  $ %[1]s start &`
+		    $ %[1]s start &`)
+)
 
 // CommandFor returns the appropriate command for this base name,
 // or the global OpenShift command
-func CommandFor(basename string) *cobra.Command {
+func CommandFor(basename string, stopCh <-chan struct{}) *cobra.Command {
 	var cmd *cobra.Command
 
-	in, out, errout := os.Stdin, os.Stdout, os.Stderr
+	out := os.Stdout
 
 	// Make case-insensitive and strip executable suffix if present
 	if runtime.GOOS == "windows" {
@@ -57,36 +57,26 @@ func CommandFor(basename string) *cobra.Command {
 		cmd = irouter.NewCommandF5Router(basename)
 	case "openshift-deploy":
 		cmd = deployer.NewCommandDeployer(basename)
+	case "openshift-recycle":
+		cmd = recycle.NewCommandRecycle(basename, out)
 	case "openshift-sti-build":
-		cmd = builder.NewCommandSTIBuilder(basename)
+		cmd = builder.NewCommandS2IBuilder(basename)
 	case "openshift-docker-build":
 		cmd = builder.NewCommandDockerBuilder(basename)
-	case "oc", "osc":
-		cmd = cli.NewCommandCLI(basename, basename, in, out, errout)
-	case "oadm", "osadm":
-		cmd = admin.NewCommandAdmin(basename, basename, out)
-	case "kubectl":
-		cmd = cli.NewCmdKubectl(basename, out)
-	case "kube-apiserver":
-		cmd = kubernetes.NewAPIServerCommand(basename, basename, out)
-	case "kube-controller-manager":
-		cmd = kubernetes.NewControllersCommand(basename, basename, out)
-	case "kubelet":
-		cmd = kubernetes.NewKubeletCommand(basename, basename, out)
-	case "kube-proxy":
-		cmd = kubernetes.NewProxyCommand(basename, basename, out)
-	case "kube-scheduler":
-		cmd = kubernetes.NewSchedulerCommand(basename, basename, out)
-	case "kubernetes":
-		cmd = kubernetes.NewCommand(basename, basename, out)
-	case "origin", "atomic-enterprise":
-		cmd = NewCommandOpenShift(basename)
+	case "openshift-git-clone":
+		cmd = builder.NewCommandGitClone(basename)
+	case "openshift-manage-dockerfile":
+		cmd = builder.NewCommandManageDockerfile(basename)
+	case "openshift-extract-image-content":
+		cmd = builder.NewCommandExtractImageContent(basename)
+	case "origin":
+		cmd = NewCommandOpenShift(basename, stopCh)
 	default:
-		cmd = NewCommandOpenShift("openshift")
+		cmd = NewCommandOpenShift("openshift", stopCh)
 	}
 
 	if cmd.UsageFunc() == nil {
-		templates.ActsAsRootCommand(cmd)
+		templates.ActsAsRootCommand(cmd, []string{"options"})
 	}
 	flagtypes.GLog(cmd.PersistentFlags())
 
@@ -94,69 +84,107 @@ func CommandFor(basename string) *cobra.Command {
 }
 
 // NewCommandOpenShift creates the standard OpenShift command
-func NewCommandOpenShift(name string) *cobra.Command {
-	in, out, errout := os.Stdin, os.Stdout, os.Stderr
+func NewCommandOpenShift(name string, stopCh <-chan struct{}) *cobra.Command {
+	out, errout := os.Stdout, os.Stderr
 
 	root := &cobra.Command{
 		Use:   name,
 		Short: "Build, deploy, and manage your cloud applications",
 		Long:  fmt.Sprintf(openshiftLong, name, cmdutil.GetPlatformName(name), cmdutil.GetDistributionName(name)),
-		Run:   cmdutil.DefaultSubCommandRun(out),
+		Run:   kcmdutil.DefaultSubCommandRun(out),
 	}
 
-	startAllInOne, _ := start.NewCommandStartAllInOne(name, out)
+	startAllInOne, _ := start.NewCommandStartAllInOne(name, out, errout, stopCh)
 	root.AddCommand(startAllInOne)
-	root.AddCommand(admin.NewCommandAdmin("admin", name+" admin", out))
-	root.AddCommand(cli.NewCommandCLI("cli", name+" cli", in, out, errout))
-	root.AddCommand(cli.NewCmdKubectl("kube", out))
-	root.AddCommand(newExperimentalCommand("ex", name+" ex"))
-	root.AddCommand(version.NewVersionCommand(name, true))
-
-	// infra commands are those that are bundled with the binary but not displayed to end users
-	// directly
-	infra := &cobra.Command{
-		Use: "infra", // Because this command exposes no description, it will not be shown in help
-	}
-
-	infra.AddCommand(
-		irouter.NewCommandTemplateRouter("router"),
-		irouter.NewCommandF5Router("f5-router"),
-		deployer.NewCommandDeployer("deploy"),
-		builder.NewCommandSTIBuilder("sti-build"),
-		builder.NewCommandDockerBuilder("docker-build"),
-	)
-	root.AddCommand(infra)
-
-	root.AddCommand(cmd.NewCmdOptions(out))
+	root.AddCommand(newCompletionCommand("completion", name+" completion"))
+	root.AddCommand(cmdversion.NewCmdVersion(name, osversion.Get(), os.Stdout))
+	root.AddCommand(newCmdOptions())
 
 	// TODO: add groups
-	templates.ActsAsRootCommand(root)
+	templates.ActsAsRootCommand(root, []string{"options"})
 
 	return root
 }
 
-func newExperimentalCommand(name, fullName string) *cobra.Command {
-	out := os.Stdout
+func newCompletionCommand(name, fullName string) *cobra.Command {
+	return NewCmdCompletion(fullName, os.Stdout)
 
-	experimental := &cobra.Command{
-		Use:   name,
-		Short: "Experimental commands under active development",
-		Long:  "The commands grouped here are under development and may change without notice.",
-		Run: func(c *cobra.Command, args []string) {
-			c.SetOutput(out)
-			c.Help()
+}
+
+// newCmdOptions implements the OpenShift cli options command
+func newCmdOptions() *cobra.Command {
+	cmd := &cobra.Command{
+		Use: "options",
+		Run: func(cmd *cobra.Command, args []string) {
+			cmd.Usage()
 		},
-		BashCompletionFunction: admin.BashCompletionFunc,
 	}
 
-	f := clientcmd.New(experimental.PersistentFlags())
+	ktemplates.UseOptionsTemplates(cmd)
 
-	experimental.AddCommand(validate.NewCommandValidate(validate.ValidateRecommendedName, fullName+" "+validate.ValidateRecommendedName, out))
-	experimental.AddCommand(tokens.NewCmdTokens(tokens.TokenRecommendedCommandName, fullName+" "+tokens.TokenRecommendedCommandName, f, out))
-	experimental.AddCommand(exipfailover.NewCmdIPFailoverConfig(f, fullName, "ipfailover", out))
-	experimental.AddCommand(buildchain.NewCmdBuildChain(name, fullName+" "+buildchain.BuildChainRecommendedCommandName, f, out))
-	experimental.AddCommand(diagnostics.NewCommandDiagnostics("diagnostics", fullName+" diagnostics", out))
-	experimental.AddCommand(syncgroups.NewCmdSyncGroups(syncgroups.SyncGroupsRecommendedName, fullName+" "+syncgroups.SyncGroupsRecommendedName, f, out))
-	experimental.AddCommand(cmd.NewCmdOptions(out))
-	return experimental
+	return cmd
+}
+
+// from here down probably deserves some common usage
+var (
+	completionLong = ktemplates.LongDesc(`
+		This command prints shell code which must be evaluated to provide interactive
+		completion of %s commands.`)
+
+	completionExample = ktemplates.Examples(`
+		# Generate the %s completion code for bash
+	  %s completion bash > bash_completion.sh
+	  source bash_completion.sh
+
+	  # The above example depends on the bash-completion framework.
+	  # It must be sourced before sourcing the openshift cli completion,
+		# i.e. on the Mac:
+
+	  brew install bash-completion
+	  source $(brew --prefix)/etc/bash_completion
+	  %s completion bash > bash_completion.sh
+	  source bash_completion.sh
+
+	  # In zsh*, the following will load openshift cli zsh completion:
+	  source <(%s completion zsh)
+
+	  * zsh completions are only supported in versions of zsh >= 5.2`)
+)
+
+func NewCmdCompletion(fullName string, out io.Writer) *cobra.Command {
+	cmdHelpName := fullName
+
+	if strings.HasSuffix(fullName, "completion") {
+		cmdHelpName = "openshift"
+	}
+
+	cmd := kcmd.NewCmdCompletion(out, "\n")
+	cmd.Long = fmt.Sprintf(completionLong, cmdHelpName)
+	cmd.Example = fmt.Sprintf(completionExample, cmdHelpName, cmdHelpName, cmdHelpName, cmdHelpName)
+	// mark all statically included flags as hidden to prevent them appearing in completions
+	cmd.PreRun = func(c *cobra.Command, _ []string) {
+		pflag.CommandLine.VisitAll(func(flag *pflag.Flag) {
+			flag.Hidden = true
+		})
+		hideGlobalFlags(c.Root(), flag.CommandLine)
+	}
+	return cmd
+}
+
+// hideGlobalFlags marks any flag that is in the global flag set as
+// hidden to prevent completion from varying by platform due to conditional
+// includes. This means that some completions will not be possible unless
+// they are registered in cobra instead of being added to flag.CommandLine.
+func hideGlobalFlags(c *cobra.Command, fs *flag.FlagSet) {
+	fs.VisitAll(func(flag *flag.Flag) {
+		if f := c.PersistentFlags().Lookup(flag.Name); f != nil {
+			f.Hidden = true
+		}
+		if f := c.LocalFlags().Lookup(flag.Name); f != nil {
+			f.Hidden = true
+		}
+	})
+	for _, child := range c.Commands() {
+		hideGlobalFlags(child, fs)
+	}
 }

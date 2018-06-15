@@ -4,43 +4,34 @@
 # image to be built prior to executing this command via hack/build-base-images.sh.
 
 # NOTE:   only committed code is built.
+source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
-set -o errexit
-set -o nounset
-set -o pipefail
+function cleanup() {
+	return_code=$?
+	os::util::describe_return_code "${return_code}"
+	exit "${return_code}"
+}
+trap "cleanup" EXIT
 
-STARTTIME=$(date +%s)
-OS_ROOT=$(dirname "${BASH_SOURCE}")/..
-source "${OS_ROOT}/hack/common.sh"
-source "${OS_ROOT}/hack/util.sh"
-os::log::install_errexit
-
-# Go to the top of the tree.
-cd "${OS_ROOT}"
+export OS_BUILD_ENV_FROM_ARCHIVE=y
+export OS_BUILD_ENV_PRESERVE=_output/local
 
 context="${OS_ROOT}/_output/buildenv-context"
 
 # Clean existing output.
-rm -rf "${OS_LOCAL_RELEASEPATH}"
+rm -rf "${OS_OUTPUT_RELEASEPATH}"
 rm -rf "${context}"
 mkdir -p "${context}"
 mkdir -p "${OS_OUTPUT}"
 
-# Generate version definitions.
-# You can commit a specific version by specifying OS_GIT_COMMIT="" prior to build
-os::build::get_version_vars
-os::build::save_version_vars "${context}/os-version-defs"
-
-echo "++ Building release ${OS_GIT_VERSION}"
-
-# Create the input archive.
-git archive --format=tar -o "${context}/archive.tar" "${OS_GIT_COMMIT}"
-tar -rf "${context}/archive.tar" -C "${context}" os-version-defs
-gzip -f "${context}/archive.tar"
+container="$( os::build::environment::create /bin/sh -c "OS_ONLY_BUILD_PLATFORMS=${OS_ONLY_BUILD_PLATFORMS-} make build-cross" )"
+trap "os::build::environment::cleanup ${container}" EXIT
 
 # Perform the build and release in Docker.
-cat "${context}/archive.tar.gz" | docker run -i --cidfile="${context}/cid" openshift/origin-release
-docker cp $(cat ${context}/cid):/go/src/github.com/openshift/origin/_output/local/releases "${OS_OUTPUT}"
-echo "${OS_GIT_COMMIT}" > "${OS_LOCAL_RELEASEPATH}/.commit"
-
-ret=$?; ENDTIME=$(date +%s); echo "$0 took $(($ENDTIME - $STARTTIME)) seconds"; exit "$ret"
+(
+  OS_GIT_TREE_STATE=clean # set this because we will be pulling from git archive
+  os::build::version::get_vars
+  echo "++ Building release ${OS_GIT_VERSION}"
+)
+os::build::environment::withsource "${container}" "${OS_GIT_COMMIT:-HEAD}"
+echo "${OS_GIT_COMMIT}" > "${OS_OUTPUT_RELEASEPATH}/.commit"

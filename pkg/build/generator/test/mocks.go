@@ -3,14 +3,15 @@ package test
 import (
 	"fmt"
 
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	kapi "k8s.io/kubernetes/pkg/api"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/pkg/client/unversioned/testclient"
-	"k8s.io/kubernetes/pkg/runtime"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 
-	buildapi "github.com/openshift/origin/pkg/build/api"
-	imageapi "github.com/openshift/origin/pkg/image/api"
+	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
 const (
@@ -32,47 +33,56 @@ var (
 	}
 )
 
-func MockBuilderSecrets() (secrets []*kapi.Secret) {
-	i := 1
+func MockBuilderSecrets() []*kapi.Secret {
+	var secrets []*kapi.Secret
 	for name, conf := range SampleDockerConfigs {
 		secrets = append(secrets, &kapi.Secret{
-			ObjectMeta: kapi.ObjectMeta{
-				Name: name,
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      name,
+				Namespace: metav1.NamespaceDefault,
 			},
 			Type: kapi.SecretTypeDockercfg,
 			Data: map[string][]byte{".dockercfg": conf},
 		})
-		i++
 	}
 	return secrets
 }
 
-func MockBuilderServiceAccount(secrets []*kapi.Secret) kclient.ServiceAccountsNamespacer {
+func MockBuilderServiceAccount(secrets []*kapi.Secret) kcoreclient.ServiceAccountsGetter {
 	var (
 		secretRefs  []kapi.ObjectReference
 		fakeObjects []runtime.Object
 	)
 	for _, secret := range secrets {
-		secretRefs = append(secretRefs, kapi.ObjectReference{Name: secret.Name, Kind: "Secret"})
+		secretRefs = append(secretRefs, kapi.ObjectReference{
+			Name: secret.Name,
+			Kind: "Secret",
+		})
 		fakeObjects = append(fakeObjects, secret)
 	}
 	fakeObjects = append(fakeObjects, &kapi.ServiceAccount{
-		ObjectMeta: kapi.ObjectMeta{Name: bootstrappolicy.BuilderServiceAccountName},
-		Secrets:    secretRefs,
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      bootstrappolicy.BuilderServiceAccountName,
+			Namespace: metav1.NamespaceDefault,
+		},
+		Secrets: secretRefs,
 	})
-	return testclient.NewSimpleFake(fakeObjects...)
+	return fake.NewSimpleClientset(fakeObjects...).Core()
 }
 
 func MockBuildConfig(source buildapi.BuildSource, strategy buildapi.BuildStrategy, output buildapi.BuildOutput) *buildapi.BuildConfig {
 	return &buildapi.BuildConfig{
-		ObjectMeta: kapi.ObjectMeta{
-			Name: "test-build-config",
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-build-config",
+			Namespace: metav1.NamespaceDefault,
+			Labels: map[string]string{
+				"testbclabel": "testbcvalue",
+			},
 		},
 		Spec: buildapi.BuildConfigSpec{
-			BuildSpec: buildapi.BuildSpec{
+			CommonSpec: buildapi.CommonSpec{
 				Source: source,
 				Revision: &buildapi.SourceRevision{
-					Type: buildapi.BuildSourceGit,
 					Git: &buildapi.GitSourceRevision{
 						Commit: "1234",
 					},
@@ -86,7 +96,6 @@ func MockBuildConfig(source buildapi.BuildSource, strategy buildapi.BuildStrateg
 
 func MockSource() buildapi.BuildSource {
 	return buildapi.BuildSource{
-		Type: buildapi.BuildSourceGit,
 		Git: &buildapi.GitBuildSource{
 			URI: "http://test.repository/namespace/name",
 			Ref: "test-tag",
@@ -96,7 +105,6 @@ func MockSource() buildapi.BuildSource {
 
 func MockSourceStrategyForImageRepository() buildapi.BuildStrategy {
 	return buildapi.BuildStrategy{
-		Type: buildapi.SourceBuildStrategyType,
 		SourceStrategy: &buildapi.SourceBuildStrategy{
 			From: kapi.ObjectReference{
 				Kind:      "ImageStreamTag",
@@ -107,11 +115,58 @@ func MockSourceStrategyForImageRepository() buildapi.BuildStrategy {
 	}
 }
 
+func MockSourceStrategyForEnvs() buildapi.BuildStrategy {
+	return buildapi.BuildStrategy{
+		SourceStrategy: &buildapi.SourceBuildStrategy{
+			Env: []kapi.EnvVar{{Name: "FOO", Value: "VAR"}},
+			From: kapi.ObjectReference{
+				Kind:      "ImageStreamTag",
+				Name:      imageRepoName + ":" + tagName,
+				Namespace: imageRepoNamespace,
+			},
+		},
+	}
+}
+
+func MockDockerStrategyForEnvs() buildapi.BuildStrategy {
+	return buildapi.BuildStrategy{
+		DockerStrategy: &buildapi.DockerBuildStrategy{
+			Env: []kapi.EnvVar{{Name: "FOO", Value: "VAR"}},
+			From: &kapi.ObjectReference{
+				Kind:      "ImageStreamTag",
+				Name:      imageRepoName + ":" + tagName,
+				Namespace: imageRepoNamespace,
+			},
+		},
+	}
+}
+
+func MockCustomStrategyForEnvs() buildapi.BuildStrategy {
+	return buildapi.BuildStrategy{
+		CustomStrategy: &buildapi.CustomBuildStrategy{
+			Env: []kapi.EnvVar{{Name: "FOO", Value: "VAR"}},
+			From: kapi.ObjectReference{
+				Kind:      "ImageStreamTag",
+				Name:      imageRepoName + ":" + tagName,
+				Namespace: imageRepoNamespace,
+			},
+		},
+	}
+}
+
+func MockJenkinsStrategyForEnvs() buildapi.BuildStrategy {
+	return buildapi.BuildStrategy{
+		JenkinsPipelineStrategy: &buildapi.JenkinsPipelineBuildStrategy{
+			Env: []kapi.EnvVar{{Name: "FOO", Value: "VAR"}},
+		},
+	}
+}
+
 func MockOutput() buildapi.BuildOutput {
 	return buildapi.BuildOutput{
 		To: &kapi.ObjectReference{
 			Kind: "DockerImage",
-			Name: "http://localhost:5000/test/image-tag",
+			Name: "localhost:5000/test/image-tag",
 		},
 	}
 }
@@ -130,7 +185,7 @@ func MockImageStream(repoName, dockerImageRepo string, tags map[string]string) *
 	}
 
 	return &imageapi.ImageStream{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: repoName,
 		},
 		Status: imageapi.ImageStreamStatus{
@@ -142,7 +197,7 @@ func MockImageStream(repoName, dockerImageRepo string, tags map[string]string) *
 
 func MockImage(name, dockerSpec string) *imageapi.Image {
 	return &imageapi.Image{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
 		DockerImageReference: dockerSpec,

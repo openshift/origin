@@ -2,14 +2,12 @@ package util
 
 import (
 	"crypto/tls"
-	"errors"
-	"fmt"
 	"net"
 	"net/http"
 	"strings"
 	"time"
 
-	"k8s.io/kubernetes/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/sets"
 
 	"github.com/golang/glog"
 )
@@ -18,7 +16,7 @@ import (
 func TryListen(network, hostPort string) (bool, error) {
 	l, err := net.Listen(network, hostPort)
 	if err != nil {
-		glog.V(5).Infof("Failure while checking listen on %s: %v", err)
+		glog.V(5).Infof("Failure while checking listen on %s: %v", hostPort, err)
 		return false, err
 	}
 	defer l.Close()
@@ -43,20 +41,6 @@ func (ln tcpKeepAliveListener) Accept() (c net.Conn, err error) {
 	return tc, nil
 }
 
-// ListenAndServe starts a server that listens on the provided TCP mode (as supported
-// by net.Listen)
-func ListenAndServe(srv *http.Server, network string) error {
-	addr := srv.Addr
-	if addr == "" {
-		addr = ":http"
-	}
-	ln, err := net.Listen(network, addr)
-	if err != nil {
-		return err
-	}
-	return srv.Serve(tcpKeepAliveListener{ln.(*net.TCPListener)})
-}
-
 // ListenAndServeTLS starts a server that listens on the provided TCP mode (as supported
 // by net.Listen).
 func ListenAndServeTLS(srv *http.Server, network string, certFile, keyFile string) error {
@@ -66,7 +50,7 @@ func ListenAndServeTLS(srv *http.Server, network string, certFile, keyFile strin
 	}
 	config := &tls.Config{}
 	if srv.TLSConfig != nil {
-		*config = *srv.TLSConfig
+		config = srv.TLSConfig
 	}
 	if config.NextProtos == nil {
 		config.NextProtos = []string{"http/1.1"}
@@ -110,39 +94,6 @@ func WaitForSuccessfulDial(https bool, network, address string, timeout, interva
 		return nil
 	}
 	return err
-}
-
-// TransportFor returns an http.Transport for the given ca and client cert (which may be empty strings)
-func TransportFor(ca string, certFile string, keyFile string) (http.RoundTripper, error) {
-	if len(ca) == 0 && len(certFile) == 0 && len(keyFile) == 0 {
-		return http.DefaultTransport, nil
-	}
-
-	if (len(certFile) == 0) != (len(keyFile) == 0) {
-		return nil, errors.New("certFile and keyFile must be specified together")
-	}
-
-	// Copy default transport
-	transport := *http.DefaultTransport.(*http.Transport)
-	transport.TLSClientConfig = &tls.Config{}
-
-	if len(ca) != 0 {
-		roots, err := CertPoolFromFile(ca)
-		if err != nil {
-			return nil, fmt.Errorf("error loading cert pool from ca file %s: %v", ca, err)
-		}
-		transport.TLSClientConfig.RootCAs = roots
-	}
-
-	if len(certFile) != 0 {
-		cert, err := tls.LoadX509KeyPair(certFile, keyFile)
-		if err != nil {
-			return nil, fmt.Errorf("error loading x509 keypair from cert file %s and key file %s: %v", certFile, keyFile, err)
-		}
-		transport.TLSClientConfig.Certificates = []tls.Certificate{cert}
-	}
-
-	return &transport, nil
 }
 
 // GetCertificateFunc returns a function that can be used in tls.Config#GetCertificate

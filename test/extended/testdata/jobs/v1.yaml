@@ -1,0 +1,16 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: simplev1
+spec:
+  template:
+    metadata:
+      name: simplev1
+      labels:
+        app: simplev1
+    spec:
+      containers:
+      - name: simplev1
+        image: gcr.io/google_containers/busybox
+        command: ["/bin/sh", "-c", "exit 0"]
+      restartPolicy: Never

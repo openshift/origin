@@ -1,0 +1,8 @@
+[cbs-paas7-openshift-multiarch-el7-build]
+name = CBS OpenShift MultiArch Build
+baseurl = http://cbs.centos.org/kojifiles/repos/paas7-openshift-multiarch-el7-build/latest/$basearch
+enabled = 1
+gpgcheck = 0
+sslverify = 0
+skip_if_unavailable = 0
+includepkgs = golang* protobuf* goversioninfo* openvswitch* haproxy*

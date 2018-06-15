@@ -1,25 +1,36 @@
 package api
 
 import (
-	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 
-	_ "github.com/openshift/origin/pkg/authorization/api"
-	_ "github.com/openshift/origin/pkg/build/api"
-	_ "github.com/openshift/origin/pkg/deploy/api"
-	_ "github.com/openshift/origin/pkg/image/api"
-	_ "github.com/openshift/origin/pkg/oauth/api"
-	_ "github.com/openshift/origin/pkg/project/api"
-	_ "github.com/openshift/origin/pkg/route/api"
-	_ "github.com/openshift/origin/pkg/sdn/api"
-	_ "github.com/openshift/origin/pkg/template/api"
-	_ "github.com/openshift/origin/pkg/user/api"
+	_ "github.com/openshift/origin/pkg/apps/apis/apps"
+	_ "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	_ "github.com/openshift/origin/pkg/build/apis/build"
+	_ "github.com/openshift/origin/pkg/image/apis/image"
+	_ "github.com/openshift/origin/pkg/network/apis/network"
+	_ "github.com/openshift/origin/pkg/oauth/apis/oauth"
+	_ "github.com/openshift/origin/pkg/project/apis/project"
+	_ "github.com/openshift/origin/pkg/route/apis/route"
+	_ "github.com/openshift/origin/pkg/security/apis/security"
+	_ "github.com/openshift/origin/pkg/template/apis/template"
+	_ "github.com/openshift/origin/pkg/user/apis/user"
 )
 
-// Codec is the identity codec for this package - it can only convert itself
-// to itself.
-var Codec = runtime.CodecFor(api.Scheme, "")
+const (
+	Prefix    = "/oapi"
+	GroupName = ""
+)
 
-func init() {
-	api.Scheme.AddKnownTypes("")
+// SchemeGroupVersion is group version used to register these objects
+var SchemeGroupVersion = schema.GroupVersion{Group: GroupName, Version: runtime.APIVersionInternal}
+
+// Kind takes an unqualified kind and returns back a Group qualified GroupKind
+func Kind(kind string) schema.GroupKind {
+	return SchemeGroupVersion.WithKind(kind).GroupKind()
+}
+
+// Resource takes an unqualified resource and returns back a Group qualified GroupResource
+func Resource(resource string) schema.GroupResource {
+	return SchemeGroupVersion.WithResource(resource).GroupResource()
 }

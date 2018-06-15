@@ -1,0 +1,15 @@
+kind: BuildConfig
+apiVersion: v1
+metadata:
+  name: gradle
+spec:
+  strategy:
+    type: JenkinsPipeline
+    jenkinsPipelineStrategy:
+      jenkinsfile: |-
+        node("maven") {
+          git url: "https://github.com/openshift/gs-spring-boot-spock.git"
+          sh "./gradlew build"
+        }
+  triggers:
+  - type: ConfigChange

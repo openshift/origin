@@ -1,0 +1,9 @@
+apiVersion: v1
+clientName: test-oauth-client
+kind: OAuthClientAuthorization
+metadata:
+  name: user1:test-oauth-client
+scopes:
+- user:check-access
+userName: user1
+userUID: uid

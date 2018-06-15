@@ -1,7 +1,7 @@
 package route
 
 import (
-	api "github.com/openshift/origin/pkg/route/api"
+	api "github.com/openshift/origin/pkg/route/apis/route"
 )
 
 // AllocationPlugin is the interface the route controller dispatches

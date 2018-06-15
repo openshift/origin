@@ -1,0 +1,81 @@
+kind: Template
+apiVersion: v1
+metadata:
+  name: invalid-api-version-template
+objects:
+- apiVersion: v1
+  kind: Secret
+  metadata:
+    annotations:
+      description: v1 Secret - used to test v1 negotiation of k8s objects
+    name: v1-secret
+- apiVersion: v1
+  kind: Secret
+  metadata:
+    annotations:
+      description: v1 Secret - used to test v1 negotiation of k8s objects
+    name: v1-secret
+- apiVersion: v1
+  kind: Route
+  metadata:
+    annotations:
+      description: v1 Route - used to test v1 negotiation of origin objects
+    name: v1-route
+  spec:
+    to:
+      kind: Service
+      name: test
+- apiVersion: v1
+  kind: Route
+  metadata:
+    annotations:
+      description: v1 Route - used to test v1 negotiation of origin objects
+    name: v1-route
+  spec:
+    to:
+      kind: Service
+      name: test
+- apiVersion: extensions/v1beta1
+  kind: Job
+  metadata:
+    annotations:
+      description: v1beta1 Job - used to test v1beta1 negotiation of group k8s objects
+    name: v1beta1-job
+  spec:
+    selector:
+      matchLabels:
+        run: v1beta1-job
+    template:
+      metadata:
+        labels:
+          run: v1beta1-job
+      spec:
+        containers:
+        - image: openshift/hello-openshift
+          name: hello-container
+        restartPolicy: Never
+- apiVersion: extensions/v1beta2
+  kind: Job
+  metadata:
+    annotations:
+      description: v1beta1 Job - used to test v1beta1 negotiation of group k8s objects
+    name: v1beta2-job
+  spec:
+    selector:
+      matchLabels:
+        run: v1beta1-job
+    template:
+      metadata:
+        labels:
+          run: v1beta1-job
+      spec:
+        containers:
+        - image: openshift/hello-openshift
+          name: hello-container
+        restartPolicy: Never
+- apiVersion: othergroup/v2
+  kind: Foo
+  metadata:
+    annotations:
+      description: used to test how clients handle API groups they do not know about, and which fail when posted to the server
+    name: othergroup-v2-foo

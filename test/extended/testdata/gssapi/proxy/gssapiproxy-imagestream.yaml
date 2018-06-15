@@ -1,0 +1,5 @@
+kind: "ImageStream"
+apiVersion: "v1"
+metadata:
+  name: "gssapiproxy"
+  creationTimestamp: null

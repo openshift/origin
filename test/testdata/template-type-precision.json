@@ -1,0 +1,37 @@
+{
+    "kind": "Template",
+    "apiVersion": "v1",
+    "metadata": {
+        "name": "template-type-precision",
+        "annotations": {
+            "description": "template to test type precision in template processing. Sets supplemental groups of 0, 1000030003, maxint32 and maxint64"
+        }
+    },
+    "objects": [
+        {
+            "apiVersion": "v1",
+            "kind": "Pod",
+            "metadata": {
+                "name": "template-type-precision"
+            },
+            "spec": {
+              "containers": [
+                {
+                  "name": "test",
+                  "image": "busybox",
+                  "imagePullPolicy": "IfNotPresent"
+                }
+              ],
+              "restartPolicy": "Never",
+              "securityContext": {
+                  "supplementalGroups": [
+                      0,
+                      1000030003,
+                      2147483647
+                  ]
+              },
+              "terminationGracePeriodSeconds": 9223372036854775807
+            }
+        }
+    ]
+}

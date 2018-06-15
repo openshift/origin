@@ -1,0 +1,939 @@
+#compdef kubectl
+
+
+__kubectl_bash_source() {
+	alias shopt=':'
+	alias _expand=_bash_expand
+	alias _complete=_bash_comp
+	emulate -L sh
+	setopt kshglob noshglob braceexpand
+
+	source "$@"
+}
+
+__kubectl_type() {
+	# -t is not supported by zsh
+	if [ "$1" == "-t" ]; then
+		shift
+
+		# fake Bash 4 to disable "complete -o nospace". Instead
+		# "compopt +-o nospace" is used in the code to toggle trailing
+		# spaces. We don't support that, but leave trailing spaces on
+		# all the time
+		if [ "$1" = "__kubectl_compopt" ]; then
+			echo builtin
+			return 0
+		fi
+	fi
+	type "$@"
+}
+
+__kubectl_compgen() {
+	local completions w
+	completions=( $(compgen "$@") ) || return $?
+
+	# filter by given word as prefix
+	while [[ "$1" = -* && "$1" != -- ]]; do
+		shift
+		shift
+	done
+	if [[ "$1" == -- ]]; then
+		shift
+	fi
+	for w in "${completions[@]}"; do
+		if [[ "${w}" = "$1"* ]]; then
+			echo "${w}"
+		fi
+	done
+}
+
+__kubectl_compopt() {
+	true # don't do anything. Not supported by bashcompinit in zsh
+}
+
+__kubectl_ltrim_colon_completions()
+{
+	if [[ "$1" == *:* && "$COMP_WORDBREAKS" == *:* ]]; then
+		# Remove colon-word prefix from COMPREPLY items
+		local colon_word=${1%${1##*:}}
+		local i=${#COMPREPLY[*]}
+		while [[ $((--i)) -ge 0 ]]; do
+			COMPREPLY[$i]=${COMPREPLY[$i]#"$colon_word"}
+		done
+	fi
+}
+
+__kubectl_get_comp_words_by_ref() {
+	cur="${COMP_WORDS[COMP_CWORD]}"
+	prev="${COMP_WORDS[${COMP_CWORD}-1]}"
+	words=("${COMP_WORDS[@]}")
+	cword=("${COMP_CWORD[@]}")
+}
+
+__kubectl_filedir() {
+	local RET OLD_IFS w qw
+
+	__kubectl_debug "_filedir $@ cur=$cur"
+	if [[ "$1" = \~* ]]; then
+		# somehow does not work. Maybe, zsh does not call this at all
+		eval echo "$1"
+		return 0
+	fi
+
+	OLD_IFS="$IFS"
+	IFS=$'\n'
+	if [ "$1" = "-d" ]; then
+		shift
+		RET=( $(compgen -d) )
+	else
+		RET=( $(compgen -f) )
+	fi
+	IFS="$OLD_IFS"
+
+	IFS="," __kubectl_debug "RET=${RET[@]} len=${#RET[@]}"
+
+	for w in ${RET[@]}; do
+		if [[ ! "${w}" = "${cur}"* ]]; then
+			continue
+		fi
+		if eval "[[ \"\${w}\" = *.$1 || -d \"\${w}\" ]]"; then
+			qw="$(__kubectl_quote "${w}")"
+			if [ -d "${w}" ]; then
+				COMPREPLY+=("${qw}/")
+			else
+				COMPREPLY+=("${qw}")
+			fi
+		fi
+	done
+}
+
+__kubectl_quote() {
+    if [[ $1 == \'* || $1 == \"* ]]; then
+        # Leave out first character
+        printf %q "${1:1}"
+    else
+    	printf %q "$1"
+    fi
+}
+
+autoload -U +X bashcompinit && bashcompinit
+
+# use word boundary patterns for BSD or GNU sed
+LWORD='[[:<:]]'
+RWORD='[[:>:]]'
+if sed --help 2>&1 | grep -q GNU; then
+	LWORD='\<'
+	RWORD='\>'
+fi
+
+__kubectl_convert_bash_to_zsh() {
+	sed \
+	-e 's/declare -F/whence -w/' \
+	-e 's/_get_comp_words_by_ref "\$@"/_get_comp_words_by_ref "\$*"/' \
+	-e 's/local \([a-zA-Z0-9_]*\)=/local \1; \1=/' \
+	-e 's/flags+=("\(--.*\)=")/flags+=("\1"); two_word_flags+=("\1")/' \
+	-e 's/must_have_one_flag+=("\(--.*\)=")/must_have_one_flag+=("\1")/' \
+	-e "s/${LWORD}_filedir${RWORD}/__kubectl_filedir/g" \
+	-e "s/${LWORD}_get_comp_words_by_ref${RWORD}/__kubectl_get_comp_words_by_ref/g" \
+	-e "s/${LWORD}__ltrim_colon_completions${RWORD}/__kubectl_ltrim_colon_completions/g" \
+	-e "s/${LWORD}compgen${RWORD}/__kubectl_compgen/g" \
+	-e "s/${LWORD}compopt${RWORD}/__kubectl_compopt/g" \
+	-e "s/${LWORD}declare${RWORD}/builtin declare/g" \
+	-e "s/\\\$(type${RWORD}/\$(__kubectl_type/g" \
+	<<'BASH_COMPLETION_EOF'
+# bash completion for openshift                            -*- shell-script -*-
+
+__openshift_debug()
+{
+    if [[ -n ${BASH_COMP_DEBUG_FILE} ]]; then
+        echo "$*" >> "${BASH_COMP_DEBUG_FILE}"
+    fi
+}
+
+# Homebrew on Macs have version 1.3 of bash-completion which doesn't include
+# _init_completion. This is a very minimal version of that function.
+__openshift_init_completion()
+{
+    COMPREPLY=()
+    _get_comp_words_by_ref "$@" cur prev words cword
+}
+
+__openshift_index_of_word()
+{
+    local w word=$1
+    shift
+    index=0
+    for w in "$@"; do
+        [[ $w = "$word" ]] && return
+        index=$((index+1))
+    done
+    index=-1
+}
+
+__openshift_contains_word()
+{
+    local w word=$1; shift
+    for w in "$@"; do
+        [[ $w = "$word" ]] && return
+    done
+    return 1
+}
+
+__openshift_handle_reply()
+{
+    __openshift_debug "${FUNCNAME[0]}"
+    case $cur in
+        -*)
+            if [[ $(type -t compopt) = "builtin" ]]; then
+                compopt -o nospace
+            fi
+            local allflags
+            if [ ${#must_have_one_flag[@]} -ne 0 ]; then
+                allflags=("${must_have_one_flag[@]}")
+            else
+                allflags=("${flags[*]} ${two_word_flags[*]}")
+            fi
+            COMPREPLY=( $(compgen -W "${allflags[*]}" -- "$cur") )
+            if [[ $(type -t compopt) = "builtin" ]]; then
+                [[ "${COMPREPLY[0]}" == *= ]] || compopt +o nospace
+            fi
+
+            # complete after --flag=abc
+            if [[ $cur == *=* ]]; then
+                if [[ $(type -t compopt) = "builtin" ]]; then
+                    compopt +o nospace
+                fi
+
+                local index flag
+                flag="${cur%=*}"
+                __openshift_index_of_word "${flag}" "${flags_with_completion[@]}"
+                COMPREPLY=()
+                if [[ ${index} -ge 0 ]]; then
+                    PREFIX=""
+                    cur="${cur#*=}"
+                    ${flags_completion[${index}]}
+                    if [ -n "${ZSH_VERSION}" ]; then
+                        # zsh completion needs --flag= prefix
+                        eval "COMPREPLY=( \"\${COMPREPLY[@]/#/${flag}=}\" )"
+                    fi
+                fi
+            fi
+            return 0;
+            ;;
+    esac
+
+    # check if we are handling a flag with special work handling
+    local index
+    __openshift_index_of_word "${prev}" "${flags_with_completion[@]}"
+    if [[ ${index} -ge 0 ]]; then
+        ${flags_completion[${index}]}
+        return
+    fi
+
+    # we are parsing a flag and don't have a special handler, no completion
+    if [[ ${cur} != "${words[cword]}" ]]; then
+        return
+    fi
+
+    local completions
+    completions=("${commands[@]}")
+    if [[ ${#must_have_one_noun[@]} -ne 0 ]]; then
+        completions=("${must_have_one_noun[@]}")
+    fi
+    if [[ ${#must_have_one_flag[@]} -ne 0 ]]; then
+        completions+=("${must_have_one_flag[@]}")
+    fi
+    COMPREPLY=( $(compgen -W "${completions[*]}" -- "$cur") )
+
+    if [[ ${#COMPREPLY[@]} -eq 0 && ${#noun_aliases[@]} -gt 0 && ${#must_have_one_noun[@]} -ne 0 ]]; then
+        COMPREPLY=( $(compgen -W "${noun_aliases[*]}" -- "$cur") )
+    fi
+
+    if [[ ${#COMPREPLY[@]} -eq 0 ]]; then
+        declare -F __custom_func >/dev/null && __custom_func
+    fi
+
+    # available in bash-completion >= 2, not always present on macOS
+    if declare -F __ltrim_colon_completions >/dev/null; then
+        __ltrim_colon_completions "$cur"
+    fi
+
+    # If there is only 1 completion and it is a flag with an = it will be completed
+    # but we don't want a space after the =
+    if [[ "${#COMPREPLY[@]}" -eq "1" ]] && [[ $(type -t compopt) = "builtin" ]] && [[ "${COMPREPLY[0]}" == --*= ]]; then
+       compopt -o nospace
+    fi
+}
+
+# The arguments should be in the form "ext1|ext2|extn"
+__openshift_handle_filename_extension_flag()
+{
+    local ext="$1"
+    _filedir "@(${ext})"
+}
+
+__openshift_handle_subdirs_in_dir_flag()
+{
+    local dir="$1"
+    pushd "${dir}" >/dev/null 2>&1 && _filedir -d && popd >/dev/null 2>&1
+}
+
+__openshift_handle_flag()
+{
+    __openshift_debug "${FUNCNAME[0]}: c is $c words[c] is ${words[c]}"
+
+    # if a command required a flag, and we found it, unset must_have_one_flag()
+    local flagname=${words[c]}
+    local flagvalue
+    # if the word contained an =
+    if [[ ${words[c]} == *"="* ]]; then
+        flagvalue=${flagname#*=} # take in as flagvalue after the =
+        flagname=${flagname%=*} # strip everything after the =
+        flagname="${flagname}=" # but put the = back
+    fi
+    __openshift_debug "${FUNCNAME[0]}: looking for ${flagname}"
+    if __openshift_contains_word "${flagname}" "${must_have_one_flag[@]}"; then
+        must_have_one_flag=()
+    fi
+
+    # if you set a flag which only applies to this command, don't show subcommands
+    if __openshift_contains_word "${flagname}" "${local_nonpersistent_flags[@]}"; then
+      commands=()
+    fi
+
+    # keep flag value with flagname as flaghash
+    # flaghash variable is an associative array which is only supported in bash > 3.
+    if [[ -z "${BASH_VERSION}" || "${BASH_VERSINFO[0]}" -gt 3 ]]; then
+        if [ -n "${flagvalue}" ] ; then
+            flaghash[${flagname}]=${flagvalue}
+        elif [ -n "${words[ $((c+1)) ]}" ] ; then
+            flaghash[${flagname}]=${words[ $((c+1)) ]}
+        else
+            flaghash[${flagname}]="true" # pad "true" for bool flag
+        fi
+    fi
+
+    # skip the argument to a two word flag
+    if __openshift_contains_word "${words[c]}" "${two_word_flags[@]}"; then
+        c=$((c+1))
+        # if we are looking for a flags value, don't show commands
+        if [[ $c -eq $cword ]]; then
+            commands=()
+        fi
+    fi
+
+    c=$((c+1))
+
+}
+
+__openshift_handle_noun()
+{
+    __openshift_debug "${FUNCNAME[0]}: c is $c words[c] is ${words[c]}"
+
+    if __openshift_contains_word "${words[c]}" "${must_have_one_noun[@]}"; then
+        must_have_one_noun=()
+    elif __openshift_contains_word "${words[c]}" "${noun_aliases[@]}"; then
+        must_have_one_noun=()
+    fi
+
+    nouns+=("${words[c]}")
+    c=$((c+1))
+}
+
+__openshift_handle_command()
+{
+    __openshift_debug "${FUNCNAME[0]}: c is $c words[c] is ${words[c]}"
+
+    local next_command
+    if [[ -n ${last_command} ]]; then
+        next_command="_${last_command}_${words[c]//:/__}"
+    else
+        if [[ $c -eq 0 ]]; then
+            next_command="_openshift_root_command"
+        else
+            next_command="_${words[c]//:/__}"
+        fi
+    fi
+    c=$((c+1))
+    __openshift_debug "${FUNCNAME[0]}: looking for ${next_command}"
+    declare -F "$next_command" >/dev/null && $next_command
+}
+
+__openshift_handle_word()
+{
+    if [[ $c -ge $cword ]]; then
+        __openshift_handle_reply
+        return
+    fi
+    __openshift_debug "${FUNCNAME[0]}: c is $c words[c] is ${words[c]}"
+    if [[ "${words[c]}" == -* ]]; then
+        __openshift_handle_flag
+    elif __openshift_contains_word "${words[c]}" "${commands[@]}"; then
+        __openshift_handle_command
+    elif [[ $c -eq 0 ]]; then
+        __openshift_handle_command
+    else
+        __openshift_handle_noun
+    fi
+    __openshift_handle_word
+}
+
+_openshift_completion()
+{
+    last_command="openshift_completion"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--help")
+    flags+=("-h")
+    local_nonpersistent_flags+=("--help")
+    flags+=("--loglevel=")
+    flags+=("--logspec=")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    must_have_one_noun+=("bash")
+    must_have_one_noun+=("zsh")
+    noun_aliases=()
+}
+
+_openshift_options()
+{
+    last_command="openshift_options"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--loglevel=")
+    flags+=("--logspec=")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_openshift_start_etcd()
+{
+    last_command="openshift_start_etcd"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--config=")
+    flags_with_completion+=("--config")
+    flags_completion+=("__openshift_handle_filename_extension_flag yaml|yml")
+    local_nonpersistent_flags+=("--config=")
+    flags+=("--loglevel=")
+    flags+=("--logspec=")
+
+    must_have_one_flag=()
+    must_have_one_flag+=("--config=")
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_openshift_start_master_api()
+{
+    last_command="openshift_start_master_api"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--config=")
+    flags_with_completion+=("--config")
+    flags_completion+=("__openshift_handle_filename_extension_flag yaml|yml")
+    local_nonpersistent_flags+=("--config=")
+    flags+=("--listen=")
+    local_nonpersistent_flags+=("--listen=")
+    flags+=("--master=")
+    local_nonpersistent_flags+=("--master=")
+    flags+=("--loglevel=")
+    flags+=("--logspec=")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_openshift_start_master_controllers()
+{
+    last_command="openshift_start_master_controllers"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--config=")
+    flags_with_completion+=("--config")
+    flags_completion+=("__openshift_handle_filename_extension_flag yaml|yml")
+    local_nonpersistent_flags+=("--config=")
+    flags+=("--listen=")
+    local_nonpersistent_flags+=("--listen=")
+    flags+=("--lock-service-name=")
+    local_nonpersistent_flags+=("--lock-service-name=")
+    flags+=("--loglevel=")
+    flags+=("--logspec=")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_openshift_start_master()
+{
+    last_command="openshift_start_master"
+    commands=()
+    commands+=("api")
+    commands+=("controllers")
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--certificate-authority=")
+    flags_with_completion+=("--certificate-authority")
+    flags_completion+=("_filedir")
+    local_nonpersistent_flags+=("--certificate-authority=")
+    flags+=("--config=")
+    flags_with_completion+=("--config")
+    flags_completion+=("__openshift_handle_filename_extension_flag yaml|yml")
+    local_nonpersistent_flags+=("--config=")
+    flags+=("--cors-allowed-origins=")
+    local_nonpersistent_flags+=("--cors-allowed-origins=")
+    flags+=("--create-certs")
+    local_nonpersistent_flags+=("--create-certs")
+    flags+=("--dns=")
+    local_nonpersistent_flags+=("--dns=")
+    flags+=("--etcd=")
+    local_nonpersistent_flags+=("--etcd=")
+    flags+=("--etcd-dir=")
+    flags_with_completion+=("--etcd-dir")
+    flags_completion+=("_filedir")
+    local_nonpersistent_flags+=("--etcd-dir=")
+    flags+=("--expire-days=")
+    local_nonpersistent_flags+=("--expire-days=")
+    flags+=("--host-subnet-length=")
+    local_nonpersistent_flags+=("--host-subnet-length=")
+    flags+=("--images=")
+    local_nonpersistent_flags+=("--images=")
+    flags+=("--kubeconfig=")
+    local_nonpersistent_flags+=("--kubeconfig=")
+    flags+=("--kubernetes=")
+    local_nonpersistent_flags+=("--kubernetes=")
+    flags+=("--latest-images")
+    local_nonpersistent_flags+=("--latest-images")
+    flags+=("--listen=")
+    local_nonpersistent_flags+=("--listen=")
+    flags+=("--master=")
+    local_nonpersistent_flags+=("--master=")
+    flags+=("--network-cidr=")
+    local_nonpersistent_flags+=("--network-cidr=")
+    flags+=("--network-plugin=")
+    local_nonpersistent_flags+=("--network-plugin=")
+    flags+=("--portal-net=")
+    local_nonpersistent_flags+=("--portal-net=")
+    flags+=("--public-master=")
+    local_nonpersistent_flags+=("--public-master=")
+    flags+=("--signer-expire-days=")
+    local_nonpersistent_flags+=("--signer-expire-days=")
+    flags+=("--write-config=")
+    flags_with_completion+=("--write-config")
+    flags_completion+=("_filedir")
+    local_nonpersistent_flags+=("--write-config=")
+    flags+=("--loglevel=")
+    flags+=("--logspec=")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_openshift_start_network()
+{
+    last_command="openshift_start_network"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--config=")
+    flags_with_completion+=("--config")
+    flags_completion+=("__openshift_handle_filename_extension_flag yaml|yml")
+    local_nonpersistent_flags+=("--config=")
+    flags+=("--disable=")
+    local_nonpersistent_flags+=("--disable=")
+    flags+=("--enable=")
+    local_nonpersistent_flags+=("--enable=")
+    flags+=("--images=")
+    local_nonpersistent_flags+=("--images=")
+    flags+=("--kubeconfig=")
+    local_nonpersistent_flags+=("--kubeconfig=")
+    flags+=("--kubernetes=")
+    local_nonpersistent_flags+=("--kubernetes=")
+    flags+=("--latest-images")
+    local_nonpersistent_flags+=("--latest-images")
+    flags+=("--listen=")
+    local_nonpersistent_flags+=("--listen=")
+    flags+=("--network-plugin=")
+    local_nonpersistent_flags+=("--network-plugin=")
+    flags+=("--recursive-resolv-conf=")
+    local_nonpersistent_flags+=("--recursive-resolv-conf=")
+    flags+=("--loglevel=")
+    flags+=("--logspec=")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_openshift_start_node()
+{
+    last_command="openshift_start_node"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--bootstrap-config-name=")
+    local_nonpersistent_flags+=("--bootstrap-config-name=")
+    flags+=("--config=")
+    flags_with_completion+=("--config")
+    flags_completion+=("__openshift_handle_filename_extension_flag yaml|yml")
+    local_nonpersistent_flags+=("--config=")
+    flags+=("--disable=")
+    local_nonpersistent_flags+=("--disable=")
+    flags+=("--enable=")
+    local_nonpersistent_flags+=("--enable=")
+    flags+=("--expire-days=")
+    local_nonpersistent_flags+=("--expire-days=")
+    flags+=("--hostname=")
+    local_nonpersistent_flags+=("--hostname=")
+    flags+=("--images=")
+    local_nonpersistent_flags+=("--images=")
+    flags+=("--kubeconfig=")
+    local_nonpersistent_flags+=("--kubeconfig=")
+    flags+=("--kubernetes=")
+    local_nonpersistent_flags+=("--kubernetes=")
+    flags+=("--latest-images")
+    local_nonpersistent_flags+=("--latest-images")
+    flags+=("--listen=")
+    local_nonpersistent_flags+=("--listen=")
+    flags+=("--network-plugin=")
+    local_nonpersistent_flags+=("--network-plugin=")
+    flags+=("--recursive-resolv-conf=")
+    local_nonpersistent_flags+=("--recursive-resolv-conf=")
+    flags+=("--volume-dir=")
+    flags_with_completion+=("--volume-dir")
+    flags_completion+=("_filedir")
+    local_nonpersistent_flags+=("--volume-dir=")
+    flags+=("--write-flags")
+    local_nonpersistent_flags+=("--write-flags")
+    flags+=("--loglevel=")
+    flags+=("--logspec=")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_openshift_start_template-service-broker()
+{
+    last_command="openshift_start_template-service-broker"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--audit-log-batch-buffer-size=")
+    local_nonpersistent_flags+=("--audit-log-batch-buffer-size=")
+    flags+=("--audit-log-batch-max-size=")
+    local_nonpersistent_flags+=("--audit-log-batch-max-size=")
+    flags+=("--audit-log-batch-max-wait=")
+    local_nonpersistent_flags+=("--audit-log-batch-max-wait=")
+    flags+=("--audit-log-batch-throttle-burst=")
+    local_nonpersistent_flags+=("--audit-log-batch-throttle-burst=")
+    flags+=("--audit-log-batch-throttle-enable")
+    local_nonpersistent_flags+=("--audit-log-batch-throttle-enable")
+    flags+=("--audit-log-batch-throttle-qps=")
+    local_nonpersistent_flags+=("--audit-log-batch-throttle-qps=")
+    flags+=("--audit-log-format=")
+    local_nonpersistent_flags+=("--audit-log-format=")
+    flags+=("--audit-log-maxage=")
+    local_nonpersistent_flags+=("--audit-log-maxage=")
+    flags+=("--audit-log-maxbackup=")
+    local_nonpersistent_flags+=("--audit-log-maxbackup=")
+    flags+=("--audit-log-maxsize=")
+    local_nonpersistent_flags+=("--audit-log-maxsize=")
+    flags+=("--audit-log-mode=")
+    local_nonpersistent_flags+=("--audit-log-mode=")
+    flags+=("--audit-log-path=")
+    local_nonpersistent_flags+=("--audit-log-path=")
+    flags+=("--audit-policy-file=")
+    local_nonpersistent_flags+=("--audit-policy-file=")
+    flags+=("--audit-webhook-batch-buffer-size=")
+    local_nonpersistent_flags+=("--audit-webhook-batch-buffer-size=")
+    flags+=("--audit-webhook-batch-max-size=")
+    local_nonpersistent_flags+=("--audit-webhook-batch-max-size=")
+    flags+=("--audit-webhook-batch-max-wait=")
+    local_nonpersistent_flags+=("--audit-webhook-batch-max-wait=")
+    flags+=("--audit-webhook-batch-throttle-burst=")
+    local_nonpersistent_flags+=("--audit-webhook-batch-throttle-burst=")
+    flags+=("--audit-webhook-batch-throttle-enable")
+    local_nonpersistent_flags+=("--audit-webhook-batch-throttle-enable")
+    flags+=("--audit-webhook-batch-throttle-qps=")
+    local_nonpersistent_flags+=("--audit-webhook-batch-throttle-qps=")
+    flags+=("--audit-webhook-config-file=")
+    local_nonpersistent_flags+=("--audit-webhook-config-file=")
+    flags+=("--audit-webhook-initial-backoff=")
+    local_nonpersistent_flags+=("--audit-webhook-initial-backoff=")
+    flags+=("--audit-webhook-mode=")
+    local_nonpersistent_flags+=("--audit-webhook-mode=")
+    flags+=("--authentication-kubeconfig=")
+    local_nonpersistent_flags+=("--authentication-kubeconfig=")
+    flags+=("--authentication-skip-lookup")
+    local_nonpersistent_flags+=("--authentication-skip-lookup")
+    flags+=("--authentication-token-webhook-cache-ttl=")
+    local_nonpersistent_flags+=("--authentication-token-webhook-cache-ttl=")
+    flags+=("--authorization-kubeconfig=")
+    local_nonpersistent_flags+=("--authorization-kubeconfig=")
+    flags+=("--authorization-webhook-cache-authorized-ttl=")
+    local_nonpersistent_flags+=("--authorization-webhook-cache-authorized-ttl=")
+    flags+=("--authorization-webhook-cache-unauthorized-ttl=")
+    local_nonpersistent_flags+=("--authorization-webhook-cache-unauthorized-ttl=")
+    flags+=("--bind-address=")
+    local_nonpersistent_flags+=("--bind-address=")
+    flags+=("--cert-dir=")
+    local_nonpersistent_flags+=("--cert-dir=")
+    flags+=("--client-ca-file=")
+    local_nonpersistent_flags+=("--client-ca-file=")
+    flags+=("--config=")
+    local_nonpersistent_flags+=("--config=")
+    flags+=("--contention-profiling")
+    local_nonpersistent_flags+=("--contention-profiling")
+    flags+=("--enable-swagger-ui")
+    local_nonpersistent_flags+=("--enable-swagger-ui")
+    flags+=("--http2-max-streams-per-connection=")
+    local_nonpersistent_flags+=("--http2-max-streams-per-connection=")
+    flags+=("--profiling")
+    local_nonpersistent_flags+=("--profiling")
+    flags+=("--requestheader-allowed-names=")
+    local_nonpersistent_flags+=("--requestheader-allowed-names=")
+    flags+=("--requestheader-client-ca-file=")
+    local_nonpersistent_flags+=("--requestheader-client-ca-file=")
+    flags+=("--requestheader-extra-headers-prefix=")
+    local_nonpersistent_flags+=("--requestheader-extra-headers-prefix=")
+    flags+=("--requestheader-group-headers=")
+    local_nonpersistent_flags+=("--requestheader-group-headers=")
+    flags+=("--requestheader-username-headers=")
+    local_nonpersistent_flags+=("--requestheader-username-headers=")
+    flags+=("--secure-port=")
+    local_nonpersistent_flags+=("--secure-port=")
+    flags+=("--tls-cert-file=")
+    local_nonpersistent_flags+=("--tls-cert-file=")
+    flags+=("--tls-cipher-suites=")
+    local_nonpersistent_flags+=("--tls-cipher-suites=")
+    flags+=("--tls-min-version=")
+    local_nonpersistent_flags+=("--tls-min-version=")
+    flags+=("--tls-private-key-file=")
+    local_nonpersistent_flags+=("--tls-private-key-file=")
+    flags+=("--tls-sni-cert-key=")
+    local_nonpersistent_flags+=("--tls-sni-cert-key=")
+    flags+=("--loglevel=")
+    flags+=("--logspec=")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_openshift_start()
+{
+    last_command="openshift_start"
+    commands=()
+    commands+=("etcd")
+    commands+=("master")
+    commands+=("network")
+    commands+=("node")
+    commands+=("template-service-broker")
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--certificate-authority=")
+    flags_with_completion+=("--certificate-authority")
+    flags_completion+=("_filedir")
+    local_nonpersistent_flags+=("--certificate-authority=")
+    flags+=("--cors-allowed-origins=")
+    local_nonpersistent_flags+=("--cors-allowed-origins=")
+    flags+=("--create-certs")
+    local_nonpersistent_flags+=("--create-certs")
+    flags+=("--dns=")
+    local_nonpersistent_flags+=("--dns=")
+    flags+=("--etcd=")
+    local_nonpersistent_flags+=("--etcd=")
+    flags+=("--etcd-dir=")
+    flags_with_completion+=("--etcd-dir")
+    flags_completion+=("_filedir")
+    local_nonpersistent_flags+=("--etcd-dir=")
+    flags+=("--expire-days=")
+    local_nonpersistent_flags+=("--expire-days=")
+    flags+=("--hostname=")
+    local_nonpersistent_flags+=("--hostname=")
+    flags+=("--images=")
+    local_nonpersistent_flags+=("--images=")
+    flags+=("--latest-images")
+    local_nonpersistent_flags+=("--latest-images")
+    flags+=("--listen=")
+    local_nonpersistent_flags+=("--listen=")
+    flags+=("--master=")
+    local_nonpersistent_flags+=("--master=")
+    flags+=("--master-config=")
+    flags_with_completion+=("--master-config")
+    flags_completion+=("__openshift_handle_filename_extension_flag yaml|yml")
+    local_nonpersistent_flags+=("--master-config=")
+    flags+=("--network-plugin=")
+    local_nonpersistent_flags+=("--network-plugin=")
+    flags+=("--node-config=")
+    flags_with_completion+=("--node-config")
+    flags_completion+=("__openshift_handle_filename_extension_flag yaml|yml")
+    local_nonpersistent_flags+=("--node-config=")
+    flags+=("--portal-net=")
+    local_nonpersistent_flags+=("--portal-net=")
+    flags+=("--print-ip")
+    local_nonpersistent_flags+=("--print-ip")
+    flags+=("--public-master=")
+    local_nonpersistent_flags+=("--public-master=")
+    flags+=("--recursive-resolv-conf=")
+    local_nonpersistent_flags+=("--recursive-resolv-conf=")
+    flags+=("--signer-expire-days=")
+    local_nonpersistent_flags+=("--signer-expire-days=")
+    flags+=("--volume-dir=")
+    flags_with_completion+=("--volume-dir")
+    flags_completion+=("_filedir")
+    local_nonpersistent_flags+=("--volume-dir=")
+    flags+=("--write-config=")
+    flags_with_completion+=("--write-config")
+    flags_completion+=("_filedir")
+    local_nonpersistent_flags+=("--write-config=")
+    flags+=("--loglevel=")
+    flags+=("--logspec=")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_openshift_version()
+{
+    last_command="openshift_version"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--loglevel=")
+    flags+=("--logspec=")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_openshift_root_command()
+{
+    last_command="openshift"
+    commands=()
+    commands+=("completion")
+    commands+=("options")
+    commands+=("start")
+    commands+=("version")
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--loglevel=")
+    flags+=("--logspec=")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+__start_openshift()
+{
+    local cur prev words cword
+    declare -A flaghash 2>/dev/null || :
+    if declare -F _init_completion >/dev/null 2>&1; then
+        _init_completion -s || return
+    else
+        __openshift_init_completion -n "=" || return
+    fi
+
+    local c=0
+    local flags=()
+    local two_word_flags=()
+    local local_nonpersistent_flags=()
+    local flags_with_completion=()
+    local flags_completion=()
+    local commands=("openshift")
+    local must_have_one_flag=()
+    local must_have_one_noun=()
+    local last_command
+    local nouns=()
+
+    __openshift_handle_word
+}
+
+if [[ $(type -t compopt) = "builtin" ]]; then
+    complete -o default -F __start_openshift openshift
+else
+    complete -o default -o nospace -F __start_openshift openshift
+fi
+
+# ex: ts=4 sw=4 et filetype=sh
+
+BASH_COMPLETION_EOF
+}
+
+__kubectl_bash_source <(__kubectl_convert_bash_to_zsh)
+_complete kubectl 2>/dev/null

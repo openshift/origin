@@ -1,0 +1,58 @@
+apiVersion: v1
+kind: List
+metadata: {}
+items:
+
+- apiVersion: v1
+  kind: Secret
+  metadata:
+    annotations:
+      description: v1 Secret - used to test v1 negotiation of k8s objects
+    name: v1-secret
+
+- apiVersion: v1
+  kind: Route
+  metadata:
+    annotations:
+      description: v1 Route - used to test v1 negotiation of origin objects
+    name: v1-route
+  spec:
+    to:
+      kind: Service
+      name: test
+
+- apiVersion: batch/v1
+  kind: Job
+  metadata:
+    annotations:
+      description: v1 Job - used to test v1 negotiation of group k8s objects
+    name: v1-job
+  spec:
+    template:
+      metadata:
+        labels:
+          run: v1-job
+      spec:
+        containers:
+        - image: openshift/hello-openshift
+          name: hello-container
+        restartPolicy: Never
+
+- apiVersion: v1
+  dockerImageMetadata:
+    Author: me
+    Config:
+      Cmd:
+      - /bin/sh
+      Entrypoint:
+      - container-entrypoint
+    ContainerConfig: {}
+    apiVersion: "1.0"
+    kind: DockerImage
+  dockerImageMetadataVersion: "1.0"
+  dockerImageReference: registry/namespace/name
+  kind: Image
+  metadata:
+    annotations:
+      description: v1 Image - used to test annotation/labeling of an object that does not support patch
+    name: v1-image

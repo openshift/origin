@@ -1,0 +1,343 @@
+{
+    "apiVersion": "v1",
+    "kind": "Template",
+    "metadata": {
+        "annotations": {
+            "description": "An example .NET Core application.",
+            "iconClass": "icon-dotnet",
+            "openshift.io/display-name": ".NET Core Example",
+            "tags": "quickstart,dotnet,.net",
+            "template.openshift.io/documentation-url": "https://github.com/redhat-developer/s2i-dotnetcore",
+            "template.openshift.io/provider-display-name": "Red Hat, Inc.",
+            "template.openshift.io/support-url": "https://access.redhat.com"
+        },
+        "name": "dotnet-example"
+    },
+    "objects": [
+        {
+            "apiVersion": "v1",
+            "kind": "Route",
+            "metadata": {
+                "name": "${NAME}"
+            },
+            "spec": {
+                "host": "${APPLICATION_DOMAIN}",
+                "to": {
+                    "kind": "Service",
+                    "name": "${NAME}"
+                }
+            }
+        },
+        {
+            "apiVersion": "v1",
+            "kind": "Service",
+            "metadata": {
+                "annotations": {
+                    "description": "Exposes and load balances the application pods"
+                },
+                "name": "${NAME}"
+            },
+            "spec": {
+                "ports": [
+                    {
+                        "name": "web",
+                        "port": 8080,
+                        "targetPort": 8080
+                    }
+                ],
+                "selector": {
+                    "name": "${NAME}"
+                }
+            }
+        },
+        {
+            "apiVersion": "v1",
+            "kind": "ImageStream",
+            "metadata": {
+                "annotations": {
+                    "description": "Keeps track of changes in the application image"
+                },
+                "name": "${NAME}"
+            }
+        },
+        {
+            "apiVersion": "v1",
+            "kind": "BuildConfig",
+            "metadata": {
+                "annotations": {
+                    "description": "Defines how to build the application"
+                },
+                "name": "${NAME}"
+            },
+            "spec": {
+                "output": {
+                    "to": {
+                        "kind": "ImageStreamTag",
+                        "name": "${NAME}:latest"
+                    }
+                },
+                "source": {
+                    "contextDir": "${CONTEXT_DIR}",
+                    "git": {
+                        "ref": "${SOURCE_REPOSITORY_REF}",
+                        "uri": "${SOURCE_REPOSITORY_URL}"
+                    },
+                    "type": "Git"
+                },
+                "strategy": {
+                    "sourceStrategy": {
+                        "env": [
+                            {
+                                "name": "DOTNET_STARTUP_PROJECT",
+                                "value": "${DOTNET_STARTUP_PROJECT}"
+                            },
+                            {
+                                "name": "DOTNET_SDK_VERSION",
+                                "value": "${DOTNET_SDK_VERSION}"
+                            },
+                            {
+                                "name": "DOTNET_ASSEMBLY_NAME",
+                                "value": "${DOTNET_ASSEMBLY_NAME}"
+                            },
+                            {
+                                "name": "DOTNET_NPM_TOOLS",
+                                "value": "${DOTNET_NPM_TOOLS}"
+                            },
+                            {
+                                "name": "DOTNET_TEST_PROJECTS",
+                                "value": "${DOTNET_TEST_PROJECTS}"
+                            },
+                            {
+                                "name": "DOTNET_CONFIGURATION",
+                                "value": "${DOTNET_CONFIGURATION}"
+                            },
+                            {
+                                "name": "DOTNET_PUBLISH",
+                                "value": "true"
+                            },
+                            {
+                                "name": "DOTNET_RESTORE_SOURCES",
+                                "value": "${DOTNET_RESTORE_SOURCES}"
+                            }
+                        ],
+                        "from": {
+                            "kind": "ImageStreamTag",
+                            "name": "${DOTNET_IMAGE_STREAM_TAG}",
+                            "namespace": "${NAMESPACE}"
+                        }
+                    },
+                    "type": "Source"
+                },
+                "triggers": [
+                    {
+                        "type": "ImageChange"
+                    },
+                    {
+                        "type": "ConfigChange"
+                    },
+                    {
+                        "github": {
+                            "secret": "${GITHUB_WEBHOOK_SECRET}"
+                        },
+                        "type": "GitHub"
+                    },
+                    {
+                        "generic": {
+                            "secret": "${GENERIC_WEBHOOK_SECRET}"
+                        },
+                        "type": "Generic"
+                    }
+                ]
+            }
+        },
+        {
+            "apiVersion": "v1",
+            "kind": "DeploymentConfig",
+            "metadata": {
+                "annotations": {
+                    "description": "Defines how to deploy the application server"
+                },
+                "name": "${NAME}"
+            },
+            "spec": {
+                "replicas": 1,
+                "selector": {
+                    "name": "${NAME}"
+                },
+                "strategy": {
+                    "type": "Rolling"
+                },
+                "template": {
+                    "metadata": {
+                        "labels": {
+                            "name": "${NAME}"
+                        },
+                        "name": "${NAME}"
+                    },
+                    "spec": {
+                        "containers": [
+                            {
+                                "env": [],
+                                "image": " ",
+                                "livenessProbe": {
+                                    "httpGet": {
+                                        "path": "/",
+                                        "port": 8080,
+                                        "scheme": "HTTP"
+                                    },
+                                    "initialDelaySeconds": 40,
+                                    "timeoutSeconds": 15
+                                },
+                                "name": "dotnet-app",
+                                "ports": [
+                                    {
+                                        "containerPort": 8080
+                                    }
+                                ],
+                                "readinessProbe": {
+                                    "httpGet": {
+                                        "path": "/",
+                                        "port": 8080,
+                                        "scheme": "HTTP"
+                                    },
+                                    "initialDelaySeconds": 10,
+                                    "timeoutSeconds": 30
+                                },
+                                "resources": {
+                                    "limits": {
+                                        "memory": "${MEMORY_LIMIT}"
+                                    }
+                                }
+                            }
+                        ]
+                    }
+                },
+                "triggers": [
+                    {
+                        "imageChangeParams": {
+                            "automatic": true,
+                            "containerNames": [
+                                "dotnet-app"
+                            ],
+                            "from": {
+                                "kind": "ImageStreamTag",
+                                "name": "${NAME}:latest"
+                            }
+                        },
+                        "type": "ImageChange"
+                    },
+                    {
+                        "type": "ConfigChange"
+                    }
+                ]
+            }
+        }
+    ],
+    "parameters": [
+        {
+            "description": "The name assigned to all of the frontend objects defined in this template.",
+            "displayName": "Name",
+            "name": "NAME",
+            "required": true,
+            "value": "dotnet-example"
+        },
+        {
+            "description": "Maximum amount of memory the container can use.",
+            "displayName": "Memory Limit",
+            "name": "MEMORY_LIMIT",
+            "required": true,
+            "value": "512Mi"
+        },
+        {
+            "description": "The image stream tag which is used to build the code.",
+            "displayName": ".NET builder",
+            "name": "DOTNET_IMAGE_STREAM_TAG",
+            "required": true,
+            "value": "dotnet:2.0"
+        },
+        {
+            "description": "The OpenShift Namespace where the ImageStream resides.",
+            "displayName": "Namespace",
+            "name": "NAMESPACE",
+            "required": true,
+            "value": "openshift"
+        },
+        {
+            "description": "The URL of the repository with your application source code.",
+            "displayName": "Git Repository URL",
+            "name": "SOURCE_REPOSITORY_URL",
+            "required": true,
+            "value": "https://github.com/redhat-developer/s2i-dotnetcore-ex.git"
+        },
+        {
+            "description": "Set this to a branch name, tag or other ref of your repository if you are not using the default branch.",
+            "displayName": "Git Reference",
+            "name": "SOURCE_REPOSITORY_REF",
+            "value": "dotnetcore-2.0"
+        },
+        {
+            "description": "Set this to use a subdirectory of the source code repository",
+            "displayName": "Context Directory",
+            "name": "CONTEXT_DIR"
+        },
+        {
+            "description": "The exposed hostname that will route to the .NET Core service, if left blank a value will be defaulted.",
+            "displayName": "Application Hostname",
+            "name": "APPLICATION_DOMAIN",
+            "value": ""
+        },
+        {
+            "description": "A secret string used to configure the GitHub webhook.",
+            "displayName": "GitHub Webhook Secret",
+            "from": "[a-zA-Z0-9]{40}",
+            "generate": "expression",
+            "name": "GITHUB_WEBHOOK_SECRET"
+        },
+        {
+            "description": "A secret string used to configure the Generic webhook.",
+            "displayName": "Generic Webhook Secret",
+            "from": "[a-zA-Z0-9]{40}",
+            "generate": "expression",
+            "name": "GENERIC_WEBHOOK_SECRET"
+        },
+        {
+            "description": "Set this to configure the default SDK version. This can be set to a specific version, '' (lowest version) or 'latest' (highest version).",
+            "displayName": "SDK Version",
+            "name": "DOTNET_SDK_VERSION",
+            "value": ""
+        },
+        {
+            "description": "Set this to a project file (e.g. csproj) or a folder containing a single project file.",
+            "displayName": "Startup Project",
+            "name": "DOTNET_STARTUP_PROJECT",
+            "value": "app"
+        },
+        {
+            "description": "Set this when the assembly name is overridden in the project file.",
+            "displayName": "Startup Assembly",
+            "name": "DOTNET_ASSEMBLY_NAME"
+        },
+        {
+            "description": "Set this to a space separated list of npm tools needed to publish.",
+            "displayName": "Npm Tools",
+            "name": "DOTNET_NPM_TOOLS",
+            "value": "bower gulp"
+        },
+        {
+            "description": "Set this to a space separated list of test projects to run before publishing.",
+            "displayName": "Test projects",
+            "name": "DOTNET_TEST_PROJECTS"
+        },
+        {
+            "description": "Set this to configuration (Release/Debug).",
+            "displayName": "Configuration",
+            "name": "DOTNET_CONFIGURATION",
+            "value": "Release"
+        },
+        {
+            "description": "Set this to override the NuGet.config sources.",
+            "displayName": "NuGet package sources",
+            "name": "DOTNET_RESTORE_SOURCES"
+        }
+    ]
+}

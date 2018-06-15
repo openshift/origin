@@ -1,0 +1,17 @@
+reviewers:
+  - smarterclayton
+  - deads2k
+  - liggitt
+  - bparees
+  - stevekuznetsov
+  - soltysh
+approvers:
+  - smarterclayton
+  - deads2k
+  - liggitt
+  - bparees
+  - mfojtik
+  - eparis
+  - derekwaynecarr
+  - stevekuznetsov # for build and tooling changes
+  - pweil-

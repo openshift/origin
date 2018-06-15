@@ -1,0 +1,59 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<project>
+    <actions/>
+    <description></description>
+    <keepDependencies>false</keepDependencies>
+    <properties>
+        <io.fabric8.jenkins.openshiftsync.BuildConfigProjectProperty plugin="openshift-sync@0.0.13">
+            <uid></uid>
+            <namespace></namespace>
+            <name></name>
+            <resourceVersion></resourceVersion>
+            <contextDir></contextDir>
+        </io.fabric8.jenkins.openshiftsync.BuildConfigProjectProperty>
+    </properties>
+    <scm class="hudson.scm.NullSCM"/>
+    <canRoam>true</canRoam>
+    <disabled>false</disabled>
+    <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
+    <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
+    <triggers/>
+    <concurrentBuild>false</concurrentBuild>
+    <builders>
+        <com.openshift.jenkins.plugins.pipeline.OpenShiftExec plugin="openshift-pipeline@1.0.31-SNAPSHOT">
+            <apiURL></apiURL>
+            <namespace>${PROJECT_NAME}</namespace>
+            <authToken></authToken>
+            <verbose>true</verbose>
+            <waitTime>120000</waitTime>
+            <waitUnit>milli</waitUnit>
+            <pod>${POD_NAME}</pod>
+            <container>${CONTAINER_NAME}</container>
+            <command>echo</command>
+        </com.openshift.jenkins.plugins.pipeline.OpenShiftExec>
+        <com.openshift.jenkins.plugins.pipeline.OpenShiftExec plugin="openshift-pipeline@1.0.31-SNAPSHOT">
+            <apiURL></apiURL>
+            <namespace>${PROJECT_NAME}</namespace>
+            <authToken></authToken>
+            <verbose>true</verbose>
+            <waitTime>120000</waitTime>
+            <waitUnit>milli</waitUnit>
+            <pod>${POD_NAME}</pod>
+            <container>${CONTAINER_NAME}</container>
+            <command>echo</command>
+            <arguments>
+                <com.openshift.jenkins.plugins.pipeline.Argument>
+                    <value>hello</value>
+                </com.openshift.jenkins.plugins.pipeline.Argument>
+                <com.openshift.jenkins.plugins.pipeline.Argument>
+                    <value>world</value>
+                </com.openshift.jenkins.plugins.pipeline.Argument>
+                <com.openshift.jenkins.plugins.pipeline.Argument>
+                    <value>1</value>
+                </com.openshift.jenkins.plugins.pipeline.Argument>
+            </arguments>
+        </com.openshift.jenkins.plugins.pipeline.OpenShiftExec>
+    </builders>
+    <publishers/>
+    <buildWrappers/>
+</project>

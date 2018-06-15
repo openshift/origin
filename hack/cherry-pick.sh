@@ -1,21 +1,12 @@
 #!/bin/bash
 
 # See HACKING.md for usage
-
-set -o errexit
-set -o nounset
-set -o pipefail
-
-OS_ROOT=$(dirname "${BASH_SOURCE}")/..
-source "${OS_ROOT}/hack/common.sh"
-source "${OS_ROOT}/hack/util.sh"
-os::log::install_errexit
-
-# Go to the top of the tree.
-cd "${OS_ROOT}"
+source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
 repo="${UPSTREAM_REPO:-k8s.io/kubernetes}"
 package="${UPSTREAM_PACKAGE:-pkg/api}"
+UPSTREAM_REPO_LOCATION="${UPSTREAM_REPO_LOCATION:-../../../${repo}}"
+pr="$1"
 
 if [[ "$#" -ne 1 ]]; then
   echo "You must supply a pull request by number or a Git range in the upstream ${repo} project" 1>&2
@@ -24,21 +15,27 @@ fi
 os::build::require_clean_tree # Origin tree must be clean
 
 patch="${TMPDIR:-/tmp}/patch"
-relativedir="../../../${repo}"
-if [[ ! -d "${relativedir}" ]]; then
-  echo "Expected ${relativedir} to exist" 1>&2
+rm -rf "${patch}"
+mkdir -p "${patch}"
+patch="${patch}/cherry-pick"
+
+if [[ ! -d "${UPSTREAM_REPO_LOCATION}" ]]; then
+  echo "Expected ${UPSTREAM_REPO_LOCATION} to exist" 1>&2
   exit 1
 fi
 
+lastrev="${NO_REBASE-}"
 if [[ -z "${NO_REBASE-}" ]]; then
-  lastrev="$(go run ${OS_ROOT}/hack/version.go ${OS_ROOT}/Godeps/Godeps.json ${repo}/${package})"
+  lastrev="$(go run ${OS_ROOT}/tools/godepversion/godepversion.go ${OS_ROOT}/Godeps/Godeps.json ${repo}/${package})"
 fi
 
-pushd "${relativedir}" > /dev/null
+pushd "${UPSTREAM_REPO_LOCATION}" > /dev/null
 os::build::require_clean_tree
-git fetch
 
-selector="$(os::build::commit_range $1 origin/master)"
+remote="${UPSTREAM_REMOTE:-origin}"
+git fetch ${remote}
+
+selector="$(os::build::commit_range $pr ${remote}/master)"
 
 if [[ -z "${NO_REBASE-}" ]]; then
   echo "++ Generating patch for ${selector} onto ${lastrev} ..." 2>&1
@@ -46,7 +43,7 @@ if [[ -z "${NO_REBASE-}" ]]; then
     git branch -d last_upstream_branch
   fi
   git checkout -b last_upstream_branch "${lastrev}"
-  git diff -p --raw "${selector}" > "${patch}"
+  git diff -p --raw --binary "${selector}" > "${patch}"
   if ! git apply -3 "${patch}"; then
     git rerere # record pre state
     echo 2>&1
@@ -57,14 +54,14 @@ if [[ -z "${NO_REBASE-}" ]]; then
   # stage any new files
   git add . > /dev/null
   # construct a new patch
-  git diff --cached -p --raw --{src,dst}-prefix=a/Godeps/_workspace/src/${repo}/ > "${patch}"
+  git diff --cached -p --raw --binary --{src,dst}-prefix=a/vendor/${repo}/ > "${patch}"
   # cleanup the current state
   git reset HEAD --hard > /dev/null
   git checkout master > /dev/null
-  git branch -d last_upstream_branch > /dev/null
+  git branch -D last_upstream_branch > /dev/null
 else
   echo "++ Generating patch for ${selector} without rebasing ..." 2>&1
-  git diff -p --raw --{src,dst}-prefix=a/Godeps/_workspace/src/${repo}/ "${selector}" > "${patch}"
+  git diff -p --raw --binary --{src,dst}-prefix=a/vendor/${repo}/ "${selector}" > "${patch}"
 fi
 
 popd > /dev/null
@@ -74,13 +71,18 @@ echo 2>&1
 set +e
 git apply --reject "${patch}"
 if [[ $? -ne 0 ]]; then
-  echo "++ Not all patches applied, merge *.req into your files or rerun with REBASE=1"
+  echo "++ Not all patches applied, merge *.rej into your files or rerun with REBASE=1"
   exit 1
+fi
+
+commit_message="UPSTREAM: $pr: Cherry-picked"
+if [ "$repo" != "k8s.io/kubernetes" ]; then
+  commit_message="UPSTREAM: $repo: $pr: Cherry-picked"
 fi
 
 set -o errexit
 git add .
-git commit -m "UPSTREAM: $1: " > /dev/null
+git commit -m "$commit_message" > /dev/null
 git commit --amend
 echo 2>&1
 echo "++ Done" 2>&1

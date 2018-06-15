@@ -5,7 +5,12 @@ OpenShift Developers <dev@lists.openshift.redhat.com>
 :toc2:
 :sectanchors:
 
-The OpenShift architecture builds upon the flexibility and scalability of https://docker.com/[Docker] and https://github.com/kubernetes/kubernetes[Kubernetes] to deliver a powerful new https://www.youtube.com/watch?v=aZ40GobvA1c[Platform-as-a-Service] system. This article explains how to set up a development environment and get involved with this latest version of OpenShift.  Kubernetes is included in this repo for ease of development, and the version we include is periodically updated.
+The OpenShift architecture builds upon the flexibility and scalability of
+https://docker.com/[Docker] and https://github.com/kubernetes/kubernetes[Kubernetes]
+to deliver a powerful new https://www.youtube.com/watch?v=aZ40GobvA1c[Platform-as-a-Service]
+system. This article explains how to set up a development environment and get
+involved with this latest version of OpenShift.  Kubernetes is included in this
+repo for ease of development, and the version we include is periodically updated.
 
 To get started you can either:
 
@@ -13,196 +18,300 @@ To get started you can either:
 
 Or if you are interested in development, start with:
 
-* <<openshift-development>> and choose between:
-
-	** <<develop-locally-on-your-host>>
-	** <<develop-on-virtual-machine-using-vagrant>>
+* <<openshift-development>>:
 
 == Download from GitHub
 
-The OpenShift team periodically publishes binaries to GitHub on https://github.com/openshift/origin/releases[the Releases page].  These are Linux, Windows, or Mac OS X 64bit binaries (note that Mac and Windows are client only). You'll need Docker installed on your local system (see https://docs.docker.com/installation/[the installation page] if you've never installed Docker before).
+The OpenShift team periodically publishes binaries to GitHub on
+https://github.com/openshift/origin/releases[the Releases page].  These are
+Linux, Windows, or Mac OS X 64bit binaries (note that Mac and Windows are
+client only). You'll need Docker installed on your local system
+(see https://docs.docker.com/installation/[the installation page] if you've
+never installed Docker before and you're not on RHEL/CentOS/Fedora).
 
-The tar file for each platform contains a single binary `openshift` which is the all-in-one OpenShift installation.
+The tar file for each platform contains a single binary `openshift` which is
+the all-in-one OpenShift installation.
 
-* Use `sudo openshift start` to launch the server.  Root access is required to create services due to the need to modify IPTables.  See issue: https://github.com/kubernetes/kubernetes/issues/1859.
+* Use `oc cluster up` to launch the server.
 * Use `oc login <server> ...` to connect to an OpenShift server
 * Use `openshift help` to see more about the commands in the binary
 
 
 == OpenShift Development
 
-To get started, https://help.github.com/articles/fork-a-repo[fork] the https://github.com/openshift/origin[origin repo].
+To get started, https://help.github.com/articles/fork-a-repo[fork] the
+https://github.com/openshift/origin[origin repo].
 
 === Develop locally on your host
 
-You can develop OpenShift 3 on Windows, Mac, or Linux, but you'll need Docker installed on Linux to actually launch containers.
+You can develop OpenShift on Windows, Mac, or Linux, but you'll need Docker
+installed on Linux to actually launch containers. Client and server binaries
+can be built locally or in the `openshift/origin-release` container environment. The
+http://golang.org/[Go] programming language is only necessary for building on
+the local host.
 
-* For OpenShift 3 development, install the http://golang.org/[Go] programming language
-* To launch containers, install the https://docker.com/[Docker] platform
+Currently, OpenShift is built with `go` 1.9 and uses Docker 1.13 on Fedora/CentOS/RHEL.
+MacOS supports builds with `go` 1.9 and Docker CE 17.09.1 - newer versions of go and Docker are not supported.
+The exact requirement for Docker is documented
+https://docs.openshift.org/latest/install_config/install/prerequisites.html#installing-docker[here].
 
-Here's how to get set up:
+==== Installing Prerequisites
 
-1. For Go, Git and optionally also Docker, follow the links below to get to installation information for these tools: +
-** http://golang.org/doc/install[Installing Go]. You must install Go 1.4 and NOT use $HOME/go directory for Go installation.
-** http://git-scm.com/book/en/v2/Getting-Started-Installing-Git[Installing Git]
-** https://docs.docker.com/installation/[Installing Docker]. NOTE: OpenShift requires Docker 1.7.1 or higher.
-2. Next, create a Go workspace directory: +
+===== MacOS
+
+Follow the installation steps to install http://brew.sh/[Homebrew], which will
+allow you to install `git`:
+----
+$ brew install git
+----
+
+Then, follow the instructions to install https://docs.docker.com/docker-for-mac/install/[`docker`].
+Search the https://docs.docker.com/docker-for-mac/release-notes/[Docker for Mac releases] to find a link:/docs/cluster_up_down.md#prerequisites[supported
+version] to download.
+You will need to build `linux/amd64` binaries for the OpenShift server; if you
+want to do the builds locally, you will need to follow the instructions to
+install https://golang.org/doc/install#install[the `go` programming language].
+Go `pkg` installers can be downloaded https://golang.org/dl/[here].
+
+===== Windows
+
+Follow the installation steps to install https://git-for-windows.github.io/[`git` for Windows]
+and https://docs.docker.com/docker-for-windows/install/[`docker`].
+Search the https://docs.docker.com/docker-for-windows/release-notes/[Docker for Windows releases] to find a link:/docs/cluster_up_down.md#prerequisites[supported
+version] to download.
+You will need to build `linux/amd64` binaries for the OpenShift server; if you
+want to do the builds locally, you will need to follow the instructions to
+install https://golang.org/doc/install#windows[the `go` programming language].
+Go `msi` installers can be downloaded https://golang.org/dl/[here].
+
+===== Fedora
+
+Install `git` and `docker` with:
+----
+$ sudo dnf install git docker-latest
+----
+In order to do builds locally, install the following build dependencies:
+----
+$ sudo dnf install golang golang-race make gcc zip mercurial krb5-devel bsdtar bc rsync bind-utils file jq tito createrepo openssl gpgme gpgme-devel libassuan libassuan-devel
+----
+
+===== CentOS / RHEL
+
+Install `git` and `docker` with:
+----
+$ sudo yum install git docker
+----
+
+In order to do builds locally, install the following build dependencies:
+----
+$ sudo yum install golang make gcc zip mercurial krb5-devel bsdtar bc rsync bind-utils file jq tito createrepo openssl gpgme gpgme-devel libassuan libassuan-devel
+----
+
+==== Configuring a Development Environment
+
+1. Create a Go workspace directory: +
 +
 ----
 $ mkdir $HOME/go
 ----
-3. In your `.bashrc` file or `.bash_profile` file, set a GOPATH and update your PATH: +
+2. In your `.bashrc` file or `.bash_profile` file, set a GOPATH and update your PATH: +
 +
 ----
 export GOPATH=$HOME/go
 export PATH=$PATH:$GOPATH/bin
+export OS_OUTPUT_GOPATH=1
 ----
-4. Open up a new terminal or source the changes in your current terminal.  Then clone this repo:
-
-        $ mkdir -p $GOPATH/src/github.com/openshift
-        $ cd $GOPATH/src/github.com/openshift
-        $ git clone git://github.com/<forkid>/origin  # Replace <forkid> with the your github id
-        $ cd origin
-        $ git remote add upstream git://github.com/openshift/origin
-
-5.  From here, you can generate the OpenShift binaries by running:
-
-        $ make clean build
-
-6.  Next, assuming you have not changed the kubernetes/openshift service subnet configuration from the default value of 172.30.0.0/16, you need to instruct the Docker daemon to trust any Docker registry on the 172.30.0.0/16 subnet.  If you are running Docker as a service via `systemd`, add the `--insecure-registry 172.30.0.0/16` argument to the options value in `/etc/sysconfig/docker` and restart the Docker daemon.  Otherwise, add "--insecure-registry 172.30.0.0/16" to the Docker daemon invocation, eg:
-
-        $ docker -d --insecure-registry 172.30.0.0/16
-
-7.  Then, the OpenShift firewalld rules are also a work in progress. For now it is easiest to disable firewalld altogether:
-
-        $ sudo systemctl stop firewalld
-
-8.  Firewalld will start again on your next reboot, but you can manually restart it with this command when you are done running OpenShift:
-
-        $ sudo systemctl start firewalld
-
-9.  Now change into the directory with the OpenShift binaries, and start the OpenShift server:
-
-        $ cd _output/local/bin/linux/amd64
-        $ sudo ./openshift start
-
+3. Open up a new terminal or source the changes in your current terminal.  Then
+   clone your forked repo: +
 +
-NOTE: Replace "linux/amd64" with the appropriate value for your platform/architecture.
+----
+$ mkdir -p $GOPATH/src/github.com/openshift
+$ cd $GOPATH/src/github.com/openshift
+$ git clone git://github.com/<forkid>/origin  # Replace <forkid> with the your github id
+$ cd origin
+$ git remote add upstream git://github.com/openshift/origin
+----
+4.  You are now ready to edit the source, build and restart OpenShift to
+    test your changes.
 
-10.  Launch another terminal, change into the same directory you started OpenShift, and deploy the private docker registry within OpenShift with the following commands (note, the --credentials option allows secure communication between the internal OpenShift Docker registry and the OpenShift server, and the --config option provides your identity (in this case, cluster-admin) to the OpenShift server):
+==== Building Origin Binaries, RPMs and Images
 
-        $ sudo chmod +r openshift.local.config/master/openshift-registry.kubeconfig
-        $ sudo chmod +r openshift.local.config/master/admin.kubeconfig
-        $ oadm registry --create --credentials=openshift.local.config/master/openshift-registry.kubeconfig --config=openshift.local.config/master/admin.kubeconfig
+In order to build the base and release images for use by the release build and image build, run:
+----
+$ hack/env hack/build-base-images.sh
+----
+NOTE: Avoiding above step can cause below error while running 'hack/env make release'
+----
+"openshift/origin-pod: unable to pull image (from: openshift/origin-source, tag: latest): API error (404): {"message":"repository openshift/origin-source not found: does not exist or no pull access"}"
+----
+In order to build a full release of Origin, containing binaries, RPMs and
+container images, run:
+----
+$ hack/env make release
+----
+In order to make use of the binaries from your shell, add the build output
+directory to the `$PATH`:
+----
+$ export PATH="$( source hack/lib/init.sh; echo "${OS_OUTPUT_BINPATH}/$( os::build::host_platform )/" ):${PATH}"
+----
 
-11.  If it is not there already, add the current directory to the $PATH, so you can leverage the OpenShift commands elsewhere.
+See more information in https://github.com/openshift/origin/blob/master/HACKING.md#building-on-non-linux-systems[`HACKING.md`]
+for a more in-depth approach to building releases and incremental artifacts.
 
-12.  You are now ready to edit the source, rebuild and restart OpenShift to test your changes.
+==== Running the OpenShift Server
+Next, follow the set-up steps in https://github.com/openshift/origin/blob/master/docs/cluster_up_down.md[`cluster_up_down.md`]
+to start a cluster with `oc cluster up`. When starting the cluster, you will
+need to use container images. Images built locally with the `make release` and
+`hack/build-images.sh` scripts are tagged with the `git` commit you're working
+off of as well as `:latest`. If you have not built all of the images locally,
+ask `oc cluster up` for the `:latest` version and any missing images will be
+pulled down:
+----
+$ oc cluster up --tag=latest
+----
+If you have built a full suite of images and want to ensure that only the images
+you just built are going to be used, ask `oc cluster up` for the version that
+corresponds to your `git` commit:
+----
+$ oc cluster up --tag="$(git log -1 --pretty=%h )"
+----
+NOTE: The `--tag` flag can be used only for development purposes. It is not meant for running a cluster of a different version than `oc` binary.
 
-13.  NOTE:  to properly stop OpenShift and clean up, so that you can start fresh instance of OpenShift, execute:
+=== Develop and test using a docker-in-docker cluster
 
-        $ sudo pkill -x openshift
-        $ docker ps | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker stop
-        $ mount | grep "openshift.local.volumes" | awk '{ print $3}' | xargs -l -r sudo umount
-        $ cd <to the dir you ran openshift start> ; sudo rm -rf openshift.local.*
+It's possible to run an OpenShift multinode cluster on a single host
+thanks to docker-in-docker (dind).  Cluster creation is cheaper since
+each node is a container instead of a VM.  This was initially
+implemented to support multinode network testing, but has proven
+useful for development as well.
 
+Prerequisites:
 
-=== Develop on virtual machine using Vagrant
+1. A host running docker and with SELinux disabled.
 
-To facilitate rapid development we've put together a Vagrantfile you can use to stand up a development environment.
+2. It is acceptable to load some kernel modules (overlay and
+openvswitch) on the docker host.
 
-1.  http://www.vagrantup.com/downloads[Install Vagrant]
+3. An environment with the tools necessary to build origin.
 
-2.  https://www.virtualbox.org/wiki/Downloads[Install VirtualBox] (Ex: `yum install VirtualBox` from the RPM Fusion repository)
+4. A clone of the origin repo.
 
-3.  Clone the project and change into the directory:
+From the root of the origin repo, run the following command to launch
+a new cluster:
 
-        $ mkdir -p $GOPATH/src/github.com/openshift
-        $ cd $GOPATH/src/github.com/openshift
-        $ git clone git://github.com/<forkid>/origin  # Replace <forkid> with the your github id
-        $ cd origin
-        $ git remote add upstream git://github.com/openshift/origin
+        # -b to build origin, -i to build images
+        $ hack/dind-cluster.sh start -b -i
 
+Once the cluster is up, source the cluster's rc file to configure the
+environment to use it:
 
-4.  Bring up the VM  (If you are new to Vagrant, consider http://docs.vagrantup.com[Vagrant Docs] for help on items like provider selection.  Also consider the enablement of your hardware's virtualization extensions, such as https://access.redhat.com/documentation/en-US/Red_Hat_Enterprise_Linux/6/html/Virtualization_Administration_Guide/sect-Virtualization-Troubleshooting-Enabling_Intel_VT_and_AMD_V_virtualization_hardware_extensions_in_BIOS.html[RHEL] for example.).  Also note, for the `make clean build` in step 6 to work, a sufficient amount of memory needs to be allocated for the VM, where that amount of memory is not necessarily needed if you are not doing a compile, but simply running openshift (and hence is not set as the default):
+        $ . dind-openshift.rc
 
-        $ export OPENSHIFT_MEMORY=2096
-        $ vagrant up
+Now the 'oc' command can be used to interact with the cluster:
 
-5.  SSH in:
+        $ oc get nodes
 
-        $ vagrant ssh
+It's also possible to login to the participating containers
+(openshift-master, openshift-node-1, openshift-node-2, etc) via docker
+exec:
 
-6.  Run a build in SSH:
+        $ docker exec -ti openshift-master bash
 
-        $ cd /data/src/github.com/openshift/origin
-        $ make clean build
+While it is possible to manage the OpenShift daemon in the containers,
+dind cluster management is fast enough that the suggested approach is
+to manage at the cluster level instead.
 
-7.  Now change into the directory with the OpenShift binaries, and start the OpenShift server:
+Invoking the dind-cluster.sh script without arguments will provide a
+usage message:
 
-        $ cd _output/local/bin/linux/amd64
-        $ sudo ./openshift start --public-master=localhost --volume-dir=</absolute/path> &> openshift.log &
+        Usage: hack/dind-cluster.sh {start|stop|restart|...}
 
-+
-NOTE: By default your origin directory will be mounted as a vagrant synced folder into `/data/src/github.com/openshift/origin`, but it is advised to use a different directory for volume storage than the one for the origin directory vagrant synced folder. Hence in the above example of the `openshift start` command invocation the `--volume-dir=</absolute/path>` option is supplied.
+Additional documentation of how a dind cluster is managed can be found
+at the top of the dind-cluster.sh script.
 
-8.  On your host system, try browsing to: https://localhost:8443/console
+Attempting to start a cluster when one is already running will result
+in an error message from docker indicating that the named containers
+already exist.  To redeploy a cluster use the 'start' command with the
+'-r' flag to remove an existing cluster.
 
-9.  Deploy the private docker registry within OpenShift with the following commands (note, the --credentials option allows secure communication between the internal OpenShift Docker registry and the OpenShift server, and the --config option provides your identity (in this case, cluster-admin) to the OpenShift server):
+==== Testing networking with docker-in-docker
 
-        $ sudo chmod +r openshift.local.config/master/openshift-registry.kubeconfig
-        $ sudo chmod +r openshift.local.config/master/admin.kubeconfig
-        $ ./oadm registry --create --credentials=openshift.local.config/master/openshift-registry.kubeconfig --config=openshift.local.config/master/admin.kubeconfig
+It is possible to run networking tests against a running
+docker-in-docker cluster (i.e. after 'hack/dind-cluster.sh start' has
+been invoked):
 
-10.  You are now ready to edit the source, rebuild and restart OpenShift to test your changes.
+        $ OPENSHIFT_CONFIG_ROOT=dind test/extended/networking.sh
 
-11.  NOTE:  to properly stop OpenShift and clean up, so that you can start fresh instance of OpenShift, execute:
+Since a cluster can only be configured with a single network plugin at
+a time, this method of invoking the networking tests will only
+validate the active plugin.  It is possible to target all plugins by
+invoking the same script in 'ci mode' by not setting a config root:
 
-        $ sudo pkill openshift
-        $ docker ps | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker stop
-        $ mount | grep "openshift.local.volumes" | awk '{ print $3}' | xargs -l -r sudo umount
-        $ cd <to the dir you ran openshift start> ; sudo rm -rf openshift.local.*
-        $ mount | grep < "\/absolute\/path", where that is the value passed to the `--volume-dir` argument on openshift start >  | awk '{ print $3}' | xargs -l -r sudo umount
-        $ sudo rm -rf < "\/absolute\/path", where again that is the  value passed to the `--volume-dir`argument >
+        $ test/extended/networking.sh
 
-TIP: To ensure you get the latest image.  First run `vagrant box remove fedora_inst`.  And if later on you employ a dev cluster, additionally run  `vagrant box remove fedora_deps`.
+In ci mode, for each networking plugin, networking.sh will create a
+new dind cluster, run the tests against that cluster, and tear down
+the cluster.  The test dind clusters are isolated from any
+user-created clusters, and test output and artifacts of the most
+recent test run are retained in
+/tmp/openshift-extended-tests/networking.
 
-TIP: See https://github.com/openshift/vagrant-openshift for more advanced options
+It's possible to override the default test regexes via the
+NETWORKING_E2E_FOCUS and NETWORKING_E2E_SKIP environment variables.
+These variables set the '-focus' and '-skip' arguments supplied to the
+https://github.com/onsi/ginkgo[ginkgo] test runner.
 
-==== Ensure virtual box interfaces are not managed by Network Manager
+To debug a test run with https://github.com/derekparker/delve[delve],
+make sure the dlv executable is installed in your path and run the
+tests with DLV_DEBUG set:
 
-If you are developing on a Linux host, then you need to ensure that Network Manager is ignoring the
-virtual box interfaces, otherwise they cause issues with multi-vm networking.
+        $ DLV_DEBUG=1 test/extended/networking.sh
 
-Follow these steps to ensure that virtual box interfaces are unmanaged:
+==== Running networking tests against any cluster
 
-1. Check the status of Network Manager devices:
+It's possible to run networking tests against any cluster.  To target
+the default vm dev cluster:
 
-   $ nmcli d
+        $ OPENSHIFT_CONFIG_ROOT=dev test/extended/networking.sh
 
-2. If any devices whose name start with vboxnet* are not unmanaged, then they need to be added to
-   NetworkManager configuration to be ignored.
+To target an arbitrary cluster, the config root (parent of
+openshift.local.config) can be supplied instead:
 
-   $ cat /etc/NetworkManager/NetworkManager.conf
+        $ OPENSHIFT_CONFIG_ROOT=[cluster config root] test/extended/networking.sh
 
-        [keyfile]
-        unmanaged-devices=mac:0a:00:27:00:00:00;mac:0a:00:27:00:00:01;mac:0a:00:27:00:00:02
+It's also possible to supply the path to a kubeconfig file:
 
-3. One can use the following command to help generate the configuration:
+        $ OPENSHIFT_TEST_KUBECONFIG=./admin.kubeconfig test/extended/networking.sh
 
-   $ ip link list | grep vboxnet  -A 1 | grep link/ether | awk '{print "mac:" $2}' |  paste -sd ";" -
+See the script's inline documentation for further details.
 
-4. Reload the Network Manager configuration:
+==== Running Kubernetes e2e tests
 
-    $ sudo nmcli con reload
+It's possible to target the Kubernetes e2e tests against a running
+OpenShift cluster.  From the root of an origin repo:
 
+        $ pushd ..
+        $ git clone http://github.com/kubernetes/kubernetes/
+        $ pushd kubernetes/build
+        $ ./run hack/build-go.sh
+        $ popd && popd
+        $ export KUBE_ROOT=../kubernetes
+        $ hack/test-kube-e2e.sh --ginkgo.focus="[regex]"
+
+The previous sequence of commands will target a vagrant-based
+OpenShift cluster whose configuration is stored in the default
+location in the origin repo.  To target a dind cluster, an additional
+environment variable needs to be set before invoking test-kube-e2e.sh:
+
+        $ export OS_CONF_ROOT=/tmp/openshift-dind-cluster/openshift
 
 == Development: What's on the Menu?
 Right now you can see what's happening with OpenShift development at:
 
 https://github.com/openshift/origin[github.com/openshift/origin]
 
-Ready to play with some code? Hop down and read up on our link:#_the_roadmap[roadmap] for ideas on where you can contribute.
+Ready to play with some code? Hop down and read up on our link:#the-roadmap[roadmap] for ideas on where you can contribute.
+You can also try to take a stab at any issue tagged with the https://github.com/openshift/origin/issues?q=is%3Aissue+is%3Aopen+label%3Ahelp-wanted[help-wanted] label.
 
 *If you are interested in contributing to Kubernetes directly:* +
 https://github.com/kubernetes/kubernetes#community-discussion-and-support[Join the Kubernetes community] and check out the https://github.com/kubernetes/kubernetes/blob/master/CONTRIBUTING.md[contributing guide].
@@ -212,13 +321,7 @@ https://github.com/kubernetes/kubernetes#community-discussion-and-support[Join t
 If you run into difficulties running OpenShift, start by reading through the https://github.com/openshift/origin/blob/master/docs/debugging-openshift.md[troubleshooting guide].
 
 == The Roadmap
-The OpenShift project roadmap lives https://trello.com/b/nlLwlKoz/atomicopenshift-roadmap[on Trello]. Of particular interest to those who want to get involved with the OpenShift 3 architecture are the following topics:
-
-* https://trello.com/c/uqNIamJi[Orchestration]
-* https://trello.com/c/ja8bbQwy[Networking]
-* https://trello.com/c/3zHeVSla[Routing and Load Balancing]
-
-These link to active and backlog tasks that the OpenShift team is planning or working on for Kubernetes development.
+The OpenShift project roadmap lives https://trello.com/b/nlLwlKoz/atomicopenshift-roadmap[on Trello].  A summary of the roadmap, releases, and other info can be found https://ci.openshift.redhat.com/roadmap_overview.html[here].
 
 == Stay in Touch
 Reach out to the OpenShift team and other community contributors through IRC and our mailing list:

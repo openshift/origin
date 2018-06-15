@@ -1,0 +1,25 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: template-service-broker-registration
+parameters:
+- name: TSB_NAMESPACE
+  value: openshift-template-service-broker
+- name: CA_BUNDLE
+  required: true
+objects:
+# register the tsb with the service catalog
+- apiVersion: servicecatalog.k8s.io/v1beta1
+  kind: ClusterServiceBroker
+  metadata:
+    name: template-service-broker
+  spec:
+    url: https://apiserver.${TSB_NAMESPACE}.svc:443/brokers/template.openshift.io
+    insecureSkipTLSVerify: false
+    caBundle: ${CA_BUNDLE}
+    authInfo: 
+      bearer: 
+        secretRef:
+          kind:      Secret
+          name:      templateservicebroker-client
+          namespace: ${TSB_NAMESPACE}

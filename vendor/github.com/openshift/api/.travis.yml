@@ -1,0 +1,19 @@
+language: go
+
+go:
+  - 1.8
+
+install:
+  - wget https://github.com/google/protobuf/releases/download/v3.0.2/protoc-3.0.2-linux-x86_64.zip
+  - mkdir protoc
+  - export PATH=`pwd`/protoc/bin:${PATH}
+  - unzip protoc-3.0.2-linux-x86_64.zip -d protoc/
+  - go get golang.org/x/tools/cmd/goimports
+
+script:
+  - make verify build test
+
+notifications:
+  irc: "chat.freenode.net#openshift-dev"
+
+sudo: false

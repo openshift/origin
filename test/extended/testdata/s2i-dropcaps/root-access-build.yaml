@@ -1,0 +1,36 @@
+apiVersion: v1
+items:
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    labels:
+      build: root-access-build
+    name: root-access-build
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: root-access-build:latest
+    postCommit: {}
+    resources: {}
+    source:
+      git:
+        uri: https://github.com/openshift/ruby-hello-world.git
+      secrets: []
+      type: Git
+    strategy:
+      sourceStrategy:
+        from:
+          kind: ImageStreamTag
+          name: rootable-ruby:latest
+      type: Source
+    triggers: []
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    labels:
+      build: root-access-build
+    name: root-access-build
+  spec: {}
+kind: List
+metadata: {}

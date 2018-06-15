@@ -1,0 +1,14 @@
+reviewers:
+  - giuseppe
+  - sdodson
+  - smarterclayton
+  - stevekuznetsov
+  - dcbw
+  - rootfs
+  - pravisankar
+  - jsafrane
+approvers:
+  - sdodson
+  - smarterclayton
+  - stevekuznetsov
+  - dcbw

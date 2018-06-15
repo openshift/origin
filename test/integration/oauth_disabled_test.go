@@ -1,15 +1,12 @@
-// +build integration,etcd
-
 package integration
 
 import (
 	"testing"
 
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	restclient "k8s.io/client-go/rest"
 
-	"github.com/openshift/origin/pkg/cmd/util/tokencmd"
+	"github.com/openshift/origin/pkg/oc/util/tokencmd"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -20,6 +17,7 @@ func TestOAuthDisabled(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	defer testserver.CleanupMasterEtcd(t, masterOptions)
 
 	// Disable OAuth
 	masterOptions.OAuthConfig = nil
@@ -41,7 +39,7 @@ func TestOAuthDisabled(t *testing.T) {
 	}
 
 	// Make sure cert auth still works
-	namespaces, err := client.Namespaces().List(labels.Everything(), fields.Everything())
+	namespaces, err := client.Core().Namespaces().List(metav1.ListOptions{})
 	if err != nil {
 		t.Fatalf("Unexpected error %v", err)
 	}
@@ -50,7 +48,7 @@ func TestOAuthDisabled(t *testing.T) {
 	}
 
 	// Use the server and CA info
-	anonConfig := kclient.Config{}
+	anonConfig := restclient.Config{}
 	anonConfig.Host = clientConfig.Host
 	anonConfig.CAFile = clientConfig.CAFile
 	anonConfig.CAData = clientConfig.CAData

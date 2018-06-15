@@ -5,110 +5,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/docker/docker/builder/command"
-	"github.com/docker/docker/builder/parser"
+	"github.com/docker/docker/builder/dockerfile/command"
+	"github.com/docker/docker/builder/dockerfile/parser"
 )
-
-// TestParseTreeToDockerfile tests calling ParseTreeToDockerfile with multiple
-// valid inputs.
-func TestParseTreeToDockerfile(t *testing.T) {
-	testCases := map[string]struct {
-		in   string
-		want string
-	}{
-		"empty input": {
-			in:   ``,
-			want: ``,
-		},
-		"only comments": {
-			in: `# This is a comment
-# and this is another comment
-	# while this is an indented comment`,
-			want: ``,
-		},
-		"simple Dockerfile": {
-			in: `FROM scratch
-LABEL version=1.0
-FROM busybox
-ENV PATH=/bin
-`,
-			want: `FROM scratch
-LABEL version=1.0
-FROM busybox
-ENV PATH=/bin
-`,
-		},
-		"Dockerfile with comments": {
-			in: `# This is a Dockerfile
-FROM scratch
-LABEL version=1.0
-# Here we start building a second image
-FROM busybox
-ENV PATH=/bin
-`,
-			want: `FROM scratch
-LABEL version=1.0
-FROM busybox
-ENV PATH=/bin
-`,
-		},
-		"all Dockerfile instructions": {
-			in: `FROM busybox:latest
-MAINTAINER nobody@example.com
-ONBUILD ADD . /app/src
-ONBUILD RUN echo "Hello universe!"
-LABEL version=1.0
-EXPOSE 8080
-VOLUME /var/run/www
-ENV PATH=/bin
-ADD file /home/
-COPY dir/ /tmp/
-RUN echo "Hello world!"
-ENTRYPOINT /bin/sh
-CMD ["-c", "env"]
-USER 1001
-WORKDIR /home
-`,
-			want: `FROM busybox:latest
-MAINTAINER nobody@example.com
-ONBUILD ADD . /app/src
-ONBUILD RUN echo "Hello universe!"
-LABEL version=1.0
-EXPOSE 8080
-VOLUME /var/run/www
-ENV PATH=/bin
-ADD file /home/
-COPY dir/ /tmp/
-RUN echo "Hello world!"
-ENTRYPOINT /bin/sh
-CMD ["-c", "env"]
-USER 1001
-WORKDIR /home
-`,
-		},
-	}
-	for name, tc := range testCases {
-		node, err := parser.Parse(strings.NewReader(tc.in))
-		if err != nil {
-			t.Errorf("%s: parse error: %v", name, err)
-			continue
-		}
-		got := ParseTreeToDockerfile(node)
-		want := []byte(tc.want)
-		if !reflect.DeepEqual(got, want) {
-			t.Errorf("ParseTreeToDockerfile: %s:\ngot:\n%swant:\n%s", name, got, want)
-		}
-	}
-}
-
-// TestParseTreeToDockerfileNilNode tests calling ParseTreeToDockerfile with a
-// nil *parser.Node.
-func TestParseTreeToDockerfileNilNode(t *testing.T) {
-	got := ParseTreeToDockerfile(nil)
-	if got != nil {
-		t.Errorf("ParseTreeToDockerfile(nil) = %#v; want nil", got)
-	}
-}
 
 // TestFindAll tests calling FindAll with multiple values of cmd.
 func TestFindAll(t *testing.T) {
@@ -128,7 +27,7 @@ ENV PATH=/bin
 		command.Maintainer: nil,
 		"UnknownCommand":   nil,
 	} {
-		got := FindAll(node, cmd)
+		got := FindAll(node.AST, cmd)
 		if !reflect.DeepEqual(got, want) {
 			t.Errorf("FindAll(node, %q) = %#v; want %#v", cmd, got, want)
 		}
@@ -210,7 +109,7 @@ ENV PATH=/bin
 			t.Errorf("InsertInstructions: %s: parse error: %v", name, err)
 			continue
 		}
-		err = InsertInstructions(got, tc.index, tc.newInstructions)
+		err = InsertInstructions(got.AST, tc.index, tc.newInstructions)
 		if err != nil {
 			t.Errorf("InsertInstructions: %s: %v", name, err)
 			continue
@@ -220,8 +119,8 @@ ENV PATH=/bin
 			t.Errorf("InsertInstructions: %s: parse error: %v", name, err)
 			continue
 		}
-		if !reflect.DeepEqual(got, want) {
-			t.Errorf("InsertInstructions: %s: got %#v; want %#v", name, got, want)
+		if !reflect.DeepEqual(got.AST.Dump(), want.AST.Dump()) {
+			t.Errorf("InsertInstructions: %s: got %s, want %s", name, got.AST.Dump(), want.AST.Dump())
 		}
 	}
 }
@@ -246,7 +145,7 @@ ENV PATH=/bin
 		t.Fatalf("parse error: %v", err)
 	}
 	for _, pos := range []int{-1, 3, 4} {
-		err := InsertInstructions(node, pos, "")
+		err := InsertInstructions(node.AST, pos, "")
 		if err == nil {
 			t.Errorf("InsertInstructions(node, %d, \"\"): got nil; want error", pos)
 		}
@@ -267,7 +166,7 @@ ENV PATH=/bin
 		"env without value": `ENV PATH`,
 		"nested json":       `CMD [ "echo", [ "nested json" ] ]`,
 	} {
-		err = InsertInstructions(node, 1, instructions)
+		err = InsertInstructions(node.AST, 1, instructions)
 		if err == nil {
 			t.Errorf("InsertInstructions: %s: got nil; want error", name)
 		}
@@ -306,7 +205,7 @@ FROM centos:7`,
 			t.Errorf("%s: parse error: %v", name, err)
 			continue
 		}
-		got := LastBaseImage(node)
+		got := LastBaseImage(node.AST)
 		if !reflect.DeepEqual(got, tc.want) {
 			t.Errorf("LastBaseImage: %s: got %#v; want %#v", name, got, tc.want)
 		}
@@ -353,7 +252,7 @@ FROM centos:7`,
 			t.Errorf("%s: parse error: %v", name, err)
 			continue
 		}
-		got := baseImages(node)
+		got := baseImages(node.AST)
 		if !reflect.DeepEqual(got, tc.want) {
 			t.Errorf("baseImages: %s: got %#v; want %#v", name, got, tc.want)
 		}
@@ -412,7 +311,7 @@ EXPOSE 9090 9091
 			t.Errorf("%s: parse error: %v", name, err)
 			continue
 		}
-		got := LastExposedPorts(node)
+		got := LastExposedPorts(node.AST)
 		if !reflect.DeepEqual(got, tc.want) {
 			t.Errorf("LastExposedPorts: %s: got %#v; want %#v", name, got, tc.want)
 		}
@@ -472,7 +371,129 @@ EXPOSE 9090 9091
 			t.Errorf("%s: parse error: %v", name, err)
 			continue
 		}
-		got := exposedPorts(node)
+		got, _ := exposedPorts(node.AST)
+		if !reflect.DeepEqual(got, tc.want) {
+			t.Errorf("exposedPorts: %s: got %#v; want %#v", name, got, tc.want)
+		}
+	}
+}
+
+// TestLastExposedPortsVar tests calling exposedPorts with ENV,ARG and range
+func TestLastExposedPortsVarAndRange(t *testing.T) {
+	testCases := map[string]struct {
+		in   string
+		want []string
+	}{
+		"EXPOSE with ENV": {
+			in: `FROM centos:7
+ENV PORT 8080
+EXPOSE $PORT`,
+			want: []string{"8080"},
+		},
+		"EXPOSE with RANGE": {
+			in: `FROM centos:7
+EXPOSE 8080-9000`,
+			want: []string{"8080"},
+		},
+		"EXPOSE with default ARG": {
+			in: `FROM centos:7
+ARG PORT=8080
+EXPOSE $PORT`,
+			want: []string{"8080"},
+		},
+		"EXPOSE recursive ARGS, ENV and range": {
+			in: `FROM centos:7
+ARG PORT=8080-8085
+ENV PORT2 "$PORT"
+ENV PORT3="$PORT2"
+ENV PORT4=$PORT3
+ENV PORT5=$PORT4
+EXPOSE $PORT5`,
+			want: []string{"8080"},
+		},
+		"EXPOSE ignore post eval": {
+			in: `FROM centos:7
+ENV PORT=8080
+EXPOSE $PORT
+ENV PORT=10`,
+			want: []string{"8080"},
+		},
+		"EXPOSE parameter substitution syntax": {
+			in: `FROM centos:7
+ENV PORT2 8081
+ENV PORT=8080 PORT1="${PORT2}"
+EXPOSE ${PORT} "${PORT2:-8085}" ${PORT_MISSING:-8082}`,
+			want: []string{"8080", "8081", "8082"},
+		},
+		"EXPOSE parameter substitution syntax with +": {
+			in: `FROM centos:7
+ENV PORT2 8081
+ENV PORT=8080 PORT1="${PORT2}"
+EXPOSE ${PORT} "${PORT2:+8085}" ${PORT_MISSING:+8082}`,
+			want: []string{"8080", "8085", ""},
+		},
+		"EXPOSE shadow scope ENV": {
+			in: `FROM centos:7
+ENV PORT 8080
+FROM centos:7
+ENV PORT 8081
+EXPOSE $PORT`,
+			want: []string{"8081"},
+		},
+		"EXPOSE out of scope ENV": {
+			in: `FROM centos:7
+ENV PORT 8080
+FROM centos:7
+EXPOSE $PORT`,
+			want: []string{""},
+		},
+		"EXPOSE parse by line": {
+			in: `FROM centos:7
+ENV PORT 8080
+ENV PORT=8090 PORT1=$PORT PORT=9080
+EXPOSE $PORT1`,
+			want: []string{"8080"},
+		},
+		"EXPOSE partial ENV range": {
+			in: `FROM centos:7
+ENV PORT 8080
+EXPOSE ${PORT}-8090`,
+			want: []string{"8080"},
+		},
+		"EXPOSE redefined ENV": {
+			in: `FROM centos:7
+ENV PORT 8080
+ENV PORT 8081
+EXPOSE $PORT`,
+			want: []string{"8081"},
+		},
+		"Multiple EXPOSE": {
+			in: `FROM centos:7
+ENV PORT 8080
+EXPOSE $PORT
+ENV PORT2 8081
+EXPOSE $PORT2`,
+			want: []string{"8080", "8081"},
+		},
+		"Multiple EXPOSE and ENV redefined": {
+			in: `FROM centos:7
+ENV PORT 8080
+EXPOSE $PORT
+ENV PORT2 8081
+ENV PORT 8082
+EXPOSE $PORT2 $PORT
+ENV PORT=8083 PORT2=8084
+EXPOSE $PORT $PORT2`,
+			want: []string{"8080", "8081", "8082", "8083", "8084"},
+		},
+	}
+	for name, tc := range testCases {
+		node, err := parser.Parse(strings.NewReader(tc.in))
+		if err != nil {
+			t.Errorf("%s: parse error: %v", name, err)
+			continue
+		}
+		got := LastExposedPorts(node.AST)
 		if !reflect.DeepEqual(got, tc.want) {
 			t.Errorf("exposedPorts: %s: got %#v; want %#v", name, got, tc.want)
 		}
@@ -481,7 +502,7 @@ EXPOSE 9090 9091
 
 // TestExposedPortsNilNode tests calling exposedPorts with a nil *parser.Node.
 func TestExposedPortsNilNode(t *testing.T) {
-	if got := exposedPorts(nil); got != nil {
+	if got, _ := exposedPorts(nil); got != nil {
 		t.Errorf("exposedPorts(nil) = %#v; want nil", got)
 	}
 }
@@ -509,15 +530,15 @@ func TestNextValues(t *testing.T) {
 		if err != nil {
 			t.Fatalf("parse error: %s: %v", original, err)
 		}
-		if len(node.Children) != 1 {
+		if len(node.AST.Children) != 1 {
 			t.Fatalf("unexpected number of children in test case: %s", original)
 		}
 		// The Docker parser always wrap instructions in a root node.
 		// Look at the node representing the first instruction, the one
 		// and only one in each test case.
-		node = node.Children[0]
-		if got := nextValues(node); !reflect.DeepEqual(got, want) {
-			t.Errorf("nextValues(%+v) = %#v; want %#v", node, got, want)
+		newNode := node.AST.Children[0]
+		if got := nextValues(newNode); !reflect.DeepEqual(got, want) {
+			t.Errorf("nextValues(%+v) = %#v; want %#v", newNode, got, want)
 		}
 	}
 }
@@ -534,19 +555,19 @@ func TestNextValuesOnbuild(t *testing.T) {
 		if err != nil {
 			t.Fatalf("parse error: %s: %v", original, err)
 		}
-		if len(node.Children) != 1 {
+		if len(node.AST.Children) != 1 {
 			t.Fatalf("unexpected number of children in test case: %s", original)
 		}
 		// The Docker parser always wrap instructions in a root node.
 		// Look at the node representing the instruction following
 		// ONBUILD, the one and only one in each test case.
-		node = node.Children[0].Next
-		if node == nil || len(node.Children) != 1 {
+		nextNode := node.AST.Children[0].Next
+		if nextNode == nil || len(nextNode.Children) != 1 {
 			t.Fatalf("unexpected number of children in ONBUILD instruction of test case: %s", original)
 		}
-		node = node.Children[0]
-		if got := nextValues(node); !reflect.DeepEqual(got, want) {
-			t.Errorf("nextValues(%+v) = %#v; want %#v", node, got, want)
+		nextNode = nextNode.Children[0]
+		if got := nextValues(nextNode); !reflect.DeepEqual(got, want) {
+			t.Errorf("nextValues(%+v) = %#v; want %#v", nextNode, got, want)
 		}
 	}
 }

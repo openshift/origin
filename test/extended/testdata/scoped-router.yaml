@@ -1,0 +1,196 @@
+apiVersion: v1
+kind: Template
+parameters:
+- name: IMAGE
+  value: openshift/origin-haproxy-router:latest
+- name: SCOPE
+  value: '["--name=test-scoped", "--namespace=$(POD_NAMESPACE)", "--loglevel=4", "--labels=select=first"]'
+objects:
+# a scoped router
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    name: router-scoped
+    labels:
+      test: router-scoped
+  spec:
+    terminationGracePeriodSeconds: 1
+    containers:
+    - name: router
+      image: ${IMAGE}
+      imagePullPolicy: IfNotPresent
+      env:
+      - name: POD_NAMESPACE
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.namespace
+      args: "${{SCOPE}}"
+      hostNetwork: false
+      ports:
+      - containerPort: 80
+      - containerPort: 443
+      - containerPort: 1936
+        name: stats
+        protocol: TCP
+    serviceAccountName: default
+
+# a router that overrides host
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    name: router-override
+    labels:
+      test: router-override
+  spec:
+    terminationGracePeriodSeconds: 1
+    containers:
+    - name: router
+      image: ${IMAGE}
+      imagePullPolicy: IfNotPresent
+      env:
+      - name: POD_NAMESPACE
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.namespace
+      args: ["--name=test-override", "--namespace=$(POD_NAMESPACE)", "--loglevel=4", "--override-hostname", "--hostname-template=${name}-${namespace}.myapps.mycompany.com"]
+      hostNetwork: false
+      ports:
+      - containerPort: 80
+      - containerPort: 443
+      - containerPort: 1936
+        name: stats
+        protocol: TCP
+    serviceAccountName: default
+
+# a router that overrides domains
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    name: router-override-domains
+    labels:
+      test: router-override-domains
+  spec:
+    terminationGracePeriodSeconds: 1
+    containers:
+    - name: router
+      image: ${IMAGE}
+      imagePullPolicy: IfNotPresent
+      env:
+      - name: POD_NAMESPACE
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.namespace
+      args: ["--name=test-override-domains", "--namespace=$(POD_NAMESPACE)", "--loglevel=4", "--override-domains=null.ptr,void.str", "--hostname-template=${name}-${namespace}.apps.veto.test"]
+      hostNetwork: false
+      ports:
+      - containerPort: 80
+      - containerPort: 443
+      - containerPort: 1936
+        name: stats
+        protocol: TCP
+    serviceAccountName: default
+
+
+# ensure the router can access routes and endpoints
+- apiVersion: v1
+  kind: RoleBinding
+  metadata:
+    name: system-router
+  subjects:
+  - kind: ServiceAccount
+    name: default
+  roleRef:
+    name: system:router
+
+# two routes that differ only by their labels and names
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: route-1
+    labels:
+      test: router
+      select: first
+  spec:
+    host: first.example.com
+    path: /Letter
+    to:
+      name: endpoints
+    ports:
+    - targetPort: 8080
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: route-2
+    labels:
+      test: router
+      select: second
+  spec:
+    host: second.example.com
+    path: /Letter
+    to:
+      name: endpoints
+    ports:
+    - targetPort: http
+
+# routes that contain overridden domains
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: route-override-domain-1
+    labels:
+      test: router
+      select: override-domains
+  spec:
+    host: y.a.null.ptr
+    path: /Letter
+    to:
+      name: endpoints
+    ports:
+    - targetPort: 8080
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: route-override-domain-2
+    labels:
+      test: router
+      select: override-domains
+  spec:
+    host: main.void.str
+    path: /Letter
+    to:
+      name: endpoints
+    ports:
+    - targetPort: 8080
+
+# a service to be routed to
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: endpoints
+    labels:
+      test: router
+  spec:
+    selector:
+      test: router
+      endpoints: router
+    ports:
+    - port: 8080
+# a pod that serves a response
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    name: endpoint-1
+    labels:
+      test: router
+      endpoints: router
+  spec:
+    terminationGracePeriodSeconds: 1
+    containers:
+    - name: test
+      image: openshift/hello-openshift
+      # image: openshift/deployment-example:v1
+      ports:
+      - containerPort: 8080
+        name: http
+      - containerPort: 100
+        protocol: UDP

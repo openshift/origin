@@ -1,49 +1,64 @@
 package etcd
 
 import (
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
-	"k8s.io/kubernetes/pkg/registry/generic"
-	etcdgeneric "k8s.io/kubernetes/pkg/registry/generic/etcd"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/storage"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apiserver/pkg/registry/generic"
+	"k8s.io/apiserver/pkg/registry/generic/registry"
+	"k8s.io/apiserver/pkg/registry/rest"
+	"k8s.io/kubernetes/pkg/printers"
+	printerstorage "k8s.io/kubernetes/pkg/printers/storage"
 
-	"github.com/openshift/origin/pkg/build/api"
+	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/build/registry/buildconfig"
+	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
+	"github.com/openshift/origin/pkg/util/restoptions"
 )
 
-const BuildConfigPath = "/buildconfigs"
-
 type REST struct {
-	*etcdgeneric.Etcd
+	*registry.Store
 }
 
-// NewStorage returns a RESTStorage object that will work against nodes.
-func NewStorage(s storage.Interface) *REST {
-	store := &etcdgeneric.Etcd{
-		NewFunc:      func() runtime.Object { return &api.BuildConfig{} },
-		NewListFunc:  func() runtime.Object { return &api.BuildConfigList{} },
-		EndpointName: "buildconfig",
-		KeyRootFunc: func(ctx kapi.Context) string {
-			return etcdgeneric.NamespaceKeyRootFunc(ctx, BuildConfigPath)
-		},
-		KeyFunc: func(ctx kapi.Context, id string) (string, error) {
-			return etcdgeneric.NamespaceKeyFunc(ctx, BuildConfigPath, id)
-		},
-		ObjectNameFunc: func(obj runtime.Object) (string, error) {
-			return obj.(*api.BuildConfig).Name, nil
-		},
-		PredicateFunc: func(label labels.Selector, field fields.Selector) generic.Matcher {
-			return buildconfig.Matcher(label, field)
-		},
+var _ rest.StandardStorage = &REST{}
+var _ rest.ShortNamesProvider = &REST{}
+var _ rest.CategoriesProvider = &REST{}
 
-		CreateStrategy:      buildconfig.Strategy,
-		UpdateStrategy:      buildconfig.Strategy,
-		DeleteStrategy:      buildconfig.Strategy,
-		ReturnDeletedObject: false,
-		Storage:             s,
+// Categories implements the CategoriesProvider interface. Returns a list of categories a resource is part of.
+func (r *REST) Categories() []string {
+	return []string{"all"}
+}
+
+// ShortNames implements the ShortNamesProvider interface. Returns a list of short names for a resource.
+func (r *REST) ShortNames() []string {
+	return []string{"bc"}
+}
+
+// NewREST returns a RESTStorage object that will work against BuildConfig.
+func NewREST(optsGetter restoptions.Getter) (*REST, error) {
+	store := &registry.Store{
+		NewFunc:                  func() runtime.Object { return &buildapi.BuildConfig{} },
+		NewListFunc:              func() runtime.Object { return &buildapi.BuildConfigList{} },
+		DefaultQualifiedResource: buildapi.Resource("buildconfigs"),
+
+		TableConvertor: printerstorage.TableConvertor{TablePrinter: printers.NewTablePrinter().With(printersinternal.AddHandlers)},
+
+		CreateStrategy: buildconfig.GroupStrategy,
+		UpdateStrategy: buildconfig.GroupStrategy,
+		DeleteStrategy: buildconfig.GroupStrategy,
 	}
 
-	return &REST{store}
+	options := &generic.StoreOptions{RESTOptions: optsGetter}
+	if err := store.CompleteWithOptions(options); err != nil {
+		return nil, err
+	}
+
+	return &REST{store}, nil
+}
+
+// LegacyREST allows us to wrap and alter some behavior
+type LegacyREST struct {
+	*REST
+}
+
+func (r *LegacyREST) Categories() []string {
+	return []string{}
 }

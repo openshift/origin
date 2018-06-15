@@ -1,172 +1,98 @@
 package latest
 
 import (
-	"fmt"
 	"strings"
+	"sync"
 
-	"k8s.io/kubernetes/pkg/api"
-	klatest "k8s.io/kubernetes/pkg/api/latest"
-	kmeta "k8s.io/kubernetes/pkg/api/meta"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/sets"
-
-	"github.com/golang/glog"
-
-	_ "github.com/openshift/origin/pkg/api"
-	"github.com/openshift/origin/pkg/api/v1"
-	"github.com/openshift/origin/pkg/api/v1beta3"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 )
 
+// HACK TO ELIMINATE CYCLES UNTIL WE KILL THIS PACKAGE
+
 // Version is the string that represents the current external default version.
-const Version = "v1"
+var Version = schema.GroupVersion{Group: "", Version: "v1"}
 
 // OldestVersion is the string that represents the oldest server version supported,
 // for client code that wants to hardcode the lowest common denominator.
-const OldestVersion = "v1beta3"
+var OldestVersion = schema.GroupVersion{Group: "", Version: "v1"}
 
 // Versions is the list of versions that are recognized in code. The order provided
-// may be assumed to be least feature rich to most feature rich, and clients may
-// choose to prefer the latter items in the list over the former items when presented
+// may be assumed to be most preferred to least preferred, and clients may
+// choose to prefer the earlier items in the list over the latter items when presented
 // with a set of versions to choose.
-var Versions = []string{"v1", "v1beta3"}
-
-// Codec is the default codec for serializing output that should use
-// the latest supported version.  Use this Codec when writing to
-// disk, a data store that is not dynamically versioned, or in tests.
-// This codec can decode any object that OpenShift is aware of.
-var Codec = v1beta3.Codec
-
-// accessor is the shared static metadata accessor for the API.
-var accessor = kmeta.NewAccessor()
-
-// ResourceVersioner describes a default versioner that can handle all types
-// of versioning.
-// TODO: when versioning changes, make this part of each API definition.
-var ResourceVersioner runtime.ResourceVersioner = accessor
-
-// SelfLinker can set or get the SelfLink field of all API types.
-// TODO: when versioning changes, make this part of each API definition.
-// TODO(lavalamp): Combine SelfLinker & ResourceVersioner interfaces, force all uses
-// to go through the InterfacesFor method below.
-var SelfLinker runtime.SelfLinker = accessor
-
-// RESTMapper provides the default mapping between REST paths and the objects declared in api.Scheme and all known
-// Kubernetes versions.
-var RESTMapper kmeta.RESTMapper
-
-// InterfacesFor returns the default Codec and ResourceVersioner for a given version
-// string, or an error if the version is not known.
-func InterfacesFor(version string) (*kmeta.VersionInterfaces, error) {
-	switch version {
-	case "v1beta3":
-		return &kmeta.VersionInterfaces{
-			Codec:            v1beta3.Codec,
-			ObjectConvertor:  api.Scheme,
-			MetadataAccessor: accessor,
-		}, nil
-	case "v1":
-		return &kmeta.VersionInterfaces{
-			Codec:            v1.Codec,
-			ObjectConvertor:  api.Scheme,
-			MetadataAccessor: accessor,
-		}, nil
-	default:
-		return nil, fmt.Errorf("unsupported storage version: %s (valid: %s)", version, strings.Join(Versions, ", "))
-	}
+var Versions = []schema.GroupVersion{
+	{Group: "authorization.openshift.io", Version: "v1"},
+	{Group: "build.openshift.io", Version: "v1"},
+	{Group: "apps.openshift.io", Version: "v1"},
+	{Group: "template.openshift.io", Version: "v1"},
+	{Group: "image.openshift.io", Version: "v1"},
+	{Group: "project.openshift.io", Version: "v1"},
+	{Group: "user.openshift.io", Version: "v1"},
+	{Group: "oauth.openshift.io", Version: "v1"},
+	{Group: "network.openshift.io", Version: "v1"},
+	{Group: "route.openshift.io", Version: "v1"},
+	{Group: "quota.openshift.io", Version: "v1"},
+	{Group: "security.openshift.io", Version: "v1"},
+	{Group: "", Version: "v1"},
 }
 
 // originTypes are the hardcoded types defined by the OpenShift API.
-var originTypes = sets.String{}
+var originTypes map[schema.GroupVersionKind]bool
 
-// UserResources are the resource names that apply to the primary, user facing resources used by
-// client tools. They are in deletion-first order - dependent resources should be last.
-var UserResources = []string{
-	"buildConfigs", "builds",
-	"imageStreams",
-	"deploymentConfigs", "replicationControllers",
-	"routes", "services",
-	"pods",
+// originTypesLock allows lazying initialization of originTypes to allow initializers to run before
+// loading the map.  It means that initializers have to know ahead of time where their type is from,
+// but that is not onerous
+var originTypesLock sync.Once
+
+// OriginKind returns true if OpenShift owns the GroupVersionKind.
+func OriginKind(gvk schema.GroupVersionKind) bool {
+	return getOrCreateOriginKinds()[gvk]
 }
 
-// OriginKind returns true if OpenShift owns the kind described in a given apiVersion.
-func OriginKind(kind, apiVersion string) bool {
-	return originTypes.Has(kind)
+// OriginLegacyKind returns true for OriginKinds which are not in their own api group.
+func OriginLegacyKind(gvk schema.GroupVersionKind) bool {
+	return OriginKind(gvk) && gvk.Group == ""
 }
 
-func init() {
-	// this keeps us consistent with old code.  We can decide if we want to expand our RESTMapper to cover
-	// api.RESTMapper, which is different than what you'd get from latest.
-	kubeAPIGroup, err := klatest.Group("")
-	if err != nil {
-		panic(err)
-	}
-	kubeMapper := kubeAPIGroup.RESTMapper
-
-	// list of versions we support on the server, in preferred order
-	versions := []string{"v1", "v1beta3"}
-
-	originMapper := kmeta.NewDefaultRESTMapper(
-		"",
-		versions,
-		func(version string) (*kmeta.VersionInterfaces, error) {
-			interfaces, err := InterfacesFor(version)
-			if err != nil {
-				return nil, err
-			}
-			return interfaces, nil
-		},
-	)
-
-	// the list of kinds that are scoped at the root of the api hierarchy
-	// if a kind is not enumerated here, it is assumed to have a namespace scope
-	kindToRootScope := map[string]bool{
-		"Status": true,
-
-		"Project":        true,
-		"ProjectRequest": true,
-
-		"Image": true,
-
-		"User":                true,
-		"Identity":            true,
-		"UserIdentityMapping": true,
-		"Group":               true,
-
-		"OAuthAccessToken":         true,
-		"OAuthAuthorizeToken":      true,
-		"OAuthClient":              true,
-		"OAuthClientAuthorization": true,
-
-		"ClusterRole":          true,
-		"ClusterRoleBinding":   true,
-		"ClusterPolicy":        true,
-		"ClusterPolicyBinding": true,
-
-		"ClusterNetwork": true,
-		"HostSubnet":     true,
-		"NetNamespace":   true,
-	}
-
-	// enumerate all supported versions, get the kinds, and register with the mapper how to address our resources
-	for _, version := range versions {
-		for kind, t := range api.Scheme.KnownTypes(version) {
-			if !strings.Contains(t.PkgPath(), "openshift/origin") {
-				if _, ok := kindToRootScope[kind]; !ok {
-					continue
-				}
-			}
-			originTypes.Insert(kind)
-			scope := kmeta.RESTScopeNamespace
-			_, found := kindToRootScope[kind]
-			if found || (strings.HasSuffix(kind, "List") && kindToRootScope[strings.TrimSuffix(kind, "List")]) {
-				scope = kmeta.RESTScopeRoot
-			}
-			glog.V(6).Infof("Registering %s %s %s", kind, version, scope.Name())
-			originMapper.Add(scope, kind, version, false)
+// IsOriginAPIGroup returns true if the provided group name belongs to Origin API.
+func IsOriginAPIGroup(groupName string) bool {
+	for _, v := range Versions {
+		if v.Group == groupName {
+			return true
 		}
 	}
+	return false
+}
 
-	// For Origin we use MultiRESTMapper that handles both Origin and Kubernetes
-	// objects
-	RESTMapper = kmeta.MultiRESTMapper{originMapper, kubeMapper}
+func getOrCreateOriginKinds() map[schema.GroupVersionKind]bool {
+	if originTypes == nil {
+		originTypesLock.Do(func() {
+			newOriginTypes := map[schema.GroupVersionKind]bool{}
+
+			// enumerate all supported versions, get the kinds, and register with the mapper how to address our resources
+			for _, version := range Versions {
+				for kind, t := range legacyscheme.Scheme.KnownTypes(version) {
+					// these don't require special handling at the RESTMapping level since they are either "normal" when groupified
+					// or under /api (not /oapi)
+					if kind == "SecurityContextConstraints" {
+						continue
+					}
+					isExternal := strings.Contains(t.PkgPath(), "github.com/openshift/api")
+					isVendored := strings.Contains(t.PkgPath(), "github.com/openshift/origin/vendor/")
+					if isVendored && !isExternal {
+						continue
+					}
+
+					gvk := version.WithKind(kind)
+					newOriginTypes[gvk] = true
+				}
+			}
+			originTypes = newOriginTypes
+		})
+
+		return originTypes
+	}
+
+	return originTypes
 }

@@ -1,0 +1,186 @@
+apiVersion: v1
+items:
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    creationTimestamp: 2015-04-06T21:02:00Z
+    name: sinatra-app-example
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: sinatra-app-example:latest
+    resources: {}
+    source:
+      git:
+        uri: git://github.com/mfojtik/sinatra-app-example
+      type: Git
+    strategy:
+      sourceStrategy:
+        from:
+          kind: DockerImage
+          name: centos/ruby-22-centos7
+      type: Source
+    triggers:
+    - github:
+        secret: u5gRhTXiOJpOHxKSI1M6
+      type: github
+    - generic:
+        secret: IDO5sRS52tsUq5hczU6o
+      type: generic
+  status:
+    lastVersion: 1
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    creationTimestamp: 2015-04-06T21:18:56Z
+    name: sinatra-app-example
+  spec: {}
+  status:
+    dockerImageRepository: ""
+- apiVersion: v1
+  kind: Build
+  metadata:
+    creationTimestamp: 2015-04-06T21:18:56Z
+    labels:
+      buildconfig: sinatra-app-example
+    name: sinatra-app-example-1
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: sinatra-app-example:latest
+    resources: {}
+    revision:
+      git:
+        author:
+          email: someguy@outhere.com
+          name: Roy Programmer
+        commit: 7a4f354721b0c9717e46f2e132b269b495d43e2b
+        committer: {}
+        message: Prepare v1 Template types
+      type: git
+    source:
+      git:
+        uri: git://github.com/mfojtik/sinatra-app-example
+      type: Git
+    strategy:
+      sourceStrategy:
+        from:
+          kind: DockerImage
+          name: centos/ruby-22-centos7
+      type: Source
+  status:
+    phase: Running
+    startTimestamp: 2015-04-06T21:19:03Z
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    creationTimestamp: 2015-04-06T21:02:00Z
+    name: sinatra-app-example-a
+  spec:
+    replicas: 1
+    selector:
+      deploymentconfig: sinatra-app-example
+    strategy:
+      resources: {}
+      type: Recreate
+    template:
+      metadata:
+        creationTimestamp: null
+        labels:
+          deploymentconfig: sinatra-app-example
+      spec:
+        containers:
+        - capabilities: {}
+          image: library/sinatra-app-example:latest
+          imagePullPolicy: Always
+          name: sinatra-app-example
+          ports:
+          - containerPort: 8080
+            name: s-tcp-8080
+            protocol: TCP
+          resources: {}
+          securityContext:
+            capabilities: {}
+            privileged: false
+          terminationMessagePath: /dev/termination-log
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+    triggers:
+    - type: ConfigChange
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - sinatra-app-example
+        from:
+          kind: ImageStreamTag
+          name: sinatra-app-example:latest
+        lastTriggeredImage: ""
+      type: ImageChange
+  status: {}
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    creationTimestamp: 2015-04-06T21:02:00Z
+    name: sinatra-app-example-b
+  spec:
+    replicas: 1
+    selector:
+      deploymentconfig: sinatra-app-example
+    strategy:
+      resources: {}
+      type: Recreate
+    template:
+      metadata:
+        creationTimestamp: null
+        labels:
+          deploymentconfig: sinatra-app-example
+      spec:
+        containers:
+        - capabilities: {}
+          image: library/sinatra-app-example:latest
+          imagePullPolicy: Always
+          name: sinatra-app-example
+          ports:
+          - containerPort: 8080
+            name: s-tcp-8080
+            protocol: TCP
+          resources: {}
+          securityContext:
+            capabilities: {}
+            privileged: false
+          terminationMessagePath: /dev/termination-log
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+    triggers:
+    - type: ConfigChange
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - sinatra-app-example
+        from:
+          kind: ImageStreamTag
+          name: sinatra-app-example:latest
+        lastTriggeredImage: ""
+      type: ImageChange
+  status: {}
+- apiVersion: v1
+  kind: Service
+  metadata:
+    creationTimestamp: 2015-04-06T21:02:00Z
+    name: sinatra-app-example
+  spec:
+    ports:
+    - nodePort: 0
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
+    selector:
+      deploymentconfig: sinatra-app-example
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+kind: List
+metadata: {}

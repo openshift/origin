@@ -1,0 +1,51 @@
+{
+  "kind": "BuildConfig",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "test",
+    "labels": {
+      "name": "test"
+    }
+  },
+  "spec": {
+    "triggers": [],
+    "source": {
+      "type": "Binary",
+      "binary": {},
+      "secrets": [
+        {
+          "secret": {
+            "name": "testsecret"
+          },
+          "destinationDir": "secret-dir"
+        },
+        {
+          "secret": {
+            "name": "testsecret2"
+          }
+        }
+      ]
+    },
+    "strategy": {
+      "type": "Docker",
+      "dockerStrategy": {
+        "from": {
+          "kind": "DockerImage",
+          "name": "centos/ruby-22-centos7"
+        },
+        "env": [
+          {
+            "name": "BUILD_LOGLEVEL",
+            "value": "5"
+          }
+        ]
+      }
+    },
+    "output": {
+      "to": {
+        "kind": "ImageStreamTag",
+        "name": "test:latest"
+      }
+    }
+  }
+}

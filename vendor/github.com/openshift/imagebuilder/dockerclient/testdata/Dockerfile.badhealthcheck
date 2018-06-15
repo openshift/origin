@@ -1,0 +1,2 @@
+FROM debian
+HEALTHCHECK

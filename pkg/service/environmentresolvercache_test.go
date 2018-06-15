@@ -3,21 +3,23 @@ package service
 import (
 	"testing"
 
-	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/client/unversioned/testclient"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 )
 
 func TestServiceResolverCacheEmpty(t *testing.T) {
-	fakeClient := testclient.NewSimpleFake(&api.Service{
-		ObjectMeta: api.ObjectMeta{
-			Name: "foo",
+	fakeClient := fake.NewSimpleClientset(&kapi.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "foo",
+			Namespace: metav1.NamespaceDefault,
 		},
-		Spec: api.ServiceSpec{
-			Ports: []api.ServicePort{{Port: 80}},
+		Spec: kapi.ServiceSpec{
+			Ports: []kapi.ServicePort{{Port: 80}},
 		},
 	})
-	cache := NewServiceResolverCache(fakeClient.Services("default").Get)
+	cache := NewServiceResolverCache(fakeClient.Core().Services("default").Get)
 	if v, ok := cache.resolve("FOO_SERVICE_HOST"); v != "" || !ok {
 		t.Errorf("unexpected cache item")
 	}
@@ -35,17 +37,17 @@ func TestServiceResolverCacheEmpty(t *testing.T) {
 }
 
 type fakeRetriever struct {
-	service *api.Service
+	service *kapi.Service
 	err     error
 }
 
-func (r fakeRetriever) Get(name string) (*api.Service, error) {
+func (r fakeRetriever) Get(name string, options metav1.GetOptions) (*kapi.Service, error) {
 	return r.service, r.err
 }
 
 func TestServiceResolverCache(t *testing.T) {
 	c := fakeRetriever{
-		err: errors.NewNotFound("Service", "bar"),
+		err: errors.NewNotFound(kapi.Resource("Service"), "bar"),
 	}
 	cache := NewServiceResolverCache(c.Get)
 	if v, ok := cache.resolve("FOO_SERVICE_HOST"); v != "" || ok {
@@ -53,10 +55,10 @@ func TestServiceResolverCache(t *testing.T) {
 	}
 
 	c = fakeRetriever{
-		service: &api.Service{
-			Spec: api.ServiceSpec{
+		service: &kapi.Service{
+			Spec: kapi.ServiceSpec{
 				ClusterIP: "127.0.0.1",
-				Ports:     []api.ServicePort{{Port: 80}},
+				Ports:     []kapi.ServicePort{{Port: 80}},
 			},
 		},
 	}

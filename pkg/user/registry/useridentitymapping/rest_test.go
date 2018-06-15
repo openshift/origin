@@ -6,62 +6,69 @@ import (
 	"reflect"
 	"testing"
 
-	kapi "k8s.io/kubernetes/pkg/api"
-	kerrs "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/types"
+	kerrs "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	apiserverrest "k8s.io/apiserver/pkg/registry/rest"
+	kapirest "k8s.io/apiserver/pkg/registry/rest"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	"github.com/openshift/origin/pkg/user/api"
+	userapi "github.com/openshift/api/user/v1"
+	userapiinternal "github.com/openshift/origin/pkg/user/apis/user"
 	"github.com/openshift/origin/pkg/user/registry/test"
+
+	_ "github.com/openshift/origin/pkg/api/install"
 )
 
 var sequence = 0
 
-func makeUser() *api.User {
+func makeUser() *userapi.User {
 	sequence++
 	return makeUserFromSequence(sequence)
 }
 
-func makeUserFromSequence(sequence int) *api.User {
+func makeUserFromSequence(sequence int) *userapi.User {
 	userName := fmt.Sprintf("myuser-%d", sequence)
 	userUID := types.UID(fmt.Sprintf("useruid-%d", sequence))
 	userResourceVersion := fmt.Sprintf("%d", sequence+100)
 
-	return &api.User{
-		ObjectMeta: kapi.ObjectMeta{Name: userName, UID: userUID, ResourceVersion: userResourceVersion},
+	return &userapi.User{
+		ObjectMeta: metav1.ObjectMeta{Name: userName, UID: userUID, ResourceVersion: userResourceVersion},
 	}
 }
 
-func makeIdentity() *api.Identity {
+func makeIdentity() *userapi.Identity {
 	sequence++
 	return makeIdentityFromSequence(sequence)
 }
 
-func makeIdentityFromSequence(sequence int) *api.Identity {
+func makeIdentityFromSequence(sequence int) *userapi.Identity {
 	providerName := fmt.Sprintf("providername-%d", sequence)
 	providerUserName := fmt.Sprintf("providerusername-%d", sequence)
 	identityName := fmt.Sprintf("%s:%s", providerName, providerUserName)
 	identityUID := types.UID(fmt.Sprintf("identityuid-%d", sequence))
 	identityResourceVersion := fmt.Sprintf("%d", sequence+200)
 
-	return &api.Identity{
-		ObjectMeta:       kapi.ObjectMeta{Name: identityName, UID: identityUID, ResourceVersion: identityResourceVersion},
+	return &userapi.Identity{
+		ObjectMeta:       metav1.ObjectMeta{Name: identityName, UID: identityUID, ResourceVersion: identityResourceVersion},
 		ProviderName:     providerName,
 		ProviderUserName: providerUserName,
 	}
 }
 
-func makeAssociated() (*api.User, *api.Identity) {
+func makeAssociated() (*userapi.User, *userapi.Identity) {
 	sequence++
 	return associate(makeUserFromSequence(sequence), makeIdentityFromSequence(sequence))
 }
 
-func makeUnassociated() (*api.User, *api.Identity) {
+func makeUnassociated() (*userapi.User, *userapi.Identity) {
 	sequence++
 	return makeUserFromSequence(sequence), makeIdentityFromSequence(sequence)
 }
 
-func associate(user *api.User, identity *api.Identity) (*api.User, *api.Identity) {
+func associate(user *userapi.User, identity *userapi.Identity) (*userapi.User, *userapi.Identity) {
 	userCopy := *user
 	identityCopy := *identity
 	addIdentityToUser(&identityCopy, &userCopy)
@@ -69,7 +76,7 @@ func associate(user *api.User, identity *api.Identity) (*api.User, *api.Identity
 	return &userCopy, &identityCopy
 }
 
-func disassociate(user *api.User, identity *api.Identity) (*api.User, *api.Identity) {
+func disassociate(user *userapi.User, identity *userapi.Identity) (*userapi.User, *userapi.Identity) {
 	userCopy := *user
 	identityCopy := *identity
 	removeIdentityFromUser(&identityCopy, &userCopy)
@@ -77,26 +84,26 @@ func disassociate(user *api.User, identity *api.Identity) (*api.User, *api.Ident
 	return &userCopy, &identityCopy
 }
 
-func setupRegistries(identity *api.Identity, users ...*api.User) (*[]test.Action, *test.UserRegistry, *test.IdentityRegistry, *REST) {
+func setupRegistries(identity *userapi.Identity, users ...*userapi.User) (*[]test.Action, *test.UserRegistry, *test.IdentityRegistry, *REST) {
 	actions := &[]test.Action{}
 
 	userRegistry := &test.UserRegistry{
-		Get:       map[string]*api.User{},
+		GetUsers:  map[string]*userapi.User{},
 		GetErr:    map[string]error{},
 		UpdateErr: map[string]error{},
 		Actions:   actions,
 	}
 	for _, user := range users {
-		userRegistry.Get[user.Name] = user
+		userRegistry.GetUsers[user.Name] = user
 	}
 
 	identityRegistry := &test.IdentityRegistry{
-		Get:     map[string]*api.Identity{},
-		GetErr:  map[string]error{},
-		Actions: actions,
+		GetIdentities: map[string]*userapi.Identity{},
+		GetErr:        map[string]error{},
+		Actions:       actions,
 	}
 	if identity != nil {
-		identityRegistry.Get[identity.Name] = identity
+		identityRegistry.GetIdentities[identity.Name] = identity
 	}
 
 	rest := NewREST(userRegistry, identityRegistry)
@@ -120,8 +127,8 @@ func verifyActions(expectedActions []test.Action, actualActions []test.Action, t
 	}
 }
 
-func verifyMapping(object runtime.Object, user *api.User, identity *api.Identity, t *testing.T) {
-	mapping, ok := object.(*api.UserIdentityMapping)
+func verifyMapping(object runtime.Object, user *userapi.User, identity *userapi.Identity, t *testing.T) {
+	mapping, ok := object.(*userapiinternal.UserIdentityMapping)
 	if !ok {
 		t.Errorf("Expected mapping, got %#v", object)
 		return
@@ -140,12 +147,12 @@ func verifyMapping(object runtime.Object, user *api.User, identity *api.Identity
 func TestGet(t *testing.T) {
 	user, identity := makeAssociated()
 	expectedActions := []test.Action{
-		{"GetIdentity", identity.Name},
-		{"GetUser", user.Name},
+		{Name: "GetIdentity", Object: identity.Name},
+		{Name: "GetUser", Object: user.Name},
 	}
 
 	actions, _, _, rest := setupRegistries(identity, user)
-	mapping, err := rest.Get(kapi.NewContext(), identity.Name)
+	mapping, err := rest.Get(apirequest.NewContext(), identity.Name, &metav1.GetOptions{})
 
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
@@ -157,11 +164,11 @@ func TestGet(t *testing.T) {
 func TestGetMissingIdentity(t *testing.T) {
 	user, identity := makeAssociated()
 	expectedActions := []test.Action{
-		{"GetIdentity", identity.Name},
+		{Name: "GetIdentity", Object: identity.Name},
 	}
 
 	actions, _, _, rest := setupRegistries(nil, user)
-	_, err := rest.Get(kapi.NewContext(), identity.Name)
+	_, err := rest.Get(apirequest.NewContext(), identity.Name, &metav1.GetOptions{})
 
 	if err == nil {
 		t.Errorf("Expected error, got none")
@@ -172,11 +179,11 @@ func TestGetMissingIdentity(t *testing.T) {
 func TestGetIdentityWithoutUser(t *testing.T) {
 	identity := makeIdentity()
 	expectedActions := []test.Action{
-		{"GetIdentity", identity.Name},
+		{Name: "GetIdentity", Object: identity.Name},
 	}
 
 	actions, _, _, rest := setupRegistries(identity)
-	_, err := rest.Get(kapi.NewContext(), identity.Name)
+	_, err := rest.Get(apirequest.NewContext(), identity.Name, &metav1.GetOptions{})
 
 	if err == nil {
 		t.Errorf("Expected error, got none")
@@ -190,12 +197,12 @@ func TestGetIdentityWithoutUser(t *testing.T) {
 func TestGetMissingUser(t *testing.T) {
 	user, identity := makeAssociated()
 	expectedActions := []test.Action{
-		{"GetIdentity", identity.Name},
-		{"GetUser", user.Name},
+		{Name: "GetIdentity", Object: identity.Name},
+		{Name: "GetUser", Object: user.Name},
 	}
 
 	actions, _, _, rest := setupRegistries(identity)
-	_, err := rest.Get(kapi.NewContext(), identity.Name)
+	_, err := rest.Get(apirequest.NewContext(), identity.Name, &metav1.GetOptions{})
 
 	if err == nil {
 		t.Errorf("Expected error, got none")
@@ -210,12 +217,12 @@ func TestGetUserWithoutIdentity(t *testing.T) {
 	user, identity := makeAssociated()
 	user.Identities = []string{}
 	expectedActions := []test.Action{
-		{"GetIdentity", identity.Name},
-		{"GetUser", user.Name},
+		{Name: "GetIdentity", Object: identity.Name},
+		{Name: "GetUser", Object: user.Name},
 	}
 
 	actions, _, _, rest := setupRegistries(identity, user)
-	_, err := rest.Get(kapi.NewContext(), identity.Name)
+	_, err := rest.Get(apirequest.NewContext(), identity.Name, &metav1.GetOptions{})
 
 	if err == nil {
 		t.Errorf("Expected error, got none")
@@ -230,19 +237,19 @@ func TestCreate(t *testing.T) {
 	associatedUser, associatedIdentity := makeAssociated()
 	unassociatedUser, unassociatedIdentity := disassociate(associatedUser, associatedIdentity)
 	expectedActions := []test.Action{
-		{"GetIdentity", unassociatedIdentity.Name},
-		{"GetUser", unassociatedUser.Name},
-		{"UpdateUser", associatedUser},
-		{"UpdateIdentity", associatedIdentity},
+		{Name: "GetIdentity", Object: unassociatedIdentity.Name},
+		{Name: "GetUser", Object: unassociatedUser.Name},
+		{Name: "UpdateUser", Object: associatedUser},
+		{Name: "UpdateIdentity", Object: associatedIdentity},
 	}
 
-	mapping := &api.UserIdentityMapping{
+	mapping := &userapiinternal.UserIdentityMapping{
 		Identity: kapi.ObjectReference{Name: unassociatedIdentity.Name},
 		User:     kapi.ObjectReference{Name: unassociatedUser.Name},
 	}
 
 	actions, _, _, rest := setupRegistries(unassociatedIdentity, unassociatedUser)
-	createdMapping, err := rest.Create(kapi.NewContext(), mapping)
+	createdMapping, err := rest.Create(apirequest.NewContext(), mapping, apiserverrest.ValidateAllObjectFunc, false)
 
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
@@ -254,17 +261,17 @@ func TestCreate(t *testing.T) {
 func TestCreateExists(t *testing.T) {
 	user, identity := makeAssociated()
 	expectedActions := []test.Action{
-		{"GetIdentity", identity.Name},
-		{"GetUser", user.Name},
+		{Name: "GetIdentity", Object: identity.Name},
+		{Name: "GetUser", Object: user.Name},
 	}
 
-	mapping := &api.UserIdentityMapping{
+	mapping := &userapiinternal.UserIdentityMapping{
 		Identity: kapi.ObjectReference{Name: identity.Name},
 		User:     kapi.ObjectReference{Name: user.Name},
 	}
 
 	actions, _, _, rest := setupRegistries(identity, user)
-	_, err := rest.Create(kapi.NewContext(), mapping)
+	_, err := rest.Create(apirequest.NewContext(), mapping, apiserverrest.ValidateAllObjectFunc, false)
 
 	if err == nil {
 		t.Errorf("Expected error, got none")
@@ -278,16 +285,16 @@ func TestCreateExists(t *testing.T) {
 func TestCreateMissingIdentity(t *testing.T) {
 	user, identity := makeUnassociated()
 	expectedActions := []test.Action{
-		{"GetIdentity", identity.Name},
+		{Name: "GetIdentity", Object: identity.Name},
 	}
 
-	mapping := &api.UserIdentityMapping{
+	mapping := &userapiinternal.UserIdentityMapping{
 		Identity: kapi.ObjectReference{Name: identity.Name},
 		User:     kapi.ObjectReference{Name: user.Name},
 	}
 
 	actions, _, _, rest := setupRegistries(nil, user)
-	_, err := rest.Create(kapi.NewContext(), mapping)
+	_, err := rest.Create(apirequest.NewContext(), mapping, apiserverrest.ValidateAllObjectFunc, false)
 
 	if err == nil {
 		t.Errorf("Expected error, got none")
@@ -301,17 +308,17 @@ func TestCreateMissingIdentity(t *testing.T) {
 func TestCreateMissingUser(t *testing.T) {
 	user, identity := makeUnassociated()
 	expectedActions := []test.Action{
-		{"GetIdentity", identity.Name},
-		{"GetUser", user.Name},
+		{Name: "GetIdentity", Object: identity.Name},
+		{Name: "GetUser", Object: user.Name},
 	}
 
-	mapping := &api.UserIdentityMapping{
+	mapping := &userapiinternal.UserIdentityMapping{
 		Identity: kapi.ObjectReference{Name: identity.Name},
 		User:     kapi.ObjectReference{Name: user.Name},
 	}
 
 	actions, _, _, rest := setupRegistries(identity)
-	_, err := rest.Create(kapi.NewContext(), mapping)
+	_, err := rest.Create(apirequest.NewContext(), mapping, apiserverrest.ValidateAllObjectFunc, false)
 
 	if err == nil {
 		t.Errorf("Expected error, got none")
@@ -326,20 +333,20 @@ func TestCreateUserUpdateError(t *testing.T) {
 	associatedUser, associatedIdentity := makeAssociated()
 	unassociatedUser, unassociatedIdentity := disassociate(associatedUser, associatedIdentity)
 	expectedActions := []test.Action{
-		{"GetIdentity", unassociatedIdentity.Name},
-		{"GetUser", unassociatedUser.Name},
-		{"UpdateUser", associatedUser},
+		{Name: "GetIdentity", Object: unassociatedIdentity.Name},
+		{Name: "GetUser", Object: unassociatedUser.Name},
+		{Name: "UpdateUser", Object: associatedUser},
 	}
-	expectedErr := errors.New("Update error")
+	expectedErr := errors.New("UpdateUser error")
 
-	mapping := &api.UserIdentityMapping{
+	mapping := &userapiinternal.UserIdentityMapping{
 		Identity: kapi.ObjectReference{Name: unassociatedIdentity.Name},
 		User:     kapi.ObjectReference{Name: unassociatedUser.Name},
 	}
 
 	actions, userRegistry, _, rest := setupRegistries(unassociatedIdentity, unassociatedUser)
 	userRegistry.UpdateErr[associatedUser.Name] = expectedErr
-	_, err := rest.Create(kapi.NewContext(), mapping)
+	_, err := rest.Create(apirequest.NewContext(), mapping, apiserverrest.ValidateAllObjectFunc, false)
 
 	if err == nil {
 		t.Errorf("Expected error, got none")
@@ -354,20 +361,20 @@ func TestCreateIdentityUpdateError(t *testing.T) {
 	associatedUser, associatedIdentity := makeAssociated()
 	unassociatedUser, unassociatedIdentity := disassociate(associatedUser, associatedIdentity)
 	expectedActions := []test.Action{
-		{"GetIdentity", unassociatedIdentity.Name},
-		{"GetUser", unassociatedUser.Name},
-		{"UpdateUser", associatedUser},
-		{"UpdateIdentity", associatedIdentity},
+		{Name: "GetIdentity", Object: unassociatedIdentity.Name},
+		{Name: "GetUser", Object: unassociatedUser.Name},
+		{Name: "UpdateUser", Object: associatedUser},
+		{Name: "UpdateIdentity", Object: associatedIdentity},
 	}
 
-	mapping := &api.UserIdentityMapping{
+	mapping := &userapiinternal.UserIdentityMapping{
 		Identity: kapi.ObjectReference{Name: unassociatedIdentity.Name},
 		User:     kapi.ObjectReference{Name: unassociatedUser.Name},
 	}
 
 	actions, _, identityRegistry, rest := setupRegistries(unassociatedIdentity, unassociatedUser)
-	identityRegistry.UpdateErr = errors.New("Update error")
-	_, err := rest.Create(kapi.NewContext(), mapping)
+	identityRegistry.UpdateErr = errors.New("UpdateUser error")
+	_, err := rest.Create(apirequest.NewContext(), mapping, apiserverrest.ValidateAllObjectFunc, false)
 
 	if err == nil {
 		t.Errorf("Expected error, got none")
@@ -388,26 +395,26 @@ func TestUpdate(t *testing.T) {
 
 	expectedActions := []test.Action{
 		// Existing mapping lookup
-		{"GetIdentity", associatedIdentity1User1.Name},
-		{"GetUser", associatedUser1.Name},
+		{Name: "GetIdentity", Object: associatedIdentity1User1.Name},
+		{Name: "GetUser", Object: associatedUser1.Name},
 		// New user lookup
-		{"GetUser", unassociatedUser2.Name},
+		{Name: "GetUser", Object: unassociatedUser2.Name},
 		// New user update
-		{"UpdateUser", associatedUser2},
+		{Name: "UpdateUser", Object: associatedUser2},
 		// Identity update
-		{"UpdateIdentity", associatedIdentity1User2},
+		{Name: "UpdateIdentity", Object: associatedIdentity1User2},
 		// Old user cleanup
-		{"UpdateUser", unassociatedUser1},
+		{Name: "UpdateUser", Object: unassociatedUser1},
 	}
 
-	mapping := &api.UserIdentityMapping{
-		ObjectMeta: kapi.ObjectMeta{ResourceVersion: unassociatedIdentity1.ResourceVersion},
+	mapping := &userapiinternal.UserIdentityMapping{
+		ObjectMeta: metav1.ObjectMeta{ResourceVersion: unassociatedIdentity1.ResourceVersion},
 		Identity:   kapi.ObjectReference{Name: unassociatedIdentity1.Name},
 		User:       kapi.ObjectReference{Name: unassociatedUser2.Name},
 	}
 
 	actions, _, _, rest := setupRegistries(associatedIdentity1User1, associatedUser1, unassociatedUser2)
-	createdMapping, created, err := rest.Update(kapi.NewContext(), mapping)
+	createdMapping, created, err := rest.Update(apirequest.NewContext(), mapping.Name, kapirest.DefaultUpdatedObjectInfo(mapping), apiserverrest.ValidateAllObjectFunc, apiserverrest.ValidateAllObjectUpdateFunc)
 
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
@@ -428,17 +435,17 @@ func TestUpdateMissingIdentity(t *testing.T) {
 
 	expectedActions := []test.Action{
 		// Existing mapping lookup
-		{"GetIdentity", associatedIdentity1User1.Name},
+		{Name: "GetIdentity", Object: associatedIdentity1User1.Name},
 	}
 
-	mapping := &api.UserIdentityMapping{
-		ObjectMeta: kapi.ObjectMeta{ResourceVersion: unassociatedIdentity1.ResourceVersion},
+	mapping := &userapiinternal.UserIdentityMapping{
+		ObjectMeta: metav1.ObjectMeta{ResourceVersion: unassociatedIdentity1.ResourceVersion},
 		Identity:   kapi.ObjectReference{Name: unassociatedIdentity1.Name},
 		User:       kapi.ObjectReference{Name: unassociatedUser2.Name},
 	}
 
 	actions, _, _, rest := setupRegistries(nil, associatedUser1, unassociatedUser2)
-	_, _, err := rest.Update(kapi.NewContext(), mapping)
+	_, _, err := rest.Update(apirequest.NewContext(), mapping.Name, kapirest.DefaultUpdatedObjectInfo(mapping), apiserverrest.ValidateAllObjectFunc, apiserverrest.ValidateAllObjectUpdateFunc)
 
 	if err == nil {
 		t.Errorf("Expected error: %v", err)
@@ -458,20 +465,20 @@ func TestUpdateMissingUser(t *testing.T) {
 
 	expectedActions := []test.Action{
 		// Existing mapping lookup
-		{"GetIdentity", associatedIdentity1User1.Name},
-		{"GetUser", associatedUser1.Name},
+		{Name: "GetIdentity", Object: associatedIdentity1User1.Name},
+		{Name: "GetUser", Object: associatedUser1.Name},
 		// New user lookup
-		{"GetUser", unassociatedUser2.Name},
+		{Name: "GetUser", Object: unassociatedUser2.Name},
 	}
 
-	mapping := &api.UserIdentityMapping{
-		ObjectMeta: kapi.ObjectMeta{ResourceVersion: unassociatedIdentity1.ResourceVersion},
+	mapping := &userapiinternal.UserIdentityMapping{
+		ObjectMeta: metav1.ObjectMeta{ResourceVersion: unassociatedIdentity1.ResourceVersion},
 		Identity:   kapi.ObjectReference{Name: unassociatedIdentity1.Name},
 		User:       kapi.ObjectReference{Name: unassociatedUser2.Name},
 	}
 
 	actions, _, _, rest := setupRegistries(associatedIdentity1User1, associatedUser1)
-	_, _, err := rest.Update(kapi.NewContext(), mapping)
+	_, _, err := rest.Update(apirequest.NewContext(), mapping.Name, kapirest.DefaultUpdatedObjectInfo(mapping), apiserverrest.ValidateAllObjectFunc, apiserverrest.ValidateAllObjectUpdateFunc)
 
 	if err == nil {
 		t.Errorf("Expected error: %v", err)
@@ -487,18 +494,18 @@ func TestUpdateOldUserMatches(t *testing.T) {
 
 	expectedActions := []test.Action{
 		// Existing mapping lookup
-		{"GetIdentity", identity.Name},
-		{"GetUser", user.Name},
+		{Name: "GetIdentity", Object: identity.Name},
+		{Name: "GetUser", Object: user.Name},
 	}
 
-	mapping := &api.UserIdentityMapping{
-		ObjectMeta: kapi.ObjectMeta{ResourceVersion: identity.ResourceVersion},
+	mapping := &userapiinternal.UserIdentityMapping{
+		ObjectMeta: metav1.ObjectMeta{ResourceVersion: identity.ResourceVersion},
 		Identity:   kapi.ObjectReference{Name: identity.Name},
 		User:       kapi.ObjectReference{Name: user.Name},
 	}
 
 	actions, _, _, rest := setupRegistries(identity, user)
-	createdMapping, created, err := rest.Update(kapi.NewContext(), mapping)
+	createdMapping, created, err := rest.Update(apirequest.NewContext(), mapping.Name, kapirest.DefaultUpdatedObjectInfo(mapping), apiserverrest.ValidateAllObjectFunc, apiserverrest.ValidateAllObjectUpdateFunc)
 
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
@@ -519,17 +526,17 @@ func TestUpdateWithEmptyResourceVersion(t *testing.T) {
 
 	expectedActions := []test.Action{
 		// Existing mapping lookup
-		{"GetIdentity", associatedIdentity1User1.Name},
-		{"GetUser", associatedUser1.Name},
+		{Name: "GetIdentity", Object: associatedIdentity1User1.Name},
+		{Name: "GetUser", Object: associatedUser1.Name},
 	}
 
-	mapping := &api.UserIdentityMapping{
+	mapping := &userapiinternal.UserIdentityMapping{
 		Identity: kapi.ObjectReference{Name: unassociatedIdentity1.Name},
 		User:     kapi.ObjectReference{Name: unassociatedUser2.Name},
 	}
 
 	actions, _, _, rest := setupRegistries(associatedIdentity1User1, associatedUser1, unassociatedUser2)
-	_, _, err := rest.Update(kapi.NewContext(), mapping)
+	_, _, err := rest.Update(apirequest.NewContext(), mapping.Name, kapirest.DefaultUpdatedObjectInfo(mapping), apiserverrest.ValidateAllObjectFunc, apiserverrest.ValidateAllObjectUpdateFunc)
 
 	if err == nil {
 		t.Errorf("Expected error")
@@ -549,18 +556,18 @@ func TestUpdateWithMismatchedResourceVersion(t *testing.T) {
 
 	expectedActions := []test.Action{
 		// Existing mapping lookup
-		{"GetIdentity", associatedIdentity1User1.Name},
-		{"GetUser", associatedUser1.Name},
+		{Name: "GetIdentity", Object: associatedIdentity1User1.Name},
+		{Name: "GetUser", Object: associatedUser1.Name},
 	}
 
-	mapping := &api.UserIdentityMapping{
-		ObjectMeta: kapi.ObjectMeta{ResourceVersion: "123"},
+	mapping := &userapiinternal.UserIdentityMapping{
+		ObjectMeta: metav1.ObjectMeta{ResourceVersion: "123"},
 		Identity:   kapi.ObjectReference{Name: unassociatedIdentity1.Name},
 		User:       kapi.ObjectReference{Name: unassociatedUser2.Name},
 	}
 
 	actions, _, _, rest := setupRegistries(associatedIdentity1User1, associatedUser1, unassociatedUser2)
-	_, _, err := rest.Update(kapi.NewContext(), mapping)
+	_, _, err := rest.Update(apirequest.NewContext(), mapping.Name, kapirest.DefaultUpdatedObjectInfo(mapping), apiserverrest.ValidateAllObjectFunc, apiserverrest.ValidateAllObjectUpdateFunc)
 
 	if err == nil {
 		t.Errorf("Expected error")
@@ -581,28 +588,28 @@ func TestUpdateOldUserUpdateError(t *testing.T) {
 
 	expectedActions := []test.Action{
 		// Existing mapping lookup
-		{"GetIdentity", associatedIdentity1User1.Name},
-		{"GetUser", associatedUser1.Name},
+		{Name: "GetIdentity", Object: associatedIdentity1User1.Name},
+		{Name: "GetUser", Object: associatedUser1.Name},
 		// New user lookup
-		{"GetUser", unassociatedUser2.Name},
+		{Name: "GetUser", Object: unassociatedUser2.Name},
 		// New user update
-		{"UpdateUser", associatedUser2},
+		{Name: "UpdateUser", Object: associatedUser2},
 		// Identity update
-		{"UpdateIdentity", associatedIdentity1User2},
+		{Name: "UpdateIdentity", Object: associatedIdentity1User2},
 		// Old user cleanup
-		{"UpdateUser", unassociatedUser1},
+		{Name: "UpdateUser", Object: unassociatedUser1},
 	}
 	expectedErr := errors.New("Couldn't update old user")
 
-	mapping := &api.UserIdentityMapping{
-		ObjectMeta: kapi.ObjectMeta{ResourceVersion: unassociatedIdentity1.ResourceVersion},
+	mapping := &userapiinternal.UserIdentityMapping{
+		ObjectMeta: metav1.ObjectMeta{ResourceVersion: unassociatedIdentity1.ResourceVersion},
 		Identity:   kapi.ObjectReference{Name: unassociatedIdentity1.Name},
 		User:       kapi.ObjectReference{Name: unassociatedUser2.Name},
 	}
 
 	actions, userRegistry, _, rest := setupRegistries(associatedIdentity1User1, associatedUser1, unassociatedUser2)
 	userRegistry.UpdateErr[unassociatedUser1.Name] = expectedErr
-	createdMapping, created, err := rest.Update(kapi.NewContext(), mapping)
+	createdMapping, created, err := rest.Update(apirequest.NewContext(), mapping.Name, kapirest.DefaultUpdatedObjectInfo(mapping), apiserverrest.ValidateAllObjectFunc, apiserverrest.ValidateAllObjectUpdateFunc)
 
 	// An error cleaning up the old user shouldn't manifest as an update failure, since the mapping was successfully updated
 	if err != nil {
@@ -625,24 +632,24 @@ func TestUpdateUserUpdateError(t *testing.T) {
 
 	expectedActions := []test.Action{
 		// Existing mapping lookup
-		{"GetIdentity", associatedIdentity1User1.Name},
-		{"GetUser", associatedUser1.Name},
+		{Name: "GetIdentity", Object: associatedIdentity1User1.Name},
+		{Name: "GetUser", Object: associatedUser1.Name},
 		// New user lookup
-		{"GetUser", unassociatedUser2.Name},
+		{Name: "GetUser", Object: unassociatedUser2.Name},
 		// New user update
-		{"UpdateUser", associatedUser2},
+		{Name: "UpdateUser", Object: associatedUser2},
 	}
 	expectedErr := errors.New("Couldn't update new user")
 
-	mapping := &api.UserIdentityMapping{
-		ObjectMeta: kapi.ObjectMeta{ResourceVersion: unassociatedIdentity1.ResourceVersion},
+	mapping := &userapiinternal.UserIdentityMapping{
+		ObjectMeta: metav1.ObjectMeta{ResourceVersion: unassociatedIdentity1.ResourceVersion},
 		Identity:   kapi.ObjectReference{Name: unassociatedIdentity1.Name},
 		User:       kapi.ObjectReference{Name: unassociatedUser2.Name},
 	}
 
 	actions, userRegistry, _, rest := setupRegistries(associatedIdentity1User1, associatedUser1, unassociatedUser2)
 	userRegistry.UpdateErr[associatedUser2.Name] = expectedErr
-	_, _, err := rest.Update(kapi.NewContext(), mapping)
+	_, _, err := rest.Update(apirequest.NewContext(), mapping.Name, kapirest.DefaultUpdatedObjectInfo(mapping), apiserverrest.ValidateAllObjectFunc, apiserverrest.ValidateAllObjectUpdateFunc)
 
 	if err == nil {
 		t.Errorf("Expected error")
@@ -663,26 +670,26 @@ func TestUpdateIdentityUpdateError(t *testing.T) {
 
 	expectedActions := []test.Action{
 		// Existing mapping lookup
-		{"GetIdentity", associatedIdentity1User1.Name},
-		{"GetUser", associatedUser1.Name},
+		{Name: "GetIdentity", Object: associatedIdentity1User1.Name},
+		{Name: "GetUser", Object: associatedUser1.Name},
 		// New user lookup
-		{"GetUser", unassociatedUser2.Name},
+		{Name: "GetUser", Object: unassociatedUser2.Name},
 		// New user update
-		{"UpdateUser", associatedUser2},
+		{Name: "UpdateUser", Object: associatedUser2},
 		// Identity update
-		{"UpdateIdentity", associatedIdentity1User2},
+		{Name: "UpdateIdentity", Object: associatedIdentity1User2},
 	}
 	expectedErr := errors.New("Couldn't update identity")
 
-	mapping := &api.UserIdentityMapping{
-		ObjectMeta: kapi.ObjectMeta{ResourceVersion: unassociatedIdentity1.ResourceVersion},
+	mapping := &userapiinternal.UserIdentityMapping{
+		ObjectMeta: metav1.ObjectMeta{ResourceVersion: unassociatedIdentity1.ResourceVersion},
 		Identity:   kapi.ObjectReference{Name: unassociatedIdentity1.Name},
 		User:       kapi.ObjectReference{Name: unassociatedUser2.Name},
 	}
 
 	actions, _, identityRegistry, rest := setupRegistries(associatedIdentity1User1, associatedUser1, unassociatedUser2)
 	identityRegistry.UpdateErr = expectedErr
-	_, _, err := rest.Update(kapi.NewContext(), mapping)
+	_, _, err := rest.Update(apirequest.NewContext(), mapping.Name, kapirest.DefaultUpdatedObjectInfo(mapping), apiserverrest.ValidateAllObjectFunc, apiserverrest.ValidateAllObjectUpdateFunc)
 
 	if err == nil {
 		t.Errorf("Expected error")
@@ -697,14 +704,14 @@ func TestDelete(t *testing.T) {
 	associatedUser, associatedIdentity := makeAssociated()
 	unassociatedUser, unassociatedIdentity := disassociate(associatedUser, associatedIdentity)
 	expectedActions := []test.Action{
-		{"GetIdentity", associatedIdentity.Name},
-		{"GetUser", associatedUser.Name},
-		{"UpdateUser", unassociatedUser},
-		{"UpdateIdentity", unassociatedIdentity},
+		{Name: "GetIdentity", Object: associatedIdentity.Name},
+		{Name: "GetUser", Object: associatedUser.Name},
+		{Name: "UpdateUser", Object: unassociatedUser},
+		{Name: "UpdateIdentity", Object: unassociatedIdentity},
 	}
 
 	actions, _, _, rest := setupRegistries(associatedIdentity, associatedUser)
-	_, err := rest.Delete(kapi.NewContext(), associatedIdentity.Name)
+	_, _, err := rest.Delete(apirequest.NewContext(), associatedIdentity.Name, nil)
 
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
@@ -715,11 +722,11 @@ func TestDelete(t *testing.T) {
 func TestDeleteMissingIdentity(t *testing.T) {
 	associatedUser, associatedIdentity := makeAssociated()
 	expectedActions := []test.Action{
-		{"GetIdentity", associatedIdentity.Name},
+		{Name: "GetIdentity", Object: associatedIdentity.Name},
 	}
 
 	actions, _, _, rest := setupRegistries(nil, associatedUser)
-	_, err := rest.Delete(kapi.NewContext(), associatedIdentity.Name)
+	_, _, err := rest.Delete(apirequest.NewContext(), associatedIdentity.Name, nil)
 
 	if err == nil {
 		t.Errorf("Expected error")
@@ -733,12 +740,12 @@ func TestDeleteMissingIdentity(t *testing.T) {
 func TestDeleteMissingUser(t *testing.T) {
 	associatedUser, associatedIdentity := makeAssociated()
 	expectedActions := []test.Action{
-		{"GetIdentity", associatedIdentity.Name},
-		{"GetUser", associatedUser.Name},
+		{Name: "GetIdentity", Object: associatedIdentity.Name},
+		{Name: "GetUser", Object: associatedUser.Name},
 	}
 
 	actions, _, _, rest := setupRegistries(associatedIdentity)
-	_, err := rest.Delete(kapi.NewContext(), associatedIdentity.Name)
+	_, _, err := rest.Delete(apirequest.NewContext(), associatedIdentity.Name, nil)
 
 	if err == nil {
 		t.Errorf("Expected error")
@@ -753,15 +760,15 @@ func TestDeleteUserUpdateError(t *testing.T) {
 	associatedUser, associatedIdentity := makeAssociated()
 	unassociatedUser, _ := disassociate(associatedUser, associatedIdentity)
 	expectedActions := []test.Action{
-		{"GetIdentity", associatedIdentity.Name},
-		{"GetUser", associatedUser.Name},
-		{"UpdateUser", unassociatedUser},
+		{Name: "GetIdentity", Object: associatedIdentity.Name},
+		{Name: "GetUser", Object: associatedUser.Name},
+		{Name: "UpdateUser", Object: unassociatedUser},
 	}
 	expectedErr := errors.New("Cannot update user")
 
 	actions, userRegistry, _, rest := setupRegistries(associatedIdentity, associatedUser)
 	userRegistry.UpdateErr[associatedUser.Name] = expectedErr
-	_, err := rest.Delete(kapi.NewContext(), associatedIdentity.Name)
+	_, _, err := rest.Delete(apirequest.NewContext(), associatedIdentity.Name, nil)
 
 	if err == nil {
 		t.Errorf("Expected error")
@@ -776,16 +783,16 @@ func TestDeleteIdentityUpdateError(t *testing.T) {
 	associatedUser, associatedIdentity := makeAssociated()
 	unassociatedUser, unassociatedIdentity := disassociate(associatedUser, associatedIdentity)
 	expectedActions := []test.Action{
-		{"GetIdentity", associatedIdentity.Name},
-		{"GetUser", associatedUser.Name},
-		{"UpdateUser", unassociatedUser},
-		{"UpdateIdentity", unassociatedIdentity},
+		{Name: "GetIdentity", Object: associatedIdentity.Name},
+		{Name: "GetUser", Object: associatedUser.Name},
+		{Name: "UpdateUser", Object: unassociatedUser},
+		{Name: "UpdateIdentity", Object: unassociatedIdentity},
 	}
 	expectedErr := errors.New("Cannot update identity")
 
 	actions, _, identityRegistry, rest := setupRegistries(associatedIdentity, associatedUser)
 	identityRegistry.UpdateErr = expectedErr
-	_, err := rest.Delete(kapi.NewContext(), associatedIdentity.Name)
+	_, _, err := rest.Delete(apirequest.NewContext(), associatedIdentity.Name, nil)
 
 	// An error cleaning up the identity reference shouldn't manifest as an update failure, since the mapping no longer exists
 	if err != nil {

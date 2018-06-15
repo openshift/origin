@@ -1,0 +1,36 @@
+apiVersion: apps.openshift.io/v1
+kind: DeploymentConfig
+metadata:
+  name: tag-images
+spec:
+  replicas: 1
+  test: true
+  selector:
+    name: tag-images
+  strategy:
+    type: Recreate
+    recreateParams:
+      timeoutSeconds: 600
+      post:
+        failurePolicy: Abort
+        tagImages:
+        - containerName: sample-name
+          to:
+            kind: ImageStreamTag
+            name: sample-stream:deployed
+  template:
+    metadata:
+      labels:
+        name: tag-images
+    spec:
+      containers:
+      - image: openshift/origin-pod
+        imagePullPolicy: IfNotPresent
+        name: sample-name
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+        resources:
+          limits:
+            cpu: 100m
+            memory: 3Gi

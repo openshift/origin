@@ -4,8 +4,18 @@
 #
 # The standard name for this image is openshift/origin-base
 #
-FROM centos:centos7
+FROM openshift/origin-source
 
-# components from EPEL must be installed in a separate yum install step
-RUN yum install -y git tar wget socat hostname sysvinit-tools util-linux epel-release ethtool && \
-    yum clean all
+COPY *.repo /etc/yum.repos.d/
+RUN INSTALL_PKGS=" \
+      which tar wget hostname sysvinit-tools util-linux \
+      socat tree findutils lsof bind-utils \
+      " && \
+    yum install -y ${INSTALL_PKGS} && \
+    rpm -V ${INSTALL_PKGS} && \
+    yum clean all && \
+    mkdir -p /var/lib/origin
+
+LABEL io.k8s.display-name="OpenShift Origin CentOS 7 Base" \
+      io.k8s.description="This is the base image from which all OpenShift Origin images inherit." \
+      io.openshift.tags="openshift,base"

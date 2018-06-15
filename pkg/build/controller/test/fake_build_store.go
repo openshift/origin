@@ -1,8 +1,8 @@
 package test
 
 import (
-	buildapi "github.com/openshift/origin/pkg/build/api"
-	"k8s.io/kubernetes/pkg/util/sets"
+	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	"k8s.io/apimachinery/pkg/util/sets"
 )
 
 type FakeBuildStore struct {
@@ -23,6 +23,10 @@ func (s FakeBuildStore) Update(obj interface{}) error {
 }
 
 func (s FakeBuildStore) Delete(obj interface{}) error {
+	return s.Err
+}
+
+func (s FakeBuildStore) Resync() error {
 	return s.Err
 }
 

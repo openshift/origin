@@ -1,0 +1,39 @@
+apiVersion: v1
+kind: DeploymentConfig
+metadata:
+  name: failing-dc-mid
+spec:
+  replicas: 2
+  selector:
+    name: failing-dc-mid
+  strategy:
+    type: Recreate
+    recreateParams:
+      timeoutSeconds: 20
+      mid:
+        failurePolicy: Abort
+        execNewPod:
+          containerName: myapp
+          command:
+          - /bin/echo
+          - test mid hook executed
+  template:
+    metadata:
+      labels:
+        name: failing-dc-mid
+    spec:
+      containers:
+      - image: "docker.io/centos:centos7"
+        name: myapp
+        command:
+        - /bin/false
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          timeoutSeconds: 1
+  triggers:
+  - type: ConfigChange

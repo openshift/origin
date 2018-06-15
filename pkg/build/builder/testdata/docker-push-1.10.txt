@@ -1,0 +1,139 @@
+{"status":"The push refers to a repository [172.30.152.180:5000/asdf/simple-build]"}
+{"status":"Preparing","progressDetail":{},"id":"d588cdd3c503"}
+{"status":"Preparing","progressDetail":{},"id":"54aee1b80d2a"}
+{"status":"Preparing","progressDetail":{},"id":"080b4b66c36c"}
+{"status":"Preparing","progressDetail":{},"id":"ebd0a23ed009"}
+{"status":"Preparing","progressDetail":{},"id":"ffe475a38232"}
+{"status":"Preparing","progressDetail":{},"id":"8435a2367216"}
+{"status":"Preparing","progressDetail":{},"id":"de493216effd"}
+{"status":"Preparing","progressDetail":{},"id":"c425a7d563ee"}
+{"status":"Preparing","progressDetail":{},"id":"97ca462ad9ee"}
+{"status":"Waiting","progressDetail":{},"id":"8435a2367216"}
+{"status":"Waiting","progressDetail":{},"id":"de493216effd"}
+{"status":"Waiting","progressDetail":{},"id":"c425a7d563ee"}
+{"status":"Waiting","progressDetail":{},"id":"97ca462ad9ee"}
+{"status":"Layer already exists","progressDetail":{},"id":"080b4b66c36c"}
+{"status":"Layer already exists","progressDetail":{},"id":"080b4b66c36c"}
+{"status":"Layer already exists","progressDetail":{},"id":"ebd0a23ed009"}
+{"status":"Layer already exists","progressDetail":{},"id":"ebd0a23ed009"}
+{"status":"Layer already exists","progressDetail":{},"id":"54aee1b80d2a"}
+{"status":"Layer already exists","progressDetail":{},"id":"54aee1b80d2a"}
+{"status":"Layer already exists","progressDetail":{},"id":"c425a7d563ee"}
+{"status":"Layer already exists","progressDetail":{},"id":"c425a7d563ee"}
+{"status":"Layer already exists","progressDetail":{},"id":"ffe475a38232"}
+{"status":"Layer already exists","progressDetail":{},"id":"ffe475a38232"}
+{"status":"Layer already exists","progressDetail":{},"id":"8435a2367216"}
+{"status":"Layer already exists","progressDetail":{},"id":"8435a2367216"}
+{"status":"Layer already exists","progressDetail":{},"id":"97ca462ad9ee"}
+{"status":"Layer already exists","progressDetail":{},"id":"97ca462ad9ee"}
+{"status":"Layer already exists","progressDetail":{},"id":"de493216effd"}
+{"status":"Layer already exists","progressDetail":{},"id":"de493216effd"}
+{"status":"Pushing","progressDetail":{"current":121856,"total":11954193},"progress":"[\u003e                                                  ] 121.9 kB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":265216,"total":11954193},"progress":"[=\u003e                                                 ] 265.2 kB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":396288,"total":11954193},"progress":"[=\u003e                                                 ] 396.3 kB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":547328,"total":11954193},"progress":"[==\u003e                                                ] 547.3 kB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":678400,"total":11954193},"progress":"[==\u003e                                                ] 678.4 kB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":798208,"total":11954193},"progress":"[===\u003e                                               ] 798.2 kB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":945152,"total":11954193},"progress":"[===\u003e                                               ] 945.2 kB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":1064960,"total":11954193},"progress":"[====\u003e                                              ] 1.065 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":1214976,"total":11954193},"progress":"[=====\u003e                                             ] 1.215 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":1346048,"total":11954193},"progress":"[=====\u003e                                             ] 1.346 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":1483776,"total":11954193},"progress":"[======\u003e                                            ] 1.484 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":1616896,"total":11954193},"progress":"[======\u003e                                            ] 1.617 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":1747968,"total":11954193},"progress":"[=======\u003e                                           ] 1.748 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":1879040,"total":11954193},"progress":"[=======\u003e                                           ] 1.879 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":2005504,"total":11954193},"progress":"[========\u003e                                          ] 2.006 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":2134016,"total":11954193},"progress":"[========\u003e                                          ] 2.134 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":2253824,"total":11954193},"progress":"[=========\u003e                                         ] 2.254 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":2381824,"total":11954193},"progress":"[=========\u003e                                         ] 2.382 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":2519552,"total":11954193},"progress":"[==========\u003e                                        ]  2.52 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":2640014,"total":11954193},"progress":"[===========\u003e                                       ]  2.64 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":2766002,"total":11954193},"progress":"[===========\u003e                                       ] 2.766 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":2895872,"total":11954193},"progress":"[============\u003e                                      ] 2.896 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":3026041,"total":11954193},"progress":"[============\u003e                                      ] 3.026 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":3148386,"total":11954193},"progress":"[=============\u003e                                     ] 3.148 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":3282022,"total":11954193},"progress":"[=============\u003e                                     ] 3.282 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":3425280,"total":11954193},"progress":"[==============\u003e                                    ] 3.425 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":3552165,"total":11954193},"progress":"[==============\u003e                                    ] 3.552 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":3674216,"total":11954193},"progress":"[===============\u003e                                   ] 3.674 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":3799040,"total":11954193},"progress":"[===============\u003e                                   ] 3.799 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":3933600,"total":11954193},"progress":"[================\u003e                                  ] 3.934 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":4053850,"total":11954193},"progress":"[================\u003e                                  ] 4.054 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":4173890,"total":11954193},"progress":"[=================\u003e                                 ] 4.174 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":4294905,"total":11954193},"progress":"[=================\u003e                                 ] 4.295 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":4417697,"total":11954193},"progress":"[==================\u003e                                ] 4.418 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":4542333,"total":11954193},"progress":"[==================\u003e                                ] 4.542 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":4662272,"total":11954193},"progress":"[===================\u003e                               ] 4.662 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":4783839,"total":11954193},"progress":"[====================\u003e                              ] 4.784 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":4903485,"total":11954193},"progress":"[====================\u003e                              ] 4.903 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":5053952,"total":11954193},"progress":"[=====================\u003e                             ] 5.054 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":5185024,"total":11954193},"progress":"[=====================\u003e                             ] 5.185 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":5316096,"total":11954193},"progress":"[======================\u003e                            ] 5.316 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":5447168,"total":11954193},"progress":"[======================\u003e                            ] 5.447 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":5578240,"total":11954193},"progress":"[=======================\u003e                           ] 5.578 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":5709312,"total":11954193},"progress":"[=======================\u003e                           ] 5.709 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":5840384,"total":11954193},"progress":"[========================\u003e                          ]  5.84 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":5960192,"total":11954193},"progress":"[========================\u003e                          ]  5.96 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":6094830,"total":11954193},"progress":"[=========================\u003e                         ] 6.095 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":6218822,"total":11954193},"progress":"[==========================\u003e                        ] 6.219 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":6339924,"total":11954193},"progress":"[==========================\u003e                        ]  6.34 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":6459974,"total":11954193},"progress":"[===========================\u003e                       ]  6.46 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":6579889,"total":11954193},"progress":"[===========================\u003e                       ]  6.58 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":6700032,"total":11954193},"progress":"[============================\u003e                      ]   6.7 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":6838272,"total":11954193},"progress":"[============================\u003e                      ] 6.838 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":6990336,"total":11954193},"progress":"[=============================\u003e                     ]  6.99 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":7114240,"total":11954193},"progress":"[=============================\u003e                     ] 7.114 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":7240192,"total":11954193},"progress":"[==============================\u003e                    ]  7.24 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":7379968,"total":11954193},"progress":"[==============================\u003e                    ]  7.38 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":7530496,"total":11954193},"progress":"[===============================\u003e                   ]  7.53 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":7650304,"total":11954193},"progress":"[===============================\u003e                   ]  7.65 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":7776768,"total":11954193},"progress":"[================================\u003e                  ] 7.777 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":7913895,"total":11954193},"progress":"[=================================\u003e                 ] 7.914 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":8056586,"total":11954193},"progress":"[=================================\u003e                 ] 8.057 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":8176355,"total":11954193},"progress":"[==================================\u003e                ] 8.176 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":8303524,"total":11954193},"progress":"[==================================\u003e                ] 8.304 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":8445440,"total":11954193},"progress":"[===================================\u003e               ] 8.445 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":8571392,"total":11954193},"progress":"[===================================\u003e               ] 8.571 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":8702464,"total":11954193},"progress":"[====================================\u003e              ] 8.702 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":8823296,"total":11954193},"progress":"[====================================\u003e              ] 8.823 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":8943182,"total":11954193},"progress":"[=====================================\u003e             ] 8.943 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":9065903,"total":11954193},"progress":"[=====================================\u003e             ] 9.066 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":9199313,"total":11954193},"progress":"[======================================\u003e            ] 9.199 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":9320031,"total":11954193},"progress":"[======================================\u003e            ]  9.32 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":9440594,"total":11954193},"progress":"[=======================================\u003e           ] 9.441 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":9561088,"total":11954193},"progress":"[=======================================\u003e           ] 9.561 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":9702912,"total":11954193},"progress":"[========================================\u003e          ] 9.703 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":9823232,"total":11954193},"progress":"[=========================================\u003e         ] 9.823 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":9943067,"total":11954193},"progress":"[=========================================\u003e         ] 9.943 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":10065205,"total":11954193},"progress":"[==========================================\u003e        ] 10.07 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":10185701,"total":11954193},"progress":"[==========================================\u003e        ] 10.19 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":10305536,"total":11954193},"progress":"[===========================================\u003e       ] 10.31 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":10425966,"total":11954193},"progress":"[===========================================\u003e       ] 10.43 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":10548736,"total":11954193},"progress":"[============================================\u003e      ] 10.55 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":10681856,"total":11954193},"progress":"[============================================\u003e      ] 10.68 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":10818523,"total":11954193},"progress":"[=============================================\u003e     ] 10.82 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":10945536,"total":11954193},"progress":"[=============================================\u003e     ] 10.95 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":11067168,"total":11954193},"progress":"[==============================================\u003e    ] 11.07 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":11207168,"total":11954193},"progress":"[==============================================\u003e    ] 11.21 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":11338240,"total":11954193},"progress":"[===============================================\u003e   ] 11.34 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":11460517,"total":11954193},"progress":"[===============================================\u003e   ] 11.46 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":11611648,"total":11954193},"progress":"[================================================\u003e  ] 11.61 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":11734587,"total":11954193},"progress":"[=================================================\u003e ] 11.73 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":11879936,"total":11954193},"progress":"[=================================================\u003e ] 11.88 MB/11.95 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":12028928,"total":11954193},"progress":"[==================================================\u003e] 12.03 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":12149248,"total":11954193},"progress":"[==================================================\u003e] 12.15 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":12281005,"total":11954193},"progress":"[==================================================\u003e] 12.28 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":12400640,"total":11954193},"progress":"[==================================================\u003e]  12.4 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":12520960,"total":11954193},"progress":"[==================================================\u003e] 12.52 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":12651982,"total":11954193},"progress":"[==================================================\u003e] 12.65 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":12773115,"total":11954193},"progress":"[==================================================\u003e] 12.77 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":12895584,"total":11954193},"progress":"[==================================================\u003e]  12.9 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":13015552,"total":11954193},"progress":"[==================================================\u003e] 13.02 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":13139499,"total":11954193},"progress":"[==================================================\u003e] 13.14 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":13264393,"total":11954193},"progress":"[==================================================\u003e] 13.26 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":13384192,"total":11954193},"progress":"[==================================================\u003e] 13.38 MB","id":"d588cdd3c503"}
+{"status":"Pushing","progressDetail":{"current":13455360,"total":11954193},"progress":"[==================================================\u003e] 13.46 MB","id":"d588cdd3c503"}
+{"status":"Pushed","progressDetail":{},"id":"d588cdd3c503"}
+{"status":"Pushed","progressDetail":{},"id":"d588cdd3c503"}
+{"status":"latest: digest: sha256:adc72a07c3a96ffc2201b1d9bf84b8f2416932a8e39000f61d0cda10761f2658 size: 18973"}
+{"progressDetail":{},"aux":{"Tag":"latest","Digest":"sha256:adc72a07c3a96ffc2201b1d9bf84b8f2416932a8e39000f61d0cda10761f2658","Size":18973}}

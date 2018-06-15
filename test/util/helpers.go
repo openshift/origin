@@ -1,60 +1,70 @@
 package util
 
 import (
-	"fmt"
 	"io/ioutil"
+	"os"
+	"regexp"
+	"strings"
 
-	buildapi "github.com/openshift/origin/pkg/build/api"
-	imageapi "github.com/openshift/origin/pkg/image/api"
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/latest"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/sets"
+	kyaml "k8s.io/apimachinery/pkg/util/yaml"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
+
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 )
 
-// CreateSampleImageStream creates an ImageStream in given namespace
-func CreateSampleImageStream(namespace string) *imageapi.ImageStream {
-	var stream imageapi.ImageStream
-	jsonData, err := ioutil.ReadFile("fixtures/test-image-stream.json")
-	if err != nil {
-		fmt.Printf("ERROR: Unable to read: %v", err)
-		return nil
-	}
-	latest.CodecForLegacyGroup().DecodeInto(jsonData, &stream)
+const additionalAllowedRegistriesEnvVar = "ADDITIONAL_ALLOWED_REGISTRIES"
 
-	client, _ := GetClusterAdminClient(KubeConfigPath())
-	result, err := client.ImageStreams(namespace).Create(&stream)
+func GetTemplateFixture(filename string) (*templateapi.Template, error) {
+	data, err := ioutil.ReadFile(filename)
 	if err != nil {
-		fmt.Printf("ERROR: Unable to create sample ImageStream: %v\n", err)
-		return nil
+		return nil, err
 	}
-	return result
+	jsonData, err := kyaml.ToJSON(data)
+	if err != nil {
+		return nil, err
+	}
+	obj, err := runtime.Decode(legacyscheme.Codecs.UniversalDecoder(), jsonData)
+	if err != nil {
+		return nil, err
+	}
+	return obj.(*templateapi.Template), nil
 }
 
-// DeleteSampleImageStream removes the ImageStream created in given
-// namespace
-func DeleteSampleImageStream(stream *imageapi.ImageStream, namespace string) {
-	client, _ := GetClusterAdminClient(KubeConfigPath())
-	client.ImageStreams(namespace).Delete(stream.Name)
+func GetImageFixture(filename string) (*imageapi.Image, error) {
+	data, err := ioutil.ReadFile(filename)
+	if err != nil {
+		return nil, err
+	}
+	jsonData, err := kyaml.ToJSON(data)
+	if err != nil {
+		return nil, err
+	}
+	obj, err := runtime.Decode(legacyscheme.Codecs.UniversalDecoder(), jsonData)
+	if err != nil {
+		return nil, err
+	}
+	return obj.(*imageapi.Image), nil
 }
 
-// GetBuildFixture reads the Build JSON and returns and Build object
-func GetBuildFixture(filename string) *buildapi.Build {
-	var build buildapi.Build
-	jsonData, err := ioutil.ReadFile(filename)
-	if err != nil {
-		fmt.Printf("ERROR: Unable to read %s: %v", filename, err)
-		return nil
-	}
-	latest.CodecForLegacyGroup().DecodeInto(jsonData, &build)
-	return &build
+func SetAdditionalAllowedRegistries(hostPortGlobs ...string) {
+	os.Setenv(additionalAllowedRegistriesEnvVar, strings.Join(hostPortGlobs, ","))
 }
 
-func GetSecretFixture(filename string) *kapi.Secret {
-	var secret kapi.Secret
-	jsonData, err := ioutil.ReadFile(filename)
-	if err != nil {
-		fmt.Printf("ERROR: Unable to read %s: %v", filename, err)
-		return nil
+func AddAdditionalAllowedRegistries(hostPortGlobs ...string) {
+	regs := GetAdditionalAllowedRegistries()
+	regs.Insert(hostPortGlobs...)
+	SetAdditionalAllowedRegistries(regs.List()...)
+}
+
+func GetAdditionalAllowedRegistries() sets.String {
+	regs := sets.NewString()
+	for _, r := range regexp.MustCompile(`[[:space:],]+`).Split(os.Getenv(additionalAllowedRegistriesEnvVar), -1) {
+		if len(r) > 0 {
+			regs.Insert(r)
+		}
 	}
-	latest.CodecForLegacyGroup().DecodeInto(jsonData, &secret)
-	return &secret
+	return regs
 }

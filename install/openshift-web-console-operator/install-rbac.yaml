@@ -1,0 +1,19 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+parameters:
+- name: NAMESPACE
+  value: openshift-core-operators
+objects:
+
+# When we have an orchestrating operator
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRoleBinding
+  metadata:
+    name: system:openshift:operator:web-console
+  roleRef:
+    kind: ClusterRole
+    name: cluster-admin
+  subjects:
+  - kind: ServiceAccount
+    namespace: ${NAMESPACE}
+    name: openshift-web-console-operator

@@ -1,0 +1,49 @@
+apiVersion: v1
+kind: List
+items:
+- apiVersion: v1
+  kind: ReplicationController
+  metadata:
+    name: idling-echo-rc
+  spec:
+    replicas: 2
+    selector:
+      app: idling-echo
+      replicationcontroller: idling-echo
+    template:
+      metadata:
+        labels:
+          app: idling-echo
+          replicationcontroller: idling-echo
+      spec:
+        containers:
+        - image: openshift/origin-base
+          name: idling-echo
+          command:
+            - /usr/bin/socat
+            - TCP4-LISTEN:8675,reuseaddr,fork
+            - EXEC:'/bin/cat'
+          ports:
+          - containerPort: 8675
+            protocol: TCP
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        securityContext: {}
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: idling-echo
+  spec:
+    selector:
+      app: idling-echo
+    ports:
+      - port: 8675
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: idling-echo
+  spec:
+    to:
+      kind: Service
+      name: idling-echo
+

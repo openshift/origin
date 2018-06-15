@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+	<testsuite name="package/name" tests="2" skipped="0" failures="0" time="11.245">
+		<testcase name="package/name/file.sh:23: executing &#39;some command&#39; expecting success" time="0.123"></testcase>
+		<testcase name="package/name/file.sh:24: executing &#39;some other command&#39; expecting success" time="11.123"></testcase>
+	</testsuite>
+	<testsuite name="package/name/nested" tests="2" skipped="0" failures="1" time="11.245">
+		<testcase name="package/name/file.sh:23: executing &#39;some command&#39; expecting success" time="0.123">
+			<failure message="the command returned the wrong error code">=== BEGIN TEST CASE ===&#xA;package/name/file.sh:23: executing &#39;some command&#39; expecting success&#xA;FAILURE after 0.1234s: package/name/file.sh:23: executing &#39;some command&#39; expecting success: the command returned the wrong error code&#xA;There was no output from the command.&#xA;There was no error output from the command.&#xA;=== END TEST CASE ===</failure>
+		</testcase>
+		<testcase name="package/name/file.sh:24: executing &#39;some other command&#39; expecting success" time="11.123"></testcase>
+	</testsuite>
+	<testsuite name="package/other/nested" tests="2" skipped="0" failures="0" time="11.245">
+		<testcase name="package/name/file.sh:23: executing &#39;some command&#39; expecting success" time="0.123"></testcase>
+		<testcase name="package/name/file.sh:24: executing &#39;some other command&#39; expecting success" time="11.123"></testcase>
+	</testsuite>
+</testsuites>

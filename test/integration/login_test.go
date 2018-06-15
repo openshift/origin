@@ -1,5 +1,3 @@
-// +build integration,etcd
-
 package integration
 
 import (
@@ -8,37 +6,27 @@ import (
 
 	"github.com/spf13/pflag"
 
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
-	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/tools/clientcmd"
+	kclientcmd "k8s.io/client-go/tools/clientcmd"
 
-	"github.com/openshift/origin/pkg/client"
-	newproject "github.com/openshift/origin/pkg/cmd/admin/project"
-	"github.com/openshift/origin/pkg/cmd/cli/cmd"
-	"github.com/openshift/origin/pkg/cmd/cli/config"
+	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	"github.com/openshift/origin/pkg/user/api"
+	newproject "github.com/openshift/origin/pkg/oc/admin/project"
+	"github.com/openshift/origin/pkg/oc/cli/cmd"
+	"github.com/openshift/origin/pkg/oc/cli/cmd/login"
+	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset"
+	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
 
-func init() {
-	testutil.RequireEtcd()
-}
-
 func TestLogin(t *testing.T) {
-	clientcmd.DefaultCluster = clientcmdapi.Cluster{Server: ""}
-
-	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
-
+	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-
-	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	defer testserver.CleanupMasterEtcd(t, masterConfig)
 
 	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
 	if err != nil {
@@ -59,19 +47,25 @@ func TestLogin(t *testing.T) {
 	if loginOptions.Username != username {
 		t.Fatalf("Unexpected user after authentication: %#v", loginOptions)
 	}
+	authorizationInterface := authorizationclient.NewForConfigOrDie(clusterAdminClientConfig).Authorization()
 
 	newProjectOptions := &newproject.NewProjectOptions{
-		Client:      clusterAdminClient,
-		ProjectName: project,
-		AdminRole:   bootstrappolicy.AdminRoleName,
-		AdminUser:   username,
+		ProjectClient:     projectclient.NewForConfigOrDie(clusterAdminClientConfig).Project(),
+		RoleBindingClient: authorizationInterface,
+		SARClient:         authorizationInterface.SubjectAccessReviews(),
+		ProjectName:       project,
+		AdminRole:         bootstrappolicy.AdminRoleName,
+		AdminUser:         username,
 	}
 	if err := newProjectOptions.Run(false); err != nil {
 		t.Fatalf("unexpected error, a project is required to continue: %v", err)
 	}
 
-	oClient, _ := client.New(loginOptions.Config)
-	p, err := oClient.Projects().Get(project)
+	projectClient, err := projectclient.NewForConfig(loginOptions.Config)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	p, err := projectClient.Project().Projects().Get(project, metav1.GetOptions{})
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -101,8 +95,16 @@ func TestLogin(t *testing.T) {
 	// if _, err = loginOptions.SaveConfig(configFile.Name()); err != nil {
 	// 	t.Fatalf("unexpected error: %v", err)
 	// }
+	userClient, err := userclient.NewForConfig(loginOptions.Config)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	adminUserClient, err := userclient.NewForConfig(clusterAdminClientConfig)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
-	userWhoamiOptions := cmd.WhoAmIOptions{UserInterface: oClient.Users(), Out: ioutil.Discard}
+	userWhoamiOptions := cmd.WhoAmIOptions{UserInterface: userClient.Users(), Out: ioutil.Discard}
 	retrievedUser, err := userWhoamiOptions.WhoAmI()
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -111,7 +113,7 @@ func TestLogin(t *testing.T) {
 		t.Errorf("expected %v, got %v", retrievedUser.Name, username)
 	}
 
-	adminWhoamiOptions := cmd.WhoAmIOptions{UserInterface: clusterAdminClient.Users(), Out: ioutil.Discard}
+	adminWhoamiOptions := cmd.WhoAmIOptions{UserInterface: adminUserClient.Users(), Out: ioutil.Discard}
 	retrievedAdmin, err := adminWhoamiOptions.WhoAmI()
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -122,7 +124,7 @@ func TestLogin(t *testing.T) {
 
 }
 
-func newLoginOptions(server string, username string, password string, insecure bool) *cmd.LoginOptions {
+func newLoginOptions(server string, username string, password string, insecure bool) *login.LoginOptions {
 	flagset := pflag.NewFlagSet("test-flags", pflag.ContinueOnError)
 	flags := []string{}
 	clientConfig := defaultClientConfig(flagset)
@@ -130,37 +132,24 @@ func newLoginOptions(server string, username string, password string, insecure b
 
 	startingConfig, _ := clientConfig.RawConfig()
 
-	loginOptions := &cmd.LoginOptions{
+	loginOptions := &login.LoginOptions{
 		Server:             server,
 		StartingKubeConfig: &startingConfig,
 		Username:           username,
 		Password:           password,
 		InsecureTLS:        insecure,
 
-		Out: ioutil.Discard,
+		Out:    ioutil.Discard,
+		ErrOut: ioutil.Discard,
 	}
 
 	return loginOptions
 }
 
-func whoami(clientCfg *kclient.Config) (*api.User, error) {
-	oClient, err := client.New(clientCfg)
-	if err != nil {
-		return nil, err
-	}
-
-	me, err := oClient.Users().Get("~")
-	if err != nil {
-		return nil, err
-	}
-
-	return me, nil
-}
-
 func defaultClientConfig(flags *pflag.FlagSet) clientcmd.ClientConfig {
 	loadingRules := &clientcmd.ClientConfigLoadingRules{ExplicitPath: ""}
 
-	flags.StringVar(&loadingRules.ExplicitPath, config.OpenShiftConfigFlagName, "", "Path to the config file to use for CLI requests.")
+	flags.StringVar(&loadingRules.ExplicitPath, kclientcmd.OpenShiftKubeConfigFlagName, "", "Path to the config file to use for CLI requests.")
 
 	overrides := &clientcmd.ConfigOverrides{}
 	overrideFlags := clientcmd.RecommendedConfigOverrideFlags("")

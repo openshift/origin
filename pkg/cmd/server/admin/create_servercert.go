@@ -8,11 +8,11 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/util"
-	"k8s.io/kubernetes/pkg/util/sets"
 
-	"github.com/openshift/origin/pkg/cmd/server/crypto"
+	"github.com/openshift/library-go/pkg/crypto"
 )
 
 const CreateServerCertCommandName = "create-server-cert"
@@ -23,30 +23,36 @@ type CreateServerCertOptions struct {
 	CertFile string
 	KeyFile  string
 
-	Hostnames util.StringList
+	ExpireDays int
+
+	Hostnames []string
 	Overwrite bool
 	Output    io.Writer
 }
 
-const createServerLong = `
-Create a key and server certificate
+var createServerLong = templates.LongDesc(`
+	Create a key and server certificate
 
-Create a key and server certificate valid for the specified hostnames,
-signed by the specified CA. These are useful for securing infrastructure
-components such as the router, authentication server, etc.
+	Create a key and server certificate valid for the specified hostnames,
+	signed by the specified CA. These are useful for securing infrastructure
+	components such as the router, authentication server, etc.
 
-Example: Creating a secure router certificate.
+	Example: Creating a secure router certificate.
 
-    $ CA=openshift.local.config/master
-	$ %[1]s --signer-cert=$CA/ca.crt \
-	          --signer-key=$CA/ca.key --signer-serial=$CA/ca.serial.txt \
-	          --hostnames='*.cloudapps.example.com' \
-	          --cert=cloudapps.crt --key=cloudapps.key
-    $ cat cloudapps.crt cloudapps.key $CA/ca.crt > cloudapps.router.pem
-`
+	    CA=openshift.local.config/master
+			%[1]s --signer-cert=$CA/ca.crt \
+		          --signer-key=$CA/ca.key --signer-serial=$CA/ca.serial.txt \
+		          --hostnames='*.cloudapps.example.com' \
+		          --cert=cloudapps.crt --key=cloudapps.key
+	    cat cloudapps.crt cloudapps.key $CA/ca.crt > cloudapps.router.pem
+	`)
 
 func NewCommandCreateServerCert(commandName string, fullName string, out io.Writer) *cobra.Command {
-	options := &CreateServerCertOptions{SignerCertOptions: NewDefaultSignerCertOptions(), Output: out}
+	options := &CreateServerCertOptions{
+		SignerCertOptions: NewDefaultSignerCertOptions(),
+		ExpireDays:        crypto.DefaultCertificateLifetimeInDays,
+		Output:            out,
+	}
 
 	cmd := &cobra.Command{
 		Use:   commandName,
@@ -54,7 +60,7 @@ func NewCommandCreateServerCert(commandName string, fullName string, out io.Writ
 		Long:  fmt.Sprintf(createServerLong, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.Validate(args); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
+				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
 			}
 
 			if _, err := options.CreateServerCert(); err != nil {
@@ -69,8 +75,10 @@ func NewCommandCreateServerCert(commandName string, fullName string, out io.Writ
 	flags.StringVar(&options.CertFile, "cert", "", "The certificate file. Choose a name that indicates what the service is.")
 	flags.StringVar(&options.KeyFile, "key", "", "The key file. Choose a name that indicates what the service is.")
 
-	flags.Var(&options.Hostnames, "hostnames", "Every hostname or IP you want server certs to be valid for. Comma delimited list")
+	flags.StringSliceVar(&options.Hostnames, "hostnames", options.Hostnames, "Every hostname or IP you want server certs to be valid for. Comma delimited list")
 	flags.BoolVar(&options.Overwrite, "overwrite", true, "Overwrite existing cert files if found.  If false, any existing file will be left as-is.")
+
+	flags.IntVar(&options.ExpireDays, "expire-days", options.ExpireDays, "Validity of the certificate in days (defaults to 2 years). WARNING: extending this above default value is highly discouraged.")
 
 	// autocompletion hints
 	cmd.MarkFlagFilename("cert")
@@ -91,6 +99,10 @@ func (o CreateServerCertOptions) Validate(args []string) error {
 	}
 	if len(o.KeyFile) == 0 {
 		return errors.New("key must be provided")
+	}
+
+	if o.ExpireDays <= 0 {
+		return errors.New("expire-days must be valid number of days")
 	}
 
 	if o.SignerCertOptions == nil {
@@ -114,9 +126,9 @@ func (o CreateServerCertOptions) CreateServerCert() (*crypto.TLSCertificateConfi
 	var ca *crypto.TLSCertificateConfig
 	written := true
 	if o.Overwrite {
-		ca, err = signerCert.MakeServerCert(o.CertFile, o.KeyFile, sets.NewString([]string(o.Hostnames)...))
+		ca, err = signerCert.MakeAndWriteServerCert(o.CertFile, o.KeyFile, sets.NewString([]string(o.Hostnames)...), o.ExpireDays)
 	} else {
-		ca, written, err = signerCert.EnsureServerCert(o.CertFile, o.KeyFile, sets.NewString([]string(o.Hostnames)...))
+		ca, written, err = signerCert.EnsureServerCert(o.CertFile, o.KeyFile, sets.NewString([]string(o.Hostnames)...), o.ExpireDays)
 	}
 	if written {
 		glog.V(3).Infof("Generated new server certificate as %s, key as %s\n", o.CertFile, o.KeyFile)

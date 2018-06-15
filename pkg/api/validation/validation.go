@@ -4,18 +4,15 @@ import (
 	"fmt"
 	"reflect"
 
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/meta"
-	"k8s.io/kubernetes/pkg/api/validation"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/fielderrors"
-
-	"github.com/openshift/origin/pkg/api/latest"
+	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 )
 
 type RuntimeObjectValidator interface {
-	Validate(obj runtime.Object) fielderrors.ValidationErrorList
-	ValidateUpdate(obj, old runtime.Object) fielderrors.ValidationErrorList
+	Validate(obj runtime.Object) field.ErrorList
+	ValidateUpdate(obj, old runtime.Object) field.ErrorList
 }
 
 var Validator = &RuntimeObjectsValidator{map[reflect.Type]RuntimeObjectValidatorInfo{}}
@@ -34,6 +31,12 @@ type RuntimeObjectValidatorInfo struct {
 func (v *RuntimeObjectsValidator) GetInfo(obj runtime.Object) (RuntimeObjectValidatorInfo, bool) {
 	ret, ok := v.typeToValidator[reflect.TypeOf(obj)]
 	return ret, ok
+}
+
+func (v *RuntimeObjectsValidator) MustRegister(obj runtime.Object, validateFunction interface{}, validateUpdateFunction interface{}) {
+	if err := v.Register(obj, validateFunction, validateUpdateFunction); err != nil {
+		panic(err)
+	}
 }
 
 func (v *RuntimeObjectsValidator) Register(obj runtime.Object, validateFunction interface{}, validateUpdateFunction interface{}) error {
@@ -59,16 +62,16 @@ func (v *RuntimeObjectsValidator) Register(obj runtime.Object, validateFunction 
 	return nil
 }
 
-func (v *RuntimeObjectsValidator) Validate(obj runtime.Object) fielderrors.ValidationErrorList {
+func (v *RuntimeObjectsValidator) Validate(obj runtime.Object) field.ErrorList {
 	if obj == nil {
-		return fielderrors.ValidationErrorList{}
+		return field.ErrorList{}
 	}
 
-	allErrs := fielderrors.ValidationErrorList{}
+	allErrs := field.ErrorList{}
 
 	specificValidationInfo, err := v.getSpecificValidationInfo(obj)
 	if err != nil {
-		allErrs = append(allErrs, err)
+		allErrs = append(allErrs, field.InternalError(nil, err))
 		return allErrs
 	}
 
@@ -76,19 +79,23 @@ func (v *RuntimeObjectsValidator) Validate(obj runtime.Object) fielderrors.Valid
 	return allErrs
 }
 
-func (v *RuntimeObjectsValidator) ValidateUpdate(obj, old runtime.Object) fielderrors.ValidationErrorList {
+func (v *RuntimeObjectsValidator) ValidateUpdate(obj, old runtime.Object) field.ErrorList {
 	if obj == nil && old == nil {
-		return fielderrors.ValidationErrorList{}
+		return field.ErrorList{}
 	}
 	if newType, oldType := reflect.TypeOf(obj), reflect.TypeOf(old); newType != oldType {
-		return fielderrors.ValidationErrorList{validation.NewInvalidTypeError(oldType.Kind(), newType.Kind(), "runtime.Object")}
+		return field.ErrorList{field.Invalid(field.NewPath("kind"), newType.Kind(), fmt.Sprintf("expected type %s, for field %s, got %s", oldType.Kind().String(), "kind", newType.Kind().String()))}
 	}
 
-	allErrs := fielderrors.ValidationErrorList{}
+	allErrs := field.ErrorList{}
 
 	specificValidationInfo, err := v.getSpecificValidationInfo(obj)
 	if err != nil {
-		allErrs = append(allErrs, err)
+		if fieldErr, ok := err.(*field.Error); ok {
+			allErrs = append(allErrs, fieldErr)
+		} else {
+			allErrs = append(allErrs, field.InternalError(nil, err))
+		}
 		return allErrs
 	}
 
@@ -114,26 +121,25 @@ func (v *RuntimeObjectsValidator) getSpecificValidationInfo(obj runtime.Object) 
 }
 
 func GetRequiresNamespace(obj runtime.Object) (bool, error) {
-	version, kind, err := kapi.Scheme.ObjectVersionAndKind(obj)
+	groupVersionKinds, _, err := legacyscheme.Scheme.ObjectKinds(obj)
 	if err != nil {
 		return false, err
 	}
 
-	restMapping, err := latest.RESTMapper.RESTMapping(kind, version)
-	if err != nil {
-		return false, err
+	for _, gvk := range groupVersionKinds {
+		restMapping, err := legacyscheme.Registry.RESTMapper().RESTMapping(gvk.GroupKind())
+		if err != nil {
+			return false, err
+		}
+		if restMapping.Scope.Name() == meta.RESTScopeNameNamespace {
+			return true, nil
+		}
 	}
 
-	return restMapping.Scope.Name() == meta.RESTScopeNameNamespace, nil
+	return false, nil
 }
 
 func HasObjectMeta(obj runtime.Object) bool {
 	objValue := reflect.ValueOf(obj).Elem()
-	field := objValue.FieldByName("ObjectMeta")
-
-	if !field.IsValid() {
-		return false
-	}
-
-	return true
+	return objValue.FieldByName("ObjectMeta").IsValid()
 }

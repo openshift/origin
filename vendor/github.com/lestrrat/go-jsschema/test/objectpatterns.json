@@ -1,0 +1,12 @@
+{
+  "type": "object",
+  "properties": {
+    "payload": {
+      "patternProperties": {
+        "^S_": { "type": "string" },
+        "^I_": { "type": "integer" }
+      },
+      "additionalProperties": false
+    }
+  }
+}

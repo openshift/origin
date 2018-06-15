@@ -1,0 +1,84 @@
+kind: Template
+apiVersion: v1
+objects:
+- kind: ServiceAccount
+  apiVersion: v1
+  metadata:
+    name: tiller
+
+- kind: Role
+  apiVersion: v1
+  metadata:
+    name: tiller
+  rules:
+  - apiGroups:
+    - ""
+    resources:
+    - configmaps
+    verbs:
+    - create
+    - get
+    - list
+    - update
+    - delete
+  - apiGroups:
+    - ""
+    resources:
+    - namespaces
+    verbs:
+    - get
+
+- kind: RoleBinding
+  apiVersion: v1
+  metadata:
+    name: tiller
+  roleRef:
+    name: tiller
+    namespace: ${TILLER_NAMESPACE}
+  subjects:
+  - kind: ServiceAccount
+    name: tiller
+
+- apiVersion: extensions/v1beta1
+  kind: Deployment
+  metadata:
+    name: tiller
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: helm
+        name: tiller
+    template:
+      metadata:
+        labels:
+          app: helm
+          name: tiller
+      spec:
+        containers:
+        - name: tiller
+          image: gcr.io/kubernetes-helm/tiller:${HELM_VERSION}
+          env:
+          - name: TILLER_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+          ports:
+          - name: tiller
+            containerPort: 44134
+          readinessProbe:
+            httpGet:
+              path: /readiness
+              port: 44135
+          livenessProbe:
+            httpGet:
+              path: /liveness
+              port: 44135
+        serviceAccountName: tiller
+
+parameters:
+- name: HELM_VERSION
+  value: v2.6.1
+  required: true
+- name: TILLER_NAMESPACE
+  required: true

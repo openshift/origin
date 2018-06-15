@@ -10,6 +10,11 @@ type Block struct {
 	End   uint32
 }
 
+var (
+	ErrBlockSlashBadFormat = fmt.Errorf("block not in the format \"<start>/<size>\"")
+	ErrBlockDashBadFormat  = fmt.Errorf("block not in the format \"<start>-<end>\"")
+)
+
 func ParseBlock(in string) (Block, error) {
 	if strings.Contains(in, "/") {
 		var start, size uint32
@@ -18,7 +23,7 @@ func ParseBlock(in string) (Block, error) {
 			return Block{}, err
 		}
 		if n != 2 {
-			return Block{}, fmt.Errorf("block not in the format \"<start>/<size>\"")
+			return Block{}, ErrBlockSlashBadFormat
 		}
 		return Block{Start: start, End: start + size - 1}, nil
 	}
@@ -29,7 +34,7 @@ func ParseBlock(in string) (Block, error) {
 		return Block{}, err
 	}
 	if n != 2 {
-		return Block{}, fmt.Errorf("block not in the format \"<start>-<end>\"")
+		return Block{}, ErrBlockDashBadFormat
 	}
 	return Block{Start: start, End: end}, nil
 }

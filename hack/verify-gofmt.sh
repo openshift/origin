@@ -1,28 +1,19 @@
 #!/bin/bash
+source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
-# GoFmt apparently is changing @ head...
+function cleanup() {
+    return_code=$?
+    os::util::describe_return_code "${return_code}"
+    exit "${return_code}"
+}
+trap "cleanup" EXIT
 
-set -o errexit
-set -o nounset
-set -o pipefail
+os::golang::verify_go_version
 
-GO_VERSION=($(go version))
-
-if [[ -z $(echo "${GO_VERSION[2]}" | grep -E 'go1.4') ]]; then
-  echo "Unknown go version '${GO_VERSION}', skipping gofmt."
-  exit 0
-fi
-
-OS_ROOT=$(dirname "${BASH_SOURCE}")/..
-source "${OS_ROOT}/hack/common.sh"
-source "${OS_ROOT}/hack/util.sh"
-
-cd "${OS_ROOT}"
-
-bad_files=$(find_files | xargs gofmt -s -l)
+bad_files=$(os::util::list_go_src_files | xargs gofmt -s -l)
 if [[ -n "${bad_files}" ]]; then
-  echo "!!! gofmt needs to be run on the following files: "
-  echo "${bad_files}"
-  echo "Try running 'gofmt -s -d [path]'"
-  exit 1
+	os::log::warning "!!! gofmt needs to be run on the listed files"
+	echo "${bad_files}"
+	os::log::fatal "Try running 'gofmt -s -d [path]'
+Or autocorrect with 'hack/verify-gofmt.sh | xargs -n 1 gofmt -s -w'"
 fi

@@ -1,0 +1,14 @@
+kind: BuildConfig
+apiVersion: v1
+metadata:
+  name: statusfail-builderimage
+spec:
+  source:
+    git:
+      uri: "https://github.com/openshift/ruby-hello-world.git"
+  strategy:
+    type: Docker
+    dockerStrategy:
+      from:
+        kind: DockerImage
+        name: fail/me:latest

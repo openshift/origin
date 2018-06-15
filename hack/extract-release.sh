@@ -2,23 +2,15 @@
 
 # This script extracts a valid release tar into _output/releases. It requires hack/build-release.sh
 # to have been executed
+source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
-set -o errexit
-set -o nounset
-set -o pipefail
+# Copy the release archives release back to the local _output/local/bin/... directories.
+# NOTE: On Mac and Windows you must pass WARN=1 in order to extract the output.
+os::build::archive::detect_local_release_tars $(os::build::host_platform_friendly)
 
-OS_ROOT=$(dirname "${BASH_SOURCE}")/..
-source "${OS_ROOT}/hack/common.sh"
-
-# Go to the top of the tree.
-cd "${OS_ROOT}"
-
-# Copy the linux release archives release back to the local _output/local/bin/linux/amd64 directory.
-# TODO: support different OS's?
-os::build::detect_local_release_tars "linux-amd64"
-
-mkdir -p "${OS_OUTPUT_BINPATH}/linux/amd64"
-tar mxzf "${OS_PRIMARY_RELEASE_TAR}" -C "${OS_OUTPUT_BINPATH}/linux/amd64"
-tar mxzf "${OS_IMAGE_RELEASE_TAR}" -C "${OS_OUTPUT_BINPATH}/linux/amd64"
+mkdir -p "${OS_OUTPUT_BINPATH}/$(os::build::host_platform)"
+os::build::archive::extract_tar "${OS_PRIMARY_RELEASE_TAR}" "${OS_OUTPUT_BINPATH}/$(os::build::host_platform)"
+os::build::archive::extract_tar "${OS_CLIENT_RELEASE_TAR}" "${OS_OUTPUT_BINPATH}/$(os::build::host_platform)"
+os::build::archive::extract_tar "${OS_IMAGE_RELEASE_TAR}" "${OS_OUTPUT_BINPATH}/$(os::build::host_platform)"
 
 os::build::make_openshift_binary_symlinks

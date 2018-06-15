@@ -1,0 +1,123 @@
+apiVersion: v1
+kind: Template
+labels:
+  application: mapsapp-pipeline
+metadata:
+  name: mapsapp-pipeline
+parameters:
+- description: NationalParks application source URI
+  displayName: NationalParks Source URI
+  name: NATIONALPARKS_GIT_URI
+  required: true
+  value: https://github.com/openshift-roadshow/nationalparks.git
+- description: NationalParks application source reference
+  displayName: NationalParks Source Ref
+  name: NATIONALPARKS_GIT_REF
+  required: true
+  value: master
+- description: MLBParks application source URI
+  displayName: MLBParks Source URI
+  name: MLBPARKS_GIT_URI
+  required: true
+  value: https://github.com/openshift-roadshow/mlbparks.git
+- description: MLBParks application source reference
+  displayName: MLBParks Source Ref
+  name: MLBPARKS_GIT_REF
+  required: true
+  value: master
+- description: ParksMap application source URI
+  displayName: ParksMap Source URI
+  name: PARKSMAP_GIT_URI
+  required: true
+  value: https://github.com/openshift-roadshow/parksmap-web.git
+- description: ParksMap application source reference
+  displayName: ParksMap Source Ref
+  name: PARKSMAP_GIT_REF
+  required: true
+  value: master
+- name: GITHUB_WEBHOOK_SECRET
+  displayName: GitHub Webhook Secret
+  description: Github trigger secret.  A difficult to guess string encoded as part of the webhook URL.  Not encrypted.
+  generate: expression
+  from: "[a-zA-Z0-9]{40}"
+- name: GENERIC_WEBHOOK_SECRET
+  displayName: Generic Webhook Secret,
+  description: A secret string used to configure the Generic webhook.
+  generate: expression
+  from: "[a-zA-Z0-9]{40}"
+objects:
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    labels:
+      build: mapsapp-pipeline
+    name: mapsapp-pipeline
+  spec:
+    runPolicy: Serial
+    source: {}
+    strategy:
+      type: JenkinsPipeline
+      jenkinsPipelineStrategy:
+        jenkinsfile: |-
+          try {
+             timeout(time: 20, unit: 'MINUTES') {
+                def project = ""
+                node {
+                  project = "${env.PROJECT_NAME}"
+        
+                  stage('Create NationalParks back-end') {
+                    def nationalParksURL = "${NATIONALPARKS_GIT_URI}"
+                    def nationalParksBranch = "${NATIONALPARKS_GIT_REF}"
+                    checkout([$class: "GitSCM", branches: [[name: "*/${nationalParksBranch}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: "RelativeTargetDirectory", relativeTargetDir: "nationalparks"]], submoduleCfg: [], userRemoteConfigs: [[url: "${nationalParksURL}"]]])
+                    sh "oc new-app -f nationalparks/ose3/pipeline-buildconfig-template.json -p GIT_URI=${nationalParksURL} -p GIT_REF=${nationalParksBranch} -n ${project} --dry-run -o yaml | oc apply -f - -n ${project}"
+                  }
+        
+                  stage('Create MLBParks back-end') {
+                    def mlbParksURL = "${MLBPARKS_GIT_URI}"
+                    def mlbParksBranch = "${MLBPARKS_GIT_REF}"
+                    checkout([$class: "GitSCM", branches: [[name: "*/${mlbParksBranch}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: "RelativeTargetDirectory", relativeTargetDir: "mlbparks"]], submoduleCfg: [], userRemoteConfigs: [[url: "${mlbParksURL}"]]])
+                    sh "oc new-app -f mlbparks/ose3/pipeline-buildconfig-template.json -p GIT_URI=${mlbParksURL} -p GIT_REF=${mlbParksBranch} -n ${project} --dry-run -o yaml | oc apply -f - -n ${project}"
+                  }
+        
+                  stage('Create ParksMap front-end') {
+                    def parksMapURL = "${PARKSMAP_GIT_URI}"
+                    def parksMapBranch = "${PARKSMAP_GIT_REF}"
+                    checkout([$class: "GitSCM", branches: [[name: "*/${parksMapBranch}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: "RelativeTargetDirectory", relativeTargetDir: "parksmap"]], submoduleCfg: [], userRemoteConfigs: [[url: "${parksMapURL}"]]])
+                    sh "oc new-app -f parksmap/ose3/pipeline-buildconfig-template.json -p GIT_URI=${parksMapURL} -p GIT_REF=${parksMapBranch} -n ${project} --dry-run -o yaml | oc apply -f - -n ${project}"
+                  }
+                }
+        
+                stage('Build Back-ends') {
+                  parallel (
+                    "nationalparks": {
+                      node {
+                        openshiftBuild buildConfig: "nationalparks-pipeline", namespace: project
+                      }
+                    },
+                    "mlbparks": {
+                      node {
+                        openshiftBuild buildConfig: "mlbparks-pipeline", namespace: project
+                      }
+                    }
+                  )
+                }
+        
+                node {
+                  stage('Build Front-end') {
+                    openshiftBuild buildConfig: "parksmap-pipeline", namespace: project
+                  }
+                }
+             }
+          } catch (err) {
+             echo "in catch block"
+             echo "Caught: ${err}"
+             currentBuild.result = 'FAILURE'
+             throw err
+          }          
+    triggers:
+    - github:
+        secret: ${GITHUB_TRIGGER_SECRET}
+      type: GitHub
+    - generic:
+        secret: ${GENERIC_TRIGGER_SECRET}
+      type: Generic

@@ -1,0 +1,30 @@
+{
+  "kind": "List",
+  "apiVersion": "v1",
+  "metadata": {},
+  "items": [
+    {
+      "kind": "Service",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "external-name-service",
+        "creationTimestamp": null,
+        "labels": {
+          "template": "external-name-service"
+        }
+      },
+      "spec": {
+        "externalName": "external.com",
+        "ports": null,
+       "selector": {
+          "name": "external-name-service"
+        },
+        "type": "ExternalName",
+        "sessionAffinity": "None"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    }
+  ]
+}

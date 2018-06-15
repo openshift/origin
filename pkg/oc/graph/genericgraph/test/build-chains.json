@@ -1,0 +1,77 @@
+{
+
+    "kind": "List",
+    "apiVersion": "v1",
+    "metadata": {},
+    "items": [
+    {
+      "kind": "BuildConfig",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "frontend",
+        "creationTimestamp": null,
+        "labels": {}
+      },
+      "spec": {
+        "triggers": [],
+        "source": {
+          "type": "Git",
+          "git": {
+            "uri": "https://github.com/openshift/nodejs-ex.git"
+          }
+        },
+        "strategy": {
+          "type": "Source",
+          "sourceStrategy": {
+            "from": {
+              "kind": "ImageStreamTag",
+              "name": "nodejs-010-centos7:latest"
+            }
+          }
+        },
+        "output": {
+          "to": {
+            "kind": "ImageStreamTag",
+            "name": "origin-nodejs-sample:latest"
+          }
+        },
+        "resources": {}
+      },
+      "status": {
+        "lastVersion": 0
+      }
+    },
+    {
+      "kind": "BuildConfig",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "backend",
+        "creationTimestamp": null,
+        "labels": {}
+      },
+      "spec": {
+        "triggers": [],
+        "source": {
+          "type": "Git",
+          "git": {
+            "uri": "https://github.com/openshift/nodejs-ex.git"
+          }
+        },
+        "strategy": {
+          "type": "Source",
+          "sourceStrategy": {
+            "from": {
+              "kind": "ImageStreamTag",
+              "name": "origin-nodejs-sample:latest"
+            }
+          }
+        },
+        "resources": {}
+      },
+      "status": {
+        "lastVersion": 0
+      }
+    }
+    ]
+
+}

@@ -6,9 +6,12 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
-	"strings"
+
+	"github.com/golang/glog"
 
 	"github.com/openshift/origin/pkg/util/file"
+
+	s2igit "github.com/openshift/source-to-image/pkg/scm/git"
 )
 
 const (
@@ -25,68 +28,113 @@ const (
 
 // UsernamePassword implements SCMAuth interface for using Username and Password credentials
 type UsernamePassword struct {
-	SourceURL url.URL
+	SourceURL s2igit.URL
 }
 
 // Setup creates a gitconfig fragment that includes a substitution URL with the username/password
-// included in the URL
-func (u UsernamePassword) Setup(baseDir string) error {
-
+// included in the URL. Returns source URL stripped of username/password credentials.
+func (u UsernamePassword) Setup(baseDir string, context SCMAuthContext) error {
 	// Only apply to https and http URLs
-	if scheme := strings.ToLower(u.SourceURL.Scheme); scheme != "http" && scheme != "https" {
+	if !(u.SourceURL.Type == s2igit.URLTypeURL &&
+		(u.SourceURL.URL.Scheme == "http" || u.SourceURL.URL.Scheme == "https") &&
+		u.SourceURL.URL.Opaque == "") {
 		return nil
 	}
 
-	// Determine username
-	// 1. Look for a username secret
-	username, err := readSecret(baseDir, UsernameSecret)
+	// Read data from secret files
+	usernameSecret, err := readSecret(baseDir, UsernameSecret)
 	if err != nil {
 		return err
 	}
-	// 2. If not provided, look at the username in the URL
-	if username == "" && u.SourceURL.User != nil {
-		username = u.SourceURL.User.Username()
+	passwordSecret, err := readSecret(baseDir, PasswordSecret)
+	if err != nil {
+		return err
 	}
-	// 3. If still not found, use a default username
+	tokenSecret, err := readSecret(baseDir, TokenSecret)
+	if err != nil {
+		return err
+	}
+
+	// Determine overrides
+	overrideSourceURL, gitconfigURL, err := doSetup(u.SourceURL.URL, usernameSecret, passwordSecret, tokenSecret)
+	if err != nil {
+		return err
+	}
+	if overrideSourceURL != nil {
+		if err := context.SetOverrideURL(overrideSourceURL); err != nil {
+			return err
+		}
+	}
+
+	// Write git config if needed
+	if gitconfigURL != nil {
+		gitcredentials, err := ioutil.TempFile("", "gitcredentials.")
+		if err != nil {
+			return err
+		}
+		defer gitcredentials.Close()
+		gitconfig, err := ioutil.TempFile("", "gitcredentialscfg.")
+		if err != nil {
+			return err
+		}
+		defer gitconfig.Close()
+
+		configContent := fmt.Sprintf(UserPassGitConfig, gitcredentials.Name())
+
+		glog.V(5).Infof("Adding username/password credentials to git config:\n%s\n", configContent)
+
+		fmt.Fprintf(gitconfig, "%s", configContent)
+		fmt.Fprintf(gitcredentials, "%s", gitconfigURL.String())
+
+		return ensureGitConfigIncludes(gitconfig.Name(), context)
+	}
+
+	return nil
+}
+
+func doSetup(sourceURL url.URL, usernameSecret, passwordSecret, tokenSecret string) (*url.URL, *url.URL, error) {
+	// Extract auth from the source URL
+	urlUsername := ""
+	urlPassword := ""
+	if sourceURL.User != nil {
+		urlUsername = sourceURL.User.Username()
+		urlPassword, _ = sourceURL.User.Password()
+	}
+
+	// Determine username in this order: secret, url
+	username := usernameSecret
+	if username == "" {
+		username = urlUsername
+	}
+
+	// Determine password in this order: token secret, password secret, url
+	password := tokenSecret
+	if password == "" {
+		password = passwordSecret
+	}
+	if password == "" {
+		password = urlPassword
+	}
+
+	// If we have no password, and the username matches what is already in the URL, no overrides or config are needed
+	if password == "" && username == urlUsername {
+		return nil, nil, nil
+	}
+
+	// If we're going to write config, ensure we have a username
 	if username == "" {
 		username = DefaultUsername
 	}
 
-	// Determine password
-	// 1. Look for a token secret
-	password, err := readSecret(baseDir, TokenSecret)
-	if err != nil {
-		return err
-	}
-	// 2. Look for a password secret
-	if password == "" {
-		password, err = readSecret(baseDir, PasswordSecret)
-		if err != nil {
-			return err
-		}
-	}
-	// 3. Look for a password in the URL
-	if password == "" && u.SourceURL.User != nil {
-		password, _ = u.SourceURL.User.Password()
-	}
+	// Remove user/pw from the source url
+	overrideSourceURL := sourceURL
+	overrideSourceURL.User = nil
 
-	gitcredentials, err := ioutil.TempFile("", "gitcredentials.")
-	if err != nil {
-		return err
-	}
-	defer gitcredentials.Close()
-	gitconfig, err := ioutil.TempFile("", "gitcredentialscfg.")
-	if err != nil {
-		return err
-	}
-	defer gitconfig.Close()
+	// Set user/pw in the config url
+	configURL := sourceURL
+	configURL.User = url.UserPassword(username, password)
 
-	usernamePasswordURL := u.SourceURL
-	usernamePasswordURL.User = url.UserPassword(username, password)
-	fmt.Fprintf(gitconfig, UserPassGitConfig, gitcredentials.Name())
-	fmt.Fprintf(gitcredentials, "%s", usernamePasswordURL.String())
-
-	return ensureGitConfigIncludes(gitconfig.Name())
+	return &overrideSourceURL, &configURL, nil
 }
 
 // Name returns the name of this auth method.

@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
-	"github.com/openshift/origin/pkg/cmd/server/crypto"
+	"github.com/openshift/library-go/pkg/crypto"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 )
 
@@ -48,8 +48,10 @@ func (o *SignerCertOptions) Validate() error {
 	if _, err := os.Stat(o.KeyFile); len(o.KeyFile) == 0 || err != nil {
 		return fmt.Errorf("--signer-key, %q must be a valid key file", cmdutil.GetDisplayFilename(o.KeyFile))
 	}
-	if _, err := os.Stat(o.SerialFile); len(o.SerialFile) == 0 || err != nil {
-		return fmt.Errorf("--signer-serial, %q must be a valid file", cmdutil.GetDisplayFilename(o.SerialFile))
+	if len(o.SerialFile) > 0 {
+		if _, err := os.Stat(o.SerialFile); err != nil {
+			return fmt.Errorf("--signer-serial, %q must be a valid file", cmdutil.GetDisplayFilename(o.SerialFile))
+		}
 	}
 
 	return nil

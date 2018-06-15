@@ -4,9 +4,9 @@ import (
 	"reflect"
 	"testing"
 
-	"k8s.io/kubernetes/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/sets"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 )
 
 type escalationTest struct {
@@ -48,6 +48,46 @@ func TestMultipleRulesCoveringSingleRule(t *testing.T) {
 
 }
 
+func TestMultipleAPIGroupsCoveringSingleRule(t *testing.T) {
+	escalationTest{
+		ownerRules: []authorizationapi.PolicyRule{
+			{APIGroups: []string{"group1"}, Verbs: sets.NewString("delete"), Resources: sets.NewString("deployments")},
+			{APIGroups: []string{"group1"}, Verbs: sets.NewString("delete"), Resources: sets.NewString("builds")},
+			{APIGroups: []string{"group1"}, Verbs: sets.NewString("update"), Resources: sets.NewString("builds", "deployments")},
+			{APIGroups: []string{"group2"}, Verbs: sets.NewString("delete"), Resources: sets.NewString("deployments")},
+			{APIGroups: []string{"group2"}, Verbs: sets.NewString("delete"), Resources: sets.NewString("builds")},
+			{APIGroups: []string{"group2"}, Verbs: sets.NewString("update"), Resources: sets.NewString("builds", "deployments")},
+		},
+		servantRules: []authorizationapi.PolicyRule{
+			{APIGroups: []string{"group1", "group2"}, Verbs: sets.NewString("delete", "update"), Resources: sets.NewString("builds", "deployments")},
+		},
+
+		expectedCovered:        true,
+		expectedUncoveredRules: []authorizationapi.PolicyRule{},
+	}.test(t)
+
+}
+
+func TestSingleAPIGroupsCoveringMultiple(t *testing.T) {
+	escalationTest{
+		ownerRules: []authorizationapi.PolicyRule{
+			{APIGroups: []string{"group1", "group2"}, Verbs: sets.NewString("delete", "update"), Resources: sets.NewString("builds", "deployments")},
+		},
+		servantRules: []authorizationapi.PolicyRule{
+			{APIGroups: []string{"group1"}, Verbs: sets.NewString("delete"), Resources: sets.NewString("deployments")},
+			{APIGroups: []string{"group1"}, Verbs: sets.NewString("delete"), Resources: sets.NewString("builds")},
+			{APIGroups: []string{"group1"}, Verbs: sets.NewString("update"), Resources: sets.NewString("builds", "deployments")},
+			{APIGroups: []string{"group2"}, Verbs: sets.NewString("delete"), Resources: sets.NewString("deployments")},
+			{APIGroups: []string{"group2"}, Verbs: sets.NewString("delete"), Resources: sets.NewString("builds")},
+			{APIGroups: []string{"group2"}, Verbs: sets.NewString("update"), Resources: sets.NewString("builds", "deployments")},
+		},
+
+		expectedCovered:        true,
+		expectedUncoveredRules: []authorizationapi.PolicyRule{},
+	}.test(t)
+
+}
+
 func TestMultipleRulesMissingSingleVerbResourceCombination(t *testing.T) {
 	escalationTest{
 		ownerRules: []authorizationapi.PolicyRule{
@@ -65,13 +105,13 @@ func TestMultipleRulesMissingSingleVerbResourceCombination(t *testing.T) {
 	}.test(t)
 }
 
-func TestResourceGroupCoveringEnumerated(t *testing.T) {
+func TestAPIGroupStarCoveringMultiple(t *testing.T) {
 	escalationTest{
 		ownerRules: []authorizationapi.PolicyRule{
-			{Verbs: sets.NewString("create", "delete", "update"), Resources: sets.NewString("resourcegroup:builds")},
+			{APIGroups: []string{"*"}, Verbs: sets.NewString("get"), Resources: sets.NewString("roles")},
 		},
 		servantRules: []authorizationapi.PolicyRule{
-			{Verbs: sets.NewString("delete", "update"), Resources: sets.NewString("builds", "buildconfigs")},
+			{APIGroups: []string{"group1", "group2"}, Verbs: sets.NewString("get"), Resources: sets.NewString("roles")},
 		},
 
 		expectedCovered:        true,
@@ -79,42 +119,33 @@ func TestResourceGroupCoveringEnumerated(t *testing.T) {
 	}.test(t)
 }
 
-func TestEnumeratedCoveringResourceGroup(t *testing.T) {
+func TestEnumerationNotCoveringAPIGroupStar(t *testing.T) {
 	escalationTest{
 		ownerRules: []authorizationapi.PolicyRule{
-			{Verbs: sets.NewString("delete", "update"), Resources: sets.NewString("builds", "buildconfigs", "buildlogs", "buildconfigs/instantiate", "builds/log", "builds/clone", "buildconfigs/webhooks")},
+			{APIGroups: []string{"dummy-group"}, Verbs: sets.NewString("get"), Resources: sets.NewString("roles")},
 		},
 		servantRules: []authorizationapi.PolicyRule{
-			{Verbs: sets.NewString("delete", "update"), Resources: sets.NewString("resourcegroup:builds")},
-		},
-
-		expectedCovered:        true,
-		expectedUncoveredRules: []authorizationapi.PolicyRule{},
-	}.test(t)
-}
-
-func TestEnumeratedMissingPartOfResourceGroup(t *testing.T) {
-	escalationTest{
-		ownerRules: []authorizationapi.PolicyRule{
-			{Verbs: sets.NewString("delete", "update"), Resources: sets.NewString("builds", "buildconfigs")},
-		},
-		servantRules: []authorizationapi.PolicyRule{
-			{Verbs: sets.NewString("delete", "update"), Resources: sets.NewString("resourcegroup:builds")},
+			{APIGroups: []string{"*"}, Verbs: sets.NewString("get"), Resources: sets.NewString("roles")},
 		},
 
 		expectedCovered: false,
 		expectedUncoveredRules: []authorizationapi.PolicyRule{
-			{Verbs: sets.NewString("delete"), Resources: sets.NewString("buildlogs")},
-			{Verbs: sets.NewString("update"), Resources: sets.NewString("buildlogs")},
-			{Verbs: sets.NewString("delete"), Resources: sets.NewString("buildconfigs/instantiate")},
-			{Verbs: sets.NewString("update"), Resources: sets.NewString("buildconfigs/instantiate")},
-			{Verbs: sets.NewString("delete"), Resources: sets.NewString("builds/log")},
-			{Verbs: sets.NewString("update"), Resources: sets.NewString("builds/log")},
-			{Verbs: sets.NewString("delete"), Resources: sets.NewString("builds/clone")},
-			{Verbs: sets.NewString("update"), Resources: sets.NewString("builds/clone")},
-			{Verbs: sets.NewString("delete"), Resources: sets.NewString("buildconfigs/webhooks")},
-			{Verbs: sets.NewString("update"), Resources: sets.NewString("buildconfigs/webhooks")},
+			{APIGroups: []string{"*"}, Verbs: sets.NewString("get"), Resources: sets.NewString("roles")},
 		},
+	}.test(t)
+}
+
+func TestAPIGroupStarCoveringStar(t *testing.T) {
+	escalationTest{
+		ownerRules: []authorizationapi.PolicyRule{
+			{APIGroups: []string{"*"}, Verbs: sets.NewString("get"), Resources: sets.NewString("roles")},
+		},
+		servantRules: []authorizationapi.PolicyRule{
+			{APIGroups: []string{"*"}, Verbs: sets.NewString("get"), Resources: sets.NewString("roles")},
+		},
+
+		expectedCovered:        true,
+		expectedUncoveredRules: []authorizationapi.PolicyRule{},
 	}.test(t)
 }
 
@@ -236,6 +267,207 @@ func TestEnumerationNotCoveringResourceNameEmpty(t *testing.T) {
 	}.test(t)
 }
 
+func TestNonResourceCoversExactMatch(t *testing.T) {
+	escalationTest{
+		ownerRules: []authorizationapi.PolicyRule{
+			{Verbs: sets.NewString("get"), NonResourceURLs: sets.NewString("/foo")},
+			{Verbs: sets.NewString("get"), NonResourceURLs: sets.NewString("/bar")},
+			{Verbs: sets.NewString("post"), NonResourceURLs: sets.NewString("/baz")},
+		},
+		servantRules: []authorizationapi.PolicyRule{
+			{Verbs: sets.NewString("get"), NonResourceURLs: sets.NewString("/foo", "/bar")},
+			{Verbs: sets.NewString("post"), NonResourceURLs: sets.NewString("/baz")},
+		},
+
+		expectedCovered: true,
+	}.test(t)
+}
+
+func TestNonResourceCoversWildcard(t *testing.T) {
+	escalationTest{
+		ownerRules: []authorizationapi.PolicyRule{
+			{Verbs: sets.NewString("get", "post"), NonResourceURLs: sets.NewString("/foo/*", "/bar/*")},
+		},
+		servantRules: []authorizationapi.PolicyRule{
+			{Verbs: sets.NewString("get", "post"), NonResourceURLs: sets.NewString("/foo/", "/bar/")},
+			{Verbs: sets.NewString("get", "post"), NonResourceURLs: sets.NewString("/foo/1", "/bar/1")},
+			{Verbs: sets.NewString("get", "post"), NonResourceURLs: sets.NewString("/foo/*", "/bar/*")},
+		},
+
+		expectedCovered: true,
+	}.test(t)
+}
+
+func TestNonResourceUncovered(t *testing.T) {
+	escalationTest{
+		ownerRules: []authorizationapi.PolicyRule{
+			{Verbs: sets.NewString("get"), NonResourceURLs: sets.NewString("/foo")},
+			{Verbs: sets.NewString("post"), NonResourceURLs: sets.NewString("/bar/*")},
+		},
+		servantRules: []authorizationapi.PolicyRule{
+			{Verbs: sets.NewString("get", "post"), NonResourceURLs: sets.NewString("/foo", "/foo/1", "/foo/*", "/bar/baz", "/bar/*")},
+		},
+
+		expectedCovered: false,
+		expectedUncoveredRules: []authorizationapi.PolicyRule{
+			{Verbs: sets.NewString("post"), NonResourceURLs: sets.NewString("/foo")},
+			{Verbs: sets.NewString("get"), NonResourceURLs: sets.NewString("/foo/1")},
+			{Verbs: sets.NewString("post"), NonResourceURLs: sets.NewString("/foo/1")},
+			{Verbs: sets.NewString("get"), NonResourceURLs: sets.NewString("/foo/*")},
+			{Verbs: sets.NewString("post"), NonResourceURLs: sets.NewString("/foo/*")},
+			{Verbs: sets.NewString("get"), NonResourceURLs: sets.NewString("/bar/baz")},
+			{Verbs: sets.NewString("get"), NonResourceURLs: sets.NewString("/bar/*")},
+		},
+	}.test(t)
+}
+
+func TestMixedResourceNonResourceCovered(t *testing.T) {
+	escalationTest{
+		ownerRules: []authorizationapi.PolicyRule{
+			{Verbs: sets.NewString("get"), Resources: sets.NewString("pods"), NonResourceURLs: sets.NewString("/api", "/api/*")},
+		},
+		servantRules: []authorizationapi.PolicyRule{
+			{Verbs: sets.NewString("get"), Resources: sets.NewString("pods"), NonResourceURLs: sets.NewString("/api", "/api/v1")},
+		},
+
+		expectedCovered: true,
+	}.test(t)
+}
+
+func TestMixedResourceNonResourceUncovered(t *testing.T) {
+	escalationTest{
+		ownerRules: []authorizationapi.PolicyRule{
+			{Verbs: sets.NewString("get"), Resources: sets.NewString("pods"), NonResourceURLs: sets.NewString("/api", "/api/*")},
+		},
+		servantRules: []authorizationapi.PolicyRule{
+			{Verbs: sets.NewString("get", "post"), Resources: sets.NewString("pods", "builds"), NonResourceURLs: sets.NewString("/api", "/apis")},
+		},
+
+		expectedCovered: false,
+		expectedUncoveredRules: []authorizationapi.PolicyRule{
+			{Verbs: sets.NewString("post"), Resources: sets.NewString("pods")},
+			{Verbs: sets.NewString("get"), Resources: sets.NewString("builds")},
+			{Verbs: sets.NewString("post"), Resources: sets.NewString("builds")},
+
+			{Verbs: sets.NewString("post"), NonResourceURLs: sets.NewString("/api")},
+			{Verbs: sets.NewString("get"), NonResourceURLs: sets.NewString("/apis")},
+			{Verbs: sets.NewString("post"), NonResourceURLs: sets.NewString("/apis")},
+		},
+	}.test(t)
+}
+
+func TestAttributeRestrictionsCovering(t *testing.T) {
+	escalationTest{
+		ownerRules: []authorizationapi.PolicyRule{
+			{Verbs: sets.NewString("create"), Resources: sets.NewString("builds"), AttributeRestrictions: &authorizationapi.IsPersonalSubjectAccessReview{}},
+		},
+		servantRules: []authorizationapi.PolicyRule{
+			{Verbs: sets.NewString("create"), Resources: sets.NewString("builds"), AttributeRestrictions: &authorizationapi.Role{}},
+		},
+
+		expectedCovered:        true,
+		expectedUncoveredRules: []authorizationapi.PolicyRule{},
+	}.test(t)
+	escalationTest{
+		ownerRules: []authorizationapi.PolicyRule{
+			{Verbs: sets.NewString("create"), Resources: sets.NewString("builds")},
+		},
+		servantRules: []authorizationapi.PolicyRule{
+			{Verbs: sets.NewString("create"), Resources: sets.NewString("builds"), AttributeRestrictions: &authorizationapi.Role{}},
+		},
+
+		expectedCovered:        true,
+		expectedUncoveredRules: []authorizationapi.PolicyRule{},
+	}.test(t)
+	escalationTest{
+		ownerRules: []authorizationapi.PolicyRule{
+			{Verbs: sets.NewString("create"), Resources: sets.NewString("builds"), AttributeRestrictions: &authorizationapi.IsPersonalSubjectAccessReview{}},
+			{Verbs: sets.NewString("update"), Resources: sets.NewString("builds"), AttributeRestrictions: &authorizationapi.Role{}},
+		},
+		servantRules: []authorizationapi.PolicyRule{},
+
+		expectedCovered:        true,
+		expectedUncoveredRules: []authorizationapi.PolicyRule{},
+	}.test(t)
+	escalationTest{
+		ownerRules: []authorizationapi.PolicyRule{},
+		servantRules: []authorizationapi.PolicyRule{
+			{Verbs: sets.NewString("create"), Resources: sets.NewString("builds"), AttributeRestrictions: &authorizationapi.Role{}},
+			{Verbs: sets.NewString("update"), Resources: sets.NewString("builds"), AttributeRestrictions: &authorizationapi.IsPersonalSubjectAccessReview{}},
+		},
+
+		expectedCovered:        true,
+		expectedUncoveredRules: []authorizationapi.PolicyRule{},
+	}.test(t)
+	escalationTest{
+		ownerRules: []authorizationapi.PolicyRule{
+			{Verbs: sets.NewString("create"), Resources: sets.NewString("pods")},
+		},
+		servantRules: []authorizationapi.PolicyRule{
+			{Verbs: sets.NewString("create"), Resources: sets.NewString("builds"), AttributeRestrictions: &authorizationapi.Role{}},
+			{Verbs: sets.NewString("update"), Resources: sets.NewString("builds"), AttributeRestrictions: &authorizationapi.IsPersonalSubjectAccessReview{}},
+			{Verbs: sets.NewString("delete"), Resources: sets.NewString("builds"), AttributeRestrictions: &authorizationapi.ClusterRole{}},
+			{Verbs: sets.NewString("impersonate"), Resources: sets.NewString("builds"), AttributeRestrictions: &authorizationapi.ClusterRoleBinding{}},
+		},
+
+		expectedCovered:        true,
+		expectedUncoveredRules: []authorizationapi.PolicyRule{},
+	}.test(t)
+	escalationTest{
+		ownerRules: []authorizationapi.PolicyRule{
+			{Verbs: sets.NewString(authorizationapi.VerbAll), Resources: sets.NewString(authorizationapi.ResourceAll), AttributeRestrictions: &authorizationapi.Role{}},
+		},
+		servantRules: []authorizationapi.PolicyRule{
+			{Verbs: sets.NewString("create"), Resources: sets.NewString("builds"), AttributeRestrictions: &authorizationapi.Role{}},
+			{Verbs: sets.NewString("update"), Resources: sets.NewString("builds"), AttributeRestrictions: &authorizationapi.IsPersonalSubjectAccessReview{}},
+			{Verbs: sets.NewString("delete"), Resources: sets.NewString("builds"), AttributeRestrictions: &authorizationapi.ClusterRole{}},
+			{Verbs: sets.NewString("impersonate"), Resources: sets.NewString("builds"), AttributeRestrictions: &authorizationapi.ClusterRoleBinding{}},
+		},
+
+		expectedCovered:        true,
+		expectedUncoveredRules: []authorizationapi.PolicyRule{},
+	}.test(t)
+	escalationTest{
+		ownerRules: []authorizationapi.PolicyRule{
+			{Verbs: sets.NewString("create"), Resources: sets.NewString("builds"), AttributeRestrictions: &authorizationapi.IsPersonalSubjectAccessReview{}},
+		},
+		servantRules: []authorizationapi.PolicyRule{
+			{Verbs: sets.NewString("create"), Resources: sets.NewString("builds")},
+		},
+
+		expectedCovered: false,
+		expectedUncoveredRules: []authorizationapi.PolicyRule{
+			{Verbs: sets.NewString("create"), Resources: sets.NewString("builds")},
+		},
+	}.test(t)
+	escalationTest{
+		ownerRules: []authorizationapi.PolicyRule{
+			{Verbs: sets.NewString("delete"), Resources: sets.NewString("builds"), AttributeRestrictions: &authorizationapi.Role{}},
+		},
+		servantRules: []authorizationapi.PolicyRule{
+			{Verbs: sets.NewString("delete"), Resources: sets.NewString("builds")},
+		},
+
+		expectedCovered: false,
+		expectedUncoveredRules: []authorizationapi.PolicyRule{
+			{Verbs: sets.NewString("delete"), Resources: sets.NewString("builds")},
+		},
+	}.test(t)
+	escalationTest{
+		ownerRules: []authorizationapi.PolicyRule{
+			{Verbs: sets.NewString(authorizationapi.VerbAll), Resources: sets.NewString(authorizationapi.ResourceAll), AttributeRestrictions: &authorizationapi.IsPersonalSubjectAccessReview{}},
+		},
+		servantRules: []authorizationapi.PolicyRule{
+			{Verbs: sets.NewString("delete"), Resources: sets.NewString("builds")},
+		},
+
+		expectedCovered: false,
+		expectedUncoveredRules: []authorizationapi.PolicyRule{
+			{Verbs: sets.NewString("delete"), Resources: sets.NewString("builds")},
+		},
+	}.test(t)
+}
+
 func (test escalationTest) test(t *testing.T) {
 	actualCovered, actualUncoveredRules := Covers(test.ownerRules, test.servantRules)
 
@@ -258,6 +490,7 @@ func rulesMatch(expectedRules, actualRules []authorizationapi.PolicyRule) bool {
 		for _, actualRule := range actualRules {
 			if reflect.DeepEqual(expectedRule, actualRule) {
 				found = true
+				break
 			}
 		}
 

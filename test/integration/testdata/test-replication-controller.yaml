@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  annotations:
+    openshift.io/deployment-config.latest-version: "1"
+    openshift.io/deployment-config.name: test-deployment
+    openshift.io/deployment.phase: Complete
+    optnshift.io/deployment.replicas: "1"
+  name: test-replication-controller
+spec:
+  replicas: 1
+  selector:
+    deployment: test-deployment
+    deploymentconfig: test-deployment
+  template:
+    metadata:
+      labels:
+        deployment: test-deployment
+        deploymentconfig: test-deployment
+    spec:
+      containers:
+      - image: openshift/origin-pod
+        imagePullPolicy: IfNotPresent
+        name: ruby-helloworld
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+        resources: {}
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+status: {}

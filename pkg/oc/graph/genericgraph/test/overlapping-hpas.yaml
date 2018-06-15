@@ -1,0 +1,135 @@
+apiVersion: v1
+kind: List
+items:
+- apiVersion: autoscaling/v1
+  kind: HorizontalPodAutoscaler
+  metadata:
+    name: overlapping 
+  spec:
+    scaleTargetRef:
+      kind: DeploymentConfig 
+      name: frontend 
+      apiVersion: apps.openshift.io/v1
+      subresource: scale
+    minReplicas: 1 
+    maxReplicas: 10 
+    targetCPUUtilizationPercentage: 80
+- apiVersion: autoscaling/v1
+  kind: HorizontalPodAutoscaler
+  metadata:
+    name: overlapping2 
+  spec:
+    scaleTargetRef:
+      kind: DeploymentConfig 
+      name: frontend 
+      apiVersion: apps.openshift.io/v1
+      subresource: scale
+    minReplicas: 1 
+    maxReplicas: 10 
+    targetCPUUtilizationPercentage: 80
+- apiVersion: autoscaling/v1
+  kind: HorizontalPodAutoscaler
+  metadata:
+    name: overlapping3 
+  spec:
+    scaleTargetRef:
+      kind: DeploymentConfig 
+      name: frontend 
+      apiVersion: apps.openshift.io/v1
+      subresource: scale
+    minReplicas: 1 
+    maxReplicas: 10 
+    targetCPUUtilizationPercentage: 80
+- apiVersion: autoscaling/v1
+  kind: HorizontalPodAutoscaler
+  metadata:
+    name: dc-autoscaler
+  spec:
+    scaleTargetRef:
+      kind: DeploymentConfig 
+      name: someotherdc 
+      apiVersion: apps.openshift.io/v1
+      subresource: scale
+    minReplicas: 1 
+    maxReplicas: 10 
+    targetCPUUtilizationPercentage: 80
+- apiVersion: autoscaling/v1
+  kind: HorizontalPodAutoscaler
+  metadata:
+    name: rc-autoscaler
+  spec:
+    scaleTargetRef:
+      kind: ReplicationController 
+      name: someotherdc-1 
+      apiVersion: v1 
+      subresource: scale
+    minReplicas: 1 
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 80
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    creationTimestamp: null
+    name: someotherdc
+  spec:
+    replicas: 1
+    selector:
+      deploymentconfig: someotherdc
+    strategy:
+      resources: {}
+      type: Recreate
+    template:
+      metadata:
+        creationTimestamp: null
+        labels:
+          deploymentconfig: ruby-hello-world
+      spec:
+        containers:
+        - image: library/ruby-hello-world:latest
+          name: ruby-hello-world
+          ports:
+          - containerPort: 8080
+            protocol: TCP
+          resources: {}
+    triggers:
+    - type: ConfigChange
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - ruby-hello-world
+        from:
+          kind: ImageStreamTag
+          name: ruby-hello-world:latest
+      type: ImageChange
+  status: {}
+- apiVersion: v1
+  kind: ReplicationController
+  metadata:
+    annotations:
+      openshift.io/deployment-config.name: someotherdc
+    creationTimestamp: null
+    generation: 1
+    name: someotherdc-1
+  spec:
+    replicas: 1
+    selector:
+      name: rc-1
+    template:
+      metadata:
+        creationTimestamp: null
+        labels:
+          name: rc-1
+      spec:
+        containers:
+        - image: centos/mysql-56-centos7
+          imagePullPolicy: IfNotPresent
+          name: ruby-helloworld-database
+          resources: {}
+          securityContext:
+            capabilities: {}
+            privileged: false
+          terminationMessagePath: /dev/termination-log
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+  status:
+    replicas: 0

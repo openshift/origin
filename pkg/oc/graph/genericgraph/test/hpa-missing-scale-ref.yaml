@@ -1,0 +1,8 @@
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: noscale 
+spec:
+  minReplicas: 1 
+  maxReplicas: 10 
+  targetCPUUtilizationPercentage: 80

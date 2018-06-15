@@ -1,18 +1,19 @@
 package imagestreamimage
 
 import (
-	"fmt"
-	"strings"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/registry/rest"
+	"k8s.io/kubernetes/pkg/printers"
+	printerstorage "k8s.io/kubernetes/pkg/printers/storage"
 
-	"github.com/docker/distribution/digest"
-
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/runtime"
-
-	"github.com/openshift/origin/pkg/image/api"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/registry/image"
 	"github.com/openshift/origin/pkg/image/registry/imagestream"
+	"github.com/openshift/origin/pkg/image/util"
+	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
 )
 
 // REST implements the RESTStorage interface in terms of an image registry and
@@ -22,30 +23,36 @@ import (
 type REST struct {
 	imageRegistry       image.Registry
 	imageStreamRegistry imagestream.Registry
+	rest.TableConvertor
+}
+
+var _ rest.Getter = &REST{}
+var _ rest.ShortNamesProvider = &REST{}
+
+// ShortNames implements the ShortNamesProvider interface. Returns a list of short names for a resource.
+func (r *REST) ShortNames() []string {
+	return []string{"isimage"}
 }
 
 // NewREST returns a new REST.
 func NewREST(imageRegistry image.Registry, imageStreamRegistry imagestream.Registry) *REST {
-	return &REST{imageRegistry, imageStreamRegistry}
+	return &REST{
+		imageRegistry,
+		imageStreamRegistry,
+		printerstorage.TableConvertor{TablePrinter: printers.NewTablePrinter().With(printersinternal.AddHandlers)},
+	}
 }
 
 // New is only implemented to make REST implement RESTStorage
 func (r *REST) New() runtime.Object {
-	return &api.ImageStreamImage{}
+	return &imageapi.ImageStreamImage{}
 }
 
-// ParseNameAndID splits a string into its name component and ID component, and returns an error
+// parseNameAndID splits a string into its name component and ID component, and returns an error
 // if the string is not in the right form.
-func ParseNameAndID(input string) (name string, id string, err error) {
-	segments := strings.Split(input, "@")
-	switch len(segments) {
-	case 2:
-		name = segments[0]
-		id = segments[1]
-		if len(name) == 0 || len(id) == 0 {
-			err = errors.NewBadRequest("ImageStreamImages must be retrieved with <name>@<id>")
-		}
-	default:
+func parseNameAndID(input string) (name string, id string, err error) {
+	name, id, err = imageapi.ParseImageStreamImageName(input)
+	if err != nil {
 		err = errors.NewBadRequest("ImageStreamImages must be retrieved with <name>@<id>")
 	}
 	return
@@ -53,53 +60,46 @@ func ParseNameAndID(input string) (name string, id string, err error) {
 
 // Get retrieves an image by ID that has previously been tagged into an image stream.
 // `id` is of the form <repo name>@<image id>.
-func (r *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
-	name, imageID, err := ParseNameAndID(id)
+func (r *REST) Get(ctx apirequest.Context, id string, options *metav1.GetOptions) (runtime.Object, error) {
+	name, imageID, err := parseNameAndID(id)
 	if err != nil {
 		return nil, err
 	}
 
-	repo, err := r.imageStreamRegistry.GetImageStream(ctx, name)
+	repo, err := r.imageStreamRegistry.GetImageStream(ctx, name, &metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
 
 	if repo.Status.Tags == nil {
-		return nil, errors.NewNotFound("imageStreamImage", imageID)
+		return nil, errors.NewNotFound(imageapi.Resource("imagestreamimage"), id)
 	}
 
-	set := api.ResolveImageID(repo, imageID)
-	switch len(set) {
-	case 1:
-		imageName := set.List()[0]
-		image, err := r.imageRegistry.GetImage(ctx, imageName)
-		if err != nil {
-			return nil, err
-		}
-		imageWithMetadata, err := api.ImageWithMetadata(*image)
-		if err != nil {
-			return nil, err
-		}
-
-		if d, err := digest.ParseDigest(imageName); err == nil {
-			imageName = d.Hex()
-		}
-		if len(imageName) > 7 {
-			imageName = imageName[:7]
-		}
-
-		isi := api.ImageStreamImage{
-			ObjectMeta: kapi.ObjectMeta{
-				Namespace: kapi.NamespaceValue(ctx),
-				Name:      fmt.Sprintf("%s@%s", name, imageName),
-			},
-			Image: *imageWithMetadata,
-		}
-
-		return &isi, nil
-	case 0:
-		return nil, errors.NewNotFound("imageStreamImage", imageID)
-	default:
-		return nil, errors.NewConflict("imageStreamImage", imageID, fmt.Errorf("multiple images match the prefix %q: %s", imageID, strings.Join(set.List(), ", ")))
+	event, err := imageapi.ResolveImageID(repo, imageID)
+	if err != nil {
+		return nil, err
 	}
+
+	imageName := event.Image
+	image, err := r.imageRegistry.GetImage(ctx, imageName, &metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+	if err := util.ImageWithMetadata(image); err != nil {
+		return nil, err
+	}
+	image.DockerImageManifest = ""
+	image.DockerImageConfig = ""
+
+	isi := imageapi.ImageStreamImage{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace:         apirequest.NamespaceValue(ctx),
+			Name:              imageapi.JoinImageStreamImage(name, imageID),
+			CreationTimestamp: image.ObjectMeta.CreationTimestamp,
+			Annotations:       repo.Annotations,
+		},
+		Image: *image,
+	}
+
+	return &isi, nil
 }

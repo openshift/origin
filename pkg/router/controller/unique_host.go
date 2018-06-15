@@ -2,14 +2,18 @@ package controller
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/golang/glog"
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/util/sets"
-	"k8s.io/kubernetes/pkg/watch"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/watch"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	routeapi "github.com/openshift/origin/pkg/route/api"
+	routeapi "github.com/openshift/origin/pkg/route/apis/route"
+	"github.com/openshift/origin/pkg/route/apis/route/validation"
 	"github.com/openshift/origin/pkg/router"
+	"github.com/openshift/origin/pkg/router/controller/hostindex"
 )
 
 // RouteHostFunc returns a host for a route. It may return an empty string.
@@ -20,42 +24,47 @@ func HostForRoute(route *routeapi.Route) string {
 	return route.Spec.Host
 }
 
-type HostToRouteMap map[string][]*routeapi.Route
-type RouteToHostMap map[string]string
-
 // UniqueHost implements the router.Plugin interface to provide
 // a template based, backend-agnostic router.
 type UniqueHost struct {
-	plugin       router.Plugin
-	hostForRoute RouteHostFunc
+	plugin router.Plugin
 
-	hostToRoute HostToRouteMap
-	routeToHost RouteToHostMap
+	recorder RejectionRecorder
+
 	// nil means different than empty
 	allowedNamespaces sets.String
+
+	// index tracks the set of active routes and the set of routes
+	// that cannot be admitted due to ownership restrictions
+	index hostindex.Interface
 }
 
 // NewUniqueHost creates a plugin wrapper that ensures only unique routes are passed into
-// the underlying plugin.
-func NewUniqueHost(plugin router.Plugin, fn RouteHostFunc) *UniqueHost {
+// the underlying plugin. Recorder is an interface for indicating why a route was
+// rejected.
+func NewUniqueHost(plugin router.Plugin, disableOwnershipCheck bool, recorder RejectionRecorder) *UniqueHost {
+	routeActivationFn := hostindex.SameNamespace
+	if disableOwnershipCheck {
+		routeActivationFn = hostindex.OldestFirst
+	}
 	return &UniqueHost{
-		plugin:       plugin,
-		hostForRoute: fn,
+		plugin: plugin,
 
-		hostToRoute: make(HostToRouteMap),
-		routeToHost: make(RouteToHostMap),
+		recorder: recorder,
+
+		index: hostindex.New(routeActivationFn),
 	}
 }
 
 // RoutesForHost is a helper that allows routes to be retrieved.
 func (p *UniqueHost) RoutesForHost(host string) ([]*routeapi.Route, bool) {
-	routes, ok := p.hostToRoute[host]
+	routes, ok := p.index.RoutesForHost(host)
 	return routes, ok
 }
 
 // HostLen returns the number of hosts currently tracked by this plugin.
 func (p *UniqueHost) HostLen() int {
-	return len(p.hostToRoute)
+	return p.index.HostLen()
 }
 
 // HandleEndpoints processes watch events on the Endpoints resource.
@@ -64,6 +73,11 @@ func (p *UniqueHost) HandleEndpoints(eventType watch.EventType, endpoints *kapi.
 		return nil
 	}
 	return p.plugin.HandleEndpoints(eventType, endpoints)
+}
+
+// HandleNode processes watch events on the Node resource and calls the router
+func (p *UniqueHost) HandleNode(eventType watch.EventType, node *kapi.Node) error {
+	return p.plugin.HandleNode(eventType, node)
 }
 
 // HandleRoute processes watch events on the Route resource.
@@ -75,117 +89,149 @@ func (p *UniqueHost) HandleRoute(eventType watch.EventType, route *routeapi.Rout
 		return nil
 	}
 
-	key := routeKey(route)
 	routeName := routeNameKey(route)
+	host := route.Spec.Host
 
-	host := p.hostForRoute(route)
 	if len(host) == 0 {
 		glog.V(4).Infof("Route %s has no host value", routeName)
+		p.recorder.RecordRouteRejection(route, "NoHostValue", "no host value was defined for the route")
+		p.plugin.HandleRoute(watch.Deleted, route)
 		return nil
 	}
-	route.Spec.Host = host
 
-	// ensure hosts can only be claimed by one namespace at a time
-	// TODO: this could be abstracted above this layer?
-	if old, ok := p.hostToRoute[host]; ok {
-		oldest := old[0]
-
-		// multiple paths can be added from the namespace of the oldest route
-		if oldest.Namespace == route.Namespace {
-			added := false
-			for i := range old {
-				if old[i].Spec.Path == route.Spec.Path {
-					if old[i].CreationTimestamp.Before(route.CreationTimestamp) {
-						glog.V(4).Infof("Route %s cannot take %s from %s", routeName, host, routeNameKey(oldest))
-						return fmt.Errorf("route %s holds %s and is older than %s", routeNameKey(oldest), host, key)
-					}
-					glog.V(4).Infof("Route %s will replace path %s from %s because it is older", routeName, route.Spec.Path, routeNameKey(old[i]))
-					p.plugin.HandleRoute(watch.Deleted, old[i])
-					old[i] = route
-					added = true
-				}
-			}
-			if !added {
-				if route.CreationTimestamp.Before(oldest.CreationTimestamp) {
-					p.hostToRoute[host] = append([]*routeapi.Route{route}, old...)
-				} else {
-					p.hostToRoute[host] = append(old, route)
-				}
-			}
-		} else {
-			if oldest.CreationTimestamp.Before(route.CreationTimestamp) {
-				glog.V(4).Infof("Route %s cannot take %s from %s", routeName, host, routeNameKey(oldest))
-				return fmt.Errorf("route %s holds %s and is older than %s", routeNameKey(oldest), host, key)
-			}
-
-			glog.V(4).Infof("Route %s is reclaiming %s from namespace %s", routeName, host, oldest.Namespace)
-			for i := range old {
-				p.plugin.HandleRoute(watch.Deleted, old[i])
-			}
-			p.hostToRoute[host] = []*routeapi.Route{route}
+	// Validate that the route host name conforms to DNS requirements.
+	// Defends against routes created before validation rules were added for host names.
+	if errs := validation.ValidateHostName(route); len(errs) > 0 {
+		glog.V(4).Infof("Route %s - invalid host name %s", routeName, host)
+		errMessages := make([]string, len(errs))
+		for i := 0; i < len(errs); i++ {
+			errMessages[i] = errs[i].Error()
 		}
-	} else {
-		glog.V(4).Infof("Route %s claims %s", key, host)
-		p.hostToRoute[host] = []*routeapi.Route{route}
+
+		err := fmt.Errorf("host name validation errors: %s", strings.Join(errMessages, ", "))
+		p.recorder.RecordRouteRejection(route, "InvalidHost", err.Error())
+		p.plugin.HandleRoute(watch.Deleted, route)
+		return err
 	}
 
+	// Add the route to the index and see whether it is exposed. If this change results in
+	// other routes being exposed, notify the lower plugin. Report back to the end user when
+	// their route does not get exposed.
 	switch eventType {
-	case watch.Added, watch.Modified:
-		if old, ok := p.routeToHost[routeName]; ok {
-			if old != host {
-				glog.V(4).Infof("Route %s changed from serving host %s to host %s", key, old, host)
-				delete(p.hostToRoute, old)
+	case watch.Deleted:
+		glog.V(4).Infof("Deleting route %s", routeName)
+
+		changes := p.index.Remove(route)
+		owner := "<unknown>"
+		if old, ok := p.index.RoutesForHost(host); ok && len(old) > 0 {
+			owner = old[0].Namespace
+		}
+
+		// perform activations first so that the other routes exist before we alter this route
+		for _, other := range changes.GetActivated() {
+			if err := p.plugin.HandleRoute(watch.Added, other); err != nil {
+				utilruntime.HandleError(fmt.Errorf("unable to activate route %s/%s that was previously hidden by another route: %v", other.Namespace, other.Name, err))
 			}
 		}
-		p.routeToHost[routeName] = host
+
+		// displaced routes must be deleted in nested plugins
+		for _, other := range changes.GetDisplaced() {
+			glog.V(4).Infof("route %s being deleted caused %s/%s to no longer be exposed", routeName, other.Namespace, other.Name)
+			p.recorder.RecordRouteRejection(other, "HostAlreadyClaimed", fmt.Sprintf("namespace %s owns hostname %s", owner, host))
+
+			if err := p.plugin.HandleRoute(watch.Deleted, other); err != nil {
+				utilruntime.HandleError(fmt.Errorf("unable to clear route %s/%s that was previously exposed: %v", other.Namespace, other.Name, err))
+			}
+		}
+
 		return p.plugin.HandleRoute(eventType, route)
 
-	case watch.Deleted:
-		glog.V(4).Infof("Deleting routes for %s", key)
-		if old, ok := p.hostToRoute[host]; ok {
-			switch len(old) {
-			case 1, 0:
-				delete(p.hostToRoute, host)
-			default:
-				next := []*routeapi.Route{}
-				for i := range old {
-					if old[i].Name != route.Name {
-						next = append(next, old[i])
-					}
+	case watch.Added, watch.Modified:
+		removed := false
+
+		var nestedErr error
+		changes, newRoute := p.index.Add(route)
+
+		// perform activations first so that the other routes exist before we alter this route
+		for _, other := range changes.GetActivated() {
+			// we activated other routes
+			if other != route {
+				if err := p.plugin.HandleRoute(watch.Added, other); err != nil {
+					utilruntime.HandleError(fmt.Errorf("unable to activate route %s/%s that was previously hidden by another route: %v", other.Namespace, other.Name, err))
 				}
-				p.hostToRoute[host] = next
+				continue
+			}
+			nestedErr = p.plugin.HandleRoute(eventType, other)
+		}
+
+		// displaced routes must be deleted in nested plugins
+		for _, other := range changes.GetDisplaced() {
+			// adding this route displaced others
+			if other != route {
+				glog.V(4).Infof("route %s will replace path %s from %s because it is older", routeName, route.Spec.Path, other.Name)
+				p.recorder.RecordRouteRejection(other, "HostAlreadyClaimed", fmt.Sprintf("replaced by older route %s", route.Name))
+
+				if err := p.plugin.HandleRoute(watch.Deleted, other); err != nil {
+					utilruntime.HandleError(fmt.Errorf("unable to clear route %s/%s that was previously exposed: %v", other.Namespace, other.Name, err))
+				}
+				continue
+			}
+
+			// we were not added because another route is covering us
+			removed = true
+			var owner *routeapi.Route
+			if old, ok := p.index.RoutesForHost(host); ok && len(old) > 0 {
+				owner = old[0]
+			} else {
+				owner = &routeapi.Route{}
+				owner.Name = "<unknown>"
+			}
+			glog.V(4).Infof("Route %s cannot take %s from %s/%s", routeName, host, owner.Namespace, owner.Name)
+			if owner.Namespace == route.Namespace {
+				p.recorder.RecordRouteRejection(route, "HostAlreadyClaimed", fmt.Sprintf("route %s already exposes %s and is older", owner.Name, host))
+			} else {
+				p.recorder.RecordRouteRejection(route, "HostAlreadyClaimed", fmt.Sprintf("a route in another namespace holds %s and is older than %s", host, route.Name))
+			}
+
+			// if this is the first time we've seen this route, we don't have to notify nested plugins
+			if !newRoute {
+				// indicate to lower plugins that the route should not be shown
+				if err := p.plugin.HandleRoute(watch.Deleted, route); err != nil {
+					utilruntime.HandleError(fmt.Errorf("unable to clear route %s: %v", routeName, err))
+				}
 			}
 		}
-		delete(p.routeToHost, routeName)
-		return p.plugin.HandleRoute(eventType, route)
+
+		// // ensure we pass down modifications
+		// if !added && !removed {
+		// 	if err := p.plugin.HandleRoute(watch.Modified, route); err != nil {
+		// 		utilruntime.HandleError(fmt.Errorf("unable to modify route %s: %v", routeName, err))
+		// 	}
+		// }
+
+		if removed {
+			return fmt.Errorf("another route has claimed this host")
+		}
+		return nestedErr
+
+	default:
+		return fmt.Errorf("unrecognized watch type: %v", eventType)
 	}
-	return nil
 }
 
-// HandleAllowedNamespaces limits the scope of valid routes to only those that match
+// HandleNamespaces limits the scope of valid routes to only those that match
 // the provided namespace list.
 func (p *UniqueHost) HandleNamespaces(namespaces sets.String) error {
 	p.allowedNamespaces = namespaces
-	changed := false
-	for k, v := range p.hostToRoute {
-		if namespaces.Has(v[0].Namespace) {
-			continue
-		}
-		delete(p.hostToRoute, k)
-		for i := range v {
-			delete(p.routeToHost, routeNameKey(v[i]))
-		}
-		changed = true
-	}
-	if !changed && len(namespaces) > 0 {
-		return nil
-	}
+	p.index.Filter(func(route *routeapi.Route) bool {
+		return namespaces.Has(route.Namespace)
+	})
 	return p.plugin.HandleNamespaces(namespaces)
 }
 
-// routeKey returns the internal router key to use for the given Route.
-func routeKey(route *routeapi.Route) string {
-	return fmt.Sprintf("%s/%s", route.Namespace, route.Spec.To.Name)
+// Commit invokes the nested plugin to commit.
+func (p *UniqueHost) Commit() error {
+	return p.plugin.Commit()
 }
 
 // routeNameKey returns a unique name for a given route

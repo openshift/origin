@@ -3,21 +3,23 @@ package authorizer
 import (
 	"testing"
 
-	"k8s.io/kubernetes/pkg/auth/user"
+	"k8s.io/apiserver/pkg/authentication/user"
+	kauthorizer "k8s.io/apiserver/pkg/authorization/authorizer"
 )
 
 func TestDefaultForbiddenMessages(t *testing.T) {
 	messageResolver := NewForbiddenMessageResolver("")
 
-	apiForbidden, err := messageResolver.defaultForbiddenMessageMaker.MakeMessage(MessageContext{
-		User:      &user.DefaultInfo{Name: "chris"},
-		Namespace: "foo",
-		Attributes: DefaultAuthorizationAttributes{
-			Verb:         "get",
-			Resource:     "pods",
-			ResourceName: "hammer",
+	apiForbidden, err := messageResolver.defaultForbiddenMessageMaker.MakeMessage(
+		kauthorizer.AttributesRecord{
+			ResourceRequest: true,
+			User:            &user.DefaultInfo{Name: "chris"},
+			Namespace:       "foo",
+			Verb:            "get",
+			Resource:        "pods",
+			Name:            "hammer",
 		},
-	})
+	)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -28,162 +30,178 @@ func TestDefaultForbiddenMessages(t *testing.T) {
 	}
 
 	messageTest{
-		MessageContext{
-			User:      &user.DefaultInfo{Name: "chris"},
-			Namespace: "foo",
-			Attributes: DefaultAuthorizationAttributes{
-				Verb:           "post",
-				NonResourceURL: true,
-				URL:            "/anything",
-			},
+		attributes: kauthorizer.AttributesRecord{
+			ResourceRequest: false,
+			User:            &user.DefaultInfo{Name: "chris"},
+			Namespace:       "foo",
+			Verb:            "post",
+			Path:            "/anything",
 		},
-		`User "chris" cannot "post" on "/anything"`,
+		expected: `User "chris" cannot "post" on "/anything"`,
+	}.run(t)
+}
+
+func TestAttributeRecord(t *testing.T) {
+	messageTest{
+		attributes: kauthorizer.AttributesRecord{
+			ResourceRequest: true,
+			User:            &user.DefaultInfo{Name: "chris"},
+			Namespace:       "foo",
+			Verb:            "get",
+			Resource:        "users",
+			APIGroup:        "user.openshift.io",
+			APIVersion:      "v1",
+			Name:            "hammer",
+		},
+		expected: `User "chris" cannot get users.user.openshift.io in project "foo"`,
+	}.run(t)
+	messageTest{
+		attributes: kauthorizer.AttributesRecord{
+			ResourceRequest: false,
+			User:            &user.DefaultInfo{Name: "chris"},
+			Namespace:       "foo",
+			Verb:            "get",
+			Resource:        "users",
+			APIGroup:        "user.openshift.io",
+			APIVersion:      "v1",
+			Path:            "/",
+		},
+		expected: `User "chris" cannot "get" on "/"`,
 	}.run(t)
 }
 
 func TestProjectRequestForbiddenMessage(t *testing.T) {
 	messageTest{
-		MessageContext{
-			User: &user.DefaultInfo{Name: "chris"},
-			Attributes: DefaultAuthorizationAttributes{
-				Verb:     "create",
-				Resource: "projectrequests",
-			},
+		attributes: kauthorizer.AttributesRecord{
+			ResourceRequest: true,
+			User:            &user.DefaultInfo{Name: "chris"},
+			Verb:            "create",
+			Resource:        "projectrequests",
 		},
-		DefaultProjectRequestForbidden,
+		expected: DefaultProjectRequestForbidden,
 	}.run(t)
 }
 
 func TestNamespacedForbiddenMessage(t *testing.T) {
 	messageTest{
-		MessageContext{
-			User:      &user.DefaultInfo{Name: "chris"},
-			Namespace: "foo",
-			Attributes: DefaultAuthorizationAttributes{
-				Verb:     "create",
-				Resource: "builds",
-			},
+		attributes: kauthorizer.AttributesRecord{
+			ResourceRequest: true,
+			User:            &user.DefaultInfo{Name: "chris"},
+			Namespace:       "foo",
+			Verb:            "create",
+			Resource:        "builds",
 		},
-		`User "chris" cannot create builds in project "foo"`,
+		expected: `User "chris" cannot create builds in project "foo"`,
 	}.run(t)
 
 	messageTest{
-		MessageContext{
-			User:      &user.DefaultInfo{Name: "chris"},
-			Namespace: "foo",
-			Attributes: DefaultAuthorizationAttributes{
-				Verb:     "get",
-				Resource: "builds",
-			},
+		attributes: kauthorizer.AttributesRecord{
+			ResourceRequest: true,
+			User:            &user.DefaultInfo{Name: "chris"},
+			Namespace:       "foo",
+			Verb:            "get",
+			Resource:        "builds",
 		},
-		`User "chris" cannot get builds in project "foo"`,
+		expected: `User "chris" cannot get builds in project "foo"`,
 	}.run(t)
 
 	messageTest{
-		MessageContext{
-			User:      &user.DefaultInfo{Name: "chris"},
-			Namespace: "foo",
-			Attributes: DefaultAuthorizationAttributes{
-				Verb:     "list",
-				Resource: "builds",
-			},
+		attributes: kauthorizer.AttributesRecord{
+			ResourceRequest: true,
+			User:            &user.DefaultInfo{Name: "chris"},
+			Namespace:       "foo",
+			Verb:            "list",
+			Resource:        "builds",
 		},
-		`User "chris" cannot list builds in project "foo"`,
+		expected: `User "chris" cannot list builds in project "foo"`,
 	}.run(t)
 
 	messageTest{
-		MessageContext{
-			User:      &user.DefaultInfo{Name: "chris"},
-			Namespace: "foo",
-			Attributes: DefaultAuthorizationAttributes{
-				Verb:     "update",
-				Resource: "builds",
-			},
+		attributes: kauthorizer.AttributesRecord{
+			ResourceRequest: true,
+			User:            &user.DefaultInfo{Name: "chris"},
+			Namespace:       "foo",
+			Verb:            "update",
+			Resource:        "builds",
 		},
-		`User "chris" cannot update builds in project "foo"`,
+		expected: `User "chris" cannot update builds in project "foo"`,
 	}.run(t)
 
 	messageTest{
-		MessageContext{
-			User:      &user.DefaultInfo{Name: "chris"},
-			Namespace: "foo",
-			Attributes: DefaultAuthorizationAttributes{
-				Verb:     "delete",
-				Resource: "builds",
-			},
+		attributes: kauthorizer.AttributesRecord{
+			ResourceRequest: true,
+			User:            &user.DefaultInfo{Name: "chris"},
+			Namespace:       "foo",
+			Verb:            "delete",
+			Resource:        "builds",
 		},
-		`User "chris" cannot delete builds in project "foo"`,
+		expected: `User "chris" cannot delete builds in project "foo"`,
 	}.run(t)
 
 }
 
 func TestRootScopedForbiddenMessage(t *testing.T) {
 	messageTest{
-		MessageContext{
-			User: &user.DefaultInfo{Name: "chris"},
-			Attributes: DefaultAuthorizationAttributes{
-				Verb:     "create",
-				Resource: "builds",
-			},
+		attributes: kauthorizer.AttributesRecord{
+			ResourceRequest: true,
+			User:            &user.DefaultInfo{Name: "chris"},
+			Verb:            "create",
+			Resource:        "builds",
 		},
-		`User "chris" cannot create builds at the cluster scope`,
+		expected: `User "chris" cannot create builds at the cluster scope`,
 	}.run(t)
 
 	messageTest{
-		MessageContext{
-			User: &user.DefaultInfo{Name: "chris"},
-			Attributes: DefaultAuthorizationAttributes{
-				Verb:     "get",
-				Resource: "builds",
-			},
+		attributes: kauthorizer.AttributesRecord{
+			ResourceRequest: true,
+			User:            &user.DefaultInfo{Name: "chris"},
+			Verb:            "get",
+			Resource:        "builds",
 		},
-		`User "chris" cannot get builds at the cluster scope`,
+		expected: `User "chris" cannot get builds at the cluster scope`,
 	}.run(t)
 
 	messageTest{
-		MessageContext{
-			User: &user.DefaultInfo{Name: "chris"},
-			Attributes: DefaultAuthorizationAttributes{
-				Verb:     "list",
-				Resource: "builds",
-			},
+		attributes: kauthorizer.AttributesRecord{
+			ResourceRequest: true,
+			User:            &user.DefaultInfo{Name: "chris"},
+			Verb:            "list",
+			Resource:        "builds",
 		},
-		`User "chris" cannot list all builds in the cluster`,
+		expected: `User "chris" cannot list all builds in the cluster`,
 	}.run(t)
 
 	messageTest{
-		MessageContext{
-			User: &user.DefaultInfo{Name: "chris"},
-			Attributes: DefaultAuthorizationAttributes{
-				Verb:     "update",
-				Resource: "builds",
-			},
+		attributes: kauthorizer.AttributesRecord{
+			ResourceRequest: true,
+			User:            &user.DefaultInfo{Name: "chris"},
+			Verb:            "update",
+			Resource:        "builds",
 		},
-		`User "chris" cannot update builds at the cluster scope`,
+		expected: `User "chris" cannot update builds at the cluster scope`,
 	}.run(t)
 
 	messageTest{
-		MessageContext{
-			User: &user.DefaultInfo{Name: "chris"},
-			Attributes: DefaultAuthorizationAttributes{
-				Verb:     "delete",
-				Resource: "builds",
-			},
+		attributes: kauthorizer.AttributesRecord{
+			ResourceRequest: true,
+			User:            &user.DefaultInfo{Name: "chris"},
+			Verb:            "delete",
+			Resource:        "builds",
 		},
-		`User "chris" cannot delete builds at the cluster scope`,
+		expected: `User "chris" cannot delete builds at the cluster scope`,
 	}.run(t)
 
 }
 
 type messageTest struct {
-	messageContext MessageContext
-	expected       string
+	attributes kauthorizer.Attributes
+	expected   string
 }
 
 func (test messageTest) run(t *testing.T) {
 	messageResolver := NewForbiddenMessageResolver("")
 
-	forbidden, err := messageResolver.MakeMessage(test.messageContext)
+	forbidden, err := messageResolver.MakeMessage(test.attributes)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}

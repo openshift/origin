@@ -1,146 +1,288 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
-	"io/ioutil"
-	"net/url"
+	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
 
+	docker "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
-	"github.com/openshift/origin/pkg/api/latest"
-	"github.com/openshift/origin/pkg/build/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
+
+	"k8s.io/apimachinery/pkg/runtime"
+	restclient "k8s.io/client-go/rest"
+
+	s2iapi "github.com/openshift/source-to-image/pkg/api"
+	s2igit "github.com/openshift/source-to-image/pkg/scm/git"
+
+	buildapiv1 "github.com/openshift/api/build/v1"
+	buildclientv1 "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
 	bld "github.com/openshift/origin/pkg/build/builder"
 	"github.com/openshift/origin/pkg/build/builder/cmd/scmauth"
-	dockerutil "github.com/openshift/origin/pkg/cmd/util/docker"
-	"github.com/openshift/origin/pkg/generate/git"
+	"github.com/openshift/origin/pkg/build/builder/timing"
+	builderutil "github.com/openshift/origin/pkg/build/builder/util"
+	buildutil "github.com/openshift/origin/pkg/build/util"
+	"github.com/openshift/origin/pkg/git"
 )
 
 type builder interface {
-	Build() error
+	Build(dockerClient bld.DockerClient, sock string, buildsClient buildclientv1.BuildInterface, build *buildapiv1.Build, cgLimits *s2iapi.CGroupLimits) error
 }
 
-type factoryFunc func(
-	client bld.DockerClient,
-	dockerSocket string,
-	build *api.Build) builder
+type builderConfig struct {
+	out             io.Writer
+	build           *buildapiv1.Build
+	sourceSecretDir string
+	dockerClient    *docker.Client
+	dockerEndpoint  string
+	buildsClient    buildclientv1.BuildInterface
+}
 
-// run is responsible for preparing environment for actual build.
-// It accepts factoryFunc and an ordered array of SCMAuths.
-func run(builderFactory factoryFunc) {
-	client, endpoint, err := dockerutil.NewHelper().GetClient()
-	if err != nil {
-		glog.Fatalf("Error obtaining docker client: %v", err)
-	}
+func newBuilderConfigFromEnvironment(out io.Writer, needsDocker bool) (*builderConfig, error) {
+	cfg := &builderConfig{}
+	var err error
+
+	cfg.out = out
+
 	buildStr := os.Getenv("BUILD")
-	glog.V(4).Infof("$BUILD env var is %s \n", buildStr)
-	build := api.Build{}
-	if err := latest.Codec.DecodeInto([]byte(buildStr), &build); err != nil {
-		glog.Fatalf("Unable to parse build: %v", err)
+
+	cfg.build = &buildapiv1.Build{}
+
+	obj, groupVersionKind, err := legacyscheme.Codecs.UniversalDecoder().Decode([]byte(buildStr), nil, cfg.build)
+	if err != nil {
+		return nil, fmt.Errorf("unable to parse build string: %v", err)
 	}
-	if build.Spec.Source.SourceSecret != nil {
-		sourceURL, err := git.ParseRepository(build.Spec.Source.Git.URI)
+	ok := false
+	cfg.build, ok = obj.(*buildapiv1.Build)
+	if !ok {
+		return nil, fmt.Errorf("build string %s is not a build: %#v", buildStr, obj)
+	}
+	if glog.V(4) {
+		redactedBuild := buildutil.SafeForLoggingBuild(cfg.build)
 		if err != nil {
-			glog.Fatalf("Cannot parse build URL: %s", build.Spec.Source.Git.URI)
+			return nil, fmt.Errorf("unable to strip proxy credentials from build: %v", err)
 		}
-		scmAuths := auths(sourceURL)
-		if err := setupSourceSecret(build.Spec.Source.SourceSecret.Name, scmAuths); err != nil {
-			glog.Fatalf("Cannot setup secret file for accessing private repository: %v", err)
+		bytes, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(groupVersionKind.GroupVersion()), redactedBuild)
+		if err != nil {
+			return nil, fmt.Errorf("unable to serialize build: %v", err)
 		}
-	}
-	b := builderFactory(client, endpoint, &build)
-	if err = b.Build(); err != nil {
-		glog.Fatalf("Build error: %v", err)
+		glog.V(4).Infof("redacted build: %v", string(bytes))
 	}
 
-	if build.Spec.Output.To == nil || len(build.Spec.Output.To.Name) == 0 {
-		glog.Warning("Build does not have an Output defined, no output image was pushed to a registry.")
+	// sourceSecretsDir (SOURCE_SECRET_PATH)
+	cfg.sourceSecretDir = os.Getenv("SOURCE_SECRET_PATH")
+
+	if needsDocker {
+		// dockerClient and dockerEndpoint (DOCKER_HOST)
+		// usually not set, defaults to docker socket
+		cfg.dockerClient, cfg.dockerEndpoint, err = bld.GetDockerClient()
+		if err != nil {
+			return nil, fmt.Errorf("no Docker configuration defined: %v", err)
+		}
 	}
 
+	// buildsClient (KUBERNETES_SERVICE_HOST, KUBERNETES_SERVICE_PORT)
+	clientConfig, err := restclient.InClusterConfig()
+	if err != nil {
+		return nil, fmt.Errorf("cannot connect to the server: %v", err)
+	}
+	buildsClient, err := buildclientv1.NewForConfig(clientConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get client: %v", err)
+	}
+	cfg.buildsClient = buildsClient.Builds(cfg.build.Namespace)
+
+	return cfg, nil
 }
 
-// fixSecretPermissions loweres access permissions to very low acceptable level
-// TODO: this method should be removed as soon as secrets permissions are fixed upstream
-func fixSecretPermissions() error {
-	secretTmpDir, err := ioutil.TempDir("", "tmpsecret")
+func (c *builderConfig) setupGitEnvironment() (string, []string, error) {
+
+	// For now, we only handle git. If not specified, we're done
+	gitSource := c.build.Spec.Source.Git
+	if gitSource == nil {
+		return "", []string{}, nil
+	}
+
+	sourceSecret := c.build.Spec.Source.SourceSecret
+	gitEnv := []string{"GIT_ASKPASS=true"}
+	// If a source secret is present, set it up and add its environment variables
+	if sourceSecret != nil {
+		// TODO: this should be refactored to let each source type manage which secrets
+		// it accepts
+		sourceURL, err := s2igit.Parse(gitSource.URI)
+		if err != nil {
+			return "", nil, fmt.Errorf("cannot parse build URL: %s", gitSource.URI)
+		}
+		scmAuths := scmauth.GitAuths(sourceURL)
+
+		secretsEnv, overrideURL, err := scmAuths.Setup(c.sourceSecretDir)
+		if err != nil {
+			return c.sourceSecretDir, nil, fmt.Errorf("cannot setup source secret: %v", err)
+		}
+		if overrideURL != nil {
+			gitSource.URI = overrideURL.String()
+		}
+		gitEnv = append(gitEnv, secretsEnv...)
+	}
+	if gitSource.HTTPProxy != nil && len(*gitSource.HTTPProxy) > 0 {
+		gitEnv = append(gitEnv, fmt.Sprintf("HTTP_PROXY=%s", *gitSource.HTTPProxy))
+		gitEnv = append(gitEnv, fmt.Sprintf("http_proxy=%s", *gitSource.HTTPProxy))
+	}
+	if gitSource.HTTPSProxy != nil && len(*gitSource.HTTPSProxy) > 0 {
+		gitEnv = append(gitEnv, fmt.Sprintf("HTTPS_PROXY=%s", *gitSource.HTTPSProxy))
+		gitEnv = append(gitEnv, fmt.Sprintf("https_proxy=%s", *gitSource.HTTPSProxy))
+	}
+	if gitSource.NoProxy != nil && len(*gitSource.NoProxy) > 0 {
+		gitEnv = append(gitEnv, fmt.Sprintf("NO_PROXY=%s", *gitSource.NoProxy))
+		gitEnv = append(gitEnv, fmt.Sprintf("no_proxy=%s", *gitSource.NoProxy))
+	}
+	return c.sourceSecretDir, bld.MergeEnv(os.Environ(), gitEnv), nil
+}
+
+// clone is responsible for cloning the source referenced in the buildconfig
+func (c *builderConfig) clone() error {
+	ctx := timing.NewContext(context.Background())
+	var sourceRev *buildapiv1.SourceRevision
+	defer func() {
+		c.build.Status.Stages = timing.GetStages(ctx)
+		bld.HandleBuildStatusUpdate(c.build, c.buildsClient, sourceRev)
+	}()
+	secretTmpDir, gitEnv, err := c.setupGitEnvironment()
 	if err != nil {
 		return err
 	}
-	cmd := exec.Command("cp", "-R", ".", secretTmpDir)
-	cmd.Dir = os.Getenv("SOURCE_SECRET_PATH")
-	if err := cmd.Run(); err != nil {
-		return err
-	}
-	secretFiles, err := ioutil.ReadDir(secretTmpDir)
+	defer os.RemoveAll(secretTmpDir)
+
+	gitClient := git.NewRepositoryWithEnv(gitEnv)
+
+	buildDir := buildutil.InputContentPath
+	sourceInfo, err := bld.GitClone(ctx, gitClient, c.build.Spec.Source.Git, c.build.Spec.Revision, buildDir)
 	if err != nil {
+		c.build.Status.Phase = buildapiv1.BuildPhaseFailed
+		c.build.Status.Reason = buildapiv1.StatusReasonFetchSourceFailed
+		c.build.Status.Message = builderutil.StatusMessageFetchSourceFailed
 		return err
 	}
-	for _, file := range secretFiles {
-		if err := os.Chmod(filepath.Join(secretTmpDir, file.Name()), 0600); err != nil {
+
+	if sourceInfo != nil {
+		sourceRev = bld.GetSourceRevision(c.build, sourceInfo)
+	}
+
+	err = bld.ExtractInputBinary(os.Stdin, c.build.Spec.Source.Binary, buildDir)
+	if err != nil {
+		c.build.Status.Phase = buildapiv1.BuildPhaseFailed
+		c.build.Status.Reason = buildapiv1.StatusReasonFetchSourceFailed
+		c.build.Status.Message = builderutil.StatusMessageFetchSourceFailed
+		return err
+	}
+
+	if len(c.build.Spec.Source.ContextDir) > 0 {
+		if _, err := os.Stat(filepath.Join(buildDir, c.build.Spec.Source.ContextDir)); os.IsNotExist(err) {
+			err = fmt.Errorf("provided context directory does not exist: %s", c.build.Spec.Source.ContextDir)
+			c.build.Status.Phase = buildapiv1.BuildPhaseFailed
+			c.build.Status.Reason = buildapiv1.StatusReasonInvalidContextDirectory
+			c.build.Status.Message = builderutil.StatusMessageInvalidContextDirectory
 			return err
 		}
 	}
-	os.Setenv("SOURCE_SECRET_PATH", secretTmpDir)
+
 	return nil
 }
 
-func setupSourceSecret(sourceSecretName string, scmAuths []scmauth.SCMAuth) error {
-	fixSecretPermissions()
-	sourceSecretDir := os.Getenv("SOURCE_SECRET_PATH")
-	files, err := ioutil.ReadDir(sourceSecretDir)
+func (c *builderConfig) extractImageContent() error {
+	ctx := timing.NewContext(context.Background())
+	defer func() {
+		c.build.Status.Stages = timing.GetStages(ctx)
+		bld.HandleBuildStatusUpdate(c.build, c.buildsClient, nil)
+	}()
+
+	buildDir := buildutil.InputContentPath
+	return bld.ExtractImageContent(ctx, c.dockerClient, buildDir, c.build)
+}
+
+// execute is responsible for running a build
+func (c *builderConfig) execute(b builder) error {
+	cgLimits, err := bld.GetCGroupLimits()
+	if err != nil {
+		return fmt.Errorf("failed to retrieve cgroup limits: %v", err)
+	}
+	glog.V(4).Infof("Running build with cgroup limits: %#v", *cgLimits)
+
+	if err := b.Build(c.dockerClient, c.dockerEndpoint, c.buildsClient, c.build, cgLimits); err != nil {
+		return fmt.Errorf("build error: %v", err)
+	}
+
+	if c.build.Spec.Output.To == nil || len(c.build.Spec.Output.To.Name) == 0 {
+		fmt.Fprintf(c.out, "Build complete, no image push requested\n")
+	}
+
+	return nil
+}
+
+type dockerBuilder struct{}
+
+// Build starts a Docker build.
+func (dockerBuilder) Build(dockerClient bld.DockerClient, sock string, buildsClient buildclientv1.BuildInterface, build *buildapiv1.Build, cgLimits *s2iapi.CGroupLimits) error {
+	return bld.NewDockerBuilder(dockerClient, buildsClient, build, cgLimits).Build()
+}
+
+type s2iBuilder struct{}
+
+// Build starts an S2I build.
+func (s2iBuilder) Build(dockerClient bld.DockerClient, sock string, buildsClient buildclientv1.BuildInterface, build *buildapiv1.Build, cgLimits *s2iapi.CGroupLimits) error {
+	return bld.NewS2IBuilder(dockerClient, sock, buildsClient, build, cgLimits).Build()
+}
+
+func runBuild(out io.Writer, builder builder) error {
+	cfg, err := newBuilderConfigFromEnvironment(out, true)
 	if err != nil {
 		return err
 	}
-
-	// Filter the list of SCMAuths based on the secret files that are present
-	scmAuthsPresent := map[string]scmauth.SCMAuth{}
-	for _, file := range files {
-		glog.V(3).Infof("Finding auth for %q in secret %q", file.Name(), sourceSecretName)
-		for _, scmAuth := range scmAuths {
-			if scmAuth.Handles(file.Name()) {
-				glog.V(3).Infof("Found SCMAuth %q to handle %q", scmAuth.Name(), file.Name())
-				scmAuthsPresent[scmAuth.Name()] = scmAuth
-			}
-		}
-	}
-
-	if len(scmAuthsPresent) == 0 {
-		return fmt.Errorf("no auth handler was found for the provided secret %q",
-			sourceSecretName)
-	}
-
-	for name, auth := range scmAuthsPresent {
-		glog.V(3).Infof("Setting up SCMAuth %q", name)
-		if err := auth.Setup(sourceSecretDir); err != nil {
-			// If an error occurs during setup, fail the build
-			return fmt.Errorf("cannot set up source authentication method %q: %v", name, err)
-		}
-	}
-
-	return nil
-}
-
-func auths(sourceURL *url.URL) []scmauth.SCMAuth {
-	auths := []scmauth.SCMAuth{
-		&scmauth.SSHPrivateKey{},
-		&scmauth.UsernamePassword{SourceURL: *sourceURL},
-		&scmauth.CACert{SourceURL: *sourceURL},
-		&scmauth.GitConfig{},
-	}
-	return auths
+	return cfg.execute(builder)
 }
 
 // RunDockerBuild creates a docker builder and runs its build
-func RunDockerBuild() {
-	run(func(client bld.DockerClient, sock string, build *api.Build) builder {
-		return bld.NewDockerBuilder(client, build)
-	})
+func RunDockerBuild(out io.Writer) error {
+	return runBuild(out, dockerBuilder{})
 }
 
-// RunSTIBuild creates a STI builder and runs its build
-func RunSTIBuild() {
-	run(func(client bld.DockerClient, sock string, build *api.Build) builder {
-		return bld.NewSTIBuilder(client, sock, build)
-	})
+// RunS2IBuild creates a S2I builder and runs its build
+func RunS2IBuild(out io.Writer) error {
+	return runBuild(out, s2iBuilder{})
+}
+
+// RunGitClone performs a git clone using the build defined in the environment
+func RunGitClone(out io.Writer) error {
+	cfg, err := newBuilderConfigFromEnvironment(out, false)
+	if err != nil {
+		return err
+	}
+	return cfg.clone()
+}
+
+// RunManageDockerfile manipulates the dockerfile for docker builds.
+// It will write the inline dockerfile to the working directory (possibly
+// overwriting an existing dockerfile) and then update the dockerfile
+// in the working directory (accounting for contextdir+dockerfilepath)
+// with new FROM image information based on the imagestream/imagetrigger
+// and also adds some env and label values to the dockerfile based on
+// the build information.
+func RunManageDockerfile(out io.Writer) error {
+	cfg, err := newBuilderConfigFromEnvironment(out, false)
+	if err != nil {
+		return err
+	}
+	return bld.ManageDockerfile(buildutil.InputContentPath, cfg.build)
+}
+
+// RunExtractImageContent extracts files from existing images
+// into the build working directory.
+func RunExtractImageContent(out io.Writer) error {
+	cfg, err := newBuilderConfigFromEnvironment(out, true)
+	if err != nil {
+		return err
+	}
+	return cfg.extractImageContent()
 }

@@ -69,9 +69,9 @@ Name                                  | Type     | Target Namespace |
 [`display-name`](#display-name)       |   string | k8s.io
 [`description`](#description)         |   string | k8s.io
 [`expose-services`](#expose-services) | []string | openshift.io
-[`non-scale`](#non-scale)             |     bool | openshift.io
-[`min-cpu`](#min-cpu)                 |   string | openshift.io(?)
-[`min-memory`](#min-memory)           |   string | openshift.io(?)
+[`non-scale`](#non-scalable-post-30)             |     bool | openshift.io
+[`min-cpu`](#min-cpu-and-min-memory-post-30)     |   string | openshift.io(?)
+[`min-memory`](#min-cpu-and-min-memory-post-30)  |   string | openshift.io(?)
 
 
 ### `tags`

@@ -1,7 +1,6 @@
 [Unit]
 Description=Origin Node
 After=docker.service
-After=origin-master.service
 Wants=docker.service
 Documentation=https://github.com/openshift/origin
 
@@ -14,7 +13,8 @@ LimitNOFILE=65536
 LimitCORE=infinity
 WorkingDirectory=/var/lib/origin/
 SyslogIdentifier=origin-node
-Restart=Always
+Restart=always
+RestartSec=5s
 OOMScoreAdjust=-999
 
 [Install]

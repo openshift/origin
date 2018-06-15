@@ -7,13 +7,20 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"reflect"
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/spf13/cobra"
 
-	configapi "github.com/openshift/origin/pkg/cmd/server/api"
-	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
+	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
+	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
+
+	// install all APIs
+	_ "github.com/openshift/origin/pkg/api/install"
+	"k8s.io/apimachinery/pkg/util/wait"
+	_ "k8s.io/kubernetes/pkg/apis/core/install"
 )
 
 // this groups of methods force all the unit tests to share the same config directory
@@ -164,39 +171,14 @@ func TestCommandBindingEtcdDir(t *testing.T) {
 	}
 }
 
-// explicit start master never modifies the NodeList
-func TestCommandBindingNodesForMaster(t *testing.T) {
-	valueToSet := "first,second,third"
-	actualCfg := executeMasterCommand([]string{"master", "--nodes=" + valueToSet})
-
-	expectedArgs := NewDefaultMasterArgs()
-	expectedArgs.NodeList.Set(valueToSet)
-
-	if expectedArgs.NodeList.String() != actualCfg.NodeList.String() {
-		t.Errorf("expected %v, got %v", expectedArgs.NodeList, actualCfg.NodeList)
-	}
-}
-
-// explicit start master never modifies the NodeList
-func TestCommandBindingNodesDefaultingMaster(t *testing.T) {
-	actualCfg := executeMasterCommand([]string{"master"})
-
-	expectedArgs := NewDefaultMasterArgs()
-	expectedArgs.NodeList.Set("")
-
-	if expectedArgs.NodeList.String() != actualCfg.NodeList.String() {
-		t.Errorf("expected %v, got %v", expectedArgs.NodeList, actualCfg.NodeList)
-	}
-}
-
 func TestCommandBindingCors(t *testing.T) {
 	valueToSet := "first,second,third"
 	actualCfg := executeMasterCommand([]string{"--cors-allowed-origins=" + valueToSet})
 
 	expectedArgs := NewDefaultMasterArgs()
-	expectedArgs.CORSAllowedOrigins.Set(valueToSet)
+	expectedArgs.CORSAllowedOrigins = append(expectedArgs.CORSAllowedOrigins, strings.Split(valueToSet, ",")...)
 
-	if expectedArgs.CORSAllowedOrigins.String() != actualCfg.CORSAllowedOrigins.String() {
+	if !reflect.DeepEqual(expectedArgs.CORSAllowedOrigins, actualCfg.CORSAllowedOrigins) {
 		t.Errorf("expected %v, got %v", expectedArgs.CORSAllowedOrigins, actualCfg.CORSAllowedOrigins)
 	}
 }
@@ -217,7 +199,7 @@ func executeMasterCommand(args []string) *MasterArgs {
 		},
 	}
 
-	openshiftStartCommand, cfg := NewCommandStartMaster("openshift", os.Stdout)
+	openshiftStartCommand, cfg := NewCommandStartMaster("openshift", os.Stdout, os.Stderr)
 	root.AddCommand(openshiftStartCommand)
 	root.SetArgs(argsToUse)
 	root.Execute()
@@ -246,7 +228,7 @@ func executeAllInOneCommandWithConfigs(args []string) (*MasterArgs, *configapi.M
 		},
 	}
 
-	openshiftStartCommand, cfg := NewCommandStartAllInOne("openshift start", os.Stdout)
+	openshiftStartCommand, cfg := NewCommandStartAllInOne("openshift start", os.Stdout, os.Stderr, wait.NeverStop)
 	root.AddCommand(openshiftStartCommand)
 	root.SetArgs(argsToUse)
 	root.Execute()

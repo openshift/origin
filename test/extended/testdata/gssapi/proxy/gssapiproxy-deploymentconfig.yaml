@@ -1,0 +1,66 @@
+kind: "DeploymentConfig"
+apiVersion: "v1"
+metadata:
+  name: "gssapiproxy-server"
+  creationTimestamp: null
+spec:
+  strategy:
+    type: "Recreate"
+    resources: {}
+  triggers:
+    -
+      type: "ImageChange"
+      imageChangeParams:
+        automatic: true
+        containerNames:
+          - "gssapiproxy-server"
+        from:
+          kind: "ImageStreamTag"
+          name: "gssapiproxy:latest"
+        lastTriggeredImage: ""
+    -
+      type: "ConfigChange"
+  replicas: 1
+  selector:
+    name: "gssapiproxy-server"
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        name: "gssapiproxy-server"
+    spec:
+      containers:
+        -
+          name: "gssapiproxy-server"
+          image: "gssapiproxy"
+          ports:
+            -
+              containerPort: 80
+              protocol: "TCP"
+            -
+              containerPort: 443
+              protocol: "TCP"
+            -
+              containerPort: 88
+              protocol: "TCP"
+            -
+              containerPort: 88
+              protocol: "UDP"
+          resources: {}
+          terminationMessagePath: "/dev/termination-log"
+          imagePullPolicy: "IfNotPresent"
+          capabilities: {}
+          securityContext:
+            capabilities: {}
+            privileged: false
+            runAsUser: 0
+          readinessProbe:
+            httpGet:
+              path: "/healthz"
+              port: 80
+            initialDelaySeconds: 15
+            timeoutSeconds: 1
+      restartPolicy: "Always"
+      dnsPolicy: "ClusterFirst"
+      serviceAccount: ""
+status: {}

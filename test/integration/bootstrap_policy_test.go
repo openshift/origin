@@ -1,34 +1,27 @@
-// +build integration,etcd
-
 package integration
 
 import (
-	"io/ioutil"
 	"testing"
-	"time"
 
-	kapi "k8s.io/kubernetes/pkg/api"
-	kapierror "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
-	"k8s.io/kubernetes/pkg/util/sets"
-	"k8s.io/kubernetes/pkg/util/wait"
+	kapierror "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
-	"github.com/openshift/origin/pkg/client"
-	"github.com/openshift/origin/pkg/cmd/server/admin"
-	"github.com/openshift/origin/pkg/cmd/server/etcd"
-	"github.com/openshift/origin/pkg/cmd/server/origin"
-	"github.com/openshift/origin/pkg/cmd/util/tokencmd"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
+	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
+	"github.com/openshift/origin/pkg/oc/util/tokencmd"
+	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
 
 func TestBootstrapPolicyAuthenticatedUsersAgainstOpenshiftNamespace(t *testing.T) {
-	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
+	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	defer testserver.CleanupMasterEtcd(t, masterConfig)
 
 	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
 	if err != nil {
@@ -50,122 +43,59 @@ func TestBootstrapPolicyAuthenticatedUsersAgainstOpenshiftNamespace(t *testing.T
 	}
 
 	valerieClientConfig.BearerToken = accessToken
-	valerieOpenshiftClient, err := client.New(&valerieClientConfig)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	valerieTemplateClient := templateclient.NewForConfigOrDie(&valerieClientConfig).Template()
+	valerieImageClient := imageclient.NewForConfigOrDie(&valerieClientConfig).Image()
 
 	openshiftSharedResourcesNamespace := "openshift"
 
-	if _, err := valerieOpenshiftClient.Templates(openshiftSharedResourcesNamespace).List(labels.Everything(), fields.Everything()); err != nil {
+	if _, err := valerieTemplateClient.Templates(openshiftSharedResourcesNamespace).List(metav1.ListOptions{}); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	if _, err := valerieOpenshiftClient.Templates(kapi.NamespaceDefault).List(labels.Everything(), fields.Everything()); err == nil || !kapierror.IsForbidden(err) {
-		t.Errorf("unexpected error: %v", err)
-	}
-
-	if _, err := valerieOpenshiftClient.ImageStreams(openshiftSharedResourcesNamespace).List(labels.Everything(), fields.Everything()); err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-	if _, err := valerieOpenshiftClient.ImageStreams(kapi.NamespaceDefault).List(labels.Everything(), fields.Everything()); err == nil || !kapierror.IsForbidden(err) {
+	if _, err := valerieTemplateClient.Templates(metav1.NamespaceDefault).List(metav1.ListOptions{}); err == nil || !kapierror.IsForbidden(err) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	if _, err := valerieOpenshiftClient.ImageStreamTags(openshiftSharedResourcesNamespace).Get("name", "tag"); !kapierror.IsNotFound(err) {
+	if _, err := valerieImageClient.ImageStreams(openshiftSharedResourcesNamespace).List(metav1.ListOptions{}); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	if _, err := valerieOpenshiftClient.ImageStreamTags(kapi.NamespaceDefault).Get("name", "tag"); err == nil || !kapierror.IsForbidden(err) {
-		t.Errorf("unexpected error: %v", err)
-	}
-}
-
-func TestBootstrapPolicyOverwritePolicyCommand(t *testing.T) {
-	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMaster()
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	client, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
-	if err != nil {
+	if _, err := valerieImageClient.ImageStreams(metav1.NamespaceDefault).List(metav1.ListOptions{}); err == nil || !kapierror.IsForbidden(err) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	if err := client.ClusterPolicies().Delete(authorizationapi.PolicyName); err != nil {
+	if _, err := valerieImageClient.ImageStreamTags(openshiftSharedResourcesNamespace).Get("name:tag", metav1.GetOptions{}); !kapierror.IsNotFound(err) {
 		t.Errorf("unexpected error: %v", err)
 	}
-
-	// after the policy is deleted, we must wait for it to be cleared from the policy cache
-	err = wait.Poll(10*time.Millisecond, 10*time.Second, func() (bool, error) {
-		_, err := client.ClusterPolicies().List(labels.Everything(), fields.Everything())
-		if err == nil {
-			return false, nil
-		}
-		if !kapierror.IsForbidden(err) {
-			t.Errorf("unexpected error: %v", err)
-		}
-		return true, nil
-	})
-	if err != nil {
-		t.Errorf("timeout: %v", err)
-	}
-
-	etcdClient, err := etcd.GetAndTestEtcdClient(masterConfig.EtcdClientInfo)
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-
-	etcdHelper, err := origin.NewEtcdStorage(etcdClient, masterConfig.EtcdStorageConfig.OpenShiftStorageVersion, masterConfig.EtcdStorageConfig.OpenShiftStoragePrefix)
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-
-	if err := admin.OverwriteBootstrapPolicy(etcdHelper, masterConfig.PolicyConfig.BootstrapPolicyFile, admin.CreateBootstrapPolicyFileFullCommand, true, ioutil.Discard); err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-
-	if _, err := client.ClusterPolicies().List(labels.Everything(), fields.Everything()); err != nil {
+	if _, err := valerieImageClient.ImageStreamTags(metav1.NamespaceDefault).Get("name:tag", metav1.GetOptions{}); err == nil || !kapierror.IsForbidden(err) {
 		t.Errorf("unexpected error: %v", err)
 	}
 }
 
 func TestBootstrapPolicySelfSubjectAccessReviews(t *testing.T) {
-	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
+	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	defer testserver.CleanupMasterEtcd(t, masterConfig)
 
 	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	valerieClientConfig := *clusterAdminClientConfig
-	valerieClientConfig.Username = ""
-	valerieClientConfig.Password = ""
-	valerieClientConfig.BearerToken = ""
-	valerieClientConfig.CertFile = ""
-	valerieClientConfig.KeyFile = ""
-	valerieClientConfig.CertData = nil
-	valerieClientConfig.KeyData = nil
-
-	accessToken, err := tokencmd.RequestToken(&valerieClientConfig, nil, "valerie", "security!")
+	valerieKubeClient, valerieClientConfig, err := testutil.GetClientForUser(clusterAdminClientConfig, "valerie")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	valerieAuthorizationClient := authorizationclient.NewForConfigOrDie(valerieClientConfig).Authorization()
 
-	valerieClientConfig.BearerToken = accessToken
-	valerieOpenshiftClient, err := client.New(&valerieClientConfig)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	// can I get a subjectaccessreview on myself even if I have no rights to do it generally
 	askCanICreatePolicyBindings := &authorizationapi.LocalSubjectAccessReview{
-		Action: authorizationapi.AuthorizationAttributes{Verb: "create", Resource: "policybindings"},
+		Action: authorizationapi.Action{Verb: "create", Resource: "policybindings"},
 	}
 	subjectAccessReviewTest{
-		localInterface: valerieOpenshiftClient.LocalSubjectAccessReviews("openshift"),
-		localReview:    askCanICreatePolicyBindings,
+		description:       "can I get a subjectaccessreview on myself even if I have no rights to do it generally",
+		localInterface:    valerieAuthorizationClient.LocalSubjectAccessReviews("openshift"),
+		localReview:       askCanICreatePolicyBindings,
+		kubeAuthInterface: valerieKubeClient.Authorization(),
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   false,
 			Reason:    `User "valerie" cannot create policybindings in project "openshift"`,
@@ -173,40 +103,35 @@ func TestBootstrapPolicySelfSubjectAccessReviews(t *testing.T) {
 		},
 	}.run(t)
 
-	// I shouldn't be allowed to ask whether someone else can perform an action
 	askCanClusterAdminsCreateProject := &authorizationapi.LocalSubjectAccessReview{
 		Groups: sets.NewString("system:cluster-admins"),
-		Action: authorizationapi.AuthorizationAttributes{Verb: "create", Resource: "projects"},
+		Action: authorizationapi.Action{Verb: "create", Resource: "projects"},
 	}
 	subjectAccessReviewTest{
-		localInterface: valerieOpenshiftClient.LocalSubjectAccessReviews("openshift"),
-		localReview:    askCanClusterAdminsCreateProject,
-		err:            `User "valerie" cannot create localsubjectaccessreviews in project "openshift"`,
+		description:       "I shouldn't be allowed to ask whether someone else can perform an action",
+		localInterface:    valerieAuthorizationClient.LocalSubjectAccessReviews("openshift"),
+		localReview:       askCanClusterAdminsCreateProject,
+		kubeAuthInterface: valerieKubeClient.Authorization(),
+		kubeNamespace:     "openshift",
+		err:               `localsubjectaccessreviews.authorization.openshift.io is forbidden: User "valerie" cannot create localsubjectaccessreviews.authorization.openshift.io in the namespace "openshift"`,
+		kubeErr:           `localsubjectaccessreviews.authorization.k8s.io is forbidden: User "valerie" cannot create localsubjectaccessreviews.authorization.k8s.io in the namespace "openshift"`,
 	}.run(t)
 
 }
 
 func TestSelfSubjectAccessReviewsNonExistingNamespace(t *testing.T) {
-	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
+	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	defer testserver.CleanupMasterEtcd(t, masterConfig)
 
 	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	valerieClientConfig := *clusterAdminClientConfig
-	valerieClientConfig.Username = ""
-	valerieClientConfig.Password = ""
-	valerieClientConfig.BearerToken = ""
-	valerieClientConfig.CertFile = ""
-	valerieClientConfig.KeyFile = ""
-	valerieClientConfig.CertData = nil
-	valerieClientConfig.KeyData = nil
-
-	valerieOpenshiftClient, _, _, err := testutil.GetClientForUser(valerieClientConfig, "valerie")
+	valerieKubeClient, valerieClientConfig, err := testutil.GetClientForUser(clusterAdminClientConfig, "valerie")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -214,12 +139,13 @@ func TestSelfSubjectAccessReviewsNonExistingNamespace(t *testing.T) {
 	// ensure that a SAR for a non-exisitng namespace gives a SAR response and not a
 	// namespace doesn't exist response from admisison.
 	askCanICreatePodsInNonExistingNamespace := &authorizationapi.LocalSubjectAccessReview{
-		Action: authorizationapi.AuthorizationAttributes{Namespace: "foo", Verb: "create", Resource: "pods"},
+		Action: authorizationapi.Action{Namespace: "foo", Verb: "create", Resource: "pods"},
 	}
 	subjectAccessReviewTest{
-		description:    "ensure SAR for non-existing namespace does not leak namespace info",
-		localInterface: valerieOpenshiftClient.LocalSubjectAccessReviews("foo"),
-		localReview:    askCanICreatePodsInNonExistingNamespace,
+		description:       "ensure SAR for non-existing namespace does not leak namespace info",
+		localInterface:    authorizationclient.NewForConfigOrDie(valerieClientConfig).Authorization().LocalSubjectAccessReviews("foo"),
+		localReview:       askCanICreatePodsInNonExistingNamespace,
+		kubeAuthInterface: valerieKubeClient.Authorization(),
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   false,
 			Reason:    `User "valerie" cannot create pods in project "foo"`,

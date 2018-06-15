@@ -1,0 +1,149 @@
+apiVersion: v1
+items:
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    creationTimestamp: 2015-12-16T01:01:33Z
+    labels:
+      app: repo-base
+    name: repo-base
+    resourceVersion: "1154628"
+    selfLink: /oapi/v1/namespaces/repo/buildconfigs/repo-base
+    uid: 8c7335e2-a390-11e5-94ad-74d43587d03d
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: repo-base:latest
+    resources: {}
+    source:
+      contextDir: base
+      git:
+        uri: https://github.com/redacted/repo-docker
+      type: Git
+    strategy:
+      dockerStrategy:
+        from:
+          kind: ImageStreamTag
+          name: fedora:23
+      type: Docker
+    triggers:
+    - github:
+        secret: F2DrKO5Qh18YHLXGeMi6
+      type: GitHub
+    - generic:
+        secret: F825qjppaFbaH5C5wg1A
+      type: Generic
+    - type: ConfigChange
+    - imageChange:
+        lastTriggeredImageID: library/fedora@sha256:1ff6a16a751bff06dc5043c6e7a54c02a41f69c53ab1158fe6e379a3cc67439f
+      type: ImageChange
+  status:
+    lastVersion: 8
+- apiVersion: v1
+  kind: Build
+  metadata:
+    annotations:
+      openshift.io/build.number: "7"
+      openshift.io/build.pod-name: repo-base-7-build
+    creationTimestamp: 2015-12-17T01:58:20Z
+    labels:
+      app: repo-base
+      buildconfig: repo-base
+      openshift.io/build-config.name: repo-base
+    name: repo-base-7
+    resourceVersion: "1149556"
+    selfLink: /oapi/v1/namespaces/repo/builds/repo-base-7
+    uid: a5ac0818-a461-11e5-9268-74d43587d03d
+  spec:
+    output:
+      pushSecret:
+        name: builder-dockercfg-jmiml
+      to:
+        kind: ImageStreamTag
+        name: repo-base:latest
+    resources: {}
+    serviceAccount: builder
+    source:
+      contextDir: base
+      git:
+        uri: https://github.com/redacted/repo-docker
+      type: Git
+    strategy:
+      dockerStrategy:
+        env:
+        - name: BUILD_LOGLEVEL
+          value: "8"
+        from:
+          kind: DockerImage
+          name: library/fedora@sha256:1ff6a16a751bff06dc5043c6e7a54c02a41f69c53ab1158fe6e379a3cc67439f
+      type: Docker
+  status:
+    completionTimestamp: 2015-12-17T02:00:03Z
+    config:
+      kind: BuildConfig
+      name: repo-base
+    duration: 96000000000
+    outputDockerImageReference: 172.30.201.81:5000/repo/repo-base:latest
+    phase: Failed
+    startTimestamp: 2015-12-17T01:58:27Z
+- apiVersion: v1
+  kind: Build
+  metadata:
+    annotations:
+      openshift.io/build.number: "8"
+      openshift.io/build.pod-name: repo-base-8-build
+    creationTimestamp: 2015-12-17T14:36:15Z
+    labels:
+      app: repo-base
+      buildconfig: repo-base
+      openshift.io/build-config.name: repo-base
+    name: repo-base-8
+    resourceVersion: "1154645"
+    selfLink: /oapi/v1/namespaces/repo/builds/repo-base-8
+    uid: 8704b83b-a4cb-11e5-9268-74d43587d03d
+  spec:
+    output:
+      pushSecret:
+        name: builder-dockercfg-jmiml
+      to:
+        kind: ImageStreamTag
+        name: repo-base:latest
+    resources: {}
+    serviceAccount: builder
+    source:
+      contextDir: base
+      git:
+        uri: https://github.com/redacted/repo-docker
+      type: Git
+    strategy:
+      dockerStrategy:
+        from:
+          kind: DockerImage
+          name: library/fedora@sha256:1ff6a16a751bff06dc5043c6e7a54c02a41f69c53ab1158fe6e379a3cc67439f
+      type: Docker
+  status:
+    config:
+      kind: BuildConfig
+      name: repo-base
+    duration: 1000000000
+    outputDockerImageReference: 172.30.201.81:5000/repo/repo-base:latest
+    phase: Running
+    startTimestamp: 2015-12-17T14:36:24Z
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    annotations:
+      openshift.io/image.dockerRepositoryCheck: 2015-12-16T01:04:08Z
+    creationTimestamp: 2015-12-16T01:04:08Z
+    labels:
+      app: repo-base
+    name: repo-base
+    resourceVersion: "1139441"
+    selfLink: /oapi/v1/namespaces/repo/imagestreams/repo-base
+    uid: e8fde4ab-a390-11e5-94ad-74d43587d03d
+  spec: {}
+  status:
+    dockerImageRepository: 172.30.201.81:5000/repo/repo-base
+kind: List
+metadata: {}

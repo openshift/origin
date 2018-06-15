@@ -1,0 +1,73 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<project>
+    <actions/>
+    <description></description>
+    <keepDependencies>false</keepDependencies>
+    <scm class="hudson.scm.NullSCM"/>
+    <canRoam>true</canRoam>
+    <disabled>false</disabled>
+    <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
+    <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
+    <triggers/>
+    <concurrentBuild>false</concurrentBuild>
+    <builders>
+
+        <!-- 1 to 1 mapping -->
+        <com.openshift.jenkins.plugins.pipeline.OpenShiftImageTagger>
+            <apiURL>https://openshift.default.svc.cluster.local</apiURL>
+            <namespace>${PROJECT_NAME}</namespace>
+            <testStream>multitag</testStream>
+            <testTag>orig</testTag>
+            <prodStream>multitag</prodStream>
+            <prodTag>prod</prodTag>
+            <authToken></authToken>
+        </com.openshift.jenkins.plugins.pipeline.OpenShiftImageTagger>
+
+        <!-- 1 to N mapping -->
+        <com.openshift.jenkins.plugins.pipeline.OpenShiftImageTagger>
+            <apiURL>https://openshift.default.svc.cluster.local</apiURL>
+            <namespace>${PROJECT_NAME}</namespace>
+            <testStream>multitag</testStream>
+            <testTag>prod</testTag>
+            <prodStream>multitag</prodStream>
+            <prodTag>prod2,prod3,prod4</prodTag>
+            <authToken></authToken>
+        </com.openshift.jenkins.plugins.pipeline.OpenShiftImageTagger>
+
+        <!-- N to 1 mapping -->
+        <com.openshift.jenkins.plugins.pipeline.OpenShiftImageTagger>
+            <apiURL>https://openshift.default.svc.cluster.local</apiURL>
+            <namespace>${PROJECT_NAME}</namespace>
+            <testStream>multitag</testStream>
+            <testTag>prod4</testTag>
+            <prodStream>multitag, multitag2, multitag3</prodStream>
+            <prodTag>prod5</prodTag>
+            <authToken></authToken>
+        </com.openshift.jenkins.plugins.pipeline.OpenShiftImageTagger>
+
+        <!-- N to N tagging -->
+        <com.openshift.jenkins.plugins.pipeline.OpenShiftImageTagger>
+            <apiURL>https://openshift.default.svc.cluster.local</apiURL>
+            <namespace>${PROJECT_NAME}</namespace>
+            <testStream>multitag3</testStream>
+            <testTag>prod5</testTag>
+            <prodStream>multitag, multitag2, multitag3</prodStream>
+            <prodTag>prod6, prod7, prod8</prodTag>
+            <authToken></authToken>
+        </com.openshift.jenkins.plugins.pipeline.OpenShiftImageTagger>
+
+        <!-- N to N tagging with creation-->
+        <com.openshift.jenkins.plugins.pipeline.OpenShiftImageTagger>
+            <apiURL>https://openshift.default.svc.cluster.local</apiURL>
+            <namespace>${PROJECT_NAME}</namespace>
+            <testStream>multitag3</testStream>
+            <testTag>prod8</testTag>
+            <prodStream>multitag4, multitag5, multitag6</prodStream>
+            <prodTag>prod9, prod10, prod11</prodTag>
+            <authToken></authToken>
+        </com.openshift.jenkins.plugins.pipeline.OpenShiftImageTagger>
+
+    </builders>
+    <publishers/>
+    <buildWrappers/>
+</project>

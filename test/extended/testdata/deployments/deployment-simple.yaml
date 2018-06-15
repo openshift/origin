@@ -1,0 +1,29 @@
+apiVersion: apps.openshift.io/v1
+kind: DeploymentConfig
+metadata:
+  name: deployment-simple
+spec:
+  replicas: 1
+  selector:
+    name: deployment-simple
+  strategy:
+    type: Rolling
+    rollingParams:
+  template:
+    metadata:
+      labels:
+        name: deployment-simple
+    spec:
+      containers:
+      - image: "docker.io/centos:centos7"
+        imagePullPolicy: IfNotPresent
+        command:
+          - /bin/sleep
+          - infinity
+        name: myapp
+        readinessProbe:
+          exec:
+            command:
+            - uptime
+  triggers:
+  - type: ConfigChange

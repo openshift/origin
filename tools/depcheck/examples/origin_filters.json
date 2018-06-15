@@ -1,0 +1,4 @@
+[
+	"github.com/openshift/origin/pkg/api",
+	"github.com/openshift/origin/pkg/auth"
+]

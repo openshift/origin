@@ -1,0 +1,99 @@
+apiVersion: v1
+kind: List
+metadata: {}
+items:
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    name: idling-echo
+  spec:
+    replicas: 2
+    selector:
+      app: idling-echo
+      deploymentconfig: idling-echo
+    strategy:
+      type: Rolling
+    template:
+      metadata:
+        labels:
+          app: idling-echo
+          deploymentconfig: idling-echo
+      spec:
+        containers:
+        - image: openshift/origin-base
+          name: idling-tcp-echo
+          command:
+            - /usr/bin/socat
+            - TCP4-LISTEN:8675,reuseaddr,fork
+            - EXEC:'/bin/cat'
+          ports:
+          - containerPort: 8675
+            protocol: TCP
+        - image: openshift/origin-base
+          name: idling-udp-echo
+          command:
+            - /usr/bin/socat
+            - UDP4-LISTEN:3090,reuseaddr,fork
+            - EXEC:'/bin/cat'
+          ports:
+          - containerPort: 3090
+            protocol: UDP
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        securityContext: {}
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: idling-echo
+    labels:
+      app: idling-echo
+  spec:
+    selector:
+      app: idling-echo
+    ports:
+      - port: 8675
+        name: tcp-echo
+        protocol: TCP
+      - port: 3090
+        name: udp-echo
+        protocol: UDP
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: idling-echo
+  spec:
+    to:
+      kind: Service
+      name: idling-echo
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: idling-echo-reencrypt
+  spec:
+    tls:
+      termination: reencrypt
+      # the actual certificate here is not relevant, since we're not
+      # actually serving TLS
+      destinationCACertificate: |-
+        -----BEGIN CERTIFICATE-----
+        MIIDIjCCAgqgAwIBAgIBATANBgkqhkiG9w0BAQUFADCBoTELMAkGA1UEBhMCVVMx
+        CzAJBgNVBAgMAlNDMRUwEwYDVQQHDAxEZWZhdWx0IENpdHkxHDAaBgNVBAoME0Rl
+        ZmF1bHQgQ29tcGFueSBMdGQxEDAOBgNVBAsMB1Rlc3QgQ0ExGjAYBgNVBAMMEXd3
+        dy5leGFtcGxlY2EuY29tMSIwIAYJKoZIhvcNAQkBFhNleGFtcGxlQGV4YW1wbGUu
+        Y29tMB4XDTE1MDExMjE0MTk0MVoXDTE2MDExMjE0MTk0MVowfDEYMBYGA1UEAwwP
+        d3d3LmV4YW1wbGUuY29tMQswCQYDVQQIDAJTQzELMAkGA1UEBhMCVVMxIjAgBgkq
+        hkiG9w0BCQEWE2V4YW1wbGVAZXhhbXBsZS5jb20xEDAOBgNVBAoMB0V4YW1wbGUx
+        EDAOBgNVBAsMB0V4YW1wbGUwgZ8wDQYJKoZIhvcNAQEBBQADgY0AMIGJAoGBAMrv
+        gu6ZTTefNN7jjiZbS/xvQjyXjYMN7oVXv76jbX8gjMOmg9m0xoVZZFAE4XyQDuCm
+        47VRx5Qrf/YLXmB2VtCFvB0AhXr5zSeWzPwaAPrjA4ebG+LUo24ziS8KqNxrFs1M
+        mNrQUgZyQC6XIe1JHXc9t+JlL5UZyZQC1IfaJulDAgMBAAGjDTALMAkGA1UdEwQC
+        MAAwDQYJKoZIhvcNAQEFBQADggEBAFCi7ZlkMnESvzlZCvv82Pq6S46AAOTPXdFd
+        TMvrh12E1sdVALF1P1oYFJzG1EiZ5ezOx88fEDTW+Lxb9anw5/KJzwtWcfsupf1m
+        V7J0D3qKzw5C1wjzYHh9/Pz7B1D0KthQRATQCfNf8s6bbFLaw/dmiIUhHLtIH5Qc
+        yfrejTZbOSP77z8NOWir+BWWgIDDB2//3AkDIQvT20vmkZRhkqSdT7et4NmXOX/j
+        jhPti4b2Fie0LeuvgaOdKjCpQQNrYthZHXeVlOLRhMTSk3qUczenkKTOhvP7IS9q
+        +Dzv5hqgSfvMG392KWh5f8xXfJNs4W5KLbZyl901MeReiLrPH3w=
+        -----END CERTIFICATE-----
+    to:
+      kind: Service
+      name: idling-echo

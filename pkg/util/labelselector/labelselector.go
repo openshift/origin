@@ -1,30 +1,13 @@
-/*
-Copyright 2014 The Kubernetes Authors All rights reserved.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
 // labelselector is trim down version of k8s/pkg/labels/selector.go
 // It only accepts exact label matches
 // Example: "k1=v1, k2 = v2"
-
 package labelselector
 
 import (
 	"fmt"
 
-	"k8s.io/kubernetes/pkg/util/fielderrors"
-	kvalidation "k8s.io/kubernetes/pkg/util/validation"
+	kvalidation "k8s.io/apimachinery/pkg/util/validation"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 )
 
 // constants definition for lexer token
@@ -356,18 +339,18 @@ func Equals(labels1, labels2 map[string]string) bool {
 	return true
 }
 
-const qualifiedNameErrorMsg string = "must match regex [" + kvalidation.DNS1123SubdomainFmt + " / ] " + kvalidation.DNS1123LabelFmt
+const qualifiedNameErrorMsg string = "must match format [ DNS 1123 subdomain / ] DNS 1123 label"
 
 func validateLabelKey(k string) error {
-	if !kvalidation.IsQualifiedName(k) {
-		return fielderrors.NewFieldInvalid("label key", k, qualifiedNameErrorMsg)
+	if len(kvalidation.IsQualifiedName(k)) != 0 {
+		return field.Invalid(field.NewPath("label key"), k, qualifiedNameErrorMsg)
 	}
 	return nil
 }
 
 func validateLabelValue(v string) error {
-	if !kvalidation.IsValidLabelValue(v) {
-		return fielderrors.NewFieldInvalid("label value", v, qualifiedNameErrorMsg)
+	if len(kvalidation.IsValidLabelValue(v)) != 0 {
+		return field.Invalid(field.NewPath("label value"), v, qualifiedNameErrorMsg)
 	}
 	return nil
 }

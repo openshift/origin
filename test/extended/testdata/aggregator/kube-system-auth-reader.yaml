@@ -1,0 +1,14 @@
+apiVersion: authorization.openshift.io/v1
+kind: Role
+metadata:
+  name: extension-apiserver-authentication-reader
+  namespace: kube-system
+rules:
+- verbs:
+  - get
+  apiGroups:
+  - ""
+  resources:
+  - configmaps
+  resourceNames:
+  - extension-apiserver-authentication

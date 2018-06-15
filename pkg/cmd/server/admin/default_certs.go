@@ -5,15 +5,18 @@ import (
 	"path"
 	"time"
 
-	"k8s.io/kubernetes/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/sets"
 
-	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 )
 
 const (
 	CAFilePrefix     = "ca"
+	CABundlePrefix   = "ca-bundle"
 	MasterFilePrefix = "master"
+
+	FrontProxyCAFilePrefix = "frontproxy-ca"
 )
 
 type ClientCertInfo struct {
@@ -25,6 +28,14 @@ type ClientCertInfo struct {
 
 func DefaultSignerName() string {
 	return fmt.Sprintf("%s@%d", "openshift-signer", time.Now().Unix())
+}
+
+func DefaultCABundleFile(certDir string) string {
+	return DefaultCertFilename(certDir, CABundlePrefix)
+}
+
+func DefaultServiceServingCertSignerName() string {
+	return fmt.Sprintf("%s@%d", "openshift-service-serving-signer", time.Now().Unix())
 }
 
 func DefaultRootCAFile(certDir string) string {
@@ -39,6 +50,10 @@ func DefaultKubeletClientCerts(certDir string) []ClientCertInfo {
 	return []ClientCertInfo{
 		DefaultMasterKubeletClientCertInfo(certDir),
 	}
+}
+
+func DefaultFrontProxySignerName() string {
+	return fmt.Sprintf("%s@%d", "aggregator-proxy-ca", time.Now().Unix())
 }
 
 func DefaultMasterKubeletClientCertInfo(certDir string) ClientCertInfo {
@@ -95,32 +110,6 @@ func DefaultAPIClientCerts(certDir string) []ClientCertInfo {
 	return []ClientCertInfo{
 		DefaultOpenshiftLoopbackClientCertInfo(certDir),
 		DefaultClusterAdminClientCertInfo(certDir),
-		DefaultRouterClientCertInfo(certDir),
-		DefaultRegistryClientCertInfo(certDir),
-	}
-}
-
-func DefaultRouterClientCertInfo(certDir string) ClientCertInfo {
-	return ClientCertInfo{
-		CertLocation: configapi.CertInfo{
-			CertFile: DefaultCertFilename(certDir, bootstrappolicy.RouterUnqualifiedUsername),
-			KeyFile:  DefaultKeyFilename(certDir, bootstrappolicy.RouterUnqualifiedUsername),
-		},
-		UnqualifiedUser: bootstrappolicy.RouterUnqualifiedUsername,
-		User:            bootstrappolicy.RouterUsername,
-		Groups:          sets.NewString(bootstrappolicy.RouterGroup),
-	}
-}
-
-func DefaultRegistryClientCertInfo(certDir string) ClientCertInfo {
-	return ClientCertInfo{
-		CertLocation: configapi.CertInfo{
-			CertFile: DefaultCertFilename(certDir, bootstrappolicy.RegistryUnqualifiedUsername),
-			KeyFile:  DefaultKeyFilename(certDir, bootstrappolicy.RegistryUnqualifiedUsername),
-		},
-		UnqualifiedUser: bootstrappolicy.RegistryUnqualifiedUsername,
-		User:            bootstrappolicy.RegistryUsername,
-		Groups:          sets.NewString(bootstrappolicy.RegistryGroup),
 	}
 }
 
@@ -136,6 +125,18 @@ func DefaultOpenshiftLoopbackClientCertInfo(certDir string) ClientCertInfo {
 	}
 }
 
+func DefaultAggregatorClientCertInfo(certDir string) ClientCertInfo {
+	return ClientCertInfo{
+		CertLocation: configapi.CertInfo{
+			CertFile: DefaultCertFilename(certDir, bootstrappolicy.AggregatorUnqualifiedUsername),
+			KeyFile:  DefaultKeyFilename(certDir, bootstrappolicy.AggregatorUnqualifiedUsername),
+		},
+		UnqualifiedUser: bootstrappolicy.AggregatorUnqualifiedUsername,
+		User:            bootstrappolicy.AggregatorUsername,
+		Groups:          sets.String{},
+	}
+}
+
 func DefaultClusterAdminClientCertInfo(certDir string) ClientCertInfo {
 	return ClientCertInfo{
 		CertLocation: configapi.CertInfo{
@@ -144,14 +145,13 @@ func DefaultClusterAdminClientCertInfo(certDir string) ClientCertInfo {
 		},
 		UnqualifiedUser: "admin",
 		User:            "system:admin",
-		Groups:          sets.NewString(bootstrappolicy.ClusterAdminGroup),
+		Groups:          sets.NewString(bootstrappolicy.ClusterAdminGroup, bootstrappolicy.MastersGroup),
 	}
 }
 
 func DefaultServerCerts(certDir string) []configapi.CertInfo {
 	return []configapi.CertInfo{
 		DefaultMasterServingCertInfo(certDir),
-		DefaultAssetServingCertInfo(certDir),
 		DefaultEtcdServingCertInfo(certDir),
 	}
 }
@@ -161,11 +161,6 @@ func DefaultMasterServingCertInfo(certDir string) configapi.CertInfo {
 		CertFile: path.Join(certDir, MasterFilePrefix+".server.crt"),
 		KeyFile:  path.Join(certDir, MasterFilePrefix+".server.key"),
 	}
-}
-
-func DefaultAssetServingCertInfo(certDir string) configapi.CertInfo {
-	// Use master certs for assets also
-	return DefaultMasterServingCertInfo(certDir)
 }
 
 func DefaultEtcdServingCertInfo(certDir string) configapi.CertInfo {
@@ -200,6 +195,13 @@ func DefaultNodeClientCertInfo(nodeDir string) configapi.CertInfo {
 }
 func DefaultNodeKubeConfigFile(nodeDir string) string {
 	return path.Join(nodeDir, "node.kubeconfig")
+}
+
+func DefaultServiceSignerCAInfo(certDir string) configapi.CertInfo {
+	caInfo := configapi.CertInfo{}
+	caInfo.CertFile = DefaultCAFilename(certDir, "service-signer")
+	caInfo.KeyFile = DefaultKeyFilename(certDir, "service-signer")
+	return caInfo
 }
 
 func DefaultCAFilename(certDir, prefix string) string {

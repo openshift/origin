@@ -4,11 +4,16 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"mime"
 	"net/http"
 
 	"github.com/golang/glog"
 
-	"github.com/openshift/origin/pkg/build/api"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/util/yaml"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
+
+	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/build/webhook"
 )
 
@@ -21,74 +26,105 @@ func New() *WebHookPlugin {
 }
 
 // Extract services generic webhooks.
-func (p *WebHookPlugin) Extract(buildCfg *api.BuildConfig, secret, path string, req *http.Request) (revision *api.SourceRevision, proceed bool, err error) {
-	trigger, ok := webhook.FindTriggerPolicy(api.GenericWebHookBuildTriggerType, buildCfg)
-	if !ok {
-		err = webhook.ErrHookNotEnabled
-		return
-	}
-	glog.V(4).Infof("Checking if the provided secret for BuildConfig %s/%s matches", buildCfg.Namespace, buildCfg.Name)
-	if trigger.GenericWebHook.Secret != secret {
-		err = webhook.ErrSecretMismatch
-		return
-	}
+func (p *WebHookPlugin) Extract(buildCfg *buildapi.BuildConfig, trigger *buildapi.WebHookTrigger, req *http.Request) (revision *buildapi.SourceRevision, envvars []kapi.EnvVar, dockerStrategyOptions *buildapi.DockerStrategyOptions, proceed bool, err error) {
 	glog.V(4).Infof("Verifying build request for BuildConfig %s/%s", buildCfg.Namespace, buildCfg.Name)
 	if err = verifyRequest(req); err != nil {
-		return
+		return revision, envvars, dockerStrategyOptions, false, err
 	}
 
-	git := buildCfg.Spec.Source.Git
-	if git == nil {
-		glog.V(4).Infof("No source defined for BuildConfig %s/%s, but triggering anyway", buildCfg.Namespace, buildCfg.Name)
-		return nil, true, nil
-	}
-
-	if req.Body != nil && req.Header.Get("Content-Type") == "application/json" {
-		body, err := ioutil.ReadAll(req.Body)
+	contentType := req.Header.Get("Content-Type")
+	if len(contentType) != 0 {
+		contentType, _, err = mime.ParseMediaType(contentType)
 		if err != nil {
-			return nil, false, err
-		}
-		if len(body) == 0 {
-			return nil, true, nil
-		}
-		var data api.GenericWebHookEvent
-		if err = json.Unmarshal(body, &data); err != nil {
-			glog.V(4).Infof("Error unmarshaling json %v, but continuing", err)
-			return nil, true, nil
-		}
-		if data.Git == nil {
-			glog.V(4).Infof("No git information for the generic webhook found in %s/%s", buildCfg.Namespace, buildCfg.Name)
-			return nil, true, nil
-		}
-
-		if data.Git.Refs != nil {
-			for _, ref := range data.Git.Refs {
-				if webhook.GitRefMatches(ref.Ref, git.Ref) {
-					revision = &api.SourceRevision{
-						Type: api.BuildSourceGit,
-						Git:  &ref.GitSourceRevision,
-					}
-					return revision, true, nil
-				}
-			}
-			glog.V(2).Infof("Skipping build for BuildConfig %s/%s. None of the supplied refs matched %q", buildCfg.Namespace, buildCfg, git.Ref)
-			return nil, false, nil
-		}
-		if !webhook.GitRefMatches(data.Git.Ref, git.Ref) {
-			glog.V(2).Infof("Skipping build for BuildConfig %s/%s. Branch reference from %q does not match configuration", buildCfg.Namespace, buildCfg.Name, data.Git.Ref)
-			return nil, false, nil
-		}
-		revision = &api.SourceRevision{
-			Type: api.BuildSourceGit,
-			Git:  &data.Git.GitSourceRevision,
+			return revision, envvars, dockerStrategyOptions, false, errors.NewBadRequest(fmt.Sprintf("error parsing Content-Type: %s", err))
 		}
 	}
-	return revision, true, nil
+
+	if req.Body == nil {
+		return revision, envvars, dockerStrategyOptions, true, nil
+	}
+
+	if contentType != "application/json" && contentType != "application/yaml" {
+		warning := webhook.NewWarning("invalid Content-Type on payload, ignoring payload and continuing with build")
+		return revision, envvars, dockerStrategyOptions, true, warning
+	}
+
+	body, err := ioutil.ReadAll(req.Body)
+	if err != nil {
+		return revision, envvars, dockerStrategyOptions, false, errors.NewBadRequest(err.Error())
+	}
+
+	if len(body) == 0 {
+		return revision, envvars, dockerStrategyOptions, true, nil
+	}
+
+	var data buildapi.GenericWebHookEvent
+	if contentType == "application/yaml" {
+		body, err = yaml.ToJSON(body)
+		if err != nil {
+			warning := webhook.NewWarning(fmt.Sprintf("error converting payload to json: %v, ignoring payload and continuing with build", err))
+			return revision, envvars, dockerStrategyOptions, true, warning
+		}
+	}
+	if err = json.Unmarshal(body, &data); err != nil {
+		warning := webhook.NewWarning(fmt.Sprintf("error unmarshalling payload: %v, ignoring payload and continuing with build", err))
+		return revision, envvars, dockerStrategyOptions, true, warning
+	}
+	if len(data.Env) > 0 && trigger.AllowEnv {
+		envvars = data.Env
+	}
+	if data.DockerStrategyOptions != nil {
+		dockerStrategyOptions = data.DockerStrategyOptions
+	}
+	if buildCfg.Spec.Source.Git == nil {
+		// everything below here is specific to git-based builds
+		return revision, envvars, dockerStrategyOptions, true, nil
+	}
+	if data.Git == nil {
+		warning := webhook.NewWarning("no git information found in payload, ignoring and continuing with build")
+		return revision, envvars, dockerStrategyOptions, true, warning
+	}
+
+	if data.Git.Refs != nil {
+		for _, ref := range data.Git.Refs {
+			if webhook.GitRefMatches(ref.Ref, webhook.DefaultConfigRef, &buildCfg.Spec.Source) {
+				revision = &buildapi.SourceRevision{
+					Git: &ref.GitSourceRevision,
+				}
+				return revision, envvars, dockerStrategyOptions, true, nil
+			}
+		}
+		warning := webhook.NewWarning(fmt.Sprintf("skipping build. None of the supplied refs matched %q", buildCfg.Spec.Source.Git.Ref))
+		return revision, envvars, dockerStrategyOptions, false, warning
+	}
+	if !webhook.GitRefMatches(data.Git.Ref, webhook.DefaultConfigRef, &buildCfg.Spec.Source) {
+		warning := webhook.NewWarning(fmt.Sprintf("skipping build. Branch reference from %q does not match configuration", data.Git.Ref))
+		return revision, envvars, dockerStrategyOptions, false, warning
+	}
+	revision = &buildapi.SourceRevision{
+		Git: &data.Git.GitSourceRevision,
+	}
+	return revision, envvars, dockerStrategyOptions, true, nil
+}
+
+// GetTriggers retrieves the WebHookTriggers for this webhook type (if any)
+func (p *WebHookPlugin) GetTriggers(buildConfig *buildapi.BuildConfig) ([]*buildapi.WebHookTrigger, error) {
+	triggers := buildapi.FindTriggerPolicy(buildapi.GenericWebHookBuildTriggerType, buildConfig)
+	webhookTriggers := []*buildapi.WebHookTrigger{}
+	for _, trigger := range triggers {
+		if trigger.GenericWebHook != nil {
+			webhookTriggers = append(webhookTriggers, trigger.GenericWebHook)
+		}
+	}
+	if len(webhookTriggers) == 0 {
+		return nil, webhook.ErrHookNotEnabled
+	}
+	return webhookTriggers, nil
 }
 
 func verifyRequest(req *http.Request) error {
-	if method := req.Method; method != "POST" {
-		return fmt.Errorf("Unsupported HTTP method %s", method)
+	if req.Method != "POST" {
+		return webhook.MethodNotSupported
 	}
 	return nil
 }

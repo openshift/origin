@@ -1,22 +1,29 @@
 package deployer
 
 import (
+	"bytes"
 	"fmt"
 	"strconv"
 	"testing"
 
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	deployapi "github.com/openshift/origin/pkg/deploy/api"
-	deploytest "github.com/openshift/origin/pkg/deploy/api/test"
-	scalertest "github.com/openshift/origin/pkg/deploy/scaler/test"
-	"github.com/openshift/origin/pkg/deploy/strategy"
-	deployutil "github.com/openshift/origin/pkg/deploy/util"
+	appsv1 "github.com/openshift/api/apps/v1"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appstest "github.com/openshift/origin/pkg/apps/apis/apps/test"
+	"github.com/openshift/origin/pkg/apps/strategy"
+	appsutil "github.com/openshift/origin/pkg/apps/util"
+	cmdtest "github.com/openshift/origin/pkg/apps/util/test"
+
+	// install all APIs
+	_ "github.com/openshift/origin/pkg/api/install"
+	_ "k8s.io/kubernetes/pkg/apis/core/install"
 )
 
 func TestDeployer_getDeploymentFail(t *testing.T) {
 	deployer := &Deployer{
-		strategyFor: func(config *deployapi.DeploymentConfig) (strategy.DeploymentStrategy, error) {
+		strategyFor: func(config *appsapi.DeploymentConfig) (strategy.DeploymentStrategy, error) {
 			t.Fatal("unexpected call")
 			return nil, nil
 		},
@@ -27,7 +34,7 @@ func TestDeployer_getDeploymentFail(t *testing.T) {
 			t.Fatal("unexpected call")
 			return nil, nil
 		},
-		scaler: &scalertest.FakeScaler{},
+		scaler: &cmdtest.FakeScaler{},
 	}
 
 	err := deployer.Deploy("namespace", "name")
@@ -38,30 +45,30 @@ func TestDeployer_getDeploymentFail(t *testing.T) {
 }
 
 func TestDeployer_deployScenarios(t *testing.T) {
-	mkd := func(version int, status deployapi.DeploymentStatus, replicas int, desired int) *kapi.ReplicationController {
+	mkd := func(version int64, status appsapi.DeploymentStatus, replicas int32, desired int32) *kapi.ReplicationController {
 		deployment := mkdeployment(version, status)
-		deployment.Spec.Replicas = replicas
+		deployment.Spec.Replicas = int32(replicas)
 		if desired > 0 {
-			deployment.Annotations[deployapi.DesiredReplicasAnnotation] = strconv.Itoa(desired)
+			deployment.Annotations[appsapi.DesiredReplicasAnnotation] = strconv.Itoa(int(desired))
 		}
 		return deployment
 	}
 	type scaleEvent struct {
-		version int
-		size    int
+		version int64
+		size    int32
 	}
 	scenarios := []struct {
 		name        string
 		deployments []*kapi.ReplicationController
-		fromVersion int
-		toVersion   int
+		fromVersion int64
+		toVersion   int64
 		scaleEvents []scaleEvent
 	}{
 		{
 			"initial deployment",
 			// existing deployments
 			[]*kapi.ReplicationController{
-				mkd(1, deployapi.DeploymentStatusNew, 0, 3),
+				mkd(1, appsapi.DeploymentStatusNew, 0, 3),
 			},
 			// from and to version
 			0, 1,
@@ -72,9 +79,9 @@ func TestDeployer_deployScenarios(t *testing.T) {
 			"last deploy failed",
 			// existing deployments
 			[]*kapi.ReplicationController{
-				mkd(1, deployapi.DeploymentStatusComplete, 3, 0),
-				mkd(2, deployapi.DeploymentStatusFailed, 1, 3),
-				mkd(3, deployapi.DeploymentStatusNew, 0, 3),
+				mkd(1, appsapi.DeploymentStatusComplete, 3, 0),
+				mkd(2, appsapi.DeploymentStatusFailed, 1, 3),
+				mkd(3, appsapi.DeploymentStatusNew, 0, 3),
 			},
 			// from and to version
 			1, 3,
@@ -87,9 +94,9 @@ func TestDeployer_deployScenarios(t *testing.T) {
 			"sequential complete",
 			// existing deployments
 			[]*kapi.ReplicationController{
-				mkd(1, deployapi.DeploymentStatusComplete, 0, 0),
-				mkd(2, deployapi.DeploymentStatusComplete, 3, 0),
-				mkd(3, deployapi.DeploymentStatusNew, 0, 3),
+				mkd(1, appsapi.DeploymentStatusComplete, 0, 0),
+				mkd(2, appsapi.DeploymentStatusComplete, 3, 0),
+				mkd(3, appsapi.DeploymentStatusNew, 0, 3),
 			},
 			// from and to version
 			2, 3,
@@ -100,9 +107,9 @@ func TestDeployer_deployScenarios(t *testing.T) {
 			"sequential failure",
 			// existing deployments
 			[]*kapi.ReplicationController{
-				mkd(1, deployapi.DeploymentStatusFailed, 1, 3),
-				mkd(2, deployapi.DeploymentStatusFailed, 1, 3),
-				mkd(3, deployapi.DeploymentStatusNew, 0, 3),
+				mkd(1, appsapi.DeploymentStatusFailed, 1, 3),
+				mkd(2, appsapi.DeploymentStatusFailed, 1, 3),
+				mkd(3, appsapi.DeploymentStatusNew, 0, 3),
 			},
 			// from and to version
 			0, 3,
@@ -112,13 +119,26 @@ func TestDeployer_deployScenarios(t *testing.T) {
 				{2, 0},
 			},
 		},
+		{
+			"version mismatch",
+			// existing deployments
+			[]*kapi.ReplicationController{
+				mkd(1, appsapi.DeploymentStatusComplete, 0, 0),
+				mkd(2, appsapi.DeploymentStatusNew, 3, 0),
+				mkd(3, appsapi.DeploymentStatusComplete, 0, 3),
+			},
+			// from and to version
+			3, 2,
+			// expected scale events
+			[]scaleEvent{},
+		},
 	}
 
 	for _, s := range scenarios {
 		t.Logf("executing scenario %s", s.name)
-		findDeployment := func(version int) *kapi.ReplicationController {
+		findDeployment := func(version int64) *kapi.ReplicationController {
 			for _, d := range s.deployments {
-				if deployutil.DeploymentVersionFor(d) == version {
+				if appsutil.DeploymentVersionFor(d) == version {
 					return d
 				}
 			}
@@ -126,17 +146,19 @@ func TestDeployer_deployScenarios(t *testing.T) {
 		}
 
 		var actualFrom, actualTo *kapi.ReplicationController
-		var actualDesired int
+		var actualDesired int32
 		to := findDeployment(s.toVersion)
-		scaler := &scalertest.FakeScaler{}
+		scaler := &cmdtest.FakeScaler{}
 
 		deployer := &Deployer{
-			strategyFor: func(config *deployapi.DeploymentConfig) (strategy.DeploymentStrategy, error) {
+			out:    &bytes.Buffer{},
+			errOut: &bytes.Buffer{},
+			strategyFor: func(config *appsapi.DeploymentConfig) (strategy.DeploymentStrategy, error) {
 				return &testStrategy{
 					deployFunc: func(from *kapi.ReplicationController, to *kapi.ReplicationController, desiredReplicas int) error {
 						actualFrom = from
 						actualTo = to
-						actualDesired = desiredReplicas
+						actualDesired = int32(desiredReplicas)
 						return nil
 					},
 				}, nil
@@ -155,16 +177,22 @@ func TestDeployer_deployScenarios(t *testing.T) {
 		}
 
 		err := deployer.Deploy(to.Namespace, to.Name)
+		if s.toVersion < s.fromVersion {
+			if err == nil {
+				t.Fatalf("expected error when toVersion is older than newVersion")
+			}
+			continue
+		}
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
 		if s.fromVersion > 0 {
-			if e, a := s.fromVersion, deployutil.DeploymentVersionFor(actualFrom); e != a {
+			if e, a := s.fromVersion, appsutil.DeploymentVersionFor(actualFrom); e != a {
 				t.Fatalf("expected from.latestVersion %d, got %d", e, a)
 			}
 		}
-		if e, a := s.toVersion, deployutil.DeploymentVersionFor(actualTo); e != a {
+		if e, a := s.toVersion, appsutil.DeploymentVersionFor(actualTo); e != a {
 			t.Fatalf("expected to.latestVersion %d, got %d", e, a)
 		}
 		if e, a := len(s.scaleEvents), len(scaler.Events); e != a {
@@ -189,9 +217,9 @@ func TestDeployer_deployScenarios(t *testing.T) {
 	}
 }
 
-func mkdeployment(version int, status deployapi.DeploymentStatus) *kapi.ReplicationController {
-	deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(version), kapi.Codec)
-	deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(status)
+func mkdeployment(version int64, status appsapi.DeploymentStatus) *kapi.ReplicationController {
+	deployment, _ := appsutil.MakeDeployment(appstest.OkDeploymentConfig(version), legacyscheme.Codecs.LegacyCodec(appsv1.SchemeGroupVersion))
+	deployment.Annotations[appsapi.DeploymentStatusAnnotation] = string(status)
 	return deployment
 }
 

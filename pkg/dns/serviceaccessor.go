@@ -2,74 +2,84 @@ package dns
 
 import (
 	"fmt"
-	"time"
 
-	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/client/cache"
-	client "k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
-	"k8s.io/kubernetes/pkg/watch"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/watch"
+	restclient "k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/cache"
+	api "k8s.io/kubernetes/pkg/apis/core"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
+	kcoreinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion/core/internalversion"
+	kcorelisters "k8s.io/kubernetes/pkg/client/listers/core/internalversion"
 )
 
 // ServiceAccessor is the interface used by the ServiceResolver to access
 // services.
 type ServiceAccessor interface {
-	client.ServicesNamespacer
-	ServiceByPortalIP(ip string) (*api.Service, error)
+	HasSynced() bool
+	kcoreclient.ServicesGetter
+	ServiceByClusterIP(ip string) (*api.Service, error)
 }
 
 // cachedServiceAccessor provides a cache of services that can answer queries
 // about service lookups efficiently.
 type cachedServiceAccessor struct {
-	reflector *cache.Reflector
 	store     cache.Indexer
+	hasSynced func() bool
 }
 
 // cachedServiceAccessor implements ServiceAccessor
 var _ ServiceAccessor = &cachedServiceAccessor{}
 
 // NewCachedServiceAccessor returns a service accessor that can answer queries about services.
-// It uses a backing cache to make PortalIP lookups efficient.
-func NewCachedServiceAccessor(client *client.Client, stopCh <-chan struct{}) ServiceAccessor {
-	lw := cache.NewListWatchFromClient(client, "services", api.NamespaceAll, fields.Everything())
-	store := cache.NewIndexer(cache.MetaNamespaceKeyFunc, map[string]cache.IndexFunc{
-		"portalIP":  indexServiceByPortalIP, // for reverse lookups
-		"namespace": cache.MetaNamespaceIndexFunc,
+// It uses a backing cache to make ClusterIP lookups efficient.
+func NewCachedServiceAccessor(serviceInformer kcoreinformers.ServiceInformer) (ServiceAccessor, error) {
+	if _, found := serviceInformer.Informer().GetIndexer().GetIndexers()["namespace"]; !found {
+		err := serviceInformer.Informer().AddIndexers(cache.Indexers{
+			"namespace": cache.MetaNamespaceIndexFunc,
+		})
+		if err != nil {
+			return nil, err
+		}
+	}
+	err := serviceInformer.Informer().AddIndexers(cache.Indexers{
+		"clusterIP": indexServiceByClusterIP, // for reverse lookups
 	})
-	reflector := cache.NewReflector(lw, &api.Service{}, store, 2*time.Minute)
-	if stopCh != nil {
-		reflector.RunUntil(stopCh)
-	} else {
-		reflector.Run()
+	if err != nil {
+		return nil, err
 	}
 	return &cachedServiceAccessor{
-		reflector: reflector,
-		store:     store,
-	}
+		store:     serviceInformer.Informer().GetIndexer(),
+		hasSynced: serviceInformer.Informer().HasSynced,
+	}, nil
 }
 
-// ServiceByPortalIP returns the first service that matches the provided portalIP value.
+func (a *cachedServiceAccessor) HasSynced() bool {
+	return a.hasSynced()
+}
+
+// ServiceByClusterIP returns the first service that matches the provided clusterIP value.
 // errors.IsNotFound(err) will be true if no such service exists.
-func (a *cachedServiceAccessor) ServiceByPortalIP(ip string) (*api.Service, error) {
-	items, err := a.store.Index("portalIP", &api.Service{Spec: api.ServiceSpec{ClusterIP: ip}})
+func (a *cachedServiceAccessor) ServiceByClusterIP(ip string) (*api.Service, error) {
+	items, err := a.store.Index("clusterIP", &api.Service{Spec: api.ServiceSpec{ClusterIP: ip}})
 	if err != nil {
 		return nil, err
 	}
 	if len(items) == 0 {
-		return nil, errors.NewNotFound("service", "portalIP="+ip)
+		return nil, errors.NewNotFound(api.Resource("service"), "clusterIP="+ip)
 	}
 	return items[0].(*api.Service), nil
 }
 
-// indexServiceByPortalIP creates an index between a portalIP and the service that
+// indexServiceByClusterIP creates an index between a clusterIP and the service that
 // uses it.
-func indexServiceByPortalIP(obj interface{}) ([]string, error) {
+func indexServiceByClusterIP(obj interface{}) ([]string, error) {
 	return []string{obj.(*api.Service).Spec.ClusterIP}, nil
 }
 
-func (a *cachedServiceAccessor) Services(namespace string) client.ServiceInterface {
+func (a *cachedServiceAccessor) Services(namespace string) kcoreclient.ServiceInterface {
 	return cachedServiceNamespacer{a, namespace}
 }
 
@@ -79,24 +89,24 @@ type cachedServiceNamespacer struct {
 	namespace string
 }
 
-var _ client.ServiceInterface = cachedServiceNamespacer{}
+var _ kcoreclient.ServiceInterface = cachedServiceNamespacer{}
 
-func (a cachedServiceNamespacer) Get(name string) (*api.Service, error) {
-	item, ok, err := a.accessor.store.Get(&api.Service{ObjectMeta: api.ObjectMeta{Namespace: a.namespace, Name: name}})
+func (a cachedServiceNamespacer) Get(name string, options metav1.GetOptions) (*api.Service, error) {
+	item, ok, err := a.accessor.store.Get(&api.Service{ObjectMeta: metav1.ObjectMeta{Namespace: a.namespace, Name: name}})
 	if err != nil {
 		return nil, err
 	}
 	if !ok {
-		return nil, errors.NewNotFound("service", name)
+		return nil, errors.NewNotFound(api.Resource("service"), name)
 	}
 	return item.(*api.Service), nil
 }
 
-func (a cachedServiceNamespacer) List(label labels.Selector, field fields.Selector) (*api.ServiceList, error) {
-	if !label.Empty() {
+func (a cachedServiceNamespacer) List(options metav1.ListOptions) (*api.ServiceList, error) {
+	if len(options.LabelSelector) > 0 {
 		return nil, fmt.Errorf("label selection on the cache is not currently implemented")
 	}
-	items, err := a.accessor.store.Index("namespace", &api.Service{ObjectMeta: api.ObjectMeta{Namespace: a.namespace}})
+	items, err := a.accessor.store.Index("namespace", &api.Service{ObjectMeta: metav1.ObjectMeta{Namespace: a.namespace}})
 	if err != nil {
 		return nil, err
 	}
@@ -116,12 +126,122 @@ func (a cachedServiceNamespacer) Create(srv *api.Service) (*api.Service, error) 
 func (a cachedServiceNamespacer) Update(srv *api.Service) (*api.Service, error) {
 	return nil, fmt.Errorf("not implemented")
 }
-func (a cachedServiceNamespacer) Delete(name string) error {
-	return fmt.Errorf("not implemented")
-}
-func (a cachedServiceNamespacer) Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
+func (a cachedServiceNamespacer) UpdateStatus(srv *api.Service) (*api.Service, error) {
 	return nil, fmt.Errorf("not implemented")
 }
-func (a cachedServiceNamespacer) ProxyGet(name, path string, params map[string]string) client.ResponseWrapper {
+func (a cachedServiceNamespacer) Delete(name string, options *metav1.DeleteOptions) error {
+	return fmt.Errorf("not implemented")
+}
+func (a cachedServiceNamespacer) DeleteCollection(options *metav1.DeleteOptions, listOptions metav1.ListOptions) error {
+	return fmt.Errorf("not implemented")
+}
+func (a cachedServiceNamespacer) Watch(options metav1.ListOptions) (watch.Interface, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+func (a cachedServiceNamespacer) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (*api.Service, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+func (a cachedServiceNamespacer) ProxyGet(scheme, name, port, path string, params map[string]string) restclient.ResponseWrapper {
 	return nil
+}
+
+// EndpointsAccessor is the interface used by the ServiceResolver to access
+// endpoints.
+type EndpointsAccessor interface {
+	HasSynced() bool
+	kcorelisters.EndpointsLister
+	// EndpointsByHostnameIP retrieves the Endpoints object containing a hostname
+	// that resolves to IP. Only endpoint addresses with a hostname field will match.
+	// If this returns an error, the caller should indicate that this may be a
+	// deliberately ambiguous response (server decided not to support this call.
+	EndpointsByHostnameIP(ip string) ([]*api.Endpoints, error)
+}
+
+// cachedEndpointsAccessor provides a cache of services that can answer queries
+// about service lookups efficiently.
+type cachedEndpointsAccessor struct {
+	store cache.Indexer
+	kcorelisters.EndpointsLister
+	hasSynced func() bool
+}
+
+// cachedEndpointsAccessor implements EndpointsAccessor
+var _ EndpointsAccessor = &cachedEndpointsAccessor{}
+
+// NewCachedEndpointsAccessor returns a service accessor that can answer queries about services.
+// It uses a backing cache to make ClusterIP lookups efficient.
+func NewCachedEndpointsAccessor(endpointsInformer kcoreinformers.EndpointsInformer) (EndpointsAccessor, error) {
+	if _, found := endpointsInformer.Informer().GetIndexer().GetIndexers()["namespace"]; !found {
+		err := endpointsInformer.Informer().AddIndexers(cache.Indexers{
+			"namespace": cache.MetaNamespaceIndexFunc,
+		})
+		if err != nil {
+			return nil, err
+		}
+	}
+	err := endpointsInformer.Informer().AddIndexers(cache.Indexers{
+		"hostnameIP": indexEndpointsByAddressHostnameIP, // for reverse lookups
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &cachedEndpointsAccessor{
+		hasSynced:       endpointsInformer.Informer().HasSynced,
+		store:           endpointsInformer.Informer().GetIndexer(),
+		EndpointsLister: endpointsInformer.Lister(),
+	}, nil
+}
+
+// EndpointsByHostnameIP returns all endpoints with an address that matches the provided hostname
+// IP address (has an address containing that IP that also has a hostname set).
+func (a *cachedEndpointsAccessor) EndpointsByHostnameIP(ip string) ([]*api.Endpoints, error) {
+	items, err := a.store.ByIndex("hostnameIP", ip)
+	if err != nil {
+		return nil, err
+	}
+	var endpoints []*api.Endpoints
+	for _, item := range items {
+		endpoints = append(endpoints, item.(*api.Endpoints))
+	}
+	return endpoints, nil
+}
+
+func (a *cachedEndpointsAccessor) HasSynced() bool {
+	return a.hasSynced()
+}
+
+// indexEndpointsByAddressHostnameIP
+func indexEndpointsByAddressHostnameIP(obj interface{}) ([]string, error) {
+	var keys []string
+	ept := obj.(*api.Endpoints)
+	for i := range ept.Subsets {
+		subset := &ept.Subsets[i]
+		for j := range subset.Addresses {
+			address := &subset.Addresses[j]
+			if len(address.Hostname) > 0 {
+				keys = append(keys, address.IP)
+			}
+		}
+	}
+	return keys, nil
+}
+
+// SimpleEndpointsAccessor answers endpoint lookups but always returns an error for
+// EndpointsByHostnameIP.
+type SimpleEndpointsAccessor struct {
+	kcorelisters.EndpointsLister
+}
+
+// cachedEndpointsAccessor implements EndpointsAccessor
+var _ EndpointsAccessor = &SimpleEndpointsAccessor{}
+
+var errNotSupported = fmt.Errorf("hostname lookups not supported")
+
+// EndpointsByHostnameIP always returns an error.
+func (a SimpleEndpointsAccessor) EndpointsByHostnameIP(_ string) ([]*api.Endpoints, error) {
+	return nil, errNotSupported
+}
+
+func (a SimpleEndpointsAccessor) HasSynced() bool {
+	return true
 }

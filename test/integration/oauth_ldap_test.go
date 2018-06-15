@@ -1,21 +1,24 @@
-// +build integration,etcd
-
 package integration
 
 import (
+	"bytes"
 	"fmt"
+	"io/ioutil"
+	"os"
 	"reflect"
 	"testing"
 
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/pkg/runtime"
-	kutil "k8s.io/kubernetes/pkg/util"
-	"k8s.io/kubernetes/pkg/util/sets"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/uuid"
+	restclient "k8s.io/client-go/rest"
 
-	authapi "github.com/openshift/origin/pkg/auth/api"
-	"github.com/openshift/origin/pkg/client"
-	configapi "github.com/openshift/origin/pkg/cmd/server/api"
-	"github.com/openshift/origin/pkg/cmd/util/tokencmd"
+	"github.com/openshift/origin/pkg/cmd/server/admin"
+	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
+	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
+	authapi "github.com/openshift/origin/pkg/oauthserver/api"
+	"github.com/openshift/origin/pkg/oc/util/tokencmd"
+	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 
@@ -24,7 +27,7 @@ import (
 
 func TestOAuthLDAP(t *testing.T) {
 	var (
-		randomSuffix = string(kutil.NewUUID())
+		randomSuffix = string(uuid.NewUUID())
 
 		providerName = "myldapprovider"
 
@@ -81,27 +84,68 @@ func TestOAuthLDAP(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	defer testserver.CleanupMasterEtcd(t, masterOptions)
+
+	// Generate an encrypted file/keyfile to contain the bindPassword
+	bindPasswordFile, err := ioutil.TempFile("", "bindPassword")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	defer os.Remove(bindPasswordFile.Name())
+	bindPasswordKeyFile, err := ioutil.TempFile("", "bindPasswordKey")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	defer os.Remove(bindPasswordKeyFile.Name())
+	encryptOpts := &admin.EncryptOptions{
+		CleartextData: []byte(bindPassword),
+		EncryptedFile: bindPasswordFile.Name(),
+		GenKeyFile:    bindPasswordKeyFile.Name(),
+	}
+	if err := encryptOpts.Encrypt(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	masterOptions.OAuthConfig.IdentityProviders[0] = configapi.IdentityProvider{
 		Name:            providerName,
 		UseAsChallenger: true,
 		UseAsLogin:      true,
 		MappingMethod:   "claim",
-		Provider: runtime.EmbeddedObject{
-			Object: &configapi.LDAPPasswordIdentityProvider{
-				URL:          fmt.Sprintf("ldap://%s/%s?%s?%s?%s", ldapAddress, searchDN, searchAttr, searchScope, searchFilter),
-				BindDN:       bindDN,
-				BindPassword: bindPassword,
-				Insecure:     true,
-				CA:           "",
-				Attributes: configapi.LDAPAttributeMapping{
-					ID:                []string{idAttr1, idAttr2},
-					PreferredUsername: []string{loginAttr1, loginAttr2},
-					Name:              []string{nameAttr1, nameAttr2},
-					Email:             []string{emailAttr1, emailAttr2},
+		Provider: &configapi.LDAPPasswordIdentityProvider{
+			URL:    fmt.Sprintf("ldap://%s/%s?%s?%s?%s", ldapAddress, searchDN, searchAttr, searchScope, searchFilter),
+			BindDN: bindDN,
+			BindPassword: configapi.StringSource{
+				StringSourceSpec: configapi.StringSourceSpec{
+					File:    bindPasswordFile.Name(),
+					KeyFile: bindPasswordKeyFile.Name(),
 				},
 			},
+			Insecure: true,
+			CA:       "",
+			Attributes: configapi.LDAPAttributeMapping{
+				ID:                []string{idAttr1, idAttr2},
+				PreferredUsername: []string{loginAttr1, loginAttr2},
+				Name:              []string{nameAttr1, nameAttr2},
+				Email:             []string{emailAttr1, emailAttr2},
+			},
 		},
+	}
+
+	// serialize to YAML to make sure a complex StringSource survives a round-trip
+	serializedOptions, err := configapilatest.WriteYAML(masterOptions)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	// read back in
+	deserializedObject, err := configapilatest.ReadYAML(bytes.NewBuffer(serializedOptions))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	// assert type and proceed, using the deserialized version as our config
+	if deserializedOptions, ok := deserializedObject.(*configapi.MasterConfig); !ok {
+		t.Fatalf("unexpected object: %v", deserializedObject)
+	} else {
+		masterOptions = deserializedOptions
 	}
 
 	clusterAdminKubeConfig, err := testserver.StartConfiguredMaster(masterOptions)
@@ -113,13 +157,9 @@ func TestOAuthLDAP(t *testing.T) {
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
 
 	// Use the server and CA info
-	anonConfig := kclient.Config{}
+	anonConfig := restclient.Config{}
 	anonConfig.Host = clusterAdminClientConfig.Host
 	anonConfig.CAFile = clusterAdminClientConfig.CAFile
 	anonConfig.CAData = clusterAdminClientConfig.CAData
@@ -196,12 +236,8 @@ func TestOAuthLDAP(t *testing.T) {
 	// Make sure we can use the token, and it represents who we expect
 	userConfig := anonConfig
 	userConfig.BearerToken = accessToken
-	userClient, err := client.New(&userConfig)
-	if err != nil {
-		t.Fatalf("Unexpected error: %v", err)
-	}
 
-	user, err := userClient.Users().Get("~")
+	user, err := userclient.NewForConfigOrDie(&userConfig).Users().Get("~", metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -210,7 +246,7 @@ func TestOAuthLDAP(t *testing.T) {
 	}
 
 	// Make sure the identity got created and contained the mapped attributes
-	identity, err := clusterAdminClient.Identities().Get(fmt.Sprintf("%s:%s", providerName, myUserDN))
+	identity, err := userclient.NewForConfigOrDie(clusterAdminClientConfig).Identities().Get(fmt.Sprintf("%s:%s", providerName, myUserDN), metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}

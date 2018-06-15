@@ -1,0 +1,16 @@
+[Unit]
+Description=Setup for ovn-kubernetes master
+Requires=ovn-northd.service
+Requires=openshift-master.service
+After=ovn-northd.service
+After=openshift-master.service
+After=ovn-kubernetes-master-setup.service
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/ovn-kubernetes-master.sh
+
+[Install]
+WantedBy=openshift-master.service
+WantedBy=ovn-kubernetes-master-setup.service
+

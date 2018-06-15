@@ -1,0 +1,44 @@
+kind: List
+apiVersion: v1
+items:
+
+- kind: ImageStream
+  apiVersion: v1
+  metadata:
+    name: signer
+
+- kind: BuildConfig
+  apiVersion: v1
+  metadata:
+    name: signer
+  spec:
+    triggers:
+      - type: ConfigChange
+    source:
+      dockerfile: |
+        FROM openshift/origin-control-plane:latest
+        RUN yum-config-manager --disable origin-local-release ||:
+        RUN yum install -y skopeo && \
+            yum clean all && mkdir -p gnupg && chmod -R 0777 /var/lib/origin
+        RUN echo $'%echo Generating openpgp key ...\n\
+            Key-Type: DSA \n\
+            Key-Length: 1024 \n\
+            Subkey-Type: ELG-E \n\
+            Subkey-Length: 1024 \n\
+            Name-Real: Joe Tester \n\
+            Name-Comment: with stupid passphrase \n\
+            Name-Email: joe@foo.bar \n\
+            Expire-Date: 0 \n\
+            Creation-Date: 2017-01-01 \n\
+            %commit \n\
+            %echo done \n' >> dummy_key.conf
+    strategy:
+      type: Docker
+      dockerStrategy:
+        from:
+          kind: DockerImage
+          name: openshift/origin-control-plane:latest
+    output:
+      to:
+        kind: ImageStreamTag
+        name: signer:latest

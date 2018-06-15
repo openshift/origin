@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 
-	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/registry/service/allocator"
+	api "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/kubernetes/pkg/registry/core/service/allocator"
 
 	"github.com/openshift/origin/pkg/security/uid"
 )
@@ -43,7 +43,10 @@ func New(r *uid.Range, factory allocator.AllocatorFactory) *Allocator {
 
 // NewInMemory creates an in-memory Allocator
 func NewInMemory(r *uid.Range) *Allocator {
-	return New(r, allocator.NewContiguousAllocationInterface)
+	factory := func(max int, rangeSpec string) allocator.Interface {
+		return allocator.NewContiguousAllocationMap(max, rangeSpec)
+	}
+	return New(r, factory)
 }
 
 // Free returns the count of port left in the range.

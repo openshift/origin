@@ -1,0 +1,11 @@
+{
+    "version": "1.0",
+    "defaultValues": {
+        "DNS_DOMAIN": "cluster.local",
+        "ORIGIN_CONFIG_DIR": "/etc/origin",
+        "ORIGIN_DATA_DIR": "/var/lib/origin",
+        "KUBELET_DATA_DIR": "/var/lib/kubelet",
+        "DOCKER_SERVICE": "docker.service",
+        "ADDTL_MOUNTS": ""
+    }
+}

@@ -1,0 +1,11 @@
+[Unit]
+Description=Setup for CRI-O node
+Before=openshift-node.service
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/crio-node.sh
+
+[Install]
+WantedBy=openshift-node.service
+

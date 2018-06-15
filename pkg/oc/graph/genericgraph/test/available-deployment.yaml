@@ -1,0 +1,130 @@
+apiVersion: v1
+items:
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    name: example
+  spec:
+    replicas: 3
+    selector:
+      name: example
+    strategy:
+      type: Rolling
+    template:
+      metadata:
+        labels:
+          name: example
+      spec:
+        containers:
+        - command:
+          - /bin/sleep
+          - "100"
+          image: docker.io/centos:centos7
+          name: myapp
+    test: false
+    triggers:
+    - type: ConfigChange
+  status:
+    availableReplicas: 1
+    details:
+      causes:
+      - type: ConfigChange
+      message: config change
+    latestVersion: 2
+    replicas: 3
+    updatedReplicas: 2
+- apiVersion: v1
+  kind: ReplicationController
+  metadata:
+    annotations:
+      openshift.io/deployer-pod.name: example-1-deploy
+      openshift.io/deployment-config.latest-version: "1"
+      openshift.io/deployment-config.name: example
+      openshift.io/deployment.phase: Complete
+      openshift.io/deployment.replicas: "1"
+      openshift.io/deployment.status-reason: config change
+      openshift.io/encoded-deployment-config: |
+        {"kind":"DeploymentConfig","apiVersion":"v1","metadata":{"name":"example","namespace":"myproject","selfLink":"/oapi/v1/namespaces/myproject/deploymentconfigs/example","uid":"6d298d51-9486-11e6-b581-080027242396","resourceVersion":"1173","generation":2,"creationTimestamp":"2016-10-17T16:26:15Z"},"spec":{"strategy":{"type":"Rolling","rollingParams":{"updatePeriodSeconds":1,"intervalSeconds":1,"timeoutSeconds":600,"maxUnavailable":"25%","maxSurge":"25%","pre":{"failurePolicy":"Abort","execNewPod":{"command":["/bin/echo","test pre hook executed"],"containerName":"myapp"}}},"resources":{}},"triggers":[{"type":"ConfigChange"}],"replicas":1,"test":false,"selector":{"name":"example"},"template":{"metadata":{"creationTimestamp":null,"labels":{"name":"example"}},"spec":{"containers":[{"name":"myapp","image":"docker.io/centos:centos7","command":["/bin/sleep","100"],"resources":{},"terminationMessagePath":"/dev/termination-log","imagePullPolicy":"IfNotPresent"}],"restartPolicy":"Always","terminationGracePeriodSeconds":30,"dnsPolicy":"ClusterFirst","securityContext":{}}}},"status":{"latestVersion":1,"observedGeneration":1,"details":{"message":"config change","causes":[{"type":"ConfigChange"}]},"conditions":[{"type":"Available","status":"False","lastTransitionTime":"2016-10-17T16:26:15Z","message":"Deployment config does not have minimum availability."}]}}
+    creationTimestamp: 2016-04-07T04:11:25Z
+    generation: 2
+    labels:
+      openshift.io/deployment-config.name: example
+    name: example-1
+  spec:
+    replicas: 2
+    selector:
+      deployment: example-1
+      deploymentconfig: example
+      name: example
+    template:
+      metadata:
+        annotations:
+          openshift.io/deployment-config.latest-version: "1"
+          openshift.io/deployment-config.name: example
+          openshift.io/deployment.name: example-1
+        creationTimestamp: null
+        labels:
+          deployment: example-1
+          deploymentconfig: example
+          name: example
+      spec:
+        containers:
+        - command:
+          - /bin/sleep
+          - "100"
+          image: docker.io/centos:centos7
+          imagePullPolicy: IfNotPresent
+          name: myapp
+  status:
+    fullyLabeledReplicas: 2
+    observedGeneration: 2
+    readyReplicas: 1
+    replicas: 2
+- apiVersion: v1
+  kind: ReplicationController
+  metadata:
+    annotations:
+      openshift.io/deployer-pod.name: example-2-deploy
+      openshift.io/deployment-config.latest-version: "2"
+      openshift.io/deployment-config.name: example
+      openshift.io/deployment.phase: Running
+      openshift.io/deployment.replicas: "3"
+      openshift.io/deployment.status-reason: manual change
+      openshift.io/encoded-deployment-config: |
+        {"kind":"DeploymentConfig","apiVersion":"v1","metadata":{"name":"example","namespace":"myproject","selfLink":"/oapi/v1/namespaces/myproject/deploymentconfigs/example","uid":"6d298d51-9486-11e6-b581-080027242396","resourceVersion":"1314","generation":5,"creationTimestamp":"2016-10-17T16:26:15Z"},"spec":{"strategy":{"type":"Rolling","rollingParams":{"updatePeriodSeconds":1,"intervalSeconds":1,"timeoutSeconds":600,"maxUnavailable":"25%","maxSurge":"25%"},"resources":{}},"triggers":[{"type":"ConfigChange"}],"replicas":3,"test":false,"selector":{"name":"example"},"template":{"metadata":{"creationTimestamp":null,"labels":{"name":"example"}},"spec":{"containers":[{"name":"myapp","image":"docker.io/centos:centos7","command":["/bin/sleep","100"],"resources":{},"terminationMessagePath":"/dev/termination-log","imagePullPolicy":"IfNotPresent"}],"restartPolicy":"Always","terminationGracePeriodSeconds":30,"dnsPolicy":"ClusterFirst","securityContext":{}}}},"status":{"latestVersion":2,"observedGeneration":4,"replicas":3,"updatedReplicas":3,"availableReplicas":2,"unavailableReplicas":1,"details":{"message":"manual change","causes":[{"type":"Manual"}]},"conditions":[{"type":"Available","status":"False","lastTransitionTime":"2016-10-17T16:29:55Z","message":"Deployment config does not have minimum availability."},{"type":"Progressing","status":"True","lastTransitionTime":"2016-10-17T16:29:55Z","reason":"NewReplicationControllerAvailable","message":"Replication controller \"example-1\" has completed progressing"}]}}
+    creationTimestamp: 2016-04-07T04:11:55Z
+    generation: 4
+    labels:
+      openshift.io/deployment-config.name: example
+    name: example-2
+  spec:
+    replicas: 1
+    selector:
+      deployment: example-2
+      deploymentconfig: example
+      name: example
+    template:
+      metadata:
+        annotations:
+          openshift.io/deployment-config.latest-version: "2"
+          openshift.io/deployment-config.name: example
+          openshift.io/deployment.name: example-2
+        creationTimestamp: null
+        labels:
+          deployment: example-2
+          deploymentconfig: example
+          name: example
+      spec:
+        containers:
+        - command:
+          - /bin/sleep
+          - "100"
+          image: docker.io/centos:centos7
+          imagePullPolicy: IfNotPresent
+          name: myapp
+  status:
+    fullyLabeledReplicas: 1
+    readyReplicas: 0
+    replicas: 1
+kind: List
+metadata: {}

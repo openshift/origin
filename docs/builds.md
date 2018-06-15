@@ -29,11 +29,11 @@ Company Y wants to leverage OpenShift to build Docker images, but their Devops S
 
 ## Build Strategies
 
-The OpenShift build system provides extensible support for build strategies based on selectable types specified in the build API. By default, two strategies are supported: Docker builds, and [Source-To-Images (sti)](https://github.com/openshift/source-to-image#source-to-image-sti) builds.
+The OpenShift build system provides extensible support for build strategies based on selectable types specified in the build API. By default, two strategies are supported: Docker builds, and [Source-To-Images (s2i)](https://github.com/openshift/source-to-image#source-to-image-sti) builds.
 
 ### Docker Builds
 
-OpenShift supports Docker builds. Using this strategy, users may supply a URL to a Docker context which is used as the basis for a [Docker build](https://docs.docker.com/reference/commandline/cli/#build).
+OpenShift supports Docker builds. Using this strategy, users may supply a URL to a Docker context which is used as the basis for a [Docker build](https://docs.docker.com/engine/reference/commandline/build/).
 
 #### How It Works
 
@@ -72,16 +72,16 @@ In practice, however, there are (at present) some serious problems with the appr
 
 For these reasons, Docker-in-Docker is not considered a viable build strategy for a secure, multi-tenant production environment.
 
-### STI (Source-to-Image) Builds
+### S2I (Source-to-Image) Builds
 
-OpenShift also supports [Source-To-Images (sti)](https://github.com/openshift/source-to-image#source-to-image-sti) builds.
+OpenShift also supports [Source-To-Images (s2i)](https://github.com/openshift/source-to-image#source-to-image-sti) builds.
 
-Source-to-images (sti) is a tool for building reproducible Docker images. It produces ready-to-run images by injecting a user source into a docker image and assembling a new Docker image which incorporates the base image and built source, and is ready to use with `docker run`. STI supports incremental builds which re-use previously downloaded dependencies, previously built artifacts, etc.
+Source-to-images (s2i) is a tool for building reproducible Docker images. It produces ready-to-run images by injecting a user source into a docker image and assembling a new Docker image which incorporates the base image and built source, and is ready to use with `docker run`. S2I supports incremental builds which re-use previously downloaded dependencies, previously built artifacts, etc.
 
 ### Custom Builds
 
 The custom build strategy is very similar to *Docker build* strategy, but users might
-customize the builder image that will be used for build execution. The *Docker build* uses [openshift/docker-builder](https://registry.hub.docker.com/u/openshift/docker-builder/) image by default. Using your own builder image allows you to customize your build process.
+customize the builder image that will be used for build execution. The *Docker build* uses [openshift/origin-docker-builder](https://hub.docker.com/r/openshift/origin-docker-builder/) image by default. Using your own builder image allows you to customize your build process.
 
 An example JSON of a custom build strategy:
 
@@ -112,4 +112,3 @@ variables are passed to the build container:
 * `$SOURCE_URI` contains the URL to the source code repository
 * `$SOURCE_REF` contains the branch, tag or ref for source repository
 * `$DOCKER_SOCKET` contains full path to the Docker socket
-

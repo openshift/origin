@@ -1,0 +1,39 @@
+apiVersion: v1
+kind: DeploymentConfig
+metadata:
+  generateName: idling-echo-
+spec:
+  replicas: 2
+  selector:
+    app: idling-echo
+    deploymentconfig: idling-echo
+  strategy:
+    type: Rolling
+  template:
+    metadata:
+      labels:
+        app: idling-echo
+        deploymentconfig: idling-echo
+    spec:
+      containers:
+      - image: openshift/origin-base
+        name: idling-tcp-echo
+        command:
+          - /usr/bin/socat
+          - TCP4-LISTEN:8675,reuseaddr,fork
+          - EXEC:'/bin/cat'
+        ports:
+        - containerPort: 8675
+          protocol: TCP
+      - image: openshift/origin-base
+        name: idling-udp-echo
+        command:
+          - /usr/bin/socat
+          - UDP4-LISTEN:3090,reuseaddr,fork
+          - EXEC:'/bin/cat'
+        ports:
+        - containerPort: 3090
+          protocol: UDP
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      securityContext: {}

@@ -10,7 +10,7 @@ import (
 
 // urlPrefixes is the list of string prefix values that may indicate a URL
 // is present.
-var urlPrefixes = []string{"http://", "https://", "tcp://"}
+var urlPrefixes = []string{"http://", "https://", "tcp://", "unix://"}
 
 // Addr is a flag type that attempts to load a host, IP, host:port, or
 // URL value from a string argument. It tracks whether the value was set
@@ -55,6 +55,16 @@ func (a *Addr) String() string {
 	return a.URL.String()
 }
 
+// HostPort returns the host and port joined together. If no port is set :0 will
+// be appended.
+func (a *Addr) HostPort(defaultPort int) string {
+	port := a.Port
+	if port == 0 {
+		port = defaultPort
+	}
+	return net.JoinHostPort(a.Host, strconv.Itoa(port))
+}
+
 // Set attempts to set a string value to an address
 func (a *Addr) Set(value string) error {
 	scheme := a.DefaultScheme
@@ -77,7 +87,7 @@ func (a *Addr) Set(value string) error {
 		parsed.RawQuery = ""
 		parsed.Fragment = ""
 
-		if strings.Contains(parsed.Host, ":") {
+		if parsed.Scheme != "unix" && strings.Contains(parsed.Host, ":") {
 			host, port, err := net.SplitHostPort(parsed.Host)
 			if err != nil {
 				return fmt.Errorf("not a valid host:port: %v", err)
@@ -96,6 +106,8 @@ func (a *Addr) Set(value string) error {
 				port = 80
 			case "https":
 				port = 443
+			case "unix":
+				port = 0
 			default:
 				return fmt.Errorf("no port specified")
 			}
@@ -135,7 +147,11 @@ func (a *Addr) Set(value string) error {
 		a.Host = value
 		a.Port = port
 	}
-	addr.Host = net.JoinHostPort(a.Host, strconv.FormatInt(int64(a.Port), 10))
+	if a.Port > 0 {
+		addr.Host = net.JoinHostPort(a.Host, strconv.FormatInt(int64(a.Port), 10))
+	} else {
+		addr.Host = a.Host
+	}
 
 	if value != a.Value {
 		a.Provided = true

@@ -21,7 +21,7 @@ type SimpleReporter struct {
 func NewSimpleReporter() *SimpleReporter {
 	return &SimpleReporter{
 		Output:       os.Stdout,
-		stenographer: stenographer.New(!config.DefaultReporterConfig.NoColor),
+		stenographer: stenographer.New(!config.DefaultReporterConfig.NoColor, false),
 	}
 }
 

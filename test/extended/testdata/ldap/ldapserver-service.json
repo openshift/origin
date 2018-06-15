@@ -1,0 +1,27 @@
+{
+  "kind": "Service",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "openldap-server",
+    "creationTimestamp": null
+  },
+  "spec": {
+    "ports": [
+      {
+        "name": "ldap",
+        "protocol": "TCP",
+        "port": 389,
+        "targetPort": 389,
+        "nodePort": 0
+      }
+    ],
+    "selector": {
+      "name": "openldap-server"
+    },
+    "type": "ClusterIP",
+    "sessionAffinity": "None"
+  },
+  "status": {
+    "loadBalancer": {}
+  }
+}

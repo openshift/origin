@@ -1,6 +1,6 @@
 # OpenShift Command-Line Interface
 
-The `oc` command line tool is used to interact with the [OpenShift](http://openshift.github.io) and [Kubernetes](http://kubernetes.io/) HTTP API(s). `oc` is an alias for `openshift cli`.
+The `oc` command line tool is used to interact with the [OpenShift](https://www.openshift.org/) and [Kubernetes](http://kubernetes.io/) HTTP API(s). `oc` is an alias for `openshift cli`.
 
 `oc` is *verb focused*.
 The base verbs are *[get](#oc-get)*, *[create](#oc-create)*, *[delete](#oc-delete)*, *[replace](#oc-replace)*, and *[describe](#oc-describe)*.
@@ -17,7 +17,7 @@ Some verbs support the `-f` flag, which accepts regular file path, URL or `-` fo
 the standard input. For most actions, both JSON and YAML file formats are
 supported.
 
-Use `oc --help` for a full list of the verbs and subcommands available. A detailed list of examples for the most common verbs and subcommands is documented in the [oc by example](./generated/oc_by_example_content.adoc) and [oadm by example](./generated/oc_by_example_content.adoc) documents.
+Use `oc --help` for a full list of the verbs and subcommands available. A detailed list of examples for the most common verbs and subcommands is documented in the [oc by example](./generated/oc_by_example_content.adoc) and [oadm by example](./generated/oadm_by_example_content.adoc) documents.
 
 ## Common Flags
 
@@ -104,7 +104,7 @@ The options are:
 |`--code` *dir*                | Use source code in *dir*                           |
 |`--context-dir` *dir*         | Use *dir* as context dir in the build              |
 |`--docker-image` *image*      | Include Docker image *image* in the app            |
-|`--env` (`-e`) *k1=v1,...*    | Set env vars *k1...* to values *v1...*             |
+|`--env` (`-e`) *k=v*          | Set env var *k* to value *v*                       |
 |`--file` *filename*           | Use template in *filename*                         |
 |`--group` *comp1*`+`*comp2*   | Group together components *comp1* and *comp2*      |
 |`--image-stream` (`-i`) *is*  | Use imagestream *is* in the app                    |
@@ -115,7 +115,7 @@ The options are:
 |`--output-template` *s*       | Template string (`-o template`) or path (`-o templatefile`) |
 |`--output-version` *version*  | Output with *version* (default api-version)        |
 |`--output` (`-o`) *format*    | *format* is one of: `json`, `yaml`, `template`, `templatefile` |
-|`--param` (`-p`) *k1=v1,...*  | Set/override parameters *k1...* with *v1...*       |
+|`--param` (`-p`) *k=v*        | Set/override parameter *k* with value *v*          |
 |`--strategy` *s*              | Use build strategy *s*, one of: `docker`, `source` |
 |`--template` *t*              | Use OpenShift stored template *t* in the app       |
 
@@ -155,8 +155,26 @@ $ oc project
 ### oc start-build
 
 This manually starts a build, using either the specified buildConfig or a build name with the `--from-build` option.
-There is also the option of streaming
-the logs of the build if the `--follow` flag is specified.
+
+Other options:
+
+| Name       |  Description                                                                                             |
+|:-----------|:---------------------------------------------------------------------------------------------------------|
+|`--env`, *(-e)* FOO=bar | Explicitly set or override environment variable for the current build. Does not change the BuildConfig. |
+|`--build-loglevel` | Set or override the build log level output [0-10] during the build. |
+|`--commit`  | Specify the source code commit identifier the build should use; requires a build based on a Git repository. |
+|`--follow`  | Start a build and watch its logs until it completes or fails. |
+| `--wait` | Wait for a build to complete and exit with a non-zero return code if the build fails. |
+|`--from-build` | Specify the name of a build which should be re-run. |
+|`--from-dir` | A directory to archive and use as the binary input for a build. |
+|`--from-file` | A file use as the binary input for the build; example a pom.xml or Dockerfile. Will be the only file in the build source. |
+|`--from-repo` | The path to a local source code repository to use as the binary input for a build. |
+|`--from-webhook` | Specify a webhook URL for an existing build config to trigger. |
+| `--git-post-receive` | The contents of the post-receive hook to trigger a build. |
+| `--git-repository` | The path to the git repository for post-receive; defaults to the current directory. |
+| `--list-webhooks` | List the webhooks for the specified build config or build; accepts 'all', 'generic', or 'github'. |
+
+Stream the logs of the build if the `--follow` flag is specified.
 
 ```bash
 $ oc start-build ruby-sample-build
@@ -342,7 +360,7 @@ $ oc tag [--source=<sourcetype>] <source> <dest> [<dest> ...]
 For example:
 
 ```bash
-$ oc tag --source=docker openshift/origin:latest myproject/ruby:tip
+$ oc tag --source=docker openshift/origin-control-plane:latest myproject/ruby:tip
 ```
 
 ## Application Modification Commands
@@ -536,7 +554,7 @@ This forwards one or more local ports to a pod.
 The general form is:
 
 ```bash
-$ oc port-forward -p <pod> <forwarding-spec> [...]
+$ oc port-forward pod/<pod> <forwarding-spec> [...]
 ```
 
 where *forwarding-spec* is either a single port (integer), or a pair of ports separated by a colon `<outside>:<inside>`.
@@ -547,15 +565,15 @@ Some examples are:
 ```bash
 # Listen on ports 5000 and 6000 locally, forwarding data
 # to/from ports 5000 and 6000 in the pod.
-$ oc port-forward -p mypod 5000 6000
+$ oc port-forward pod/mypod 5000 6000
 
 # Listen on 8888 locally, forwarding to 5000 in the pod.
-$ oc port-forward -p mypod 8888:5000
+$ oc port-forward pod/mypod 8888:5000
 
 # Listen on a random port locally, forwarding to 5000 in the pod.
 # (These invocations are equivalent.)
-$ oc port-forward -p mypod :5000
-$ oc port-forward -p mypod 0:5000
+$ oc port-forward pod/mypod :5000
+$ oc port-forward pod/mypod 0:5000
 ```
 
 ### oc proxy
@@ -673,7 +691,7 @@ The options are:
 |`-f` *filename*        | Write to *filename* instead of standard output.  |
 |`--as-template` *name* | Output in template format with name *name*.      |
 |`--all-namespace`      | If present, list the requested object(s) across all namespaces. Namespace in current context is ignored even if specified with --namespace. |
-|`--exact`              | Preserve fields that may be cluster specific, such as service `portalIP`s or generated names. |
+|`--exact`              | Preserve fields that may be cluster specific, such as service `clusterIP`s or generated names. |
 |`--raw`                | Do not alter the resources in any way after they are loaded. |
 
 The following example exports all services to a template with name `test`.
@@ -719,8 +737,8 @@ $ oc config use-context my-context
 
 This displays information about the current session.
 If invoked without arguments, `oc whoami` displays the currently authenticated username.
-Flag `-t` (or `--token`) means to instead display the session token.
-Flag `-c` (or `--context`) means to instead display the user context name.
+Flag `-t` (or `--show-token`) means to instead display the session token.
+Flag `-c` (or `--show-context`) means to instead display the user context name.
 
 ```bash
 $ oc whoami -t

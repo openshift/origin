@@ -1,0 +1,18 @@
+kind: BuildConfig
+apiVersion: v1
+metadata:
+  name: statusfail-genericfailure
+spec:
+  source:
+    git:
+      uri: "https://github.com/openshift/ruby-ex"
+  strategy:
+    type: Source
+    sourceStrategy:
+      from:
+        kind: DockerImage
+        name: centos/ruby-23-centos7:latest
+      scripts: "http://example.org/scripts"
+      env:
+        - name: http_proxy
+          value: "http://%"

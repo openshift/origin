@@ -1,0 +1,209 @@
+package: github.com/openshift/origin
+excludeDirs:
+- openshift.local.config
+- openshift.local.etcd
+- openshift.local.volumes
+- openshift.local.clusterup
+import:
+# kube first
+- package: k8s.io/kube-openapi
+  version: 0f2f0396e266ad24afbd02375ba74c0dda1e3611
+- package: k8s.io/code-generator
+  repo:    https://github.com/openshift/kubernetes-code-generator.git
+  version: origin-3.10-kubernetes-1.10.2
+- package: k8s.io/apimachinery
+  repo:    https://github.com/openshift/kubernetes-apimachinery.git
+  version: origin-3.10-kubernetes-1.10.2
+- package: k8s.io/api
+  repo:    https://github.com/openshift/kubernetes-api.git
+  version: origin-3.10-kubernetes-1.10.2
+- package: k8s.io/client-go
+  repo:    https://github.com/openshift/kubernetes-client-go.git
+  version: origin-3.10-kubernetes-1.10.2
+- package: k8s.io/metrics
+  repo:    https://github.com/openshift/kubernetes-metrics.git
+  version: origin-3.10-kubernetes-1.10.2
+- package: k8s.io/apiserver
+  repo:    https://github.com/openshift/kubernetes-apiserver.git
+  version: origin-3.10-kubernetes-1.10.2
+- package: k8s.io/kube-aggregator
+  repo:    https://github.com/openshift/kube-aggregator.git
+  version: origin-3.10-kubernetes-1.10.2
+- package: k8s.io/apiextensions-apiserver
+  repo:    https://github.com/openshift/kubernetes-apiextensions-apiserver.git
+  version: origin-3.10-kubernetes-1.10.2
+- package: k8s.io/kubernetes
+  repo:    https://github.com/openshift/kubernetes.git
+  version: origin-3.10-kubernetes-1.10.2
+
+# openshift second
+- package: github.com/openshift/api
+  version: release-3.10
+- package: github.com/openshift/client-go
+  version: release-3.10
+- package: github.com/openshift/imagebuilder
+  version: master
+- package: github.com/openshift/library-go
+  version: release-3.10
+# master already branched for 3.11
+- package: github.com/openshift/service-serving-cert-signer
+  version: release-3.10
+# master already branched for 3.11
+- package: github.com/openshift/source-to-image
+  version: release-3.10
+
+# forks third
+# master
+- package: github.com/google/certificate-transparency
+  repo:    https://github.com/openshift/google-certificate-transparency.git
+  version: master
+# master
+- package: github.com/emicklei/go-restful-swagger12
+  repo:    https://github.com/openshift/emicklei-go-restful-swagger12
+  version: release-1.0.1
+# master
+- package: github.com/cloudflare/cfssl
+  repo:    https://github.com/openshift/cloudflare-cfssl
+  version: stable-20160905
+# master
+- package: github.com/skynetservices/skydns
+  repo:    https://github.com/openshift/skynetservices-skydns
+  version: release-2.5.3a
+# master
+- package: github.com/onsi/ginkgo
+  repo:    https://github.com/openshift/onsi-ginkgo.git
+  version: release-v1.2.0
+- package: github.com/containers/image
+  repo:    https://github.com/openshift/containers-image.git
+  version: openshift-3.8
+# pod - sjenning - from branch openshift-3.10-runc-595bea0
+- package: github.com/opencontainers/runc
+  repo:    https://github.com/openshift/opencontainers-runc.git
+  version: da78c1f1ff59f174e7307e9ff76e06308aefac4e
+# pod - sjenning
+- package: github.com/google/cadvisor
+  repo:    https://github.com/openshift/google-cadvisor.git
+  version: openshift-3.10-cadvisor-v0.29.1
+# cli
+- package: github.com/docker/distribution
+  repo:    https://github.com/openshift/docker-distribution.git
+  version: openshift-3.10-docker-edc3ab2
+# close-write carry
+- package: github.com/docker/docker
+  repo:    https://github.com/openshift/moby-moby.git
+  version: openshift-3.10-docker-b68221c
+
+# ours: shared with kube, but forced by openshift
+# master
+- package: k8s.io/gengo
+  version: 01a732e01d00cb9a81bb0ca050d3e6d2b947927b
+# master: etcd
+- package: github.com/coreos/etcd
+  repo:    https://github.com/openshift/coreos-etcd.git
+  version: origin-3.10-etcd-v3.2.16
+- package: google.golang.org/grpc
+  version: v1.7.5
+- package: github.com/grpc-ecosystem/grpc-gateway
+  version: v1.3.0
+- package: github.com/coreos/bbolt
+  version: 32c383e75ce054674c53b5a07e55de85332aee14
+# master: don't print ugly
+- package: github.com/golang/glog
+  version: 44145f04b68cf362d9c4df2182967c2275eaefed
+# cli
+- package: github.com/gonum/blas
+  version: 37e82626499e1df7c54aeaba0959fd6e7e8dc1e4
+# cli
+- package: github.com/gonum/floats
+  version: f74b330d45c56584a6ea7a27f5c64ea2900631e9
+# cli
+- package: github.com/gonum/graph
+  version: bde6d0fbd9dec5a997e906611fe0364001364c41
+# cli
+- package: github.com/gonum/internal
+  version: e57e4534cf9b3b00ef6c0175f59d8d2d34f60914
+# cli
+- package: github.com/gonum/lapack
+  version: 5ed4b826becd1807e09377508f51756586d1a98c
+# cli
+- package: github.com/gonum/matrix
+  version: dd6034299e4242c9f0ea36735e6d4264dfcb3f9f
+# networking
+- package: github.com/vishvananda/netlink
+  version: 933b978eae8c18daa1077a0eb7186b689cd9f82d
+# because of genapidocs.  This is the current kube level
+- package: github.com/go-openapi/loads
+  version: a80dea3052f00e5f032e860dd7355cd0cc67e24d
+# retrieve latest version that fixes deadlock on kqueue
+- package: github.com/fsnotify/fsnotify
+  version: v1.4.7
+
+# mine: specific to openshift
+# master
+- package: github.com/ugorji/go
+  version: ded73eae5db7e7a0ef6f55aace87a2873c5d2b74
+# networking
+- package: github.com/containernetworking/plugins
+  version: ~0.6.0
+# builds
+- package: github.com/fsouza/go-dockerclient
+  repo:    https://github.com/openshift/go-dockerclient.git
+  version: openshift-3.9
+# auth (for testing)
+- package: github.com/vjeantet/ldapserver
+  version: v1.0
+# master
+- package: github.com/getsentry/raven-go
+  version: 32a13797442ccb601b11761d74232773c1402d14
+# auth (for sally)
+- package: github.com/RangelReale/osin
+  version: 2dc1b43167692cdc89446b99b98fa9de6bff020f
+# auth (for sally)
+- package: github.com/RangelReale/osincli
+  version: fababb0555f21315d1a34af6615a16eaab44396b
+# auth (for sally)
+- package: github.com/gorilla/sessions
+  version: a3acf13e802c358d65f249324d14ed24aac11370
+# new-app
+- package: github.com/joho/godotenv
+  version: 6d367c18edf6ca7fd004efd6863e4c5728fa858e
+# dev-ex (template service broker)
+- package: github.com/lestrrat/go-jspointer
+  version: f4881e611bdbe9fb413a7780721ef8400a1f2341
+# dev-ex (template service broker)
+- package: github.com/lestrrat/go-jsref
+  version: 50df7b2d07d799426a9ac43fa24bdb4785f72a54
+# dev-ex (template service broker)
+- package: github.com/lestrrat/go-jsschema
+  version: a6a42341b50d8d7e2a733db922eefaa756321021
+# master? for bindata
+- package: github.com/jteeuwen/go-bindata
+  version: a0ff2567cfb70903282db057e799fd826784d41d
+# router metrics
+- package: github.com/cockroachdb/cmux
+  version: b64f5908f4945f4b11ed4a0a9d3cc1e23350866d
+# keep us up to date with latest DNS security fixes
+- package: github.com/miekg/dns
+  version: ~v1
+# etcd pins a very old version that has contention issues
+- package: github.com/google/btree
+  version: master
+
+# why do we have this?
+- package: google.golang.org/appengine
+  version: 12d5545dc1cfa6047a286d5e853841b6471f4c19
+
+# to avoid go4.org website outages on glide update
+- package: go4.org
+  repo: https://github.com/go4org/go4
+  version: 03efcb870d84809319ea509714dd6d19a1498483
+  subpackages:
+  - errorutil
+
+# force glide to pull this in
+- package: github.com/google/uuid
+
+# yours that I suspect aren't pinning because vendor.conf is respected
+# yours: containers/image.  No idea why this isn't self-pinning.
+- package: github.com/containers/storage
+  version: 47536c89fcc545a87745e1a1573addc439409165

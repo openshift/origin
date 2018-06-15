@@ -1,0 +1,5 @@
+[origin-local-release]
+name = OpenShift Origin Release from Local Source
+baseurl = file:///srv/origin-local-release/
+gpgcheck = 0
+enabled = 0

@@ -1,0 +1,106 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+parameters:
+- name: IMAGE
+  value: openshift/origin-hypershift:latest
+- name: OPENSHIFT_PULL_POLICY
+  value: Always
+- name: NAMESPACE
+  # This namespace must not be changed.
+  value: openshift-core-operators
+- name: LOGLEVEL
+  value: "0"
+- name: COMPONENT_LOGLEVEL
+  value: "0"
+- name: COMPONENT_IMAGE
+  value: openshift/origin-web-console:latest
+- name: NODE_SELECTOR
+  value: "{}"
+objects:
+
+- apiVersion: apiextensions.k8s.io/v1beta1
+  kind: CustomResourceDefinition
+  metadata:
+    name: openshiftwebconsoleconfigs.webconsole.operator.openshift.io
+  spec:
+    scope: Cluster
+    group: webconsole.operator.openshift.io
+    version: v1alpha1
+    names:
+      kind: OpenShiftWebConsoleConfig
+      plural: openshiftwebconsoleconfigs
+      singular: openshiftwebconsoleconfig
+    subresources:
+      status: {}
+
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    namespace: openshift-core-operators
+    name: openshift-web-console-operator-config
+  data:
+    operator-config.yaml: |
+      apiVersion: operator.openshift.io/v1alpha1
+      kind: GenericOperatorConfig
+
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    namespace: ${NAMESPACE}
+    name: openshift-web-console-operator
+    labels:
+      app: openshift-web-console-operator
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: openshift-web-console-operator
+    template:
+      metadata:
+        name: openshift-web-console-operator
+        labels:
+          app: openshift-web-console-operator
+      spec:
+        serviceAccountName: openshift-web-console-operator
+        containers:
+        - name: operator
+          image: ${IMAGE}
+          imagePullPolicy: ${OPENSHIFT_PULL_POLICY}
+          command: ["hypershift", "experimental", "openshift-webconsole-operator"]
+          args:
+          - "--config=/var/run/configmaps/config/operator-config.yaml"
+          - "-v=${LOGLEVEL}"
+          volumeMounts:
+          - mountPath: /var/run/configmaps/config
+            name: config
+        nodeSelector: "${{NODE_SELECTOR}}"
+        volumes:
+        - name: serving-cert
+          secret:
+            defaultMode: 400
+            secretName: openshift-web-console-operator-serving-cert
+            optional: true
+        - name: config
+          configMap:
+            defaultMode: 440
+            name: openshift-web-console-operator-config
+
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    namespace: ${NAMESPACE}
+    name: openshift-web-console-operator
+    labels:
+      app: openshift-web-console-operator
+
+- apiVersion: webconsole.operator.openshift.io/v1alpha1
+  kind: OpenShiftWebConsoleConfig
+  metadata:
+    name: instance
+  spec:
+    managementState: Managed
+    imagePullSpec: ${COMPONENT_IMAGE}
+    version: 3.10.0
+    logging:
+      level: ${{COMPONENT_LOGLEVEL}}
+    replicas: 1

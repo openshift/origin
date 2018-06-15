@@ -1,0 +1,193 @@
+apiVersion: v1
+items:
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    annotations:
+      kubernetes.io/created-by: '{"kind":"SerializedReference","apiVersion":"v1","reference":{"kind":"ReplicationController","namespace":"example","name":"frontend-app-1","uid":"666e12d7-2996-11e5-b9e2-28d2447dc82b","apiVersion":"v1","resourceVersion":"32416"}}'
+      openshift.io/scc: restricted
+    creationTimestamp: 2015-07-13T19:36:04Z
+    generateName: frontend-app-1-
+    labels:
+      deconflict: frontend.app
+      name: frontend
+      template: ruby-helloworld-sample
+    name: frontend-app-1-bjwh8
+    namespace: example
+    resourceVersion: "32467"
+    selfLink: /api/v1/namespaces/example/pods/frontend-app-1-bjwh8
+    uid: 669a3b5d-2996-11e5-b9e2-28d2447dc82b
+  spec:
+    containers:
+    - name: container2
+    - name: container3
+    - env:
+      - name: ADMIN_USERNAME
+        value: admin6TM
+      - name: ADMIN_PASSWORD
+        value: xImx1tHR
+      - name: MYSQL_ROOT_PASSWORD
+        value: rQHfVnTo
+      - name: MYSQL_DATABASE
+        value: root
+      image: openshift/ruby-hello-world
+      imagePullPolicy: IfNotPresent
+      name: ruby-helloworld
+      ports:
+      - containerPort: 8080
+        protocol: TCP
+      resources: {}
+      securityContext:
+        capabilities: {}
+        privileged: false
+        runAsUser: 1000060000
+        seLinuxOptions:
+          level: s0:c8,c2
+      terminationMessagePath: /dev/termination-log
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: default-token-mmv27
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    host: deads-dev-01
+    imagePullSecrets:
+    - name: default-dockercfg-yr2e3
+    nodeName: deads-dev-01
+    restartPolicy: Always
+    serviceAccount: default
+    serviceAccountName: default
+    volumes:
+    - name: default-token-mmv27
+      secret:
+        secretName: default-token-mmv27
+  status:
+    conditions:
+    - status: "False"
+      type: Ready
+    containerStatuses:
+    - name: container2
+      restartCount: 1
+      lastState:
+        terminated:
+          finishedAt: 2015-07-13T19:36:05Z
+    - name: container3
+      restartCount: 8
+      state:
+        waiting:
+          reason: CrashLoopBackOff
+    - image: openshift/ruby-hello-world
+      imageID: ""
+      lastState: {}
+      name: ruby-helloworld
+      ready: false
+      restartCount: 8
+      state:
+        waiting:
+          reason: 'Image: openshift/ruby-hello-world is not ready on the node'
+    phase: Pending
+    startTime: 2015-07-13T19:36:05Z
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    annotations:
+      kubernetes.io/created-by: |
+        {"kind":"SerializedReference","apiVersion":"v1","reference":{"kind":"ReplicationController","namespace":"default","name":"gitlab-ce-1","uid":"f74e7dce-c6ad-11e5-9bbb-080027c5bfa9","apiVersion":"v1","resourceVersion":"120461"}}
+      openshift.io/deployment-config.latest-version: "1"
+      openshift.io/deployment-config.name: gitlab-ce
+      openshift.io/deployment.name: gitlab-ce-1
+      openshift.io/generated-by: OpenShiftNewApp
+      openshift.io/scc: restricted
+    creationTimestamp: 2016-01-29T17:30:21Z
+    generateName: gitlab-ce-1-
+    labels:
+      app: gitlab-ce
+      deployment: gitlab-ce-1
+      deploymentconfig: gitlab-ce
+    name: gitlab-ce-1-lc411
+    namespace: example
+    resourceVersion: "120976"
+    selfLink: /api/v1/namespaces/default/pods/gitlab-ce-1-lc411
+    uid: f9326429-c6ad-11e5-9bbb-080027c5bfa9
+  spec:
+    containers:
+    - image: gitlab/gitlab-ce@sha256:9ca5330d8081e27dfc6d6aca0fa0fcf3d02519f0c8ca1267e143b25326a63449
+      imagePullPolicy: IfNotPresent
+      name: gitlab-ce
+      ports:
+      - containerPort: 22
+        protocol: TCP
+      - containerPort: 80
+        protocol: TCP
+      - containerPort: 443
+        protocol: TCP
+      resources: {}
+      securityContext:
+        privileged: false
+        runAsUser: 1000000000
+        seLinuxOptions:
+          level: s0:c1,c0
+      terminationMessagePath: /dev/termination-log
+      volumeMounts:
+      - mountPath: /var/opt/gitlab
+        name: gitlab-ce-volume-1
+      - mountPath: /etc/gitlab
+        name: gitlab-ce-volume-2
+      - mountPath: /var/log/gitlab
+        name: gitlab-ce-volume-3
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: default-token-esybu
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    host: openshiftdev.local
+    imagePullSecrets:
+    - name: default-dockercfg-x4mac
+    nodeName: openshiftdev.local
+    restartPolicy: Always
+    securityContext:
+      seLinuxOptions:
+        level: s0:c1,c0
+    serviceAccount: default
+    serviceAccountName: default
+    terminationGracePeriodSeconds: 30
+    volumes:
+    - emptyDir: {}
+      name: gitlab-ce-volume-1
+    - emptyDir: {}
+      name: gitlab-ce-volume-2
+    - emptyDir: {}
+      name: gitlab-ce-volume-3
+    - name: default-token-esybu
+      secret:
+        secretName: default-token-esybu
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: 2016-01-29T18:02:28Z
+      message: 'containers with unready status: [gitlab-ce]'
+      reason: ContainersNotReady
+      status: "False"
+      type: Ready
+    containerStatuses:
+    - containerID: docker://92984bd17a722893c9925d23eef5d3d0660b5016ac70a9d80990f233c8fd517f
+      image: gitlab/gitlab-ce@sha256:9ca5330d8081e27dfc6d6aca0fa0fcf3d02519f0c8ca1267e143b25326a63449
+      imageID: docker://cd86ee9d085d5892b3aefab7a16a38a33cd11f42dcddcf0275dbcfce4f220b81
+      lastState:
+        terminated:
+          containerID: docker://92984bd17a722893c9925d23eef5d3d0660b5016ac70a9d80990f233c8fd517f
+          exitCode: 1
+          finishedAt: 2016-01-29T18:02:21Z
+          reason: Error
+          startedAt: 2016-01-29T18:02:18Z
+      name: gitlab-ce
+      ready: false
+      restartCount: 12
+      state:
+        waiting:
+          message: Back-off 5m0s restarting failed container=gitlab-ce pod=gitlab-ce-1-lc411_default
+          reason: CrashLoopBackOff
+    hostIP: 10.0.2.15
+    phase: Running
+    podIP: 172.17.0.57
+    startTime: 2016-01-29T17:30:21Z
+kind: List
+metadata: {}

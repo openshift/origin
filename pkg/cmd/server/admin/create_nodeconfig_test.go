@@ -7,7 +7,11 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"k8s.io/kubernetes/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/sets"
+
+	// install all APIs
+	_ "github.com/openshift/origin/pkg/api/install"
+	_ "k8s.io/kubernetes/pkg/apis/core/install"
 )
 
 func TestNodeConfigNonTLS(t *testing.T) {
@@ -71,6 +75,7 @@ func makeSignerCert(t *testing.T) (string, string, string) {
 		CertFile:   certFile.Name(),
 		KeyFile:    keyFile.Name(),
 		SerialFile: serialFile.Name(),
+		ExpireDays: 365,
 		Name:       "unit-test-signer",
 		Overwrite:  true,
 	}
@@ -102,7 +107,7 @@ func executeNodeConfig(args []string) string {
 		},
 	}
 
-	root.AddCommand(NewCommandNodeConfig("create-node-config", "openshift admin", ioutil.Discard))
+	root.AddCommand(NewCommandNodeConfig("create-node-config", "oc adm", ioutil.Discard))
 	root.SetArgs(argsToUse)
 	root.Execute()
 

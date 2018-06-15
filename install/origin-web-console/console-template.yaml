@@ -1,0 +1,137 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: openshift-web-console
+  annotations:
+    openshift.io/display-name: OpenShift Web Console
+    description: The server for the OpenShift web console.
+    iconClass: icon-openshift
+    tags: openshift,infra
+    openshift.io/documentation-url: https://github.com/openshift/origin-web-console-server
+    openshift.io/support-url: https://access.redhat.com
+    openshift.io/provider-display-name: Red Hat, Inc.
+parameters:
+- name: IMAGE
+  value: openshift/origin-web-console:latest
+- name: OPENSHIFT_PULL_POLICY
+  value: Always
+- name: NAMESPACE
+  # This namespace cannot be changed. Only `openshift-web-console` is supported.
+  value: openshift-web-console
+- name: LOGLEVEL
+  value: "0"
+- name: API_SERVER_CONFIG
+- name: NODE_SELECTOR
+  value: "{}"
+- name: REPLICA_COUNT
+  value: "1"
+objects:
+
+# to create the web console server
+- apiVersion: apps/v1beta1
+  kind: Deployment
+  metadata:
+    namespace: ${NAMESPACE}
+    name: webconsole
+    labels:
+      app: openshift-web-console
+      webconsole: "true"
+  spec:
+    replicas: "${{REPLICA_COUNT}}"
+    strategy:
+      type: Recreate
+    template:
+      metadata:
+        name: webconsole
+        labels:
+          app: openshift-web-console
+          webconsole: "true"
+      spec:
+        serviceAccountName: webconsole
+        containers:
+        - name: webconsole
+          image: ${IMAGE}
+          imagePullPolicy: ${OPENSHIFT_PULL_POLICY}
+          command:
+          - "/usr/bin/origin-web-console"
+          - "--audit-log-path=-"
+          - "-v=${LOGLEVEL}"
+          - "--config=/var/webconsole-config/webconsole-config.yaml"
+          ports:
+          - containerPort: 8443
+          volumeMounts:
+          - mountPath: /var/serving-cert
+            name: serving-cert
+          - mountPath: /var/webconsole-config
+            name: webconsole-config
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8443
+              scheme: HTTPS
+          livenessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - |-
+                  if [[ ! -f /tmp/webconsole-config.hash ]]; then \
+                    md5sum /var/webconsole-config/webconsole-config.yaml > /tmp/webconsole-config.hash; \
+                  elif [[ $(md5sum /var/webconsole-config/webconsole-config.yaml) != $(cat /tmp/webconsole-config.hash) ]]; then \
+                    echo 'webconsole-config.yaml has changed.'; \
+                    exit 1; \
+                  fi && curl -k -f https://0.0.0.0:8443/console/
+          resources:
+            requests:
+              cpu: 100m
+              memory: 100Mi
+        nodeSelector: "${{NODE_SELECTOR}}"
+        volumes:
+        - name: serving-cert
+          secret:
+            defaultMode: 400
+            secretName: webconsole-serving-cert
+        - name: webconsole-config
+          configMap:
+            defaultMode: 440
+            name: webconsole-config
+
+# to create the config for the web console
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    namespace: ${NAMESPACE}
+    name: webconsole-config
+    labels:
+      app: openshift-web-console
+  data:
+    webconsole-config.yaml: ${API_SERVER_CONFIG}
+
+# to be able to assign powers to the process
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    namespace: ${NAMESPACE}
+    name: webconsole
+    labels:
+      app: openshift-web-console
+
+# to be able to expose web console inside the cluster
+- apiVersion: v1
+  kind: Service
+  metadata:
+    namespace: ${NAMESPACE}
+    name: webconsole
+    labels:
+      app: openshift-web-console
+    annotations:
+      service.alpha.openshift.io/serving-cert-secret-name: webconsole-serving-cert
+      prometheus.io/scrape: "true"
+      prometheus.io/scheme: https
+  spec:
+    selector:
+      webconsole: "true"
+    ports:
+    - name: https
+      port: 443
+      targetPort: 8443

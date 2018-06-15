@@ -4,6 +4,7 @@ package bootstrappolicy
 const (
 	DefaultOpenShiftSharedResourcesNamespace = "openshift"
 	DefaultOpenShiftInfraNamespace           = "openshift-infra"
+	DefaultOpenShiftNodeNamespace            = "openshift-node"
 )
 
 // users
@@ -12,17 +13,12 @@ const (
 	BuilderServiceAccountName  = "builder"
 	DeployerServiceAccountName = "deployer"
 
-	InfraBuildControllerServiceAccountName       = "build-controller"
-	InfraReplicationControllerServiceAccountName = "replication-controller"
-	InfraDeploymentControllerServiceAccountName  = "deployment-controller"
+	MasterUnqualifiedUsername     = "openshift-master"
+	AggregatorUnqualifiedUsername = "openshift-aggregator"
 
-	MasterUnqualifiedUsername   = "openshift-master"
-	RouterUnqualifiedUsername   = "openshift-router"
-	RegistryUnqualifiedUsername = "openshift-registry"
-
-	MasterUsername   = "system:" + MasterUnqualifiedUsername
-	RouterUsername   = "system:" + RouterUnqualifiedUsername
-	RegistryUsername = "system:" + RegistryUnqualifiedUsername
+	MasterUsername      = "system:" + MasterUnqualifiedUsername
+	AggregatorUsername  = "system:" + AggregatorUnqualifiedUsername
+	SystemAdminUsername = "system:admin"
 
 	// Not granted any API permissions, just an identity for a client certificate for the API proxy to use
 	// Should not be changed without considering impact to pods that may be verifying this identity by default
@@ -39,46 +35,70 @@ const (
 const (
 	UnauthenticatedUsername = "system:anonymous"
 
-	AuthenticatedGroup   = "system:authenticated"
-	UnauthenticatedGroup = "system:unauthenticated"
-	ClusterAdminGroup    = "system:cluster-admins"
-	ClusterReaderGroup   = "system:cluster-readers"
-	MastersGroup         = "system:masters"
-	NodesGroup           = "system:nodes"
-	NodeAdminsGroup      = "system:node-admins"
-	NodeReadersGroup     = "system:node-readers"
-	RouterGroup          = "system:routers"
-	RegistryGroup        = "system:registries"
+	AuthenticatedGroup      = "system:authenticated"
+	AuthenticatedOAuthGroup = "system:authenticated:oauth"
+	UnauthenticatedGroup    = "system:unauthenticated"
+	ClusterAdminGroup       = "system:cluster-admins"
+	ClusterReaderGroup      = "system:cluster-readers"
+	MastersGroup            = "system:masters"
+	NodesGroup              = "system:nodes"
+	NodeAdminsGroup         = "system:node-admins"
+	NodeReadersGroup        = "system:node-readers"
+)
+
+// Service Account Names that are not controller related
+const (
+	InfraNodeBootstrapServiceAccountName = "node-bootstrapper"
 )
 
 // Roles
 const (
-	ClusterAdminRoleName    = "cluster-admin"
-	ClusterReaderRoleName   = "cluster-reader"
-	AdminRoleName           = "admin"
-	EditRoleName            = "edit"
-	ViewRoleName            = "view"
-	SelfProvisionerRoleName = "self-provisioner"
-	BasicUserRoleName       = "basic-user"
-	StatusCheckerRoleName   = "cluster-status"
+	ClusterAdminRoleName       = "cluster-admin"
+	SudoerRoleName             = "sudoer"
+	ScopeImpersonationRoleName = "system:scope-impersonation"
+	ClusterReaderRoleName      = "cluster-reader"
+	StorageAdminRoleName       = "storage-admin"
+	ClusterDebuggerRoleName    = "cluster-debugger"
+	AdminRoleName              = "admin"
+	EditRoleName               = "edit"
+	ViewRoleName               = "view"
+	AggregatedAdminRoleName    = "system:openshift:aggregate-to-admin"
+	AggregatedEditRoleName     = "system:openshift:aggregate-to-edit"
+	AggregatedViewRoleName     = "system:openshift:aggregate-to-view"
+	SelfProvisionerRoleName    = "self-provisioner"
+	BasicUserRoleName          = "basic-user"
+	StatusCheckerRoleName      = "cluster-status"
+	SelfAccessReviewerRoleName = "self-access-reviewer"
 
-	BuildControllerRoleName       = "system:build-controller"
-	ReplicationControllerRoleName = "system:replication-controller"
-	DeploymentControllerRoleName  = "system:deployment-controller"
+	RegistryAdminRoleName  = "registry-admin"
+	RegistryViewerRoleName = "registry-viewer"
+	RegistryEditorRoleName = "registry-editor"
 
-	ImagePullerRoleName       = "system:image-puller"
-	ImageBuilderRoleName      = "system:image-builder"
-	ImagePrunerRoleName       = "system:image-pruner"
-	DeployerRoleName          = "system:deployer"
-	RouterRoleName            = "system:router"
-	RegistryRoleName          = "system:registry"
-	MasterRoleName            = "system:master"
-	NodeRoleName              = "system:node"
-	NodeProxierRoleName       = "system:node-proxier"
-	SDNReaderRoleName         = "system:sdn-reader"
-	SDNManagerRoleName        = "system:sdn-manager"
-	OAuthTokenDeleterRoleName = "system:oauth-token-deleter"
-	WebHooksRoleName          = "system:webhook"
+	TemplateServiceBrokerClientRoleName = "system:openshift:templateservicebroker-client"
+
+	BuildStrategyDockerRoleName          = "system:build-strategy-docker"
+	BuildStrategyCustomRoleName          = "system:build-strategy-custom"
+	BuildStrategySourceRoleName          = "system:build-strategy-source"
+	BuildStrategyJenkinsPipelineRoleName = "system:build-strategy-jenkinspipeline"
+
+	ImageAuditorRoleName                = "system:image-auditor"
+	ImagePullerRoleName                 = "system:image-puller"
+	ImagePusherRoleName                 = "system:image-pusher"
+	ImageBuilderRoleName                = "system:image-builder"
+	ImagePrunerRoleName                 = "system:image-pruner"
+	ImageSignerRoleName                 = "system:image-signer"
+	DeployerRoleName                    = "system:deployer"
+	RouterRoleName                      = "system:router"
+	RegistryRoleName                    = "system:registry"
+	MasterRoleName                      = "system:master"
+	NodeRoleName                        = "system:node"
+	NodeProxierRoleName                 = "system:node-proxier"
+	SDNReaderRoleName                   = "system:sdn-reader"
+	SDNManagerRoleName                  = "system:sdn-manager"
+	OAuthTokenDeleterRoleName           = "system:oauth-token-deleter"
+	WebHooksRoleName                    = "system:webhook"
+	DiscoveryRoleName                   = "system:discovery"
+	PersistentVolumeProvisionerRoleName = "system:persistent-volume-provisioner"
 
 	// NodeAdmin has full access to the API provided by the kubelet
 	NodeAdminRoleName = "system:node-admin"
@@ -86,29 +106,60 @@ const (
 	NodeReaderRoleName = "system:node-reader"
 
 	OpenshiftSharedResourceViewRoleName = "shared-resource-viewer"
+
+	NodeBootstrapRoleName    = "system:node-bootstrapper"
+	NodeConfigReaderRoleName = "system:node-config-reader"
 )
 
 // RoleBindings
 const (
-	SelfProvisionerRoleBindingName   = SelfProvisionerRoleName + "s"
-	DeployerRoleBindingName          = DeployerRoleName + "s"
-	ClusterAdminRoleBindingName      = ClusterAdminRoleName + "s"
-	ClusterReaderRoleBindingName     = ClusterReaderRoleName + "s"
-	BasicUserRoleBindingName         = BasicUserRoleName + "s"
-	OAuthTokenDeleterRoleBindingName = OAuthTokenDeleterRoleName + "s"
-	StatusCheckerRoleBindingName     = StatusCheckerRoleName + "-binding"
-	ImagePullerRoleBindingName       = ImagePullerRoleName + "s"
-	ImageBuilderRoleBindingName      = ImageBuilderRoleName + "s"
-	RouterRoleBindingName            = RouterRoleName + "s"
-	RegistryRoleBindingName          = RegistryRoleName + "s"
-	MasterRoleBindingName            = MasterRoleName + "s"
-	NodeRoleBindingName              = NodeRoleName + "s"
-	NodeProxierRoleBindingName       = NodeProxierRoleName + "s"
-	NodeAdminRoleBindingName         = NodeAdminRoleName + "s"
-	NodeReaderRoleBindingName        = NodeReaderRoleName + "s"
-	SDNReaderRoleBindingName         = SDNReaderRoleName + "s"
-	SDNManagerRoleBindingName        = SDNManagerRoleName + "s"
-	WebHooksRoleBindingName          = WebHooksRoleName + "s"
+	// Legacy roles that must continue to have a plural form
+	SelfAccessReviewerRoleBindingName = SelfAccessReviewerRoleName + "s"
+	SelfProvisionerRoleBindingName    = SelfProvisionerRoleName + "s"
+	DeployerRoleBindingName           = DeployerRoleName + "s"
+	ClusterAdminRoleBindingName       = ClusterAdminRoleName + "s"
+	ClusterReaderRoleBindingName      = ClusterReaderRoleName + "s"
+	BasicUserRoleBindingName          = BasicUserRoleName + "s"
+	OAuthTokenDeleterRoleBindingName  = OAuthTokenDeleterRoleName + "s"
+	StatusCheckerRoleBindingName      = StatusCheckerRoleName + "-binding"
+	ImagePullerRoleBindingName        = ImagePullerRoleName + "s"
+	ImageBuilderRoleBindingName       = ImageBuilderRoleName + "s"
+	RouterRoleBindingName             = RouterRoleName + "s"
+	RegistryRoleBindingName           = RegistryRoleName + "s"
+	MasterRoleBindingName             = MasterRoleName + "s"
+	NodeRoleBindingName               = NodeRoleName + "s"
+	NodeProxierRoleBindingName        = NodeProxierRoleName + "s"
+	NodeAdminRoleBindingName          = NodeAdminRoleName + "s"
+	NodeReaderRoleBindingName         = NodeReaderRoleName + "s"
+	SDNReaderRoleBindingName          = SDNReaderRoleName + "s"
+	SDNManagerRoleBindingName         = SDNManagerRoleName + "s"
+	WebHooksRoleBindingName           = WebHooksRoleName + "s"
+	DiscoveryRoleBindingName          = DiscoveryRoleName + "-binding"
+	RegistryAdminRoleBindingName      = RegistryAdminRoleName + "s"
+	RegistryViewerRoleBindingName     = RegistryViewerRoleName + "s"
+	RegistryEditorRoleBindingName     = RegistryEditorRoleName + "s"
 
 	OpenshiftSharedResourceViewRoleBindingName = OpenshiftSharedResourceViewRoleName + "s"
+
+	// Bindings
+	BuildStrategyDockerRoleBindingName          = BuildStrategyDockerRoleName + "-binding"
+	BuildStrategyCustomRoleBindingName          = BuildStrategyCustomRoleName + "-binding"
+	BuildStrategySourceRoleBindingName          = BuildStrategySourceRoleName + "-binding"
+	BuildStrategyJenkinsPipelineRoleBindingName = BuildStrategyJenkinsPipelineRoleName + "-binding"
+)
+
+// Resources and Subresources
+const (
+	// Authorization resources
+	DockerBuildResource          = "builds/docker"
+	OptimizedDockerBuildResource = "builds/optimizeddocker"
+	SourceBuildResource          = "builds/source"
+	CustomBuildResource          = "builds/custom"
+	JenkinsPipelineBuildResource = "builds/jenkinspipeline"
+
+	// These are valid under the "nodes" resource
+	NodeMetricsSubresource = "metrics"
+	NodeStatsSubresource   = "stats"
+	NodeSpecSubresource    = "spec"
+	NodeLogSubresource     = "log"
 )

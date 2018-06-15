@@ -1,28 +1,36 @@
 package auth
 
 import (
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
-	"github.com/openshift/origin/pkg/client"
+	kauthorizer "k8s.io/apiserver/pkg/authorization/authorizer"
+	"k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac"
+
+	authorizationutil "github.com/openshift/origin/pkg/authorization/util"
 )
 
 // Review is a list of users and groups that can access a resource
 type Review interface {
 	Users() []string
 	Groups() []string
+	EvaluationError() string
 }
 
-type review struct {
-	response *authorizationapi.ResourceAccessReviewResponse
+type defaultReview struct {
+	users           []string
+	groups          []string
+	evaluationError string
 }
 
-// Users returns the users that can access a resource
-func (r *review) Users() []string {
-	return r.response.Users.List()
+func (r *defaultReview) Users() []string {
+	return r.users
 }
 
 // Groups returns the groups that can access a resource
-func (r *review) Groups() []string {
-	return r.response.Groups.List()
+func (r *defaultReview) Groups() []string {
+	return r.groups
+}
+
+func (r *defaultReview) EvaluationError() string {
+	return r.evaluationError
 }
 
 // Reviewer performs access reviews for a project by name
@@ -30,35 +38,28 @@ type Reviewer interface {
 	Review(name string) (Review, error)
 }
 
-// reviewer performs access reviews for a project by name
-type reviewer struct {
-	resourceAccessReviewsNamespacer client.LocalResourceAccessReviewsNamespacer
+type authorizerReviewer struct {
+	policyChecker rbac.SubjectLocator
 }
 
-// NewReviewer knows how to make access control reviews for a resource by name
-func NewReviewer(resourceAccessReviewsNamespacer client.LocalResourceAccessReviewsNamespacer) Reviewer {
-	return &reviewer{
-		resourceAccessReviewsNamespacer: resourceAccessReviewsNamespacer,
-	}
+func NewAuthorizerReviewer(policyChecker rbac.SubjectLocator) Reviewer {
+	return &authorizerReviewer{policyChecker: policyChecker}
 }
 
-// Review performs a resource access review for the given resource by name
-func (r *reviewer) Review(name string) (Review, error) {
-	resourceAccessReview := &authorizationapi.LocalResourceAccessReview{
-		Action: authorizationapi.AuthorizationAttributes{
-			Verb:         "get",
-			Resource:     "namespaces",
-			ResourceName: name,
-		},
+func (r *authorizerReviewer) Review(namespaceName string) (Review, error) {
+	attributes := kauthorizer.AttributesRecord{
+		Verb:            "get",
+		Namespace:       namespaceName,
+		Resource:        "namespaces",
+		Name:            namespaceName,
+		ResourceRequest: true,
 	}
 
-	response, err := r.resourceAccessReviewsNamespacer.LocalResourceAccessReviews(name).Create(resourceAccessReview)
-
+	subjects, err := r.policyChecker.AllowedSubjects(attributes)
+	review := &defaultReview{}
+	review.users, review.groups = authorizationutil.RBACSubjectsToUsersAndGroups(subjects, attributes.GetNamespace())
 	if err != nil {
-		return nil, err
-	}
-	review := &review{
-		response: response,
+		review.evaluationError = err.Error()
 	}
 	return review, nil
 }

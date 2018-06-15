@@ -3,104 +3,67 @@ package imagestreamimage
 import (
 	"testing"
 
-	"github.com/coreos/go-etcd/etcd"
-	"github.com/openshift/origin/pkg/api/latest"
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
-	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
-	"github.com/openshift/origin/pkg/image/api"
+	etcd "github.com/coreos/etcd/clientv3"
+	"golang.org/x/net/context"
+
+	"k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/storage/etcd/etcdtest"
+	etcdtesting "k8s.io/apiserver/pkg/storage/etcd/testing"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	authorizationapi "k8s.io/kubernetes/pkg/apis/authorization"
+	"k8s.io/kubernetes/pkg/registry/registrytest"
+
+	admfake "github.com/openshift/origin/pkg/image/admission/fake"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	"github.com/openshift/origin/pkg/image/apis/image/validation/fake"
 	"github.com/openshift/origin/pkg/image/registry/image"
 	imageetcd "github.com/openshift/origin/pkg/image/registry/image/etcd"
 	"github.com/openshift/origin/pkg/image/registry/imagestream"
 	imagestreametcd "github.com/openshift/origin/pkg/image/registry/imagestream/etcd"
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/runtime"
-	kstorage "k8s.io/kubernetes/pkg/storage"
-	etcdstorage "k8s.io/kubernetes/pkg/storage/etcd"
-	"k8s.io/kubernetes/pkg/tools"
-	"k8s.io/kubernetes/pkg/tools/etcdtest"
+	"github.com/openshift/origin/pkg/util/restoptions"
+
+	_ "github.com/openshift/origin/pkg/api/install"
 )
 
-var testDefaultRegistry = imagestream.DefaultRegistryFunc(func() (string, bool) { return "defaultregistry:5000", true })
+var testDefaultRegistry = func() (string, bool) { return "defaultregistry:5000", true }
 
 type fakeSubjectAccessReviewRegistry struct {
 }
 
-var _ subjectaccessreview.Registry = &fakeSubjectAccessReviewRegistry{}
-
-func (f *fakeSubjectAccessReviewRegistry) CreateSubjectAccessReview(ctx kapi.Context, subjectAccessReview *authorizationapi.SubjectAccessReview) (*authorizationapi.SubjectAccessReviewResponse, error) {
+func (f *fakeSubjectAccessReviewRegistry) Create(subjectAccessReview *authorizationapi.SubjectAccessReview) (*authorizationapi.SubjectAccessReview, error) {
 	return nil, nil
 }
 
-func setup(t *testing.T) (*tools.FakeEtcdClient, kstorage.Interface, *REST) {
-	fakeEtcdClient := tools.NewFakeEtcdClient(t)
-	fakeEtcdClient.TestIndex = true
-	helper := etcdstorage.NewEtcdStorage(fakeEtcdClient, latest.Codec, etcdtest.PathPrefix())
-	imageStorage := imageetcd.NewREST(helper)
+func setup(t *testing.T) (etcd.KV, *etcdtesting.EtcdTestServer, *REST) {
+	etcdStorage, server := registrytest.NewEtcdStorage(t, "")
+	etcdClient := etcd.NewKV(server.V3Client)
+
+	imageStorage, err := imageetcd.NewREST(restoptions.NewSimpleGetter(etcdStorage))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defaultRegistry := imageapi.DefaultRegistryHostnameRetriever(testDefaultRegistry, "", "")
+	imageStreamStorage, imageStreamStatus, internalStorage, err := imagestreametcd.NewREST(restoptions.NewSimpleGetter(etcdStorage), defaultRegistry, &fakeSubjectAccessReviewRegistry{}, &admfake.ImageStreamLimitVerifier{}, &fake.RegistryWhitelister{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	imageRegistry := image.NewRegistry(imageStorage)
-	imageStreamStorage, imageStreamStatus := imagestreametcd.NewREST(helper, testDefaultRegistry, &fakeSubjectAccessReviewRegistry{})
-	imageStreamRegistry := imagestream.NewRegistry(imageStreamStorage, imageStreamStatus)
+	imageStreamRegistry := imagestream.NewRegistry(imageStreamStorage, imageStreamStatus, internalStorage)
+
 	storage := NewREST(imageRegistry, imageStreamRegistry)
-	return fakeEtcdClient, helper, storage
-}
 
-func TestNameAndID(t *testing.T) {
-	tests := map[string]struct {
-		input        string
-		expectedRepo string
-		expectedId   string
-		expectError  bool
-	}{
-		"empty string": {
-			input:       "",
-			expectError: true,
-		},
-		"one part": {
-			input:       "a",
-			expectError: true,
-		},
-		"more than 2 parts": {
-			input:       "a@b@c",
-			expectError: true,
-		},
-		"empty name part": {
-			input:       "@id",
-			expectError: true,
-		},
-		"empty id part": {
-			input:       "name@",
-			expectError: true,
-		},
-		"valid input": {
-			input:        "repo@id",
-			expectedRepo: "repo",
-			expectedId:   "id",
-			expectError:  false,
-		},
-	}
-
-	for name, test := range tests {
-		repo, id, err := ParseNameAndID(test.input)
-		didError := err != nil
-		if e, a := test.expectError, didError; e != a {
-			t.Fatalf("%s: expected error=%t, got=%t: %s", name, e, a, err)
-		}
-		if test.expectError {
-			continue
-		}
-		if e, a := test.expectedRepo, repo; e != a {
-			t.Fatalf("%s: repo: expected %q, got %q", name, e, a)
-		}
-		if e, a := test.expectedId, id; e != a {
-			t.Fatalf("%s: id: expected %q, got %q", name, e, a)
-		}
-	}
+	return etcdClient, server, storage
 }
 
 func TestGet(t *testing.T) {
 	tests := map[string]struct {
 		input       string
-		repo        *api.ImageStream
-		image       *api.Image
+		repo        *imageapi.ImageStream
+		image       *imageapi.Image
 		expectError bool
 	}{
 		"empty string": {
@@ -130,16 +93,16 @@ func TestGet(t *testing.T) {
 		},
 		"nil tags": {
 			input:       "repo@id",
-			repo:        &api.ImageStream{},
+			repo:        &imageapi.ImageStream{},
 			expectError: true,
 		},
 		"image not found": {
 			input: "repo@id",
-			repo: &api.ImageStream{
-				Status: api.ImageStreamStatus{
-					Tags: map[string]api.TagEventList{
+			repo: &imageapi.ImageStream{
+				Status: imageapi.ImageStreamStatus{
+					Tags: map[string]imageapi.TagEventList{
 						"latest": {
-							Items: []api.TagEvent{
+							Items: []imageapi.TagEvent{
 								{Image: "anotherid"},
 							},
 						},
@@ -150,15 +113,15 @@ func TestGet(t *testing.T) {
 		},
 		"happy path": {
 			input: "repo@id",
-			repo: &api.ImageStream{
-				ObjectMeta: kapi.ObjectMeta{
+			repo: &imageapi.ImageStream{
+				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "ns",
 					Name:      "repo",
 				},
-				Status: api.ImageStreamStatus{
-					Tags: map[string]api.TagEventList{
+				Status: imageapi.ImageStreamStatus{
+					Tags: map[string]imageapi.TagEventList{
 						"latest": {
-							Items: []api.TagEvent{
+							Items: []imageapi.TagEvent{
 								{Image: "anotherid"},
 								{Image: "anotherid2"},
 								{Image: "id"},
@@ -167,8 +130,8 @@ func TestGet(t *testing.T) {
 					},
 				},
 			},
-			image: &api.Image{
-				ObjectMeta: kapi.ObjectMeta{
+			image: &imageapi.Image{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "id",
 				},
 				DockerImageManifest: `{
@@ -232,64 +195,60 @@ func TestGet(t *testing.T) {
 	}
 
 	for name, test := range tests {
-		fakeEtcdClient, _, storage := setup(t)
+		// Wrap in a func so we clean up the test etcd after every loop
+		func() {
+			client, server, storage := setup(t)
+			defer server.Terminate(t)
 
-		if test.repo != nil {
-			fakeEtcdClient.Data[etcdtest.AddPrefix("/imagestreams/default/repo")] = tools.EtcdResponseWithError{
-				R: &etcd.Response{
-					Node: &etcd.Node{
-						Value: runtime.EncodeOrDie(latest.Codec, test.repo),
-					},
-				},
+			ctx := apirequest.NewDefaultContext()
+			if test.repo != nil {
+				ctx = apirequest.WithNamespace(apirequest.NewContext(), test.repo.Namespace)
+				_, err := client.Put(
+					context.TODO(),
+					etcdtest.AddPrefix("/imagestreams/"+test.repo.Namespace+"/"+test.repo.Name),
+					runtime.EncodeOrDie(legacyscheme.Codecs.LegacyCodec(v1.SchemeGroupVersion), test.repo),
+				)
+				if err != nil {
+					t.Errorf("Unexpected error: %v", err)
+					return
+				}
 			}
-		} else {
-			fakeEtcdClient.Data[etcdtest.AddPrefix("/imagestreams/default/repo")] = tools.EtcdResponseWithError{
-				R: &etcd.Response{
-					Node: nil,
-				},
-				E: tools.EtcdErrorNotFound,
+			if test.image != nil {
+				_, err := client.Put(
+					context.TODO(),
+					etcdtest.AddPrefix("/images/"+test.image.Name),
+					runtime.EncodeOrDie(legacyscheme.Codecs.LegacyCodec(v1.SchemeGroupVersion), test.image),
+				)
+				if err != nil {
+					t.Errorf("Unexpected error: %v", err)
+					return
+				}
 			}
-		}
 
-		if test.image != nil {
-			fakeEtcdClient.Data[etcdtest.AddPrefix("/images/id")] = tools.EtcdResponseWithError{
-				R: &etcd.Response{
-					Node: &etcd.Node{
-						Value: runtime.EncodeOrDie(latest.Codec, test.image),
-					},
-				},
+			obj, err := storage.Get(ctx, test.input, &metav1.GetOptions{})
+			gotError := err != nil
+			if e, a := test.expectError, gotError; e != a {
+				t.Errorf("%s: expected error=%t, got=%t: %s", name, e, a, err)
+				return
 			}
-		} else {
-			fakeEtcdClient.Data[etcdtest.AddPrefix("/images/id")] = tools.EtcdResponseWithError{
-				R: &etcd.Response{
-					Node: nil,
-				},
-				E: tools.EtcdErrorNotFound,
+			if test.expectError {
+				return
 			}
-		}
 
-		obj, err := storage.Get(kapi.NewDefaultContext(), test.input)
-		gotError := err != nil
-		if e, a := test.expectError, gotError; e != a {
-			t.Fatalf("%s: expected error=%t, got=%t: %s", name, e, a, err)
-		}
-		if test.expectError {
-			continue
-		}
-
-		imageStreamImage := obj.(*api.ImageStreamImage)
-		// validate a couple of the fields
-		if e, a := test.repo.Namespace, "ns"; e != a {
-			t.Errorf("%s: namespace: expected %q, got %q", name, e, a)
-		}
-		if e, a := test.input, imageStreamImage.Name; e != a {
-			t.Errorf("%s: name: expected %q, got %q", name, e, a)
-		}
-		if e, a := "2d24f826cb16146e2016ff349a8a33ed5830f3b938d45c0f82943f4ab8c097e7", imageStreamImage.Image.DockerImageMetadata.ID; e != a {
-			t.Errorf("%s: id: expected %q, got %q", name, e, a)
-		}
-		if e, a := "43bd710ec89a", imageStreamImage.Image.DockerImageMetadata.ContainerConfig.Hostname; e != a {
-			t.Errorf("%s: container config hostname: expected %q, got %q", name, e, a)
-		}
+			imageStreamImage := obj.(*imageapi.ImageStreamImage)
+			// validate a couple of the fields
+			if e, a := test.repo.Namespace, "ns"; e != a {
+				t.Errorf("%s: namespace: expected %q, got %q", name, e, a)
+			}
+			if e, a := test.input, imageStreamImage.Name; e != a {
+				t.Errorf("%s: name: expected %q, got %q", name, e, a)
+			}
+			if e, a := "2d24f826cb16146e2016ff349a8a33ed5830f3b938d45c0f82943f4ab8c097e7", imageStreamImage.Image.DockerImageMetadata.ID; e != a {
+				t.Errorf("%s: id: expected %q, got %q", name, e, a)
+			}
+			if e, a := "43bd710ec89a", imageStreamImage.Image.DockerImageMetadata.ContainerConfig.Hostname; e != a {
+				t.Errorf("%s: container config hostname: expected %q, got %q", name, e, a)
+			}
+		}()
 	}
 }

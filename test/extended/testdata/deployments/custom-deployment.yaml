@@ -1,0 +1,44 @@
+apiVersion: apps.openshift.io/v1
+kind: DeploymentConfig
+metadata:
+  name: custom-deployment
+spec:
+  replicas: 2
+  selector:
+    name: custom-deployment
+  strategy:
+    type: Rolling
+    rollingParams:
+      pre:
+        failurePolicy: Abort
+        execNewPod:
+          containerName: myapp
+          command:
+          - /bin/echo
+          - test pre hook executed
+    customParams:
+      command:
+      - /bin/sh
+      - -c
+      - |
+        set -e
+        openshift-deploy --until=50%
+        echo Halfway
+        openshift-deploy
+        echo Finished
+        sleep 1
+  template:
+    metadata:
+      labels:
+        name: custom-deployment
+    spec:
+      terminationGracePeriodSeconds: 0
+      containers:
+      - image: "docker.io/centos:centos7"
+        imagePullPolicy: IfNotPresent
+        name: myapp
+        command:
+        - /bin/sleep
+        - "10"
+  triggers:
+  - type: ConfigChange

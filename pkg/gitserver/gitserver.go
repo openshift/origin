@@ -5,7 +5,6 @@ package gitserver
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -16,14 +15,20 @@ import (
 
 	"github.com/AaronO/go-git-http"
 	"github.com/AaronO/go-git-http/auth"
+	"github.com/golang/glog"
 	"github.com/prometheus/client_golang/prometheus"
 
-	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
-	"k8s.io/kubernetes/pkg/healthz"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apiserver/pkg/server/healthz"
+	"k8s.io/client-go/tools/clientcmd"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
+	authorizationtypedclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
 
-	authapi "github.com/openshift/origin/pkg/authorization/api"
-	"github.com/openshift/origin/pkg/client"
-	"github.com/openshift/origin/pkg/generate/git"
+	"github.com/openshift/origin/pkg/git"
+
+	s2igit "github.com/openshift/source-to-image/pkg/scm/git"
+	"k8s.io/client-go/rest"
+	"k8s.io/kubernetes/pkg/apis/authorization"
 )
 
 const (
@@ -33,31 +38,45 @@ GIT_HOME
   directory containing Git repositories; defaults to current directory
 PUBLIC_URL
   the url of this server for constructing URLs that point to this repository
+INTERNAL_URL
+  the url of this server that can be used internally by build configs in the cluster
 GIT_PATH
   path to Git binary; defaults to location of 'git' in PATH
 HOOK_PATH
   path to a directory containing hooks for all repositories; if not set no global hooks will be used
 ALLOW_GIT_PUSH
-  if 'no', pushes will be not be accepted; defaults to true
+  if 'false', pushes will be not be accepted; defaults to true
 ALLOW_ANON_GIT_PULL
-  if 'yes', pulls may be made without authorization; defaults to false
+  if 'true', pulls may be made without authorization; defaults to false
 ALLOW_GIT_HOOKS
-  if 'no', hooks cannot be read or set; defaults to true
+  if 'false', hooks cannot be read or set; defaults to true
 ALLOW_LAZY_CREATE
-  if 'no', repositories will not automatically be initialized on push; defaults to true
+  if 'false', repositories will not automatically be initialized on push; defaults to true
 REQUIRE_GIT_AUTH
   a user/password combination required to access the repo of the form "<user>:<password>"; defaults to none
 REQUIRE_SERVER_AUTH
-	a URL to an OpenShift server for verifying authorization credentials provided by a user. Requires
-	AUTOLINK_NAMESPACE to be set (the namespace that authorization will be checked in). Users must have
-	'get' on 'pods' to pull (be a viewer) and 'create' on 'pods' to push (be an editor)
+  a URL to an OpenShift server for verifying authorization credentials provided by a user. Requires
+  AUTOLINK_NAMESPACE to be set (the namespace that authorization will be checked in). Users must have
+  'get' on 'pods' to pull (be a viewer) and 'create' on 'pods' to push (be an editor)
 GIT_FORCE_CLEAN
-  if 'yes', any initial repository directories will be deleted prior to start; defaults to no
+  if 'true', any initial repository directories will be deleted prior to start; defaults to 'false'
   WARNING: this is destructive and you will lose any data you have already pushed
 GIT_INITIAL_CLONE_*=<url>[;<name>]
   each environment variable in this pattern will be cloned when the process starts; failures will be logged
   <name> must be [A-Z0-9_\-\.], the cloned directory name will be lowercased. If the name is invalid the
   process will halt. If the repository already exists on disk, it will be updated from the remote.
+AUTOLINK_KUBECONFIG
+  The location to read auth configuration from for autolinking.
+  If '-', use the service account token to link. The account
+  represented by this config must have the edit role on the
+  namespace.
+AUTOLINK_NAMESPACE
+  The namespace to autolink
+AUTOLINK_HOOK
+  The path to a script in the image to use as the default
+  post-receive hook - only set during link, so has no effect
+  on cloned repositories. See the "hooks" directory in the
+  image for examples.
 `
 )
 
@@ -80,9 +99,10 @@ func init() {
 
 // Config represents the configuration to use for running the server
 type Config struct {
-	Home      string
-	GitBinary string
-	URL       *url.URL
+	Home        string
+	GitBinary   string
+	URL         *url.URL
+	InternalURL *url.URL
 
 	AllowHooks      bool
 	AllowPush       bool
@@ -103,8 +123,16 @@ type Config struct {
 
 // Clone is a repository to clone
 type Clone struct {
-	URL   url.URL
+	URL   s2igit.URL
 	Hooks map[string]string
+}
+
+type statusError struct {
+	*errors.StatusError
+}
+
+func (e *statusError) StatusCode() int {
+	return int(e.StatusError.Status().Code)
 }
 
 // NewDefaultConfig returns a default server config.
@@ -117,8 +145,28 @@ func NewDefaultConfig() *Config {
 	}
 }
 
-// NewEnviromentConfig sets up the initial config from environment variables
-func NewEnviromentConfig() (*Config, error) {
+func checkURLIsAllowed(url *s2igit.URL) bool {
+	switch url.Type {
+	case s2igit.URLTypeLocal:
+		return false
+	case s2igit.URLTypeURL:
+		if url.URL.Opaque != "" {
+			return false
+		}
+		switch url.URL.Scheme {
+		case "git", "http", "https", "ssh":
+		default:
+			return false
+		}
+	}
+	return true
+}
+
+// NewEnvironmentConfig sets up the initial config from environment variables
+// TODO break out the code that generates the handler functions so that they
+// can be individually unit tested. Also separate out the code that generates
+// the initial set of clones.
+func NewEnvironmentConfig() (*Config, error) {
 	config := NewDefaultConfig()
 
 	home := os.Getenv("GIT_HOME")
@@ -142,6 +190,14 @@ func NewEnviromentConfig() (*Config, error) {
 		config.URL = valid
 	}
 
+	if internalURL := os.Getenv("INTERNAL_URL"); len(internalURL) > 0 {
+		valid, err := url.Parse(internalURL)
+		if err != nil {
+			return nil, fmt.Errorf("INTERNAL_URL must be a valid URL: %v", err)
+		}
+		config.InternalURL = valid
+	}
+
 	gitpath := os.Getenv("GIT_PATH")
 	if len(gitpath) == 0 {
 		path, err := exec.LookPath("git")
@@ -152,9 +208,9 @@ func NewEnviromentConfig() (*Config, error) {
 	}
 	config.GitBinary = gitpath
 
-	config.AllowPush = os.Getenv("ALLOW_GIT_PUSH") != "no"
-	config.AllowHooks = os.Getenv("ALLOW_GIT_HOOKS") != "no"
-	config.AllowLazyCreate = os.Getenv("ALLOW_LAZY_CREATE") != "no"
+	config.AllowPush = os.Getenv("ALLOW_GIT_PUSH") != "false"
+	config.AllowHooks = os.Getenv("ALLOW_GIT_HOOKS") != "false"
+	config.AllowLazyCreate = os.Getenv("ALLOW_LAZY_CREATE") != "false"
 
 	if hookpath := os.Getenv("HOOK_PATH"); len(hookpath) != 0 {
 		path, err := filepath.Abs(hookpath)
@@ -167,7 +223,7 @@ func NewEnviromentConfig() (*Config, error) {
 		config.HookDirectory = path
 	}
 
-	allowAnonymousGet := os.Getenv("ALLOW_ANON_GIT_PULL") == "yes"
+	allowAnonymousGet := os.Getenv("ALLOW_ANON_GIT_PULL") == "true"
 	serverAuth := os.Getenv("REQUIRE_SERVER_AUTH")
 	gitAuth := os.Getenv("REQUIRE_GIT_AUTH")
 	if len(serverAuth) > 0 && len(gitAuth) > 0 {
@@ -190,35 +246,52 @@ func NewEnviromentConfig() (*Config, error) {
 		if err != nil {
 			return nil, fmt.Errorf("could not create a client for REQUIRE_SERVER_AUTH: %v", err)
 		}
-		osc, err := client.New(cfg)
-		if err != nil {
-			return nil, fmt.Errorf("could not create a client for REQUIRE_SERVER_AUTH: %v", err)
-		}
 
 		config.AuthMessage = fmt.Sprintf("Authenticating against %s allow-push=%t anon-pull=%t", cfg.Host, config.AllowPush, allowAnonymousGet)
-		config.AuthenticatorFn = auth.Authenticator(func(info auth.AuthInfo) (bool, error) {
+		authHandlerFn := auth.Authenticator(func(info auth.AuthInfo) (bool, error) {
 			if !info.Push && allowAnonymousGet {
+				glog.V(5).Infof("Allowing pull because anonymous get is enabled")
 				return true, nil
 			}
-			req := &authapi.LocalSubjectAccessReview{
-				Action: authapi.AuthorizationAttributes{
-					Verb:     "get",
-					Resource: "pods",
+			req := &authorization.SelfSubjectAccessReview{
+				Spec: authorization.SelfSubjectAccessReviewSpec{
+					ResourceAttributes: &authorization.ResourceAttributes{
+						Verb:      "get",
+						Namespace: namespace,
+						Group:     kapi.GroupName,
+						Resource:  "pods",
+					},
 				},
 			}
 			if info.Push {
 				if !config.AllowPush {
 					return false, nil
 				}
-				req.Action.Verb = "create"
+				req.Spec.ResourceAttributes.Verb = "create"
 			}
-			res, err := osc.ImpersonateLocalSubjectAccessReviews(namespace, info.Password).Create(req)
+
+			configForUser := rest.AnonymousClientConfig(cfg)
+			configForUser.BearerToken = info.Password
+			authorizationClient, err := authorizationtypedclient.NewForConfig(configForUser)
 			if err != nil {
 				return false, err
 			}
-			//log.Printf("debug: server response allowed=%t message=%s", res.Allowed, res.Reason)
-			return res.Allowed, nil
+
+			glog.V(5).Infof("Checking for %s permission on pods", req.Spec.ResourceAttributes.Verb)
+			res, err := authorizationClient.SelfSubjectAccessReviews().Create(req)
+			if err != nil {
+				if se, ok := err.(*errors.StatusError); ok {
+					return false, &statusError{se}
+				}
+				return false, err
+			}
+			glog.V(5).Infof("server response allowed=%t message=%s", res.Status.Allowed, res.Status.Reason)
+			return res.Status.Allowed, nil
 		})
+		if allowAnonymousGet {
+			authHandlerFn = anonymousHandler(authHandlerFn)
+		}
+		config.AuthenticatorFn = authHandlerFn
 	}
 
 	if len(gitAuth) > 0 {
@@ -228,27 +301,30 @@ func NewEnviromentConfig() (*Config, error) {
 		}
 		config.AuthMessage = fmt.Sprintf("Authenticating against username/password allow-push=%t", config.AllowPush)
 		username, password := parts[0], parts[1]
-		config.AuthenticatorFn = auth.Authenticator(func(info auth.AuthInfo) (bool, error) {
+		authHandlerFn := auth.Authenticator(func(info auth.AuthInfo) (bool, error) {
 			if info.Push {
 				if !config.AllowPush {
+					glog.V(5).Infof("Denying push request because it is disabled in config.")
 					return false, nil
-				}
-				if allowAnonymousGet {
-					return true, nil
 				}
 			}
 			if info.Username != username || info.Password != password {
+				glog.V(5).Infof("Username or password doesn't match")
 				return false, nil
 			}
 			return true, nil
 		})
+		if allowAnonymousGet {
+			authHandlerFn = anonymousHandler(authHandlerFn)
+		}
+		config.AuthenticatorFn = authHandlerFn
 	}
 
 	if value := os.Getenv("GIT_LISTEN"); len(value) > 0 {
 		config.Listen = value
 	}
 
-	config.CleanBeforeClone = os.Getenv("GIT_FORCE_CLEAN") == "yes"
+	config.CleanBeforeClone = os.Getenv("GIT_FORCE_CLEAN") == "true"
 
 	clones := make(map[string]Clone)
 	for _, env := range os.Environ() {
@@ -284,18 +360,16 @@ func NewEnviromentConfig() (*Config, error) {
 			return nil, fmt.Errorf("%s may only have two segments (<url> or <url>;<name>)", key)
 		}
 
-		url, err := git.ParseRepository(uri)
+		url, err := s2igit.Parse(uri)
 		if err != nil {
 			return nil, fmt.Errorf("%s is not a valid repository URI: %v", key, err)
 		}
-		switch url.Scheme {
-		case "http", "https", "git", "ssh":
-		default:
+		if !checkURLIsAllowed(url) {
 			return nil, fmt.Errorf("%s %q must be a http, https, git, or ssh URL", key, uri)
 		}
 
 		if len(name) == 0 {
-			if n, ok := git.NameFromRepositoryURL(url); ok {
+			if n, ok := git.NameFromRepositoryURL(&url.URL); ok {
 				name = n + ".git"
 			}
 		}
@@ -310,6 +384,8 @@ func NewEnviromentConfig() (*Config, error) {
 			return nil, fmt.Errorf("%s name %q is reserved (%v)", key, name, reservedNames)
 		}
 
+		glog.V(5).Infof("Adding initial clone to repo at %s", url.String())
+
 		clones[name] = Clone{
 			URL: *url,
 		}
@@ -317,6 +393,21 @@ func NewEnviromentConfig() (*Config, error) {
 	config.InitialClones = clones
 
 	return config, nil
+}
+
+func anonymousHandler(f func(http.Handler) http.Handler) func(http.Handler) http.Handler {
+	return func(h http.Handler) http.Handler {
+		authHandler := f(h)
+		anonymousHandler := func(w http.ResponseWriter, req *http.Request) {
+			// If anonymous read request, simply serve content
+			if req.FormValue("service") != "git-receive-pack" && len(req.Header.Get("Authorization")) == 0 {
+				h.ServeHTTP(w, req)
+				return
+			}
+			authHandler.ServeHTTP(w, req)
+		}
+		return http.HandlerFunc(anonymousHandler)
+	}
 }
 
 func handler(config *Config) http.Handler {
@@ -351,6 +442,7 @@ func Start(config *Config) error {
 
 	ops := http.NewServeMux()
 	if config.AllowHooks {
+		glog.V(5).Infof("Installing handler for the /_/hooks endpoint")
 		ops.Handle("/hooks/", prometheus.InstrumentHandler("hooks", http.StripPrefix("/hooks", hooksHandler(config))))
 	}
 	/*ops.Handle("/reflect/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -358,6 +450,7 @@ func Start(config *Config) error {
 		fmt.Fprintf(os.Stdout, "%s %s\n", r.Method, r.URL)
 		io.Copy(os.Stdout, r.Body)
 	}))*/
+	glog.V(5).Infof("Installing handler for the /_/metrics endpoint")
 	ops.Handle("/metrics", prometheus.UninstrumentedHandler())
 	healthz.InstallHandler(ops)
 
@@ -366,8 +459,8 @@ func Start(config *Config) error {
 	mux.Handle("/_/", http.StripPrefix("/_", ops))
 
 	if len(config.AuthMessage) > 0 {
-		log.Printf("%s", config.AuthMessage)
+		glog.Infof("%s", config.AuthMessage)
 	}
-	log.Printf("Serving %s on %s", config.Home, config.Listen)
+	glog.Infof("Serving %s on %s", config.Home, config.Listen)
 	return http.ListenAndServe(config.Listen, mux)
 }

@@ -1,65 +1,25 @@
-/*
-Copyright 2014 The Kubernetes Authors All rights reserved.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
 package etcd
 
 import (
 	"testing"
 
-	kapi "k8s.io/kubernetes/pkg/api"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	genericregistrytest "k8s.io/apiserver/pkg/registry/generic/testing"
+	"k8s.io/apiserver/pkg/registry/rest"
+	etcdtesting "k8s.io/apiserver/pkg/storage/etcd/testing"
+	authorizationapi "k8s.io/kubernetes/pkg/apis/authorization"
 	"k8s.io/kubernetes/pkg/registry/registrytest"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/tools"
 
-	_ "github.com/openshift/origin/pkg/api/latest"
-	"github.com/openshift/origin/pkg/route/api"
+	routetypes "github.com/openshift/origin/pkg/route"
+	routeapi "github.com/openshift/origin/pkg/route/apis/route"
+	_ "github.com/openshift/origin/pkg/route/apis/route/install"
 	"github.com/openshift/origin/pkg/route/registry/route"
+	"github.com/openshift/origin/pkg/util/restoptions"
 )
-
-func newStorage(t *testing.T, allocator *testAllocator) (*REST, *tools.FakeEtcdClient) {
-	etcdStorage, fakeClient := registrytest.NewEtcdStorage(t, "")
-	return NewREST(etcdStorage, allocator).Route, fakeClient
-}
-
-func validNewRoute(name string) *api.Route {
-	return &api.Route{
-		ObjectMeta: kapi.ObjectMeta{
-			Name: name,
-		},
-		Spec: api.RouteSpec{
-			To: kapi.ObjectReference{
-				Name: "test",
-			},
-		},
-	}
-}
-
-func TestCreate(t *testing.T) {
-	storage, fakeClient := newStorage(t, &testAllocator{})
-	test := registrytest.New(t, fakeClient, storage.Etcd)
-	validRoute := validNewRoute("foo")
-	test.TestCreate(
-		// valid
-		validRoute,
-		// invalid
-		&api.Route{
-			ObjectMeta: kapi.ObjectMeta{Name: "_-a123-a_"},
-		},
-	)
-}
 
 type testAllocator struct {
 	Hostname string
@@ -68,25 +28,79 @@ type testAllocator struct {
 	Generate bool
 }
 
-func (a *testAllocator) AllocateRouterShard(*api.Route) (*api.RouterShard, error) {
+func (a *testAllocator) AllocateRouterShard(*routeapi.Route) (*routeapi.RouterShard, error) {
 	a.Allocate = true
 	return nil, a.Err
 }
-func (a *testAllocator) GenerateHostname(*api.Route, *api.RouterShard) string {
+func (a *testAllocator) GenerateHostname(*routeapi.Route, *routeapi.RouterShard) string {
 	a.Generate = true
 	return a.Hostname
 }
 
+type testSAR struct {
+	allow bool
+	err   error
+	sar   *authorizationapi.SubjectAccessReview
+}
+
+func (t *testSAR) Create(subjectAccessReview *authorizationapi.SubjectAccessReview) (*authorizationapi.SubjectAccessReview, error) {
+	t.sar = subjectAccessReview
+	return &authorizationapi.SubjectAccessReview{
+		Status: authorizationapi.SubjectAccessReviewStatus{
+			Allowed: t.allow,
+		},
+	}, t.err
+}
+
+func newStorage(t *testing.T, allocator routetypes.RouteAllocator) (*REST, *etcdtesting.EtcdTestServer) {
+	etcdStorage, server := registrytest.NewEtcdStorage(t, "")
+	storage, _, err := NewREST(restoptions.NewSimpleGetter(etcdStorage), allocator, &testSAR{allow: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return storage, server
+}
+
+func validRoute() *routeapi.Route {
+	return &routeapi.Route{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "foo",
+		},
+		Spec: routeapi.RouteSpec{
+			To: routeapi.RouteTargetReference{
+				Name: "test",
+				Kind: "Service",
+			},
+		},
+	}
+}
+
+func TestCreate(t *testing.T) {
+	storage, server := newStorage(t, nil)
+	defer server.Terminate(t)
+	defer storage.Store.DestroyFunc()
+	test := genericregistrytest.New(t, storage.Store)
+	test.TestCreate(
+		// valid
+		validRoute(),
+		// invalid
+		&routeapi.Route{
+			ObjectMeta: metav1.ObjectMeta{Name: "_-a123-a_"},
+		},
+	)
+}
+
 func TestCreateWithAllocation(t *testing.T) {
 	allocator := &testAllocator{Hostname: "bar"}
-	storage, _ := newStorage(t, allocator)
+	storage, server := newStorage(t, allocator)
+	defer server.Terminate(t)
+	defer storage.Store.DestroyFunc()
 
-	validRoute := validNewRoute("foo")
-	obj, err := storage.Create(kapi.NewDefaultContext(), validRoute)
+	obj, err := storage.Create(apirequest.NewDefaultContext(), validRoute(), rest.ValidateAllObjectFunc, false)
 	if err != nil {
 		t.Fatalf("unable to create object: %v", err)
 	}
-	result := obj.(*api.Route)
+	result := obj.(*routeapi.Route)
 	if result.Spec.Host != "bar" {
 		t.Fatalf("unexpected route: %#v", result)
 	}
@@ -99,14 +113,16 @@ func TestCreateWithAllocation(t *testing.T) {
 }
 
 func TestUpdate(t *testing.T) {
-	storage, fakeClient := newStorage(t, nil)
-	test := registrytest.New(t, fakeClient, storage.Etcd)
+	storage, server := newStorage(t, nil)
+	defer server.Terminate(t)
+	defer storage.Store.DestroyFunc()
+	test := genericregistrytest.New(t, storage.Store)
 
 	test.TestUpdate(
-		validNewRoute("foo"),
+		validRoute(),
 		// valid update
 		func(obj runtime.Object) runtime.Object {
-			object := obj.(*api.Route)
+			object := obj.(*routeapi.Route)
 			if object.Annotations == nil {
 				object.Annotations = map[string]string{}
 			}
@@ -115,15 +131,66 @@ func TestUpdate(t *testing.T) {
 		},
 		// invalid update
 		func(obj runtime.Object) runtime.Object {
-			object := obj.(*api.Route)
+			object := obj.(*routeapi.Route)
 			object.Spec.Path = "invalid/path"
 			return object
 		},
 	)
 }
 
+func TestList(t *testing.T) {
+	storage, server := newStorage(t, nil)
+	defer server.Terminate(t)
+	defer storage.Store.DestroyFunc()
+	test := genericregistrytest.New(t, storage.Store)
+	test.TestList(
+		validRoute(),
+	)
+}
+
+func TestGet(t *testing.T) {
+	storage, server := newStorage(t, &testAllocator{})
+	defer server.Terminate(t)
+	defer storage.Store.DestroyFunc()
+	test := genericregistrytest.New(t, storage.Store)
+	test.TestGet(
+		validRoute(),
+	)
+}
+
 func TestDelete(t *testing.T) {
-	storage, fakeClient := newStorage(t, nil)
-	test := registrytest.New(t, fakeClient, storage.Etcd)
-	test.TestDelete(validNewRoute("foo"))
+	storage, server := newStorage(t, nil)
+	defer server.Terminate(t)
+	defer storage.Store.DestroyFunc()
+	test := genericregistrytest.New(t, storage.Store)
+	test.TestDelete(
+		validRoute(),
+	)
+}
+
+func TestWatch(t *testing.T) {
+	storage, server := newStorage(t, nil)
+	defer server.Terminate(t)
+	defer storage.Store.DestroyFunc()
+	test := genericregistrytest.New(t, storage.Store)
+
+	valid := validRoute()
+	valid.Name = "foo"
+	valid.Labels = map[string]string{"foo": "bar"}
+
+	test.TestWatch(
+		valid,
+		// matching labels
+		[]labels.Set{{"foo": "bar"}},
+		// not matching labels
+		[]labels.Set{{"foo": "baz"}},
+		// matching fields
+		[]fields.Set{
+			{"metadata.name": "foo"},
+		},
+		// not matching fields
+		[]fields.Set{
+			{"metadata.name": "bar"},
+		},
+	)
 }

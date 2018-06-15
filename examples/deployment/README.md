@@ -45,7 +45,7 @@ A rolling deployment means you to have both old and new versions of your code ru
 
 Rolling deployments are the default in OpenShift. To see a rolling update, follow these steps:
 
-1.  Create a application based on the example deployment images:
+1.  Create an application based on the example deployment images:
 
         $ oc new-app openshift/deployment-example
 
@@ -59,9 +59,9 @@ Rolling deployments are the default in OpenShift. To see a rolling update, follo
 
         $ oc scale dc/deployment-example --replicas=3
 
-3.  Trigger a new deployment automatically by tagging a new version of the example as the `latest` tag:
+3.  Trigger a new deployment automatically by tagging a newer version of the example image as the `latest` tag:
 
-        $ oc tag deployment-example:v2 deployment-example:latest
+        $ oc tag --source=docker openshift/deployment-example:v2 deployment-example:latest
 
 4.  In your browser, refresh the page until you see the 'v2' image.
 
@@ -200,7 +200,7 @@ OpenShift, through labels and deployment configurations, can support multiple si
 
 4.  Create a service that uses the common label:
 
-        $ oc expose dc/ab-example-a --name=ab-example --selector=ab-example=true --generator=service/v1
+        $ oc expose dc/ab-example-a --name=ab-example --selector=ab-example=true
 
     If you have the router installed, make the application available via a route (or use the service IP directly)
 

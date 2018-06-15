@@ -1,5 +1,0 @@
-<div ng-if="deploymentConfigId != ''" class="metadata">
-  <span>Created from deployment config {{deploymentConfigId}}</span>
-  <span ng-if="!exists" data-toggle="tooltip" data-placement="right" title="Deployment config no longer exists" class="pficon pficon-error-circle-o" style="cursor: help;"></span>
-  <span ng-if="exists && differentService" data-toggle="tooltip" data-placement="right" title="The template for this deployment config has changed. New deployments will not be included in this list." class="pficon pficon-error-circle-o" style="cursor: help;"></span>
-</div>

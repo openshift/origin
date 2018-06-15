@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    external: service
+  name: external
+  resourceVersion: "1"
+  uid: 19cff995-5546-11e5-9f57-080027c5bfa9
+spec:
+  clusterIP: 172.30.0.100
+  ports:
+  - nodePort: 0
+    port: 443
+    protocol: TCP
+    targetPort: 443
+  sessionAffinity: None
+  type: ClusterIP
+status:
+  loadBalancer: {}

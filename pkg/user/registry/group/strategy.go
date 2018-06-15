@@ -1,17 +1,14 @@
 package group
 
 import (
-	"fmt"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/validation/field"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/registry/rest"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
-	"k8s.io/kubernetes/pkg/registry/generic"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/fielderrors"
-
-	"github.com/openshift/origin/pkg/user/api"
-	"github.com/openshift/origin/pkg/user/api/validation"
+	userapi "github.com/openshift/origin/pkg/user/apis/user"
+	"github.com/openshift/origin/pkg/user/apis/user/validation"
 )
 
 // groupStrategy implements behavior for Groups
@@ -21,9 +18,15 @@ type groupStrategy struct {
 
 // Strategy is the default logic that applies when creating and updating Group
 // objects via the REST API.
-var Strategy = groupStrategy{kapi.Scheme}
+var Strategy = groupStrategy{legacyscheme.Scheme}
 
-func (groupStrategy) PrepareForUpdate(obj, old runtime.Object) {}
+var _ rest.GarbageCollectionDeleteStrategy = groupStrategy{}
+
+func (groupStrategy) DefaultGarbageCollectionPolicy(ctx apirequest.Context) rest.GarbageCollectionPolicy {
+	return rest.Unsupported
+}
+
+func (groupStrategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.Object) {}
 
 // NamespaceScoped is false for groups
 func (groupStrategy) NamespaceScoped() bool {
@@ -34,12 +37,12 @@ func (groupStrategy) GenerateName(base string) string {
 	return base
 }
 
-func (groupStrategy) PrepareForCreate(obj runtime.Object) {
+func (groupStrategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) {
 }
 
 // Validate validates a new group
-func (groupStrategy) Validate(ctx kapi.Context, obj runtime.Object) fielderrors.ValidationErrorList {
-	return validation.ValidateGroup(obj.(*api.Group))
+func (groupStrategy) Validate(ctx apirequest.Context, obj runtime.Object) field.ErrorList {
+	return validation.ValidateGroup(obj.(*userapi.Group))
 }
 
 // AllowCreateOnUpdate is false for groups
@@ -51,26 +54,11 @@ func (groupStrategy) AllowUnconditionalUpdate() bool {
 	return false
 }
 
+// Canonicalize normalizes the object after validation.
+func (groupStrategy) Canonicalize(obj runtime.Object) {
+}
+
 // ValidateUpdate is the default update validation for an end group.
-func (groupStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) fielderrors.ValidationErrorList {
-	return validation.ValidateGroupUpdate(obj.(*api.Group), old.(*api.Group))
-}
-
-// MatchGroup returns a generic matcher for a given label and field selector.
-func MatchGroup(label labels.Selector, field fields.Selector) generic.Matcher {
-	return generic.MatcherFunc(func(obj runtime.Object) (bool, error) {
-		groupObj, ok := obj.(*api.Group)
-		if !ok {
-			return false, fmt.Errorf("not a group")
-		}
-		fields := GroupToSelectableFields(groupObj)
-		return label.Matches(labels.Set(groupObj.Labels)) && field.Matches(fields), nil
-	})
-}
-
-// GroupToSelectableFields returns a label set that represents the object
-func GroupToSelectableFields(group *api.Group) labels.Set {
-	return labels.Set{
-		"name": group.Name,
-	}
+func (groupStrategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.Object) field.ErrorList {
+	return validation.ValidateGroupUpdate(obj.(*userapi.Group), old.(*userapi.Group))
 }

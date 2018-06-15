@@ -1,0 +1,56 @@
+{
+  "kind": "Template",
+  "apiVersion": "v1",
+  "parameters": [
+    {
+      "name": "IMAGE_NAME",
+      "required": true
+    }
+  ],
+  "objects": [
+    {
+      "kind":"Pod",
+      "apiVersion":"v1",
+      "metadata":{
+        "name":"build-test-pod",
+        "labels":{
+          "name":"build-test-pod"
+        }
+      },
+      "spec":{
+        "containers":[
+          {
+            "name":"test",
+            "image":"${IMAGE_NAME}",
+            "readinessProbe": {
+              "httpGet": {
+                "port": 8080
+              }
+            }
+          }
+        ],
+        "dnsPolicy":"ClusterFirst"
+      }
+    },
+    {
+      "kind": "Service",
+      "apiVersion":"v1",
+      "metadata": {
+        "name":"build-test-svc"
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "8080-tcp",
+            "protocol": "TCP",
+            "port": 8080,
+            "targetPort": 8080
+          }
+        ],
+        "selector": {
+          "name": "build-test-pod"
+        }
+      }
+    }
+  ]
+}

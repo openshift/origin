@@ -1,42 +1,83 @@
 package dns
 
 import (
-	client "k8s.io/kubernetes/pkg/client/unversioned"
+	"net"
+	"strings"
 
-	"github.com/coreos/go-etcd/etcd"
-	"github.com/prometheus/client_golang/prometheus"
-	backendetcd "github.com/skynetservices/skydns/backends/etcd"
+	"github.com/golang/glog"
+
+	"github.com/skynetservices/skydns/metrics"
 	"github.com/skynetservices/skydns/server"
 )
 
 // NewServerDefaults returns the default SkyDNS server configuration for a DNS server.
 func NewServerDefaults() (*server.Config, error) {
 	config := &server.Config{
-		Domain: "cluster.local.",
-		Local:  "openshift.default.svc.cluster.local.",
+		Domain:  "cluster.local.",
+		Local:   "openshift.default.svc.cluster.local.",
+		Verbose: bool(glog.V(4)),
 	}
 	return config, server.SetDefaults(config)
 }
 
+type Server struct {
+	Config      *server.Config
+	Services    ServiceAccessor
+	Endpoints   EndpointsAccessor
+	MetricsName string
+}
+
+// NewServer creates a server.
+func NewServer(config *server.Config, services ServiceAccessor, endpoints EndpointsAccessor, metricsName string) *Server {
+	return &Server{
+		Config:      config,
+		Services:    services,
+		Endpoints:   endpoints,
+		MetricsName: metricsName,
+	}
+}
+
 // ListenAndServe starts a DNS server that exposes services and values stored in etcd (if etcdclient
 // is not nil). It will block until the server exits.
-// TODO: hoist the service accessor out of this package so it can be reused.
-func ListenAndServe(config *server.Config, client *client.Client, etcdclient *etcd.Client) error {
-	stop := make(chan struct{})
-	accessor := NewCachedServiceAccessor(client, stop)
-	resolver := NewServiceResolver(config, accessor, client, openshiftFallback)
-	resolvers := server.FirstBackend{resolver}
-	if etcdclient != nil {
-		resolvers = append(resolvers, backendetcd.NewBackend(etcdclient, &backendetcd.Config{
-			Ttl:      config.Ttl,
-			Priority: config.Priority,
-		}))
-	}
+func (s *Server) ListenAndServe(stopCh <-chan struct{}) error {
+	monitorDnsmasq(s.Config, s.MetricsName, stopCh, func() bool { return s.Services.HasSynced() && s.Endpoints.HasSynced() })
 
-	server.RegisterMetrics("", "")
-	s := server.New(resolvers, config)
-	defer close(stop)
-	return s.Run()
+	resolver := NewServiceResolver(s.Config, s.Services, s.Endpoints, openshiftFallback)
+	resolvers := server.FirstBackend{resolver}
+	if len(s.MetricsName) > 0 {
+		metrics.RegisterPrometheusMetrics(s.MetricsName, "")
+	}
+	dns := server.New(resolvers, s.Config)
+	return dns.Run()
+}
+
+// monitorDnsmasq attempts to start the dnsmasq monitoring goroutines to keep dnsmasq
+// in sync with this server. It will take no action if the current config DnsAddr does
+// not point to port 53 (dnsmasq does not support alternate upstream ports). It will
+// convert the bind address from 0.0.0.0 to the BindNetwork appropriate listen address.
+func monitorDnsmasq(config *server.Config, metricsName string, stopCh <-chan struct{}, readyFn func() bool) {
+	if host, port, err := net.SplitHostPort(config.DnsAddr); err == nil && port == "53" {
+		if ip := net.ParseIP(host); ip != nil && ip.IsUnspecified() {
+			if config.BindNetwork == "ipv6" {
+				host = "::1"
+			} else {
+				host = "127.0.0.1"
+			}
+		}
+		monitor := &dnsmasqMonitor{
+			metricsName: metricsName,
+			ready:       readyFn,
+			dnsIP:       host,
+			dnsDomain:   strings.TrimSuffix(config.Domain, "."),
+		}
+		if err := monitor.Start(stopCh); err != nil {
+			glog.Warningf("Unable to start dnsmasq monitor: %v", err)
+		} else {
+			glog.V(2).Infof("Monitoring dnsmasq to point cluster queries to %s", host)
+		}
+	} else {
+		glog.Warningf("Unable to keep dnsmasq up to date, %s must point to port 53", config.DnsAddr)
+	}
 }
 
 func openshiftFallback(name string, exact bool) (string, bool) {
@@ -47,20 +88,4 @@ func openshiftFallback(name string, exact bool) (string, bool) {
 		return "_endpoints.kubernetes.default.", true
 	}
 	return "", false
-}
-
-// counter is a SkyDNS compatible Counter
-type counter struct {
-	prometheus.Counter
-}
-
-// newCounter registers a prometheus counter and wraps it to match SkyDNS
-func newCounter(c prometheus.Counter) server.Counter {
-	prometheus.MustRegister(c)
-	return counter{c}
-}
-
-// Inc increases the counter with the given value
-func (c counter) Inc(val int64) {
-	c.Counter.Add(float64(val))
 }

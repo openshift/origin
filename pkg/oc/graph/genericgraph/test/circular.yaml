@@ -1,0 +1,103 @@
+apiVersion: v1
+items:
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    creationTimestamp: null
+    name: ruby-22-centos7
+    namespace: example
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: ruby-hello-world:latest
+    resources: {}
+    source:
+      git:
+        uri: https://github.com/openshift/ruby-hello-world
+      type: Git
+    strategy:
+      dockerStrategy:
+        from:
+          kind: ImageStreamTag
+          name: ruby-22-centos7:latest
+      type: Docker
+    triggers:
+    - github:
+        secret: faSaQS1VY-gdRMwge4eV
+      type: GitHub
+    - generic:
+        secret: u-_J-vtKR5K3GykKwCuK
+      type: Generic
+    - imageChange: {}
+      type: ImageChange
+  status:
+    lastVersion: 0
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    creationTimestamp: null
+    name: ruby-hello-world
+    namespace: example
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: ruby-something-else:latest
+    resources: {}
+    source:
+      git:
+        uri: https://github.com/openshift/ruby-hello-world
+      type: Git
+    strategy:
+      dockerStrategy:
+        from:
+          kind: ImageStreamTag
+          name: ruby-hello-world:latest
+      type: Docker
+    triggers:
+    - github:
+        secret: faSaQS1VY-gdRMwge4eV
+      type: GitHub
+    - generic:
+        secret: u-_J-vtKR5K3GykKwCuK
+      type: Generic
+    - imageChange: {}
+      type: ImageChange
+  status:
+    lastVersion: 0
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    creationTimestamp: null
+    name: ruby-something-else
+    namespace: example
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: ruby-22-centos7:latest
+    resources: {}
+    source:
+      git:
+        uri: https://github.com/openshift/ruby-hello-world
+      type: Git
+    strategy:
+      dockerStrategy:
+        from:
+          kind: ImageStreamTag
+          name: ruby-something-else:latest
+      type: Docker
+    triggers:
+    - github:
+        secret: faSaQS1VY-gdRMwge4eV
+      type: GitHub
+    - generic:
+        secret: u-_J-vtKR5K3GykKwCuK
+      type: Generic
+    - imageChange: {}
+      type: ImageChange
+  status:
+    lastVersion: 0
+kind: List
+metadata: {}

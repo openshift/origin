@@ -1,12 +1,15 @@
 package delegated
 
 import (
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/api/rbac/v1beta1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/kubernetes/pkg/apis/rbac"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	projectapiv1 "github.com/openshift/api/project/v1"
+	oapi "github.com/openshift/origin/pkg/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	projectapi "github.com/openshift/origin/pkg/project/api"
-	templateapi "github.com/openshift/origin/pkg/template/api"
+	projectapi "github.com/openshift/origin/pkg/project/apis/project"
+	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 )
 
 const (
@@ -16,10 +19,11 @@ const (
 	ProjectDisplayNameParam = "PROJECT_DISPLAYNAME"
 	ProjectDescriptionParam = "PROJECT_DESCRIPTION"
 	ProjectAdminUserParam   = "PROJECT_ADMIN_USER"
+	ProjectRequesterParam   = "PROJECT_REQUESTING_USER"
 )
 
 var (
-	parameters = []string{ProjectNameParam, ProjectDisplayNameParam, ProjectDescriptionParam, ProjectAdminUserParam}
+	parameters = []string{ProjectNameParam, ProjectDisplayNameParam, ProjectDescriptionParam, ProjectAdminUserParam, ProjectRequesterParam}
 )
 
 func DefaultTemplate() *templateapi.Template {
@@ -31,21 +35,27 @@ func DefaultTemplate() *templateapi.Template {
 	project := &projectapi.Project{}
 	project.Name = ns
 	project.Annotations = map[string]string{
-		projectapi.ProjectDescription: "${" + ProjectDescriptionParam + "}",
-		projectapi.ProjectDisplayName: "${" + ProjectDisplayNameParam + "}",
+		oapi.OpenShiftDescription:   "${" + ProjectDescriptionParam + "}",
+		oapi.OpenShiftDisplayName:   "${" + ProjectDisplayNameParam + "}",
+		projectapi.ProjectRequester: "${" + ProjectRequesterParam + "}",
 	}
-	ret.Objects = append(ret.Objects, project)
+	if err := templateapi.AddObjectsToTemplate(ret, []runtime.Object{project}, projectapiv1.SchemeGroupVersion); err != nil {
+		panic(err)
+	}
 
-	binding := &authorizationapi.RoleBinding{}
-	binding.Name = "admins"
-	binding.Namespace = ns
-	binding.Subjects = []kapi.ObjectReference{{Kind: authorizationapi.UserKind, Name: "${" + ProjectAdminUserParam + "}"}}
-	binding.RoleRef.Name = bootstrappolicy.AdminRoleName
-	ret.Objects = append(ret.Objects, binding)
-
+	// TODO this should be removed in 3.11.  We need to keep it for new server, old controller cases in 3.10.
 	serviceAccountRoleBindings := bootstrappolicy.GetBootstrapServiceAccountProjectRoleBindings(ns)
 	for i := range serviceAccountRoleBindings {
-		ret.Objects = append(ret.Objects, &serviceAccountRoleBindings[i])
+		if err := templateapi.AddObjectsToTemplate(ret, []runtime.Object{&serviceAccountRoleBindings[i]}, v1beta1.SchemeGroupVersion); err != nil {
+			panic(err)
+		}
+	}
+
+	binding := rbac.NewRoleBindingForClusterRole(bootstrappolicy.AdminRoleName, ns).Users("${" + ProjectAdminUserParam + "}").BindingOrDie()
+
+	if err := templateapi.AddObjectsToTemplate(ret, []runtime.Object{&binding}, v1beta1.SchemeGroupVersion); err != nil {
+		// this should never happen because we're tightly controlling what goes in.
+		panic(err)
 	}
 
 	for _, parameterName := range parameters {

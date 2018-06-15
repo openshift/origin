@@ -1,19 +1,10 @@
 #!/bin/bash
+source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
-set -e
+etcd_version=$(go run ${OS_ROOT}/tools/godepversion/godepversion.go ${OS_ROOT}/Godeps/Godeps.json github.com/coreos/etcd/etcdserver)
 
-set -o errexit
-set -o nounset
-set -o pipefail
-
-OS_ROOT=$(dirname "${BASH_SOURCE}")/..
-source "${OS_ROOT}/hack/util.sh"
-os::log::install_errexit
-
-etcd_version=$(go run ${OS_ROOT}/hack/version.go ${OS_ROOT}/Godeps/Godeps.json github.com/coreos/etcd/etcdserver)
-
-mkdir -p "${OS_ROOT}/_tools"
-cd "${OS_ROOT}/_tools"
+mkdir -p "${OS_ROOT}/_output/tools"
+cd "${OS_ROOT}/_output/tools"
 
 if [ ! -d etcd ]; then
   mkdir -p etcd
@@ -30,11 +21,13 @@ else
   pushd etcd >/dev/null
 fi
 
+# setup a private GOPATH so the build can succeed
+export GOPATH="${PWD}/gopath"
 ./build
 
 echo
 echo Installed coreos/etcd ${etcd_version} into:
-echo export PATH=$(pwd):\$PATH
+echo export PATH=${PWD}/bin:\$PATH
 
 popd >/dev/null
 exit 0

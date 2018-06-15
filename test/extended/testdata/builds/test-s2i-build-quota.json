@@ -1,0 +1,33 @@
+{
+  "kind": "BuildConfig",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "s2i-build-quota",
+    "creationTimestamp": null,
+    "labels": {
+      "name": "s2i-build-quota"
+    }
+  },
+  "spec": {
+    "resources": {
+      "limits": {
+        "cpu": "60m",
+        "memory": "200Mi"
+      }
+    },
+    "source": {
+      "binary": {
+        "asFile": ""
+      }          
+    },
+    "strategy": {
+      "type": "Source",
+      "sourceStrategy": {
+        "from": {
+          "kind":"DockerImage",
+          "name":"centos/ruby-22-centos7"
+        }
+      }
+    }
+  }
+}

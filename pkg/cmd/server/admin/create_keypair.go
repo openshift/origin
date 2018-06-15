@@ -16,6 +16,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
+	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 )
 
@@ -29,14 +30,14 @@ type CreateKeyPairOptions struct {
 	Output    io.Writer
 }
 
-const createKeyPairLong = `
-Create an RSA key pair and generate PEM-encoded public/private key files
+var createKeyPairLong = templates.LongDesc(`
+	Create an RSA key pair and generate PEM-encoded public/private key files
 
-Example: Creating service account signing and authenticating key files:
+	Example: Creating service account signing and authenticating key files:
 
-    $ CONFIG=openshift.local.config/master
-    $ %[1]s --public-key=$CONFIG/serviceaccounts.public.key --private-key=$CONFIG/serviceaccounts.private.key
-`
+	    CONFIG=openshift.local.config/master
+	    %[1]s --public-key=$CONFIG/serviceaccounts.public.key --private-key=$CONFIG/serviceaccounts.private.key
+	`)
 
 func NewCommandCreateKeyPair(commandName string, fullName string, out io.Writer) *cobra.Command {
 	options := &CreateKeyPairOptions{Output: out}
@@ -47,7 +48,7 @@ func NewCommandCreateKeyPair(commandName string, fullName string, out io.Writer)
 		Long:  fmt.Sprintf(createKeyPairLong, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.Validate(args); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
+				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
 			}
 
 			err := options.CreateKeyPair()
@@ -129,7 +130,7 @@ func writePublicKeyFile(path string, key *rsa.PublicKey) error {
 	}
 
 	b := bytes.Buffer{}
-	if err := pem.Encode(&b, &pem.Block{Type: "RSA PUBLIC KEY", Bytes: derBytes}); err != nil {
+	if err := pem.Encode(&b, &pem.Block{Type: "PUBLIC KEY", Bytes: derBytes}); err != nil {
 		return err
 	}
 

@@ -1,16 +1,13 @@
 package oauthclient
 
 import (
-	"fmt"
-
-	"github.com/openshift/origin/pkg/oauth/api"
-	"github.com/openshift/origin/pkg/oauth/api/validation"
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
-	"k8s.io/kubernetes/pkg/registry/generic"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/fielderrors"
+	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
+	"github.com/openshift/origin/pkg/oauth/apis/oauth/validation"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/validation/field"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/registry/rest"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 )
 
 // strategy implements behavior for OAuthClient objects
@@ -20,9 +17,15 @@ type strategy struct {
 
 // Strategy is the default logic that applies when creating or updating OAuthClient objects
 // objects via the REST API.
-var Strategy = strategy{kapi.Scheme}
+var Strategy = strategy{legacyscheme.Scheme}
 
-func (strategy) PrepareForUpdate(obj, old runtime.Object) {}
+var _ rest.GarbageCollectionDeleteStrategy = strategy{}
+
+func (strategy) DefaultGarbageCollectionPolicy(ctx apirequest.Context) rest.GarbageCollectionPolicy {
+	return rest.Unsupported
+}
+
+func (strategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.Object) {}
 
 // NamespaceScoped is false for OAuth objects
 func (strategy) NamespaceScoped() bool {
@@ -33,19 +36,23 @@ func (strategy) GenerateName(base string) string {
 	return base
 }
 
-func (strategy) PrepareForCreate(obj runtime.Object) {
+func (strategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) {
+}
+
+// Canonicalize normalizes the object after validation.
+func (strategy) Canonicalize(obj runtime.Object) {
 }
 
 // Validate validates a new client
-func (strategy) Validate(ctx kapi.Context, obj runtime.Object) fielderrors.ValidationErrorList {
-	token := obj.(*api.OAuthClient)
+func (strategy) Validate(ctx apirequest.Context, obj runtime.Object) field.ErrorList {
+	token := obj.(*oauthapi.OAuthClient)
 	return validation.ValidateClient(token)
 }
 
 // ValidateUpdate validates a client update
-func (strategy) ValidateUpdate(ctx kapi.Context, obj runtime.Object, old runtime.Object) fielderrors.ValidationErrorList {
-	client := obj.(*api.OAuthClient)
-	oldClient := old.(*api.OAuthClient)
+func (strategy) ValidateUpdate(ctx apirequest.Context, obj runtime.Object, old runtime.Object) field.ErrorList {
+	client := obj.(*oauthapi.OAuthClient)
+	oldClient := old.(*oauthapi.OAuthClient)
 	return validation.ValidateClientUpdate(client, oldClient)
 }
 
@@ -56,23 +63,4 @@ func (strategy) AllowCreateOnUpdate() bool {
 
 func (strategy) AllowUnconditionalUpdate() bool {
 	return false
-}
-
-// Matchtoken returns a generic matcher for a given label and field selector.
-func Matcher(label labels.Selector, field fields.Selector) generic.Matcher {
-	return generic.MatcherFunc(func(obj runtime.Object) (bool, error) {
-		clientObj, ok := obj.(*api.OAuthClient)
-		if !ok {
-			return false, fmt.Errorf("not a client")
-		}
-		fields := SelectableFields(clientObj)
-		return label.Matches(labels.Set(clientObj.Labels)) && field.Matches(fields), nil
-	})
-}
-
-// SelectableFields returns a label set that represents the object
-func SelectableFields(obj *api.OAuthClient) labels.Set {
-	return labels.Set{
-		"name": obj.Name,
-	}
 }

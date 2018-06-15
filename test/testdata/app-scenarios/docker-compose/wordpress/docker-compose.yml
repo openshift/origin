@@ -1,0 +1,24 @@
+version: "2"
+services:
+  WP:
+    image: "centurylink/wordpress:3.9.1"
+    links:
+      - "DB:DB_1"
+    ports:
+      - "8080:80"
+    environment:
+      - "DB_PASSWORD=pass@word01"
+      - DB_NAME=wordpress
+    dns:
+      - 8.8.8.8
+      - 9.9.9.9
+    hostname: wordpress
+    domainname: wordpress.mysite.com
+  DB:
+    image: "centurylink/mysql:5.5"
+    ports:
+      - "3306:3306"
+    environment:
+      - "MYSQL_ROOT_PASSWORD=pass@word01"
+    mem_limit: "1000000000"
+    cpu_shares: "40"

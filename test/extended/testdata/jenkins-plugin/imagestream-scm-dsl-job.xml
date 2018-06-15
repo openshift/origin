@@ -1,0 +1,29 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<flow-definition plugin="workflow-job@2.2">
+  <actions/>
+  <description></description>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <io.fabric8.jenkins.openshiftsync.BuildConfigProjectProperty plugin="openshift-sync@0.0.12">
+      <uid></uid>
+      <namespace></namespace>
+      <name></name>
+      <resourceVersion></resourceVersion>
+      <contextDir></contextDir>
+    </io.fabric8.jenkins.openshiftsync.BuildConfigProjectProperty>
+  </properties>
+  <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps@2.6">
+    <script>node {
+   stage &apos;Stage 1&apos;
+   openshiftImageStream name: &apos;testimage&apos;, tag: &apos;v1&apos;, namespace: &apos;${PROJECT_NAME}&apos;
+   openshiftTag destStream: &apos;localjenkins&apos;, destTag: &apos;develop&apos;, destinationNamespace: &apos;${PROJECT_NAME}&apos;, namespace: &apos;openshift&apos;, srcStream: &apos;jenkins&apos;, srcTag: &apos;latest&apos;
+}</script>
+    <sandbox>true</sandbox>
+  </definition>
+  <triggers>
+    <hudson.triggers.SCMTrigger>
+      <spec>* * * * *</spec>
+      <ignorePostCommitHooks>false</ignorePostCommitHooks>
+    </hudson.triggers.SCMTrigger>
+  </triggers>
+</flow-definition>

@@ -4,20 +4,14 @@ import (
 	"reflect"
 	"testing"
 
-	kapi "k8s.io/kubernetes/pkg/api"
-	kmeta "k8s.io/kubernetes/pkg/api/meta"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/runtime"
+	kmeta "k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	testtypes "github.com/openshift/origin/pkg/util/testing"
 )
-
-type FakeLabelsResource struct {
-	unversioned.TypeMeta `json:",inline"`
-	kapi.ObjectMeta      `json:"metadata,omitempty"`
-}
-
-func (*FakeLabelsResource) IsAnAPIObject() {}
 
 func TestAddConfigLabels(t *testing.T) {
 	var nilLabels map[string]string
@@ -42,7 +36,7 @@ func TestAddConfigLabels(t *testing.T) {
 		},
 		{ // [2] Test obj.Labels + nil => obj.Labels
 			obj: &kapi.Pod{
-				ObjectMeta: kapi.ObjectMeta{Labels: map[string]string{"foo": "bar"}},
+				ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"foo": "bar"}},
 			},
 			addLabels:      nilLabels,
 			err:            false,
@@ -50,7 +44,7 @@ func TestAddConfigLabels(t *testing.T) {
 		},
 		{ // [3] Test obj.Labels + empty labels => obj.Labels
 			obj: &kapi.Pod{
-				ObjectMeta: kapi.ObjectMeta{Labels: map[string]string{"foo": "bar"}},
+				ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"foo": "bar"}},
 			},
 			addLabels:      map[string]string{},
 			err:            false,
@@ -64,7 +58,7 @@ func TestAddConfigLabels(t *testing.T) {
 		},
 		{ // [5] Test obj.labels + addLabels => expectedLabels
 			obj: &kapi.Service{
-				ObjectMeta: kapi.ObjectMeta{Labels: map[string]string{"baz": ""}},
+				ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"baz": ""}},
 			},
 			addLabels:      map[string]string{"foo": "bar"},
 			err:            false,
@@ -72,7 +66,7 @@ func TestAddConfigLabels(t *testing.T) {
 		},
 		{ // [6] Test conflicting keys with the same value
 			obj: &kapi.Service{
-				ObjectMeta: kapi.ObjectMeta{Labels: map[string]string{"foo": "same value"}},
+				ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"foo": "same value"}},
 			},
 			addLabels:      map[string]string{"foo": "same value"},
 			err:            false,
@@ -80,20 +74,20 @@ func TestAddConfigLabels(t *testing.T) {
 		},
 		{ // [7] Test conflicting keys with a different value
 			obj: &kapi.Service{
-				ObjectMeta: kapi.ObjectMeta{Labels: map[string]string{"foo": "first value"}},
+				ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"foo": "first value"}},
 			},
 			addLabels:      map[string]string{"foo": "second value"},
-			err:            true,
-			expectedLabels: map[string]string{"foo": "first value"},
+			err:            false,
+			expectedLabels: map[string]string{"foo": "second value"},
 		},
 		{ // [8] Test conflicting keys with the same value in ReplicationController nested labels
 			obj: &kapi.ReplicationController{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"foo": "same value"},
 				},
 				Spec: kapi.ReplicationControllerSpec{
 					Template: &kapi.PodTemplateSpec{
-						ObjectMeta: kapi.ObjectMeta{
+						ObjectMeta: metav1.ObjectMeta{
 							Labels: map[string]string{},
 						},
 					},
@@ -104,16 +98,14 @@ func TestAddConfigLabels(t *testing.T) {
 			expectedLabels: map[string]string{"foo": "same value"},
 		},
 		{ // [9] Test adding labels to a DeploymentConfig object
-			obj: &deployapi.DeploymentConfig{
-				ObjectMeta: kapi.ObjectMeta{
+			obj: &appsapi.DeploymentConfig{
+				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"foo": "first value"},
 				},
-				Template: deployapi.DeploymentTemplate{
-					ControllerTemplate: kapi.ReplicationControllerSpec{
-						Template: &kapi.PodTemplateSpec{
-							ObjectMeta: kapi.ObjectMeta{
-								Labels: map[string]string{"foo": "first value"},
-							},
+				Spec: appsapi.DeploymentConfigSpec{
+					Template: &kapi.PodTemplateSpec{
+						ObjectMeta: metav1.ObjectMeta{
+							Labels: map[string]string{"foo": "first value"},
 						},
 					},
 				},
@@ -123,8 +115,8 @@ func TestAddConfigLabels(t *testing.T) {
 			expectedLabels: map[string]string{"foo": "first value", "bar": "second value"},
 		},
 		{ // [10] Test unknown Generic Object with Labels field
-			obj: &FakeLabelsResource{
-				ObjectMeta: kapi.ObjectMeta{Labels: map[string]string{"baz": ""}},
+			obj: &testtypes.FakeLabelsResource{
+				ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"baz": ""}},
 			},
 			addLabels:      map[string]string{"foo": "bar"},
 			err:            false,
@@ -144,7 +136,7 @@ func TestAddConfigLabels(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		metaLabels := accessor.Labels()
+		metaLabels := accessor.GetLabels()
 		if e, a := test.expectedLabels, metaLabels; !reflect.DeepEqual(e, a) {
 			t.Errorf("Unexpected labels on testCase[%v]. Expected: %#v, got: %#v.", i, e, a)
 		}
@@ -155,8 +147,8 @@ func TestAddConfigLabels(t *testing.T) {
 			if e, a := map[string]string{}, objType.Spec.Template.Labels; !reflect.DeepEqual(e, a) {
 				t.Errorf("Unexpected labels on testCase[%v]. Expected: %#v, got: %#v.", i, e, a)
 			}
-		case *deployapi.DeploymentConfig:
-			if e, a := test.expectedLabels, objType.Template.ControllerTemplate.Template.Labels; !reflect.DeepEqual(e, a) {
+		case *appsapi.DeploymentConfig:
+			if e, a := test.expectedLabels, objType.Spec.Template.Labels; !reflect.DeepEqual(e, a) {
 				t.Errorf("Unexpected labels on testCase[%v]. Expected: %#v, got: %#v.", i, e, a)
 			}
 		}

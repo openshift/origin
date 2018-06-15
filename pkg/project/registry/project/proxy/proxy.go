@@ -3,165 +3,198 @@ package proxy
 import (
 	"fmt"
 
-	kapi "k8s.io/kubernetes/pkg/api"
-	kerrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/api/rest"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
-	"k8s.io/kubernetes/pkg/registry/generic"
-	nsregistry "k8s.io/kubernetes/pkg/registry/namespace"
-	"k8s.io/kubernetes/pkg/runtime"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/watch"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/registry/rest"
+	kstorage "k8s.io/apiserver/pkg/storage"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
+	"k8s.io/kubernetes/pkg/printers"
+	printerstorage "k8s.io/kubernetes/pkg/printers/storage"
+	nsregistry "k8s.io/kubernetes/pkg/registry/core/namespace"
 
-	"github.com/openshift/origin/pkg/project/api"
-	projectapi "github.com/openshift/origin/pkg/project/api"
+	oapi "github.com/openshift/origin/pkg/api"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
+	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
+	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	projectauth "github.com/openshift/origin/pkg/project/auth"
+	projectcache "github.com/openshift/origin/pkg/project/cache"
 	projectregistry "github.com/openshift/origin/pkg/project/registry/project"
+	projectutil "github.com/openshift/origin/pkg/project/util"
 )
 
 type REST struct {
 	// client can modify Kubernetes namespaces
-	client kclient.NamespaceInterface
+	client kcoreclient.NamespaceInterface
 	// lister can enumerate project lists that enforce policy
 	lister projectauth.Lister
 	// Allows extended behavior during creation, required
 	createStrategy rest.RESTCreateStrategy
 	// Allows extended behavior during updates, required
 	updateStrategy rest.RESTUpdateStrategy
+
+	authCache    *projectauth.AuthorizationCache
+	projectCache *projectcache.ProjectCache
+
+	rest.TableConvertor
 }
 
+var _ rest.Lister = &REST{}
+var _ rest.CreaterUpdater = &REST{}
+var _ rest.GracefulDeleter = &REST{}
+var _ rest.Watcher = &REST{}
+
 // NewREST returns a RESTStorage object that will work against Project resources
-func NewREST(client kclient.NamespaceInterface, lister projectauth.Lister) *REST {
+func NewREST(client kcoreclient.NamespaceInterface, lister projectauth.Lister, authCache *projectauth.AuthorizationCache, projectCache *projectcache.ProjectCache) *REST {
 	return &REST{
 		client:         client,
 		lister:         lister,
 		createStrategy: projectregistry.Strategy,
 		updateStrategy: projectregistry.Strategy,
+
+		authCache:    authCache,
+		projectCache: projectCache,
+
+		TableConvertor: printerstorage.TableConvertor{TablePrinter: printers.NewTablePrinter().With(printersinternal.AddHandlers)},
 	}
 }
 
 // New returns a new Project
 func (s *REST) New() runtime.Object {
-	return &api.Project{}
+	return &projectapi.Project{}
 }
 
 // NewList returns a new ProjectList
 func (*REST) NewList() runtime.Object {
-	return &api.ProjectList{}
-}
-
-// convertNamespace transforms a Namespace into a Project
-func convertNamespace(namespace *kapi.Namespace) *api.Project {
-	return &api.Project{
-		ObjectMeta: namespace.ObjectMeta,
-		Spec: api.ProjectSpec{
-			Finalizers: namespace.Spec.Finalizers,
-		},
-		Status: api.ProjectStatus{
-			Phase: namespace.Status.Phase,
-		},
-	}
-}
-
-// convertProject transforms a Project into a Namespace
-func convertProject(project *api.Project) *kapi.Namespace {
-	namespace := &kapi.Namespace{
-		ObjectMeta: project.ObjectMeta,
-		Spec: kapi.NamespaceSpec{
-			Finalizers: project.Spec.Finalizers,
-		},
-		Status: kapi.NamespaceStatus{
-			Phase: project.Status.Phase,
-		},
-	}
-	if namespace.Annotations == nil {
-		namespace.Annotations = map[string]string{}
-	}
-	namespace.Annotations[projectapi.ProjectDisplayName] = project.Annotations[projectapi.ProjectDisplayName]
-	return namespace
-}
-
-// convertNamespaceList transforms a NamespaceList into a ProjectList
-func convertNamespaceList(namespaceList *kapi.NamespaceList) *api.ProjectList {
-	projects := &api.ProjectList{}
-	for _, n := range namespaceList.Items {
-		projects.Items = append(projects.Items, *convertNamespace(&n))
-	}
-	return projects
+	return &projectapi.ProjectList{}
 }
 
 // List retrieves a list of Projects that match label.
-func (s *REST) List(ctx kapi.Context, label labels.Selector, field fields.Selector) (runtime.Object, error) {
-	user, ok := kapi.UserFrom(ctx)
+
+func (s *REST) List(ctx apirequest.Context, options *metainternal.ListOptions) (runtime.Object, error) {
+	user, ok := apirequest.UserFrom(ctx)
 	if !ok {
-		return nil, kerrors.NewForbidden("Project", "", fmt.Errorf("unable to list projects without a user on the context"))
+		return nil, kerrors.NewForbidden(projectapi.Resource("project"), "", fmt.Errorf("unable to list projects without a user on the context"))
 	}
 	namespaceList, err := s.lister.List(user)
 	if err != nil {
 		return nil, err
 	}
-	m := nsregistry.MatchNamespace(label, field)
+	m := nsregistry.MatchNamespace(oapi.InternalListOptionsToSelectors(options))
 	list, err := filterList(namespaceList, m, nil)
 	if err != nil {
 		return nil, err
 	}
-	return convertNamespaceList(list.(*kapi.NamespaceList)), nil
+	return projectutil.ConvertNamespaceList(list.(*kapi.NamespaceList)), nil
 }
 
-// Get retrieves a Project by name
-func (s *REST) Get(ctx kapi.Context, name string) (runtime.Object, error) {
-	namespace, err := s.client.Get(name)
+func (s *REST) Watch(ctx apirequest.Context, options *metainternal.ListOptions) (watch.Interface, error) {
+	if ctx == nil {
+		return nil, fmt.Errorf("Context is nil")
+	}
+	userInfo, exists := apirequest.UserFrom(ctx)
+	if !exists {
+		return nil, fmt.Errorf("no user")
+	}
+
+	includeAllExistingProjects := (options != nil) && options.ResourceVersion == "0"
+
+	allowedNamespaces, err := scope.ScopesToVisibleNamespaces(userInfo.GetExtra()[authorizationapi.ScopesKey], s.authCache.GetClusterRoleLister())
 	if err != nil {
 		return nil, err
 	}
-	return convertNamespace(namespace), nil
+
+	watcher := projectauth.NewUserProjectWatcher(userInfo, allowedNamespaces, s.projectCache, s.authCache, includeAllExistingProjects)
+	s.authCache.AddWatcher(watcher)
+
+	go watcher.Watch()
+	return watcher, nil
 }
 
+var _ = rest.Getter(&REST{})
+
+// Get retrieves a Project by name
+func (s *REST) Get(ctx apirequest.Context, name string, options *metav1.GetOptions) (runtime.Object, error) {
+	opts := metav1.GetOptions{}
+	if options != nil {
+		opts = *options
+	}
+	namespace, err := s.client.Get(name, opts)
+	if err != nil {
+		return nil, err
+	}
+	return projectutil.ConvertNamespace(namespace), nil
+}
+
+var _ = rest.Creater(&REST{})
+
 // Create registers the given Project.
-func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
-	project, ok := obj.(*api.Project)
+func (s *REST) Create(ctx apirequest.Context, obj runtime.Object, creationValidation rest.ValidateObjectFunc, _ bool) (runtime.Object, error) {
+	project, ok := obj.(*projectapi.Project)
 	if !ok {
 		return nil, fmt.Errorf("not a project: %#v", obj)
 	}
-	kapi.FillObjectMetaSystemFields(ctx, &project.ObjectMeta)
-	s.createStrategy.PrepareForCreate(obj)
+	rest.FillObjectMetaSystemFields(ctx, &project.ObjectMeta)
+	s.createStrategy.PrepareForCreate(ctx, obj)
 	if errs := s.createStrategy.Validate(ctx, obj); len(errs) > 0 {
-		return nil, kerrors.NewInvalid("project", project.Name, errs)
+		return nil, kerrors.NewInvalid(projectapi.Kind("Project"), project.Name, errs)
 	}
-	namespace, err := s.client.Create(convertProject(project))
+	if err := creationValidation(project.DeepCopyObject()); err != nil {
+		return nil, err
+	}
+
+	namespace, err := s.client.Create(projectutil.ConvertProject(project))
 	if err != nil {
 		return nil, err
 	}
-	return convertNamespace(namespace), nil
+	return projectutil.ConvertNamespace(namespace), nil
 }
 
-func (s *REST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, bool, error) {
-	project, ok := obj.(*api.Project)
+var _ = rest.Updater(&REST{})
+
+func (s *REST) Update(ctx apirequest.Context, name string, objInfo rest.UpdatedObjectInfo, creationValidation rest.ValidateObjectFunc, updateValidation rest.ValidateObjectUpdateFunc) (runtime.Object, bool, error) {
+	oldObj, err := s.Get(ctx, name, &metav1.GetOptions{})
+	if err != nil {
+		return nil, false, err
+	}
+
+	obj, err := objInfo.UpdatedObject(ctx, oldObj)
+	if err != nil {
+		return nil, false, err
+	}
+
+	project, ok := obj.(*projectapi.Project)
 	if !ok {
 		return nil, false, fmt.Errorf("not a project: %#v", obj)
 	}
 
-	oldObj, err := s.Get(ctx, project.Name)
-	if err != nil {
-		return nil, false, err
-	}
-	s.updateStrategy.PrepareForUpdate(obj, oldObj)
+	s.updateStrategy.PrepareForUpdate(ctx, obj, oldObj)
 	if errs := s.updateStrategy.ValidateUpdate(ctx, obj, oldObj); len(errs) > 0 {
-		return nil, false, kerrors.NewInvalid("project", project.Name, errs)
+		return nil, false, kerrors.NewInvalid(projectapi.Kind("Project"), project.Name, errs)
+	}
+	if err := updateValidation(obj.DeepCopyObject(), oldObj.DeepCopyObject()); err != nil {
+		return nil, false, err
 	}
 
-	namespace, err := s.client.Update(convertProject(project))
+	namespace, err := s.client.Update(projectutil.ConvertProject(project))
 	if err != nil {
 		return nil, false, err
 	}
 
-	return convertNamespace(namespace), false, nil
+	return projectutil.ConvertNamespace(namespace), false, nil
 }
 
+var _ = rest.GracefulDeleter(&REST{})
+
 // Delete deletes a Project specified by its name
-func (s *REST) Delete(ctx kapi.Context, name string) (runtime.Object, error) {
-	return &unversioned.Status{Status: unversioned.StatusSuccess}, s.client.Delete(name)
+func (s *REST) Delete(ctx apirequest.Context, name string, options *metav1.DeleteOptions) (runtime.Object, bool, error) {
+	return &metav1.Status{Status: metav1.StatusSuccess}, false, s.client.Delete(name, nil)
 }
 
 // decoratorFunc can mutate the provided object prior to being returned.
@@ -170,10 +203,10 @@ type decoratorFunc func(obj runtime.Object) error
 // filterList filters any list object that conforms to the api conventions,
 // provided that 'm' works with the concrete type of list. d is an optional
 // decorator for the returned functions. Only matching items are decorated.
-func filterList(list runtime.Object, m generic.Matcher, d decoratorFunc) (filtered runtime.Object, err error) {
+func filterList(list runtime.Object, m kstorage.SelectionPredicate, d decoratorFunc) (filtered runtime.Object, err error) {
 	// TODO: push a matcher down into tools.etcdHelper to avoid all this
 	// nonsense. This is a lot of unnecessary copies.
-	items, err := runtime.ExtractList(list)
+	items, err := meta.ExtractList(list)
 	if err != nil {
 		return nil, err
 	}
@@ -192,7 +225,7 @@ func filterList(list runtime.Object, m generic.Matcher, d decoratorFunc) (filter
 			filteredItems = append(filteredItems, obj)
 		}
 	}
-	err = runtime.SetList(list, filteredItems)
+	err = meta.SetList(list, filteredItems)
 	if err != nil {
 		return nil, err
 	}

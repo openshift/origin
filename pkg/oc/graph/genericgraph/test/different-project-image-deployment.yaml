@@ -1,0 +1,65 @@
+apiVersion: v1
+items:
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    annotations:
+      openshift.io/generated-by: OpenShiftNewApp
+    creationTimestamp: 2016-02-11T11:57:22Z
+    labels:
+      app: ruby-hello-world
+    name: ruby-hello-world
+    namespace: example
+    resourceVersion: "615"
+    selfLink: /oapi/v1/namespaces/example/deploymentconfigs/ruby-hello-world
+    uid: 9c06a926-d0b6-11e5-99f7-080027242396
+  spec:
+    replicas: 1
+    selector:
+      app: ruby-hello-world
+      deploymentconfig: ruby-hello-world
+    strategy:
+      resources: {}
+      rollingParams:
+        intervalSeconds: 1
+        maxSurge: 25%
+        maxUnavailable: 25%
+        timeoutSeconds: 600
+        updatePeriodSeconds: 1
+      type: Rolling
+    template:
+      metadata:
+        annotations:
+          openshift.io/generated-by: OpenShiftNewApp
+        creationTimestamp: null
+        labels:
+          app: ruby-hello-world
+          deploymentconfig: ruby-hello-world
+      spec:
+        containers:
+        - image: 172.30.164.11:5000/test/origin-ruby-sample@sha256:857010da6b7ef44ecd566eb390a702c2f24a254f7408a8f2fad524a2673a1b87
+          imagePullPolicy: Always
+          name: ruby-hello-world
+          ports:
+          - containerPort: 8080
+            protocol: TCP
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+    test: false
+    triggers:
+    - type: ConfigChange
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - ruby-hello-world
+        from:
+          kind: ImageStreamTag
+          name: origin-ruby-sample:latest
+          namespace: different
+      type: ImageChange
+kind: List
+metadata: {}

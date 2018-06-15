@@ -1,0 +1,21 @@
+#!/bin/bash
+
+# Copy secrets into a location they can be output during image run
+
+mkdir -p "${HOME}/testsecret"
+if [[ -f /tmp/secret1 ]]; then
+    # Copy three secrets defined in testsecret fixture to directory
+    cp /tmp/secret? "${HOME}/testsecret"
+else
+    echo "Unable to locate testsecret fixture files"
+    exit 1
+fi
+
+mkdir -p "${HOME}/testsecret2"
+if [[ -f secret1  ]]; then
+    # Copy three secrets defined in testsecret2 fixture to directory
+    cp secret? "${HOME}/testsecret2"
+else
+    echo "Unable to locate testsecret2 fixture files"
+    exit 2
+fi 

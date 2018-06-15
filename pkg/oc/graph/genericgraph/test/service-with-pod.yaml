@@ -1,0 +1,102 @@
+apiVersion: v1
+items:
+- apiVersion: v1
+  kind: Service
+  metadata:
+    creationTimestamp: 2015-07-13T19:36:04Z
+    labels:
+      template: ruby-helloworld-sample
+    name: frontend-app
+    namespace: example
+    resourceVersion: "32433"
+    selfLink: /api/v1/namespaces/example/services/frontend-app
+    uid: 667e1293-2996-11e5-b9e2-28d2447dc82b
+  spec:
+    clusterIP: 172.30.197.115
+    ports:
+    - nodePort: 0
+      port: 5432
+      protocol: TCP
+      targetPort: 8080
+    selector:
+      name: frontend
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    annotations:
+      kubernetes.io/created-by: '{"kind":"SerializedReference","apiVersion":"v1","reference":{"kind":"ReplicationController","namespace":"example","name":"frontend-app-1","uid":"666e12d7-2996-11e5-b9e2-28d2447dc82b","apiVersion":"v1","resourceVersion":"32416"}}'
+      openshift.io/scc: restricted
+    creationTimestamp: 2015-07-13T19:36:04Z
+    generateName: frontend-app-1-
+    labels:
+      deconflict: frontend.app
+      name: frontend
+      template: ruby-helloworld-sample
+    name: frontend-app-1-bjwh8
+    namespace: example
+    resourceVersion: "32467"
+    selfLink: /api/v1/namespaces/example/pods/frontend-app-1-bjwh8
+    uid: 669a3b5d-2996-11e5-b9e2-28d2447dc82b
+  spec:
+    containers:
+    - env:
+      - name: ADMIN_USERNAME
+        value: admin6TM
+      - name: ADMIN_PASSWORD
+        value: xImx1tHR
+      - name: MYSQL_ROOT_PASSWORD
+        value: rQHfVnTo
+      - name: MYSQL_DATABASE
+        value: root
+      image: openshift/ruby-hello-world
+      imagePullPolicy: IfNotPresent
+      name: ruby-helloworld
+      ports:
+      - containerPort: 8080
+        protocol: TCP
+      resources: {}
+      securityContext:
+        capabilities: {}
+        privileged: false
+        runAsUser: 1000060000
+        seLinuxOptions:
+          level: s0:c8,c2
+      terminationMessagePath: /dev/termination-log
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: default-token-mmv27
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    host: deads-dev-01
+    imagePullSecrets:
+    - name: default-dockercfg-yr2e3
+    nodeName: deads-dev-01
+    restartPolicy: Always
+    serviceAccount: default
+    serviceAccountName: default
+    volumes:
+    - name: default-token-mmv27
+      secret:
+        secretName: default-token-mmv27
+  status:
+    conditions:
+    - status: "False"
+      type: Ready
+    containerStatuses:
+    - image: openshift/ruby-hello-world
+      imageID: ""
+      lastState: {}
+      name: ruby-helloworld
+      ready: false
+      restartCount: 0
+      state:
+        waiting:
+          reason: 'Image: openshift/ruby-hello-world is not ready on the node'
+    phase: Pending
+    startTime: 2015-07-13T19:36:05Z
+kind: List
+metadata: {}

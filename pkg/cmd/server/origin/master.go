@@ -1,610 +1,441 @@
 package origin
 
 import (
-	"crypto/tls"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"os"
-	"regexp"
 	"strings"
 	"time"
 
-	restful "github.com/emicklei/go-restful"
-	"github.com/emicklei/go-restful/swagger"
 	"github.com/golang/glog"
-	"github.com/prometheus/client_golang/prometheus"
 
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/rest"
-	"k8s.io/kubernetes/pkg/apiserver"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
-	kmaster "k8s.io/kubernetes/pkg/master"
-	"k8s.io/kubernetes/pkg/util"
-	"k8s.io/kubernetes/pkg/util/sets"
+	apiextensionsinformers "k8s.io/apiextensions-apiserver/pkg/client/informers/internalversion"
+	utilnet "k8s.io/apimachinery/pkg/util/net"
+	apiserver "k8s.io/apiserver/pkg/server"
+	aggregatorapiserver "k8s.io/kube-aggregator/pkg/apiserver"
+	kubeapiserver "k8s.io/kubernetes/pkg/master"
+	kcorestorage "k8s.io/kubernetes/pkg/registry/core/rest"
+	rbacrest "k8s.io/kubernetes/pkg/registry/rbac/rest"
 
-	"github.com/openshift/origin/pkg/api/latest"
-	"github.com/openshift/origin/pkg/api/v1"
-	"github.com/openshift/origin/pkg/api/v1beta3"
-	buildclient "github.com/openshift/origin/pkg/build/client"
-	buildgenerator "github.com/openshift/origin/pkg/build/generator"
-	buildregistry "github.com/openshift/origin/pkg/build/registry/build"
-	buildetcd "github.com/openshift/origin/pkg/build/registry/build/etcd"
-	buildconfigregistry "github.com/openshift/origin/pkg/build/registry/buildconfig"
-	buildconfigetcd "github.com/openshift/origin/pkg/build/registry/buildconfig/etcd"
-	buildlogregistry "github.com/openshift/origin/pkg/build/registry/buildlog"
-	"github.com/openshift/origin/pkg/build/webhook"
-	"github.com/openshift/origin/pkg/build/webhook/generic"
-	"github.com/openshift/origin/pkg/build/webhook/github"
-	"github.com/openshift/origin/pkg/cmd/server/crypto"
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+	kubernetes "github.com/openshift/origin/pkg/cmd/server/kubernetes/master"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-	deployconfiggenerator "github.com/openshift/origin/pkg/deploy/generator"
-	deployconfigregistry "github.com/openshift/origin/pkg/deploy/registry/deployconfig"
-	deployconfigetcd "github.com/openshift/origin/pkg/deploy/registry/deployconfig/etcd"
-	deployrollback "github.com/openshift/origin/pkg/deploy/registry/rollback"
-	"github.com/openshift/origin/pkg/image/registry/image"
-	imageetcd "github.com/openshift/origin/pkg/image/registry/image/etcd"
-	"github.com/openshift/origin/pkg/image/registry/imagestream"
-	imagestreametcd "github.com/openshift/origin/pkg/image/registry/imagestream/etcd"
-	"github.com/openshift/origin/pkg/image/registry/imagestreamimage"
-	"github.com/openshift/origin/pkg/image/registry/imagestreammapping"
-	"github.com/openshift/origin/pkg/image/registry/imagestreamtag"
-	accesstokenetcd "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken/etcd"
-	authorizetokenetcd "github.com/openshift/origin/pkg/oauth/registry/oauthauthorizetoken/etcd"
-	clientetcd "github.com/openshift/origin/pkg/oauth/registry/oauthclient/etcd"
-	clientauthetcd "github.com/openshift/origin/pkg/oauth/registry/oauthclientauthorization/etcd"
-	projectproxy "github.com/openshift/origin/pkg/project/registry/project/proxy"
-	projectrequeststorage "github.com/openshift/origin/pkg/project/registry/projectrequest/delegated"
+	"github.com/openshift/origin/pkg/oauth/urls"
+	oauthutil "github.com/openshift/origin/pkg/oauth/util"
+	routeplugin "github.com/openshift/origin/pkg/route/allocation/simple"
 	routeallocationcontroller "github.com/openshift/origin/pkg/route/controller/allocation"
-	routeetcd "github.com/openshift/origin/pkg/route/registry/route/etcd"
-	clusternetworketcd "github.com/openshift/origin/pkg/sdn/registry/clusternetwork/etcd"
-	hostsubnetetcd "github.com/openshift/origin/pkg/sdn/registry/hostsubnet/etcd"
-	netnamespaceetcd "github.com/openshift/origin/pkg/sdn/registry/netnamespace/etcd"
-	"github.com/openshift/origin/pkg/service"
-	templateregistry "github.com/openshift/origin/pkg/template/registry"
-	templateetcd "github.com/openshift/origin/pkg/template/registry/etcd"
-	groupetcd "github.com/openshift/origin/pkg/user/registry/group/etcd"
-	identityregistry "github.com/openshift/origin/pkg/user/registry/identity"
-	identityetcd "github.com/openshift/origin/pkg/user/registry/identity/etcd"
-	userregistry "github.com/openshift/origin/pkg/user/registry/user"
-	useretcd "github.com/openshift/origin/pkg/user/registry/user/etcd"
-	"github.com/openshift/origin/pkg/user/registry/useridentitymapping"
-
-	buildclonestorage "github.com/openshift/origin/pkg/build/registry/clone/generator"
-	buildinstantiatestorage "github.com/openshift/origin/pkg/build/registry/instantiate/generator"
-
-	clusterpolicyregistry "github.com/openshift/origin/pkg/authorization/registry/clusterpolicy"
-	clusterpolicystorage "github.com/openshift/origin/pkg/authorization/registry/clusterpolicy/etcd"
-	clusterpolicybindingregistry "github.com/openshift/origin/pkg/authorization/registry/clusterpolicybinding"
-	clusterpolicybindingstorage "github.com/openshift/origin/pkg/authorization/registry/clusterpolicybinding/etcd"
-	clusterrolestorage "github.com/openshift/origin/pkg/authorization/registry/clusterrole/proxy"
-	clusterrolebindingstorage "github.com/openshift/origin/pkg/authorization/registry/clusterrolebinding/proxy"
-	"github.com/openshift/origin/pkg/authorization/registry/localresourceaccessreview"
-	"github.com/openshift/origin/pkg/authorization/registry/localsubjectaccessreview"
-	policyregistry "github.com/openshift/origin/pkg/authorization/registry/policy"
-	policyetcd "github.com/openshift/origin/pkg/authorization/registry/policy/etcd"
-	policybindingregistry "github.com/openshift/origin/pkg/authorization/registry/policybinding"
-	policybindingetcd "github.com/openshift/origin/pkg/authorization/registry/policybinding/etcd"
-	"github.com/openshift/origin/pkg/authorization/registry/resourceaccessreview"
-	rolestorage "github.com/openshift/origin/pkg/authorization/registry/role/policybased"
-	rolebindingstorage "github.com/openshift/origin/pkg/authorization/registry/rolebinding/policybased"
-	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
-	configapi "github.com/openshift/origin/pkg/cmd/server/api"
-	routeplugin "github.com/openshift/origin/plugins/route/allocation/simple"
+	sccstorage "github.com/openshift/origin/pkg/security/registry/securitycontextconstraints/etcd"
+	kapiserveroptions "k8s.io/kubernetes/cmd/kube-apiserver/app/options"
 )
 
 const (
-	LegacyOpenShiftAPIPrefix  = "/osapi" // TODO: make configurable
-	OpenShiftAPIPrefix        = "/oapi"  // TODO: make configurable
-	KubernetesAPIPrefix       = "/api"   // TODO: make configurable
-	OpenShiftAPIV1Beta3       = "v1beta3"
-	OpenShiftAPIV1            = "v1"
-	OpenShiftAPIPrefixV1Beta3 = LegacyOpenShiftAPIPrefix + "/" + OpenShiftAPIV1Beta3
-	OpenShiftAPIPrefixV1      = OpenShiftAPIPrefix + "/" + OpenShiftAPIV1
-	swaggerAPIPrefix          = "/swaggerapi/"
+	openShiftOAuthAPIPrefix      = "/oauth"
+	openShiftLoginPrefix         = "/login"
+	openShiftOAuthCallbackPrefix = "/oauth2callback"
 )
 
-var (
-	excludedV1Beta3Types = sets.NewString()
-	excludedV1Types      = excludedV1Beta3Types
+func (c *MasterConfig) newOpenshiftAPIConfig(kubeAPIServerConfig apiserver.Config) (*OpenshiftAPIConfig, error) {
+	// sccStorage must use the upstream RESTOptionsGetter to be in the correct location
+	// this probably creates a duplicate cache, but there are not very many SCCs, so live with it to avoid further linkage
+	sccStorage := sccstorage.NewREST(kubeAPIServerConfig.RESTOptionsGetter)
 
-	// TODO: correctly solve identifying requests by type
-	longRunningRE = regexp.MustCompile("watch|proxy|logs?|exec|portforward|attach")
-)
+	// make a shallow copy to let us twiddle a few things
+	// most of the config actually remains the same.  We only need to mess with a couple items
+	genericConfig := kubeAPIServerConfig
+	// TODO try to stop special casing these.  We should all agree on them.
+	genericConfig.RESTOptionsGetter = c.RESTOptionsGetter
 
-// APIInstaller installs additional API components into this server
-type APIInstaller interface {
-	// InstallAPI returns an array of strings describing what was installed
-	InstallAPI(*restful.Container) []string
+	ret := &OpenshiftAPIConfig{
+		GenericConfig: &apiserver.RecommendedConfig{Config: genericConfig},
+		ExtraConfig: OpenshiftAPIExtraConfig{
+			KubeAPIServerClientConfig:          &c.PrivilegedLoopbackClientConfig,
+			KubeClientInternal:                 c.PrivilegedLoopbackKubernetesClientsetInternal,
+			KubeInternalInformers:              c.InternalKubeInformers,
+			QuotaInformers:                     c.QuotaInformers,
+			SecurityInformers:                  c.SecurityInformers,
+			RuleResolver:                       c.RuleResolver,
+			SubjectLocator:                     c.SubjectLocator,
+			LimitVerifier:                      c.LimitVerifier,
+			RegistryHostnameRetriever:          c.RegistryHostnameRetriever,
+			AllowedRegistriesForImport:         c.Options.ImagePolicyConfig.AllowedRegistriesForImport,
+			MaxImagesBulkImportedPerRepository: c.Options.ImagePolicyConfig.MaxImagesBulkImportedPerRepository,
+			RouteAllocator:                     c.RouteAllocator(),
+			ProjectAuthorizationCache:          c.ProjectAuthorizationCache,
+			ProjectCache:                       c.ProjectCache,
+			ProjectRequestTemplate:             c.Options.ProjectConfig.ProjectRequestTemplate,
+			ProjectRequestMessage:              c.Options.ProjectConfig.ProjectRequestMessage,
+			ClusterQuotaMappingController:      c.ClusterQuotaMappingController,
+			SCCStorage:                         sccStorage,
+		},
+	}
+	if c.Options.OAuthConfig != nil {
+		ret.ExtraConfig.ServiceAccountMethod = c.Options.OAuthConfig.GrantConfig.ServiceAccountMethod
+	}
+
+	return ret, ret.ExtraConfig.Validate()
 }
 
-// APIInstallFunc is a function for installing APIs
-type APIInstallFunc func(*restful.Container) []string
+func (c *MasterConfig) newOpenshiftNonAPIConfig(kubeAPIServerConfig apiserver.Config) (*OpenshiftNonAPIConfig, error) {
+	var err error
+	ret := &OpenshiftNonAPIConfig{
+		GenericConfig: &apiserver.RecommendedConfig{
+			Config:                kubeAPIServerConfig,
+			SharedInformerFactory: c.ClientGoKubeInformers,
+		},
+	}
+	ret.ExtraConfig.OAuthMetadata, _, err = oauthutil.PrepOauthMetadata(c.Options)
+	if err != nil {
+		return nil, err
+	}
 
-// InstallAPI implements APIInstaller
-func (fn APIInstallFunc) InstallAPI(container *restful.Container) []string {
-	return fn(container)
+	return ret, nil
 }
 
-// Run launches the OpenShift master. It takes optional installers that may install additional endpoints into the server.
-// All endpoints get configured CORS behavior
-// Protected installers' endpoints are protected by API authentication and authorization.
-// Unprotected installers' endpoints do not have any additional protection added.
-func (c *MasterConfig) Run(protected []APIInstaller, unprotected []APIInstaller) {
-	var extra []string
-
-	safe := kmaster.NewHandlerContainer(http.NewServeMux())
-	open := kmaster.NewHandlerContainer(http.NewServeMux())
-
-	// enforce authentication on protected endpoints
-	protected = append(protected, APIInstallFunc(c.InstallProtectedAPI))
-	for _, i := range protected {
-		extra = append(extra, i.InstallAPI(safe)...)
+func (c *MasterConfig) withAPIExtensions(delegateAPIServer apiserver.DelegationTarget, kubeAPIServerOptions *kapiserveroptions.ServerRunOptions, kubeAPIServerConfig apiserver.Config) (apiserver.DelegationTarget, apiextensionsinformers.SharedInformerFactory, error) {
+	apiExtensionsConfig, err := createAPIExtensionsConfig(kubeAPIServerConfig, c.ClientGoKubeInformers, kubeAPIServerOptions)
+	if err != nil {
+		return nil, nil, err
 	}
-	handler := c.authorizationFilter(safe)
-	handler = authenticationHandlerFilter(handler, c.Authenticator, c.getRequestContextMapper())
-	handler = namespacingFilter(handler, c.getRequestContextMapper())
-	handler = cacheControlFilter(handler, "no-store") // protected endpoints should not be cached
+	apiExtensionsServer, err := createAPIExtensionsServer(apiExtensionsConfig, delegateAPIServer)
+	if err != nil {
+		return nil, nil, err
+	}
+	return apiExtensionsServer.GenericAPIServer, apiExtensionsServer.Informers, nil
+}
 
-	// unprotected resources
-	unprotected = append(unprotected, APIInstallFunc(c.InstallUnprotectedAPI))
-	for _, i := range unprotected {
-		extra = append(extra, i.InstallAPI(open)...)
+func (c *MasterConfig) withNonAPIRoutes(delegateAPIServer apiserver.DelegationTarget, kubeAPIServerConfig apiserver.Config) (apiserver.DelegationTarget, error) {
+	openshiftNonAPIConfig, err := c.newOpenshiftNonAPIConfig(kubeAPIServerConfig)
+	if err != nil {
+		return nil, err
+	}
+	openshiftNonAPIServer, err := openshiftNonAPIConfig.Complete().New(delegateAPIServer)
+	if err != nil {
+		return nil, err
+	}
+	return openshiftNonAPIServer.GenericAPIServer, nil
+}
+
+func (c *MasterConfig) withOpenshiftAPI(delegateAPIServer apiserver.DelegationTarget, kubeAPIServerConfig apiserver.Config) (*apiserver.GenericAPIServer, error) {
+	openshiftAPIServerConfig, err := c.newOpenshiftAPIConfig(kubeAPIServerConfig)
+	if err != nil {
+		return nil, err
+	}
+	// We need to add an openshift type to the kube's core storage until at least 3.8.  This does that by using a patch we carry.
+	kcorestorage.LegacyStorageMutatorFn = sccstorage.AddSCC(openshiftAPIServerConfig.ExtraConfig.SCCStorage)
+
+	openshiftAPIServer, err := openshiftAPIServerConfig.Complete().New(delegateAPIServer)
+	if err != nil {
+		return nil, err
+	}
+	// this sets up the openapi endpoints
+	preparedOpenshiftAPIServer := openshiftAPIServer.GenericAPIServer.PrepareRun()
+
+	return preparedOpenshiftAPIServer.GenericAPIServer, nil
+}
+
+func (c *MasterConfig) withKubeAPI(delegateAPIServer apiserver.DelegationTarget, kubeAPIServerConfig kubeapiserver.Config) (apiserver.DelegationTarget, error) {
+	var err error
+	if err != nil {
+		return nil, err
+	}
+	kubeAPIServer, err := kubeAPIServerConfig.Complete(c.ClientGoKubeInformers).New(delegateAPIServer)
+	if err != nil {
+		return nil, err
+	}
+	// this sets up the openapi endpoints
+	preparedKubeAPIServer := kubeAPIServer.GenericAPIServer.PrepareRun()
+
+	// this remains here and separate so that you can check both kube and openshift levels
+	// TODO make this is a proxy at some point
+	addOpenshiftVersionRoute(kubeAPIServer.GenericAPIServer.Handler.GoRestfulContainer, "/version/openshift")
+
+	return preparedKubeAPIServer.GenericAPIServer, nil
+}
+
+func (c *MasterConfig) newWebConsoleProxy() (http.Handler, error) {
+	caBundle, err := ioutil.ReadFile(c.Options.ControllerConfig.ServiceServingCert.Signer.CertFile)
+	if err != nil {
+		return nil, err
+	}
+	proxyHandler, err := NewServiceProxyHandler("webconsole", "openshift-web-console", aggregatorapiserver.NewClusterIPServiceResolver(c.ClientGoKubeInformers.Core().V1().Services().Lister()), caBundle, "OpenShift web console")
+	if err != nil {
+		return nil, err
+	}
+	return proxyHandler, nil
+}
+
+func (c *MasterConfig) newOAuthServerHandler(genericConfig *apiserver.Config) (http.Handler, map[string]apiserver.PostStartHookFunc, error) {
+	if c.Options.OAuthConfig == nil {
+		return http.NotFoundHandler(), nil, nil
 	}
 
-	handler = indexAPIPaths(handler)
-
-	open.Handle("/", handler)
-
-	// install swagger
-	swaggerConfig := swagger.Config{
-		WebServicesUrl:   c.Options.MasterPublicURL,
-		WebServices:      append(safe.RegisteredWebServices(), open.RegisteredWebServices()...),
-		ApiPath:          swaggerAPIPrefix,
-		PostBuildHandler: customizeSwaggerDefinition,
+	config, err := NewOAuthServerConfigFromMasterConfig(c, genericConfig.SecureServing.Listener)
+	if err != nil {
+		return nil, nil, err
 	}
-	// log nothing from swagger
-	swagger.LogInfo = func(format string, v ...interface{}) {}
-	swagger.RegisterSwaggerService(swaggerConfig, open)
-	extra = append(extra, fmt.Sprintf("Started Swagger Schema API at %%s%s", swaggerAPIPrefix))
-
-	handler = open
-
-	// add CORS support
-	if origins := c.ensureCORSAllowedOrigins(); len(origins) != 0 {
-		handler = apiserver.CORS(handler, origins, nil, nil, "true")
+	config.GenericConfig.AuditBackend = genericConfig.AuditBackend
+	config.GenericConfig.AuditPolicyChecker = genericConfig.AuditPolicyChecker
+	oauthServer, err := config.Complete().New(apiserver.EmptyDelegate)
+	if err != nil {
+		return nil, nil, err
 	}
+	return oauthServer.GenericAPIServer.PrepareRun().GenericAPIServer.Handler.FullHandlerChain,
+		map[string]apiserver.PostStartHookFunc{
+			"oauth.openshift.io-StartOAuthClientsBootstrapping": config.StartOAuthClientsBootstrapping,
+		},
+		nil
+}
 
-	if c.WebConsoleEnabled() {
-		handler = assetServerRedirect(handler, c.Options.AssetConfig.PublicURL)
+func (c *MasterConfig) withAggregator(delegateAPIServer apiserver.DelegationTarget, kubeAPIServerOptions *kapiserveroptions.ServerRunOptions, kubeAPIServerConfig apiserver.Config, apiExtensionsInformers apiextensionsinformers.SharedInformerFactory) (*aggregatorapiserver.APIAggregator, error) {
+	aggregatorConfig, err := createAggregatorConfig(
+		kubeAPIServerConfig,
+		kubeAPIServerOptions,
+		c.ClientGoKubeInformers,
+		aggregatorapiserver.NewClusterIPServiceResolver(c.ClientGoKubeInformers.Core().V1().Services().Lister()),
+		utilnet.SetTransportDefaults(&http.Transport{}),
+	)
+	if err != nil {
+		return nil, err
 	}
-
-	// Make the outermost filter the requestContextMapper to ensure all components share the same context
-	if contextHandler, err := kapi.NewRequestContextFilter(c.getRequestContextMapper(), handler); err != nil {
-		glog.Fatalf("Error setting up request context filter: %v", err)
-	} else {
-		handler = contextHandler
-	}
-
-	// TODO: MaxRequestsInFlight should be subdivided by intent, type of behavior, and speed of
-	// execution - updates vs reads, long reads vs short reads, fat reads vs skinny reads.
-	if c.Options.ServingInfo.MaxRequestsInFlight > 0 {
-		sem := make(chan bool, c.Options.ServingInfo.MaxRequestsInFlight)
-		handler = apiserver.MaxInFlightLimit(sem, longRunningRE, handler)
+	aggregatorServer, err := createAggregatorServer(aggregatorConfig, delegateAPIServer, apiExtensionsInformers)
+	if err != nil {
+		// we don't need special handling for innerStopCh because the aggregator server doesn't create any go routines
+		return nil, err
 	}
 
-	c.serve(handler, extra)
+	return aggregatorServer, nil
+}
+
+// Run launches the OpenShift master by creating a kubernetes master, installing
+// OpenShift APIs into it and then running it.
+// TODO this method only exists to support the old openshift start path.  It should be removed a little ways into 3.10.
+func (c *MasterConfig) Run(stopCh <-chan struct{}) error {
+	var err error
+	var apiExtensionsInformers apiextensionsinformers.SharedInformerFactory
+	var delegateAPIServer apiserver.DelegationTarget
+	var extraPostStartHooks map[string]apiserver.PostStartHookFunc
+
+	c.kubeAPIServerConfig.GenericConfig.BuildHandlerChainFunc, extraPostStartHooks, err = c.buildHandlerChain(c.kubeAPIServerConfig.GenericConfig, stopCh)
+	if err != nil {
+		return err
+	}
+
+	kubeAPIServerOptions, err := kubernetes.BuildKubeAPIserverOptions(c.Options)
+	if err != nil {
+		return err
+	}
+
+	delegateAPIServer = apiserver.EmptyDelegate
+	delegateAPIServer, apiExtensionsInformers, err = c.withAPIExtensions(delegateAPIServer, kubeAPIServerOptions, *c.kubeAPIServerConfig.GenericConfig)
+	if err != nil {
+		return err
+	}
+	delegateAPIServer, err = c.withNonAPIRoutes(delegateAPIServer, *c.kubeAPIServerConfig.GenericConfig)
+	if err != nil {
+		return err
+	}
+	delegateAPIServer, err = c.withOpenshiftAPI(delegateAPIServer, *c.kubeAPIServerConfig.GenericConfig)
+	if err != nil {
+		return err
+	}
+	delegateAPIServer, err = c.withKubeAPI(delegateAPIServer, *c.kubeAPIServerConfig)
+	if err != nil {
+		return err
+	}
+	aggregatedAPIServer, err := c.withAggregator(delegateAPIServer, kubeAPIServerOptions, *c.kubeAPIServerConfig.GenericConfig, apiExtensionsInformers)
+	if err != nil {
+		return err
+	}
+
+	// Start the audit backend before any request comes in. This means we cannot turn it into a
+	// post start hook because without calling Backend.Run the Backend.ProcessEvents call might block.
+	if c.AuditBackend != nil {
+		if err := c.AuditBackend.Run(stopCh); err != nil {
+			return fmt.Errorf("failed to run the audit backend: %v", err)
+		}
+	}
+
+	if GRPCThreadLimit > 0 {
+		if err := aggregatedAPIServer.GenericAPIServer.AddHealthzChecks(NewGRPCStuckThreads()); err != nil {
+			return err
+		}
+		// We start a separate gofunc that will panic for us because nothing is watching healthz at the moment.
+		PanicOnGRPCStuckThreads(10*time.Second, stopCh)
+	}
+
+	// add post-start hooks
+	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("authorization.openshift.io-bootstrapclusterroles", bootstrapData(bootstrappolicy.Policy()).EnsureRBACPolicy())
+	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("authorization.openshift.io-ensureopenshift-infra", ensureOpenShiftInfraNamespace)
+	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("quota.openshift.io-clusterquotamapping", c.startClusterQuotaMapping)
+	for name, fn := range c.additionalPostStartHooks {
+		aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie(name, fn)
+	}
+	for name, fn := range extraPostStartHooks {
+		aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie(name, fn)
+	}
+
+	go aggregatedAPIServer.GenericAPIServer.PrepareRun().Run(stopCh)
 
 	// Attempt to verify the server came up for 20 seconds (100 tries * 100ms, 100ms timeout per try)
-	cmdutil.WaitForSuccessfulDial(c.TLS, c.Options.ServingInfo.BindNetwork, c.Options.ServingInfo.BindAddress, 100*time.Millisecond, 100*time.Millisecond, 100)
+	return cmdutil.WaitForSuccessfulDial(true, c.Options.ServingInfo.BindNetwork, c.Options.ServingInfo.BindAddress, 100*time.Millisecond, 100*time.Millisecond, 100)
 }
 
-func (c *MasterConfig) RunHealth() {
-	ws := &restful.WebService{}
-	mux := http.NewServeMux()
-	hc := kmaster.NewHandlerContainer(mux)
-	hc.Add(ws)
+func (c *MasterConfig) RunKubeAPIServer(stopCh <-chan struct{}) error {
+	var err error
+	var apiExtensionsInformers apiextensionsinformers.SharedInformerFactory
+	var delegateAPIServer apiserver.DelegationTarget
+	var extraPostStartHooks map[string]apiserver.PostStartHookFunc
 
-	initHealthCheckRoute(ws, "/healthz")
-	initReadinessCheckRoute(ws, "/healthz/ready", func() bool { return true })
-	initMetricsRoute(ws, "/metrics")
-
-	c.serve(hc, []string{"Started health checks at %s"})
-}
-
-// serve starts serving the provided http.Handler using security settings derived from the MasterConfig
-func (c *MasterConfig) serve(handler http.Handler, extra []string) {
-	timeout := c.Options.ServingInfo.RequestTimeoutSeconds
-	if timeout == -1 {
-		timeout = 0
-	}
-
-	server := &http.Server{
-		Addr:           c.Options.ServingInfo.BindAddress,
-		Handler:        handler,
-		ReadTimeout:    time.Duration(timeout) * time.Second,
-		WriteTimeout:   time.Duration(timeout) * time.Second,
-		MaxHeaderBytes: 1 << 20,
-	}
-
-	go util.Forever(func() {
-		for _, s := range extra {
-			glog.Infof(s, c.Options.ServingInfo.BindAddress)
-		}
-		if c.TLS {
-			extraCerts, err := configapi.GetNamedCertificateMap(c.Options.ServingInfo.NamedCertificates)
-			if err != nil {
-				glog.Fatal(err)
-			}
-			server.TLSConfig = crypto.SecureTLSConfig(&tls.Config{
-				// Populate PeerCertificates in requests, but don't reject connections without certificates
-				// This allows certificates to be validated by authenticators, while still allowing other auth types
-				ClientAuth: tls.RequestClientCert,
-				ClientCAs:  c.ClientCAs,
-				// Set SNI certificate func
-				GetCertificate: cmdutil.GetCertificateFunc(extraCerts),
-			})
-			glog.Fatal(cmdutil.ListenAndServeTLS(server, c.Options.ServingInfo.BindNetwork, c.Options.ServingInfo.ServerCert.CertFile, c.Options.ServingInfo.ServerCert.KeyFile))
-		} else {
-			glog.Fatal(server.ListenAndServe())
-		}
-	}, 0)
-}
-
-// InitializeObjects ensures objects in Kubernetes and etcd are properly populated.
-// Requires a Kube client to be established and that etcd be started.
-func (c *MasterConfig) InitializeObjects() {
-	// Create required policy rules if needed
-	c.ensureComponentAuthorizationRules()
-	// Ensure the default SCCs are created
-	c.ensureDefaultSecurityContextConstraints()
-	// Bind default roles for service accounts in the default namespace if needed
-	c.ensureDefaultNamespaceServiceAccountRoles()
-	// Create the infra namespace
-	c.ensureOpenShiftInfraNamespace()
-	// Create the shared resource namespace
-	c.ensureOpenShiftSharedResourcesNamespace()
-}
-
-func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []string {
-	// initialize OpenShift API
-	storage := c.GetRestStorage()
-
-	messages := []string{}
-	legacyAPIVersions := []string{}
-	currentAPIVersions := []string{}
-
-	if configapi.HasOpenShiftAPILevel(c.Options, OpenShiftAPIV1) {
-		if err := c.api_v1(storage).InstallREST(container); err != nil {
-			glog.Fatalf("Unable to initialize v1 API: %v", err)
-		}
-		messages = append(messages, fmt.Sprintf("Started Origin API at %%s%s", OpenShiftAPIPrefixV1))
-		currentAPIVersions = append(currentAPIVersions, OpenShiftAPIV1)
-	}
-
-	var root *restful.WebService
-	for _, service := range container.RegisteredWebServices() {
-		switch service.RootPath() {
-		case "/":
-			root = service
-		case OpenShiftAPIPrefixV1Beta3:
-			service.Doc("OpenShift REST API, version v1beta3").ApiVersion("v1beta3")
-		case OpenShiftAPIPrefixV1:
-			service.Doc("OpenShift REST API, version v1").ApiVersion("v1")
-		}
-	}
-
-	if root == nil {
-		root = new(restful.WebService)
-		container.Add(root)
-	}
-
-	// The old API prefix must continue to return 200 (with an empty versions
-	// list) for backwards compatibility, even though we won't service any other
-	// requests through the route. Take care when considering whether to delete
-	// this route.
-	initAPIVersionRoute(root, LegacyOpenShiftAPIPrefix, legacyAPIVersions...)
-	initAPIVersionRoute(root, OpenShiftAPIPrefix, currentAPIVersions...)
-
-	initControllerRoutes(root, "/controllers", c.Options.Controllers != configapi.ControllersDisabled, c.ControllerPlug)
-	initHealthCheckRoute(root, "/healthz")
-	initReadinessCheckRoute(root, "/healthz/ready", c.ProjectAuthorizationCache.ReadyForAccess)
-
-	return messages
-}
-
-func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
-	defaultRegistry := env("OPENSHIFT_DEFAULT_REGISTRY", "${DOCKER_REGISTRY_SERVICE_HOST}:${DOCKER_REGISTRY_SERVICE_PORT}")
-	svcCache := service.NewServiceResolverCache(c.KubeClient().Services(kapi.NamespaceDefault).Get)
-	defaultRegistryFunc, err := svcCache.Defer(defaultRegistry)
+	c.kubeAPIServerConfig.GenericConfig.BuildHandlerChainFunc, extraPostStartHooks, err = c.buildHandlerChain(c.kubeAPIServerConfig.GenericConfig, stopCh)
 	if err != nil {
-		glog.Fatalf("OPENSHIFT_DEFAULT_REGISTRY variable is invalid %q: %v", defaultRegistry, err)
+		return err
 	}
 
-	kubeletClient, err := kclient.NewKubeletClient(c.KubeletClientConfig)
+	kubeAPIServerOptions, err := kubernetes.BuildKubeAPIserverOptions(c.Options)
 	if err != nil {
-		glog.Fatalf("Unable to configure Kubelet client: %v", err)
+		return err
 	}
 
-	buildStorage := buildetcd.NewStorage(c.EtcdHelper)
-	buildRegistry := buildregistry.NewRegistry(buildStorage)
-
-	buildConfigStorage := buildconfigetcd.NewStorage(c.EtcdHelper)
-	buildConfigRegistry := buildconfigregistry.NewRegistry(buildConfigStorage)
-
-	deployConfigStorage := deployconfigetcd.NewStorage(c.EtcdHelper)
-	deployConfigRegistry := deployconfigregistry.NewRegistry(deployConfigStorage)
-
-	routeAllocator := c.RouteAllocator()
-
-	routeEtcd := routeetcd.NewREST(c.EtcdHelper, routeAllocator)
-	hostSubnetStorage := hostsubnetetcd.NewREST(c.EtcdHelper)
-	netNamespaceStorage := netnamespaceetcd.NewREST(c.EtcdHelper)
-	clusterNetworkStorage := clusternetworketcd.NewREST(c.EtcdHelper)
-
-	userStorage := useretcd.NewREST(c.EtcdHelper)
-	userRegistry := userregistry.NewRegistry(userStorage)
-	identityStorage := identityetcd.NewREST(c.EtcdHelper)
-	identityRegistry := identityregistry.NewRegistry(identityStorage)
-	userIdentityMappingStorage := useridentitymapping.NewREST(userRegistry, identityRegistry)
-
-	policyStorage := policyetcd.NewStorage(c.EtcdHelper)
-	policyRegistry := policyregistry.NewRegistry(policyStorage)
-	policyBindingStorage := policybindingetcd.NewStorage(c.EtcdHelper)
-	policyBindingRegistry := policybindingregistry.NewRegistry(policyBindingStorage)
-
-	clusterPolicyStorage := clusterpolicystorage.NewStorage(c.EtcdHelper)
-	clusterPolicyRegistry := clusterpolicyregistry.NewRegistry(clusterPolicyStorage)
-	clusterPolicyBindingStorage := clusterpolicybindingstorage.NewStorage(c.EtcdHelper)
-	clusterPolicyBindingRegistry := clusterpolicybindingregistry.NewRegistry(clusterPolicyBindingStorage)
-
-	roleStorage := rolestorage.NewVirtualStorage(policyRegistry)
-	roleBindingStorage := rolebindingstorage.NewVirtualStorage(policyRegistry, policyBindingRegistry, clusterPolicyRegistry, clusterPolicyBindingRegistry)
-	clusterRoleStorage := clusterrolestorage.NewClusterRoleStorage(clusterPolicyRegistry)
-	clusterRoleBindingStorage := clusterrolebindingstorage.NewClusterRoleBindingStorage(clusterPolicyRegistry, clusterPolicyBindingRegistry)
-
-	subjectAccessReviewStorage := subjectaccessreview.NewREST(c.Authorizer)
-	subjectAccessReviewRegistry := subjectaccessreview.NewRegistry(subjectAccessReviewStorage)
-	localSubjectAccessReviewStorage := localsubjectaccessreview.NewREST(subjectAccessReviewRegistry)
-	resourceAccessReviewStorage := resourceaccessreview.NewREST(c.Authorizer)
-	resourceAccessReviewRegistry := resourceaccessreview.NewRegistry(resourceAccessReviewStorage)
-	localResourceAccessReviewStorage := localresourceaccessreview.NewREST(resourceAccessReviewRegistry)
-
-	imageStorage := imageetcd.NewREST(c.EtcdHelper)
-	imageRegistry := image.NewRegistry(imageStorage)
-	imageStreamStorage, imageStreamStatusStorage := imagestreametcd.NewREST(c.EtcdHelper, imagestream.DefaultRegistryFunc(defaultRegistryFunc), subjectAccessReviewRegistry)
-	imageStreamRegistry := imagestream.NewRegistry(imageStreamStorage, imageStreamStatusStorage)
-	imageStreamMappingStorage := imagestreammapping.NewREST(imageRegistry, imageStreamRegistry)
-	imageStreamTagStorage := imagestreamtag.NewREST(imageRegistry, imageStreamRegistry)
-	imageStreamTagRegistry := imagestreamtag.NewRegistry(imageStreamTagStorage)
-	imageStreamImageStorage := imagestreamimage.NewREST(imageRegistry, imageStreamRegistry)
-	imageStreamImageRegistry := imagestreamimage.NewRegistry(imageStreamImageStorage)
-
-	buildGenerator := &buildgenerator.BuildGenerator{
-		Client: buildgenerator.Client{
-			GetBuildConfigFunc:      buildConfigRegistry.GetBuildConfig,
-			UpdateBuildConfigFunc:   buildConfigRegistry.UpdateBuildConfig,
-			GetBuildFunc:            buildRegistry.GetBuild,
-			CreateBuildFunc:         buildRegistry.CreateBuild,
-			GetImageStreamFunc:      imageStreamRegistry.GetImageStream,
-			GetImageStreamImageFunc: imageStreamImageRegistry.GetImageStreamImage,
-			GetImageStreamTagFunc:   imageStreamTagRegistry.GetImageStreamTag,
-		},
-		ServiceAccounts: c.KubeClient(),
-		Secrets:         c.KubeClient(),
-	}
-
-	// TODO: with sharding, this needs to be changed
-	deployConfigGenerator := &deployconfiggenerator.DeploymentConfigGenerator{
-		Client: deployconfiggenerator.Client{
-			DCFn:   deployConfigRegistry.GetDeploymentConfig,
-			ISFn:   imageStreamRegistry.GetImageStream,
-			LISFn2: imageStreamRegistry.ListImageStreams,
-		},
-	}
-	_, kclient := c.DeploymentConfigControllerClients()
-	deployRollback := &deployrollback.RollbackGenerator{}
-	deployRollbackClient := deployrollback.Client{
-		DCFn: deployConfigRegistry.GetDeploymentConfig,
-		RCFn: clientDeploymentInterface{kclient}.GetDeployment,
-		GRFn: deployRollback.GenerateRollback,
-	}
-
-	projectStorage := projectproxy.NewREST(kclient.Namespaces(), c.ProjectAuthorizationCache)
-
-	namespace, templateName, err := configapi.ParseNamespaceAndName(c.Options.ProjectConfig.ProjectRequestTemplate)
+	delegateAPIServer = apiserver.EmptyDelegate
+	delegateAPIServer, apiExtensionsInformers, err = c.withAPIExtensions(delegateAPIServer, kubeAPIServerOptions, *c.kubeAPIServerConfig.GenericConfig)
 	if err != nil {
-		glog.Errorf("Error parsing project request template value: %v", err)
-		// we can continue on, the storage that gets created will be valid, it simply won't work properly.  There's no reason to kill the master
+		return err
 	}
-	projectRequestStorage := projectrequeststorage.NewREST(c.Options.ProjectConfig.ProjectRequestMessage, namespace, templateName, c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClient)
+	delegateAPIServer, err = c.withNonAPIRoutes(delegateAPIServer, *c.kubeAPIServerConfig.GenericConfig)
+	if err != nil {
+		return err
+	}
+	delegateAPIServer, err = c.withKubeAPI(delegateAPIServer, *c.kubeAPIServerConfig)
+	if err != nil {
+		return err
+	}
+	aggregatedAPIServer, err := c.withAggregator(delegateAPIServer, kubeAPIServerOptions, *c.kubeAPIServerConfig.GenericConfig, apiExtensionsInformers)
+	if err != nil {
+		return err
+	}
 
-	bcClient := c.BuildConfigWebHookClient()
-	buildConfigWebHooks := buildconfigregistry.NewWebHookREST(
-		buildConfigRegistry,
-		buildclient.NewOSClientBuildConfigInstantiatorClient(bcClient),
-		map[string]webhook.Plugin{
-			"generic": generic.New(),
-			"github":  github.New(),
+	// Start the audit backend before any request comes in. This means we cannot turn it into a
+	// post start hook because without calling Backend.Run the Backend.ProcessEvents call might block.
+	if c.AuditBackend != nil {
+		if err := c.AuditBackend.Run(stopCh); err != nil {
+			return fmt.Errorf("failed to run the audit backend: %v", err)
+		}
+	}
+
+	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("authorization.openshift.io-bootstrapclusterroles", bootstrapData(bootstrappolicy.Policy()).EnsureRBACPolicy())
+	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("authorization.openshift.io-ensureopenshift-infra", ensureOpenShiftInfraNamespace)
+	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("quota.openshift.io-clusterquotamapping", c.startClusterQuotaMapping)
+	// add post-start hooks
+	for name, fn := range c.additionalPostStartHooks {
+		aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie(name, fn)
+	}
+	for name, fn := range extraPostStartHooks {
+		aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie(name, fn)
+	}
+
+	go aggregatedAPIServer.GenericAPIServer.PrepareRun().Run(stopCh)
+
+	// Attempt to verify the server came up for 20 seconds (100 tries * 100ms, 100ms timeout per try)
+	return cmdutil.WaitForSuccessfulDial(true, c.Options.ServingInfo.BindNetwork, c.Options.ServingInfo.BindAddress, 100*time.Millisecond, 100*time.Millisecond, 100)
+}
+
+func (c *MasterConfig) RunOpenShift(stopCh <-chan struct{}) error {
+	// TODO rewrite the authenticator and authorizer here to use the webhooks.  I think we'll be able to manage this
+	// using the existing client connections since they'll all point to the kube-apiserver, but some new separation may be required
+	// to handle the distinction between loopback and kube-apiserver
+
+	// the openshift apiserver shouldn't need to host these and they make us crashloop
+	c.kubeAPIServerConfig.GenericConfig.EnableSwaggerUI = false
+	c.kubeAPIServerConfig.GenericConfig.SwaggerConfig = nil
+	c.kubeAPIServerConfig.GenericConfig.BuildHandlerChainFunc = openshiftHandlerChain
+
+	openshiftAPIServer, err := c.withOpenshiftAPI(apiserver.EmptyDelegate, *c.kubeAPIServerConfig.GenericConfig)
+	if err != nil {
+		return err
+	}
+
+	// Start the audit backend before any request comes in. This means we cannot turn it into a
+	// post start hook because without calling Backend.Run the Backend.ProcessEvents call might block.
+	if c.AuditBackend != nil {
+		if err := c.AuditBackend.Run(stopCh); err != nil {
+			return fmt.Errorf("failed to run the audit backend: %v", err)
+		}
+	}
+
+	// add post-start hooks
+	openshiftAPIServer.AddPostStartHookOrDie("quota.openshift.io-clusterquotamapping", c.startClusterQuotaMapping)
+	for name, fn := range c.additionalPostStartHooks {
+		openshiftAPIServer.AddPostStartHookOrDie(name, fn)
+	}
+
+	go openshiftAPIServer.PrepareRun().Run(stopCh)
+
+	// Attempt to verify the server came up for 20 seconds (100 tries * 100ms, 100ms timeout per try)
+	return cmdutil.WaitForSuccessfulDial(true, c.Options.ServingInfo.BindNetwork, c.Options.ServingInfo.BindAddress, 100*time.Millisecond, 100*time.Millisecond, 100)
+}
+
+func (c *MasterConfig) buildHandlerChain(genericConfig *apiserver.Config, stopCh <-chan struct{}) (func(apiHandler http.Handler, kc *apiserver.Config) http.Handler, map[string]apiserver.PostStartHookFunc, error) {
+	webconsoleProxyHandler, err := c.newWebConsoleProxy()
+	if err != nil {
+		return nil, nil, err
+	}
+	oauthServerHandler, extraPostStartHooks, err := c.newOAuthServerHandler(genericConfig)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return func(apiHandler http.Handler, genericConfig *apiserver.Config) http.Handler {
+			// Machinery that let's use discover the Web Console Public URL
+			accessor := newWebConsolePublicURLAccessor(c.PrivilegedLoopbackClientConfig)
+			go accessor.Run(stopCh)
+
+			// these are after the kube handler
+			handler := c.versionSkewFilter(apiHandler, genericConfig.RequestContextMapper)
+
+			// this is the normal kube handler chain
+			handler = apiserver.DefaultBuildHandlerChain(handler, genericConfig)
+
+			// these handlers are all before the normal kube chain
+			handler = translateLegacyScopeImpersonation(handler)
+			handler = withCacheControl(handler, "no-store") // protected endpoints should not be cached
+
+			// redirects from / to /console if you're using a browser
+			handler = withAssetServerRedirect(handler, accessor)
+
+			// these handlers are actually separate API servers which have their own handler chains.
+			// our server embeds these
+			handler = c.withConsoleRedirection(handler, webconsoleProxyHandler, accessor)
+			handler = c.withOAuthRedirection(handler, oauthServerHandler)
+
+			return handler
 		},
-	)
+		extraPostStartHooks,
+		nil
+}
 
-	storage := map[string]rest.Storage{
-		"images":              imageStorage,
-		"imageStreams":        imageStreamStorage,
-		"imageStreams/status": imageStreamStatusStorage,
-		"imageStreamImages":   imageStreamImageStorage,
-		"imageStreamMappings": imageStreamMappingStorage,
-		"imageStreamTags":     imageStreamTagStorage,
+func openshiftHandlerChain(apiHandler http.Handler, genericConfig *apiserver.Config) http.Handler {
+	// this is the normal kube handler chain
+	handler := apiserver.DefaultBuildHandlerChain(apiHandler, genericConfig)
 
-		"deploymentConfigs":         deployConfigStorage,
-		"generateDeploymentConfigs": deployconfiggenerator.NewREST(deployConfigGenerator, c.EtcdHelper.Codec()),
-		"deploymentConfigRollbacks": deployrollback.NewREST(deployRollbackClient, c.EtcdHelper.Codec()),
+	handler = withCacheControl(handler, "no-store") // protected endpoints should not be cached
 
-		"processedTemplates": templateregistry.NewREST(),
-		"templates":          templateetcd.NewREST(c.EtcdHelper),
+	return handler
+}
 
-		"routes":        routeEtcd.Route,
-		"routes/status": routeEtcd.Status,
-
-		"projects":        projectStorage,
-		"projectRequests": projectRequestStorage,
-
-		"hostSubnets":     hostSubnetStorage,
-		"netNamespaces":   netNamespaceStorage,
-		"clusterNetworks": clusterNetworkStorage,
-
-		"users":                userStorage,
-		"groups":               groupetcd.NewREST(c.EtcdHelper),
-		"identities":           identityStorage,
-		"userIdentityMappings": userIdentityMappingStorage,
-
-		"oAuthAuthorizeTokens":      authorizetokenetcd.NewREST(c.EtcdHelper),
-		"oAuthAccessTokens":         accesstokenetcd.NewREST(c.EtcdHelper),
-		"oAuthClients":              clientetcd.NewREST(c.EtcdHelper),
-		"oAuthClientAuthorizations": clientauthetcd.NewREST(c.EtcdHelper),
-
-		"resourceAccessReviews":      resourceAccessReviewStorage,
-		"subjectAccessReviews":       subjectAccessReviewStorage,
-		"localSubjectAccessReviews":  localSubjectAccessReviewStorage,
-		"localResourceAccessReviews": localResourceAccessReviewStorage,
-
-		"policies":       policyStorage,
-		"policyBindings": policyBindingStorage,
-		"roles":          roleStorage,
-		"roleBindings":   roleBindingStorage,
-
-		"clusterPolicies":       clusterPolicyStorage,
-		"clusterPolicyBindings": clusterPolicyBindingStorage,
-		"clusterRoleBindings":   clusterRoleBindingStorage,
-		"clusterRoles":          clusterRoleStorage,
+func (c *MasterConfig) withOAuthRedirection(handler, oauthServerHandler http.Handler) http.Handler {
+	if c.Options.OAuthConfig == nil {
+		return handler
 	}
 
-	if configapi.IsBuildEnabled(&c.Options) {
-		storage["builds"] = buildStorage
-		storage["buildConfigs"] = buildConfigStorage
-		storage["buildConfigs/webhooks"] = buildConfigWebHooks
-		storage["builds/clone"] = buildclonestorage.NewStorage(buildGenerator)
-		storage["buildConfigs/instantiate"] = buildinstantiatestorage.NewStorage(buildGenerator)
-		storage["builds/log"] = buildlogregistry.NewREST(buildRegistry, c.BuildLogClient(), kubeletClient)
-	}
-
-	return storage
-}
-
-func (c *MasterConfig) InstallUnprotectedAPI(container *restful.Container) []string {
-	return []string{}
-}
-
-// initAPIVersionRoute initializes the osapi endpoint to behave similar to the upstream api endpoint
-func initAPIVersionRoute(root *restful.WebService, prefix string, versions ...string) {
-	versionHandler := apiserver.APIVersionHandler(versions...)
-	root.Route(root.GET(prefix).To(versionHandler).
-		Doc("list supported server API versions").
-		Produces(restful.MIME_JSON).
-		Consumes(restful.MIME_JSON))
-}
-
-// initHealthCheckRoute initalizes an HTTP endpoint for health checking.
-// OpenShift is deemed healthy if the API server can respond with an OK messages
-func initHealthCheckRoute(root *restful.WebService, path string) {
-	root.Route(root.GET(path).To(func(req *restful.Request, resp *restful.Response) {
-		resp.ResponseWriter.WriteHeader(http.StatusOK)
-		resp.ResponseWriter.Write([]byte("ok"))
-	}).Doc("return the health state of the master").
-		Returns(http.StatusOK, "if master is healthy", nil).
-		Produces(restful.MIME_JSON))
-}
-
-// initReadinessCheckRoute initializes an HTTP endpoint for readiness checking
-func initReadinessCheckRoute(root *restful.WebService, path string, readyFunc func() bool) {
-	root.Route(root.GET(path).To(func(req *restful.Request, resp *restful.Response) {
-		if readyFunc() {
-			resp.ResponseWriter.WriteHeader(http.StatusOK)
-			resp.ResponseWriter.Write([]byte("ok"))
-
-		} else {
-			resp.ResponseWriter.WriteHeader(http.StatusServiceUnavailable)
-		}
-	}).Doc("return the readiness state of the master").
-		Returns(http.StatusOK, "if the master is ready", nil).
-		Returns(http.StatusServiceUnavailable, "if the master is not ready", nil).
-		Produces(restful.MIME_JSON))
-}
-
-// initHealthCheckRoute initalizes an HTTP endpoint for health checking.
-// OpenShift is deemed healthy if the API server can respond with an OK messages
-func initMetricsRoute(root *restful.WebService, path string) {
-	h := prometheus.Handler()
-	root.Route(root.GET(path).To(func(req *restful.Request, resp *restful.Response) {
-		h.ServeHTTP(resp.ResponseWriter, req.Request)
-	}).Doc("return metrics for this process").
-		Returns(http.StatusOK, "if metrics are available", nil).
-		Produces("text/plain"))
-}
-
-func (c *MasterConfig) defaultAPIGroupVersion() *apiserver.APIGroupVersion {
-	return &apiserver.APIGroupVersion{
-		Root: OpenShiftAPIPrefix,
-
-		Mapper: latest.RESTMapper,
-
-		Creater:   kapi.Scheme,
-		Typer:     kapi.Scheme,
-		Convertor: kapi.Scheme,
-		Linker:    latest.SelfLinker,
-
-		Admit:   c.AdmissionControl,
-		Context: c.getRequestContextMapper(),
-	}
-}
-
-// api_v1beta3 returns the resources and codec for API version v1beta3.
-func (c *MasterConfig) api_v1beta3(all map[string]rest.Storage) *apiserver.APIGroupVersion {
-	storage := make(map[string]rest.Storage)
-	for k, v := range all {
-		if excludedV1Beta3Types.Has(k) {
-			continue
-		}
-		storage[strings.ToLower(k)] = v
-	}
-	version := c.defaultAPIGroupVersion()
-	version.Root = LegacyOpenShiftAPIPrefix
-	version.Storage = storage
-	version.Version = OpenShiftAPIV1Beta3
-	version.Codec = v1beta3.Codec
-	return version
-}
-
-// api_v1 returns the resources and codec for API version v1.
-func (c *MasterConfig) api_v1(all map[string]rest.Storage) *apiserver.APIGroupVersion {
-	storage := make(map[string]rest.Storage)
-	for k, v := range all {
-		if excludedV1Types.Has(k) {
-			continue
-		}
-		storage[strings.ToLower(k)] = v
-	}
-	version := c.defaultAPIGroupVersion()
-	version.Storage = storage
-	version.Version = OpenShiftAPIV1
-	version.Codec = v1.Codec
-	return version
-}
-
-// getRequestContextMapper returns a mapper from requests to contexts, initializing it if needed
-func (c *MasterConfig) getRequestContextMapper() kapi.RequestContextMapper {
-	if c.RequestContextMapper == nil {
-		c.RequestContextMapper = kapi.NewRequestContextMapper()
-	}
-	return c.RequestContextMapper
+	glog.Infof("Starting OAuth2 API at %s", urls.OpenShiftOAuthAPIPrefix)
+	return WithPatternPrefixHandler(handler, oauthServerHandler, openShiftOAuthAPIPrefix, openShiftLoginPrefix, openShiftOAuthCallbackPrefix)
 }
 
 // RouteAllocator returns a route allocation controller.
 func (c *MasterConfig) RouteAllocator() *routeallocationcontroller.RouteAllocationController {
-	osclient, kclient := c.RouteAllocatorClients()
 	factory := routeallocationcontroller.RouteAllocationControllerFactory{
-		OSClient:   osclient,
-		KubeClient: kclient,
+		KubeClient: c.PrivilegedLoopbackKubernetesClientsetInternal,
 	}
 
 	plugin, err := routeplugin.NewSimpleAllocationPlugin(c.Options.RoutingConfig.Subdomain)
@@ -624,11 +455,31 @@ func env(key string, defaultValue string) string {
 	return val
 }
 
-type clientDeploymentInterface struct {
-	KubeClient kclient.Interface
+func WithPatternPrefixHandler(handler http.Handler, patternHandler http.Handler, prefixes ...string) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		for _, p := range prefixes {
+			if strings.HasPrefix(req.URL.Path, p) {
+				patternHandler.ServeHTTP(w, req)
+				return
+			}
+		}
+		handler.ServeHTTP(w, req)
+	})
 }
 
-// GetDeployment returns the deployment with the provided context and name
-func (c clientDeploymentInterface) GetDeployment(ctx kapi.Context, name string) (*kapi.ReplicationController, error) {
-	return c.KubeClient.ReplicationControllers(kapi.NamespaceValue(ctx)).Get(name)
+func (c *MasterConfig) startClusterQuotaMapping(context apiserver.PostStartHookContext) error {
+	go c.ClusterQuotaMappingController.Run(5, context.StopCh)
+	return nil
+}
+
+// bootstrapData casts our policy data to the rbacrest helper that can
+// materialize the policy.
+func bootstrapData(data *bootstrappolicy.PolicyData) *rbacrest.PolicyData {
+	return &rbacrest.PolicyData{
+		ClusterRoles:            data.ClusterRoles,
+		ClusterRoleBindings:     data.ClusterRoleBindings,
+		Roles:                   data.Roles,
+		RoleBindings:            data.RoleBindings,
+		ClusterRolesToAggregate: data.ClusterRolesToAggregate,
+	}
 }

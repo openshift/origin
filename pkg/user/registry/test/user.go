@@ -1,70 +1,64 @@
 package test
 
 import (
-	kapi "k8s.io/kubernetes/pkg/api"
-	kerrs "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/labels"
+	kerrs "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/openshift/origin/pkg/user/api"
+	userapi "github.com/openshift/api/user/v1"
+	"github.com/openshift/client-go/user/clientset/versioned/typed/user/v1/fake"
 )
 
 type UserRegistry struct {
-	GetErr map[string]error
-	Get    map[string]*api.User
+	// included to fill out the interface for testing
+	*fake.FakeUsers
 
-	CreateErr error
-	Create    *api.User
+	GetErr   map[string]error
+	GetUsers map[string]*userapi.User
 
-	UpdateErr map[string]error
-	Update    *api.User
+	CreateErr  error
+	CreateUser *userapi.User
 
-	ListErr error
-	List    *api.UserList
+	UpdateErr  map[string]error
+	UpdateUser *userapi.User
+
+	ListErr   error
+	ListUsers *userapi.UserList
 
 	Actions *[]Action
 }
 
-func NewUserRegistry() *UserRegistry {
-	return &UserRegistry{
-		GetErr:    map[string]error{},
-		Get:       map[string]*api.User{},
-		UpdateErr: map[string]error{},
-		Actions:   &[]Action{},
-	}
-}
-
-func (r *UserRegistry) GetUser(ctx kapi.Context, name string) (*api.User, error) {
+func (r *UserRegistry) Get(name string, options metav1.GetOptions) (*userapi.User, error) {
 	*r.Actions = append(*r.Actions, Action{"GetUser", name})
-	if user, ok := r.Get[name]; ok {
+	if user, ok := r.GetUsers[name]; ok {
 		return user, nil
 	}
 	if err, ok := r.GetErr[name]; ok {
 		return nil, err
 	}
-	return nil, kerrs.NewNotFound("User", name)
+	return nil, kerrs.NewNotFound(userapi.Resource("user"), name)
 }
 
-func (r *UserRegistry) CreateUser(ctx kapi.Context, u *api.User) (*api.User, error) {
+func (r *UserRegistry) Create(u *userapi.User) (*userapi.User, error) {
 	*r.Actions = append(*r.Actions, Action{"CreateUser", u})
-	if r.Create == nil && r.CreateErr == nil {
+	if r.CreateUser == nil && r.CreateErr == nil {
 		return u, nil
 	}
-	return r.Create, r.CreateErr
+	return r.CreateUser, r.CreateErr
 }
 
-func (r *UserRegistry) UpdateUser(ctx kapi.Context, u *api.User) (*api.User, error) {
+func (r *UserRegistry) Update(u *userapi.User) (*userapi.User, error) {
 	*r.Actions = append(*r.Actions, Action{"UpdateUser", u})
 	err, _ := r.UpdateErr[u.Name]
-	if r.Update == nil && err == nil {
+	if r.UpdateUser == nil && err == nil {
 		return u, nil
 	}
-	return r.Update, err
+	return r.UpdateUser, err
 }
 
-func (r *UserRegistry) ListUsers(ctx kapi.Context, labels labels.Selector) (*api.UserList, error) {
-	*r.Actions = append(*r.Actions, Action{"ListUsers", labels})
-	if r.List == nil && r.ListErr == nil {
-		return &api.UserList{}, nil
+func (r *UserRegistry) List(options metav1.ListOptions) (*userapi.UserList, error) {
+	*r.Actions = append(*r.Actions, Action{"ListUsers", options})
+	if r.ListUsers == nil && r.ListErr == nil {
+		return &userapi.UserList{}, nil
 	}
-	return r.List, r.ListErr
+	return r.ListUsers, r.ListErr
 }

@@ -1,0 +1,32 @@
+apiVersion: apps.openshift.io/v1
+kind: DeploymentConfig
+metadata:
+  name: hook
+spec:
+  replicas: 1
+  selector:
+    name: hook
+  strategy:
+    type: Rolling
+    rollingParams:
+      pre:
+        failurePolicy: Retry
+        execNewPod:
+          containerName: myapp
+          command:
+          - /bin/bash
+          - -c
+          - '/bin/echo pre hook logs ; exit 1'
+  template:
+    metadata:
+      labels:
+        name: hook
+    spec:
+      containers:
+      - image: "docker.io/centos:centos7"
+        command:
+          - /bin/sleep
+          - infinity
+        name: myapp
+  triggers:
+  - type: ConfigChange

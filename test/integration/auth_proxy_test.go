@@ -1,5 +1,3 @@
-// +build integration,etcd
-
 package integration
 
 import (
@@ -9,38 +7,16 @@ import (
 	"net/url"
 	"testing"
 
-	kapi "k8s.io/kubernetes/pkg/api"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/pkg/master"
-	"k8s.io/kubernetes/pkg/tools/etcdtest"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	ktransport "k8s.io/client-go/transport"
 
-	"github.com/openshift/origin/pkg/api/latest"
-	"github.com/openshift/origin/pkg/auth/authenticator/request/headerrequest"
-	oauthhandlers "github.com/openshift/origin/pkg/auth/oauth/handlers"
-	oauthregistry "github.com/openshift/origin/pkg/auth/oauth/registry"
-	"github.com/openshift/origin/pkg/auth/userregistry/identitymapper"
-	"github.com/openshift/origin/pkg/cmd/server/origin"
-	oauthapi "github.com/openshift/origin/pkg/oauth/api"
-	accesstokenregistry "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken"
-	accesstokenetcd "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken/etcd"
-	authorizetokenregistry "github.com/openshift/origin/pkg/oauth/registry/oauthauthorizetoken"
-	authorizetokenetcd "github.com/openshift/origin/pkg/oauth/registry/oauthauthorizetoken/etcd"
-	clientregistry "github.com/openshift/origin/pkg/oauth/registry/oauthclient"
-	clientetcd "github.com/openshift/origin/pkg/oauth/registry/oauthclient/etcd"
-	clientauthregistry "github.com/openshift/origin/pkg/oauth/registry/oauthclientauthorization"
-	clientauthetcd "github.com/openshift/origin/pkg/oauth/registry/oauthclientauthorization/etcd"
-	"github.com/openshift/origin/pkg/oauth/server/osinserver"
-	"github.com/openshift/origin/pkg/oauth/server/osinserver/registrystorage"
-	identityregistry "github.com/openshift/origin/pkg/user/registry/identity"
-	identityetcd "github.com/openshift/origin/pkg/user/registry/identity/etcd"
-	userregistry "github.com/openshift/origin/pkg/user/registry/user"
-	useretcd "github.com/openshift/origin/pkg/user/registry/user/etcd"
+	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
+	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
+	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset/typed/oauth/internalversion"
+	"github.com/openshift/origin/pkg/oauth/urls"
 	testutil "github.com/openshift/origin/test/util"
+	testserver "github.com/openshift/origin/test/util/server"
 )
-
-func init() {
-	testutil.RequireEtcd()
-}
 
 var (
 	validUsers = []User{
@@ -51,79 +27,42 @@ var (
 )
 
 func TestAuthProxyOnAuthorize(t *testing.T) {
-	testutil.DeleteAllEtcdKeys()
+	idp := configapi.IdentityProvider{}
+	idp.Name = "front-proxy"
+	idp.Provider = &configapi.RequestHeaderIdentityProvider{Headers: []string{"X-Remote-User"}}
+	idp.MappingMethod = "claim"
 
-	// setup
-	etcdClient := testutil.NewEtcdClient()
-	etcdHelper, _ := master.NewEtcdStorage(etcdClient, latest.InterfacesFor, latest.Version, etcdtest.PathPrefix())
-
-	accessTokenStorage := accesstokenetcd.NewREST(etcdHelper)
-	accessTokenRegistry := accesstokenregistry.NewRegistry(accessTokenStorage)
-	authorizeTokenStorage := authorizetokenetcd.NewREST(etcdHelper)
-	authorizeTokenRegistry := authorizetokenregistry.NewRegistry(authorizeTokenStorage)
-	clientStorage := clientetcd.NewREST(etcdHelper)
-	clientRegistry := clientregistry.NewRegistry(clientStorage)
-	clientAuthStorage := clientauthetcd.NewREST(etcdHelper)
-	clientAuthRegistry := clientauthregistry.NewRegistry(clientAuthStorage)
-
-	userStorage := useretcd.NewREST(etcdHelper)
-	userRegistry := userregistry.NewRegistry(userStorage)
-	identityStorage := identityetcd.NewREST(etcdHelper)
-	identityRegistry := identityregistry.NewRegistry(identityStorage)
-
-	identityMapper, err := identitymapper.NewIdentityUserMapper(identityRegistry, userRegistry, identitymapper.MappingMethodGenerate)
+	masterConfig, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer testserver.CleanupMasterEtcd(t, masterConfig)
+	masterConfig.OAuthConfig.IdentityProviders = []configapi.IdentityProvider{idp}
 
-	// this auth request handler is the one that is supposed to recognize information from a front proxy
-	authRequestHandler := headerrequest.NewAuthenticator("front-proxy-test", headerrequest.NewDefaultConfig(), identityMapper)
-	authHandler := &oauthhandlers.EmptyAuth{}
-
-	storage := registrystorage.New(accessTokenRegistry, authorizeTokenRegistry, clientRegistry, oauthregistry.NewUserConversion())
-	config := osinserver.NewDefaultServerConfig()
-
-	grantChecker := oauthregistry.NewClientAuthorizationGrantChecker(clientAuthRegistry)
-	grantHandler := oauthhandlers.NewAutoGrant()
-
-	server := osinserver.New(
-		config,
-		storage,
-		osinserver.AuthorizeHandlers{
-			oauthhandlers.NewAuthorizeAuthenticator(
-				authRequestHandler,
-				authHandler,
-				oauthhandlers.EmptyError{},
-			),
-			oauthhandlers.NewGrantCheck(
-				grantChecker,
-				grantHandler,
-				oauthhandlers.EmptyError{},
-			),
-		},
-		osinserver.AccessHandlers{
-			oauthhandlers.NewDenyAccessAuthenticator(),
-		},
-		osinserver.NewDefaultErrorHandler(),
-	)
-
-	mux := http.NewServeMux()
-	server.Install(mux, origin.OpenShiftOAuthAPIPrefix)
-	oauthServer := httptest.NewServer(http.Handler(mux))
-	defer oauthServer.Close()
-	t.Logf("oauth server is on %v\n", oauthServer.URL)
+	clusterAdminKubeConfig, err := testserver.StartConfiguredMasterAPI(masterConfig)
+	if err != nil {
+		t.Fatal(err)
+	}
+	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
+	if err != nil {
+		t.Fatal(err)
+	}
+	clusterAdminOAuthClient := oauthclient.NewForConfigOrDie(clusterAdminClientConfig)
 
 	// set up a front proxy guarding the oauth server
-	proxyHTTPHandler := NewBasicAuthChallenger("TestRegistryAndServer", validUsers, NewXRemoteUserProxyingHandler(oauthServer.URL))
+	proxyHTTPHandler := NewBasicAuthChallenger("TestRegistryAndServer", validUsers, NewXRemoteUserProxyingHandler(clusterAdminClientConfig.Host))
 	proxyServer := httptest.NewServer(proxyHTTPHandler)
 	defer proxyServer.Close()
 	t.Logf("proxy server is on %v\n", proxyServer.URL)
 
 	// need to prime clients so that we can get back a code.  the client must be valid
-	createClient(t, clientRegistry, &oauthapi.OAuthClient{ObjectMeta: kapi.ObjectMeta{Name: "test"}, Secret: "secret", RedirectURIs: []string{oauthServer.URL}})
+	result := clusterAdminOAuthClient.RESTClient().Post().Resource("oAuthClients").Body(&oauthapi.OAuthClient{ObjectMeta: metav1.ObjectMeta{Name: "test"}, Secret: "secret", RedirectURIs: []string{clusterAdminClientConfig.Host}}).Do()
+	if result.Error() != nil {
+		t.Fatal(result.Error())
+	}
 
 	// our simple URL to get back a code.  We want to go through the front proxy
-	rawAuthorizeRequest := proxyServer.URL + origin.OpenShiftOAuthAPIPrefix + "/authorize?response_type=code&client_id=test"
+	rawAuthorizeRequest := proxyServer.URL + urls.OpenShiftOAuthAPIPrefix + "/authorize?response_type=code&client_id=test"
 
 	// the first request we make to the front proxy should challenge us for authentication info
 	shouldBeAChallengeResponse, err := http.Get(rawAuthorizeRequest)
@@ -141,11 +80,14 @@ func TestAuthProxyOnAuthorize(t *testing.T) {
 	redirectedUrls := make([]url.URL, 10)
 	httpClient := http.Client{
 		CheckRedirect: getRedirectMethod(t, &redirectedUrls),
-		Transport:     kclient.NewBasicAuthRoundTripper("sanefarmer", "who?", http.DefaultTransport),
+		Transport:     ktransport.NewBasicAuthRoundTripper("sanefarmer", "who?", insecureTransport()),
 	}
 
 	// make our authorize request again, but this time our transport has properly set the auth info for the front proxy
 	req, err := http.NewRequest("GET", rawAuthorizeRequest, nil)
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
 	_, err = httpClient.Do(req)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
@@ -161,12 +103,6 @@ func TestAuthProxyOnAuthorize(t *testing.T) {
 		t.Errorf("Did not find code in any redirect: %v", redirectedUrls)
 	} else {
 		t.Logf("Found code %v\n", foundCode)
-	}
-}
-
-func createClient(t *testing.T, clientRegistry clientregistry.Registry, client *oauthapi.OAuthClient) {
-	if _, err := clientRegistry.CreateClient(kapi.NewContext(), client); err != nil {
-		t.Errorf("Error creating client: %v due to %v\n", client, err)
 	}
 }
 

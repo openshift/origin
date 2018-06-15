@@ -1,41 +1,49 @@
 #!/bin/bash
 
 # See HACKING.md for usage
-
-set -o errexit
-set -o nounset
-set -o pipefail
-
-OS_ROOT=$(dirname "${BASH_SOURCE}")/..
-source "${OS_ROOT}/hack/common.sh"
-source "${OS_ROOT}/hack/util.sh"
-os::log::install_errexit
-
-# Go to the top of the tree.
-cd "${OS_ROOT}"
+# To apply all the kube UPSTREAM patches to a kubernetes git directory, you can
+#  1. Set UPSTREAM_DIR for your kube working directory
+#  2. Set TARGET_BRANCH for the new branch to work in
+#  3. In your kube git directory, set the current branch to the level to want to apply patches to
+#  4. Run `hack/move-upstream.sh master...<commit hash you want to start pulling patches from>`
+source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
 repo="${UPSTREAM_REPO:-k8s.io/kubernetes}"
 package="${UPSTREAM_PACKAGE:-pkg/api}"
 
-patch="${TMPDIR}/patch"
-relativedir="../../../${repo}"
+patch="${TMPDIR:-/tmp}/patch"
+rm -rf "${patch}"
+mkdir -p "${patch}"
+relativedir="${UPSTREAM_REPO_LOCATION:-../../../${repo}}"
 if [[ ! -d "${relativedir}" ]]; then
   echo "Expected ${relativedir} to exist" 1>&2
   exit 1
 fi
 
 if [[ -z "${NO_REBASE-}" ]]; then
-  lastrev="$(go run ${OS_ROOT}/hack/version.go ${OS_ROOT}/Godeps/Godeps.json ${repo}/${package})"
+  if [[ "${package}" != "." ]]; then
+    out="${repo}/${package}"
+  else
+    out="${repo}"
+  fi
+  lastrev="$(go run ${OS_ROOT}/tools/godepversion/godepversion.go ${OS_ROOT}/Godeps/Godeps.json ${out})"
 fi
 
-branch="$(git rev-parse --abbrev-ref HEAD)"
+branch="${TARGET_BRANCH:-$(git rev-parse --abbrev-ref HEAD)}"
 selector="origin/master...${branch}"
 if [[ -n "${1-}" ]]; then
   selector="$1"
 fi
 
 echo "++ Generating patch for ${selector} onto ${lastrev} ..." 2>&1
-git diff -p --raw --relative=Godeps/_workspace/src/${repo}/ "${selector}" -- Godeps/_workspace/src/${repo}/ > "${patch}"
+index=0
+for commit in $(git log --no-merges --format="%H" --reverse "${selector}" -- "vendor/${repo}/"); do
+  git format-patch --raw --start-number=${index} --relative="vendor/${repo}/" "${commit}^..${commit}" -o "${patch}"
+  let index+=10
+done
+
+# remove all commits that had no entries
+find "${patch}" -type f -size 0 -exec rm {} \;
 
 pushd "${relativedir}" > /dev/null
 os::build::require_clean_tree
@@ -44,17 +52,11 @@ os::build::require_clean_tree
 git checkout -b "${branch}" "${lastrev}"
 
 # apply the changes
-if ! git apply --reject "${patch}"; then
+if ! git am -3 --ignore-whitespace ${patch}/*.patch; then
   echo 2>&1
-  echo "++ Patch does not apply cleanly, possible overlapping UPSTREAM patches?" 2>&1
+  echo "++ Patches do not apply cleanly, continue with 'git am' in ${relativedir}" 2>&1
   exit 1
 fi
 
-# generate a new commit, fetch the latest, and attempt a rebase to master
-git add .
-git commit -m "UPSTREAMED"
-git fetch
-git rebase origin/master -i
-
 echo 2>&1
-echo "++ Done" 2>&1
+echo "++ All patches applied cleanly upstream" 2>&1

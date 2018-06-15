@@ -1,0 +1,62 @@
+kind: List
+apiVersion: v1
+items:
+- kind: Secret
+  apiVersion: v1
+  metadata:
+    name: configsecret
+  stringData:
+    NAME: template
+- kind: TemplateInstance
+  apiVersion: template.openshift.io/v1
+  metadata:
+    name: templateinstance
+  spec:
+    template:
+      kind: Template
+      apiVersion: v1
+      metadata:
+        name: template
+      objects:
+      - kind: Secret
+        apiVersion: v1
+        metadata:
+          name: secret
+          labels:
+            foo: bar
+      - kind: Deployment
+        apiVersion: apps/v1
+        metadata:
+          name: deployment
+        spec:
+          replicas: 0
+          selector:
+            matchLabels:
+              key: value
+          template:
+            metadata:
+              labels:
+                key: value
+            spec:
+              containers:
+              - name: hello-openshift
+                image: openshift/hello-openshift
+      - kind: Route
+        apiVersion: v1
+        metadata:
+          name: route
+        spec:
+          to:
+            name: foo
+      - kind: Route
+        apiVersion: route.openshift.io/v1
+        metadata:
+          name: newroute
+        spec:
+          to:
+            name: foo
+      parameters:
+        - name: NAME
+          value: ${NAME}
+    secret:
+      name: configsecret

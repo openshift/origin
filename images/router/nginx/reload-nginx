@@ -1,0 +1,26 @@
+#!/bin/bash
+
+set -o nounset
+
+config_file=/var/lib/nginx/conf/nginx.conf
+pid_file=/var/lib/nginx/run/nginx.pid
+
+if [ -f $pid_file ]; then
+  # NGINX is running. Reloading NGINX with the new configuration. 
+  /usr/sbin/nginx -c $config_file -s reload
+  status=$?
+  operation=reload
+else
+  # NGINX is not running. Starting NGINX with the initial configuration.
+  /usr/sbin/nginx -c $config_file
+  status=$?
+  operation=start
+fi
+
+if [[ $status -ne 0 ]]; then
+  >&2 echo "Failed to $operation NGINX."
+else
+  echo "Router was successfully ${operation}ed."
+fi
+
+exit $status

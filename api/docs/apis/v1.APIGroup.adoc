@@ -1,0 +1,1105 @@
+= v1.APIGroup
+{product-author}
+{product-version}
+:data-uri:
+:icons:
+:toc: macro
+:toc-title:
+:toclevels: 2
+
+toc::[]
+
+== Description
+[%hardbreaks]
+APIGroup contains the name, the supported versions, and the preferred version of a group.
+
+== Object Schema
+Expand or mouse-over a field for more information about it.
+
+++++
+<pre>
+<div style="margin-left:13px;"><span title="(string) APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources">apiVersion</span>:
+</div><div style="margin-left:13px;"><span title="(string) Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds">kind</span>:
+</div><div style="margin-left:13px;"><span title="(string) name is the name of the group.">name</span>:
+</div><details><summary><span title="(v1.GroupVersionForDiscovery) preferredVersion is the version preferred by the API server, which probably is the storage version.">preferredVersion</span>:
+</summary><div style="margin-left:13px;">  <span title="(string) groupVersion specifies the API group and version in the form &#34;group/version&#34;">groupVersion</span>:
+</div><div style="margin-left:13px;">  <span title="(string) version specifies the version in the form of &#34;version&#34;. This is to save the clients the trouble of splitting the GroupVersion.">version</span>:
+</div></details><details><summary><span title="(array) a map of client CIDR to server address that is serving this group. This is to help clients reach servers in the most network-efficient way possible. Clients can use the appropriate server address as per the CIDR that they match. In case of multiple matches, clients should use the longest matching CIDR. The server returns only those CIDRs that it thinks that the client can match. For example: the master will return an internal IP CIDR only, if the client reaches the server using an internal IP. Server looks at X-Forwarded-For header or X-Real-Ip header or request.RemoteAddr (in that order) to get the client IP.">serverAddressByClientCIDRs</span>:
+</summary><div style="margin-left:13px;">- <span title="(string) The CIDR with which clients can match their IP to figure out the server address that they should use.">clientCIDR</span>:
+</div><div style="margin-left:13px;">  <span title="(string) Address of this server, suitable for a client that matches the above CIDR. This can be a hostname, hostname:port, IP or IP:port.">serverAddress</span>:
+</div></details><details><summary><span title="(array) versions are the versions supported in this group.">versions</span>:
+</summary><div style="margin-left:13px;">- <span title="(string) groupVersion specifies the API group and version in the form &#34;group/version&#34;">groupVersion</span>:
+</div><div style="margin-left:13px;">  <span title="(string) version specifies the version in the form of &#34;version&#34;. This is to save the clients the trouble of splitting the GroupVersion.">version</span>:
+</div></details>
+</pre>
+++++
+
+== Operations
+
+[[Get-apis-admissionregistration.k8s.io]]
+=== Get all APIGroups
+Get information of a group
+
+==== HTTP request
+----
+GET /apis/admissionregistration.k8s.io/ HTTP/1.1
+Authorization: Bearer $TOKEN
+Accept: application/json
+Connection: close
+----
+
+==== Curl request
+----
+$ curl -k \
+    -H "Authorization: Bearer $TOKEN" \
+    -H 'Accept: application/json' \
+    https://$ENDPOINT/apis/admissionregistration.k8s.io/
+----
+
+==== Responses
+[cols="1,5", options="header"]
+|===
+|HTTP Code|Schema
+|200 OK|v1.APIGroup
+|401 Unauthorized|
+|===
+
+==== Consumes
+
+* application/json
+* application/yaml
+* application/vnd.kubernetes.protobuf
+
+==== Produces
+
+* application/json
+* application/yaml
+* application/vnd.kubernetes.protobuf
+
+
+[[Get-apis-apiregistration.k8s.io]]
+=== Get all APIGroups
+Get information of a group
+
+==== HTTP request
+----
+GET /apis/apiregistration.k8s.io/ HTTP/1.1
+Authorization: Bearer $TOKEN
+Accept: application/json
+Connection: close
+----
+
+==== Curl request
+----
+$ curl -k \
+    -H "Authorization: Bearer $TOKEN" \
+    -H 'Accept: application/json' \
+    https://$ENDPOINT/apis/apiregistration.k8s.io/
+----
+
+==== Responses
+[cols="1,5", options="header"]
+|===
+|HTTP Code|Schema
+|200 OK|v1.APIGroup
+|401 Unauthorized|
+|===
+
+==== Consumes
+
+* application/json
+* application/yaml
+* application/vnd.kubernetes.protobuf
+
+==== Produces
+
+* application/json
+* application/yaml
+* application/vnd.kubernetes.protobuf
+
+
+[[Get-apis-apps.openshift.io]]
+=== Get all APIGroups
+Get information of a group
+
+==== HTTP request
+----
+GET /apis/apps.openshift.io/ HTTP/1.1
+Authorization: Bearer $TOKEN
+Accept: application/json
+Connection: close
+----
+
+==== Curl request
+----
+$ curl -k \
+    -H "Authorization: Bearer $TOKEN" \
+    -H 'Accept: application/json' \
+    https://$ENDPOINT/apis/apps.openshift.io/
+----
+
+==== Responses
+[cols="1,5", options="header"]
+|===
+|HTTP Code|Schema
+|200 OK|v1.APIGroup
+|401 Unauthorized|
+|===
+
+==== Consumes
+
+* application/json
+* application/yaml
+* application/vnd.kubernetes.protobuf
+
+==== Produces
+
+* application/json
+* application/yaml
+* application/vnd.kubernetes.protobuf
+
+
+[[Get-apis-apps]]
+=== Get all APIGroups
+Get information of a group
+
+==== HTTP request
+----
+GET /apis/apps/ HTTP/1.1
+Authorization: Bearer $TOKEN
+Accept: application/json
+Connection: close
+----
+
+==== Curl request
+----
+$ curl -k \
+    -H "Authorization: Bearer $TOKEN" \
+    -H 'Accept: application/json' \
+    https://$ENDPOINT/apis/apps/
+----
+
+==== Responses
+[cols="1,5", options="header"]
+|===
+|HTTP Code|Schema
+|200 OK|v1.APIGroup
+|401 Unauthorized|
+|===
+
+==== Consumes
+
+* application/json
+* application/yaml
+* application/vnd.kubernetes.protobuf
+
+==== Produces
+
+* application/json
+* application/yaml
+* application/vnd.kubernetes.protobuf
+
+
+[[Get-apis-authentication.k8s.io]]
+=== Get all APIGroups
+Get information of a group
+
+==== HTTP request
+----
+GET /apis/authentication.k8s.io/ HTTP/1.1
+Authorization: Bearer $TOKEN
+Accept: application/json
+Connection: close
+----
+
+==== Curl request
+----
+$ curl -k \
+    -H "Authorization: Bearer $TOKEN" \
+    -H 'Accept: application/json' \
+    https://$ENDPOINT/apis/authentication.k8s.io/
+----
+
+==== Responses
+[cols="1,5", options="header"]
+|===
+|HTTP Code|Schema
+|200 OK|v1.APIGroup
+|401 Unauthorized|
+|===
+
+==== Consumes
+
+* application/json
+* application/yaml
+* application/vnd.kubernetes.protobuf
+
+==== Produces
+
+* application/json
+* application/yaml
+* application/vnd.kubernetes.protobuf
+
+
+[[Get-apis-authorization.k8s.io]]
+=== Get all APIGroups
+Get information of a group
+
+==== HTTP request
+----
+GET /apis/authorization.k8s.io/ HTTP/1.1
+Authorization: Bearer $TOKEN
+Accept: application/json
+Connection: close
+----
+
+==== Curl request
+----
+$ curl -k \
+    -H "Authorization: Bearer $TOKEN" \
+    -H 'Accept: application/json' \
+    https://$ENDPOINT/apis/authorization.k8s.io/
+----
+
+==== Responses
+[cols="1,5", options="header"]
+|===
+|HTTP Code|Schema
+|200 OK|v1.APIGroup
+|401 Unauthorized|
+|===
+
+==== Consumes
+
+* application/json
+* application/yaml
+* application/vnd.kubernetes.protobuf
+
+==== Produces
+
+* application/json
+* application/yaml
+* application/vnd.kubernetes.protobuf
+
+
+[[Get-apis-authorization.openshift.io]]
+=== Get all APIGroups
+Get information of a group
+
+==== HTTP request
+----
+GET /apis/authorization.openshift.io/ HTTP/1.1
+Authorization: Bearer $TOKEN
+Accept: application/json
+Connection: close
+----
+
+==== Curl request
+----
+$ curl -k \
+    -H "Authorization: Bearer $TOKEN" \
+    -H 'Accept: application/json' \
+    https://$ENDPOINT/apis/authorization.openshift.io/
+----
+
+==== Responses
+[cols="1,5", options="header"]
+|===
+|HTTP Code|Schema
+|200 OK|v1.APIGroup
+|401 Unauthorized|
+|===
+
+==== Consumes
+
+* application/json
+* application/yaml
+* application/vnd.kubernetes.protobuf
+
+==== Produces
+
+* application/json
+* application/yaml
+* application/vnd.kubernetes.protobuf
+
+
+[[Get-apis-autoscaling]]
+=== Get all APIGroups
+Get information of a group
+
+==== HTTP request
+----
+GET /apis/autoscaling/ HTTP/1.1
+Authorization: Bearer $TOKEN
+Accept: application/json
+Connection: close
+----
+
+==== Curl request
+----
+$ curl -k \
+    -H "Authorization: Bearer $TOKEN" \
+    -H 'Accept: application/json' \
+    https://$ENDPOINT/apis/autoscaling/
+----
+
+==== Responses
+[cols="1,5", options="header"]
+|===
+|HTTP Code|Schema
+|200 OK|v1.APIGroup
+|401 Unauthorized|
+|===
+
+==== Consumes
+
+* application/json
+* application/yaml
+* application/vnd.kubernetes.protobuf
+
+==== Produces
+
+* application/json
+* application/yaml
+* application/vnd.kubernetes.protobuf
+
+
+[[Get-apis-batch]]
+=== Get all APIGroups
+Get information of a group
+
+==== HTTP request
+----
+GET /apis/batch/ HTTP/1.1
+Authorization: Bearer $TOKEN
+Accept: application/json
+Connection: close
+----
+
+==== Curl request
+----
+$ curl -k \
+    -H "Authorization: Bearer $TOKEN" \
+    -H 'Accept: application/json' \
+    https://$ENDPOINT/apis/batch/
+----
+
+==== Responses
+[cols="1,5", options="header"]
+|===
+|HTTP Code|Schema
+|200 OK|v1.APIGroup
+|401 Unauthorized|
+|===
+
+==== Consumes
+
+* application/json
+* application/yaml
+* application/vnd.kubernetes.protobuf
+
+==== Produces
+
+* application/json
+* application/yaml
+* application/vnd.kubernetes.protobuf
+
+
+[[Get-apis-build.openshift.io]]
+=== Get all APIGroups
+Get information of a group
+
+==== HTTP request
+----
+GET /apis/build.openshift.io/ HTTP/1.1
+Authorization: Bearer $TOKEN
+Accept: application/json
+Connection: close
+----
+
+==== Curl request
+----
+$ curl -k \
+    -H "Authorization: Bearer $TOKEN" \
+    -H 'Accept: application/json' \
+    https://$ENDPOINT/apis/build.openshift.io/
+----
+
+==== Responses
+[cols="1,5", options="header"]
+|===
+|HTTP Code|Schema
+|200 OK|v1.APIGroup
+|401 Unauthorized|
+|===
+
+==== Consumes
+
+* application/json
+* application/yaml
+* application/vnd.kubernetes.protobuf
+
+==== Produces
+
+* application/json
+* application/yaml
+* application/vnd.kubernetes.protobuf
+
+
+[[Get-apis-certificates.k8s.io]]
+=== Get all APIGroups
+Get information of a group
+
+==== HTTP request
+----
+GET /apis/certificates.k8s.io/ HTTP/1.1
+Authorization: Bearer $TOKEN
+Accept: application/json
+Connection: close
+----
+
+==== Curl request
+----
+$ curl -k \
+    -H "Authorization: Bearer $TOKEN" \
+    -H 'Accept: application/json' \
+    https://$ENDPOINT/apis/certificates.k8s.io/
+----
+
+==== Responses
+[cols="1,5", options="header"]
+|===
+|HTTP Code|Schema
+|200 OK|v1.APIGroup
+|401 Unauthorized|
+|===
+
+==== Consumes
+
+* application/json
+* application/yaml
+* application/vnd.kubernetes.protobuf
+
+==== Produces
+
+* application/json
+* application/yaml
+* application/vnd.kubernetes.protobuf
+
+
+[[Get-apis-events.k8s.io]]
+=== Get all APIGroups
+Get information of a group
+
+==== HTTP request
+----
+GET /apis/events.k8s.io/ HTTP/1.1
+Authorization: Bearer $TOKEN
+Accept: application/json
+Connection: close
+----
+
+==== Curl request
+----
+$ curl -k \
+    -H "Authorization: Bearer $TOKEN" \
+    -H 'Accept: application/json' \
+    https://$ENDPOINT/apis/events.k8s.io/
+----
+
+==== Responses
+[cols="1,5", options="header"]
+|===
+|HTTP Code|Schema
+|200 OK|v1.APIGroup
+|401 Unauthorized|
+|===
+
+==== Consumes
+
+* application/json
+* application/yaml
+* application/vnd.kubernetes.protobuf
+
+==== Produces
+
+* application/json
+* application/yaml
+* application/vnd.kubernetes.protobuf
+
+
+[[Get-apis-extensions]]
+=== Get all APIGroups
+Get information of a group
+
+==== HTTP request
+----
+GET /apis/extensions/ HTTP/1.1
+Authorization: Bearer $TOKEN
+Accept: application/json
+Connection: close
+----
+
+==== Curl request
+----
+$ curl -k \
+    -H "Authorization: Bearer $TOKEN" \
+    -H 'Accept: application/json' \
+    https://$ENDPOINT/apis/extensions/
+----
+
+==== Responses
+[cols="1,5", options="header"]
+|===
+|HTTP Code|Schema
+|200 OK|v1.APIGroup
+|401 Unauthorized|
+|===
+
+==== Consumes
+
+* application/json
+* application/yaml
+* application/vnd.kubernetes.protobuf
+
+==== Produces
+
+* application/json
+* application/yaml
+* application/vnd.kubernetes.protobuf
+
+
+[[Get-apis-image.openshift.io]]
+=== Get all APIGroups
+Get information of a group
+
+==== HTTP request
+----
+GET /apis/image.openshift.io/ HTTP/1.1
+Authorization: Bearer $TOKEN
+Accept: application/json
+Connection: close
+----
+
+==== Curl request
+----
+$ curl -k \
+    -H "Authorization: Bearer $TOKEN" \
+    -H 'Accept: application/json' \
+    https://$ENDPOINT/apis/image.openshift.io/
+----
+
+==== Responses
+[cols="1,5", options="header"]
+|===
+|HTTP Code|Schema
+|200 OK|v1.APIGroup
+|401 Unauthorized|
+|===
+
+==== Consumes
+
+* application/json
+* application/yaml
+* application/vnd.kubernetes.protobuf
+
+==== Produces
+
+* application/json
+* application/yaml
+* application/vnd.kubernetes.protobuf
+
+
+[[Get-apis-network.openshift.io]]
+=== Get all APIGroups
+Get information of a group
+
+==== HTTP request
+----
+GET /apis/network.openshift.io/ HTTP/1.1
+Authorization: Bearer $TOKEN
+Accept: application/json
+Connection: close
+----
+
+==== Curl request
+----
+$ curl -k \
+    -H "Authorization: Bearer $TOKEN" \
+    -H 'Accept: application/json' \
+    https://$ENDPOINT/apis/network.openshift.io/
+----
+
+==== Responses
+[cols="1,5", options="header"]
+|===
+|HTTP Code|Schema
+|200 OK|v1.APIGroup
+|401 Unauthorized|
+|===
+
+==== Consumes
+
+* application/json
+* application/yaml
+* application/vnd.kubernetes.protobuf
+
+==== Produces
+
+* application/json
+* application/yaml
+* application/vnd.kubernetes.protobuf
+
+
+[[Get-apis-networking.k8s.io]]
+=== Get all APIGroups
+Get information of a group
+
+==== HTTP request
+----
+GET /apis/networking.k8s.io/ HTTP/1.1
+Authorization: Bearer $TOKEN
+Accept: application/json
+Connection: close
+----
+
+==== Curl request
+----
+$ curl -k \
+    -H "Authorization: Bearer $TOKEN" \
+    -H 'Accept: application/json' \
+    https://$ENDPOINT/apis/networking.k8s.io/
+----
+
+==== Responses
+[cols="1,5", options="header"]
+|===
+|HTTP Code|Schema
+|200 OK|v1.APIGroup
+|401 Unauthorized|
+|===
+
+==== Consumes
+
+* application/json
+* application/yaml
+* application/vnd.kubernetes.protobuf
+
+==== Produces
+
+* application/json
+* application/yaml
+* application/vnd.kubernetes.protobuf
+
+
+[[Get-apis-oauth.openshift.io]]
+=== Get all APIGroups
+Get information of a group
+
+==== HTTP request
+----
+GET /apis/oauth.openshift.io/ HTTP/1.1
+Authorization: Bearer $TOKEN
+Accept: application/json
+Connection: close
+----
+
+==== Curl request
+----
+$ curl -k \
+    -H "Authorization: Bearer $TOKEN" \
+    -H 'Accept: application/json' \
+    https://$ENDPOINT/apis/oauth.openshift.io/
+----
+
+==== Responses
+[cols="1,5", options="header"]
+|===
+|HTTP Code|Schema
+|200 OK|v1.APIGroup
+|401 Unauthorized|
+|===
+
+==== Consumes
+
+* application/json
+* application/yaml
+* application/vnd.kubernetes.protobuf
+
+==== Produces
+
+* application/json
+* application/yaml
+* application/vnd.kubernetes.protobuf
+
+
+[[Get-apis-policy]]
+=== Get all APIGroups
+Get information of a group
+
+==== HTTP request
+----
+GET /apis/policy/ HTTP/1.1
+Authorization: Bearer $TOKEN
+Accept: application/json
+Connection: close
+----
+
+==== Curl request
+----
+$ curl -k \
+    -H "Authorization: Bearer $TOKEN" \
+    -H 'Accept: application/json' \
+    https://$ENDPOINT/apis/policy/
+----
+
+==== Responses
+[cols="1,5", options="header"]
+|===
+|HTTP Code|Schema
+|200 OK|v1.APIGroup
+|401 Unauthorized|
+|===
+
+==== Consumes
+
+* application/json
+* application/yaml
+* application/vnd.kubernetes.protobuf
+
+==== Produces
+
+* application/json
+* application/yaml
+* application/vnd.kubernetes.protobuf
+
+
+[[Get-apis-project.openshift.io]]
+=== Get all APIGroups
+Get information of a group
+
+==== HTTP request
+----
+GET /apis/project.openshift.io/ HTTP/1.1
+Authorization: Bearer $TOKEN
+Accept: application/json
+Connection: close
+----
+
+==== Curl request
+----
+$ curl -k \
+    -H "Authorization: Bearer $TOKEN" \
+    -H 'Accept: application/json' \
+    https://$ENDPOINT/apis/project.openshift.io/
+----
+
+==== Responses
+[cols="1,5", options="header"]
+|===
+|HTTP Code|Schema
+|200 OK|v1.APIGroup
+|401 Unauthorized|
+|===
+
+==== Consumes
+
+* application/json
+* application/yaml
+* application/vnd.kubernetes.protobuf
+
+==== Produces
+
+* application/json
+* application/yaml
+* application/vnd.kubernetes.protobuf
+
+
+[[Get-apis-quota.openshift.io]]
+=== Get all APIGroups
+Get information of a group
+
+==== HTTP request
+----
+GET /apis/quota.openshift.io/ HTTP/1.1
+Authorization: Bearer $TOKEN
+Accept: application/json
+Connection: close
+----
+
+==== Curl request
+----
+$ curl -k \
+    -H "Authorization: Bearer $TOKEN" \
+    -H 'Accept: application/json' \
+    https://$ENDPOINT/apis/quota.openshift.io/
+----
+
+==== Responses
+[cols="1,5", options="header"]
+|===
+|HTTP Code|Schema
+|200 OK|v1.APIGroup
+|401 Unauthorized|
+|===
+
+==== Consumes
+
+* application/json
+* application/yaml
+* application/vnd.kubernetes.protobuf
+
+==== Produces
+
+* application/json
+* application/yaml
+* application/vnd.kubernetes.protobuf
+
+
+[[Get-apis-rbac.authorization.k8s.io]]
+=== Get all APIGroups
+Get information of a group
+
+==== HTTP request
+----
+GET /apis/rbac.authorization.k8s.io/ HTTP/1.1
+Authorization: Bearer $TOKEN
+Accept: application/json
+Connection: close
+----
+
+==== Curl request
+----
+$ curl -k \
+    -H "Authorization: Bearer $TOKEN" \
+    -H 'Accept: application/json' \
+    https://$ENDPOINT/apis/rbac.authorization.k8s.io/
+----
+
+==== Responses
+[cols="1,5", options="header"]
+|===
+|HTTP Code|Schema
+|200 OK|v1.APIGroup
+|401 Unauthorized|
+|===
+
+==== Consumes
+
+* application/json
+* application/yaml
+* application/vnd.kubernetes.protobuf
+
+==== Produces
+
+* application/json
+* application/yaml
+* application/vnd.kubernetes.protobuf
+
+
+[[Get-apis-route.openshift.io]]
+=== Get all APIGroups
+Get information of a group
+
+==== HTTP request
+----
+GET /apis/route.openshift.io/ HTTP/1.1
+Authorization: Bearer $TOKEN
+Accept: application/json
+Connection: close
+----
+
+==== Curl request
+----
+$ curl -k \
+    -H "Authorization: Bearer $TOKEN" \
+    -H 'Accept: application/json' \
+    https://$ENDPOINT/apis/route.openshift.io/
+----
+
+==== Responses
+[cols="1,5", options="header"]
+|===
+|HTTP Code|Schema
+|200 OK|v1.APIGroup
+|401 Unauthorized|
+|===
+
+==== Consumes
+
+* application/json
+* application/yaml
+* application/vnd.kubernetes.protobuf
+
+==== Produces
+
+* application/json
+* application/yaml
+* application/vnd.kubernetes.protobuf
+
+
+[[Get-apis-security.openshift.io]]
+=== Get all APIGroups
+Get information of a group
+
+==== HTTP request
+----
+GET /apis/security.openshift.io/ HTTP/1.1
+Authorization: Bearer $TOKEN
+Accept: application/json
+Connection: close
+----
+
+==== Curl request
+----
+$ curl -k \
+    -H "Authorization: Bearer $TOKEN" \
+    -H 'Accept: application/json' \
+    https://$ENDPOINT/apis/security.openshift.io/
+----
+
+==== Responses
+[cols="1,5", options="header"]
+|===
+|HTTP Code|Schema
+|200 OK|v1.APIGroup
+|401 Unauthorized|
+|===
+
+==== Consumes
+
+* application/json
+* application/yaml
+* application/vnd.kubernetes.protobuf
+
+==== Produces
+
+* application/json
+* application/yaml
+* application/vnd.kubernetes.protobuf
+
+
+[[Get-apis-storage.k8s.io]]
+=== Get all APIGroups
+Get information of a group
+
+==== HTTP request
+----
+GET /apis/storage.k8s.io/ HTTP/1.1
+Authorization: Bearer $TOKEN
+Accept: application/json
+Connection: close
+----
+
+==== Curl request
+----
+$ curl -k \
+    -H "Authorization: Bearer $TOKEN" \
+    -H 'Accept: application/json' \
+    https://$ENDPOINT/apis/storage.k8s.io/
+----
+
+==== Responses
+[cols="1,5", options="header"]
+|===
+|HTTP Code|Schema
+|200 OK|v1.APIGroup
+|401 Unauthorized|
+|===
+
+==== Consumes
+
+* application/json
+* application/yaml
+* application/vnd.kubernetes.protobuf
+
+==== Produces
+
+* application/json
+* application/yaml
+* application/vnd.kubernetes.protobuf
+
+
+[[Get-apis-template.openshift.io]]
+=== Get all APIGroups
+Get information of a group
+
+==== HTTP request
+----
+GET /apis/template.openshift.io/ HTTP/1.1
+Authorization: Bearer $TOKEN
+Accept: application/json
+Connection: close
+----
+
+==== Curl request
+----
+$ curl -k \
+    -H "Authorization: Bearer $TOKEN" \
+    -H 'Accept: application/json' \
+    https://$ENDPOINT/apis/template.openshift.io/
+----
+
+==== Responses
+[cols="1,5", options="header"]
+|===
+|HTTP Code|Schema
+|200 OK|v1.APIGroup
+|401 Unauthorized|
+|===
+
+==== Consumes
+
+* application/json
+* application/yaml
+* application/vnd.kubernetes.protobuf
+
+==== Produces
+
+* application/json
+* application/yaml
+* application/vnd.kubernetes.protobuf
+
+
+[[Get-apis-user.openshift.io]]
+=== Get all APIGroups
+Get information of a group
+
+==== HTTP request
+----
+GET /apis/user.openshift.io/ HTTP/1.1
+Authorization: Bearer $TOKEN
+Accept: application/json
+Connection: close
+----
+
+==== Curl request
+----
+$ curl -k \
+    -H "Authorization: Bearer $TOKEN" \
+    -H 'Accept: application/json' \
+    https://$ENDPOINT/apis/user.openshift.io/
+----
+
+==== Responses
+[cols="1,5", options="header"]
+|===
+|HTTP Code|Schema
+|200 OK|v1.APIGroup
+|401 Unauthorized|
+|===
+
+==== Consumes
+
+* application/json
+* application/yaml
+* application/vnd.kubernetes.protobuf
+
+==== Produces
+
+* application/json
+* application/yaml
+* application/vnd.kubernetes.protobuf
+
+
+

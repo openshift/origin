@@ -1,0 +1,11 @@
+[Unit]
+Description=Enable ssh access to cluster
+Requires=sshd.service
+After=sshd.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/openshift-enable-ssh-access.sh
+
+[Install]
+WantedBy=sshd.service

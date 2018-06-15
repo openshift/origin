@@ -1,0 +1,13 @@
+kind: BuildConfig
+apiVersion: v1
+metadata:
+  name: statusfail-assemblescript
+spec:
+  source:
+      type: binary
+  strategy:
+    type: Source
+    sourceStrategy:
+      from:
+        kind: DockerImage
+        name: centos/ruby-23-centos7:latest

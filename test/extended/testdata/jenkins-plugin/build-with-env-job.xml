@@ -1,0 +1,43 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<project>
+    <actions/>
+    <description></description>
+    <keepDependencies>false</keepDependencies>
+    <scm class="hudson.scm.NullSCM"/>
+    <canRoam>true</canRoam>
+    <disabled>false</disabled>
+    <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
+    <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
+    <triggers/>
+    <concurrentBuild>false</concurrentBuild>
+    <builders>
+
+        <com.openshift.jenkins.plugins.pipeline.OpenShiftBuilder>
+            <apiURL>https://openshift.default.svc.cluster.local</apiURL>
+            <bldCfg>frontend</bldCfg>
+            <namespace>${PROJECT_NAME}</namespace>
+            <authToken></authToken>
+            <followLog>true</followLog>
+            <checkForTriggeredDeployments>false</checkForTriggeredDeployments>
+
+            <envVars>
+                <com.openshift.jenkins.plugins.pipeline.NameValuePair>
+                    <name>a</name>
+                    <value>b</value>
+                </com.openshift.jenkins.plugins.pipeline.NameValuePair>
+                <com.openshift.jenkins.plugins.pipeline.NameValuePair>
+                    <name>C</name>
+                    <value>D</value>
+                </com.openshift.jenkins.plugins.pipeline.NameValuePair>
+                <com.openshift.jenkins.plugins.pipeline.NameValuePair>
+                    <name>e</name>
+                    <value></value>
+                </com.openshift.jenkins.plugins.pipeline.NameValuePair>
+            </envVars>
+
+        </com.openshift.jenkins.plugins.pipeline.OpenShiftBuilder>
+
+    </builders>
+    <publishers/>
+    <buildWrappers/>
+</project>

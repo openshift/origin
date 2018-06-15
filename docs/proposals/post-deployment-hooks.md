@@ -282,7 +282,7 @@ A database is exposed to the application using a service:
 ```json
 {
   "kind": "Service",
-  "apiVersion": "v1beta3",
+  "apiVersion": "v1",
   "metadata": {
     "name": "mysql"
   },
@@ -298,7 +298,7 @@ A database is exposed to the application using a service:
     "selector": {
       "name": "mysql"
     },
-    "portalIP": "",
+    "clusterIP": "",
     "type": "ClusterIP",
     "sessionAffinity": "None"
   }
@@ -310,7 +310,7 @@ A deployment configuration describes the template for application deployments:
 ```json
 {
   "kind": "DeploymentConfig",
-  "apiVersion": "v1beta3",
+  "apiVersion": "v1",
   "metadata": {
     "name": "rails"
   },

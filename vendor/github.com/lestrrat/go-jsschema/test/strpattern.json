@@ -1,0 +1,9 @@
+{
+  "type": "object",
+  "properties": {
+    "payload": {
+      "type": "string",
+      "pattern": "^(\\([0-9]{3}\\))?[0-9]{3}-[0-9]{4}$"
+    }
+  }
+}

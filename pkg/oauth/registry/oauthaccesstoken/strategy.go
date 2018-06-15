@@ -1,28 +1,39 @@
 package oauthaccesstoken
 
 import (
-	"fmt"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/validation/field"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/registry/rest"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
-	"github.com/openshift/origin/pkg/oauth/api"
-	"github.com/openshift/origin/pkg/oauth/api/validation"
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
-	"k8s.io/kubernetes/pkg/registry/generic"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/fielderrors"
+	scopeauthorizer "github.com/openshift/origin/pkg/authorization/authorizer/scope"
+	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
+	"github.com/openshift/origin/pkg/oauth/apis/oauth/validation"
+	"github.com/openshift/origin/pkg/oauth/registry/oauthclient"
 )
 
 // strategy implements behavior for OAuthAccessTokens
 type strategy struct {
 	runtime.ObjectTyper
+
+	clientGetter oauthclient.Getter
 }
 
-// Strategy is the default logic that applies when creating OAuthAccessToken
-// objects via the REST API.
-var Strategy = strategy{kapi.Scheme}
+var _ rest.RESTCreateStrategy = strategy{}
+var _ rest.RESTUpdateStrategy = strategy{}
+var _ rest.GarbageCollectionDeleteStrategy = strategy{}
 
-func (strategy) PrepareForUpdate(obj, old runtime.Object) {}
+func NewStrategy(clientGetter oauthclient.Getter) strategy {
+	return strategy{ObjectTyper: legacyscheme.Scheme, clientGetter: clientGetter}
+}
+
+func (strategy) DefaultGarbageCollectionPolicy(ctx apirequest.Context) rest.GarbageCollectionPolicy {
+	return rest.Unsupported
+}
+
+func (strategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.Object) {}
 
 // NamespaceScoped is false for OAuth objects
 func (strategy) NamespaceScoped() bool {
@@ -33,13 +44,30 @@ func (strategy) GenerateName(base string) string {
 	return base
 }
 
-func (strategy) PrepareForCreate(obj runtime.Object) {
+func (strategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) {
 }
 
 // Validate validates a new token
-func (strategy) Validate(ctx kapi.Context, obj runtime.Object) fielderrors.ValidationErrorList {
-	token := obj.(*api.OAuthAccessToken)
-	return validation.ValidateAccessToken(token)
+func (s strategy) Validate(ctx apirequest.Context, obj runtime.Object) field.ErrorList {
+	token := obj.(*oauthapi.OAuthAccessToken)
+	validationErrors := validation.ValidateAccessToken(token)
+
+	client, err := s.clientGetter.Get(token.ClientName, metav1.GetOptions{})
+	if err != nil {
+		return append(validationErrors, field.InternalError(field.NewPath("clientName"), err))
+	}
+	if err := scopeauthorizer.ValidateScopeRestrictions(client, token.Scopes...); err != nil {
+		return append(validationErrors, field.InternalError(field.NewPath("clientName"), err))
+	}
+
+	return validationErrors
+}
+
+// ValidateUpdate validates an update
+func (s strategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.Object) field.ErrorList {
+	oldToken := old.(*oauthapi.OAuthAccessToken)
+	newToken := obj.(*oauthapi.OAuthAccessToken)
+	return validation.ValidateAccessTokenUpdate(newToken, oldToken)
 }
 
 // AllowCreateOnUpdate is false for OAuth objects
@@ -51,25 +79,6 @@ func (strategy) AllowUnconditionalUpdate() bool {
 	return false
 }
 
-// Matchtoken returns a generic matcher for a given label and field selector.
-func Matcher(label labels.Selector, field fields.Selector) generic.Matcher {
-	return generic.MatcherFunc(func(obj runtime.Object) (bool, error) {
-		tokenObj, ok := obj.(*api.OAuthAccessToken)
-		if !ok {
-			return false, fmt.Errorf("not a token")
-		}
-		fields := SelectableFields(tokenObj)
-		return label.Matches(labels.Set(tokenObj.Labels)) && field.Matches(fields), nil
-	})
-}
-
-// SelectableFields returns a label set that represents the object
-func SelectableFields(obj *api.OAuthAccessToken) labels.Set {
-	return labels.Set{
-		"name":           obj.Name,
-		"clientName":     obj.ClientName,
-		"userName":       obj.UserName,
-		"userUID":        obj.UserUID,
-		"authorizeToken": obj.AuthorizeToken,
-	}
+// Canonicalize normalizes the object after validation.
+func (strategy) Canonicalize(obj runtime.Object) {
 }

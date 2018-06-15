@@ -1,0 +1,34 @@
+{
+  "kind": "BuildConfig",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "docker-build-quota",
+    "creationTimestamp": null,
+    "labels": {
+      "name": "docker-build-quota"
+    }
+  },
+  "spec": {
+    "resources": {
+      "limits": {
+        "memory": "200Mi"
+      }
+    },
+    "source": {
+      "binary": {
+        "asFile": ""
+      }          
+    },
+    "strategy": {
+      "type": "Docker",
+      "dockerStrategy": {
+        "from": {
+          "kind": "DockerImage",
+          "name": "centos:7"
+        },
+        "noCache": true
+      }
+    }
+  }
+}
+    

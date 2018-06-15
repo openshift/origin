@@ -1,12 +1,13 @@
 package useridentitymapping
 
 import (
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/fielderrors"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/validation/field"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
-	"github.com/openshift/origin/pkg/user/api"
-	"github.com/openshift/origin/pkg/user/api/validation"
+	userapi "github.com/openshift/origin/pkg/user/apis/user"
+	"github.com/openshift/origin/pkg/user/apis/user/validation"
 )
 
 // userIdentityMappingStrategy implements behavior for image repository mappings.
@@ -16,7 +17,7 @@ type userIdentityMappingStrategy struct {
 
 // Strategy is the default logic that applies when creating UserIdentityMapping
 // objects via the REST API.
-var Strategy = userIdentityMappingStrategy{kapi.Scheme}
+var Strategy = userIdentityMappingStrategy{legacyscheme.Scheme}
 
 // NamespaceScoped is true for image repository mappings.
 func (s userIdentityMappingStrategy) NamespaceScoped() bool {
@@ -36,8 +37,8 @@ func (userIdentityMappingStrategy) AllowUnconditionalUpdate() bool {
 }
 
 // PrepareForCreate clears fields that are not allowed to be set by end users on creation.
-func (s userIdentityMappingStrategy) PrepareForCreate(obj runtime.Object) {
-	mapping := obj.(*api.UserIdentityMapping)
+func (s userIdentityMappingStrategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) {
+	mapping := obj.(*userapi.UserIdentityMapping)
 
 	if len(mapping.Name) == 0 {
 		mapping.Name = mapping.Identity.Name
@@ -55,8 +56,8 @@ func (s userIdentityMappingStrategy) PrepareForCreate(obj runtime.Object) {
 }
 
 // PrepareForUpdate clears fields that are not allowed to be set by end users on update
-func (s userIdentityMappingStrategy) PrepareForUpdate(obj, old runtime.Object) {
-	mapping := obj.(*api.UserIdentityMapping)
+func (s userIdentityMappingStrategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.Object) {
+	mapping := obj.(*userapi.UserIdentityMapping)
 
 	if len(mapping.Name) == 0 {
 		mapping.Name = mapping.Identity.Name
@@ -72,12 +73,16 @@ func (s userIdentityMappingStrategy) PrepareForUpdate(obj, old runtime.Object) {
 	mapping.User.UID = ""
 }
 
+// Canonicalize normalizes the object after validation.
+func (s userIdentityMappingStrategy) Canonicalize(obj runtime.Object) {
+}
+
 // Validate validates a new UserIdentityMapping.
-func (s userIdentityMappingStrategy) Validate(ctx kapi.Context, obj runtime.Object) fielderrors.ValidationErrorList {
-	return validation.ValidateUserIdentityMapping(obj.(*api.UserIdentityMapping))
+func (s userIdentityMappingStrategy) Validate(ctx apirequest.Context, obj runtime.Object) field.ErrorList {
+	return validation.ValidateUserIdentityMapping(obj.(*userapi.UserIdentityMapping))
 }
 
 // Validate validates an updated UserIdentityMapping.
-func (s userIdentityMappingStrategy) ValidateUpdate(ctx kapi.Context, obj runtime.Object, old runtime.Object) fielderrors.ValidationErrorList {
-	return validation.ValidateUserIdentityMappingUpdate(obj.(*api.UserIdentityMapping), old.(*api.UserIdentityMapping))
+func (s userIdentityMappingStrategy) ValidateUpdate(ctx apirequest.Context, obj runtime.Object, old runtime.Object) field.ErrorList {
+	return validation.ValidateUserIdentityMappingUpdate(obj.(*userapi.UserIdentityMapping), old.(*userapi.UserIdentityMapping))
 }

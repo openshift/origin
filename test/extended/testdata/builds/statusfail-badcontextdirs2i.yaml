@@ -1,0 +1,15 @@
+kind: BuildConfig
+apiVersion: v1
+metadata:
+  name: statusfail-badcontextdirsourcetoimage
+spec:
+  source:
+    git:
+      uri: "https://github.com/openshift/ruby-hello-world"
+    contextDir: "foobar"
+  strategy:
+    type: Source
+    sourceStrategy:
+      from:
+        kind: DockerImage
+        name: centos/ruby-23-centos7:latest

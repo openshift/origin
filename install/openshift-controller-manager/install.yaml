@@ -1,0 +1,82 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: openshift-controller-manager
+parameters:
+- name: IMAGE
+  value: openshift/origin-control-plane:latest
+- name: OPENSHIFT_PULL_POLICY
+  value: Always
+- name: NAMESPACE
+  value: openshift-controller-manager
+- name: LOGLEVEL
+  value: "0"
+- name: OPENSHIFT_CONTROLLER_MANAGER_CONFIG_HOST_PATH
+- name: NODE_SELECTOR
+  value: "{}"
+objects:
+
+# to create the tsb server
+- apiVersion: apps/v1
+  kind: DaemonSet
+  metadata:
+    namespace: ${NAMESPACE}
+    name: openshift-controller-manager
+    labels:
+      openshift.io/control-plane: "true"
+      openshift.io/component: controllers
+  spec:
+    selector:
+      matchLabels:
+        openshift.io/control-plane: "true"
+        openshift.io/component: controllers
+    template:
+      metadata:
+        name: openshift-controller-manager
+        labels:
+          openshift.io/control-plane: "true"
+          openshift.io/component: controllers
+      spec:
+        serviceAccountName: openshift-controller-manager
+        restartPolicy: Always
+        hostNetwork: true
+        containers:
+        - name: c
+          image: ${IMAGE}
+          imagePullPolicy: ${OPENSHIFT_PULL_POLICY}
+          command: ["hypershift", "openshift-controller-manager"]
+          args:
+          - "--config=/etc/origin/master/master-config.yaml"
+          - "--v=${LOGLEVEL}"
+          ports:
+          - containerPort: 8444
+          securityContext:
+            privileged: true
+            runAsUser: 0
+          volumeMounts:
+           - mountPath: /etc/origin/master/
+             name: master-config
+           - mountPath: /etc/origin/cloudprovider/
+             name: master-cloud-provider
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8444
+              scheme: HTTPS
+        # sensitive files still sit on disk for now
+        volumes:
+        - name: master-config
+          hostPath:
+            path: ${OPENSHIFT_CONTROLLER_MANAGER_CONFIG_HOST_PATH}
+        - name: master-cloud-provider
+          hostPath:
+            path: /etc/origin/cloudprovider
+
+
+# to be able to assign powers to the process
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    namespace: ${NAMESPACE}
+    name: openshift-controller-manager
+

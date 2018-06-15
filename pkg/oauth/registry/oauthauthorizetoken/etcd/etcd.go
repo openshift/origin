@@ -1,79 +1,55 @@
 package etcd
 
 import (
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
-	"k8s.io/kubernetes/pkg/registry/generic"
-	etcdgeneric "k8s.io/kubernetes/pkg/registry/generic/etcd"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/storage"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apiserver/pkg/registry/generic"
+	"k8s.io/apiserver/pkg/registry/generic/registry"
+	"k8s.io/apiserver/pkg/registry/rest"
+	"k8s.io/apiserver/pkg/storage"
+	"k8s.io/kubernetes/pkg/printers"
+	printerstorage "k8s.io/kubernetes/pkg/printers/storage"
 
-	"github.com/openshift/origin/pkg/oauth/api"
+	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
 	"github.com/openshift/origin/pkg/oauth/registry/oauthauthorizetoken"
-	"github.com/openshift/origin/pkg/util"
+	"github.com/openshift/origin/pkg/oauth/registry/oauthclient"
+	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
+	"github.com/openshift/origin/pkg/util/restoptions"
 )
 
 // rest implements a RESTStorage for authorize tokens against etcd
 type REST struct {
-	// Cannot inline because we don't want the Update function
-	store *etcdgeneric.Etcd
+	*registry.Store
 }
 
-const EtcdPrefix = "/oauth/authorizetokens"
+var _ rest.StandardStorage = &REST{}
 
 // NewREST returns a RESTStorage object that will work against authorize tokens
-func NewREST(s storage.Interface) *REST {
-	store := &etcdgeneric.Etcd{
-		NewFunc:     func() runtime.Object { return &api.OAuthAuthorizeToken{} },
-		NewListFunc: func() runtime.Object { return &api.OAuthAuthorizeTokenList{} },
-		KeyRootFunc: func(ctx kapi.Context) string {
-			return EtcdPrefix
-		},
-		KeyFunc: func(ctx kapi.Context, name string) (string, error) {
-			return util.NoNamespaceKeyFunc(ctx, EtcdPrefix, name)
-		},
-		ObjectNameFunc: func(obj runtime.Object) (string, error) {
-			return obj.(*api.OAuthAuthorizeToken).Name, nil
-		},
-		PredicateFunc: func(label labels.Selector, field fields.Selector) generic.Matcher {
-			return oauthauthorizetoken.Matcher(label, field)
-		},
+func NewREST(optsGetter restoptions.Getter, clientGetter oauthclient.Getter) (*REST, error) {
+	strategy := oauthauthorizetoken.NewStrategy(clientGetter)
+	store := &registry.Store{
+		NewFunc:                  func() runtime.Object { return &oauthapi.OAuthAuthorizeToken{} },
+		NewListFunc:              func() runtime.Object { return &oauthapi.OAuthAuthorizeTokenList{} },
+		DefaultQualifiedResource: oauthapi.Resource("oauthauthorizetokens"),
+
+		TableConvertor: printerstorage.TableConvertor{TablePrinter: printers.NewTablePrinter().With(printersinternal.AddHandlers)},
+
 		TTLFunc: func(obj runtime.Object, existing uint64, update bool) (uint64, error) {
-			token := obj.(*api.OAuthAuthorizeToken)
+			token := obj.(*oauthapi.OAuthAuthorizeToken)
 			expires := uint64(token.ExpiresIn)
 			return expires, nil
 		},
-		EndpointName: "oauthauthorizetokens",
 
-		Storage: s,
+		CreateStrategy: strategy,
+		UpdateStrategy: strategy,
+		DeleteStrategy: strategy,
 	}
 
-	store.CreateStrategy = oauthauthorizetoken.Strategy
-
-	return &REST{store}
-}
-
-func (r *REST) New() runtime.Object {
-	return r.store.NewFunc()
-}
-
-func (r *REST) NewList() runtime.Object {
-	return r.store.NewListFunc()
-}
-
-func (r *REST) Get(ctx kapi.Context, name string) (runtime.Object, error) {
-	return r.store.Get(ctx, name)
-}
-
-func (r *REST) List(ctx kapi.Context, label labels.Selector, field fields.Selector) (runtime.Object, error) {
-	return r.store.List(ctx, label, field)
-}
-
-func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
-	return r.store.Create(ctx, obj)
-}
-
-func (r *REST) Delete(ctx kapi.Context, name string, options *kapi.DeleteOptions) (runtime.Object, error) {
-	return r.store.Delete(ctx, name, options)
+	options := &generic.StoreOptions{
+		RESTOptions: optsGetter,
+		AttrFunc:    storage.AttrFunc(storage.DefaultNamespaceScopedAttr).WithFieldMutation(oauthapi.OAuthAuthorizeTokenFieldSelector),
+	}
+	if err := store.CompleteWithOptions(options); err != nil {
+		return nil, err
+	}
+	return &REST{store}, nil
 }

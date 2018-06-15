@@ -1,0 +1,410 @@
+apiVersion: v1
+items:
+- apiVersion: v1
+  kind: ReplicationController
+  metadata:
+    annotations:
+      openshift.io/deployment-config.latest-version: "1"
+      openshift.io/deployment-config.name: database
+      openshift.io/deployment.phase: Complete
+      openshift.io/encoded-deployment-config: '{"kind":"DeploymentConfig","apiVersion":"v1beta1","metadata":{"name":"database","namespace":"test","selfLink":"/osapi/v1beta1/watch/deploymentConfigs/database","uid":"4725b5d3-dcdc-11e4-968a-080027c5bfa9","resourceVersion":"271","creationTimestamp":"2015-04-07T04:12:17Z","labels":{"template":"application-template-stibuild"}},"triggers":[{"type":"ConfigChange"}],"template":{"strategy":{"type":"Recreate"},"controllerTemplate":{"replicas":1,"replicaSelector":{"name":"database"},"podTemplate":{"desiredState":{"manifest":{"version":"v1beta2","id":"","volumes":null,"containers":[{"name":"ruby-helloworld-database","image":"centos/mysql-56-centos7","ports":[{"containerPort":3306,"protocol":"TCP"}],"env":[{"name":"MYSQL_USER","key":"MYSQL_USER","value":"user1CY"},{"name":"MYSQL_PASSWORD","key":"MYSQL_PASSWORD","value":"FfyXmsGG"},{"name":"MYSQL_DATABASE","key":"MYSQL_DATABASE","value":"root"}],"resources":{},"terminationMessagePath":"/dev/termination-log","imagePullPolicy":"PullIfNotPresent","capabilities":{}}],"restartPolicy":{"always":{}},"dnsPolicy":"ClusterFirst"}},"labels":{"name":"database","template":"application-template-stibuild"}}}},"latestVersion":1,"details":{"causes":[{"type":"ConfigChange"}]}}'
+      pod: deploy-database-19m1he
+    creationTimestamp: 2015-07-14T14:31:01Z
+    generation: 1
+    labels:
+      template: application-template-stibuild
+    name: database-1
+  spec:
+    replicas: 1
+    selector:
+      deployment: database-1
+      deploymentconfig: database
+      name: database
+    template:
+      metadata:
+        annotations:
+          openshift.io/deployment-config.latest-version: "1"
+          openshift.io/deployment-config.name: database
+          openshift.io/deployment.name: database-1
+        creationTimestamp: null
+        labels:
+          deployment: database-1
+          deploymentconfig: database
+          name: database
+          template: application-template-stibuild
+      spec:
+        containers:
+        - env:
+          - name: MYSQL_USER
+            value: user1CY
+          - name: MYSQL_PASSWORD
+            value: FfyXmsGG
+          - name: MYSQL_DATABASE
+            value: root
+          image: centos/mysql-56-centos7
+          imagePullPolicy: IfNotPresent
+          name: ruby-helloworld-database
+          ports:
+          - containerPort: 3306
+            protocol: TCP
+          resources: {}
+          securityContext:
+            capabilities: {}
+            privileged: false
+          terminationMessagePath: /dev/termination-log
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+  status:
+    observedGeneration: 1
+    replicas: 1
+- apiVersion: v1
+  kind: ReplicationController
+  metadata:
+    creationTimestamp: 2015-07-14T14:31:00Z
+    generation: 1
+    labels:
+      template: ruby-helloworld-sample
+    name: frontend-rc-1
+  spec:
+    replicas: 3
+    selector:
+      deconflict: frontend.rc
+      name: frontend
+    template:
+      metadata:
+        creationTimestamp: null
+        labels:
+          deconflict: frontend.rc
+          name: frontend
+          template: ruby-helloworld-sample
+      spec:
+        containers:
+        - env:
+          - name: ADMIN_USERNAME
+            value: admin6TM
+          - name: ADMIN_PASSWORD
+            value: xImx1tHR
+          - name: MYSQL_ROOT_PASSWORD
+            value: rQHfVnTo
+          - name: MYSQL_DATABASE
+            value: root
+          image: openshift/ruby-hello-world
+          imagePullPolicy: IfNotPresent
+          name: ruby-helloworld
+          ports:
+          - containerPort: 8080
+            protocol: TCP
+          resources: {}
+          securityContext:
+            capabilities: {}
+            privileged: false
+          terminationMessagePath: /dev/termination-log
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+  status:
+    observedGeneration: 1
+    replicas: 3
+- apiVersion: v1
+  kind: Service
+  metadata:
+    creationTimestamp: 2015-07-14T14:31:01Z
+    labels:
+      template: application-template-stibuild
+    name: database
+  spec:
+    clusterIP: 172.30.17.240
+    ports:
+    - nodePort: 0
+      port: 5434
+      protocol: TCP
+      targetPort: 3306
+    selector:
+      name: database
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    annotations:
+      kubernetes.io/created-by: '{"kind":"SerializedReference","apiVersion":"v1","reference":{"kind":"ReplicationController","name":"database-1","apiVersion":"v1"}}'
+      openshift.io/deployment-config.latest-version: "1"
+      openshift.io/deployment-config.name: database
+      openshift.io/deployment.name: database-1
+      openshift.io/scc: restricted
+    creationTimestamp: 2015-07-14T14:31:01Z
+    generateName: database-1-
+    labels:
+      deployment: database-1
+      deploymentconfig: database
+      name: database
+      template: application-template-stibuild
+    name: database-1-z3y1m
+  spec:
+    containers:
+    - env:
+      - name: MYSQL_USER
+        value: user1CY
+      - name: MYSQL_PASSWORD
+        value: FfyXmsGG
+      - name: MYSQL_DATABASE
+        value: root
+      image: centos/mysql-56-centos7
+      imagePullPolicy: IfNotPresent
+      name: ruby-helloworld-database
+      ports:
+      - containerPort: 3306
+        protocol: TCP
+      resources: {}
+      securityContext:
+        capabilities: {}
+        privileged: false
+        runAsUser: 1000040000
+        seLinuxOptions:
+          level: s0:c6,c5
+      terminationMessagePath: /dev/termination-log
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: default-token-sxmef
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    host: deads-dev-01
+    imagePullSecrets:
+    - name: default-dockercfg-53ijy
+    nodeName: deads-dev-01
+    restartPolicy: Always
+    serviceAccount: default
+    serviceAccountName: default
+    volumes:
+    - name: default-token-sxmef
+      secret:
+        secretName: default-token-sxmef
+  status:
+    conditions:
+    - status: "False"
+      type: Ready
+    containerStatuses:
+    - image: centos/mysql-56-centos7
+      imageID: ""
+      lastState: {}
+      name: ruby-helloworld-database
+      ready: false
+      restartCount: 0
+      state:
+        waiting:
+          reason: 'Image: centos/mysql-56-centos7 is ready, container is creating'
+    phase: Pending
+    startTime: 2015-07-14T14:31:01Z
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    annotations:
+      kubernetes.io/created-by: '{"kind":"SerializedReference","apiVersion":"v1","reference":{"kind":"ReplicationController","namespace":"example","name":"frontend-rc-1","uid":"f2c6e6ed-2a34-11e5-a0e9-28d2447dc82b","apiVersion":"v1","resourceVersion":"2717"}}'
+      openshift.io/scc: restricted
+    creationTimestamp: 2015-07-14T14:31:00Z
+    generateName: frontend-rc-1-
+    labels:
+      deconflict: frontend.rc
+      name: frontend
+      template: ruby-helloworld-sample
+    name: frontend-rc-1-b9pm8
+  spec:
+    containers:
+    - env:
+      - name: ADMIN_USERNAME
+        value: admin6TM
+      - name: ADMIN_PASSWORD
+        value: xImx1tHR
+      - name: MYSQL_ROOT_PASSWORD
+        value: rQHfVnTo
+      - name: MYSQL_DATABASE
+        value: root
+      image: openshift/ruby-hello-world
+      imagePullPolicy: IfNotPresent
+      name: ruby-helloworld
+      ports:
+      - containerPort: 8080
+        protocol: TCP
+      resources: {}
+      securityContext:
+        capabilities: {}
+        privileged: false
+        runAsUser: 1000040000
+        seLinuxOptions:
+          level: s0:c6,c5
+      terminationMessagePath: /dev/termination-log
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: default-token-sxmef
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    host: deads-dev-01
+    imagePullSecrets:
+    - name: default-dockercfg-53ijy
+    nodeName: deads-dev-01
+    restartPolicy: Always
+    serviceAccount: default
+    serviceAccountName: default
+    volumes:
+    - name: default-token-sxmef
+      secret:
+        secretName: default-token-sxmef
+  status:
+    conditions:
+    - status: "False"
+      type: Ready
+    containerStatuses:
+    - image: openshift/ruby-hello-world
+      imageID: ""
+      lastState: {}
+      name: ruby-helloworld
+      ready: false
+      restartCount: 0
+      state:
+        waiting:
+          reason: 'Image: openshift/ruby-hello-world is not ready on the node'
+    phase: Pending
+    startTime: 2015-07-14T14:31:00Z
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    annotations:
+      kubernetes.io/created-by: '{"kind":"SerializedReference","apiVersion":"v1","reference":{"kind":"ReplicationController","name":"frontend-rc-1","apiVersion":"v1"}}'
+      openshift.io/scc: restricted
+    creationTimestamp: 2015-07-14T14:31:00Z
+    generateName: frontend-rc-1-
+    labels:
+      deconflict: frontend.rc
+      name: frontend
+      template: ruby-helloworld-sample
+    name: frontend-rc-1-rs910
+  spec:
+    containers:
+    - env:
+      - name: ADMIN_USERNAME
+        value: admin6TM
+      - name: ADMIN_PASSWORD
+        value: xImx1tHR
+      - name: MYSQL_ROOT_PASSWORD
+        value: rQHfVnTo
+      - name: MYSQL_DATABASE
+        value: root
+      image: openshift/ruby-hello-world
+      imagePullPolicy: IfNotPresent
+      name: ruby-helloworld
+      ports:
+      - containerPort: 8080
+        protocol: TCP
+      resources: {}
+      securityContext:
+        capabilities: {}
+        privileged: false
+        runAsUser: 1000040000
+        seLinuxOptions:
+          level: s0:c6,c5
+      terminationMessagePath: /dev/termination-log
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: default-token-sxmef
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    host: deads-dev-01
+    imagePullSecrets:
+    - name: default-dockercfg-53ijy
+    nodeName: deads-dev-01
+    restartPolicy: Always
+    serviceAccount: default
+    serviceAccountName: default
+    volumes:
+    - name: default-token-sxmef
+      secret:
+        secretName: default-token-sxmef
+  status:
+    conditions:
+    - status: "False"
+      type: Ready
+    containerStatuses:
+    - image: openshift/ruby-hello-world
+      imageID: ""
+      lastState: {}
+      name: ruby-helloworld
+      ready: false
+      restartCount: 0
+      state:
+        waiting:
+          reason: 'Image: openshift/ruby-hello-world is not ready on the node'
+    phase: Pending
+    startTime: 2015-07-14T14:31:00Z
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    annotations:
+      kubernetes.io/created-by: '{"kind":"SerializedReference","apiVersion":"v1","reference":{"kind":"ReplicationController","name":"frontend-rc-1","apiVersion":"v1"}}'
+      openshift.io/scc: restricted
+    creationTimestamp: 2015-07-14T14:31:00Z
+    generateName: frontend-rc-1-
+    labels:
+      deconflict: frontend.rc
+      name: frontend
+      template: ruby-helloworld-sample
+    name: frontend-rc-1-wr3ll
+  spec:
+    containers:
+    - env:
+      - name: ADMIN_USERNAME
+        value: admin6TM
+      - name: ADMIN_PASSWORD
+        value: xImx1tHR
+      - name: MYSQL_ROOT_PASSWORD
+        value: rQHfVnTo
+      - name: MYSQL_DATABASE
+        value: root
+      image: openshift/ruby-hello-world
+      imagePullPolicy: IfNotPresent
+      name: ruby-helloworld
+      ports:
+      - containerPort: 8080
+        protocol: TCP
+      resources: {}
+      securityContext:
+        capabilities: {}
+        privileged: false
+        runAsUser: 1000040000
+        seLinuxOptions:
+          level: s0:c6,c5
+      terminationMessagePath: /dev/termination-log
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: default-token-sxmef
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    host: deads-dev-01
+    imagePullSecrets:
+    - name: default-dockercfg-53ijy
+    nodeName: deads-dev-01
+    restartPolicy: Always
+    serviceAccount: default
+    serviceAccountName: default
+    volumes:
+    - name: default-token-sxmef
+      secret:
+        secretName: default-token-sxmef
+  status:
+    conditions:
+    - status: "False"
+      type: Ready
+    containerStatuses:
+    - image: openshift/ruby-hello-world
+      imageID: ""
+      lastState: {}
+      name: ruby-helloworld
+      ready: false
+      restartCount: 0
+      state:
+        waiting:
+          reason: 'Image: openshift/ruby-hello-world is not ready on the node'
+    phase: Pending
+    startTime: 2015-07-14T14:31:00Z
+kind: List
+metadata: {}

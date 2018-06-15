@@ -1,0 +1,33 @@
+apiVersion: apps.openshift.io/v1
+kind: DeploymentConfig
+metadata:
+  name: deployment-simple
+spec:
+  triggers: []
+  replicas: 1
+  selector:
+    name: deployment-simple
+  strategy:
+    type: Rolling
+    rollingParams:
+      pre:
+        failurePolicy: Abort
+        execNewPod:
+          containerName: myapp
+          env:
+            - name: HELLO
+              valueFrom:
+                configMapKeyRef:
+                  name: test
+                  key: foo
+          command: ["/bin/bash", "-c", "echo hello ${HELLO} && exit 1"]
+  template:
+    metadata:
+      labels:
+        name: deployment-simple
+    spec:
+      containers:
+      - image: "openshift/origin-base:latest"
+        command: [ "/bin/bash", "-c", "sleep infinity" ]
+        imagePullPolicy: IfNotPresent
+        name: myapp
