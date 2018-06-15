@@ -34,8 +34,8 @@ func main() {
 		runtime.GOMAXPROCS(runtime.NumCPU())
 	}
 
-	apiinstall.InstallAll(scheme.Scheme, scheme.GroupFactoryRegistry, scheme.Registry)
-	apilegacy.LegacyInstallAll(scheme.Scheme, scheme.Registry)
+	apiinstall.InstallAll(scheme.Scheme)
+	apilegacy.LegacyInstallAll(scheme.Scheme)
 
 	basename := filepath.Base(os.Args[0])
 	command := cli.CommandFor(basename)

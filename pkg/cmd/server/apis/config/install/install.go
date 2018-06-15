@@ -1,8 +1,6 @@
 package install
 
 import (
-	"fmt"
-
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -46,21 +44,8 @@ func AddToScheme(scheme *runtime.Scheme) {
 	apiserverv1alpha1.AddToScheme(scheme)
 }
 
-func interfacesFor(version schema.GroupVersion) (*meta.VersionInterfaces, error) {
-	switch version {
-	case configapiv1.SchemeGroupVersion:
-		return &meta.VersionInterfaces{
-			ObjectConvertor:  configapi.Scheme,
-			MetadataAccessor: accessor,
-		}, nil
-
-	default:
-		return nil, fmt.Errorf("unsupported storage version: %s", version)
-	}
-}
-
 func NewRESTMapper() meta.RESTMapper {
-	mapper := meta.NewDefaultRESTMapper(availableVersions, interfacesFor)
+	mapper := meta.NewDefaultRESTMapper(availableVersions)
 	// enumerate all supported versions, get the kinds, and register with the mapper how to address
 	// our resources.
 	for _, gv := range availableVersions {

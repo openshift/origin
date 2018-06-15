@@ -26,7 +26,6 @@ import (
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
 	rbacclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/rbac/internalversion"
 
-	authorizationapiv1 "github.com/openshift/api/authorization/v1"
 	"github.com/openshift/origin/pkg/api/legacy"
 	oappsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset"
@@ -1353,10 +1352,7 @@ func TestOldLocalSubjectAccessReviewEndpoint(t *testing.T) {
 	haroldClient := authorizationclient.NewForConfigOrDie(haroldConfig)
 
 	// install the legacy types into the client for decoding
-	legacy.InstallLegacy(authorizationapi.GroupName, authorizationapi.AddToSchemeInCoreGroup, authorizationapiv1.AddToSchemeInCoreGroup,
-		sets.NewString("ClusterRole", "ClusterRoleBinding", "ResourceAccessReviewResponse", "SubjectAccessReviewResponse"),
-		authorizationclientscheme.Registry, authorizationclientscheme.Scheme,
-	)
+	legacy.InstallLegacyAuthorization(authorizationclientscheme.Scheme)
 
 	namespace := "hammer-project"
 
@@ -1496,10 +1492,7 @@ func TestOldLocalResourceAccessReviewEndpoint(t *testing.T) {
 	namespace := "hammer-project"
 
 	// install the legacy types into the client for decoding
-	legacy.InstallLegacy(authorizationapi.GroupName, authorizationapi.AddToSchemeInCoreGroup, authorizationapiv1.AddToSchemeInCoreGroup,
-		sets.NewString("ClusterRole", "ClusterRoleBinding", "ResourceAccessReviewResponse", "SubjectAccessReviewResponse"),
-		authorizationclientscheme.Registry, authorizationclientscheme.Scheme,
-	)
+	legacy.InstallLegacyAuthorization(authorizationclientscheme.Scheme)
 
 	// simple check
 	{
@@ -1669,10 +1662,7 @@ func TestLegacyLocalRoleBindingEndpoint(t *testing.T) {
 	testBindingName := "testrole"
 
 	// install the legacy types into the client for decoding
-	legacy.InstallLegacy(authorizationapi.GroupName, authorizationapi.AddToSchemeInCoreGroup, authorizationapiv1.AddToSchemeInCoreGroup,
-		sets.NewString("RoleBinding"),
-		authorizationclientscheme.Registry, authorizationclientscheme.Scheme,
-	)
+	legacy.InstallLegacyAuthorization(authorizationclientscheme.Scheme)
 
 	// create rolebinding
 	roleBindingToCreate := &authorizationapi.RoleBinding{
@@ -1841,10 +1831,7 @@ func TestLegacyClusterRoleBindingEndpoint(t *testing.T) {
 	clusterAdmin := authorizationclient.NewForConfigOrDie(clusterAdminClientConfig)
 
 	// install the legacy types into the client for decoding
-	legacy.InstallLegacy(authorizationapi.GroupName, authorizationapi.AddToSchemeInCoreGroup, authorizationapiv1.AddToSchemeInCoreGroup,
-		sets.NewString("ClusterRoleBinding"),
-		authorizationclientscheme.Registry, authorizationclientscheme.Scheme,
-	)
+	legacy.InstallLegacyAuthorization(authorizationclientscheme.Scheme)
 
 	clusterRoleBindingsPath := "/oapi/v1/clusterrolebindings"
 	testBindingName := "testbinding"
@@ -1982,10 +1969,7 @@ func TestLegacyClusterRoleEndpoint(t *testing.T) {
 	clusterAdmin := authorizationclient.NewForConfigOrDie(clusterAdminClientConfig)
 
 	// install the legacy types into the client for decoding
-	legacy.InstallLegacy(authorizationapi.GroupName, authorizationapi.AddToSchemeInCoreGroup, authorizationapiv1.AddToSchemeInCoreGroup,
-		sets.NewString("ClusterRole"),
-		authorizationclientscheme.Registry, authorizationclientscheme.Scheme,
-	)
+	legacy.InstallLegacyAuthorization(authorizationclientscheme.Scheme)
 
 	clusterRolesPath := "/oapi/v1/clusterroles"
 	testRole := "testrole"
@@ -2106,10 +2090,7 @@ func TestLegacyLocalRoleEndpoint(t *testing.T) {
 	}
 
 	// install the legacy types into the client for decoding
-	legacy.InstallLegacy(authorizationapi.GroupName, authorizationapi.AddToSchemeInCoreGroup, authorizationapiv1.AddToSchemeInCoreGroup,
-		sets.NewString("Role"),
-		authorizationclientscheme.Registry, authorizationclientscheme.Scheme,
-	)
+	legacy.InstallLegacyAuthorization(authorizationclientscheme.Scheme)
 
 	rolesPath := "/oapi/v1/namespaces/" + namespace + "/roles"
 	testRole := "testrole"

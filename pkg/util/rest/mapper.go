@@ -11,7 +11,7 @@ import (
 func DefaultMultiRESTMapper() meta.MultiRESTMapper {
 	var restMapper meta.MultiRESTMapper
 	seenGroups := sets.String{}
-	for _, gv := range legacyscheme.Registry.EnabledVersions() {
+	for _, gv := range legacyscheme.Scheme.PrioritizedVersionsAllGroups() {
 		if seenGroups.Has(gv.Group) {
 			continue
 		}

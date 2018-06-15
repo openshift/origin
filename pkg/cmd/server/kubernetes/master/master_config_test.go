@@ -58,7 +58,7 @@ var expectedGroupPreferredVersions []string = []string{
 }
 
 func TestPreferredGroupVersions(t *testing.T) {
-	s := legacyscheme.Registry.AllPreferredGroupVersions()
+	s := kubeapiserveroptions.ToPreferredVersionString(legacyscheme.Scheme.PreferredVersionAllGroups())
 	expected := strings.Join(expectedGroupPreferredVersions, ",")
 	if s != expected {
 		t.Logf("expected: %#v", expected)
@@ -191,8 +191,8 @@ func TestAPIServerDefaults(t *testing.T) {
 		},
 		CloudProvider: &kubeoptions.CloudProviderOptions{},
 		StorageSerialization: &kubeoptions.StorageSerializationOptions{
-			StorageVersions:        legacyscheme.Registry.AllPreferredGroupVersions(),
-			DefaultStorageVersions: legacyscheme.Registry.AllPreferredGroupVersions(),
+			StorageVersions:        kubeapiserveroptions.ToPreferredVersionString(legacyscheme.Scheme.PreferredVersionAllGroups()),
+			DefaultStorageVersions: kubeapiserveroptions.ToPreferredVersionString(legacyscheme.Scheme.PreferredVersionAllGroups()),
 		},
 		APIEnablement: &apiserveroptions.APIEnablementOptions{
 			RuntimeConfig: utilconfig.ConfigurationMap{},

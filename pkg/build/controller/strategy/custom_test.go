@@ -135,7 +135,7 @@ func TestCustomCreateBuildPodWithCustomCodec(t *testing.T) {
 		Codec: legacyscheme.Codecs.LegacyCodec(buildapi.LegacySchemeGroupVersion),
 	}
 
-	for _, version := range legacyscheme.Registry.GroupOrDie(buildapi.LegacyGroupName).GroupVersions {
+	for _, version := range legacyscheme.Scheme.PrioritizedVersionsForGroup(buildapi.LegacyGroupName) {
 		// Create new Build specification and modify Spec API version
 		build := mockCustomBuild(false, false)
 		build.Spec.Strategy.CustomStrategy.BuildAPIVersion = fmt.Sprintf("%s/%s", version.Group, version.Version)

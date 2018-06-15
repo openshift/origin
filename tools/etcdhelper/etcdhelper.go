@@ -26,9 +26,9 @@ import (
 )
 
 func init() {
-	apiregistration.Install(scheme.GroupFactoryRegistry, scheme.Registry, scheme.Scheme)
-	apiinstall.InstallAll(scheme.Scheme, scheme.GroupFactoryRegistry, scheme.Registry)
-	apilegacy.LegacyInstallAll(scheme.Scheme, scheme.Registry)
+	apiregistration.Install(scheme.Scheme)
+	apiinstall.InstallAll(scheme.Scheme)
+	apilegacy.LegacyInstallAll(scheme.Scheme)
 }
 
 func main() {

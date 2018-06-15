@@ -1,10 +1,8 @@
 package install
 
 import (
-	
-	
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/util/sets"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	"github.com/openshift/origin/pkg/api/legacy"
@@ -13,23 +11,13 @@ import (
 )
 
 func init() {
-	legacy.InstallLegacyProject(legacyscheme.Scheme, legacyscheme.Registry)
-	Install(legacyscheme.GroupFactoryRegistry, legacyscheme.Registry, legacyscheme.Scheme)
+	legacy.InstallLegacyProject(legacyscheme.Scheme)
+	Install(legacyscheme.Scheme)
 }
 
 // Install registers the API group and adds types to a scheme
-func Install(groupFactoryRegistry announced.APIGroupFactoryRegistry, registry *registered.APIRegistrationManager, scheme *runtime.Scheme) {
-	if err := announced.NewGroupMetaFactory(
-		&announced.GroupMetaFactoryArgs{
-			GroupName:                  projectapi.GroupName,
-			VersionPreferenceOrder:     []string{projectapiv1.SchemeGroupVersion.Version},
-			AddInternalObjectsToScheme: projectapi.AddToScheme,
-			RootScopedKinds:            sets.NewString("Project", "ProjectRequest"),
-		},
-		announced.VersionToSchemeFunc{
-			projectapiv1.SchemeGroupVersion.Version: projectapiv1.AddToScheme,
-		},
-	).Announce(groupFactoryRegistry).RegisterAndEnable(registry, scheme); err != nil {
-		panic(err)
-	}
+func Install(scheme *runtime.Scheme) {
+	utilruntime.Must(projectapi.AddToScheme(scheme))
+	utilruntime.Must(projectapiv1.AddToScheme(scheme))
+	utilruntime.Must(scheme.SetVersionPriority(projectapiv1.SchemeGroupVersion))
 }

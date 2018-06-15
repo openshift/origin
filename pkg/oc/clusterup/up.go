@@ -228,7 +228,7 @@ func init() {
 
 func (c *ClusterUpConfig) Complete(cmd *cobra.Command) error {
 	// TODO: remove this when we move to container/apply based component installation
-	aggregatorinstall.Install(legacyscheme.GroupFactoryRegistry, legacyscheme.Registry, legacyscheme.Scheme)
+	aggregatorinstall.Install(legacyscheme.Scheme)
 
 	// Set the ImagePullPolicy field in static pods and components based in whether users specified
 	// the --tag flag or not.

@@ -10,11 +10,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	appsapiv1 "github.com/openshift/api/apps/v1"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset"
 	appsclientscheme "github.com/openshift/origin/pkg/apps/generated/internalclientset/scheme"
@@ -122,10 +120,7 @@ func TestDeploymentConfigDefaults(t *testing.T) {
 		t.Fatalf("Failed to create appsClient: %v", err)
 	}
 	// install the legacy types into the client for decoding
-	legacy.InstallLegacy(appsapi.GroupName, appsapi.AddToSchemeInCoreGroup, appsapiv1.AddToSchemeInCoreGroup,
-		sets.NewString(),
-		appsclientscheme.Registry, appsclientscheme.Scheme,
-	)
+	legacy.InstallLegacyApps(appsclientscheme.Scheme)
 
 	ttLegacy := []struct {
 		obj    *appsapi.DeploymentConfig
