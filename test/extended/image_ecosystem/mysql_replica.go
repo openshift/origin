@@ -13,7 +13,7 @@ import (
 	testutil "github.com/openshift/origin/test/util"
 
 	//kapiv1 "k8s.io/api/core/v1"
-	//metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kcoreclient "k8s.io/client-go/kubernetes/typed/core/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
@@ -102,7 +102,7 @@ func replicationTestFactory(oc *exutil.CLI, tc testCase, cleanup func()) func() 
 
 			g.By("creating replication helpers")
 			master, slaves, helper := CreateMySQLReplicationHelpers(oc.KubeClient().CoreV1().Pods(oc.Namespace()), masterDeployment, slaveDeployment, fmt.Sprintf("%s-1", helperName), slaveCount)
-			o.Expect(exutil.WaitUntilAllHelpersAreUp(oc, []exutil.Database{master, helper})).NotTo(o.HaveOccurred())
+			o.Expect(exutil.WaitUntilAllHelpersAreUp(oc, []exutil.Database{master})).NotTo(o.HaveOccurred())
 			o.Expect(exutil.WaitUntilAllHelpersAreUp(oc, slaves)).NotTo(o.HaveOccurred())
 
 			// Test if we can query as root
@@ -161,7 +161,7 @@ func replicationTestFactory(oc *exutil.CLI, tc testCase, cleanup func()) func() 
 		}
 		o.Expect(err).NotTo(o.HaveOccurred())
 		assertReplicationIsWorking("mysql-master-2", "mysql-slave-1", 1)
-		/*_, slaves, _ := assertReplicationIsWorking("mysql-master-2", "mysql-slave-1", 1)
+		_, slaves, _ := assertReplicationIsWorking("mysql-master-2", "mysql-slave-1", 1)
 
 		// NOTE: slave restart with PVs does not work since https://github.com/sclorg/mysql-container/pull/215/
 		g.By("after slave is restarted by deleting the pod")
@@ -177,7 +177,7 @@ func replicationTestFactory(oc *exutil.CLI, tc testCase, cleanup func()) func() 
 
 		pods, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).List(metav1.ListOptions{LabelSelector: exutil.ParseLabelsOrDie("deployment=mysql-slave-1").String()})
 		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(len(pods.Items)).To(o.Equal(1))*/
+		o.Expect(len(pods.Items)).To(o.Equal(1))
 
 		// NOTE: Commented out, current template does not support multiple replicas.
 		/*
