@@ -20,6 +20,18 @@ func (c *RHELImageStreamsComponentOptions) Name() string {
 }
 
 func (c *RHELImageStreamsComponentOptions) Install(dockerClient dockerhelper.Interface) error {
+	secretComponent := DockerConfigSecret{
+		Name:      "imagestreamsecret",
+		Namespace: "openshift",
+	}
+
+	err := secretComponent.MakeReady(
+		c.InstallContext.ClientImage(),
+		c.InstallContext.BaseDir()).Install(dockerClient)
+	if err != nil {
+		return err
+	}
+
 	component := componentinstall.List{
 		Name:      c.Name(),
 		Namespace: "openshift",
@@ -29,6 +41,7 @@ func (c *RHELImageStreamsComponentOptions) Install(dockerClient dockerhelper.Int
 	return component.MakeReady(
 		c.InstallContext.ClientImage(),
 		c.InstallContext.BaseDir()).Install(dockerClient)
+
 }
 
 type CentosImageStreamsComponentOptions struct {

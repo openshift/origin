@@ -95,6 +95,7 @@ type OpenshiftAPIExtraConfig struct {
 	RegistryHostnameRetriever          imageapi.RegistryHostnameRetriever
 	AllowedRegistriesForImport         *configapi.AllowedRegistries
 	MaxImagesBulkImportedPerRepository int
+	AdditionalTrustedCA                []byte
 
 	RouteAllocator *routeallocationcontroller.RouteAllocationController
 
@@ -300,8 +301,9 @@ func (c *completedConfig) withImageAPIServer(delegateAPIServer genericapiserver.
 			RegistryHostnameRetriever:          c.ExtraConfig.RegistryHostnameRetriever,
 			AllowedRegistriesForImport:         c.ExtraConfig.AllowedRegistriesForImport,
 			MaxImagesBulkImportedPerRepository: c.ExtraConfig.MaxImagesBulkImportedPerRepository,
-			Codecs: legacyscheme.Codecs,
-			Scheme: legacyscheme.Scheme,
+			Codecs:              legacyscheme.Codecs,
+			Scheme:              legacyscheme.Scheme,
+			AdditionalTrustedCA: c.ExtraConfig.AdditionalTrustedCA,
 		},
 	}
 	config := cfg.Complete()

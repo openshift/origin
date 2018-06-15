@@ -46,6 +46,16 @@ func (c *MasterConfig) newOpenshiftAPIConfig(kubeAPIServerConfig apiserver.Confi
 	// TODO try to stop special casing these.  We should all agree on them.
 	genericConfig.RESTOptionsGetter = c.RESTOptionsGetter
 
+	var caData []byte
+	if len(c.Options.ImagePolicyConfig.AdditionalTrustedCA) != 0 {
+		glog.V(2).Infof("Image import using additional CA path: %s", c.Options.ImagePolicyConfig.AdditionalTrustedCA)
+		var err error
+		caData, err = ioutil.ReadFile(c.Options.ImagePolicyConfig.AdditionalTrustedCA)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read CA bundle %s for image importing: %v", c.Options.ImagePolicyConfig.AdditionalTrustedCA, err)
+		}
+	}
+
 	ret := &OpenshiftAPIConfig{
 		GenericConfig: &apiserver.RecommendedConfig{Config: genericConfig},
 		ExtraConfig: OpenshiftAPIExtraConfig{
@@ -61,6 +71,7 @@ func (c *MasterConfig) newOpenshiftAPIConfig(kubeAPIServerConfig apiserver.Confi
 			RegistryHostnameRetriever:          c.RegistryHostnameRetriever,
 			AllowedRegistriesForImport:         c.Options.ImagePolicyConfig.AllowedRegistriesForImport,
 			MaxImagesBulkImportedPerRepository: c.Options.ImagePolicyConfig.MaxImagesBulkImportedPerRepository,
+			AdditionalTrustedCA:                caData,
 			RouteAllocator:                     c.RouteAllocator(),
 			ProjectAuthorizationCache:          c.ProjectAuthorizationCache,
 			ProjectCache:                       c.ProjectCache,
