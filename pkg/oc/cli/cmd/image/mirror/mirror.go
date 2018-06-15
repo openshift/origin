@@ -348,7 +348,7 @@ func (o *pushOptions) plan() (*plan, error) {
 					w.Parallel(func() {
 						desc, err := srcRepo.Tags(ctx).Get(ctx, srcTag)
 						if err != nil {
-							plan.AddError(retrieverError{src: src.ref, err: fmt.Errorf("unable to retrieve source image %s by tag: %v", src.ref, err)})
+							plan.AddError(retrieverError{src: src.ref, err: fmt.Errorf("unable to retrieve source image %s by tag %s: %v", src.ref, srcTag, err)})
 							return
 						}
 						srcDigest := desc.Digest
@@ -368,7 +368,7 @@ func (o *pushOptions) plan() (*plan, error) {
 						srcDigest := godigest.Digest(srcDigestString)
 						srcManifest, err := manifests.Get(ctx, godigest.Digest(srcDigest), schema2ManifestOnly)
 						if err != nil {
-							plan.AddError(retrieverError{src: src.ref, err: fmt.Errorf("unable to retrieve source image %s manifest: %v", src.ref, err)})
+							plan.AddError(retrieverError{src: src.ref, err: fmt.Errorf("unable to retrieve source image %s manifest %s: %v", src.ref, srcDigest, err)})
 							return
 						}
 
