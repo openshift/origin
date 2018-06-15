@@ -335,7 +335,7 @@ func NewCmdRemoveClusterRoleFromUser(name, fullName string, f kcmdutil.Factory, 
 
 func (o *RoleModificationOptions) checkRoleBindingNamespace(f kcmdutil.Factory, roleNamespace string) error {
 	var err error
-	o.RoleBindingNamespace, _, err = f.DefaultNamespace()
+	o.RoleBindingNamespace, _, err = f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
 	}
@@ -352,7 +352,7 @@ func (o *RoleModificationOptions) checkRoleBindingNamespace(f kcmdutil.Factory, 
 }
 
 func (o *RoleModificationOptions) innerComplete(f kcmdutil.Factory, cmd *cobra.Command, out io.Writer) error {
-	clientConfig, err := f.ClientConfig()
+	clientConfig, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}
@@ -404,7 +404,7 @@ func (o *RoleModificationOptions) CompleteUserWithSA(f kcmdutil.Factory, cmd *co
 		return err
 	}
 
-	defaultNamespace, _, err := f.DefaultNamespace()
+	defaultNamespace, _, err := f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
 	}

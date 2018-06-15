@@ -23,9 +23,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apiserver/pkg/storage/names"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
-	"k8s.io/client-go/restmapper"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
@@ -104,8 +104,6 @@ type VolumeOptions struct {
 	Err                    io.Writer
 	Mapper                 meta.RESTMapper
 	Typer                  runtime.ObjectTyper
-	CategoryExpander       categories.CategoryExpander
-	RESTClientFactory      func(mapping *meta.RESTMapping) (resource.RESTClient, error)
 	UpdatePodSpecForObject func(obj runtime.Object, fn func(*v1.PodSpec) error) (bool, error)
 	Client                 kcoreclient.PersistentVolumeClaimsGetter
 	Encoder                runtime.Encoder
@@ -327,11 +325,14 @@ func (v *VolumeOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command) error {
 	}
 	v.Client = kc.Core()
 
-	cmdNamespace, explicit, err := f.DefaultNamespace()
+	cmdNamespace, explicit, err := f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
 	}
-	mapper, typer := f.Object()
+	mapper, err := f.ToRESTMapper()
+	if err != nil {
+		return err
+	}
 
 	numOps := 0
 	if v.Add {
@@ -360,9 +361,7 @@ func (v *VolumeOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command) error {
 	v.DefaultNamespace = cmdNamespace
 	v.ExplicitNamespace = explicit
 	v.Mapper = mapper
-	v.Typer = typer
-	v.CategoryExpander = f.CategoryExpander()
-	v.RESTClientFactory = f.ClientForMapping
+	v.Typer = legacyscheme.Scheme
 	v.UpdatePodSpecForObject = f.UpdatePodSpecForObject
 	v.Encoder = kcmdutil.InternalVersionJSONEncoder()
 
@@ -437,7 +436,7 @@ func (a *AddVolumeOptions) Complete() error {
 
 func (v *VolumeOptions) RunVolume(args []string, f kcmdutil.Factory) error {
 	b := f.NewBuilder().
-		Internal().
+		WithScheme(legacyscheme.Scheme, legacyscheme.Scheme.PrioritizedVersionsAllGroups()...).
 		LocalParam(v.Local).
 		ContinueOnError().
 		NamespaceParam(v.DefaultNamespace).DefaultNamespace().
@@ -472,14 +471,17 @@ func (v *VolumeOptions) RunVolume(args []string, f kcmdutil.Factory) error {
 		if err != nil {
 			return err
 		}
-		mapper := resource.ClientMapperFunc(v.RESTClientFactory)
-		client, err := mapper.ClientForMapping(m)
+		clientConfig, err := f.ToRESTConfig()
+		if err != nil {
+			return err
+		}
+		kubeclient, err := kcoreclient.NewForConfig(clientConfig)
 		if err != nil {
 			return err
 		}
 		info := &resource.Info{
 			Mapping:   m,
-			Client:    client,
+			Client:    kubeclient.RESTClient(),
 			Namespace: v.DefaultNamespace,
 			Object:    claim,
 		}

@@ -6,12 +6,13 @@ import (
 	"sort"
 	"strings"
 
-	units "github.com/docker/go-units"
+	"github.com/docker/go-units"
 	"github.com/spf13/cobra"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
+	kinternalclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
@@ -72,12 +73,11 @@ type TopImagesOptions struct {
 // Complete turns a partially defined TopImagesOptions into a solvent structure
 // which can be validated and used for showing limits usage.
 func (o *TopImagesOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string, out io.Writer) error {
-	kClient, err := f.ClientSet()
+	clientConfig, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}
-
-	clientConfig, err := f.ClientConfig()
+	kClient, err := kinternalclientset.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}

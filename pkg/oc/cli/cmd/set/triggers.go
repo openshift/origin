@@ -16,6 +16,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapps "k8s.io/kubernetes/pkg/apis/apps"
 	kbatch "k8s.io/kubernetes/pkg/apis/batch"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
@@ -172,7 +173,7 @@ func NewCmdTriggers(fullName string, f kcmdutil.Factory, out, errOut io.Writer) 
 }
 
 func (o *TriggersOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string) error {
-	cmdNamespace, explicit, err := f.DefaultNamespace()
+	cmdNamespace, explicit, err := f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
 	}
@@ -219,9 +220,12 @@ func (o *TriggersOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args 
 		o.Auto = true
 	}
 
-	mapper, _ := f.Object()
+	mapper, err := f.ToRESTMapper()
+	if err != nil {
+		return err
+	}
 	o.Builder = f.NewBuilder().
-		Internal().
+		WithScheme(legacyscheme.Scheme, legacyscheme.Scheme.PrioritizedVersionsAllGroups()...).
 		LocalParam(o.Local).
 		ContinueOnError().
 		NamespaceParam(cmdNamespace).DefaultNamespace().

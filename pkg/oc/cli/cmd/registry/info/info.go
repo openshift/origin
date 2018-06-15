@@ -77,7 +77,7 @@ func New(name string, f kcmdutil.Factory, out, errOut io.Writer) *cobra.Command 
 }
 
 func (o *Options) Complete(f kcmdutil.Factory, args []string) error {
-	cfg, err := f.ClientConfig()
+	cfg, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}
@@ -87,7 +87,7 @@ func (o *Options) Complete(f kcmdutil.Factory, args []string) error {
 	}
 	o.Client = client
 
-	ns, _, err := f.DefaultNamespace()
+	ns, _, err := f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
 	}

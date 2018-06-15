@@ -119,7 +119,7 @@ func NewCmdReconcileClusterRoleBindings(name, fullName string, f kcmdutil.Factor
 }
 
 func (o *ReconcileClusterRoleBindingsOptions) Complete(cmd *cobra.Command, f kcmdutil.Factory, args []string, excludeUsers, excludeGroups []string) error {
-	clientConfig, err := f.ClientConfig()
+	clientConfig, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}
@@ -133,7 +133,10 @@ func (o *ReconcileClusterRoleBindingsOptions) Complete(cmd *cobra.Command, f kcm
 
 	o.ExcludeSubjects = authorizationutil.BuildRBACSubjects(excludeUsers, excludeGroups)
 
-	mapper, _ := f.Object()
+	mapper, err := f.ToRESTMapper()
+	if err != nil {
+		return err
+	}
 	for _, resourceString := range args {
 		resource, name, err := cmdutil.ResolveResource(authorizationapi.Resource("clusterroles"), resourceString, mapper)
 		if err != nil {

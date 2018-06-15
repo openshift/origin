@@ -15,6 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -174,16 +175,19 @@ func (o *ProbeOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []s
 		return kcmdutil.UsageErrorf(cmd, "one or more resources must be specified as <resource> <name> or <resource>/<name>")
 	}
 
-	cmdNamespace, explicit, err := f.DefaultNamespace()
+	cmdNamespace, explicit, err := f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
 	}
 
 	o.Cmd = cmd
 
-	mapper, _ := f.Object()
+	mapper, err := f.ToRESTMapper()
+	if err != nil {
+		return err
+	}
 	o.Builder = f.NewBuilder().
-		Internal().
+		WithScheme(legacyscheme.Scheme, legacyscheme.Scheme.PrioritizedVersionsAllGroups()...).
 		LocalParam(o.Local).
 		ContinueOnError().
 		NamespaceParam(cmdNamespace).DefaultNamespace().

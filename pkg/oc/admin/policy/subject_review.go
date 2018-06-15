@@ -99,11 +99,11 @@ func (o *sccSubjectReviewOptions) Complete(f kcmdutil.Factory, args []string, cm
 		}
 	}
 	var err error
-	o.namespace, o.enforceNamespace, err = f.DefaultNamespace()
+	o.namespace, o.enforceNamespace, err = f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
 	}
-	clientConfig, err := f.ClientConfig()
+	clientConfig, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}
@@ -138,7 +138,7 @@ func (o *sccSubjectReviewOptions) Run(args []string) error {
 		userOrSA = o.serviceAccount
 	}
 	r := o.builder.
-		Internal().
+		WithScheme(legacyscheme.Scheme, legacyscheme.Scheme.PrioritizedVersionsAllGroups()...).
 		NamespaceParam(o.namespace).
 		FilenameParam(o.enforceNamespace, &o.FilenameOptions).
 		ResourceTypeOrNameArgs(true, args...).

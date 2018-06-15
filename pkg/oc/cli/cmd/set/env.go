@@ -17,6 +17,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
+	kinternalclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
@@ -205,17 +206,17 @@ func (o *EnvOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []str
 // RunEnv contains all the necessary functionality for the OpenShift cli env command
 // TODO: refactor to share the common "patch resource" pattern of probe
 func (o *EnvOptions) RunEnv(f kcmdutil.Factory) error {
-	clientConfig, err := f.ClientConfig()
+	clientConfig, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}
 
-	kubeClient, err := f.ClientSet()
+	kubeClient, err := kinternalclientset.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
 
-	cmdNamespace, explicit, err := f.DefaultNamespace()
+	cmdNamespace, explicit, err := f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
 	}

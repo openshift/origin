@@ -115,7 +115,7 @@ func (o *CancelBuildOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, ar
 		return kcmdutil.UsageErrorf(cmd, "Must pass a name of a build or a buildconfig to cancel")
 	}
 
-	namespace, _, err := f.DefaultNamespace()
+	namespace, _, err := f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
 	}
@@ -132,7 +132,7 @@ func (o *CancelBuildOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, ar
 		}
 	}
 
-	config, err := f.BareClientConfig()
+	config, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}
@@ -145,7 +145,10 @@ func (o *CancelBuildOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, ar
 	o.Client = client
 	o.BuildLister = buildclient.NewClientBuildLister(client.Build())
 	o.BuildClient = client.Build().Builds(namespace)
-	o.Mapper, _ = f.Object()
+	o.Mapper, err = f.ToRESTMapper()
+	if err != nil {
+		return err
+	}
 
 	for _, item := range args {
 		resource, name, err := cmdutil.ResolveResource(buildapi.Resource("builds"), item, o.Mapper)

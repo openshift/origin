@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kvalidation "k8s.io/kubernetes/pkg/apis/core/validation"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 )
@@ -93,7 +95,7 @@ func resolveResourceKindPath(f kcmdutil.Factory, path, namespace string) (string
 	}
 
 	r := f.NewBuilder().
-		Internal().
+		WithScheme(legacyscheme.Scheme, legacyscheme.Scheme.PrioritizedVersionsAllGroups()...).
 		NamespaceParam(namespace).
 		SingleResourceType().
 		ResourceNames("pods", podName).
@@ -109,7 +111,7 @@ func resolveResourceKindPath(f kcmdutil.Factory, path, namespace string) (string
 
 	// if there were no errors, we should expect
 	// one resource to exist
-	if len(infos) == 0 || infos[0].Mapping.Resource != "pods" {
+	if len(infos) == 0 || infos[0].Mapping.Resource.GroupResource() != (schema.GroupResource{Resource: "pods"}) {
 		return "", fmt.Errorf("error: expected resource to be of type pod, got %q", infos[0].Mapping.Resource)
 	}
 

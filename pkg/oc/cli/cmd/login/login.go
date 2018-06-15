@@ -96,7 +96,7 @@ func NewCmdLogin(fullName string, f kcmdutil.Factory, reader io.Reader, out, err
 }
 
 func (o *LoginOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string, commandName string) error {
-	kubeconfig, err := f.RawConfig()
+	kubeconfig, err := f.ToRawKubeConfigLoader().RawConfig()
 	o.StartingKubeConfig = &kubeconfig
 	if err != nil {
 		if !os.IsNotExist(err) {
@@ -151,7 +151,7 @@ func (o *LoginOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []s
 	o.InsecureTLS = kcmdutil.GetFlagBool(cmd, "insecure-skip-tls-verify")
 	o.Token = kcmdutil.GetFlagString(cmd, "token")
 
-	o.DefaultNamespace, _, _ = f.DefaultNamespace()
+	o.DefaultNamespace, _, _ = f.ToRawKubeConfigLoader().Namespace()
 
 	o.PathOptions = config.NewPathOptions(cmd)
 

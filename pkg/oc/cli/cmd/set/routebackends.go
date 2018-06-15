@@ -16,6 +16,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -137,7 +138,7 @@ func NewCmdRouteBackends(fullName string, f kcmdutil.Factory, out, errOut io.Wri
 
 // Complete takes command line information to fill out BackendOptions or returns an error.
 func (o *BackendsOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string) error {
-	cmdNamespace, explicit, err := f.DefaultNamespace()
+	cmdNamespace, explicit, err := f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
 	}
@@ -159,9 +160,12 @@ func (o *BackendsOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args 
 
 	o.Cmd = cmd
 
-	mapper, _ := f.Object()
+	mapper, err := f.ToRESTMapper()
+	if err != nil {
+		return err
+	}
 	o.Builder = f.NewBuilder().
-		Internal().
+		WithScheme(legacyscheme.Scheme, legacyscheme.Scheme.PrioritizedVersionsAllGroups()...).
 		LocalParam(o.Local).
 		ContinueOnError().
 		NamespaceParam(cmdNamespace).DefaultNamespace().

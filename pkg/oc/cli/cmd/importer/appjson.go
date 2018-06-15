@@ -17,7 +17,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/kubectl"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
@@ -102,7 +101,7 @@ func NewCmdAppJSON(fullName string, f kcmdutil.Factory, in io.Reader, out, errou
 		},
 	}
 	usage := "Filename, directory, or URL to app.json file to use"
-	kubectl.AddJsonFilenameFlag(cmd, &options.Filenames, usage)
+	kcmdutil.AddJsonFilenameFlag(cmd.Flags(), &options.Filenames, usage)
 	cmd.MarkFlagRequired("filename")
 
 	cmd.Flags().StringVar(&options.BaseImage, "image", options.BaseImage, "An optional image to use as your base Docker build (must have ONBUILD directives)")
@@ -124,21 +123,21 @@ func (o *AppJSONOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args [
 		}
 		o.OutputVersions = append(o.OutputVersions, gv)
 	}
-	o.OutputVersions = append(o.OutputVersions, legacyscheme.Registry.EnabledVersions()...)
+	o.OutputVersions = append(o.OutputVersions, legacyscheme.Scheme.PrioritizedVersionsAllGroups()...)
 
 	o.Action.Bulk.Mapper = clientcmd.ResourceMapper(f)
 	o.Action.Bulk.Op = configcmd.Create
-	o.PrintObject = print.VersionedPrintObject(legacyscheme.Scheme, legacyscheme.Registry, kcmdutil.PrintObject, cmd, o.Action.Out)
+	o.PrintObject = print.VersionedPrintObject(kcmdutil.PrintObject, cmd, o.Action.Out)
 
 	o.Generator, _ = cmd.Flags().GetString("generator")
 
-	ns, _, err := f.DefaultNamespace()
+	ns, _, err := f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
 	}
 	o.Namespace = ns
 
-	clientConfig, err := f.ClientConfig()
+	clientConfig, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}

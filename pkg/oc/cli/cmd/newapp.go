@@ -14,7 +14,6 @@ import (
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
-
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -29,6 +28,7 @@ import (
 	kcmd "k8s.io/kubernetes/pkg/kubectl/cmd"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
@@ -461,7 +461,7 @@ func followInstallation(config *newcmd.AppConfig, input string, pod *kapi.Pod, l
 		Mapper:        config.Mapper,
 		Typer:         config.Typer,
 		LogsForObject: logsForObjectFn,
-		Out:           config.Out,
+		IOStreams:     genericclioptions.IOStreams{Out: config.Out},
 	}
 	logErr := opts.RunLogs()
 
@@ -585,7 +585,7 @@ func CompleteAppConfig(config *newcmd.AppConfig, f kcmdutil.Factory, c *cobra.Co
 	config.KubeClient = kclient
 	dockerClient, _ := getDockerClient()
 
-	clientConfig, err := f.ClientConfig()
+	clientConfig, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}
@@ -604,7 +604,7 @@ func CompleteAppConfig(config *newcmd.AppConfig, f kcmdutil.Factory, c *cobra.Co
 	config.SetOpenShiftClient(imageClient.Image(), templateClient.Template(), routeClient.Route(), namespace, dockerClient)
 
 	if config.AllowSecretUse {
-		cfg, err := f.ClientConfig()
+		cfg, err := f.ToRESTConfig()
 		if err != nil {
 			return err
 		}

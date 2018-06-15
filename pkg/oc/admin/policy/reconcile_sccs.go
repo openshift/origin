@@ -117,11 +117,11 @@ func (o *ReconcileSCCOptions) Complete(cmd *cobra.Command, f kcmdutil.Factory, a
 		return kcmdutil.UsageErrorf(cmd, "no arguments are allowed")
 	}
 
-	kClient, err := f.ClientSet()
+	clientConfig, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}
-	clientConfig, err := f.ClientConfig()
+	kClient, err := kcoreclient.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
@@ -130,7 +130,7 @@ func (o *ReconcileSCCOptions) Complete(cmd *cobra.Command, f kcmdutil.Factory, a
 		return err
 	}
 	o.SCCClient = securityClient.Security().SecurityContextConstraints()
-	o.NSClient = kClient.Core().Namespaces()
+	o.NSClient = kClient.Namespaces()
 	o.Output = kcmdutil.GetFlagString(cmd, "output")
 
 	return nil

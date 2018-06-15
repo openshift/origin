@@ -6,6 +6,8 @@ import (
 	"io"
 
 	"github.com/spf13/cobra"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -75,10 +77,15 @@ type OpenShiftLogsOptions struct {
 // NewCmdLogs creates a new logs command that supports OpenShift resources.
 func NewCmdLogs(name, baseName string, f kcmdutil.Factory, out io.Writer, errOut io.Writer) *cobra.Command {
 	o := OpenShiftLogsOptions{
-		KubeLogOptions: &kcmd.LogsOptions{},
+		KubeLogOptions: &kcmd.LogsOptions{
+			IOStreams: genericclioptions.IOStreams{
+				Out:    out,
+				ErrOut: errOut,
+			},
+		},
 	}
 
-	cmd := kcmd.NewCmdLogs(f, out, errOut)
+	cmd := kcmd.NewCmdLogs(f, o.KubeLogOptions.IOStreams)
 	cmd.Short = "Print the logs for a resource"
 	cmd.Long = logsLong
 	cmd.Example = fmt.Sprintf(logsExample, baseName, name)
@@ -115,10 +122,10 @@ func isPipelineBuild(obj runtime.Object) (bool, *buildapi.BuildConfig, bool, *bu
 // resource a user requested to view its logs and creates the appropriate logOptions
 // object for it.
 func (o *OpenShiftLogsOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string, out io.Writer) error {
-	if err := o.KubeLogOptions.Complete(f, out, cmd, args); err != nil {
+	if err := o.KubeLogOptions.Complete(f, cmd, args); err != nil {
 		return err
 	}
-	namespace, _, err := f.DefaultNamespace()
+	namespace, _, err := f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
 	}
@@ -127,7 +134,7 @@ func (o *OpenShiftLogsOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, 
 	podLogOptions := o.KubeLogOptions.Options.(*kapi.PodLogOptions)
 
 	infos, err := f.NewBuilder().
-		Internal().
+		WithScheme(legacyscheme.Scheme, legacyscheme.Scheme.PrioritizedVersionsAllGroups()...).
 		NamespaceParam(o.Namespace).DefaultNamespace().
 		ResourceNames("pods", args...).
 		SingleResourceType().RequireObject(false).
@@ -139,7 +146,7 @@ func (o *OpenShiftLogsOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, 
 		return errors.New("expected a resource")
 	}
 
-	clientConfig, err := f.ClientConfig()
+	clientConfig, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}

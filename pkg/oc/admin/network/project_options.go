@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -45,7 +46,7 @@ type ProjectOptions struct {
 }
 
 func (p *ProjectOptions) Complete(f kcmdutil.Factory, c *cobra.Command, args []string, out io.Writer) error {
-	defaultNamespace, _, err := f.DefaultNamespace()
+	defaultNamespace, _, err := f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
 	}
@@ -53,7 +54,7 @@ func (p *ProjectOptions) Complete(f kcmdutil.Factory, c *cobra.Command, args []s
 	if err != nil {
 		return err
 	}
-	clientConfig, err := f.ClientConfig()
+	clientConfig, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}
@@ -112,7 +113,7 @@ func (p *ProjectOptions) GetProjects() ([]*projectapi.Project, error) {
 	}
 
 	r := p.Builder.
-		Internal().
+		WithScheme(legacyscheme.Scheme, legacyscheme.Scheme.PrioritizedVersionsAllGroups()...).
 		ContinueOnError().
 		NamespaceParam(p.DefaultNamespace).
 		LabelSelectorParam(p.Selector).

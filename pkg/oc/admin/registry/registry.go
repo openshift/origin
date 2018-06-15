@@ -260,7 +260,7 @@ func (opts *RegistryOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, ou
 	}
 
 	var nsErr error
-	if opts.namespace, _, nsErr = f.DefaultNamespace(); nsErr != nil {
+	if opts.namespace, _, nsErr = f.ToRawKubeConfigLoader().Namespace(); nsErr != nil {
 		return fmt.Errorf("error getting namespace: %v", nsErr)
 	}
 

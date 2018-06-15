@@ -272,7 +272,7 @@ func (o *MigrateAPIStorageOptions) save(info *resource.Info, reporter migrate.Re
 	default:
 		// load the body and save it back, without transformation to avoid losing fields
 		r := info.Client.Get().
-			Resource(info.Mapping.Resource).
+			Resource(info.Mapping.Resource.Resource).
 			NamespaceIfScoped(info.Namespace, info.Mapping.Scope.Name() == meta.RESTScopeNameNamespace).
 			Name(info.Name)
 		get := r.Do()
@@ -307,7 +307,7 @@ func (o *MigrateAPIStorageOptions) save(info *resource.Info, reporter migrate.Re
 		}
 
 		update := info.Client.Put().
-			Resource(info.Mapping.Resource).
+			Resource(info.Mapping.Resource.Resource).
 			NamespaceIfScoped(info.Namespace, info.Mapping.Scope.Name() == meta.RESTScopeNameNamespace).
 			Name(info.Name).Body(data).
 			Do()

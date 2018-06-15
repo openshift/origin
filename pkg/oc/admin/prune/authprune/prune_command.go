@@ -62,7 +62,7 @@ func NewCmdPruneAuth(f kcmdutil.Factory, name string, out io.Writer) *cobra.Comm
 func (o *PruneAuthOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string) error {
 	var err error
 
-	clientConfig, err := f.ClientConfig()
+	clientConfig, err := f.ToRESTConfig()
 	if err != nil {
 		return nil
 	}
@@ -91,7 +91,7 @@ func (o *PruneAuthOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args
 		return nil
 	}
 
-	cmdNamespace, enforceNamespace, err := f.DefaultNamespace()
+	cmdNamespace, enforceNamespace, err := f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
 	}

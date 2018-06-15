@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"flag"
 	"fmt"
 	"io"
 	"os"
@@ -10,9 +11,12 @@ import (
 	"github.com/openshift/origin/pkg/api/legacygroupification"
 	"github.com/spf13/cobra"
 
+	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	kubecmd "k8s.io/kubernetes/pkg/kubectl/cmd"
+	kcmdset "k8s.io/kubernetes/pkg/kubectl/cmd/set"
 	ktemplates "k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
@@ -95,7 +99,12 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 		BashCompletionFunction: bashCompletionFunc,
 	}
 
-	f := clientcmd.New(cmds.PersistentFlags())
+	kubeConfigFlags := genericclioptions.NewConfigFlags()
+	kubeConfigFlags.AddFlags(cmds.PersistentFlags())
+	matchVersionKubeConfigFlags := kcmdutil.NewMatchVersionFlags(kubeConfigFlags)
+	matchVersionKubeConfigFlags.AddFlags(cmds.PersistentFlags())
+	cmds.PersistentFlags().AddGoFlagSet(flag.CommandLine)
+	f := kcmdutil.NewFactory(matchVersionKubeConfigFlags)
 
 	loginCmd := login.NewCmdLogin(fullName, f, in, out, errout)
 	secretcmds := secrets.NewCmdSecrets(secrets.SecretsRecommendedName, fullName+" "+secrets.SecretsRecommendedName, f, out, errout)
@@ -157,12 +166,13 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 				cmd.NewCmdAttach(fullName, f, in, out, errout),
 				cmd.NewCmdRun(fullName, f, in, out, errout),
 				cmd.NewCmdCp(fullName, f, in, out, errout),
+				cmd.NewCmdWait(fullName, f, in, out, errout),
 			},
 		},
 		{
 			Message: "Advanced Commands:",
 			Commands: []*cobra.Command{
-				admin.NewCommandAdmin("adm", fullName+" "+"adm", in, out, errout),
+				admin.NewCommandAdmin("adm", fullName+" "+"adm", f, in, out, errout),
 				cmd.NewCmdCreate(fullName, f, out, errout),
 				cmd.NewCmdReplace(fullName, f, out),
 				cmd.NewCmdApply(fullName, f, out, errout),
@@ -216,7 +226,7 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 	templates.ActsAsRootCommand(cmds, filters, groups...).
 		ExposeFlags(loginCmd, "certificate-authority", "insecure-skip-tls-verify", "token")
 
-	cmds.AddCommand(newExperimentalCommand("ex", name+"ex"))
+	cmds.AddCommand(newExperimentalCommand("ex", name+"ex", f))
 
 	cmds.AddCommand(cmd.NewCmdPlugin(fullName, f, in, out, errout))
 	if name == fullName {
@@ -272,7 +282,7 @@ func changeSharedFlagDefaults(rootCmd *cobra.Command) {
 	}
 }
 
-func newExperimentalCommand(name, fullName string) *cobra.Command {
+func newExperimentalCommand(name, fullName string, f kcmdutil.Factory) *cobra.Command {
 	out := os.Stdout
 	errout := os.Stderr
 
@@ -287,13 +297,11 @@ func newExperimentalCommand(name, fullName string) *cobra.Command {
 		BashCompletionFunction: admin.BashCompletionFunc,
 	}
 
-	f := clientcmd.New(experimental.PersistentFlags())
-
 	experimental.AddCommand(exipfailover.NewCmdIPFailoverConfig(f, fullName, "ipfailover", out, errout))
 	experimental.AddCommand(dockergc.NewCmdDockerGCConfig(f, fullName, "dockergc", out, errout))
 	experimental.AddCommand(buildchain.NewCmdBuildChain(name, fullName+" "+buildchain.BuildChainRecommendedCommandName, f, out))
 	experimental.AddCommand(configcmd.NewCmdConfig(configcmd.ConfigRecommendedName, fullName+" "+configcmd.ConfigRecommendedName, f, out, errout))
-	deprecatedDiag := diagnostics.NewCmdDiagnostics(diagnostics.DiagnosticsRecommendedName, fullName+" "+diagnostics.DiagnosticsRecommendedName, out)
+	deprecatedDiag := diagnostics.NewCmdDiagnostics(diagnostics.DiagnosticsRecommendedName, fullName+" "+diagnostics.DiagnosticsRecommendedName, f, out)
 	deprecatedDiag.Deprecated = fmt.Sprintf(`use "oc adm %[1]s" to run diagnostics instead.`, diagnostics.DiagnosticsRecommendedName)
 	experimental.AddCommand(deprecatedDiag)
 	experimental.AddCommand(cmd.NewCmdOptions(out))
@@ -340,6 +348,11 @@ func CommandFor(basename string) *cobra.Command {
 		cmd = recycle.NewCommandRecycle(basename, out)
 	default:
 		// we only need this change for `oc`.  `kubectl` should behave as close to `kubectl` as we can
+		// if we call this factory construction method, we want the openshift style config loading
+		genericclioptions.UseOpenShiftKubeConfigValues = true
+		kclientcmd.ErrEmptyConfig = genericclioptions.NewErrConfigurationMissing()
+		kcmdset.ParseDockerImageReferenceToStringFunc = clientcmd.ParseDockerImageReferenceToStringFunc
+
 		resource.OAPIToGroupified = legacygroupification.OAPIToGroupified
 		kcmdutil.OAPIToGroupifiedGVK = legacygroupification.OAPIToGroupifiedGVK
 		cmd = NewCommandCLI("oc", "oc", in, out, errout)

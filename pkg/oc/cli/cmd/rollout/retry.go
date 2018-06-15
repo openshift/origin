@@ -10,6 +10,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 
@@ -71,26 +72,35 @@ func NewCmdRolloutRetry(fullName string, f kcmdutil.Factory, out io.Writer) *cob
 }
 
 func (o *RetryOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, out io.Writer, args []string) error {
+	var err error
 	if len(args) == 0 && len(o.FilenameOptions.Filenames) == 0 {
 		return kcmdutil.UsageErrorf(cmd, cmd.Use)
 	}
 
-	o.Mapper, o.Typer = f.Object()
+	o.Typer = legacyscheme.Scheme
+	o.Mapper, err = f.ToRESTMapper()
+	if err != nil {
+		return err
+	}
 	o.Encoder = kcmdutil.InternalVersionJSONEncoder()
 	o.Out = out
 
-	cmdNamespace, enforceNamespace, err := f.DefaultNamespace()
+	cmdNamespace, enforceNamespace, err := f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
 	}
 
-	o.Clientset, err = f.ClientSet()
+	clientConfig, err := f.ToRESTConfig()
+	if err != nil {
+		return err
+	}
+	o.Clientset, err = kclientset.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
 
 	r := f.NewBuilder().
-		Internal().
+		WithScheme(legacyscheme.Scheme, legacyscheme.Scheme.PrioritizedVersionsAllGroups()...).
 		NamespaceParam(cmdNamespace).DefaultNamespace().
 		FilenameParam(enforceNamespace, &o.FilenameOptions).
 		ResourceTypeOrNameArgs(true, args...).

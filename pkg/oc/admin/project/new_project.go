@@ -92,7 +92,7 @@ func (o *NewProjectOptions) complete(f kcmdutil.Factory, args []string) error {
 
 	o.ProjectName = args[0]
 
-	clientConfig, err := f.ClientConfig()
+	clientConfig, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}

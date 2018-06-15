@@ -8,8 +8,10 @@ import (
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -122,7 +124,7 @@ var supportedBuildTypes = []string{"buildconfigs"}
 
 func (o *BuildSecretOptions) secretFromArg(f kcmdutil.Factory, mapper meta.RESTMapper, typer runtime.ObjectTyper, namespace, arg string) (string, error) {
 	builder := f.NewBuilder().
-		Internal().
+		WithScheme(legacyscheme.Scheme, legacyscheme.Scheme.PrioritizedVersionsAllGroups()...).
 		LocalParam(o.Local).
 		NamespaceParam(namespace).DefaultNamespace().
 		RequireObject(false).
@@ -135,7 +137,7 @@ func (o *BuildSecretOptions) secretFromArg(f kcmdutil.Factory, mapper meta.RESTM
 		if err != nil {
 			return err
 		}
-		if info.Mapping.Resource != "secrets" {
+		if info.Mapping.Resource.GroupResource() != (schema.GroupResource{Resource: "secrets"}) {
 			return fmt.Errorf("please specify a secret")
 		}
 		secretName = info.Name
@@ -161,14 +163,18 @@ func (o *BuildSecretOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, ar
 		return kcmdutil.UsageErrorf(cmd, "one or more build configs must be specified as <name> or <resource>/<name>")
 	}
 
-	cmdNamespace, explicit, err := f.DefaultNamespace()
+	cmdNamespace, explicit, err := f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
 	}
 
 	o.Cmd = cmd
 
-	mapper, typer := f.Object()
+	mapper, err := f.ToRESTMapper()
+	if err != nil {
+		return err
+	}
+	typer := legacyscheme.Scheme
 	if len(secretArg) > 0 {
 		o.Secret, err = o.secretFromArg(f, mapper, typer, cmdNamespace, secretArg)
 		if err != nil {
@@ -176,7 +182,7 @@ func (o *BuildSecretOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, ar
 		}
 	}
 	o.Builder = f.NewBuilder().
-		Internal().
+		WithScheme(legacyscheme.Scheme, legacyscheme.Scheme.PrioritizedVersionsAllGroups()...).
 		LocalParam(o.Local).
 		ContinueOnError().
 		NamespaceParam(cmdNamespace).DefaultNamespace().

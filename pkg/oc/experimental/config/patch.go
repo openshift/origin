@@ -15,7 +15,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"k8s.io/apimachinery/pkg/util/yaml"
-	"k8s.io/client-go/restmapper"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
@@ -23,7 +22,6 @@ import (
 	kprinters "k8s.io/kubernetes/pkg/printers"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
-	configapiinstall "github.com/openshift/origin/pkg/cmd/server/apis/config/install"
 )
 
 const PatchRecommendedName = "patch"
@@ -85,21 +83,7 @@ func (o *PatchOptions) Complete(f cmdutil.Factory, cmd *cobra.Command, args []st
 		return cmdutil.UsageErrorf(cmd, fmt.Sprintf("--type must be one of %v, not %q", sets.StringKeySet(patchTypes).List(), patchTypeString))
 	}
 
-	o.Builder = resource.NewBuilder(
-		&resource.Mapper{
-			RESTMapper:   configapiinstall.NewRESTMapper(),
-			ObjectTyper:  configapi.Scheme,
-			ClientMapper: resource.DisabledClientForMapping{},
-			Decoder:      configapi.Codecs.LegacyCodec(),
-		},
-		&resource.Mapper{
-			RESTMapper:   configapiinstall.NewRESTMapper(),
-			ObjectTyper:  configapi.Scheme,
-			ClientMapper: resource.DisabledClientForMapping{},
-			Decoder:      unstructured.UnstructuredJSONScheme,
-		},
-		categories.SimpleCategoryExpander{},
-	)
+	o.Builder = f.NewBuilder().Local()
 
 	var err error
 	_, typer := f.Object()
@@ -133,7 +117,7 @@ func (o *PatchOptions) RunPatch() error {
 	}
 
 	r := o.Builder.
-		Internal().
+		WithScheme(configapi.Scheme, configapi.Scheme.PrioritizedVersionsAllGroups()...).
 		FilenameParam(false, &resource.FilenameOptions{Recursive: false, Filenames: []string{o.Filename}}).
 		Flatten().
 		Do()

@@ -183,11 +183,7 @@ func Run(f kcmdutil.Factory, options *ipfailover.IPFailoverConfigCmdOptions, cmd
 		return err
 	}
 
-	namespace, _, err := f.DefaultNamespace()
-	if err != nil {
-		return err
-	}
-	clientConfig, err := f.ClientConfig()
+	namespace, _, err := f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
 	}

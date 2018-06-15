@@ -10,6 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -93,7 +94,7 @@ func (o *RolloutLatestOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, 
 		return errors.New("one deployment config name is needed as argument.")
 	}
 
-	namespace, _, err := f.DefaultNamespace()
+	namespace, _, err := f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
 	}
@@ -104,7 +105,7 @@ func (o *RolloutLatestOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, 
 	if err != nil {
 		return err
 	}
-	clientConfig, err := f.ClientConfig()
+	clientConfig, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}
@@ -114,9 +115,13 @@ func (o *RolloutLatestOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, 
 	}
 	o.appsClient = appsClient
 
-	o.mapper, o.typer = f.Object()
+	o.typer = legacyscheme.Scheme
+	o.mapper, err = f.ToRESTMapper()
+	if err != nil {
+		return err
+	}
 	o.infos, err = f.NewBuilder().
-		Internal().
+		WithScheme(legacyscheme.Scheme, legacyscheme.Scheme.PrioritizedVersionsAllGroups()...).
 		ContinueOnError().
 		NamespaceParam(namespace).
 		ResourceNames("deploymentconfigs", args[0]).

@@ -114,7 +114,7 @@ func (o *MigrateTemplateInstancesOptions) Complete(name string, f kcmdutil.Facto
 		return err
 	}
 
-	clientConfig, err := f.ClientConfig()
+	clientConfig, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}

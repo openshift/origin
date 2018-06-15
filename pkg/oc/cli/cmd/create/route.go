@@ -96,7 +96,7 @@ func CreateEdgeRoute(f kcmdutil.Factory, out io.Writer, cmd *cobra.Command, args
 	if err != nil {
 		return err
 	}
-	clientConfig, err := f.ClientConfig()
+	clientConfig, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}
@@ -104,7 +104,7 @@ func CreateEdgeRoute(f kcmdutil.Factory, out io.Writer, cmd *cobra.Command, args
 	if err != nil {
 		return err
 	}
-	ns, _, err := f.DefaultNamespace()
+	ns, _, err := f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
 	}
@@ -220,7 +220,7 @@ func CreatePassthroughRoute(f kcmdutil.Factory, out io.Writer, cmd *cobra.Comman
 	if err != nil {
 		return err
 	}
-	clientConfig, err := f.ClientConfig()
+	clientConfig, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}
@@ -228,7 +228,7 @@ func CreatePassthroughRoute(f kcmdutil.Factory, out io.Writer, cmd *cobra.Comman
 	if err != nil {
 		return err
 	}
-	ns, _, err := f.DefaultNamespace()
+	ns, _, err := f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
 	}
@@ -299,19 +299,21 @@ var (
 
 // NewCmdCreateReencryptRoute is a macro command to create a reencrypt route.
 func NewCmdCreateReencryptRoute(fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
+	printFlags := genericclioptions.NewPrintFlags("created")
+
 	cmd := &cobra.Command{
 		Use:     "reencrypt [NAME] --dest-ca-cert=FILENAME --service=SERVICE",
 		Short:   "Create a route that uses reencrypt TLS termination",
 		Long:    reencryptRouteLong,
 		Example: fmt.Sprintf(reencryptRouteExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
-			err := CreateReencryptRoute(f, out, cmd, args)
+			err := CreateReencryptRoute(printFlags, f, out, cmd, args)
 			kcmdutil.CheckErr(err)
 		},
 	}
 
+	printFlags.AddFlags(cmd)
 	kcmdutil.AddValidateFlags(cmd)
-	kcmdutil.AddPrinterFlags(cmd)
 	kcmdutil.AddDryRunFlag(cmd)
 	cmd.Flags().String("hostname", "", "Set a hostname for the new route")
 	cmd.Flags().String("port", "", "Name of the service port or number of the container port the route will route traffic to")
@@ -333,12 +335,12 @@ func NewCmdCreateReencryptRoute(fullName string, f kcmdutil.Factory, out io.Writ
 }
 
 // CreateReencryptRoute implements the behavior to run the create reencrypt route command.
-func CreateReencryptRoute(f kcmdutil.Factory, out io.Writer, cmd *cobra.Command, args []string) error {
+func CreateReencryptRoute(printFlags *genericclioptions.PrintFlags, f kcmdutil.Factory, out io.Writer, cmd *cobra.Command, args []string) error {
 	kc, err := f.ClientSet()
 	if err != nil {
 		return err
 	}
-	clientConfig, err := f.ClientConfig()
+	clientConfig, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}
@@ -346,7 +348,7 @@ func CreateReencryptRoute(f kcmdutil.Factory, out io.Writer, cmd *cobra.Command,
 	if err != nil {
 		return err
 	}
-	ns, _, err := f.DefaultNamespace()
+	ns, _, err := f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
 	}
@@ -401,6 +403,14 @@ func CreateReencryptRoute(f kcmdutil.Factory, out io.Writer, cmd *cobra.Command,
 	}
 
 	dryRun := kcmdutil.GetFlagBool(cmd, "dry-run")
+	if dryRun {
+		printFlags.Complete("%s (dry run)")
+	}
+	printer, err := printFlags.ToPrinter()
+	if err != nil {
+		return err
+	}
+
 	actualRoute := route
 
 	if !dryRun {
@@ -410,21 +420,17 @@ func CreateReencryptRoute(f kcmdutil.Factory, out io.Writer, cmd *cobra.Command,
 		}
 	}
 
-	shortOutput := kcmdutil.GetFlagString(cmd, "output") == "name"
-	if !shortOutput && kcmdutil.GetFlagString(cmd, "output") != "" {
-		kcmdutil.PrintObject(cmd, actualRoute, out)
-	} else {
-		kcmdutil.PrintSuccess(shortOutput, out, actualRoute, dryRun, "created")
-	}
-
-	return nil
+	return printer.PrintObj(actualRoute, out)
 }
 
 func resolveServiceName(f kcmdutil.Factory, resource string) (string, error) {
 	if len(resource) == 0 {
 		return "", fmt.Errorf("you need to provide a service name via --service")
 	}
-	mapper, _ := f.Object()
+	mapper, err := f.ToRESTMapper()
+	if err != nil {
+		return "", err
+	}
 	rType, name, err := cmdutil.ResolveResource(kapi.Resource("services"), resource, mapper)
 	if err != nil {
 		return "", err

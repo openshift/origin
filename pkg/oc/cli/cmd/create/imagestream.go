@@ -78,6 +78,7 @@ func NewCmdCreateImageStream(name, fullName string, f kcmdutil.Factory, out io.W
 }
 
 func (o *CreateImageStreamOptions) Complete(cmd *cobra.Command, f kcmdutil.Factory, args []string) error {
+	var err error
 	o.DryRun = cmdutil.GetFlagBool(cmd, "dry-run")
 
 	switch len(args) {
@@ -89,13 +90,12 @@ func (o *CreateImageStreamOptions) Complete(cmd *cobra.Command, f kcmdutil.Facto
 		return fmt.Errorf("exactly one argument (name) is supported, not: %v", args)
 	}
 
-	var err error
-	o.IS.Namespace, _, err = f.DefaultNamespace()
+	o.IS.Namespace, _, err = f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
 	}
 
-	clientConfig, err := f.ClientConfig()
+	clientConfig, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}

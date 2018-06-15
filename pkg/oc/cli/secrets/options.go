@@ -11,6 +11,7 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -43,13 +44,16 @@ func (o *SecretOptions) Complete(f kcmdutil.Factory, args []string) error {
 	o.BuilderFunc = f.NewBuilder
 
 	var err error
-	kubeClientSet, err := f.ClientSet()
+	clientConfig, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}
-	o.KubeCoreClient = kubeClientSet.Core()
-
-	o.Namespace, _, err = f.DefaultNamespace()
+	kubeClient, err := kcoreclient.NewForConfig(clientConfig)
+	if err != nil {
+		return err
+	}
+	o.KubeCoreClient = kubeClient
+	o.Namespace, _, err = f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
 	}
@@ -85,7 +89,7 @@ func (o SecretOptions) Validate() error {
 // GetServiceAccount Retrieve the service account object specified by the command
 func (o SecretOptions) GetServiceAccount() (*kapi.ServiceAccount, error) {
 	r := o.BuilderFunc().
-		Internal().
+		WithScheme(legacyscheme.Scheme, legacyscheme.Scheme.PrioritizedVersionsAllGroups()...).
 		NamespaceParam(o.Namespace).
 		ResourceNames("serviceaccounts", o.TargetName).
 		SingleResourceType().
@@ -163,7 +167,7 @@ func (o SecretOptions) GetSecrets(allowNonExisting bool) ([]*kapi.Secret, bool, 
 
 	for _, secretName := range o.SecretNames {
 		r := o.BuilderFunc().
-			Internal().
+			WithScheme(legacyscheme.Scheme, legacyscheme.Scheme.PrioritizedVersionsAllGroups()...).
 			NamespaceParam(o.Namespace).
 			ResourceNames("secrets", secretName).
 			SingleResourceType().

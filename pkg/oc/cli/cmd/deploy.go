@@ -15,6 +15,7 @@ import (
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
@@ -142,11 +143,11 @@ func (o *DeployOptions) Complete(f kcmdutil.Factory, args []string, out io.Write
 	}
 	var err error
 
-	o.kubeClient, err = f.ClientSet()
+	clientConfig, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}
-	clientConfig, err := f.ClientConfig()
+	o.kubeClient, err = kclientset.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
@@ -155,7 +156,7 @@ func (o *DeployOptions) Complete(f kcmdutil.Factory, args []string, out io.Write
 		return err
 	}
 	o.appsClient = client.Apps()
-	o.namespace, _, err = f.DefaultNamespace()
+	o.namespace, _, err = f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
 	}
@@ -202,7 +203,7 @@ func (o DeployOptions) Validate() error {
 
 func (o DeployOptions) RunDeploy() error {
 	r := o.builder.
-		Internal().
+		WithScheme(legacyscheme.Scheme, legacyscheme.Scheme.PrioritizedVersionsAllGroups()...).
 		NamespaceParam(o.namespace).
 		ResourceNames("deploymentconfigs", o.deploymentConfigName).
 		SingleResourceType().

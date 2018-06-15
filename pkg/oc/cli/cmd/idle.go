@@ -10,6 +10,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	utilerrors "github.com/openshift/origin/pkg/util/errors"
 	extensions "k8s.io/api/extensions/v1beta1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -18,7 +19,9 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	kextensionsclient "k8s.io/client-go/kubernetes/typed/extensions/v1beta1"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
+	kinternalclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
@@ -28,7 +31,6 @@ import (
 	appsclientinternal "github.com/openshift/origin/pkg/apps/generated/internalclientset"
 	unidlingapi "github.com/openshift/origin/pkg/unidling/api"
 	utilunidling "github.com/openshift/origin/pkg/unidling/util"
-	utilerrors "github.com/openshift/origin/pkg/util/errors"
 )
 
 var (
@@ -101,7 +103,7 @@ type IdleOptions struct {
 }
 
 func (o *IdleOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string) error {
-	namespace, _, err := f.DefaultNamespace()
+	namespace, _, err := f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
 	}
@@ -114,7 +116,7 @@ func (o *IdleOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []st
 	}
 
 	o.svcBuilder = f.NewBuilder().
-		Internal().
+		WithScheme(legacyscheme.Scheme, legacyscheme.Scheme.PrioritizedVersionsAllGroups()...).
 		ContinueOnError().
 		NamespaceParam(namespace).DefaultNamespace().AllNamespaces(o.allNamespaces).
 		Flatten().
@@ -205,7 +207,10 @@ func (o *IdleOptions) calculateIdlableAnnotationsByService(f kcmdutil.Factory) (
 		return nil, nil, err
 	}
 
-	mapper, _ := f.Object()
+	mapper, err := f.ToRESTMapper()
+	if err != nil {
+		return nil, nil, err
+	}
 
 	podsLoaded := make(map[kapi.ObjectReference]*kapi.Pod)
 	getPod := func(ref kapi.ObjectReference) (*kapi.Pod, error) {
@@ -500,7 +505,7 @@ func setIdleAnnotations(serviceName types.NamespacedName, annotations map[string
 
 // patchObj patches calculates a patch between the given new object and the existing marshaled object
 func patchObj(obj runtime.Object, metadata metav1.Object, oldData []byte, mapping *meta.RESTMapping, f kcmdutil.Factory) (runtime.Object, error) {
-	versionedObj, err := mapping.ObjectConvertor.ConvertToVersion(obj, schema.GroupVersions{mapping.GroupVersionKind.GroupVersion()})
+	versionedObj, err := legacyscheme.Scheme.ConvertToVersion(obj, schema.GroupVersions{mapping.GroupVersionKind.GroupVersion()})
 	if err != nil {
 		return nil, err
 	}
@@ -551,11 +556,11 @@ func (o *IdleOptions) RunIdle(f kcmdutil.Factory) error {
 		fmt.Fprintf(o.errOut, "warning: continuing on for valid scalable resources, but an error occurred while finding scalable resources to idle: %v", err)
 	}
 
-	kclient, err := f.ClientSet()
+	clientConfig, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}
-	clientConfig, err := f.ClientConfig()
+	kclient, err := kinternalclientset.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
@@ -578,7 +583,11 @@ func (o *IdleOptions) RunIdle(f kcmdutil.Factory) error {
 	replicas := make(map[namespacedCrossGroupObjectReference]int32, len(byScalable))
 	toScale := make(map[namespacedCrossGroupObjectReference]scaleInfo)
 
-	mapper, typer := f.Object()
+	mapper, err := f.ToRESTMapper()
+	if err != nil {
+		return err
+	}
+	typer := legacyscheme.Scheme
 
 	// first, collect the scale info
 	for scaleRef, svcName := range byScalable {
@@ -634,7 +643,7 @@ func (o *IdleOptions) RunIdle(f kcmdutil.Factory) error {
 				continue
 			}
 
-			versionedObj, err := mapping.ObjectConvertor.ConvertToVersion(info.obj, schema.GroupVersions{gvks[0].GroupVersion()})
+			versionedObj, err := legacyscheme.Scheme.ConvertToVersion(info.obj, schema.GroupVersions{gvks[0].GroupVersion()})
 			if err != nil {
 				fmt.Fprintf(o.errOut, "error: unable to mark service %q as idled: %v", serviceName.String(), err)
 				hadError = true

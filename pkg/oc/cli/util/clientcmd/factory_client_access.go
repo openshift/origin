@@ -19,7 +19,6 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl"
-	"k8s.io/kubernetes/pkg/kubectl/cmd/set"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 
@@ -35,11 +34,6 @@ type ring0Factory struct {
 }
 
 func NewClientAccessFactory(optionalClientConfig kclientcmd.ClientConfig) kcmdutil.ClientAccessFactory {
-	// if we call this factory construction method, we want the openshift style config loading
-	kclientcmd.UseOpenShiftKubeConfigValues = true
-	kclientcmd.ErrEmptyConfig = kclientcmd.NewErrConfigurationMissing()
-	set.ParseDockerImageReferenceToStringFunc = ParseDockerImageReferenceToStringFunc
-
 	factory := &ring0Factory{
 		kubeClientAccessFactory: kcmdutil.NewClientAccessFactory(optionalClientConfig),
 	}

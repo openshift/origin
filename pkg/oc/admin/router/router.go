@@ -558,7 +558,7 @@ func RunCmdRouter(f kcmdutil.Factory, cmd *cobra.Command, out, errout io.Writer,
 
 	image := cfg.ImageTemplate.ExpandOrDie(cfg.Type)
 
-	namespace, _, err := f.DefaultNamespace()
+	namespace, _, err := f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return fmt.Errorf("error getting client: %v", err)
 	}
@@ -602,7 +602,7 @@ func RunCmdRouter(f kcmdutil.Factory, cmd *cobra.Command, out, errout io.Writer,
 	}
 
 	if !cfg.Local {
-		clientConfig, err := f.ClientConfig()
+		clientConfig, err := f.ToRESTConfig()
 		if err != nil {
 			return err
 		}

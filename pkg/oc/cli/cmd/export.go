@@ -17,7 +17,6 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 	kprinters "k8s.io/kubernetes/pkg/printers"
 
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 )
 
@@ -92,7 +91,7 @@ func RunExport(f kcmdutil.Factory, exporter Exporter, in io.Reader, out io.Write
 		return kcmdutil.UsageErrorf(cmd, "--exact and --raw may not both be specified")
 	}
 
-	clientConfig, err := f.ClientConfig()
+	clientConfig, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}
@@ -108,7 +107,7 @@ func RunExport(f kcmdutil.Factory, exporter Exporter, in io.Reader, out io.Write
 		}
 	}
 
-	cmdNamespace, explicit, err := f.DefaultNamespace()
+	cmdNamespace, explicit, err := f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
 	}
@@ -218,9 +217,8 @@ func RunExport(f kcmdutil.Factory, exporter Exporter, in io.Reader, out io.Write
 	printOpts.OutputFormatArgument = templateFile
 	printOpts.AllowMissingKeys = kcmdutil.GetFlagBool(cmd, "allow-missing-template-keys")
 
-	_, typer := f.Object()
 	p, err := kprinters.GetStandardPrinter(
-		typer, legacyscheme.Codecs.LegacyCodec(outputVersion), decoders, *printOpts)
+		legacyscheme.Scheme, legacyscheme.Codecs.LegacyCodec(outputVersion), decoders, *printOpts)
 
 	if err != nil {
 		return err

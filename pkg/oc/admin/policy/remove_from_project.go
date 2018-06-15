@@ -103,7 +103,7 @@ func (o *RemoveFromProjectOptions) Complete(f kcmdutil.Factory, cmd *cobra.Comma
 
 	*target = append(*target, args...)
 
-	clientConfig, err := f.ClientConfig()
+	clientConfig, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}
@@ -111,7 +111,7 @@ func (o *RemoveFromProjectOptions) Complete(f kcmdutil.Factory, cmd *cobra.Comma
 	if err != nil {
 		return err
 	}
-	if o.BindingNamespace, _, err = f.DefaultNamespace(); err != nil {
+	if o.BindingNamespace, _, err = f.ToRawKubeConfigLoader().Namespace(); err != nil {
 		return err
 	}
 

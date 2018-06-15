@@ -131,7 +131,7 @@ func (o *MigrateImageReferenceOptions) Complete(f kcmdutil.Factory, c *cobra.Com
 		return err
 	}
 
-	clientConfig, err := f.ClientConfig()
+	clientConfig, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}

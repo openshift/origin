@@ -130,15 +130,19 @@ func (o *CreateSecretOptions) Complete(args []string, f kcmdutil.Factory) error 
 	}
 
 	if f != nil {
-		kubeClient, err := f.ClientSet()
+		clientConfig, err := f.ToRESTConfig()
 		if err != nil {
 			return err
 		}
-		namespace, _, err := f.DefaultNamespace()
+		kubeClient, err := kcoreclient.NewForConfig(clientConfig)
 		if err != nil {
 			return err
 		}
-		o.SecretsInterface = kubeClient.Core().Secrets(namespace)
+		namespace, _, err := f.ToRawKubeConfigLoader().Namespace()
+		if err != nil {
+			return err
+		}
+		o.SecretsInterface = kubeClient.Secrets(namespace)
 	}
 
 	return nil

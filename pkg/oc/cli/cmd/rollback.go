@@ -11,6 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
@@ -131,7 +132,7 @@ func (o *RollbackOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args 
 	if len(args) == 1 {
 		o.TargetName = args[0]
 	}
-	namespace, _, err := f.DefaultNamespace()
+	namespace, _, err := f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
 	}
@@ -142,11 +143,11 @@ func (o *RollbackOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args 
 		return f.NewBuilder()
 	}
 
-	kClient, err := f.ClientSet()
+	clientConfig, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}
-	clientConfig, err := f.ClientConfig()
+	kClient, err := kclientset.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
@@ -320,7 +321,7 @@ func (o *RollbackOptions) findResource(targetName string) (runtime.Object, *meta
 	var m *meta.RESTMapping
 	for _, name := range candidates {
 		r := o.getBuilder().
-			Internal().
+			WithScheme(legacyscheme.Scheme, legacyscheme.Scheme.PrioritizedVersionsAllGroups()...).
 			NamespaceParam(o.Namespace).
 			ResourceTypeOrNameArgs(false, name).
 			SingleResourceType().

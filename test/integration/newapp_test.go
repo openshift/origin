@@ -34,7 +34,6 @@ import (
 	clientgotesting "k8s.io/client-go/testing"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
@@ -600,14 +599,6 @@ func TestNewAppRunAll(t *testing.T) {
 					TemplateSearcher: app.TemplateSearcher{
 						Client:     okTemplateClient.Template(),
 						Namespaces: []string{},
-					},
-					TemplateFileSearcher: &app.TemplateFileSearcher{
-						Builder: resource.NewBuilder(&resource.Mapper{
-							RESTMapper:   legacyscheme.Registry.RESTMapper(),
-							ObjectTyper:  legacyscheme.Scheme,
-							ClientMapper: resource.DisabledClientForMapping{},
-							Decoder:      legacyscheme.Codecs.UniversalDecoder(),
-						}, nil, &categories.SimpleCategoryExpander{}),
 					},
 					Detector: app.SourceRepositoryEnumerator{
 						Detectors:         source.DefaultDetectors,

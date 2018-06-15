@@ -61,7 +61,7 @@ func (o WhoAmIOptions) WhoAmI() (*userapi.User, error) {
 
 func RunWhoAmI(f kcmdutil.Factory, out io.Writer, cmd *cobra.Command, args []string, o *WhoAmIOptions) error {
 	if kcmdutil.GetFlagBool(cmd, "show-token") {
-		cfg, err := f.ClientConfig()
+		cfg, err := f.ToRESTConfig()
 		if err != nil {
 			return err
 		}
@@ -72,7 +72,7 @@ func RunWhoAmI(f kcmdutil.Factory, out io.Writer, cmd *cobra.Command, args []str
 		return nil
 	}
 	if kcmdutil.GetFlagBool(cmd, "show-context") {
-		cfg, err := f.RawConfig()
+		cfg, err := f.ToRawKubeConfigLoader().RawConfig()
 		if err != nil {
 			return err
 		}
@@ -83,7 +83,7 @@ func RunWhoAmI(f kcmdutil.Factory, out io.Writer, cmd *cobra.Command, args []str
 		return nil
 	}
 	if kcmdutil.GetFlagBool(cmd, "show-server") {
-		cfg, err := f.ClientConfig()
+		cfg, err := f.ToRESTConfig()
 		if err != nil {
 			return err
 		}
@@ -91,7 +91,7 @@ func RunWhoAmI(f kcmdutil.Factory, out io.Writer, cmd *cobra.Command, args []str
 		return nil
 	}
 
-	clientConfig, err := f.ClientConfig()
+	clientConfig, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}

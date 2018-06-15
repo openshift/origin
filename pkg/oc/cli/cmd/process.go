@@ -163,7 +163,7 @@ func RunProcess(f kcmdutil.Factory, in io.Reader, out, errout io.Writer, cmd *co
 	}
 
 	// the namespace
-	namespace, explicit, err := f.DefaultNamespace()
+	namespace, explicit, err := f.ToRawKubeConfigLoader().Namespace()
 	// we only need to fail on namespace acquisition if we're actually taking action.  Otherwise the namespace can be enforced later
 	if err != nil && !local {
 		return err
@@ -179,7 +179,7 @@ func RunProcess(f kcmdutil.Factory, in io.Reader, out, errout io.Writer, cmd *co
 	if local {
 		// TODO: Change f.Object() so that it can fall back to local RESTMapper safely (currently glog.Fatals)
 	} else {
-		clientConfig, err := f.ClientConfig()
+		clientConfig, err := f.ToRESTConfig()
 		if err != nil {
 			return err
 		}
@@ -220,7 +220,7 @@ func RunProcess(f kcmdutil.Factory, in io.Reader, out, errout io.Writer, cmd *co
 		infos = append(infos, &resource.Info{Object: templateObj})
 	} else {
 		infos, err = f.NewBuilder().
-			Internal().
+			WithScheme(legacyscheme.Scheme, legacyscheme.Scheme.PrioritizedVersionsAllGroups()...).
 			LocalParam(local).
 			FilenameParam(explicit, &resource.FilenameOptions{Recursive: false, Filenames: []string{filename}}).
 			Do().

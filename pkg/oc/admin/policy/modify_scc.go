@@ -168,7 +168,7 @@ func (o *SCCModificationOptions) CompleteUsers(f kcmdutil.Factory, cmd *cobra.Co
 		return kcmdutil.PrintObject(cmd, obj, out)
 	}
 
-	clientConfig, err := f.ClientConfig()
+	clientConfig, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}
@@ -178,7 +178,7 @@ func (o *SCCModificationOptions) CompleteUsers(f kcmdutil.Factory, cmd *cobra.Co
 	}
 	o.SCCInterface = securityClient.Security().SecurityContextConstraints()
 
-	o.DefaultSubjectNamespace, _, err = f.DefaultNamespace()
+	o.DefaultSubjectNamespace, _, err = f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
 	}
@@ -208,7 +208,7 @@ func (o *SCCModificationOptions) CompleteGroups(f kcmdutil.Factory, cmd *cobra.C
 
 	o.DryRun = kcmdutil.GetFlagBool(cmd, "dry-run")
 
-	clientConfig, err := f.ClientConfig()
+	clientConfig, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}
@@ -218,7 +218,7 @@ func (o *SCCModificationOptions) CompleteGroups(f kcmdutil.Factory, cmd *cobra.C
 	}
 	o.SCCInterface = securityClient.Security().SecurityContextConstraints()
 
-	o.DefaultSubjectNamespace, _, err = f.DefaultNamespace()
+	o.DefaultSubjectNamespace, _, err = f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
 	}

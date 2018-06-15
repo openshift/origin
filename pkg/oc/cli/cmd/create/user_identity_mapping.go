@@ -79,7 +79,7 @@ func (o *CreateUserIdentityMappingOptions) Complete(cmd *cobra.Command, f kcmdut
 
 	o.DryRun = cmdutil.GetFlagBool(cmd, "dry-run")
 
-	clientConfig, err := f.ClientConfig()
+	clientConfig, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}

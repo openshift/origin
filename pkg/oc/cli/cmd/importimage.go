@@ -113,13 +113,13 @@ func (o *ImportImageOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, ar
 		o.ReferencePolicy = ""
 	}
 
-	namespace, _, err := f.DefaultNamespace()
+	namespace, _, err := f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
 	}
 	o.Namespace = namespace
 
-	clientConfig, err := f.ClientConfig()
+	clientConfig, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}

@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-	"k8s.io/client-go/restmapper"
 
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/labels"
@@ -32,11 +31,9 @@ type NodeOptions struct {
 	Writer             io.Writer
 	ErrWriter          io.Writer
 
-	Mapper            meta.RESTMapper
-	Typer             runtime.ObjectTyper
-	CategoryExpander  categories.CategoryExpander
-	RESTClientFactory func(mapping *meta.RESTMapping) (resource.RESTClient, error)
-	Printer           func(mapping *meta.RESTMapping, withNamespace bool) (kprinters.ResourcePrinter, error)
+	Mapper  meta.RESTMapper
+	Typer   runtime.ObjectTyper
+	Printer func(mapping *meta.RESTMapping, withNamespace bool) (kprinters.ResourcePrinter, error)
 
 	CmdPrinter       kprinters.ResourcePrinter
 	CmdPrinterOutput bool
@@ -51,17 +48,16 @@ type NodeOptions struct {
 }
 
 func (n *NodeOptions) Complete(f kcmdutil.Factory, c *cobra.Command, args []string, out, errout io.Writer) error {
-	defaultNamespace, _, err := f.DefaultNamespace()
+	defaultNamespace, _, err := f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
 	}
 
-	kc, err := f.ClientSet()
+	config, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}
-
-	config, err := f.ClientConfig()
+	kc, err := kclientset.NewForConfig(config)
 	if err != nil {
 		return err
 	}
@@ -74,7 +70,11 @@ func (n *NodeOptions) Complete(f kcmdutil.Factory, c *cobra.Command, args []stri
 	if err != nil {
 		return err
 	}
-	mapper, typer := f.Object()
+	typer := legacyscheme.Scheme
+	mapper, err := f.ToRESTMapper()
+	if err != nil {
+		return err
+	}
 
 	n.Builder = f.NewBuilder()
 	n.DefaultNamespace = defaultNamespace
@@ -84,8 +84,6 @@ func (n *NodeOptions) Complete(f kcmdutil.Factory, c *cobra.Command, args []stri
 	n.ErrWriter = errout
 	n.Mapper = mapper
 	n.Typer = typer
-	n.CategoryExpander = f.CategoryExpander()
-	n.RESTClientFactory = f.ClientForMapping
 	n.NodeNames = []string{}
 	n.CmdPrinter = cmdPrinter
 	n.CmdPrinterOutput = false
@@ -133,7 +131,7 @@ func (n *NodeOptions) GetNodes() ([]*kapi.Node, error) {
 	}
 
 	r := n.Builder.
-		Internal().
+		WithScheme(legacyscheme.Scheme).
 		ContinueOnError().
 		NamespaceParam(n.DefaultNamespace).
 		LabelSelectorParam(n.Selector).

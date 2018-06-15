@@ -222,7 +222,7 @@ func (o *SyncOptions) Complete(typeArg, whitelistFile, blacklistFile, configFile
 		}
 	}
 
-	clientConfig, err := f.ClientConfig()
+	clientConfig, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}

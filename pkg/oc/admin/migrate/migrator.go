@@ -9,16 +9,15 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/kubernetes/pkg/kubectl"
+	"k8s.io/client-go/discovery"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
-
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
 // MigrateVisitFunc is invoked for each returned object, and may return a
@@ -149,7 +148,7 @@ func (o *ResourceOptions) Bind(c *cobra.Command) {
 	kcmdutil.AddNonDeprecatedPrinterFlags(c)
 
 	usage := "Filename, directory, or URL to docker-compose.yml file to use"
-	kubectl.AddJsonFilenameFlag(c, &o.Filenames, usage)
+	kcmdutil.AddJsonFilenameFlag(c.Flags(), &o.Filenames, usage)
 }
 
 func (o *ResourceOptions) Complete(f kcmdutil.Factory, c *cobra.Command) error {
@@ -162,7 +161,7 @@ func (o *ResourceOptions) Complete(f kcmdutil.Factory, c *cobra.Command) error {
 		}
 		first := true
 		o.PrintFn = func(info *resource.Info, _ Reporter) error {
-			obj, err := info.Mapping.ConvertToVersion(info.Object, info.Mapping.GroupVersionKind.GroupVersion())
+			obj, err := legacyscheme.Scheme.ConvertToVersion(info.Object, info.Mapping.GroupVersionKind.GroupVersion())
 			if err != nil {
 				return err
 			}
@@ -181,7 +180,7 @@ func (o *ResourceOptions) Complete(f kcmdutil.Factory, c *cobra.Command) error {
 		o.DryRun = true
 	}
 
-	namespace, explicitNamespace, err := f.DefaultNamespace()
+	namespace, explicitNamespace, err := f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
 	}
@@ -208,11 +207,18 @@ func (o *ResourceOptions) Complete(f kcmdutil.Factory, c *cobra.Command) error {
 		}
 	}
 
-	discoveryClient, err := f.DiscoveryClient()
+	clientConfig, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}
-	mapper, _ := f.Object()
+	discoveryClient, err := discovery.NewDiscoveryClientForConfig(clientConfig)
+	if err != nil {
+		return err
+	}
+	mapper, err := f.ToRESTMapper()
+	if err != nil {
+		return err
+	}
 
 	resourceNames := sets.NewString()
 	for i, s := range o.Include {
@@ -301,7 +307,7 @@ func (o *ResourceOptions) Complete(f kcmdutil.Factory, c *cobra.Command) error {
 	if o.Unstructured {
 		o.Builder.Unstructured()
 	} else {
-		o.Builder.Internal()
+		o.Builder.WithScheme(legacyscheme.Scheme, legacyscheme.Scheme.PrioritizedVersionsAllGroups()...)
 	}
 
 	if !allNamespaces {
@@ -547,9 +553,9 @@ func (t *migrateTracker) report(prefix string, info *resource.Info, err error) {
 		ns = "-n " + ns
 	}
 	if err != nil {
-		fmt.Fprintf(t.out, "E%s %-10s %s %s/%s: %v\n", timeStampNow(), prefix, ns, info.Mapping.Resource, info.Name, err)
+		fmt.Fprintf(t.out, "E%s %-10s %s %s/%s: %v\n", timeStampNow(), prefix, ns, info.Mapping.Resource.Resource, info.Name, err)
 	} else {
-		fmt.Fprintf(t.out, "I%s %-10s %s %s/%s\n", timeStampNow(), prefix, ns, info.Mapping.Resource, info.Name)
+		fmt.Fprintf(t.out, "I%s %-10s %s %s/%s\n", timeStampNow(), prefix, ns, info.Mapping.Resource.Resource, info.Name)
 	}
 }
 
@@ -569,7 +575,7 @@ func (t *migrateTracker) run() {
 		case attemptResultError:
 			t.report("error:", r.data.info, r.data.err)
 			t.errors++
-			t.resourcesWithErrors.Insert(r.data.info.Mapping.Resource)
+			t.resourcesWithErrors.Insert(r.data.info.Mapping.Resource.Resource)
 		case attemptResultIgnore:
 			t.ignored++
 			if glog.V(2) {

@@ -10,19 +10,19 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
-
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
-	restclient "k8s.io/client-go/rest"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl"
 	kcmd "k8s.io/kubernetes/pkg/kubectl/cmd"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
+	"k8s.io/kubernetes/pkg/kubectl/polymorphichelpers"
 	"k8s.io/kubernetes/pkg/kubectl/util/term"
 	"k8s.io/kubernetes/pkg/util/interrupt"
 
@@ -43,7 +43,7 @@ type DebugOptions struct {
 	ImageClient imageclient.ImageInterface
 
 	Print         func(pod *kapi.Pod, w io.Writer) error
-	LogsForObject func(object, options runtime.Object, timeout time.Duration) (*restclient.Request, error)
+	LogsForObject polymorphichelpers.LogsForObjectFunc
 
 	NoStdin    bool
 	ForceTTY   bool
@@ -117,9 +117,11 @@ func NewCmdDebug(fullName string, f kcmdutil.Factory, in io.Reader, out, errout 
 		Timeout: 15 * time.Minute,
 		Attach: kcmd.AttachOptions{
 			StreamOptions: kcmd.StreamOptions{
-				In:    in,
-				Out:   out,
-				Err:   errout,
+				IOStreams: genericclioptions.IOStreams{
+					In:     in,
+					Out:    out,
+					ErrOut: errout,
+				},
 				TTY:   true,
 				Stdin: true,
 			},
@@ -217,13 +219,13 @@ func (o *DebugOptions) Complete(cmd *cobra.Command, f kcmdutil.Factory, args []s
 		o.Command = []string{"/bin/sh"}
 	}
 
-	cmdNamespace, explicit, err := f.DefaultNamespace()
+	cmdNamespace, explicit, err := f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
 	}
 
 	b := f.NewBuilder().
-		Internal().
+		WithScheme(legacyscheme.Scheme, legacyscheme.Scheme.PrioritizedVersionsAllGroups()...).
 		NamespaceParam(cmdNamespace).DefaultNamespace().
 		SingleResourceType().
 		ResourceNames("pods", resources...).
@@ -270,9 +272,9 @@ func (o *DebugOptions) Complete(cmd *cobra.Command, f kcmdutil.Factory, args []s
 		}
 
 		if len(fullCmdName) > 0 && kcmdutil.IsSiblingCommandExists(cmd, "describe") {
-			fmt.Fprintf(o.Attach.Err, "Defaulting container name to %s.\n", pod.Spec.Containers[0].Name)
-			fmt.Fprintf(o.Attach.Err, "Use '%s describe pod/%s -n %s' to see all of the containers in this pod.\n", fullCmdName, pod.Name, pod.Namespace)
-			fmt.Fprintf(o.Attach.Err, "\n")
+			fmt.Fprintf(o.Attach.ErrOut, "Defaulting container name to %s.\n", pod.Spec.Containers[0].Name)
+			fmt.Fprintf(o.Attach.ErrOut, "Use '%s describe pod/%s -n %s' to see all of the containers in this pod.\n", fullCmdName, pod.Name, pod.Namespace)
+			fmt.Fprintf(o.Attach.ErrOut, "\n")
 		}
 
 		glog.V(4).Infof("Defaulting container name to %s", pod.Spec.Containers[0].Name)
@@ -289,7 +291,7 @@ func (o *DebugOptions) Complete(cmd *cobra.Command, f kcmdutil.Factory, args []s
 		}
 	}
 
-	config, err := f.ClientConfig()
+	config, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}
@@ -347,7 +349,7 @@ func (o *DebugOptions) Debug() error {
 	}
 
 	glog.V(5).Infof("Creating pod: %#v", pod)
-	fmt.Fprintf(o.Attach.Err, "Debugging with pod/%s, original command: %s\n", pod.Name, commandString)
+	fmt.Fprintf(o.Attach.ErrOut, "Debugging with pod/%s, original command: %s\n", pod.Name, commandString)
 	pod, err := o.createPod(pod)
 	if err != nil {
 		return err
@@ -357,7 +359,7 @@ func (o *DebugOptions) Debug() error {
 	o.Attach.InterruptParent = interrupt.New(
 		func(os.Signal) { os.Exit(1) },
 		func() {
-			stderr := o.Attach.Err
+			stderr := o.Attach.ErrOut
 			if stderr == nil {
 				stderr = os.Stderr
 			}
@@ -376,7 +378,7 @@ func (o *DebugOptions) Debug() error {
 		if err != nil {
 			return err
 		}
-		fmt.Fprintf(o.Attach.Err, "Waiting for pod to start ...\n")
+		fmt.Fprintf(o.Attach.ErrOut, "Waiting for pod to start ...\n")
 
 		switch containerRunningEvent, err := watch.Until(o.Timeout, w, kubectl.PodContainerRunning(o.Attach.ContainerName)); {
 		// api didn't error right away but the pod wasn't even created
@@ -394,7 +396,7 @@ func (o *DebugOptions) Debug() error {
 					Container: o.Attach.ContainerName,
 					Follow:    true,
 				},
-				Out: o.Attach.Out,
+				IOStreams: o.Attach.IOStreams,
 
 				LogsForObject: o.LogsForObject,
 			}.RunLogs()
@@ -404,7 +406,7 @@ func (o *DebugOptions) Debug() error {
 			// TODO this doesn't do us much good for remote debugging sessions, but until we get a local port
 			// set up to proxy, this is what we've got.
 			if podWithStatus, ok := containerRunningEvent.Object.(*kapi.Pod); ok {
-				fmt.Fprintf(o.Attach.Err, "Pod IP: %s\n", podWithStatus.Status.PodIP)
+				fmt.Fprintf(o.Attach.ErrOut, "Pod IP: %s\n", podWithStatus.Status.PodIP)
 			}
 
 			// TODO: attach can race with pod completion, allow attach to switch to logs

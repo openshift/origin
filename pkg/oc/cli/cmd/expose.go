@@ -5,10 +5,12 @@ import (
 	"io"
 
 	"github.com/spf13/cobra"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kcmd "k8s.io/kubernetes/pkg/kubectl/cmd"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 
 	"github.com/openshift/origin/pkg/cmd/util/route"
@@ -52,7 +54,7 @@ var (
 
 // NewCmdExpose is a wrapper for the Kubernetes cli expose command
 func NewCmdExpose(fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
-	cmd := kcmd.NewCmdExposeService(f, out)
+	cmd := kcmd.NewCmdExposeService(f, genericclioptions.IOStreams{Out: out})
 	cmd.Short = "Expose a replicated application as a service or route"
 	cmd.Long = exposeLong
 	cmd.Example = fmt.Sprintf(exposeExample, fullName)
@@ -82,7 +84,7 @@ func NewCmdExpose(fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Com
 // validate adds one layer of validation prior to calling the upstream
 // expose command.
 func validate(cmd *cobra.Command, f kcmdutil.Factory, args []string) error {
-	namespace, enforceNamespace, err := f.DefaultNamespace()
+	namespace, enforceNamespace, err := f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
 	}
@@ -93,7 +95,7 @@ func validate(cmd *cobra.Command, f kcmdutil.Factory, args []string) error {
 	}
 
 	r := f.NewBuilder().
-		Internal().
+		WithScheme(legacyscheme.Scheme, legacyscheme.Scheme.PrioritizedVersionsAllGroups()...).
 		ContinueOnError().
 		NamespaceParam(namespace).DefaultNamespace().
 		FilenameParam(enforceNamespace, &resource.FilenameOptions{Recursive: false, Filenames: kcmdutil.GetFlagStringSlice(cmd, "filename")}).

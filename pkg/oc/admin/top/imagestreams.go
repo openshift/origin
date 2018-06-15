@@ -70,7 +70,7 @@ func (o *TopImageStreamsOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command
 		namespace = metav1.NamespaceAll
 	}
 	o.out = out
-	clientConfig, err := f.ClientConfig()
+	clientConfig, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}

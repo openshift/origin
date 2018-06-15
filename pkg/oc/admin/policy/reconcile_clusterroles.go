@@ -109,7 +109,7 @@ func NewCmdReconcileClusterRoles(name, fullName string, f kcmdutil.Factory, out,
 }
 
 func (o *ReconcileClusterRolesOptions) Complete(cmd *cobra.Command, f kcmdutil.Factory, args []string) error {
-	clientConfig, err := f.ClientConfig()
+	clientConfig, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}
@@ -121,7 +121,10 @@ func (o *ReconcileClusterRolesOptions) Complete(cmd *cobra.Command, f kcmdutil.F
 
 	o.Output = kcmdutil.GetFlagString(cmd, "output")
 
-	mapper, _ := f.Object()
+	mapper, err := f.ToRESTMapper()
+	if err != nil {
+		return err
+	}
 	for _, resourceString := range args {
 		resource, name, err := osutil.ResolveResource(authorizationapi.Resource("clusterroles"), resourceString, mapper)
 		if err != nil {

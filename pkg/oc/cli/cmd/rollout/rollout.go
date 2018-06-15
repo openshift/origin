@@ -8,6 +8,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/rollout"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 )
 
 var (
@@ -92,7 +93,7 @@ var (
 
 // NewCmdRolloutPause is a wrapper for the Kubernetes cli rollout pause command
 func NewCmdRolloutPause(fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
-	cmd := rollout.NewCmdRolloutPause(f, out)
+	cmd := rollout.NewCmdRolloutPause(f, genericclioptions.IOStreams{Out: out})
 	cmd.Long = rolloutPauseLong
 	cmd.Example = fmt.Sprintf(rolloutPauseExample, fullName)
 	cmd.ValidArgs = append(cmd.ValidArgs, "deploymentconfig")
@@ -113,7 +114,7 @@ var (
 
 // NewCmdRolloutResume is a wrapper for the Kubernetes cli rollout resume command
 func NewCmdRolloutResume(fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
-	cmd := rollout.NewCmdRolloutResume(f, out)
+	cmd := rollout.NewCmdRolloutResume(f, genericclioptions.IOStreams{Out: out})
 	cmd.Long = rolloutResumeLong
 	cmd.Example = fmt.Sprintf(rolloutResumeExample, fullName)
 	cmd.ValidArgs = append(cmd.ValidArgs, "deploymentconfig")
@@ -169,7 +170,7 @@ var (
 
 // NewCmdRolloutStatus is a wrapper for the Kubernetes cli rollout status command
 func NewCmdRolloutStatus(fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
-	cmd := rollout.NewCmdRolloutStatus(f, out)
+	cmd := rollout.NewCmdRolloutStatus(f, genericclioptions.IOStreams{Out: out})
 	cmd.Long = rolloutStatusLong
 	cmd.Example = fmt.Sprintf(rolloutStatusExample, fullName)
 	return cmd
