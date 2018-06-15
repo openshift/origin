@@ -46,7 +46,7 @@ func (c *FakeRoles) List(opts v1.ListOptions) (result *authorization.RoleList, e
 	if label == nil {
 		label = labels.Everything()
 	}
-	list := &authorization.RoleList{}
+	list := &authorization.RoleList{ListMeta: obj.(*authorization.RoleList).ListMeta}
 	for _, item := range obj.(*authorization.RoleList).Items {
 		if label.Matches(labels.Set(item.Labels)) {
 			list.Items = append(list.Items, item)

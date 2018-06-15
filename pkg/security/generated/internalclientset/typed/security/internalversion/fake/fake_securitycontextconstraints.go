@@ -43,7 +43,7 @@ func (c *FakeSecurityContextConstraints) List(opts v1.ListOptions) (result *secu
 	if label == nil {
 		label = labels.Everything()
 	}
-	list := &security.SecurityContextConstraintsList{}
+	list := &security.SecurityContextConstraintsList{ListMeta: obj.(*security.SecurityContextConstraintsList).ListMeta}
 	for _, item := range obj.(*security.SecurityContextConstraintsList).Items {
 		if label.Matches(labels.Set(item.Labels)) {
 			list.Items = append(list.Items, item)

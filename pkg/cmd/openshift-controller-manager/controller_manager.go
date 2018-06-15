@@ -147,9 +147,9 @@ func newControllerContext(
 		RouteInformers:          informers.GetRouteInformers(),
 		TemplateInformers:       informers.GetTemplateInformers(),
 		GenericResourceInformer: informers.ToGenericInformer(),
-		Stop:                    stopCh,
-		InformersStarted:        informersStarted,
-		RestMapper:              dynamicRestMapper,
+		Stop:             stopCh,
+		InformersStarted: informersStarted,
+		RestMapper:       dynamicRestMapper,
 	}
 
 	return openshiftControllerContext

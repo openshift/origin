@@ -98,7 +98,7 @@ Populated by the system. Read-only. More info: http://kubernetes.io/docs/user-gu
 </summary><div style="margin-left:13px;">    <span title="(string) Name is the name of the service">name</span>:
 </div><div style="margin-left:13px;">    <span title="(string) Namespace is the namespace of the service">namespace</span>:
 </div></details><div style="margin-left:13px;">  <span title="(string) Version is the API version this server hosts.  For example, &#34;v1&#34;">version</span>:
-</div><div style="margin-left:13px;">  <span title="(integer) VersionPriority controls the ordering of this API version inside of its group.  Must be greater than zero. The primary sort is based on VersionPriority, ordered highest to lowest (20 before 10). The secondary sort is based on the alphabetical comparison of the name of the object.  (v1.bar before v1.foo) Since it&#39;s inside of a group, the number can be small, probably in the 10s.">versionPriority</span>:
+</div><div style="margin-left:13px;">  <span title="(integer) VersionPriority controls the ordering of this API version inside of its group.  Must be greater than zero. The primary sort is based on VersionPriority, ordered highest to lowest (20 before 10). Since it&#39;s inside of a group, the number can be small, probably in the 10s. In case of equal version priorities, the version string will be used to compute the order inside a group. If the version string is &#34;kube-like&#34;, it will sort above non &#34;kube-like&#34; version strings, which are ordered lexicographically. &#34;Kube-like&#34; versions start with a &#34;v&#34;, then are followed by a number (the major version), then optionally the string &#34;alpha&#34; or &#34;beta&#34; and another number (the minor version). These are sorted first by GA &gt; beta &gt; alpha (where GA is a version with no suffix such as beta or alpha), and then by comparing major version, then minor version. An example sorted list of versions: v10, v2, v1, v11beta2, v10beta3, v3beta1, v12alpha1, v11alpha2, foo1, foo10.">versionPriority</span>:
 </div></details><details><summary><span title="(v1beta1.APIServiceStatus) Status contains derived information about an API server">status</span>:
 </summary><details><summary>  <span title="(array) Current service state of apiService.">conditions</span>:
 </summary><div style="margin-left:13px;">  - <span title="(v1.Time) Last time the condition transitioned from one status to another.">lastTransitionTime</span>:
@@ -706,6 +706,59 @@ The server guarantees that the objects returned when using continue will be iden
 * application/vnd.kubernetes.protobuf
 
 
+[[Get-apis-apiregistration.k8s.io-v1beta1-apiservices-name-status]]
+=== Get status of a APIService
+Read status of the specified APIService
+
+==== HTTP request
+----
+GET /apis/apiregistration.k8s.io/v1beta1/apiservices/$NAME/status HTTP/1.1
+Authorization: Bearer $TOKEN
+Accept: application/json
+Connection: close
+----
+
+==== Curl request
+----
+$ curl -k \
+    -H "Authorization: Bearer $TOKEN" \
+    -H 'Accept: application/json' \
+    https://$ENDPOINT/apis/apiregistration.k8s.io/v1beta1/apiservices/$NAME/status
+----
+
+==== Path parameters
+[cols="1,5", options="header"]
+|===
+|Parameter|Description
+|name|name of the APIService
+|===
+
+==== Query parameters
+[cols="1,5", options="header"]
+|===
+|Parameter|Description
+|pretty|If 'true', then the output is pretty printed.
+|===
+
+==== Responses
+[cols="1,5", options="header"]
+|===
+|HTTP Code|Schema
+|200 OK|v1beta1.APIService
+|401 Unauthorized|
+|===
+
+==== Consumes
+
+* \*/*
+
+==== Produces
+
+* application/json
+* application/yaml
+* application/vnd.kubernetes.protobuf
+
+
 [[Put-apis-apiregistration.k8s.io-v1beta1-apiservices-name-status]]
 === Update status of a APIService
 Replace status of the specified APIService
@@ -776,6 +829,81 @@ EOF
 ==== Consumes
 
 * \*/*
+
+==== Produces
+
+* application/json
+* application/yaml
+* application/vnd.kubernetes.protobuf
+
+
+[[Patch-apis-apiregistration.k8s.io-v1beta1-apiservices-name-status]]
+=== Patch status of a APIService
+Partially update status of the specified APIService
+
+==== HTTP request
+----
+PATCH /apis/apiregistration.k8s.io/v1beta1/apiservices/$NAME/status HTTP/1.1
+Authorization: Bearer $TOKEN
+Accept: application/json
+Connection: close
+Content-Type: application/json-patch+json'
+
+{
+  ...
+}
+
+----
+
+==== Curl request
+----
+$ curl -k \
+    -X PATCH \
+    -d @- \
+    -H "Authorization: Bearer $TOKEN" \
+    -H 'Accept: application/json' \
+    -H 'Content-Type: application/json-patch+json' \
+    https://$ENDPOINT/apis/apiregistration.k8s.io/v1beta1/apiservices/$NAME/status <<'EOF'
+{
+  ...
+}
+EOF
+----
+
+==== HTTP body
+[cols="1,5", options="header"]
+|===
+|Parameter|Schema
+|body|v1.Patch
+|===
+
+==== Path parameters
+[cols="1,5", options="header"]
+|===
+|Parameter|Description
+|name|name of the APIService
+|===
+
+==== Query parameters
+[cols="1,5", options="header"]
+|===
+|Parameter|Description
+|pretty|If 'true', then the output is pretty printed.
+|===
+
+==== Responses
+[cols="1,5", options="header"]
+|===
+|HTTP Code|Schema
+|200 OK|v1beta1.APIService
+|401 Unauthorized|
+|===
+
+==== Consumes
+
+* application/json-patch+json
+* application/merge-patch+json
+* application/strategic-merge-patch+json
 
 ==== Produces
 

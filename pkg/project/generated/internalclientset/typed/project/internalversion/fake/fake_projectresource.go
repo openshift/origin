@@ -43,7 +43,7 @@ func (c *FakeProjects) List(opts v1.ListOptions) (result *project.ProjectList, e
 	if label == nil {
 		label = labels.Everything()
 	}
-	list := &project.ProjectList{}
+	list := &project.ProjectList{ListMeta: obj.(*project.ProjectList).ListMeta}
 	for _, item := range obj.(*project.ProjectList).Items {
 		if label.Matches(labels.Set(item.Labels)) {
 			list.Items = append(list.Items, item)
