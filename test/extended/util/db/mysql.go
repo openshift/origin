@@ -36,8 +36,13 @@ func (m MySQL) IsReady(oc *util.CLI) (bool, error) {
 	if err != nil {
 		return false, err
 	}
+	masterConf, err := getPodConfig(oc.KubeClient().CoreV1().Pods(oc.Namespace()), m.masterPodName)
+	if err != nil {
+		return false, err
+	}
+
 	out, err := oc.Run("exec").Args(m.podName, "-c", conf.Container, "--", "bash", "-c",
-		"mysqladmin -h localhost -uroot ping").Output()
+		fmt.Sprintf("mysqladmin -h localhost -u%s -p%s ping", masterConf.Env["MYSQL_USER"], masterConf.Env["MYSQL_PASSWORD"])).Output()
 	if err != nil {
 		switch err.(type) {
 		case *util.ExitError, *exec.ExitError:
