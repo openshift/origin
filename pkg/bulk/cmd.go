@@ -3,6 +3,7 @@ package bulk
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -124,23 +125,28 @@ func NewPrintNameOrErrorAfterIndent(short bool, operation string, out, errs io.W
 	}
 }
 
-func printSuccess(mapper meta.RESTMapper, shortOutput bool, out io.Writer, resource, name string, dryRun bool, operation string) {
-	resource, _ = mapper.ResourceSingularizer(resource)
+func printSuccess(shortOutput bool, out io.Writer, gvk schema.GroupVersionKind, name string, dryRun bool, operation string) {
+	kindString := gvk.Kind
+	if len(gvk.Group) > 0 {
+		kindString = gvk.Kind + "." + gvk.Group
+	}
+	kindString = strings.ToLower(kindString)
+
 	dryRunMsg := ""
 	if dryRun {
 		dryRunMsg = " (dry run)"
 	}
 	if shortOutput {
 		// -o name: prints resource/name
-		if len(resource) > 0 {
-			fmt.Fprintf(out, "%s/%s\n", resource, name)
+		if len(kindString) > 0 {
+			fmt.Fprintf(out, "%s/%s\n", kindString, name)
 		} else {
 			fmt.Fprintf(out, "%s\n", name)
 		}
 	} else {
 		// understandable output by default
-		if len(resource) > 0 {
-			fmt.Fprintf(out, "%s \"%s\" %s%s\n", resource, name, operation, dryRunMsg)
+		if len(kindString) > 0 {
+			fmt.Fprintf(out, "%s \"%s\" %s%s\n", kindString, name, operation, dryRunMsg)
 		} else {
 			fmt.Fprintf(out, "\"%s\" %s%s\n", name, operation, dryRunMsg)
 		}
@@ -283,12 +289,12 @@ func (b BulkAction) WithMessageAndPrefix(action, individual string, prefixForErr
 	switch {
 	// TODO: this should be b printer
 	case b.Output == "":
-		b.Bulk.After = NewPrintNameOrErrorAfterIndent(b.Bulk.Mapper, false, individual, b.Out, b.ErrOut, b.DryRun, b.DefaultIndent(), prefixForError)
+		b.Bulk.After = NewPrintNameOrErrorAfterIndent(false, individual, b.Out, b.ErrOut, b.DryRun, b.DefaultIndent(), prefixForError)
 	// TODO: needs to be unified with the name printer (incremental vs exact execution), possibly by creating b synthetic printer?
 	case b.Output == "name":
-		b.Bulk.After = NewPrintNameOrErrorAfterIndent(b.Bulk.Mapper, true, individual, b.Out, b.ErrOut, b.DryRun, b.DefaultIndent(), prefixForError)
+		b.Bulk.After = NewPrintNameOrErrorAfterIndent(true, individual, b.Out, b.ErrOut, b.DryRun, b.DefaultIndent(), prefixForError)
 	default:
-		b.Bulk.After = NewPrintErrorAfter(b.Bulk.Mapper, b.ErrOut, prefixForError)
+		b.Bulk.After = NewPrintErrorAfter(b.ErrOut, prefixForError)
 		if b.StopOnError {
 			b.Bulk.After = HaltOnError(b.Bulk.After)
 		}

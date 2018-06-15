@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 
+	"github.com/openshift/origin/pkg/oc/util/ocscheme"
 	"github.com/spf13/cobra"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -138,7 +139,7 @@ func RunExport(f kcmdutil.Factory, exporter Exporter, in io.Reader, out io.Write
 			converted := false
 
 			// convert unstructured object to runtime.Object
-			data, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(), info.Object)
+			data, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(ocscheme.PrintingInternalScheme.PrioritizedVersionsAllGroups()...), info.Object)
 			if err != nil {
 				errs = append(errs, err)
 				continue
@@ -163,7 +164,10 @@ func RunExport(f kcmdutil.Factory, exporter Exporter, in io.Reader, out io.Write
 			// If object cannot be converted to an external version, ignore error and proceed with
 			// internal version.
 			if converted {
-				if data, err = runtime.Encode(legacyscheme.Codecs.LegacyCodec(outputVersion), info.Object); err == nil {
+				if data, err = runtime.Encode(
+					legacyscheme.Codecs.LegacyCodec(
+						append([]schema.GroupVersion{outputVersion}, ocscheme.PrintingInternalScheme.PrioritizedVersionsAllGroups()...)...,
+					), info.Object); err == nil {
 					external, err := runtime.Decode(legacyscheme.Codecs.UniversalDeserializer(), data)
 					if err != nil {
 						errs = append(errs, fmt.Errorf("error: failed to convert resource to external version: %v", err))
@@ -188,16 +192,17 @@ func RunExport(f kcmdutil.Factory, exporter Exporter, in io.Reader, out io.Write
 	var result runtime.Object = &kapi.List{
 		Items: objects,
 	}
+	if len(objects) == 1 {
+		result = objects[0]
+	}
 	if len(asTemplate) > 0 {
 		template := &templateapi.Template{
 			Objects: objects,
 		}
 		template.Name = asTemplate
-		result, err = legacyscheme.Scheme.ConvertToVersion(template, outputVersion)
-		if err != nil {
-			return err
-		}
+		result = template
 	}
+	result = kcmdutil.AsDefaultVersionedOrOriginal(result, nil)
 
 	// use YAML as the default format
 	outputFormat := kcmdutil.GetFlagString(cmd, "output")
@@ -215,7 +220,7 @@ func RunExport(f kcmdutil.Factory, exporter Exporter, in io.Reader, out io.Write
 	printOpts.AllowMissingKeys = kcmdutil.GetFlagBool(cmd, "allow-missing-template-keys")
 
 	p, err := kprinters.GetStandardPrinter(
-		legacyscheme.Scheme, legacyscheme.Codecs.LegacyCodec(outputVersion), decoders, *printOpts)
+		legacyscheme.Scheme, legacyscheme.Codecs.LegacyCodec(append([]schema.GroupVersion{outputVersion}, ocscheme.PrintingInternalScheme.PrioritizedVersionsAllGroups()...)...), decoders, *printOpts)
 
 	if err != nil {
 		return err

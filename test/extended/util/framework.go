@@ -401,7 +401,7 @@ func StartBuild(oc *CLI, args ...string) (stdout, stderr string, err error) {
 	return stdout, stderr, err
 }
 
-var buildPathPattern = regexp.MustCompile(`^build/([\w\-\._]+)$`)
+var buildPathPattern = regexp.MustCompile(`^build\.build\.openshift\.io/([\w\-\._]+)$`)
 
 type LogDumperFunc func(oc *CLI, br *BuildResult) (string, error)
 

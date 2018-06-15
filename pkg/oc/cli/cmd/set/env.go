@@ -355,7 +355,7 @@ func (o *EnvOptions) RunEnv(f kcmdutil.Factory) error {
 					resolveErrors := map[string][]string{}
 					store := envresolve.NewResourceStore()
 
-					fmt.Fprintf(o.Out, "# %s %s, container %s\n", info.Mapping.Resource, info.Name, c.Name)
+					fmt.Fprintf(o.Out, "# %s %s, container %s\n", info.Mapping.Resource.Resource, info.Name, c.Name)
 					for _, env := range c.Env {
 						// Print the simple value
 						if env.ValueFrom == nil {
@@ -415,7 +415,7 @@ func (o *EnvOptions) RunEnv(f kcmdutil.Factory) error {
 				}
 				*vars = updateEnv(*vars, env, remove)
 				if o.List {
-					fmt.Fprintf(o.Out, "# %s %s\n", info.Mapping.Resource, info.Name)
+					fmt.Fprintf(o.Out, "# %s %s\n", info.Mapping.Resource.Resource, info.Name)
 					for _, env := range *vars {
 						fmt.Fprintf(o.Out, "%s=%s\n", env.Name, env.Value)
 					}
@@ -433,7 +433,7 @@ func (o *EnvOptions) RunEnv(f kcmdutil.Factory) error {
 		}
 	}
 	if one && skipped == len(infos) {
-		return fmt.Errorf("%s/%s is not a pod or does not have a pod template", infos[0].Mapping.Resource, infos[0].Name)
+		return fmt.Errorf("%s/%s is not a pod or does not have a pod template", infos[0].Mapping.Resource.Resource, infos[0].Name)
 	}
 	if len(errored) == len(infos) {
 		return kcmdutil.ErrExit
@@ -444,7 +444,7 @@ func (o *EnvOptions) RunEnv(f kcmdutil.Factory) error {
 	}
 
 	if len(o.Output) > 0 || o.Local || kcmdutil.GetDryRunFlag(o.Cmd) {
-		return clientcmd.PrintResourceInfos(f, o.Cmd, o.Local, infos, o.Out)
+		return clientcmd.PrintResourceInfos(o.Cmd, infos, o.Out)
 	}
 
 	failed := false

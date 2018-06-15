@@ -5,11 +5,12 @@ import (
 	"io"
 
 	"github.com/spf13/cobra"
-
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
+	routev1 "github.com/openshift/api/route/v1"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/route"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
@@ -161,6 +162,7 @@ func CreateEdgeRoute(f kcmdutil.Factory, out io.Writer, cmd *cobra.Command, args
 			return err
 		}
 	}
+	actualRoute.SetGroupVersionKind(routev1.SchemeGroupVersion.WithKind("Route"))
 
 	shortOutput := kcmdutil.GetFlagString(cmd, "output") == "name"
 	if !shortOutput && kcmdutil.GetFlagString(cmd, "output") != "" {
@@ -269,6 +271,8 @@ func CreatePassthroughRoute(f kcmdutil.Factory, out io.Writer, cmd *cobra.Comman
 			return err
 		}
 	}
+
+	actualRoute.SetGroupVersionKind(routev1.SchemeGroupVersion.WithKind("Route"))
 
 	shortOutput := kcmdutil.GetFlagString(cmd, "output") == "name"
 	if !shortOutput && kcmdutil.GetFlagString(cmd, "output") != "" {
@@ -419,6 +423,7 @@ func CreateReencryptRoute(printFlags *genericclioptions.PrintFlags, f kcmdutil.F
 			return err
 		}
 	}
+	actualRoute.SetGroupVersionKind(routev1.SchemeGroupVersion.WithKind("Route"))
 
 	return printer.PrintObj(actualRoute, out)
 }

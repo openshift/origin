@@ -119,7 +119,7 @@ func (o CancelOptions) Run() error {
 	for _, info := range o.Infos {
 		config, ok := info.Object.(*appsapi.DeploymentConfig)
 		if !ok {
-			allErrs = append(allErrs, kcmdutil.AddSourceToErr("cancelling", info.Source, fmt.Errorf("expected deployment configuration, got %s", info.Mapping.Resource)))
+			allErrs = append(allErrs, kcmdutil.AddSourceToErr("cancelling", info.Source, fmt.Errorf("expected deployment configuration, got %s", info.Mapping.Resource.Resource)))
 			continue
 		}
 		if config.Spec.Paused {

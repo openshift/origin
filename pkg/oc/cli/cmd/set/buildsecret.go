@@ -202,7 +202,7 @@ func (o *BuildSecretOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, ar
 
 	o.Output = kcmdutil.GetFlagString(cmd, "output")
 	o.PrintObject = func(infos []*resource.Info) error {
-		return clientcmd.PrintResourceInfos(f, cmd, o.Local, infos, o.Out)
+		return clientcmd.PrintResourceInfos(cmd, infos, o.Out)
 	}
 
 	o.Encoder = kcmdutil.InternalVersionJSONEncoder()

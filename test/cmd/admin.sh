@@ -117,7 +117,7 @@ echo "certs: ok"
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/admin/groups"
-os::cmd::expect_success_and_text 'oc adm groups new shortoutputgroup -o name' 'group/shortoutputgroup'
+os::cmd::expect_success_and_text 'oc adm groups new shortoutputgroup -o name' 'group.user.openshift.io/shortoutputgroup'
 os::cmd::expect_failure_and_text 'oc adm groups new shortoutputgroup' 'groups.user.openshift.io "shortoutputgroup" already exists'
 os::cmd::expect_failure_and_text 'oc adm groups new errorgroup -o blah' 'error: output format "blah" not recognized'
 os::cmd::expect_failure_and_text 'oc get groups/errorgroup' 'groups.user.openshift.io "errorgroup" not found'
@@ -479,6 +479,7 @@ os::cmd::expect_success 'oc adm policy add-cluster-role-to-user --rolebinding-na
 os::cmd::expect_success 'oc adm policy add-cluster-role-to-group --rolebinding-name=cluster-admin cluster-admin cascaded-group orphaned-group'
 
 # Delete users
+os::cmd::expect_success 'oc adm prune auth user/cascaded-user'
 os::cmd::expect_success 'oc delete user  cascaded-user'
 os::cmd::expect_success 'oc delete user  orphaned-user  --cascade=false'
 # Verify all identities remain
@@ -511,7 +512,7 @@ os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/admin/serviceaccounts"
 # create a new service account
-os::cmd::expect_success_and_text 'oc create serviceaccount my-sa-name' 'serviceaccount "my-sa-name" created'
+os::cmd::expect_success_and_text 'oc create serviceaccount my-sa-name' 'serviceaccount/my-sa-name created'
 os::cmd::expect_success 'oc get sa my-sa-name'
 
 # extract token and ensure it links us back to the service account

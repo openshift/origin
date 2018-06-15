@@ -217,7 +217,7 @@ func (o *BackendsOptions) Run() error {
 		return UpdateBackendsForObject(info.Object, o.Transform.Apply)
 	})
 	if singleItemImplied && len(patches) == 0 {
-		return fmt.Errorf("%s/%s is not a deployment config or build config", infos[0].Mapping.Resource, infos[0].Name)
+		return fmt.Errorf("%s/%s is not a deployment config or build config", infos[0].Mapping.Resource.Resource, infos[0].Name)
 	}
 	if len(o.Output) > 0 || o.Local || kcmdutil.GetDryRunFlag(o.Cmd) {
 		var object runtime.Object
@@ -239,12 +239,12 @@ func (o *BackendsOptions) Run() error {
 		info := patch.Info
 		if patch.Err != nil {
 			failed = true
-			fmt.Fprintf(o.Err, "error: %s/%s %v\n", info.Mapping.Resource, info.Name, patch.Err)
+			fmt.Fprintf(o.Err, "error: %s/%s %v\n", info.Mapping.Resource.Resource, info.Name, patch.Err)
 			continue
 		}
 
 		if string(patch.Patch) == "{}" || len(patch.Patch) == 0 {
-			fmt.Fprintf(o.Err, "info: %s %q was not changed\n", info.Mapping.Resource, info.Name)
+			fmt.Fprintf(o.Err, "info: %s %q was not changed\n", info.Mapping.Resource.Resource, info.Name)
 			continue
 		}
 
@@ -282,17 +282,17 @@ func (o *BackendsOptions) printBackends(infos []*resource.Info) error {
 			for _, b := range backends.Backends {
 				switch {
 				case b.Weight == nil:
-					fmt.Fprintf(w, "%s/%s\t%s\t%s\t%s\n", info.Mapping.Resource, info.Name, b.Kind, b.Name, "")
+					fmt.Fprintf(w, "%s/%s\t%s\t%s\t%s\n", info.Mapping.Resource.Resource, info.Name, b.Kind, b.Name, "")
 				case totalWeight == 0, len(backends.Backends) == 1 && totalWeight != 0:
-					fmt.Fprintf(w, "%s/%s\t%s\t%s\t%d\n", info.Mapping.Resource, info.Name, b.Kind, b.Name, totalWeight)
+					fmt.Fprintf(w, "%s/%s\t%s\t%s\t%d\n", info.Mapping.Resource.Resource, info.Name, b.Kind, b.Name, totalWeight)
 				default:
-					fmt.Fprintf(w, "%s/%s\t%s\t%s\t%d (%d%%)\n", info.Mapping.Resource, info.Name, b.Kind, b.Name, *b.Weight, *b.Weight*100/totalWeight)
+					fmt.Fprintf(w, "%s/%s\t%s\t%s\t%d (%d%%)\n", info.Mapping.Resource.Resource, info.Name, b.Kind, b.Name, *b.Weight, *b.Weight*100/totalWeight)
 				}
 			}
 			return nil
 		})
 		if err != nil {
-			fmt.Fprintf(w, "%s/%s\t%s\t%s\t%d\n", info.Mapping.Resource, info.Name, "", "<error>", 0)
+			fmt.Fprintf(w, "%s/%s\t%s\t%s\t%d\n", info.Mapping.Resource.Resource, info.Name, "", "<error>", 0)
 		}
 	}
 	return nil

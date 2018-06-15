@@ -632,7 +632,6 @@ func RunCmdRouter(f kcmdutil.Factory, cmd *cobra.Command, out, errout io.Writer,
 				return err
 			}
 			fmt.Fprintf(errout, "error: %v\n", err)
-			defaultOutputErr = kcmdutil.ErrExit
 		}
 	}
 
@@ -831,7 +830,7 @@ func RunCmdRouter(f kcmdutil.Factory, cmd *cobra.Command, out, errout io.Writer,
 	list := &kapi.List{Items: objects}
 
 	if cfg.Action.ShouldPrint() {
-		fn := print.VersionedPrintObject(legacyscheme.Scheme, legacyscheme.Registry, kcmdutil.PrintObject, cmd, out)
+		fn := print.VersionedPrintObject(kcmdutil.PrintObject, cmd, out)
 		if err := fn(list); err != nil {
 			return fmt.Errorf("unable to print object: %v", err)
 		}

@@ -3,25 +3,33 @@ package clientcmd
 import (
 	"io"
 
+	"github.com/spf13/cobra"
+
 	corev1 "k8s.io/api/core/v1"
-	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 )
 
 // PrintResourceInfos receives a list of resource infos and prints versioned objects if a generic output format was specified
 // otherwise, it iterates through info objects, printing each resource with a unique printer for its mapping
-func PrintResourceInfos(printer printers.ResourcePrinter, infos []*resource.Info, out io.Writer) error {
-	allErrs := []error{}
-	for i := range infos {
-		if err := printer.PrintObj(kcmdutil.AsDefaultVersionedOrOriginal(infos[i].Object, infos[i].Mapping), out); err != nil {
-			allErrs = append(allErrs, err)
-		}
+func PrintResourceInfos(cmd *cobra.Command, infos []*resource.Info, out io.Writer) error {
+	// mirrors PrintResourceInfoForCommand upstream
+	opts := kcmdutil.ExtractCmdPrintOptions(cmd, false)
+	printer, err := kcmdutil.PrinterForOptions(opts)
+	if err != nil {
+		return nil
 	}
-	return utilerrors.NewAggregate(allErrs)
+	if len(infos) == 1 {
+		return printer.PrintObj(kcmdutil.AsDefaultVersionedOrOriginal(infos[0].Object, infos[0].Mapping), out)
+	}
+
+	list := &kapi.List{}
+	for i := range infos {
+		list.Items = append(list.Items, kcmdutil.AsDefaultVersionedOrOriginal(infos[i].Object, nil))
+	}
+	return printer.PrintObj(kcmdutil.AsDefaultVersionedOrOriginal(list, nil), out)
 }
 
 func ConvertInteralPodSpecToExternal(inFn func(*kapi.PodSpec) error) func(*corev1.PodSpec) error {

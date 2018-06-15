@@ -355,7 +355,7 @@ func (v *VolumeOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command) error {
 
 	v.Output = kcmdutil.GetFlagString(cmd, "output")
 	v.PrintObject = func(infos []*resource.Info) error {
-		return clientcmd.PrintResourceInfos(f, cmd, v.Local, infos, v.Out)
+		return clientcmd.PrintResourceInfos(cmd, infos, v.Out)
 	}
 
 	v.Cmd = cmd

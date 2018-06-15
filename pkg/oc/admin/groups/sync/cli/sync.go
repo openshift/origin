@@ -15,7 +15,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	kyaml "k8s.io/apimachinery/pkg/util/yaml"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -430,7 +429,7 @@ func (o *SyncOptions) Run(cmd *cobra.Command, f kcmdutil.Factory) error {
 	for _, item := range openshiftGroups {
 		list.Items = append(list.Items, item)
 	}
-	fn := print.VersionedPrintObject(legacyscheme.Scheme, legacyscheme.Registry, kcmdutil.PrintObject, cmd, o.Out)
+	fn := print.VersionedPrintObject(kcmdutil.PrintObject, cmd, o.Out)
 	if err := fn(list); err != nil {
 		return err
 	}

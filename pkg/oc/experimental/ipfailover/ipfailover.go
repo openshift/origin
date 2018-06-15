@@ -218,7 +218,7 @@ func Run(f kcmdutil.Factory, options *ipfailover.IPFailoverConfigCmdOptions, cmd
 	list.Items = append(configList, list.Items...)
 
 	if options.Action.ShouldPrint() {
-		return print.VersionedPrintObject(legacyscheme.Scheme, legacyscheme.Registry, kcmdutil.PrintObject, cmd, options.Action.Out)(list)
+		return print.VersionedPrintObject(kcmdutil.PrintObject, cmd, options.Action.Out)(list)
 	}
 
 	if errs := options.Action.WithMessage(fmt.Sprintf("Creating IP failover %s", name), "created").Run(list, namespace); len(errs) > 0 {

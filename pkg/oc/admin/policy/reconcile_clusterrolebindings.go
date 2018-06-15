@@ -14,7 +14,6 @@ import (
 	kutilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
@@ -190,7 +189,7 @@ func (o *ReconcileClusterRoleBindingsOptions) RunReconcileClusterRoleBindings(cm
 		for _, item := range changedClusterRoleBindings {
 			list.Items = append(list.Items, item)
 		}
-		fn := print.VersionedPrintObject(legacyscheme.Scheme, legacyscheme.Registry, kcmdutil.PrintObject, cmd, o.Out)
+		fn := print.VersionedPrintObject(kcmdutil.PrintObject, cmd, o.Out)
 		if err := fn(list); err != nil {
 			errs = append(errs, err)
 			return kutilerrors.NewAggregate(errs)

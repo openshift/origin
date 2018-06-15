@@ -492,7 +492,7 @@ func (opts *RegistryOptions) RunCmdRegistry() error {
 
 	if opts.Config.Action.ShouldPrint() {
 		opts.cmd.Flag("output-version").Value.Set("extensions/v1beta1,v1")
-		fn := print.VersionedPrintObject(legacyscheme.Scheme, legacyscheme.Registry, kcmdutil.PrintObject, opts.cmd, opts.out)
+		fn := print.VersionedPrintObject(kcmdutil.PrintObject, opts.cmd, opts.out)
 		if err := fn(list); err != nil {
 			return fmt.Errorf("unable to print object: %v", err)
 		}

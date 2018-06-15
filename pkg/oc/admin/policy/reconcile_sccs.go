@@ -12,7 +12,6 @@ import (
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
@@ -164,7 +163,7 @@ func (o *ReconcileSCCOptions) RunReconcileSCCs(cmd *cobra.Command, f kcmdutil.Fa
 		for _, item := range changedSCCs {
 			list.Items = append(list.Items, item)
 		}
-		fn := print.VersionedPrintObject(legacyscheme.Scheme, legacyscheme.Registry, kcmdutil.PrintObject, cmd, o.Out)
+		fn := print.VersionedPrintObject(kcmdutil.PrintObject, cmd, o.Out)
 		if err := fn(list); err != nil {
 			return err
 		}

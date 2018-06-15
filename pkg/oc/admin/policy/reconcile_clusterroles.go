@@ -13,7 +13,6 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -173,7 +172,7 @@ func (o *ReconcileClusterRolesOptions) RunReconcileClusterRoles(cmd *cobra.Comma
 		for _, item := range changedClusterRoles {
 			list.Items = append(list.Items, item)
 		}
-		fn := print.VersionedPrintObject(legacyscheme.Scheme, legacyscheme.Registry, kcmdutil.PrintObject, cmd, o.Out)
+		fn := print.VersionedPrintObject(kcmdutil.PrintObject, cmd, o.Out)
 		if err := fn(list); err != nil {
 			return err
 		}
