@@ -10,7 +10,7 @@
 #
 # The standard name for this image is openshift/origin-docker-builder
 #
-FROM openshift/origin-control-plane
+FROM openshift/origin-cli
 
 RUN INSTALL_PKGS=" \
       which tar wget hostname sysvinit-tools util-linux \

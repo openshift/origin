@@ -3,7 +3,7 @@
 #
 # The standard name for this image is openshift/origin-recycler
 #
-FROM openshift/origin-control-plane
+FROM openshift/origin-cli
 
 LABEL io.k8s.display-name="OpenShift Origin Volume Recycler" \
       io.k8s.description="This is a component of OpenShift Origin and is used to prepare persistent volumes for reuse after they are deleted." \

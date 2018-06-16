@@ -407,11 +407,16 @@ readonly -f os::build::release_sha
 function os::build::make_openshift_binary_symlinks() {
   platform=$(os::build::host_platform)
   if [[ -f "${OS_OUTPUT_BINPATH}/${platform}/openshift" ]]; then
-    for linkname in "${OPENSHIFT_BINARY_SYMLINKS[@]}"; do
-      ln -sf openshift "${OS_OUTPUT_BINPATH}/${platform}/${linkname}"
-    done
+    if [[ -n "${OPENSHIFT_BINARY_SYMLINKS-}" ]]; then
+      for linkname in "${OPENSHIFT_BINARY_SYMLINKS[@]}"; do
+        ln -sf openshift "${OS_OUTPUT_BINPATH}/${platform}/${linkname}"
+      done
+    fi
   fi
   if [[ -f "${OS_OUTPUT_BINPATH}/${platform}/oc" ]]; then
+    for linkname in "${OC_BINARY_SYMLINKS[@]}"; do
+      ln -sf oc "${OS_OUTPUT_BINPATH}/${platform}/${linkname}"
+    done
     for linkname in "${OC_BINARY_COPY[@]}"; do
       ln -sf oc "${OS_OUTPUT_BINPATH}/${platform}/${linkname}"
     done

@@ -16,6 +16,10 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
+	"github.com/openshift/origin/pkg/cmd/infra/builder"
+	"github.com/openshift/origin/pkg/cmd/infra/deployer"
+	irouter "github.com/openshift/origin/pkg/cmd/infra/router"
+	"github.com/openshift/origin/pkg/cmd/recycle"
 	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/term"
 	"github.com/openshift/origin/pkg/oc/admin"
@@ -316,6 +320,24 @@ func CommandFor(basename string) *cobra.Command {
 	switch basename {
 	case "kubectl":
 		cmd = kubecmd.NewKubectlCommand(kcmdutil.NewFactory(nil), in, out, errout)
+	case "openshift-deploy":
+		cmd = deployer.NewCommandDeployer(basename)
+	case "openshift-sti-build":
+		cmd = builder.NewCommandS2IBuilder(basename)
+	case "openshift-docker-build":
+		cmd = builder.NewCommandDockerBuilder(basename)
+	case "openshift-git-clone":
+		cmd = builder.NewCommandGitClone(basename)
+	case "openshift-manage-dockerfile":
+		cmd = builder.NewCommandManageDockerfile(basename)
+	case "openshift-extract-image-content":
+		cmd = builder.NewCommandExtractImageContent(basename)
+	case "openshift-router":
+		cmd = irouter.NewCommandTemplateRouter(basename)
+	case "openshift-f5-router":
+		cmd = irouter.NewCommandF5Router(basename)
+	case "openshift-recycle":
+		cmd = recycle.NewCommandRecycle(basename, out)
 	default:
 		// we only need this change for `oc`.  `kubectl` should behave as close to `kubectl` as we can
 		resource.OAPIToGroupified = legacygroupification.OAPIToGroupified

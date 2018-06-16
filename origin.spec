@@ -300,12 +300,11 @@ for cmd in \
     openshift-extract-image-content \
     openshift-f5-router \
     openshift-recycle \
-    openshift-router
+    openshift-router \
+    kubectl
 do
-    ln -s openshift %{buildroot}%{_bindir}/$cmd
+    ln -s oc %{buildroot}%{_bindir}/$cmd
 done
-
-ln -s oc %{buildroot}%{_bindir}/kubectl
 
 install -d -m 0755 %{buildroot}%{_sysconfdir}/origin/{master,node}
 
@@ -364,15 +363,6 @@ chmod 0744 $RPM_BUILD_ROOT/usr/sbin/%{name}-docker-excluder
 %doc README.md
 %license LICENSE
 %{_bindir}/openshift
-%{_bindir}/openshift-deploy
-%{_bindir}/openshift-f5-router
-%{_bindir}/openshift-recycle
-%{_bindir}/openshift-router
-%{_bindir}/openshift-docker-build
-%{_bindir}/openshift-sti-build
-%{_bindir}/openshift-git-clone
-%{_bindir}/openshift-extract-image-content
-%{_bindir}/openshift-manage-dockerfile
 %{_sharedstatedir}/origin
 %{_sysconfdir}/bash_completion.d/openshift
 %defattr(-,root,root,0700)
@@ -420,6 +410,15 @@ chmod 0744 $RPM_BUILD_ROOT/usr/sbin/%{name}-docker-excluder
 %{_bindir}/oc
 %{_bindir}/kubectl
 %{_bindir}/oadm
+%{_bindir}/openshift-deploy
+%{_bindir}/openshift-docker-build
+%{_bindir}/openshift-sti-build
+%{_bindir}/openshift-git-clone
+%{_bindir}/openshift-extract-image-content
+%{_bindir}/openshift-manage-dockerfile
+%{_bindir}/openshift-f5-router
+%{_bindir}/openshift-recycle
+%{_bindir}/openshift-router
 %{_sysconfdir}/bash_completion.d/oc
 %{_mandir}/man1/oc*
 
