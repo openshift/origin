@@ -12,9 +12,10 @@ import (
 	godigest "github.com/opencontainers/go-digest"
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	"github.com/openshift/origin/pkg/image/apis/image/docker10"
 )
 
-func fillImageLayers(image *imageapi.Image, manifest imageapi.DockerImageManifest) error {
+func fillImageLayers(image *imageapi.Image, manifest docker10.DockerImageManifest) error {
 	if len(image.DockerImageLayers) != 0 {
 		// DockerImageLayers is already filled by the registry.
 		return nil
@@ -30,7 +31,7 @@ func fillImageLayers(image *imageapi.Image, manifest imageapi.DockerImageManifes
 		for i, obj := range manifest.History {
 			layer := manifest.FSLayers[i]
 
-			var size imageapi.DockerV1CompatibilityImageSize
+			var size docker10.DockerV1CompatibilityImageSize
 			if err := json.Unmarshal([]byte(obj.DockerV1Compatibility), &size); err != nil {
 				size.Size = 0
 			}
@@ -80,7 +81,7 @@ func ImageWithMetadata(image *imageapi.Image) error {
 		return nil
 	}
 
-	manifest := imageapi.DockerImageManifest{}
+	manifest := docker10.DockerImageManifest{}
 	if err := json.Unmarshal([]byte(image.DockerImageManifest), &manifest); err != nil {
 		return err
 	}
@@ -99,21 +100,14 @@ func ImageWithMetadata(image *imageapi.Image) error {
 			return fmt.Errorf("the image %s (%s) has a schema 1 manifest, but it doesn't have history", image.Name, image.DockerImageReference)
 		}
 
-		v1Metadata := imageapi.DockerV1CompatibilityImage{}
+		v1Metadata := docker10.DockerV1CompatibilityImage{}
 		if err := json.Unmarshal([]byte(manifest.History[0].DockerV1Compatibility), &v1Metadata); err != nil {
 			return err
 		}
 
-		image.DockerImageMetadata.ID = v1Metadata.ID
-		image.DockerImageMetadata.Parent = v1Metadata.Parent
-		image.DockerImageMetadata.Comment = v1Metadata.Comment
-		image.DockerImageMetadata.Created = v1Metadata.Created
-		image.DockerImageMetadata.Container = v1Metadata.Container
-		image.DockerImageMetadata.ContainerConfig = v1Metadata.ContainerConfig
-		image.DockerImageMetadata.DockerVersion = v1Metadata.DockerVersion
-		image.DockerImageMetadata.Author = v1Metadata.Author
-		image.DockerImageMetadata.Config = v1Metadata.Config
-		image.DockerImageMetadata.Architecture = v1Metadata.Architecture
+		if err := imageapi.Convert_compatibility_to_api_DockerImage(&v1Metadata, &image.DockerImageMetadata); err != nil {
+			return err
+		}
 	case 2:
 		image.DockerImageManifestMediaType = schema2.MediaTypeManifest
 
@@ -121,21 +115,16 @@ func ImageWithMetadata(image *imageapi.Image) error {
 			return fmt.Errorf("dockerImageConfig must not be empty for manifest schema 2")
 		}
 
-		config := imageapi.DockerImageConfig{}
+		config := docker10.DockerImageConfig{}
 		if err := json.Unmarshal([]byte(image.DockerImageConfig), &config); err != nil {
 			return fmt.Errorf("failed to parse dockerImageConfig: %v", err)
 		}
 
+		if err := imageapi.Convert_imageconfig_to_api_DockerImage(&config, &image.DockerImageMetadata); err != nil {
+			return err
+		}
 		image.DockerImageMetadata.ID = manifest.Config.Digest
-		image.DockerImageMetadata.Parent = config.Parent
-		image.DockerImageMetadata.Comment = config.Comment
-		image.DockerImageMetadata.Created = config.Created
-		image.DockerImageMetadata.Container = config.Container
-		image.DockerImageMetadata.ContainerConfig = config.ContainerConfig
-		image.DockerImageMetadata.DockerVersion = config.DockerVersion
-		image.DockerImageMetadata.Author = config.Author
-		image.DockerImageMetadata.Config = config.Config
-		image.DockerImageMetadata.Architecture = config.Architecture
+
 	default:
 		return fmt.Errorf("unrecognized Docker image manifest schema %d for %q (%s)", manifest.SchemaVersion, image.Name, image.DockerImageReference)
 	}
