@@ -158,6 +158,7 @@
     "allowedImportPackageRoots": [
       "vendor/k8s.io/apimachinery",
       "github.com/openshift/origin/pkg/image/apis/image/internal",
+      "github.com/openshift/origin/pkg/image/apis/image/reference",
       "vendor/k8s.io/api",
       "vendor/github.com/openshift/api",
       "github.com/openshift/origin/pkg/api/apihelpers"

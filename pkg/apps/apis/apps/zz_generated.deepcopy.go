@@ -5,7 +5,6 @@
 package apps
 
 import (
-	image "github.com/openshift/origin/pkg/image/apis/image"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	core "k8s.io/kubernetes/pkg/apis/core"
 )
@@ -754,8 +753,7 @@ func (in *TemplateImage) DeepCopyInto(out *TemplateImage) {
 		if *in == nil {
 			*out = nil
 		} else {
-			*out = new(image.DockerImageReference)
-			**out = **in
+			*out = (*in).DeepCopy()
 		}
 	}
 	if in.From != nil {

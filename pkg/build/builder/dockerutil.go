@@ -27,7 +27,7 @@ import (
 	"github.com/openshift/source-to-image/pkg/tar"
 	s2iutil "github.com/openshift/source-to-image/pkg/util"
 
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	"github.com/openshift/origin/pkg/image/apis/image/reference"
 )
 
 var (
@@ -114,13 +114,13 @@ func pullImage(client DockerClient, name string, authConfig docker.AuthConfigura
 		glog.V(0).Infof("%s", s)
 	}
 
-	ref, err := imageapi.ParseDockerImageReference(name)
+	ref, err := reference.Parse(name)
 	if err != nil {
 		return err
 	}
 	tag := ref.ID
 	if len(ref.ID) == 0 {
-		tag = imageapi.DefaultImageTag
+		tag = "latest"
 		if len(ref.Tag) != 0 {
 			tag = ref.Tag
 		}

@@ -25,6 +25,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	"github.com/openshift/origin/pkg/image/apis/image/reference"
 )
 
 // this is the only entrypoint which deals in github.com/fsouza/go-dockerclient.Image and expects to use our conversion capability to coerce an external
@@ -146,11 +147,11 @@ func (c *client) Connect(name string, allowInsecure bool) (Connection, error) {
 // segment and docker API version.
 func normalizeDockerHubHost(host string, v2 bool) string {
 	switch host {
-	case imageapi.DockerDefaultRegistry, "www." + imageapi.DockerDefaultRegistry, imageapi.DockerDefaultV1Registry, imageapi.DockerDefaultV2Registry:
+	case reference.DockerDefaultRegistry, "www." + reference.DockerDefaultRegistry, reference.DockerDefaultV1Registry, reference.DockerDefaultV2Registry:
 		if v2 {
-			return imageapi.DockerDefaultV2Registry
+			return reference.DockerDefaultV2Registry
 		}
-		return imageapi.DockerDefaultV1Registry
+		return reference.DockerDefaultV1Registry
 	}
 	return host
 }
@@ -255,8 +256,8 @@ func newConnection(url url.URL, dialTimeout time.Duration, allowInsecure, enable
 
 // ImageTags returns the tags for the named Docker image repository.
 func (c *connection) ImageTags(namespace, name string) (map[string]string, error) {
-	if len(namespace) == 0 && imageapi.IsRegistryDockerHub(c.url.Host) {
-		namespace = imageapi.DockerDefaultNamespace
+	if len(namespace) == 0 && reference.IsRegistryDockerHub(c.url.Host) {
+		namespace = "library"
 	}
 	if len(name) == 0 {
 		return nil, fmt.Errorf("image name must be specified")
@@ -272,8 +273,8 @@ func (c *connection) ImageTags(namespace, name string) (map[string]string, error
 
 // ImageByID returns the specified image within the named Docker image repository
 func (c *connection) ImageByID(namespace, name, imageID string) (*Image, error) {
-	if len(namespace) == 0 && imageapi.IsRegistryDockerHub(c.url.Host) {
-		namespace = imageapi.DockerDefaultNamespace
+	if len(namespace) == 0 && reference.IsRegistryDockerHub(c.url.Host) {
+		namespace = "library"
 	}
 	if len(name) == 0 {
 		return nil, fmt.Errorf("image name must be specified")
@@ -290,15 +291,15 @@ func (c *connection) ImageByID(namespace, name, imageID string) (*Image, error) 
 
 // ImageByTag returns the specified image within the named Docker image repository
 func (c *connection) ImageByTag(namespace, name, tag string) (*Image, error) {
-	if len(namespace) == 0 && imageapi.IsRegistryDockerHub(c.url.Host) {
-		namespace = imageapi.DockerDefaultNamespace
+	if len(namespace) == 0 && reference.IsRegistryDockerHub(c.url.Host) {
+		namespace = "library"
 	}
 	if len(name) == 0 {
 		return nil, fmt.Errorf("image name must be specified")
 	}
 	searchTag := tag
 	if len(searchTag) == 0 {
-		searchTag = imageapi.DefaultImageTag
+		searchTag = "latest"
 	}
 
 	repo, err := c.getCachedRepository(fmt.Sprintf("%s/%s", namespace, name))
@@ -315,12 +316,12 @@ func (c *connection) ImageManifest(namespace, name, tag string) (string, []byte,
 	if len(name) == 0 {
 		return "", nil, fmt.Errorf("image name must be specified")
 	}
-	if len(namespace) == 0 && imageapi.IsRegistryDockerHub(c.url.Host) {
-		namespace = imageapi.DockerDefaultNamespace
+	if len(namespace) == 0 && reference.IsRegistryDockerHub(c.url.Host) {
+		namespace = "library"
 	}
 	searchTag := tag
 	if len(searchTag) == 0 {
-		searchTag = imageapi.DefaultImageTag
+		searchTag = "latest"
 	}
 
 	repo, err := c.getCachedRepository(fmt.Sprintf("%s/%s", namespace, name))

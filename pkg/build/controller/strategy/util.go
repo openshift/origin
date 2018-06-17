@@ -17,7 +17,7 @@ import (
 	buildapiv1 "github.com/openshift/api/build/v1"
 	"github.com/openshift/origin/pkg/api/apihelpers"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	"github.com/openshift/origin/pkg/image/apis/image/reference"
 )
 
 const (
@@ -242,7 +242,7 @@ func addOutputEnvVars(buildOutput *kapi.ObjectReference, output *[]v1.EnvVar) er
 	if buildOutput.Kind != "DockerImage" {
 		return fmt.Errorf("invalid build output kind %s, must be DockerImage", buildOutput.Kind)
 	}
-	ref, err := imageapi.ParseDockerImageReference(buildOutput.Name)
+	ref, err := reference.Parse(buildOutput.Name)
 	if err != nil {
 		return err
 	}
