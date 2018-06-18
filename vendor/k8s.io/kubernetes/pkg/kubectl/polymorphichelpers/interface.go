@@ -33,7 +33,8 @@ import (
 type LogsForObjectFunc func(restClientGetter genericclioptions.RESTClientGetter, object, options runtime.Object, timeout time.Duration) (*rest.Request, error)
 
 // LogsForObjectFn gives a way to easily override the function for unit testing if needed.
-var LogsForObjectFn LogsForObjectFunc = logsForObject
+// var LogsForObjectFn LogsForObjectFunc = logsForObject
+var LogsForObjectFn LogsForObjectFunc = logsForObjectOrigin
 
 // AttachableLogsForObjectFunc is a function type that can tell you how to get the pod for which to attach a given object
 type AttachableLogsForObjectFunc func(restClientGetter genericclioptions.RESTClientGetter, object runtime.Object, timeout time.Duration) (*api.Pod, error)
