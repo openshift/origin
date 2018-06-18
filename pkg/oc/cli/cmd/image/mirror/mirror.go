@@ -27,6 +27,8 @@ import (
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/registryclient"
@@ -78,11 +80,13 @@ var (
 `)
 )
 
-type pushOptions struct {
-	Out, ErrOut io.Writer
+// schema2ManifestOnly specifically requests a manifest list first
+var schema2ManifestOnly = distribution.WithManifestMediaTypes([]string{
+	manifestlist.MediaTypeManifestList,
+	schema2.MediaTypeManifest,
+})
 
-	Filenames []string
-
+type MirrorImageOptions struct {
 	Mappings []Mapping
 	OSFilter *regexp.Regexp
 
@@ -98,47 +102,49 @@ type pushOptions struct {
 	MaxPerRegistry int
 
 	AttemptS3BucketCopy []string
+
+	genericclioptions.IOStreams
+	resource.FilenameOptions
 }
 
-// schema2ManifestOnly specifically requests a manifest list first
-var schema2ManifestOnly = distribution.WithManifestMediaTypes([]string{
-	manifestlist.MediaTypeManifestList,
-	schema2.MediaTypeManifest,
-})
+func NewMirrorImageOptions(streams genericclioptions.IOStreams) *MirrorImageOptions {
+	return &MirrorImageOptions{
+		IOStreams:      streams,
+		MaxRegistry:    4,
+		MaxPerRegistry: 6,
+	}
+}
 
 // NewCommandMirrorImage copies images from one location to another.
-func NewCmdMirrorImage(name string, out, errOut io.Writer) *cobra.Command {
-	o := &pushOptions{}
-
+func NewCmdMirrorImage(name string, streams genericclioptions.IOStreams) *cobra.Command {
+	o := NewMirrorImageOptions(streams)
 	cmd := &cobra.Command{
 		Use:     "mirror SRC DST [DST ...]",
 		Short:   "Mirror images from one repository to another",
 		Long:    mirrorDesc,
 		Example: fmt.Sprintf(mirrorExample, name+" mirror"),
 		Run: func(c *cobra.Command, args []string) {
-			o.Out = out
-			o.ErrOut = errOut
 			kcmdutil.CheckErr(o.Complete(args))
 			kcmdutil.CheckErr(o.Run())
 		},
 	}
 
-	flag := cmd.Flags()
-	flag.BoolVar(&o.DryRun, "dry-run", o.DryRun, "Print the actions that would be taken and exit without writing to the destinations.")
-	flag.BoolVar(&o.Insecure, "insecure", o.Insecure, "Allow push and pull operations to registries to be made over HTTP")
-	flag.BoolVar(&o.SkipMount, "skip-mount", o.SkipMount, "Always push layers instead of cross-mounting them")
-	flag.BoolVar(&o.SkipMultipleScopes, "skip-multiple-scopes", o.SkipMultipleScopes, "Some registries do not support multiple scopes passed to the registry login.")
-	flag.StringVar(&o.FilterByOS, "filter-by-os", o.FilterByOS, "A regular expression to control which images are mirrored. Images will be passed as '<platform>/<architecture>[/<variant>]'.")
-	flag.BoolVar(&o.Force, "force", o.Force, "Attempt to write all layers and manifests even if they exist in the remote repository.")
-	flag.IntVar(&o.MaxRegistry, "max-registry", 4, "Number of concurrent registries to connect to at any one time.")
-	flag.IntVar(&o.MaxPerRegistry, "max-per-registry", 6, "Number of concurrent requests allowed per registry.")
-	flag.StringSliceVar(&o.AttemptS3BucketCopy, "s3-source-bucket", o.AttemptS3BucketCopy, "A list of bucket/path locations on S3 that may contain already uploaded blobs. Add [store] to the end to use the Docker registry path convention.")
-	flag.StringSliceVarP(&o.Filenames, "filename", "f", o.Filenames, "One or more files to read SRC=DST or SRC DST [DST ...] mappings from.")
+	usage := "one or more files to read SRC=DST or SRC DST [DST ...] mappings from"
+	kcmdutil.AddJsonFilenameFlag(cmd.Flags(), &o.Filenames, usage)
+	cmd.Flags().BoolVar(&o.DryRun, "dry-run", o.DryRun, "Print the actions that would be taken and exit without writing to the destinations.")
+	cmd.Flags().BoolVar(&o.Insecure, "insecure", o.Insecure, "Allow push and pull operations to registries to be made over HTTP")
+	cmd.Flags().BoolVar(&o.SkipMount, "skip-mount", o.SkipMount, "Always push layers instead of cross-mounting them")
+	cmd.Flags().BoolVar(&o.SkipMultipleScopes, "skip-multiple-scopes", o.SkipMultipleScopes, "Some registries do not support multiple scopes passed to the registry login.")
+	cmd.Flags().StringVar(&o.FilterByOS, "filter-by-os", o.FilterByOS, "A regular expression to control which images are mirrored. Images will be passed as '<platform>/<architecture>[/<variant>]'.")
+	cmd.Flags().BoolVar(&o.Force, "force", o.Force, "Attempt to write all layers and manifests even if they exist in the remote repository.")
+	cmd.Flags().IntVar(&o.MaxRegistry, "max-registry", o.MaxRegistry, "Number of concurrent registries to connect to at any one time.")
+	cmd.Flags().IntVar(&o.MaxPerRegistry, "max-per-registry", o.MaxPerRegistry, "Number of concurrent requests allowed per registry.")
+	cmd.Flags().StringSliceVar(&o.AttemptS3BucketCopy, "s3-source-bucket", o.AttemptS3BucketCopy, "A list of bucket/path locations on S3 that may contain already uploaded blobs. Add [store] to the end to use the Docker registry path convention.")
 
 	return cmd
 }
 
-func (o *pushOptions) Complete(args []string) error {
+func (o *MirrorImageOptions) Complete(args []string) error {
 	overlap := make(map[string]string)
 
 	var err error
@@ -176,7 +182,7 @@ func (o *pushOptions) Complete(args []string) error {
 	return nil
 }
 
-func (o *pushOptions) Repository(ctx context.Context, context *registryclient.Context, t DestinationType, ref imageapi.DockerImageReference) (distribution.Repository, error) {
+func (o *MirrorImageOptions) Repository(ctx context.Context, context *registryclient.Context, t DestinationType, ref imageapi.DockerImageReference) (distribution.Repository, error) {
 	switch t {
 	case DestinationRegistry:
 		return context.Repository(ctx, ref.DockerClientDefaults().RegistryURL(), ref.RepositoryName(), o.Insecure)
@@ -193,7 +199,7 @@ func (o *pushOptions) Repository(ctx context.Context, context *registryclient.Co
 }
 
 // includeDescriptor returns true if the provided manifest should be included.
-func (o *pushOptions) includeDescriptor(d *manifestlist.ManifestDescriptor) bool {
+func (o *MirrorImageOptions) includeDescriptor(d *manifestlist.ManifestDescriptor) bool {
 	if o.OSFilter == nil {
 		return true
 	}
@@ -203,7 +209,7 @@ func (o *pushOptions) includeDescriptor(d *manifestlist.ManifestDescriptor) bool
 	return o.OSFilter.MatchString(fmt.Sprintf("%s/%s", d.Platform.OS, d.Platform.Architecture))
 }
 
-func (o *pushOptions) Run() error {
+func (o *MirrorImageOptions) Run() error {
 	start := time.Now()
 	p, err := o.plan()
 	if err != nil {
@@ -291,7 +297,7 @@ func (o *pushOptions) Run() error {
 	return nil
 }
 
-func (o *pushOptions) plan() (*plan, error) {
+func (o *MirrorImageOptions) plan() (*plan, error) {
 	rt, err := rest.TransportFor(&rest.Config{})
 	if err != nil {
 		return nil, err

@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
+
 	ktemplates "k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
@@ -34,7 +35,7 @@ func NewCmdImage(fullName string, f kcmdutil.Factory, streams genericclioptions.
 		{
 			Message: "Advanced commands:",
 			Commands: []*cobra.Command{
-				mirror.NewCmdMirrorImage(name, streams.Out, streams.ErrOut),
+				mirror.NewCmdMirrorImage(name, streams),
 			},
 		},
 	}
