@@ -48,10 +48,10 @@ func (c *NetworkConfig) RunSDN() {
 }
 
 // RunDNS starts the DNS server as soon as services are loaded.
-func (c *NetworkConfig) RunDNS() {
+func (c *NetworkConfig) RunDNS(stopCh <-chan struct{}) {
 	go func() {
 		glog.Infof("Starting DNS on %s", c.DNSServer.Config.DnsAddr)
-		err := c.DNSServer.ListenAndServe()
+		err := c.DNSServer.ListenAndServe(stopCh)
 		glog.Fatalf("DNS server failed to start: %v", err)
 	}()
 }

@@ -18,10 +18,11 @@ func Test_dnsmasqMonitor_run(t *testing.T) {
 	m := &dnsmasqMonitor{
 		dnsIP:     "127.0.0.1",
 		dnsDomain: "test.domain",
+		ready:     func() bool { return true },
 	}
 	m.initMetrics()
 	conn := utildbus.NewFakeConnection()
-	//fake := utildbus.NewFake(conn, nil)
+	stopCh := make(chan struct{})
 
 	callCh := make(chan string, 1)
 	conn.AddObject(dbusDnsmasqInterface, dbusDnsmasqPath, func(method string, args ...interface{}) ([]interface{}, error) {
@@ -32,10 +33,29 @@ func Test_dnsmasqMonitor_run(t *testing.T) {
 				t.Errorf("unexpected args: %v", args)
 				return nil, fmt.Errorf("unexpected args")
 			}
-			if arr, ok := args[0].([]string); !ok || !reflect.DeepEqual([]string{"/in-addr.arpa/127.0.0.1", "/test.domain/127.0.0.1"}, arr) {
+
+			// we send empty after shutdown
+			completed := false
+			select {
+			case <-stopCh:
+				completed = true
+			default:
+			}
+
+			arr, ok := args[0].([]string)
+			if !ok {
 				t.Errorf("unexpected args: %v", args)
 				return nil, fmt.Errorf("unexpected args")
 			}
+			expected := []string{"/in-addr.arpa/127.0.0.1", "/test.domain/127.0.0.1"}
+			if completed {
+				expected = nil
+			}
+			if !reflect.DeepEqual(expected, arr) {
+				t.Errorf("unexpected args: %v", args)
+				return nil, fmt.Errorf("unexpected args")
+			}
+
 			return nil, nil
 		default:
 			t.Errorf("unexpected method: %v", method)
@@ -43,7 +63,6 @@ func Test_dnsmasqMonitor_run(t *testing.T) {
 		}
 	})
 
-	stopCh := make(chan struct{})
 	go m.run(conn, stopCh)
 
 	// should always set on startup
@@ -110,7 +129,7 @@ func (c *threadsafeDBusConn) EmitSignal(name, path, iface, signal string, args .
 }
 
 func Test_dnsmasqMonitor_run_metrics(t *testing.T) {
-	m := &dnsmasqMonitor{dnsIP: "127.0.0.1", dnsDomain: "test.domain"}
+	m := &dnsmasqMonitor{dnsIP: "127.0.0.1", dnsDomain: "test.domain", ready: func() bool { return true }}
 	m.initMetrics()
 	fakeConn := utildbus.NewFakeConnection()
 	conn := &threadsafeDBusConn{conn: fakeConn}

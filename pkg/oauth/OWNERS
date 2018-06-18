@@ -1,11 +1,6 @@
 reviewers:
-  - smarterclayton
-  - deads2k
-  - liggitt
-  - soltysh
   - enj
-  - stevekuznetsov
-  - adelton
+  - ericavonb
   - mrogers950
   - simo5
 approvers:
@@ -14,3 +9,4 @@ approvers:
   - liggitt
   - soltysh
   - enj
+  - simo5

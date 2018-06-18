@@ -45,7 +45,7 @@ connections from one of the clients. The test then asserts that the clients
 failed or succesfully connected as expected.
 */
 
-var _ = Describe("NetworkPolicy", func() {
+var _ = Describe("[Area:Networking] NetworkPolicy", func() {
 	InNetworkPolicyContext(func() {
 		f := framework.NewDefaultFramework("network-policy")
 
