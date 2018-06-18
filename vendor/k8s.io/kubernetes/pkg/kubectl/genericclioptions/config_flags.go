@@ -221,7 +221,11 @@ func (f *ConfigFlags) ToRESTMapper() (meta.RESTMapper, error) {
 // AddFlags binds client configuration flags to a given flagset
 func (f *ConfigFlags) AddFlags(flags *pflag.FlagSet) {
 	if f.KubeConfig != nil {
-		flags.StringVar(f.KubeConfig, "kubeconfig", *f.KubeConfig, "Path to the kubeconfig file to use for CLI requests.")
+		if !UseOpenShiftKubeConfigValues {
+			flags.StringVar(f.KubeConfig, "kubeconfig", *f.KubeConfig, "Path to the kubeconfig file to use for CLI requests.")
+		} else {
+			flags.StringVar(f.KubeConfig, OpenShiftKubeConfigFlagName, *f.KubeConfig, "Path to the kubeconfig file to use for CLI requests.")
+		}
 	}
 	if f.CacheDir != nil {
 		flags.StringVar(f.CacheDir, flagHTTPCacheDir, *f.CacheDir, "Default HTTP cache directory")

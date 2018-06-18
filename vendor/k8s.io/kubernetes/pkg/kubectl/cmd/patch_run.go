@@ -11,3 +11,5 @@ func FixOAPIGroupifiedGVK(gvk *schema.GroupVersionKind) {
 		OAPIToGroupifiedGVK(gvk)
 	}
 }
+
+var UseOpenShiftGenerator = false

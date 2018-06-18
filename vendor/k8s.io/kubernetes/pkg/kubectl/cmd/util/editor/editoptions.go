@@ -809,6 +809,10 @@ func hashOnLineBreak(s string) string {
 
 // editorEnvs returns an ordered list of env vars to check for editor preferences.
 func editorEnvs() []string {
+	if UseOpenShiftEditorEnvVars {
+		return []string{"OC_EDITOR", "KUBE_EDITOR", "EDITOR"}
+	}
+
 	return []string{
 		"KUBE_EDITOR",
 		"EDITOR",

@@ -141,6 +141,9 @@ func NewRunOptions(streams genericclioptions.IOStreams) *RunOptions {
 
 func NewCmdRun(f cmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
 	o := NewRunOptions(streams)
+	if UseOpenShiftGenerator {
+		o.DefaultRestartAlwaysGenerator = "deploymentconfig/v1"
+	}
 
 	cmd := &cobra.Command{
 		Use: "run NAME --image=image [--env=\"key=value\"] [--port=port] [--replicas=replicas] [--dry-run=bool] [--overrides=inline-json] [--command] -- [COMMAND] [args...]",
