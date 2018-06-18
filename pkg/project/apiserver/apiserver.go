@@ -4,6 +4,8 @@ import (
 	"sync"
 
 	"github.com/golang/glog"
+	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/client-go/dynamic"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -32,6 +34,7 @@ type ExtraConfig struct {
 	ProjectCache              *projectcache.ProjectCache
 	ProjectRequestTemplate    string
 	ProjectRequestMessage     string
+	RESTMapper                meta.RESTMapper
 
 	// TODO these should all become local eventually
 	Scheme *runtime.Scheme
@@ -122,6 +125,10 @@ func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
 	if err != nil {
 		return nil, err
 	}
+	dynamicClient, err := dynamic.NewForConfig(c.ExtraConfig.KubeAPIServerClientConfig)
+	if err != nil {
+		return nil, err
+	}
 
 	projectStorage := projectproxy.NewREST(kubeInternalClient.Core().Namespaces(), c.ExtraConfig.ProjectAuthorizationCache, c.ExtraConfig.ProjectAuthorizationCache, c.ExtraConfig.ProjectCache)
 
@@ -137,7 +144,8 @@ func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
 		projectClient.Project(),
 		templateClient,
 		authorizationClient.SubjectAccessReviews(),
-		c.ExtraConfig.KubeAPIServerClientConfig,
+		dynamicClient,
+		c.ExtraConfig.RESTMapper,
 		c.ExtraConfig.KubeInternalInformers.Rbac().InternalVersion().RoleBindings().Lister(),
 	)
 

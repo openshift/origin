@@ -9,6 +9,7 @@ import (
 
 	restful "github.com/emicklei/go-restful"
 	"github.com/golang/glog"
+	"k8s.io/apimachinery/pkg/api/meta"
 
 	kapierror "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -101,6 +102,7 @@ type OpenshiftAPIExtraConfig struct {
 	ProjectCache              *projectcache.ProjectCache
 	ProjectRequestTemplate    string
 	ProjectRequestMessage     string
+	RESTMapper                meta.RESTMapper
 
 	// oauth API server
 	ServiceAccountMethod configapi.GrantHandlerType
@@ -154,6 +156,9 @@ func (c *OpenshiftAPIExtraConfig) Validate() error {
 	}
 	if c.ClusterQuotaMappingController == nil {
 		ret = append(ret, fmt.Errorf("ClusterQuotaMappingController is required"))
+	}
+	if c.RESTMapper == nil {
+		ret = append(ret, fmt.Errorf("RESTMapper is required"))
 	}
 
 	return utilerrors.NewAggregate(ret)
@@ -369,6 +374,7 @@ func (c *completedConfig) withProjectAPIServer(delegateAPIServer genericapiserve
 			ProjectCache:              c.ExtraConfig.ProjectCache,
 			ProjectRequestTemplate:    c.ExtraConfig.ProjectRequestTemplate,
 			ProjectRequestMessage:     c.ExtraConfig.ProjectRequestMessage,
+			RESTMapper:                c.ExtraConfig.RESTMapper,
 			Codecs:                    legacyscheme.Codecs,
 			Scheme:                    legacyscheme.Scheme,
 		},

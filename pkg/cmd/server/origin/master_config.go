@@ -2,9 +2,13 @@ package origin
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/golang/glog"
 	"github.com/openshift/origin/pkg/admission/namespaceconditions"
+	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/restmapper"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -71,6 +75,7 @@ type MasterConfig struct {
 	ProjectCache                  *projectcache.ProjectCache
 	ClusterQuotaMappingController *clusterquotamapping.ClusterQuotaMappingController
 	LimitVerifier                 imageadmission.LimitVerifier
+	RESTMapper                    meta.RESTMapper
 
 	// RegistryHostnameRetriever retrieves the name of the integrated registry, or false if no such registry
 	// is available.
@@ -162,7 +167,9 @@ func BuildMasterConfig(
 		return nil, err
 	}
 	clusterQuotaMappingController := newClusterQuotaMappingController(informers)
-	admissionInitializer, admissionPostStartHook, err := originadmission.NewPluginInitializer(options, privilegedLoopbackConfig, informers, authorizer, projectCache, clusterQuotaMappingController)
+	discoveryClient := cacheddiscovery.NewMemCacheClient(kubeInternalClient.Discovery())
+	restMapper := restmapper.NewDeferredDiscoveryRESTMapper(discoveryClient)
+	admissionInitializer, err := originadmission.NewPluginInitializer(options, privilegedLoopbackConfig, informers, authorizer, projectCache, restMapper, clusterQuotaMappingController)
 	if err != nil {
 		return nil, err
 	}
@@ -199,7 +206,15 @@ func BuildMasterConfig(
 
 		kubeAPIServerConfig: kubeAPIServerConfig,
 		additionalPostStartHooks: map[string]genericapiserver.PostStartHookFunc{
-			"openshift.io-AdmissionInit": admissionPostStartHook,
+			"openshift.io-RESTMapper": func(context genericapiserver.PostStartHookContext) error {
+				restMapper.Reset()
+				go func() {
+					wait.Until(func() {
+						restMapper.Reset()
+					}, 10*time.Second, context.StopCh)
+				}()
+				return nil
+			},
 			"openshift.io-StartInformers": func(context genericapiserver.PostStartHookContext) error {
 				informers.Start(context.StopCh)
 				return nil
@@ -218,6 +233,7 @@ func BuildMasterConfig(
 		),
 		ProjectCache:                  projectCache,
 		ClusterQuotaMappingController: clusterQuotaMappingController,
+		RESTMapper:                    restMapper,
 
 		RegistryHostnameRetriever: imageapi.DefaultRegistryHostnameRetriever(defaultRegistryFunc, options.ImagePolicyConfig.ExternalRegistryHostname, options.ImagePolicyConfig.InternalRegistryHostname),
 
