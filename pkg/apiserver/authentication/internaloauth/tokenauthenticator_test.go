@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -45,7 +44,7 @@ func TestAuthenticateTokenInvalidUID(t *testing.T) {
 	}
 }
 
-func TestAuthenticateTokenNotFound(t *testing.T) {
+func TestAuthenticateTokenNotFoundSuppressed(t *testing.T) {
 	fakeOAuthClient := oauthfake.NewSimpleClientset()
 	fakeUserClient := userfake.NewSimpleClientset()
 	tokenAuthenticator := NewTokenAuthenticator(fakeOAuthClient.Oauth().OAuthAccessTokens(), fakeUserClient.UserV1().Users(), NoopGroupMapper{})
@@ -54,18 +53,15 @@ func TestAuthenticateTokenNotFound(t *testing.T) {
 	if found {
 		t.Error("Found token, but it should be missing!")
 	}
-	if err == nil {
-		t.Error("Expected not found error")
-	}
-	if !apierrs.IsNotFound(err) {
-		t.Error("Expected not found error")
+	if err != errLookup {
+		t.Error("Expected not found error to be suppressed with lookup error")
 	}
 	if userInfo != nil {
 		t.Errorf("Unexpected user: %v", userInfo)
 	}
 }
 
-func TestAuthenticateTokenOtherGetError(t *testing.T) {
+func TestAuthenticateTokenOtherGetErrorSuppressed(t *testing.T) {
 	fakeOAuthClient := oauthfake.NewSimpleClientset()
 	fakeOAuthClient.PrependReactor("get", "oauthaccesstokens", func(action clienttesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, nil, errors.New("get error")
@@ -77,11 +73,8 @@ func TestAuthenticateTokenOtherGetError(t *testing.T) {
 	if found {
 		t.Error("Found token, but it should be missing!")
 	}
-	if err == nil {
-		t.Error("Expected error is missing!")
-	}
-	if err.Error() != "get error" {
-		t.Errorf("Expected error %v, but got error %v", "get error", err)
+	if err != errLookup {
+		t.Error("Expected custom get error to be suppressed with lookup error")
 	}
 	if userInfo != nil {
 		t.Errorf("Unexpected user: %v", userInfo)
