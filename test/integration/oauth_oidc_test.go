@@ -20,6 +20,7 @@ import (
 	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 )
 
 // TestOAuthOIDC checks CLI password login against an OIDC provider
@@ -160,9 +161,7 @@ func TestOAuthOIDC(t *testing.T) {
 		Server:             clientConfig.Host,
 		CAFile:             masterCAFile,
 		StartingKubeConfig: &clientcmdapi.Config{},
-		Reader:             bytes.NewBufferString("mylogin\nmypassword\n"),
-		Out:                loginOutput,
-		ErrOut:             ioutil.Discard,
+		IOStreams:          genericclioptions.IOStreams{Out: loginOutput, In: bytes.NewBufferString("mylogin\nmypassword\n"), ErrOut: ioutil.Discard},
 	}
 	if err := loginOptions.GatherInfo(); err != nil {
 		t.Fatalf("Error logging in: %v\n%v", err, loginOutput.String())

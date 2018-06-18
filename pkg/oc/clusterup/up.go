@@ -86,44 +86,7 @@ var (
 	defaultImageStreams string
 )
 
-// NewCmdUp creates a command that starts OpenShift on Docker with reasonable defaults
-func NewCmdUp(name, fullName string, f genericclioptions.RESTClientGetter, streams genericclioptions.IOStreams, clusterAdd *cobra.Command) *cobra.Command {
-	config := &ClusterUpConfig{
-		UserEnabledComponents: []string{"*"},
-
-		IOStreams:      streams,
-		UsePorts:       openshift.BasePorts,
-		PortForwarding: defaultPortForwarding(),
-		DNSPort:        openshift.DefaultDNSPort,
-
-		ImageTemplate: variable.NewDefaultImageTemplate(),
-
-		// We pass cluster add as a command to prevent anyone from ever cheating with their wiring. You either work from flags or
-		// or you don't work.  You cannot add glue of any sort.
-		ClusterAdd: clusterAdd,
-	}
-	cmd := &cobra.Command{
-		Use:     name,
-		Short:   "Start OpenShift on Docker with reasonable defaults",
-		Long:    cmdUpLong,
-		Example: fmt.Sprintf(cmdUpExample, fullName),
-		Run: func(c *cobra.Command, args []string) {
-			kcmdutil.CheckErr(config.Complete(f, c))
-			kcmdutil.CheckErr(config.Validate())
-			kcmdutil.CheckErr(config.Check())
-			if err := config.Start(streams.Out); err != nil {
-				PrintError(err, streams.ErrOut)
-				os.Exit(1)
-			}
-		},
-	}
-	config.Bind(cmd.Flags())
-	return cmd
-}
-
 type ClusterUpConfig struct {
-	genericclioptions.IOStreams
-
 	ImageTemplate variable.ImageTemplate
 	ImageTag      string
 
@@ -174,6 +137,49 @@ type ClusterUpConfig struct {
 	pullPolicy string
 
 	createdUser bool
+
+	genericclioptions.IOStreams
+}
+
+func NewClusterUpConfig(streams genericclioptions.IOStreams, clusterAdd *cobra.Command) *ClusterUpConfig {
+	return &ClusterUpConfig{
+		UserEnabledComponents: []string{"*"},
+
+		UsePorts:       openshift.BasePorts,
+		PortForwarding: defaultPortForwarding(),
+		DNSPort:        openshift.DefaultDNSPort,
+
+		ImageTemplate: variable.NewDefaultImageTemplate(),
+
+		// We pass cluster add as a command to prevent anyone from ever cheating with their wiring. You either work from flags or
+		// or you don't work.  You cannot add glue of any sort.
+		ClusterAdd: clusterAdd,
+
+		IOStreams: streams,
+	}
+
+}
+
+// NewCmdUp creates a command that starts OpenShift on Docker with reasonable defaults
+func NewCmdUp(name, fullName string, f genericclioptions.RESTClientGetter, streams genericclioptions.IOStreams, clusterAdd *cobra.Command) *cobra.Command {
+	config := NewClusterUpConfig(streams, clusterAdd)
+	cmd := &cobra.Command{
+		Use:     name,
+		Short:   "Start OpenShift on Docker with reasonable defaults",
+		Long:    cmdUpLong,
+		Example: fmt.Sprintf(cmdUpExample, fullName),
+		Run: func(c *cobra.Command, args []string) {
+			kcmdutil.CheckErr(config.Complete(f, c))
+			kcmdutil.CheckErr(config.Validate())
+			kcmdutil.CheckErr(config.Check())
+			if err := config.Start(); err != nil {
+				PrintError(err, streams.ErrOut)
+				os.Exit(1)
+			}
+		},
+	}
+	config.Bind(cmd.Flags())
+	return cmd
 }
 
 func (c *ClusterUpConfig) Bind(flags *pflag.FlagSet) {
@@ -491,8 +497,8 @@ func (c *ClusterUpConfig) Check() error {
 }
 
 // Start runs the start tasks ensuring that they are executed in sequence
-func (c *ClusterUpConfig) Start(out io.Writer) error {
-	fmt.Fprintf(out, "Starting OpenShift using %s ...\n", c.openshiftImage())
+func (c *ClusterUpConfig) Start() error {
+	fmt.Fprintf(c.Out, "Starting OpenShift using %s ...\n", c.openshiftImage())
 
 	if c.PortForwarding {
 		if err := c.OpenShiftHelper().StartSocatTunnel(c.ServerIP); err != nil {
@@ -500,26 +506,26 @@ func (c *ClusterUpConfig) Start(out io.Writer) error {
 		}
 	}
 
-	if err := c.StartSelfHosted(out); err != nil {
+	if err := c.StartSelfHosted(c.Out); err != nil {
 		return err
 	}
 	if c.WriteConfig {
 		return nil
 	}
-	if err := c.PostClusterStartupMutations(out); err != nil {
+	if err := c.PostClusterStartupMutations(c.Out); err != nil {
 		return err
 	}
 
 	// if we're only supposed to install kube, only install kube.  Maybe later we'll add back components.
 	if c.KubeOnly {
 		c.printProgress("Server Information")
-		c.serverInfo(out)
+		c.serverInfo(c.Out)
 		return nil
 	}
 
 	// Add default redirect URIs to an OAuthClient to enable local web-console development.
 	c.printProgress("Adding default OAuthClient redirect URIs")
-	if err := c.ensureDefaultRedirectURIs(out); err != nil {
+	if err := c.ensureDefaultRedirectURIs(c.Out); err != nil {
 		return err
 	}
 
@@ -543,20 +549,20 @@ func (c *ClusterUpConfig) Start(out io.Writer) error {
 	if c.ShouldCreateUser() {
 		// Login with an initial default user
 		c.printProgress("Login to server")
-		if err := c.login(out); err != nil {
+		if err := c.login(c.IOStreams); err != nil {
 			return err
 		}
 		c.createdUser = true
 
 		// Create an initial project
 		c.printProgress(fmt.Sprintf("Creating initial project %q", initialProjectName))
-		if err := c.createProject(out); err != nil {
+		if err := c.createProject(c.Out); err != nil {
 			return err
 		}
 	}
 
 	c.printProgress("Server Information")
-	c.serverInfo(out)
+	c.serverInfo(c.Out)
 
 	return nil
 }
@@ -815,9 +821,9 @@ func (c *ClusterUpConfig) imageFormat() string {
 }
 
 // Login logs into the new server and sets up a default user and project
-func (c *ClusterUpConfig) login(out io.Writer) error {
+func (c *ClusterUpConfig) login(streams genericclioptions.IOStreams) error {
 	server := c.OpenShiftHelper().Master(c.ServerIP)
-	return openshift.Login(initialUser, initialPassword, server, c.GetKubeAPIServerConfigDir(), c.defaultClientConfig, c.command, out, out)
+	return openshift.Login(initialUser, initialPassword, server, c.GetKubeAPIServerConfigDir(), c.defaultClientConfig, c.command, streams)
 }
 
 // createProject creates a new project for the current user
