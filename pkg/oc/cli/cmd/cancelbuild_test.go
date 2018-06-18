@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"io/ioutil"
 	"strconv"
 	"strings"
 	"testing"
@@ -19,7 +18,7 @@ import (
 
 // TestCancelBuildDefaultFlags ensures that flags default values are set.
 func TestCancelBuildDefaultFlags(t *testing.T) {
-	o := CancelBuildOptions{}
+	o := NewCancelBuildOptions(genericclioptions.NewTestIOStreamsDiscard())
 
 	tests := map[string]struct {
 		flagName   string
@@ -63,7 +62,8 @@ func TestCancelBuildRun(t *testing.T) {
 	}{
 		"cancelled": {
 			opts: &CancelBuildOptions{
-				Out:       ioutil.Discard,
+				PrintObj:  discardingPrinterFunc,
+				IOStreams: genericclioptions.NewTestIOStreamsDiscard(),
 				Namespace: "test",
 				States:    []string{"new", "pending", "running"},
 			},
@@ -75,7 +75,8 @@ func TestCancelBuildRun(t *testing.T) {
 		},
 		"complete": {
 			opts: &CancelBuildOptions{
-				Out:       ioutil.Discard,
+				PrintObj:  discardingPrinterFunc,
+				IOStreams: genericclioptions.NewTestIOStreamsDiscard(),
 				Namespace: "test",
 			},
 			phase: buildapi.BuildPhaseComplete,
@@ -86,7 +87,8 @@ func TestCancelBuildRun(t *testing.T) {
 		},
 		"new": {
 			opts: &CancelBuildOptions{
-				Out:       ioutil.Discard,
+				PrintObj:  discardingPrinterFunc,
+				IOStreams: genericclioptions.NewTestIOStreamsDiscard(),
 				Namespace: "test",
 			},
 			phase: buildapi.BuildPhaseNew,
@@ -99,7 +101,8 @@ func TestCancelBuildRun(t *testing.T) {
 		},
 		"pending": {
 			opts: &CancelBuildOptions{
-				Out:       ioutil.Discard,
+				PrintObj:  discardingPrinterFunc,
+				IOStreams: genericclioptions.NewTestIOStreamsDiscard(),
 				Namespace: "test",
 			},
 			phase: buildapi.BuildPhaseNew,
@@ -112,7 +115,8 @@ func TestCancelBuildRun(t *testing.T) {
 		},
 		"running and restart": {
 			opts: &CancelBuildOptions{
-				Out:       ioutil.Discard,
+				PrintObj:  discardingPrinterFunc,
+				IOStreams: genericclioptions.NewTestIOStreamsDiscard(),
 				Namespace: "test",
 				Restart:   true,
 			},
@@ -183,7 +187,10 @@ func TestCancelBuildRun(t *testing.T) {
 			}
 		}
 	}
+}
 
+func discardingPrinterFunc(runtime.Object, string) error {
+	return nil
 }
 
 func genBuild(phase buildapi.BuildPhase) *buildapi.Build {
