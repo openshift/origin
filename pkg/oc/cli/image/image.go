@@ -36,8 +36,8 @@ func NewCmdImage(fullName string, f kcmdutil.Factory, streams genericclioptions.
 		{
 			Message: "Advanced commands:",
 			Commands: []*cobra.Command{
-				append.New(name, streams.Out, streams.ErrOut),
-				mirror.NewCmdMirrorImage(name, streams.Out, streams.ErrOut),
+				append.NewCmdAppendImage(name, streams),
+				mirror.NewCmdMirrorImage(name, streams),
 			},
 		},
 	}
