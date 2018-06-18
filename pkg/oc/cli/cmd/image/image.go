@@ -35,7 +35,7 @@ func NewCmdImage(fullName string, f *clientcmd.Factory, streams genericclioption
 		{
 			Message: "Advanced commands:",
 			Commands: []*cobra.Command{
-				mirror.NewCmdMirrorImage(name, streams.Out, streams.ErrOut),
+				mirror.NewCmdMirrorImage(name, streams),
 			},
 		},
 	}
