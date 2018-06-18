@@ -11,6 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/dynamic"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -19,7 +20,6 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/util/print"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	"github.com/openshift/origin/pkg/oc/experimental/ipfailover/ipfailover"
 	"github.com/openshift/origin/pkg/oc/experimental/ipfailover/keepalived"
 	securityclientinternal "github.com/openshift/origin/pkg/security/generated/internalclientset"
@@ -166,8 +166,24 @@ func Run(f kcmdutil.Factory, options *ipfailover.IPFailoverConfigCmdOptions, cmd
 	// In the future, this may be changed to pod anti-affinity.
 	options.ServicePort = options.ServicePort + options.VRRPIDOffset
 
-	options.Action.Bulk.Mapper = clientcmd.ResourceMapper(f)
-	options.Action.Bulk.Op = configcmd.Create
+	restMapper, err := f.ToRESTMapper()
+	if err != nil {
+		return err
+	}
+	clientConfig, err := f.ToRESTConfig()
+	if err != nil {
+		return err
+	}
+	dynamicClient, err := dynamic.NewForConfig(clientConfig)
+	if err != nil {
+		return err
+	}
+
+	options.Action.Bulk.Scheme = legacyscheme.Scheme
+	options.Action.Bulk.Op = configcmd.Creator{
+		Client:     dynamicClient,
+		RESTMapper: restMapper,
+	}.Create
 
 	if err := ipfailover.ValidateCmdOptions(options); err != nil {
 		return err

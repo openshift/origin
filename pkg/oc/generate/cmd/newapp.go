@@ -21,7 +21,6 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/core/validation"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/client-go/restmapper"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 
 	ometa "github.com/openshift/origin/pkg/api/meta"
@@ -122,11 +121,9 @@ type AppConfig struct {
 
 	Resolvers
 
-	Builder          *resource.Builder
-	Typer            runtime.ObjectTyper
-	Mapper           meta.RESTMapper
-	CategoryExpander categories.CategoryExpander
-	ClientMapper     resource.ClientMapper
+	Builder *resource.Builder
+	Typer   runtime.ObjectTyper
+	Mapper  meta.RESTMapper
 
 	OriginNamespace string
 

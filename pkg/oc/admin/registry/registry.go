@@ -17,6 +17,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/extensions"
@@ -28,7 +29,6 @@ import (
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/print"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	configcmd "github.com/openshift/origin/pkg/bulk"
@@ -276,9 +276,25 @@ func (opts *RegistryOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, ou
 		return fmt.Errorf("--local cannot be specified without --dry-run")
 	}
 
-	opts.Config.Action.Bulk.Mapper = clientcmd.ResourceMapper(f)
+	restMapper, err := f.ToRESTMapper()
+	if err != nil {
+		return err
+	}
+	clientConfig, err := f.ToRESTConfig()
+	if err != nil {
+		return err
+	}
+	dynamicClient, err := dynamic.NewForConfig(clientConfig)
+	if err != nil {
+		return err
+	}
+
+	opts.Config.Action.Bulk.Scheme = legacyscheme.Scheme
 	opts.Config.Action.Out, opts.Config.Action.ErrOut = out, errout
-	opts.Config.Action.Bulk.Op = configcmd.Create
+	opts.Config.Action.Bulk.Op = configcmd.Creator{
+		Client:     dynamicClient,
+		RESTMapper: restMapper,
+	}.Create
 	opts.out = out
 	opts.cmd = cmd
 	opts.factory = f

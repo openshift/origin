@@ -18,6 +18,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/authentication/user"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	rbacapi "k8s.io/kubernetes/pkg/apis/rbac"
@@ -25,7 +26,6 @@ import (
 
 	templateapiv1 "github.com/openshift/api/template/v1"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	"github.com/openshift/origin/pkg/bulk"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
@@ -288,6 +288,8 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 
 		config, err := configapi.GetClientConfig(exutil.KubeConfigPath(), nil)
 		o.Expect(err).NotTo(o.HaveOccurred())
+		dynamicClient, err := dynamic.NewForConfig(config)
+		o.Expect(err).NotTo(o.HaveOccurred())
 
 		err = wait.Poll(time.Second*1, 5*time.Minute, func() (bool, error) {
 
@@ -319,11 +321,7 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 					continue
 				}
 
-				restcli, err := bulk.ClientMapperFromConfig(config).ClientForMapping(mapping)
-				o.Expect(err).NotTo(o.HaveOccurred())
-
-				// list all objects
-				obj, err := restcli.Get().Resource(mapping.Resource).Namespace(cli.Namespace()).Do().Get()
+				obj, err := dynamicClient.Resource(mapping.Resource).Namespace(cli.Namespace()).List(metav1.ListOptions{})
 				if kerrors.IsNotFound(err) || kerrors.IsMethodNotSupported(err) {
 					continue
 				}

@@ -3,28 +3,18 @@ package bulk
 import (
 	"fmt"
 	"io"
-	"os"
-	"path"
-	goruntime "runtime"
-	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
 	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/client-go/discovery"
-	"k8s.io/client-go/rest"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	"k8s.io/client-go/dynamic"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
-
-	"github.com/openshift/origin/pkg/api/latest"
-	"github.com/openshift/origin/pkg/version"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 type Runner interface {
@@ -32,20 +22,14 @@ type Runner interface {
 }
 
 // AfterFunc takes an info and an error, and returns true if processing should stop.
-type AfterFunc func(*resource.Info, error) bool
+type AfterFunc func(*unstructured.Unstructured, error) bool
 
 // OpFunc takes the provided info and attempts to perform the operation
-type OpFunc func(info *resource.Info, namespace string, obj runtime.Object) (runtime.Object, error)
+type OpFunc func(obj *unstructured.Unstructured, namespace string) (*unstructured.Unstructured, error)
 
 // RetryFunc can retry the operation a single time by returning a non-nil object.
 // TODO: make this a more general retry "loop" function rather than one time.
-type RetryFunc func(info *resource.Info, err error) runtime.Object
-
-// Mapper is an interface testability that is equivalent to resource.Mapper
-type Mapper interface {
-	meta.RESTMapper
-	InfoForObject(obj runtime.Object, preferredGVKs []schema.GroupVersionKind) (*resource.Info, error)
-}
+type RetryFunc func(obj *unstructured.Unstructured, err error) *unstructured.Unstructured
 
 // IgnoreErrorFunc provides a way to filter errors during the Bulk.Run.  If this function returns
 // true the error will NOT be added to the slice of errors returned by Bulk.Run.
@@ -56,12 +40,7 @@ type IgnoreErrorFunc func(e error) bool
 
 // Bulk provides helpers for iterating over a list of items
 type Bulk struct {
-	Mapper        Mapper
-	DynamicMapper Mapper
-
-	// PreferredSerializationOrder take a list of GVKs to decide how to serialize out the individual list items
-	// It allows partial values, so you specify just groups or versions as a for instance
-	PreferredSerializationOrder []schema.GroupVersionKind
+	Scheme *runtime.Scheme
 
 	Op          OpFunc
 	After       AfterFunc
@@ -72,10 +51,11 @@ type Bulk struct {
 // Run attempts to create each item generically, gathering all errors in the
 // event a failure occurs. The contents of list will be updated to include the
 // version from the server.
+// For now, run will do a conversion from internal or versioned, to version, then to unstructured.
 func (b *Bulk) Run(list *kapi.List, namespace string) []error {
 	after := b.After
 	if after == nil {
-		after = func(*resource.Info, error) bool { return false }
+		after = func(*unstructured.Unstructured, error) bool { return false }
 	}
 	ignoreError := b.IgnoreError
 	if ignoreError == nil {
@@ -83,160 +63,60 @@ func (b *Bulk) Run(list *kapi.List, namespace string) []error {
 	}
 
 	errs := []error{}
-	for i, item := range list.Items {
-		var info *resource.Info
-		var err error
-		if _, ok := item.(*unstructured.Unstructured); ok {
-			info, err = b.DynamicMapper.InfoForObject(item, b.getPreferredSerializationOrder())
-		} else {
-			info, err = b.Mapper.InfoForObject(item, b.getPreferredSerializationOrder())
-		}
-		if err != nil {
-			errs = append(errs, err)
-			if after(info, err) {
-				break
+	for i := range list.Items {
+		item := list.Items[i].DeepCopyObject()
+		unstructuredObj, ok := item.(*unstructured.Unstructured)
+		if !ok {
+			var err error
+			converter := runtime.ObjectConvertor(b.Scheme)
+			groupVersioner := runtime.GroupVersioner(schema.GroupVersions(b.Scheme.PrioritizedVersionsAllGroups()))
+			versionedObj, err := converter.ConvertToVersion(item, groupVersioner)
+			if err != nil {
+				errs = append(errs, err)
+				if after(nil, err) {
+					break
+				}
+				continue
 			}
-			continue
+			unstructuredObj = &unstructured.Unstructured{}
+			unstructuredObj.Object, err = runtime.DefaultUnstructuredConverter.ToUnstructured(versionedObj)
+			if err != nil {
+				errs = append(errs, err)
+				if after(nil, err) {
+					break
+				}
+				continue
+			}
 		}
-		obj, err := b.Op(info, namespace, item)
+
+		unstructuredObj, err := b.Op(unstructuredObj, namespace)
 		if err != nil && b.Retry != nil {
-			if obj = b.Retry(info, err); obj != nil {
-				obj, err = b.Op(info, namespace, obj)
+			if unstructuredObj = b.Retry(unstructuredObj, err); unstructuredObj != nil {
+				unstructuredObj, err = b.Op(unstructuredObj, namespace)
 			}
 		}
 		if err != nil {
 			if !ignoreError(err) {
 				errs = append(errs, err)
 			}
-			if after(info, err) {
+			if after(unstructuredObj, err) {
 				break
 			}
 			continue
 		}
-		info.Refresh(obj, true)
-		list.Items[i] = obj
-		if after(info, nil) {
+		list.Items[i] = unstructuredObj
+		if after(unstructuredObj, nil) {
 			break
 		}
 	}
 	return errs
 }
 
-func (b *Bulk) getPreferredSerializationOrder() []schema.GroupVersionKind {
-	if len(b.PreferredSerializationOrder) > 0 {
-		return b.PreferredSerializationOrder
-	}
-	// it seems that the underlying impl expects to have at least one, even though this
-	// logically means something different.
-	return []schema.GroupVersionKind{{Group: ""}}
-}
-
-// ClientMapperFromConfig returns a ClientMapper suitable for Bulk operations.
-// TODO: copied from
-// pkg/cmd/util/clientcmd/factory_object_mapping.go#ClientForMapping and
-// vendor/k8s.io/kubernetes/pkg/kubectl/cmd/util/factory_object_mapping.go#ClientForMapping
-func ClientMapperFromConfig(config *rest.Config) resource.ClientMapperFunc {
-	return resource.ClientMapperFunc(func(mapping *meta.RESTMapping) (resource.RESTClient, error) {
-		configCopy := *config
-
-		if latest.OriginKind(mapping.GroupVersionKind) {
-			if err := SetLegacyOpenShiftDefaults(&configCopy); err != nil {
-				return nil, err
-			}
-			configCopy.APIPath = "/apis"
-			if mapping.GroupVersionKind.Group == kapi.GroupName {
-				configCopy.APIPath = "/oapi"
-			}
-			gv := mapping.GroupVersionKind.GroupVersion()
-			configCopy.GroupVersion = &gv
-			return rest.RESTClientFor(&configCopy)
-		}
-
-		if err := setKubernetesDefaults(&configCopy); err != nil {
-			return nil, err
-		}
-		gvk := mapping.GroupVersionKind
-		switch gvk.Group {
-		case kapi.GroupName:
-			configCopy.APIPath = "/api"
-		default:
-			configCopy.APIPath = "/apis"
-		}
-		gv := gvk.GroupVersion()
-		configCopy.GroupVersion = &gv
-		return rest.RESTClientFor(&configCopy)
-	})
-}
-
-// setKubernetesDefaults sets default values on the provided client config for accessing the
-// Kubernetes API or returns an error if any of the defaults are impossible or invalid.
-func setKubernetesDefaults(config *rest.Config) error {
-	if config.APIPath == "" {
-		config.APIPath = "/api"
-	}
-	// TODO chase down uses and tolerate nil
-	if config.GroupVersion == nil {
-		config.GroupVersion = &schema.GroupVersion{}
-	}
-	if config.NegotiatedSerializer == nil {
-		config.NegotiatedSerializer = legacyscheme.Codecs
-	}
-	return rest.SetKubernetesDefaults(config)
-}
-
-// PreferredSerializationOrder returns the preferred ordering via discovery. If anything fails, it just
-// returns a list of with the empty (legacy) group
-func PreferredSerializationOrder(client discovery.DiscoveryInterface) []schema.GroupVersionKind {
-	ret := []schema.GroupVersionKind{{Group: ""}}
-	if client == nil {
-		return ret
-	}
-
-	groups, err := client.ServerGroups()
-	if err != nil {
-		return ret
-	}
-
-	resources, err := client.ServerResources()
-	if err != nil {
-		return ret
-	}
-
-	// add resources with kinds first, then groupversions second as a fallback.  Not all server versions provide kinds
-	// we have to specify individual kinds since our local scheme may have kinds not present on the server
-	for _, resourceList := range resources {
-		for _, resource := range resourceList.APIResources {
-			// if this is a sub resource, skip it
-			if strings.Contains(resource.Name, "/") {
-				continue
-			}
-			// if there is no kind, skip it
-			if len(resource.Kind) == 0 {
-				continue
-			}
-			gv, err := schema.ParseGroupVersion(resourceList.GroupVersion)
-			if err != nil {
-				continue
-			}
-			ret = append(ret, gv.WithKind(resource.Kind))
-		}
-	}
-
-	// we actually have to get to the granularity of versions because the server may not support the same versions
-	// in a group that we have locally.
-	for _, group := range groups.Groups {
-		for _, version := range group.Versions {
-			ret = append(ret, schema.GroupVersionKind{Group: group.Name, Version: version.Version})
-		}
-	}
-	return ret
-}
-
-func NewPrintNameOrErrorAfterIndent(mapper meta.RESTMapper, short bool, operation string, out, errs io.Writer, dryRun bool, indent string, prefixForError PrefixForError) AfterFunc {
-	return func(info *resource.Info, err error) bool {
+func NewPrintNameOrErrorAfterIndent(short bool, operation string, out, errs io.Writer, dryRun bool, indent string, prefixForError PrefixForError) AfterFunc {
+	return func(obj *unstructured.Unstructured, err error) bool {
 		if err == nil {
 			fmt.Fprintf(out, indent)
-			printSuccess(mapper, short, out, info.Mapping.Resource, info.Name, dryRun, operation)
+			printSuccess(short, out, obj.GroupVersionKind(), obj.GetName(), dryRun, operation)
 		} else {
 			fmt.Fprintf(errs, "%s%s: %v\n", indent, prefixForError(err), err)
 		}
@@ -267,8 +147,8 @@ func printSuccess(mapper meta.RESTMapper, shortOutput bool, out io.Writer, resou
 	}
 }
 
-func NewPrintErrorAfter(mapper meta.RESTMapper, errs io.Writer, prefixForError PrefixForError) func(*resource.Info, error) bool {
-	return func(info *resource.Info, err error) bool {
+func NewPrintErrorAfter(errs io.Writer, prefixForError PrefixForError) func(*unstructured.Unstructured, error) bool {
+	return func(obj *unstructured.Unstructured, err error) bool {
 		if err != nil {
 			fmt.Fprintf(errs, "%s: %v\n", prefixForError(err), err)
 		}
@@ -277,24 +157,37 @@ func NewPrintErrorAfter(mapper meta.RESTMapper, errs io.Writer, prefixForError P
 }
 
 func HaltOnError(fn AfterFunc) AfterFunc {
-	return func(info *resource.Info, err error) bool {
-		if fn(info, err) || err != nil {
+	return func(obj *unstructured.Unstructured, err error) bool {
+		if fn(obj, err) || err != nil {
 			return true
 		}
 		return false
 	}
 }
 
-// Create is the default create operation for a generic resource.
-func Create(info *resource.Info, namespace string, obj runtime.Object) (runtime.Object, error) {
-	if len(info.Namespace) > 0 {
-		namespace = info.Namespace
-	}
-	return resource.NewHelper(info.Client, info.Mapping).Create(namespace, false, obj)
+type Creator struct {
+	Client     dynamic.Interface
+	RESTMapper meta.RESTMapper
 }
 
-func NoOp(info *resource.Info, namespace string, obj runtime.Object) (runtime.Object, error) {
-	return info.Object, nil
+// Create is the default create operation for a generic resource.
+func (c Creator) Create(obj *unstructured.Unstructured, namespace string) (*unstructured.Unstructured, error) {
+	if len(obj.GetNamespace()) > 0 {
+		namespace = obj.GetNamespace()
+	}
+	mapping, err := c.RESTMapper.RESTMapping(obj.GroupVersionKind().GroupKind(), obj.GroupVersionKind().Version)
+	if err != nil {
+		return nil, err
+	}
+	if mapping.Scope.Name() == meta.RESTScopeNameRoot {
+		namespace = ""
+	}
+
+	return c.Client.Resource(mapping.Resource).Namespace(namespace).Create(obj)
+}
+
+func NoOp(obj *unstructured.Unstructured, namespace string) (*unstructured.Unstructured, error) {
+	return obj, nil
 }
 
 func labelSuffix(set map[string]string) string {
@@ -429,37 +322,4 @@ func (b *BulkAction) Run(list *kapi.List, namespace string) []error {
 		}
 	}
 	return errs
-}
-
-// SetLegacyOpenShiftDefaults sets the default settings on the passed client configuration for legacy usage
-func SetLegacyOpenShiftDefaults(config *rest.Config) error {
-	if len(config.UserAgent) == 0 {
-		config.UserAgent = defaultOpenShiftUserAgent()
-	}
-	if config.GroupVersion == nil {
-		// Clients default to the preferred code API version
-		groupVersionCopy := latest.Version
-		config.GroupVersion = &groupVersionCopy
-	}
-	if config.APIPath == "" || config.APIPath == "/api" {
-		config.APIPath = "/oapi"
-	}
-	if config.NegotiatedSerializer == nil {
-		config.NegotiatedSerializer = legacyscheme.Codecs
-	}
-	return nil
-}
-
-func defaultOpenShiftUserAgent() string {
-	commit := version.Get().GitCommit
-	if len(commit) > 7 {
-		commit = commit[:7]
-	}
-	if len(commit) == 0 {
-		commit = "unknown"
-	}
-	version := version.Get().GitVersion
-	seg := strings.SplitN(version, "-", 2)
-	version = seg[0]
-	return fmt.Sprintf("%s/%s (%s/%s) openshift/%s", path.Base(os.Args[0]), version, goruntime.GOOS, goruntime.GOARCH, commit)
 }

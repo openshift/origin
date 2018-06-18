@@ -15,6 +15,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
@@ -22,7 +23,6 @@ import (
 
 	configcmd "github.com/openshift/origin/pkg/bulk"
 	"github.com/openshift/origin/pkg/cmd/util/print"
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	"github.com/openshift/origin/pkg/oc/generate/app"
 	"github.com/openshift/origin/pkg/oc/generate/appjson"
 	appcmd "github.com/openshift/origin/pkg/oc/generate/cmd"
@@ -125,8 +125,24 @@ func (o *AppJSONOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args [
 	}
 	o.OutputVersions = append(o.OutputVersions, legacyscheme.Scheme.PrioritizedVersionsAllGroups()...)
 
-	o.Action.Bulk.Mapper = clientcmd.ResourceMapper(f)
-	o.Action.Bulk.Op = configcmd.Create
+	restMapper, err := f.ToRESTMapper()
+	if err != nil {
+		return err
+	}
+	clientConfig, err := f.ToRESTConfig()
+	if err != nil {
+		return err
+	}
+	dynamicClient, err := dynamic.NewForConfig(clientConfig)
+	if err != nil {
+		return err
+	}
+
+	o.Action.Bulk.Scheme = legacyscheme.Scheme
+	o.Action.Bulk.Op = configcmd.Creator{
+		Client:     dynamicClient,
+		RESTMapper: restMapper,
+	}.Create
 	o.PrintObject = print.VersionedPrintObject(kcmdutil.PrintObject, cmd, o.Action.Out)
 
 	o.Generator, _ = cmd.Flags().GetString("generator")
@@ -137,10 +153,6 @@ func (o *AppJSONOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args [
 	}
 	o.Namespace = ns
 
-	clientConfig, err := f.ToRESTConfig()
-	if err != nil {
-		return err
-	}
 	templateClient, err := templateclientinternal.NewForConfig(clientConfig)
 	if err != nil {
 		return err
