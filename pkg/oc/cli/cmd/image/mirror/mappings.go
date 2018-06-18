@@ -10,20 +10,20 @@ import (
 	"github.com/docker/distribution/registry/client/auth"
 	digest "github.com/opencontainers/go-digest"
 
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	"github.com/openshift/origin/pkg/image/apis/image/reference"
 )
 
 // ErrAlreadyExists may be returned by the blob Create function to indicate that the blob already exists.
 var ErrAlreadyExists = fmt.Errorf("blob already exists in the target location")
 
 type Mapping struct {
-	Source      imageapi.DockerImageReference
-	Destination imageapi.DockerImageReference
+	Source      reference.DockerImageReference
+	Destination reference.DockerImageReference
 	Type        DestinationType
 }
 
-func parseSource(ref string) (imageapi.DockerImageReference, error) {
-	src, err := imageapi.ParseDockerImageReference(ref)
+func parseSource(ref string) (reference.DockerImageReference, error) {
+	src, err := reference.Parse(ref)
 	if err != nil {
 		return src, fmt.Errorf("%q is not a valid image reference: %v", ref, err)
 	}
@@ -33,14 +33,14 @@ func parseSource(ref string) (imageapi.DockerImageReference, error) {
 	return src, nil
 }
 
-func parseDestination(ref string) (imageapi.DockerImageReference, DestinationType, error) {
+func parseDestination(ref string) (reference.DockerImageReference, DestinationType, error) {
 	dstType := DestinationRegistry
 	switch {
 	case strings.HasPrefix(ref, "s3://"):
 		dstType = DestinationS3
 		ref = strings.TrimPrefix(ref, "s3://")
 	}
-	dst, err := imageapi.ParseDockerImageReference(ref)
+	dst, err := reference.Parse(ref)
 	if err != nil {
 		return dst, dstType, fmt.Errorf("%q is not a valid image reference: %v", ref, err)
 	}
@@ -153,14 +153,14 @@ var (
 
 type destination struct {
 	t    DestinationType
-	ref  imageapi.DockerImageReference
+	ref  reference.DockerImageReference
 	tags []string
 }
 
 type pushTargets map[key]destination
 
 type destinations struct {
-	ref imageapi.DockerImageReference
+	ref reference.DockerImageReference
 
 	lock    sync.Mutex
 	tags    map[string]pushTargets

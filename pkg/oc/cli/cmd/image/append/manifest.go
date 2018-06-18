@@ -1,4 +1,4 @@
-package mirror
+package append
 
 import (
 	"context"

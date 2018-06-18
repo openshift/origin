@@ -11,12 +11,13 @@ import (
 
 	units "github.com/docker/go-units"
 	godigest "github.com/opencontainers/go-digest"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"k8s.io/apimachinery/pkg/util/sets"
+
+	"github.com/openshift/origin/pkg/image/apis/image/reference"
 )
 
 type retrieverError struct {
-	src, dst imageapi.DockerImageReference
+	src, dst reference.DockerImageReference
 	err      error
 }
 
@@ -399,7 +400,7 @@ func (p *repositoryPlan) AddError(errs ...error) {
 	p.errs = append(p.errs, errs...)
 }
 
-func (p *repositoryPlan) Blobs(from imageapi.DockerImageReference, t DestinationType, location string) *repositoryBlobCopy {
+func (p *repositoryPlan) Blobs(from reference.DockerImageReference, t DestinationType, location string) *repositoryBlobCopy {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
@@ -412,7 +413,7 @@ func (p *repositoryPlan) Blobs(from imageapi.DockerImageReference, t Destination
 		parent: p,
 
 		fromRef:         from,
-		toRef:           imageapi.DockerImageReference{Registry: p.parent.name, Name: p.name},
+		toRef:           reference.DockerImageReference{Registry: p.parent.name, Name: p.name},
 		destinationType: t,
 		location:        location,
 
@@ -436,7 +437,7 @@ func (p *repositoryPlan) Manifests(destinationType DestinationType) *repositoryM
 	if p.manifests == nil {
 		p.manifests = &repositoryManifestPlan{
 			parent:          p,
-			toRef:           imageapi.DockerImageReference{Registry: p.parent.name, Name: p.name},
+			toRef:           reference.DockerImageReference{Registry: p.parent.name, Name: p.name},
 			destinationType: destinationType,
 			digestsToTags:   make(map[godigest.Digest]sets.String),
 			digestCopies:    sets.NewString(),
@@ -494,8 +495,8 @@ func (p *repositoryPlan) calculateStats(registryCounts map[string]int) {
 
 type repositoryBlobCopy struct {
 	parent          *repositoryPlan
-	fromRef         imageapi.DockerImageReference
-	toRef           imageapi.DockerImageReference
+	fromRef         reference.DockerImageReference
+	toRef           reference.DockerImageReference
 	destinationType DestinationType
 	location        string
 
@@ -551,7 +552,7 @@ func (p *repositoryBlobCopy) calculateStats() {
 
 type repositoryManifestPlan struct {
 	parent          *repositoryPlan
-	toRef           imageapi.DockerImageReference
+	toRef           reference.DockerImageReference
 	destinationType DestinationType
 
 	lock    sync.Mutex

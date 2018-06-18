@@ -23,7 +23,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imagereference "github.com/openshift/origin/pkg/image/apis/image/reference"
 	"github.com/openshift/origin/pkg/image/registryclient"
 	"github.com/openshift/origin/pkg/image/registryclient/dockercredentials"
 )
@@ -171,7 +171,7 @@ func (o *pushOptions) Complete(args []string) error {
 	return nil
 }
 
-func (o *pushOptions) Repository(ctx context.Context, context *registryclient.Context, t DestinationType, ref imageapi.DockerImageReference) (distribution.Repository, error) {
+func (o *pushOptions) Repository(ctx context.Context, context *registryclient.Context, t DestinationType, ref imagereference.DockerImageReference) (distribution.Repository, error) {
 	switch t {
 	case DestinationRegistry:
 		return context.Repository(ctx, ref.DockerClientDefaults().RegistryURL(), ref.RepositoryName(), o.Insecure)

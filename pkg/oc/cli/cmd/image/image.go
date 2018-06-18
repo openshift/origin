@@ -9,6 +9,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	"github.com/openshift/origin/pkg/cmd/templates"
+	"github.com/openshift/origin/pkg/oc/cli/cmd/image/append"
 	"github.com/openshift/origin/pkg/oc/cli/cmd/image/mirror"
 )
 
@@ -34,6 +35,7 @@ func NewCmdImage(fullName string, f kcmdutil.Factory, streams genericclioptions.
 		{
 			Message: "Advanced commands:",
 			Commands: []*cobra.Command{
+				append.New(name, streams.Out, streams.ErrOut),
 				mirror.NewCmdMirrorImage(name, streams.Out, streams.ErrOut),
 			},
 		},
