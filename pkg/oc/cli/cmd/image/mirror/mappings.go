@@ -7,11 +7,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/golang/glog"
-
 	"github.com/docker/distribution/registry/client/auth"
-
-	godigest "github.com/opencontainers/go-digest"
+	digest "github.com/opencontainers/go-digest"
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
@@ -170,7 +167,7 @@ type destinations struct {
 	digests map[string]pushTargets
 }
 
-func (d *destinations) mergeIntoDigests(srcDigest godigest.Digest, target pushTargets) {
+func (d *destinations) mergeIntoDigests(srcDigest digest.Digest, target pushTargets) {
 	d.lock.Lock()
 	defer d.lock.Unlock()
 	srcKey := srcDigest.String()
@@ -277,79 +274,4 @@ func calculateDockerRegistryScopes(tree targetTree) map[string][]auth.Scope {
 		uniqueScopes[registry] = repoScopes
 	}
 	return uniqueScopes
-}
-
-type workQueue struct {
-	ch chan workUnit
-	wg *sync.WaitGroup
-}
-
-func newWorkQueue(workers int, stopCh <-chan struct{}) *workQueue {
-	q := &workQueue{
-		ch: make(chan workUnit, 100),
-		wg: &sync.WaitGroup{},
-	}
-	go q.run(workers, stopCh)
-	return q
-}
-
-func (q *workQueue) run(workers int, stopCh <-chan struct{}) {
-	for i := 0; i < workers; i++ {
-		go func(i int) {
-			defer glog.V(4).Infof("worker %d stopping", i)
-			for {
-				select {
-				case work, ok := <-q.ch:
-					if !ok {
-						return
-					}
-					work.fn()
-					work.wg.Done()
-				case <-stopCh:
-					return
-				}
-			}
-		}(i)
-	}
-	<-stopCh
-}
-
-func (q *workQueue) Batch(fn func(Work)) {
-	w := &worker{
-		wg: &sync.WaitGroup{},
-		ch: q.ch,
-	}
-	fn(w)
-	w.wg.Wait()
-}
-
-func (q *workQueue) Queue(fn func(Work)) {
-	w := &worker{
-		wg: q.wg,
-		ch: q.ch,
-	}
-	fn(w)
-}
-
-func (q *workQueue) Done() {
-	q.wg.Wait()
-}
-
-type workUnit struct {
-	fn func()
-	wg *sync.WaitGroup
-}
-
-type Work interface {
-	Parallel(fn func())
-}
-
-type worker struct {
-	wg *sync.WaitGroup
-	ch chan workUnit
-}
-
-func (w *worker) Parallel(fn func()) {
-	w.wg.Add(1)
-	w.ch <- workUnit{wg: w.wg, fn: fn}
 }
