@@ -3,7 +3,6 @@ package cmd
 import (
 	"errors"
 	"fmt"
-	"io"
 
 	"github.com/spf13/cobra"
 
@@ -59,8 +58,10 @@ var (
 	  %[1]s %[2]s -f pod/backend -c ruby-container`)
 )
 
-// OpenShiftLogsOptions holds all the necessary options for running oc logs.
-type OpenShiftLogsOptions struct {
+// LogsOptions holds all the necessary options for running oc logs.
+type LogsOptions struct {
+	genericclioptions.IOStreams
+
 	// Options should hold our own *LogOptions objects.
 	Options runtime.Object
 	// KubeLogOptions contains all the necessary options for
@@ -74,11 +75,16 @@ type OpenShiftLogsOptions struct {
 	Namespace string
 }
 
+func NewLogsOptions(streams genericclioptions.IOStreams) *LogsOptions {
+	return &LogsOptions{
+		KubeLogOptions: &kcmd.LogsOptions{},
+		IOStreams: streams,
+	}
+}
+
 // NewCmdLogs creates a new logs command that supports OpenShift resources.
 func NewCmdLogs(name, baseName string, f *clientcmd.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	o := OpenShiftLogsOptions{
-		KubeLogOptions: &kcmd.LogsOptions{},
-	}
+	o := NewLogsOptions(streams)
 
 	cmd := kcmd.NewCmdLogs(f, streams.Out, streams.ErrOut)
 	cmd.Short = "Print the logs for a resource"
@@ -86,7 +92,7 @@ func NewCmdLogs(name, baseName string, f *clientcmd.Factory, streams genericclio
 	cmd.Example = fmt.Sprintf(logsExample, baseName, name)
 	cmd.SuggestFor = []string{"builds", "deployments"}
 	cmd.Run = func(cmd *cobra.Command, args []string) {
-		kcmdutil.CheckErr(o.Complete(f, cmd, args, streams.Out))
+		kcmdutil.CheckErr(o.Complete(f, cmd, args))
 
 		if err := o.Validate(); err != nil {
 			kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
@@ -116,8 +122,8 @@ func isPipelineBuild(obj runtime.Object) (bool, *buildapi.BuildConfig, bool, *bu
 // Complete calls the upstream Complete for the logs command and then resolves the
 // resource a user requested to view its logs and creates the appropriate logOptions
 // object for it.
-func (o *OpenShiftLogsOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string, out io.Writer) error {
-	if err := o.KubeLogOptions.Complete(f, out, cmd, args); err != nil {
+func (o *LogsOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string) error {
+	if err := o.KubeLogOptions.Complete(f, o.Out, cmd, args); err != nil {
 		return err
 	}
 	namespace, _, err := f.DefaultNamespace()
@@ -200,7 +206,7 @@ func (o *OpenShiftLogsOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command
 
 // Validate runs the upstream validation for the logs command and then it
 // will validate any OpenShift-specific log options.
-func (o OpenShiftLogsOptions) Validate() error {
+func (o LogsOptions) Validate() error {
 	if err := o.KubeLogOptions.Validate(); err != nil {
 		return err
 	}
@@ -224,7 +230,7 @@ func (o OpenShiftLogsOptions) Validate() error {
 
 // RunLog will run the upstream logs command and may use an OpenShift
 // logOptions object.
-func (o OpenShiftLogsOptions) RunLog() error {
+func (o LogsOptions) RunLog() error {
 	if o.Options != nil {
 		// Use our own options object.
 		o.KubeLogOptions.Options = o.Options
