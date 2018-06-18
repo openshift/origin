@@ -17,9 +17,9 @@ import (
 
 	knet "k8s.io/apimachinery/pkg/util/net"
 	restclient "k8s.io/client-go/rest"
+	rbacclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/rbac/internalversion"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
-	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -98,9 +98,10 @@ func (o *DebugAPIServerOptions) Run() error {
 		}
 
 		addClusterAdmin := &policy.RoleModificationOptions{
-			RoleName:            bootstrappolicy.ClusterAdminRoleName,
-			RoleBindingAccessor: policy.ClusterRoleBindingAccessor{Client: authorizationclient.NewForConfigOrDie(clientConfig)},
-			Groups:              []string{"system:authenticated"},
+			RoleName:   bootstrappolicy.ClusterAdminRoleName,
+			RoleKind:   "ClusterRole",
+			RbacClient: rbacclient.NewForConfigOrDie(clientConfig),
+			Groups:     []string{"system:authenticated"},
 		}
 		if err := addClusterAdmin.AddRole(); err != nil {
 			return err

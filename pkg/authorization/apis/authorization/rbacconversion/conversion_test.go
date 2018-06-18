@@ -14,7 +14,6 @@ import (
 	"k8s.io/kubernetes/pkg/apis/rbac"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	"github.com/openshift/origin/pkg/authorization/rulevalidation"
 	uservalidation "github.com/openshift/origin/pkg/user/apis/user/validation"
 
 	"github.com/google/gofuzz"
@@ -253,10 +252,10 @@ func TestAttributeRestrictionsRuleLoss(t *testing.T) {
 	if err := Convert_rbac_ClusterRole_To_authorization_ClusterRole(rcr, ocr2, nil); err != nil {
 		t.Fatal(err)
 	}
-	if covered, uncoveredRules := rulevalidation.Covers(ocr.Rules, ocr2.Rules); !covered {
+	if covered, uncoveredRules := Covers(ocr.Rules, ocr2.Rules); !covered {
 		t.Errorf("input rules expected AttributeRestrictions loss not seen; the uncovered rules are %#v", uncoveredRules)
 	}
-	if covered, uncoveredRules := rulevalidation.Covers(ocr2.Rules, ocr.Rules); !covered {
+	if covered, uncoveredRules := Covers(ocr2.Rules, ocr.Rules); !covered {
 		t.Errorf("output rules expected AttributeRestrictions loss not seen; the uncovered rules are %#v", uncoveredRules)
 	}
 }
@@ -285,12 +284,12 @@ func TestResourceAndNonResourceRuleSplit(t *testing.T) {
 	// We need to break down the input rules so Covers does not get confused by ResourceNames
 	ocrRulesBrokenDown := []authorizationapi.PolicyRule{}
 	for _, servantRule := range ocr.Rules {
-		ocrRulesBrokenDown = append(ocrRulesBrokenDown, rulevalidation.BreakdownRule(servantRule)...)
+		ocrRulesBrokenDown = append(ocrRulesBrokenDown, BreakdownRule(servantRule)...)
 	}
-	if covered, uncoveredRules := rulevalidation.Covers(ocrRulesBrokenDown, ocr2.Rules); !covered {
+	if covered, uncoveredRules := Covers(ocrRulesBrokenDown, ocr2.Rules); !covered {
 		t.Errorf("input rules expected rule split not seen; the uncovered rules are %#v", uncoveredRules)
 	}
-	if covered, uncoveredRules := rulevalidation.Covers(ocr2.Rules, ocr.Rules); !covered {
+	if covered, uncoveredRules := Covers(ocr2.Rules, ocr.Rules); !covered {
 		t.Errorf("output rules expected rule split not seen; the uncovered rules are %#v", uncoveredRules)
 	}
 }

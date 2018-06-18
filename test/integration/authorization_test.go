@@ -21,8 +21,10 @@ import (
 	kubeauthorizationapi "k8s.io/kubernetes/pkg/apis/authorization"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	extensionsapi "k8s.io/kubernetes/pkg/apis/extensions"
+	"k8s.io/kubernetes/pkg/apis/rbac"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
+	rbacclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/rbac/internalversion"
 
 	authorizationapiv1 "github.com/openshift/api/authorization/v1"
 	"github.com/openshift/origin/pkg/api/legacy"
@@ -148,13 +150,13 @@ func TestClusterReaderCoverage(t *testing.T) {
 		{Group: "", Resource: "imagestreams/secrets"}: true,
 	}
 
-	readerRole, err := authorizationclient.NewForConfigOrDie(clusterAdminClientConfig).Authorization().ClusterRoles().Get(bootstrappolicy.ClusterReaderRoleName, metav1.GetOptions{})
+	readerRole, err := rbacclient.NewForConfigOrDie(clusterAdminClientConfig).ClusterRoles().Get(bootstrappolicy.ClusterReaderRoleName, metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	for _, rule := range readerRole.Rules {
 		for _, group := range rule.APIGroups {
-			for resource := range rule.Resources {
+			for _, resource := range rule.Resources {
 				gr := schema.GroupResource{Group: group, Resource: resource}
 				if escalatingResources[gr] {
 					t.Errorf("cluster-reader role has escalating resource %v.  Check pkg/cmd/server/bootstrappolicy/policy.go.", gr)
@@ -281,13 +283,13 @@ func TestAuthorizationResolution(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	clusterAdminAuthorizationClient := authorizationclient.NewForConfigOrDie(clusterAdminClientConfig).Authorization()
+	clusterAdminAuthorizationClient := rbacclient.NewForConfigOrDie(clusterAdminClientConfig)
 
 	addValerie := &policy.RoleModificationOptions{
-		RoleNamespace:       "",
-		RoleName:            bootstrappolicy.ViewRoleName,
-		RoleBindingAccessor: policy.NewClusterRoleBindingAccessor(authorizationclient.NewForConfigOrDie(clusterAdminClientConfig).Authorization()),
-		Users:               []string{"valerie"},
+		RoleName:   bootstrappolicy.ViewRoleName,
+		RoleKind:   "ClusterRole",
+		RbacClient: clusterAdminAuthorizationClient,
+		Users:      []string{"valerie"},
 	}
 	if err := addValerie.AddRole(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -298,10 +300,10 @@ func TestAuthorizationResolution(t *testing.T) {
 	}
 
 	addEdgar := &policy.RoleModificationOptions{
-		RoleNamespace:       "",
-		RoleName:            bootstrappolicy.EditRoleName,
-		RoleBindingAccessor: policy.NewClusterRoleBindingAccessor(authorizationclient.NewForConfigOrDie(clusterAdminClientConfig).Authorization()),
-		Users:               []string{"edgar"},
+		RoleName:   bootstrappolicy.EditRoleName,
+		RoleKind:   "ClusterRole",
+		RbacClient: clusterAdminAuthorizationClient,
+		Users:      []string{"edgar"},
 	}
 	if err := addEdgar.AddRole(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -311,22 +313,22 @@ func TestAuthorizationResolution(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	roleWithGroup := &authorizationapi.ClusterRole{}
+	roleWithGroup := &rbac.ClusterRole{}
 	roleWithGroup.Name = "with-group"
-	roleWithGroup.Rules = append(roleWithGroup.Rules, authorizationapi.PolicyRule{
-		APIGroups: []string{buildapi.GroupName},
-		Verbs:     sets.NewString("list"),
-		Resources: sets.NewString("builds"),
-	})
+	roleWithGroup.Rules = append(roleWithGroup.Rules,
+		rbac.NewRule("list").
+			Groups(buildapi.GroupName).
+			Resources("builds").
+			RuleOrDie())
 	if _, err := clusterAdminAuthorizationClient.ClusterRoles().Create(roleWithGroup); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
 	addBuildLister := &policy.RoleModificationOptions{
-		RoleNamespace:       "",
-		RoleName:            "with-group",
-		RoleBindingAccessor: policy.NewClusterRoleBindingAccessor(authorizationclient.NewForConfigOrDie(clusterAdminClientConfig).Authorization()),
-		Users:               []string{"build-lister"},
+		RoleName:   "with-group",
+		RoleKind:   "ClusterRole",
+		RbacClient: clusterAdminAuthorizationClient,
+		Users:      []string{"build-lister"},
 	}
 	if err := addBuildLister.AddRole(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -523,20 +525,22 @@ func TestAuthorizationResourceAccessReview(t *testing.T) {
 	markAuthorizationClient := authorizationclient.NewForConfigOrDie(markConfig).Authorization()
 
 	addValerie := &policy.RoleModificationOptions{
-		RoleNamespace:       "",
-		RoleName:            bootstrappolicy.ViewRoleName,
-		RoleBindingAccessor: policy.NewLocalRoleBindingAccessor("hammer-project", authorizationclient.NewForConfigOrDie(haroldConfig).Authorization()),
-		Users:               []string{"valerie"},
+		RoleBindingNamespace: "hammer-project",
+		RoleName:             bootstrappolicy.ViewRoleName,
+		RoleKind:             "ClusterRole",
+		RbacClient:           rbacclient.NewForConfigOrDie(haroldConfig),
+		Users:                []string{"valerie"},
 	}
 	if err := addValerie.AddRole(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
 	addEdgar := &policy.RoleModificationOptions{
-		RoleNamespace:       "",
-		RoleName:            bootstrappolicy.EditRoleName,
-		RoleBindingAccessor: policy.NewLocalRoleBindingAccessor("mallet-project", authorizationclient.NewForConfigOrDie(markConfig).Authorization()),
-		Users:               []string{"edgar"},
+		RoleBindingNamespace: "mallet-project",
+		RoleName:             bootstrappolicy.EditRoleName,
+		RoleKind:             "ClusterRole",
+		RbacClient:           rbacclient.NewForConfigOrDie(markConfig),
+		Users:                []string{"edgar"},
 	}
 	if err := addEdgar.AddRole(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -1027,20 +1031,22 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 	anonymousSARGetter := anonymousKubeClient.Authorization()
 
 	addAnonymous := &policy.RoleModificationOptions{
-		RoleNamespace:       "",
-		RoleName:            bootstrappolicy.EditRoleName,
-		RoleBindingAccessor: policy.NewLocalRoleBindingAccessor("hammer-project", authorizationclient.NewForConfigOrDie(clusterAdminClientConfig).Authorization()),
-		Users:               []string{"system:anonymous"},
+		RoleBindingNamespace: "hammer-project",
+		RoleName:             bootstrappolicy.EditRoleName,
+		RoleKind:             "ClusterRole",
+		RbacClient:           rbacclient.NewForConfigOrDie(clusterAdminClientConfig),
+		Users:                []string{"system:anonymous"},
 	}
 	if err := addAnonymous.AddRole(); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 
 	addDanny := &policy.RoleModificationOptions{
-		RoleNamespace:       "",
-		RoleName:            bootstrappolicy.ViewRoleName,
-		RoleBindingAccessor: policy.NewLocalRoleBindingAccessor("default", authorizationclient.NewForConfigOrDie(clusterAdminClientConfig).Authorization()),
-		Users:               []string{"danny"},
+		RoleBindingNamespace: "default",
+		RoleName:             bootstrappolicy.ViewRoleName,
+		RoleKind:             "ClusterRole",
+		RbacClient:           rbacclient.NewForConfigOrDie(clusterAdminClientConfig),
+		Users:                []string{"danny"},
 	}
 	if err := addDanny.AddRole(); err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -1092,20 +1098,22 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 	}.run(t)
 
 	addValerie := &policy.RoleModificationOptions{
-		RoleNamespace:       "",
-		RoleName:            bootstrappolicy.ViewRoleName,
-		RoleBindingAccessor: policy.NewLocalRoleBindingAccessor("hammer-project", authorizationclient.NewForConfigOrDie(haroldConfig).Authorization()),
-		Users:               []string{"valerie"},
+		RoleBindingNamespace: "hammer-project",
+		RoleName:             bootstrappolicy.ViewRoleName,
+		RoleKind:             "ClusterRole",
+		RbacClient:           rbacclient.NewForConfigOrDie(haroldConfig),
+		Users:                []string{"valerie"},
 	}
 	if err := addValerie.AddRole(); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 
 	addEdgar := &policy.RoleModificationOptions{
-		RoleNamespace:       "",
-		RoleName:            bootstrappolicy.EditRoleName,
-		RoleBindingAccessor: policy.NewLocalRoleBindingAccessor("mallet-project", authorizationclient.NewForConfigOrDie(markConfig).Authorization()),
-		Users:               []string{"edgar"},
+		RoleBindingNamespace: "mallet-project",
+		RoleName:             bootstrappolicy.EditRoleName,
+		RoleKind:             "ClusterRole",
+		RbacClient:           rbacclient.NewForConfigOrDie(markConfig),
+		Users:                []string{"edgar"},
 	}
 	if err := addEdgar.AddRole(); err != nil {
 		t.Fatalf("unexpected error: %v", err)

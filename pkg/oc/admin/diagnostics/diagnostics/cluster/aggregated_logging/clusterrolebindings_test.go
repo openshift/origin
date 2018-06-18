@@ -4,40 +4,38 @@ import (
 	"errors"
 	"testing"
 
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/rbac"
 
-	authapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/log"
 )
 
 type fakeRoleBindingDiagnostic struct {
 	fakeDiagnostic
-	fakeClusterRoleBindingList authapi.ClusterRoleBindingList
+	fakeClusterRoleBindingList rbac.ClusterRoleBindingList
 }
 
 func newFakeRoleBindingDiagnostic(t *testing.T) *fakeRoleBindingDiagnostic {
 	return &fakeRoleBindingDiagnostic{
 		fakeDiagnostic:             *newFakeDiagnostic(t),
-		fakeClusterRoleBindingList: authapi.ClusterRoleBindingList{},
+		fakeClusterRoleBindingList: rbac.ClusterRoleBindingList{},
 	}
 }
 
-func (f *fakeRoleBindingDiagnostic) listClusterRoleBindings() (*authapi.ClusterRoleBindingList, error) {
+func (f *fakeRoleBindingDiagnostic) listClusterRoleBindings() (*rbac.ClusterRoleBindingList, error) {
 	if f.err != nil {
 		return nil, f.err
 	}
 	return &f.fakeClusterRoleBindingList, nil
 }
 func (f *fakeRoleBindingDiagnostic) addBinding(name string, namespace string) {
-	ref := kapi.ObjectReference{
+	ref := rbac.Subject{
 		Name:      name,
 		Kind:      rbac.ServiceAccountKind,
 		Namespace: namespace,
 	}
 	if len(f.fakeClusterRoleBindingList.Items) == 0 {
-		f.fakeClusterRoleBindingList.Items = append(f.fakeClusterRoleBindingList.Items, authapi.ClusterRoleBinding{
-			RoleRef: kapi.ObjectReference{
+		f.fakeClusterRoleBindingList.Items = append(f.fakeClusterRoleBindingList.Items, rbac.ClusterRoleBinding{
+			RoleRef: rbac.RoleRef{
 				Name: clusterReaderRoleBindingRoleName,
 			},
 		})

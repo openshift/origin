@@ -15,9 +15,9 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	authorizationtypedclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
+	rbacclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/rbac/internalversion"
 
 	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset"
-	oauthorizationtypedclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset/typed/authorization/internalversion"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/log"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/types"
@@ -33,7 +33,7 @@ type AppCreate struct {
 	KubeClient          kclientset.Interface
 	ProjectClient       projectclient.ProjectInterface
 	RouteClient         *routeclient.Clientset
-	RoleBindingClient   oauthorizationtypedclient.RoleBindingsGetter
+	RbacClient          *rbacclient.RbacClient
 	AppsClient          *appsclient.Clientset
 	SARClient           authorizationtypedclient.SelfSubjectAccessReviewsGetter
 	Factory             *osclientcmd.Factory
@@ -233,7 +233,7 @@ func (d *AppCreate) Complete(logger *log.Logger) error {
 }
 
 func (d *AppCreate) CanRun() (bool, error) {
-	if d.SARClient == nil || d.AppsClient == nil || d.KubeClient == nil || d.ProjectClient == nil || d.RoleBindingClient == nil {
+	if d.SARClient == nil || d.AppsClient == nil || d.KubeClient == nil || d.ProjectClient == nil || d.RbacClient == nil {
 		return false, fmt.Errorf("missing at least one client")
 	}
 	if d.PreventModification {

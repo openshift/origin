@@ -1,4 +1,4 @@
-package rulevalidation
+package rbacconversion
 
 import (
 	"strings"

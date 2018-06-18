@@ -7,10 +7,10 @@ import (
 	watchapi "k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/kubernetes/pkg/apis/rbac"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	rbacclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/rbac/internalversion"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -76,18 +76,18 @@ func TestSimpleImageChangeBuildTriggerFromImageStreamTagCustom(t *testing.T) {
 	clusterAdminClientConfig, projectAdminKubeClient, projectAdminConfig, fn := setup(t)
 	defer fn()
 
-	clusterRoleBindingAccessor := policy.NewClusterRoleBindingAccessor(authorizationclient.NewForConfigOrDie(clusterAdminClientConfig).Authorization())
-	subjects := []kapi.ObjectReference{
+	subjects := []rbac.Subject{
 		{
-			Kind: authorizationapi.SystemGroupKind,
-			Name: bootstrappolicy.AuthenticatedGroup,
+			APIGroup: rbac.GroupName,
+			Kind:     rbac.GroupKind,
+			Name:     bootstrappolicy.AuthenticatedGroup,
 		},
 	}
 	options := policy.RoleModificationOptions{
-		RoleNamespace:       testutil.Namespace(),
-		RoleName:            bootstrappolicy.BuildStrategyCustomRoleName,
-		RoleBindingAccessor: clusterRoleBindingAccessor,
-		Subjects:            subjects,
+		RoleName:   bootstrappolicy.BuildStrategyCustomRoleName,
+		RoleKind:   "ClusterRole",
+		RbacClient: rbacclient.NewForConfigOrDie(clusterAdminClientConfig),
+		Subjects:   subjects,
 	}
 	options.AddRole()
 
@@ -107,18 +107,18 @@ func TestSimpleImageChangeBuildTriggerFromImageStreamTagCustomWithConfigChange(t
 	clusterAdminClientConfig, projectAdminKubeClient, projectAdminConfig, fn := setup(t)
 	defer fn()
 
-	clusterRoleBindingAccessor := policy.NewClusterRoleBindingAccessor(authorizationclient.NewForConfigOrDie(clusterAdminClientConfig).Authorization())
-	subjects := []kapi.ObjectReference{
+	subjects := []rbac.Subject{
 		{
-			Kind: authorizationapi.SystemGroupKind,
-			Name: bootstrappolicy.AuthenticatedGroup,
+			APIGroup: rbac.GroupName,
+			Kind:     rbac.GroupKind,
+			Name:     bootstrappolicy.AuthenticatedGroup,
 		},
 	}
 	options := policy.RoleModificationOptions{
-		RoleNamespace:       testutil.Namespace(),
-		RoleName:            bootstrappolicy.BuildStrategyCustomRoleName,
-		RoleBindingAccessor: clusterRoleBindingAccessor,
-		Subjects:            subjects,
+		RoleName:   bootstrappolicy.BuildStrategyCustomRoleName,
+		RoleKind:   "ClusterRole",
+		RbacClient: rbacclient.NewForConfigOrDie(clusterAdminClientConfig),
+		Subjects:   subjects,
 	}
 	options.AddRole()
 

@@ -8,12 +8,12 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapisext "k8s.io/kubernetes/pkg/apis/extensions"
+	"k8s.io/kubernetes/pkg/apis/rbac"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	rbacclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/rbac/internalversion"
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appstypedclient "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
-	authapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	oauthorizationtypedclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset/typed/authorization/internalversion"
 	oauthtypedclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset/typed/oauth/internalversion"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/log"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/types"
@@ -35,7 +35,7 @@ type AggregatedLogging struct {
 	OAuthClientClient oauthtypedclient.OAuthClientsGetter
 	ProjectClient     projecttypedclient.ProjectsGetter
 	RouteClient       routetypedclient.RoutesGetter
-	CRBClient         oauthorizationtypedclient.ClusterRoleBindingsGetter
+	CRBClient         rbacclient.ClusterRoleBindingsGetter
 	DCClient          appstypedclient.DeploymentConfigsGetter
 	SCCClient         securitytypedclient.SecurityContextConstraintsGetter
 	KubeClient        kclientset.Interface
@@ -65,7 +65,7 @@ func NewAggregatedLogging(
 	oauthClientClient oauthtypedclient.OAuthClientsGetter,
 	projectClient projecttypedclient.ProjectsGetter,
 	routeClient routetypedclient.RoutesGetter,
-	crbClient oauthorizationtypedclient.ClusterRoleBindingsGetter,
+	crbClient rbacclient.ClusterRoleBindingsGetter,
 	dcClient appstypedclient.DeploymentConfigsGetter,
 	sccClient securitytypedclient.SecurityContextConstraintsGetter,
 ) *AggregatedLogging {
@@ -86,7 +86,7 @@ func (d *AggregatedLogging) getScc(name string) (*securityapi.SecurityContextCon
 	return d.SCCClient.SecurityContextConstraints().Get(name, metav1.GetOptions{})
 }
 
-func (d *AggregatedLogging) listClusterRoleBindings() (*authapi.ClusterRoleBindingList, error) {
+func (d *AggregatedLogging) listClusterRoleBindings() (*rbac.ClusterRoleBindingList, error) {
 	return d.CRBClient.ClusterRoleBindings().List(metav1.ListOptions{})
 }
 

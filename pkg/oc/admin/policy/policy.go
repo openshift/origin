@@ -6,15 +6,16 @@ import (
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/uuid"
+	"k8s.io/kubernetes/pkg/apis/rbac"
+	rbacclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/rbac/internalversion"
 	ktemplates "k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/spf13/cobra"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	authorizationtypedclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset/typed/authorization/internalversion"
 	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
@@ -99,162 +100,201 @@ func NewCmdPolicy(name, fullName string, f *clientcmd.Factory, out, errout io.Wr
 	return cmds
 }
 
-func getUniqueName(basename string, existingNames *sets.String) string {
+func getUniqueName(rbacClient rbacclient.RbacInterface, basename string, namespace string) (string, error) {
+	existingNames := sets.String{}
+
+	if len(namespace) > 0 {
+		roleBindings, err := rbacClient.RoleBindings(namespace).List(metav1.ListOptions{})
+		if err != nil && !kapierrors.IsNotFound(err) {
+			return "", err
+		}
+		for _, currBinding := range roleBindings.Items {
+			existingNames.Insert(currBinding.Name)
+		}
+	} else {
+		roleBindings, err := rbacClient.ClusterRoleBindings().List(metav1.ListOptions{})
+		if err != nil && !kapierrors.IsNotFound(err) {
+			return "", err
+		}
+		for _, currBinding := range roleBindings.Items {
+			existingNames.Insert(currBinding.Name)
+		}
+	}
+
 	if !existingNames.Has(basename) {
-		return basename
+		return basename, nil
 	}
 
 	for i := 0; i < 100; i++ {
 		trialName := fmt.Sprintf("%v-%d", basename, i)
 		if !existingNames.Has(trialName) {
-			return trialName
+			return trialName, nil
 		}
 	}
 
-	return string(uuid.NewUUID())
+	return string(uuid.NewUUID()), nil
 }
 
-// RoleBindingAccessor is used by role modification commands to access and modify roles
-type RoleBindingAccessor interface {
-	GetExistingRoleBindingsForRole(roleNamespace, role string) ([]*authorizationapi.RoleBinding, error)
-	GetExistingRoleBindingNames() (*sets.String, error)
-	GetRoleBinding(name string) (*authorizationapi.RoleBinding, error)
-	UpdateRoleBinding(binding *authorizationapi.RoleBinding) error
-	CreateRoleBinding(binding *authorizationapi.RoleBinding) error
-	DeleteRoleBinding(name string) error
+type roleBindingAbstraction struct {
+	rbacClient         rbacclient.RbacInterface
+	roleBinding        *rbac.RoleBinding
+	clusterRoleBinding *rbac.ClusterRoleBinding
 }
 
-// LocalRoleBindingAccessor operates against role bindings in namespace
-type LocalRoleBindingAccessor struct {
-	BindingNamespace string
-	Client           authorizationtypedclient.RoleBindingsGetter
+func newRoleBindingAbstraction(rbacClient rbacclient.RbacInterface, name string, namespace string, roleName string, roleKind string) (*roleBindingAbstraction, error) {
+	r := roleBindingAbstraction{rbacClient: rbacClient}
+	if len(namespace) > 0 {
+		switch roleKind {
+		case "Role":
+			r.roleBinding = &(rbac.NewRoleBinding(roleName, namespace).RoleBinding)
+		case "ClusterRole":
+			r.roleBinding = &(rbac.NewRoleBindingForClusterRole(roleName, namespace).RoleBinding)
+		default:
+			return nil, fmt.Errorf("Unknown Role Kind: %q", roleKind)
+		}
+		if name != roleName {
+			r.roleBinding.Name = name
+		}
+	} else {
+		if roleKind != "ClusterRole" {
+			return nil, fmt.Errorf("Cluster Role Bindings can only reference Cluster Roles")
+		}
+		r.clusterRoleBinding = &(rbac.NewClusterBinding(roleName).ClusterRoleBinding)
+		if name != roleName {
+			r.clusterRoleBinding.Name = name
+		}
+	}
+	return &r, nil
 }
 
-func NewLocalRoleBindingAccessor(bindingNamespace string, client authorizationtypedclient.RoleBindingsGetter) LocalRoleBindingAccessor {
-	return LocalRoleBindingAccessor{bindingNamespace, client}
-}
-
-func (a LocalRoleBindingAccessor) GetExistingRoleBindingsForRole(roleNamespace, role string) ([]*authorizationapi.RoleBinding, error) {
-	existingBindings, err := a.Client.RoleBindings(a.BindingNamespace).List(metav1.ListOptions{})
-	if err != nil && !kapierrors.IsNotFound(err) {
+func getRoleBindingAbstraction(rbacClient rbacclient.RbacInterface, name string, namespace string) (*roleBindingAbstraction, error) {
+	var err error
+	r := roleBindingAbstraction{rbacClient: rbacClient}
+	if len(namespace) > 0 {
+		r.roleBinding, err = rbacClient.RoleBindings(namespace).Get(name, metav1.GetOptions{})
+	} else {
+		r.clusterRoleBinding, err = rbacClient.ClusterRoleBindings().Get(name, metav1.GetOptions{})
+	}
+	if err != nil {
 		return nil, err
 	}
+	return &r, nil
+}
 
-	ret := make([]*authorizationapi.RoleBinding, 0)
+func getRoleBindingAbstractionsForRole(rbacClient rbacclient.RbacInterface, roleName string, roleKind string, namespace string) ([]*roleBindingAbstraction, error) {
+	ret := make([]*roleBindingAbstraction, 0)
 	// see if we can find an existing binding that points to the role in question.
-	for i := range existingBindings.Items {
-		// shallow copy outside of the loop so that we can take its address
-		currBinding := existingBindings.Items[i]
-		if currBinding.RoleRef.Name == role && currBinding.RoleRef.Namespace == roleNamespace {
-			ret = append(ret, &currBinding)
+	if len(namespace) > 0 {
+		roleBindings, err := rbacClient.RoleBindings(namespace).List(metav1.ListOptions{})
+		if err != nil && !kapierrors.IsNotFound(err) {
+			return nil, err
+		}
+		for i := range roleBindings.Items {
+			// shallow copy outside of the loop so that we can take its address
+			roleBinding := roleBindings.Items[i]
+			if roleBinding.RoleRef.Name == roleName && roleBinding.RoleRef.Kind == roleKind {
+				ret = append(ret, &roleBindingAbstraction{rbacClient: rbacClient, roleBinding: &roleBinding})
+			}
+		}
+	} else {
+		clusterRoleBindings, err := rbacClient.ClusterRoleBindings().List(metav1.ListOptions{})
+		if err != nil && !kapierrors.IsNotFound(err) {
+			return nil, err
+		}
+		for i := range clusterRoleBindings.Items {
+			// shallow copy outside of the loop so that we can take its address
+			clusterRoleBinding := clusterRoleBindings.Items[i]
+			if clusterRoleBinding.RoleRef.Name == roleName {
+				ret = append(ret, &roleBindingAbstraction{rbacClient: rbacClient, clusterRoleBinding: &clusterRoleBinding})
+			}
 		}
 	}
 
 	return ret, nil
 }
 
-func (a LocalRoleBindingAccessor) GetExistingRoleBindingNames() (*sets.String, error) {
-	roleBindings, err := a.Client.RoleBindings(a.BindingNamespace).List(metav1.ListOptions{})
-	if err != nil {
-		return nil, err
+func (r roleBindingAbstraction) Name() string {
+	if r.roleBinding != nil {
+		return r.roleBinding.Name
+	} else {
+		return r.clusterRoleBinding.Name
 	}
-
-	ret := &sets.String{}
-	for _, currBinding := range roleBindings.Items {
-		ret.Insert(currBinding.Name)
-	}
-
-	return ret, nil
 }
 
-func (a LocalRoleBindingAccessor) GetRoleBinding(name string) (*authorizationapi.RoleBinding, error) {
-	return a.Client.RoleBindings(a.BindingNamespace).Get(name, metav1.GetOptions{})
+func (r roleBindingAbstraction) RoleName() string {
+	if r.roleBinding != nil {
+		return r.roleBinding.RoleRef.Name
+	} else {
+		return r.clusterRoleBinding.RoleRef.Name
+	}
 }
 
-func (a LocalRoleBindingAccessor) UpdateRoleBinding(binding *authorizationapi.RoleBinding) error {
-	_, err := a.Client.RoleBindings(a.BindingNamespace).Update(binding)
+func (r roleBindingAbstraction) RoleKind() string {
+	if r.roleBinding != nil {
+		return r.roleBinding.RoleRef.Kind
+	} else {
+		return r.clusterRoleBinding.RoleRef.Kind
+	}
+}
+
+func (r roleBindingAbstraction) Annotation(key string) string {
+	if r.roleBinding != nil {
+		return r.roleBinding.Annotations[key]
+	} else {
+		return r.clusterRoleBinding.Annotations[key]
+	}
+}
+
+func (r roleBindingAbstraction) Subjects() []rbac.Subject {
+	if r.roleBinding != nil {
+		return r.roleBinding.Subjects
+	} else {
+		return r.clusterRoleBinding.Subjects
+	}
+}
+
+func (r roleBindingAbstraction) SetSubjects(subjects []rbac.Subject) {
+	if r.roleBinding != nil {
+		r.roleBinding.Subjects = subjects
+	} else {
+		r.clusterRoleBinding.Subjects = subjects
+	}
+}
+
+func (r roleBindingAbstraction) Object() runtime.Object {
+	if r.roleBinding != nil {
+		return r.roleBinding
+	} else {
+		return r.clusterRoleBinding
+	}
+}
+
+func (r roleBindingAbstraction) Create() error {
+	var err error
+	if r.roleBinding != nil {
+		_, err = r.rbacClient.RoleBindings(r.roleBinding.Namespace).Create(r.roleBinding)
+	} else {
+		_, err = r.rbacClient.ClusterRoleBindings().Create(r.clusterRoleBinding)
+	}
 	return err
 }
 
-func (a LocalRoleBindingAccessor) CreateRoleBinding(binding *authorizationapi.RoleBinding) error {
-	binding.Namespace = a.BindingNamespace
-	_, err := a.Client.RoleBindings(a.BindingNamespace).Create(binding)
+func (r roleBindingAbstraction) Update() error {
+	var err error
+	if r.roleBinding != nil {
+		_, err = r.rbacClient.RoleBindings(r.roleBinding.Namespace).Update(r.roleBinding)
+	} else {
+		_, err = r.rbacClient.ClusterRoleBindings().Update(r.clusterRoleBinding)
+	}
 	return err
 }
 
-func (a LocalRoleBindingAccessor) DeleteRoleBinding(name string) error {
-	return a.Client.RoleBindings(a.BindingNamespace).Delete(name, &metav1.DeleteOptions{})
-}
-
-// ClusterRoleBindingAccessor operates against cluster scoped role bindings
-type ClusterRoleBindingAccessor struct {
-	Client authorizationtypedclient.ClusterRoleBindingsGetter
-}
-
-func NewClusterRoleBindingAccessor(client authorizationtypedclient.ClusterRoleBindingsGetter) ClusterRoleBindingAccessor {
-	// the master namespace value doesn't matter because we're round tripping all the values, so the namespace gets stripped out
-	return ClusterRoleBindingAccessor{client}
-}
-
-func (a ClusterRoleBindingAccessor) GetExistingRoleBindingsForRole(roleNamespace, role string) ([]*authorizationapi.RoleBinding, error) {
-	// cluster role bindings can only reference cluster roles
-	if roleNamespace != "" {
-		return nil, nil
+func (r roleBindingAbstraction) Delete() error {
+	var err error
+	if r.roleBinding != nil {
+		err = r.rbacClient.RoleBindings(r.roleBinding.Namespace).Delete(r.roleBinding.Name, &metav1.DeleteOptions{})
+	} else {
+		err = r.rbacClient.ClusterRoleBindings().Delete(r.clusterRoleBinding.Name, &metav1.DeleteOptions{})
 	}
-
-	existingBindings, err := a.Client.ClusterRoleBindings().List(metav1.ListOptions{})
-	if err != nil {
-		return nil, err
-	}
-
-	ret := make([]*authorizationapi.RoleBinding, 0)
-	// see if we can find an existing binding that points to the role in question.
-	for i := range existingBindings.Items {
-		// shallow copy outside of the loop so that we can take its address
-		currBinding := existingBindings.Items[i]
-		if currBinding.RoleRef.Name == role && currBinding.RoleRef.Namespace == "" {
-			ret = append(ret, authorizationapi.ToRoleBinding(&currBinding))
-		}
-	}
-
-	return ret, nil
-}
-
-func (a ClusterRoleBindingAccessor) GetExistingRoleBindingNames() (*sets.String, error) {
-	existingBindings, err := a.Client.ClusterRoleBindings().List(metav1.ListOptions{})
-	if err != nil {
-		return nil, err
-	}
-
-	ret := &sets.String{}
-	for _, currBinding := range existingBindings.Items {
-		ret.Insert(currBinding.Name)
-	}
-
-	return ret, nil
-}
-
-func (a ClusterRoleBindingAccessor) GetRoleBinding(name string) (*authorizationapi.RoleBinding, error) {
-	clusterRole, err := a.Client.ClusterRoleBindings().Get(name, metav1.GetOptions{})
-	if err != nil {
-		return nil, err
-	}
-	roleBinding := authorizationapi.ToRoleBinding(clusterRole)
-	return roleBinding, nil
-}
-
-func (a ClusterRoleBindingAccessor) UpdateRoleBinding(binding *authorizationapi.RoleBinding) error {
-	clusterBinding := authorizationapi.ToClusterRoleBinding(binding)
-	_, err := a.Client.ClusterRoleBindings().Update(clusterBinding)
 	return err
-}
-
-func (a ClusterRoleBindingAccessor) CreateRoleBinding(binding *authorizationapi.RoleBinding) error {
-	clusterBinding := authorizationapi.ToClusterRoleBinding(binding)
-	_, err := a.Client.ClusterRoleBindings().Create(clusterBinding)
-	return err
-}
-
-func (a ClusterRoleBindingAccessor) DeleteRoleBinding(name string) error {
-	return a.Client.ClusterRoleBindings().Delete(name, &metav1.DeleteOptions{})
 }

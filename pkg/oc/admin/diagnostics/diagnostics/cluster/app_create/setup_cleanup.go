@@ -41,15 +41,15 @@ func (d *AppCreate) setupProject() bool {
 
 	buffer := bytes.Buffer{}
 	projOpts := &newproject.NewProjectOptions{
-		ProjectName:       d.project,
-		DisplayName:       "AppCreate diagnostic",
-		Description:       "AppCreate diagnostic",
-		NodeSelector:      d.nodeSelector,
-		ProjectClient:     d.ProjectClient,
-		RoleBindingClient: d.RoleBindingClient,
-		AdminRole:         bootstrappolicy.AdminRoleName,
-		AdminUser:         "",
-		Output:            &buffer,
+		ProjectName:   d.project,
+		DisplayName:   "AppCreate diagnostic",
+		Description:   "AppCreate diagnostic",
+		NodeSelector:  d.nodeSelector,
+		ProjectClient: d.ProjectClient,
+		RbacClient:    d.RbacClient,
+		AdminRole:     bootstrappolicy.AdminRoleName,
+		AdminUser:     "",
+		Output:        &buffer,
 	}
 	if err := projOpts.Run(true); err != nil {
 		d.out.Error("DCluAC005", err, fmt.Sprintf("%s: Creating project '%s' failed: \n%s\n%v", now(), d.project, buffer.String(), err))

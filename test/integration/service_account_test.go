@@ -19,9 +19,9 @@ import (
 	"k8s.io/client-go/util/retry"
 	api "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	rbacclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/rbac/internalversion"
 	serviceaccountadmission "k8s.io/kubernetes/plugin/pkg/admission/serviceaccount"
 
-	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/oc/admin/policy"
 	"github.com/openshift/origin/pkg/serviceaccounts/controllers"
@@ -78,9 +78,10 @@ func TestServiceAccountAuthorization(t *testing.T) {
 
 	// Make the service account a cluster admin on cluster1
 	addRoleOptions := &policy.RoleModificationOptions{
-		RoleName:            bootstrappolicy.ClusterAdminRoleName,
-		RoleBindingAccessor: policy.NewClusterRoleBindingAccessor(authorizationclient.NewForConfigOrDie(cluster1AdminConfig).Authorization()),
-		Users:               []string{saUsername},
+		RoleName:   bootstrappolicy.ClusterAdminRoleName,
+		RoleKind:   "ClusterRole",
+		RbacClient: rbacclient.NewForConfigOrDie(cluster1AdminConfig),
+		Users:      []string{saUsername},
 	}
 	if err := addRoleOptions.AddRole(); err != nil {
 		t.Fatal(err)
