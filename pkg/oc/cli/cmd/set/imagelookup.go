@@ -12,6 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -167,7 +168,7 @@ func (o *ImageLookupOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, ar
 		return err
 	}
 	o.Builder = f.NewBuilder().
-		Internal().
+		WithScheme(legacyscheme.Scheme, legacyscheme.Scheme.PrioritizedVersionsAllGroups()...).
 		LocalParam(o.Local).
 		ContinueOnError().
 		NamespaceParam(cmdNamespace).DefaultNamespace().
@@ -270,11 +271,14 @@ func (o *ImageLookupOptions) Run() error {
 		return fmt.Errorf("%s/%s no changes", infos[0].Mapping.Resource, infos[0].Name)
 	}
 	if o.PrintObject != nil {
-		object, err := clientcmd.AsVersionedObject(infos, !singleItemImplied, o.OutputVersion, legacyscheme.Codecs.LegacyCodec(o.OutputVersion))
-		if err != nil {
-			return err
+		allErrs := []error{}
+		for i := range infos {
+			if err := o.PrintObject(kcmdutil.AsDefaultVersionedOrOriginal(infos[i].Object, infos[i].Mapping)); err != nil {
+				allErrs = append(allErrs, err)
+			}
 		}
-		return o.PrintObject(object)
+
+		return utilerrors.NewAggregate(allErrs)
 	}
 
 	failed := false

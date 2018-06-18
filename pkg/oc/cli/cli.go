@@ -8,16 +8,12 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/openshift/origin/pkg/api/legacygroupification"
 	"github.com/spf13/cobra"
 
-	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	kubecmd "k8s.io/kubernetes/pkg/kubectl/cmd"
-	kcmdset "k8s.io/kubernetes/pkg/kubectl/cmd/set"
 	ktemplates "k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
-	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	"github.com/openshift/origin/pkg/cmd/infra/builder"
@@ -42,7 +38,6 @@ import (
 	"github.com/openshift/origin/pkg/oc/cli/policy"
 	"github.com/openshift/origin/pkg/oc/cli/sa"
 	"github.com/openshift/origin/pkg/oc/cli/secrets"
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	"github.com/openshift/origin/pkg/oc/experimental/buildchain"
 	configcmd "github.com/openshift/origin/pkg/oc/experimental/config"
 	"github.com/openshift/origin/pkg/oc/experimental/dockergc"
@@ -327,7 +322,7 @@ func CommandFor(basename string) *cobra.Command {
 
 	switch basename {
 	case "kubectl":
-		cmd = kubecmd.NewKubectlCommand(kcmdutil.NewFactory(nil), in, out, errout)
+		cmd = kubecmd.NewKubectlCommand(in, out, errout)
 	case "openshift-deploy":
 		cmd = deployer.NewCommandDeployer(basename)
 	case "openshift-sti-build":
@@ -347,14 +342,7 @@ func CommandFor(basename string) *cobra.Command {
 	case "openshift-recycle":
 		cmd = recycle.NewCommandRecycle(basename, out)
 	default:
-		// we only need this change for `oc`.  `kubectl` should behave as close to `kubectl` as we can
-		// if we call this factory construction method, we want the openshift style config loading
-		genericclioptions.UseOpenShiftKubeConfigValues = true
-		kclientcmd.ErrEmptyConfig = genericclioptions.NewErrConfigurationMissing()
-		kcmdset.ParseDockerImageReferenceToStringFunc = clientcmd.ParseDockerImageReferenceToStringFunc
-
-		resource.OAPIToGroupified = legacygroupification.OAPIToGroupified
-		kcmdutil.OAPIToGroupifiedGVK = legacygroupification.OAPIToGroupifiedGVK
+		shimKubectlForOc()
 		cmd = NewCommandCLI("oc", "oc", in, out, errout)
 	}
 

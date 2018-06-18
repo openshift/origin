@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"k8s.io/kubernetes/pkg/kubectl/polymorphichelpers"
 
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -120,7 +121,7 @@ func (o *MigrateImageReferenceOptions) Complete(f kcmdutil.Factory, c *cobra.Com
 		o.Mappings = append(o.Mappings, mapping)
 	}
 
-	o.UpdatePodSpecFn = f.UpdatePodSpecForObject
+	o.UpdatePodSpecFn = polymorphichelpers.UpdatePodSpecForObjectFn
 
 	if len(remainingArgs) > 0 {
 		return fmt.Errorf("all arguments must be valid FROM=TO mappings")

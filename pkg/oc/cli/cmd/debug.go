@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"reflect"
 	"strings"
 	"time"
 
@@ -13,9 +14,14 @@ import (
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	"k8s.io/kubernetes/pkg/apis/batch"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
+	extensionsinternal "k8s.io/kubernetes/pkg/apis/extensions"
+	kinternalclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl"
 	kcmd "k8s.io/kubernetes/pkg/kubectl/cmd"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
@@ -29,6 +35,7 @@ import (
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsclientinternal "github.com/openshift/origin/pkg/apps/generated/internalclientset"
 	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
+	appsutil "github.com/openshift/origin/pkg/apps/util"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageclientinternal "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
@@ -128,7 +135,7 @@ func NewCmdDebug(fullName string, f kcmdutil.Factory, in io.Reader, out, errout 
 
 			Attach: &kcmd.DefaultRemoteAttach{},
 		},
-		LogsForObject: f.LogsForObject,
+		LogsForObject: polymorphichelpers.LogsForObjectFn,
 	}
 
 	cmd := &cobra.Command{
@@ -248,7 +255,7 @@ func (o *DebugOptions) Complete(cmd *cobra.Command, f kcmdutil.Factory, args []s
 		return fmt.Errorf("you must identify a resource with a pod template to debug")
 	}
 
-	template, err := f.ApproximatePodTemplateForObject(infos[0].Object)
+	template, err := approximatePodTemplateForObject(f, infos[0].Object)
 	if err != nil && template == nil {
 		return fmt.Errorf("cannot debug %s: %v", infos[0].Name, err)
 	}
@@ -670,4 +677,87 @@ func containerNames(pod *kapi.Pod) []string {
 		names = append(names, c.Name)
 	}
 	return names
+}
+
+// ApproximatePodTemplateForObject returns a pod template object for the provided source.
+// It may return both an error and a object. It attempt to return the best possible template
+// available at the current time.
+func approximatePodTemplateForObject(restClientGetter genericclioptions.RESTClientGetter, object runtime.Object) (*kapi.PodTemplateSpec, error) {
+	switch t := object.(type) {
+	case *imageapi.ImageStreamTag:
+		// create a minimal pod spec that uses the image referenced by the istag without any introspection
+		// it possible that we could someday do a better job introspecting it
+		return &kapi.PodTemplateSpec{
+			Spec: kapi.PodSpec{
+				RestartPolicy: kapi.RestartPolicyNever,
+				Containers: []kapi.Container{
+					{Name: "container-00", Image: t.Image.DockerImageReference},
+				},
+			},
+		}, nil
+	case *imageapi.ImageStreamImage:
+		// create a minimal pod spec that uses the image referenced by the istag without any introspection
+		// it possible that we could someday do a better job introspecting it
+		return &kapi.PodTemplateSpec{
+			Spec: kapi.PodSpec{
+				RestartPolicy: kapi.RestartPolicyNever,
+				Containers: []kapi.Container{
+					{Name: "container-00", Image: t.Image.DockerImageReference},
+				},
+			},
+		}, nil
+	case *appsapi.DeploymentConfig:
+		fallback := t.Spec.Template
+
+		clientConfig, err := restClientGetter.ToRESTConfig()
+		if err != nil {
+			return fallback, err
+		}
+		kc, err := kinternalclientset.NewForConfig(clientConfig)
+		if err != nil {
+			return fallback, err
+		}
+
+		latestDeploymentName := appsutil.LatestDeploymentNameForConfig(t)
+		deployment, err := kc.Core().ReplicationControllers(t.Namespace).Get(latestDeploymentName, metav1.GetOptions{})
+		if err != nil {
+			return fallback, err
+		}
+
+		fallback = deployment.Spec.Template
+
+		pods, err := kc.Core().Pods(deployment.Namespace).List(metav1.ListOptions{LabelSelector: labels.SelectorFromSet(deployment.Spec.Selector).String()})
+		if err != nil {
+			return fallback, err
+		}
+
+		for i := range pods.Items {
+			pod := &pods.Items[i]
+			if fallback == nil || pod.CreationTimestamp.Before(&fallback.CreationTimestamp) {
+				fallback = &kapi.PodTemplateSpec{
+					ObjectMeta: pod.ObjectMeta,
+					Spec:       pod.Spec,
+				}
+			}
+		}
+		return fallback, nil
+
+	case *kapi.Pod:
+		return &kapi.PodTemplateSpec{
+			ObjectMeta: t.ObjectMeta,
+			Spec:       t.Spec,
+		}, nil
+	case *kapi.ReplicationController:
+		return t.Spec.Template, nil
+	case *extensionsinternal.ReplicaSet:
+		return &t.Spec.Template, nil
+	case *extensionsinternal.DaemonSet:
+		return &t.Spec.Template, nil
+	case *extensionsinternal.Deployment:
+		return &t.Spec.Template, nil
+	case *batch.Job:
+		return &t.Spec.Template, nil
+	}
+
+	return nil, fmt.Errorf("unable to extract pod template from type %v", reflect.TypeOf(object))
 }

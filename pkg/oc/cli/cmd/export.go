@@ -12,6 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
@@ -180,12 +181,14 @@ func RunExport(f kcmdutil.Factory, exporter Exporter, in io.Reader, out io.Write
 		infos = newInfos
 	}
 
-	var result runtime.Object
+	objects := []runtime.Object{}
+	for i := range infos {
+		objects = append(objects, infos[i].Object)
+	}
+	var result runtime.Object = &kapi.List{
+		Items: objects,
+	}
 	if len(asTemplate) > 0 {
-		objects, err := clientcmd.AsVersionedObjects(infos, outputVersion, legacyscheme.Codecs.LegacyCodec(outputVersion))
-		if err != nil {
-			return err
-		}
 		template := &templateapi.Template{
 			Objects: objects,
 		}
@@ -194,12 +197,6 @@ func RunExport(f kcmdutil.Factory, exporter Exporter, in io.Reader, out io.Write
 		if err != nil {
 			return err
 		}
-	} else {
-		object, err := clientcmd.AsVersionedObject(infos, !one, outputVersion, legacyscheme.Codecs.LegacyCodec(outputVersion))
-		if err != nil {
-			return err
-		}
-		result = object
 	}
 
 	// use YAML as the default format

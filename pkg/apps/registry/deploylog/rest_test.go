@@ -4,11 +4,13 @@ import (
 	"testing"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	fakeexternal "k8s.io/client-go/kubernetes/fake"
 	clientgotesting "k8s.io/client-go/testing"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
@@ -41,8 +43,8 @@ func makeDeploymentList(versions int64) *kapi.ReplicationControllerList {
 }
 
 var (
-	fakePodList = &kapi.PodList{
-		Items: []kapi.Pod{
+	fakePodList = &corev1.PodList{
+		Items: []corev1.Pod{
 			{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:              "config-5-application-pod-1",
@@ -50,8 +52,8 @@ var (
 					CreationTimestamp: metav1.Date(2016, time.February, 1, 1, 0, 1, 0, time.UTC),
 					Labels:            testSelector,
 				},
-				Spec: kapi.PodSpec{
-					Containers: []kapi.Container{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
 						{
 							Name: "config-5-container-1",
 						},
@@ -66,8 +68,8 @@ var (
 					CreationTimestamp: metav1.Date(2016, time.February, 1, 1, 0, 3, 0, time.UTC),
 					Labels:            testSelector,
 				},
-				Spec: kapi.PodSpec{
-					Containers: []kapi.Container{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
 						{
 							Name: "config-5-container-2",
 						},
@@ -110,7 +112,7 @@ func mockREST(version, desired int64, status appsapi.DeploymentStatus) *REST {
 	obj.Annotations[appsapi.DeploymentStatusAnnotation] = string(status)
 	go fakeWatch.Add(obj)
 
-	fakePn := fake.NewSimpleClientset()
+	fakePn := fakeexternal.NewSimpleClientset()
 	if status == appsapi.DeploymentStatusComplete {
 		// If the deployment is complete, we will try to get the logs from the oldest
 		// application pod...
@@ -213,7 +215,7 @@ func TestRESTGet(t *testing.T) {
 		t.Run(test.testName, func(t *testing.T) {
 			actualPodNamespace := ""
 			actualPodName := ""
-			getPodLogsFn := func(podNamespace, podName string, logOpts *kapi.PodLogOptions) (runtime.Object, error) {
+			getPodLogsFn := func(podNamespace, podName string, logOpts *corev1.PodLogOptions) (runtime.Object, error) {
 				actualPodNamespace = podNamespace
 				actualPodName = podName
 				return nil, nil

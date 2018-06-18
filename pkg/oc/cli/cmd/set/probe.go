@@ -20,6 +20,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
+	"k8s.io/kubernetes/pkg/kubectl/polymorphichelpers"
 
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
@@ -206,7 +207,7 @@ func (o *ProbeOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []s
 	}
 
 	o.Encoder = kcmdutil.InternalVersionJSONEncoder()
-	o.UpdatePodSpecForObject = f.UpdatePodSpecForObject
+	o.UpdatePodSpecForObject = polymorphichelpers.UpdatePodSpecForObjectFn
 	o.ShortOutput = kcmdutil.GetFlagString(cmd, "output") == "name"
 	o.Mapper = mapper
 

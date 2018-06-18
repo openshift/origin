@@ -4,15 +4,16 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
-
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	api "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
+	"k8s.io/kubernetes/pkg/kubectl/polymorphichelpers"
+	"k8s.io/kubernetes/pkg/kubectl/scheme"
+
+	"github.com/openshift/origin/pkg/oc/originpolymorphichelpers"
 )
 
 func fakePodWithVol() *api.Pod {
@@ -100,18 +101,16 @@ func makeFakePod() *api.Pod {
 
 func getFakeMapping() *meta.RESTMapping {
 	fakeMapping := &meta.RESTMapping{
-		Resource: "fake-mount",
-		GroupVersionKind: schema.GroupVersionKind{
-			Group:   "test.group",
-			Version: "v1",
+		Resource: schema.GroupVersionResource{
+			Group:    "test.group",
+			Version:  "v1",
+			Resource: "fake-mount",
 		},
-		ObjectConvertor: legacyscheme.Scheme,
 	}
 	return fakeMapping
 }
 
 func getFakeInfo(podInfo *api.Pod) ([]*resource.Info, *VolumeOptions) {
-	f := clientcmd.NewFactory(nil)
 	fakeMapping := getFakeMapping()
 	info := &resource.Info{
 		Client:    fake.NewSimpleClientset().Core().RESTClient(),
@@ -123,9 +122,10 @@ func getFakeInfo(podInfo *api.Pod) ([]*resource.Info, *VolumeOptions) {
 	infos := []*resource.Info{info}
 	vOptions := &VolumeOptions{}
 	vOptions.Name = "fake-mount"
-	vOptions.Encoder = legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.EnabledVersions()...)
+	vOptions.Encoder = scheme.DefaultJSONEncoder()
 	vOptions.Containers = "*"
-	vOptions.UpdatePodSpecForObject = f.UpdatePodSpecForObject
+	// we need to manually set this the way it is set in pkg/oc/cli/shim_kubectl.go
+	vOptions.UpdatePodSpecForObject = originpolymorphichelpers.NewUpdatePodSpecForObjectFn(polymorphichelpers.UpdatePodSpecForObjectFn)
 	return infos, vOptions
 }
 

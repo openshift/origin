@@ -20,6 +20,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
+	"k8s.io/kubernetes/pkg/kubectl/polymorphichelpers"
 	"k8s.io/kubernetes/pkg/kubectl/util/term"
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
@@ -220,7 +221,7 @@ func podForResource(f kcmdutil.Factory, resource string, timeout time.Duration) 
 			return "", err
 		}
 		selector := labels.SelectorFromSet(rc.Spec.Selector)
-		pod, _, err := kcmdutil.GetFirstPod(kc.Core(), namespace, selector.String(), timeout, sortBy)
+		pod, _, err := polymorphichelpers.GetFirstPod(kc.Core(), namespace, selector.String(), timeout, sortBy)
 		if err != nil {
 			return "", err
 		}
@@ -248,7 +249,7 @@ func podForResource(f kcmdutil.Factory, resource string, timeout time.Duration) 
 		if err != nil {
 			return "", err
 		}
-		pod, _, err := kcmdutil.GetFirstPod(kc.Core(), namespace, selector.String(), timeout, sortBy)
+		pod, _, err := polymorphichelpers.GetFirstPod(kc.Core(), namespace, selector.String(), timeout, sortBy)
 		if err != nil {
 			return "", err
 		}
@@ -266,7 +267,7 @@ func podForResource(f kcmdutil.Factory, resource string, timeout time.Duration) 
 		if err != nil {
 			return "", err
 		}
-		pod, _, err := kcmdutil.GetFirstPod(kc.Core(), namespace, selector.String(), timeout, sortBy)
+		pod, _, err := polymorphichelpers.GetFirstPod(kc.Core(), namespace, selector.String(), timeout, sortBy)
 		if err != nil {
 			return "", err
 		}
@@ -284,7 +285,7 @@ func podForResource(f kcmdutil.Factory, resource string, timeout time.Duration) 
 		if err != nil {
 			return "", err
 		}
-		pod, _, err := kcmdutil.GetFirstPod(kc.Core(), namespace, selector.String(), timeout, sortBy)
+		pod, _, err := polymorphichelpers.GetFirstPod(kc.Core(), namespace, selector.String(), timeout, sortBy)
 		if err != nil {
 			return "", err
 		}
@@ -302,7 +303,7 @@ func podForResource(f kcmdutil.Factory, resource string, timeout time.Duration) 
 		if err != nil {
 			return "", err
 		}
-		pod, _, err := kcmdutil.GetFirstPod(kc.Core(), namespace, selector.String(), timeout, sortBy)
+		pod, _, err := polymorphichelpers.GetFirstPod(kc.Core(), namespace, selector.String(), timeout, sortBy)
 		if err != nil {
 			return "", err
 		}
@@ -327,7 +328,7 @@ func podNameForJob(job *batch.Job, kc kclientset.Interface, timeout time.Duratio
 	if err != nil {
 		return "", err
 	}
-	pod, _, err := kcmdutil.GetFirstPod(kc.Core(), job.Namespace, selector.String(), timeout, sortBy)
+	pod, _, err := polymorphichelpers.GetFirstPod(kc.Core(), job.Namespace, selector.String(), timeout, sortBy)
 	if err != nil {
 		return "", err
 	}

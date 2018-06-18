@@ -200,7 +200,7 @@ func (o *ObjectGeneratorOptions) Complete(baseName, commandName string, f kcmdut
 	o.CommandName = commandName
 
 	o.PrintObject = print.VersionedPrintObject(kcmdutil.PrintObject, c, out)
-	o.LogsForObject = f.LogsForObject
+	o.LogsForObject = polymorphichelpers.LogsForObjectFn
 	if err := CompleteAppConfig(o.Config, f, c, args); err != nil {
 		return err
 	}

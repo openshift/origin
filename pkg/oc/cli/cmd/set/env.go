@@ -15,12 +15,13 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kinternalclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
+	"k8s.io/kubernetes/pkg/kubectl/polymorphichelpers"
+	"k8s.io/kubernetes/pkg/kubectl/scheme"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
@@ -230,7 +231,7 @@ func (o *EnvOptions) RunEnv(f kcmdutil.Factory) error {
 
 	if len(o.From) != 0 {
 		b := f.NewBuilder().
-			Internal().
+			WithScheme(scheme.Scheme, scheme.Scheme.PrioritizedVersionsAllGroups()...).
 			LocalParam(o.Local).
 			ContinueOnError().
 			NamespaceParam(cmdNamespace).DefaultNamespace().
@@ -294,7 +295,7 @@ func (o *EnvOptions) RunEnv(f kcmdutil.Factory) error {
 	}
 
 	b := f.NewBuilder().
-		Internal().
+		WithScheme(scheme.Scheme, scheme.Scheme.PrioritizedVersionsAllGroups()...).
 		LocalParam(o.Local).
 		ContinueOnError().
 		NamespaceParam(cmdNamespace).DefaultNamespace().
@@ -319,16 +320,10 @@ func (o *EnvOptions) RunEnv(f kcmdutil.Factory) error {
 	}
 	// Keep a copy of the original objects prior to updating their environment.
 	// Used in constructing the patch(es) that will be applied in the server.
-	gv := *clientConfig.GroupVersion
-	oldObjects, err := clientcmd.AsVersionedObjects(infos, gv, legacyscheme.Codecs.LegacyCodec(gv))
-	if err != nil {
-		return err
-	}
-	if len(oldObjects) != len(infos) {
-		return fmt.Errorf("could not convert all objects to API version %q", clientConfig.GroupVersion)
-	}
+	oldObjects := []runtime.Object{}
 	oldData := make([][]byte, len(infos))
-	for i := range oldObjects {
+	for i := range infos {
+		oldObjects = append(oldObjects, infos[i].Object.DeepCopyObject())
 		old, err := json.Marshal(oldObjects[i])
 		if err != nil {
 			return err
@@ -339,7 +334,7 @@ func (o *EnvOptions) RunEnv(f kcmdutil.Factory) error {
 	skipped := 0
 	errored := []*resource.Info{}
 	for _, info := range infos {
-		ok, err := f.UpdatePodSpecForObject(info.Object, clientcmd.ConvertInteralPodSpecToExternal(func(spec *kapi.PodSpec) error {
+		ok, err := polymorphichelpers.UpdatePodSpecForObjectFn(info.Object, clientcmd.ConvertInteralPodSpecToExternal(func(spec *kapi.PodSpec) error {
 			resolutionErrorsEncountered := false
 			containers, _ := selectContainers(spec.Containers, o.ContainerSelector)
 			if len(containers) == 0 {
@@ -452,14 +447,6 @@ func (o *EnvOptions) RunEnv(f kcmdutil.Factory) error {
 		return clientcmd.PrintResourceInfos(f, o.Cmd, o.Local, infos, o.Out)
 	}
 
-	objects, err := clientcmd.AsVersionedObjects(infos, gv, legacyscheme.Codecs.LegacyCodec(gv))
-	if err != nil {
-		return err
-	}
-	if len(objects) != len(infos) {
-		return fmt.Errorf("could not convert all objects to API version %q", clientConfig.GroupVersion)
-	}
-
 	failed := false
 updates:
 	for i, info := range infos {
@@ -468,11 +455,11 @@ updates:
 				continue updates
 			}
 		}
-		newData, err := json.Marshal(objects[i])
+		newData, err := json.Marshal(infos[i].Object)
 		if err != nil {
 			return err
 		}
-		patchBytes, err := strategicpatch.CreateTwoWayMergePatch(oldData[i], newData, objects[i])
+		patchBytes, err := strategicpatch.CreateTwoWayMergePatch(oldData[i], newData, infos[i].Object)
 		if err != nil {
 			return err
 		}

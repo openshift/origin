@@ -12,11 +12,12 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 	kextensions "k8s.io/kubernetes/pkg/apis/extensions"
+	"k8s.io/kubernetes/pkg/kubectl/polymorphichelpers"
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
+	"github.com/openshift/origin/pkg/oc/originpolymorphichelpers"
 )
 
 func TestImageReferenceMappingsMapReference(t *testing.T) {
@@ -572,7 +573,7 @@ func TestTransform(t *testing.T) {
 		for i, v := range test.variants {
 			o := MigrateImageReferenceOptions{
 				Mappings:        test.mappings,
-				UpdatePodSpecFn: clientcmd.NewFactory(nil).UpdatePodSpecForObject,
+				UpdatePodSpecFn: originpolymorphichelpers.NewUpdatePodSpecForObjectFn(polymorphichelpers.UpdatePodSpecForObjectFn),
 			}
 			reporter, err := o.transform(v.obj)
 			if (err != nil) != v.err {

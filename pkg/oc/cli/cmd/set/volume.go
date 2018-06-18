@@ -29,6 +29,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
+	"k8s.io/kubernetes/pkg/kubectl/polymorphichelpers"
 
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
@@ -362,7 +363,7 @@ func (v *VolumeOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command) error {
 	v.ExplicitNamespace = explicit
 	v.Mapper = mapper
 	v.Typer = legacyscheme.Scheme
-	v.UpdatePodSpecForObject = f.UpdatePodSpecForObject
+	v.UpdatePodSpecForObject = polymorphichelpers.UpdatePodSpecForObjectFn
 	v.Encoder = kcmdutil.InternalVersionJSONEncoder()
 
 	// Complete AddOpts

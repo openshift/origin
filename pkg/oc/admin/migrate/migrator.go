@@ -3,6 +3,7 @@ package migrate
 import (
 	"fmt"
 	"io"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -16,6 +17,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/discovery"
+	"k8s.io/kubernetes/pkg/kubectl"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 )
@@ -230,7 +232,7 @@ func (o *ResourceOptions) Complete(f kcmdutil.Factory, c *cobra.Command) error {
 			break
 		}
 
-		all, err := clientcmd.FindAllCanonicalResources(discoveryClient, mapper)
+		all, err := FindAllCanonicalResources(discoveryClient, mapper)
 		if err != nil {
 			return fmt.Errorf("could not calculate the list of available resources: %v", err)
 		}
@@ -715,3 +717,57 @@ func DefaultRetriable(info *resource.Info, err error) error {
 		return err
 	}
 }
+
+// FindAllCanonicalResources returns all resource names that map directly to their kind (Kind -> Resource -> Kind)
+// and are not subresources. This is the closest mapping possible from the client side to resources that can be
+// listed and updated. Note that this may return some virtual resources (like imagestreamtags) that can be otherwise
+// represented.
+// TODO: add a field to APIResources for "virtual" (or that points to the canonical resource).
+// TODO: fallback to the scheme when discovery is not possible.
+func FindAllCanonicalResources(d discovery.DiscoveryInterface, m meta.RESTMapper) ([]schema.GroupResource, error) {
+	set := make(map[schema.GroupResource]struct{})
+	all, err := d.ServerResources()
+	if err != nil {
+		return nil, err
+	}
+	for _, serverResource := range all {
+		gv, err := schema.ParseGroupVersion(serverResource.GroupVersion)
+		if err != nil {
+			continue
+		}
+		for _, r := range serverResource.APIResources {
+			// ignore subresources
+			if strings.Contains(r.Name, "/") {
+				continue
+			}
+			// because discovery info doesn't tell us whether the object is virtual or not, perform a lookup
+			// by the kind for resource (which should be the canonical resource) and then verify that the reverse
+			// lookup (KindsFor) does not error.
+			if mapping, err := m.RESTMapping(schema.GroupKind{Group: gv.Group, Kind: r.Kind}, gv.Version); err == nil {
+				if _, err := m.KindsFor(mapping.Resource); err == nil {
+					set[mapping.Resource.GroupResource()] = struct{}{}
+				}
+			}
+		}
+	}
+	var groupResources []schema.GroupResource
+	for k := range set {
+		groupResources = append(groupResources, k)
+	}
+	sort.Sort(groupResourcesByName(groupResources))
+	return groupResources, nil
+}
+
+type groupResourcesByName []schema.GroupResource
+
+func (g groupResourcesByName) Len() int { return len(g) }
+func (g groupResourcesByName) Less(i, j int) bool {
+	if g[i].Resource < g[j].Resource {
+		return true
+	}
+	if g[i].Resource > g[j].Resource {
+		return false
+	}
+	return g[i].Group < g[j].Group
+}
+func (g groupResourcesByName) Swap(i, j int) { g[i], g[j] = g[j], g[i] }
