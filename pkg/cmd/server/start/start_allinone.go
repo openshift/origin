@@ -23,6 +23,7 @@ import (
 	"k8s.io/kubernetes/pkg/master/ports"
 
 	"github.com/openshift/library-go/pkg/crypto"
+	"github.com/openshift/origin/pkg/cmd/openshift-etcd"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/origin"
@@ -122,7 +123,7 @@ func NewCommandStartAllInOne(basename string, out, errout io.Writer) (*cobra.Com
 	startMaster, _ := NewCommandStartMaster(basename, out, errout)
 	startNode, _ := NewCommandStartNode(basename, out, errout)
 	startNodeNetwork, _ := NewCommandStartNetwork(basename, out, errout)
-	startEtcdServer, _ := NewCommandStartEtcdServer(RecommendedStartEtcdServerName, basename, out, errout)
+	startEtcdServer, _ := openshift_etcd.NewCommandStartEtcdServer(openshift_etcd.RecommendedStartEtcdServerName, basename, out, errout)
 	startTSBServer := tsbcmd.NewCommandStartTemplateServiceBrokerServer(out, errout, wait.NeverStop)
 	cmds.AddCommand(startMaster)
 	cmds.AddCommand(startNode)

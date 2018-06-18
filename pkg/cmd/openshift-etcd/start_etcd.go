@@ -1,4 +1,4 @@
-package start
+package openshift_etcd
 
 import (
 	"errors"
