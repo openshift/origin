@@ -1,7 +1,6 @@
 package util
 
 import (
-	"errors"
 	"fmt"
 	"reflect"
 	"sort"
@@ -12,13 +11,11 @@ import (
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/dynamic"
 	scaleclient "k8s.io/client-go/scale"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
@@ -27,7 +24,6 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapiv1 "k8s.io/kubernetes/pkg/apis/core/v1"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	kdeplutil "k8s.io/kubernetes/pkg/controller/deployment/util"
 	"k8s.io/kubernetes/pkg/kubectl"
 
@@ -781,40 +777,6 @@ func RolloutExceededTimeoutSeconds(config *appsapi.DeploymentConfig, latestRC *v
 		return false
 	}
 	return int64(time.Since(latestRC.CreationTimestamp.Time).Seconds()) > timeoutSeconds
-}
-
-// WaitForRunningDeployerPod waits a given period of time until the deployer pod
-// for given replication controller is not running.
-func WaitForRunningDeployerPod(podClient kcoreclient.PodsGetter, rc *api.ReplicationController, timeout time.Duration) error {
-	podName := DeployerPodNameForDeployment(rc.Name)
-	canGetLogs := func(p *api.Pod) bool {
-		return api.PodSucceeded == p.Status.Phase || api.PodFailed == p.Status.Phase || api.PodRunning == p.Status.Phase
-	}
-	pod, err := podClient.Pods(rc.Namespace).Get(podName, metav1.GetOptions{})
-	if err == nil && canGetLogs(pod) {
-		return nil
-	}
-	watcher, err := podClient.Pods(rc.Namespace).Watch(
-		metav1.ListOptions{
-			FieldSelector: fields.OneTermEqualSelector("metadata.name", podName).String(),
-		},
-	)
-	if err != nil {
-		return err
-	}
-
-	defer watcher.Stop()
-	_, err = watch.Until(timeout, watcher, func(e watch.Event) (bool, error) {
-		if e.Type == watch.Error {
-			return false, fmt.Errorf("encountered error while watching for pod: %v", e.Object)
-		}
-		obj, isPod := e.Object.(*api.Pod)
-		if !isPod {
-			return false, errors.New("received unknown object while watching for pods")
-		}
-		return canGetLogs(obj), nil
-	})
-	return err
 }
 
 // ByLatestVersionAsc sorts deployments by LatestVersion ascending.

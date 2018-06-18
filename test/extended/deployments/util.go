@@ -34,6 +34,7 @@ import (
 	appsapiv1 "github.com/openshift/api/apps/v1"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appstypedclientset "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
+	"github.com/openshift/origin/pkg/apps/registry/deploylog"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -404,7 +405,7 @@ func waitForDeployerToComplete(oc *exutil.CLI, name string, timeout time.Duratio
 		return "", err
 	}
 	podName := appsutil.DeployerPodNameForDeployment(rc.Name)
-	if err := appsutil.WaitForRunningDeployerPod(oc.InternalKubeClient().Core(), rc, timeout); err != nil {
+	if err := deploylog.WaitForRunningDeployerPod(oc.KubeClient().CoreV1(), rc, timeout); err != nil {
 		return "", err
 	}
 	output, err := oc.Run("logs").Args("-f", "pods/"+podName).Output()
