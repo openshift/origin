@@ -164,15 +164,11 @@ frontend public
   acl secure_redirect base,map_reg(/var/lib/haproxy/conf/os_route_http_redirect.map) -m found
   redirect scheme https if secure_redirect
 
-  # Check if it is an edge or reencrypt route exposed insecurely.
-  acl route_http_expose base,map_reg(/var/lib/haproxy/conf/os_route_http_expose.map) -m found
-  use_backend %[base,map_reg(/var/lib/haproxy/conf/os_route_http_expose.map)] if route_http_expose
-
-  # map to http backend
+  # map to http backend [or edge/reencrypt route exposed insecurely].
   # Search from most specific to general path (host case).
   # Note: If no match, haproxy uses the default_backend, no other
   #       use_backend directives below this will be processed.
-  use_backend be_http:%[base,map_reg(/var/lib/haproxy/conf/os_http_be.map)]
+  use_backend %[base,map_reg(/var/lib/haproxy/conf/os_http_be.map)]
 
   default_backend openshift_default
 
@@ -497,11 +493,20 @@ backend be_tcp:{{$cfgIdx}}
 {{/*
     os_http_be.map: contains a mapping of www.example.com -> <service name>.  This map is used to discover the correct backend
                         by attaching a prefix (be_http:) by use_backend statements if acls are matched.
+    Also exposes the edge terminated and reencrypt routes that allow an
+    insecure edge termination policy (http).
 */}}
 {{ define "/var/lib/haproxy/conf/os_http_be.map" -}}
 {{     range $idx, $cfg := .State -}}
 {{       if and (ne $cfg.Host "") (eq $cfg.TLSTermination "") -}}
-{{generateRouteRegexp $cfg.Host $cfg.Path $cfg.IsWildcard}} {{$idx}}
+{{generateRouteRegexp $cfg.Host $cfg.Path $cfg.IsWildcard}} be_http:{{$idx}}
+{{       end -}}
+{{       if and (ne $cfg.Host "") (and (matchValues (print $cfg.TLSTermination) "edge" "reencrypt") (eq $cfg.InsecureEdgeTerminationPolicy "Allow")) -}}
+{{         if (eq $cfg.TLSTermination "edge") -}}
+{{generateRouteRegexp $cfg.Host $cfg.Path $cfg.IsWildcard}} be_edge_http:{{$idx}}
+{{         else -}}
+{{generateRouteRegexp $cfg.Host $cfg.Path $cfg.IsWildcard}} be_secure:{{$idx}}
+{{         end -}}
 {{       end -}}
 {{     end -}}
 {{ end -}}{{/* end http host map template */}}
