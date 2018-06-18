@@ -12,21 +12,17 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	kerrs "k8s.io/apimachinery/pkg/util/errors"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/authentication/user"
-	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/kubernetes/pkg/apis/authorization"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 	"k8s.io/utils/clock"
 
 	"github.com/golang/glog"
@@ -34,7 +30,6 @@ import (
 
 	"github.com/openshift/origin/pkg/authorization/util"
 	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
-	"github.com/openshift/origin/pkg/bulk"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	templateinternalclient "github.com/openshift/origin/pkg/template/client/internalversion"
 	"github.com/openshift/origin/pkg/template/generated/informers/internalversion/template/internalversion"
@@ -53,8 +48,7 @@ type TemplateInstanceController struct {
 	// TODO replace this with use of a codec built against the dynamic client
 	// (discuss w/ deads what this means)
 	dynamicRestMapper meta.RESTMapper
-	config            *rest.Config
-	jsonConfig        *rest.Config
+	dynamicClient     dynamic.Interface
 	templateClient    templateclient.Interface
 
 	// FIXME: Remove then cient when the build configs are able to report the
@@ -74,10 +68,10 @@ type TemplateInstanceController struct {
 }
 
 // NewTemplateInstanceController returns a new TemplateInstanceController.
-func NewTemplateInstanceController(dynamicRestMapper *discovery.DeferredDiscoveryRESTMapper, config *rest.Config, kc kclientsetinternal.Interface, buildClient buildclient.Interface, templateClient templateclient.Interface, informer internalversion.TemplateInstanceInformer) *TemplateInstanceController {
+func NewTemplateInstanceController(dynamicRestMapper meta.RESTMapper, dynamicClient dynamic.Interface, kc kclientsetinternal.Interface, buildClient buildclient.Interface, templateClient templateclient.Interface, informer internalversion.TemplateInstanceInformer) *TemplateInstanceController {
 	c := &TemplateInstanceController{
 		dynamicRestMapper: dynamicRestMapper,
-		config:            config,
+		dynamicClient:     dynamicClient,
 		kc:                kc,
 		templateClient:    templateClient,
 		buildClient:       buildClient,
@@ -98,9 +92,6 @@ func NewTemplateInstanceController(dynamicRestMapper *discovery.DeferredDiscover
 		DeleteFunc: func(obj interface{}) {
 		},
 	})
-
-	c.jsonConfig = rest.CopyConfig(c.config)
-	c.jsonConfig.ContentConfig = dynamic.ContentConfig()
 
 	prometheus.MustRegister(c)
 
@@ -227,33 +218,23 @@ func (c *TemplateInstanceController) checkReadiness(templateInstance *templateap
 		if err = util.Authorize(c.kc.Authorization().SubjectAccessReviews(), u, &authorization.ResourceAttributes{
 			Namespace: object.Ref.Namespace,
 			Verb:      "get",
-			Group:     object.Ref.GroupVersionKind().Group,
-			Resource:  mapping.Resource,
+			Group:     mapping.Resource.Group,
+			Resource:  mapping.Resource.Resource,
 			Name:      object.Ref.Name,
 		}); err != nil {
 			return false, err
 		}
 
-		cli, err := bulk.ClientMapperFromConfig(c.config).ClientForMapping(mapping)
+		obj, err := c.dynamicClient.Resource(mapping.Resource).Namespace(object.Ref.Namespace).Get(object.Ref.Name, metav1.GetOptions{})
 		if err != nil {
 			return false, err
 		}
 
-		obj, err := cli.Get().Resource(mapping.Resource).NamespaceIfScoped(object.Ref.Namespace, mapping.Scope.Name() == meta.RESTScopeNameNamespace).Name(object.Ref.Name).Do().Get()
-		if err != nil {
-			return false, err
+		if obj.GetUID() != object.Ref.UID {
+			return false, kerrors.NewNotFound(mapping.Resource.GroupResource(), object.Ref.Name)
 		}
 
-		meta, err := meta.Accessor(obj)
-		if err != nil {
-			return false, err
-		}
-
-		if meta.GetUID() != object.Ref.UID {
-			return false, kerrors.NewNotFound(schema.GroupResource{Group: mapping.GroupVersionKind.Group, Resource: mapping.Resource}, object.Ref.Name)
-		}
-
-		if strings.ToLower(meta.GetAnnotations()[templateapi.WaitForReadyAnnotation]) != "true" {
+		if strings.ToLower(obj.GetAnnotations()[templateapi.WaitForReadyAnnotation]) != "true" {
 			continue
 		}
 
@@ -429,109 +410,102 @@ func (c *TemplateInstanceController) instantiate(templateInstance *templateapi.T
 		meta.SetLabels(labels)
 	}
 
-	bulk := bulk.Bulk{
-		DynamicMapper: &resource.Mapper{
-			RESTMapper:   c.dynamicRestMapper,
-			ObjectTyper:  discovery.NewUnstructuredObjectTyper(nil),
-			ClientMapper: bulk.ClientMapperFromConfig(c.jsonConfig),
-		},
-
-		Op: func(info *resource.Info, namespace string, obj runtime.Object) (runtime.Object, error) {
-
-			if len(info.Namespace) > 0 {
-				namespace = info.Namespace
-			}
-			if namespace == "" {
-				return nil, errors.New("namespace was empty")
-			}
-			if info.Mapping.Resource == "" {
-				return nil, errors.New("resource was empty")
-			}
-			if err := util.Authorize(c.kc.Authorization().SubjectAccessReviews(), u, &authorization.ResourceAttributes{
-				Namespace: namespace,
-				Verb:      "create",
-				Group:     info.Mapping.GroupVersionKind.Group,
-				Resource:  info.Mapping.Resource,
-				Name:      info.Name,
-			}); err != nil {
-				return nil, err
-			}
-			return obj, nil
-		},
-	}
-
 	// First, do all the SARs to ensure the requester actually has permissions
 	// to create.
 	glog.V(4).Infof("TemplateInstance controller: running SARs for %s/%s", templateInstance.Namespace, templateInstance.Name)
+	allErrors := []error{}
+	for _, currObjUncast := range template.Objects {
+		currObj := currObjUncast.(*unstructured.Unstructured)
+		restMapping, mappingErr := c.dynamicRestMapper.RESTMapping(currObj.GroupVersionKind().GroupKind(), currObj.GroupVersionKind().Version)
+		if mappingErr != nil {
+			allErrors = append(allErrors, mappingErr)
+			continue
+		}
 
-	errs = bulk.Run(&kapi.List{Items: template.Objects}, templateInstance.Namespace)
-	if len(errs) > 0 {
-		return utilerrors.NewAggregate(errs)
+		namespace := templateInstance.Namespace
+		if len(currObj.GetNamespace()) > 0 {
+			namespace = currObj.GetNamespace()
+		}
+		if namespace == "" {
+			allErrors = append(allErrors, errors.New("namespace was empty"))
+			continue
+		}
+
+		if err := util.Authorize(c.kc.Authorization().SubjectAccessReviews(), u, &authorization.ResourceAttributes{
+			Namespace: namespace,
+			Verb:      "create",
+			Group:     restMapping.Resource.Group,
+			Resource:  restMapping.Resource.Resource,
+			Name:      currObj.GetName(),
+		}); err != nil {
+			allErrors = append(allErrors, err)
+			continue
+		}
 	}
-
-	bulk.Op = func(info *resource.Info, namespace string, obj runtime.Object) (runtime.Object, error) {
-		// as cmd.Create, but be tolerant to the existence of objects that we
-		// created before.
-		helper := resource.NewHelper(info.Client, info.Mapping)
-		if len(info.Namespace) > 0 {
-			namespace = info.Namespace
-		}
-		createObj, createErr := helper.Create(namespace, false, obj)
-		if kerrors.IsAlreadyExists(createErr) {
-			createObj, createErr = obj, nil
-			obj, err := helper.Get(namespace, info.Name, false)
-			if err != nil {
-				return nil, err
-			}
-
-			meta, err := meta.Accessor(obj)
-			if err != nil {
-				return nil, err
-			}
-			labels := meta.GetLabels()
-			// no labels, so this isn't our object.
-			if labels == nil {
-				return createObj, createErr
-			}
-			owner, ok := labels[templateapi.TemplateInstanceOwner]
-			// if the labels match, it's already our object so pretend we created
-			// it successfully.
-			if ok && owner == string(templateInstance.UID) {
-				createObj, createErr = obj, nil
-			}
-		}
-
-		if createErr != nil {
-			return createObj, createErr
-		}
-
-		meta, err := meta.Accessor(createObj)
-		if err != nil {
-			return nil, err
-		}
-
-		templateInstance.Status.Objects = append(templateInstance.Status.Objects,
-			templateapi.TemplateInstanceObject{
-				Ref: kapi.ObjectReference{
-					Kind:       info.Mapping.GroupVersionKind.Kind,
-					Namespace:  namespace,
-					Name:       info.Name,
-					UID:        meta.GetUID(),
-					APIVersion: info.Mapping.GroupVersionKind.GroupVersion().String(),
-				},
-			},
-		)
-
-		return createObj, nil
+	if len(allErrors) > 0 {
+		return utilerrors.NewAggregate(allErrors)
 	}
 
 	// Second, create the objects, being tolerant if they already exist and are
 	// labelled as having previously been created by us.
 	glog.V(4).Infof("TemplateInstance controller: creating objects for %s/%s", templateInstance.Namespace, templateInstance.Name)
-
 	templateInstance.Status.Objects = nil
+	allErrors = []error{}
+	for _, currObjUncast := range template.Objects {
+		currObj := currObjUncast.(*unstructured.Unstructured)
+		restMapping, mappingErr := c.dynamicRestMapper.RESTMapping(currObj.GroupVersionKind().GroupKind(), currObj.GroupVersionKind().Version)
+		if mappingErr != nil {
+			allErrors = append(allErrors, mappingErr)
+			continue
+		}
 
-	errs = bulk.Run(&kapi.List{Items: template.Objects}, templateInstance.Namespace)
+		namespace := templateInstance.Namespace
+		if len(currObj.GetNamespace()) > 0 {
+			namespace = currObj.GetNamespace()
+		}
+		if namespace == "" {
+			allErrors = append(allErrors, errors.New("namespace was empty"))
+			continue
+		}
+
+		createObj, createErr := c.dynamicClient.Resource(restMapping.Resource).Namespace(namespace).Create(currObj)
+		if kerrors.IsAlreadyExists(createErr) {
+			freshGottenObj, getErr := c.dynamicClient.Resource(restMapping.Resource).Namespace(namespace).Get(currObj.GetName(), metav1.GetOptions{})
+			if getErr != nil {
+				allErrors = append(allErrors, getErr)
+				continue
+			}
+
+			owner, ok := freshGottenObj.GetLabels()[templateapi.TemplateInstanceOwner]
+			// if the labels match, it's already our object so pretend we created
+			// it successfully.
+			if ok && owner == string(templateInstance.UID) {
+				createObj, createErr = freshGottenObj, nil
+			} else {
+				allErrors = append(allErrors, createErr)
+				continue
+			}
+		}
+		if createErr != nil {
+			allErrors = append(allErrors, mappingErr)
+			continue
+		}
+
+		templateInstance.Status.Objects = append(templateInstance.Status.Objects,
+			templateapi.TemplateInstanceObject{
+				Ref: kapi.ObjectReference{
+					Kind:       restMapping.GroupVersionKind.Kind,
+					Namespace:  namespace,
+					Name:       createObj.GetName(),
+					UID:        createObj.GetUID(),
+					APIVersion: restMapping.GroupVersionKind.GroupVersion().String(),
+				},
+			},
+		)
+	}
+
+	// unconditionally add finalizer to the templateinstance because it should always have one.
+	// TODO perhaps this should be done in a strategy long term.
 	hasFinalizer := false
 	for _, v := range templateInstance.Finalizers {
 		if v == templateapi.TemplateInstanceFinalizer {
@@ -542,9 +516,8 @@ func (c *TemplateInstanceController) instantiate(templateInstance *templateapi.T
 	if !hasFinalizer {
 		templateInstance.Finalizers = append(templateInstance.Finalizers, templateapi.TemplateInstanceFinalizer)
 	}
-
-	if len(errs) > 0 {
-		return utilerrors.NewAggregate(errs)
+	if len(allErrors) > 0 {
+		return utilerrors.NewAggregate(allErrors)
 	}
 
 	return nil

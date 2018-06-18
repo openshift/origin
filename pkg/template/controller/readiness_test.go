@@ -5,8 +5,10 @@ import (
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/apis/apps"
 	"k8s.io/kubernetes/pkg/apis/batch"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
@@ -17,6 +19,9 @@ import (
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	fakebuild "github.com/openshift/origin/pkg/build/generated/internalclientset/fake"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
+
+	_ "github.com/openshift/origin/pkg/apps/apis/apps/install"
+	_ "github.com/openshift/origin/pkg/route/apis/route/install"
 )
 
 func TestCheckReadiness(t *testing.T) {
@@ -250,7 +255,7 @@ func TestCheckReadiness(t *testing.T) {
 			expectedReady: true,
 		},
 		{
-			groupKind: schema.GroupKind{Group: "", Kind: "Route"},
+			groupKind: schema.GroupKind{Group: "route.openshift.io", Kind: "Route"},
 			object: &routeapi.Route{
 				Spec: routeapi.RouteSpec{
 					Host: "",
@@ -259,7 +264,7 @@ func TestCheckReadiness(t *testing.T) {
 			expectedReady: false,
 		},
 		{
-			groupKind: schema.GroupKind{Group: "", Kind: "Route"},
+			groupKind: schema.GroupKind{Group: "route.openshift.io", Kind: "Route"},
 			object: &routeapi.Route{
 				Spec: routeapi.RouteSpec{
 					Host: "app.example.com",
@@ -279,7 +284,16 @@ func TestCheckReadiness(t *testing.T) {
 			t.Errorf("%d: unexpected canCheckReadiness value %v", i, can)
 			continue
 		}
-		ready, failed, err := CheckReadiness(buildClient, ref, test.object)
+
+		versionedObj, err := legacyscheme.Scheme.ConvertToVersion(test.object, schema.GroupVersions(legacyscheme.Scheme.PrioritizedVersionsAllGroups()))
+		if err != nil {
+			t.Fatal(err)
+		}
+		unstructuredObj, err := runtime.DefaultUnstructuredConverter.ToUnstructured(versionedObj)
+		if err != nil {
+			t.Fatal(err)
+		}
+		ready, failed, err := CheckReadiness(buildClient, ref, &unstructured.Unstructured{Object: unstructuredObj})
 		if err != nil {
 			t.Errorf("%d: unexpected err value %v", i, err)
 			continue

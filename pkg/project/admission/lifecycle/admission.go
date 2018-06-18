@@ -58,6 +58,7 @@ var recommendedCreatableResources = map[schema.GroupResource]bool{
 }
 var _ = oadmission.WantsProjectCache(&lifecycle{})
 var _ = kadmission.WantsInternalKubeClientSet(&lifecycle{})
+var _ = kadmission.WantsRESTMapper(&lifecycle{})
 
 // Admit enforces that a namespace must have the openshift finalizer associated with it in order to create origin API objects within it
 func (e *lifecycle) Admit(a admission.Attributes) (err error) {

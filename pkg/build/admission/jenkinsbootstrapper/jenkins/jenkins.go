@@ -5,10 +5,10 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/openshift/origin/pkg/template/templateprocessing"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
@@ -38,7 +38,7 @@ func NewPipelineTemplate(ns string, conf serverapi.JenkinsPipelineConfig, templa
 }
 
 // Process processes the Jenkins template. If an error occurs
-func (t *PipelineTemplate) Process() (*kapi.List, []error) {
+func (t *PipelineTemplate) Process() (*unstructured.UnstructuredList, []error) {
 	var errors []error
 	jenkinsTemplate, err := t.templateClient.Template().Templates(t.Config.TemplateNamespace).Get(t.Config.TemplateName, metav1.GetOptions{})
 	if err != nil {
@@ -56,41 +56,37 @@ func (t *PipelineTemplate) Process() (*kapi.List, []error) {
 		errors = append(errors, fmt.Errorf("processing Jenkins template %s/%s failed: %v", t.Config.TemplateNamespace, t.Config.TemplateName, err))
 		return nil, errors
 	}
-	var items []runtime.Object
-	for _, obj := range pTemplate.Objects {
-		if unknownObj, ok := obj.(*runtime.Unknown); ok {
-			decodedObj, err := runtime.Decode(legacyscheme.Codecs.UniversalDecoder(), unknownObj.Raw)
-			if err != nil {
-				errors = append(errors, err)
-			}
-			items = append(items, decodedObj)
-		}
+
+	objectsToCreate := &kapi.List{}
+	for i := range pTemplate.Objects {
+		// use .Objects[i] in append to avoid range memory address reuse
+		objectsToCreate.Items = append(objectsToCreate.Items, pTemplate.Objects[i])
 	}
+
+	// TODO, stop doing this crazy thing, but for now it's a very simple way to get the unstructured objects we need
+	jsonBytes, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(legacyscheme.Scheme.PrioritizedVersionsAllGroups()...), objectsToCreate)
+	if err != nil {
+		errors = append(errors, err)
+		return nil, errors
+	}
+	uncastList, err := runtime.Decode(unstructured.UnstructuredJSONScheme, jsonBytes)
+	if err != nil {
+		errors = append(errors, err)
+		return nil, errors
+	}
+
 	glog.V(4).Infof("Processed Jenkins pipeline jenkinsTemplate %s/%s", pTemplate.Namespace, pTemplate.Namespace)
-	return &kapi.List{ListMeta: metav1.ListMeta{}, Items: items}, errors
+	return uncastList.(*unstructured.UnstructuredList), errors
 }
 
 // HasJenkinsService searches the template items and return true if the expected
 // Jenkins service is contained in template.
-func (t *PipelineTemplate) HasJenkinsService(items *kapi.List) bool {
-	accessor := meta.NewAccessor()
+func (t *PipelineTemplate) HasJenkinsService(items *unstructured.UnstructuredList) bool {
 	for _, item := range items.Items {
-		kinds, _, err := legacyscheme.Scheme.ObjectKinds(item)
-		if err != nil {
-			glog.Infof("Error checking Jenkins service kind: %v", err)
-			return false
-		}
-		name, err := accessor.Name(item)
-		if err != nil {
-			glog.Infof("Error checking Jenkins service name: %v", err)
-			return false
-		}
-		glog.Infof("Jenkins Pipeline template object %q with name %q", name, kinds[0].Kind)
+		glog.Infof("Jenkins Pipeline template object %q with name %q", item.GetName(), item.GetObjectKind().GroupVersionKind())
 
-		for _, kind := range kinds {
-			if name == t.Config.ServiceName && kind.GroupKind() == kapi.Kind("Service") {
-				return true
-			}
+		if item.GetName() == t.Config.ServiceName && item.GetObjectKind().GroupVersionKind().GroupKind() == kapi.Kind("Service") {
+			return true
 		}
 	}
 	return false
