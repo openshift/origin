@@ -1,5 +1,5 @@
-hash: 1511c1c08d724d5b2f6c586490bfa154f305c5b0038fb2a4bf3c0404aabc72a6
-updated: 2018-06-13T17:31:37.381725-04:00
+hash: d32614be277d855a821ccb2be49fe0ee3a4b03f6ee99d8e2cc699cf3adc70ddd
+updated: 2018-06-14T14:26:44.027983-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -400,7 +400,7 @@ imports:
   subpackages:
   - kmsgparser
 - name: github.com/evanphx/json-patch
-  version: 944e07253867aacae43c04b2e6a239005443f33a
+  version: 94e38aa1586e8a6c8a75770bddf5ff84c48a106b
 - name: github.com/exponent-io/jsonpath
   version: d6023ce2651d8eafb5c75bb0c7167536102ec9f5
 - name: github.com/fatih/camelcase
@@ -1815,7 +1815,7 @@ imports:
   - pkg/util/proto
   - pkg/util/proto/validation
 - name: k8s.io/kubernetes
-  version: 8afc46914f13dc03452e1d2df354a01ab738e2f0
+  version: a5f0b5aa2eaf654471dc7a0b3df2b2f75af168cf
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/controller-manager/app
