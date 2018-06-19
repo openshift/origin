@@ -110,9 +110,9 @@ func formatMapStringString(out *tabwriter.Writer, label string, items map[string
 	}
 	for i, key := range keys.List() {
 		if i == 0 {
-			formatString(out, label, fmt.Sprintf("%s=%s", key, items[key]))
+			formatString(out, label, fmt.Sprintf("%s: %s", key, items[key]))
 		} else {
-			fmt.Fprintf(out, "%s\t%s=%s\n", "", key, items[key])
+			fmt.Fprintf(out, "%s\t%s: %s\n", "", key, items[key])
 		}
 	}
 }
