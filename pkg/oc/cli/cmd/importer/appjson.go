@@ -20,9 +20,11 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
+	oldresource "k8s.io/kubernetes/pkg/kubectl/resource"
+	"k8s.io/kubernetes/pkg/printers"
 
 	configcmd "github.com/openshift/origin/pkg/bulk"
-	"github.com/openshift/origin/pkg/cmd/util/print"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	"github.com/openshift/origin/pkg/oc/generate/app"
 	"github.com/openshift/origin/pkg/oc/generate/appjson"
@@ -57,42 +59,49 @@ var (
 )
 
 type AppJSONOptions struct {
-	Action configcmd.BulkAction
+	genericclioptions.IOStreams
+	oldresource.FilenameOptions
+	PrintFlags *genericclioptions.PrintFlags
 
-	In        io.Reader
-	Filenames []string
+	PrintObj printers.ResourcePrinterFunc
+
+	Action configcmd.BulkAction
 
 	BaseImage  string
 	Generator  string
 	AsTemplate string
 
-	PrintObject    func(runtime.Object) error
 	OutputVersions []schema.GroupVersion
 
 	Namespace string
 	Client    templateclient.TemplateInterface
 }
 
+func NewAppJSONOptions(streams genericclioptions.IOStreams) *AppJSONOptions {
+	return &AppJSONOptions{
+		Action: configcmd.BulkAction{
+			Out:    streams.Out,
+			ErrOut: streams.ErrOut,
+		},
+		IOStreams:  streams,
+		PrintFlags: genericclioptions.NewPrintFlags(""),
+		Generator:  AppJSONV1GeneratorName,
+	}
+}
+
 // NewCmdAppJSON imports an app.json file (schema described here: https://devcenter.heroku.com/articles/app-json-schema)
 // as a template.
-func NewCmdAppJSON(fullName string, f *clientcmd.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
-	options := &AppJSONOptions{
-		Action: configcmd.BulkAction{
-			Out:    out,
-			ErrOut: errout,
-		},
-		In:        in,
-		Generator: AppJSONV1GeneratorName,
-	}
+func NewCmdAppJSON(fullName string, f *clientcmd.Factory, streams genericclioptions.IOStreams) *cobra.Command {
+	o := NewAppJSONOptions(streams)
 	cmd := &cobra.Command{
 		Use:     "app.json -f APPJSON",
 		Short:   "Import an app.json definition into OpenShift (experimental)",
 		Long:    appJSONLong,
 		Example: fmt.Sprintf(appJSONExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
-			kcmdutil.CheckErr(options.Complete(f, cmd, args))
-			kcmdutil.CheckErr(options.Validate())
-			if err := options.Run(); err != nil {
+			kcmdutil.CheckErr(o.Complete(f, cmd, args))
+			kcmdutil.CheckErr(o.Validate())
+			if err := o.Run(); err != nil {
 				// TODO: move me to kcmdutil
 				if err == kcmdutil.ErrExit {
 					os.Exit(1)
@@ -102,16 +111,16 @@ func NewCmdAppJSON(fullName string, f *clientcmd.Factory, in io.Reader, out, err
 		},
 	}
 	usage := "Filename, directory, or URL to app.json file to use"
-	kubectl.AddJsonFilenameFlag(cmd, &options.Filenames, usage)
+	kubectl.AddJsonFilenameFlag(cmd, &o.Filenames, usage)
 	cmd.MarkFlagRequired("filename")
 
-	cmd.Flags().StringVar(&options.BaseImage, "image", options.BaseImage, "An optional image to use as your base Docker build (must have ONBUILD directives)")
-	cmd.Flags().String("generator", options.Generator, "The name of the generator strategy to use - specify this value to for backwards compatibility.")
-	cmd.Flags().StringVar(&options.AsTemplate, "as-template", "", "If set, generate a template with the provided name")
-
-	options.Action.BindForOutput(cmd.Flags())
+	cmd.Flags().StringVar(&o.BaseImage, "image", o.BaseImage, "An optional image to use as your base Docker build (must have ONBUILD directives)")
+	cmd.Flags().String("generator", o.Generator, "The name of the generator strategy to use - specify this value to for backwards compatibility.")
+	cmd.Flags().StringVar(&o.AsTemplate, "as-template", "", "If set, generate a template with the provided name")
 	cmd.Flags().String("output-version", "", "The preferred API versions of the output objects")
 
+	o.Action.BindForOutput(cmd.Flags())
+	o.PrintFlags.AddFlags(cmd)
 	return cmd
 }
 
@@ -128,7 +137,12 @@ func (o *AppJSONOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args
 
 	o.Action.Bulk.Mapper = clientcmd.ResourceMapper(f)
 	o.Action.Bulk.Op = configcmd.Create
-	o.PrintObject = print.VersionedPrintObject(legacyscheme.Scheme, legacyscheme.Registry, kcmdutil.PrintObject, cmd, o.Action.Out)
+
+	printer, err := o.PrintFlags.ToPrinter()
+	if err != nil {
+		return err
+	}
+	o.PrintObj = printer.PrintObj
 
 	o.Generator, _ = cmd.Flags().GetString("generator")
 
@@ -200,14 +214,14 @@ func (o *AppJSONOptions) Run() error {
 	}
 
 	if o.Action.ShouldPrint() || (o.Action.Output == "name" && len(o.AsTemplate) > 0) {
-		var out runtime.Object
+		var obj runtime.Object
 		if len(o.AsTemplate) > 0 {
 			template.Name = o.AsTemplate
-			out = template
+			obj = template
 		} else {
-			out = &kapi.List{Items: template.Objects}
+			obj = &kapi.List{Items: template.Objects}
 		}
-		return o.PrintObject(out)
+		return o.PrintObj(obj, o.Out)
 	}
 
 	templateProcessor := templateinternalclient.NewTemplateProcessorClient(o.Client.RESTClient(), o.Namespace)
