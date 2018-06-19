@@ -3,7 +3,6 @@ package login
 import (
 	"errors"
 	"fmt"
-	"io"
 
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
@@ -23,9 +22,10 @@ import (
 type LogoutOptions struct {
 	StartingKubeConfig *kclientcmdapi.Config
 	Config             *restclient.Config
-	Out                io.Writer
 
 	PathOptions *kclientcmd.PathOptions
+
+	genericclioptions.IOStreams
 }
 
 var (
@@ -47,30 +47,24 @@ var (
 	  %[1]s`)
 )
 
+func NewLogoutOptions(streams genericclioptions.IOStreams) *LogoutOptions {
+	return &LogoutOptions{
+		IOStreams: streams,
+	}
+}
+
 // NewCmdLogout implements the OpenShift cli logout command
 func NewCmdLogout(name, fullName, ocLoginFullCommand string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	options := &LogoutOptions{
-		Out: streams.Out,
-	}
-
+	o := NewLogoutOptions(streams)
 	cmds := &cobra.Command{
 		Use:     name,
 		Short:   "End the current server session",
 		Long:    fmt.Sprintf(logoutLong, ocLoginFullCommand),
 		Example: fmt.Sprintf(logoutExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := options.Complete(f, cmd, args); err != nil {
-				kcmdutil.CheckErr(err)
-			}
-
-			if err := options.Validate(args); err != nil {
-				kcmdutil.CheckErr(err)
-			}
-
-			if err := options.RunLogout(); err != nil {
-				kcmdutil.CheckErr(err)
-			}
-
+			kcmdutil.CheckErr(o.Complete(f, cmd, args))
+			kcmdutil.CheckErr(o.Validate(args))
+			kcmdutil.CheckErr(o.RunLogout())
 		},
 	}
 
