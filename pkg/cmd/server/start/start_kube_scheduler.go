@@ -41,7 +41,7 @@ func computeSchedulerArgs(kubeconfigFile, schedulerConfigFile string, qps float3
 
 	// disable serving http since we didn't used to expose it
 	if len(cmdLineArgs["port"]) == 0 {
-		cmdLineArgs["port"] = []string{"-1"}
+		cmdLineArgs["port"] = []string{"0"}
 	}
 
 	args := []string{}
