@@ -33,6 +33,7 @@ type REST struct {
 }
 
 var _ rest.Creater = &REST{}
+var _ rest.Scoper = &REST{}
 
 // NewREST returns a new REST.
 func NewREST(imageRegistry image.Registry, imageStreamRegistry imagestream.Registry, registry imageapi.RegistryHostnameRetriever) *REST {
@@ -46,6 +47,10 @@ func NewREST(imageRegistry image.Registry, imageStreamRegistry imagestream.Regis
 // New returns a new ImageStreamMapping for use with Create.
 func (r *REST) New() runtime.Object {
 	return &imageapi.ImageStreamMapping{}
+}
+
+func (s *REST) NamespaceScoped() bool {
+	return true
 }
 
 // Create registers a new image (if it doesn't exist) and updates the

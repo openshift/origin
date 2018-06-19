@@ -30,6 +30,7 @@ type REST struct {
 var _ rest.Getter = &REST{}
 var _ rest.CreaterUpdater = &REST{}
 var _ rest.GracefulDeleter = &REST{}
+var _ rest.Scoper = &REST{}
 
 // NewREST returns a new REST.
 func NewREST(userClient userclient.UserInterface, identityClient userclient.IdentityInterface) *REST {
@@ -39,6 +40,10 @@ func NewREST(userClient userclient.UserInterface, identityClient userclient.Iden
 // New returns a new UserIdentityMapping for use with CreateUser.
 func (r *REST) New() runtime.Object {
 	return &userinternal.UserIdentityMapping{}
+}
+
+func (s *REST) NamespaceScoped() bool {
+	return false
 }
 
 // GetIdentities returns the mapping for the named identity

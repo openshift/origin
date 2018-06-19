@@ -28,6 +28,7 @@ var _ rest.Lister = &REST{}
 var _ rest.Getter = &REST{}
 var _ rest.CreaterUpdater = &REST{}
 var _ rest.GracefulDeleter = &REST{}
+var _ rest.Scoper = &REST{}
 
 func NewREST(client restclient.Interface) utilregistry.NoWatchStorage {
 	return utilregistry.WrapNoWatchStorageError(&REST{
@@ -41,6 +42,10 @@ func (s *REST) New() runtime.Object {
 }
 func (s *REST) NewList() runtime.Object {
 	return &authorizationapi.ClusterRoleList{}
+}
+
+func (s *REST) NamespaceScoped() bool {
+	return false
 }
 
 func (s *REST) List(ctx context.Context, options *metainternal.ListOptions) (runtime.Object, error) {

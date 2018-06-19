@@ -20,6 +20,7 @@ type REST struct {
 
 var _ rest.Creater = &REST{}
 var _ rest.GracefulDeleter = &REST{}
+var _ rest.Scoper = &REST{}
 
 // NewREST returns a new REST.
 func NewREST(imageClient imageclient.ImagesGetter) *REST {
@@ -29,6 +30,10 @@ func NewREST(imageClient imageclient.ImagesGetter) *REST {
 // New is only implemented to make REST implement RESTStorage
 func (r *REST) New() runtime.Object {
 	return &imageapi.ImageSignature{}
+}
+
+func (s *REST) NamespaceScoped() bool {
+	return false
 }
 
 func (r *REST) Create(ctx context.Context, obj runtime.Object, createValidation rest.ValidateObjectFunc, _ bool) (runtime.Object, error) {

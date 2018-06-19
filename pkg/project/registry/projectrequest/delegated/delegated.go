@@ -58,6 +58,7 @@ type REST struct {
 
 var _ rest.Lister = &REST{}
 var _ rest.Creater = &REST{}
+var _ rest.Scoper = &REST{}
 
 func NewREST(message, templateNamespace, templateName string, projectClient projectclientinternal.ProjectsGetter, templateClient templateclient.Interface, sarClient authorizationclient.SubjectAccessReviewInterface, restConfig *restclient.Config, roleBindings rbaclisters.RoleBindingLister) *REST {
 	return &REST{
@@ -78,6 +79,10 @@ func (r *REST) New() runtime.Object {
 
 func (r *REST) NewList() runtime.Object {
 	return &metav1.Status{}
+}
+
+func (s *REST) NamespaceScoped() bool {
+	return false
 }
 
 var _ = rest.Creater(&REST{})

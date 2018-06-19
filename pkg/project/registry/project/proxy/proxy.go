@@ -50,6 +50,7 @@ var _ rest.Lister = &REST{}
 var _ rest.CreaterUpdater = &REST{}
 var _ rest.GracefulDeleter = &REST{}
 var _ rest.Watcher = &REST{}
+var _ rest.Scoper = &REST{}
 
 // NewREST returns a RESTStorage object that will work against Project resources
 func NewREST(client kcoreclient.NamespaceInterface, lister projectauth.Lister, authCache *projectauth.AuthorizationCache, projectCache *projectcache.ProjectCache) *REST {
@@ -74,6 +75,10 @@ func (s *REST) New() runtime.Object {
 // NewList returns a new ProjectList
 func (*REST) NewList() runtime.Object {
 	return &projectapi.ProjectList{}
+}
+
+func (s *REST) NamespaceScoped() bool {
+	return false
 }
 
 // List retrieves a list of Projects that match label.

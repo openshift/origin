@@ -31,6 +31,7 @@ type REST struct {
 }
 
 var _ rest.Creater = &REST{}
+var _ rest.Scoper = &REST{}
 
 // NewREST creates a new REST for policies..
 func NewREST(m scc.SCCMatcher, saCache kcorelisters.ServiceAccountLister, c clientset.Interface) *REST {
@@ -40,6 +41,10 @@ func NewREST(m scc.SCCMatcher, saCache kcorelisters.ServiceAccountLister, c clie
 // New creates a new PodSecurityPolicyReview object
 func (r *REST) New() runtime.Object {
 	return &securityapi.PodSecurityPolicyReview{}
+}
+
+func (s *REST) NamespaceScoped() bool {
+	return true
 }
 
 // Create registers a given new PodSecurityPolicyReview instance to r.registry.

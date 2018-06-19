@@ -21,6 +21,7 @@ type REST struct {
 }
 
 var _ rest.Creater = &REST{}
+var _ rest.Scoper = &REST{}
 
 func NewREST(clusterSARRegistry subjectaccessreview.Registry) *REST {
 	return &REST{clusterSARRegistry}
@@ -28,6 +29,10 @@ func NewREST(clusterSARRegistry subjectaccessreview.Registry) *REST {
 
 func (r *REST) New() runtime.Object {
 	return &authorizationapi.LocalSubjectAccessReview{}
+}
+
+func (s *REST) NamespaceScoped() bool {
+	return true
 }
 
 // Create transforms a LocalSAR into an ClusterSAR that is requesting a namespace.  That collapses the code paths.

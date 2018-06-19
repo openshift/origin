@@ -42,9 +42,14 @@ func NewREST(quotaMapper clusterquotamapping.ClusterQuotaMapper, quotaLister quo
 
 var _ rest.Getter = &AppliedClusterResourceQuotaREST{}
 var _ rest.Lister = &AppliedClusterResourceQuotaREST{}
+var _ rest.Scoper = &AppliedClusterResourceQuotaREST{}
 
 func (r *AppliedClusterResourceQuotaREST) New() runtime.Object {
 	return &quotaapi.AppliedClusterResourceQuota{}
+}
+
+func (s *AppliedClusterResourceQuotaREST) NamespaceScoped() bool {
+	return true
 }
 
 func (r *AppliedClusterResourceQuotaREST) Get(ctx context.Context, name string, options *metav1.GetOptions) (runtime.Object, error) {

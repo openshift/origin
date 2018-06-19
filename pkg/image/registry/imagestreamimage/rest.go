@@ -30,6 +30,7 @@ type REST struct {
 
 var _ rest.Getter = &REST{}
 var _ rest.ShortNamesProvider = &REST{}
+var _ rest.Scoper = &REST{}
 
 // ShortNames implements the ShortNamesProvider interface. Returns a list of short names for a resource.
 func (r *REST) ShortNames() []string {
@@ -48,6 +49,10 @@ func NewREST(imageRegistry image.Registry, imageStreamRegistry imagestream.Regis
 // New is only implemented to make REST implement RESTStorage
 func (r *REST) New() runtime.Object {
 	return &imageapi.ImageStreamImage{}
+}
+
+func (s *REST) NamespaceScoped() bool {
+	return true
 }
 
 // parseNameAndID splits a string into its name component and ID component, and returns an error

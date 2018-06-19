@@ -24,6 +24,7 @@ type REST struct {
 }
 
 var _ rest.Creater = &REST{}
+var _ rest.Scoper = &REST{}
 
 // NewREST creates a new REST for policies.
 func NewREST(authorizer kauthorizer.Authorizer) *REST {
@@ -33,6 +34,10 @@ func NewREST(authorizer kauthorizer.Authorizer) *REST {
 // New creates a new ResourceAccessReview object
 func (r *REST) New() runtime.Object {
 	return &authorizationapi.SubjectAccessReview{}
+}
+
+func (s *REST) NamespaceScoped() bool {
+	return false
 }
 
 // Create registers a given new ResourceAccessReview instance to r.registry.

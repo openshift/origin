@@ -18,6 +18,7 @@ type NoWatchStorage interface {
 	rest.TableConvertor
 	rest.CreaterUpdater
 	rest.GracefulDeleter
+	rest.Scoper
 }
 
 // WrapNoWatchStorageError uses SyncStatusError to inject the correct group
@@ -30,6 +31,10 @@ var _ = NoWatchStorage(&noWatchStorageErrWrapper{})
 
 type noWatchStorageErrWrapper struct {
 	delegate NoWatchStorage
+}
+
+func (s *noWatchStorageErrWrapper) NamespaceScoped() bool {
+	return s.delegate.NamespaceScoped()
 }
 
 func (s *noWatchStorageErrWrapper) Get(ctx context.Context, name string, options *v1.GetOptions) (runtime.Object, error) {

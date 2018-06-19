@@ -26,6 +26,7 @@ type REST struct {
 }
 
 var _ rest.Creater = &REST{}
+var _ rest.Scoper = &REST{}
 
 func NewREST(ruleResolver rbacregistryvalidation.AuthorizationRuleResolver, clusterRoleGetter rbaclisters.ClusterRoleLister) *REST {
 	return &REST{ruleResolver: ruleResolver, clusterRoleGetter: clusterRoleGetter}
@@ -33,6 +34,10 @@ func NewREST(ruleResolver rbacregistryvalidation.AuthorizationRuleResolver, clus
 
 func (r *REST) New() runtime.Object {
 	return &authorizationapi.SubjectRulesReview{}
+}
+
+func (s *REST) NamespaceScoped() bool {
+	return true
 }
 
 // Create registers a given new ResourceAccessReview instance to r.registry.

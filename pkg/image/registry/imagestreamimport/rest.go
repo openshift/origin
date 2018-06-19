@@ -59,6 +59,7 @@ type REST struct {
 }
 
 var _ rest.Creater = &REST{}
+var _ rest.Scoper = &REST{}
 
 // NewREST returns a REST storage implementation that handles importing images. The clientFn argument is optional
 // if v1 Docker Registry importing is not required. Insecure transport is optional, and both transports should not
@@ -88,6 +89,10 @@ func NewREST(importFn ImporterFunc, streams imagestream.Registry, internalStream
 // New is only implemented to make REST implement RESTStorage
 func (r *REST) New() runtime.Object {
 	return &imageapi.ImageStreamImport{}
+}
+
+func (s *REST) NamespaceScoped() bool {
+	return true
 }
 
 func (r *REST) Create(ctx context.Context, obj runtime.Object, createValidation rest.ValidateObjectFunc, _ bool) (runtime.Object, error) {

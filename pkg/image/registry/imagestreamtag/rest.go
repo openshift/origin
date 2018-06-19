@@ -46,6 +46,7 @@ var _ rest.Lister = &REST{}
 var _ rest.CreaterUpdater = &REST{}
 var _ rest.GracefulDeleter = &REST{}
 var _ rest.ShortNamesProvider = &REST{}
+var _ rest.Scoper = &REST{}
 
 // ShortNames implements the ShortNamesProvider interface. Returns a list of short names for a resource.
 func (r *REST) ShortNames() []string {
@@ -60,6 +61,10 @@ func (r *REST) New() runtime.Object {
 // NewList returns a new list object
 func (r *REST) NewList() runtime.Object {
 	return &imageapi.ImageStreamTagList{}
+}
+
+func (s *REST) NamespaceScoped() bool {
+	return true
 }
 
 // nameAndTag splits a string into its name component and tag component, and returns an error
