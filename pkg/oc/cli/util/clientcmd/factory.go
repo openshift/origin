@@ -5,13 +5,11 @@ import (
 	"io"
 	"sort"
 	"strings"
-	"time"
 
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
-	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -20,20 +18,12 @@ import (
 	"k8s.io/client-go/discovery"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	"k8s.io/kubernetes/pkg/apis/apps"
-	"k8s.io/kubernetes/pkg/apis/batch"
 	api "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/apis/extensions"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/controller"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	appsclientinternal "github.com/openshift/origin/pkg/apps/generated/internalclientset"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	"github.com/openshift/origin/pkg/cmd/util"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
@@ -206,43 +196,6 @@ func ResourceMapper(f kcmdutil.Factory) *resource.Mapper {
 	}
 }
 
-// UpdateObjectEnvironment update the environment variables in object specification.
-func (f *Factory) UpdateObjectEnvironment(obj runtime.Object, fn func(*[]api.EnvVar) error) (bool, error) {
-	switch t := obj.(type) {
-	case *buildapi.BuildConfig:
-		if t.Spec.Strategy.CustomStrategy != nil {
-			return true, fn(&t.Spec.Strategy.CustomStrategy.Env)
-		}
-		if t.Spec.Strategy.SourceStrategy != nil {
-			return true, fn(&t.Spec.Strategy.SourceStrategy.Env)
-		}
-		if t.Spec.Strategy.DockerStrategy != nil {
-			return true, fn(&t.Spec.Strategy.DockerStrategy.Env)
-		}
-		if t.Spec.Strategy.JenkinsPipelineStrategy != nil {
-			return true, fn(&t.Spec.Strategy.JenkinsPipelineStrategy.Env)
-		}
-	}
-	return false, fmt.Errorf("object does not contain any environment variables")
-}
-
-// ExtractFileContents returns a map of keys to contents, false if the object cannot support such an
-// operation, or an error.
-func (f *Factory) ExtractFileContents(obj runtime.Object) (map[string][]byte, bool, error) {
-	switch t := obj.(type) {
-	case *api.Secret:
-		return t.Data, true, nil
-	case *api.ConfigMap:
-		out := make(map[string][]byte)
-		for k, v := range t.Data {
-			out[k] = []byte(v)
-		}
-		return out, true, nil
-	default:
-		return nil, false, nil
-	}
-}
-
 // ApproximatePodTemplateForObject returns a pod template object for the provided source.
 // It may return both an error and a object. It attempt to return the best possible template
 // available at the current time.
@@ -305,149 +258,6 @@ func (f *Factory) ApproximatePodTemplateForObject(object runtime.Object) (*api.P
 	default:
 		return f.ObjectMappingFactory.ApproximatePodTemplateForObject(object)
 	}
-}
-
-func (f *Factory) PodForResource(resource string, timeout time.Duration) (string, error) {
-	sortBy := func(pods []*v1.Pod) sort.Interface { return sort.Reverse(controller.ActivePods(pods)) }
-	namespace, _, err := f.DefaultNamespace()
-	if err != nil {
-		return "", err
-	}
-	mapper, _ := f.Object()
-	resourceType, name, err := util.ResolveResource(api.Resource("pods"), resource, mapper)
-	if err != nil {
-		return "", err
-	}
-	clientConfig, err := f.ClientConfig()
-	if err != nil {
-		return "", err
-	}
-
-	switch resourceType {
-	case api.Resource("pods"):
-		return name, nil
-	case api.Resource("replicationcontrollers"):
-		kc, err := f.ClientSet()
-		if err != nil {
-			return "", err
-		}
-		rc, err := kc.Core().ReplicationControllers(namespace).Get(name, metav1.GetOptions{})
-		if err != nil {
-			return "", err
-		}
-		selector := labels.SelectorFromSet(rc.Spec.Selector)
-		pod, _, err := kcmdutil.GetFirstPod(kc.Core(), namespace, selector.String(), timeout, sortBy)
-		if err != nil {
-			return "", err
-		}
-		return pod.Name, nil
-	case appsapi.Resource("deploymentconfigs"):
-		appsClient, err := appsclientinternal.NewForConfig(clientConfig)
-		if err != nil {
-			return "", err
-		}
-		dc, err := appsClient.Apps().DeploymentConfigs(namespace).Get(name, metav1.GetOptions{})
-		if err != nil {
-			return "", err
-		}
-		return f.PodForResource(fmt.Sprintf("rc/%s", appsutil.LatestDeploymentNameForConfig(dc)), timeout)
-	case extensions.Resource("daemonsets"):
-		kc, err := f.ClientSet()
-		if err != nil {
-			return "", err
-		}
-		ds, err := kc.Extensions().DaemonSets(namespace).Get(name, metav1.GetOptions{})
-		if err != nil {
-			return "", err
-		}
-		selector, err := metav1.LabelSelectorAsSelector(ds.Spec.Selector)
-		if err != nil {
-			return "", err
-		}
-		pod, _, err := kcmdutil.GetFirstPod(kc.Core(), namespace, selector.String(), timeout, sortBy)
-		if err != nil {
-			return "", err
-		}
-		return pod.Name, nil
-	case extensions.Resource("deployments"):
-		kc, err := f.ClientSet()
-		if err != nil {
-			return "", err
-		}
-		d, err := kc.Extensions().Deployments(namespace).Get(name, metav1.GetOptions{})
-		if err != nil {
-			return "", err
-		}
-		selector, err := metav1.LabelSelectorAsSelector(d.Spec.Selector)
-		if err != nil {
-			return "", err
-		}
-		pod, _, err := kcmdutil.GetFirstPod(kc.Core(), namespace, selector.String(), timeout, sortBy)
-		if err != nil {
-			return "", err
-		}
-		return pod.Name, nil
-	case apps.Resource("statefulsets"):
-		kc, err := f.ClientSet()
-		if err != nil {
-			return "", err
-		}
-		s, err := kc.Apps().StatefulSets(namespace).Get(name, metav1.GetOptions{})
-		if err != nil {
-			return "", err
-		}
-		selector, err := metav1.LabelSelectorAsSelector(s.Spec.Selector)
-		if err != nil {
-			return "", err
-		}
-		pod, _, err := kcmdutil.GetFirstPod(kc.Core(), namespace, selector.String(), timeout, sortBy)
-		if err != nil {
-			return "", err
-		}
-		return pod.Name, nil
-	case extensions.Resource("replicasets"):
-		kc, err := f.ClientSet()
-		if err != nil {
-			return "", err
-		}
-		rs, err := kc.Extensions().ReplicaSets(namespace).Get(name, metav1.GetOptions{})
-		if err != nil {
-			return "", err
-		}
-		selector, err := metav1.LabelSelectorAsSelector(rs.Spec.Selector)
-		if err != nil {
-			return "", err
-		}
-		pod, _, err := kcmdutil.GetFirstPod(kc.Core(), namespace, selector.String(), timeout, sortBy)
-		if err != nil {
-			return "", err
-		}
-		return pod.Name, nil
-	case batch.Resource("jobs"):
-		kc, err := f.ClientSet()
-		if err != nil {
-			return "", err
-		}
-		job, err := kc.Batch().Jobs(namespace).Get(name, metav1.GetOptions{})
-		if err != nil {
-			return "", err
-		}
-		return podNameForJob(job, kc, timeout, sortBy)
-	default:
-		return "", fmt.Errorf("remote shell for %s is not supported", resourceType)
-	}
-}
-
-func podNameForJob(job *batch.Job, kc kclientset.Interface, timeout time.Duration, sortBy func(pods []*v1.Pod) sort.Interface) (string, error) {
-	selector, err := metav1.LabelSelectorAsSelector(job.Spec.Selector)
-	if err != nil {
-		return "", err
-	}
-	pod, _, err := kcmdutil.GetFirstPod(kc.Core(), job.Namespace, selector.String(), timeout, sortBy)
-	if err != nil {
-		return "", err
-	}
-	return pod.Name, nil
 }
 
 // FindAllCanonicalResources returns all resource names that map directly to their kind (Kind -> Resource -> Kind)

@@ -3,15 +3,28 @@ package cmd
 import (
 	"fmt"
 	"io"
+	"sort"
 	"time"
 
 	"github.com/spf13/cobra"
 
+	"k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/kubernetes/pkg/apis/apps"
+	"k8s.io/kubernetes/pkg/apis/batch"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/kubernetes/pkg/apis/extensions"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	"k8s.io/kubernetes/pkg/controller"
 	kubecmd "k8s.io/kubernetes/pkg/kubectl/cmd"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/util/term"
 
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsclientinternal "github.com/openshift/origin/pkg/apps/generated/internalclientset"
+	appsutil "github.com/openshift/origin/pkg/apps/util"
 	"github.com/openshift/origin/pkg/cmd/util"
 )
 
@@ -145,7 +158,7 @@ func (o *RshOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []str
 	}
 	o.PodClient = client.Core()
 
-	o.PodName, err = f.PodForResource(resource, time.Duration(o.Timeout)*time.Second)
+	o.PodName, err = podForResource(f, resource, time.Duration(o.Timeout)*time.Second)
 
 	fullCmdName := ""
 	cmdParent := cmd.Parent()
@@ -171,4 +184,147 @@ func (o *RshOptions) Run() error {
 		o.Command = append(o.Command, "-c", termsh)
 	}
 	return o.ExecOptions.Run()
+}
+
+func podForResource(f kcmdutil.Factory, resource string, timeout time.Duration) (string, error) {
+	sortBy := func(pods []*v1.Pod) sort.Interface { return sort.Reverse(controller.ActivePods(pods)) }
+	namespace, _, err := f.DefaultNamespace()
+	if err != nil {
+		return "", err
+	}
+	mapper, _ := f.Object()
+	resourceType, name, err := util.ResolveResource(kapi.Resource("pods"), resource, mapper)
+	if err != nil {
+		return "", err
+	}
+	clientConfig, err := f.ClientConfig()
+	if err != nil {
+		return "", err
+	}
+
+	switch resourceType {
+	case kapi.Resource("pods"):
+		return name, nil
+	case kapi.Resource("replicationcontrollers"):
+		kc, err := f.ClientSet()
+		if err != nil {
+			return "", err
+		}
+		rc, err := kc.Core().ReplicationControllers(namespace).Get(name, metav1.GetOptions{})
+		if err != nil {
+			return "", err
+		}
+		selector := labels.SelectorFromSet(rc.Spec.Selector)
+		pod, _, err := kcmdutil.GetFirstPod(kc.Core(), namespace, selector.String(), timeout, sortBy)
+		if err != nil {
+			return "", err
+		}
+		return pod.Name, nil
+	case appsapi.Resource("deploymentconfigs"):
+		appsClient, err := appsclientinternal.NewForConfig(clientConfig)
+		if err != nil {
+			return "", err
+		}
+		dc, err := appsClient.Apps().DeploymentConfigs(namespace).Get(name, metav1.GetOptions{})
+		if err != nil {
+			return "", err
+		}
+		return podForResource(f, fmt.Sprintf("rc/%s", appsutil.LatestDeploymentNameForConfig(dc)), timeout)
+	case extensions.Resource("daemonsets"):
+		kc, err := f.ClientSet()
+		if err != nil {
+			return "", err
+		}
+		ds, err := kc.Extensions().DaemonSets(namespace).Get(name, metav1.GetOptions{})
+		if err != nil {
+			return "", err
+		}
+		selector, err := metav1.LabelSelectorAsSelector(ds.Spec.Selector)
+		if err != nil {
+			return "", err
+		}
+		pod, _, err := kcmdutil.GetFirstPod(kc.Core(), namespace, selector.String(), timeout, sortBy)
+		if err != nil {
+			return "", err
+		}
+		return pod.Name, nil
+	case extensions.Resource("deployments"):
+		kc, err := f.ClientSet()
+		if err != nil {
+			return "", err
+		}
+		d, err := kc.Extensions().Deployments(namespace).Get(name, metav1.GetOptions{})
+		if err != nil {
+			return "", err
+		}
+		selector, err := metav1.LabelSelectorAsSelector(d.Spec.Selector)
+		if err != nil {
+			return "", err
+		}
+		pod, _, err := kcmdutil.GetFirstPod(kc.Core(), namespace, selector.String(), timeout, sortBy)
+		if err != nil {
+			return "", err
+		}
+		return pod.Name, nil
+	case apps.Resource("statefulsets"):
+		kc, err := f.ClientSet()
+		if err != nil {
+			return "", err
+		}
+		s, err := kc.Apps().StatefulSets(namespace).Get(name, metav1.GetOptions{})
+		if err != nil {
+			return "", err
+		}
+		selector, err := metav1.LabelSelectorAsSelector(s.Spec.Selector)
+		if err != nil {
+			return "", err
+		}
+		pod, _, err := kcmdutil.GetFirstPod(kc.Core(), namespace, selector.String(), timeout, sortBy)
+		if err != nil {
+			return "", err
+		}
+		return pod.Name, nil
+	case extensions.Resource("replicasets"):
+		kc, err := f.ClientSet()
+		if err != nil {
+			return "", err
+		}
+		rs, err := kc.Extensions().ReplicaSets(namespace).Get(name, metav1.GetOptions{})
+		if err != nil {
+			return "", err
+		}
+		selector, err := metav1.LabelSelectorAsSelector(rs.Spec.Selector)
+		if err != nil {
+			return "", err
+		}
+		pod, _, err := kcmdutil.GetFirstPod(kc.Core(), namespace, selector.String(), timeout, sortBy)
+		if err != nil {
+			return "", err
+		}
+		return pod.Name, nil
+	case batch.Resource("jobs"):
+		kc, err := f.ClientSet()
+		if err != nil {
+			return "", err
+		}
+		job, err := kc.Batch().Jobs(namespace).Get(name, metav1.GetOptions{})
+		if err != nil {
+			return "", err
+		}
+		return podNameForJob(job, kc, timeout, sortBy)
+	default:
+		return "", fmt.Errorf("remote shell for %s is not supported", resourceType)
+	}
+}
+
+func podNameForJob(job *batch.Job, kc kclientset.Interface, timeout time.Duration, sortBy func(pods []*v1.Pod) sort.Interface) (string, error) {
+	selector, err := metav1.LabelSelectorAsSelector(job.Spec.Selector)
+	if err != nil {
+		return "", err
+	}
+	pod, _, err := kcmdutil.GetFirstPod(kc.Core(), job.Namespace, selector.String(), timeout, sortBy)
+	if err != nil {
+		return "", err
+	}
+	return pod.Name, nil
 }
