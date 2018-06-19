@@ -8,33 +8,37 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openshift/origin/pkg/template/templateprocessing"
 	"github.com/spf13/cobra"
+
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 
-	"github.com/openshift/api/template"
+	templateapi "github.com/openshift/api/template"
+	templateapiv1 "github.com/openshift/api/template/v1"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/oc/lib/describe"
 	"github.com/openshift/origin/pkg/oc/lib/newapp/app"
 	"github.com/openshift/origin/pkg/oc/util/ocscheme"
-	templateapi "github.com/openshift/origin/pkg/template/apis/template"
+	"github.com/openshift/origin/pkg/template/apis/template"
 	templatevalidation "github.com/openshift/origin/pkg/template/apis/template/validation"
 	templateinternalclient "github.com/openshift/origin/pkg/template/client/internalversion"
 	templateclientinternal "github.com/openshift/origin/pkg/template/generated/internalclientset"
 	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset/typed/template/internalversion"
 	"github.com/openshift/origin/pkg/template/generator"
+	"github.com/openshift/origin/pkg/template/templateprocessing"
 )
 
 var (
@@ -75,48 +79,143 @@ var (
 	  cat template.json | %[1]s process -f -`)
 )
 
+type ProcessOptions struct {
+	PrintFlags *genericclioptions.PrintFlags
+	Printer    printers.ResourcePrinter
+
+	usageErrorFn func(string, ...interface{}) error
+
+	outputFormat        string
+	labels              string
+	filename            string
+	local               bool
+	raw                 bool
+	parameters          bool
+	ignoreUnknownParams bool
+	templateName        string
+	paramFile           []string
+	templateParams      []string
+	namespace           string
+	explicitNamespace   bool
+	paramValuesProvided bool
+
+	templateClient    templateclient.TemplateInterface
+	templateProcessor func(*template.Template) (*template.Template, error)
+
+	builderFn func() *resource.Builder
+
+	mapper meta.RESTMapper
+
+	genericclioptions.IOStreams
+}
+
+func NewProcessOptions(streams genericclioptions.IOStreams) *ProcessOptions {
+	printFlags := genericclioptions.NewPrintFlags("processed").WithTypeSetter(ocscheme.PrintingInternalScheme).WithDefaultOutput("json")
+	// disable binding the --template flag so that we can bind our own --template flag with a shorthand (until the shorthand is deprecated)
+	printFlags.TemplatePrinterFlags.TemplateArgument = nil
+
+	return &ProcessOptions{
+		PrintFlags: printFlags,
+		IOStreams:  streams,
+	}
+}
+
 // NewCmdProcess implements the OpenShift cli process command
 func NewCmdProcess(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
+	o := NewProcessOptions(streams)
+
 	cmd := &cobra.Command{
 		Use:     "process (TEMPLATE | -f FILENAME) [-p=KEY=VALUE]",
 		Short:   "Process a template into list of resources",
 		Long:    processLong,
 		Example: fmt.Sprintf(processExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
-			err := RunProcess(f, streams.In, streams.Out, streams.ErrOut, cmd, args)
-			kcmdutil.CheckErr(err)
+			kcmdutil.CheckErr(o.Complete(f, cmd, args))
+			kcmdutil.CheckErr(o.Validate(cmd))
+			kcmdutil.CheckErr(o.RunProcess())
 		},
 	}
-	cmd.Flags().StringP("filename", "f", "", "Filename or URL to file to read a template")
+
+	o.PrintFlags.AddFlags(cmd)
+	// edit --output flag description to mention "describe" as an acceptable output format
+	// TODO: add custom PrintFlags printer that does this ^
+	if f := cmd.Flag("output"); f != nil {
+		f.Usage = "Output format. One of: json|yaml|name|describe|go-template-file|templatefile|template|go-template|jsonpath|jsonpath-file."
+	}
+
+	// point to the original memory address shared between the jsonpath and go-template printer's TemplateArgument field
+	o.PrintFlags.TemplatePrinterFlags.TemplateArgument = o.PrintFlags.TemplatePrinterFlags.JSONPathPrintFlags.TemplateArgument
+	cmd.Flags().StringVarP(o.PrintFlags.TemplatePrinterFlags.TemplateArgument, "template", "t", *o.PrintFlags.TemplatePrinterFlags.TemplateArgument, "Template string or path to template file to use when -o=go-template, -o=go-template-file. The template format is golang templates [http://golang.org/pkg/text/template/#pkg-overview].")
+	cmd.MarkFlagFilename("template")
+	cmd.Flags().MarkShorthandDeprecated("template", "-t is no longer supported and will be removed in the future. Use --template instead.")
+
+	cmd.Flags().StringVarP(&o.filename, "filename", "f", o.filename, "Filename or URL to file to read a template")
 	cmd.MarkFlagFilename("filename", "yaml", "yml", "json")
-	cmd.Flags().StringArrayP("param", "p", nil, "Specify a key-value pair (eg. -p FOO=BAR) to set/override a parameter value in the template.")
-	cmd.Flags().StringArray("param-file", []string{}, "File containing template parameter values to set/override in the template.")
+	cmd.Flags().StringArrayVarP(&o.templateParams, "param", "p", o.templateParams, "Specify a key-value pair (eg. -p FOO=BAR) to set/override a parameter value in the template.")
+	cmd.Flags().StringArrayVar(&o.paramFile, "param-file", o.paramFile, "File containing template parameter values to set/override in the template.")
 	cmd.MarkFlagFilename("param-file")
-	cmd.Flags().Bool("ignore-unknown-parameters", false, "If true, will not stop processing if a provided parameter does not exist in the template.")
-	cmd.Flags().BoolP("local", "", false, "If true process the template locally instead of contacting the server.")
-	cmd.Flags().BoolP("parameters", "", false, "If true, do not process but only print available parameters")
-	cmd.Flags().StringP("labels", "l", "", "Label to set in all resources for this template")
+	cmd.Flags().BoolVar(&o.ignoreUnknownParams, "ignore-unknown-parameters", o.ignoreUnknownParams, "If true, will not stop processing if a provided parameter does not exist in the template.")
+	cmd.Flags().BoolVarP(&o.local, "local", "", o.local, "If true process the template locally instead of contacting the server.")
+	cmd.Flags().BoolVarP(&o.parameters, "parameters", "", o.parameters, "If true, do not process but only print available parameters")
+	cmd.Flags().StringVarP(&o.labels, "labels", "l", o.labels, "Label to set in all resources for this template")
 
-	cmd.Flags().StringP("output", "o", "json", "Output format. One of: describe|json|yaml|name|go-template=...|go-template-file=...|jsonpath=...|jsonpath-file=...")
-	cmd.Flags().Bool("raw", false, "If true, output the processed template instead of the template's objects. Implied by -o describe")
+	cmd.Flags().BoolVar(&o.raw, "raw", o.raw, "If true, output the processed template instead of the template's objects. Implied by -o describe")
+
 	cmd.Flags().String("output-version", "", "Output the formatted object with the given version (default api-version).")
-	cmd.Flags().StringP("template", "t", "", "Template string or path to template file to use when -o=go-template, -o=go-templatefile.  The template format is golang templates [http://golang.org/pkg/text/template/#pkg-overview]")
-
-	// kcmdutil.PrinterForCommand needs these flags, however they are useless
-	// here because oc process returns list of heterogeneous objects that is
-	// not suitable for formatting as a table.
-	cmd.Flags().BoolP("show-all", "a", false, "When printing, show all resources (default hide terminated pods.)")
-	cmd.Flags().Bool("show-labels", false, "When printing, show all labels as the last column (default hide labels column)")
-	cmd.Flags().Bool("no-headers", false, "When using the default output, don't print headers.")
-	cmd.Flags().MarkHidden("no-headers")
-	cmd.Flags().String("sort-by", "", "If non-empty, sort list types using this field specification.  The field specification is expressed as a JSONPath expression (e.g. 'ObjectMeta.Name'). The field in the API resource specified by this JSONPath expression must be an integer or a string.")
-	cmd.Flags().MarkHidden("sort-by")
+	cmd.Flags().MarkDeprecated("output-version", "this flag is deprecated and will be removed in the future, this flag is ignored")
 
 	return cmd
 }
 
-// RunProcess contains all the necessary functionality for the OpenShift cli process command
-func RunProcess(f kcmdutil.Factory, in io.Reader, out, errout io.Writer, cmd *cobra.Command, args []string) error {
+// processPrinter can handle printing the "describe" outputFormat
+type processPrinter struct {
+	printFlags   *genericclioptions.PrintFlags
+	outputFormat string
+}
+
+func (p *processPrinter) PrintObj(obj runtime.Object, out io.Writer) error {
+	if p.outputFormat == "describe" {
+		templateObj, ok := obj.(*template.Template)
+		if !ok {
+			return fmt.Errorf("attempt to describe a non-template object of type %T", obj)
+		}
+
+		s, err := (&describe.TemplateDescriber{
+			MetadataAccessor: meta.NewAccessor(),
+			ObjectTyper:      legacyscheme.Scheme,
+			ObjectDescriber:  nil,
+		}).DescribeTemplate(templateObj)
+
+		if err != nil {
+			return fmt.Errorf("error describing %q: %v\n", templateObj.Name, err)
+		}
+
+		fmt.Fprintf(out, s)
+		return nil
+	}
+
+	printer, err := p.printFlags.ToPrinter()
+	if err != nil {
+		return err
+	}
+
+	return printer.PrintObj(obj, out)
+}
+
+func (o *ProcessOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string) error {
+	o.outputFormat = kcmdutil.GetFlagString(cmd, "output")
+
+	o.Printer = &processPrinter{
+		printFlags:   o.PrintFlags,
+		outputFormat: o.outputFormat,
+	}
+
+	o.usageErrorFn = func(format string, args ...interface{}) error {
+		return kcmdutil.UsageErrorf(cmd, format, args)
+	}
+
+	o.paramValuesProvided = cmd.Flag("param").Changed
+
 	templateName, templateParams := "", []string{}
 	for _, s := range args {
 		isValue := strings.Contains(s, "=")
@@ -130,32 +229,69 @@ func RunProcess(f kcmdutil.Factory, in io.Reader, out, errout io.Writer, cmd *co
 		}
 	}
 
-	local := kcmdutil.GetFlagBool(cmd, "local")
-	if cmd.Flag("param").Changed {
-		flagValues := kcmdutil.GetFlagStringArray(cmd, "param")
-		cmdutil.WarnAboutCommaSeparation(errout, flagValues, "--param")
-		templateParams = append(templateParams, flagValues...)
+	o.templateName = templateName
+
+	o.templateParams = append(o.templateParams, templateParams...)
+	if o.paramValuesProvided {
+		cmdutil.WarnAboutCommaSeparation(o.ErrOut, o.templateParams, "--param")
 	}
 
-	duplicatedKeys := sets.NewString()
-	params, paramErr := app.ParseAndCombineEnvironment(templateParams, kcmdutil.GetFlagStringArray(cmd, "param-file"), in, func(key, file string) error {
-		if file == "" {
-			duplicatedKeys.Insert(key)
-		} else {
-			fmt.Fprintf(errout, "warning: Template parameter %q already defined, ignoring value from file %q", key, file)
+	var err error
+	o.namespace, o.explicitNamespace, err = f.ToRawKubeConfigLoader().Namespace()
+	// we only need to fail on namespace acquisition if we're actually taking action.  Otherwise the namespace can be enforced later
+	if err != nil && !o.local {
+		return err
+	}
+
+	o.builderFn = f.NewBuilder
+
+	o.templateProcessor = processTemplateLocally
+	if !o.local {
+		clientConfig, err := f.ToRESTConfig()
+		if err != nil {
+			return err
 		}
-		return nil
-	})
-	if len(duplicatedKeys) != 0 {
-		return kcmdutil.UsageErrorf(cmd, fmt.Sprintf("The following parameters were provided more than once: %s", strings.Join(duplicatedKeys.List(), ", ")))
+
+		// TODO: switch to using external templates client
+		templateClientset, err := templateclientinternal.NewForConfig(clientConfig)
+		if err != nil {
+			return err
+		}
+		o.templateClient = templateClientset.Template()
+
+		// TODO: switch to using external templates client
+		templateProcessorClient := templateinternalclient.NewTemplateProcessorClient(o.templateClient.RESTClient(), o.namespace)
+
+		o.templateProcessor = func(template *template.Template) (*template.Template, error) {
+			t, err := templateProcessorClient.Process(template)
+			if err != nil {
+				if err, ok := err.(*errors.StatusError); ok && err.ErrStatus.Details != nil {
+					errstr := "unable to process template\n"
+					for _, cause := range err.ErrStatus.Details.Causes {
+						errstr += fmt.Sprintf("  %s\n", cause.Message)
+					}
+
+					// if no error causes found, fallback to returning original
+					// error message received from the server
+					if len(err.ErrStatus.Details.Causes) == 0 {
+						errstr += fmt.Sprintf("  %v\n", err)
+					}
+
+					return nil, fmt.Errorf(errstr)
+				}
+
+				return nil, fmt.Errorf("unable to process template: %v\n", err)
+			}
+
+			return t, nil
+		}
 	}
 
-	filename := kcmdutil.GetFlagString(cmd, "filename")
-	if len(templateName) == 0 && len(filename) == 0 {
-		return kcmdutil.UsageErrorf(cmd, "Must pass a filename or name of stored template")
-	}
+	return nil
+}
 
-	if kcmdutil.GetFlagBool(cmd, "parameters") {
+func (o *ProcessOptions) Validate(cmd *cobra.Command) error {
+	if o.parameters {
 		for _, flag := range []string{"param", "labels", "output", "output-version", "raw", "template"} {
 			if f := cmd.Flags().Lookup(flag); f != nil && f.Changed {
 				return kcmdutil.UsageErrorf(cmd, "The --parameters flag does not process the template, can't be used with --%v", flag)
@@ -163,54 +299,58 @@ func RunProcess(f kcmdutil.Factory, in io.Reader, out, errout io.Writer, cmd *co
 		}
 	}
 
-	// the namespace
-	namespace, explicit, err := f.ToRawKubeConfigLoader().Namespace()
-	// we only need to fail on namespace acquisition if we're actually taking action.  Otherwise the namespace can be enforced later
-	if err != nil && !local {
-		return err
+	if len(o.templateName) > 0 && o.local {
+		return kcmdutil.UsageErrorf(cmd, "You may only specify a local template file via -f when running this command with --local")
 	}
 
-	var (
-		objects []runtime.Object
-		infos   []*resource.Info
+	return nil
+}
 
-		client templateclient.TemplateInterface
-	)
-
-	if local {
-		// TODO: Change f.Object() so that it can fall back to local RESTMapper safely (currently glog.Fatals)
-	} else {
-		clientConfig, err := f.ToRESTConfig()
-		if err != nil {
-			return err
+// RunProcess contains all the necessary functionality for the OpenShift cli process command
+func (o *ProcessOptions) RunProcess() error {
+	duplicatedKeys := sets.NewString()
+	params, paramErr := app.ParseAndCombineEnvironment(o.templateParams, o.paramFile, o.In, func(key, file string) error {
+		if file == "" {
+			duplicatedKeys.Insert(key)
+		} else {
+			fmt.Fprintf(o.ErrOut, "warning: Template parameter %q already defined, ignoring value from file %q", key, file)
 		}
-		templateClient, err := templateclientinternal.NewForConfig(clientConfig)
-		if err != nil {
-			return err
-		}
-		client = templateClient.Template()
+		return nil
+	})
+	if len(duplicatedKeys) != 0 {
+		return o.usageErrorFn(fmt.Sprintf("The following parameters were provided more than once: %s", strings.Join(duplicatedKeys.List(), ", ")))
 	}
+
+	if len(o.templateName) == 0 && len(o.filename) == 0 {
+		return o.usageErrorFn("Must pass a filename or name of stored template")
+	}
+
+	var infos []*resource.Info
 
 	// When templateName is not empty, then we fetch the template from the
 	// server, otherwise we require to set the `-f` parameter.
-	if len(templateName) > 0 {
+	if len(o.templateName) > 0 && !o.local {
+		if o.templateClient == nil {
+			return fmt.Errorf("attempt to fetch template from server with nil template client")
+		}
+
 		var (
 			storedTemplate, rs string
 			sourceNamespace    string
 			ok                 bool
 		)
-		sourceNamespace, rs, storedTemplate, ok = parseNamespaceResourceName(templateName, namespace)
+		sourceNamespace, rs, storedTemplate, ok = parseNamespaceResourceName(o.templateName, o.namespace)
 		if !ok {
-			return fmt.Errorf("invalid argument %q", templateName)
+			return fmt.Errorf("invalid argument %q", o.templateName)
 		}
 		if len(rs) > 0 && (rs != "template" && rs != "templates") {
 			return fmt.Errorf("unable to process invalid resource %q", rs)
 		}
 		if len(storedTemplate) == 0 {
-			return fmt.Errorf("invalid value syntax %q", templateName)
+			return fmt.Errorf("invalid value syntax %q", o.templateName)
 		}
 
-		templateObj, err := client.Templates(sourceNamespace).Get(storedTemplate, metav1.GetOptions{})
+		templateObj, err := o.templateClient.Templates(sourceNamespace).Get(storedTemplate, metav1.GetOptions{})
 		if err != nil {
 			if errors.IsNotFound(err) {
 				return fmt.Errorf("template %q could not be found", storedTemplate)
@@ -220,10 +360,11 @@ func RunProcess(f kcmdutil.Factory, in io.Reader, out, errout io.Writer, cmd *co
 		templateObj.CreationTimestamp = metav1.Now()
 		infos = append(infos, &resource.Info{Object: templateObj})
 	} else {
-		infos, err = f.NewBuilder().
+		var err error
+		infos, err = o.builderFn().
 			WithScheme(ocscheme.ReadingInternalScheme).
-			LocalParam(local).
-			FilenameParam(explicit, &resource.FilenameOptions{Recursive: false, Filenames: []string{filename}}).
+			LocalParam(o.local).
+			FilenameParam(o.explicitNamespace, &resource.FilenameOptions{Recursive: false, Filenames: []string{o.filename}}).
 			Do().
 			Infos()
 		if err != nil {
@@ -237,25 +378,25 @@ func RunProcess(f kcmdutil.Factory, in io.Reader, out, errout io.Writer, cmd *co
 		// a parameter that the template wants or when they give a parameter the template doesn't need,
 		// as this may indicate that they have mis-used `oc process`. This is much less complicated when
 		// we process at most one template.
-		fmt.Fprintf(out, "%d input templates found, but only the first will be processed", len(infos))
+		fmt.Fprintf(o.Out, "%d input templates found, but only the first will be processed", len(infos))
 	}
 
-	obj, ok := infos[0].Object.(*templateapi.Template)
+	obj, ok := infos[0].Object.(*template.Template)
 	if !ok {
-		sourceName := filename
-		if len(templateName) > 0 {
-			sourceName = namespace + "/" + templateName
+		sourceName := o.filename
+		if len(o.templateName) > 0 {
+			sourceName = o.namespace + "/" + o.templateName
 		}
 		return fmt.Errorf("unable to parse %q, not a valid Template but %s\n", sourceName, reflect.TypeOf(infos[0].Object))
 	}
 
 	// If 'parameters' flag is set it does not do processing but only print
 	// the template parameters to console for inspection.
-	if kcmdutil.GetFlagBool(cmd, "parameters") {
-		return describe.PrintTemplateParameters(obj.Parameters, out)
+	if o.parameters {
+		return describe.PrintTemplateParameters(obj.Parameters, o.Out)
 	}
 
-	if label := kcmdutil.GetFlagString(cmd, "labels"); len(label) > 0 {
+	if label := o.labels; len(label) > 0 {
 		lbl, err := kubectl.ParseLabels(label)
 		if err != nil {
 			return fmt.Errorf("error parsing labels: %v\n", err)
@@ -272,74 +413,57 @@ func RunProcess(f kcmdutil.Factory, in io.Reader, out, errout io.Writer, cmd *co
 	if paramErr != nil {
 		return paramErr
 	}
-	if errs := injectUserVars(params, obj, kcmdutil.GetFlagBool(cmd, "ignore-unknown-parameters")); errs != nil {
+	if errs := injectUserVars(params, obj, o.ignoreUnknownParams); errs != nil {
 		return kerrors.NewAggregate(errs)
 	}
 
 	resultObj := obj
-	if local {
-		if err := processTemplateLocally(obj); err != nil {
-			return err
-		}
-	} else {
-		processor := templateinternalclient.NewTemplateProcessorClient(client.RESTClient(), namespace)
-		resultObj, err = processor.Process(obj)
-		if err != nil {
-			if err, ok := err.(*errors.StatusError); ok && err.ErrStatus.Details != nil {
-				errstr := "unable to process template\n"
-				for _, cause := range err.ErrStatus.Details.Causes {
-					errstr += fmt.Sprintf("  %s\n", cause.Message)
-				}
-
-				// if no error causes found, fallback to returning original
-				// error message received from the server
-				if len(err.ErrStatus.Details.Causes) == 0 {
-					errstr += fmt.Sprintf("  %v\n", err)
-				}
-
-				return fmt.Errorf(errstr)
-			}
-
-			return fmt.Errorf("unable to process template: %v\n", err)
-		}
-	}
-
-	outputFormat := kcmdutil.GetFlagString(cmd, "output")
-	if outputFormat == "describe" {
-		if s, err := (&describe.TemplateDescriber{
-			MetadataAccessor: meta.NewAccessor(),
-			ObjectTyper:      legacyscheme.Scheme,
-			ObjectDescriber:  nil,
-		}).DescribeTemplate(resultObj); err != nil {
-			return fmt.Errorf("error describing %q: %v\n", obj.Name, err)
-		} else {
-			_, err := fmt.Fprintf(out, s)
-			return err
-		}
-	}
-	objects = append(objects, resultObj.Objects...)
-
-	p, err := kcmdutil.PrinterForOptions(kcmdutil.ExtractCmdPrintOptions(cmd, false))
+	resultObj, err := o.templateProcessor(obj)
 	if err != nil {
 		return err
 	}
 
-	// use generic output
-	if kcmdutil.GetFlagBool(cmd, "raw") {
-		for i := range objects {
-			p.PrintObj(objects[i], out)
+	if o.outputFormat == "describe" {
+		return o.Printer.PrintObj(resultObj, o.Out)
+	}
+
+	// attempt to convert our resulting object to external
+	var externalResultObj templateapiv1.Template
+	if err := ocscheme.PrintingInternalScheme.Convert(resultObj, &externalResultObj, nil); err != nil {
+		return fmt.Errorf("unable to convert template to external template object: %v", err)
+	}
+
+	// the name printer does not accept object lists, so re-use
+	// the print loop used for --raw printing instead.
+	if o.outputFormat == "name" || o.raw {
+		for _, obj := range externalResultObj.Objects {
+			objToPrint := obj.Object
+
+			if objToPrint == nil {
+				converted, err := runtime.Decode(unstructured.UnstructuredJSONScheme, obj.Raw)
+				if err != nil {
+					return err
+				}
+
+				objToPrint = converted
+			}
+
+			if err := o.Printer.PrintObj(objToPrint, o.Out); err != nil {
+				return err
+			}
 		}
+
 		return nil
 	}
 
-	return p.PrintObj(&kapi.List{
+	return o.Printer.PrintObj(&corev1.List{
 		ListMeta: metav1.ListMeta{},
-		Items:    objects,
-	}, out)
+		Items:    externalResultObj.Objects,
+	}, o.Out)
 }
 
 // injectUserVars injects user specified variables into the Template
-func injectUserVars(values app.Environment, t *templateapi.Template, ignoreUnknownParameters bool) []error {
+func injectUserVars(values app.Environment, t *template.Template, ignoreUnknownParameters bool) []error {
 	var errors []error
 	for param, val := range values {
 		v := templateprocessing.DeprecatedGetParameterByNameInternal(t, param)
@@ -355,17 +479,17 @@ func injectUserVars(values app.Environment, t *templateapi.Template, ignoreUnkno
 
 // processTemplateLocally applies the same logic that a remote call would make but makes no
 // connection to the server.
-func processTemplateLocally(tpl *templateapi.Template) error {
+func processTemplateLocally(tpl *template.Template) (*template.Template, error) {
 	if errs := templatevalidation.ValidateProcessedTemplate(tpl); len(errs) > 0 {
-		return errors.NewInvalid(template.Kind("Template"), tpl.Name, errs)
+		return nil, errors.NewInvalid(templateapi.Kind("Template"), tpl.Name, errs)
 	}
 	processor := templateprocessing.NewProcessor(map[string]generator.Generator{
 		"expression": generator.NewExpressionValueGenerator(rand.New(rand.NewSource(time.Now().UnixNano()))),
 	})
 	if errs := processor.Process(tpl); len(errs) > 0 {
-		return errors.NewInvalid(template.Kind("Template"), tpl.Name, errs)
+		return nil, errors.NewInvalid(templateapi.Kind("Template"), tpl.Name, errs)
 	}
-	return nil
+	return tpl, nil
 }
 
 // parseNamespaceResourceName parses the value and returns namespace, resource and the
