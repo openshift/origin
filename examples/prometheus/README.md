@@ -46,7 +46,7 @@ Example creation steps:
 $ oc create secret generic prom --from-file=../prometheus.yml
 
 # Create the prom-alerts secret
-$ oc create secret generic prom --from-file=../alertmanager.yml
+$ oc create secret generic prom-alerts --from-file=../alertmanager.yml
 
 # Create the prometheus instance
 $ oc process -f prometheus-standalone.yaml | oc apply -f -
