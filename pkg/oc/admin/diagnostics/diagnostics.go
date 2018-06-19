@@ -9,12 +9,11 @@ import (
 
 	"github.com/spf13/cobra"
 	flag "github.com/spf13/pflag"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	kutilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
-	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
-	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	poddiag "github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/client/pod/in_pod"
@@ -23,7 +22,6 @@ import (
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/types"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/options"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/util"
-	osclientcmd "github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
 // DiagnosticsOptions holds values received from command line flags as well as
@@ -47,7 +45,7 @@ type DiagnosticsOptions struct {
 	// creates flags as a byproduct, most of which we don't want.
 	// The command creates these and binds only the flags we want.
 	ClientFlags *flag.FlagSet
-	Factory     kcmdutil.Factory
+	Factory     genericclioptions.RESTClientGetter
 	// specify context name to be used for cluster-admin access
 	ClientClusterContext string
 	// LogOptions determine globally what the user wants to see and how.
@@ -108,7 +106,7 @@ var (
 )
 
 // NewCmdDiagnostics is the base command for running a standard set of diagnostics with generic options only.
-func NewCmdDiagnostics(name string, fullName string, out io.Writer) *cobra.Command {
+func NewCmdDiagnostics(name string, fullName string, f genericclioptions.RESTClientGetter, out io.Writer) *cobra.Command {
 	available := availableDiagnostics()
 	o := &DiagnosticsOptions{
 		RequestedDiagnostics:     available.Names().Difference(defaultSkipDiagnostics()),
@@ -128,26 +126,27 @@ func NewCmdDiagnostics(name string, fullName string, out io.Writer) *cobra.Comma
 	o.bindHostFlags(cmd.Flags())
 
 	// add "all" subcommand
-	cmd.AddCommand(NewCmdDiagnosticsAll(AllDiagnosticsRecommendedName, fullName+" "+AllDiagnosticsRecommendedName, out, available))
+	cmd.AddCommand(NewCmdDiagnosticsAll(AllDiagnosticsRecommendedName, fullName+" "+AllDiagnosticsRecommendedName, f, out, available))
 	// add individual diagnostic subcommands
 	for _, diag := range available {
-		cmd.AddCommand(NewCmdDiagnosticsIndividual(strings.ToLower(diag.Name()), fullName+" "+strings.ToLower(diag.Name()), out, diag))
+		cmd.AddCommand(NewCmdDiagnosticsIndividual(strings.ToLower(diag.Name()), fullName+" "+strings.ToLower(diag.Name()), f, out, diag))
 	}
 	// add hidden in-pod subcommands
 	cmd.AddCommand(
 		poddiag.NewCommandPodDiagnostics(poddiag.InPodDiagnosticRecommendedName, out),
-		networkpoddiag.NewCommandNetworkPodDiagnostics(networkpoddiag.InPodNetworkCheckRecommendedName, out),
+		networkpoddiag.NewCommandNetworkPodDiagnostics(networkpoddiag.InPodNetworkCheckRecommendedName, f, out),
 	)
 
 	return cmd
 }
 
 // NewCmdDiagnosticsAll is the command for running ALL diagnostics and providing all flags.
-func NewCmdDiagnosticsAll(name string, fullName string, out io.Writer, available types.DiagnosticList) *cobra.Command {
+func NewCmdDiagnosticsAll(name string, fullName string, f genericclioptions.RESTClientGetter, out io.Writer, available types.DiagnosticList) *cobra.Command {
 	o := &DiagnosticsOptions{
 		RequestedDiagnostics:     available.Names(),
 		ParameterizedDiagnostics: types.NewParameterizedDiagnosticMap(available...),
 		LogOptions:               &log.LoggerOptions{Out: out},
+		Factory:                  f,
 	}
 
 	cmd := &cobra.Command{
@@ -165,11 +164,12 @@ func NewCmdDiagnosticsAll(name string, fullName string, out io.Writer, available
 }
 
 // NewCmdDiagnosticsIndividual is a parameterized subcommand providing a single diagnostic and its flags.
-func NewCmdDiagnosticsIndividual(name string, fullName string, out io.Writer, diagnostic types.Diagnostic) *cobra.Command {
+func NewCmdDiagnosticsIndividual(name string, fullName string, f genericclioptions.RESTClientGetter, out io.Writer, diagnostic types.Diagnostic) *cobra.Command {
 	o := &DiagnosticsOptions{
 		RequestedDiagnostics:     sets.NewString(diagnostic.Name()),
 		ParameterizedDiagnostics: types.NewParameterizedDiagnosticMap(diagnostic),
 		LogOptions:               &log.LoggerOptions{Out: out},
+		Factory:                  f,
 	}
 
 	cmd := &cobra.Command{
@@ -222,10 +222,7 @@ func (o *DiagnosticsOptions) bindCommonFlags(flags *flag.FlagSet) {
 
 // bind flags that are necessary for setting up an API client
 func (o *DiagnosticsOptions) bindClientFlags(flags *flag.FlagSet) {
-	o.ClientFlags = flag.NewFlagSet("client", flag.ContinueOnError) // hide the extensive set of client flags
-	o.Factory = osclientcmd.New(o.ClientFlags)                      // that would otherwise be added to this command
-	flags.AddFlag(o.ClientFlags.Lookup(kclientcmd.OpenShiftKubeConfigFlagName))
-	flags.AddFlag(o.ClientFlags.Lookup("context")) // TODO: find k8s constant
+	o.ClientFlags = flags
 	flags.StringVar(&o.ClientClusterContext, options.FlagClusterContextName, "", "Client context to use for cluster administrator")
 	flags.BoolVar(&o.PreventModification, options.FlagPreventModificationName, false, "If true, may be set to prevent diagnostics making any changes via the API")
 }

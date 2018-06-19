@@ -6,17 +6,17 @@ import (
 	"runtime/debug"
 
 	"github.com/spf13/cobra"
-	flag "github.com/spf13/pflag"
 
 	"k8s.io/apimachinery/pkg/util/sets"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	networkclientinternal "github.com/openshift/origin/pkg/network/generated/internalclientset"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/log"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/types"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/options"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/util"
-	osclientcmd "github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
 const (
@@ -31,7 +31,8 @@ type NetworkPodDiagnosticsOptions struct {
 	// LogOptions determine globally what the user wants to see and how.
 	LogOptions *log.LoggerOptions
 	// The Logger is built with the options and should be used for all diagnostic output.
-	logger *log.Logger
+	logger           *log.Logger
+	RESTClientGetter genericclioptions.RESTClientGetter
 }
 
 var longNetworkPodDiagDescription = templates.LongDesc(`
@@ -46,10 +47,11 @@ var (
 )
 
 // NewCommandNetworkPodDiagnostics is the command for running network diagnostics.
-func NewCommandNetworkPodDiagnostics(name string, out io.Writer) *cobra.Command {
+func NewCommandNetworkPodDiagnostics(name string, f genericclioptions.RESTClientGetter, out io.Writer) *cobra.Command {
 	o := &NetworkPodDiagnosticsOptions{
 		RequestedDiagnostics: []string{},
 		LogOptions:           &log.LoggerOptions{Out: out},
+		RESTClientGetter:     f,
 	}
 
 	cmd := &cobra.Command{
@@ -117,16 +119,13 @@ func (o NetworkPodDiagnosticsOptions) buildNetworkPodDiagnostics() ([]types.Diag
 		return nil, err // don't waste time on discovery
 	}
 
-	clientFlags := flag.NewFlagSet("client", flag.ContinueOnError) // hide the extensive set of client flags
-	factory := osclientcmd.New(clientFlags)                        // that would otherwise be added to this command
-
-	kubeClient, clientErr := factory.ClientSet()
-	if clientErr != nil {
-		return nil, clientErr
-	}
-	clientConfig, err := factory.ClientConfig()
+	clientConfig, err := o.RESTClientGetter.ToRESTConfig()
 	if err != nil {
 		return nil, err
+	}
+	kubeClient, clientErr := kclientset.NewForConfig(clientConfig)
+	if clientErr != nil {
+		return nil, clientErr
 	}
 	networkClient, err := networkclientinternal.NewForConfig(clientConfig)
 	if err != nil {

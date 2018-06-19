@@ -5,6 +5,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/sets"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	clientdiags "github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/client"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/client/pod"
@@ -22,7 +23,12 @@ func availableClientDiagnostics() types.DiagnosticList {
 func (o DiagnosticsOptions) buildClientDiagnostics(rawConfig *clientcmdapi.Config) ([]types.Diagnostic, error) {
 	available := availableClientDiagnostics().Names()
 
-	kubeClient, clientErr := o.Factory.ClientSet()
+	clientConfig, clientErr := o.Factory.ToRESTConfig()
+	if clientErr != nil {
+		o.Logger().Notice("CED0001", "Could not configure a client, so client diagnostics are limited to testing configuration and connection")
+		available = sets.NewString(clientdiags.ConfigContextsName)
+	}
+	kubeClient, clientErr := kclientset.NewForConfig(clientConfig)
 	if clientErr != nil {
 		o.Logger().Notice("CED0001", "Could not configure a client, so client diagnostics are limited to testing configuration and connection")
 		available = sets.NewString(clientdiags.ConfigContextsName)
