@@ -10,14 +10,13 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	autoscaling "k8s.io/kubernetes/pkg/apis/autoscaling"
+	"k8s.io/kubernetes/pkg/apis/autoscaling"
 	autoscalingclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/autoscaling/internalversion"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
 	"github.com/openshift/origin/pkg/oc/admin/migrate"
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
 var (
@@ -74,7 +73,7 @@ type MigrateLegacyHPAOptions struct {
 }
 
 // NewCmdMigrateLegacyAPI implements a MigrateLegacyHPA command
-func NewCmdMigrateLegacyHPA(name, fullName string, f *clientcmd.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
+func NewCmdMigrateLegacyHPA(name, fullName string, f kcmdutil.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
 	options := &MigrateLegacyHPAOptions{
 		ResourceOptions: migrate.ResourceOptions{
 			Out:    out,
@@ -100,7 +99,7 @@ func NewCmdMigrateLegacyHPA(name, fullName string, f *clientcmd.Factory, in io.R
 	return cmd
 }
 
-func (o *MigrateLegacyHPAOptions) Complete(name string, f *clientcmd.Factory, c *cobra.Command, args []string) error {
+func (o *MigrateLegacyHPAOptions) Complete(name string, f kcmdutil.Factory, c *cobra.Command, args []string) error {
 	if len(args) != 0 {
 		return fmt.Errorf("%s takes no positional arguments", name)
 	}

@@ -27,7 +27,6 @@ import (
 	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
 	"github.com/openshift/origin/pkg/oc/cli/describe"
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
 // DeployOptions holds all the options for the `deploy` command
@@ -97,7 +96,7 @@ var (
 )
 
 // NewCmdDeploy creates a new `deploy` command.
-func NewCmdDeploy(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdDeploy(fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
 	options := &DeployOptions{
 		baseCommandName: fullName,
 	}
@@ -137,7 +136,7 @@ func NewCmdDeploy(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.C
 	return cmd
 }
 
-func (o *DeployOptions) Complete(f *clientcmd.Factory, args []string, out io.Writer) error {
+func (o *DeployOptions) Complete(f kcmdutil.Factory, args []string, out io.Writer) error {
 	if len(args) > 1 {
 		return errors.New("only one deployment config name is supported as argument.")
 	}

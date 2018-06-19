@@ -7,9 +7,7 @@ import (
 	"github.com/spf13/cobra"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/rollout"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
-	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 )
 
 var (
@@ -33,12 +31,12 @@ var (
 )
 
 // NewCmdRollout facilitates kubectl rollout subcommands
-func NewCmdRollout(fullName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
+func NewCmdRollout(fullName string, f kcmdutil.Factory, out, errOut io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "rollout SUBCOMMAND",
 		Short: "Manage a Kubernetes deployment or OpenShift deployment config",
 		Long:  rolloutLong,
-		Run:   cmdutil.DefaultSubCommandRun(errOut),
+		Run:   kcmdutil.DefaultSubCommandRun(errOut),
 	}
 
 	// subcommands
@@ -70,7 +68,7 @@ var (
 )
 
 // NewCmdRolloutHistory is a wrapper for the Kubernetes cli rollout history command
-func NewCmdRolloutHistory(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdRolloutHistory(fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
 	cmd := rollout.NewCmdRolloutHistory(f, out)
 	cmd.Long = rolloutHistoryLong
 	cmd.Example = fmt.Sprintf(rolloutHistoryExample, fullName)
@@ -93,7 +91,7 @@ var (
 )
 
 // NewCmdRolloutPause is a wrapper for the Kubernetes cli rollout pause command
-func NewCmdRolloutPause(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdRolloutPause(fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
 	cmd := rollout.NewCmdRolloutPause(f, out)
 	cmd.Long = rolloutPauseLong
 	cmd.Example = fmt.Sprintf(rolloutPauseExample, fullName)
@@ -114,7 +112,7 @@ var (
 )
 
 // NewCmdRolloutResume is a wrapper for the Kubernetes cli rollout resume command
-func NewCmdRolloutResume(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdRolloutResume(fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
 	cmd := rollout.NewCmdRolloutResume(f, out)
 	cmd.Long = rolloutResumeLong
 	cmd.Example = fmt.Sprintf(rolloutResumeExample, fullName)
@@ -152,7 +150,7 @@ var (
 )
 
 // NewCmdRolloutUndo is a wrapper for the Kubernetes cli rollout undo command
-func NewCmdRolloutUndo(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdRolloutUndo(fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
 	cmd := rollout.NewCmdRolloutUndo(f, out)
 	cmd.Long = rolloutUndoLong
 	cmd.Example = fmt.Sprintf(rolloutUndoExample, fullName)
@@ -170,7 +168,7 @@ var (
 )
 
 // NewCmdRolloutStatus is a wrapper for the Kubernetes cli rollout status command
-func NewCmdRolloutStatus(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdRolloutStatus(fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
 	cmd := rollout.NewCmdRolloutStatus(f, out)
 	cmd.Long = rolloutStatusLong
 	cmd.Example = fmt.Sprintf(rolloutStatusExample, fullName)

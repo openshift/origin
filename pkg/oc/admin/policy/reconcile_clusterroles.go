@@ -23,7 +23,6 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	osutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/print"
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
 // ReconcileClusterRolesRecommendedName is the recommended command name
@@ -72,7 +71,7 @@ var (
 )
 
 // NewCmdReconcileClusterRoles implements the OpenShift cli reconcile-cluster-roles command
-func NewCmdReconcileClusterRoles(name, fullName string, f *clientcmd.Factory, out, errout io.Writer) *cobra.Command {
+func NewCmdReconcileClusterRoles(name, fullName string, f kcmdutil.Factory, out, errout io.Writer) *cobra.Command {
 	o := &ReconcileClusterRolesOptions{
 		Out:    out,
 		ErrOut: errout,
@@ -109,7 +108,7 @@ func NewCmdReconcileClusterRoles(name, fullName string, f *clientcmd.Factory, ou
 	return cmd
 }
 
-func (o *ReconcileClusterRolesOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, args []string) error {
+func (o *ReconcileClusterRolesOptions) Complete(cmd *cobra.Command, f kcmdutil.Factory, args []string) error {
 	clientConfig, err := f.ClientConfig()
 	if err != nil {
 		return err
@@ -149,7 +148,7 @@ func (o *ReconcileClusterRolesOptions) Validate() error {
 }
 
 // RunReconcileClusterRoles contains all the necessary functionality for the OpenShift cli reconcile-cluster-roles command
-func (o *ReconcileClusterRolesOptions) RunReconcileClusterRoles(cmd *cobra.Command, f *clientcmd.Factory) error {
+func (o *ReconcileClusterRolesOptions) RunReconcileClusterRoles(cmd *cobra.Command, f kcmdutil.Factory) error {
 	changedClusterRoles, skippedClusterRoles, err := o.ChangedClusterRoles()
 	if err != nil {
 		return err

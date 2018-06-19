@@ -78,7 +78,7 @@ type BuildSecretOptions struct {
 }
 
 // NewCmdBuildSecret implements the set build-secret command
-func NewCmdBuildSecret(fullName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
+func NewCmdBuildSecret(fullName string, f kcmdutil.Factory, out, errOut io.Writer) *cobra.Command {
 	options := &BuildSecretOptions{
 		Out: out,
 		Err: errOut,
@@ -120,7 +120,7 @@ func NewCmdBuildSecret(fullName string, f *clientcmd.Factory, out, errOut io.Wri
 
 var supportedBuildTypes = []string{"buildconfigs"}
 
-func (o *BuildSecretOptions) secretFromArg(f *clientcmd.Factory, mapper meta.RESTMapper, typer runtime.ObjectTyper, namespace, arg string) (string, error) {
+func (o *BuildSecretOptions) secretFromArg(f kcmdutil.Factory, mapper meta.RESTMapper, typer runtime.ObjectTyper, namespace, arg string) (string, error) {
 	builder := f.NewBuilder().
 		Internal().
 		LocalParam(o.Local).
@@ -147,7 +147,7 @@ func (o *BuildSecretOptions) secretFromArg(f *clientcmd.Factory, mapper meta.RES
 	return secretName, nil
 }
 
-func (o *BuildSecretOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string) error {
+func (o *BuildSecretOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string) error {
 	var secretArg string
 	if !o.Remove {
 		if len(args) < 1 {
@@ -196,7 +196,7 @@ func (o *BuildSecretOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 
 	o.Output = kcmdutil.GetFlagString(cmd, "output")
 	o.PrintObject = func(infos []*resource.Info) error {
-		return f.PrintResourceInfos(cmd, o.Local, infos, o.Out)
+		return clientcmd.PrintResourceInfos(f, cmd, o.Local, infos, o.Out)
 	}
 
 	o.Encoder = kcmdutil.InternalVersionJSONEncoder()

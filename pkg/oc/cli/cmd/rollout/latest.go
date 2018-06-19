@@ -18,7 +18,6 @@ import (
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsclientinternal "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
 var (
@@ -59,7 +58,7 @@ type RolloutLatestOptions struct {
 }
 
 // NewCmdRolloutLatest implements the oc rollout latest subcommand.
-func NewCmdRolloutLatest(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdRolloutLatest(fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
 	opts := &RolloutLatestOptions{
 		baseCommandName: fullName,
 	}
@@ -89,7 +88,7 @@ func NewCmdRolloutLatest(fullName string, f *clientcmd.Factory, out io.Writer) *
 	return cmd
 }
 
-func (o *RolloutLatestOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string, out io.Writer) error {
+func (o *RolloutLatestOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string, out io.Writer) error {
 	if len(args) != 1 {
 		return errors.New("one deployment config name is needed as argument.")
 	}

@@ -106,7 +106,7 @@ type ImageLookupOptions struct {
 }
 
 // NewCmdImageLookup implements the set image-lookup command
-func NewCmdImageLookup(fullName, parentName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
+func NewCmdImageLookup(fullName, parentName string, f kcmdutil.Factory, out, errOut io.Writer) *cobra.Command {
 	options := &ImageLookupOptions{
 		Out:     out,
 		Err:     errOut,
@@ -140,7 +140,7 @@ func NewCmdImageLookup(fullName, parentName string, f *clientcmd.Factory, out, e
 }
 
 // Complete takes command line information to fill out ImageLookupOptions or returns an error.
-func (o *ImageLookupOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string) error {
+func (o *ImageLookupOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string) error {
 	cmdNamespace, explicit, err := f.DefaultNamespace()
 	if err != nil {
 		return err

@@ -18,7 +18,6 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	authorizationutil "github.com/openshift/origin/pkg/authorization/util"
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
 const (
@@ -61,7 +60,7 @@ type RoleModificationOptions struct {
 }
 
 // NewCmdAddRoleToGroup implements the OpenShift cli add-role-to-group command
-func NewCmdAddRoleToGroup(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdAddRoleToGroup(name, fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
 	options := &RoleModificationOptions{}
 	roleNamespace := ""
 
@@ -98,7 +97,7 @@ func NewCmdAddRoleToGroup(name, fullName string, f *clientcmd.Factory, out io.Wr
 }
 
 // NewCmdAddRoleToUser implements the OpenShift cli add-role-to-user command
-func NewCmdAddRoleToUser(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdAddRoleToUser(name, fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
 	options := &RoleModificationOptions{}
 	saNames := []string{}
 	roleNamespace := ""
@@ -137,7 +136,7 @@ func NewCmdAddRoleToUser(name, fullName string, f *clientcmd.Factory, out io.Wri
 }
 
 // NewCmdRemoveRoleFromGroup implements the OpenShift cli remove-role-from-group command
-func NewCmdRemoveRoleFromGroup(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdRemoveRoleFromGroup(name, fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
 	options := &RoleModificationOptions{}
 	roleNamespace := ""
 
@@ -173,7 +172,7 @@ func NewCmdRemoveRoleFromGroup(name, fullName string, f *clientcmd.Factory, out 
 }
 
 // NewCmdRemoveRoleFromUser implements the OpenShift cli remove-role-from-user command
-func NewCmdRemoveRoleFromUser(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdRemoveRoleFromUser(name, fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
 	options := &RoleModificationOptions{}
 	saNames := []string{}
 	roleNamespace := ""
@@ -211,7 +210,7 @@ func NewCmdRemoveRoleFromUser(name, fullName string, f *clientcmd.Factory, out i
 }
 
 // NewCmdAddClusterRoleToGroup implements the OpenShift cli add-cluster-role-to-group command
-func NewCmdAddClusterRoleToGroup(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdAddClusterRoleToGroup(name, fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
 	options := &RoleModificationOptions{RoleKind: "ClusterRole"}
 
 	cmd := &cobra.Command{
@@ -240,7 +239,7 @@ func NewCmdAddClusterRoleToGroup(name, fullName string, f *clientcmd.Factory, ou
 }
 
 // NewCmdAddClusterRoleToUser implements the OpenShift cli add-cluster-role-to-user command
-func NewCmdAddClusterRoleToUser(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdAddClusterRoleToUser(name, fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
 	saNames := []string{}
 	options := &RoleModificationOptions{RoleKind: "ClusterRole"}
 
@@ -272,7 +271,7 @@ func NewCmdAddClusterRoleToUser(name, fullName string, f *clientcmd.Factory, out
 }
 
 // NewCmdRemoveClusterRoleFromGroup implements the OpenShift cli remove-cluster-role-from-group command
-func NewCmdRemoveClusterRoleFromGroup(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdRemoveClusterRoleFromGroup(name, fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
 	options := &RoleModificationOptions{RoleKind: "ClusterRole"}
 
 	cmd := &cobra.Command{
@@ -302,7 +301,7 @@ func NewCmdRemoveClusterRoleFromGroup(name, fullName string, f *clientcmd.Factor
 }
 
 // NewCmdRemoveClusterRoleFromUser implements the OpenShift cli remove-cluster-role-from-user command
-func NewCmdRemoveClusterRoleFromUser(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdRemoveClusterRoleFromUser(name, fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
 	saNames := []string{}
 	options := &RoleModificationOptions{RoleKind: "ClusterRole"}
 
@@ -333,7 +332,7 @@ func NewCmdRemoveClusterRoleFromUser(name, fullName string, f *clientcmd.Factory
 	return cmd
 }
 
-func (o *RoleModificationOptions) checkRoleBindingNamespace(f *clientcmd.Factory, roleNamespace string) error {
+func (o *RoleModificationOptions) checkRoleBindingNamespace(f kcmdutil.Factory, roleNamespace string) error {
 	var err error
 	o.RoleBindingNamespace, _, err = f.DefaultNamespace()
 	if err != nil {
@@ -351,7 +350,7 @@ func (o *RoleModificationOptions) checkRoleBindingNamespace(f *clientcmd.Factory
 	return nil
 }
 
-func (o *RoleModificationOptions) innerComplete(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer) error {
+func (o *RoleModificationOptions) innerComplete(f kcmdutil.Factory, cmd *cobra.Command, out io.Writer) error {
 	clientConfig, err := f.ClientConfig()
 	if err != nil {
 		return err
@@ -370,7 +369,7 @@ func (o *RoleModificationOptions) innerComplete(f *clientcmd.Factory, cmd *cobra
 	return nil
 }
 
-func (o *RoleModificationOptions) CompleteUserWithSA(f *clientcmd.Factory, cmd *cobra.Command, args []string, saNames []string, out io.Writer) error {
+func (o *RoleModificationOptions) CompleteUserWithSA(f kcmdutil.Factory, cmd *cobra.Command, args []string, saNames []string, out io.Writer) error {
 	if len(args) < 1 {
 		return errors.New("you must specify a role")
 	}
@@ -417,7 +416,7 @@ func (o *RoleModificationOptions) CompleteUserWithSA(f *clientcmd.Factory, cmd *
 	return nil
 }
 
-func (o *RoleModificationOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string, target *[]string, targetName string, out io.Writer) error {
+func (o *RoleModificationOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string, target *[]string, targetName string, out io.Writer) error {
 	if len(args) < 2 {
 		return fmt.Errorf("you must specify at least two arguments: <role> <%s> [%s]...", targetName, targetName)
 	}

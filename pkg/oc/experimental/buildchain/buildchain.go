@@ -20,7 +20,6 @@ import (
 	imageclientinternal "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	"github.com/openshift/origin/pkg/oc/cli/describe"
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	imagegraph "github.com/openshift/origin/pkg/oc/graph/imagegraph/nodes"
 	projectclientinternal "github.com/openshift/origin/pkg/project/generated/internalclientset"
 	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset/typed/project/internalversion"
@@ -66,7 +65,7 @@ type BuildChainOptions struct {
 }
 
 // NewCmdBuildChain implements the OpenShift experimental build-chain command
-func NewCmdBuildChain(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdBuildChain(name, fullName string, f cmdutil.Factory, out io.Writer) *cobra.Command {
 	options := &BuildChainOptions{
 		namespaces: sets.NewString(),
 	}
@@ -90,7 +89,7 @@ func NewCmdBuildChain(name, fullName string, f *clientcmd.Factory, out io.Writer
 }
 
 // Complete completes the required options for build-chain
-func (o *BuildChainOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string, out io.Writer) error {
+func (o *BuildChainOptions) Complete(f cmdutil.Factory, cmd *cobra.Command, args []string, out io.Writer) error {
 	if len(args) != 1 {
 		return cmdutil.UsageErrorf(cmd, "Must pass an image stream tag. If only an image stream name is specified, 'latest' will be used for the tag.")
 	}

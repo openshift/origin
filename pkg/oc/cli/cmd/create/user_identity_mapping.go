@@ -10,8 +10,8 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
 	userclientinternal "github.com/openshift/origin/pkg/user/generated/internalclientset"
 	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
@@ -45,7 +45,7 @@ type CreateUserIdentityMappingOptions struct {
 }
 
 // NewCmdCreateUserIdentityMapping is a macro command to create a new identity
-func NewCmdCreateUserIdentityMapping(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdCreateUserIdentityMapping(name, fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
 	o := &CreateUserIdentityMappingOptions{Out: out}
 
 	cmd := &cobra.Command{
@@ -64,7 +64,7 @@ func NewCmdCreateUserIdentityMapping(name, fullName string, f *clientcmd.Factory
 	return cmd
 }
 
-func (o *CreateUserIdentityMappingOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, args []string) error {
+func (o *CreateUserIdentityMappingOptions) Complete(cmd *cobra.Command, f kcmdutil.Factory, args []string) error {
 	switch len(args) {
 	case 0:
 		return fmt.Errorf("identity is required")

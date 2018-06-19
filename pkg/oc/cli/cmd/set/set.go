@@ -10,7 +10,6 @@ import (
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/cmd/templates"
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
 var (
@@ -21,7 +20,7 @@ var (
 )
 
 // NewCmdSet exposes commands for modifying objects.
-func NewCmdSet(fullName string, f *clientcmd.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
+func NewCmdSet(fullName string, f cmdutil.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
 	set := &cobra.Command{
 		Use:   "set COMMAND",
 		Short: "Commands that help set specific features on objects",
@@ -91,7 +90,7 @@ Update existing container image(s) of resources.`)
 )
 
 // NewCmdImage is a wrapper for the Kubernetes CLI set image command
-func NewCmdImage(fullName string, f *clientcmd.Factory, out, err io.Writer) *cobra.Command {
+func NewCmdImage(fullName string, f cmdutil.Factory, out, err io.Writer) *cobra.Command {
 	cmd := set.NewCmdImage(f, out, err)
 	cmd.Long = setImageLong
 	cmd.Example = fmt.Sprintf(setImageExample, fullName)
@@ -128,7 +127,7 @@ Possible resources include (case insensitive):
 )
 
 // NewCmdResources is a wrapper for the Kubernetes CLI set resources command
-func NewCmdResources(fullName string, f *clientcmd.Factory, out io.Writer, errOut io.Writer) *cobra.Command {
+func NewCmdResources(fullName string, f cmdutil.Factory, out io.Writer, errOut io.Writer) *cobra.Command {
 	cmd := set.NewCmdResources(f, out, errOut)
 	cmd.Long = setResourcesLong
 	cmd.Example = fmt.Sprintf(setResourcesExample, fullName)

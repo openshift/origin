@@ -5,11 +5,10 @@ import (
 
 	"github.com/spf13/cobra"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
-	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	groups "github.com/openshift/origin/pkg/oc/admin/groups/sync/cli"
 	"github.com/openshift/origin/pkg/oc/admin/prune/authprune"
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
 const (
@@ -23,13 +22,13 @@ var pruneLong = templates.LongDesc(`
 	The commands here allow administrators to manage the older versions of resources on
 	the system by removing them.`)
 
-func NewCommandPrune(name, fullName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
+func NewCommandPrune(name, fullName string, f kcmdutil.Factory, out, errOut io.Writer) *cobra.Command {
 	// Parent command to which all subcommands are added.
 	cmds := &cobra.Command{
 		Use:   name,
 		Short: "Remove older versions of resources from the server",
 		Long:  pruneLong,
-		Run:   cmdutil.DefaultSubCommandRun(errOut),
+		Run:   kcmdutil.DefaultSubCommandRun(errOut),
 	}
 
 	cmds.AddCommand(NewCmdPruneBuilds(f, fullName, PruneBuildsRecommendedName, out))

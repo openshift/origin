@@ -6,6 +6,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/oc/cli/cmd"
 	"github.com/openshift/origin/pkg/oc/cli/config"
@@ -14,7 +15,7 @@ import (
 )
 
 // createProject creates a project
-func CreateProject(f *clientcmd.Factory, name, display, desc, basecmd string, out io.Writer) error {
+func CreateProject(f kcmdutil.Factory, name, display, desc, basecmd string, out io.Writer) error {
 	clientConfig, err := f.ClientConfig()
 	if err != nil {
 		return err
@@ -50,14 +51,14 @@ func CreateProject(f *clientcmd.Factory, name, display, desc, basecmd string, ou
 	return nil
 }
 
-func setCurrentProject(f *clientcmd.Factory, name string, out io.Writer) error {
+func setCurrentProject(f kcmdutil.Factory, name string, out io.Writer) error {
 	pathOptions := config.NewPathOptionsWithConfig("")
 	opt := &cmd.ProjectOptions{PathOptions: pathOptions}
 	opt.Complete(f, []string{name}, out)
 	return opt.RunProject()
 }
 
-func LoggedInUserFactory() (*clientcmd.Factory, error) {
+func LoggedInUserFactory() (kcmdutil.Factory, error) {
 	cfg, err := kclientcmd.NewDefaultClientConfigLoadingRules().Load()
 	if err != nil {
 		return nil, err

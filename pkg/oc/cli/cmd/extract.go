@@ -12,11 +12,10 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
-
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
 var (
@@ -58,7 +57,7 @@ type ExtractOptions struct {
 	ExtractFileContentsFn func(runtime.Object) (map[string][]byte, bool, error)
 }
 
-func NewCmdExtract(fullName string, f *clientcmd.Factory, in io.Reader, out, errOut io.Writer) *cobra.Command {
+func NewCmdExtract(fullName string, f kcmdutil.Factory, in io.Reader, out, errOut io.Writer) *cobra.Command {
 	options := &ExtractOptions{
 		Out: out,
 		Err: errOut,
@@ -90,8 +89,8 @@ func NewCmdExtract(fullName string, f *clientcmd.Factory, in io.Reader, out, err
 	return cmd
 }
 
-func (o *ExtractOptions) Complete(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Command, args []string) error {
-	o.ExtractFileContentsFn = f.ExtractFileContents
+func (o *ExtractOptions) Complete(f kcmdutil.Factory, in io.Reader, out io.Writer, cmd *cobra.Command, args []string) error {
+	o.ExtractFileContentsFn = extractFileContents
 
 	cmdNamespace, explicit, err := f.DefaultNamespace()
 	if err != nil {
@@ -195,4 +194,21 @@ func writeToDisk(path string, data []byte, overwrite bool, out io.Writer) error 
 	}
 	fmt.Fprintf(out, "%s\n", path)
 	return nil
+}
+
+// ExtractFileContents returns a map of keys to contents, false if the object cannot support such an
+// operation, or an error.
+func extractFileContents(obj runtime.Object) (map[string][]byte, bool, error) {
+	switch t := obj.(type) {
+	case *kapi.Secret:
+		return t.Data, true, nil
+	case *kapi.ConfigMap:
+		out := make(map[string][]byte)
+		for k, v := range t.Data {
+			out[k] = []byte(v)
+		}
+		return out, true, nil
+	default:
+		return nil, false, nil
+	}
 }

@@ -20,7 +20,6 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	kubeversion "k8s.io/kubernetes/pkg/version"
 
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	"github.com/openshift/origin/pkg/oc/util/tokencmd"
 	"github.com/openshift/origin/pkg/version"
 )
@@ -44,7 +43,7 @@ type VersionOptions struct {
 }
 
 // NewCmdVersion creates a command for displaying the version of this binary
-func NewCmdVersion(fullName string, f *clientcmd.Factory, out io.Writer, options VersionOptions) *cobra.Command {
+func NewCmdVersion(fullName string, f kcmdutil.Factory, out io.Writer, options VersionOptions) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "version",
 		Short: "Display client and server versions",
@@ -65,7 +64,7 @@ func NewCmdVersion(fullName string, f *clientcmd.Factory, out io.Writer, options
 	return cmd
 }
 
-func (o *VersionOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, out io.Writer) error {
+func (o *VersionOptions) Complete(cmd *cobra.Command, f kcmdutil.Factory, out io.Writer) error {
 	o.Out = out
 
 	if f == nil {

@@ -13,7 +13,6 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	kprinters "k8s.io/kubernetes/pkg/printers"
 
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
 	userclientinternal "github.com/openshift/origin/pkg/user/generated/internalclientset"
 	usertypedclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
@@ -48,7 +47,7 @@ type NewGroupOptions struct {
 	Printer kprinters.ResourcePrinterFunc
 }
 
-func NewCmdNewGroup(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdNewGroup(name, fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
 	options := &NewGroupOptions{Out: out}
 
 	cmd := &cobra.Command{
@@ -70,7 +69,7 @@ func NewCmdNewGroup(name, fullName string, f *clientcmd.Factory, out io.Writer) 
 	return cmd
 }
 
-func (o *NewGroupOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string) error {
+func (o *NewGroupOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string) error {
 	if len(args) < 1 {
 		return errors.New("You must specify at least one argument: GROUP [USER ...]")
 	}

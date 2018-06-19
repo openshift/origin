@@ -122,7 +122,7 @@ type TriggersOptions struct {
 }
 
 // NewCmdTriggers implements the set triggers command
-func NewCmdTriggers(fullName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
+func NewCmdTriggers(fullName string, f kcmdutil.Factory, out, errOut io.Writer) *cobra.Command {
 	options := &TriggersOptions{
 		Out: out,
 		Err: errOut,
@@ -171,7 +171,7 @@ func NewCmdTriggers(fullName string, f *clientcmd.Factory, out, errOut io.Writer
 	return cmd
 }
 
-func (o *TriggersOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string) error {
+func (o *TriggersOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string) error {
 	cmdNamespace, explicit, err := f.DefaultNamespace()
 	if err != nil {
 		return err
@@ -236,7 +236,7 @@ func (o *TriggersOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, arg
 
 	o.Output = kcmdutil.GetFlagString(cmd, "output")
 	o.PrintObject = func(infos []*resource.Info) error {
-		return f.PrintResourceInfos(cmd, o.Local, infos, o.Out)
+		return clientcmd.PrintResourceInfos(f, cmd, o.Local, infos, o.Out)
 	}
 
 	o.Encoder = kcmdutil.InternalVersionJSONEncoder()

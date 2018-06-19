@@ -6,15 +6,13 @@ import (
 	"github.com/spf13/cobra"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
 const ConfigRecommendedName = "config"
 
 var configLong = templates.LongDesc(`Manage cluster configuration files like master-config.yaml.`)
 
-func NewCmdConfig(name, fullName string, f *clientcmd.Factory, out, errout io.Writer) *cobra.Command {
+func NewCmdConfig(name, fullName string, f cmdutil.Factory, out, errout io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   name,
 		Short: "Manage config",

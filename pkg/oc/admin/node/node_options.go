@@ -23,8 +23,6 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	kprinters "k8s.io/kubernetes/pkg/printers"
-
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
 type NodeOptions struct {
@@ -52,7 +50,7 @@ type NodeOptions struct {
 	PodSelector string
 }
 
-func (n *NodeOptions) Complete(f *clientcmd.Factory, c *cobra.Command, args []string, out, errout io.Writer) error {
+func (n *NodeOptions) Complete(f kcmdutil.Factory, c *cobra.Command, args []string, out, errout io.Writer) error {
 	defaultNamespace, _, err := f.DefaultNamespace()
 	if err != nil {
 		return err

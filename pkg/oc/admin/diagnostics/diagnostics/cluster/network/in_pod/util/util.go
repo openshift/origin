@@ -10,12 +10,12 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kubecmd "k8s.io/kubernetes/pkg/kubectl/cmd"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	"github.com/openshift/origin/pkg/network"
 	networkapi "github.com/openshift/origin/pkg/network/apis/network"
 	networktypedclient "github.com/openshift/origin/pkg/network/generated/internalclientset/typed/network/internalversion"
-	osclientcmd "github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	"github.com/openshift/origin/pkg/util/netutils"
 	"github.com/openshift/origin/pkg/version"
 )
@@ -202,7 +202,7 @@ func ExpectedConnectionStatus(ns1, ns2 string, vnidMap map[string]uint32) bool {
 }
 
 // Execute() will run a command in a pod and streams the out/err
-func Execute(factory *osclientcmd.Factory, command []string, pod *kapi.Pod, in io.Reader, out, errOut io.Writer) error {
+func Execute(factory kcmdutil.Factory, command []string, pod *kapi.Pod, in io.Reader, out, errOut io.Writer) error {
 	config, err := factory.ClientConfig()
 	if err != nil {
 		return err

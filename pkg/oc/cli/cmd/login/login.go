@@ -18,7 +18,6 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	"github.com/openshift/origin/pkg/oc/cli/config"
-	osclientcmd "github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
 var (
@@ -46,7 +45,7 @@ var (
 )
 
 // NewCmdLogin implements the OpenShift cli login command
-func NewCmdLogin(fullName string, f *osclientcmd.Factory, reader io.Reader, out, errOut io.Writer) *cobra.Command {
+func NewCmdLogin(fullName string, f kcmdutil.Factory, reader io.Reader, out, errOut io.Writer) *cobra.Command {
 	options := &LoginOptions{
 		Reader: reader,
 		Out:    out,
@@ -96,7 +95,7 @@ func NewCmdLogin(fullName string, f *osclientcmd.Factory, reader io.Reader, out,
 	return cmds
 }
 
-func (o *LoginOptions) Complete(f *osclientcmd.Factory, cmd *cobra.Command, args []string, commandName string) error {
+func (o *LoginOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string, commandName string) error {
 	kubeconfig, err := f.RawConfig()
 	o.StartingKubeConfig = &kubeconfig
 	if err != nil {

@@ -7,8 +7,6 @@ import (
 	"github.com/spf13/cobra"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
 var (
@@ -19,7 +17,7 @@ var (
 )
 
 // NewCmdImport exposes commands for modifying objects.
-func NewCmdImport(fullName string, f *clientcmd.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
+func NewCmdImport(fullName string, f cmdutil.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "import COMMAND",
 		Short: "Commands that import applications",

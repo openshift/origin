@@ -16,8 +16,7 @@ import (
 	"github.com/spf13/cobra"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	krand "k8s.io/apimachinery/pkg/util/rand"
-
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 )
 
 const (
@@ -287,7 +286,7 @@ func (s *rsyncDaemonStrategy) Validate() error {
 	return nil
 }
 
-func newRsyncDaemonStrategy(f *clientcmd.Factory, c *cobra.Command, o *RsyncOptions) (copyStrategy, error) {
+func newRsyncDaemonStrategy(f kcmdutil.Factory, c *cobra.Command, o *RsyncOptions) (copyStrategy, error) {
 	flags := []string{"-a", "--omit-dir-times", "--numeric-ids"}
 	flags = append(flags, rsyncFlagsFromOptions(o)...)
 

@@ -6,8 +6,6 @@ import (
 	"github.com/spf13/cobra"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
 const PodNetworkCommandName = "pod-network"
@@ -19,7 +17,7 @@ var (
 		This command provides common pod network operations for administrators.`)
 )
 
-func NewCmdPodNetwork(name, fullName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
+func NewCmdPodNetwork(name, fullName string, f cmdutil.Factory, out, errOut io.Writer) *cobra.Command {
 	// Parent command to which all subcommands are added.
 	cmds := &cobra.Command{
 		Use:   name,

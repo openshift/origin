@@ -23,7 +23,6 @@ import (
 	authorizationtypedclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset/typed/authorization/internalversion"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/oc/admin/policy"
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	projectclientinternal "github.com/openshift/origin/pkg/project/generated/internalclientset"
 	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset/typed/project/internalversion"
@@ -55,7 +54,7 @@ var newProjectLong = templates.LongDesc(`
 	to restrict which nodes pods in this project can be scheduled to.`)
 
 // NewCmdNewProject implements the OpenShift cli new-project command
-func NewCmdNewProject(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdNewProject(name, fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
 	options := &NewProjectOptions{}
 
 	cmd := &cobra.Command{
@@ -86,7 +85,7 @@ func NewCmdNewProject(name, fullName string, f *clientcmd.Factory, out io.Writer
 	return cmd
 }
 
-func (o *NewProjectOptions) complete(f *clientcmd.Factory, args []string) error {
+func (o *NewProjectOptions) complete(f kcmdutil.Factory, args []string) error {
 	if len(args) != 1 {
 		return errors.New("you must specify one argument: project name")
 	}

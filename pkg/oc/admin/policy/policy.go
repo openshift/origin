@@ -17,7 +17,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/openshift/origin/pkg/cmd/templates"
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
 const PolicyRecommendedName = "policy"
@@ -33,7 +32,7 @@ var policyLong = ktemplates.LongDesc(`
 	and 'scc'.`)
 
 // NewCmdPolicy implements the OpenShift cli policy command
-func NewCmdPolicy(name, fullName string, f *clientcmd.Factory, out, errout io.Writer) *cobra.Command {
+func NewCmdPolicy(name, fullName string, f cmdutil.Factory, out, errout io.Writer) *cobra.Command {
 	// Parent command to which all subcommands are added.
 	cmds := &cobra.Command{
 		Use:   name,

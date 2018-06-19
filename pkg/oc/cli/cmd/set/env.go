@@ -21,6 +21,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
+	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	utilenv "github.com/openshift/origin/pkg/oc/util/env"
@@ -112,7 +113,7 @@ type EnvOptions struct {
 }
 
 // NewCmdEnv implements the OpenShift cli env command
-func NewCmdEnv(fullName string, f *clientcmd.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
+func NewCmdEnv(fullName string, f kcmdutil.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
 	options := &EnvOptions{
 		Out: out,
 		Err: errout,
@@ -168,7 +169,7 @@ func keyToEnvName(key string) string {
 	return strings.ToUpper(validEnvNameRegexp.ReplaceAllString(key, "_"))
 }
 
-func (o *EnvOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string) error {
+func (o *EnvOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string) error {
 	resources, envArgs, ok := utilenv.SplitEnvironmentFromResources(args)
 	if !ok {
 		return kcmdutil.UsageErrorf(cmd, "all resources must be specified before environment changes: %s", strings.Join(args, " "))
@@ -203,7 +204,7 @@ func (o *EnvOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []s
 
 // RunEnv contains all the necessary functionality for the OpenShift cli env command
 // TODO: refactor to share the common "patch resource" pattern of probe
-func (o *EnvOptions) RunEnv(f *clientcmd.Factory) error {
+func (o *EnvOptions) RunEnv(f kcmdutil.Factory) error {
 	clientConfig, err := f.ClientConfig()
 	if err != nil {
 		return err
@@ -406,7 +407,7 @@ func (o *EnvOptions) RunEnv(f *clientcmd.Factory) error {
 		}))
 		if !ok {
 			// This is a fallback function for objects that don't have pod spec.
-			ok, err = f.UpdateObjectEnvironment(info.Object, func(vars *[]kapi.EnvVar) error {
+			ok, err = updateObjectEnvironment(info.Object, func(vars *[]kapi.EnvVar) error {
 				if vars == nil {
 					return fmt.Errorf("no environment variables provided")
 				}
@@ -447,7 +448,7 @@ func (o *EnvOptions) RunEnv(f *clientcmd.Factory) error {
 	}
 
 	if len(o.Output) > 0 || o.Local || kcmdutil.GetDryRunFlag(o.Cmd) {
-		return f.PrintResourceInfos(o.Cmd, o.Local, infos, o.Out)
+		return clientcmd.PrintResourceInfos(f, o.Cmd, o.Local, infos, o.Out)
 	}
 
 	objects, err := clientcmd.AsVersionedObjects(infos, gv, legacyscheme.Codecs.LegacyCodec(gv))
@@ -494,4 +495,24 @@ updates:
 		return kcmdutil.ErrExit
 	}
 	return nil
+}
+
+// UpdateObjectEnvironment update the environment variables in object specification.
+func updateObjectEnvironment(obj runtime.Object, fn func(*[]kapi.EnvVar) error) (bool, error) {
+	switch t := obj.(type) {
+	case *buildapi.BuildConfig:
+		if t.Spec.Strategy.CustomStrategy != nil {
+			return true, fn(&t.Spec.Strategy.CustomStrategy.Env)
+		}
+		if t.Spec.Strategy.SourceStrategy != nil {
+			return true, fn(&t.Spec.Strategy.SourceStrategy.Env)
+		}
+		if t.Spec.Strategy.DockerStrategy != nil {
+			return true, fn(&t.Spec.Strategy.DockerStrategy.Env)
+		}
+		if t.Spec.Strategy.JenkinsPipelineStrategy != nil {
+			return true, fn(&t.Spec.Strategy.JenkinsPipelineStrategy.Env)
+		}
+	}
+	return false, fmt.Errorf("object does not contain any environment variables")
 }

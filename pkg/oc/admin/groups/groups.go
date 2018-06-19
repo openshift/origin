@@ -8,7 +8,6 @@ import (
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/oc/admin/groups/sync/cli"
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
 const GroupsRecommendedName = "groups"
@@ -18,7 +17,7 @@ var groupLong = templates.LongDesc(`
 
 	Groups are sets of users that can be used when describing policy.`)
 
-func NewCmdGroups(name, fullName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
+func NewCmdGroups(name, fullName string, f cmdutil.Factory, out, errOut io.Writer) *cobra.Command {
 	// Parent command to which all subcommands are added.
 	cmds := &cobra.Command{
 		Use:   name,

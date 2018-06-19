@@ -20,7 +20,6 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
 	"github.com/openshift/origin/pkg/oc/admin/migrate"
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
 var (
@@ -84,7 +83,7 @@ type MigrateAPIStorageOptions struct {
 }
 
 // NewCmdMigrateAPIStorage implements a MigrateStorage command
-func NewCmdMigrateAPIStorage(name, fullName string, f *clientcmd.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
+func NewCmdMigrateAPIStorage(name, fullName string, f kcmdutil.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
 	options := &MigrateAPIStorageOptions{
 		ResourceOptions: migrate.ResourceOptions{
 			Out:    out,
@@ -211,7 +210,7 @@ func NewCmdMigrateAPIStorage(name, fullName string, f *clientcmd.Factory, in io.
 	return cmd
 }
 
-func (o *MigrateAPIStorageOptions) Complete(f *clientcmd.Factory, c *cobra.Command, args []string) error {
+func (o *MigrateAPIStorageOptions) Complete(f kcmdutil.Factory, c *cobra.Command, args []string) error {
 	// force unset output, it does not make sense for this command
 	if err := c.Flags().Set("output", ""); err != nil {
 		return err

@@ -24,7 +24,6 @@ import (
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	configapiinstall "github.com/openshift/origin/pkg/cmd/server/apis/config/install"
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
 const PatchRecommendedName = "patch"
@@ -51,7 +50,7 @@ var (
 		%[1]s openshift.local.config/master/master-config.yaml --patch='{"auditConfig": {"enabled": true}}'`)
 )
 
-func NewCmdPatch(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdPatch(name, fullName string, f cmdutil.Factory, out io.Writer) *cobra.Command {
 	o := &PatchOptions{Out: out}
 
 	cmd := &cobra.Command{
@@ -73,7 +72,7 @@ func NewCmdPatch(name, fullName string, f *clientcmd.Factory, out io.Writer) *co
 	return cmd
 }
 
-func (o *PatchOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string) error {
+func (o *PatchOptions) Complete(f cmdutil.Factory, cmd *cobra.Command, args []string) error {
 	if len(args) != 1 {
 		return fmt.Errorf("exactly one FILENAME is allowed: %v", args)
 	}

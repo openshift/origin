@@ -242,7 +242,7 @@ const (
 )
 
 // NewCmdRouter implements the OpenShift CLI router command.
-func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out, errout io.Writer) *cobra.Command {
+func NewCmdRouter(f kcmdutil.Factory, parentName, name string, out, errout io.Writer) *cobra.Command {
 	cfg := &RouterConfig{
 		Name:          "router",
 		ImageTemplate: variable.NewDefaultImageTemplate(),
@@ -474,7 +474,7 @@ func generateReadinessProbeConfig(cfg *RouterConfig, ports []kapi.ContainerPort)
 
 // RunCmdRouter contains all the necessary functionality for the
 // OpenShift CLI router command.
-func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out, errout io.Writer, cfg *RouterConfig, args []string) error {
+func RunCmdRouter(f kcmdutil.Factory, cmd *cobra.Command, out, errout io.Writer, cfg *RouterConfig, args []string) error {
 	switch len(args) {
 	case 0:
 		// uses default value

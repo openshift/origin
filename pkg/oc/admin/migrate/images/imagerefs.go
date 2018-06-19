@@ -81,7 +81,7 @@ type MigrateImageReferenceOptions struct {
 }
 
 // NewCmdMigrateImageReferences implements a MigrateImages command
-func NewCmdMigrateImageReferences(name, fullName string, f *clientcmd.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
+func NewCmdMigrateImageReferences(name, fullName string, f kcmdutil.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
 	options := &MigrateImageReferenceOptions{
 		ResourceOptions: migrate.ResourceOptions{
 			Out:     out,
@@ -106,7 +106,7 @@ func NewCmdMigrateImageReferences(name, fullName string, f *clientcmd.Factory, i
 	return cmd
 }
 
-func (o *MigrateImageReferenceOptions) Complete(f *clientcmd.Factory, c *cobra.Command, args []string) error {
+func (o *MigrateImageReferenceOptions) Complete(f kcmdutil.Factory, c *cobra.Command, args []string) error {
 	var remainingArgs []string
 	for _, s := range args {
 		if !strings.Contains(s, "=") {

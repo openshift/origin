@@ -12,7 +12,6 @@ import (
 
 	"github.com/openshift/origin/pkg/network"
 	networkapi "github.com/openshift/origin/pkg/network/apis/network"
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
 const MakeGlobalProjectsNetworkCommandName = "make-projects-global"
@@ -35,7 +34,7 @@ type MakeGlobalOptions struct {
 	Options *ProjectOptions
 }
 
-func NewCmdMakeGlobalProjectsNetwork(commandName, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdMakeGlobalProjectsNetwork(commandName, fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
 	opts := &ProjectOptions{}
 	makeGlobalOp := &MakeGlobalOptions{Options: opts}
 

@@ -16,13 +16,13 @@ import (
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	authorizationtypedclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
 	rbacclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/rbac/internalversion"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/log"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/types"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/util"
-	osclientcmd "github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset/typed/project/internalversion"
 	routeclient "github.com/openshift/origin/pkg/route/generated/internalclientset"
 )
@@ -36,7 +36,7 @@ type AppCreate struct {
 	RbacClient          *rbacclient.RbacClient
 	AppsClient          *appsclient.Clientset
 	SARClient           authorizationtypedclient.SelfSubjectAccessReviewsGetter
-	Factory             *osclientcmd.Factory
+	Factory             kcmdutil.Factory
 
 	// from parameters specific to this diagnostic:
 	// specs for the project where the diagnostic will put all test items

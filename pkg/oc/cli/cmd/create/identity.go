@@ -10,8 +10,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
 	userclientinternal "github.com/openshift/origin/pkg/user/generated/internalclientset"
 	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
@@ -49,7 +49,7 @@ type CreateIdentityOptions struct {
 }
 
 // NewCmdCreateIdentity is a macro command to create a new identity
-func NewCmdCreateIdentity(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdCreateIdentity(name, fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
 	o := &CreateIdentityOptions{Out: out}
 
 	cmd := &cobra.Command{
@@ -69,7 +69,7 @@ func NewCmdCreateIdentity(name, fullName string, f *clientcmd.Factory, out io.Wr
 	return cmd
 }
 
-func (o *CreateIdentityOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, args []string) error {
+func (o *CreateIdentityOptions) Complete(cmd *cobra.Command, f kcmdutil.Factory, args []string) error {
 	switch len(args) {
 	case 0:
 		return fmt.Errorf("identity name in the format <PROVIDER_NAME>:<PROVIDER_USER_NAME> is required")

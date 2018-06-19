@@ -11,11 +11,11 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsclientinternal "github.com/openshift/origin/pkg/apps/generated/internalclientset"
 	appsinternalversion "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
 var DeploymentConfigRecommendedName = "deploymentconfig"
@@ -43,7 +43,7 @@ type CreateDeploymentConfigOptions struct {
 }
 
 // NewCmdCreateDeploymentConfig is a macro command to create a new deployment config.
-func NewCmdCreateDeploymentConfig(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdCreateDeploymentConfig(name, fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
 	o := &CreateDeploymentConfigOptions{Out: out}
 
 	cmd := &cobra.Command{
@@ -66,7 +66,7 @@ func NewCmdCreateDeploymentConfig(name, fullName string, f *clientcmd.Factory, o
 	return cmd
 }
 
-func (o *CreateDeploymentConfigOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, args []string) error {
+func (o *CreateDeploymentConfigOptions) Complete(cmd *cobra.Command, f kcmdutil.Factory, args []string) error {
 	argsLenAtDash := cmd.ArgsLenAtDash()
 	switch {
 	case (argsLenAtDash == -1 && len(args) != 1),

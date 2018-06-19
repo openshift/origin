@@ -8,8 +8,6 @@ import (
 	kcmd "k8s.io/kubernetes/pkg/kubectl/cmd"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
 const (
@@ -26,7 +24,7 @@ var topLong = templates.LongDesc(`
 	This command analyzes resources managed by the platform and presents current
 	usage statistics.`)
 
-func NewCommandTop(name, fullName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
+func NewCommandTop(name, fullName string, f cmdutil.Factory, out, errOut io.Writer) *cobra.Command {
 	// Parent command to which all subcommands are added.
 	cmds := &cobra.Command{
 		Use:   name,

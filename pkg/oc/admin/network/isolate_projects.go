@@ -13,7 +13,6 @@ import (
 
 	"github.com/openshift/origin/pkg/network"
 	networkapi "github.com/openshift/origin/pkg/network/apis/network"
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
 const IsolateProjectsNetworkCommandName = "isolate-projects"
@@ -36,7 +35,7 @@ type IsolateOptions struct {
 	Options *ProjectOptions
 }
 
-func NewCmdIsolateProjectsNetwork(commandName, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdIsolateProjectsNetwork(commandName, fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
 	opts := &ProjectOptions{}
 	isolateOp := &IsolateOptions{Options: opts}
 

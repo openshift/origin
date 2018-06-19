@@ -17,7 +17,6 @@ import (
 	imageclientinternal "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	loginutil "github.com/openshift/origin/pkg/oc/cli/cmd/login/util"
 	"github.com/openshift/origin/pkg/oc/cli/describe"
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	projectclientinternal "github.com/openshift/origin/pkg/project/generated/internalclientset"
 	routeclientinternal "github.com/openshift/origin/pkg/route/generated/internalclientset"
 	dotutil "github.com/openshift/origin/pkg/util/dot"
@@ -69,7 +68,7 @@ type StatusOptions struct {
 
 // NewCmdStatus implements the OpenShift cli status command.
 // baseCLIName is the path from root cmd to the parent of this cmd.
-func NewCmdStatus(name, baseCLIName, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdStatus(name, baseCLIName, fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
 	opts := &StatusOptions{}
 
 	cmd := &cobra.Command{
@@ -101,7 +100,7 @@ func NewCmdStatus(name, baseCLIName, fullName string, f *clientcmd.Factory, out 
 }
 
 // Complete completes the options for the Openshift cli status command.
-func (o *StatusOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, baseCLIName string, args []string, out io.Writer) error {
+func (o *StatusOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, baseCLIName string, args []string, out io.Writer) error {
 	if len(args) > 0 {
 		return kcmdutil.UsageErrorf(cmd, "no arguments should be provided")
 	}

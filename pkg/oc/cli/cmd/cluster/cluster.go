@@ -7,9 +7,8 @@ import (
 	"github.com/openshift/origin/pkg/oc/clusteradd"
 	"github.com/spf13/cobra"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
-	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	"github.com/openshift/origin/pkg/oc/clusterup"
 )
 
@@ -32,13 +31,13 @@ var (
 		routing suffix, use the --routing-suffix flag.`)
 )
 
-func NewCmdCluster(name, fullName string, f *clientcmd.Factory, out, errout io.Writer) *cobra.Command {
+func NewCmdCluster(name, fullName string, f kcmdutil.Factory, out, errout io.Writer) *cobra.Command {
 	// Parent command to which all subcommands are added.
 	cmds := &cobra.Command{
 		Use:   fmt.Sprintf("%s ACTION", name),
 		Short: "Start and stop OpenShift cluster",
 		Long:  clusterLong,
-		Run:   cmdutil.DefaultSubCommandRun(errout),
+		Run:   kcmdutil.DefaultSubCommandRun(errout),
 	}
 
 	clusterAdd := clusteradd.NewCmdAdd(clusteradd.CmdAddRecommendedName, fullName+" "+clusteradd.CmdAddRecommendedName, out, errout)

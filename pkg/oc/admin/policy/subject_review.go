@@ -20,7 +20,6 @@ import (
 	kprinters "k8s.io/kubernetes/pkg/printers"
 
 	securityapiv1 "github.com/openshift/api/security/v1"
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 	securityclientinternal "github.com/openshift/origin/pkg/security/generated/internalclientset"
 	securitytypedclient "github.com/openshift/origin/pkg/security/generated/internalclientset/typed/security/internalversion"
@@ -59,7 +58,7 @@ type sccSubjectReviewOptions struct {
 	serviceAccount             string
 }
 
-func NewCmdSccSubjectReview(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdSccSubjectReview(name, fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
 	o := &sccSubjectReviewOptions{}
 	cmd := &cobra.Command{
 		Use:     name,
@@ -80,7 +79,7 @@ func NewCmdSccSubjectReview(name, fullName string, f *clientcmd.Factory, out io.
 	return cmd
 }
 
-func (o *sccSubjectReviewOptions) Complete(f *clientcmd.Factory, args []string, cmd *cobra.Command, out io.Writer) error {
+func (o *sccSubjectReviewOptions) Complete(f kcmdutil.Factory, args []string, cmd *cobra.Command, out io.Writer) error {
 	if len(args) == 0 && len(o.FilenameOptions.Filenames) == 0 {
 		return kcmdutil.UsageErrorf(cmd, "one or more resources must be specified")
 	}

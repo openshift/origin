@@ -38,7 +38,6 @@ import (
 	"github.com/openshift/origin/pkg/git"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageclientinternal "github.com/openshift/origin/pkg/image/generated/internalclientset"
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	"github.com/openshift/origin/pkg/oc/generate"
 	newapp "github.com/openshift/origin/pkg/oc/generate/app"
 	newcmd "github.com/openshift/origin/pkg/oc/generate/cmd"
@@ -149,7 +148,7 @@ type NewAppOptions struct {
 }
 
 //Complete sets all common default options for commands (new-app and new-build)
-func (o *ObjectGeneratorOptions) Complete(baseName, commandName string, f *clientcmd.Factory, c *cobra.Command, args []string, in io.Reader, out, errout io.Writer) error {
+func (o *ObjectGeneratorOptions) Complete(baseName, commandName string, f kcmdutil.Factory, c *cobra.Command, args []string, in io.Reader, out, errout io.Writer) error {
 	cmdutil.WarnAboutCommaSeparation(errout, o.Config.Environment, "--env")
 	cmdutil.WarnAboutCommaSeparation(errout, o.Config.BuildEnvironment, "--build-env")
 
@@ -212,7 +211,7 @@ func (o *ObjectGeneratorOptions) Complete(baseName, commandName string, f *clien
 }
 
 // NewCmdNewApplication implements the OpenShift cli new-app command.
-func NewCmdNewApplication(name, baseName string, f *clientcmd.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
+func NewCmdNewApplication(name, baseName string, f kcmdutil.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
 	config := newcmd.NewAppConfig()
 	config.Deploy = true
 	o := &NewAppOptions{&ObjectGeneratorOptions{Config: config}}
@@ -273,7 +272,7 @@ func NewCmdNewApplication(name, baseName string, f *clientcmd.Factory, in io.Rea
 }
 
 // Complete sets any default behavior for the command
-func (o *NewAppOptions) Complete(baseName, commandName string, f *clientcmd.Factory, c *cobra.Command, args []string, in io.Reader, out, errout io.Writer) error {
+func (o *NewAppOptions) Complete(baseName, commandName string, f kcmdutil.Factory, c *cobra.Command, args []string, in io.Reader, out, errout io.Writer) error {
 	ao := o.ObjectGeneratorOptions
 	cmdutil.WarnAboutCommaSeparation(errout, ao.Config.TemplateParameters, "--param")
 	err := ao.Complete(baseName, commandName, f, c, args, in, out, errout)
@@ -556,7 +555,7 @@ func getDockerClient() (*docker.Client, error) {
 	return nil, err
 }
 
-func CompleteAppConfig(config *newcmd.AppConfig, f *clientcmd.Factory, c *cobra.Command, args []string) error {
+func CompleteAppConfig(config *newcmd.AppConfig, f kcmdutil.Factory, c *cobra.Command, args []string) error {
 	mapper, typer := f.Object()
 	if config.Builder == nil {
 		config.Builder = f.NewBuilder()

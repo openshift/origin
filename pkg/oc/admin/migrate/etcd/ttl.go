@@ -12,7 +12,6 @@ import (
 	"github.com/coreos/etcd/clientv3"
 	"github.com/coreos/etcd/pkg/transport"
 	"github.com/golang/glog"
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"golang.org/x/net/context"
@@ -49,7 +48,7 @@ type MigrateTTLReferenceOptions struct {
 }
 
 // NewCmdMigrateTTLs helps move etcd v2 TTL keys to etcd v3 lease keys.
-func NewCmdMigrateTTLs(name, fullName string, f *clientcmd.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
+func NewCmdMigrateTTLs(name, fullName string, f kcmdutil.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
 	options := &MigrateTTLReferenceOptions{
 		Out:    out,
 		ErrOut: errout,

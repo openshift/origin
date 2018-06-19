@@ -21,7 +21,6 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/util/print"
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 	securityclientinternal "github.com/openshift/origin/pkg/security/generated/internalclientset"
 	securitytypedclient "github.com/openshift/origin/pkg/security/generated/internalclientset/typed/security/internalversion"
@@ -82,7 +81,7 @@ func NewDefaultReconcileSCCOptions() *ReconcileSCCOptions {
 }
 
 // NewCmdReconcileSCC implements the OpenShift cli reconcile-sccs command.
-func NewCmdReconcileSCC(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdReconcileSCC(name, fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
 	o := NewDefaultReconcileSCCOptions()
 	o.Out = out
 
@@ -113,7 +112,7 @@ func NewCmdReconcileSCC(name, fullName string, f *clientcmd.Factory, out io.Writ
 	return cmd
 }
 
-func (o *ReconcileSCCOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, args []string) error {
+func (o *ReconcileSCCOptions) Complete(cmd *cobra.Command, f kcmdutil.Factory, args []string) error {
 	if len(args) != 0 {
 		return kcmdutil.UsageErrorf(cmd, "no arguments are allowed")
 	}
@@ -149,7 +148,7 @@ func (o *ReconcileSCCOptions) Validate() error {
 
 // RunReconcileSCCs contains the functionality for the reconcile-sccs command for making or
 // previewing changes.
-func (o *ReconcileSCCOptions) RunReconcileSCCs(cmd *cobra.Command, f *clientcmd.Factory) error {
+func (o *ReconcileSCCOptions) RunReconcileSCCs(cmd *cobra.Command, f kcmdutil.Factory) error {
 	// get sccs that need updated
 	changedSCCs, err := o.ChangedSCCs()
 	if err != nil {
