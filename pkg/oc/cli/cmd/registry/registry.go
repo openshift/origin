@@ -35,8 +35,8 @@ func NewCmd(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStr
 		{
 			Message: "Advanced commands:",
 			Commands: []*cobra.Command{
-				info.New(name, f, streams.Out, streams.ErrOut),
-				login.New(name, f, streams.Out, streams.ErrOut),
+				info.NewRegistryInfoCmd(name, f, streams),
+				login.NewRegistryLoginCmd(name, f, streams),
 			},
 		},
 	}

@@ -10,6 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgotesting "k8s.io/client-go/testing"
 	api "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imagefake "github.com/openshift/origin/pkg/image/generated/internalclientset/fake"
@@ -172,7 +173,7 @@ func TestTag(t *testing.T) {
 			return true, nil, kapierrors.NewMethodNotSupported(imageapi.Resource("imagestreamtags"), "update")
 		})
 
-		test.opts.out = os.Stdout
+		test.opts.IOStreams = genericclioptions.IOStreams{Out: os.Stdout, ErrOut: os.Stderr}
 		test.opts.isGetter = client.Image()
 		test.opts.isTagGetter = client.Image()
 
@@ -221,7 +222,7 @@ func TestRunTag_DeleteOld(t *testing.T) {
 		expectedErr     error
 	}{
 		opts: &TagOptions{
-			out:            os.Stdout,
+			IOStreams:      genericclioptions.IOStreams{Out: os.Stdout, ErrOut: os.Stderr},
 			isGetter:       client.Image(),
 			isTagGetter:    client.Image(),
 			deleteTag:      true,
@@ -265,7 +266,7 @@ func TestRunTag_AddNew(t *testing.T) {
 		expectedErr     error
 	}{
 		opts: &TagOptions{
-			out:         os.Stdout,
+			IOStreams:   genericclioptions.IOStreams{Out: os.Stdout, ErrOut: os.Stderr},
 			isGetter:    client.Image(),
 			isTagGetter: client.Image(),
 			ref: imageapi.DockerImageReference{
@@ -314,7 +315,7 @@ func TestRunTag_AddRestricted(t *testing.T) {
 		expectedErr     error
 	}{
 		opts: &TagOptions{
-			out:         os.Stdout,
+			IOStreams:   genericclioptions.IOStreams{Out: os.Stdout, ErrOut: os.Stderr},
 			isGetter:    client.Image(),
 			isTagGetter: client.Image(),
 			ref: imageapi.DockerImageReference{
@@ -361,7 +362,7 @@ func TestRunTag_DeleteNew(t *testing.T) {
 		expectedErr     error
 	}{
 		opts: &TagOptions{
-			out:            os.Stdout,
+			IOStreams:      genericclioptions.IOStreams{Out: os.Stdout, ErrOut: os.Stderr},
 			isGetter:       client.Image(),
 			isTagGetter:    client.Image(),
 			deleteTag:      true,

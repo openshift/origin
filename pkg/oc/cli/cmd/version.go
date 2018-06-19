@@ -3,7 +3,6 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"strings"
 	"time"
 
@@ -31,7 +30,6 @@ var (
 
 type VersionOptions struct {
 	BaseName string
-	Out      io.Writer
 
 	ClientConfig *rest.Config
 	Clients      func() (kclientset.Interface, error)
@@ -41,10 +39,19 @@ type VersionOptions struct {
 	IsServer            bool
 	PrintEtcdVersion    bool
 	PrintClientFeatures bool
+
+	genericclioptions.IOStreams
+}
+
+func NewVersionOptions(printClientFeatures bool, streams genericclioptions.IOStreams) *VersionOptions {
+	return &VersionOptions{
+		IOStreams:           streams,
+		PrintClientFeatures: printClientFeatures,
+	}
 }
 
 // NewCmdVersion creates a command for displaying the version of this binary
-func NewCmdVersion(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams, options VersionOptions) *cobra.Command {
+func NewCmdVersion(fullName string, f kcmdutil.Factory, options *VersionOptions) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "version",
 		Short: "Display client and server versions",
@@ -52,7 +59,7 @@ func NewCmdVersion(fullName string, f kcmdutil.Factory, streams genericclioption
 		Run: func(cmd *cobra.Command, args []string) {
 			options.BaseName = fullName
 
-			if err := options.Complete(cmd, f, streams.Out); err != nil {
+			if err := options.Complete(cmd, f); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
 			}
 
@@ -65,9 +72,7 @@ func NewCmdVersion(fullName string, f kcmdutil.Factory, streams genericclioption
 	return cmd
 }
 
-func (o *VersionOptions) Complete(cmd *cobra.Command, f kcmdutil.Factory, out io.Writer) error {
-	o.Out = out
-
+func (o *VersionOptions) Complete(cmd *cobra.Command, f kcmdutil.Factory) error {
 	if f == nil {
 		return nil
 	}
