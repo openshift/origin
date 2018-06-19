@@ -3,7 +3,6 @@ package cmd
 import (
 	"errors"
 	"fmt"
-	"io"
 	"strings"
 	"sync"
 	"time"
@@ -12,10 +11,12 @@ import (
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildclient "github.com/openshift/origin/pkg/build/client"
@@ -57,8 +58,7 @@ var (
 
 // CancelBuildOptions contains all the options for running the CancelBuild cli command.
 type CancelBuildOptions struct {
-	In          io.Reader
-	Out, ErrOut io.Writer
+	genericclioptions.IOStreams
 
 	DumpLogs   bool
 	Restart    bool
@@ -68,6 +68,7 @@ type CancelBuildOptions struct {
 
 	HasError    bool
 	ReportError func(error)
+	PrintObj    func(runtime.Object, string) error
 	Mapper      meta.RESTMapper
 	Client      buildinternalclient.Interface
 	BuildClient buildtypedclient.BuildResourceInterface
@@ -77,10 +78,16 @@ type CancelBuildOptions struct {
 	timeout time.Duration
 }
 
+func NewCancelBuildOptions(streams genericclioptions.IOStreams) *CancelBuildOptions {
+	return &CancelBuildOptions{
+		IOStreams: streams,
+		States:    []string{"new", "pending", "running"},
+	}
+}
+
 // NewCmdCancelBuild implements the OpenShift cli cancel-build command
 func NewCmdCancelBuild(name, baseName string, f *clientcmd.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	o := &CancelBuildOptions{}
-
+	o := NewCancelBuildOptions(streams)
 	cmd := &cobra.Command{
 		Use:        fmt.Sprintf("%s (BUILD | BUILDCONFIG)", name),
 		Short:      "Cancel running, pending, or new builds",
@@ -88,7 +95,8 @@ func NewCmdCancelBuild(name, baseName string, f *clientcmd.Factory, streams gene
 		Example:    fmt.Sprintf(cancelBuildExample, baseName, name),
 		SuggestFor: []string{"builds", "stop-build"},
 		Run: func(cmd *cobra.Command, args []string) {
-			kcmdutil.CheckErr(o.Complete(f, cmd, args, streams.In, streams.Out, streams.ErrOut))
+			kcmdutil.CheckErr(o.Complete(f, cmd, args))
+			kcmdutil.CheckErr(o.Validate())
 			kcmdutil.CheckErr(o.RunCancelBuild())
 		},
 	}
@@ -96,57 +104,46 @@ func NewCmdCancelBuild(name, baseName string, f *clientcmd.Factory, streams gene
 	cmd.Flags().StringSliceVar(&o.States, "state", o.States, "Only cancel builds in this state")
 	cmd.Flags().BoolVar(&o.DumpLogs, "dump-logs", o.DumpLogs, "Specify if the build logs for the cancelled build should be shown.")
 	cmd.Flags().BoolVar(&o.Restart, "restart", o.Restart, "Specify if a new build should be created after the current build is cancelled.")
+
 	return cmd
 }
 
 // Complete completes all the required options.
-func (o *CancelBuildOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string, in io.Reader, out, errout io.Writer) error {
-	o.In = in
-	o.Out = out
-	o.ErrOut = errout
+func (o *CancelBuildOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string) error {
+	if len(args) == 0 {
+		return fmt.Errorf("build or a buildconfig name is required")
+	}
+
 	o.ReportError = func(err error) {
 		o.HasError = true
 		fmt.Fprintf(o.ErrOut, "error: %s\n", err.Error())
+	}
+	printer := &printers.NamePrinter{}
+	o.PrintObj = func(obj runtime.Object, operation string) error {
+		printer.Operation = operation
+		return printer.PrintObj(obj, o.Out)
 	}
 
 	if o.timeout.Seconds() == 0 {
 		o.timeout = 30 * time.Second
 	}
 
-	if len(args) == 0 {
-		return kcmdutil.UsageErrorf(cmd, "Must pass a name of a build or a buildconfig to cancel")
-	}
-
-	namespace, _, err := f.DefaultNamespace()
+	var err error
+	o.Namespace, _, err = f.DefaultNamespace()
 	if err != nil {
 		return err
-	}
-
-	if len(o.States) == 0 {
-		// If --state is not specified, set the default to "new", "pending" and
-		// "running".
-		o.States = []string{"new", "pending", "running"}
-	} else {
-		for _, state := range o.States {
-			if len(state) > 0 && !isStateCancellable(state) {
-				return kcmdutil.UsageErrorf(cmd, "The '--state' flag has invalid value. Must be one of 'new', 'pending', or 'running'")
-			}
-		}
 	}
 
 	config, err := f.BareClientConfig()
 	if err != nil {
 		return err
 	}
-	client, err := buildinternalclient.NewForConfig(config)
+	o.Client, err = buildinternalclient.NewForConfig(config)
 	if err != nil {
 		return err
 	}
-
-	o.Namespace = namespace
-	o.Client = client
-	o.BuildLister = buildclient.NewClientBuildLister(client.Build())
-	o.BuildClient = client.Build().Builds(namespace)
+	o.BuildLister = buildclient.NewClientBuildLister(o.Client.Build())
+	o.BuildClient = o.Client.Build().Builds(o.Namespace)
 	o.Mapper, _ = f.Object()
 
 	for _, item := range args {
@@ -174,10 +171,19 @@ func (o *CancelBuildOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 	return nil
 }
 
+func (o *CancelBuildOptions) Validate() error {
+	for _, state := range o.States {
+		if len(state) > 0 && !isStateCancellable(state) {
+			return fmt.Errorf("invalid --state flag value, must be one of 'new', 'pending', or 'running'")
+		}
+	}
+
+	return nil
+}
+
 // RunCancelBuild implements all the necessary functionality for CancelBuild.
 func (o *CancelBuildOptions) RunCancelBuild() error {
 	var builds []*buildapi.Build
-
 	for _, name := range o.BuildNames {
 		build, err := o.BuildClient.Get(name, metav1.GetOptions{})
 		if err != nil {
@@ -250,7 +256,7 @@ func (o *CancelBuildOptions) RunCancelBuild() error {
 				return
 			}
 
-			kcmdutil.PrintSuccess(false, o.Out, build, false, "cancelled")
+			o.PrintObj(build, "cancelled")
 		}(b)
 	}
 	wg.Wait()
@@ -263,7 +269,7 @@ func (o *CancelBuildOptions) RunCancelBuild() error {
 				o.ReportError(fmt.Errorf("build %s/%s failed to restart: %v", b.Namespace, b.Name, err))
 				continue
 			}
-			kcmdutil.PrintSuccess(false, o.Out, build, false, fmt.Sprintf("restarted build %q", b.Name))
+			o.PrintObj(build, "restarted")
 		}
 	}
 

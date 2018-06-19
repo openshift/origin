@@ -12,6 +12,7 @@ import (
 	"github.com/docker/go-units"
 	"github.com/spf13/cobra"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	"github.com/openshift/origin/pkg/cmd/server/apis/config"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
@@ -34,7 +35,7 @@ var (
 )
 
 // NewCmdStatus implements the OpenShift cluster status command.
-func NewCmdStatus(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdStatus(name, fullName string, f *clientcmd.Factory, streams genericclioptions.IOStreams) *cobra.Command {
 	clientStatusConfig := &ClientStatusConfig{}
 	cmd := &cobra.Command{
 		Use:     name,
@@ -42,10 +43,10 @@ func NewCmdStatus(name, fullName string, f *clientcmd.Factory, out io.Writer) *c
 		Long:    cmdStatusLong,
 		Example: fmt.Sprintf(cmdStatusExample, fullName),
 		Run: func(c *cobra.Command, args []string) {
-			err := clientStatusConfig.Status(f, out)
+			err := clientStatusConfig.Status(f, streams.Out)
 			if err != nil {
 				if err.Error() != "" {
-					PrintError(err, out)
+					PrintError(err, streams.Out)
 				}
 				os.Exit(1)
 			}

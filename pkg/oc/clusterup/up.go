@@ -29,6 +29,7 @@ import (
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	userv1client "github.com/openshift/client-go/user/clientset/versioned"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
@@ -85,11 +86,11 @@ var (
 )
 
 // NewCmdUp creates a command that starts OpenShift on Docker with reasonable defaults
-func NewCmdUp(name, fullName string, out, errout io.Writer, clusterAdd *cobra.Command) *cobra.Command {
+func NewCmdUp(name, fullName string, streams genericclioptions.IOStreams, clusterAdd *cobra.Command) *cobra.Command {
 	config := &ClusterUpConfig{
 		UserEnabledComponents: []string{"*"},
 
-		Out:            out,
+		IOStreams:      streams,
 		UsePorts:       openshift.BasePorts,
 		PortForwarding: defaultPortForwarding(),
 		DNSPort:        openshift.DefaultDNSPort,
@@ -109,8 +110,8 @@ func NewCmdUp(name, fullName string, out, errout io.Writer, clusterAdd *cobra.Co
 			kcmdutil.CheckErr(config.Complete(c))
 			kcmdutil.CheckErr(config.Validate())
 			kcmdutil.CheckErr(config.Check())
-			if err := config.Start(out); err != nil {
-				PrintError(err, errout)
+			if err := config.Start(streams.Out); err != nil {
+				PrintError(err, streams.ErrOut)
 				os.Exit(1)
 			}
 		},
@@ -120,6 +121,8 @@ func NewCmdUp(name, fullName string, out, errout io.Writer, clusterAdd *cobra.Co
 }
 
 type ClusterUpConfig struct {
+	genericclioptions.IOStreams
+
 	ImageTemplate variable.ImageTemplate
 	ImageTag      string
 
@@ -129,8 +132,6 @@ type ClusterUpConfig struct {
 	ClusterAdd            *cobra.Command
 	UserEnabledComponents []string
 	KubeOnly              bool
-
-	Out io.Writer
 
 	// BaseTempDir is the directory to use as the root for temp directories
 	// This allows us to bundle all of the cluster-up directories in one spot for easier cleanup and ensures we aren't

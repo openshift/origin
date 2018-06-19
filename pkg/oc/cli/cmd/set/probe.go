@@ -9,7 +9,6 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -91,7 +90,7 @@ type ProbeOptions struct {
 	Encoder                runtime.Encoder
 	Namespace              string
 	ExplicitNamespace      bool
-	UpdatePodSpecForObject func(obj runtime.Object, fn func(*v1.PodSpec) error) (bool, error)
+	UpdatePodSpecForObject polymorphichelpers.UpdatePodSpecForObjectFunc
 	Command                []string
 	Resources              []string
 	DryRun                 bool
