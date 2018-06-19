@@ -119,8 +119,8 @@ func NewCmdAppJSON(fullName string, f *clientcmd.Factory, streams genericcliopti
 	cmd.Flags().StringVar(&o.AsTemplate, "as-template", "", "If set, generate a template with the provided name")
 	cmd.Flags().String("output-version", "", "The preferred API versions of the output objects")
 
-	o.Action.BindForOutput(cmd.Flags())
 	o.PrintFlags.AddFlags(cmd)
+	o.Action.BindForOutput(cmd.Flags(), "output")
 	return cmd
 }
 

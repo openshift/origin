@@ -110,7 +110,7 @@ func NewCmdUp(name, fullName string, streams genericclioptions.IOStreams, cluste
 			kcmdutil.CheckErr(config.Complete(c))
 			kcmdutil.CheckErr(config.Validate())
 			kcmdutil.CheckErr(config.Check())
-			if err := config.Start(streams.Out); err != nil {
+			if err := config.Start(streams); err != nil {
 				PrintError(err, streams.ErrOut)
 				os.Exit(1)
 			}
@@ -462,8 +462,8 @@ func (c *ClusterUpConfig) Check() error {
 }
 
 // Start runs the start tasks ensuring that they are executed in sequence
-func (c *ClusterUpConfig) Start(out io.Writer) error {
-	fmt.Fprintf(out, "Starting OpenShift using %s ...\n", c.openshiftImage())
+func (c *ClusterUpConfig) Start(streams genericclioptions.IOStreams) error {
+	fmt.Fprintf(streams.Out, "Starting OpenShift using %s ...\n", c.openshiftImage())
 
 	if c.PortForwarding {
 		if err := c.OpenShiftHelper().StartSocatTunnel(c.ServerIP); err != nil {
@@ -471,26 +471,26 @@ func (c *ClusterUpConfig) Start(out io.Writer) error {
 		}
 	}
 
-	if err := c.StartSelfHosted(out); err != nil {
+	if err := c.StartSelfHosted(streams.Out); err != nil {
 		return err
 	}
 	if c.WriteConfig {
 		return nil
 	}
-	if err := c.PostClusterStartupMutations(out); err != nil {
+	if err := c.PostClusterStartupMutations(streams.Out); err != nil {
 		return err
 	}
 
 	// if we're only supposed to install kube, only install kube.  Maybe later we'll add back components.
 	if c.KubeOnly {
 		c.printProgress("Server Information")
-		c.serverInfo(out)
+		c.serverInfo(streams.Out)
 		return nil
 	}
 
 	// Add default redirect URIs to an OAuthClient to enable local web-console development.
 	c.printProgress("Adding default OAuthClient redirect URIs")
-	if err := c.ensureDefaultRedirectURIs(out); err != nil {
+	if err := c.ensureDefaultRedirectURIs(streams.Out); err != nil {
 		return err
 	}
 
@@ -514,20 +514,20 @@ func (c *ClusterUpConfig) Start(out io.Writer) error {
 	if c.ShouldCreateUser() {
 		// Login with an initial default user
 		c.printProgress("Login to server")
-		if err := c.login(out); err != nil {
+		if err := c.login(streams); err != nil {
 			return err
 		}
 		c.createdUser = true
 
 		// Create an initial project
 		c.printProgress(fmt.Sprintf("Creating initial project %q", initialProjectName))
-		if err := c.createProject(out); err != nil {
+		if err := c.createProject(streams.Out); err != nil {
 			return err
 		}
 	}
 
 	c.printProgress("Server Information")
-	c.serverInfo(out)
+	c.serverInfo(streams.Out)
 
 	return nil
 }
@@ -786,9 +786,9 @@ func (c *ClusterUpConfig) imageFormat() string {
 }
 
 // Login logs into the new server and sets up a default user and project
-func (c *ClusterUpConfig) login(out io.Writer) error {
+func (c *ClusterUpConfig) login(streams genericclioptions.IOStreams) error {
 	server := c.OpenShiftHelper().Master(c.ServerIP)
-	return openshift.Login(initialUser, initialPassword, server, c.GetKubeAPIServerConfigDir(), c.defaultClientConfig, c.command, out, out)
+	return openshift.Login(initialUser, initialPassword, server, c.GetKubeAPIServerConfigDir(), c.defaultClientConfig, c.command, streams)
 }
 
 // createProject creates a new project for the current user
