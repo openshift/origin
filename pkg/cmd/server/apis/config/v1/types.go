@@ -928,6 +928,8 @@ type KeystonePasswordIdentityProvider struct {
 	RemoteConnectionInfo `json:",inline"`
 	// Domain Name is required for keystone v3
 	DomainName string `json:"domainName"`
+	// UseKeystoneIdentity flag indicates that user should be authenticated by keystone ID, not by username
+	UseKeystoneIdentity bool `json:"useKeystoneIdentity"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

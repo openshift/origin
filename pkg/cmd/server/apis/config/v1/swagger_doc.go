@@ -346,8 +346,9 @@ func (JenkinsPipelineConfig) SwaggerDoc() map[string]string {
 }
 
 var map_KeystonePasswordIdentityProvider = map[string]string{
-	"":           "KeystonePasswordIdentityProvider provides identities for users authenticating using keystone password credentials",
-	"domainName": "Domain Name is required for keystone v3",
+	"":                    "KeystonePasswordIdentityProvider provides identities for users authenticating using keystone password credentials",
+	"domainName":          "Domain Name is required for keystone v3",
+	"useKeystoneIdentity": "UseKeystoneIdentity flag indicates that user should be authenticated by keystone ID, not by username",
 }
 
 func (KeystonePasswordIdentityProvider) SwaggerDoc() map[string]string {
