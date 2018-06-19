@@ -24,7 +24,7 @@ var _ = g.Describe("[cli][Slow] can use rsync to upload files to pods", func() {
 
 	var (
 		oc           = exutil.NewCLI("cli-rsync", exutil.KubeConfigPath())
-		templatePath = exutil.FixturePath("..", "..", "examples", "jenkins", "jenkins-ephemeral-template.json")
+		templatePath = exutil.FixturePath("..", "..", "examples", "db-templates", "mariadb-ephemeral-template.json")
 		sourcePath1  = exutil.FixturePath("..", "..", "examples", "image-streams")
 		sourcePath2  = exutil.FixturePath("..", "..", "examples", "sample-app")
 		strategies   = []string{"rsync", "rsync-daemon", "tar"}
@@ -37,12 +37,12 @@ var _ = g.Describe("[cli][Slow] can use rsync to upload files to pods", func() {
 		err := oc.Run("new-app").Args("-f", templatePath).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		g.By("expecting the jenkins service get endpoints")
-		err = e2e.WaitForEndpoint(oc.KubeFramework().ClientSet, oc.Namespace(), "jenkins")
+		g.By("expecting the mariadb service get endpoints")
+		err = e2e.WaitForEndpoint(oc.KubeFramework().ClientSet, oc.Namespace(), "mariadb")
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		g.By("Getting the jenkins pod name")
-		selector, _ := labels.Parse("name=jenkins")
+		g.By("Getting the mariadb pod name")
+		selector, _ := labels.Parse("name=mariadb")
 		pods, err := oc.KubeClient().Core().Pods(oc.Namespace()).List(metav1.ListOptions{LabelSelector: selector.String()})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(len(pods.Items)).ToNot(o.BeZero())
@@ -366,28 +366,28 @@ var _ = g.Describe("[cli][Slow] can use rsync to upload files to pods", func() {
 			tempDir, err := ioutil.TempDir("", "rsync")
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			g.By(fmt.Sprintf("Copying the jenkins directory from the pod to the temp directory: oc rsync %s:/var/lib/jenkins %s", podName, tempDir))
+			g.By(fmt.Sprintf("Copying the mariadb directory from the pod to the temp directory: oc rsync %s:/var/lib/mysql %s", podName, tempDir))
 			err = oc.Run("rsync").Args(
-				fmt.Sprintf("%s:/var/lib/jenkins", podName),
+				fmt.Sprintf("%s:/var/lib/mysql", podName),
 				tempDir).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			localJenkinsDir := filepath.Join(tempDir, "jenkins")
-			g.By("By changing the permissions on the local jenkins directory")
-			err = os.Chmod(localJenkinsDir, 0700)
+			localmariadbDir := filepath.Join(tempDir, "mysql")
+			g.By("By changing the permissions on the local mariadb directory")
+			err = os.Chmod(localmariadbDir, 0700)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			g.By(fmt.Sprintf("Copying the local jenkins directory to the pod with no flags: oc rsync %s/ %s:/var/lib/jenkins", localJenkinsDir, podName))
+			g.By(fmt.Sprintf("Copying the local mariadb directory to the pod with no flags: oc rsync %s/ %s:/var/lib/mysql", localmariadbDir, podName))
 			err = oc.Run("rsync").Args(
-				fmt.Sprintf("%s/", localJenkinsDir),
-				fmt.Sprintf("%s:/var/lib/jenkins", podName)).Execute()
+				fmt.Sprintf("%s/", localmariadbDir),
+				fmt.Sprintf("%s:/var/lib/mysql", podName)).Execute()
 			// An error should occur trying to set permissions on the directory
 			o.Expect(err).To(o.HaveOccurred())
 
-			g.By(fmt.Sprintf("Copying the local jenkins directory to the pod with: oc rsync %s/ %s:/var/lib/jenkins --no-perms", localJenkinsDir, podName))
+			g.By(fmt.Sprintf("Copying the local mariadb directory to the pod with: oc rsync %s/ %s:/var/lib/mysql --no-perms", localmariadbDir, podName))
 			err = oc.Run("rsync").Args(
-				fmt.Sprintf("%s/", localJenkinsDir),
-				fmt.Sprintf("%s:/var/lib/jenkins", podName),
+				fmt.Sprintf("%s/", localmariadbDir),
+				fmt.Sprintf("%s:/var/lib/mysql", podName),
 				"--no-perms").Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
