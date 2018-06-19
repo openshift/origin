@@ -820,11 +820,14 @@ func TestValidateSource(t *testing.T) {
 	dockerfile := "FROM something"
 	invalidProxyAddress := "some!@#$%^&*()url"
 	errorCases := []struct {
-		t        field.ErrorType
-		path     string
-		source   *buildapi.BuildSource
-		ok       bool
-		multiple bool
+		t               field.ErrorType
+		path            string
+		source          *buildapi.BuildSource
+		ok              bool
+		multiple        bool
+		customStrategy  bool
+		dockerStrategy  bool
+		jenkinsStrategy bool
 	}{
 		// 0
 		{
@@ -1189,10 +1192,130 @@ func TestValidateSource(t *testing.T) {
 				},
 			},
 		},
+		// 25 - invalid configMap name
+		{
+			t:    field.ErrorTypeInvalid,
+			path: "configMaps[0].configMap",
+			source: &buildapi.BuildSource{
+				ConfigMaps: []buildapi.ConfigMapBuildSource{
+					{
+						ConfigMap: kapi.LocalObjectReference{
+							Name: "A@ba!dn#me",
+						},
+						DestinationDir: "./some/relative/path",
+					},
+				},
+			},
+		},
+		// 26 - invalid relative path
+		{
+			t:    field.ErrorTypeInvalid,
+			path: "configMaps[0].destinationDir",
+			source: &buildapi.BuildSource{
+				ConfigMaps: []buildapi.ConfigMapBuildSource{
+					{
+						ConfigMap: kapi.LocalObjectReference{
+							Name: "good-secret-name",
+						},
+						DestinationDir: "../bad/parent/path",
+					},
+				},
+			},
+		},
+		// 27 - invalid abs path with Docker strategy
+		{
+			t:              field.ErrorTypeInvalid,
+			path:           "configMaps[0].destinationDir",
+			dockerStrategy: true,
+			source: &buildapi.BuildSource{
+				ConfigMaps: []buildapi.ConfigMapBuildSource{
+					{
+						ConfigMap: kapi.LocalObjectReference{
+							Name: "good-secret-name",
+						},
+						DestinationDir: "/var/log/something",
+					},
+				},
+			},
+		},
+		// 28 - ok abs path without Docker strategy
+		{
+			ok: true,
+			source: &buildapi.BuildSource{
+				ConfigMaps: []buildapi.ConfigMapBuildSource{
+					{
+						ConfigMap: kapi.LocalObjectReference{
+							Name: "good-secret-name",
+						},
+						DestinationDir: "/var/log/something",
+					},
+				},
+			},
+		},
+		// 29 - invalid secret name
+		{
+			t:    field.ErrorTypeInvalid,
+			path: "secrets[0].secret",
+			source: &buildapi.BuildSource{
+				Secrets: []buildapi.SecretBuildSource{
+					{
+						Secret: kapi.LocalObjectReference{
+							Name: "A@ba!dn#me",
+						},
+						DestinationDir: "./some/relative/path",
+					},
+				},
+			},
+		},
+		// 30 - invalid secret relative path
+		{
+			t:    field.ErrorTypeInvalid,
+			path: "secrets[0].destinationDir",
+			source: &buildapi.BuildSource{
+				Secrets: []buildapi.SecretBuildSource{
+					{
+						Secret: kapi.LocalObjectReference{
+							Name: "good-secret-name",
+						},
+						DestinationDir: "../bad/parent/path",
+					},
+				},
+			},
+		},
+		// 31 - invalid abs path with Docker strategy
+		{
+			t:              field.ErrorTypeInvalid,
+			path:           "secrets[0].destinationDir",
+			dockerStrategy: true,
+			source: &buildapi.BuildSource{
+				Secrets: []buildapi.SecretBuildSource{
+					{
+						Secret: kapi.LocalObjectReference{
+							Name: "good-secret-name",
+						},
+						DestinationDir: "/var/log/something",
+					},
+				},
+			},
+		},
+		// 32 - ok abs path without Docker strategy
+		{
+			ok: true,
+			source: &buildapi.BuildSource{
+				Secrets: []buildapi.SecretBuildSource{
+					{
+						Secret: kapi.LocalObjectReference{
+							Name: "good-secret-name",
+						},
+						DestinationDir: "/var/log/something",
+					},
+				},
+			},
+		},
 	}
 	for i, tc := range errorCases {
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
-			errors := validateSource(tc.source, false, false, false, nil)
+			errors := validateSource(tc.source, tc.customStrategy, tc.dockerStrategy, tc.jenkinsStrategy, nil)
 			switch len(errors) {
 			case 0:
 				if !tc.ok {

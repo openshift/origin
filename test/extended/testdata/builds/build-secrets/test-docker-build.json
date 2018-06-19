@@ -24,6 +24,19 @@
             "name": "testsecret2"
           }
         }
+      ],
+      "configMaps": [
+        {
+          "configMap": {
+            "name": "test-configmap"
+          },
+          "destinationDir": "config-dir"
+        },
+        {
+          "configMap": {
+            "name": "test-configmap-2"
+          }
+        }
       ]
     },
     "strategy": {
