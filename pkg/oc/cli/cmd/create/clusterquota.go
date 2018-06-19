@@ -14,8 +14,8 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	quotaapi "github.com/openshift/origin/pkg/quota/apis/quota"
 	quotaclientinternal "github.com/openshift/origin/pkg/quota/generated/internalclientset"
 	quotaclient "github.com/openshift/origin/pkg/quota/generated/internalclientset/typed/quota/internalversion"
@@ -48,7 +48,7 @@ type CreateClusterQuotaOptions struct {
 type ObjectPrinter func(runtime.Object, io.Writer) error
 
 // NewCmdCreateClusterQuota is a macro command to create a new cluster quota.
-func NewCmdCreateClusterQuota(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdCreateClusterQuota(name, fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
 	o := &CreateClusterQuotaOptions{Out: out}
 
 	cmd := &cobra.Command{
@@ -72,7 +72,7 @@ func NewCmdCreateClusterQuota(name, fullName string, f *clientcmd.Factory, out i
 	return cmd
 }
 
-func (o *CreateClusterQuotaOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, args []string) error {
+func (o *CreateClusterQuotaOptions) Complete(cmd *cobra.Command, f kcmdutil.Factory, args []string) error {
 	if len(args) != 1 {
 		return fmt.Errorf("NAME is required: %v", args)
 	}

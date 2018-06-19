@@ -13,7 +13,6 @@ import (
 
 	"github.com/openshift/origin/pkg/network"
 	networkapi "github.com/openshift/origin/pkg/network/apis/network"
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
 const JoinProjectsNetworkCommandName = "join-projects"
@@ -38,7 +37,7 @@ type JoinOptions struct {
 	joinProjectName string
 }
 
-func NewCmdJoinProjectsNetwork(commandName, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdJoinProjectsNetwork(commandName, fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
 	opts := &ProjectOptions{}
 	joinOp := &JoinOptions{Options: opts}
 

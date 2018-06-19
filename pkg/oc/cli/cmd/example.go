@@ -9,8 +9,6 @@ import (
 
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
 var (
@@ -29,7 +27,7 @@ type TYPEOptions struct {
 
 // NewCmdTYPE implements a TYPE command
 // This is an example type for templating.
-func NewCmdTYPE(fullName string, f *clientcmd.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
+func NewCmdTYPE(fullName string, f kcmdutil.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
 	options := &TYPEOptions{
 		In:     in,
 		Out:    out,
@@ -55,7 +53,7 @@ func NewCmdTYPE(fullName string, f *clientcmd.Factory, in io.Reader, out, errout
 	return cmd
 }
 
-func (o *TYPEOptions) Complete(f *clientcmd.Factory, c *cobra.Command, args []string) error {
+func (o *TYPEOptions) Complete(f kcmdutil.Factory, c *cobra.Command, args []string) error {
 	return nil
 }
 

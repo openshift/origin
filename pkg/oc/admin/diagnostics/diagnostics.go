@@ -14,6 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	poddiag "github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/client/pod/in_pod"
@@ -46,7 +47,7 @@ type DiagnosticsOptions struct {
 	// creates flags as a byproduct, most of which we don't want.
 	// The command creates these and binds only the flags we want.
 	ClientFlags *flag.FlagSet
-	Factory     *osclientcmd.Factory
+	Factory     kcmdutil.Factory
 	// specify context name to be used for cluster-admin access
 	ClientClusterContext string
 	// LogOptions determine globally what the user wants to see and how.

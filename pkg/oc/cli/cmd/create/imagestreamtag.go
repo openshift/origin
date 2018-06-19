@@ -12,11 +12,11 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageclientinternal "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	utilenv "github.com/openshift/origin/pkg/oc/util/env"
 )
 
@@ -57,7 +57,7 @@ type CreateImageStreamTagOptions struct {
 }
 
 // NewCmdCreateImageStreamTag is a command to create a new image stream tag.
-func NewCmdCreateImageStreamTag(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdCreateImageStreamTag(name, fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
 	o := &CreateImageStreamTagOptions{
 		Out: out,
 		ISTag: &imageapi.ImageStreamTag{
@@ -91,7 +91,7 @@ func NewCmdCreateImageStreamTag(name, fullName string, f *clientcmd.Factory, out
 	return cmd
 }
 
-func (o *CreateImageStreamTagOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, args []string) error {
+func (o *CreateImageStreamTagOptions) Complete(cmd *cobra.Command, f kcmdutil.Factory, args []string) error {
 	o.DryRun = cmdutil.GetFlagBool(cmd, "dry-run")
 
 	switch len(args) {

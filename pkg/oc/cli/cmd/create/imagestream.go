@@ -10,11 +10,11 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageclientinternal "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
 const ImageStreamRecommendedName = "imagestream"
@@ -49,7 +49,7 @@ type CreateImageStreamOptions struct {
 }
 
 // NewCmdCreateImageStream is a macro command to create a new image stream
-func NewCmdCreateImageStream(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdCreateImageStream(name, fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
 	o := &CreateImageStreamOptions{
 		Out: out,
 		IS: &imageapi.ImageStream{
@@ -77,7 +77,7 @@ func NewCmdCreateImageStream(name, fullName string, f *clientcmd.Factory, out io
 	return cmd
 }
 
-func (o *CreateImageStreamOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, args []string) error {
+func (o *CreateImageStreamOptions) Complete(cmd *cobra.Command, f kcmdutil.Factory, args []string) error {
 	o.DryRun = cmdutil.GetFlagBool(cmd, "dry-run")
 
 	switch len(args) {

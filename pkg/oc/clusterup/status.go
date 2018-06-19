@@ -12,10 +12,10 @@ import (
 	"github.com/docker/go-units"
 	"github.com/spf13/cobra"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/cmd/server/apis/config"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	"github.com/openshift/origin/pkg/oc/clusterup/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/oc/clusterup/docker/errors"
 	"github.com/openshift/origin/pkg/oc/clusterup/docker/openshift"
@@ -34,7 +34,7 @@ var (
 )
 
 // NewCmdStatus implements the OpenShift cluster status command.
-func NewCmdStatus(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdStatus(name, fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
 	clientStatusConfig := &ClientStatusConfig{}
 	cmd := &cobra.Command{
 		Use:     name,
@@ -80,7 +80,7 @@ func getConfigFromContainer(client dockerhelper.Interface) (*config.MasterConfig
 }
 
 // Status prints the OpenShift cluster status
-func (c *ClientStatusConfig) Status(f *clientcmd.Factory, out io.Writer) error {
+func (c *ClientStatusConfig) Status(f kcmdutil.Factory, out io.Writer) error {
 	dockerClient, err := dockerhelper.GetDockerClient()
 	if err != nil {
 		return errors.ErrNoDockerClient(err)
@@ -114,7 +114,7 @@ func (c *ClientStatusConfig) Status(f *clientcmd.Factory, out io.Writer) error {
 	return nil
 }
 
-func isHealthy(f *clientcmd.Factory) (bool, error) {
+func isHealthy(f kcmdutil.Factory) (bool, error) {
 	client, err := f.RESTClient()
 	if err != nil {
 		return false, err

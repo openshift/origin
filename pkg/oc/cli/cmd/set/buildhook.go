@@ -79,7 +79,7 @@ type BuildHookOptions struct {
 }
 
 // NewCmdBuildHook implements the set build-hook command
-func NewCmdBuildHook(fullName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
+func NewCmdBuildHook(fullName string, f kcmdutil.Factory, out, errOut io.Writer) *cobra.Command {
 	options := &BuildHookOptions{
 		Out: out,
 		Err: errOut,
@@ -119,7 +119,7 @@ func NewCmdBuildHook(fullName string, f *clientcmd.Factory, out, errOut io.Write
 	return cmd
 }
 
-func (o *BuildHookOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string) error {
+func (o *BuildHookOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string) error {
 	resources := args
 	if i := cmd.ArgsLenAtDash(); i != -1 {
 		resources = args[:i]
@@ -158,7 +158,7 @@ func (o *BuildHookOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, ar
 
 	o.Output = kcmdutil.GetFlagString(cmd, "output")
 	o.PrintObject = func(infos []*resource.Info) error {
-		return f.PrintResourceInfos(cmd, o.Local, infos, o.Out)
+		return clientcmd.PrintResourceInfos(f, cmd, o.Local, infos, o.Out)
 	}
 
 	o.Encoder = kcmdutil.InternalVersionJSONEncoder()

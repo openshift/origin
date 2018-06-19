@@ -11,7 +11,6 @@ import (
 	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/oc/cli/cmd/registry/info"
 	"github.com/openshift/origin/pkg/oc/cli/cmd/registry/login"
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
 var (
@@ -22,7 +21,7 @@ var (
 )
 
 // NewCmd exposes commands for working with the registry.
-func NewCmd(fullName string, f *clientcmd.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
+func NewCmd(fullName string, f cmdutil.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
 	image := &cobra.Command{
 		Use:   "registry COMMAND",
 		Short: "Commands for working with the registry",

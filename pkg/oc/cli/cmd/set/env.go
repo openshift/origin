@@ -112,7 +112,7 @@ type EnvOptions struct {
 }
 
 // NewCmdEnv implements the OpenShift cli env command
-func NewCmdEnv(fullName string, f *clientcmd.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
+func NewCmdEnv(fullName string, f kcmdutil.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
 	options := &EnvOptions{
 		Out: out,
 		Err: errout,
@@ -168,7 +168,7 @@ func keyToEnvName(key string) string {
 	return strings.ToUpper(validEnvNameRegexp.ReplaceAllString(key, "_"))
 }
 
-func (o *EnvOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string) error {
+func (o *EnvOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string) error {
 	resources, envArgs, ok := utilenv.SplitEnvironmentFromResources(args)
 	if !ok {
 		return kcmdutil.UsageErrorf(cmd, "all resources must be specified before environment changes: %s", strings.Join(args, " "))
@@ -203,7 +203,7 @@ func (o *EnvOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []s
 
 // RunEnv contains all the necessary functionality for the OpenShift cli env command
 // TODO: refactor to share the common "patch resource" pattern of probe
-func (o *EnvOptions) RunEnv(f *clientcmd.Factory) error {
+func (o *EnvOptions) RunEnv(f kcmdutil.Factory) error {
 	clientConfig, err := f.ClientConfig()
 	if err != nil {
 		return err
@@ -447,7 +447,7 @@ func (o *EnvOptions) RunEnv(f *clientcmd.Factory) error {
 	}
 
 	if len(o.Output) > 0 || o.Local || kcmdutil.GetDryRunFlag(o.Cmd) {
-		return f.PrintResourceInfos(o.Cmd, o.Local, infos, o.Out)
+		return clientcmd.PrintResourceInfos(f, o.Cmd, o.Local, infos, o.Out)
 	}
 
 	objects, err := clientcmd.AsVersionedObjects(infos, gv, legacyscheme.Codecs.LegacyCodec(gv))

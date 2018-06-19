@@ -18,7 +18,6 @@ import (
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageclientinternal "github.com/openshift/origin/pkg/image/generated/internalclientset"
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	imagegraph "github.com/openshift/origin/pkg/oc/graph/imagegraph/nodes"
 )
 
@@ -37,7 +36,7 @@ var (
 )
 
 // NewCmdTopImageStreams implements the OpenShift cli top imagestreams command.
-func NewCmdTopImageStreams(f *clientcmd.Factory, parentName, name string, out io.Writer) *cobra.Command {
+func NewCmdTopImageStreams(f kcmdutil.Factory, parentName, name string, out io.Writer) *cobra.Command {
 	opts := &TopImageStreamsOptions{}
 	cmd := &cobra.Command{
 		Use:     name,
@@ -65,7 +64,7 @@ type TopImageStreamsOptions struct {
 
 // Complete turns a partially defined TopImageStreamsOptions into a solvent structure
 // which can be validated and used for showing limits usage.
-func (o *TopImageStreamsOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string, out io.Writer) error {
+func (o *TopImageStreamsOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string, out io.Writer) error {
 	namespace := cmd.Flag("namespace").Value.String()
 	if len(namespace) == 0 {
 		namespace = metav1.NamespaceAll

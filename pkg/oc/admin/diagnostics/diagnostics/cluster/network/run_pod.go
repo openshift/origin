@@ -19,13 +19,13 @@ import (
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	networktypedclient "github.com/openshift/origin/pkg/network/generated/internalclientset/typed/network/internalversion"
 	networkpoddiag "github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/cluster/network/in_pod"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/cluster/network/in_pod/util"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/log"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/types"
-	osclientcmd "github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
 const (
@@ -44,7 +44,7 @@ type NetworkDiagnostic struct {
 	ClusterNetworkClient networktypedclient.ClusterNetworksGetter
 	ClientFlags          *flag.FlagSet
 	Level                int
-	Factory              *osclientcmd.Factory
+	Factory              kcmdutil.Factory
 	RawConfig            *clientcmdapi.Config
 	PreventModification  bool
 	LogDir               string

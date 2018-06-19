@@ -13,7 +13,6 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/util/term"
 
 	"github.com/openshift/origin/pkg/cmd/util"
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
 const (
@@ -64,7 +63,7 @@ type RshOptions struct {
 }
 
 // NewCmdRsh returns a command that attempts to open a shell session to the server.
-func NewCmdRsh(name string, parent string, f *clientcmd.Factory, in io.Reader, out, err io.Writer) *cobra.Command {
+func NewCmdRsh(name string, parent string, f kcmdutil.Factory, in io.Reader, out, err io.Writer) *cobra.Command {
 	options := &RshOptions{
 		ForceTTY:   false,
 		DisableTTY: false,
@@ -105,7 +104,7 @@ func NewCmdRsh(name string, parent string, f *clientcmd.Factory, in io.Reader, o
 }
 
 // Complete applies the command environment to RshOptions
-func (o *RshOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string) error {
+func (o *RshOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string) error {
 	switch {
 	case o.ForceTTY && o.DisableTTY:
 		return kcmdutil.UsageErrorf(cmd, "you may not specify -t and -T together")

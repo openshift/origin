@@ -13,11 +13,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	poddiag "github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/client/pod/in_pod"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/types"
-	osclientcmd "github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
 const (
@@ -31,7 +31,7 @@ type DiagnosticPod struct {
 	KubeClient          kclientset.Interface
 	Namespace           string
 	Level               int
-	Factory             *osclientcmd.Factory
+	Factory             kcmdutil.Factory
 	PreventModification bool
 	ImageTemplate       variable.ImageTemplate
 }

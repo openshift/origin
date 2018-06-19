@@ -75,7 +75,7 @@ type AppJSONOptions struct {
 
 // NewCmdAppJSON imports an app.json file (schema described here: https://devcenter.heroku.com/articles/app-json-schema)
 // as a template.
-func NewCmdAppJSON(fullName string, f *clientcmd.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
+func NewCmdAppJSON(fullName string, f kcmdutil.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
 	options := &AppJSONOptions{
 		Action: configcmd.BulkAction{
 			Out:    out,
@@ -115,7 +115,7 @@ func NewCmdAppJSON(fullName string, f *clientcmd.Factory, in io.Reader, out, err
 	return cmd
 }
 
-func (o *AppJSONOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string) error {
+func (o *AppJSONOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string) error {
 	version, _ := cmd.Flags().GetString("output-version")
 	for _, v := range strings.Split(version, ",") {
 		gv, err := schema.ParseGroupVersion(v)

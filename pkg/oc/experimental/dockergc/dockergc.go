@@ -18,7 +18,6 @@ import (
 
 	dockertypes "github.com/docker/docker/api/types"
 	dockerfilters "github.com/docker/docker/api/types/filters"
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -66,7 +65,7 @@ var (
 	  %[1]s %[2]s`)
 )
 
-func NewCmdDockerGCConfig(f *clientcmd.Factory, parentName, name string, out, errout io.Writer) *cobra.Command {
+func NewCmdDockerGCConfig(f kcmdutil.Factory, parentName, name string, out, errout io.Writer) *cobra.Command {
 	options := &dockerGCConfigCmdOptions{
 		DryRun:                      false,
 		MinimumGCAge:                DefaultMinimumGCAge,
@@ -238,7 +237,7 @@ func doGarbageCollection(client *dockerClient, options *dockerGCConfigCmdOptions
 }
 
 // Run runs the dockergc command.
-func Run(f *clientcmd.Factory, options *dockerGCConfigCmdOptions, cmd *cobra.Command, args []string) error {
+func Run(f kcmdutil.Factory, options *dockerGCConfigCmdOptions, cmd *cobra.Command, args []string) error {
 	glog.Infof("docker build garbage collection daemon")
 	if options.DryRun {
 		glog.Infof("Running in dry-run mode")

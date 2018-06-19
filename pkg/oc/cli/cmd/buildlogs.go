@@ -17,7 +17,6 @@ import (
 	buildmanualclient "github.com/openshift/origin/pkg/build/client/internalversion"
 	buildclientinternal "github.com/openshift/origin/pkg/build/generated/internalclientset"
 	buildutil "github.com/openshift/origin/pkg/build/util"
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
 var (
@@ -34,7 +33,7 @@ var (
 )
 
 // NewCmdBuildLogs implements the OpenShift cli build-logs command
-func NewCmdBuildLogs(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdBuildLogs(fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
 	opts := buildapi.BuildLogOptions{}
 	cmd := &cobra.Command{
 		Use:        "build-logs BUILD",
@@ -70,7 +69,7 @@ func NewCmdBuildLogs(fullName string, f *clientcmd.Factory, out io.Writer) *cobr
 }
 
 // RunBuildLogs contains all the necessary functionality for the OpenShift cli build-logs command
-func RunBuildLogs(fullName string, f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, opts buildapi.BuildLogOptions, args []string) error {
+func RunBuildLogs(fullName string, f kcmdutil.Factory, out io.Writer, cmd *cobra.Command, opts buildapi.BuildLogOptions, args []string) error {
 	if len(args) != 1 {
 		cmdNamespace := kcmdutil.GetFlagString(cmd, "namespace")
 		var namespace string

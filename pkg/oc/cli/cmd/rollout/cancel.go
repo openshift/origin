@@ -18,7 +18,6 @@ import (
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
 	"github.com/openshift/origin/pkg/oc/cli/cmd/set"
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	"github.com/spf13/cobra"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
@@ -53,7 +52,7 @@ event will be emitted.`)
   %[1]s rollout cancel dc/nginx`)
 )
 
-func NewCmdRolloutCancel(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdRolloutCancel(fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
 	opts := &CancelOptions{}
 	cmd := &cobra.Command{
 		Use:     "cancel (TYPE NAME | TYPE/NAME) [flags]",
@@ -71,7 +70,7 @@ func NewCmdRolloutCancel(fullName string, f *clientcmd.Factory, out io.Writer) *
 	return cmd
 }
 
-func (o *CancelOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, args []string) error {
+func (o *CancelOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, out io.Writer, args []string) error {
 	if len(args) == 0 && len(o.FilenameOptions.Filenames) == 0 {
 		return kcmdutil.UsageErrorf(cmd, cmd.Use)
 	}

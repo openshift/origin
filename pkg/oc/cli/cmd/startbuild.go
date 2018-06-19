@@ -41,7 +41,6 @@ import (
 	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/git"
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	ocerrors "github.com/openshift/origin/pkg/oc/errors"
 	utilenv "github.com/openshift/origin/pkg/oc/util/env"
 )
@@ -87,7 +86,7 @@ var (
 )
 
 // NewCmdStartBuild implements the OpenShift cli start-build command
-func NewCmdStartBuild(fullName string, f *clientcmd.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
+func NewCmdStartBuild(fullName string, f kcmdutil.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
 	o := &StartBuildOptions{
 		In:     in,
 		Out:    out,
@@ -174,7 +173,7 @@ type StartBuildOptions struct {
 	Namespace   string
 }
 
-func (o *StartBuildOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, cmdFullName string, args []string) error {
+func (o *StartBuildOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, cmdFullName string, args []string) error {
 	var err error
 	o.Git = git.NewRepository()
 	o.ClientConfig, err = f.ClientConfig()

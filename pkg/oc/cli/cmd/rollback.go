@@ -23,7 +23,6 @@ import (
 	appsinternalversion "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
 	describe "github.com/openshift/origin/pkg/oc/cli/describe"
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
 var (
@@ -65,7 +64,7 @@ var (
 )
 
 // NewCmdRollback creates a CLI rollback command.
-func NewCmdRollback(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdRollback(fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
 	opts := &RollbackOptions{}
 	cmd := &cobra.Command{
 		Use:     "rollback (DEPLOYMENTCONFIG | DEPLOYMENT)",
@@ -127,7 +126,7 @@ type RollbackOptions struct {
 
 // Complete turns a partially defined RollbackActions into a solvent structure
 // which can be validated and used for a rollback.
-func (o *RollbackOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string, out io.Writer) error {
+func (o *RollbackOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string, out io.Writer) error {
 	// Extract basic flags.
 	if len(args) == 1 {
 		o.TargetName = args[0]

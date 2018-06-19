@@ -18,12 +18,12 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
 	"github.com/openshift/origin/pkg/network"
 	networkapi "github.com/openshift/origin/pkg/network/apis/network"
 	networkclientinternal "github.com/openshift/origin/pkg/network/generated/internalclientset"
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 )
 
@@ -44,7 +44,7 @@ type ProjectOptions struct {
 	CheckSelector bool
 }
 
-func (p *ProjectOptions) Complete(f *clientcmd.Factory, c *cobra.Command, args []string, out io.Writer) error {
+func (p *ProjectOptions) Complete(f kcmdutil.Factory, c *cobra.Command, args []string, out io.Writer) error {
 	defaultNamespace, _, err := f.DefaultNamespace()
 	if err != nil {
 		return err

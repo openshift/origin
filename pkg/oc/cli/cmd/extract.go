@@ -15,8 +15,6 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
-
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
 var (
@@ -58,7 +56,7 @@ type ExtractOptions struct {
 	ExtractFileContentsFn func(runtime.Object) (map[string][]byte, bool, error)
 }
 
-func NewCmdExtract(fullName string, f *clientcmd.Factory, in io.Reader, out, errOut io.Writer) *cobra.Command {
+func NewCmdExtract(fullName string, f kcmdutil.Factory, in io.Reader, out, errOut io.Writer) *cobra.Command {
 	options := &ExtractOptions{
 		Out: out,
 		Err: errOut,
@@ -90,7 +88,7 @@ func NewCmdExtract(fullName string, f *clientcmd.Factory, in io.Reader, out, err
 	return cmd
 }
 
-func (o *ExtractOptions) Complete(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Command, args []string) error {
+func (o *ExtractOptions) Complete(f kcmdutil.Factory, in io.Reader, out io.Writer, cmd *cobra.Command, args []string) error {
 	o.ExtractFileContentsFn = f.ExtractFileContents
 
 	cmdNamespace, explicit, err := f.DefaultNamespace()

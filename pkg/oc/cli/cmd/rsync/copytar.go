@@ -15,10 +15,9 @@ import (
 	"github.com/openshift/source-to-image/pkg/tar"
 	"github.com/spf13/cobra"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	s2ifs "github.com/openshift/source-to-image/pkg/util/fs"
-
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
 // tarStrategy implements the tar copy strategy.
@@ -35,7 +34,7 @@ type tarStrategy struct {
 	IgnoredFlags   []string
 }
 
-func newTarStrategy(f *clientcmd.Factory, c *cobra.Command, o *RsyncOptions) (copyStrategy, error) {
+func newTarStrategy(f kcmdutil.Factory, c *cobra.Command, o *RsyncOptions) (copyStrategy, error) {
 
 	tarHelper := tar.New(s2ifs.NewFileSystem())
 	tarHelper.SetExclusionPattern(nil)

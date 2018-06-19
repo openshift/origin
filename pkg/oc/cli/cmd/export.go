@@ -50,7 +50,7 @@ var (
 	  %[1]s export service -o json`)
 )
 
-func NewCmdExport(fullName string, f *clientcmd.Factory, in io.Reader, out io.Writer) *cobra.Command {
+func NewCmdExport(fullName string, f kcmdutil.Factory, in io.Reader, out io.Writer) *cobra.Command {
 	exporter := &DefaultExporter{}
 	var filenames []string
 	cmd := &cobra.Command{
@@ -82,7 +82,7 @@ func NewCmdExport(fullName string, f *clientcmd.Factory, in io.Reader, out io.Wr
 	return cmd
 }
 
-func RunExport(f *clientcmd.Factory, exporter Exporter, in io.Reader, out io.Writer, cmd *cobra.Command, args []string, filenames []string) error {
+func RunExport(f kcmdutil.Factory, exporter Exporter, in io.Reader, out io.Writer, cmd *cobra.Command, args []string, filenames []string) error {
 	selector := kcmdutil.GetFlagString(cmd, "selector")
 	allNamespaces := kcmdutil.GetFlagBool(cmd, "all-namespaces")
 	exact := kcmdutil.GetFlagBool(cmd, "exact")

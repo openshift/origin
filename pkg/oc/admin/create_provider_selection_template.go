@@ -7,10 +7,9 @@ import (
 	"github.com/spf13/cobra"
 
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
-	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/oauthserver/server/selectprovider"
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
 const CreateProviderSelectionTemplateCommand = "create-provider-selection-template"
@@ -33,7 +32,7 @@ var providerSelectionLongDescription = templates.LongDesc(`
 
 type CreateProviderSelectionTemplateOptions struct{}
 
-func NewCommandCreateProviderSelectionTemplate(f *clientcmd.Factory, commandName string, fullName string, out io.Writer) *cobra.Command {
+func NewCommandCreateProviderSelectionTemplate(f kcmdutil.Factory, commandName string, fullName string, out io.Writer) *cobra.Command {
 	options := &CreateProviderSelectionTemplateOptions{}
 
 	cmd := &cobra.Command{
@@ -42,12 +41,12 @@ func NewCommandCreateProviderSelectionTemplate(f *clientcmd.Factory, commandName
 		Long:  providerSelectionLongDescription,
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.Validate(args); err != nil {
-				cmdutil.CheckErr(cmdutil.UsageErrorf(cmd, err.Error()))
+				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
 			}
 
 			_, err := io.WriteString(out, selectprovider.SelectProviderTemplateExample)
 			if err != nil {
-				cmdutil.CheckErr(err)
+				kcmdutil.CheckErr(err)
 			}
 		},
 	}

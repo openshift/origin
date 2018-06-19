@@ -60,7 +60,7 @@ var (
 	  %[1]s %[2]s ipf-alt --selector="hagroup=us-west-ha" --virtual-ips="1.2.3.4" -o yaml --images=myrepo/myipfailover:mytag`)
 )
 
-func NewCmdIPFailoverConfig(f *clientcmd.Factory, parentName, name string, out, errout io.Writer) *cobra.Command {
+func NewCmdIPFailoverConfig(f kcmdutil.Factory, parentName, name string, out, errout io.Writer) *cobra.Command {
 	options := &ipfailover.IPFailoverConfigCmdOptions{
 		Action: configcmd.BulkAction{
 			Out:    out,
@@ -134,7 +134,7 @@ func getConfigurationName(args []string) (string, error) {
 }
 
 //  Get the configurator based on the ipfailover type.
-func getPlugin(name string, f *clientcmd.Factory, options *ipfailover.IPFailoverConfigCmdOptions) (ipfailover.IPFailoverConfiguratorPlugin, error) {
+func getPlugin(name string, f kcmdutil.Factory, options *ipfailover.IPFailoverConfigCmdOptions) (ipfailover.IPFailoverConfiguratorPlugin, error) {
 	if options.Type == ipfailover.DefaultType {
 		plugin, err := keepalived.NewIPFailoverConfiguratorPlugin(name, f, options)
 		if err != nil {
@@ -148,7 +148,7 @@ func getPlugin(name string, f *clientcmd.Factory, options *ipfailover.IPFailover
 }
 
 // Run runs the ipfailover command.
-func Run(f *clientcmd.Factory, options *ipfailover.IPFailoverConfigCmdOptions, cmd *cobra.Command, args []string) error {
+func Run(f kcmdutil.Factory, options *ipfailover.IPFailoverConfigCmdOptions, cmd *cobra.Command, args []string) error {
 	name, err := getConfigurationName(args)
 	if err != nil {
 		return err

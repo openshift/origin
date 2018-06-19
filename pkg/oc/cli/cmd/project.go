@@ -18,7 +18,6 @@ import (
 
 	clientcfg "github.com/openshift/origin/pkg/client/config"
 	cliconfig "github.com/openshift/origin/pkg/oc/cli/config"
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	projectapihelpers "github.com/openshift/origin/pkg/project/apis/project/helpers"
 	projectclientinternal "github.com/openshift/origin/pkg/project/generated/internalclientset"
@@ -66,7 +65,7 @@ var (
 )
 
 // NewCmdProject implements the OpenShift cli rollback command
-func NewCmdProject(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdProject(fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
 	options := &ProjectOptions{}
 
 	cmd := &cobra.Command{
@@ -90,7 +89,7 @@ func NewCmdProject(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.
 	return cmd
 }
 
-func (o *ProjectOptions) Complete(f *clientcmd.Factory, args []string, out io.Writer) error {
+func (o *ProjectOptions) Complete(f kcmdutil.Factory, args []string, out io.Writer) error {
 	var err error
 
 	argsLength := len(args)

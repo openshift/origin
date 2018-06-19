@@ -36,7 +36,6 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	"github.com/openshift/origin/pkg/oc/admin/prune/imageprune"
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	oserrors "github.com/openshift/origin/pkg/util/errors"
 	"github.com/openshift/origin/pkg/util/netutils"
 	"github.com/openshift/origin/pkg/version"
@@ -134,7 +133,7 @@ type PruneImagesOptions struct {
 }
 
 // NewCmdPruneImages implements the OpenShift cli prune images command.
-func NewCmdPruneImages(f *clientcmd.Factory, parentName, name string, out io.Writer) *cobra.Command {
+func NewCmdPruneImages(f kcmdutil.Factory, parentName, name string, out io.Writer) *cobra.Command {
 	allImages := true
 	opts := &PruneImagesOptions{
 		Confirm:            false,
@@ -175,7 +174,7 @@ func NewCmdPruneImages(f *clientcmd.Factory, parentName, name string, out io.Wri
 
 // Complete turns a partially defined PruneImagesOptions into a solvent structure
 // which can be validated and used for pruning images.
-func (o *PruneImagesOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string, out io.Writer) error {
+func (o *PruneImagesOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string, out io.Writer) error {
 	if len(args) > 0 {
 		return kcmdutil.UsageErrorf(cmd, "no arguments are allowed to this command")
 	}
@@ -631,7 +630,7 @@ func (p *describingManifestDeleter) DeleteManifest(registryClient *http.Client, 
 }
 
 // getClients returns a OpenShift client and Kube client.
-func getClients(f *clientcmd.Factory) (appsclient.AppsInterface, buildclient.BuildInterface, imageclient.ImageInterface, kclientset.Interface, error) {
+func getClients(f kcmdutil.Factory) (appsclient.AppsInterface, buildclient.BuildInterface, imageclient.ImageInterface, kclientset.Interface, error) {
 	clientConfig, err := f.ClientConfig()
 	if err != nil {
 		return nil, nil, nil, nil, err

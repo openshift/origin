@@ -8,8 +8,7 @@ import (
 	"k8s.io/client-go/tools/portforward"
 	"k8s.io/client-go/transport/spdy"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 )
 
 // portForwarder starts port forwarding to a given pod
@@ -54,7 +53,7 @@ func (f *portForwarder) ForwardPorts(ports []string, stopChan <-chan struct{}) e
 }
 
 // newPortForwarder creates a new forwarder for use with rsync
-func newPortForwarder(f *clientcmd.Factory, o *RsyncOptions) (forwarder, error) {
+func newPortForwarder(f kcmdutil.Factory, o *RsyncOptions) (forwarder, error) {
 	client, err := f.ClientSet()
 	if err != nil {
 		return nil, err

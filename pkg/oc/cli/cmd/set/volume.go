@@ -153,7 +153,7 @@ type AddVolumeOptions struct {
 	TypeChanged bool
 }
 
-func NewCmdVolume(fullName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
+func NewCmdVolume(fullName string, f kcmdutil.Factory, out, errOut io.Writer) *cobra.Command {
 	addOpts := &AddVolumeOptions{}
 	opts := &VolumeOptions{
 		AddOpts: addOpts,
@@ -320,7 +320,7 @@ func (a *AddVolumeOptions) Validate() error {
 	return nil
 }
 
-func (v *VolumeOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command) error {
+func (v *VolumeOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command) error {
 	kc, err := f.ClientSet()
 	if err != nil {
 		return err
@@ -353,7 +353,7 @@ func (v *VolumeOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command) error
 
 	v.Output = kcmdutil.GetFlagString(cmd, "output")
 	v.PrintObject = func(infos []*resource.Info) error {
-		return f.PrintResourceInfos(cmd, v.Local, infos, v.Out)
+		return clientcmd.PrintResourceInfos(f, cmd, v.Local, infos, v.Out)
 	}
 
 	v.Cmd = cmd
@@ -435,7 +435,7 @@ func (a *AddVolumeOptions) Complete() error {
 	return nil
 }
 
-func (v *VolumeOptions) RunVolume(args []string, f *clientcmd.Factory) error {
+func (v *VolumeOptions) RunVolume(args []string, f kcmdutil.Factory) error {
 	b := f.NewBuilder().
 		Internal().
 		LocalParam(v.Local).

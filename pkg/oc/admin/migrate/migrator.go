@@ -152,7 +152,7 @@ func (o *ResourceOptions) Bind(c *cobra.Command) {
 	kubectl.AddJsonFilenameFlag(c, &o.Filenames, usage)
 }
 
-func (o *ResourceOptions) Complete(f *clientcmd.Factory, c *cobra.Command) error {
+func (o *ResourceOptions) Complete(f kcmdutil.Factory, c *cobra.Command) error {
 	o.Output = kcmdutil.GetFlagString(c, "output")
 	switch {
 	case len(o.Output) > 0:

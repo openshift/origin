@@ -27,7 +27,6 @@ import (
 
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/oc/cli/describe"
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	"github.com/openshift/origin/pkg/oc/generate/app"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	templatevalidation "github.com/openshift/origin/pkg/template/apis/template/validation"
@@ -76,7 +75,7 @@ var (
 )
 
 // NewCmdProcess implements the OpenShift cli process command
-func NewCmdProcess(fullName string, f *clientcmd.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
+func NewCmdProcess(fullName string, f kcmdutil.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "process (TEMPLATE | -f FILENAME) [-p=KEY=VALUE]",
 		Short:   "Process a template into list of resources",
@@ -116,7 +115,7 @@ func NewCmdProcess(fullName string, f *clientcmd.Factory, in io.Reader, out, err
 }
 
 // RunProcess contains all the necessary functionality for the OpenShift cli process command
-func RunProcess(f *clientcmd.Factory, in io.Reader, out, errout io.Writer, cmd *cobra.Command, args []string) error {
+func RunProcess(f kcmdutil.Factory, in io.Reader, out, errout io.Writer, cmd *cobra.Command, args []string) error {
 	templateName, templateParams := "", []string{}
 	for _, s := range args {
 		isValue := strings.Contains(s, "=")

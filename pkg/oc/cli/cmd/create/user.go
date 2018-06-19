@@ -9,8 +9,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
 	userclientinternal "github.com/openshift/origin/pkg/user/generated/internalclientset"
 	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
@@ -48,7 +48,7 @@ type CreateUserOptions struct {
 }
 
 // NewCmdCreateUser is a macro command to create a new user
-func NewCmdCreateUser(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdCreateUser(name, fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
 	o := &CreateUserOptions{Out: out}
 
 	cmd := &cobra.Command{
@@ -68,7 +68,7 @@ func NewCmdCreateUser(name, fullName string, f *clientcmd.Factory, out io.Writer
 	return cmd
 }
 
-func (o *CreateUserOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, args []string) error {
+func (o *CreateUserOptions) Complete(cmd *cobra.Command, f kcmdutil.Factory, args []string) error {
 	switch len(args) {
 	case 0:
 		return fmt.Errorf("username is required")

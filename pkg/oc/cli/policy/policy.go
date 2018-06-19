@@ -7,12 +7,11 @@ import (
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	adminpolicy "github.com/openshift/origin/pkg/oc/admin/policy"
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
 const PolicyRecommendedName = "policy"
 
-func NewCmdPolicy(name, fullName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
+func NewCmdPolicy(name, fullName string, f cmdutil.Factory, out, errOut io.Writer) *cobra.Command {
 	// Parent command to which all subcommands are added.
 	cmds := &cobra.Command{
 		Use:   name,

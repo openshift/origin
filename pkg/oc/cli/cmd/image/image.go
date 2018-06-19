@@ -10,7 +10,6 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/oc/cli/cmd/image/mirror"
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
 var (
@@ -21,7 +20,7 @@ var (
 )
 
 // NewCmdImage exposes commands for modifying images.
-func NewCmdImage(fullName string, f *clientcmd.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
+func NewCmdImage(fullName string, f cmdutil.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
 	image := &cobra.Command{
 		Use:   "image COMMAND",
 		Short: "Useful commands for managing images",

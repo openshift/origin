@@ -12,7 +12,6 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
 	"github.com/openshift/origin/pkg/cmd/util/route"
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
 var (
@@ -52,7 +51,7 @@ var (
 )
 
 // NewCmdExpose is a wrapper for the Kubernetes cli expose command
-func NewCmdExpose(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdExpose(fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
 	cmd := kcmd.NewCmdExposeService(f, out)
 	cmd.Short = "Expose a replicated application as a service or route"
 	cmd.Long = exposeLong
@@ -82,7 +81,7 @@ func NewCmdExpose(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.C
 
 // validate adds one layer of validation prior to calling the upstream
 // expose command.
-func validate(cmd *cobra.Command, f *clientcmd.Factory, args []string) error {
+func validate(cmd *cobra.Command, f kcmdutil.Factory, args []string) error {
 	namespace, enforceNamespace, err := f.DefaultNamespace()
 	if err != nil {
 		return err

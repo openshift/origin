@@ -17,7 +17,6 @@ import (
 
 	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset"
 	"github.com/openshift/origin/pkg/oc/cli/config"
-	osclientcmd "github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
 type LogoutOptions struct {
@@ -48,7 +47,7 @@ var (
 )
 
 // NewCmdLogout implements the OpenShift cli logout command
-func NewCmdLogout(name, fullName, ocLoginFullCommand string, f *osclientcmd.Factory, reader io.Reader, out io.Writer) *cobra.Command {
+func NewCmdLogout(name, fullName, ocLoginFullCommand string, f kcmdutil.Factory, reader io.Reader, out io.Writer) *cobra.Command {
 	options := &LogoutOptions{
 		Out: out,
 	}
@@ -79,7 +78,7 @@ func NewCmdLogout(name, fullName, ocLoginFullCommand string, f *osclientcmd.Fact
 	return cmds
 }
 
-func (o *LogoutOptions) Complete(f *osclientcmd.Factory, cmd *cobra.Command, args []string) error {
+func (o *LogoutOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string) error {
 	kubeconfig, err := f.RawConfig()
 	o.StartingKubeConfig = &kubeconfig
 	if err != nil {

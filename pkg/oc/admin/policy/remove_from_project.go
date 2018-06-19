@@ -15,7 +15,6 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	authorizationutil "github.com/openshift/origin/pkg/authorization/util"
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
 const (
@@ -38,7 +37,7 @@ type RemoveFromProjectOptions struct {
 }
 
 // NewCmdRemoveGroupFromProject implements the OpenShift cli remove-group command
-func NewCmdRemoveGroupFromProject(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdRemoveGroupFromProject(name, fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
 	options := &RemoveFromProjectOptions{Out: out}
 
 	cmd := &cobra.Command{
@@ -66,7 +65,7 @@ func NewCmdRemoveGroupFromProject(name, fullName string, f *clientcmd.Factory, o
 }
 
 // NewCmdRemoveUserFromProject implements the OpenShift cli remove-user command
-func NewCmdRemoveUserFromProject(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdRemoveUserFromProject(name, fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
 	options := &RemoveFromProjectOptions{Out: out}
 
 	cmd := &cobra.Command{
@@ -93,7 +92,7 @@ func NewCmdRemoveUserFromProject(name, fullName string, f *clientcmd.Factory, ou
 	return cmd
 }
 
-func (o *RemoveFromProjectOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string, target *[]string, targetName string) error {
+func (o *RemoveFromProjectOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string, target *[]string, targetName string) error {
 	if len(args) < 1 {
 		return fmt.Errorf("you must specify at least one argument: <%s> [%s]...", targetName, targetName)
 	}
@@ -122,7 +121,7 @@ func (o *RemoveFromProjectOptions) Complete(f *clientcmd.Factory, cmd *cobra.Com
 	return nil
 }
 
-func (o *RemoveFromProjectOptions) Validate(f *clientcmd.Factory, cmd *cobra.Command, args []string) error {
+func (o *RemoveFromProjectOptions) Validate(f kcmdutil.Factory, cmd *cobra.Command, args []string) error {
 	if len(o.Output) > 0 && o.Output != "yaml" && o.Output != "json" {
 		return fmt.Errorf("invalid output format %q, only yaml|json supported", o.Output)
 	}

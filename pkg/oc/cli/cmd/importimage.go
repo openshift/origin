@@ -23,7 +23,6 @@ import (
 	imageclientinternal "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	"github.com/openshift/origin/pkg/oc/cli/describe"
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	quotautil "github.com/openshift/origin/pkg/quota/util"
 )
 
@@ -47,7 +46,7 @@ var (
 )
 
 // NewCmdImportImage implements the OpenShift cli import-image command.
-func NewCmdImportImage(fullName string, f *clientcmd.Factory, out, errout io.Writer) *cobra.Command {
+func NewCmdImportImage(fullName string, f kcmdutil.Factory, out, errout io.Writer) *cobra.Command {
 	opts := &ImportImageOptions{}
 	cmd := &cobra.Command{
 		Use:     "import-image IMAGESTREAM[:TAG]",
@@ -100,7 +99,7 @@ type ImportImageOptions struct {
 
 // Complete turns a partially defined ImportImageOptions into a solvent structure
 // which can be validated and used for aa import.
-func (o *ImportImageOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string, commandName string, out, errout io.Writer) error {
+func (o *ImportImageOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string, commandName string, out, errout io.Writer) error {
 	o.CommandName = commandName
 
 	if len(args) > 0 {

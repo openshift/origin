@@ -14,7 +14,6 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	securityclientinternal "github.com/openshift/origin/pkg/security/generated/internalclientset"
 	securitytypedclient "github.com/openshift/origin/pkg/security/generated/internalclientset/typed/security/internalversion"
 )
@@ -50,7 +49,7 @@ type SCCModificationOptions struct {
 	Out      io.Writer
 }
 
-func NewCmdAddSCCToGroup(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdAddSCCToGroup(name, fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
 	options := &SCCModificationOptions{}
 
 	cmd := &cobra.Command{
@@ -73,7 +72,7 @@ func NewCmdAddSCCToGroup(name, fullName string, f *clientcmd.Factory, out io.Wri
 	return cmd
 }
 
-func NewCmdAddSCCToUser(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdAddSCCToUser(name, fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
 	options := &SCCModificationOptions{}
 	saNames := []string{}
 
@@ -100,7 +99,7 @@ func NewCmdAddSCCToUser(name, fullName string, f *clientcmd.Factory, out io.Writ
 	return cmd
 }
 
-func NewCmdRemoveSCCFromGroup(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdRemoveSCCFromGroup(name, fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
 	options := &SCCModificationOptions{}
 
 	cmd := &cobra.Command{
@@ -123,7 +122,7 @@ func NewCmdRemoveSCCFromGroup(name, fullName string, f *clientcmd.Factory, out i
 	return cmd
 }
 
-func NewCmdRemoveSCCFromUser(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdRemoveSCCFromUser(name, fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
 	options := &SCCModificationOptions{}
 	saNames := []string{}
 
@@ -149,7 +148,7 @@ func NewCmdRemoveSCCFromUser(name, fullName string, f *clientcmd.Factory, out io
 	return cmd
 }
 
-func (o *SCCModificationOptions) CompleteUsers(f *clientcmd.Factory, cmd *cobra.Command, args []string, saNames []string, out io.Writer) error {
+func (o *SCCModificationOptions) CompleteUsers(f kcmdutil.Factory, cmd *cobra.Command, args []string, saNames []string, out io.Writer) error {
 	if len(args) < 1 {
 		return errors.New("you must specify a scc")
 	}
@@ -191,7 +190,7 @@ func (o *SCCModificationOptions) CompleteUsers(f *clientcmd.Factory, cmd *cobra.
 	return nil
 }
 
-func (o *SCCModificationOptions) CompleteGroups(f *clientcmd.Factory, cmd *cobra.Command, args []string, out io.Writer) error {
+func (o *SCCModificationOptions) CompleteGroups(f kcmdutil.Factory, cmd *cobra.Command, args []string, out io.Writer) error {
 	if len(args) < 2 {
 		return errors.New("you must specify at least two arguments: <scc> <group> [group]...")
 	}

@@ -70,7 +70,7 @@ func NewFactory(optionalClientConfig kclientcmd.ClientConfig) *Factory {
 
 // PrintResourceInfos receives a list of resource infos and prints versioned objects if a generic output format was specified
 // otherwise, it iterates through info objects, printing each resource with a unique printer for its mapping
-func (f *Factory) PrintResourceInfos(cmd *cobra.Command, isLocal bool, infos []*resource.Info, out io.Writer) error {
+func PrintResourceInfos(f kcmdutil.Factory, cmd *cobra.Command, isLocal bool, infos []*resource.Info, out io.Writer) error {
 	// mirrors PrintResourceInfoForCommand upstream
 	opts := kcmdutil.ExtractCmdPrintOptions(cmd, false)
 	printer, err := kcmdutil.PrinterForOptions(opts)
