@@ -100,7 +100,7 @@ func (c *BuildConfigController) handleBuildConfig(bc *buildapi.BuildConfig) erro
 	glog.V(4).Infof("Handling BuildConfig %s", bcDesc(bc))
 
 	if err := buildutil.HandleBuildPruning(bc.Name, bc.Namespace, c.buildLister, c.buildConfigGetter, c.buildDeleter); err != nil {
-		utilruntime.HandleError(err)
+		utilruntime.HandleError(fmt.Errorf("failed to prune builds for %s/%s: %v", bc.Namespace, bc.Name, err))
 	}
 
 	hasChangeTrigger := buildapi.HasTriggerType(buildapi.ConfigChangeBuildTriggerType, bc)
