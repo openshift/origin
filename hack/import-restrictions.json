@@ -551,5 +551,15 @@
       "vendor/k8s.io/kubernetes/pkg/registry/rbac/reconciliation",
       "vendor/k8s.io/kubernetes/pkg/registry/rbac/validation"
     ]
+  },
+
+  {
+  "checkedPackageRoots": [
+    "github.com/openshift/origin"
+  ],
+  "forbiddenImportPackageRoots": [
+    "k8s.io/kubernetes/staging"
+  ]
   }
+
 ]
