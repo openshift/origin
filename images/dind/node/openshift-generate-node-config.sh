@@ -51,6 +51,12 @@ function ensure-node-config() {
       ip_addrs="${ip_addr1}"
     fi
 
+    local image_format=${OPENSHIFT_IMAGE_FORMAT:-}
+    local image_format_str=""
+    if [[ -n "${image_format}" ]]; then
+      image_format_str="--images=${image_format}"
+    fi
+
     # Hold a lock on the shared volume to ensure cert generation is
     # performed serially.  Cert generation is not compatible with
     # concurrent execution since the file passed to --signer-serial
@@ -61,6 +67,7 @@ function ensure-node-config() {
        --node="${host}" \
        --master="${master_host}" \
        --dns-ip="172.30.0.1" \
+       ${image_format_str} \
        --hostnames="${host},${ip_addrs}" \
        --network-plugin="${OPENSHIFT_NETWORK_PLUGIN}" \
        --node-client-certificate-authority="${master_config_path}/ca.crt" \

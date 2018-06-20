@@ -36,6 +36,12 @@ function ensure-master-config() {
     serving_ip_addr="${ip_addr1}"
   fi
 
+  local image_format=${OPENSHIFT_IMAGE_FORMAT:-}
+  local image_format_str=""
+  if [[ -n "${image_format}" ]]; then
+    image_format_str="--images=${image_format}"
+  fi
+
   mkdir -p "${config_path}"
   (flock 200;
    /usr/local/bin/oc adm ca create-master-certs \
@@ -46,6 +52,7 @@ function ensure-master-config() {
 
    /usr/local/bin/openshift start master --write-config="${master_path}" \
      --master="https://${serving_ip_addr}:8443" \
+     ${image_format_str} \
      --network-plugin="${OPENSHIFT_NETWORK_PLUGIN}" \
      ${OPENSHIFT_ADDITIONAL_ARGS}
   ) 200>"${config_path}"/.openshift-ca.lock
