@@ -36,7 +36,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
-	"k8s.io/kubernetes/pkg/kubectl/resource"
+	oldresource "k8s.io/kubernetes/pkg/kubectl/resource"
 
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	"github.com/openshift/origin/pkg/util/proc"
@@ -160,15 +160,21 @@ var (
 	  %[1]s observe services -a '{ .spec.clusterIP }' -- register_dns.sh`)
 )
 
-// NewCmdObserve creates the observe command.
-func NewCmdObserve(fullName string, f *clientcmd.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	options := &ObserveOptions{
-		baseCommandName: fullName,
+func NewObserveOptions(baseName string, streams genericclioptions.IOStreams) *ObserveOptions {
+	return &ObserveOptions{
+		IOStreams: streams,
+
+		baseCommandName: baseName,
 		retryCount:      2,
 		templateType:    "jsonpath",
 		maximumErrors:   20,
 		listenAddr:      ":11251",
 	}
+}
+
+// NewCmdObserve creates the observe command.
+func NewCmdObserve(fullName string, f *clientcmd.Factory, streams genericclioptions.IOStreams) *cobra.Command {
+	o := NewObserveOptions(fullName, streams)
 
 	cmd := &cobra.Command{
 		Use:     "observe RESOURCE [-- COMMAND ...]",
@@ -176,58 +182,59 @@ func NewCmdObserve(fullName string, f *clientcmd.Factory, streams genericcliopti
 		Long:    fmt.Sprintf(observeLong, fullName),
 		Example: fmt.Sprintf(observeExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := options.Complete(f, cmd, args, streams.Out, streams.ErrOut); err != nil {
+			if err := o.Complete(f, cmd, args); err != nil {
 				cmdutil.CheckErr(err)
 			}
 
-			if err := options.Validate(args); err != nil {
+			if err := o.Validate(args); err != nil {
 				cmdutil.CheckErr(cmdutil.UsageErrorf(cmd, err.Error()))
 			}
 
-			if err := options.Run(); err != nil {
+			if err := o.Run(); err != nil {
 				cmdutil.CheckErr(err)
 			}
 		},
 	}
 
 	// flags controlling what to select
-	cmd.Flags().BoolVar(&options.allNamespaces, "all-namespaces", false, "If true, list the requested object(s) across all projects. Project in current context is ignored.")
+	cmd.Flags().BoolVar(&o.allNamespaces, "all-namespaces", false, "If true, list the requested object(s) across all projects. Project in current context is ignored.")
 
 	// to perform deletion synchronization
-	cmd.Flags().VarP(&options.deleteCommand, "delete", "d", "A command to run when resources are deleted. Specify multiple times to add arguments.")
-	cmd.Flags().Var(&options.nameSyncCommand, "names", "A command that will list all of the currently known names, optional. Specify multiple times to add arguments. Use to get notifications when objects are deleted.")
+	cmd.Flags().VarP(&o.deleteCommand, "delete", "d", "A command to run when resources are deleted. Specify multiple times to add arguments.")
+	cmd.Flags().Var(&o.nameSyncCommand, "names", "A command that will list all of the currently known names, optional. Specify multiple times to add arguments. Use to get notifications when objects are deleted.")
 
 	// add additional arguments / info to the server
-	cmd.Flags().StringVar(&options.templateType, "output", options.templateType, "Controls the template type used for the --argument flags. Supported values are gotemplate and jsonpath.")
-	cmd.Flags().BoolVar(&options.strictTemplates, "strict-templates", false, "If true return an error on any field or map key that is not missing in a template.")
-	cmd.Flags().VarP(&options.templates, "argument", "a", "Template for the arguments to be passed to each command in the format defined by --output.")
-	cmd.Flags().StringVar(&options.typeEnvVar, "type-env-var", "", "The name of an env var to set with the type of event received ('Sync', 'Updated', 'Deleted', 'Added') to the reaction command or --delete.")
-	cmd.Flags().StringVar(&options.objectEnvVar, "object-env-var", "", "The name of an env var to serialize the object to when calling the command, optional.")
+	cmd.Flags().StringVar(&o.templateType, "output", o.templateType, "Controls the template type used for the --argument flags. Supported values are gotemplate and jsonpath.")
+	cmd.Flags().BoolVar(&o.strictTemplates, "strict-templates", false, "If true return an error on any field or map key that is not missing in a template.")
+	cmd.Flags().VarP(&o.templates, "argument", "a", "Template for the arguments to be passed to each command in the format defined by --output.")
+	cmd.Flags().StringVar(&o.typeEnvVar, "type-env-var", "", "The name of an env var to set with the type of event received ('Sync', 'Updated', 'Deleted', 'Added') to the reaction command or --delete.")
+	cmd.Flags().StringVar(&o.objectEnvVar, "object-env-var", "", "The name of an env var to serialize the object to when calling the command, optional.")
 
 	// control retries of individual commands
-	cmd.Flags().IntVar(&options.maximumErrors, "maximum-errors", options.maximumErrors, "Exit after this many errors have been detected with. May be set to -1 for no maximum.")
-	cmd.Flags().IntVar(&options.retryExitStatus, "retry-on-exit-code", 0, "If any command returns this exit code, retry up to --retry-count times.")
-	cmd.Flags().IntVar(&options.retryCount, "retry-count", options.retryCount, "The number of times to retry a failing command before continuing.")
+	cmd.Flags().IntVar(&o.maximumErrors, "maximum-errors", o.maximumErrors, "Exit after this many errors have been detected with. May be set to -1 for no maximum.")
+	cmd.Flags().IntVar(&o.retryExitStatus, "retry-on-exit-code", 0, "If any command returns this exit code, retry up to --retry-count times.")
+	cmd.Flags().IntVar(&o.retryCount, "retry-count", o.retryCount, "The number of times to retry a failing command before continuing.")
 
 	// control observe program behavior
-	cmd.Flags().BoolVar(&options.once, "once", false, "If true, exit with a status code 0 after all current objects have been processed.")
-	cmd.Flags().DurationVar(&options.exitAfterPeriod, "exit-after", 0, "Exit with status code 0 after the provided duration, optional.")
-	cmd.Flags().DurationVar(&options.resyncPeriod, "resync-period", 0, "When non-zero, periodically reprocess every item from the server as a Sync event. Use to ensure external systems are kept up to date.")
-	cmd.Flags().BoolVar(&options.printMetricsOnExit, "print-metrics-on-exit", false, "If true, on exit write all metrics to stdout.")
-	cmd.Flags().StringVar(&options.listenAddr, "listen-addr", options.listenAddr, "The name of an interface to listen on to expose metrics and health checking.")
+	cmd.Flags().BoolVar(&o.once, "once", false, "If true, exit with a status code 0 after all current objects have been processed.")
+	cmd.Flags().DurationVar(&o.exitAfterPeriod, "exit-after", 0, "Exit with status code 0 after the provided duration, optional.")
+	cmd.Flags().DurationVar(&o.resyncPeriod, "resync-period", 0, "When non-zero, periodically reprocess every item from the server as a Sync event. Use to ensure external systems are kept up to date.")
+	cmd.Flags().BoolVar(&o.printMetricsOnExit, "print-metrics-on-exit", false, "If true, on exit write all metrics to stdout.")
+	cmd.Flags().StringVar(&o.listenAddr, "listen-addr", o.listenAddr, "The name of an interface to listen on to expose metrics and health checking.")
 
 	// additional debug output
-	cmd.Flags().BoolVar(&options.noHeaders, "no-headers", false, "If true, skip printing information about each event prior to executing the command.")
+	cmd.Flags().BoolVar(&o.noHeaders, "no-headers", false, "If true, skip printing information about each event prior to executing the command.")
 
 	return cmd
 }
 
 type ObserveOptions struct {
-	out, errOut io.Writer
-	debugOut    io.Writer
-	noHeaders   bool
+	genericclioptions.IOStreams
 
-	client           resource.RESTClient
+	debugOut  io.Writer
+	noHeaders bool
+
+	client           oldresource.RESTClient
 	mapping          *meta.RESTMapping
 	includeNamespace bool
 
@@ -272,7 +279,7 @@ type ObserveOptions struct {
 	baseCommandName string
 }
 
-func (o *ObserveOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string, out, errOut io.Writer) error {
+func (o *ObserveOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string) error {
 	var err error
 
 	var command []string
@@ -337,11 +344,10 @@ func (o *ObserveOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args
 		return fmt.Errorf("template type %q not recognized - valid values are jsonpath and gotemplate", o.templateType)
 	}
 	o.printer = NewVersionedColumnPrinter(o.printer, o.mapping.ObjectConvertor, version.GroupVersion())
-	o.out, o.errOut = out, errOut
 	if o.noHeaders {
 		o.debugOut = ioutil.Discard
 	} else {
-		o.debugOut = out
+		o.debugOut = o.Out
 	}
 
 	o.argumentStore = &objectArgumentsStore{}
@@ -394,12 +400,12 @@ func (o *ObserveOptions) Validate(args []string) error {
 
 func (o *ObserveOptions) Run() error {
 	if len(o.deleteCommand) > 0 && len(o.nameSyncCommand) == 0 {
-		fmt.Fprintf(o.errOut, "warning: If you are modifying resources outside of %q, you should use the --names command to ensure you don't miss deletions that occur while the command is not running.\n", o.mapping.Resource)
+		fmt.Fprintf(o.ErrOut, "warning: If you are modifying resources outside of %q, you should use the --names command to ensure you don't miss deletions that occur while the command is not running.\n", o.mapping.Resource)
 	}
 
 	// watch the given resource for changes
 	store := cache.NewDeltaFIFO(objectArgumentsKeyFunc, o.knownObjects)
-	lw := restListWatcher{Helper: resource.NewHelper(o.client, o.mapping)}
+	lw := restListWatcher{Helper: oldresource.NewHelper(o.client, o.mapping)}
 	if !o.allNamespaces {
 		lw.namespace = o.namespace
 	}
@@ -435,7 +441,7 @@ func (o *ObserveOptions) Run() error {
 			lock.Lock()
 			defer lock.Unlock()
 			o.dumpMetrics()
-			fmt.Fprintf(o.errOut, "Shutting down after %s ...\n", o.exitAfterPeriod)
+			fmt.Fprintf(o.ErrOut, "Shutting down after %s ...\n", o.exitAfterPeriod)
 			os.Exit(0)
 		}()
 	}
@@ -467,7 +473,7 @@ func (o *ObserveOptions) Run() error {
 		}
 		// if the store is empty, there is nothing to sync
 		if store.HasSynced() && len(store.ListKeys()) == 0 {
-			fmt.Fprintf(o.errOut, "Nothing to sync, exiting immediately\n")
+			fmt.Fprintf(o.ErrOut, "Nothing to sync, exiting immediately\n")
 			return nil
 		}
 	}
@@ -669,7 +675,7 @@ func (o *ObserveOptions) next(deltaType cache.DeltaType, obj runtime.Object, out
 
 	fmt.Fprintf(o.debugOut, "# %s %s %s\t%s\n", time.Now().Format(time.RFC3339), outType, resourceVersion, printCommandLine(command, args...))
 
-	out, errOut := &newlineTrailingWriter{w: o.out}, &newlineTrailingWriter{w: o.errOut}
+	out, errOut := &newlineTrailingWriter{w: o.Out}, &newlineTrailingWriter{w: o.ErrOut}
 
 	err = retryCommandError(o.retryExitStatus, o.retryCount, func() error {
 		cmd := exec.Command(command, args...)
@@ -701,7 +707,7 @@ func (o *ObserveOptions) handleCommandError(err error) error {
 		return nil
 	}
 	o.observedErrors++
-	fmt.Fprintf(o.errOut, "error: %v\n", err)
+	fmt.Fprintf(o.ErrOut, "error: %v\n", err)
 	if o.maximumErrors == -1 || o.observedErrors < o.maximumErrors {
 		return nil
 	}
@@ -715,7 +721,7 @@ func (o *ObserveOptions) dumpMetrics() {
 	w := httptest.NewRecorder()
 	prometheus.UninstrumentedHandler().ServeHTTP(w, &http.Request{})
 	if w.Code == http.StatusOK {
-		fmt.Fprintf(o.out, w.Body.String())
+		fmt.Fprintf(o.Out, w.Body.String())
 	}
 }
 
@@ -799,7 +805,7 @@ func printCommandLine(cmd string, args ...string) string {
 }
 
 type restListWatcher struct {
-	*resource.Helper
+	*oldresource.Helper
 	namespace string
 }
 
