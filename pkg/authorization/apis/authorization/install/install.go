@@ -5,14 +5,12 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
-	"github.com/openshift/origin/pkg/api/legacy"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/authorization/apis/authorization/rbacconversion"
 	authorizationapiv1 "github.com/openshift/origin/pkg/authorization/apis/authorization/v1"
 )
 
 func init() {
-	legacy.InstallLegacyAuthorization(legacyscheme.Scheme)
 	Install(legacyscheme.Scheme)
 }
 

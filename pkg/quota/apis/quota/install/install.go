@@ -5,13 +5,11 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
-	"github.com/openshift/origin/pkg/api/legacy"
 	quotaapi "github.com/openshift/origin/pkg/quota/apis/quota"
 	quotaapiv1 "github.com/openshift/origin/pkg/quota/apis/quota/v1"
 )
 
 func init() {
-	legacy.InstallLegacyQuota(legacyscheme.Scheme)
 	Install(legacyscheme.Scheme)
 }
 

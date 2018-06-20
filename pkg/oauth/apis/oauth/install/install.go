@@ -5,13 +5,11 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
-	"github.com/openshift/origin/pkg/api/legacy"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
 	oauthapiv1 "github.com/openshift/origin/pkg/oauth/apis/oauth/v1"
 )
 
 func init() {
-	legacy.InstallLegacyOAuth(legacyscheme.Scheme)
 	Install(legacyscheme.Scheme)
 }
 

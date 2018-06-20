@@ -5,13 +5,11 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
-	"github.com/openshift/origin/pkg/api/legacy"
 	sdnapi "github.com/openshift/origin/pkg/network/apis/network"
 	sdnapiv1 "github.com/openshift/origin/pkg/network/apis/network/v1"
 )
 
 func init() {
-	legacy.InstallLegacyNetwork(legacyscheme.Scheme)
 	Install(legacyscheme.Scheme)
 }
 

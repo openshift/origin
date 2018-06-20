@@ -5,13 +5,11 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
-	"github.com/openshift/origin/pkg/api/legacy"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
 	userapiv1 "github.com/openshift/origin/pkg/user/apis/user/v1"
 )
 
 func init() {
-	legacy.InstallLegacyUser(legacyscheme.Scheme)
 	Install(legacyscheme.Scheme)
 }
 

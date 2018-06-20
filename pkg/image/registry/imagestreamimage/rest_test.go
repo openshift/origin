@@ -6,16 +6,16 @@ import (
 	etcd "github.com/coreos/etcd/clientv3"
 	"golang.org/x/net/context"
 
-	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/storage/etcd/etcdtest"
 	etcdtesting "k8s.io/apiserver/pkg/storage/etcd/testing"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	authorizationapi "k8s.io/kubernetes/pkg/apis/authorization"
-	"k8s.io/kubernetes/pkg/registry/registrytest"
 
+	imagev1 "github.com/openshift/api/image/v1"
 	admfake "github.com/openshift/origin/pkg/image/admission/fake"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/apis/image/validation/fake"
@@ -38,7 +38,8 @@ func (f *fakeSubjectAccessReviewRegistry) Create(subjectAccessReview *authorizat
 }
 
 func setup(t *testing.T) (etcd.KV, *etcdtesting.EtcdTestServer, *REST) {
-	etcdStorage, server := registrytest.NewEtcdStorage(t, "")
+	server, etcdStorage := etcdtesting.NewUnsecuredEtcd3TestClientServer(t)
+	etcdStorage.Codec = legacyscheme.Codecs.LegacyCodec(schema.GroupVersion{Group: "image.openshift.io", Version: "v1"})
 	etcdClient := etcd.NewKV(server.V3Client)
 
 	imageStorage, err := imageetcd.NewREST(restoptions.NewSimpleGetter(etcdStorage))
@@ -206,7 +207,7 @@ func TestGet(t *testing.T) {
 				_, err := client.Put(
 					context.TODO(),
 					etcdtest.AddPrefix("/imagestreams/"+test.repo.Namespace+"/"+test.repo.Name),
-					runtime.EncodeOrDie(legacyscheme.Codecs.LegacyCodec(v1.SchemeGroupVersion), test.repo),
+					runtime.EncodeOrDie(legacyscheme.Codecs.LegacyCodec(imagev1.SchemeGroupVersion), test.repo),
 				)
 				if err != nil {
 					t.Errorf("Unexpected error: %v", err)
@@ -217,7 +218,7 @@ func TestGet(t *testing.T) {
 				_, err := client.Put(
 					context.TODO(),
 					etcdtest.AddPrefix("/images/"+test.image.Name),
-					runtime.EncodeOrDie(legacyscheme.Codecs.LegacyCodec(v1.SchemeGroupVersion), test.image),
+					runtime.EncodeOrDie(legacyscheme.Codecs.LegacyCodec(imagev1.SchemeGroupVersion), test.image),
 				)
 				if err != nil {
 					t.Errorf("Unexpected error: %v", err)
