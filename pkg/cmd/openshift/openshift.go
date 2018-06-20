@@ -35,7 +35,7 @@ var (
 
 // CommandFor returns the appropriate command for this base name,
 // or the global OpenShift command
-func CommandFor(basename string, stopCh <-chan struct{}) *cobra.Command {
+func CommandFor(basename string) *cobra.Command {
 	var cmd *cobra.Command
 
 	// Make case-insensitive and strip executable suffix if present
@@ -46,7 +46,7 @@ func CommandFor(basename string, stopCh <-chan struct{}) *cobra.Command {
 
 	switch basename {
 	default:
-		cmd = NewCommandOpenShift("openshift", stopCh)
+		cmd = NewCommandOpenShift("openshift")
 	}
 
 	if cmd.UsageFunc() == nil {
@@ -58,7 +58,7 @@ func CommandFor(basename string, stopCh <-chan struct{}) *cobra.Command {
 }
 
 // NewCommandOpenShift creates the standard OpenShift command
-func NewCommandOpenShift(name string, stopCh <-chan struct{}) *cobra.Command {
+func NewCommandOpenShift(name string) *cobra.Command {
 	out, errout := os.Stdout, os.Stderr
 
 	root := &cobra.Command{
@@ -68,7 +68,7 @@ func NewCommandOpenShift(name string, stopCh <-chan struct{}) *cobra.Command {
 		Run:   kcmdutil.DefaultSubCommandRun(out),
 	}
 
-	startAllInOne, _ := start.NewCommandStartAllInOne(name, out, errout, stopCh)
+	startAllInOne, _ := start.NewCommandStartAllInOne(name, out, errout)
 	root.AddCommand(startAllInOne)
 	root.AddCommand(newCompletionCommand("completion", name+" completion"))
 	root.AddCommand(cmdversion.NewCmdVersion(name, osversion.Get(), os.Stdout))
