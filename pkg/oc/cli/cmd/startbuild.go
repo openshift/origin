@@ -87,13 +87,15 @@ var (
 	  %[1]s start-build hello-world --wait`)
 )
 
+func NewStartBuildOptions(streams genericclioptions.IOStreams) *StartBuildOptions {
+	return &StartBuildOptions{
+		IOStreams: streams,
+	}
+}
+
 // NewCmdStartBuild implements the OpenShift cli start-build command
 func NewCmdStartBuild(fullName string, f *clientcmd.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	o := &StartBuildOptions{
-		In:     streams.In,
-		Out:    streams.Out,
-		ErrOut: streams.ErrOut,
-	}
+	o := NewStartBuildOptions(streams)
 
 	cmd := &cobra.Command{
 		Use:        "start-build (BUILDCONFIG | --from-build=BUILD)",
@@ -134,9 +136,9 @@ func NewCmdStartBuild(fullName string, f *clientcmd.Factory, streams genericclio
 }
 
 type StartBuildOptions struct {
-	In          io.Reader
-	Out, ErrOut io.Writer
-	Git         git.Repository
+	genericclioptions.IOStreams
+
+	Git git.Repository
 
 	FromBuild    string
 	FromWebhook  string
