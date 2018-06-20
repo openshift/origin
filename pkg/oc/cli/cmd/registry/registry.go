@@ -36,8 +36,8 @@ func NewCmd(fullName string, f *clientcmd.Factory, streams genericclioptions.IOS
 		{
 			Message: "Advanced commands:",
 			Commands: []*cobra.Command{
-				info.New(name, f, streams.Out, streams.ErrOut),
-				login.New(name, f, streams.Out, streams.ErrOut),
+				info.New(name, f, streams),
+				login.New(name, f, streams),
 			},
 		},
 	}

@@ -27,6 +27,7 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/registryclient"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 )
 
 var (
@@ -79,24 +80,26 @@ func (c Credentials) Empty() bool {
 }
 
 type LoginOptions struct {
+	genericclioptions.IOStreams
+
 	ConfigFile      string
 	Credentials     Credentials
 	HostPort        string
 	SkipCheck       bool
 	CreateDirectory bool
 
-	Out    io.Writer
-	ErrOut io.Writer
-
 	ServiceAccount string
 }
 
-// New logs you in to a docker registry locally.
-func New(name string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
-	o := &LoginOptions{
-		Out:    out,
-		ErrOut: errOut,
+func NewRegistryLoginOptions(streams genericclioptions.IOStreams) *LoginOptions {
+	return &LoginOptions{
+		IOStreams: streams,
 	}
+}
+
+// New logs you in to a docker registry locally.
+func New(name string, f *clientcmd.Factory, streams genericclioptions.IOStreams) *cobra.Command {
+	o := NewRegistryLoginOptions(streams)
 
 	cmd := &cobra.Command{
 		Use:     "login ",

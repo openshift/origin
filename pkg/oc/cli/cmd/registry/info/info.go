@@ -2,7 +2,6 @@ package info
 
 import (
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 
@@ -17,6 +16,7 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/registryclient"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 )
 
 var (
@@ -37,6 +37,8 @@ var (
 )
 
 type Options struct {
+	genericclioptions.IOStreams
+
 	Check        bool
 	Quiet        bool
 	ShowInternal bool
@@ -44,17 +46,17 @@ type Options struct {
 
 	Namespaces []string
 	Client     imageclient.Interface
+}
 
-	Out    io.Writer
-	ErrOut io.Writer
+func NewRegistryInfoOptions(streams genericclioptions.IOStreams) *Options {
+	return &Options{
+		IOStreams: streams,
+	}
 }
 
 // New creates a command that displays info about the registry.
-func New(name string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
-	o := &Options{
-		Out:    out,
-		ErrOut: errOut,
-	}
+func New(name string, f *clientcmd.Factory, streams genericclioptions.IOStreams) *cobra.Command {
+	o := NewRegistryInfoOptions(streams)
 
 	cmd := &cobra.Command{
 		Use:     "info ",
