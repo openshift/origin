@@ -31,6 +31,7 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/ghodss/yaml"
+	"k8s.io/client-go/restmapper"
 
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -270,7 +271,14 @@ func newDefaultBuilder() *Builder {
 }
 
 func newDefaultBuilderWith(fakeClientFn FakeClientFunc) *Builder {
-	return NewFakeBuilder(fakeClientFn, testrestmapper.TestOnlyStaticRESTMapper(scheme.Scheme), FakeCategoryExpander).
+	return NewFakeBuilder(
+		fakeClientFn,
+		func() (meta.RESTMapper, error) {
+			return testrestmapper.TestOnlyStaticRESTMapper(scheme.Scheme), nil
+		},
+		func() (restmapper.CategoryExpander, error) {
+			return FakeCategoryExpander, nil
+		}).
 		WithScheme(scheme.Scheme, scheme.Scheme.PrioritizedVersionsAllGroups()...)
 }
 
