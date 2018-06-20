@@ -311,7 +311,7 @@ install -d -m 0755 %{buildroot}%{_sysconfdir}/origin/{master,node}
 # different service for origin vs aos
 # install -m 0644 contrib/systemd/%{name}-node.service %{buildroot}%{_unitdir}/%{name}-node.service
 # same sysconfig files for origin vs aos
-install -m 0644 contrib/systemd/origin-node.sysconfig %{buildroot}%{_sysconfdir}/sysconfig/%{name}-node
+install -m 0644 contrib/systemd/node/origin-node.sysconfig %{buildroot}%{_sysconfdir}/sysconfig/%{name}-node
 
 # Install man1 man pages
 install -d -m 0755 %{buildroot}%{_mandir}/man1

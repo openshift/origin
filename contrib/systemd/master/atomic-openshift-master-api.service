@@ -1,0 +1,16 @@
+[Unit]
+Description=Atomic OpenShift Master API
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=simple
+TimeoutStartSec=10m
+ExecStart=/usr/local/bin/atomic-openshift-master-api start
+ExecStop=-/usr/local/bin/atomic-openshift-master-api stop
+Restart=always
+RestartSec=30
+
+[Install]
+WantedBy=default.target
+
