@@ -3,7 +3,6 @@ package cmd
 import (
 	"errors"
 	"fmt"
-	"io"
 	"strings"
 
 	"github.com/golang/glog"
@@ -27,7 +26,7 @@ import (
 
 // TagOptions contains all the necessary options for the cli tag command.
 type TagOptions struct {
-	out io.Writer
+	genericclioptions.IOStreams
 
 	isGetter    imageclient.ImageStreamsGetter
 	isTagGetter imageclient.ImageStreamTagsGetter
@@ -84,9 +83,15 @@ const (
 	localReferencePolicy  = "local"
 )
 
+func NewTagOptions(streams genericclioptions.IOStreams) *TagOptions {
+	return &TagOptions{
+		IOStreams: streams,
+	}
+}
+
 // NewCmdTag implements the OpenShift cli tag command.
 func NewCmdTag(fullName string, f *clientcmd.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	opts := &TagOptions{}
+	opts := NewTagOptions(streams)
 
 	cmd := &cobra.Command{
 		Use:     "tag [--source=SOURCETYPE] SOURCE DEST [DEST ...]",
@@ -94,7 +99,7 @@ func NewCmdTag(fullName string, f *clientcmd.Factory, streams genericclioptions.
 		Long:    tagLong,
 		Example: fmt.Sprintf(tagExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
-			kcmdutil.CheckErr(opts.Complete(f, cmd, args, streams.Out))
+			kcmdutil.CheckErr(opts.Complete(f, cmd, args))
 			kcmdutil.CheckErr(opts.Validate())
 			kcmdutil.CheckErr(opts.Run())
 		},
@@ -151,13 +156,10 @@ func determineSourceKind(f *clientcmd.Factory, input string) string {
 }
 
 // Complete completes all the required options for the tag command.
-func (o *TagOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string, out io.Writer) error {
+func (o *TagOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string) error {
 	if len(args) < 2 && (len(args) < 1 && !o.deleteTag) {
 		return kcmdutil.UsageErrorf(cmd, "you must specify a source and at least one destination or one or more tags to delete")
 	}
-
-	// Setup writer.
-	o.out = out
 
 	// Setup clients.
 	clientConfig, err := f.ClientConfig()
@@ -305,7 +307,7 @@ func (o TagOptions) Validate() error {
 	if o.isGetter == nil || o.isTagGetter == nil {
 		return errors.New("a client is required")
 	}
-	if o.out == nil {
+	if o.Out == nil {
 		return errors.New("a writer interface is required")
 	}
 
@@ -386,7 +388,7 @@ func (o TagOptions) Run() error {
 				err := o.isTagGetter.ImageStreamTags(o.destNamespace[i]).Delete(imageapi.JoinImageStreamTag(destName, destTag), &metav1.DeleteOptions{})
 				switch {
 				case err == nil:
-					fmt.Fprintf(o.out, "Deleted tag %s/%s.\n", o.destNamespace[i], destNameAndTag)
+					fmt.Fprintf(o.Out, "Deleted tag %s/%s.\n", o.destNamespace[i], destNameAndTag)
 					return nil
 
 				case kerrors.IsMethodNotSupported(err), kerrors.IsForbidden(err):
@@ -405,7 +407,7 @@ func (o TagOptions) Run() error {
 
 					// Nothing to do here, continue to the next dest tag
 					// if there is any.
-					fmt.Fprintf(o.out, "Image stream %q does not exist.\n", destName)
+					fmt.Fprintf(o.Out, "Image stream %q does not exist.\n", destName)
 					return nil
 				}
 
@@ -419,7 +421,7 @@ func (o TagOptions) Run() error {
 					return err
 				}
 
-				fmt.Fprintf(o.out, "Deleted tag %s/%s.\n", o.destNamespace[i], destNameAndTag)
+				fmt.Fprintf(o.Out, "Deleted tag %s/%s.\n", o.destNamespace[i], destNameAndTag)
 				return nil
 			}
 
@@ -486,7 +488,7 @@ func (o TagOptions) Run() error {
 			_, err := o.isTagGetter.ImageStreamTags(o.destNamespace[i]).Update(istag)
 			switch {
 			case err == nil:
-				fmt.Fprintln(o.out, msg)
+				fmt.Fprintln(o.Out, msg)
 				return nil
 
 			case kerrors.IsMethodNotSupported(err), kerrors.IsForbidden(err), kerrors.IsNotFound(err):
@@ -494,7 +496,7 @@ func (o TagOptions) Run() error {
 				_, err := o.isTagGetter.ImageStreamTags(o.destNamespace[i]).Create(istag)
 				switch {
 				case err == nil:
-					fmt.Fprintln(o.out, msg)
+					fmt.Fprintln(o.Out, msg)
 					return nil
 
 				case kerrors.IsMethodNotSupported(err), kerrors.IsForbidden(err):
@@ -545,7 +547,7 @@ func (o TagOptions) Run() error {
 				return err
 			}
 
-			fmt.Fprintln(o.out, msg)
+			fmt.Fprintln(o.Out, msg)
 			return nil
 		})
 		if err != nil {

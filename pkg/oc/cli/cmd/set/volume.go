@@ -11,7 +11,6 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"k8s.io/api/core/v1"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	kresource "k8s.io/apimachinery/pkg/api/resource"
@@ -110,7 +109,7 @@ type VolumeOptions struct {
 	Typer                  runtime.ObjectTyper
 	CategoryExpander       categories.CategoryExpander
 	RESTClientFactory      func(mapping *meta.RESTMapping) (oldresource.RESTClient, error)
-	UpdatePodSpecForObject func(obj runtime.Object, fn func(*v1.PodSpec) error) (bool, error)
+	updatePodSpecForObject polymorphichelpers.UpdatePodSpecForObjectFunc
 	Client                 kcoreclient.PersistentVolumeClaimsGetter
 	Encoder                runtime.Encoder
 	Builder                func() *oldresource.Builder
@@ -355,7 +354,7 @@ func (o *VolumeOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args 
 	o.CategoryExpander = f.CategoryExpander()
 	o.RESTClientFactory = f.ClientForMapping
 	o.Encoder = kcmdutil.InternalVersionJSONEncoder()
-	o.UpdatePodSpecForObject = polymorphichelpers.UpdatePodSpecForObjectFn
+	o.updatePodSpecForObject = polymorphichelpers.UpdatePodSpecForObjectFn
 
 	o.AddOpts.TypeChanged = cmd.Flag("type").Changed
 
@@ -545,7 +544,7 @@ func (o *VolumeOptions) getVolumeUpdatePatches(infos []*oldresource.Info, single
 	// FIXME-REBASE
 	patches := CalculatePatches(infos, o.Encoder /*scheme.DefaultJSONEncoder()*/, func(info *oldresource.Info) (bool, error) {
 		transformed := false
-		ok, err := o.UpdatePodSpecForObject(info.Object, clientcmd.ConvertInteralPodSpecToExternal(func(spec *kapi.PodSpec) error {
+		ok, err := o.updatePodSpecForObject(info.Object, clientcmd.ConvertInteralPodSpecToExternal(func(spec *kapi.PodSpec) error {
 			var e error
 			switch {
 			case o.Add:
@@ -612,7 +611,7 @@ func setVolumeSourceByType(kv *kapi.Volume, opts *AddVolumeOptions) error {
 func (o *VolumeOptions) printVolumes(infos []*oldresource.Info) []error {
 	listingErrors := []error{}
 	for _, info := range infos {
-		_, err := o.UpdatePodSpecForObject(info.Object, clientcmd.ConvertInteralPodSpecToExternal(func(spec *kapi.PodSpec) error {
+		_, err := o.updatePodSpecForObject(info.Object, clientcmd.ConvertInteralPodSpecToExternal(func(spec *kapi.PodSpec) error {
 			return o.listVolumeForSpec(spec, info)
 		}))
 		if err != nil {

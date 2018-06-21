@@ -29,6 +29,6 @@ func NewCmdImport(fullName string, f *clientcmd.Factory, streams genericclioptio
 
 	name := fmt.Sprintf("%s import", fullName)
 
-	cmd.AddCommand(NewCmdAppJSON(name, f, streams.In, streams.Out, streams.ErrOut))
+	cmd.AddCommand(NewCmdAppJSON(name, f, streams))
 	return cmd
 }

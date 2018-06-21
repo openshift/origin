@@ -19,6 +19,7 @@ import (
 	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 )
 
 func TestLogin(t *testing.T) {
@@ -139,8 +140,7 @@ func newLoginOptions(server string, username string, password string, insecure b
 		Password:           password,
 		InsecureTLS:        insecure,
 
-		Out:    ioutil.Discard,
-		ErrOut: ioutil.Discard,
+		IOStreams: genericclioptions.IOStreams{Out: ioutil.Discard, ErrOut: ioutil.Discard},
 	}
 
 	return loginOptions

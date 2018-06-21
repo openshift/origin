@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"regexp"
 	"sort"
@@ -20,7 +19,10 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
+	"k8s.io/kubernetes/pkg/kubectl/polymorphichelpers"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
+	oldresource "k8s.io/kubernetes/pkg/kubectl/resource"
+	"k8s.io/kubernetes/pkg/printers"
 
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
@@ -77,11 +79,10 @@ var (
 )
 
 type EnvOptions struct {
-	Out io.Writer
-	Err io.Writer
-	In  io.Reader
+	genericclioptions.IOStreams
+	oldresource.FilenameOptions
+	PrintFlags *genericclioptions.PrintFlags
 
-	Filenames []string
 	EnvParams []string
 	EnvArgs   []string
 	Resources []string
@@ -92,6 +93,7 @@ type EnvOptions struct {
 	ShortOutput bool
 	Local       bool
 	Overwrite   bool
+	DryRun      bool
 
 	ResourceVersion   string
 	ContainerSelector string
@@ -100,33 +102,37 @@ type EnvOptions struct {
 	From              string
 	Prefix            string
 
-	Builder *resource.Builder
+	usageErrorFn           func(string, ...interface{}) error
+	updatePodSpecForObject polymorphichelpers.UpdatePodSpecForObjectFunc
+
+	Builder func() *resource.Builder
 	Infos   []*resource.Info
 
 	Encoder runtime.Encoder
 
-	Cmd *cobra.Command
-
 	Mapper meta.RESTMapper
 
-	PrintObject func([]*resource.Info) error
+	PrintObj printers.ResourcePrinterFunc
+}
+
+func NewEnvOptions(streams genericclioptions.IOStreams) *EnvOptions {
+	return &EnvOptions{
+		PrintFlags: genericclioptions.NewPrintFlags("updated"),
+		IOStreams:  streams,
+	}
 }
 
 // NewCmdEnv implements the OpenShift cli env command
 func NewCmdEnv(fullName string, f *clientcmd.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	options := &EnvOptions{
-		In:  streams.In,
-		Out: streams.Out,
-		Err: streams.ErrOut,
-	}
+	o := NewEnvOptions(streams)
 	cmd := &cobra.Command{
 		Use:     "env RESOURCE/NAME KEY_1=VAL_1 ... KEY_N=VAL_N",
 		Short:   "Update environment variables on a pod template",
 		Long:    envLong,
 		Example: fmt.Sprintf(envExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
-			kcmdutil.CheckErr(options.Complete(f, cmd, args))
-			err := options.RunEnv(f)
+			kcmdutil.CheckErr(o.Complete(f, cmd, args))
+			err := o.RunEnv(f)
 			if err == kcmdutil.ErrExit {
 				os.Exit(1)
 			}
@@ -134,21 +140,22 @@ func NewCmdEnv(fullName string, f *clientcmd.Factory, streams genericclioptions.
 		},
 	}
 
-	cmd.Flags().StringVarP(&options.ContainerSelector, "containers", "c", "*", "The names of containers in the selected pod templates to change - may use wildcards")
+	o.PrintFlags.AddFlags(cmd)
+
+	cmd.Flags().StringVarP(&o.ContainerSelector, "containers", "c", "*", "The names of containers in the selected pod templates to change - may use wildcards")
 	cmd.Flags().StringP("from", "", "", "The name of a resource from which to inject environment variables")
 	cmd.Flags().StringP("prefix", "", "", "Prefix to append to variable names")
-	cmd.Flags().StringArrayVarP(&options.EnvParams, "env", "e", options.EnvParams, "Specify a key-value pair for an environment variable to set into each container.")
-	cmd.Flags().BoolVar(&options.List, "list", options.List, "If true, display the environment and any changes in the standard format")
-	cmd.Flags().BoolVar(&options.Resolve, "resolve", options.Resolve, "If true, show secret or configmap references when listing variables")
-	cmd.Flags().StringVarP(&options.Selector, "selector", "l", options.Selector, "Selector (label query) to filter on")
-	cmd.Flags().BoolVar(&options.Local, "local", false, "If true, set image will NOT contact api-server but run locally.")
-	cmd.Flags().BoolVar(&options.All, "all", options.All, "If true, select all resources in the namespace of the specified resource types")
-	cmd.Flags().StringSliceVarP(&options.Filenames, "filename", "f", options.Filenames, "Filename, directory, or URL to file to use to edit the resource.")
-	cmd.Flags().BoolVar(&options.Overwrite, "overwrite", true, "If true, allow environment to be overwritten, otherwise reject updates that overwrite existing environment.")
+	cmd.Flags().StringArrayVarP(&o.EnvParams, "env", "e", o.EnvParams, "Specify a key-value pair for an environment variable to set into each container.")
+	cmd.Flags().BoolVar(&o.List, "list", o.List, "If true, display the environment and any changes in the standard format")
+	cmd.Flags().BoolVar(&o.Resolve, "resolve", o.Resolve, "If true, show secret or configmap references when listing variables")
+	cmd.Flags().StringVarP(&o.Selector, "selector", "l", o.Selector, "Selector (label query) to filter on")
+	cmd.Flags().BoolVar(&o.Local, "local", false, "If true, set image will NOT contact api-server but run locally.")
+	cmd.Flags().BoolVar(&o.All, "all", o.All, "If true, select all resources in the namespace of the specified resource types")
+	cmd.Flags().StringSliceVarP(&o.Filenames, "filename", "f", o.Filenames, "Filename, directory, or URL to file to use to edit the resource.")
+	cmd.Flags().BoolVar(&o.Overwrite, "overwrite", true, "If true, allow environment to be overwritten, otherwise reject updates that overwrite existing environment.")
 	cmd.Flags().String("resource-version", "", "If non-empty, the labels update will only succeed if this is the current resource-version for the object. Only valid when specifying a single resource.")
 
 	kcmdutil.AddDryRunFlag(cmd)
-	kcmdutil.AddPrinterFlags(cmd)
 
 	cmd.MarkFlagFilename("filename", "yaml", "yml", "json")
 
@@ -188,15 +195,32 @@ func (o *EnvOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []s
 	o.Output = kcmdutil.GetFlagString(cmd, "output")
 	o.From = kcmdutil.GetFlagString(cmd, "from")
 	o.Prefix = kcmdutil.GetFlagString(cmd, "prefix")
+	o.DryRun = kcmdutil.GetDryRunFlag(cmd)
+
+	o.usageErrorFn = func(format string, args ...interface{}) error {
+		return kcmdutil.UsageErrorf(cmd, format, args)
+	}
+
+	if o.DryRun {
+		o.PrintFlags.Complete("%s (dry run)")
+	}
+
+	printer, err := o.PrintFlags.ToPrinter()
+	if err != nil {
+		return err
+	}
+	o.PrintObj = printer.PrintObj
 
 	o.EnvArgs = envArgs
 	o.Resources = resources
-	o.Cmd = cmd
 
+	o.Builder = f.NewBuilder
+
+	o.updatePodSpecForObject = polymorphichelpers.UpdatePodSpecForObjectFn
 	o.ShortOutput = kcmdutil.GetFlagString(cmd, "output") == "name"
 
 	if o.List && len(o.Output) > 0 {
-		return kcmdutil.UsageErrorf(o.Cmd, "--list and --output may not be specified together")
+		return kcmdutil.UsageErrorf(cmd, "--list and --output may not be specified together")
 	}
 
 	return nil
@@ -220,7 +244,7 @@ func (o *EnvOptions) RunEnv(f *clientcmd.Factory) error {
 		return err
 	}
 
-	cmdutil.WarnAboutCommaSeparation(o.Err, o.EnvParams, "--env")
+	cmdutil.WarnAboutCommaSeparation(o.ErrOut, o.EnvParams, "--env")
 
 	env, remove, err := utilenv.ParseEnv(append(o.EnvParams, o.EnvArgs...), o.In)
 	if err != nil {
@@ -228,7 +252,7 @@ func (o *EnvOptions) RunEnv(f *clientcmd.Factory) error {
 	}
 
 	if len(o.From) != 0 {
-		b := f.NewBuilder().
+		b := o.Builder().
 			Internal().
 			LocalParam(o.Local).
 			ContinueOnError().
@@ -292,7 +316,7 @@ func (o *EnvOptions) RunEnv(f *clientcmd.Factory) error {
 		}
 	}
 
-	b := f.NewBuilder().
+	b := o.Builder().
 		Internal().
 		LocalParam(o.Local).
 		ContinueOnError().
@@ -314,7 +338,7 @@ func (o *EnvOptions) RunEnv(f *clientcmd.Factory) error {
 
 	// only apply resource version locking on a single resource
 	if !one && len(o.ResourceVersion) > 0 {
-		return kcmdutil.UsageErrorf(o.Cmd, "--resource-version may only be used with a single resource")
+		return o.usageErrorFn("--resource-version may only be used with a single resource")
 	}
 	// Keep a copy of the original objects prior to updating their environment.
 	// Used in constructing the patch(es) that will be applied in the server.
@@ -338,11 +362,12 @@ func (o *EnvOptions) RunEnv(f *clientcmd.Factory) error {
 	skipped := 0
 	errored := []*resource.Info{}
 	for _, info := range infos {
-		ok, err := f.UpdatePodSpecForObject(info.Object, clientcmd.ConvertInteralPodSpecToExternal(func(spec *kapi.PodSpec) error {
+
+		ok, err := o.updatePodSpecForObject(info.Object, clientcmd.ConvertInteralPodSpecToExternal(func(spec *kapi.PodSpec) error {
 			resolutionErrorsEncountered := false
 			containers, _ := selectContainers(spec.Containers, o.ContainerSelector)
 			if len(containers) == 0 {
-				fmt.Fprintf(o.Err, "warning: %s/%s does not have any containers matching %q\n", info.Mapping.Resource, info.Name, o.ContainerSelector)
+				fmt.Fprintf(o.ErrOut, "warning: %s/%s does not have any containers matching %q\n", info.Mapping.Resource, info.Name, o.ContainerSelector)
 				return nil
 			}
 			for _, c := range containers {
@@ -395,7 +420,7 @@ func (o *EnvOptions) RunEnv(f *clientcmd.Factory) error {
 					}
 					sort.Strings(errs)
 					for _, err := range errs {
-						fmt.Fprintln(o.Err, err)
+						fmt.Fprintln(o.ErrOut, err)
 					}
 				}
 			}
@@ -432,7 +457,7 @@ func (o *EnvOptions) RunEnv(f *clientcmd.Factory) error {
 			}
 		}
 		if err != nil {
-			fmt.Fprintf(o.Err, "error: %s/%s %v\n", info.Mapping.Resource, info.Name, err)
+			fmt.Fprintf(o.ErrOut, "error: %s/%s %v\n", info.Mapping.Resource, info.Name, err)
 			continue
 		}
 	}
@@ -447,8 +472,14 @@ func (o *EnvOptions) RunEnv(f *clientcmd.Factory) error {
 		return nil
 	}
 
-	if len(o.Output) > 0 || o.Local || kcmdutil.GetDryRunFlag(o.Cmd) {
-		return f.PrintResourceInfos(o.Cmd, o.Local, infos, o.Out)
+	if len(o.Output) > 0 || o.Local || o.DryRun {
+		printAsList := len(infos) != 1
+		object, err := clientcmd.AsVersionedObject(infos, printAsList, *clientConfig.GroupVersion, legacyscheme.Codecs.LegacyCodec())
+		if err != nil {
+			return err
+		}
+
+		return o.PrintObj(object, o.Out)
 	}
 
 	objects, err := clientcmd.AsVersionedObjects(infos, gv, legacyscheme.Codecs.LegacyCodec(gv))
@@ -477,7 +508,7 @@ updates:
 		}
 		obj, err := resource.NewHelper(info.Client, info.Mapping).Patch(info.Namespace, info.Name, types.StrategicMergePatchType, patchBytes)
 		if err != nil {
-			handlePodUpdateError(o.Err, err, "environment variables")
+			handlePodUpdateError(o.ErrOut, err, "environment variables")
 			failed = true
 			continue
 		}
@@ -489,7 +520,7 @@ updates:
 			return fmt.Errorf("at least one environment variable must be provided")
 		}
 
-		kcmdutil.PrintSuccess(o.ShortOutput, o.Out, info.Object, false, "updated")
+		o.PrintObj(info.Object, o.Out)
 	}
 	if failed {
 		return kcmdutil.ErrExit
