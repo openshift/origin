@@ -3,7 +3,6 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"strings"
 	"time"
 
@@ -31,8 +30,9 @@ var (
 )
 
 type VersionOptions struct {
+	genericclioptions.IOStreams
+
 	BaseName string
-	Out      io.Writer
 
 	ClientConfig *rest.Config
 	Clients      func() (kclientset.Interface, error)
@@ -53,7 +53,7 @@ func NewCmdVersion(fullName string, f *clientcmd.Factory, streams genericcliopti
 		Run: func(cmd *cobra.Command, args []string) {
 			options.BaseName = fullName
 
-			if err := options.Complete(cmd, f, streams.Out); err != nil {
+			if err := options.Complete(cmd, f); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
 			}
 
@@ -66,9 +66,7 @@ func NewCmdVersion(fullName string, f *clientcmd.Factory, streams genericcliopti
 	return cmd
 }
 
-func (o *VersionOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, out io.Writer) error {
-	o.Out = out
-
+func (o *VersionOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory) error {
 	if f == nil {
 		return nil
 	}
