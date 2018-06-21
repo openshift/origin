@@ -6,7 +6,9 @@
 #
 FROM openshift/origin-cli
 
-RUN INSTALL_PKGS="origin" && \
+RUN INSTALL_PKGS="origin ceph-common" && \
+    yum install -y centos-release-ceph-luminous && \
+    rpm -V centos-release-ceph-luminous && \
     yum --enablerepo=origin-local-release install -y ${INSTALL_PKGS} && \
     rpm -V ${INSTALL_PKGS} && \
     yum clean all && \
