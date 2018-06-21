@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+	"k8s.io/apimachinery/pkg/util/clock"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -43,36 +44,6 @@ func timeoutAsDuration(timeout int32) time.Duration {
 	return time.Duration(timeout) * time.Second
 }
 
-// This interface is used to allow mocking time from unit tests
-// NOTE: Never use time.Now() directly in the code, use this interface
-// Now() function instead.
-type internalTickerInterface interface {
-	Now() time.Time
-	NewTicker(d time.Duration)
-	C() <-chan time.Time
-	Stop()
-}
-
-type internalTicker struct {
-	ticker *time.Ticker
-}
-
-func (t *internalTicker) Now() time.Time {
-	return time.Now()
-}
-
-func (t *internalTicker) C() <-chan time.Time {
-	return t.ticker.C
-}
-
-func (t *internalTicker) Stop() {
-	t.ticker.Stop()
-}
-
-func (t *internalTicker) NewTicker(d time.Duration) {
-	t.ticker = time.NewTicker(d)
-}
-
 type TimeoutValidator struct {
 	oauthClients   oauthclientlister.OAuthClientLister
 	tokens         oauthclient.OAuthAccessTokenInterface
@@ -84,7 +55,7 @@ type TimeoutValidator struct {
 	// fields that are used to have a deterministic order of events in unit tests
 	flushHandler    func(flushHorizon time.Time) // allows us to decorate this func during unit tests
 	putTokenHandler func(td *tokenData)          // allows us to decorate this func during unit tests
-	ticker          internalTickerInterface      // allows us to control time during unit tests
+	clock           clock.Clock                  // allows us to control time during unit tests
 }
 
 func NewTimeoutValidator(tokens oauthclient.OAuthAccessTokenInterface, oauthClients oauthclientlister.OAuthClientLister, defaultTimeout int32, minValidTimeout int32) *TimeoutValidator {
@@ -95,7 +66,7 @@ func NewTimeoutValidator(tokens oauthclient.OAuthAccessTokenInterface, oauthClie
 		data:           rankedset.New(),
 		defaultTimeout: timeoutAsDuration(defaultTimeout),
 		tickerInterval: timeoutAsDuration(minValidTimeout / 3), // we tick at least 3 times within each timeout period
-		ticker:         &internalTicker{},
+		clock:          clock.RealClock{},
 	}
 	a.flushHandler = a.flush
 	a.putTokenHandler = a.putToken
@@ -113,7 +84,7 @@ func (a *TimeoutValidator) Validate(token *oauth.OAuthAccessToken, _ *userv1.Use
 
 	td := &tokenData{
 		token: token,
-		seen:  a.ticker.Now(),
+		seen:  a.clock.Now(),
 	}
 	if td.timeout().Before(td.seen) {
 		return errTimedout
@@ -224,16 +195,16 @@ func (a *TimeoutValidator) flush(flushHorizon time.Time) {
 func (a *TimeoutValidator) nextTick() time.Time {
 	// Add a small safety Margin so flushes tend to
 	// overlap a little rather than have gaps
-	return a.ticker.Now().Add(a.tickerInterval + 10*time.Second)
+	return a.clock.Now().Add(a.tickerInterval + 10*time.Second)
 }
 
 func (a *TimeoutValidator) Run(stopCh <-chan struct{}) {
 	defer runtime.HandleCrash()
 	glog.V(5).Infof("Started Token Timeout Flush Handling thread!")
 
-	a.ticker.NewTicker(a.tickerInterval)
+	ticker := a.clock.NewTicker(a.tickerInterval)
 	// make sure to kill the ticker when we exit
-	defer a.ticker.Stop()
+	defer ticker.Stop()
 
 	nextTick := a.nextTick()
 
@@ -253,7 +224,7 @@ func (a *TimeoutValidator) Run(stopCh <-chan struct{}) {
 				a.flushHandler(nextTick)
 			}
 
-		case <-a.ticker.C():
+		case <-ticker.C():
 			nextTick = a.nextTick()
 			a.flushHandler(nextTick)
 		}
