@@ -63,11 +63,13 @@ func (opts ScheduledImageStreamControllerOptions) GetRateLimiter() flowcontrol.R
 // NewImageStreamController returns a new image stream import controller.
 func NewImageStreamController(client imageclient.Interface, informer imageinformer.ImageStreamInformer) *ImageStreamController {
 	controller := &ImageStreamController{
-		queue: workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
+		queue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "ImageStreamController"),
 
 		client:       client.Image(),
 		lister:       informer.Lister(),
 		listerSynced: informer.Informer().HasSynced,
+
+		importCounter: NewImportMetricCounter(),
 	}
 	controller.syncHandler = controller.syncImageStream
 
@@ -85,11 +87,12 @@ func NewScheduledImageStreamController(client imageclient.Interface, informer im
 	bucketLimiter := flowcontrol.NewTokenBucketRateLimiter(opts.BucketsToQPS(), 1)
 
 	controller := &ScheduledImageStreamController{
-		enabled:      opts.Enabled,
-		rateLimiter:  opts.GetRateLimiter(),
-		client:       client.Image(),
-		lister:       informer.Lister(),
-		listerSynced: informer.Informer().HasSynced,
+		enabled:       opts.Enabled,
+		rateLimiter:   opts.GetRateLimiter(),
+		client:        client.Image(),
+		lister:        informer.Lister(),
+		listerSynced:  informer.Informer().HasSynced,
+		importCounter: NewImportMetricCounter(),
 	}
 
 	controller.scheduler = newScheduler(opts.Buckets(), bucketLimiter, controller.syncTimed)

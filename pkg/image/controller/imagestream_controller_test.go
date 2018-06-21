@@ -334,7 +334,7 @@ func TestHandleImageStream(t *testing.T) {
 		fake := imageclient.NewSimpleClientset()
 		other := test.stream.DeepCopy()
 
-		if err := handleImageStream(test.stream, fake.Image(), nil); err != nil {
+		if _, err := handleImageStream(test.stream, fake.Image(), nil); err != nil {
 			t.Errorf("%d: unexpected error: %v", i, err)
 		}
 		if test.expected != nil {
