@@ -15,9 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	api "k8s.io/kubernetes/pkg/apis/core"
-	rbacv1helpers "k8s.io/kubernetes/pkg/apis/rbac/v1"
 	rulevalidation "k8s.io/kubernetes/pkg/registry/rbac/validation"
-	kbootstrappolicy "k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac/bootstrappolicy"
 
 	"github.com/openshift/origin/pkg/api/v1"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
@@ -151,7 +149,6 @@ func TestCovers(t *testing.T) {
 	var clusterAdmin *rbacv1.ClusterRole
 	var storageAdmin *rbacv1.ClusterRole
 	var imageBuilder *rbacv1.ClusterRole
-	var nodeRole *rbacv1.ClusterRole
 
 	for i := range allRoles {
 		role := allRoles[i]
@@ -178,8 +175,6 @@ func TestCovers(t *testing.T) {
 			storageAdmin = &role
 		case bootstrappolicy.ImageBuilderRoleName:
 			imageBuilder = &role
-		case bootstrappolicy.NodeRoleName:
-			nodeRole = &role
 		}
 	}
 
@@ -220,20 +215,5 @@ func TestCovers(t *testing.T) {
 	// Make sure the master has full permissions
 	if covers, miss := rulevalidation.Covers(systemMaster.Rules, clusterAdmin.Rules); !covers {
 		t.Errorf("failed to cover: %#v", miss)
-	}
-
-	// Make sure our node role covers upstream node rules
-	if covers, miss := rulevalidation.Covers(nodeRole.Rules, kbootstrappolicy.NodeRules()); !covers {
-		t.Errorf("upstream node role has extra permissions:")
-		for _, r := range miss {
-			t.Logf("\t%s", rbacv1helpers.CompactString(r))
-		}
-	}
-	// Make sure our node role doesn't have any extra permissions
-	if covers, miss := rulevalidation.Covers(kbootstrappolicy.NodeRules(), nodeRole.Rules); !covers {
-		t.Errorf("openshift node role has extra permissions:")
-		for _, r := range miss {
-			t.Logf("\t%s", rbacv1helpers.CompactString(r))
-		}
 	}
 }

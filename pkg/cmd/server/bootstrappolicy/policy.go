@@ -66,6 +66,7 @@ var (
 	legacySecurityGroup        = securityapi.LegacyGroupName
 	storageGroup               = storage.GroupName
 	settingsGroup              = settings.GroupName
+	schedulingGroup            = "scheduling.k8s.io"
 
 	authzGroup          = authorizationapi.GroupName
 	kAuthzGroup         = kauthorizationapi.GroupName
@@ -165,6 +166,8 @@ func GetOpenshiftBootstrapClusterRoles() []rbacv1.ClusterRole {
 				rbacv1helpers.NewRule(read...).Groups(settingsGroup).Resources("podpresets").RuleOrDie(),
 
 				rbacv1helpers.NewRule(read...).Groups(storageGroup).Resources("storageclasses", "volumeattachments").RuleOrDie(),
+
+				rbacv1helpers.NewRule(read...).Groups(schedulingGroup).Resources("priorityclasses").RuleOrDie(),
 
 				rbacv1helpers.NewRule(read...).Groups(certificatesGroup).Resources("certificatesigningrequests", "certificatesigningrequests/approval", "certificatesigningrequests/status").RuleOrDie(),
 
@@ -588,15 +591,6 @@ func GetOpenshiftBootstrapClusterRoles() []rbacv1.ClusterRole {
 		},
 		{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: NodeProxierRoleName,
-			},
-			Rules: []rbacv1.PolicyRule{
-				// Used to build serviceLister
-				rbacv1helpers.NewRule("list", "watch").Groups(kapiGroup).Resources("services", "endpoints").RuleOrDie(),
-			},
-		},
-		{
-			ObjectMeta: metav1.ObjectMeta{
 				Name: NodeAdminRoleName,
 			},
 			Rules: []rbacv1.PolicyRule{
@@ -620,53 +614,6 @@ func GetOpenshiftBootstrapClusterRoles() []rbacv1.ClusterRole {
 				// Node stats requests are submitted as POSTs.  These creates are non-mutating
 				rbacv1helpers.NewRule("get", "create").Groups(kapiGroup).Resources("nodes/" + NodeStatsSubresource).RuleOrDie(),
 				// TODO: expose other things like /healthz on the node once we figure out non-resource URL policy across systems
-			},
-		},
-		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: NodeRoleName,
-			},
-			Rules: []rbacv1.PolicyRule{
-				// Needed to check API access.  These creates are non-mutating
-				rbacv1helpers.NewRule("create").Groups(kAuthnGroup).Resources("tokenreviews").RuleOrDie(),
-				rbacv1helpers.NewRule("create").Groups(kAuthzGroup).Resources("subjectaccessreviews", "localsubjectaccessreviews").RuleOrDie(),
-				// Needed to build serviceLister, to populate env vars for services
-				rbacv1helpers.NewRule(read...).Groups(kapiGroup).Resources("services").RuleOrDie(),
-				// Nodes can register themselves
-				// Use the NodeRestriction admission plugin to limit a node to creating/updating its own API object.
-				rbacv1helpers.NewRule("create", "get", "list", "watch").Groups(kapiGroup).Resources("nodes").RuleOrDie(),
-				rbacv1helpers.NewRule("update", "patch", "delete").Groups(kapiGroup).Resources("nodes").RuleOrDie(),
-				// TODO: restrict to the bound node once supported
-				rbacv1helpers.NewRule("update", "patch").Groups(kapiGroup).Resources("nodes/status").RuleOrDie(),
-
-				// TODO: restrict to the bound node as creator once supported
-				rbacv1helpers.NewRule("create", "update", "patch").Groups(kapiGroup).Resources("events").RuleOrDie(),
-
-				// TODO: restrict to pods scheduled on the bound node once supported
-				rbacv1helpers.NewRule(read...).Groups(kapiGroup).Resources("pods").RuleOrDie(),
-
-				// TODO: remove once mirror pods are removed
-				// TODO: restrict deletion to mirror pods created by the bound node once supported
-				// Needed for the node to create/delete mirror pods
-				rbacv1helpers.NewRule("get", "create", "delete").Groups(kapiGroup).Resources("pods").RuleOrDie(),
-				// TODO: restrict to pods scheduled on the bound node once supported
-				rbacv1helpers.NewRule("update").Groups(kapiGroup).Resources("pods/status").RuleOrDie(),
-				rbacv1helpers.NewRule("create").Groups(kapiGroup).Resources("pods/eviction").RuleOrDie(),
-
-				// TODO: restrict to secrets and configmaps used by pods scheduled on bound node once supported
-				// Needed for imagepullsecrets, rbd/ceph and secret volumes, and secrets in envs
-				// Needed for configmap volume and envs
-				rbacv1helpers.NewRule("get").Groups(kapiGroup).Resources("secrets", "configmaps").RuleOrDie(),
-				// TODO: restrict to claims/volumes used by pods scheduled on bound node once supported
-				// Needed for persistent volumes
-				rbacv1helpers.NewRule("get").Groups(kapiGroup).Resources("persistentvolumeclaims", "persistentvolumes").RuleOrDie(),
-				rbacv1helpers.NewRule("get").Groups(storageGroup).Resources("volumeattachments").RuleOrDie(),
-				// TODO: restrict to namespaces of pods scheduled on bound node once supported
-				// TODO: change glusterfs to use DNS lookup so this isn't needed?
-				// Needed for glusterfs volumes
-				rbacv1helpers.NewRule("get").Groups(kapiGroup).Resources("endpoints").RuleOrDie(),
-				// Nodes are allowed to request CSRs (specifically, request serving certs)
-				rbacv1helpers.NewRule("get", "create", "list", "watch").Groups(certificates.GroupName).Resources("certificatesigningrequests").RuleOrDie(),
 			},
 		},
 
@@ -710,19 +657,6 @@ func GetOpenshiftBootstrapClusterRoles() []rbacv1.ClusterRole {
 			},
 			Rules: []rbacv1.PolicyRule{
 				authorizationapi.DiscoveryRule,
-			},
-		},
-		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: PersistentVolumeProvisionerRoleName,
-			},
-			Rules: []rbacv1.PolicyRule{
-				rbacv1helpers.NewRule("get", "list", "watch", "create", "delete").Groups(kapiGroup).Resources("persistentvolumes").RuleOrDie(),
-				// update is needed in addition to read access for setting lock annotations on PVCs
-				rbacv1helpers.NewRule("get", "list", "watch", "update").Groups(kapiGroup).Resources("persistentvolumeclaims").RuleOrDie(),
-				rbacv1helpers.NewRule(read...).Groups(storageGroup).Resources("storageclasses").RuleOrDie(),
-				// Needed for watching provisioning success and failure events
-				rbacv1helpers.NewRule("create", "update", "patch", "list", "watch").Groups(kapiGroup).Resources("events").RuleOrDie(),
 			},
 		},
 
@@ -919,7 +853,7 @@ func GetOpenshiftBootstrapClusterRoleBindings() []rbacv1.ClusterRoleBinding {
 		newOriginClusterBinding(StatusCheckerRoleBindingName, StatusCheckerRoleName).
 			Groups(AuthenticatedGroup, UnauthenticatedGroup).
 			BindingOrDie(),
-		newOriginClusterBinding(NodeProxierRoleBindingName, NodeProxierRoleName).
+		newOriginClusterBinding(NodeProxierRoleBindingName, "system:node-proxier").
 			// Allow node identities to run node proxies
 			Groups(NodesGroup).
 			BindingOrDie(),
@@ -1016,9 +950,6 @@ var clusterRoleConflicts = sets.NewString(
 
 	// TODO these should be reconsidered
 	"cluster-admin",
-	"system:node",
-	"system:node-proxier",
-	"system:persistent-volume-provisioner",
 )
 
 // clusterRoleBindingConflicts lists the roles which are known to conflict with upstream and which we have manually
