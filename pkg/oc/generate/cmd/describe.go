@@ -128,12 +128,12 @@ func describeBuildPipelineWithImage(out io.Writer, ref app.ComponentReference, p
 	if pipeline.Build == nil {
 		trackedImage := extractFirstImageStreamTag(true, pipeline.InputImage, pipeline.Image)
 		if len(trackedImage) > 0 {
-			fmt.Fprintf(out, "    * An image stream will be created as %q that will track this image\n", trackedImage)
+			fmt.Fprintf(out, "    * An image stream tag will be created as %q that will track this image\n", trackedImage)
 		}
 	} else {
 		trackedImage := extractFirstImageStreamTag(true, pipeline.InputImage)
 		if len(trackedImage) > 0 {
-			fmt.Fprintf(out, "    * An image stream will be created as %q that will track the source image\n", trackedImage)
+			fmt.Fprintf(out, "    * An image stream tag will be created as %q that will track the source image\n", trackedImage)
 		}
 		if refInput.Uses != nil && refInput.Uses.Info() != nil {
 			matches := []string{}
@@ -171,7 +171,7 @@ func describeBuildPipelineWithImage(out io.Writer, ref app.ComponentReference, p
 		if buildOut, err := pipeline.Build.Output.BuildOutput(); err == nil && buildOut != nil && buildOut.To != nil {
 			switch to := buildOut.To; {
 			case to.Kind == "ImageStreamTag":
-				fmt.Fprintf(out, "      * The resulting image will be pushed to image stream %q\n", to.Name)
+				fmt.Fprintf(out, "      * The resulting image will be pushed to image stream tag %q\n", to.Name)
 			case to.Kind == "DockerImage":
 				fmt.Fprintf(out, "      * The resulting image will be pushed with Docker to %q\n", to.Name)
 			default:
