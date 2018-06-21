@@ -372,7 +372,7 @@ func (c *ClusterUpConfig) makeMasterConfig() (string, error) {
 
 // makeNodeConfig returns the directory where a generated nodeconfig lives
 func (c *ClusterUpConfig) makeNodeConfig(masterConfigDir string) (string, error) {
-	defaultNodeName := "localhost"
+	defaultNodeName := c.GetPublicHostName()
 
 	container := kubelet.NewNodeStartConfig()
 	container.ContainerBinds = append(container.ContainerBinds, masterConfigDir+":/var/lib/origin/openshift.local.masterconfig:z")
@@ -382,7 +382,9 @@ func (c *ClusterUpConfig) makeNodeConfig(masterConfigDir string) (string, error)
 		fmt.Sprintf("--certificate-authority=%s", "/var/lib/origin/openshift.local.masterconfig/ca.crt"),
 		fmt.Sprintf("--dns-bind-address=0.0.0.0:%d", c.DNSPort),
 		fmt.Sprintf("--hostnames=%s", defaultNodeName),
+		fmt.Sprintf("--hostnames=%s", "localhost"),
 		fmt.Sprintf("--hostnames=%s", "127.0.0.1"),
+		fmt.Sprintf("--hostnames=%s", c.ServerIP),
 		fmt.Sprintf("--images=%s", c.imageFormat()),
 		fmt.Sprintf("--node=%s", defaultNodeName),
 		fmt.Sprintf("--node-client-certificate-authority=%s", "/var/lib/origin/openshift.local.masterconfig/ca.crt"),
