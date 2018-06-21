@@ -883,6 +883,9 @@ func (dsc *DaemonSetsController) manage(ds *apps.DaemonSet, hash string) error {
 					glog.V(2).Infof(msg)
 					// Emit an event so that it's discoverable to users.
 					dsc.eventRecorder.Eventf(ds, v1.EventTypeWarning, FailedDaemonPodReason, msg)
+					// Increment the metric counter if this happens as it might suggests that the node is in a bad state and the controller
+					// is fighting with kubelet for pod creation.
+					podFailedPerNodeNumber.WithLabelValues(dsKey, node.Name).Inc()
 					podsToDelete = append(podsToDelete, pod.Name)
 					failedPodsObserved++
 				} else {
