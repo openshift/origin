@@ -96,8 +96,8 @@ var (
 		APIGroupNetworking:            {"v1"},
 		APIGroupPolicy:                {"v1beta1"},
 		APIGroupStorage:               {"v1", "v1beta1"},
-		APIGroupSettings:              {}, // list the group, but don't enable any versions.  alpha disabled by default, but enablable via arg
-		APIGroupScheduling:            {}, // alpha disabled by default
+		APIGroupSettings:              {},          // list the group, but don't enable any versions.  alpha disabled by default, but enablable via arg
+		APIGroupScheduling:            {"v1beta1"}, // alpha disabled by default
 		// TODO: enable as part of a separate binary
 		//APIGroupFederation:  {"v1beta1"},
 	}
