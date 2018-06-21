@@ -19,6 +19,7 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/wait"
 	kubeletapp "k8s.io/kubernetes/cmd/kubelet/app"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -69,7 +70,7 @@ var nodeLong = templates.LongDesc(`
 	`)
 
 // NewCommandStartNode provides a CLI handler for 'start node' command
-func NewCommandStartNode(basename string, out, errout io.Writer, stopCh <-chan struct{}) (*cobra.Command, *NodeOptions) {
+func NewCommandStartNode(basename string, out, errout io.Writer) (*cobra.Command, *NodeOptions) {
 	options := &NodeOptions{
 		ExpireDays: crypto.DefaultCertificateLifetimeInDays,
 		Output:     out,
@@ -80,7 +81,7 @@ func NewCommandStartNode(basename string, out, errout io.Writer, stopCh <-chan s
 		Short: "Launch a node",
 		Long:  fmt.Sprintf(nodeLong, basename),
 		Run: func(c *cobra.Command, args []string) {
-			options.Run(c, errout, args, stopCh)
+			options.Run(c, errout, args, wait.NeverStop)
 		},
 	}
 
@@ -231,8 +232,7 @@ func (o NodeOptions) StartNode(stopCh <-chan struct{}) error {
 	}
 
 	go daemon.SdNotify(false, "READY=1")
-	<-stopCh
-	return nil
+	select {}
 }
 
 // RunNode takes the options and:
