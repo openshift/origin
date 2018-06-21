@@ -137,7 +137,7 @@
                                         "path": "/login",
                                         "port": 8080
                                     },
-                                    "initialDelaySeconds": 3,
+                                    "initialDelaySeconds": 60,
                                     "timeoutSeconds": 240
                                 },
                                 "resources": {
