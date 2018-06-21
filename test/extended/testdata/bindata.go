@@ -178,6 +178,7 @@
 // test/extended/testdata/roles/empty-role.yaml
 // test/extended/testdata/roles/policy-clusterroles.yaml
 // test/extended/testdata/roles/policy-roles.yaml
+// test/extended/testdata/router-config-manager.yaml
 // test/extended/testdata/router-http-echo-server.yaml
 // test/extended/testdata/router-metrics.yaml
 // test/extended/testdata/run_policy/parallel-bc.yaml
@@ -10075,6 +10076,297 @@ func testExtendedTestdataRolesPolicyRolesYaml() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/roles/policy-roles.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataRouterConfigManagerYaml = []byte(`apiVersion: v1
+kind: Template
+parameters:
+- name: IMAGE
+  value: openshift/origin-haproxy-router:latest
+objects:
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    name: router-haproxy-cfgmgr
+    labels:
+      test: router-haproxy-cfgmgr
+  spec:
+    terminationGracePeriodSeconds: 1
+    containers:
+    - name: router
+      image: ${IMAGE}
+      imagePullPolicy: IfNotPresent
+      env:
+      - name: POD_NAMESPACE
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.namespace
+      args: ["--namespace=$(POD_NAMESPACE)", "--loglevel=4", "--haproxy-config-manager=true", "--blueprint-route-labels=select=hapcm-blueprint", "--labels=select=haproxy-cfgmgr", "--stats-password=password", "--stats-port=1936", "--stats-user=admin"]
+      hostNetwork: false
+      ports:
+      - containerPort: 80
+      - containerPort: 443
+      - containerPort: 1936
+        name: stats
+        protocol: TCP
+    serviceAccountName: default
+
+# ensure the router can access routes and endpoints
+- apiVersion: v1
+  kind: RoleBinding
+  metadata:
+    name: system-router
+  subjects:
+  - kind: ServiceAccount
+    name: default
+  roleRef:
+    name: system:router
+
+# blueprints for edge, reencrypt and passthrough routes with annotation(s)
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: edge-blueprint
+    labels:
+      test: router
+      select: hapcm-blueprint
+    annotations:
+      router.openshift.io/cookie_name: empire
+  spec:
+    tls:
+      termination: edge
+    host: edge.blueprint.hapcm.test
+    to:
+      name: insecure-service
+      kind: Service
+    ports:
+    - targetPort: 8080
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: reencrypt-blueprint
+    labels:
+      test: router
+      select: hapcm-blueprint
+    annotations:
+      ren: stimpy
+  spec:
+    tls:
+      termination: reencrypt
+    host: reencrypt.blueprint.hapcm.test
+    to:
+      name: secure-service
+      kind: Service
+    ports:
+    - targetPort: 8443
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: passthrough-blueprint
+    labels:
+      test: router
+      select: hapcm-blueprint
+    annotations:
+      test: ptcruiser
+      foo: bar
+  spec:
+    tls:
+      termination: passthrough
+    host: passthrough.blueprint.hapcm.test
+    to:
+      name: secure-service
+      kind: Service
+
+# config map for nginx
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: serving-cert
+  data:
+    nginx.conf: |
+      daemon off;
+      events { }
+      http {
+        server {
+            listen 8443;
+            ssl    on;
+            ssl_certificate     /etc/serving-cert/tls.crt;
+            ssl_certificate_key    /etc/serving-cert/tls.key;
+            server_name  "*.svc";
+            location / {
+                root   /usr/share/nginx/html;
+                index  index.html index.htm;
+            }
+            error_page   500 502 503 504  /50x.html;
+            location = /50x.html {
+                root   /usr/share/nginx/html;
+            }
+        }
+      }
+
+# pods that service http[s] requests
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    name: insecure-endpoint
+    labels:
+      test: haproxy-cfgmgr
+      endpoints: insecure-endpoint
+  spec:
+    terminationGracePeriodSeconds: 1
+    containers:
+    - name: test
+      image: openshift/hello-openshift
+      ports:
+      - containerPort: 8080
+        name: http
+      - containerPort: 100
+        protocol: UDP
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    name: secure-endpoint
+    labels:
+      app: secure-endpoint
+  spec:
+    containers:
+    - image: nginx:latest
+      name: serve
+      command:
+        - /usr/sbin/nginx
+      args:
+        - -c
+        - /etc/nginx/nginx.conf
+      ports:
+      - containerPort: 8443
+        protocol: TCP
+      volumeMounts:
+      - name: cert
+        mountPath: /etc/serving-cert
+      - name: conf
+        mountPath: /etc/nginx
+      - name: tmp
+        mountPath: /var/cache/nginx
+      - name: tmp
+        mountPath: /var/run
+    volumes:
+    - name: conf
+      configMap:
+        name: serving-cert
+    - name: cert
+      secret:
+        secretName: serving-cert
+    - name: tmp
+      emptyDir: {}
+    - name: tmp2
+      emptyDir: {}
+
+# services that can be routed to
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: insecure-service
+    labels:
+      test: router
+  spec:
+    selector:
+      test: haproxy-cfgmgr
+      endpoints: insecure-endpoint
+    ports:
+    - port: 8080
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: secure-service
+    annotations:
+      service.alpha.openshift.io/serving-cert-secret-name: serving-cert
+  spec:
+    selector:
+      app: secure-endpoint
+    ports:
+      - port: 443
+        name: https
+        targetPort: 8443
+        protocol: TCP
+
+
+# insecure, edge secured, reencrypt and passthrough routes
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: insecure-route
+    labels:
+      test: haproxy-cfgmgr
+      select: haproxy-cfgmgr
+  spec:
+    host: insecure.hapcm.test
+    to:
+      name: insecure-service
+      kind: Service
+    ports:
+    - targetPort: 8080
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: edge-allow-http-route
+    labels:
+      test: haproxy-cfgmgr
+      select: haproxy-cfgmgr
+  spec:
+    tls:
+      termination: edge
+      insecureEdgeTerminationPolicy: Allow
+    host: edge.allow.hapcm.test
+    to:
+      name: insecure-service
+      kind: Service
+    ports:
+    - targetPort: 8080
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: reencrypt-route
+    labels:
+      test: haproxy-cfgmgr
+      select: haproxy-cfgmgr
+  spec:
+    tls:
+      termination: reencrypt
+    host: reencrypt.hapcm.test
+    to:
+      name: secure-service
+      kind: Service
+    ports:
+    - targetPort: 8443
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: passthrough-route
+    labels:
+      test: haproxy-cfgmgr
+      select: haproxy-cfgmgr
+  spec:
+    tls:
+      termination: passthrough
+    host: passthrough.hapcm.test
+    to:
+      name: secure-service
+      kind: Service
+`)
+
+func testExtendedTestdataRouterConfigManagerYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataRouterConfigManagerYaml, nil
+}
+
+func testExtendedTestdataRouterConfigManagerYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataRouterConfigManagerYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/router-config-manager.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -33739,6 +34031,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/roles/empty-role.yaml": testExtendedTestdataRolesEmptyRoleYaml,
 	"test/extended/testdata/roles/policy-clusterroles.yaml": testExtendedTestdataRolesPolicyClusterrolesYaml,
 	"test/extended/testdata/roles/policy-roles.yaml": testExtendedTestdataRolesPolicyRolesYaml,
+	"test/extended/testdata/router-config-manager.yaml": testExtendedTestdataRouterConfigManagerYaml,
 	"test/extended/testdata/router-http-echo-server.yaml": testExtendedTestdataRouterHttpEchoServerYaml,
 	"test/extended/testdata/router-metrics.yaml": testExtendedTestdataRouterMetricsYaml,
 	"test/extended/testdata/run_policy/parallel-bc.yaml": testExtendedTestdataRun_policyParallelBcYaml,
@@ -34273,6 +34566,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"policy-clusterroles.yaml": &bintree{testExtendedTestdataRolesPolicyClusterrolesYaml, map[string]*bintree{}},
 					"policy-roles.yaml": &bintree{testExtendedTestdataRolesPolicyRolesYaml, map[string]*bintree{}},
 				}},
+				"router-config-manager.yaml": &bintree{testExtendedTestdataRouterConfigManagerYaml, map[string]*bintree{}},
 				"router-http-echo-server.yaml": &bintree{testExtendedTestdataRouterHttpEchoServerYaml, map[string]*bintree{}},
 				"router-metrics.yaml": &bintree{testExtendedTestdataRouterMetricsYaml, map[string]*bintree{}},
 				"run_policy": &bintree{nil, map[string]*bintree{

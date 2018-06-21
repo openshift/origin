@@ -1,4 +1,4 @@
-package images
+package router
 
 import (
 	"bufio"
