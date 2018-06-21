@@ -91,8 +91,7 @@ func NewCmdStatus(name, baseCLIName, fullName string, f kcmdutil.Factory, out io
 	}
 
 	cmd.Flags().StringVarP(&opts.outputFormat, "output", "o", opts.outputFormat, "Output format. One of: dot.")
-	cmd.Flags().BoolVarP(&opts.suggest, "verbose", "v", opts.suggest, "See details for resolving issues.")
-	cmd.Flags().MarkDeprecated("verbose", "Use --suggest instead.")
+	cmd.Flags().BoolVar(&opts.suggest, "verbose", opts.suggest, "See details for resolving issues.")
 	cmd.Flags().MarkHidden("verbose")
 	cmd.Flags().BoolVar(&opts.suggest, "suggest", opts.suggest, "See details for resolving issues.")
 	cmd.Flags().BoolVar(&opts.allNamespaces, "all-namespaces", false, "If true, display status for all namespaces (must have cluster admin)")
