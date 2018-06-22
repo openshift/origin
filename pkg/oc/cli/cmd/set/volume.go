@@ -144,6 +144,7 @@ type AddVolumeOptions struct {
 	SecretName    string
 	Source        string
 
+	ReadOnly    bool
 	CreateClaim bool
 	ClaimName   string
 	ClaimSize   string
@@ -200,6 +201,7 @@ func NewCmdVolume(fullName string, f kcmdutil.Factory, out, errOut io.Writer) *c
 	cmd.Flags().StringVar(&addOpts.SubPath, "sub-path", "", "Path within the local volume from which the container's volume should be mounted. Optional param for --add or --remove")
 	cmd.Flags().StringVarP(&addOpts.DefaultMode, "default-mode", "", "", "The default mode bits to create files with. Can be between 0000 and 0777. Defaults to 0644.")
 	cmd.Flags().BoolVar(&addOpts.Overwrite, "overwrite", false, "If true, replace existing volume source with the provided name and/or volume mount for the given resource")
+	cmd.Flags().BoolVar(&addOpts.ReadOnly, "read-only", false, "Mount volume as ReadOnly. Optional param for --add or --remove")
 	cmd.Flags().StringVar(&addOpts.Path, "path", "", "Host path. Must be provided for hostPath volume type")
 	cmd.Flags().StringVar(&addOpts.ConfigMapName, "configmap-name", "", "Name of the persisted config map. Must be provided for configmap volume type")
 	cmd.Flags().StringVar(&addOpts.SecretName, "secret-name", "", "Name of the persisted secret. Must be provided for secret volume type")
@@ -681,6 +683,7 @@ func (v *VolumeOptions) setVolumeMount(spec *kapi.PodSpec, info *resource.Info) 
 		volumeMount := &kapi.VolumeMount{
 			Name:      v.Name,
 			MountPath: path.Clean(opts.MountPath),
+			ReadOnly:  opts.ReadOnly,
 		}
 		if len(opts.SubPath) > 0 {
 			volumeMount.SubPath = path.Clean(opts.SubPath)
