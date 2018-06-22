@@ -78,6 +78,11 @@ func newSourceFile(path string, nodeName types.NodeName, period time.Duration, u
 		updates <- kubetypes.PodUpdate{Pods: pods, Op: kubetypes.SET, Source: kubetypes.FileSource}
 	}
 	store := cache.NewUndeltaStore(send, cache.MetaNamespaceKeyFunc)
+
+	if period < 1 {
+		period = 60 * time.Second
+	}
+
 	return &sourceFile{
 		path:           path,
 		nodeName:       nodeName,
