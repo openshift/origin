@@ -38,7 +38,7 @@ import:
 
 # openshift second
 - package: github.com/openshift/api
-  version: temporary-pre-3.11
+  version: release-3.10
 - package: github.com/openshift/client-go
   version: release-3.10
 - package: github.com/openshift/imagebuilder
