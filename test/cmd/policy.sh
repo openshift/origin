@@ -144,7 +144,7 @@ os::cmd::expect_success 'oc adm policy add-cluster-role-to-user cluster-reader n
 os::cmd::expect_failure_and_text 'oc adm policy remove-cluster-role-from-user admin ghost' 'error: unable to find target \[ghost\]'
 os::cmd::expect_failure_and_text 'oc adm policy remove-cluster-role-from-user admin -z ghost' 'error: unable to find target \[ghost\]'
 
-os::cmd::expect_success_and_text 'oc adm policy remove-role-from-group view testgroup -o yaml' 'subjects: \[\]'
+os::cmd::expect_success_and_not_text 'oc adm policy remove-role-from-group view testgroup -o yaml' 'subjects: '
 os::cmd::expect_success_and_text 'oc adm policy remove-cluster-role-from-group cluster-reader testgroup -o yaml' 'name: cluster\-readers'
 os::cmd::expect_success_and_text 'oc adm policy remove-cluster-role-from-user cluster-reader namespaced-user -o yaml' 'name: cluster\-reader'
 

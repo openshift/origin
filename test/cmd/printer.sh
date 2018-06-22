@@ -11,15 +11,15 @@ os::cmd::expect_success_and_not_text 'oc get is' 'imagestream.image.openshift.io
 
 # Test that resource printer includes namespaces for buildconfigs with custom strategies
 os::cmd::expect_success 'oc create -f examples/sample-app/application-template-custombuild.json'
-os::cmd::expect_success_and_text 'oc new-app ruby-helloworld-sample' 'deploymentconfig "frontend" created'
+os::cmd::expect_success_and_text 'oc new-app ruby-helloworld-sample' 'deploymentconfig.apps.openshift.io "frontend" created'
 os::cmd::expect_success_and_text 'oc get all --all-namespaces' 'cmd-printer[\ ]+buildconfig.build.openshift.io\/ruby\-sample\-build'
 
 # Test that infos printer supports all outputFormat options
-os::cmd::expect_success_and_text 'oc new-app node -o yaml | oc set env -f - MYVAR=value' 'deploymentconfig "node" updated'
+os::cmd::expect_success_and_text 'oc new-app node -o yaml | oc set env -f - MYVAR=value' 'deploymentconfig.apps.openshift.io "node" updated'
 os::cmd::expect_success 'oc new-app node -o yaml | oc set env -f - MYVAR=value -o custom-colums="NAME:.metadata.name"'
-os::cmd::expect_success_and_text 'oc new-app node -o yaml | oc set env -f - MYVAR=value -o yaml' 'apiVersion: v1'
-os::cmd::expect_success_and_text 'oc new-app node -o yaml | oc set env -f - MYVAR=value -o json' '"apiVersion": "v1"'
+os::cmd::expect_success_and_text 'oc new-app node -o yaml | oc set env -f - MYVAR=value -o yaml' 'apiVersion: apps.openshift.io/v1'
+os::cmd::expect_success_and_text 'oc new-app node -o yaml | oc set env -f - MYVAR=value -o json' '"apiVersion": "apps.openshift.io/v1"'
 os::cmd::expect_success_and_text 'oc new-app node -o yaml | oc set env -f - MYVAR=value -o wide' 'node'
-os::cmd::expect_success_and_text 'oc new-app node -o yaml | oc set env -f - MYVAR=value -o name' 'deploymentconfig/node'
+os::cmd::expect_success_and_text 'oc new-app node -o yaml | oc set env -f - MYVAR=value -o name' 'deploymentconfig.apps.openshift.io/node'
 echo "resource printer: ok"
 os::test::junit::declare_suite_end

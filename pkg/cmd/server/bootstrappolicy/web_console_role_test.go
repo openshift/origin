@@ -48,6 +48,8 @@ var rolesToHide = sets.NewString(
 	"system:oauth-token-deleter",
 	"system:openshift:templateservicebroker-client",
 	"system:persistent-volume-provisioner",
+	"system:csi-external-attacher",
+	"system:csi-external-provisioner",
 	"system:registry",
 	"system:router",
 	"system:scope-impersonation",

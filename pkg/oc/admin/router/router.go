@@ -632,6 +632,7 @@ func RunCmdRouter(f kcmdutil.Factory, cmd *cobra.Command, out, errout io.Writer,
 				return err
 			}
 			fmt.Fprintf(errout, "error: %v\n", err)
+			defaultOutputErr = kcmdutil.ErrExit
 		}
 	}
 

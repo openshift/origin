@@ -719,6 +719,9 @@ func isInvalidTriggerError(err error) bool {
 // error on a BuildConfig. If that is the case, it will remove all triggers with a
 // type that is not in the whitelist for an older server.
 func retryBuildConfig(obj *unstructured.Unstructured, err error) *unstructured.Unstructured {
+	if obj == nil {
+		return nil
+	}
 	triggerTypeWhiteList := map[buildv1.BuildTriggerType]struct{}{
 		buildv1.GitHubWebHookBuildTriggerType:    {},
 		buildv1.GenericWebHookBuildTriggerType:   {},
