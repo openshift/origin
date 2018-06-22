@@ -1,6 +1,6 @@
 apiVersion: v1
 items:
-- apiVersion: v1
+- apiVersion: build.openshift.io/v1
   kind: BuildConfig
   metadata:
     creationTimestamp: 2015-04-07T04:12:17Z
@@ -38,7 +38,7 @@ items:
       type: imageChange
   status:
     lastVersion: 1
-- apiVersion: v1
+- apiVersion: build.openshift.io/v1
   kind: Build
   metadata:
     creationTimestamp: 2015-04-07T04:12:18Z
@@ -189,7 +189,7 @@ items:
   status:
     replicas: 1
     readyReplicas: 1
-- apiVersion: v1
+- apiVersion: apps.openshift.io/v1
   kind: DeploymentConfig
   metadata:
     creationTimestamp: 2015-04-07T04:12:17Z
@@ -365,7 +365,7 @@ items:
   status:
     replicas: 1
     readyReplicas: 1
-- apiVersion: v1
+- apiVersion: apps.openshift.io/v1
   kind: DeploymentConfig
   metadata:
     creationTimestamp: 2015-04-07T04:12:17Z
@@ -495,7 +495,7 @@ items:
     type: ClusterIP
   status:
     loadBalancer: {}
-- apiVersion: v1
+- apiVersion: route.openshift.io/v1
   kind: Route
   metadata:
     annotations:
@@ -523,7 +523,7 @@ items:
       - type: Admitted
         status: "False"
         reason: HostAlreadyClaimed
-- apiVersion: v1
+- apiVersion: route.openshift.io/v1
   kind: Route
   metadata:
     annotations:

@@ -10,6 +10,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/api/meta/testrestmapper"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -463,58 +464,61 @@ func TestProjectStatus(t *testing.T) {
 	oldTimeFn := timeNowFn
 	defer func() { timeNowFn = oldTimeFn }()
 	for k, test := range testCases {
-		timeNowFn = func() time.Time {
-			if !test.Time.IsZero() {
-				return test.Time
+		t.Run(k, func(t *testing.T) {
+			timeNowFn = func() time.Time {
+				if !test.Time.IsZero() {
+					return test.Time
+				}
+				return time.Now()
 			}
-			return time.Now()
-		}
-		objs := []runtime.Object{}
-		if len(test.File) > 0 {
-			// Load data from a folder dedicated to mock data, which is never loaded into the API during tests
-			var err error
-			objs, err = readObjectsFromPath("../../../../pkg/oc/graph/genericgraph/test/"+test.File, "example", legacyscheme.Codecs.UniversalDecoder(), legacyscheme.Scheme)
-			if err != nil {
+			objs := []runtime.Object{}
+			if len(test.File) > 0 {
+				// Load data from a folder dedicated to mock data, which is never loaded into the API during tests
+				var err error
+				objs, err = readObjectsFromPath("../../../../pkg/oc/graph/genericgraph/test/"+test.File, "example", legacyscheme.Codecs.UniversalDecoder(), legacyscheme.Scheme)
+				if err != nil {
+					t.Errorf("%s: unexpected error: %v", k, err)
+				}
+			}
+			for _, o := range test.Extra {
+				objs = append(objs, o)
+			}
+
+			kc := kubefakeclient.NewSimpleClientset(filterByScheme(kubeclientscheme.Scheme, objs...)...)
+			projectClient := projectfakeclient.NewSimpleClientset(filterByScheme(projectclientscheme.Scheme, objs...)...)
+			buildClient := buildfakeclient.NewSimpleClientset(filterByScheme(buildclientscheme.Scheme, objs...)...)
+			imageClient := imagefakeclient.NewSimpleClientset(filterByScheme(imageclientscheme.Scheme, objs...)...)
+			appsClient := appsfakeclient.NewSimpleClientset(filterByScheme(appsclientscheme.Scheme, objs...)...)
+			routeClient := routefakeclient.NewSimpleClientset(filterByScheme(routeclientscheme.Scheme, objs...)...)
+
+			d := ProjectStatusDescriber{
+				KubeClient:                  kc,
+				ProjectClient:               projectClient.Project(),
+				BuildClient:                 buildClient.Build(),
+				ImageClient:                 imageClient.Image(),
+				AppsClient:                  appsClient.Apps(),
+				RouteClient:                 routeClient.Route(),
+				Server:                      "https://example.com:8443",
+				Suggest:                     true,
+				CommandBaseName:             "oc",
+				LogsCommandName:             "oc logs -p",
+				SecurityPolicyCommandFormat: "policycommand %s %s",
+				RESTMapper:                  testrestmapper.TestOnlyStaticRESTMapper(legacyscheme.Scheme),
+			}
+			t.Logf("describing %q ...", test.File)
+			out, err := d.Describe("example", "")
+			if !test.ErrFn(err) {
 				t.Errorf("%s: unexpected error: %v", k, err)
 			}
-		}
-		for _, o := range test.Extra {
-			objs = append(objs, o)
-		}
-
-		kc := kubefakeclient.NewSimpleClientset(filterByScheme(kubeclientscheme.Scheme, objs...)...)
-		projectClient := projectfakeclient.NewSimpleClientset(filterByScheme(projectclientscheme.Scheme, objs...)...)
-		buildClient := buildfakeclient.NewSimpleClientset(filterByScheme(buildclientscheme.Scheme, objs...)...)
-		imageClient := imagefakeclient.NewSimpleClientset(filterByScheme(imageclientscheme.Scheme, objs...)...)
-		appsClient := appsfakeclient.NewSimpleClientset(filterByScheme(appsclientscheme.Scheme, objs...)...)
-		routeClient := routefakeclient.NewSimpleClientset(filterByScheme(routeclientscheme.Scheme, objs...)...)
-
-		d := ProjectStatusDescriber{
-			KubeClient:                  kc,
-			ProjectClient:               projectClient.Project(),
-			BuildClient:                 buildClient.Build(),
-			ImageClient:                 imageClient.Image(),
-			AppsClient:                  appsClient.Apps(),
-			RouteClient:                 routeClient.Route(),
-			Server:                      "https://example.com:8443",
-			Suggest:                     true,
-			CommandBaseName:             "oc",
-			LogsCommandName:             "oc logs -p",
-			SecurityPolicyCommandFormat: "policycommand %s %s",
-		}
-		t.Logf("describing %q ...", test.File)
-		out, err := d.Describe("example", "")
-		if !test.ErrFn(err) {
-			t.Errorf("%s: unexpected error: %v", k, err)
-		}
-		if err != nil {
-			continue
-		}
-		for _, s := range test.Contains {
-			if !strings.Contains(out, s) {
-				t.Errorf("%s: did not have %q:\n%s\n---", k, s, out)
+			if err != nil {
+				return
 			}
-		}
+			for _, s := range test.Contains {
+				if !strings.Contains(out, s) {
+					t.Errorf("%s: did not have %q:\n%s\n---", k, s, out)
+				}
+			}
+		})
 	}
 }
 
@@ -678,11 +682,8 @@ func setNamespace(typer runtime.ObjectTyper, obj runtime.Object, namespace strin
 	if err != nil {
 		return err
 	}
-	group, err := legacyscheme.Registry.Group(gvks[0].Group)
-	if err != nil {
-		return err
-	}
-	mapping, err := group.RESTMapper.RESTMappings(gvks[0].GroupKind(), gvks[0].Version)
+	mapper := testrestmapper.TestOnlyStaticRESTMapper(legacyscheme.Scheme)
+	mapping, err := mapper.RESTMappings(gvks[0].GroupKind(), gvks[0].Version)
 	if err != nil {
 		return err
 	}

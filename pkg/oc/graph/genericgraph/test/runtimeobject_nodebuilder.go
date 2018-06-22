@@ -25,6 +25,7 @@ import (
 	imagegraph "github.com/openshift/origin/pkg/oc/graph/imagegraph/nodes"
 	kubegraph "github.com/openshift/origin/pkg/oc/graph/kubegraph/nodes"
 	routegraph "github.com/openshift/origin/pkg/oc/graph/routegraph/nodes"
+	"github.com/openshift/origin/pkg/oc/util/ocscheme"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 )
 
@@ -145,7 +146,7 @@ func BuildGraph(path string) (osgraph.Graph, []runtime.Object, error) {
 		})
 
 	r := builder.
-		WithScheme(legacyscheme.Scheme, legacyscheme.Scheme.PrioritizedVersionsAllGroups()...).
+		WithScheme(ocscheme.ReadingInternalScheme).
 		FilenameParam(false, &resource.FilenameOptions{Recursive: false, Filenames: []string{abspath}}).
 		Flatten().
 		Do()

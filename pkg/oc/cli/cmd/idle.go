@@ -29,6 +29,7 @@ import (
 	appsv1client "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
 	appsmanualclient "github.com/openshift/origin/pkg/apps/client/v1"
 	appsclientinternal "github.com/openshift/origin/pkg/apps/generated/internalclientset"
+	"github.com/openshift/origin/pkg/oc/util/ocscheme"
 	unidlingapi "github.com/openshift/origin/pkg/unidling/api"
 	utilunidling "github.com/openshift/origin/pkg/unidling/util"
 )
@@ -116,7 +117,7 @@ func (o *IdleOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []st
 	}
 
 	o.svcBuilder = f.NewBuilder().
-		WithScheme(legacyscheme.Scheme, legacyscheme.Scheme.PrioritizedVersionsAllGroups()...).
+		WithScheme(ocscheme.ReadingInternalScheme).
 		ContinueOnError().
 		NamespaceParam(namespace).DefaultNamespace().AllNamespaces(o.allNamespaces).
 		Flatten().

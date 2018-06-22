@@ -22,6 +22,7 @@ import (
 
 	securityapiv1 "github.com/openshift/api/security/v1"
 	ometa "github.com/openshift/origin/pkg/api/meta"
+	"github.com/openshift/origin/pkg/oc/util/ocscheme"
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 	securityclientinternal "github.com/openshift/origin/pkg/security/generated/internalclientset"
 	securitytypedclient "github.com/openshift/origin/pkg/security/generated/internalclientset/typed/security/internalversion"
@@ -133,7 +134,7 @@ func (o *sccReviewOptions) Complete(f kcmdutil.Factory, args []string, cmd *cobr
 
 func (o *sccReviewOptions) Run(args []string) error {
 	r := o.builder.
-		WithScheme(legacyscheme.Scheme, legacyscheme.Scheme.PrioritizedVersionsAllGroups()...).
+		WithScheme(ocscheme.ReadingInternalScheme).
 		NamespaceParam(o.namespace).
 		FilenameParam(o.enforceNamespace, &o.FilenameOptions).
 		ResourceTypeOrNameArgs(true, args...).

@@ -19,6 +19,8 @@ import (
 	"k8s.io/client-go/discovery"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
+
+	"github.com/openshift/origin/pkg/oc/util/ocscheme"
 )
 
 // MigrateVisitFunc is invoked for each returned object, and may return a
@@ -308,7 +310,7 @@ func (o *ResourceOptions) Complete(f kcmdutil.Factory, c *cobra.Command) error {
 	if o.Unstructured {
 		o.Builder.Unstructured()
 	} else {
-		o.Builder.WithScheme(legacyscheme.Scheme, legacyscheme.Scheme.PrioritizedVersionsAllGroups()...)
+		o.Builder.WithScheme(ocscheme.ReadingInternalScheme)
 	}
 
 	if !allNamespaces {

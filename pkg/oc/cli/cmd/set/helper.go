@@ -13,6 +13,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
+	"k8s.io/kubernetes/pkg/kubectl/scheme"
 )
 
 func selectContainers(containers []kapi.Container, spec string) ([]*kapi.Container, []*kapi.Container) {
@@ -171,6 +172,38 @@ func CalculatePatches(infos []*resource.Info, encoder runtime.Encoder, mutateFn 
 		}
 
 		patch.Patch, patch.Err = strategicpatch.CreateTwoWayMergePatch(patch.Before, patch.After, versioned)
+	}
+	return patches
+}
+
+// CalculatePatchesExternal calls the mutation function on each provided info object, and generates a strategic merge patch for
+// the changes in the object. Encoder must be able to encode the info into the appropriate destination type. If mutateFn
+// returns false, the object is not included in the final list of patches.
+func CalculatePatchesExternal(infos []*resource.Info, mutateFn func(*resource.Info) (bool, error)) []*Patch {
+	var patches []*Patch
+	for _, info := range infos {
+		patch := &Patch{Info: info}
+
+		patch.Before, patch.Err = runtime.Encode(scheme.DefaultJSONEncoder(), info.Object)
+
+		ok, err := mutateFn(info)
+		if !ok {
+			continue
+		}
+		if err != nil {
+			patch.Err = err
+		}
+		patches = append(patches, patch)
+		if patch.Err != nil {
+			continue
+		}
+
+		patch.After, patch.Err = runtime.Encode(scheme.DefaultJSONEncoder(), info.Object)
+		if patch.Err != nil {
+			continue
+		}
+
+		patch.Patch, patch.Err = strategicpatch.CreateTwoWayMergePatch(patch.Before, patch.After, info.Object)
 	}
 	return patches
 }
