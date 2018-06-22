@@ -95,7 +95,6 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/openshift/api/build/v1.BuildTriggerPolicy":                                            schema_openshift_api_build_v1_BuildTriggerPolicy(ref),
 		"github.com/openshift/api/build/v1.CommonSpec":                                                    schema_openshift_api_build_v1_CommonSpec(ref),
 		"github.com/openshift/api/build/v1.CommonWebHookCause":                                            schema_openshift_api_build_v1_CommonWebHookCause(ref),
-		"github.com/openshift/api/build/v1.ConfigMapBuildSource":                                          schema_openshift_api_build_v1_ConfigMapBuildSource(ref),
 		"github.com/openshift/api/build/v1.CustomBuildStrategy":                                           schema_openshift_api_build_v1_CustomBuildStrategy(ref),
 		"github.com/openshift/api/build/v1.DockerBuildStrategy":                                           schema_openshift_api_build_v1_DockerBuildStrategy(ref),
 		"github.com/openshift/api/build/v1.DockerStrategyOptions":                                         schema_openshift_api_build_v1_DockerStrategyOptions(ref),
@@ -4711,25 +4710,12 @@ func schema_openshift_api_build_v1_BuildSource(ref common.ReferenceCallback) com
 							},
 						},
 					},
-					"configMaps": {
-						SchemaProps: spec.SchemaProps{
-							Description: "configMaps represents a list of configMaps and their destinations that will be used for the build.",
-							Type:        []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/openshift/api/build/v1.ConfigMapBuildSource"),
-									},
-								},
-							},
-						},
-					},
 				},
 				Required: []string{"type"},
 			},
 		},
 		Dependencies: []string{
-			"github.com/openshift/api/build/v1.BinaryBuildSource", "github.com/openshift/api/build/v1.ConfigMapBuildSource", "github.com/openshift/api/build/v1.GitBuildSource", "github.com/openshift/api/build/v1.ImageSource", "github.com/openshift/api/build/v1.SecretBuildSource", "k8s.io/api/core/v1.LocalObjectReference"},
+			"github.com/openshift/api/build/v1.BinaryBuildSource", "github.com/openshift/api/build/v1.GitBuildSource", "github.com/openshift/api/build/v1.ImageSource", "github.com/openshift/api/build/v1.SecretBuildSource", "k8s.io/api/core/v1.LocalObjectReference"},
 	}
 }
 
@@ -5218,34 +5204,6 @@ func schema_openshift_api_build_v1_CommonWebHookCause(ref common.ReferenceCallba
 		},
 		Dependencies: []string{
 			"github.com/openshift/api/build/v1.SourceRevision"},
-	}
-}
-
-func schema_openshift_api_build_v1_ConfigMapBuildSource(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "ConfigMapBuildSource describes a configmap and its destination directory that will be used only at the build time. The content of the configmap referenced here will be copied into the destination directory instead of mounting.",
-				Properties: map[string]spec.Schema{
-					"configMap": {
-						SchemaProps: spec.SchemaProps{
-							Description: "configMap is a reference to an existing configmap that you want to use in your build.",
-							Ref:         ref("k8s.io/api/core/v1.LocalObjectReference"),
-						},
-					},
-					"destinationDir": {
-						SchemaProps: spec.SchemaProps{
-							Description: "destinationDir is the directory where the files from the configmap should be available for the build time. For the Source build strategy, these will be injected into a container where the assemble script runs. For the Docker build strategy, these will be copied into the build directory, where the Dockerfile is located, so users can ADD or COPY them during docker build.",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-				},
-				Required: []string{"configMap"},
-			},
-		},
-		Dependencies: []string{
-			"k8s.io/api/core/v1.LocalObjectReference"},
 	}
 }
 

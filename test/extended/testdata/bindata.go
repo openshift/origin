@@ -22,8 +22,6 @@
 // test/extended/testdata/builds/build-secrets/s2i-binary-dir/.s2i/bin/run
 // test/extended/testdata/builds/build-secrets/s2i-binary-dir/Gemfile
 // test/extended/testdata/builds/build-secrets/s2i-binary-dir/config.ru
-// test/extended/testdata/builds/build-secrets/test-configmap-2.json
-// test/extended/testdata/builds/build-secrets/test-configmap.json
 // test/extended/testdata/builds/build-secrets/test-docker-build.json
 // test/extended/testdata/builds/build-secrets/test-is.json
 // test/extended/testdata/builds/build-secrets/test-s2i-build.json
@@ -876,15 +874,11 @@ var _testExtendedTestdataBuildsBuildSecretsDockerfile = []byte(`FROM centos/ruby
 USER root
 ADD ./secret-dir /secrets
 COPY ./secret2 /
-ADD ./config-dir /configs
-COPY ./this /
 
-# Create a shell script that will output secrets and configMaps when the image is run
+# Create a shell script that will output secrets when the image is run
 RUN echo '#!/bin/sh' > /secret_report.sh
 RUN echo '(test -f /secrets/secret1 && echo -n "secret1=" && cat /secrets/secret1)' >> /secret_report.sh
 RUN echo '(test -f /secret2 && echo -n "relative-secret2=" && cat /secret2)' >> /secret_report.sh
-RUN echo '(test -f /configs/foo && echo -n "foo=" && cat /configs/foo)' >> /secret_report.sh
-RUN echo '(test -f /this && echo -n "relative-this=" && cat /this)' >> /secret_report.sh
 RUN chmod 755 /secret_report.sh
 
 CMD ["/bin/sh", "-c", "/secret_report.sh"]
@@ -925,26 +919,7 @@ if [[ -f secret1  ]]; then
 else
     echo "Unable to locate testsecret2 fixture files"
     exit 2
-fi 
-
-mkdir -p "${HOME}/testconfig"
-if [[ -f /tmp/configmap/foo ]]; then
-    # Copy three configMap entries defined in configmap1 fixture to directory
-    cp /tmp/configmap/* "${HOME}/testconfig"
-else
-    echo "Unable to locate test-configmap fixture files"
-    exit 3
-fi
-
-mkdir -p "${HOME}/testconfig2"
-if [[ -f configmap2/foo  ]]; then
-    # Copy three configMap entries defined in configmap2 fixture to directory
-    cp configmap2/* "${HOME}/testconfig2"
-else
-    echo "Unable to locate test-configmap-2 fixture files"
-    exit 4
-fi
-`)
+fi `)
 
 func testExtendedTestdataBuildsBuildSecretsS2iBinaryDirS2iBinAssembleBytes() ([]byte, error) {
 	return _testExtendedTestdataBuildsBuildSecretsS2iBinaryDirS2iBinAssemble, nil
@@ -964,51 +939,16 @@ func testExtendedTestdataBuildsBuildSecretsS2iBinaryDirS2iBinAssemble() (*asset,
 var _testExtendedTestdataBuildsBuildSecretsS2iBinaryDirS2iBinRun = []byte(`#!/bin/bash
 
 # Ensure none of the build config inject secrets still exist in the file system
-
-secrets=(secret1 secret2 secret3)
-configMaps=(foo this red)
-
-function checkSecret() {
-    dir=$1
-    file=$2
-    if [[ -a "${dir}/${file}" ]]; then
-        if [[ -s "${dir}/${file}" ]]; then
-            echo "Found secret file which should have been truncated: ${dir}/${file}"
-            exit 1
-        fi
-    else
-        echo "Secret file ${file} is missing from ${dir}."
+for s in /tmp/secret? secret?; do
+    if [[ -s "${s}" ]]; then
+        echo "Found secret file which should have been removed: ${s}"
         exit 1
     fi
-}
-
-function checkConfigMap() {
-    dir=$1
-    file=$2
-    if [[ -a "${dir}/${file}" ]]; then
-        if [[ ! -s "${dir}/${file}" ]]; then
-            echo "Found empty configMap file which should not have been truncated: ${dir}/${file}"
-            exit 1
-        fi
-    else
-        echo "ConfigMap file ${file} is missing from ${dir}."
-        exit 1
-    fi
-}
-
-for s in ${secrets[@]}; do
-    checkSecret "/tmp" $s
-    checkSecret "." $s
-done
-
-for c in ${configMaps[@]}; do
-    checkConfigMap "/tmp/configmap" $c
-    checkConfigMap "configmap2" $c
 done
 
 # Print out the secrets copied into the image during assemble
 cd "${HOME}"
-for s in testsecret/* testsecret2/* testconfig/* testconfig2/*; do
+for s in testsecret/* testsecret2/*; do
     echo -n "${s}=" && cat "${s}"
 done`)
 
@@ -1065,65 +1005,6 @@ func testExtendedTestdataBuildsBuildSecretsS2iBinaryDirConfigRu() (*asset, error
 	return a, nil
 }
 
-var _testExtendedTestdataBuildsBuildSecretsTestConfigmap2Json = []byte(`{
-    "kind": "ConfigMap",
-    "apiVersion": "v1",
-    "metadata": {
-        "name": "test-configmap-2",
-        "creationTimestamp": null
-    },
-    "data": {
-        "foo": "bar\n",
-        "this": "that\n",
-        "red": "hat\n"
-    }
-}
-`)
-
-func testExtendedTestdataBuildsBuildSecretsTestConfigmap2JsonBytes() ([]byte, error) {
-	return _testExtendedTestdataBuildsBuildSecretsTestConfigmap2Json, nil
-}
-
-func testExtendedTestdataBuildsBuildSecretsTestConfigmap2Json() (*asset, error) {
-	bytes, err := testExtendedTestdataBuildsBuildSecretsTestConfigmap2JsonBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/builds/build-secrets/test-configmap-2.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataBuildsBuildSecretsTestConfigmapJson = []byte(`{
-    "kind": "ConfigMap",
-    "apiVersion": "v1",
-    "metadata": {
-        "name": "test-configmap"
-    },
-    "data": {
-        "foo": "bar\n",
-        "this": "that\n",
-        "red": "hat\n"
-    }
-}
-`)
-
-func testExtendedTestdataBuildsBuildSecretsTestConfigmapJsonBytes() ([]byte, error) {
-	return _testExtendedTestdataBuildsBuildSecretsTestConfigmapJson, nil
-}
-
-func testExtendedTestdataBuildsBuildSecretsTestConfigmapJson() (*asset, error) {
-	bytes, err := testExtendedTestdataBuildsBuildSecretsTestConfigmapJsonBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/builds/build-secrets/test-configmap.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
 var _testExtendedTestdataBuildsBuildSecretsTestDockerBuildJson = []byte(`{
   "kind": "BuildConfig",
   "apiVersion": "v1",
@@ -1148,19 +1029,6 @@ var _testExtendedTestdataBuildsBuildSecretsTestDockerBuildJson = []byte(`{
         {
           "secret": {
             "name": "testsecret2"
-          }
-        }
-      ],
-      "configMaps": [
-        {
-          "configMap": {
-            "name": "test-configmap"
-          },
-          "destinationDir": "config-dir"
-        },
-        {
-          "configMap": {
-            "name": "test-configmap-2"
           }
         }
       ]
@@ -1253,20 +1121,6 @@ var _testExtendedTestdataBuildsBuildSecretsTestS2iBuildJson = []byte(`{
           "secret": {
             "name": "testsecret2"
           }
-        }
-      ],
-      "configMaps": [
-        {
-          "configMap": {
-            "name": "test-configmap"
-          },
-          "destinationDir": "/tmp/configmap"
-        },
-        {
-          "configMap": {
-            "name": "test-configmap-2"
-          },
-          "destinationDir": "configmap2"
         }
       ]
     },
@@ -33591,8 +33445,6 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/builds/build-secrets/s2i-binary-dir/.s2i/bin/run": testExtendedTestdataBuildsBuildSecretsS2iBinaryDirS2iBinRun,
 	"test/extended/testdata/builds/build-secrets/s2i-binary-dir/Gemfile": testExtendedTestdataBuildsBuildSecretsS2iBinaryDirGemfile,
 	"test/extended/testdata/builds/build-secrets/s2i-binary-dir/config.ru": testExtendedTestdataBuildsBuildSecretsS2iBinaryDirConfigRu,
-	"test/extended/testdata/builds/build-secrets/test-configmap-2.json": testExtendedTestdataBuildsBuildSecretsTestConfigmap2Json,
-	"test/extended/testdata/builds/build-secrets/test-configmap.json": testExtendedTestdataBuildsBuildSecretsTestConfigmapJson,
 	"test/extended/testdata/builds/build-secrets/test-docker-build.json": testExtendedTestdataBuildsBuildSecretsTestDockerBuildJson,
 	"test/extended/testdata/builds/build-secrets/test-is.json": testExtendedTestdataBuildsBuildSecretsTestIsJson,
 	"test/extended/testdata/builds/build-secrets/test-s2i-build.json": testExtendedTestdataBuildsBuildSecretsTestS2iBuildJson,
@@ -34045,8 +33897,6 @@ var _bintree = &bintree{nil, map[string]*bintree{
 							"Gemfile": &bintree{testExtendedTestdataBuildsBuildSecretsS2iBinaryDirGemfile, map[string]*bintree{}},
 							"config.ru": &bintree{testExtendedTestdataBuildsBuildSecretsS2iBinaryDirConfigRu, map[string]*bintree{}},
 						}},
-						"test-configmap-2.json": &bintree{testExtendedTestdataBuildsBuildSecretsTestConfigmap2Json, map[string]*bintree{}},
-						"test-configmap.json": &bintree{testExtendedTestdataBuildsBuildSecretsTestConfigmapJson, map[string]*bintree{}},
 						"test-docker-build.json": &bintree{testExtendedTestdataBuildsBuildSecretsTestDockerBuildJson, map[string]*bintree{}},
 						"test-is.json": &bintree{testExtendedTestdataBuildsBuildSecretsTestIsJson, map[string]*bintree{}},
 						"test-s2i-build.json": &bintree{testExtendedTestdataBuildsBuildSecretsTestS2iBuildJson, map[string]*bintree{}},
