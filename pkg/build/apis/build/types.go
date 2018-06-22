@@ -604,6 +604,10 @@ type BuildSource struct {
 	// Secrets represents a list of secrets and their destinations that will
 	// be used only for the build.
 	Secrets []SecretBuildSource
+
+	// ConfigMaps represents a list of configMaps and their destinations that will
+	// be used only for the build.
+	ConfigMaps []ConfigMapBuildSource
 }
 
 // ImageSource is used to describe build source that will be extracted from an image or used during a
@@ -663,6 +667,24 @@ type SecretBuildSource struct {
 	// For the Source build strategy, these will be injected into a container
 	// where the assemble script runs. Later, when the script finishes, all files
 	// injected will be truncated to zero length.
+	// For the Docker build strategy, these will be copied into the build
+	// directory, where the Dockerfile is located, so users can ADD or COPY them
+	// during docker build.
+	DestinationDir string
+}
+
+// ConfigMapBuildSource describes a configMap and its destination directory that will be
+// used only at the build time. The content of the configMap referenced here will
+// be copied into the destination directory instead of mounting.
+type ConfigMapBuildSource struct {
+	// ConfigMap is a reference to an existing configMap that you want to use in your
+	// build.
+	ConfigMap kapi.LocalObjectReference
+
+	// DestinationDir is the directory where the files from the configMap should be
+	// available for the build time.
+	// For the Source build strategy, these will be injected into a container
+	// where the assemble script runs.
 	// For the Docker build strategy, these will be copied into the build
 	// directory, where the Dockerfile is located, so users can ADD or COPY them
 	// during docker build.

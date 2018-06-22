@@ -99,6 +99,33 @@ func newS2IBuilder(dockerClient DockerClient, dockerSocket string, buildsClient 
 	}
 }
 
+// injectConfigMaps creates an s2i `VolumeSpec` from each provided `ConfigMapBuildSource`
+func injectConfigMaps(configMaps []buildapiv1.ConfigMapBuildSource) []s2iapi.VolumeSpec {
+	vols := make([]s2iapi.VolumeSpec, len(configMaps))
+	for i, c := range configMaps {
+		vols[i] = makeVolumeSpec(configMapSource(c), strategy.ConfigMapBuildSourceBaseMountPath)
+	}
+	return vols
+}
+
+// injectSecrets creates an s2i `VolumeSpec` from each provided `SecretBuildSource`
+func injectSecrets(secrets []buildapiv1.SecretBuildSource) []s2iapi.VolumeSpec {
+	vols := make([]s2iapi.VolumeSpec, len(secrets))
+	for i, s := range secrets {
+		vols[i] = makeVolumeSpec(secretSource(s), strategy.SecretBuildSourceBaseMountPath)
+	}
+	return vols
+}
+
+func makeVolumeSpec(src localObjectBuildSource, mountPath string) s2iapi.VolumeSpec {
+	glog.V(3).Infof("Injecting build source %q into a build into %q", src.LocalObjectRef().Name, filepath.Clean(src.DestinationPath()))
+	return s2iapi.VolumeSpec{
+		Source:      filepath.Join(mountPath, src.LocalObjectRef().Name),
+		Destination: src.DestinationPath(),
+		Keep:        !src.IsSecret(),
+	}
+}
+
 // Build executes S2I build based on configured builder, S2I builder factory
 // and S2I config validator
 func (s *S2IBuilder) Build() error {
@@ -133,14 +160,8 @@ func (s *S2IBuilder) Build() error {
 		s2iSourceInfo = toS2ISourceInfo(sourceInfo)
 	}
 	injections := s2iapi.VolumeList{}
-	for _, s := range s.build.Spec.Source.Secrets {
-		glog.V(3).Infof("Injecting secret %q into a build into %q", s.Secret.Name, filepath.Clean(s.DestinationDir))
-		secretSourcePath := filepath.Join(strategy.SecretBuildSourceBaseMountPath, s.Secret.Name)
-		injections = append(injections, s2iapi.VolumeSpec{
-			Source:      secretSourcePath,
-			Destination: s.DestinationDir,
-		})
-	}
+	injections = append(injections, injectSecrets(s.build.Spec.Source.Secrets)...)
+	injections = append(injections, injectConfigMaps(s.build.Spec.Source.ConfigMaps)...)
 
 	buildTag := randomBuildTag(s.build.Namespace, s.build.Name)
 	scriptDownloadProxyConfig, err := scriptProxyConfig(s.build)

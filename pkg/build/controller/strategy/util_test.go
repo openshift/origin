@@ -72,13 +72,7 @@ func isVolumeSourceEmpty(volumeSource v1.VolumeSource) bool {
 }
 
 func TestSetupDockerSecrets(t *testing.T) {
-	pod := v1.Pod{
-		Spec: v1.PodSpec{
-			Containers: []v1.Container{
-				{},
-			},
-		},
-	}
+	pod := emptyPod()
 
 	pushSecret := &kapi.LocalObjectReference{
 		Name: "my.pushSecret.with.full.stops.and.longer.than.sixty.three.characters",
@@ -135,6 +129,16 @@ func TestSetupDockerSecrets(t *testing.T) {
 	}
 }
 
+func emptyPod() v1.Pod {
+	return v1.Pod{
+		Spec: v1.PodSpec{
+			Containers: []v1.Container{
+				{},
+			},
+		},
+	}
+}
+
 func TestCopyEnvVarSlice(t *testing.T) {
 	s1 := []v1.EnvVar{{Name: "FOO", Value: "bar"}, {Name: "BAZ", Value: "qux"}}
 	s2 := copyEnvVarSlice(s1)
@@ -165,5 +169,73 @@ func checkAliasing(t *testing.T, pod *v1.Pod) {
 			return
 		}
 		m[p] = true
+	}
+}
+
+// TODO: Add tests for mounting secrets and configMaps
+func TestMountConfigsAndSecrets(t *testing.T) {
+	pod := emptyPod()
+	configs := []buildapi.ConfigMapBuildSource{
+		{
+			ConfigMap: kapi.LocalObjectReference{
+				Name: "my.config.with.full.stops.and.longer.than.sixty.three.characters",
+			},
+			DestinationDir: "./a/rel/path",
+		},
+		{
+			ConfigMap: kapi.LocalObjectReference{
+				Name: "config",
+			},
+			DestinationDir: "some/path",
+		},
+	}
+	secrets := []buildapi.SecretBuildSource{
+		{
+			Secret: kapi.LocalObjectReference{
+				Name: "my.secret.with.full.stops.and.longer.than.sixty.three.characters",
+			},
+			DestinationDir: "./a/secret/path",
+		},
+		{
+			Secret: kapi.LocalObjectReference{
+				Name: "super-secret",
+			},
+			DestinationDir: "secret/path",
+		},
+	}
+	setupInputConfigMaps(&pod, &pod.Spec.Containers[0], configs)
+	setupInputSecrets(&pod, &pod.Spec.Containers[0], secrets)
+	if len(pod.Spec.Volumes) != 4 {
+		t.Fatalf("Expected 4 volumes, got: %#v", pod.Spec.Volumes)
+	}
+
+	seenName := map[string]bool{}
+	for _, v := range pod.Spec.Volumes {
+		if seenName[v.Name] {
+			t.Errorf("Duplicate volume name %s", v.Name)
+		}
+		seenName[v.Name] = true
+		t.Logf("Saw volume %s", v.Name)
+	}
+	seenMount := map[string]bool{}
+	for _, m := range pod.Spec.Containers[0].VolumeMounts {
+		if seenMount[m.Name] {
+			t.Errorf("Duplicate volume mount name %s", m.Name)
+		}
+		seenMount[m.Name] = true
+	}
+	expectedVols := []string{
+		"my-config-with-full-stops-and-longer-than-sixty--1935b127-build",
+		"config-build",
+		"my-secret-with-full-stops-and-longer-than-sixty--2f06b2d9-build",
+		"super-secret-build",
+	}
+	for _, vol := range expectedVols {
+		if !seenName[vol] {
+			t.Errorf("volume %s was not seen", vol)
+		}
+		if !seenMount[vol] {
+			t.Errorf("volumemount %s was not seen", vol)
+		}
 	}
 }

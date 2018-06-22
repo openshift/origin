@@ -159,6 +159,58 @@ func TestCopyToVolumeList(t *testing.T) {
 	}
 }
 
+func TestInjectSecrets(t *testing.T) {
+	secrets := []buildapiv1.SecretBuildSource{
+		{
+			Secret: corev1.LocalObjectReference{
+				Name: "secret1",
+			},
+			DestinationDir: "/tmp",
+		},
+		{
+			Secret: corev1.LocalObjectReference{
+				Name: "secret2",
+			},
+		},
+	}
+	output := injectSecrets(secrets)
+	for i, v := range output {
+		secret := secrets[i]
+		if v.Keep {
+			t.Errorf("secret volume %s should not have been kept", secret.Secret.Name)
+		}
+		if secret.DestinationDir != v.Destination {
+			t.Errorf("expected secret %s to be mounted to %s, got %s", secret.Secret.Name, secret.DestinationDir, v.Destination)
+		}
+	}
+}
+
+func TestInjectConfigMaps(t *testing.T) {
+	configMaps := []buildapiv1.ConfigMapBuildSource{
+		{
+			ConfigMap: corev1.LocalObjectReference{
+				Name: "configMap1",
+			},
+			DestinationDir: "/tmp",
+		},
+		{
+			ConfigMap: corev1.LocalObjectReference{
+				Name: "configMap2",
+			},
+		},
+	}
+	output := injectConfigMaps(configMaps)
+	for i, v := range output {
+		configMap := configMaps[i]
+		if !v.Keep {
+			t.Errorf("configMap volume %s should have been kept", configMap.ConfigMap.Name)
+		}
+		if configMap.DestinationDir != v.Destination {
+			t.Errorf("expected configMap %s to be mounted to %s, got %s", configMap.ConfigMap.Name, configMap.DestinationDir, v.Destination)
+		}
+	}
+}
+
 func TestBuildEnvVars(t *testing.T) {
 	// In order not complicate this function, the ordering of the expected
 	// EnvironmentList structure and the one that is returned must match,
