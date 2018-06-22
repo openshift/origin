@@ -9,8 +9,8 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta/testrestmapper"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/rest/fake"
 	"k8s.io/client-go/restmapper"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
@@ -136,10 +136,10 @@ func BuildGraph(path string) (osgraph.Graph, []runtime.Object, error) {
 
 	builder := resource.NewFakeBuilder(
 		func(version schema.GroupVersion) (resource.RESTClient, error) {
-			return nil, fmt.Errorf("unsupported client for resource builder")
+			return &fake.RESTClient{}, nil
 		},
 		func() (meta.RESTMapper, error) {
-			return testrestmapper.TestOnlyStaticRESTMapper(legacyscheme.Scheme), nil
+			return testrestmapper.TestOnlyStaticRESTMapper(ocscheme.ReadingInternalScheme), nil
 		},
 		func() (restmapper.CategoryExpander, error) {
 			return resource.FakeCategoryExpander, nil

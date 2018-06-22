@@ -7,8 +7,10 @@ import (
 	"github.com/gonum/graph"
 
 	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/api/meta/testrestmapper"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapps "k8s.io/kubernetes/pkg/apis/apps"
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
@@ -163,7 +165,7 @@ func TestHPARCEdges(t *testing.T) {
 	hpaNode := kubegraph.EnsureHorizontalPodAutoscalerNode(g, hpa)
 	rcNode := kubegraph.EnsureReplicationControllerNode(g, rc)
 
-	AddHPAScaleRefEdges(g)
+	AddHPAScaleRefEdges(g, testrestmapper.TestOnlyStaticRESTMapper(legacyscheme.Scheme))
 
 	if edge := g.Edge(hpaNode, rcNode); edge == nil {
 		t.Fatalf("edge between HPA and RC missing")
@@ -194,7 +196,7 @@ func TestHPADCEdges(t *testing.T) {
 	hpaNode := kubegraph.EnsureHorizontalPodAutoscalerNode(g, hpa)
 	dcNode := appsgraph.EnsureDeploymentConfigNode(g, dc)
 
-	AddHPAScaleRefEdges(g)
+	AddHPAScaleRefEdges(g, testrestmapper.TestOnlyStaticRESTMapper(legacyscheme.Scheme))
 
 	if edge := g.Edge(hpaNode, dcNode); edge == nil {
 		t.Fatalf("edge between HPA and DC missing")

@@ -14,6 +14,7 @@ import (
 	"testing"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta/testrestmapper"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	restclient "k8s.io/client-go/rest"
@@ -68,7 +69,7 @@ func TestStartBuildWebHook(t *testing.T) {
 		Out:          buf,
 		ClientConfig: cfg.Client,
 		FromWebhook:  server.URL + "/webhook",
-		Mapper:       legacyscheme.Registry.RESTMapper(),
+		Mapper:       testrestmapper.TestOnlyStaticRESTMapper(legacyscheme.Scheme),
 	}
 	if err := o.Run(); err != nil {
 		t.Fatalf("unable to start hook: %v", err)
@@ -114,7 +115,7 @@ func TestStartBuildHookPostReceive(t *testing.T) {
 		ClientConfig:   cfg.Client,
 		FromWebhook:    server.URL + "/webhook",
 		GitPostReceive: f.Name(),
-		Mapper:         legacyscheme.Registry.RESTMapper(),
+		Mapper:         testrestmapper.TestOnlyStaticRESTMapper(legacyscheme.Scheme),
 	}
 	if err := o.Run(); err != nil {
 		t.Fatalf("unexpected error: %v", err)

@@ -8,14 +8,17 @@ import (
 	"strings"
 	"testing"
 
+	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/api/meta/testrestmapper"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
+	clientfake "k8s.io/client-go/rest/fake"
+	"k8s.io/client-go/restmapper"
 	clientgotesting "k8s.io/client-go/testing"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	"k8s.io/client-go/restmapper"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
@@ -23,6 +26,7 @@ import (
 	imagefakeclient "github.com/openshift/origin/pkg/image/generated/internalclientset/fake"
 	"github.com/openshift/origin/pkg/oc/generate"
 	"github.com/openshift/origin/pkg/oc/generate/app"
+	"github.com/openshift/origin/pkg/oc/util/ocscheme"
 	routefakeclient "github.com/openshift/origin/pkg/route/generated/internalclientset/fake"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	templatefakeclient "github.com/openshift/origin/pkg/template/generated/internalclientset/fake"
@@ -196,12 +200,17 @@ func TestBuildTemplates(t *testing.T) {
 		templateFake := templatefakeclient.NewSimpleClientset()
 		imageFake := imagefakeclient.NewSimpleClientset()
 
-		appCfg.Builder = resource.NewBuilder(&resource.Mapper{
-			RESTMapper:   legacyscheme.Registry.RESTMapper(),
-			ObjectTyper:  legacyscheme.Scheme,
-			ClientMapper: resource.DisabledClientForMapping{},
-			Decoder:      legacyscheme.Codecs.UniversalDecoder(),
-		}, nil, &categories.SimpleCategoryExpander{})
+		appCfg.Builder = resource.NewFakeBuilder(
+			func(version schema.GroupVersion) (resource.RESTClient, error) {
+				return &clientfake.RESTClient{}, nil
+			},
+			func() (meta.RESTMapper, error) {
+				return testrestmapper.TestOnlyStaticRESTMapper(ocscheme.ReadingInternalScheme), nil
+			},
+			func() (restmapper.CategoryExpander, error) {
+				return resource.FakeCategoryExpander, nil
+			})
+
 		appCfg.SetOpenShiftClient(
 			imageFake.Image(), templateFake.Template(), routefakeclient.NewSimpleClientset().Route(),
 			c.namespace, nil)

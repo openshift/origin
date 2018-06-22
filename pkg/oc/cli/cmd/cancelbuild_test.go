@@ -141,10 +141,10 @@ func TestCancelBuildRun(t *testing.T) {
 			},
 		}
 		client := buildfake.NewSimpleClientset(build, stubbedBuildRequest)
+		client.PrependReactor("get", "builds", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+			return true, build, nil
+		})
 		client.PrependReactor("update", "builds", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-			updateAction := action.(clientgotesting.UpdateActionImpl)
-			obj := updateAction.GetObject()
-			build := obj.(*buildapi.Build)
 			if build.Status.Cancelled == true {
 				build.Status.Phase = buildapi.BuildPhaseCancelled
 			}
