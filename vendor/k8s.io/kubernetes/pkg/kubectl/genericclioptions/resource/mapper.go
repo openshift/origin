@@ -44,6 +44,7 @@ func (m *mapper) infoForData(data []byte, source string) (*Info, error) {
 	if err != nil {
 		return nil, fmt.Errorf("unable to decode %q: %v", source, err)
 	}
+	fixOAPIGroupKind(obj, gvk)
 
 	name, _ := metadataAccessor.Name(obj)
 	namespace, _ := metadataAccessor.Namespace(obj)
@@ -88,6 +89,7 @@ func (m *mapper) infoForObject(obj runtime.Object, typer runtime.ObjectTyper, pr
 	if len(groupVersionKinds) > 1 && len(preferredGVKs) > 0 {
 		gvk = preferredObjectKind(groupVersionKinds, preferredGVKs)
 	}
+	fixOAPIGroupKind(obj, &gvk)
 
 	name, _ := metadataAccessor.Name(obj)
 	namespace, _ := metadataAccessor.Namespace(obj)
