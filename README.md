@@ -1,3 +1,5 @@
+SIMPLE TEST
+
 OpenShift Application Platform
 ==============================
 
