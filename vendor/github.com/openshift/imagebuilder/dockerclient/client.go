@@ -458,7 +458,7 @@ func (e *ClientExecutor) PopulateTransientMounts(opts docker.CreateContainerOpti
 		source := mount.SourcePath
 		copies = append(copies, imagebuilder.Copy{
 			FromFS: true,
-			Src:    []string{source},
+			Src:    []string{filepath.Join(e.Directory, source)},
 			Dest:   filepath.Join(e.ContainerTransientMount, strconv.Itoa(i)),
 		})
 	}
@@ -730,7 +730,7 @@ func (e *ClientExecutor) CopyContainer(container *docker.Container, excludes []s
 	for _, c := range copies {
 		// TODO: reuse source
 		for _, src := range c.Src {
-			glog.V(4).Infof("Archiving %s %t", src, c.Download)
+			glog.V(4).Infof("Archiving %s download=%t fromFS=%t", src, c.Download, c.FromFS)
 			var r io.Reader
 			var closer io.Closer
 			var err error
@@ -744,6 +744,9 @@ func (e *ClientExecutor) CopyContainer(container *docker.Container, excludes []s
 			}
 
 			glog.V(5).Infof("Uploading to %s at %s", container.ID, c.Dest)
+			if glog.V(6) {
+				logArchiveOutput(r, "Archive file for %s")
+			}
 			err = e.Client.UploadToContainer(container.ID, docker.UploadToContainerOptions{
 				InputStream: r,
 				Path:        "/",
@@ -818,17 +821,21 @@ func (e *ClientExecutor) Archive(fromFS bool, src, dst string, allowDownload boo
 		if !allowDownload {
 			return nil, nil, fmt.Errorf("source can't be a URL")
 		}
+		glog.V(5).Infof("Archiving %s -> %s from URL", src, dst)
 		return archiveFromURL(src, dst, e.TempDir)
 	}
 	// the input is from the filesystem, use the source as the input
 	if fromFS {
+		glog.V(5).Infof("Archiving %s %s -> %s from a filesystem location", src, ".", dst)
 		return archiveFromDisk(src, ".", dst, allowDownload, excludes)
 	}
 	// if the context is in archive form, read from it without decompressing
 	if len(e.ContextArchive) > 0 {
+		glog.V(5).Infof("Archiving %s %s -> %s from context archive", e.ContextArchive, src, dst)
 		return archiveFromFile(e.ContextArchive, src, dst, excludes)
 	}
 	// if the context is a directory, we only allow relative includes
+	glog.V(5).Infof("Archiving %q %q -> %q from disk", e.Directory, src, dst)
 	return archiveFromDisk(e.Directory, src, dst, allowDownload, excludes)
 }
 
