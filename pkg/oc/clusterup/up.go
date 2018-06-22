@@ -15,6 +15,7 @@ import (
 
 	"github.com/docker/docker/api/types/versions"
 	"github.com/golang/glog"
+	"github.com/openshift/origin/pkg/oc/clusterup/coreinstall/components"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
@@ -141,7 +142,7 @@ type ClusterUpConfig struct {
 	UseExistingConfig bool
 	ServerLogLevel    int
 
-	ComponentsToEnable       []string
+	ComponentsToEnable       *components.Components
 	HostVolumesDir           string
 	HostConfigDir            string
 	WriteConfig              bool
@@ -278,18 +279,47 @@ func (c *ClusterUpConfig) Complete(cmd *cobra.Command) error {
 		c.BaseDir = absHostDir
 	}
 
-	// Check if users are not trying to re-run cluster up on existing configuration
-	// but with different components enabled.
-	if !sets.NewString(c.UserEnabledComponents...).Equal(sets.NewString("*")) {
-		if _, err := os.Stat(filepath.Join(c.BaseDir, "etcd")); err == nil {
-			return fmt.Errorf("cannot use --enable when the cluster is already initialized, use cluster add instead")
+	if _, err := os.Stat(c.BaseDir); err != nil && os.IsNotExist(err) {
+		if err := os.MkdirAll(c.BaseDir, os.ModePerm); err != nil {
+			return fmt.Errorf("unable to create base directory %q: %v", c.BaseDir, err)
 		}
 	}
 
-	for _, currComponent := range knownComponents.UnsortedList() {
-		if isComponentEnabled(currComponent, componentsDisabledByDefault, c.UserEnabledComponents...) {
-			c.ComponentsToEnable = append(c.ComponentsToEnable, currComponent)
+	// When users run the cluster up for the first time we store the list of components the cluster up runs with
+	// into a "components.json" file inside base directory.
+	// On the second run, we won't allow users to specify new or delete existing components when the base directory
+	// was already initialized.
+	if _, err := os.Stat(filepath.Join(c.BaseDir, "components.json")); err == nil {
+		// If user tries to specify --enabled on non-empty cluster up base dir, give him an error
+		if !sets.NewString(c.UserEnabledComponents...).Equal(sets.NewString("*")) {
+			if _, err := os.Stat(filepath.Join(c.BaseDir, "components.json")); err == nil {
+				return fmt.Errorf("cannot use --enable when the cluster is already initialized, use cluster add instead")
+			}
 		}
+		componentFile, err := os.Open(filepath.Join(c.BaseDir, "components.json"))
+		if err != nil {
+			return fmt.Errorf("unable to read components.json file: %v", err)
+		}
+		defer componentFile.Close()
+		c.ComponentsToEnable, err = components.ReadComponentsEnabled(componentFile)
+		if err != nil {
+			return fmt.Errorf("unable to parse components.json file: %v", err)
+		}
+	} else {
+		// This is initial cluster up run on empty base dir
+		c.ComponentsToEnable = components.NewComponentsEnabled()
+		for _, currComponent := range knownComponents.UnsortedList() {
+			if isComponentEnabled(currComponent, componentsDisabledByDefault, c.UserEnabledComponents...) {
+				c.ComponentsToEnable.Add(currComponent)
+			}
+		}
+		// Store enabled components into file so on the second run we know what to enable
+		componentFile, err := os.Create(filepath.Join(c.BaseDir, "components.json"))
+		if err != nil {
+			return fmt.Errorf("unable to write components.json file: %v", err)
+		}
+		defer componentFile.Close()
+		components.WriteComponentsEnabled(componentFile, c.ComponentsToEnable)
 	}
 
 	// Get a Docker client.
@@ -493,13 +523,13 @@ func (c *ClusterUpConfig) Start(out io.Writer) error {
 		return err
 	}
 
-	if len(c.ComponentsToEnable) > 0 {
+	if len(c.ComponentsToEnable.Enabled) > 0 {
 		args := append([]string{}, "--image="+c.ImageTemplate.Format)
 		args = append(args, "--base-dir="+c.BaseDir)
 		if len(c.ImageTag) > 0 {
 			args = append(args, "--tag="+c.ImageTag)
 		}
-		args = append(args, c.ComponentsToEnable...)
+		args = append(args, c.ComponentsToEnable.Enabled...)
 
 		if err := c.ClusterAdd.ParseFlags(args); err != nil {
 			return err
