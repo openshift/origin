@@ -33,7 +33,8 @@ import (
 
 // DeployOptions holds all the options for the `deploy` command
 type DeployOptions struct {
-	out             io.Writer
+	genericclioptions.IOStreams
+
 	appsClient      appsclient.AppsInterface
 	kubeClient      kclientset.Interface
 	builder         *resource.Builder
@@ -97,11 +98,16 @@ var (
 	  %[1]s deploy frontend --cancel`)
 )
 
-// NewCmdDeploy creates a new `deploy` command.
-func NewCmdDeploy(fullName string, f *clientcmd.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	options := &DeployOptions{
+func NewDeployOptions(fullName string, streams genericclioptions.IOStreams) *DeployOptions {
+	return &DeployOptions{
+		IOStreams:       streams,
 		baseCommandName: fullName,
 	}
+}
+
+// NewCmdDeploy creates a new `deploy` command.
+func NewCmdDeploy(fullName string, f *clientcmd.Factory, streams genericclioptions.IOStreams) *cobra.Command {
+	o := NewDeployOptions(fullName, streams)
 
 	cmd := &cobra.Command{
 		Use:        "deploy DEPLOYMENTCONFIG [--latest|--retry|--cancel|--enable-triggers]",
@@ -112,33 +118,33 @@ func NewCmdDeploy(fullName string, f *clientcmd.Factory, streams genericclioptio
 		Deprecated: "use the oc rollout latest and oc rollout status",
 		Hidden:     true,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := options.Complete(f, args, streams.Out); err != nil {
+			if err := o.Complete(f, args); err != nil {
 				kcmdutil.CheckErr(err)
 			}
 
-			if err := options.Validate(); err != nil {
+			if err := o.Validate(); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
 			}
 
-			if err := options.RunDeploy(); err != nil {
+			if err := o.RunDeploy(); err != nil {
 				kcmdutil.CheckErr(err)
 			}
 		},
 	}
 
-	cmd.Flags().BoolVar(&options.deployLatest, "latest", false, "If true, start a new deployment now.")
+	cmd.Flags().BoolVar(&o.deployLatest, "latest", false, "If true, start a new deployment now.")
 	cmd.Flags().MarkDeprecated("latest", fmt.Sprintf("use '%s rollout latest' instead", fullName))
-	cmd.Flags().BoolVar(&options.retryDeploy, "retry", false, "If true, retry the latest failed deployment.")
-	cmd.Flags().BoolVar(&options.cancelDeploy, "cancel", false, "If true, cancel the in-progress deployment.")
+	cmd.Flags().BoolVar(&o.retryDeploy, "retry", false, "If true, retry the latest failed deployment.")
+	cmd.Flags().BoolVar(&o.cancelDeploy, "cancel", false, "If true, cancel the in-progress deployment.")
 	cmd.Flags().MarkDeprecated("cancel", fmt.Sprintf("use '%s rollout cancel' instead", fullName))
-	cmd.Flags().BoolVar(&options.enableTriggers, "enable-triggers", false, "If true, enables all image triggers for the deployment config.")
+	cmd.Flags().BoolVar(&o.enableTriggers, "enable-triggers", false, "If true, enables all image triggers for the deployment config.")
 	cmd.Flags().MarkDeprecated("enable-triggers", fmt.Sprintf("use '%s set triggers' instead", fullName))
-	cmd.Flags().BoolVar(&options.follow, "follow", false, "If true, follow the logs of a deployment")
+	cmd.Flags().BoolVar(&o.follow, "follow", false, "If true, follow the logs of a deployment")
 
 	return cmd
 }
 
-func (o *DeployOptions) Complete(f *clientcmd.Factory, args []string, out io.Writer) error {
+func (o *DeployOptions) Complete(f *clientcmd.Factory, args []string) error {
 	if len(args) > 1 {
 		return errors.New("only one deployment config name is supported as argument.")
 	}
@@ -163,7 +169,6 @@ func (o *DeployOptions) Complete(f *clientcmd.Factory, args []string, out io.Wri
 	}
 
 	o.builder = f.NewBuilder()
-	o.out = out
 
 	if len(args) > 0 {
 		o.deploymentConfigName = args[0]
@@ -236,7 +241,7 @@ func (o DeployOptions) RunDeploy() error {
 		if err != nil {
 			return err
 		}
-		fmt.Fprint(o.out, desc)
+		fmt.Fprint(o.Out, desc)
 	}
 
 	return err
@@ -283,11 +288,11 @@ func (o DeployOptions) deploy(config *appsapi.DeploymentConfig) error {
 		}
 		return err
 	}
-	fmt.Fprintf(o.out, "Started deployment #%d\n", dc.Status.LatestVersion)
+	fmt.Fprintf(o.Out, "Started deployment #%d\n", dc.Status.LatestVersion)
 	if o.follow {
 		return o.getLogs(dc)
 	}
-	fmt.Fprintf(o.out, "Use '%s logs -f dc/%s' to track its progress.\n", o.baseCommandName, dc.Name)
+	fmt.Fprintf(o.Out, "Use '%s logs -f dc/%s' to track its progress.\n", o.baseCommandName, dc.Name)
 	return nil
 }
 
@@ -346,11 +351,11 @@ func (o DeployOptions) retry(config *appsapi.DeploymentConfig) error {
 	if err != nil {
 		return err
 	}
-	fmt.Fprintf(o.out, "Retried #%d\n", config.Status.LatestVersion)
+	fmt.Fprintf(o.Out, "Retried #%d\n", config.Status.LatestVersion)
 	if o.follow {
 		return o.getLogs(config)
 	}
-	fmt.Fprintf(o.out, "Use '%s logs -f dc/%s' to track its progress.\n", o.baseCommandName, config.Name)
+	fmt.Fprintf(o.Out, "Use '%s logs -f dc/%s' to track its progress.\n", o.baseCommandName, config.Name)
 	return nil
 }
 
@@ -365,7 +370,7 @@ func (o DeployOptions) cancel(config *appsapi.DeploymentConfig) error {
 		return err
 	}
 	if len(deploymentList.Items) == 0 {
-		fmt.Fprintf(o.out, "There have been no deployments for %s/%s\n", config.Namespace, config.Name)
+		fmt.Fprintf(o.Out, "There have been no deployments for %s/%s\n", config.Namespace, config.Name)
 		return nil
 	}
 	deployments := make([]*kapi.ReplicationController, 0, len(deploymentList.Items))
@@ -390,10 +395,10 @@ func (o DeployOptions) cancel(config *appsapi.DeploymentConfig) error {
 			deployment.Annotations[appsapi.DeploymentStatusReasonAnnotation] = appsapi.DeploymentCancelledByUser
 			_, err := o.kubeClient.Core().ReplicationControllers(deployment.Namespace).Update(deployment)
 			if err == nil {
-				fmt.Fprintf(o.out, "Cancelled deployment #%d\n", config.Status.LatestVersion)
+				fmt.Fprintf(o.Out, "Cancelled deployment #%d\n", config.Status.LatestVersion)
 				anyCancelled = true
 			} else {
-				fmt.Fprintf(o.out, "Couldn't cancel deployment #%d (status: %s): %v\n", appsutil.DeploymentVersionFor(deployment), status, err)
+				fmt.Fprintf(o.Out, "Couldn't cancel deployment #%d (status: %s): %v\n", appsutil.DeploymentVersionFor(deployment), status, err)
 				failedCancellations = append(failedCancellations, strconv.FormatInt(appsutil.DeploymentVersionFor(deployment), 10))
 			}
 		}
@@ -408,7 +413,7 @@ func (o DeployOptions) cancel(config *appsapi.DeploymentConfig) error {
 			maybeCancelling = " (cancelling)"
 		}
 		timeAt := strings.ToLower(units.HumanDuration(time.Now().Sub(latest.CreationTimestamp.Time)))
-		fmt.Fprintf(o.out, "No deployments are in progress (latest deployment #%d %s%s %s ago)\n",
+		fmt.Fprintf(o.Out, "No deployments are in progress (latest deployment #%d %s%s %s ago)\n",
 			appsutil.DeploymentVersionFor(latest),
 			strings.ToLower(string(appsutil.DeploymentStatusFor(latest))),
 			maybeCancelling,
@@ -427,14 +432,14 @@ func (o DeployOptions) reenableTriggers(config *appsapi.DeploymentConfig) error 
 		}
 	}
 	if len(enabled) == 0 {
-		fmt.Fprintln(o.out, "No image triggers found to enable")
+		fmt.Fprintln(o.Out, "No image triggers found to enable")
 		return nil
 	}
 	_, err := o.appsClient.DeploymentConfigs(config.Namespace).Update(config)
 	if err != nil {
 		return err
 	}
-	fmt.Fprintf(o.out, "Enabled image triggers: %s\n", strings.Join(enabled, ","))
+	fmt.Fprintf(o.Out, "Enabled image triggers: %s\n", strings.Join(enabled, ","))
 	return nil
 }
 
@@ -448,6 +453,6 @@ func (o DeployOptions) getLogs(config *appsapi.DeploymentConfig) error {
 		return err
 	}
 	defer readCloser.Close()
-	_, err = io.Copy(o.out, readCloser)
+	_, err = io.Copy(o.Out, readCloser)
 	return err
 }
