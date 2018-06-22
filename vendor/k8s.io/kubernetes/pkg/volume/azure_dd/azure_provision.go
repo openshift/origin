@@ -71,6 +71,10 @@ func (p *azureDiskProvisioner) Provision() (*v1.PersistentVolume, error) {
 	}
 	supportedModes := p.plugin.GetAccessModes()
 
+	if util.CheckPersistentVolumeClaimModeBlock(p.options.PVC) {
+		return nil, fmt.Errorf("%s does not support block volume provisioning", p.plugin.GetPluginName())
+	}
+
 	// perform static validation first
 	if p.options.PVC.Spec.Selector != nil {
 		return nil, fmt.Errorf("azureDisk - claim.Spec.Selector is not supported for dynamic provisioning on Azure disk")
@@ -187,5 +191,6 @@ func (p *azureDiskProvisioner) Provision() (*v1.PersistentVolume, error) {
 			MountOptions: p.options.MountOptions,
 		},
 	}
+
 	return pv, nil
 }
