@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/gonum/graph"
-	"github.com/gonum/graph/concrete"
+	"github.com/gonum/graph/simple"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -275,15 +275,15 @@ func filterByScheme(scheme *runtime.Scheme, in ...runtime.Object) []runtime.Obje
 }
 
 func TestDepthFirst(t *testing.T) {
-	g := concrete.NewDirectedGraph()
+	g := simple.NewDirectedGraph(1.0, 0.0)
 
-	a := concrete.Node(g.NewNodeID())
-	b := concrete.Node(g.NewNodeID())
-
+	a := simple.Node(g.NewNodeID())
 	g.AddNode(a)
+	b := simple.Node(g.NewNodeID())
 	g.AddNode(b)
-	g.SetEdge(concrete.Edge{F: a, T: b}, 1)
-	g.SetEdge(concrete.Edge{F: b, T: a}, 1)
+
+	g.SetEdge(simple.Edge{F: a, T: b})
+	g.SetEdge(simple.Edge{F: b, T: a})
 
 	count := 0
 

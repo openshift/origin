@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/gonum/graph"
-	"github.com/gonum/graph/concrete"
+	"github.com/gonum/graph/simple"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
@@ -368,7 +368,7 @@ func TestGraph(t *testing.T) {
 		}
 	}
 
-	edge := g.Edge(concrete.Node(bcTestNode.ID()), concrete.Node(istID))
+	edge := g.Edge(simple.Node(bcTestNode.ID()), simple.Node(istID))
 	if edge == nil {
 		t.Fatalf("failed to find edge between %d and %d", bcTestNode.ID(), istID)
 	}
@@ -379,7 +379,7 @@ func TestGraph(t *testing.T) {
 		t.Fatalf("expected one edge")
 	}
 
-	if e := g.Edge(concrete.Node(bcTestNode.ID()), concrete.Node(istID)); e == nil {
+	if e := g.Edge(simple.Node(bcTestNode.ID()), simple.Node(istID)); e == nil {
 		t.Errorf("expected edge for %d-%d", bcTestNode.ID(), istID)
 	}
 

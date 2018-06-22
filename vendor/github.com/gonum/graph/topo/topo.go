@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// Package topo provides graph topology analysis functions.
 package topo
 
 import (
@@ -25,7 +26,7 @@ func IsPathIn(g graph.Graph, path []graph.Node) bool {
 		case graph.Directed:
 			canReach = g.HasEdgeFromTo
 		default:
-			canReach = g.HasEdge
+			canReach = g.HasEdgeBetween
 		}
 
 		for i, u := range path[:len(path)-1] {
@@ -35,6 +36,16 @@ func IsPathIn(g graph.Graph, path []graph.Node) bool {
 		}
 		return true
 	}
+}
+
+// PathExistsIn returns whether there is a path in g starting at from extending
+// to to.
+//
+// PathExistsIn exists as a helper function. If many tests for path existence
+// are being performed, other approaches will be more efficient.
+func PathExistsIn(g graph.Graph, from, to graph.Node) bool {
+	var t traverse.BreadthFirst
+	return t.Walk(g, from, func(n graph.Node, _ int) bool { return n.ID() == to.ID() }) != nil
 }
 
 // ConnectedComponents returns the connected components of the undirected graph g.

@@ -8,18 +8,18 @@ import "github.com/gonum/graph"
 
 // BellmanFordFrom returns a shortest-path tree for a shortest path from u to all nodes in
 // the graph g, or false indicating that a negative cycle exists in the graph. If the graph
-// does not implement graph.Weighter, graph.UniformCost is used.
+// does not implement graph.Weighter, UniformCost is used.
 //
 // The time complexity of BellmanFordFrom is O(|V|.|E|).
 func BellmanFordFrom(u graph.Node, g graph.Graph) (path Shortest, ok bool) {
 	if !g.Has(u) {
 		return Shortest{from: u}, true
 	}
-	var weight graph.WeightFunc
-	if g, ok := g.(graph.Weighter); ok {
-		weight = g.Weight
+	var weight Weighting
+	if wg, ok := g.(graph.Weighter); ok {
+		weight = wg.Weight
 	} else {
-		weight = graph.UniformCost
+		weight = UniformCost(g)
 	}
 
 	nodes := g.Nodes()
@@ -34,7 +34,11 @@ func BellmanFordFrom(u graph.Node, g graph.Graph) (path Shortest, ok bool) {
 		for j, u := range nodes {
 			for _, v := range g.From(u) {
 				k := path.indexOf[v.ID()]
-				joint := path.dist[j] + weight(g.Edge(u, v))
+				w, ok := weight(u, v)
+				if !ok {
+					panic("bellman-ford: unexpected invalid weight")
+				}
+				joint := path.dist[j] + w
 				if joint < path.dist[k] {
 					path.set(k, joint, j)
 					changed = true
@@ -49,7 +53,11 @@ func BellmanFordFrom(u graph.Node, g graph.Graph) (path Shortest, ok bool) {
 	for j, u := range nodes {
 		for _, v := range g.From(u) {
 			k := path.indexOf[v.ID()]
-			if path.dist[j]+weight(g.Edge(u, v)) < path.dist[k] {
+			w, ok := weight(u, v)
+			if !ok {
+				panic("bellman-ford: unexpected invalid weight")
+			}
+			if path.dist[j]+w < path.dist[k] {
 				return path, false
 			}
 		}

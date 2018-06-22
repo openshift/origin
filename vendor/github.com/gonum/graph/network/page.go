@@ -72,7 +72,7 @@ func PageRank(g graph.Directed, damp, tol float64) map[int]float64 {
 
 	for {
 		lastV, v = v, lastV
-		v.MulVec(m, false, lastV)
+		v.MulVec(m, lastV)
 		if normDiff(vec, last) < tol {
 			break
 		}

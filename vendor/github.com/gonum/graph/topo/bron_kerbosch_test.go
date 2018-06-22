@@ -2,25 +2,25 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package topo_test
+package topo
 
 import (
+	"math"
 	"reflect"
 	"sort"
 	"testing"
 
-	"github.com/gonum/graph/concrete"
-	"github.com/gonum/graph/internal"
-	"github.com/gonum/graph/topo"
+	"github.com/gonum/graph/internal/ordered"
+	"github.com/gonum/graph/simple"
 )
 
 var vOrderTests = []struct {
-	g        []set
+	g        []intset
 	wantCore [][]int
 	wantK    int
 }{
 	{
-		g: []set{
+		g: []intset{
 			0: linksTo(1, 2, 4, 6),
 			1: linksTo(2, 4, 6),
 			2: linksTo(3, 6),
@@ -51,17 +51,17 @@ var vOrderTests = []struct {
 
 func TestVertexOrdering(t *testing.T) {
 	for i, test := range vOrderTests {
-		g := concrete.NewGraph()
+		g := simple.NewUndirectedGraph(0, math.Inf(1))
 		for u, e := range test.g {
 			// Add nodes that are not defined by an edge.
-			if !g.Has(concrete.Node(u)) {
-				g.AddNode(concrete.Node(u))
+			if !g.Has(simple.Node(u)) {
+				g.AddNode(simple.Node(u))
 			}
 			for v := range e {
-				g.SetEdge(concrete.Edge{F: concrete.Node(u), T: concrete.Node(v)}, 0)
+				g.SetEdge(simple.Edge{F: simple.Node(u), T: simple.Node(v)})
 			}
 		}
-		order, core := topo.VertexOrdering(g)
+		order, core := VertexOrdering(g)
 		if len(core)-1 != test.wantK {
 			t.Errorf("unexpected value of k for test %d: got: %d want: %d", i, len(core)-1, test.wantK)
 		}
@@ -90,13 +90,13 @@ func TestVertexOrdering(t *testing.T) {
 }
 
 var bronKerboschTests = []struct {
-	g    []set
+	g    []intset
 	want [][]int
 }{
 	{
 		// This is the example given in the Bron-Kerbosch article on wikipedia (renumbered).
 		// http://en.wikipedia.org/w/index.php?title=Bron%E2%80%93Kerbosch_algorithm&oldid=656805858
-		g: []set{
+		g: []intset{
 			0: linksTo(1, 4),
 			1: linksTo(2, 4),
 			2: linksTo(3),
@@ -136,17 +136,17 @@ var bronKerboschTests = []struct {
 
 func TestBronKerbosch(t *testing.T) {
 	for i, test := range bronKerboschTests {
-		g := concrete.NewGraph()
+		g := simple.NewUndirectedGraph(0, math.Inf(1))
 		for u, e := range test.g {
 			// Add nodes that are not defined by an edge.
-			if !g.Has(concrete.Node(u)) {
-				g.AddNode(concrete.Node(u))
+			if !g.Has(simple.Node(u)) {
+				g.AddNode(simple.Node(u))
 			}
 			for v := range e {
-				g.SetEdge(concrete.Edge{F: concrete.Node(u), T: concrete.Node(v)}, 0)
+				g.SetEdge(simple.Edge{F: simple.Node(u), T: simple.Node(v)})
 			}
 		}
-		cliques := topo.BronKerbosch(g)
+		cliques := BronKerbosch(g)
 		got := make([][]int, len(cliques))
 		for j, c := range cliques {
 			ids := make([]int, len(c))
@@ -156,7 +156,7 @@ func TestBronKerbosch(t *testing.T) {
 			sort.Ints(ids)
 			got[j] = ids
 		}
-		sort.Sort(internal.BySliceValues(got))
+		sort.Sort(ordered.BySliceValues(got))
 		if !reflect.DeepEqual(got, test.want) {
 			t.Errorf("unexpected cliques for test %d:\ngot: %v\nwant:%v", i, got, test.want)
 		}

@@ -1612,6 +1612,7 @@ items:
     verbs:
     - get
     - list
+    - watch
   - apiGroups:
     - ""
     - image.openshift.io

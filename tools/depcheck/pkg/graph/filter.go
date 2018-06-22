@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/gonum/graph/concrete"
+	"github.com/gonum/graph/simple"
 )
 
 // FilterPackages receives a graph and a set of packagePrefixes contained within the graph.
@@ -70,10 +70,7 @@ func FilterPackages(g *MutableDirectedGraph, packagePrefixes []string) (*Mutable
 				continue
 			}
 
-			collapsedGraph.SetEdge(concrete.Edge{
-				F: fromNode,
-				T: toNode,
-			}, 0)
+			collapsedGraph.SetEdge(simple.Edge{F: fromNode, T: toNode})
 		}
 	}
 

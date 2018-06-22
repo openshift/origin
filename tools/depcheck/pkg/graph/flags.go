@@ -13,7 +13,7 @@ import (
 
 	"github.com/golang/glog"
 
-	"github.com/gonum/graph/concrete"
+	"github.com/gonum/graph/simple"
 )
 
 // GraphOptions contains values necessary to create a dependency graph.
@@ -108,10 +108,7 @@ func (o *GraphOptions) BuildGraph() (*MutableDirectedGraph, error) {
 				continue
 			}
 
-			g.SetEdge(concrete.Edge{
-				F: from,
-				T: to,
-			}, 0)
+			g.SetEdge(simple.Edge{F: from, T: to})
 		}
 	}
 

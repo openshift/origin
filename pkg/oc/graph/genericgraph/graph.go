@@ -7,15 +7,15 @@ import (
 	"strings"
 
 	"github.com/gonum/graph"
-	"github.com/gonum/graph/concrete"
 	"github.com/gonum/graph/encoding/dot"
+	"github.com/gonum/graph/simple"
 
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/util/sets"
 )
 
 type Node struct {
-	concrete.Node
+	simple.Node
 	UniqueName
 }
 
@@ -71,19 +71,19 @@ type MutableDirectedEdge interface {
 }
 
 type MutableUniqueGraph interface {
-	graph.Mutable
+	graph.DirectedBuilder
 	MutableDirectedEdge
 	UniqueNodeInitializer
 	NodeFinder
 }
 
 type Edge struct {
-	concrete.Edge
+	simple.Edge
 	kinds sets.String
 }
 
-func NewEdge(from, to graph.Node, kinds ...string) Edge {
-	return Edge{concrete.Edge{F: from, T: to}, sets.NewString(kinds...)}
+func NewEdge(from, to graph.Node, weight float64, kinds ...string) Edge {
+	return Edge{Edge: simple.Edge{F: from, T: to, W: weight}, kinds: sets.NewString(kinds...)}
 }
 
 func (e Edge) Kinds() sets.String {
@@ -107,12 +107,12 @@ type GraphDescriber interface {
 }
 
 type Interface interface {
-	graph.Directed
+	graph.DirectedBuilder
 
 	GraphDescriber
-	MutableUniqueGraph
-
-	Edges() []graph.Edge
+	MutableDirectedEdge
+	UniqueNodeInitializer
+	NodeFinder
 }
 
 type Namer interface {
@@ -134,14 +134,14 @@ func (namer) ResourceName(obj interface{}) string {
 
 type Graph struct {
 	// the standard graph
-	graph.Directed
+	graph.DirectedBuilder
 	// helper methods for switching on the kind and types of the node
 	GraphDescriber
 
 	// exposes the public interface for adding nodes
 	uniqueNamedGraph
 	// the internal graph object, which allows edges and nodes to be directly added
-	internal *concrete.DirectedGraph
+	internal *simple.DirectedGraph
 }
 
 // Graph must implement MutableUniqueGraph
@@ -149,21 +149,15 @@ var _ MutableUniqueGraph = Graph{}
 
 // New initializes a graph from input to output.
 func New() Graph {
-	g := concrete.NewDirectedGraph()
+	g := simple.NewDirectedGraph(1.0, 0.0)
 	return Graph{
-		Directed:       g,
-		GraphDescriber: typedGraph{},
+		DirectedBuilder: g,
+		GraphDescriber:  typedGraph{},
 
 		uniqueNamedGraph: newUniqueNamedGraph(g),
 
 		internal: g,
 	}
-}
-
-// Edges returns all the edges of the graph. Note that the returned set
-// will have no specific ordering.
-func (g Graph) Edges() []graph.Edge {
-	return g.internal.Edges()
 }
 
 func (g Graph) String() string {
@@ -189,6 +183,18 @@ func (g Graph) String() string {
 	return ret
 }
 
+func (g Graph) Edges() []graph.Edge {
+	return g.internal.Edges()
+}
+
+func (g Graph) RemoveEdge(e graph.Edge) {
+	g.internal.RemoveEdge(e)
+}
+
+func (g Graph) RemoveNode(node graph.Node) {
+	g.internal.RemoveNode(node)
+}
+
 // ByID is a sorted group of nodes by ID
 type ByID []graph.Node
 
@@ -196,23 +202,6 @@ func (m ByID) Len() int      { return len(m) }
 func (m ByID) Swap(i, j int) { m[i], m[j] = m[j], m[i] }
 func (m ByID) Less(i, j int) bool {
 	return m[i].ID() < m[j].ID()
-}
-
-// SyntheticNodes returns back the set of nodes that were created in response to edge requests, but did not exist
-func (g Graph) SyntheticNodes() []graph.Node {
-	ret := []graph.Node{}
-
-	nodes := g.Nodes()
-	sort.Sort(ByID(nodes))
-	for _, node := range nodes {
-		if potentiallySyntheticNode, ok := node.(ExistenceChecker); ok {
-			if !potentiallySyntheticNode.Found() {
-				ret = append(ret, node)
-			}
-		}
-	}
-
-	return ret
 }
 
 // NodesByKind returns all the nodes of the graph with the provided kinds
@@ -227,18 +216,6 @@ func (g Graph) NodesByKind(nodeKinds ...string) []graph.Node {
 	}
 
 	return ret
-}
-
-// RootNodes returns all the roots of this graph.
-func (g Graph) RootNodes() []graph.Node {
-	roots := []graph.Node{}
-	for _, n := range g.Nodes() {
-		if len(g.To(n)) != 0 {
-			continue
-		}
-		roots = append(roots, n)
-	}
-	return roots
 }
 
 // PredecessorEdges invokes fn with all of the predecessor edges of node that have the specified
@@ -365,7 +342,7 @@ func (g Graph) AddEdge(from, to graph.Node, edgeKind string) {
 		kinds.Insert(g.EdgeKinds(existingEdge).List()...)
 	}
 
-	g.internal.SetEdge(NewEdge(from, to, kinds.List()...), 1.0)
+	g.internal.SetEdge(NewEdge(from, to, 1.0, kinds.List()...))
 }
 
 // addEdges adds the specified edges, filtered by the provided edge connection
@@ -373,13 +350,13 @@ func (g Graph) AddEdge(from, to graph.Node, edgeKind string) {
 func (g Graph) addEdges(edges []graph.Edge, fn EdgeFunc) {
 	for _, e := range edges {
 		switch t := e.(type) {
-		case concrete.WeightedEdge:
-			if fn(g, t.From(), t.To(), t.Edge.(Edge).Kinds()) {
-				g.internal.SetEdge(t.Edge.(Edge), t.Cost)
-			}
 		case Edge:
 			if fn(g, t.From(), t.To(), t.Kinds()) {
-				g.internal.SetEdge(t, 1.0)
+				g.internal.SetEdge(t)
+			}
+		case simple.Edge:
+			if fn(g, t.From(), t.To(), sets.NewString()) {
+				g.internal.SetEdge(t)
 			}
 		default:
 			panic("bad edge")
@@ -484,20 +461,6 @@ func (g Graph) SubgraphWithNodes(nodes []graph.Node, fn EdgeFunc) Graph {
 	return out
 }
 
-// ConnectedEdgeSubgraph creates a new graph that iterates through all edges in the graph
-// and includes all edges the provided function returns true for. Nodes not referenced by
-// an edge will be dropped unless the function adds them explicitly.
-func (g Graph) ConnectedEdgeSubgraph(fn EdgeFunc) Graph {
-	out := New()
-	out.addEdges(g.internal.Edges(), fn)
-	return out
-}
-
-// AllNodes includes all nodes in the graph
-func AllNodes(g Interface, node graph.Node) bool {
-	return true
-}
-
 // ExistingDirectEdge returns true if both from and to already exist in the graph and the edge kind is
 // not ReferencedByEdgeKind (the generic reverse edge kind). This will purge the graph of any
 // edges created by AddReversedEdge.
@@ -528,26 +491,14 @@ func AddReversedEdge(g Interface, from, to graph.Node, edgeKinds sets.String) bo
 	return true
 }
 
-// AddGraphEdgesTo returns an EdgeFunc that will add the selected edges to the passed
-// graph.
-func AddGraphEdgesTo(g Interface) EdgeFunc {
-	return func(_ Interface, from, to graph.Node, edgeKinds sets.String) bool {
-		for edgeKind := range edgeKinds {
-			g.AddEdge(from, to, edgeKind)
-		}
-
-		return false
-	}
-}
-
 type uniqueNamedGraph struct {
-	graph.Mutable
+	graph.Builder
 	names map[UniqueName]graph.Node
 }
 
-func newUniqueNamedGraph(g graph.Mutable) uniqueNamedGraph {
+func newUniqueNamedGraph(g graph.Builder) uniqueNamedGraph {
 	return uniqueNamedGraph{
-		Mutable: g,
+		Builder: g,
 		names:   make(map[UniqueName]graph.Node),
 	}
 }
@@ -557,7 +508,7 @@ func (g uniqueNamedGraph) FindOrCreate(name UniqueName, fn NodeInitializerFunc) 
 		return node, true
 	}
 	id := g.NewNodeID()
-	node := fn(Node{concrete.Node(id), name})
+	node := fn(Node{simple.Node(id), name})
 	g.names[name] = node
 	g.AddNode(node)
 	return node, false
@@ -610,25 +561,14 @@ func (g typedGraph) Kind(node graph.Node) string {
 func (g typedGraph) EdgeKinds(edge graph.Edge) sets.String {
 	var e Edge
 	switch t := edge.(type) {
-	case concrete.WeightedEdge:
-		e = t.Edge.(Edge)
 	case Edge:
 		e = t
+	case simple.Edge:
+		e = Edge{Edge: t}
 	default:
 		return sets.NewString(UnknownEdgeKind)
 	}
 	return e.Kinds()
-}
-
-type NodeSet map[int]struct{}
-
-func (n NodeSet) Has(id int) bool {
-	_, ok := n[id]
-	return ok
-}
-
-func (n NodeSet) Add(id int) {
-	n[id] = struct{}{}
 }
 
 func NodesByKind(g Interface, nodes []graph.Node, kinds ...string) [][]graph.Node {

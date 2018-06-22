@@ -8,15 +8,15 @@ import "github.com/gonum/graph"
 
 // FloydWarshall returns a shortest-path tree for the graph g or false indicating
 // that a negative cycle exists in the graph. If the graph does not implement
-// graph.Weighter, graph.UniformCost is used.
+// graph.Weighter, UniformCost is used.
 //
 // The time complexity of FloydWarshall is O(|V|^3).
 func FloydWarshall(g graph.Graph) (paths AllShortest, ok bool) {
-	var weight graph.WeightFunc
-	if g, ok := g.(graph.Weighter); ok {
-		weight = g.Weight
+	var weight Weighting
+	if wg, ok := g.(graph.Weighter); ok {
+		weight = wg.Weight
 	} else {
-		weight = graph.UniformCost
+		weight = UniformCost(g)
 	}
 
 	nodes := g.Nodes()
@@ -25,7 +25,11 @@ func FloydWarshall(g graph.Graph) (paths AllShortest, ok bool) {
 		paths.dist.Set(i, i, 0)
 		for _, v := range g.From(u) {
 			j := paths.indexOf[v.ID()]
-			paths.set(i, j, weight(g.Edge(u, v)), j)
+			w, ok := weight(u, v)
+			if !ok {
+				panic("floyd-warshall: unexpected invalid weight")
+			}
+			paths.set(i, j, w, j)
 		}
 	}
 

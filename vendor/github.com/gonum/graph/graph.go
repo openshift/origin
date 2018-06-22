@@ -4,8 +4,6 @@
 
 package graph
 
-import "math"
-
 // Node is a graph node. It returns a graph-unique integer ID.
 type Node interface {
 	ID() int
@@ -17,6 +15,7 @@ type Node interface {
 type Edge interface {
 	From() Node
 	To() Node
+	Weight() float64
 }
 
 // Graph is a generalized graph.
@@ -31,9 +30,9 @@ type Graph interface {
 	// from the given node.
 	From(Node) []Node
 
-	// HasEdge returns whether an edge exists between
+	// HasEdgeBeteen returns whether an edge exists between
 	// nodes x and y without considering direction.
-	HasEdge(x, y Node) bool
+	HasEdgeBetween(x, y Node) bool
 
 	// Edge returns the edge from u to v if such an edge
 	// exists and nil otherwise. The node v must be directly
@@ -64,110 +63,91 @@ type Directed interface {
 
 // Weighter defines graphs that can report edge weights.
 type Weighter interface {
-	// Weight returns the weight for the given edge.
-	Weight(Edge) float64
+	// Weight returns the weight for the edge between
+	// x and y if Edge(x, y) returns a non-nil Edge.
+	// If x and y are the same node or there is no
+	// joining edge between the two nodes the weight
+	// value returned is implementation dependent.
+	// Weight returns true if an edge exists between
+	// x and y or if x and y have the same ID, false
+	// otherwise.
+	Weight(x, y Node) (w float64, ok bool)
 }
 
-// Mutable is an interface for generalized graph mutation.
-type Mutable interface {
+// NodeAdder is an interface for adding arbitrary nodes to a graph.
+type NodeAdder interface {
 	// NewNodeID returns a new unique arbitrary ID.
 	NewNodeID() int
 
 	// Adds a node to the graph. AddNode panics if
 	// the added node ID matches an existing node ID.
 	AddNode(Node)
+}
 
+// NodeRemover is an interface for removing nodes from a graph.
+type NodeRemover interface {
 	// RemoveNode removes a node from the graph, as
 	// well as any edges attached to it. If the node
 	// is not in the graph it is a no-op.
 	RemoveNode(Node)
+}
 
+// EdgeSetter is an interface for adding edges to a graph.
+type EdgeSetter interface {
 	// SetEdge adds an edge from one node to another.
-	// If the nodes do not exist, they are added.
-	// SetEdge will panic if the IDs of the e.From
-	// and e.To are equal.
-	SetEdge(e Edge, cost float64)
+	// If the graph supports node addition the nodes
+	// will be added if they do not exist, otherwise
+	// SetEdge will panic.
+	// If the IDs returned by e.From and e.To are
+	// equal, SetEdge will panic.
+	SetEdge(e Edge)
+}
 
+// EdgeRemover is an interface for removing nodes from a graph.
+type EdgeRemover interface {
 	// RemoveEdge removes the given edge, leaving the
 	// terminal nodes. If the edge does not exist it
 	// is a no-op.
 	RemoveEdge(Edge)
 }
 
-// MutableUndirected is an undirected graph that can be arbitrarily altered.
-type MutableUndirected interface {
+// Builder is a graph that can have nodes and edges added.
+type Builder interface {
+	NodeAdder
+	EdgeSetter
+}
+
+// UndirectedBuilder is an undirected graph builder.
+type UndirectedBuilder interface {
 	Undirected
-	Mutable
+	Builder
 }
 
-// MutableDirected is a directed graph that can be arbitrarily altered.
-type MutableDirected interface {
+// DirectedBuilder is a directed graph builder.
+type DirectedBuilder interface {
 	Directed
-	Mutable
+	Builder
 }
 
-// WeightFunc is a mapping between an edge and an edge weight.
-type WeightFunc func(Edge) float64
-
-// UniformCost is a WeightFunc that returns an edge cost of 1 for a non-nil Edge
-// and Inf for a nil Edge.
-func UniformCost(e Edge) float64 {
-	if e == nil {
-		return math.Inf(1)
-	}
-	return 1
-}
-
-// CopyUndirected copies nodes and edges as undirected edges from the source to the
-// destination without first clearing the destination. CopyUndirected will panic if
-// a node ID in the source graph matches a node ID in the destination. If the source
-// does not implement Weighter, UniformCost is used to define edge weights.
+// Copy copies nodes and edges as undirected edges from the source to the destination
+// without first clearing the destination. Copy will panic if a node ID in the source
+// graph matches a node ID in the destination.
 //
-// Note that if the source is a directed graph and a fundamental cycle exists with
-// two nodes where the edge weights differ, the resulting destination graph's edge
-// weight between those nodes is undefined.
-func CopyUndirected(dst MutableUndirected, src Graph) {
-	var weight WeightFunc
-	if g, ok := src.(Weighter); ok {
-		weight = g.Weight
-	} else {
-		weight = UniformCost
-	}
-
+// If the source is undirected and the destination is directed both directions will
+// be present in the destination after the copy is complete.
+//
+// If the source is a directed graph, the destination is undirected, and a fundamental
+// cycle exists with two nodes where the edge weights differ, the resulting destination
+// graph's edge weight between those nodes is undefined. If there is a defined function
+// to resolve such conflicts, an Undirect may be used to do this.
+func Copy(dst Builder, src Graph) {
 	nodes := src.Nodes()
 	for _, n := range nodes {
 		dst.AddNode(n)
 	}
 	for _, u := range nodes {
 		for _, v := range src.From(u) {
-			edge := src.Edge(u, v)
-			dst.SetEdge(edge, weight(edge))
-		}
-	}
-}
-
-// CopyDirected copies nodes and edges as directed edges from the source to the
-// destination without first clearing the destination. CopyDirected will panic if
-// a node ID in the source graph matches a node ID in the destination. If the
-// source is undirected both directions will be present in the destination after
-// the copy is complete. If the source does not implement Weighter, UniformCost
-// is used to define edge weights.
-func CopyDirected(dst MutableDirected, src Graph) {
-	var weight WeightFunc
-	if g, ok := src.(Weighter); ok {
-		weight = g.Weight
-	} else {
-		weight = UniformCost
-	}
-
-	nodes := src.Nodes()
-	for _, n := range nodes {
-		dst.AddNode(n)
-	}
-	for _, u := range nodes {
-		for _, v := range src.From(u) {
-			edge := src.Edge(u, v)
-			dst.SetEdge(edge, weight(edge))
+			dst.SetEdge(src.Edge(u, v))
 		}
 	}
 }

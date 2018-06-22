@@ -82,6 +82,6 @@ func (ds *disjointSet) union(x, y *disjointSetNode) {
 		yRoot.parent = xRoot
 	} else {
 		yRoot.parent = xRoot
-		xRoot.rank += 1
+		xRoot.rank++
 	}
 }

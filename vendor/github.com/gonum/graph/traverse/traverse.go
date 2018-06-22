@@ -6,16 +6,18 @@
 package traverse
 
 import (
+	"golang.org/x/tools/container/intsets"
+
 	"github.com/gonum/graph"
-	"github.com/gonum/graph/internal"
+	"github.com/gonum/graph/internal/linear"
 )
 
 // BreadthFirst implements stateful breadth-first graph traversal.
 type BreadthFirst struct {
 	EdgeFilter func(graph.Edge) bool
 	Visit      func(u, v graph.Node)
-	queue      internal.NodeQueue
-	visited    internal.IntSet
+	queue      linear.NodeQueue
+	visited    *intsets.Sparse
 }
 
 // Walk performs a breadth-first traversal of the graph g starting from the given node,
@@ -25,10 +27,10 @@ type BreadthFirst struct {
 // non-nil, it is called with the nodes joined by each followed edge.
 func (b *BreadthFirst) Walk(g graph.Graph, from graph.Node, until func(n graph.Node, d int) bool) graph.Node {
 	if b.visited == nil {
-		b.visited = make(internal.IntSet)
+		b.visited = &intsets.Sparse{}
 	}
 	b.queue.Enqueue(from)
-	b.visited.Add(from.ID())
+	b.visited.Insert(from.ID())
 
 	var (
 		depth     int
@@ -50,7 +52,7 @@ func (b *BreadthFirst) Walk(g graph.Graph, from graph.Node, until func(n graph.N
 			if b.Visit != nil {
 				b.Visit(t, n)
 			}
-			b.visited.Add(n.ID())
+			b.visited.Insert(n.ID())
 			children++
 			b.queue.Enqueue(n)
 		}
@@ -91,22 +93,23 @@ func (b *BreadthFirst) WalkAll(g graph.Undirected, before, after func(), during 
 
 // Visited returned whether the node n was visited during a traverse.
 func (b *BreadthFirst) Visited(n graph.Node) bool {
-	_, ok := b.visited[n.ID()]
-	return ok
+	return b.visited != nil && b.visited.Has(n.ID())
 }
 
 // Reset resets the state of the traverser for reuse.
 func (b *BreadthFirst) Reset() {
 	b.queue.Reset()
-	b.visited = nil
+	if b.visited != nil {
+		b.visited.Clear()
+	}
 }
 
 // DepthFirst implements stateful depth-first graph traversal.
 type DepthFirst struct {
 	EdgeFilter func(graph.Edge) bool
 	Visit      func(u, v graph.Node)
-	stack      internal.NodeStack
-	visited    internal.IntSet
+	stack      linear.NodeStack
+	visited    *intsets.Sparse
 }
 
 // Walk performs a depth-first traversal of the graph g starting from the given node,
@@ -116,10 +119,10 @@ type DepthFirst struct {
 // is called with the nodes joined by each followed edge.
 func (d *DepthFirst) Walk(g graph.Graph, from graph.Node, until func(graph.Node) bool) graph.Node {
 	if d.visited == nil {
-		d.visited = make(internal.IntSet)
+		d.visited = &intsets.Sparse{}
 	}
 	d.stack.Push(from)
-	d.visited.Add(from.ID())
+	d.visited.Insert(from.ID())
 
 	for d.stack.Len() > 0 {
 		t := d.stack.Pop()
@@ -136,7 +139,7 @@ func (d *DepthFirst) Walk(g graph.Graph, from graph.Node, until func(graph.Node)
 			if d.Visit != nil {
 				d.Visit(t, n)
 			}
-			d.visited.Add(n.ID())
+			d.visited.Insert(n.ID())
 			d.stack.Push(n)
 		}
 	}
@@ -171,12 +174,13 @@ func (d *DepthFirst) WalkAll(g graph.Undirected, before, after func(), during fu
 
 // Visited returned whether the node n was visited during a traverse.
 func (d *DepthFirst) Visited(n graph.Node) bool {
-	_, ok := d.visited[n.ID()]
-	return ok
+	return d.visited != nil && d.visited.Has(n.ID())
 }
 
 // Reset resets the state of the traverser for reuse.
 func (d *DepthFirst) Reset() {
 	d.stack = d.stack[:0]
-	d.visited = nil
+	if d.visited != nil {
+		d.visited.Clear()
+	}
 }

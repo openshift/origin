@@ -7,12 +7,15 @@ import (
 	"sort"
 	"strings"
 
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-
 	"github.com/docker/distribution/registry/api/errcode"
 	"github.com/golang/glog"
 
+	kmeta "k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/runtime"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	kapiref "k8s.io/kubernetes/pkg/api/ref"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/util/netutils"
@@ -264,4 +267,37 @@ func (e *ErrBadReference) String() string {
 		targetKind = e.targetKind
 	}
 	return fmt.Sprintf("%s[%s]: invalid %s reference %q: %s", e.kind, name, targetKind, e.reference, e.reason)
+}
+
+func getName(obj runtime.Object) string {
+	accessor, err := kmeta.Accessor(obj)
+	if err != nil {
+		glog.V(4).Infof("Error getting accessor for %#v", obj)
+		return "<unknown>"
+	}
+	ns := accessor.GetNamespace()
+	if len(ns) == 0 {
+		return accessor.GetName()
+	}
+	return fmt.Sprintf("%s/%s", ns, accessor.GetName())
+}
+
+func getKindName(obj *kapi.ObjectReference) string {
+	if obj == nil {
+		return "unknown object"
+	}
+	name := obj.Name
+	if len(obj.Namespace) > 0 {
+		name = obj.Namespace + "/" + name
+	}
+	return fmt.Sprintf("%s[%s]", obj.Kind, name)
+}
+
+func getRef(obj runtime.Object) *kapi.ObjectReference {
+	ref, err := kapiref.GetReference(legacyscheme.Scheme, obj)
+	if err != nil {
+		glog.Errorf("failed to get reference to object %T: %v", obj, err)
+		return nil
+	}
+	return ref
 }
