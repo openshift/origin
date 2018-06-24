@@ -1,5 +1,5 @@
 hash: 1511c1c08d724d5b2f6c586490bfa154f305c5b0038fb2a4bf3c0404aabc72a6
-updated: 2018-06-22T09:56:15.345826-04:00
+updated: 2018-06-22T15:14:13.366539768-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -947,7 +947,7 @@ imports:
   - user/informers/externalversions/user/v1
   - user/listers/user/v1
 - name: github.com/openshift/imagebuilder
-  version: 38229f93eea5ad4527ec60be7dd81267b80bb4ff
+  version: cef62bca5ea70ac8aa7c86b63e28e888c152ad0e
   subpackages:
   - dockerclient
   - imageprogress
@@ -1815,7 +1815,7 @@ imports:
   - pkg/util/proto
   - pkg/util/proto/validation
 - name: k8s.io/kubernetes
-  version: b264efffc86920dced61130e59ae8256f36d1c02
+  version: d500745e6519d922e3dc9735cbafc5f2a67e0e44
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/controller-manager/app

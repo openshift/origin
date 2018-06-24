@@ -165,9 +165,17 @@ func archiveFromDisk(directory string, src, dst string, allowDownload bool, excl
 		return nil, nil, err
 	}
 
+	// special case when we are archiving a single file at the root
+	if len(infos) == 1 && !infos[0].FileInfo.IsDir() && (infos[0].Path == "." || infos[0].Path == "/") {
+		glog.V(5).Infof("Archiving a file instead of a directory from %s", directory)
+		infos[0].Path = filepath.Base(directory)
+		infos[0].FromDir = false
+		directory = filepath.Dir(directory)
+	}
+
 	options := archiveOptionsFor(infos, dst, excludes)
 
-	glog.V(4).Infof("Tar of directory %s %#v", directory, options)
+	glog.V(4).Infof("Tar of %s %#v", directory, options)
 	rc, err := archive.TarWithOptions(directory, options)
 	return rc, rc, err
 }
@@ -350,34 +358,60 @@ func archiveFromContainer(in io.Reader, src, dst string, excludes []string) (io.
 
 func archiveOptionsFor(infos []CopyInfo, dst string, excludes []string) *archive.TarOptions {
 	dst = trimLeadingPath(dst)
+	dstIsDir := strings.HasSuffix(dst, "/") || dst == "." || dst == "/" || strings.HasSuffix(dst, "/.")
+	dst = trimTrailingSlash(dst)
+	dstIsRoot := dst == "." || dst == "/"
+
 	options := &archive.TarOptions{
 		ChownOpts: &idtools.IDPair{UID: 0, GID: 0},
 	}
+
 	pm, err := fileutils.NewPatternMatcher(excludes)
 	if err != nil {
 		return options
 	}
+
 	for _, info := range infos {
 		if ok, _ := pm.Matches(info.Path); ok {
 			continue
 		}
-		options.IncludeFiles = append(options.IncludeFiles, info.Path)
+
+		srcIsDir := strings.HasSuffix(info.Path, "/") || info.Path == "." || info.Path == "/" || strings.HasSuffix(info.Path, "/.")
+		infoPath := trimTrailingSlash(info.Path)
+
+		options.IncludeFiles = append(options.IncludeFiles, infoPath)
 		if len(dst) == 0 {
 			continue
 		}
 		if options.RebaseNames == nil {
 			options.RebaseNames = make(map[string]string)
 		}
-		if info.FromDir || strings.HasSuffix(dst, "/") || strings.HasSuffix(dst, "/.") || dst == "." {
-			if strings.HasSuffix(info.Path, "/") {
-				options.RebaseNames[info.Path] = dst
-			} else {
-				options.RebaseNames[info.Path] = path.Join(dst, path.Base(info.Path))
-			}
-		} else {
-			options.RebaseNames[info.Path] = dst
+
+		glog.V(6).Infof("len=%d info.FromDir=%t info.IsDir=%t dstIsRoot=%t dstIsDir=%t srcIsDir=%t", len(infos), info.FromDir, info.IsDir(), dstIsRoot, dstIsDir, srcIsDir)
+		switch {
+		case len(infos) > 1 && dstIsRoot:
+			// copying multiple things into root, no rename necessary ([Dockerfile, dir] -> [Dockerfile, dir])
+		case len(infos) > 1:
+			// put each input into the target, which is assumed to be a directory ([Dockerfile, dir] -> [a/Dockerfile, a/dir])
+			options.RebaseNames[infoPath] = path.Join(dst, path.Base(infoPath))
+		case info.FileInfo.IsDir() && dstIsDir:
+			// mapping a directory to an explicit directory ([dir] -> [a])
+			options.RebaseNames[infoPath] = dst
+		case info.FileInfo.IsDir():
+			// mapping a directory to an implicit directory ([Dockerfile] -> [dir/Dockerfile])
+			options.RebaseNames[infoPath] = path.Join(dst, path.Base(infoPath))
+		case info.FromDir:
+			// this is a file that was part of an explicit directory request, no transformation
+			options.RebaseNames[infoPath] = path.Join(dst, path.Base(infoPath))
+		case dstIsDir:
+			// mapping what is probably a file to a non-root directory ([Dockerfile] -> [dir/Dockerfile])
+			options.RebaseNames[infoPath] = path.Join(dst, path.Base(infoPath))
+		default:
+			// a single file mapped to another single file ([Dockerfile] -> [Dockerfile.2])
+			options.RebaseNames[infoPath] = dst
 		}
 	}
+
 	options.ExcludePatterns = excludes
 	return options
 }
@@ -389,4 +423,30 @@ func sourceToDestinationName(src, dst string, forceDir bool) string {
 	default:
 		return dst
 	}
+}
+
+// logArchiveOutput prints log info about the provided tar file as it is streamed. If an
+// error occurs the remainder of the pipe is read to prevent blocking.
+func logArchiveOutput(r io.Reader, prefix string) {
+	pr, pw := io.Pipe()
+	r = ioutil.NopCloser(io.TeeReader(r, pw))
+	go func() {
+		err := func() error {
+			tr := tar.NewReader(pr)
+			for {
+				h, err := tr.Next()
+				if err != nil {
+					return err
+				}
+				glog.Infof("%s %s (%d %s)", prefix, h.Name, h.Size, h.FileInfo().Mode())
+				if _, err := io.Copy(ioutil.Discard, tr); err != nil {
+					return err
+				}
+			}
+		}()
+		if err != io.EOF {
+			glog.Infof("%s: unable to log archive output: %v", prefix, err)
+			io.Copy(ioutil.Discard, pr)
+		}
+	}()
 }
