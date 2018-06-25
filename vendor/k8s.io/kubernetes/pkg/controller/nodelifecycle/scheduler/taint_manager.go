@@ -18,6 +18,9 @@ package scheduler
 
 import (
 	"fmt"
+	"sync"
+	"time"
+
 	"k8s.io/api/core/v1"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/pkg/apis/core/helper"
@@ -27,8 +30,6 @@ import (
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
-	"sync"
-	"time"
 
 	"k8s.io/client-go/kubernetes/scheme"
 	v1core "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -189,9 +190,11 @@ func (tc *NoExecuteTaintManager) Run(stopCh <-chan struct{}) {
 			nodeUpdate := item.(*nodeUpdateItem)
 			select {
 			case <-stopCh:
+				tc.nodeUpdateQueue.Done(item)
 				break
 			case tc.nodeUpdateChannel <- nodeUpdate:
 			}
+			tc.nodeUpdateQueue.Done(item)
 		}
 	}(stopCh)
 
@@ -204,9 +207,11 @@ func (tc *NoExecuteTaintManager) Run(stopCh <-chan struct{}) {
 			podUpdate := item.(*podUpdateItem)
 			select {
 			case <-stopCh:
+				tc.podUpdateQueue.Done(item)
 				break
 			case tc.podUpdateChannel <- podUpdate:
 			}
+			tc.podUpdateQueue.Done(item)
 		}
 	}(stopCh)
 
