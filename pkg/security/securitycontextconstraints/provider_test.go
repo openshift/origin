@@ -199,6 +199,31 @@ func TestValidatePodSecurityContextFailures(t *testing.T) {
 		},
 	}
 
+	failSysctlDisallowedSCC := defaultSCC()
+	failSysctlDisallowedSCC.ForbiddenSysctls = []string{"kernel.shm_rmid_forced"}
+
+	failNoSafeSysctlAllowedSCC := defaultSCC()
+	failNoSafeSysctlAllowedSCC.ForbiddenSysctls = []string{"*"}
+
+	failAllUnsafeSysctlsSCC := defaultSCC()
+	failAllUnsafeSysctlsSCC.AllowedUnsafeSysctls = []string{}
+
+	failSafeSysctlKernelPod := defaultPod()
+	failSafeSysctlKernelPod.Spec.SecurityContext.Sysctls = []api.Sysctl{
+		{
+			Name:  "kernel.shm_rmid_forced",
+			Value: "1",
+		},
+	}
+
+	failUnsafeSysctlPod := defaultPod()
+	failUnsafeSysctlPod.Spec.SecurityContext.Sysctls = []api.Sysctl{
+		{
+			Name:  "kernel.sem",
+			Value: "32000",
+		},
+	}
+
 	errorCases := map[string]struct {
 		pod           *api.Pod
 		scc           *securityapi.SecurityContextConstraints
@@ -273,6 +298,21 @@ func TestValidatePodSecurityContextFailures(t *testing.T) {
 			pod:           podWithInvalidFlexVolumeDriver,
 			scc:           allowFlexVolumesSCC(false, true),
 			expectedError: "Flexvolume driver is not allowed to be used",
+		},
+		"failSafeSysctlKernelPod with failNoSafeSysctlAllowedSCC": {
+			pod:           failSafeSysctlKernelPod,
+			scc:           failNoSafeSysctlAllowedSCC,
+			expectedError: "sysctl \"kernel.shm_rmid_forced\" is not allowed",
+		},
+		"failSafeSysctlKernelPod with failSysctlDisallowedSCC": {
+			pod:           failSafeSysctlKernelPod,
+			scc:           failSysctlDisallowedSCC,
+			expectedError: "sysctl \"kernel.shm_rmid_forced\" is not allowed",
+		},
+		"failUnsafeSysctlPod with failAllUnsafeSysctlsSCC": {
+			pod:           failUnsafeSysctlPod,
+			scc:           failAllUnsafeSysctlsSCC,
+			expectedError: "unsafe sysctl \"kernel.sem\" is not allowed",
 		},
 	}
 	for k, v := range errorCases {
@@ -494,6 +534,26 @@ func TestValidatePodSecurityContextSuccess(t *testing.T) {
 		},
 	}
 
+	sysctlAllowAllSCC := defaultSCC()
+	sysctlAllowAllSCC.ForbiddenSysctls = []string{}
+	sysctlAllowAllSCC.AllowedUnsafeSysctls = []string{"*"}
+
+	safeSysctlKernelPod := defaultPod()
+	safeSysctlKernelPod.Spec.SecurityContext.Sysctls = []api.Sysctl{
+		{
+			Name:  "kernel.shm_rmid_forced",
+			Value: "1",
+		},
+	}
+
+	unsafeSysctlKernelPod := defaultPod()
+	unsafeSysctlKernelPod.Spec.SecurityContext.Sysctls = []api.Sysctl{
+		{
+			Name:  "kernel.sem",
+			Value: "32000",
+		},
+	}
+
 	successCases := map[string]struct {
 		pod *api.Pod
 		scc *securityapi.SecurityContextConstraints
@@ -553,6 +613,14 @@ func TestValidatePodSecurityContextSuccess(t *testing.T) {
 		"flex volume driver with empty whitelist (only flex volumes volumes are allowed)": {
 			pod: flexVolumePod,
 			scc: allowFlexVolumesSCC(true, false),
+		},
+		"pass sysctl specific profile with safe kernel sysctl": {
+			pod: safeSysctlKernelPod,
+			scc: sysctlAllowAllSCC,
+		},
+		"pass sysctl specific profile with unsafe kernel sysctl": {
+			pod: unsafeSysctlKernelPod,
+			scc: sysctlAllowAllSCC,
 		},
 	}
 

@@ -2,6 +2,7 @@ package validation
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	"k8s.io/apimachinery/pkg/api/validation"
@@ -110,6 +111,98 @@ func ValidateSecurityContextConstraints(scc *securityapi.SecurityContextConstrai
 			allErrs = append(allErrs, field.Invalid(field.NewPath("allowedFlexVolumes"), scc.AllowedFlexVolumes,
 				"volumes does not include 'flexVolume' or '*', so no flex volumes are allowed"))
 		}
+	}
+
+	allowedUnsafeSysctlsPath := field.NewPath("allowedUnsafeSysctls")
+	forbiddenSysctlsPath := field.NewPath("forbiddenSysctls")
+	allErrs = append(allErrs, validateSCCSysctls(allowedUnsafeSysctlsPath, scc.AllowedUnsafeSysctls)...)
+	allErrs = append(allErrs, validateSCCSysctls(forbiddenSysctlsPath, scc.ForbiddenSysctls)...)
+	allErrs = append(allErrs, validatePodSecurityPolicySysctlListsDoNotOverlap(allowedUnsafeSysctlsPath, forbiddenSysctlsPath, scc.AllowedUnsafeSysctls, scc.ForbiddenSysctls)...)
+
+	return allErrs
+}
+
+const sysctlPatternSegmentFmt string = "([a-z0-9][-_a-z0-9]*)?[a-z0-9*]"
+const sysctlPatternFmt string = "(" + kapivalidation.SysctlSegmentFmt + "\\.)*" + sysctlPatternSegmentFmt
+
+var sysctlPatternRegexp = regexp.MustCompile("^" + sysctlPatternFmt + "$")
+
+func IsValidSysctlPattern(name string) bool {
+	if len(name) > kapivalidation.SysctlMaxLength {
+		return false
+	}
+	return sysctlPatternRegexp.MatchString(name)
+}
+
+// validatePodSecurityPolicySysctlListsDoNotOverlap validates the values in forbiddenSysctls and allowedSysctls fields do not overlap.
+func validatePodSecurityPolicySysctlListsDoNotOverlap(allowedSysctlsFldPath, forbiddenSysctlsFldPath *field.Path, allowedUnsafeSysctls, forbiddenSysctls []string) field.ErrorList {
+	allErrs := field.ErrorList{}
+	for i, allowedSysctl := range allowedUnsafeSysctls {
+		isAllowedSysctlPattern := false
+		allowedSysctlPrefix := ""
+		if strings.HasSuffix(allowedSysctl, "*") {
+			isAllowedSysctlPattern = true
+			allowedSysctlPrefix = strings.TrimSuffix(allowedSysctl, "*")
+		}
+		for j, forbiddenSysctl := range forbiddenSysctls {
+			isForbiddenSysctlPattern := false
+			forbiddenSysctlPrefix := ""
+			if strings.HasSuffix(forbiddenSysctl, "*") {
+				isForbiddenSysctlPattern = true
+				forbiddenSysctlPrefix = strings.TrimSuffix(forbiddenSysctl, "*")
+			}
+			switch {
+			case isAllowedSysctlPattern && isForbiddenSysctlPattern:
+				if strings.HasPrefix(allowedSysctlPrefix, forbiddenSysctlPrefix) {
+					allErrs = append(allErrs, field.Invalid(allowedSysctlsFldPath.Index(i), allowedUnsafeSysctls[i], fmt.Sprintf("sysctl overlaps with %v", forbiddenSysctl)))
+				} else if strings.HasPrefix(forbiddenSysctlPrefix, allowedSysctlPrefix) {
+					allErrs = append(allErrs, field.Invalid(forbiddenSysctlsFldPath.Index(j), forbiddenSysctls[j], fmt.Sprintf("sysctl overlaps with %v", allowedSysctl)))
+				}
+			case isAllowedSysctlPattern:
+				if strings.HasPrefix(forbiddenSysctl, allowedSysctlPrefix) {
+					allErrs = append(allErrs, field.Invalid(forbiddenSysctlsFldPath.Index(j), forbiddenSysctls[j], fmt.Sprintf("sysctl overlaps with %v", allowedSysctl)))
+				}
+			case isForbiddenSysctlPattern:
+				if strings.HasPrefix(allowedSysctl, forbiddenSysctlPrefix) {
+					allErrs = append(allErrs, field.Invalid(allowedSysctlsFldPath.Index(i), allowedUnsafeSysctls[i], fmt.Sprintf("sysctl overlaps with %v", forbiddenSysctl)))
+				}
+			default:
+				if allowedSysctl == forbiddenSysctl {
+					allErrs = append(allErrs, field.Invalid(allowedSysctlsFldPath.Index(i), allowedUnsafeSysctls[i], fmt.Sprintf("sysctl overlaps with %v", forbiddenSysctl)))
+				}
+			}
+		}
+	}
+	return allErrs
+}
+
+// validatePodSecurityPolicySysctls validates the sysctls fields of PodSecurityPolicy.
+func validateSCCSysctls(fldPath *field.Path, sysctls []string) field.ErrorList {
+	allErrs := field.ErrorList{}
+
+	if len(sysctls) == 0 {
+		return allErrs
+	}
+
+	coversAll := false
+	for i, s := range sysctls {
+		if len(s) == 0 {
+			allErrs = append(allErrs, field.Invalid(fldPath.Index(i), sysctls[i], fmt.Sprintf("empty sysctl not allowed")))
+		} else if !IsValidSysctlPattern(string(s)) {
+			allErrs = append(
+				allErrs,
+				field.Invalid(fldPath.Index(i), sysctls[i], fmt.Sprintf("must have at most %d characters and match regex %s",
+					kapivalidation.SysctlMaxLength,
+					sysctlPatternFmt,
+				)),
+			)
+		} else if s[0] == '*' {
+			coversAll = true
+		}
+	}
+
+	if coversAll && len(sysctls) > 1 {
+		allErrs = append(allErrs, field.Forbidden(fldPath.Child("items"), fmt.Sprintf("if '*' is present, must not specify other sysctls")))
 	}
 
 	return allErrs
