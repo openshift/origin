@@ -42,7 +42,7 @@ func (b BuildOverrides) ApplyOverrides(pod *v1.Pod) error {
 		return nil
 	}
 
-	build, version, err := buildadmission.GetBuildFromPod(pod)
+	build, err := buildadmission.GetBuildFromPod(pod)
 	if err != nil {
 		return err
 	}
@@ -106,7 +106,7 @@ func (b BuildOverrides) ApplyOverrides(pod *v1.Pod) error {
 		}
 	}
 
-	return buildadmission.SetBuildInPod(pod, build, version)
+	return buildadmission.SetBuildInPod(pod, build)
 }
 
 func applyForcePullToPod(pod *v1.Pod) error {

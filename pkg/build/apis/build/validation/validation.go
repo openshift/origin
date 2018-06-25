@@ -754,7 +754,7 @@ func diffBuildSpec(newer, older buildapi.BuildSpec) (string, error) {
 }
 
 func CreateBuildPatch(older, newer *buildapi.Build) ([]byte, error) {
-	codec := legacyscheme.Codecs.LegacyCodec(buildapiv1.LegacySchemeGroupVersion)
+	codec := legacyscheme.Codecs.LegacyCodec(buildapiv1.SchemeGroupVersion)
 
 	newerJSON, err := runtime.Encode(codec, newer)
 	if err != nil {
@@ -772,7 +772,7 @@ func CreateBuildPatch(older, newer *buildapi.Build) ([]byte, error) {
 }
 
 func ApplyBuildPatch(build *buildapi.Build, patch []byte) (*buildapi.Build, error) {
-	codec := legacyscheme.Codecs.LegacyCodec(buildapiv1.LegacySchemeGroupVersion)
+	codec := legacyscheme.Codecs.LegacyCodec(buildapiv1.SchemeGroupVersion)
 	versionedBuild, err := legacyscheme.Scheme.ConvertToVersion(build, buildapiv1.SchemeGroupVersion)
 	if err != nil {
 		return nil, err

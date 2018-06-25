@@ -6,24 +6,35 @@ import (
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
 
+	buildv1 "github.com/openshift/api/build/v1"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	buildinstall "github.com/openshift/origin/pkg/build/apis/build/install"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 )
+
+var (
+	buildEncodingScheme       = runtime.NewScheme()
+	buildEncodingCodecFactory = serializer.NewCodecFactory(buildEncodingScheme)
+	buildJSONCodec            runtime.Encoder
+)
+
+func init() {
+	// TODO only use external versions, so we only add external types
+	buildinstall.Install(buildEncodingScheme)
+	buildJSONCodec = buildEncodingCodecFactory.LegacyCodec(buildv1.SchemeGroupVersion)
+}
 
 // DockerBuildStrategy creates a Docker build using a Docker builder image.
 type DockerBuildStrategy struct {
 	Image string
-	// Codec is the codec to use for encoding the output pod.
-	// IMPORTANT: This may break backwards compatibility when
-	// it changes.
-	Codec runtime.Codec
 }
 
 // CreateBuildPod creates the pod to be used for the Docker build
 // TODO: Make the Pod definition configurable
 func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*v1.Pod, error) {
-	data, err := runtime.Encode(bs.Codec, build)
+	data, err := runtime.Encode(buildJSONCodec, build)
 	if err != nil {
 		return nil, fmt.Errorf("failed to encode the build: %v", err)
 	}

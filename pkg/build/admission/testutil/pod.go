@@ -39,13 +39,8 @@ func (p *TestPod) WithEnvVar(name, value string) *TestPod {
 	return p
 }
 
-func (p *TestPod) WithBuild(t *testing.T, build *buildapi.Build, version string) *TestPod {
-	gv, err := schema.ParseGroupVersion(version)
-	if err != nil {
-		t.Fatalf("%v", err)
-	}
-
-	encodedBuild, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(gv), build)
+func (p *TestPod) WithBuild(t *testing.T, build *buildapi.Build) *TestPod {
+	encodedBuild, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(schema.GroupVersion{Group: "build.openshift.io", Version: "v1"}), build)
 	if err != nil {
 		t.Fatalf("%v", err)
 	}

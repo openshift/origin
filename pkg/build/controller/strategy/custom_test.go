@@ -15,15 +15,14 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 
+	buildapiv1 "github.com/openshift/api/build/v1"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	_ "github.com/openshift/origin/pkg/build/apis/build/install"
 	"github.com/openshift/origin/pkg/build/util"
 )
 
 func TestCustomCreateBuildPod(t *testing.T) {
-	strategy := CustomBuildStrategy{
-		Codec: legacyscheme.Codecs.LegacyCodec(buildapi.LegacySchemeGroupVersion),
-	}
+	strategy := CustomBuildStrategy{}
 
 	expectedBad := mockCustomBuild(false, false)
 	expectedBad.Spec.Strategy.CustomStrategy.From = kapi.ObjectReference{
@@ -77,7 +76,7 @@ func TestCustomCreateBuildPod(t *testing.T) {
 	if len(actual.Spec.Volumes) != 4 {
 		t.Fatalf("Expected 4 volumes in Build pod, got %d", len(actual.Spec.Volumes))
 	}
-	buildJSON, _ := runtime.Encode(legacyscheme.Codecs.LegacyCodec(buildapi.LegacySchemeGroupVersion), build)
+	buildJSON, _ := runtime.Encode(customBuildEncodingCodecFactory.LegacyCodec(buildapiv1.SchemeGroupVersion), build)
 	errorCases := map[int][]string{
 		0: {"BUILD", string(buildJSON)},
 	}
@@ -103,9 +102,7 @@ func TestCustomCreateBuildPod(t *testing.T) {
 }
 
 func TestCustomCreateBuildPodExpectedForcePull(t *testing.T) {
-	strategy := CustomBuildStrategy{
-		Codec: legacyscheme.Codecs.LegacyCodec(buildapi.LegacySchemeGroupVersion),
-	}
+	strategy := CustomBuildStrategy{}
 
 	expected := mockCustomBuild(true, false)
 	actual, fperr := strategy.CreateBuildPod(expected)
@@ -119,9 +116,7 @@ func TestCustomCreateBuildPodExpectedForcePull(t *testing.T) {
 }
 
 func TestEmptySource(t *testing.T) {
-	strategy := CustomBuildStrategy{
-		Codec: legacyscheme.Codecs.LegacyCodec(buildapi.LegacySchemeGroupVersion),
-	}
+	strategy := CustomBuildStrategy{}
 
 	expected := mockCustomBuild(false, true)
 	_, fperr := strategy.CreateBuildPod(expected)
@@ -131,9 +126,7 @@ func TestEmptySource(t *testing.T) {
 }
 
 func TestCustomCreateBuildPodWithCustomCodec(t *testing.T) {
-	strategy := CustomBuildStrategy{
-		Codec: legacyscheme.Codecs.LegacyCodec(buildapi.LegacySchemeGroupVersion),
-	}
+	strategy := CustomBuildStrategy{}
 
 	for _, version := range legacyscheme.Scheme.PrioritizedVersionsForGroup(buildapi.LegacyGroupName) {
 		// Create new Build specification and modify Spec API version
@@ -161,9 +154,7 @@ func TestCustomCreateBuildPodWithCustomCodec(t *testing.T) {
 }
 
 func TestCustomBuildLongName(t *testing.T) {
-	strategy := CustomBuildStrategy{
-		Codec: legacyscheme.Codecs.LegacyCodec(buildapi.LegacySchemeGroupVersion),
-	}
+	strategy := CustomBuildStrategy{}
 	build := mockCustomBuild(false, false)
 	build.Name = strings.Repeat("a", validation.DNS1123LabelMaxLength*2)
 	pod, err := strategy.CreateBuildPod(build)

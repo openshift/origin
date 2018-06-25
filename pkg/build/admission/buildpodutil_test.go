@@ -16,37 +16,26 @@ import (
 
 func TestGetBuild(t *testing.T) {
 	build := u.Build().WithDockerStrategy()
-	for _, version := range []string{"v1"} {
-		pod := u.Pod().WithBuild(t, build.AsBuild(), version)
-		resultBuild, resultVersion, err := GetBuildFromPod((*v1.Pod)(pod))
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		if resultVersion.Version != version {
-			t.Errorf("unexpected version: %s", resultVersion)
-		}
-		if e, a := build.AsBuild(), resultBuild; !reflect.DeepEqual(e, a) {
-			t.Errorf("%s: did not get expected build: %s", version, diff.ObjectDiff(e, a))
-		}
+	pod := u.Pod().WithBuild(t, build.AsBuild())
+	resultBuild, err := GetBuildFromPod((*v1.Pod)(pod))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if e, a := build.AsBuild(), resultBuild; !reflect.DeepEqual(e, a) {
+		t.Errorf("did not get expected build: %s", diff.ObjectDiff(e, a))
 	}
 }
 
 func TestSetBuild(t *testing.T) {
 	build := u.Build().WithSourceStrategy()
-	for _, version := range []string{"v1"} {
-		pod := u.Pod().WithEnvVar("BUILD", "foo")
-		groupVersion, err := schema.ParseGroupVersion(version)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		err = SetBuildInPod((*v1.Pod)(pod), build.AsBuild(), groupVersion)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		resultBuild := pod.GetBuild(t)
-		if e, a := build.AsBuild(), resultBuild; !reflect.DeepEqual(e, a) {
-			t.Errorf("%s: did not get expected build: %s", version, diff.ObjectDiff(e, a))
-		}
+	version := schema.GroupVersion{Group: "build.openshift.io", Version: "v1"}
+	pod := u.Pod().WithEnvVar("BUILD", "foo")
+	if err := SetBuildInPod((*v1.Pod)(pod), build.AsBuild()); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	resultBuild := pod.GetBuild(t)
+	if e, a := build.AsBuild(), resultBuild; !reflect.DeepEqual(e, a) {
+		t.Errorf("%s: did not get expected build: %s", version, diff.ObjectDiff(e, a))
 	}
 }
 
