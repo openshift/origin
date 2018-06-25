@@ -191,7 +191,7 @@ func (c *CLI) TeardownProject() {
 	if len(c.configPath) > 0 {
 		os.Remove(c.configPath)
 	}
-	if len(c.namespacesToDelete) > 0 {
+	if e2e.TestContext.DeleteNamespace && len(c.namespacesToDelete) > 0 {
 		timeout := e2e.DefaultNamespaceDeletionTimeout
 		if c.kubeFramework.NamespaceDeletionTimeout != 0 {
 			timeout = c.kubeFramework.NamespaceDeletionTimeout
