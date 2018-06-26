@@ -23,7 +23,6 @@ ALL_FQ_APIS=(
     github.com/openshift/origin/pkg/image/admission/apis/imagepolicy/v1
     github.com/openshift/origin/pkg/ingress/admission/apis/ingressadmission
     github.com/openshift/origin/pkg/ingress/admission/apis/ingressadmission/v1
-    github.com/openshift/origin/pkg/project/admission/lifecycle/testing
     github.com/openshift/origin/pkg/project/admission/apis/requestlimit
     github.com/openshift/origin/pkg/project/admission/apis/requestlimit/v1
     github.com/openshift/origin/pkg/quota/admission/apis/clusterresourceoverride

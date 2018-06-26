@@ -18,7 +18,6 @@ import (
 	imageadmission "github.com/openshift/origin/pkg/image/admission"
 	imagepolicy "github.com/openshift/origin/pkg/image/admission/imagepolicy"
 	ingressadmission "github.com/openshift/origin/pkg/ingress/admission"
-	projectlifecycle "github.com/openshift/origin/pkg/project/admission/lifecycle"
 	projectnodeenv "github.com/openshift/origin/pkg/project/admission/nodeenv"
 	projectrequestlimit "github.com/openshift/origin/pkg/project/admission/requestlimit"
 	quotaclusterresourceoverride "github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride"
@@ -61,7 +60,6 @@ func registerOpenshiftAdmissionPlugins(plugins *admission.Plugins) {
 	imageadmission.Register(plugins)
 	imagepolicy.Register(plugins)
 	ingressadmission.Register(plugins)
-	projectlifecycle.Register(plugins)
 	projectnodeenv.Register(plugins)
 	projectrequestlimit.Register(plugins)
 	quotaclusterresourceoverride.Register(plugins)
@@ -76,7 +74,6 @@ func registerOpenshiftAdmissionPlugins(plugins *admission.Plugins) {
 
 var (
 	DefaultOnPlugins = sets.NewString(
-		"OriginNamespaceLifecycle",
 		"openshift.io/JenkinsBootstrapper",
 		"openshift.io/BuildConfigSecretInjector",
 		"BuildByStrategy",
