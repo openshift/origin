@@ -672,6 +672,8 @@ type KubeletConnectionInfo struct {
 	CA string
 	// CertInfo is the TLS client cert information for securing communication to kubelets
 	ClientCert CertInfo
+	// PreferredAddressTypes is the order of node address types used to connect to the kubelet
+	PreferredAddressTypes []string
 }
 
 type EtcdConnectionInfo struct {

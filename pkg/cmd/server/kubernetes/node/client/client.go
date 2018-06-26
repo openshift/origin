@@ -9,11 +9,7 @@ import (
 func GetKubeletClientConfig(options configapi.MasterConfig) *kubeletclient.KubeletClientConfig {
 	config := &kubeletclient.KubeletClientConfig{
 		Port: options.KubeletClientInfo.Port,
-		PreferredAddressTypes: []string{
-			string("Hostname"),
-			string("InternalIP"),
-			string("ExternalIP"),
-		},
+		PreferredAddressTypes: options.KubeletClientInfo.PreferredAddressTypes,
 	}
 
 	if len(options.KubeletClientInfo.CA) > 0 {

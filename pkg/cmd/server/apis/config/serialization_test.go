@@ -79,6 +79,9 @@ func fuzzInternalObject(t *testing.T, forVersion schema.GroupVersion, item runti
 			if len(obj.MasterClients.OpenShiftLoopbackClientConnectionOverrides.ContentType) == 0 {
 				obj.MasterClients.OpenShiftLoopbackClientConnectionOverrides.ContentType = "test/fifth"
 			}
+			if len(obj.KubeletClientInfo.PreferredAddressTypes) == 0 {
+				obj.KubeletClientInfo.PreferredAddressTypes = []string{"Hostname", "InternalIP", "ExternalIP"}
+			}
 
 			// Populate the new NetworkConfig.ServiceNetworkCIDR field from the KubernetesMasterConfig.ServicesSubnet field if needed
 			if len(obj.NetworkConfig.ServiceNetworkCIDR) == 0 {
