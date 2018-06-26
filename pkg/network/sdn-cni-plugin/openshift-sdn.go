@@ -213,10 +213,22 @@ func (p *cniPlugin) CmdAdd(args *skel.CmdArgs) error {
 					},
 					Gw: defaultGW,
 				}
-				err = netlink.RouteAdd(route)
-				if err != nil {
-					return fmt.Errorf("failed to configure macvlan device: %v", err)
+				if err := netlink.RouteAdd(route); err != nil {
+					return fmt.Errorf("failed to add route to node IP: %v", err)
 				}
+			}
+
+			// Add a route to service network via SDN
+			_, serviceIPNet, err := net.ParseCIDR(config.ServiceNetworkCIDR)
+			if err != nil {
+				return fmt.Errorf("failed to parse ServiceNetworkCIDR: %v", err)
+			}
+			route := &netlink.Route{
+				Dst: serviceIPNet,
+				Gw:  defaultGW,
+			}
+			if err := netlink.RouteAdd(route); err != nil {
+				return fmt.Errorf("failed to add route to service network: %v", err)
 			}
 		}
 
