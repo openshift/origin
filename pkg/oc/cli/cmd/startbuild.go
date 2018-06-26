@@ -702,28 +702,43 @@ func streamPathToBuild(repo git.Repository, in io.Reader, out io.Writer, client 
 }
 
 func isArchive(r *bufio.Reader) bool {
-	data, err := r.Peek(280)
-	if err != nil {
+	archivesMagicNumbers := []struct {
+		numbers []byte
+		offset  int
+	}{ //https://en.wikipedia.org/wiki/List_of_file_signatures
+		{ // unified tar
+			numbers: []byte{0x75, 0x73, 0x74, 0x61, 0x72},
+			offset:  0x101,
+		},
+		{ //zip
+			numbers: []byte{0x50, 0x4B, 0x03, 0x04},
+		},
+		{ // tar.z
+			numbers: []byte{0x1F, 0x9D},
+		},
+		{ // tar.z
+			numbers: []byte{0x1F, 0xA0},
+		},
+		{ // bz2
+			numbers: []byte{0x42, 0x5A, 0x68},
+		},
+		{ // gzip
+			numbers: []byte{0x1F, 0x8B},
+		},
+	}
+	maxOffset := archivesMagicNumbers[0].offset //unified tar
+	data, err := r.Peek(maxOffset + len(archivesMagicNumbers[0].numbers))
+	if err != nil && err != io.EOF {
 		return false
 	}
-	for _, b := range [][]byte{
-		{0x50, 0x4B, 0x03, 0x04}, // zip
-		{0x1F, 0x9D},             // tar.z
-		{0x1F, 0xA0},             // tar.z
-		{0x42, 0x5A, 0x68},       // bz2
-		{0x1F, 0x8B, 0x08},       // gzip
-	} {
-		if bytes.HasPrefix(data, b) {
+
+	for _, magic := range archivesMagicNumbers {
+		if len(data) >= magic.offset+len(magic.numbers) &&
+			bytes.Equal(data[magic.offset:magic.offset+len(magic.numbers)], magic.numbers) {
 			return true
 		}
 	}
-	switch {
-	// Unified TAR files have this magic number
-	case len(data) > 257+5 && bytes.Equal(data[257:257+5], []byte{0x75, 0x73, 0x74, 0x61, 0x72}):
-		return true
-	default:
-		return false
-	}
+	return false
 }
 
 // RunStartBuildWebHook tries to trigger the provided webhook. It will attempt to utilize the current client
