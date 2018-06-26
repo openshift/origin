@@ -9,6 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
@@ -68,6 +69,7 @@ type BuildHookOptions struct {
 	Local       bool
 	ShortOutput bool
 	Mapper      meta.RESTMapper
+	Client      dynamic.Interface
 
 	PrintObject func([]*resource.Info) error
 
@@ -169,6 +171,15 @@ func (o *BuildHookOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args
 	o.ShortOutput = kcmdutil.GetFlagString(cmd, "output") == "name"
 	o.Mapper = mapper
 
+	clientConfig, err := f.ToRESTConfig()
+	if err != nil {
+		return err
+	}
+	o.Client, err = dynamic.NewForConfig(clientConfig)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -240,15 +251,14 @@ func (o *BuildHookOptions) Run() error {
 			continue
 		}
 
-		obj, err := resource.NewHelper(info.Client, info.Mapping).Patch(info.Namespace, info.Name, types.StrategicMergePatchType, patch.Patch)
+		actual, err := o.Client.Resource(info.Mapping.Resource).Namespace(info.Namespace).Patch(info.Name, types.StrategicMergePatchType, patch.Patch)
 		if err != nil {
 			fmt.Fprintf(o.Err, "error: %v\n", err)
 			failed = true
 			continue
 		}
 
-		info.Refresh(obj, true)
-		kcmdutil.PrintSuccess(o.ShortOutput, o.Out, info.Object, false, "updated")
+		kcmdutil.PrintSuccess(o.ShortOutput, o.Out, actual, false, "updated")
 	}
 	if failed {
 		return kcmdutil.ErrExit
