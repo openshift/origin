@@ -730,7 +730,7 @@ func (e *ClientExecutor) CopyContainer(container *docker.Container, excludes []s
 	for _, c := range copies {
 		// TODO: reuse source
 		for _, src := range c.Src {
-			glog.V(4).Infof("Archiving %s download=%t fromFS=%t", src, c.Download, c.FromFS)
+			glog.V(4).Infof("Archiving %s download=%t fromFS=%t from=%s", src, c.Download, c.FromFS, c.From)
 			var r io.Reader
 			var closer io.Closer
 			var err error
@@ -780,6 +780,7 @@ func (e *ClientExecutor) archiveFromContainer(from string, src, dst string) (io.
 		if other.Container == nil {
 			return nil, nil, fmt.Errorf("the stage %q has not been built yet", from)
 		}
+		glog.V(5).Infof("Using container %s as input for archive request", other.Container.ID)
 		containerID = other.Container.ID
 	} else {
 		glog.V(5).Infof("Creating a container temporarily for image input from %q in %s", from, src)
@@ -800,19 +801,20 @@ func (e *ClientExecutor) archiveFromContainer(from string, src, dst string) (io.
 	}
 
 	pr, pw := io.Pipe()
-	ar, arclose, err := archiveFromContainer(pr, src, dst, nil)
+	ar, archiveRoot, err := archiveFromContainer(pr, src, dst, nil)
 	if err != nil {
 		pr.Close()
 		return nil, nil, err
 	}
 	go func() {
+		glog.V(6).Infof("Download from container %s at path %s", containerID, archiveRoot)
 		err := e.Client.DownloadFromContainer(containerID, docker.DownloadFromContainerOptions{
 			OutputStream: pw,
-			Path:         src,
+			Path:         archiveRoot,
 		})
 		pw.CloseWithError(err)
 	}()
-	return ar, closers{pr.Close, arclose.Close}, nil
+	return ar, pr, nil
 }
 
 // TODO: this does not support decompressing nested archives for ADD (when the source is a compressed file)
