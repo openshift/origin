@@ -71,6 +71,8 @@ type podChecker interface {
 
 // RsyncOptions holds the options to execute the sync command
 type RsyncOptions struct {
+	genericclioptions.IOStreams
+
 	Namespace         string
 	ContainerName     string
 	Source            *pathSpec
@@ -87,17 +89,18 @@ type RsyncOptions struct {
 	RsyncExclude  []string
 	RsyncProgress bool
 	RsyncNoPerms  bool
+}
 
-	Out    io.Writer
-	ErrOut io.Writer
+func NewRsyncOptions(streams genericclioptions.IOStreams) *RsyncOptions {
+	return &RsyncOptions{
+		IOStreams: streams,
+	}
 }
 
 // NewCmdRsync creates a new sync command
 func NewCmdRsync(name, parent string, f *clientcmd.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	o := RsyncOptions{
-		Out:    streams.Out,
-		ErrOut: streams.ErrOut,
-	}
+	o := NewRsyncOptions(streams)
+
 	cmd := &cobra.Command{
 		Use:     fmt.Sprintf("%s SOURCE DESTINATION", name),
 		Short:   "Copy files between local filesystem and a pod",
