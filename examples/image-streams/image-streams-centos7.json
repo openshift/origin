@@ -1341,7 +1341,10 @@
               "kind": "DockerImage",
               "name": "docker.io/centos/ruby-25-centos7:latest"
             },
-            "name": "2.5"
+            "name": "2.5",
+            "referencePolicy": {
+              "type": "Local"
+            }
           }
         ]
       }
