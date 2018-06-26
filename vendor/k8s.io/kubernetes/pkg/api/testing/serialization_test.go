@@ -36,6 +36,7 @@ import (
 	"k8s.io/apimachinery/pkg/conversion"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	serializerjson "k8s.io/apimachinery/pkg/runtime/serializer/json"
 	"k8s.io/apimachinery/pkg/runtime/serializer/streaming"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/json"
@@ -550,7 +551,7 @@ func BenchmarkDecodeIntoJSONCodecGenConfigFast(b *testing.B) {
 		encoded[i] = data
 	}
 
-	handler := &codec.JsonHandle{}
+	handler := serializerjson.NewUgorjiHandler()
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
