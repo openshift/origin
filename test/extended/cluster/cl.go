@@ -84,24 +84,30 @@ var _ = g.Describe("[Feature:Performance][Serial][Slow] Load cluster", func() {
 
 				projectExists, err := ProjectExists(oc, nsName)
 				o.Expect(err).NotTo(o.HaveOccurred())
+				if !projectExists {
+					e2e.Logf("Project %s does not exist.", nsName)
+				}
 
 				switch p.IfExists {
 				case IF_EXISTS_REUSE:
-					e2e.Logf("reuse project %v", nsName)
-					if !projectExists {
-						e2e.Failf("reusing project which does not exist: %v", nsName)
-					}
+					e2e.Logf("Configuration requested reuse of project %v", nsName)
 				case IF_EXISTS_DELETE:
+					e2e.Logf("Configuration requested deletion of project %v", nsName)
 					if projectExists {
 						err = DeleteProject(oc, nsName, checkDeleteProjectInterval, checkDeleteProjectTimeout)
 						o.Expect(err).NotTo(o.HaveOccurred())
 					}
+				default:
+					e2e.Failf("Unsupported ifexists value '%v' for project %v", p.IfExists, project)
+				}
+
+				if p.IfExists == IF_EXISTS_REUSE && projectExists {
+					// do nothing
+				} else {
 					// Create namespaces as defined in Cluster Loader config
 					err = oc.Run("new-project").Args(allArgs...).Execute()
 					o.Expect(err).NotTo(o.HaveOccurred())
 					e2e.Logf("%d/%d : Created new namespace: %v", j+1, p.Number, nsName)
-				default:
-					e2e.Failf("Unsupported ifexists value '%v' for project %v", p.IfExists, project)
 				}
 
 				// label namespace nsName
