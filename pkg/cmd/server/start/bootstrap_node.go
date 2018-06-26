@@ -156,6 +156,7 @@ func overrideNodeConfigForBootstrap(nodeConfig *configapi.NodeConfig, bootstrapK
 	nodeConfig.ServingInfo.ServerCert.KeyFile = ""
 	nodeConfig.KubeletArguments["bootstrap-kubeconfig"] = []string{bootstrapKubeconfig}
 	nodeConfig.KubeletArguments["rotate-certificates"] = []string{"true"}
+	nodeConfig.KubeletArguments["rotate-server-certificates"] = []string{"true"}
 
 	// Default a valid certificate directory to store bootstrap certs
 	if _, ok := nodeConfig.KubeletArguments["cert-dir"]; !ok {
