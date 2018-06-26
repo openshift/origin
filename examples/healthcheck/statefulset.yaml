@@ -1,0 +1,157 @@
+kind: StatefulSet
+apiVersion: apps/v1
+metadata:
+  name: application-liveness
+spec:
+  updateStrategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: application-liveness
+  template:
+    metadata:
+      labels:
+        app: application-liveness
+    spec:
+      volumes:
+      - name: metrics
+        emptyDir: {}
+      serviceAccountName: application-liveness
+      terminationGracePeriodSeconds: 1
+      containers:
+
+      # Serve the metrics
+      - name: serve
+        image: openshift/origin:v3.7.1
+        command:
+        - python
+        - -m
+        - SimpleHTTPServer
+        - "8080"
+        ports:
+        - name: http
+          containerPort: 8080
+        workingDir: /srv
+        volumeMounts:
+        - mountPath: /srv
+          name: metrics
+
+      # Create the metrics
+      - name: check
+        image: openshift/origin:v3.7.1
+        volumeMounts:
+        - mountPath: /srv
+          name: metrics
+        env:
+        # Time in seconds between each attempt to create an application
+        - name: INTERVAL
+          value: "300"
+        command:
+        - /bin/bash
+        - -c
+        args:
+        - |
+          #!/bin/bash
+          set -o errexit
+          set -o nounset
+          set -o pipefail
+
+          export HOME=/tmp
+          git config --global user.name  "test-user"
+          git config --global user.email "test@user"
+
+          # cleanup previous run
+          rm -f /tmp/metrics
+          if [[ ! -f /srv/metrics ]]; then
+            echo "application_create_up{} 0" > /srv/metrics
+          fi
+          # TODO: create in separate project, measure cleanup
+          oc delete all -l app=deployment-example
+
+          # helpers for tracking time
+          start=$( date +"%s%3N" )
+          interval=${start}
+          function section() {
+            echo
+            echo $1
+            echo
+          }
+          function rec() {
+            echo $1 >> /tmp/metrics
+          }
+          function rec_int() {
+            end=$( date +"%s%3N" )
+            delta=$((end - interval))
+            interval=${end}
+            echo $1 $delta >> /tmp/metrics
+          }
+          function update() {
+            mv /tmp/metrics /srv/metrics
+          }
+          function finish() {
+            code=$?
+            if [[ $code -ne 0 ]]; then
+              rec "application_create_up{} 0"
+              update
+            fi
+            exit $code
+          }
+          trap finish EXIT
+
+          # run the actual checks
+          rec "# metrics for application liveness"
+          rec "application_create_started_seconds{} ${start:0:(${#start}-3)}"
+          rec "application_create_interval_seconds{} $(INTERVAL)"
+
+          section "+ Creating application"
+          oc new-app openshift/deployment-example:v1
+          rec_int "application_create_latency_milliseconds{step=\"new-app\"}"
+
+          # TODO: consider adding a build section in the future
+          # section "+ Wait for build"
+          # oc logs -f build/deployment-example-1
+          # [[ "$( oc get build/deployment-example-1 --template '{{ .status.phase }}' )" == "Complete" ]]
+          # rec_int "application_create_latency_milliseconds{step=\"build\"}"
+
+          section "+ Wait for rollout"
+          oc rollout status --revision=1 dc/deployment-example -w
+          rec_int "application_create_latency_milliseconds{step=\"deploy\"}"
+
+          section "+ Wait for reachable"
+          oc expose svc/deployment-example
+          # loop until router acknowledges
+          while [[ "$( oc get route deployment-example --template '{{ len .status.ingress }}' )" == "0" ]]; do sleep 1; done
+          rec_int "application_create_latency_milliseconds{step=\"exposed\"}"
+          # loop until we are reachable externally
+          # TODO: Newer wget versions can one-line this loop
+          count=0
+          host=$( oc get route deployment-example --template '{{ index .status.ingress 0 "host" }}' )
+          while true; do
+            if [[ "$(curl -s -o /dev/null -w '%{http_code}' http://${host})" == "200" ]]; then
+              section "Reached ${host}"
+              break
+            fi
+            ((++count))
+            if [[ ${count} -eq 10 ]]; then
+              # mark us down while we continue to loop
+              echo "application_create_up{} 0" > /srv/metrics
+              echo "Application unreachable after 10s, marking down" 1>&2
+            fi
+            if [[ ${count} -lt 60 ]]; then
+              echo -n "."
+              sleep 1
+              continue
+            fi
+            echo "Application never reached at ${host}" 1>&2
+            exit 1
+          done
+          rec_int "application_create_latency_milliseconds{step=\"reachable\"}"
+
+          # TODO: separate project
+          oc delete all -l app=deployment-example
+
+          section "Success"
+          rec "application_create_up{} 1"
+          update
+
+          sleep $(INTERVAL)
