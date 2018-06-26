@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"io"
 	"net/url"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -30,10 +29,11 @@ import (
 )
 
 type ProjectOptions struct {
+	genericclioptions.IOStreams
+
 	Config       clientcmdapi.Config
 	ClientConfig *restclient.Config
 	ClientFn     func() (projectclient.ProjectInterface, kclientset.Interface, error)
-	Out          io.Writer
 	PathOptions  *kclientcmd.PathOptions
 
 	ProjectName  string
@@ -68,7 +68,9 @@ var (
 
 // NewCmdProject implements the OpenShift cli rollback command
 func NewCmdProject(fullName string, f *clientcmd.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	options := &ProjectOptions{}
+	options := &ProjectOptions{
+		IOStreams: streams,
+	}
 
 	cmd := &cobra.Command{
 		Use:     "project [NAME]",
@@ -78,7 +80,7 @@ func NewCmdProject(fullName string, f *clientcmd.Factory, streams genericcliopti
 		Run: func(cmd *cobra.Command, args []string) {
 			options.PathOptions = cliconfig.NewPathOptions(cmd)
 
-			if err := options.Complete(f, args, streams.Out); err != nil {
+			if err := options.Complete(f, args); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
 			}
 
@@ -91,7 +93,7 @@ func NewCmdProject(fullName string, f *clientcmd.Factory, streams genericcliopti
 	return cmd
 }
 
-func (o *ProjectOptions) Complete(f *clientcmd.Factory, args []string, out io.Writer) error {
+func (o *ProjectOptions) Complete(f *clientcmd.Factory, args []string) error {
 	var err error
 
 	argsLength := len(args)
@@ -146,8 +148,6 @@ func (o *ProjectOptions) Complete(f *clientcmd.Factory, args []string, out io.Wr
 		}
 		return projectClient.Project(), kc, nil
 	}
-
-	o.Out = out
 
 	return nil
 }

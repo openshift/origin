@@ -3,7 +3,6 @@ package cmd
 import (
 	"errors"
 	"fmt"
-	"io"
 
 	"github.com/gonum/graph/encoding/dot"
 	"github.com/spf13/cobra"
@@ -55,11 +54,12 @@ var (
 
 // StatusOptions contains all the necessary options for the Openshift cli status command.
 type StatusOptions struct {
+	genericclioptions.IOStreams
+
 	namespace     string
 	allNamespaces bool
 	outputFormat  string
 	describer     *describe.ProjectStatusDescriber
-	out           io.Writer
 	suggest       bool
 
 	logsCommandName             string
@@ -68,10 +68,16 @@ type StatusOptions struct {
 	patchCommandName            string
 }
 
+func NewStatusOptions(streams genericclioptions.IOStreams) *StatusOptions {
+	return &StatusOptions{
+		IOStreams: streams,
+	}
+}
+
 // NewCmdStatus implements the OpenShift cli status command.
 // baseCLIName is the path from root cmd to the parent of this cmd.
 func NewCmdStatus(name, baseCLIName, fullName string, f *clientcmd.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	opts := &StatusOptions{}
+	opts := NewStatusOptions(streams)
 
 	cmd := &cobra.Command{
 		Use:     fmt.Sprintf("%s [-o dot | -s ]", StatusRecommendedName),
@@ -79,7 +85,7 @@ func NewCmdStatus(name, baseCLIName, fullName string, f *clientcmd.Factory, stre
 		Long:    fmt.Sprintf(statusLong, baseCLIName),
 		Example: fmt.Sprintf(statusExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
-			err := opts.Complete(f, cmd, baseCLIName, args, streams.Out)
+			err := opts.Complete(f, cmd, baseCLIName, args)
 			kcmdutil.CheckErr(err)
 
 			if err := opts.Validate(); err != nil {
@@ -102,7 +108,7 @@ func NewCmdStatus(name, baseCLIName, fullName string, f *clientcmd.Factory, stre
 }
 
 // Complete completes the options for the Openshift cli status command.
-func (o *StatusOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, baseCLIName string, args []string, out io.Writer) error {
+func (o *StatusOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, baseCLIName string, args []string) error {
 	if len(args) > 0 {
 		return kcmdutil.UsageErrorf(cmd, "no arguments should be provided")
 	}
@@ -189,8 +195,6 @@ func (o *StatusOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, baseC
 		SetProbeCommandName:         o.setProbeCommandName,
 	}
 
-	o.out = out
-
 	return nil
 }
 
@@ -232,6 +236,6 @@ func (o StatusOptions) RunStatus() error {
 		return fmt.Errorf("invalid output format provided: %s", o.outputFormat)
 	}
 
-	fmt.Fprintf(o.out, s)
+	fmt.Fprintf(o.Out, s)
 	return nil
 }
