@@ -147,7 +147,7 @@ func NewCommandAdmin(name, fullName string, streams genericclioptions.IOStreams)
 	)
 
 	if name == fullName {
-		cmds.AddCommand(cmd.NewCmdVersion(fullName, f, streams, cmd.VersionOptions{}))
+		cmds.AddCommand(cmd.NewCmdVersion(fullName, f, cmd.NewVersionOptions(false, streams)))
 	}
 
 	return cmds

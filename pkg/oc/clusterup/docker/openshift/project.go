@@ -6,6 +6,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	"github.com/openshift/origin/pkg/oc/cli/cmd"
 	"github.com/openshift/origin/pkg/oc/cli/config"
@@ -24,7 +25,7 @@ func CreateProject(f *clientcmd.Factory, name, display, desc, basecmd string, ou
 		return err
 	}
 	pathOptions := config.NewPathOptionsWithConfig("")
-	opt := &cmd.NewProjectOptions{
+	opt := &cmd.RequestProjectOptions{
 		ProjectName: name,
 		DisplayName: display,
 		Description: desc,
@@ -34,9 +35,10 @@ func CreateProject(f *clientcmd.Factory, name, display, desc, basecmd string, ou
 		Client: projectClient.Project(),
 
 		ProjectOptions: &cmd.ProjectOptions{PathOptions: pathOptions},
-		Out:            ioutil.Discard,
+
+		IOStreams: genericclioptions.IOStreams{Out: ioutil.Discard, ErrOut: ioutil.Discard},
 	}
-	err = opt.ProjectOptions.Complete(f, []string{}, ioutil.Discard)
+	err = opt.ProjectOptions.Complete(f, []string{})
 	if err != nil {
 		return err
 	}
@@ -52,8 +54,8 @@ func CreateProject(f *clientcmd.Factory, name, display, desc, basecmd string, ou
 
 func setCurrentProject(f *clientcmd.Factory, name string, out io.Writer) error {
 	pathOptions := config.NewPathOptionsWithConfig("")
-	opt := &cmd.ProjectOptions{PathOptions: pathOptions}
-	opt.Complete(f, []string{name}, out)
+	opt := &cmd.ProjectOptions{PathOptions: pathOptions, IOStreams: genericclioptions.IOStreams{Out: out, ErrOut: ioutil.Discard}}
+	opt.Complete(f, []string{name})
 	return opt.RunProject()
 }
 

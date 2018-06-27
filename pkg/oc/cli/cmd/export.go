@@ -2,21 +2,19 @@ package cmd
 
 import (
 	"fmt"
-	"io"
-	"os"
 
 	"github.com/spf13/cobra"
 
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/client-go/rest"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
-	"k8s.io/kubernetes/pkg/kubectl/resource"
-	kprinters "k8s.io/kubernetes/pkg/printers"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
+	oldresource "k8s.io/kubernetes/pkg/kubectl/resource"
 
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
@@ -51,9 +49,42 @@ var (
 	  %[1]s export service -o json`)
 )
 
+type ExportOptions struct {
+	genericclioptions.IOStreams
+	oldresource.FilenameOptions
+	PrintFlags *genericclioptions.PrintFlags
+
+	Exporter Exporter
+
+	AsTemplateName string
+	Exact          bool
+	Raw            bool
+	AllNamespaces  bool
+	Selector       string
+	OutputVersion  string
+	Args           []string
+
+	Builder          *oldresource.Builder
+	Namespace        string
+	RequireNamespace bool
+	Typer            runtime.ObjectTyper
+	ClientConfig     *rest.Config
+
+	PrintObj printers.ResourcePrinterFunc
+}
+
+func NewExportOptions(streams genericclioptions.IOStreams) *ExportOptions {
+	return &ExportOptions{
+		IOStreams:  streams,
+		PrintFlags: genericclioptions.NewPrintFlags("exported").WithDefaultOutput("yaml"),
+
+		Exporter: &DefaultExporter{},
+	}
+}
+
 func NewCmdExport(fullName string, f *clientcmd.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	exporter := &DefaultExporter{}
-	var filenames []string
+	o := NewExportOptions(streams)
+
 	cmd := &cobra.Command{
 		Use:        "export RESOURCE/NAME ... [flags]",
 		Short:      "Export resources so they can be used elsewhere",
@@ -62,64 +93,78 @@ func NewCmdExport(fullName string, f *clientcmd.Factory, streams genericclioptio
 		Deprecated: "use the oc get --export",
 		Hidden:     true,
 		Run: func(cmd *cobra.Command, args []string) {
-			err := RunExport(f, exporter, streams.In, streams.Out, cmd, args, filenames)
-			if err == kcmdutil.ErrExit {
-				os.Exit(1)
-			}
-			kcmdutil.CheckErr(err)
+			kcmdutil.CheckErr(o.Complete(f, args))
+			kcmdutil.CheckErr(o.Validate())
+			kcmdutil.CheckErr(o.Run())
 		},
 	}
 
-	cmd.Flags().String("as-template", "", "Output a Template object with specified name instead of a List or single object.")
-	cmd.Flags().Bool("exact", false, "If true, preserve fields that may be cluster specific, such as service clusterIPs or generated names")
-	cmd.Flags().Bool("raw", false, "If true, do not alter the resources in any way after they are loaded.")
-	cmd.Flags().StringP("selector", "l", "", "Selector (label query) to filter on")
-	cmd.Flags().Bool("all-namespaces", false, "If true, list the requested object(s) across all namespaces. Namespace in current context is ignored even if specified with --namespace.")
-	cmd.Flags().StringSliceVarP(&filenames, "filename", "f", filenames, "Filename, directory, or URL to file for the resource to export.")
-	cmd.MarkFlagFilename("filename")
+	o.PrintFlags.AddFlags(cmd)
+	kcmdutil.AddFilenameOptionFlags(cmd, &o.FilenameOptions, "Filename, directory, or URL to file for the resource to export.")
+
+	cmd.Flags().StringVar(&o.AsTemplateName, "as-template", o.AsTemplateName, "Output a Template object with specified name instead of a List or single object.")
+	cmd.Flags().BoolVar(&o.Exact, "exact", o.Exact, "If true, preserve fields that may be cluster specific, such as service clusterIPs or generated names")
+	cmd.Flags().BoolVar(&o.Raw, "raw", o.Raw, "If true, do not alter the resources in any way after they are loaded.")
+	cmd.Flags().StringVarP(&o.Selector, "selector", "l", o.Selector, "Selector (label query) to filter on")
+	cmd.Flags().BoolVar(&o.AllNamespaces, "all-namespaces", o.AllNamespaces, "If true, list the requested object(s) across all namespaces. Namespace in current context is ignored even if specified with --namespace.")
 	cmd.Flags().Bool("all", true, "DEPRECATED: all is ignored, specifying a resource without a name selects all the instances of that resource")
 	cmd.Flags().MarkDeprecated("all", "all is ignored because specifying a resource without a name selects all the instances of that resource")
-	kcmdutil.AddPrinterFlags(cmd)
+	cmd.Flags().StringVar(&o.OutputVersion, "output-version", o.OutputVersion, "The preferred API versions of the output objects")
+
 	return cmd
 }
 
-func RunExport(f *clientcmd.Factory, exporter Exporter, in io.Reader, out io.Writer, cmd *cobra.Command, args []string, filenames []string) error {
-	selector := kcmdutil.GetFlagString(cmd, "selector")
-	allNamespaces := kcmdutil.GetFlagBool(cmd, "all-namespaces")
-	exact := kcmdutil.GetFlagBool(cmd, "exact")
-	asTemplate := kcmdutil.GetFlagString(cmd, "as-template")
-	raw := kcmdutil.GetFlagBool(cmd, "raw")
-	if exact && raw {
-		return kcmdutil.UsageErrorf(cmd, "--exact and --raw may not both be specified")
-	}
-
-	clientConfig, err := f.ClientConfig()
+func (o *ExportOptions) Complete(f *clientcmd.Factory, args []string) error {
+	var err error
+	o.ClientConfig, err = f.ClientConfig()
 	if err != nil {
 		return err
 	}
 
+	printer, err := o.PrintFlags.ToPrinter()
+	if err != nil {
+		return err
+	}
+
+	o.PrintObj = printer.PrintObj
+	o.Args = args
+
+	o.Namespace, o.RequireNamespace, err = f.DefaultNamespace()
+	if err != nil {
+		return err
+	}
+
+	o.Builder = f.NewBuilder()
+	_, o.Typer = f.Object()
+	return nil
+}
+
+func (o *ExportOptions) Validate() error {
+	if o.Exact && o.Raw {
+		return fmt.Errorf("--exact and --raw may not both be specified")
+	}
+
+	return nil
+}
+
+func (o *ExportOptions) Run() error {
 	var outputVersion schema.GroupVersion
-	outputVersionString := kcmdutil.GetFlagString(cmd, "output-version")
-	if len(outputVersionString) == 0 {
-		outputVersion = *clientConfig.GroupVersion
+	var err error
+	if len(o.OutputVersion) == 0 {
+		outputVersion = *o.ClientConfig.GroupVersion
 	} else {
-		outputVersion, err = schema.ParseGroupVersion(outputVersionString)
+		outputVersion, err = schema.ParseGroupVersion(o.OutputVersion)
 		if err != nil {
 			return err
 		}
 	}
 
-	cmdNamespace, explicit, err := f.DefaultNamespace()
-	if err != nil {
-		return err
-	}
-
-	b := f.NewBuilder().
+	b := o.Builder.
 		Unstructured().
-		NamespaceParam(cmdNamespace).DefaultNamespace().AllNamespaces(allNamespaces).
-		FilenameParam(explicit, &resource.FilenameOptions{Recursive: false, Filenames: filenames}).
-		LabelSelectorParam(selector).
-		ResourceTypeOrNameArgs(true, args...).
+		NamespaceParam(o.Namespace).DefaultNamespace().AllNamespaces(o.AllNamespaces).
+		FilenameParam(o.RequireNamespace, &oldresource.FilenameOptions{Recursive: false, Filenames: o.Filenames}).
+		LabelSelectorParam(o.Selector).
+		ResourceTypeOrNameArgs(true, o.Args...).
 		Flatten()
 
 	one := false
@@ -132,8 +177,8 @@ func RunExport(f *clientcmd.Factory, exporter Exporter, in io.Reader, out io.Wri
 		return fmt.Errorf("no resources found - nothing to export")
 	}
 
-	if !raw {
-		newInfos := []*resource.Info{}
+	if !o.Raw {
+		newInfos := []*oldresource.Info{}
 		errs := []error{}
 		for _, info := range infos {
 			converted := false
@@ -152,7 +197,7 @@ func RunExport(f *clientcmd.Factory, exporter Exporter, in io.Reader, out io.Wri
 				converted = true
 			}
 
-			if err := exporter.Export(info.Object, exact); err != nil {
+			if err := o.Exporter.Export(info.Object, o.Exact); err != nil {
 				if err == ErrExportOmit {
 					continue
 				}
@@ -183,7 +228,7 @@ func RunExport(f *clientcmd.Factory, exporter Exporter, in io.Reader, out io.Wri
 	}
 
 	var result runtime.Object
-	if len(asTemplate) > 0 {
+	if len(o.AsTemplateName) > 0 {
 		objects, err := clientcmd.AsVersionedObjects(infos, outputVersion, legacyscheme.Codecs.LegacyCodec(outputVersion))
 		if err != nil {
 			return err
@@ -191,7 +236,7 @@ func RunExport(f *clientcmd.Factory, exporter Exporter, in io.Reader, out io.Wri
 		template := &templateapi.Template{
 			Objects: objects,
 		}
-		template.Name = asTemplate
+		template.Name = o.AsTemplateName
 		result, err = legacyscheme.Scheme.ConvertToVersion(template, outputVersion)
 		if err != nil {
 			return err
@@ -204,27 +249,6 @@ func RunExport(f *clientcmd.Factory, exporter Exporter, in io.Reader, out io.Wri
 		result = object
 	}
 
-	// use YAML as the default format
-	outputFormat := kcmdutil.GetFlagString(cmd, "output")
-	templateFile := kcmdutil.GetFlagString(cmd, "template")
-	if len(outputFormat) == 0 && len(templateFile) != 0 {
-		outputFormat = "template"
-	}
-	if len(outputFormat) == 0 {
-		outputFormat = "yaml"
-	}
-	decoders := []runtime.Decoder{legacyscheme.Codecs.UniversalDeserializer(), unstructured.UnstructuredJSONScheme}
-	printOpts := kcmdutil.ExtractCmdPrintOptions(cmd, false)
-	printOpts.OutputFormatType = outputFormat
-	printOpts.OutputFormatArgument = templateFile
-	printOpts.AllowMissingKeys = kcmdutil.GetFlagBool(cmd, "allow-missing-template-keys")
-
-	_, typer := f.Object()
-	p, err := kprinters.GetStandardPrinter(
-		typer, legacyscheme.Codecs.LegacyCodec(outputVersion), decoders, *printOpts)
-
-	if err != nil {
-		return err
-	}
-	return p.PrintObj(result, out)
+	fmt.Printf("")
+	return o.PrintObj(result, o.Out)
 }
