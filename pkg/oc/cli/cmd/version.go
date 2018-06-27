@@ -44,8 +44,15 @@ type VersionOptions struct {
 	PrintClientFeatures bool
 }
 
+func NewVersionOptions(printClientFeatures bool, streams genericclioptions.IOStreams) *VersionOptions {
+	return &VersionOptions{
+		IOStreams:           streams,
+		PrintClientFeatures: printClientFeatures,
+	}
+}
+
 // NewCmdVersion creates a command for displaying the version of this binary
-func NewCmdVersion(fullName string, f *clientcmd.Factory, streams genericclioptions.IOStreams, options VersionOptions) *cobra.Command {
+func NewCmdVersion(fullName string, f *clientcmd.Factory, options *VersionOptions) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "version",
 		Short: "Display client and server versions",
