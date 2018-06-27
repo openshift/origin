@@ -82,11 +82,10 @@ type AppJSONOptions struct {
 func NewAppJSONOptions(streams genericclioptions.IOStreams) *AppJSONOptions {
 	return &AppJSONOptions{
 		bulkAction: configcmd.BulkAction{
-			Out:    streams.Out,
-			ErrOut: streams.ErrOut,
+			IOStreams: streams,
 		},
 		IOStreams:  streams,
-		PrintFlags: genericclioptions.NewPrintFlags("").WithTypeSetter(ocscheme.PrintingInternalScheme),
+		PrintFlags: genericclioptions.NewPrintFlags("created").WithTypeSetter(ocscheme.PrintingInternalScheme),
 		Generator:  AppJSONV1GeneratorName,
 	}
 }

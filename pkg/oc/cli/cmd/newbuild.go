@@ -2,9 +2,7 @@ package cmd
 
 import (
 	"fmt"
-	"io"
 	"io/ioutil"
-	"os"
 
 	"github.com/MakeNowJust/heredoc"
 	"github.com/spf13/cobra"
@@ -84,15 +82,28 @@ on the Docker Hub.
 `
 )
 
-type NewBuildOptions struct {
+type BuildOptions struct {
 	*ObjectGeneratorOptions
+	genericclioptions.IOStreams
+}
+
+func NewBuildOptions(streams genericclioptions.IOStreams) *BuildOptions {
+	config := newcmd.NewAppConfig()
+	config.ExpectToBuild = true
+
+	return &BuildOptions{
+		IOStreams: streams,
+		ObjectGeneratorOptions: &ObjectGeneratorOptions{
+			PrintFlags: genericclioptions.NewPrintFlags("created"),
+			IOStreams:  streams,
+			Config:     config,
+		},
+	}
 }
 
 // NewCmdNewBuild implements the OpenShift cli new-build command
 func NewCmdNewBuild(name, baseName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	config := newcmd.NewAppConfig()
-	config.ExpectToBuild = true
-	o := &NewBuildOptions{ObjectGeneratorOptions: &ObjectGeneratorOptions{Config: config}}
+	o := NewBuildOptions(streams)
 
 	cmd := &cobra.Command{
 		Use:        fmt.Sprintf("%s (IMAGE | IMAGESTREAM | PATH | URL ...)", name),
@@ -100,75 +111,72 @@ func NewCmdNewBuild(name, baseName string, f kcmdutil.Factory, streams genericcl
 		Long:       fmt.Sprintf(newBuildLong, baseName, name),
 		Example:    fmt.Sprintf(newBuildExample, baseName, name),
 		SuggestFor: []string{"build", "builds"},
-		Run: func(c *cobra.Command, args []string) {
-			kcmdutil.CheckErr(o.Complete(baseName, name, f, c, args, streams.In, streams.Out, streams.ErrOut))
-			err := o.RunNewBuild()
-			if err == kcmdutil.ErrExit {
-				os.Exit(1)
-			}
-			kcmdutil.CheckErr(err)
+		Run: func(cmd *cobra.Command, args []string) {
+			kcmdutil.CheckErr(o.Complete(baseName, name, f, cmd, args))
+			kcmdutil.CheckErr(o.RunNewBuild())
 		},
 	}
 
-	cmd.Flags().StringSliceVar(&config.SourceRepositories, "code", config.SourceRepositories, "Source code in the build configuration.")
-	cmd.Flags().StringSliceVarP(&config.ImageStreams, "image", "", config.ImageStreams, "Name of an image stream to to use as a builder. (deprecated)")
+	o.PrintFlags.AddFlags(cmd)
+
+	cmd.Flags().StringSliceVar(&o.Config.SourceRepositories, "code", o.Config.SourceRepositories, "Source code in the build configuration.")
+	cmd.Flags().StringSliceVarP(&o.Config.ImageStreams, "image", "", o.Config.ImageStreams, "Name of an image stream to to use as a builder. (deprecated)")
 	cmd.Flags().MarkDeprecated("image", "use --image-stream instead")
-	cmd.Flags().StringSliceVarP(&config.ImageStreams, "image-stream", "i", config.ImageStreams, "Name of an image stream to to use as a builder.")
-	cmd.Flags().StringSliceVar(&config.DockerImages, "docker-image", config.DockerImages, "Name of a Docker image to use as a builder.")
-	cmd.Flags().StringSliceVar(&config.ConfigMaps, "build-config-map", config.ConfigMaps, "ConfigMap and destination to use as an input for the build.")
-	cmd.Flags().StringSliceVar(&config.Secrets, "build-secret", config.Secrets, "Secret and destination to use as an input for the build.")
-	cmd.Flags().StringVar(&config.SourceSecret, "source-secret", "", "The name of an existing secret that should be used for cloning a private git repository.")
-	cmd.Flags().StringVar(&config.PushSecret, "push-secret", "", "The name of an existing secret that should be used for pushing the output image.")
-	cmd.Flags().StringVar(&config.Name, "name", "", "Set name to use for generated build artifacts.")
-	cmd.Flags().StringVar(&config.To, "to", "", "Push built images to this image stream tag (or Docker image repository if --to-docker is set).")
-	cmd.Flags().BoolVar(&config.OutputDocker, "to-docker", false, "If true, have the build output push to a Docker repository.")
-	cmd.Flags().StringArrayVar(&config.BuildEnvironment, "build-env", config.BuildEnvironment, "Specify a key-value pair for an environment variable to set into resulting image.")
+	cmd.Flags().StringSliceVarP(&o.Config.ImageStreams, "image-stream", "i", o.Config.ImageStreams, "Name of an image stream to to use as a builder.")
+	cmd.Flags().StringSliceVar(&o.Config.DockerImages, "docker-image", o.Config.DockerImages, "Name of a Docker image to use as a builder.")
+	cmd.Flags().StringSliceVar(&o.Config.ConfigMaps, "build-config-map", o.Config.ConfigMaps, "ConfigMap and destination to use as an input for the build.")
+	cmd.Flags().StringSliceVar(&o.Config.Secrets, "build-secret", o.Config.Secrets, "Secret and destination to use as an input for the build.")
+	cmd.Flags().StringVar(&o.Config.SourceSecret, "source-secret", o.Config.SourceSecret, "The name of an existing secret that should be used for cloning a private git repository.")
+	cmd.Flags().StringVar(&o.Config.PushSecret, "push-secret", o.Config.PushSecret, "The name of an existing secret that should be used for pushing the output image.")
+	cmd.Flags().StringVar(&o.Config.Name, "name", o.Config.Name, "Set name to use for generated build artifacts.")
+	cmd.Flags().StringVar(&o.Config.To, "to", o.Config.To, "Push built images to this image stream tag (or Docker image repository if --to-docker is set).")
+	cmd.Flags().BoolVar(&o.Config.OutputDocker, "to-docker", o.Config.OutputDocker, "If true, have the build output push to a Docker repository.")
+	cmd.Flags().StringArrayVar(&o.Config.BuildEnvironment, "build-env", o.Config.BuildEnvironment, "Specify a key-value pair for an environment variable to set into resulting image.")
 	cmd.Flags().MarkHidden("build-env")
-	cmd.Flags().StringArrayVarP(&config.BuildEnvironment, "env", "e", config.BuildEnvironment, "Specify a key-value pair for an environment variable to set into resulting image.")
-	cmd.Flags().StringArrayVar(&config.BuildEnvironmentFiles, "build-env-file", config.BuildEnvironmentFiles, "File containing key-value pairs of environment variables to set into each container.")
+	cmd.Flags().StringArrayVarP(&o.Config.BuildEnvironment, "env", "e", o.Config.BuildEnvironment, "Specify a key-value pair for an environment variable to set into resulting image.")
+	cmd.Flags().StringArrayVar(&o.Config.BuildEnvironmentFiles, "build-env-file", o.Config.BuildEnvironmentFiles, "File containing key-value pairs of environment variables to set into each container.")
 	cmd.MarkFlagFilename("build-env-file")
 	cmd.Flags().MarkHidden("build-env-file")
-	cmd.Flags().StringArrayVar(&config.BuildEnvironmentFiles, "env-file", config.BuildEnvironmentFiles, "File containing key-value pairs of environment variables to set into each container.")
+	cmd.Flags().StringArrayVar(&o.Config.BuildEnvironmentFiles, "env-file", o.Config.BuildEnvironmentFiles, "File containing key-value pairs of environment variables to set into each container.")
 	cmd.MarkFlagFilename("env-file")
-	cmd.Flags().Var(&config.Strategy, "strategy", "Specify the build strategy to use if you don't want to detect (docker|pipeline|source).")
-	cmd.Flags().StringVarP(&config.Dockerfile, "dockerfile", "D", "", "Specify the contents of a Dockerfile to build directly, implies --strategy=docker. Pass '-' to read from STDIN.")
-	cmd.Flags().StringArrayVar(&config.BuildArgs, "build-arg", config.BuildArgs, "Specify a key-value pair to pass to Docker during the build.")
-	cmd.Flags().BoolVar(&config.BinaryBuild, "binary", false, "Instead of expecting a source URL, set the build to expect binary contents. Will disable triggers.")
+	cmd.Flags().Var(&o.Config.Strategy, "strategy", "Specify the build strategy to use if you don't want to detect (docker|pipeline|source).")
+	cmd.Flags().StringVarP(&o.Config.Dockerfile, "dockerfile", "D", o.Config.Dockerfile, "Specify the contents of a Dockerfile to build directly, implies --strategy=docker. Pass '-' to read from STDIN.")
+	cmd.Flags().StringArrayVar(&o.Config.BuildArgs, "build-arg", o.Config.BuildArgs, "Specify a key-value pair to pass to Docker during the build.")
+	cmd.Flags().BoolVar(&o.Config.BinaryBuild, "binary", o.Config.BinaryBuild, "Instead of expecting a source URL, set the build to expect binary contents. Will disable triggers.")
 	cmd.Flags().StringP("labels", "l", "", "Label to set in all generated resources.")
-	cmd.Flags().BoolVar(&config.AllowMissingImages, "allow-missing-images", false, "If true, indicates that referenced Docker images that cannot be found locally or in a registry should still be used.")
-	cmd.Flags().BoolVar(&config.AllowMissingImageStreamTags, "allow-missing-imagestream-tags", false, "If true, indicates that image stream tags that don't exist should still be used.")
-	cmd.Flags().StringVar(&config.ContextDir, "context-dir", "", "Context directory to be used for the build.")
-	cmd.Flags().BoolVar(&config.NoOutput, "no-output", false, "If true, the build output will not be pushed anywhere.")
-	cmd.Flags().StringVar(&config.SourceImage, "source-image", "", "Specify an image to use as source for the build.  You must also specify --source-image-path.")
-	cmd.Flags().StringVar(&config.SourceImagePath, "source-image-path", "", "Specify the file or directory to copy from the source image and its destination in the build directory. Format: [source]:[destination-dir].")
+	cmd.Flags().BoolVar(&o.Config.AllowMissingImages, "allow-missing-images", o.Config.AllowMissingImages, "If true, indicates that referenced Docker images that cannot be found locally or in a registry should still be used.")
+	cmd.Flags().BoolVar(&o.Config.AllowMissingImageStreamTags, "allow-missing-imagestream-tags", o.Config.AllowMissingImageStreamTags, "If true, indicates that image stream tags that don't exist should still be used.")
+	cmd.Flags().StringVar(&o.Config.ContextDir, "context-dir", o.Config.ContextDir, "Context directory to be used for the build.")
+	cmd.Flags().BoolVar(&o.Config.NoOutput, "no-output", o.Config.NoOutput, "If true, the build output will not be pushed anywhere.")
+	cmd.Flags().StringVar(&o.Config.SourceImage, "source-image", o.Config.SourceImage, "Specify an image to use as source for the build.  You must also specify --source-image-path.")
+	cmd.Flags().StringVar(&o.Config.SourceImagePath, "source-image-path", o.Config.SourceImagePath, "Specify the file or directory to copy from the source image and its destination in the build directory. Format: [source]:[destination-dir].")
 
-	o.Action.BindForOutput(cmd.Flags())
+	o.Action.BindForOutput(cmd.Flags(), "output", "template")
 	cmd.Flags().String("output-version", "", "The preferred API versions of the output objects")
 
 	return cmd
 }
 
 // Complete sets any default behavior for the command
-func (o *NewBuildOptions) Complete(baseName, commandName string, f kcmdutil.Factory, c *cobra.Command, args []string, in io.Reader, out, errout io.Writer) error {
-	bo := o.ObjectGeneratorOptions
-	err := bo.Complete(baseName, commandName, f, c, args, in, out, errout)
+func (o *BuildOptions) Complete(baseName, commandName string, f kcmdutil.Factory, cmd *cobra.Command, args []string) error {
+	err := o.ObjectGeneratorOptions.Complete(baseName, commandName, f, cmd, args)
 	if err != nil {
 		return err
 	}
 
-	if bo.Config.Dockerfile == "-" {
-		data, err := ioutil.ReadAll(in)
+	if o.ObjectGeneratorOptions.Config.Dockerfile == "-" {
+		data, err := ioutil.ReadAll(o.In)
 		if err != nil {
 			return err
 		}
-		bo.Config.Dockerfile = string(data)
+		o.ObjectGeneratorOptions.Config.Dockerfile = string(data)
 	}
 
 	return nil
 }
 
 // RunNewBuild contains all the necessary functionality for the OpenShift cli new-build command
-func (o *NewBuildOptions) RunNewBuild() error {
+func (o *BuildOptions) RunNewBuild() error {
 	config := o.Config
 	out := o.Action.Out
 
@@ -191,7 +199,7 @@ func (o *NewBuildOptions) RunNewBuild() error {
 	}
 
 	if o.Action.ShouldPrint() {
-		return o.PrintObject(result.List)
+		return o.Printer.PrintObj(result.List, o.Out)
 	}
 
 	if errs := o.Action.WithMessage(configcmd.CreateMessage(config.Labels), "created").Run(result.List, result.Namespace); len(errs) > 0 {

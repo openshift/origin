@@ -1984,12 +1984,12 @@ func TestNewAppSourceAuthRequired(t *testing.T) {
 func TestNewAppListAndSearch(t *testing.T) {
 	tests := []struct {
 		name           string
-		options        clicmd.NewAppOptions
+		options        clicmd.AppOptions
 		expectedOutput string
 	}{
 		{
 			name: "search, no oldversion",
-			options: clicmd.NewAppOptions{
+			options: clicmd.AppOptions{
 				ObjectGeneratorOptions: &clicmd.ObjectGeneratorOptions{
 					Config: &cmd.AppConfig{
 						ComponentInputs: cmd.ComponentInputs{
@@ -2002,7 +2002,7 @@ func TestNewAppListAndSearch(t *testing.T) {
 		},
 		{
 			name: "list, no oldversion",
-			options: clicmd.NewAppOptions{
+			options: clicmd.AppOptions{
 				ObjectGeneratorOptions: &clicmd.ObjectGeneratorOptions{
 					Config: &cmd.AppConfig{
 						AsList: true,
