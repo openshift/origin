@@ -113,7 +113,7 @@ func (o *RequestProjectOptions) Complete(f *clientcmd.Factory, cmd *cobra.Comman
 	o.ProjectName = args[0]
 
 	if !o.SkipConfigWrite {
-		o.ProjectOptions = &ProjectOptions{}
+		o.ProjectOptions = NewProjectOptions(o.IOStreams)
 		o.ProjectOptions.PathOptions = cliconfig.NewPathOptions(cmd)
 		if err := o.ProjectOptions.Complete(f, []string{""}); err != nil {
 			return err

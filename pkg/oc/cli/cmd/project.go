@@ -66,11 +66,15 @@ var (
 	  %[1]s`)
 )
 
-// NewCmdProject implements the OpenShift cli rollback command
-func NewCmdProject(fullName string, f *clientcmd.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	options := &ProjectOptions{
+func NewProjectOptions(streams genericclioptions.IOStreams) *ProjectOptions {
+	return &ProjectOptions{
 		IOStreams: streams,
 	}
+}
+
+// NewCmdProject implements the OpenShift cli rollback command
+func NewCmdProject(fullName string, f *clientcmd.Factory, streams genericclioptions.IOStreams) *cobra.Command {
+	options := NewProjectOptions(streams)
 
 	cmd := &cobra.Command{
 		Use:     "project [NAME]",
