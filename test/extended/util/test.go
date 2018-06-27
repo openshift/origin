@@ -254,6 +254,9 @@ var (
 		// alpha test that shouldn't be run
 		`\[NodeAlphaFeature:VolumeSubpathEnvExpansion\]`,
 
+		// sysctl tests that don't support SCC
+		`\[NodeFeature:Sysctls\]`,
+
 		// not enabled in Origin yet
 		//`\[Feature:GarbageCollector\]`,
 
