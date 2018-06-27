@@ -448,7 +448,13 @@ func ensureSpecTag(stream *imageapi.ImageStream, tag, from string, importPolicy 
 	zero := int64(0)
 	specTag.Generation = &zero
 	specTag.ImportPolicy = importPolicy
-	specTag.ReferencePolicy = referencePolicy
+
+	// Only set the reference policy if it's not already explicitly
+	// set on this tag.  Importing an image should not change the reference
+	// policy.
+	if len(specTag.ReferencePolicy.Type) == 0 {
+		specTag.ReferencePolicy = referencePolicy
+	}
 	stream.Spec.Tags[tag] = specTag
 	return specTag
 }
