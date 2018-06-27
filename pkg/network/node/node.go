@@ -72,6 +72,7 @@ type OsdnNodeConfig struct {
 	PluginName      string
 	Hostname        string
 	SelfIP          string
+	DNSIP           string
 	RuntimeEndpoint string
 	MTU             uint32
 	EnableHostports bool
@@ -173,7 +174,7 @@ func New(c *OsdnNodeConfig) (*OsdnNode, error) {
 		networkClient:      c.NetworkClient,
 		recorder:           c.Recorder,
 		oc:                 oc,
-		podManager:         newPodManager(c.KClient, policy, c.MTU, c.CNIBinDir, oc, c.EnableHostports),
+		podManager:         newPodManager(c.KClient, policy, c.MTU, c.CNIBinDir, oc, c.EnableHostports, c.DNSIP),
 		localIP:            c.SelfIP,
 		hostName:           c.Hostname,
 		useConnTrack:       useConnTrack,
