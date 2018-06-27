@@ -51,13 +51,14 @@ const CNIServerRunDir string = "/var/run/openshift-sdn"
 const CNIServerSocketName string = "cni-server.sock"
 const CNIServerSocketPath string = CNIServerRunDir + "/" + CNIServerSocketName
 
-// Config file containing MTU, and default full path
+// Config file contains server to plugin config data
 const CNIServerConfigFileName string = "config.json"
 const CNIServerConfigFilePath string = CNIServerRunDir + "/" + CNIServerConfigFileName
 
 // Server-to-plugin config data
 type Config struct {
-	MTU uint32 `json:"mtu"`
+	MTU                uint32 `json:"mtu"`
+	ServiceNetworkCIDR string `json:"serviceNetworkCIDR"`
 }
 
 // Explicit type for CNI commands the server handles
