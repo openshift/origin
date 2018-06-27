@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"io"
 	"net/url"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -32,7 +31,6 @@ type ProjectOptions struct {
 	Config       clientcmdapi.Config
 	ClientConfig *restclient.Config
 	ClientFn     func() (projectclient.ProjectInterface, kclientset.Interface, error)
-	Out          io.Writer
 	PathOptions  *kclientcmd.PathOptions
 
 	ProjectName  string
@@ -41,6 +39,8 @@ type ProjectOptions struct {
 
 	// SkipAccessValidation means that if a specific name is requested, don't bother checking for access to the project
 	SkipAccessValidation bool
+
+	genericclioptions.IOStreams
 }
 
 var (
@@ -65,9 +65,15 @@ var (
 	  %[1]s`)
 )
 
+func NewProjectOptions(streams genericclioptions.IOStreams) *ProjectOptions {
+	return &ProjectOptions{
+		IOStreams: streams,
+	}
+}
+
 // NewCmdProject implements the OpenShift cli rollback command
 func NewCmdProject(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	options := &ProjectOptions{}
+	o := NewProjectOptions(streams)
 
 	cmd := &cobra.Command{
 		Use:     "project [NAME]",
@@ -75,22 +81,22 @@ func NewCmdProject(fullName string, f kcmdutil.Factory, streams genericclioption
 		Long:    projectLong,
 		Example: fmt.Sprintf(projectExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
-			options.PathOptions = cliconfig.NewPathOptions(cmd)
+			o.PathOptions = cliconfig.NewPathOptions(cmd)
 
-			if err := options.Complete(f, args, streams.Out); err != nil {
+			if err := o.Complete(f, args); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
 			}
 
-			if err := options.RunProject(); err != nil {
+			if err := o.RunProject(); err != nil {
 				kcmdutil.CheckErr(err)
 			}
 		},
 	}
-	cmd.Flags().BoolVarP(&options.DisplayShort, "short", "q", false, "If true, display only the project name")
+	cmd.Flags().BoolVarP(&o.DisplayShort, "short", "q", false, "If true, display only the project name")
 	return cmd
 }
 
-func (o *ProjectOptions) Complete(f genericclioptions.RESTClientGetter, args []string, out io.Writer) error {
+func (o *ProjectOptions) Complete(f genericclioptions.RESTClientGetter, args []string) error {
 	var err error
 
 	argsLength := len(args)
@@ -146,8 +152,6 @@ func (o *ProjectOptions) Complete(f genericclioptions.RESTClientGetter, args []s
 		return projectClient.Project(), kc, nil
 	}
 
-	o.Out = out
-
 	return nil
 }
 func (o ProjectOptions) Validate() error {
@@ -158,7 +162,6 @@ func (o ProjectOptions) Validate() error {
 func (o ProjectOptions) RunProject() error {
 	config := o.Config
 	clientCfg := o.ClientConfig
-	out := o.Out
 
 	var currentProject string
 	currentContext := config.Contexts[config.CurrentContext]
@@ -170,7 +173,7 @@ func (o ProjectOptions) RunProject() error {
 	if len(o.ProjectName) == 0 {
 		if len(currentProject) > 0 {
 			if o.DisplayShort {
-				fmt.Fprintln(out, currentProject)
+				fmt.Fprintln(o.Out, currentProject)
 				return nil
 			}
 
@@ -193,17 +196,17 @@ func (o ProjectOptions) RunProject() error {
 			// if they specified a project name and got a generated context, then only show the information they care about.  They won't recognize
 			// a context name they didn't choose
 			if config.CurrentContext == defaultContextName {
-				fmt.Fprintf(out, "Using project %q on server %q.\n", currentProject, clientCfg.Host)
+				fmt.Fprintf(o.Out, "Using project %q on server %q.\n", currentProject, clientCfg.Host)
 
 			} else {
-				fmt.Fprintf(out, "Using project %q from context named %q on server %q.\n", currentProject, config.CurrentContext, clientCfg.Host)
+				fmt.Fprintf(o.Out, "Using project %q from context named %q on server %q.\n", currentProject, config.CurrentContext, clientCfg.Host)
 			}
 
 		} else {
 			if o.DisplayShort {
 				return fmt.Errorf("no project has been set")
 			}
-			fmt.Fprintf(out, "No project has been set. Pass a project name to make that the default.\n")
+			fmt.Fprintf(o.Out, "No project has been set. Pass a project name to make that the default.\n")
 		}
 		return nil
 	}
@@ -282,7 +285,7 @@ func (o ProjectOptions) RunProject() error {
 	}
 
 	if o.DisplayShort {
-		fmt.Fprintln(out, namespaceInUse)
+		fmt.Fprintln(o.Out, namespaceInUse)
 		return nil
 	}
 
@@ -293,20 +296,20 @@ func (o ProjectOptions) RunProject() error {
 	switch {
 	// if there is no namespace, then the only information we can provide is the context and server
 	case (len(namespaceInUse) == 0):
-		fmt.Fprintf(out, "Now using context named %q on server %q.\n", contextInUse, clientCfg.Host)
+		fmt.Fprintf(o.Out, "Now using context named %q on server %q.\n", contextInUse, clientCfg.Host)
 
 	// inform them that they are already in the project they are trying to switch to
 	case currentProject == namespaceInUse:
-		fmt.Fprintf(out, "Already on project %q on server %q.\n", currentProject, clientCfg.Host)
+		fmt.Fprintf(o.Out, "Already on project %q on server %q.\n", currentProject, clientCfg.Host)
 
 	// if they specified a project name and got a generated context, then only show the information they care about.  They won't recognize
 	// a context name they didn't choose
 	case (argument == namespaceInUse) && (contextInUse == defaultContextName):
-		fmt.Fprintf(out, "Now using project %q on server %q.\n", namespaceInUse, clientCfg.Host)
+		fmt.Fprintf(o.Out, "Now using project %q on server %q.\n", namespaceInUse, clientCfg.Host)
 
 	// in all other cases, display all information
 	default:
-		fmt.Fprintf(out, "Now using project %q from context named %q on server %q.\n", namespaceInUse, contextInUse, clientCfg.Host)
+		fmt.Fprintf(o.Out, "Now using project %q from context named %q on server %q.\n", namespaceInUse, contextInUse, clientCfg.Host)
 
 	}
 

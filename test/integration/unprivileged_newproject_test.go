@@ -1,13 +1,13 @@
 package integration
 
 import (
-	"io/ioutil"
 	"testing"
 	"time"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
@@ -86,13 +86,13 @@ func TestUnprivilegedNewProject(t *testing.T) {
 		t.Fatalf("expected %v, got %v", metav1.StatusSuccess, allowed.Status)
 	}
 
-	requestProject := oc.NewProjectOptions{
+	requestProject := oc.RequestProjectOptions{
 		ProjectName: "new-project",
 		DisplayName: "display name here",
 		Description: "the special description",
 
-		Client: valerieProjectClient.Project(),
-		Out:    ioutil.Discard,
+		Client:    valerieProjectClient.Project(),
+		IOStreams: genericclioptions.NewTestIOStreamsDiscard(),
 	}
 
 	if err := requestProject.Run(); err != nil {
@@ -170,13 +170,13 @@ func TestUnprivilegedNewProjectFromTemplate(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	requestProject := oc.NewProjectOptions{
+	requestProject := oc.RequestProjectOptions{
 		ProjectName: "new-project",
 		DisplayName: "display name here",
 		Description: "the special description",
 
-		Client: valerieProjectClient.Project(),
-		Out:    ioutil.Discard,
+		Client:    valerieProjectClient.Project(),
+		IOStreams: genericclioptions.NewTestIOStreamsDiscard(),
 	}
 
 	if err := requestProject.Run(); err != nil {
