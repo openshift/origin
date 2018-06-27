@@ -251,6 +251,9 @@ var (
 		`\[Disruptive\]`,
 		`\[local\]`,
 
+		// alpha test that shouldn't be run
+		`\[NodeAlphaFeature:VolumeSubpathEnvExpansion\]`,
+
 		// not enabled in Origin yet
 		//`\[Feature:GarbageCollector\]`,
 
