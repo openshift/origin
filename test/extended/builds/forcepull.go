@@ -3,9 +3,12 @@ package builds
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
+
+	"k8s.io/apimachinery/pkg/util/wait"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -71,6 +74,15 @@ var _ = g.Describe("[Feature:Builds] forcePull should affect pulling builder ima
 			g.By("granting system:build-strategy-custom")
 			binding := fmt.Sprintf("custombuildaccess-%s", oc.Username())
 			err := oc.AsAdmin().Run("create").Args("clusterrolebinding", binding, "--clusterrole", "system:build-strategy-custom", "--user", oc.Username()).Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			err = wait.PollImmediate(time.Second, time.Minute, func() (bool, error) {
+				err := oc.Run("auth").Args("can-i", "--all-namespaces", "--quiet", "create", "builds.build.openshift.io", "--subresource=custom").Execute()
+				if err != nil {
+					return false, nil
+				}
+				return true, nil
+			})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for openshift/ruby:latest ImageStreamTag")
