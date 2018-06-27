@@ -9,6 +9,7 @@ import (
 	faketemplatev1 "github.com/openshift/client-go/template/clientset/versioned/typed/template/v1/fake"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	"github.com/openshift/origin/pkg/templateservicebroker/openservicebroker/api"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	authorizationv1 "k8s.io/api/authorization/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -139,6 +140,49 @@ func TestEvaluateJSONPathExpression(t *testing.T) {
 			t.Errorf("%d: result %q", i, result)
 		}
 	}
+}
+
+func TestBase64AndString(t *testing.T) {
+	t.Skip("this test is demonstrating the generic failure of the export value code for base64.  You can't generic identify the base64 fields.")
+	data := []byte(`{
+  "apiVersion": "v1",
+  "data": {
+    "password": "c2VjcmV0Y3JlZHN5bmMK",
+    "username": "c2VjcmV0Y3JlZHN5bmMK"
+  },
+  "kind": "Secret",
+  "metadata": {
+    "labels": {
+      "credential.sync.jenkins.openshift.io": "true"
+    },
+    "name": "secret-to-credential"
+  },
+  "type": "Opaque"
+}`)
+
+	uncastObj, err := runtime.Decode(unstructured.UnstructuredJSONScheme, data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	obj := uncastObj.(*unstructured.Unstructured)
+	t.Logf("%T", obj.Object["data"].(map[string]interface{})["password"])
+
+	actualString, err := evaluateJSONPathExpression(obj.Object, "dummy", "{.data.password}", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if e, a := "secretcredsync", actualString; e != a {
+		t.Errorf("expected %q, got %q", e, a)
+	}
+
+	actualStringAsBase64, err := evaluateJSONPathExpression(obj.Object, "dummy", "{.data.password}", true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if e, a := "c2VjcmV0Y3JlZHN5bmMK", actualStringAsBase64; e != a {
+		t.Errorf("expected %q, got %q", e, a)
+	}
+
 }
 
 func TestDuplicateCredentialKeys(t *testing.T) {

@@ -12,6 +12,7 @@ import (
 	"github.com/golang/glog"
 
 	authorizationv1 "k8s.io/api/authorization/v1"
+	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -215,13 +216,24 @@ func (b *Broker) Bind(u user.Info, instanceID, bindingID string, breq *api.BindR
 			return api.Forbidden(err)
 		}
 
-		obj, err := b.dynamicClient.Resource(mapping.Resource).Namespace(object.Ref.Namespace).Get(object.Ref.Name, metav1.GetOptions{})
+		unstructuredObj, err := b.dynamicClient.Resource(mapping.Resource).Namespace(object.Ref.Namespace).Get(object.Ref.Name, metav1.GetOptions{})
 		if err != nil {
 			return api.InternalServerError(err)
 		}
 
-		if obj.GetUID() != object.Ref.UID {
+		if unstructuredObj.GetUID() != object.Ref.UID {
 			return api.InternalServerError(kerrors.NewNotFound(mapping.Resource.GroupResource(), object.Ref.Name))
+		}
+
+		var obj runtime.Object = unstructuredObj
+		// TODO figure out how to fix this code to work generically.  Right now it relies upon being able to fully decode a secret
+		if object.Ref.GroupVersionKind().GroupKind() == kapi.Kind("Secret") {
+			secretObj := &corev1.Secret{}
+			err := runtime.DefaultUnstructuredConverter.FromUnstructured(unstructuredObj.Object, secretObj)
+			if err != nil {
+				return api.InternalServerError(err)
+			}
+			obj = secretObj
 		}
 
 		err = updateCredentialsForObject(credentials, obj)
