@@ -697,6 +697,7 @@ func hasLabel(labels map[string]string, result *newcmd.AppResult) (bool, error) 
 			return true, nil
 		}
 	}
+	// make a difference
 	return false, nil
 }
 
