@@ -426,8 +426,11 @@ func TestSkipGenerationControllerFlow(t *testing.T) {
 	serviceName := "svc-name"
 	serviceUID := "some-uid"
 	namespace := "ns"
+	secret := &v1.Secret{}
+	secret.Name = expectedSecretName
+	secret.Namespace = namespace
 
-	caName, kubeclient, fakeWatch, _, controller, informerFactory := controllerSetup([]runtime.Object{}, stopChannel, t)
+	caName, kubeclient, fakeWatch, _, controller, informerFactory := controllerSetup([]runtime.Object{secret}, stopChannel, t)
 	kubeclient.PrependReactor("update", "service", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, &v1.Service{}, kapierrors.NewForbidden(v1.Resource("fdsa"), "new-service", fmt.Errorf("any service reason"))
 	})

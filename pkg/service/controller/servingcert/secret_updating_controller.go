@@ -52,7 +52,7 @@ func NewServiceServingCertUpdateController(services informers.ServiceInformer, s
 	sc := &ServiceServingCertUpdateController{
 		secretClient: secretClient,
 
-		queue: workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
+		queue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "service-serving-cert-update"),
 
 		ca:        ca,
 		dnsSuffix: dnsSuffix,

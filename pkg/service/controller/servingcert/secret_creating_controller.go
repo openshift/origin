@@ -78,7 +78,7 @@ func NewServiceServingCertController(services informers.ServiceInformer, secrets
 		serviceClient: serviceClient,
 		secretClient:  secretClient,
 
-		queue:      workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
+		queue:      workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "service-serving-cert-create"),
 		maxRetries: 10,
 
 		ca:        ca,
@@ -334,15 +334,15 @@ func (sc *ServiceServingCertController) requiresCertGeneration(service *v1.Servi
 	if getNumFailures(service) >= sc.maxRetries {
 		return false
 	}
-	if service.Annotations[ServingCertCreatedByAnnotation] == sc.ca.Config.Certs[0].Subject.CommonName {
-		return false
-	}
 	_, err := sc.secretLister.Secrets(service.Namespace).Get(secretName)
 	if kapierrors.IsNotFound(err) {
 		return true
 	}
 	if err != nil {
 		utilruntime.HandleError(fmt.Errorf("Unable to get the secret %s/%s: %v", service.Namespace, secretName, err))
+		return false
+	}
+	if service.Annotations[ServingCertCreatedByAnnotation] == sc.ca.Config.Certs[0].Subject.CommonName {
 		return false
 	}
 	return true
