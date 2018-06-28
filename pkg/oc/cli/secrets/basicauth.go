@@ -12,6 +12,7 @@ import (
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	kterm "k8s.io/kubernetes/pkg/kubectl/util/term"
 
 	"github.com/openshift/origin/pkg/cmd/util/term"
@@ -58,10 +59,10 @@ type CreateBasicAuthSecretOptions struct {
 }
 
 // NewCmdCreateBasicAuthSecret implements the OpenShift cli secrets new-basicauth subcommand
-func NewCmdCreateBasicAuthSecret(name, fullName string, f kcmdutil.Factory, reader io.Reader, out io.Writer, newSecretFullName, ocEditFullName string) *cobra.Command {
+func NewCmdCreateBasicAuthSecret(name, fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams, newSecretFullName, ocEditFullName string) *cobra.Command {
 	o := &CreateBasicAuthSecretOptions{
-		Out:    out,
-		Reader: reader,
+		Out:    streams.Out,
+		Reader: streams.In,
 	}
 
 	cmd := &cobra.Command{
@@ -84,7 +85,7 @@ func NewCmdCreateBasicAuthSecret(name, fullName string, f kcmdutil.Factory, read
 				secret, err := o.NewBasicAuthSecret()
 				kcmdutil.CheckErr(err)
 
-				kcmdutil.CheckErr(kcmdutil.PrintObject(c, secret, out))
+				kcmdutil.CheckErr(kcmdutil.PrintObject(c, secret, streams.Out))
 				return
 			}
 

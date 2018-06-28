@@ -15,6 +15,7 @@ import (
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 	kprinters "k8s.io/kubernetes/pkg/printers"
 
@@ -65,7 +66,7 @@ var (
 )
 
 // NewCmdRollback creates a CLI rollback command.
-func NewCmdRollback(fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
+func NewCmdRollback(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
 	opts := &RollbackOptions{}
 	cmd := &cobra.Command{
 		Use:     "rollback (DEPLOYMENTCONFIG | DEPLOYMENT)",
@@ -73,7 +74,7 @@ func NewCmdRollback(fullName string, f kcmdutil.Factory, out io.Writer) *cobra.C
 		Long:    rollbackLong,
 		Example: fmt.Sprintf(rollbackExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := opts.Complete(f, cmd, args, out); err != nil {
+			if err := opts.Complete(f, cmd, args, streams.Out); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
 			}
 

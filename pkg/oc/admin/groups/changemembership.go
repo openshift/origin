@@ -9,6 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	"github.com/spf13/cobra"
 
@@ -48,7 +49,7 @@ type GroupModificationOptions struct {
 	Users []string
 }
 
-func NewCmdAddUsers(name, fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
+func NewCmdAddUsers(name, fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
 	options := &GroupModificationOptions{}
 
 	cmd := &cobra.Command{
@@ -64,14 +65,14 @@ func NewCmdAddUsers(name, fullName string, f kcmdutil.Factory, out io.Writer) *c
 				kcmdutil.CheckErr(err)
 			}
 
-			printSuccessForCommand(options.Group, true, options.Users, out)
+			printSuccessForCommand(options.Group, true, options.Users, streams.Out)
 		},
 	}
 
 	return cmd
 }
 
-func NewCmdRemoveUsers(name, fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
+func NewCmdRemoveUsers(name, fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
 	options := &GroupModificationOptions{}
 
 	cmd := &cobra.Command{
@@ -87,7 +88,7 @@ func NewCmdRemoveUsers(name, fullName string, f kcmdutil.Factory, out io.Writer)
 				kcmdutil.CheckErr(err)
 			}
 
-			printSuccessForCommand(options.Group, false, options.Users, out)
+			printSuccessForCommand(options.Group, false, options.Users, streams.Out)
 		},
 	}
 

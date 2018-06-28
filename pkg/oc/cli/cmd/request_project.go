@@ -10,6 +10,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	cliconfig "github.com/openshift/origin/pkg/oc/cli/config"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
@@ -73,9 +74,9 @@ To switch to this project and start adding applications, use:
 )
 
 // NewCmdRequestProject implement the OpenShift cli RequestProject command.
-func NewCmdRequestProject(name, baseName string, f kcmdutil.Factory, out, errout io.Writer) *cobra.Command {
+func NewCmdRequestProject(name, baseName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
 	o := &NewProjectOptions{}
-	o.Out = out
+	o.Out = streams.Out
 	o.Name = baseName
 
 	cmd := &cobra.Command{

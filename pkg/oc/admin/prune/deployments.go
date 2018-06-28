@@ -14,6 +14,7 @@ import (
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsclientinternal "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
@@ -52,7 +53,7 @@ type PruneDeploymentsOptions struct {
 }
 
 // NewCmdPruneDeployments implements the OpenShift cli prune deployments command.
-func NewCmdPruneDeployments(f kcmdutil.Factory, parentName, name string, out io.Writer) *cobra.Command {
+func NewCmdPruneDeployments(f kcmdutil.Factory, parentName, name string, streams genericclioptions.IOStreams) *cobra.Command {
 	opts := &PruneDeploymentsOptions{
 		Confirm:         false,
 		KeepYoungerThan: 60 * time.Minute,
@@ -66,7 +67,7 @@ func NewCmdPruneDeployments(f kcmdutil.Factory, parentName, name string, out io.
 		Long:    deploymentsLongDesc,
 		Example: fmt.Sprintf(deploymentsExample, parentName, name),
 		Run: func(cmd *cobra.Command, args []string) {
-			kcmdutil.CheckErr(opts.Complete(f, cmd, args, out))
+			kcmdutil.CheckErr(opts.Complete(f, cmd, args, streams.Out))
 			kcmdutil.CheckErr(opts.Validate())
 			kcmdutil.CheckErr(opts.Run())
 		},

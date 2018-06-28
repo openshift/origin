@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"io"
 
 	"github.com/spf13/cobra"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
@@ -53,8 +52,8 @@ var (
 )
 
 // NewCmdExpose is a wrapper for the Kubernetes cli expose command
-func NewCmdExpose(fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
-	cmd := kcmd.NewCmdExposeService(f, genericclioptions.IOStreams{Out: out})
+func NewCmdExpose(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
+	cmd := kcmd.NewCmdExposeService(f, streams)
 	cmd.Short = "Expose a replicated application as a service or route"
 	cmd.Long = exposeLong
 	cmd.Example = fmt.Sprintf(exposeExample, fullName)

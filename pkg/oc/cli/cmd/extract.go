@@ -15,6 +15,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 
 	"github.com/openshift/origin/pkg/oc/util/ocscheme"
@@ -59,10 +60,10 @@ type ExtractOptions struct {
 	ExtractFileContentsFn func(runtime.Object) (map[string][]byte, bool, error)
 }
 
-func NewCmdExtract(fullName string, f kcmdutil.Factory, in io.Reader, out, errOut io.Writer) *cobra.Command {
+func NewCmdExtract(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
 	options := &ExtractOptions{
-		Out: out,
-		Err: errOut,
+		Out: streams.Out,
+		Err: streams.ErrOut,
 
 		TargetDirectory: ".",
 	}
@@ -72,7 +73,7 @@ func NewCmdExtract(fullName string, f kcmdutil.Factory, in io.Reader, out, errOu
 		Long:    extractLong,
 		Example: fmt.Sprintf(extractExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
-			kcmdutil.CheckErr(options.Complete(f, in, out, cmd, args))
+			kcmdutil.CheckErr(options.Complete(f, streams.In, streams.Out, cmd, args))
 			kcmdutil.CheckErr(options.Validate())
 			// TODO: move me to kcmdutil
 			err := options.Run()

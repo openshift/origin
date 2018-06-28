@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"io/ioutil"
 	"reflect"
 	"strings"
 	"testing"
@@ -22,7 +21,7 @@ import (
 func TestLogsFlagParity(t *testing.T) {
 	streams := genericclioptions.NewTestIOStreamsDiscard()
 	kubeCmd := kcmd.NewCmdLogs(nil, streams)
-	originCmd := NewCmdLogs("oc", "logs", nil, ioutil.Discard, ioutil.Discard)
+	originCmd := NewCmdLogs("oc", "logs", nil, streams)
 
 	kubeCmd.LocalFlags().VisitAll(func(kubeFlag *pflag.Flag) {
 		originFlag := originCmd.LocalFlags().Lookup(kubeFlag.Name)
