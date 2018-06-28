@@ -5775,6 +5775,13 @@ func schema_openshift_api_build_v1_ImageChangeTrigger(ref common.ReferenceCallba
 							Ref:         ref("k8s.io/api/core/v1.ObjectReference"),
 						},
 					},
+					"paused": {
+						SchemaProps: spec.SchemaProps{
+							Description: "paused is true if this trigger is temporarily disabled. Optional.",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
 				},
 			},
 		},

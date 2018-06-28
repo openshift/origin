@@ -1125,6 +1125,9 @@ type ImageChangeTrigger struct {
 	// will be used. Only one ImageChangeTrigger with an empty From reference is allowed in
 	// a build configuration.
 	From *kapi.ObjectReference
+
+	// Paused is true if this trigger is temporarily disabled. Optional.
+	Paused bool
 }
 
 // BuildTriggerPolicy describes a policy for a single trigger that results in a new Build.
