@@ -201,6 +201,11 @@ HTTP server: The kubelet can also listen for HTTP and respond to a simple API
 				}
 			}
 
+			// if the feature flag is on, the feature is on!
+			if utilfeature.DefaultFeatureGate.Enabled(features.RotateKubeletServerCertificate) {
+				kubeletConfig.ServerTLSBootstrap = true
+			}
+
 			// We always validate the local configuration (command line + config file).
 			// This is the default "last-known-good" config for dynamic config, and must always remain valid.
 			if err := kubeletconfigvalidation.ValidateKubeletConfiguration(kubeletConfig); err != nil {
