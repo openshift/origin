@@ -26,7 +26,6 @@ const (
 )
 
 func TestSNI(t *testing.T) {
-	t.Skip("skipping to see if I go green")
 	// Create tempfiles with certs and keys we're going to use
 	certNames := map[string]string{}
 	for certName, certContents := range sniCerts {
