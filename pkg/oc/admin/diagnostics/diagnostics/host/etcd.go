@@ -113,7 +113,7 @@ func (d *EtcdWriteVolume) Check() types.DiagnosticResult {
 		fmt.Fprintf(tw, "%s\t%6d\t%5.1f%%\n", b.Name, b.Count, float64(b.Count)/float64(keyStats.count)*100)
 	}
 	tw.Flush()
-	r.Info("DEw2004", fmt.Sprintf("Measured %.1f writes/sec\n", float64(keyStats.count)/float64(d.duration/time.Second))+buf.String())
+	r.Info("DE2004", fmt.Sprintf("Measured %.1f writes/sec\n", float64(keyStats.count)/float64(d.duration/time.Second))+buf.String())
 
 	return r
 }
