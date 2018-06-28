@@ -1,6 +1,6 @@
 apiVersion: v1
 items:
-- apiVersion: v1
+- apiVersion: build.openshift.io/v1
   kind: BuildConfig
   metadata:
     creationTimestamp: 2015-12-16T01:01:33Z
@@ -8,7 +8,7 @@ items:
       app: repo-base
     name: repo-base
     resourceVersion: "1154628"
-    selfLink: /oapi/v1/namespaces/repo/buildconfigs/repo-base
+    selfLink: /apis/build.openshift.io/v1/namespaces/repo/buildconfigs/repo-base
     uid: 8c7335e2-a390-11e5-94ad-74d43587d03d
   spec:
     output:
@@ -40,7 +40,7 @@ items:
       type: ImageChange
   status:
     lastVersion: 8
-- apiVersion: v1
+- apiVersion: build.openshift.io/v1
   kind: Build
   metadata:
     annotations:
@@ -53,7 +53,7 @@ items:
       openshift.io/build-config.name: repo-base
     name: repo-base-7
     resourceVersion: "1149556"
-    selfLink: /oapi/v1/namespaces/repo/builds/repo-base-7
+    selfLink: /apis/build.openshift.io/v1/namespaces/repo/builds/repo-base-7
     uid: a5ac0818-a461-11e5-9268-74d43587d03d
   spec:
     output:
@@ -87,7 +87,7 @@ items:
     outputDockerImageReference: 172.30.201.81:5000/repo/repo-base:latest
     phase: Failed
     startTimestamp: 2015-12-17T01:58:27Z
-- apiVersion: v1
+- apiVersion: build.openshift.io/v1
   kind: Build
   metadata:
     annotations:
@@ -100,7 +100,7 @@ items:
       openshift.io/build-config.name: repo-base
     name: repo-base-8
     resourceVersion: "1154645"
-    selfLink: /oapi/v1/namespaces/repo/builds/repo-base-8
+    selfLink: /apis/build.openshift.io/v1/namespaces/repo/builds/repo-base-8
     uid: 8704b83b-a4cb-11e5-9268-74d43587d03d
   spec:
     output:
@@ -130,7 +130,7 @@ items:
     outputDockerImageReference: 172.30.201.81:5000/repo/repo-base:latest
     phase: Running
     startTimestamp: 2015-12-17T14:36:24Z
-- apiVersion: v1
+- apiVersion: image.openshift.io/v1
   kind: ImageStream
   metadata:
     annotations:
@@ -140,7 +140,7 @@ items:
       app: repo-base
     name: repo-base
     resourceVersion: "1139441"
-    selfLink: /oapi/v1/namespaces/repo/imagestreams/repo-base
+    selfLink: /apis/image.openshift.io/v1/namespaces/repo/imagestreams/repo-base
     uid: e8fde4ab-a390-11e5-94ad-74d43587d03d
   spec: {}
   status:

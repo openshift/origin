@@ -6,7 +6,7 @@
     "items": [
     {
       "kind": "BuildConfig",
-      "apiVersion": "v1",
+      "apiVersion": "build.openshift.io/v1",
       "metadata": {
         "name": "frontend",
         "creationTimestamp": null,
@@ -43,7 +43,7 @@
     },
     {
       "kind": "BuildConfig",
-      "apiVersion": "v1",
+      "apiVersion": "build.openshift.io/v1",
       "metadata": {
         "name": "backend",
         "creationTimestamp": null,

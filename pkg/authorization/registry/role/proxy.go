@@ -1,6 +1,8 @@
 package role
 
 import (
+	"context"
+
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -28,6 +30,7 @@ var _ rest.Lister = &REST{}
 var _ rest.Getter = &REST{}
 var _ rest.CreaterUpdater = &REST{}
 var _ rest.GracefulDeleter = &REST{}
+var _ rest.Scoper = &REST{}
 
 func NewREST(client restclient.Interface) utilregistry.NoWatchStorage {
 	return utilregistry.WrapNoWatchStorageError(&REST{
@@ -43,7 +46,11 @@ func (s *REST) NewList() runtime.Object {
 	return &authorizationapi.RoleList{}
 }
 
-func (s *REST) List(ctx apirequest.Context, options *metainternal.ListOptions) (runtime.Object, error) {
+func (s *REST) NamespaceScoped() bool {
+	return true
+}
+
+func (s *REST) List(ctx context.Context, options *metainternal.ListOptions) (runtime.Object, error) {
 	client, err := s.getImpersonatingClient(ctx)
 	if err != nil {
 		return nil, err
@@ -70,7 +77,7 @@ func (s *REST) List(ctx apirequest.Context, options *metainternal.ListOptions) (
 	return ret, nil
 }
 
-func (s *REST) Get(ctx apirequest.Context, name string, options *metav1.GetOptions) (runtime.Object, error) {
+func (s *REST) Get(ctx context.Context, name string, options *metav1.GetOptions) (runtime.Object, error) {
 	client, err := s.getImpersonatingClient(ctx)
 	if err != nil {
 		return nil, err
@@ -88,7 +95,7 @@ func (s *REST) Get(ctx apirequest.Context, name string, options *metav1.GetOptio
 	return role, nil
 }
 
-func (s *REST) Delete(ctx apirequest.Context, name string, options *metav1.DeleteOptions) (runtime.Object, bool, error) {
+func (s *REST) Delete(ctx context.Context, name string, options *metav1.DeleteOptions) (runtime.Object, bool, error) {
 	client, err := s.getImpersonatingClient(ctx)
 	if err != nil {
 		return nil, false, err
@@ -101,7 +108,7 @@ func (s *REST) Delete(ctx apirequest.Context, name string, options *metav1.Delet
 	return &metav1.Status{Status: metav1.StatusSuccess}, true, nil
 }
 
-func (s *REST) Create(ctx apirequest.Context, obj runtime.Object, _ rest.ValidateObjectFunc, _ bool) (runtime.Object, error) {
+func (s *REST) Create(ctx context.Context, obj runtime.Object, _ rest.ValidateObjectFunc, _ bool) (runtime.Object, error) {
 	client, err := s.getImpersonatingClient(ctx)
 	if err != nil {
 		return nil, err
@@ -124,7 +131,7 @@ func (s *REST) Create(ctx apirequest.Context, obj runtime.Object, _ rest.Validat
 	return role, nil
 }
 
-func (s *REST) Update(ctx apirequest.Context, name string, objInfo rest.UpdatedObjectInfo, _ rest.ValidateObjectFunc, _ rest.ValidateObjectUpdateFunc) (runtime.Object, bool, error) {
+func (s *REST) Update(ctx context.Context, name string, objInfo rest.UpdatedObjectInfo, _ rest.ValidateObjectFunc, _ rest.ValidateObjectUpdateFunc) (runtime.Object, bool, error) {
 	client, err := s.getImpersonatingClient(ctx)
 	if err != nil {
 		return nil, false, err
@@ -162,7 +169,7 @@ func (s *REST) Update(ctx apirequest.Context, name string, objInfo rest.UpdatedO
 	return role, false, err
 }
 
-func (s *REST) getImpersonatingClient(ctx apirequest.Context) (rbacinternalversion.RoleInterface, error) {
+func (s *REST) getImpersonatingClient(ctx context.Context) (rbacinternalversion.RoleInterface, error) {
 	namespace, ok := apirequest.NamespaceFrom(ctx)
 	if !ok {
 		return nil, apierrors.NewBadRequest("namespace parameter required")

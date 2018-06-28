@@ -7,10 +7,9 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-
 	"time"
 
-	units "github.com/docker/go-units"
+	"github.com/docker/go-units"
 	"github.com/spf13/cobra"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
@@ -19,7 +18,7 @@ import (
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/kubectl/resource"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsinternalclient "github.com/openshift/origin/pkg/apps/client/internalversion"
@@ -27,6 +26,7 @@ import (
 	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
 	"github.com/openshift/origin/pkg/oc/cli/describe"
+	"github.com/openshift/origin/pkg/oc/util/ocscheme"
 )
 
 // DeployOptions holds all the options for the `deploy` command
@@ -142,11 +142,11 @@ func (o *DeployOptions) Complete(f kcmdutil.Factory, args []string, out io.Write
 	}
 	var err error
 
-	o.kubeClient, err = f.ClientSet()
+	clientConfig, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}
-	clientConfig, err := f.ClientConfig()
+	o.kubeClient, err = kclientset.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
@@ -155,7 +155,7 @@ func (o *DeployOptions) Complete(f kcmdutil.Factory, args []string, out io.Write
 		return err
 	}
 	o.appsClient = client.Apps()
-	o.namespace, _, err = f.DefaultNamespace()
+	o.namespace, _, err = f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
 	}
@@ -202,7 +202,7 @@ func (o DeployOptions) Validate() error {
 
 func (o DeployOptions) RunDeploy() error {
 	r := o.builder.
-		Internal().
+		WithScheme(ocscheme.ReadingInternalScheme).
 		NamespaceParam(o.namespace).
 		ResourceNames("deploymentconfigs", o.deploymentConfigName).
 		SingleResourceType().

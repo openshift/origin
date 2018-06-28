@@ -4,6 +4,9 @@ import (
 	"strings"
 	"testing"
 
+	"k8s.io/apimachinery/pkg/api/meta/testrestmapper"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
+
 	appsgraph "github.com/openshift/origin/pkg/oc/graph/appsgraph"
 	osgraph "github.com/openshift/origin/pkg/oc/graph/genericgraph"
 	osgraphtest "github.com/openshift/origin/pkg/oc/graph/genericgraph/test"
@@ -61,7 +64,7 @@ func TestOverlappingHPAsWarning(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	kubegraph.AddHPAScaleRefEdges(g)
+	kubegraph.AddHPAScaleRefEdges(g, testrestmapper.TestOnlyStaticRESTMapper(legacyscheme.Scheme))
 	appsgraph.AddAllDeploymentConfigsDeploymentEdges(g)
 
 	markers := FindOverlappingHPAs(g, osgraph.DefaultNamer)
@@ -86,7 +89,7 @@ func TestOverlappingLegacyHPAsWarning(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	kubegraph.AddHPAScaleRefEdges(g)
+	kubegraph.AddHPAScaleRefEdges(g, testrestmapper.TestOnlyStaticRESTMapper(legacyscheme.Scheme))
 	appsgraph.AddAllDeploymentConfigsDeploymentEdges(g)
 
 	markers := FindOverlappingHPAs(g, osgraph.DefaultNamer)

@@ -61,11 +61,6 @@ func AddOutputFlagsForMutation(cmd *cobra.Command) {
 	cmd.Flags().StringP("output", "o", "", "Output mode. Use \"-o name\" for shorter output (resource/name).")
 }
 
-// AddOutputVarFlagsForMutation adds output related flags to a command. Used by mutations only.
-func AddOutputVarFlagsForMutation(cmd *cobra.Command, output *string) {
-	cmd.Flags().StringVarP(output, "output", "o", *output, "Output mode. Use \"-o name\" for shorter output (resource/name).")
-}
-
 // AddOutputFlags adds output related flags to a command.
 func AddOutputFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("output", "o", "", "Output format. One of: json|yaml|wide|name|custom-columns=...|custom-columns-file=...|go-template=...|go-template-file=...|jsonpath=...|jsonpath-file=... See custom columns [http://kubernetes.io/docs/user-guide/kubectl-overview/#custom-columns], golang template [http://golang.org/pkg/text/template/#pkg-overview] and jsonpath template [http://kubernetes.io/docs/user-guide/jsonpath].")
@@ -75,15 +70,6 @@ func AddOutputFlags(cmd *cobra.Command) {
 // AddNoHeadersFlags adds no-headers flags to a command.
 func AddNoHeadersFlags(cmd *cobra.Command) {
 	cmd.Flags().Bool("no-headers", false, "When using the default or custom-column output format, don't print headers (default print headers).")
-}
-
-// ValidateOutputArgs validates -o flag args for mutations
-func ValidateOutputArgs(cmd *cobra.Command) error {
-	outputMode := GetFlagString(cmd, "output")
-	if outputMode != "" && outputMode != "name" {
-		return UsageErrorf(cmd, "Unexpected -o output mode: %v. We only support '-o name'.", outputMode)
-	}
-	return nil
 }
 
 // PrintSuccess prints a success message and can do a "-o name" as "shortOutput"
@@ -136,7 +122,7 @@ func PrintObject(cmd *cobra.Command, obj runtime.Object, out io.Writer) error {
 func PrinterForOptions(options *printers.PrintOptions) (printers.ResourcePrinter, error) {
 	// TODO: used by the custom column implementation and the name implementation, break this dependency
 	decoders := []runtime.Decoder{kubectlscheme.Codecs.UniversalDecoder(), unstructured.UnstructuredJSONScheme}
-	encoder := kubectlscheme.Codecs.LegacyCodec(kubectlscheme.Registry.EnabledVersions()...)
+	encoder := kubectlscheme.Codecs.LegacyCodec(kubectlscheme.Scheme.PrioritizedVersionsAllGroups()...)
 
 	printer, err := printers.GetStandardPrinter(kubectlscheme.Scheme, encoder, decoders, *options)
 	if err != nil {
@@ -150,13 +136,12 @@ func PrinterForOptions(options *printers.PrintOptions) (printers.ResourcePrinter
 	// TODO or be registered there
 	if humanReadablePrinter, ok := printer.(printers.PrintHandler); ok {
 		printersinternal.AddHandlers(humanReadablePrinter)
+	} else {
+		// wrap the printer in a versioning printer that understands when to convert and when not to convert
+		printer = printers.NewVersionedPrinter(printer, legacyscheme.Scheme, legacyscheme.Scheme, kubectlscheme.Scheme.PrioritizedVersionsAllGroups()...)
 	}
 
 	printer = maybeWrapSortingPrinter(printer, *options)
-
-	// wrap the printer in a versioning printer that understands when to convert and when not to convert
-	printer = printers.NewVersionedPrinter(printer, legacyscheme.Scheme, legacyscheme.Scheme, kubectlscheme.Versions...)
-
 	return printer, nil
 }
 
@@ -172,13 +157,11 @@ func ExtractCmdPrintOptions(cmd *cobra.Command, withNamespace bool) *printers.Pr
 	}
 
 	options := &printers.PrintOptions{
-		NoHeaders:          GetFlagBool(cmd, "no-headers"),
-		Wide:               GetWideFlag(cmd),
-		ShowAll:            GetFlagBool(cmd, "show-all"),
-		ShowLabels:         GetFlagBool(cmd, "show-labels"),
-		AbsoluteTimestamps: isWatch(cmd),
-		ColumnLabels:       columnLabel,
-		WithNamespace:      withNamespace,
+		NoHeaders:     GetFlagBool(cmd, "no-headers"),
+		ShowAll:       GetFlagBool(cmd, "show-all"),
+		ShowLabels:    GetFlagBool(cmd, "show-labels"),
+		ColumnLabels:  columnLabel,
+		WithNamespace: withNamespace,
 	}
 
 	var outputFormat string
@@ -234,74 +217,8 @@ func maybeWrapSortingPrinter(printer printers.ResourcePrinter, printOpts printer
 	return printer
 }
 
-// ValidResourceTypeList returns a multi-line string containing the valid resources. May
-// be called before the factory is initialized.
-// TODO: This function implementation should be replaced with a real implementation from the
-//   discovery service.
-func ValidResourceTypeList(f ClientAccessFactory) string {
-	// TODO: Should attempt to use the cached discovery list or fallback to a static list
-	// that is calculated from code compiled into the factory.
-	return templates.LongDesc(`Valid resource types include:
-
-			* all
-			* buildconfigs (aka 'bc')
-			* builds
-			* certificatesigningrequests (aka 'csr')
-			* clusterrolebindings
-			* clusterroles
-			* componentstatuses (aka 'cs')
-			* configmaps (aka 'cm')
-			* controllerrevisions
-			* cronjobs
-			* customresourcedefinition (aka 'crd')
-			* daemonsets (aka 'ds')
-			* deployments (aka 'deploy')
-			* deploymentconfigs (aka 'dc')
-			* endpoints (aka 'ep')
-			* events (aka 'ev')
-			* horizontalpodautoscalers (aka 'hpa')
-			* imagestreamimages (aka 'isimage')
-			* imagestreams (aka 'is')
-			* imagestreamtags (aka 'istag')
-			* ingresses (aka 'ing')
-			* groups
-			* jobs
-			* limitranges (aka 'limits')
-			* namespaces (aka 'ns')
-			* networkpolicies (aka 'netpol')
-			* nodes (aka 'no')
-			* persistentvolumeclaims (aka 'pvc')
-			* persistentvolumes (aka 'pv')
-			* poddisruptionbudgets (aka 'pdb')
-			* podpreset
-			* pods (aka 'po')
-			* podsecuritypolicies (aka 'psp')
-			* podtemplates
-			* projects
-			* replicasets (aka 'rs')
-			* replicationcontrollers (aka 'rc')
-			* resourcequotas (aka 'quota')
-			* rolebindings
-			* roles
-			* routes
-			* secrets
-			* serviceaccounts (aka 'sa')
-			* services (aka 'svc')
-			* statefulsets (aka 'sts')
-			* storageclasses (aka 'sc')
-			* users
-
-	`)
-}
-
-// Retrieve a list of handled resources from printer as valid args
-// TODO: This function implementation should be replaced with a real implementation from the discovery service.
-func ValidArgList(f ClientAccessFactory) []string {
-	validArgs := []string{}
-
-	humanReadablePrinter := printers.NewHumanReadablePrinter(nil, nil, printers.PrintOptions{})
-	printersinternal.AddHandlers(humanReadablePrinter)
-	validArgs = humanReadablePrinter.HandledResources()
-
-	return validArgs
+// SuggestApiResources returns a suggestion to use the "api-resources" command
+// to retrieve a supported list of resources
+func SuggestApiResources(parent string) string {
+	return templates.LongDesc(fmt.Sprintf("Use \"%s api-resources\" for a complete list of supported resources.", parent))
 }

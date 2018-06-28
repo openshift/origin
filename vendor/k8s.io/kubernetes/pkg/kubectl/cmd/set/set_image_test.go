@@ -17,7 +17,6 @@ limitations under the License.
 package set
 
 import (
-	"bytes"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -26,6 +25,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
 	appsv1 "k8s.io/api/apps/v1"
 	appsv1beta1 "k8s.io/api/apps/v1beta1"
 	appsv1beta2 "k8s.io/api/apps/v1beta2"
@@ -35,42 +35,45 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/rest/fake"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/api/testapi"
 	cmdtesting "k8s.io/kubernetes/pkg/kubectl/cmd/testing"
-	"k8s.io/kubernetes/pkg/kubectl/resource"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 	"k8s.io/kubernetes/pkg/kubectl/scheme"
 )
 
 func TestImageLocal(t *testing.T) {
-	tf := cmdtesting.NewTestFactory()
+	tf := cmdtesting.NewTestFactory().WithNamespace("test")
 	defer tf.Cleanup()
-
-	ns := legacyscheme.Codecs
 
 	tf.Client = &fake.RESTClient{
 		GroupVersion:         schema.GroupVersion{Version: ""},
-		NegotiatedSerializer: ns,
+		NegotiatedSerializer: serializer.DirectCodecFactory{CodecFactory: scheme.Codecs},
 		Client: fake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) {
 			t.Fatalf("unexpected request: %s %#v\n%#v", req.Method, req.URL, req)
 			return nil, nil
 		}),
 	}
-	tf.Namespace = "test"
 	tf.ClientConfigVal = &restclient.Config{ContentConfig: restclient.ContentConfig{GroupVersion: &schema.GroupVersion{Version: ""}}}
 
-	buf := bytes.NewBuffer([]byte{})
-	cmd := NewCmdImage(tf, buf, buf)
+	outputFormat := "name"
+
+	streams, _, buf, _ := genericclioptions.NewTestIOStreams()
+	cmd := NewCmdImage(tf, streams)
 	cmd.SetOutput(buf)
-	cmd.Flags().Set("output", "name")
+	cmd.Flags().Set("output", outputFormat)
 	cmd.Flags().Set("local", "true")
 
-	opts := ImageOptions{FilenameOptions: resource.FilenameOptions{
-		Filenames: []string{"../../../../test/e2e/testing-manifests/statefulset/cassandra/controller.yaml"}},
-		Out:   buf,
-		Local: true}
+	opts := SetImageOptions{
+		PrintFlags: genericclioptions.NewPrintFlags("").WithDefaultOutput(outputFormat).WithTypeSetter(scheme.Scheme),
+		FilenameOptions: resource.FilenameOptions{
+			Filenames: []string{"../../../../test/e2e/testing-manifests/statefulset/cassandra/controller.yaml"}},
+		Local:     true,
+		IOStreams: streams,
+	}
 	err := opts.Complete(tf, cmd, []string{"cassandra=thingy"})
 	if err == nil {
 		err = opts.Validate()
@@ -87,20 +90,23 @@ func TestImageLocal(t *testing.T) {
 }
 
 func TestSetImageValidation(t *testing.T) {
+	printFlags := genericclioptions.NewPrintFlags("").WithTypeSetter(scheme.Scheme)
+
 	testCases := []struct {
 		name         string
-		imageOptions *ImageOptions
+		imageOptions *SetImageOptions
 		expectErr    string
 	}{
 		{
 			name:         "test resource < 1 and filenames empty",
-			imageOptions: &ImageOptions{},
+			imageOptions: &SetImageOptions{PrintFlags: printFlags},
 			expectErr:    "[one or more resources must be specified as <resource> <name> or <resource>/<name>, at least one image update is required]",
 		},
 		{
 			name: "test containerImages < 1",
-			imageOptions: &ImageOptions{
-				Resources: []string{"a", "b", "c"},
+			imageOptions: &SetImageOptions{
+				PrintFlags: printFlags,
+				Resources:  []string{"a", "b", "c"},
 
 				FilenameOptions: resource.FilenameOptions{
 					Filenames: []string{"testFile"},
@@ -110,8 +116,9 @@ func TestSetImageValidation(t *testing.T) {
 		},
 		{
 			name: "test containerImages > 1 and all containers are already specified by *",
-			imageOptions: &ImageOptions{
-				Resources: []string{"a", "b", "c"},
+			imageOptions: &SetImageOptions{
+				PrintFlags: printFlags,
+				Resources:  []string{"a", "b", "c"},
 				FilenameOptions: resource.FilenameOptions{
 					Filenames: []string{"testFile"},
 				},
@@ -124,8 +131,9 @@ func TestSetImageValidation(t *testing.T) {
 		},
 		{
 			name: "success case",
-			imageOptions: &ImageOptions{
-				Resources: []string{"a", "b", "c"},
+			imageOptions: &SetImageOptions{
+				PrintFlags: printFlags,
+				Resources:  []string{"a", "b", "c"},
 				FilenameOptions: resource.FilenameOptions{
 					Filenames: []string{"testFile"},
 				},
@@ -150,32 +158,34 @@ func TestSetImageValidation(t *testing.T) {
 }
 
 func TestSetMultiResourcesImageLocal(t *testing.T) {
-	tf := cmdtesting.NewTestFactory()
+	tf := cmdtesting.NewTestFactory().WithNamespace("test")
 	defer tf.Cleanup()
-
-	ns := legacyscheme.Codecs
 
 	tf.Client = &fake.RESTClient{
 		GroupVersion:         schema.GroupVersion{Version: ""},
-		NegotiatedSerializer: ns,
+		NegotiatedSerializer: serializer.DirectCodecFactory{CodecFactory: scheme.Codecs},
 		Client: fake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) {
 			t.Fatalf("unexpected request: %s %#v\n%#v", req.Method, req.URL, req)
 			return nil, nil
 		}),
 	}
-	tf.Namespace = "test"
 	tf.ClientConfigVal = &restclient.Config{ContentConfig: restclient.ContentConfig{GroupVersion: &schema.GroupVersion{Version: ""}}}
 
-	buf := bytes.NewBuffer([]byte{})
-	cmd := NewCmdImage(tf, buf, buf)
+	outputFormat := "name"
+
+	streams, _, buf, _ := genericclioptions.NewTestIOStreams()
+	cmd := NewCmdImage(tf, streams)
 	cmd.SetOutput(buf)
-	cmd.Flags().Set("output", "name")
+	cmd.Flags().Set("output", outputFormat)
 	cmd.Flags().Set("local", "true")
 
-	opts := ImageOptions{FilenameOptions: resource.FilenameOptions{
-		Filenames: []string{"../../../../test/fixtures/pkg/kubectl/cmd/set/multi-resource-yaml.yaml"}},
-		Out:   buf,
-		Local: true}
+	opts := SetImageOptions{
+		PrintFlags: genericclioptions.NewPrintFlags("").WithDefaultOutput(outputFormat).WithTypeSetter(scheme.Scheme),
+		FilenameOptions: resource.FilenameOptions{
+			Filenames: []string{"../../../../test/fixtures/pkg/kubectl/cmd/set/multi-resource-yaml.yaml"}},
+		Local:     true,
+		IOStreams: streams,
+	}
 	err := opts.Complete(tf, cmd, []string{"*=thingy"})
 	if err == nil {
 		err = opts.Validate()
@@ -520,20 +530,17 @@ func TestSetImageRemote(t *testing.T) {
 		t.Run(input.name, func(t *testing.T) {
 			groupVersion := schema.GroupVersion{Group: input.apiGroup, Version: input.apiVersion}
 			testapi.Default = testapi.Groups[input.testAPIGroup]
-			tf := cmdtesting.NewTestFactory()
+			tf := cmdtesting.NewTestFactory().WithNamespace("test")
 			defer tf.Cleanup()
 
-			codec := scheme.Codecs.CodecForVersions(scheme.Codecs.LegacyCodec(groupVersion), scheme.Codecs.UniversalDecoder(groupVersion), groupVersion, groupVersion)
-			ns := legacyscheme.Codecs
-			tf.Namespace = "test"
 			tf.Client = &fake.RESTClient{
 				GroupVersion:         groupVersion,
-				NegotiatedSerializer: ns,
+				NegotiatedSerializer: serializer.DirectCodecFactory{CodecFactory: scheme.Codecs},
 				Client: fake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) {
-					resourcePath := testapi.Default.ResourcePath(input.args[0]+"s", tf.Namespace, input.args[1])
+					resourcePath := testapi.Default.ResourcePath(input.args[0]+"s", "test", input.args[1])
 					switch p, m := req.URL.Path, req.Method; {
 					case p == resourcePath && m == http.MethodGet:
-						return &http.Response{StatusCode: http.StatusOK, Header: defaultHeader(), Body: objBody(codec, input.object)}, nil
+						return &http.Response{StatusCode: http.StatusOK, Header: defaultHeader(), Body: objBody(input.object)}, nil
 					case p == resourcePath && m == http.MethodPatch:
 						stream, err := req.GetBody()
 						if err != nil {
@@ -544,7 +551,7 @@ func TestSetImageRemote(t *testing.T) {
 							return nil, err
 						}
 						assert.Contains(t, string(bytes), `"image":`+`"`+"thingy"+`"`, fmt.Sprintf("image not updated for %#v", input.object))
-						return &http.Response{StatusCode: http.StatusOK, Header: defaultHeader(), Body: objBody(codec, input.object)}, nil
+						return &http.Response{StatusCode: http.StatusOK, Header: defaultHeader(), Body: objBody(input.object)}, nil
 					default:
 						t.Errorf("%s: unexpected request: %s %#v\n%#v", "image", req.Method, req.URL, req)
 						return nil, fmt.Errorf("unexpected request")
@@ -552,13 +559,18 @@ func TestSetImageRemote(t *testing.T) {
 				}),
 				VersionedAPIPath: path.Join(input.apiPrefix, testapi.Default.GroupVersion().String()),
 			}
-			out := new(bytes.Buffer)
-			cmd := NewCmdImage(tf, out, out)
-			cmd.SetOutput(out)
-			cmd.Flags().Set("output", "yaml")
-			opts := ImageOptions{
-				Out:   out,
-				Local: false}
+
+			outputFormat := "yaml"
+
+			streams := genericclioptions.NewTestIOStreamsDiscard()
+			cmd := NewCmdImage(tf, streams)
+			cmd.Flags().Set("output", outputFormat)
+			opts := SetImageOptions{
+				PrintFlags: genericclioptions.NewPrintFlags("").WithDefaultOutput(outputFormat).WithTypeSetter(scheme.Scheme),
+
+				Local:     false,
+				IOStreams: streams,
+			}
 			err := opts.Complete(tf, cmd, input.args)
 			assert.NoError(t, err)
 			err = opts.Run()

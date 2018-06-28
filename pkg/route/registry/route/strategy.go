@@ -1,6 +1,7 @@
 package route
 
 import (
+	"context"
 	"fmt"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -50,13 +51,13 @@ func (routeStrategy) NamespaceScoped() bool {
 	return true
 }
 
-func (s routeStrategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) {
+func (s routeStrategy) PrepareForCreate(ctx context.Context, obj runtime.Object) {
 	route := obj.(*routeapi.Route)
 	route.Status = routeapi.RouteStatus{}
 	stripEmptyDestinationCACertificate(route)
 }
 
-func (s routeStrategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.Object) {
+func (s routeStrategy) PrepareForUpdate(ctx context.Context, obj, old runtime.Object) {
 	route := obj.(*routeapi.Route)
 	oldRoute := old.(*routeapi.Route)
 
@@ -72,7 +73,7 @@ func (s routeStrategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime
 // allocateHost allocates a host name ONLY if the route doesn't specify a subdomain wildcard policy and
 // the host name on the route is empty and an allocator is configured.
 // It must first allocate the shard and may return an error if shard allocation fails.
-func (s routeStrategy) allocateHost(ctx apirequest.Context, route *routeapi.Route) field.ErrorList {
+func (s routeStrategy) allocateHost(ctx context.Context, route *routeapi.Route) field.ErrorList {
 	hostSet := len(route.Spec.Host) > 0
 	certSet := route.Spec.TLS != nil && (len(route.Spec.TLS.CACertificate) > 0 || len(route.Spec.TLS.Certificate) > 0 || len(route.Spec.TLS.DestinationCACertificate) > 0 || len(route.Spec.TLS.Key) > 0)
 	if hostSet || certSet {
@@ -127,7 +128,7 @@ func (s routeStrategy) allocateHost(ctx apirequest.Context, route *routeapi.Rout
 	return nil
 }
 
-func (s routeStrategy) Validate(ctx apirequest.Context, obj runtime.Object) field.ErrorList {
+func (s routeStrategy) Validate(ctx context.Context, obj runtime.Object) field.ErrorList {
 	route := obj.(*routeapi.Route)
 	errs := s.allocateHost(ctx, route)
 	errs = append(errs, validation.ValidateRoute(route)...)
@@ -142,7 +143,7 @@ func (routeStrategy) AllowCreateOnUpdate() bool {
 func (routeStrategy) Canonicalize(obj runtime.Object) {
 }
 
-func (s routeStrategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.Object) field.ErrorList {
+func (s routeStrategy) ValidateUpdate(ctx context.Context, obj, old runtime.Object) field.ErrorList {
 	oldRoute := old.(*routeapi.Route)
 	objRoute := obj.(*routeapi.Route)
 	errs := s.validateHostUpdate(ctx, objRoute, oldRoute)
@@ -181,7 +182,7 @@ func certificateChangeRequiresAuth(route, older *routeapi.Route) bool {
 	}
 }
 
-func (s routeStrategy) validateHostUpdate(ctx apirequest.Context, route, older *routeapi.Route) field.ErrorList {
+func (s routeStrategy) validateHostUpdate(ctx context.Context, route, older *routeapi.Route) field.ErrorList {
 	hostChanged := route.Spec.Host != older.Spec.Host
 	certChanged := certificateChangeRequiresAuth(route, older)
 	if !hostChanged && !certChanged {
@@ -259,13 +260,13 @@ type routeStatusStrategy struct {
 
 var StatusStrategy = routeStatusStrategy{NewStrategy(nil, nil)}
 
-func (routeStatusStrategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.Object) {
+func (routeStatusStrategy) PrepareForUpdate(ctx context.Context, obj, old runtime.Object) {
 	newRoute := obj.(*routeapi.Route)
 	oldRoute := old.(*routeapi.Route)
 	newRoute.Spec = oldRoute.Spec
 }
 
-func (routeStatusStrategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.Object) field.ErrorList {
+func (routeStatusStrategy) ValidateUpdate(ctx context.Context, obj, old runtime.Object) field.ErrorList {
 	return validation.ValidateRouteStatusUpdate(obj.(*routeapi.Route), old.(*routeapi.Route))
 }
 

@@ -19,7 +19,6 @@ import (
 	clientgotesting "k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kinternalclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kinternalclientfake "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
@@ -1077,17 +1076,13 @@ func newFakeBuildController(buildClient buildinternalclientset.Interface, imageC
 		BuildClientInternal: buildClient,
 		DockerBuildStrategy: &strategy.DockerBuildStrategy{
 			Image: "test/image:latest",
-			Codec: legacyscheme.Codecs.LegacyCodec(buildapi.LegacySchemeGroupVersion),
 		},
 		SourceBuildStrategy: &strategy.SourceBuildStrategy{
 			Image: "test/image:latest",
-			Codec: legacyscheme.Codecs.LegacyCodec(buildapi.LegacySchemeGroupVersion),
 		},
-		CustomBuildStrategy: &strategy.CustomBuildStrategy{
-			Codec: legacyscheme.Codecs.LegacyCodec(buildapi.LegacySchemeGroupVersion),
-		},
-		BuildDefaults:  builddefaults.BuildDefaults{},
-		BuildOverrides: buildoverrides.BuildOverrides{},
+		CustomBuildStrategy: &strategy.CustomBuildStrategy{},
+		BuildDefaults:       builddefaults.BuildDefaults{},
+		BuildOverrides:      buildoverrides.BuildOverrides{},
 	}
 	bc := &fakeBuildController{
 		BuildController:       NewBuildController(params),

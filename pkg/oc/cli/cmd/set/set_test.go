@@ -6,15 +6,16 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
+	kcmdtesting "k8s.io/kubernetes/pkg/kubectl/cmd/testing"
 )
 
 func TestLocalAndDryRunFlags(t *testing.T) {
 	in := &bytes.Buffer{}
 	out := &bytes.Buffer{}
 	errout := &bytes.Buffer{}
-	f := clientcmd.NewFactory(nil)
-	setCmd := NewCmdSet("", f, in, out, errout)
+	tf := kcmdtesting.NewTestFactory().WithNamespace("test")
+	defer tf.Cleanup()
+	setCmd := NewCmdSet("", tf, in, out, errout)
 	ensureLocalAndDryRunFlagsOnChildren(t, setCmd, "")
 }
 

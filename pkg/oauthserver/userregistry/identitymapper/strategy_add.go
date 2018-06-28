@@ -1,13 +1,13 @@
 package identitymapper
 
 import (
-	kerrs "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/sets"
-	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"context"
 
 	userapi "github.com/openshift/api/user/v1"
 	userclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
+	kerrs "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
 )
 
 var _ = UserForNewIdentityGetter(&StrategyAdd{})
@@ -23,7 +23,7 @@ func NewStrategyAdd(user userclient.UserInterface, initializer Initializer) User
 	return &StrategyAdd{user, initializer}
 }
 
-func (s *StrategyAdd) UserForNewIdentity(ctx apirequest.Context, preferredUserName string, identity *userapi.Identity) (*userapi.User, error) {
+func (s *StrategyAdd) UserForNewIdentity(ctx context.Context, preferredUserName string, identity *userapi.Identity) (*userapi.User, error) {
 
 	persistedUser, err := s.user.Get(preferredUserName, metav1.GetOptions{})
 

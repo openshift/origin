@@ -1307,10 +1307,12 @@ func (p *pruner) runLoop(
 				failures = append(failures, failure)
 			}
 			delete(p.processedImages, res.Job.Image)
-		case event := <-isUpdateChan:
-			p.handleImageStreamEvent(event)
-		case event := <-imgUpdateChan:
-			p.handleImageEvent(event)
+		case <-isUpdateChan:
+			// TODO: fix gonum/graph to not reuse IDs of deleted nodes and reenable event handling
+			//p.handleImageStreamEvent(event)
+		case <-imgUpdateChan:
+			// TODO: fix gonum/graph to not reuse IDs of deleted nodes and reenable event handling
+			//p.handleImageEvent(event)
 		}
 	}
 }

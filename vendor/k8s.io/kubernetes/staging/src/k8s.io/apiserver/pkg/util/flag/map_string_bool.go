@@ -39,7 +39,7 @@ func NewMapStringBool(m *map[string]bool) *MapStringBool {
 
 // String implements github.com/spf13/pflag.Value
 func (m *MapStringBool) String() string {
-	if m.Map == nil {
+	if m == nil || m.Map == nil {
 		return ""
 	}
 	pairs := []string{}

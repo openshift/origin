@@ -198,7 +198,7 @@
       }
     }
   },
-  "revision": "20180226",
+  "revision": "20180514",
   "rootUrl": "https://language.googleapis.com/",
   "schemas": {
     "AnalyzeEntitiesRequest": {
@@ -605,7 +605,7 @@
       "id": "Document",
       "properties": {
         "content": {
-          "description": "The content of the input in string format.",
+          "description": "The content of the input in string format.\nCloud audit logging exempt since it is based on user data.",
           "type": "string"
         },
         "gcsContentUri": {

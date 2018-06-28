@@ -79,12 +79,12 @@ func RunBuildLogs(fullName string, f kcmdutil.Factory, out io.Writer, cmd *cobra
 		return kcmdutil.UsageErrorf(cmd, "A build name is required - you can run `%s get builds%s` to list builds", fullName, namespace)
 	}
 
-	namespace, _, err := f.DefaultNamespace()
+	namespace, _, err := f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
 	}
 
-	clientConfig, err := f.ClientConfig()
+	clientConfig, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}

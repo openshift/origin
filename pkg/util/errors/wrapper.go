@@ -1,6 +1,7 @@
 package errors
 
 import (
+	"context"
 	"strings"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -10,7 +11,7 @@ import (
 
 // SyncStatusError makes a best effort attempt to replace the GroupResource
 // info in err with the data from the request info of ctx.
-func SyncStatusError(ctx apirequest.Context, err error) error {
+func SyncStatusError(ctx context.Context, err error) error {
 	if err == nil {
 		return nil
 	}

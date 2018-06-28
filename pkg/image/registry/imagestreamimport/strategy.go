@@ -1,9 +1,10 @@
 package imagestreamimport
 
 import (
+	"context"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
@@ -53,7 +54,7 @@ func (s *strategy) ValidateAllowedRegistries(isi *imageapi.ImageStreamImport) fi
 	return errs
 }
 
-func (s *strategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) {
+func (s *strategy) PrepareForCreate(ctx context.Context, obj runtime.Object) {
 	newIST := obj.(*imageapi.ImageStreamImport)
 	newIST.Status = imageapi.ImageStreamImportStatus{}
 }
@@ -69,7 +70,7 @@ func (s *strategy) PrepareImageForCreate(obj runtime.Object) {
 	image.DockerImageConfig = ""
 }
 
-func (s *strategy) Validate(ctx apirequest.Context, obj runtime.Object) field.ErrorList {
+func (s *strategy) Validate(ctx context.Context, obj runtime.Object) field.ErrorList {
 	isi := obj.(*imageapi.ImageStreamImport)
 	return validation.ValidateImageStreamImport(isi)
 }

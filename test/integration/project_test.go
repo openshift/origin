@@ -9,14 +9,14 @@ import (
 	etcd "github.com/coreos/etcd/client"
 	"golang.org/x/net/context"
 
+	rbacv1 "k8s.io/api/rbac/v1"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
+	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/apis/rbac"
-	rbacclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/rbac/internalversion"
 
 	oapi "github.com/openshift/origin/pkg/api"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
@@ -254,7 +254,7 @@ func TestProjectWatch(t *testing.T) {
 		RoleBindingNamespace: "ns-02",
 		RoleName:             bootstrappolicy.EditRoleName,
 		RoleKind:             "ClusterRole",
-		RbacClient:           rbacclient.NewForConfigOrDie(joeConfig),
+		RbacClient:           rbacv1client.NewForConfigOrDie(joeConfig),
 		Users:                []string{"bob"},
 	}
 	if err := addBob.AddRole(); err != nil {
@@ -519,7 +519,7 @@ func TestInvalidRoleRefs(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	clusterAdminRbacClient := rbacclient.NewForConfigOrDie(clusterAdminClientConfig)
+	clusterAdminRbacClient := rbacv1client.NewForConfigOrDie(clusterAdminClientConfig)
 	clusterAdminAuthorizationClient := authorizationclient.NewForConfigOrDie(clusterAdminClientConfig).Authorization()
 
 	_, bobConfig, err := testutil.GetClientForUser(clusterAdminClientConfig, "bob")
@@ -539,7 +539,7 @@ func TestInvalidRoleRefs(t *testing.T) {
 	}
 
 	roleName := "missing-role"
-	if _, err := clusterAdminRbacClient.ClusterRoles().Create(&rbac.ClusterRole{ObjectMeta: metav1.ObjectMeta{Name: roleName}}); err != nil {
+	if _, err := clusterAdminRbacClient.ClusterRoles().Create(&rbacv1.ClusterRole{ObjectMeta: metav1.ObjectMeta{Name: roleName}}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	modifyRole := &policy.RoleModificationOptions{

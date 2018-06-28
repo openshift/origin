@@ -9,12 +9,10 @@ import (
 func overrideMappingsForOapiDeploymentConfig(mappings []*apimeta.RESTMapping, err error, targetGK schema.GroupKind) ([]*apimeta.RESTMapping, error) {
 	if (targetGK == schema.GroupKind{Kind: "DeploymentConfig"}) {
 		err = nil
-		// NB: we don't convert to apps.openshift.io here since the patched scale client
-		// will do it for us.
 		mappings = []*apimeta.RESTMapping{
 			{
-				Resource:         "deploymentconfigs",
-				GroupVersionKind: targetGK.WithVersion("v1"),
+				Resource:         schema.GroupVersionResource{Group: "apps.openshift.io", Version: "v1", Resource: "deploymentconfigs"},
+				GroupVersionKind: schema.GroupVersionKind{Group: "apps.openshift.io", Version: "v1", Kind: "DeploymentConfig"},
 			},
 		}
 	}

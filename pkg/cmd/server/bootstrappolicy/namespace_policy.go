@@ -3,13 +3,14 @@ package bootstrappolicy
 import (
 	"strings"
 
+	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/kubernetes/pkg/apis/rbac"
+	rbacv1helpers "k8s.io/kubernetes/pkg/apis/rbac/v1"
 
 	"github.com/golang/glog"
 )
 
-func addNamespaceRole(namespaceRoles map[string][]rbac.Role, namespace string, role rbac.Role) {
+func addNamespaceRole(namespaceRoles map[string][]rbacv1.Role, namespace string, role rbacv1.Role) {
 	if namespace != "openshift" && !strings.HasPrefix(namespace, "openshift-") {
 		glog.Fatalf(`roles can only be bootstrapped into reserved "openshift" namespace or namespaces starting with "openshift-", not %q`, namespace)
 	}
@@ -27,7 +28,7 @@ func addNamespaceRole(namespaceRoles map[string][]rbac.Role, namespace string, r
 	namespaceRoles[namespace] = existingRoles
 }
 
-func addNamespaceRoleBinding(namespaceRoleBindings map[string][]rbac.RoleBinding, namespace string, roleBinding rbac.RoleBinding) {
+func addNamespaceRoleBinding(namespaceRoleBindings map[string][]rbacv1.RoleBinding, namespace string, roleBinding rbacv1.RoleBinding) {
 	if namespace != "openshift" && !strings.HasPrefix(namespace, "openshift-") {
 		glog.Fatalf(`role bindings can only be bootstrapped into reserved "openshift" namespace or namespaces starting with "openshift-", not %q`, namespace)
 	}
@@ -45,21 +46,21 @@ func addNamespaceRoleBinding(namespaceRoleBindings map[string][]rbac.RoleBinding
 	namespaceRoleBindings[namespace] = existingRoleBindings
 }
 
-func buildNamespaceRolesAndBindings() (map[string][]rbac.Role, map[string][]rbac.RoleBinding) {
+func buildNamespaceRolesAndBindings() (map[string][]rbacv1.Role, map[string][]rbacv1.RoleBinding) {
 	// namespaceRoles is a map of namespace to slice of roles to create
-	namespaceRoles := map[string][]rbac.Role{}
+	namespaceRoles := map[string][]rbacv1.Role{}
 	// namespaceRoleBindings is a map of namespace to slice of roleBindings to create
-	namespaceRoleBindings := map[string][]rbac.RoleBinding{}
+	namespaceRoleBindings := map[string][]rbacv1.RoleBinding{}
 
 	addNamespaceRole(namespaceRoles,
 		DefaultOpenShiftSharedResourcesNamespace,
-		rbac.Role{
+		rbacv1.Role{
 			ObjectMeta: metav1.ObjectMeta{Name: OpenshiftSharedResourceViewRoleName},
-			Rules: []rbac.PolicyRule{
-				rbac.NewRule(read...).Groups(templateGroup, legacyTemplateGroup).Resources("templates").RuleOrDie(),
-				rbac.NewRule(read...).Groups(imageGroup, legacyImageGroup).Resources("imagestreams", "imagestreamtags", "imagestreamimages").RuleOrDie(),
+			Rules: []rbacv1.PolicyRule{
+				rbacv1helpers.NewRule(read...).Groups(templateGroup, legacyTemplateGroup).Resources("templates").RuleOrDie(),
+				rbacv1helpers.NewRule(read...).Groups(imageGroup, legacyImageGroup).Resources("imagestreams", "imagestreamtags", "imagestreamimages").RuleOrDie(),
 				// so anyone can pull from openshift/* image streams
-				rbac.NewRule("get").Groups(imageGroup, legacyImageGroup).Resources("imagestreams/layers").RuleOrDie(),
+				rbacv1helpers.NewRule("get").Groups(imageGroup, legacyImageGroup).Resources("imagestreams/layers").RuleOrDie(),
 			},
 		})
 
@@ -69,28 +70,28 @@ func buildNamespaceRolesAndBindings() (map[string][]rbac.Role, map[string][]rbac
 
 	addNamespaceRole(namespaceRoles,
 		DefaultOpenShiftNodeNamespace,
-		rbac.Role{
+		rbacv1.Role{
 			ObjectMeta: metav1.ObjectMeta{Name: NodeConfigReaderRoleName},
-			Rules: []rbac.PolicyRule{
+			Rules: []rbacv1.PolicyRule{
 				// Allow the reader to read config maps in a given namespace with a given name.
-				rbac.NewRule("get").Groups(kapiGroup).Resources("configmaps").RuleOrDie(),
+				rbacv1helpers.NewRule("get").Groups(kapiGroup).Resources("configmaps").RuleOrDie(),
 			},
 		})
 	addNamespaceRoleBinding(namespaceRoleBindings,
 		DefaultOpenShiftNodeNamespace,
-		rbac.NewRoleBinding(NodeConfigReaderRoleName, DefaultOpenShiftNodeNamespace).Groups(NodesGroup).BindingOrDie())
+		rbacv1helpers.NewRoleBinding(NodeConfigReaderRoleName, DefaultOpenShiftNodeNamespace).Groups(NodesGroup).BindingOrDie())
 
 	return namespaceRoles, namespaceRoleBindings
 }
 
 // NamespaceRoles returns a map of namespace to slice of roles to create
-func NamespaceRoles() map[string][]rbac.Role {
+func NamespaceRoles() map[string][]rbacv1.Role {
 	namespaceRoles, _ := buildNamespaceRolesAndBindings()
 	return namespaceRoles
 }
 
 // NamespaceRoleBindings returns a map of namespace to slice of role bindings to create
-func NamespaceRoleBindings() map[string][]rbac.RoleBinding {
+func NamespaceRoleBindings() map[string][]rbacv1.RoleBinding {
 	_, namespaceRoleBindings := buildNamespaceRolesAndBindings()
 	return namespaceRoleBindings
 }

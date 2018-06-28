@@ -44,7 +44,7 @@ func (c *FakeImageStreamTags) List(opts v1.ListOptions) (result *image_v1.ImageS
 	if label == nil {
 		label = labels.Everything()
 	}
-	list := &image_v1.ImageStreamTagList{}
+	list := &image_v1.ImageStreamTagList{ListMeta: obj.(*image_v1.ImageStreamTagList).ListMeta}
 	for _, item := range obj.(*image_v1.ImageStreamTagList).Items {
 		if label.Matches(labels.Set(item.Labels)) {
 			list.Items = append(list.Items, item)

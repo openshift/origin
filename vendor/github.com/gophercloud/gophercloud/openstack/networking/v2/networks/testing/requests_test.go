@@ -218,3 +218,78 @@ func TestDelete(t *testing.T) {
 	res := networks.Delete(fake.ServiceClient(), "4e8e5957-649f-477b-9e5b-f1f75b21c03c")
 	th.AssertNoErr(t, res.Err)
 }
+
+func TestCreatePortSecurity(t *testing.T) {
+	th.SetupHTTP()
+	defer th.TeardownHTTP()
+
+	th.Mux.HandleFunc("/v2.0/networks", func(w http.ResponseWriter, r *http.Request) {
+		th.TestMethod(t, r, "POST")
+		th.TestHeader(t, r, "X-Auth-Token", fake.TokenID)
+		th.TestHeader(t, r, "Content-Type", "application/json")
+		th.TestHeader(t, r, "Accept", "application/json")
+		th.TestJSONRequest(t, r, CreatePortSecurityRequest)
+		w.Header().Add("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+
+		fmt.Fprintf(w, CreatePortSecurityResponse)
+	})
+
+	var networkWithExtensions struct {
+		networks.Network
+		portsecurity.PortSecurityExt
+	}
+
+	iTrue := true
+	iFalse := false
+	networkCreateOpts := networks.CreateOpts{Name: "private", AdminStateUp: &iTrue}
+	createOpts := portsecurity.NetworkCreateOptsExt{
+		CreateOptsBuilder:   networkCreateOpts,
+		PortSecurityEnabled: &iFalse,
+	}
+
+	err := networks.Create(fake.ServiceClient(), createOpts).ExtractInto(&networkWithExtensions)
+	th.AssertNoErr(t, err)
+
+	th.AssertEquals(t, networkWithExtensions.Status, "ACTIVE")
+	th.AssertEquals(t, networkWithExtensions.PortSecurityEnabled, false)
+}
+
+func TestUpdatePortSecurity(t *testing.T) {
+	th.SetupHTTP()
+	defer th.TeardownHTTP()
+
+	th.Mux.HandleFunc("/v2.0/networks/4e8e5957-649f-477b-9e5b-f1f75b21c03c", func(w http.ResponseWriter, r *http.Request) {
+		th.TestMethod(t, r, "PUT")
+		th.TestHeader(t, r, "X-Auth-Token", fake.TokenID)
+		th.TestHeader(t, r, "Content-Type", "application/json")
+		th.TestHeader(t, r, "Accept", "application/json")
+		th.TestJSONRequest(t, r, UpdatePortSecurityRequest)
+
+		w.Header().Add("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		fmt.Fprintf(w, UpdatePortSecurityResponse)
+	})
+
+	var networkWithExtensions struct {
+		networks.Network
+		portsecurity.PortSecurityExt
+	}
+
+	iFalse := false
+	networkUpdateOpts := networks.UpdateOpts{}
+	updateOpts := portsecurity.NetworkUpdateOptsExt{
+		UpdateOptsBuilder:   networkUpdateOpts,
+		PortSecurityEnabled: &iFalse,
+	}
+
+	err := networks.Update(fake.ServiceClient(), "4e8e5957-649f-477b-9e5b-f1f75b21c03c", updateOpts).ExtractInto(&networkWithExtensions)
+	th.AssertNoErr(t, err)
+
+	th.AssertEquals(t, networkWithExtensions.Name, "private")
+	th.AssertEquals(t, networkWithExtensions.AdminStateUp, true)
+	th.AssertEquals(t, networkWithExtensions.Shared, false)
+	th.AssertEquals(t, networkWithExtensions.ID, "4e8e5957-649f-477b-9e5b-f1f75b21c03c")
+	th.AssertEquals(t, networkWithExtensions.PortSecurityEnabled, false)
+}

@@ -1,5 +1,5 @@
 /*
-Copyright 2018 The Kubernetes Authors.
+Copyright The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -63,7 +63,7 @@ func (c *FakeReplicationControllers) List(opts v1.ListOptions) (result *core.Rep
 	if label == nil {
 		label = labels.Everything()
 	}
-	list := &core.ReplicationControllerList{}
+	list := &core.ReplicationControllerList{ListMeta: obj.(*core.ReplicationControllerList).ListMeta}
 	for _, item := range obj.(*core.ReplicationControllerList).Items {
 		if label.Matches(labels.Set(item.Labels)) {
 			list.Items = append(list.Items, item)

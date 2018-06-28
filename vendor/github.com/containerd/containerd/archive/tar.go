@@ -19,13 +19,14 @@ import (
 	"github.com/pkg/errors"
 )
 
-var (
-	bufferPool = &sync.Pool{
-		New: func() interface{} {
-			return make([]byte, 32*1024)
-		},
-	}
-)
+var bufPool = &sync.Pool{
+	New: func() interface{} {
+		buffer := make([]byte, 32*1024)
+		return &buffer
+	},
+}
+
+var errInvalidArchive = errors.New("invalid archive")
 
 // Diff returns a tar stream of the computed filesystem
 // difference between the provided directories.
@@ -82,6 +83,8 @@ const (
 	// whiteoutOpaqueDir file means directory has been made opaque - meaning
 	// readdir calls to this directory do not follow to lower layers.
 	whiteoutOpaqueDir = whiteoutMetaPrefix + ".opq"
+
+	paxSchilyXattr = "SCHILY.xattrs."
 )
 
 // Apply applies a tar stream of an OCI style diff tar.
@@ -219,6 +222,15 @@ func Apply(ctx context.Context, root string, r io.Reader) (int64, error) {
 
 			originalBase := base[len(whiteoutPrefix):]
 			originalPath := filepath.Join(dir, originalBase)
+
+			// Ensure originalPath is under dir
+			if dir[len(dir)-1] != filepath.Separator {
+				dir += string(filepath.Separator)
+			}
+			if !strings.HasPrefix(originalPath, dir) {
+				return 0, errors.Wrapf(errInvalidArchive, "invalid whiteout name: %v", base)
+			}
+
 			if err := os.RemoveAll(originalPath); err != nil {
 				return 0, err
 			}
@@ -290,6 +302,7 @@ type changeWriter struct {
 	whiteoutT time.Time
 	inodeSrc  map[uint64]string
 	inodeRefs map[uint64][]string
+	addedDirs map[string]struct{}
 }
 
 func newChangeWriter(w io.Writer, source string) *changeWriter {
@@ -299,6 +312,7 @@ func newChangeWriter(w io.Writer, source string) *changeWriter {
 		whiteoutT: time.Now(),
 		inodeSrc:  map[uint64]string{},
 		inodeRefs: map[uint64][]string{},
+		addedDirs: map[string]struct{}{},
 	}
 }
 
@@ -311,11 +325,15 @@ func (cw *changeWriter) HandleChange(k fs.ChangeKind, p string, f os.FileInfo, e
 		whiteOutBase := filepath.Base(p)
 		whiteOut := filepath.Join(whiteOutDir, whiteoutPrefix+whiteOutBase)
 		hdr := &tar.Header{
+			Typeflag:   tar.TypeReg,
 			Name:       whiteOut[1:],
 			Size:       0,
 			ModTime:    cw.whiteoutT,
 			AccessTime: cw.whiteoutT,
 			ChangeTime: cw.whiteoutT,
+		}
+		if err := cw.includeParents(hdr); err != nil {
+			return err
 		}
 		if err := cw.tw.WriteHeader(hdr); err != nil {
 			return errors.Wrap(err, "failed to write whiteout header")
@@ -388,11 +406,15 @@ func (cw *changeWriter) HandleChange(k fs.ChangeKind, p string, f os.FileInfo, e
 		if capability, err := getxattr(source, "security.capability"); err != nil {
 			return errors.Wrap(err, "failed to get capabilities xattr")
 		} else if capability != nil {
-			hdr.Xattrs = map[string]string{
-				"security.capability": string(capability),
+			if hdr.PAXRecords == nil {
+				hdr.PAXRecords = map[string]string{}
 			}
+			hdr.PAXRecords[paxSchilyXattr+"security.capability"] = string(capability)
 		}
 
+		if err := cw.includeParents(hdr); err != nil {
+			return err
+		}
 		if err := cw.tw.WriteHeader(hdr); err != nil {
 			return errors.Wrap(err, "failed to write file header")
 		}
@@ -404,9 +426,7 @@ func (cw *changeWriter) HandleChange(k fs.ChangeKind, p string, f os.FileInfo, e
 			}
 			defer file.Close()
 
-			buf := bufferPool.Get().([]byte)
-			n, err := io.CopyBuffer(cw.tw, file, buf)
-			bufferPool.Put(buf)
+			n, err := copyBuffered(context.TODO(), cw.tw, file)
 			if err != nil {
 				return errors.Wrap(err, "failed to copy")
 			}
@@ -422,6 +442,10 @@ func (cw *changeWriter) HandleChange(k fs.ChangeKind, p string, f os.FileInfo, e
 				hdr.Typeflag = tar.TypeLink
 				hdr.Linkname = source
 				hdr.Size = 0
+
+				if err := cw.includeParents(hdr); err != nil {
+					return err
+				}
 				if err := cw.tw.WriteHeader(hdr); err != nil {
 					return errors.Wrap(err, "failed to write file header")
 				}
@@ -509,13 +533,16 @@ func createTarFile(ctx context.Context, path, extractDir string, hdr *tar.Header
 		}
 	}
 
-	for key, value := range hdr.Xattrs {
-		if err := setxattr(path, key, value); err != nil {
-			if errors.Cause(err) == syscall.ENOTSUP {
-				log.G(ctx).WithError(err).Warnf("ignored xattr %s in archive", key)
-				continue
+	for key, value := range hdr.PAXRecords {
+		if strings.HasPrefix(key, paxSchilyXattr) {
+			key = key[len(paxSchilyXattr):]
+			if err := setxattr(path, key, value); err != nil {
+				if errors.Cause(err) == syscall.ENOTSUP {
+					log.G(ctx).WithError(err).Warnf("ignored xattr %s in archive", key)
+					continue
+				}
+				return err
 			}
-			return err
 		}
 	}
 
@@ -528,9 +555,35 @@ func createTarFile(ctx context.Context, path, extractDir string, hdr *tar.Header
 	return chtimes(path, boundTime(latestTime(hdr.AccessTime, hdr.ModTime)), boundTime(hdr.ModTime))
 }
 
+func (cw *changeWriter) includeParents(hdr *tar.Header) error {
+	name := strings.TrimRight(hdr.Name, "/")
+	fname := filepath.Join(cw.source, name)
+	parent := filepath.Dir(name)
+	pname := filepath.Join(cw.source, parent)
+
+	// Do not include root directory as parent
+	if fname != cw.source && pname != cw.source {
+		_, ok := cw.addedDirs[parent]
+		if !ok {
+			cw.addedDirs[parent] = struct{}{}
+			fi, err := os.Stat(pname)
+			if err != nil {
+				return err
+			}
+			if err := cw.HandleChange(fs.ChangeKindModify, parent, fi, nil); err != nil {
+				return err
+			}
+		}
+	}
+	if hdr.Typeflag == tar.TypeDir {
+		cw.addedDirs[name] = struct{}{}
+	}
+	return nil
+}
+
 func copyBuffered(ctx context.Context, dst io.Writer, src io.Reader) (written int64, err error) {
-	buf := bufferPool.Get().([]byte)
-	defer bufferPool.Put(buf)
+	buf := bufPool.Get().(*[]byte)
+	defer bufPool.Put(buf)
 
 	for {
 		select {
@@ -540,9 +593,9 @@ func copyBuffered(ctx context.Context, dst io.Writer, src io.Reader) (written in
 		default:
 		}
 
-		nr, er := src.Read(buf)
+		nr, er := src.Read(*buf)
 		if nr > 0 {
-			nw, ew := dst.Write(buf[0:nr])
+			nw, ew := dst.Write((*buf)[0:nr])
 			if nw > 0 {
 				written += int64(nw)
 			}

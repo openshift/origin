@@ -71,16 +71,6 @@ func TestNamespaceLifecycleAdmission(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	found = false
-	for _, f := range ns.Spec.Finalizers {
-		if f == projectapi.FinalizerOrigin {
-			found = true
-			break
-		}
-	}
-	if !found {
-		t.Fatalf("expected origin finalizer, got %#v", ns.Spec.Finalizers)
-	}
 
 	// Delete the namespace
 	// We don't have to worry about racing the namespace deletion controller because we've only started the master

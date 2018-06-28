@@ -73,13 +73,31 @@ func TestEventManagerVPX(t *testing.T) {
 
 	for i, test := range tests {
 		n := 0
+		filter := types.EventFilterSpec{
+			Entity: &types.EventFilterSpecByEntity{
+				Entity:    test.obj,
+				Recursion: types.EventFilterSpecRecursionOptionAll,
+			},
+			EventTypeId: test.ids,
+			MaxCount:    100,
+		}
+
 		f := func(obj types.ManagedObjectReference, events []types.BaseEvent) error {
 			n += len(events)
+
+			qevents, qerr := e.QueryEvents(ctx, filter)
+			if qerr != nil {
+				t.Fatal(qerr)
+			}
+
+			if n != len(qevents) {
+				t.Errorf("%d vs %d", n, len(qevents))
+			}
 
 			return nil
 		}
 
-		err = e.Events(ctx, []types.ManagedObjectReference{test.obj}, 100, false, false, f, test.ids...)
+		err = e.Events(ctx, []types.ManagedObjectReference{test.obj}, filter.MaxCount, false, false, f, test.ids...)
 		if err != nil {
 			t.Fatalf("%d: %s", i, err)
 		}

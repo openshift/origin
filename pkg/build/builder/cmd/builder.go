@@ -7,25 +7,39 @@ import (
 	"os"
 	"path/filepath"
 
-	docker "github.com/fsouza/go-dockerclient"
+	"github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	restclient "k8s.io/client-go/rest"
-
-	s2iapi "github.com/openshift/source-to-image/pkg/api"
-	s2igit "github.com/openshift/source-to-image/pkg/scm/git"
 
 	buildapiv1 "github.com/openshift/api/build/v1"
 	buildclientv1 "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
+	"github.com/openshift/origin/pkg/api/legacy"
 	bld "github.com/openshift/origin/pkg/build/builder"
 	"github.com/openshift/origin/pkg/build/builder/cmd/scmauth"
 	"github.com/openshift/origin/pkg/build/builder/timing"
 	builderutil "github.com/openshift/origin/pkg/build/builder/util"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/git"
+	s2iapi "github.com/openshift/source-to-image/pkg/api"
+	s2igit "github.com/openshift/source-to-image/pkg/scm/git"
 )
+
+var (
+	buildEnvVarScheme       = runtime.NewScheme()
+	buildEnvVarCodecFactory = serializer.NewCodecFactory(buildEnvVarScheme)
+	buildEnvVarJSONCodec    runtime.Codec
+)
+
+func init() {
+	// TODO only use external versions, so we only add external types
+	legacy.InstallLegacyBuild(buildEnvVarScheme)
+	utilruntime.Must(buildapiv1.AddToScheme(buildEnvVarScheme))
+	buildEnvVarJSONCodec = buildEnvVarCodecFactory.LegacyCodec(buildapiv1.SchemeGroupVersion, buildapiv1.LegacySchemeGroupVersion)
+}
 
 type builder interface {
 	Build(dockerClient bld.DockerClient, sock string, buildsClient buildclientv1.BuildInterface, build *buildapiv1.Build, cgLimits *s2iapi.CGroupLimits) error
@@ -50,7 +64,7 @@ func newBuilderConfigFromEnvironment(out io.Writer, needsDocker bool) (*builderC
 
 	cfg.build = &buildapiv1.Build{}
 
-	obj, groupVersionKind, err := legacyscheme.Codecs.UniversalDecoder().Decode([]byte(buildStr), nil, cfg.build)
+	obj, _, err := buildEnvVarJSONCodec.Decode([]byte(buildStr), nil, cfg.build)
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse build string: %v", err)
 	}
@@ -61,14 +75,12 @@ func newBuilderConfigFromEnvironment(out io.Writer, needsDocker bool) (*builderC
 	}
 	if glog.V(4) {
 		redactedBuild := buildutil.SafeForLoggingBuild(cfg.build)
+		bytes, err := runtime.Encode(buildEnvVarJSONCodec, redactedBuild)
 		if err != nil {
-			return nil, fmt.Errorf("unable to strip proxy credentials from build: %v", err)
+			glog.V(4).Infof("unable to print debug line: %v", err)
+		} else {
+			glog.V(4).Infof("redacted build: %v", string(bytes))
 		}
-		bytes, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(groupVersionKind.GroupVersion()), redactedBuild)
-		if err != nil {
-			return nil, fmt.Errorf("unable to serialize build: %v", err)
-		}
-		glog.V(4).Infof("redacted build: %v", string(bytes))
 	}
 
 	// sourceSecretsDir (SOURCE_SECRET_PATH)

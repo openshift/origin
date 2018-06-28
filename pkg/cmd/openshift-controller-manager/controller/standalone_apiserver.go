@@ -10,7 +10,6 @@ import (
 
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	apifilters "k8s.io/apiserver/pkg/endpoints/filters"
-	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	apiserver "k8s.io/apiserver/pkg/server"
 	apiserverfilters "k8s.io/apiserver/pkg/server/filters"
 	"k8s.io/apiserver/pkg/server/healthz"
@@ -53,16 +52,13 @@ func RunControllerServer(servingInfo configapi.HTTPServingInfo, kubeExternal cli
 
 	// requestInfoFactory for controllers only needs to be able to handle non-API endpoints
 	requestInfoResolver := apiserver.NewRequestInfoResolver(&apiserver.Config{})
-	// the request context mapper for controllers is always separate
-	requestContextMapper := apirequest.NewRequestContextMapper()
 
 	// we use direct bypass to allow readiness and health to work regardless of the master health
 	authz := newBypassAuthorizer(remoteAuthz, "/healthz", "/healthz/ready")
-	handler := apifilters.WithAuthorization(mux, requestContextMapper, authz, legacyscheme.Codecs)
-	handler = apifilters.WithAuthentication(handler, requestContextMapper, authn, apifilters.Unauthorized(requestContextMapper, legacyscheme.Codecs, false))
+	handler := apifilters.WithAuthorization(mux, authz, legacyscheme.Codecs)
+	handler = apifilters.WithAuthentication(handler, authn, apifilters.Unauthorized(legacyscheme.Codecs, false))
 	handler = apiserverfilters.WithPanicRecovery(handler)
-	handler = apifilters.WithRequestInfo(handler, requestInfoResolver, requestContextMapper)
-	handler = apirequest.WithRequestContext(handler, requestContextMapper)
+	handler = apifilters.WithRequestInfo(handler, requestInfoResolver)
 
 	return serveControllers(servingInfo, handler)
 }

@@ -4,8 +4,10 @@ import (
 	"strconv"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/apis/apps"
 	"k8s.io/kubernetes/pkg/apis/batch"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
@@ -171,10 +173,25 @@ func CanCheckReadiness(ref kapi.ObjectReference) bool {
 // CheckReadiness runs the readiness check on a given object.  TODO: remove
 // "oc client.Interface" and error once BuildConfigs can report on the status of
 // their latest build.
-func CheckReadiness(oc buildclient.Interface, ref kapi.ObjectReference, obj runtime.Object) (bool, bool, error) {
+func CheckReadiness(oc buildclient.Interface, ref kapi.ObjectReference, obj *unstructured.Unstructured) (bool, bool, error) {
+	castObj, err := legacyscheme.Scheme.New(ref.GroupVersionKind())
+	if err != nil {
+		return false, false, err
+	}
+	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, castObj); err != nil {
+		return false, false, err
+	}
+	internalObj, err := legacyscheme.Scheme.New(ref.GroupVersionKind().GroupKind().WithVersion(runtime.APIVersionInternal))
+	if err != nil {
+		return false, false, err
+	}
+	if err := legacyscheme.Scheme.Convert(castObj, internalObj, nil); err != nil {
+		return false, false, err
+	}
+
 	switch ref.GroupVersionKind().GroupKind() {
 	case buildapi.Kind("BuildConfig"), schema.GroupKind{Group: "", Kind: "BuildConfig"}:
-		return checkBuildConfigReadiness(oc, obj)
+		return checkBuildConfigReadiness(oc, internalObj)
 	}
-	return readinessCheckers[ref.GroupVersionKind().GroupKind()](obj)
+	return readinessCheckers[ref.GroupVersionKind().GroupKind()](internalObj)
 }

@@ -14,11 +14,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/authentication/serviceaccount"
+	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	"k8s.io/client-go/util/retry"
 	kbatch "k8s.io/kubernetes/pkg/apis/batch"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kubernetes "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	rbacclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/rbac/internalversion"
 
 	"github.com/openshift/origin/pkg/oc/clusteradd/componentinstall"
 	"github.com/openshift/origin/pkg/oc/clusterup/docker/dockerhelper"
@@ -107,7 +107,7 @@ func (c *SetupPersistentVolumesOptions) Install(dockerClient dockerhelper.Interf
 	if err != nil {
 		return err
 	}
-	rbacClient, err := rbacclient.NewForConfig(c.InstallContext.ClusterAdminClientConfig())
+	rbacClient, err := rbacv1client.NewForConfig(c.InstallContext.ClusterAdminClientConfig())
 	if err != nil {
 		return err
 	}
@@ -138,7 +138,7 @@ func (c *SetupPersistentVolumesOptions) Install(dockerClient dockerhelper.Interf
 	return nil
 }
 
-func ensurePVInstallerSA(rbacClient *rbacclient.RbacClient, kclient kubernetes.Interface, securityClient securityclient.Interface) error {
+func ensurePVInstallerSA(rbacClient rbacv1client.RbacV1Interface, kclient kubernetes.Interface, securityClient securityclient.Interface) error {
 	sa, err := kclient.Core().ServiceAccounts(pvTargetNamespace).Get(pvInstallerSA, metav1.GetOptions{})
 	if err != nil {
 		if !kerrors.IsNotFound(err) {
@@ -220,7 +220,7 @@ func persistentStorageSetupJob(name, dir, image string, pvCount int) *kbatch.Job
 	return job
 }
 
-func addClusterRole(rbacClient *rbacclient.RbacClient, role, user string) error {
+func addClusterRole(rbacClient rbacv1client.RbacV1Interface, role, user string) error {
 	addClusterReaderRole := policy.RoleModificationOptions{
 		RoleName:   role,
 		RoleKind:   "ClusterRole",

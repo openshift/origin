@@ -18,12 +18,15 @@ package cmd
 
 import (
 	"errors"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
+	kubeadmapiv1alpha2 "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1alpha2"
+	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/validation"
 	kubeadmconstants "k8s.io/kubernetes/cmd/kubeadm/app/constants"
 	"k8s.io/kubernetes/cmd/kubeadm/app/preflight"
 	"k8s.io/utils/exec"
@@ -52,8 +55,41 @@ func assertDirEmpty(t *testing.T, path string) {
 	}
 }
 
+func TestNewReset(t *testing.T) {
+	var in io.Reader
+	certsDir := kubeadmapiv1alpha2.DefaultCertificatesDir
+	criSocketPath := "/var/run/dockershim.sock"
+	skipPreFlight := false
+	forceReset := true
+
+	ignorePreflightErrors := []string{"all"}
+	ignorePreflightErrorsSet, _ := validation.ValidateIgnorePreflightErrors(ignorePreflightErrors, skipPreFlight)
+	NewReset(in, ignorePreflightErrorsSet, forceReset, certsDir, criSocketPath)
+
+	ignorePreflightErrors = []string{}
+	ignorePreflightErrorsSet, _ = validation.ValidateIgnorePreflightErrors(ignorePreflightErrors, skipPreFlight)
+	NewReset(in, ignorePreflightErrorsSet, forceReset, certsDir, criSocketPath)
+}
+
+func TestNewCmdReset(t *testing.T) {
+	var out io.Writer
+	var in io.Reader
+	cmd := NewCmdReset(in, out)
+
+	tmpDir, err := ioutil.TempDir("", "kubeadm-reset-test")
+	if err != nil {
+		t.Errorf("Unable to create temporary directory: %v", err)
+	}
+	args := []string{"--ignore-preflight-errors=all", "--cert-dir=" + tmpDir, "--force"}
+	cmd.SetArgs(args)
+	if err := cmd.Execute(); err != nil {
+		t.Errorf("Cannot execute reset command: %v", err)
+	}
+}
+
 func TestConfigDirCleaner(t *testing.T) {
 	tests := map[string]struct {
+		resetDir        string
 		setupDirs       []string
 		setupFiles      []string
 		verifyExists    []string
@@ -91,7 +127,7 @@ func TestConfigDirCleaner(t *testing.T) {
 				"manifests",
 			},
 		},
-		"preserve cloud-config": {
+		"preserve unrelated file foo": {
 			setupDirs: []string{
 				"manifests",
 				"pki",
@@ -102,12 +138,12 @@ func TestConfigDirCleaner(t *testing.T) {
 				"pki/ca.pem",
 				kubeadmconstants.AdminKubeConfigFileName,
 				kubeadmconstants.KubeletKubeConfigFileName,
-				"cloud-config",
+				"foo",
 			},
 			verifyExists: []string{
 				"manifests",
 				"pki",
-				"cloud-config",
+				"foo",
 			},
 		},
 		"preserve hidden files and directories": {
@@ -122,13 +158,11 @@ func TestConfigDirCleaner(t *testing.T) {
 				"pki/ca.pem",
 				kubeadmconstants.AdminKubeConfigFileName,
 				kubeadmconstants.KubeletKubeConfigFileName,
-				".cloud-config",
 				".mydir/.myfile",
 			},
 			verifyExists: []string{
 				"manifests",
 				"pki",
-				".cloud-config",
 				".mydir",
 				".mydir/.myfile",
 			},
@@ -137,6 +171,12 @@ func TestConfigDirCleaner(t *testing.T) {
 			verifyNotExists: []string{
 				"pki",
 				"manifests",
+			},
+		},
+		"not a directory": {
+			resetDir: "test-path",
+			setupFiles: []string{
+				"test-path",
 			},
 		},
 	}
@@ -149,7 +189,6 @@ func TestConfigDirCleaner(t *testing.T) {
 		if err != nil {
 			t.Errorf("Unable to create temporary directory: %s", err)
 		}
-		defer os.RemoveAll(tmpDir)
 
 		for _, createDir := range test.setupDirs {
 			err := os.Mkdir(filepath.Join(tmpDir, createDir), 0700)
@@ -164,10 +203,13 @@ func TestConfigDirCleaner(t *testing.T) {
 			if err != nil {
 				t.Errorf("Unable to create test file: %s", err)
 			}
-			defer f.Close()
+			f.Close()
 		}
 
-		resetConfigDir(tmpDir, filepath.Join(tmpDir, "pki"))
+		if test.resetDir == "" {
+			test.resetDir = "pki"
+		}
+		resetConfigDir(tmpDir, filepath.Join(tmpDir, test.resetDir))
 
 		// Verify the files we cleanup implicitly in every test:
 		assertExists(t, tmpDir)
@@ -183,6 +225,8 @@ func TestConfigDirCleaner(t *testing.T) {
 		for _, path := range test.verifyNotExists {
 			assertNotExists(t, filepath.Join(tmpDir, path))
 		}
+
+		os.RemoveAll(tmpDir)
 	}
 }
 

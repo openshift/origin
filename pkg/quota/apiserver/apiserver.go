@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"sync"
 
-	"k8s.io/apimachinery/pkg/apimachinery/registered"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
@@ -25,9 +24,8 @@ type ExtraConfig struct {
 	KubeInternalInformers         kinternalinformers.SharedInformerFactory
 
 	// TODO these should all become local eventually
-	Scheme   *runtime.Scheme
-	Registry *registered.APIRegistrationManager
-	Codecs   serializer.CodecFactory
+	Scheme *runtime.Scheme
+	Codecs serializer.CodecFactory
 
 	makeV1Storage sync.Once
 	v1Storage     map[string]rest.Storage
@@ -79,8 +77,7 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget)
 		return nil, err
 	}
 
-	apiGroupInfo := genericapiserver.NewDefaultAPIGroupInfo(quotaapiv1.GroupName, c.ExtraConfig.Registry, c.ExtraConfig.Scheme, metav1.ParameterCodec, c.ExtraConfig.Codecs)
-	apiGroupInfo.GroupMeta.GroupVersion = quotaapiv1.SchemeGroupVersion
+	apiGroupInfo := genericapiserver.NewDefaultAPIGroupInfo(quotaapiv1.GroupName, c.ExtraConfig.Scheme, metav1.ParameterCodec, c.ExtraConfig.Codecs)
 	apiGroupInfo.VersionedResourcesStorageMap[quotaapiv1.SchemeGroupVersion.Version] = v1Storage
 	if err := s.GenericAPIServer.InstallAPIGroup(&apiGroupInfo); err != nil {
 		return nil, err

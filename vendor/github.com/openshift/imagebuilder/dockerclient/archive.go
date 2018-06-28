@@ -165,9 +165,17 @@ func archiveFromDisk(directory string, src, dst string, allowDownload bool, excl
 		return nil, nil, err
 	}
 
+	// special case when we are archiving a single file at the root
+	if len(infos) == 1 && !infos[0].FileInfo.IsDir() && (infos[0].Path == "." || infos[0].Path == "/") {
+		glog.V(5).Infof("Archiving a file instead of a directory from %s", directory)
+		infos[0].Path = filepath.Base(directory)
+		infos[0].FromDir = false
+		directory = filepath.Dir(directory)
+	}
+
 	options := archiveOptionsFor(infos, dst, excludes)
 
-	glog.V(4).Infof("Tar of directory %s %#v", directory, options)
+	glog.V(4).Infof("Tar of %s %#v", directory, options)
 	rc, err := archive.TarWithOptions(directory, options)
 	return rc, rc, err
 }
@@ -252,12 +260,7 @@ func archiveFromFile(file string, src, dst string, excludes []string) (io.Reader
 		}
 	}
 
-	// TODO: multiple sources also require treating dst as a directory
-	isDestDir := strings.HasSuffix(dst, "/") || path.Base(dst) == "."
-	dst = path.Clean(dst)
-	mapperFn := archivePathMapper(src, dst, isDestDir)
-
-	pm, err := fileutils.NewPatternMatcher(excludes)
+	mapper, _, err := newArchiveMapper(src, dst, excludes, true)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -266,118 +269,173 @@ func archiveFromFile(file string, src, dst string, excludes []string) (io.Reader
 	if err != nil {
 		return nil, nil, err
 	}
-	pr, pw := io.Pipe()
-	go func() {
-		in, err := archive.DecompressStream(f)
-		if err != nil {
-			pw.CloseWithError(err)
-			return
-		}
-		err = FilterArchive(in, pw, func(h *tar.Header, r io.Reader) ([]byte, bool, bool, error) {
-			h.Uid, h.Gid = 0, 0
-			// skip a file if it doesn't match the src
-			isDir := h.Typeflag == tar.TypeDir
-			newName, ok := mapperFn(h.Name, isDir)
-			if !ok {
-				return nil, false, true, err
-			}
-			if newName == "." {
-				return nil, false, true, nil
-			}
 
-			// skip based on excludes
-			if ok, _ := pm.Matches(h.Name); ok {
-				return nil, false, true, nil
-			}
-
-			h.Name = newName
-			// include all files
-			return nil, false, false, nil
-		})
-		pw.CloseWithError(err)
-	}()
-	return pr, closers{f.Close, pr.Close}, nil
+	r, err := transformArchive(f, true, mapper.Filter)
+	return r, f, err
 }
 
-func archiveFromContainer(in io.Reader, src, dst string, excludes []string) (io.Reader, io.Closer, error) {
-	// TODO: multiple sources also require treating dst as a directory
-	isDestDir := strings.HasSuffix(dst, "/") || path.Base(dst) == "."
-	dst = path.Clean(dst)
-	mapperFn := archivePathMapper("*", dst, isDestDir)
-
-	pm, err := fileutils.NewPatternMatcher(excludes)
+func archiveFromContainer(in io.Reader, src, dst string, excludes []string) (io.Reader, string, error) {
+	mapper, archiveRoot, err := newArchiveMapper(src, dst, excludes, false)
 	if err != nil {
-		return nil, nil, err
+		return nil, "", err
 	}
 
-	var srcName string
-	if !strings.HasSuffix(src, "/") && path.Base(src) != "." {
-		srcName = path.Base(src)
-	}
+	r, err := transformArchive(in, false, mapper.Filter)
+	return r, archiveRoot, err
+}
 
+func transformArchive(r io.Reader, compressed bool, fn TransformFileFunc) (io.Reader, error) {
 	pr, pw := io.Pipe()
 	go func() {
-		err = FilterArchive(in, pw, func(h *tar.Header, r io.Reader) ([]byte, bool, bool, error) {
-			isDir := h.Typeflag == tar.TypeDir
-			// special case: container output tar has a single file matching the src name
-			if !isDir && h.Name == srcName && !isDestDir {
-				h.Name = dst
-				return nil, false, false, nil
+		if compressed {
+			in, err := archive.DecompressStream(r)
+			if err != nil {
+				pw.CloseWithError(err)
+				return
 			}
-			// skip a file if it doesn't match the src
-			newName, ok := mapperFn(h.Name, isDir)
-			if !ok {
-				return nil, false, true, err
-			}
-			if newName == "." {
-				return nil, false, true, nil
-			}
-
-			// skip based on excludes
-			if ok, _ := pm.Matches(h.Name); ok {
-				return nil, false, true, nil
-			}
-
-			glog.V(5).Infof("Filtering archive %s -> %s", h.Name, newName)
-			h.Name = newName
-			// include all files
-			return nil, false, false, nil
-		})
+			r = in
+		}
+		err := FilterArchive(r, pw, fn)
 		pw.CloseWithError(err)
 	}()
-	return pr, pr, nil
+	return pr, nil
+}
+
+type archiveMapper struct {
+	exclude     *fileutils.PatternMatcher
+	rename      func(name string, isDir bool) (string, bool)
+	prefix      string
+	resetOwners bool
+}
+
+func newArchiveMapper(src, dst string, excludes []string, resetOwners bool) (*archiveMapper, string, error) {
+	ex, err := fileutils.NewPatternMatcher(excludes)
+	if err != nil {
+		return nil, "", err
+	}
+
+	isDestDir := strings.HasSuffix(dst, "/") || path.Base(dst) == "."
+	dst = path.Clean(dst)
+
+	var prefix string
+	archiveRoot := src
+	srcPattern := "*"
+	switch {
+	case src == "":
+		return nil, "", fmt.Errorf("source may not be empty")
+	case src == ".", src == "/":
+		// no transformation necessary
+	case strings.HasSuffix(src, "/"), strings.HasSuffix(src, "/."):
+		src = path.Clean(src)
+		archiveRoot = src
+		if archiveRoot != "/" && archiveRoot != "." {
+			prefix = path.Base(archiveRoot)
+		}
+	default:
+		src = path.Clean(src)
+		srcPattern = path.Base(src)
+		archiveRoot = path.Dir(src)
+		if archiveRoot != "/" && archiveRoot != "." {
+			prefix = path.Base(archiveRoot)
+		}
+	}
+
+	mapperFn := archivePathMapper(srcPattern, dst, isDestDir)
+
+	return &archiveMapper{
+		exclude:     ex,
+		rename:      mapperFn,
+		prefix:      prefix,
+		resetOwners: resetOwners,
+	}, archiveRoot, nil
+}
+
+func (m *archiveMapper) Filter(h *tar.Header, r io.Reader) ([]byte, bool, bool, error) {
+	if m.resetOwners {
+		h.Uid, h.Gid = 0, 0
+	}
+	// Trim a leading path, the prefix segment (which has no leading or trailing slashes), and
+	// the final leader segment. Depending on the segment, Docker could return /prefix/ or prefix/.
+	h.Name = strings.TrimPrefix(h.Name, "/")
+	if !strings.HasPrefix(h.Name, m.prefix) {
+		return nil, false, true, nil
+	}
+	h.Name = strings.TrimPrefix(strings.TrimPrefix(h.Name, m.prefix), "/")
+
+	// skip a file if it doesn't match the src
+	isDir := h.Typeflag == tar.TypeDir
+	newName, ok := m.rename(h.Name, isDir)
+	if !ok {
+		return nil, false, true, nil
+	}
+	if newName == "." {
+		return nil, false, true, nil
+	}
+	// skip based on excludes
+	if ok, _ := m.exclude.Matches(h.Name); ok {
+		return nil, false, true, nil
+	}
+	h.Name = newName
+	// include all files
+	return nil, false, false, nil
 }
 
 func archiveOptionsFor(infos []CopyInfo, dst string, excludes []string) *archive.TarOptions {
 	dst = trimLeadingPath(dst)
+	dstIsDir := strings.HasSuffix(dst, "/") || dst == "." || dst == "/" || strings.HasSuffix(dst, "/.")
+	dst = trimTrailingSlash(dst)
+	dstIsRoot := dst == "." || dst == "/"
+
 	options := &archive.TarOptions{
 		ChownOpts: &idtools.IDPair{UID: 0, GID: 0},
 	}
+
 	pm, err := fileutils.NewPatternMatcher(excludes)
 	if err != nil {
 		return options
 	}
+
 	for _, info := range infos {
 		if ok, _ := pm.Matches(info.Path); ok {
 			continue
 		}
-		options.IncludeFiles = append(options.IncludeFiles, info.Path)
+
+		srcIsDir := strings.HasSuffix(info.Path, "/") || info.Path == "." || info.Path == "/" || strings.HasSuffix(info.Path, "/.")
+		infoPath := trimTrailingSlash(info.Path)
+
+		options.IncludeFiles = append(options.IncludeFiles, infoPath)
 		if len(dst) == 0 {
 			continue
 		}
 		if options.RebaseNames == nil {
 			options.RebaseNames = make(map[string]string)
 		}
-		if info.FromDir || strings.HasSuffix(dst, "/") || strings.HasSuffix(dst, "/.") || dst == "." {
-			if strings.HasSuffix(info.Path, "/") {
-				options.RebaseNames[info.Path] = dst
-			} else {
-				options.RebaseNames[info.Path] = path.Join(dst, path.Base(info.Path))
-			}
-		} else {
-			options.RebaseNames[info.Path] = dst
+
+		glog.V(6).Infof("len=%d info.FromDir=%t info.IsDir=%t dstIsRoot=%t dstIsDir=%t srcIsDir=%t", len(infos), info.FromDir, info.IsDir(), dstIsRoot, dstIsDir, srcIsDir)
+		switch {
+		case len(infos) > 1 && dstIsRoot:
+			// copying multiple things into root, no rename necessary ([Dockerfile, dir] -> [Dockerfile, dir])
+		case len(infos) > 1:
+			// put each input into the target, which is assumed to be a directory ([Dockerfile, dir] -> [a/Dockerfile, a/dir])
+			options.RebaseNames[infoPath] = path.Join(dst, path.Base(infoPath))
+		case info.FileInfo.IsDir() && dstIsDir:
+			// mapping a directory to an explicit directory ([dir] -> [a])
+			options.RebaseNames[infoPath] = dst
+		case info.FileInfo.IsDir():
+			// mapping a directory to an implicit directory ([Dockerfile] -> [dir/Dockerfile])
+			options.RebaseNames[infoPath] = path.Join(dst, path.Base(infoPath))
+		case info.FromDir:
+			// this is a file that was part of an explicit directory request, no transformation
+			options.RebaseNames[infoPath] = path.Join(dst, path.Base(infoPath))
+		case dstIsDir:
+			// mapping what is probably a file to a non-root directory ([Dockerfile] -> [dir/Dockerfile])
+			options.RebaseNames[infoPath] = path.Join(dst, path.Base(infoPath))
+		default:
+			// a single file mapped to another single file ([Dockerfile] -> [Dockerfile.2])
+			options.RebaseNames[infoPath] = dst
 		}
 	}
+
 	options.ExcludePatterns = excludes
 	return options
 }
@@ -389,4 +447,30 @@ func sourceToDestinationName(src, dst string, forceDir bool) string {
 	default:
 		return dst
 	}
+}
+
+// logArchiveOutput prints log info about the provided tar file as it is streamed. If an
+// error occurs the remainder of the pipe is read to prevent blocking.
+func logArchiveOutput(r io.Reader, prefix string) {
+	pr, pw := io.Pipe()
+	r = ioutil.NopCloser(io.TeeReader(r, pw))
+	go func() {
+		err := func() error {
+			tr := tar.NewReader(pr)
+			for {
+				h, err := tr.Next()
+				if err != nil {
+					return err
+				}
+				glog.Infof("%s %s (%d %s)", prefix, h.Name, h.Size, h.FileInfo().Mode())
+				if _, err := io.Copy(ioutil.Discard, tr); err != nil {
+					return err
+				}
+			}
+		}()
+		if err != io.EOF {
+			glog.Infof("%s: unable to log archive output: %v", prefix, err)
+			io.Copy(ioutil.Discard, pr)
+		}
+	}()
 }

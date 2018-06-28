@@ -6,62 +6,15 @@ import (
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/authentication/user"
+	informersexternal "k8s.io/client-go/informers"
+	fakeexternal "k8s.io/client-go/kubernetes/fake"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/apis/rbac"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	informers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
-	authorizationlister "k8s.io/kubernetes/pkg/client/listers/rbac/internalversion"
 	"k8s.io/kubernetes/pkg/controller"
 )
-
-type MockRoleGetter struct{}
-
-func (m MockRoleGetter) Get(name string) (*rbac.Role, error) {
-	return &rbac.Role{}, nil
-}
-func (m MockRoleGetter) List(labels.Selector) ([]*rbac.Role, error) {
-	return nil, nil
-}
-func (m MockRoleGetter) Roles(namespace string) authorizationlister.RoleNamespaceLister {
-	return m
-}
-func (m MockRoleGetter) LastSyncResourceVersion() string { return "" }
-
-type MockClusterRoleGetter struct{}
-
-func (m MockClusterRoleGetter) List(labels.Selector) ([]*rbac.ClusterRole, error) {
-	return nil, nil
-}
-func (m MockClusterRoleGetter) Get(name string) (*rbac.ClusterRole, error) {
-	return &rbac.ClusterRole{}, nil
-}
-func (m MockClusterRoleGetter) LastSyncResourceVersion() string { return "" }
-
-type MockRoleBindingGetter struct{}
-
-func (m MockRoleBindingGetter) Get(name string) (*rbac.RoleBinding, error) {
-	return &rbac.RoleBinding{}, nil
-}
-func (m MockRoleBindingGetter) List(labels.Selector) ([]*rbac.RoleBinding, error) {
-	return nil, nil
-}
-func (m MockRoleBindingGetter) RoleBindings(namespace string) authorizationlister.RoleBindingNamespaceLister {
-	return m
-}
-func (m MockRoleBindingGetter) LastSyncResourceVersion() string { return "" }
-
-type MockClusterRoleBindingGetter struct{}
-
-func (m MockClusterRoleBindingGetter) List(labels.Selector) ([]*rbac.ClusterRoleBinding, error) {
-	return nil, nil
-}
-func (m MockClusterRoleBindingGetter) Get(name string) (*rbac.ClusterRoleBinding, error) {
-	return &rbac.ClusterRoleBinding{}, nil
-}
-func (m MockClusterRoleBindingGetter) LastSyncResourceVersion() string { return "" }
 
 // mockReview implements the Review interface for test cases
 type mockReview struct {
@@ -170,11 +123,12 @@ func TestSyncNamespace(t *testing.T) {
 	}
 
 	informers := informers.NewSharedInformerFactory(mockKubeClient, controller.NoResyncPeriodFunc())
+	externalInformers := informersexternal.NewSharedInformerFactory(fakeexternal.NewSimpleClientset(), controller.NoResyncPeriodFunc())
 
 	authorizationCache := NewAuthorizationCache(
 		informers.Core().InternalVersion().Namespaces().Informer(),
 		reviewer,
-		informers.Rbac().InternalVersion(),
+		externalInformers.Rbac().V1(),
 	)
 	// we prime the data we need here since we are not running reflectors
 	for i := range namespaceList.Items {

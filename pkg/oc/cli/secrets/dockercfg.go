@@ -154,7 +154,7 @@ func (o *CreateDockerConfigOptions) Complete(f kcmdutil.Factory, args []string) 
 	if err != nil {
 		return err
 	}
-	namespace, _, err := f.DefaultNamespace()
+	namespace, _, err := f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
 	}

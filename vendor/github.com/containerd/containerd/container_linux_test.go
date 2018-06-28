@@ -16,9 +16,11 @@ import (
 	"time"
 
 	"github.com/containerd/cgroups"
+	"github.com/containerd/containerd/cio"
 	"github.com/containerd/containerd/containers"
 	"github.com/containerd/containerd/errdefs"
-	"github.com/containerd/containerd/linux/runcopts"
+	"github.com/containerd/containerd/linux/runctypes"
+	"github.com/containerd/containerd/oci"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"golang.org/x/sys/unix"
@@ -45,13 +47,15 @@ func TestTaskUpdate(t *testing.T) {
 		return
 	}
 	limit := int64(32 * 1024 * 1024)
-	memory := func(_ context.Context, _ *Client, _ *containers.Container, s *specs.Spec) error {
+	memory := func(_ context.Context, _ oci.Client, _ *containers.Container, s *specs.Spec) error {
 		s.Linux.Resources.Memory = &specs.LinuxMemory{
 			Limit: &limit,
 		}
 		return nil
 	}
-	container, err := client.NewContainer(ctx, id, WithNewSpec(WithImageConfig(image), withProcessArgs("sleep", "30"), memory), WithNewSnapshot(id, image))
+	container, err := client.NewContainer(ctx, id,
+		WithNewSpec(oci.WithImageConfig(image), withProcessArgs("sleep", "30"), memory),
+		WithNewSnapshot(id, image))
 	if err != nil {
 		t.Error(err)
 		return
@@ -130,7 +134,7 @@ func TestShimInCgroup(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	container, err := client.NewContainer(ctx, id, WithNewSpec(WithImageConfig(image), WithProcessArgs("sleep", "30")), WithNewSnapshot(id, image))
+	container, err := client.NewContainer(ctx, id, WithNewSpec(oci.WithImageConfig(image), oci.WithProcessArgs("sleep", "30")), WithNewSnapshot(id, image))
 	if err != nil {
 		t.Error(err)
 		return
@@ -146,7 +150,7 @@ func TestShimInCgroup(t *testing.T) {
 	defer cg.Delete()
 
 	task, err := container.NewTask(ctx, empty(), func(_ context.Context, client *Client, r *TaskInfo) error {
-		r.Options = &runcopts.CreateOptions{
+		r.Options = &runctypes.CreateOptions{
 			ShimCgroup: path,
 		}
 		return nil
@@ -294,7 +298,7 @@ func TestContainerAttach(t *testing.T) {
 
 	expected := "hello" + newLine
 
-	direct, err := NewDirectIO(ctx, false)
+	direct, err := cio.NewDirectIO(ctx, false)
 	if err != nil {
 		t.Error(err)
 		return
@@ -389,7 +393,7 @@ func TestContainerUsername(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	direct, err := NewDirectIO(ctx, false)
+	direct, err := cio.NewDirectIO(ctx, false)
 	if err != nil {
 		t.Error(err)
 		return
@@ -408,7 +412,7 @@ func TestContainerUsername(t *testing.T) {
 	// squid user in the alpine image has a uid of 31
 	container, err := client.NewContainer(ctx, id,
 		withNewSnapshot(id, image),
-		WithNewSpec(withImageConfig(image), WithUsername("squid"), WithProcessArgs("id", "-u")),
+		WithNewSpec(withImageConfig(image), oci.WithUsername("squid"), oci.WithProcessArgs("id", "-u")),
 	)
 	if err != nil {
 		t.Error(err)
@@ -482,7 +486,7 @@ func TestContainerAttachProcess(t *testing.T) {
 	expected := "hello" + newLine
 
 	// creating IO early for easy resource cleanup
-	direct, err := NewDirectIO(ctx, false)
+	direct, err := cio.NewDirectIO(ctx, false)
 	if err != nil {
 		t.Error(err)
 		return
@@ -598,7 +602,7 @@ func TestContainerUserID(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	direct, err := NewDirectIO(ctx, false)
+	direct, err := cio.NewDirectIO(ctx, false)
 	if err != nil {
 		t.Error(err)
 		return
@@ -617,7 +621,7 @@ func TestContainerUserID(t *testing.T) {
 	// adm user in the alpine image has a uid of 3 and gid of 4.
 	container, err := client.NewContainer(ctx, id,
 		withNewSnapshot(id, image),
-		WithNewSpec(withImageConfig(image), WithUserID(3), WithProcessArgs("sh", "-c", "echo $(id -u):$(id -g)")),
+		WithNewSpec(withImageConfig(image), oci.WithUserID(3), oci.WithProcessArgs("sh", "-c", "echo $(id -u):$(id -g)")),
 	)
 	if err != nil {
 		t.Error(err)
@@ -678,7 +682,7 @@ func TestContainerKillAll(t *testing.T) {
 		withNewSnapshot(id, image),
 		WithNewSpec(withImageConfig(image),
 			withProcessArgs("sh", "-c", "top"),
-			WithHostNamespace(specs.PIDNamespace),
+			oci.WithHostNamespace(specs.PIDNamespace),
 		),
 	)
 	if err != nil {
@@ -688,7 +692,7 @@ func TestContainerKillAll(t *testing.T) {
 	defer container.Delete(ctx, WithSnapshotCleanup)
 
 	stdout := bytes.NewBuffer(nil)
-	task, err := container.NewTask(ctx, NewIO(bytes.NewBuffer(nil), stdout, bytes.NewBuffer(nil)))
+	task, err := container.NewTask(ctx, cio.NewIO(bytes.NewBuffer(nil), stdout, bytes.NewBuffer(nil)))
 	if err != nil {
 		t.Error(err)
 		return
@@ -736,7 +740,7 @@ func TestShimSigkilled(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	container, err := client.NewContainer(ctx, id, WithNewSpec(WithImageConfig(image)), withNewSnapshot(id, image))
+	container, err := client.NewContainer(ctx, id, WithNewSpec(oci.WithImageConfig(image)), withNewSnapshot(id, image))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -800,7 +804,7 @@ func TestDaemonRestartWithRunningShim(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	container, err := client.NewContainer(ctx, id, WithNewSpec(WithImageConfig(image), WithProcessArgs("sleep", "100")), withNewSnapshot(id, image))
+	container, err := client.NewContainer(ctx, id, WithNewSpec(oci.WithImageConfig(image), oci.WithProcessArgs("sleep", "100")), withNewSnapshot(id, image))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -887,7 +891,7 @@ func TestContainerRuntimeOptions(t *testing.T) {
 		ctx, id,
 		WithNewSpec(withImageConfig(image), withExitStatus(7)),
 		withNewSnapshot(id, image),
-		WithRuntime("io.containerd.runtime.v1.linux", &runcopts.RuncOptions{Runtime: "no-runc"}),
+		WithRuntime("io.containerd.runtime.v1.linux", &runctypes.RuncOptions{Runtime: "no-runc"}),
 	)
 	if err != nil {
 		t.Error(err)
@@ -930,7 +934,7 @@ func TestContainerKillInitPidHost(t *testing.T) {
 		withNewSnapshot(id, image),
 		WithNewSpec(withImageConfig(image),
 			withProcessArgs("sh", "-c", "sleep 42; echo hi"),
-			WithHostNamespace(specs.PIDNamespace),
+			oci.WithHostNamespace(specs.PIDNamespace),
 		),
 	)
 	if err != nil {
@@ -940,7 +944,7 @@ func TestContainerKillInitPidHost(t *testing.T) {
 	defer container.Delete(ctx, WithSnapshotCleanup)
 
 	stdout := bytes.NewBuffer(nil)
-	task, err := container.NewTask(ctx, NewIO(bytes.NewBuffer(nil), stdout, bytes.NewBuffer(nil)))
+	task, err := container.NewTask(ctx, cio.NewIO(bytes.NewBuffer(nil), stdout, bytes.NewBuffer(nil)))
 	if err != nil {
 		t.Error(err)
 		return
@@ -1024,12 +1028,12 @@ func testUserNamespaces(t *testing.T, readonlyRootFS bool) {
 
 	opts := []NewContainerOpts{WithNewSpec(withImageConfig(image),
 		withExitStatus(7),
-		WithUserNamespace(0, 1000, 10000),
+		oci.WithUserNamespace(0, 1000, 10000),
 	)}
 	if readonlyRootFS {
-		opts = append(opts, withRemappedSnapshotView(id, image, 1000, 1000))
+		opts = append(opts, WithRemappedSnapshotView(id, image, 1000, 1000))
 	} else {
-		opts = append(opts, withRemappedSnapshot(id, image, 1000, 1000))
+		opts = append(opts, WithRemappedSnapshot(id, image, 1000, 1000))
 	}
 
 	container, err := client.NewContainer(ctx, id, opts...)
@@ -1039,8 +1043,8 @@ func testUserNamespaces(t *testing.T, readonlyRootFS bool) {
 	}
 	defer container.Delete(ctx, WithSnapshotCleanup)
 
-	task, err := container.NewTask(ctx, Stdio, func(_ context.Context, client *Client, r *TaskInfo) error {
-		r.Options = &runcopts.CreateOptions{
+	task, err := container.NewTask(ctx, cio.Stdio, func(_ context.Context, client *Client, r *TaskInfo) error {
+		r.Options = &runctypes.CreateOptions{
 			IoUid: 1000,
 			IoGid: 1000,
 		}

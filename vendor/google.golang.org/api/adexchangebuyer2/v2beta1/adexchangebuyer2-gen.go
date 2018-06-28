@@ -1066,7 +1066,7 @@ func (s *Correction) MarshalJSON() ([]byte, error) {
 
 // Creative: A creative and its classification data.
 //
-// Next ID: 31
+// Next ID: 35
 type Creative struct {
 	// AccountId: The account that this creative belongs to.
 	// Can be used to filter the response of the
@@ -1390,7 +1390,9 @@ type Date struct {
 	// if specifying a year/month where the day is not significant.
 	Day int64 `json:"day,omitempty"`
 
-	// Month: Month of year. Must be from 1 to 12.
+	// Month: Month of year. Must be from 1 to 12, or 0 if specifying a date
+	// without a
+	// month.
 	Month int64 `json:"month,omitempty"`
 
 	// Year: Year of date. Must be from 1 to 9999, or 0 if specifying a date
@@ -1587,6 +1589,12 @@ type Disapproval struct {
 	// specifications.
 	//   "UNSUPPORTED_FLASH_CONTENT" - Flash content was found in an
 	// unsupported context.
+	//   "MISUSE_BY_OMID_SCRIPT" - Misuse by an Open Measurement SDK script.
+	//   "NON_WHITELISTED_OMID_VENDOR" - Use of an Open Measurement SDK
+	// vendor not on approved whitelist.
+	//   "DESTINATION_EXPERIENCE" - Unacceptable landing page.
+	//   "UNSUPPORTED_LANGUAGE" - Unsupported language.
+	//   "NON_SSL_COMPLIANT" - Non-SSL compliant.
 	Reason string `json:"reason,omitempty"`
 
 	// ForceSendFields is a list of field names (e.g. "Details") to
@@ -1675,29 +1683,6 @@ type FilterSet struct {
 	//   "APP" - The ad impression appears in an app.
 	Environment string `json:"environment,omitempty"`
 
-	// Format: DEPRECATED: use repeated formats field instead.
-	// The format on which to filter; optional.
-	//
-	// Possible values:
-	//   "FORMAT_UNSPECIFIED" - A placeholder for an undefined format;
-	// indicates that no format filter
-	// will be applied.
-	//   "DISPLAY" - DEPRECATED: use combination of NATIVE_DISPLAY and
-	// NON_NATIVE_DISPLAY
-	// The ad impression is display format (i.e. an image).
-	//   "VIDEO" - DEPRECATED: use combination of NATIVE_VIDEO and
-	// NON_NATIVE_VIDEO
-	// The ad impression is video format.
-	//   "NATIVE_DISPLAY" - The ad impression is a native ad, and display
-	// (i.e. image) format.
-	//   "NATIVE_VIDEO" - The ad impression is a native ad, and video
-	// format.
-	//   "NON_NATIVE_DISPLAY" - The ad impression is not a native ad, and
-	// display (i.e. image) format.
-	//   "NON_NATIVE_VIDEO" - The ad impression is not a native ad, and
-	// video format.
-	Format string `json:"format,omitempty"`
-
 	// Formats: The list of formats on which to filter; may be empty. The
 	// filters
 	// represented by multiple formats are ORed together (i.e. if
@@ -1708,12 +1693,6 @@ type FilterSet struct {
 	//   "FORMAT_UNSPECIFIED" - A placeholder for an undefined format;
 	// indicates that no format filter
 	// will be applied.
-	//   "DISPLAY" - DEPRECATED: use combination of NATIVE_DISPLAY and
-	// NON_NATIVE_DISPLAY
-	// The ad impression is display format (i.e. an image).
-	//   "VIDEO" - DEPRECATED: use combination of NATIVE_VIDEO and
-	// NON_NATIVE_VIDEO
-	// The ad impression is video format.
 	//   "NATIVE_DISPLAY" - The ad impression is a native ad, and display
 	// (i.e. image) format.
 	//   "NATIVE_VIDEO" - The ad impression is a native ad, and video
@@ -1753,6 +1732,14 @@ type FilterSet struct {
 	//   "MOBILE" - The ad impression appears on a mobile device.
 	Platforms []string `json:"platforms,omitempty"`
 
+	// PublisherIdentifiers: For Exchange Bidding buyers only.
+	// The list of publisher identifiers on which to filter; may be
+	// empty.
+	// The filters represented by multiple publisher identifiers are
+	// ORed
+	// together.
+	PublisherIdentifiers []string `json:"publisherIdentifiers,omitempty"`
+
 	// RealtimeTimeRange: An open-ended realtime time range, defined by the
 	// aggregation start
 	// timestamp.
@@ -1763,8 +1750,9 @@ type FilterSet struct {
 	// Interpreted relative to Pacific time zone.
 	RelativeDateRange *RelativeDateRange `json:"relativeDateRange,omitempty"`
 
-	// SellerNetworkIds: The list of IDs of the seller (publisher) networks
-	// on which to filter;
+	// SellerNetworkIds: For Ad Exchange buyers only.
+	// The list of IDs of the seller (publisher) networks on which to
+	// filter;
 	// may be empty. The filters represented by multiple seller network IDs
 	// are
 	// ORed together (i.e. if non-empty, results must match any one of
@@ -5453,7 +5441,7 @@ func (c *AccountsCreativesListCall) PageToken(pageToken string) *AccountsCreativ
 // Query sets the optional parameter "query": An optional query string
 // to filter creatives. If no filter is specified,
 // all active creatives will be returned.
-// Supported queries
+// <p>Supported queries
 // are:
 // <ul>
 // <li>accountId=<i>account_id_string</i>
@@ -5598,7 +5586,7 @@ func (c *AccountsCreativesListCall) Do(opts ...googleapi.CallOption) (*ListCreat
 	//       "type": "string"
 	//     },
 	//     "query": {
-	//       "description": "An optional query string to filter creatives. If no filter is specified,\nall active creatives will be returned.\nSupported queries are:\n\u003cul\u003e\n\u003cli\u003eaccountId=\u003ci\u003eaccount_id_string\u003c/i\u003e\n\u003cli\u003ecreativeId=\u003ci\u003ecreative_id_string\u003c/i\u003e\n\u003cli\u003edealsStatus: {approved, conditionally_approved, disapproved,\n                   not_checked}\n\u003cli\u003eopenAuctionStatus: {approved, conditionally_approved, disapproved,\n                          not_checked}\n\u003cli\u003eattribute: {a numeric attribute from the list of attributes}\n\u003cli\u003edisapprovalReason: {a reason from\nDisapprovalReason}\n\u003c/ul\u003e\nExample: 'accountId=12345 AND (dealsStatus:disapproved AND\ndisapprovalReason:unacceptable_content) OR attribute:47'",
+	//       "description": "An optional query string to filter creatives. If no filter is specified,\nall active creatives will be returned.\n\u003cp\u003eSupported queries are:\n\u003cul\u003e\n\u003cli\u003eaccountId=\u003ci\u003eaccount_id_string\u003c/i\u003e\n\u003cli\u003ecreativeId=\u003ci\u003ecreative_id_string\u003c/i\u003e\n\u003cli\u003edealsStatus: {approved, conditionally_approved, disapproved,\n                   not_checked}\n\u003cli\u003eopenAuctionStatus: {approved, conditionally_approved, disapproved,\n                          not_checked}\n\u003cli\u003eattribute: {a numeric attribute from the list of attributes}\n\u003cli\u003edisapprovalReason: {a reason from\nDisapprovalReason}\n\u003c/ul\u003e\nExample: 'accountId=12345 AND (dealsStatus:disapproved AND\ndisapprovalReason:unacceptable_content) OR attribute:47'",
 	//       "location": "query",
 	//       "type": "string"
 	//     }

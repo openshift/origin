@@ -24,6 +24,7 @@ import (
 	"testing"
 
 	"github.com/vmware/govmomi/test"
+	"github.com/vmware/govmomi/vim25"
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
 )
@@ -74,7 +75,7 @@ func TestNewClient(t *testing.T) {
 	}
 
 	// invalid login
-	u.Path = "/sdk"
+	u.Path = vim25.Path
 	u.User = url.UserPassword("ENOENT", "EINVAL")
 	_, err = NewClient(context.Background(), u, true)
 	if err == nil {

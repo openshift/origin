@@ -43,7 +43,7 @@ func (c *FakeServiceCertSignerOperatorConfigs) List(opts v1.ListOptions) (result
 	if label == nil {
 		label = labels.Everything()
 	}
-	list := &v1alpha1.ServiceCertSignerOperatorConfigList{}
+	list := &v1alpha1.ServiceCertSignerOperatorConfigList{ListMeta: obj.(*v1alpha1.ServiceCertSignerOperatorConfigList).ListMeta}
 	for _, item := range obj.(*v1alpha1.ServiceCertSignerOperatorConfigList).Items {
 		if label.Matches(labels.Set(item.Labels)) {
 			list.Items = append(list.Items, item)

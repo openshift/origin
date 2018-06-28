@@ -1,8 +1,8 @@
-hash: d915b042f3861d7eb106e802b551e32b7476a9f77358ac2b8084b204ee7a3455
-updated: 2018-06-13T10:38:18.855094478-04:00
+hash: a41c94d1eab9ca796798ad7942f499374b3312245bef06422204c0df9508f883
+updated: 2018-06-14T15:40:18.907001365-04:00
 imports:
 - name: github.com/blang/semver
-  version: b38d23b8782a487059e8fc8773e9a5b228a77cb6
+  version: c5e971dbed7850a93c23aa6ff69db5771d8e23b3
 - name: github.com/certifi/gocertifi
   version: deb3ae2ef2610fde3330947281941c562861188b
 - name: github.com/davecgh/go-spew
@@ -25,13 +25,15 @@ imports:
   subpackages:
   - lru
 - name: github.com/golang/protobuf
-  version: 1643683e1b54a9e88ad26d98f81400c8c9d9f4f9
+  version: b4deda0973fb4c70b50d226b1af49f3da59f5265
   subpackages:
   - proto
   - ptypes
   - ptypes/any
   - ptypes/duration
   - ptypes/timestamp
+- name: github.com/google/btree
+  version: 7d79101e329e5a3adf994758c578dab82b90c017
 - name: github.com/google/gofuzz
   version: 44d81051d367757e1c7c6a5a86423ece9afcf63c
 - name: github.com/googleapis/gnostic
@@ -40,21 +42,29 @@ imports:
   - OpenAPIv2
   - compiler
   - extensions
-- name: github.com/howeyc/gopass
-  version: bf9dde6d0d2c004a008c27aaee91170c786f6db8
+- name: github.com/gregjones/httpcache
+  version: 787624de3eb7bd915c329cba748687a3b22666a6
+  subpackages:
+  - diskcache
 - name: github.com/imdario/mergo
   version: 6633656539c1639d9d78127b7d47c622b5d7b6dc
 - name: github.com/inconshreveable/mousetrap
   version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
 - name: github.com/json-iterator/go
-  version: 13f86432b882000a51c6e610c620974462691a97
+  version: 2ddf6d758266fcb080a4f9e054b9f292c85e6798
+- name: github.com/modern-go/concurrent
+  version: bacd9c7ef1dd9b15be4a9909b8ac7a4e313eec94
+- name: github.com/modern-go/reflect2
+  version: 05fbef0ca5da472bbf96c9322b84a53edc03c9fd
 - name: github.com/openshift/api
-  version: 6ef6704e604af539af656171d5c0bde774923a43
+  version: ff4ab5976ba41da2911ecbc07c84312e0959ac92
   subpackages:
   - config/v1
   - operator/v1alpha1
 - name: github.com/pborman/uuid
   version: ca53cad383cad2479bbba7f7a1a05797ec1386e4
+- name: github.com/peterbourgon/diskv
+  version: 5f041e8faa004a95c88a202771f4cc3e991971e6
 - name: github.com/pkg/errors
   version: 645ef00459ed84a119197bfb8d8205042c6df63d
 - name: github.com/pkg/profile
@@ -64,7 +74,7 @@ imports:
 - name: github.com/spf13/pflag
   version: 4c012f6dcd9546820e378d0bdda4d8fc772cdfea
 - name: golang.org/x/crypto
-  version: 81e90905daefcd6fd217b62423c0908922eadb30
+  version: 49796115aa4b964c318aad4f3084fdb41e9aa067
   subpackages:
   - ssh/terminal
 - name: golang.org/x/net
@@ -97,7 +107,7 @@ imports:
 - name: gopkg.in/yaml.v2
   version: 670d4cfef0544295bc27a114dbac37980d83185a
 - name: k8s.io/api
-  version: 73d903622b7391f3312dcbac6483fed484e185f8
+  version: 8c14244ab7eeffb1e4acd1ac1afb315b30fe67bf
   subpackages:
   - admissionregistration/v1alpha1
   - admissionregistration/v1beta1
@@ -123,17 +133,18 @@ imports:
   - rbac/v1alpha1
   - rbac/v1beta1
   - scheduling/v1alpha1
+  - scheduling/v1beta1
   - settings/v1alpha1
   - storage/v1
   - storage/v1alpha1
   - storage/v1beta1
 - name: k8s.io/apiextensions-apiserver
-  version: e8ab413e0ae1e19df66d60088a1e11c97b73fdd9
+  version: 9ec60251801ea40794ae03a3da1cd11a9c2ff09a
   subpackages:
   - pkg/apis/apiextensions
   - pkg/apis/apiextensions/v1beta1
 - name: k8s.io/apimachinery
-  version: 302974c03f7e50f16561ba237db776ab93594ef6
+  version: 1369ad3fdc6dcb2c933d7e570b349d71bd3052cf
   subpackages:
   - pkg/api/equality
   - pkg/api/errors
@@ -177,12 +188,12 @@ imports:
   - third_party/forked/golang/json
   - third_party/forked/golang/reflect
 - name: k8s.io/apiserver
-  version: 0841753fc26e934b715ca7a83dced5bcb721245a
+  version: 18a7bea1ce92a746c1a4cc7fa5838741657856ea
   subpackages:
   - pkg/authentication/user
   - pkg/util/logs
 - name: k8s.io/client-go
-  version: 33f2870a2b83179c823ddc90e5513f9e5fe43b38
+  version: 74dcea03361412e1f631eaf6d4d4a71d4066b934
   subpackages:
   - discovery
   - discovery/fake
@@ -237,6 +248,8 @@ imports:
   - kubernetes/typed/rbac/v1beta1/fake
   - kubernetes/typed/scheduling/v1alpha1
   - kubernetes/typed/scheduling/v1alpha1/fake
+  - kubernetes/typed/scheduling/v1beta1
+  - kubernetes/typed/scheduling/v1beta1/fake
   - kubernetes/typed/settings/v1alpha1
   - kubernetes/typed/settings/v1alpha1/fake
   - kubernetes/typed/storage/v1
@@ -247,6 +260,7 @@ imports:
   - kubernetes/typed/storage/v1beta1/fake
   - pkg/apis/clientauthentication
   - pkg/apis/clientauthentication/v1alpha1
+  - pkg/apis/clientauthentication/v1beta1
   - pkg/version
   - plugin/pkg/client/auth/exec
   - rest
@@ -264,11 +278,12 @@ imports:
   - tools/reference
   - transport
   - util/cert
+  - util/connrotation
   - util/flowcontrol
   - util/homedir
   - util/integer
 - name: k8s.io/kube-openapi
-  version: 50ae88d24ede7b8bad68e23c805b5d3da5c8abaf
+  version: 8a9b82f00b3a86eac24681da3f9fe6c34c01cea2
   subpackages:
   - pkg/util/proto
 testImports: []

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/pagination"
@@ -66,10 +67,10 @@ type SubnetPool struct {
 	ProjectID string `json:"project_id"`
 
 	// CreatedAt is the time at which subnetpool has been created.
-	CreatedAt string `json:"created_at"`
+	CreatedAt time.Time `json:"created_at"`
 
 	// UpdatedAt is the time at which subnetpool has been created.
-	UpdatedAt string `json:"updated_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 
 	// Prefixes is the list of subnet prefixes to assign to the subnetpool.
 	// Neutron API merges adjacent prefixes and treats them as a single prefix.

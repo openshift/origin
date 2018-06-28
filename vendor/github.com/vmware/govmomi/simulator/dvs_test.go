@@ -29,7 +29,6 @@ import (
 
 func TestDVS(t *testing.T) {
 	m := VPX()
-	m.Portgroup = 0 // disabled DVS creation
 
 	defer m.Remove()
 
@@ -46,10 +45,11 @@ func TestDVS(t *testing.T) {
 	finder.SetDatacenter(dc[0])
 	folders, _ := dc[0].Folders(ctx)
 	hosts, _ := finder.HostSystemList(ctx, "*/*")
+	dvs0 := object.NewDistributedVirtualSwitch(c, Map.Any("DistributedVirtualSwitch").Reference())
 
 	var spec types.DVSCreateSpec
 	spec.ConfigSpec = &types.VMwareDVSConfigSpec{}
-	spec.ConfigSpec.GetDVSConfigSpec().Name = "DVS0"
+	spec.ConfigSpec.GetDVSConfigSpec().Name = "DVS1"
 
 	dtask, err := folders.NetworkFolder.CreateDVS(ctx, spec)
 	if err != nil {
@@ -82,16 +82,21 @@ func TestDVS(t *testing.T) {
 		{types.ConfigSpecOperationRemove, "", nil},                            // Remove == OK
 		{types.ConfigSpecOperationAdd, "", nil},                               // Add == OK
 		{types.ConfigSpecOperationAdd, "DVPG0", nil},                          // Add PG == OK
-		{types.ConfigSpecOperationRemove, "", &types.ResourceInUse{}},         // Remove == fail (ResourceInUse)
+		{types.ConfigSpecOperationRemove, "", &types.ResourceInUse{}},         // Remove dvs0 == fail (ResourceInUse)
+		{types.ConfigSpecOperationRemove, "", nil},                            // Remove dvs1 == OK (no VMs attached)
 		{types.ConfigSpecOperationRemove, "", &types.ManagedObjectNotFound{}}, // Remove == fail (ManagedObjectNotFound)
 	}
 
 	for x, test := range tests {
+		dswitch := dvs
+
 		switch test.err.(type) {
 		case *types.ManagedObjectNotFound:
 			for i := range config.Host {
 				config.Host[i].Host.Value = "enoent"
 			}
+		case *types.ResourceInUse:
+			dswitch = dvs0
 		}
 
 		if test.pg == "" {
@@ -99,11 +104,11 @@ func TestDVS(t *testing.T) {
 				config.Host[i].Operation = string(test.op)
 			}
 
-			dtask, err = dvs.Reconfigure(ctx, config)
+			dtask, err = dswitch.Reconfigure(ctx, config)
 		} else {
 			switch test.op {
 			case types.ConfigSpecOperationAdd:
-				dtask, err = dvs.AddPortgroup(ctx, []types.DVPortgroupConfigSpec{{Name: test.pg}})
+				dtask, err = dswitch.AddPortgroup(ctx, []types.DVPortgroupConfigSpec{{Name: test.pg}})
 			}
 		}
 
@@ -115,7 +120,7 @@ func TestDVS(t *testing.T) {
 
 		if test.err == nil {
 			if err != nil {
-				t.Fatal(err)
+				t.Fatalf("%d: %s", x, err)
 			}
 			continue
 		}
@@ -129,12 +134,12 @@ func TestDVS(t *testing.T) {
 		}
 	}
 
-	ports, err := dvs.FetchDVPorts(ctx)
+	ports, err := dvs.FetchDVPorts(ctx, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(ports) != 1 {
-		t.Fatalf("expected 1 ports in DVPorts; got %d", len(ports))
+	if len(ports) != 2 {
+		t.Fatalf("expected 2 ports in DVPorts; got %d", len(ports))
 	}
 
 	dtask, err = dvs.Destroy(ctx)

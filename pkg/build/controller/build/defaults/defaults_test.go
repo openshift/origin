@@ -26,12 +26,12 @@ func TestProxyDefaults(t *testing.T) {
 	}
 
 	admitter := BuildDefaults{defaultsConfig}
-	pod := u.Pod().WithBuild(t, u.Build().WithDockerStrategy().AsBuild(), "v1")
+	pod := u.Pod().WithBuild(t, u.Build().WithDockerStrategy().AsBuild())
 	err := admitter.ApplyDefaults((*v1.Pod)(pod))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	build, _, err := buildadmission.GetBuildFromPod((*v1.Pod)(pod))
+	build, err := buildadmission.GetBuildFromPod((*v1.Pod)(pod))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -66,12 +66,12 @@ func TestEnvDefaults(t *testing.T) {
 	}
 
 	admitter := BuildDefaults{defaultsConfig}
-	pod := u.Pod().WithBuild(t, u.Build().WithSourceStrategy().AsBuild(), "v1")
+	pod := u.Pod().WithBuild(t, u.Build().WithSourceStrategy().AsBuild())
 	err := admitter.ApplyDefaults((*v1.Pod)(pod))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	build, _, err := buildadmission.GetBuildFromPod((*v1.Pod)(pod))
+	build, err := buildadmission.GetBuildFromPod((*v1.Pod)(pod))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -124,12 +124,12 @@ func TestIncrementalDefaults(t *testing.T) {
 
 	admitter := BuildDefaults{defaultsConfig}
 
-	pod := u.Pod().WithBuild(t, u.Build().WithSourceStrategy().AsBuild(), "v1")
+	pod := u.Pod().WithBuild(t, u.Build().WithSourceStrategy().AsBuild())
 	err := admitter.ApplyDefaults((*v1.Pod)(pod))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	build, _, err := buildadmission.GetBuildFromPod((*v1.Pod)(pod))
+	build, err := buildadmission.GetBuildFromPod((*v1.Pod)(pod))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -140,12 +140,12 @@ func TestIncrementalDefaults(t *testing.T) {
 	build = u.Build().WithSourceStrategy().AsBuild()
 	bool_f := false
 	build.Spec.Strategy.SourceStrategy.Incremental = &bool_f
-	pod = u.Pod().WithBuild(t, build, "v1")
+	pod = u.Pod().WithBuild(t, build)
 	err = admitter.ApplyDefaults((*v1.Pod)(pod))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	build, _, err = buildadmission.GetBuildFromPod((*v1.Pod)(pod))
+	build, err = buildadmission.GetBuildFromPod((*v1.Pod)(pod))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -272,7 +272,7 @@ func TestLabelDefaults(t *testing.T) {
 		}
 
 		admitter := BuildDefaults{defaultsConfig}
-		pod := u.Pod().WithBuild(t, u.Build().WithImageLabels(test.buildLabels).AsBuild(), "v1")
+		pod := u.Pod().WithBuild(t, u.Build().WithImageLabels(test.buildLabels).AsBuild())
 		err := admitter.ApplyDefaults((*v1.Pod)(pod))
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -318,7 +318,7 @@ func TestBuildDefaultsNodeSelector(t *testing.T) {
 
 	for _, test := range tests {
 		defaults := BuildDefaults{config: &defaultsapi.BuildDefaultsConfig{NodeSelector: test.defaults}}
-		pod := u.Pod().WithBuild(t, test.build, "v1")
+		pod := u.Pod().WithBuild(t, test.build)
 		// normally the pod will have the nodeselectors from the build, due to the pod creation logic
 		// in the build controller flow. fake it out here.
 		pod.Spec.NodeSelector = test.build.Spec.NodeSelector
@@ -370,7 +370,7 @@ func TestBuildDefaultsAnnotations(t *testing.T) {
 
 	for _, test := range tests {
 		defaults := BuildDefaults{config: &defaultsapi.BuildDefaultsConfig{Annotations: test.defaults}}
-		pod := u.Pod().WithBuild(t, test.build, "v1")
+		pod := u.Pod().WithBuild(t, test.build)
 		pod.Annotations = test.annotations
 		err := defaults.ApplyDefaults((*v1.Pod)(pod))
 		if err != nil {
@@ -566,7 +566,7 @@ func TestResourceDefaults(t *testing.T) {
 
 		build := u.Build().WithSourceStrategy().AsBuild()
 		build.Spec.Resources = test.BuildResource
-		pod := u.Pod().WithBuild(t, build, "v1")
+		pod := u.Pod().WithBuild(t, build)
 
 		// normally the buildconfig resources would be applied to the pod
 		// when it was created, but this pod didn't get created by the normal
@@ -581,7 +581,7 @@ func TestResourceDefaults(t *testing.T) {
 		if err != nil {
 			t.Fatalf("%v :unexpected error: %v", name, err)
 		}
-		build, _, err = buildadmission.GetBuildFromPod((*v1.Pod)(pod))
+		build, err = buildadmission.GetBuildFromPod((*v1.Pod)(pod))
 		if err != nil {
 			t.Fatalf("%v :unexpected error: %v", name, err)
 		}

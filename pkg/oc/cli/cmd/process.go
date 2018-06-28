@@ -14,7 +14,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
@@ -22,12 +21,12 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/kubectl/resource"
-	kprinters "k8s.io/kubernetes/pkg/printers"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/oc/cli/describe"
 	"github.com/openshift/origin/pkg/oc/generate/app"
+	"github.com/openshift/origin/pkg/oc/util/ocscheme"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	templatevalidation "github.com/openshift/origin/pkg/template/apis/template/validation"
 	templateinternalclient "github.com/openshift/origin/pkg/template/client/internalversion"
@@ -163,7 +162,7 @@ func RunProcess(f kcmdutil.Factory, in io.Reader, out, errout io.Writer, cmd *co
 	}
 
 	// the namespace
-	namespace, explicit, err := f.DefaultNamespace()
+	namespace, explicit, err := f.ToRawKubeConfigLoader().Namespace()
 	// we only need to fail on namespace acquisition if we're actually taking action.  Otherwise the namespace can be enforced later
 	if err != nil && !local {
 		return err
@@ -173,16 +172,13 @@ func RunProcess(f kcmdutil.Factory, in io.Reader, out, errout io.Writer, cmd *co
 		objects []runtime.Object
 		infos   []*resource.Info
 
-		mapper meta.RESTMapper
 		client templateclient.TemplateInterface
 	)
 
 	if local {
 		// TODO: Change f.Object() so that it can fall back to local RESTMapper safely (currently glog.Fatals)
-		mapper = legacyscheme.Registry.RESTMapper()
-		// client is deliberately left nil
 	} else {
-		clientConfig, err := f.ClientConfig()
+		clientConfig, err := f.ToRESTConfig()
 		if err != nil {
 			return err
 		}
@@ -191,11 +187,6 @@ func RunProcess(f kcmdutil.Factory, in io.Reader, out, errout io.Writer, cmd *co
 			return err
 		}
 		client = templateClient.Template()
-		mapper, _ = f.Object()
-	}
-	mapping, err := mapper.RESTMapping(templateapi.Kind("Template"))
-	if err != nil {
-		return err
 	}
 
 	// When templateName is not empty, then we fetch the template from the
@@ -228,7 +219,7 @@ func RunProcess(f kcmdutil.Factory, in io.Reader, out, errout io.Writer, cmd *co
 		infos = append(infos, &resource.Info{Object: templateObj})
 	} else {
 		infos, err = f.NewBuilder().
-			Internal().
+			WithScheme(ocscheme.ReadingInternalScheme).
 			LocalParam(local).
 			FilenameParam(explicit, &resource.FilenameOptions{Recursive: false, Filenames: []string{filename}}).
 			Do().
@@ -330,19 +321,6 @@ func RunProcess(f kcmdutil.Factory, in io.Reader, out, errout io.Writer, cmd *co
 	if err != nil {
 		return err
 	}
-	var version schema.GroupVersion
-	outputVersionString := kcmdutil.GetFlagString(cmd, "output-version")
-	if len(outputVersionString) == 0 {
-		version = mapping.GroupVersionKind.GroupVersion()
-	} else {
-		version, err = schema.ParseGroupVersion(outputVersionString)
-		if err != nil {
-			return err
-		}
-	}
-	// Prefer the Kubernetes core group for the List over the template.openshift.io
-	version.Group = kapi.GroupName
-	p = kprinters.NewVersionedPrinter(p, legacyscheme.Scheme, legacyscheme.Scheme, version)
 
 	// use generic output
 	if kcmdutil.GetFlagBool(cmd, "raw") {

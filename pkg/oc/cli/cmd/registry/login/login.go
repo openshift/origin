@@ -119,14 +119,14 @@ func New(name string, f kcmdutil.Factory, out, errOut io.Writer) *cobra.Command 
 }
 
 func (o *LoginOptions) Complete(f kcmdutil.Factory, args []string) error {
-	cfg, err := f.ClientConfig()
+	cfg, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}
 
 	switch {
 	case len(o.ServiceAccount) > 0:
-		ns, _, err := f.DefaultNamespace()
+		ns, _, err := f.ToRawKubeConfigLoader().Namespace()
 		if err != nil {
 			return err
 		}
@@ -179,7 +179,7 @@ func (o *LoginOptions) Complete(f kcmdutil.Factory, args []string) error {
 		if err != nil {
 			return err
 		}
-		ns, _, err := f.DefaultNamespace()
+		ns, _, err := f.ToRawKubeConfigLoader().Namespace()
 		if err != nil {
 			return err
 		}

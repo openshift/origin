@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 
+	"github.com/openshift/origin/pkg/oc/util/ocscheme"
 	"github.com/spf13/cobra"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -12,12 +13,12 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/kubectl/resource"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 	kprinters "k8s.io/kubernetes/pkg/printers"
 
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 )
 
@@ -92,7 +93,7 @@ func RunExport(f kcmdutil.Factory, exporter Exporter, in io.Reader, out io.Write
 		return kcmdutil.UsageErrorf(cmd, "--exact and --raw may not both be specified")
 	}
 
-	clientConfig, err := f.ClientConfig()
+	clientConfig, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}
@@ -108,7 +109,7 @@ func RunExport(f kcmdutil.Factory, exporter Exporter, in io.Reader, out io.Write
 		}
 	}
 
-	cmdNamespace, explicit, err := f.DefaultNamespace()
+	cmdNamespace, explicit, err := f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
 	}
@@ -138,7 +139,7 @@ func RunExport(f kcmdutil.Factory, exporter Exporter, in io.Reader, out io.Write
 			converted := false
 
 			// convert unstructured object to runtime.Object
-			data, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(), info.Object)
+			data, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(ocscheme.PrintingInternalScheme.PrioritizedVersionsAllGroups()...), info.Object)
 			if err != nil {
 				errs = append(errs, err)
 				continue
@@ -163,7 +164,10 @@ func RunExport(f kcmdutil.Factory, exporter Exporter, in io.Reader, out io.Write
 			// If object cannot be converted to an external version, ignore error and proceed with
 			// internal version.
 			if converted {
-				if data, err = runtime.Encode(legacyscheme.Codecs.LegacyCodec(outputVersion), info.Object); err == nil {
+				if data, err = runtime.Encode(
+					legacyscheme.Codecs.LegacyCodec(
+						append([]schema.GroupVersion{outputVersion}, ocscheme.PrintingInternalScheme.PrioritizedVersionsAllGroups()...)...,
+					), info.Object); err == nil {
 					external, err := runtime.Decode(legacyscheme.Codecs.UniversalDeserializer(), data)
 					if err != nil {
 						errs = append(errs, fmt.Errorf("error: failed to convert resource to external version: %v", err))
@@ -181,27 +185,24 @@ func RunExport(f kcmdutil.Factory, exporter Exporter, in io.Reader, out io.Write
 		infos = newInfos
 	}
 
-	var result runtime.Object
+	objects := []runtime.Object{}
+	for i := range infos {
+		objects = append(objects, infos[i].Object)
+	}
+	var result runtime.Object = &kapi.List{
+		Items: objects,
+	}
+	if len(objects) == 1 {
+		result = objects[0]
+	}
 	if len(asTemplate) > 0 {
-		objects, err := clientcmd.AsVersionedObjects(infos, outputVersion, legacyscheme.Codecs.LegacyCodec(outputVersion))
-		if err != nil {
-			return err
-		}
 		template := &templateapi.Template{
 			Objects: objects,
 		}
 		template.Name = asTemplate
-		result, err = legacyscheme.Scheme.ConvertToVersion(template, outputVersion)
-		if err != nil {
-			return err
-		}
-	} else {
-		object, err := clientcmd.AsVersionedObject(infos, !one, outputVersion, legacyscheme.Codecs.LegacyCodec(outputVersion))
-		if err != nil {
-			return err
-		}
-		result = object
+		result = template
 	}
+	result = kcmdutil.AsDefaultVersionedOrOriginal(result, nil)
 
 	// use YAML as the default format
 	outputFormat := kcmdutil.GetFlagString(cmd, "output")
@@ -218,9 +219,8 @@ func RunExport(f kcmdutil.Factory, exporter Exporter, in io.Reader, out io.Write
 	printOpts.OutputFormatArgument = templateFile
 	printOpts.AllowMissingKeys = kcmdutil.GetFlagBool(cmd, "allow-missing-template-keys")
 
-	_, typer := f.Object()
 	p, err := kprinters.GetStandardPrinter(
-		typer, legacyscheme.Codecs.LegacyCodec(outputVersion), decoders, *printOpts)
+		legacyscheme.Scheme, legacyscheme.Codecs.LegacyCodec(append([]schema.GroupVersion{outputVersion}, ocscheme.PrintingInternalScheme.PrioritizedVersionsAllGroups()...)...), decoders, *printOpts)
 
 	if err != nil {
 		return err

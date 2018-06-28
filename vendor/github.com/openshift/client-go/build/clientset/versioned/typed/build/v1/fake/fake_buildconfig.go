@@ -46,7 +46,7 @@ func (c *FakeBuildConfigs) List(opts v1.ListOptions) (result *build_v1.BuildConf
 	if label == nil {
 		label = labels.Everything()
 	}
-	list := &build_v1.BuildConfigList{}
+	list := &build_v1.BuildConfigList{ListMeta: obj.(*build_v1.BuildConfigList).ListMeta}
 	for _, item := range obj.(*build_v1.BuildConfigList).Items {
 		if label.Matches(labels.Set(item.Labels)) {
 			list.Items = append(list.Items, item)

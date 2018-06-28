@@ -5,8 +5,8 @@ import (
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 	"k8s.io/apiserver/pkg/authorization/authorizerfactory"
 	authorizerunion "k8s.io/apiserver/pkg/authorization/union"
+	rbacinformers "k8s.io/client-go/informers/rbac/v1"
 	"k8s.io/kubernetes/pkg/auth/nodeidentifier"
-	rbacinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion/rbac/internalversion"
 	rbacregistryvalidation "k8s.io/kubernetes/pkg/registry/rbac/validation"
 	"k8s.io/kubernetes/plugin/pkg/auth/authorizer/node"
 	rbacauthorizer "k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac"
@@ -19,7 +19,7 @@ import (
 
 func NewAuthorizer(informers InformerAccess, projectRequestDenyMessage string) authorizer.Authorizer {
 	messageMaker := openshiftauthorizer.NewForbiddenMessageResolver(projectRequestDenyMessage)
-	rbacInformers := informers.GetInternalKubeInformers().Rbac().InternalVersion()
+	rbacInformers := informers.GetExternalKubeInformers().Rbac().V1()
 
 	scopeLimitedAuthorizer := scope.NewAuthorizer(rbacInformers.ClusterRoles().Lister(), messageMaker)
 
@@ -33,6 +33,7 @@ func NewAuthorizer(informers InformerAccess, projectRequestDenyMessage string) a
 	graph := node.NewGraph()
 	node.AddGraphEventHandlers(
 		graph,
+		informers.GetInternalKubeInformers().Core().InternalVersion().Nodes(),
 		informers.GetInternalKubeInformers().Core().InternalVersion().Pods(),
 		informers.GetInternalKubeInformers().Core().InternalVersion().PersistentVolumes(),
 		informers.GetExternalKubeInformers().Storage().V1beta1().VolumeAttachments(),

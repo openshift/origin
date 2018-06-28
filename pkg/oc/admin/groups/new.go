@@ -79,7 +79,7 @@ func (o *NewGroupOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args 
 		o.Users = append(o.Users, args[1:]...)
 	}
 
-	clientConfig, err := f.ClientConfig()
+	clientConfig, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}

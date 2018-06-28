@@ -1,5 +1,5 @@
 /*
-Copyright 2018 The Kubernetes Authors.
+Copyright The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -59,7 +59,7 @@ func (c *FakeAPIServices) List(opts v1.ListOptions) (result *apiregistration_v1.
 	if label == nil {
 		label = labels.Everything()
 	}
-	list := &apiregistration_v1.APIServiceList{}
+	list := &apiregistration_v1.APIServiceList{ListMeta: obj.(*apiregistration_v1.APIServiceList).ListMeta}
 	for _, item := range obj.(*apiregistration_v1.APIServiceList).Items {
 		if label.Matches(labels.Set(item.Labels)) {
 			list.Items = append(list.Items, item)

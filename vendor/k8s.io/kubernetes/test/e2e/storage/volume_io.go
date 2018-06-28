@@ -33,6 +33,7 @@ import (
 	"path"
 	"strconv"
 	"strings"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -64,6 +65,7 @@ var md5hashes = map[int64]string{
 func makePodSpec(config framework.VolumeTestConfig, dir, initCmd string, volsrc v1.VolumeSource, podSecContext *v1.PodSecurityContext) *v1.Pod {
 	volName := fmt.Sprintf("%s-%s", config.Prefix, "io-volume")
 
+	var gracePeriod int64 = 1
 	return &v1.Pod{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Pod",
@@ -110,7 +112,8 @@ func makePodSpec(config framework.VolumeTestConfig, dir, initCmd string, volsrc 
 					},
 				},
 			},
-			SecurityContext: podSecContext,
+			TerminationGracePeriodSeconds: &gracePeriod,
+			SecurityContext:               podSecContext,
 			Volumes: []v1.Volume{
 				{
 					Name:         volName,
@@ -209,6 +212,9 @@ func testVolumeIO(f *framework.Framework, cs clientset.Interface, config framewo
 			if err == nil { // delete err is returned if err is not set
 				err = e
 			}
+		} else {
+			framework.Logf("sleeping a bit so kubelet can unmount and detach the volume")
+			time.Sleep(framework.PodCleanupTimeout)
 		}
 	}()
 
@@ -379,33 +385,11 @@ var _ = utils.SIGDescribe("Volume plugin streaming [Slow]", func() {
 	Describe("Ceph-RBD [Feature:Volumes]", func() {
 		var (
 			secret *v1.Secret
-			name   string
 		)
 		testFile := "ceph-rbd_io_test"
 
 		BeforeEach(func() {
-			config, serverPod, serverIP = framework.NewRBDServer(cs, ns)
-			name = config.Prefix + "-server"
-
-			// create server secret
-			secret = &v1.Secret{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "Secret",
-					APIVersion: "v1",
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name: name,
-				},
-				Data: map[string][]byte{
-					// from test/images/volumes-tester/rbd/keyring
-					"key": []byte("AQDRrKNVbEevChAAEmRC+pW/KBVHxa0w/POILA=="),
-				},
-				Type: "kubernetes.io/rbd",
-			}
-			var err error
-			secret, err = cs.CoreV1().Secrets(ns).Create(secret)
-			Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("BeforeEach: failed to create secret %q for Ceph-RBD: %v", name, err))
-
+			config, serverPod, secret, serverIP = framework.NewRBDServer(cs, ns)
 			volSource = v1.VolumeSource{
 				RBD: &v1.RBDVolumeSource{
 					CephMonitors: []string{serverIP},
@@ -413,22 +397,22 @@ var _ = utils.SIGDescribe("Volume plugin streaming [Slow]", func() {
 					RBDImage:     "foo",
 					RadosUser:    "admin",
 					SecretRef: &v1.LocalObjectReference{
-						Name: name,
+						Name: secret.Name,
 					},
 					FSType:   "ext2",
-					ReadOnly: true,
+					ReadOnly: false,
 				},
 			}
 		})
 
 		AfterEach(func() {
-			framework.Logf("AfterEach: deleting Ceph-RDB server secret %q...", name)
-			secErr := cs.CoreV1().Secrets(ns).Delete(name, &metav1.DeleteOptions{})
+			framework.Logf("AfterEach: deleting Ceph-RDB server secret %q...", secret.Name)
+			secErr := cs.CoreV1().Secrets(ns).Delete(secret.Name, &metav1.DeleteOptions{})
 			framework.Logf("AfterEach: deleting Ceph-RDB server pod %q...", serverPod.Name)
 			err := framework.DeletePodWithWait(f, cs, serverPod)
 			if secErr != nil || err != nil {
 				if secErr != nil {
-					framework.Logf("AfterEach: Ceph-RDB delete secret failed: %v", err)
+					framework.Logf("AfterEach: Ceph-RDB delete secret failed: %v", secErr)
 				}
 				if err != nil {
 					framework.Logf("AfterEach: Ceph-RDB server pod delete failed: %v", err)

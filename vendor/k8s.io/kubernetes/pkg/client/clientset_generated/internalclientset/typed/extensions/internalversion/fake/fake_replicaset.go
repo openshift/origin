@@ -1,5 +1,5 @@
 /*
-Copyright 2018 The Kubernetes Authors.
+Copyright The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -63,7 +63,7 @@ func (c *FakeReplicaSets) List(opts v1.ListOptions) (result *extensions.ReplicaS
 	if label == nil {
 		label = labels.Everything()
 	}
-	list := &extensions.ReplicaSetList{}
+	list := &extensions.ReplicaSetList{ListMeta: obj.(*extensions.ReplicaSetList).ListMeta}
 	for _, item := range obj.(*extensions.ReplicaSetList).Items {
 		if label.Matches(labels.Set(item.Labels)) {
 			list.Items = append(list.Items, item)

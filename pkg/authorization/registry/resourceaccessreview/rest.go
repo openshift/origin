@@ -1,6 +1,7 @@
 package resourceaccessreview
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
@@ -26,6 +27,7 @@ type REST struct {
 }
 
 var _ rest.Creater = &REST{}
+var _ rest.Scoper = &REST{}
 
 // NewREST creates a new REST for policies.
 func NewREST(authorizer kauthorizer.Authorizer, subjectLocator rbac.SubjectLocator) *REST {
@@ -37,8 +39,12 @@ func (r *REST) New() runtime.Object {
 	return &authorizationapi.ResourceAccessReview{}
 }
 
+func (s *REST) NamespaceScoped() bool {
+	return false
+}
+
 // Create registers a given new ResourceAccessReview instance to r.registry.
-func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, _ rest.ValidateObjectFunc, _ bool) (runtime.Object, error) {
+func (r *REST) Create(ctx context.Context, obj runtime.Object, _ rest.ValidateObjectFunc, _ bool) (runtime.Object, error) {
 	resourceAccessReview, ok := obj.(*authorizationapi.ResourceAccessReview)
 	if !ok {
 		return nil, kapierrors.NewBadRequest(fmt.Sprintf("not a resourceAccessReview: %#v", obj))

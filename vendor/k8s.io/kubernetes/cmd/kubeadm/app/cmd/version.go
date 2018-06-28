@@ -22,11 +22,11 @@ import (
 	"io"
 
 	"github.com/ghodss/yaml"
+	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
 	apimachineryversion "k8s.io/apimachinery/pkg/version"
 	kubeadmutil "k8s.io/kubernetes/cmd/kubeadm/app/util"
-	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/util/i18n"
 	"k8s.io/kubernetes/pkg/version"
 )
@@ -53,12 +53,19 @@ func NewCmdVersion(out io.Writer) *cobra.Command {
 // RunVersion provides the version information of kubeadm in format depending on arguments
 // specified in cobra.Command.
 func RunVersion(out io.Writer, cmd *cobra.Command) error {
+	glog.V(1).Infoln("[version] retrieving version info")
 	clientVersion := version.Get()
 	v := Version{
 		ClientVersion: &clientVersion,
 	}
 
-	switch of := cmdutil.GetFlagString(cmd, "output"); of {
+	const flag = "output"
+	of, err := cmd.Flags().GetString(flag)
+	if err != nil {
+		glog.Fatalf("error accessing flag %s for command %s: %v", flag, cmd.Name(), err)
+	}
+
+	switch of {
 	case "":
 		fmt.Fprintf(out, "kubeadm version: %#v\n", v.ClientVersion)
 	case "short":

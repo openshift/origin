@@ -136,8 +136,8 @@ os::cmd::expect_success 'oc new-app -f test/testdata/template-with-namespaces.js
 os::cmd::expect_success 'oc delete all -l app=ruby-helloworld-sample'
 
 # ensure non-duplicate invalid label errors show up
-os::cmd::expect_failure_and_text 'oc new-app docker.io/library/wordpress -l qwer1345%$$#=self' 'error: ImageStream "wordpress" is invalid'
-os::cmd::expect_failure_and_text 'oc new-app docker.io/library/wordpress -l qwer1345%$$#=self' 'DeploymentConfig "wordpress" is invalid'
+os::cmd::expect_failure_and_text 'oc new-app docker.io/library/wordpress -l qwer1345%$$#=self' 'error: ImageStream.image.openshift.io "wordpress" is invalid'
+os::cmd::expect_failure_and_text 'oc new-app docker.io/library/wordpress -l qwer1345%$$#=self' 'DeploymentConfig.apps.openshift.io "wordpress" is invalid'
 os::cmd::expect_failure_and_text 'oc new-app docker.io/library/wordpress -l qwer1345%$$#=self' 'Service "wordpress" is invalid'
 
 # check if we can create from a stored template
@@ -151,11 +151,6 @@ os::cmd::expect_success_and_text  'oc new-app -e OPENSHIFT_ENABLE_OAUTH=false -f
 
 # check that multiple resource groups are printed with their respective external version
 os::cmd::expect_success_and_text 'oc new-app -f test/testdata/template_multiple_resource_gvs.yaml -o yaml' 'apiVersion: apps/v1'
-# check that if an --output-version is requested on a list of varying resource kinds, an error is returned if
-# at least one of the resource groups does not support the given version
-os::cmd::expect_failure_and_text 'oc new-app -f test/testdata/template_multiple_resource_gvs.yaml -o yaml --output-version=v1' 'extensions.Deployment is not suitable for converting'
-os::cmd::expect_failure_and_text 'oc new-app -f test/testdata/template_multiple_resource_gvs.yaml -o yaml --output-version=extensions/v1beta1' 'core.Secret is not suitable for converting'
-os::cmd::expect_failure_and_not_text 'oc new-app -f test/testdata/template_multiple_resource_gvs.yaml -o yaml --output-version=apps/v1beta1' 'extensions.Deployment is not suitable for converting'
 
 # check that an error is produced when using --context-dir with a template
 os::cmd::expect_failure_and_text 'oc new-app -f examples/sample-app/application-template-stibuild.json --context-dir=example' '\-\-context-dir is not supported when using a template'
@@ -435,8 +430,8 @@ os::cmd::expect_success 'oc new-app --image-stream ruby:2.5 https://github.com/o
 os::cmd::expect_success 'oc delete imagestreams --all'
 
 # newapp does not attempt to create an imagestream that already exists for a Docker image
-os::cmd::expect_success_and_text 'oc new-app docker.io/ruby:latest~https://github.com/sclorg/ruby-ex.git --name=testapp1 --strategy=docker' 'imagestream "ruby" created'
-os::cmd::expect_success_and_not_text 'oc new-app docker.io/ruby:latest~https://github.com/sclorg/ruby-ex.git --name=testapp2 --strategy=docker' '"ruby" already exists'
+os::cmd::expect_success_and_text 'oc new-app docker.io/ruby:latest~https://github.com/sclorg/ruby-ex.git --name=testapp1 --strategy=docker' 'imagestream.image.openshift.io "ruby" created'
+os::cmd::expect_success_and_not_text 'oc new-app docker.io/ruby:latest~https://github.com/sclorg/ruby-ex.git --name=testapp2 --strategy=docker' '"ruby:latest" already exists'
 os::cmd::expect_success 'oc delete all -l app=testapp2'
 os::cmd::expect_success 'oc delete all -l app=testapp1'
 os::cmd::expect_success 'oc delete all -l app=ruby --ignore-not-found'
@@ -444,7 +439,7 @@ os::cmd::expect_success 'oc delete imagestreams --all --ignore-not-found'
 # newapp does not attempt to create an imagestream that already exists for a Docker image
 os::cmd::expect_success 'oc new-app docker.io/ruby:2.2'
 # the next one technically fails cause the DC is already created, but we should still see the ist created
-os::cmd::expect_failure_and_text 'oc new-app docker.io/ruby:2.4' 'imagestreamtag "ruby:2.4" created'
+os::cmd::expect_failure_and_text 'oc new-app docker.io/ruby:2.4' 'imagestreamtag.image.openshift.io "ruby:2.4" created'
 os::cmd::expect_success 'oc delete imagestreams --all --ignore-not-found'
 
 # check that we can create from the template without errors
@@ -461,7 +456,7 @@ os::cmd::expect_success 'oc new-app https://github.com/openshift/ruby-hello-worl
 os::cmd::expect_success 'oc delete all -l app=ruby'
 # check for error when template JSON file has errors
 jsonfile="${OS_ROOT}/test/testdata/invalid.json"
-os::cmd::expect_failure_and_text "oc new-app '${jsonfile}'" "error: unable to load template file \"${jsonfile}\": json: line 0: invalid character '}' after object key"
+os::cmd::expect_failure_and_text "oc new-app '${jsonfile}'" "error: unable to load template file \"${jsonfile}\": error parsing ${jsonfile}: json: line 0: invalid character '}' after object key"
 
 # check new-build
 os::cmd::expect_failure_and_text 'oc new-build mysql -o yaml' 'you must specify at least one source repository URL'

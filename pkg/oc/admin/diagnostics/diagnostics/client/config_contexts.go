@@ -11,7 +11,6 @@ import (
 	kclientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/types"
-	osclientcmd "github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	projectclientinternal "github.com/openshift/origin/pkg/project/generated/internalclientset"
 )
 
@@ -236,8 +235,8 @@ func (d ConfigContext) Check() types.DiagnosticResult {
 
 	// Actually send a request to see if context has connectivity.
 	// Note: we cannot reuse factories as they cache the clients, so build new factory for each context.
-	temporaryFactory := osclientcmd.NewFactory(kclientcmd.NewDefaultClientConfig(*d.RawConfig, &kclientcmd.ConfigOverrides{Context: *context}))
-	clientConfig, err := temporaryFactory.ClientConfig()
+	kubeconfigLoader := kclientcmd.NewDefaultClientConfig(*d.RawConfig, &kclientcmd.ConfigOverrides{Context: *context})
+	clientConfig, err := kubeconfigLoader.ClientConfig()
 	if err == nil {
 		projectClient, cfgerr := projectclientinternal.NewForConfig(clientConfig)
 		// client create now *fails* if cannot connect to server; so, address connectivity errors below

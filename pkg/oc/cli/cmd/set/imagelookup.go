@@ -12,14 +12,14 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/kubectl/resource"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 
 	ometa "github.com/openshift/origin/pkg/api/meta"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
+	"github.com/openshift/origin/pkg/oc/util/ocscheme"
 )
 
 var (
@@ -141,12 +141,12 @@ func NewCmdImageLookup(fullName, parentName string, f kcmdutil.Factory, out, err
 
 // Complete takes command line information to fill out ImageLookupOptions or returns an error.
 func (o *ImageLookupOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string) error {
-	cmdNamespace, explicit, err := f.DefaultNamespace()
+	cmdNamespace, explicit, err := f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
 	}
 
-	clientConfig, err := f.ClientConfig()
+	clientConfig, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}
@@ -163,9 +163,12 @@ func (o *ImageLookupOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, ar
 
 	o.PrintTable = (len(args) == 0 && !o.All) || o.List
 
-	mapper, _ := f.Object()
+	mapper, err := f.ToRESTMapper()
+	if err != nil {
+		return err
+	}
 	o.Builder = f.NewBuilder().
-		Internal().
+		WithScheme(ocscheme.ReadingInternalScheme).
 		LocalParam(o.Local).
 		ContinueOnError().
 		NamespaceParam(cmdNamespace).DefaultNamespace().
@@ -268,11 +271,14 @@ func (o *ImageLookupOptions) Run() error {
 		return fmt.Errorf("%s/%s no changes", infos[0].Mapping.Resource, infos[0].Name)
 	}
 	if o.PrintObject != nil {
-		object, err := clientcmd.AsVersionedObject(infos, !singleItemImplied, o.OutputVersion, legacyscheme.Codecs.LegacyCodec(o.OutputVersion))
-		if err != nil {
-			return err
+		allErrs := []error{}
+		for i := range infos {
+			if err := o.PrintObject(kcmdutil.AsDefaultVersionedOrOriginal(infos[i].Object, infos[i].Mapping)); err != nil {
+				allErrs = append(allErrs, err)
+			}
 		}
-		return o.PrintObject(object)
+
+		return utilerrors.NewAggregate(allErrs)
 	}
 
 	failed := false

@@ -1,5 +1,5 @@
-hash: 6117e8c021d028cdf0da606479635438ec604db12fb7e7a087e6290c53081ecd
-updated: 2018-06-13T10:25:52.727017566-04:00
+hash: e8a0b9979f43dd20824a60f16053e211bb34db11fe4d114c79a35530bfbf498c
+updated: 2018-06-14T15:23:25.476553622-04:00
 imports:
 - name: github.com/davecgh/go-spew
   version: 782f4967f2dc4564575ca782fe2d04090b5faca8
@@ -15,13 +15,15 @@ imports:
 - name: github.com/golang/glog
   version: 44145f04b68cf362d9c4df2182967c2275eaefed
 - name: github.com/golang/protobuf
-  version: 1643683e1b54a9e88ad26d98f81400c8c9d9f4f9
+  version: b4deda0973fb4c70b50d226b1af49f3da59f5265
   subpackages:
   - proto
   - ptypes
   - ptypes/any
   - ptypes/duration
   - ptypes/timestamp
+- name: github.com/google/btree
+  version: 7d79101e329e5a3adf994758c578dab82b90c017
 - name: github.com/google/gofuzz
   version: 44d81051d367757e1c7c6a5a86423ece9afcf63c
 - name: github.com/googleapis/gnostic
@@ -30,18 +32,24 @@ imports:
   - OpenAPIv2
   - compiler
   - extensions
+- name: github.com/gregjones/httpcache
+  version: 787624de3eb7bd915c329cba748687a3b22666a6
+  subpackages:
+  - diskcache
 - name: github.com/hashicorp/golang-lru
   version: a0d98a5f288019575c6d1f4bb1573fef2d1fcdc4
   subpackages:
   - simplelru
-- name: github.com/howeyc/gopass
-  version: bf9dde6d0d2c004a008c27aaee91170c786f6db8
 - name: github.com/imdario/mergo
   version: 6633656539c1639d9d78127b7d47c622b5d7b6dc
 - name: github.com/json-iterator/go
-  version: 13f86432b882000a51c6e610c620974462691a97
+  version: 2ddf6d758266fcb080a4f9e054b9f292c85e6798
+- name: github.com/modern-go/concurrent
+  version: bacd9c7ef1dd9b15be4a9909b8ac7a4e313eec94
+- name: github.com/modern-go/reflect2
+  version: 05fbef0ca5da472bbf96c9322b84a53edc03c9fd
 - name: github.com/openshift/api
-  version: 6ef6704e604af539af656171d5c0bde774923a43
+  version: ff4ab5976ba41da2911ecbc07c84312e0959ac92
   subpackages:
   - apps/v1
   - authorization/v1
@@ -61,10 +69,12 @@ imports:
   - servicecertsigner/v1alpha1
   - template/v1
   - user/v1
+- name: github.com/peterbourgon/diskv
+  version: 5f041e8faa004a95c88a202771f4cc3e991971e6
 - name: github.com/spf13/pflag
-  version: 4c012f6dcd9546820e378d0bdda4d8fc772cdfea
+  version: 583c0c0531f06d5278b7d917446061adc344b5cd
 - name: golang.org/x/crypto
-  version: 81e90905daefcd6fd217b62423c0908922eadb30
+  version: 49796115aa4b964c318aad4f3084fdb41e9aa067
   subpackages:
   - ssh/terminal
 - name: golang.org/x/net
@@ -101,7 +111,7 @@ imports:
 - name: gopkg.in/yaml.v2
   version: 670d4cfef0544295bc27a114dbac37980d83185a
 - name: k8s.io/api
-  version: 73d903622b7391f3312dcbac6483fed484e185f8
+  version: 8c14244ab7eeffb1e4acd1ac1afb315b30fe67bf
   subpackages:
   - admissionregistration/v1alpha1
   - admissionregistration/v1beta1
@@ -127,12 +137,13 @@ imports:
   - rbac/v1alpha1
   - rbac/v1beta1
   - scheduling/v1alpha1
+  - scheduling/v1beta1
   - settings/v1alpha1
   - storage/v1
   - storage/v1alpha1
   - storage/v1beta1
 - name: k8s.io/apimachinery
-  version: 302974c03f7e50f16561ba237db776ab93594ef6
+  version: 1369ad3fdc6dcb2c933d7e570b349d71bd3052cf
   subpackages:
   - pkg/api/errors
   - pkg/api/meta
@@ -162,24 +173,28 @@ imports:
   - pkg/util/framer
   - pkg/util/intstr
   - pkg/util/json
+  - pkg/util/mergepatch
   - pkg/util/net
   - pkg/util/runtime
   - pkg/util/sets
+  - pkg/util/strategicpatch
   - pkg/util/validation
   - pkg/util/validation/field
   - pkg/util/wait
   - pkg/util/yaml
   - pkg/version
   - pkg/watch
+  - third_party/forked/golang/json
   - third_party/forked/golang/reflect
 - name: k8s.io/client-go
-  version: 33f2870a2b83179c823ddc90e5513f9e5fe43b38
+  version: 74dcea03361412e1f631eaf6d4d4a71d4066b934
   subpackages:
   - discovery
   - discovery/fake
   - kubernetes/scheme
   - pkg/apis/clientauthentication
   - pkg/apis/clientauthentication/v1alpha1
+  - pkg/apis/clientauthentication/v1beta1
   - pkg/version
   - plugin/pkg/client/auth/exec
   - rest
@@ -196,14 +211,19 @@ imports:
   - transport
   - util/buffer
   - util/cert
+  - util/connrotation
   - util/flowcontrol
   - util/homedir
   - util/integer
   - util/retry
 - name: k8s.io/code-generator
-  version: 37148bd476363b6cfdc14aa7a0ab9e8011a396f3
+  version: cdf4bddefab5a1b50f00eb6973f5b6e0a8b015bd
   repo: git@github.com:openshift/kubernetes-code-generator
 - name: k8s.io/gengo
   version: 01a732e01d00cb9a81bb0ca050d3e6d2b947927b
   repo: git@github.com:openshift/kubernetes-gengo
+- name: k8s.io/kube-openapi
+  version: 8a9b82f00b3a86eac24681da3f9fe6c34c01cea2
+  subpackages:
+  - pkg/util/proto
 testImports: []

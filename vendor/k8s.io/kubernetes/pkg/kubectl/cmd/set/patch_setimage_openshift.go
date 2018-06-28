@@ -18,19 +18,17 @@ import (
 // this relies on internal APIs that we don't access to in kubectl
 var ParseDockerImageReferenceToStringFunc func(spec string) (string, error)
 
-type imageResolverFunc func(in string) (string, error)
-
-func resolveImageFactory(f cmdutil.Factory, cmd *cobra.Command) imageResolverFunc {
+func resolveImageFactory(f cmdutil.Factory, cmd *cobra.Command) ImageResolver {
 	source, err := cmd.Flags().GetString("source")
 	if err != nil {
-		return f.ResolveImage
+		return resolveImageFunc
 	}
 
 	return func(image string) (string, error) {
 		if isDockerImageSource(source) {
-			return f.ResolveImage(image)
+			return resolveImageFunc(image)
 		}
-		config, err := f.ClientConfig()
+		config, err := f.ToRESTConfig()
 		if err != nil {
 			return "", err
 		}
@@ -38,7 +36,7 @@ func resolveImageFactory(f cmdutil.Factory, cmd *cobra.Command) imageResolverFun
 		if err != nil {
 			return "", err
 		}
-		namespace, _, err := f.DefaultNamespace()
+		namespace, _, err := f.ToRawKubeConfigLoader().Namespace()
 		if err != nil {
 			return "", err
 		}

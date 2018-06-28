@@ -35,7 +35,6 @@ File.open(File.join(ARGV.first, "types/enum.go"), "w") do |io|
     types.
     sort_by { |x| x.name }.
     uniq { |x| x.name }.
-    select { |x| x.name[0] == x.name[0].upcase }. # Only capitalized methods for now...
     select { |t| t.is_enum? }.
     each { |e| e.dump(io); e.dump_init(io) }
 end
@@ -55,7 +54,6 @@ EOF
     types.
     sort_by { |x| x.name }.
     uniq { |x| x.name }.
-    select { |x| x.name[0] == x.name[0].upcase }. # Only capitalized methods for now...
     select { |t| !t.is_enum? }.
     each { |e| e.dump(io); e.dump_init(io) }
 end
@@ -83,7 +81,6 @@ EOF
   wsdl.
     operations.
     sort_by { |x| x.name }.
-    select { |x| x.name[0] == x.name[0].upcase }. # Only capitalized methods for now...
     each { |e| e.dump(io) }
 end
 

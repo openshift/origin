@@ -1,6 +1,7 @@
 package imagesecret
 
 import (
+	"context"
 	"fmt"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -35,7 +36,7 @@ func (r *REST) NewGetOptions() (runtime.Object, bool, string) {
 
 // Get retrieves all pull type secrets in the current namespace. Name is currently ignored and
 // reserved for future use.
-func (r *REST) Get(ctx apirequest.Context, _ string, options runtime.Object) (runtime.Object, error) {
+func (r *REST) Get(ctx context.Context, _ string, options runtime.Object) (runtime.Object, error) {
 	listOptions, ok := options.(*metav1.ListOptions)
 	if !ok {
 		return nil, fmt.Errorf("unexpected options: %T", options)

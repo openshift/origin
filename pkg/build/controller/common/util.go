@@ -126,7 +126,7 @@ func ResolveValueFrom(pod *v1.Pod, client kclientset.Interface) error {
 	var outputEnv []kapi.EnvVar
 	var allErrs []error
 
-	build, version, err := buildadmission.GetBuildFromPod(pod)
+	build, err := buildadmission.GetBuildFromPod(pod)
 	if err != nil {
 		return nil
 	}
@@ -159,5 +159,5 @@ func ResolveValueFrom(pod *v1.Pod, client kclientset.Interface) error {
 	}
 
 	buildutil.SetBuildEnv(build, outputEnv)
-	return buildadmission.SetBuildInPod(pod, build, version)
+	return buildadmission.SetBuildInPod(pod, build)
 }

@@ -43,7 +43,7 @@ func (c *FakeOpenShiftWebConsoleConfigs) List(opts v1.ListOptions) (result *v1al
 	if label == nil {
 		label = labels.Everything()
 	}
-	list := &v1alpha1.OpenShiftWebConsoleConfigList{}
+	list := &v1alpha1.OpenShiftWebConsoleConfigList{ListMeta: obj.(*v1alpha1.OpenShiftWebConsoleConfigList).ListMeta}
 	for _, item := range obj.(*v1alpha1.OpenShiftWebConsoleConfigList).Items {
 		if label.Matches(labels.Set(item.Labels)) {
 			list.Items = append(list.Items, item)

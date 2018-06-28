@@ -7,9 +7,9 @@ import (
 	"github.com/spf13/pflag"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	"k8s.io/client-go/tools/clientcmd"
-	kclientcmd "k8s.io/client-go/tools/clientcmd"
-	rbacclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/rbac/internalversion"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -48,7 +48,7 @@ func TestLogin(t *testing.T) {
 	if loginOptions.Username != username {
 		t.Fatalf("Unexpected user after authentication: %#v", loginOptions)
 	}
-	rbacClient := rbacclient.NewForConfigOrDie(clusterAdminClientConfig)
+	rbacClient := rbacv1client.NewForConfigOrDie(clusterAdminClientConfig)
 	authorizationInterface := authorizationclient.NewForConfigOrDie(clusterAdminClientConfig).Authorization()
 
 	newProjectOptions := &newproject.NewProjectOptions{
@@ -151,7 +151,7 @@ func newLoginOptions(server string, username string, password string, insecure b
 func defaultClientConfig(flags *pflag.FlagSet) clientcmd.ClientConfig {
 	loadingRules := &clientcmd.ClientConfigLoadingRules{ExplicitPath: ""}
 
-	flags.StringVar(&loadingRules.ExplicitPath, kclientcmd.OpenShiftKubeConfigFlagName, "", "Path to the config file to use for CLI requests.")
+	flags.StringVar(&loadingRules.ExplicitPath, genericclioptions.OpenShiftKubeConfigFlagName, "", "Path to the config file to use for CLI requests.")
 
 	overrides := &clientcmd.ConfigOverrides{}
 	overrideFlags := clientcmd.RecommendedConfigOverrideFlags("")

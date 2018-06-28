@@ -26,16 +26,17 @@ import (
 	"github.com/containerd/containerd/plugin"
 	"github.com/containerd/containerd/runtime"
 	"github.com/containerd/typeurl"
-	google_protobuf "github.com/golang/protobuf/ptypes/empty"
+	ptypes "github.com/gogo/protobuf/types"
 	"github.com/pkg/errors"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 var (
 	_     = (api.TasksServer)(&service{})
-	empty = &google_protobuf.Empty{}
+	empty = &ptypes.Empty{}
 )
 
 func init() {
@@ -223,7 +224,7 @@ func (s *service) DeleteProcess(ctx context.Context, r *api.DeleteProcessRequest
 func processFromContainerd(ctx context.Context, p runtime.Process) (*task.Process, error) {
 	state, err := p.State(ctx)
 	if err != nil {
-		return nil, errdefs.ToGRPC(err)
+		return nil, err
 	}
 	var status task.Status
 	switch state.Status {
@@ -266,7 +267,7 @@ func (s *service) Get(ctx context.Context, r *api.GetRequest) (*api.GetResponse,
 	}
 	t, err := processFromContainerd(ctx, p)
 	if err != nil {
-		return nil, err
+		return nil, errdefs.ToGRPC(err)
 	}
 	return &api.GetResponse{
 		Process: t,
@@ -289,14 +290,16 @@ func addTasks(ctx context.Context, r *api.ListTasksResponse, tasks []runtime.Tas
 	for _, t := range tasks {
 		tt, err := processFromContainerd(ctx, t)
 		if err != nil {
-			log.G(ctx).WithError(err).WithField("id", t.ID()).Error("converting task to protobuf")
+			if !errdefs.IsNotFound(err) { // handle race with deletion
+				log.G(ctx).WithError(err).WithField("id", t.ID()).Error("converting task to protobuf")
+			}
 			continue
 		}
 		r.Tasks = append(r.Tasks, tt)
 	}
 }
 
-func (s *service) Pause(ctx context.Context, r *api.PauseTaskRequest) (*google_protobuf.Empty, error) {
+func (s *service) Pause(ctx context.Context, r *api.PauseTaskRequest) (*ptypes.Empty, error) {
 	t, err := s.getTask(ctx, r.ContainerID)
 	if err != nil {
 		return nil, err
@@ -308,7 +311,7 @@ func (s *service) Pause(ctx context.Context, r *api.PauseTaskRequest) (*google_p
 	return empty, nil
 }
 
-func (s *service) Resume(ctx context.Context, r *api.ResumeTaskRequest) (*google_protobuf.Empty, error) {
+func (s *service) Resume(ctx context.Context, r *api.ResumeTaskRequest) (*ptypes.Empty, error) {
 	t, err := s.getTask(ctx, r.ContainerID)
 	if err != nil {
 		return nil, err
@@ -320,7 +323,7 @@ func (s *service) Resume(ctx context.Context, r *api.ResumeTaskRequest) (*google
 	return empty, nil
 }
 
-func (s *service) Kill(ctx context.Context, r *api.KillRequest) (*google_protobuf.Empty, error) {
+func (s *service) Kill(ctx context.Context, r *api.KillRequest) (*ptypes.Empty, error) {
 	t, err := s.getTask(ctx, r.ContainerID)
 	if err != nil {
 		return nil, err
@@ -348,7 +351,7 @@ func (s *service) ListPids(ctx context.Context, r *api.ListPidsRequest) (*api.Li
 	}
 	var processes []*task.ProcessInfo
 	for _, p := range processList {
-		processInfo := task.ProcessInfo{
+		pInfo := task.ProcessInfo{
 			Pid: p.Pid,
 		}
 		if p.Info != nil {
@@ -356,18 +359,18 @@ func (s *service) ListPids(ctx context.Context, r *api.ListPidsRequest) (*api.Li
 			if err != nil {
 				return nil, errors.Wrapf(err, "failed to marshal process %d info", p.Pid)
 			}
-			processInfo.Info = a
+			pInfo.Info = a
 		}
-		processes = append(processes, &processInfo)
+		processes = append(processes, &pInfo)
 	}
 	return &api.ListPidsResponse{
 		Processes: processes,
 	}, nil
 }
 
-func (s *service) Exec(ctx context.Context, r *api.ExecProcessRequest) (*google_protobuf.Empty, error) {
+func (s *service) Exec(ctx context.Context, r *api.ExecProcessRequest) (*ptypes.Empty, error) {
 	if r.ExecID == "" {
-		return nil, grpc.Errorf(codes.InvalidArgument, "exec id cannot be empty")
+		return nil, status.Errorf(codes.InvalidArgument, "exec id cannot be empty")
 	}
 	t, err := s.getTask(ctx, r.ContainerID)
 	if err != nil {
@@ -387,7 +390,7 @@ func (s *service) Exec(ctx context.Context, r *api.ExecProcessRequest) (*google_
 	return empty, nil
 }
 
-func (s *service) ResizePty(ctx context.Context, r *api.ResizePtyRequest) (*google_protobuf.Empty, error) {
+func (s *service) ResizePty(ctx context.Context, r *api.ResizePtyRequest) (*ptypes.Empty, error) {
 	t, err := s.getTask(ctx, r.ContainerID)
 	if err != nil {
 		return nil, err
@@ -407,7 +410,7 @@ func (s *service) ResizePty(ctx context.Context, r *api.ResizePtyRequest) (*goog
 	return empty, nil
 }
 
-func (s *service) CloseIO(ctx context.Context, r *api.CloseIORequest) (*google_protobuf.Empty, error) {
+func (s *service) CloseIO(ctx context.Context, r *api.CloseIORequest) (*ptypes.Empty, error) {
 	t, err := s.getTask(ctx, r.ContainerID)
 	if err != nil {
 		return nil, err
@@ -471,7 +474,7 @@ func (s *service) Checkpoint(ctx context.Context, r *api.CheckpointTaskRequest) 
 	}, nil
 }
 
-func (s *service) Update(ctx context.Context, r *api.UpdateTaskRequest) (*google_protobuf.Empty, error) {
+func (s *service) Update(ctx context.Context, r *api.UpdateTaskRequest) (*ptypes.Empty, error) {
 	t, err := s.getTask(ctx, r.ContainerID)
 	if err != nil {
 		return nil, err
@@ -605,7 +608,7 @@ func (s *service) getTaskFromContainer(ctx context.Context, container *container
 	}
 	t, err := runtime.Get(ctx, container.ID)
 	if err != nil {
-		return nil, grpc.Errorf(codes.NotFound, "task %v not found", container.ID)
+		return nil, status.Errorf(codes.NotFound, "task %v not found", container.ID)
 	}
 	return t, nil
 }
@@ -613,7 +616,7 @@ func (s *service) getTaskFromContainer(ctx context.Context, container *container
 func (s *service) getRuntime(name string) (runtime.Runtime, error) {
 	runtime, ok := s.runtimes[name]
 	if !ok {
-		return nil, grpc.Errorf(codes.NotFound, "unknown runtime %q", name)
+		return nil, status.Errorf(codes.NotFound, "unknown runtime %q", name)
 	}
 	return runtime, nil
 }

@@ -50,7 +50,7 @@ func RunDeploymentConfigController(ctx ControllerContext) (bool, error) {
 		return true, err
 	}
 
-	groupVersion := schema.GroupVersion{Group: "", Version: "v1"}
+	groupVersion := schema.GroupVersion{Group: "apps.openshift.io", Version: "v1"}
 	annotationCodec := legacyscheme.Codecs.LegacyCodec(groupVersion)
 
 	go deployconfigcontroller.NewDeploymentConfigController(

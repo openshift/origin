@@ -2,9 +2,13 @@ package origin
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/golang/glog"
 	"github.com/openshift/origin/pkg/admission/namespaceconditions"
+	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/restmapper"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -14,15 +18,16 @@ import (
 	admissionmetrics "k8s.io/apiserver/pkg/admission/metrics"
 	"k8s.io/apiserver/pkg/audit"
 	genericapiserver "k8s.io/apiserver/pkg/server"
+	cacheddiscovery "k8s.io/client-go/discovery/cached"
 	kinformers "k8s.io/client-go/informers"
 	kubeclientgoinformers "k8s.io/client-go/informers"
+	rbacinformers "k8s.io/client-go/informers/rbac/v1"
 	kclientsetexternal "k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
-	rbacinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion/rbac/internalversion"
 	kubeapiserver "k8s.io/kubernetes/pkg/master"
 	rbacregistryvalidation "k8s.io/kubernetes/pkg/registry/rbac/validation"
 	rbacauthorizer "k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac"
@@ -70,6 +75,7 @@ type MasterConfig struct {
 	ProjectCache                  *projectcache.ProjectCache
 	ClusterQuotaMappingController *clusterquotamapping.ClusterQuotaMappingController
 	LimitVerifier                 imageadmission.LimitVerifier
+	RESTMapper                    meta.RESTMapper
 
 	// RegistryHostnameRetriever retrieves the name of the integrated registry, or false if no such registry
 	// is available.
@@ -161,7 +167,9 @@ func BuildMasterConfig(
 		return nil, err
 	}
 	clusterQuotaMappingController := newClusterQuotaMappingController(informers)
-	admissionInitializer, admissionPostStartHook, err := originadmission.NewPluginInitializer(options, privilegedLoopbackConfig, informers, authorizer, projectCache, clusterQuotaMappingController)
+	discoveryClient := cacheddiscovery.NewMemCacheClient(kubeInternalClient.Discovery())
+	restMapper := restmapper.NewDeferredDiscoveryRESTMapper(discoveryClient)
+	admissionInitializer, err := originadmission.NewPluginInitializer(options, privilegedLoopbackConfig, informers, authorizer, projectCache, restMapper, clusterQuotaMappingController)
 	if err != nil {
 		return nil, err
 	}
@@ -191,14 +199,22 @@ func BuildMasterConfig(
 		return nil, err
 	}
 
-	subjectLocator := NewSubjectLocator(informers.GetInternalKubeInformers().Rbac().InternalVersion())
+	subjectLocator := NewSubjectLocator(informers.GetExternalKubeInformers().Rbac().V1())
 
 	config := &MasterConfig{
 		Options: options,
 
 		kubeAPIServerConfig: kubeAPIServerConfig,
 		additionalPostStartHooks: map[string]genericapiserver.PostStartHookFunc{
-			"openshift.io-AdmissionInit": admissionPostStartHook,
+			"openshift.io-RESTMapper": func(context genericapiserver.PostStartHookContext) error {
+				restMapper.Reset()
+				go func() {
+					wait.Until(func() {
+						restMapper.Reset()
+					}, 10*time.Second, context.StopCh)
+				}()
+				return nil
+			},
 			"openshift.io-StartInformers": func(context genericapiserver.PostStartHookContext) error {
 				informers.Start(context.StopCh)
 				return nil
@@ -207,16 +223,17 @@ func BuildMasterConfig(
 
 		RESTOptionsGetter: restOptsGetter,
 
-		RuleResolver:   NewRuleResolver(informers.GetInternalKubeInformers().Rbac().InternalVersion()),
+		RuleResolver:   NewRuleResolver(informers.GetExternalKubeInformers().Rbac().V1()),
 		SubjectLocator: subjectLocator,
 
 		ProjectAuthorizationCache: newProjectAuthorizationCache(
 			subjectLocator,
 			informers.GetInternalKubeInformers().Core().InternalVersion().Namespaces().Informer(),
-			informers.GetInternalKubeInformers().Rbac().InternalVersion(),
+			informers.GetExternalKubeInformers().Rbac().V1(),
 		),
 		ProjectCache:                  projectCache,
 		ClusterQuotaMappingController: clusterQuotaMappingController,
+		RESTMapper:                    restMapper,
 
 		RegistryHostnameRetriever: imageapi.DefaultRegistryHostnameRetriever(defaultRegistryFunc, options.ImagePolicyConfig.ExternalRegistryHostname, options.ImagePolicyConfig.InternalRegistryHostname),
 
@@ -273,10 +290,10 @@ func newProjectCache(informers InformerAccess, privilegedLoopbackConfig *restcli
 		defaultNodeSelector), nil
 }
 
-func newProjectAuthorizationCache(subjectLocator rbacauthorizer.SubjectLocator, namespaces cache.SharedIndexInformer, internalRBACInformers rbacinformers.Interface) *projectauth.AuthorizationCache {
+func newProjectAuthorizationCache(subjectLocator rbacauthorizer.SubjectLocator, namespaces cache.SharedIndexInformer, rbacInformers rbacinformers.Interface) *projectauth.AuthorizationCache {
 	return projectauth.NewAuthorizationCache(
 		namespaces,
 		projectauth.NewAuthorizerReviewer(subjectLocator),
-		internalRBACInformers,
+		rbacInformers,
 	)
 }

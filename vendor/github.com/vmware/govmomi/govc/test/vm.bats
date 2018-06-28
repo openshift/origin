@@ -115,6 +115,12 @@ load test_helper
   run govc object.collect -s "vm/$id" config.memoryAllocation.reservation
   assert_success 1024
 
+  run govc vm.change -annotation $$ -vm "$id"
+  assert_success
+
+  run govc object.collect -s "vm/$id" config.annotation
+  assert_success $$
+
   nid=$(new_id)
   run govc vm.change -name $nid -vm $id
   assert_success
@@ -571,8 +577,11 @@ load test_helper
   vm=$(new_empty_vm)
   clone=$(new_id)
 
-  run govc vm.clone -vm "$vm" "$clone"
+  run govc vm.clone -vm "$vm" -annotation $$ "$clone"
   assert_success
+
+  run govc object.collect -s "/$GOVC_DATACENTER/vm/$clone" config.annotation
+  assert_success $$
 
   clone=$(new_id)
   run govc vm.clone -vm "$vm" -snapshot X "$clone"

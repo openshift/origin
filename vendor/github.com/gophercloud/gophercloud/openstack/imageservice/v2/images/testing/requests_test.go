@@ -2,6 +2,7 @@ package testing
 
 import (
 	"testing"
+	"time"
 
 	"github.com/gophercloud/gophercloud/openstack/imageservice/v2/images"
 	"github.com/gophercloud/gophercloud/pagination"
@@ -290,4 +291,91 @@ func TestUpdateImage(t *testing.T) {
 	}
 
 	th.AssertDeepEquals(t, &expectedImage, actualImage)
+}
+
+func TestImageDateQuery(t *testing.T) {
+	date := time.Date(2014, 1, 1, 1, 1, 1, 0, time.UTC)
+
+	listOpts := images.ListOpts{
+		CreatedAtQuery: &images.ImageDateQuery{
+			Date:   date,
+			Filter: images.FilterGTE,
+		},
+		UpdatedAtQuery: &images.ImageDateQuery{
+			Date: date,
+		},
+	}
+
+	expectedQueryString := "?created_at=gte%3A2014-01-01T01%3A01%3A01Z&updated_at=2014-01-01T01%3A01%3A01Z"
+	actualQueryString, err := listOpts.ToImageListQuery()
+	th.AssertNoErr(t, err)
+	th.AssertEquals(t, expectedQueryString, actualQueryString)
+}
+
+func TestImageListByTags(t *testing.T) {
+	th.SetupHTTP()
+	defer th.TeardownHTTP()
+
+	HandleImageListByTagsSuccessfully(t)
+
+	listOpts := images.ListOpts{
+		Tags: []string{"foo", "bar"},
+	}
+
+	expectedQueryString := "?tag=foo&tag=bar"
+	actualQueryString, err := listOpts.ToImageListQuery()
+	th.AssertNoErr(t, err)
+	th.AssertEquals(t, expectedQueryString, actualQueryString)
+
+	pages, err := images.List(fakeclient.ServiceClient(), listOpts).AllPages()
+	th.AssertNoErr(t, err)
+	allImages, err := images.ExtractImages(pages)
+	th.AssertNoErr(t, err)
+
+	checksum := "64d7c1cd2b6f60c92c14662941cb7913"
+	sizeBytes := int64(13167616)
+	containerFormat := "bare"
+	diskFormat := "qcow2"
+	minDiskGigabytes := 0
+	minRAMMegabytes := 0
+	owner := "5ef70662f8b34079a6eddb8da9d75fe8"
+	file := allImages[0].File
+	createdDate := allImages[0].CreatedAt
+	lastUpdate := allImages[0].UpdatedAt
+	schema := "/v2/schemas/image"
+	tags := []string{"foo", "bar"}
+
+	expectedImage := images.Image{
+		ID:   "1bea47ed-f6a9-463b-b423-14b9cca9ad27",
+		Name: "cirros-0.3.2-x86_64-disk",
+		Tags: tags,
+
+		Status: images.ImageStatusActive,
+
+		ContainerFormat: containerFormat,
+		DiskFormat:      diskFormat,
+
+		MinDiskGigabytes: minDiskGigabytes,
+		MinRAMMegabytes:  minRAMMegabytes,
+
+		Owner: owner,
+
+		Protected:  false,
+		Visibility: images.ImageVisibilityPublic,
+
+		Checksum:    checksum,
+		SizeBytes:   sizeBytes,
+		File:        file,
+		CreatedAt:   createdDate,
+		UpdatedAt:   lastUpdate,
+		Schema:      schema,
+		VirtualSize: 0,
+		Properties: map[string]interface{}{
+			"hw_disk_bus":       "scsi",
+			"hw_disk_bus_model": "virtio-scsi",
+			"hw_scsi_model":     "virtio-scsi",
+		},
+	}
+
+	th.AssertDeepEquals(t, expectedImage, allImages[0])
 }

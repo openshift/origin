@@ -3,14 +3,14 @@ package bootstrappolicy
 import (
 	"github.com/golang/glog"
 
+	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/kubernetes/pkg/apis/rbac"
 )
 
 var (
-	deadClusterRoles = []rbac.ClusterRole{}
+	deadClusterRoles = []rbacv1.ClusterRole{}
 
-	deadClusterRoleBindings = []rbac.ClusterRoleBinding{}
+	deadClusterRoleBindings = []rbacv1.ClusterRoleBinding{}
 )
 
 func addDeadClusterRole(name string) {
@@ -20,7 +20,7 @@ func addDeadClusterRole(name string) {
 		}
 	}
 
-	deadClusterRole := rbac.ClusterRole{
+	deadClusterRole := rbacv1.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{Name: name},
 	}
 	addDefaultMetadata(&deadClusterRole)
@@ -34,9 +34,9 @@ func addDeadClusterRoleBinding(name, roleName string) {
 		}
 	}
 
-	deadClusterRoleBinding := rbac.ClusterRoleBinding{
+	deadClusterRoleBinding := rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{Name: name},
-		RoleRef:    rbac.RoleRef{APIGroup: rbac.GroupName, Kind: "ClusterRole", Name: roleName},
+		RoleRef:    rbacv1.RoleRef{APIGroup: rbacv1.GroupName, Kind: "ClusterRole", Name: roleName},
 	}
 	addDefaultMetadata(&deadClusterRoleBinding)
 	deadClusterRoleBindings = append(deadClusterRoleBindings, deadClusterRoleBinding)
@@ -44,13 +44,13 @@ func addDeadClusterRoleBinding(name, roleName string) {
 
 // GetDeadClusterRoles returns cluster roles which should no longer have any permissions.
 // These are enumerated so that a reconcile that tightens permissions will properly.
-func GetDeadClusterRoles() []rbac.ClusterRole {
+func GetDeadClusterRoles() []rbacv1.ClusterRole {
 	return deadClusterRoles
 }
 
 // GetDeadClusterRoleBindings returns cluster role bindings which should no longer have any subjects.
 // These are enumerated so that a reconcile that tightens permissions will properly remove them.
-func GetDeadClusterRoleBindings() []rbac.ClusterRoleBinding {
+func GetDeadClusterRoleBindings() []rbacv1.ClusterRoleBinding {
 	return deadClusterRoleBindings
 }
 

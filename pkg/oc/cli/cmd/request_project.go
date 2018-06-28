@@ -85,7 +85,7 @@ func NewCmdRequestProject(name, baseName string, f kcmdutil.Factory, out, errout
 		Example: fmt.Sprintf(requestProjectExample, baseName, name),
 		Run: func(cmd *cobra.Command, args []string) {
 			kcmdutil.CheckErr(o.Complete(f, cmd, args))
-			clientConfig, err := f.ClientConfig()
+			clientConfig, err := f.ToRESTConfig()
 			kcmdutil.CheckErr(err)
 			projectClient, err := projectclientinternal.NewForConfig(clientConfig)
 			kcmdutil.CheckErr(err)
@@ -117,7 +117,7 @@ func (o *NewProjectOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, arg
 			return err
 		}
 	} else {
-		clientConfig, err := f.ClientConfig()
+		clientConfig, err := f.ToRESTConfig()
 		if err != nil {
 			return err
 		}

@@ -40,9 +40,9 @@ func TestEmptyEnvelope(t *testing.T) {
 
 func TestNonEmptyHeader(t *testing.T) {
 	env := Envelope{
-		Header: struct {
-			Foo string
-		}{"bar"},
+		Header: &Header{
+			ID: "foo",
+		},
 	}
 
 	b, err := xml.Marshal(env)
@@ -55,5 +55,9 @@ func TestNonEmptyHeader(t *testing.T) {
 	err = xml.Unmarshal(b, &env)
 	if err != nil {
 		t.Errorf("error: %s", err)
+	}
+
+	if env.Header.ID != "foo" {
+		t.Errorf("ID=%s", env.Header.ID)
 	}
 }

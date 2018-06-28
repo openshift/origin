@@ -1,6 +1,7 @@
 package describe
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -197,53 +198,55 @@ func TestChainDescriber(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
-		objs := []runtime.Object{}
-		if len(test.path) > 0 {
-			var err error
-			objs, err = readObjectsFromPath(test.path, test.defaultNamespace, legacyscheme.Codecs.UniversalDecoder(), legacyscheme.Scheme)
-			if err != nil {
-				t.Fatal(err)
-			}
-		}
-		ist := imagegraph.MakeImageStreamTagObjectMeta(test.defaultNamespace, test.name, test.tag)
-
-		fakeClient := buildfakeclient.NewSimpleClientset(filterByScheme(buildclientscheme.Scheme, objs...)...)
-
-		desc, err := NewChainDescriber(fakeClient.Build(), test.namespaces, test.output).Describe(ist, test.includeInputImg, test.reverse)
-		t.Logf("%s: output:\n%s\n\n", test.testName, desc)
-		if err != test.expectedErr {
-			t.Fatalf("%s: error mismatch: expected %v, got %v", test.testName, test.expectedErr, err)
-		}
-
-		got := strings.Split(desc, "\n")
-
-		switch test.output {
-		case "dot":
-			if len(test.dot) != len(got) {
-				t.Fatalf("%s: expected %d lines, got %d:\n%s", test.testName, len(test.dot), len(got), desc)
-			}
-			for _, expected := range test.dot {
-				if !strings.Contains(desc, expected) {
-					t.Errorf("%s: unexpected description:\n%s\nexpected line in it:\n%s", test.testName, desc, expected)
+	for i, test := range tests {
+		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
+			objs := []runtime.Object{}
+			if len(test.path) > 0 {
+				var err error
+				objs, err = readObjectsFromPath(test.path, test.defaultNamespace, legacyscheme.Codecs.UniversalDecoder(), legacyscheme.Scheme)
+				if err != nil {
+					t.Fatal(err)
 				}
 			}
-		case "":
-			if lenReadable(test.humanReadable) != len(got) {
-				t.Fatalf("%s: expected %d lines, got %d:\n%s", test.testName, lenReadable(test.humanReadable), len(got), desc)
+			ist := imagegraph.MakeImageStreamTagObjectMeta(test.defaultNamespace, test.name, test.tag)
+
+			fakeClient := buildfakeclient.NewSimpleClientset(filterByScheme(buildclientscheme.Scheme, objs...)...)
+
+			desc, err := NewChainDescriber(fakeClient.Build(), test.namespaces, test.output).Describe(ist, test.includeInputImg, test.reverse)
+			t.Logf("%s: output:\n%s\n\n", test.testName, desc)
+			if err != test.expectedErr {
+				t.Fatalf("%s: error mismatch: expected %v, got %v", test.testName, test.expectedErr, err)
 			}
-			for _, line := range got {
-				if _, ok := test.humanReadable[line]; !ok {
-					t.Errorf("%s: unexpected line: %s", test.testName, line)
+
+			got := strings.Split(desc, "\n")
+
+			switch test.output {
+			case "dot":
+				if len(test.dot) != len(got) {
+					t.Fatalf("%s: expected %d lines, got %d:\n%s", test.testName, len(test.dot), len(got), desc)
 				}
-				test.humanReadable[line]--
-			}
-			for line, cnt := range test.humanReadable {
-				if cnt != 0 {
-					t.Errorf("%s: unexpected number of lines for [%s]: %d", test.testName, line, cnt)
+				for _, expected := range test.dot {
+					if !strings.Contains(desc, expected) {
+						t.Errorf("%s: unexpected description:\n%s\nexpected line in it:\n%s", test.testName, desc, expected)
+					}
+				}
+			case "":
+				if lenReadable(test.humanReadable) != len(got) {
+					t.Fatalf("%s: expected %d lines, got %d:\n%s", test.testName, lenReadable(test.humanReadable), len(got), desc)
+				}
+				for _, line := range got {
+					if _, ok := test.humanReadable[line]; !ok {
+						t.Errorf("%s: unexpected line: %s", test.testName, line)
+					}
+					test.humanReadable[line]--
+				}
+				for line, cnt := range test.humanReadable {
+					if cnt != 0 {
+						t.Errorf("%s: unexpected number of lines for [%s]: %d", test.testName, line, cnt)
+					}
 				}
 			}
-		}
+		})
 	}
 }
 

@@ -9,6 +9,7 @@ import (
 
 	restful "github.com/emicklei/go-restful"
 	"github.com/golang/glog"
+	"k8s.io/apimachinery/pkg/api/meta"
 
 	kapierror "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -19,6 +20,7 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	genericmux "k8s.io/apiserver/pkg/server/mux"
+	kubeinformers "k8s.io/client-go/informers"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
@@ -77,6 +79,7 @@ type OpenshiftAPIExtraConfig struct {
 	KubeAPIServerClientConfig *restclient.Config
 	KubeClientInternal        kclientsetinternal.Interface
 	KubeInternalInformers     kinternalinformers.SharedInformerFactory
+	KubeInformers             kubeinformers.SharedInformerFactory
 
 	QuotaInformers    quotainformer.SharedInformerFactory
 	SecurityInformers securityinformer.SharedInformerFactory
@@ -99,6 +102,7 @@ type OpenshiftAPIExtraConfig struct {
 	ProjectCache              *projectcache.ProjectCache
 	ProjectRequestTemplate    string
 	ProjectRequestMessage     string
+	RESTMapper                meta.RESTMapper
 
 	// oauth API server
 	ServiceAccountMethod configapi.GrantHandlerType
@@ -119,6 +123,9 @@ func (c *OpenshiftAPIExtraConfig) Validate() error {
 	}
 	if c.KubeInternalInformers == nil {
 		ret = append(ret, fmt.Errorf("KubeInternalInformers is required"))
+	}
+	if c.KubeInformers == nil {
+		ret = append(ret, fmt.Errorf("KubeInformers is required"))
 	}
 	if c.QuotaInformers == nil {
 		ret = append(ret, fmt.Errorf("QuotaInformers is required"))
@@ -149,6 +156,9 @@ func (c *OpenshiftAPIExtraConfig) Validate() error {
 	}
 	if c.ClusterQuotaMappingController == nil {
 		ret = append(ret, fmt.Errorf("ClusterQuotaMappingController is required"))
+	}
+	if c.RESTMapper == nil {
+		ret = append(ret, fmt.Errorf("RESTMapper is required"))
 	}
 
 	return utilerrors.NewAggregate(ret)
@@ -190,12 +200,6 @@ type legacyStorageMutator interface {
 	mutate(map[schema.GroupVersion]map[string]rest.Storage)
 }
 
-type legacyStorageMutatorFunc func(map[schema.GroupVersion]map[string]rest.Storage)
-
-func (l legacyStorageMutatorFunc) mutate(legacyStorage map[schema.GroupVersion]map[string]rest.Storage) {
-	l(legacyStorage)
-}
-
 type legacyStorageMutators []legacyStorageMutator
 
 func (l legacyStorageMutators) mutate(legacyStorage map[schema.GroupVersion]map[string]rest.Storage) {
@@ -219,9 +223,8 @@ func (c *completedConfig) withAppsAPIServer(delegateAPIServer genericapiserver.D
 		GenericConfig: &genericapiserver.RecommendedConfig{Config: *c.GenericConfig.Config},
 		ExtraConfig: oappsapiserver.ExtraConfig{
 			KubeAPIServerClientConfig: c.ExtraConfig.KubeAPIServerClientConfig,
-			Codecs:   legacyscheme.Codecs,
-			Registry: legacyscheme.Registry,
-			Scheme:   legacyscheme.Scheme,
+			Codecs: legacyscheme.Codecs,
+			Scheme: legacyscheme.Scheme,
 		},
 	}
 	config := cfg.Complete()
@@ -243,11 +246,10 @@ func (c *completedConfig) withAuthorizationAPIServer(delegateAPIServer genericap
 		GenericConfig: &genericapiserver.RecommendedConfig{Config: *c.GenericConfig.Config},
 		ExtraConfig: authorizationapiserver.ExtraConfig{
 			KubeAPIServerClientConfig: c.ExtraConfig.KubeAPIServerClientConfig,
-			KubeInternalInformers:     c.ExtraConfig.KubeInternalInformers,
+			KubeInformers:             c.ExtraConfig.KubeInformers,
 			RuleResolver:              c.ExtraConfig.RuleResolver,
 			SubjectLocator:            c.ExtraConfig.SubjectLocator,
 			Codecs:                    legacyscheme.Codecs,
-			Registry:                  legacyscheme.Registry,
 			Scheme:                    legacyscheme.Scheme,
 		},
 	}
@@ -271,9 +273,8 @@ func (c *completedConfig) withBuildAPIServer(delegateAPIServer genericapiserver.
 		GenericConfig: &genericapiserver.RecommendedConfig{Config: *c.GenericConfig.Config},
 		ExtraConfig: buildapiserver.ExtraConfig{
 			KubeAPIServerClientConfig: c.ExtraConfig.KubeAPIServerClientConfig,
-			Codecs:   legacyscheme.Codecs,
-			Registry: legacyscheme.Registry,
-			Scheme:   legacyscheme.Scheme,
+			Codecs: legacyscheme.Codecs,
+			Scheme: legacyscheme.Scheme,
 		},
 	}
 	config := cfg.Complete()
@@ -299,9 +300,8 @@ func (c *completedConfig) withImageAPIServer(delegateAPIServer genericapiserver.
 			RegistryHostnameRetriever:          c.ExtraConfig.RegistryHostnameRetriever,
 			AllowedRegistriesForImport:         c.ExtraConfig.AllowedRegistriesForImport,
 			MaxImagesBulkImportedPerRepository: c.ExtraConfig.MaxImagesBulkImportedPerRepository,
-			Codecs:   legacyscheme.Codecs,
-			Registry: legacyscheme.Registry,
-			Scheme:   legacyscheme.Scheme,
+			Codecs: legacyscheme.Codecs,
+			Scheme: legacyscheme.Scheme,
 		},
 	}
 	config := cfg.Complete()
@@ -322,9 +322,8 @@ func (c *completedConfig) withNetworkAPIServer(delegateAPIServer genericapiserve
 	cfg := &networkapiserver.NetworkAPIServerConfig{
 		GenericConfig: &genericapiserver.RecommendedConfig{Config: *c.GenericConfig.Config},
 		ExtraConfig: networkapiserver.ExtraConfig{
-			Codecs:   legacyscheme.Codecs,
-			Registry: legacyscheme.Registry,
-			Scheme:   legacyscheme.Scheme,
+			Codecs: legacyscheme.Codecs,
+			Scheme: legacyscheme.Scheme,
 		},
 	}
 	config := cfg.Complete()
@@ -348,7 +347,6 @@ func (c *completedConfig) withOAuthAPIServer(delegateAPIServer genericapiserver.
 			KubeAPIServerClientConfig: c.ExtraConfig.KubeAPIServerClientConfig,
 			ServiceAccountMethod:      c.ExtraConfig.ServiceAccountMethod,
 			Codecs:                    legacyscheme.Codecs,
-			Registry:                  legacyscheme.Registry,
 			Scheme:                    legacyscheme.Scheme,
 		},
 	}
@@ -376,8 +374,8 @@ func (c *completedConfig) withProjectAPIServer(delegateAPIServer genericapiserve
 			ProjectCache:              c.ExtraConfig.ProjectCache,
 			ProjectRequestTemplate:    c.ExtraConfig.ProjectRequestTemplate,
 			ProjectRequestMessage:     c.ExtraConfig.ProjectRequestMessage,
+			RESTMapper:                c.ExtraConfig.RESTMapper,
 			Codecs:                    legacyscheme.Codecs,
-			Registry:                  legacyscheme.Registry,
 			Scheme:                    legacyscheme.Scheme,
 		},
 	}
@@ -403,7 +401,6 @@ func (c *completedConfig) withQuotaAPIServer(delegateAPIServer genericapiserver.
 			QuotaInformers:                c.ExtraConfig.QuotaInformers,
 			KubeInternalInformers:         c.ExtraConfig.KubeInternalInformers,
 			Codecs:                        legacyscheme.Codecs,
-			Registry:                      legacyscheme.Registry,
 			Scheme:                        legacyscheme.Scheme,
 		},
 	}
@@ -428,7 +425,6 @@ func (c *completedConfig) withRouteAPIServer(delegateAPIServer genericapiserver.
 			KubeAPIServerClientConfig: c.ExtraConfig.KubeAPIServerClientConfig,
 			RouteAllocator:            c.ExtraConfig.RouteAllocator,
 			Codecs:                    legacyscheme.Codecs,
-			Registry:                  legacyscheme.Registry,
 			Scheme:                    legacyscheme.Scheme,
 		},
 	}
@@ -458,7 +454,6 @@ func (c *completedConfig) withSecurityAPIServer(delegateAPIServer genericapiserv
 			KubeInternalInformers: c.ExtraConfig.KubeInternalInformers,
 			Authorizer:            c.GenericConfig.Authorization.Authorizer,
 			Codecs:                legacyscheme.Codecs,
-			Registry:              legacyscheme.Registry,
 			Scheme:                legacyscheme.Scheme,
 		},
 	}
@@ -481,9 +476,8 @@ func (c *completedConfig) withTemplateAPIServer(delegateAPIServer genericapiserv
 		GenericConfig: &genericapiserver.RecommendedConfig{Config: *c.GenericConfig.Config},
 		ExtraConfig: templateapiserver.ExtraConfig{
 			KubeAPIServerClientConfig: c.ExtraConfig.KubeAPIServerClientConfig,
-			Codecs:   legacyscheme.Codecs,
-			Registry: legacyscheme.Registry,
-			Scheme:   legacyscheme.Scheme,
+			Codecs: legacyscheme.Codecs,
+			Scheme: legacyscheme.Scheme,
 		},
 	}
 	config := cfg.Complete()
@@ -504,9 +498,8 @@ func (c *completedConfig) withUserAPIServer(delegateAPIServer genericapiserver.D
 	cfg := &userapiserver.UserConfig{
 		GenericConfig: &genericapiserver.RecommendedConfig{Config: *c.GenericConfig.Config},
 		ExtraConfig: userapiserver.ExtraConfig{
-			Codecs:   legacyscheme.Codecs,
-			Registry: legacyscheme.Registry,
-			Scheme:   legacyscheme.Scheme,
+			Codecs: legacyscheme.Codecs,
+			Scheme: legacyscheme.Scheme,
 		},
 	}
 	config := cfg.Complete()
@@ -595,7 +588,7 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget)
 // apiLegacyV1 returns the resources and codec for API version v1.
 func apiLegacyV1(all map[string]rest.Storage) *genericapiserver.APIGroupInfo {
 	apiGroupInfo := &genericapiserver.APIGroupInfo{
-		GroupMeta:                    *legacyscheme.Registry.GroupOrDie(api.GroupName),
+		PrioritizedVersions:          []schema.GroupVersion{{Version: "v1"}},
 		VersionedResourcesStorageMap: map[string]map[string]rest.Storage{},
 		Scheme: legacyscheme.Scheme,
 		// version.ParameterCodec = runtime.NewParameterCodec(legacyscheme.Scheme)

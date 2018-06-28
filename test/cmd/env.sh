@@ -6,21 +6,21 @@ os::test::junit::declare_suite_start "cmd/set-env"
 # This test validates the value of --image for oc run
 os::cmd::expect_success 'oc new-app node'
 os::cmd::expect_failure_and_text 'oc set env dc/node' 'error: at least one environment variable must be provided'
-os::cmd::expect_success_and_text 'oc set env dc/node key=value' 'deploymentconfig "node" updated'
+os::cmd::expect_success_and_text 'oc set env dc/node key=value' 'deploymentconfig.apps.openshift.io "node" updated'
 os::cmd::expect_success_and_text 'oc set env dc/node --list' 'deploymentconfigs node, container node'
-os::cmd::expect_success_and_text 'oc set env dc --all --containers="node" key-' 'deploymentconfig "node" updated'
+os::cmd::expect_success_and_text 'oc set env dc --all --containers="node" key-' 'deploymentconfig.apps.openshift.io "node" updated'
 os::cmd::expect_failure_and_text 'oc set env dc --all --containers="node"' 'error: at least one environment variable must be provided'
 os::cmd::expect_failure_and_not_text 'oc set env --from=secret/mysecret dc/node' 'error: at least one environment variable must be provided'
 os::cmd::expect_failure_and_text 'oc set env dc/node test#abc=1234' 'environment variables must be of the form key=value, but is "test#abc=1234"'
 
 # ensure deleting a var through --env does not result in an error message
-os::cmd::expect_success_and_text 'oc set env dc/node key=value' 'deploymentconfig "node" updated'
-os::cmd::expect_success_and_text 'oc set env dc/node dots.in.a.key=dots.in.a.value' 'deploymentconfig "node" updated'
-os::cmd::expect_success_and_text 'oc set env dc --all --containers="node" --env=key-' 'deploymentconfig "node" updated'
+os::cmd::expect_success_and_text 'oc set env dc/node key=value' 'deploymentconfig.apps.openshift.io "node" updated'
+os::cmd::expect_success_and_text 'oc set env dc/node dots.in.a.key=dots.in.a.value' 'deploymentconfig.apps.openshift.io "node" updated'
+os::cmd::expect_success_and_text 'oc set env dc --all --containers="node" --env=key-' 'deploymentconfig.apps.openshift.io "node" updated'
 # ensure deleting a var through --env actually deletes the env var
 os::cmd::expect_success_and_not_text "oc get dc/node -o jsonpath='{ .spec.template.spec.containers[?(@.name==\"node\")].env }'" 'name\:key'
 os::cmd::expect_success_and_text "oc get dc/node -o jsonpath='{ .spec.template.spec.containers[?(@.name==\"node\")].env }'" 'name\:dots.in.a.key'
-os::cmd::expect_success_and_text 'oc set env dc --all --containers="node" --env=dots.in.a.key-' 'deploymentconfig "node" updated'
+os::cmd::expect_success_and_text 'oc set env dc --all --containers="node" --env=dots.in.a.key-' 'deploymentconfig.apps.openshift.io "node" updated'
 os::cmd::expect_success_and_not_text "oc get dc/node -o jsonpath='{ .spec.template.spec.containers[?(@.name==\"node\")].env }'" 'name\:dots.in.a.key'
 
 # check that env vars are not split at commas
@@ -48,7 +48,7 @@ spec:
 # ensure build-config has been created and that its type is "JenkinsPipeline"
 os::cmd::expect_success_and_text "oc get bc fake-pipeline -o jsonpath='{ .spec.strategy.type }'" 'JenkinsPipeline'
 # attempt to set an environment variable
-os::cmd::expect_success_and_text 'oc set env bc/fake-pipeline FOO=BAR' 'buildconfig "fake\-pipeline" updated'
+os::cmd::expect_success_and_text 'oc set env bc/fake-pipeline FOO=BAR' 'buildconfig.build.openshift.io "fake\-pipeline" updated'
 # ensure environment variable was set
 os::cmd::expect_success_and_text "oc get bc fake-pipeline -o jsonpath='{ .spec.strategy.jenkinsPipelineStrategy.env }'" 'name\:FOO'
 os::cmd::expect_success 'oc delete bc fake-pipeline'

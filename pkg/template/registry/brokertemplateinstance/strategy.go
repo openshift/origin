@@ -1,9 +1,10 @@
 package brokertemplateinstance
 
 import (
+	"context"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/storage/names"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
@@ -27,7 +28,7 @@ func (brokerTemplateInstanceStrategy) NamespaceScoped() bool {
 }
 
 // PrepareForUpdate clears fields that are not allowed to be set by end users on update.
-func (brokerTemplateInstanceStrategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.Object) {
+func (brokerTemplateInstanceStrategy) PrepareForUpdate(ctx context.Context, obj, old runtime.Object) {
 }
 
 // Canonicalize normalizes the object after validation.
@@ -35,11 +36,11 @@ func (brokerTemplateInstanceStrategy) Canonicalize(obj runtime.Object) {
 }
 
 // PrepareForCreate clears fields that are not allowed to be set by end users on creation.
-func (brokerTemplateInstanceStrategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) {
+func (brokerTemplateInstanceStrategy) PrepareForCreate(ctx context.Context, obj runtime.Object) {
 }
 
 // Validate validates a new brokertemplateinstance.
-func (brokerTemplateInstanceStrategy) Validate(ctx apirequest.Context, obj runtime.Object) field.ErrorList {
+func (brokerTemplateInstanceStrategy) Validate(ctx context.Context, obj runtime.Object) field.ErrorList {
 	return validation.ValidateBrokerTemplateInstance(obj.(*templateapi.BrokerTemplateInstance))
 }
 
@@ -53,6 +54,6 @@ func (brokerTemplateInstanceStrategy) AllowUnconditionalUpdate() bool {
 }
 
 // ValidateUpdate is the default update validation for an end user.
-func (brokerTemplateInstanceStrategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.Object) field.ErrorList {
+func (brokerTemplateInstanceStrategy) ValidateUpdate(ctx context.Context, obj, old runtime.Object) field.ErrorList {
 	return validation.ValidateBrokerTemplateInstanceUpdate(obj.(*templateapi.BrokerTemplateInstance), old.(*templateapi.BrokerTemplateInstance))
 }

@@ -3,22 +3,24 @@ package migrate
 import (
 	"fmt"
 	"io"
+	"sort"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/kubernetes/pkg/kubectl"
+	"k8s.io/client-go/discovery"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/kubectl/resource"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
+	"github.com/openshift/origin/pkg/oc/util/ocscheme"
 )
 
 // MigrateVisitFunc is invoked for each returned object, and may return a
@@ -149,7 +151,7 @@ func (o *ResourceOptions) Bind(c *cobra.Command) {
 	kcmdutil.AddNonDeprecatedPrinterFlags(c)
 
 	usage := "Filename, directory, or URL to docker-compose.yml file to use"
-	kubectl.AddJsonFilenameFlag(c, &o.Filenames, usage)
+	kcmdutil.AddJsonFilenameFlag(c.Flags(), &o.Filenames, usage)
 }
 
 func (o *ResourceOptions) Complete(f kcmdutil.Factory, c *cobra.Command) error {
@@ -162,7 +164,7 @@ func (o *ResourceOptions) Complete(f kcmdutil.Factory, c *cobra.Command) error {
 		}
 		first := true
 		o.PrintFn = func(info *resource.Info, _ Reporter) error {
-			obj, err := info.Mapping.ConvertToVersion(info.Object, info.Mapping.GroupVersionKind.GroupVersion())
+			obj, err := legacyscheme.Scheme.ConvertToVersion(info.Object, info.Mapping.GroupVersionKind.GroupVersion())
 			if err != nil {
 				return err
 			}
@@ -181,7 +183,7 @@ func (o *ResourceOptions) Complete(f kcmdutil.Factory, c *cobra.Command) error {
 		o.DryRun = true
 	}
 
-	namespace, explicitNamespace, err := f.DefaultNamespace()
+	namespace, explicitNamespace, err := f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
 	}
@@ -208,11 +210,18 @@ func (o *ResourceOptions) Complete(f kcmdutil.Factory, c *cobra.Command) error {
 		}
 	}
 
-	discoveryClient, err := f.DiscoveryClient()
+	clientConfig, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}
-	mapper, _ := f.Object()
+	discoveryClient, err := discovery.NewDiscoveryClientForConfig(clientConfig)
+	if err != nil {
+		return err
+	}
+	mapper, err := f.ToRESTMapper()
+	if err != nil {
+		return err
+	}
 
 	resourceNames := sets.NewString()
 	for i, s := range o.Include {
@@ -224,7 +233,7 @@ func (o *ResourceOptions) Complete(f kcmdutil.Factory, c *cobra.Command) error {
 			break
 		}
 
-		all, err := clientcmd.FindAllCanonicalResources(discoveryClient, mapper)
+		all, err := FindAllCanonicalResources(discoveryClient, mapper)
 		if err != nil {
 			return fmt.Errorf("could not calculate the list of available resources: %v", err)
 		}
@@ -301,7 +310,7 @@ func (o *ResourceOptions) Complete(f kcmdutil.Factory, c *cobra.Command) error {
 	if o.Unstructured {
 		o.Builder.Unstructured()
 	} else {
-		o.Builder.Internal()
+		o.Builder.WithScheme(ocscheme.ReadingInternalScheme)
 	}
 
 	if !allNamespaces {
@@ -547,9 +556,9 @@ func (t *migrateTracker) report(prefix string, info *resource.Info, err error) {
 		ns = "-n " + ns
 	}
 	if err != nil {
-		fmt.Fprintf(t.out, "E%s %-10s %s %s/%s: %v\n", timeStampNow(), prefix, ns, info.Mapping.Resource, info.Name, err)
+		fmt.Fprintf(t.out, "E%s %-10s %s %s/%s: %v\n", timeStampNow(), prefix, ns, info.Mapping.Resource.Resource, info.Name, err)
 	} else {
-		fmt.Fprintf(t.out, "I%s %-10s %s %s/%s\n", timeStampNow(), prefix, ns, info.Mapping.Resource, info.Name)
+		fmt.Fprintf(t.out, "I%s %-10s %s %s/%s\n", timeStampNow(), prefix, ns, info.Mapping.Resource.Resource, info.Name)
 	}
 }
 
@@ -569,7 +578,7 @@ func (t *migrateTracker) run() {
 		case attemptResultError:
 			t.report("error:", r.data.info, r.data.err)
 			t.errors++
-			t.resourcesWithErrors.Insert(r.data.info.Mapping.Resource)
+			t.resourcesWithErrors.Insert(r.data.info.Mapping.Resource.Resource)
 		case attemptResultIgnore:
 			t.ignored++
 			if glog.V(2) {
@@ -709,3 +718,57 @@ func DefaultRetriable(info *resource.Info, err error) error {
 		return err
 	}
 }
+
+// FindAllCanonicalResources returns all resource names that map directly to their kind (Kind -> Resource -> Kind)
+// and are not subresources. This is the closest mapping possible from the client side to resources that can be
+// listed and updated. Note that this may return some virtual resources (like imagestreamtags) that can be otherwise
+// represented.
+// TODO: add a field to APIResources for "virtual" (or that points to the canonical resource).
+// TODO: fallback to the scheme when discovery is not possible.
+func FindAllCanonicalResources(d discovery.DiscoveryInterface, m meta.RESTMapper) ([]schema.GroupResource, error) {
+	set := make(map[schema.GroupResource]struct{})
+	all, err := d.ServerResources()
+	if err != nil {
+		return nil, err
+	}
+	for _, serverResource := range all {
+		gv, err := schema.ParseGroupVersion(serverResource.GroupVersion)
+		if err != nil {
+			continue
+		}
+		for _, r := range serverResource.APIResources {
+			// ignore subresources
+			if strings.Contains(r.Name, "/") {
+				continue
+			}
+			// because discovery info doesn't tell us whether the object is virtual or not, perform a lookup
+			// by the kind for resource (which should be the canonical resource) and then verify that the reverse
+			// lookup (KindsFor) does not error.
+			if mapping, err := m.RESTMapping(schema.GroupKind{Group: gv.Group, Kind: r.Kind}, gv.Version); err == nil {
+				if _, err := m.KindsFor(mapping.Resource); err == nil {
+					set[mapping.Resource.GroupResource()] = struct{}{}
+				}
+			}
+		}
+	}
+	var groupResources []schema.GroupResource
+	for k := range set {
+		groupResources = append(groupResources, k)
+	}
+	sort.Sort(groupResourcesByName(groupResources))
+	return groupResources, nil
+}
+
+type groupResourcesByName []schema.GroupResource
+
+func (g groupResourcesByName) Len() int { return len(g) }
+func (g groupResourcesByName) Less(i, j int) bool {
+	if g[i].Resource < g[j].Resource {
+		return true
+	}
+	if g[i].Resource > g[j].Resource {
+		return false
+	}
+	return g[i].Group < g[j].Group
+}
+func (g groupResourcesByName) Swap(i, j int) { g[i], g[j] = g[j], g[i] }

@@ -1,10 +1,11 @@
 package buildconfig
 
 import (
+	"context"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/apiserver/pkg/storage/names"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
@@ -54,13 +55,13 @@ func (strategy) Canonicalize(obj runtime.Object) {
 
 // PrepareForCreate clears fields that are not allowed to be set by end users on creation.
 // This is invoked by the Group and Legacy strategies.
-func (s strategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) {
+func (s strategy) PrepareForCreate(ctx context.Context, obj runtime.Object) {
 	bc := obj.(*buildapi.BuildConfig)
 	dropUnknownTriggers(bc)
 }
 
 // PrepareForUpdate clears fields that are not allowed to be set by end users on update.
-func (strategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.Object) {
+func (strategy) PrepareForUpdate(ctx context.Context, obj, old runtime.Object) {
 	newBC := obj.(*buildapi.BuildConfig)
 	oldBC := old.(*buildapi.BuildConfig)
 	dropUnknownTriggers(newBC)
@@ -72,12 +73,12 @@ func (strategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.Object
 }
 
 // Validate validates a new policy.
-func (strategy) Validate(ctx apirequest.Context, obj runtime.Object) field.ErrorList {
+func (strategy) Validate(ctx context.Context, obj runtime.Object) field.ErrorList {
 	return validation.ValidateBuildConfig(obj.(*buildapi.BuildConfig))
 }
 
 // ValidateUpdate is the default update validation for an end user.
-func (strategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.Object) field.ErrorList {
+func (strategy) ValidateUpdate(ctx context.Context, obj, old runtime.Object) field.ErrorList {
 	return validation.ValidateBuildConfigUpdate(obj.(*buildapi.BuildConfig), old.(*buildapi.BuildConfig))
 }
 
@@ -87,7 +88,7 @@ type groupStrategy struct {
 }
 
 // PrepareForCreate delegates to the common strategy and sets default pruning limits
-func (s groupStrategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) {
+func (s groupStrategy) PrepareForCreate(ctx context.Context, obj runtime.Object) {
 	s.strategy.PrepareForCreate(ctx, obj)
 
 	bc := obj.(*buildapi.BuildConfig)
@@ -107,7 +108,7 @@ type legacyStrategy struct {
 }
 
 // PrepareForCreate delegates to the common strategy.
-func (s legacyStrategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) {
+func (s legacyStrategy) PrepareForCreate(ctx context.Context, obj runtime.Object) {
 	s.strategy.PrepareForCreate(ctx, obj)
 
 	// legacy buildconfig api does not apply default pruning values, to maintain
@@ -118,7 +119,7 @@ func (s legacyStrategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Obj
 var _ rest.GarbageCollectionDeleteStrategy = legacyStrategy{}
 
 // DefaultGarbageCollectionPolicy for legacy buildconfigs will orphan dependents.
-func (s legacyStrategy) DefaultGarbageCollectionPolicy(ctx apirequest.Context) rest.GarbageCollectionPolicy {
+func (s legacyStrategy) DefaultGarbageCollectionPolicy(ctx context.Context) rest.GarbageCollectionPolicy {
 	return rest.OrphanDependents
 }
 

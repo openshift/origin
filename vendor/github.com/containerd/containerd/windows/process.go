@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/Microsoft/hcsshim"
-	eventsapi "github.com/containerd/containerd/api/services/events/v1"
+	eventstypes "github.com/containerd/containerd/api/events"
 	"github.com/containerd/containerd/errdefs"
 	"github.com/containerd/containerd/log"
 	"github.com/containerd/containerd/runtime"
@@ -99,6 +99,10 @@ func (p *process) Pid() uint32 {
 	return p.pid
 }
 
+func (p *process) HcsPid() uint32 {
+	return uint32(p.hcs.Pid())
+}
+
 func (p *process) ExitCode() (uint32, time.Time, error) {
 	if s := p.Status(); s != runtime.StoppedStatus && s != runtime.CreatedStatus {
 		return 255, time.Time{}, errors.Wrapf(errdefs.ErrFailedPrecondition, "process is not stopped: %s", s)
@@ -182,7 +186,7 @@ func (p *process) Start(ctx context.Context) (err error) {
 
 		p.task.publisher.Publish(ctx,
 			runtime.TaskExitEventTopic,
-			&eventsapi.TaskExit{
+			&eventstypes.TaskExit{
 				ContainerID: p.task.id,
 				ID:          p.id,
 				Pid:         p.pid,

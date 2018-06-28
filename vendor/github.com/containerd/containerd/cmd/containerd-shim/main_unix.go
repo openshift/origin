@@ -3,51 +3,45 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"flag"
 	"fmt"
 	"net"
 	"os"
+	"os/exec"
+	"os/signal"
 	"runtime"
+	"runtime/debug"
 	"strings"
 	"sync"
 	"syscall"
 	"time"
 
-	eventsapi "github.com/containerd/containerd/api/services/events/v1"
-	"github.com/containerd/containerd/dialer"
-	"github.com/containerd/containerd/errdefs"
 	"github.com/containerd/containerd/events"
+	"github.com/containerd/containerd/linux/proc"
 	"github.com/containerd/containerd/linux/shim"
 	shimapi "github.com/containerd/containerd/linux/shim/v1"
+	"github.com/containerd/containerd/namespaces"
 	"github.com/containerd/containerd/reaper"
 	"github.com/containerd/typeurl"
-	google_protobuf "github.com/golang/protobuf/ptypes/empty"
+	ptypes "github.com/gogo/protobuf/types"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"github.com/stevvooe/ttrpc"
 	"golang.org/x/sys/unix"
-	"google.golang.org/grpc"
 )
 
-const usage = `
-                    __        _                     __           __    _
-  _________  ____  / /_____ _(_)___  ___  _________/ /     _____/ /_  (_)___ ___
- / ___/ __ \/ __ \/ __/ __ ` + "`" + `/ / __ \/ _ \/ ___/ __  /_____/ ___/ __ \/ / __ ` + "`" + `__ \
-/ /__/ /_/ / / / / /_/ /_/ / / / / /  __/ /  / /_/ /_____(__  ) / / / / / / / / /
-\___/\____/_/ /_/\__/\__,_/_/_/ /_/\___/_/   \__,_/     /____/_/ /_/_/_/ /_/ /_/
-
-shim for container lifecycle and reconnection
-`
-
 var (
-	debugFlag         bool
-	namespaceFlag     string
-	socketFlag        string
-	addressFlag       string
-	workdirFlag       string
-	runtimeRootFlag   string
-	criuFlag          string
-	systemdCgroupFlag bool
+	debugFlag            bool
+	namespaceFlag        string
+	socketFlag           string
+	addressFlag          string
+	workdirFlag          string
+	runtimeRootFlag      string
+	criuFlag             string
+	systemdCgroupFlag    bool
+	containerdBinaryFlag string
 )
 
 func init() {
@@ -56,16 +50,33 @@ func init() {
 	flag.StringVar(&socketFlag, "socket", "", "abstract socket path to serve")
 	flag.StringVar(&addressFlag, "address", "", "grpc address back to main containerd")
 	flag.StringVar(&workdirFlag, "workdir", "", "path used to storge large temporary data")
-	flag.StringVar(&runtimeRootFlag, "runtime-root", shim.RuncRoot, "root directory for the runtime")
+	flag.StringVar(&runtimeRootFlag, "runtime-root", proc.RuncRoot, "root directory for the runtime")
 	flag.StringVar(&criuFlag, "criu", "", "path to criu binary")
 	flag.BoolVar(&systemdCgroupFlag, "systemd-cgroup", false, "set runtime to use systemd-cgroup")
+	// currently, the `containerd publish` utility is embedded in the daemon binary.
+	// The daemon invokes `containerd-shim -containerd-binary ...` with its own os.Executable() path.
+	flag.StringVar(&containerdBinaryFlag, "containerd-binary", "containerd", "path to containerd binary (used for `containerd publish`)")
 	flag.Parse()
 }
 
 func main() {
+	debug.SetGCPercent(10)
+	go func() {
+		for range time.Tick(30 * time.Second) {
+			debug.FreeOSMemory()
+		}
+	}()
+
 	if debugFlag {
 		logrus.SetLevel(logrus.DebugLevel)
 	}
+
+	if os.Getenv("GOMAXPROCS") == "" {
+		// If GOMAXPROCS hasn't been set, we default to a value of 2 to reduce
+		// the number of Go stacks present in the shim.
+		runtime.GOMAXPROCS(2)
+	}
+
 	if err := executeShim(); err != nil {
 		fmt.Fprintf(os.Stderr, "containerd-shim: %s\n", err)
 		os.Exit(1)
@@ -79,14 +90,16 @@ func executeShim() error {
 	if err != nil {
 		return err
 	}
+	dump := make(chan os.Signal, 32)
+	signal.Notify(dump, syscall.SIGUSR1)
+
 	path, err := os.Getwd()
 	if err != nil {
 		return err
 	}
-	server := newServer()
-	e, err := connectEvents(addressFlag)
+	server, err := newServer()
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed creating server")
 	}
 	sv, err := shim.NewService(
 		shim.Config{
@@ -97,13 +110,14 @@ func executeShim() error {
 			SystemdCgroup: systemdCgroupFlag,
 			RuntimeRoot:   runtimeRootFlag,
 		},
-		&remoteEventsPublisher{client: e},
+		&remoteEventsPublisher{address: addressFlag},
 	)
 	if err != nil {
 		return err
 	}
-	logrus.Debug("registering grpc server")
-	shimapi.RegisterShimServer(server, sv)
+	logrus.Debug("registering ttrpc server")
+	shimapi.RegisterShimService(server, sv)
+
 	socket := socketFlag
 	if err := serve(server, socket); err != nil {
 		return err
@@ -113,12 +127,17 @@ func executeShim() error {
 		"path":      path,
 		"namespace": namespaceFlag,
 	})
+	go func() {
+		for range dump {
+			dumpStacks(logger)
+		}
+	}()
 	return handleSignals(logger, signals, server, sv)
 }
 
-// serve serves the grpc API over a unix socket at the provided path
+// serve serves the ttrpc API over a unix socket at the provided path
 // this function does not block
-func serve(server *grpc.Server, path string) error {
+func serve(server *ttrpc.Server, path string) error {
 	var (
 		l   net.Listener
 		err error
@@ -137,13 +156,13 @@ func serve(server *grpc.Server, path string) error {
 		defer l.Close()
 		if err := server.Serve(l); err != nil &&
 			!strings.Contains(err.Error(), "use of closed network connection") {
-			logrus.WithError(err).Fatal("containerd-shim: GRPC server failure")
+			logrus.WithError(err).Fatal("containerd-shim: ttrpc server failure")
 		}
 	}()
 	return nil
 }
 
-func handleSignals(logger *logrus.Entry, signals chan os.Signal, server *grpc.Server, sv *shim.Service) error {
+func handleSignals(logger *logrus.Entry, signals chan os.Signal, server *ttrpc.Server, sv *shim.Service) error {
 	var (
 		termOnce sync.Once
 		done     = make(chan struct{})
@@ -161,17 +180,18 @@ func handleSignals(logger *logrus.Entry, signals chan os.Signal, server *grpc.Se
 				}
 			case unix.SIGTERM, unix.SIGINT:
 				go termOnce.Do(func() {
-					server.Stop()
+					ctx := context.TODO()
+					if err := server.Shutdown(ctx); err != nil {
+						logger.WithError(err).Error("failed to shutdown server")
+					}
 					// Ensure our child is dead if any
-					sv.Kill(context.Background(), &shimapi.KillRequest{
+					sv.Kill(ctx, &shimapi.KillRequest{
 						Signal: uint32(syscall.SIGKILL),
 						All:    true,
 					})
-					sv.Delete(context.Background(), &google_protobuf.Empty{})
+					sv.Delete(context.Background(), &ptypes.Empty{})
 					close(done)
 				})
-			case unix.SIGUSR1:
-				dumpStacks(logger)
 			}
 		}
 	}
@@ -192,44 +212,32 @@ func dumpStacks(logger *logrus.Entry) {
 	logger.Infof("=== BEGIN goroutine stack dump ===\n%s\n=== END goroutine stack dump ===", buf)
 }
 
-func connectEvents(address string) (eventsapi.EventsClient, error) {
-	conn, err := connect(address, dialer.Dialer)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to dial %q", address)
-	}
-	return eventsapi.NewEventsClient(conn), nil
-}
-
-func connect(address string, d func(string, time.Duration) (net.Conn, error)) (*grpc.ClientConn, error) {
-	gopts := []grpc.DialOption{
-		grpc.WithBlock(),
-		grpc.WithInsecure(),
-		grpc.WithTimeout(60 * time.Second),
-		grpc.WithDialer(d),
-		grpc.FailOnNonTempDialError(true),
-		grpc.WithBackoffMaxDelay(3 * time.Second),
-	}
-	conn, err := grpc.Dial(dialer.DialAddress(address), gopts...)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to dial %q", address)
-	}
-	return conn, nil
-}
-
 type remoteEventsPublisher struct {
-	client eventsapi.EventsClient
+	address string
 }
 
 func (l *remoteEventsPublisher) Publish(ctx context.Context, topic string, event events.Event) error {
+	ns, _ := namespaces.Namespace(ctx)
 	encoded, err := typeurl.MarshalAny(event)
 	if err != nil {
 		return err
 	}
-	if _, err := l.client.Publish(ctx, &eventsapi.PublishRequest{
-		Topic: topic,
-		Event: encoded,
-	}); err != nil {
-		return errdefs.FromGRPC(err)
+	data, err := encoded.Marshal()
+	if err != nil {
+		return err
+	}
+	cmd := exec.CommandContext(ctx, containerdBinaryFlag, "--address", l.address, "publish", "--topic", topic, "--namespace", ns)
+	cmd.Stdin = bytes.NewReader(data)
+	c, err := reaper.Default.Start(cmd)
+	if err != nil {
+		return err
+	}
+	status, err := reaper.Default.Wait(cmd, c)
+	if err != nil {
+		return err
+	}
+	if status != 0 {
+		return errors.New("failed to publish event")
 	}
 	return nil
 }

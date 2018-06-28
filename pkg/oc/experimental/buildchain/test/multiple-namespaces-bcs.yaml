@@ -1,13 +1,13 @@
 apiVersion: v1
 items:
-- apiVersion: v1
+- apiVersion: build.openshift.io/v1
   kind: BuildConfig
   metadata:
     creationTimestamp: 2015-07-22T11:25:00Z
     name: ruby-hello-world
     namespace: default
     resourceVersion: "1125"
-    selfLink: /osapi/v1/namespaces/default/buildconfigs/ruby-hello-world
+    selfLink: /apia/build.openshift.io/v1/namespaces/default/buildconfigs/ruby-hello-world
     uid: 4a10e762-3064-11e5-8da2-080027c5bfa9
   spec:
     output:
@@ -39,7 +39,7 @@ items:
       type: ImageChange
   status:
     lastVersion: 1
-- apiVersion: v1
+- apiVersion: build.openshift.io/v1
   kind: BuildConfig
   metadata:
     creationTimestamp: 2015-07-24T07:41:19Z
@@ -49,7 +49,7 @@ items:
     name: ruby-sample-build
     namespace: test
     resourceVersion: "9848"
-    selfLink: /osapi/v1/namespaces/test/buildconfigs/ruby-sample-build
+    selfLink: /apia/build.openshift.io/v1/namespaces/test/buildconfigs/ruby-sample-build
     uid: 5f52f442-31d7-11e5-868e-080027c5bfa9
   spec:
     output:
@@ -81,14 +81,14 @@ items:
       type: ImageChange
   status:
     lastVersion: 1
-- apiVersion: v1
+- apiVersion: build.openshift.io/v1
   kind: BuildConfig
   metadata:
     creationTimestamp: 2015-07-22T12:07:57Z
     name: ruby-sample-build-invalidtag
     namespace: test
     resourceVersion: "1605"
-    selfLink: /osapi/v1/namespaces/test/buildconfigs/ruby-sample-build-invalidtag
+    selfLink: /apia/build.openshift.io/v1/namespaces/test/buildconfigs/ruby-sample-build-invalidtag
     uid: 4a633dd5-306a-11e5-8da2-080027c5bfa9
   spec:
     output:
@@ -112,14 +112,14 @@ items:
       type: ImageChange
   status:
     lastVersion: 0
-- apiVersion: v1
+- apiVersion: build.openshift.io/v1
   kind: BuildConfig
   metadata:
     creationTimestamp: 2015-07-22T12:07:57Z
     name: ruby-sample-build-validtag
     namespace: test
     resourceVersion: "1604"
-    selfLink: /osapi/v1/namespaces/test/buildconfigs/ruby-sample-build-validtag
+    selfLink: /apia/build.openshift.io/v1/namespaces/test/buildconfigs/ruby-sample-build-validtag
     uid: 4a623b89-306a-11e5-8da2-080027c5bfa9
   spec:
     output:

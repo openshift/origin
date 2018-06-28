@@ -54,8 +54,16 @@ func (i *imageStreamTagEvaluator) Handles(a kadmission.Attributes) bool {
 }
 
 func (i *imageStreamTagEvaluator) Matches(resourceQuota *kapi.ResourceQuota, item runtime.Object) (bool, error) {
-	matchesScopeFunc := func(kapi.ResourceQuotaScope, runtime.Object) (bool, error) { return true, nil }
+	matchesScopeFunc := func(kapi.ScopedResourceSelectorRequirement, runtime.Object) (bool, error) { return true, nil }
 	return generic.Matches(resourceQuota, item, i.MatchingResources, matchesScopeFunc)
+}
+
+func (p *imageStreamTagEvaluator) MatchingScopes(item runtime.Object, scopes []kapi.ScopedResourceSelectorRequirement) ([]kapi.ScopedResourceSelectorRequirement, error) {
+	return []kapi.ScopedResourceSelectorRequirement{}, nil
+}
+
+func (p *imageStreamTagEvaluator) UncoveredQuotaScopes(limitedScopes []kapi.ScopedResourceSelectorRequirement, matchedQuotaScopes []kapi.ScopedResourceSelectorRequirement) ([]kapi.ScopedResourceSelectorRequirement, error) {
+	return []kapi.ScopedResourceSelectorRequirement{}, nil
 }
 
 func (i *imageStreamTagEvaluator) MatchingResources(input []kapi.ResourceName) []kapi.ResourceName {

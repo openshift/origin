@@ -142,3 +142,20 @@ func TestUpdateLoadbalancer(t *testing.T) {
 
 	th.CheckDeepEquals(t, LoadbalancerUpdated, *actual)
 }
+
+func TestCascadingDeleteLoadbalancer(t *testing.T) {
+	th.SetupHTTP()
+	defer th.TeardownHTTP()
+	HandleLoadbalancerDeletionSuccessfully(t)
+
+	sc := fake.ServiceClient()
+	sc.Type = "network"
+	err := loadbalancers.CascadingDelete(sc, "36e08a3e-a78f-4b40-a229-1e7e23eee1ab").ExtractErr()
+	if err == nil {
+		t.Fatalf("expected error running CascadingDelete with Neutron service client but didn't get one")
+	}
+
+	sc.Type = "load-balancer"
+	err = loadbalancers.CascadingDelete(sc, "36e08a3e-a78f-4b40-a229-1e7e23eee1ab").ExtractErr()
+	th.AssertNoErr(t, err)
+}

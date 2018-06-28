@@ -11,7 +11,13 @@ import (
 	"time"
 
 	flag "github.com/spf13/pflag"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
+	networktypedclient "github.com/openshift/origin/pkg/network/generated/internalclientset/typed/network/internalversion"
+	networkpoddiag "github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/cluster/network/in_pod"
+	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/cluster/network/in_pod/util"
+	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/log"
+	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/types"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kvalidation "k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -19,13 +25,6 @@ import (
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-
-	networktypedclient "github.com/openshift/origin/pkg/network/generated/internalclientset/typed/network/internalversion"
-	networkpoddiag "github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/cluster/network/in_pod"
-	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/cluster/network/in_pod/util"
-	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/log"
-	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/types"
 )
 
 const (
@@ -44,7 +43,7 @@ type NetworkDiagnostic struct {
 	ClusterNetworkClient networktypedclient.ClusterNetworksGetter
 	ClientFlags          *flag.FlagSet
 	Level                int
-	Factory              kcmdutil.Factory
+	Factory              genericclioptions.RESTClientGetter
 	RawConfig            *clientcmdapi.Config
 	PreventModification  bool
 	LogDir               string

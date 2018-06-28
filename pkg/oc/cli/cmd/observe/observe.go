@@ -21,6 +21,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/cobra"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -36,7 +37,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/kubectl/resource"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 
 	"github.com/openshift/origin/pkg/util/proc"
 )
@@ -295,7 +296,10 @@ func (o *ObserveOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args [
 		return fmt.Errorf("unknown resource argument")
 	}
 
-	mapper, _ := f.Object()
+	mapper, err := f.ToRESTMapper()
+	if err != nil {
+		return err
+	}
 
 	version, err := mapper.KindFor(gr.WithVersion(""))
 	if err != nil {
@@ -314,7 +318,7 @@ func (o *ObserveOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args [
 	}
 	o.client = client
 
-	o.namespace, _, err = f.DefaultNamespace()
+	o.namespace, _, err = f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
 	}
@@ -335,7 +339,7 @@ func (o *ObserveOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args [
 	default:
 		return fmt.Errorf("template type %q not recognized - valid values are jsonpath and gotemplate", o.templateType)
 	}
-	o.printer = NewVersionedColumnPrinter(o.printer, o.mapping.ObjectConvertor, version.GroupVersion())
+	o.printer = NewVersionedColumnPrinter(o.printer, legacyscheme.Scheme, version.GroupVersion())
 	o.out, o.errOut = out, errOut
 	if o.noHeaders {
 		o.debugOut = ioutil.Discard

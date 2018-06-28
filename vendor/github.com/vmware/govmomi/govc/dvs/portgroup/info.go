@@ -20,6 +20,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"io"
 
 	"github.com/vmware/govmomi/govc/cli"
 	"github.com/vmware/govmomi/govc/flags"
@@ -37,7 +38,7 @@ type info struct {
 	inside     bool
 	uplinkPort bool
 	vlanID     int
-	count      uint
+	count      int
 }
 
 func init() {
@@ -54,15 +55,7 @@ func (cmd *info) Register(ctx context.Context, f *flag.FlagSet) {
 	f.BoolVar(&cmd.inside, "inside", true, "Filter by port inside or outside status")
 	f.BoolVar(&cmd.uplinkPort, "uplinkPort", false, "Filter for uplink ports")
 	f.IntVar(&cmd.vlanID, "vlan", 0, "Filter by VLAN ID (0 = unfiltered)")
-	f.UintVar(&cmd.count, "count", 0, "Number of matches to return (0 = unlimited)")
-}
-
-func (cmd *info) Process(ctx context.Context) error {
-	if err := cmd.ClientFlag.Process(ctx); err != nil {
-		return err
-	}
-
-	return nil
+	f.IntVar(&cmd.count, "count", 0, "Number of matches to return (0 = unlimited)")
 }
 
 func (cmd *info) Usage() string {
@@ -74,7 +67,37 @@ func (cmd *info) Description() string {
 
 Examples:
   govc dvs.portgroup.info DSwitch
+  govc dvs.portgroup.info -pg InternalNetwork DSwitch
   govc find / -type DistributedVirtualSwitch | xargs -n1 govc dvs.portgroup.info`
+}
+
+type infoResult struct {
+	Port []types.DistributedVirtualPort
+	cmd  *info
+}
+
+func (r *infoResult) Write(w io.Writer) error {
+	for _, port := range r.Port {
+		var vlanID int32
+		setting := port.Config.Setting.(*types.VMwareDVSPortSetting)
+
+		switch vlan := setting.Vlan.(type) {
+		case *types.VmwareDistributedVirtualSwitchVlanIdSpec:
+			vlanID = vlan.VlanId
+		case *types.VmwareDistributedVirtualSwitchTrunkVlanSpec:
+		case *types.VmwareDistributedVirtualSwitchPvlanSpec:
+			vlanID = vlan.PvlanId
+		}
+
+		// Show port info if: VLAN ID is not defined, or VLAN ID matches requested VLAN
+		if r.cmd.vlanID == 0 || vlanID == int32(r.cmd.vlanID) {
+			fmt.Printf("PortgroupKey: %s\n", port.PortgroupKey)
+			fmt.Printf("DvsUuid:      %s\n", port.DvsUuid)
+			fmt.Printf("VlanId:       %d\n", vlanID)
+			fmt.Printf("PortKey:      %s\n\n", port.Key)
+		}
+	}
+	return nil
 }
 
 func (cmd *info) Run(ctx context.Context, f *flag.FlagSet) error {
@@ -131,34 +154,20 @@ func (cmd *info) Run(ctx context.Context, f *flag.FlagSet) error {
 		criteria.PortgroupKey = []string{dvp.Key}
 	}
 
-	res, err := dvs.FetchDVPorts(ctx)
+	res, err := dvs.FetchDVPorts(ctx, &criteria)
 	if err != nil {
 		return err
 	}
 
-	var returnedPorts uint
-
-	// Iterate over returned ports
-	for _, port := range res {
-		portConfigSetting := port.Config.Setting.(*types.VMwareDVSPortSetting)
-		portVlan := portConfigSetting.Vlan.(*types.VmwareDistributedVirtualSwitchVlanIdSpec)
-		portVlanID := portVlan.VlanId
-
-		// Show port info if: VLAN ID is not defined, or VLAN ID matches requested VLAN
-		if cmd.vlanID == 0 || portVlanID == int32(cmd.vlanID) {
-			returnedPorts++
-
-			fmt.Printf("PortgroupKey: %s\n", port.PortgroupKey)
-			fmt.Printf("DvsUuid:      %s\n", port.DvsUuid)
-			fmt.Printf("VlanId:       %d\n", portVlanID)
-			fmt.Printf("PortKey:      %s\n\n", port.Key)
-
-			// If we are limiting the count and have reached the count, then stop returning output
-			if cmd.count > 0 && returnedPorts == cmd.count {
-				break
-			}
-		}
+	// Truncate output to -count if specified
+	if cmd.count > 0 && cmd.count < len(res) {
+		res = res[:cmd.count]
 	}
 
-	return nil
+	info := infoResult{
+		cmd:  cmd,
+		Port: res,
+	}
+
+	return cmd.WriteResult(&info)
 }

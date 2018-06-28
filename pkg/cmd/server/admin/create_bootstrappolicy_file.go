@@ -15,16 +15,15 @@ import (
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	kprinters "k8s.io/kubernetes/pkg/printers"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 )
 
 const (
-	DefaultPolicyFile                    = "openshift.local.config/master/policy.json"
-	CreateBootstrapPolicyFileCommand     = "create-bootstrap-policy-file"
-	CreateBootstrapPolicyFileFullCommand = "oc adm " + CreateBootstrapPolicyFileCommand
+	DefaultPolicyFile                = "openshift.local.config/master/policy.json"
+	CreateBootstrapPolicyFileCommand = "create-bootstrap-policy-file"
 )
 
 type CreateBootstrapPolicyFileOptions struct {
@@ -123,7 +122,7 @@ func (o CreateBootstrapPolicyFileOptions) CreateBootstrapPolicyFile() error {
 	}
 
 	buffer := &bytes.Buffer{}
-	(&kprinters.JSONPrinter{}).PrintObj(versionedPolicyList, buffer)
+	(&printers.JSONPrinter{}).PrintObj(versionedPolicyList, buffer)
 
 	if err := ioutil.WriteFile(o.File, buffer.Bytes(), 0644); err != nil {
 		return err

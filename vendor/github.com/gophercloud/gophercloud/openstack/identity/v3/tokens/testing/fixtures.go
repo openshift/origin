@@ -125,18 +125,21 @@ var catalogEntry1 = tokens.CatalogEntry{
 		tokens.Endpoint{
 			ID:        "3eac9e7588eb4eb2a4650cf5e079505f",
 			Region:    "RegionOne",
+			RegionID:  "RegionOne",
 			Interface: "admin",
 			URL:       "http://127.0.0.1:8774/v2.1/a99e9b4e620e4db09a2dfb6e42a01e66",
 		},
 		tokens.Endpoint{
 			ID:        "6b33fabc69c34ea782a3f6282582b59f",
 			Region:    "RegionOne",
+			RegionID:  "RegionOne",
 			Interface: "internal",
 			URL:       "http://127.0.0.1:8774/v2.1/a99e9b4e620e4db09a2dfb6e42a01e66",
 		},
 		tokens.Endpoint{
 			ID:        "dae63c71bee24070a71f5425e7a916b5",
 			Region:    "RegionOne",
+			RegionID:  "RegionOne",
 			Interface: "public",
 			URL:       "http://127.0.0.1:8774/v2.1/a99e9b4e620e4db09a2dfb6e42a01e66",
 		},
@@ -150,18 +153,21 @@ var catalogEntry2 = tokens.CatalogEntry{
 		tokens.Endpoint{
 			ID:        "0539aeff80954a0bb756cec496768d3d",
 			Region:    "RegionOne",
+			RegionID:  "RegionOne",
 			Interface: "admin",
 			URL:       "http://127.0.0.1:35357/v3",
 		},
 		tokens.Endpoint{
 			ID:        "15bdf2d0853e4c939993d29548b1b56f",
 			Region:    "RegionOne",
+			RegionID:  "RegionOne",
 			Interface: "public",
 			URL:       "http://127.0.0.1:5000/v3",
 		},
 		tokens.Endpoint{
 			ID:        "3b4423c54ba343c58226bc424cb11c4b",
 			Region:    "RegionOne",
+			RegionID:  "RegionOne",
 			Interface: "internal",
 			URL:       "http://127.0.0.1:5000/v3",
 		},

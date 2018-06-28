@@ -33,7 +33,6 @@ import (
 	core "k8s.io/client-go/testing"
 	utiltesting "k8s.io/client-go/util/testing"
 	"k8s.io/kubernetes/pkg/volume"
-	"k8s.io/kubernetes/pkg/volume/csi/fake"
 	volumetest "k8s.io/kubernetes/pkg/volume/testing"
 )
 
@@ -506,7 +505,7 @@ func TestAttacherMountDevice(t *testing.T) {
 			devicePath:      "",
 			deviceMountPath: "path2",
 			stageUnstageSet: true,
-			shouldFail:      true,
+			shouldFail:      false,
 		},
 		{
 			testName:        "no device mount path",
@@ -571,7 +570,7 @@ func TestAttacherMountDevice(t *testing.T) {
 			if !tc.shouldFail {
 				t.Errorf("test should not fail, but error occurred: %v", err)
 			}
-			return
+			continue
 		}
 		if err == nil && tc.shouldFail {
 			t.Errorf("test should fail, but no error occurred")
@@ -583,8 +582,8 @@ func TestAttacherMountDevice(t *testing.T) {
 			numStaged = 0
 		}
 
-		cdc := csiAttacher.csiClient.(*csiDriverClient)
-		staged := cdc.nodeClient.(*fake.NodeClient).GetNodeStagedVolumes()
+		cdc := csiAttacher.csiClient.(*fakeCsiDriverClient)
+		staged := cdc.nodeClient.GetNodeStagedVolumes()
 		if len(staged) != numStaged {
 			t.Errorf("got wrong number of staged volumes, expecting %v got: %v", numStaged, len(staged))
 		}
@@ -613,6 +612,13 @@ func TestAttacherUnmountDevice(t *testing.T) {
 			volID:           "project/zone/test-vol1",
 			deviceMountPath: "/tmp/csi-test049507108/plugins/csi/pv/test-pv-name/globalmount",
 			stageUnstageSet: true,
+		},
+		{
+			testName:        "no volID",
+			volID:           "",
+			deviceMountPath: "/tmp/csi-test049507108/plugins/csi/pv/test-pv-name/globalmount",
+			stageUnstageSet: true,
+			shouldFail:      true,
 		},
 		{
 			testName:        "no device mount path",
@@ -661,8 +667,8 @@ func TestAttacherUnmountDevice(t *testing.T) {
 		csiAttacher.csiClient = setupClient(t, tc.stageUnstageSet)
 
 		// Add the volume to NodeStagedVolumes
-		cdc := csiAttacher.csiClient.(*csiDriverClient)
-		cdc.nodeClient.(*fake.NodeClient).AddNodeStagedVolume(tc.volID, tc.deviceMountPath)
+		cdc := csiAttacher.csiClient.(*fakeCsiDriverClient)
+		cdc.nodeClient.AddNodeStagedVolume(tc.volID, tc.deviceMountPath)
 
 		// Make the PV for this object
 		dir := filepath.Dir(tc.deviceMountPath)
@@ -693,7 +699,7 @@ func TestAttacherUnmountDevice(t *testing.T) {
 		if !tc.stageUnstageSet {
 			expectedSet = 1
 		}
-		staged := cdc.nodeClient.(*fake.NodeClient).GetNodeStagedVolumes()
+		staged := cdc.nodeClient.GetNodeStagedVolumes()
 		if len(staged) != expectedSet {
 			t.Errorf("got wrong number of staged volumes, expecting %v got: %v", expectedSet, len(staged))
 		}

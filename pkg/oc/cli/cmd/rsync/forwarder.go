@@ -54,11 +54,11 @@ func (f *portForwarder) ForwardPorts(ports []string, stopChan <-chan struct{}) e
 
 // newPortForwarder creates a new forwarder for use with rsync
 func newPortForwarder(f kcmdutil.Factory, o *RsyncOptions) (forwarder, error) {
-	client, err := f.ClientSet()
+	config, err := f.ToRESTConfig()
 	if err != nil {
 		return nil, err
 	}
-	config, err := f.ClientConfig()
+	client, err := kclientset.NewForConfig(config)
 	if err != nil {
 		return nil, err
 	}

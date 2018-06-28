@@ -30,8 +30,8 @@ EOF
 
 disk=48
 mem=16
-# 6.5U1 (EP5) - https://docs.vmware.com/en/VMware-vSphere/6.5/rn/vsphere-esxi-651-release-notes.html
-iso=VMware-VMvisor-6.5.0-7526137.x86_64.iso
+# 6.5U1 (EP6) https://docs.vmware.com/en/VMware-vSphere/6.5/rn/vsphere-esxi-651-release-notes.html
+iso=VMware-VMvisor-6.5.0-8023194.x86_64.iso
 
 while getopts d:hi:m:s flag
 do
@@ -232,9 +232,6 @@ if [ -z "$standalone" ] ; then
   govc host.storage.mark -ssd=false "${disk[1]}"
 fi
 
-echo "Enabling MOB for ${name}..."
-govc host.option.set Config.HostAgent.plugins.solo.enableMob true
-
 echo "Configuring NTP for ${name}..."
 govc host.date.change -server 0.pool.ntp.org
 
@@ -272,6 +269,9 @@ govc host.esxcli network firewall ruleset set -r remoteSerialPort -e true
 
 echo "Setting hostname for ${name}..."
 govc host.esxcli system hostname set -H "$name"
+
+echo "Enabling MOB for ${name}..."
+govc host.option.set Config.HostAgent.plugins.solo.enableMob true
 
 if which sshpass >/dev/null && [ -e ~/.ssh/id_rsa.pub ] ; then
   echo "Adding ssh authorized key to ${name}..."

@@ -29,7 +29,7 @@ type ImageStreamInterface interface {
 	List(opts meta_v1.ListOptions) (*v1.ImageStreamList, error)
 	Watch(opts meta_v1.ListOptions) (watch.Interface, error)
 	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1.ImageStream, err error)
-	Secrets(imageStreamName string, opts meta_v1.ListOptions) (*core_v1.SecretList, error)
+	Secrets(imageStreamName string, options meta_v1.GetOptions) (*core_v1.SecretList, error)
 
 	ImageStreamExpansion
 }
@@ -160,15 +160,15 @@ func (c *imageStreams) Patch(name string, pt types.PatchType, data []byte, subre
 	return
 }
 
-// Secrets takes v1.ImageStream name, label and field selectors, and returns the list of Secrets that match those selectors.
-func (c *imageStreams) Secrets(imageStreamName string, opts meta_v1.ListOptions) (result *core_v1.SecretList, err error) {
+// Secrets takes name of the imageStream, and returns the corresponding core_v1.SecretList object, and an error if there is any.
+func (c *imageStreams) Secrets(imageStreamName string, options meta_v1.GetOptions) (result *core_v1.SecretList, err error) {
 	result = &core_v1.SecretList{}
 	err = c.client.Get().
 		Namespace(c.ns).
 		Resource("imagestreams").
 		Name(imageStreamName).
 		SubResource("secrets").
-		VersionedParams(&opts, scheme.ParameterCodec).
+		VersionedParams(&options, scheme.ParameterCodec).
 		Do().
 		Into(result)
 	return

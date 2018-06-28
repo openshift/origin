@@ -59,7 +59,7 @@ func (cmd *attach) Process(ctx context.Context) error {
 	return nil
 }
 
-//This piece of code was developped mainly thanks to the project govmax on github.com
+//This piece of code was developed mainly thanks to the project govmax on github.com
 //This file in particular https://github.com/codedellemc/govmax/blob/master/api/v1/vmomi.go
 func (cmd *attach) Run(ctx context.Context, f *flag.FlagSet) error {
 	vm, err := cmd.VirtualMachine()

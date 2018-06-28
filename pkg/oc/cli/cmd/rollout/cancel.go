@@ -11,8 +11,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
-	"k8s.io/kubernetes/pkg/kubectl/resource"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 
 	units "github.com/docker/go-units"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
@@ -23,6 +24,8 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+
+	"github.com/openshift/origin/pkg/oc/util/ocscheme"
 )
 
 type CancelOptions struct {
@@ -71,15 +74,21 @@ func NewCmdRolloutCancel(fullName string, f kcmdutil.Factory, out io.Writer) *co
 }
 
 func (o *CancelOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, out io.Writer, args []string) error {
+	var err error
+
 	if len(args) == 0 && len(o.FilenameOptions.Filenames) == 0 {
 		return kcmdutil.UsageErrorf(cmd, cmd.Use)
 	}
 
-	o.Mapper, o.Typer = f.Object()
+	o.Typer = legacyscheme.Scheme
+	o.Mapper, err = f.ToRESTMapper()
+	if err != nil {
+		return err
+	}
 	o.Encoder = kcmdutil.InternalVersionJSONEncoder()
 	o.Out = out
 
-	cmdNamespace, enforceNamespace, err := f.DefaultNamespace()
+	cmdNamespace, enforceNamespace, err := f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
 	}
@@ -90,7 +99,7 @@ func (o *CancelOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, out io.
 	}
 
 	r := f.NewBuilder().
-		Internal().
+		WithScheme(ocscheme.ReadingInternalScheme).
 		NamespaceParam(cmdNamespace).DefaultNamespace().
 		FilenameParam(enforceNamespace, &o.FilenameOptions).
 		ResourceTypeOrNameArgs(true, args...).
@@ -112,7 +121,7 @@ func (o CancelOptions) Run() error {
 	for _, info := range o.Infos {
 		config, ok := info.Object.(*appsapi.DeploymentConfig)
 		if !ok {
-			allErrs = append(allErrs, kcmdutil.AddSourceToErr("cancelling", info.Source, fmt.Errorf("expected deployment configuration, got %s", info.Mapping.Resource)))
+			allErrs = append(allErrs, kcmdutil.AddSourceToErr("cancelling", info.Source, fmt.Errorf("expected deployment configuration, got %s", info.Mapping.Resource.Resource)))
 			continue
 		}
 		if config.Spec.Paused {

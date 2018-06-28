@@ -1,6 +1,7 @@
 package selfsubjectrulesreview
 
 import (
+	"context"
 	"fmt"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -9,7 +10,7 @@ import (
 	"k8s.io/apiserver/pkg/authentication/user"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
-	rbaclisters "k8s.io/kubernetes/pkg/client/listers/rbac/internalversion"
+	rbaclisters "k8s.io/client-go/listers/rbac/v1"
 	rbacregistryvalidation "k8s.io/kubernetes/pkg/registry/rbac/validation"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
@@ -23,6 +24,7 @@ type REST struct {
 }
 
 var _ rest.Creater = &REST{}
+var _ rest.Scoper = &REST{}
 
 func NewREST(ruleResolver rbacregistryvalidation.AuthorizationRuleResolver, clusterRoleGetter rbaclisters.ClusterRoleLister) *REST {
 	return &REST{ruleResolver: ruleResolver, clusterRoleGetter: clusterRoleGetter}
@@ -32,8 +34,12 @@ func (r *REST) New() runtime.Object {
 	return &authorizationapi.SelfSubjectRulesReview{}
 }
 
+func (s *REST) NamespaceScoped() bool {
+	return true
+}
+
 // Create registers a given new ResourceAccessReview instance to r.registry.
-func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, _ rest.ValidateObjectFunc, _ bool) (runtime.Object, error) {
+func (r *REST) Create(ctx context.Context, obj runtime.Object, _ rest.ValidateObjectFunc, _ bool) (runtime.Object, error) {
 	rulesReview, ok := obj.(*authorizationapi.SelfSubjectRulesReview)
 	if !ok {
 		return nil, kapierrors.NewBadRequest(fmt.Sprintf("not a SelfSubjectRulesReview: %#v", obj))
@@ -67,7 +73,7 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, _ rest.Validat
 
 	ret := &authorizationapi.SelfSubjectRulesReview{
 		Status: authorizationapi.SubjectRulesReviewStatus{
-			Rules: rbacconversion.Convert_rbac_PolicyRules_To_authorization_PolicyRules(rules), //TODO can we fix this ?
+			Rules: rbacconversion.Convert_rbacv1_PolicyRules_To_authorization_PolicyRules(rules), //TODO can we fix this ?
 		},
 	}
 

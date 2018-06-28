@@ -31,6 +31,7 @@ func CreateEmptyImage(t *testing.T, client *gophercloud.ServiceClient) (*images.
 		Properties: map[string]string{
 			"architecture": "x86_64",
 		},
+		Tags: []string{"foo", "bar", "baz"},
 	}
 
 	image, err := images.Create(client, createOpts).Extract()

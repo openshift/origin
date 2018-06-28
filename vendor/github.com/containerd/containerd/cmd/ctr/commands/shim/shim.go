@@ -6,25 +6,22 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net"
-	"time"
 
 	gocontext "context"
-
-	"google.golang.org/grpc"
 
 	"github.com/containerd/console"
 	"github.com/containerd/containerd/cmd/ctr/commands"
 	shim "github.com/containerd/containerd/linux/shim/v1"
 	"github.com/containerd/typeurl"
-	protobuf "github.com/gogo/protobuf/types"
-	google_protobuf "github.com/golang/protobuf/ptypes/empty"
+	ptypes "github.com/gogo/protobuf/types"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"github.com/stevvooe/ttrpc"
 	"github.com/urfave/cli"
 )
 
-var empty = &google_protobuf.Empty{}
+var empty = &ptypes.Empty{}
 
 var fifoFlags = []cli.Flag{
 	cli.StringFlag{
@@ -168,7 +165,7 @@ var execCommand = cli.Command{
 
 		rq := &shim.ExecProcessRequest{
 			ID: id,
-			Spec: &protobuf.Any{
+			Spec: &ptypes.Any{
 				TypeUrl: url,
 				Value:   spec,
 			},
@@ -213,21 +210,21 @@ var execCommand = cli.Command{
 	},
 }
 
-func getShimService(context *cli.Context) (shim.ShimClient, error) {
+func getShimService(context *cli.Context) (shim.ShimService, error) {
 	bindSocket := context.GlobalString("socket")
 	if bindSocket == "" {
 		return nil, errors.New("socket path must be specified")
 	}
 
-	dialOpts := []grpc.DialOption{grpc.WithInsecure(), grpc.WithTimeout(100 * time.Second)}
-	dialOpts = append(dialOpts,
-		grpc.WithDialer(func(addr string, timeout time.Duration) (net.Conn, error) {
-			return net.DialTimeout("unix", "\x00"+bindSocket, timeout)
-		},
-		))
-	conn, err := grpc.Dial(fmt.Sprintf("unix://%s", bindSocket), dialOpts...)
+	conn, err := net.Dial("unix", "\x00"+bindSocket)
 	if err != nil {
 		return nil, err
 	}
-	return shim.NewShimClient(conn), nil
+
+	client := ttrpc.NewClient(conn)
+
+	// TODO(stevvooe): This actually leaks the connection. We were leaking it
+	// before, so may not be a huge deal.
+
+	return shim.NewShimClient(client), nil
 }

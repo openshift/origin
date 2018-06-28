@@ -29,6 +29,7 @@ import (
 
 	"github.com/coreos/etcd/clientv3"
 	"github.com/ghodss/yaml"
+	"github.com/prometheus/client_golang/prometheus"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -47,6 +48,7 @@ const (
 	encryptionConfigFileName = "encryption.conf"
 	testNamespace            = "secret-encryption-test"
 	testSecret               = "test-secret"
+	metricsPrefix            = "apiserver_storage_"
 )
 
 type unSealSecret func(cipherText []byte, ctx value.Context, config encryptionconfig.ProviderConfig) ([]byte, error)
@@ -76,7 +78,7 @@ func newTransformTest(l kubeapiservertesting.Logger, transformerConfigYAML strin
 		}
 	}
 
-	if e.kubeAPIServer, err = kubeapiservertesting.StartTestServer(l, e.getEncryptionOptions(), e.storageConfig); err != nil {
+	if e.kubeAPIServer, err = kubeapiservertesting.StartTestServer(l, nil, e.getEncryptionOptions(), e.storageConfig); err != nil {
 		return nil, fmt.Errorf("failed to start KubeAPI server: %v", err)
 	}
 
@@ -236,4 +238,32 @@ func (e *transformTest) readRawRecordFromETCD(path string) (*clientv3.GetRespons
 	}
 
 	return response, nil
+}
+
+func (e *transformTest) printMetrics() error {
+	e.logger.Logf("Transformation Metrics:")
+	metrics, err := prometheus.DefaultGatherer.Gather()
+	if err != nil {
+		return fmt.Errorf("failed to gather metrics: %s", err)
+	}
+
+	for _, mf := range metrics {
+		if strings.HasPrefix(*mf.Name, metricsPrefix) {
+			e.logger.Logf("%s", *mf.Name)
+			for _, metric := range mf.GetMetric() {
+				e.logger.Logf("%v", metric)
+			}
+		}
+	}
+
+	return nil
+}
+
+func contains(s []string, e string) bool {
+	for _, a := range s {
+		if a == e {
+			return true
+		}
+	}
+	return false
 }

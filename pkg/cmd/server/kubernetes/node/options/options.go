@@ -108,6 +108,7 @@ func ComputeKubeletFlags(startingArgs map[string][]string, options configapi.Nod
 			// Server cert rotation is ineffective if a cert is hardcoded.
 			setIfUnset(args, "tls-cert-file", "")
 			setIfUnset(args, "tls-private-key-file", "")
+			setIfUnset(args, "rotate-server-certificates", "true")
 		}
 	}
 

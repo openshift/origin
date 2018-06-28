@@ -35,6 +35,7 @@ func createAPIExtensionsConfig(
 	externalInformers kubeexternalinformers.SharedInformerFactory,
 	pluginInitializers []admission.PluginInitializer,
 	commandOptions *options.ServerRunOptions,
+	masterCount int,
 ) (*apiextensionsapiserver.Config, error) {
 	// make a shallow copy to let us twiddle a few things
 	// most of the config actually remains the same.  We only need to mess with a couple items related to the particulars of the apiextensions
@@ -58,7 +59,7 @@ func createAPIExtensionsConfig(
 	if err := commandOptions.APIEnablement.ApplyTo(
 		&genericConfig,
 		apiextensionsapiserver.DefaultAPIResourceConfigSource(),
-		apiextensionsapiserver.Registry); err != nil {
+		apiextensionsapiserver.Scheme); err != nil {
 		return nil, err
 	}
 
@@ -69,6 +70,7 @@ func createAPIExtensionsConfig(
 		},
 		ExtraConfig: apiextensionsapiserver.ExtraConfig{
 			CRDRESTOptionsGetter: apiextensionscmd.NewCRDRESTOptionsGetter(etcdOptions),
+			MasterCount:          masterCount,
 		},
 	}
 
@@ -76,10 +78,5 @@ func createAPIExtensionsConfig(
 }
 
 func createAPIExtensionsServer(apiextensionsConfig *apiextensionsapiserver.Config, delegateAPIServer genericapiserver.DelegationTarget) (*apiextensionsapiserver.CustomResourceDefinitions, error) {
-	apiextensionsServer, err := apiextensionsConfig.Complete().New(delegateAPIServer)
-	if err != nil {
-		return nil, err
-	}
-
-	return apiextensionsServer, nil
+	return apiextensionsConfig.Complete().New(delegateAPIServer)
 }

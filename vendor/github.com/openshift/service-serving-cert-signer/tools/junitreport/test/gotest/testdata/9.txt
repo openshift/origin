@@ -1,0 +1,23 @@
+=== RUN   TestOne
+--- PASS: TestOne (0.02s)
+=== RUN   TestTwo
+--- PASS: TestTwo (0.03s)
+PASS
+ok  	package/name	0.050s
+=== RUN   TestOne
+--- FAIL: TestOne (0.02 seconds)
+	file_test.go:11: Error message
+	file_test.go:11: Longer
+		error
+		message.
+=== RUN   TestTwo
+--- SKIP: TestTwo (0.03 seconds)
+	file_test.go:11: Skip message
+PASS
+ok  	package/name/nested	0.050s
+=== RUN   TestOne
+--- PASS: TestOne (0.1s)
+=== RUN   TestTwo
+--- PASS: TestTwo (0.2s)
+PASS
+ok  	package/other/nested	0.300s

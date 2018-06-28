@@ -36,6 +36,7 @@ import (
 	"k8s.io/apimachinery/pkg/conversion"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	serializerjson "k8s.io/apimachinery/pkg/runtime/serializer/json"
 	"k8s.io/apimachinery/pkg/runtime/serializer/streaming"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/json"
@@ -89,7 +90,7 @@ func TestSetControllerConversion(t *testing.T) {
 	extGroup := testapi.Extensions
 	defaultGroup := testapi.Default
 
-	fuzzInternalObject(t, extGroup.InternalGroupVersion(), rs, rand.Int63())
+	fuzzInternalObject(t, schema.GroupVersion{Group: "extensions", Version: runtime.APIVersionInternal}, rs, rand.Int63())
 
 	// explicitly set the selector to something that is convertible to old-style selectors
 	// (since normally we'll fuzz the selectors with things that aren't convertible)
@@ -299,6 +300,9 @@ func TestObjectWatchFraming(t *testing.T) {
 	f := fuzzer.FuzzerFor(FuzzerFuncs, rand.NewSource(benchmarkSeed), legacyscheme.Codecs)
 	secret := &api.Secret{}
 	f.Fuzz(secret)
+	if secret.Data == nil {
+		secret.Data = map[string][]byte{}
+	}
 	secret.Data["binary"] = []byte{0x00, 0x10, 0x30, 0x55, 0xff, 0x00}
 	secret.Data["utf8"] = []byte("a string with \u0345 characters")
 	secret.Data["long"] = bytes.Repeat([]byte{0x01, 0x02, 0x03, 0x00}, 1000)
@@ -547,7 +551,7 @@ func BenchmarkDecodeIntoJSONCodecGenConfigFast(b *testing.B) {
 		encoded[i] = data
 	}
 
-	handler := &codec.JsonHandle{}
+	handler := serializerjson.NewUgorjiHandler()
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {

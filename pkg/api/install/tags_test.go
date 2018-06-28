@@ -17,7 +17,7 @@ import (
 )
 
 func TestDescriptions(t *testing.T) {
-	for _, version := range legacyscheme.Registry.RegisteredGroupVersions() {
+	for _, version := range legacyscheme.Scheme.PrioritizedVersionsAllGroups() {
 		seen := map[reflect.Type]bool{}
 
 		for _, apiType := range legacyscheme.Scheme.KnownTypes(version) {
@@ -63,7 +63,7 @@ func TestInternalJsonTags(t *testing.T) {
 	seen := map[reflect.Type]bool{}
 	seenGroups := sets.String{}
 
-	for _, version := range legacyscheme.Registry.RegisteredGroupVersions() {
+	for _, version := range legacyscheme.Scheme.PrioritizedVersionsAllGroups() {
 		if seenGroups.Has(version.Group) {
 			continue
 		}
@@ -122,7 +122,7 @@ func checkInternalJsonTags(objType reflect.Type, seen *map[reflect.Type]bool, t 
 func TestExternalJsonTags(t *testing.T) {
 	seen := map[reflect.Type]bool{}
 
-	for _, version := range legacyscheme.Registry.RegisteredGroupVersions() {
+	for _, version := range legacyscheme.Scheme.PrioritizedVersionsAllGroups() {
 		for _, apiType := range legacyscheme.Scheme.KnownTypes(version) {
 			checkExternalJsonTags(apiType, &seen, t)
 		}

@@ -16,6 +16,7 @@ import (
 
 	kerrs "k8s.io/apimachinery/pkg/util/errors"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/kubernetes/pkg/kubectl/polymorphichelpers"
 
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/cluster/network/in_pod/util"
 )
@@ -129,7 +130,7 @@ func (d *NetworkDiagnostic) getNetworkPodLogs(pod *kapi.Pod) error {
 		LimitBytes: &bytelim,
 	}
 
-	req, err := d.Factory.LogsForObject(pod, opts, 1*time.Minute)
+	req, err := polymorphichelpers.LogsForObjectFn(d.Factory, pod, opts, 1*time.Minute)
 	if err != nil {
 		return fmt.Errorf("Request for network diagnostic pod on node %q failed unexpectedly: %v", pod.Spec.NodeName, err)
 	}

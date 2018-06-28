@@ -145,6 +145,9 @@ func SetObjectDefaults_DeploymentConfig(in *v1.DeploymentConfig) {
 							}
 						}
 					}
+					if b.ServiceAccountToken != nil {
+						core_v1.SetDefaults_ServiceAccountTokenProjection(b.ServiceAccountToken)
+					}
 				}
 			}
 			if a.VolumeSource.ScaleIO != nil {

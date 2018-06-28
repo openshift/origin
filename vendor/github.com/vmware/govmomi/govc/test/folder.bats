@@ -39,7 +39,7 @@ load test_helper
     assert_success
 
     run govc object.destroy vm/$name
-    assert_failure # TODO: Folder:folder-N does not implement: Destroy_Task
+    assert_success
 
     unset GOVC_DATACENTER
     # relative to /
@@ -71,6 +71,6 @@ load test_helper
     run govc folder.info /$name
     assert_success
 
-    run govc object.destroy $name
-    assert_failure # TODO: Folder:folder-N does not implement: Destroy_Task
+    run govc object.destroy /$name
+    assert_success
 }

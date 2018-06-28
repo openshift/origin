@@ -3,6 +3,7 @@ package controller
 import (
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	templatecontroller "github.com/openshift/origin/pkg/template/controller"
+	"k8s.io/client-go/dynamic"
 )
 
 func RunTemplateInstanceController(ctx ControllerContext) (bool, error) {
@@ -12,10 +13,14 @@ func RunTemplateInstanceController(ctx ControllerContext) (bool, error) {
 	if err != nil {
 		return true, err
 	}
+	dynamicClient, err := dynamic.NewForConfig(restConfig)
+	if err != nil {
+		return true, err
+	}
 
 	go templatecontroller.NewTemplateInstanceController(
-		ctx.DynamicRestMapper,
-		restConfig,
+		ctx.RestMapper,
+		dynamicClient,
 		ctx.ClientBuilder.KubeInternalClientOrDie(saName),
 		ctx.ClientBuilder.OpenshiftInternalBuildClientOrDie(saName),
 		ctx.ClientBuilder.OpenshiftInternalTemplateClientOrDie(saName),
@@ -32,10 +37,14 @@ func RunTemplateInstanceFinalizerController(ctx ControllerContext) (bool, error)
 	if err != nil {
 		return true, err
 	}
+	dynamicClient, err := dynamic.NewForConfig(restConfig)
+	if err != nil {
+		return true, err
+	}
 
 	go templatecontroller.NewTemplateInstanceFinalizerController(
-		ctx.DynamicRestMapper,
-		restConfig,
+		ctx.RestMapper,
+		dynamicClient,
 		ctx.ClientBuilder.OpenshiftInternalTemplateClientOrDie(saName),
 		ctx.TemplateInformers.Template().InternalVersion().TemplateInstances(),
 	).Run(5, ctx.Stop)

@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"context"
 	"fmt"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
@@ -49,6 +50,7 @@ var _ rest.Lister = &REST{}
 var _ rest.CreaterUpdater = &REST{}
 var _ rest.GracefulDeleter = &REST{}
 var _ rest.Watcher = &REST{}
+var _ rest.Scoper = &REST{}
 
 // NewREST returns a RESTStorage object that will work against Project resources
 func NewREST(client kcoreclient.NamespaceInterface, lister projectauth.Lister, authCache *projectauth.AuthorizationCache, projectCache *projectcache.ProjectCache) *REST {
@@ -75,9 +77,13 @@ func (*REST) NewList() runtime.Object {
 	return &projectapi.ProjectList{}
 }
 
+func (s *REST) NamespaceScoped() bool {
+	return false
+}
+
 // List retrieves a list of Projects that match label.
 
-func (s *REST) List(ctx apirequest.Context, options *metainternal.ListOptions) (runtime.Object, error) {
+func (s *REST) List(ctx context.Context, options *metainternal.ListOptions) (runtime.Object, error) {
 	user, ok := apirequest.UserFrom(ctx)
 	if !ok {
 		return nil, kerrors.NewForbidden(projectapi.Resource("project"), "", fmt.Errorf("unable to list projects without a user on the context"))
@@ -94,7 +100,7 @@ func (s *REST) List(ctx apirequest.Context, options *metainternal.ListOptions) (
 	return projectutil.ConvertNamespaceList(list.(*kapi.NamespaceList)), nil
 }
 
-func (s *REST) Watch(ctx apirequest.Context, options *metainternal.ListOptions) (watch.Interface, error) {
+func (s *REST) Watch(ctx context.Context, options *metainternal.ListOptions) (watch.Interface, error) {
 	if ctx == nil {
 		return nil, fmt.Errorf("Context is nil")
 	}
@@ -120,7 +126,7 @@ func (s *REST) Watch(ctx apirequest.Context, options *metainternal.ListOptions) 
 var _ = rest.Getter(&REST{})
 
 // Get retrieves a Project by name
-func (s *REST) Get(ctx apirequest.Context, name string, options *metav1.GetOptions) (runtime.Object, error) {
+func (s *REST) Get(ctx context.Context, name string, options *metav1.GetOptions) (runtime.Object, error) {
 	opts := metav1.GetOptions{}
 	if options != nil {
 		opts = *options
@@ -135,12 +141,12 @@ func (s *REST) Get(ctx apirequest.Context, name string, options *metav1.GetOptio
 var _ = rest.Creater(&REST{})
 
 // Create registers the given Project.
-func (s *REST) Create(ctx apirequest.Context, obj runtime.Object, creationValidation rest.ValidateObjectFunc, _ bool) (runtime.Object, error) {
+func (s *REST) Create(ctx context.Context, obj runtime.Object, creationValidation rest.ValidateObjectFunc, _ bool) (runtime.Object, error) {
 	project, ok := obj.(*projectapi.Project)
 	if !ok {
 		return nil, fmt.Errorf("not a project: %#v", obj)
 	}
-	rest.FillObjectMetaSystemFields(ctx, &project.ObjectMeta)
+	rest.FillObjectMetaSystemFields(&project.ObjectMeta)
 	s.createStrategy.PrepareForCreate(ctx, obj)
 	if errs := s.createStrategy.Validate(ctx, obj); len(errs) > 0 {
 		return nil, kerrors.NewInvalid(projectapi.Kind("Project"), project.Name, errs)
@@ -158,7 +164,7 @@ func (s *REST) Create(ctx apirequest.Context, obj runtime.Object, creationValida
 
 var _ = rest.Updater(&REST{})
 
-func (s *REST) Update(ctx apirequest.Context, name string, objInfo rest.UpdatedObjectInfo, creationValidation rest.ValidateObjectFunc, updateValidation rest.ValidateObjectUpdateFunc) (runtime.Object, bool, error) {
+func (s *REST) Update(ctx context.Context, name string, objInfo rest.UpdatedObjectInfo, creationValidation rest.ValidateObjectFunc, updateValidation rest.ValidateObjectUpdateFunc) (runtime.Object, bool, error) {
 	oldObj, err := s.Get(ctx, name, &metav1.GetOptions{})
 	if err != nil {
 		return nil, false, err
@@ -193,7 +199,7 @@ func (s *REST) Update(ctx apirequest.Context, name string, objInfo rest.UpdatedO
 var _ = rest.GracefulDeleter(&REST{})
 
 // Delete deletes a Project specified by its name
-func (s *REST) Delete(ctx apirequest.Context, name string, options *metav1.DeleteOptions) (runtime.Object, bool, error) {
+func (s *REST) Delete(ctx context.Context, name string, options *metav1.DeleteOptions) (runtime.Object, bool, error) {
 	return &metav1.Status{Status: metav1.StatusSuccess}, false, s.client.Delete(name, nil)
 }
 

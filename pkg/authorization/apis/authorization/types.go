@@ -1,11 +1,11 @@
 package authorization
 
 import (
+	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/apis/rbac"
 	rbacapi "k8s.io/kubernetes/pkg/apis/rbac"
 )
 
@@ -41,7 +41,7 @@ const (
 )
 
 // DiscoveryRule is a rule that allows a client to discover the API resources available on this server
-var DiscoveryRule = rbac.PolicyRule{
+var DiscoveryRule = rbacv1.PolicyRule{
 	Verbs: []string{"get"},
 	NonResourceURLs: []string{
 		// Server version checking

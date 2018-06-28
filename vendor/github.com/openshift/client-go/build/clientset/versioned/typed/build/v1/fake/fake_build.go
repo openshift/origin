@@ -46,7 +46,7 @@ func (c *FakeBuilds) List(opts v1.ListOptions) (result *build_v1.BuildList, err 
 	if label == nil {
 		label = labels.Everything()
 	}
-	list := &build_v1.BuildList{}
+	list := &build_v1.BuildList{ListMeta: obj.(*build_v1.BuildList).ListMeta}
 	for _, item := range obj.(*build_v1.BuildList).Items {
 		if label.Matches(labels.Set(item.Labels)) {
 			list.Items = append(list.Items, item)

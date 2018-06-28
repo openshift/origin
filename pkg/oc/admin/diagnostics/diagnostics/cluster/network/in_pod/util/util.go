@@ -10,7 +10,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kubecmd "k8s.io/kubernetes/pkg/kubectl/cmd"
-	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	"github.com/openshift/origin/pkg/network"
@@ -202,12 +202,12 @@ func ExpectedConnectionStatus(ns1, ns2 string, vnidMap map[string]uint32) bool {
 }
 
 // Execute() will run a command in a pod and streams the out/err
-func Execute(factory kcmdutil.Factory, command []string, pod *kapi.Pod, in io.Reader, out, errOut io.Writer) error {
-	config, err := factory.ClientConfig()
+func Execute(restClientGetter genericclioptions.RESTClientGetter, command []string, pod *kapi.Pod, in io.Reader, out, errOut io.Writer) error {
+	config, err := restClientGetter.ToRESTConfig()
 	if err != nil {
 		return err
 	}
-	client, err := factory.ClientSet()
+	client, err := kclientset.NewForConfig(config)
 	if err != nil {
 		return err
 	}
@@ -217,10 +217,12 @@ func Execute(factory kcmdutil.Factory, command []string, pod *kapi.Pod, in io.Re
 			Namespace:     pod.Namespace,
 			PodName:       pod.Name,
 			ContainerName: pod.Name,
-			In:            in,
-			Out:           out,
-			Err:           errOut,
-			Stdin:         in != nil,
+			IOStreams: genericclioptions.IOStreams{
+				In:     in,
+				Out:    out,
+				ErrOut: errOut,
+			},
+			Stdin: in != nil,
 		},
 		Executor:  &kubecmd.DefaultRemoteExecutor{},
 		PodClient: client.Core(),

@@ -9,99 +9,72 @@ import (
 	"github.com/gophercloud/gophercloud/acceptance/tools"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/keypairs"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
+	th "github.com/gophercloud/gophercloud/testhelper"
 )
 
 const keyName = "gophercloud_test_key_pair"
 
-func TestKeypairsList(t *testing.T) {
+func TestKeypairsCreateDelete(t *testing.T) {
 	client, err := clients.NewComputeV2Client()
-	if err != nil {
-		t.Fatalf("Unable to create a compute client: %v", err)
-	}
-
-	allPages, err := keypairs.List(client).AllPages()
-	if err != nil {
-		t.Fatalf("Unable to retrieve keypairs: %s", err)
-	}
-
-	allKeys, err := keypairs.ExtractKeyPairs(allPages)
-	if err != nil {
-		t.Fatalf("Unable to extract keypairs results: %s", err)
-	}
-
-	for _, keypair := range allKeys {
-		tools.PrintResource(t, keypair)
-	}
-}
-
-func TestKeypairsCreate(t *testing.T) {
-	client, err := clients.NewComputeV2Client()
-	if err != nil {
-		t.Fatalf("Unable to create a compute client: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	keyPair, err := CreateKeyPair(t, client)
-	if err != nil {
-		t.Fatalf("Unable to create key pair: %v", err)
-	}
+	th.AssertNoErr(t, err)
 	defer DeleteKeyPair(t, client, keyPair)
 
 	tools.PrintResource(t, keyPair)
+
+	allPages, err := keypairs.List(client).AllPages()
+	th.AssertNoErr(t, err)
+
+	allKeys, err := keypairs.ExtractKeyPairs(allPages)
+	th.AssertNoErr(t, err)
+
+	var found bool
+	for _, kp := range allKeys {
+		tools.PrintResource(t, kp)
+
+		if kp.Name == keyPair.Name {
+			found = true
+		}
+	}
+
+	th.AssertEquals(t, found, true)
 }
 
 func TestKeypairsImportPublicKey(t *testing.T) {
 	client, err := clients.NewComputeV2Client()
-	if err != nil {
-		t.Fatalf("Unable to create a compute client: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	publicKey, err := createKey()
-	if err != nil {
-		t.Fatalf("Unable to create public key: %s", err)
-	}
+	th.AssertNoErr(t, err)
 
 	keyPair, err := ImportPublicKey(t, client, publicKey)
-	if err != nil {
-		t.Fatalf("Unable to create keypair: %s", err)
-	}
+	th.AssertNoErr(t, err)
 	defer DeleteKeyPair(t, client, keyPair)
 
 	tools.PrintResource(t, keyPair)
 }
 
 func TestKeypairsServerCreateWithKey(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping test that requires server creation in short mode.")
-	}
+	clients.RequireLong(t)
 
 	client, err := clients.NewComputeV2Client()
-	if err != nil {
-		t.Fatalf("Unable to create a compute client: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	publicKey, err := createKey()
-	if err != nil {
-		t.Fatalf("Unable to create public key: %s", err)
-	}
+	th.AssertNoErr(t, err)
 
 	keyPair, err := ImportPublicKey(t, client, publicKey)
-	if err != nil {
-		t.Fatalf("Unable to create keypair: %s", err)
-	}
+	th.AssertNoErr(t, err)
 	defer DeleteKeyPair(t, client, keyPair)
 
 	server, err := CreateServerWithPublicKey(t, client, keyPair.Name)
-	if err != nil {
-		t.Fatalf("Unable to create server: %s", err)
-	}
+	th.AssertNoErr(t, err)
 	defer DeleteServer(t, client, server)
 
 	server, err = servers.Get(client, server.ID).Extract()
-	if err != nil {
-		t.Fatalf("Unable to retrieve server: %s", err)
-	}
+	th.AssertNoErr(t, err)
 
-	if server.KeyName != keyPair.Name {
-		t.Fatalf("key name of server %s is %s, not %s", server.ID, server.KeyName, keyPair.Name)
-	}
+	th.AssertEquals(t, server.KeyName, keyPair.Name)
 }

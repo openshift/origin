@@ -20,7 +20,7 @@ import (
 	clientetcd "github.com/openshift/origin/pkg/oauth/registry/oauthclient/etcd"
 	clientauthetcd "github.com/openshift/origin/pkg/oauth/registry/oauthclientauthorization/etcd"
 	saoauth "github.com/openshift/origin/pkg/serviceaccounts/oauthclient"
-	"k8s.io/apimachinery/pkg/apimachinery/registered"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -29,9 +29,8 @@ type ExtraConfig struct {
 	ServiceAccountMethod      configapi.GrantHandlerType
 
 	// TODO these should all become local eventually
-	Scheme   *runtime.Scheme
-	Registry *registered.APIRegistrationManager
-	Codecs   serializer.CodecFactory
+	Scheme *runtime.Scheme
+	Codecs serializer.CodecFactory
 
 	makeV1Storage sync.Once
 	v1Storage     map[string]rest.Storage
@@ -82,8 +81,7 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget)
 		return nil, err
 	}
 
-	apiGroupInfo := genericapiserver.NewDefaultAPIGroupInfo(oauthapiv1.GroupName, c.ExtraConfig.Registry, c.ExtraConfig.Scheme, metav1.ParameterCodec, c.ExtraConfig.Codecs)
-	apiGroupInfo.GroupMeta.GroupVersion = oauthapiv1.SchemeGroupVersion
+	apiGroupInfo := genericapiserver.NewDefaultAPIGroupInfo(oauthapiv1.GroupName, c.ExtraConfig.Scheme, metav1.ParameterCodec, c.ExtraConfig.Codecs)
 	apiGroupInfo.VersionedResourcesStorageMap[oauthapiv1.SchemeGroupVersion.Version] = v1Storage
 	if err := s.GenericAPIServer.InstallAPIGroup(&apiGroupInfo); err != nil {
 		return nil, err

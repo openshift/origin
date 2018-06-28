@@ -623,7 +623,12 @@ func ValidateAPIServerExtendedArguments(config configapi.ExtendedArguments, fldP
 }
 
 func ValidateControllerExtendedArguments(config configapi.ExtendedArguments, fldPath *field.Path) field.ErrorList {
-	return ValidateExtendedArguments(config, cm.OriginControllerManagerAddFlags(kcmoptions.NewKubeControllerManagerOptions()), fldPath)
+	defaultOptions, err := kcmoptions.NewKubeControllerManagerOptions()
+	// coding error
+	if err != nil {
+		panic(err)
+	}
+	return ValidateExtendedArguments(config, cm.OriginControllerManagerAddFlags(defaultOptions), fldPath)
 }
 
 // deprecatedAdmissionPluginNames returns the set of admission plugin names that are deprecated from use.

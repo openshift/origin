@@ -118,7 +118,7 @@ func GetStandardPrinter(typer runtime.ObjectTyper, encoder runtime.Encoder, deco
 		fallthrough
 	case "":
 
-		printer = NewHumanReadablePrinter(encoder, decoders[0], options)
+		printer = NewHumanReadablePrinter(decoders[0], options)
 	default:
 		return nil, fmt.Errorf("output format %q not recognized", format)
 	}

@@ -1,43 +1,42 @@
 package delegated
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/golang/glog"
-
 	kapierror "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-	utilerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
-	restclient "k8s.io/client-go/rest"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/util/retry"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	authorizationapi "k8s.io/kubernetes/pkg/apis/authorization"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/rbac"
 	authorizationclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
 	rbaclisters "k8s.io/kubernetes/pkg/client/listers/rbac/internalversion"
-	"k8s.io/kubernetes/pkg/kubectl/resource"
 
+	projectapiv1 "github.com/openshift/api/project/v1"
 	osauthorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	authorizationutil "github.com/openshift/origin/pkg/authorization/util"
-	configcmd "github.com/openshift/origin/pkg/bulk"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	projectclientinternal "github.com/openshift/origin/pkg/project/generated/internalclientset/typed/project/internalversion"
 	projectrequestregistry "github.com/openshift/origin/pkg/project/registry/projectrequest"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
-	templateinternalclient "github.com/openshift/origin/pkg/template/client/internalversion"
 	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset"
-	restutil "github.com/openshift/origin/pkg/util/rest"
 )
 
 type REST struct {
@@ -48,7 +47,8 @@ type REST struct {
 	sarClient      authorizationclient.SubjectAccessReviewInterface
 	projectGetter  projectclientinternal.ProjectsGetter
 	templateClient templateclient.Interface
-	restConfig     *restclient.Config
+	client         dynamic.Interface
+	restMapper     meta.RESTMapper
 
 	// policyBindings is an auth cache that is shared with the authorizer for the API server.
 	// we use this cache to detect when the authorizer has observed the change for the auth rules
@@ -57,8 +57,15 @@ type REST struct {
 
 var _ rest.Lister = &REST{}
 var _ rest.Creater = &REST{}
+var _ rest.Scoper = &REST{}
 
-func NewREST(message, templateNamespace, templateName string, projectClient projectclientinternal.ProjectsGetter, templateClient templateclient.Interface, sarClient authorizationclient.SubjectAccessReviewInterface, restConfig *restclient.Config, roleBindings rbaclisters.RoleBindingLister) *REST {
+func NewREST(message, templateNamespace, templateName string,
+	projectClient projectclientinternal.ProjectsGetter,
+	templateClient templateclient.Interface,
+	sarClient authorizationclient.SubjectAccessReviewInterface,
+	client dynamic.Interface,
+	restMapper meta.RESTMapper,
+	roleBindings rbaclisters.RoleBindingLister) *REST {
 	return &REST{
 		message:           message,
 		templateNamespace: templateNamespace,
@@ -66,7 +73,8 @@ func NewREST(message, templateNamespace, templateName string, projectClient proj
 		projectGetter:     projectClient,
 		templateClient:    templateClient,
 		sarClient:         sarClient,
-		restConfig:        restConfig,
+		client:            client,
+		restMapper:        restMapper,
 		roleBindings:      roleBindings,
 	}
 }
@@ -77,6 +85,10 @@ func (r *REST) New() runtime.Object {
 
 func (r *REST) NewList() runtime.Object {
 	return &metav1.Status{}
+}
+
+func (s *REST) NamespaceScoped() bool {
+	return false
 }
 
 var _ = rest.Creater(&REST{})
@@ -90,7 +102,7 @@ var (
 	roleBindingKind         = "RoleBinding"
 )
 
-func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, createValidation rest.ValidateObjectFunc, includeUninitialized bool) (runtime.Object, error) {
+func (r *REST) Create(ctx context.Context, obj runtime.Object, createValidation rest.ValidateObjectFunc, includeUninitialized bool) (runtime.Object, error) {
 	if err := rest.BeforeCreate(projectrequestregistry.Strategy, ctx, obj); err != nil {
 		return nil, err
 	}
@@ -142,38 +154,56 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, createValidati
 		}
 	}
 
-	tc := templateinternalclient.NewTemplateProcessorClient(r.templateClient.Template().RESTClient(), metav1.NamespaceDefault)
-	list, err := tc.Process(template)
+	versionedTemplate, err := legacyscheme.Scheme.ConvertToVersion(template, schema.GroupVersion{Group: "template.openshift.io", Version: "v1"})
 	if err != nil {
 		return nil, err
 	}
-	if err := utilerrors.NewAggregate(runtime.DecodeList(list.Objects, legacyscheme.Codecs.UniversalDecoder())); err != nil {
-		return nil, kapierror.NewInternalError(err)
+	unstructuredTemplate, err := runtime.DefaultUnstructuredConverter.ToUnstructured(versionedTemplate)
+	if err != nil {
+		return nil, err
+	}
+	processedTemplate, err := r.client.Resource(schema.GroupVersionResource{Group: "template.openshift.io", Version: "v1", Resource: "processedtemplates"}).
+		Namespace("default").Create(&unstructured.Unstructured{Object: unstructuredTemplate})
+	// convert the template into something we iterate over as a list
+	if err := unstructured.SetNestedField(processedTemplate.Object, processedTemplate.Object["objects"], "items"); err != nil {
+		return nil, err
+	}
+	processedList, err := processedTemplate.ToList()
+	if err != nil {
+		return nil, err
 	}
 
 	// one of the items in this list should be the project.  We are going to locate it, remove it from the list, create it separately
 	var projectFromTemplate *projectapi.Project
 	lastRoleBindingName := ""
-	objectsToCreate := &kapi.List{}
-	for i := range list.Objects {
-		switch t := list.Objects[i].(type) {
-		case *projectapi.Project:
+	objectsToCreate := []*unstructured.Unstructured{}
+	for i := range processedList.Items {
+		item := processedList.Items[i]
+		switch item.GroupVersionKind().GroupKind() {
+		case schema.GroupKind{Group: "project.openshift.io", Kind: "Project"}:
 			if projectFromTemplate != nil {
 				return nil, kapierror.NewInternalError(fmt.Errorf("the project template (%s/%s) is not correctly configured: must contain only one project resource", r.templateNamespace, r.templateName))
 			}
-			projectFromTemplate = t
+			externalProjectFromTemplate := &projectapiv1.Project{}
+			err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, externalProjectFromTemplate)
+			if err != nil {
+				return nil, err
+			}
+			projectFromTemplate = &projectapi.Project{}
+			if err := legacyscheme.Scheme.Convert(externalProjectFromTemplate, projectFromTemplate, nil); err != nil {
+				return nil, err
+			}
 			// don't add this to the list to create.  We'll create the project separately.
 			continue
-		case *rbac.RoleBinding:
-			lastRoleBindingName = t.Name
-		case *osauthorizationapi.RoleBinding:
-			lastRoleBindingName = t.Name
+		case schema.GroupKind{Group: "authorization.openshift.io", Kind: "RoleBinding"},
+			schema.GroupKind{Group: "rbac.authorization.k8s.io", Kind: "RoleBinding"}:
+			lastRoleBindingName = item.GetName()
 		default:
 			// noop, we care only for special handling projects and roles
 		}
 
 		// use list.Objects[i] in append to avoid range memory address reuse
-		objectsToCreate.Items = append(objectsToCreate.Items, list.Objects[i])
+		objectsToCreate = append(objectsToCreate, &item)
 	}
 	if projectFromTemplate == nil {
 		return nil, kapierror.NewInternalError(fmt.Errorf("the project template (%s/%s) is not correctly configured: must contain a project resource", r.templateNamespace, r.templateName))
@@ -189,36 +219,45 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, createValidati
 		return nil, err
 	}
 
-	// Stop on the first error, since we have to delete the whole project if any item in the template fails
-	stopOnErr := configcmd.AfterFunc(func(info *resource.Info, err error) bool {
-		// if a default role binding already exists, we're probably racing the controller.  Don't die
-		if gvk := info.Mapping.GroupVersionKind; kapierror.IsAlreadyExists(err) &&
-			gvk.Kind == roleBindingKind && roleBindingGroups.Has(gvk.Group) && defaultRoleBindingNames.Has(info.Name) {
-			return false
+	// TODO, stop doing this crazy thing, but for now it's a very simple way to get the unstructured objects we need
+	for _, toCreate := range objectsToCreate {
+		var restMapping *meta.RESTMapping
+		var mappingErr error
+		for i := 0; i < 3; i++ {
+			restMapping, mappingErr = r.restMapper.RESTMapping(toCreate.GroupVersionKind().GroupKind(), toCreate.GroupVersionKind().Version)
+			if mappingErr == nil {
+				break
+			}
+			// the refresh is every 10 seconds
+			time.Sleep(11 * time.Second)
 		}
-		return err != nil
-	})
+		if mappingErr != nil {
+			utilruntime.HandleError(fmt.Errorf("error creating items in requested project %q: %v", createdProject.Name, mappingErr))
+			// We have to clean up the project if any part of the project request template fails
+			if deleteErr := r.projectGetter.Projects().Delete(createdProject.Name, &metav1.DeleteOptions{}); deleteErr != nil {
+				utilruntime.HandleError(fmt.Errorf("error cleaning up requested project %q: %v", createdProject.Name, deleteErr))
+			}
+			return nil, kapierror.NewInternalError(mappingErr)
+		}
 
-	bulk := configcmd.Bulk{
-		Mapper: &resource.Mapper{
-			RESTMapper:   restutil.DefaultMultiRESTMapper(),
-			ObjectTyper:  legacyscheme.Scheme,
-			ClientMapper: configcmd.ClientMapperFromConfig(r.restConfig),
-		},
-		IgnoreError: func(err error) bool {
-			// it is safe to ignore all such errors since stopOnErr will only let these through for the default role bindings
-			return kapierror.IsAlreadyExists(err)
-		},
-		After: stopOnErr,
-		Op:    configcmd.Create,
-	}
-	if err := utilerrors.NewAggregate(bulk.Run(objectsToCreate, createdProject.Name)); err != nil {
-		utilruntime.HandleError(fmt.Errorf("error creating items in requested project %q: %v", createdProject.Name, err))
-		// We have to clean up the project if any part of the project request template fails
-		if deleteErr := r.projectGetter.Projects().Delete(createdProject.Name, &metav1.DeleteOptions{}); deleteErr != nil {
-			utilruntime.HandleError(fmt.Errorf("error cleaning up requested project %q: %v", createdProject.Name, deleteErr))
+		_, createErr := r.client.Resource(restMapping.Resource).Namespace(createdProject.Name).Create(toCreate)
+		// if a default role binding already exists, we're probably racing the controller.  Don't die
+		if gvk := restMapping.GroupVersionKind; kapierror.IsAlreadyExists(createErr) &&
+			gvk.Kind == roleBindingKind && roleBindingGroups.Has(gvk.Group) && defaultRoleBindingNames.Has(toCreate.GetName()) {
+			continue
 		}
-		return nil, kapierror.NewInternalError(err)
+		// it is safe to ignore all such errors since stopOnErr will only let these through for the default role bindings
+		if kapierror.IsAlreadyExists(createErr) {
+			continue
+		}
+		if createErr != nil {
+			utilruntime.HandleError(fmt.Errorf("error creating items in requested project %q: %v", createdProject.Name, createErr))
+			// We have to clean up the project if any part of the project request template fails
+			if deleteErr := r.projectGetter.Projects().Delete(createdProject.Name, &metav1.DeleteOptions{}); deleteErr != nil {
+				utilruntime.HandleError(fmt.Errorf("error cleaning up requested project %q: %v", createdProject.Name, deleteErr))
+			}
+			return nil, kapierror.NewInternalError(createErr)
+		}
 	}
 
 	// wait for a rolebinding if we created one
@@ -255,7 +294,7 @@ func (r *REST) getTemplate() (*templateapi.Template, error) {
 
 var _ = rest.Lister(&REST{})
 
-func (r *REST) List(ctx apirequest.Context, options *metainternal.ListOptions) (runtime.Object, error) {
+func (r *REST) List(ctx context.Context, options *metainternal.ListOptions) (runtime.Object, error) {
 	userInfo, exists := apirequest.UserFrom(ctx)
 	if !exists {
 		return nil, errors.New("a user must be provided")

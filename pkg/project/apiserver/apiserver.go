@@ -4,8 +4,9 @@ import (
 	"sync"
 
 	"github.com/golang/glog"
+	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/client-go/dynamic"
 
-	"k8s.io/apimachinery/pkg/apimachinery/registered"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
@@ -33,11 +34,11 @@ type ExtraConfig struct {
 	ProjectCache              *projectcache.ProjectCache
 	ProjectRequestTemplate    string
 	ProjectRequestMessage     string
+	RESTMapper                meta.RESTMapper
 
 	// TODO these should all become local eventually
-	Scheme   *runtime.Scheme
-	Registry *registered.APIRegistrationManager
-	Codecs   serializer.CodecFactory
+	Scheme *runtime.Scheme
+	Codecs serializer.CodecFactory
 
 	makeV1Storage sync.Once
 	v1Storage     map[string]rest.Storage
@@ -90,8 +91,7 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget)
 		return nil, err
 	}
 
-	apiGroupInfo := genericapiserver.NewDefaultAPIGroupInfo(projectapiv1.GroupName, c.ExtraConfig.Registry, c.ExtraConfig.Scheme, metav1.ParameterCodec, c.ExtraConfig.Codecs)
-	apiGroupInfo.GroupMeta.GroupVersion = projectapiv1.SchemeGroupVersion
+	apiGroupInfo := genericapiserver.NewDefaultAPIGroupInfo(projectapiv1.GroupName, c.ExtraConfig.Scheme, metav1.ParameterCodec, c.ExtraConfig.Codecs)
 	apiGroupInfo.VersionedResourcesStorageMap[projectapiv1.SchemeGroupVersion.Version] = v1Storage
 	if err := s.GenericAPIServer.InstallAPIGroup(&apiGroupInfo); err != nil {
 		return nil, err
@@ -125,6 +125,10 @@ func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
 	if err != nil {
 		return nil, err
 	}
+	dynamicClient, err := dynamic.NewForConfig(c.ExtraConfig.KubeAPIServerClientConfig)
+	if err != nil {
+		return nil, err
+	}
 
 	projectStorage := projectproxy.NewREST(kubeInternalClient.Core().Namespaces(), c.ExtraConfig.ProjectAuthorizationCache, c.ExtraConfig.ProjectAuthorizationCache, c.ExtraConfig.ProjectCache)
 
@@ -140,7 +144,8 @@ func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
 		projectClient.Project(),
 		templateClient,
 		authorizationClient.SubjectAccessReviews(),
-		c.ExtraConfig.KubeAPIServerClientConfig,
+		dynamicClient,
+		c.ExtraConfig.RESTMapper,
 		c.ExtraConfig.KubeInternalInformers.Rbac().InternalVersion().RoleBindings().Lister(),
 	)
 

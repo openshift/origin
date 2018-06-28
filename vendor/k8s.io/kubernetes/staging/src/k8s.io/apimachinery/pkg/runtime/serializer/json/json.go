@@ -30,6 +30,12 @@ import (
 	utilyaml "k8s.io/apimachinery/pkg/util/yaml"
 )
 
+func NewUgorjiHandler() *codec.JsonHandle {
+	codecOptions := &codec.JsonHandle{}
+	codecOptions.SignedInteger = true
+	return codecOptions
+}
+
 // NewSerializer creates a JSON serializer that handles encoding versioned objects into the proper JSON form. If typer
 // is not nil, the object has the group, version, and kind fields set.
 func NewSerializer(meta MetaFactory, creater runtime.ObjectCreater, typer runtime.ObjectTyper, pretty bool) *Serializer {
@@ -131,7 +137,7 @@ func (s *Serializer) Decode(originalData []byte, gvk *schema.GroupVersionKind, i
 		switch {
 		case runtime.IsNotRegisteredError(err), isUnstructured:
 			// if err := jsoniter.ConfigCompatibleWithStandardLibrary.Unmarshal(data, into); err != nil {
-			if err := codec.NewDecoderBytes(data, new(codec.JsonHandle)).Decode(into); err != nil {
+			if err := codec.NewDecoderBytes(data, NewUgorjiHandler()).Decode(into); err != nil {
 				return nil, actual, err
 			}
 			return into, actual, nil
@@ -156,7 +162,7 @@ func (s *Serializer) Decode(originalData []byte, gvk *schema.GroupVersionKind, i
 	}
 
 	// if err := jsoniter.ConfigCompatibleWithStandardLibrary.Unmarshal(data, obj); err != nil {
-	if err := codec.NewDecoderBytes(data, new(codec.JsonHandle)).Decode(obj); err != nil {
+	if err := codec.NewDecoderBytes(data, NewUgorjiHandler()).Decode(obj); err != nil {
 		return nil, actual, err
 	}
 	return obj, actual, nil

@@ -1,6 +1,7 @@
 package authprune
 
 import (
+	"io/ioutil"
 	"reflect"
 	"testing"
 
@@ -95,8 +96,7 @@ func TestRoleReaper(t *testing.T) {
 			return true, nil, nil
 		})
 
-		reaper := NewRoleReaper(tc.RbacV1(), tc.RbacV1())
-		err := reaper.Stop(test.role.Namespace, test.role.Name, 0, nil)
+		err := reapForRole(tc.RbacV1(), test.role.Namespace, test.role.Name, ioutil.Discard)
 		if err != nil {
 			t.Errorf("%s: unexpected error: %v", test.name, err)
 		}

@@ -22,6 +22,7 @@ import (
 	"github.com/elazarl/goproxy"
 	docker "github.com/fsouza/go-dockerclient"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -33,8 +34,6 @@ import (
 	clientgotesting "k8s.io/client-go/testing"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/kubectl/categories"
-	"k8s.io/kubernetes/pkg/kubectl/resource"
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
@@ -600,14 +599,6 @@ func TestNewAppRunAll(t *testing.T) {
 					TemplateSearcher: app.TemplateSearcher{
 						Client:     okTemplateClient.Template(),
 						Namespaces: []string{},
-					},
-					TemplateFileSearcher: &app.TemplateFileSearcher{
-						Builder: resource.NewBuilder(&resource.Mapper{
-							RESTMapper:   legacyscheme.Registry.RESTMapper(),
-							ObjectTyper:  legacyscheme.Scheme,
-							ClientMapper: resource.DisabledClientForMapping{},
-							Decoder:      legacyscheme.Codecs.UniversalDecoder(),
-						}, nil, &categories.SimpleCategoryExpander{}),
 					},
 					Detector: app.SourceRepositoryEnumerator{
 						Detectors:         source.DefaultDetectors,
@@ -2435,6 +2426,6 @@ func (c *NewAppFakeImageStreams) Patch(name string, pt ktypes.PatchType, data []
 	return c.proxy.Patch(name, pt, data, subresources...)
 }
 
-func (c *NewAppFakeImageStreams) Secrets(imageStreamName string, opts metav1.ListOptions) (result *kapi.SecretList, err error) {
+func (c *NewAppFakeImageStreams) Secrets(imageStreamName string, opts metav1.GetOptions) (result *corev1.SecretList, err error) {
 	return c.proxy.Secrets(imageStreamName, opts)
 }

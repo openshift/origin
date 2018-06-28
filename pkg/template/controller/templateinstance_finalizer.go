@@ -13,9 +13,7 @@ import (
 	kerrs "k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
@@ -37,8 +35,7 @@ import (
 // permissions to instantiate.
 type TemplateInstanceFinalizerController struct {
 	dynamicRestMapper meta.RESTMapper
-	client            dynamic.DynamicInterface
-	config            *rest.Config
+	client            dynamic.Interface
 	templateClient    templateclient.Interface
 
 	lister         templatelister.TemplateInstanceLister
@@ -54,11 +51,11 @@ type TemplateInstanceFinalizerController struct {
 }
 
 // NewTemplateInstanceFinalizerController returns a new TemplateInstanceFinalizerController.
-func NewTemplateInstanceFinalizerController(dynamicRestMapper *discovery.DeferredDiscoveryRESTMapper, config *rest.Config, templateClient templateclient.Interface, informer internalversion.TemplateInstanceInformer) *TemplateInstanceFinalizerController {
+func NewTemplateInstanceFinalizerController(dynamicRestMapper meta.RESTMapper, dynamicClient dynamic.Interface, templateClient templateclient.Interface, informer internalversion.TemplateInstanceInformer) *TemplateInstanceFinalizerController {
 	c := &TemplateInstanceFinalizerController{
 		dynamicRestMapper: dynamicRestMapper,
 		templateClient:    templateClient,
-		config:            config,
+		client:            dynamicClient,
 		lister:            informer.Lister(),
 		informerSynced:    informer.Informer().HasSynced,
 		queue:             workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "openshift_template_instance_finalizer_controller"),
@@ -81,13 +78,6 @@ func NewTemplateInstanceFinalizerController(dynamicRestMapper *discovery.Deferre
 			}
 		},
 	})
-
-	var err error
-	c.client, err = dynamic.NewForConfig(c.config)
-	if err != nil {
-		glog.Errorf("failure creating dynamic client: %v", err)
-		return nil
-	}
 
 	return c
 }
@@ -161,19 +151,7 @@ func (c *TemplateInstanceFinalizerController) sync(key string) error {
 			namespace = o.Ref.Namespace
 		}
 
-		gvr := schema.GroupVersionResource{
-			Group:    gv.Group,
-			Version:  gv.Version,
-			Resource: mapping.Resource,
-		}
-
-		var resourceClient dynamic.DynamicResourceInterface
-		if namespaced {
-			resourceClient = c.client.NamespacedResource(gvr, namespace)
-		} else {
-			resourceClient = c.client.ClusterResource(gvr)
-		}
-		err = resourceClient.Delete(o.Ref.Name, deleteOpts)
+		err = c.client.Resource(mapping.Resource).Namespace(namespace).Delete(o.Ref.Name, deleteOpts)
 		if err != nil && !errors.IsNotFound(err) {
 			errs = append(errs, fmt.Errorf("error deleting object %#v with mapping %#v: %v", o, mapping, err))
 			continue

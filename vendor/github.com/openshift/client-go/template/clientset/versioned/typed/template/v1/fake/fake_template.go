@@ -46,7 +46,7 @@ func (c *FakeTemplates) List(opts v1.ListOptions) (result *template_v1.TemplateL
 	if label == nil {
 		label = labels.Everything()
 	}
-	list := &template_v1.TemplateList{}
+	list := &template_v1.TemplateList{ListMeta: obj.(*template_v1.TemplateList).ListMeta}
 	for _, item := range obj.(*template_v1.TemplateList).Items {
 		if label.Matches(labels.Set(item.Labels)) {
 			list.Items = append(list.Items, item)

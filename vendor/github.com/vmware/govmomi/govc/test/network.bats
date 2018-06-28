@@ -176,6 +176,12 @@ load test_helper
   info=$(govc dvs.portgroup.info "$id" | grep VlanId: | uniq | grep 3123)
   [ -n "$info" ]
 
+  info=$(govc dvs.portgroup.info -json "$id" | jq  '.Port[].Config.Setting.Vlan | select(.VlanId == 3123)')
+  [ -n "$info" ]
+
+  info=$(govc dvs.portgroup.info -json "$id" | jq  '.Port[].Config.Setting.Vlan | select(.VlanId == 7777)')
+  [ -z "$info" ]
+
   run govc object.destroy "network/${id}-ExternalNetwork" "network/${id}-InternalNetwork" "network/${id}"
   assert_success
 }

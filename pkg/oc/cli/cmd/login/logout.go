@@ -79,13 +79,13 @@ func NewCmdLogout(name, fullName, ocLoginFullCommand string, f kcmdutil.Factory,
 }
 
 func (o *LogoutOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string) error {
-	kubeconfig, err := f.RawConfig()
-	o.StartingKubeConfig = &kubeconfig
+	kubeconfig, err := f.ToRawKubeConfigLoader().RawConfig()
 	if err != nil {
 		return err
 	}
+	o.StartingKubeConfig = &kubeconfig
 
-	o.Config, err = f.ClientConfig()
+	o.Config, err = f.ToRESTConfig()
 	if err != nil {
 		return err
 	}

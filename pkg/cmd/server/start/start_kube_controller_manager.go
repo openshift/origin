@@ -50,7 +50,7 @@ func computeKubeControllerManagerArgs(kubeconfigFile, saPrivateKeyFile, saRootCA
 
 	// disable serving http since we didn't used to expose it
 	if _, ok := cmdLineArgs["port"]; !ok {
-		cmdLineArgs["port"] = []string{"-1"}
+		cmdLineArgs["port"] = []string{"0"}
 	}
 
 	// these force "default" values to match what we want

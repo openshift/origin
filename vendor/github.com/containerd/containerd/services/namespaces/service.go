@@ -4,17 +4,18 @@ import (
 	"strings"
 
 	"github.com/boltdb/bolt"
-	eventsapi "github.com/containerd/containerd/api/services/events/v1"
+	eventstypes "github.com/containerd/containerd/api/events"
 	api "github.com/containerd/containerd/api/services/namespaces/v1"
 	"github.com/containerd/containerd/errdefs"
 	"github.com/containerd/containerd/events"
 	"github.com/containerd/containerd/metadata"
 	"github.com/containerd/containerd/namespaces"
 	"github.com/containerd/containerd/plugin"
-	"github.com/golang/protobuf/ptypes/empty"
+	ptypes "github.com/gogo/protobuf/types"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func init() {
@@ -119,7 +120,7 @@ func (s *service) Create(ctx context.Context, req *api.CreateNamespaceRequest) (
 		return &resp, err
 	}
 
-	if err := s.publisher.Publish(ctx, "/namespaces/create", &eventsapi.NamespaceCreate{
+	if err := s.publisher.Publish(ctx, "/namespaces/create", &eventstypes.NamespaceCreate{
 		Name:   req.Namespace.Name,
 		Labels: req.Namespace.Labels,
 	}); err != nil {
@@ -142,7 +143,7 @@ func (s *service) Update(ctx context.Context, req *api.UpdateNamespaceRequest) (
 						return err
 					}
 				default:
-					return grpc.Errorf(codes.InvalidArgument, "cannot update %q field", path)
+					return status.Errorf(codes.InvalidArgument, "cannot update %q field", path)
 				}
 			}
 		} else {
@@ -172,7 +173,7 @@ func (s *service) Update(ctx context.Context, req *api.UpdateNamespaceRequest) (
 		return &resp, err
 	}
 
-	if err := s.publisher.Publish(ctx, "/namespaces/update", &eventsapi.NamespaceUpdate{
+	if err := s.publisher.Publish(ctx, "/namespaces/update", &eventstypes.NamespaceUpdate{
 		Name:   req.Namespace.Name,
 		Labels: req.Namespace.Labels,
 	}); err != nil {
@@ -182,21 +183,21 @@ func (s *service) Update(ctx context.Context, req *api.UpdateNamespaceRequest) (
 	return &resp, nil
 }
 
-func (s *service) Delete(ctx context.Context, req *api.DeleteNamespaceRequest) (*empty.Empty, error) {
+func (s *service) Delete(ctx context.Context, req *api.DeleteNamespaceRequest) (*ptypes.Empty, error) {
 	if err := s.withStoreUpdate(ctx, func(ctx context.Context, store namespaces.Store) error {
 		return errdefs.ToGRPC(store.Delete(ctx, req.Name))
 	}); err != nil {
-		return &empty.Empty{}, err
+		return &ptypes.Empty{}, err
 	}
 	// set the namespace in the context before publishing the event
 	ctx = namespaces.WithNamespace(ctx, req.Name)
-	if err := s.publisher.Publish(ctx, "/namespaces/delete", &eventsapi.NamespaceDelete{
+	if err := s.publisher.Publish(ctx, "/namespaces/delete", &eventstypes.NamespaceDelete{
 		Name: req.Name,
 	}); err != nil {
-		return &empty.Empty{}, err
+		return &ptypes.Empty{}, err
 	}
 
-	return &empty.Empty{}, nil
+	return &ptypes.Empty{}, nil
 }
 
 func (s *service) withStore(ctx context.Context, fn func(ctx context.Context, store namespaces.Store) error) func(tx *bolt.Tx) error {

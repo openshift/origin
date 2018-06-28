@@ -43,7 +43,7 @@ func (c *FakeClusterRoleBindings) List(opts v1.ListOptions) (result *authorizati
 	if label == nil {
 		label = labels.Everything()
 	}
-	list := &authorization_v1.ClusterRoleBindingList{}
+	list := &authorization_v1.ClusterRoleBindingList{ListMeta: obj.(*authorization_v1.ClusterRoleBindingList).ListMeta}
 	for _, item := range obj.(*authorization_v1.ClusterRoleBindingList).Items {
 		if label.Matches(labels.Set(item.Labels)) {
 			list.Items = append(list.Items, item)

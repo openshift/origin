@@ -5,8 +5,6 @@ import (
 
 	"github.com/golang/glog"
 
-	"k8s.io/apimachinery/pkg/apimachinery/announced"
-	"k8s.io/apimachinery/pkg/apimachinery/registered"
 	"k8s.io/apimachinery/pkg/runtime"
 	kapiserverinstall "k8s.io/apiserver/pkg/apis/apiserver/install"
 
@@ -16,13 +14,11 @@ import (
 )
 
 var (
-	groupFactoryRegistry = make(announced.APIGroupFactoryRegistry)
-	registry             = registered.NewOrDie("")
-	scheme               = runtime.NewScheme()
+	scheme = runtime.NewScheme()
 )
 
 func init() {
-	kapiserverinstall.Install(groupFactoryRegistry, registry, scheme)
+	kapiserverinstall.Install(scheme)
 }
 
 func getPluginConfig(cfg configapi.AdmissionPluginConfig) (string, error) {

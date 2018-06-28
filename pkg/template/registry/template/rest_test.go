@@ -5,6 +5,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
@@ -82,8 +83,8 @@ func TestNewRESTTemplateLabels(t *testing.T) {
 			},
 		},
 	}
-	template.AddObjectsToTemplate(templateToCreate, templateObjects, legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0])
-	originalBytes, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]), templateToCreate)
+	template.AddObjectsToTemplate(templateToCreate, templateObjects, schema.GroupVersion{Group: "", Version: "v1"})
+	originalBytes, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(schema.GroupVersion{Group: "template.openshift.io", Version: "v1"}), templateToCreate)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -98,7 +99,7 @@ func TestNewRESTTemplateLabels(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	bytes, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]), obj)
+	bytes, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(schema.GroupVersion{Group: "template.openshift.io", Version: "v1"}), obj)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -156,8 +157,8 @@ func TestNewRESTTemplateLabelsList(t *testing.T) {
 			},
 		},
 	}
-	template.AddObjectsToTemplate(templateToCreate, templateObjects, legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0])
-	originalBytes, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]), templateToCreate)
+	template.AddObjectsToTemplate(templateToCreate, templateObjects, schema.GroupVersion{Group: "", Version: "v1"})
+	originalBytes, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(schema.GroupVersion{Group: "template.openshift.io", Version: "v1"}), templateToCreate)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -172,7 +173,7 @@ func TestNewRESTTemplateLabelsList(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	bytes, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]), obj)
+	bytes, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(schema.GroupVersion{Group: "template.openshift.io", Version: "v1"}), obj)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

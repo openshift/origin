@@ -143,7 +143,7 @@ func (o *PruneOptions) Complete(whitelistFile, blacklistFile, configFile string,
 		return err
 	}
 
-	clientConfig, err := f.ClientConfig()
+	clientConfig, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}

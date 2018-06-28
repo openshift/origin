@@ -2,8 +2,7 @@ package install
 
 import (
 	kv1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/apimachinery/announced"
-	"k8s.io/apimachinery/pkg/apimachinery/registered"
+
 	"k8s.io/apimachinery/pkg/conversion"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
@@ -553,18 +552,18 @@ func init() {
 	})
 }
 
-func InstallAll(scheme *runtime.Scheme, groupFactoryRegistry announced.APIGroupFactoryRegistry, registry *registered.APIRegistrationManager) {
+func InstallAll(scheme *runtime.Scheme) {
 	// add Origin types to the given scheme
-	apps.Install(groupFactoryRegistry, registry, scheme)
-	authz.Install(groupFactoryRegistry, registry, scheme)
-	build.Install(groupFactoryRegistry, registry, scheme)
-	image.Install(groupFactoryRegistry, registry, scheme)
-	network.Install(groupFactoryRegistry, registry, scheme)
-	oauth.Install(groupFactoryRegistry, registry, scheme)
-	project.Install(groupFactoryRegistry, registry, scheme)
-	quota.Install(groupFactoryRegistry, registry, scheme)
-	route.Install(groupFactoryRegistry, registry, scheme)
-	security.Install(groupFactoryRegistry, registry, scheme)
-	template.Install(groupFactoryRegistry, registry, scheme)
-	user.Install(groupFactoryRegistry, registry, scheme)
+	apps.Install(scheme)
+	authz.Install(scheme)
+	build.Install(scheme)
+	image.Install(scheme)
+	network.Install(scheme)
+	oauth.Install(scheme)
+	project.Install(scheme)
+	quota.Install(scheme)
+	route.Install(scheme)
+	security.Install(scheme)
+	template.Install(scheme)
+	user.Install(scheme)
 }

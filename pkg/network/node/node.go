@@ -31,7 +31,6 @@ import (
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 	kubeletapi "k8s.io/kubernetes/pkg/kubelet/apis/cri"
 	kruntimeapi "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
-	knetwork "k8s.io/kubernetes/pkg/kubelet/network"
 	ktypes "k8s.io/kubernetes/pkg/kubelet/types"
 	"k8s.io/kubernetes/pkg/proxy/apis/kubeproxyconfig"
 	kexec "k8s.io/utils/exec"
@@ -110,9 +109,6 @@ type OsdnNode struct {
 	egressPoliciesLock sync.Mutex
 	egressPolicies     map[uint32][]networkapi.EgressNetworkPolicy
 	egressDNS          *common.EgressDNS
-
-	host             knetwork.Host
-	kubeletCniPlugin knetwork.NetworkPlugin
 
 	kubeInformers    kinternalinformers.SharedInformerFactory
 	networkInformers networkinformers.SharedInformerFactory

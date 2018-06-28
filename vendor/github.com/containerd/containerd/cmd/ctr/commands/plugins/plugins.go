@@ -18,8 +18,9 @@ import (
 
 // Command is a cli command that outputs plugin information
 var Command = cli.Command{
-	Name:  "plugins",
-	Usage: "provides information about containerd plugins",
+	Name:    "plugins",
+	Aliases: []string{"plugin"},
+	Usage:   "provides information about containerd plugins",
 	Flags: []cli.Flag{
 		cli.BoolFlag{
 			Name:  "quiet,q",
@@ -93,7 +94,7 @@ var Command = cli.Command{
 			return w.Flush()
 		}
 
-		fmt.Fprintln(w, "TYPE\tID\tPLATFORM\tSTATUS\t")
+		fmt.Fprintln(w, "TYPE\tID\tPLATFORMS\tSTATUS\t")
 		for _, plugin := range response.Plugins {
 			status := "ok"
 

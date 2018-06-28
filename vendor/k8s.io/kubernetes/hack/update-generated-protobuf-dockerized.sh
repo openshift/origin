@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright 2015 The Kubernetes Authors.
 #
@@ -68,6 +68,7 @@ PACKAGES=(
   k8s.io/api/certificates/v1beta1
   k8s.io/api/imagepolicy/v1alpha1
   k8s.io/api/scheduling/v1alpha1
+  k8s.io/api/scheduling/v1beta1
   k8s.io/api/settings/v1alpha1
   k8s.io/api/storage/v1alpha1
   k8s.io/api/storage/v1beta1
@@ -94,5 +95,5 @@ PATH="${KUBE_ROOT}/_output/bin:${PATH}" \
   --proto-import="${KUBE_ROOT}/vendor" \
   --proto-import="${KUBE_ROOT}/third_party/protobuf" \
   --packages=$(IFS=, ; echo "${PACKAGES[*]}") \
-  --go-header-file ${KUBE_ROOT}/hack/boilerplate/boilerplate.go.txt \
+  --go-header-file ${KUBE_ROOT}/hack/boilerplate/boilerplate.generatego.txt \
   "$@"

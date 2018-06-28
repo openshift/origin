@@ -4,21 +4,22 @@ import (
 	"io"
 	"sync"
 
+	eventstypes "github.com/containerd/containerd/api/events"
 	api "github.com/containerd/containerd/api/services/content/v1"
-	eventsapi "github.com/containerd/containerd/api/services/events/v1"
 	"github.com/containerd/containerd/content"
 	"github.com/containerd/containerd/errdefs"
 	"github.com/containerd/containerd/events"
 	"github.com/containerd/containerd/log"
 	"github.com/containerd/containerd/metadata"
 	"github.com/containerd/containerd/plugin"
-	"github.com/golang/protobuf/ptypes/empty"
+	ptypes "github.com/gogo/protobuf/types"
 	digest "github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type service struct {
@@ -28,7 +29,8 @@ type service struct {
 
 var bufPool = sync.Pool{
 	New: func() interface{} {
-		return make([]byte, 1<<20)
+		buffer := make([]byte, 1<<20)
+		return &buffer
 	},
 }
 
@@ -68,7 +70,7 @@ func (s *service) Register(server *grpc.Server) error {
 
 func (s *service) Info(ctx context.Context, req *api.InfoRequest) (*api.InfoResponse, error) {
 	if err := req.Digest.Validate(); err != nil {
-		return nil, grpc.Errorf(codes.InvalidArgument, "%q failed validation", req.Digest)
+		return nil, status.Errorf(codes.InvalidArgument, "%q failed validation", req.Digest)
 	}
 
 	bi, err := s.store.Info(ctx, req.Digest)
@@ -83,7 +85,7 @@ func (s *service) Info(ctx context.Context, req *api.InfoRequest) (*api.InfoResp
 
 func (s *service) Update(ctx context.Context, req *api.UpdateRequest) (*api.UpdateResponse, error) {
 	if err := req.Info.Digest.Validate(); err != nil {
-		return nil, grpc.Errorf(codes.InvalidArgument, "%q failed validation", req.Info.Digest)
+		return nil, status.Errorf(codes.InvalidArgument, "%q failed validation", req.Info.Digest)
 	}
 
 	info, err := s.store.Update(ctx, infoFromGRPC(req.Info), req.UpdateMask.GetPaths()...)
@@ -138,27 +140,28 @@ func (s *service) List(req *api.ListContentRequest, session api.Content_ListServ
 	return nil
 }
 
-func (s *service) Delete(ctx context.Context, req *api.DeleteContentRequest) (*empty.Empty, error) {
+func (s *service) Delete(ctx context.Context, req *api.DeleteContentRequest) (*ptypes.Empty, error) {
+	log.G(ctx).WithField("digest", req.Digest).Debugf("delete content")
 	if err := req.Digest.Validate(); err != nil {
-		return nil, grpc.Errorf(codes.InvalidArgument, err.Error())
+		return nil, status.Errorf(codes.InvalidArgument, err.Error())
 	}
 
 	if err := s.store.Delete(ctx, req.Digest); err != nil {
 		return nil, errdefs.ToGRPC(err)
 	}
 
-	if err := s.publisher.Publish(ctx, "/content/delete", &eventsapi.ContentDelete{
+	if err := s.publisher.Publish(ctx, "/content/delete", &eventstypes.ContentDelete{
 		Digest: req.Digest,
 	}); err != nil {
 		return nil, err
 	}
 
-	return &empty.Empty{}, nil
+	return &ptypes.Empty{}, nil
 }
 
 func (s *service) Read(req *api.ReadContentRequest, session api.Content_ReadServer) error {
 	if err := req.Digest.Validate(); err != nil {
-		return grpc.Errorf(codes.InvalidArgument, "%v: %v", req.Digest, err)
+		return status.Errorf(codes.InvalidArgument, "%v: %v", req.Digest, err)
 	}
 
 	oi, err := s.store.Info(session.Context(), req.Digest)
@@ -178,7 +181,7 @@ func (s *service) Read(req *api.ReadContentRequest, session api.Content_ReadServ
 
 		// TODO(stevvooe): Using the global buffer pool. At 32KB, it is probably
 		// little inefficient for work over a fast network. We can tune this later.
-		p = bufPool.Get().([]byte)
+		p = bufPool.Get().(*[]byte)
 	)
 	defer bufPool.Put(p)
 
@@ -191,16 +194,13 @@ func (s *service) Read(req *api.ReadContentRequest, session api.Content_ReadServ
 	}
 
 	if offset+size > oi.Size {
-		return grpc.Errorf(codes.OutOfRange, "read past object length %v bytes", oi.Size)
+		return status.Errorf(codes.OutOfRange, "read past object length %v bytes", oi.Size)
 	}
 
-	if _, err := io.CopyBuffer(
+	_, err = io.CopyBuffer(
 		&readResponseWriter{session: session},
-		io.NewSectionReader(ra, offset, size), p); err != nil {
-		return err
-	}
-
-	return nil
+		io.NewSectionReader(ra, offset, size), *p)
+	return err
 }
 
 // readResponseWriter is a writer that places the output into ReadContentRequest messages.
@@ -277,7 +277,7 @@ func (s *service) Write(session api.Content_WriteServer) (err error) {
 	defer func(msg *api.WriteContentResponse) {
 		// pump through the last message if no error was encountered
 		if err != nil {
-			if grpc.Code(err) != codes.AlreadyExists {
+			if s, ok := status.FromError(err); ok && s.Code() != codes.AlreadyExists {
 				// TODO(stevvooe): Really need a log line here to track which
 				// errors are actually causing failure on the server side. May want
 				// to configure the service with an interceptor to make this work
@@ -302,7 +302,7 @@ func (s *service) Write(session api.Content_WriteServer) (err error) {
 	ref = req.Ref
 
 	if ref == "" {
-		return grpc.Errorf(codes.InvalidArgument, "first message must have a reference")
+		return status.Errorf(codes.InvalidArgument, "first message must have a reference")
 	}
 
 	fields := logrus.Fields{
@@ -356,7 +356,7 @@ func (s *service) Write(session api.Content_WriteServer) (err error) {
 		// users use the same writer style for each with a minimum of overhead.
 		if req.Expected != "" {
 			if expected != "" && expected != req.Expected {
-				return grpc.Errorf(codes.InvalidArgument, "inconsistent digest provided: %v != %v", req.Expected, expected)
+				return status.Errorf(codes.InvalidArgument, "inconsistent digest provided: %v != %v", req.Expected, expected)
 			}
 			expected = req.Expected
 
@@ -365,7 +365,7 @@ func (s *service) Write(session api.Content_WriteServer) (err error) {
 					log.G(ctx).WithError(err).Error("failed to abort write")
 				}
 
-				return grpc.Errorf(codes.AlreadyExists, "blob with expected digest %v exists", req.Expected)
+				return status.Errorf(codes.AlreadyExists, "blob with expected digest %v exists", req.Expected)
 			}
 		}
 
@@ -373,7 +373,7 @@ func (s *service) Write(session api.Content_WriteServer) (err error) {
 			// Update the expected total. Typically, this could be seen at
 			// negotiation time or on a commit message.
 			if total > 0 && req.Total != total {
-				return grpc.Errorf(codes.InvalidArgument, "inconsistent total provided: %v != %v", req.Total, total)
+				return status.Errorf(codes.InvalidArgument, "inconsistent total provided: %v != %v", req.Total, total)
 			}
 			total = req.Total
 		}
@@ -388,7 +388,7 @@ func (s *service) Write(session api.Content_WriteServer) (err error) {
 			if req.Offset > 0 {
 				// validate the offset if provided
 				if req.Offset != ws.Offset {
-					return grpc.Errorf(codes.OutOfRange, "write @%v must occur at current offset %v", req.Offset, ws.Offset)
+					return status.Errorf(codes.OutOfRange, "write @%v must occur at current offset %v", req.Offset, ws.Offset)
 				}
 			}
 
@@ -411,7 +411,7 @@ func (s *service) Write(session api.Content_WriteServer) (err error) {
 				if n != len(req.Data) {
 					// TODO(stevvooe): Perhaps, we can recover this by including it
 					// in the offset on the write return.
-					return grpc.Errorf(codes.DataLoss, "wrote %v of %v bytes", n, len(req.Data))
+					return status.Errorf(codes.DataLoss, "wrote %v of %v bytes", n, len(req.Data))
 				}
 
 				msg.Offset += int64(n)
@@ -445,10 +445,30 @@ func (s *service) Write(session api.Content_WriteServer) (err error) {
 	}
 }
 
-func (s *service) Abort(ctx context.Context, req *api.AbortRequest) (*empty.Empty, error) {
+func (s *service) Abort(ctx context.Context, req *api.AbortRequest) (*ptypes.Empty, error) {
 	if err := s.store.Abort(ctx, req.Ref); err != nil {
 		return nil, errdefs.ToGRPC(err)
 	}
 
-	return &empty.Empty{}, nil
+	return &ptypes.Empty{}, nil
+}
+
+func infoToGRPC(info content.Info) api.Info {
+	return api.Info{
+		Digest:    info.Digest,
+		Size_:     info.Size,
+		CreatedAt: info.CreatedAt,
+		UpdatedAt: info.UpdatedAt,
+		Labels:    info.Labels,
+	}
+}
+
+func infoFromGRPC(info api.Info) content.Info {
+	return content.Info{
+		Digest:    info.Digest,
+		Size:      info.Size_,
+		CreatedAt: info.CreatedAt,
+		UpdatedAt: info.UpdatedAt,
+		Labels:    info.Labels,
+	}
 }

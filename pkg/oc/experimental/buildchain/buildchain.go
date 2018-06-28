@@ -94,7 +94,7 @@ func (o *BuildChainOptions) Complete(f cmdutil.Factory, cmd *cobra.Command, args
 		return cmdutil.UsageErrorf(cmd, "Must pass an image stream tag. If only an image stream name is specified, 'latest' will be used for the tag.")
 	}
 
-	clientConfig, err := f.ClientConfig()
+	clientConfig, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}
@@ -115,7 +115,10 @@ func (o *BuildChainOptions) Complete(f cmdutil.Factory, cmd *cobra.Command, args
 	o.projectClient = projectClient.Project()
 
 	resource := schema.GroupResource{}
-	mapper, _ := f.Object()
+	mapper, err := f.ToRESTMapper()
+	if err != nil {
+		return err
+	}
 	resource, o.name, err = osutil.ResolveResource(imageapi.Resource("imagestreamtags"), args[0], mapper)
 	if err != nil {
 		return err
@@ -142,7 +145,7 @@ func (o *BuildChainOptions) Complete(f cmdutil.Factory, cmd *cobra.Command, args
 		}
 	}
 
-	namespace, _, err := f.DefaultNamespace()
+	namespace, _, err := f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
 	}

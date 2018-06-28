@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"k8s.io/kubernetes/pkg/kubectl/polymorphichelpers"
 
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -15,7 +16,7 @@ import (
 	"k8s.io/kubernetes/pkg/credentialprovider"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/kubectl/resource"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/oc/admin/migrate"
@@ -120,7 +121,7 @@ func (o *MigrateImageReferenceOptions) Complete(f kcmdutil.Factory, c *cobra.Com
 		o.Mappings = append(o.Mappings, mapping)
 	}
 
-	o.UpdatePodSpecFn = f.UpdatePodSpecForObject
+	o.UpdatePodSpecFn = polymorphichelpers.UpdatePodSpecForObjectFn
 
 	if len(remainingArgs) > 0 {
 		return fmt.Errorf("all arguments must be valid FROM=TO mappings")
@@ -131,7 +132,7 @@ func (o *MigrateImageReferenceOptions) Complete(f kcmdutil.Factory, c *cobra.Com
 		return err
 	}
 
-	clientConfig, err := f.ClientConfig()
+	clientConfig, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}

@@ -1,9 +1,10 @@
 package clusterresourcequota
 
 import (
+	"context"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
@@ -19,7 +20,7 @@ var Strategy = strategy{legacyscheme.Scheme}
 
 var _ rest.GarbageCollectionDeleteStrategy = strategy{}
 
-func (strategy) DefaultGarbageCollectionPolicy(ctx apirequest.Context) rest.GarbageCollectionPolicy {
+func (strategy) DefaultGarbageCollectionPolicy(ctx context.Context) rest.GarbageCollectionPolicy {
 	return rest.Unsupported
 }
 
@@ -39,13 +40,13 @@ func (strategy) GenerateName(base string) string {
 	return base
 }
 
-func (strategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) {
+func (strategy) PrepareForCreate(ctx context.Context, obj runtime.Object) {
 	quota := obj.(*quotaapi.ClusterResourceQuota)
 	quota.Status = quotaapi.ClusterResourceQuotaStatus{}
 }
 
 // PrepareForUpdate clears fields that are not allowed to be set by end users on update.
-func (strategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.Object) {
+func (strategy) PrepareForUpdate(ctx context.Context, obj, old runtime.Object) {
 	curr := obj.(*quotaapi.ClusterResourceQuota)
 	prev := old.(*quotaapi.ClusterResourceQuota)
 
@@ -56,11 +57,11 @@ func (strategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.Object
 func (strategy) Canonicalize(obj runtime.Object) {
 }
 
-func (strategy) Validate(ctx apirequest.Context, obj runtime.Object) field.ErrorList {
+func (strategy) Validate(ctx context.Context, obj runtime.Object) field.ErrorList {
 	return validation.ValidateClusterResourceQuota(obj.(*quotaapi.ClusterResourceQuota))
 }
 
-func (strategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.Object) field.ErrorList {
+func (strategy) ValidateUpdate(ctx context.Context, obj, old runtime.Object) field.ErrorList {
 	return validation.ValidateClusterResourceQuotaUpdate(obj.(*quotaapi.ClusterResourceQuota), old.(*quotaapi.ClusterResourceQuota))
 }
 
@@ -86,10 +87,10 @@ func (statusStrategy) GenerateName(base string) string {
 	return base
 }
 
-func (statusStrategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) {
+func (statusStrategy) PrepareForCreate(ctx context.Context, obj runtime.Object) {
 }
 
-func (statusStrategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.Object) {
+func (statusStrategy) PrepareForUpdate(ctx context.Context, obj, old runtime.Object) {
 	curr := obj.(*quotaapi.ClusterResourceQuota)
 	prev := old.(*quotaapi.ClusterResourceQuota)
 
@@ -99,10 +100,10 @@ func (statusStrategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.
 func (statusStrategy) Canonicalize(obj runtime.Object) {
 }
 
-func (statusStrategy) Validate(ctx apirequest.Context, obj runtime.Object) field.ErrorList {
+func (statusStrategy) Validate(ctx context.Context, obj runtime.Object) field.ErrorList {
 	return validation.ValidateClusterResourceQuota(obj.(*quotaapi.ClusterResourceQuota))
 }
 
-func (statusStrategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.Object) field.ErrorList {
+func (statusStrategy) ValidateUpdate(ctx context.Context, obj, old runtime.Object) field.ErrorList {
 	return validation.ValidateClusterResourceQuotaUpdate(obj.(*quotaapi.ClusterResourceQuota), old.(*quotaapi.ClusterResourceQuota))
 }

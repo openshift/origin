@@ -8,8 +8,6 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"k8s.io/apimachinery/pkg/apimachinery/announced"
-	"k8s.io/apimachinery/pkg/apimachinery/registered"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	genericapiserver "k8s.io/apiserver/pkg/server"
@@ -154,7 +152,7 @@ func (o TemplateServiceBrokerServerOptions) RunTemplateServiceBrokerServer(stopC
 		return err
 	}
 
-	server, err := config.Complete().New(genericapiserver.EmptyDelegate)
+	server, err := config.Complete().New(genericapiserver.NewEmptyDelegate())
 	if err != nil {
 		return err
 	}
@@ -163,12 +161,10 @@ func (o TemplateServiceBrokerServerOptions) RunTemplateServiceBrokerServer(stopC
 
 // these are used to set up for reading the config
 var (
-	groupFactoryRegistry = make(announced.APIGroupFactoryRegistry)
-	registry             = registered.NewOrDie("")
-	configScheme         = runtime.NewScheme()
-	configCodecs         = serializer.NewCodecFactory(configScheme)
+	configScheme = runtime.NewScheme()
+	configCodecs = serializer.NewCodecFactory(configScheme)
 )
 
 func init() {
-	configinstall.Install(groupFactoryRegistry, registry, configScheme)
+	configinstall.Install(configScheme)
 }

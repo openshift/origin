@@ -12,10 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+include  ../../hack/make-rules/Makefile.manifest
+
 REGISTRY ?= gcr.io/kubernetes-e2e-test-images
 GOARM=7
 QEMUVERSION=v2.9.1
-GOLANG_VERSION=1.9.3
+GOLANG_VERSION=1.10.2
 export
 
 ifndef WHAT
@@ -34,7 +36,7 @@ all: all-container
 all-container:
 	./image-util.sh build $(WHAT)
 
-all-push: all-container
+all-push: all-container manifest-tool
 	./image-util.sh push $(WHAT)
 
 .PHONY: all all-push all-container

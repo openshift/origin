@@ -41,6 +41,8 @@ const (
 	colMemoryUsage string = "memory_usage"
 	// Working set size
 	colMemoryWorkingSet string = "memory_working_set"
+	// Resident set size
+	colMemoryRSS string = "memory_rss"
 	// Cumulative count of bytes received.
 	colRxBytes string = "rx_bytes"
 	// Cumulative count of receive errors encountered.
@@ -80,6 +82,9 @@ func (self *statsdStorage) containerStatsToValues(
 	// Working set size
 	series[colMemoryWorkingSet] = stats.Memory.WorkingSet
 
+	// Resident set size
+	series[colMemoryRSS] = stats.Memory.RSS
+
 	// Network stats.
 	series[colRxBytes] = stats.Network.RxBytes
 	series[colRxErrors] = stats.Network.RxErrors
@@ -105,16 +110,16 @@ func (self *statsdStorage) containerFsStatsToValues(
 }
 
 // Push the data into redis
-func (self *statsdStorage) AddStats(ref info.ContainerReference, stats *info.ContainerStats) error {
+func (self *statsdStorage) AddStats(cInfo *info.ContainerInfo, stats *info.ContainerStats) error {
 	if stats == nil {
 		return nil
 	}
 
 	var containerName string
-	if len(ref.Aliases) > 0 {
-		containerName = ref.Aliases[0]
+	if len(cInfo.ContainerReference.Aliases) > 0 {
+		containerName = cInfo.ContainerReference.Aliases[0]
 	} else {
-		containerName = ref.Name
+		containerName = cInfo.ContainerReference.Name
 	}
 
 	series := self.containerStatsToValues(stats)

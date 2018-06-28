@@ -1,13 +1,13 @@
 package securitycontextconstraints
 
 import (
+	"context"
 	"fmt"
 
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	genericapirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/generic"
 	"k8s.io/apiserver/pkg/registry/rest"
 	apistorage "k8s.io/apiserver/pkg/storage"
@@ -44,10 +44,10 @@ func (strategy) AllowUnconditionalUpdate() bool {
 	return true
 }
 
-func (strategy) PrepareForCreate(_ genericapirequest.Context, obj runtime.Object) {
+func (strategy) PrepareForCreate(_ context.Context, obj runtime.Object) {
 }
 
-func (strategy) PrepareForUpdate(_ genericapirequest.Context, obj, old runtime.Object) {
+func (strategy) PrepareForUpdate(_ context.Context, obj, old runtime.Object) {
 }
 
 // Canonicalize removes duplicate user and group values, preserving order.
@@ -73,11 +73,11 @@ func uniqueStrings(values []string) []string {
 	return updated
 }
 
-func (strategy) Validate(ctx genericapirequest.Context, obj runtime.Object) field.ErrorList {
+func (strategy) Validate(ctx context.Context, obj runtime.Object) field.ErrorList {
 	return validation.ValidateSecurityContextConstraints(obj.(*securityapi.SecurityContextConstraints))
 }
 
-func (strategy) ValidateUpdate(ctx genericapirequest.Context, obj, old runtime.Object) field.ErrorList {
+func (strategy) ValidateUpdate(ctx context.Context, obj, old runtime.Object) field.ErrorList {
 	return validation.ValidateSecurityContextConstraintsUpdate(obj.(*securityapi.SecurityContextConstraints), old.(*securityapi.SecurityContextConstraints))
 }
 

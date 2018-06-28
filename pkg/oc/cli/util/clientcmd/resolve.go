@@ -10,6 +10,14 @@ import (
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 )
 
+func ParseDockerImageReferenceToStringFunc(spec string) (string, error) {
+	ret, err := imageapi.ParseDockerImageReference(spec)
+	if err != nil {
+		return "", err
+	}
+	return ret.String(), nil
+}
+
 // resolveImagePullSpec resolves the provided source which can be "docker", "istag" or
 // "isimage" and returns the full Docker pull spec.
 func resolveImagePullSpec(imageClient imageclient.ImageInterface, source, name, defaultNamespace string) (string, error) {

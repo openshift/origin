@@ -17,9 +17,9 @@ import (
 	"github.com/openshift/library-go/pkg/serviceability"
 	"github.com/openshift/origin/pkg/cmd/openshift-apiserver"
 	"github.com/openshift/origin/pkg/cmd/openshift-controller-manager"
+	"github.com/openshift/origin/pkg/cmd/openshift-etcd"
 	"github.com/openshift/origin/pkg/cmd/openshift-experimental"
 	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver"
-	"github.com/openshift/origin/pkg/cmd/server/start"
 	"github.com/openshift/origin/pkg/version"
 )
 
@@ -55,7 +55,7 @@ func NewHyperShiftCommand() *cobra.Command {
 		},
 	}
 
-	startEtcd, _ := start.NewCommandStartEtcdServer(start.RecommendedStartEtcdServerName, "hypershift", os.Stdout, os.Stderr)
+	startEtcd, _ := openshift_etcd.NewCommandStartEtcdServer(openshift_etcd.RecommendedStartEtcdServerName, "hypershift", os.Stdout, os.Stderr)
 	startEtcd.Deprecated = "will be removed in 3.10"
 	startEtcd.Hidden = true
 	cmd.AddCommand(startEtcd)

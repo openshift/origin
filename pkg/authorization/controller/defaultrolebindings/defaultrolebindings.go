@@ -113,7 +113,7 @@ func (c *DefaultRoleBindingController) syncNamespace(namespaceName string) error
 	}
 
 	errs := []error{}
-	desiredRoleBindings := bootstrappolicy.GetBootstrapServiceAccountProjectV1RoleBindings(namespaceName)
+	desiredRoleBindings := bootstrappolicy.GetBootstrapServiceAccountProjectRoleBindings(namespaceName)
 	for i := range desiredRoleBindings {
 		desiredRoleBinding := desiredRoleBindings[i]
 		found := false

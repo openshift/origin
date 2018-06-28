@@ -30,6 +30,215 @@ but appear via `govc $cmd -h`:
   -vm.uuid=                 Find VM by UUID
 ```
 
+<details><summary>Contents</summary>
+
+ - [about](#about)
+ - [about.cert](#aboutcert)
+ - [cluster.add](#clusteradd)
+ - [cluster.change](#clusterchange)
+ - [cluster.create](#clustercreate)
+ - [cluster.group.change](#clustergroupchange)
+ - [cluster.group.create](#clustergroupcreate)
+ - [cluster.group.ls](#clustergroupls)
+ - [cluster.group.remove](#clustergroupremove)
+ - [cluster.override.change](#clusteroverridechange)
+ - [cluster.override.info](#clusteroverrideinfo)
+ - [cluster.override.remove](#clusteroverrideremove)
+ - [cluster.rule.change](#clusterrulechange)
+ - [cluster.rule.create](#clusterrulecreate)
+ - [cluster.rule.ls](#clusterrulels)
+ - [cluster.rule.remove](#clusterruleremove)
+ - [datacenter.create](#datacentercreate)
+ - [datacenter.info](#datacenterinfo)
+ - [datastore.cp](#datastorecp)
+ - [datastore.create](#datastorecreate)
+ - [datastore.disk.create](#datastorediskcreate)
+ - [datastore.disk.inflate](#datastorediskinflate)
+ - [datastore.disk.info](#datastorediskinfo)
+ - [datastore.disk.shrink](#datastorediskshrink)
+ - [datastore.download](#datastoredownload)
+ - [datastore.info](#datastoreinfo)
+ - [datastore.ls](#datastorels)
+ - [datastore.mkdir](#datastoremkdir)
+ - [datastore.mv](#datastoremv)
+ - [datastore.remove](#datastoreremove)
+ - [datastore.rm](#datastorerm)
+ - [datastore.tail](#datastoretail)
+ - [datastore.upload](#datastoreupload)
+ - [datastore.vsan.dom.ls](#datastorevsandomls)
+ - [datastore.vsan.dom.rm](#datastorevsandomrm)
+ - [device.boot](#deviceboot)
+ - [device.cdrom.add](#devicecdromadd)
+ - [device.cdrom.eject](#devicecdromeject)
+ - [device.cdrom.insert](#devicecdrominsert)
+ - [device.connect](#deviceconnect)
+ - [device.disconnect](#devicedisconnect)
+ - [device.floppy.add](#devicefloppyadd)
+ - [device.floppy.eject](#devicefloppyeject)
+ - [device.floppy.insert](#devicefloppyinsert)
+ - [device.info](#deviceinfo)
+ - [device.ls](#devicels)
+ - [device.remove](#deviceremove)
+ - [device.scsi.add](#devicescsiadd)
+ - [device.serial.add](#deviceserialadd)
+ - [device.serial.connect](#deviceserialconnect)
+ - [device.serial.disconnect](#deviceserialdisconnect)
+ - [device.usb.add](#deviceusbadd)
+ - [dvs.add](#dvsadd)
+ - [dvs.create](#dvscreate)
+ - [dvs.portgroup.add](#dvsportgroupadd)
+ - [dvs.portgroup.change](#dvsportgroupchange)
+ - [dvs.portgroup.info](#dvsportgroupinfo)
+ - [env](#env)
+ - [events](#events)
+ - [export.ovf](#exportovf)
+ - [extension.info](#extensioninfo)
+ - [extension.register](#extensionregister)
+ - [extension.setcert](#extensionsetcert)
+ - [extension.unregister](#extensionunregister)
+ - [fields.add](#fieldsadd)
+ - [fields.ls](#fieldsls)
+ - [fields.rename](#fieldsrename)
+ - [fields.rm](#fieldsrm)
+ - [fields.set](#fieldsset)
+ - [find](#find)
+ - [firewall.ruleset.find](#firewallrulesetfind)
+ - [folder.create](#foldercreate)
+ - [folder.info](#folderinfo)
+ - [guest.chmod](#guestchmod)
+ - [guest.chown](#guestchown)
+ - [guest.download](#guestdownload)
+ - [guest.getenv](#guestgetenv)
+ - [guest.kill](#guestkill)
+ - [guest.ls](#guestls)
+ - [guest.mkdir](#guestmkdir)
+ - [guest.mktemp](#guestmktemp)
+ - [guest.mv](#guestmv)
+ - [guest.ps](#guestps)
+ - [guest.rm](#guestrm)
+ - [guest.rmdir](#guestrmdir)
+ - [guest.run](#guestrun)
+ - [guest.start](#gueststart)
+ - [guest.touch](#guesttouch)
+ - [guest.upload](#guestupload)
+ - [host.account.create](#hostaccountcreate)
+ - [host.account.remove](#hostaccountremove)
+ - [host.account.update](#hostaccountupdate)
+ - [host.add](#hostadd)
+ - [host.autostart.add](#hostautostartadd)
+ - [host.autostart.configure](#hostautostartconfigure)
+ - [host.autostart.info](#hostautostartinfo)
+ - [host.autostart.remove](#hostautostartremove)
+ - [host.cert.csr](#hostcertcsr)
+ - [host.cert.import](#hostcertimport)
+ - [host.cert.info](#hostcertinfo)
+ - [host.date.change](#hostdatechange)
+ - [host.date.info](#hostdateinfo)
+ - [host.disconnect](#hostdisconnect)
+ - [host.esxcli](#hostesxcli)
+ - [host.info](#hostinfo)
+ - [host.maintenance.enter](#hostmaintenanceenter)
+ - [host.maintenance.exit](#hostmaintenanceexit)
+ - [host.option.ls](#hostoptionls)
+ - [host.option.set](#hostoptionset)
+ - [host.portgroup.add](#hostportgroupadd)
+ - [host.portgroup.change](#hostportgroupchange)
+ - [host.portgroup.info](#hostportgroupinfo)
+ - [host.portgroup.remove](#hostportgroupremove)
+ - [host.reconnect](#hostreconnect)
+ - [host.remove](#hostremove)
+ - [host.service](#hostservice)
+ - [host.service.ls](#hostservicels)
+ - [host.shutdown](#hostshutdown)
+ - [host.storage.info](#hoststorageinfo)
+ - [host.storage.mark](#hoststoragemark)
+ - [host.storage.partition](#hoststoragepartition)
+ - [host.vnic.info](#hostvnicinfo)
+ - [host.vnic.service](#hostvnicservice)
+ - [host.vswitch.add](#hostvswitchadd)
+ - [host.vswitch.info](#hostvswitchinfo)
+ - [host.vswitch.remove](#hostvswitchremove)
+ - [import.ova](#importova)
+ - [import.ovf](#importovf)
+ - [import.spec](#importspec)
+ - [import.vmdk](#importvmdk)
+ - [license.add](#licenseadd)
+ - [license.assign](#licenseassign)
+ - [license.assigned.ls](#licenseassignedls)
+ - [license.decode](#licensedecode)
+ - [license.ls](#licensels)
+ - [license.remove](#licenseremove)
+ - [logs](#logs)
+ - [logs.download](#logsdownload)
+ - [logs.ls](#logsls)
+ - [ls](#ls)
+ - [metric.change](#metricchange)
+ - [metric.info](#metricinfo)
+ - [metric.interval.change](#metricintervalchange)
+ - [metric.interval.info](#metricintervalinfo)
+ - [metric.ls](#metricls)
+ - [metric.reset](#metricreset)
+ - [metric.sample](#metricsample)
+ - [object.collect](#objectcollect)
+ - [object.destroy](#objectdestroy)
+ - [object.method](#objectmethod)
+ - [object.mv](#objectmv)
+ - [object.reload](#objectreload)
+ - [object.rename](#objectrename)
+ - [option.ls](#optionls)
+ - [option.set](#optionset)
+ - [permissions.ls](#permissionsls)
+ - [permissions.remove](#permissionsremove)
+ - [permissions.set](#permissionsset)
+ - [pool.change](#poolchange)
+ - [pool.create](#poolcreate)
+ - [pool.destroy](#pooldestroy)
+ - [pool.info](#poolinfo)
+ - [role.create](#rolecreate)
+ - [role.ls](#rolels)
+ - [role.remove](#roleremove)
+ - [role.update](#roleupdate)
+ - [role.usage](#roleusage)
+ - [session.login](#sessionlogin)
+ - [session.logout](#sessionlogout)
+ - [session.ls](#sessionls)
+ - [session.rm](#sessionrm)
+ - [snapshot.create](#snapshotcreate)
+ - [snapshot.remove](#snapshotremove)
+ - [snapshot.revert](#snapshotrevert)
+ - [snapshot.tree](#snapshottree)
+ - [task.cancel](#taskcancel)
+ - [tasks](#tasks)
+ - [vapp.destroy](#vappdestroy)
+ - [vapp.power](#vapppower)
+ - [version](#version)
+ - [vm.change](#vmchange)
+ - [vm.clone](#vmclone)
+ - [vm.console](#vmconsole)
+ - [vm.create](#vmcreate)
+ - [vm.destroy](#vmdestroy)
+ - [vm.disk.attach](#vmdiskattach)
+ - [vm.disk.change](#vmdiskchange)
+ - [vm.disk.create](#vmdiskcreate)
+ - [vm.guest.tools](#vmguesttools)
+ - [vm.info](#vminfo)
+ - [vm.ip](#vmip)
+ - [vm.markastemplate](#vmmarkastemplate)
+ - [vm.markasvm](#vmmarkasvm)
+ - [vm.migrate](#vmmigrate)
+ - [vm.network.add](#vmnetworkadd)
+ - [vm.network.change](#vmnetworkchange)
+ - [vm.power](#vmpower)
+ - [vm.question](#vmquestion)
+ - [vm.rdm.attach](#vmrdmattach)
+ - [vm.rdm.ls](#vmrdmls)
+ - [vm.register](#vmregister)
+ - [vm.unregister](#vmunregister)
+ - [vm.upgrade](#vmupgrade)
+ - [vm.vnc](#vmvnc)
+
+</details>
+
 ## about
 
 ```
@@ -364,10 +573,16 @@ Copy SRC to DST on DATASTORE.
 Examples:
   govc datastore.cp foo/foo.vmx foo/foo.vmx.old
   govc datastore.cp -f my.vmx foo/foo.vmx
+  govc datastore.cp disks/disk1.vmdk disks/disk2.vmdk
+  govc datastore.cp disks/disk1.vmdk -dc-target DC2 disks/disk2.vmdk
+  govc datastore.cp disks/disk1.vmdk -ds-target NFS-2 disks/disk2.vmdk
 
 Options:
+  -dc-target=               Datacenter destination (defaults to -dc)
   -ds=                      Datastore [GOVC_DATASTORE]
+  -ds-target=               Datastore destination (defaults to -ds)
   -f=false                  If true, overwrite any identically named file at the destination
+  -t=true                   Use file type to choose disk or file manager
 ```
 
 ## datastore.create
@@ -409,7 +624,10 @@ Examples:
   govc datastore.disk.create disks/parent.vmdk disk/child.vmdk
 
 Options:
+  -a=lsiLogic               Disk adapter
+  -d=thin                   Disk format
   -ds=                      Datastore [GOVC_DATASTORE]
+  -f=false                  Force
   -size=10.0GB              Size of new disk
 ```
 
@@ -521,8 +739,11 @@ Examples:
   govc datastore.mv -f my.vmx foo/foo.vmx
 
 Options:
+  -dc-target=               Datacenter destination (defaults to -dc)
   -ds=                      Datastore [GOVC_DATASTORE]
+  -ds-target=               Datastore destination (defaults to -ds)
   -f=false                  If true, overwrite any identically named file at the destination
+  -t=true                   Use file type to choose disk or file manager
 ```
 
 ## datastore.remove
@@ -1011,6 +1232,7 @@ Portgroup info for DVS.
 
 Examples:
   govc dvs.portgroup.info DSwitch
+  govc dvs.portgroup.info -pg InternalNetwork DSwitch
   govc find / -type DistributedVirtualSwitch | xargs -n1 govc dvs.portgroup.info
 
 Options:
@@ -1169,6 +1391,7 @@ ROOT can be an inventory path or ManagedObjectReference.
 ROOT defaults to '.', an alias for the root folder or DC if set.
 
 Optional KEY VAL pairs can be used to filter results against object instance properties.
+Use the govc 'object.collect' command to view possible object property keys.
 
 The '-type' flag value can be a managed entity type or one of the following aliases:
 
@@ -2152,7 +2375,15 @@ Options:
 ```
 Usage: govc license.assign [OPTIONS] KEY
 
+Assign licenses to HOST or CLUSTER.
+
+Examples:
+  govc license.assign $VCSA_LICENSE_KEY
+  govc license.assign -host a_host.example.com $ESX_LICENSE_KEY
+  govc license.assign -cluster a_cluster $VSAN_LICENSE_KEY
+
 Options:
+  -cluster=                 Cluster [GOVC_CLUSTER]
   -host=                    Host system [GOVC_HOST]
   -name=                    Display name
   -remove=false             Remove assignment
@@ -2422,6 +2653,9 @@ By default only the current property value(s) are collected.  To wait for update
 specify a property filter.  A property filter can be specified by prefixing the property name with a '-',
 followed by the value to match.
 
+The '-R' flag sets the Filter using the given XML encoded request, which can be captured by 'vcsim -trace' for example.
+It can be useful for replaying property filters created by other clients and converting filters to Go code via '-O -dump'.
+
 Examples:
   govc object.collect - content
   govc object.collect -s HostSystem:ha-host hardware.systemInfo.uuid
@@ -2430,8 +2664,12 @@ Examples:
   govc object.collect -type m / name runtime.powerState # collect properties for multiple objects
   govc object.collect -json -n=-1 EventManager:ha-eventmgr latestEvent | jq .
   govc object.collect -json -s $(govc object.collect -s - content.perfManager) description.counterType | jq .
+  govc object.collect -R create-filter-request.xml # replay filter
+  govc object.collect -R create-filter-request.xml -O # convert filter to Go code
 
 Options:
+  -O=false                  Output the CreateFilter request itself
+  -R=                       Raw XML encoded CreateFilter request
   -n=0                      Wait for N property updates
   -s=false                  Output property value only
   -type=[]                  Resource type.  If specified, MOID is used for a container view root
@@ -2795,6 +3033,48 @@ Examples:
 
 Options:
   -i=false                  Use moref instead of inventory path
+```
+
+## session.login
+
+```
+Usage: govc session.login [OPTIONS]
+
+Session login.
+
+The session.login command is optional, all other govc commands will auto login when given credentials.
+The session.login command can be used to:
+- Persist a session without writing to disk via the '-cookie' flag
+- Acquire a clone ticket
+- Login using a clone ticket
+- Avoid passing credentials to other govc commands
+
+Examples:
+  govc session.login -u root:password@host
+  ticket=$(govc session.login -u root@host -clone)
+  govc session.login -u root@host -ticket $ticket
+
+Options:
+  -clone=false              Acquire clone ticket
+  -cookie=                  Set HTTP cookie for an existing session
+  -l=false                  Output session cookie
+  -ticket=                  Clone ticket
+```
+
+## session.logout
+
+```
+Usage: govc session.logout [OPTIONS]
+
+Logout the current session.
+
+The session.logout command can be used to end the current persisted session.
+The session.rm command can be used to remove sessions other than the current session.
+
+Examples:
+  govc session.logout
+
+Options:
 ```
 
 ## session.ls
@@ -3345,6 +3625,7 @@ Options:
 Usage: govc vm.power [OPTIONS]
 
 Options:
+  -M=false                  Use Datacenter.PowerOnMultiVM method instead of VirtualMachine.PowerOnVM
   -force=false              Force (ignore state error and hard shutdown/reboot if tools unavailable)
   -off=false                Power off
   -on=false                 Power on

@@ -1,12 +1,12 @@
 package imagesignature
 
 import (
+	"context"
 	"errors"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
@@ -20,6 +20,7 @@ type REST struct {
 
 var _ rest.Creater = &REST{}
 var _ rest.GracefulDeleter = &REST{}
+var _ rest.Scoper = &REST{}
 
 // NewREST returns a new REST.
 func NewREST(imageClient imageclient.ImagesGetter) *REST {
@@ -31,7 +32,11 @@ func (r *REST) New() runtime.Object {
 	return &imageapi.ImageSignature{}
 }
 
-func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, createValidation rest.ValidateObjectFunc, _ bool) (runtime.Object, error) {
+func (s *REST) NamespaceScoped() bool {
+	return false
+}
+
+func (r *REST) Create(ctx context.Context, obj runtime.Object, createValidation rest.ValidateObjectFunc, _ bool) (runtime.Object, error) {
 	signature := obj.(*imageapi.ImageSignature)
 
 	if err := rest.BeforeCreate(Strategy, ctx, obj); err != nil {
@@ -75,7 +80,7 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, createValidati
 	return &image.Signatures[byName], nil
 }
 
-func (r *REST) Delete(ctx apirequest.Context, name string, options *metav1.DeleteOptions) (runtime.Object, bool, error) {
+func (r *REST) Delete(ctx context.Context, name string, options *metav1.DeleteOptions) (runtime.Object, bool, error) {
 	imageName, _, err := imageapi.SplitImageSignatureName(name)
 	if err != nil {
 		return nil, false, kapierrors.NewBadRequest("ImageSignatures must be accessed with <imageName>@<signatureName>")

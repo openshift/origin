@@ -1,9 +1,10 @@
 package identity
 
 import (
+	"context"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
@@ -22,11 +23,11 @@ var Strategy = identityStrategy{legacyscheme.Scheme}
 
 var _ rest.GarbageCollectionDeleteStrategy = identityStrategy{}
 
-func (identityStrategy) DefaultGarbageCollectionPolicy(ctx apirequest.Context) rest.GarbageCollectionPolicy {
+func (identityStrategy) DefaultGarbageCollectionPolicy(ctx context.Context) rest.GarbageCollectionPolicy {
 	return rest.Unsupported
 }
 
-func (identityStrategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.Object) {}
+func (identityStrategy) PrepareForUpdate(ctx context.Context, obj, old runtime.Object) {}
 
 // NamespaceScoped is false for users
 func (identityStrategy) NamespaceScoped() bool {
@@ -37,7 +38,7 @@ func (identityStrategy) GenerateName(base string) string {
 	return base
 }
 
-func (identityStrategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) {
+func (identityStrategy) PrepareForCreate(ctx context.Context, obj runtime.Object) {
 	identity := obj.(*userapi.Identity)
 	identity.Name = identityName(identity.ProviderName, identity.ProviderUserName)
 }
@@ -49,7 +50,7 @@ func identityName(provider, identity string) string {
 }
 
 // Validate validates a new user
-func (identityStrategy) Validate(ctx apirequest.Context, obj runtime.Object) field.ErrorList {
+func (identityStrategy) Validate(ctx context.Context, obj runtime.Object) field.ErrorList {
 	identity := obj.(*userapi.Identity)
 	return validation.ValidateIdentity(identity)
 }
@@ -68,6 +69,6 @@ func (identityStrategy) Canonicalize(obj runtime.Object) {
 }
 
 // ValidateUpdate is the default update validation for an identity
-func (identityStrategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.Object) field.ErrorList {
+func (identityStrategy) ValidateUpdate(ctx context.Context, obj, old runtime.Object) field.ErrorList {
 	return validation.ValidateIdentityUpdate(obj.(*userapi.Identity), old.(*userapi.Identity))
 }

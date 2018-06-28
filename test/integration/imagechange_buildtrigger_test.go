@@ -3,13 +3,13 @@ package integration
 import (
 	"testing"
 
+	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	watchapi "k8s.io/apimachinery/pkg/watch"
+	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	"k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/apis/rbac"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	rbacclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/rbac/internalversion"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
@@ -76,17 +76,17 @@ func TestSimpleImageChangeBuildTriggerFromImageStreamTagCustom(t *testing.T) {
 	clusterAdminClientConfig, projectAdminKubeClient, projectAdminConfig, fn := setup(t)
 	defer fn()
 
-	subjects := []rbac.Subject{
+	subjects := []rbacv1.Subject{
 		{
-			APIGroup: rbac.GroupName,
-			Kind:     rbac.GroupKind,
+			APIGroup: rbacv1.GroupName,
+			Kind:     rbacv1.GroupKind,
 			Name:     bootstrappolicy.AuthenticatedGroup,
 		},
 	}
 	options := policy.RoleModificationOptions{
 		RoleName:   bootstrappolicy.BuildStrategyCustomRoleName,
 		RoleKind:   "ClusterRole",
-		RbacClient: rbacclient.NewForConfigOrDie(clusterAdminClientConfig),
+		RbacClient: rbacv1client.NewForConfigOrDie(clusterAdminClientConfig),
 		Subjects:   subjects,
 	}
 	options.AddRole()
@@ -107,17 +107,17 @@ func TestSimpleImageChangeBuildTriggerFromImageStreamTagCustomWithConfigChange(t
 	clusterAdminClientConfig, projectAdminKubeClient, projectAdminConfig, fn := setup(t)
 	defer fn()
 
-	subjects := []rbac.Subject{
+	subjects := []rbacv1.Subject{
 		{
-			APIGroup: rbac.GroupName,
-			Kind:     rbac.GroupKind,
+			APIGroup: rbacv1.GroupName,
+			Kind:     rbacv1.GroupKind,
 			Name:     bootstrappolicy.AuthenticatedGroup,
 		},
 	}
 	options := policy.RoleModificationOptions{
 		RoleName:   bootstrappolicy.BuildStrategyCustomRoleName,
 		RoleKind:   "ClusterRole",
-		RbacClient: rbacclient.NewForConfigOrDie(clusterAdminClientConfig),
+		RbacClient: rbacv1client.NewForConfigOrDie(clusterAdminClientConfig),
 		Subjects:   subjects,
 	}
 	options.AddRole()

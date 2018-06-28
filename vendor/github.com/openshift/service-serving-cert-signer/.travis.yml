@@ -4,7 +4,7 @@ go:
   - 1.9
 
 script:
-  - make build test
+  - make build test-unit
 
 notifications:
   irc: "chat.freenode.net#openshift-dev"

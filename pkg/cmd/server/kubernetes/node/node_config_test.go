@@ -12,7 +12,6 @@ import (
 	kubeletoptions "k8s.io/kubernetes/cmd/kubelet/app/options"
 	"k8s.io/kubernetes/pkg/kubelet/apis/kubeletconfig"
 	"k8s.io/kubernetes/pkg/kubelet/config"
-	"k8s.io/kubernetes/pkg/kubelet/rkt"
 	kubetypes "k8s.io/kubernetes/pkg/kubelet/types"
 	kubeletutil "k8s.io/kubernetes/pkg/kubelet/util"
 	"k8s.io/kubernetes/pkg/proxy/apis/kubeproxyconfig"
@@ -31,8 +30,7 @@ func TestKubeletDefaults(t *testing.T) {
 				DockershimRootDirectory:   "/var/lib/dockershim",
 				DockerEndpoint:            "unix:///var/run/docker.sock",
 				ImagePullProgressDeadline: metav1.Duration{Duration: 1 * time.Minute},
-				RktAPIEndpoint:            rkt.DefaultRktAPIServiceEndpoint,
-				PodSandboxImage:           "k8s.gcr.io/pause-" + goruntime.GOARCH + ":3.1", // overridden
+				PodSandboxImage:           "k8s.gcr.io/pause:3.1", // overridden
 				DockerDisableSharedPID:    true,
 				ContainerRuntime:          "docker",
 				RuntimeCgroups:            "",
@@ -47,13 +45,13 @@ func TestKubeletDefaults(t *testing.T) {
 			SeccompProfileRoot:      "/var/lib/kubelet/seccomp",
 			MaxContainerCount:       -1,
 			MasterServiceNamespace:  "default",
-			ExperimentalQOSReserved: map[string]string{},
 			NodeLabels:              map[string]string{},
 			MaxPerPodContainerCount: 1,
+			NodeStatusMaxImages:     50,
 			RegisterSchedulable:     true,
 			NonMasqueradeCIDR:       "10.0.0.0/8",
-			AllowPrivileged:         false, // overridden
-			CAdvisorPort:            4194,  // disabled
+			AllowPrivileged:         true, // overridden
+			CAdvisorPort:            0,    // disabled
 			EnableServer:            true,
 			HostNetworkSources:      []string{"*"}, // overridden
 			HostPIDSources:          []string{"*"}, // overridden

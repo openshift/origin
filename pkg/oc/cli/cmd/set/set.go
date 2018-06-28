@@ -8,6 +8,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/set"
 	ktemplates "k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	"github.com/openshift/origin/pkg/cmd/templates"
 )
@@ -91,7 +92,7 @@ Update existing container image(s) of resources.`)
 
 // NewCmdImage is a wrapper for the Kubernetes CLI set image command
 func NewCmdImage(fullName string, f cmdutil.Factory, out, err io.Writer) *cobra.Command {
-	cmd := set.NewCmdImage(f, out, err)
+	cmd := set.NewCmdImage(f, genericclioptions.IOStreams{Out: out, ErrOut: err})
 	cmd.Long = setImageLong
 	cmd.Example = fmt.Sprintf(setImageExample, fullName)
 
@@ -128,7 +129,7 @@ Possible resources include (case insensitive):
 
 // NewCmdResources is a wrapper for the Kubernetes CLI set resources command
 func NewCmdResources(fullName string, f cmdutil.Factory, out io.Writer, errOut io.Writer) *cobra.Command {
-	cmd := set.NewCmdResources(f, out, errOut)
+	cmd := set.NewCmdResources(f, genericclioptions.IOStreams{Out: out, ErrOut: errOut})
 	cmd.Long = setResourcesLong
 	cmd.Example = fmt.Sprintf(setResourcesExample, fullName)
 

@@ -34,6 +34,12 @@ func TestGetEtcdPodSpec(t *testing.T) {
 	// Creates a Master Configuration
 	cfg := &kubeadmapi.MasterConfiguration{
 		KubernetesVersion: "v1.7.0",
+		Etcd: kubeadmapi.Etcd{
+			Local: &kubeadmapi.LocalEtcd{
+				DataDir: "/var/lib/etcd",
+				Image:   "",
+			},
+		},
 	}
 
 	// Executes GetEtcdPodSpec
@@ -54,6 +60,12 @@ func TestCreateLocalEtcdStaticPodManifestFile(t *testing.T) {
 	// Creates a Master Configuration
 	cfg := &kubeadmapi.MasterConfiguration{
 		KubernetesVersion: "v1.7.0",
+		Etcd: kubeadmapi.Etcd{
+			Local: &kubeadmapi.LocalEtcd{
+				DataDir: "/var/lib/etcd",
+				Image:   "k8s.gcr.io/etcd",
+			},
+		},
 	}
 
 	// Execute createStaticPodFunction
@@ -75,7 +87,7 @@ func TestGetEtcdCommand(t *testing.T) {
 	}{
 		{
 			cfg: &kubeadmapi.MasterConfiguration{
-				Etcd: kubeadmapi.Etcd{DataDir: "/var/lib/etcd"},
+				Etcd: kubeadmapi.Etcd{Local: &kubeadmapi.LocalEtcd{DataDir: "/var/lib/etcd"}},
 			},
 			expected: []string{
 				"etcd",
@@ -89,16 +101,19 @@ func TestGetEtcdCommand(t *testing.T) {
 				"--peer-cert-file=" + kubeadmconstants.EtcdPeerCertName,
 				"--peer-key-file=" + kubeadmconstants.EtcdPeerKeyName,
 				"--peer-trusted-ca-file=" + kubeadmconstants.EtcdCACertName,
+				"--snapshot-count=10000",
 				"--peer-client-cert-auth=true",
 			},
 		},
 		{
 			cfg: &kubeadmapi.MasterConfiguration{
 				Etcd: kubeadmapi.Etcd{
-					DataDir: "/var/lib/etcd",
-					ExtraArgs: map[string]string{
-						"listen-client-urls":    "https://10.0.1.10:2379",
-						"advertise-client-urls": "https://10.0.1.10:2379",
+					Local: &kubeadmapi.LocalEtcd{
+						DataDir: "/var/lib/etcd",
+						ExtraArgs: map[string]string{
+							"listen-client-urls":    "https://10.0.1.10:2379",
+							"advertise-client-urls": "https://10.0.1.10:2379",
+						},
 					},
 				},
 			},
@@ -114,12 +129,13 @@ func TestGetEtcdCommand(t *testing.T) {
 				"--peer-cert-file=" + kubeadmconstants.EtcdPeerCertName,
 				"--peer-key-file=" + kubeadmconstants.EtcdPeerKeyName,
 				"--peer-trusted-ca-file=" + kubeadmconstants.EtcdCACertName,
+				"--snapshot-count=10000",
 				"--peer-client-cert-auth=true",
 			},
 		},
 		{
 			cfg: &kubeadmapi.MasterConfiguration{
-				Etcd: kubeadmapi.Etcd{DataDir: "/etc/foo"},
+				Etcd: kubeadmapi.Etcd{Local: &kubeadmapi.LocalEtcd{DataDir: "/etc/foo"}},
 			},
 			expected: []string{
 				"etcd",
@@ -133,6 +149,7 @@ func TestGetEtcdCommand(t *testing.T) {
 				"--peer-cert-file=" + kubeadmconstants.EtcdPeerCertName,
 				"--peer-key-file=" + kubeadmconstants.EtcdPeerKeyName,
 				"--peer-trusted-ca-file=" + kubeadmconstants.EtcdCACertName,
+				"--snapshot-count=10000",
 				"--peer-client-cert-auth=true",
 			},
 		},

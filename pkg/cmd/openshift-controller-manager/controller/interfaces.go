@@ -2,10 +2,10 @@ package controller
 
 import (
 	"github.com/golang/glog"
+	"k8s.io/apimachinery/pkg/api/meta"
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/client-go/discovery"
 	kexternalinformers "k8s.io/client-go/informers"
 	controllerapp "k8s.io/kubernetes/cmd/kube-controller-manager/app"
 	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -48,7 +48,7 @@ type ControllerContext struct {
 	RouteInformers          routeinformer.SharedInformerFactory
 	SecurityInformers       securityinformer.SharedInformerFactory
 	GenericResourceInformer GenericResourceInformer
-	DynamicRestMapper       *discovery.DeferredDiscoveryRESTMapper
+	RestMapper              meta.RESTMapper
 
 	// Stop is the stop channel
 	Stop <-chan struct{}

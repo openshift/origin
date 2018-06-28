@@ -1,6 +1,7 @@
 package buildconfiginstantiate
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -13,7 +14,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/wait"
-	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/remotecommand"
@@ -55,7 +55,7 @@ func (s *InstantiateREST) New() runtime.Object {
 }
 
 // Create instantiates a new build from a build configuration
-func (s *InstantiateREST) Create(ctx apirequest.Context, obj runtime.Object, createValidation rest.ValidateObjectFunc, _ bool) (runtime.Object, error) {
+func (s *InstantiateREST) Create(ctx context.Context, obj runtime.Object, createValidation rest.ValidateObjectFunc, _ bool) (runtime.Object, error) {
 	if err := rest.BeforeCreate(Strategy, ctx, obj); err != nil {
 		return nil, err
 	}
@@ -116,7 +116,7 @@ func (r *BinaryInstantiateREST) New() runtime.Object {
 }
 
 // Connect returns a ConnectHandler that will handle the request/response for a request
-func (r *BinaryInstantiateREST) Connect(ctx apirequest.Context, name string, options runtime.Object, responder rest.Responder) (http.Handler, error) {
+func (r *BinaryInstantiateREST) Connect(ctx context.Context, name string, options runtime.Object, responder rest.Responder) (http.Handler, error) {
 	return &binaryInstantiateHandler{
 		r:         r,
 		responder: responder,
@@ -150,7 +150,7 @@ type binaryInstantiateHandler struct {
 	r *BinaryInstantiateREST
 
 	responder rest.Responder
-	ctx       apirequest.Context
+	ctx       context.Context
 	name      string
 	options   *buildapi.BinaryBuildRequestOptions
 }

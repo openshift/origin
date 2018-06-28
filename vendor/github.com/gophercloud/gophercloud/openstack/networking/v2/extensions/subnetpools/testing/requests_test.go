@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"testing"
+	"time"
 
 	fake "github.com/gophercloud/gophercloud/openstack/networking/v2/common"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/subnetpools"
@@ -73,8 +74,8 @@ func TestGet(t *testing.T) {
 	th.AssertEquals(t, s.DefaultQuota, 2)
 	th.AssertEquals(t, s.TenantID, "1e2b9857295a4a3e841809ef492812c5")
 	th.AssertEquals(t, s.ProjectID, "1e2b9857295a4a3e841809ef492812c5")
-	th.AssertEquals(t, s.CreatedAt, "2018-01-01T00:00:01")
-	th.AssertEquals(t, s.UpdatedAt, "2018-01-01T00:10:10")
+	th.AssertEquals(t, s.CreatedAt, time.Date(2018, 1, 1, 0, 0, 1, 0, time.UTC))
+	th.AssertEquals(t, s.UpdatedAt, time.Date(2018, 1, 1, 0, 10, 10, 0, time.UTC))
 	th.AssertDeepEquals(t, s.Prefixes, []string{
 		"2001:db8::a3/64",
 	})

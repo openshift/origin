@@ -48,6 +48,12 @@ cmds=($(govc -h | grep -v Usage))
 opts=($(cut -s -d= -f1 <<<"$common_opts" | xargs -n1 | sed -e 's/^/\\/'))
 filter=$(printf "|%s=" "${opts[@]}")
 
+printf "<details><summary>Contents</summary>\n\n"
+for cmd in "${cmds[@]}" ; do
+    printf " - [%s](#%s)\n" "$cmd" "${cmd//./}"
+done
+printf "\n</details>\n\n"
+
 for cmd in "${cmds[@]}" ; do
     printf "## %s\n\n" "$cmd"
     printf "\`\`\`\n"
