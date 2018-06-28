@@ -750,6 +750,8 @@ func NewMainKubelet(kubeCfg *kubeletconfiginternal.KubeletConfiguration,
 		} else if len(cloudIPs) != 0 || len(cloudNames) != 0 {
 			ips = cloudIPs
 			names = cloudNames
+			names = append(names, hostnameOverride)
+			names = append(names, klet.GetHostname())
 		} else {
 			localIPs, err := allGlobalUnicastIPs()
 			if err != nil {

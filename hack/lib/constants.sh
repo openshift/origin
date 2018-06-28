@@ -343,7 +343,7 @@ function os::build::check_binaries() {
     fi
   fi
   if [[ -f "${OS_OUTPUT_BINPATH}/${platform}/openshift-node-config" ]]; then
-    if [[ "$(du -m "${OS_OUTPUT_BINPATH}/${platform}/openshift-node-config" | cut -f 1)" -gt "22" ]]; then
+    if [[ "$(du -m "${OS_OUTPUT_BINPATH}/${platform}/openshift-node-config" | cut -f 1)" -gt "2200" ]]; then
 		  os::log::fatal "openshift-node-config binary has grown substantially. You must have approval before bumping this limit."
     fi
   fi

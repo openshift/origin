@@ -9,6 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/kubernetes/pkg/features"
+	nodeutil "k8s.io/kubernetes/pkg/util/node"
 
 	"github.com/openshift/library-go/pkg/crypto"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
@@ -47,7 +48,7 @@ func ComputeKubeletFlags(startingArgs map[string][]string, options configapi.Nod
 	setIfUnset(args, "pod-manifest-path", path)
 	setIfUnset(args, "root-dir", options.VolumeDirectory)
 	setIfUnset(args, "node-ip", options.NodeIP)
-	setIfUnset(args, "hostname-override", options.NodeName)
+	setIfUnset(args, "hostname-override", nodeutil.GetHostname(options.NodeName))
 	setIfUnset(args, "allow-privileged", "true")
 	setIfUnset(args, "register-node", "true")
 	setIfUnset(args, "read-only-port", "0")      // no read only access
