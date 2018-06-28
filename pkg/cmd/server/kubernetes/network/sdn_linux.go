@@ -10,7 +10,6 @@ import (
 	"k8s.io/client-go/tools/record"
 	kinternalclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
-	kcni "k8s.io/kubernetes/pkg/kubelet/network/cni"
 	"k8s.io/kubernetes/pkg/proxy/apis/kubeproxyconfig"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
@@ -35,11 +34,11 @@ func NewSDNInterfaces(options configapi.NodeConfig, networkClient networkclient.
 		}
 	}
 
-	cniBinDir := kcni.DefaultCNIDir
+	cniBinDir := "/opt/cni/bin"
 	if val, ok := options.KubeletArguments["cni-bin-dir"]; ok && len(val) == 1 {
 		cniBinDir = val[0]
 	}
-	cniConfDir := kcni.DefaultNetDir
+	cniConfDir := "/etc/cni/net.d"
 	if val, ok := options.KubeletArguments["cni-conf-dir"]; ok && len(val) == 1 {
 		cniConfDir = val[0]
 	}

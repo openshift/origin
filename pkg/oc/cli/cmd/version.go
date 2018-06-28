@@ -71,11 +71,13 @@ func (o *VersionOptions) Complete(cmd *cobra.Command, f kcmdutil.Factory, out io
 		return nil
 	}
 
-	o.Clients = f.ClientSet
 	var err error
-	o.ClientConfig, err = f.ClientConfig()
+	o.ClientConfig, err = f.ToRESTConfig()
 	if err != nil && !kclientcmd.IsEmptyConfig(err) {
 		return err
+	}
+	o.Clients = func() (kclientset.Interface, error) {
+		return kclientset.NewForConfig(o.ClientConfig)
 	}
 
 	if !o.IsServer {
@@ -84,7 +86,7 @@ func (o *VersionOptions) Complete(cmd *cobra.Command, f kcmdutil.Factory, out io
 		// flag, as flag value would have to be parsed
 		// from a string potentially not formatted as
 		// a valid time.Duration value
-		config, err := f.ClientConfig()
+		config, err := f.ToRESTConfig()
 		if err == nil {
 			o.Timeout = config.Timeout
 		}

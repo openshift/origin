@@ -11,12 +11,12 @@ import (
 var InformerFactoryOverride informers.SharedInformerFactory
 
 func ShimForOpenShift(controllerManagerOptions *options.KubeControllerManagerOptions, controllerManager *config.Config) (func(), error) {
-	if len(controllerManager.Extra.OpenShiftContext.OpenShiftConfig) == 0 {
+	if len(controllerManager.OpenShiftContext.OpenShiftConfig) == 0 {
 		return func() {}, nil
 	}
 
 	// TODO this gets removed when no longer take flags and no longer build a recycler template
-	openshiftConfig, err := getOpenShiftConfig(controllerManager.Extra.OpenShiftContext.OpenShiftConfig)
+	openshiftConfig, err := getOpenShiftConfig(controllerManager.OpenShiftContext.OpenShiftConfig)
 	if err != nil {
 		return func() {}, err
 	}
@@ -33,7 +33,7 @@ func ShimForOpenShift(controllerManagerOptions *options.KubeControllerManagerOpt
 	}
 
 	// TODO this should be replaced by using a flex volume to inject service serving cert CAs into pods instead of adding it to the sa token
-	if err := applyOpenShiftServiceServingCertCAFunc(path.Dir(controllerManager.Extra.OpenShiftContext.OpenShiftConfig), openshiftConfig); err != nil {
+	if err := applyOpenShiftServiceServingCertCAFunc(path.Dir(controllerManager.OpenShiftContext.OpenShiftConfig), openshiftConfig); err != nil {
 		return func() {}, err
 	}
 
@@ -45,7 +45,7 @@ func ShimForOpenShift(controllerManagerOptions *options.KubeControllerManagerOpt
 
 	// Overwrite the informers, because we have our custom generic informers for quota.
 	// TODO update quota to create its own informer like garbage collection
-	if informers, err := newInformerFactory(controllerManager.Generic.Kubeconfig); err != nil {
+	if informers, err := newInformerFactory(controllerManager.Kubeconfig); err != nil {
 		return cleanupFn, err
 	} else {
 		InformerFactoryOverride = informers

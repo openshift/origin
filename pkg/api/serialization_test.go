@@ -318,6 +318,11 @@ func originFuzzer(t *testing.T, seed int64) *fuzz.Fuzzer {
 		},
 		func(j *apps.DeploymentConfig, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
+
+			if len(j.Spec.Selector) == 0 && j.Spec.Template != nil {
+				j.Spec.Selector = j.Spec.Template.Labels
+			}
+
 			j.Spec.Triggers = []apps.DeploymentTriggerPolicy{{Type: apps.DeploymentTriggerOnConfigChange}}
 			if j.Spec.Template != nil && len(j.Spec.Template.Spec.Containers) == 1 {
 				containerName := j.Spec.Template.Spec.Containers[0].Name
@@ -536,8 +541,7 @@ func TestSpecificKind(t *testing.T) {
 }
 
 var dockerImageTypes = map[schema.GroupVersionKind]bool{
-	image.SchemeGroupVersion.WithKind("DockerImage"):       true,
-	image.LegacySchemeGroupVersion.WithKind("DockerImage"): true,
+	image.SchemeGroupVersion.WithKind("DockerImage"): true,
 }
 
 // TestRoundTripTypes applies the round-trip test to all round-trippable Kinds

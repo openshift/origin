@@ -32,9 +32,9 @@ os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/migrate/storage_oauthclientauthorizations"
 # Create valid OAuth client
-os::cmd::expect_success_and_text     'oc create -f test/testdata/oauth/client.yaml' 'oauthclient.oauth.openshift.io "test-oauth-client" created'
+os::cmd::expect_success_and_text     'oc create -f test/testdata/oauth/client.yaml' 'oauthclient.oauth.openshift.io/test-oauth-client created'
 # Create OAuth client authorization for client
-os::cmd::expect_success_and_text     'oc create -f test/testdata/oauth/clientauthorization.yaml' 'oauthclientauthorization.oauth.openshift.io "user1:test-oauth-client" created'
+os::cmd::expect_success_and_text     'oc create -f test/testdata/oauth/clientauthorization.yaml' 'oauthclientauthorization.oauth.openshift.io/user1:test-oauth-client created'
 # Delete client
 os::cmd::expect_success_and_text     'oc delete oauthclient test-oauth-client' 'oauthclient.oauth.openshift.io "test-oauth-client" deleted'
 # Assert that migration/update still works even though the client authorization is no longer valid

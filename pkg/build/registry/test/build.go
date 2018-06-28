@@ -1,13 +1,13 @@
 package test
 
 import (
+	"context"
 	"sync"
 
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
-	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 )
@@ -20,33 +20,33 @@ type BuildRegistry struct {
 	sync.Mutex
 }
 
-func (r *BuildRegistry) ListBuilds(ctx apirequest.Context, options *metainternal.ListOptions) (*buildapi.BuildList, error) {
+func (r *BuildRegistry) ListBuilds(ctx context.Context, options *metainternal.ListOptions) (*buildapi.BuildList, error) {
 	r.Lock()
 	defer r.Unlock()
 	return r.Builds, r.Err
 }
 
-func (r *BuildRegistry) GetBuild(ctx apirequest.Context, id string) (*buildapi.Build, error) {
+func (r *BuildRegistry) GetBuild(ctx context.Context, id string) (*buildapi.Build, error) {
 	r.Lock()
 	defer r.Unlock()
 	return r.Build, r.Err
 }
 
-func (r *BuildRegistry) CreateBuild(ctx apirequest.Context, build *buildapi.Build) error {
+func (r *BuildRegistry) CreateBuild(ctx context.Context, build *buildapi.Build) error {
 	r.Lock()
 	defer r.Unlock()
 	r.Build = build
 	return r.Err
 }
 
-func (r *BuildRegistry) UpdateBuild(ctx apirequest.Context, build *buildapi.Build) error {
+func (r *BuildRegistry) UpdateBuild(ctx context.Context, build *buildapi.Build) error {
 	r.Lock()
 	defer r.Unlock()
 	r.Build = build
 	return r.Err
 }
 
-func (r *BuildRegistry) DeleteBuild(ctx apirequest.Context, id string) error {
+func (r *BuildRegistry) DeleteBuild(ctx context.Context, id string) error {
 	r.Lock()
 	defer r.Unlock()
 	r.DeletedBuildID = id
@@ -54,7 +54,7 @@ func (r *BuildRegistry) DeleteBuild(ctx apirequest.Context, id string) error {
 	return r.Err
 }
 
-func (r *BuildRegistry) WatchBuilds(ctx apirequest.Context, options *metainternal.ListOptions) (watch.Interface, error) {
+func (r *BuildRegistry) WatchBuilds(ctx context.Context, options *metainternal.ListOptions) (watch.Interface, error) {
 	return nil, r.Err
 }
 
@@ -65,7 +65,7 @@ type BuildStorage struct {
 	sync.Mutex
 }
 
-func (r *BuildStorage) Get(ctx apirequest.Context, id string, options *metav1.GetOptions) (runtime.Object, error) {
+func (r *BuildStorage) Get(ctx context.Context, id string, options *metav1.GetOptions) (runtime.Object, error) {
 	r.Lock()
 	defer r.Unlock()
 	// TODO: Use the list of builds in all of the rest registry calls
@@ -89,7 +89,7 @@ func (r *BuildStorageWithOptions) NewGetOptions() (runtime.Object, bool, string)
 	return nil, false, ""
 }
 
-func (r *BuildStorageWithOptions) Get(ctx apirequest.Context, id string, opts runtime.Object) (runtime.Object, error) {
+func (r *BuildStorageWithOptions) Get(ctx context.Context, id string, opts runtime.Object) (runtime.Object, error) {
 	r.Lock()
 	defer r.Unlock()
 	return r.Build, r.Err

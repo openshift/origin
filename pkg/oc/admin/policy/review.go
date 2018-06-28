@@ -17,11 +17,12 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/kubectl/resource"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 	kprinters "k8s.io/kubernetes/pkg/printers"
 
 	securityapiv1 "github.com/openshift/api/security/v1"
 	ometa "github.com/openshift/origin/pkg/api/meta"
+	"github.com/openshift/origin/pkg/oc/util/ocscheme"
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 	securityclientinternal "github.com/openshift/origin/pkg/security/generated/internalclientset"
 	securitytypedclient "github.com/openshift/origin/pkg/security/generated/internalclientset/typed/security/internalversion"
@@ -99,11 +100,11 @@ func (o *sccReviewOptions) Complete(f kcmdutil.Factory, args []string, cmd *cobr
 		}
 	}
 	var err error
-	o.namespace, o.enforceNamespace, err = f.DefaultNamespace()
+	o.namespace, o.enforceNamespace, err = f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
 	}
-	clientConfig, err := f.ClientConfig()
+	clientConfig, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}
@@ -133,7 +134,7 @@ func (o *sccReviewOptions) Complete(f kcmdutil.Factory, args []string, cmd *cobr
 
 func (o *sccReviewOptions) Run(args []string) error {
 	r := o.builder.
-		Internal().
+		WithScheme(ocscheme.ReadingInternalScheme).
 		NamespaceParam(o.namespace).
 		FilenameParam(o.enforceNamespace, &o.FilenameOptions).
 		ResourceTypeOrNameArgs(true, args...).

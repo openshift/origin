@@ -176,11 +176,14 @@ type StartBuildOptions struct {
 func (o *StartBuildOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, cmdFullName string, args []string) error {
 	var err error
 	o.Git = git.NewRepository()
-	o.ClientConfig, err = f.ClientConfig()
+	o.ClientConfig, err = f.ToRESTConfig()
 	if err != nil {
 		return err
 	}
-	o.Mapper, _ = f.Object()
+	o.Mapper, err = f.ToRESTMapper()
+	if err != nil {
+		return err
+	}
 
 	o.IncrementalOverride = cmd.Flags().Lookup("incremental").Changed
 	o.NoCacheOverride = cmd.Flags().Lookup("no-cache").Changed
@@ -230,12 +233,12 @@ func (o *StartBuildOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, cmd
 		return kcmdutil.UsageErrorf(cmd, "Must pass a name of a build config or specify build name with '--from-build' flag.\nUse \"%s get bc\" to list all available build configs.", cmdFullName)
 	}
 
-	namespace, _, err := f.DefaultNamespace()
+	namespace, _, err := f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
 	}
 
-	clientConfig, err := f.ClientConfig()
+	clientConfig, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}
@@ -251,7 +254,10 @@ func (o *StartBuildOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, cmd
 	)
 
 	if len(name) == 0 && len(args) > 0 && len(args[0]) > 0 {
-		mapper, _ := f.Object()
+		mapper, err := f.ToRESTMapper()
+		if err != nil {
+			return err
+		}
 		resource, name, err = cmdutil.ResolveResource(buildapi.Resource("buildconfigs"), args[0], mapper)
 		if err != nil {
 			return err

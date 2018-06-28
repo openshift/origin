@@ -118,6 +118,8 @@ directly, rather than the vcsim binary.
 
 * [VMware VIC Engine](https://github.com/vmware/vic)
 
+* [Kubernetes](https://github.com/kubernetes/kubernetes/tree/master/pkg/cloudprovider/providers/vsphere)
+
 * [Ansible](https://github.com/ansible/ansible/tree/devel/test/utils/docker/vcenter-simulator)
 
 ## Related projects

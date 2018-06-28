@@ -22,6 +22,8 @@ import (
 	"testing"
 
 	"github.com/ugorji/go/codec"
+
+	serializerjson "k8s.io/apimachinery/pkg/runtime/serializer/json"
 )
 
 type GroupVersionHolder struct {
@@ -50,7 +52,7 @@ func TestGroupVersionUnmarshalJSON(t *testing.T) {
 		// if err := jsoniter.ConfigCompatibleWithStandardLibrary.Unmarshal(c.input, &result); err != nil {
 		//   t.Errorf("json-iterator codec failed to unmarshal input '%v': %v", c.input, err)
 		// test the Ugorji codec
-		if err := codec.NewDecoderBytes(c.input, new(codec.JsonHandle)).Decode(&result); err != nil {
+		if err := codec.NewDecoderBytes(c.input, serializerjson.NewUgorjiHandler()).Decode(&result); err != nil {
 			t.Errorf("Ugorji codec failed to unmarshal input '%v': %v", c.input, err)
 		}
 		if !reflect.DeepEqual(result.GV, c.expect) {

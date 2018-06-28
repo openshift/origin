@@ -16,7 +16,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/sets"
+	discocache "k8s.io/client-go/discovery/cached"
 	restclient "k8s.io/client-go/rest"
+	"k8s.io/client-go/restmapper"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/flowcontrol"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
@@ -26,7 +28,6 @@ import (
 	"github.com/openshift/origin/pkg/api/latest"
 	serverapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/etcd"
-	osclientcmd "github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 
@@ -43,12 +44,15 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 	prerequisites    []prerequisite           // Optional, ordered list of JSON objects to create before stub
 	expectedEtcdPath string                   // Expected location of object in etcd, do not use any variables, constants, etc to derive this value - always supply the full raw string
 	expectedGVK      *schema.GroupVersionKind // The GVK that we expect this object to be stored as - leave this nil to use the default
+
+	namespaceOverride bool // is only set if we won't have a mapping and have to force it to be namedspaced.  Just for legacy resources
 }{
 	// github.com/openshift/origin/pkg/authorization/apis/authorization/v1
 	gvr("", "v1", "roles"): {
-		stub:             `{"metadata": {"name": "r1b1o1"}, "rules": [{"verbs": ["create"], "apiGroups": ["authorization.k8s.io"], "resources": ["selfsubjectaccessreviews"]}]}`,
-		expectedEtcdPath: "kubernetes.io/roles/etcdstoragepathtestnamespace/r1b1o1",
-		expectedGVK:      gvkP("rbac.authorization.k8s.io", "v1", "Role"), // proxy to RBAC
+		stub:              `{"metadata": {"name": "r1b1o1"}, "rules": [{"verbs": ["create"], "apiGroups": ["authorization.k8s.io"], "resources": ["selfsubjectaccessreviews"]}]}`,
+		expectedEtcdPath:  "kubernetes.io/roles/etcdstoragepathtestnamespace/r1b1o1",
+		expectedGVK:       gvkP("rbac.authorization.k8s.io", "v1", "Role"), // proxy to RBAC
+		namespaceOverride: true,
 	},
 	gvr("authorization.openshift.io", "v1", "roles"): {
 		stub:             `{"metadata": {"name": "r1b1o2"}, "rules": [{"verbs": ["create"], "apiGroups": ["authorization.k8s.io"], "resources": ["selfsubjectaccessreviews"]}]}`,
@@ -66,9 +70,10 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 		expectedGVK:      gvkP("rbac.authorization.k8s.io", "v1", "ClusterRole"), // proxy to RBAC
 	},
 	gvr("", "v1", "rolebindings"): {
-		stub:             `{"metadata": {"name": "rb1a1o1"}, "subjects": [{"kind": "Group", "name": "system:authenticated"}], "roleRef": {"kind": "Role", "name": "r1a1"}}`,
-		expectedEtcdPath: "kubernetes.io/rolebindings/etcdstoragepathtestnamespace/rb1a1o1",
-		expectedGVK:      gvkP("rbac.authorization.k8s.io", "v1", "RoleBinding"), // proxy to RBAC
+		stub:              `{"metadata": {"name": "rb1a1o1"}, "subjects": [{"kind": "Group", "name": "system:authenticated"}], "roleRef": {"kind": "Role", "name": "r1a1"}}`,
+		expectedEtcdPath:  "kubernetes.io/rolebindings/etcdstoragepathtestnamespace/rb1a1o1",
+		expectedGVK:       gvkP("rbac.authorization.k8s.io", "v1", "RoleBinding"), // proxy to RBAC
+		namespaceOverride: true,
 	},
 	gvr("authorization.openshift.io", "v1", "rolebindings"): {
 		stub:             `{"metadata": {"name": "rb1a1o2"}, "subjects": [{"kind": "Group", "name": "system:authenticated"}], "roleRef": {"kind": "Role", "name": "r1a1"}}`,
@@ -86,9 +91,10 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 		expectedGVK:      gvkP("rbac.authorization.k8s.io", "v1", "ClusterRoleBinding"), // proxy to RBAC
 	},
 	gvr("", "v1", "rolebindingrestrictions"): {
-		stub:             `{"metadata": {"name": "rbr"}, "spec": {"serviceaccountrestriction": {"serviceaccounts": [{"name": "sa"}]}}}`,
-		expectedEtcdPath: "openshift.io/rolebindingrestrictions/etcdstoragepathtestnamespace/rbr",
-		expectedGVK:      gvkP("authorization.openshift.io", "v1", "RoleBindingRestriction"),
+		stub:              `{"metadata": {"name": "rbr"}, "spec": {"serviceaccountrestriction": {"serviceaccounts": [{"name": "sa"}]}}}`,
+		expectedEtcdPath:  "openshift.io/rolebindingrestrictions/etcdstoragepathtestnamespace/rbr",
+		expectedGVK:       gvkP("authorization.openshift.io", "v1", "RoleBindingRestriction"),
+		namespaceOverride: true,
 	},
 	gvr("authorization.openshift.io", "v1", "rolebindingrestrictions"): {
 		stub:             `{"metadata": {"name": "rbrg"}, "spec": {"serviceaccountrestriction": {"serviceaccounts": [{"name": "sa"}]}}}`,
@@ -98,18 +104,20 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 
 	// github.com/openshift/origin/pkg/build/apis/build/v1
 	gvr("", "v1", "builds"): {
-		stub:             `{"metadata": {"name": "build1"}, "spec": {"source": {"dockerfile": "Dockerfile1"}, "strategy": {"dockerStrategy": {"noCache": true}}}}`,
-		expectedEtcdPath: "openshift.io/builds/etcdstoragepathtestnamespace/build1",
-		expectedGVK:      gvkP("build.openshift.io", "v1", "Build"),
+		stub:              `{"metadata": {"name": "build1"}, "spec": {"source": {"dockerfile": "Dockerfile1"}, "strategy": {"dockerStrategy": {"noCache": true}}}}`,
+		expectedEtcdPath:  "openshift.io/builds/etcdstoragepathtestnamespace/build1",
+		expectedGVK:       gvkP("build.openshift.io", "v1", "Build"),
+		namespaceOverride: true,
 	},
 	gvr("build.openshift.io", "v1", "builds"): {
 		stub:             `{"metadata": {"name": "build1g"}, "spec": {"source": {"dockerfile": "Dockerfile1"}, "strategy": {"dockerStrategy": {"noCache": true}}}}`,
 		expectedEtcdPath: "openshift.io/builds/etcdstoragepathtestnamespace/build1g",
 	},
 	gvr("", "v1", "buildconfigs"): {
-		stub:             `{"metadata": {"name": "bc1"}, "spec": {"source": {"dockerfile": "Dockerfile0"}, "strategy": {"dockerStrategy": {"noCache": true}}}}`,
-		expectedEtcdPath: "openshift.io/buildconfigs/etcdstoragepathtestnamespace/bc1",
-		expectedGVK:      gvkP("build.openshift.io", "v1", "BuildConfig"),
+		stub:              `{"metadata": {"name": "bc1"}, "spec": {"source": {"dockerfile": "Dockerfile0"}, "strategy": {"dockerStrategy": {"noCache": true}}}}`,
+		expectedEtcdPath:  "openshift.io/buildconfigs/etcdstoragepathtestnamespace/bc1",
+		expectedGVK:       gvkP("build.openshift.io", "v1", "BuildConfig"),
+		namespaceOverride: true,
 	},
 	gvr("build.openshift.io", "v1", "buildconfigs"): {
 		stub:             `{"metadata": {"name": "bc1g"}, "spec": {"source": {"dockerfile": "Dockerfile0"}, "strategy": {"dockerStrategy": {"noCache": true}}}}`,
@@ -119,9 +127,10 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 
 	// github.com/openshift/origin/pkg/apps/apis/apps/v1
 	gvr("", "v1", "deploymentconfigs"): {
-		stub:             `{"metadata": {"name": "dc1"}, "spec": {"selector": {"d": "c"}, "template": {"metadata": {"labels": {"d": "c"}}, "spec": {"containers": [{"image": "fedora:latest", "name": "container2"}]}}}}`,
-		expectedEtcdPath: "openshift.io/deploymentconfigs/etcdstoragepathtestnamespace/dc1",
-		expectedGVK:      gvkP("apps.openshift.io", "v1", "DeploymentConfig"),
+		stub:              `{"metadata": {"name": "dc1"}, "spec": {"selector": {"d": "c"}, "template": {"metadata": {"labels": {"d": "c"}}, "spec": {"containers": [{"image": "fedora:latest", "name": "container2"}]}}}}`,
+		expectedEtcdPath:  "openshift.io/deploymentconfigs/etcdstoragepathtestnamespace/dc1",
+		expectedGVK:       gvkP("apps.openshift.io", "v1", "DeploymentConfig"),
+		namespaceOverride: true,
 	},
 	gvr("apps.openshift.io", "v1", "deploymentconfigs"): {
 		stub:             `{"metadata": {"name": "dc1g"}, "spec": {"selector": {"d": "c"}, "template": {"metadata": {"labels": {"d": "c"}}, "spec": {"containers": [{"image": "fedora:latest", "name": "container2"}]}}}}`,
@@ -131,9 +140,10 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 
 	// github.com/openshift/origin/pkg/image/apis/image/v1
 	gvr("", "v1", "imagestreams"): {
-		stub:             `{"metadata": {"name": "is1"}, "spec": {"dockerImageRepository": "docker"}}`,
-		expectedEtcdPath: "openshift.io/imagestreams/etcdstoragepathtestnamespace/is1",
-		expectedGVK:      gvkP("image.openshift.io", "v1", "ImageStream"),
+		stub:              `{"metadata": {"name": "is1"}, "spec": {"dockerImageRepository": "docker"}}`,
+		expectedEtcdPath:  "openshift.io/imagestreams/etcdstoragepathtestnamespace/is1",
+		expectedGVK:       gvkP("image.openshift.io", "v1", "ImageStream"),
+		namespaceOverride: true,
 	},
 	gvr("image.openshift.io", "v1", "imagestreams"): {
 		stub:             `{"metadata": {"name": "is1g"}, "spec": {"dockerImageRepository": "docker"}}`,
@@ -260,9 +270,10 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 
 	// github.com/openshift/origin/pkg/route/apis/route/v1
 	gvr("", "v1", "routes"): {
-		stub:             `{"metadata": {"name": "route1"}, "spec": {"host": "hostname1", "to": {"name": "service1"}}}`,
-		expectedEtcdPath: "openshift.io/routes/etcdstoragepathtestnamespace/route1",
-		expectedGVK:      gvkP("route.openshift.io", "v1", "Route"),
+		stub:              `{"metadata": {"name": "route1"}, "spec": {"host": "hostname1", "to": {"name": "service1"}}}`,
+		expectedEtcdPath:  "openshift.io/routes/etcdstoragepathtestnamespace/route1",
+		expectedGVK:       gvkP("route.openshift.io", "v1", "Route"),
+		namespaceOverride: true,
 	},
 	gvr("route.openshift.io", "v1", "routes"): {
 		stub:             `{"metadata": {"name": "route1g"}, "spec": {"host": "hostname1", "to": {"name": "service1"}}}`,
@@ -299,9 +310,10 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 		expectedEtcdPath: "openshift.io/registry/sdnnetworks/cn1g",
 	},
 	gvr("", "v1", "egressnetworkpolicies"): {
-		stub:             `{"metadata": {"name": "enp1"}, "spec": {"egress": [{"to": {"cidrSelector": "192.168.1.0/24"}, "type": "Allow"}]}}`,
-		expectedEtcdPath: "openshift.io/registry/egressnetworkpolicy/etcdstoragepathtestnamespace/enp1",
-		expectedGVK:      gvkP("network.openshift.io", "v1", "EgressNetworkPolicy"),
+		stub:              `{"metadata": {"name": "enp1"}, "spec": {"egress": [{"to": {"cidrSelector": "192.168.1.0/24"}, "type": "Allow"}]}}`,
+		expectedEtcdPath:  "openshift.io/registry/egressnetworkpolicy/etcdstoragepathtestnamespace/enp1",
+		expectedGVK:       gvkP("network.openshift.io", "v1", "EgressNetworkPolicy"),
+		namespaceOverride: true,
 	},
 	gvr("network.openshift.io", "v1", "egressnetworkpolicies"): {
 		stub:             `{"metadata": {"name": "enp1g"}, "spec": {"egress": [{"to": {"cidrSelector": "192.168.1.0/24"}, "type": "Allow"}]}}`,
@@ -322,9 +334,10 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 
 	// github.com/openshift/origin/pkg/template/apis/template/v1
 	gvr("", "v1", "templates"): {
-		stub:             `{"message": "Jenkins template", "metadata": {"name": "template1"}}`,
-		expectedEtcdPath: "openshift.io/templates/etcdstoragepathtestnamespace/template1",
-		expectedGVK:      gvkP("template.openshift.io", "v1", "Template"),
+		stub:              `{"message": "Jenkins template", "metadata": {"name": "template1"}}`,
+		expectedEtcdPath:  "openshift.io/templates/etcdstoragepathtestnamespace/template1",
+		expectedGVK:       gvkP("template.openshift.io", "v1", "Template"),
+		namespaceOverride: true,
 	},
 	gvr("template.openshift.io", "v1", "templates"): {
 		stub:             `{"message": "Jenkins template", "metadata": {"name": "template1g"}}`,
@@ -714,6 +727,14 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 	gvr("scheduling.k8s.io", "v1alpha1", "priorityclasses"): {
 		stub:             `{"metadata":{"name":"pc1"},"Value":1000}`,
 		expectedEtcdPath: "kubernetes.io/priorityclasses/pc1",
+		expectedGVK:      gvkP("scheduling.k8s.io", "v1beta1", "PriorityClass"),
+	},
+	// --
+
+	// k8s.io/kubernetes/pkg/apis/scheduling/v1beta1
+	gvr("scheduling.k8s.io", "v1beta1", "priorityclasses"): {
+		stub:             `{"metadata":{"name":"pc2"},"Value":1000}`,
+		expectedEtcdPath: "kubernetes.io/priorityclasses/pc2",
 	},
 	// --
 
@@ -751,7 +772,6 @@ var unexposedGVKWhiteList = createUnexposedWhiteList(
 
 	gvk("", "v1", "RangeAllocation"),     // stored in various places in etcd but cannot be directly created // TODO maybe possible in kube
 	gvk("", "v1", "SerializedReference"), // used for serilization, not stored in etcd
-	gvk("", "v1", "NodeConfigSource"),    // subfield of node.spec, but shouldn't be directly created
 	gvk("", "v1", "PodStatusResult"),     // wrapper object not stored in etcd
 
 	// TODO this one appears to be broken
@@ -1015,8 +1035,8 @@ func TestEtcd3StoragePath(t *testing.T) {
 	}
 
 	loader := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(&clientcmd.ClientConfigLoadingRules{ExplicitPath: kubeConfigFile}, &clientcmd.ConfigOverrides{})
-	f := osclientcmd.NewFactory(loader)
-	mapper, _ := f.Object()
+	mapper := restmapper.NewDeferredDiscoveryRESTMapper(discocache.NewMemCacheClient(kubeClient.Discovery()))
+	mapper.Reset()
 
 	clientConfig, err := loader.ClientConfig()
 	if err != nil {
@@ -1059,15 +1079,20 @@ func TestEtcd3StoragePath(t *testing.T) {
 
 		mapping, err := mapper.RESTMapping(gvk.GroupKind(), gvk.Version)
 		if err != nil {
-			t.Logf("unexpected error getting mapping for %s from %s with GVK %s: %v", kind, pkgPath, gvk, err)
-			mapping, err = legacyscheme.Registry.RESTMapper().RESTMapping(gvk.GroupKind(), gvk.Version)
-			if err != nil {
+			if !latest.OriginLegacyKind(gvk) {
 				t.Errorf("unexpected error getting mapping for %s from %s with GVK %s: %v", kind, pkgPath, gvk, err)
 				continue
 			}
+			mapping = &meta.RESTMapping{}
+			mapping.Resource, _ = meta.UnsafeGuessKindToResource(gvk)
+			mapping.GroupVersionKind = gvk
+			mapping.Scope = meta.RESTScopeRoot
+			if testData, hasTest := etcdStorageData[mapping.Resource]; hasTest && testData.namespaceOverride {
+				mapping.Scope = meta.RESTScopeNamespace
+			}
 		}
 
-		gvResource := gvk.GroupVersion().WithResource(mapping.Resource)
+		gvResource := mapping.Resource
 		etcdSeen[gvResource] = empty{}
 
 		testData, hasTest := etcdStorageData[gvResource]
@@ -1347,7 +1372,7 @@ func (c *allClient) create(stub, ns string, mapping *meta.RESTMapping, all *[]cl
 		return err
 	}
 	namespaced := mapping.Scope.Name() == meta.RESTScopeNameNamespace
-	output, err := req.NamespaceIfScoped(ns, namespaced).Resource(mapping.Resource).Body(strings.NewReader(stub)).Do().Get()
+	output, err := req.NamespaceIfScoped(ns, namespaced).Resource(mapping.Resource.Resource).Body(strings.NewReader(stub)).Do().Get()
 	if err != nil {
 		return err
 	}
@@ -1361,15 +1386,11 @@ func (c *allClient) destroy(obj runtime.Object, mapping *meta.RESTMapping) error
 		return err
 	}
 	namespaced := mapping.Scope.Name() == meta.RESTScopeNameNamespace
-	name, err := mapping.MetadataAccessor.Name(obj)
+	metadata, err := meta.Accessor(obj)
 	if err != nil {
 		return err
 	}
-	ns, err := mapping.MetadataAccessor.Namespace(obj)
-	if err != nil {
-		return err
-	}
-	return req.NamespaceIfScoped(ns, namespaced).Resource(mapping.Resource).Name(name).Do().Error()
+	return req.NamespaceIfScoped(metadata.GetNamespace(), namespaced).Resource(mapping.Resource.Resource).Name(metadata.GetName()).Do().Error()
 }
 
 func (c *allClient) cleanup(all *[]cleanupData) error {

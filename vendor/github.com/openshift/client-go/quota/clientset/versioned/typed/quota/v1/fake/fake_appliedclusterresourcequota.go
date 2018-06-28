@@ -44,7 +44,7 @@ func (c *FakeAppliedClusterResourceQuotas) List(opts v1.ListOptions) (result *qu
 	if label == nil {
 		label = labels.Everything()
 	}
-	list := &quota_v1.AppliedClusterResourceQuotaList{}
+	list := &quota_v1.AppliedClusterResourceQuotaList{ListMeta: obj.(*quota_v1.AppliedClusterResourceQuotaList).ListMeta}
 	for _, item := range obj.(*quota_v1.AppliedClusterResourceQuotaList).Items {
 		if label.Matches(labels.Set(item.Labels)) {
 			list.Items = append(list.Items, item)

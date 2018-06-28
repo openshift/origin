@@ -37,7 +37,7 @@ func TestBuildOverrideForcePull(t *testing.T) {
 	for _, test := range tests {
 		for _, op := range ops {
 			overrides := BuildOverrides{config: &overridesapi.BuildOverridesConfig{ForcePull: true}}
-			pod := u.Pod().WithBuild(t, test.build, "v1")
+			pod := u.Pod().WithBuild(t, test.build)
 			err := overrides.ApplyOverrides((*v1.Pod)(pod))
 			if err != nil {
 				t.Errorf("%s: unexpected error: %v", test.name, err)
@@ -185,7 +185,7 @@ func TestLabelOverrides(t *testing.T) {
 		}
 
 		admitter := BuildOverrides{overridesConfig}
-		pod := u.Pod().WithBuild(t, u.Build().WithImageLabels(test.buildLabels).AsBuild(), "v1")
+		pod := u.Pod().WithBuild(t, u.Build().WithImageLabels(test.buildLabels).AsBuild())
 		err := admitter.ApplyOverrides((*v1.Pod)(pod))
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -222,7 +222,7 @@ func TestBuildOverrideNodeSelector(t *testing.T) {
 
 	for _, test := range tests {
 		overrides := BuildOverrides{config: &overridesapi.BuildOverridesConfig{NodeSelector: test.overrides}}
-		pod := u.Pod().WithBuild(t, test.build, "v1")
+		pod := u.Pod().WithBuild(t, test.build)
 		// normally the pod will have the nodeselectors from the build, due to the pod creation logic
 		// in the build controller flow. fake it out here.
 		pod.Spec.NodeSelector = test.build.Spec.NodeSelector
@@ -274,7 +274,7 @@ func TestBuildOverrideAnnotations(t *testing.T) {
 
 	for _, test := range tests {
 		overrides := BuildOverrides{config: &overridesapi.BuildOverridesConfig{Annotations: test.overrides}}
-		pod := u.Pod().WithBuild(t, test.build, "v1")
+		pod := u.Pod().WithBuild(t, test.build)
 		pod.Annotations = test.annotations
 		err := overrides.ApplyOverrides((*v1.Pod)(pod))
 		if err != nil {

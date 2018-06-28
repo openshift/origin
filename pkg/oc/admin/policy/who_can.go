@@ -62,7 +62,10 @@ func NewCmdWhoCan(name, fullName string, f kcmdutil.Factory, out io.Writer) *cob
 }
 
 func (o *whoCanOptions) complete(f kcmdutil.Factory, cmd *cobra.Command, args []string, out io.Writer) error {
-	mapper, _ := f.Object()
+	mapper, err := f.ToRESTMapper()
+	if err != nil {
+		return err
+	}
 
 	o.out = out
 	o.output = kcmdutil.GetFlagString(cmd, "output")
@@ -81,7 +84,7 @@ func (o *whoCanOptions) complete(f kcmdutil.Factory, cmd *cobra.Command, args []
 		return errors.New("you must specify two or three arguments: verb, resource, and optional resourceName")
 	}
 
-	clientConfig, err := f.ClientConfig()
+	clientConfig, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}
@@ -91,7 +94,7 @@ func (o *whoCanOptions) complete(f kcmdutil.Factory, cmd *cobra.Command, args []
 	}
 	o.client = authorizationClient.Authorization()
 
-	o.bindingNamespace, _, err = f.DefaultNamespace()
+	o.bindingNamespace, _, err = f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
 	}

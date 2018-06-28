@@ -1,6 +1,7 @@
 package localresourceaccessreview
 
 import (
+	"context"
 	"fmt"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -20,6 +21,7 @@ type REST struct {
 }
 
 var _ rest.Creater = &REST{}
+var _ rest.Scoper = &REST{}
 
 func NewREST(clusterRARRegistry resourceaccessreview.Registry) *REST {
 	return &REST{clusterRARRegistry}
@@ -29,9 +31,13 @@ func (r *REST) New() runtime.Object {
 	return &authorizationapi.LocalResourceAccessReview{}
 }
 
+func (s *REST) NamespaceScoped() bool {
+	return true
+}
+
 // Create transforms a LocalRAR into an ClusterRAR that is requesting a namespace.  That collapses the code paths.
 // LocalResourceAccessReview exists to allow clean expression of policy.
-func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, _ rest.ValidateObjectFunc, _ bool) (runtime.Object, error) {
+func (r *REST) Create(ctx context.Context, obj runtime.Object, _ rest.ValidateObjectFunc, _ bool) (runtime.Object, error) {
 	localRAR, ok := obj.(*authorizationapi.LocalResourceAccessReview)
 	if !ok {
 		return nil, kapierrors.NewBadRequest(fmt.Sprintf("not a localResourceAccessReview: %#v", obj))

@@ -43,7 +43,7 @@ func (c *FakeOAuthAccessTokens) List(opts v1.ListOptions) (result *oauth_v1.OAut
 	if label == nil {
 		label = labels.Everything()
 	}
-	list := &oauth_v1.OAuthAccessTokenList{}
+	list := &oauth_v1.OAuthAccessTokenList{ListMeta: obj.(*oauth_v1.OAuthAccessTokenList).ListMeta}
 	for _, item := range obj.(*oauth_v1.OAuthAccessTokenList).Items {
 		if label.Matches(labels.Set(item.Labels)) {
 			list.Items = append(list.Items, item)

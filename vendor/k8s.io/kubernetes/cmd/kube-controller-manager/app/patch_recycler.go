@@ -17,8 +17,8 @@ import (
 )
 
 func applyOpenShiftDefaultRecycler(controllerManager *config.Config, openshiftConfig map[string]interface{}) (func(), error) {
-	hostPathTemplateSet := len(controllerManager.Generic.ComponentConfig.VolumeConfiguration.PersistentVolumeRecyclerConfiguration.PodTemplateFilePathHostPath) != 0
-	nfsTemplateSet := len(controllerManager.Generic.ComponentConfig.VolumeConfiguration.PersistentVolumeRecyclerConfiguration.PodTemplateFilePathNFS) != 0
+	hostPathTemplateSet := len(controllerManager.ComponentConfig.PersistentVolumeBinderController.VolumeConfiguration.PersistentVolumeRecyclerConfiguration.PodTemplateFilePathHostPath) != 0
+	nfsTemplateSet := len(controllerManager.ComponentConfig.PersistentVolumeBinderController.VolumeConfiguration.PersistentVolumeRecyclerConfiguration.PodTemplateFilePathNFS) != 0
 
 	// if both are set, nothing to do
 	if hostPathTemplateSet && nfsTemplateSet {
@@ -57,10 +57,10 @@ func applyOpenShiftDefaultRecycler(controllerManager *config.Config, openshiftCo
 	}
 
 	if !hostPathTemplateSet {
-		controllerManager.Generic.ComponentConfig.VolumeConfiguration.PersistentVolumeRecyclerConfiguration.PodTemplateFilePathHostPath = templateFilename
+		controllerManager.ComponentConfig.PersistentVolumeBinderController.VolumeConfiguration.PersistentVolumeRecyclerConfiguration.PodTemplateFilePathHostPath = templateFilename
 	}
 	if !nfsTemplateSet {
-		controllerManager.Generic.ComponentConfig.VolumeConfiguration.PersistentVolumeRecyclerConfiguration.PodTemplateFilePathNFS = templateFilename
+		controllerManager.ComponentConfig.PersistentVolumeBinderController.VolumeConfiguration.PersistentVolumeRecyclerConfiguration.PodTemplateFilePathNFS = templateFilename
 	}
 
 	return cleanupFunction, nil

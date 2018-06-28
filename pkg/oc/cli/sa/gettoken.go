@@ -78,18 +78,21 @@ func (o *GetServiceAccountTokenOptions) Complete(args []string, f cmdutil.Factor
 
 	o.SAName = args[0]
 
-	client, err := f.ClientSet()
+	clientConfig, err := f.ToRESTConfig()
+	if err != nil {
+		return err
+	}
+	client, err := kcoreclient.NewForConfig(clientConfig)
+	if err != nil {
+		return err
+	}
+	namespace, _, err := f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
 	}
 
-	namespace, _, err := f.DefaultNamespace()
-	if err != nil {
-		return err
-	}
-
-	o.SAClient = client.Core().ServiceAccounts(namespace)
-	o.SecretsClient = client.Core().Secrets(namespace)
+	o.SAClient = client.ServiceAccounts(namespace)
+	o.SecretsClient = client.Secrets(namespace)
 	return nil
 }
 

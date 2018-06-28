@@ -19,8 +19,9 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/kubectl/resource"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 
+	"github.com/openshift/origin/pkg/oc/util/ocscheme"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 )
 
@@ -137,7 +138,7 @@ func NewCmdRouteBackends(fullName string, f kcmdutil.Factory, out, errOut io.Wri
 
 // Complete takes command line information to fill out BackendOptions or returns an error.
 func (o *BackendsOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string) error {
-	cmdNamespace, explicit, err := f.DefaultNamespace()
+	cmdNamespace, explicit, err := f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
 	}
@@ -159,9 +160,12 @@ func (o *BackendsOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args 
 
 	o.Cmd = cmd
 
-	mapper, _ := f.Object()
+	mapper, err := f.ToRESTMapper()
+	if err != nil {
+		return err
+	}
 	o.Builder = f.NewBuilder().
-		Internal().
+		WithScheme(ocscheme.ReadingInternalScheme).
 		LocalParam(o.Local).
 		ContinueOnError().
 		NamespaceParam(cmdNamespace).DefaultNamespace().
@@ -213,7 +217,7 @@ func (o *BackendsOptions) Run() error {
 		return UpdateBackendsForObject(info.Object, o.Transform.Apply)
 	})
 	if singleItemImplied && len(patches) == 0 {
-		return fmt.Errorf("%s/%s is not a deployment config or build config", infos[0].Mapping.Resource, infos[0].Name)
+		return fmt.Errorf("%s/%s is not a deployment config or build config", infos[0].Mapping.Resource.Resource, infos[0].Name)
 	}
 	if len(o.Output) > 0 || o.Local || kcmdutil.GetDryRunFlag(o.Cmd) {
 		var object runtime.Object
@@ -235,12 +239,12 @@ func (o *BackendsOptions) Run() error {
 		info := patch.Info
 		if patch.Err != nil {
 			failed = true
-			fmt.Fprintf(o.Err, "error: %s/%s %v\n", info.Mapping.Resource, info.Name, patch.Err)
+			fmt.Fprintf(o.Err, "error: %s/%s %v\n", info.Mapping.Resource.Resource, info.Name, patch.Err)
 			continue
 		}
 
 		if string(patch.Patch) == "{}" || len(patch.Patch) == 0 {
-			fmt.Fprintf(o.Err, "info: %s %q was not changed\n", info.Mapping.Resource, info.Name)
+			fmt.Fprintf(o.Err, "info: %s %q was not changed\n", info.Mapping.Resource.Resource, info.Name)
 			continue
 		}
 
@@ -278,17 +282,17 @@ func (o *BackendsOptions) printBackends(infos []*resource.Info) error {
 			for _, b := range backends.Backends {
 				switch {
 				case b.Weight == nil:
-					fmt.Fprintf(w, "%s/%s\t%s\t%s\t%s\n", info.Mapping.Resource, info.Name, b.Kind, b.Name, "")
+					fmt.Fprintf(w, "%s/%s\t%s\t%s\t%s\n", info.Mapping.Resource.Resource, info.Name, b.Kind, b.Name, "")
 				case totalWeight == 0, len(backends.Backends) == 1 && totalWeight != 0:
-					fmt.Fprintf(w, "%s/%s\t%s\t%s\t%d\n", info.Mapping.Resource, info.Name, b.Kind, b.Name, totalWeight)
+					fmt.Fprintf(w, "%s/%s\t%s\t%s\t%d\n", info.Mapping.Resource.Resource, info.Name, b.Kind, b.Name, totalWeight)
 				default:
-					fmt.Fprintf(w, "%s/%s\t%s\t%s\t%d (%d%%)\n", info.Mapping.Resource, info.Name, b.Kind, b.Name, *b.Weight, *b.Weight*100/totalWeight)
+					fmt.Fprintf(w, "%s/%s\t%s\t%s\t%d (%d%%)\n", info.Mapping.Resource.Resource, info.Name, b.Kind, b.Name, *b.Weight, *b.Weight*100/totalWeight)
 				}
 			}
 			return nil
 		})
 		if err != nil {
-			fmt.Fprintf(w, "%s/%s\t%s\t%s\t%d\n", info.Mapping.Resource, info.Name, "", "<error>", 0)
+			fmt.Fprintf(w, "%s/%s\t%s\t%s\t%d\n", info.Mapping.Resource.Resource, info.Name, "", "<error>", 0)
 		}
 	}
 	return nil

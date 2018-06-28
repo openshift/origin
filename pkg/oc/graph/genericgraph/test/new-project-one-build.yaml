@@ -1,6 +1,6 @@
 apiVersion: v1
 items:
-- apiVersion: v1
+- apiVersion: build.openshift.io/v1
   kind: BuildConfig
   metadata:
     creationTimestamp: 2015-04-06T21:02:00Z
@@ -31,7 +31,7 @@ items:
       type: generic
   status:
     lastVersion: 1
-- apiVersion: v1
+- apiVersion: image.openshift.io/v1
   kind: ImageStream
   metadata:
     creationTimestamp: 2015-04-06T21:18:56Z
@@ -40,7 +40,7 @@ items:
   spec: {}
   status:
     dockerImageRepository: ""
-- apiVersion: v1
+- apiVersion: build.openshift.io/v1
   kind: Build
   metadata:
     creationTimestamp: 2015-04-06T21:18:56Z
@@ -67,7 +67,7 @@ items:
   status:
     phase: Running
     startTimestamp: 2015-04-06T21:19:03Z
-- apiVersion: v1
+- apiVersion: apps.openshift.io/v1
   kind: DeploymentConfig
   metadata:
     creationTimestamp: 2015-04-06T21:02:00Z

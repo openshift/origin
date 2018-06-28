@@ -59,7 +59,6 @@ func TestAdmissionPluginChains(t *testing.T) {
 // plan (double register for a few releases?), but for now just make sure we don't get worse.
 var legacyOpenshiftAdmissionPlugins = sets.NewString(
 	"ProjectRequestLimit",
-	"OriginNamespaceLifecycle",
 	"PodNodeConstraints",
 	"BuildByStrategy",
 	"RunOnceDuration",

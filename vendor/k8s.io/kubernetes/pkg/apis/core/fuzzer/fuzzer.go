@@ -25,8 +25,6 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/fields"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
@@ -49,12 +47,6 @@ var Funcs = func(codecs runtimeserializer.CodecFactory) []interface{} {
 			j.Name = c.RandString()
 			j.ResourceVersion = strconv.FormatUint(c.RandUint64(), 10)
 			j.FieldPath = c.RandString()
-		},
-		func(j *core.ListOptions, c fuzz.Continue) {
-			label, _ := labels.Parse("a=b")
-			j.LabelSelector = label
-			field, _ := fields.ParseSelector("a=b")
-			j.FieldSelector = field
 		},
 		func(j *core.PodExecOptions, c fuzz.Continue) {
 			j.Stdout = true
@@ -100,6 +92,19 @@ var Funcs = func(codecs runtimeserializer.CodecFactory) []interface{} {
 		func(j *core.Binding, c fuzz.Continue) {
 			c.Fuzz(&j.ObjectMeta)
 			j.Target.Name = c.RandString()
+		},
+		func(j *core.ReplicationController, c fuzz.Continue) {
+			c.FuzzNoCustom(j)
+
+			// match defaulting
+			if j.Spec.Template != nil {
+				if len(j.Labels) == 0 {
+					j.Labels = j.Spec.Template.Labels
+				}
+				if len(j.Spec.Selector) == 0 {
+					j.Spec.Selector = j.Spec.Template.Labels
+				}
+			}
 		},
 		func(j *core.ReplicationControllerSpec, c fuzz.Continue) {
 			c.FuzzNoCustom(j) // fuzz self without calling this function again
@@ -476,10 +481,6 @@ var Funcs = func(codecs runtimeserializer.CodecFactory) []interface{} {
 			case core.ServiceAffinityNone:
 				ss.SessionAffinityConfig = nil
 			}
-		},
-		func(n *core.Node, c fuzz.Continue) {
-			c.FuzzNoCustom(n)
-			n.Spec.ExternalID = "external"
 		},
 		func(s *core.NodeStatus, c fuzz.Continue) {
 			c.FuzzNoCustom(s)

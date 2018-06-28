@@ -874,55 +874,6 @@
       "consumes": [
        "*/*"
       ]
-     },
-     {
-      "type": "v1beta1.Event",
-      "method": "POST",
-      "summary": "create an Event",
-      "nickname": "createEventForAllNamespaces",
-      "parameters": [
-       {
-        "type": "string",
-        "paramType": "query",
-        "name": "pretty",
-        "description": "If 'true', then the output is pretty printed.",
-        "required": false,
-        "allowMultiple": false
-       },
-       {
-        "type": "v1beta1.Event",
-        "paramType": "body",
-        "name": "body",
-        "description": "",
-        "required": true,
-        "allowMultiple": false
-       }
-      ],
-      "responseMessages": [
-       {
-        "code": 200,
-        "message": "OK",
-        "responseModel": "v1beta1.Event"
-       },
-       {
-        "code": 201,
-        "message": "Created",
-        "responseModel": "v1beta1.Event"
-       },
-       {
-        "code": 202,
-        "message": "Accepted",
-        "responseModel": "v1beta1.Event"
-       }
-      ],
-      "produces": [
-       "application/json",
-       "application/yaml",
-       "application/vnd.kubernetes.protobuf"
-      ],
-      "consumes": [
-       "*/*"
-      ]
      }
     ]
    },

@@ -12,7 +12,7 @@ import (
 
 	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/kubectl/resource"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 )
 
 // PruneRolesOptions holds all the required options for pruning roles.
@@ -62,7 +62,7 @@ func NewCmdPruneAuth(f kcmdutil.Factory, name string, out io.Writer) *cobra.Comm
 func (o *PruneAuthOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string) error {
 	var err error
 
-	clientConfig, err := f.ClientConfig()
+	clientConfig, err := f.ToRESTConfig()
 	if err != nil {
 		return nil
 	}
@@ -91,7 +91,7 @@ func (o *PruneAuthOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args
 		return nil
 	}
 
-	cmdNamespace, enforceNamespace, err := f.DefaultNamespace()
+	cmdNamespace, enforceNamespace, err := f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
 	}
@@ -145,34 +145,34 @@ func (o *PruneAuthOptions) RunPrune() error {
 }
 
 func isRole(mapping *meta.RESTMapping) bool {
-	if mapping.GroupVersionKind.Group != "rbac.authorization.k8s.io" && mapping.GroupVersionKind.Group != "authorization.openshift.io" {
+	if mapping.Resource.Group != "rbac.authorization.k8s.io" && mapping.Resource.Group != "authorization.openshift.io" {
 		return false
 	}
-	if mapping.Resource != "roles" {
+	if mapping.Resource.Resource != "roles" {
 		return false
 	}
 	return true
 }
 
 func isClusterRole(mapping *meta.RESTMapping) bool {
-	if mapping.GroupVersionKind.Group != "rbac.authorization.k8s.io" && mapping.GroupVersionKind.Group != "authorization.openshift.io" {
+	if mapping.Resource.Group != "rbac.authorization.k8s.io" && mapping.Resource.Group != "authorization.openshift.io" {
 		return false
 	}
-	if mapping.Resource != "clusterroles" {
+	if mapping.Resource.Resource != "clusterroles" {
 		return false
 	}
 	return true
 }
 
 func isUser(mapping *meta.RESTMapping) bool {
-	if mapping.GroupVersionKind.Group == "user.openshift.io" && mapping.Resource == "users" {
+	if mapping.Resource.Group == "user.openshift.io" && mapping.Resource.Resource == "users" {
 		return true
 	}
 	return false
 }
 
 func isGroup(mapping *meta.RESTMapping) bool {
-	if mapping.GroupVersionKind.Group == "user.openshift.io" && mapping.Resource == "groups" {
+	if mapping.Resource.Group == "user.openshift.io" && mapping.Resource.Resource == "groups" {
 		return true
 	}
 	return false

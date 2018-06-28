@@ -8,6 +8,8 @@ import (
 	"github.com/gophercloud/gophercloud/acceptance/clients"
 	extensions "github.com/gophercloud/gophercloud/acceptance/openstack/networking/v2/extensions"
 	"github.com/gophercloud/gophercloud/acceptance/tools"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/extradhcpopts"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/portsecurity"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/ports"
 )
 
@@ -346,4 +348,119 @@ func TestPortsDontUpdateAllowedAddressPairs(t *testing.T) {
 	if len(newPort.AllowedAddressPairs) == 0 {
 		t.Fatalf("Address Pairs were removed")
 	}
+}
+
+func TestPortsPortSecurityCRUD(t *testing.T) {
+	client, err := clients.NewNetworkV2Client()
+	if err != nil {
+		t.Fatalf("Unable to create a network client: %v", err)
+	}
+
+	// Create Network
+	network, err := CreateNetwork(t, client)
+	if err != nil {
+		t.Fatalf("Unable to create network: %v", err)
+	}
+	defer DeleteNetwork(t, client, network.ID)
+
+	// Create Subnet
+	subnet, err := CreateSubnet(t, client, network.ID)
+	if err != nil {
+		t.Fatalf("Unable to create subnet: %v", err)
+	}
+	defer DeleteSubnet(t, client, subnet.ID)
+
+	// Create port
+	port, err := CreatePortWithoutPortSecurity(t, client, network.ID, subnet.ID)
+	if err != nil {
+		t.Fatalf("Unable to create port: %v", err)
+	}
+	defer DeletePort(t, client, port.ID)
+
+	var portWithExt struct {
+		ports.Port
+		portsecurity.PortSecurityExt
+	}
+
+	err = ports.Get(client, port.ID).ExtractInto(&portWithExt)
+	if err != nil {
+		t.Fatalf("Unable to create port: %v", err)
+	}
+
+	tools.PrintResource(t, portWithExt)
+
+	iTrue := true
+	portUpdateOpts := ports.UpdateOpts{}
+	updateOpts := portsecurity.PortUpdateOptsExt{
+		UpdateOptsBuilder:   portUpdateOpts,
+		PortSecurityEnabled: &iTrue,
+	}
+
+	err = ports.Update(client, port.ID, updateOpts).ExtractInto(&portWithExt)
+	if err != nil {
+		t.Fatalf("Unable to update port: %v", err)
+	}
+
+	tools.PrintResource(t, portWithExt)
+}
+
+func TestPortsWithExtraDHCPOptsCRUD(t *testing.T) {
+	client, err := clients.NewNetworkV2Client()
+	if err != nil {
+		t.Fatalf("Unable to create a network client: %v", err)
+	}
+
+	// Create a Network
+	network, err := CreateNetwork(t, client)
+	if err != nil {
+		t.Fatalf("Unable to create a network: %v", err)
+	}
+	defer DeleteNetwork(t, client, network.ID)
+
+	// Create a Subnet
+	subnet, err := CreateSubnet(t, client, network.ID)
+	if err != nil {
+		t.Fatalf("Unable to create a subnet: %v", err)
+	}
+	defer DeleteSubnet(t, client, subnet.ID)
+
+	// Create a port with extra DHCP options.
+	port, err := CreatePortWithExtraDHCPOpts(t, client, network.ID, subnet.ID)
+	if err != nil {
+		t.Fatalf("Unable to create a port: %v", err)
+	}
+	defer DeletePort(t, client, port.ID)
+
+	tools.PrintResource(t, port)
+
+	// Update the port with extra DHCP options.
+	newPortName := tools.RandomString("TESTACC-", 8)
+	portUpdateOpts := ports.UpdateOpts{
+		Name: newPortName,
+	}
+
+	existingOpt := port.ExtraDHCPOpts[0]
+	newOptValue := "test_value_2"
+
+	updateOpts := extradhcpopts.UpdateOptsExt{
+		UpdateOptsBuilder: portUpdateOpts,
+		ExtraDHCPOpts: []extradhcpopts.UpdateExtraDHCPOpt{
+			{
+				OptName:  existingOpt.OptName,
+				OptValue: nil,
+			},
+			{
+				OptName:  "test_option_2",
+				OptValue: &newOptValue,
+			},
+		},
+	}
+
+	newPort := &PortWithExtraDHCPOpts{}
+	err = ports.Update(client, port.ID, updateOpts).ExtractInto(newPort)
+	if err != nil {
+		t.Fatalf("Could not update port: %v", err)
+	}
+
+	tools.PrintResource(t, newPort)
 }

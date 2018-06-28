@@ -35,7 +35,7 @@ import (
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/apis/policy"
 	informers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
-	extensionslisters "k8s.io/kubernetes/pkg/client/listers/extensions/internalversion"
+	policylisters "k8s.io/kubernetes/pkg/client/listers/policy/internalversion"
 	kubeapiserveradmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 	rbacregistry "k8s.io/kubernetes/pkg/registry/rbac"
 	psp "k8s.io/kubernetes/pkg/security/podsecuritypolicy"
@@ -61,7 +61,7 @@ type PodSecurityPolicyPlugin struct {
 	strategyFactory  psp.StrategyFactory
 	failOnNoPolicies bool
 	authz            authorizer.Authorizer
-	lister           extensionslisters.PodSecurityPolicyLister
+	lister           policylisters.PodSecurityPolicyLister
 }
 
 // SetAuthorizer sets the authorizer.
@@ -84,6 +84,7 @@ var _ admission.MutationInterface = &PodSecurityPolicyPlugin{}
 var _ admission.ValidationInterface = &PodSecurityPolicyPlugin{}
 var _ genericadmissioninit.WantsAuthorizer = &PodSecurityPolicyPlugin{}
 var _ kubeapiserveradmission.WantsInternalKubeInformerFactory = &PodSecurityPolicyPlugin{}
+var auditKeyPrefix = strings.ToLower(PluginName) + "." + policy.GroupName + ".k8s.io"
 
 // newPlugin creates a new PSP admission plugin.
 func newPlugin(strategyFactory psp.StrategyFactory, failOnNoPolicies bool) *PodSecurityPolicyPlugin {
@@ -95,7 +96,7 @@ func newPlugin(strategyFactory psp.StrategyFactory, failOnNoPolicies bool) *PodS
 }
 
 func (a *PodSecurityPolicyPlugin) SetInternalKubeInformerFactory(f informers.SharedInformerFactory) {
-	podSecurityPolicyInformer := f.Extensions().InternalVersion().PodSecurityPolicies()
+	podSecurityPolicyInformer := f.Policy().InternalVersion().PodSecurityPolicies()
 	a.lister = podSecurityPolicyInformer.Lister()
 	a.SetReadyFunc(podSecurityPolicyInformer.Informer().HasSynced)
 }
@@ -136,6 +137,10 @@ func (c *PodSecurityPolicyPlugin) Admit(a admission.Attributes) error {
 			pod.ObjectMeta.Annotations = map[string]string{}
 		}
 		pod.ObjectMeta.Annotations[psputil.ValidatedPSPAnnotation] = pspName
+		key := auditKeyPrefix + "/" + "admit-policy"
+		if err := a.AddAnnotation(key, pspName); err != nil {
+			glog.Warningf("failed to set admission audit annotation %s to %s: %v", key, pspName, err)
+		}
 		return nil
 	}
 
@@ -154,11 +159,15 @@ func (c *PodSecurityPolicyPlugin) Validate(a admission.Attributes) error {
 	pod := a.GetObject().(*api.Pod)
 
 	// compute the context. Mutation is not allowed. ValidatedPSPAnnotation is used as a hint to gain same speed-up.
-	allowedPod, _, validationErrs, err := c.computeSecurityContext(a, pod, false, pod.ObjectMeta.Annotations[psputil.ValidatedPSPAnnotation])
+	allowedPod, pspName, validationErrs, err := c.computeSecurityContext(a, pod, false, pod.ObjectMeta.Annotations[psputil.ValidatedPSPAnnotation])
 	if err != nil {
 		return admission.NewForbidden(a, err)
 	}
 	if apiequality.Semantic.DeepEqual(pod, allowedPod) {
+		key := auditKeyPrefix + "/" + "validate-policy"
+		if err := a.AddAnnotation(key, pspName); err != nil {
+			glog.Warningf("failed to set admission audit annotation %s to %s: %v", key, pspName, err)
+		}
 		return nil
 	}
 
@@ -329,7 +338,7 @@ func assignSecurityContext(provider psp.Provider, pod *api.Pod, fldPath *field.P
 }
 
 // createProvidersFromPolicies creates providers from the constraints supplied.
-func (c *PodSecurityPolicyPlugin) createProvidersFromPolicies(psps []*extensions.PodSecurityPolicy, namespace string) ([]psp.Provider, []error) {
+func (c *PodSecurityPolicyPlugin) createProvidersFromPolicies(psps []*policy.PodSecurityPolicy, namespace string) ([]psp.Provider, []error) {
 	var (
 		// collected providers
 		providers []psp.Provider

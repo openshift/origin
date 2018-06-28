@@ -47,7 +47,7 @@ func (c *FakeImageStreams) List(opts v1.ListOptions) (result *image_v1.ImageStre
 	if label == nil {
 		label = labels.Everything()
 	}
-	list := &image_v1.ImageStreamList{}
+	list := &image_v1.ImageStreamList{ListMeta: obj.(*image_v1.ImageStreamList).ListMeta}
 	for _, item := range obj.(*image_v1.ImageStreamList).Items {
 		if label.Matches(labels.Set(item.Labels)) {
 			list.Items = append(list.Items, item)
@@ -124,10 +124,10 @@ func (c *FakeImageStreams) Patch(name string, pt types.PatchType, data []byte, s
 	return obj.(*image_v1.ImageStream), err
 }
 
-// Secrets takes label and field selectors, and returns the list of Secrets that match those selectors.
-func (c *FakeImageStreams) Secrets(imageStreamName string, opts v1.ListOptions) (result *core_v1.SecretList, err error) {
+// Secrets takes name of the imageStream, and returns the corresponding secretList object, and an error if there is any.
+func (c *FakeImageStreams) Secrets(imageStreamName string, options v1.GetOptions) (result *core_v1.SecretList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewListSubresourceAction(imagestreamsResource, imageStreamName, "secrets", imagestreamsKind, c.ns, opts), &core_v1.SecretList{})
+		Invokes(testing.NewGetSubresourceAction(imagestreamsResource, c.ns, "secrets", imageStreamName), &core_v1.SecretList{})
 
 	if obj == nil {
 		return nil, err

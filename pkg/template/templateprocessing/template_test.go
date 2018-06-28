@@ -180,7 +180,7 @@ func TestParameterGenerators(t *testing.T) {
 func TestProcessValue(t *testing.T) {
 	var template templateapi.Template
 	if err := runtime.DecodeInto(legacyscheme.Codecs.UniversalDecoder(), []byte(`{
-		"kind":"Template", "apiVersion":"v1",
+		"kind":"Template", "apiVersion":"template.openshift.io/v1",
 		"objects": [
 			{
 				"kind": "Service", "apiVersion": "v${VALUE}",
@@ -250,7 +250,7 @@ func TestEvaluateLabels(t *testing.T) {
 	}{
 		"no labels": {
 			Input: `{
-				"kind":"Template", "apiVersion":"v1",
+				"kind":"Template", "apiVersion":"template.openshift.io/v1",
 				"objects": [
 					{
 						"kind": "Service", "apiVersion": "v1",
@@ -270,7 +270,7 @@ func TestEvaluateLabels(t *testing.T) {
 		},
 		"one different label": {
 			Input: `{
-				"kind":"Template", "apiVersion":"v1",
+				"kind":"Template", "apiVersion":"template.openshift.io/v1",
 				"objects": [
 					{
 						"kind": "Service", "apiVersion": "v1",
@@ -292,7 +292,7 @@ func TestEvaluateLabels(t *testing.T) {
 		},
 		"when the root object has labels and metadata": {
 			Input: `{
-				"kind":"Template", "apiVersion":"v1",
+				"kind":"Template", "apiVersion":"template.openshift.io/v1",
 				"objects": [
 					{
 						"kind": "Service", "apiVersion": "v1",
@@ -319,7 +319,7 @@ func TestEvaluateLabels(t *testing.T) {
 		},
 		"overwrites label": {
 			Input: `{
-				"kind":"Template", "apiVersion":"v1",
+				"kind":"Template", "apiVersion":"template.openshift.io/v1",
 				"objects": [
 					{
 						"kind": "Service", "apiVersion": "v1",
@@ -341,7 +341,7 @@ func TestEvaluateLabels(t *testing.T) {
 		},
 		"parameterised labels": {
 			Input: `{
-				"kind":"Template", "apiVersion":"v1",
+				"kind":"Template", "apiVersion":"template.openshift.io/v1",
 				"objects": [
 					{
 						"kind": "Service", "apiVersion": "v1",

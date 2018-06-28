@@ -874,55 +874,6 @@
       "consumes": [
        "*/*"
       ]
-     },
-     {
-      "type": "v2beta1.HorizontalPodAutoscaler",
-      "method": "POST",
-      "summary": "create a HorizontalPodAutoscaler",
-      "nickname": "createHorizontalPodAutoscalerForAllNamespaces",
-      "parameters": [
-       {
-        "type": "string",
-        "paramType": "query",
-        "name": "pretty",
-        "description": "If 'true', then the output is pretty printed.",
-        "required": false,
-        "allowMultiple": false
-       },
-       {
-        "type": "v2beta1.HorizontalPodAutoscaler",
-        "paramType": "body",
-        "name": "body",
-        "description": "",
-        "required": true,
-        "allowMultiple": false
-       }
-      ],
-      "responseMessages": [
-       {
-        "code": 200,
-        "message": "OK",
-        "responseModel": "v2beta1.HorizontalPodAutoscaler"
-       },
-       {
-        "code": 201,
-        "message": "Created",
-        "responseModel": "v2beta1.HorizontalPodAutoscaler"
-       },
-       {
-        "code": 202,
-        "message": "Accepted",
-        "responseModel": "v2beta1.HorizontalPodAutoscaler"
-       }
-      ],
-      "produces": [
-       "application/json",
-       "application/yaml",
-       "application/vnd.kubernetes.protobuf"
-      ],
-      "consumes": [
-       "*/*"
-      ]
      }
     ]
    },

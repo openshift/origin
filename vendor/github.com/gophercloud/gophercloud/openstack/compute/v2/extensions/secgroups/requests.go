@@ -172,12 +172,12 @@ func actionMap(prefix, groupName string) map[string]map[string]string {
 // AddServer will associate a server and a security group, enforcing the
 // rules of the group on the server.
 func AddServer(client *gophercloud.ServiceClient, serverID, groupName string) (r AddServerResult) {
-	_, r.Err = client.Post(serverActionURL(client, serverID), actionMap("add", groupName), &r.Body, nil)
+	_, r.Err = client.Post(serverActionURL(client, serverID), actionMap("add", groupName), nil, nil)
 	return
 }
 
 // RemoveServer will disassociate a server from a security group.
 func RemoveServer(client *gophercloud.ServiceClient, serverID, groupName string) (r RemoveServerResult) {
-	_, r.Err = client.Post(serverActionURL(client, serverID), actionMap("remove", groupName), &r.Body, nil)
+	_, r.Err = client.Post(serverActionURL(client, serverID), actionMap("remove", groupName), nil, nil)
 	return
 }

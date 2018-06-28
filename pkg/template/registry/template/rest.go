@@ -1,20 +1,21 @@
 package template
 
 import (
+	"context"
 	"math/rand"
 	"time"
 
 	"github.com/golang/glog"
-	"github.com/openshift/origin/pkg/template/templateprocessing"
+
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	templatevalidation "github.com/openshift/origin/pkg/template/apis/template/validation"
 	"github.com/openshift/origin/pkg/template/generator"
+	"github.com/openshift/origin/pkg/template/templateprocessing"
 )
 
 // REST implements RESTStorage interface for processing Template objects.
@@ -22,6 +23,7 @@ type REST struct {
 }
 
 var _ rest.Creater = &REST{}
+var _ rest.Scoper = &REST{}
 
 // NewREST creates new RESTStorage interface for processing Template objects. If
 // legacyReturn is used, a Config object is returned. Otherwise, a List is returned
@@ -37,8 +39,12 @@ func (s *REST) New() runtime.Object {
 	return &templateapi.Template{}
 }
 
+func (s *REST) NamespaceScoped() bool {
+	return true
+}
+
 // Create processes a Template and creates a new list of objects
-func (s *REST) Create(ctx apirequest.Context, obj runtime.Object, _ rest.ValidateObjectFunc, _ bool) (runtime.Object, error) {
+func (s *REST) Create(ctx context.Context, obj runtime.Object, _ rest.ValidateObjectFunc, _ bool) (runtime.Object, error) {
 	tpl, ok := obj.(*templateapi.Template)
 	if !ok {
 		return nil, errors.NewBadRequest("not a template")

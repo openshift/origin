@@ -18,7 +18,7 @@ function wait_for_app() {
 
   os::log::info "Waiting for database service to start"
   os::cmd::try_until_text "oc get -n $1 services" 'database' "$(( 2 * TIME_MIN ))"
-  DB_IP=$(oc get -n "$1" --output-version=v1 --template="{{ .spec.clusterIP }}" service database)
+  DB_IP=$(oc get -n "$1" --template="{{ .spec.clusterIP }}" service database)
 
   os::log::info "Waiting for frontend pod to start"
   os::cmd::try_until_text "oc get -n $1 pods -l name=frontend" 'Running' "$(( 2 * TIME_MIN ))"
@@ -26,7 +26,7 @@ function wait_for_app() {
 
   os::log::info "Waiting for frontend service to start"
   os::cmd::try_until_text "oc get -n $1 services" 'frontend' "$(( 2 * TIME_MIN ))"
-  FRONTEND_IP=$(oc get -n "$1" --output-version=v1 --template="{{ .spec.clusterIP }}" service frontend)
+  FRONTEND_IP=$(oc get -n "$1" --template="{{ .spec.clusterIP }}" service frontend)
 
   os::log::info "Waiting for database to start..."
   os::cmd::try_until_success "curl --max-time 2 --fail --silent 'http://${DB_IP}:5434'" "$((3*TIME_MIN))"
@@ -97,7 +97,7 @@ os::cmd::expect_success_and_text "oc rsh dc/docker-registry cat config.yml" "500
 os::cmd::expect_success_and_text "oc rsh rc/docker-registry-1 cat config.yml" "5000"
 
 # services can end up on any IP.  Make sure we get the IP we need for the docker registry
-DOCKER_REGISTRY=$(oc get --output-version=v1 --template="{{ .spec.clusterIP }}:{{ (index .spec.ports 0).port }}" service docker-registry)
+DOCKER_REGISTRY=$(oc get --template="{{ .spec.clusterIP }}:{{ (index .spec.ports 0).port }}" service docker-registry)
 
 os::cmd::expect_success_and_text "dig @${DNS_SERVICE_IP} docker-registry.default.svc.cluster.local. +short A | head -n 1" "${DOCKER_REGISTRY/:5000}"
 
@@ -473,7 +473,7 @@ os::cmd::expect_success_and_text "oc rsh pod/${frontend_pod} id -u" '1000'
 os::cmd::expect_success_and_text "oc rsh -T ${frontend_pod} id -u" '1000'
 
 os::log::info "Check we can get access to statefulset container via rsh"
-os::cmd::expect_success_and_text "oc create -f test/testdata/statefulset.yaml" 'statefulset.apps "testapp" created'
+os::cmd::expect_success_and_text "oc create -f test/testdata/statefulset.yaml" 'statefulset.apps/testapp created'
 os::cmd::try_until_text "oc get pod testapp-0 -o jsonpath='{.status.phase}'" "Running" "$(( 2*TIME_MIN ))"
 os::cmd::expect_success_and_text "oc rsh sts/testapp echo 1" "1"
 os::cmd::expect_success_and_text "oc delete sts/testapp" 'statefulset.apps "testapp" deleted'
@@ -524,7 +524,7 @@ os::cmd::expect_success "oc project ${CLUSTER_ADMIN_CONTEXT}"
 
 # ensure the router is started
 # TODO: simplify when #4702 is fixed upstream
-os::cmd::try_until_text "oc get endpoints router --output-version=v1 --template='{{ if .subsets }}{{ len .subsets }}{{ else }}0{{ end }}'" '[1-9]+' $((5*TIME_MIN))
+os::cmd::try_until_text "oc get endpoints router --template='{{ if .subsets }}{{ len .subsets }}{{ else }}0{{ end }}'" '[1-9]+' $((5*TIME_MIN))
 os::log::info "Waiting for router to start..."
 router_pod=$(oc get pod -n default -l deploymentconfig=router --template='{{(index .items 0).metadata.name}}')
 healthz_uri="http://$(oc get pod "${router_pod}" --template='{{.status.podIP}}'):1936/healthz"

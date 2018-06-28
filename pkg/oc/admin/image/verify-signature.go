@@ -148,7 +148,7 @@ func (o *VerifyImageSignatureOptions) Complete(f kcmdutil.Factory, cmd *cobra.Co
 			return fmt.Errorf("unable to read --public-key: %v", err)
 		}
 	}
-	clientConfig, err := f.ClientConfig()
+	clientConfig, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}
@@ -171,7 +171,7 @@ func (o *VerifyImageSignatureOptions) Complete(f kcmdutil.Factory, cmd *cobra.Co
 	} else {
 		o.CurrentUser = me.Name
 
-		if config, err := f.ClientConfig(); err != nil {
+		if config, err := f.ToRESTConfig(); err != nil {
 			return err
 		} else {
 			if o.CurrentUserToken = config.BearerToken; len(o.CurrentUserToken) == 0 {

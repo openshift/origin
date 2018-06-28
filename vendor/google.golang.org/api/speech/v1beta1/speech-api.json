@@ -15,6 +15,7 @@
   "description": "Converts audio to text by applying powerful neural network models.",
   "discoveryVersion": "v1",
   "documentationLink": "https://cloud.google.com/speech/",
+  "fullyEncodeReservedExpansion": true,
   "icons": {
     "x16": "http://www.google.com/images/icons/product/search-16.gif",
     "x32": "http://www.google.com/images/icons/product/search-32.gif"
@@ -184,7 +185,7 @@
       }
     }
   },
-  "revision": "20180130",
+  "revision": "20180312",
   "rootUrl": "https://speech.googleapis.com/",
   "schemas": {
     "AsyncRecognizeRequest": {
@@ -404,7 +405,7 @@
     }
   },
   "servicePath": "",
-  "title": "Google Cloud Speech API",
+  "title": "Cloud Speech API",
   "version": "v1beta1",
   "version_module": true
 }

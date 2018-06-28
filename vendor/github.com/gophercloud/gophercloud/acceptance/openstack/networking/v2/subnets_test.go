@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/gophercloud/gophercloud/acceptance/clients"
+	subnetpools "github.com/gophercloud/gophercloud/acceptance/openstack/networking/v2/extensions/subnetpools"
 	"github.com/gophercloud/gophercloud/acceptance/tools"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/subnets"
 )
@@ -154,5 +155,39 @@ func TestSubnetsNoGateway(t *testing.T) {
 
 	if newSubnet.GatewayIP == "" {
 		t.Fatalf("Gateway was not updated correctly")
+	}
+}
+
+func TestSubnetsWithSubnetPool(t *testing.T) {
+	client, err := clients.NewNetworkV2Client()
+	if err != nil {
+		t.Fatalf("Unable to create a network client: %v", err)
+	}
+
+	// Create Network
+	network, err := CreateNetwork(t, client)
+	if err != nil {
+		t.Fatalf("Unable to create network: %v", err)
+	}
+	defer DeleteNetwork(t, client, network.ID)
+
+	// Create SubnetPool
+	subnetPool, err := subnetpools.CreateSubnetPool(t, client)
+	if err != nil {
+		t.Fatalf("Unable to create subnet pool: %v", err)
+	}
+	defer subnetpools.DeleteSubnetPool(t, client, subnetPool.ID)
+
+	// Create Subnet
+	subnet, err := CreateSubnetWithSubnetPool(t, client, network.ID, subnetPool.ID)
+	if err != nil {
+		t.Fatalf("Unable to create subnet: %v", err)
+	}
+	defer DeleteSubnet(t, client, subnet.ID)
+
+	tools.PrintResource(t, subnet)
+
+	if subnet.GatewayIP == "" {
+		t.Fatalf("A subnet pool was not associated.")
 	}
 }

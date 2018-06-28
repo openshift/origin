@@ -18,11 +18,11 @@ limitations under the License.
 package policybased
 
 import (
+	"context"
 	"errors"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
-	genericapirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 	"k8s.io/kubernetes/pkg/apis/rbac"
@@ -42,24 +42,28 @@ func NewStorage(s rest.StandardStorage, ruleResolver rbacregistryvalidation.Auth
 	return &Storage{s, ruleResolver}
 }
 
+func (r *Storage) NamespaceScoped() bool {
+	return false
+}
+
 var fullAuthority = []rbac.PolicyRule{
 	rbac.NewRule("*").Groups("*").Resources("*").RuleOrDie(),
 	rbac.NewRule("*").URLs("*").RuleOrDie(),
 }
 
-func (s *Storage) Create(ctx genericapirequest.Context, obj runtime.Object, createValidatingAdmission rest.ValidateObjectFunc, includeUninitialized bool) (runtime.Object, error) {
+func (s *Storage) Create(ctx context.Context, obj runtime.Object, createValidatingAdmission rest.ValidateObjectFunc, includeUninitialized bool) (runtime.Object, error) {
 	if rbacregistry.EscalationAllowed(ctx) {
 		return s.StandardStorage.Create(ctx, obj, createValidatingAdmission, includeUninitialized)
 	}
 
 	clusterRole := obj.(*rbac.ClusterRole)
 	rules := clusterRole.Rules
-	if err := rbacregistryvalidation.ConfirmNoEscalation(ctx, s.ruleResolver, rules); err != nil {
+	if err := rbacregistryvalidation.ConfirmNoEscalationInternal(ctx, s.ruleResolver, rules); err != nil {
 		return nil, apierrors.NewForbidden(groupResource, clusterRole.Name, err)
 	}
 	// to set the aggregation rule, since it can gather anything, requires * on *.*
 	if hasAggregationRule(clusterRole) {
-		if err := rbacregistryvalidation.ConfirmNoEscalation(ctx, s.ruleResolver, fullAuthority); err != nil {
+		if err := rbacregistryvalidation.ConfirmNoEscalationInternal(ctx, s.ruleResolver, fullAuthority); err != nil {
 			return nil, apierrors.NewForbidden(groupResource, clusterRole.Name, errors.New("must have cluster-admin privileges to use the aggregationRule"))
 		}
 	}
@@ -67,12 +71,12 @@ func (s *Storage) Create(ctx genericapirequest.Context, obj runtime.Object, crea
 	return s.StandardStorage.Create(ctx, obj, createValidatingAdmission, includeUninitialized)
 }
 
-func (s *Storage) Update(ctx genericapirequest.Context, name string, obj rest.UpdatedObjectInfo, createValidation rest.ValidateObjectFunc, updateValidation rest.ValidateObjectUpdateFunc) (runtime.Object, bool, error) {
+func (s *Storage) Update(ctx context.Context, name string, obj rest.UpdatedObjectInfo, createValidation rest.ValidateObjectFunc, updateValidation rest.ValidateObjectUpdateFunc) (runtime.Object, bool, error) {
 	if rbacregistry.EscalationAllowed(ctx) {
 		return s.StandardStorage.Update(ctx, name, obj, createValidation, updateValidation)
 	}
 
-	nonEscalatingInfo := rest.WrapUpdatedObjectInfo(obj, func(ctx genericapirequest.Context, obj runtime.Object, oldObj runtime.Object) (runtime.Object, error) {
+	nonEscalatingInfo := rest.WrapUpdatedObjectInfo(obj, func(ctx context.Context, obj runtime.Object, oldObj runtime.Object) (runtime.Object, error) {
 		clusterRole := obj.(*rbac.ClusterRole)
 		oldClusterRole := oldObj.(*rbac.ClusterRole)
 
@@ -82,12 +86,12 @@ func (s *Storage) Update(ctx genericapirequest.Context, name string, obj rest.Up
 		}
 
 		rules := clusterRole.Rules
-		if err := rbacregistryvalidation.ConfirmNoEscalation(ctx, s.ruleResolver, rules); err != nil {
+		if err := rbacregistryvalidation.ConfirmNoEscalationInternal(ctx, s.ruleResolver, rules); err != nil {
 			return nil, apierrors.NewForbidden(groupResource, clusterRole.Name, err)
 		}
 		// to change the aggregation rule, since it can gather anything and prevent tightening, requires * on *.*
 		if hasAggregationRule(clusterRole) || hasAggregationRule(oldClusterRole) {
-			if err := rbacregistryvalidation.ConfirmNoEscalation(ctx, s.ruleResolver, fullAuthority); err != nil {
+			if err := rbacregistryvalidation.ConfirmNoEscalationInternal(ctx, s.ruleResolver, fullAuthority); err != nil {
 				return nil, apierrors.NewForbidden(groupResource, clusterRole.Name, errors.New("must have cluster-admin privileges to use the aggregationRule"))
 			}
 		}

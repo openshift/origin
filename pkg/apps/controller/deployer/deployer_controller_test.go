@@ -1182,6 +1182,7 @@ func TestMakeDeployerPod(t *testing.T) {
 				p.Spec.PriorityClassName = ""
 				p.Spec.SecurityContext = nil
 				p.Spec.DNSConfig = nil
+				p.Spec.ReadinessGates = nil
 			},
 		)
 		inputPodTemplate := &kapiv1.PodTemplateSpec{}

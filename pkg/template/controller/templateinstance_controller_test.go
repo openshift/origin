@@ -9,17 +9,19 @@ import (
 	"time"
 
 	batchv1 "k8s.io/api/batch/v1"
+	"k8s.io/apimachinery/pkg/api/meta/testrestmapper"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
 	clientgotesting "k8s.io/client-go/testing"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/apis/authorization"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	"k8s.io/utils/clock"
 
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
-	restutil "github.com/openshift/origin/pkg/util/rest"
 )
 
 type roundtripper func(*http.Request) (*http.Response, error)
@@ -71,14 +73,18 @@ func TestControllerCheckReadiness(t *testing.T) {
 			})
 		},
 	}
+	client, err := dynamic.NewForConfig(fakerestconfig)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	// fakeclient, respond "allowed" to any subjectaccessreview
 	fakeclientset := &fake.Clientset{}
 	c := &TemplateInstanceController{
-		dynamicRestMapper: restutil.DefaultMultiRESTMapper(),
+		dynamicRestMapper: testrestmapper.TestOnlyStaticRESTMapper(legacyscheme.Scheme, legacyscheme.Scheme.PrioritizedVersionsAllGroups()...),
 		kc:                fakeclientset,
-		config:            fakerestconfig,
 		clock:             clock,
+		dynamicClient:     client,
 	}
 	fakeclientset.AddReactor("create", "subjectaccessreviews", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, &authorization.SubjectAccessReview{Status: authorization.SubjectAccessReviewStatus{Allowed: true}}, nil

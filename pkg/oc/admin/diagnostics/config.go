@@ -9,13 +9,14 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/util"
 )
 
 // use the base factory to return a raw config (not specific to a context)
 func (o DiagnosticsOptions) buildRawConfig() (*clientcmdapi.Config, error) {
-	kubeConfig, configErr := o.Factory.RawConfig()
+	kubeConfig, configErr := o.Factory.ToRawKubeConfigLoader().RawConfig()
 	if configErr != nil {
 		return nil, configErr
 	}
@@ -32,7 +33,7 @@ func (o DiagnosticsOptions) detectClientConfig() (expected bool, detected bool) 
 		return false, false
 	}
 	o.Logger().Notice("CED2011", "Determining if client configuration exists for client/cluster diagnostics")
-	confFlagName := kclientcmd.OpenShiftKubeConfigFlagName
+	confFlagName := genericclioptions.OpenShiftKubeConfigFlagName
 	confFlagValue := o.ClientFlags.Lookup(confFlagName).Value.String()
 	successfulLoad := false
 

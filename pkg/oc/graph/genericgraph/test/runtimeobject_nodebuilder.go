@@ -5,13 +5,15 @@ import (
 	"path/filepath"
 	"reflect"
 
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/api/meta/testrestmapper"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/rest/fake"
+	"k8s.io/client-go/restmapper"
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/kubectl/categories"
-	"k8s.io/kubernetes/pkg/kubectl/resource"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 
 	_ "github.com/openshift/origin/pkg/api/install"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
@@ -23,6 +25,7 @@ import (
 	imagegraph "github.com/openshift/origin/pkg/oc/graph/imagegraph/nodes"
 	kubegraph "github.com/openshift/origin/pkg/oc/graph/kubegraph/nodes"
 	routegraph "github.com/openshift/origin/pkg/oc/graph/routegraph/nodes"
+	"github.com/openshift/origin/pkg/oc/util/ocscheme"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 )
 
@@ -131,26 +134,19 @@ func BuildGraph(path string) (osgraph.Graph, []runtime.Object, error) {
 		return g, objs, err
 	}
 
-	mapper := legacyscheme.Registry.RESTMapper()
-
-	builder := resource.NewBuilder(
-		&resource.Mapper{
-			RESTMapper:   mapper,
-			ObjectTyper:  legacyscheme.Scheme,
-			ClientMapper: resource.DisabledClientForMapping{},
-			Decoder:      legacyscheme.Codecs.UniversalDecoder(),
+	builder := resource.NewFakeBuilder(
+		func(version schema.GroupVersion) (resource.RESTClient, error) {
+			return &fake.RESTClient{}, nil
 		},
-		&resource.Mapper{
-			RESTMapper:   mapper,
-			ObjectTyper:  legacyscheme.Scheme,
-			ClientMapper: resource.DisabledClientForMapping{},
-			Decoder:      unstructured.UnstructuredJSONScheme,
+		func() (meta.RESTMapper, error) {
+			return testrestmapper.TestOnlyStaticRESTMapper(ocscheme.ReadingInternalScheme), nil
 		},
-		categories.SimpleCategoryExpander{},
-	)
+		func() (restmapper.CategoryExpander, error) {
+			return resource.FakeCategoryExpander, nil
+		})
 
 	r := builder.
-		Internal().
+		WithScheme(ocscheme.ReadingInternalScheme).
 		FilenameParam(false, &resource.FilenameOptions{Recursive: false, Filenames: []string{abspath}}).
 		Flatten().
 		Do()

@@ -43,7 +43,7 @@ func (c *FakeHostSubnets) List(opts v1.ListOptions) (result *network_v1.HostSubn
 	if label == nil {
 		label = labels.Everything()
 	}
-	list := &network_v1.HostSubnetList{}
+	list := &network_v1.HostSubnetList{ListMeta: obj.(*network_v1.HostSubnetList).ListMeta}
 	for _, item := range obj.(*network_v1.HostSubnetList).Items {
 		if label.Matches(labels.Set(item.Labels)) {
 			list.Items = append(list.Items, item)

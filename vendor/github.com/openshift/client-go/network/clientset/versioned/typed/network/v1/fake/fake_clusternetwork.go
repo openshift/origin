@@ -43,7 +43,7 @@ func (c *FakeClusterNetworks) List(opts v1.ListOptions) (result *network_v1.Clus
 	if label == nil {
 		label = labels.Everything()
 	}
-	list := &network_v1.ClusterNetworkList{}
+	list := &network_v1.ClusterNetworkList{ListMeta: obj.(*network_v1.ClusterNetworkList).ListMeta}
 	for _, item := range obj.(*network_v1.ClusterNetworkList).Items {
 		if label.Matches(labels.Set(item.Labels)) {
 			list.Items = append(list.Items, item)

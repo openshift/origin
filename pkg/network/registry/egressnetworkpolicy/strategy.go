@@ -1,9 +1,10 @@
 package egressnetworkpolicy
 
 import (
+	"context"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
@@ -22,11 +23,11 @@ var Strategy = enpStrategy{legacyscheme.Scheme}
 
 var _ rest.GarbageCollectionDeleteStrategy = enpStrategy{}
 
-func (enpStrategy) DefaultGarbageCollectionPolicy(ctx apirequest.Context) rest.GarbageCollectionPolicy {
+func (enpStrategy) DefaultGarbageCollectionPolicy(ctx context.Context) rest.GarbageCollectionPolicy {
 	return rest.Unsupported
 }
 
-func (enpStrategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.Object) {}
+func (enpStrategy) PrepareForUpdate(ctx context.Context, obj, old runtime.Object) {}
 
 // NamespaceScoped is true for egress network policy
 func (enpStrategy) NamespaceScoped() bool {
@@ -37,7 +38,7 @@ func (enpStrategy) GenerateName(base string) string {
 	return base
 }
 
-func (enpStrategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) {
+func (enpStrategy) PrepareForCreate(ctx context.Context, obj runtime.Object) {
 }
 
 // Canonicalize normalizes the object after validation.
@@ -45,7 +46,7 @@ func (enpStrategy) Canonicalize(obj runtime.Object) {
 }
 
 // Validate validates a new egress network policy
-func (enpStrategy) Validate(ctx apirequest.Context, obj runtime.Object) field.ErrorList {
+func (enpStrategy) Validate(ctx context.Context, obj runtime.Object) field.ErrorList {
 	return validation.ValidateEgressNetworkPolicy(obj.(*networkapi.EgressNetworkPolicy))
 }
 
@@ -59,6 +60,6 @@ func (enpStrategy) AllowUnconditionalUpdate() bool {
 }
 
 // ValidateUpdate is the default update validation for a EgressNetworkPolicy
-func (enpStrategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.Object) field.ErrorList {
+func (enpStrategy) ValidateUpdate(ctx context.Context, obj, old runtime.Object) field.ErrorList {
 	return validation.ValidateEgressNetworkPolicyUpdate(obj.(*networkapi.EgressNetworkPolicy), old.(*networkapi.EgressNetworkPolicy))
 }

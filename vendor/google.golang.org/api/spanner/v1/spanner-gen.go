@@ -206,7 +206,7 @@ type Binding struct {
 	//
 	// * `user:{emailid}`: An email address that represents a specific
 	// Google
-	//    account. For example, `alice@gmail.com` or `joe@example.com`.
+	//    account. For example, `alice@gmail.com` .
 	//
 	//
 	// * `serviceAccount:{emailid}`: An email address that represents a
@@ -688,13 +688,13 @@ type ExecuteSqlRequest struct {
 	// of type `STRING` both appear in params as JSON strings.
 	//
 	// In these cases, `param_types` can be used to specify the exact
-	// SQL type for some or all of the SQL query parameters. See
+	// SQL type for some or all of the SQL statement parameters. See
 	// the
 	// definition of Type for more information
 	// about SQL types.
 	ParamTypes map[string]Type `json:"paramTypes,omitempty"`
 
-	// Params: The SQL query string can contain parameter placeholders. A
+	// Params: The SQL string can contain parameter placeholders. A
 	// parameter
 	// placeholder consists of `'@'` followed by the parameter
 	// name. Parameter names consist of any combination of letters,
@@ -705,7 +705,7 @@ type ExecuteSqlRequest struct {
 	// parameter name can be used more than once, for example:
 	//   "WHERE id > @msg_id AND id < @msg_id + 100"
 	//
-	// It is an error to execute an SQL query with unbound
+	// It is an error to execute an SQL statement with unbound
 	// parameters.
 	//
 	// Parameter values are specified using `params`, which is a JSON
@@ -729,30 +729,29 @@ type ExecuteSqlRequest struct {
 	// be set to QueryMode.NORMAL.
 	//
 	// Possible values:
-	//   "NORMAL" - The default mode where only the query result, without
-	// any information
-	// about the query plan is returned.
-	//   "PLAN" - This mode returns only the query plan, without any result
-	// rows or
+	//   "NORMAL" - The default mode. Only the statement results are
+	// returned.
+	//   "PLAN" - This mode returns only the query plan, without any results
+	// or
 	// execution statistics information.
 	//   "PROFILE" - This mode returns both the query plan and the execution
 	// statistics along
-	// with the result rows.
+	// with the results.
 	QueryMode string `json:"queryMode,omitempty"`
 
 	// ResumeToken: If this request is resuming a previously interrupted SQL
-	// query
+	// statement
 	// execution, `resume_token` should be copied from the
 	// last
 	// PartialResultSet yielded before the interruption. Doing this
-	// enables the new SQL query execution to resume where the last one
+	// enables the new SQL statement execution to resume where the last one
 	// left
 	// off. The rest of the request parameters must exactly match
 	// the
 	// request that yielded this token.
 	ResumeToken string `json:"resumeToken,omitempty"`
 
-	// Sql: Required. The SQL query string.
+	// Sql: Required. The SQL string.
 	Sql string `json:"sql,omitempty"`
 
 	// Transaction: The transaction to use. If none is provided, the default
@@ -1561,7 +1560,7 @@ type PartialResultSet struct {
 	// same session invalidates the token.
 	ResumeToken string `json:"resumeToken,omitempty"`
 
-	// Stats: Query plan and execution statistics for the query that
+	// Stats: Query plan and execution statistics for the statement that
 	// produced this
 	// streaming result set. These can be requested by
 	// setting
@@ -1721,8 +1720,12 @@ func (s *Partition) MarshalJSON() ([]byte, error) {
 // and
 // PartitionReadRequest.
 type PartitionOptions struct {
-	// MaxPartitions: The desired maximum number of partitions to return.
-	// For example, this may
+	// MaxPartitions: **Note:** This hint is currently ignored by
+	// PartitionQuery and
+	// PartitionRead requests.
+	//
+	// The desired maximum number of partitions to return.  For example,
+	// this may
 	// be set to the number of workers available.  The default for this
 	// option
 	// is currently 10,000. The maximum value is currently 200,000.  This is
@@ -1732,8 +1735,12 @@ type PartitionOptions struct {
 	// than this maximum count request.
 	MaxPartitions int64 `json:"maxPartitions,omitempty,string"`
 
-	// PartitionSizeBytes: The desired data size for each partition
-	// generated.  The default for this
+	// PartitionSizeBytes: **Note:** This hint is currently ignored by
+	// PartitionQuery and
+	// PartitionRead requests.
+	//
+	// The desired data size for each partition generated.  The default for
+	// this
 	// option is currently 1 GiB.  This is only a hint. The actual size of
 	// each
 	// partition may be smaller or larger than this size request.
@@ -2025,7 +2032,7 @@ func (s *PlanNode) MarshalJSON() ([]byte, error) {
 // specify access control policies for Cloud Platform resources.
 //
 //
-// A `Policy` consists of a list of `bindings`. A `Binding` binds a list
+// A `Policy` consists of a list of `bindings`. A `binding` binds a list
 // of
 // `members` to a `role`, where the members can be user accounts, Google
 // groups,
@@ -2033,7 +2040,7 @@ func (s *PlanNode) MarshalJSON() ([]byte, error) {
 // permissions
 // defined by IAM.
 //
-// **Example**
+// **JSON Example**
 //
 //     {
 //       "bindings": [
@@ -2044,7 +2051,7 @@ func (s *PlanNode) MarshalJSON() ([]byte, error) {
 //             "group:admins@example.com",
 //             "domain:google.com",
 //
-// "serviceAccount:my-other-app@appspot.gserviceaccount.com",
+// "serviceAccount:my-other-app@appspot.gserviceaccount.com"
 //           ]
 //         },
 //         {
@@ -2053,6 +2060,20 @@ func (s *PlanNode) MarshalJSON() ([]byte, error) {
 //         }
 //       ]
 //     }
+//
+// **YAML Example**
+//
+//     bindings:
+//     - members:
+//       - user:mike@example.com
+//       - group:admins@example.com
+//       - domain:google.com
+//       - serviceAccount:my-other-app@appspot.gserviceaccount.com
+//       role: roles/owner
+//     - members:
+//       - user:sean@example.com
+//       role: roles/viewer
+//
 //
 // For a description of IAM and its features, see the
 // [IAM developer's guide](https://cloud.google.com/iam/docs).
@@ -2357,9 +2378,9 @@ type ResultSet struct {
 	// here.
 	Rows [][]interface{} `json:"rows,omitempty"`
 
-	// Stats: Query plan and execution statistics for the query that
-	// produced this
-	// result set. These can be requested by
+	// Stats: Query plan and execution statistics for the SQL statement
+	// that
+	// produced this result set. These can be requested by
 	// setting
 	// ExecuteSqlRequest.query_mode.
 	Stats *ResultSetStats `json:"stats,omitempty"`
@@ -2936,6 +2957,7 @@ func (s *Transaction) MarshalJSON() ([]byte, error) {
 //      read at timestamps in the past. Snapshot read-only
 //      transactions do not need to be committed.
 //
+//
 // For transactions that only read, snapshot read-only
 // transactions
 // provide simpler semantics and are almost always faster.
@@ -3201,7 +3223,10 @@ func (s *Transaction) MarshalJSON() ([]byte, error) {
 // whose
 // timestamp become too old while executing. Reads and SQL queries
 // with
-// too-old read timestamps fail with the error `FAILED_PRECONDITION`.
+// too-old read timestamps fail with the error
+// `FAILED_PRECONDITION`.
+//
+// ##
 type TransactionOptions struct {
 	// ReadOnly: Transaction will not write.
 	//
@@ -7773,13 +7798,13 @@ type ProjectsInstancesDatabasesSessionsExecuteSqlCall struct {
 	header_           http.Header
 }
 
-// ExecuteSql: Executes an SQL query, returning all rows in a single
-// reply. This
+// ExecuteSql: Executes an SQL statement, returning all results in a
+// single reply. This
 // method cannot be used to return a result set larger than 10 MiB;
 // if the query yields more data than that, the query fails with
 // a `FAILED_PRECONDITION` error.
 //
-// Queries inside read-write transactions might return `ABORTED`.
+// Operations inside read-write transactions might return `ABORTED`.
 // If
 // this occurs, the application should restart the transaction from
 // the beginning. See Transaction for more details.
@@ -7880,7 +7905,7 @@ func (c *ProjectsInstancesDatabasesSessionsExecuteSqlCall) Do(opts ...googleapi.
 	}
 	return ret, nil
 	// {
-	//   "description": "Executes an SQL query, returning all rows in a single reply. This\nmethod cannot be used to return a result set larger than 10 MiB;\nif the query yields more data than that, the query fails with\na `FAILED_PRECONDITION` error.\n\nQueries inside read-write transactions might return `ABORTED`. If\nthis occurs, the application should restart the transaction from\nthe beginning. See Transaction for more details.\n\nLarger result sets can be fetched in streaming fashion by calling\nExecuteStreamingSql instead.",
+	//   "description": "Executes an SQL statement, returning all results in a single reply. This\nmethod cannot be used to return a result set larger than 10 MiB;\nif the query yields more data than that, the query fails with\na `FAILED_PRECONDITION` error.\n\nOperations inside read-write transactions might return `ABORTED`. If\nthis occurs, the application should restart the transaction from\nthe beginning. See Transaction for more details.\n\nLarger result sets can be fetched in streaming fashion by calling\nExecuteStreamingSql instead.",
 	//   "flatPath": "v1/projects/{projectsId}/instances/{instancesId}/databases/{databasesId}/sessions/{sessionsId}:executeSql",
 	//   "httpMethod": "POST",
 	//   "id": "spanner.projects.instances.databases.sessions.executeSql",

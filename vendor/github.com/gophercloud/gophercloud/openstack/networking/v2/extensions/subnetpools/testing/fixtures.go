@@ -1,6 +1,8 @@
 package testing
 
 import (
+	"time"
+
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/subnetpools"
 )
 
@@ -78,7 +80,7 @@ const SubnetPoolsListResult = `
 
 var SubnetPool1 = subnetpools.SubnetPool{
 	AddressScopeID:   "",
-	CreatedAt:        "2017-12-28T07:21:41Z",
+	CreatedAt:        time.Date(2017, 12, 28, 7, 21, 41, 0, time.UTC),
 	DefaultPrefixLen: 8,
 	DefaultQuota:     0,
 	Description:      "IPv4",
@@ -96,12 +98,12 @@ var SubnetPool1 = subnetpools.SubnetPool{
 	TenantID:       "1e2b9857295a4a3e841809ef492812c5",
 	RevisionNumber: 1,
 	Shared:         false,
-	UpdatedAt:      "2017-12-28T07:21:41Z",
+	UpdatedAt:      time.Date(2017, 12, 28, 7, 21, 41, 0, time.UTC),
 }
 
 var SubnetPool2 = subnetpools.SubnetPool{
 	AddressScopeID:   "0bc38e22-be49-4e67-969e-fec3f36508bd",
-	CreatedAt:        "2017-12-28T07:21:34Z",
+	CreatedAt:        time.Date(2017, 12, 28, 7, 21, 34, 0, time.UTC),
 	DefaultPrefixLen: 64,
 	DefaultQuota:     0,
 	Description:      "IPv6",
@@ -119,12 +121,12 @@ var SubnetPool2 = subnetpools.SubnetPool{
 	TenantID:       "1e2b9857295a4a3e841809ef492812c5",
 	RevisionNumber: 1,
 	Shared:         false,
-	UpdatedAt:      "2017-12-28T07:21:34Z",
+	UpdatedAt:      time.Date(2017, 12, 28, 7, 21, 34, 0, time.UTC),
 }
 
 var SubnetPool3 = subnetpools.SubnetPool{
 	AddressScopeID:   "",
-	CreatedAt:        "2017-12-28T07:21:27Z",
+	CreatedAt:        time.Date(2017, 12, 28, 7, 21, 27, 0, time.UTC),
 	DefaultPrefixLen: 64,
 	DefaultQuota:     4,
 	Description:      "PublicPool",
@@ -141,7 +143,7 @@ var SubnetPool3 = subnetpools.SubnetPool{
 	TenantID:       "ceb366d50ad54fe39717df3af60f9945",
 	RevisionNumber: 1,
 	Shared:         true,
-	UpdatedAt:      "2017-12-28T07:21:27Z",
+	UpdatedAt:      time.Date(2017, 12, 28, 7, 21, 27, 0, time.UTC),
 }
 
 const SubnetPoolGetResult = `
@@ -157,11 +159,11 @@ const SubnetPoolGetResult = `
         "is_default": true,
         "project_id": "1e2b9857295a4a3e841809ef492812c5",
         "tenant_id": "1e2b9857295a4a3e841809ef492812c5",
-        "created_at": "2018-01-01T00:00:01",
+        "created_at": "2018-01-01T00:00:01Z",
         "prefixes": [
             "2001:db8::a3/64"
         ],
-        "updated_at": "2018-01-01T00:10:10",
+        "updated_at": "2018-01-01T00:10:10Z",
         "ip_version": 6,
         "shared": false,
         "description": "ipv6 prefixes",

@@ -40,7 +40,7 @@ func (b BuildDefaults) ApplyDefaults(pod *v1.Pod) error {
 		return nil
 	}
 
-	build, version, err := buildadmission.GetBuildFromPod(pod)
+	build, err := buildadmission.GetBuildFromPod(pod)
 	if err != nil {
 		return nil
 	}
@@ -56,7 +56,7 @@ func (b BuildDefaults) ApplyDefaults(pod *v1.Pod) error {
 		return err
 	}
 
-	return buildadmission.SetBuildInPod(pod, build, version)
+	return buildadmission.SetBuildInPod(pod, build)
 }
 
 func (b BuildDefaults) applyPodDefaults(pod *v1.Pod) {

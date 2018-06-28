@@ -78,7 +78,7 @@ os::cmd::try_until_text "oc get pods -l deploymentconfig=openldap-server --templ
 oc login -u system:admin -n openldap
 os::test::junit::declare_suite_end
 
-LDAP_SERVICE_IP=$(oc get --output-version=v1 --template="{{ .spec.clusterIP }}" service openldap-server)
+LDAP_SERVICE_IP=$(oc get --template="{{ .spec.clusterIP }}" service openldap-server)
 
 function compare_and_cleanup() {
 	validation_file=$1

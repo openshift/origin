@@ -6,9 +6,9 @@ import (
 
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	"k8s.io/kubernetes/pkg/apis/authorization"
 	authorizationtypedclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
-	rbacclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/rbac/internalversion"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/types"
@@ -18,7 +18,7 @@ import (
 
 // ClusterRoleBindings is a Diagnostic to check that the default cluster role bindings match expectations
 type ClusterRoleBindings struct {
-	ClusterRoleBindingsClient rbacclient.ClusterRoleBindingInterface
+	ClusterRoleBindingsClient rbacv1client.ClusterRoleBindingInterface
 	SARClient                 authorizationtypedclient.SelfSubjectAccessReviewsGetter
 }
 
@@ -79,7 +79,7 @@ func (d *ClusterRoleBindings) Check() types.DiagnosticResult {
 	}
 
 	for _, changedClusterRoleBinding := range changedClusterRoleBindings {
-		actualClusterRole, err := d.ClusterRoleBindingsClient.Get(changedClusterRoleBinding.Name, metav1.GetOptions{})
+		actualRBACClusterRole, err := d.ClusterRoleBindingsClient.Get(changedClusterRoleBinding.Name, metav1.GetOptions{})
 		if kerrs.IsNotFound(err) {
 			r.Error("CRBD1001", nil, fmt.Sprintf("clusterrolebinding/%s is missing.\n\nUse the `oc adm policy reconcile-cluster-role-bindings` command to create the role binding.", changedClusterRoleBinding.Name))
 			continue
@@ -89,7 +89,7 @@ func (d *ClusterRoleBindings) Check() types.DiagnosticResult {
 			continue
 		}
 
-		missingSubjects, extraSubjects := policycmd.DiffSubjects(changedClusterRoleBinding.Subjects, actualClusterRole.Subjects)
+		missingSubjects, extraSubjects := policycmd.DiffSubjects(changedClusterRoleBinding.Subjects, actualRBACClusterRole.Subjects)
 		switch {
 		case len(missingSubjects) > 0:
 			// Only a warning, because they can remove things like self-provisioner role from system:unauthenticated, and it's not an error

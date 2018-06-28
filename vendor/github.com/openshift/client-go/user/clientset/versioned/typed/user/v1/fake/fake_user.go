@@ -43,7 +43,7 @@ func (c *FakeUsers) List(opts v1.ListOptions) (result *user_v1.UserList, err err
 	if label == nil {
 		label = labels.Everything()
 	}
-	list := &user_v1.UserList{}
+	list := &user_v1.UserList{ListMeta: obj.(*user_v1.UserList).ListMeta}
 	for _, item := range obj.(*user_v1.UserList).Items {
 		if label.Matches(labels.Set(item.Labels)) {
 			list.Items = append(list.Items, item)

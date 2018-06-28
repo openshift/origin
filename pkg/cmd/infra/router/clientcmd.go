@@ -6,6 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -50,15 +51,6 @@ func (cfg *Config) Clients() (kclientset.Interface, error) {
 	return kubeClientset, nil
 }
 
-// BindClientConfigSecurityFlags adds flags for the supplied client config
-func BindClientConfigSecurityFlags(config *restclient.Config, flags *pflag.FlagSet) {
-	flags.BoolVar(&config.Insecure, "insecure-skip-tls-verify", config.Insecure, "If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure.")
-	flags.StringVar(&config.CertFile, "client-certificate", config.CertFile, "Path to a client certificate file for TLS.")
-	flags.StringVar(&config.KeyFile, "client-key", config.KeyFile, "Path to a client key file for TLS.")
-	flags.StringVar(&config.CAFile, "certificate-authority", config.CAFile, "Path to a cert. file for the certificate authority")
-	flags.StringVar(&config.BearerToken, "token", config.BearerToken, "If present, the bearer token for this request.")
-}
-
 // KubeConfig returns the Kubernetes configuration
 func (cfg *Config) KubeConfig() (*restclient.Config, string, error) {
 	clientConfig, err := cfg.clientConfig.ClientConfig()
@@ -74,8 +66,8 @@ func (cfg *Config) KubeConfig() (*restclient.Config, string, error) {
 
 func DefaultClientConfig(flags *pflag.FlagSet) kclientcmd.ClientConfig {
 	loadingRules := kclientcmd.NewDefaultClientConfigLoadingRules()
-	flags.StringVar(&loadingRules.ExplicitPath, kclientcmd.OpenShiftKubeConfigFlagName, "", "Path to the config file to use for CLI requests.")
-	cobra.MarkFlagFilename(flags, kclientcmd.OpenShiftKubeConfigFlagName)
+	flags.StringVar(&loadingRules.ExplicitPath, genericclioptions.OpenShiftKubeConfigFlagName, "", "Path to the config file to use for CLI requests.")
+	cobra.MarkFlagFilename(flags, genericclioptions.OpenShiftKubeConfigFlagName)
 
 	// set our explicit defaults
 	defaultOverrides := &kclientcmd.ConfigOverrides{ClusterDefaults: kclientcmdapi.Cluster{Server: os.Getenv("KUBERNETES_MASTER")}}

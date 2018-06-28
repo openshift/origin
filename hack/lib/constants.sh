@@ -4,7 +4,7 @@
 
 readonly OS_GO_PACKAGE=github.com/openshift/origin
 
-readonly OS_BUILD_ENV_GOLANG="${OS_BUILD_ENV_GOLANG:-1.9}"
+readonly OS_BUILD_ENV_GOLANG="${OS_BUILD_ENV_GOLANG:-1.10}"
 readonly OS_BUILD_ENV_IMAGE="${OS_BUILD_ENV_IMAGE:-openshift/origin-release:golang-${OS_BUILD_ENV_GOLANG}}"
 readonly OS_REQUIRED_GO_VERSION="go${OS_BUILD_ENV_GOLANG}"
 readonly OS_GLIDE_MINOR_VERSION="13"
@@ -219,7 +219,8 @@ function os::util::list_test_packages_under() {
               -o -path '*vendor/*'            \
               -o -path '*assets/node_modules' \
               -o -path '*test/*'              \
-              -o -path '*pkg/proxy' \
+              -o -path '*pkg/proxy'           \
+              -o -path '*k8s.io/kubernetes/cluster/gce*' \
         \) -prune                             \
     \) -name '*_test.go' | xargs -n1 dirname | sort -u | xargs -n1 printf "${OS_GO_PACKAGE}/%s\n"
 
@@ -235,7 +236,8 @@ function os::util::list_test_packages_under() {
           -o -path "${kubernetes_path}/cmd"                                                         \
           -o -path "${kubernetes_path}/test"                                                        \
           -o -path "${kubernetes_path}/third_party/forked/etcd*"                                    \
-        \) -prune                                                                                   \
+          -o -path "${kubernetes_path}/cluster/gce" \
+       \) -prune                                                                                   \
       \) -name '*_test.go' | cut -f 2- -d / | xargs -n1 dirname | sort -u | xargs -n1 printf "${OS_GO_PACKAGE}/vendor/%s\n"
     else
       echo "${OS_GO_PACKAGE}/vendor/k8s.io/api/..."
@@ -341,7 +343,7 @@ function os::build::check_binaries() {
     fi
   fi
   if [[ -f "${OS_OUTPUT_BINPATH}/${platform}/openshift-node-config" ]]; then
-    if [[ "$(du -m "${OS_OUTPUT_BINPATH}/${platform}/openshift-node-config" | cut -f 1)" -gt "22" ]]; then
+    if [[ "$(du -m "${OS_OUTPUT_BINPATH}/${platform}/openshift-node-config" | cut -f 1)" -gt "2200" ]]; then
 		  os::log::fatal "openshift-node-config binary has grown substantially. You must have approval before bumping this limit."
     fi
   fi

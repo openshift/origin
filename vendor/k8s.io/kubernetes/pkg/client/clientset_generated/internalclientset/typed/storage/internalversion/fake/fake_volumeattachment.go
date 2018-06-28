@@ -1,5 +1,5 @@
 /*
-Copyright 2018 The Kubernetes Authors.
+Copyright The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -59,7 +59,7 @@ func (c *FakeVolumeAttachments) List(opts v1.ListOptions) (result *storage.Volum
 	if label == nil {
 		label = labels.Everything()
 	}
-	list := &storage.VolumeAttachmentList{}
+	list := &storage.VolumeAttachmentList{ListMeta: obj.(*storage.VolumeAttachmentList).ListMeta}
 	for _, item := range obj.(*storage.VolumeAttachmentList).Items {
 		if label.Matches(labels.Set(item.Labels)) {
 			list.Items = append(list.Items, item)

@@ -71,3 +71,43 @@ func TestNetworksCRUD(t *testing.T) {
 
 	tools.PrintResource(t, newNetwork)
 }
+
+func TestNetworksPortSecurityCRUD(t *testing.T) {
+	client, err := clients.NewNetworkV2Client()
+	if err != nil {
+		t.Fatalf("Unable to create a network client: %v", err)
+	}
+
+	// Create a network without port security
+	network, err := CreateNetworkWithoutPortSecurity(t, client)
+	if err != nil {
+		t.Fatalf("Unable to create network: %v", err)
+	}
+	defer DeleteNetwork(t, client, network.ID)
+
+	var networkWithExtensions struct {
+		networks.Network
+		portsecurity.PortSecurityExt
+	}
+
+	err = networks.Get(client, network.ID).ExtractInto(&networkWithExtensions)
+	if err != nil {
+		t.Fatalf("Unable to retrieve network: %v", err)
+	}
+
+	tools.PrintResource(t, networkWithExtensions)
+
+	iTrue := true
+	networkUpdateOpts := networks.UpdateOpts{}
+	updateOpts := portsecurity.NetworkUpdateOptsExt{
+		UpdateOptsBuilder:   networkUpdateOpts,
+		PortSecurityEnabled: &iTrue,
+	}
+
+	err = networks.Update(client, network.ID, updateOpts).ExtractInto(&networkWithExtensions)
+	if err != nil {
+		t.Fatalf("Unable to update network: %v", err)
+	}
+
+	tools.PrintResource(t, networkWithExtensions)
+}

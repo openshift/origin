@@ -41,7 +41,7 @@ func applyOpenShiftConfigFlags(controllerManagerOptions *options.KubeControllerM
 	if err := applyOpenShiftConfigKubeDefaultProjectSelector(controllerManagerOptions, openshiftConfig); err != nil {
 		return err
 	}
-	return controllerManagerOptions.ApplyTo(controllerManager)
+	return controllerManagerOptions.ApplyTo(controllerManager, "kube-controller-manager")
 }
 
 func applyOpenShiftConfigDefaultProjectSelector(controllerManagerOptions *options.KubeControllerManagerOptions, openshiftConfig map[string]interface{}) error {

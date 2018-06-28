@@ -5,12 +5,12 @@ import (
 	"reflect"
 	"testing"
 
+	rbacv1 "k8s.io/api/rbac/v1"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/kubernetes/pkg/apis/rbac"
-	rbacclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/rbac/internalversion"
 
-	fakeauthorizationclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
+	fakeauthorizationclient "k8s.io/client-go/kubernetes/fake"
+	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
 )
 
 func TestModifyNamedClusterRoleBinding(t *testing.T) {
@@ -20,8 +20,8 @@ func TestModifyNamedClusterRoleBinding(t *testing.T) {
 		inputRoleBindingName        string
 		inputSubjects               []string
 		expectedRoleBindingName     string
-		expectedSubjects            []rbac.Subject
-		existingClusterRoleBindings *rbac.ClusterRoleBindingList
+		expectedSubjects            []rbacv1.Subject
+		existingClusterRoleBindings *rbacv1.ClusterRoleBindingList
 		expectedRoleBindingList     []string
 	}{
 		// no name provided - create "edit" for role "edit"
@@ -32,13 +32,13 @@ func TestModifyNamedClusterRoleBinding(t *testing.T) {
 				"foo",
 			},
 			expectedRoleBindingName: "edit",
-			expectedSubjects: []rbac.Subject{{
-				APIGroup: rbac.GroupName,
+			expectedSubjects: []rbacv1.Subject{{
+				APIGroup: rbacv1.GroupName,
 				Name:     "foo",
-				Kind:     rbac.UserKind,
+				Kind:     rbacv1.UserKind,
 			}},
-			existingClusterRoleBindings: &rbac.ClusterRoleBindingList{
-				Items: []rbac.ClusterRoleBinding{},
+			existingClusterRoleBindings: &rbacv1.ClusterRoleBindingList{
+				Items: []rbacv1.ClusterRoleBinding{},
 			},
 			expectedRoleBindingList: []string{"edit"},
 		},
@@ -51,13 +51,13 @@ func TestModifyNamedClusterRoleBinding(t *testing.T) {
 				"foo",
 			},
 			expectedRoleBindingName: "custom",
-			expectedSubjects: []rbac.Subject{{
-				APIGroup: rbac.GroupName,
+			expectedSubjects: []rbacv1.Subject{{
+				APIGroup: rbacv1.GroupName,
 				Name:     "foo",
-				Kind:     rbac.UserKind,
+				Kind:     rbacv1.UserKind,
 			}},
-			existingClusterRoleBindings: &rbac.ClusterRoleBindingList{
-				Items: []rbac.ClusterRoleBinding{},
+			existingClusterRoleBindings: &rbacv1.ClusterRoleBindingList{
+				Items: []rbacv1.ClusterRoleBinding{},
 			},
 			expectedRoleBindingList: []string{"custom"},
 		},
@@ -70,38 +70,38 @@ func TestModifyNamedClusterRoleBinding(t *testing.T) {
 				"baz",
 			},
 			expectedRoleBindingName: "custom",
-			expectedSubjects: []rbac.Subject{{
-				APIGroup: rbac.GroupName,
+			expectedSubjects: []rbacv1.Subject{{
+				APIGroup: rbacv1.GroupName,
 				Name:     "bar",
-				Kind:     rbac.UserKind,
+				Kind:     rbacv1.UserKind,
 			}, {
-				APIGroup: rbac.GroupName,
+				APIGroup: rbacv1.GroupName,
 				Name:     "baz",
-				Kind:     rbac.UserKind,
+				Kind:     rbacv1.UserKind,
 			}},
-			existingClusterRoleBindings: &rbac.ClusterRoleBindingList{
-				Items: []rbac.ClusterRoleBinding{{
+			existingClusterRoleBindings: &rbacv1.ClusterRoleBindingList{
+				Items: []rbacv1.ClusterRoleBinding{{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "edit",
 					},
-					Subjects: []rbac.Subject{{
-						APIGroup: rbac.GroupName,
+					Subjects: []rbacv1.Subject{{
+						APIGroup: rbacv1.GroupName,
 						Name:     "foo",
-						Kind:     rbac.UserKind,
+						Kind:     rbacv1.UserKind,
 					}},
-					RoleRef: rbac.RoleRef{
+					RoleRef: rbacv1.RoleRef{
 						Name: "edit",
 						Kind: "ClusterRole",
 					}}, {
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "custom",
 					},
-					Subjects: []rbac.Subject{{
-						APIGroup: rbac.GroupName,
+					Subjects: []rbacv1.Subject{{
+						APIGroup: rbacv1.GroupName,
 						Name:     "bar",
-						Kind:     rbac.UserKind,
+						Kind:     rbacv1.UserKind,
 					}},
-					RoleRef: rbac.RoleRef{
+					RoleRef: rbacv1.RoleRef{
 						Name: "edit",
 						Kind: "ClusterRole",
 					}},
@@ -118,38 +118,38 @@ func TestModifyNamedClusterRoleBinding(t *testing.T) {
 				"baz",
 			},
 			expectedRoleBindingName: "custom",
-			expectedSubjects: []rbac.Subject{{
-				APIGroup: rbac.GroupName,
+			expectedSubjects: []rbacv1.Subject{{
+				APIGroup: rbacv1.GroupName,
 				Name:     "bar",
-				Kind:     rbac.UserKind,
+				Kind:     rbacv1.UserKind,
 			}},
-			existingClusterRoleBindings: &rbac.ClusterRoleBindingList{
-				Items: []rbac.ClusterRoleBinding{{
+			existingClusterRoleBindings: &rbacv1.ClusterRoleBindingList{
+				Items: []rbacv1.ClusterRoleBinding{{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "edit",
 					},
-					Subjects: []rbac.Subject{{
-						APIGroup: rbac.GroupName,
+					Subjects: []rbacv1.Subject{{
+						APIGroup: rbacv1.GroupName,
 						Name:     "foo",
-						Kind:     rbac.UserKind,
+						Kind:     rbacv1.UserKind,
 					}},
-					RoleRef: rbac.RoleRef{
+					RoleRef: rbacv1.RoleRef{
 						Name: "edit",
 						Kind: "ClusterRole",
 					}}, {
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "custom",
 					},
-					Subjects: []rbac.Subject{{
-						APIGroup: rbac.GroupName,
+					Subjects: []rbacv1.Subject{{
+						APIGroup: rbacv1.GroupName,
 						Name:     "bar",
-						Kind:     rbac.UserKind,
+						Kind:     rbacv1.UserKind,
 					}, {
-						APIGroup: rbac.GroupName,
+						APIGroup: rbacv1.GroupName,
 						Name:     "baz",
-						Kind:     rbac.UserKind,
+						Kind:     rbacv1.UserKind,
 					}},
-					RoleRef: rbac.RoleRef{
+					RoleRef: rbacv1.RoleRef{
 						Name: "edit",
 						Kind: "ClusterRole",
 					}},
@@ -165,34 +165,34 @@ func TestModifyNamedClusterRoleBinding(t *testing.T) {
 				"baz",
 			},
 			expectedRoleBindingName: "edit-0",
-			expectedSubjects: []rbac.Subject{{
-				APIGroup: rbac.GroupName,
+			expectedSubjects: []rbacv1.Subject{{
+				APIGroup: rbacv1.GroupName,
 				Name:     "baz",
-				Kind:     rbac.UserKind,
+				Kind:     rbacv1.UserKind,
 			}},
-			existingClusterRoleBindings: &rbac.ClusterRoleBindingList{
-				Items: []rbac.ClusterRoleBinding{{
+			existingClusterRoleBindings: &rbacv1.ClusterRoleBindingList{
+				Items: []rbacv1.ClusterRoleBinding{{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "edit",
 					},
-					Subjects: []rbac.Subject{{
-						APIGroup: rbac.GroupName,
+					Subjects: []rbacv1.Subject{{
+						APIGroup: rbacv1.GroupName,
 						Name:     "foo",
-						Kind:     rbac.UserKind,
+						Kind:     rbacv1.UserKind,
 					}},
-					RoleRef: rbac.RoleRef{
+					RoleRef: rbacv1.RoleRef{
 						Name: "edit",
 						Kind: "ClusterRole",
 					}}, {
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "custom",
 					},
-					Subjects: []rbac.Subject{{
-						APIGroup: rbac.GroupName,
+					Subjects: []rbacv1.Subject{{
+						APIGroup: rbacv1.GroupName,
 						Name:     "bar",
-						Kind:     rbac.UserKind,
+						Kind:     rbacv1.UserKind,
 					}},
-					RoleRef: rbac.RoleRef{
+					RoleRef: rbacv1.RoleRef{
 						Name: "edit",
 						Kind: "ClusterRole",
 					}},
@@ -208,38 +208,38 @@ func TestModifyNamedClusterRoleBinding(t *testing.T) {
 				"baz",
 			},
 			expectedRoleBindingName: "edit",
-			expectedSubjects: []rbac.Subject{{
-				APIGroup: rbac.GroupName,
+			expectedSubjects: []rbacv1.Subject{{
+				APIGroup: rbacv1.GroupName,
 				Name:     "foo",
-				Kind:     rbac.UserKind,
+				Kind:     rbacv1.UserKind,
 			}},
-			existingClusterRoleBindings: &rbac.ClusterRoleBindingList{
-				Items: []rbac.ClusterRoleBinding{{
+			existingClusterRoleBindings: &rbacv1.ClusterRoleBindingList{
+				Items: []rbacv1.ClusterRoleBinding{{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "edit",
 					},
-					Subjects: []rbac.Subject{{
-						APIGroup: rbac.GroupName,
+					Subjects: []rbacv1.Subject{{
+						APIGroup: rbacv1.GroupName,
 						Name:     "foo",
-						Kind:     rbac.UserKind,
+						Kind:     rbacv1.UserKind,
 					}, {
-						APIGroup: rbac.GroupName,
+						APIGroup: rbacv1.GroupName,
 						Name:     "baz",
-						Kind:     rbac.UserKind,
+						Kind:     rbacv1.UserKind,
 					}},
-					RoleRef: rbac.RoleRef{
+					RoleRef: rbacv1.RoleRef{
 						Name: "edit",
 						Kind: "ClusterRole",
 					}}, {
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "custom",
 					},
-					Subjects: []rbac.Subject{{
-						APIGroup: rbac.GroupName,
+					Subjects: []rbacv1.Subject{{
+						APIGroup: rbacv1.GroupName,
 						Name:     "bar",
-						Kind:     rbac.UserKind,
+						Kind:     rbacv1.UserKind,
 					}},
-					RoleRef: rbac.RoleRef{
+					RoleRef: rbacv1.RoleRef{
 						Name: "edit",
 						Kind: "ClusterRole",
 					}},
@@ -256,19 +256,19 @@ func TestModifyNamedClusterRoleBinding(t *testing.T) {
 				"bar",
 			},
 			expectedRoleBindingName: "custom",
-			expectedSubjects:        []rbac.Subject{},
-			existingClusterRoleBindings: &rbac.ClusterRoleBindingList{
-				Items: []rbac.ClusterRoleBinding{{
+			expectedSubjects:        []rbacv1.Subject{},
+			existingClusterRoleBindings: &rbacv1.ClusterRoleBindingList{
+				Items: []rbacv1.ClusterRoleBinding{{
 					ObjectMeta: metav1.ObjectMeta{
-						Annotations: map[string]string{rbac.AutoUpdateAnnotationKey: "false"},
+						Annotations: map[string]string{rbacv1.AutoUpdateAnnotationKey: "false"},
 						Name:        "custom",
 					},
-					Subjects: []rbac.Subject{{
-						APIGroup: rbac.GroupName,
+					Subjects: []rbacv1.Subject{{
+						APIGroup: rbacv1.GroupName,
 						Name:     "bar",
-						Kind:     rbac.UserKind,
+						Kind:     rbacv1.UserKind,
 					}},
-					RoleRef: rbac.RoleRef{
+					RoleRef: rbacv1.RoleRef{
 						Name: "edit",
 						Kind: "ClusterRole",
 					}},
@@ -282,22 +282,22 @@ func TestModifyNamedClusterRoleBinding(t *testing.T) {
 			inputRole:               "edit",
 			inputSubjects:           []string{"foo"},
 			expectedRoleBindingName: "edit",
-			expectedSubjects: []rbac.Subject{{
-				APIGroup: rbac.GroupName,
+			expectedSubjects: []rbacv1.Subject{{
+				APIGroup: rbacv1.GroupName,
 				Name:     "foo",
-				Kind:     rbac.UserKind,
+				Kind:     rbacv1.UserKind,
 			}},
-			existingClusterRoleBindings: &rbac.ClusterRoleBindingList{
-				Items: []rbac.ClusterRoleBinding{{
+			existingClusterRoleBindings: &rbacv1.ClusterRoleBindingList{
+				Items: []rbacv1.ClusterRoleBinding{{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "edit",
 					},
-					Subjects: []rbac.Subject{{
-						APIGroup: rbac.GroupName,
+					Subjects: []rbacv1.Subject{{
+						APIGroup: rbacv1.GroupName,
 						Name:     "foo",
-						Kind:     rbac.UserKind,
+						Kind:     rbacv1.UserKind,
 					}},
-					RoleRef: rbac.RoleRef{
+					RoleRef: rbacv1.RoleRef{
 						Name: "edit",
 						Kind: "ClusterRole",
 					}},
@@ -327,8 +327,8 @@ func TestModifyNamedLocalRoleBinding(t *testing.T) {
 		inputRoleBindingName    string
 		inputSubjects           []string
 		expectedRoleBindingName string
-		expectedSubjects        []rbac.Subject
-		existingRoleBindings    *rbac.RoleBindingList
+		expectedSubjects        []rbacv1.Subject
+		existingRoleBindings    *rbacv1.RoleBindingList
 		expectedRoleBindingList []string
 	}{
 		// no name provided - create "edit" for role "edit"
@@ -339,13 +339,13 @@ func TestModifyNamedLocalRoleBinding(t *testing.T) {
 				"foo",
 			},
 			expectedRoleBindingName: "edit",
-			expectedSubjects: []rbac.Subject{{
-				APIGroup: rbac.GroupName,
+			expectedSubjects: []rbacv1.Subject{{
+				APIGroup: rbacv1.GroupName,
 				Name:     "foo",
-				Kind:     rbac.UserKind,
+				Kind:     rbacv1.UserKind,
 			}},
-			existingRoleBindings: &rbac.RoleBindingList{
-				Items: []rbac.RoleBinding{},
+			existingRoleBindings: &rbacv1.RoleBindingList{
+				Items: []rbacv1.RoleBinding{},
 			},
 			expectedRoleBindingList: []string{"edit"},
 		},
@@ -358,13 +358,13 @@ func TestModifyNamedLocalRoleBinding(t *testing.T) {
 				"foo",
 			},
 			expectedRoleBindingName: "custom",
-			expectedSubjects: []rbac.Subject{{
-				APIGroup: rbac.GroupName,
+			expectedSubjects: []rbacv1.Subject{{
+				APIGroup: rbacv1.GroupName,
 				Name:     "foo",
-				Kind:     rbac.UserKind,
+				Kind:     rbacv1.UserKind,
 			}},
-			existingRoleBindings: &rbac.RoleBindingList{
-				Items: []rbac.RoleBinding{},
+			existingRoleBindings: &rbacv1.RoleBindingList{
+				Items: []rbacv1.RoleBinding{},
 			},
 			expectedRoleBindingList: []string{"custom"},
 		},
@@ -376,23 +376,23 @@ func TestModifyNamedLocalRoleBinding(t *testing.T) {
 				"baz",
 			},
 			expectedRoleBindingName: "edit-0",
-			expectedSubjects: []rbac.Subject{{
-				APIGroup: rbac.GroupName,
+			expectedSubjects: []rbacv1.Subject{{
+				APIGroup: rbacv1.GroupName,
 				Name:     "baz",
-				Kind:     rbac.UserKind,
+				Kind:     rbacv1.UserKind,
 			}},
-			existingRoleBindings: &rbac.RoleBindingList{
-				Items: []rbac.RoleBinding{{
+			existingRoleBindings: &rbacv1.RoleBindingList{
+				Items: []rbacv1.RoleBinding{{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "edit",
 						Namespace: metav1.NamespaceDefault,
 					},
-					Subjects: []rbac.Subject{{
-						APIGroup: rbac.GroupName,
+					Subjects: []rbacv1.Subject{{
+						APIGroup: rbacv1.GroupName,
 						Name:     "foo",
-						Kind:     rbac.UserKind,
+						Kind:     rbacv1.UserKind,
 					}},
-					RoleRef: rbac.RoleRef{
+					RoleRef: rbacv1.RoleRef{
 						Name: "edit",
 						Kind: "Role",
 					}}, {
@@ -400,12 +400,12 @@ func TestModifyNamedLocalRoleBinding(t *testing.T) {
 						Name:      "custom",
 						Namespace: metav1.NamespaceDefault,
 					},
-					Subjects: []rbac.Subject{{
-						APIGroup: rbac.GroupName,
+					Subjects: []rbacv1.Subject{{
+						APIGroup: rbacv1.GroupName,
 						Name:     "bar",
-						Kind:     rbac.UserKind,
+						Kind:     rbacv1.UserKind,
 					}},
-					RoleRef: rbac.RoleRef{
+					RoleRef: rbacv1.RoleRef{
 						Name: "edit",
 						Kind: "Role",
 					}},
@@ -421,27 +421,27 @@ func TestModifyNamedLocalRoleBinding(t *testing.T) {
 				"foo",
 			},
 			expectedRoleBindingName: "edit",
-			expectedSubjects: []rbac.Subject{{
-				APIGroup: rbac.GroupName,
+			expectedSubjects: []rbacv1.Subject{{
+				APIGroup: rbacv1.GroupName,
 				Name:     "baz",
-				Kind:     rbac.UserKind,
+				Kind:     rbacv1.UserKind,
 			}},
-			existingRoleBindings: &rbac.RoleBindingList{
-				Items: []rbac.RoleBinding{{
+			existingRoleBindings: &rbacv1.RoleBindingList{
+				Items: []rbacv1.RoleBinding{{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "edit",
 						Namespace: metav1.NamespaceDefault,
 					},
-					Subjects: []rbac.Subject{{
-						APIGroup: rbac.GroupName,
+					Subjects: []rbacv1.Subject{{
+						APIGroup: rbacv1.GroupName,
 						Name:     "foo",
-						Kind:     rbac.UserKind,
+						Kind:     rbacv1.UserKind,
 					}, {
-						APIGroup: rbac.GroupName,
+						APIGroup: rbacv1.GroupName,
 						Name:     "baz",
-						Kind:     rbac.UserKind,
+						Kind:     rbacv1.UserKind,
 					}},
-					RoleRef: rbac.RoleRef{
+					RoleRef: rbacv1.RoleRef{
 						Name: "edit",
 						Kind: "Role",
 					}}, {
@@ -449,12 +449,12 @@ func TestModifyNamedLocalRoleBinding(t *testing.T) {
 						Name:      "custom",
 						Namespace: metav1.NamespaceDefault,
 					},
-					Subjects: []rbac.Subject{{
-						APIGroup: rbac.GroupName,
+					Subjects: []rbacv1.Subject{{
+						APIGroup: rbacv1.GroupName,
 						Name:     "bar",
-						Kind:     rbac.UserKind,
+						Kind:     rbacv1.UserKind,
 					}},
-					RoleRef: rbac.RoleRef{
+					RoleRef: rbacv1.RoleRef{
 						Name: "edit",
 						Kind: "Role",
 					}},
@@ -471,27 +471,27 @@ func TestModifyNamedLocalRoleBinding(t *testing.T) {
 				"baz",
 			},
 			expectedRoleBindingName: "custom",
-			expectedSubjects: []rbac.Subject{{
-				APIGroup: rbac.GroupName,
+			expectedSubjects: []rbacv1.Subject{{
+				APIGroup: rbacv1.GroupName,
 				Name:     "bar",
-				Kind:     rbac.UserKind,
+				Kind:     rbacv1.UserKind,
 			}, {
-				APIGroup: rbac.GroupName,
+				APIGroup: rbacv1.GroupName,
 				Name:     "baz",
-				Kind:     rbac.UserKind,
+				Kind:     rbacv1.UserKind,
 			}},
-			existingRoleBindings: &rbac.RoleBindingList{
-				Items: []rbac.RoleBinding{{
+			existingRoleBindings: &rbacv1.RoleBindingList{
+				Items: []rbacv1.RoleBinding{{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "edit",
 						Namespace: metav1.NamespaceDefault,
 					},
-					Subjects: []rbac.Subject{{
-						APIGroup: rbac.GroupName,
+					Subjects: []rbacv1.Subject{{
+						APIGroup: rbacv1.GroupName,
 						Name:     "foo",
-						Kind:     rbac.UserKind,
+						Kind:     rbacv1.UserKind,
 					}},
-					RoleRef: rbac.RoleRef{
+					RoleRef: rbacv1.RoleRef{
 						Name: "edit",
 						Kind: "Role",
 					}}, {
@@ -499,12 +499,12 @@ func TestModifyNamedLocalRoleBinding(t *testing.T) {
 						Name:      "custom",
 						Namespace: metav1.NamespaceDefault,
 					},
-					Subjects: []rbac.Subject{{
-						APIGroup: rbac.GroupName,
+					Subjects: []rbacv1.Subject{{
+						APIGroup: rbacv1.GroupName,
 						Name:     "bar",
-						Kind:     rbac.UserKind,
+						Kind:     rbacv1.UserKind,
 					}},
-					RoleRef: rbac.RoleRef{
+					RoleRef: rbacv1.RoleRef{
 						Name: "edit",
 						Kind: "Role",
 					}},
@@ -521,23 +521,23 @@ func TestModifyNamedLocalRoleBinding(t *testing.T) {
 				"baz",
 			},
 			expectedRoleBindingName: "custom",
-			expectedSubjects: []rbac.Subject{{
-				APIGroup: rbac.GroupName,
+			expectedSubjects: []rbacv1.Subject{{
+				APIGroup: rbacv1.GroupName,
 				Name:     "bar",
-				Kind:     rbac.UserKind,
+				Kind:     rbacv1.UserKind,
 			}},
-			existingRoleBindings: &rbac.RoleBindingList{
-				Items: []rbac.RoleBinding{{
+			existingRoleBindings: &rbacv1.RoleBindingList{
+				Items: []rbacv1.RoleBinding{{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "edit",
 						Namespace: metav1.NamespaceDefault,
 					},
-					Subjects: []rbac.Subject{{
-						APIGroup: rbac.GroupName,
+					Subjects: []rbacv1.Subject{{
+						APIGroup: rbacv1.GroupName,
 						Name:     "foo",
-						Kind:     rbac.UserKind,
+						Kind:     rbacv1.UserKind,
 					}},
-					RoleRef: rbac.RoleRef{
+					RoleRef: rbacv1.RoleRef{
 						Name: "edit",
 						Kind: "Role",
 					}}, {
@@ -545,16 +545,16 @@ func TestModifyNamedLocalRoleBinding(t *testing.T) {
 						Name:      "custom",
 						Namespace: metav1.NamespaceDefault,
 					},
-					Subjects: []rbac.Subject{{
-						APIGroup: rbac.GroupName,
+					Subjects: []rbacv1.Subject{{
+						APIGroup: rbacv1.GroupName,
 						Name:     "bar",
-						Kind:     rbac.UserKind,
+						Kind:     rbacv1.UserKind,
 					}, {
-						APIGroup: rbac.GroupName,
+						APIGroup: rbacv1.GroupName,
 						Name:     "baz",
-						Kind:     rbac.UserKind,
+						Kind:     rbacv1.UserKind,
 					}},
-					RoleRef: rbac.RoleRef{
+					RoleRef: rbacv1.RoleRef{
 						Name: "edit",
 						Kind: "Role",
 					}},
@@ -578,7 +578,7 @@ func TestModifyNamedLocalRoleBinding(t *testing.T) {
 	}
 }
 
-func getRoleBindingAbstractionsList(rbacClient rbacclient.RbacInterface, namespace string) ([]*roleBindingAbstraction, error) {
+func getRoleBindingAbstractionsList(rbacClient rbacv1client.RbacV1Interface, namespace string) ([]*roleBindingAbstraction, error) {
 	ret := make([]*roleBindingAbstraction, 0)
 	// see if we can find an existing binding that points to the role in question.
 	if len(namespace) > 0 {
@@ -605,7 +605,8 @@ func getRoleBindingAbstractionsList(rbacClient rbacclient.RbacInterface, namespa
 
 	return ret, nil
 }
-func modifyRoleAndCheck(t *testing.T, o *RoleModificationOptions, tcName, action string, expectedName string, expectedSubjects []rbac.Subject, expectedBindings []string) {
+func modifyRoleAndCheck(t *testing.T, o *RoleModificationOptions, tcName, action string, expectedName string, expectedSubjects []rbacv1.Subject,
+	expectedBindings []string) {
 	var err error
 	switch action {
 	case "add":

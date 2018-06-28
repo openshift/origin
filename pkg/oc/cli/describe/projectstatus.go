@@ -63,6 +63,7 @@ const ForbiddenListWarning = "Forbidden"
 // ProjectStatusDescriber generates extended information about a Project
 type ProjectStatusDescriber struct {
 	KubeClient kclientset.Interface
+	RESTMapper meta.RESTMapper
 
 	// OpenShift clients
 	ProjectClient projectclient.ProjectInterface
@@ -149,7 +150,7 @@ func (d *ProjectStatusDescriber) MakeGraph(namespace string) (osgraph.Graph, set
 	kubeedges.AddAllRequestedServiceAccountEdges(g)
 	kubeedges.AddAllMountableSecretEdges(g)
 	kubeedges.AddAllMountedSecretEdges(g)
-	kubeedges.AddHPAScaleRefEdges(g)
+	kubeedges.AddHPAScaleRefEdges(g, d.RESTMapper)
 	buildedges.AddAllInputOutputEdges(g)
 	buildedges.AddAllBuildEdges(g)
 	appsedges.AddAllTriggerDeploymentConfigsEdges(g)

@@ -1,7 +1,10 @@
 package identitymapper
 
 import (
+	"context"
+
 	"github.com/golang/glog"
+
 	corev1 "k8s.io/api/core/v1"
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -18,7 +21,7 @@ import (
 // The preferredUserName is available to the strategies
 type UserForNewIdentityGetter interface {
 	// UserForNewIdentity returns a persisted User object for the given Identity, creating it if needed
-	UserForNewIdentity(ctx apirequest.Context, preferredUserName string, identity *userapi.Identity) (*userapi.User, error)
+	UserForNewIdentity(ctx context.Context, preferredUserName string, identity *userapi.Identity) (*userapi.User, error)
 }
 
 var _ = authapi.UserIdentityMapper(&provisioningIdentityMapper{})
@@ -73,7 +76,7 @@ func (p *provisioningIdentityMapper) userForWithRetries(info authapi.UserIdentit
 }
 
 // createIdentityAndMapping creates an identity with a valid user reference for the given identity info
-func (p *provisioningIdentityMapper) createIdentityAndMapping(ctx apirequest.Context, info authapi.UserIdentityInfo) (kuser.Info, error) {
+func (p *provisioningIdentityMapper) createIdentityAndMapping(ctx context.Context, info authapi.UserIdentityInfo) (kuser.Info, error) {
 	// Build the part of the identity we know about
 	identity := &userapi.Identity{
 		ObjectMeta: metav1.ObjectMeta{
@@ -106,7 +109,7 @@ func (p *provisioningIdentityMapper) createIdentityAndMapping(ctx apirequest.Con
 	}, nil
 }
 
-func (p *provisioningIdentityMapper) getMapping(ctx apirequest.Context, identity *userapi.Identity) (kuser.Info, error) {
+func (p *provisioningIdentityMapper) getMapping(ctx context.Context, identity *userapi.Identity) (kuser.Info, error) {
 	if len(identity.User.Name) == 0 {
 		return nil, kerrs.NewNotFound(userapi.Resource("useridentitymapping"), identity.Name)
 	}

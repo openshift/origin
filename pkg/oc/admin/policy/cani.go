@@ -111,7 +111,10 @@ func (o *canIOptions) Complete(cmd *cobra.Command, f kcmdutil.Factory, args []st
 		if o.ListAll {
 			return errors.New("VERB RESOURCE and --list are mutually exclusive")
 		}
-		restMapper, _ := f.Object()
+		restMapper, err := f.ToRESTMapper()
+		if err != nil {
+			return err
+		}
 		o.Verb = args[0]
 		o.Resource = resourceFor(restMapper, args[1])
 	default:
@@ -120,7 +123,7 @@ func (o *canIOptions) Complete(cmd *cobra.Command, f kcmdutil.Factory, args []st
 		}
 	}
 
-	clientConfig, err := f.ClientConfig()
+	clientConfig, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}
@@ -141,7 +144,7 @@ func (o *canIOptions) Complete(cmd *cobra.Command, f kcmdutil.Factory, args []st
 
 	o.Namespace = metav1.NamespaceAll
 	if !o.AllNamespaces {
-		o.Namespace, _, err = f.DefaultNamespace()
+		o.Namespace, _, err = f.ToRawKubeConfigLoader().Namespace()
 		if err != nil {
 			return err
 		}

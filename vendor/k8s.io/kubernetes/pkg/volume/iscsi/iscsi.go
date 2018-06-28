@@ -118,7 +118,6 @@ func (plugin *iscsiPlugin) newMounterInternal(spec *volume.Spec, podUID types.UI
 		//Add volume metrics
 		iscsiDisk.MetricsProvider = volume.NewMetricsStatFS(iscsiDisk.GetPath())
 	}
-
 	return &iscsiDiskMounter{
 		iscsiDisk:    iscsiDisk,
 		fsType:       fsType,
@@ -366,6 +365,10 @@ var _ volume.BlockVolumeMapper = &iscsiDiskMapper{}
 
 func (b *iscsiDiskMapper) SetUpDevice() (string, error) {
 	return "", nil
+}
+
+func (b *iscsiDiskMapper) MapDevice(devicePath, globalMapPath, volumeMapPath, volumeMapName string, podUID types.UID) error {
+	return ioutil.MapBlockVolume(devicePath, globalMapPath, volumeMapPath, volumeMapName, podUID)
 }
 
 type iscsiDiskUnmapper struct {

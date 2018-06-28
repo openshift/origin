@@ -43,7 +43,7 @@ func (c *FakeGroups) List(opts v1.ListOptions) (result *user.GroupList, err erro
 	if label == nil {
 		label = labels.Everything()
 	}
-	list := &user.GroupList{}
+	list := &user.GroupList{ListMeta: obj.(*user.GroupList).ListMeta}
 	for _, item := range obj.(*user.GroupList).Items {
 		if label.Matches(labels.Set(item.Labels)) {
 			list.Items = append(list.Items, item)

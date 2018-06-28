@@ -42,8 +42,6 @@ import (
 // proxyHandler provides a http.Handler which will proxy traffic to locations
 // specified by items implementing Redirector.
 type proxyHandler struct {
-	contextMapper genericapirequest.RequestContextMapper
-
 	// localDelegate is used to satisfy local APIServices
 	localDelegate http.Handler
 
@@ -104,12 +102,7 @@ func (r *proxyHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	ctx, ok := r.contextMapper.Get(req)
-	if !ok {
-		http.Error(w, "missing context", http.StatusInternalServerError)
-		return
-	}
-	user, ok := genericapirequest.UserFrom(ctx)
+	user, ok := genericapirequest.UserFrom(req.Context())
 	if !ok {
 		http.Error(w, "missing user", http.StatusInternalServerError)
 		return
@@ -216,10 +209,10 @@ func (r *proxyHandler) updateAPIService(apiService *apiregistrationapi.APIServic
 		serviceAvailable: apiregistrationapi.IsAPIServiceConditionTrue(apiService, apiregistrationapi.Available),
 	}
 	newInfo.proxyRoundTripper, newInfo.transportBuildingError = restclient.TransportFor(newInfo.restConfig)
-	if newInfo.transportBuildingError == nil && r.proxyTransport != nil && r.proxyTransport.Dial != nil {
+	if newInfo.transportBuildingError == nil && r.proxyTransport != nil && r.proxyTransport.DialContext != nil {
 		switch transport := newInfo.proxyRoundTripper.(type) {
 		case *http.Transport:
-			transport.Dial = r.proxyTransport.Dial
+			transport.DialContext = r.proxyTransport.DialContext
 		default:
 			newInfo.transportBuildingError = fmt.Errorf("unable to set dialer for %s/%s as rest transport is of type %T", apiService.Spec.Service.Namespace, apiService.Spec.Service.Name, newInfo.proxyRoundTripper)
 			glog.Warning(newInfo.transportBuildingError.Error())

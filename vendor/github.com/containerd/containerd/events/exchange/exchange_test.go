@@ -2,13 +2,12 @@ package exchange
 
 import (
 	"context"
-	"fmt"
 	"reflect"
 	"sync"
 	"testing"
 	"time"
 
-	v1 "github.com/containerd/containerd/api/services/events/v1"
+	eventstypes "github.com/containerd/containerd/api/events"
 	"github.com/containerd/containerd/errdefs"
 	"github.com/containerd/containerd/events"
 	"github.com/containerd/containerd/namespaces"
@@ -19,9 +18,9 @@ import (
 func TestExchangeBasic(t *testing.T) {
 	ctx := namespaces.WithNamespace(context.Background(), t.Name())
 	testevents := []events.Event{
-		&v1.ContainerCreate{ID: "asdf"},
-		&v1.ContainerCreate{ID: "qwer"},
-		&v1.ContainerCreate{ID: "zxcv"},
+		&eventstypes.ContainerCreate{ID: "asdf"},
+		&eventstypes.ContainerCreate{ID: "qwer"},
+		&eventstypes.ContainerCreate{ID: "zxcv"},
 	}
 	exchange := NewExchange()
 
@@ -39,13 +38,14 @@ func TestExchangeBasic(t *testing.T) {
 	t.Log("publish")
 	var wg sync.WaitGroup
 	wg.Add(1)
+	errChan := make(chan error)
 	go func() {
 		defer wg.Done()
+		defer close(errChan)
 		for _, event := range testevents {
-			fmt.Println("publish", event)
 			if err := exchange.Publish(ctx, "/test", event); err != nil {
-				fmt.Println("publish error", err)
-				t.Fatal(err)
+				errChan <- err
+				return
 			}
 		}
 
@@ -54,9 +54,12 @@ func TestExchangeBasic(t *testing.T) {
 
 	t.Log("waiting")
 	wg.Wait()
+	if err := <-errChan; err != nil {
+		t.Fatal(err)
+	}
 
 	for _, subscriber := range []struct {
-		eventq <-chan *v1.Envelope
+		eventq <-chan *events.Envelope
 		errq   <-chan error
 		cancel func()
 	}{
@@ -80,7 +83,7 @@ func TestExchangeBasic(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				received = append(received, ev.(*v1.ContainerCreate))
+				received = append(received, ev.(*eventstypes.ContainerCreate))
 			case err := <-subscriber.errq:
 				if err != nil {
 					t.Fatal(err)
@@ -118,7 +121,7 @@ func TestExchangeValidateTopic(t *testing.T) {
 		},
 	} {
 		t.Run(testcase.input, func(t *testing.T) {
-			event := &v1.ContainerCreate{ID: t.Name()}
+			event := &eventstypes.ContainerCreate{ID: t.Name()}
 			if err := exchange.Publish(ctx, testcase.input, event); errors.Cause(err) != testcase.err {
 				if err == nil {
 					t.Fatalf("expected error %v, received nil", testcase.err)
@@ -132,7 +135,7 @@ func TestExchangeValidateTopic(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			envelope := v1.Envelope{
+			envelope := events.Envelope{
 				Timestamp: time.Now().UTC(),
 				Namespace: namespace,
 				Topic:     testcase.input,

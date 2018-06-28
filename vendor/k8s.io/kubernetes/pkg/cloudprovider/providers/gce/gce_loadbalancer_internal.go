@@ -578,8 +578,7 @@ func shareBackendService(svc *v1.Service) bool {
 	return GetLoadBalancerAnnotationBackendShare(svc) && !v1_service.RequestsOnlyLocalTraffic(svc)
 }
 
-func backendsFromGroupLinks(igLinks []string) []*compute.Backend {
-	var backends []*compute.Backend
+func backendsFromGroupLinks(igLinks []string) (backends []*compute.Backend) {
 	for _, igLink := range igLinks {
 		backends = append(backends, &compute.Backend{
 			Group: igLink,

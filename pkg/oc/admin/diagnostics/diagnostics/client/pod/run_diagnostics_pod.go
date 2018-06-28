@@ -13,7 +13,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
+	"k8s.io/kubernetes/pkg/kubectl/polymorphichelpers"
 
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	poddiag "github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/client/pod/in_pod"
@@ -31,7 +32,7 @@ type DiagnosticPod struct {
 	KubeClient          kclientset.Interface
 	Namespace           string
 	Level               int
-	Factory             kcmdutil.Factory
+	Factory             genericclioptions.RESTClientGetter
 	PreventModification bool
 	ImageTemplate       variable.ImageTemplate
 }
@@ -137,7 +138,7 @@ func (d *DiagnosticPod) processDiagnosticPodResults(protoPod *kapi.Pod, imageNam
 		Follow:     true,
 		LimitBytes: &bytelim,
 	}
-	req, err := d.Factory.LogsForObject(pod, podLogsOpts, 1*time.Minute)
+	req, err := polymorphichelpers.LogsForObjectFn(d.Factory, pod, podLogsOpts, 1*time.Minute)
 	if err != nil {
 		r.Error("DCli2005", err, fmt.Sprintf("The request for diagnostic pod logs failed unexpectedly. Error: (%T) %[1]v", err))
 		return

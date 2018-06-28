@@ -12,16 +12,10 @@ import (
 
 // apply sets config settings on the server process
 func apply(ctx context.Context, config *Config) error {
-	if config.Subreaper {
-		log.G(ctx).Info("setting subreaper...")
-		if err := sys.SetSubreaper(1); err != nil {
-			return err
-		}
-	}
 	if config.OOMScore != 0 {
-		log.G(ctx).Infof("changing OOM score to %d", config.OOMScore)
+		log.G(ctx).Debugf("changing OOM score to %d", config.OOMScore)
 		if err := sys.SetOOMScore(os.Getpid(), config.OOMScore); err != nil {
-			return err
+			log.G(ctx).WithError(err).Errorf("failed to change OOM score to %d", config.OOMScore)
 		}
 	}
 	if config.Cgroup.Path != "" {

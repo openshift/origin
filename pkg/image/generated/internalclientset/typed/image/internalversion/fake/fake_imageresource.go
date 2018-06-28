@@ -43,7 +43,7 @@ func (c *FakeImages) List(opts v1.ListOptions) (result *image.ImageList, err err
 	if label == nil {
 		label = labels.Everything()
 	}
-	list := &image.ImageList{}
+	list := &image.ImageList{ListMeta: obj.(*image.ImageList).ListMeta}
 	for _, item := range obj.(*image.ImageList).Items {
 		if label.Matches(labels.Set(item.Labels)) {
 			list.Items = append(list.Items, item)

@@ -9,12 +9,14 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/kubectl/resource"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
+	"github.com/openshift/origin/pkg/oc/util/ocscheme"
 )
 
 var (
@@ -67,6 +69,7 @@ type BuildHookOptions struct {
 	Local       bool
 	ShortOutput bool
 	Mapper      meta.RESTMapper
+	Client      dynamic.Interface
 
 	PrintObject func([]*resource.Info) error
 
@@ -129,16 +132,19 @@ func (o *BuildHookOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args
 		return kcmdutil.UsageErrorf(cmd, "one or more build configs must be specified as <name> or <resource>/<name>")
 	}
 
-	cmdNamespace, explicit, err := f.DefaultNamespace()
+	cmdNamespace, explicit, err := f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
 	}
 
 	o.Cmd = cmd
 
-	mapper, _ := f.Object()
+	mapper, err := f.ToRESTMapper()
+	if err != nil {
+		return err
+	}
 	o.Builder = f.NewBuilder().
-		Internal().
+		WithScheme(ocscheme.ReadingInternalScheme).
 		LocalParam(o.Local).
 		ContinueOnError().
 		NamespaceParam(cmdNamespace).DefaultNamespace().
@@ -158,12 +164,21 @@ func (o *BuildHookOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args
 
 	o.Output = kcmdutil.GetFlagString(cmd, "output")
 	o.PrintObject = func(infos []*resource.Info) error {
-		return clientcmd.PrintResourceInfos(f, cmd, o.Local, infos, o.Out)
+		return clientcmd.PrintResourceInfos(cmd, infos, o.Out)
 	}
 
 	o.Encoder = kcmdutil.InternalVersionJSONEncoder()
 	o.ShortOutput = kcmdutil.GetFlagString(cmd, "output") == "name"
 	o.Mapper = mapper
+
+	clientConfig, err := f.ToRESTConfig()
+	if err != nil {
+		return err
+	}
+	o.Client, err = dynamic.NewForConfig(clientConfig)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -236,15 +251,14 @@ func (o *BuildHookOptions) Run() error {
 			continue
 		}
 
-		obj, err := resource.NewHelper(info.Client, info.Mapping).Patch(info.Namespace, info.Name, types.StrategicMergePatchType, patch.Patch)
+		actual, err := o.Client.Resource(info.Mapping.Resource).Namespace(info.Namespace).Patch(info.Name, types.StrategicMergePatchType, patch.Patch)
 		if err != nil {
 			fmt.Fprintf(o.Err, "error: %v\n", err)
 			failed = true
 			continue
 		}
 
-		info.Refresh(obj, true)
-		kcmdutil.PrintSuccess(o.ShortOutput, o.Out, info.Object, false, "updated")
+		kcmdutil.PrintSuccess(o.ShortOutput, o.Out, actual, false, "updated")
 	}
 	if failed {
 		return kcmdutil.ErrExit

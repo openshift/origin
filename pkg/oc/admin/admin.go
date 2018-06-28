@@ -9,6 +9,7 @@ import (
 	kubecmd "k8s.io/kubernetes/pkg/kubectl/cmd"
 	ktemplates "k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	"github.com/openshift/origin/pkg/cmd/templates"
@@ -32,7 +33,6 @@ import (
 	"github.com/openshift/origin/pkg/oc/admin/router"
 	"github.com/openshift/origin/pkg/oc/admin/top"
 	"github.com/openshift/origin/pkg/oc/cli/cmd"
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	"github.com/openshift/origin/pkg/oc/experimental/buildchain"
 	exipfailover "github.com/openshift/origin/pkg/oc/experimental/ipfailover"
 )
@@ -43,7 +43,7 @@ var adminLong = ktemplates.LongDesc(`
 	Commands for managing a cluster are exposed here. Many administrative
 	actions involve interaction with the command-line client as well.`)
 
-func NewCommandAdmin(name, fullName string, in io.Reader, out io.Writer, errout io.Writer) *cobra.Command {
+func NewCommandAdmin(name, fullName string, f kcmdutil.Factory, in io.Reader, out io.Writer, errout io.Writer) *cobra.Command {
 	// Main command
 	cmds := &cobra.Command{
 		Use:   name,
@@ -52,7 +52,7 @@ func NewCommandAdmin(name, fullName string, in io.Reader, out io.Writer, errout 
 		Run:   kcmdutil.DefaultSubCommandRun(out),
 	}
 
-	f := clientcmd.New(cmds.PersistentFlags())
+	streams := genericclioptions.IOStreams{Out: out, ErrOut: errout}
 
 	groups := ktemplates.CommandGroups{
 		{
@@ -70,7 +70,7 @@ func NewCommandAdmin(name, fullName string, in io.Reader, out io.Writer, errout 
 				policy.NewCmdPolicy(policy.PolicyRecommendedName, fullName+" "+policy.PolicyRecommendedName, f, out, errout),
 				groups.NewCmdGroups(groups.GroupsRecommendedName, fullName+" "+groups.GroupsRecommendedName, f, out, errout),
 				cert.NewCmdCert(cert.CertRecommendedName, fullName+" "+cert.CertRecommendedName, out, errout),
-				kubecmd.NewCmdCertificate(f, out),
+				kubecmd.NewCmdCertificate(f, streams),
 			},
 		},
 		{
@@ -78,17 +78,17 @@ func NewCommandAdmin(name, fullName string, in io.Reader, out io.Writer, errout 
 			Commands: []*cobra.Command{
 				admin.NewCommandNodeConfig(admin.NodeConfigCommandName, fullName+" "+admin.NodeConfigCommandName, out),
 				node.NewCommandManageNode(f, node.ManageNodeCommandName, fullName+" "+node.ManageNodeCommandName, out, errout),
-				cmdutil.ReplaceCommandName("kubectl", fullName, ktemplates.Normalize(kubecmd.NewCmdCordon(f, out))),
-				cmdutil.ReplaceCommandName("kubectl", fullName, ktemplates.Normalize(kubecmd.NewCmdUncordon(f, out))),
-				cmdutil.ReplaceCommandName("kubectl", fullName, kubecmd.NewCmdDrain(f, out, errout)),
-				cmdutil.ReplaceCommandName("kubectl", fullName, ktemplates.Normalize(kubecmd.NewCmdTaint(f, out))),
+				cmdutil.ReplaceCommandName("kubectl", fullName, ktemplates.Normalize(kubecmd.NewCmdCordon(f, streams))),
+				cmdutil.ReplaceCommandName("kubectl", fullName, ktemplates.Normalize(kubecmd.NewCmdUncordon(f, streams))),
+				cmdutil.ReplaceCommandName("kubectl", fullName, kubecmd.NewCmdDrain(f, streams)),
+				cmdutil.ReplaceCommandName("kubectl", fullName, ktemplates.Normalize(kubecmd.NewCmdTaint(f, streams))),
 				network.NewCmdPodNetwork(network.PodNetworkCommandName, fullName+" "+network.PodNetworkCommandName, f, out, errout),
 			},
 		},
 		{
 			Message: "Maintenance:",
 			Commands: []*cobra.Command{
-				diagnostics.NewCmdDiagnostics(diagnostics.DiagnosticsRecommendedName, fullName+" "+diagnostics.DiagnosticsRecommendedName, out),
+				diagnostics.NewCmdDiagnostics(diagnostics.DiagnosticsRecommendedName, fullName+" "+diagnostics.DiagnosticsRecommendedName, f, out),
 				prune.NewCommandPrune(prune.PruneRecommendedName, fullName+" "+prune.PruneRecommendedName, f, out, errout),
 				buildchain.NewCmdBuildChain(name, fullName+" "+buildchain.BuildChainRecommendedCommandName, f, out),
 				migrate.NewCommandMigrate(

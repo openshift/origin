@@ -25,10 +25,11 @@ import (
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 )
 
-func TestIsDefaultNamespaceResource(t *testing.T) {
+func TestIsNativeResource(t *testing.T) {
 	testCases := []struct {
 		resourceName v1.ResourceName
 		expectVal    bool
@@ -58,7 +59,7 @@ func TestIsDefaultNamespaceResource(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(fmt.Sprintf("resourceName input=%s, expected value=%v", tc.resourceName, tc.expectVal), func(t *testing.T) {
 			t.Parallel()
-			v := IsDefaultNamespaceResource(tc.resourceName)
+			v := IsNativeResource(tc.resourceName)
 			if v != tc.expectVal {
 				t.Errorf("Got %v but expected %v", v, tc.expectVal)
 			}
@@ -124,10 +125,6 @@ func TestIsOvercommitAllowed(t *testing.T) {
 		{
 			resourceName: "kubernetes.io/resource-foo",
 			expectVal:    true,
-		},
-		{
-			resourceName: "alpha.kubernetes.io/nvidia-gpu",
-			expectVal:    false,
 		},
 		{
 			resourceName: "hugepages-100m",
@@ -292,6 +289,71 @@ func TestNodeSelectorRequirementsAsSelector(t *testing.T) {
 
 	for i, tc := range tc {
 		out, err := NodeSelectorRequirementsAsSelector(tc.in)
+		if err == nil && tc.expectErr {
+			t.Errorf("[%v]expected error but got none.", i)
+		}
+		if err != nil && !tc.expectErr {
+			t.Errorf("[%v]did not expect error but got: %v", i, err)
+		}
+		if !reflect.DeepEqual(out, tc.out) {
+			t.Errorf("[%v]expected:\n\t%+v\nbut got:\n\t%+v", i, tc.out, out)
+		}
+	}
+}
+
+func TestTopologySelectorRequirementsAsSelector(t *testing.T) {
+	mustParse := func(s string) labels.Selector {
+		out, e := labels.Parse(s)
+		if e != nil {
+			panic(e)
+		}
+		return out
+	}
+	tc := []struct {
+		in        []v1.TopologySelectorLabelRequirement
+		out       labels.Selector
+		expectErr bool
+	}{
+		{in: nil, out: labels.Nothing()},
+		{in: []v1.TopologySelectorLabelRequirement{}, out: labels.Nothing()},
+		{
+			in: []v1.TopologySelectorLabelRequirement{{
+				Key:    "foo",
+				Values: []string{"bar", "baz"},
+			}},
+			out: mustParse("foo in (baz,bar)"),
+		},
+		{
+			in: []v1.TopologySelectorLabelRequirement{{
+				Key:    "foo",
+				Values: []string{},
+			}},
+			expectErr: true,
+		},
+		{
+			in: []v1.TopologySelectorLabelRequirement{
+				{
+					Key:    "foo",
+					Values: []string{"bar", "baz"},
+				},
+				{
+					Key:    "invalid",
+					Values: []string{},
+				},
+			},
+			expectErr: true,
+		},
+		{
+			in: []v1.TopologySelectorLabelRequirement{{
+				Key:    "/invalidkey",
+				Values: []string{"bar", "baz"},
+			}},
+			expectErr: true,
+		},
+	}
+
+	for i, tc := range tc {
+		out, err := TopologySelectorRequirementsAsSelector(tc.in)
 		if err == nil && tc.expectErr {
 			t.Errorf("[%v]expected error but got none.", i)
 		}
@@ -520,136 +582,389 @@ func TestGetAvoidPodsFromNode(t *testing.T) {
 	}
 }
 
-func TestSysctlsFromPodAnnotation(t *testing.T) {
-	type Test struct {
-		annotation  string
-		expectValue []v1.Sysctl
-		expectErr   bool
+func TestMatchNodeSelectorTerms(t *testing.T) {
+	type args struct {
+		nodeSelectorTerms []v1.NodeSelectorTerm
+		nodeLabels        labels.Set
+		nodeFields        fields.Set
 	}
-	for i, test := range []Test{
+
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
 		{
-			annotation:  "",
-			expectValue: nil,
+			name: "nil terms",
+			args: args{
+				nodeSelectorTerms: nil,
+				nodeLabels:        nil,
+				nodeFields:        nil,
+			},
+			want: false,
 		},
 		{
-			annotation: "foo.bar",
-			expectErr:  true,
+			name: "node label matches matchExpressions terms",
+			args: args{
+				nodeSelectorTerms: []v1.NodeSelectorTerm{
+					{
+						MatchExpressions: []v1.NodeSelectorRequirement{{
+							Key:      "label_1",
+							Operator: v1.NodeSelectorOpIn,
+							Values:   []string{"label_1_val"},
+						}},
+					},
+				},
+				nodeLabels: map[string]string{"label_1": "label_1_val"},
+				nodeFields: nil,
+			},
+			want: true,
 		},
 		{
-			annotation: "=123",
-			expectErr:  true,
+			name: "node field matches matchFields terms",
+			args: args{
+				nodeSelectorTerms: []v1.NodeSelectorTerm{
+					{
+						MatchFields: []v1.NodeSelectorRequirement{{
+							Key:      "metadata.name",
+							Operator: v1.NodeSelectorOpIn,
+							Values:   []string{"host_1"},
+						}},
+					},
+				},
+				nodeLabels: nil,
+				nodeFields: map[string]string{
+					"metadata.name": "host_1",
+				},
+			},
+			want: true,
 		},
 		{
-			annotation:  "foo.bar=",
-			expectValue: []v1.Sysctl{{Name: "foo.bar", Value: ""}},
+			name: "invalid node field requirement",
+			args: args{
+				nodeSelectorTerms: []v1.NodeSelectorTerm{
+					{
+						MatchFields: []v1.NodeSelectorRequirement{{
+							Key:      "metadata.name",
+							Operator: v1.NodeSelectorOpIn,
+							Values:   []string{"host_1, host_2"},
+						}},
+					},
+				},
+				nodeLabels: nil,
+				nodeFields: map[string]string{
+					"metadata.name": "host_1",
+				},
+			},
+			want: false,
 		},
 		{
-			annotation:  "foo.bar=42",
-			expectValue: []v1.Sysctl{{Name: "foo.bar", Value: "42"}},
+			name: "fieldSelectorTerm with node labels",
+			args: args{
+				nodeSelectorTerms: []v1.NodeSelectorTerm{
+					{
+						MatchFields: []v1.NodeSelectorRequirement{{
+							Key:      "metadata.name",
+							Operator: v1.NodeSelectorOpIn,
+							Values:   []string{"host_1"},
+						}},
+					},
+				},
+				nodeLabels: map[string]string{
+					"metadata.name": "host_1",
+				},
+				nodeFields: nil,
+			},
+			want: false,
 		},
 		{
-			annotation: "foo.bar=42,",
-			expectErr:  true,
+			name: "labelSelectorTerm with node fields",
+			args: args{
+				nodeSelectorTerms: []v1.NodeSelectorTerm{
+					{
+						MatchExpressions: []v1.NodeSelectorRequirement{{
+							Key:      "metadata.name",
+							Operator: v1.NodeSelectorOpIn,
+							Values:   []string{"host_1"},
+						}},
+					},
+				},
+				nodeLabels: nil,
+				nodeFields: map[string]string{
+					"metadata.name": "host_1",
+				},
+			},
+			want: false,
 		},
 		{
-			annotation:  "foo.bar=42,abc.def=1",
-			expectValue: []v1.Sysctl{{Name: "foo.bar", Value: "42"}, {Name: "abc.def", Value: "1"}},
+			name: "labelSelectorTerm and fieldSelectorTerm was set, but only node fields",
+			args: args{
+				nodeSelectorTerms: []v1.NodeSelectorTerm{
+					{
+						MatchExpressions: []v1.NodeSelectorRequirement{{
+							Key:      "label_1",
+							Operator: v1.NodeSelectorOpIn,
+							Values:   []string{"label_1_val"},
+						}},
+						MatchFields: []v1.NodeSelectorRequirement{{
+							Key:      "metadata.name",
+							Operator: v1.NodeSelectorOpIn,
+							Values:   []string{"host_1"},
+						}},
+					},
+				},
+				nodeLabels: nil,
+				nodeFields: map[string]string{
+					"metadata.name": "host_1",
+				},
+			},
+			want: false,
 		},
-	} {
-		sysctls, err := SysctlsFromPodAnnotation(test.annotation)
-		if test.expectErr && err == nil {
-			t.Errorf("[%v]expected error but got none", i)
-		} else if !test.expectErr && err != nil {
-			t.Errorf("[%v]did not expect error but got: %v", i, err)
-		} else if !reflect.DeepEqual(sysctls, test.expectValue) {
-			t.Errorf("[%v]expect value %v but got %v", i, test.expectValue, sysctls)
-		}
+		{
+			name: "labelSelectorTerm and fieldSelectorTerm was set, both node fields and labels (both matched)",
+			args: args{
+				nodeSelectorTerms: []v1.NodeSelectorTerm{
+					{
+						MatchExpressions: []v1.NodeSelectorRequirement{{
+							Key:      "label_1",
+							Operator: v1.NodeSelectorOpIn,
+							Values:   []string{"label_1_val"},
+						}},
+						MatchFields: []v1.NodeSelectorRequirement{{
+							Key:      "metadata.name",
+							Operator: v1.NodeSelectorOpIn,
+							Values:   []string{"host_1"},
+						}},
+					},
+				},
+				nodeLabels: map[string]string{
+					"label_1": "label_1_val",
+				},
+				nodeFields: map[string]string{
+					"metadata.name": "host_1",
+				},
+			},
+			want: true,
+		},
+		{
+			name: "labelSelectorTerm and fieldSelectorTerm was set, both node fields and labels (one mismatched)",
+			args: args{
+				nodeSelectorTerms: []v1.NodeSelectorTerm{
+					{
+						MatchExpressions: []v1.NodeSelectorRequirement{{
+							Key:      "label_1",
+							Operator: v1.NodeSelectorOpIn,
+							Values:   []string{"label_1_val"},
+						}},
+						MatchFields: []v1.NodeSelectorRequirement{{
+							Key:      "metadata.name",
+							Operator: v1.NodeSelectorOpIn,
+							Values:   []string{"host_1"},
+						}},
+					},
+				},
+				nodeLabels: map[string]string{
+					"label_1": "label_1_val-failed",
+				},
+				nodeFields: map[string]string{
+					"metadata.name": "host_1",
+				},
+			},
+			want: false,
+		},
+		{
+			name: "multi-selector was set, both node fields and labels (one mismatched)",
+			args: args{
+				nodeSelectorTerms: []v1.NodeSelectorTerm{
+					{
+						MatchExpressions: []v1.NodeSelectorRequirement{{
+							Key:      "label_1",
+							Operator: v1.NodeSelectorOpIn,
+							Values:   []string{"label_1_val"},
+						}},
+					},
+					{
+						MatchFields: []v1.NodeSelectorRequirement{{
+							Key:      "metadata.name",
+							Operator: v1.NodeSelectorOpIn,
+							Values:   []string{"host_1"},
+						}},
+					},
+				},
+				nodeLabels: map[string]string{
+					"label_1": "label_1_val-failed",
+				},
+				nodeFields: map[string]string{
+					"metadata.name": "host_1",
+				},
+			},
+			want: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := MatchNodeSelectorTerms(tt.args.nodeSelectorTerms, tt.args.nodeLabels, tt.args.nodeFields); got != tt.want {
+				t.Errorf("MatchNodeSelectorTermsORed() = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }
 
-// TODO: remove when alpha support for topology constraints is removed
-func TestGetNodeAffinityFromAnnotations(t *testing.T) {
-	testCases := []struct {
-		annotations map[string]string
-		expectErr   bool
+func TestMatchTopologySelectorTerms(t *testing.T) {
+	type args struct {
+		topologySelectorTerms []v1.TopologySelectorTerm
+		labels                labels.Set
+	}
+
+	tests := []struct {
+		name string
+		args args
+		want bool
 	}{
 		{
-			annotations: nil,
-			expectErr:   false,
-		},
-		{
-			annotations: map[string]string{},
-			expectErr:   false,
-		},
-		{
-			annotations: map[string]string{
-				v1.AlphaStorageNodeAffinityAnnotation: `{
-                                        "requiredDuringSchedulingIgnoredDuringExecution": {
-                                                "nodeSelectorTerms": [
-                                                        { "matchExpressions": [
-                                                                { "key": "test-key1",
-                                                                  "operator": "In",
-                                                                  "values": ["test-value1", "test-value2"]
-                                                                },
-                                                                { "key": "test-key2",
-                                                                  "operator": "In",
-                                                                  "values": ["test-value1", "test-value2"]
-                                                                }
-                                                        ]}
-                                                ]}
-                                        }`,
+			name: "nil term list",
+			args: args{
+				topologySelectorTerms: nil,
+				labels:                nil,
 			},
-			expectErr: false,
+			want: true,
 		},
 		{
-			annotations: map[string]string{
-				v1.AlphaStorageNodeAffinityAnnotation: `[{
-                                        "requiredDuringSchedulingIgnoredDuringExecution": {
-                                                "nodeSelectorTerms": [
-                                                        { "matchExpressions": [
-                                                                { "key": "test-key1",
-                                                                  "operator": "In",
-                                                                  "values": ["test-value1", "test-value2"]
-                                                                },
-                                                                { "key": "test-key2",
-                                                                  "operator": "In",
-                                                                  "values": ["test-value1", "test-value2"]
-                                                                }
-                                                        ]}
-                                                ]}
-                                        }]`,
+			name: "nil term",
+			args: args{
+				topologySelectorTerms: []v1.TopologySelectorTerm{
+					{
+						MatchLabelExpressions: []v1.TopologySelectorLabelRequirement{},
+					},
+				},
+				labels: nil,
 			},
-			expectErr: true,
+			want: false,
 		},
 		{
-			annotations: map[string]string{
-				v1.AlphaStorageNodeAffinityAnnotation: `{
-                                        "requiredDuringSchedulingIgnoredDuringExecution": {
-                                                "nodeSelectorTerms":
-                                                         "matchExpressions": [
-                                                                { "key": "test-key1",
-                                                                  "operator": "In",
-                                                                  "values": ["test-value1", "test-value2"]
-                                                                },
-                                                                { "key": "test-key2",
-                                                                  "operator": "In",
-                                                                  "values": ["test-value1", "test-value2"]
-                                                                }
-                                                        ]}
-                                                }
-                                        }`,
+			name: "label matches MatchLabelExpressions terms",
+			args: args{
+				topologySelectorTerms: []v1.TopologySelectorTerm{
+					{
+						MatchLabelExpressions: []v1.TopologySelectorLabelRequirement{{
+							Key:    "label_1",
+							Values: []string{"label_1_val"},
+						}},
+					},
+				},
+				labels: map[string]string{"label_1": "label_1_val"},
 			},
-			expectErr: true,
+			want: true,
+		},
+		{
+			name: "label does not match MatchLabelExpressions terms",
+			args: args{
+				topologySelectorTerms: []v1.TopologySelectorTerm{
+					{
+						MatchLabelExpressions: []v1.TopologySelectorLabelRequirement{{
+							Key:    "label_1",
+							Values: []string{"label_1_val"},
+						}},
+					},
+				},
+				labels: map[string]string{"label_1": "label_1_val-failed"},
+			},
+			want: false,
+		},
+		{
+			name: "multi-values in one requirement, one matched",
+			args: args{
+				topologySelectorTerms: []v1.TopologySelectorTerm{
+					{
+						MatchLabelExpressions: []v1.TopologySelectorLabelRequirement{{
+							Key:    "label_1",
+							Values: []string{"label_1_val1", "label_1_val2"},
+						}},
+					},
+				},
+				labels: map[string]string{"label_1": "label_1_val2"},
+			},
+			want: true,
+		},
+		{
+			name: "multi-terms was set, one matched",
+			args: args{
+				topologySelectorTerms: []v1.TopologySelectorTerm{
+					{
+						MatchLabelExpressions: []v1.TopologySelectorLabelRequirement{{
+							Key:    "label_1",
+							Values: []string{"label_1_val"},
+						}},
+					},
+					{
+						MatchLabelExpressions: []v1.TopologySelectorLabelRequirement{{
+							Key:    "label_2",
+							Values: []string{"label_2_val"},
+						}},
+					},
+				},
+				labels: map[string]string{
+					"label_2": "label_2_val",
+				},
+			},
+			want: true,
+		},
+		{
+			name: "multi-requirement in one term, fully matched",
+			args: args{
+				topologySelectorTerms: []v1.TopologySelectorTerm{
+					{
+						MatchLabelExpressions: []v1.TopologySelectorLabelRequirement{
+							{
+								Key:    "label_1",
+								Values: []string{"label_1_val"},
+							},
+							{
+								Key:    "label_2",
+								Values: []string{"label_2_val"},
+							},
+						},
+					},
+				},
+				labels: map[string]string{
+					"label_1": "label_1_val",
+					"label_2": "label_2_val",
+				},
+			},
+			want: true,
+		},
+		{
+			name: "multi-requirement in one term, partial matched",
+			args: args{
+				topologySelectorTerms: []v1.TopologySelectorTerm{
+					{
+						MatchLabelExpressions: []v1.TopologySelectorLabelRequirement{
+							{
+								Key:    "label_1",
+								Values: []string{"label_1_val"},
+							},
+							{
+								Key:    "label_2",
+								Values: []string{"label_2_val"},
+							},
+						},
+					},
+				},
+				labels: map[string]string{
+					"label_1": "label_1_val-failed",
+					"label_2": "label_2_val",
+				},
+			},
+			want: false,
 		},
 	}
 
-	for i, tc := range testCases {
-		_, err := GetStorageNodeAffinityFromAnnotation(tc.annotations)
-		if err == nil && tc.expectErr {
-			t.Errorf("[%v]expected error but got none.", i)
-		}
-		if err != nil && !tc.expectErr {
-			t.Errorf("[%v]did not expect error but got: %v", i, err)
-		}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := MatchTopologySelectorTerms(tt.args.topologySelectorTerms, tt.args.labels); got != tt.want {
+				t.Errorf("MatchTopologySelectorTermsORed() = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }

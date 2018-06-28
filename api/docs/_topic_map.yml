@@ -211,6 +211,11 @@
   Topics:
   - Name: v1.NetworkPolicy
     File: v1.NetworkPolicy
+- Name: /apis/scheduling.k8s.io/v1beta1
+  Dir: apis-scheduling.k8s.io
+  Topics:
+  - Name: v1beta1.PriorityClass
+    File: v1beta1.PriorityClass
 - Name: /apis/storage.k8s.io/v1
   Dir: apis-storage.k8s.io
   Topics:

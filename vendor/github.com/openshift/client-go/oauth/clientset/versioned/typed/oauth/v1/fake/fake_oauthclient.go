@@ -43,7 +43,7 @@ func (c *FakeOAuthClients) List(opts v1.ListOptions) (result *oauth_v1.OAuthClie
 	if label == nil {
 		label = labels.Everything()
 	}
-	list := &oauth_v1.OAuthClientList{}
+	list := &oauth_v1.OAuthClientList{ListMeta: obj.(*oauth_v1.OAuthClientList).ListMeta}
 	for _, item := range obj.(*oauth_v1.OAuthClientList).Items {
 		if label.Matches(labels.Set(item.Labels)) {
 			list.Items = append(list.Items, item)

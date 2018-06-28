@@ -51,6 +51,8 @@ const (
 	envVimVersion    = "GOVC_VIM_VERSION"
 	envTLSCaCerts    = "GOVC_TLS_CA_CERTS"
 	envTLSKnownHosts = "GOVC_TLS_KNOWN_HOSTS"
+
+	defaultMinVimVersion = "5.5"
 )
 
 const cDescr = "ESX or vCenter URL"
@@ -108,6 +110,10 @@ func (flag *ClientFlag) URLWithoutPassword() *url.URL {
 	withoutCredentials := *flag.url
 	withoutCredentials.User = url.User(flag.url.User.Username())
 	return &withoutCredentials
+}
+
+func (flag *ClientFlag) Userinfo() *url.Userinfo {
+	return flag.url.User
 }
 
 func (flag *ClientFlag) IsSecure() bool {
@@ -183,7 +189,7 @@ func (flag *ClientFlag) Register(ctx context.Context, f *flag.FlagSet) {
 		{
 			env := os.Getenv(envMinAPIVersion)
 			if env == "" {
-				env = soap.DefaultMinVimVersion
+				env = defaultMinVimVersion
 			}
 
 			flag.minAPIVersion = env
@@ -192,7 +198,7 @@ func (flag *ClientFlag) Register(ctx context.Context, f *flag.FlagSet) {
 		{
 			value := os.Getenv(envVimNamespace)
 			if value == "" {
-				value = soap.DefaultVimNamespace
+				value = vim25.Namespace
 			}
 			usage := fmt.Sprintf("Vim namespace [%s]", envVimNamespace)
 			f.StringVar(&flag.vimNamespace, "vim-namespace", value, usage)
@@ -201,7 +207,7 @@ func (flag *ClientFlag) Register(ctx context.Context, f *flag.FlagSet) {
 		{
 			value := os.Getenv(envVimVersion)
 			if value == "" {
-				value = soap.DefaultVimVersion
+				value = vim25.Version
 			}
 			usage := fmt.Sprintf("Vim version [%s]", envVimVersion)
 			f.StringVar(&flag.vimVersion, "vim-version", value, usage)
@@ -264,8 +270,17 @@ func (flag *ClientFlag) Process(ctx context.Context) error {
 
 // configure TLS and retry settings before making any connections
 func (flag *ClientFlag) configure(sc *soap.Client) (soap.RoundTripper, error) {
+	if flag.cert != "" {
+		cert, err := tls.LoadX509KeyPair(flag.cert, flag.key)
+		if err != nil {
+			return nil, err
+		}
+
+		sc.SetCertificate(cert)
+	}
+
 	// Set namespace and version
-	sc.Namespace = flag.vimNamespace
+	sc.Namespace = "urn:" + flag.vimNamespace
 	sc.Version = flag.vimVersion
 
 	sc.UserAgent = fmt.Sprintf("govc/%s", Version)
@@ -421,28 +436,12 @@ func (flag *ClientFlag) login(ctx context.Context, c *vim25.Client) error {
 		}
 	}
 
-	if flag.cert != "" {
-		err := m.LoginExtensionByCertificate(ctx, u.Username(), "")
-		if err != nil {
-			return err
-		}
-	}
-
 	return m.Login(ctx, u)
 }
 
 func (flag *ClientFlag) newClient() (*vim25.Client, error) {
 	ctx := context.TODO()
 	sc := soap.NewClient(flag.url, flag.insecure)
-
-	if flag.cert != "" {
-		cert, err := tls.LoadX509KeyPair(flag.cert, flag.key)
-		if err != nil {
-			return nil, err
-		}
-
-		sc.SetCertificate(cert)
-	}
 
 	rt, err := flag.configure(sc)
 	if err != nil {
@@ -573,7 +572,7 @@ func (flag *ClientFlag) Environ(extra bool) []string {
 		u.User = nil
 	}
 
-	if u.Path == "/sdk" {
+	if u.Path == vim25.Path {
 		u.Path = ""
 	}
 	u.Fragment = ""

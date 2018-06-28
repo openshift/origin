@@ -54,7 +54,7 @@ func hasPodSpec(visited map[reflect.Type]bool, t reflect.Type) bool {
 }
 
 func internalGroupVersions() []schema.GroupVersion {
-	groupVersions := legacyscheme.Registry.EnabledVersions()
+	groupVersions := legacyscheme.Scheme.PrioritizedVersionsAllGroups()
 	groups := map[string]struct{}{}
 	for _, gv := range groupVersions {
 		groups[gv.Group] = struct{}{}

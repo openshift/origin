@@ -4,10 +4,8 @@ import (
 	"fmt"
 	"reflect"
 
-	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 )
 
 type RuntimeObjectValidator interface {
@@ -33,13 +31,13 @@ func (v *RuntimeObjectsValidator) GetInfo(obj runtime.Object) (RuntimeObjectVali
 	return ret, ok
 }
 
-func (v *RuntimeObjectsValidator) MustRegister(obj runtime.Object, validateFunction interface{}, validateUpdateFunction interface{}) {
-	if err := v.Register(obj, validateFunction, validateUpdateFunction); err != nil {
+func (v *RuntimeObjectsValidator) MustRegister(obj runtime.Object, namespaceScoped bool, validateFunction interface{}, validateUpdateFunction interface{}) {
+	if err := v.Register(obj, namespaceScoped, validateFunction, validateUpdateFunction); err != nil {
 		panic(err)
 	}
 }
 
-func (v *RuntimeObjectsValidator) Register(obj runtime.Object, validateFunction interface{}, validateUpdateFunction interface{}) error {
+func (v *RuntimeObjectsValidator) Register(obj runtime.Object, namespaceScoped bool, validateFunction interface{}, validateUpdateFunction interface{}) error {
 	objType := reflect.TypeOf(obj)
 	if oldValidator, exists := v.typeToValidator[objType]; exists {
 		panic(fmt.Sprintf("%v is already registered with %v", objType, oldValidator))
@@ -50,14 +48,9 @@ func (v *RuntimeObjectsValidator) Register(obj runtime.Object, validateFunction 
 		return err
 	}
 
-	isNamespaced, err := GetRequiresNamespace(obj)
-	if err != nil {
-		return err
-	}
-
 	updateAllowed := validateUpdateFunction != nil
 
-	v.typeToValidator[objType] = RuntimeObjectValidatorInfo{validator, isNamespaced, HasObjectMeta(obj), updateAllowed}
+	v.typeToValidator[objType] = RuntimeObjectValidatorInfo{validator, namespaceScoped, HasObjectMeta(obj), updateAllowed}
 
 	return nil
 }
@@ -112,7 +105,6 @@ func (v *RuntimeObjectsValidator) ValidateUpdate(obj, old runtime.Object) field.
 func (v *RuntimeObjectsValidator) getSpecificValidationInfo(obj runtime.Object) (RuntimeObjectValidatorInfo, error) {
 	objType := reflect.TypeOf(obj)
 	specificValidationInfo, exists := v.typeToValidator[objType]
-
 	if !exists {
 		return RuntimeObjectValidatorInfo{}, fmt.Errorf("no validator registered for %v", objType)
 	}
@@ -120,23 +112,14 @@ func (v *RuntimeObjectsValidator) getSpecificValidationInfo(obj runtime.Object) 
 	return specificValidationInfo, nil
 }
 
-func GetRequiresNamespace(obj runtime.Object) (bool, error) {
-	groupVersionKinds, _, err := legacyscheme.Scheme.ObjectKinds(obj)
-	if err != nil {
-		return false, err
+func (v *RuntimeObjectsValidator) GetRequiresNamespace(obj runtime.Object) (bool, error) {
+	objType := reflect.TypeOf(obj)
+	specificValidationInfo, exists := v.typeToValidator[objType]
+	if !exists {
+		return false, fmt.Errorf("no validator registered for %v", objType)
 	}
 
-	for _, gvk := range groupVersionKinds {
-		restMapping, err := legacyscheme.Registry.RESTMapper().RESTMapping(gvk.GroupKind())
-		if err != nil {
-			return false, err
-		}
-		if restMapping.Scope.Name() == meta.RESTScopeNameNamespace {
-			return true, nil
-		}
-	}
-
-	return false, nil
+	return specificValidationInfo.IsNamespaced, nil
 }
 
 func HasObjectMeta(obj runtime.Object) bool {

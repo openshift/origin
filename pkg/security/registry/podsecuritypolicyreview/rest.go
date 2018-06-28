@@ -1,6 +1,7 @@
 package podsecuritypolicyreview
 
 import (
+	"context"
 	"fmt"
 	"sort"
 
@@ -30,6 +31,7 @@ type REST struct {
 }
 
 var _ rest.Creater = &REST{}
+var _ rest.Scoper = &REST{}
 
 // NewREST creates a new REST for policies..
 func NewREST(m scc.SCCMatcher, saCache kcorelisters.ServiceAccountLister, c clientset.Interface) *REST {
@@ -41,8 +43,12 @@ func (r *REST) New() runtime.Object {
 	return &securityapi.PodSecurityPolicyReview{}
 }
 
+func (s *REST) NamespaceScoped() bool {
+	return true
+}
+
 // Create registers a given new PodSecurityPolicyReview instance to r.registry.
-func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, _ rest.ValidateObjectFunc, _ bool) (runtime.Object, error) {
+func (r *REST) Create(ctx context.Context, obj runtime.Object, _ rest.ValidateObjectFunc, _ bool) (runtime.Object, error) {
 	pspr, ok := obj.(*securityapi.PodSecurityPolicyReview)
 	if !ok {
 		return nil, kapierrors.NewBadRequest(fmt.Sprintf("not a PodSecurityPolicyReview: %#v", obj))

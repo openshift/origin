@@ -21,13 +21,16 @@ import (
 	"strings"
 )
 
-const Version = "0.16.1"
+const Version = "0.17.2-dev"
+
+var GitVersion string
 
 type version []int
 
 func ParseVersion(s string) (version, error) {
 	v := make(version, 0)
-	ps := strings.Split(s, ".")
+	ds := strings.Split(s, "-")
+	ps := strings.Split(ds[0], ".")
 	for _, p := range ps {
 		i, err := strconv.Atoi(p)
 		if err != nil {

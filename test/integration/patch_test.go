@@ -12,7 +12,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	apiendpointhandlers "k8s.io/apiserver/pkg/endpoints/handlers"
 	restclient "k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
@@ -73,7 +72,7 @@ func TestPatchConflicts(t *testing.T) {
 		// Force patch to deal with resourceVersion conflicts applying non-conflicting patches
 		// ensure it handles reapplies without internal errors
 		wg := sync.WaitGroup{}
-		for i := 0; i < (2 * apiendpointhandlers.MaxRetryWhenPatchConflicts); i++ {
+		for i := 0; i < (2 * 10); i++ {
 			wg.Add(1)
 			go func(labelName string) {
 				defer wg.Done()
@@ -111,8 +110,8 @@ func TestPatchConflicts(t *testing.T) {
 		}
 		wg.Wait()
 
-		if successes < apiendpointhandlers.MaxRetryWhenPatchConflicts {
-			t.Errorf("Expected at least %d successful patches for %s, got %d", apiendpointhandlers.MaxRetryWhenPatchConflicts, tc.resource, successes)
+		if successes < 10 {
+			t.Errorf("Expected at least %d successful patches for %s, got %d", 10, tc.resource, successes)
 		} else {
 			t.Logf("Got %d successful patches for %s", successes, tc.resource)
 		}

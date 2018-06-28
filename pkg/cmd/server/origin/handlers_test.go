@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	apifilters "k8s.io/apiserver/pkg/endpoints/filters"
-	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	apiserver "k8s.io/apiserver/pkg/server"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
@@ -123,9 +122,8 @@ func TestVersionSkewFilterDenyOld(t *testing.T) {
 		{UserAgentMatchRule: configapi.UserAgentMatchRule{Regex: `\w+/v1\.1\.10 \(.+/.+\) kubernetes/\w{7}`, HTTPVerbs: verbs}, RejectionMessage: "rejected for reasons!"},
 		{UserAgentMatchRule: configapi.UserAgentMatchRule{Regex: `\w+/v(?:(?:1\.1\.1)|(?:1\.0\.1)) \(.+/.+\) openshift/\w{7}`, HTTPVerbs: verbs}, RejectionMessage: "rejected for reasons!"},
 	}
-	requestContextMapper := apirequest.NewRequestContextMapper()
-	handler := config.versionSkewFilter(doNothingHandler, requestContextMapper)
-	server := httptest.NewServer(testHandlerChain(handler, requestContextMapper))
+	handler := config.versionSkewFilter(doNothingHandler)
+	server := httptest.NewServer(testHandlerChain(handler))
 	defer server.Close()
 
 	testCases := []versionSkewTestCase{
@@ -172,9 +170,8 @@ func TestVersionSkewFilterDenySkewed(t *testing.T) {
 		{Regex: `\w+/` + openshiftServerVersion + ` \(.+/.+\) openshift/\w{7}`, HTTPVerbs: verbs},
 	}
 	config.Options.PolicyConfig.UserAgentMatchingConfig.DefaultRejectionMessage = "rejected for reasons!"
-	requestContextMapper := apirequest.NewRequestContextMapper()
-	handler := config.versionSkewFilter(doNothingHandler, requestContextMapper)
-	server := httptest.NewServer(testHandlerChain(handler, requestContextMapper))
+	handler := config.versionSkewFilter(doNothingHandler)
+	server := httptest.NewServer(testHandlerChain(handler))
 	defer server.Close()
 
 	testCases := []versionSkewTestCase{
@@ -225,9 +222,8 @@ func TestVersionSkewFilterSkippedOnNonAPIRequest(t *testing.T) {
 	}
 	config.Options.PolicyConfig.UserAgentMatchingConfig.DefaultRejectionMessage = "rejected for reasons!"
 
-	requestContextMapper := apirequest.NewRequestContextMapper()
-	handler := config.versionSkewFilter(doNothingHandler, requestContextMapper)
-	server := httptest.NewServer(testHandlerChain(handler, requestContextMapper))
+	handler := config.versionSkewFilter(doNothingHandler)
+	server := httptest.NewServer(testHandlerChain(handler))
 	defer server.Close()
 
 	testCases := []versionSkewTestCase{
@@ -263,11 +259,10 @@ func TestVersionSkewFilterSkippedOnNonAPIRequest(t *testing.T) {
 	}
 }
 
-func testHandlerChain(handler http.Handler, contextMapper apirequest.RequestContextMapper) http.Handler {
+func testHandlerChain(handler http.Handler) http.Handler {
 	kgenericconfig := apiserver.NewConfig(legacyscheme.Codecs)
 	kgenericconfig.LegacyAPIGroupPrefixes = kubernetes.LegacyAPIGroupPrefixes
 
-	handler = apifilters.WithRequestInfo(handler, apiserver.NewRequestInfoResolver(kgenericconfig), contextMapper)
-	handler = apirequest.WithRequestContext(handler, contextMapper)
+	handler = apifilters.WithRequestInfo(handler, apiserver.NewRequestInfoResolver(kgenericconfig))
 	return handler
 }

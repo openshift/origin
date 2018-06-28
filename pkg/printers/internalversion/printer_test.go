@@ -68,7 +68,7 @@ var MissingPrinterCoverageExceptions = []reflect.Type{
 }
 
 func TestPrinterCoverage(t *testing.T) {
-	printer := kprinters.NewHumanReadablePrinter(nil, nil, kprinters.PrintOptions{})
+	printer := kprinters.NewHumanReadablePrinter(nil, kprinters.PrintOptions{})
 	AddHandlers(printer)
 
 main:

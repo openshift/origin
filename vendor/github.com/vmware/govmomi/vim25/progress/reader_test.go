@@ -72,6 +72,7 @@ func TestReader(t *testing.T) {
 
 	// Read EOF
 	_, err = pr.Read(buf[:])
+	q = <-ch
 	if err != io.EOF {
 		t.Errorf("Expected io.EOF, but got: %s", err)
 	}

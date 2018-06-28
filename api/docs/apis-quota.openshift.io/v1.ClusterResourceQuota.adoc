@@ -91,9 +91,15 @@ Populated by the system. Read-only. Value must be treated as opaque by clients a
 Populated by the system. Read-only. More info: http://kubernetes.io/docs/user-guide/identifiers#uids">uid</span>:
 </div></details><details open><summary><span title="(v1.ClusterResourceQuotaSpec) Spec defines the desired quota">spec</span>:
 </summary><details><summary>  <span title="(v1.ResourceQuotaSpec) Quota defines the desired quota">quota</span>:
-</summary><details><summary>    <span title="(object) Hard is the set of desired hard limits for each named resource. More info: https://kubernetes.io/docs/concepts/policy/resource-quotas/">hard</span>:
+</summary><details><summary>    <span title="(object) hard is the set of desired hard limits for each named resource. More info: https://kubernetes.io/docs/concepts/policy/resource-quotas/">hard</span>:
 </summary><div style="margin-left:13px;">      <span title="(string)">[string]</span>:
-</div></details><details><summary>    <span title="(array) A collection of filters that must match each object tracked by a quota. If not specified, the quota matches all objects.">scopes</span>:
+</div></details><details><summary>    <span title="(v1.ScopeSelector) scopeSelector is also a collection of filters like scopes that must match each object tracked by a quota but expressed using ScopeSelectorOperator in combination with possible values. For a resource to match, both scopes AND scopeSelector (if specified in spec), must be matched.">scopeSelector</span>:
+</summary><details><summary>      <span title="(array) A list of scope selector requirements by scope of the resources.">matchExpressions</span>:
+</summary><div style="margin-left:13px;">      - <span title="(string) Represents a scope&#39;s relationship to a set of values. Valid operators are In, NotIn, Exists, DoesNotExist.">operator</span>:
+</div><div style="margin-left:13px;">        <span title="(string) The name of the scope that the selector applies to.">scopeName</span>:
+</div><details><summary>        <span title="(array) An array of string values. If the operator is In or NotIn, the values array must be non-empty. If the operator is Exists or DoesNotExist, the values array must be empty. This array is replaced during a strategic merge patch.">values</span>:
+</summary><div style="margin-left:13px;">        - <span title="(string)">[string]</span>:
+</div></details></details></details><details><summary>    <span title="(array) A collection of filters that must match each object tracked by a quota. If not specified, the quota matches all objects.">scopes</span>:
 </summary><div style="margin-left:13px;">    - <span title="(string)">[string]</span>:
 </div></details></details><details><summary>  <span title="(v1.ClusterResourceQuotaSelector) Selector is the selector used to match projects. It should only select active projects on the scale of dozens (though it can select many more less active projects).  These projects will contend on object creation through this resource.">selector</span>:
 </summary><details><summary>    <span title="(object) AnnotationSelector is used to select projects by annotation.">annotations</span>:

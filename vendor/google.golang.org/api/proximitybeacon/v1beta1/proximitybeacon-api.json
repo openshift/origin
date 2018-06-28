@@ -653,7 +653,7 @@
       }
     }
   },
-  "revision": "20180203",
+  "revision": "20180521",
   "rootUrl": "https://proximitybeacon.googleapis.com/",
   "schemas": {
     "AdvertisedId": {
@@ -850,7 +850,7 @@
           "type": "integer"
         },
         "month": {
-          "description": "Month of year. Must be from 1 to 12.",
+          "description": "Month of year. Must be from 1 to 12, or 0 if specifying a date without a\nmonth.",
           "format": "int32",
           "type": "integer"
         },
@@ -1153,7 +1153,7 @@
     }
   },
   "servicePath": "",
-  "title": "Google Proximity Beacon API",
+  "title": "Proximity Beacon API",
   "version": "v1beta1",
   "version_module": true
 }

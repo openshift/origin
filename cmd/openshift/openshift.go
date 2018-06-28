@@ -8,8 +8,10 @@ import (
 	"time"
 
 	"k8s.io/apiserver/pkg/util/logs"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	"github.com/openshift/library-go/pkg/serviceability"
+	"github.com/openshift/origin/pkg/api/legacy"
 	"github.com/openshift/origin/pkg/cmd/openshift"
 	"github.com/openshift/origin/pkg/version"
 
@@ -26,6 +28,8 @@ func main() {
 	defer logs.FlushLogs()
 	defer serviceability.BehaviorOnPanic(os.Getenv("OPENSHIFT_ON_PANIC"), version.Get())()
 	defer serviceability.Profile(os.Getenv("OPENSHIFT_PROFILE")).Stop()
+
+	legacy.LegacyInstallAll(legacyscheme.Scheme)
 
 	rand.Seed(time.Now().UTC().UnixNano())
 	if len(os.Getenv("GOMAXPROCS")) == 0 {

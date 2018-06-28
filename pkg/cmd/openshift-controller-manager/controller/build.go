@@ -1,9 +1,6 @@
 package controller
 
 import (
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
-
 	buildcontroller "github.com/openshift/origin/pkg/build/controller/build"
 	builddefaults "github.com/openshift/origin/pkg/build/controller/build/defaults"
 	buildoverrides "github.com/openshift/origin/pkg/build/controller/build/overrides"
@@ -15,9 +12,6 @@ import (
 
 // RunController starts the build sync loop for builds and buildConfig processing.
 func RunBuildController(ctx ControllerContext) (bool, error) {
-	groupVersion := schema.GroupVersion{Group: "", Version: "v1"}
-	annotationCodec := legacyscheme.Codecs.LegacyCodec(groupVersion)
-
 	imageTemplate := variable.NewDefaultImageTemplate()
 	imageTemplate.Format = ctx.OpenshiftControllerConfig.Build.ImageTemplateFormat.Format
 	imageTemplate.Latest = ctx.OpenshiftControllerConfig.Build.ImageTemplateFormat.Latest
@@ -53,21 +47,14 @@ func RunBuildController(ctx ControllerContext) (bool, error) {
 		BuildClientInternal: buildClient,
 		DockerBuildStrategy: &buildstrategy.DockerBuildStrategy{
 			Image: imageTemplate.ExpandOrDie("docker-builder"),
-			// TODO: this will be set to --storage-version (the internal schema we use)
-			Codec: annotationCodec,
 		},
 		SourceBuildStrategy: &buildstrategy.SourceBuildStrategy{
-			Image: imageTemplate.ExpandOrDie("docker-builder"),
-			// TODO: this will be set to --storage-version (the internal schema we use)
-			Codec:          annotationCodec,
+			Image:          imageTemplate.ExpandOrDie("docker-builder"),
 			SecurityClient: securityClient.Security(),
 		},
-		CustomBuildStrategy: &buildstrategy.CustomBuildStrategy{
-			// TODO: this will be set to --storage-version (the internal schema we use)
-			Codec: annotationCodec,
-		},
-		BuildDefaults:  buildDefaults,
-		BuildOverrides: buildOverrides,
+		CustomBuildStrategy: &buildstrategy.CustomBuildStrategy{},
+		BuildDefaults:       buildDefaults,
+		BuildOverrides:      buildOverrides,
 	}
 
 	go buildcontroller.NewBuildController(buildControllerParams).Run(5, ctx.Stop)

@@ -7,8 +7,8 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/kubernetes/pkg/apis/rbac"
-	rbacclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/rbac/internalversion"
+	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
+	rbacv1helpers "k8s.io/kubernetes/pkg/apis/rbac/v1"
 
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	policy "github.com/openshift/origin/pkg/oc/admin/policy"
@@ -34,7 +34,7 @@ func TestPolicyCommands(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	haroldAuthorizationClient := rbacclient.NewForConfigOrDie(haroldConfig)
+	haroldAuthorizationClient := rbacv1client.NewForConfigOrDie(haroldConfig)
 
 	addViewer := policy.RoleModificationOptions{
 		RoleBindingNamespace: projectName,
@@ -54,7 +54,7 @@ func TestPolicyCommands(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	users, groups, _, _ := rbac.SubjectsStrings(viewers.Subjects)
+	users, groups, _, _ := rbacv1helpers.SubjectsStrings(viewers.Subjects)
 	if !sets.NewString(users...).Has("valerie") {
 		t.Errorf("expected valerie in users: %v", users)
 	}
@@ -76,7 +76,7 @@ func TestPolicyCommands(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	users, groups, _, _ = rbac.SubjectsStrings(viewers.Subjects)
+	users, groups, _, _ = rbacv1helpers.SubjectsStrings(viewers.Subjects)
 	if sets.NewString(users...).Has("valerie") {
 		t.Errorf("unexpected valerie in users: %v", users)
 	}
@@ -100,7 +100,7 @@ func TestPolicyCommands(t *testing.T) {
 	if !errors.IsNotFound(err) {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	users, groups, _, _ = rbac.SubjectsStrings(viewers.Subjects)
+	users, groups, _, _ = rbacv1helpers.SubjectsStrings(viewers.Subjects)
 	if sets.NewString(users...).Has("valerie") {
 		t.Errorf("unexpected valerie in users: %v", users)
 	}

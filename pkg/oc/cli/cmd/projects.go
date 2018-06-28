@@ -92,12 +92,12 @@ func (o *ProjectsOptions) Complete(f kcmdutil.Factory, args []string, commandNam
 	o.CommandName = commandName
 
 	var err error
-	o.Config, err = f.RawConfig()
+	o.Config, err = f.ToRawKubeConfigLoader().RawConfig()
 	if err != nil {
 		return err
 	}
 
-	o.ClientConfig, err = f.ClientConfig()
+	o.ClientConfig, err = f.ToRESTConfig()
 	if err != nil {
 		return err
 	}

@@ -1,4 +1,4 @@
-# Copyright (c) 2014-2017 VMware, Inc. All Rights Reserved.
+# Copyright (c) 2014-2018 VMware, Inc. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,8 +21,19 @@ def valid_ns?(t)
   $namespaces.include?(t)
 end
 
+def ucfirst(v)
+  x = "ArrayOf"
+  if v.start_with?(x)
+    # example: ArrayOfvslmInfrastructureObjectPolicy -> ArrayOfVslm...
+    return x + ucfirst(v[x.length..-1])
+  end
+
+  # example: vslmInfrastructureObjectPolicy -. VslmInfrastructureObjectPolicy
+  v[0].capitalize + v[1..-1]
+end
+
 def init_type(io, name, kind)
-  t = "reflect.TypeOf((*#{kind})(nil)).Elem()"
+  t = "reflect.TypeOf((*#{ucfirst kind})(nil)).Elem()"
 
   io.print "func init() {\n"
 
@@ -109,16 +120,16 @@ class EnumValue
   end
 
   def type_name
-    @type.name
+    ucfirst(@type.name)
   end
 
   def var_name
-    n = @type.name
+    n = ucfirst(@type.name)
     v = var_value
     if v == ""
       n += "Null"
     else
-      n += (v[0].capitalize + v[1..-1])
+      n += ucfirst(v)
     end
 
     return n
@@ -161,7 +172,7 @@ class Simple
   def var_name
     n = self.name
     n = n[1..-1] if n[0] == "_" # Strip leading _
-    n = n[0].capitalize + n[1..-1] # Capitalize
+    n = ucfirst(n)
     return n
   end
 
@@ -178,7 +189,7 @@ class Simple
     if ! valid_ns? ns
         raise
     end
-    kind
+    ucfirst(kind)
   end
 
   def base_type?
@@ -256,7 +267,7 @@ class Simple
       when "base64Binary"
         t = "[]byte"
       when "anyURI"
-        t = "url.URL"
+        t = "string"
       else
         raise "unknown type: %s" % t
       end
@@ -342,7 +353,7 @@ class Element < Simple
 
   def dump(io)
     if has_type?
-      io.print "type %s %s\n\n" % [name, var_type]
+      io.print "type %s %s\n\n" % [ucfirst(name), var_type]
     else
       child.dump(io)
     end
@@ -391,7 +402,7 @@ class SimpleType < Simple
       EnumValue.new(self, n["value"])
     end
 
-    io.print "type %s string\n\n" % name
+    io.print "type %s string\n\n" % ucfirst(name)
     io.print "const (\n"
     enums.each { |e| e.dump(io) }
     io.print ")\n\n"
@@ -526,7 +537,7 @@ class ComplexType < Simple
   end
 
   def dump(io)
-    io.print "type %s struct {\n" % name
+    io.print "type %s struct {\n" % ucfirst(name)
     klass.dump(io) if klass
     io.print "}\n\n"
   end
@@ -741,7 +752,7 @@ class Operation
   end
 
   def go_input
-    "types." + input
+    "types." + ucfirst(input)
   end
 
   def output
@@ -750,24 +761,25 @@ class Operation
   end
 
   def go_output
-    "types." + output
+    "types." + ucfirst(output)
   end
 
   def dump(io)
+    func = ucfirst(name)
     io.print <<EOS
-  type #{name}Body struct{
+  type #{func}Body struct{
     Req *#{go_input} `xml:"urn:#{namespace} #{input},omitempty"`
     Res *#{go_output} `xml:"urn:#{namespace} #{output},omitempty"`
     Fault_ *soap.Fault `xml:"http://schemas.xmlsoap.org/soap/envelope/ Fault,omitempty"`
   }
 
-  func (b *#{name}Body) Fault() *soap.Fault { return b.Fault_ }
+  func (b *#{func}Body) Fault() *soap.Fault { return b.Fault_ }
 
 EOS
 
-    io.print "func %s(ctx context.Context, r soap.RoundTripper, req *%s) (*%s, error) {\n" % [name, go_input, go_output]
+    io.print "func %s(ctx context.Context, r soap.RoundTripper, req *%s) (*%s, error) {\n" % [func, go_input, go_output]
     io.print <<EOS
-  var reqBody, resBody #{name}Body
+  var reqBody, resBody #{func}Body
 
   reqBody.Req = req
 
@@ -842,14 +854,13 @@ class WSDL
     types.
       sort_by { |x| x.name }.
       uniq { |x| x.name }.
-      select { |x| x.name[0] == x.name[0].upcase }. # Only capitalized methods for now...
       each { |e| e.peek() }
   end
 
   def self.header(name)
     return <<EOF
 /*
-Copyright (c) 2014-2017 VMware, Inc. All Rights Reserved.
+Copyright (c) 2014-2018 VMware, Inc. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

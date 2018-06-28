@@ -4,13 +4,13 @@ package fake
 
 import (
 	image "github.com/openshift/origin/pkg/image/apis/image"
+	core_v1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	testing "k8s.io/client-go/testing"
-	core "k8s.io/kubernetes/pkg/apis/core"
 )
 
 // FakeImageStreams implements ImageStreamInterface
@@ -47,7 +47,7 @@ func (c *FakeImageStreams) List(opts v1.ListOptions) (result *image.ImageStreamL
 	if label == nil {
 		label = labels.Everything()
 	}
-	list := &image.ImageStreamList{}
+	list := &image.ImageStreamList{ListMeta: obj.(*image.ImageStreamList).ListMeta}
 	for _, item := range obj.(*image.ImageStreamList).Items {
 		if label.Matches(labels.Set(item.Labels)) {
 			list.Items = append(list.Items, item)
@@ -124,13 +124,13 @@ func (c *FakeImageStreams) Patch(name string, pt types.PatchType, data []byte, s
 	return obj.(*image.ImageStream), err
 }
 
-// Secrets takes label and field selectors, and returns the list of Secrets that match those selectors.
-func (c *FakeImageStreams) Secrets(imageStreamName string, opts v1.ListOptions) (result *core.SecretList, err error) {
+// Secrets takes name of the imageStream, and returns the corresponding secretList object, and an error if there is any.
+func (c *FakeImageStreams) Secrets(imageStreamName string, options v1.GetOptions) (result *core_v1.SecretList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewListSubresourceAction(imagestreamsResource, imageStreamName, "secrets", imagestreamsKind, c.ns, opts), &core.SecretList{})
+		Invokes(testing.NewGetSubresourceAction(imagestreamsResource, c.ns, "secrets", imageStreamName), &core_v1.SecretList{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*core.SecretList), err
+	return obj.(*core_v1.SecretList), err
 }

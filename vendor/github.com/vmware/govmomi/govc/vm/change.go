@@ -91,6 +91,7 @@ func (cmd *change) Register(ctx context.Context, f *flag.FlagSet) {
 	f.Var(flags.NewInt32(&cmd.NumCPUs), "c", "Number of CPUs")
 	f.StringVar(&cmd.GuestId, "g", "", "Guest OS")
 	f.StringVar(&cmd.Name, "name", "", "Display name")
+	f.StringVar(&cmd.Annotation, "annotation", "", "VM description")
 	f.Var(&cmd.extraConfig, "e", "ExtraConfig. <key>=<value>")
 
 	f.Var(flags.NewOptionalBool(&cmd.NestedHVEnabled), "nested-hv-enabled", "Enable nested hardware-assisted virtualization")

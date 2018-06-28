@@ -25,7 +25,7 @@ func TestKnownAPIGroups(t *testing.T) {
 	unexposedGroups := sets.NewString("componentconfig", "metrics", "policy", "federation", "scheduling.k8s.io")
 
 	enabledGroups := sets.NewString()
-	for _, enabledVersion := range legacyscheme.Registry.EnabledVersions() {
+	for _, enabledVersion := range legacyscheme.Scheme.PreferredVersionAllGroups() {
 		enabledGroups.Insert(enabledVersion.Group)
 	}
 
@@ -54,7 +54,7 @@ func TestAllowedAPIVersions(t *testing.T) {
 		}
 
 		enabled := sets.NewString()
-		for _, enabledVersion := range legacyscheme.Registry.EnabledVersionsForGroup(group) {
+		for _, enabledVersion := range legacyscheme.Scheme.PrioritizedVersionsForGroup(group) {
 			enabled.Insert(enabledVersion.Version)
 		}
 		expected := sets.NewString(versions...)

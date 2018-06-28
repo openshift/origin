@@ -13,6 +13,49 @@ import (
 	"github.com/docker/docker/pkg/archive"
 )
 
+type archiveGenerator struct {
+	Headers []*tar.Header
+}
+
+func newArchiveGenerator() *archiveGenerator {
+	return &archiveGenerator{}
+}
+
+func (g *archiveGenerator) File(name string) *archiveGenerator {
+	g.Headers = append(g.Headers, &tar.Header{Name: name, Size: 1})
+	return g
+}
+
+func (g *archiveGenerator) Dir(name string) *archiveGenerator {
+	g.Headers = append(g.Headers, &tar.Header{Name: name, Typeflag: tar.TypeDir})
+	return g
+}
+
+func (g *archiveGenerator) Reader() io.Reader {
+	pr, pw := io.Pipe()
+	go func() {
+		err := func() error {
+			w := tar.NewWriter(pw)
+			for _, h := range g.Headers {
+				if err := w.WriteHeader(h); err != nil {
+					return err
+				}
+				if h.Typeflag&tar.TypeDir == tar.TypeDir {
+					continue
+				}
+				for i := int64(0); i < h.Size; i++ {
+					if _, err := w.Write([]byte{byte(i)}); err != nil {
+						return err
+					}
+				}
+			}
+			return w.Flush()
+		}()
+		pw.CloseWithError(err)
+	}()
+	return pr
+}
+
 func Test_archiveFromFile(t *testing.T) {
 	f, err := ioutil.TempFile("", "test-tar")
 	if err != nil {
@@ -33,6 +76,7 @@ func Test_archiveFromFile(t *testing.T) {
 	testArchive := f.Name()
 	testCases := []struct {
 		file     string
+		gen      *archiveGenerator
 		src      string
 		dst      string
 		excludes []string
@@ -206,6 +250,187 @@ func Test_archiveFromFile(t *testing.T) {
 				found = append(found, h.Name)
 			}
 			c.Close()
+			sort.Strings(found)
+			if !reflect.DeepEqual(testCase.expect, found) {
+				t.Errorf("unexpected files:\n%v\n%v", testCase.expect, found)
+			}
+		})
+	}
+}
+
+func Test_archiveFromContainer(t *testing.T) {
+	testCases := []struct {
+		gen      *archiveGenerator
+		src      string
+		dst      string
+		excludes []string
+		expect   []string
+		path     string
+	}{
+		{
+			gen:  newArchiveGenerator().File("file").Dir("test").File("test/file2"),
+			src:  "/*",
+			dst:  "test",
+			path: "/",
+			expect: []string{
+				"test/file",
+				"test/test",
+				"test/test/file2",
+			},
+		},
+		{
+			gen:  newArchiveGenerator().File("file").Dir("test").File("test/file2"),
+			src:  "/",
+			dst:  "test",
+			path: "/",
+			expect: []string{
+				"test/file",
+				"test/test",
+				"test/test/file2",
+			},
+		},
+		{
+			gen:  newArchiveGenerator().File("file").Dir("test").File("test/file2"),
+			src:  ".",
+			dst:  "test",
+			path: ".",
+			expect: []string{
+				"test/file",
+				"test/test",
+				"test/test/file2",
+			},
+		},
+		{
+			gen:  newArchiveGenerator().File("file").Dir("test").File("test/file2"),
+			src:  ".",
+			dst:  "test/",
+			path: ".",
+			expect: []string{
+				"test/file",
+				"test/test",
+				"test/test/file2",
+			},
+		},
+		{
+			gen:  newArchiveGenerator().File("file").Dir("test").File("test/file2"),
+			src:  ".",
+			dst:  "/test",
+			path: ".",
+			expect: []string{
+				"/test/file",
+				"/test/test",
+				"/test/test/file2",
+			},
+		},
+		{
+			gen:  newArchiveGenerator().File("file").Dir("test").File("test/file2"),
+			src:  ".",
+			dst:  "/test/",
+			path: ".",
+			expect: []string{
+				"/test/file",
+				"/test/test",
+				"/test/test/file2",
+			},
+		},
+		{
+			gen:  newArchiveGenerator().File("b/file").Dir("b/test").File("b/test/file2"),
+			src:  "/a/b/",
+			dst:  "/b",
+			path: "/a/b",
+			expect: []string{
+				"/b/file",
+				"/b/test",
+				"/b/test/file2",
+			},
+		},
+		{
+			gen:  newArchiveGenerator().File("/b/file").Dir("/b/test").File("/b/test/file2"),
+			src:  "/a/b/*",
+			dst:  "/b",
+			path: "/a/b",
+			expect: []string{
+				"/b/file",
+				"/b/test",
+				"/b/test/file2",
+			},
+		},
+
+		// DownloadFromContainer returns tar archive paths prefixed with a slash when
+		// the base directory is the root
+		{
+			gen:  newArchiveGenerator().File("/a").Dir("/b").File("/b/1"),
+			src:  "/a",
+			dst:  "/",
+			path: "/",
+			expect: []string{
+				"/a",
+			},
+		},
+		{
+			gen:  newArchiveGenerator().File("/a").Dir("/b").File("/b/1"),
+			src:  "/a",
+			dst:  "/a",
+			path: "/",
+			expect: []string{
+				"/a",
+			},
+		},
+		{
+			gen:  newArchiveGenerator().Dir("b/").File("b/1").File("b/2"),
+			src:  "/a/b/",
+			dst:  "/b/",
+			path: "/a/b",
+			expect: []string{
+				"/b",
+				"/b/1",
+				"/b/2",
+			},
+		},
+		{
+			gen:    newArchiveGenerator().Dir("").File("b"),
+			src:    "/a/b",
+			dst:    "/a",
+			path:   "/a",
+			expect: nil,
+		},
+		{
+			gen:  newArchiveGenerator().Dir("a/").File("a/b"),
+			src:  "/a/b",
+			dst:  "/a",
+			path: "/a",
+			expect: []string{
+				"/a",
+			},
+		},
+	}
+	for i := range testCases {
+		testCase := testCases[i]
+		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
+			r, path, err := archiveFromContainer(
+				testCase.gen.Reader(),
+				testCase.src,
+				testCase.dst,
+				testCase.excludes,
+			)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if path != testCase.path {
+				t.Errorf("unexpected path: %s", path)
+			}
+			tr := tar.NewReader(r)
+			var found []string
+			for {
+				h, err := tr.Next()
+				if err != nil {
+					if err == io.EOF {
+						break
+					}
+					t.Fatal(err)
+				}
+				found = append(found, h.Name)
+			}
 			sort.Strings(found)
 			if !reflect.DeepEqual(testCase.expect, found) {
 				t.Errorf("unexpected files:\n%v\n%v", testCase.expect, found)

@@ -966,7 +966,7 @@ Inherit SESSION if given."
 ;;; govc host mode
 (defun govc-ls-host ()
   "List hosts."
-  (govc "ls" "-t" "HostSystem" "host/*"))
+  (govc "ls" "-t" "HostSystem" "./..."))
 
 (defun govc-esxcli-netstat-info ()
   "Wrapper for govc host.esxcli network ip connection list."
@@ -1456,7 +1456,8 @@ With prefix \\[universal-argument] ARG, launches an interactive console (VMRC)."
 
 (defun govc-vm-info ()
   "Wrapper for govc vm.info."
-  (govc-table-info "vm.info" (list "-r" (or govc-filter (setq govc-filter "*")))))
+  (unless (string-empty-p govc-session-datacenter)
+    (govc-table-info "vm.info" (list "-r" (or govc-filter (setq govc-filter "*"))))))
 
 (defun govc-vm-host ()
   "Host info via `govc-host' with host(s) of current selection."

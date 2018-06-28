@@ -1,9 +1,10 @@
 package project
 
 import (
+	"context"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/storage/names"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
@@ -28,7 +29,7 @@ func (projectStrategy) NamespaceScoped() bool {
 }
 
 // PrepareForCreate clears fields that are not allowed to be set by end users on creation.
-func (projectStrategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) {
+func (projectStrategy) PrepareForCreate(ctx context.Context, obj runtime.Object) {
 	project := obj.(*projectapi.Project)
 	hasProjectFinalizer := false
 	for i := range project.Spec.Finalizers {
@@ -47,7 +48,7 @@ func (projectStrategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Obje
 }
 
 // PrepareForUpdate clears fields that are not allowed to be set by end users on update.
-func (projectStrategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.Object) {
+func (projectStrategy) PrepareForUpdate(ctx context.Context, obj, old runtime.Object) {
 	newProject := obj.(*projectapi.Project)
 	oldProject := old.(*projectapi.Project)
 	newProject.Spec.Finalizers = oldProject.Spec.Finalizers
@@ -55,7 +56,7 @@ func (projectStrategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime
 }
 
 // Validate validates a new project.
-func (projectStrategy) Validate(ctx apirequest.Context, obj runtime.Object) field.ErrorList {
+func (projectStrategy) Validate(ctx context.Context, obj runtime.Object) field.ErrorList {
 	return validation.ValidateProject(obj.(*projectapi.Project))
 }
 
@@ -73,6 +74,6 @@ func (projectStrategy) Canonicalize(obj runtime.Object) {
 }
 
 // ValidateUpdate is the default update validation for an end user.
-func (projectStrategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.Object) field.ErrorList {
+func (projectStrategy) ValidateUpdate(ctx context.Context, obj, old runtime.Object) field.ErrorList {
 	return validation.ValidateProjectUpdate(obj.(*projectapi.Project), old.(*projectapi.Project))
 }

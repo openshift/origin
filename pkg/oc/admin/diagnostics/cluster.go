@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-	clientcmd "k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	rbacclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/rbac/internalversion"
@@ -21,7 +21,6 @@ import (
 	appcreate "github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/cluster/app_create"
 	networkdiags "github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/cluster/network"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/types"
-	osclientcmd "github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset"
 	routeclient "github.com/openshift/origin/pkg/route/generated/internalclientset"
 	securityclient "github.com/openshift/origin/pkg/security/generated/internalclientset"
@@ -77,6 +76,7 @@ func (o DiagnosticsOptions) buildClusterDiagnostics(rawConfig *clientcmdapi.Conf
 	if err != nil {
 		return nil, err
 	}
+
 	appsClient, err := appsclient.NewForConfig(config)
 	if err != nil {
 		return nil, err
@@ -97,6 +97,10 @@ func (o DiagnosticsOptions) buildClusterDiagnostics(rawConfig *clientcmdapi.Conf
 	if err != nil {
 		return nil, err
 	}
+	kubeClient, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return nil, err
+	}
 
 	diagnostics := []types.Diagnostic{}
 	for _, diagnosticName := range requestedDiagnostics {
@@ -110,7 +114,7 @@ func (o DiagnosticsOptions) buildClusterDiagnostics(rawConfig *clientcmdapi.Conf
 			ac.KubeClient = kclusterClient
 			ac.ProjectClient = projectClient.Project()
 			ac.RouteClient = routeClient
-			ac.RbacClient = rbacClient
+			ac.RbacClient = kubeClient.RbacV1()
 			ac.SARClient = kclusterClient.Authorization()
 			ac.AppsClient = appsClient
 			ac.PreventModification = o.PreventModification
@@ -125,9 +129,9 @@ func (o DiagnosticsOptions) buildClusterDiagnostics(rawConfig *clientcmdapi.Conf
 		case clustdiags.ClusterRouterName:
 			d = &clustdiags.ClusterRouter{KubeClient: kclusterClient, DCClient: appsClient.Apps()}
 		case clustdiags.ClusterRolesName:
-			d = &clustdiags.ClusterRoles{ClusterRolesClient: rbacClient.ClusterRoles(), SARClient: kclusterClient.Authorization()}
+			d = &clustdiags.ClusterRoles{ClusterRolesClient: kubeClient.RbacV1().ClusterRoles(), SARClient: kclusterClient.Authorization()}
 		case clustdiags.ClusterRoleBindingsName:
-			d = &clustdiags.ClusterRoleBindings{ClusterRoleBindingsClient: rbacClient.ClusterRoleBindings(), SARClient: kclusterClient.Authorization()}
+			d = &clustdiags.ClusterRoleBindings{ClusterRoleBindingsClient: kubeClient.RbacV1().ClusterRoleBindings(), SARClient: kclusterClient.Authorization()}
 		case clustdiags.MetricsApiProxyName:
 			d = &clustdiags.MetricsApiProxy{KubeClient: kclusterClient}
 		case clustdiags.ServiceExternalIPsName:
@@ -193,19 +197,15 @@ func (o DiagnosticsOptions) findClusterClients(rawConfig *clientcmdapi.Config) (
 
 // makes the client from the specified context and determines whether it is a cluster-admin.
 func (o DiagnosticsOptions) makeClusterClients(rawConfig *clientcmdapi.Config, contextName string, context *clientcmdapi.Context) (*rest.Config, kclientset.Interface, *clientcmdapi.Config, error) {
-	overrides := &clientcmd.ConfigOverrides{Context: *context}
-	clientConfig := clientcmd.NewDefaultClientConfig(*rawConfig, overrides)
-	factory := osclientcmd.NewFactory(clientConfig)
-
 	// create a config for making openshift clients
-	config, err := factory.ClientConfig()
+	config, err := o.Factory.ToRESTConfig()
 	if err != nil {
 		o.Logger().Debug("CED1006", fmt.Sprintf("Error creating client config for context '%s':\n%v", contextName, err))
 		return nil, nil, nil, nil
 	}
 
 	// create a kube client
-	kubeClient, err := factory.ClientSet()
+	kubeClient, err := kclientset.NewForConfig(config)
 	if err != nil {
 		o.Logger().Debug("CED1006", fmt.Sprintf("Error creating kube client for context '%s':\n%v", contextName, err))
 		return nil, nil, nil, nil

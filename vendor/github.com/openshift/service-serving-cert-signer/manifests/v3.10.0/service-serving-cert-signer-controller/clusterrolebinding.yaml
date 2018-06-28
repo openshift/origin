@@ -1,0 +1,11 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: system:openshift:controller:service-serving-cert-signer
+roleRef:
+  kind: ClusterRole
+  name: system:openshift:controller:service-serving-cert-signer
+subjects:
+- kind: ServiceAccount
+  namespace: openshift-service-cert-signer
+  name: service-serving-cert-signer-sa

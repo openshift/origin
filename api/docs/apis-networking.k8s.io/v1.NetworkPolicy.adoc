@@ -95,11 +95,13 @@ Populated by the system. Read-only. More info: http://kubernetes.io/docs/user-gu
 </summary><div style="margin-left:13px;">  - - <span title="(intstr.IntOrString) The port on the given protocol. This can either be a numerical or named port on a pod. If this field is not provided, this matches all port names and numbers.">port</span>:
 </div><div style="margin-left:13px;">      <span title="(string) The protocol (TCP or UDP) which traffic must match. If not specified, this field defaults to TCP.">protocol</span>:
 </div></details><details><summary>    <span title="(array) List of destinations for outgoing traffic of pods selected for this rule. Items in this list are combined using a logical OR operation. If this field is empty or missing, this rule matches all destinations (traffic not restricted by destination). If this field is present and contains at least one item, this rule allows traffic only if the traffic matches at least one item in the to list.">to</span>:
-</summary><details><summary>    - <span title="(v1.IPBlock) IPBlock defines policy on a particular IPBlock">ipBlock</span>:
+</summary><details><summary>    - <span title="(v1.IPBlock) IPBlock defines policy on a particular IPBlock. If this field is set then neither of the other fields can be.">ipBlock</span>:
 </summary><div style="margin-left:13px;">    -   <span title="(string) CIDR is a string representing the IP Block Valid examples are &#34;192.168.1.1/24&#34;">cidr</span>:
 </div><details><summary>        <span title="(array) Except is a slice of CIDRs that should not be included within an IP Block Valid examples are &#34;192.168.1.1/24&#34; Except values will be rejected if they are outside the CIDR range">except</span>:
 </summary><div style="margin-left:13px;">        - <span title="(string)">[string]</span>:
-</div></details></details><details><summary>      <span title="(v1.LabelSelector) Selects Namespaces using cluster scoped-labels. This matches all pods in all namespaces selected by this label selector. This field follows standard label selector semantics. If present but empty, this selector selects all namespaces.">namespaceSelector</span>:
+</div></details></details><details><summary>      <span title="(v1.LabelSelector) Selects Namespaces using cluster-scoped labels. This field follows standard label selector semantics; if present but empty, it selects all namespaces.
+
+If PodSelector is also set, then the NetworkPolicyPeer as a whole selects the Pods matching PodSelector in the Namespaces selected by NamespaceSelector. Otherwise it selects all Pods in the Namespaces selected by NamespaceSelector.">namespaceSelector</span>:
 </summary><details><summary>        <span title="(array) matchExpressions is a list of label selector requirements. The requirements are ANDed.">matchExpressions</span>:
 </summary><div style="margin-left:13px;">        - <span title="(string) key is the label key that the selector applies to.">key</span>:
 </div><div style="margin-left:13px;">          <span title="(string) operator represents a key&#39;s relationship to a set of values. Valid operators are In, NotIn, Exists and DoesNotExist.">operator</span>:
@@ -107,7 +109,9 @@ Populated by the system. Read-only. More info: http://kubernetes.io/docs/user-gu
 </summary><div style="margin-left:13px;">          - <span title="(string)">[string]</span>:
 </div></details></details><details><summary>        <span title="(object) matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels map is equivalent to an element of matchExpressions, whose key field is &#34;key&#34;, the operator is &#34;In&#34;, and the values array contains only &#34;value&#34;. The requirements are ANDed.">matchLabels</span>:
 </summary><div style="margin-left:13px;">          <span title="(string)">[string]</span>:
-</div></details></details><details><summary>      <span title="(v1.LabelSelector) This is a label selector which selects Pods in this namespace. This field follows standard label selector semantics. If present but empty, this selector selects all pods in this namespace.">podSelector</span>:
+</div></details></details><details><summary>      <span title="(v1.LabelSelector) This is a label selector which selects Pods. This field follows standard label selector semantics; if present but empty, it selects all pods.
+
+If NamespaceSelector is also set, then the NetworkPolicyPeer as a whole selects the Pods matching PodSelector in the Namespaces selected by NamespaceSelector. Otherwise it selects the Pods matching PodSelector in the policy&#39;s own Namespace.">podSelector</span>:
 </summary><details><summary>        <span title="(array) matchExpressions is a list of label selector requirements. The requirements are ANDed.">matchExpressions</span>:
 </summary><div style="margin-left:13px;">        - <span title="(string) key is the label key that the selector applies to.">key</span>:
 </div><div style="margin-left:13px;">          <span title="(string) operator represents a key&#39;s relationship to a set of values. Valid operators are In, NotIn, Exists and DoesNotExist.">operator</span>:
@@ -117,11 +121,13 @@ Populated by the system. Read-only. More info: http://kubernetes.io/docs/user-gu
 </summary><div style="margin-left:13px;">          <span title="(string)">[string]</span>:
 </div></details></details></details></details><details><summary>  <span title="(array) List of ingress rules to be applied to the selected pods. Traffic is allowed to a pod if there are no NetworkPolicies selecting the pod (and cluster policy otherwise allows the traffic), OR if the traffic source is the pod&#39;s local node, OR if the traffic matches at least one ingress rule across all of the NetworkPolicy objects whose podSelector matches the pod. If this field is empty then this NetworkPolicy does not allow any traffic (and serves solely to ensure that the pods it selects are isolated by default)">ingress</span>:
 </summary><details><summary>  - <span title="(array) List of sources which should be able to access the pods selected for this rule. Items in this list are combined using a logical OR operation. If this field is empty or missing, this rule matches all sources (traffic not restricted by source). If this field is present and contains at least on item, this rule allows traffic only if the traffic matches at least one item in the from list.">from</span>:
-</summary><details><summary>  - - <span title="(v1.IPBlock) IPBlock defines policy on a particular IPBlock">ipBlock</span>:
+</summary><details><summary>  - - <span title="(v1.IPBlock) IPBlock defines policy on a particular IPBlock. If this field is set then neither of the other fields can be.">ipBlock</span>:
 </summary><div style="margin-left:13px;">  - -   <span title="(string) CIDR is a string representing the IP Block Valid examples are &#34;192.168.1.1/24&#34;">cidr</span>:
 </div><details><summary>        <span title="(array) Except is a slice of CIDRs that should not be included within an IP Block Valid examples are &#34;192.168.1.1/24&#34; Except values will be rejected if they are outside the CIDR range">except</span>:
 </summary><div style="margin-left:13px;">        - <span title="(string)">[string]</span>:
-</div></details></details><details><summary>      <span title="(v1.LabelSelector) Selects Namespaces using cluster scoped-labels. This matches all pods in all namespaces selected by this label selector. This field follows standard label selector semantics. If present but empty, this selector selects all namespaces.">namespaceSelector</span>:
+</div></details></details><details><summary>      <span title="(v1.LabelSelector) Selects Namespaces using cluster-scoped labels. This field follows standard label selector semantics; if present but empty, it selects all namespaces.
+
+If PodSelector is also set, then the NetworkPolicyPeer as a whole selects the Pods matching PodSelector in the Namespaces selected by NamespaceSelector. Otherwise it selects all Pods in the Namespaces selected by NamespaceSelector.">namespaceSelector</span>:
 </summary><details><summary>        <span title="(array) matchExpressions is a list of label selector requirements. The requirements are ANDed.">matchExpressions</span>:
 </summary><div style="margin-left:13px;">        - <span title="(string) key is the label key that the selector applies to.">key</span>:
 </div><div style="margin-left:13px;">          <span title="(string) operator represents a key&#39;s relationship to a set of values. Valid operators are In, NotIn, Exists and DoesNotExist.">operator</span>:
@@ -129,7 +135,9 @@ Populated by the system. Read-only. More info: http://kubernetes.io/docs/user-gu
 </summary><div style="margin-left:13px;">          - <span title="(string)">[string]</span>:
 </div></details></details><details><summary>        <span title="(object) matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels map is equivalent to an element of matchExpressions, whose key field is &#34;key&#34;, the operator is &#34;In&#34;, and the values array contains only &#34;value&#34;. The requirements are ANDed.">matchLabels</span>:
 </summary><div style="margin-left:13px;">          <span title="(string)">[string]</span>:
-</div></details></details><details><summary>      <span title="(v1.LabelSelector) This is a label selector which selects Pods in this namespace. This field follows standard label selector semantics. If present but empty, this selector selects all pods in this namespace.">podSelector</span>:
+</div></details></details><details><summary>      <span title="(v1.LabelSelector) This is a label selector which selects Pods. This field follows standard label selector semantics; if present but empty, it selects all pods.
+
+If NamespaceSelector is also set, then the NetworkPolicyPeer as a whole selects the Pods matching PodSelector in the Namespaces selected by NamespaceSelector. Otherwise it selects the Pods matching PodSelector in the policy&#39;s own Namespace.">podSelector</span>:
 </summary><details><summary>        <span title="(array) matchExpressions is a list of label selector requirements. The requirements are ANDed.">matchExpressions</span>:
 </summary><div style="margin-left:13px;">        - <span title="(string) key is the label key that the selector applies to.">key</span>:
 </div><div style="margin-left:13px;">          <span title="(string) operator represents a key&#39;s relationship to a set of values. Valid operators are In, NotIn, Exists and DoesNotExist.">operator</span>:

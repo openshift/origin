@@ -1,6 +1,7 @@
 package etcd
 
 import (
+	"context"
 	"errors"
 	"strings"
 
@@ -55,7 +56,7 @@ func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 }
 
 // Get retrieves the item from etcd.
-func (r *REST) Get(ctx apirequest.Context, name string, options *metav1.GetOptions) (runtime.Object, error) {
+func (r *REST) Get(ctx context.Context, name string, options *metav1.GetOptions) (runtime.Object, error) {
 	// "~" means the currently authenticated user
 	if name == "~" {
 		user, ok := apirequest.UserFrom(ctx)

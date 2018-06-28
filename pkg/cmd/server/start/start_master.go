@@ -351,7 +351,7 @@ func (m *Master) Start() error {
 	// install aggregator types into the scheme so that "normal" RESTOptionsGetters can work for us.
 	// done in Start() prior to doing any other initialization so we don't mutate the scheme after it is being used by clients in other goroutines.
 	// TODO: make scheme threadsafe and do this as part of aggregator config building
-	aggregatorinstall.Install(legacyscheme.GroupFactoryRegistry, legacyscheme.Registry, legacyscheme.Scheme)
+	aggregatorinstall.Install(legacyscheme.Scheme)
 
 	controllersEnabled := m.controllers && len(m.config.ControllerConfig.Controllers) > 0
 	if controllersEnabled {

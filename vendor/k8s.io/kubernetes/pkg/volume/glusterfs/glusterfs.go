@@ -110,12 +110,8 @@ func (plugin *glusterfsPlugin) GetVolumeName(spec *volume.Spec) (string, error) 
 }
 
 func (plugin *glusterfsPlugin) CanSupport(spec *volume.Spec) bool {
-	if (spec.PersistentVolume != nil && spec.PersistentVolume.Spec.Glusterfs == nil) ||
-		(spec.Volume != nil && spec.Volume.Glusterfs == nil) {
-		return false
-	}
-
-	return true
+	return (spec.PersistentVolume != nil && spec.PersistentVolume.Spec.Glusterfs != nil) ||
+		(spec.Volume != nil && spec.Volume.Glusterfs != nil)
 }
 
 func (plugin *glusterfsPlugin) RequiresRemount() bool {
@@ -401,18 +397,19 @@ func (plugin *glusterfsPlugin) newProvisionerInternal(options volume.VolumeOptio
 }
 
 type provisionerConfig struct {
-	url              string
-	user             string
-	userKey          string
-	secretNamespace  string
-	secretName       string
-	secretValue      string
-	clusterID        string
-	gidMin           int
-	gidMax           int
-	volumeType       gapi.VolumeDurabilityInfo
-	volumeOptions    []string
-	volumeNamePrefix string
+	url                string
+	user               string
+	userKey            string
+	secretNamespace    string
+	secretName         string
+	secretValue        string
+	clusterID          string
+	gidMin             int
+	gidMax             int
+	volumeType         gapi.VolumeDurabilityInfo
+	volumeOptions      []string
+	volumeNamePrefix   string
+	thinPoolSnapFactor float32
 }
 
 type glusterfsVolumeProvisioner struct {
@@ -667,7 +664,7 @@ func (d *glusterfsVolumeDeleter) Delete() error {
 	return nil
 }
 
-func (p *glusterfsVolumeProvisioner) Provision() (*v1.PersistentVolume, error) {
+func (p *glusterfsVolumeProvisioner) Provision(selectedNode *v1.Node, allowedTopologies []v1.TopologySelectorTerm) (*v1.PersistentVolume, error) {
 	if !volutil.AccessModesContainedInAll(p.plugin.GetAccessModes(), p.options.PVC.Spec.AccessModes) {
 		return nil, fmt.Errorf("invalid AccessModes %v: only AccessModes %v are supported", p.options.PVC.Spec.AccessModes, p.plugin.GetAccessModes())
 	}
@@ -769,7 +766,15 @@ func (p *glusterfsVolumeProvisioner) CreateVolume(gid int) (r *v1.GlusterfsVolum
 	}
 
 	gid64 := int64(gid)
-	volumeReq := &gapi.VolumeCreateRequest{Size: sz, Name: customVolumeName, Clusters: clusterIDs, Gid: gid64, Durability: p.volumeType, GlusterVolumeOptions: p.volumeOptions}
+	snaps := struct {
+		Enable bool    `json:"enable"`
+		Factor float32 `json:"factor"`
+	}{
+		true,
+		p.provisionerConfig.thinPoolSnapFactor,
+	}
+
+	volumeReq := &gapi.VolumeCreateRequest{Size: sz, Name: customVolumeName, Clusters: clusterIDs, Gid: gid64, Durability: p.volumeType, GlusterVolumeOptions: p.volumeOptions, Snapshot: snaps}
 	volume, err := cli.VolumeCreate(volumeReq)
 	if err != nil {
 		glog.Errorf("failed to create volume: %v", err)
@@ -936,6 +941,10 @@ func parseClassParameters(params map[string]string, kubeClient clientset.Interfa
 	parseVolumeType := ""
 	parseVolumeOptions := ""
 	parseVolumeNamePrefix := ""
+	parseThinPoolSnapFactor := ""
+
+	//thin pool snap factor default to 1.0
+	cfg.thinPoolSnapFactor = float32(1.0)
 
 	for k, v := range params {
 		switch dstrings.ToLower(k) {
@@ -990,6 +999,11 @@ func parseClassParameters(params map[string]string, kubeClient clientset.Interfa
 			if len(v) != 0 {
 				parseVolumeNamePrefix = v
 			}
+		case "snapfactor":
+			if len(v) != 0 {
+				parseThinPoolSnapFactor = v
+			}
+
 		default:
 			return nil, fmt.Errorf("invalid option %q for volume plugin %s", k, glusterfsPluginName)
 		}
@@ -1076,6 +1090,17 @@ func parseClassParameters(params map[string]string, kubeClient clientset.Interfa
 			return nil, fmt.Errorf("Storageclass parameter 'volumenameprefix' should not contain '_' in its value")
 		}
 		cfg.volumeNamePrefix = parseVolumeNamePrefix
+	}
+
+	if len(parseThinPoolSnapFactor) != 0 {
+		thinPoolSnapFactor, err := strconv.ParseFloat(parseThinPoolSnapFactor, 32)
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert snapfactor %v to float: %v", parseThinPoolSnapFactor, err)
+		}
+		if thinPoolSnapFactor < 1.0 || thinPoolSnapFactor > 100.0 {
+			return nil, fmt.Errorf("invalid snapshot factor %v, the value must be between 1 to 100", thinPoolSnapFactor)
+		}
+		cfg.thinPoolSnapFactor = float32(thinPoolSnapFactor)
 	}
 	return &cfg, nil
 }

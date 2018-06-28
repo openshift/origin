@@ -1,6 +1,7 @@
 package buildconfig
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strings"
@@ -54,7 +55,7 @@ func (h *WebHook) New() runtime.Object {
 }
 
 // Connect responds to connections with a ConnectHandler
-func (h *WebHook) Connect(ctx apirequest.Context, name string, options runtime.Object, responder rest.Responder) (http.Handler, error) {
+func (h *WebHook) Connect(ctx context.Context, name string, options runtime.Object, responder rest.Responder) (http.Handler, error) {
 	return &WebHookHandler{
 		ctx:               ctx,
 		name:              name,
@@ -80,7 +81,7 @@ func (h *WebHook) ConnectMethods() []string {
 
 // WebHookHandler responds to web hook requests from the master.
 type WebHookHandler struct {
-	ctx               apirequest.Context
+	ctx               context.Context
 	name              string
 	options           *kapi.PodProxyOptions
 	responder         rest.Responder
@@ -101,7 +102,7 @@ func (h *WebHookHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 // ProcessWebHook does the actual work of processing the webhook request
-func (w *WebHookHandler) ProcessWebHook(writer http.ResponseWriter, req *http.Request, ctx apirequest.Context, name, subpath string) error {
+func (w *WebHookHandler) ProcessWebHook(writer http.ResponseWriter, req *http.Request, ctx context.Context, name, subpath string) error {
 	parts := strings.Split(strings.TrimPrefix(subpath, "/"), "/")
 	if len(parts) != 2 {
 		return errors.NewBadRequest(fmt.Sprintf("unexpected hook subpath %s", subpath))

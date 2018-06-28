@@ -1,9 +1,10 @@
 package useridentitymapping
 
 import (
+	"context"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
@@ -37,7 +38,7 @@ func (userIdentityMappingStrategy) AllowUnconditionalUpdate() bool {
 }
 
 // PrepareForCreate clears fields that are not allowed to be set by end users on creation.
-func (s userIdentityMappingStrategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) {
+func (s userIdentityMappingStrategy) PrepareForCreate(ctx context.Context, obj runtime.Object) {
 	mapping := obj.(*userapi.UserIdentityMapping)
 
 	if len(mapping.Name) == 0 {
@@ -56,7 +57,7 @@ func (s userIdentityMappingStrategy) PrepareForCreate(ctx apirequest.Context, ob
 }
 
 // PrepareForUpdate clears fields that are not allowed to be set by end users on update
-func (s userIdentityMappingStrategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.Object) {
+func (s userIdentityMappingStrategy) PrepareForUpdate(ctx context.Context, obj, old runtime.Object) {
 	mapping := obj.(*userapi.UserIdentityMapping)
 
 	if len(mapping.Name) == 0 {
@@ -78,11 +79,11 @@ func (s userIdentityMappingStrategy) Canonicalize(obj runtime.Object) {
 }
 
 // Validate validates a new UserIdentityMapping.
-func (s userIdentityMappingStrategy) Validate(ctx apirequest.Context, obj runtime.Object) field.ErrorList {
+func (s userIdentityMappingStrategy) Validate(ctx context.Context, obj runtime.Object) field.ErrorList {
 	return validation.ValidateUserIdentityMapping(obj.(*userapi.UserIdentityMapping))
 }
 
 // Validate validates an updated UserIdentityMapping.
-func (s userIdentityMappingStrategy) ValidateUpdate(ctx apirequest.Context, obj runtime.Object, old runtime.Object) field.ErrorList {
+func (s userIdentityMappingStrategy) ValidateUpdate(ctx context.Context, obj runtime.Object, old runtime.Object) field.ErrorList {
 	return validation.ValidateUserIdentityMappingUpdate(obj.(*userapi.UserIdentityMapping), old.(*userapi.UserIdentityMapping))
 }

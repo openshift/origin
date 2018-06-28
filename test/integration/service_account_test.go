@@ -13,13 +13,13 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
 	apiserverserviceaccount "k8s.io/apiserver/pkg/authentication/serviceaccount"
+	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/client-go/util/retry"
 	api "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	rbacclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/rbac/internalversion"
 	serviceaccountadmission "k8s.io/kubernetes/plugin/pkg/admission/serviceaccount"
 
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -80,7 +80,7 @@ func TestServiceAccountAuthorization(t *testing.T) {
 	addRoleOptions := &policy.RoleModificationOptions{
 		RoleName:   bootstrappolicy.ClusterAdminRoleName,
 		RoleKind:   "ClusterRole",
-		RbacClient: rbacclient.NewForConfigOrDie(cluster1AdminConfig),
+		RbacClient: rbacv1client.NewForConfigOrDie(cluster1AdminConfig),
 		Users:      []string{saUsername},
 	}
 	if err := addRoleOptions.AddRole(); err != nil {

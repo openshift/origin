@@ -14,6 +14,7 @@ import (
 	"k8s.io/apiserver/pkg/storage/names"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/kubernetes/pkg/kubectl/polymorphichelpers"
 
 	"github.com/openshift/origin/pkg/network"
 	networkapi "github.com/openshift/origin/pkg/network/apis/network"
@@ -193,7 +194,7 @@ func (d *NetworkDiagnostic) getPodLogs(nsList []string) (string, error) {
 				LimitBytes: &limit,
 			}
 
-			req, err := d.Factory.LogsForObject(&pod, opts, 10*time.Second)
+			req, err := polymorphichelpers.LogsForObjectFn(d.Factory, &pod, opts, 10*time.Second)
 			if err != nil {
 				errList = append(errList, err)
 				continue

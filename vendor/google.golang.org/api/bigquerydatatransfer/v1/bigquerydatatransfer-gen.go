@@ -321,7 +321,7 @@ type DataSource struct {
 	// schedule runs.
 	MinimumScheduleInterval string `json:"minimumScheduleInterval,omitempty"`
 
-	// Name: Data source resource name.
+	// Name: Output only. Data source resource name.
 	Name string `json:"name,omitempty"`
 
 	// Parameters: Data source parameters.
@@ -341,15 +341,10 @@ type DataSource struct {
 	// When set to `true`, user can override default schedule.
 	SupportsCustomSchedule bool `json:"supportsCustomSchedule,omitempty"`
 
-	// SupportsMultipleTransfers: Indicates whether the data source supports
-	// multiple transfers
-	// to different BigQuery targets.
+	// SupportsMultipleTransfers: Deprecated. This field has no effect.
 	SupportsMultipleTransfers bool `json:"supportsMultipleTransfers,omitempty"`
 
-	// TransferType: Transfer type. Currently supports only batch
-	// transfers,
-	// which are transfers that use the BigQuery batch APIs (load or
-	// query) to ingest the data.
+	// TransferType: Deprecated. This field has no effect.
 	//
 	// Possible values:
 	//   "TRANSFER_TYPE_UNSPECIFIED" - Invalid or Unknown transfer type
@@ -362,7 +357,7 @@ type DataSource struct {
 
 	// UpdateDeadlineSeconds: The number of seconds to wait for an update
 	// from the data source
-	// before BigQuery marks the transfer as failed.
+	// before the Data Transfer Service marks the transfer as FAILED.
 	UpdateDeadlineSeconds int64 `json:"updateDeadlineSeconds,omitempty"`
 
 	// ServerResponse contains the HTTP response code and headers from the
@@ -413,7 +408,7 @@ type DataSourceParameter struct {
 	// DisplayName: Parameter display name in the user interface.
 	DisplayName string `json:"displayName,omitempty"`
 
-	// Fields: When parameter is a record, describes child fields.
+	// Fields: Deprecated. This field has no effect.
 	Fields []*DataSourceParameter `json:"fields,omitempty"`
 
 	// Immutable: Cannot be changed after initial creation.
@@ -430,12 +425,10 @@ type DataSourceParameter struct {
 	// ParamId: Parameter identifier.
 	ParamId string `json:"paramId,omitempty"`
 
-	// Recurse: If set to true, schema should be taken from the parent with
-	// the same
-	// parameter_id. Only applicable when parameter type is RECORD.
+	// Recurse: Deprecated. This field has no effect.
 	Recurse bool `json:"recurse,omitempty"`
 
-	// Repeated: Can parameter have multiple values.
+	// Repeated: Deprecated. This field has no effect.
 	Repeated bool `json:"repeated,omitempty"`
 
 	// Required: Is parameter required.
@@ -450,7 +443,7 @@ type DataSourceParameter struct {
 	// Will be serialized to json as string.
 	//   "DOUBLE" - Double precision floating point parameter.
 	//   "BOOLEAN" - Boolean parameter.
-	//   "RECORD" - Record parameter.
+	//   "RECORD" - Deprecated. This field has no effect.
 	//   "PLUS_PAGE" - Page ID for a Google+ Page.
 	Type string `json:"type,omitempty"`
 
@@ -975,7 +968,6 @@ func (s *Status) MarshalJSON() ([]byte, error) {
 // `destination_dataset_id` is created when needed and shared with
 // the
 // appropriate data source service account.
-// Next id: 21
 type TransferConfig struct {
 	// DataRefreshWindowDays: The number of days to look back to
 	// automatically refresh the data.
@@ -1140,7 +1132,6 @@ func (s *TransferMessage) MarshalJSON() ([]byte, error) {
 }
 
 // TransferRun: Represents a data transfer run.
-// Next id: 27
 type TransferRun struct {
 	// DataSourceId: Output only. Data source id.
 	DataSourceId string `json:"dataSourceId,omitempty"`
@@ -1734,7 +1725,7 @@ type ProjectsLocationsGetCall struct {
 	header_      http.Header
 }
 
-// Get: Get information about a location.
+// Get: Gets information about a location.
 func (r *ProjectsLocationsService) Get(name string) *ProjectsLocationsGetCall {
 	c := &ProjectsLocationsGetCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.name = name
@@ -1835,7 +1826,7 @@ func (c *ProjectsLocationsGetCall) Do(opts ...googleapi.CallOption) (*Location, 
 	}
 	return ret, nil
 	// {
-	//   "description": "Get information about a location.",
+	//   "description": "Gets information about a location.",
 	//   "flatPath": "v1/projects/{projectsId}/locations/{locationsId}",
 	//   "httpMethod": "GET",
 	//   "id": "bigquerydatatransfer.projects.locations.get",
@@ -2695,7 +2686,7 @@ func (c *ProjectsLocationsTransferConfigsCreateCall) Do(opts ...googleapi.CallOp
 	//       "type": "string"
 	//     },
 	//     "parent": {
-	//       "description": "The BigQuery project id where the transfer configuration should be created.\nMust be in the format /projects/{project_id}/locations/{location_id}\nIf specified location and location of the destination bigquery dataset\ndo not match - the request will fail.",
+	//       "description": "The BigQuery project id where the transfer configuration should be created.\nMust be in the format projects/{project_id}/locations/{location_id}\nIf specified location and location of the destination bigquery dataset\ndo not match - the request will fail.",
 	//       "location": "path",
 	//       "pattern": "^projects/[^/]+/locations/[^/]+$",
 	//       "required": true,
@@ -2710,7 +2701,6 @@ func (c *ProjectsLocationsTransferConfigsCreateCall) Do(opts ...googleapi.CallOp
 	//     "$ref": "TransferConfig"
 	//   },
 	//   "scopes": [
-	//     "https://www.googleapis.com/auth/bigquery",
 	//     "https://www.googleapis.com/auth/cloud-platform"
 	//   ]
 	// }
@@ -3369,7 +3359,6 @@ func (c *ProjectsLocationsTransferConfigsPatchCall) Do(opts ...googleapi.CallOpt
 	//     "$ref": "TransferConfig"
 	//   },
 	//   "scopes": [
-	//     "https://www.googleapis.com/auth/bigquery",
 	//     "https://www.googleapis.com/auth/cloud-platform"
 	//   ]
 	// }
@@ -4391,7 +4380,7 @@ func (c *ProjectsTransferConfigsCreateCall) Do(opts ...googleapi.CallOption) (*T
 	//       "type": "string"
 	//     },
 	//     "parent": {
-	//       "description": "The BigQuery project id where the transfer configuration should be created.\nMust be in the format /projects/{project_id}/locations/{location_id}\nIf specified location and location of the destination bigquery dataset\ndo not match - the request will fail.",
+	//       "description": "The BigQuery project id where the transfer configuration should be created.\nMust be in the format projects/{project_id}/locations/{location_id}\nIf specified location and location of the destination bigquery dataset\ndo not match - the request will fail.",
 	//       "location": "path",
 	//       "pattern": "^projects/[^/]+$",
 	//       "required": true,
@@ -4406,7 +4395,6 @@ func (c *ProjectsTransferConfigsCreateCall) Do(opts ...googleapi.CallOption) (*T
 	//     "$ref": "TransferConfig"
 	//   },
 	//   "scopes": [
-	//     "https://www.googleapis.com/auth/bigquery",
 	//     "https://www.googleapis.com/auth/cloud-platform"
 	//   ]
 	// }
@@ -5065,7 +5053,6 @@ func (c *ProjectsTransferConfigsPatchCall) Do(opts ...googleapi.CallOption) (*Tr
 	//     "$ref": "TransferConfig"
 	//   },
 	//   "scopes": [
-	//     "https://www.googleapis.com/auth/bigquery",
 	//     "https://www.googleapis.com/auth/cloud-platform"
 	//   ]
 	// }

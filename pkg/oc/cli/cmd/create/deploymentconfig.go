@@ -100,12 +100,12 @@ func (o *CreateDeploymentConfigOptions) Complete(cmd *cobra.Command, f kcmdutil.
 	}
 
 	var err error
-	o.DC.Namespace, _, err = f.DefaultNamespace()
+	o.DC.Namespace, _, err = f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
 	}
 
-	clientConfig, err := f.ClientConfig()
+	clientConfig, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}

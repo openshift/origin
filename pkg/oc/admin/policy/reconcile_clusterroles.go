@@ -7,14 +7,13 @@ import (
 
 	"github.com/spf13/cobra"
 
+	rbacv1 "k8s.io/api/rbac/v1"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/apis/rbac"
-	rbacclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/rbac/internalversion"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	rbacregistryvalidation "k8s.io/kubernetes/pkg/registry/rbac/validation"
@@ -40,7 +39,7 @@ type ReconcileClusterRolesOptions struct {
 	ErrOut io.Writer
 	Output string
 
-	RoleClient rbacclient.ClusterRoleInterface
+	RoleClient rbacv1client.ClusterRoleInterface
 }
 
 var (
@@ -81,7 +80,7 @@ func NewCmdReconcileClusterRoles(name, fullName string, f kcmdutil.Factory, out,
 	cmd := &cobra.Command{
 		Use:     name + " [ClusterRoleName]...",
 		Short:   "Update cluster roles to match the recommended bootstrap policy",
-		Long:    fmt.Sprintf(reconcileLong, rbac.AutoUpdateAnnotationKey),
+		Long:    fmt.Sprintf(reconcileLong, rbacv1.AutoUpdateAnnotationKey),
 		Example: fmt.Sprintf(reconcileExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := o.Complete(cmd, f, args); err != nil {
@@ -109,11 +108,11 @@ func NewCmdReconcileClusterRoles(name, fullName string, f kcmdutil.Factory, out,
 }
 
 func (o *ReconcileClusterRolesOptions) Complete(cmd *cobra.Command, f kcmdutil.Factory, args []string) error {
-	clientConfig, err := f.ClientConfig()
+	clientConfig, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}
-	rbacClient, err := rbacclient.NewForConfig(clientConfig)
+	rbacClient, err := rbacv1client.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
@@ -121,7 +120,10 @@ func (o *ReconcileClusterRolesOptions) Complete(cmd *cobra.Command, f kcmdutil.F
 
 	o.Output = kcmdutil.GetFlagString(cmd, "output")
 
-	mapper, _ := f.Object()
+	mapper, err := f.ToRESTMapper()
+	if err != nil {
+		return err
+	}
 	for _, resourceString := range args {
 		resource, name, err := osutil.ResolveResource(authorizationapi.Resource("clusterroles"), resourceString, mapper)
 		if err != nil {
@@ -155,7 +157,7 @@ func (o *ReconcileClusterRolesOptions) RunReconcileClusterRoles(cmd *cobra.Comma
 	}
 
 	if len(skippedClusterRoles) > 0 {
-		fmt.Fprintf(o.ErrOut, "Skipped reconciling roles with the annotation %s=false\n", rbac.AutoUpdateAnnotationKey)
+		fmt.Fprintf(o.ErrOut, "Skipped reconciling roles with the annotation %s=false\n", rbacv1.AutoUpdateAnnotationKey)
 		for _, role := range skippedClusterRoles {
 			fmt.Fprintf(o.ErrOut, "skipped: clusterrole/%s\n", role.Name)
 		}
@@ -170,7 +172,7 @@ func (o *ReconcileClusterRolesOptions) RunReconcileClusterRoles(cmd *cobra.Comma
 		for _, item := range changedClusterRoles {
 			list.Items = append(list.Items, item)
 		}
-		fn := print.VersionedPrintObject(legacyscheme.Scheme, legacyscheme.Registry, kcmdutil.PrintObject, cmd, o.Out)
+		fn := print.VersionedPrintObject(kcmdutil.PrintObject, cmd, o.Out)
 		if err := fn(list); err != nil {
 			return err
 		}
@@ -185,9 +187,9 @@ func (o *ReconcileClusterRolesOptions) RunReconcileClusterRoles(cmd *cobra.Comma
 
 // ChangedClusterRoles returns the roles that must be created and/or updated to
 // match the recommended bootstrap policy
-func (o *ReconcileClusterRolesOptions) ChangedClusterRoles() ([]*rbac.ClusterRole, []*rbac.ClusterRole, error) {
-	changedRoles := []*rbac.ClusterRole{}
-	skippedRoles := []*rbac.ClusterRole{}
+func (o *ReconcileClusterRolesOptions) ChangedClusterRoles() ([]*rbacv1.ClusterRole, []*rbacv1.ClusterRole, error) {
+	changedRoles := []*rbacv1.ClusterRole{}
+	skippedRoles := []*rbacv1.ClusterRole{}
 
 	rolesToReconcile := sets.NewString(o.RolesToReconcile...)
 	rolesNotFound := sets.NewString(o.RolesToReconcile...)
@@ -209,7 +211,7 @@ func (o *ReconcileClusterRolesOptions) ChangedClusterRoles() ([]*rbac.ClusterRol
 		}
 
 		if reconciledClusterRole, needsReconciliation := computeReconciledRole(*expectedClusterRole, *actualClusterRole, o.Union); needsReconciliation {
-			if actualClusterRole.Annotations[rbac.AutoUpdateAnnotationKey] == "false" {
+			if actualClusterRole.Annotations[rbacv1.AutoUpdateAnnotationKey] == "false" {
 				skippedRoles = append(skippedRoles, reconciledClusterRole)
 			} else {
 				changedRoles = append(changedRoles, reconciledClusterRole)
@@ -225,7 +227,7 @@ func (o *ReconcileClusterRolesOptions) ChangedClusterRoles() ([]*rbac.ClusterRol
 	return changedRoles, skippedRoles, nil
 }
 
-func computeReconciledRole(expected rbac.ClusterRole, actual rbac.ClusterRole, union bool) (*rbac.ClusterRole, bool) {
+func computeReconciledRole(expected rbacv1.ClusterRole, actual rbacv1.ClusterRole, union bool) (*rbacv1.ClusterRole, bool) {
 	existingAnnotationKeys := sets.StringKeySet(actual.Annotations)
 	expectedAnnotationKeys := sets.StringKeySet(expected.Annotations)
 	missingAnnotationKeys := !existingAnnotationKeys.HasAll(expectedAnnotationKeys.List()...)
@@ -258,10 +260,10 @@ func computeReconciledRole(expected rbac.ClusterRole, actual rbac.ClusterRole, u
 }
 
 // ReplaceChangedRoles will reconcile all the changed roles back to the recommended bootstrap policy
-func (o *ReconcileClusterRolesOptions) ReplaceChangedRoles(changedRoles []*rbac.ClusterRole) error {
+func (o *ReconcileClusterRolesOptions) ReplaceChangedRoles(changedRoles []*rbacv1.ClusterRole) error {
 	errs := []error{}
 	for i := range changedRoles {
-		role, err := o.RoleClient.Get(changedRoles[i].Name, metav1.GetOptions{})
+		rbacRole, err := o.RoleClient.Get(changedRoles[i].Name, metav1.GetOptions{})
 		if err != nil && !kapierrors.IsNotFound(err) {
 			errs = append(errs, err)
 			continue
@@ -278,10 +280,10 @@ func (o *ReconcileClusterRolesOptions) ReplaceChangedRoles(changedRoles []*rbac.
 			continue
 		}
 
-		role.Rules = changedRoles[i].Rules
-		role.Annotations = mergeAnnotations(changedRoles[i].Annotations, role.Annotations)
+		rbacRole.Rules = changedRoles[i].Rules
+		rbacRole.Annotations = mergeAnnotations(changedRoles[i].Annotations, rbacRole.Annotations)
 
-		updatedRole, err := o.RoleClient.Update(role)
+		updatedRole, err := o.RoleClient.Update(rbacRole)
 		if err != nil {
 			errs = append(errs, err)
 			continue

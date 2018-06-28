@@ -132,20 +132,23 @@ func parseStreamName(defaultNamespace, name string) (string, string, error) {
 	return namespace, streamName, nil
 }
 
-func determineSourceKind(f kcmdutil.Factory, input string) string {
-	mapper, _ := f.Object()
+func determineSourceKind(f kcmdutil.Factory, input string) (string, error) {
+	mapper, err := f.ToRESTMapper()
+	if err != nil {
+		return "", err
+	}
 	gvks, err := mapper.KindsFor(schema.GroupVersionResource{Group: imageapi.GroupName, Resource: input})
 	if err == nil {
-		return gvks[0].Kind
+		return gvks[0].Kind, nil
 	}
 
 	// DockerImage isn't in RESTMapper
 	switch strings.ToLower(input) {
 	case "docker", "dockerimage":
-		return "DockerImage"
+		return "DockerImage", nil
 	}
 
-	return input
+	return input, nil
 }
 
 // Complete completes all the required options for the tag command.
@@ -158,7 +161,7 @@ func (o *TagOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []str
 	o.out = out
 
 	// Setup clients.
-	clientConfig, err := f.ClientConfig()
+	clientConfig, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}
@@ -171,7 +174,7 @@ func (o *TagOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []str
 
 	// Setup namespace.
 	if len(o.namespace) == 0 {
-		o.namespace, _, err = f.DefaultNamespace()
+		o.namespace, _, err = f.ToRawKubeConfigLoader().Namespace()
 		if err != nil {
 			return err
 		}
@@ -184,7 +187,10 @@ func (o *TagOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []str
 
 		sourceKind := o.sourceKind
 		if len(sourceKind) > 0 {
-			sourceKind = determineSourceKind(f, sourceKind)
+			sourceKind, err = determineSourceKind(f, sourceKind)
+			if err != nil {
+				return err
+			}
 		}
 		if len(sourceKind) > 0 {
 			validSources := sets.NewString("imagestreamtag", "istag", "imagestreamimage", "isimage", "docker", "dockerimage")

@@ -99,7 +99,7 @@ os::cmd::expect_success_and_text 'oc start-build --list-webhooks=github ruby-sam
 os::cmd::expect_failure 'oc start-build --list-webhooks=blah'
 hook=$(oc start-build --list-webhooks='generic' ruby-sample-build | head -n 1)
 hook=${hook/<secret>/secret101}
-os::cmd::expect_success_and_text "oc start-build --from-webhook=${hook}" "build \"ruby-sample-build-[0-9]\" started"
+os::cmd::expect_success_and_text "oc start-build --from-webhook=${hook}" "build.build.openshift.io \"ruby-sample-build-[0-9]\" started"
 os::cmd::expect_failure_and_text "oc start-build --from-webhook=${hook}/foo" "error: server rejected our request"
 os::cmd::expect_success "oc patch bc/ruby-sample-build -p '{\"spec\":{\"strategy\":{\"dockerStrategy\":{\"from\":{\"name\":\"asdf:7\"}}}}}'"
 os::cmd::expect_failure_and_text "oc start-build --from-webhook=${hook}" "Error resolving ImageStreamTag asdf:7"
@@ -173,7 +173,7 @@ os::cmd::expect_success 'oc delete secret dbsecret'
 os::cmd::expect_success 'oc process -f examples/sample-app/application-template-dockerbuild.json -l build=docker | oc create -f -'
 os::cmd::try_until_success 'oc get build/ruby-sample-build-1'
 # Uses type/name resource syntax to cancel the build and check for proper message
-os::cmd::expect_success_and_text 'oc cancel-build build/ruby-sample-build-1' 'build "ruby-sample-build-1" cancelled'
+os::cmd::expect_success_and_text 'oc cancel-build build/ruby-sample-build-1' 'build.build.openshift.io "ruby-sample-build-1" cancelled'
 # Make sure canceling already cancelled build returns proper message
 os::cmd::expect_success 'oc cancel-build build/ruby-sample-build-1'
 # Cancel all builds from a build configuration

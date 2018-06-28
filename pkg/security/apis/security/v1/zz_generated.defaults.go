@@ -68,6 +68,9 @@ func SetObjectDefaults_PodSecurityPolicyReview(in *v1.PodSecurityPolicyReview) {
 						}
 					}
 				}
+				if b.ServiceAccountToken != nil {
+					core_v1.SetDefaults_ServiceAccountTokenProjection(b.ServiceAccountToken)
+				}
 			}
 		}
 		if a.VolumeSource.ScaleIO != nil {
@@ -202,6 +205,9 @@ func SetObjectDefaults_PodSecurityPolicyReview(in *v1.PodSecurityPolicyReview) {
 								core_v1.SetDefaults_ObjectFieldSelector(d.FieldRef)
 							}
 						}
+					}
+					if c.ServiceAccountToken != nil {
+						core_v1.SetDefaults_ServiceAccountTokenProjection(c.ServiceAccountToken)
 					}
 				}
 			}
@@ -340,6 +346,9 @@ func SetObjectDefaults_PodSecurityPolicySelfSubjectReview(in *v1.PodSecurityPoli
 						}
 					}
 				}
+				if b.ServiceAccountToken != nil {
+					core_v1.SetDefaults_ServiceAccountTokenProjection(b.ServiceAccountToken)
+				}
 			}
 		}
 		if a.VolumeSource.ScaleIO != nil {
@@ -472,6 +481,9 @@ func SetObjectDefaults_PodSecurityPolicySelfSubjectReview(in *v1.PodSecurityPoli
 							core_v1.SetDefaults_ObjectFieldSelector(c.FieldRef)
 						}
 					}
+				}
+				if b.ServiceAccountToken != nil {
+					core_v1.SetDefaults_ServiceAccountTokenProjection(b.ServiceAccountToken)
 				}
 			}
 		}
@@ -609,6 +621,9 @@ func SetObjectDefaults_PodSecurityPolicySubjectReview(in *v1.PodSecurityPolicySu
 						}
 					}
 				}
+				if b.ServiceAccountToken != nil {
+					core_v1.SetDefaults_ServiceAccountTokenProjection(b.ServiceAccountToken)
+				}
 			}
 		}
 		if a.VolumeSource.ScaleIO != nil {
@@ -741,6 +756,9 @@ func SetObjectDefaults_PodSecurityPolicySubjectReview(in *v1.PodSecurityPolicySu
 							core_v1.SetDefaults_ObjectFieldSelector(c.FieldRef)
 						}
 					}
+				}
+				if b.ServiceAccountToken != nil {
+					core_v1.SetDefaults_ServiceAccountTokenProjection(b.ServiceAccountToken)
 				}
 			}
 		}

@@ -102,7 +102,7 @@ func (o *GroupModificationOptions) Complete(f kcmdutil.Factory, args []string) e
 	o.Group = args[0]
 	o.Users = append(o.Users, args[1:]...)
 
-	clientConfig, err := f.ClientConfig()
+	clientConfig, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}

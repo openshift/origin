@@ -4,6 +4,7 @@ import (
 	"io"
 
 	"github.com/spf13/cobra"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	kcmd "k8s.io/kubernetes/pkg/kubectl/cmd"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
@@ -42,12 +43,12 @@ func NewCommandTop(name, fullName string, f cmdutil.Factory, out, errOut io.Writ
 	cmdTopNodeOpts := &kcmd.TopNodeOptions{
 		HeapsterOptions: ocHeapsterTopOpts,
 	}
-	cmdTopNode := kcmd.NewCmdTopNode(f, cmdTopNodeOpts, out)
+	cmdTopNode := kcmd.NewCmdTopNode(f, cmdTopNodeOpts, genericclioptions.IOStreams{Out: out, ErrOut: errOut})
 
 	cmdTopPodOpts := &kcmd.TopPodOptions{
 		HeapsterOptions: ocHeapsterTopOpts,
 	}
-	cmdTopPod := kcmd.NewCmdTopPod(f, cmdTopPodOpts, out)
+	cmdTopPod := kcmd.NewCmdTopPod(f, cmdTopPodOpts, genericclioptions.IOStreams{Out: out, ErrOut: errOut})
 
 	cmds.AddCommand(NewCmdTopImages(f, fullName, TopImagesRecommendedName, out))
 	cmds.AddCommand(NewCmdTopImageStreams(f, fullName, TopImageStreamsRecommendedName, out))

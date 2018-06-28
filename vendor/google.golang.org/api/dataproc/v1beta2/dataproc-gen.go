@@ -1,4 +1,4 @@
-// Package dataproc provides access to the Google Cloud Dataproc API.
+// Package dataproc provides access to the Cloud Dataproc API.
 //
 // See https://cloud.google.com/dataproc/
 //
@@ -177,11 +177,11 @@ type AcceleratorConfig struct {
 	AcceleratorCount int64 `json:"acceleratorCount,omitempty"`
 
 	// AcceleratorTypeUri: Full URL, partial URI, or short name of the
-	// accelerator type resource to expose to this instance. See Google
-	// Compute Engine AcceleratorTypes(
+	// accelerator type resource to expose to this instance. See Compute
+	// Engine AcceleratorTypes(
 	// /compute/docs/reference/beta/acceleratorTypes)Examples *
-	// https://www.googleapis.com/compute/beta/projects/[project_id]/zones/us-east1-a/acceleratorTypes/nvidia-tesla-k80 * projects/[project_id]/zones/us-east1-a/acceleratorTypes/nvidia-tesla-k80 *
-	// nvidia-tesla-k80
+	// https://www.googleapis.com/compute/beta/projects/[project_id]/zones/us-east1-a/acceleratorTypes/nvidia-tesla-k80 * projects/[project_id]/zones/us-east1-a/acceleratorTypes/nvidia-tesla-k80 * nvidia-tesla-k80Auto Zone Exception: If you are using the Cloud Dataproc Auto Zone Placement feature, you must use the short name of the accelerator type resource, for example,
+	// nvidia-tesla-k80.
 	AcceleratorTypeUri string `json:"acceleratorTypeUri,omitempty"`
 
 	// ForceSendFields is a list of field names (e.g. "AcceleratorCount") to
@@ -218,8 +218,7 @@ type Binding struct {
 	// who is authenticated with a Google account or a service
 	// account.
 	// user:{emailid}: An email address that represents a specific Google
-	// account. For example, alice@gmail.com or
-	// joe@example.com.
+	// account. For example, alice@gmail.com .
 	// serviceAccount:{emailid}: An email address that represents a service
 	// account. For example,
 	// my-other-app@appspot.gserviceaccount.com.
@@ -261,7 +260,7 @@ type CancelJobRequest struct {
 }
 
 // Cluster: Describes the identifying information, config, and status of
-// a cluster of Google Compute Engine instances.
+// a cluster of Compute Engine instances.
 type Cluster struct {
 	// ClusterName: Required. The cluster name. Cluster names within a
 	// project must be unique. Names of deleted clusters can be reused.
@@ -328,8 +327,8 @@ func (s *Cluster) MarshalJSON() ([]byte, error) {
 
 // ClusterConfig: The cluster config.
 type ClusterConfig struct {
-	// ConfigBucket: Optional. A Google Cloud Storage staging bucket used
-	// for sharing generated SSH keys and config. If you do not specify a
+	// ConfigBucket: Optional. A Cloud Storage staging bucket used for
+	// sharing generated SSH keys and config. If you do not specify a
 	// staging bucket, Cloud Dataproc will determine an appropriate Cloud
 	// Storage location (US, ASIA, or EU) for your cluster's staging bucket
 	// according to the Google Compute Engine zone where your cluster is
@@ -337,8 +336,8 @@ type ClusterConfig struct {
 	// per-location bucket for you.
 	ConfigBucket string `json:"configBucket,omitempty"`
 
-	// GceClusterConfig: Required. The shared Google Compute Engine config
-	// settings for all instances in a cluster.
+	// GceClusterConfig: Required. The shared Compute Engine config settings
+	// for all instances in a cluster.
 	GceClusterConfig *GceClusterConfig `json:"gceClusterConfig,omitempty"`
 
 	// InitializationActions: Optional. Commands to execute on each node
@@ -360,20 +359,20 @@ type ClusterConfig struct {
 	// schedule.
 	LifecycleConfig *LifecycleConfig `json:"lifecycleConfig,omitempty"`
 
-	// MasterConfig: Optional. The Google Compute Engine config settings for
-	// the master instance in a cluster.
+	// MasterConfig: Optional. The Compute Engine config settings for the
+	// master instance in a cluster.
 	MasterConfig *InstanceGroupConfig `json:"masterConfig,omitempty"`
 
-	// SecondaryWorkerConfig: Optional. The Google Compute Engine config
-	// settings for additional worker instances in a cluster.
+	// SecondaryWorkerConfig: Optional. The Compute Engine config settings
+	// for additional worker instances in a cluster.
 	SecondaryWorkerConfig *InstanceGroupConfig `json:"secondaryWorkerConfig,omitempty"`
 
 	// SoftwareConfig: Optional. The config settings for software inside the
 	// cluster.
 	SoftwareConfig *SoftwareConfig `json:"softwareConfig,omitempty"`
 
-	// WorkerConfig: Optional. The Google Compute Engine config settings for
-	// worker instances in a cluster.
+	// WorkerConfig: Optional. The Compute Engine config settings for worker
+	// instances in a cluster.
 	WorkerConfig *InstanceGroupConfig `json:"workerConfig,omitempty"`
 
 	// ForceSendFields is a list of field names (e.g. "ConfigBucket") to
@@ -662,9 +661,9 @@ type DiagnoseClusterRequest struct {
 
 // DiagnoseClusterResults: The location of diagnostic output.
 type DiagnoseClusterResults struct {
-	// OutputUri: Output only. The Google Cloud Storage URI of the
-	// diagnostic output. The output report is a plain text file with a
-	// summary of collected diagnostics.
+	// OutputUri: Output only. The Cloud Storage URI of the diagnostic
+	// output. The output report is a plain text file with a summary of
+	// collected diagnostics.
 	OutputUri string `json:"outputUri,omitempty"`
 
 	// ForceSendFields is a list of field names (e.g. "OutputUri") to
@@ -750,9 +749,8 @@ type Empty struct {
 	googleapi.ServerResponse `json:"-"`
 }
 
-// GceClusterConfig: Common config settings for resources of Google
-// Compute Engine cluster instances, applicable to all instances in the
-// cluster.
+// GceClusterConfig: Common config settings for resources of Compute
+// Engine cluster instances, applicable to all instances in the cluster.
 type GceClusterConfig struct {
 	// InternalIpOnly: Optional. If true, all instances in the cluster will
 	// only have internal IP addresses. By default, clusters are not
@@ -763,15 +761,15 @@ type GceClusterConfig struct {
 	// without external IP addresses.
 	InternalIpOnly bool `json:"internalIpOnly,omitempty"`
 
-	// Metadata: The Google Compute Engine metadata entries to add to all
-	// instances (see Project and instance metadata
+	// Metadata: The Compute Engine metadata entries to add to all instances
+	// (see Project and instance metadata
 	// (https://cloud.google.com/compute/docs/storing-retrieving-metadata#pro
 	// ject_and_instance_metadata)).
 	Metadata map[string]string `json:"metadata,omitempty"`
 
-	// NetworkUri: Optional. The Google Compute Engine network to be used
-	// for machine communications. Cannot be specified with subnetwork_uri.
-	// If neither network_uri nor subnetwork_uri is specified, the "default"
+	// NetworkUri: Optional. The Compute Engine network to be used for
+	// machine communications. Cannot be specified with subnetwork_uri. If
+	// neither network_uri nor subnetwork_uri is specified, the "default"
 	// network of the project is used, if it exists. Cannot be a "Custom
 	// Subnet Network" (see Using Subnetworks for more information).A full
 	// URL, partial URI, or short name are valid.
@@ -784,8 +782,8 @@ type GceClusterConfig struct {
 	NetworkUri string `json:"networkUri,omitempty"`
 
 	// ServiceAccount: Optional. The service account of the instances.
-	// Defaults to the default Google Compute Engine service account. Custom
-	// service accounts need permissions equivalent to the folloing IAM
+	// Defaults to the default Compute Engine service account. Custom
+	// service accounts need permissions equivalent to the following IAM
 	// roles:
 	// roles/logging.logWriter
 	// roles/storage.objectAdmin(see
@@ -794,8 +792,8 @@ type GceClusterConfig struct {
 	ServiceAccount string `json:"serviceAccount,omitempty"`
 
 	// ServiceAccountScopes: Optional. The URIs of service account scopes to
-	// be included in Google Compute Engine instances. The following base
-	// set of scopes is always
+	// be included in Compute Engine instances. The following base set of
+	// scopes is always
 	// included:
 	// https://www.googleapis.com/auth/cloud.useraccounts.readonly
 	//
@@ -812,9 +810,9 @@ type GceClusterConfig struct {
 	// https://www.googleapis.com/auth/devstorage.full_control
 	ServiceAccountScopes []string `json:"serviceAccountScopes,omitempty"`
 
-	// SubnetworkUri: Optional. The Google Compute Engine subnetwork to be
-	// used for machine communications. Cannot be specified with
-	// network_uri.A full URL, partial URI, or short name are valid.
+	// SubnetworkUri: Optional. The Compute Engine subnetwork to be used for
+	// machine communications. Cannot be specified with network_uri.A full
+	// URL, partial URI, or short name are valid.
 	// Examples:
 	// https://www.googleapis.com/compute/v1/projects/[project_id]/
 	// regions/us-east1/sub0
@@ -822,14 +820,14 @@ type GceClusterConfig struct {
 	// sub0
 	SubnetworkUri string `json:"subnetworkUri,omitempty"`
 
-	// Tags: The Google Compute Engine tags to add to all instances (see
-	// Tagging instances).
+	// Tags: The Compute Engine tags to add to all instances (see Tagging
+	// instances).
 	Tags []string `json:"tags,omitempty"`
 
-	// ZoneUri: Optional. The zone where the Google Compute Engine cluster
-	// will be located. On a create request, it is required in the "global"
-	// region. If omitted in a non-global Cloud Dataproc region, the service
-	// will pick a zone in the corresponding Compute Engine region. On a get
+	// ZoneUri: Optional. The zone where the Compute Engine cluster will be
+	// located. On a create request, it is required in the "global" region.
+	// If omitted in a non-global Cloud Dataproc region, the service will
+	// pick a zone in the corresponding Compute Engine region. On a get
 	// request, zone will always be present.A full URL, partial URI, or
 	// short name are valid.
 	// Examples:
@@ -861,6 +859,10 @@ func (s *GceClusterConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GceClusterConfig
 	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// GetIamPolicyRequest: Request message for GetIamPolicy method.
+type GetIamPolicyRequest struct {
 }
 
 // HadoopJob: A Cloud Dataproc job for running Apache Hadoop MapReduce
@@ -988,44 +990,43 @@ func (s *HiveJob) MarshalJSON() ([]byte, error) {
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
-// InstanceGroupConfig: Optional. The config settings for Google Compute
-// Engine resources in an instance group, such as a master or worker
-// group.
+// InstanceGroupConfig: Optional. The config settings for Compute Engine
+// resources in an instance group, such as a master or worker group.
 type InstanceGroupConfig struct {
-	// Accelerators: Optional. The Google Compute Engine accelerator
-	// configuration for these instances.Beta Feature: This feature is still
-	// under development. It may be changed before final release.
+	// Accelerators: Optional. The Compute Engine accelerator configuration
+	// for these instances.Beta Feature: This feature is still under
+	// development. It may be changed before final release.
 	Accelerators []*AcceleratorConfig `json:"accelerators,omitempty"`
 
 	// DiskConfig: Optional. Disk option config settings.
 	DiskConfig *DiskConfig `json:"diskConfig,omitempty"`
 
-	// ImageUri: Output only. The Google Compute Engine image resource used
-	// for cluster instances. Inferred from SoftwareConfig.image_version.
+	// ImageUri: Output only. The Compute Engine image resource used for
+	// cluster instances. Inferred from SoftwareConfig.image_version.
 	ImageUri string `json:"imageUri,omitempty"`
 
-	// InstanceNames: Optional. The list of instance names. Cloud Dataproc
-	// derives the names from cluster_name, num_instances, and the instance
-	// group if not set by user (recommended practice is to let Cloud
-	// Dataproc derive the name).
+	// InstanceNames: Output only. The list of instance names. Cloud
+	// Dataproc derives the names from cluster_name, num_instances, and the
+	// instance group.
 	InstanceNames []string `json:"instanceNames,omitempty"`
 
 	// IsPreemptible: Optional. Specifies that this instance group contains
 	// preemptible instances.
 	IsPreemptible bool `json:"isPreemptible,omitempty"`
 
-	// MachineTypeUri: Optional. The Google Compute Engine machine type used
-	// for cluster instances.A full URL, partial URI, or short name are
-	// valid.
+	// MachineTypeUri: Optional. The Compute Engine machine type used for
+	// cluster instances.A full URL, partial URI, or short name are valid.
 	// Examples:
 	// https://www.googleapis.com/compute/v1/projects/[project_id]/
 	// zones/us-east1-a/machineTypes/n1-standard-2
 	// projects/[project_id]/zone
 	// s/us-east1-a/machineTypes/n1-standard-2
-	// n1-standard-2
+	// n1-standard-2Auto Zone Exception: If you are using the Cloud Dataproc
+	// Auto Zone Placement feature, you must use the short name of the
+	// machine type resource, for example, n1-standard-2.
 	MachineTypeUri string `json:"machineTypeUri,omitempty"`
 
-	// ManagedGroupConfig: Output only. The config for Google Compute Engine
+	// ManagedGroupConfig: Output only. The config for Compute Engine
 	// Instance Group Manager that manages this group. This is only used for
 	// preemptible instance groups.
 	ManagedGroupConfig *ManagedGroupConfig `json:"managedGroupConfig,omitempty"`
@@ -1072,6 +1073,10 @@ type InstantiateWorkflowTemplateRequest struct {
 	// must contain only letters (a-z, A-Z), numbers (0-9), underscores (_),
 	// and hyphens (-). The maximum length is 40 characters.
 	InstanceId string `json:"instanceId,omitempty"`
+
+	// Parameters: Optional. Map from parameter names to values that should
+	// be used for those parameters.
+	Parameters map[string]string `json:"parameters,omitempty"`
 
 	// Version: Optional. The version of workflow template to instantiate.
 	// If specified, the workflow will be instantiated only if the current
@@ -1593,8 +1598,11 @@ func (s *LoggingConfig) MarshalJSON() ([]byte, error) {
 
 // ManagedCluster: Cluster that is managed by the workflow.
 type ManagedCluster struct {
-	// ClusterName: Required. The cluster name. Cluster names within a
-	// project must be unique. Names from deleted clusters can be reused.
+	// ClusterName: Required. The cluster name prefix. A unique cluster name
+	// will be formed by appending a random suffix.The name must contain
+	// only lower-case letters (a-z), numbers (0-9), and hyphens (-). Must
+	// begin with a letter. Cannot begin or end with hyphen. Must consist of
+	// between 2 and 35 characters.
 	ClusterName string `json:"clusterName,omitempty"`
 
 	// Config: Required. The cluster configuration.
@@ -1605,7 +1613,7 @@ type ManagedCluster struct {
 	// the following PCRE regular expression: \p{Ll}\p{Lo}{0,62}Label values
 	// must be between 1 and 63 characters long, and must conform to the
 	// following PCRE regular expression: \p{Ll}\p{Lo}\p{N}_-{0,63}No more
-	// than 64 labels can be associated with a given cluster.
+	// than 32 labels can be associated with a given cluster.
 	Labels map[string]string `json:"labels,omitempty"`
 
 	// ForceSendFields is a list of field names (e.g. "ClusterName") to
@@ -1670,8 +1678,7 @@ func (s *ManagedGroupConfig) MarshalJSON() ([]byte, error) {
 // NodeInitializationAction: Specifies an executable to run on a fully
 // configured node and a timeout period for executable completion.
 type NodeInitializationAction struct {
-	// ExecutableFile: Required. Google Cloud Storage URI of executable
-	// file.
+	// ExecutableFile: Required. Cloud Storage URI of executable file.
 	ExecutableFile string `json:"executableFile,omitempty"`
 
 	// ExecutionTimeout: Optional. Amount of time executable has to
@@ -1778,7 +1785,7 @@ type OrderedJob struct {
 	// must be between 1 and 63 characters long, and must conform to the
 	// following regular expression: \p{Ll}\p{Lo}{0,62}Label values must be
 	// between 1 and 63 characters long, and must conform to the following
-	// regular expression: \p{Ll}\p{Lo}\p{N}_-{0,63}No more than 64 labels
+	// regular expression: \p{Ll}\p{Lo}\p{N}_-{0,63}No more than 32 labels
 	// can be associated with a given job.
 	Labels map[string]string `json:"labels,omitempty"`
 
@@ -1804,8 +1811,11 @@ type OrderedJob struct {
 
 	// StepId: Required. The step id. The id must be unique among all jobs
 	// within the template.The step id is used as prefix for job id, as job
-	// workflow-step-id label, and in prerequisite_step_ids field from other
-	// steps.
+	// goog-dataproc-workflow-step-id label, and in prerequisiteStepIds
+	// field from other steps.The id must contain only letters (a-z, A-Z),
+	// numbers (0-9), underscores (_), and hyphens (-). Cannot begin or end
+	// with underscore or hyphen. Must consist of between 3 and 50
+	// characters.
 	StepId string `json:"stepId,omitempty"`
 
 	// ForceSendFields is a list of field names (e.g. "HadoopJob") to
@@ -1827,6 +1837,37 @@ type OrderedJob struct {
 
 func (s *OrderedJob) MarshalJSON() ([]byte, error) {
 	type NoMethod OrderedJob
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// ParameterValidation: Configuration for parameter validation.
+type ParameterValidation struct {
+	// Regex: Validation based on regular expressions.
+	Regex *RegexValidation `json:"regex,omitempty"`
+
+	// Values: Validation based on a list of allowed values.
+	Values *ValueValidation `json:"values,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "Regex") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "Regex") to include in API
+	// requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. However, any field with an
+	// empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *ParameterValidation) MarshalJSON() ([]byte, error) {
+	type NoMethod ParameterValidation
 	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
@@ -1891,10 +1932,10 @@ func (s *PigJob) MarshalJSON() ([]byte, error) {
 
 // Policy: Defines an Identity and Access Management (IAM) policy. It is
 // used to specify access control policies for Cloud Platform
-// resources.A Policy consists of a list of bindings. A Binding binds a
+// resources.A Policy consists of a list of bindings. A binding binds a
 // list of members to a role, where the members can be user accounts,
 // Google groups, Google domains, and service accounts. A role is a
-// named list of permissions defined by IAM.Example
+// named list of permissions defined by IAM.JSON Example
 // {
 //   "bindings": [
 //     {
@@ -1903,7 +1944,7 @@ func (s *PigJob) MarshalJSON() ([]byte, error) {
 //         "user:mike@example.com",
 //         "group:admins@example.com",
 //         "domain:google.com",
-//         "serviceAccount:my-other-app@appspot.gserviceaccount.com",
+//         "serviceAccount:my-other-app@appspot.gserviceaccount.com"
 //       ]
 //     },
 //     {
@@ -1912,6 +1953,17 @@ func (s *PigJob) MarshalJSON() ([]byte, error) {
 //     }
 //   ]
 // }
+// YAML Example
+// bindings:
+// - members:
+//   - user:mike@example.com
+//   - group:admins@example.com
+//   - domain:google.com
+//   - serviceAccount:my-other-app@appspot.gserviceaccount.com
+//   role: roles/owner
+// - members:
+//   - user:sean@example.com
+//   role: roles/viewer
 // For a description of IAM and its features, see the IAM developer's
 // guide (https://cloud.google.com/iam/docs).
 type Policy struct {
@@ -2064,6 +2116,36 @@ func (s *QueryList) MarshalJSON() ([]byte, error) {
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
+// RegexValidation: Validation based on regular expressions.
+type RegexValidation struct {
+	// Regexes: Required. RE2 regular expressions used to validate the
+	// parameter's value. The provided value must match the regexes in its
+	// entirety, e.g. substring matches are not enough.
+	Regexes []string `json:"regexes,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "Regexes") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "Regexes") to include in
+	// API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. However, any field with an
+	// empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *RegexValidation) MarshalJSON() ([]byte, error) {
+	type NoMethod RegexValidation
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
 // SetIamPolicyRequest: Request message for SetIamPolicy method.
 type SetIamPolicyRequest struct {
 	// Policy: REQUIRED: The complete policy to be applied to the resource.
@@ -2099,8 +2181,9 @@ func (s *SetIamPolicyRequest) MarshalJSON() ([]byte, error) {
 // the cluster.
 type SoftwareConfig struct {
 	// ImageVersion: Optional. The version of software inside the cluster.
-	// It must match the regular expression [0-9]+\.[0-9]+. If unspecified,
-	// it defaults to the latest version (see Cloud Dataproc Versioning).
+	// It must be one of the supported Cloud Dataproc Versions, such as
+	// "1.2" (including a subminor version, such as "1.2.29"), or the
+	// "preview" version. If unspecified, it defaults to the latest version.
 	ImageVersion string `json:"imageVersion,omitempty"`
 
 	// Properties: Optional. The properties to set on daemon config
@@ -2366,6 +2449,84 @@ func (s *SubmitJobRequest) MarshalJSON() ([]byte, error) {
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
+// TemplateParameter: A configurable parameter that replaces one or more
+// fields in the template.
+type TemplateParameter struct {
+	// Description: Optional. User-friendly description of the parameter.
+	// Must not exceed 1024 characters.
+	Description string `json:"description,omitempty"`
+
+	// Fields: Required. Paths to all fields that this parameter replaces.
+	// Each field may appear in at most one Parameter's fields list.Field
+	// path syntax:A field path is similar to a FieldMask. For example, a
+	// field path that references the zone field of the template's cluster
+	// selector would look like:placement.clusterSelector.zoneThe only
+	// differences between field paths and standard field masks are
+	// that:
+	// Values in maps can be referenced by key.Example:
+	// placement.clusterSelector.clusterLabels'key'
+	// Jobs in the jobs list can be referenced by step id.Example:
+	// jobs'step-id'.hadoopJob.mainJarFileUri
+	// Items in repeated fields can be referenced by zero-based
+	// index.Example: jobs'step-id'.sparkJob.args0NOTE: Maps and repeated
+	// fields may not be parameterized in their entirety. Only individual
+	// map values and items in repeated fields may be referenced. For
+	// example, the following field paths are invalid: -
+	// placement.clusterSelector.clusterLabels -
+	// jobs'step-id'.sparkJob.argsParameterizable fields:Only certain types
+	// of fields may be parameterized, specifically: - Labels - File uris -
+	// Job properties - Job arguments - Script variables - Main class (in
+	// HadoopJob and SparkJob) - Zone (in ClusterSelector)Examples of
+	// parameterizable fields:Labels:labels'key'
+	// placement.managedCluster.labels'key'
+	// placement.clusterSelector.clusterLabels'key'
+	// jobs'step-id'.labels'key'File
+	// uris:jobs'step-id'.hadoopJob.mainJarFileUri
+	// jobs'step-id'.hiveJob.queryFileUri
+	// jobs'step-id'.pySparkJob.mainPythonFileUri
+	// jobs'step-id'.hadoopJob.jarFileUris0
+	// jobs'step-id'.hadoopJob.archiveUris0
+	// jobs'step-id'.hadoopJob.fileUris0
+	// jobs'step-id'.pySparkJob.pythonFileUris0Other:jobs'step-id'.hadoopJob.
+	// properties'key' jobs'step-id'.hadoopJob.args0
+	// jobs'step-id'.hiveJob.scriptVariables'key'
+	// jobs'step-id'.hadoopJob.mainJarFileUri placement.clusterSelector.zone
+	Fields []string `json:"fields,omitempty"`
+
+	// Name: Required. User-friendly parameter name. This name is used as a
+	// key when providing a value for this parameter when the template is
+	// instantiated. Must contain only capital letters (A-Z), numbers (0-9),
+	// and underscores (_), and must not start with a number. The maximum
+	// length is 40 characters.
+	Name string `json:"name,omitempty"`
+
+	// Validation: Optional. Validation rules to be applied to this
+	// parameter's value.
+	Validation *ParameterValidation `json:"validation,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "Description") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "Description") to include
+	// in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. However, any field with
+	// an empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *TemplateParameter) MarshalJSON() ([]byte, error) {
+	type NoMethod TemplateParameter
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
 // TestIamPermissionsRequest: Request message for TestIamPermissions
 // method.
 type TestIamPermissionsRequest struct {
@@ -2432,6 +2593,34 @@ func (s *TestIamPermissionsResponse) MarshalJSON() ([]byte, error) {
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
+// ValueValidation: Validation based on a list of allowed values.
+type ValueValidation struct {
+	// Values: Required. List of allowed values for this parameter.
+	Values []string `json:"values,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "Values") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "Values") to include in API
+	// requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. However, any field with an
+	// empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *ValueValidation) MarshalJSON() ([]byte, error) {
+	type NoMethod ValueValidation
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
 // WorkflowGraph: The workflow graph.
 type WorkflowGraph struct {
 	// Nodes: Output only. The workflow nodes.
@@ -2473,6 +2662,10 @@ type WorkflowMetadata struct {
 
 	// Graph: Output only. The workflow graph.
 	Graph *WorkflowGraph `json:"graph,omitempty"`
+
+	// Parameters: Map from parameter names to values that were used for
+	// those parameters.
+	Parameters map[string]string `json:"parameters,omitempty"`
 
 	// State: Output only. The workflow state.
 	//
@@ -2568,7 +2761,10 @@ type WorkflowTemplate struct {
 	// CreateTime: Output only. The time template was created.
 	CreateTime string `json:"createTime,omitempty"`
 
-	// Id: Required. The template id.
+	// Id: Required. The template id.The id must contain only letters (a-z,
+	// A-Z), numbers (0-9), underscores (_), and hyphens (-). Cannot begin
+	// or end with underscore or hyphen. Must consist of between 3 and 50
+	// characters.
 	Id string `json:"id,omitempty"`
 
 	// Jobs: Required. The Directed Acyclic Graph of Jobs to submit.
@@ -2588,6 +2784,11 @@ type WorkflowTemplate struct {
 	// in https://cloud.google.com/apis/design/resource_names of the form
 	// projects/{project_id}/regions/{region}/workflowTemplates/{template_id}
 	Name string `json:"name,omitempty"`
+
+	// Parameters: Optional. Template parameters whose values are
+	// substituted into the template. Values for these parameters must be
+	// provided when the template is instantiated.
+	Parameters []*TemplateParameter `json:"parameters,omitempty"`
 
 	// Placement: Required. WorkflowTemplate scheduling information.
 	Placement *WorkflowTemplatePlacement `json:"placement,omitempty"`

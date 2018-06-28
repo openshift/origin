@@ -12,7 +12,7 @@
   "baseUrl": "https://dlp.googleapis.com/",
   "batchPath": "batch",
   "canonicalName": "DLP",
-  "description": "The Google Data Loss Prevention API provides methods for detection of privacy-sensitive fragments in text, images, and Google Cloud Platform storage repositories.",
+  "description": "Provides methods for detection, risk analysis, and de-identification of privacy-sensitive fragments in text, images, and Google Cloud Platform storage repositories.",
   "discoveryVersion": "v1",
   "documentationLink": "https://cloud.google.com/dlp/docs/",
   "fullyEncodeReservedExpansion": true,
@@ -1202,7 +1202,7 @@
       }
     }
   },
-  "revision": "20180227",
+  "revision": "20180404",
   "rootUrl": "https://dlp.googleapis.com/",
   "schemas": {
     "GooglePrivacyDlpV2beta1AuxiliaryTable": {
@@ -2313,6 +2313,11 @@
           "format": "int64",
           "type": "string"
         },
+        "bucketValueCount": {
+          "description": "Total number of distinct values in this bucket.",
+          "format": "int64",
+          "type": "string"
+        },
         "bucketValues": {
           "description": "Sample of value frequencies in this bucket. The total number of\nvalues returned per bucket is capped at 20.",
           "items": {
@@ -2605,7 +2610,7 @@
       "type": "object"
     },
     "GooglePrivacyDlpV2beta2CryptoReplaceFfxFpeConfig": {
-      "description": "Replaces an identifier with a surrogate using FPE with the FFX\nmode of operation; however when used in the `ReidentifyContent` API method,\nit serves the opposite function by reversing the surrogate back into\nthe original identifier.\nThe identifier must be encoded as ASCII.\nFor a given crypto key and context, the same identifier will be\nreplaced with the same surrogate.\nIdentifiers must be at least two characters long.\nIn the case that the identifier is the empty string, it will be skipped.",
+      "description": "Replaces an identifier with a surrogate using FPE with the FFX\nmode of operation; however when used in the `ReidentifyContent` API method,\nit serves the opposite function by reversing the surrogate back into\nthe original identifier.\nThe identifier must be encoded as ASCII.\nFor a given crypto key and context, the same identifier will be\nreplaced with the same surrogate.\nIdentifiers must be at least two characters long.\nIn the case that the identifier is the empty string, it will be skipped.\nSee [Pseudonymization](/dlp/docs/pseudonymization) for example usage.",
       "id": "GooglePrivacyDlpV2beta2CryptoReplaceFfxFpeConfig",
       "properties": {
         "commonAlphabet": {
@@ -3139,12 +3144,12 @@
           "type": "array"
         },
         "maxFindingsPerItem": {
-          "description": "Max number of findings that will be returned for each item scanned.",
+          "description": "Max number of findings that will be returned for each item scanned.\nWhen set within `InspectDataSourceRequest`,\nthe maximum returned is 1000 regardless if this is set higher.\nWhen set within `InspectContentRequest`, this field is ignored.",
           "format": "int32",
           "type": "integer"
         },
         "maxFindingsPerRequest": {
-          "description": "Max total number of findings that will be returned per request/job.",
+          "description": "Max number of findings that will be returned per request/job.\nWhen set within `InspectContentRequest`, the maximum returned is 1000\nregardless if this is set higher.",
           "format": "int32",
           "type": "integer"
         }
@@ -3647,6 +3652,11 @@
           "format": "int64",
           "type": "string"
         },
+        "bucketValueCount": {
+          "description": "Total number of distinct equivalence classes in this bucket.",
+          "format": "int64",
+          "type": "string"
+        },
         "bucketValues": {
           "description": "Sample of equivalence classes in this bucket. The total number of\nclasses returned per bucket is capped at 20.",
           "items": {
@@ -3712,6 +3722,11 @@
       "properties": {
         "bucketSize": {
           "description": "Number of records within these anonymity bounds.",
+          "format": "int64",
+          "type": "string"
+        },
+        "bucketValueCount": {
+          "description": "Total number of distinct quasi-identifier tuple values in this bucket.",
           "format": "int64",
           "type": "string"
         },
@@ -3867,6 +3882,11 @@
       "properties": {
         "bucketSize": {
           "description": "Total number of equivalence classes in this bucket.",
+          "format": "int64",
+          "type": "string"
+        },
+        "bucketValueCount": {
+          "description": "Total number of distinct equivalence classes in this bucket.",
           "format": "int64",
           "type": "string"
         },
@@ -4991,7 +5011,7 @@
           "type": "integer"
         },
         "month": {
-          "description": "Month of year. Must be from 1 to 12.",
+          "description": "Month of year. Must be from 1 to 12, or 0 if specifying a date without a\nmonth.",
           "format": "int32",
           "type": "integer"
         },
@@ -5032,7 +5052,7 @@
     }
   },
   "servicePath": "",
-  "title": "DLP API",
+  "title": "Cloud Data Loss Prevention (DLP) API",
   "version": "v2beta2",
   "version_module": true
 }

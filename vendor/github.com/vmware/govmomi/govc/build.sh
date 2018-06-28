@@ -1,8 +1,11 @@
 #!/bin/bash -e
 
-git_version=$(git describe)
-if git_status=$(git status --porcelain 2>/dev/null) && [ -n "${git_status}" ]; then
-  git_version="${git_version}-dirty"
+git_version=$(git describe --dirty)
+ if [[ $git_version == *-dirty ]] ; then
+  echo 'Working tree is dirty.'
+  echo 'NOTE: This script is meant for building govc releases via release.sh'
+  echo 'To build govc from source see: https://github.com/vmware/govmomi/blob/master/govc/README.md#source'
+  exit 1
 fi
 
 ldflags="-X github.com/vmware/govmomi/govc/version.gitVersion=${git_version}"

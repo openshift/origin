@@ -250,7 +250,7 @@ func (c *realRecyclerClient) WatchPod(name, namespace string, stopChannel chan s
 		defer wg.Done()
 		for {
 			select {
-			case _ = <-stopChannel:
+			case <-stopChannel:
 				return
 
 			case podEvent, ok := <-podWatch.ResultChan():

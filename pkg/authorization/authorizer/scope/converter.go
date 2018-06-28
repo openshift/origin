@@ -4,14 +4,16 @@ import (
 	"fmt"
 	"strings"
 
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kutilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kauthorizer "k8s.io/apiserver/pkg/authorization/authorizer"
+	rbaclisters "k8s.io/client-go/listers/rbac/v1"
 	kauthorizationapi "k8s.io/kubernetes/pkg/apis/authorization"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/rbac"
-	rbaclisters "k8s.io/kubernetes/pkg/client/listers/rbac/internalversion"
+	rbacv1helpers "k8s.io/kubernetes/pkg/apis/rbac/v1"
 	authorizerrbac "k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac"
 
 	oauthapi "github.com/openshift/api/oauth/v1"
@@ -23,8 +25,8 @@ import (
 
 // ScopesToRules takes the scopes and return the rules back.  We ALWAYS add the discovery rules and it is possible to get some rules and and
 // an error since errors aren't fatal to evaluation
-func ScopesToRules(scopes []string, namespace string, clusterRoleGetter rbaclisters.ClusterRoleLister) ([]rbac.PolicyRule, error) {
-	rules := append([]rbac.PolicyRule{}, authorizationapi.DiscoveryRule)
+func ScopesToRules(scopes []string, namespace string, clusterRoleGetter rbaclisters.ClusterRoleLister) ([]rbacv1.PolicyRule, error) {
+	rules := append([]rbacv1.PolicyRule{}, authorizationapi.DiscoveryRule)
 
 	errors := []error{}
 	for _, scope := range scopes {
@@ -100,7 +102,7 @@ type ScopeEvaluator interface {
 	// Describe returns a description, warning (typically used to warn about escalation dangers), or an error if the scope is malformed
 	Describe(scope string) (description string, warning string, err error)
 	// ResolveRules returns the policy rules that this scope allows
-	ResolveRules(scope, namespace string, clusterRoleGetter rbaclisters.ClusterRoleLister) ([]rbac.PolicyRule, error)
+	ResolveRules(scope, namespace string, clusterRoleGetter rbaclisters.ClusterRoleLister) ([]rbacv1.PolicyRule, error)
 	ResolveGettableNamespaces(scope string, clusterRoleGetter rbaclisters.ClusterRoleLister) ([]string, error)
 }
 
@@ -190,52 +192,52 @@ func (userEvaluator) Describe(scope string) (string, string, error) {
 	}
 }
 
-func (userEvaluator) ResolveRules(scope, namespace string, _ rbaclisters.ClusterRoleLister) ([]rbac.PolicyRule, error) {
+func (userEvaluator) ResolveRules(scope, namespace string, _ rbaclisters.ClusterRoleLister) ([]rbacv1.PolicyRule, error) {
 	switch scope {
 	case UserInfo:
-		return []rbac.PolicyRule{
-			rbac.NewRule("get").
+		return []rbacv1.PolicyRule{
+			rbacv1helpers.NewRule("get").
 				Groups(userapi.GroupName, userapi.LegacyGroupName).
 				Resources("users").
 				Names("~").
 				RuleOrDie(),
 		}, nil
 	case UserAccessCheck:
-		return []rbac.PolicyRule{
-			rbac.NewRule("create").
+		return []rbacv1.PolicyRule{
+			rbacv1helpers.NewRule("create").
 				Groups(kauthorizationapi.GroupName).
 				Resources("selfsubjectaccessreviews").
 				RuleOrDie(),
-			rbac.NewRule("create").
+			rbacv1helpers.NewRule("create").
 				Groups(authorizationapi.GroupName, authorizationapi.LegacyGroupName).
 				Resources("selfsubjectrulesreviews").
 				RuleOrDie(),
 		}, nil
 	case UserListScopedProjects:
-		return []rbac.PolicyRule{
-			rbac.NewRule("list", "watch").
+		return []rbacv1.PolicyRule{
+			rbacv1helpers.NewRule("list", "watch").
 				Groups(projectapi.GroupName, projectapi.LegacyGroupName).
 				Resources("projects").
 				RuleOrDie(),
 		}, nil
 	case UserListAllProjects:
-		return []rbac.PolicyRule{
-			rbac.NewRule("list", "watch").
+		return []rbacv1.PolicyRule{
+			rbacv1helpers.NewRule("list", "watch").
 				Groups(projectapi.GroupName, projectapi.LegacyGroupName).
 				Resources("projects").
 				RuleOrDie(),
-			rbac.NewRule("get").
+			rbacv1helpers.NewRule("get").
 				Groups(kapi.GroupName).
 				Resources("namespaces").
 				RuleOrDie(),
 		}, nil
 	case UserFull:
-		return []rbac.PolicyRule{
-			rbac.NewRule(rbac.VerbAll).
+		return []rbacv1.PolicyRule{
+			rbacv1helpers.NewRule(rbac.VerbAll).
 				Groups(rbac.APIGroupAll).
 				Resources(rbac.ResourceAll).
 				RuleOrDie(),
-			rbac.NewRule(rbac.VerbAll).
+			rbacv1helpers.NewRule(rbac.VerbAll).
 				URLs(rbac.NonResourceAll).
 				RuleOrDie(),
 		}, nil
@@ -354,7 +356,7 @@ func (e clusterRoleEvaluator) Describe(scope string) (string, string, error) {
 	return description, warning, nil
 }
 
-func (e clusterRoleEvaluator) ResolveRules(scope, namespace string, clusterRoleGetter rbaclisters.ClusterRoleLister) ([]rbac.PolicyRule, error) {
+func (e clusterRoleEvaluator) ResolveRules(scope, namespace string, clusterRoleGetter rbaclisters.ClusterRoleLister) ([]rbacv1.PolicyRule, error) {
 	_, scopeNamespace, _, err := e.parseScope(scope)
 	if err != nil {
 		return nil, err
@@ -362,7 +364,7 @@ func (e clusterRoleEvaluator) ResolveRules(scope, namespace string, clusterRoleG
 
 	// if the scope limit on the clusterrole doesn't match, then don't add any rules, but its not an error
 	if !(scopeNamespace == authorizationapi.ScopesAllNamespaces || scopeNamespace == namespace) {
-		return []rbac.PolicyRule{}, nil
+		return []rbacv1.PolicyRule{}, nil
 	}
 
 	return e.resolveRules(scope, clusterRoleGetter)
@@ -378,7 +380,7 @@ func has(set []string, value string) bool {
 }
 
 // resolveRules doesn't enforce namespace checks
-func (e clusterRoleEvaluator) resolveRules(scope string, clusterRoleGetter rbaclisters.ClusterRoleLister) ([]rbac.PolicyRule, error) {
+func (e clusterRoleEvaluator) resolveRules(scope string, clusterRoleGetter rbaclisters.ClusterRoleLister) ([]rbacv1.PolicyRule, error) {
 	roleName, _, escalating, err := e.parseScope(scope)
 	if err != nil {
 		return nil, err
@@ -389,7 +391,7 @@ func (e clusterRoleEvaluator) resolveRules(scope string, clusterRoleGetter rbacl
 		return nil, err
 	}
 
-	rules := []rbac.PolicyRule{}
+	rules := []rbacv1.PolicyRule{}
 	for _, rule := range role.Rules {
 		if escalating {
 			rules = append(rules, rule)
@@ -397,9 +399,9 @@ func (e clusterRoleEvaluator) resolveRules(scope string, clusterRoleGetter rbacl
 		}
 
 		// rules with unbounded access shouldn't be allowed in scopes.
-		if has(rule.Verbs, rbac.VerbAll) ||
-			has(rule.Resources, rbac.ResourceAll) ||
-			has(rule.APIGroups, rbac.APIGroupAll) {
+		if has(rule.Verbs, rbacv1.VerbAll) ||
+			has(rule.Resources, rbacv1.ResourceAll) ||
+			has(rule.APIGroups, rbacv1.APIGroupAll) {
 			continue
 		}
 		// rules that allow escalating resource access should be cleaned.
@@ -448,8 +450,8 @@ func remove(array []string, item string) []string {
 // It has coarse logic for now.  It is possible to rewrite one rule into many for the finest grain control
 // but removing the entire matching resource regardless of verb or secondary group is cheaper, easier, and errs on the side removing
 // too much, not too little
-func removeEscalatingResources(in rbac.PolicyRule) rbac.PolicyRule {
-	var ruleCopy *rbac.PolicyRule
+func removeEscalatingResources(in rbacv1.PolicyRule) rbacv1.PolicyRule {
+	var ruleCopy *rbacv1.PolicyRule
 
 	for _, resource := range escalatingScopeResources {
 		if !(has(in.APIGroups, resource.Group) && has(in.Resources, resource.Resource)) {

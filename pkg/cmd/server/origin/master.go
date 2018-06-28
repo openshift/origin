@@ -52,6 +52,7 @@ func (c *MasterConfig) newOpenshiftAPIConfig(kubeAPIServerConfig apiserver.Confi
 			KubeAPIServerClientConfig:          &c.PrivilegedLoopbackClientConfig,
 			KubeClientInternal:                 c.PrivilegedLoopbackKubernetesClientsetInternal,
 			KubeInternalInformers:              c.InternalKubeInformers,
+			KubeInformers:                      c.ClientGoKubeInformers,
 			QuotaInformers:                     c.QuotaInformers,
 			SecurityInformers:                  c.SecurityInformers,
 			RuleResolver:                       c.RuleResolver,
@@ -66,6 +67,7 @@ func (c *MasterConfig) newOpenshiftAPIConfig(kubeAPIServerConfig apiserver.Confi
 			ProjectRequestTemplate:             c.Options.ProjectConfig.ProjectRequestTemplate,
 			ProjectRequestMessage:              c.Options.ProjectConfig.ProjectRequestMessage,
 			ClusterQuotaMappingController:      c.ClusterQuotaMappingController,
+			RESTMapper:                         c.RESTMapper,
 			SCCStorage:                         sccStorage,
 		},
 	}
@@ -176,7 +178,7 @@ func (c *MasterConfig) newOAuthServerHandler(genericConfig *apiserver.Config) (h
 	}
 	config.GenericConfig.AuditBackend = genericConfig.AuditBackend
 	config.GenericConfig.AuditPolicyChecker = genericConfig.AuditPolicyChecker
-	oauthServer, err := config.Complete().New(apiserver.EmptyDelegate)
+	oauthServer, err := config.Complete().New(apiserver.NewEmptyDelegate())
 	if err != nil {
 		return nil, nil, err
 	}
@@ -226,7 +228,7 @@ func (c *MasterConfig) Run(stopCh <-chan struct{}) error {
 		return err
 	}
 
-	delegateAPIServer = apiserver.EmptyDelegate
+	delegateAPIServer = apiserver.NewEmptyDelegate()
 	delegateAPIServer, apiExtensionsInformers, err = c.withAPIExtensions(delegateAPIServer, kubeAPIServerOptions, *c.kubeAPIServerConfig.GenericConfig)
 	if err != nil {
 		return err
@@ -297,7 +299,7 @@ func (c *MasterConfig) RunKubeAPIServer(stopCh <-chan struct{}) error {
 		return err
 	}
 
-	delegateAPIServer = apiserver.EmptyDelegate
+	delegateAPIServer = apiserver.NewEmptyDelegate()
 	delegateAPIServer, apiExtensionsInformers, err = c.withAPIExtensions(delegateAPIServer, kubeAPIServerOptions, *c.kubeAPIServerConfig.GenericConfig)
 	if err != nil {
 		return err
@@ -350,7 +352,7 @@ func (c *MasterConfig) RunOpenShift(stopCh <-chan struct{}) error {
 	c.kubeAPIServerConfig.GenericConfig.SwaggerConfig = nil
 	c.kubeAPIServerConfig.GenericConfig.BuildHandlerChainFunc = openshiftHandlerChain
 
-	openshiftAPIServer, err := c.withOpenshiftAPI(apiserver.EmptyDelegate, *c.kubeAPIServerConfig.GenericConfig)
+	openshiftAPIServer, err := c.withOpenshiftAPI(apiserver.NewEmptyDelegate(), *c.kubeAPIServerConfig.GenericConfig)
 	if err != nil {
 		return err
 	}
@@ -391,7 +393,7 @@ func (c *MasterConfig) buildHandlerChain(genericConfig *apiserver.Config, stopCh
 			go accessor.Run(stopCh)
 
 			// these are after the kube handler
-			handler := c.versionSkewFilter(apiHandler, genericConfig.RequestContextMapper)
+			handler := c.versionSkewFilter(apiHandler)
 
 			// this is the normal kube handler chain
 			handler = apiserver.DefaultBuildHandlerChain(handler, genericConfig)

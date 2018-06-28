@@ -1,6 +1,7 @@
 package authprune
 
 import (
+	"io/ioutil"
 	"reflect"
 	"testing"
 
@@ -74,8 +75,7 @@ func TestClusterRoleReaper(t *testing.T) {
 			return true, nil, nil
 		})
 
-		reaper := NewClusterRoleReaper(tc.RbacV1(), tc.RbacV1(), tc.RbacV1())
-		err := reaper.Stop("", test.role.Name, 0, nil)
+		err := reapForClusterRole(tc.RbacV1(), tc.RbacV1(), "", test.role.Name, ioutil.Discard)
 		if err != nil {
 			t.Errorf("%s: unexpected error: %v", test.name, err)
 		}
@@ -143,8 +143,7 @@ func TestClusterRoleReaperAgainstNamespacedBindings(t *testing.T) {
 			return true, nil, nil
 		})
 
-		reaper := NewClusterRoleReaper(tc.RbacV1(), tc.RbacV1(), tc.RbacV1())
-		err := reaper.Stop("", test.role.Name, 0, nil)
+		err := reapForClusterRole(tc.RbacV1(), tc.RbacV1(), "", test.role.Name, ioutil.Discard)
 		if err != nil {
 			t.Errorf("%s: unexpected error: %v", test.name, err)
 		}

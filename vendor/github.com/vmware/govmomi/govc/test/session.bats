@@ -59,3 +59,56 @@ load test_helper
     run govc session.login -u "$host" -ticket "$ticket"
     assert_success
 }
+
+@test "session.loginbytoken" {
+  vcsim_env
+
+  # Remove username/password
+  host=$(govc env GOVC_URL)
+  # Token template, vcsim just checks Assertion.Subject.NameID
+  token="<Assertion><Subject><NameID>%s</NameID></Subject></Assertion>"
+
+  # shellcheck disable=2059
+  run govc session.login -l -token "$(printf $token "")"
+  assert_failure # empty NameID is a InvalidLogin fault
+
+  # shellcheck disable=2059
+  run govc session.login -l -token "$(printf $token root@localos)"
+  assert_success # non-empty NameID is enough to login
+
+  id=$(new_id)
+  run govc extension.setcert -cert-pem ++ "$id" # generate a cert for testing
+  assert_success
+
+  # Test with STS simulator issued token
+  token="$(govc session.login -issue)"
+  run govc session.login -cert "$id.crt" -key "$id.key" -l -token "$token"
+  assert_success
+
+  run govc session.login -cert "$id.crt" -key "$id.key" -l -renew
+  assert_failure # missing -token
+
+  run govc session.login -cert "$id.crt" -key "$id.key" -l -renew -lifetime 24h -token "$token"
+  assert_success
+
+  # remove generated cert and key
+  rm "$id".{crt,key}
+}
+
+@test "session.loginextension" {
+  vcsim_env -tunnel 0
+
+  run govc session.login -extension com.vmware.vsan.health
+  assert_failure # no certificate
+
+  id=$(new_id)
+  run govc extension.setcert -cert-pem ++ "$id" # generate a cert for testing
+  assert_success
+
+  # vcsim will login if any certificate is provided
+  run govc session.login -extension com.vmware.vsan.health -cert "$id.crt" -key "$id.key"
+  assert_success
+
+  # remove generated cert and key
+  rm "$id".{crt,key}
+}

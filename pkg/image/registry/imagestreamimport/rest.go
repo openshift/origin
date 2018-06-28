@@ -1,6 +1,7 @@
 package imagestreamimport
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strings"
@@ -58,6 +59,7 @@ type REST struct {
 }
 
 var _ rest.Creater = &REST{}
+var _ rest.Scoper = &REST{}
 
 // NewREST returns a REST storage implementation that handles importing images. The clientFn argument is optional
 // if v1 Docker Registry importing is not required. Insecure transport is optional, and both transports should not
@@ -89,7 +91,11 @@ func (r *REST) New() runtime.Object {
 	return &imageapi.ImageStreamImport{}
 }
 
-func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, createValidation rest.ValidateObjectFunc, _ bool) (runtime.Object, error) {
+func (s *REST) NamespaceScoped() bool {
+	return true
+}
+
+func (r *REST) Create(ctx context.Context, obj runtime.Object, createValidation rest.ValidateObjectFunc, _ bool) (runtime.Object, error) {
 	isi, ok := obj.(*imageapi.ImageStreamImport)
 	if !ok {
 		return nil, kapierrors.NewBadRequest(fmt.Sprintf("obj is not an ImageStreamImport: %#v", obj))
@@ -188,7 +194,7 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, createValidati
 
 	// only load secrets if we need them
 	credentials := importer.NewLazyCredentialsForSecrets(func() ([]corev1.Secret, error) {
-		secrets, err := r.isV1Client.ImageStreams(namespace).Secrets(isi.Name, metav1.ListOptions{})
+		secrets, err := r.isV1Client.ImageStreams(namespace).Secrets(isi.Name, metav1.GetOptions{})
 		if err != nil {
 			return nil, err
 		}
@@ -458,7 +464,7 @@ func ensureSpecTag(stream *imageapi.ImageStream, tag, from string, importPolicy 
 // same image), and a failure to persist the image will be summarized before we update the stream. If an image was imported by this
 // operation, it *replaces* the imported image (from the remote repository) with the updated image.
 func (r *REST) importSuccessful(
-	ctx apirequest.Context,
+	ctx context.Context,
 	image *imageapi.Image, stream *imageapi.ImageStream, tag string, from string, nextGeneration int64, now metav1.Time,
 	importPolicy imageapi.TagImportPolicy, referencePolicy imageapi.TagReferencePolicy,
 	importedImages map[string]error, updatedImages map[string]*imageapi.Image,

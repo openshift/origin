@@ -1,4 +1,4 @@
-// +build !linux,!windows
+// +build !linux,!windows,!darwin
 
 package main
 
@@ -6,10 +6,9 @@ import (
 	"os"
 	"os/signal"
 
-	"google.golang.org/grpc"
-
 	"github.com/containerd/containerd/reaper"
 	runc "github.com/containerd/go-runc"
+	"github.com/stevvooe/ttrpc"
 )
 
 // setupSignals creates a new signal handler for all signals and sets the shim as a
@@ -23,6 +22,6 @@ func setupSignals() (chan os.Signal, error) {
 	return signals, nil
 }
 
-func newServer() *grpc.Server {
-	return grpc.NewServer()
+func newServer() (*ttrpc.Server, error) {
+	return ttrpc.NewServer(ttrpc.WithServerHandshaker(ttrpc.UnixSocketRequireSameUser()))
 }

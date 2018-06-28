@@ -25,7 +25,9 @@ import (
 
 	"github.com/golang/glog"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -366,6 +368,21 @@ func limitedByDefault(usage api.ResourceList, limitedResources []resourcequotaap
 	return result
 }
 
+func getMatchedLimitedScopes(evaluator quota.Evaluator, inputObject runtime.Object, limitedResources []resourcequotaapi.LimitedResource) ([]api.ScopedResourceSelectorRequirement, error) {
+	scopes := []api.ScopedResourceSelectorRequirement{}
+	for _, limitedResource := range limitedResources {
+		matched, err := evaluator.MatchingScopes(inputObject, limitedResource.MatchScopes)
+		if err != nil {
+			glog.Errorf("Error while matching limited Scopes: %v", err)
+			return []api.ScopedResourceSelectorRequirement{}, err
+		}
+		for _, scope := range matched {
+			scopes = append(scopes, scope)
+		}
+	}
+	return scopes, nil
+}
+
 // checkRequest verifies that the request does not exceed any quota constraint. it returns a copy of quotas not yet persisted
 // that capture what the usage would be if the request succeeded.  It return an error if there is insufficient quota to satisfy the request
 func (e *quotaEvaluator) checkRequest(quotas []api.ResourceQuota, a admission.Attributes) ([]api.ResourceQuota, error) {
@@ -381,6 +398,12 @@ func (e *quotaEvaluator) checkRequest(quotas []api.ResourceQuota, a admission.At
 
 	// if we have limited resources enabled for this resource, always calculate usage
 	inputObject := a.GetObject()
+
+	// Check if object matches AdmissionConfiguration matchScopes
+	limitedScopes, err := getMatchedLimitedScopes(evaluator, inputObject, e.config.LimitedResources)
+	if err != nil {
+		return quotas, nil
+	}
 
 	// determine the set of resource names that must exist in a covering quota
 	limitedResourceNames := []api.ResourceName{}
@@ -403,10 +426,21 @@ func (e *quotaEvaluator) checkRequest(quotas []api.ResourceQuota, a admission.At
 	// this is needed to know if we have satisfied any constraints where consumption
 	// was limited by default.
 	restrictedResourcesSet := sets.String{}
+	restrictedScopes := []api.ScopedResourceSelectorRequirement{}
 	for i := range quotas {
 		resourceQuota := quotas[i]
+		scopeSelectors := getScopeSelectorsFromQuota(resourceQuota)
+		localRestrictedScopes, err := evaluator.MatchingScopes(inputObject, scopeSelectors)
+		if err != nil {
+			return nil, fmt.Errorf("error matching scopes of quota %s, err: %v", resourceQuota.Name, err)
+		}
+		for _, scope := range localRestrictedScopes {
+			restrictedScopes = append(restrictedScopes, scope)
+		}
+
 		match, err := evaluator.Matches(&resourceQuota, inputObject)
 		if err != nil {
+			glog.Errorf("Error occurred while matching resource quota, %v, against input object. Err: %v", resourceQuota, err)
 			return quotas, err
 		}
 		if !match {
@@ -431,7 +465,18 @@ func (e *quotaEvaluator) checkRequest(quotas []api.ResourceQuota, a admission.At
 	// if not, we reject the request.
 	hasNoCoveringQuota := limitedResourceNamesSet.Difference(restrictedResourcesSet)
 	if len(hasNoCoveringQuota) > 0 {
-		return quotas, fmt.Errorf("insufficient quota to consume: %v", strings.Join(hasNoCoveringQuota.List(), ","))
+		return quotas, admission.NewForbidden(a, fmt.Errorf("insufficient quota to consume: %v", strings.Join(hasNoCoveringQuota.List(), ",")))
+	}
+
+	// verify that for every scope that had limited access enabled
+	// that there was a corresponding quota that covered it.
+	// if not, we reject the request.
+	scopesHasNoCoveringQuota, err := evaluator.UncoveredQuotaScopes(limitedScopes, restrictedScopes)
+	if err != nil {
+		return quotas, err
+	}
+	if len(scopesHasNoCoveringQuota) > 0 {
+		return quotas, fmt.Errorf("insufficient quota to match these scopes: %v", scopesHasNoCoveringQuota)
 	}
 
 	if len(interestingQuotaIndexes) == 0 {
@@ -515,6 +560,21 @@ func (e *quotaEvaluator) checkRequest(quotas []api.ResourceQuota, a admission.At
 	return outQuotas, nil
 }
 
+func getScopeSelectorsFromQuota(quota api.ResourceQuota) []api.ScopedResourceSelectorRequirement {
+	selectors := []api.ScopedResourceSelectorRequirement{}
+	for _, scope := range quota.Spec.Scopes {
+		selectors = append(selectors, api.ScopedResourceSelectorRequirement{
+			ScopeName: scope,
+			Operator:  api.ScopeSelectorOpExists})
+	}
+	if quota.Spec.ScopeSelector != nil {
+		for _, scopeSelector := range quota.Spec.ScopeSelector.MatchExpressions {
+			selectors = append(selectors, scopeSelector)
+		}
+	}
+	return selectors
+}
+
 func (e *quotaEvaluator) Evaluate(a admission.Attributes) error {
 	e.init.Do(func() {
 		go e.run()
@@ -531,7 +591,7 @@ func (e *quotaEvaluator) Evaluate(a admission.Attributes) error {
 	evaluator := e.registry.Get(gr)
 	if evaluator == nil {
 		// create an object count evaluator if no evaluator previously registered
-		// note, we do not need aggregate usage here, so we pass a nil infomer func
+		// note, we do not need aggregate usage here, so we pass a nil informer func
 		evaluator = generic.NewObjectCountEvaluator(false, gr, nil, "")
 		e.registry.Add(evaluator)
 		glog.Infof("quota admission added evaluator for: %s", gr)
@@ -549,7 +609,7 @@ func (e *quotaEvaluator) Evaluate(a admission.Attributes) error {
 	select {
 	case <-waiter.finished:
 	case <-time.After(10 * time.Second):
-		return fmt.Errorf("timeout")
+		return apierrors.NewInternalError(fmt.Errorf("resource quota evaluates timeout"))
 	}
 
 	return waiter.result

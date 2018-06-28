@@ -20,7 +20,7 @@
 #
 apiVersion: v1
 items:
-- apiVersion: v1
+- apiVersion: build.openshift.io/v1
   kind: BuildConfig
   metadata:
     name: parent1
@@ -50,7 +50,7 @@ items:
       type: Generic
     - imageChange: {}
       type: ImageChange
-- apiVersion: v1
+- apiVersion: build.openshift.io/v1
   kind: BuildConfig
   metadata:
     name: parent2
@@ -80,7 +80,7 @@ items:
       type: Generic
     - imageChange: {}
       type: ImageChange
-- apiVersion: v1
+- apiVersion: build.openshift.io/v1
   kind: BuildConfig
   metadata:
     name: parent3
@@ -110,7 +110,7 @@ items:
       type: Generic
     - imageChange: {}
       type: ImageChange
-- apiVersion: v1
+- apiVersion: build.openshift.io/v1
   kind: BuildConfig
   metadata:
     name: child1
@@ -142,7 +142,7 @@ items:
            name: parent2img:latest
            kind: ImageStreamTag
       type: ImageChange
-- apiVersion: v1
+- apiVersion: build.openshift.io/v1
   kind: BuildConfig
   metadata:
     name: child2
@@ -179,7 +179,7 @@ items:
            name: parent3img:latest
            kind: ImageStreamTag
       type: ImageChange
-- apiVersion: v1
+- apiVersion: build.openshift.io/v1
   kind: BuildConfig
   metadata:
     name: child3

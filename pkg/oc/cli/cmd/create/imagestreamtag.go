@@ -115,12 +115,12 @@ func (o *CreateImageStreamTagOptions) Complete(cmd *cobra.Command, f kcmdutil.Fa
 	o.ISTag.Annotations = annotations
 	o.ISTag.Tag.Annotations = annotations
 
-	o.ISTag.Namespace, _, err = f.DefaultNamespace()
+	o.ISTag.Namespace, _, err = f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
 	}
 
-	clientConfig, err := f.ClientConfig()
+	clientConfig, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}

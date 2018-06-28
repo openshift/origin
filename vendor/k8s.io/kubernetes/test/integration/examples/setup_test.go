@@ -97,17 +97,21 @@ func startTestServer(t *testing.T, stopCh <-chan struct{}, setup TestServerSetup
 	kubeAPIServerOptions.Authentication.RequestHeader.AllowedNames = []string{"kube-aggregator"}
 	kubeAPIServerOptions.Authentication.RequestHeader.ClientCAFile = proxyCACertFile.Name()
 	kubeAPIServerOptions.Authentication.ClientCert.ClientCA = clientCACertFile.Name()
-	kubeAPIServerOptions.Authorization.Mode = "Node,RBAC"
+	kubeAPIServerOptions.Authorization.Modes = []string{"Node", "RBAC"}
 
 	if setup.ModifyServerRunOptions != nil {
 		setup.ModifyServerRunOptions(kubeAPIServerOptions)
 	}
 
-	tunneler, proxyTransport, err := app.CreateNodeDialer(kubeAPIServerOptions)
+	completedOptions, err := app.Complete(kubeAPIServerOptions)
 	if err != nil {
 		t.Fatal(err)
 	}
-	kubeAPIServerConfig, sharedInformers, versionedInformers, _, _, _, err := app.CreateKubeAPIServerConfig(kubeAPIServerOptions, tunneler, proxyTransport)
+	tunneler, proxyTransport, err := app.CreateNodeDialer(completedOptions)
+	if err != nil {
+		t.Fatal(err)
+	}
+	kubeAPIServerConfig, sharedInformers, versionedInformers, _, _, _, admissionPostStartHook, err := app.CreateKubeAPIServerConfig(completedOptions, tunneler, proxyTransport)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -115,7 +119,7 @@ func startTestServer(t *testing.T, stopCh <-chan struct{}, setup TestServerSetup
 	if setup.ModifyServerConfig != nil {
 		setup.ModifyServerConfig(kubeAPIServerConfig)
 	}
-	kubeAPIServer, err := app.CreateKubeAPIServer(kubeAPIServerConfig, genericapiserver.EmptyDelegate, sharedInformers, versionedInformers)
+	kubeAPIServer, err := app.CreateKubeAPIServer(kubeAPIServerConfig, genericapiserver.NewEmptyDelegate(), sharedInformers, versionedInformers, admissionPostStartHook)
 	if err != nil {
 		t.Fatal(err)
 	}

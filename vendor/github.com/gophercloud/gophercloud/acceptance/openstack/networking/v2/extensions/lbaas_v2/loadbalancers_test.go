@@ -176,3 +176,152 @@ func TestLoadbalancersCRUD(t *testing.T) {
 	tools.PrintResource(t, newMonitor)
 
 }
+
+func TestOctaviaLoadbalancersCRUD(t *testing.T) {
+	netClient, err := clients.NewNetworkV2Client()
+	if err != nil {
+		t.Fatalf("Unable to create a network client: %v", err)
+	}
+
+	lbClient, err := clients.NewLoadBalancerV2Client()
+	if err != nil {
+		t.Fatalf("Unable to create a network client: %v", err)
+	}
+
+	network, err := networking.CreateNetwork(t, netClient)
+	if err != nil {
+		t.Fatalf("Unable to create network: %v", err)
+	}
+	defer networking.DeleteNetwork(t, netClient, network.ID)
+
+	subnet, err := networking.CreateSubnet(t, netClient, network.ID)
+	if err != nil {
+		t.Fatalf("Unable to create subnet: %v", err)
+	}
+	defer networking.DeleteSubnet(t, netClient, subnet.ID)
+
+	lb, err := CreateLoadBalancer(t, lbClient, subnet.ID)
+	if err != nil {
+		t.Fatalf("Unable to create loadbalancer: %v", err)
+	}
+	defer func() {
+		t.Logf("Running cascading delete on Octavia LB...")
+		err := loadbalancers.CascadingDelete(lbClient, lb.ID).ExtractErr()
+		if err != nil {
+			t.Fatalf("Error running cascading delete: %v", err)
+		}
+	}()
+
+	newLB, err := loadbalancers.Get(lbClient, lb.ID).Extract()
+	if err != nil {
+		t.Fatalf("Unable to get loadbalancer: %v", err)
+	}
+
+	tools.PrintResource(t, newLB)
+
+	// Because of the time it takes to create a loadbalancer,
+	// this test will include some other resources.
+
+	// Listener
+	listener, err := CreateListener(t, lbClient, lb)
+	if err != nil {
+		t.Fatalf("Unable to create listener: %v", err)
+	}
+
+	updateListenerOpts := listeners.UpdateOpts{
+		Description: "Some listener description",
+	}
+	_, err = listeners.Update(lbClient, listener.ID, updateListenerOpts).Extract()
+	if err != nil {
+		t.Fatalf("Unable to update listener")
+	}
+
+	if err := WaitForLoadBalancerState(lbClient, lb.ID, "ACTIVE", loadbalancerActiveTimeoutSeconds); err != nil {
+		t.Fatalf("Timed out waiting for loadbalancer to become active")
+	}
+
+	newListener, err := listeners.Get(lbClient, listener.ID).Extract()
+	if err != nil {
+		t.Fatalf("Unable to get listener")
+	}
+
+	tools.PrintResource(t, newListener)
+
+	// Pool
+	pool, err := CreatePool(t, lbClient, lb)
+	if err != nil {
+		t.Fatalf("Unable to create pool: %v", err)
+	}
+
+	updatePoolOpts := pools.UpdateOpts{
+		Description: "Some pool description",
+	}
+	_, err = pools.Update(lbClient, pool.ID, updatePoolOpts).Extract()
+	if err != nil {
+		t.Fatalf("Unable to update pool")
+	}
+
+	if err := WaitForLoadBalancerState(lbClient, lb.ID, "ACTIVE", loadbalancerActiveTimeoutSeconds); err != nil {
+		t.Fatalf("Timed out waiting for loadbalancer to become active")
+	}
+
+	newPool, err := pools.Get(lbClient, pool.ID).Extract()
+	if err != nil {
+		t.Fatalf("Unable to get pool")
+	}
+
+	tools.PrintResource(t, newPool)
+
+	// Member
+	member, err := CreateMember(t, lbClient, lb, newPool, subnet.ID, subnet.CIDR)
+	if err != nil {
+		t.Fatalf("Unable to create member: %v", err)
+	}
+
+	newWeight := tools.RandomInt(11, 100)
+	updateMemberOpts := pools.UpdateMemberOpts{
+		Weight: newWeight,
+	}
+	_, err = pools.UpdateMember(lbClient, pool.ID, member.ID, updateMemberOpts).Extract()
+	if err != nil {
+		t.Fatalf("Unable to update pool")
+	}
+
+	if err := WaitForLoadBalancerState(lbClient, lb.ID, "ACTIVE", loadbalancerActiveTimeoutSeconds); err != nil {
+		t.Fatalf("Timed out waiting for loadbalancer to become active")
+	}
+
+	newMember, err := pools.GetMember(lbClient, pool.ID, member.ID).Extract()
+	if err != nil {
+		t.Fatalf("Unable to get member")
+	}
+
+	tools.PrintResource(t, newMember)
+
+	// Monitor
+	monitor, err := CreateMonitor(t, lbClient, lb, newPool)
+	if err != nil {
+		t.Fatalf("Unable to create monitor: %v", err)
+	}
+
+	newDelay := tools.RandomInt(20, 30)
+	updateMonitorOpts := monitors.UpdateOpts{
+		Delay: newDelay,
+	}
+	_, err = monitors.Update(lbClient, monitor.ID, updateMonitorOpts).Extract()
+	if err != nil {
+		t.Fatalf("Unable to update monitor")
+	}
+
+	if err := WaitForLoadBalancerState(lbClient, lb.ID, "ACTIVE", loadbalancerActiveTimeoutSeconds); err != nil {
+		t.Fatalf("Timed out waiting for loadbalancer to become active")
+	}
+
+	newMonitor, err := monitors.Get(lbClient, monitor.ID).Extract()
+	if err != nil {
+		t.Fatalf("Unable to get monitor")
+	}
+
+	tools.PrintResource(t, newMonitor)
+
+}

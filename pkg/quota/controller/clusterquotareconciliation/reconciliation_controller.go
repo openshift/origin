@@ -326,7 +326,7 @@ func (c *ClusterQuotaReconcilationController) syncQuotaForNamespaces(originalQuo
 			continue
 		}
 
-		actualUsage, err := quotaUsageCalculationFunc(namespaceName, quota.Spec.Quota.Scopes, quota.Spec.Quota.Hard, c.registry)
+		actualUsage, err := quotaUsageCalculationFunc(namespaceName, quota.Spec.Quota.Scopes, quota.Spec.Quota.Hard, c.registry, quota.Spec.Quota.ScopeSelector)
 		if err != nil {
 			// tally up errors, but calculate everything you can
 			reconcilationErrors = append(reconcilationErrors, err)

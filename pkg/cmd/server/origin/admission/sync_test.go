@@ -25,13 +25,11 @@ var admissionPluginsNotUsedByKube = sets.NewString(
 	imageadmission.PluginName,                // from origin, used for limiting image sizes, not kubernetes resources
 	"openshift.io/JenkinsBootstrapper",       // from origin, only needed for managing builds, not kubernetes resources
 	"openshift.io/BuildConfigSecretInjector", // from origin, only needed for managing builds, not kubernetes resources
-	"OriginNamespaceLifecycle",               // from origin, only needed for rejecting openshift resources, so not needed by kube
 	"ProjectRequestLimit",                    // from origin, used for limiting project requests by user (online use case)
 	"openshift.io/RestrictSubjectBindings",   // from origin, used for enforcing rolebindingrestrictions, not kubernetes resources
 	"RunOnceDuration",                        // from origin, used for overriding the ActiveDeadlineSeconds for run-once pods
 
-	"NamespaceExists",  // superseded by NamespaceLifecycle
-	"InitialResources", // do we want this? https://github.com/kubernetes/kubernetes/blob/master/docs/proposals/initial-resources.md
+	"NamespaceExists", // superseded by NamespaceLifecycle
 
 	"PodPreset",                // alpha in kube 1.6, not on by default
 	"DefaultTolerationSeconds", // alpha, not on by default

@@ -19,6 +19,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/validation"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
@@ -27,12 +28,11 @@ import (
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	authapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	configcmd "github.com/openshift/origin/pkg/bulk"
+	"github.com/openshift/origin/pkg/bulk"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/print"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	"github.com/openshift/origin/pkg/oc/generate/app"
 	securityclientinternal "github.com/openshift/origin/pkg/security/generated/internalclientset"
 	oscc "github.com/openshift/origin/pkg/security/securitycontextconstraints"
@@ -91,7 +91,7 @@ var (
 // launch a router, including general parameters, type of router, and
 // type-specific parameters.
 type RouterConfig struct {
-	Action configcmd.BulkAction
+	Action bulk.BulkAction
 
 	// Name is the router name, set as an argument
 	Name string
@@ -558,14 +558,30 @@ func RunCmdRouter(f kcmdutil.Factory, cmd *cobra.Command, out, errout io.Writer,
 
 	image := cfg.ImageTemplate.ExpandOrDie(cfg.Type)
 
-	namespace, _, err := f.DefaultNamespace()
+	namespace, _, err := f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return fmt.Errorf("error getting client: %v", err)
 	}
 
-	cfg.Action.Bulk.Mapper = clientcmd.ResourceMapper(f)
+	restMapper, err := f.ToRESTMapper()
+	if err != nil {
+		return err
+	}
+	clientConfig, err := f.ToRESTConfig()
+	if err != nil {
+		return err
+	}
+	dynamicClient, err := dynamic.NewForConfig(clientConfig)
+	if err != nil {
+		return err
+	}
+
+	cfg.Action.Bulk.Scheme = legacyscheme.Scheme
 	cfg.Action.Out, cfg.Action.ErrOut = out, errout
-	cfg.Action.Bulk.Op = configcmd.Create
+	cfg.Action.Bulk.Op = bulk.Creator{
+		Client:     dynamicClient,
+		RESTMapper: restMapper,
+	}.Create
 
 	var clusterIP string
 
@@ -602,7 +618,7 @@ func RunCmdRouter(f kcmdutil.Factory, cmd *cobra.Command, out, errout io.Writer,
 	}
 
 	if !cfg.Local {
-		clientConfig, err := f.ClientConfig()
+		clientConfig, err := f.ToRESTConfig()
 		if err != nil {
 			return err
 		}
@@ -815,7 +831,7 @@ func RunCmdRouter(f kcmdutil.Factory, cmd *cobra.Command, out, errout io.Writer,
 	list := &kapi.List{Items: objects}
 
 	if cfg.Action.ShouldPrint() {
-		fn := print.VersionedPrintObject(legacyscheme.Scheme, legacyscheme.Registry, kcmdutil.PrintObject, cmd, out)
+		fn := print.VersionedPrintObject(kcmdutil.PrintObject, cmd, out)
 		if err := fn(list); err != nil {
 			return fmt.Errorf("unable to print object: %v", err)
 		}

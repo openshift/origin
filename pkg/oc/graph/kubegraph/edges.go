@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/gonum/graph"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -229,7 +228,7 @@ func AddAllRequestedServiceAccountEdges(g osgraph.Graph) {
 	}
 }
 
-func AddHPAScaleRefEdges(g osgraph.Graph) {
+func AddHPAScaleRefEdges(g osgraph.Graph, restMapper meta.RESTMapper) {
 	for _, node := range g.NodesByKind(kubegraph.HorizontalPodAutoscalerNodeKind) {
 		hpaNode := node.(*kubegraph.HorizontalPodAutoscalerNode)
 
@@ -246,7 +245,7 @@ func AddHPAScaleRefEdges(g osgraph.Graph) {
 			groupVersionResource = schema.GroupVersionResource{Resource: resource}
 		}
 
-		groupVersionResource, err := legacyscheme.Registry.RESTMapper().ResourceFor(groupVersionResource)
+		groupVersionResource, err := restMapper.ResourceFor(groupVersionResource)
 		if err != nil {
 			continue
 		}

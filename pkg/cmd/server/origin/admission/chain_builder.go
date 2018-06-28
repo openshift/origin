@@ -14,8 +14,8 @@ import (
 	"k8s.io/apiserver/pkg/admission/plugin/namespace/lifecycle"
 	"k8s.io/apiserver/pkg/apis/apiserver"
 	noderestriction "k8s.io/kubernetes/plugin/pkg/admission/noderestriction"
-	expandpvcadmission "k8s.io/kubernetes/plugin/pkg/admission/persistentvolume/resize"
 	saadmit "k8s.io/kubernetes/plugin/pkg/admission/serviceaccount"
+	expandpvcadmission "k8s.io/kubernetes/plugin/pkg/admission/storage/persistentvolume/resize"
 	storageclassdefaultadmission "k8s.io/kubernetes/plugin/pkg/admission/storage/storageclass/setdefault"
 
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
@@ -49,7 +49,6 @@ var (
 	// openshiftAdmissionControlPlugins gives the in-order default admission chain for openshift resources.
 	openshiftAdmissionControlPlugins = []string{
 		"ProjectRequestLimit",
-		"OriginNamespaceLifecycle",
 		"openshift.io/RestrictSubjectBindings",
 		"openshift.io/JenkinsBootstrapper",
 		"openshift.io/BuildConfigSecretInjector",
@@ -80,7 +79,6 @@ var (
 		imagepolicy.PluginName,
 		"ImagePolicyWebhook",
 		"PodPreset",
-		"InitialResources",
 		"LimitRanger",
 		"ServiceAccount",
 		noderestriction.PluginName,
@@ -122,7 +120,6 @@ var (
 		lifecycle.PluginName,
 		"EventRateLimit",
 		"ProjectRequestLimit",
-		"OriginNamespaceLifecycle",
 		"openshift.io/RestrictSubjectBindings",
 		"openshift.io/JenkinsBootstrapper",
 		"openshift.io/BuildConfigSecretInjector",
@@ -138,7 +135,6 @@ var (
 		imagepolicy.PluginName,
 		"ImagePolicyWebhook",
 		"PodPreset",
-		"InitialResources",
 		"LimitRanger",
 		"ServiceAccount",
 		noderestriction.PluginName,

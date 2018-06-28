@@ -40,7 +40,7 @@ const (
 	bestEffortPodName = "best-effort"
 )
 
-var _ = framework.KubeDescribe("CriticalPod [Serial] [Disruptive]", func() {
+var _ = framework.KubeDescribe("CriticalPod [Serial] [Disruptive] [NodeFeature:CriticalPod]", func() {
 	f := framework.NewDefaultFramework("critical-pod-test")
 
 	Context("when we need to admit a critical pod", func() {
@@ -131,7 +131,7 @@ func getTestPod(critical bool, name string, resources v1.ResourceRequirements) *
 			Containers: []v1.Container{
 				{
 					Name:      "container",
-					Image:     imageutils.GetPauseImageNameForHostArch(),
+					Image:     imageutils.GetPauseImageName(),
 					Resources: resources,
 				},
 			},

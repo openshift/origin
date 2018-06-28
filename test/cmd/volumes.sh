@@ -60,7 +60,7 @@ os::cmd::expect_success_and_text 'oc get pvc --no-headers | wc -l' '2'
 # we are not using --overwrite, so expect a failure
 os::cmd::expect_failure_and_text 'oc set volume dc/test-deployment-config --add --mount-path=/second --sub-path=foo' "'/second' already exists"
 # add --sub-path and expect success and --sub-path added when using --overwrite
-os::cmd::expect_success_and_text 'oc set volume dc/test-deployment-config --add --mount-path=/second --sub-path=foo --overwrite' 'deploymentconfig "test-deployment-config" updated'
+os::cmd::expect_success_and_text 'oc set volume dc/test-deployment-config --add --mount-path=/second --sub-path=foo --overwrite' 'deploymentconfig.apps.openshift.io "test-deployment-config" updated'
 os::cmd::expect_success_and_text "oc get dc/test-deployment-config -o jsonpath='{.spec.template.spec.containers[0].volumeMounts[*].subPath}'" 'foo'
 
 # ensure that we can describe volumes of type ConfigMap

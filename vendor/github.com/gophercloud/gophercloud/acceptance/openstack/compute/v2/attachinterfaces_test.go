@@ -7,54 +7,45 @@ import (
 
 	"github.com/gophercloud/gophercloud/acceptance/clients"
 	"github.com/gophercloud/gophercloud/acceptance/tools"
-	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/attachinterfaces"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
+	th "github.com/gophercloud/gophercloud/testhelper"
 )
 
 func TestAttachDetachInterface(t *testing.T) {
+	clients.RequireLong(t)
+
+	choices, err := clients.AcceptanceTestChoicesFromEnv()
+	th.AssertNoErr(t, err)
+
 	client, err := clients.NewComputeV2Client()
-	if err != nil {
-		t.Fatalf("Unable to create a compute client: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	server, err := CreateServer(t, client)
-	if err != nil {
-		t.Fatalf("Unable to create server: %v", err)
-	}
-
+	th.AssertNoErr(t, err)
 	defer DeleteServer(t, client, server)
 
-	newServer, err := servers.Get(client, server.ID).Extract()
-	if err != nil {
-		t.Errorf("Unable to retrieve server: %v", err)
-	}
-	tools.PrintResource(t, newServer)
-
-	intOpts := attachinterfaces.CreateOpts{}
-
-	iface, err := attachinterfaces.Create(client, server.ID, intOpts).Extract()
-	if err != nil {
-		t.Fatal(err)
-	}
+	iface, err := AttachInterface(t, client, server.ID)
+	th.AssertNoErr(t, err)
+	defer DetachInterface(t, client, server.ID, iface.PortID)
 
 	tools.PrintResource(t, iface)
 
-	allPages, err := attachinterfaces.List(client, server.ID).AllPages()
-	if err != nil {
-		t.Fatal(err)
+	server, err = servers.Get(client, server.ID).Extract()
+	th.AssertNoErr(t, err)
+
+	var found bool
+	for _, networkAddresses := range server.Addresses[choices.NetworkName].([]interface{}) {
+		address := networkAddresses.(map[string]interface{})
+		if address["OS-EXT-IPS:type"] == "fixed" {
+			fixedIP := address["addr"].(string)
+
+			for _, v := range iface.FixedIPs {
+				if fixedIP == v.IPAddress {
+					found = true
+				}
+			}
+		}
 	}
 
-	allIfaces, err := attachinterfaces.ExtractInterfaces(allPages)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	for _, i := range allIfaces {
-		tools.PrintResource(t, i)
-	}
-
-	err = attachinterfaces.Delete(client, server.ID, iface.PortID).ExtractErr()
-	if err != nil {
-		t.Fatal(err)
-	}
+	th.AssertEquals(t, found, true)
 }

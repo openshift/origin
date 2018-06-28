@@ -11,20 +11,30 @@ You can find prebuilt govc binaries on the [releases page](https://github.com/vm
 
 Download and install a binary locally like this:
 
-```sh
-curl -L $URL_TO_BINARY | gunzip > /usr/local/bin/govc
-chmod +x /usr/local/bin/govc
+``` console
+% curl -L $URL_TO_BINARY | gunzip > /usr/local/bin/govc
+% chmod +x /usr/local/bin/govc
 ```
 
 ### Source
 
-You can install the latest govc version from source if you have the Go toolchain installed.
+To build govc from source, first install the [Go toolchain](https://golang.org/dl/).
 
-```sh
-go get -u github.com/vmware/govmomi/govc
+Make sure to set the environment variable [GOPATH](https://github.com/golang/go/wiki/SettingGOPATH).
+
+You can then install the latest govc from github using:
+
+``` console
+% go get -u github.com/vmware/govmomi/govc
 ```
 
-(make sure `$GOPATH/bin` is in your `PATH`)
+Make sure `$GOPATH/bin` is in your `PATH` to use the version installed from source.
+
+If you've made local modifications to the repository at `$GOPATH/src/github.com/vmware/govmomi`, you can install using:
+
+``` console
+% go install github.com/vmware/govmomi/govc
+```
 
 ## Usage
 
@@ -81,9 +91,10 @@ to set defaults:
 
 * `GOVC_TLS_KNOWN_HOSTS`: File(s) for thumbprint based certificate verification.
 
+    Thumbprint based verification can be used in addition to or as an alternative to
+    `GOVC_TLS_CA_CERTS` for self-signed certificates.  Example:
+
     ``` console
-    # Thumbprint based verification can be used in addition to or as an alternative to
-    $ GOVC_TLS_CA_CERTS for self-signed certificates.  Example:
     $ export GOVC_TLS_KNOWN_HOSTS=~/.govc_known_hosts
     $ govc about.cert -u host -k -thumbprint | tee -a $GOVC_TLS_KNOWN_HOSTS
     $ govc about -u user:pass@host
@@ -120,7 +131,28 @@ to set defaults:
 
 * `GOVC_VIM_VERSION`: Vim version defaults to `6.0`
 
-## Platform specific notes
+## Troubleshooting
+
+### Environment variables
+
+If you're using environment variables to set `GOVC_URL`, verify the values are set as expected:
+
+``` console
+% govc env
+```
+
+### Connection issues
+
+Check your proxy settings:
+
+``` console
+% env | grep -i https_proxy
+```
+
+Test connection using curl:
+``` console
+% curl --verbose -k -X POST https://x.x.x.x/sdk
+```
 
 ### MSYS2 (Windows)
 
@@ -154,8 +186,8 @@ Refer to the [CHANGELOG](CHANGELOG.md) for version to version changes.
 When new govc commands or flags are added, the PATCH version will be incremented.  This enables you to require a minimum
 version from within a script, for example:
 
-```
-govc version -require 0.14
+``` console
+% govc version -require 0.14
 ```
 
 ## Projects using govc

@@ -11,8 +11,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/kubectl/resource"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 
+	"github.com/openshift/origin/pkg/oc/util/ocscheme"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset/typed/template/internalversion"
 )
@@ -123,7 +124,7 @@ func (r *TemplateFileSearcher) Search(precise bool, terms ...string) (ComponentM
 
 		var isSingleItemImplied bool
 		obj, err := r.Builder.
-			Internal().
+			WithScheme(ocscheme.ReadingInternalScheme).
 			NamespaceParam(r.Namespace).RequireNamespace().
 			FilenameParam(false, &resource.FilenameOptions{Recursive: false, Filenames: terms}).
 			Do().

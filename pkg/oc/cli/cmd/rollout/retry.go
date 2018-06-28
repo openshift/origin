@@ -10,8 +10,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/kubectl/resource"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
@@ -22,6 +23,8 @@ import (
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+
+	"github.com/openshift/origin/pkg/oc/util/ocscheme"
 )
 
 type RetryOptions struct {
@@ -71,26 +74,35 @@ func NewCmdRolloutRetry(fullName string, f kcmdutil.Factory, out io.Writer) *cob
 }
 
 func (o *RetryOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, out io.Writer, args []string) error {
+	var err error
 	if len(args) == 0 && len(o.FilenameOptions.Filenames) == 0 {
 		return kcmdutil.UsageErrorf(cmd, cmd.Use)
 	}
 
-	o.Mapper, o.Typer = f.Object()
+	o.Typer = legacyscheme.Scheme
+	o.Mapper, err = f.ToRESTMapper()
+	if err != nil {
+		return err
+	}
 	o.Encoder = kcmdutil.InternalVersionJSONEncoder()
 	o.Out = out
 
-	cmdNamespace, enforceNamespace, err := f.DefaultNamespace()
+	cmdNamespace, enforceNamespace, err := f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
 	}
 
-	o.Clientset, err = f.ClientSet()
+	clientConfig, err := f.ToRESTConfig()
+	if err != nil {
+		return err
+	}
+	o.Clientset, err = kclientset.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
 
 	r := f.NewBuilder().
-		Internal().
+		WithScheme(ocscheme.ReadingInternalScheme).
 		NamespaceParam(cmdNamespace).DefaultNamespace().
 		FilenameParam(enforceNamespace, &o.FilenameOptions).
 		ResourceTypeOrNameArgs(true, args...).

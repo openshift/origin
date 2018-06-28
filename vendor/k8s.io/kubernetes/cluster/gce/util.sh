@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright 2017 The Kubernetes Authors.
 #
@@ -502,6 +502,7 @@ function write-master-env {
 
   construct-kubelet-flags true
   build-kube-env true "${KUBE_TEMP}/master-kube-env.yaml"
+  build-kubelet-config true "${KUBE_TEMP}/master-kubelet-config.yaml"
   build-kube-master-certs "${KUBE_TEMP}/kube-master-certs.yaml"
 }
 
@@ -512,6 +513,7 @@ function write-node-env {
 
   construct-kubelet-flags false
   build-kube-env false "${KUBE_TEMP}/node-kube-env.yaml"
+  build-kubelet-config false "${KUBE_TEMP}/node-kubelet-config.yaml"
 }
 
 function build-node-labels {
@@ -531,53 +533,116 @@ function build-node-labels {
   echo $node_labels
 }
 
+# yaml-map-string-stringarray converts the encoded structure to yaml format, and echoes the result
+# under the provided name. If the encoded structure is empty, echoes nothing.
+# 1: name to be output in yaml
+# 2: encoded map-string-string (which may contain duplicate keys - resulting in map-string-stringarray)
+# 3: key-value separator (defaults to ':')
+# 4: item separator (defaults to ',')
+function yaml-map-string-stringarray {
+  declare -r name="${1}"
+  declare -r encoded="${2}"
+  declare -r kv_sep="${3:-:}"
+  declare -r item_sep="${4:-,}"
+
+  declare -a pairs # indexed array
+  declare -A map # associative array
+  IFS="${item_sep}" read -ra pairs <<<"${encoded}" # split on item_sep
+  for pair in "${pairs[@]}"; do
+    declare key
+    declare value
+    IFS="${kv_sep}" read -r key value <<<"${pair}" # split on kv_sep
+    map[$key]="${map[$key]+${map[$key]}${item_sep}}${value}" # append values from duplicate keys
+  done
+  # only output if there is a non-empty map
+  if [[ ${#map[@]} -gt 0 ]]; then
+    echo "${name}:"
+    for k in "${!map[@]}"; do
+      echo "  ${k}:"
+      declare -a values
+      IFS="${item_sep}" read -ra values <<<"${map[$k]}"
+      for val in "${values[@]}"; do
+        # declare across two lines so errexit can catch failures
+        declare v
+        v=$(yaml-quote "${val}")
+        echo "    - ${v}"
+      done
+    done
+  fi
+}
+
+# yaml-map-string-string converts the encoded structure to yaml format, and echoes the result
+# under the provided name. If the encoded structure is empty, echoes nothing.
+# 1: name to be output in yaml
+# 2: encoded map-string-string (no duplicate keys)
+# 3: bool, whether to yaml-quote the value string in the output (defaults to true)
+# 4: key-value separator (defaults to ':')
+# 5: item separator (defaults to ',')
+function yaml-map-string-string {
+  declare -r name="${1}"
+  declare -r encoded="${2}"
+  declare -r quote_val_string="${3:-true}"
+  declare -r kv_sep="${4:-:}"
+  declare -r item_sep="${5:-,}"
+
+  declare -a pairs # indexed array
+  declare -A map # associative array
+  IFS="${item_sep}" read -ra pairs <<<"${encoded}" # split on item_sep # TODO(mtaufen): try quoting this too
+  for pair in "${pairs[@]}"; do
+    declare key
+    declare value
+    IFS="${kv_sep}" read -r key value <<<"${pair}" # split on kv_sep
+    map[$key]="${value}" # add to associative array
+  done
+  # only output if there is a non-empty map
+  if [[ ${#map[@]} -gt 0 ]]; then
+    echo "${name}:"
+    for k in "${!map[@]}"; do
+      if [[ "${quote_val_string}" == "true" ]]; then
+        # declare across two lines so errexit can catch failures
+        declare v
+        v=$(yaml-quote "${map[$k]}")
+        echo "  ${k}: ${v}"
+      else
+        echo "  ${k}: ${map[$k]}"
+      fi
+    done
+  fi
+}
+
 # $1: if 'true', we're rendering flags for a master, else a node
 function construct-kubelet-flags {
   local master=$1
   local flags="${KUBELET_TEST_LOG_LEVEL:-"--v=2"} ${KUBELET_TEST_ARGS:-}"
   flags+=" --allow-privileged=true"
-  flags+=" --cgroup-root=/"
   flags+=" --cloud-provider=gce"
-  flags+=" --cluster-dns=${DNS_SERVER_IP}"
-  flags+=" --cluster-domain=${DNS_DOMAIN}"
-  flags+=" --pod-manifest-path=/etc/kubernetes/manifests"
   # Keep in sync with CONTAINERIZED_MOUNTER_HOME in configure-helper.sh
   flags+=" --experimental-mounter-path=/home/kubernetes/containerized_mounter/mounter"
   flags+=" --experimental-check-node-capabilities-before-mount=true"
   # Keep in sync with the mkdir command in configure-helper.sh (until the TODO is resolved)
   flags+=" --cert-dir=/var/lib/kubelet/pki/"
+  # Configure the directory that the Kubelet should use to store dynamic config checkpoints
+  flags+=" --dynamic-config-dir=/var/lib/kubelet/dynamic-config"
+
 
   if [[ "${master}" == "true" ]]; then
     flags+=" ${MASTER_KUBELET_TEST_ARGS:-}"
-    flags+=" --enable-debugging-handlers=false"
-    flags+=" --hairpin-mode=none"
     if [[ "${REGISTER_MASTER_KUBELET:-false}" == "true" ]]; then
       #TODO(mikedanese): allow static pods to start before creating a client
       #flags+=" --bootstrap-kubeconfig=/var/lib/kubelet/bootstrap-kubeconfig"
       #flags+=" --kubeconfig=/var/lib/kubelet/kubeconfig"
       flags+=" --kubeconfig=/var/lib/kubelet/bootstrap-kubeconfig"
       flags+=" --register-schedulable=false"
-    else
-      # Note: Standalone mode is used by GKE
-      flags+=" --pod-cidr=${MASTER_IP_RANGE}"
     fi
   else # For nodes
     flags+=" ${NODE_KUBELET_TEST_ARGS:-}"
-    flags+=" --enable-debugging-handlers=true"
     flags+=" --bootstrap-kubeconfig=/var/lib/kubelet/bootstrap-kubeconfig"
     flags+=" --kubeconfig=/var/lib/kubelet/kubeconfig"
-    if [[ "${HAIRPIN_MODE:-}" == "promiscuous-bridge" ]] || \
-       [[ "${HAIRPIN_MODE:-}" == "hairpin-veth" ]] || \
-       [[ "${HAIRPIN_MODE:-}" == "none" ]]; then
-      flags+=" --hairpin-mode=${HAIRPIN_MODE}"
-    fi
-    # Keep client-ca-file in sync with CA_CERT_BUNDLE_PATH in configure-helper.sh
-    flags+=" --anonymous-auth=false --authorization-mode=Webhook --client-ca-file=/etc/srv/kubernetes/pki/ca-certificates.crt"
   fi
   # Network plugin
   if [[ -n "${NETWORK_PROVIDER:-}" || -n "${NETWORK_POLICY_PROVIDER:-}" ]]; then
     flags+=" --cni-bin-dir=/home/kubernetes/bin"
-    if [[ "${NETWORK_POLICY_PROVIDER:-}" == "calico" ]]; then
+    if [[ "${NETWORK_POLICY_PROVIDER:-}" == "calico" || "${ENABLE_NETD:-}" == "true" ]]; then
       # Calico uses CNI always.
       # Note that network policy won't work for master node.
       if [[ "${master}" == "true" ]]; then
@@ -588,17 +653,13 @@ function construct-kubelet-flags {
     else
       # Otherwise use the configured value.
       flags+=" --network-plugin=${NETWORK_PROVIDER}"
+
     fi
   fi
   if [[ -n "${NON_MASQUERADE_CIDR:-}" ]]; then
     flags+=" --non-masquerade-cidr=${NON_MASQUERADE_CIDR}"
   fi
   flags+=" --volume-plugin-dir=${VOLUME_PLUGIN_DIR}"
-  # Note: ENABLE_MANIFEST_URL is used by GKE
-  if [[ "${ENABLE_MANIFEST_URL:-}" == "true" ]]; then
-    flags+=" --manifest-url=${MANIFEST_URL}"
-    flags+=" --manifest-url-header=${MANIFEST_URL_HEADER}"
-  fi
   if [[ -n "${ENABLE_CUSTOM_METRICS:-}" ]]; then
     flags+=" --enable-custom-metrics=${ENABLE_CUSTOM_METRICS}"
   fi
@@ -609,12 +670,6 @@ function construct-kubelet-flags {
   if [[ -n "${NODE_TAINTS:-}" ]]; then
     flags+=" --register-with-taints=${NODE_TAINTS}"
   fi
-  if [[ -n "${EVICTION_HARD:-}" ]]; then
-    flags+=" --eviction-hard=${EVICTION_HARD}"
-  fi
-  if [[ -n "${FEATURE_GATES:-}" ]]; then
-    flags+=" --feature-gates=${FEATURE_GATES}"
-  fi
   # TODO(mtaufen): ROTATE_CERTIFICATES seems unused; delete it?
   if [[ -n "${ROTATE_CERTIFICATES:-}" ]]; then
     flags+=" --rotate-certificates=true"
@@ -622,12 +677,99 @@ function construct-kubelet-flags {
   if [[ -n "${CONTAINER_RUNTIME:-}" ]]; then
     flags+=" --container-runtime=${CONTAINER_RUNTIME}"
   fi
-  # TODO(mtaufen): CONTAINER_RUNTIME_ENDPOINT seems unused; delete it?
   if [[ -n "${CONTAINER_RUNTIME_ENDPOINT:-}" ]]; then
     flags+=" --container-runtime-endpoint=${CONTAINER_RUNTIME_ENDPOINT}"
   fi
+  if [[ -n "${MAX_PODS_PER_NODE:-}" ]]; then
+    flags+=" --max-pods=${MAX_PODS_PER_NODE}"
+  fi
 
   KUBELET_ARGS="${flags}"
+}
+
+# $1: if 'true', we're rendering config for a master, else a node
+function build-kubelet-config {
+  local master=$1
+  local file=$2
+
+  rm -f "${file}"
+  {
+    declare quoted_dns_server_ip
+    declare quoted_dns_domain
+    quoted_dns_server_ip=$(yaml-quote "${DNS_SERVER_IP}")
+    quoted_dns_domain=$(yaml-quote "${DNS_DOMAIN}")
+    cat <<EOF
+kind: KubeletConfiguration
+apiVersion: kubelet.config.k8s.io/v1beta1
+cgroupRoot: /
+clusterDNS:
+  - ${quoted_dns_server_ip}
+clusterDomain: ${quoted_dns_domain}
+staticPodPath: /etc/kubernetes/manifests
+readOnlyPort: 10255
+EOF
+
+    # --- begin master-specific config ---
+    if [[ "${master}" == "true" ]]; then
+        cat <<EOF
+enableDebuggingHandlers: false
+hairpinMode: none
+authentication:
+  webhook:
+    enabled: false
+  anonymous:
+    enabled: true
+authorization:
+  mode: AlwaysAllow
+EOF
+      if [[ "${REGISTER_MASTER_KUBELET:-false}" == "false" ]]; then
+        # Note: Standalone mode is used by GKE
+        declare quoted_master_ip_range
+        quoted_master_ip_range=$(yaml-quote "${MASTER_IP_RANGE}")
+        cat <<EOF
+podCidr: ${quoted_master_ip_range}
+EOF
+      fi
+      # --- end master-specific config ---
+    else
+      # --- begin node-specific config ---
+      # Keep authentication.x509.clientCAFile in sync with CA_CERT_BUNDLE_PATH in configure-helper.sh
+      cat <<EOF
+enableDebuggingHandlers: true
+authentication:
+  x509:
+    clientCAFile: /etc/srv/kubernetes/pki/ca-certificates.crt
+EOF
+      if [[ "${HAIRPIN_MODE:-}" == "promiscuous-bridge" ]] || \
+         [[ "${HAIRPIN_MODE:-}" == "hairpin-veth" ]] || \
+         [[ "${HAIRPIN_MODE:-}" == "none" ]]; then
+         declare quoted_hairpin_mode
+         quoted_hairpin_mode=$(yaml-quote "${HAIRPIN_MODE}")
+         cat <<EOF
+hairpinMode: ${quoted_hairpin_mode}
+EOF
+      fi
+      # --- end node-specific config ---
+    fi
+
+    # Note: ENABLE_MANIFEST_URL is used by GKE
+    if [[ "${ENABLE_MANIFEST_URL:-}" == "true" ]]; then
+      declare quoted_manifest_url
+      quoted_manifest_url=$(yaml-quote "${MANIFEST_URL}")
+      cat <<EOF
+staticPodURL: ${quoted_manifest_url}
+EOF
+      yaml-map-string-stringarray 'staticPodURLHeader' "${MANIFEST_URL_HEADER}"
+    fi
+
+    if [[ -n "${EVICTION_HARD:-}" ]]; then
+      yaml-map-string-string 'evictionHard' "${EVICTION_HARD}" true '<'
+    fi
+
+    if [[ -n "${FEATURE_GATES:-}" ]]; then
+      yaml-map-string-string 'featureGates' "${FEATURE_GATES}" false '='
+    fi
+  } > "${file}"
 }
 
 function build-kube-master-certs {
@@ -676,6 +818,7 @@ SERVICE_CLUSTER_IP_RANGE: $(yaml-quote ${SERVICE_CLUSTER_IP_RANGE})
 KUBERNETES_MASTER_NAME: $(yaml-quote ${KUBERNETES_MASTER_NAME})
 ALLOCATE_NODE_CIDRS: $(yaml-quote ${ALLOCATE_NODE_CIDRS:-false})
 ENABLE_CLUSTER_MONITORING: $(yaml-quote ${ENABLE_CLUSTER_MONITORING:-none})
+ENABLE_PROMETHEUS_MONITORING: $(yaml-quote ${ENABLE_PROMETHEUS_MONITORING:-false})
 ENABLE_METRICS_SERVER: $(yaml-quote ${ENABLE_METRICS_SERVER:-false})
 ENABLE_METADATA_AGENT: $(yaml-quote ${ENABLE_METADATA_AGENT:-none})
 METADATA_AGENT_CPU_REQUEST: $(yaml-quote ${METADATA_AGENT_CPU_REQUEST:-})
@@ -725,6 +868,7 @@ ENABLE_CACHE_MUTATION_DETECTOR: $(yaml-quote ${ENABLE_CACHE_MUTATION_DETECTOR:-f
 ENABLE_PATCH_CONVERSION_DETECTOR: $(yaml-quote ${ENABLE_PATCH_CONVERSION_DETECTOR:-false})
 ADVANCED_AUDIT_POLICY: $(yaml-quote ${ADVANCED_AUDIT_POLICY:-})
 ADVANCED_AUDIT_BACKEND: $(yaml-quote ${ADVANCED_AUDIT_BACKEND:-log})
+ADVANCED_AUDIT_TRUNCATING_BACKEND: $(yaml-quote ${ADVANCED_AUDIT_TRUNCATING_BACKEND:-})
 ADVANCED_AUDIT_LOG_MODE: $(yaml-quote ${ADVANCED_AUDIT_LOG_MODE:-})
 ADVANCED_AUDIT_LOG_BUFFER_SIZE: $(yaml-quote ${ADVANCED_AUDIT_LOG_BUFFER_SIZE:-})
 ADVANCED_AUDIT_LOG_MAX_BATCH_SIZE: $(yaml-quote ${ADVANCED_AUDIT_LOG_MAX_BATCH_SIZE:-})
@@ -741,6 +885,7 @@ ADVANCED_AUDIT_WEBHOOK_THROTTLE_BURST: $(yaml-quote ${ADVANCED_AUDIT_WEBHOOK_THR
 ADVANCED_AUDIT_WEBHOOK_INITIAL_BACKOFF: $(yaml-quote ${ADVANCED_AUDIT_WEBHOOK_INITIAL_BACKOFF:-})
 GCE_API_ENDPOINT: $(yaml-quote ${GCE_API_ENDPOINT:-})
 GCE_GLBC_IMAGE: $(yaml-quote ${GCE_GLBC_IMAGE:-})
+ENABLE_NODE_JOURNAL: $(yaml-quote ${ENABLE_NODE_JOURNAL:-false})
 PROMETHEUS_TO_SD_ENDPOINT: $(yaml-quote ${PROMETHEUS_TO_SD_ENDPOINT:-})
 PROMETHEUS_TO_SD_PREFIX: $(yaml-quote ${PROMETHEUS_TO_SD_PREFIX:-})
 ENABLE_PROMETHEUS_TO_SD: $(yaml-quote ${ENABLE_PROMETHEUS_TO_SD:-false})
@@ -751,8 +896,13 @@ CONTAINER_RUNTIME_NAME: $(yaml-quote ${CONTAINER_RUNTIME_NAME:-})
 NODE_LOCAL_SSDS_EXT: $(yaml-quote ${NODE_LOCAL_SSDS_EXT:-})
 LOAD_IMAGE_COMMAND: $(yaml-quote ${LOAD_IMAGE_COMMAND:-})
 ZONE: $(yaml-quote ${ZONE})
+REGION: $(yaml-quote ${REGION})
 VOLUME_PLUGIN_DIR: $(yaml-quote ${VOLUME_PLUGIN_DIR})
 KUBELET_ARGS: $(yaml-quote ${KUBELET_ARGS})
+REQUIRE_METADATA_KUBELET_CONFIG_FILE: $(yaml-quote true)
+ENABLE_NETD: $(yaml-quote ${ENABLE_NETD:-false})
+CUSTOM_NETD_YAML: |
+$(echo "${CUSTOM_NETD_YAML:-}" | sed -e "s/'/''/g")
 EOF
   if [[ "${master}" == "true" && "${MASTER_OS_DISTRIBUTION}" == "gci" ]] || \
      [[ "${master}" == "false" && "${NODE_OS_DISTRIBUTION}" == "gci" ]]  || \
@@ -843,6 +993,7 @@ ETCD_CA_KEY: $(yaml-quote ${ETCD_CA_KEY_BASE64:-})
 ETCD_CA_CERT: $(yaml-quote ${ETCD_CA_CERT_BASE64:-})
 ETCD_PEER_KEY: $(yaml-quote ${ETCD_PEER_KEY_BASE64:-})
 ETCD_PEER_CERT: $(yaml-quote ${ETCD_PEER_CERT_BASE64:-})
+ENCRYPTION_PROVIDER_CONFIG: $(yaml-quote ${ENCRYPTION_PROVIDER_CONFIG:-})
 EOF
     if [[ "${ENABLE_TOKENREQUEST:-}" == "true" ]]; then
       cat >>$file <<EOF
@@ -900,6 +1051,11 @@ EOF
     if [ -n "${ETCD_QUOTA_BACKEND_BYTES:-}" ]; then
       cat >>$file <<EOF
 ETCD_QUOTA_BACKEND_BYTES: $(yaml-quote ${ETCD_QUOTA_BACKEND_BYTES})
+EOF
+    fi
+    if [ -n "${ETCD_EXTRA_ARGS:-}" ]; then
+    cat >>$file <<EOF
+ETCD_EXTRA_ARGS: $(yaml-quote ${ETCD_EXTRA_ARGS})
 EOF
     fi
     if [ -n "${APISERVER_TEST_ARGS:-}" ]; then
@@ -996,6 +1152,11 @@ EOF
   if [ -n "${SCHEDULING_ALGORITHM_PROVIDER:-}" ]; then
     cat >>$file <<EOF
 SCHEDULING_ALGORITHM_PROVIDER: $(yaml-quote ${SCHEDULING_ALGORITHM_PROVIDER})
+EOF
+  fi
+  if [ -n "${MAX_PODS_PER_NODE:-}" ]; then
+    cat >>$file <<EOF
+MAX_PODS_PER_NODE: $(yaml-quote ${MAX_PODS_PER_NODE})
 EOF
   fi
 }
@@ -1295,6 +1456,9 @@ minVersion = version.LooseVersion("1.3.0")
 required = [ "alpha", "beta", "core" ]
 data = json.loads(sys.argv[1])
 rel = data.get("Google Cloud SDK")
+if "CL @" in rel:
+  print("Using dev version of gcloud: %s" %rel)
+  exit(0)
 if rel != "HEAD" and version.LooseVersion(rel) < minVersion:
   print("gcloud version out of date ( < %s )" % minVersion)
   exit(1)
@@ -1638,14 +1802,8 @@ function check-existing() {
   fi
 }
 
-# TODO(#54017): Remove below logics for handling deprecated network mode field.
-# `x_gcloud_mode` was replaced by `x_gcloud_subnet_mode` in gcloud 175.0.0 and
-# the content changed as well. Keeping such logic to make the transition eaiser.
 function check-network-mode() {
   local mode="$(gcloud compute networks list --filter="name=('${NETWORK}')" --project ${NETWORK_PROJECT} --format='value(x_gcloud_subnet_mode)' || true)"
-  if [[ -z "${mode}" ]]; then
-    mode="$(gcloud compute networks list --filter="name=('${NETWORK}')" --project ${NETWORK_PROJECT} --format='value(x_gcloud_mode)' || true)"
-  fi
   # The deprecated field uses lower case. Convert to upper case for consistency.
   echo "$(echo $mode | tr [a-z] [A-Z])"
 }
@@ -1743,7 +1901,7 @@ function create-subnetworks() {
       --secondary-range "services-default=${SERVICE_CLUSTER_IP_RANGE}"
     echo "Created subnetwork ${IP_ALIAS_SUBNETWORK}"
   else
-    if ! echo ${subnet} | grep --quiet secondaryIpRanges ${subnet}; then
+    if ! echo ${subnet} | grep --quiet secondaryIpRanges; then
       echo "${color_red}Subnet ${IP_ALIAS_SUBNETWORK} does not have a secondary range${color_norm}"
       exit 1
     fi

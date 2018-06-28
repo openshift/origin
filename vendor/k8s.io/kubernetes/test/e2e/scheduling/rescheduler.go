@@ -26,6 +26,7 @@ import (
 	podutil "k8s.io/kubernetes/pkg/api/v1/pod"
 	"k8s.io/kubernetes/test/e2e/framework"
 	testutils "k8s.io/kubernetes/test/utils"
+	imageutils "k8s.io/kubernetes/test/utils/image"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -55,7 +56,7 @@ var _ = SIGDescribe("Rescheduler [Serial]", func() {
 	It("should ensure that critical pod is scheduled in case there is no resources available", func() {
 		By("reserving all available cpu")
 		err := reserveAllCpu(f, "reserve-all-cpu", totalMillicores)
-		defer framework.DeleteRCAndPods(f.ClientSet, f.InternalClientset, f.ScalesGetter, ns, "reserve-all-cpu")
+		defer framework.DeleteRCAndWaitForGC(f.ClientSet, ns, "reserve-all-cpu")
 		framework.ExpectNoError(err)
 
 		By("creating a new instance of Dashboard and waiting for Dashboard to be scheduled")
@@ -124,7 +125,7 @@ func reserveCpu(f *framework.Framework, id string, replicas, millicores int) {
 		Name:           id,
 		Namespace:      f.Namespace.Name,
 		Timeout:        defaultTimeout,
-		Image:          framework.GetPauseImageName(f.ClientSet),
+		Image:          imageutils.GetPauseImageName(),
 		Replicas:       replicas,
 		CpuRequest:     request,
 	}

@@ -43,7 +43,7 @@ func (c *FakeBrokerTemplateInstances) List(opts v1.ListOptions) (result *templat
 	if label == nil {
 		label = labels.Everything()
 	}
-	list := &template.BrokerTemplateInstanceList{}
+	list := &template.BrokerTemplateInstanceList{ListMeta: obj.(*template.BrokerTemplateInstanceList).ListMeta}
 	for _, item := range obj.(*template.BrokerTemplateInstanceList).Items {
 		if label.Matches(labels.Set(item.Labels)) {
 			list.Items = append(list.Items, item)

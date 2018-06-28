@@ -10,19 +10,14 @@ import (
 	o "github.com/onsi/gomega"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	"github.com/openshift/origin/pkg/bulk"
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	"github.com/openshift/origin/pkg/template/controller"
 	osbclient "github.com/openshift/origin/pkg/templateservicebroker/openservicebroker/client"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
-	restutil "github.com/openshift/origin/pkg/util/rest"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -136,11 +131,7 @@ func TSBClient(oc *exutil.CLI) (osbclient.Client, error) {
 }
 
 func dumpObjectReadiness(oc *exutil.CLI, templateInstance *templateapi.TemplateInstance) error {
-	restmapper := restutil.DefaultMultiRESTMapper()
-	config, err := configapi.GetClientConfig(exutil.KubeConfigPath(), nil)
-	if err != nil {
-		return err
-	}
+	restmapper := oc.RESTMapper()
 
 	fmt.Fprintf(g.GinkgoWriter, "dumping object readiness for %s/%s\n", templateInstance.Namespace, templateInstance.Name)
 
@@ -154,26 +145,16 @@ func dumpObjectReadiness(oc *exutil.CLI, templateInstance *templateapi.TemplateI
 			return err
 		}
 
-		cli, err := bulk.ClientMapperFromConfig(config).ClientForMapping(mapping)
+		obj, err := oc.KubeFramework().DynamicClient.Resource(mapping.Resource).Namespace(object.Ref.Namespace).Get(object.Ref.Name, metav1.GetOptions{})
 		if err != nil {
 			return err
 		}
 
-		obj, err := cli.Get().Resource(mapping.Resource).NamespaceIfScoped(object.Ref.Namespace, mapping.Scope.Name() == meta.RESTScopeNameNamespace).Name(object.Ref.Name).Do().Get()
-		if err != nil {
-			return err
+		if obj.GetUID() != object.Ref.UID {
+			return kerrors.NewNotFound(mapping.Resource.GroupResource(), object.Ref.Name)
 		}
 
-		meta, err := meta.Accessor(obj)
-		if err != nil {
-			return err
-		}
-
-		if meta.GetUID() != object.Ref.UID {
-			return kerrors.NewNotFound(schema.GroupResource{Group: mapping.GroupVersionKind.Group, Resource: mapping.Resource}, object.Ref.Name)
-		}
-
-		if strings.ToLower(meta.GetAnnotations()[templateapi.WaitForReadyAnnotation]) != "true" {
+		if strings.ToLower(obj.GetAnnotations()[templateapi.WaitForReadyAnnotation]) != "true" {
 			continue
 		}
 

@@ -8,12 +8,12 @@ import (
 	"strings"
 
 	"github.com/golang/glog"
+	"k8s.io/kubernetes/pkg/apis/policy"
 
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kvalidation "k8s.io/apimachinery/pkg/util/validation"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kext "k8s.io/kubernetes/pkg/apis/extensions"
 
 	buildapiv1 "github.com/openshift/api/build/v1"
 	"github.com/openshift/origin/pkg/api/apihelpers"
@@ -127,13 +127,13 @@ func setupCrioSocket(pod *v1.Pod) {
 // mountConfigMapVolume is a helper method responsible for actual mounting configMap
 // volumes into a pod.
 func mountConfigMapVolume(pod *v1.Pod, container *v1.Container, configMapName, mountPath, volumeSuffix string) {
-	mountVolume(pod, container, configMapName, mountPath, volumeSuffix, kext.ConfigMap)
+	mountVolume(pod, container, configMapName, mountPath, volumeSuffix, policy.ConfigMap)
 }
 
 // mountSecretVolume is a helper method responsible for actual mounting secret
 // volumes into a pod.
 func mountSecretVolume(pod *v1.Pod, container *v1.Container, secretName, mountPath, volumeSuffix string) {
-	mountVolume(pod, container, secretName, mountPath, volumeSuffix, kext.Secret)
+	mountVolume(pod, container, secretName, mountPath, volumeSuffix, policy.Secret)
 }
 
 // mountVolume is a helper method responsible for mounting volumes into a pod.
@@ -142,7 +142,7 @@ func mountSecretVolume(pod *v1.Pod, container *v1.Container, secretName, mountPa
 // 1. ConfigMap
 // 2. EmptyDir
 // 3. Secret
-func mountVolume(pod *v1.Pod, container *v1.Container, objName, mountPath, volumeSuffix string, fsType kext.FSType) {
+func mountVolume(pod *v1.Pod, container *v1.Container, objName, mountPath, volumeSuffix string, fsType policy.FSType) {
 	volumeName := apihelpers.GetName(objName, volumeSuffix, kvalidation.DNS1123LabelMaxLength)
 
 	// coerce from RFC1123 subdomain to RFC1123 label.
@@ -169,23 +169,23 @@ func mountVolume(pod *v1.Pod, container *v1.Container, objName, mountPath, volum
 	container.VolumeMounts = append(container.VolumeMounts, volumeMount)
 }
 
-func makeVolume(volumeName, refName string, mode int32, fsType kext.FSType) v1.Volume {
+func makeVolume(volumeName, refName string, mode int32, fsType policy.FSType) v1.Volume {
 	// TODO: Add support for key-based paths for secrets and configMaps?
 	vol := v1.Volume{
 		Name:         volumeName,
 		VolumeSource: v1.VolumeSource{},
 	}
 	switch fsType {
-	case kext.ConfigMap:
+	case policy.ConfigMap:
 		vol.VolumeSource.ConfigMap = &v1.ConfigMapVolumeSource{
 			LocalObjectReference: v1.LocalObjectReference{
 				Name: refName,
 			},
 			DefaultMode: &mode,
 		}
-	case kext.EmptyDir:
+	case policy.EmptyDir:
 		vol.VolumeSource.EmptyDir = &v1.EmptyDirVolumeSource{}
-	case kext.Secret:
+	case policy.Secret:
 		vol.VolumeSource.Secret = &v1.SecretVolumeSource{
 			SecretName:  refName,
 			DefaultMode: &mode,

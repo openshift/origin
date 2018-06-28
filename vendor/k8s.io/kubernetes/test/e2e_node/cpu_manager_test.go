@@ -152,9 +152,6 @@ func setOldKubeletConfig(f *framework.Framework, oldCfg *kubeletconfig.KubeletCo
 }
 
 func enableCPUManagerInKubelet(f *framework.Framework) (oldCfg *kubeletconfig.KubeletConfiguration) {
-	// Run only if the container runtime is not docker or remote (not rkt).
-	framework.RunIfContainerRuntimeIs("docker", "remote")
-
 	// Enable CPU Manager in Kubelet with static policy.
 	oldCfg, err := getCurrentKubeletConfig()
 	framework.ExpectNoError(err)
@@ -441,7 +438,7 @@ func runCPUManagerTests(f *framework.Framework) {
 }
 
 // Serial because the test updates kubelet configuration.
-var _ = SIGDescribe("CPU Manager [Serial] [Feature:CPUManager]", func() {
+var _ = SIGDescribe("CPU Manager [Serial] [Feature:CPUManager][NodeAlphaFeature:CPUManager]", func() {
 	f := framework.NewDefaultFramework("cpu-manager-test")
 
 	Context("With kubeconfig updated with static CPU Manager policy run the CPU Manager tests", func() {

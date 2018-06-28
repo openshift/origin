@@ -1,9 +1,10 @@
 package group
 
 import (
+	"context"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
@@ -22,11 +23,11 @@ var Strategy = groupStrategy{legacyscheme.Scheme}
 
 var _ rest.GarbageCollectionDeleteStrategy = groupStrategy{}
 
-func (groupStrategy) DefaultGarbageCollectionPolicy(ctx apirequest.Context) rest.GarbageCollectionPolicy {
+func (groupStrategy) DefaultGarbageCollectionPolicy(ctx context.Context) rest.GarbageCollectionPolicy {
 	return rest.Unsupported
 }
 
-func (groupStrategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.Object) {}
+func (groupStrategy) PrepareForUpdate(ctx context.Context, obj, old runtime.Object) {}
 
 // NamespaceScoped is false for groups
 func (groupStrategy) NamespaceScoped() bool {
@@ -37,11 +38,11 @@ func (groupStrategy) GenerateName(base string) string {
 	return base
 }
 
-func (groupStrategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) {
+func (groupStrategy) PrepareForCreate(ctx context.Context, obj runtime.Object) {
 }
 
 // Validate validates a new group
-func (groupStrategy) Validate(ctx apirequest.Context, obj runtime.Object) field.ErrorList {
+func (groupStrategy) Validate(ctx context.Context, obj runtime.Object) field.ErrorList {
 	return validation.ValidateGroup(obj.(*userapi.Group))
 }
 
@@ -59,6 +60,6 @@ func (groupStrategy) Canonicalize(obj runtime.Object) {
 }
 
 // ValidateUpdate is the default update validation for an end group.
-func (groupStrategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.Object) field.ErrorList {
+func (groupStrategy) ValidateUpdate(ctx context.Context, obj, old runtime.Object) field.ErrorList {
 	return validation.ValidateGroupUpdate(obj.(*userapi.Group), old.(*userapi.Group))
 }

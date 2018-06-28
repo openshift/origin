@@ -29,6 +29,7 @@ import (
 	"io/ioutil"
 	"math/big"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/vmware/govmomi/govc/cli"
@@ -74,7 +75,10 @@ func (cmd *setcert) Description() string {
 The '-cert-pem' option can be one of the following:
 '-' : Read the certificate from stdin
 '+' : Generate a new key pair and save locally to ID.crt and ID.key
-... : Any other value is passed as-is to ExtensionManager.SetCertificate`
+... : Any other value is passed as-is to ExtensionManager.SetCertificate
+
+Examples:
+  govc extension.setcert -cert-pem + -org Example com.example.extname`
 }
 
 func (cmd *setcert) create(id string) error {
@@ -139,16 +143,6 @@ func (cmd *setcert) create(id string) error {
 }
 
 func (cmd *setcert) Run(ctx context.Context, f *flag.FlagSet) error {
-	c, err := cmd.Client()
-	if err != nil {
-		return err
-	}
-
-	m, err := object.GetExtensionManager(c)
-	if err != nil {
-		return err
-	}
-
 	if f.NArg() != 1 {
 		return flag.ErrHelp
 	}
@@ -161,11 +155,24 @@ func (cmd *setcert) Run(ctx context.Context, f *flag.FlagSet) error {
 			return err
 		}
 		cmd.cert = string(b)
-	} else if cmd.cert == "+" {
+	} else if strings.HasPrefix(cmd.cert, "+") {
 		if err := cmd.create(key); err != nil {
 			return fmt.Errorf("creating certificate: %s", err)
 		}
+		if cmd.cert == "++" {
+			return nil // just generate a cert, useful for testing
+		}
 		cmd.cert = cmd.encodedCert.String()
+	}
+
+	c, err := cmd.Client()
+	if err != nil {
+		return err
+	}
+
+	m, err := object.GetExtensionManager(c)
+	if err != nil {
+		return err
 	}
 
 	return m.SetCertificate(ctx, key, cmd.cert)

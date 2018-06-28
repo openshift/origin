@@ -74,7 +74,7 @@ func (p *KeepalivedPlugin) GetSelector() (map[string]string, error) {
 
 // GetNamespace gets the namespace associated with this IP Failover configurator plugin.
 func (p *KeepalivedPlugin) GetNamespace() (string, error) {
-	namespace, _, err := p.Factory.DefaultNamespace()
+	namespace, _, err := p.Factory.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return "", err
 	}
@@ -87,7 +87,7 @@ func (p *KeepalivedPlugin) GetNamespace() (string, error) {
 // GetDeploymentConfig gets the deployment config associated with this IP Failover configurator plugin.
 
 func (p *KeepalivedPlugin) GetDeploymentConfig() (*appsapi.DeploymentConfig, error) {
-	clientConfig, err := p.Factory.ClientConfig()
+	clientConfig, err := p.Factory.ToRESTConfig()
 	if err != nil {
 		return nil, err
 	}

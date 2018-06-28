@@ -1554,7 +1554,7 @@
       }
     }
   },
-  "revision": "20180220",
+  "revision": "20180413",
   "rootUrl": "https://dataflow.googleapis.com/",
   "schemas": {
     "ApproximateProgress": {
@@ -1657,6 +1657,10 @@
         "time": {
           "description": "The time this event was emitted to indicate a new target or current\nnum_workers value.",
           "format": "google-datetime",
+          "type": "string"
+        },
+        "workerPool": {
+          "description": "A short and friendly name for the worker pool this event refers to,\npopulated from the value of PoolStageRelation::user_pool_name.",
           "type": "string"
         }
       },
@@ -1826,7 +1830,8 @@
             "OR",
             "AND",
             "SET",
-            "DISTRIBUTION"
+            "DISTRIBUTION",
+            "LATEST_VALUE"
           ],
           "enumDescriptions": [
             "Counter aggregation kind was not set.",
@@ -1837,7 +1842,8 @@
             "Aggregated value represents the logical 'or' of all contributed values.",
             "Aggregated value represents the logical 'and' of all contributed values.",
             "Aggregated value is a set of unique contributed values.",
-            "Aggregated value captures statistics about a distribution."
+            "Aggregated value captures statistics about a distribution.",
+            "Aggregated value tracks the latest value of a variable."
           ],
           "type": "string"
         },
@@ -1985,6 +1991,10 @@
         "integer": {
           "$ref": "SplitInt64",
           "description": "Integer value for Sum, Max, Min."
+        },
+        "integerGauge": {
+          "$ref": "IntegerGauge",
+          "description": "Gauge data"
         },
         "integerList": {
           "$ref": "IntegerList",
@@ -2587,6 +2597,22 @@
       },
       "type": "object"
     },
+    "IntegerGauge": {
+      "description": "A metric value representing temporal values of a variable.",
+      "id": "IntegerGauge",
+      "properties": {
+        "timestamp": {
+          "description": "The time at which this value was measured. Measured as msecs from epoch.",
+          "format": "google-datetime",
+          "type": "string"
+        },
+        "value": {
+          "$ref": "SplitInt64",
+          "description": "The value of the variable represented by this gauge."
+        }
+      },
+      "type": "object"
+    },
     "IntegerList": {
       "description": "A metric value representing a list of integers.",
       "id": "IntegerList",
@@ -3124,6 +3150,10 @@
           "description": "A struct value describing properties of a distribution of numeric values.",
           "type": "any"
         },
+        "gauge": {
+          "description": "A struct value describing properties of a Gauge.\nMetrics of gauge type show the value of a metric across time, and is\naggregated based on the newest value.",
+          "type": "any"
+        },
         "internal": {
           "description": "Worker-computed aggregate value for internal use by the Dataflow\nservice.",
           "type": "any"
@@ -3197,7 +3227,8 @@
             "OR",
             "AND",
             "SET",
-            "DISTRIBUTION"
+            "DISTRIBUTION",
+            "LATEST_VALUE"
           ],
           "enumDescriptions": [
             "Counter aggregation kind was not set.",
@@ -3208,7 +3239,8 @@
             "Aggregated value represents the logical 'or' of all contributed values.",
             "Aggregated value represents the logical 'and' of all contributed values.",
             "Aggregated value is a set of unique contributed values.",
-            "Aggregated value captures statistics about a distribution."
+            "Aggregated value captures statistics about a distribution.",
+            "Aggregated value tracks the latest value of a variable."
           ],
           "type": "string"
         },

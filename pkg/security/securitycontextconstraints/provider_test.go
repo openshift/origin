@@ -6,14 +6,12 @@ import (
 	"strings"
 	"testing"
 
+	securityapi "github.com/openshift/origin/pkg/security/apis/security"
+	sccutil "github.com/openshift/origin/pkg/security/securitycontextconstraints/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	api "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/apis/extensions"
-
-	securityapi "github.com/openshift/origin/pkg/security/apis/security"
-	sccutil "github.com/openshift/origin/pkg/security/securitycontextconstraints/util"
 )
 
 func TestCreatePodSecurityContextNonmutating(t *testing.T) {
@@ -179,18 +177,6 @@ func TestValidatePodSecurityContextFailures(t *testing.T) {
 	failInvalidSeccompProfileSCC := defaultSCC()
 	failInvalidSeccompProfileSCC.SeccompProfiles = []string{"foo"}
 
-	failOtherSysctlsAllowedSCC := defaultSCC()
-	failOtherSysctlsAllowedSCC.Annotations[extensions.SysctlsPodSecurityPolicyAnnotationKey] = "bar,abc"
-
-	failNoSysctlAllowedSCC := defaultSCC()
-	failNoSysctlAllowedSCC.Annotations[extensions.SysctlsPodSecurityPolicyAnnotationKey] = ""
-
-	failSafeSysctlFooPod := defaultPod()
-	failSafeSysctlFooPod.Annotations[api.SysctlsPodAnnotationKey] = "foo=1"
-
-	failUnsafeSysctlFooPod := defaultPod()
-	failUnsafeSysctlFooPod.Annotations[api.UnsafeSysctlsPodAnnotationKey] = "foo=1"
-
 	failHostDirPod := defaultPod()
 	failHostDirPod.Spec.Volumes = []api.Volume{
 		{
@@ -272,26 +258,6 @@ func TestValidatePodSecurityContextFailures(t *testing.T) {
 			pod:           failInvalidSeccompProfile,
 			scc:           failInvalidSeccompProfileSCC,
 			expectedError: "bar is not a valid seccomp profile",
-		},
-		"failSafeSysctlFooPod with failNoSysctlAllowedSCC": {
-			pod:           failSafeSysctlFooPod,
-			scc:           failNoSysctlAllowedSCC,
-			expectedError: "sysctls are not allowed",
-		},
-		"failUnsafeSysctlFooPod with failNoSysctlAllowedSCC": {
-			pod:           failUnsafeSysctlFooPod,
-			scc:           failNoSysctlAllowedSCC,
-			expectedError: "sysctls are not allowed",
-		},
-		"failSafeSysctlFooPod with failOtherSysctlsAllowedSCC": {
-			pod:           failSafeSysctlFooPod,
-			scc:           failOtherSysctlsAllowedSCC,
-			expectedError: "sysctl \"foo\" is not allowed",
-		},
-		"failUnsafeSysctlFooPod with failOtherSysctlsAllowedSCC": {
-			pod:           failUnsafeSysctlFooPod,
-			scc:           failOtherSysctlsAllowedSCC,
-			expectedError: "sysctl \"foo\" is not allowed",
 		},
 		"failHostDirSCC": {
 			pod:           failHostDirPod,
@@ -516,15 +482,6 @@ func TestValidatePodSecurityContextSuccess(t *testing.T) {
 	seccompFooPod := defaultPod()
 	seccompFooPod.Annotations[api.SeccompPodAnnotationKey] = "foo"
 
-	sysctlAllowFooSCC := defaultSCC()
-	sysctlAllowFooSCC.Annotations[extensions.SysctlsPodSecurityPolicyAnnotationKey] = "foo"
-
-	safeSysctlFooPod := defaultPod()
-	safeSysctlFooPod.Annotations[api.SysctlsPodAnnotationKey] = "foo=1"
-
-	unsafeSysctlFooPod := defaultPod()
-	unsafeSysctlFooPod.Annotations[api.UnsafeSysctlsPodAnnotationKey] = "foo=1"
-
 	flexVolumePod := defaultPod()
 	flexVolumePod.Spec.Volumes = []api.Volume{
 		{
@@ -580,22 +537,6 @@ func TestValidatePodSecurityContextSuccess(t *testing.T) {
 		"pass seccomp specific profile": {
 			pod: seccompFooPod,
 			scc: seccompAllowFooSCC,
-		},
-		"pass sysctl specific profile with safe sysctl": {
-			pod: safeSysctlFooPod,
-			scc: sysctlAllowFooSCC,
-		},
-		"pass sysctl specific profile with unsafe sysctl": {
-			pod: unsafeSysctlFooPod,
-			scc: sysctlAllowFooSCC,
-		},
-		"pass empty profile with safe sysctl": {
-			pod: safeSysctlFooPod,
-			scc: defaultSCC(),
-		},
-		"pass empty profile with unsafe sysctl": {
-			pod: unsafeSysctlFooPod,
-			scc: defaultSCC(),
 		},
 		"flex volume driver in a whitelist (all volumes are allowed)": {
 			pod: flexVolumePod,

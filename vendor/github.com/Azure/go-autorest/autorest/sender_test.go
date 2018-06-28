@@ -16,6 +16,7 @@ package autorest
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"log"
 	"net/http"
@@ -179,24 +180,30 @@ func TestAfterDelayWaits(t *testing.T) {
 
 func TestAfterDelay_Cancels(t *testing.T) {
 	client := mocks.NewSender()
-	cancel := make(chan struct{})
+	ctx, cancel := context.WithCancel(context.Background())
 	delay := 5 * time.Second
 
 	var wg sync.WaitGroup
 	wg.Add(1)
-	tt := time.Now()
+	start := time.Now()
+	end := time.Now()
+	var err error
 	go func() {
 		req := mocks.NewRequest()
-		req.Cancel = cancel
-		wg.Done()
-		SendWithSender(client, req,
+		req = req.WithContext(ctx)
+		_, err = SendWithSender(client, req,
 			AfterDelay(delay))
+		end = time.Now()
+		wg.Done()
 	}()
+	cancel()
 	wg.Wait()
-	close(cancel)
 	time.Sleep(5 * time.Millisecond)
-	if time.Since(tt) >= delay {
-		t.Fatal("autorest: AfterDelay failed to cancel")
+	if end.Sub(start) >= delay {
+		t.Fatal("autorest: AfterDelay elapsed")
+	}
+	if err == nil {
+		t.Fatal("autorest: AfterDelay didn't cancel")
 	}
 }
 

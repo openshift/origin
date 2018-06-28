@@ -91,18 +91,18 @@ func (o *PruneDeploymentsOptions) Complete(f kcmdutil.Factory, cmd *cobra.Comman
 	o.Namespace = metav1.NamespaceAll
 	if cmd.Flags().Lookup("namespace").Changed {
 		var err error
-		o.Namespace, _, err = f.DefaultNamespace()
+		o.Namespace, _, err = f.ToRawKubeConfigLoader().Namespace()
 		if err != nil {
 			return err
 		}
 	}
 	o.Out = out
 
-	kubeClient, err := f.ClientSet()
+	clientConfig, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}
-	clientConfig, err := f.ClientConfig()
+	kubeClient, err := kclientset.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}

@@ -15,15 +15,14 @@ import (
 
 // unionAuthenticationHandler is an oauth.AuthenticationHandler that muxes multiple challenge handlers and redirect handlers
 type unionAuthenticationHandler struct {
-	challengers          map[string]AuthenticationChallenger
-	redirectors          *AuthenticationRedirectors
-	errorHandler         AuthenticationErrorHandler
-	selectionHandler     AuthenticationSelectionHandler
-	requestContextMapper request.RequestContextMapper
+	challengers      map[string]AuthenticationChallenger
+	redirectors      *AuthenticationRedirectors
+	errorHandler     AuthenticationErrorHandler
+	selectionHandler AuthenticationSelectionHandler
 }
 
 // NewUnionAuthenticationHandler returns an oauth.AuthenticationHandler that muxes multiple challenge handlers and redirect handlers
-func NewUnionAuthenticationHandler(passedChallengers map[string]AuthenticationChallenger, passedRedirectors *AuthenticationRedirectors, errorHandler AuthenticationErrorHandler, selectionHandler AuthenticationSelectionHandler, requestContextMapper request.RequestContextMapper) AuthenticationHandler {
+func NewUnionAuthenticationHandler(passedChallengers map[string]AuthenticationChallenger, passedRedirectors *AuthenticationRedirectors, errorHandler AuthenticationErrorHandler, selectionHandler AuthenticationSelectionHandler) AuthenticationHandler {
 	challengers := passedChallengers
 	if challengers == nil {
 		challengers = make(map[string]AuthenticationChallenger, 1)
@@ -34,7 +33,7 @@ func NewUnionAuthenticationHandler(passedChallengers map[string]AuthenticationCh
 		redirectors = new(AuthenticationRedirectors)
 	}
 
-	return &unionAuthenticationHandler{challengers, redirectors, errorHandler, selectionHandler, requestContextMapper}
+	return &unionAuthenticationHandler{challengers, redirectors, errorHandler, selectionHandler}
 }
 
 const (
@@ -115,7 +114,7 @@ func (authHandler *unionAuthenticationHandler) AuthenticationNeeded(apiClient au
 				w.WriteHeader(http.StatusFound)
 			default:
 				w.WriteHeader(http.StatusUnauthorized)
-				ctx, ok := authHandler.requestContextMapper.Get(req)
+				ctx := req.Context()
 				if !ok {
 					return false, fmt.Errorf("no context found for request to audit")
 				}
@@ -125,10 +124,6 @@ func (authHandler *unionAuthenticationHandler) AuthenticationNeeded(apiClient au
 					// but since we don't accept failedHander here we need to manually alter the audit
 					// event with information about failed authentication
 					ev.ResponseStatus.Message = getAuthMethods(req)
-					ctx = request.WithAuditEvent(ctx, ev)
-					if err := authHandler.requestContextMapper.Update(req, ctx); err != nil {
-						return false, fmt.Errorf("failed to attach audit event to context: %v", err)
-					}
 				}
 			}
 

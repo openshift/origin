@@ -12,9 +12,11 @@ import (
 	"github.com/golang/glog"
 
 	authorizationv1 "k8s.io/api/authorization/v1"
+	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apiserver/pkg/authentication/user"
@@ -22,7 +24,6 @@ import (
 	"k8s.io/client-go/util/retry"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	"github.com/openshift/origin/pkg/bulk"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	"github.com/openshift/origin/pkg/templateservicebroker/openservicebroker/api"
@@ -123,7 +124,11 @@ func updateCredentialsForObject(credentials map[string]interface{}, obj runtime.
 				return fmt.Errorf("credential with key %q already exists", k[len(prefix):])
 			}
 
-			result, err := evaluateJSONPathExpression(obj, k, v, prefix == templateapi.Base64ExposeAnnotationPrefix)
+			objToSearch := obj.(interface{})
+			if unstructuredObj, ok := obj.(*unstructured.Unstructured); ok {
+				objToSearch = unstructuredObj.Object
+			}
+			result, err := evaluateJSONPathExpression(objToSearch, k, v, prefix == templateapi.Base64ExposeAnnotationPrefix)
 			if err != nil {
 				return err
 			}
@@ -204,30 +209,31 @@ func (b *Broker) Bind(u user.Info, instanceID, bindingID string, breq *api.BindR
 		if err := util.Authorize(b.kc.Authorization().SubjectAccessReviews(), u, &authorizationv1.ResourceAttributes{
 			Namespace: object.Ref.Namespace,
 			Verb:      "get",
-			Group:     object.Ref.GroupVersionKind().Group,
-			Resource:  mapping.Resource,
+			Group:     mapping.Resource.Group,
+			Resource:  mapping.Resource.Resource,
 			Name:      object.Ref.Name,
 		}); err != nil {
 			return api.Forbidden(err)
 		}
 
-		cli, err := bulk.ClientMapperFromConfig(b.extconfig).ClientForMapping(mapping)
+		unstructuredObj, err := b.dynamicClient.Resource(mapping.Resource).Namespace(object.Ref.Namespace).Get(object.Ref.Name, metav1.GetOptions{})
 		if err != nil {
 			return api.InternalServerError(err)
 		}
 
-		obj, err := cli.Get().Resource(mapping.Resource).NamespaceIfScoped(object.Ref.Namespace, mapping.Scope.Name() == meta.RESTScopeNameNamespace).Name(object.Ref.Name).Do().Get()
-		if err != nil {
-			return api.InternalServerError(err)
+		if unstructuredObj.GetUID() != object.Ref.UID {
+			return api.InternalServerError(kerrors.NewNotFound(mapping.Resource.GroupResource(), object.Ref.Name))
 		}
 
-		meta, err := meta.Accessor(obj)
-		if err != nil {
-			return api.InternalServerError(err)
-		}
-
-		if meta.GetUID() != object.Ref.UID {
-			return api.InternalServerError(kerrors.NewNotFound(schema.GroupResource{Group: mapping.GroupVersionKind.Group, Resource: mapping.Resource}, object.Ref.Name))
+		var obj runtime.Object = unstructuredObj
+		// TODO figure out how to fix this code to work generically.  Right now it relies upon being able to fully decode a secret
+		if object.Ref.GroupVersionKind().GroupKind() == kapi.Kind("Secret") {
+			secretObj := &corev1.Secret{}
+			err := runtime.DefaultUnstructuredConverter.FromUnstructured(unstructuredObj.Object, secretObj)
+			if err != nil {
+				return api.InternalServerError(err)
+			}
+			obj = secretObj
 		}
 
 		err = updateCredentialsForObject(credentials, obj)

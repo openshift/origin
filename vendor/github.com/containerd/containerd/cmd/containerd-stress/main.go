@@ -7,14 +7,17 @@ import (
 	"os/signal"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"syscall"
 	"time"
 
 	"github.com/containerd/containerd"
+	"github.com/containerd/containerd/cio"
 	"github.com/containerd/containerd/containers"
 	"github.com/containerd/containerd/namespaces"
+	"github.com/containerd/containerd/oci"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
@@ -49,6 +52,10 @@ func main() {
 			Value: 1 * time.Minute,
 			Usage: "set the duration of the stress test",
 		},
+		cli.BoolFlag{
+			Name:  "exec",
+			Usage: "add execs to the stress tests",
+		},
 	}
 	app.Before = func(context *cli.Context) error {
 		if context.GlobalBool("debug") {
@@ -61,6 +68,7 @@ func main() {
 			Address:     context.GlobalString("address"),
 			Duration:    context.GlobalDuration("duration"),
 			Concurrency: context.GlobalInt("concurrent"),
+			Exec:        context.GlobalBool("exec"),
 		}
 		return test(config)
 	}
@@ -74,6 +82,7 @@ type config struct {
 	Concurrency int
 	Duration    time.Duration
 	Address     string
+	Exec        bool
 }
 
 func (c config) newClient() (*containerd.Client, error) {
@@ -100,10 +109,6 @@ func test(c config) error {
 		return err
 	}
 	logrus.Info("generating spec from image")
-	spec, err := containerd.GenerateSpec(ctx, client, &containers.Container{ID: ""}, containerd.WithImageConfig(image), containerd.WithProcessArgs("true"))
-	if err != nil {
-		return err
-	}
 	tctx, cancel := context.WithTimeout(ctx, c.Duration)
 	go func() {
 		s := make(chan os.Signal, 1)
@@ -117,14 +122,27 @@ func test(c config) error {
 		start   = time.Now()
 	)
 	logrus.Info("starting stress test run...")
+	args := oci.WithProcessArgs("true")
+	if c.Exec {
+		args = oci.WithProcessArgs("sleep", "10")
+	}
 	for i := 0; i < c.Concurrency; i++ {
 		wg.Add(1)
+		spec, err := oci.GenerateSpec(ctx, client,
+			&containers.Container{},
+			oci.WithImageConfig(image),
+			args,
+		)
+		if err != nil {
+			return err
+		}
 		w := &worker{
 			id:     i,
 			wg:     &wg,
-			spec:   *spec,
+			spec:   spec,
 			image:  image,
 			client: client,
+			doExec: c.Exec,
 		}
 		workers = append(workers, w)
 		go w.run(ctx, tctx)
@@ -152,27 +170,21 @@ func test(c config) error {
 }
 
 type worker struct {
-	id          int
-	wg          *sync.WaitGroup
-	count       int
-	failures    int
-	waitContext context.Context
+	id       int
+	wg       *sync.WaitGroup
+	count    int
+	failures int
 
 	client *containerd.Client
 	image  containerd.Image
-	spec   specs.Spec
+	spec   *specs.Spec
+	doExec bool
 }
 
 func (w *worker) run(ctx, tctx context.Context) {
 	defer func() {
 		w.wg.Done()
 		logrus.Infof("worker %d finished", w.id)
-	}()
-	wctx, cancel := context.WithCancel(ctx)
-	w.waitContext = wctx
-	go func() {
-		<-tctx.Done()
-		cancel()
 	}()
 	for {
 		select {
@@ -196,17 +208,18 @@ func (w *worker) run(ctx, tctx context.Context) {
 }
 
 func (w *worker) runContainer(ctx context.Context, id string) error {
-	w.spec.Linux.CgroupsPath = filepath.Join("/", fmt.Sprint(w.id), id)
+	// fix up cgroups path for a default config
+	w.spec.Linux.CgroupsPath = filepath.Join("/", "stress", id)
 	c, err := w.client.NewContainer(ctx, id,
-		containerd.WithSpec(&w.spec),
 		containerd.WithNewSnapshot(id, w.image),
+		containerd.WithSpec(w.spec, oci.WithUsername("games")),
 	)
 	if err != nil {
 		return err
 	}
 	defer c.Delete(ctx, containerd.WithSnapshotCleanup)
 
-	task, err := c.NewTask(ctx, containerd.NullIO)
+	task, err := c.NewTask(ctx, cio.NullIO)
 	if err != nil {
 		return err
 	}
@@ -216,9 +229,19 @@ func (w *worker) runContainer(ctx context.Context, id string) error {
 	if err != nil {
 		return err
 	}
-
 	if err := task.Start(ctx); err != nil {
 		return err
+	}
+	if w.doExec {
+		for i := 0; i < 256; i++ {
+			if err := w.exec(ctx, i, task); err != nil {
+				w.failures++
+				logrus.WithError(err).Error("exec failure")
+			}
+		}
+		if err := task.Kill(ctx, syscall.SIGKILL); err != nil {
+			return err
+		}
 	}
 	status := <-statusC
 	_, _, err = status.Result()
@@ -231,18 +254,27 @@ func (w *worker) runContainer(ctx context.Context, id string) error {
 	return nil
 }
 
-func (w *worker) getID() string {
-	return fmt.Sprintf("%d-%d", w.id, w.count)
+func (w *worker) exec(ctx context.Context, i int, t containerd.Task) error {
+	pSpec := *w.spec.Process
+	pSpec.Args = []string{"true"}
+	process, err := t.Exec(ctx, strconv.Itoa(i), &pSpec, cio.NullIO)
+	if err != nil {
+		return err
+	}
+	defer process.Delete(ctx)
+	status, err := process.Wait(ctx)
+	if err != nil {
+		return err
+	}
+	if err := process.Start(ctx); err != nil {
+		return err
+	}
+	<-status
+	return nil
 }
 
-func (w *worker) cleanup(ctx context.Context, c containerd.Container) {
-	if err := c.Delete(ctx, containerd.WithSnapshotCleanup); err != nil {
-		if err == context.DeadlineExceeded {
-			return
-		}
-		w.failures++
-		logrus.WithError(err).Errorf("delete container %s", c.ID())
-	}
+func (w *worker) getID() string {
+	return fmt.Sprintf("%d-%d", w.id, w.count)
 }
 
 // cleanup cleans up any containers in the "stress" namespace before the test run

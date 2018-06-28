@@ -15,14 +15,15 @@ import (
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/kubectl/resource"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 	kprinters "k8s.io/kubernetes/pkg/printers"
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsclientinternal "github.com/openshift/origin/pkg/apps/generated/internalclientset"
 	appsinternalversion "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
-	describe "github.com/openshift/origin/pkg/oc/cli/describe"
+	"github.com/openshift/origin/pkg/oc/cli/describe"
+	"github.com/openshift/origin/pkg/oc/util/ocscheme"
 )
 
 var (
@@ -131,7 +132,7 @@ func (o *RollbackOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args 
 	if len(args) == 1 {
 		o.TargetName = args[0]
 	}
-	namespace, _, err := f.DefaultNamespace()
+	namespace, _, err := f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
 	}
@@ -142,11 +143,11 @@ func (o *RollbackOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args 
 		return f.NewBuilder()
 	}
 
-	kClient, err := f.ClientSet()
+	clientConfig, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}
-	clientConfig, err := f.ClientConfig()
+	kClient, err := kclientset.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
@@ -320,7 +321,7 @@ func (o *RollbackOptions) findResource(targetName string) (runtime.Object, *meta
 	var m *meta.RESTMapping
 	for _, name := range candidates {
 		r := o.getBuilder().
-			Internal().
+			WithScheme(ocscheme.ReadingInternalScheme).
 			NamespaceParam(o.Namespace).
 			ResourceTypeOrNameArgs(false, name).
 			SingleResourceType().

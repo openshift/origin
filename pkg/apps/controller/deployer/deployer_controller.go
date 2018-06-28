@@ -496,7 +496,7 @@ func (c *DeploymentController) setDeployerPodsOwnerRef(deployment *v1.Replicatio
 		return fmt.Errorf("couldn't fetch deployer pods for %q: %v", appsutil.LabelForDeploymentV1(deployment), err)
 	}
 
-	encoder := legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.EnabledVersions()...)
+	encoder := legacyscheme.Codecs.LegacyCodec(legacyscheme.Scheme.PrioritizedVersionsAllGroups()...)
 	glog.V(4).Infof("deployment %s/%s owning %d pods", deployment.Namespace, deployment.Name, len(deployerPodsList))
 
 	var errors []error

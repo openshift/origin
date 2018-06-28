@@ -16,13 +16,14 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/client-go/dynamic"
 	kapps "k8s.io/kubernetes/pkg/apis/apps"
 	kbatch "k8s.io/kubernetes/pkg/apis/batch"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kextensions "k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/kubectl/resource"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 
 	ometa "github.com/openshift/origin/pkg/api/meta"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
@@ -32,6 +33,7 @@ import (
 	"github.com/openshift/origin/pkg/image/trigger/annotations"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	"github.com/openshift/origin/pkg/oc/generate/app"
+	"github.com/openshift/origin/pkg/oc/util/ocscheme"
 )
 
 var (
@@ -99,6 +101,7 @@ type TriggersOptions struct {
 	Local       bool
 	ShortOutput bool
 	Mapper      meta.RESTMapper
+	Client      dynamic.Interface
 
 	PrintTable  bool
 	PrintObject func([]*resource.Info) error
@@ -172,7 +175,7 @@ func NewCmdTriggers(fullName string, f kcmdutil.Factory, out, errOut io.Writer) 
 }
 
 func (o *TriggersOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string) error {
-	cmdNamespace, explicit, err := f.DefaultNamespace()
+	cmdNamespace, explicit, err := f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
 	}
@@ -219,9 +222,12 @@ func (o *TriggersOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args 
 		o.Auto = true
 	}
 
-	mapper, _ := f.Object()
+	mapper, err := f.ToRESTMapper()
+	if err != nil {
+		return err
+	}
 	o.Builder = f.NewBuilder().
-		Internal().
+		WithScheme(ocscheme.ReadingInternalScheme).
 		LocalParam(o.Local).
 		ContinueOnError().
 		NamespaceParam(cmdNamespace).DefaultNamespace().
@@ -236,12 +242,21 @@ func (o *TriggersOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args 
 
 	o.Output = kcmdutil.GetFlagString(cmd, "output")
 	o.PrintObject = func(infos []*resource.Info) error {
-		return clientcmd.PrintResourceInfos(f, cmd, o.Local, infos, o.Out)
+		return clientcmd.PrintResourceInfos(cmd, infos, o.Out)
 	}
 
 	o.Encoder = kcmdutil.InternalVersionJSONEncoder()
 	o.ShortOutput = kcmdutil.GetFlagString(cmd, "output") == "name"
 	o.Mapper = mapper
+
+	clientConfig, err := f.ToRESTConfig()
+	if err != nil {
+		return err
+	}
+	o.Client, err = dynamic.NewForConfig(clientConfig)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -314,7 +329,7 @@ func (o *TriggersOptions) Run() error {
 		return UpdateTriggersForObject(info.Object, updateTriggerFn)
 	})
 	if singleItemImplied && len(patches) == 0 {
-		return fmt.Errorf("%s/%s does not support triggers", infos[0].Mapping.Resource, infos[0].Name)
+		return fmt.Errorf("%s/%s does not support triggers", infos[0].Mapping.Resource.Resource, infos[0].Name)
 	}
 	if len(o.Output) > 0 || o.Local || kcmdutil.GetDryRunFlag(o.Cmd) {
 		return o.PrintObject(infos)
@@ -325,26 +340,25 @@ func (o *TriggersOptions) Run() error {
 		info := patch.Info
 		if patch.Err != nil {
 			failed = true
-			fmt.Fprintf(o.Err, "error: %s/%s %v\n", info.Mapping.Resource, info.Name, patch.Err)
+			fmt.Fprintf(o.Err, "error: %s/%s %v\n", info.Mapping.Resource.Resource, info.Name, patch.Err)
 			continue
 		}
 
 		if string(patch.Patch) == "{}" || len(patch.Patch) == 0 {
-			fmt.Fprintf(o.Err, "info: %s %q was not changed\n", info.Mapping.Resource, info.Name)
+			fmt.Fprintf(o.Err, "info: %s %q was not changed\n", info.Mapping.Resource.Resource, info.Name)
 			continue
 		}
 
 		glog.V(4).Infof("Calculated patch %s", patch.Patch)
 
-		obj, err := resource.NewHelper(info.Client, info.Mapping).Patch(info.Namespace, info.Name, types.StrategicMergePatchType, patch.Patch)
+		actual, err := o.Client.Resource(info.Mapping.Resource).Namespace(info.Namespace).Patch(info.Name, types.StrategicMergePatchType, patch.Patch)
 		if err != nil {
 			handlePodUpdateError(o.Err, err, "triggered")
 			failed = true
 			continue
 		}
 
-		info.Refresh(obj, true)
-		kcmdutil.PrintSuccess(o.ShortOutput, o.Out, info.Object, false, "updated")
+		kcmdutil.PrintSuccess(o.ShortOutput, o.Out, actual, false, "updated")
 	}
 	if failed {
 		return kcmdutil.ErrExit
@@ -359,7 +373,7 @@ func (o *TriggersOptions) printTriggers(infos []*resource.Info) error {
 	fmt.Fprintf(w, "NAME\tTYPE\tVALUE\tAUTO\n")
 	for _, info := range infos {
 		_, err := UpdateTriggersForObject(info.Object, func(triggers *TriggerDefinition) error {
-			fmt.Fprintf(w, "%s/%s\t%s\t%s\t%t\n", info.Mapping.Resource, info.Name, "config", "", triggers.ConfigChange)
+			fmt.Fprintf(w, "%s/%s\t%s\t%s\t%t\n", info.Mapping.Resource.Resource, info.Name, "config", "", triggers.ConfigChange)
 			for _, image := range triggers.ImageChange {
 				var details string
 				switch {
@@ -374,29 +388,29 @@ func (o *TriggersOptions) printTriggers(infos []*resource.Info) error {
 				default:
 					details = image.From
 				}
-				fmt.Fprintf(w, "%s/%s\t%s\t%s\t%t\n", info.Mapping.Resource, info.Name, "image", details, image.Auto)
+				fmt.Fprintf(w, "%s/%s\t%s\t%s\t%t\n", info.Mapping.Resource.Resource, info.Name, "image", details, image.Auto)
 			}
 			for _, s := range triggers.GenericWebHooks {
 				val := "<secret>"
 				if s.AllowEnv {
 					val += ", allowenv"
 				}
-				fmt.Fprintf(w, "%s/%s\t%s\t%s\t%s\n", info.Mapping.Resource, info.Name, "webhook", val, "")
+				fmt.Fprintf(w, "%s/%s\t%s\t%s\t%s\n", info.Mapping.Resource.Resource, info.Name, "webhook", val, "")
 			}
 			for range triggers.GitHubWebHooks {
-				fmt.Fprintf(w, "%s/%s\t%s\t%s\t%s\n", info.Mapping.Resource, info.Name, "github", "<secret>", "")
+				fmt.Fprintf(w, "%s/%s\t%s\t%s\t%s\n", info.Mapping.Resource.Resource, info.Name, "github", "<secret>", "")
 			}
 			for range triggers.GitLabWebHooks {
-				fmt.Fprintf(w, "%s/%s\t%s\t%s\t%s\n", info.Mapping.Resource, info.Name, "gitlab", "<secret>", "")
+				fmt.Fprintf(w, "%s/%s\t%s\t%s\t%s\n", info.Mapping.Resource.Resource, info.Name, "gitlab", "<secret>", "")
 			}
 			for range triggers.BitbucketWebHooks {
-				fmt.Fprintf(w, "%s/%s\t%s\t%s\t%s\n", info.Mapping.Resource, info.Name, "bitbucket", "<secret>", "")
+				fmt.Fprintf(w, "%s/%s\t%s\t%s\t%s\n", info.Mapping.Resource.Resource, info.Name, "bitbucket", "<secret>", "")
 			}
 			return nil
 		})
 		if err != nil {
 			glog.V(2).Infof("Unable to calculate trigger for %s: %v", info.Name, err)
-			fmt.Fprintf(w, "%s/%s\t%s\t%s\t%t\n", info.Mapping.Resource, info.Name, "<error>", "", false)
+			fmt.Fprintf(w, "%s/%s\t%s\t%s\t%t\n", info.Mapping.Resource.Resource, info.Name, "<error>", "", false)
 		}
 	}
 	return nil

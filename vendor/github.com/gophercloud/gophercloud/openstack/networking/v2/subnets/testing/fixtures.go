@@ -60,6 +60,25 @@ const SubnetListResult = `
             "gateway_ip": null,
             "cidr": "192.168.1.0/24",
             "id": "54d6f61d-db07-451c-9ab3-b9609b6b6f0c"
+        },
+        {
+            "name": "my_subnet_with_subnetpool",
+            "enable_dhcp": false,
+            "network_id": "d32019d3-bc6e-4319-9c1d-6722fc136a23",
+            "tenant_id": "4fd44f30292945e481c7b8a0c8908869",
+            "dns_nameservers": [],
+            "allocation_pools": [
+                {
+                    "start": "10.11.12.2",
+                    "end": "10.11.12.254"
+                }
+            ],
+            "host_routes": [],
+            "ip_version": 4,
+            "gateway_ip": null,
+            "cidr": "10.11.12.0/24",
+            "id": "38186a51-f373-4bbc-838b-6eaa1aa13eac",
+            "subnetpool_id": "b80340c7-9960-4f67-a99c-02501656284b"
         }
     ]
 }
@@ -122,6 +141,26 @@ var Subnet3 = subnets.Subnet{
 	ID:         "54d6f61d-db07-451c-9ab3-b9609b6b6f0c",
 }
 
+var Subnet4 = subnets.Subnet{
+	Name:           "my_subnet_with_subnetpool",
+	EnableDHCP:     false,
+	NetworkID:      "d32019d3-bc6e-4319-9c1d-6722fc136a23",
+	TenantID:       "4fd44f30292945e481c7b8a0c8908869",
+	DNSNameservers: []string{},
+	AllocationPools: []subnets.AllocationPool{
+		{
+			Start: "10.11.12.2",
+			End:   "10.11.12.254",
+		},
+	},
+	HostRoutes:   []subnets.HostRoute{},
+	IPVersion:    4,
+	GatewayIP:    "",
+	CIDR:         "10.11.12.0/24",
+	ID:           "38186a51-f373-4bbc-838b-6eaa1aa13eac",
+	SubnetPoolID: "b80340c7-9960-4f67-a99c-02501656284b",
+}
+
 const SubnetGetResult = `
 {
     "subnet": {
@@ -140,7 +179,8 @@ const SubnetGetResult = `
         "ip_version": 4,
         "gateway_ip": "192.0.0.1",
         "cidr": "192.0.0.0/8",
-        "id": "54d6f61d-db07-451c-9ab3-b9609b6b6f0b"
+        "id": "54d6f61d-db07-451c-9ab3-b9609b6b6f0b",
+        "subnetpool_id": "b80340c7-9960-4f67-a99c-02501656284b"
     }
 }
 `
@@ -159,7 +199,8 @@ const SubnetCreateRequest = `
                 "end": "192.168.199.254"
             }
         ],
-        "host_routes": [{"destination":"","nexthop": "bar"}]
+        "host_routes": [{"destination":"","nexthop": "bar"}],
+        "subnetpool_id": "b80340c7-9960-4f67-a99c-02501656284b"
     }
 }
 `
@@ -182,7 +223,8 @@ const SubnetCreateResult = `
         "ip_version": 4,
         "gateway_ip": "192.168.199.1",
         "cidr": "192.168.199.0/24",
-        "id": "3b80198d-4f7b-4f77-9ef5-774d54e17126"
+        "id": "3b80198d-4f7b-4f77-9ef5-774d54e17126",
+        "subnetpool_id": "b80340c7-9960-4f67-a99c-02501656284b"
     }
 }
 `

@@ -8,12 +8,12 @@ import (
 
 	"github.com/golang/glog"
 
+	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	aggregatorclient "k8s.io/kube-aggregator/pkg/client/clientset_generated/clientset"
-	"k8s.io/kubernetes/pkg/apis/rbac"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	rbacv1helpers "k8s.io/kubernetes/pkg/apis/rbac/v1"
 	"k8s.io/kubernetes/pkg/registry/rbac/reconciliation"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
@@ -45,18 +45,13 @@ func (c *ServiceCatalogComponentOptions) Install(dockerClient dockerhelper.Inter
 		return err
 	}
 
-	kubeInternalAdminClient, err := kclientset.NewForConfig(c.InstallContext.ClusterAdminClientConfig())
-	if err != nil {
-		return err
-	}
-
 	for _, role := range getServiceCatalogClusterRoles() {
 		if _, err := (&reconciliation.ReconcileRoleOptions{
 			Confirm:                true,
 			RemoveExtraPermissions: false,
 			Role: reconciliation.ClusterRoleRuleOwner{ClusterRole: &role},
 			Client: reconciliation.ClusterRoleModifier{
-				Client: kubeInternalAdminClient.Rbac().ClusterRoles(),
+				Client: kubeAdminClient.RbacV1().ClusterRoles(),
 			},
 		}).Run(); err != nil {
 			return errors.NewError("could not reconcile service catalog cluster role %s", role.Name).WithCause(err)
@@ -128,16 +123,16 @@ func (c *ServiceCatalogComponentOptions) Install(dockerClient dockerhelper.Inter
 }
 
 // TODO move to template
-func getServiceCatalogClusterRoles() []rbac.ClusterRole {
-	return []rbac.ClusterRole{
+func getServiceCatalogClusterRoles() []rbacv1.ClusterRole {
+	return []rbacv1.ClusterRole{
 		{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:   "system:openshift:service-catalog:aggregate-to-admin",
 				Labels: map[string]string{"rbac.authorization.k8s.io/aggregate-to-admin": "true"},
 			},
-			Rules: []rbac.PolicyRule{
-				rbac.NewRule("create", "update", "delete", "get", "list", "watch", "patch").Groups("servicecatalog.k8s.io").Resources("serviceinstances", "servicebindings").RuleOrDie(),
-				rbac.NewRule("create", "update", "delete", "get", "list", "watch").Groups("settings.k8s.io").Resources("podpresets").RuleOrDie(),
+			Rules: []rbacv1.PolicyRule{
+				rbacv1helpers.NewRule("create", "update", "delete", "get", "list", "watch", "patch").Groups("servicecatalog.k8s.io").Resources("serviceinstances", "servicebindings").RuleOrDie(),
+				rbacv1helpers.NewRule("create", "update", "delete", "get", "list", "watch").Groups("settings.k8s.io").Resources("podpresets").RuleOrDie(),
 			},
 		},
 		{
@@ -145,9 +140,9 @@ func getServiceCatalogClusterRoles() []rbac.ClusterRole {
 				Name:   "system:openshift:service-catalog:aggregate-to-edit",
 				Labels: map[string]string{"rbac.authorization.k8s.io/aggregate-to-edit": "true"},
 			},
-			Rules: []rbac.PolicyRule{
-				rbac.NewRule("create", "update", "delete", "get", "list", "watch", "patch").Groups("servicecatalog.k8s.io").Resources("serviceinstances", "servicebindings").RuleOrDie(),
-				rbac.NewRule("create", "update", "delete", "get", "list", "watch").Groups("settings.k8s.io").Resources("podpresets").RuleOrDie(),
+			Rules: []rbacv1.PolicyRule{
+				rbacv1helpers.NewRule("create", "update", "delete", "get", "list", "watch", "patch").Groups("servicecatalog.k8s.io").Resources("serviceinstances", "servicebindings").RuleOrDie(),
+				rbacv1helpers.NewRule("create", "update", "delete", "get", "list", "watch").Groups("settings.k8s.io").Resources("podpresets").RuleOrDie(),
 			},
 		},
 		{
@@ -155,16 +150,16 @@ func getServiceCatalogClusterRoles() []rbac.ClusterRole {
 				Name:   "system:openshift:service-catalog:aggregate-to-view",
 				Labels: map[string]string{"rbac.authorization.k8s.io/aggregate-to-view": "true"},
 			},
-			Rules: []rbac.PolicyRule{
-				rbac.NewRule("get", "list", "watch").Groups("servicecatalog.k8s.io").Resources("serviceinstances", "servicebindings").RuleOrDie(),
+			Rules: []rbacv1.PolicyRule{
+				rbacv1helpers.NewRule("get", "list", "watch").Groups("servicecatalog.k8s.io").Resources("serviceinstances", "servicebindings").RuleOrDie(),
 			},
 		},
 		{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "system:openshift:clusterservicebroker-client",
 			},
-			Rules: []rbac.PolicyRule{
-				rbac.NewRule("create", "update", "delete", "get", "list", "watch", "patch").Groups("servicecatalog.k8s.io").Resources("clusterservicebrokers").RuleOrDie(),
+			Rules: []rbacv1.PolicyRule{
+				rbacv1helpers.NewRule("create", "update", "delete", "get", "list", "watch", "patch").Groups("servicecatalog.k8s.io").Resources("clusterservicebrokers").RuleOrDie(),
 			},
 		},
 	}

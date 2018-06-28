@@ -159,15 +159,19 @@ func (o *CreateSSHAuthSecretOptions) Complete(f kcmdutil.Factory, args []string)
 	o.SecretName = args[0]
 
 	if f != nil {
-		client, err := f.ClientSet()
+		clientConfig, err := f.ToRESTConfig()
 		if err != nil {
 			return err
 		}
-		namespace, _, err := f.DefaultNamespace()
+		client, err := kcoreclient.NewForConfig(clientConfig)
 		if err != nil {
 			return err
 		}
-		o.SecretsInterface = client.Core().Secrets(namespace)
+		namespace, _, err := f.ToRawKubeConfigLoader().Namespace()
+		if err != nil {
+			return err
+		}
+		o.SecretsInterface = client.Secrets(namespace)
 	}
 
 	return nil

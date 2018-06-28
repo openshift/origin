@@ -72,7 +72,7 @@ func (cmd *esxcli) Process(ctx context.Context) error {
 func (cmd *esxcli) Run(ctx context.Context, f *flag.FlagSet) error {
 	c, err := cmd.Client()
 	if err != nil {
-		return nil
+		return err
 	}
 
 	host, err := cmd.HostSystem()

@@ -687,7 +687,7 @@ func TestCreateEthernetCard(t *testing.T) {
 		t.Error("should fail")
 	}
 
-	for _, name := range []string{"", "e1000", "e1000e", "vmxnet3"} {
+	for _, name := range []string{"", "e1000", "e1000e", "vmxnet2", "vmxnet3", "pcnet32", "sriov"} {
 		_, err := EthernetCardTypes().CreateEthernetCard(name, nil)
 		if err != nil {
 			t.Error(err)

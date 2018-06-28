@@ -85,7 +85,7 @@ func TestAuthenticateTokenTimeout(t *testing.T) {
 	stopCh := make(chan struct{})
 	defer close(stopCh)
 
-	testClock := &fakeTicker{clock: clock.NewFakeClock(time.Time{})}
+	testClock := clock.NewFakeClock(time.Time{})
 
 	defaultTimeout := int32(30) // 30 seconds
 	clientTimeout := int32(15)  // 15 seconds
@@ -147,7 +147,7 @@ func TestAuthenticateTokenTimeout(t *testing.T) {
 	// inject fake clock, which has some interesting properties
 	// 1. A sleep will cause at most one ticker event, regardless of how long the sleep was
 	// 2. The clock will hold one tick event and will drop the next one if something does not consume it first
-	timeouts.ticker = testClock
+	timeouts.clock = testClock
 
 	// decorate flush
 	// The fake clock 1. and 2. require that we issue a wait(t, timeoutsSync) after each testClock.Sleep that causes a tick
@@ -312,30 +312,7 @@ func (f fakeOAuthClientLister) List(selector labels.Selector) ([]*oapi.OAuthClie
 	panic("not used")
 }
 
-type fakeTicker struct {
-	clock *clock.FakeClock
-	ch    <-chan time.Time
-}
-
-func (t *fakeTicker) Now() time.Time {
-	return t.clock.Now()
-}
-
-func (t *fakeTicker) C() <-chan time.Time {
-	return t.ch
-}
-
-func (t *fakeTicker) Stop() {}
-
-func (t *fakeTicker) NewTicker(d time.Duration) {
-	t.ch = t.clock.Tick(d)
-}
-
-func (t *fakeTicker) Sleep(d time.Duration) {
-	t.clock.Sleep(d)
-}
-
-func checkToken(t *testing.T, name string, authf authenticator.Token, tokens oauthclient.OAuthAccessTokenInterface, current *fakeTicker, present bool) {
+func checkToken(t *testing.T, name string, authf authenticator.Token, tokens oauthclient.OAuthAccessTokenInterface, current clock.Clock, present bool) {
 	t.Helper()
 	userInfo, found, err := authf.AuthenticateToken(name)
 	if present {

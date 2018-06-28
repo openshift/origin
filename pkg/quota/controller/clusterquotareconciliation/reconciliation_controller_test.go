@@ -42,7 +42,7 @@ func TestSyncFunc(t *testing.T) {
 		startingQuota   func() *quotaapi.ClusterResourceQuota
 		workItems       []workItem
 		mapperFunc      func() clusterquotamapping.ClusterQuotaMapper
-		calculationFunc func(namespaceName string, scopes []kapi.ResourceQuotaScope, hardLimits kapi.ResourceList, registry utilquota.Registry) (kapi.ResourceList, error)
+		calculationFunc func(namespaceName string, scopes []kapi.ResourceQuotaScope, hardLimits kapi.ResourceList, registry utilquota.Registry, scopeSelector *kapi.ScopeSelector) (kapi.ResourceList, error)
 
 		expectedQuota   func() *quotaapi.ClusterResourceQuota
 		expectedRetries []workItem
@@ -59,7 +59,7 @@ func TestSyncFunc(t *testing.T) {
 				mapper.quotaToNamespaces["foo"] = sets.NewString("one")
 				return mapper
 			},
-			calculationFunc: func(namespaceName string, scopes []kapi.ResourceQuotaScope, hardLimits kapi.ResourceList, registry utilquota.Registry) (kapi.ResourceList, error) {
+			calculationFunc: func(namespaceName string, scopes []kapi.ResourceQuotaScope, hardLimits kapi.ResourceList, registry utilquota.Registry, scopeSelector *kapi.ScopeSelector) (kapi.ResourceList, error) {
 				if e, a := "one", namespaceName; e != a {
 					t.Errorf("%s: expected %v, got %v", "from nothing", e, a)
 				}
@@ -91,7 +91,7 @@ func TestSyncFunc(t *testing.T) {
 				mapper.quotaToSelector["foo"] = quotaapi.ClusterResourceQuotaSelector{LabelSelector: &metav1.LabelSelector{}}
 				return mapper
 			},
-			calculationFunc: func(namespaceName string, scopes []kapi.ResourceQuotaScope, hardLimits kapi.ResourceList, registry utilquota.Registry) (kapi.ResourceList, error) {
+			calculationFunc: func(namespaceName string, scopes []kapi.ResourceQuotaScope, hardLimits kapi.ResourceList, registry utilquota.Registry, scopeSelector *kapi.ScopeSelector) (kapi.ResourceList, error) {
 				t.Errorf("%s: shouldn't be called", "cache not ready")
 				return nil, nil
 			},
@@ -112,7 +112,7 @@ func TestSyncFunc(t *testing.T) {
 			mapperFunc: func() clusterquotamapping.ClusterQuotaMapper {
 				return newFakeClusterQuotaMapper()
 			},
-			calculationFunc: func(namespaceName string, scopes []kapi.ResourceQuotaScope, hardLimits kapi.ResourceList, registry utilquota.Registry) (kapi.ResourceList, error) {
+			calculationFunc: func(namespaceName string, scopes []kapi.ResourceQuotaScope, hardLimits kapi.ResourceList, registry utilquota.Registry, scopeSelector *kapi.ScopeSelector) (kapi.ResourceList, error) {
 				if e, a := "one", namespaceName; e != a {
 					t.Errorf("%s: expected %v, got %v", "removed from nothing", e, a)
 				}
@@ -146,7 +146,7 @@ func TestSyncFunc(t *testing.T) {
 			mapperFunc: func() clusterquotamapping.ClusterQuotaMapper {
 				return newFakeClusterQuotaMapper()
 			},
-			calculationFunc: func(namespaceName string, scopes []kapi.ResourceQuotaScope, hardLimits kapi.ResourceList, registry utilquota.Registry) (kapi.ResourceList, error) {
+			calculationFunc: func(namespaceName string, scopes []kapi.ResourceQuotaScope, hardLimits kapi.ResourceList, registry utilquota.Registry, scopeSelector *kapi.ScopeSelector) (kapi.ResourceList, error) {
 				if e, a := "one", namespaceName; e != a {
 					t.Errorf("%s: expected %v, got %v", "removed from something", e, a)
 				}
@@ -197,7 +197,7 @@ func TestSyncFunc(t *testing.T) {
 				mapper.quotaToNamespaces["foo"] = sets.NewString("one", "three", "four")
 				return mapper
 			},
-			calculationFunc: func(namespaceName string, scopes []kapi.ResourceQuotaScope, hardLimits kapi.ResourceList, registry utilquota.Registry) (kapi.ResourceList, error) {
+			calculationFunc: func(namespaceName string, scopes []kapi.ResourceQuotaScope, hardLimits kapi.ResourceList, registry utilquota.Registry, scopeSelector *kapi.ScopeSelector) (kapi.ResourceList, error) {
 				if namespaceName == "four" {
 					return nil, fmt.Errorf("calculation error")
 				}

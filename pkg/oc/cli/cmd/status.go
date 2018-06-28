@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
@@ -90,8 +91,7 @@ func NewCmdStatus(name, baseCLIName, fullName string, f kcmdutil.Factory, out io
 	}
 
 	cmd.Flags().StringVarP(&opts.outputFormat, "output", "o", opts.outputFormat, "Output format. One of: dot.")
-	cmd.Flags().BoolVarP(&opts.suggest, "verbose", "v", opts.suggest, "See details for resolving issues.")
-	cmd.Flags().MarkDeprecated("verbose", "Use --suggest instead.")
+	cmd.Flags().BoolVar(&opts.suggest, "verbose", opts.suggest, "See details for resolving issues.")
 	cmd.Flags().MarkHidden("verbose")
 	cmd.Flags().BoolVar(&opts.suggest, "suggest", opts.suggest, "See details for resolving issues.")
 	cmd.Flags().BoolVar(&opts.allNamespaces, "all-namespaces", false, "If true, display status for all namespaces (must have cluster admin)")
@@ -109,11 +109,11 @@ func (o *StatusOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, baseCLI
 	o.securityPolicyCommandFormat = "oc adm policy add-scc-to-user anyuid -n %s -z %s"
 	o.setProbeCommandName = fmt.Sprintf("%s set probe", cmd.Parent().CommandPath())
 
-	clientConfig, err := f.ClientConfig()
+	clientConfig, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}
-	kclientset, err := f.ClientSet()
+	kclientset, err := kclientset.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
@@ -138,7 +138,11 @@ func (o *StatusOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, baseCLI
 		return err
 	}
 
-	rawConfig, err := f.RawConfig()
+	rawConfig, err := f.ToRawKubeConfigLoader().RawConfig()
+	if err != nil {
+		return err
+	}
+	restMapper, err := f.ToRESTMapper()
 	if err != nil {
 		return err
 	}
@@ -146,7 +150,7 @@ func (o *StatusOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, baseCLI
 	if o.allNamespaces {
 		o.namespace = metav1.NamespaceAll
 	} else {
-		namespace, _, err := f.DefaultNamespace()
+		namespace, _, err := f.ToRawKubeConfigLoader().Namespace()
 		if err != nil {
 			return err
 		}
@@ -167,6 +171,7 @@ func (o *StatusOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, baseCLI
 
 	o.describer = &describe.ProjectStatusDescriber{
 		KubeClient:    kclientset,
+		RESTMapper:    restMapper,
 		ProjectClient: projectClient.Project(),
 		BuildClient:   buildClient.Build(),
 		ImageClient:   imageClient.Image(),

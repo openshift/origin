@@ -11,9 +11,11 @@ import (
 	"github.com/spf13/cobra"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
+	"github.com/openshift/origin/pkg/api/legacy"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 	"github.com/openshift/origin/pkg/cmd/server/origin"
 )
@@ -36,6 +38,8 @@ func NewOpenShiftAPIServerCommand(name, basename string, out, errout io.Writer) 
 		Short: "Launch OpenShift apiserver",
 		Long:  longDescription,
 		Run: func(c *cobra.Command, args []string) {
+			legacy.LegacyInstallAll(legacyscheme.Scheme)
+
 			kcmdutil.CheckErr(options.Validate())
 
 			origin.StartProfiler()

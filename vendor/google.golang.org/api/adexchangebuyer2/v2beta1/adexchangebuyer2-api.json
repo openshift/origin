@@ -612,7 +612,7 @@
                   "type": "string"
                 },
                 "query": {
-                  "description": "An optional query string to filter creatives. If no filter is specified,\nall active creatives will be returned.\nSupported queries are:\n\u003cul\u003e\n\u003cli\u003eaccountId=\u003ci\u003eaccount_id_string\u003c/i\u003e\n\u003cli\u003ecreativeId=\u003ci\u003ecreative_id_string\u003c/i\u003e\n\u003cli\u003edealsStatus: {approved, conditionally_approved, disapproved,\n                   not_checked}\n\u003cli\u003eopenAuctionStatus: {approved, conditionally_approved, disapproved,\n                          not_checked}\n\u003cli\u003eattribute: {a numeric attribute from the list of attributes}\n\u003cli\u003edisapprovalReason: {a reason from\nDisapprovalReason}\n\u003c/ul\u003e\nExample: 'accountId=12345 AND (dealsStatus:disapproved AND\ndisapprovalReason:unacceptable_content) OR attribute:47'",
+                  "description": "An optional query string to filter creatives. If no filter is specified,\nall active creatives will be returned.\n\u003cp\u003eSupported queries are:\n\u003cul\u003e\n\u003cli\u003eaccountId=\u003ci\u003eaccount_id_string\u003c/i\u003e\n\u003cli\u003ecreativeId=\u003ci\u003ecreative_id_string\u003c/i\u003e\n\u003cli\u003edealsStatus: {approved, conditionally_approved, disapproved,\n                   not_checked}\n\u003cli\u003eopenAuctionStatus: {approved, conditionally_approved, disapproved,\n                          not_checked}\n\u003cli\u003eattribute: {a numeric attribute from the list of attributes}\n\u003cli\u003edisapprovalReason: {a reason from\nDisapprovalReason}\n\u003c/ul\u003e\nExample: 'accountId=12345 AND (dealsStatus:disapproved AND\ndisapprovalReason:unacceptable_content) OR attribute:47'",
                   "location": "query",
                   "type": "string"
                 }
@@ -1947,7 +1947,7 @@
       }
     }
   },
-  "revision": "20180305",
+  "revision": "20180524",
   "rootUrl": "https://adexchangebuyer.googleapis.com/",
   "schemas": {
     "AbsoluteDateRange": {
@@ -2297,7 +2297,7 @@
       "type": "object"
     },
     "Creative": {
-      "description": "A creative and its classification data.\n\nNext ID: 31",
+      "description": "A creative and its classification data.\n\nNext ID: 35",
       "id": "Creative",
       "properties": {
         "accountId": {
@@ -2583,7 +2583,7 @@
           "type": "integer"
         },
         "month": {
-          "description": "Month of year. Must be from 1 to 12.",
+          "description": "Month of year. Must be from 1 to 12, or 0 if specifying a date without a\nmonth.",
           "format": "int32",
           "type": "integer"
         },
@@ -2702,7 +2702,12 @@
             "MAXIMUM_NUMBER_OF_HTTP_CALLS_EXCEEDED",
             "MAXIMUM_NUMBER_OF_COOKIES_EXCEEDED",
             "PERSONAL_LOANS",
-            "UNSUPPORTED_FLASH_CONTENT"
+            "UNSUPPORTED_FLASH_CONTENT",
+            "MISUSE_BY_OMID_SCRIPT",
+            "NON_WHITELISTED_OMID_VENDOR",
+            "DESTINATION_EXPERIENCE",
+            "UNSUPPORTED_LANGUAGE",
+            "NON_SSL_COMPLIANT"
           ],
           "enumDescriptions": [
             "The length of the image animation is longer than allowed.",
@@ -2798,7 +2803,12 @@
             "Maximum number of HTTP calls exceeded.",
             "Maximum number of cookies exceeded.",
             "Financial service ad does not adhere to specifications.",
-            "Flash content was found in an unsupported context."
+            "Flash content was found in an unsupported context.",
+            "Misuse by an Open Measurement SDK script.",
+            "Use of an Open Measurement SDK vendor not on approved whitelist.",
+            "Unacceptable landing page.",
+            "Unsupported language.",
+            "Non-SSL compliant."
           ],
           "type": "string"
         }
@@ -2842,34 +2852,10 @@
           ],
           "type": "string"
         },
-        "format": {
-          "description": "DEPRECATED: use repeated formats field instead.\nThe format on which to filter; optional.",
-          "enum": [
-            "FORMAT_UNSPECIFIED",
-            "DISPLAY",
-            "VIDEO",
-            "NATIVE_DISPLAY",
-            "NATIVE_VIDEO",
-            "NON_NATIVE_DISPLAY",
-            "NON_NATIVE_VIDEO"
-          ],
-          "enumDescriptions": [
-            "A placeholder for an undefined format; indicates that no format filter\nwill be applied.",
-            "DEPRECATED: use combination of NATIVE_DISPLAY and NON_NATIVE_DISPLAY\nThe ad impression is display format (i.e. an image).",
-            "DEPRECATED: use combination of NATIVE_VIDEO and NON_NATIVE_VIDEO\nThe ad impression is video format.",
-            "The ad impression is a native ad, and display (i.e. image) format.",
-            "The ad impression is a native ad, and video format.",
-            "The ad impression is not a native ad, and display (i.e. image) format.",
-            "The ad impression is not a native ad, and video format."
-          ],
-          "type": "string"
-        },
         "formats": {
           "description": "The list of formats on which to filter; may be empty. The filters\nrepresented by multiple formats are ORed together (i.e. if non-empty,\nresults must match any one of the formats).",
           "enumDescriptions": [
             "A placeholder for an undefined format; indicates that no format filter\nwill be applied.",
-            "DEPRECATED: use combination of NATIVE_DISPLAY and NON_NATIVE_DISPLAY\nThe ad impression is display format (i.e. an image).",
-            "DEPRECATED: use combination of NATIVE_VIDEO and NON_NATIVE_VIDEO\nThe ad impression is video format.",
             "The ad impression is a native ad, and display (i.e. image) format.",
             "The ad impression is a native ad, and video format.",
             "The ad impression is not a native ad, and display (i.e. image) format.",
@@ -2878,8 +2864,6 @@
           "items": {
             "enum": [
               "FORMAT_UNSPECIFIED",
-              "DISPLAY",
-              "VIDEO",
               "NATIVE_DISPLAY",
               "NATIVE_VIDEO",
               "NON_NATIVE_DISPLAY",
@@ -2912,6 +2896,13 @@
           },
           "type": "array"
         },
+        "publisherIdentifiers": {
+          "description": "For Exchange Bidding buyers only.\nThe list of publisher identifiers on which to filter; may be empty.\nThe filters represented by multiple publisher identifiers are ORed\ntogether.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
         "realtimeTimeRange": {
           "$ref": "RealtimeTimeRange",
           "description": "An open-ended realtime time range, defined by the aggregation start\ntimestamp."
@@ -2921,7 +2912,7 @@
           "description": "A relative date range, defined by an offset from today and a duration.\nInterpreted relative to Pacific time zone."
         },
         "sellerNetworkIds": {
-          "description": "The list of IDs of the seller (publisher) networks on which to filter;\nmay be empty. The filters represented by multiple seller network IDs are\nORed together (i.e. if non-empty, results must match any one of the\npublisher networks).\nSee [seller-network-ids](https://developers.google.com/ad-exchange/rtb/downloads/seller-network-ids)\nfile for the set of existing seller network IDs.",
+          "description": "For Ad Exchange buyers only.\nThe list of IDs of the seller (publisher) networks on which to filter;\nmay be empty. The filters represented by multiple seller network IDs are\nORed together (i.e. if non-empty, results must match any one of the\npublisher networks).\nSee [seller-network-ids](https://developers.google.com/ad-exchange/rtb/downloads/seller-network-ids)\nfile for the set of existing seller network IDs.",
           "items": {
             "format": "int32",
             "type": "integer"

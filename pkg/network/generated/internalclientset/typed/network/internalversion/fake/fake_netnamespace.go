@@ -43,7 +43,7 @@ func (c *FakeNetNamespaces) List(opts v1.ListOptions) (result *network.NetNamesp
 	if label == nil {
 		label = labels.Everything()
 	}
-	list := &network.NetNamespaceList{}
+	list := &network.NetNamespaceList{ListMeta: obj.(*network.NetNamespaceList).ListMeta}
 	for _, item := range obj.(*network.NetNamespaceList).Items {
 		if label.Matches(labels.Set(item.Labels)) {
 			list.Items = append(list.Items, item)

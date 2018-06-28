@@ -316,9 +316,7 @@
       "vendor/golang.org",
       "vendor/github.com/openshift/api",
       "vendor/github.com/openshift/client-go",
-      "github.com/openshift/origin/pkg/bulk",
-      "github.com/openshift/origin/pkg/template/servicebroker",
-      "github.com/openshift/origin/pkg/util/rest"
+      "github.com/openshift/origin/pkg/template/servicebroker"
     ],
     "allowedImportPackages": [
       "vendor/github.com/golang/glog",
@@ -326,7 +324,6 @@
       "vendor/k8s.io/api/authorization/v1",
       "vendor/k8s.io/kubernetes/pkg/apis/core",
       "vendor/k8s.io/kubernetes/pkg/apis/core/install",
-      "vendor/k8s.io/kubernetes/pkg/api/legacyscheme",
       "vendor/github.com/emicklei/go-restful",
       "vendor/github.com/lestrrat/go-jsschema",
       "vendor/k8s.io/kubernetes/pkg/controller",
@@ -442,6 +439,7 @@
       "github.com/openshift/origin/pkg/template/generated"
     ],
     "allowedImportPackages": [
+      "github.com/openshift/origin/pkg/api/legacy",
       "github.com/openshift/origin/pkg/api",
       "github.com/openshift/origin/pkg/api/apihelpers",
       "github.com/openshift/origin/pkg/api/install",

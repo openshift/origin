@@ -22,6 +22,8 @@ import (
 	"testing"
 
 	"github.com/ugorji/go/codec"
+
+	serializerjson "k8s.io/apimachinery/pkg/runtime/serializer/json"
 )
 
 func TestVerbsUgorjiMarshalJSON(t *testing.T) {
@@ -59,7 +61,7 @@ func TestVerbsUgorjiUnmarshalJSON(t *testing.T) {
 	for i, c := range cases {
 		var result APIResource
 		// if err := jsoniter.ConfigCompatibleWithStandardLibrary.Unmarshal([]byte(c.input), &result); err != nil {
-		if err := codec.NewDecoderBytes([]byte(c.input), new(codec.JsonHandle)).Decode(&result); err != nil {
+		if err := codec.NewDecoderBytes([]byte(c.input), serializerjson.NewUgorjiHandler()).Decode(&result); err != nil {
 			t.Errorf("[%d] Failed to unmarshal input '%v': %v", i, c.input, err)
 		}
 		if !reflect.DeepEqual(result, c.result) {

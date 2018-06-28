@@ -104,18 +104,22 @@ func (o *NewServiceAccountTokenOptions) Complete(args []string, requestedLabels 
 		o.Labels = labels
 	}
 
-	client, err := f.ClientSet()
+	clientConfig, err := f.ToRESTConfig()
+	if err != nil {
+		return err
+	}
+	client, err := kcoreclient.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
 
-	namespace, _, err := f.DefaultNamespace()
+	namespace, _, err := f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return fmt.Errorf("could not retrieve default namespace: %v", err)
 	}
 
-	o.SAClient = client.Core().ServiceAccounts(namespace)
-	o.SecretsClient = client.Core().Secrets(namespace)
+	o.SAClient = client.ServiceAccounts(namespace)
+	o.SecretsClient = client.Secrets(namespace)
 	return nil
 }
 

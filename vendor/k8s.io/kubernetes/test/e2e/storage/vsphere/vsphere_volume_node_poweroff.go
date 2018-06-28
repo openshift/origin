@@ -17,17 +17,17 @@ limitations under the License.
 package vsphere
 
 import (
+	"context"
 	"fmt"
 	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"golang.org/x/net/context"
-
 	"github.com/vmware/govmomi/object"
 	vimtypes "github.com/vmware/govmomi/vim25/types"
+
+	apps "k8s.io/api/apps/v1"
 	"k8s.io/api/core/v1"
-	extensions "k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	clientset "k8s.io/client-go/kubernetes"
@@ -81,7 +81,7 @@ var _ = utils.SIGDescribe("Node Poweroff [Feature:vsphere] [Slow] [Disruptive]",
 		defer client.StorageV1().StorageClasses().Delete(storageclass.Name, nil)
 
 		By("Creating PVC using the Storage Class")
-		pvclaimSpec := getVSphereClaimSpecWithStorageClassAnnotation(namespace, "1Gi", storageclass)
+		pvclaimSpec := getVSphereClaimSpecWithStorageClass(namespace, "1Gi", storageclass)
 		pvclaim, err := framework.CreatePVC(client, namespace, pvclaimSpec)
 		Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("Failed to create PVC with err: %v", err))
 		defer framework.DeletePersistentVolumeClaim(client, pvclaim.Name, namespace)
@@ -111,7 +111,8 @@ var _ = utils.SIGDescribe("Node Poweroff [Feature:vsphere] [Slow] [Disruptive]",
 
 		nodeInfo := TestContext.NodeMapper.GetNodeInfo(node1)
 		vm := object.NewVirtualMachine(nodeInfo.VSphere.Client.Client, nodeInfo.VirtualMachineRef)
-		ctx, _ := context.WithCancel(context.Background())
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
 		_, err = vm.PowerOff(ctx)
 		Expect(err).NotTo(HaveOccurred())
 		defer vm.PowerOn(ctx)
@@ -139,7 +140,7 @@ var _ = utils.SIGDescribe("Node Poweroff [Feature:vsphere] [Slow] [Disruptive]",
 })
 
 // Wait until the pod failed over to a different node, or time out after 3 minutes
-func waitForPodToFailover(client clientset.Interface, deployment *extensions.Deployment, oldNode string) (string, error) {
+func waitForPodToFailover(client clientset.Interface, deployment *apps.Deployment, oldNode string) (string, error) {
 	var (
 		err      error
 		newNode  string
@@ -174,7 +175,7 @@ func waitForPodToFailover(client clientset.Interface, deployment *extensions.Dep
 }
 
 // getNodeForDeployment returns node name for the Deployment
-func getNodeForDeployment(client clientset.Interface, deployment *extensions.Deployment) (string, error) {
+func getNodeForDeployment(client clientset.Interface, deployment *apps.Deployment) (string, error) {
 	podList, err := framework.GetPodsForDeployment(client, deployment)
 	if err != nil {
 		return "", err

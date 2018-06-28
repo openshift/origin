@@ -10,16 +10,19 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/openshift/origin/pkg/oc/util/ocscheme"
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	"k8s.io/client-go/dynamic"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
+	kinternalclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/kubectl/resource"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
+	"k8s.io/kubernetes/pkg/kubectl/polymorphichelpers"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
@@ -108,6 +111,7 @@ type EnvOptions struct {
 	Cmd *cobra.Command
 
 	Mapper meta.RESTMapper
+	Client dynamic.Interface
 
 	PrintObject func([]*resource.Info) error
 }
@@ -195,6 +199,15 @@ func (o *EnvOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []str
 
 	o.ShortOutput = kcmdutil.GetFlagString(cmd, "output") == "name"
 
+	clientConfig, err := f.ToRESTConfig()
+	if err != nil {
+		return err
+	}
+	o.Client, err = dynamic.NewForConfig(clientConfig)
+	if err != nil {
+		return err
+	}
+
 	if o.List && len(o.Output) > 0 {
 		return kcmdutil.UsageErrorf(o.Cmd, "--list and --output may not be specified together")
 	}
@@ -205,17 +218,17 @@ func (o *EnvOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []str
 // RunEnv contains all the necessary functionality for the OpenShift cli env command
 // TODO: refactor to share the common "patch resource" pattern of probe
 func (o *EnvOptions) RunEnv(f kcmdutil.Factory) error {
-	clientConfig, err := f.ClientConfig()
+	clientConfig, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}
 
-	kubeClient, err := f.ClientSet()
+	kubeClient, err := kinternalclientset.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
 
-	cmdNamespace, explicit, err := f.DefaultNamespace()
+	cmdNamespace, explicit, err := f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
 	}
@@ -229,7 +242,7 @@ func (o *EnvOptions) RunEnv(f kcmdutil.Factory) error {
 
 	if len(o.From) != 0 {
 		b := f.NewBuilder().
-			Internal().
+			WithScheme(ocscheme.ReadingInternalScheme).
 			LocalParam(o.Local).
 			ContinueOnError().
 			NamespaceParam(cmdNamespace).DefaultNamespace().
@@ -293,7 +306,7 @@ func (o *EnvOptions) RunEnv(f kcmdutil.Factory) error {
 	}
 
 	b := f.NewBuilder().
-		Internal().
+		WithScheme(ocscheme.ReadingInternalScheme).
 		LocalParam(o.Local).
 		ContinueOnError().
 		NamespaceParam(cmdNamespace).DefaultNamespace().
@@ -318,16 +331,10 @@ func (o *EnvOptions) RunEnv(f kcmdutil.Factory) error {
 	}
 	// Keep a copy of the original objects prior to updating their environment.
 	// Used in constructing the patch(es) that will be applied in the server.
-	gv := *clientConfig.GroupVersion
-	oldObjects, err := clientcmd.AsVersionedObjects(infos, gv, legacyscheme.Codecs.LegacyCodec(gv))
-	if err != nil {
-		return err
-	}
-	if len(oldObjects) != len(infos) {
-		return fmt.Errorf("could not convert all objects to API version %q", clientConfig.GroupVersion)
-	}
+	oldObjects := []runtime.Object{}
 	oldData := make([][]byte, len(infos))
-	for i := range oldObjects {
+	for i := range infos {
+		oldObjects = append(oldObjects, kcmdutil.AsDefaultVersionedOrOriginal(infos[i].Object.DeepCopyObject(), nil))
 		old, err := json.Marshal(oldObjects[i])
 		if err != nil {
 			return err
@@ -338,7 +345,7 @@ func (o *EnvOptions) RunEnv(f kcmdutil.Factory) error {
 	skipped := 0
 	errored := []*resource.Info{}
 	for _, info := range infos {
-		ok, err := f.UpdatePodSpecForObject(info.Object, clientcmd.ConvertInteralPodSpecToExternal(func(spec *kapi.PodSpec) error {
+		ok, err := polymorphichelpers.UpdatePodSpecForObjectFn(info.Object, clientcmd.ConvertInteralPodSpecToExternal(func(spec *kapi.PodSpec) error {
 			resolutionErrorsEncountered := false
 			containers, _ := selectContainers(spec.Containers, o.ContainerSelector)
 			if len(containers) == 0 {
@@ -359,7 +366,7 @@ func (o *EnvOptions) RunEnv(f kcmdutil.Factory) error {
 					resolveErrors := map[string][]string{}
 					store := envresolve.NewResourceStore()
 
-					fmt.Fprintf(o.Out, "# %s %s, container %s\n", info.Mapping.Resource, info.Name, c.Name)
+					fmt.Fprintf(o.Out, "# %s %s, container %s\n", info.Mapping.Resource.Resource, info.Name, c.Name)
 					for _, env := range c.Env {
 						// Print the simple value
 						if env.ValueFrom == nil {
@@ -419,7 +426,7 @@ func (o *EnvOptions) RunEnv(f kcmdutil.Factory) error {
 				}
 				*vars = updateEnv(*vars, env, remove)
 				if o.List {
-					fmt.Fprintf(o.Out, "# %s %s\n", info.Mapping.Resource, info.Name)
+					fmt.Fprintf(o.Out, "# %s %s\n", info.Mapping.Resource.Resource, info.Name)
 					for _, env := range *vars {
 						fmt.Fprintf(o.Out, "%s=%s\n", env.Name, env.Value)
 					}
@@ -437,7 +444,7 @@ func (o *EnvOptions) RunEnv(f kcmdutil.Factory) error {
 		}
 	}
 	if one && skipped == len(infos) {
-		return fmt.Errorf("%s/%s is not a pod or does not have a pod template", infos[0].Mapping.Resource, infos[0].Name)
+		return fmt.Errorf("%s/%s is not a pod or does not have a pod template", infos[0].Mapping.Resource.Resource, infos[0].Name)
 	}
 	if len(errored) == len(infos) {
 		return kcmdutil.ErrExit
@@ -448,15 +455,7 @@ func (o *EnvOptions) RunEnv(f kcmdutil.Factory) error {
 	}
 
 	if len(o.Output) > 0 || o.Local || kcmdutil.GetDryRunFlag(o.Cmd) {
-		return clientcmd.PrintResourceInfos(f, o.Cmd, o.Local, infos, o.Out)
-	}
-
-	objects, err := clientcmd.AsVersionedObjects(infos, gv, legacyscheme.Codecs.LegacyCodec(gv))
-	if err != nil {
-		return err
-	}
-	if len(objects) != len(infos) {
-		return fmt.Errorf("could not convert all objects to API version %q", clientConfig.GroupVersion)
+		return clientcmd.PrintResourceInfos(o.Cmd, infos, o.Out)
 	}
 
 	failed := false
@@ -467,21 +466,21 @@ updates:
 				continue updates
 			}
 		}
-		newData, err := json.Marshal(objects[i])
+		newData, err := json.Marshal(kcmdutil.AsDefaultVersionedOrOriginal(infos[i].Object, nil))
 		if err != nil {
 			return err
 		}
-		patchBytes, err := strategicpatch.CreateTwoWayMergePatch(oldData[i], newData, objects[i])
+		patchBytes, err := strategicpatch.CreateTwoWayMergePatch(oldData[i], newData, kcmdutil.AsDefaultVersionedOrOriginal(infos[i].Object, nil))
 		if err != nil {
 			return err
 		}
-		obj, err := resource.NewHelper(info.Client, info.Mapping).Patch(info.Namespace, info.Name, types.StrategicMergePatchType, patchBytes)
+
+		actualObj, err := o.Client.Resource(info.Mapping.Resource).Namespace(info.Namespace).Patch(info.Name, types.StrategicMergePatchType, patchBytes)
 		if err != nil {
 			handlePodUpdateError(o.Err, err, "environment variables")
 			failed = true
 			continue
 		}
-		info.Refresh(obj, true)
 
 		// make sure arguments to set or replace environment variables are set
 		// before returning a successful message
@@ -489,7 +488,7 @@ updates:
 			return fmt.Errorf("at least one environment variable must be provided")
 		}
 
-		kcmdutil.PrintSuccess(o.ShortOutput, o.Out, info.Object, false, "updated")
+		kcmdutil.PrintSuccess(o.ShortOutput, o.Out, actualObj, false, "updated")
 	}
 	if failed {
 		return kcmdutil.ErrExit

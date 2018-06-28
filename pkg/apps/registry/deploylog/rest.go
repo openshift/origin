@@ -1,24 +1,29 @@
 package deploylog
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"sort"
 	"time"
 
 	"github.com/golang/glog"
-	kapiv1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/apimachinery/pkg/watch"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	genericrest "k8s.io/apiserver/pkg/registry/generic/rest"
 	"k8s.io/apiserver/pkg/registry/rest"
+	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/controller"
-	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	apiserverrest "github.com/openshift/origin/pkg/apiserver/rest"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
@@ -39,12 +44,12 @@ const (
 type REST struct {
 	dcClient  appsclient.DeploymentConfigsGetter
 	rcClient  kcoreclient.ReplicationControllersGetter
-	podClient kcoreclient.PodsGetter
+	podClient corev1client.PodsGetter
 	timeout   time.Duration
 	interval  time.Duration
 
 	// for unit testing
-	getLogsFn func(podNamespace, podName string, logOpts *kapi.PodLogOptions) (runtime.Object, error)
+	getLogsFn func(podNamespace, podName string, logOpts *corev1.PodLogOptions) (runtime.Object, error)
 }
 
 // REST implements GetterWithOptions
@@ -54,7 +59,7 @@ var _ = rest.GetterWithOptions(&REST{})
 // one for deployments (replication controllers) and one for pods to get the necessary
 // attributes to assemble the URL to which the request shall be redirected in order to
 // get the deployment logs.
-func NewREST(dcClient appsclient.DeploymentConfigsGetter, rcClient kcoreclient.ReplicationControllersGetter, podClient kcoreclient.PodsGetter) *REST {
+func NewREST(dcClient appsclient.DeploymentConfigsGetter, rcClient kcoreclient.ReplicationControllersGetter, podClient corev1client.PodsGetter) *REST {
 	r := &REST{
 		dcClient:  dcClient,
 		rcClient:  rcClient,
@@ -78,31 +83,31 @@ func (r *REST) New() runtime.Object {
 }
 
 // Get returns a streamer resource with the contents of the deployment log
-func (r *REST) Get(ctx apirequest.Context, name string, opts runtime.Object) (runtime.Object, error) {
+func (r *REST) Get(ctx context.Context, name string, opts runtime.Object) (runtime.Object, error) {
 	// Ensure we have a namespace in the context
 	namespace, ok := apirequest.NamespaceFrom(ctx)
 	if !ok {
-		return nil, errors.NewBadRequest("namespace parameter required.")
+		return nil, apierrors.NewBadRequest("namespace parameter required.")
 	}
 
 	// Validate DeploymentLogOptions
 	deployLogOpts, ok := opts.(*appsapi.DeploymentLogOptions)
 	if !ok {
-		return nil, errors.NewBadRequest("did not get an expected options.")
+		return nil, apierrors.NewBadRequest("did not get an expected options.")
 	}
 	if errs := validation.ValidateDeploymentLogOptions(deployLogOpts); len(errs) > 0 {
-		return nil, errors.NewInvalid(appsapi.Kind("DeploymentLogOptions"), "", errs)
+		return nil, apierrors.NewInvalid(appsapi.Kind("DeploymentLogOptions"), "", errs)
 	}
 
 	// Fetch deploymentConfig and check latest version; if 0, there are no deployments
 	// for this config
 	config, err := r.dcClient.DeploymentConfigs(namespace).Get(name, metav1.GetOptions{})
 	if err != nil {
-		return nil, errors.NewNotFound(appsapi.Resource("deploymentconfig"), name)
+		return nil, apierrors.NewNotFound(appsapi.Resource("deploymentconfig"), name)
 	}
 	desiredVersion := config.Status.LatestVersion
 	if desiredVersion == 0 {
-		return nil, errors.NewBadRequest(fmt.Sprintf("no deployment exists for deploymentConfig %q", config.Name))
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("no deployment exists for deploymentConfig %q", config.Name))
 	}
 
 	// Support retrieving logs for older deployments
@@ -112,12 +117,12 @@ func (r *REST) Get(ctx apirequest.Context, name string, opts runtime.Object) (ru
 		if deployLogOpts.Previous {
 			desiredVersion--
 			if desiredVersion < 1 {
-				return nil, errors.NewBadRequest(fmt.Sprintf("no previous deployment exists for deploymentConfig %q", config.Name))
+				return nil, apierrors.NewBadRequest(fmt.Sprintf("no previous deployment exists for deploymentConfig %q", config.Name))
 			}
 		}
 	case *deployLogOpts.Version <= 0 || *deployLogOpts.Version > config.Status.LatestVersion:
 		// Invalid version
-		return nil, errors.NewBadRequest(fmt.Sprintf("invalid version for deploymentConfig %q: %d", config.Name, *deployLogOpts.Version))
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("invalid version for deploymentConfig %q: %d", config.Name, *deployLogOpts.Version))
 	default:
 		desiredVersion = *deployLogOpts.Version
 	}
@@ -142,16 +147,16 @@ func (r *REST) Get(ctx apirequest.Context, name string, opts runtime.Object) (ru
 		}
 		glog.V(4).Infof("Deployment %s is in %s state, waiting for it to start...", appsutil.LabelForDeployment(target), status)
 
-		if err := appsutil.WaitForRunningDeployerPod(r.podClient, target, r.timeout); err != nil {
-			return nil, errors.NewBadRequest(fmt.Sprintf("failed to run deployer pod %s: %v", podName, err))
+		if err := WaitForRunningDeployerPod(r.podClient, target, r.timeout); err != nil {
+			return nil, apierrors.NewBadRequest(fmt.Sprintf("failed to run deployer pod %s: %v", podName, err))
 		}
 
 		latest, ok, err := registry.WaitForRunningDeployment(r.rcClient, target, r.timeout)
 		if err != nil {
-			return nil, errors.NewBadRequest(fmt.Sprintf("unable to wait for deployment %s to run: %v", appsutil.LabelForDeployment(target), err))
+			return nil, apierrors.NewBadRequest(fmt.Sprintf("unable to wait for deployment %s to run: %v", appsutil.LabelForDeployment(target), err))
 		}
 		if !ok {
-			return nil, errors.NewServerTimeout(kapi.Resource("ReplicationController"), "get", 2)
+			return nil, apierrors.NewServerTimeout(kapi.Resource("ReplicationController"), "get", 2)
 		}
 		if appsutil.IsCompleteDeployment(latest) {
 			podName, err = r.returnApplicationPodName(target)
@@ -166,11 +171,11 @@ func (r *REST) Get(ctx apirequest.Context, name string, opts runtime.Object) (ru
 		}
 	}
 
-	logOpts := appsapi.DeploymentToPodLogOptions(deployLogOpts)
+	logOpts := DeploymentToPodLogOptions(deployLogOpts)
 	return r.getLogsFn(namespace, podName, logOpts)
 }
 
-func (r *REST) getLogs(podNamespace, podName string, logOpts *kapi.PodLogOptions) (runtime.Object, error) {
+func (r *REST) getLogs(podNamespace, podName string, logOpts *corev1.PodLogOptions) (runtime.Object, error) {
 	logRequest := r.podClient.Pods(podNamespace).GetLogs(podName, logOpts)
 
 	readerCloser, err := logRequest.Stream()
@@ -195,7 +200,7 @@ func (r *REST) waitForExistingDeployment(namespace, name string) (*kapi.Replicat
 	condition := func() (bool, error) {
 		target, err = r.rcClient.ReplicationControllers(namespace).Get(name, metav1.GetOptions{})
 		switch {
-		case errors.IsNotFound(err):
+		case apierrors.IsNotFound(err):
 			return false, nil
 		case err != nil:
 			return false, err
@@ -205,7 +210,7 @@ func (r *REST) waitForExistingDeployment(namespace, name string) (*kapi.Replicat
 
 	err = wait.PollImmediate(r.interval, r.timeout, condition)
 	if err == wait.ErrWaitTimeout {
-		err = errors.NewNotFound(kapi.Resource("replicationcontrollers"), name)
+		err = apierrors.NewNotFound(kapi.Resource("replicationcontrollers"), name)
 	}
 	return target, err
 }
@@ -214,11 +219,97 @@ func (r *REST) waitForExistingDeployment(namespace, name string) (*kapi.Replicat
 // view its logs.
 func (r *REST) returnApplicationPodName(target *kapi.ReplicationController) (string, error) {
 	selector := labels.SelectorFromValidatedSet(labels.Set(target.Spec.Selector))
-	sortBy := func(pods []*kapiv1.Pod) sort.Interface { return controller.ByLogging(pods) }
+	sortBy := func(pods []*corev1.Pod) sort.Interface { return controller.ByLogging(pods) }
 
-	firstPod, _, err := kcmdutil.GetFirstPod(r.podClient, target.Namespace, selector.String(), r.timeout, sortBy)
+	firstPod, _, err := GetFirstPod(r.podClient, target.Namespace, selector.String(), r.timeout, sortBy)
 	if err != nil {
-		return "", errors.NewInternalError(err)
+		return "", apierrors.NewInternalError(err)
 	}
 	return firstPod.Name, nil
+}
+
+// GetFirstPod returns a pod matching the namespace and label selector
+// and the number of all pods that match the label selector.
+func GetFirstPod(client corev1client.PodsGetter, namespace string, selector string, timeout time.Duration, sortBy func([]*corev1.Pod) sort.Interface) (*corev1.Pod, int, error) {
+	options := metav1.ListOptions{LabelSelector: selector}
+
+	podList, err := client.Pods(namespace).List(options)
+	if err != nil {
+		return nil, 0, err
+	}
+	pods := []*corev1.Pod{}
+	for i := range podList.Items {
+		pods = append(pods, &podList.Items[i])
+	}
+	if len(pods) > 0 {
+		sort.Sort(sortBy(pods))
+		return pods[0], len(podList.Items), nil
+	}
+
+	// Watch until we observe a pod
+	options.ResourceVersion = podList.ResourceVersion
+	w, err := client.Pods(namespace).Watch(options)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer w.Stop()
+
+	condition := func(event watch.Event) (bool, error) {
+		return event.Type == watch.Added || event.Type == watch.Modified, nil
+	}
+	event, err := watch.Until(timeout, w, condition)
+	if err != nil {
+		return nil, 0, err
+	}
+	pod, ok := event.Object.(*corev1.Pod)
+	if !ok {
+		return nil, 0, fmt.Errorf("%#v is not a pod event", event)
+	}
+	return pod, 1, nil
+}
+
+// WaitForRunningDeployerPod waits a given period of time until the deployer pod
+// for given replication controller is not running.
+func WaitForRunningDeployerPod(podClient corev1client.PodsGetter, rc *kapi.ReplicationController, timeout time.Duration) error {
+	podName := appsutil.DeployerPodNameForDeployment(rc.Name)
+	canGetLogs := func(p *corev1.Pod) bool {
+		return corev1.PodSucceeded == p.Status.Phase || corev1.PodFailed == p.Status.Phase || corev1.PodRunning == p.Status.Phase
+	}
+	pod, err := podClient.Pods(rc.Namespace).Get(podName, metav1.GetOptions{})
+	if err == nil && canGetLogs(pod) {
+		return nil
+	}
+	watcher, err := podClient.Pods(rc.Namespace).Watch(
+		metav1.ListOptions{
+			FieldSelector: fields.OneTermEqualSelector("metadata.name", podName).String(),
+		},
+	)
+	if err != nil {
+		return err
+	}
+
+	defer watcher.Stop()
+	_, err = watch.Until(timeout, watcher, func(e watch.Event) (bool, error) {
+		if e.Type == watch.Error {
+			return false, fmt.Errorf("encountered error while watching for pod: %v", e.Object)
+		}
+		obj, isPod := e.Object.(*corev1.Pod)
+		if !isPod {
+			return false, errors.New("received unknown object while watching for pods")
+		}
+		return canGetLogs(obj), nil
+	})
+	return err
+}
+
+func DeploymentToPodLogOptions(opts *appsapi.DeploymentLogOptions) *corev1.PodLogOptions {
+	return &corev1.PodLogOptions{
+		Container:    opts.Container,
+		Follow:       opts.Follow,
+		SinceSeconds: opts.SinceSeconds,
+		SinceTime:    opts.SinceTime,
+		Timestamps:   opts.Timestamps,
+		TailLines:    opts.TailLines,
+		LimitBytes:   opts.LimitBytes,
+	}
 }

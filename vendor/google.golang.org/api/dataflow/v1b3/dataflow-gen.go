@@ -476,6 +476,11 @@ type AutoscalingEvent struct {
 	// num_workers value.
 	Time string `json:"time,omitempty"`
 
+	// WorkerPool: A short and friendly name for the worker pool this event
+	// refers to,
+	// populated from the value of PoolStageRelation::user_pool_name.
+	WorkerPool string `json:"workerPool,omitempty"`
+
 	// ForceSendFields is a list of field names (e.g. "CurrentNumWorkers")
 	// to unconditionally include in API requests. By default, fields with
 	// empty values are omitted from API requests. However, any non-pointer,
@@ -767,6 +772,8 @@ type CounterMetadata struct {
 	//   "SET" - Aggregated value is a set of unique contributed values.
 	//   "DISTRIBUTION" - Aggregated value captures statistics about a
 	// distribution.
+	//   "LATEST_VALUE" - Aggregated value tracks the latest value of a
+	// variable.
 	Kind string `json:"kind,omitempty"`
 
 	// OtherUnits: A string referring to the unit type.
@@ -954,6 +961,9 @@ type CounterUpdate struct {
 
 	// Integer: Integer value for Sum, Max, Min.
 	Integer *SplitInt64 `json:"integer,omitempty"`
+
+	// IntegerGauge: Gauge data
+	IntegerGauge *IntegerGauge `json:"integerGauge,omitempty"`
 
 	// IntegerList: List of integers, for Set.
 	IntegerList *IntegerList `json:"integerList,omitempty"`
@@ -2068,6 +2078,39 @@ func (s *InstructionOutput) MarshalJSON() ([]byte, error) {
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
+// IntegerGauge: A metric value representing temporal values of a
+// variable.
+type IntegerGauge struct {
+	// Timestamp: The time at which this value was measured. Measured as
+	// msecs from epoch.
+	Timestamp string `json:"timestamp,omitempty"`
+
+	// Value: The value of the variable represented by this gauge.
+	Value *SplitInt64 `json:"value,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "Timestamp") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "Timestamp") to include in
+	// API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. However, any field with an
+	// empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *IntegerGauge) MarshalJSON() ([]byte, error) {
+	type NoMethod IntegerGauge
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
 // IntegerList: A metric value representing a list of integers.
 type IntegerList struct {
 	// Elements: Elements of the list.
@@ -3103,6 +3146,12 @@ type MetricUpdate struct {
 	// of numeric values.
 	Distribution interface{} `json:"distribution,omitempty"`
 
+	// Gauge: A struct value describing properties of a Gauge.
+	// Metrics of gauge type show the value of a metric across time, and
+	// is
+	// aggregated based on the newest value.
+	Gauge interface{} `json:"gauge,omitempty"`
+
 	// Internal: Worker-computed aggregate value for internal use by the
 	// Dataflow
 	// service.
@@ -3262,6 +3311,8 @@ type NameAndKind struct {
 	//   "SET" - Aggregated value is a set of unique contributed values.
 	//   "DISTRIBUTION" - Aggregated value captures statistics about a
 	// distribution.
+	//   "LATEST_VALUE" - Aggregated value tracks the latest value of a
+	// variable.
 	Kind string `json:"kind,omitempty"`
 
 	// Name: Name of the counter.

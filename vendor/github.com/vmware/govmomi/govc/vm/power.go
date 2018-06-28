@@ -60,7 +60,7 @@ func (cmd *power) Register(ctx context.Context, f *flag.FlagSet) {
 	f.BoolVar(&cmd.Reboot, "r", false, "Reboot guest")
 	f.BoolVar(&cmd.Shutdown, "s", false, "Shutdown guest")
 	f.BoolVar(&cmd.Force, "force", false, "Force (ignore state error and hard shutdown/reboot if tools unavailable)")
-	f.BoolVar(&cmd.Multi, "M", false, "Use Datacenter.PowerOnVM")
+	f.BoolVar(&cmd.Multi, "M", false, "Use Datacenter.PowerOnMultiVM method instead of VirtualMachine.PowerOnVM")
 }
 
 func (cmd *power) Process(ctx context.Context) error {

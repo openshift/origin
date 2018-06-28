@@ -96,7 +96,7 @@ Populated by the system. Read-only. More info: http://kubernetes.io/docs/user-gu
 
 If the webhook is running within the cluster, then you should use `service`.
 
-If there is only one port open for the service, that port will be used. If there are multiple ports open, port 443 will be used if it is open, otherwise it is an error.">service</span>:
+Port 443 will be used if it is open, otherwise it is an error.">service</span>:
 </summary><div style="margin-left:13px;">      <span title="(string) `name` is the name of the service. Required">name</span>:
 </div><div style="margin-left:13px;">      <span title="(string) `namespace` is the namespace of the service. Required">namespace</span>:
 </div><div style="margin-left:13px;">      <span title="(string) `path` is an optional URL path which will be sent in any request to this service.">path</span>:

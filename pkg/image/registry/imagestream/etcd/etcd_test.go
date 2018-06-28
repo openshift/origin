@@ -3,22 +3,21 @@ package etcd
 import (
 	"testing"
 
+	admfake "github.com/openshift/origin/pkg/image/admission/fake"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	"github.com/openshift/origin/pkg/image/apis/image/validation/fake"
+	"github.com/openshift/origin/pkg/util/restoptions"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apiserver/pkg/authentication/user"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	genericregistrytest "k8s.io/apiserver/pkg/registry/generic/testing"
 	"k8s.io/apiserver/pkg/registry/rest"
 	etcdtesting "k8s.io/apiserver/pkg/storage/etcd/testing"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	authorizationapi "k8s.io/kubernetes/pkg/apis/authorization"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
-	"k8s.io/kubernetes/pkg/registry/registrytest"
-
-	"github.com/openshift/origin/pkg/api/latest"
-	admfake "github.com/openshift/origin/pkg/image/admission/fake"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	"github.com/openshift/origin/pkg/image/apis/image/validation/fake"
-	"github.com/openshift/origin/pkg/util/restoptions"
 
 	// install all APIs
 	_ "github.com/openshift/origin/pkg/api/install"
@@ -51,7 +50,8 @@ func (f *fakeSubjectAccessReviewRegistry) Create(subjectAccessReview *authorizat
 }
 
 func newStorage(t *testing.T) (*REST, *StatusREST, *InternalREST, *etcdtesting.EtcdTestServer) {
-	etcdStorage, server := registrytest.NewEtcdStorage(t, latest.Version.Group)
+	server, etcdStorage := etcdtesting.NewUnsecuredEtcd3TestClientServer(t)
+	etcdStorage.Codec = legacyscheme.Codecs.LegacyCodec(schema.GroupVersion{Group: "image.openshift.io", Version: "v1"})
 	registry := imageapi.DefaultRegistryHostnameRetriever(noDefaultRegistry, "", "")
 	imageStorage, statusStorage, internalStorage, err := NewREST(
 		restoptions.NewSimpleGetter(etcdStorage),

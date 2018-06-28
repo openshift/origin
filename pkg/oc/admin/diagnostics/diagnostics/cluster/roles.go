@@ -6,9 +6,9 @@ import (
 
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	"k8s.io/kubernetes/pkg/apis/authorization"
 	authorizationtypedclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
-	rbacclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/rbac/internalversion"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/types"
@@ -19,7 +19,7 @@ import (
 
 // ClusterRoles is a Diagnostic to check that the default cluster roles match expectations
 type ClusterRoles struct {
-	ClusterRolesClient rbacclient.ClusterRoleInterface
+	ClusterRolesClient rbacv1client.ClusterRoleInterface
 	SARClient          authorizationtypedclient.SelfSubjectAccessReviewsGetter
 }
 

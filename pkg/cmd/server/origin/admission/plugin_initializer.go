@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"time"
 
 	authorizationclient "github.com/openshift/client-go/authorization/clientset/versioned"
 	buildclient "github.com/openshift/client-go/build/clientset/versioned"
@@ -27,15 +26,11 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/admission/initializer"
 	webhookconfig "k8s.io/apiserver/pkg/admission/plugin/webhook/config"
 	webhookinitializer "k8s.io/apiserver/pkg/admission/plugin/webhook/initializer"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
-	genericapiserver "k8s.io/apiserver/pkg/server"
-	"k8s.io/client-go/discovery"
-	cacheddiscovery "k8s.io/client-go/discovery/cached"
 	kexternalinformers "k8s.io/client-go/informers"
 	kubeclientgoclient "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -63,39 +58,40 @@ func NewPluginInitializer(
 	informers InformerAccess,
 	authorizer authorizer.Authorizer,
 	projectCache *projectcache.ProjectCache,
+	restMapper meta.RESTMapper,
 	clusterQuotaMappingController *clusterquotamapping.ClusterQuotaMappingController,
-) (admission.PluginInitializer, genericapiserver.PostStartHookFunc, error) {
+) (admission.PluginInitializer, error) {
 	kubeInternalClient, err := kclientsetinternal.NewForConfig(privilegedLoopbackConfig)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	kubeClientGoClientSet, err := kubeclientgoclient.NewForConfig(privilegedLoopbackConfig)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	authorizationClient, err := authorizationclient.NewForConfig(privilegedLoopbackConfig)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	buildClient, err := buildclient.NewForConfig(privilegedLoopbackConfig)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	imageClient, err := imageclient.NewForConfig(privilegedLoopbackConfig)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	quotaClient, err := quotaclient.NewForConfig(privilegedLoopbackConfig)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	templateClient, err := templateclient.NewForConfig(privilegedLoopbackConfig)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	userClient, err := userclient.NewForConfig(privilegedLoopbackConfig)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	// TODO make a union registry
@@ -112,18 +108,14 @@ func NewPluginInitializer(
 	svcCache := service.NewServiceResolverCache(kubeInternalClient.Core().Services(metav1.NamespaceDefault).Get)
 	defaultRegistryFunc, err := svcCache.Defer(defaultRegistry)
 	if err != nil {
-		return nil, nil, fmt.Errorf("OPENSHIFT_DEFAULT_REGISTRY variable is invalid %q: %v", defaultRegistry, err)
+		return nil, fmt.Errorf("OPENSHIFT_DEFAULT_REGISTRY variable is invalid %q: %v", defaultRegistry, err)
 	}
-
-	// Use a discovery client capable of being refreshed.
-	discoveryClient := cacheddiscovery.NewMemCacheClient(kubeInternalClient.Discovery())
-	restMapper := discovery.NewDeferredDiscoveryRESTMapper(discoveryClient, meta.InterfacesForUnstructured)
 
 	// punch through layers to build this in order to get a string for a cloud provider file
 	// TODO refactor us into a forward building flow with a side channel like this
 	kubeOptions, err := kubernetes.BuildKubeAPIserverOptions(options)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	var cloudConfig []byte
@@ -131,7 +123,7 @@ func NewPluginInitializer(
 		var err error
 		cloudConfig, err = ioutil.ReadFile(kubeOptions.CloudProvider.CloudConfigFile)
 		if err != nil {
-			return nil, nil, fmt.Errorf("Error reading from cloud configuration file %s: %v", kubeOptions.CloudProvider.CloudConfigFile, err)
+			return nil, fmt.Errorf("Error reading from cloud configuration file %s: %v", kubeOptions.CloudProvider.CloudConfigFile, err)
 		}
 	}
 	// note: we are passing a combined quota registry here...
@@ -190,17 +182,7 @@ func NewPluginInitializer(
 		UserInformers:                        informers.GetUserInformers(),
 	}
 
-	return admission.PluginInitializers{genericInitializer, webhookInitializer, kubePluginInitializer, openshiftPluginInitializer},
-		func(context genericapiserver.PostStartHookContext) error {
-			restMapper.Reset()
-			go func() {
-				wait.Until(func() {
-					restMapper.Reset()
-				}, 10*time.Second, context.StopCh)
-			}()
-			return nil
-		},
-		nil
+	return admission.PluginInitializers{genericInitializer, webhookInitializer, kubePluginInitializer, openshiftPluginInitializer}, nil
 }
 
 // env returns an environment variable, or the defaultValue if it is not set.

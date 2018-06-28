@@ -5,15 +5,17 @@ import (
 	"io"
 	"os"
 
+	"github.com/openshift/origin/pkg/oc/util/ocscheme"
 	"github.com/spf13/cobra"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/kubectl/resource"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsv1 "github.com/openshift/api/apps/v1"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	utilenv "github.com/openshift/origin/pkg/oc/util/env"
@@ -62,8 +64,6 @@ type DeploymentHookOptions struct {
 	Builder *resource.Builder
 	Infos   []*resource.Info
 
-	Encoder runtime.Encoder
-
 	Filenames []string
 	Container string
 	Selector  string
@@ -88,7 +88,7 @@ type DeploymentHookOptions struct {
 	Environment []string
 	Volumes     []string
 
-	FailurePolicy appsapi.LifecycleHookFailurePolicy
+	FailurePolicy appsv1.LifecycleHookFailurePolicy
 }
 
 // NewCmdDeploymentHook implements the set deployment-hook command
@@ -127,8 +127,7 @@ func NewCmdDeploymentHook(fullName string, f kcmdutil.Factory, out, errOut io.Wr
 	cmd.Flags().BoolVar(&options.Post, "post", options.Post, "Set or remove a post deployment hook")
 
 	cmd.Flags().StringArrayVarP(&options.Environment, "environment", "e", options.Environment, "Environment variable to use in the deployment hook pod")
-	cmd.Flags().StringSliceVarP(&options.Volumes, "volumes", "v", options.Volumes, "Volumes from the pod template to use in the deployment hook pod")
-	cmd.Flags().MarkShorthandDeprecated("volumes", "Use --volumes instead.")
+	cmd.Flags().StringSliceVar(&options.Volumes, "volumes", options.Volumes, "Volumes from the pod template to use in the deployment hook pod")
 
 	cmd.Flags().String("failure-policy", "ignore", "The failure policy for the deployment hook. Valid values are: abort,retry,ignore")
 
@@ -150,16 +149,19 @@ func (o *DeploymentHookOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command,
 		return kcmdutil.UsageErrorf(cmd, "one or more deployment configs must be specified as <name> or dc/<name>")
 	}
 
-	cmdNamespace, explicit, err := f.DefaultNamespace()
+	cmdNamespace, explicit, err := f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
 	}
 
 	o.Cmd = cmd
 
-	mapper, _ := f.Object()
+	mapper, err := f.ToRESTMapper()
+	if err != nil {
+		return err
+	}
 	o.Builder = f.NewBuilder().
-		Internal().
+		WithScheme(ocscheme.ReadingInternalScheme, ocscheme.ReadingInternalScheme.PrioritizedVersionsAllGroups()...).
 		LocalParam(o.Local).
 		ContinueOnError().
 		NamespaceParam(cmdNamespace).DefaultNamespace().
@@ -178,10 +180,9 @@ func (o *DeploymentHookOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command,
 
 	o.Output = kcmdutil.GetFlagString(cmd, "output")
 	o.PrintObject = func(infos []*resource.Info) error {
-		return clientcmd.PrintResourceInfos(f, cmd, o.Local, infos, o.Out)
+		return clientcmd.PrintResourceInfos(cmd, infos, o.Out)
 	}
 
-	o.Encoder = kcmdutil.InternalVersionJSONEncoder()
 	o.ShortOutput = kcmdutil.GetFlagString(cmd, "output") == "name"
 	o.Mapper = mapper
 
@@ -189,11 +190,11 @@ func (o *DeploymentHookOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command,
 	if len(failurePolicyString) > 0 {
 		switch failurePolicyString {
 		case "abort":
-			o.FailurePolicy = appsapi.LifecycleHookFailurePolicyAbort
+			o.FailurePolicy = appsv1.LifecycleHookFailurePolicyAbort
 		case "ignore":
-			o.FailurePolicy = appsapi.LifecycleHookFailurePolicyIgnore
+			o.FailurePolicy = appsv1.LifecycleHookFailurePolicyIgnore
 		case "retry":
-			o.FailurePolicy = appsapi.LifecycleHookFailurePolicyRetry
+			o.FailurePolicy = appsv1.LifecycleHookFailurePolicyRetry
 		default:
 			return kcmdutil.UsageErrorf(cmd, "valid values for --failure-policy are: abort, retry, ignore")
 		}
@@ -251,8 +252,8 @@ func (o *DeploymentHookOptions) Run() error {
 		infos = loaded
 	}
 
-	patches := CalculatePatches(infos, o.Encoder, func(info *resource.Info) (bool, error) {
-		dc, ok := info.Object.(*appsapi.DeploymentConfig)
+	patches := CalculatePatchesExternal(infos, func(info *resource.Info) (bool, error) {
+		dc, ok := info.Object.(*appsv1.DeploymentConfig)
 		if !ok {
 			return false, nil
 		}
@@ -297,7 +298,7 @@ func (o *DeploymentHookOptions) Run() error {
 	return nil
 }
 
-func (o *DeploymentHookOptions) updateDeploymentConfig(dc *appsapi.DeploymentConfig) (bool, error) {
+func (o *DeploymentHookOptions) updateDeploymentConfig(dc *appsv1.DeploymentConfig) (bool, error) {
 	var (
 		err             error
 		updatedRecreate bool
@@ -319,7 +320,7 @@ func (o *DeploymentHookOptions) updateDeploymentConfig(dc *appsapi.DeploymentCon
 	return updatedRecreate || updatedRolling, nil
 }
 
-func (o *DeploymentHookOptions) updateRecreateParams(dc *appsapi.DeploymentConfig, strategyParams *appsapi.RecreateDeploymentStrategyParams) (bool, error) {
+func (o *DeploymentHookOptions) updateRecreateParams(dc *appsv1.DeploymentConfig, strategyParams *appsv1.RecreateDeploymentStrategyParams) (bool, error) {
 	var updated bool
 	if o.Remove {
 		if o.Pre && strategyParams.Pre != nil {
@@ -351,7 +352,7 @@ func (o *DeploymentHookOptions) updateRecreateParams(dc *appsapi.DeploymentConfi
 	return true, nil
 }
 
-func (o *DeploymentHookOptions) updateRollingParams(dc *appsapi.DeploymentConfig, strategyParams *appsapi.RollingDeploymentStrategyParams) (bool, error) {
+func (o *DeploymentHookOptions) updateRollingParams(dc *appsv1.DeploymentConfig, strategyParams *appsv1.RollingDeploymentStrategyParams) (bool, error) {
 	var updated bool
 	if o.Remove {
 		if o.Pre && strategyParams.Pre != nil {
@@ -377,10 +378,10 @@ func (o *DeploymentHookOptions) updateRollingParams(dc *appsapi.DeploymentConfig
 	return true, nil
 }
 
-func (o *DeploymentHookOptions) lifecycleHook(dc *appsapi.DeploymentConfig) (*appsapi.LifecycleHook, error) {
-	hook := &appsapi.LifecycleHook{
+func (o *DeploymentHookOptions) lifecycleHook(dc *appsv1.DeploymentConfig) (*appsv1.LifecycleHook, error) {
+	hook := &appsv1.LifecycleHook{
 		FailurePolicy: o.FailurePolicy,
-		ExecNewPod: &appsapi.ExecNewPodHook{
+		ExecNewPod: &appsv1.ExecNewPodHook{
 			Command: o.Command,
 		},
 	}
@@ -401,11 +402,18 @@ func (o *DeploymentHookOptions) lifecycleHook(dc *appsapi.DeploymentConfig) (*ap
 		hook.ExecNewPod.ContainerName = dc.Spec.Template.Spec.Containers[0].Name
 	}
 	if len(o.Environment) > 0 {
+		// TODO Make external helpers
 		env, _, err := utilenv.ParseEnv(o.Environment, nil)
 		if err != nil {
 			return nil, err
 		}
-		hook.ExecNewPod.Env = env
+		for i := range env {
+			var versionedEnv corev1.EnvVar
+			if err := legacyscheme.Scheme.Convert(&env[i], &versionedEnv, nil); err != nil {
+				return nil, err
+			}
+			hook.ExecNewPod.Env = append(hook.ExecNewPod.Env, versionedEnv)
+		}
 	}
 	if len(o.Volumes) > 0 {
 		for _, v := range o.Volumes {
