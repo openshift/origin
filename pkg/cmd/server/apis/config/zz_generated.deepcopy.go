@@ -600,6 +600,15 @@ func (in *GitLabIdentityProvider) DeepCopyInto(out *GitLabIdentityProvider) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
 	out.ClientSecret = in.ClientSecret
+	if in.Legacy != nil {
+		in, out := &in.Legacy, &out.Legacy
+		if *in == nil {
+			*out = nil
+		} else {
+			*out = new(bool)
+			**out = **in
+		}
+	}
 	return
 }
 
