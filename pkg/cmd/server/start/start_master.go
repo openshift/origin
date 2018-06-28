@@ -113,6 +113,7 @@ func NewCommandStartMaster(basename string, out, errout io.Writer) (*cobra.Comma
 		return nil
 	}
 
+	cmd.Deprecated = "combined master is deprecated, not supported for production, and will be removed in a future release.  Please use `oc cluster up` for local development."
 	flags := cmd.Flags()
 
 	flags.Var(options.MasterArgs.ConfigDir, "write-config", "Directory to write an initial config into.  After writing, exit without starting the server.")
