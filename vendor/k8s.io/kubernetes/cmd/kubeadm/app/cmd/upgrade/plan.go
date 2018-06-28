@@ -23,22 +23,33 @@ import (
 	"sort"
 	"text/tabwriter"
 
+	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
+	kubeadmapiv1alpha2 "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1alpha2"
 	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/validation"
 	"k8s.io/kubernetes/cmd/kubeadm/app/constants"
-	"k8s.io/kubernetes/cmd/kubeadm/app/features"
 	"k8s.io/kubernetes/cmd/kubeadm/app/phases/upgrade"
 	kubeadmutil "k8s.io/kubernetes/cmd/kubeadm/app/util"
+	configutil "k8s.io/kubernetes/cmd/kubeadm/app/util/config"
 	etcdutil "k8s.io/kubernetes/cmd/kubeadm/app/util/etcd"
 )
 
+type planFlags struct {
+	newK8sVersionStr string
+	parent           *cmdUpgradeFlags
+}
+
 // NewCmdPlan returns the cobra command for `kubeadm upgrade plan`
 func NewCmdPlan(parentFlags *cmdUpgradeFlags) *cobra.Command {
+	flags := &planFlags{
+		parent: parentFlags,
+	}
+
 	cmd := &cobra.Command{
-		Use:   "plan",
-		Short: "Check which versions are available to upgrade to and validate whether your current cluster is upgradeable.",
-		Run: func(_ *cobra.Command, _ []string) {
+		Use:   "plan [version] [flags]",
+		Short: "Check which versions are available to upgrade to and validate whether your current cluster is upgradeable. To skip the internet check, pass in the optional [version] parameter.",
+		Run: func(_ *cobra.Command, args []string) {
 			var err error
 			parentFlags.ignorePreflightErrorsSet, err = validation.ValidateIgnorePreflightErrors(parentFlags.ignorePreflightErrors, parentFlags.skipPreFlight)
 			kubeadmutil.CheckErr(err)
@@ -46,7 +57,22 @@ func NewCmdPlan(parentFlags *cmdUpgradeFlags) *cobra.Command {
 			err = runPreflightChecks(parentFlags.ignorePreflightErrorsSet)
 			kubeadmutil.CheckErr(err)
 
-			err = RunPlan(parentFlags)
+			// If the version is specified in config file, pick up that value.
+			if parentFlags.cfgPath != "" {
+				glog.V(1).Infof("fetching configuration from file", parentFlags.cfgPath)
+				cfg, err := configutil.ConfigFileAndDefaultsToInternalConfig(parentFlags.cfgPath, &kubeadmapiv1alpha2.MasterConfiguration{})
+				kubeadmutil.CheckErr(err)
+
+				if cfg.KubernetesVersion != "" {
+					flags.newK8sVersionStr = cfg.KubernetesVersion
+				}
+			}
+			// If option was specified in both args and config file, args will overwrite the config file.
+			if len(args) == 1 {
+				flags.newK8sVersionStr = args[0]
+			}
+
+			err = RunPlan(flags)
 			kubeadmutil.CheckErr(err)
 		},
 	}
@@ -55,38 +81,57 @@ func NewCmdPlan(parentFlags *cmdUpgradeFlags) *cobra.Command {
 }
 
 // RunPlan takes care of outputting available versions to upgrade to for the user
-func RunPlan(parentFlags *cmdUpgradeFlags) error {
+func RunPlan(flags *planFlags) error {
 	// Start with the basics, verify that the cluster is healthy, build a client and a versionGetter. Never dry-run when planning.
-	upgradeVars, err := enforceRequirements(parentFlags, false, "")
+	glog.V(1).Infof("[upgrade/plan] verifying health of cluster")
+	glog.V(1).Infof("[upgrade/plan] retrieving configuration from cluster")
+	upgradeVars, err := enforceRequirements(flags.parent, false, flags.newK8sVersionStr)
 	if err != nil {
 		return err
 	}
 
-	// Define Local Etcd cluster to be able to retrieve information
-	etcdClient, err := etcdutil.NewStaticPodClient(
-		[]string{"localhost:2379"},
-		constants.GetStaticPodDirectory(),
-		upgradeVars.cfg.CertificatesDir,
-	)
-	if err != nil {
-		return err
+	var etcdClient etcdutil.ClusterInterrogator
+
+	// Currently this is the only method we have for distinguishing
+	// external etcd vs static pod etcd
+	isExternalEtcd := upgradeVars.cfg.Etcd.External != nil
+	if isExternalEtcd {
+		client, err := etcdutil.New(
+			upgradeVars.cfg.Etcd.External.Endpoints,
+			upgradeVars.cfg.Etcd.External.CAFile,
+			upgradeVars.cfg.Etcd.External.CertFile,
+			upgradeVars.cfg.Etcd.External.KeyFile)
+		if err != nil {
+			return err
+		}
+		etcdClient = client
+	} else {
+		client, err := etcdutil.NewFromStaticPod(
+			[]string{"localhost:2379"},
+			constants.GetStaticPodDirectory(),
+			upgradeVars.cfg.CertificatesDir,
+		)
+		if err != nil {
+			return err
+		}
+		etcdClient = client
 	}
 
 	// Compute which upgrade possibilities there are
-	fmt.Println("[upgrade/plan] computing upgrade possibilities")
-	availUpgrades, err := upgrade.GetAvailableUpgrades(upgradeVars.versionGetter, parentFlags.allowExperimentalUpgrades, parentFlags.allowRCUpgrades, etcdClient, upgradeVars.cfg.FeatureGates)
+	glog.V(1).Infof("[upgrade/plan] computing upgrade possibilities")
+	availUpgrades, err := upgrade.GetAvailableUpgrades(upgradeVars.versionGetter, flags.parent.allowExperimentalUpgrades, flags.parent.allowRCUpgrades, etcdClient, upgradeVars.cfg.FeatureGates, upgradeVars.client)
 	if err != nil {
 		return fmt.Errorf("[upgrade/versions] FATAL: %v", err)
 	}
 
 	// Tell the user which upgrades are available
-	printAvailableUpgrades(availUpgrades, os.Stdout, upgradeVars.cfg.FeatureGates)
+	printAvailableUpgrades(availUpgrades, os.Stdout, isExternalEtcd)
 	return nil
 }
 
 // printAvailableUpgrades prints a UX-friendly overview of what versions are available to upgrade to
 // TODO look into columnize or some other formatter when time permits instead of using the tabwriter
-func printAvailableUpgrades(upgrades []upgrade.Upgrade, w io.Writer, featureGates map[string]bool) {
+func printAvailableUpgrades(upgrades []upgrade.Upgrade, w io.Writer, isExternalEtcd bool) {
 
 	// Return quickly if no upgrades can be made
 	if len(upgrades) == 0 {
@@ -98,6 +143,16 @@ func printAvailableUpgrades(upgrades []upgrade.Upgrade, w io.Writer, featureGate
 
 	// Loop through the upgrade possibilities and output text to the command line
 	for _, upgrade := range upgrades {
+
+		if isExternalEtcd && upgrade.CanUpgradeEtcd() {
+			fmt.Fprintln(w, "External components that should be upgraded manually before you upgrade the control plane with 'kubeadm upgrade apply':")
+			fmt.Fprintln(tabw, "COMPONENT\tCURRENT\tAVAILABLE")
+			fmt.Fprintf(tabw, "Etcd\t%s\t%s\n", upgrade.Before.EtcdVersion, upgrade.After.EtcdVersion)
+
+			// We should flush the writer here at this stage; as the columns will now be of the right size, adjusted to the above content
+			tabw.Flush()
+			fmt.Fprintln(w, "")
+		}
 
 		if upgrade.CanUpgradeKubelets() {
 			fmt.Fprintln(w, "Components that must be upgraded manually after you have upgraded the control plane with 'kubeadm upgrade apply':")
@@ -114,7 +169,7 @@ func printAvailableUpgrades(upgrades []upgrade.Upgrade, w io.Writer, featureGate
 					firstPrinted = true
 					continue
 				}
-				fmt.Fprintf(tabw, "\t\t%d x %s\t%s\n", nodeCount, oldVersion, upgrade.After.KubeVersion)
+				fmt.Fprintf(tabw, "\t%d x %s\t%s\n", nodeCount, oldVersion, upgrade.After.KubeVersion)
 			}
 			// We should flush the writer here at this stage; as the columns will now be of the right size, adjusted to the above content
 			tabw.Flush()
@@ -128,12 +183,40 @@ func printAvailableUpgrades(upgrades []upgrade.Upgrade, w io.Writer, featureGate
 		fmt.Fprintf(tabw, "Controller Manager\t%s\t%s\n", upgrade.Before.KubeVersion, upgrade.After.KubeVersion)
 		fmt.Fprintf(tabw, "Scheduler\t%s\t%s\n", upgrade.Before.KubeVersion, upgrade.After.KubeVersion)
 		fmt.Fprintf(tabw, "Kube Proxy\t%s\t%s\n", upgrade.Before.KubeVersion, upgrade.After.KubeVersion)
-		if features.Enabled(featureGates, features.CoreDNS) {
-			fmt.Fprintf(tabw, "CoreDNS\t%s\t%s\n", upgrade.Before.DNSVersion, upgrade.After.DNSVersion)
-		} else {
-			fmt.Fprintf(tabw, "Kube DNS\t%s\t%s\n", upgrade.Before.DNSVersion, upgrade.After.DNSVersion)
+
+		// TODO There is currently no way to cleanly output upgrades that involve adding, removing, or changing components
+		// https://github.com/kubernetes/kubeadm/issues/810 was created to track addressing this.
+		printCoreDNS, printKubeDNS := false, false
+		coreDNSBeforeVersion, coreDNSAfterVersion, kubeDNSBeforeVersion, kubeDNSAfterVersion := "", "", "", ""
+
+		switch upgrade.Before.DNSType {
+		case constants.CoreDNS:
+			printCoreDNS = true
+			coreDNSBeforeVersion = upgrade.Before.DNSVersion
+		case constants.KubeDNS:
+			printKubeDNS = true
+			kubeDNSBeforeVersion = upgrade.Before.DNSVersion
 		}
-		fmt.Fprintf(tabw, "Etcd\t%s\t%s\n", upgrade.Before.EtcdVersion, upgrade.After.EtcdVersion)
+
+		switch upgrade.After.DNSType {
+		case constants.CoreDNS:
+			printCoreDNS = true
+			coreDNSAfterVersion = upgrade.After.DNSVersion
+		case constants.KubeDNS:
+			printKubeDNS = true
+			kubeDNSAfterVersion = upgrade.After.DNSVersion
+		}
+
+		if printCoreDNS {
+			fmt.Fprintf(tabw, "CoreDNS\t%s\t%s\n", coreDNSBeforeVersion, coreDNSAfterVersion)
+		}
+		if printKubeDNS {
+			fmt.Fprintf(tabw, "Kube DNS\t%s\t%s\n", kubeDNSBeforeVersion, kubeDNSAfterVersion)
+		}
+
+		if !isExternalEtcd {
+			fmt.Fprintf(tabw, "Etcd\t%s\t%s\n", upgrade.Before.EtcdVersion, upgrade.After.EtcdVersion)
+		}
 
 		// The tabwriter should be flushed at this stage as we have now put in all the required content for this time. This is required for the tabs' size to be correct.
 		tabw.Flush()

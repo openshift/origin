@@ -7,29 +7,28 @@ import (
 	"testing"
 
 	"github.com/gophercloud/gophercloud/acceptance/clients"
+	"github.com/gophercloud/gophercloud/acceptance/tools"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/limits"
+	th "github.com/gophercloud/gophercloud/testhelper"
 )
 
 func TestLimits(t *testing.T) {
 	client, err := clients.NewComputeV2Client()
-	if err != nil {
-		t.Fatalf("Unable to create a compute client: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	limits, err := limits.Get(client, nil).Extract()
-	if err != nil {
-		t.Fatalf("Unable to get limits: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
-	t.Logf("Limits for scoped user:")
-	t.Logf("%#v", limits)
+	tools.PrintResource(t, limits)
+
+	th.AssertEquals(t, limits.Absolute.MaxPersonalitySize, 10240)
 }
 
 func TestLimitsForTenant(t *testing.T) {
+	clients.RequireAdmin(t)
+
 	client, err := clients.NewComputeV2Client()
-	if err != nil {
-		t.Fatalf("Unable to create a compute client: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	// I think this is the easiest way to get the tenant ID while being
 	// agnostic to Identity v2 and v3.
@@ -43,10 +42,9 @@ func TestLimitsForTenant(t *testing.T) {
 	}
 
 	limits, err := limits.Get(client, getOpts).Extract()
-	if err != nil {
-		t.Fatalf("Unable to get absolute limits: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
-	t.Logf("Limits for tenant %s:", tenantID)
-	t.Logf("%#v", limits)
+	tools.PrintResource(t, limits)
+
+	th.AssertEquals(t, limits.Absolute.MaxPersonalitySize, 10240)
 }

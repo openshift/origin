@@ -18,8 +18,9 @@ package ovf
 
 import (
 	"bytes"
-	"encoding/xml"
 	"fmt"
+
+	"github.com/vmware/govmomi/vim25/xml"
 )
 
 const (

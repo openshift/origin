@@ -19,8 +19,9 @@ import (
 
 // Command is the cli command for managing images
 var Command = cli.Command{
-	Name:  "images",
-	Usage: "manage images",
+	Name:    "images",
+	Aliases: []string{"image"},
+	Usage:   "manage images",
 	Subcommands: cli.Commands{
 		checkCommand,
 		exportCommand,
@@ -70,7 +71,7 @@ var listCommand = cli.Command{
 			return nil
 		}
 		tw := tabwriter.NewWriter(os.Stdout, 1, 8, 1, ' ', 0)
-		fmt.Fprintln(tw, "REF\tTYPE\tDIGEST\tSIZE\tPLATFORM\tLABELS\t")
+		fmt.Fprintln(tw, "REF\tTYPE\tDIGEST\tSIZE\tPLATFORMS\tLABELS\t")
 		for _, image := range imageList {
 			size, err := image.Size(ctx, cs, platforms.Default())
 			if err != nil {
@@ -270,8 +271,14 @@ var removeCommand = cli.Command{
 	Name:        "remove",
 	Aliases:     []string{"rm"},
 	Usage:       "remove one or more images by reference",
-	ArgsUsage:   "<ref> [<ref>, ...]",
+	ArgsUsage:   "[flags] <ref> [<ref>, ...]",
 	Description: "remove one or more images by reference",
+	Flags: []cli.Flag{
+		cli.BoolFlag{
+			Name:  "sync",
+			Usage: "Synchronously remove image and all associated resources",
+		},
+	},
 	Action: func(context *cli.Context) error {
 		client, ctx, cancel, err := commands.NewClient(context)
 		if err != nil {
@@ -282,8 +289,12 @@ var removeCommand = cli.Command{
 			exitErr    error
 			imageStore = client.ImageService()
 		)
-		for _, target := range context.Args() {
-			if err := imageStore.Delete(ctx, target); err != nil {
+		for i, target := range context.Args() {
+			var opts []images.DeleteOpt
+			if context.Bool("sync") && i == context.NArg()-1 {
+				opts = append(opts, images.SynchronousDelete())
+			}
+			if err := imageStore.Delete(ctx, target, opts...); err != nil {
 				if !errdefs.IsNotFound(err) {
 					if exitErr == nil {
 						exitErr = errors.Wrapf(err, "unable to delete %v", target)
@@ -291,9 +302,11 @@ var removeCommand = cli.Command{
 					log.G(ctx).WithError(err).Errorf("unable to delete %v", target)
 					continue
 				}
+				// image ref not found in metadata store; log not found condition
+				log.G(ctx).Warnf("%v: image not found", target)
+			} else {
+				fmt.Println(target)
 			}
-
-			fmt.Println(target)
 		}
 
 		return exitErr

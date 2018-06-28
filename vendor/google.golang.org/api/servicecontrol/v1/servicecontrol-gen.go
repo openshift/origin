@@ -1,4 +1,4 @@
-// Package servicecontrol provides access to the Google Service Control API.
+// Package servicecontrol provides access to the Service Control API.
 //
 // See https://cloud.google.com/service-control/
 //
@@ -470,6 +470,8 @@ type CheckError struct {
 	// `ACTIVE` in LoquatV2.
 	//   "SECURITY_POLICY_VIOLATED" - Request is not allowed as per security
 	// policies defined in Org Policy.
+	//   "INVALID_CREDENTIAL" - The credential in the request can not be
+	// verified.
 	//   "NAMESPACE_LOOKUP_UNAVAILABLE" - The backend server for looking up
 	// project id/number is unavailable.
 	//   "SERVICE_STATUS_UNAVAILABLE" - The backend server for checking
@@ -1427,6 +1429,7 @@ type Operation struct {
 	ResourceContainer string `json:"resourceContainer,omitempty"`
 
 	// Resources: The resources that are involved in the operation.
+	// The maximum supported number of entries in this field is 100.
 	Resources []*ResourceInfo `json:"resources,omitempty"`
 
 	// StartTime: Required. Start time of the operation.

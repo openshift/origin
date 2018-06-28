@@ -18,12 +18,15 @@ package simulator
 
 import (
 	"context"
+	"crypto/tls"
 	"strings"
 	"testing"
 
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/property"
+	"github.com/vmware/govmomi/session"
+	"github.com/vmware/govmomi/simulator/vpx"
 	"github.com/vmware/govmomi/vim25/methods"
 	"github.com/vmware/govmomi/vim25/soap"
 	"github.com/vmware/govmomi/vim25/types"
@@ -177,6 +180,43 @@ func TestSessionManagerAuth(t *testing.T) {
 	err = c.SessionManager.CloneSession(ctx, ticket)
 	if err == nil {
 		t.Error("expected error")
+	}
+
+	_, err = methods.GetCurrentTime(ctx, c)
+	if err != nil {
+		t.Error(err)
+	}
+}
+
+func TestSessionManagerLoginExtension(t *testing.T) {
+	ctx := context.Background()
+
+	s := New(NewServiceInstance(vpx.ServiceContent, vpx.RootFolder))
+	s.TLS = new(tls.Config)
+	ts := s.NewServer()
+	defer ts.Close()
+
+	if terr := ts.StartTunnel(); terr != nil {
+		t.Fatal(terr)
+	}
+
+	u := ts.URL.User
+	ts.URL.User = nil // skip Login()
+
+	c, err := govmomi.NewClient(ctx, ts.URL, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = session.NewManager(c.Client).LoginExtensionByCertificate(ctx, u.Username())
+	if err == nil {
+		t.Error("expected error") // client cert not set
+	}
+
+	c.SetCertificate(ts.TLS.Certificates[0]) // any cert is ok with vcsim
+	err = session.NewManager(c.Client).LoginExtensionByCertificate(ctx, u.Username())
+	if err != nil {
+		t.Fatal(err)
 	}
 
 	_, err = methods.GetCurrentTime(ctx, c)

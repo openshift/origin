@@ -221,7 +221,7 @@ func (cmd *clone) Run(ctx context.Context, f *flag.FlagSet) error {
 		return err
 	}
 
-	if cmd.cpus > 0 || cmd.memory > 0 {
+	if cmd.cpus > 0 || cmd.memory > 0 || cmd.annotation != "" {
 		vmConfigSpec := types.VirtualMachineConfigSpec{}
 		if cmd.cpus > 0 {
 			vmConfigSpec.NumCPUs = int32(cmd.cpus)

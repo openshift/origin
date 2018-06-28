@@ -225,7 +225,7 @@
         "locations": {
           "methods": {
             "get": {
-              "description": "Get information about a location.",
+              "description": "Gets information about a location.",
               "flatPath": "v1/projects/{projectsId}/locations/{locationsId}",
               "httpMethod": "GET",
               "id": "bigquerydatatransfer.projects.locations.get",
@@ -412,7 +412,7 @@
                       "type": "string"
                     },
                     "parent": {
-                      "description": "The BigQuery project id where the transfer configuration should be created.\nMust be in the format /projects/{project_id}/locations/{location_id}\nIf specified location and location of the destination bigquery dataset\ndo not match - the request will fail.",
+                      "description": "The BigQuery project id where the transfer configuration should be created.\nMust be in the format projects/{project_id}/locations/{location_id}\nIf specified location and location of the destination bigquery dataset\ndo not match - the request will fail.",
                       "location": "path",
                       "pattern": "^projects/[^/]+/locations/[^/]+$",
                       "required": true,
@@ -427,7 +427,6 @@
                     "$ref": "TransferConfig"
                   },
                   "scopes": [
-                    "https://www.googleapis.com/auth/bigquery",
                     "https://www.googleapis.com/auth/cloud-platform"
                   ]
                 },
@@ -564,7 +563,6 @@
                     "$ref": "TransferConfig"
                   },
                   "scopes": [
-                    "https://www.googleapis.com/auth/bigquery",
                     "https://www.googleapis.com/auth/cloud-platform"
                   ]
                 },
@@ -794,7 +792,7 @@
                   "type": "string"
                 },
                 "parent": {
-                  "description": "The BigQuery project id where the transfer configuration should be created.\nMust be in the format /projects/{project_id}/locations/{location_id}\nIf specified location and location of the destination bigquery dataset\ndo not match - the request will fail.",
+                  "description": "The BigQuery project id where the transfer configuration should be created.\nMust be in the format projects/{project_id}/locations/{location_id}\nIf specified location and location of the destination bigquery dataset\ndo not match - the request will fail.",
                   "location": "path",
                   "pattern": "^projects/[^/]+$",
                   "required": true,
@@ -809,7 +807,6 @@
                 "$ref": "TransferConfig"
               },
               "scopes": [
-                "https://www.googleapis.com/auth/bigquery",
                 "https://www.googleapis.com/auth/cloud-platform"
               ]
             },
@@ -946,7 +943,6 @@
                 "$ref": "TransferConfig"
               },
               "scopes": [
-                "https://www.googleapis.com/auth/bigquery",
                 "https://www.googleapis.com/auth/cloud-platform"
               ]
             },
@@ -1160,7 +1156,7 @@
       }
     }
   },
-  "revision": "20180303",
+  "revision": "20180525",
   "rootUrl": "https://bigquerydatatransfer.googleapis.com/",
   "schemas": {
     "CheckValidCredsRequest": {
@@ -1251,7 +1247,7 @@
           "type": "string"
         },
         "name": {
-          "description": "Data source resource name.",
+          "description": "Output only. Data source resource name.",
           "type": "string"
         },
         "parameters": {
@@ -1273,11 +1269,11 @@
           "type": "boolean"
         },
         "supportsMultipleTransfers": {
-          "description": "Indicates whether the data source supports multiple transfers\nto different BigQuery targets.",
+          "description": "Deprecated. This field has no effect.",
           "type": "boolean"
         },
         "transferType": {
-          "description": "Transfer type. Currently supports only batch transfers,\nwhich are transfers that use the BigQuery batch APIs (load or\nquery) to ingest the data.",
+          "description": "Deprecated. This field has no effect.",
           "enum": [
             "TRANSFER_TYPE_UNSPECIFIED",
             "BATCH",
@@ -1291,7 +1287,7 @@
           "type": "string"
         },
         "updateDeadlineSeconds": {
-          "description": "The number of seconds to wait for an update from the data source\nbefore BigQuery marks the transfer as failed.",
+          "description": "The number of seconds to wait for an update from the data source\nbefore the Data Transfer Service marks the transfer as FAILED.",
           "format": "int32",
           "type": "integer"
         }
@@ -1318,7 +1314,7 @@
           "type": "string"
         },
         "fields": {
-          "description": "When parameter is a record, describes child fields.",
+          "description": "Deprecated. This field has no effect.",
           "items": {
             "$ref": "DataSourceParameter"
           },
@@ -1343,11 +1339,11 @@
           "type": "string"
         },
         "recurse": {
-          "description": "If set to true, schema should be taken from the parent with the same\nparameter_id. Only applicable when parameter type is RECORD.",
+          "description": "Deprecated. This field has no effect.",
           "type": "boolean"
         },
         "repeated": {
-          "description": "Can parameter have multiple values.",
+          "description": "Deprecated. This field has no effect.",
           "type": "boolean"
         },
         "required": {
@@ -1371,7 +1367,7 @@
             "Integer parameter (64-bits).\nWill be serialized to json as string.",
             "Double precision floating point parameter.",
             "Boolean parameter.",
-            "Record parameter.",
+            "Deprecated. This field has no effect.",
             "Page ID for a Google+ Page."
           ],
           "type": "string"
@@ -1580,7 +1576,7 @@
       "type": "object"
     },
     "TransferConfig": {
-      "description": "Represents a data transfer configuration. A transfer configuration\ncontains all metadata needed to perform a data transfer. For example,\n`destination_dataset_id` specifies where data should be stored.\nWhen a new transfer configuration is created, the specified\n`destination_dataset_id` is created when needed and shared with the\nappropriate data source service account.\nNext id: 21",
+      "description": "Represents a data transfer configuration. A transfer configuration\ncontains all metadata needed to perform a data transfer. For example,\n`destination_dataset_id` specifies where data should be stored.\nWhen a new transfer configuration is created, the specified\n`destination_dataset_id` is created when needed and shared with the\nappropriate data source service account.",
       "id": "TransferConfig",
       "properties": {
         "dataRefreshWindowDays": {
@@ -1695,7 +1691,7 @@
       "type": "object"
     },
     "TransferRun": {
-      "description": "Represents a data transfer run.\nNext id: 27",
+      "description": "Represents a data transfer run.",
       "id": "TransferRun",
       "properties": {
         "dataSourceId": {

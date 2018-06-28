@@ -21,6 +21,9 @@ import (
 	. "github.com/onsi/gomega"
 
 	"fmt"
+	"strings"
+	"time"
+
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/api/core/v1"
 	storage "k8s.io/api/storage/v1"
@@ -34,8 +37,6 @@ import (
 	"k8s.io/kubernetes/pkg/volume/util"
 	"k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/kubernetes/test/e2e/storage/utils"
-	"strings"
-	"time"
 )
 
 const (
@@ -43,7 +44,7 @@ const (
 	statefulSetReadyTimeout = 3 * time.Minute
 )
 
-var _ = utils.SIGDescribe("Regional PD [Feature:RegionalPD]", func() {
+var _ = utils.SIGDescribe("Regional PD", func() {
 	f := framework.NewDefaultFramework("regional-pd")
 
 	// filled in BeforeEach
@@ -204,15 +205,15 @@ func testZonalFailover(c clientset.Interface, ns string) {
 	instanceGroup, err := cloud.GetInstanceGroup(instanceGroupName, podZone)
 	Expect(err).NotTo(HaveOccurred(),
 		"Error getting instance group %s in zone %s", instanceGroupName, podZone)
+	templateName, err := framework.GetManagedInstanceGroupTemplateName(podZone)
+	Expect(err).NotTo(HaveOccurred(),
+		"Error getting instance group template in zone %s", podZone)
 	err = framework.DeleteManagedInstanceGroup(podZone)
 	Expect(err).NotTo(HaveOccurred(),
 		"Error deleting instance group in zone %s", podZone)
 
 	defer func() {
 		framework.Logf("recreating instance group %s", instanceGroup.Name)
-
-		// HACK improve this when Managed Instance Groups are available through the cloud provider API
-		templateName := strings.Replace(instanceGroupName, "group", "template", 1 /* n */)
 
 		framework.ExpectNoError(framework.CreateManagedInstanceGroup(instanceGroup.Size, podZone, templateName),
 			"Error recreating instance group %s in zone %s", instanceGroup.Name, podZone)
@@ -333,7 +334,7 @@ func newPodTemplate(labels map[string]string) *v1.PodTemplateSpec {
 				// and prints the entire file to stdout.
 				{
 					Name:    "busybox",
-					Image:   "gcr.io/google_containers/busybox",
+					Image:   "k8s.gcr.io/busybox",
 					Command: []string{"sh", "-c"},
 					Args: []string{
 						"echo ${POD_NAME} >> /mnt/data/regional-pd/pods.txt;" +

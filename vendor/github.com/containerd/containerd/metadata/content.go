@@ -184,6 +184,9 @@ func (cs *contentStore) Delete(ctx context.Context, dgst digest.Digest) error {
 		if err := getBlobsBucket(tx, ns).DeleteBucket([]byte(dgst.String())); err != nil {
 			return err
 		}
+		if err := removeContentLease(ctx, tx, dgst); err != nil {
+			return err
+		}
 
 		// Mark content store as dirty for triggering garbage collection
 		cs.db.dirtyL.Lock()
@@ -315,12 +318,23 @@ func (cs *contentStore) Writer(ctx context.Context, ref string, size int64, expe
 	cs.l.RLock()
 	defer cs.l.RUnlock()
 
-	var w content.Writer
+	var (
+		w      content.Writer
+		exists bool
+	)
 	if err := update(ctx, cs.db, func(tx *bolt.Tx) error {
 		if expected != "" {
 			cbkt := getBlobBucket(tx, ns, expected)
 			if cbkt != nil {
-				return errors.Wrapf(errdefs.ErrAlreadyExists, "content %v", expected)
+				// Add content to lease to prevent other reference removals
+				// from effecting this object during a provided lease
+				if err := addContentLease(ctx, tx, expected); err != nil {
+					return errors.Wrap(err, "unable to lease content")
+				}
+				// Return error outside of transaction to ensure
+				// commit succeeds with the lease.
+				exists = true
+				return nil
 			}
 		}
 
@@ -359,6 +373,9 @@ func (cs *contentStore) Writer(ctx context.Context, ref string, size int64, expe
 		return err
 	}); err != nil {
 		return nil, err
+	}
+	if exists {
+		return nil, errors.Wrapf(errdefs.ErrAlreadyExists, "content %v", expected)
 	}
 
 	// TODO: keep the expected in the writer to use on commit
@@ -527,12 +544,14 @@ func writeInfo(info *content.Info, bkt *bolt.Bucket) error {
 	return bkt.Put(bucketKeySize, sizeEncoded)
 }
 
-func (cs *contentStore) garbageCollect(ctx context.Context) error {
-	lt1 := time.Now()
+func (cs *contentStore) garbageCollect(ctx context.Context) (d time.Duration, err error) {
 	cs.l.Lock()
+	t1 := time.Now()
 	defer func() {
+		if err == nil {
+			d = time.Now().Sub(t1)
+		}
 		cs.l.Unlock()
-		log.G(ctx).WithField("t", time.Now().Sub(lt1)).Debugf("content garbage collected")
 	}()
 
 	seen := map[string]struct{}{}
@@ -567,10 +586,10 @@ func (cs *contentStore) garbageCollect(ctx context.Context) error {
 
 		return nil
 	}); err != nil {
-		return err
+		return 0, err
 	}
 
-	return cs.Store.Walk(ctx, func(info content.Info) error {
+	err = cs.Store.Walk(ctx, func(info content.Info) error {
 		if _, ok := seen[info.Digest.String()]; !ok {
 			if err := cs.Store.Delete(ctx, info.Digest); err != nil {
 				return err
@@ -579,4 +598,5 @@ func (cs *contentStore) garbageCollect(ctx context.Context) error {
 		}
 		return nil
 	})
+	return
 }

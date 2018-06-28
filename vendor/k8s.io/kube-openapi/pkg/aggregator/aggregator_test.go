@@ -376,6 +376,206 @@ definitions:
 	assert.Equal(DebugSpec{expected}, DebugSpec{spec1})
 }
 
+func TestMergeSpecsEmptyDefinitions(t *testing.T) {
+	var spec1, spec2, expected *spec.Swagger
+	yaml.Unmarshal([]byte(`
+swagger: "2.0"
+paths:
+  /test:
+    post:
+      tags:
+      - "test"
+      summary: "Test API"
+      operationId: "addTest"
+      parameters:
+      - in: "body"
+        name: "body"
+        description: "test object"
+        required: true
+      responses:
+        405:
+          description: "Invalid input"
+`), &spec1)
+
+	yaml.Unmarshal([]byte(`
+swagger: "2.0"
+paths:
+  /othertest:
+    post:
+      tags:
+      - "test2"
+      summary: "Test2 API"
+      operationId: "addTest2"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/xml"
+      parameters:
+      - in: "body"
+        name: "body"
+        description: "test2 object"
+        required: true
+        schema:
+          $ref: "#/definitions/Test2"
+definitions:
+  Test2:
+    type: "object"
+    properties:
+      other:
+        $ref: "#/definitions/Other"
+  Other:
+    type: "string"
+`), &spec2)
+
+	yaml.Unmarshal([]byte(`
+swagger: "2.0"
+paths:
+  /test:
+    post:
+      tags:
+      - "test"
+      summary: "Test API"
+      operationId: "addTest"
+      parameters:
+      - in: "body"
+        name: "body"
+        description: "test object"
+        required: true
+      responses:
+        405:
+          description: "Invalid input"
+  /othertest:
+    post:
+      tags:
+      - "test2"
+      summary: "Test2 API"
+      operationId: "addTest2"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/xml"
+      parameters:
+      - in: "body"
+        name: "body"
+        description: "test2 object"
+        required: true
+        schema:
+          $ref: "#/definitions/Test2"
+definitions:
+  Test2:
+    type: "object"
+    properties:
+      other:
+        $ref: "#/definitions/Other"
+  Other:
+    type: "string"
+`), &expected)
+
+	assert := assert.New(t)
+	if !assert.NoError(MergeSpecs(spec1, spec2)) {
+		return
+	}
+	assert.Equal(DebugSpec{expected}, DebugSpec{spec1})
+}
+
+func TestMergeSpecsEmptyPaths(t *testing.T) {
+	var spec1, spec2, expected *spec.Swagger
+	yaml.Unmarshal([]byte(`
+swagger: "2.0"
+definitions:
+  Test:
+    type: "object"
+    properties:
+      id:
+        type: "integer"
+        format: "int64"
+      status:
+        type: "string"
+        description: "Status"
+  InvalidInput:
+    type: "string"
+    format: "string"
+`), &spec1)
+
+	yaml.Unmarshal([]byte(`
+swagger: "2.0"
+paths:
+  /othertest:
+    post:
+      tags:
+      - "test2"
+      summary: "Test2 API"
+      operationId: "addTest2"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/xml"
+      parameters:
+      - in: "body"
+        name: "body"
+        description: "test2 object"
+        required: true
+        schema:
+          $ref: "#/definitions/Test2"
+definitions:
+  Test2:
+    type: "object"
+    properties:
+      other:
+        $ref: "#/definitions/Other"
+  Other:
+    type: "string"
+`), &spec2)
+
+	yaml.Unmarshal([]byte(`
+swagger: "2.0"
+paths:
+  /othertest:
+    post:
+      tags:
+      - "test2"
+      summary: "Test2 API"
+      operationId: "addTest2"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/xml"
+      parameters:
+      - in: "body"
+        name: "body"
+        description: "test2 object"
+        required: true
+        schema:
+          $ref: "#/definitions/Test2"
+definitions:
+  Test:
+    type: "object"
+    properties:
+      id:
+        type: "integer"
+        format: "int64"
+      status:
+        type: "string"
+        description: "Status"
+  InvalidInput:
+    type: "string"
+    format: "string"
+  Test2:
+    type: "object"
+    properties:
+      other:
+        $ref: "#/definitions/Other"
+  Other:
+    type: "string"
+`), &expected)
+
+	assert := assert.New(t)
+	if !assert.NoError(MergeSpecs(spec1, spec2)) {
+		return
+	}
+	assert.Equal(DebugSpec{expected}, DebugSpec{spec1})
+}
+
 func TestMergeSpecsReuseModel(t *testing.T) {
 	var spec1, spec2, expected *spec.Swagger
 	yaml.Unmarshal([]byte(`

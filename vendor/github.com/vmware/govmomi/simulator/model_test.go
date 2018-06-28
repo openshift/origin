@@ -31,6 +31,10 @@ func compareModel(t *testing.T, m *Model) {
 	pools := (m.Pool * m.Cluster * m.Datacenter) + (m.Host+m.Cluster)*m.Datacenter
 	// root folder + Datacenter folders {host,vm,datastore,network} + top-level folders
 	folders := 1 + (4 * m.Datacenter) + (5 * m.Folder)
+	pgs := m.Portgroup
+	if pgs > 0 {
+		pgs++ // uplinks
+	}
 
 	tests := []struct {
 		expect int
@@ -39,7 +43,7 @@ func compareModel(t *testing.T, m *Model) {
 	}{
 		{m.Datacenter, count.Datacenter, "Datacenter"},
 		{m.Cluster * m.Datacenter, count.Cluster, "Cluster"},
-		{m.Portgroup * m.Datacenter, count.Portgroup, "Portgroup"},
+		{pgs * m.Datacenter, count.Portgroup, "Portgroup"},
 		{m.Datastore * m.Datacenter, count.Datastore, "Datastore"},
 		{hosts, count.Host, "Host"},
 		{vms, count.Machine, "VirtualMachine"},

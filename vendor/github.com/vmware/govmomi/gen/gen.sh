@@ -47,7 +47,11 @@ generate() {
   done
 }
 
-# ./sdk/ contains the contents of wsdl.zip from vimbase build 5037323
+# ./sdk/ contains the contents of wsdl.zip from vimbase build 8129541
 
-generate "../vim25" "vim" "./rbvmomi/vmodl.db" # from github.com/vmware/rbvmomi@f6907e6
+generate "../vim25" "vim" "./rbvmomi/vmodl.db" # from github.com/vmware/rbvmomi@1cc9f9e
 generate "../pbm" "pbm"
+# originally generated, then manually pruned as there are several vim25 types that are duplicated.
+# generate "../lookup" "lookup" # lookup.wsdl from build 4571810
+# originally generated, then manually pruned.
+# generate "../ssoadmin" "ssoadmin" # ssoadmin.wsdl from PSC

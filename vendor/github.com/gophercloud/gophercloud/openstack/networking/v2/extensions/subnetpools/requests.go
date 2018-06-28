@@ -18,27 +18,24 @@ type ListOptsBuilder interface {
 // SortDir sets the direction, and is either `asc' or `desc'.
 // Marker and Limit are used for the pagination.
 type ListOpts struct {
-	ID               string   `q:"id"`
-	Name             string   `q:"name"`
-	DefaultQuota     int      `q:"default_quota"`
-	TenantID         string   `q:"tenant_id"`
-	ProjectID        string   `q:"project_id"`
-	CreatedAt        string   `q:"created_at"`
-	UpdatedAt        string   `q:"updated_at"`
-	Prefixes         []string `q:"prefixes"`
-	DefaultPrefixLen int      `q:"default_prefixlen"`
-	MinPrefixLen     int      `q:"min_prefixlen"`
-	MaxPrefixLen     int      `q:"max_prefixlen"`
-	AddressScopeID   string   `q:"address_scope_id"`
-	IPversion        int      `q:"ip_version"`
-	Shared           bool     `q:"shared"`
-	Description      string   `q:"description"`
-	IsDefault        bool     `q:"is_default"`
-	RevisionNumber   int      `q:"revision_number"`
-	Limit            int      `q:"limit"`
-	Marker           string   `q:"marker"`
-	SortKey          string   `q:"sort_key"`
-	SortDir          string   `q:"sort_dir"`
+	ID               string `q:"id"`
+	Name             string `q:"name"`
+	DefaultQuota     int    `q:"default_quota"`
+	TenantID         string `q:"tenant_id"`
+	ProjectID        string `q:"project_id"`
+	DefaultPrefixLen int    `q:"default_prefixlen"`
+	MinPrefixLen     int    `q:"min_prefixlen"`
+	MaxPrefixLen     int    `q:"max_prefixlen"`
+	AddressScopeID   string `q:"address_scope_id"`
+	IPVersion        int    `q:"ip_version"`
+	Shared           *bool  `q:"shared"`
+	Description      string `q:"description"`
+	IsDefault        *bool  `q:"is_default"`
+	RevisionNumber   int    `q:"revision_number"`
+	Limit            int    `q:"limit"`
+	Marker           string `q:"marker"`
+	SortKey          string `q:"sort_key"`
+	SortDir          string `q:"sort_dir"`
 }
 
 // ToSubnetPoolListQuery formats a ListOpts into a query string.

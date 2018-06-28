@@ -129,7 +129,7 @@ type ListTracesResponse struct {
 	// retrieving additional traces.
 	NextPageToken string `json:"nextPageToken,omitempty"`
 
-	// Traces: List of trace records returned.
+	// Traces: List of trace records as specified by the view parameter.
 	Traces []*Trace `json:"traces,omitempty"`
 
 	// ServerResponse contains the HTTP response code and headers from the
@@ -261,9 +261,11 @@ type TraceSpan struct {
 	// *   `/http/client_region`
 	// *   `/http/host`
 	// *   `/http/method`
+	// *   `/http/path`
 	// *   `/http/redirected_url`
 	// *   `/http/request/size`
 	// *   `/http/response/size`
+	// *   `/http/route`
 	// *   `/http/status_code`
 	// *   `/http/url`
 	// *   `/http/user_agent`

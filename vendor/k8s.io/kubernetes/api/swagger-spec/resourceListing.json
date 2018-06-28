@@ -2,6 +2,10 @@
   "swaggerVersion": "1.2",
   "apis": [
    {
+    "path": "/version",
+    "description": "git code version from which this is built"
+   },
+   {
     "path": "/apis",
     "description": "get available API versions"
    },
@@ -118,6 +122,10 @@
     "description": "get information of a group"
    },
    {
+    "path": "/apis/scheduling.k8s.io/v1beta1",
+    "description": "API at /apis/scheduling.k8s.io/v1beta1"
+   },
+   {
     "path": "/apis/scheduling.k8s.io/v1alpha1",
     "description": "API at /apis/scheduling.k8s.io/v1alpha1"
    },
@@ -183,14 +191,6 @@
    },
    {
     "path": "/apis/events.k8s.io",
-    "description": "get information of a group"
-   },
-   {
-    "path": "/apis/apiextensions.k8s.io/v1beta1",
-    "description": "API at /apis/apiextensions.k8s.io/v1beta1"
-   },
-   {
-    "path": "/apis/apiextensions.k8s.io",
     "description": "get information of a group"
    }
   ],

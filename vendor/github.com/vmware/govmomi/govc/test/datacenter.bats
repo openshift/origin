@@ -37,6 +37,9 @@ load test_helper
     run govc datacenter.info "/$dc"
     assert_success
   done
+
+  run govc object.destroy "/$dc"
+  assert_success
 }
 
 @test "datacenter commands fail against ESX" {

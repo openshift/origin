@@ -2,15 +2,14 @@ package containers
 
 import (
 	"github.com/boltdb/bolt"
+	eventstypes "github.com/containerd/containerd/api/events"
 	api "github.com/containerd/containerd/api/services/containers/v1"
-	eventsapi "github.com/containerd/containerd/api/services/events/v1"
 	"github.com/containerd/containerd/containers"
 	"github.com/containerd/containerd/errdefs"
 	"github.com/containerd/containerd/events"
 	"github.com/containerd/containerd/metadata"
 	"github.com/containerd/containerd/plugin"
-	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/pkg/errors"
+	ptypes "github.com/gogo/protobuf/types"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -95,10 +94,10 @@ func (s *service) Create(ctx context.Context, req *api.CreateContainerRequest) (
 	}); err != nil {
 		return &resp, errdefs.ToGRPC(err)
 	}
-	if err := s.publisher.Publish(ctx, "/containers/create", &eventsapi.ContainerCreate{
+	if err := s.publisher.Publish(ctx, "/containers/create", &eventstypes.ContainerCreate{
 		ID:    resp.Container.ID,
 		Image: resp.Container.Image,
-		Runtime: &eventsapi.ContainerCreate_Runtime{
+		Runtime: &eventstypes.ContainerCreate_Runtime{
 			Name:    resp.Container.Runtime.Name,
 			Options: resp.Container.Runtime.Options,
 		},
@@ -137,7 +136,7 @@ func (s *service) Update(ctx context.Context, req *api.UpdateContainerRequest) (
 		return &resp, errdefs.ToGRPC(err)
 	}
 
-	if err := s.publisher.Publish(ctx, "/containers/update", &eventsapi.ContainerUpdate{
+	if err := s.publisher.Publish(ctx, "/containers/update", &eventstypes.ContainerUpdate{
 		ID:          resp.Container.ID,
 		Image:       resp.Container.Image,
 		Labels:      resp.Container.Labels,
@@ -149,24 +148,20 @@ func (s *service) Update(ctx context.Context, req *api.UpdateContainerRequest) (
 	return &resp, nil
 }
 
-func (s *service) Delete(ctx context.Context, req *api.DeleteContainerRequest) (*empty.Empty, error) {
+func (s *service) Delete(ctx context.Context, req *api.DeleteContainerRequest) (*ptypes.Empty, error) {
 	if err := s.withStoreUpdate(ctx, func(ctx context.Context, store containers.Store) error {
 		return store.Delete(ctx, req.ID)
 	}); err != nil {
-		return &empty.Empty{}, errdefs.ToGRPC(err)
+		return &ptypes.Empty{}, errdefs.ToGRPC(err)
 	}
 
-	if err := s.publisher.Publish(ctx, "/containers/delete", &eventsapi.ContainerDelete{
+	if err := s.publisher.Publish(ctx, "/containers/delete", &eventstypes.ContainerDelete{
 		ID: req.ID,
 	}); err != nil {
-		return &empty.Empty{}, err
+		return &ptypes.Empty{}, err
 	}
 
-	if err := s.db.GarbageCollect(ctx); err != nil {
-		return &empty.Empty{}, errdefs.ToGRPC(errors.Wrap(err, "garbage collection failed"))
-	}
-
-	return &empty.Empty{}, nil
+	return &ptypes.Empty{}, nil
 }
 
 func (s *service) withStore(ctx context.Context, fn func(ctx context.Context, store containers.Store) error) func(tx *bolt.Tx) error {

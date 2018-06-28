@@ -10,6 +10,6 @@ import (
 
 type imageResolverFunc func(in string) (string, error)
 
-func resolveImageFactory(f cmdutil.Factory, cmd *cobra.Command) imageResolverFunc {
-	return f.ResolveImage
+func resolveImageFactory(f cmdutil.Factory, cmd *cobra.Command) ImageResolver {
+	return resolveImageFunc
 }

@@ -85,7 +85,6 @@ class Prop
         type ="int64"
       when "dateTime"
         type ="time.Time"
-        prefix += "*" if !slice? && optional?
       when "byte"
       when "double"
         type ="float64"
@@ -152,8 +151,11 @@ class Managed
       end
     end
 
+    seen = {}
     props.each do |p|
+      next if seen[p.name]
       p.dump(io)
+      seen[p.name] = true
     end
     io.print "}\n\n"
 
@@ -198,7 +200,8 @@ class Vmodl
       next if v["kind"] != "managed"
       # rbvmomi/vmodl.db includes pbm mo's, but we don't need the types as they have no properties
       next if k =~ /^pbm/i
-
+      # internal/types.go already includes these
+      next if ["InternalDynamicTypeManager", "ReflectManagedMethodExecuter"].include?(k)
       Managed.new(self, k, v)
     end.compact
   end

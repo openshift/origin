@@ -217,12 +217,47 @@ func TestBreakouts(t *testing.T) {
 			return nil
 		}
 	}
+	fileValue := func(f1 string, content []byte) func(string) error {
+		return func(root string) error {
+			b, err := ioutil.ReadFile(filepath.Join(root, f1))
+			if err != nil {
+				return err
+			}
+			if bytes.Compare(b, content) != 0 {
+				return errors.Errorf("content differs: expected %v, got %v", content, b)
+			}
+			return nil
+		}
+	}
+	fileNotExists := func(f1 string) func(string) error {
+		return func(root string) error {
+			_, err := os.Lstat(filepath.Join(root, f1))
+			if err == nil {
+				return errors.New("file exists")
+			} else if !os.IsNotExist(err) {
+				return err
+			}
+			return nil
+		}
+
+	}
+	all := func(funcs ...func(string) error) func(string) error {
+		return func(root string) error {
+			for _, f := range funcs {
+				if err := f(root); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}
 
 	breakouts := []struct {
 		name      string
 		w         WriterToTar
 		apply     fstest.Applier
 		validator func(string) error
+		err       error
 	}{
 		{
 			name: "SymlinkAbsolute",
@@ -468,10 +503,129 @@ func TestBreakouts(t *testing.T) {
 			),
 			validator: notSameFile("/localetc/localpasswd", "/etc/passwd"),
 		},
+		{
+			name: "WhiteoutRootParent",
+			apply: fstest.Apply(
+				fstest.CreateDir("/etc/", 0755),
+				fstest.CreateFile("/etc/passwd", []byte("inside"), 0644),
+			),
+			w: TarAll(
+				tc.File(".wh...", []byte{}, 0644), // Should wipe out whole directory
+			),
+			err: errInvalidArchive,
+		},
+		{
+			name: "WhiteoutParent",
+			apply: fstest.Apply(
+				fstest.CreateDir("/etc/", 0755),
+				fstest.CreateFile("/etc/passwd", []byte("inside"), 0644),
+			),
+			w: TarAll(
+				tc.File("etc/.wh...", []byte{}, 0644),
+			),
+			err: errInvalidArchive,
+		},
+		{
+			name: "WhiteoutRoot",
+			apply: fstest.Apply(
+				fstest.CreateDir("/etc/", 0755),
+				fstest.CreateFile("/etc/passwd", []byte("inside"), 0644),
+			),
+			w: TarAll(
+				tc.File(".wh..", []byte{}, 0644),
+			),
+			err: errInvalidArchive,
+		},
+		{
+			name: "WhiteoutCurrentDirectory",
+			apply: fstest.Apply(
+				fstest.CreateDir("/etc/", 0755),
+				fstest.CreateFile("/etc/passwd", []byte("inside"), 0644),
+			),
+			w: TarAll(
+				tc.File("etc/.wh..", []byte{}, 0644), // Should wipe out whole directory
+			),
+			err: errInvalidArchive,
+		},
+		{
+			name: "WhiteoutSymlink",
+			apply: fstest.Apply(
+				fstest.CreateDir("/etc/", 0755),
+				fstest.CreateFile("/etc/passwd", []byte("all users"), 0644),
+				fstest.Symlink("/etc", "localetc"),
+			),
+			w: TarAll(
+				tc.File(".wh.localetc", []byte{}, 0644), // Should wipe out whole directory
+			),
+			validator: all(
+				fileValue("etc/passwd", []byte("all users")),
+				fileNotExists("localetc"),
+			),
+		},
+		{
+			// TODO: This test should change once archive apply is disallowing
+			// symlinks as parents in the name
+			name: "WhiteoutSymlinkPath",
+			apply: fstest.Apply(
+				fstest.CreateDir("/etc/", 0755),
+				fstest.CreateFile("/etc/passwd", []byte("all users"), 0644),
+				fstest.CreateFile("/etc/whitedout", []byte("ahhhh whiteout"), 0644),
+				fstest.Symlink("/etc", "localetc"),
+			),
+			w: TarAll(
+				tc.File("localetc/.wh.whitedout", []byte{}, 0644),
+			),
+			validator: all(
+				fileValue("etc/passwd", []byte("all users")),
+				fileNotExists("etc/whitedout"),
+			),
+		},
+		{
+			name: "WhiteoutDirectoryName",
+			apply: fstest.Apply(
+				fstest.CreateDir("/etc/", 0755),
+				fstest.CreateFile("/etc/passwd", []byte("all users"), 0644),
+				fstest.CreateFile("/etc/whitedout", []byte("ahhhh whiteout"), 0644),
+				fstest.Symlink("/etc", "localetc"),
+			),
+			w: TarAll(
+				tc.File(".wh.etc/somefile", []byte("non-empty"), 0644),
+			),
+			validator: all(
+				fileValue("etc/passwd", []byte("all users")),
+				fileValue(".wh.etc/somefile", []byte("non-empty")),
+			),
+		},
+		{
+			name: "WhiteoutDeadSymlinkParent",
+			apply: fstest.Apply(
+				fstest.CreateDir("/etc/", 0755),
+				fstest.CreateFile("/etc/passwd", []byte("all users"), 0644),
+				fstest.Symlink("/dne", "localetc"),
+			),
+			w: TarAll(
+				tc.File("localetc/.wh.etc", []byte{}, 0644),
+			),
+			// no-op, remove does not
+			validator: fileValue("etc/passwd", []byte("all users")),
+		},
+		{
+			name: "WhiteoutRelativePath",
+			apply: fstest.Apply(
+				fstest.CreateDir("/etc/", 0755),
+				fstest.CreateFile("/etc/passwd", []byte("all users"), 0644),
+				fstest.Symlink("/dne", "localetc"),
+			),
+			w: TarAll(
+				tc.File("dne/../.wh.etc", []byte{}, 0644),
+			),
+			// resolution ends up just removing etc
+			validator: fileNotExists("etc/passwd"),
+		},
 	}
 
 	for _, bo := range breakouts {
-		t.Run(bo.name, makeWriterToTarTest(bo.w, bo.apply, bo.validator))
+		t.Run(bo.name, makeWriterToTarTest(bo.w, bo.apply, bo.validator, bo.err))
 	}
 }
 
@@ -501,6 +655,7 @@ func TestApplyTar(t *testing.T) {
 		w         WriterToTar
 		apply     fstest.Applier
 		validator func(string) error
+		err       error
 	}{
 		{
 			name: "DirectoryCreation",
@@ -525,7 +680,7 @@ func TestApplyTar(t *testing.T) {
 	}
 
 	for _, at := range tests {
-		t.Run(at.name, makeWriterToTarTest(at.w, at.apply, at.validator))
+		t.Run(at.name, makeWriterToTarTest(at.w, at.apply, at.validator, at.err))
 	}
 }
 
@@ -636,7 +791,7 @@ func testDiffApply(appliers ...fstest.Applier) error {
 	return fstest.CheckDirectoryEqual(td, dest)
 }
 
-func makeWriterToTarTest(wt WriterToTar, a fstest.Applier, validate func(string) error) func(*testing.T) {
+func makeWriterToTarTest(wt WriterToTar, a fstest.Applier, validate func(string) error, applyErr error) func(*testing.T) {
 	return func(t *testing.T) {
 		td, err := ioutil.TempDir("", "test-writer-to-tar-")
 		if err != nil {
@@ -653,7 +808,14 @@ func makeWriterToTarTest(wt WriterToTar, a fstest.Applier, validate func(string)
 		tr := TarFromWriterTo(wt)
 
 		if _, err := Apply(context.Background(), td, tr); err != nil {
-			t.Fatalf("Failed to apply tar: %v", err)
+			if applyErr == nil {
+				t.Fatalf("Failed to apply tar: %v", err)
+			} else if errors.Cause(err) != applyErr {
+				t.Fatalf("Unexpected apply error: %v, expected %v", err, applyErr)
+			}
+			return
+		} else if applyErr != nil {
+			t.Fatalf("Expected apply error, got none: %v", applyErr)
 		}
 
 		if validate != nil {
@@ -663,6 +825,309 @@ func makeWriterToTarTest(wt WriterToTar, a fstest.Applier, validate func(string)
 
 		}
 
+	}
+}
+
+func TestDiffTar(t *testing.T) {
+	tests := []struct {
+		name       string
+		validators []tarEntryValidator
+		a          fstest.Applier
+		b          fstest.Applier
+	}{
+		{
+			name:       "EmptyDiff",
+			validators: []tarEntryValidator{},
+			a: fstest.Apply(
+				fstest.CreateDir("/etc/", 0755),
+			),
+			b: fstest.Apply(),
+		},
+		{
+			name: "ParentInclusion",
+			validators: []tarEntryValidator{
+				dirEntry("d1/", 0755),
+				dirEntry("d1/d/", 0700),
+				dirEntry("d2/", 0770),
+				fileEntry("d2/f", []byte("ok"), 0644),
+			},
+			a: fstest.Apply(
+				fstest.CreateDir("/d1/", 0755),
+				fstest.CreateDir("/d2/", 0770),
+			),
+			b: fstest.Apply(
+				fstest.CreateDir("/d1/d", 0700),
+				fstest.CreateFile("/d2/f", []byte("ok"), 0644),
+			),
+		},
+		{
+			name: "HardlinkParentInclusion",
+			validators: []tarEntryValidator{
+				dirEntry("d2/", 0755),
+				fileEntry("d2/l1", []byte("link me"), 0644),
+				// d1/f1 and its parent is included after the new link,
+				// before the new link was included, these files would
+				// not have been needed
+				dirEntry("d1/", 0755),
+				linkEntry("d1/f1", "d2/l1"),
+				dirEntry("d3/", 0755),
+				fileEntry("d3/l1", []byte("link me"), 0644),
+				dirEntry("d4/", 0755),
+				linkEntry("d4/f1", "d3/l1"),
+				dirEntry("d6/", 0755),
+				whiteoutEntry("d6/l1"),
+				whiteoutEntry("d6/l2"),
+			},
+			a: fstest.Apply(
+				fstest.CreateDir("/d1/", 0755),
+				fstest.CreateFile("/d1/f1", []byte("link me"), 0644),
+				fstest.CreateDir("/d2/", 0755),
+				fstest.CreateFile("/d2/f1", []byte("link me"), 0644),
+				fstest.CreateDir("/d3/", 0755),
+				fstest.CreateDir("/d4/", 0755),
+				fstest.CreateFile("/d4/f1", []byte("link me"), 0644),
+				fstest.CreateDir("/d5/", 0755),
+				fstest.CreateFile("/d5/f1", []byte("link me"), 0644),
+				fstest.CreateDir("/d6/", 0755),
+				fstest.Link("/d1/f1", "/d6/l1"),
+				fstest.Link("/d5/f1", "/d6/l2"),
+			),
+			b: fstest.Apply(
+				fstest.Link("/d1/f1", "/d2/l1"),
+				fstest.Link("/d4/f1", "/d3/l1"),
+				fstest.Remove("/d6/l1"),
+				fstest.Remove("/d6/l2"),
+			),
+		},
+		{
+			name: "UpdateDirectoryPermission",
+			validators: []tarEntryValidator{
+				dirEntry("d1/", 0777),
+				dirEntry("d1/d/", 0700),
+				dirEntry("d2/", 0770),
+				fileEntry("d2/f", []byte("ok"), 0644),
+			},
+			a: fstest.Apply(
+				fstest.CreateDir("/d1/", 0755),
+				fstest.CreateDir("/d2/", 0770),
+			),
+			b: fstest.Apply(
+				fstest.Chmod("/d1", 0777),
+				fstest.CreateDir("/d1/d", 0700),
+				fstest.CreateFile("/d2/f", []byte("ok"), 0644),
+			),
+		},
+		{
+			name: "HardlinkUpdatedParent",
+			validators: []tarEntryValidator{
+				dirEntry("d1/", 0777),
+				dirEntry("d2/", 0755),
+				fileEntry("d2/l1", []byte("link me"), 0644),
+				// d1/f1 is included after the new link, its
+				// parent has already changed and therefore
+				// only the linked file is included
+				linkEntry("d1/f1", "d2/l1"),
+				dirEntry("d4/", 0777),
+				fileEntry("d4/l1", []byte("link me"), 0644),
+				dirEntry("d3/", 0755),
+				linkEntry("d3/f1", "d4/l1"),
+			},
+			a: fstest.Apply(
+				fstest.CreateDir("/d1/", 0755),
+				fstest.CreateFile("/d1/f1", []byte("link me"), 0644),
+				fstest.CreateDir("/d2/", 0755),
+				fstest.CreateFile("/d2/f1", []byte("link me"), 0644),
+				fstest.CreateDir("/d3/", 0755),
+				fstest.CreateFile("/d3/f1", []byte("link me"), 0644),
+				fstest.CreateDir("/d4/", 0755),
+			),
+			b: fstest.Apply(
+				fstest.Chmod("/d1", 0777),
+				fstest.Link("/d1/f1", "/d2/l1"),
+				fstest.Chmod("/d4", 0777),
+				fstest.Link("/d3/f1", "/d4/l1"),
+			),
+		},
+		{
+			name: "WhiteoutIncludesParents",
+			validators: []tarEntryValidator{
+				dirEntry("d1/", 0755),
+				whiteoutEntry("d1/f1"),
+				dirEntry("d2/", 0755),
+				whiteoutEntry("d2/f1"),
+				fileEntry("d2/f2", []byte("content"), 0777),
+				dirEntry("d3/", 0755),
+				whiteoutEntry("d3/f1"),
+				fileEntry("d3/f2", []byte("content"), 0644),
+				dirEntry("d4/", 0755),
+				fileEntry("d4/f0", []byte("content"), 0644),
+				whiteoutEntry("d4/f1"),
+				whiteoutEntry("d5"),
+			},
+			a: fstest.Apply(
+				fstest.CreateDir("/d1/", 0755),
+				fstest.CreateFile("/d1/f1", []byte("content"), 0644),
+				fstest.CreateDir("/d2/", 0755),
+				fstest.CreateFile("/d2/f1", []byte("content"), 0644),
+				fstest.CreateFile("/d2/f2", []byte("content"), 0644),
+				fstest.CreateDir("/d3/", 0755),
+				fstest.CreateFile("/d3/f1", []byte("content"), 0644),
+				fstest.CreateDir("/d4/", 0755),
+				fstest.CreateFile("/d4/f1", []byte("content"), 0644),
+				fstest.CreateDir("/d5/", 0755),
+				fstest.CreateFile("/d5/f1", []byte("content"), 0644),
+			),
+			b: fstest.Apply(
+				fstest.Remove("/d1/f1"),
+				fstest.Remove("/d2/f1"),
+				fstest.Chmod("/d2/f2", 0777),
+				fstest.Remove("/d3/f1"),
+				fstest.CreateFile("/d3/f2", []byte("content"), 0644),
+				fstest.Remove("/d4/f1"),
+				fstest.CreateFile("/d4/f0", []byte("content"), 0644),
+				fstest.RemoveAll("/d5"),
+			),
+		},
+		{
+			name: "WhiteoutParentRemoval",
+			validators: []tarEntryValidator{
+				whiteoutEntry("d1"),
+				whiteoutEntry("d2"),
+				dirEntry("d3/", 0755),
+			},
+			a: fstest.Apply(
+				fstest.CreateDir("/d1/", 0755),
+				fstest.CreateDir("/d2/", 0755),
+				fstest.CreateFile("/d2/f1", []byte("content"), 0644),
+			),
+			b: fstest.Apply(
+				fstest.RemoveAll("/d1"),
+				fstest.RemoveAll("/d2"),
+				fstest.CreateDir("/d3/", 0755),
+			),
+		},
+	}
+
+	for _, at := range tests {
+		t.Run(at.name, makeDiffTarTest(at.validators, at.a, at.b))
+	}
+}
+
+type tarEntryValidator func(*tar.Header, []byte) error
+
+func dirEntry(name string, mode int) tarEntryValidator {
+	return func(hdr *tar.Header, b []byte) error {
+		if hdr.Typeflag != tar.TypeDir {
+			return errors.New("not directory type")
+		}
+		if hdr.Name != name {
+			return errors.Errorf("wrong name %q, expected %q", hdr.Name, name)
+		}
+		if hdr.Mode != int64(mode) {
+			return errors.Errorf("wrong mode %o, expected %o", hdr.Mode, mode)
+		}
+		return nil
+	}
+}
+
+func fileEntry(name string, expected []byte, mode int) tarEntryValidator {
+	return func(hdr *tar.Header, b []byte) error {
+		if hdr.Typeflag != tar.TypeReg {
+			return errors.New("not file type")
+		}
+		if hdr.Name != name {
+			return errors.Errorf("wrong name %q, expected %q", hdr.Name, name)
+		}
+		if hdr.Mode != int64(mode) {
+			return errors.Errorf("wrong mode %o, expected %o", hdr.Mode, mode)
+		}
+		if bytes.Compare(b, expected) != 0 {
+			return errors.Errorf("different file content")
+		}
+		return nil
+	}
+}
+
+func linkEntry(name, link string) tarEntryValidator {
+	return func(hdr *tar.Header, b []byte) error {
+		if hdr.Typeflag != tar.TypeLink {
+			return errors.New("not link type")
+		}
+		if hdr.Name != name {
+			return errors.Errorf("wrong name %q, expected %q", hdr.Name, name)
+		}
+		if hdr.Linkname != link {
+			return errors.Errorf("wrong link %q, expected %q", hdr.Linkname, link)
+		}
+		return nil
+	}
+}
+
+func whiteoutEntry(name string) tarEntryValidator {
+	whiteOutDir := filepath.Dir(name)
+	whiteOutBase := filepath.Base(name)
+	whiteOut := filepath.Join(whiteOutDir, whiteoutPrefix+whiteOutBase)
+
+	return func(hdr *tar.Header, b []byte) error {
+		if hdr.Typeflag != tar.TypeReg {
+			return errors.Errorf("not file type: %q", hdr.Typeflag)
+		}
+		if hdr.Name != whiteOut {
+			return errors.Errorf("wrong name %q, expected whiteout %q", hdr.Name, name)
+		}
+		return nil
+	}
+}
+
+func makeDiffTarTest(validators []tarEntryValidator, a, b fstest.Applier) func(*testing.T) {
+	return func(t *testing.T) {
+		ad, err := ioutil.TempDir("", "test-make-diff-tar-")
+		if err != nil {
+			t.Fatalf("failed to create temp dir: %v", err)
+		}
+		defer os.RemoveAll(ad)
+		if err := a.Apply(ad); err != nil {
+			t.Fatalf("failed to apply a: %v", err)
+		}
+
+		bd, err := ioutil.TempDir("", "test-make-diff-tar-")
+		if err != nil {
+			t.Fatalf("failed to create temp dir: %v", err)
+		}
+		defer os.RemoveAll(bd)
+		if err := fs.CopyDir(bd, ad); err != nil {
+			t.Fatalf("failed to copy dir: %v", err)
+		}
+		if err := b.Apply(bd); err != nil {
+			t.Fatalf("failed to apply b: %v", err)
+		}
+
+		rc := Diff(context.Background(), ad, bd)
+		defer rc.Close()
+
+		tr := tar.NewReader(rc)
+		for i := 0; ; i++ {
+			hdr, err := tr.Next()
+			if err != nil {
+				if err == io.EOF {
+					break
+				}
+				t.Fatalf("tar read error: %v", err)
+			}
+			var b []byte
+			if hdr.Typeflag == tar.TypeReg && hdr.Size > 0 {
+				b, err = ioutil.ReadAll(tr)
+				if err != nil {
+					t.Fatalf("tar read file error: %v", err)
+				}
+			}
+			if i >= len(validators) {
+				t.Fatal("no validator for entry")
+			}
+			if err := validators[i](hdr, b); err != nil {
+				t.Fatalf("tar entry[%d] validation fail: %#v", i, err)
+			}
+		}
 	}
 }
 

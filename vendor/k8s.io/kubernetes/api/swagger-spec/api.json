@@ -16,7 +16,7 @@
       "type": "v1.APIVersions",
       "method": "GET",
       "summary": "get available API versions",
-      "nickname": "getLegacyAPIVersions",
+      "nickname": "getAPIVersions",
       "parameters": [],
       "produces": [
        "application/json",

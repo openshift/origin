@@ -139,7 +139,7 @@ load test_helper
   run govc object.collect -s -type ClusterComputeResource / configStatus
   assert_success green
 
-  run govc object.collect -s -type ClusterComputeResource / effectiveRole
+  run govc object.collect -s -type ClusterComputeResource / effectiveRole # []int32 -> ArrayOfInt
   assert_number
 
   run govc object.collect -s -type ComputeResource / configStatus
@@ -158,7 +158,8 @@ load test_helper
   assert_matches dvportgroup-
 
   run govc object.collect -s -type DistributedVirtualPortgroup / config.name
-  assert_success DC0_DVPG0
+  assert_matches DC0_DVPG0
+  assert_matches DVS0-DVUplinks-
 
   run govc object.collect -s -type DistributedVirtualPortgroup / effectiveRole
   assert_number
@@ -240,6 +241,12 @@ load test_helper
   run govc object.collect -s -type VirtualMachine / summary.guest.toolsStatus
   assert_matches toolsNotInstalled
 
+  run govc object.collect -s -type VirtualMachine / config.npivPortWorldWideName # []int64 -> ArrayOfLong
+  assert_success
+
+  run govc object.collect -s -type VirtualMachine / config.vmxConfigChecksum # []uint8 -> ArrayOfByte
+  assert_success
+
   run govc object.collect -s /DC0/vm/DC0_H0_VM0 config.hardware.numCoresPerSocket
   assert_success 1
 
@@ -292,7 +299,7 @@ load test_helper
   assert_number
 
   run govc object.collect -s -type Network / summary.accessible
-  assert_success "$(printf "true\ntrue")"
+  assert_success "$(printf "true\ntrue\ntrue")"
 
   run govc object.collect -s -type Network / summary.ipPoolName
   assert_success ""
@@ -378,6 +385,8 @@ EOF
   run govc find /
   assert_success
 
+  govc find -json / | jq .
+
   run govc find . -type HostSystem
   assert_success
 
@@ -443,6 +452,11 @@ EOF
   assert_output "$folder/$vm"
 
   run govc find "$folder" -name "$vm"
+  assert_output "$folder/$vm"
+
+  # Make sure property filter doesn't match when guest is unset for $vm (issue 1089)
+  run govc find "$folder" -type m -guest.ipAddress 0.0.0.0
+  assert_output ""
 }
 
 @test "object.method" {

@@ -39,6 +39,7 @@ func TestList(t *testing.T) {
 			Subnet1,
 			Subnet2,
 			Subnet3,
+			Subnet4,
 		}
 
 		th.CheckDeepEquals(t, expected, actual)
@@ -84,6 +85,7 @@ func TestGet(t *testing.T) {
 	th.AssertEquals(t, s.GatewayIP, "192.0.0.1")
 	th.AssertEquals(t, s.CIDR, "192.0.0.0/8")
 	th.AssertEquals(t, s.ID, "54d6f61d-db07-451c-9ab3-b9609b6b6f0b")
+	th.AssertEquals(t, s.SubnetPoolID, "b80340c7-9960-4f67-a99c-02501656284b")
 }
 
 func TestCreate(t *testing.T) {
@@ -119,6 +121,7 @@ func TestCreate(t *testing.T) {
 		HostRoutes: []subnets.HostRoute{
 			{NextHop: "bar"},
 		},
+		SubnetPoolID: "b80340c7-9960-4f67-a99c-02501656284b",
 	}
 	s, err := subnets.Create(fake.ServiceClient(), opts).Extract()
 	th.AssertNoErr(t, err)
@@ -139,6 +142,7 @@ func TestCreate(t *testing.T) {
 	th.AssertEquals(t, s.GatewayIP, "192.168.199.1")
 	th.AssertEquals(t, s.CIDR, "192.168.199.0/24")
 	th.AssertEquals(t, s.ID, "3b80198d-4f7b-4f77-9ef5-774d54e17126")
+	th.AssertEquals(t, s.SubnetPoolID, "b80340c7-9960-4f67-a99c-02501656284b")
 }
 
 func TestCreateNoGateway(t *testing.T) {

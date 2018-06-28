@@ -311,6 +311,127 @@ func TestWaitForUpdates(t *testing.T) {
 	}
 }
 
+func TestPropertyCollectorWithUnsetValues(t *testing.T) {
+	ctx := context.Background()
+
+	m := VPX()
+
+	defer m.Remove()
+
+	err := m.Create()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	s := m.Service.NewServer()
+	defer s.Close()
+
+	client, err := govmomi.NewClient(ctx, s.URL, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	pc := property.DefaultCollector(client.Client)
+
+	vm := Map.Any("VirtualMachine")
+	vmRef := vm.Reference()
+
+	propSets := [][]string{
+		{"parentVApp"},                                                         // unset string by default (not returned by RetrievePropertiesEx)
+		{"rootSnapshot"},                                                       // unset VirtualMachineSnapshot[] by default (returned by RetrievePropertiesEx)
+		{"config.networkShaper.enabled"},                                       // unset at config.networkShaper level by default (not returned by RetrievePropertiesEx)
+		{"parentVApp", "rootSnapshot", "config.networkShaper.enabled"},         // (not returned by RetrievePropertiesEx)
+		{"name", "parentVApp", "rootSnapshot", "config.networkShaper.enabled"}, // (only name returned by RetrievePropertiesEx)
+		{"name", "config.guestFullName"},                                       // both set (and returned by RetrievePropertiesEx))
+	}
+
+	for _, propSet := range propSets {
+		// RetrievePropertiesEx
+		var objectContents []types.ObjectContent
+		err = pc.RetrieveOne(ctx, vmRef, propSet, &objectContents)
+		if err != nil {
+			t.Error(err)
+		}
+
+		if len(objectContents) != 1 {
+			t.Fatalf("len(objectContents) %#v != 1", len(objectContents))
+		}
+		objectContent := objectContents[0]
+
+		if objectContent.Obj != vmRef {
+			t.Fatalf("objectContent.Obj %#v != vmRef %#v", objectContent.Obj, vmRef)
+		}
+
+		inRetrieveResponseCount := 0
+		for _, prop := range propSet {
+			_, err := fieldValue(reflect.ValueOf(vm), prop)
+
+			switch err {
+			case nil:
+				inRetrieveResponseCount++
+				found := false
+				for _, objProp := range objectContent.PropSet {
+					if prop == objProp.Name {
+						found = true
+						break
+					}
+				}
+				if !found {
+					t.Fatalf("prop %#v was not found", prop)
+				}
+			case errEmptyField:
+				continue
+			default:
+				t.Error(err)
+			}
+		}
+
+		if len(objectContent.PropSet) != inRetrieveResponseCount {
+			t.Fatalf("len(objectContent.PropSet) %#v != inRetrieveResponseCount %#v", len(objectContent.PropSet), inRetrieveResponseCount)
+		}
+
+		if len(objectContent.MissingSet) != 0 {
+			t.Fatalf("len(objectContent.MissingSet) %#v != 0", len(objectContent.MissingSet))
+		}
+
+		// WaitForUpdatesEx
+		f := func(once bool) func([]types.PropertyChange) bool {
+			return func(pc []types.PropertyChange) bool {
+				if len(propSet) != len(pc) {
+					t.Fatalf("len(propSet) %#v != len(pc) %#v", len(propSet), len(pc))
+				}
+
+				for _, prop := range propSet {
+					found := false
+					for _, objProp := range pc {
+						switch err {
+						case nil, errEmptyField:
+							if prop == objProp.Name {
+								found = true
+							}
+						default:
+							t.Error(err)
+						}
+						if found {
+							break
+						}
+					}
+					if !found {
+						t.Fatalf("prop %#v was not found", prop)
+					}
+				}
+
+				return once
+			}
+		}
+
+		err = property.Wait(ctx, pc, vmRef, propSet, f(true))
+		if err != nil {
+			t.Error(err)
+		}
+	}
+}
+
 func TestCollectInterfaceType(t *testing.T) {
 	// test that we properly collect an interface type (types.BaseVirtualDevice in this case)
 	var config types.VirtualMachineConfigInfo
@@ -1017,7 +1138,7 @@ func TestIssue945(t *testing.T) {
    </SOAP-ENV:Body>
 </SOAP-ENV:Envelope>`
 
-	method, err := UnmarshalBody([]byte(xml))
+	method, err := UnmarshalBody(defaultMapType, []byte(xml))
 	if err != nil {
 		t.Fatal(err)
 	}

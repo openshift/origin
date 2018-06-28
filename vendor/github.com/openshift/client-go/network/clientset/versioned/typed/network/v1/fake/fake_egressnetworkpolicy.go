@@ -46,7 +46,7 @@ func (c *FakeEgressNetworkPolicies) List(opts v1.ListOptions) (result *network_v
 	if label == nil {
 		label = labels.Everything()
 	}
-	list := &network_v1.EgressNetworkPolicyList{}
+	list := &network_v1.EgressNetworkPolicyList{ListMeta: obj.(*network_v1.EgressNetworkPolicyList).ListMeta}
 	for _, item := range obj.(*network_v1.EgressNetworkPolicyList).Items {
 		if label.Matches(labels.Set(item.Labels)) {
 			list.Items = append(list.Items, item)

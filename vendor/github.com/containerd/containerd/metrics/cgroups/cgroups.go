@@ -4,7 +4,7 @@ package cgroups
 
 import (
 	"github.com/containerd/cgroups"
-	eventsapi "github.com/containerd/containerd/api/services/events/v1"
+	eventstypes "github.com/containerd/containerd/api/events"
 	"github.com/containerd/containerd/events"
 	"github.com/containerd/containerd/linux"
 	"github.com/containerd/containerd/log"
@@ -13,6 +13,7 @@ import (
 	"github.com/containerd/containerd/plugin"
 	"github.com/containerd/containerd/runtime"
 	metrics "github.com/docker/go-metrics"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 )
 
@@ -71,7 +72,12 @@ func (m *cgroupsMonitor) Monitor(c runtime.Task) error {
 	if err := m.collector.Add(info.ID, info.Namespace, cg); err != nil {
 		return err
 	}
-	return m.oom.Add(info.ID, info.Namespace, cg, m.trigger)
+	err = m.oom.Add(info.ID, info.Namespace, cg, m.trigger)
+	if err == cgroups.ErrMemoryNotSupported {
+		logrus.WithError(err).Warn("OOM monitoring failed")
+		return nil
+	}
+	return err
 }
 
 func (m *cgroupsMonitor) Stop(c runtime.Task) error {
@@ -91,7 +97,7 @@ func (m *cgroupsMonitor) Stop(c runtime.Task) error {
 
 func (m *cgroupsMonitor) trigger(id, namespace string, cg cgroups.Cgroup) {
 	ctx := namespaces.WithNamespace(m.context, namespace)
-	if err := m.publisher.Publish(ctx, runtime.TaskOOMEventTopic, &eventsapi.TaskOOM{
+	if err := m.publisher.Publish(ctx, runtime.TaskOOMEventTopic, &eventstypes.TaskOOM{
 		ContainerID: id,
 	}); err != nil {
 		log.G(m.context).WithError(err).Error("post OOM event")

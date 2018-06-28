@@ -31,6 +31,7 @@ import (
 	"github.com/vmware/govmomi/govc/flags"
 	"github.com/vmware/govmomi/property"
 	"github.com/vmware/govmomi/view"
+	"github.com/vmware/govmomi/vim25"
 	"github.com/vmware/govmomi/vim25/methods"
 	"github.com/vmware/govmomi/vim25/soap"
 	"github.com/vmware/govmomi/vim25/types"
@@ -317,7 +318,7 @@ func (cmd *collect) Run(ctx context.Context, f *flag.FlagSet) error {
 	filter := new(property.WaitFilter)
 
 	if cmd.raw == "" {
-		ref := methods.ServiceInstance
+		ref := vim25.ServiceInstance
 		arg := f.Arg(0)
 
 		if len(cmd.kind) != 0 {

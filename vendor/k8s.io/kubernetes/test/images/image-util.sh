@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright 2017 The Kubernetes Authors.
 #
@@ -99,6 +99,10 @@ push() {
     TAG=$(<${IMAGE}/VERSION)
     docker push ${REGISTRY}/${IMAGE}-${arch}:${TAG}
   done
+
+  # Make archs list into OS/architecture pair. Eg: 'amd64 ppc64le' to 'linux/amd64,linux/ppc64le'
+  archs=$(echo $archs | sed -e 's/[^ ]* */linux\/&/g' -e 's/ /,/g')
+  manifest-tool push from-args --platforms ${archs} --template ${REGISTRY}/${IMAGE}-ARCH:${TAG} --target ${REGISTRY}/${IMAGE}:${TAG}
 }
 
 # This function is for building the go code

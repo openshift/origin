@@ -466,7 +466,7 @@ func TestDoPollForAsynchronous_PollsForSpecifiedStatusCodes(t *testing.T) {
 }
 
 func TestDoPollForAsynchronous_CanBeCanceled(t *testing.T) {
-	cancel := make(chan struct{})
+	ctx, cancel := context.WithCancel(context.Background())
 	delay := 5 * time.Second
 
 	r1 := newAsynchronousResponse()
@@ -478,21 +478,27 @@ func TestDoPollForAsynchronous_CanBeCanceled(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Add(1)
 	start := time.Now()
+	end := time.Now()
+	var err error
 	go func() {
 		req := mocks.NewRequest()
-		req.Cancel = cancel
+		req = req.WithContext(ctx)
 
-		wg.Done()
-
-		r, _ := autorest.SendWithSender(client, req,
-			DoPollForAsynchronous(10*time.Second))
+		var r *http.Response
+		r, err = autorest.SendWithSender(client, req,
+			DoPollForAsynchronous(delay))
 		autorest.Respond(r,
 			autorest.ByClosing())
+		end = time.Now()
+		wg.Done()
 	}()
+	cancel()
 	wg.Wait()
-	close(cancel)
 	time.Sleep(5 * time.Millisecond)
-	if time.Since(start) >= delay {
+	if err == nil {
+		t.Fatalf("azure: DoPollForAsynchronous didn't cancel")
+	}
+	if end.Sub(start) >= delay {
 		t.Fatalf("azure: DoPollForAsynchronous failed to cancel")
 	}
 }
@@ -1081,11 +1087,8 @@ func TestFuture_Marshalling(t *testing.T) {
 		t.Fatalf("azure: TestFuture failed to unmarshal")
 	}
 
-	if future.ps.Code != future2.ps.Code {
-		t.Fatalf("azure: TestFuture marshalling codes don't match")
-	}
-	if future.ps.Message != future2.ps.Message {
-		t.Fatalf("azure: TestFuture marshalling messages don't match")
+	if future.ps.ServiceError != future2.ps.ServiceError {
+		t.Fatalf("azure: TestFuture marshalling ServiceError don't match")
 	}
 	if future.ps.PollingMethod != future2.ps.PollingMethod {
 		t.Fatalf("azure: TestFuture marshalling response formats don't match")
@@ -1095,6 +1098,23 @@ func TestFuture_Marshalling(t *testing.T) {
 	}
 	if future.ps.URI != future2.ps.URI {
 		t.Fatalf("azure: TestFuture marshalling URIs don't match")
+	}
+}
+
+func TestFuture_MarshallingWithServiceError(t *testing.T) {
+	client := mocks.NewSender()
+	client.AppendResponse(newAsynchronousResponseWithError("400 Bad Request", http.StatusBadRequest))
+
+	future := NewFuture(mocks.NewRequest())
+	done, err := future.Done(client)
+	if err == nil {
+		t.Fatalf("azure: TestFuture marshalling didn't fail")
+	}
+	if done {
+		t.Fatalf("azure: TestFuture marshalling shouldn't be done")
+	}
+	if future.PollingMethod() != "" {
+		t.Fatalf("azure: future shouldn't have polling method")
 	}
 }
 

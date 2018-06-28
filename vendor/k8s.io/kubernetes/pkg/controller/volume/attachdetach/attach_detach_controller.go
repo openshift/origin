@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+	authenticationv1 "k8s.io/api/authentication/v1"
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
@@ -135,7 +136,7 @@ func NewAttachDetachController(
 
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartLogging(glog.Infof)
-	eventBroadcaster.StartRecordingToSink(&v1core.EventSinkImpl{Interface: v1core.New(kubeClient.CoreV1().RESTClient()).Events("")})
+	eventBroadcaster.StartRecordingToSink(&v1core.EventSinkImpl{Interface: kubeClient.CoreV1().Events("")})
 	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, v1.EventSource{Component: "attachdetach-controller"})
 	blkutil := volumepathhandler.NewBlockVolumePathHandler()
 
@@ -522,6 +523,10 @@ func (adc *attachDetachController) GetVolumeDevicePluginDir(podUID string) strin
 	return ""
 }
 
+func (adc *attachDetachController) GetPodsDir() string {
+	return ""
+}
+
 func (adc *attachDetachController) GetPodVolumeDir(podUID types.UID, pluginName, volumeName string) string {
 	return ""
 }
@@ -582,6 +587,12 @@ func (adc *attachDetachController) GetConfigMapFunc() func(namespace, name strin
 	}
 }
 
+func (adc *attachDetachController) GetServiceAccountTokenFunc() func(_, _ string, _ *authenticationv1.TokenRequest) (*authenticationv1.TokenRequest, error) {
+	return func(_, _ string, _ *authenticationv1.TokenRequest) (*authenticationv1.TokenRequest, error) {
+		return nil, fmt.Errorf("GetServiceAccountToken unsupported in attachDetachController")
+	}
+}
+
 func (adc *attachDetachController) GetExec(pluginName string) mount.Exec {
 	return mount.NewOsExec()
 }
@@ -606,4 +617,8 @@ func (adc *attachDetachController) GetNodeLabels() (map[string]string, error) {
 
 func (adc *attachDetachController) GetNodeName() types.NodeName {
 	return ""
+}
+
+func (adc *attachDetachController) GetEventRecorder() record.EventRecorder {
+	return adc.recorder
 }

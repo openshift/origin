@@ -90,12 +90,6 @@ spec:
           readOnly: true
       hostNetwork: true
       serviceAccountName: kube-proxy
-      tolerations:
-      - key: {{ .MasterTaintKey }}
-        effect: NoSchedule
-      - key: {{ .CloudTaintKey }}
-        value: "true"
-        effect: NoSchedule
       volumes:
       - name: kube-proxy
         configMap:
@@ -107,5 +101,12 @@ spec:
       - name: lib-modules
         hostPath:
           path: /lib/modules
+      tolerations:
+      - key: CriticalAddonsOnly
+        operator: Exists
+      - key: {{ .MasterTaintKey }}
+        effect: NoSchedule
+      nodeSelector:
+        beta.kubernetes.io/arch: {{ .Arch }}
 `
 )

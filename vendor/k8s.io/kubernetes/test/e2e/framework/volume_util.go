@@ -67,6 +67,10 @@ const (
 
 	// Waiting period for volume server (Ceph, ...) to initialize itself.
 	VolumeServerPodStartupSleep = 20 * time.Second
+
+	// Waiting period for pod to be cleaned up and unmount its volumes so we
+	// don't tear down containers with NFS/Ceph/Gluster server too early.
+	PodCleanupTimeout = 20 * time.Second
 )
 
 // Configuration of one tests. The test consist of:
@@ -182,7 +186,7 @@ func NewISCSIServer(cs clientset.Interface, namespace string) (config VolumeTest
 }
 
 // CephRBD-specific wrapper for CreateStorageServer.
-func NewRBDServer(cs clientset.Interface, namespace string) (config VolumeTestConfig, pod *v1.Pod, ip string) {
+func NewRBDServer(cs clientset.Interface, namespace string) (config VolumeTestConfig, pod *v1.Pod, secret *v1.Secret, ip string) {
 	config = VolumeTestConfig{
 		Namespace:   namespace,
 		Prefix:      "rbd",
@@ -201,7 +205,28 @@ func NewRBDServer(cs clientset.Interface, namespace string) (config VolumeTestCo
 	Logf("sleeping a bit to give ceph server time to initialize")
 	time.Sleep(VolumeServerPodStartupSleep)
 
-	return config, pod, ip
+	// create secrets for the server
+	secret = &v1.Secret{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Secret",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: config.Prefix + "-secret",
+		},
+		Data: map[string][]byte{
+			// from test/images/volumes-tester/rbd/keyring
+			"key": []byte("AQDRrKNVbEevChAAEmRC+pW/KBVHxa0w/POILA=="),
+		},
+		Type: "kubernetes.io/rbd",
+	}
+
+	secret, err := cs.CoreV1().Secrets(config.Namespace).Create(secret)
+	if err != nil {
+		Failf("Failed to create secrets for Ceph RBD: %v", err)
+	}
+
+	return config, pod, secret, ip
 }
 
 // Wrapper for StartVolumeServer(). A storage server config is passed in, and a pod pointer
@@ -351,8 +376,8 @@ func VolumeTestCleanup(f *Framework, config VolumeTestConfig) {
 		}
 		// See issue #24100.
 		// Prevent umount errors by making sure making sure the client pod exits cleanly *before* the volume server pod exits.
-		By("sleeping a bit so client can stop and unmount")
-		time.Sleep(20 * time.Second)
+		By("sleeping a bit so kubelet can unmount and detach the volume")
+		time.Sleep(PodCleanupTimeout)
 
 		err = podClient.Delete(config.Prefix+"-server", nil)
 		if err != nil {

@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime/pprof"
+	"strings"
 	"testing"
 	"time"
 
@@ -21,13 +22,51 @@ import (
 	"github.com/containerd/containerd/gc"
 	"github.com/containerd/containerd/images"
 	"github.com/containerd/containerd/namespaces"
-	"github.com/containerd/containerd/snapshot"
-	"github.com/containerd/containerd/snapshot/naive"
+	"github.com/containerd/containerd/snapshots"
+	"github.com/containerd/containerd/snapshots/naive"
 	"github.com/gogo/protobuf/types"
 	digest "github.com/opencontainers/go-digest"
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 )
+
+func testDB(t *testing.T) (context.Context, *DB, func()) {
+	ctx, cancel := context.WithCancel(context.Background())
+	ctx = namespaces.WithNamespace(ctx, "testing")
+
+	dirname, err := ioutil.TempDir("", strings.Replace(t.Name(), "/", "_", -1)+"-")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	snapshotter, err := naive.NewSnapshotter(filepath.Join(dirname, "naive"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cs, err := local.NewStore(filepath.Join(dirname, "content"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	bdb, err := bolt.Open(filepath.Join(dirname, "metadata.db"), 0644, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	db := NewDB(bdb, cs, map[string]snapshots.Snapshotter{"naive": snapshotter})
+	if err := db.Init(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	return ctx, db, func() {
+		bdb.Close()
+		if err := os.RemoveAll(dirname); err != nil {
+			t.Log("failed removing temp dir", err)
+		}
+		cancel()
+	}
+}
 
 func TestInit(t *testing.T) {
 	ctx, db, cancel := testEnv(t)
@@ -222,7 +261,7 @@ func TestMetadataCollector(t *testing.T) {
 
 	if err := mdb.Update(func(tx *bolt.Tx) error {
 		for _, obj := range objects {
-			node, err := create(obj, tx, cs, sn)
+			node, err := create(obj, tx, NewImageStore(mdb), cs, sn)
 			if err != nil {
 				return err
 			}
@@ -235,7 +274,7 @@ func TestMetadataCollector(t *testing.T) {
 		t.Fatalf("Creation failed: %+v", err)
 	}
 
-	if err := mdb.GarbageCollect(ctx); err != nil {
+	if _, err := mdb.GarbageCollect(ctx); err != nil {
 		t.Fatal(err)
 	}
 
@@ -297,7 +336,7 @@ func benchmarkTrigger(n int) func(b *testing.B) {
 
 		if err := mdb.Update(func(tx *bolt.Tx) error {
 			for _, obj := range objects {
-				node, err := create(obj, tx, cs, sn)
+				node, err := create(obj, tx, NewImageStore(mdb), cs, sn)
 				if err != nil {
 					return err
 				}
@@ -322,7 +361,7 @@ func benchmarkTrigger(n int) func(b *testing.B) {
 
 				//b.StartTimer()
 
-				if err := mdb.GarbageCollect(ctx); err != nil {
+				if _, err := mdb.GarbageCollect(ctx); err != nil {
 					b.Fatal(err)
 				}
 
@@ -377,7 +416,7 @@ type object struct {
 	labels  map[string]string
 }
 
-func create(obj object, tx *bolt.Tx, cs content.Store, sn snapshot.Snapshotter) (*gc.Node, error) {
+func create(obj object, tx *bolt.Tx, is images.Store, cs content.Store, sn snapshots.Snapshotter) (*gc.Node, error) {
 	var (
 		node      *gc.Node
 		namespace = "test"
@@ -408,7 +447,7 @@ func create(obj object, tx *bolt.Tx, cs content.Store, sn snapshot.Snapshotter) 
 	case testSnapshot:
 		ctx := WithTransactionContext(ctx, tx)
 		if v.active {
-			_, err := sn.Prepare(ctx, v.key, v.parent, snapshot.WithLabels(obj.labels))
+			_, err := sn.Prepare(ctx, v.key, v.parent, snapshots.WithLabels(obj.labels))
 			if err != nil {
 				return nil, err
 			}
@@ -418,7 +457,7 @@ func create(obj object, tx *bolt.Tx, cs content.Store, sn snapshot.Snapshotter) 
 			if err != nil {
 				return nil, err
 			}
-			if err := sn.Commit(ctx, v.key, akey, snapshot.WithLabels(obj.labels)); err != nil {
+			if err := sn.Commit(ctx, v.key, akey, snapshots.WithLabels(obj.labels)); err != nil {
 				return nil, err
 			}
 		}
@@ -430,12 +469,14 @@ func create(obj object, tx *bolt.Tx, cs content.Store, sn snapshot.Snapshotter) 
 			}
 		}
 	case testImage:
+		ctx := WithTransactionContext(ctx, tx)
+
 		image := images.Image{
 			Name:   v.name,
 			Target: v.target,
 			Labels: obj.labels,
 		}
-		_, err := NewImageStore(tx).Create(ctx, image)
+		_, err := is.Create(ctx, image)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to create image")
 		}
@@ -528,7 +569,7 @@ type testContainer struct {
 	snapshot string
 }
 
-func newStores(t testing.TB) (*DB, content.Store, snapshot.Snapshotter, func()) {
+func newStores(t testing.TB) (*DB, content.Store, snapshots.Snapshotter, func()) {
 	td, err := ioutil.TempDir("", "gc-test-")
 	if err != nil {
 		t.Fatal(err)
@@ -548,7 +589,7 @@ func newStores(t testing.TB) (*DB, content.Store, snapshot.Snapshotter, func()) 
 		t.Fatal(err)
 	}
 
-	mdb := NewDB(db, lcs, map[string]snapshot.Snapshotter{"naive": nsn})
+	mdb := NewDB(db, lcs, map[string]snapshots.Snapshotter{"naive": nsn})
 
 	return mdb, mdb.ContentStore(), mdb.Snapshotter("naive"), func() {
 		os.RemoveAll(td)

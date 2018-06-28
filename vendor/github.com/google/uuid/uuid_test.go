@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"fmt"
 	"os"
-	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -306,7 +305,7 @@ func TestVersion1(t *testing.T) {
 	case t1 > t2 && q1 == q2:
 		t.Error("time reversed")
 	case t1 < t2 && q1 != q2:
-		t.Error("clock sequence changed unexpectedly")
+		t.Error("clock sequence chaned unexpectedly")
 	}
 }
 
@@ -322,10 +321,8 @@ func TestNode(t *testing.T) {
 	if !SetNodeInterface("") {
 		t.Error("SetNodeInterface failed")
 	}
-	if runtime.GOARCH != "js" {
-		if ni := NodeInterface(); ni == "" {
-			t.Error("NodeInterface returned an empty string")
-		}
+	if ni := NodeInterface(); ni == "" {
+		t.Error("NodeInterface returned an empty string")
 	}
 
 	ni := NodeID()
@@ -350,7 +347,7 @@ func TestNode(t *testing.T) {
 	}
 
 	if ni := NodeInterface(); ni != "user" {
-		t.Errorf("got interface %q, want %q", ni, "user")
+		t.Errorf("got inteface %q, want %q", ni, "user")
 	}
 }
 
@@ -394,10 +391,8 @@ func TestNodeID(t *testing.T) {
 	nid := []byte{1, 2, 3, 4, 5, 6}
 	SetNodeInterface("")
 	s := NodeInterface()
-	if runtime.GOARCH != "js" {
-		if s == "" || s == "user" {
-			t.Errorf("NodeInterface %q after SetInterface", s)
-		}
+	if s == "" || s == "user" {
+		t.Errorf("NodeInterface %q after SetInteface", s)
 	}
 	node1 := NodeID()
 	if node1 == nil {
@@ -448,7 +443,7 @@ func TestDCE(t *testing.T) {
 type badRand struct{}
 
 func (r badRand) Read(buf []byte) (int, error) {
-	for i := range buf {
+	for i, _ := range buf {
 		buf[i] = byte(i)
 	}
 	return len(buf), nil
@@ -459,13 +454,13 @@ func TestBadRand(t *testing.T) {
 	uuid1 := New()
 	uuid2 := New()
 	if uuid1 != uuid2 {
-		t.Errorf("expected duplicates, got %q and %q", uuid1, uuid2)
+		t.Errorf("execpted duplicates, got %q and %q", uuid1, uuid2)
 	}
 	SetRand(nil)
 	uuid1 = New()
 	uuid2 = New()
 	if uuid1 == uuid2 {
-		t.Errorf("unexpected duplicates, got %q", uuid1)
+		t.Errorf("unexecpted duplicates, got %q", uuid1)
 	}
 }
 

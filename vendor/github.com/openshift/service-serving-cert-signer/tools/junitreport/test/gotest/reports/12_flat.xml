@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+        <testsuite name="k8s.io/kubernetes/plugin/pkg/auth/authorizer/node" tests="13" skipped="1" failures="0" time="0.077">
+                <testcase name="TestAuthorizer" time="0"></testcase>
+                <testcase name="TestAuthorizer/allowed_configmap" time="0"></testcase>
+                <testcase name="TestAuthorizer/allowed_secret_via_pod" time="0"></testcase>
+                <testcase name="TestAuthorizer/allowed_shared_secret_via_pod" time="0"></testcase>
+                <testcase name="TestAuthorizer/allowed_shared_secret_via_pvc" time="0"></testcase>
+                <testcase name="TestAuthorizer/allowed_pvc" time="0"></testcase>
+                <testcase name="TestAuthorizer/allowed_pv" time="0"></testcase>
+                <testcase name="TestAuthorizer/disallowed_configmap" time="0"></testcase>
+                <testcase name="TestAuthorizer/disallowed_secret_via_pod" time="0"></testcase>
+                <testcase name="TestAuthorizer/disallowed_shared_secret_via_pvc" time="0"></testcase>
+                <testcase name="TestAuthorizer/disallowed_pvc" time="0"></testcase>
+                <testcase name="TestAuthorizer/disallowed_pv" time="0"></testcase>
+                <testcase name="TestPopulationMemoryUsage" time="0">
+                        <skipped message="node_authorizer_test.go:169: Skipping large population test. Run with TEST_POPULATION_MEMORY_USAGE=true to output memory profiles."></skipped>
+                </testcase>
+        </testsuite>
+</testsuites>

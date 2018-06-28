@@ -21,12 +21,14 @@ type ListOpts struct {
 	EnableDHCP      *bool  `q:"enable_dhcp"`
 	NetworkID       string `q:"network_id"`
 	TenantID        string `q:"tenant_id"`
+	ProjectID       string `q:"project_id"`
 	IPVersion       int    `q:"ip_version"`
 	GatewayIP       string `q:"gateway_ip"`
 	CIDR            string `q:"cidr"`
 	IPv6AddressMode string `q:"ipv6_address_mode"`
 	IPv6RAMode      string `q:"ipv6_ra_mode"`
 	ID              string `q:"id"`
+	SubnetPoolID    string `q:"subnetpool_id"`
 	Limit           int    `q:"limit"`
 	Marker          string `q:"marker"`
 	SortKey         string `q:"sort_key"`
@@ -83,9 +85,13 @@ type CreateOpts struct {
 	// Name is a human-readable name of the subnet.
 	Name string `json:"name,omitempty"`
 
-	// The UUID of the tenant who owns the Subnet. Only administrative users
-	// can specify a tenant UUID other than their own.
+	// The UUID of the project who owns the Subnet. Only administrative users
+	// can specify a project UUID other than their own.
 	TenantID string `json:"tenant_id,omitempty"`
+
+	// The UUID of the project who owns the Subnet. Only administrative users
+	// can specify a project UUID other than their own.
+	ProjectID string `json:"project_id,omitempty"`
 
 	// AllocationPools are IP Address pools that will be available for DHCP.
 	AllocationPools []AllocationPool `json:"allocation_pools,omitempty"`
@@ -114,6 +120,9 @@ type CreateOpts struct {
 	// The IPv6 router advertisement specifies whether the networking service
 	// should transmit ICMPv6 packets.
 	IPv6RAMode string `json:"ipv6_ra_mode,omitempty"`
+
+	// SubnetPoolID is the id of the subnet pool that subnet should be associated to.
+	SubnetPoolID string `json:"subnetpool_id,omitempty"`
 }
 
 // ToSubnetCreateMap builds a request body from CreateOpts.

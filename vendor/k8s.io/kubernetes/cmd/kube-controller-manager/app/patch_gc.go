@@ -8,7 +8,7 @@ import (
 func applyOpenShiftGCConfig(controllerManager *config.Config) error {
 	// TODO make this configurable or discoverable.  This is going to prevent us from running the stock GC controller
 	// IF YOU ADD ANYTHING TO THIS LIST, MAKE SURE THAT YOU UPDATE THEIR STRATEGIES TO PREVENT GC FINALIZERS
-	controllerManager.Generic.ComponentConfig.GCIgnoredResources = append(controllerManager.Generic.ComponentConfig.GCIgnoredResources,
+	controllerManager.ComponentConfig.GarbageCollectorController.GCIgnoredResources = append(controllerManager.ComponentConfig.GarbageCollectorController.GCIgnoredResources,
 		// explicitly disabled from GC for now - not enough value to track them
 		componentconfig.GroupResource{Group: "authorization.openshift.io", Resource: "rolebindingrestrictions"},
 		componentconfig.GroupResource{Group: "network.openshift.io", Resource: "clusternetworks"},

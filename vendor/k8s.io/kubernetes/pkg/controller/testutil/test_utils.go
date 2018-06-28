@@ -67,6 +67,7 @@ type FakeNodeHandler struct {
 	// Synchronization
 	lock           sync.Mutex
 	DeleteWaitChan chan struct{}
+	PatchWaitChan  chan struct{}
 }
 
 // FakeLegacyHandler is a fake implemtation of CoreV1Interface.
@@ -270,6 +271,9 @@ func (m *FakeNodeHandler) Patch(name string, pt types.PatchType, data []byte, su
 	m.lock.Lock()
 	defer func() {
 		m.RequestCount++
+		if m.PatchWaitChan != nil {
+			m.PatchWaitChan <- struct{}{}
+		}
 		m.lock.Unlock()
 	}()
 	var nodeCopy v1.Node
@@ -361,6 +365,11 @@ func (f *FakeRecorder) Eventf(obj runtime.Object, eventtype, reason, messageFmt 
 func (f *FakeRecorder) PastEventf(obj runtime.Object, timestamp metav1.Time, eventtype, reason, messageFmt string, args ...interface{}) {
 }
 
+// AnnotatedEventf emits a fake formatted event to the fake recorder
+func (f *FakeRecorder) AnnotatedEventf(obj runtime.Object, annotations map[string]string, eventtype, reason, messageFmt string, args ...interface{}) {
+	f.Eventf(obj, eventtype, reason, messageFmt, args)
+}
+
 func (f *FakeRecorder) generateEvent(obj runtime.Object, timestamp metav1.Time, eventtype, reason, message string) {
 	f.Lock()
 	defer f.Unlock()
@@ -421,9 +430,6 @@ func NewFakeRecorder() *FakeRecorder {
 func NewNode(name string) *v1.Node {
 	return &v1.Node{
 		ObjectMeta: metav1.ObjectMeta{Name: name},
-		Spec: v1.NodeSpec{
-			ExternalID: name,
-		},
 		Status: v1.NodeStatus{
 			Capacity: v1.ResourceList{
 				v1.ResourceName(v1.ResourceCPU):    resource.MustParse("10"),

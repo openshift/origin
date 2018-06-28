@@ -42,7 +42,7 @@
   "baseUrl": "https://script.googleapis.com/",
   "batchPath": "batch",
   "canonicalName": "Script",
-  "description": "An API for managing and executing Google Apps Script projects.",
+  "description": "An API for managing and executing Google Apps Script projects. \u003caside class=\"note\"\u003e\u003cb\u003eNote\u003c/b\u003e: In order to use this API in your apps, you must \u003ca href=\"/apps-script/api/how-tos/enable#using_the_apps_script_api_in_your_app\"\u003e enable it for use\u003c/a\u003e. To allow other apps to manage your scripts, you must \u003ca href=\"/apps-script/api/how-tos/enable#granting_third-party_applications_access_to_your_script_projects\"\u003e grant them access\u003c/a\u003e.\u003c/aside\u003e\n",
   "discoveryVersion": "v1",
   "documentationLink": "https://developers.google.com/apps-script/api/",
   "fullyEncodeReservedExpansion": true,
@@ -182,7 +182,7 @@
               "type": "string"
             },
             "userProcessFilter.projectName": {
-              "description": "Optional field used to limit returned processes to those originating from\nprojects with a specific project name.",
+              "description": "Optional field used to limit returned processes to those originating from\nprojects with project names containing a specific string.",
               "location": "query",
               "type": "string"
             },
@@ -223,7 +223,9 @@
                 "TIME_DRIVEN",
                 "TRIGGER",
                 "WEBAPP",
-                "EDITOR"
+                "EDITOR",
+                "SIMPLE_TRIGGER",
+                "MENU"
               ],
               "location": "query",
               "repeated": true,
@@ -319,7 +321,9 @@
                 "TIME_DRIVEN",
                 "TRIGGER",
                 "WEBAPP",
-                "EDITOR"
+                "EDITOR",
+                "SIMPLE_TRIGGER",
+                "MENU"
               ],
               "location": "query",
               "repeated": true,
@@ -753,7 +757,7 @@
       }
     }
   },
-  "revision": "20180305",
+  "revision": "20180531",
   "rootUrl": "https://script.googleapis.com/",
   "schemas": {
     "Content": {
@@ -1151,7 +1155,9 @@
             "TIME_DRIVEN",
             "TRIGGER",
             "WEBAPP",
-            "EDITOR"
+            "EDITOR",
+            "SIMPLE_TRIGGER",
+            "MENU"
           ],
           "enumDescriptions": [
             "Unspecified type.",
@@ -1160,7 +1166,9 @@
             "The process was started from a time-based trigger.",
             "The process was started from an event-based trigger.",
             "The process was started from a web app entry point.",
-            "The process was started using the Apps Script IDE."
+            "The process was started using the Apps Script IDE.",
+            "The process was started from a GSuite simple trigger.",
+            "The process was started from a GSuite menu item."
           ],
           "type": "string"
         },
@@ -1433,7 +1441,7 @@
       "type": "object"
     },
     "Operation": {
-      "description": "A representation of a execution of an Apps Script function that is started using run. The execution response does not arrive until the function finishes executing. The maximum execution runtime is listed in the [Apps Script quotas guide](/apps-script/guides/services/quotas#current_limitations). \u003cp\u003eAfter the execution is started, it can have one of four outcomes:\u003c/p\u003e \u003cul\u003e \u003cli\u003e If the script function returns successfully, the\n  response field contains an\n  ExecutionResponse object\n  with the function's return value in the object's `result` field.\u003c/li\u003e\n\u003cli\u003e If the script function (or Apps Script itself) throws an exception, the\n  error field contains a\n  Status object. The `Status` object's `details`\n  field contains an array with a single\n  ExecutionError object that\n  provides information about the nature of the error.\u003c/li\u003e\n\u003cli\u003e If the execution has not yet completed,\n  the done field is `false` and\n  the neither the `response` nor `error` fields are present.\u003c/li\u003e\n\u003cli\u003e If the `run` call itself fails (for example, because of a\n  malformed request or an authorization error), the method returns an HTTP\n  response code in the 4XX range with a different format for the response\n  body. Client libraries automatically convert a 4XX response into an\n  exception class.\u003c/li\u003e\n\u003c/ul\u003e",
+      "description": "A representation of an execution of an Apps Script function started with run. The execution response does not arrive until the function finishes executing. The maximum execution runtime is listed in the [Apps Script quotas guide](/apps-script/guides/services/quotas#current_limitations). \u003cp\u003eAfter execution has started, it can have one of four outcomes:\u003c/p\u003e \u003cul\u003e \u003cli\u003e If the script function returns successfully, the\n  response field contains an\n  ExecutionResponse object\n  with the function's return value in the object's `result` field.\u003c/li\u003e\n\u003cli\u003e If the script function (or Apps Script itself) throws an exception, the\n  error field contains a\n  Status object. The `Status` object's `details`\n  field contains an array with a single\n  ExecutionError object that\n  provides information about the nature of the error.\u003c/li\u003e\n\u003cli\u003e If the execution has not yet completed,\n  the done field is `false` and\n  the neither the `response` nor `error` fields are present.\u003c/li\u003e\n\u003cli\u003e If the `run` call itself fails (for example, because of a\n  malformed request or an authorization error), the method returns an HTTP\n  response code in the 4XX range with a different format for the response\n  body. Client libraries automatically convert a 4XX response into an\n  exception class.\u003c/li\u003e\n\u003c/ul\u003e",
       "id": "Operation",
       "properties": {
         "done": {
@@ -1513,7 +1521,7 @@
       "id": "Status",
       "properties": {
         "code": {
-          "description": "The status code. For this API, this value either: \u003cul\u003e \u003cli\u003e 3, indicating an `INVALID_ARGUMENT` error, or\u003c/li\u003e \u003cli\u003e 1, indicating a `CANCELLED` execution.\u003c/li\u003e \u003c/ul\u003e",
+          "description": "The status code. For this API, this value either: \u003cul\u003e \u003cli\u003e 10, indicating a `SCRIPT_TIMEOUT` error,\u003c/li\u003e \u003cli\u003e 3, indicating an `INVALID_ARGUMENT` error, or\u003c/li\u003e \u003cli\u003e 1, indicating a `CANCELLED` execution.\u003c/li\u003e \u003c/ul\u003e",
           "format": "int32",
           "type": "integer"
         },
@@ -1529,7 +1537,7 @@
           "type": "array"
         },
         "message": {
-          "description": "A developer-facing error message, which is in English. Any user-facing error message is localized and sent in the [google.rpc.Status.details](google.rpc.Status.details) field, or localized by the client.",
+          "description": "A developer-facing error message, which is in English. Any user-facing error message is localized and sent in the details field, or localized by the client.",
           "type": "string"
         }
       },
@@ -1573,6 +1581,6 @@
     }
   },
   "servicePath": "",
-  "title": "Google Apps Script API",
+  "title": "Apps Script API",
   "version": "v1"
 }

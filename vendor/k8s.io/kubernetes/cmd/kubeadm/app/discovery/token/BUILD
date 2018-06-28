@@ -11,10 +11,10 @@ go_library(
     srcs = ["token.go"],
     importpath = "k8s.io/kubernetes/cmd/kubeadm/app/discovery/token",
     deps = [
+        "//cmd/kubeadm/app/apis/kubeadm:go_default_library",
         "//cmd/kubeadm/app/constants:go_default_library",
         "//cmd/kubeadm/app/util/kubeconfig:go_default_library",
         "//cmd/kubeadm/app/util/pubkeypin:go_default_library",
-        "//cmd/kubeadm/app/util/token:go_default_library",
         "//pkg/controller/bootstrap:go_default_library",
         "//vendor/k8s.io/api/core/v1:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/apis/meta/v1:go_default_library",

@@ -37,10 +37,9 @@ import (
 	"k8s.io/kubernetes/pkg/controller/volume/persistentvolume"
 	"k8s.io/kubernetes/pkg/scheduler/algorithm"
 	"k8s.io/kubernetes/pkg/scheduler/algorithm/predicates"
+	schedulercache "k8s.io/kubernetes/pkg/scheduler/cache"
 	"k8s.io/kubernetes/pkg/scheduler/core"
-	"k8s.io/kubernetes/pkg/scheduler/schedulercache"
 	schedulertesting "k8s.io/kubernetes/pkg/scheduler/testing"
-	"k8s.io/kubernetes/pkg/scheduler/util"
 	"k8s.io/kubernetes/pkg/scheduler/volumebinder"
 )
 
@@ -79,7 +78,7 @@ func podWithID(id, desiredHost string) *v1.Pod {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:     id,
 			UID:      types.UID(id),
-			SelfLink: util.Test.SelfLink(string(v1.ResourcePods), id),
+			SelfLink: schedulertesting.Test.SelfLink(string(v1.ResourcePods), id),
 		},
 		Spec: v1.PodSpec{
 			NodeName: desiredHost,
@@ -93,7 +92,7 @@ func deletingPod(id string) *v1.Pod {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:              id,
 			UID:               types.UID(id),
-			SelfLink:          util.Test.SelfLink(string(v1.ResourcePods), id),
+			SelfLink:          schedulertesting.Test.SelfLink(string(v1.ResourcePods), id),
 			DeletionTimestamp: &deletionTimestamp,
 		},
 		Spec: v1.PodSpec{
@@ -548,6 +547,7 @@ func setupTestScheduler(queuedPodStore *clientcache.FIFO, scache schedulercache.
 		[]algorithm.SchedulerExtender{},
 		nil,
 		schedulertesting.FakePersistentVolumeClaimLister{},
+		false,
 		false)
 	bindingChan := make(chan *v1.Binding, 1)
 	errChan := make(chan error, 1)
@@ -596,6 +596,7 @@ func setupTestSchedulerLongBindingWithRetry(queuedPodStore *clientcache.FIFO, sc
 		[]algorithm.SchedulerExtender{},
 		nil,
 		schedulertesting.FakePersistentVolumeClaimLister{},
+		false,
 		false)
 	bindingChan := make(chan *v1.Binding, 2)
 	configurator := &FakeConfigurator{
@@ -659,8 +660,6 @@ func makePredicateError(failReason string) error {
 }
 
 func TestSchedulerWithVolumeBinding(t *testing.T) {
-	order := []string{predicates.CheckVolumeBindingPred, predicates.GeneralPred}
-	predicates.SetPredicatesOrdering(order)
 	findErr := fmt.Errorf("find err")
 	assumeErr := fmt.Errorf("assume err")
 	bindErr := fmt.Errorf("bind err")

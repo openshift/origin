@@ -1,5 +1,15 @@
 #!/bin/bash -e
 
+# To release govc:
+# - Bump Version version var in flags/version.go
+# - Update ../CHANGELOG.md and ./CHANGELOG.md
+# - Run: ../scripts/contributors.sh
+# - Run: make doc
+# - commit + merge to vmware/master
+# - Run: git tag -m v0.17.0 v0.17.0
+# - Install github-release
+# - Set GITHUB_TOKEN
+# - Run: ./release.sh release
 if ! which github-release > /dev/null; then
   echo 'Please install github-release...'
   echo ''
@@ -16,7 +26,7 @@ fi
 export GITHUB_USER="${GITHUB_USER:-vmware}"
 export GITHUB_REPO="${GITHUB_REPO:-govmomi}"
 
-name="$(git describe)"
+name="$(git describe --dirty)"
 release=(github-release release --draft --name "${name}")
 
 case "$1" in

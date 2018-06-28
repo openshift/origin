@@ -30,14 +30,14 @@ import (
 	"github.com/coreos/etcd/pkg/transport"
 	"k8s.io/apimachinery/pkg/runtime"
 	kubeadmapi "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm"
-	kubeadmapiext "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1alpha1"
+	kubeadmscheme "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/scheme"
+	kubeadmapiv1alpha2 "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1alpha2"
 	"k8s.io/kubernetes/cmd/kubeadm/app/constants"
 	certsphase "k8s.io/kubernetes/cmd/kubeadm/app/phases/certs"
 	controlplanephase "k8s.io/kubernetes/cmd/kubeadm/app/phases/controlplane"
 	etcdphase "k8s.io/kubernetes/cmd/kubeadm/app/phases/etcd"
 	"k8s.io/kubernetes/cmd/kubeadm/app/util/apiclient"
 	etcdutil "k8s.io/kubernetes/cmd/kubeadm/app/util/etcd"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 )
 
 const (
@@ -46,27 +46,19 @@ const (
 	waitForPodsWithLabel = "wait-for-pods-with-label"
 
 	testConfiguration = `
+apiVersion: kubeadm.k8s.io/v1alpha2
+kind: MasterConfiguration
 api:
   advertiseAddress: 1.2.3.4
   bindPort: 6443
 apiServerCertSANs: null
 apiServerExtraArgs: null
-authorizationModes:
-- Node
-- RBAC
 certificatesDir: %s
-cloudProvider: ""
 controllerManagerExtraArgs: null
 etcd:
-  caFile: ""
-  certFile: ""
-  dataDir: %s
-  endpoints: null
-  extraArgs: null
-  image: ""
-  keyFile: ""
-  serverCertSANs: null
-  peerCertSANs: null
+  local:
+    dataDir: %s
+    image: ""
 featureFlags: null
 imageRepository: k8s.gcr.io
 kubernetesVersion: %s
@@ -74,7 +66,9 @@ networking:
   dnsDomain: cluster.local
   podSubnet: ""
   serviceSubnet: 10.96.0.0/12
-nodeName: thegopher
+nodeRegistration:
+  name: foo
+  criSocket: ""
 schedulerExtraArgs: null
 token: ce3aa5.5ec8455bb76b379f
 tokenTTL: 24h
@@ -209,20 +203,46 @@ func (spm *fakeStaticPodPathManager) BackupEtcdDir() string {
 	return spm.backupEtcdDir
 }
 
+func (spm *fakeStaticPodPathManager) CleanupDirs() error {
+	if err := os.RemoveAll(spm.TempManifestDir()); err != nil {
+		return err
+	}
+	if err := os.RemoveAll(spm.BackupManifestDir()); err != nil {
+		return err
+	}
+	if err := os.RemoveAll(spm.BackupEtcdDir()); err != nil {
+		return err
+	}
+	return nil
+}
+
 type fakeTLSEtcdClient struct{ TLS bool }
 
 func (c fakeTLSEtcdClient) HasTLS() bool {
 	return c.TLS
 }
 
-func (c fakeTLSEtcdClient) GetStatus() (*clientv3.StatusResponse, error) {
-	client := &clientv3.StatusResponse{}
-	client.Version = "3.1.12"
-	return client, nil
+func (c fakeTLSEtcdClient) ClusterAvailable() (bool, error) { return true, nil }
+
+func (c fakeTLSEtcdClient) WaitForClusterAvailable(delay time.Duration, retries int, retryInterval time.Duration) (bool, error) {
+	return true, nil
 }
 
-func (c fakeTLSEtcdClient) WaitForStatus(delay time.Duration, retries int, retryInterval time.Duration) (*clientv3.StatusResponse, error) {
-	return c.GetStatus()
+func (c fakeTLSEtcdClient) GetClusterStatus() (map[string]*clientv3.StatusResponse, error) {
+	return map[string]*clientv3.StatusResponse{
+		"foo": {
+			Version: "3.1.12",
+		}}, nil
+}
+
+func (c fakeTLSEtcdClient) GetClusterVersions() (map[string]string, error) {
+	return map[string]string{
+		"foo": "3.1.12",
+	}, nil
+}
+
+func (c fakeTLSEtcdClient) GetVersion() (string, error) {
+	return "3.1.12", nil
 }
 
 type fakePodManifestEtcdClient struct{ ManifestDir, CertificatesDir string }
@@ -232,7 +252,13 @@ func (c fakePodManifestEtcdClient) HasTLS() bool {
 	return hasTLS
 }
 
-func (c fakePodManifestEtcdClient) GetStatus() (*clientv3.StatusResponse, error) {
+func (c fakePodManifestEtcdClient) ClusterAvailable() (bool, error) { return true, nil }
+
+func (c fakePodManifestEtcdClient) WaitForClusterAvailable(delay time.Duration, retries int, retryInterval time.Duration) (bool, error) {
+	return true, nil
+}
+
+func (c fakePodManifestEtcdClient) GetClusterStatus() (map[string]*clientv3.StatusResponse, error) {
 	// Make sure the certificates generated from the upgrade are readable from disk
 	tlsInfo := transport.TLSInfo{
 		CertFile:      filepath.Join(c.CertificatesDir, constants.EtcdCACertName),
@@ -244,13 +270,19 @@ func (c fakePodManifestEtcdClient) GetStatus() (*clientv3.StatusResponse, error)
 		return nil, err
 	}
 
-	client := &clientv3.StatusResponse{}
-	client.Version = "3.1.12"
-	return client, nil
+	return map[string]*clientv3.StatusResponse{
+		"foo": {Version: "3.1.12"},
+	}, nil
 }
 
-func (c fakePodManifestEtcdClient) WaitForStatus(delay time.Duration, retries int, retryInterval time.Duration) (*clientv3.StatusResponse, error) {
-	return c.GetStatus()
+func (c fakePodManifestEtcdClient) GetClusterVersions() (map[string]string, error) {
+	return map[string]string{
+		"foo": "3.1.12",
+	}, nil
+}
+
+func (c fakePodManifestEtcdClient) GetVersion() (string, error) {
+	return "3.1.12", nil
 }
 
 func TestStaticPodControlPlane(t *testing.T) {
@@ -484,12 +516,91 @@ func getAPIServerHash(dir string) (string, error) {
 	return fmt.Sprintf("%x", sha256.Sum256(fileBytes)), nil
 }
 
+// TODO: Make this test function use the rest of the "official" API machinery helper funcs we have inside of kubeadm
 func getConfig(version, certsDir, etcdDataDir string) (*kubeadmapi.MasterConfiguration, error) {
-	externalcfg := &kubeadmapiext.MasterConfiguration{}
+	externalcfg := &kubeadmapiv1alpha2.MasterConfiguration{}
 	internalcfg := &kubeadmapi.MasterConfiguration{}
-	if err := runtime.DecodeInto(legacyscheme.Codecs.UniversalDecoder(), []byte(fmt.Sprintf(testConfiguration, certsDir, etcdDataDir, version)), externalcfg); err != nil {
+	if err := runtime.DecodeInto(kubeadmscheme.Codecs.UniversalDecoder(), []byte(fmt.Sprintf(testConfiguration, certsDir, etcdDataDir, version)), externalcfg); err != nil {
 		return nil, fmt.Errorf("unable to decode config: %v", err)
 	}
-	legacyscheme.Scheme.Convert(externalcfg, internalcfg, nil)
+	kubeadmscheme.Scheme.Convert(externalcfg, internalcfg, nil)
 	return internalcfg, nil
+}
+
+func getTempDir(t *testing.T, name string) (string, func()) {
+	dir, err := ioutil.TempDir(os.TempDir(), name)
+	if err != nil {
+		t.Fatalf("couldn't make temporary directory: %v", err)
+	}
+
+	return dir, func() {
+		os.RemoveAll(dir)
+	}
+}
+
+func TestCleanupDirs(t *testing.T) {
+	tests := []struct {
+		name                   string
+		keepManifest, keepEtcd bool
+	}{
+		{
+			name:         "save manifest backup",
+			keepManifest: true,
+		},
+		{
+			name:         "save both etcd and manifest",
+			keepManifest: true,
+			keepEtcd:     true,
+		},
+		{
+			name: "save nothing",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			realManifestDir, cleanup := getTempDir(t, "realManifestDir")
+			defer cleanup()
+
+			tempManifestDir, cleanup := getTempDir(t, "tempManifestDir")
+			defer cleanup()
+
+			backupManifestDir, cleanup := getTempDir(t, "backupManifestDir")
+			defer cleanup()
+
+			backupEtcdDir, cleanup := getTempDir(t, "backupEtcdDir")
+			defer cleanup()
+
+			mgr := NewKubeStaticPodPathManager(realManifestDir, tempManifestDir, backupManifestDir, backupEtcdDir, test.keepManifest, test.keepEtcd)
+			err := mgr.CleanupDirs()
+			if err != nil {
+				t.Errorf("unexpected error cleaning up: %v", err)
+			}
+
+			if _, err := os.Stat(tempManifestDir); !os.IsNotExist(err) {
+				t.Errorf("%q should not have existed", tempManifestDir)
+			}
+			_, err = os.Stat(backupManifestDir)
+			if test.keepManifest {
+				if err != nil {
+					t.Errorf("unexpected error getting backup manifest dir")
+				}
+			} else {
+				if !os.IsNotExist(err) {
+					t.Error("expected backup manifest to not exist")
+				}
+			}
+
+			_, err = os.Stat(backupEtcdDir)
+			if test.keepEtcd {
+				if err != nil {
+					t.Errorf("unexpected error getting backup etcd dir")
+				}
+			} else {
+				if !os.IsNotExist(err) {
+					t.Error("expected backup etcd dir to not exist")
+				}
+			}
+		})
+	}
 }

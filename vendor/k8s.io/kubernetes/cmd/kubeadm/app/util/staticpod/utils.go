@@ -64,9 +64,10 @@ func ComponentPod(container v1.Container, volumes map[string]v1.Volume) v1.Pod {
 			Labels: map[string]string{"component": container.Name, "tier": "control-plane"},
 		},
 		Spec: v1.PodSpec{
-			Containers:  []v1.Container{container},
-			HostNetwork: true,
-			Volumes:     VolumeMapToSlice(volumes),
+			Containers:        []v1.Container{container},
+			PriorityClassName: "system-cluster-critical",
+			HostNetwork:       true,
+			Volumes:           VolumeMapToSlice(volumes),
 		},
 	}
 }
@@ -101,7 +102,7 @@ func ComponentProbe(cfg *kubeadmapi.MasterConfiguration, componentName string, p
 func EtcdProbe(cfg *kubeadmapi.MasterConfiguration, componentName string, port int, certsDir string, CACertName string, CertName string, KeyName string) *v1.Probe {
 	tlsFlags := fmt.Sprintf("--cacert=%[1]s/%[2]s --cert=%[1]s/%[3]s --key=%[1]s/%[4]s", certsDir, CACertName, CertName, KeyName)
 	// etcd pod is alive if a linearizable get succeeds.
-	cmd := fmt.Sprintf("ETCDCTL_API=3 etcdctl --endpoints=%s:%d %s get foo", GetProbeAddress(cfg, componentName), port, tlsFlags)
+	cmd := fmt.Sprintf("ETCDCTL_API=3 etcdctl --endpoints=https://[%s]:%d %s get foo", GetProbeAddress(cfg, componentName), port, tlsFlags)
 
 	return &v1.Probe{
 		Handler: v1.Handler{
@@ -241,8 +242,8 @@ func GetProbeAddress(cfg *kubeadmapi.MasterConfiguration, componentName string) 
 			return addr
 		}
 	case componentName == kubeadmconstants.Etcd:
-		if cfg.Etcd.ExtraArgs != nil {
-			if arg, exists := cfg.Etcd.ExtraArgs[etcdListenClientURLsArg]; exists {
+		if cfg.Etcd.Local != nil && cfg.Etcd.Local.ExtraArgs != nil {
+			if arg, exists := cfg.Etcd.Local.ExtraArgs[etcdListenClientURLsArg]; exists {
 				// Use the first url in the listen-client-urls if multiple url's are specified.
 				if strings.ContainsAny(arg, ",") {
 					arg = strings.Split(arg, ",")[0]
@@ -253,6 +254,13 @@ func GetProbeAddress(cfg *kubeadmapi.MasterConfiguration, componentName string) 
 				}
 				// Return the IP if the URL contains an address instead of a name.
 				if ip := net.ParseIP(parsedURL.Hostname()); ip != nil {
+					// etcdctl doesn't support auto-converting zero addresses into loopback addresses
+					if ip.Equal(net.IPv4zero) {
+						return "127.0.0.1"
+					}
+					if ip.Equal(net.IPv6zero) {
+						return net.IPv6loopback.String()
+					}
 					return ip.String()
 				}
 				// Use the local resolver to try resolving the name within the URL.

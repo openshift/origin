@@ -11,6 +11,7 @@ go_library(
         "dns.go",
         "dns_common.go",
         "dns_configmap.go",
+        "dns_scale_records.go",
         "doc.go",
         "example_cluster_dns.go",
         "firewall.go",
@@ -31,7 +32,6 @@ go_library(
     ],
     importpath = "k8s.io/kubernetes/test/e2e/network",
     deps = [
-        "//pkg/api/testapi:go_default_library",
         "//pkg/apis/core:go_default_library",
         "//pkg/client/clientset_generated/internalclientset:go_default_library",
         "//pkg/cloudprovider:go_default_library",
@@ -71,6 +71,7 @@ go_library(
         "//vendor/k8s.io/client-go/rest:go_default_library",
         "//vendor/k8s.io/client-go/tools/cache:go_default_library",
         "//vendor/k8s.io/client-go/util/flowcontrol:go_default_library",
+        "//vendor/k8s.io/client-go/util/workqueue:go_default_library",
     ],
 )
 

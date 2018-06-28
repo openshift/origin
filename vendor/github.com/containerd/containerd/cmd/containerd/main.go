@@ -8,12 +8,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
-	"runtime"
 	"time"
-
-	"google.golang.org/grpc/grpclog"
-
-	gocontext "golang.org/x/net/context"
 
 	"github.com/containerd/containerd/log"
 	"github.com/containerd/containerd/server"
@@ -22,6 +17,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
+	gocontext "golang.org/x/net/context"
+	"google.golang.org/grpc/grpclog"
 )
 
 const usage = `
@@ -73,12 +70,13 @@ func main() {
 	}
 	app.Commands = []cli.Command{
 		configCommand,
+		publishCommand,
 	}
 	app.Action = func(context *cli.Context) error {
 		var (
 			start   = time.Now()
 			signals = make(chan os.Signal, 2048)
-			serverC = make(chan *server.Server)
+			serverC = make(chan *server.Server, 1)
 			ctx     = log.WithModule(gocontext.Background(), "containerd")
 			config  = defaultConfig()
 		)
@@ -194,19 +192,4 @@ func setLevel(context *cli.Context, config *server.Config) error {
 		logrus.SetLevel(lvl)
 	}
 	return nil
-}
-
-func dumpStacks() {
-	var (
-		buf       []byte
-		stackSize int
-	)
-	bufferLen := 16384
-	for stackSize == len(buf) {
-		buf = make([]byte, bufferLen)
-		stackSize = runtime.Stack(buf, true)
-		bufferLen *= 2
-	}
-	buf = buf[:stackSize]
-	logrus.Infof("=== BEGIN goroutine stack dump ===\n%s\n=== END goroutine stack dump ===", buf)
 }

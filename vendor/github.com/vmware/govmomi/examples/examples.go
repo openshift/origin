@@ -25,6 +25,7 @@ import (
 	"strings"
 
 	"github.com/vmware/govmomi"
+	"github.com/vmware/govmomi/vim25"
 	"github.com/vmware/govmomi/vim25/soap"
 )
 
@@ -61,7 +62,7 @@ const (
 )
 
 var urlDescription = fmt.Sprintf("ESX or vCenter URL [%s]", envURL)
-var urlFlag = flag.String("url", getEnvString(envURL, "https://username:password@host/sdk"), urlDescription)
+var urlFlag = flag.String("url", getEnvString(envURL, "https://username:password@host"+vim25.Path), urlDescription)
 
 var insecureDescription = fmt.Sprintf("Don't verify the server's certificate chain [%s]", envInsecure)
 var insecureFlag = flag.Bool("insecure", getEnvBool(envInsecure, false), insecureDescription)

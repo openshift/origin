@@ -24,7 +24,8 @@ import (
 
 	utilflag "k8s.io/apiserver/pkg/util/flag"
 	kubeadmapi "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm"
-	kubeadmapiext "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1alpha1"
+	kubeadmscheme "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/scheme"
+	kubeadmapiv1alpha2 "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1alpha2"
 	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/validation"
 	cmdutil "k8s.io/kubernetes/cmd/kubeadm/app/cmd/util"
 	kubeadmconstants "k8s.io/kubernetes/cmd/kubeadm/app/constants"
@@ -32,7 +33,6 @@ import (
 	controlplanephase "k8s.io/kubernetes/cmd/kubeadm/app/phases/controlplane"
 	kubeadmutil "k8s.io/kubernetes/cmd/kubeadm/app/util"
 	configutil "k8s.io/kubernetes/cmd/kubeadm/app/util/config"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/util/normalizer"
 )
 
@@ -79,7 +79,7 @@ func NewCmdControlplane() *cobra.Command {
 // getControlPlaneSubCommands returns sub commands for Controlplane phase
 func getControlPlaneSubCommands(outDir, defaultKubernetesVersion string) []*cobra.Command {
 
-	cfg := &kubeadmapiext.MasterConfiguration{}
+	cfg := &kubeadmapiv1alpha2.MasterConfiguration{}
 
 	// This is used for unit testing only...
 	// If we wouldn't set this to something, the code would dynamically look up the version from the internet
@@ -89,7 +89,7 @@ func getControlPlaneSubCommands(outDir, defaultKubernetesVersion string) []*cobr
 	}
 
 	// Default values for the cobra help text
-	legacyscheme.Scheme.Default(cfg)
+	kubeadmscheme.Scheme.Default(cfg)
 
 	var cfgPath, featureGatesString string
 	var subCmds []*cobra.Command
@@ -110,19 +110,19 @@ func getControlPlaneSubCommands(outDir, defaultKubernetesVersion string) []*cobr
 		},
 		{
 			use:     "apiserver",
-			short:   "Generates the API server static Pod manifest.",
+			short:   "Generates the API server static Pod manifest",
 			long:    apiServerControlplaneLongDesc,
 			cmdFunc: controlplanephase.CreateAPIServerStaticPodManifestFile,
 		},
 		{
 			use:     "controller-manager",
-			short:   "Generates the controller-manager static Pod manifest.",
+			short:   "Generates the controller-manager static Pod manifest",
 			long:    controllerManagerControlplaneLongDesc,
 			cmdFunc: controlplanephase.CreateControllerManagerStaticPodManifestFile,
 		},
 		{
 			use:     "scheduler",
-			short:   "Generates the scheduler static Pod manifest.",
+			short:   "Generates the scheduler static Pod manifest",
 			long:    schedulerControlplaneLongDesc,
 			cmdFunc: controlplanephase.CreateSchedulerStaticPodManifestFile,
 		},
@@ -160,7 +160,7 @@ func getControlPlaneSubCommands(outDir, defaultKubernetesVersion string) []*cobr
 			cmd.Flags().Var(utilflag.NewMapStringString(&cfg.SchedulerExtraArgs), "scheduler-extra-args", "A set of extra flags to pass to the Scheduler or override default ones in form of <flagname>=<value>")
 		}
 
-		cmd.Flags().StringVar(&cfgPath, "config", cfgPath, "Path to kubeadm config file (WARNING: Usage of a configuration file is experimental)")
+		cmd.Flags().StringVar(&cfgPath, "config", cfgPath, "Path to kubeadm config file. WARNING: Usage of a configuration file is experimental")
 
 		subCmds = append(subCmds, cmd)
 	}
@@ -169,7 +169,7 @@ func getControlPlaneSubCommands(outDir, defaultKubernetesVersion string) []*cobr
 }
 
 // runCmdControlPlane creates a cobra.Command Run function, by composing the call to the given cmdFunc with necessary additional steps (e.g preparation of input parameters)
-func runCmdControlPlane(cmdFunc func(outDir string, cfg *kubeadmapi.MasterConfiguration) error, outDir, cfgPath *string, featureGatesString *string, cfg *kubeadmapiext.MasterConfiguration) func(cmd *cobra.Command, args []string) {
+func runCmdControlPlane(cmdFunc func(outDir string, cfg *kubeadmapi.MasterConfiguration) error, outDir, cfgPath *string, featureGatesString *string, cfg *kubeadmapiv1alpha2.MasterConfiguration) func(cmd *cobra.Command, args []string) {
 
 	// the following statement build a closure that wraps a call to a cmdFunc, binding
 	// the function itself with the specific parameters of each sub command.

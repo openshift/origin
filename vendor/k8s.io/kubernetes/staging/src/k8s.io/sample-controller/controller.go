@@ -28,7 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
-	kubeinformers "k8s.io/client-go/informers"
+	appsinformers "k8s.io/client-go/informers/apps/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -40,7 +40,7 @@ import (
 	samplev1alpha1 "k8s.io/sample-controller/pkg/apis/samplecontroller/v1alpha1"
 	clientset "k8s.io/sample-controller/pkg/client/clientset/versioned"
 	samplescheme "k8s.io/sample-controller/pkg/client/clientset/versioned/scheme"
-	informers "k8s.io/sample-controller/pkg/client/informers/externalversions"
+	informers "k8s.io/sample-controller/pkg/client/informers/externalversions/samplecontroller/v1alpha1"
 	listers "k8s.io/sample-controller/pkg/client/listers/samplecontroller/v1alpha1"
 )
 
@@ -88,13 +88,8 @@ type Controller struct {
 func NewController(
 	kubeclientset kubernetes.Interface,
 	sampleclientset clientset.Interface,
-	kubeInformerFactory kubeinformers.SharedInformerFactory,
-	sampleInformerFactory informers.SharedInformerFactory) *Controller {
-
-	// obtain references to shared index informers for the Deployment and Foo
-	// types.
-	deploymentInformer := kubeInformerFactory.Apps().V1().Deployments()
-	fooInformer := sampleInformerFactory.Samplecontroller().V1alpha1().Foos()
+	deploymentInformer appsinformers.DeploymentInformer,
+	fooInformer informers.FooInformer) *Controller {
 
 	// Create event broadcaster
 	// Add sample-controller types to the default Kubernetes Scheme so Events can be
@@ -327,10 +322,10 @@ func (c *Controller) updateFooStatus(foo *samplev1alpha1.Foo, deployment *appsv1
 	// Or create a copy manually for better performance
 	fooCopy := foo.DeepCopy()
 	fooCopy.Status.AvailableReplicas = deployment.Status.AvailableReplicas
-	// Until #38113 is merged, we must use Update instead of UpdateStatus to
-	// update the Status block of the Foo resource. UpdateStatus will not
-	// allow changes to the Spec of the resource, which is ideal for ensuring
-	// nothing other than resource status has been updated.
+	// If the CustomResourceSubresources feature gate is not enabled,
+	// we must use Update instead of UpdateStatus to update the Status block of the Foo resource.
+	// UpdateStatus will not allow changes to the Spec of the resource,
+	// which is ideal for ensuring nothing other than resource status has been updated.
 	_, err := c.sampleclientset.SamplecontrollerV1alpha1().Foos(foo.Namespace).Update(fooCopy)
 	return err
 }

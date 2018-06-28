@@ -43,7 +43,7 @@ func (c *FakeRangeAllocations) List(opts v1.ListOptions) (result *security_v1.Ra
 	if label == nil {
 		label = labels.Everything()
 	}
-	list := &security_v1.RangeAllocationList{}
+	list := &security_v1.RangeAllocationList{ListMeta: obj.(*security_v1.RangeAllocationList).ListMeta}
 	for _, item := range obj.(*security_v1.RangeAllocationList).Items {
 		if label.Matches(labels.Set(item.Labels)) {
 			list.Items = append(list.Items, item)

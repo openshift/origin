@@ -17,6 +17,7 @@ limitations under the License.
 package etcd
 
 import (
+	"context"
 	"fmt"
 	"path"
 	"reflect"
@@ -26,7 +27,6 @@ import (
 	"time"
 
 	etcd "github.com/coreos/etcd/client"
-	"golang.org/x/net/context"
 	apitesting "k8s.io/apimachinery/pkg/api/testing"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/conversion"
@@ -97,14 +97,6 @@ func testScheme(t *testing.T) (*runtime.Scheme, serializer.CodecFactory) {
 
 func newEtcdHelper(client etcd.Client, codec runtime.Codec, prefix string) etcdHelper {
 	return *NewEtcdStorage(client, codec, prefix, false, etcdtest.DeserializationCacheSize, prefixTransformer{prefix: "test!"}).(*etcdHelper)
-}
-
-// Returns an encoded version of example.Pod with the given name.
-func getEncodedPod(name string, codec runtime.Codec) string {
-	pod, _ := runtime.Encode(codec, &examplev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{Name: name},
-	})
-	return string(pod)
 }
 
 func createObj(t *testing.T, helper etcdHelper, name string, obj, out runtime.Object, ttl uint64) error {
@@ -334,6 +326,66 @@ func TestGet(t *testing.T) {
 	}
 	if !reflect.DeepEqual(got, expect) {
 		t.Errorf("Wanted %#v, got %#v", expect, got)
+	}
+}
+
+func TestGetToList(t *testing.T) {
+	_, codecs := testScheme(t)
+	codec := apitesting.TestCodec(codecs, examplev1.SchemeGroupVersion)
+	server := etcdtesting.NewEtcdTestClientServer(t)
+	defer server.Terminate(t)
+	key := "/some/key"
+	helper := newEtcdHelper(server.Client, codec, etcdtest.PathPrefix())
+
+	storedObj := &example.Pod{}
+	if err := helper.Create(context.TODO(), key, &example.Pod{ObjectMeta: metav1.ObjectMeta{Name: "foo"}}, storedObj, 0); err != nil {
+		t.Errorf("Unexpected error %#v", err)
+	}
+
+	tests := []struct {
+		key         string
+		pred        storage.SelectionPredicate
+		expectedOut []*example.Pod
+	}{{ // test GetToList on existing key
+		key:         key,
+		pred:        storage.Everything,
+		expectedOut: []*example.Pod{storedObj},
+	}, { // test GetToList on non-existing key
+		key:         "/non-existing",
+		pred:        storage.Everything,
+		expectedOut: nil,
+	}, { // test GetToList with matching pod name
+		key: "/non-existing",
+		pred: storage.SelectionPredicate{
+			Label: labels.Everything(),
+			Field: fields.ParseSelectorOrDie("metadata.name!=" + storedObj.Name),
+			GetAttrs: func(obj runtime.Object) (labels.Set, fields.Set, bool, error) {
+				pod := obj.(*example.Pod)
+				return nil, fields.Set{"metadata.name": pod.Name}, pod.Initializers != nil, nil
+			},
+		},
+		expectedOut: nil,
+	}}
+
+	for i, tt := range tests {
+		out := &example.PodList{}
+		err := helper.GetToList(context.TODO(), tt.key, "", tt.pred, out)
+		if err != nil {
+			t.Fatalf("GetToList failed: %v", err)
+		}
+		if len(out.ResourceVersion) == 0 {
+			t.Errorf("#%d: unset resourceVersion", i)
+		}
+		if len(out.Items) != len(tt.expectedOut) {
+			t.Errorf("#%d: length of list want=%d, get=%d", i, len(tt.expectedOut), len(out.Items))
+			continue
+		}
+		for j, wantPod := range tt.expectedOut {
+			getPod := &out.Items[j]
+			if !reflect.DeepEqual(wantPod, getPod) {
+				t.Errorf("#%d: pod want=%#v, get=%#v", i, wantPod, getPod)
+			}
+		}
 	}
 }
 

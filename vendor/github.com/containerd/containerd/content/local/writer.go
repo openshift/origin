@@ -2,6 +2,7 @@ package local
 
 import (
 	"context"
+	"io"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -152,6 +153,7 @@ func (w *writer) Close() (err error) {
 	if w.fp != nil {
 		w.fp.Sync()
 		err = w.fp.Close()
+		writeTimestampFile(filepath.Join(w.path, "updatedat"), w.updatedAt)
 		w.fp = nil
 		unlock(w.ref)
 		return
@@ -166,5 +168,8 @@ func (w *writer) Truncate(size int64) error {
 	}
 	w.offset = 0
 	w.digester.Hash().Reset()
+	if _, err := w.fp.Seek(0, io.SeekStart); err != nil {
+		return err
+	}
 	return w.fp.Truncate(0)
 }

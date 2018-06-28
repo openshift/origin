@@ -20,6 +20,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"strings"
 
 	"github.com/vmware/govmomi/govc/cli"
 	"github.com/vmware/govmomi/govc/flags"
@@ -50,6 +51,7 @@ type create struct {
 	force      bool
 	controller string
 	annotation string
+	firmware   string
 
 	iso              string
 	isoDatastoreFlag *flags.DatastoreFlag
@@ -109,6 +111,14 @@ func (cmd *create) Register(ctx context.Context, f *flag.FlagSet) {
 	f.BoolVar(&cmd.force, "force", false, "Create VM if vmx already exists")
 	f.StringVar(&cmd.controller, "disk.controller", "scsi", "Disk controller type")
 	f.StringVar(&cmd.annotation, "annotation", "", "VM description")
+
+	firmwareTypes := []string{
+		string(types.GuestOsDescriptorFirmwareTypeBios),
+		string(types.GuestOsDescriptorFirmwareTypeEfi),
+	}
+
+	f.StringVar(&cmd.firmware, "firmware", firmwareTypes[0],
+		fmt.Sprintf("Firmware type [%s]", strings.Join(firmwareTypes, "|")))
 
 	f.StringVar(&cmd.iso, "iso", "", "ISO path")
 	cmd.isoDatastoreFlag, ctx = flags.NewCustomDatastoreFlag(ctx)
@@ -296,6 +306,7 @@ func (cmd *create) createVM(ctx context.Context) (*object.Task, error) {
 		NumCPUs:    int32(cmd.cpus),
 		MemoryMB:   int64(cmd.memory),
 		Annotation: cmd.annotation,
+		Firmware:   cmd.firmware,
 	}
 
 	devices, err = cmd.addStorage(nil)

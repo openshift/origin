@@ -257,7 +257,8 @@
               "enum": [
                 "ENVIRONMENT_TYPE_UNSPECIFIED",
                 "ANDROID",
-                "NETWORK_CONFIGURATION"
+                "NETWORK_CONFIGURATION",
+                "PROVIDED_SOFTWARE"
               ],
               "location": "path",
               "required": true,
@@ -281,7 +282,7 @@
       }
     }
   },
-  "revision": "20180227",
+  "revision": "20180522",
   "rootUrl": "https://testing.googleapis.com/",
   "schemas": {
     "Account": {
@@ -513,6 +514,10 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "videoRecordingNotSupported": {
+          "description": "True if and only if tests with this model DO NOT have video output.\nSee also TestSpecification.disable_video_recording\n@OutputOnly",
+          "type": "boolean"
         }
       },
       "type": "object"
@@ -549,6 +554,10 @@
             "$ref": "RoboDirective"
           },
           "type": "array"
+        },
+        "roboScript": {
+          "$ref": "FileReference",
+          "description": "A JSON file with a sequence of actions Robo should perform as a prologue\nfor the crawl.\nOptional"
         },
         "startingIntents": {
           "description": "The intents used to launch the app for the crawl.\nIf none are provided, then the main launcher activity is launched.\nIf some are provided, then only those provided are launched (the main\nlauncher activity must be provided explicitly).",
@@ -645,6 +654,21 @@
         },
         "versionString": {
           "description": "A string representing this version of the Android OS.\nExamples: \"4.3\", \"4.4\"\n@OutputOnly",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "Apk": {
+      "description": "An Android package file to install.",
+      "id": "Apk",
+      "properties": {
+        "location": {
+          "$ref": "FileReference",
+          "description": "The path to an APK to be installed on the device before the test begins.\nOptional"
+        },
+        "packageName": {
+          "description": "The java package for the APK to be installed.\nOptional, value is determined by examining the application's manifest.",
           "type": "string"
         }
       },
@@ -771,7 +795,7 @@
           "type": "integer"
         },
         "month": {
-          "description": "Month of year. Must be from 1 to 12.",
+          "description": "Month of year. Must be from 1 to 12, or 0 if specifying a date without a\nmonth.",
           "format": "int32",
           "type": "integer"
         },
@@ -790,6 +814,10 @@
         "obbFile": {
           "$ref": "ObbFile",
           "description": "A reference to an opaque binary blob file"
+        },
+        "regularFile": {
+          "$ref": "RegularFile",
+          "description": "A reference to a regular file"
         }
       },
       "type": "object"
@@ -1015,6 +1043,32 @@
       },
       "type": "object"
     },
+    "ProvidedSoftwareCatalog": {
+      "description": "The currently provided software environment on the devices under test.",
+      "id": "ProvidedSoftwareCatalog",
+      "properties": {
+        "orchestratorVersion": {
+          "description": "A string representing the current version of Android Test Orchestrator that\nis provided by TestExecutionService. Example: \"1.0.2 beta\"",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "RegularFile": {
+      "description": "A file or directory to install on the device before the test starts",
+      "id": "RegularFile",
+      "properties": {
+        "content": {
+          "$ref": "FileReference",
+          "description": "Required"
+        },
+        "devicePath": {
+          "description": "Where to put the content on the device. Must be an absolute, whitelisted\npath. If the file exists, it will be replaced.\nThe following device-side directories and any of their subdirectories are\nwhitelisted:\n\u003cp\u003e${EXTERNAL_STORAGE}, or /sdcard\u003c/p\u003e\n\u003cp\u003e${ANDROID_DATA}/local/tmp, or /data/local/tmp\u003c/p\u003e\n\u003cp\u003eSpecifying a path outside of these directory trees is invalid.\n\n\u003cp\u003e The paths /sdcard and /data will be made available and treated as\nimplicit path substitutions. E.g. if /sdcard on a particular device does\nnot map to external storage, the system will replace it with the external\nstorage path prefix for that device and copy the file there.\n\n\u003cp\u003e It is strongly advised to use the \u003ca href=\n\"http://developer.android.com/reference/android/os/Environment.html\"\u003e\nEnvironment API\u003c/a\u003e in app and test code to access files on the device in a\nportable way.\nRequired",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
     "ResultStorage": {
       "description": "Locations where the results of running the test are stored.",
       "id": "ResultStorage",
@@ -1112,6 +1166,10 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "videoRecordingDisabled": {
+          "description": "Indicates that video will not be recorded for this execution either because\nthe user chose to disable it or the device does not support it.\nSee AndroidModel.video_recording_not_supported\n@OutputOnly",
+          "type": "boolean"
         }
       },
       "type": "object"
@@ -1127,6 +1185,10 @@
         "networkConfigurationCatalog": {
           "$ref": "NetworkConfigurationCatalog",
           "description": "Supported network configurations"
+        },
+        "softwareCatalog": {
+          "$ref": "ProvidedSoftwareCatalog",
+          "description": "The software test environment provided by TestExecutionService."
         }
       },
       "type": "object"
@@ -1236,7 +1298,9 @@
             "SCENARIO_NOT_DECLARED",
             "DEVICE_ADMIN_RECEIVER",
             "TEST_ONLY_APK",
-            "NO_CODE_APK"
+            "MALFORMED_IPA",
+            "NO_CODE_APK",
+            "INVALID_INPUT_APK"
           ],
           "enumDescriptions": [
             "Do not use. For proto versioning only.",
@@ -1259,7 +1323,9 @@
             "The request contains a scenario number that was not declared in the\nmanifest.",
             "Device administrator applications are not allowed.",
             "The APK is marked as \"testOnly\".\nNOT USED",
-            "APK contains no code.\nSee also\nhttps://developer.android.com/guide/topics/manifest/application-element.html#code"
+            "The input IPA could not be parsed.\nNOT USED",
+            "APK contains no code.\nSee also\nhttps://developer.android.com/guide/topics/manifest/application-element.html#code",
+            "Either the provided input APK path was malformed,\nthe APK file does not exist, or the user does not have permission to\naccess the APK file."
           ],
           "type": "string"
         },
@@ -1331,6 +1397,13 @@
         "account": {
           "$ref": "Account",
           "description": "The device will be logged in on this account for the duration of the test.\nOptional"
+        },
+        "additionalApks": {
+          "description": "APKs to install in addition to those being directly tested.\nCurrently capped at 100.\nOptional",
+          "items": {
+            "$ref": "Apk"
+          },
+          "type": "array"
         },
         "directoriesToPull": {
           "description": "List of directories on the device to upload to GCS at the end of the test;\nthey must be absolute paths under /sdcard or /data/local/tmp.\nPath names are restricted to characters a-z A-Z 0-9 _ - . + and /\n\nNote: The paths /sdcard and /data will be made available and treated as\nimplicit path substitutions. E.g. if /sdcard on a particular device does\nnot map to external storage, the system will replace it with the external\nstorage path prefix for that device.\n\nOptional",
@@ -1491,6 +1564,6 @@
     }
   },
   "servicePath": "",
-  "title": "Google Cloud Testing API",
+  "title": "Cloud Testing API",
   "version": "v1"
 }

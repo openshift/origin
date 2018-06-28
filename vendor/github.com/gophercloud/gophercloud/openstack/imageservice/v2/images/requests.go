@@ -1,6 +1,10 @@
 package images
 
 import (
+	"fmt"
+	"net/url"
+	"time"
+
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/pagination"
 )
@@ -18,6 +22,11 @@ type ListOptsBuilder interface {
 //
 // http://developer.openstack.org/api-ref-image-v2.html
 type ListOpts struct {
+	// ID is the ID of the image.
+	// Multiple IDs can be specified by constructing a string
+	// such as "in:uuid1,uuid2,uuid3".
+	ID string `q:"id"`
+
 	// Integer value for the limit of values to return.
 	Limit int `q:"limit"`
 
@@ -25,6 +34,8 @@ type ListOpts struct {
 	Marker string `q:"marker"`
 
 	// Name filters on the name of the image.
+	// Multiple names can be specified by constructing a string
+	// such as "in:name1,name2,name3".
 	Name string `q:"name"`
 
 	// Visibility filters on the visibility of the image.
@@ -37,6 +48,8 @@ type ListOpts struct {
 	Owner string `q:"owner"`
 
 	// Status filters on the status of the image.
+	// Multiple statuses can be specified by constructing a string
+	// such as "in:saving,queued".
 	Status ImageStatus `q:"status"`
 
 	// SizeMin filters on the size_min image property.
@@ -56,12 +69,52 @@ type ListOpts struct {
 
 	// SortDir will sort the list results either ascending or decending.
 	SortDir string `q:"sort_dir"`
-	Tag     string `q:"tag"`
+
+	// Tags filters on specific image tags.
+	Tags []string `q:"tag"`
+
+	// CreatedAtQuery filters images based on their creation date.
+	CreatedAtQuery *ImageDateQuery
+
+	// UpdatedAtQuery filters images based on their updated date.
+	UpdatedAtQuery *ImageDateQuery
+
+	// ContainerFormat filters images based on the container_format.
+	// Multiple container formats can be specified by constructing a
+	// string such as "in:bare,ami".
+	ContainerFormat string `q:"container_format"`
+
+	// DiskFormat filters images based on the disk_format.
+	// Multiple disk formats can be specified by constructing a string
+	// such as "in:qcow2,iso".
+	DiskFormat string `q:"disk_format"`
 }
 
 // ToImageListQuery formats a ListOpts into a query string.
 func (opts ListOpts) ToImageListQuery() (string, error) {
 	q, err := gophercloud.BuildQueryString(opts)
+	params := q.Query()
+
+	if opts.CreatedAtQuery != nil {
+		createdAt := opts.CreatedAtQuery.Date.Format(time.RFC3339)
+		if v := opts.CreatedAtQuery.Filter; v != "" {
+			createdAt = fmt.Sprintf("%s:%s", v, createdAt)
+		}
+
+		params.Add("created_at", createdAt)
+	}
+
+	if opts.UpdatedAtQuery != nil {
+		updatedAt := opts.UpdatedAtQuery.Date.Format(time.RFC3339)
+		if v := opts.UpdatedAtQuery.Filter; v != "" {
+			updatedAt = fmt.Sprintf("%s:%s", v, updatedAt)
+		}
+
+		params.Add("updated_at", updatedAt)
+	}
+
+	q = &url.URL{RawQuery: params.Encode()}
+
 	return q.String(), err
 }
 

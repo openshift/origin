@@ -130,3 +130,79 @@ func TestNewHostSystem(t *testing.T) {
 		t.Fatal("expected hs.Summary.Runtime == &hs.Runtime; got !=")
 	}
 }
+
+func TestDestroyHostSystem(t *testing.T) {
+	ctx := context.Background()
+	m := VPX()
+
+	defer m.Remove()
+
+	err := m.Create()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	s := m.Service.NewServer()
+	defer s.Close()
+
+	c := m.Service.client
+
+	vm := Map.Any("VirtualMachine").(*VirtualMachine)
+	hs := Map.Get(*vm.Runtime.Host).(*HostSystem)
+	host := object.NewHostSystem(c, hs.Self)
+
+	vms := []*VirtualMachine{}
+	for _, vmref := range hs.Vm {
+		vms = append(vms, Map.Get(vmref).(*VirtualMachine))
+	}
+
+	task, err := host.Destroy(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = task.Wait(ctx)
+	if err == nil {
+		t.Fatal("expect err because host with vms cannot be destroyed")
+	}
+
+	for _, vmref := range hs.Vm {
+		vm := Map.Get(vmref).(*VirtualMachine)
+		vmo := object.NewVirtualMachine(c, vm.Self)
+
+		task, err := vmo.PowerOff(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		err = task.Wait(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		task, err = vmo.Destroy(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		err = task.Wait(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	task, err = host.Destroy(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = task.Wait(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	hs2 := Map.Get(esx.HostSystem.Reference())
+	if hs2 != nil {
+		t.Fatal("host should have been destroyed")
+	}
+}

@@ -9,7 +9,6 @@ metadata:
     kubernetes.io/cluster-service: "true"
     addonmanager.kubernetes.io/mode: Reconcile
 spec:
-  replicas: 1
   selector:
     matchLabels:
       k8s-app: glbc
@@ -18,6 +17,8 @@ spec:
       labels:
         k8s-app: glbc
         name: glbc
+      annotations:
+        seccomp.security.alpha.kubernetes.io/pod: 'docker/default'
     spec:
       containers:
       - name: default-http-backend

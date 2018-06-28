@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/Microsoft/hcsshim"
-	eventsapi "github.com/containerd/containerd/api/services/events/v1"
+	eventstypes "github.com/containerd/containerd/api/events"
 	"github.com/containerd/containerd/errdefs"
 	"github.com/containerd/containerd/events"
 	"github.com/containerd/containerd/runtime"
@@ -126,7 +126,7 @@ func (t *task) Start(ctx context.Context) error {
 	}
 	t.publisher.Publish(ctx,
 		runtime.TaskStartEventTopic,
-		&eventsapi.TaskStart{
+		&eventstypes.TaskStart{
 			ContainerID: t.id,
 			Pid:         t.pid,
 		})
@@ -143,7 +143,7 @@ func (t *task) Pause(ctx context.Context) error {
 
 			t.publisher.Publish(ctx,
 				runtime.TaskPausedEventTopic,
-				&eventsapi.TaskPaused{
+				&eventstypes.TaskPaused{
 					ContainerID: t.id,
 				})
 			return nil
@@ -164,7 +164,7 @@ func (t *task) Resume(ctx context.Context) error {
 
 			t.publisher.Publish(ctx,
 				runtime.TaskResumedEventTopic,
-				&eventsapi.TaskResumed{
+				&eventstypes.TaskResumed{
 					ContainerID: t.id,
 				})
 			return nil
@@ -206,7 +206,7 @@ func (t *task) Exec(ctx context.Context, id string, opts runtime.ExecOpts) (runt
 
 	t.publisher.Publish(ctx,
 		runtime.TaskExecAddedEventTopic,
-		&eventsapi.TaskExecAdded{
+		&eventstypes.TaskExecAdded{
 			ContainerID: t.id,
 			ExecID:      id,
 		})
@@ -218,24 +218,36 @@ func (t *task) Pids(ctx context.Context) ([]runtime.ProcessInfo, error) {
 	t.Lock()
 	defer t.Unlock()
 
-	var infoList []runtime.ProcessInfo
+	var processList []runtime.ProcessInfo
 	hcsProcessList, err := t.hcsContainer.ProcessList()
 	if err != nil {
 		return nil, err
 	}
 
-	for _, process := range hcsProcessList {
-		info, err := t.convertToProcessDetails(process)
-		if err != nil {
-			return nil, err
+	for _, hcsProcess := range hcsProcessList {
+		info := &hcsshimtypes.ProcessDetails{
+			ImageName:                    hcsProcess.ImageName,
+			CreatedAt:                    hcsProcess.CreateTimestamp,
+			KernelTime_100Ns:             hcsProcess.KernelTime100ns,
+			MemoryCommitBytes:            hcsProcess.MemoryCommitBytes,
+			MemoryWorkingSetPrivateBytes: hcsProcess.MemoryWorkingSetPrivateBytes,
+			MemoryWorkingSetSharedBytes:  hcsProcess.MemoryWorkingSetSharedBytes,
+			ProcessID:                    hcsProcess.ProcessId,
+			UserTime_100Ns:               hcsProcess.UserTime100ns,
 		}
-		infoList = append(infoList, runtime.ProcessInfo{
-			Pid:  process.ProcessId,
+		for _, p := range t.processes {
+			if p.HcsPid() == hcsProcess.ProcessId {
+				info.ExecID = p.ID()
+				break
+			}
+		}
+		processList = append(processList, runtime.ProcessInfo{
+			Pid:  hcsProcess.ProcessId,
 			Info: info,
 		})
 	}
 
-	return infoList, nil
+	return processList, nil
 }
 
 func (t *task) Checkpoint(_ context.Context, _ string, _ *types.Any) error {
@@ -396,18 +408,4 @@ func (t *task) cleanup() {
 	}
 	removeLayer(context.Background(), t.rwLayer)
 	t.Unlock()
-}
-
-// convertToProcessDetails converts a given hcsshim ProcessListItem to proto ProcessDetails
-func (t *task) convertToProcessDetails(p hcsshim.ProcessListItem) (*hcsshimtypes.ProcessDetails, error) {
-	return &hcsshimtypes.ProcessDetails{
-		ImageName:                    p.ImageName,
-		CreatedAt:                    p.CreateTimestamp,
-		KernelTime_100Ns:             p.KernelTime100ns,
-		MemoryCommitBytes:            p.MemoryCommitBytes,
-		MemoryWorkingSetPrivateBytes: p.MemoryWorkingSetPrivateBytes,
-		MemoryWorkingSetSharedBytes:  p.MemoryWorkingSetSharedBytes,
-		ProcessID:                    p.ProcessId,
-		UserTime_100Ns:               p.UserTime100ns,
-	}, nil
 }

@@ -31,13 +31,15 @@ enthusiasm as any other contribution!
 
 ### 3. Working on a new feature
 
-If you've found something we've left out, definitely feel free to start work on
-introducing that feature. It's always useful to open an issue or submit a pull
-request early on to indicate your intent to a core contributor - this enables
-quick/early feedback and can help steer you in the right direction by avoiding
-known issues. It might also help you avoid losing time implementing something
-that might not ever work. One tip is to prefix your Pull Request issue title
-with [wip] - then people know it's a work in progress.
+If you've found something we've left out, we'd love for you to add it! Please
+first open an issue to indicate your interest to a core contributor - this
+enables quick/early feedback and can help steer you in the right direction by
+avoiding known issues. It might also help you avoid losing time implementing
+something that might not ever work or is outside the scope of the project.
+
+While you're implementing the feature, one tip is to prefix your Pull Request
+title with `[wip]` - then people know it's a work in progress. Once the PR is
+ready for review, you can remove the `[wip]` tag and request a review.
 
 We ask that you do not submit a feature that you have not spent time researching
 and testing first-hand in an actual OpenStack environment. While we appreciate

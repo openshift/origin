@@ -1,4 +1,4 @@
-// Package dlp provides access to the DLP API.
+// Package dlp provides access to the Cloud Data Loss Prevention (DLP) API.
 //
 // See https://cloud.google.com/dlp/docs/
 //
@@ -2554,6 +2554,9 @@ type GooglePrivacyDlpV2beta2CategoricalStatsHistogramBucket struct {
 	// BucketSize: Total number of values in this bucket.
 	BucketSize int64 `json:"bucketSize,omitempty,string"`
 
+	// BucketValueCount: Total number of distinct values in this bucket.
+	BucketValueCount int64 `json:"bucketValueCount,omitempty,string"`
+
 	// BucketValues: Sample of value frequencies in this bucket. The total
 	// number of
 	// values returned per bucket is capped at 20.
@@ -3186,6 +3189,7 @@ func (s *GooglePrivacyDlpV2beta2CryptoKey) MarshalJSON() ([]byte, error) {
 // Identifiers must be at least two characters long.
 // In the case that the identifier is the empty string, it will be
 // skipped.
+// See [Pseudonymization](/dlp/docs/pseudonymization) for example usage.
 type GooglePrivacyDlpV2beta2CryptoReplaceFfxFpeConfig struct {
 	// Possible values:
 	//   "FFX_COMMON_NATIVE_ALPHABET_UNSPECIFIED"
@@ -4191,10 +4195,16 @@ type GooglePrivacyDlpV2beta2FindingLimits struct {
 
 	// MaxFindingsPerItem: Max number of findings that will be returned for
 	// each item scanned.
+	// When set within `InspectDataSourceRequest`,
+	// the maximum returned is 1000 regardless if this is set higher.
+	// When set within `InspectContentRequest`, this field is ignored.
 	MaxFindingsPerItem int64 `json:"maxFindingsPerItem,omitempty"`
 
-	// MaxFindingsPerRequest: Max total number of findings that will be
-	// returned per request/job.
+	// MaxFindingsPerRequest: Max number of findings that will be returned
+	// per request/job.
+	// When set within `InspectContentRequest`, the maximum returned is
+	// 1000
+	// regardless if this is set higher.
 	MaxFindingsPerRequest int64 `json:"maxFindingsPerRequest,omitempty"`
 
 	// ForceSendFields is a list of field names (e.g.
@@ -5198,6 +5208,10 @@ type GooglePrivacyDlpV2beta2KAnonymityHistogramBucket struct {
 	// BucketSize: Total number of equivalence classes in this bucket.
 	BucketSize int64 `json:"bucketSize,omitempty,string"`
 
+	// BucketValueCount: Total number of distinct equivalence classes in
+	// this bucket.
+	BucketValueCount int64 `json:"bucketValueCount,omitempty,string"`
+
 	// BucketValues: Sample of equivalence classes in this bucket. The total
 	// number of
 	// classes returned per bucket is capped at 20.
@@ -5336,6 +5350,10 @@ func (s *GooglePrivacyDlpV2beta2KMapEstimationConfig) MarshalJSON() ([]byte, err
 type GooglePrivacyDlpV2beta2KMapEstimationHistogramBucket struct {
 	// BucketSize: Number of records within these anonymity bounds.
 	BucketSize int64 `json:"bucketSize,omitempty,string"`
+
+	// BucketValueCount: Total number of distinct quasi-identifier tuple
+	// values in this bucket.
+	BucketValueCount int64 `json:"bucketValueCount,omitempty,string"`
 
 	// BucketValues: Sample of quasi-identifier tuple values in this bucket.
 	// The total
@@ -5648,6 +5666,10 @@ func (s *GooglePrivacyDlpV2beta2LDiversityEquivalenceClass) MarshalJSON() ([]byt
 type GooglePrivacyDlpV2beta2LDiversityHistogramBucket struct {
 	// BucketSize: Total number of equivalence classes in this bucket.
 	BucketSize int64 `json:"bucketSize,omitempty,string"`
+
+	// BucketValueCount: Total number of distinct equivalence classes in
+	// this bucket.
+	BucketValueCount int64 `json:"bucketValueCount,omitempty,string"`
 
 	// BucketValues: Sample of equivalence classes in this bucket. The total
 	// number of
@@ -7979,7 +8001,9 @@ type GoogleTypeDate struct {
 	// if specifying a year/month where the day is not significant.
 	Day int64 `json:"day,omitempty"`
 
-	// Month: Month of year. Must be from 1 to 12.
+	// Month: Month of year. Must be from 1 to 12, or 0 if specifying a date
+	// without a
+	// month.
 	Month int64 `json:"month,omitempty"`
 
 	// Year: Year of date. Must be from 1 to 9999, or 0 if specifying a date

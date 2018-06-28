@@ -3,19 +3,19 @@
 package shim
 
 import (
+	"context"
 	"io"
 	"sync"
 	"syscall"
 
 	"github.com/containerd/console"
 	"github.com/containerd/fifo"
-	"golang.org/x/net/context"
 )
 
 type unixPlatform struct {
 }
 
-func (p *unixPlatform) copyConsole(ctx context.Context, console console.Console, stdin, stdout, stderr string, wg, cwg *sync.WaitGroup) (console.Console, error) {
+func (p *unixPlatform) CopyConsole(ctx context.Context, console console.Console, stdin, stdout, stderr string, wg, cwg *sync.WaitGroup) (console.Console, error) {
 	if stdin != "" {
 		in, err := fifo.OpenFifo(ctx, stdin, syscall.O_RDONLY, 0)
 		if err != nil {
@@ -24,7 +24,10 @@ func (p *unixPlatform) copyConsole(ctx context.Context, console console.Console,
 		cwg.Add(1)
 		go func() {
 			cwg.Done()
-			io.Copy(console, in)
+			p := bufPool.Get().(*[]byte)
+			defer bufPool.Put(p)
+
+			io.CopyBuffer(console, in, *p)
 		}()
 	}
 	outw, err := fifo.OpenFifo(ctx, stdout, syscall.O_WRONLY, 0)
@@ -39,7 +42,10 @@ func (p *unixPlatform) copyConsole(ctx context.Context, console console.Console,
 	cwg.Add(1)
 	go func() {
 		cwg.Done()
-		io.Copy(outw, console)
+		p := bufPool.Get().(*[]byte)
+		defer bufPool.Put(p)
+
+		io.CopyBuffer(outw, console, *p)
 		console.Close()
 		outr.Close()
 		outw.Close()
@@ -48,11 +54,11 @@ func (p *unixPlatform) copyConsole(ctx context.Context, console console.Console,
 	return console, nil
 }
 
-func (p *unixPlatform) shutdownConsole(ctx context.Context, cons console.Console) error {
+func (p *unixPlatform) ShutdownConsole(ctx context.Context, cons console.Console) error {
 	return nil
 }
 
-func (p *unixPlatform) close() error {
+func (p *unixPlatform) Close() error {
 	return nil
 }
 

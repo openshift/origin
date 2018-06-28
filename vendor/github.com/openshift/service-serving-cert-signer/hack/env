@@ -1,0 +1,42 @@
+#!/bin/bash
+
+# This starts a Docker container using the release image (openshift/origin-release:golang-1.6)
+# and syncs the local directory into that image. The default mode performs a 'git archive' of
+# the current HEAD, so you get a reproducible environment. You can also set
+# OS_BUILD_ENV_REUSE_VOLUME to a docker volume name to rsync (or docker cp) the contents of
+# the current directory into the image.
+#
+# Examples:
+#   # sync local dir into the volume and print the Docker create command
+#   $ hack/env
+#
+#   # builds the current HEAD in the container
+#   $ hack/env make
+#
+#   # builds the current HEAD and copy _output/releases back locally afterwards
+#   $ OS_BUILD_ENV_PRESERVE=_output/releases hack/env make release
+#
+#   # run all update tasks and copy the api, pkg, and docs directories back out
+#   $ OS_BUILD_ENV_PRESERVE=api:docs:pkg hack/env make update
+#
+#   # rsync the contents of the current directory into the 'local' docker volume
+#   # and iteratively build
+#   $ export OS_BUILD_ENV_REUSE_VOLUME=local
+#   $ export OS_BUILD_ENV_DOCKER_ARGS='-e OS_VERSION_FILE= '
+#   $ hack/env make # slow
+#   $ hack/env make # fast!
+#
+#   # force a new volume to get created from the current source
+#   $ OS_BUILD_ENV_VOLUME_FORCE_NEW=TRUE hack/env
+#
+
+# NOTE:   only committed code is built.
+source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
+
+relative_bin_path="$( os::util::repository_relative_path "${OS_OUTPUT_BINPATH}" )"
+relative_release_path="$( os::util::repository_relative_path "${OS_OUTPUT_RELEASEPATH}" )"
+relative_script_path="$( os::util::repository_relative_path "${OS_OUTPUT_SCRIPTPATH}" )"
+default_preserve_paths="${relative_bin_path}:${relative_release_path}:${relative_script_path}"
+export OS_BUILD_ENV_PRESERVE="${OS_BUILD_ENV_PRESERVE:-"${default_preserve_paths}"}"
+
+os::build::environment::run "$@"

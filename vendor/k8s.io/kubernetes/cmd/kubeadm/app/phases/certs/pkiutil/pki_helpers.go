@@ -29,6 +29,7 @@ import (
 	certutil "k8s.io/client-go/util/cert"
 	kubeadmapi "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm"
 	kubeadmconstants "k8s.io/kubernetes/cmd/kubeadm/app/constants"
+	kubeadmutil "k8s.io/kubernetes/cmd/kubeadm/app/util"
 	"k8s.io/kubernetes/pkg/registry/core/service/ipallocator"
 )
 
@@ -274,7 +275,7 @@ func GetAPIServerAltNames(cfg *kubeadmapi.MasterConfiguration) (*certutil.AltNam
 	// create AltNames with defaults DNSNames/IPs
 	altNames := &certutil.AltNames{
 		DNSNames: []string{
-			cfg.NodeName,
+			cfg.NodeRegistration.Name,
 			"kubernetes",
 			"kubernetes.default",
 			"kubernetes.default.svc",
@@ -286,9 +287,17 @@ func GetAPIServerAltNames(cfg *kubeadmapi.MasterConfiguration) (*certutil.AltNam
 		},
 	}
 
-	// add api server dns advertise address
+	// add api server controlPlaneEndpoint if present (dns or ip)
 	if len(cfg.API.ControlPlaneEndpoint) > 0 {
-		altNames.DNSNames = append(altNames.DNSNames, cfg.API.ControlPlaneEndpoint)
+		if host, _, err := kubeadmutil.ParseHostPort(cfg.API.ControlPlaneEndpoint); err == nil {
+			if ip := net.ParseIP(host); ip != nil {
+				altNames.IPs = append(altNames.IPs, ip)
+			} else {
+				altNames.DNSNames = append(altNames.DNSNames, host)
+			}
+		} else {
+			return nil, fmt.Errorf("error parsing API api.controlPlaneEndpoint %q: %s", cfg.API.ControlPlaneEndpoint, err)
+		}
 	}
 
 	appendSANsToAltNames(altNames, cfg.APIServerCertSANs, kubeadmconstants.APIServerCertName)
@@ -304,10 +313,12 @@ func GetEtcdAltNames(cfg *kubeadmapi.MasterConfiguration) (*certutil.AltNames, e
 	// create AltNames with defaults DNSNames/IPs
 	altNames := &certutil.AltNames{
 		DNSNames: []string{"localhost"},
-		IPs:      []net.IP{net.IPv4(127, 0, 0, 1)},
+		IPs:      []net.IP{net.IPv4(127, 0, 0, 1), net.IPv6loopback},
 	}
 
-	appendSANsToAltNames(altNames, cfg.Etcd.ServerCertSANs, kubeadmconstants.EtcdServerCertName)
+	if cfg.Etcd.Local != nil {
+		appendSANsToAltNames(altNames, cfg.Etcd.Local.ServerCertSANs, kubeadmconstants.EtcdServerCertName)
+	}
 
 	return altNames, nil
 }
@@ -325,11 +336,13 @@ func GetEtcdPeerAltNames(cfg *kubeadmapi.MasterConfiguration) (*certutil.AltName
 
 	// create AltNames with defaults DNSNames/IPs
 	altNames := &certutil.AltNames{
-		DNSNames: []string{cfg.NodeName},
+		DNSNames: []string{cfg.NodeRegistration.Name},
 		IPs:      []net.IP{advertiseAddress},
 	}
 
-	appendSANsToAltNames(altNames, cfg.Etcd.PeerCertSANs, kubeadmconstants.EtcdPeerCertName)
+	if cfg.Etcd.Local != nil {
+		appendSANsToAltNames(altNames, cfg.Etcd.Local.PeerCertSANs, kubeadmconstants.EtcdPeerCertName)
+	}
 
 	return altNames, nil
 }

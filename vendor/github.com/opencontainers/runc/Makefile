@@ -1,4 +1,4 @@
-.PHONY: all shell dbuild man \
+.PHONY: all shell dbuild man release \
 	    localtest localunittest localintegration \
 	    test unittest integration
 
@@ -65,13 +65,13 @@ localtest:
 	make localunittest localintegration localrootlessintegration
 
 unittest: runcimage
-	docker run -e TESTFLAGS -t --privileged --rm -v $(CURDIR):/go/src/$(PROJECT) $(RUNC_IMAGE) make localunittest
+	docker run -e TESTFLAGS -t --privileged --rm -v /lib/modules:/lib/modules:ro -v $(CURDIR):/go/src/$(PROJECT) $(RUNC_IMAGE) make localunittest
 
 localunittest: all
 	$(GO) test -timeout 3m -tags "$(BUILDTAGS)" ${TESTFLAGS} -v $(allpackages)
 
 integration: runcimage
-	docker run -e TESTFLAGS -t --privileged --rm -v $(CURDIR):/go/src/$(PROJECT) $(RUNC_IMAGE) make localintegration
+	docker run -e TESTFLAGS -t --privileged --rm -v /lib/modules:/lib/modules:ro -v $(CURDIR):/go/src/$(PROJECT) $(RUNC_IMAGE) make localintegration
 
 localintegration: all
 	bats -t tests/integration${TESTFLAGS}
@@ -82,7 +82,7 @@ rootlessintegration: runcimage
 localrootlessintegration: all
 	tests/rootless.sh
 
-shell: all
+shell: runcimage
 	docker run -e TESTFLAGS -ti --privileged --rm -v $(CURDIR):/go/src/$(PROJECT) $(RUNC_IMAGE) bash
 
 install:
