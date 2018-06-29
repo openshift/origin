@@ -8,6 +8,7 @@ import (
 	time "time"
 
 	versioned "github.com/openshift/origin/pkg/cmd/openshift-operators/generated/clientset/versioned"
+	dockerregistry "github.com/openshift/origin/pkg/cmd/openshift-operators/generated/informers/externalversions/dockerregistry"
 	internalinterfaces "github.com/openshift/origin/pkg/cmd/openshift-operators/generated/informers/externalversions/internalinterfaces"
 	webconsole "github.com/openshift/origin/pkg/cmd/openshift-operators/generated/informers/externalversions/webconsole"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -156,7 +157,12 @@ type SharedInformerFactory interface {
 	ForResource(resource schema.GroupVersionResource) (GenericInformer, error)
 	WaitForCacheSync(stopCh <-chan struct{}) map[reflect.Type]bool
 
+	Dockerregistry() dockerregistry.Interface
 	Webconsole() webconsole.Interface
+}
+
+func (f *sharedInformerFactory) Dockerregistry() dockerregistry.Interface {
+	return dockerregistry.New(f, f.namespace, f.tweakListOptions)
 }
 
 func (f *sharedInformerFactory) Webconsole() webconsole.Interface {
