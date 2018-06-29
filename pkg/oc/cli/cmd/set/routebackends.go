@@ -2,8 +2,6 @@ package set
 
 import (
 	"fmt"
-	"io"
-	"os"
 	"strconv"
 	"strings"
 	"text/tabwriter"
@@ -13,17 +11,19 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 
+	routev1 "github.com/openshift/api/route/v1"
+	"github.com/openshift/origin/pkg/oc/cli/cmd"
 	"github.com/openshift/origin/pkg/oc/util/ocscheme"
-	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 )
 
 var (
@@ -72,82 +72,74 @@ var (
 )
 
 type BackendsOptions struct {
-	Out io.Writer
-	Err io.Writer
+	PrintFlags *genericclioptions.PrintFlags
 
-	Filenames []string
-	Selector  string
-	All       bool
-	Output    string
+	Selector   string
+	All        bool
+	Local      bool
+	PrintTable bool
+	Transform  BackendTransform
 
-	Cmd *cobra.Command
+	Mapper            meta.RESTMapper
+	Client            dynamic.Interface
+	Printer           printers.ResourcePrinter
+	Builder           func() *resource.Builder
+	Namespace         string
+	ExplicitNamespace bool
+	DryRun            bool
+	Resources         []string
 
-	Builder *resource.Builder
-	Infos   []*resource.Info
+	resource.FilenameOptions
+	genericclioptions.IOStreams
+}
 
-	Encoder runtime.Encoder
-
-	Local         bool
-	ShortOutput   bool
-	Mapper        meta.RESTMapper
-	OutputVersion schema.GroupVersion
-
-	PrintTable  bool
-	PrintObject func(runtime.Object) error
-
-	Transform BackendTransform
+func NewBackendsOptions(streams genericclioptions.IOStreams) *BackendsOptions {
+	return &BackendsOptions{
+		PrintFlags: genericclioptions.NewPrintFlags("backends updated").WithTypeSetter(ocscheme.PrintingInternalScheme),
+		IOStreams:  streams,
+	}
 }
 
 // NewCmdRouteBackends implements the set route-backends command
 func NewCmdRouteBackends(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	options := &BackendsOptions{
-		Out: streams.Out,
-		Err: streams.ErrOut,
-	}
+	o := NewBackendsOptions(streams)
 	cmd := &cobra.Command{
 		Use:     "route-backends ROUTENAME [--zero|--equal] [--adjust] SERVICE=WEIGHT[%] [...]",
 		Short:   "Update the backends for a route",
 		Long:    fmt.Sprintf(backendsLong, fullName),
 		Example: fmt.Sprintf(backendsExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
-			kcmdutil.CheckErr(options.Complete(f, cmd, args))
-			kcmdutil.CheckErr(options.Validate())
-			err := options.Run()
-			// TODO: move me to kcmdutil
-			if err == kcmdutil.ErrExit {
-				os.Exit(1)
-			}
-			kcmdutil.CheckErr(err)
+			kcmdutil.CheckErr(o.Complete(f, cmd, args))
+			kcmdutil.CheckErr(o.Validate())
+			kcmdutil.CheckErr(o.Run())
 		},
 	}
+	usage := "to use to edit the resource"
+	kcmdutil.AddFilenameOptionFlags(cmd, &o.FilenameOptions, usage)
+	cmd.Flags().StringVarP(&o.Selector, "selector", "l", o.Selector, "Selector (label query) to filter on")
+	cmd.Flags().BoolVar(&o.All, "all", o.All, "If true, select all resources in the namespace of the specified resource types")
+	cmd.Flags().BoolVar(&o.Local, "local", o.Local, "If true, set image will NOT contact api-server but run locally.")
+	cmd.Flags().BoolVar(&o.Transform.Adjust, "adjust", o.Transform.Adjust, "Adjust a single backend using an absolute or relative weight. If the primary backend is selected and there is more than one alternate an error will be returned.")
+	cmd.Flags().BoolVar(&o.Transform.Zero, "zero", o.Transform.Zero, "If true, set the weight of all backends to zero.")
+	cmd.Flags().BoolVar(&o.Transform.Equal, "equal", o.Transform.Equal, "If true, set the weight of all backends to 100.")
 
-	kcmdutil.AddPrinterFlags(cmd)
-	cmd.Flags().StringVarP(&options.Selector, "selector", "l", options.Selector, "Selector (label query) to filter on")
-	cmd.Flags().BoolVar(&options.All, "all", options.All, "If true, select all resources in the namespace of the specified resource types")
-	cmd.Flags().StringSliceVarP(&options.Filenames, "filename", "f", options.Filenames, "Filename, directory, or URL to file to use to edit the resource.")
-	cmd.Flags().BoolVar(&options.Local, "local", false, "If true, set image will NOT contact api-server but run locally.")
-
-	cmd.Flags().BoolVar(&options.Transform.Adjust, "adjust", options.Transform.Adjust, "Adjust a single backend using an absolute or relative weight. If the primary backend is selected and there is more than one alternate an error will be returned.")
-	cmd.Flags().BoolVar(&options.Transform.Zero, "zero", options.Transform.Zero, "If true, set the weight of all backends to zero.")
-	cmd.Flags().BoolVar(&options.Transform.Equal, "equal", options.Transform.Equal, "If true, set the weight of all backends to 100.")
-
+	o.PrintFlags.AddFlags(cmd)
 	kcmdutil.AddDryRunFlag(cmd)
-	cmd.MarkFlagFilename("filename", "yaml", "yml", "json")
 
 	return cmd
 }
 
 // Complete takes command line information to fill out BackendOptions or returns an error.
 func (o *BackendsOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string) error {
-	cmdNamespace, explicit, err := f.ToRawKubeConfigLoader().Namespace()
+	var err error
+	o.Namespace, o.ExplicitNamespace, err = f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
 	}
 
-	var resources []string
 	for _, arg := range args {
 		if !strings.Contains(arg, "=") {
-			resources = append(resources, arg)
+			o.Resources = append(o.Resources, arg)
 			continue
 		}
 		input, err := ParseBackendInput(arg)
@@ -159,36 +151,29 @@ func (o *BackendsOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args 
 
 	o.PrintTable = o.Transform.Empty()
 
-	o.Cmd = cmd
-
-	mapper, err := f.ToRESTMapper()
+	o.DryRun = kcmdutil.GetDryRunFlag(cmd)
+	o.Mapper, err = f.ToRESTMapper()
 	if err != nil {
 		return err
 	}
-	o.Builder = f.NewBuilder().
-		WithScheme(ocscheme.ReadingInternalScheme).
-		LocalParam(o.Local).
-		ContinueOnError().
-		NamespaceParam(cmdNamespace).DefaultNamespace().
-		FilenameParam(explicit, &resource.FilenameOptions{Recursive: false, Filenames: o.Filenames}).
-		Flatten()
-	if !o.Local {
-		o.Builder = o.Builder.
-			LabelSelectorParam(o.Selector).
-			SelectAllParam(o.All).
-			ResourceNames("route", resources...)
+	o.Builder = f.NewBuilder
 
-		if len(resources) == 0 {
-			o.Builder.ResourceTypes("routes")
-		}
+	if o.DryRun {
+		o.PrintFlags.Complete("%s (dry run)")
+	}
+	o.Printer, err = o.PrintFlags.ToPrinter()
+	if err != nil {
+		return err
 	}
 
-	o.Output = kcmdutil.GetFlagString(cmd, "output")
-	o.PrintObject = func(obj runtime.Object) error { return kcmdutil.PrintObject(cmd, obj, o.Out) }
-
-	o.Encoder = kcmdutil.InternalVersionJSONEncoder()
-	o.ShortOutput = kcmdutil.GetFlagString(cmd, "output") == "name"
-	o.Mapper = mapper
+	clientConfig, err := f.ToRESTConfig()
+	if err != nil {
+		return err
+	}
+	o.Client, err = dynamic.NewForConfig(clientConfig)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -200,71 +185,77 @@ func (o *BackendsOptions) Validate() error {
 
 // Run executes the BackendOptions or returns an error.
 func (o *BackendsOptions) Run() error {
-	infos := o.Infos
-	singleItemImplied := len(o.Infos) <= 1
-	if o.Builder != nil {
-		loaded, err := o.Builder.Do().IntoSingleItemImplied(&singleItemImplied).Infos()
-		if err != nil {
-			return err
+	b := o.Builder().
+		WithScheme(ocscheme.ReadingInternalScheme, ocscheme.ReadingInternalScheme.PrioritizedVersionsAllGroups()...).
+		LocalParam(o.Local).
+		ContinueOnError().
+		NamespaceParam(o.Namespace).DefaultNamespace().
+		FilenameParam(o.ExplicitNamespace, &o.FilenameOptions).
+		Flatten()
+	if !o.Local {
+		b = b.
+			LabelSelectorParam(o.Selector).
+			SelectAllParam(o.All).
+			ResourceNames("route", o.Resources...).
+			Latest()
+		if len(o.Resources) == 0 {
+			b = b.ResourceTypes("routes")
 		}
-		infos = loaded
 	}
 
-	if o.PrintTable && len(o.Output) == 0 {
+	singleItemImplied := false
+	infos, err := b.Do().IntoSingleItemImplied(&singleItemImplied).Infos()
+	if err != nil {
+		return err
+	}
+
+	if o.PrintTable {
 		return o.printBackends(infos)
 	}
 
-	patches := CalculatePatches(infos, o.Encoder, func(info *resource.Info) (bool, error) {
+	patches := CalculatePatchesExternal(infos, func(info *resource.Info) (bool, error) {
 		return UpdateBackendsForObject(info.Object, o.Transform.Apply)
 	})
 	if singleItemImplied && len(patches) == 0 {
-		return fmt.Errorf("%s/%s is not a deployment config or build config", infos[0].Mapping.Resource.Resource, infos[0].Name)
-	}
-	if len(o.Output) > 0 || o.Local || kcmdutil.GetDryRunFlag(o.Cmd) {
-		var object runtime.Object
-		if len(infos) == 1 && singleItemImplied {
-			object = infos[0].Object
-		} else {
-			var items []runtime.Object
-			for i := range infos {
-				items = append(items, infos[i].Object)
-			}
-			object = &kapi.List{Items: items}
+		name := infos[0].Name
+		if infos[0].Mapping != nil {
+			name = fmt.Sprintf("%s/%s", infos[0].Mapping.Resource.Resource, infos[0].Name)
 		}
-
-		return o.PrintObject(object)
+		return fmt.Errorf("%s is not a deployment config or build config", name)
 	}
 
-	failed := false
+	allErrs := []error{}
 	for _, patch := range patches {
 		info := patch.Info
+		name := cmd.GetObjectName(info)
 		if patch.Err != nil {
-			failed = true
-			fmt.Fprintf(o.Err, "error: %s/%s %v\n", info.Mapping.Resource.Resource, info.Name, patch.Err)
+			allErrs = append(allErrs, fmt.Errorf("error: %s %v\n", name, patch.Err))
 			continue
 		}
 
 		if string(patch.Patch) == "{}" || len(patch.Patch) == 0 {
-			fmt.Fprintf(o.Err, "info: %s %q was not changed\n", info.Mapping.Resource.Resource, info.Name)
+			glog.V(1).Infof("info: %s was not changed\n", name)
 			continue
 		}
 
-		glog.V(4).Infof("Calculated patch %s", patch.Patch)
+		if o.Local || o.DryRun {
+			if err := o.Printer.PrintObj(info.Object, o.Out); err != nil {
+				allErrs = append(allErrs, err)
+			}
+			continue
+		}
 
-		obj, err := resource.NewHelper(info.Client, info.Mapping).Patch(info.Namespace, info.Name, types.StrategicMergePatchType, patch.Patch)
+		actual, err := o.Client.Resource(info.Mapping.Resource).Namespace(info.Namespace).Patch(info.Name, types.StrategicMergePatchType, patch.Patch)
 		if err != nil {
-			handlePodUpdateError(o.Err, err, "altered")
-			failed = true
+			allErrs = append(allErrs, fmt.Errorf("failed to patch route backends: %v\n", err))
 			continue
 		}
 
-		info.Refresh(obj, true)
-		kcmdutil.PrintSuccess(o.ShortOutput, o.Out, info.Object, false, "updated")
+		if err := o.Printer.PrintObj(actual, o.Out); err != nil {
+			allErrs = append(allErrs, err)
+		}
 	}
-	if failed {
-		return kcmdutil.ErrExit
-	}
-	return nil
+	return utilerrors.NewAggregate(allErrs)
 }
 
 // printBackends displays a tabular output of the backends for each object.
@@ -415,7 +406,7 @@ func (t BackendTransform) Apply(b *Backends) error {
 		b.Backends = nil
 		for _, input := range t.Inputs {
 			weight := input.Value
-			b.Backends = append(b.Backends, routeapi.RouteTargetReference{
+			b.Backends = append(b.Backends, routev1.RouteTargetReference{
 				Kind:   "Service",
 				Name:   input.Name,
 				Weight: &weight,
@@ -438,7 +429,7 @@ type BackendInput struct {
 }
 
 // Apply alters the weights of two services.
-func (input *BackendInput) Apply(ref, to *routeapi.RouteTargetReference, backends []routeapi.RouteTargetReference) {
+func (input *BackendInput) Apply(ref, to *routev1.RouteTargetReference, backends []routev1.RouteTargetReference) {
 	weight := int32(100)
 	if ref.Weight != nil {
 		weight = *ref.Weight
@@ -556,7 +547,7 @@ func ParseBackendInput(s string) (*BackendInput, error) {
 
 // Backends is a struct that represents the backends to be transformed.
 type Backends struct {
-	Backends []routeapi.RouteTargetReference
+	Backends []routev1.RouteTargetReference
 }
 
 // Names returns the referenced backend service names, in the order they appear.
@@ -574,9 +565,9 @@ func (b *Backends) Names() []string {
 func UpdateBackendsForObject(obj runtime.Object, fn func(*Backends) error) (bool, error) {
 	// TODO: replace with a swagger schema based approach (identify pod template via schema introspection)
 	switch t := obj.(type) {
-	case *routeapi.Route:
+	case *routev1.Route:
 		b := &Backends{
-			Backends: []routeapi.RouteTargetReference{t.Spec.To},
+			Backends: []routev1.RouteTargetReference{t.Spec.To},
 		}
 		for _, backend := range t.Spec.AlternateBackends {
 			b.Backends = append(b.Backends, backend)
@@ -585,7 +576,7 @@ func UpdateBackendsForObject(obj runtime.Object, fn func(*Backends) error) (bool
 			return true, err
 		}
 		if len(b.Backends) == 0 {
-			t.Spec.To = routeapi.RouteTargetReference{}
+			t.Spec.To = routev1.RouteTargetReference{}
 		} else {
 			t.Spec.To = b.Backends[0]
 		}

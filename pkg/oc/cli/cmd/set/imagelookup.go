@@ -2,24 +2,24 @@ package set
 
 import (
 	"fmt"
-	"io"
 	"text/tabwriter"
 
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
 	"k8s.io/apimachinery/pkg/api/meta"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 
+	imagev1 "github.com/openshift/api/image/v1"
 	ometa "github.com/openshift/origin/pkg/api/meta"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	"github.com/openshift/origin/pkg/oc/cli/cmd"
 	"github.com/openshift/origin/pkg/oc/util/ocscheme"
 )
 
@@ -81,68 +81,86 @@ var (
 const alphaResolveNamesAnnotation = "alpha.image.policy.openshift.io/resolve-names"
 
 type ImageLookupOptions struct {
-	Out io.Writer
-	Err io.Writer
+	PrintFlags *genericclioptions.PrintFlags
 
-	Filenames []string
-	Selector  string
-	All       bool
+	Selector   string
+	All        bool
+	List       bool
+	Local      bool
+	Enabled    bool
+	PrintTable bool
 
-	Builder *resource.Builder
-	Infos   []*resource.Info
+	Mapper            meta.RESTMapper
+	Client            dynamic.Interface
+	Printer           printers.ResourcePrinter
+	Builder           func() *resource.Builder
+	Namespace         string
+	ExplicitNamespace bool
+	DryRun            bool
+	Args              []string
 
-	Encoder runtime.Encoder
+	resource.FilenameOptions
+	genericclioptions.IOStreams
+}
 
-	ShortOutput   bool
-	Mapper        meta.RESTMapper
-	OutputVersion schema.GroupVersion
-
-	PrintTable  bool
-	PrintObject func(runtime.Object) error
-
-	List  bool
-	Local bool
-
-	Enabled bool
+func NewImageLookupOptions(streams genericclioptions.IOStreams) *ImageLookupOptions {
+	return &ImageLookupOptions{
+		PrintFlags: genericclioptions.NewPrintFlags("image lookup updated").WithTypeSetter(ocscheme.PrintingInternalScheme),
+		IOStreams:  streams,
+		Enabled:    true,
+	}
 }
 
 // NewCmdImageLookup implements the set image-lookup command
 func NewCmdImageLookup(fullName, parentName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	options := &ImageLookupOptions{
-		Out:     streams.Out,
-		Err:     streams.ErrOut,
-		Enabled: true,
-	}
+	o := NewImageLookupOptions(streams)
 	cmd := &cobra.Command{
 		Use:     "image-lookup STREAMNAME [...]",
 		Short:   "Change how images are resolved when deploying applications",
 		Long:    fmt.Sprintf(imageLookupLong, fullName, parentName),
 		Example: fmt.Sprintf(imageLookupExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
-			kcmdutil.CheckErr(options.Complete(f, cmd, args))
-			kcmdutil.CheckErr(options.Validate())
-			kcmdutil.CheckErr(options.Run())
+			kcmdutil.CheckErr(o.Complete(f, cmd, args))
+			kcmdutil.CheckErr(o.Validate())
+			kcmdutil.CheckErr(o.Run())
 		},
 	}
+	usage := "to use to edit the resource"
+	kcmdutil.AddFilenameOptionFlags(cmd, &o.FilenameOptions, usage)
+	cmd.Flags().StringVarP(&o.Selector, "selector", "l", o.Selector, "Selector (label query) to filter on.")
+	cmd.Flags().BoolVar(&o.All, "all", o.All, "If true, select all resources in the namespace of the specified resource types.")
+	cmd.Flags().BoolVar(&o.List, "list", o.List, "Display the current states of the requested resources.")
+	cmd.Flags().BoolVar(&o.Enabled, "enabled", o.Enabled, "Mark the image stream as resolving tagged images in this namespace.")
+	cmd.Flags().BoolVar(&o.Local, "local", o.Local, "If true, operations will be performed locally.")
 
-	kcmdutil.AddPrinterFlags(cmd)
-	cmd.Flags().StringVarP(&options.Selector, "selector", "l", options.Selector, "Selector (label query) to filter on.")
-	cmd.Flags().BoolVar(&options.All, "all", options.All, "If true, select all resources in the namespace of the specified resource types.")
-	cmd.Flags().StringSliceVarP(&options.Filenames, "filename", "f", options.Filenames, "Filename, directory, or URL to file to use to edit the resource.")
-
-	cmd.Flags().BoolVar(&options.List, "list", false, "Display the current states of the requested resources.")
-	cmd.Flags().BoolVar(&options.Enabled, "enabled", options.Enabled, "Mark the image stream as resolving tagged images in this namespace.")
-
-	cmd.Flags().BoolVar(&options.Local, "local", false, "If true, operations will be performed locally.")
+	o.PrintFlags.AddFlags(cmd)
 	kcmdutil.AddDryRunFlag(cmd)
-	cmd.MarkFlagFilename("filename", "yaml", "yml", "json")
 
 	return cmd
 }
 
 // Complete takes command line information to fill out ImageLookupOptions or returns an error.
 func (o *ImageLookupOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string) error {
-	cmdNamespace, explicit, err := f.ToRawKubeConfigLoader().Namespace()
+	var err error
+	o.Namespace, o.ExplicitNamespace, err = f.ToRawKubeConfigLoader().Namespace()
+	if err != nil {
+		return err
+	}
+
+	o.PrintTable = (o.PrintFlags.OutputFormat == nil && len(args) == 0 && !o.All) || o.List
+
+	o.Args = args
+	o.DryRun = kcmdutil.GetDryRunFlag(cmd)
+	o.Mapper, err = f.ToRESTMapper()
+	if err != nil {
+		return err
+	}
+	o.Builder = f.NewBuilder
+
+	if o.DryRun {
+		o.PrintFlags.Complete("%s (dry run)")
+	}
+	o.Printer, err = o.PrintFlags.ToPrinter()
 	if err != nil {
 		return err
 	}
@@ -151,96 +169,73 @@ func (o *ImageLookupOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, ar
 	if err != nil {
 		return err
 	}
-
-	outputVersionString := kcmdutil.GetFlagString(cmd, "output-version")
-	if len(outputVersionString) == 0 {
-		o.OutputVersion = *clientConfig.GroupVersion
-	} else {
-		o.OutputVersion, err = schema.ParseGroupVersion(outputVersionString)
-		if err != nil {
-			return err
-		}
-	}
-
-	o.PrintTable = (len(args) == 0 && !o.All) || o.List
-
-	mapper, err := f.ToRESTMapper()
+	o.Client, err = dynamic.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
-	o.Builder = f.NewBuilder().
-		WithScheme(ocscheme.ReadingInternalScheme).
-		LocalParam(o.Local).
-		ContinueOnError().
-		NamespaceParam(cmdNamespace).DefaultNamespace().
-		FilenameParam(explicit, &resource.FilenameOptions{Recursive: false, Filenames: o.Filenames}).
-		Flatten()
-
-	switch {
-	case o.Local && len(args) > 0:
-		return kcmdutil.UsageErrorf(cmd, "Pass files with -f when using --local")
-	case o.Local:
-		// perform no lookups on the server
-		// TODO: discovery still requires a running server, doesn't fall back correctly
-	case len(args) == 0 && len(o.Filenames) == 0:
-		o.Builder = o.Builder.
-			LabelSelectorParam(o.Selector).
-			SelectAllParam(true).
-			ResourceTypes("imagestreams")
-	case o.List:
-		o.Builder = o.Builder.
-			LabelSelectorParam(o.Selector).
-			SelectAllParam(o.All).
-			ResourceTypeOrNameArgs(true, args...)
-	default:
-		o.Builder = o.Builder.
-			LabelSelectorParam(o.Selector).
-			SelectAllParam(o.All).
-			ResourceNames("imagestreams", args...)
-	}
-
-	output := kcmdutil.GetFlagString(cmd, "output")
-	if len(output) != 0 || o.Local || kcmdutil.GetDryRunFlag(cmd) {
-		o.PrintObject = func(obj runtime.Object) error { return kcmdutil.PrintObject(cmd, obj, o.Out) }
-	}
-
-	o.Encoder = kcmdutil.InternalVersionJSONEncoder()
-	o.ShortOutput = kcmdutil.GetFlagString(cmd, "output") == "name"
-	o.Mapper = mapper
 
 	return nil
 }
 
-// Validate verifies the provided options are valid or returns an error.
 func (o *ImageLookupOptions) Validate() error {
+	if o.Local && len(o.Args) > 0 {
+		return fmt.Errorf("pass files with -f when using --local")
+	}
+
 	return nil
 }
 
 // Run executes the ImageLookupOptions or returns an error.
 func (o *ImageLookupOptions) Run() error {
-	infos := o.Infos
-	singleItemImplied := len(o.Infos) <= 1
-	if o.Builder != nil {
-		loaded, err := o.Builder.Do().IntoSingleItemImplied(&singleItemImplied).Infos()
-		if err != nil {
-			return err
-		}
-		infos = loaded
+	b := o.Builder().
+		WithScheme(ocscheme.ReadingInternalScheme, ocscheme.ReadingInternalScheme.PrioritizedVersionsAllGroups()...).
+		LocalParam(o.Local).
+		ContinueOnError().
+		NamespaceParam(o.Namespace).DefaultNamespace().
+		FilenameParam(o.ExplicitNamespace, &o.FilenameOptions).
+		Flatten()
+
+	switch {
+	case o.Local:
+		// perform no lookups on the server
+		// TODO: discovery still requires a running server, doesn't fall back correctly
+	case len(o.Args) == 0 && len(o.Filenames) == 0:
+		b = b.
+			LabelSelectorParam(o.Selector).
+			SelectAllParam(true).
+			ResourceTypes("imagestreams")
+	case o.List:
+		b = b.
+			LabelSelectorParam(o.Selector).
+			SelectAllParam(o.All).
+			ResourceTypeOrNameArgs(true, o.Args...)
+	default:
+		b = b.
+			LabelSelectorParam(o.Selector).
+			SelectAllParam(o.All).
+			ResourceNames("imagestreams", o.Args...).
+			Latest()
 	}
 
-	if o.PrintTable && o.PrintObject == nil {
+	singleItemImplied := false
+	infos, err := b.Do().IntoSingleItemImplied(&singleItemImplied).Infos()
+	if err != nil {
+		return err
+	}
+
+	if o.PrintTable {
 		return o.printImageLookup(infos)
 	}
 
-	patches := CalculatePatches(infos, o.Encoder, func(info *resource.Info) (bool, error) {
+	patches := CalculatePatchesExternal(infos, func(info *resource.Info) (bool, error) {
 		switch t := info.Object.(type) {
-		case *imageapi.ImageStream:
+		case *imagev1.ImageStream:
 			t.Spec.LookupPolicy.Local = o.Enabled
 			return true, nil
 		default:
 			accessor, ok := ometa.GetAnnotationAccessor(info.Object)
 			if !ok {
-				return true, fmt.Errorf("the resource %s/%s does not support altering image lookup", info.Mapping.Resource, info.Name)
+				return true, fmt.Errorf("the resource %s does not support altering image lookup", cmd.GetObjectName(info))
 			}
 			templateAnnotations, ok := accessor.TemplateAnnotations()
 			if ok {
@@ -268,50 +263,40 @@ func (o *ImageLookupOptions) Run() error {
 			return true, nil
 		}
 	})
-	if singleItemImplied && len(patches) == 0 {
-		return fmt.Errorf("%s/%s no changes", infos[0].Mapping.Resource, infos[0].Name)
-	}
-	if o.PrintObject != nil {
-		allErrs := []error{}
-		for i := range infos {
-			if err := o.PrintObject(kcmdutil.AsDefaultVersionedOrOriginal(infos[i].Object, infos[i].Mapping)); err != nil {
-				allErrs = append(allErrs, err)
-			}
-		}
 
-		return utilerrors.NewAggregate(allErrs)
-	}
-
-	failed := false
+	allErrs := []error{}
 	for _, patch := range patches {
 		info := patch.Info
+		name := cmd.GetObjectName(info)
 		if patch.Err != nil {
-			failed = true
-			fmt.Fprintf(o.Err, "error: %s/%s %v\n", info.Mapping.Resource, info.Name, patch.Err)
+			allErrs = append(allErrs, fmt.Errorf("error: %s %v\n", name, patch.Err))
 			continue
 		}
 
 		if string(patch.Patch) == "{}" || len(patch.Patch) == 0 {
-			fmt.Fprintf(o.Err, "info: %s %q was not changed\n", info.Mapping.Resource, info.Name)
+			glog.V(1).Infof("info: %s was not changed\n", name)
 			continue
 		}
 
-		glog.V(4).Infof("Calculated patch %s", patch.Patch)
+		if o.Local || o.DryRun {
+			if err := o.Printer.PrintObj(info.Object, o.Out); err != nil {
+				allErrs = append(allErrs, err)
+			}
+			continue
+		}
 
-		obj, err := resource.NewHelper(info.Client, info.Mapping).Patch(info.Namespace, info.Name, types.StrategicMergePatchType, patch.Patch)
+		actual, err := o.Client.Resource(info.Mapping.Resource).Namespace(info.Namespace).Patch(info.Name, types.StrategicMergePatchType, patch.Patch)
 		if err != nil {
-			handlePodUpdateError(o.Err, err, "altered")
-			failed = true
+			allErrs = append(allErrs, fmt.Errorf("failed to patch image lookup: %v\n", err))
 			continue
 		}
 
-		info.Refresh(obj, true)
-		kcmdutil.PrintSuccess(o.ShortOutput, o.Out, info.Object, false, "updated")
+		if err := o.Printer.PrintObj(actual, o.Out); err != nil {
+			allErrs = append(allErrs, err)
+		}
 	}
-	if failed {
-		return kcmdutil.ErrExit
-	}
-	return nil
+	return utilerrors.NewAggregate(allErrs)
+
 }
 
 // printImageLookup displays a tabular output of the imageLookup for each object.
@@ -321,13 +306,14 @@ func (o *ImageLookupOptions) printImageLookup(infos []*resource.Info) error {
 	fmt.Fprintf(w, "NAME\tLOCAL\n")
 	for _, info := range infos {
 		switch t := info.Object.(type) {
-		case *imageapi.ImageStream:
+		case *imagev1.ImageStream:
 			fmt.Fprintf(w, "%s\t%t\n", info.Name, t.Spec.LookupPolicy.Local)
 		default:
+			name := cmd.GetObjectName(info)
 			accessor, ok := ometa.GetAnnotationAccessor(info.Object)
 			if !ok {
 				// has no annotations
-				fmt.Fprintf(w, "%s/%s\tUNKNOWN\n", info.Mapping.Resource, info.Name)
+				fmt.Fprintf(w, "%s\tUNKNOWN\n", name)
 				break
 			}
 			var enabled bool
@@ -337,7 +323,7 @@ func (o *ImageLookupOptions) printImageLookup(infos []*resource.Info) error {
 			if !enabled {
 				enabled = accessor.Annotations()[alphaResolveNamesAnnotation] == "*"
 			}
-			fmt.Fprintf(w, "%s/%s\t%t\n", info.Mapping.Resource, info.Name, enabled)
+			fmt.Fprintf(w, "%s\t%t\n", name, enabled)
 		}
 	}
 	return nil

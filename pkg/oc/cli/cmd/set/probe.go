@@ -2,27 +2,29 @@ package set
 
 import (
 	"fmt"
-	"io"
 	"net"
 	"net/url"
-	"os"
 	"strconv"
 	"strings"
 
+	"github.com/golang/glog"
 	"github.com/spf13/cobra"
-	"k8s.io/api/core/v1"
+
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/dynamic"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 	"k8s.io/kubernetes/pkg/kubectl/polymorphichelpers"
 
+	"github.com/openshift/origin/pkg/oc/cli/cmd"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	"github.com/openshift/origin/pkg/oc/util/ocscheme"
 )
@@ -70,40 +72,32 @@ var (
 )
 
 type ProbeOptions struct {
-	Out io.Writer
-	Err io.Writer
+	PrintFlags *genericclioptions.PrintFlags
 
-	Filenames         []string
 	ContainerSelector string
 	Selector          string
 	All               bool
-	Output            string
+	Readiness         bool
+	Liveness          bool
+	Remove            bool
+	Local             bool
+	OpenTCPSocket     string
+	HTTPGet           string
 
-	Builder *resource.Builder
-	Infos   []*resource.Info
-
-	Encoder runtime.Encoder
-
-	Cmd *cobra.Command
-
-	ShortOutput bool
-	Mapper      meta.RESTMapper
-
-	PrintObject            func([]*resource.Info) error
-	UpdatePodSpecForObject func(runtime.Object, func(spec *v1.PodSpec) error) (bool, error)
-
-	Readiness bool
-	Liveness  bool
-	Remove    bool
-	Local     bool
-
-	OpenTCPSocket string
-	HTTPGet       string
-	Command       []string
+	Mapper                 meta.RESTMapper
+	Client                 dynamic.Interface
+	Printer                printers.ResourcePrinter
+	Builder                func() *resource.Builder
+	Encoder                runtime.Encoder
+	Namespace              string
+	ExplicitNamespace      bool
+	UpdatePodSpecForObject polymorphichelpers.UpdatePodSpecForObjectFunc
+	Command                []string
+	Resources              []string
+	DryRun                 bool
 
 	FlagSet       func(string) bool
 	HTTPGetAction *kapi.HTTPGetAction
-	Client        dynamic.Interface
 
 	// Length of time before health checking is activated.  In seconds.
 	InitialDelaySeconds *int
@@ -116,103 +110,89 @@ type ProbeOptions struct {
 	SuccessThreshold *int
 	// Minimum consecutive failures for the probe to be considered failed after having succeeded.
 	FailureThreshold *int
+
+	resource.FilenameOptions
+	genericclioptions.IOStreams
+}
+
+func NewProbeOptions(streams genericclioptions.IOStreams) *ProbeOptions {
+	return &ProbeOptions{
+		PrintFlags: genericclioptions.NewPrintFlags("probes updated").WithTypeSetter(ocscheme.PrintingInternalScheme),
+		IOStreams:  streams,
+
+		ContainerSelector: "*",
+	}
 }
 
 // NewCmdProbe implements the set probe command
 func NewCmdProbe(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	options := &ProbeOptions{
-		Out: streams.Out,
-		Err: streams.ErrOut,
-
-		ContainerSelector: "*",
-	}
+	o := NewProbeOptions(streams)
 	cmd := &cobra.Command{
 		Use:     "probe RESOURCE/NAME --readiness|--liveness [flags] (--get-url=URL|--open-tcp=PORT|-- CMD)",
 		Short:   "Update a probe on a pod template",
 		Long:    probeLong,
 		Example: fmt.Sprintf(probeExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
-			kcmdutil.CheckErr(options.Complete(f, cmd, args))
-			kcmdutil.CheckErr(options.Validate())
-			if err := options.Run(); err != nil {
-				// TODO: move me to kcmdutil
-				if err == kcmdutil.ErrExit {
-					os.Exit(1)
-				}
-				kcmdutil.CheckErr(err)
-			}
+			kcmdutil.CheckErr(o.Complete(f, cmd, args))
+			kcmdutil.CheckErr(o.Validate())
+			kcmdutil.CheckErr(o.Run())
 		},
 	}
+	usage := "to use to edit the resource"
+	kcmdutil.AddFilenameOptionFlags(cmd, &o.FilenameOptions, usage)
+	cmd.Flags().StringVarP(&o.ContainerSelector, "containers", "c", o.ContainerSelector, "The names of containers in the selected pod templates to change - may use wildcards")
+	cmd.Flags().StringVarP(&o.Selector, "selector", "l", o.Selector, "Selector (label query) to filter on")
+	cmd.Flags().BoolVar(&o.All, "all", o.All, "If true, select all resources in the namespace of the specified resource types")
+	cmd.Flags().BoolVar(&o.Remove, "remove", o.Remove, "If true, remove the specified probe(s).")
+	cmd.Flags().BoolVar(&o.Readiness, "readiness", o.Readiness, "Set or remove a readiness probe to indicate when this container should receive traffic")
+	cmd.Flags().BoolVar(&o.Liveness, "liveness", o.Liveness, "Set or remove a liveness probe to verify this container is running")
+	cmd.Flags().BoolVar(&o.Local, "local", o.Local, "If true, set image will NOT contact api-server but run locally.")
+	cmd.Flags().StringVar(&o.OpenTCPSocket, "open-tcp", o.OpenTCPSocket, "A port number or port name to attempt to open via TCP.")
+	cmd.Flags().StringVar(&o.HTTPGet, "get-url", o.HTTPGet, "A URL to perform an HTTP GET on (you can omit the host, have a string port, or omit the scheme.")
 
-	kcmdutil.AddPrinterFlags(cmd)
-	cmd.Flags().StringVarP(&options.ContainerSelector, "containers", "c", options.ContainerSelector, "The names of containers in the selected pod templates to change - may use wildcards")
-	cmd.Flags().StringVarP(&options.Selector, "selector", "l", options.Selector, "Selector (label query) to filter on")
-	cmd.Flags().BoolVar(&options.All, "all", options.All, "If true, select all resources in the namespace of the specified resource types")
-	cmd.Flags().StringSliceVarP(&options.Filenames, "filename", "f", options.Filenames, "Filename, directory, or URL to file to use to edit the resource.")
+	o.InitialDelaySeconds = cmd.Flags().Int("initial-delay-seconds", 0, "The time in seconds to wait before the probe begins checking")
+	o.SuccessThreshold = cmd.Flags().Int("success-threshold", 0, "The number of successes required before the probe is considered successful")
+	o.FailureThreshold = cmd.Flags().Int("failure-threshold", 0, "The number of failures before the probe is considered to have failed")
+	o.PeriodSeconds = cmd.Flags().Int("period-seconds", 0, "The time in seconds between attempts")
+	o.TimeoutSeconds = cmd.Flags().Int("timeout-seconds", 0, "The time in seconds to wait before considering the probe to have failed")
 
-	cmd.Flags().BoolVar(&options.Remove, "remove", options.Remove, "If true, remove the specified probe(s).")
-	cmd.Flags().BoolVar(&options.Readiness, "readiness", options.Readiness, "Set or remove a readiness probe to indicate when this container should receive traffic")
-	cmd.Flags().BoolVar(&options.Liveness, "liveness", options.Liveness, "Set or remove a liveness probe to verify this container is running")
-	cmd.Flags().BoolVar(&options.Local, "local", false, "If true, set image will NOT contact api-server but run locally.")
-
-	cmd.Flags().StringVar(&options.OpenTCPSocket, "open-tcp", options.OpenTCPSocket, "A port number or port name to attempt to open via TCP.")
-	cmd.Flags().StringVar(&options.HTTPGet, "get-url", options.HTTPGet, "A URL to perform an HTTP GET on (you can omit the host, have a string port, or omit the scheme.")
-	options.InitialDelaySeconds = cmd.Flags().Int("initial-delay-seconds", 0, "The time in seconds to wait before the probe begins checking")
-	options.SuccessThreshold = cmd.Flags().Int("success-threshold", 0, "The number of successes required before the probe is considered successful")
-	options.FailureThreshold = cmd.Flags().Int("failure-threshold", 0, "The number of failures before the probe is considered to have failed")
-	options.PeriodSeconds = cmd.Flags().Int("period-seconds", 0, "The time in seconds between attempts")
-	options.TimeoutSeconds = cmd.Flags().Int("timeout-seconds", 0, "The time in seconds to wait before considering the probe to have failed")
-
+	o.PrintFlags.AddFlags(cmd)
 	kcmdutil.AddDryRunFlag(cmd)
-	cmd.MarkFlagFilename("filename", "yaml", "yml", "json")
 
 	return cmd
 }
 
 func (o *ProbeOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string) error {
-	resources := args
+	o.Resources = args
 	if i := cmd.ArgsLenAtDash(); i != -1 {
-		resources = args[:i]
+		o.Resources = args[:i]
 		o.Command = args[i:]
 	}
 	if len(o.Filenames) == 0 && len(args) < 1 {
 		return kcmdutil.UsageErrorf(cmd, "one or more resources must be specified as <resource> <name> or <resource>/<name>")
 	}
 
-	cmdNamespace, explicit, err := f.ToRawKubeConfigLoader().Namespace()
+	var err error
+	o.Namespace, o.ExplicitNamespace, err = f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
 	}
 
-	o.Cmd = cmd
-
-	mapper, err := f.ToRESTMapper()
+	o.Mapper, err = f.ToRESTMapper()
 	if err != nil {
 		return err
 	}
-	o.Builder = f.NewBuilder().
-		WithScheme(ocscheme.ReadingInternalScheme).
-		LocalParam(o.Local).
-		ContinueOnError().
-		NamespaceParam(cmdNamespace).DefaultNamespace().
-		FilenameParam(explicit, &resource.FilenameOptions{Recursive: false, Filenames: o.Filenames}).
-		Flatten()
-
-	if !o.Local {
-		o.Builder = o.Builder.
-			LabelSelectorParam(o.Selector).
-			ResourceTypeOrNameArgs(o.All, resources...)
-	}
-
-	o.Output = kcmdutil.GetFlagString(cmd, "output")
-	o.PrintObject = func(infos []*resource.Info) error {
-		return clientcmd.PrintResourceInfos(cmd, infos, o.Out)
-	}
-
-	o.Encoder = kcmdutil.InternalVersionJSONEncoder()
+	o.Builder = f.NewBuilder
 	o.UpdatePodSpecForObject = polymorphichelpers.UpdatePodSpecForObjectFn
-	o.ShortOutput = kcmdutil.GetFlagString(cmd, "output") == "name"
-	o.Mapper = mapper
+
+	o.DryRun = kcmdutil.GetDryRunFlag(cmd)
+	if o.DryRun {
+		o.PrintFlags.Complete("%s (dry run)")
+	}
+	o.Printer, err = o.PrintFlags.ToPrinter()
+	if err != nil {
+		return err
+	}
 
 	if !cmd.Flags().Lookup("initial-delay-seconds").Changed {
 		o.InitialDelaySeconds = nil
@@ -266,7 +246,7 @@ func (o *ProbeOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []s
 
 func (o *ProbeOptions) Validate() error {
 	if !o.Readiness && !o.Liveness {
-		return fmt.Errorf("you must specify one of --readiness or --liveness or both")
+		return fmt.Errorf("you must specify one of --readiness, --liveness or both")
 	}
 	count := 0
 	if o.Command != nil {
@@ -302,26 +282,42 @@ func (o *ProbeOptions) Validate() error {
 	if o.PeriodSeconds != nil && *o.PeriodSeconds < 0 {
 		return fmt.Errorf("--period-seconds may not be negative")
 	}
+	if len(o.HTTPGet) > 0 && len(o.HTTPGetAction.Port.String()) == 0 {
+		return fmt.Errorf("port must be specified as part of a url")
+	}
+
 	return nil
 }
 
 func (o *ProbeOptions) Run() error {
-	infos := o.Infos
-	singleItemImplied := len(o.Infos) <= 1
-	if o.Builder != nil {
-		loaded, err := o.Builder.Do().IntoSingleItemImplied(&singleItemImplied).Infos()
-		if err != nil {
-			return err
-		}
-		infos = loaded
+	b := o.Builder().
+		WithScheme(ocscheme.ReadingInternalScheme, ocscheme.ReadingInternalScheme.PrioritizedVersionsAllGroups()...).
+		LocalParam(o.Local).
+		ContinueOnError().
+		NamespaceParam(o.Namespace).DefaultNamespace().
+		FilenameParam(o.ExplicitNamespace, &o.FilenameOptions).
+		Flatten()
+
+	if !o.Local {
+		b = b.
+			LabelSelectorParam(o.Selector).
+			ResourceTypeOrNameArgs(o.All, o.Resources...).
+			Latest()
 	}
 
-	patches := CalculatePatches(infos, o.Encoder, func(info *resource.Info) (bool, error) {
+	singleItemImplied := false
+	infos, err := b.Do().IntoSingleItemImplied(&singleItemImplied).Infos()
+	if err != nil {
+		return err
+	}
+
+	patches := CalculatePatchesExternal(infos, func(info *resource.Info) (bool, error) {
 		transformed := false
+		name := cmd.GetObjectName(info)
 		_, err := o.UpdatePodSpecForObject(info.Object, clientcmd.ConvertInteralPodSpecToExternal(func(spec *kapi.PodSpec) error {
 			containers, _ := selectContainers(spec.Containers, o.ContainerSelector)
 			if len(containers) == 0 {
-				fmt.Fprintf(o.Err, "warning: %s/%s does not have any containers matching %q\n", info.Mapping.Resource, info.Name, o.ContainerSelector)
+				fmt.Fprintf(o.ErrOut, "warning: %s does not have any containers matching %q\n", name, o.ContainerSelector)
 				return nil
 			}
 			// perform updates
@@ -337,41 +333,39 @@ func (o *ProbeOptions) Run() error {
 		return fmt.Errorf("%s/%s is not a pod or does not have a pod template", infos[0].Mapping.Resource, infos[0].Name)
 	}
 
-	if len(o.Output) > 0 || o.Local || kcmdutil.GetDryRunFlag(o.Cmd) {
-		return o.PrintObject(infos)
-	}
-
-	failed := false
+	allErrs := []error{}
 	for _, patch := range patches {
 		info := patch.Info
+		name := cmd.GetObjectName(info)
 		if patch.Err != nil {
-			fmt.Fprintf(o.Err, "error: %s/%s %v\n", info.Mapping.Resource, info.Name, patch.Err)
+			allErrs = append(allErrs, fmt.Errorf("error: %s %v\n", name, patch.Err))
 			continue
 		}
 
 		if string(patch.Patch) == "{}" || len(patch.Patch) == 0 {
-			fmt.Fprintf(o.Err, "info: %s %q was not changed\n", info.Mapping.Resource, info.Name)
+			glog.V(1).Infof("info: %s was not changed\n", name)
 			continue
 		}
 
-		actualObj, err := o.Client.Resource(info.Mapping.Resource).Namespace(info.Namespace).Patch(info.Name, types.StrategicMergePatchType, patch.Patch)
-		if err != nil {
-			// if no port was specified, inform that one must be provided
-			if len(o.HTTPGet) > 0 && len(o.HTTPGetAction.Port.String()) == 0 {
-				fmt.Fprintf(o.Err, "A port must be specified as part of a url (http://127.0.0.1:3306).\n\nSee 'oc set probe -h' for help and examples.\n")
+		if o.Local || o.DryRun {
+			if err := o.Printer.PrintObj(info.Object, o.Out); err != nil {
+				allErrs = append(allErrs, err)
 			}
-			handlePodUpdateError(o.Err, err, "probes")
-
-			failed = true
 			continue
 		}
 
-		kcmdutil.PrintSuccess(o.ShortOutput, o.Out, actualObj, false, "updated")
+		actual, err := o.Client.Resource(info.Mapping.Resource).Namespace(info.Namespace).Patch(info.Name, types.StrategicMergePatchType, patch.Patch)
+		if err != nil {
+			allErrs = append(allErrs, err)
+			continue
+		}
+
+		if err := o.Printer.PrintObj(actual, o.Out); err != nil {
+			allErrs = append(allErrs, err)
+		}
 	}
-	if failed {
-		return kcmdutil.ErrExit
-	}
-	return nil
+	return utilerrors.NewAggregate(allErrs)
+
 }
 
 func (o *ProbeOptions) updateContainer(container *kapi.Container) {

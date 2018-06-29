@@ -2,24 +2,24 @@ package set
 
 import (
 	"fmt"
-	"io"
-	"os"
 
+	"github.com/golang/glog"
 	"github.com/spf13/cobra"
+
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/errors"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 
 	buildv1 "github.com/openshift/api/build/v1"
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
+	"github.com/openshift/origin/pkg/oc/cli/cmd"
 	"github.com/openshift/origin/pkg/oc/util/ocscheme"
 )
 
@@ -52,83 +52,74 @@ var (
 )
 
 type BuildSecretOptions struct {
-	Out io.Writer
-	Err io.Writer
+	PrintFlags *genericclioptions.PrintFlags
 
-	Builder *resource.Builder
-	Infos   []*resource.Info
+	Selector string
+	All      bool
+	Local    bool
+	Push     bool
+	Pull     bool
+	Source   bool
+	Remove   bool
 
-	Encoder runtime.Encoder
+	Mapper            meta.RESTMapper
+	Client            dynamic.Interface
+	Printer           printers.ResourcePrinter
+	Builder           func() *resource.Builder
+	Namespace         string
+	ExplicitNamespace bool
+	Resources         []string
+	SecretArg         string
+	DryRun            bool
 
-	Filenames []string
-	Selector  string
-	All       bool
+	resource.FilenameOptions
+	genericclioptions.IOStreams
+}
 
-	Cmd *cobra.Command
-
-	ShortOutput bool
-	Local       bool
-	Mapper      meta.RESTMapper
-
-	Output string
-
-	PrintObject func([]*resource.Info) error
-
-	Secret string
-	Push   bool
-	Pull   bool
-	Source bool
-	Remove bool
+func NewBuildSecretOptions(streams genericclioptions.IOStreams) *BuildSecretOptions {
+	return &BuildSecretOptions{
+		PrintFlags: genericclioptions.NewPrintFlags("secret updated").WithTypeSetter(ocscheme.PrintingInternalScheme),
+		IOStreams:  streams,
+	}
 }
 
 // NewCmdBuildSecret implements the set build-secret command
 func NewCmdBuildSecret(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	options := &BuildSecretOptions{
-		Out: streams.Out,
-		Err: streams.ErrOut,
-	}
+	o := NewBuildSecretOptions(streams)
 	cmd := &cobra.Command{
 		Use:     "build-secret BUILDCONFIG SECRETNAME",
 		Short:   "Update a build secret on a build config",
 		Long:    buildSecretLong,
 		Example: fmt.Sprintf(buildSecretExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
-			kcmdutil.CheckErr(options.Complete(f, cmd, args))
-			kcmdutil.CheckErr(options.Validate())
-			if err := options.Run(); err != nil {
-				// TODO: move me to kcmdutil
-				if err == kcmdutil.ErrExit {
-					os.Exit(1)
-				}
-				kcmdutil.CheckErr(err)
-			}
+			kcmdutil.CheckErr(o.Complete(f, cmd, args))
+			kcmdutil.CheckErr(o.Validate())
+			kcmdutil.CheckErr(o.Run())
 		},
 	}
+	usage := "to use to edit the resource"
+	kcmdutil.AddFilenameOptionFlags(cmd, &o.FilenameOptions, usage)
+	cmd.Flags().StringVarP(&o.Selector, "selector", "l", o.Selector, "Selector (label query) to filter build configs")
+	cmd.Flags().BoolVar(&o.All, "all", o.All, "If true, select all build configs in the namespace")
+	cmd.Flags().BoolVar(&o.Push, "push", o.Push, "If true, set the push secret on a build config")
+	cmd.Flags().BoolVar(&o.Pull, "pull", o.Pull, "If true, set the pull secret on a build config")
+	cmd.Flags().BoolVar(&o.Source, "source", o.Source, "If true, set the source secret on a build config")
+	cmd.Flags().BoolVar(&o.Remove, "remove", o.Remove, "If true, remove the build secret.")
+	cmd.Flags().BoolVar(&o.Local, "local", o.Local, "If true, set build-secret will NOT contact api-server but run locally.")
 
-	kcmdutil.AddPrinterFlags(cmd)
-	cmd.Flags().StringVarP(&options.Selector, "selector", "l", options.Selector, "Selector (label query) to filter build configs")
-	cmd.Flags().BoolVar(&options.All, "all", options.All, "If true, select all build configs in the namespace")
-	cmd.Flags().StringSliceVarP(&options.Filenames, "filename", "f", options.Filenames, "Filename, directory, or URL to file to use to edit the resource.")
-
-	cmd.Flags().BoolVar(&options.Push, "push", options.Push, "If true, set the push secret on a build config")
-	cmd.Flags().BoolVar(&options.Pull, "pull", options.Pull, "If true, set the pull secret on a build config")
-	cmd.Flags().BoolVar(&options.Source, "source", options.Source, "If true, set the source secret on a build config")
-	cmd.Flags().BoolVar(&options.Remove, "remove", options.Remove, "If true, remove the build secret.")
-
-	cmd.Flags().BoolVar(&options.Local, "local", false, "If true, set build-secret will NOT contact api-server but run locally.")
-
-	cmd.MarkFlagFilename("filename", "yaml", "yml", "json")
+	o.PrintFlags.AddFlags(cmd)
 	kcmdutil.AddDryRunFlag(cmd)
+
 	return cmd
 }
 
 var supportedBuildTypes = []string{"buildconfigs"}
 
-func (o *BuildSecretOptions) secretFromArg(f kcmdutil.Factory, mapper meta.RESTMapper, typer runtime.ObjectTyper, namespace, arg string) (string, error) {
-	builder := f.NewBuilder().
+func (o *BuildSecretOptions) secretFromArg(arg string) (string, error) {
+	builder := o.Builder().
 		WithScheme(ocscheme.ReadingInternalScheme, ocscheme.ReadingInternalScheme.PrioritizedVersionsAllGroups()...).
 		LocalParam(o.Local).
-		NamespaceParam(namespace).DefaultNamespace().
+		NamespaceParam(o.Namespace).DefaultNamespace().
 		RequireObject(false).
 		ContinueOnError().
 		ResourceNames("secrets", arg).
@@ -152,64 +143,47 @@ func (o *BuildSecretOptions) secretFromArg(f kcmdutil.Factory, mapper meta.RESTM
 }
 
 func (o *BuildSecretOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string) error {
-	var secretArg string
 	if !o.Remove {
 		if len(args) < 1 {
 			return kcmdutil.UsageErrorf(cmd, "a secret name must be specified")
 		}
-		secretArg = args[len(args)-1]
+		o.SecretArg = args[len(args)-1]
 		args = args[:len(args)-1]
 	}
-	resources := args
-	if len(resources) == 0 && len(o.Selector) == 0 && len(o.Filenames) == 0 && !o.All {
+	o.Resources = args
+	if len(o.Resources) == 0 && len(o.Selector) == 0 && len(o.Filenames) == 0 && !o.All {
 		return kcmdutil.UsageErrorf(cmd, "one or more build configs must be specified as <name> or <resource>/<name>")
 	}
 
-	cmdNamespace, explicit, err := f.ToRawKubeConfigLoader().Namespace()
+	var err error
+	o.Namespace, o.ExplicitNamespace, err = f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
 	}
 
-	o.Cmd = cmd
-
-	mapper, err := f.ToRESTMapper()
+	o.DryRun = kcmdutil.GetDryRunFlag(cmd)
+	o.Mapper, err = f.ToRESTMapper()
 	if err != nil {
 		return err
 	}
-	typer := legacyscheme.Scheme
-	if len(secretArg) > 0 {
-		o.Secret, err = o.secretFromArg(f, mapper, typer, cmdNamespace, secretArg)
-		if err != nil {
-			return err
-		}
+	o.Builder = f.NewBuilder
+
+	if o.DryRun {
+		o.PrintFlags.Complete("%s (dry run)")
 	}
-	o.Builder = f.NewBuilder().
-		WithScheme(ocscheme.ReadingInternalScheme, ocscheme.ReadingInternalScheme.PrioritizedVersionsAllGroups()...).
-		LocalParam(o.Local).
-		ContinueOnError().
-		NamespaceParam(cmdNamespace).DefaultNamespace().
-		FilenameParam(explicit, &resource.FilenameOptions{Recursive: false, Filenames: o.Filenames}).
-		Flatten()
-
-	if !o.Local {
-		o.Builder = o.Builder.
-			ResourceNames("buildconfigs", resources...).
-			LabelSelectorParam(o.Selector).
-			Latest()
-
-		if o.All {
-			o.Builder.ResourceTypes(supportedBuildTypes...).SelectAllParam(o.All)
-		}
+	o.Printer, err = o.PrintFlags.ToPrinter()
+	if err != nil {
+		return err
 	}
 
-	o.Output = kcmdutil.GetFlagString(cmd, "output")
-	o.PrintObject = func(infos []*resource.Info) error {
-		return clientcmd.PrintResourceInfos(cmd, infos, o.Out)
+	clientConfig, err := f.ToRESTConfig()
+	if err != nil {
+		return err
 	}
-
-	o.Encoder = kcmdutil.InternalVersionJSONEncoder()
-	o.ShortOutput = kcmdutil.GetFlagString(cmd, "output") == "name"
-	o.Mapper = mapper
+	o.Client, err = dynamic.NewForConfig(clientConfig)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -218,85 +192,105 @@ func (o *BuildSecretOptions) Validate() error {
 	if !o.Pull && !o.Push && !o.Source {
 		return fmt.Errorf("specify the type of secret to set (--push, --pull, or --source)")
 	}
-	if !o.Remove && len(o.Secret) == 0 {
+	if !o.Remove && len(o.SecretArg) == 0 {
 		return fmt.Errorf("specify a secret to set")
 	}
-	if o.Remove && len(o.Secret) > 0 {
+	if o.Remove && len(o.SecretArg) > 0 {
 		return fmt.Errorf("a secret cannot be specified when using the --remove flag")
 	}
 	return nil
 }
 
 func (o *BuildSecretOptions) Run() error {
-	infos := o.Infos
-	singleItemImplied := len(o.Infos) <= 1
-	if o.Builder != nil {
-		loaded, err := o.Builder.Do().IntoSingleItemImplied(&singleItemImplied).Infos()
+	var (
+		secret string
+		err    error
+	)
+	if len(o.SecretArg) > 0 {
+		secret, err = o.secretFromArg(o.SecretArg)
 		if err != nil {
 			return err
 		}
-		infos = loaded
+	}
+
+	b := o.Builder().
+		WithScheme(ocscheme.ReadingInternalScheme, ocscheme.ReadingInternalScheme.PrioritizedVersionsAllGroups()...).
+		LocalParam(o.Local).
+		ContinueOnError().
+		NamespaceParam(o.Namespace).DefaultNamespace().
+		FilenameParam(o.ExplicitNamespace, &o.FilenameOptions).
+		Flatten()
+
+	if !o.Local {
+		b = b.
+			ResourceNames("buildconfigs", o.Resources...).
+			LabelSelectorParam(o.Selector).
+			Latest()
+		if o.All {
+			b = b.ResourceTypes(supportedBuildTypes...).SelectAllParam(o.All)
+		}
+	}
+
+	singleItemImplied := false
+	infos, err := b.Do().IntoSingleItemImplied(&singleItemImplied).Infos()
+	if err != nil {
+		return err
 	}
 
 	patches := CalculatePatchesExternal(infos, func(info *resource.Info) (bool, error) {
-		return o.setBuildSecret(info.Object)
+		bc, ok := info.Object.(*buildv1.BuildConfig)
+		if !ok {
+			return false, nil
+		}
+		o.updateBuildConfig(bc, secret)
+		return true, nil
 	})
 
 	if singleItemImplied && len(patches) == 0 {
 		return fmt.Errorf("cannot set a build secret on %s/%s", infos[0].Mapping.Resource, infos[0].Name)
 	}
 
-	if len(o.Output) > 0 || o.Local || kcmdutil.GetDryRunFlag(o.Cmd) {
-		return o.PrintObject(infos)
-	}
-
-	errs := []error{}
+	allErrs := []error{}
 	for _, patch := range patches {
 		info := patch.Info
+		name := cmd.GetObjectName(info)
 		if patch.Err != nil {
-			errs = append(errs, fmt.Errorf("%s/%s %v", info.Mapping.Resource.Resource, info.Name, patch.Err))
+			allErrs = append(allErrs, fmt.Errorf("error: %s %v\n", name, patch.Err))
 			continue
 		}
 
 		if string(patch.Patch) == "{}" || len(patch.Patch) == 0 {
-			fmt.Fprintf(o.Err, "info: %s %q was not changed\n", info.Mapping.Resource.Resource, info.Name)
+			glog.V(1).Infof("info: %s was not changed\n", name)
 			continue
 		}
 
-		obj, err := resource.NewHelper(info.Client, info.Mapping).Patch(info.Namespace, info.Name, types.StrategicMergePatchType, patch.Patch)
+		if o.Local || o.DryRun {
+			if err := o.Printer.PrintObj(info.Object, o.Out); err != nil {
+				allErrs = append(allErrs, err)
+			}
+			continue
+		}
+
+		actual, err := o.Client.Resource(info.Mapping.Resource).Namespace(info.Namespace).Patch(info.Name, types.StrategicMergePatchType, patch.Patch)
 		if err != nil {
-			errs = append(errs, fmt.Errorf("%s/%s %v", info.Mapping.Resource.Resource, info.Name, err))
+			allErrs = append(allErrs, fmt.Errorf("failed to patch secret  %v", err))
 			continue
 		}
 
-		info.Refresh(obj, true)
-		kcmdutil.PrintSuccess(o.ShortOutput, o.Out, info.Object, false, "updated")
+		if err := o.Printer.PrintObj(actual, o.Out); err != nil {
+			allErrs = append(allErrs, err)
+		}
 	}
-	if len(errs) > 0 {
-		return errors.NewAggregate(errs)
-	}
-	return nil
+	return errors.NewAggregate(allErrs)
 }
 
-// setBuildSecret will set a secret on an object. For now the only supported
-// object type is BuildConfig.
-func (o *BuildSecretOptions) setBuildSecret(obj runtime.Object) (bool, error) {
-	switch buildObj := obj.(type) {
-	case *buildv1.BuildConfig:
-		o.updateBuildConfig(buildObj)
-		return true, nil
-	default:
-		return false, nil
-	}
-}
-
-func (o *BuildSecretOptions) updateBuildConfig(bc *buildv1.BuildConfig) {
+func (o *BuildSecretOptions) updateBuildConfig(bc *buildv1.BuildConfig, secret string) {
 	if o.Push {
 		if o.Remove {
 			bc.Spec.Output.PushSecret = nil
 		} else {
 			bc.Spec.Output.PushSecret = &corev1.LocalObjectReference{
-				Name: o.Secret,
+				Name: secret,
 			}
 		}
 	}
@@ -308,7 +302,7 @@ func (o *BuildSecretOptions) updateBuildConfig(bc *buildv1.BuildConfig) {
 				bc.Spec.Strategy.DockerStrategy.PullSecret = nil
 			} else {
 				bc.Spec.Strategy.DockerStrategy.PullSecret = &corev1.LocalObjectReference{
-					Name: o.Secret,
+					Name: secret,
 				}
 			}
 		case bc.Spec.Strategy.SourceStrategy != nil:
@@ -316,7 +310,7 @@ func (o *BuildSecretOptions) updateBuildConfig(bc *buildv1.BuildConfig) {
 				bc.Spec.Strategy.SourceStrategy.PullSecret = nil
 			} else {
 				bc.Spec.Strategy.SourceStrategy.PullSecret = &corev1.LocalObjectReference{
-					Name: o.Secret,
+					Name: secret,
 				}
 			}
 		case bc.Spec.Strategy.CustomStrategy != nil:
@@ -324,7 +318,7 @@ func (o *BuildSecretOptions) updateBuildConfig(bc *buildv1.BuildConfig) {
 				bc.Spec.Strategy.CustomStrategy.PullSecret = nil
 			} else {
 				bc.Spec.Strategy.CustomStrategy.PullSecret = &corev1.LocalObjectReference{
-					Name: o.Secret,
+					Name: secret,
 				}
 			}
 		}
@@ -335,7 +329,7 @@ func (o *BuildSecretOptions) updateBuildConfig(bc *buildv1.BuildConfig) {
 			bc.Spec.Source.SourceSecret = nil
 		} else {
 			bc.Spec.Source.SourceSecret = &corev1.LocalObjectReference{
-				Name: o.Secret,
+				Name: secret,
 			}
 		}
 	}

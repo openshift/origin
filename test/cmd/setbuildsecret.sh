@@ -27,7 +27,7 @@ os::cmd::expect_success_and_not_text "oc set build-secret ${arg} mysecret --push
 # Server object tests
 os::cmd::expect_success "oc create -f test/testdata/test-bc.yaml"
 os::cmd::expect_success_and_text "oc set build-secret test-buildconfig mysecret --push" "updated"
-os::cmd::expect_success_and_text "oc set build-secret bc/test-buildconfig mysecret --push" "was not changed"
+os::cmd::expect_success_and_text "oc set build-secret bc/test-buildconfig mysecret --push --v=1" "was not changed"
 os::cmd::expect_success_and_text "oc get bc/test-buildconfig -o yaml" "pushSecret:"
 os::cmd::expect_success_and_text "oc set build-secret bc/test-buildconfig --push --remove" "updated"
 os::cmd::expect_success_and_not_text "oc get bc/test-buildconfig -o yaml" "pushSecret:"
