@@ -455,6 +455,16 @@
 	    ]
         },
         {
+            "type": "bind",
+            "source": "/etc/origin/kubelet-plugins",
+            "destination": "/etc/origin/kubelet-plugins",
+            "options": [
+                "rbind",
+                "rslave",
+                "ro"
+            ]
+        },
+        {
 	    "type": "bind",
 	    "source": "$ORIGIN_CONFIG_DIR/node",
 	    "destination": "/etc/origin/node",
