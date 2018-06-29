@@ -24147,6 +24147,14 @@
       "type": "boolean",
       "description": "AllowHostIPC determines if the policy allows host ipc in the containers."
      },
+     "defaultAllowPrivilegeEscalation": {
+      "type": "boolean",
+      "description": "DefaultAllowPrivilegeEscalation controls the default setting for whether a process can gain more privileges than its parent process."
+     },
+     "allowPrivilegeEscalation": {
+      "type": "boolean",
+      "description": "AllowPrivilegeEscalation determines if a pod can request to allow privilege escalation. If unspecified, defaults to true."
+     },
      "seLinuxContext": {
       "$ref": "v1.SELinuxContextStrategyOptions",
       "description": "SELinuxContext is the strategy that will dictate what labels will be set in the SecurityContext."
