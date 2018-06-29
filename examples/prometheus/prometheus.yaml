@@ -445,7 +445,7 @@ objects:
           expr: up{job="kubernetes-nodes"} == 0
           annotations:
             miqTarget: "ContainerNode"
-            severity: "HIGH"
+            severity: error
             message: "{{$labels.instance}} is down"
 
     recording.rules: |
@@ -464,6 +464,7 @@ objects:
     prometheus.yml: |
       rule_files:
         - '*.rules'
+        - 'rules/*.rules'
 
       # A scrape configuration for running Prometheus on a Kubernetes cluster.
       # This uses separate scrape configs for cluster components (i.e. API server, node)
