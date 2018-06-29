@@ -12,6 +12,7 @@ import (
 	"github.com/spf13/cobra"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	"github.com/openshift/origin/pkg/util/fsnotification"
 )
@@ -97,10 +98,10 @@ type RsyncOptions struct {
 }
 
 // NewCmdRsync creates a new sync command
-func NewCmdRsync(name, parent string, f kcmdutil.Factory, out, errOut io.Writer) *cobra.Command {
+func NewCmdRsync(name, parent string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
 	o := RsyncOptions{
-		Out:    out,
-		ErrOut: errOut,
+		Out:    streams.Out,
+		ErrOut: streams.ErrOut,
 	}
 	cmd := &cobra.Command{
 		Use:     fmt.Sprintf("%s SOURCE DESTINATION", name),

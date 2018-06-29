@@ -2,13 +2,13 @@ package in_pod
 
 import (
 	"fmt"
-	"io"
 	"runtime/debug"
 
 	"github.com/spf13/cobra"
 
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/log"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/types"
@@ -46,10 +46,10 @@ var longPodDiagDescription = templates.LongDesc(`
 	log the results so that the calling diagnostic can report them.`)
 
 // NewCommandPodDiagnostics is the command for running pod diagnostics.
-func NewCommandPodDiagnostics(name string, out io.Writer) *cobra.Command {
+func NewCommandPodDiagnostics(name string, streams genericclioptions.IOStreams) *cobra.Command {
 	o := &PodDiagnosticsOptions{
 		RequestedDiagnostics: []string{},
-		LogOptions:           &log.LoggerOptions{Out: out},
+		LogOptions:           &log.LoggerOptions{Out: streams.Out},
 	}
 
 	cmd := &cobra.Command{
@@ -59,7 +59,7 @@ func NewCommandPodDiagnostics(name string, out io.Writer) *cobra.Command {
 		Run:    util.CommandRunFunc(o),
 		Hidden: true,
 	}
-	cmd.SetOutput(out) // for output re: usage / help
+	cmd.SetOutput(streams.Out) // for output re: usage / help
 
 	options.BindLoggerOptionFlags(cmd.Flags(), o.LogOptions, options.RecommendedLoggerOptionFlags())
 

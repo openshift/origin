@@ -9,6 +9,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
 	userclientinternal "github.com/openshift/origin/pkg/user/generated/internalclientset"
@@ -30,7 +31,7 @@ type WhoAmIOptions struct {
 	Out io.Writer
 }
 
-func NewCmdWhoAmI(name, fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
+func NewCmdWhoAmI(name, fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
 	o := &WhoAmIOptions{}
 
 	cmd := &cobra.Command{
@@ -38,7 +39,7 @@ func NewCmdWhoAmI(name, fullName string, f kcmdutil.Factory, out io.Writer) *cob
 		Short: "Return information about the current session",
 		Long:  whoamiLong,
 		Run: func(cmd *cobra.Command, args []string) {
-			err := RunWhoAmI(f, out, cmd, args, o)
+			err := RunWhoAmI(f, streams.Out, cmd, args, o)
 			kcmdutil.CheckErr(err)
 		},
 	}

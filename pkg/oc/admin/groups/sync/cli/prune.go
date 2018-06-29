@@ -11,8 +11,8 @@ import (
 	kerrs "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
-	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	"github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/apis/config/validation/ldap"
@@ -81,9 +81,9 @@ func NewPruneOptions() *PruneOptions {
 	}
 }
 
-func NewCmdPrune(name, fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
+func NewCmdPrune(name, fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
 	options := NewPruneOptions()
-	options.Out = out
+	options.Out = streams.Out
 
 	whitelistFile := ""
 	blacklistFile := ""
@@ -95,8 +95,8 @@ func NewCmdPrune(name, fullName string, f kcmdutil.Factory, out io.Writer) *cobr
 		Long:    pruneLong,
 		Example: fmt.Sprintf(pruneExamples, fullName),
 		Run: func(c *cobra.Command, args []string) {
-			cmdutil.CheckErr(options.Complete(whitelistFile, blacklistFile, configFile, args, f))
-			cmdutil.CheckErr(options.Validate())
+			kcmdutil.CheckErr(options.Complete(whitelistFile, blacklistFile, configFile, args, f))
+			kcmdutil.CheckErr(options.Validate())
 			err := options.Run(c, f)
 			if err != nil {
 				if aggregate, ok := err.(kerrs.Aggregate); ok {
@@ -106,7 +106,7 @@ func NewCmdPrune(name, fullName string, f kcmdutil.Factory, out io.Writer) *cobr
 					os.Exit(1)
 				}
 			}
-			cmdutil.CheckErr(err)
+			kcmdutil.CheckErr(err)
 		},
 	}
 

@@ -2,7 +2,6 @@ package in_pod
 
 import (
 	"fmt"
-	"io"
 	"runtime/debug"
 
 	"github.com/spf13/cobra"
@@ -47,10 +46,10 @@ var (
 )
 
 // NewCommandNetworkPodDiagnostics is the command for running network diagnostics.
-func NewCommandNetworkPodDiagnostics(name string, f genericclioptions.RESTClientGetter, out io.Writer) *cobra.Command {
+func NewCommandNetworkPodDiagnostics(name string, f genericclioptions.RESTClientGetter, streams genericclioptions.IOStreams) *cobra.Command {
 	o := &NetworkPodDiagnosticsOptions{
 		RequestedDiagnostics: []string{},
-		LogOptions:           &log.LoggerOptions{Out: out},
+		LogOptions:           &log.LoggerOptions{Out: streams.Out},
 		RESTClientGetter:     f,
 	}
 
@@ -61,7 +60,7 @@ func NewCommandNetworkPodDiagnostics(name string, f genericclioptions.RESTClient
 		Run:    util.CommandRunFunc(o),
 		Hidden: true,
 	}
-	cmd.SetOutput(out) // for output re: usage / help
+	cmd.SetOutput(streams.Out) // for output re: usage / help
 
 	options.BindLoggerOptionFlags(cmd.Flags(), o.LogOptions, options.RecommendedLoggerOptionFlags())
 

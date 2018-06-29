@@ -12,6 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildmanualclient "github.com/openshift/origin/pkg/build/client/internalversion"
@@ -33,7 +34,7 @@ var (
 )
 
 // NewCmdBuildLogs implements the OpenShift cli build-logs command
-func NewCmdBuildLogs(fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
+func NewCmdBuildLogs(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
 	opts := buildapi.BuildLogOptions{}
 	cmd := &cobra.Command{
 		Use:        "build-logs BUILD",
@@ -43,19 +44,19 @@ func NewCmdBuildLogs(fullName string, f kcmdutil.Factory, out io.Writer) *cobra.
 		Deprecated: fmt.Sprintf("use oc %v build/<build-name>", LogsRecommendedCommandName),
 		Hidden:     true,
 		Run: func(cmd *cobra.Command, args []string) {
-			err := RunBuildLogs(fullName, f, out, cmd, opts, args)
+			err := RunBuildLogs(fullName, f, streams.Out, cmd, opts, args)
 
 			if err, ok := err.(errors.APIStatus); ok {
 				if msg := err.Status().Message; strings.HasSuffix(msg, buildutil.NoBuildLogsMessage) {
-					fmt.Fprintf(out, msg)
+					fmt.Fprintf(streams.Out, msg)
 					os.Exit(1)
 				}
 				if err.Status().Code == http.StatusNotFound {
 					switch err.Status().Details.Kind {
 					case "build":
-						fmt.Fprintf(out, "The build %s could not be found.  Therefore build logs cannot be retrieved.\n", err.Status().Details.Name)
+						fmt.Fprintf(streams.Out, "The build %s could not be found.  Therefore build logs cannot be retrieved.\n", err.Status().Details.Name)
 					case "pod":
-						fmt.Fprintf(out, "The pod %s for build %s could not be found.  Therefore build logs cannot be retrieved.\n", err.Status().Details.Name, args[0])
+						fmt.Fprintf(streams.Out, "The pod %s for build %s could not be found.  Therefore build logs cannot be retrieved.\n", err.Status().Details.Name, args[0])
 					}
 					os.Exit(1)
 				}

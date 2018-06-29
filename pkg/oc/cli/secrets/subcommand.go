@@ -1,11 +1,11 @@
 package secrets
 
 import (
-	"io"
-
 	"github.com/spf13/cobra"
+
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
-	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 )
 
 const SecretsRecommendedName = "secrets"
@@ -32,18 +32,18 @@ var (
     Docker registries.`)
 )
 
-func NewCmdSecrets(name, fullName string, f cmdutil.Factory, out, errOut io.Writer) *cobra.Command {
+func NewCmdSecrets(name, fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
 	// Parent command to which all subcommands are added.
 	cmds := &cobra.Command{
 		Use:     name,
 		Short:   "Manage secrets",
 		Long:    secretsLong,
 		Aliases: []string{"secret"},
-		Run:     cmdutil.DefaultSubCommandRun(errOut),
+		Run:     kcmdutil.DefaultSubCommandRun(streams.ErrOut),
 	}
 
-	cmds.AddCommand(NewCmdLinkSecret(LinkSecretRecommendedName, fullName+" "+LinkSecretRecommendedName, f, out))
-	cmds.AddCommand(NewCmdUnlinkSecret(UnlinkSecretRecommendedName, fullName+" "+UnlinkSecretRecommendedName, f, out))
+	cmds.AddCommand(NewCmdLinkSecret(LinkSecretRecommendedName, fullName+" "+LinkSecretRecommendedName, f, streams))
+	cmds.AddCommand(NewCmdUnlinkSecret(UnlinkSecretRecommendedName, fullName+" "+UnlinkSecretRecommendedName, f, streams))
 
 	return cmds
 }

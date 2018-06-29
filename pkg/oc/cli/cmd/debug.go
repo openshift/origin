@@ -119,18 +119,14 @@ var (
 )
 
 // NewCmdDebug creates a command for debugging pods.
-func NewCmdDebug(fullName string, f kcmdutil.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
+func NewCmdDebug(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
 	options := &DebugOptions{
 		Timeout: 15 * time.Minute,
 		Attach: kcmd.AttachOptions{
 			StreamOptions: kcmd.StreamOptions{
-				IOStreams: genericclioptions.IOStreams{
-					In:     in,
-					Out:    out,
-					ErrOut: errout,
-				},
-				TTY:   true,
-				Stdin: true,
+				IOStreams: streams,
+				TTY:       true,
+				Stdin:     true,
 			},
 
 			Attach: &kcmd.DefaultRemoteAttach{},
@@ -144,7 +140,7 @@ func NewCmdDebug(fullName string, f kcmdutil.Factory, in io.Reader, out, errout 
 		Long:    debugLong,
 		Example: fmt.Sprintf(debugExample, fmt.Sprintf("%s debug", fullName)),
 		Run: func(cmd *cobra.Command, args []string) {
-			kcmdutil.CheckErr(options.Complete(cmd, f, args, in, out, errout))
+			kcmdutil.CheckErr(options.Complete(cmd, f, args, streams.In, streams.Out, streams.ErrOut))
 			kcmdutil.CheckErr(options.Validate())
 			kcmdutil.CheckErr(options.Debug())
 		},

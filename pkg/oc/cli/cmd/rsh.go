@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"io"
 	"sort"
 	"time"
 
@@ -77,21 +76,16 @@ type RshOptions struct {
 }
 
 // NewCmdRsh returns a command that attempts to open a shell session to the server.
-func NewCmdRsh(name string, parent string, f kcmdutil.Factory, in io.Reader, out, err io.Writer) *cobra.Command {
+func NewCmdRsh(name string, parent string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
 	options := &RshOptions{
 		ForceTTY:   false,
 		DisableTTY: false,
 		Timeout:    10,
 		ExecOptions: &kubecmd.ExecOptions{
 			StreamOptions: kubecmd.StreamOptions{
-				IOStreams: genericclioptions.IOStreams{
-					In:     in,
-					Out:    out,
-					ErrOut: err,
-				},
-
-				TTY:   true,
-				Stdin: true,
+				IOStreams: streams,
+				TTY:       true,
+				Stdin:     true,
 			},
 
 			FullCmdName: parent,

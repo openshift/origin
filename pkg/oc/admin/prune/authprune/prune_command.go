@@ -3,16 +3,18 @@ package authprune
 import (
 	"io"
 
+	"github.com/spf13/cobra"
+
+	"k8s.io/apimachinery/pkg/api/meta"
+	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
+
 	authclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset"
 	securitytypedclient "github.com/openshift/origin/pkg/security/generated/internalclientset/typed/security/internalversion"
 	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset"
-	"github.com/spf13/cobra"
-	"k8s.io/apimachinery/pkg/api/meta"
-
-	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
-	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 )
 
 // PruneRolesOptions holds all the required options for pruning roles.
@@ -35,9 +37,9 @@ type PruneAuthOptions struct {
 }
 
 // NewCmdPruneRoles implements the OpenShift cli prune roles command.
-func NewCmdPruneAuth(f kcmdutil.Factory, name string, out io.Writer) *cobra.Command {
+func NewCmdPruneAuth(f kcmdutil.Factory, name string, streams genericclioptions.IOStreams) *cobra.Command {
 	o := &PruneAuthOptions{
-		Out: out,
+		Out: streams.Out,
 	}
 
 	cmd := &cobra.Command{

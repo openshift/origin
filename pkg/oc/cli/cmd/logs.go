@@ -6,7 +6,6 @@ import (
 	"io"
 
 	"github.com/spf13/cobra"
-	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -15,6 +14,7 @@ import (
 	kcmd "k8s.io/kubernetes/pkg/kubectl/cmd"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
@@ -75,23 +75,20 @@ type OpenShiftLogsOptions struct {
 }
 
 // NewCmdLogs creates a new logs command that supports OpenShift resources.
-func NewCmdLogs(name, baseName string, f kcmdutil.Factory, out io.Writer, errOut io.Writer) *cobra.Command {
+func NewCmdLogs(name, baseName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
 	o := OpenShiftLogsOptions{
 		KubeLogOptions: &kcmd.LogsOptions{
-			IOStreams: genericclioptions.IOStreams{
-				Out:    out,
-				ErrOut: errOut,
-			},
+			IOStreams: streams,
 		},
 	}
 
-	cmd := kcmd.NewCmdLogs(f, o.KubeLogOptions.IOStreams)
+	cmd := kcmd.NewCmdLogs(f, streams)
 	cmd.Short = "Print the logs for a resource"
 	cmd.Long = logsLong
 	cmd.Example = fmt.Sprintf(logsExample, baseName, name)
 	cmd.SuggestFor = []string{"builds", "deployments"}
 	cmd.Run = func(cmd *cobra.Command, args []string) {
-		kcmdutil.CheckErr(o.Complete(f, cmd, args, out))
+		kcmdutil.CheckErr(o.Complete(f, cmd, args, streams.Out))
 
 		if err := o.Validate(); err != nil {
 			kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))

@@ -12,6 +12,7 @@ import (
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	appsclientinternal "github.com/openshift/origin/pkg/apps/generated/internalclientset"
 	buildclientinternal "github.com/openshift/origin/pkg/build/generated/internalclientset"
@@ -69,7 +70,7 @@ type StatusOptions struct {
 
 // NewCmdStatus implements the OpenShift cli status command.
 // baseCLIName is the path from root cmd to the parent of this cmd.
-func NewCmdStatus(name, baseCLIName, fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
+func NewCmdStatus(name, baseCLIName, fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
 	opts := &StatusOptions{}
 
 	cmd := &cobra.Command{
@@ -78,7 +79,7 @@ func NewCmdStatus(name, baseCLIName, fullName string, f kcmdutil.Factory, out io
 		Long:    fmt.Sprintf(statusLong, baseCLIName),
 		Example: fmt.Sprintf(statusExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
-			err := opts.Complete(f, cmd, baseCLIName, args, out)
+			err := opts.Complete(f, cmd, baseCLIName, args, streams.Out)
 			kcmdutil.CheckErr(err)
 
 			if err := opts.Validate(); err != nil {
