@@ -507,7 +507,6 @@
       "github.com/openshift/origin/pkg/project/registry/projectrequest/delegated",
       "github.com/openshift/origin/pkg/project/util",
       "github.com/openshift/origin/pkg/quota/apis/quota",
-      "github.com/openshift/origin/pkg/quota/util",
       "github.com/openshift/origin/pkg/route/apis/route",
       "github.com/openshift/origin/pkg/route/apis/route/validation",
       "github.com/openshift/origin/pkg/route/generator",
