@@ -17,6 +17,7 @@ import (
 	networktypedclient "github.com/openshift/origin/pkg/network/generated/internalclientset/typed/network/internalversion"
 	osclientcmd "github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	"github.com/openshift/origin/pkg/util/netutils"
+	"github.com/openshift/origin/pkg/version"
 )
 
 const (
@@ -37,15 +38,23 @@ const (
 	NetworkDiagDefaultTestPodPort     = 8080
 )
 
-func GetNetworkDiagDefaultPodImage() string {
+func getImageFromTemplate(name string) string {
 	imageTemplate := variable.NewDefaultImageTemplate()
-	imageTemplate.Format = variable.DefaultImagePrefix + ":${version}"
-	return imageTemplate.ExpandOrDie("")
+	imageTemplate.Format = variable.Expand(imageTemplate.Format, func(s string) (string, bool) {
+		if s == "version" {
+			return strings.TrimRight("v"+version.Get().Major+"."+version.Get().Minor, "+"), true
+		}
+		return "", false
+	}, variable.Identity)
+	return imageTemplate.ExpandOrDie(name)
+}
+
+func GetNetworkDiagDefaultPodImage() string {
+	return getImageFromTemplate("control-plane")
 }
 
 func GetNetworkDiagDefaultTestPodImage() string {
-	imageTemplate := variable.NewDefaultImageTemplate()
-	return imageTemplate.ExpandOrDie("deployer")
+	return getImageFromTemplate("deployer")
 }
 
 func GetOpenShiftNetworkPlugin(clusterNetworkClient networktypedclient.ClusterNetworksGetter) (string, bool, error) {
