@@ -79,7 +79,6 @@ import (
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/election"
-	nodeclient "github.com/openshift/origin/pkg/cmd/server/kubernetes/node/client"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	cmdflags "github.com/openshift/origin/pkg/cmd/util/flags"
 	oauthutil "github.com/openshift/origin/pkg/oauth/util"
@@ -175,6 +174,12 @@ func BuildKubeAPIserverOptions(masterConfig configapi.MasterConfig) (*kapiserver
 	}
 
 	server.KubeletConfig.ReadOnlyPort = 0
+	server.KubeletConfig.Port = masterConfig.KubeletClientInfo.Port
+	server.KubeletConfig.PreferredAddressTypes = []string{"Hostname", "InternalIP", "ExternalIP"}
+	server.KubeletConfig.EnableHttps = true
+	server.KubeletConfig.CAFile = masterConfig.KubeletClientInfo.CA
+	server.KubeletConfig.CertFile = masterConfig.KubeletClientInfo.ClientCert.CertFile
+	server.KubeletConfig.KeyFile = masterConfig.KubeletClientInfo.ClientCert.KeyFile
 
 	server.ProxyClientCertFile = masterConfig.AggregatorConfig.ProxyClientInfo.CertFile
 	server.ProxyClientKeyFile = masterConfig.AggregatorConfig.ProxyClientInfo.KeyFile
@@ -507,7 +512,7 @@ func buildKubeApiserverConfig(
 
 			EventTTL: apiserverOptions.EventTTL,
 
-			KubeletClientConfig: *nodeclient.GetKubeletClientConfig(masterConfig),
+			KubeletClientConfig: apiserverOptions.KubeletConfig,
 
 			EnableLogsSupport: false, // don't expose server logs
 		},
