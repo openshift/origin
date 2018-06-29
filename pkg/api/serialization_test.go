@@ -479,6 +479,9 @@ func originFuzzer(t *testing.T, seed int64) *fuzz.Fuzzer {
 			scc.SupplementalGroups.Type = supGroupTypes[c.Rand.Intn(len(supGroupTypes))]
 			fsGroupTypes := []securityapi.FSGroupStrategyType{securityapi.FSGroupStrategyMustRunAs, securityapi.FSGroupStrategyRunAsAny}
 			scc.FSGroup.Type = fsGroupTypes[c.Rand.Intn(len(fsGroupTypes))]
+			// avoid the defaulting logic for this field by making it never nil
+			allowPrivilegeEscalation := c.RandBool()
+			scc.AllowPrivilegeEscalation = &allowPrivilegeEscalation
 
 			// when fuzzing the volume types ensure it is set to avoid the defaulter's expansion.
 			// Do not use FSTypeAll or host dir setting to steer clear of defaulting mechanics

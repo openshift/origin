@@ -74,6 +74,14 @@ func SetDefaults_SCC(scc *v1.SecurityContextConstraints) {
 	}
 
 	scc.Volumes = StringSetToFSType(defaultAllowedVolumes)
+
+	// Constraints that do not include this field must remain as permissive as
+	// they were prior to the introduction of this field.
+	if scc.AllowPrivilegeEscalation == nil {
+		t := true
+		scc.AllowPrivilegeEscalation = &t
+	}
+
 }
 
 func StringSetToFSType(set sets.String) []v1.FSType {

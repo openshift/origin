@@ -24164,6 +24164,10 @@
      "from": {
       "$ref": "v1.ObjectReference",
       "description": "from is a reference to an ImageStreamTag that will trigger a build when updated It is optional. If no From is specified, the From image from the build strategy will be used. Only one ImageChangeTrigger with an empty From reference is allowed in a build configuration."
+     },
+     "paused": {
+      "type": "boolean",
+      "description": "paused is true if this trigger is temporarily disabled. Optional."
      }
     }
    },

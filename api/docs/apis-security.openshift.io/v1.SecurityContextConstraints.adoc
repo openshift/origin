@@ -23,6 +23,7 @@ Expand or mouse-over a field for more information about it.
 </div><div style="margin-left:13px;"><span title="(boolean) AllowHostNetwork determines if the policy allows the use of HostNetwork in the pod spec.">allowHostNetwork</span>:
 </div><div style="margin-left:13px;"><span title="(boolean) AllowHostPID determines if the policy allows host pid in the containers.">allowHostPID</span>:
 </div><div style="margin-left:13px;"><span title="(boolean) AllowHostPorts determines if the policy allows host ports in the containers.">allowHostPorts</span>:
+</div><div style="margin-left:13px;"><span title="(boolean) AllowPrivilegeEscalation determines if a pod can request to allow privilege escalation. If unspecified, defaults to true.">allowPrivilegeEscalation</span>:
 </div><div style="margin-left:13px;"><span title="(boolean) AllowPrivilegedContainer determines if a container can request to be run as privileged.">allowPrivilegedContainer</span>:
 </div><details><summary><span title="(array) AllowedCapabilities is a list of capabilities that can be requested to add to the container. Capabilities in this field maybe added at the pod author&#39;s discretion. You must not list a capability in both AllowedCapabilities and RequiredDropCapabilities. To allow all capabilities you may use &#39;*&#39;.">allowedCapabilities</span>:
 </summary><div style="margin-left:13px;">- <span title="(string)">[string]</span>:
@@ -31,7 +32,8 @@ Expand or mouse-over a field for more information about it.
 </div></details><div style="margin-left:13px;"><span title="(string) APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources">apiVersion</span>:
 </div><details><summary><span title="(array) DefaultAddCapabilities is the default set of capabilities that will be added to the container unless the pod spec specifically drops the capability.  You may not list a capabiility in both DefaultAddCapabilities and RequiredDropCapabilities.">defaultAddCapabilities</span>:
 </summary><div style="margin-left:13px;">- <span title="(string)">[string]</span>:
-</div></details><details><summary><span title="(v1.FSGroupStrategyOptions) FSGroup is the strategy that will dictate what fs group is used by the SecurityContext.">fsGroup</span>:
+</div></details><div style="margin-left:13px;"><span title="(boolean) DefaultAllowPrivilegeEscalation controls the default setting for whether a process can gain more privileges than its parent process.">defaultAllowPrivilegeEscalation</span>:
+</div><details><summary><span title="(v1.FSGroupStrategyOptions) FSGroup is the strategy that will dictate what fs group is used by the SecurityContext.">fsGroup</span>:
 </summary><details><summary>  <span title="(array) Ranges are the allowed ranges of fs groups.  If you would like to force a single fs group then supply a single range with the same start and end.">ranges</span>:
 </summary><div style="margin-left:13px;">  - <span title="(integer) Max is the end of the range, inclusive.">max</span>:
 </div><div style="margin-left:13px;">    <span title="(integer) Min is the start of the range, inclusive.">min</span>:

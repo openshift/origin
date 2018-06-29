@@ -5830,6 +5830,13 @@ func schema_openshift_api_build_v1_ImageChangeTrigger(ref common.ReferenceCallba
 							Ref:         ref("k8s.io/api/core/v1.ObjectReference"),
 						},
 					},
+					"paused": {
+						SchemaProps: spec.SchemaProps{
+							Description: "paused is true if this trigger is temporarily disabled. Optional.",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
 				},
 			},
 		},
@@ -11421,6 +11428,20 @@ func schema_openshift_api_security_v1_SecurityContextConstraints(ref common.Refe
 					"allowHostIPC": {
 						SchemaProps: spec.SchemaProps{
 							Description: "AllowHostIPC determines if the policy allows host ipc in the containers.",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+					"defaultAllowPrivilegeEscalation": {
+						SchemaProps: spec.SchemaProps{
+							Description: "DefaultAllowPrivilegeEscalation controls the default setting for whether a process can gain more privileges than its parent process.",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+					"allowPrivilegeEscalation": {
+						SchemaProps: spec.SchemaProps{
+							Description: "AllowPrivilegeEscalation determines if a pod can request to allow privilege escalation. If unspecified, defaults to true.",
 							Type:        []string{"boolean"},
 							Format:      "",
 						},
