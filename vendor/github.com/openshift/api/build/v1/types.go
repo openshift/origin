@@ -968,6 +968,9 @@ type ImageChangeTrigger struct {
 	// will be used. Only one ImageChangeTrigger with an empty From reference is allowed in
 	// a build configuration.
 	From *corev1.ObjectReference `json:"from,omitempty" protobuf:"bytes,2,opt,name=from"`
+
+	// paused is true if this trigger is temporarily disabled. Optional.
+	Paused bool `json:"paused,omitempty" protobuf:"varint,3,opt,name=paused"`
 }
 
 // BuildTriggerPolicy describes a policy for a single trigger that results in a new Build.
