@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"io"
 	"strings"
 	"time"
 
@@ -47,39 +46,17 @@ var (
 		`)
 )
 
-// NewCmdImportImage implements the OpenShift cli import-image command.
-func NewCmdImportImage(fullName string, f *clientcmd.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	opts := &ImportImageOptions{}
-	cmd := &cobra.Command{
-		Use:     "import-image IMAGESTREAM[:TAG]",
-		Short:   "Imports images from a Docker registry",
-		Long:    importImageLong,
-		Example: fmt.Sprintf(importImageExample, fullName),
-		Run: func(cmd *cobra.Command, args []string) {
-			kcmdutil.CheckErr(opts.Complete(f, cmd, args, fullName, streams.Out, streams.ErrOut))
-			kcmdutil.CheckErr(opts.Validate(cmd))
-			kcmdutil.CheckErr(opts.Run())
-		},
-	}
-	cmd.Flags().StringVar(&opts.From, "from", "", "A Docker image repository to import images from")
-	cmd.Flags().BoolVar(&opts.Confirm, "confirm", false, "If true, allow the image stream import location to be set or changed")
-	cmd.Flags().BoolVar(&opts.All, "all", false, "If true, import all tags from the provided source on creation or if --from is specified")
-	cmd.Flags().StringVar(&opts.ReferencePolicy, "reference-policy", sourceReferencePolicy, "Allow to request pullthrough for external image when set to 'local'. Defaults to 'source'.")
-	cmd.Flags().BoolVar(&opts.DryRun, "dry-run", false, "Fetch information about images without creating or updating an image stream.")
-	cmd.Flags().BoolVar(&opts.Scheduled, "scheduled", false, "Set each imported Docker image to be periodically imported from a remote repository. Defaults to false.")
-	opts.Insecure = cmd.Flags().Bool("insecure", false, "If true, allow importing from registries that have invalid HTTPS certificates or are hosted via HTTP. This flag will take precedence over the insecure annotation.")
-
-	return cmd
-}
-
 // ImageImportOptions contains all the necessary information to perform an import.
 type ImportImageOptions struct {
+	genericclioptions.IOStreams
+
 	// user set values
-	From      string
-	Confirm   bool
-	All       bool
-	Scheduled bool
-	Insecure  *bool
+	From                 string
+	Confirm              bool
+	All                  bool
+	Scheduled            bool
+	Insecure             bool
+	InsecureFlagProvided bool
 
 	DryRun bool
 
@@ -93,24 +70,52 @@ type ImportImageOptions struct {
 	CommandName string
 
 	// helpers
-	out         io.Writer
-	errout      io.Writer
 	imageClient imageclient.ImageInterface
 	isClient    imageclient.ImageStreamInterface
 }
 
+func NewImportImageOptions(name string, streams genericclioptions.IOStreams) *ImportImageOptions {
+	return &ImportImageOptions{
+		IOStreams:       streams,
+		CommandName:     name,
+		ReferencePolicy: sourceReferencePolicy,
+	}
+}
+
+// NewCmdImportImage implements the OpenShift cli import-image command.
+func NewCmdImportImage(fullName string, f *clientcmd.Factory, streams genericclioptions.IOStreams) *cobra.Command {
+	o := NewImportImageOptions(fullName, streams)
+
+	cmd := &cobra.Command{
+		Use:     "import-image IMAGESTREAM[:TAG]",
+		Short:   "Imports images from a Docker registry",
+		Long:    importImageLong,
+		Example: fmt.Sprintf(importImageExample, fullName),
+		Run: func(cmd *cobra.Command, args []string) {
+			kcmdutil.CheckErr(o.Complete(f, cmd, args))
+			kcmdutil.CheckErr(o.Validate(cmd))
+			kcmdutil.CheckErr(o.Run())
+		},
+	}
+	cmd.Flags().StringVar(&o.From, "from", o.From, "A Docker image repository to import images from")
+	cmd.Flags().BoolVar(&o.Confirm, "confirm", o.Confirm, "If true, allow the image stream import location to be set or changed")
+	cmd.Flags().BoolVar(&o.All, "all", o.All, "If true, import all tags from the provided source on creation or if --from is specified")
+	cmd.Flags().StringVar(&o.ReferencePolicy, "reference-policy", o.ReferencePolicy, "Allow to request pullthrough for external image when set to 'local'. Defaults to 'source'.")
+	cmd.Flags().BoolVar(&o.DryRun, "dry-run", o.DryRun, "Fetch information about images without creating or updating an image stream.")
+	cmd.Flags().BoolVar(&o.Scheduled, "scheduled", o.Scheduled, "Set each imported Docker image to be periodically imported from a remote repository. Defaults to false.")
+	cmd.Flags().BoolVar(&o.Insecure, "insecure", o.Insecure, "If true, allow importing from registries that have invalid HTTPS certificates or are hosted via HTTP. This flag will take precedence over the insecure annotation.")
+
+	return cmd
+}
+
 // Complete turns a partially defined ImportImageOptions into a solvent structure
 // which can be validated and used for aa import.
-func (o *ImportImageOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string, commandName string, out, errout io.Writer) error {
-	o.CommandName = commandName
-
+func (o *ImportImageOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string) error {
 	if len(args) > 0 {
 		o.Target = args[0]
 	}
 
-	if !cmd.Flags().Lookup("insecure").Changed {
-		o.Insecure = nil
-	}
+	o.InsecureFlagProvided = cmd.Flags().Lookup("insecure").Changed
 	if !cmd.Flags().Lookup("reference-policy").Changed {
 		o.ReferencePolicy = ""
 	}
@@ -132,9 +137,6 @@ func (o *ImportImageOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 
 	o.imageClient = client.Image()
 	o.isClient = client.Image().ImageStreams(namespace)
-
-	o.out = out
-	o.errout = errout
 
 	return nil
 }
@@ -182,15 +184,15 @@ func (o *ImportImageOptions) Run() error {
 	default:
 		if o.DryRun {
 			if wasError(result) {
-				fmt.Fprintf(o.errout, "The dry-run import completed with errors.\n\n")
+				fmt.Fprintf(o.ErrOut, "The dry-run import completed with errors.\n\n")
 			} else {
-				fmt.Fprint(o.out, "The dry-run import completed successfully.\n\n")
+				fmt.Fprint(o.Out, "The dry-run import completed successfully.\n\n")
 			}
 		} else {
 			if wasError(result) {
-				fmt.Fprintf(o.errout, "The import completed with errors.\n\n")
+				fmt.Fprintf(o.ErrOut, "The import completed with errors.\n\n")
 			} else {
-				fmt.Fprint(o.out, "The import completed successfully.\n\n")
+				fmt.Fprint(o.Out, "The import completed successfully.\n\n")
 			}
 		}
 
@@ -200,7 +202,7 @@ func (o *ImportImageOptions) Run() error {
 			if err != nil {
 				return err
 			}
-			fmt.Fprintln(o.out, info)
+			fmt.Fprintln(o.Out, info)
 		}
 
 		if repo := result.Status.Repository; repo != nil {
@@ -208,12 +210,12 @@ func (o *ImportImageOptions) Run() error {
 				if image.Image != nil {
 					info, err := describe.DescribeImage(image.Image, imageapi.JoinImageStreamTag(stream.Name, image.Tag))
 					if err != nil {
-						fmt.Fprintf(o.errout, "error: tag %s failed: %v\n", image.Tag, err)
+						fmt.Fprintf(o.ErrOut, "error: tag %s failed: %v\n", image.Tag, err)
 					} else {
-						fmt.Fprintln(o.out, info)
+						fmt.Fprintln(o.Out, info)
 					}
 				} else {
-					fmt.Fprintf(o.errout, "error: repository tag %s failed: %v\n", image.Tag, image.Status.Message)
+					fmt.Fprintf(o.ErrOut, "error: repository tag %s failed: %v\n", image.Tag, image.Status.Message)
 				}
 			}
 		}
@@ -222,24 +224,24 @@ func (o *ImportImageOptions) Run() error {
 			if image.Image != nil {
 				info, err := describe.DescribeImage(image.Image, imageapi.JoinImageStreamTag(stream.Name, image.Tag))
 				if err != nil {
-					fmt.Fprintf(o.errout, "error: tag %s failed: %v\n", image.Tag, err)
+					fmt.Fprintf(o.ErrOut, "error: tag %s failed: %v\n", image.Tag, err)
 				} else {
-					fmt.Fprintln(o.out, info)
+					fmt.Fprintln(o.Out, info)
 				}
 			} else {
-				fmt.Fprintf(o.errout, "error: tag %s failed: %v\n", image.Tag, image.Status.Message)
+				fmt.Fprintf(o.ErrOut, "error: tag %s failed: %v\n", image.Tag, image.Status.Message)
 			}
 		}
 
 		if r := result.Status.Repository; r != nil && len(r.AdditionalTags) > 0 {
-			fmt.Fprintf(o.out, "\ninfo: The remote repository contained %d additional tags which were not imported: %s\n", len(r.AdditionalTags), strings.Join(r.AdditionalTags, ", "))
+			fmt.Fprintf(o.Out, "\ninfo: The remote repository contained %d additional tags which were not imported: %s\n", len(r.AdditionalTags), strings.Join(r.AdditionalTags, ", "))
 		}
 		return nil
 	}
 
 	// Legacy path, remove when support for older importers is removed
 	delete(stream.Annotations, imageapi.DockerImageRepositoryCheckAnnotation)
-	if o.Insecure != nil && *o.Insecure {
+	if o.InsecureFlagProvided && o.Insecure {
 		if stream.Annotations == nil {
 			stream.Annotations = make(map[string]string)
 		}
@@ -255,7 +257,7 @@ func (o *ImportImageOptions) Run() error {
 		return err
 	}
 
-	fmt.Fprintln(o.out, "Importing (ctrl+c to stop waiting) ...")
+	fmt.Fprintln(o.Out, "Importing (ctrl+c to stop waiting) ...")
 
 	resourceVersion := stream.ResourceVersion
 	updatedStream, err := o.waitForImport(resourceVersion)
@@ -266,7 +268,7 @@ func (o *ImportImageOptions) Run() error {
 		return fmt.Errorf("unable to determine if the import completed successfully - please run '%s describe -n %s imagestream/%s' to see if the tags were updated as expected: %v", o.CommandName, stream.Namespace, stream.Name, err)
 	}
 
-	fmt.Fprint(o.out, "The import completed successfully.\n\n")
+	fmt.Fprint(o.Out, "The import completed successfully.\n\n")
 
 	d := describe.ImageStreamDescriber{ImageClient: o.imageClient}
 	info, err := d.Describe(updatedStream.Namespace, updatedStream.Name, kprinters.DescriberSettings{})
@@ -274,7 +276,7 @@ func (o *ImportImageOptions) Run() error {
 		return err
 	}
 
-	fmt.Fprintln(o.out, info)
+	fmt.Fprintln(o.Out, info)
 	return nil
 }
 
@@ -546,8 +548,8 @@ func (o *ImportImageOptions) newImageStreamImport(stream *imageapi.ImageStream) 
 	insecureAnnotation := stream.Annotations[imageapi.InsecureRepositoryAnnotation]
 	insecure := insecureAnnotation == "true"
 	// --insecure flag (if provided) takes precedence over insecure annotation
-	if o.Insecure != nil {
-		insecure = *o.Insecure
+	if o.InsecureFlagProvided {
+		insecure = o.Insecure
 	}
 
 	return isi, insecure

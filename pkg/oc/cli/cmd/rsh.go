@@ -63,14 +63,14 @@ type RshOptions struct {
 	*kubecmd.ExecOptions
 }
 
-// NewCmdRsh returns a command that attempts to open a shell session to the server.
-func NewCmdRsh(name string, parent string, f *clientcmd.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	options := &RshOptions{
+func NewRshOptions(parent string, streams genericclioptions.IOStreams) *RshOptions {
+	return &RshOptions{
 		ForceTTY:   false,
 		DisableTTY: false,
 		Timeout:    10,
 		ExecOptions: &kubecmd.ExecOptions{
 			StreamOptions: kubecmd.StreamOptions{
+				// REBASE-FIXME: needs upstream PR to make StreamOptions work with genericclioptions.IOStreams
 				In:  streams.In,
 				Out: streams.Out,
 				Err: streams.ErrOut,
@@ -83,6 +83,11 @@ func NewCmdRsh(name string, parent string, f *clientcmd.Factory, streams generic
 			Executor:    &kubecmd.DefaultRemoteExecutor{},
 		},
 	}
+}
+
+// NewCmdRsh returns a command that attempts to open a shell session to the server.
+func NewCmdRsh(name string, parent string, f *clientcmd.Factory, streams genericclioptions.IOStreams) *cobra.Command {
+	options := NewRshOptions(parent, streams)
 
 	cmd := &cobra.Command{
 		Use:     fmt.Sprintf("%s [flags] POD [COMMAND]", name),

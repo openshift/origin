@@ -18,11 +18,13 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	kextensionsclient "k8s.io/client-go/kubernetes/typed/extensions/v1beta1"
+	"k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
-	"k8s.io/kubernetes/pkg/kubectl/resource"
+	oldresource "k8s.io/kubernetes/pkg/kubectl/resource"
 
 	appsv1client "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
 	appsmanualclient "github.com/openshift/origin/pkg/apps/client/v1"
@@ -50,13 +52,39 @@ var (
 		$ %[1]s idle --resource-names-file to-idle.txt`)
 )
 
+type IdleOptions struct {
+	genericclioptions.IOStreams
+
+	dryRun bool
+
+	filename      string
+	all           bool
+	selector      string
+	allNamespaces bool
+	resources     string
+
+	cmdFullName string
+
+	ClientForMappingFn func(*meta.RESTMapping) (oldresource.RESTClient, error)
+	ClientConfig       *rest.Config
+	ClientSet          kclientset.Interface
+	Mapper             meta.RESTMapper
+	Typer              runtime.ObjectTyper
+
+	nowTime    time.Time
+	svcBuilder *oldresource.Builder
+}
+
+func NewIdleOptions(name string, streams genericclioptions.IOStreams) *IdleOptions {
+	return &IdleOptions{
+		IOStreams:   streams,
+		cmdFullName: name,
+	}
+}
+
 // NewCmdIdle implements the OpenShift cli idle command
 func NewCmdIdle(fullName string, f *clientcmd.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	o := &IdleOptions{
-		out:         streams.Out,
-		errOut:      streams.ErrOut,
-		cmdFullName: fullName,
-	}
+	o := NewIdleOptions(fullName, streams)
 
 	cmd := &cobra.Command{
 		Use:     "idle (SERVICE_ENDPOINTS... | -l label | --all | --resource-names-file FILENAME)",
@@ -65,11 +93,7 @@ func NewCmdIdle(fullName string, f *clientcmd.Factory, streams genericclioptions
 		Example: fmt.Sprintf(idleExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			kcmdutil.CheckErr(o.Complete(f, cmd, args))
-			err := o.RunIdle(f)
-			if err == kcmdutil.ErrExit {
-				os.Exit(1)
-			}
-			kcmdutil.CheckErr(err)
+			kcmdutil.CheckErr(o.RunIdle())
 		},
 	}
 
@@ -85,23 +109,6 @@ func NewCmdIdle(fullName string, f *clientcmd.Factory, streams genericclioptions
 	return cmd
 }
 
-type IdleOptions struct {
-	out, errOut io.Writer
-
-	dryRun bool
-
-	filename      string
-	all           bool
-	selector      string
-	allNamespaces bool
-	resources     string
-
-	cmdFullName string
-
-	nowTime    time.Time
-	svcBuilder *resource.Builder
-}
-
 func (o *IdleOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string) error {
 	namespace, _, err := f.DefaultNamespace()
 	if err != nil {
@@ -115,6 +122,19 @@ func (o *IdleOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []
 		return fmt.Errorf("resource names, selectors, and the all flag may not be be specified if a filename is specified")
 	}
 
+	o.ClientConfig, err = f.ClientConfig()
+	if err != nil {
+		return err
+	}
+
+	o.ClientSet, err = f.ClientSet()
+	if err != nil {
+		return err
+	}
+
+	o.Mapper, o.Typer = f.Object()
+	o.ClientForMappingFn = f.ClientForMapping
+
 	o.svcBuilder = f.NewBuilder().
 		Internal().
 		ContinueOnError().
@@ -122,7 +142,7 @@ func (o *IdleOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []
 		Flatten().
 		SingleResourceType()
 
-	if o.filename != "" {
+	if len(o.filename) > 0 {
 		targetServiceNames, err := scanLinesFromFile(o.filename)
 		if err != nil {
 			return err
@@ -200,21 +220,13 @@ type controllerRef struct {
 // Using the list of services, it figures out the associated scalable objects, and returns a map from the endpoints object for the services to
 // the list of scalable resources associated with that endpoints object, as well as a map from CrossGroupObjectReferences to scale to 0 to the
 // name of the associated service.
-func (o *IdleOptions) calculateIdlableAnnotationsByService(f *clientcmd.Factory) (map[types.NamespacedName]idleUpdateInfo, map[namespacedCrossGroupObjectReference]types.NamespacedName, error) {
-	// load our set of services
-	client, err := f.ClientSet()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	mapper, _ := f.Object()
-
+func (o *IdleOptions) calculateIdlableAnnotationsByService() (map[types.NamespacedName]idleUpdateInfo, map[namespacedCrossGroupObjectReference]types.NamespacedName, error) {
 	podsLoaded := make(map[kapi.ObjectReference]*kapi.Pod)
 	getPod := func(ref kapi.ObjectReference) (*kapi.Pod, error) {
 		if pod, ok := podsLoaded[ref]; ok {
 			return pod, nil
 		}
-		pod, err := client.Core().Pods(ref.Namespace).Get(ref.Name, metav1.GetOptions{})
+		pod, err := o.ClientSet.Core().Pods(ref.Namespace).Get(ref.Name, metav1.GetOptions{})
 		if err != nil {
 			return nil, err
 		}
@@ -225,7 +237,7 @@ func (o *IdleOptions) calculateIdlableAnnotationsByService(f *clientcmd.Factory)
 	}
 
 	controllersLoaded := make(map[namespacedOwnerReference]metav1.Object)
-	helpers := make(map[schema.GroupKind]*resource.Helper)
+	helpers := make(map[schema.GroupKind]*oldresource.Helper)
 	getController := func(ref namespacedOwnerReference) (metav1.Object, error) {
 		if controller, ok := controllersLoaded[ref]; ok {
 			return controller, nil
@@ -239,16 +251,16 @@ func (o *IdleOptions) calculateIdlableAnnotationsByService(f *clientcmd.Factory)
 		helper, ok := helpers[gk]
 		if !ok {
 			var mapping *meta.RESTMapping
-			mapping, err = mapper.RESTMapping(schema.GroupKind{Group: gv.Group, Kind: ref.Kind}, "")
+			mapping, err = o.Mapper.RESTMapping(schema.GroupKind{Group: gv.Group, Kind: ref.Kind}, "")
 			if err != nil {
 				return nil, err
 			}
-			var client resource.RESTClient
-			client, err = f.ClientForMapping(mapping)
+			var client oldresource.RESTClient
+			client, err = o.ClientForMappingFn(mapping)
 			if err != nil {
 				return nil, err
 			}
-			helper = resource.NewHelper(client, mapping)
+			helper = oldresource.NewHelper(client, mapping)
 			helpers[gk] = helper
 		}
 
@@ -271,7 +283,7 @@ func (o *IdleOptions) calculateIdlableAnnotationsByService(f *clientcmd.Factory)
 	targetScaleRefs := make(map[namespacedCrossGroupObjectReference]types.NamespacedName)
 	endpointsInfo := make(map[types.NamespacedName]idleUpdateInfo)
 
-	err = o.svcBuilder.Do().Visit(func(info *resource.Info, err error) error {
+	err := o.svcBuilder.Do().Visit(func(info *oldresource.Info, err error) error {
 		if err != nil {
 			return err
 		}
@@ -501,7 +513,7 @@ func setIdleAnnotations(serviceName types.NamespacedName, annotations map[string
 }
 
 // patchObj patches calculates a patch between the given new object and the existing marshaled object
-func patchObj(obj runtime.Object, metadata metav1.Object, oldData []byte, mapping *meta.RESTMapping, f *clientcmd.Factory) (runtime.Object, error) {
+func patchObj(obj runtime.Object, metadata metav1.Object, oldData []byte, mapping *meta.RESTMapping, clientForMapping oldresource.RESTClient) (runtime.Object, error) {
 	versionedObj, err := mapping.ObjectConvertor.ConvertToVersion(obj, schema.GroupVersions{mapping.GroupVersionKind.GroupVersion()})
 	if err != nil {
 		return nil, err
@@ -516,11 +528,7 @@ func patchObj(obj runtime.Object, metadata metav1.Object, oldData []byte, mappin
 		return nil, err
 	}
 
-	client, err := f.ClientForMapping(mapping)
-	if err != nil {
-		return nil, err
-	}
-	helper := resource.NewHelper(client, mapping)
+	helper := oldresource.NewHelper(clientForMapping, mapping)
 
 	return helper.Patch(metadata.GetNamespace(), metadata.GetName(), types.StrategicMergePatchType, patchBytes)
 }
@@ -534,7 +542,7 @@ type scaleInfo struct {
 // RunIdle runs the idling command logic, taking a list of resources or services in a file, scaling the associated
 // scalable resources to zero, and annotating the associated endpoints objects with the scalable resources to unidle
 // when they receive traffic.
-func (o *IdleOptions) RunIdle(f *clientcmd.Factory) error {
+func (o *IdleOptions) RunIdle() error {
 	hadError := false
 	nowTime := time.Now().UTC()
 
@@ -544,35 +552,27 @@ func (o *IdleOptions) RunIdle(f *clientcmd.Factory) error {
 	}
 
 	// figure out which endpoints and resources we need to idle
-	byService, byScalable, err := o.calculateIdlableAnnotationsByService(f)
+	byService, byScalable, err := o.calculateIdlableAnnotationsByService()
 
 	if err != nil {
 		if len(byService) == 0 || len(byScalable) == 0 {
 			return fmt.Errorf("no valid scalable resources found to idle: %v", err)
 		}
-		fmt.Fprintf(o.errOut, "warning: continuing on for valid scalable resources, but an error occurred while finding scalable resources to idle: %v", err)
+		fmt.Fprintf(o.ErrOut, "warning: continuing on for valid scalable resources, but an error occurred while finding scalable resources to idle: %v", err)
 	}
 
-	kclient, err := f.ClientSet()
+	appClient, err := appsclientinternal.NewForConfig(o.ClientConfig)
 	if err != nil {
 		return err
 	}
-	clientConfig, err := f.ClientConfig()
-	if err != nil {
-		return err
-	}
-	appClient, err := appsclientinternal.NewForConfig(clientConfig)
-	if err != nil {
-		return err
-	}
-	appsV1Client, err := appsv1client.NewForConfig(clientConfig)
+	appsV1Client, err := appsv1client.NewForConfig(o.ClientConfig)
 	if err != nil {
 		return err
 	}
 
-	externalKubeExtensionClient := kextensionsclient.New(kclient.Extensions().RESTClient())
+	externalKubeExtensionClient := kextensionsclient.New(o.ClientSet.Extensions().RESTClient())
 	delegScaleGetter := appsmanualclient.NewDelegatingScaleNamespacer(appsV1Client, externalKubeExtensionClient)
-	scaleAnnotater := utilunidling.NewScaleAnnotater(delegScaleGetter, appClient.Apps(), kclient.Core(), func(currentReplicas int32, annotations map[string]string) {
+	scaleAnnotater := utilunidling.NewScaleAnnotater(delegScaleGetter, appClient.Apps(), o.ClientSet.Core(), func(currentReplicas int32, annotations map[string]string) {
 		annotations[unidlingapi.IdledAtAnnotation] = nowTime.UTC().Format(time.RFC3339)
 		annotations[unidlingapi.PreviousScaleAnnotation] = fmt.Sprintf("%v", currentReplicas)
 	})
@@ -580,13 +580,11 @@ func (o *IdleOptions) RunIdle(f *clientcmd.Factory) error {
 	replicas := make(map[namespacedCrossGroupObjectReference]int32, len(byScalable))
 	toScale := make(map[namespacedCrossGroupObjectReference]scaleInfo)
 
-	mapper, typer := f.Object()
-
 	// first, collect the scale info
 	for scaleRef, svcName := range byScalable {
 		obj, scale, err := scaleAnnotater.GetObjectWithScale(svcName.Namespace, scaleRef.CrossGroupObjectReference)
 		if err != nil {
-			fmt.Fprintf(o.errOut, "error: unable to get scale for %s %s/%s, not marking that scalable as idled: %v\n", scaleRef.Kind, svcName.Namespace, scaleRef.Name, err)
+			fmt.Fprintf(o.ErrOut, "error: unable to get scale for %s %s/%s, not marking that scalable as idled: %v\n", scaleRef.Kind, svcName.Namespace, scaleRef.Name, err)
 			svcInfo := byService[svcName]
 			delete(svcInfo.scaleRefs, scaleRef.CrossGroupObjectReference)
 			hadError = true
@@ -603,69 +601,71 @@ func (o *IdleOptions) RunIdle(f *clientcmd.Factory) error {
 		}
 		refsWithScale, err := pairScalesWithScaleRefs(serviceName, info.obj.Annotations, info.scaleRefs, replicas)
 		if err != nil {
-			fmt.Fprintf(o.errOut, "error: unable to mark service %q as idled: %v", serviceName.String(), err)
+			fmt.Fprintf(o.ErrOut, "error: unable to mark service %q as idled: %v", serviceName.String(), err)
 			continue
 		}
 
 		if !o.dryRun {
 			if len(info.scaleRefs) == 0 {
-				fmt.Fprintf(o.errOut, "error: unable to mark the service %q as idled.\n", serviceName.String())
-				fmt.Fprintf(o.errOut, "Make sure that the service is not already marked as idled and that it is associated with resources that can be scaled.\n")
-				fmt.Fprintf(o.errOut, "See 'oc idle -h' for help and examples.\n")
+				fmt.Fprintf(o.ErrOut, "error: unable to mark the service %q as idled.\n", serviceName.String())
+				fmt.Fprintf(o.ErrOut, "Make sure that the service is not already marked as idled and that it is associated with resources that can be scaled.\n")
+				fmt.Fprintf(o.ErrOut, "See 'oc idle -h' for help and examples.\n")
 				hadError = true
 				continue
 			}
 
 			metadata, err := meta.Accessor(info.obj)
 			if err != nil {
-				fmt.Fprintf(o.errOut, "error: unable to mark service %q as idled: %v", serviceName.String(), err)
+				fmt.Fprintf(o.ErrOut, "error: unable to mark service %q as idled: %v", serviceName.String(), err)
 				hadError = true
 				continue
 			}
-			gvks, _, err := typer.ObjectKinds(info.obj)
+			gvks, _, err := o.Typer.ObjectKinds(info.obj)
 			if err != nil {
-				fmt.Fprintf(o.errOut, "error: unable to mark service %q as idled: %v", serviceName.String(), err)
+				fmt.Fprintf(o.ErrOut, "error: unable to mark service %q as idled: %v", serviceName.String(), err)
 				hadError = true
 				continue
 			}
 			// we need a versioned obj to properly marshal to JSON, so that we can compute the patch
-			mapping, err := mapper.RESTMapping(gvks[0].GroupKind(), gvks[0].Version)
+			mapping, err := o.Mapper.RESTMapping(gvks[0].GroupKind(), gvks[0].Version)
 			if err != nil {
-				fmt.Fprintf(o.errOut, "error: unable to mark service %q as idled: %v", serviceName.String(), err)
+				fmt.Fprintf(o.ErrOut, "error: unable to mark service %q as idled: %v", serviceName.String(), err)
 				hadError = true
 				continue
 			}
 
 			versionedObj, err := mapping.ObjectConvertor.ConvertToVersion(info.obj, schema.GroupVersions{gvks[0].GroupVersion()})
 			if err != nil {
-				fmt.Fprintf(o.errOut, "error: unable to mark service %q as idled: %v", serviceName.String(), err)
+				fmt.Fprintf(o.ErrOut, "error: unable to mark service %q as idled: %v", serviceName.String(), err)
 				hadError = true
 				continue
 			}
 
 			oldData, err := json.Marshal(versionedObj)
 			if err != nil {
-				fmt.Fprintf(o.errOut, "error: unable to mark service %q as idled: %v", serviceName.String(), err)
+				fmt.Fprintf(o.ErrOut, "error: unable to mark service %q as idled: %v", serviceName.String(), err)
 				hadError = true
 				continue
 			}
 
+			clientForMapping, err := o.ClientForMappingFn(mapping)
+
 			if err = setIdleAnnotations(serviceName, info.obj.Annotations, refsWithScale, nowTime); err != nil {
-				fmt.Fprintf(o.errOut, "error: unable to mark service %q as idled: %v", serviceName.String(), err)
+				fmt.Fprintf(o.ErrOut, "error: unable to mark service %q as idled: %v", serviceName.String(), err)
 				hadError = true
 				continue
 			}
-			if _, err := patchObj(info.obj, metadata, oldData, mapping, f); err != nil {
-				fmt.Fprintf(o.errOut, "error: unable to mark service %q as idled: %v", serviceName.String(), err)
+			if _, err := patchObj(info.obj, metadata, oldData, mapping, clientForMapping); err != nil {
+				fmt.Fprintf(o.ErrOut, "error: unable to mark service %q as idled: %v", serviceName.String(), err)
 				hadError = true
 				continue
 			}
 		}
 
-		fmt.Fprintf(o.out, "The service %q has been marked as idled %s\n", serviceName.String(), dryRunText)
+		fmt.Fprintf(o.Out, "The service %q has been marked as idled %s\n", serviceName.String(), dryRunText)
 
 		for _, scaleRef := range refsWithScale {
-			fmt.Fprintf(o.out, "The service will unidle %s \"%s/%s\" to %v replicas once it receives traffic %s\n", scaleRef.Kind, serviceName.Namespace, scaleRef.Name, scaleRef.Replicas, dryRunText)
+			fmt.Fprintf(o.Out, "The service will unidle %s \"%s/%s\" to %v replicas once it receives traffic %s\n", scaleRef.Kind, serviceName.Namespace, scaleRef.Name, scaleRef.Replicas, dryRunText)
 		}
 	}
 
@@ -674,15 +674,15 @@ func (o *IdleOptions) RunIdle(f *clientcmd.Factory) error {
 	for scaleRef, info := range toScale {
 		if !o.dryRun {
 			info.scale.Spec.Replicas = 0
-			scaleUpdater := utilunidling.NewScaleUpdater(kcmdutil.InternalVersionJSONEncoder(), info.namespace, appClient.Apps(), kclient.Core())
+			scaleUpdater := utilunidling.NewScaleUpdater(kcmdutil.InternalVersionJSONEncoder(), info.namespace, appClient.Apps(), o.ClientSet.Core())
 			if err := scaleAnnotater.UpdateObjectScale(scaleUpdater, info.namespace, scaleRef.CrossGroupObjectReference, info.obj, info.scale); err != nil {
-				fmt.Fprintf(o.errOut, "error: unable to scale %s %s/%s to 0, but still listed as target for unidling: %v\n", scaleRef.Kind, info.namespace, scaleRef.Name, err)
+				fmt.Fprintf(o.ErrOut, "error: unable to scale %s %s/%s to 0, but still listed as target for unidling: %v\n", scaleRef.Kind, info.namespace, scaleRef.Name, err)
 				hadError = true
 				continue
 			}
 		}
 
-		fmt.Fprintf(o.out, "%s \"%s/%s\" has been idled %s\n", scaleRef.Kind, info.namespace, scaleRef.Name, dryRunText)
+		fmt.Fprintf(o.Out, "%s \"%s/%s\" has been idled %s\n", scaleRef.Kind, info.namespace, scaleRef.Name, dryRunText)
 	}
 
 	if hadError {

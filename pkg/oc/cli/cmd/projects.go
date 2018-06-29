@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"io"
 	"sort"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -27,17 +26,25 @@ import (
 )
 
 type ProjectsOptions struct {
+	genericclioptions.IOStreams
+
 	Config       clientcmdapi.Config
 	ClientConfig *restclient.Config
 	Client       projectclient.ProjectInterface
 	KubeClient   kclientset.Interface
-	Out          io.Writer
 	PathOptions  *kclientcmd.PathOptions
 
 	// internal strings
 	CommandName string
 
 	DisplayShort bool
+}
+
+func NewProjectsOptions(name string, streams genericclioptions.IOStreams) *ProjectsOptions {
+	return &ProjectsOptions{
+		IOStreams:   streams,
+		CommandName: name,
+	}
 }
 
 // SortByProjectName is sort
@@ -63,35 +70,27 @@ var (
 
 // NewCmdProjects implements the OpenShift cli rollback command
 func NewCmdProjects(fullName string, f *clientcmd.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	options := &ProjectsOptions{}
+	o := NewProjectsOptions(fullName, streams)
 
 	cmd := &cobra.Command{
 		Use:   "projects",
 		Short: "Display existing projects",
 		Long:  projectsLong,
 		Run: func(cmd *cobra.Command, args []string) {
-			options.PathOptions = cliconfig.NewPathOptions(cmd)
-
-			if err := options.Complete(f, args, fullName, streams.Out); err != nil {
+			if err := o.Complete(f, cmd, args); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
 			}
-
-			if err := options.RunProjects(); err != nil {
-				kcmdutil.CheckErr(err)
-			}
+			kcmdutil.CheckErr(o.Validate(args))
+			kcmdutil.CheckErr(o.RunProjects())
 		},
 	}
 
-	cmd.Flags().BoolVarP(&options.DisplayShort, "short", "q", false, "If true, display only the project names")
+	cmd.Flags().BoolVarP(&o.DisplayShort, "short", "q", false, "If true, display only the project names")
 	return cmd
 }
 
-func (o *ProjectsOptions) Complete(f *clientcmd.Factory, args []string, commandName string, out io.Writer) error {
-	if len(args) > 0 {
-		return fmt.Errorf("no arguments should be passed")
-	}
-
-	o.CommandName = commandName
+func (o *ProjectsOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string) error {
+	o.PathOptions = cliconfig.NewPathOptions(cmd)
 
 	var err error
 	o.Config, err = f.RawConfig()
@@ -114,8 +113,13 @@ func (o *ProjectsOptions) Complete(f *clientcmd.Factory, args []string, commandN
 	}
 	o.Client = projectClient.Project()
 
-	o.Out = out
+	return nil
+}
 
+func (o *ProjectsOptions) Validate(args []string) error {
+	if len(args) > 0 {
+		return fmt.Errorf("no arguments should be passed")
+	}
 	return nil
 }
 
