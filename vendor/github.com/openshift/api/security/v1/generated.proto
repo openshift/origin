@@ -238,6 +238,16 @@ message SecurityContextConstraints {
   // AllowHostIPC determines if the policy allows host ipc in the containers.
   optional bool allowHostIPC = 12;
 
+  // DefaultAllowPrivilegeEscalation controls the default setting for whether a
+  // process can gain more privileges than its parent process.
+  // +optional
+  optional bool defaultAllowPrivilegeEscalation = 22;
+
+  // AllowPrivilegeEscalation determines if a pod can request to allow
+  // privilege escalation. If unspecified, defaults to true.
+  // +optional
+  optional bool allowPrivilegeEscalation = 23;
+
   // SELinuxContext is the strategy that will dictate what labels will be set in the SecurityContext.
   optional SELinuxContextStrategyOptions seLinuxContext = 13;
 

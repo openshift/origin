@@ -59,6 +59,14 @@ type SecurityContextConstraints struct {
 	AllowHostPID bool
 	// AllowHostIPC determines if the policy allows host ipc in the containers.
 	AllowHostIPC bool
+	// DefaultAllowPrivilegeEscalation controls the default setting for whether a
+	// process can gain more privileges than its parent process.
+	// +optional
+	DefaultAllowPrivilegeEscalation *bool
+	// AllowPrivilegeEscalation determines if a pod can request to allow
+	// privilege escalation. If unspecified, defaults to true.
+	// +optional
+	AllowPrivilegeEscalation *bool
 	// SELinuxContext is the strategy that will dictate what labels will be set in the SecurityContext.
 	SELinuxContext SELinuxContextStrategyOptions
 	// RunAsUser is the strategy that will dictate what RunAsUser is used in the SecurityContext.
