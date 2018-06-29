@@ -58,6 +58,6 @@ CODEGEN_PKG=${CODEGEN_PKG:-$(cd ${SCRIPT_ROOT}; ls -d -1 ./vendor/k8s.io/code-ge
 ${CODEGEN_PKG}/generate-groups.sh "deepcopy,client,lister,informer" \
   github.com/openshift/origin/pkg/cmd/openshift-operators/generated \
   github.com/openshift/origin/pkg/cmd/openshift-operators/apis \
-  "webconsole:v1alpha1" \
+  "webconsole:v1alpha1 dockerregistry:v1alpha1" \
   --go-header-file ${SCRIPT_ROOT}/hack/boilerplate.txt \
   ${verify}

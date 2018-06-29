@@ -36,7 +36,7 @@ import (
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	oauthclientinternal "github.com/openshift/origin/pkg/oauth/generated/internalclientset"
-	"github.com/openshift/origin/pkg/oc/clusteradd/components/registry"
+	"github.com/openshift/origin/pkg/oc/clusteradd/components/docker-registry-operator"
 	"github.com/openshift/origin/pkg/oc/clusteradd/components/service-catalog"
 	"github.com/openshift/origin/pkg/oc/clusterup/coreinstall/kubeapiserver"
 	"github.com/openshift/origin/pkg/oc/clusterup/docker/dockerhelper"
@@ -201,7 +201,7 @@ func (c *ClusterUpConfig) Bind(flags *pflag.FlagSet) {
 var (
 	knownComponents = sets.NewString(
 		"centos-imagestreams",
-		"registry",
+		"docker-registry",
 		"rhel-imagestreams",
 		"router",
 		"sample-templates",
@@ -778,7 +778,7 @@ func (c *ClusterUpConfig) determineServerIP() (string, []string, error) {
 
 // updateNoProxy will add some default values to the NO_PROXY setting if they are not present
 func (c *ClusterUpConfig) updateNoProxy() {
-	values := []string{"127.0.0.1", c.ServerIP, "localhost", service_catalog.ServiceCatalogServiceIP, registry.RegistryServiceClusterIP}
+	values := []string{"127.0.0.1", c.ServerIP, "localhost", service_catalog.ServiceCatalogServiceIP, docker_registry_operator.RegistryServiceClusterIP}
 	ipFromServer, err := c.OpenShiftHelper().ServerIP()
 	if err == nil {
 		values = append(values, ipFromServer)
@@ -879,9 +879,9 @@ func (c *ClusterUpConfig) checkProxySettings() string {
 	if len(dockerHTTPProxy) > 0 || len(dockerHTTPSProxy) > 0 {
 		dockerNoProxyList := strings.Split(dockerNoProxy, ",")
 		dockerNoProxySet := sets.NewString(dockerNoProxyList...)
-		if !dockerNoProxySet.Has(registry.RegistryServiceClusterIP) {
+		if !dockerNoProxySet.Has(docker_registry_operator.RegistryServiceClusterIP) {
 			warnings = append(warnings, fmt.Sprintf("A proxy is configured for Docker, however %[1]s is not included in its NO_PROXY list.\n"+
-				"   %[1]s needs to be included in the Docker daemon's NO_PROXY environment variable so pushes to the local OpenShift registry can succeed.", registry.RegistryServiceClusterIP))
+				"   %[1]s needs to be included in the Docker daemon's NO_PROXY environment variable so pushes to the local OpenShift registry can succeed.", docker_registry_operator.RegistryServiceClusterIP))
 		}
 	}
 

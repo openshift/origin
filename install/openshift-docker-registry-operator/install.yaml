@@ -1,0 +1,106 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+parameters:
+- name: IMAGE
+  value: openshift/origin-hypershift:latest
+- name: OPENSHIFT_PULL_POLICY
+  value: Always
+- name: NAMESPACE
+  # This namespace must not be changed.
+  value: openshift-core-operators
+- name: LOGLEVEL
+  value: "0"
+- name: COMPONENT_LOGLEVEL
+  value: "0"
+- name: COMPONENT_IMAGE
+  value: openshift/docker-registry:latest
+- name: NODE_SELECTOR
+  value: "{}"
+objects:
+
+- apiVersion: apiextensions.k8s.io/v1beta1
+  kind: CustomResourceDefinition
+  metadata:
+    name: openshiftdockerregistryconfigs.dockerregistry.operator.openshift.io
+  spec:
+    scope: Cluster
+    group: dockerregistry.operator.openshift.io
+    version: v1alpha1
+    names:
+      kind: OpenShiftDockerRegistryConfig
+      plural: openshiftdockerregistryconfigs
+      singular: openshiftdockerregistryconfig
+    subresources:
+      status: {}
+
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    namespace: openshift-core-operators
+    name: openshift-docker-registry-operator-config
+  data:
+    operator-config.yaml: |
+      apiVersion: operator.openshift.io/v1alpha1
+      kind: GenericOperatorConfig
+
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    namespace: ${NAMESPACE}
+    name: openshift-docker-registry-operator
+    labels:
+      app: openshift-docker-registry-operator
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: openshift-docker-registry-operator
+    template:
+      metadata:
+        name: openshift-docker-registry-operator
+        labels:
+          app: openshift-docker-registry-operator
+      spec:
+        serviceAccountName: openshift-docker-registry-operator
+        containers:
+        - name: operator
+          image: ${IMAGE}
+          imagePullPolicy: ${OPENSHIFT_PULL_POLICY}
+          command: ["hypershift", "experimental", "openshift-docker-registry-operator"]
+          args:
+          - "--config=/var/run/configmaps/config/operator-config.yaml"
+          - "-v=${LOGLEVEL}"
+          volumeMounts:
+          - mountPath: /var/run/configmaps/config
+            name: config
+        nodeSelector: "${{NODE_SELECTOR}}"
+        volumes:
+        - name: serving-cert
+          secret:
+            defaultMode: 400
+            secretName: openshift-docker-registry-operator-serving-cert
+            optional: true
+        - name: config
+          configMap:
+            defaultMode: 440
+            name: openshift-docker-registry-operator-config
+
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    namespace: ${NAMESPACE}
+    name: openshift-docker-registry-operator
+    labels:
+      app: openshift-docker-registry-operator
+
+- apiVersion: dockerregistry.operator.openshift.io/v1alpha1
+  kind: OpenShiftDockerRegistryConfig
+  metadata:
+    name: instance
+  spec:
+    managementState: Managed
+    imagePullSpec: ${COMPONENT_IMAGE}
+    version: 3.10.0
+    logging:
+      level: ${{COMPONENT_LOGLEVEL}}
+    replicas: 1
