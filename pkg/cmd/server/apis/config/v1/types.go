@@ -580,6 +580,8 @@ type KubeletConnectionInfo struct {
 	// CertInfo is the TLS client cert information for securing communication to kubelets
 	// this is anonymous so that we can inline it for serialization
 	CertInfo `json:",inline"`
+	// PreferredAddressTypes is the order of node address types used to connect to the kubelet
+	PreferredAddressTypes []string `json:"preferredAddressTypes"`
 }
 
 // EtcdConnectionInfo holds information necessary for connecting to an etcd server

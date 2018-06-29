@@ -21,6 +21,7 @@ func SetObjectDefaults_MasterConfig(in *MasterConfig) {
 	SetDefaults_MasterConfig(in)
 	SetDefaults_ServingInfo(&in.ServingInfo.ServingInfo)
 	SetDefaults_EtcdStorageConfig(&in.EtcdStorageConfig)
+	SetDefaults_KubeletConnectionInfo(&in.KubeletClientInfo)
 	SetDefaults_KubernetesMasterConfig(&in.KubernetesMasterConfig)
 	if in.EtcdConfig != nil {
 		SetDefaults_ServingInfo(&in.EtcdConfig.ServingInfo)

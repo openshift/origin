@@ -252,6 +252,11 @@ func SetDefaults_GrantConfig(obj *GrantConfig) {
 		obj.ServiceAccountMethod = "prompt"
 	}
 }
+func SetDefaults_KubeletConnectionInfo(obj *KubeletConnectionInfo) {
+	if len(obj.PreferredAddressTypes) == 0 {
+		obj.PreferredAddressTypes = []string{"Hostname", "InternalIP", "ExternalIP"}
+	}
+}
 
 func addConversionFuncs(scheme *runtime.Scheme) error {
 	return scheme.AddConversionFuncs(
@@ -348,6 +353,7 @@ func addConversionFuncs(scheme *runtime.Scheme) error {
 			out.CA = in.CA
 			out.ClientCert.CertFile = in.CertFile
 			out.ClientCert.KeyFile = in.KeyFile
+			out.PreferredAddressTypes = in.PreferredAddressTypes
 			return nil
 		},
 		func(in *internal.KubeletConnectionInfo, out *KubeletConnectionInfo, s conversion.Scope) error {
@@ -355,6 +361,7 @@ func addConversionFuncs(scheme *runtime.Scheme) error {
 			out.CA = in.CA
 			out.CertFile = in.ClientCert.CertFile
 			out.KeyFile = in.ClientCert.KeyFile
+			out.PreferredAddressTypes = in.PreferredAddressTypes
 			return nil
 		},
 		func(in *MasterVolumeConfig, out *internal.MasterVolumeConfig, s conversion.Scope) error {

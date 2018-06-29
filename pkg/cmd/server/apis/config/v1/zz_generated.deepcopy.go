@@ -790,6 +790,11 @@ func (in *KeystonePasswordIdentityProvider) DeepCopyObject() runtime.Object {
 func (in *KubeletConnectionInfo) DeepCopyInto(out *KubeletConnectionInfo) {
 	*out = *in
 	out.CertInfo = in.CertInfo
+	if in.PreferredAddressTypes != nil {
+		in, out := &in.PreferredAddressTypes, &out.PreferredAddressTypes
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	return
 }
 
@@ -1113,7 +1118,7 @@ func (in *MasterConfig) DeepCopyInto(out *MasterConfig) {
 	in.ControllerConfig.DeepCopyInto(&out.ControllerConfig)
 	out.EtcdStorageConfig = in.EtcdStorageConfig
 	in.EtcdClientInfo.DeepCopyInto(&out.EtcdClientInfo)
-	out.KubeletClientInfo = in.KubeletClientInfo
+	in.KubeletClientInfo.DeepCopyInto(&out.KubeletClientInfo)
 	in.KubernetesMasterConfig.DeepCopyInto(&out.KubernetesMasterConfig)
 	if in.EtcdConfig != nil {
 		in, out := &in.EtcdConfig, &out.EtcdConfig

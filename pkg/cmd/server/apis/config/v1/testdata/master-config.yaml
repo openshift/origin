@@ -90,6 +90,10 @@ kubeletClientInfo:
   certFile: ""
   keyFile: ""
   port: 0
+  preferredAddressTypes:
+  - Hostname
+  - InternalIP
+  - ExternalIP
 kubernetesMasterConfig:
   apiLevels: null
   apiServerArguments: null

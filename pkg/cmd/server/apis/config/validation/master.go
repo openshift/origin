@@ -474,6 +474,16 @@ func ValidateKubeletConnectionInfo(config configapi.KubeletConnectionInfo, fldPa
 	}
 	allErrs = append(allErrs, ValidateCertInfo(config.ClientCert, false, fldPath)...)
 
+	if len(config.PreferredAddressTypes) == 0 {
+		allErrs = append(allErrs, field.Required(fldPath.Child("preferredAddressTypes"), ""))
+	}
+	validAddressTypes := sets.NewString("Hostname", "InternalIP", "ExternalIP", "InternalDNS", "ExternalDNS")
+	for _, preferredAddressType := range config.PreferredAddressTypes {
+		if !validAddressTypes.Has(preferredAddressType) {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("preferredAddressTypes"), preferredAddressType, "not one of "+strings.Join(validAddressTypes.List(), ", ")))
+		}
+	}
+
 	return allErrs
 }
 
