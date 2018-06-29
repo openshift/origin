@@ -55,7 +55,11 @@ func PatchVolumePluginsForLocalQuota(rootdir string, plugins *[]volume.VolumePlu
 	// node and volume config files out of the same configmap
 	volumeConfigFilePath := "/etc/origin/node/volume-config.yaml"
 
-	if _, err := os.Stat(volumeConfigFilePath); os.IsNotExist(err) {
+	stat, err := os.Stat(volumeConfigFilePath)
+	if os.IsNotExist(err) {
+		return nil
+	}
+	if stat.Size() == 0 {
 		return nil
 	}
 
