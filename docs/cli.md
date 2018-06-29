@@ -449,35 +449,35 @@ For example, to edit the service `docker-registry` in JSON using the `v1` API fo
 $ oc edit svc/docker-registry --output-version=v1 -o json
 ```
 
-### oc env
+### oc set env
 
 This updates the environment on a resource with a pod template.
 The general form is:
 
 ```bash
-$ oc env <resource-type>/<name> <k1>=<v1> <k2>=<v2>
+$ oc set env <resource-type>/<name> <k1>=<v1> <k2>=<v2>
 ```
 
 For example:
 
 ```bash
-$ oc env dc/app DB_USER=user DB_PASS=pass
+$ oc set env dc/app DB_USER=user DB_PASS=pass
 ```
 
-### oc volume
+### oc set volume
 
 This controls the storage associated with various resources.
 The general form is:
 
 ```bash
-$ oc volume <resource-type>/<name> --<action> <options>
+$ oc set volume <resource-type>/<name> --<action> <options>
 ```
 
 where *action* is one of `add`, `remove`, `list` and *options* depends on *action*.
 For example, to arrange for the deployment configuration `registry` to access the host *_/opt_* directory, use:
 
 ```bash
-$ oc volume dc/registry --add --mount-path=/opt
+$ oc set volume dc/registry --add --mount-path=/opt
 ```
 
 ### oc label

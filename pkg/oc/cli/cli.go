@@ -211,8 +211,6 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 		"options",
 		"deploy",
 		// These commands are deprecated and should not appear in help
-		moved(fullName, "set env", cmds, set.NewCmdEnv(fullName, f, ioStreams)),
-		moved(fullName, "set volume", cmds, set.NewCmdVolume(fullName, f, ioStreams)),
 		moved(fullName, "logs", cmds, cmd.NewCmdBuildLogs(fullName, f, ioStreams)),
 		moved(fullName, "secrets link", secretcmds, secrets.NewCmdLinkSecret("add", fullName, f, ioStreams)),
 		moved(fullName, "create secret", secretcmds, secrets.NewCmdCreateSecret(secrets.NewSecretRecommendedCommandName, fullName, f, ioStreams)),

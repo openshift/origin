@@ -631,7 +631,7 @@ function os::start::registry() {
 	# For testing purposes, ensure the quota objects are always up to date in the registry by
 	# disabling project cache.
 	oc adm registry --config="${ADMIN_KUBECONFIG}" --images="${USE_IMAGES}" --enforce-quota -o json | \
-		oc env --config="${ADMIN_KUBECONFIG}" -f - --output json "REGISTRY_MIDDLEWARE_REPOSITORY_OPENSHIFT_PROJECTCACHETTL=0" | \
+		oc set env --config="${ADMIN_KUBECONFIG}" --local -f - --output json "REGISTRY_MIDDLEWARE_REPOSITORY_OPENSHIFT_PROJECTCACHETTL=0" | \
 		oc create --config="${ADMIN_KUBECONFIG}" -f -
 }
 readonly -f os::start::registry
