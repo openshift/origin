@@ -24,6 +24,7 @@ package openapi
 
 import (
 	spec "github.com/go-openapi/spec"
+	v1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	resource "k8s.io/apimachinery/pkg/api/resource"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	intstr "k8s.io/apimachinery/pkg/util/intstr"
@@ -182,7 +183,6 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"k8s.io/api/autoscaling/v1.Scale":                                                                   schema_k8sio_api_autoscaling_v1_Scale(ref),
 		"k8s.io/api/autoscaling/v1.ScaleSpec":                                                               schema_k8sio_api_autoscaling_v1_ScaleSpec(ref),
 		"k8s.io/api/autoscaling/v1.ScaleStatus":                                                             schema_k8sio_api_autoscaling_v1_ScaleStatus(ref),
-		"k8s.io/api/autoscaling/v2beta1.ContainerResourcePolicy":                                            schema_k8sio_api_autoscaling_v2beta1_ContainerResourcePolicy(ref),
 		"k8s.io/api/autoscaling/v2beta1.CrossVersionObjectReference":                                        schema_k8sio_api_autoscaling_v2beta1_CrossVersionObjectReference(ref),
 		"k8s.io/api/autoscaling/v2beta1.ExternalMetricSource":                                               schema_k8sio_api_autoscaling_v2beta1_ExternalMetricSource(ref),
 		"k8s.io/api/autoscaling/v2beta1.ExternalMetricStatus":                                               schema_k8sio_api_autoscaling_v2beta1_ExternalMetricStatus(ref),
@@ -195,19 +195,10 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"k8s.io/api/autoscaling/v2beta1.MetricStatus":                                                       schema_k8sio_api_autoscaling_v2beta1_MetricStatus(ref),
 		"k8s.io/api/autoscaling/v2beta1.ObjectMetricSource":                                                 schema_k8sio_api_autoscaling_v2beta1_ObjectMetricSource(ref),
 		"k8s.io/api/autoscaling/v2beta1.ObjectMetricStatus":                                                 schema_k8sio_api_autoscaling_v2beta1_ObjectMetricStatus(ref),
-		"k8s.io/api/autoscaling/v2beta1.PodResourcePolicy":                                                  schema_k8sio_api_autoscaling_v2beta1_PodResourcePolicy(ref),
-		"k8s.io/api/autoscaling/v2beta1.PodUpdatePolicy":                                                    schema_k8sio_api_autoscaling_v2beta1_PodUpdatePolicy(ref),
 		"k8s.io/api/autoscaling/v2beta1.PodsMetricSource":                                                   schema_k8sio_api_autoscaling_v2beta1_PodsMetricSource(ref),
 		"k8s.io/api/autoscaling/v2beta1.PodsMetricStatus":                                                   schema_k8sio_api_autoscaling_v2beta1_PodsMetricStatus(ref),
-		"k8s.io/api/autoscaling/v2beta1.RecommendedContainerResources":                                      schema_k8sio_api_autoscaling_v2beta1_RecommendedContainerResources(ref),
-		"k8s.io/api/autoscaling/v2beta1.RecommendedPodResources":                                            schema_k8sio_api_autoscaling_v2beta1_RecommendedPodResources(ref),
 		"k8s.io/api/autoscaling/v2beta1.ResourceMetricSource":                                               schema_k8sio_api_autoscaling_v2beta1_ResourceMetricSource(ref),
 		"k8s.io/api/autoscaling/v2beta1.ResourceMetricStatus":                                               schema_k8sio_api_autoscaling_v2beta1_ResourceMetricStatus(ref),
-		"k8s.io/api/autoscaling/v2beta1.VerticalPodAutoscaler":                                              schema_k8sio_api_autoscaling_v2beta1_VerticalPodAutoscaler(ref),
-		"k8s.io/api/autoscaling/v2beta1.VerticalPodAutoscalerCondition":                                     schema_k8sio_api_autoscaling_v2beta1_VerticalPodAutoscalerCondition(ref),
-		"k8s.io/api/autoscaling/v2beta1.VerticalPodAutoscalerList":                                          schema_k8sio_api_autoscaling_v2beta1_VerticalPodAutoscalerList(ref),
-		"k8s.io/api/autoscaling/v2beta1.VerticalPodAutoscalerSpec":                                          schema_k8sio_api_autoscaling_v2beta1_VerticalPodAutoscalerSpec(ref),
-		"k8s.io/api/autoscaling/v2beta1.VerticalPodAutoscalerStatus":                                        schema_k8sio_api_autoscaling_v2beta1_VerticalPodAutoscalerStatus(ref),
 		"k8s.io/api/batch/v1.Job":                                                                           schema_k8sio_api_batch_v1_Job(ref),
 		"k8s.io/api/batch/v1.JobCondition":                                                                  schema_k8sio_api_batch_v1_JobCondition(ref),
 		"k8s.io/api/batch/v1.JobList":                                                                       schema_k8sio_api_batch_v1_JobList(ref),
@@ -7663,60 +7654,6 @@ func schema_k8sio_api_autoscaling_v1_ScaleStatus(ref common.ReferenceCallback) c
 	}
 }
 
-func schema_k8sio_api_autoscaling_v2beta1_ContainerResourcePolicy(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "ContainerResourcePolicy controls how autoscaler computes the recommended resources for a specific container.",
-				Properties: map[string]spec.Schema{
-					"containerName": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Name of the container or DefaultContainerResourcePolicy, in which case the policy is used by the containers that don't have their own policy specified.",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"mode": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Whether autoscaler is enabled for the container. The default is \"Auto\".",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"minAllowed": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Specifies the minimal amount of resources that will be recommended for the container. The default is no minimum.",
-							Type:        []string{"object"},
-							AdditionalProperties: &spec.SchemaOrBool{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Ref: ref("k8s.io/apimachinery/pkg/api/resource.Quantity"),
-									},
-								},
-							},
-						},
-					},
-					"maxAllowed": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Specifies the maximum amount of resources that will be recommended for the container. The default is no maximum.",
-							Type:        []string{"object"},
-							AdditionalProperties: &spec.SchemaOrBool{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Ref: ref("k8s.io/apimachinery/pkg/api/resource.Quantity"),
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/api/resource.Quantity"},
-	}
-}
-
 func schema_k8sio_api_autoscaling_v2beta1_CrossVersionObjectReference(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -8251,59 +8188,6 @@ func schema_k8sio_api_autoscaling_v2beta1_ObjectMetricStatus(ref common.Referenc
 	}
 }
 
-func schema_k8sio_api_autoscaling_v2beta1_PodResourcePolicy(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "PodResourcePolicy controls how autoscaler computes the recommended resources for containers belonging to the pod. There can be at most one entry for every named container and optionally a single wildcard entry with `containerName` = '*', which handles all containers that don't have individual policies.",
-				Properties: map[string]spec.Schema{
-					"containerPolicies": {
-						VendorExtensible: spec.VendorExtensible{
-							Extensions: spec.Extensions{
-								"x-kubernetes-patch-merge-key": "containerName",
-								"x-kubernetes-patch-strategy":  "merge",
-							},
-						},
-						SchemaProps: spec.SchemaProps{
-							Description: "Per-container resource policies.",
-							Type:        []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Ref: ref("k8s.io/api/autoscaling/v2beta1.ContainerResourcePolicy"),
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-		Dependencies: []string{
-			"k8s.io/api/autoscaling/v2beta1.ContainerResourcePolicy"},
-	}
-}
-
-func schema_k8sio_api_autoscaling_v2beta1_PodUpdatePolicy(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "PodUpdatePolicy describes the rules on how changes are applied to the pods.",
-				Properties: map[string]spec.Schema{
-					"updateMode": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Controls when autoscaler applies changes to the pod resources. The default is 'Auto'.",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-				},
-			},
-		},
-		Dependencies: []string{},
-	}
-}
-
 func schema_k8sio_api_autoscaling_v2beta1_PodsMetricSource(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -8357,94 +8241,6 @@ func schema_k8sio_api_autoscaling_v2beta1_PodsMetricStatus(ref common.ReferenceC
 		},
 		Dependencies: []string{
 			"k8s.io/apimachinery/pkg/api/resource.Quantity"},
-	}
-}
-
-func schema_k8sio_api_autoscaling_v2beta1_RecommendedContainerResources(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "RecommendedContainerResources is the recommendation of resources computed by autoscaler for a specific container. Respects the container resource policy if present in the spec. In particular the recommendation is not produced for containers with `ContainerScalingMode` set to 'Off'.",
-				Properties: map[string]spec.Schema{
-					"containerName": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Name of the container.",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"target": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Recommended amount of resources.",
-							Type:        []string{"object"},
-							AdditionalProperties: &spec.SchemaOrBool{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Ref: ref("k8s.io/apimachinery/pkg/api/resource.Quantity"),
-									},
-								},
-							},
-						},
-					},
-					"lowerBound": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Minimum recommended amount of resources. This amount is not guaranteed to be sufficient for the application to operate in a stable way, however running with less resources is likely to have significant impact on performance/availability.",
-							Type:        []string{"object"},
-							AdditionalProperties: &spec.SchemaOrBool{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Ref: ref("k8s.io/apimachinery/pkg/api/resource.Quantity"),
-									},
-								},
-							},
-						},
-					},
-					"upperBound": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Maximum recommended amount of resources. Any resources allocated beyond this value are likely wasted. This value may be larger than the maximum amount of application is actually capable of consuming.",
-							Type:        []string{"object"},
-							AdditionalProperties: &spec.SchemaOrBool{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Ref: ref("k8s.io/apimachinery/pkg/api/resource.Quantity"),
-									},
-								},
-							},
-						},
-					},
-				},
-				Required: []string{"target"},
-			},
-		},
-		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/api/resource.Quantity"},
-	}
-}
-
-func schema_k8sio_api_autoscaling_v2beta1_RecommendedPodResources(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "RecommendedPodResources is the recommendation of resources computed by autoscaler. It contains a recommendation for each container in the pod (except for those with `ContainerScalingMode` set to 'Off').",
-				Properties: map[string]spec.Schema{
-					"containerRecommendations": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Resources recommended by the autoscaler for each container.",
-							Type:        []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Ref: ref("k8s.io/api/autoscaling/v2beta1.RecommendedContainerResources"),
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-		Dependencies: []string{
-			"k8s.io/api/autoscaling/v2beta1.RecommendedContainerResources"},
 	}
 }
 
@@ -8515,222 +8311,6 @@ func schema_k8sio_api_autoscaling_v2beta1_ResourceMetricStatus(ref common.Refere
 		},
 		Dependencies: []string{
 			"k8s.io/apimachinery/pkg/api/resource.Quantity"},
-	}
-}
-
-func schema_k8sio_api_autoscaling_v2beta1_VerticalPodAutoscaler(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "VerticalPodAutoscaler is the configuration for a vertical pod autoscaler, which automatically manages pod resources based on historical and real time resource utilization.",
-				Properties: map[string]spec.Schema{
-					"kind": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"apiVersion": {
-						SchemaProps: spec.SchemaProps{
-							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"metadata": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Standard object metadata. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata",
-							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
-						},
-					},
-					"spec": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Specification of the behavior of the autoscaler. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#spec-and-status.",
-							Ref:         ref("k8s.io/api/autoscaling/v2beta1.VerticalPodAutoscalerSpec"),
-						},
-					},
-					"status": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Current information about the autoscaler.",
-							Ref:         ref("k8s.io/api/autoscaling/v2beta1.VerticalPodAutoscalerStatus"),
-						},
-					},
-				},
-				Required: []string{"spec"},
-			},
-		},
-		Dependencies: []string{
-			"k8s.io/api/autoscaling/v2beta1.VerticalPodAutoscalerSpec", "k8s.io/api/autoscaling/v2beta1.VerticalPodAutoscalerStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
-	}
-}
-
-func schema_k8sio_api_autoscaling_v2beta1_VerticalPodAutoscalerCondition(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "VerticalPodAutoscalerCondition describes the state of a VerticalPodAutoscaler at a certain point.",
-				Properties: map[string]spec.Schema{
-					"type": {
-						SchemaProps: spec.SchemaProps{
-							Description: "type describes the current condition",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"status": {
-						SchemaProps: spec.SchemaProps{
-							Description: "status is the status of the condition (True, False, Unknown)",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"lastTransitionTime": {
-						SchemaProps: spec.SchemaProps{
-							Description: "lastTransitionTime is the last time the condition transitioned from one status to another",
-							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
-						},
-					},
-					"reason": {
-						SchemaProps: spec.SchemaProps{
-							Description: "reason is the reason for the condition's last transition.",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"message": {
-						SchemaProps: spec.SchemaProps{
-							Description: "message is a human-readable explanation containing details about the transition",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-				},
-				Required: []string{"type", "status"},
-			},
-		},
-		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/apis/meta/v1.Time"},
-	}
-}
-
-func schema_k8sio_api_autoscaling_v2beta1_VerticalPodAutoscalerList(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "VerticalPodAutoscalerList is a list of VerticalPodAutoscaler objects.",
-				Properties: map[string]spec.Schema{
-					"kind": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"apiVersion": {
-						SchemaProps: spec.SchemaProps{
-							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"metadata": {
-						SchemaProps: spec.SchemaProps{
-							Description: "metadata is the standard list metadata.",
-							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"),
-						},
-					},
-					"items": {
-						SchemaProps: spec.SchemaProps{
-							Description: "items is the list of vertical pod autoscaler objects.",
-							Type:        []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Ref: ref("k8s.io/api/autoscaling/v2beta1.VerticalPodAutoscaler"),
-									},
-								},
-							},
-						},
-					},
-				},
-				Required: []string{"items"},
-			},
-		},
-		Dependencies: []string{
-			"k8s.io/api/autoscaling/v2beta1.VerticalPodAutoscaler", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
-	}
-}
-
-func schema_k8sio_api_autoscaling_v2beta1_VerticalPodAutoscalerSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "VerticalPodAutoscalerSpec is the specification of the behavior of the autoscaler.",
-				Properties: map[string]spec.Schema{
-					"selector": {
-						SchemaProps: spec.SchemaProps{
-							Description: "A label query that determines the set of pods controlled by the Autoscaler. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors",
-							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector"),
-						},
-					},
-					"updatePolicy": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Describes the rules on how changes are applied to the pods. If not specified, all fields in the `PodUpdatePolicy` are set to their default values.",
-							Ref:         ref("k8s.io/api/autoscaling/v2beta1.PodUpdatePolicy"),
-						},
-					},
-					"resourcePolicy": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Controls how the autoscaler computes recommended resources. The resource policy may be used to set constraints on the recommendations for individual containers. If not specified, the autoscaler computes recommended resources for all containers in the pod, without additional constraints.",
-							Ref:         ref("k8s.io/api/autoscaling/v2beta1.PodResourcePolicy"),
-						},
-					},
-				},
-				Required: []string{"selector"},
-			},
-		},
-		Dependencies: []string{
-			"k8s.io/api/autoscaling/v2beta1.PodResourcePolicy", "k8s.io/api/autoscaling/v2beta1.PodUpdatePolicy", "k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector"},
-	}
-}
-
-func schema_k8sio_api_autoscaling_v2beta1_VerticalPodAutoscalerStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "VerticalPodAutoscalerStatus describes the runtime state of the autoscaler.",
-				Properties: map[string]spec.Schema{
-					"recommendation": {
-						SchemaProps: spec.SchemaProps{
-							Description: "The most recently computed amount of resources recommended by the autoscaler for the controlled pods.",
-							Ref:         ref("k8s.io/api/autoscaling/v2beta1.RecommendedPodResources"),
-						},
-					},
-					"conditions": {
-						VendorExtensible: spec.VendorExtensible{
-							Extensions: spec.Extensions{
-								"x-kubernetes-patch-merge-key": "type",
-								"x-kubernetes-patch-strategy":  "merge",
-							},
-						},
-						SchemaProps: spec.SchemaProps{
-							Description: "Conditions is the set of conditions required for this autoscaler to scale its target, and indicates whether or not those conditions are met.",
-							Type:        []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Ref: ref("k8s.io/api/autoscaling/v2beta1.VerticalPodAutoscalerCondition"),
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-		Dependencies: []string{
-			"k8s.io/api/autoscaling/v2beta1.RecommendedPodResources", "k8s.io/api/autoscaling/v2beta1.VerticalPodAutoscalerCondition"},
 	}
 }
 
@@ -26743,18 +26323,10 @@ func schema_pkg_apis_apiextensions_v1beta1_JSON(ref common.ReferenceCallback) co
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
 				Description: "JSON represents any valid JSON value. These types are supported: bool, int64, float64, string, []interface{}, map[string]interface{} and nil.",
-				Properties: map[string]spec.Schema{
-					"Raw": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"string"},
-							Format: "byte",
-						},
-					},
-				},
-				Required: []string{"Raw"},
+				Type:        v1beta1.JSON{}.OpenAPISchemaType(),
+				Format:      v1beta1.JSON{}.OpenAPISchemaFormat(),
 			},
 		},
-		Dependencies: []string{},
 	}
 }
 
@@ -27041,30 +26613,10 @@ func schema_pkg_apis_apiextensions_v1beta1_JSONSchemaPropsOrArray(ref common.Ref
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
 				Description: "JSONSchemaPropsOrArray represents a value that can either be a JSONSchemaProps or an array of JSONSchemaProps. Mainly here for serialization purposes.",
-				Properties: map[string]spec.Schema{
-					"Schema": {
-						SchemaProps: spec.SchemaProps{
-							Ref: ref("k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1.JSONSchemaProps"),
-						},
-					},
-					"JSONSchemas": {
-						SchemaProps: spec.SchemaProps{
-							Type: []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Ref: ref("k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1.JSONSchemaProps"),
-									},
-								},
-							},
-						},
-					},
-				},
-				Required: []string{"Schema", "JSONSchemas"},
+				Type:        v1beta1.JSONSchemaPropsOrArray{}.OpenAPISchemaType(),
+				Format:      v1beta1.JSONSchemaPropsOrArray{}.OpenAPISchemaFormat(),
 			},
 		},
-		Dependencies: []string{
-			"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1.JSONSchemaProps"},
 	}
 }
 
@@ -27073,24 +26625,10 @@ func schema_pkg_apis_apiextensions_v1beta1_JSONSchemaPropsOrBool(ref common.Refe
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
 				Description: "JSONSchemaPropsOrBool represents JSONSchemaProps or a boolean value. Defaults to true for the boolean property.",
-				Properties: map[string]spec.Schema{
-					"Allows": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"boolean"},
-							Format: "",
-						},
-					},
-					"Schema": {
-						SchemaProps: spec.SchemaProps{
-							Ref: ref("k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1.JSONSchemaProps"),
-						},
-					},
-				},
-				Required: []string{"Allows", "Schema"},
+				Type:        v1beta1.JSONSchemaPropsOrBool{}.OpenAPISchemaType(),
+				Format:      v1beta1.JSONSchemaPropsOrBool{}.OpenAPISchemaFormat(),
 			},
 		},
-		Dependencies: []string{
-			"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1.JSONSchemaProps"},
 	}
 }
 
@@ -27099,31 +26637,10 @@ func schema_pkg_apis_apiextensions_v1beta1_JSONSchemaPropsOrStringArray(ref comm
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
 				Description: "JSONSchemaPropsOrStringArray represents a JSONSchemaProps or a string array.",
-				Properties: map[string]spec.Schema{
-					"Schema": {
-						SchemaProps: spec.SchemaProps{
-							Ref: ref("k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1.JSONSchemaProps"),
-						},
-					},
-					"Property": {
-						SchemaProps: spec.SchemaProps{
-							Type: []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Type:   []string{"string"},
-										Format: "",
-									},
-								},
-							},
-						},
-					},
-				},
-				Required: []string{"Schema", "Property"},
+				Type:        v1beta1.JSONSchemaPropsOrStringArray{}.OpenAPISchemaType(),
+				Format:      v1beta1.JSONSchemaPropsOrStringArray{}.OpenAPISchemaFormat(),
 			},
 		},
-		Dependencies: []string{
-			"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1.JSONSchemaProps"},
 	}
 }
 
@@ -27131,8 +26648,9 @@ func schema_apimachinery_pkg_api_resource_Quantity(ref common.ReferenceCallback)
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Type:   resource.Quantity{}.OpenAPISchemaType(),
-				Format: resource.Quantity{}.OpenAPISchemaFormat(),
+				Description: "Quantity is a fixed-point representation of a number. It provides convenient marshaling/unmarshaling in JSON and YAML, in addition to String() and Int64() accessors.\n\nThe serialization format is:\n\n<quantity>        ::= <signedNumber><suffix>\n  (Note that <suffix> may be empty, from the \"\" case in <decimalSI>.)\n<digit>           ::= 0 | 1 | ... | 9 <digits>          ::= <digit> | <digit><digits> <number>          ::= <digits> | <digits>.<digits> | <digits>. | .<digits> <sign>            ::= \"+\" | \"-\" <signedNumber>    ::= <number> | <sign><number> <suffix>          ::= <binarySI> | <decimalExponent> | <decimalSI> <binarySI>        ::= Ki | Mi | Gi | Ti | Pi | Ei\n  (International System of units; See: http://physics.nist.gov/cuu/Units/binary.html)\n<decimalSI>       ::= m | \"\" | k | M | G | T | P | E\n  (Note that 1024 = 1Ki but 1000 = 1k; I didn't choose the capitalization.)\n<decimalExponent> ::= \"e\" <signedNumber> | \"E\" <signedNumber>\n\nNo matter which of the three exponent forms is used, no quantity may represent a number greater than 2^63-1 in magnitude, nor may it have more than 3 decimal places. Numbers larger or more precise will be capped or rounded up. (E.g.: 0.1m will rounded up to 1m.) This may be extended in the future if we require larger or smaller quantities.\n\nWhen a Quantity is parsed from a string, it will remember the type of suffix it had, and will use the same type again when it is serialized.\n\nBefore serializing, Quantity will be put in \"canonical form\". This means that Exponent/suffix will be adjusted up or down (with a corresponding increase or decrease in Mantissa) such that:\n  a. No precision is lost\n  b. No fractional digits will be emitted\n  c. The exponent (or suffix) is as large as possible.\nThe sign will be omitted unless the number is negative.\n\nExamples:\n  1.5 will be serialized as \"1500m\"\n  1.5Gi will be serialized as \"1536Mi\"\n\nNOTE: We reserve the right to amend this canonical format, perhaps to\n  allow 1.5 to be canonical.\n  or after March 2015.\n\nNote that the quantity will NEVER be internally represented by a floating point number. That is the whole point of this exercise.\n\nNon-canonical values will still parse as long as they are well formed, but will be re-emitted in their canonical form. (So always use canonical form, or don't diff.)\n\nThis format is intended to make it difficult to use these numbers without writing some sort of special handling code in the hopes that that will cause implementors to also use a fixed point implementation.",
+				Type:        resource.Quantity{}.OpenAPISchemaType(),
+				Format:      resource.Quantity{}.OpenAPISchemaFormat(),
 			},
 		},
 	}
@@ -28151,8 +27669,9 @@ func schema_pkg_apis_meta_v1_MicroTime(ref common.ReferenceCallback) common.Open
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Type:   v1.MicroTime{}.OpenAPISchemaType(),
-				Format: v1.MicroTime{}.OpenAPISchemaFormat(),
+				Description: "MicroTime is version of Time with microsecond level precision.",
+				Type:        v1.MicroTime{}.OpenAPISchemaType(),
+				Format:      v1.MicroTime{}.OpenAPISchemaFormat(),
 			},
 		},
 	}
@@ -28631,8 +28150,9 @@ func schema_pkg_apis_meta_v1_Time(ref common.ReferenceCallback) common.OpenAPIDe
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Type:   v1.Time{}.OpenAPISchemaType(),
-				Format: v1.Time{}.OpenAPISchemaFormat(),
+				Description: "Time is a wrapper around time.Time which supports correct marshaling to YAML and JSON.  Wrappers are provided for many of the factory methods that the time package offers.",
+				Type:        v1.Time{}.OpenAPISchemaType(),
+				Format:      v1.Time{}.OpenAPISchemaFormat(),
 			},
 		},
 	}
@@ -29127,8 +28647,9 @@ func schema_apimachinery_pkg_util_intstr_IntOrString(ref common.ReferenceCallbac
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Type:   intstr.IntOrString{}.OpenAPISchemaType(),
-				Format: intstr.IntOrString{}.OpenAPISchemaFormat(),
+				Description: "IntOrString is a type that can hold an int32 or a string.  When used in JSON or YAML marshalling and unmarshalling, it produces or consumes the inner type.  This allows you to have, for example, a JSON field that can accept a name or number.",
+				Type:        intstr.IntOrString{}.OpenAPISchemaType(),
+				Format:      intstr.IntOrString{}.OpenAPISchemaFormat(),
 			},
 		},
 	}
@@ -31725,13 +31246,6 @@ func schema_pkg_apis_componentconfig_v1alpha1_KubeCloudSharedConfiguration(ref c
 							Format:      "",
 						},
 					},
-					"serviceAccountKeyFile": {
-						SchemaProps: spec.SchemaProps{
-							Description: "serviceAccountKeyFile is the filename containing a PEM-encoded private RSA key used to sign service account tokens.",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
 					"nodeSyncPeriod": {
 						SchemaProps: spec.SchemaProps{
 							Description: "nodeSyncPeriod is the period for syncing nodes from cloudprovider. Longer periods will result in fewer calls to cloud provider, but may delay addition of new nodes to cluster.",
@@ -31739,7 +31253,7 @@ func schema_pkg_apis_componentconfig_v1alpha1_KubeCloudSharedConfiguration(ref c
 						},
 					},
 				},
-				Required: []string{"port", "address", "useServiceAccountCredentials", "allowUntaggedCloud", "routeReconciliationPeriod", "nodeMonitorPeriod", "clusterName", "clusterCIDR", "allocateNodeCIDRs", "cIDRAllocatorType", "configureCloudRoutes", "serviceAccountKeyFile", "nodeSyncPeriod"},
+				Required: []string{"port", "address", "useServiceAccountCredentials", "allowUntaggedCloud", "routeReconciliationPeriod", "nodeMonitorPeriod", "clusterName", "clusterCIDR", "allocateNodeCIDRs", "cIDRAllocatorType", "configureCloudRoutes", "nodeSyncPeriod"},
 			},
 		},
 		Dependencies: []string{
@@ -32445,6 +31959,13 @@ func schema_pkg_apis_componentconfig_v1alpha1_SAControllerConfiguration(ref comm
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
 				Properties: map[string]spec.Schema{
+					"serviceAccountKeyFile": {
+						SchemaProps: spec.SchemaProps{
+							Description: "serviceAccountKeyFile is the filename containing a PEM-encoded private RSA key used to sign service account tokens.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 					"concurrentSATokenSyncs": {
 						SchemaProps: spec.SchemaProps{
 							Description: "concurrentSATokenSyncs is the number of service account token syncing operations that will be done concurrently.",
@@ -32460,7 +31981,7 @@ func schema_pkg_apis_componentconfig_v1alpha1_SAControllerConfiguration(ref comm
 						},
 					},
 				},
-				Required: []string{"concurrentSATokenSyncs", "rootCAFile"},
+				Required: []string{"serviceAccountKeyFile", "concurrentSATokenSyncs", "rootCAFile"},
 			},
 		},
 		Dependencies: []string{},
@@ -33769,7 +33290,7 @@ func schema_proxy_apis_kubeproxyconfig_v1alpha1_KubeProxyIPVSConfiguration(ref c
 							Format:      "",
 						},
 					},
-					"ExcludeCIDRs": {
+					"excludeCIDRs": {
 						SchemaProps: spec.SchemaProps{
 							Description: "excludeCIDRs is a list of CIDR's which the ipvs proxier should not touch when cleaning up ipvs services.",
 							Type:        []string{"array"},
@@ -33784,7 +33305,7 @@ func schema_proxy_apis_kubeproxyconfig_v1alpha1_KubeProxyIPVSConfiguration(ref c
 						},
 					},
 				},
-				Required: []string{"syncPeriod", "minSyncPeriod", "scheduler", "ExcludeCIDRs"},
+				Required: []string{"syncPeriod", "minSyncPeriod", "scheduler", "excludeCIDRs"},
 			},
 		},
 		Dependencies: []string{

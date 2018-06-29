@@ -1,5 +1,5 @@
-hash: b83a936fc81f16f06f7a2d3e381b77f43d04daa5d4c949948fa787975260ed12
-updated: 2018-06-14T11:13:15.340444591-04:00
+hash: ca8155b81239ffcea6c3b74403d70b300754153c039a29ac4034073cb79a5e91
+updated: 2018-06-29T14:49:46.811073304-04:00
 imports:
 - name: github.com/davecgh/go-spew
   version: 782f4967f2dc4564575ca782fe2d04090b5faca8
@@ -21,7 +21,7 @@ imports:
 - name: github.com/google/gofuzz
   version: 44d81051d367757e1c7c6a5a86423ece9afcf63c
 - name: github.com/json-iterator/go
-  version: 2ddf6d758266fcb080a4f9e054b9f292c85e6798
+  version: f2b4162afba35581b6d4a50d3b8f34e33c144682
 - name: github.com/modern-go/concurrent
   version: bacd9c7ef1dd9b15be4a9909b8ac7a4e313eec94
 - name: github.com/modern-go/reflect2
@@ -47,14 +47,14 @@ imports:
 - name: gopkg.in/yaml.v2
   version: 670d4cfef0544295bc27a114dbac37980d83185a
 - name: k8s.io/api
-  version: 8c14244ab7eeffb1e4acd1ac1afb315b30fe67bf
+  version: 072894a440bdee3a891dea811fe42902311cd2a3
   subpackages:
   - apps/v1beta1
   - core/v1
   - extensions/v1beta1
   - rbac/v1
 - name: k8s.io/apimachinery
-  version: 1369ad3fdc6dcb2c933d7e570b349d71bd3052cf
+  version: 103fd098999dc9c0c88536f5c9ad2e5da39373ae
   subpackages:
   - pkg/api/equality
   - pkg/api/meta
@@ -94,7 +94,7 @@ imports:
   - pkg/watch
   - third_party/forked/golang/reflect
 - name: k8s.io/code-generator
-  version: a8dc310c260365c47d38b035b24454e623ed72cf
+  version: d7806fb979faad89dabf9e6a46aa18355962700c
   repo: git@github.com:openshift/kubernetes-code-generator
 - name: k8s.io/gengo
   version: 01a732e01d00cb9a81bb0ca050d3e6d2b947927b

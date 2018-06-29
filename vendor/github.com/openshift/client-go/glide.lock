@@ -1,5 +1,5 @@
-hash: e8a0b9979f43dd20824a60f16053e211bb34db11fe4d114c79a35530bfbf498c
-updated: 2018-06-14T15:23:25.476553622-04:00
+hash: 91748cede774246187f6a8627e0a335015261f8e28708731a279c6ce205d9254
+updated: 2018-06-29T15:11:35.519708105-04:00
 imports:
 - name: github.com/davecgh/go-spew
   version: 782f4967f2dc4564575ca782fe2d04090b5faca8
@@ -43,13 +43,13 @@ imports:
 - name: github.com/imdario/mergo
   version: 6633656539c1639d9d78127b7d47c622b5d7b6dc
 - name: github.com/json-iterator/go
-  version: 2ddf6d758266fcb080a4f9e054b9f292c85e6798
+  version: f2b4162afba35581b6d4a50d3b8f34e33c144682
 - name: github.com/modern-go/concurrent
   version: bacd9c7ef1dd9b15be4a9909b8ac7a4e313eec94
 - name: github.com/modern-go/reflect2
   version: 05fbef0ca5da472bbf96c9322b84a53edc03c9fd
 - name: github.com/openshift/api
-  version: ff4ab5976ba41da2911ecbc07c84312e0959ac92
+  version: 31a7bbd2266d178da3c12bb83f5274d387f775e6
   subpackages:
   - apps/v1
   - authorization/v1
@@ -111,7 +111,7 @@ imports:
 - name: gopkg.in/yaml.v2
   version: 670d4cfef0544295bc27a114dbac37980d83185a
 - name: k8s.io/api
-  version: 8c14244ab7eeffb1e4acd1ac1afb315b30fe67bf
+  version: 072894a440bdee3a891dea811fe42902311cd2a3
   subpackages:
   - admissionregistration/v1alpha1
   - admissionregistration/v1beta1
@@ -143,7 +143,7 @@ imports:
   - storage/v1alpha1
   - storage/v1beta1
 - name: k8s.io/apimachinery
-  version: 1369ad3fdc6dcb2c933d7e570b349d71bd3052cf
+  version: 103fd098999dc9c0c88536f5c9ad2e5da39373ae
   subpackages:
   - pkg/api/errors
   - pkg/api/meta
@@ -187,7 +187,7 @@ imports:
   - third_party/forked/golang/json
   - third_party/forked/golang/reflect
 - name: k8s.io/client-go
-  version: 74dcea03361412e1f631eaf6d4d4a71d4066b934
+  version: 7d04d0e2a0a1a4d4a1cd6baa432a2301492e4e65
   subpackages:
   - discovery
   - discovery/fake
@@ -217,13 +217,13 @@ imports:
   - util/integer
   - util/retry
 - name: k8s.io/code-generator
-  version: cdf4bddefab5a1b50f00eb6973f5b6e0a8b015bd
+  version: d7806fb979faad89dabf9e6a46aa18355962700c
   repo: git@github.com:openshift/kubernetes-code-generator
 - name: k8s.io/gengo
   version: 01a732e01d00cb9a81bb0ca050d3e6d2b947927b
   repo: git@github.com:openshift/kubernetes-gengo
 - name: k8s.io/kube-openapi
-  version: 8a9b82f00b3a86eac24681da3f9fe6c34c01cea2
+  version: 91cfa479c814065e420cee7ed227db0f63a5854e
   subpackages:
   - pkg/util/proto
 testImports: []

@@ -21,9 +21,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/ugorji/go/codec"
-
-	serializerjson "k8s.io/apimachinery/pkg/runtime/serializer/json"
+	k8s_json "k8s.io/apimachinery/pkg/runtime/serializer/json"
 )
 
 func TestVerbsUgorjiMarshalJSON(t *testing.T) {
@@ -47,7 +45,7 @@ func TestVerbsUgorjiMarshalJSON(t *testing.T) {
 	}
 }
 
-func TestVerbsUgorjiUnmarshalJSON(t *testing.T) {
+func TestVerbsUJsonIterUnmarshalJSON(t *testing.T) {
 	cases := []struct {
 		input  string
 		result APIResource
@@ -58,10 +56,10 @@ func TestVerbsUgorjiUnmarshalJSON(t *testing.T) {
 		{`{"verbs":["delete"]}`, APIResource{Verbs: Verbs([]string{"delete"})}},
 	}
 
+	iter := k8s_json.CaseSensitiveJsonIterator()
 	for i, c := range cases {
 		var result APIResource
-		// if err := jsoniter.ConfigCompatibleWithStandardLibrary.Unmarshal([]byte(c.input), &result); err != nil {
-		if err := codec.NewDecoderBytes([]byte(c.input), serializerjson.NewUgorjiHandler()).Decode(&result); err != nil {
+		if err := iter.Unmarshal([]byte(c.input), &result); err != nil {
 			t.Errorf("[%d] Failed to unmarshal input '%v': %v", i, c.input, err)
 		}
 		if !reflect.DeepEqual(result, c.result) {

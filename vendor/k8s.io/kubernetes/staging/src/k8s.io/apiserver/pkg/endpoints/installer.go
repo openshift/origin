@@ -448,7 +448,6 @@ func (a *APIInstaller) registerResourceHandlers(path string, storage rest.Storag
 		// TODO: more strongly type whether a resource allows these actions on "all namespaces" (bulk delete)
 		if !isSubresource {
 			actions = appendIf(actions, action{"LIST", resource, params, namer, true}, isLister)
-			actions = appendIf(actions, action{"POST", resource, params, namer, true}, isCreater)
 			actions = appendIf(actions, action{"WATCHLIST", "watch/" + resource, params, namer, true}, allowWatchList)
 		}
 		break

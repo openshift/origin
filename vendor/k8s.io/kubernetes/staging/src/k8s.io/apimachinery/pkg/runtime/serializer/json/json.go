@@ -19,9 +19,11 @@ package json
 import (
 	"encoding/json"
 	"io"
+	"strconv"
+	"unsafe"
 
 	"github.com/ghodss/yaml"
-	"github.com/ugorji/go/codec"
+	jsoniter "github.com/json-iterator/go"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -29,12 +31,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/framer"
 	utilyaml "k8s.io/apimachinery/pkg/util/yaml"
 )
-
-func NewUgorjiHandler() *codec.JsonHandle {
-	codecOptions := &codec.JsonHandle{}
-	codecOptions.SignedInteger = true
-	return codecOptions
-}
 
 // NewSerializer creates a JSON serializer that handles encoding versioned objects into the proper JSON form. If typer
 // is not nil, the object has the group, version, and kind fields set.
@@ -71,6 +67,45 @@ type Serializer struct {
 // Serializer implements Serializer
 var _ runtime.Serializer = &Serializer{}
 var _ recognizer.RecognizingDecoder = &Serializer{}
+
+func init() {
+	// Force jsoniter to decode number to interface{} via ints, if possible.
+	decodeNumberAsInt64IfPossible := func(ptr unsafe.Pointer, iter *jsoniter.Iterator) {
+		switch iter.WhatIsNext() {
+		case jsoniter.NumberValue:
+			var number json.Number
+			iter.ReadVal(&number)
+			i64, err := strconv.ParseInt(string(number), 10, 64)
+			if err == nil {
+				*(*interface{})(ptr) = i64
+				return
+			}
+			f64, err := strconv.ParseFloat(string(number), 64)
+			if err == nil {
+				*(*interface{})(ptr) = f64
+				return
+			}
+			// Not much we can do here.
+		default:
+			*(*interface{})(ptr) = iter.Read()
+		}
+	}
+	jsoniter.RegisterTypeDecoderFunc("interface {}", decodeNumberAsInt64IfPossible)
+}
+
+// CaseSensitiveJsonIterator returns a jsoniterator API that's configured to be
+// case-sensitive when unmarshalling, and otherwise compatible with
+// the encoding/json standard library.
+func CaseSensitiveJsonIterator() jsoniter.API {
+	return jsoniter.Config{
+		EscapeHTML:             true,
+		SortMapKeys:            true,
+		ValidateJsonRawMessage: true,
+		CaseSensitive:          true,
+	}.Froze()
+}
+
+var caseSensitiveJsonIterator = CaseSensitiveJsonIterator()
 
 // gvkWithDefaults returns group kind and version defaulting from provided default
 func gvkWithDefaults(actual, defaultGVK schema.GroupVersionKind) schema.GroupVersionKind {
@@ -136,8 +171,7 @@ func (s *Serializer) Decode(originalData []byte, gvk *schema.GroupVersionKind, i
 		types, _, err := s.typer.ObjectKinds(into)
 		switch {
 		case runtime.IsNotRegisteredError(err), isUnstructured:
-			// if err := jsoniter.ConfigCompatibleWithStandardLibrary.Unmarshal(data, into); err != nil {
-			if err := codec.NewDecoderBytes(data, NewUgorjiHandler()).Decode(into); err != nil {
+			if err := caseSensitiveJsonIterator.Unmarshal(data, into); err != nil {
 				return nil, actual, err
 			}
 			return into, actual, nil
@@ -161,8 +195,7 @@ func (s *Serializer) Decode(originalData []byte, gvk *schema.GroupVersionKind, i
 		return nil, actual, err
 	}
 
-	// if err := jsoniter.ConfigCompatibleWithStandardLibrary.Unmarshal(data, obj); err != nil {
-	if err := codec.NewDecoderBytes(data, NewUgorjiHandler()).Decode(obj); err != nil {
+	if err := caseSensitiveJsonIterator.Unmarshal(data, obj); err != nil {
 		return nil, actual, err
 	}
 	return obj, actual, nil
@@ -171,8 +204,7 @@ func (s *Serializer) Decode(originalData []byte, gvk *schema.GroupVersionKind, i
 // Encode serializes the provided object to the given writer.
 func (s *Serializer) Encode(obj runtime.Object, w io.Writer) error {
 	if s.yaml {
-		// json, err := jsoniter.ConfigCompatibleWithStandardLibrary.Marshal(obj)
-		json, err := json.Marshal(obj)
+		json, err := caseSensitiveJsonIterator.Marshal(obj)
 		if err != nil {
 			return err
 		}
@@ -185,8 +217,7 @@ func (s *Serializer) Encode(obj runtime.Object, w io.Writer) error {
 	}
 
 	if s.pretty {
-		// data, err := jsoniter.ConfigCompatibleWithStandardLibrary.MarshalIndent(obj, "", "  ")
-		data, err := json.MarshalIndent(obj, "", "  ")
+		data, err := caseSensitiveJsonIterator.MarshalIndent(obj, "", "  ")
 		if err != nil {
 			return err
 		}

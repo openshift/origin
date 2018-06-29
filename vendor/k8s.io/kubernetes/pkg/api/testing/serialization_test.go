@@ -19,12 +19,13 @@ package testing
 import (
 	"bytes"
 	"encoding/hex"
+	"encoding/json"
 	"io/ioutil"
 	"math/rand"
 	"reflect"
 	"testing"
 
-	"github.com/ugorji/go/codec"
+	jsoniter "github.com/json-iterator/go"
 
 	"k8s.io/api/core/v1"
 	"k8s.io/api/extensions/v1beta1"
@@ -36,10 +37,9 @@ import (
 	"k8s.io/apimachinery/pkg/conversion"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	serializerjson "k8s.io/apimachinery/pkg/runtime/serializer/json"
+	k8s_json "k8s.io/apimachinery/pkg/runtime/serializer/json"
 	"k8s.io/apimachinery/pkg/runtime/serializer/streaming"
 	"k8s.io/apimachinery/pkg/util/diff"
-	"k8s.io/apimachinery/pkg/util/json"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
@@ -551,13 +551,38 @@ func BenchmarkDecodeIntoJSONCodecGenConfigFast(b *testing.B) {
 		encoded[i] = data
 	}
 
-	handler := serializerjson.NewUgorjiHandler()
-
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		obj := v1.Pod{}
-		// if err := jsoniter.ConfigFastest.Unmarshal(encoded[i%width], &obj); err != nil {
-		if err := codec.NewDecoderBytes(encoded[i%width], handler).Decode(&obj); err != nil {
+		if err := jsoniter.ConfigFastest.Unmarshal(encoded[i%width], &obj); err != nil {
+			b.Fatal(err)
+		}
+	}
+	b.StopTimer()
+}
+
+// BenchmarkDecodeIntoJSONCodecGenConfigCompatibleWithStandardLibrary provides a
+// baseline for JSON decode performance with
+// jsoniter.ConfigCompatibleWithStandardLibrary, but with case sensitivity set
+// to true
+func BenchmarkDecodeIntoJSONCodecGenConfigCompatibleWithStandardLibrary(b *testing.B) {
+	kcodec := testapi.Default.Codec()
+	items := benchmarkItems(b)
+	width := len(items)
+	encoded := make([][]byte, width)
+	for i := range items {
+		data, err := runtime.Encode(kcodec, &items[i])
+		if err != nil {
+			b.Fatal(err)
+		}
+		encoded[i] = data
+	}
+
+	b.ResetTimer()
+	iter := k8s_json.CaseSensitiveJsonIterator()
+	for i := 0; i < b.N; i++ {
+		obj := v1.Pod{}
+		if err := iter.Unmarshal(encoded[i%width], &obj); err != nil {
 			b.Fatal(err)
 		}
 	}

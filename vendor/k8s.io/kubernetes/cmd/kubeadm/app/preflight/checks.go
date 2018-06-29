@@ -19,6 +19,8 @@ package preflight
 import (
 	"bufio"
 	"bytes"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -26,20 +28,16 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"time"
 
-	"crypto/tls"
-	"crypto/x509"
-
 	"github.com/PuerkitoBio/purell"
 	"github.com/blang/semver"
 	"github.com/golang/glog"
-
-	"net/url"
 
 	netutil "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -47,7 +45,6 @@ import (
 	kubeadmdefaults "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1alpha1"
 	kubeadmconstants "k8s.io/kubernetes/cmd/kubeadm/app/constants"
 	"k8s.io/kubernetes/cmd/kubeadm/app/images"
-	"k8s.io/kubernetes/pkg/apis/core/validation"
 	"k8s.io/kubernetes/pkg/registry/core/service/ipallocator"
 	"k8s.io/kubernetes/pkg/util/initsystem"
 	ipvsutil "k8s.io/kubernetes/pkg/util/ipvs"
@@ -411,12 +408,9 @@ func (HostnameCheck) Name() string {
 
 // Check validates if hostname match dns sub domain regex.
 func (hc HostnameCheck) Check() (warnings, errors []error) {
-	glog.V(1).Infof("validating if hostname match dns sub domain")
+	glog.V(1).Infof("checking whether the given node name is reachable using net.LookupHost")
 	errors = []error{}
 	warnings = []error{}
-	for _, msg := range validation.ValidateNodeName(hc.nodeName, false) {
-		errors = append(errors, fmt.Errorf("hostname \"%s\" %s", hc.nodeName, msg))
-	}
 	addr, err := net.LookupHost(hc.nodeName)
 	if addr == nil {
 		warnings = append(warnings, fmt.Errorf("hostname \"%s\" could not be reached", hc.nodeName))
@@ -843,6 +837,7 @@ func (ImagePullCheck) Name() string {
 // Check pulls images required by kubeadm. This is a mutating check
 func (i ImagePullCheck) Check() (warnings, errors []error) {
 	for _, image := range i.ImageList {
+		glog.V(1).Infoln("pulling ", image)
 		if err := i.Images.Exists(image); err == nil {
 			continue
 		}
@@ -975,6 +970,7 @@ func addCommonChecks(execer utilsexec.Interface, cfg kubeadmapi.CommonConfigurat
 			FileContentCheck{Path: bridgenf, Content: []byte{'1'}},
 			FileContentCheck{Path: ipv4Forward, Content: []byte{'1'}},
 			SwapCheck{},
+			InPathCheck{executable: "crictl", mandatory: true, exec: execer},
 			InPathCheck{executable: "ip", mandatory: true, exec: execer},
 			InPathCheck{executable: "iptables", mandatory: true, exec: execer},
 			InPathCheck{executable: "mount", mandatory: true, exec: execer},
@@ -1056,10 +1052,8 @@ func RunChecks(checks []Checker, ww io.Writer, ignorePreflightErrors sets.String
 }
 
 // TryStartKubelet attempts to bring up kubelet service
-func TryStartKubelet(ignorePreflightErrors sets.String) {
-	if setHasItemOrAll(ignorePreflightErrors, "StartKubelet") {
-		return
-	}
+// TODO: Move these kubelet start/stop functions to some other place, e.g. phases/kubelet
+func TryStartKubelet() {
 	// If we notice that the kubelet service is inactive, try to start it
 	initSystem, err := initsystem.GetInitSystem()
 	if err != nil {
@@ -1080,10 +1074,7 @@ func TryStartKubelet(ignorePreflightErrors sets.String) {
 }
 
 // TryStopKubelet attempts to bring down the kubelet service momentarily
-func TryStopKubelet(ignorePreflightErrors sets.String) {
-	if setHasItemOrAll(ignorePreflightErrors, "StopKubelet") {
-		return
-	}
+func TryStopKubelet() {
 	// If we notice that the kubelet service is inactive, try to start it
 	initSystem, err := initsystem.GetInitSystem()
 	if err != nil {

@@ -1,15 +1,15 @@
 package: github.com/openshift/library-go
 import:
 - package: k8s.io/apimachinery
-  version: kubernetes-1.11.0-beta.2
+  version: kubernetes-1.11.0
 - package: k8s.io/api
-  version: kubernetes-1.11.0-beta.2
+  version: kubernetes-1.11.0
 - package: k8s.io/apiserver
-  version: kubernetes-1.11.0-beta.2
+  version: kubernetes-1.11.0
 - package: k8s.io/apiextensions-apiserver
-  version: kubernetes-1.11.0-beta.2
+  version: kubernetes-1.11.0
 - package: k8s.io/client-go
-  version: kubernetes-1.11.0-beta.2
+  version: kubernetes-1.11.0
 - package: github.com/openshift/api
   version: master
 
@@ -22,6 +22,6 @@ import:
 
 # matches kube
 - package: github.com/spf13/cobra
-  version: 6644d46b81fa1831979c4cded0106e774e0ef0ab
+  version: c439c4fa093711d42e1b01acb1235b52004753c1
 - package: github.com/spf13/pflag
-  version: 4c012f6dcd9546820e378d0bdda4d8fc772cdfea
+  version: 583c0c0531f06d5278b7d917446061adc344b5cd
