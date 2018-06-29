@@ -3,7 +3,6 @@ package admission
 import (
 	"fmt"
 	"io/ioutil"
-	"os"
 
 	authorizationclient "github.com/openshift/client-go/authorization/clientset/versioned"
 	buildclient "github.com/openshift/client-go/build/clientset/versioned"
@@ -21,10 +20,8 @@ import (
 	quotaclient "github.com/openshift/origin/pkg/quota/generated/internalclientset"
 	"github.com/openshift/origin/pkg/quota/image"
 	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
-	"github.com/openshift/origin/pkg/service"
 	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset"
 	"k8s.io/apimachinery/pkg/api/meta"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/admission/initializer"
@@ -104,13 +101,6 @@ func NewPluginInitializer(
 		quotaRegistry.Add(imageEvaluators[i])
 	}
 
-	defaultRegistry := env("OPENSHIFT_DEFAULT_REGISTRY", "${DOCKER_REGISTRY_SERVICE_HOST}:${DOCKER_REGISTRY_SERVICE_PORT}")
-	svcCache := service.NewServiceResolverCache(kubeInternalClient.Core().Services(metav1.NamespaceDefault).Get)
-	defaultRegistryFunc, err := svcCache.Defer(defaultRegistry)
-	if err != nil {
-		return nil, fmt.Errorf("OPENSHIFT_DEFAULT_REGISTRY variable is invalid %q: %v", defaultRegistry, err)
-	}
-
 	// punch through layers to build this in order to get a string for a cloud provider file
 	// TODO refactor us into a forward building flow with a side channel like this
 	kubeOptions, err := kubernetes.BuildKubeAPIserverOptions(options)
@@ -123,7 +113,7 @@ func NewPluginInitializer(
 		var err error
 		cloudConfig, err = ioutil.ReadFile(kubeOptions.CloudProvider.CloudConfigFile)
 		if err != nil {
-			return nil, fmt.Errorf("Error reading from cloud configuration file %s: %v", kubeOptions.CloudProvider.CloudConfigFile, err)
+			return nil, fmt.Errorf("error reading from cloud configuration file %s: %v", kubeOptions.CloudProvider.CloudConfigFile, err)
 		}
 	}
 	// note: we are passing a combined quota registry here...
@@ -177,19 +167,10 @@ func NewPluginInitializer(
 		Informers:                            informers.GetInternalKubeInformers(),
 		ClusterResourceQuotaInformer:         informers.GetQuotaInformers().Quota().InternalVersion().ClusterResourceQuotas(),
 		ClusterQuotaMapper:                   clusterQuotaMappingController.GetClusterQuotaMapper(),
-		RegistryHostnameRetriever:            imageapi.DefaultRegistryHostnameRetriever(defaultRegistryFunc, options.ImagePolicyConfig.ExternalRegistryHostname, options.ImagePolicyConfig.InternalRegistryHostname),
+		RegistryHostnameRetriever:            imageapi.DefaultRegistryHostnameRetriever(options.ImagePolicyConfig.ExternalRegistryHostname, options.ImagePolicyConfig.InternalRegistryHostname),
 		SecurityInformers:                    informers.GetSecurityInformers(),
 		UserInformers:                        informers.GetUserInformers(),
 	}
 
 	return admission.PluginInitializers{genericInitializer, webhookInitializer, kubePluginInitializer, openshiftPluginInitializer}, nil
-}
-
-// env returns an environment variable, or the defaultValue if it is not set.
-func env(key string, defaultValue string) string {
-	val := os.Getenv(key)
-	if len(val) == 0 {
-		return defaultValue
-	}
-	return val
 }

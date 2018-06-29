@@ -32,10 +32,6 @@ const (
 
 	// TagReferenceAnnotationTagHidden indicates that a given TagReference is hidden from search results
 	TagReferenceAnnotationTagHidden = "hidden"
-
-	// ImportRegistryNotAllowed indicates that the image tag was not imported due to
-	// untrusted registry.
-	ImportRegistryNotAllowed = "registry is not allowed for import"
 )
 
 var errNoRegistryURLPathAllowed = errors.New("no path after <host>[:<port>] is allowed")
@@ -67,35 +63,23 @@ type RegistryHostnameRetriever interface {
 
 // DefaultRegistryHostnameRetriever is a default implementation of
 // RegistryHostnameRetriever.
-// The first argument is a function that lazy-loads the value of
-// OPENSHIFT_DEFAULT_REGISTRY environment variable which should be deprecated in
-// future.
-func DefaultRegistryHostnameRetriever(deprecatedDefaultRegistryEnvFn func() (string, bool), external, internal string) RegistryHostnameRetriever {
+func DefaultRegistryHostnameRetriever(external, internal string) RegistryHostnameRetriever {
 	return &defaultRegistryHostnameRetriever{
-		deprecatedDefaultFn: deprecatedDefaultRegistryEnvFn,
-		externalHostname:    external,
-		internalHostname:    internal,
+		externalHostname: external,
+		internalHostname: internal,
 	}
 }
 
 type defaultRegistryHostnameRetriever struct {
-	// deprecatedDefaultFn points to a function that will lazy-load the value of
-	// OPENSHIFT_DEFAULT_REGISTRY.
-	deprecatedDefaultFn func() (string, bool)
-	internalHostname    string
-	externalHostname    string
+	internalHostname string
+	externalHostname string
 }
 
 // InternalRegistryHostnameFn returns a function that can be used to lazy-load
-// the internal Docker Registry hostname. If the master configuration properly
-// InternalRegistryHostname is set, it will prefer that over the lazy-loaded
-// environment variable 'OPENSHIFT_DEFAULT_REGISTRY'.
+// the internal Docker Registry hostname.
 func (r *defaultRegistryHostnameRetriever) InternalRegistryHostname() (string, bool) {
 	if len(r.internalHostname) > 0 {
 		return r.internalHostname, true
-	}
-	if r.deprecatedDefaultFn != nil {
-		return r.deprecatedDefaultFn()
 	}
 	return "", false
 }
@@ -811,10 +795,6 @@ func PrioritizeTags(tags []string) {
 	for i, pt := range ptags {
 		tags[i] = pt.tag
 	}
-}
-
-func LabelForStream(stream *ImageStream) string {
-	return fmt.Sprintf("%s/%s", stream.Namespace, stream.Name)
 }
 
 // JoinImageSignatureName joins image name and custom signature name into one string with @ separator.

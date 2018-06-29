@@ -11,7 +11,6 @@ import (
 	"k8s.io/client-go/restmapper"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apiserver/pkg/admission"
@@ -54,7 +53,6 @@ import (
 	templateinformer "github.com/openshift/origin/pkg/template/generated/informers/internalversion"
 
 	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
-	"github.com/openshift/origin/pkg/service"
 	"github.com/openshift/origin/pkg/util/restoptions"
 )
 
@@ -150,13 +148,6 @@ func BuildMasterConfig(
 		return nil, err
 	}
 
-	defaultRegistry := env("OPENSHIFT_DEFAULT_REGISTRY", "${DOCKER_REGISTRY_SERVICE_HOST}:${DOCKER_REGISTRY_SERVICE_PORT}")
-	svcCache := service.NewServiceResolverCache(kubeInternalClient.Core().Services(metav1.NamespaceDefault).Get)
-	defaultRegistryFunc, err := svcCache.Defer(defaultRegistry)
-	if err != nil {
-		return nil, fmt.Errorf("OPENSHIFT_DEFAULT_REGISTRY variable is invalid %q: %v", defaultRegistry, err)
-	}
-
 	authenticator, authenticatorPostStartHooks, err := NewAuthenticator(options, privilegedLoopbackConfig, informers)
 	if err != nil {
 		return nil, err
@@ -184,14 +175,14 @@ func BuildMasterConfig(
 		admission.DecoratorFunc(namespaceLabelDecorator.WithNamespaceLabelConditions),
 		admission.DecoratorFunc(admissionmetrics.WithControllerMetrics),
 	}
-	admission, err := originadmission.NewAdmissionChains(options, admissionInitializer, admissionDecorators)
+	admissionChains, err := originadmission.NewAdmissionChains(options, admissionInitializer, admissionDecorators)
 	if err != nil {
 		return nil, err
 	}
 
 	kubeAPIServerConfig, err := kubernetes.BuildKubernetesMasterConfig(
 		options,
-		admission,
+		admissionChains,
 		authenticator,
 		authorizer,
 	)
@@ -235,7 +226,7 @@ func BuildMasterConfig(
 		ClusterQuotaMappingController: clusterQuotaMappingController,
 		RESTMapper:                    restMapper,
 
-		RegistryHostnameRetriever: imageapi.DefaultRegistryHostnameRetriever(defaultRegistryFunc, options.ImagePolicyConfig.ExternalRegistryHostname, options.ImagePolicyConfig.InternalRegistryHostname),
+		RegistryHostnameRetriever: imageapi.DefaultRegistryHostnameRetriever(options.ImagePolicyConfig.ExternalRegistryHostname, options.ImagePolicyConfig.InternalRegistryHostname),
 
 		PrivilegedLoopbackClientConfig:                *privilegedLoopbackConfig,
 		PrivilegedLoopbackKubernetesClientsetInternal: kubeInternalClient,

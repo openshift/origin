@@ -403,8 +403,6 @@ type ImagePolicyConfig struct {
 	AllowedRegistriesForImport *AllowedRegistries `json:"allowedRegistriesForImport,omitempty"`
 	// InternalRegistryHostname sets the hostname for the default internal image
 	// registry. The value must be in "hostname[:port]" format.
-	// For backward compatibility, users can still use OPENSHIFT_DEFAULT_REGISTRY
-	// environment variable but this setting overrides the environment variable.
 	InternalRegistryHostname string `json:"internalRegistryHostname,omitempty"`
 	// ExternalRegistryHostname sets the hostname for the default external image
 	// registry. The external hostname should be set only when the image registry
