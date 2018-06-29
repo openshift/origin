@@ -3,40 +3,46 @@ package rollout
 import (
 	"errors"
 	"fmt"
-	"io"
 	"strings"
 
+	"github.com/spf13/cobra"
+
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
-
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	appsutil "github.com/openshift/origin/pkg/apps/util"
-	"github.com/openshift/origin/pkg/oc/cli/cmd/set"
-	"github.com/spf13/cobra"
-	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 
+	appsv1 "github.com/openshift/api/apps/v1"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsutil "github.com/openshift/origin/pkg/apps/util"
+	"github.com/openshift/origin/pkg/oc/cli/cmd/set"
 	"github.com/openshift/origin/pkg/oc/util/ocscheme"
 )
 
 type RetryOptions struct {
-	Mapper  meta.RESTMapper
-	Typer   runtime.ObjectTyper
-	Encoder runtime.Encoder
-	Infos   []*resource.Info
+	PrintFlags *genericclioptions.PrintFlags
 
-	Out             io.Writer
-	FilenameOptions resource.FilenameOptions
+	Resources         []string
+	Builder           func() *resource.Builder
+	Mapper            meta.RESTMapper
+	Encoder           runtime.Encoder
+	Clientset         kclientset.Interface
+	Namespace         string
+	ExplicitNamespace bool
 
-	Clientset kclientset.Interface
+	Printer func(string) (printers.ResourcePrinter, error)
+
+	resource.FilenameOptions
+	genericclioptions.IOStreams
 }
 
 var (
@@ -56,66 +62,67 @@ var (
 `)
 )
 
-func NewCmdRolloutRetry(fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
-	opts := &RetryOptions{}
+func NewRolloutRetryOptions(streams genericclioptions.IOStreams) *RetryOptions {
+	return &RetryOptions{
+		PrintFlags: genericclioptions.NewPrintFlags("already retried").WithTypeSetter(ocscheme.PrintingInternalScheme),
+		IOStreams:  streams,
+	}
+}
+
+func NewCmdRolloutRetry(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
+	o := NewRolloutRetryOptions(streams)
 	cmd := &cobra.Command{
 		Use:     "retry (TYPE NAME | TYPE/NAME) [flags]",
 		Long:    rolloutRetryLong,
 		Example: fmt.Sprintf(rolloutRetryExample, fullName),
 		Short:   "Retry the latest failed rollout",
 		Run: func(cmd *cobra.Command, args []string) {
-			kcmdutil.CheckErr(opts.Complete(f, cmd, out, args))
-			kcmdutil.CheckErr(opts.Run())
+			kcmdutil.CheckErr(o.Complete(f, cmd, args))
+			kcmdutil.CheckErr(o.Run())
 		},
 	}
+
+	o.PrintFlags.AddFlags(cmd)
+
 	usage := "Filename, directory, or URL to a file identifying the resource to get from a server."
-	kcmdutil.AddFilenameOptionFlags(cmd, &opts.FilenameOptions, usage)
+	kcmdutil.AddFilenameOptionFlags(cmd, &o.FilenameOptions, usage)
 	return cmd
 }
 
-func (o *RetryOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, out io.Writer, args []string) error {
+func (o *RetryOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string) error {
 	var err error
 	if len(args) == 0 && len(o.FilenameOptions.Filenames) == 0 {
 		return kcmdutil.UsageErrorf(cmd, cmd.Use)
 	}
 
-	o.Typer = legacyscheme.Scheme
+	o.Resources = args
+
 	o.Mapper, err = f.ToRESTMapper()
 	if err != nil {
 		return err
 	}
 	o.Encoder = kcmdutil.InternalVersionJSONEncoder()
-	o.Out = out
 
-	cmdNamespace, enforceNamespace, err := f.ToRawKubeConfigLoader().Namespace()
+	o.Namespace, o.ExplicitNamespace, err = f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
 	}
 
-	clientConfig, err := f.ToRESTConfig()
-	if err != nil {
-		return err
-	}
-	o.Clientset, err = kclientset.NewForConfig(clientConfig)
+	o.Clientset, err = f.ClientSet()
 	if err != nil {
 		return err
 	}
 
-	r := f.NewBuilder().
-		WithScheme(ocscheme.ReadingInternalScheme).
-		NamespaceParam(cmdNamespace).DefaultNamespace().
-		FilenameParam(enforceNamespace, &o.FilenameOptions).
-		ResourceTypeOrNameArgs(true, args...).
-		ContinueOnError().
-		Latest().
-		Flatten().
-		Do()
-	err = r.Err()
-	if err != nil {
-		return err
+	o.Printer = func(msg string) (printers.ResourcePrinter, error) {
+		if err := o.PrintFlags.Complete(msg); err != nil {
+			return nil, err
+		}
+
+		return o.PrintFlags.ToPrinter()
 	}
 
-	o.Infos, err = r.Infos()
+	o.Builder = f.NewBuilder
+
 	return err
 }
 
@@ -125,8 +132,28 @@ func (o RetryOptions) Run() error {
 	if err != nil {
 		return err
 	}
-	for _, info := range o.Infos {
-		config, ok := info.Object.(*appsapi.DeploymentConfig)
+
+	r := o.Builder().
+		WithScheme(ocscheme.ReadingInternalScheme, ocscheme.ReadingInternalScheme.PrioritizedVersionsAllGroups()...).
+		NamespaceParam(o.Namespace).DefaultNamespace().
+		FilenameParam(o.ExplicitNamespace, &o.FilenameOptions).
+		ResourceTypeOrNameArgs(true, o.Resources...).
+		ContinueOnError().
+		Latest().
+		Flatten().
+		Do()
+
+	if err := r.Err(); err != nil {
+		return err
+	}
+
+	infos, err := r.Infos()
+	if err != nil {
+		return err
+	}
+
+	for _, info := range infos {
+		config, ok := info.Object.(*appsv1.DeploymentConfig)
 		if !ok {
 			allErrs = append(allErrs, kcmdutil.AddSourceToErr("retrying", info.Source, fmt.Errorf("expected deployment configuration, got %T", info.Object)))
 			continue
@@ -140,7 +167,7 @@ func (o RetryOptions) Run() error {
 			continue
 		}
 
-		latestDeploymentName := appsutil.LatestDeploymentNameForConfig(config)
+		latestDeploymentName := appsutil.LatestDeploymentNameForConfigV1(config)
 		rc, err := o.Clientset.Core().ReplicationControllers(config.Namespace).Get(latestDeploymentName, metav1.GetOptions{})
 		if err != nil {
 			if kerrors.IsNotFound(err) {
@@ -180,7 +207,7 @@ func (o RetryOptions) Run() error {
 			continue
 		}
 
-		patches := set.CalculatePatches([]*resource.Info{{Object: rc, Mapping: mapping}}, o.Encoder, func(info *resource.Info) (bool, error) {
+		patches := set.CalculatePatchesExternal([]*resource.Info{{Object: rc, Mapping: mapping}}, func(info *resource.Info) (bool, error) {
 			rc.Annotations[appsapi.DeploymentStatusAnnotation] = string(appsapi.DeploymentStatusNew)
 			delete(rc.Annotations, appsapi.DeploymentStatusReasonAnnotation)
 			delete(rc.Annotations, appsapi.DeploymentCancelledAnnotation)
@@ -188,7 +215,14 @@ func (o RetryOptions) Run() error {
 		})
 
 		if len(patches) == 0 {
-			kcmdutil.PrintSuccess(false, o.Out, info.Object, false, "already retried")
+			printer, err := o.Printer("already retried")
+			if err != nil {
+				allErrs = append(allErrs, kcmdutil.AddSourceToErr("retrying", info.Source, err))
+				continue
+			}
+			if err := printer.PrintObj(info.Object, o.Out); err != nil {
+				allErrs = append(allErrs, kcmdutil.AddSourceToErr("retrying", info.Source, err))
+			}
 			continue
 		}
 
@@ -196,7 +230,15 @@ func (o RetryOptions) Run() error {
 			allErrs = append(allErrs, kcmdutil.AddSourceToErr("retrying", info.Source, err))
 			continue
 		}
-		kcmdutil.PrintSuccess(false, o.Out, info.Object, false, fmt.Sprintf("retried rollout #%d", config.Status.LatestVersion))
+		printer, err := o.Printer(fmt.Sprintf("retried rollout #%d", config.Status.LatestVersion))
+		if err != nil {
+			allErrs = append(allErrs, kcmdutil.AddSourceToErr("retrying", info.Source, err))
+			continue
+		}
+		if err := printer.PrintObj(info.Object, o.Out); err != nil {
+			allErrs = append(allErrs, kcmdutil.AddSourceToErr("retrying", info.Source, err))
+			continue
+		}
 	}
 
 	return utilerrors.NewAggregate(allErrs)

@@ -2,42 +2,50 @@ package rollout
 
 import (
 	"fmt"
-	"io"
 	"sort"
 	"strings"
 	"time"
+
+	units "github.com/docker/go-units"
+	"github.com/spf13/cobra"
 
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 
-	units "github.com/docker/go-units"
+	appsv1 "github.com/openshift/api/apps/v1"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
 	"github.com/openshift/origin/pkg/oc/cli/cmd/set"
-	"github.com/spf13/cobra"
-	utilerrors "k8s.io/apimachinery/pkg/util/errors"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-
 	"github.com/openshift/origin/pkg/oc/util/ocscheme"
 )
 
 type CancelOptions struct {
-	Mapper  meta.RESTMapper
-	Typer   runtime.ObjectTyper
-	Encoder runtime.Encoder
-	Infos   []*resource.Info
+	PrintFlags *genericclioptions.PrintFlags
 
-	Out             io.Writer
-	FilenameOptions resource.FilenameOptions
+	Builder           func() *resource.Builder
+	Namespace         string
+	NamespaceExplicit bool
+	Mapper            meta.RESTMapper
+	Typer             runtime.ObjectTyper
+	Encoder           runtime.Encoder
+	Resources         []string
+	Clientset         kclientset.Interface
 
-	Clientset kclientset.Interface
+	Printer func(string) (printers.ResourcePrinter, error)
+
+	resource.FilenameOptions
+	genericclioptions.IOStreams
 }
 
 var (
@@ -55,40 +63,49 @@ event will be emitted.`)
   %[1]s rollout cancel dc/nginx`)
 )
 
-func NewCmdRolloutCancel(fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
-	opts := &CancelOptions{}
+func NewRolloutCancelOptions(streams genericclioptions.IOStreams) *CancelOptions {
+	return &CancelOptions{
+		IOStreams:  streams,
+		PrintFlags: genericclioptions.NewPrintFlags("already cancelled"),
+	}
+}
+
+func NewCmdRolloutCancel(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
+	o := NewRolloutCancelOptions(streams)
+
 	cmd := &cobra.Command{
 		Use:     "cancel (TYPE NAME | TYPE/NAME) [flags]",
 		Long:    rolloutCancelLong,
 		Example: fmt.Sprintf(rolloutCancelExample, fullName),
 		Short:   "cancel the in-progress deployment",
 		Run: func(cmd *cobra.Command, args []string) {
-			kcmdutil.CheckErr(opts.Complete(f, cmd, out, args))
-			kcmdutil.CheckErr(opts.Run())
+			kcmdutil.CheckErr(o.Complete(f, cmd, args))
+			kcmdutil.CheckErr(o.Run())
 		},
 		ValidArgs: []string{"deploymentconfig"},
 	}
+
+	o.PrintFlags.AddFlags(cmd)
+
 	usage := "Filename, directory, or URL to a file identifying the resource to get from a server."
-	kcmdutil.AddFilenameOptionFlags(cmd, &opts.FilenameOptions, usage)
+	kcmdutil.AddFilenameOptionFlags(cmd, &o.FilenameOptions, usage)
 	return cmd
 }
 
-func (o *CancelOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, out io.Writer, args []string) error {
-	var err error
-
+func (o *CancelOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string) error {
 	if len(args) == 0 && len(o.FilenameOptions.Filenames) == 0 {
-		return kcmdutil.UsageErrorf(cmd, cmd.Use)
+		return kcmdutil.UsageErrorf(cmd, "a resource or filename must be specified")
 	}
 
+	var err error
 	o.Typer = legacyscheme.Scheme
 	o.Mapper, err = f.ToRESTMapper()
 	if err != nil {
 		return err
 	}
 	o.Encoder = kcmdutil.InternalVersionJSONEncoder()
-	o.Out = out
 
-	cmdNamespace, enforceNamespace, err := f.ToRawKubeConfigLoader().Namespace()
+	o.Namespace, o.NamespaceExplicit, err = f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
 	}
@@ -98,28 +115,38 @@ func (o *CancelOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, out io.
 		return err
 	}
 
-	r := f.NewBuilder().
-		WithScheme(ocscheme.ReadingInternalScheme).
-		NamespaceParam(cmdNamespace).DefaultNamespace().
-		FilenameParam(enforceNamespace, &o.FilenameOptions).
-		ResourceTypeOrNameArgs(true, args...).
+	o.Printer = func(successMsg string) (printers.ResourcePrinter, error) {
+		o.PrintFlags.Complete(successMsg)
+		return o.PrintFlags.ToPrinter()
+	}
+
+	o.Builder = f.NewBuilder
+	o.Resources = args
+	return nil
+}
+
+func (o CancelOptions) Run() error {
+	r := o.Builder().
+		WithScheme(ocscheme.ReadingInternalScheme, ocscheme.ReadingInternalScheme.PrioritizedVersionsAllGroups()...).
+		NamespaceParam(o.Namespace).DefaultNamespace().
+		FilenameParam(o.NamespaceExplicit, &o.FilenameOptions).
+		ResourceTypeOrNameArgs(true, o.Resources...).
 		ContinueOnError().
 		Latest().
 		Flatten().
 		Do()
-	err = r.Err()
+	if err := r.Err(); err != nil {
+		return err
+	}
+
+	infos, err := r.Infos()
 	if err != nil {
 		return err
 	}
 
-	o.Infos, err = r.Infos()
-	return err
-}
-
-func (o CancelOptions) Run() error {
 	allErrs := []error{}
-	for _, info := range o.Infos {
-		config, ok := info.Object.(*appsapi.DeploymentConfig)
+	for _, info := range infos {
+		config, ok := info.Object.(*appsv1.DeploymentConfig)
 		if !ok {
 			allErrs = append(allErrs, kcmdutil.AddSourceToErr("cancelling", info.Source, fmt.Errorf("expected deployment configuration, got %s", info.Mapping.Resource.Resource)))
 			continue
@@ -134,12 +161,18 @@ func (o CancelOptions) Run() error {
 		}
 
 		mutateFn := func(rc *kapi.ReplicationController) bool {
-			if appsutil.IsDeploymentCancelled(rc) {
-				kcmdutil.PrintSuccess(false, o.Out, info.Object, false, "already cancelled")
+			printer, err := o.Printer("already cancelled")
+			if err != nil {
+				allErrs = append(allErrs, kcmdutil.AddSourceToErr("cancelling", info.Source, err))
 				return false
 			}
 
-			patches := set.CalculatePatches([]*resource.Info{{Object: rc, Mapping: mapping}}, o.Encoder, func(info *resource.Info) (bool, error) {
+			if appsutil.IsDeploymentCancelled(rc) {
+				printer.PrintObj(info.Object, o.Out)
+				return false
+			}
+
+			patches := set.CalculatePatchesExternal([]*resource.Info{{Object: rc, Mapping: mapping}}, func(info *resource.Info) (bool, error) {
 				rc.Annotations[appsapi.DeploymentCancelledAnnotation] = appsapi.DeploymentCancelledAnnotationValue
 				rc.Annotations[appsapi.DeploymentStatusReasonAnnotation] = appsapi.DeploymentCancelledByUser
 				return true, nil
@@ -153,16 +186,21 @@ func (o CancelOptions) Run() error {
 				}
 			}
 			if allPatchesEmpty {
-				kcmdutil.PrintSuccess(false, o.Out, info.Object, false, "already cancelled")
+				printer.PrintObj(info.Object, o.Out)
 				return false
 			}
 
-			_, err := o.Clientset.Core().ReplicationControllers(rc.Namespace).Patch(rc.Name, types.StrategicMergePatchType, patches[0].Patch)
+			if _, err := o.Clientset.Core().ReplicationControllers(rc.Namespace).Patch(rc.Name, types.StrategicMergePatchType, patches[0].Patch); err != nil {
+				allErrs = append(allErrs, kcmdutil.AddSourceToErr("cancelling", info.Source, err))
+				return false
+			}
+
+			printer, err = o.Printer("cancelling")
 			if err != nil {
 				allErrs = append(allErrs, kcmdutil.AddSourceToErr("cancelling", info.Source, err))
 				return false
 			}
-			kcmdutil.PrintSuccess(false, o.Out, info.Object, false, "cancelling")
+			printer.PrintObj(info.Object, o.Out)
 			return true
 		}
 
