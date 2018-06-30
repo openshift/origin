@@ -93,7 +93,8 @@ image_config = {
         "tag": "latest",
         "directory": "deployer",
         "binaries": {
-            "openshift": "/usr/bin/openshift"
+            "openshift-deploy": "/usr/bin/openshift-deploy",
+            "oc": "/usr/bin/oc",
         },
         "files": {}
     },
