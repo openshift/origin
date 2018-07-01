@@ -139,8 +139,12 @@ func New(execer exec.Interface, bridge string, minVersion string) (Interface, er
 }
 
 func (ovsif *ovsExec) execWithStdin(cmd string, stdinArgs []string, args ...string) (string, error) {
+	logLevel := glog.Level(4)
 	switch cmd {
 	case OVS_OFCTL:
+		if args[0] == "dump-flows" {
+			logLevel = glog.Level(5)
+		}
 		args = append([]string{"-O", "OpenFlow13"}, args...)
 	case OVS_VSCTL:
 		args = append([]string{"--timeout=30"}, args...)
@@ -152,9 +156,9 @@ func (ovsif *ovsExec) execWithStdin(cmd string, stdinArgs []string, args ...stri
 		stdin := bytes.NewBufferString(stdinString)
 		kcmd.SetStdin(stdin)
 
-		glog.V(4).Infof("Executing: %s %s <<\n%s", cmd, strings.Join(args, " "), stdinString)
+		glog.V(logLevel).Infof("Executing: %s %s <<\n%s", cmd, strings.Join(args, " "), stdinString)
 	} else {
-		glog.V(4).Infof("Executing: %s %s", cmd, strings.Join(args, " "))
+		glog.V(logLevel).Infof("Executing: %s %s", cmd, strings.Join(args, " "))
 	}
 
 	output, err := kcmd.CombinedOutput()
