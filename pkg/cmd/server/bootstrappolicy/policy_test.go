@@ -9,7 +9,6 @@ import (
 	"github.com/ghodss/yaml"
 
 	rbacv1 "k8s.io/api/rbac/v1"
-	"k8s.io/api/rbac/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -105,11 +104,11 @@ func testObjects(t *testing.T, list *api.List, fixtureFilename string) {
 		t.Fatal(err)
 	}
 
-	if err := runtime.EncodeList(legacyscheme.Codecs.LegacyCodec(v1beta1.SchemeGroupVersion, v1.SchemeGroupVersion), list.Items); err != nil {
+	if err := runtime.EncodeList(legacyscheme.Codecs.LegacyCodec(rbacv1.SchemeGroupVersion, v1.SchemeGroupVersion), list.Items); err != nil {
 		t.Fatal(err)
 	}
 
-	jsonData, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(v1beta1.SchemeGroupVersion, v1.SchemeGroupVersion), list)
+	jsonData, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(rbacv1.SchemeGroupVersion, v1.SchemeGroupVersion), list)
 	if err != nil {
 		t.Fatal(err)
 	}
