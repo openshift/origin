@@ -25,7 +25,6 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
@@ -106,7 +105,7 @@ func (o *ReconcileOptions) Complete(cmd *cobra.Command, f cmdutil.Factory, args 
 	}
 
 	r := f.NewBuilder().
-		WithScheme(legacyscheme.Scheme).
+		WithScheme(scheme.Scheme, scheme.Scheme.PrioritizedVersionsAllGroups()...).
 		ContinueOnError().
 		NamespaceParam(namespace).DefaultNamespace().
 		FilenameParam(enforceNamespace, o.FilenameOptions).
@@ -171,14 +170,7 @@ func (o *ReconcileOptions) RunReconcile() error {
 			return err
 		}
 
-		obj, err := legacyscheme.Scheme.ConvertToVersion(info.Object, rbacv1.SchemeGroupVersion)
-		if err != nil {
-			glog.V(1).Infof("skipping %#v", info.Object.GetObjectKind())
-			// skip ignored resources
-			return nil
-		}
-
-		switch t := obj.(type) {
+		switch t := info.Object.(type) {
 		case *rbacv1.Role:
 			reconcileOptions := reconciliation.ReconcileRoleOptions{
 				Confirm:                !o.DryRun,
