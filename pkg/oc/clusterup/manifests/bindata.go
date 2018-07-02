@@ -17012,7 +17012,7 @@ objects:
     namespace: ${NAMESPACE}
 
 - kind: ClusterRoleBinding
-  apiVersion: rbac.authorization.k8s.io/v1beta1
+  apiVersion: rbac.authorization.k8s.io/v1
   metadata:
     name: system:kube-proxy
   subjects:
@@ -18228,7 +18228,7 @@ parameters:
 objects:
 
 # Grant the service account permission to call the TSB
-- apiVersion: rbac.authorization.k8s.io/v1beta1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     name: templateservicebroker-client
@@ -18241,7 +18241,7 @@ objects:
     name: templateservicebroker-client
 
 # to delegate authentication and authorization
-- apiVersion: rbac.authorization.k8s.io/v1beta1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     name: auth-delegator-${NAMESPACE}
@@ -18254,7 +18254,7 @@ objects:
     name: apiserver
 
 # to have the template service broker powers
-- apiVersion: rbac.authorization.k8s.io/v1beta1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding
   metadata:
     name: tsb-${NAMESPACE}
@@ -18267,7 +18267,7 @@ objects:
     name: apiserver
 
 # to read the config for terminating authentication
-- apiVersion: rbac.authorization.k8s.io/v1beta1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: RoleBinding
   metadata:
     namespace: ${KUBE_SYSTEM}
@@ -18282,7 +18282,7 @@ objects:
 
 # allow the kube service catalog's SA to read the static secret defined
 # above, which will contain the token for the SA that can call the TSB.
-- apiVersion: rbac.authorization.k8s.io/v1beta1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: Role
   metadata:
     name: templateservicebroker-auth-reader
@@ -18296,7 +18296,7 @@ objects:
     - secrets
     verbs:
     - get
-- apiVersion: rbac.authorization.k8s.io/v1beta1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: RoleBinding
   metadata:
     namespace: ${NAMESPACE}
