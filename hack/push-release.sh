@@ -70,11 +70,6 @@ if [[ "${OS_PUSH_BASE_REGISTRY-}" != "" || "${tag}" != "" ]]; then
       docker tag "openshift/${image}:${source_tag}" "${OS_PUSH_BASE_REGISTRY-}${OS_PUSH_BASE_REPO}${image}${tag}"
     done
   done
-  # TODO: remove in 3.11
-  for tag in "${tags[@]}"; do
-    docker tag "openshift/origin-control-plane:${source_tag}" "${OS_PUSH_BASE_REGISTRY-}${OS_PUSH_BASE_REPO}origin${tag}"
-    docker tag "openshift/origin-node:${source_tag}" "${OS_PUSH_BASE_REGISTRY-}${OS_PUSH_BASE_REPO}node${tag}"
-  done
 fi
 
 for image in "${images[@]}"; do
@@ -82,15 +77,6 @@ for image in "${images[@]}"; do
     os::log::info "Pushing ${OS_PUSH_BASE_REGISTRY-}${OS_PUSH_BASE_REPO}${image}${tag}..."
     docker push ${PUSH_OPTS} "${OS_PUSH_BASE_REGISTRY-}${OS_PUSH_BASE_REPO}${image}${tag}"
   done
-done
-# TODO: remove in 3.11
-for tag in "${tags[@]}"; do
-  os::log::info "Pushing ${OS_PUSH_BASE_REGISTRY-}${OS_PUSH_BASE_REPO}origin${tag}..."
-  docker push ${PUSH_OPTS} "${OS_PUSH_BASE_REGISTRY-}${OS_PUSH_BASE_REPO}origin${tag}"
-done
-for tag in "${tags[@]}"; do
-  os::log::info "Pushing ${OS_PUSH_BASE_REGISTRY-}${OS_PUSH_BASE_REPO}node${tag}..."
-  docker push ${PUSH_OPTS} "${OS_PUSH_BASE_REGISTRY-}${OS_PUSH_BASE_REPO}node${tag}"
 done
 
 ret=$?; ENDTIME=$(date +%s); echo "$0 took $(($ENDTIME - $STARTTIME)) seconds"; exit "$ret"
