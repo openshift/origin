@@ -262,7 +262,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 					}
 				}
 				// we expect to see no more than 10 writes per router (we should hit the hard limit)
-				o.Expect(writes).To(o.BeNumerically("<", 30))
+				o.Expect(writes).To(o.BeNumerically("<=", 30))
 			}()
 
 			// the os_http_be.map file will vary, so only check the haproxy config
