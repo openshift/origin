@@ -152,9 +152,9 @@ func TestOAuthStorage(t *testing.T) {
 	}
 	url := config.AuthCodeURL("")
 	client := http.Client{ /*CheckRedirect: func(req *http.Request, via []*http.Request) error {
-		t.Logf("redirect (%d): to %s, %#v", len(via), req.URL, req)
-		return nil
-	}*/}
+			t.Logf("redirect (%d): to %s, %#v", len(via), req.URL, req)
+			return nil
+		}*/}
 
 	resp, err := client.Get(url)
 	if err != nil {

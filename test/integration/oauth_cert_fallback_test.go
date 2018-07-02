@@ -25,9 +25,9 @@ func TestOAuthCertFallback(t *testing.T) {
 		noToken      = ""
 
 		invalidCert = restclient.TLSClientConfig{
-		// We have to generate this dynamically in order to have an invalid cert signed by a signer with the same name as the valid CA
-		// CertData: ...,
-		// KeyData:  ...,
+			// We have to generate this dynamically in order to have an invalid cert signed by a signer with the same name as the valid CA
+			// CertData: ...,
+			// KeyData:  ...,
 		}
 		noCert = restclient.TLSClientConfig{}
 

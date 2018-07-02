@@ -127,9 +127,9 @@ func TestAuthorizeStartFlow(t *testing.T) {
 	}
 	url := config.AuthCodeURL("")
 	client := http.Client{ /*CheckRedirect: func(req *http.Request, via []*http.Request) error {
-		t.Logf("redirect (%d): to %s, %#v", len(via), req.URL, req)
-		return nil
-	}*/}
+			t.Logf("redirect (%d): to %s, %#v", len(via), req.URL, req)
+			return nil
+		}*/}
 	if _, err := client.Get(url); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

@@ -506,7 +506,7 @@ type UserAgentMatchRule struct {
 
 // UserAgentDenyRule adds a rejection message that can be used to help a user figure out how to get an approved client
 type UserAgentDenyRule struct {
-	UserAgentMatchRule `json:", inline"`
+	UserAgentMatchRule `json:",inline"`
 
 	// RejectionMessage is the message shown when rejecting a client.  If it is not a set, the default message is used.
 	RejectionMessage string `json:"rejectionMessage"`

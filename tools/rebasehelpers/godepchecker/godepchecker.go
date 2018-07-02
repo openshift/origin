@@ -25,8 +25,7 @@ func main() {
   Assumes the following:
   - $GOPATH is set to a single directory (not the godepsified path)
   - "godeps save ./..." has not yet been run on origin
-  - The desired level of kubernetes is checked out
-`)
+  - The desired level of kubernetes is checked out`)
 	var self, other string
 	var checkoutNewer, examineForks bool
 	flag.StringVar(&self, "self", filepath.Join(gopath, "src/github.com/openshift/origin/Godeps/Godeps.json"), "The first file to compare")
