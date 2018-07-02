@@ -34,8 +34,8 @@ type PrintFlags struct {
 	JSONYamlPrintFlags *genericclioptions.JSONYamlPrintFlags
 	NamePrintFlags     *genericclioptions.NamePrintFlags
 	CustomColumnsFlags *printers.CustomColumnsPrintFlags
-	TemplateFlags      *printers.KubeTemplatePrintFlags
 	HumanReadableFlags *HumanPrintFlags
+	TemplateFlags      *printers.KubeTemplatePrintFlags
 
 	NoHeaders    *bool
 	OutputFormat *string

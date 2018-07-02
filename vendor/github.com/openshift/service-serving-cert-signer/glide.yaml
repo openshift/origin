@@ -1,13 +1,13 @@
 package: github.com/openshift/service-serving-cert-signer
 import:
 - package: k8s.io/apimachinery
-  version: kubernetes-1.11.0-beta.2
+  version: kubernetes-1.11.0
 - package: k8s.io/api
-  version: kubernetes-1.11.0-beta.2
+  version: kubernetes-1.11.0
 - package: k8s.io/apiserver
-  version: kubernetes-1.11.0-beta.2
+  version: kubernetes-1.11.0
 - package: k8s.io/client-go
-  version: kubernetes-1.11.0-beta.2
+  version: kubernetes-1.11.0
 - package: github.com/openshift/api
   version: master
 - package: github.com/openshift/client-go

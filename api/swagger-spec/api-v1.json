@@ -72,61 +72,6 @@
     ]
    },
    {
-    "path": "/api/v1/bindings",
-    "description": "API at /api/v1",
-    "operations": [
-     {
-      "type": "v1.Binding",
-      "method": "POST",
-      "summary": "create a Binding",
-      "nickname": "createBindingForAllNamespaces",
-      "parameters": [
-       {
-        "type": "string",
-        "paramType": "query",
-        "name": "pretty",
-        "description": "If 'true', then the output is pretty printed.",
-        "required": false,
-        "allowMultiple": false
-       },
-       {
-        "type": "v1.Binding",
-        "paramType": "body",
-        "name": "body",
-        "description": "",
-        "required": true,
-        "allowMultiple": false
-       }
-      ],
-      "responseMessages": [
-       {
-        "code": 200,
-        "message": "OK",
-        "responseModel": "v1.Binding"
-       },
-       {
-        "code": 201,
-        "message": "Created",
-        "responseModel": "v1.Binding"
-       },
-       {
-        "code": 202,
-        "message": "Accepted",
-        "responseModel": "v1.Binding"
-       }
-      ],
-      "produces": [
-       "application/json",
-       "application/yaml",
-       "application/vnd.kubernetes.protobuf"
-      ],
-      "consumes": [
-       "*/*"
-      ]
-     }
-    ]
-   },
-   {
     "path": "/api/v1/componentstatuses",
     "description": "API at /api/v1",
     "operations": [
@@ -1140,55 +1085,6 @@
       "consumes": [
        "*/*"
       ]
-     },
-     {
-      "type": "v1.ConfigMap",
-      "method": "POST",
-      "summary": "create a ConfigMap",
-      "nickname": "createConfigMapForAllNamespaces",
-      "parameters": [
-       {
-        "type": "string",
-        "paramType": "query",
-        "name": "pretty",
-        "description": "If 'true', then the output is pretty printed.",
-        "required": false,
-        "allowMultiple": false
-       },
-       {
-        "type": "v1.ConfigMap",
-        "paramType": "body",
-        "name": "body",
-        "description": "",
-        "required": true,
-        "allowMultiple": false
-       }
-      ],
-      "responseMessages": [
-       {
-        "code": 200,
-        "message": "OK",
-        "responseModel": "v1.ConfigMap"
-       },
-       {
-        "code": 201,
-        "message": "Created",
-        "responseModel": "v1.ConfigMap"
-       },
-       {
-        "code": 202,
-        "message": "Accepted",
-        "responseModel": "v1.ConfigMap"
-       }
-      ],
-      "produces": [
-       "application/json",
-       "application/yaml",
-       "application/vnd.kubernetes.protobuf"
-      ],
-      "consumes": [
-       "*/*"
-      ]
      }
     ]
    },
@@ -2157,55 +2053,6 @@
        "application/vnd.kubernetes.protobuf",
        "application/json;stream=watch",
        "application/vnd.kubernetes.protobuf;stream=watch"
-      ],
-      "consumes": [
-       "*/*"
-      ]
-     },
-     {
-      "type": "v1.Endpoints",
-      "method": "POST",
-      "summary": "create Endpoints",
-      "nickname": "createEndpointsForAllNamespaces",
-      "parameters": [
-       {
-        "type": "string",
-        "paramType": "query",
-        "name": "pretty",
-        "description": "If 'true', then the output is pretty printed.",
-        "required": false,
-        "allowMultiple": false
-       },
-       {
-        "type": "v1.Endpoints",
-        "paramType": "body",
-        "name": "body",
-        "description": "",
-        "required": true,
-        "allowMultiple": false
-       }
-      ],
-      "responseMessages": [
-       {
-        "code": 200,
-        "message": "OK",
-        "responseModel": "v1.Endpoints"
-       },
-       {
-        "code": 201,
-        "message": "Created",
-        "responseModel": "v1.Endpoints"
-       },
-       {
-        "code": 202,
-        "message": "Accepted",
-        "responseModel": "v1.Endpoints"
-       }
-      ],
-      "produces": [
-       "application/json",
-       "application/yaml",
-       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -3182,55 +3029,6 @@
       "consumes": [
        "*/*"
       ]
-     },
-     {
-      "type": "v1.Event",
-      "method": "POST",
-      "summary": "create an Event",
-      "nickname": "createEventForAllNamespaces",
-      "parameters": [
-       {
-        "type": "string",
-        "paramType": "query",
-        "name": "pretty",
-        "description": "If 'true', then the output is pretty printed.",
-        "required": false,
-        "allowMultiple": false
-       },
-       {
-        "type": "v1.Event",
-        "paramType": "body",
-        "name": "body",
-        "description": "",
-        "required": true,
-        "allowMultiple": false
-       }
-      ],
-      "responseMessages": [
-       {
-        "code": 200,
-        "message": "OK",
-        "responseModel": "v1.Event"
-       },
-       {
-        "code": 201,
-        "message": "Created",
-        "responseModel": "v1.Event"
-       },
-       {
-        "code": 202,
-        "message": "Accepted",
-        "responseModel": "v1.Event"
-       }
-      ],
-      "produces": [
-       "application/json",
-       "application/yaml",
-       "application/vnd.kubernetes.protobuf"
-      ],
-      "consumes": [
-       "*/*"
-      ]
      }
     ]
    },
@@ -4199,55 +3997,6 @@
        "application/vnd.kubernetes.protobuf",
        "application/json;stream=watch",
        "application/vnd.kubernetes.protobuf;stream=watch"
-      ],
-      "consumes": [
-       "*/*"
-      ]
-     },
-     {
-      "type": "v1.LimitRange",
-      "method": "POST",
-      "summary": "create a LimitRange",
-      "nickname": "createLimitRangeForAllNamespaces",
-      "parameters": [
-       {
-        "type": "string",
-        "paramType": "query",
-        "name": "pretty",
-        "description": "If 'true', then the output is pretty printed.",
-        "required": false,
-        "allowMultiple": false
-       },
-       {
-        "type": "v1.LimitRange",
-        "paramType": "body",
-        "name": "body",
-        "description": "",
-        "required": true,
-        "allowMultiple": false
-       }
-      ],
-      "responseMessages": [
-       {
-        "code": 200,
-        "message": "OK",
-        "responseModel": "v1.LimitRange"
-       },
-       {
-        "code": 201,
-        "message": "Created",
-        "responseModel": "v1.LimitRange"
-       },
-       {
-        "code": 202,
-        "message": "Accepted",
-        "responseModel": "v1.LimitRange"
-       }
-      ],
-      "produces": [
-       "application/json",
-       "application/yaml",
-       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -7355,55 +7104,6 @@
       "consumes": [
        "*/*"
       ]
-     },
-     {
-      "type": "v1.PersistentVolumeClaim",
-      "method": "POST",
-      "summary": "create a PersistentVolumeClaim",
-      "nickname": "createPersistentVolumeClaimForAllNamespaces",
-      "parameters": [
-       {
-        "type": "string",
-        "paramType": "query",
-        "name": "pretty",
-        "description": "If 'true', then the output is pretty printed.",
-        "required": false,
-        "allowMultiple": false
-       },
-       {
-        "type": "v1.PersistentVolumeClaim",
-        "paramType": "body",
-        "name": "body",
-        "description": "",
-        "required": true,
-        "allowMultiple": false
-       }
-      ],
-      "responseMessages": [
-       {
-        "code": 200,
-        "message": "OK",
-        "responseModel": "v1.PersistentVolumeClaim"
-       },
-       {
-        "code": 201,
-        "message": "Created",
-        "responseModel": "v1.PersistentVolumeClaim"
-       },
-       {
-        "code": 202,
-        "message": "Accepted",
-        "responseModel": "v1.PersistentVolumeClaim"
-       }
-      ],
-      "produces": [
-       "application/json",
-       "application/yaml",
-       "application/vnd.kubernetes.protobuf"
-      ],
-      "consumes": [
-       "*/*"
-      ]
      }
     ]
    },
@@ -9382,55 +9082,6 @@
        "application/vnd.kubernetes.protobuf",
        "application/json;stream=watch",
        "application/vnd.kubernetes.protobuf;stream=watch"
-      ],
-      "consumes": [
-       "*/*"
-      ]
-     },
-     {
-      "type": "v1.Pod",
-      "method": "POST",
-      "summary": "create a Pod",
-      "nickname": "createPodForAllNamespaces",
-      "parameters": [
-       {
-        "type": "string",
-        "paramType": "query",
-        "name": "pretty",
-        "description": "If 'true', then the output is pretty printed.",
-        "required": false,
-        "allowMultiple": false
-       },
-       {
-        "type": "v1.Pod",
-        "paramType": "body",
-        "name": "body",
-        "description": "",
-        "required": true,
-        "allowMultiple": false
-       }
-      ],
-      "responseMessages": [
-       {
-        "code": 200,
-        "message": "OK",
-        "responseModel": "v1.Pod"
-       },
-       {
-        "code": 201,
-        "message": "Created",
-        "responseModel": "v1.Pod"
-       },
-       {
-        "code": 202,
-        "message": "Accepted",
-        "responseModel": "v1.Pod"
-       }
-      ],
-      "produces": [
-       "application/json",
-       "application/yaml",
-       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -11819,55 +11470,6 @@
       "consumes": [
        "*/*"
       ]
-     },
-     {
-      "type": "v1.PodTemplate",
-      "method": "POST",
-      "summary": "create a PodTemplate",
-      "nickname": "createPodTemplateForAllNamespaces",
-      "parameters": [
-       {
-        "type": "string",
-        "paramType": "query",
-        "name": "pretty",
-        "description": "If 'true', then the output is pretty printed.",
-        "required": false,
-        "allowMultiple": false
-       },
-       {
-        "type": "v1.PodTemplate",
-        "paramType": "body",
-        "name": "body",
-        "description": "",
-        "required": true,
-        "allowMultiple": false
-       }
-      ],
-      "responseMessages": [
-       {
-        "code": 200,
-        "message": "OK",
-        "responseModel": "v1.PodTemplate"
-       },
-       {
-        "code": 201,
-        "message": "Created",
-        "responseModel": "v1.PodTemplate"
-       },
-       {
-        "code": 202,
-        "message": "Accepted",
-        "responseModel": "v1.PodTemplate"
-       }
-      ],
-      "produces": [
-       "application/json",
-       "application/yaml",
-       "application/vnd.kubernetes.protobuf"
-      ],
-      "consumes": [
-       "*/*"
-      ]
      }
     ]
    },
@@ -12836,55 +12438,6 @@
        "application/vnd.kubernetes.protobuf",
        "application/json;stream=watch",
        "application/vnd.kubernetes.protobuf;stream=watch"
-      ],
-      "consumes": [
-       "*/*"
-      ]
-     },
-     {
-      "type": "v1.ReplicationController",
-      "method": "POST",
-      "summary": "create a ReplicationController",
-      "nickname": "createReplicationControllerForAllNamespaces",
-      "parameters": [
-       {
-        "type": "string",
-        "paramType": "query",
-        "name": "pretty",
-        "description": "If 'true', then the output is pretty printed.",
-        "required": false,
-        "allowMultiple": false
-       },
-       {
-        "type": "v1.ReplicationController",
-        "paramType": "body",
-        "name": "body",
-        "description": "",
-        "required": true,
-        "allowMultiple": false
-       }
-      ],
-      "responseMessages": [
-       {
-        "code": 200,
-        "message": "OK",
-        "responseModel": "v1.ReplicationController"
-       },
-       {
-        "code": 201,
-        "message": "Created",
-        "responseModel": "v1.ReplicationController"
-       },
-       {
-        "code": 202,
-        "message": "Accepted",
-        "responseModel": "v1.ReplicationController"
-       }
-      ],
-      "produces": [
-       "application/json",
-       "application/yaml",
-       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -14201,55 +13754,6 @@
       "consumes": [
        "*/*"
       ]
-     },
-     {
-      "type": "v1.ResourceQuota",
-      "method": "POST",
-      "summary": "create a ResourceQuota",
-      "nickname": "createResourceQuotaForAllNamespaces",
-      "parameters": [
-       {
-        "type": "string",
-        "paramType": "query",
-        "name": "pretty",
-        "description": "If 'true', then the output is pretty printed.",
-        "required": false,
-        "allowMultiple": false
-       },
-       {
-        "type": "v1.ResourceQuota",
-        "paramType": "body",
-        "name": "body",
-        "description": "",
-        "required": true,
-        "allowMultiple": false
-       }
-      ],
-      "responseMessages": [
-       {
-        "code": 200,
-        "message": "OK",
-        "responseModel": "v1.ResourceQuota"
-       },
-       {
-        "code": 201,
-        "message": "Created",
-        "responseModel": "v1.ResourceQuota"
-       },
-       {
-        "code": 202,
-        "message": "Accepted",
-        "responseModel": "v1.ResourceQuota"
-       }
-      ],
-      "produces": [
-       "application/json",
-       "application/yaml",
-       "application/vnd.kubernetes.protobuf"
-      ],
-      "consumes": [
-       "*/*"
-      ]
      }
     ]
    },
@@ -15388,55 +14892,6 @@
        "application/vnd.kubernetes.protobuf",
        "application/json;stream=watch",
        "application/vnd.kubernetes.protobuf;stream=watch"
-      ],
-      "consumes": [
-       "*/*"
-      ]
-     },
-     {
-      "type": "v1.Secret",
-      "method": "POST",
-      "summary": "create a Secret",
-      "nickname": "createSecretForAllNamespaces",
-      "parameters": [
-       {
-        "type": "string",
-        "paramType": "query",
-        "name": "pretty",
-        "description": "If 'true', then the output is pretty printed.",
-        "required": false,
-        "allowMultiple": false
-       },
-       {
-        "type": "v1.Secret",
-        "paramType": "body",
-        "name": "body",
-        "description": "",
-        "required": true,
-        "allowMultiple": false
-       }
-      ],
-      "responseMessages": [
-       {
-        "code": 200,
-        "message": "OK",
-        "responseModel": "v1.Secret"
-       },
-       {
-        "code": 201,
-        "message": "Created",
-        "responseModel": "v1.Secret"
-       },
-       {
-        "code": 202,
-        "message": "Accepted",
-        "responseModel": "v1.Secret"
-       }
-      ],
-      "produces": [
-       "application/json",
-       "application/yaml",
-       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"
@@ -17107,55 +16562,6 @@
       "consumes": [
        "*/*"
       ]
-     },
-     {
-      "type": "v1.ServiceAccount",
-      "method": "POST",
-      "summary": "create a ServiceAccount",
-      "nickname": "createServiceAccountForAllNamespaces",
-      "parameters": [
-       {
-        "type": "string",
-        "paramType": "query",
-        "name": "pretty",
-        "description": "If 'true', then the output is pretty printed.",
-        "required": false,
-        "allowMultiple": false
-       },
-       {
-        "type": "v1.ServiceAccount",
-        "paramType": "body",
-        "name": "body",
-        "description": "",
-        "required": true,
-        "allowMultiple": false
-       }
-      ],
-      "responseMessages": [
-       {
-        "code": 200,
-        "message": "OK",
-        "responseModel": "v1.ServiceAccount"
-       },
-       {
-        "code": 201,
-        "message": "Created",
-        "responseModel": "v1.ServiceAccount"
-       },
-       {
-        "code": 202,
-        "message": "Accepted",
-        "responseModel": "v1.ServiceAccount"
-       }
-      ],
-      "produces": [
-       "application/json",
-       "application/yaml",
-       "application/vnd.kubernetes.protobuf"
-      ],
-      "consumes": [
-       "*/*"
-      ]
      }
     ]
    },
@@ -18021,55 +17427,6 @@
        "application/vnd.kubernetes.protobuf",
        "application/json;stream=watch",
        "application/vnd.kubernetes.protobuf;stream=watch"
-      ],
-      "consumes": [
-       "*/*"
-      ]
-     },
-     {
-      "type": "v1.Service",
-      "method": "POST",
-      "summary": "create a Service",
-      "nickname": "createServiceForAllNamespaces",
-      "parameters": [
-       {
-        "type": "string",
-        "paramType": "query",
-        "name": "pretty",
-        "description": "If 'true', then the output is pretty printed.",
-        "required": false,
-        "allowMultiple": false
-       },
-       {
-        "type": "v1.Service",
-        "paramType": "body",
-        "name": "body",
-        "description": "",
-        "required": true,
-        "allowMultiple": false
-       }
-      ],
-      "responseMessages": [
-       {
-        "code": 200,
-        "message": "OK",
-        "responseModel": "v1.Service"
-       },
-       {
-        "code": 201,
-        "message": "Created",
-        "responseModel": "v1.Service"
-       },
-       {
-        "code": 202,
-        "message": "Accepted",
-        "responseModel": "v1.Service"
-       }
-      ],
-      "produces": [
-       "application/json",
-       "application/yaml",
-       "application/vnd.kubernetes.protobuf"
       ],
       "consumes": [
        "*/*"

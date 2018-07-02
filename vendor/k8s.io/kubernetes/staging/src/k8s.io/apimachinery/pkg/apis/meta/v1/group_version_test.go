@@ -21,9 +21,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/ugorji/go/codec"
-
-	serializerjson "k8s.io/apimachinery/pkg/runtime/serializer/json"
+	k8s_json "k8s.io/apimachinery/pkg/runtime/serializer/json"
 )
 
 type GroupVersionHolder struct {
@@ -49,11 +47,9 @@ func TestGroupVersionUnmarshalJSON(t *testing.T) {
 			t.Errorf("JSON codec failed to unmarshal input '%s': expected %+v, got %+v", c.input, c.expect, result.GV)
 		}
 		// test the json-iterator codec
-		// if err := jsoniter.ConfigCompatibleWithStandardLibrary.Unmarshal(c.input, &result); err != nil {
-		//   t.Errorf("json-iterator codec failed to unmarshal input '%v': %v", c.input, err)
-		// test the Ugorji codec
-		if err := codec.NewDecoderBytes(c.input, serializerjson.NewUgorjiHandler()).Decode(&result); err != nil {
-			t.Errorf("Ugorji codec failed to unmarshal input '%v': %v", c.input, err)
+		iter := k8s_json.CaseSensitiveJsonIterator()
+		if err := iter.Unmarshal(c.input, &result); err != nil {
+			t.Errorf("json-iterator codec failed to unmarshal input '%v': %v", c.input, err)
 		}
 		if !reflect.DeepEqual(result.GV, c.expect) {
 			t.Errorf("json-iterator codec failed to unmarshal input '%s': expected %+v, got %+v", c.input, c.expect, result.GV)
