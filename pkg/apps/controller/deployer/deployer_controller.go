@@ -91,9 +91,6 @@ type DeploymentController struct {
 	// environment is a set of environment variables which should be injected into all
 	// deployer pod containers.
 	environment []v1.EnvVar
-	// codec is used for deserializing deploymentconfigs from replication controller
-	// annotations.
-	codec runtime.Codec
 	// recorder is used to record events.
 	recorder record.EventRecorder
 }
@@ -136,7 +133,7 @@ func (c *DeploymentController) handle(deployment *v1.ReplicationController, will
 		// deployer pod (quota, etc..) we should respect the timeoutSeconds in the
 		// config strategy and transition the rollout to failed instead of waiting for
 		// the deployment pod forever.
-		config, err := appsutil.DecodeDeploymentConfig(deployment, c.codec)
+		config, err := appsutil.DecodeDeploymentConfig(deployment)
 		if err != nil {
 			return err
 		}
@@ -281,7 +278,7 @@ func (c *DeploymentController) handle(deployment *v1.ReplicationController, will
 		// If we are going to transition to failed or complete and scale is non-zero, we'll check one more
 		// time to see if we are a test deployment to guarantee that we maintain the test invariant.
 		if *deploymentCopy.Spec.Replicas != 0 && appsutil.IsTerminatedDeployment(deploymentCopy) {
-			if config, err := appsutil.DecodeDeploymentConfig(deploymentCopy, c.codec); err == nil && config.Spec.Test {
+			if config, err := appsutil.DecodeDeploymentConfig(deploymentCopy); err == nil && config.Spec.Test {
 				zero := int32(0)
 				deploymentCopy.Spec.Replicas = &zero
 			}
@@ -357,7 +354,7 @@ func nextStatusComp(fromDeployer, fromPath appsapi.DeploymentStatus) appsapi.Dep
 // makeDeployerPod creates a pod which implements deployment behavior. The pod is correlated to
 // the deployment with an annotation.
 func (c *DeploymentController) makeDeployerPod(deployment *v1.ReplicationController) (*v1.Pod, error) {
-	deploymentConfig, err := appsutil.DecodeDeploymentConfig(deployment, c.codec)
+	deploymentConfig, err := appsutil.DecodeDeploymentConfig(deployment)
 	if err != nil {
 		return nil, err
 	}
@@ -557,7 +554,7 @@ func (c *DeploymentController) cleanupDeployerPods(deployment *v1.ReplicationCon
 }
 
 func (c *DeploymentController) emitDeploymentEvent(deployment *v1.ReplicationController, eventType, title, message string) {
-	if config, _ := appsutil.DecodeDeploymentConfig(deployment, c.codec); config != nil {
+	if config, _ := appsutil.DecodeDeploymentConfig(deployment); config != nil {
 		c.recorder.Eventf(config, eventType, title, message)
 	} else {
 		c.recorder.Eventf(deployment, eventType, title, message)

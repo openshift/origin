@@ -30,20 +30,19 @@ import (
 )
 
 // NewREST provides new REST storage for the apps API group.
-func NewREST(store registry.Store, imagesclient imageclientinternal.Interface, kc kclientset.Interface, decoder runtime.Decoder, admission admission.Interface) *REST {
+func NewREST(store registry.Store, imagesclient imageclientinternal.Interface, kc kclientset.Interface, admission admission.Interface) *REST {
 	store.UpdateStrategy = Strategy
-	return &REST{store: &store, is: imagesclient.Image(), rn: kc.Core(), decoder: decoder, admit: admission}
+	return &REST{store: &store, is: imagesclient.Image(), rn: kc.Core(), admit: admission}
 }
 
 // REST implements the Creater interface.
 var _ = rest.Creater(&REST{})
 
 type REST struct {
-	store   *registry.Store
-	is      images.ImageStreamsGetter
-	rn      kcoreclient.ReplicationControllersGetter
-	decoder runtime.Decoder
-	admit   admission.Interface
+	store *registry.Store
+	is    images.ImageStreamsGetter
+	rn    kcoreclient.ReplicationControllersGetter
+	admit admission.Interface
 }
 
 func (s *REST) New() runtime.Object {
@@ -77,7 +76,7 @@ func (s *REST) Create(ctx context.Context, obj runtime.Object, createValidation 
 			}
 		}
 
-		canTrigger, causes, err := canTrigger(config, s.rn, s.decoder, req.Force)
+		canTrigger, causes, err := canTrigger(config, s.rn, req.Force)
 		if err != nil {
 			return err
 		}
@@ -217,11 +216,10 @@ func containsTriggerType(types []appsapi.DeploymentTriggerType, triggerType apps
 func canTrigger(
 	config *appsapi.DeploymentConfig,
 	rn kcoreclient.ReplicationControllersGetter,
-	decoder runtime.Decoder,
 	force bool,
 ) (bool, []appsapi.DeploymentCause, error) {
 
-	decoded, err := decodeFromLatestDeployment(config, rn, decoder)
+	decoded, err := decodeFromLatestDeployment(config, rn)
 	if err != nil {
 		return false, nil, err
 	}
@@ -297,7 +295,7 @@ func canTrigger(
 // decodeFromLatestDeployment will try to return the decoded version of the current deploymentconfig
 // found in the annotations of its latest deployment. If there is no previous deploymentconfig (ie.
 // latestVersion == 0), the returned deploymentconfig will be the same.
-func decodeFromLatestDeployment(config *appsapi.DeploymentConfig, rn kcoreclient.ReplicationControllersGetter, decoder runtime.Decoder) (*appsapi.DeploymentConfig, error) {
+func decodeFromLatestDeployment(config *appsapi.DeploymentConfig, rn kcoreclient.ReplicationControllersGetter) (*appsapi.DeploymentConfig, error) {
 	if config.Status.LatestVersion == 0 {
 		return config, nil
 	}
@@ -310,7 +308,7 @@ func decodeFromLatestDeployment(config *appsapi.DeploymentConfig, rn kcoreclient
 		// to make the deployment for the config, so return early.
 		return nil, err
 	}
-	decoded, err := appsutil.DecodeDeploymentConfig(deployment, decoder)
+	decoded, err := appsutil.DecodeDeploymentConfig(deployment)
 	if err != nil {
 		return nil, errors.NewInternalError(err)
 	}

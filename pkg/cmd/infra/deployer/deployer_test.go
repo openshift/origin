@@ -6,10 +6,8 @@ import (
 	"strconv"
 	"testing"
 
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	appsv1 "github.com/openshift/api/apps/v1"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appstest "github.com/openshift/origin/pkg/apps/apis/apps/test"
 	"github.com/openshift/origin/pkg/apps/strategy"
@@ -218,7 +216,7 @@ func TestDeployer_deployScenarios(t *testing.T) {
 }
 
 func mkdeployment(version int64, status appsapi.DeploymentStatus) *kapi.ReplicationController {
-	deployment, _ := appsutil.MakeDeployment(appstest.OkDeploymentConfig(version), legacyscheme.Codecs.LegacyCodec(appsv1.SchemeGroupVersion))
+	deployment, _ := appsutil.MakeTestOnlyInternalDeployment(appstest.OkDeploymentConfig(version))
 	deployment.Annotations[appsapi.DeploymentStatusAnnotation] = string(status)
 	return deployment
 }

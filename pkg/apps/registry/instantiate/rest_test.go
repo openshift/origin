@@ -7,12 +7,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgotesting "k8s.io/client-go/testing"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
-	appsv1 "github.com/openshift/api/apps/v1"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	_ "github.com/openshift/origin/pkg/apps/apis/apps/install"
 	appstest "github.com/openshift/origin/pkg/apps/apis/apps/test"
@@ -20,8 +18,6 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imagefake "github.com/openshift/origin/pkg/image/generated/internalclientset/fake"
 )
-
-var codec = legacyscheme.Codecs.LegacyCodec(appsv1.SchemeGroupVersion)
 
 // TestProcess_changeForNonAutomaticTag ensures that an image update for which
 // there is a matching trigger results in a no-op due to the trigger's
@@ -707,13 +703,13 @@ func TestCanTrigger(t *testing.T) {
 				config = test.config
 			}
 			config = appstest.RoundTripConfig(t, config)
-			deployment, _ := appsutil.MakeDeployment(config, codec)
+			deployment, _ := appsutil.MakeTestOnlyInternalDeployment(config)
 			return true, deployment, nil
 		})
 
 		test.config = appstest.RoundTripConfig(t, test.config)
 
-		got, gotCauses, err := canTrigger(test.config, client.Core(), codec, test.force)
+		got, gotCauses, err := canTrigger(test.config, client.Core(), test.force)
 		if err != nil && !test.expectedErr {
 			t.Errorf("unexpected error: %v", err)
 			continue

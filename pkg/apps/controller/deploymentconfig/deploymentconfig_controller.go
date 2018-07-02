@@ -150,7 +150,7 @@ func (c *DeploymentConfigController) Handle(config *appsapi.DeploymentConfig) er
 
 	configCopy := config.DeepCopy()
 	// Process triggers and start an initial rollouts
-	shouldTrigger, shouldSkip, err := triggerActivated(configCopy, latestExists, latestDeployment, c.codec)
+	shouldTrigger, shouldSkip, err := triggerActivated(configCopy, latestExists, latestDeployment)
 	if err != nil {
 		return fmt.Errorf("triggerActivated failed: %v", err)
 	}
@@ -179,7 +179,7 @@ func (c *DeploymentConfigController) Handle(config *appsapi.DeploymentConfig) er
 
 	// No deployments are running and the latest deployment doesn't exist, so
 	// create the new deployment.
-	deployment, err := appsutil.MakeDeploymentV1(config, c.codec)
+	deployment, err := appsutil.MakeDeploymentV1(config)
 	if err != nil {
 		return fatalError(fmt.Sprintf("couldn't make deployment from (potentially invalid) deployment config %s: %v", appsutil.LabelForDeploymentConfig(config), err))
 	}
@@ -541,7 +541,7 @@ func (c *DeploymentConfigController) cleanupOldDeployments(existingDeployments [
 // triggers were activated (config change or image change). The first bool indicates that
 // the triggers are active and second indicates if we should skip the rollout because we
 // are waiting for the trigger to complete update (waiting for image for example).
-func triggerActivated(config *appsapi.DeploymentConfig, latestExists bool, latestDeployment *v1.ReplicationController, codec runtime.Codec) (bool, bool, error) {
+func triggerActivated(config *appsapi.DeploymentConfig, latestExists bool, latestDeployment *v1.ReplicationController) (bool, bool, error) {
 	if config.Spec.Paused {
 		return false, false, nil
 	}
@@ -598,7 +598,7 @@ func triggerActivated(config *appsapi.DeploymentConfig, latestExists bool, lates
 	}
 
 	if configTrigger {
-		isLatest, changes, err := appsutil.HasLatestPodTemplate(config, latestDeployment, codec)
+		isLatest, changes, err := appsutil.HasLatestPodTemplate(config, latestDeployment)
 		if err != nil {
 			return false, false, fmt.Errorf("error while checking for latest pod template in replication controller: %v", err)
 		}

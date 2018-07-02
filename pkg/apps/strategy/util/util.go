@@ -19,10 +19,10 @@ import (
 
 // RecordConfigEvent records an event for the deployment config referenced by the
 // deployment.
-func RecordConfigEvent(client kcoreclient.EventsGetter, deployment *kapi.ReplicationController, decoder runtime.Decoder, eventType, reason, msg string) {
+func RecordConfigEvent(client kcoreclient.EventsGetter, deployment *kapi.ReplicationController, eventType, reason, msg string) {
 	t := metav1.Time{Time: time.Now()}
 	var obj runtime.Object = deployment
-	if config, err := appsutil.DecodeDeploymentConfig(deployment, decoder); err == nil {
+	if config, err := appsutil.DecodeDeploymentConfig(deployment); err == nil {
 		obj = config
 	} else {
 		glog.Errorf("Unable to decode deployment config from %s/%s: %v", deployment.Namespace, deployment.Name, err)
@@ -55,7 +55,7 @@ func RecordConfigEvent(client kcoreclient.EventsGetter, deployment *kapi.Replica
 
 // RecordConfigWarnings records all warning events from the replication controller to the
 // associated deployment config.
-func RecordConfigWarnings(client kcoreclient.EventsGetter, rc *kapi.ReplicationController, decoder runtime.Decoder, out io.Writer) {
+func RecordConfigWarnings(client kcoreclient.EventsGetter, rc *kapi.ReplicationController, out io.Writer) {
 	if rc == nil {
 		return
 	}
@@ -68,7 +68,7 @@ func RecordConfigWarnings(client kcoreclient.EventsGetter, rc *kapi.ReplicationC
 	for _, e := range events.Items {
 		if e.Type == kapi.EventTypeWarning {
 			fmt.Fprintf(out, "-->  %s: %s %s\n", e.Reason, rc.Name, e.Message)
-			RecordConfigEvent(client, rc, decoder, e.Type, e.Reason, e.Message)
+			RecordConfigEvent(client, rc, e.Type, e.Reason, e.Message)
 		}
 	}
 }

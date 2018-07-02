@@ -12,7 +12,6 @@ import (
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	fakeexternal "k8s.io/client-go/kubernetes/fake"
 	clientgotesting "k8s.io/client-go/testing"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
@@ -28,7 +27,10 @@ import (
 var testSelector = map[string]string{"test": "rest"}
 
 func makeDeployment(version int64) kapi.ReplicationController {
-	deployment, _ := appsutil.MakeDeployment(appstest.OkDeploymentConfig(version), legacyscheme.Codecs.LegacyCodec(appsapi.SchemeGroupVersion))
+	deployment, err := appsutil.MakeTestOnlyInternalDeployment(appstest.OkDeploymentConfig(version))
+	if err != nil {
+		panic(err)
+	}
 	deployment.Namespace = metav1.NamespaceDefault
 	deployment.Spec.Selector = testSelector
 	return *deployment

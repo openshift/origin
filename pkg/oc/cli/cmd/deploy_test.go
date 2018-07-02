@@ -11,7 +11,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgotesting "k8s.io/client-go/testing"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
@@ -26,7 +25,7 @@ import (
 )
 
 func deploymentFor(config *appsapi.DeploymentConfig, status appsapi.DeploymentStatus) *kapi.ReplicationController {
-	d, err := appsutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(appsapi.SchemeGroupVersion))
+	d, err := appsutil.MakeTestOnlyInternalDeployment(config)
 	if err != nil {
 		panic(err)
 	}
@@ -243,7 +242,7 @@ func TestCmdDeploy_cancelOk(t *testing.T) {
 		config := appstest.OkDeploymentConfig(scenario.version)
 		existingDeployments := &kapi.ReplicationControllerList{}
 		for _, e := range scenario.existing {
-			d, _ := appsutil.MakeDeployment(appstest.OkDeploymentConfig(e.version), legacyscheme.Codecs.LegacyCodec(appsapi.SchemeGroupVersion))
+			d, _ := appsutil.MakeTestOnlyInternalDeployment(appstest.OkDeploymentConfig(e.version))
 			d.Annotations[appsapi.DeploymentStatusAnnotation] = string(e.status)
 			existingDeployments.Items = append(existingDeployments.Items, *d)
 		}

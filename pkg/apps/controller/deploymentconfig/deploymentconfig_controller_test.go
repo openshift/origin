@@ -17,11 +17,9 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 	clientgotesting "k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/cache"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 
-	appsv1 "github.com/openshift/api/apps/v1"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	_ "github.com/openshift/origin/pkg/apps/apis/apps/install"
 	appstest "github.com/openshift/origin/pkg/apps/apis/apps/test"
@@ -53,7 +51,7 @@ func TestHandleScenarios(t *testing.T) {
 			config = appstest.TestDeploymentConfig(config)
 		}
 		config.Namespace = "test"
-		deployment, _ := appsutil.MakeDeploymentV1(config, legacyscheme.Codecs.LegacyCodec(appsv1.SchemeGroupVersion))
+		deployment, _ := appsutil.MakeDeploymentV1(config)
 		deployment.Annotations[appsapi.DeploymentStatusAnnotation] = string(d.status)
 		if d.cancelled {
 			deployment.Annotations[appsapi.DeploymentCancelledAnnotation] = appsapi.DeploymentCancelledAnnotationValue
@@ -366,7 +364,6 @@ func TestHandleScenarios(t *testing.T) {
 			deployments[rc.Name] = rc
 			return true, rc, nil
 		})
-		codec := legacyscheme.Codecs.LegacyCodec(appsv1.SchemeGroupVersion)
 
 		dcInformer := &fakeDeploymentConfigInformer{
 			informer: cache.NewSharedIndexInformer(
@@ -386,7 +383,7 @@ func TestHandleScenarios(t *testing.T) {
 
 		kubeInformerFactory := kinformers.NewSharedInformerFactory(kc, 0)
 		rcInformer := kubeInformerFactory.Core().V1().ReplicationControllers()
-		c := NewDeploymentConfigController(dcInformer, rcInformer, oc, kc, codec)
+		c := NewDeploymentConfigController(dcInformer, rcInformer, oc, kc)
 		c.dcStoreSynced = alwaysReady
 		c.rcListerSynced = alwaysReady
 

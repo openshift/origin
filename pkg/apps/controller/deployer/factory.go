@@ -7,7 +7,6 @@ import (
 	"github.com/golang/glog"
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	kcoreinformers "k8s.io/client-go/informers/core/v1"
@@ -31,7 +30,6 @@ func NewDeployerController(
 	sa,
 	image string,
 	env []kapi.EnvVar,
-	codec runtime.Codec,
 ) *DeploymentController {
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartLogging(glog.Infof)
@@ -53,7 +51,6 @@ func NewDeployerController(
 		deployerImage:  image,
 		environment:    appsutil.CopyApiEnvVarToV1EnvVar(env),
 		recorder:       recorder,
-		codec:          codec,
 	}
 
 	rcInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{

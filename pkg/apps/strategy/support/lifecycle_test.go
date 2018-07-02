@@ -17,12 +17,10 @@ import (
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/watch"
 	clientgotesting "k8s.io/client-go/testing"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
-	appsv1 "github.com/openshift/api/apps/v1"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appstest "github.com/openshift/origin/pkg/apps/apis/apps/test"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
@@ -64,14 +62,13 @@ func TestHookExecutor_executeExecNewCreatePodFailure(t *testing.T) {
 		},
 	}
 	dc := appstest.OkDeploymentConfig(1)
-	deployment, _ := appsutil.MakeDeployment(dc, legacyscheme.Codecs.LegacyCodec(appsv1.SchemeGroupVersion))
+	deployment, _ := appsutil.MakeTestOnlyInternalDeployment(dc)
 	client := newTestClient(dc)
 	client.AddReactor("create", "pods", func(a clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, nil, errors.New("could not create the pod")
 	})
 	executor := &hookExecutor{
-		pods:    client.Core(),
-		decoder: legacyscheme.Codecs.UniversalDecoder(),
+		pods: client.Core(),
 	}
 
 	if err := executor.executeExecNewPod(hook, deployment, "hook", "test"); err == nil {
@@ -88,7 +85,7 @@ func TestHookExecutor_executeExecNewPodSucceeded(t *testing.T) {
 	}
 
 	config := appstest.OkDeploymentConfig(1)
-	deployment, _ := appsutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(appsv1.SchemeGroupVersion))
+	deployment, _ := appsutil.MakeTestOnlyInternalDeployment(config)
 	deployment.Spec.Template.Spec.NodeSelector = map[string]string{"labelKey1": "labelValue1", "labelKey2": "labelValue2"}
 
 	client := newTestClient(config)
@@ -116,9 +113,8 @@ func TestHookExecutor_executeExecNewPodSucceeded(t *testing.T) {
 	}()
 
 	executor := &hookExecutor{
-		pods:    client.Core(),
-		out:     podLogs,
-		decoder: legacyscheme.Codecs.UniversalDecoder(),
+		pods: client.Core(),
+		out:  podLogs,
 		getPodLogs: func(*kapi.Pod) (io.ReadCloser, error) {
 			return ioutil.NopCloser(strings.NewReader("test")), nil
 		},
@@ -156,7 +152,7 @@ func TestHookExecutor_executeExecNewPodFailed(t *testing.T) {
 	}
 
 	config := appstest.OkDeploymentConfig(1)
-	deployment, _ := appsutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(appsv1.SchemeGroupVersion))
+	deployment, _ := appsutil.MakeTestOnlyInternalDeployment(config)
 
 	client := newTestClient(config)
 	podCreated := make(chan struct{})
@@ -181,9 +177,8 @@ func TestHookExecutor_executeExecNewPodFailed(t *testing.T) {
 	}()
 
 	executor := &hookExecutor{
-		pods:    client.Core(),
-		out:     ioutil.Discard,
-		decoder: legacyscheme.Codecs.UniversalDecoder(),
+		pods: client.Core(),
+		out:  ioutil.Discard,
 		getPodLogs: func(*kapi.Pod) (io.ReadCloser, error) {
 			return ioutil.NopCloser(strings.NewReader("test")), nil
 		},
@@ -205,7 +200,7 @@ func TestHookExecutor_makeHookPodInvalidContainerRef(t *testing.T) {
 	}
 
 	config := appstest.OkDeploymentConfig(1)
-	deployment, _ := appsutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(appsv1.SchemeGroupVersion))
+	deployment, _ := appsutil.MakeTestOnlyInternalDeployment(config)
 
 	_, err := makeHookPod(hook, deployment, &config.Spec.Strategy, "hook", nowFunc().Time)
 	if err == nil {
@@ -527,7 +522,7 @@ func TestHookExecutor_makeHookPodRestart(t *testing.T) {
 	}
 
 	config := appstest.OkDeploymentConfig(1)
-	deployment, _ := appsutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(appsv1.SchemeGroupVersion))
+	deployment, _ := appsutil.MakeTestOnlyInternalDeployment(config)
 
 	pod, err := makeHookPod(hook, deployment, &config.Spec.Strategy, "hook", nowFunc().Time)
 	if err != nil {
@@ -617,7 +612,7 @@ func deployment(name, namespace string, strategyLabels, strategyAnnotations map[
 			},
 		},
 	}
-	deployment, _ := appsutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(appsv1.SchemeGroupVersion))
+	deployment, _ := appsutil.MakeTestOnlyInternalDeployment(config)
 	deployment.Namespace = namespace
 	return config, deployment
 }

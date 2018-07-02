@@ -27,7 +27,6 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 
-	appsapiv1 "github.com/openshift/api/apps/v1"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	_ "github.com/openshift/origin/pkg/apps/apis/apps/install"
 	appstest "github.com/openshift/origin/pkg/apps/apis/apps/test"
@@ -35,8 +34,7 @@ import (
 )
 
 var (
-	env   = []kapi.EnvVar{{Name: "ENV1", Value: "VAL1"}}
-	codec = legacyscheme.Codecs.LegacyCodec(appsapiv1.SchemeGroupVersion)
+	env = []kapi.EnvVar{{Name: "ENV1", Value: "VAL1"}}
 )
 
 func alwaysReady() bool { return true }
@@ -51,7 +49,7 @@ func okDeploymentController(client kclientset.Interface, deployment *v1.Replicat
 	rcInformer := informerFactory.Core().V1().ReplicationControllers()
 	podInformer := informerFactory.Core().V1().Pods()
 
-	c := NewDeployerController(rcInformer, podInformer, client, "sa:test", "openshift/origin-deployer", env, codec)
+	c := NewDeployerController(rcInformer, podInformer, client, "sa:test", "openshift/origin-deployer", env)
 	c.podListerSynced = alwaysReady
 	c.rcListerSynced = alwaysReady
 
@@ -185,7 +183,7 @@ func TestHandle_createPodOk(t *testing.T) {
 	// Verify new -> pending
 	config := appstest.OkDeploymentConfig(1)
 	config.Spec.Strategy = appstest.OkCustomStrategy()
-	deployment, _ := appsutil.MakeDeploymentV1(config, codec)
+	deployment, _ := appsutil.MakeDeploymentV1(config)
 	deployment.Annotations[appsapi.DeploymentStatusAnnotation] = string(appsapi.DeploymentStatusNew)
 	deployment.Spec.Template.Spec.NodeSelector = map[string]string{"labelKey1": "labelValue1", "labelKey2": "labelValue2"}
 	deployment.CreationTimestamp = metav1.Now()
@@ -276,7 +274,7 @@ func TestHandle_createPodFail(t *testing.T) {
 	})
 
 	config := appstest.OkDeploymentConfig(1)
-	deployment, _ := appsutil.MakeDeploymentV1(config, codec)
+	deployment, _ := appsutil.MakeDeploymentV1(config)
 	deployment.Annotations[appsapi.DeploymentStatusAnnotation] = string(appsapi.DeploymentStatusNew)
 	deployment.CreationTimestamp = metav1.Now()
 
@@ -332,7 +330,7 @@ func TestHandle_deployerPodAlreadyExists(t *testing.T) {
 		var updatedDeployment *v1.ReplicationController
 
 		config := appstest.OkDeploymentConfig(1)
-		deployment, _ := appsutil.MakeDeploymentV1(config, codec)
+		deployment, _ := appsutil.MakeDeploymentV1(config)
 		deployment.Annotations[appsapi.DeploymentStatusAnnotation] = string(appsapi.DeploymentStatusNew)
 		deployment.CreationTimestamp = metav1.Now()
 		deployerPodName := appsutil.DeployerPodNameForDeployment(deployment.Name)
@@ -373,7 +371,7 @@ func TestHandle_unrelatedPodAlreadyExists(t *testing.T) {
 	var updatedDeployment *v1.ReplicationController
 
 	config := appstest.OkDeploymentConfig(1)
-	deployment, _ := appsutil.MakeDeploymentV1(config, codec)
+	deployment, _ := appsutil.MakeDeploymentV1(config)
 	deployment.CreationTimestamp = metav1.Now()
 	deployment.Annotations[appsapi.DeploymentStatusAnnotation] = string(appsapi.DeploymentStatusNew)
 
@@ -414,7 +412,7 @@ func TestHandle_unrelatedPodAlreadyExistsTestScaled(t *testing.T) {
 	var updatedDeployment *v1.ReplicationController
 
 	config := appstest.TestDeploymentConfig(appstest.OkDeploymentConfig(1))
-	deployment, _ := appsutil.MakeDeploymentV1(config, codec)
+	deployment, _ := appsutil.MakeDeploymentV1(config)
 	deployment.Annotations[appsapi.DeploymentStatusAnnotation] = string(appsapi.DeploymentStatusNew)
 	deployment.CreationTimestamp = metav1.Now()
 	one := int32(1)
@@ -486,7 +484,7 @@ func TestHandle_noop(t *testing.T) {
 	for _, test := range tests {
 		client := fake.NewSimpleClientset()
 
-		deployment, _ := appsutil.MakeDeploymentV1(appstest.OkDeploymentConfig(1), codec)
+		deployment, _ := appsutil.MakeDeploymentV1(appstest.OkDeploymentConfig(1))
 		deployment.Annotations[appsapi.DeploymentStatusAnnotation] = string(test.deploymentPhase)
 		deployment.CreationTimestamp = metav1.Now()
 
@@ -531,7 +529,7 @@ func TestHandle_failedTest(t *testing.T) {
 
 	// Verify successful cleanup
 	config := appstest.TestDeploymentConfig(appstest.OkDeploymentConfig(1))
-	deployment, _ := appsutil.MakeDeploymentV1(config, codec)
+	deployment, _ := appsutil.MakeDeploymentV1(config)
 	deployment.CreationTimestamp = metav1.Now()
 	one := int32(1)
 	deployment.Spec.Replicas = &one
@@ -574,7 +572,7 @@ func TestHandle_cleanupPodOk(t *testing.T) {
 
 	// Verify successful cleanup
 	config := appstest.OkDeploymentConfig(1)
-	deployment, _ := appsutil.MakeDeploymentV1(config, codec)
+	deployment, _ := appsutil.MakeDeploymentV1(config)
 	deployment.Annotations[appsapi.DeploymentStatusAnnotation] = string(appsapi.DeploymentStatusComplete)
 	deployment.CreationTimestamp = metav1.Now()
 
@@ -619,7 +617,7 @@ func TestHandle_cleanupPodOkTest(t *testing.T) {
 
 	// Verify successful cleanup
 	config := appstest.TestDeploymentConfig(appstest.OkDeploymentConfig(1))
-	deployment, _ := appsutil.MakeDeploymentV1(config, codec)
+	deployment, _ := appsutil.MakeDeploymentV1(config)
 	deployment.CreationTimestamp = metav1.Now()
 	one := int32(1)
 	deployment.Spec.Replicas = &one
@@ -664,7 +662,7 @@ func TestHandle_cleanupPodNoop(t *testing.T) {
 
 	// Verify no-op
 	config := appstest.OkDeploymentConfig(1)
-	deployment, _ := appsutil.MakeDeploymentV1(config, codec)
+	deployment, _ := appsutil.MakeDeploymentV1(config)
 	deployment.CreationTimestamp = metav1.Now()
 	deployment.Annotations[appsapi.DeploymentStatusAnnotation] = string(appsapi.DeploymentStatusComplete)
 
@@ -696,7 +694,7 @@ func TestHandle_cleanupPodFail(t *testing.T) {
 
 	// Verify error
 	config := appstest.OkDeploymentConfig(1)
-	deployment, _ := appsutil.MakeDeploymentV1(config, codec)
+	deployment, _ := appsutil.MakeDeploymentV1(config)
 	deployment.CreationTimestamp = metav1.Now()
 	deployment.Annotations[appsapi.DeploymentStatusAnnotation] = string(appsapi.DeploymentStatusComplete)
 
@@ -727,7 +725,7 @@ func TestHandle_cancelNew(t *testing.T) {
 		return true, rc, nil
 	})
 
-	deployment, _ := appsutil.MakeDeploymentV1(appstest.OkDeploymentConfig(1), codec)
+	deployment, _ := appsutil.MakeDeploymentV1(appstest.OkDeploymentConfig(1))
 	deployment.CreationTimestamp = metav1.Now()
 	deployment.Annotations[appsapi.DeploymentStatusAnnotation] = string(appsapi.DeploymentStatusNew)
 	deployment.Annotations[appsapi.DeploymentCancelledAnnotation] = appsapi.DeploymentCancelledAnnotationValue
@@ -749,7 +747,7 @@ func TestHandle_cleanupNewWithDeployers(t *testing.T) {
 	var updatedDeployment *v1.ReplicationController
 	deletedDeployer := false
 
-	deployment, _ := appsutil.MakeDeploymentV1(appstest.OkDeploymentConfig(1), codec)
+	deployment, _ := appsutil.MakeDeploymentV1(appstest.OkDeploymentConfig(1))
 	deployment.CreationTimestamp = metav1.Now()
 	deployment.Annotations[appsapi.DeploymentStatusAnnotation] = string(appsapi.DeploymentStatusNew)
 	deployment.Annotations[appsapi.DeploymentCancelledAnnotation] = appsapi.DeploymentCancelledAnnotationValue
@@ -844,7 +842,7 @@ func TestHandle_cleanupPostNew(t *testing.T) {
 			return true, nil, nil
 		})
 
-		deployment, _ := appsutil.MakeDeploymentV1(appstest.OkDeploymentConfig(1), codec)
+		deployment, _ := appsutil.MakeDeploymentV1(appstest.OkDeploymentConfig(1))
 		deployment.CreationTimestamp = metav1.Now()
 		deployment.Annotations[appsapi.DeploymentCancelledAnnotation] = appsapi.DeploymentCancelledAnnotationValue
 		deployment.Annotations[appsapi.DeploymentStatusAnnotation] = string(test.deploymentPhase)
@@ -903,7 +901,7 @@ func TestHandle_deployerPodDisappeared(t *testing.T) {
 			return true, nil, nil
 		})
 
-		deployment, err := appsutil.MakeDeploymentV1(appstest.OkDeploymentConfig(1), codec)
+		deployment, err := appsutil.MakeDeploymentV1(appstest.OkDeploymentConfig(1))
 		if err != nil {
 			t.Errorf("%s: unexpected error: %v", test.name, err)
 			continue
@@ -1043,7 +1041,7 @@ func TestHandle_transitionFromDeployer(t *testing.T) {
 			return true, nil, nil
 		})
 
-		deployment, _ := appsutil.MakeDeploymentV1(appstest.OkDeploymentConfig(1), codec)
+		deployment, _ := appsutil.MakeDeploymentV1(appstest.OkDeploymentConfig(1))
 		deployment.Annotations[appsapi.DeploymentStatusAnnotation] = string(test.deploymentPhase)
 		deployment.CreationTimestamp = metav1.Now()
 
@@ -1099,7 +1097,7 @@ func TestDeployerCustomLabelsAndAnnotations(t *testing.T) {
 		config.Spec.Strategy = test.strategy
 		config.Spec.Strategy.Labels = test.labels
 		config.Spec.Strategy.Annotations = test.annotations
-		deployment, _ := appsutil.MakeDeploymentV1(config, codec)
+		deployment, _ := appsutil.MakeDeploymentV1(config)
 
 		client := &fake.Clientset{}
 		client.AddReactor("create", "pods", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
@@ -1130,7 +1128,7 @@ func TestMakeDeployerPod(t *testing.T) {
 	client := &fake.Clientset{}
 	controller := okDeploymentController(client, nil, nil, true, v1.PodUnknown)
 	config := appstest.OkDeploymentConfig(1)
-	deployment, _ := appsutil.MakeDeploymentV1(config, codec)
+	deployment, _ := appsutil.MakeDeploymentV1(config)
 	container := controller.makeDeployerContainer(&config.Spec.Strategy)
 	container.Resources = appsutil.CopyApiResourcesToV1Resources(&config.Spec.Strategy.Resources)
 	defaultGracePeriod := int64(10)
