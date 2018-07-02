@@ -836,7 +836,7 @@ func defaultPod() *api.Pod {
 		ObjectMeta: metav1.ObjectMeta{Annotations: map[string]string{}},
 		Spec: api.PodSpec{
 			SecurityContext: &api.PodSecurityContext{
-			// fill in for test cases
+				// fill in for test cases
 			},
 			Containers: []api.Container{
 				{

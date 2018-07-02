@@ -1001,7 +1001,7 @@ func TestImageStreamImportRedHatRegistry(t *testing.T) {
 	}, imageNotFoundErrorPatterns...)
 	if err != nil {
 		if strings.Contains(err.Error(), "x509: certificate has expired or is not yet valid") {
-			t.Skip("SKIPPING: due to expired certificate of %s: %v", pulpRegistryName, err)
+			t.Skipf("SKIPPING: due to expired certificate of %s: %v", pulpRegistryName, err)
 		}
 		t.Fatal(err.Error())
 	}

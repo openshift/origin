@@ -123,7 +123,7 @@ func TestRegistryClientConnectPulpRegistry(t *testing.T) {
 	}, imageNotFoundErrorPatterns...)
 	if err != nil {
 		if strings.Contains(err.Error(), "x509: certificate has expired or is not yet valid") {
-			t.Skip("SKIPPING: due to expired certificate of %s: %v", pulpRegistryName, err)
+			t.Skipf("SKIPPING: due to expired certificate of %s: %v", pulpRegistryName, err)
 		}
 		t.Skip("pulp is failing")
 		//t.Fatal(err)
@@ -257,6 +257,6 @@ func TestRegistryClientQuayIOImage(t *testing.T) {
 		return err
 	}, imageNotFoundErrorPatterns...)
 	if err != nil {
-		t.Skip("SKIPPING: unexpected error from quay.io: %v", err)
+		t.Skipf("SKIPPING: unexpected error from quay.io: %v", err)
 	}
 }
