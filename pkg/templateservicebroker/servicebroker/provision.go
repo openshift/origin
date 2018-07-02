@@ -268,7 +268,13 @@ func (b *Broker) ensureBrokerTemplateInstance(u user.Info, namespace, instanceID
 		}
 
 		existingBrokerTemplateInstance, err := b.templateclient.BrokerTemplateInstances().Get(brokerTemplateInstance.Name, metav1.GetOptions{})
-		if err == nil && reflect.DeepEqual(brokerTemplateInstance.Spec, existingBrokerTemplateInstance.Spec) {
+		if err == nil &&
+			brokerTemplateInstance.Spec.TemplateInstance.Kind == existingBrokerTemplateInstance.Spec.TemplateInstance.Kind &&
+			brokerTemplateInstance.Spec.TemplateInstance.Namespace == existingBrokerTemplateInstance.Spec.TemplateInstance.Namespace &&
+			brokerTemplateInstance.Spec.TemplateInstance.Name == existingBrokerTemplateInstance.Spec.TemplateInstance.Name &&
+			brokerTemplateInstance.Spec.Secret.Kind == existingBrokerTemplateInstance.Spec.Secret.Kind &&
+			brokerTemplateInstance.Spec.Secret.Namespace == existingBrokerTemplateInstance.Spec.Secret.Namespace &&
+			brokerTemplateInstance.Spec.Secret.Name == existingBrokerTemplateInstance.Spec.Secret.Name {
 			return existingBrokerTemplateInstance, nil
 		}
 

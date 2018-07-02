@@ -39,6 +39,7 @@ type Broker struct {
 
 var _ api.Broker = &Broker{}
 
+// NewBroker - returns a new Broker
 func NewBroker(saKubeClientConfig *restclient.Config, informer templateinformer.TemplateInformer, namespaces []string) (*Broker, error) {
 	templateNamespaces := map[string]struct{}{}
 	for _, namespace := range namespaces {
