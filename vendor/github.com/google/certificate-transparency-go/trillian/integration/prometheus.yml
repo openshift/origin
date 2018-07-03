@@ -1,0 +1,16 @@
+global:
+  scrape_interval:     15s
+  external_labels:
+    monitor: 'trillian'
+
+scrape_configs:
+  - job_name: 'trillian'  # overwritten by labels in JSON file
+    file_sd_configs:
+    - files: ['trillian.json']
+  - job_name: 'etcd'
+    static_configs:
+    - targets: ['localhost:2379']
+  - job_name: 'prometheus'
+    static_configs:
+    - targets: ['localhost:9090']
+

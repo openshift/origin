@@ -1,86 +1,63 @@
 package crl
 
 import (
-	"bytes"
+	"crypto/x509"
+	"encoding/base64"
 	"encoding/json"
-	"github.com/cloudflare/cfssl/api"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
+
+	"github.com/cloudflare/cfssl/api"
+	"github.com/cloudflare/cfssl/certdb"
+	"github.com/cloudflare/cfssl/certdb/sql"
+	"github.com/cloudflare/cfssl/certdb/testdb"
+	"github.com/cloudflare/cfssl/helpers"
 )
 
 const (
-	cert       = "../../crl/testdata/caTwo.pem"
-	key        = "../../crl/testdata/ca-keyTwo.pem"
-	serialList = "../../crl/testdata/serialList"
-	expiryTime = "2000"
+	fakeAKI       = "fake aki"
+	testCaFile    = "../testdata/ca.pem"
+	testCaKeyFile = "../testdata/ca_key.pem"
 )
 
-type testJSON struct {
-	Certificate        string
-	SerialNumber       []string
-	PrivateKey         string
-	ExpiryTime         string
-	ExpectedHTTPStatus int
-	ExpectedSuccess    bool
-}
-
-var tester = testJSON{
-	Certificate:        cert,
-	SerialNumber:       []string{"1", "2", "3"},
-	PrivateKey:         key,
-	ExpiryTime:         "2000",
-	ExpectedHTTPStatus: 200,
-	ExpectedSuccess:    true,
-}
-
-func newTestHandler(t *testing.T) http.Handler {
-	return NewHandler()
-}
-
-func TestNewHandler(t *testing.T) {
-	newTestHandler(t)
-}
-
-func newCRLServer(t *testing.T) *httptest.Server {
-	ts := httptest.NewServer(newTestHandler(t))
-	return ts
-}
-
-func testCRLCreation(t *testing.T, issuingKey, certFile string, expiry string, serialList []string) (resp *http.Response, body []byte) {
-
-	ts := newCRLServer(t)
-	defer ts.Close()
-
-	obj := map[string]interface{}{}
-
-	if certFile != "" {
-		c, err := ioutil.ReadFile(certFile)
-		if err != nil {
-			t.Fatal(err)
-		}
-		obj["certificate"] = string(c)
+func prepDB() (certdb.Accessor, error) {
+	db := testdb.SQLiteDB("../../certdb/testdb/certstore_development.db")
+	expirationTime := time.Now().AddDate(1, 0, 0)
+	var cert = certdb.CertificateRecord{
+		Serial:    "1",
+		AKI:       fakeAKI,
+		Expiry:    expirationTime,
+		PEM:       "revoked cert",
+		Status:    "revoked",
+		RevokedAt: time.Now(),
+		Reason:    4,
 	}
 
-	obj["serialNumber"] = serialList
-
-	if issuingKey != "" {
-		c, err := ioutil.ReadFile(issuingKey)
-		if err != nil {
-			t.Fatal(err)
-		}
-		obj["issuingKey"] = string(c)
+	dbAccessor := sql.NewAccessor(db)
+	err := dbAccessor.InsertCertificate(cert)
+	if err != nil {
+		return nil, err
 	}
 
-	obj["expireTime"] = expiry
+	return dbAccessor, nil
+}
 
-	blob, err := json.Marshal(obj)
+func testGetCRL(t *testing.T, dbAccessor certdb.Accessor, expiry string) (resp *http.Response, body []byte) {
+	handler, err := NewHandler(dbAccessor, testCaFile, testCaKeyFile)
 	if err != nil {
 		t.Fatal(err)
 	}
+	ts := httptest.NewServer(handler)
+	defer ts.Close()
 
-	resp, err = http.Post(ts.URL, "application/json", bytes.NewReader(blob))
+	if expiry != "" {
+		resp, err = http.Get(ts.URL + "?expiry=" + expiry)
+	} else {
+		resp, err = http.Get(ts.URL)
+	}
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -91,18 +68,82 @@ func testCRLCreation(t *testing.T, issuingKey, certFile string, expiry string, s
 	return
 }
 
-func TestCRL(t *testing.T) {
-	resp, body := testCRLCreation(t, tester.PrivateKey, tester.Certificate, tester.ExpiryTime, tester.SerialNumber)
-	if resp.StatusCode != tester.ExpectedHTTPStatus {
-		t.Logf("expected: %d, have %d", tester.ExpectedHTTPStatus, resp.StatusCode)
-		t.Fatal(resp.Status, tester.ExpectedHTTPStatus, string(body))
-	}
-
-	message := new(api.Response)
-	err := json.Unmarshal(body, message)
+func TestCRLGeneration(t *testing.T) {
+	dbAccessor, err := prepDB()
 	if err != nil {
-		t.Logf("failed to read response body: %v", err)
-		t.Fatal(resp.Status, tester.ExpectedHTTPStatus, message)
+		t.Fatal(err)
 	}
 
+	resp, body := testGetCRL(t, dbAccessor, "")
+	if resp.StatusCode != http.StatusOK {
+		t.Fatal("unexpected HTTP status code; expected OK", string(body))
+	}
+	message := new(api.Response)
+	err = json.Unmarshal(body, message)
+	if err != nil {
+		t.Fatalf("failed to read response body: %v", err)
+	}
+
+	crlBytes := message.Result.(string)
+	crlBytesDER, err := base64.StdEncoding.DecodeString(crlBytes)
+	if err != nil {
+		t.Fatal("failed to decode certificate ", err)
+	}
+	parsedCrl, err := x509.ParseCRL(crlBytesDER)
+	if err != nil {
+		t.Fatal("failed to get certificate ", err)
+	}
+	if parsedCrl.HasExpired(time.Now().Add(5 * helpers.OneDay)) {
+		t.Fatal("the request will expire after 5 days, this shouldn't happen")
+	}
+	certs := parsedCrl.TBSCertList.RevokedCertificates
+	if len(certs) != 1 {
+		t.Fatal("failed to get one certificate")
+	}
+
+	cert := certs[0]
+
+	if cert.SerialNumber.String() != "1" {
+		t.Fatal("cert was not correctly inserted in CRL, serial was ", cert.SerialNumber)
+	}
+}
+
+func TestCRLGenerationWithExpiry(t *testing.T) {
+	dbAccessor, err := prepDB()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	resp, body := testGetCRL(t, dbAccessor, "119h")
+	if resp.StatusCode != http.StatusOK {
+		t.Fatal("unexpected HTTP status code; expected OK", string(body))
+	}
+	message := new(api.Response)
+	err = json.Unmarshal(body, message)
+	if err != nil {
+		t.Fatalf("failed to read response body: %v", err)
+	}
+
+	crlBytes := message.Result.(string)
+	crlBytesDER, err := base64.StdEncoding.DecodeString(crlBytes)
+	if err != nil {
+		t.Fatal("failed to decode certificate ", err)
+	}
+	parsedCrl, err := x509.ParseCRL(crlBytesDER)
+	if err != nil {
+		t.Fatal("failed to get certificate ", err)
+	}
+	if !parsedCrl.HasExpired(time.Now().Add(5 * helpers.OneDay)) {
+		t.Fatal("the request should have expired")
+	}
+	certs := parsedCrl.TBSCertList.RevokedCertificates
+	if len(certs) != 1 {
+		t.Fatal("failed to get one certificate")
+	}
+
+	cert := certs[0]
+
+	if cert.SerialNumber.String() != "1" {
+		t.Fatal("cert was not correctly inserted in CRL, serial was ", cert.SerialNumber)
+	}
 }

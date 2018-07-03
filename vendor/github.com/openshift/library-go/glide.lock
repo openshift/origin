@@ -1,8 +1,8 @@
 hash: 3b2ac5588e1edc90dd3cf20c5d1b9931b8a5d85cb316d7d53badf62e20674425
-updated: 2018-06-29T15:47:44.050191995-04:00
+updated: 2018-07-03T09:55:12.563502691-04:00
 imports:
 - name: github.com/blang/semver
-  version: c5e971dbed7850a93c23aa6ff69db5771d8e23b3
+  version: b38d23b8782a487059e8fc8773e9a5b228a77cb6
 - name: github.com/certifi/gocertifi
   version: deb3ae2ef2610fde3330947281941c562861188b
 - name: github.com/davecgh/go-spew
@@ -69,6 +69,8 @@ imports:
   version: 645ef00459ed84a119197bfb8d8205042c6df63d
 - name: github.com/pkg/profile
   version: 5b67d428864e92711fcbd2f8629456121a56d91f
+- name: github.com/sirupsen/logrus
+  version: 89742aefa4b206dcf400792f3bd35b542998eb3b
 - name: github.com/spf13/cobra
   version: c439c4fa093711d42e1b01acb1235b52004753c1
 - name: github.com/spf13/pflag

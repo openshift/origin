@@ -6,6 +6,7 @@ import (
 	"crypto/elliptic"
 	"crypto/rsa"
 	"crypto/x509"
+	"encoding/asn1"
 	"encoding/pem"
 	"io/ioutil"
 	"testing"
@@ -114,6 +115,131 @@ func TestParseRequest(t *testing.T) {
 	_, _, err := ParseRequest(cr)
 	if err != nil {
 		t.Fatalf("%v", err)
+	}
+}
+
+// TestParseRequestCA ensures that a valid CA certificate request does not
+// error and the resulting CSR includes the BasicConstraint extension
+func TestParseRequestCA(t *testing.T) {
+	var cr = &CertificateRequest{
+		CN: "Test Common Name",
+		Names: []Name{
+			{
+				C:  "US",
+				ST: "California",
+				L:  "San Francisco",
+				O:  "CloudFlare, Inc.",
+				OU: "Systems Engineering",
+			},
+			{
+				C:  "GB",
+				ST: "London",
+				L:  "London",
+				O:  "CloudFlare, Inc",
+				OU: "Systems Engineering",
+			},
+		},
+		CA: &CAConfig{
+			PathLength:  0,
+			PathLenZero: true,
+		},
+		KeyRequest: NewBasicKeyRequest(),
+	}
+
+	csrBytes, _, err := ParseRequest(cr)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	block, _ := pem.Decode(csrBytes)
+	if block == nil {
+		t.Fatalf("%v", err)
+	}
+
+	if block.Type != "CERTIFICATE REQUEST" {
+		t.Fatalf("Incorrect block type: %s", block.Type)
+	}
+
+	csr, err := x509.ParseCertificateRequest(block.Bytes)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	found := false
+	for _, ext := range csr.Extensions {
+		if ext.Id.Equal(asn1.ObjectIdentifier{2, 5, 29, 19}) {
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		t.Fatalf("CSR did not include BasicConstraint Extension")
+	}
+}
+
+// TestParseRequestCANoPathlen ensures that a valid CA certificate request
+// with an unspecified pathlen does not error and the resulting CSR includes
+// the BasicConstraint extension
+func TestParseRequestCANoPathlen(t *testing.T) {
+	var cr = &CertificateRequest{
+		CN: "Test Common Name",
+		Names: []Name{
+			{
+				C:  "US",
+				ST: "California",
+				L:  "San Francisco",
+				O:  "CloudFlare, Inc.",
+				OU: "Systems Engineering",
+			},
+			{
+				C:  "GB",
+				ST: "London",
+				L:  "London",
+				O:  "CloudFlare, Inc",
+				OU: "Systems Engineering",
+			},
+		},
+		CA: &CAConfig{
+			PathLength:  0,
+			PathLenZero: false,
+		},
+		KeyRequest: NewBasicKeyRequest(),
+	}
+
+	csrBytes, _, err := ParseRequest(cr)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	block, _ := pem.Decode(csrBytes)
+	if block == nil {
+		t.Fatalf("%v", err)
+	}
+
+	if block.Type != "CERTIFICATE REQUEST" {
+		t.Fatalf("Incorrect block type: %s", block.Type)
+	}
+
+	csr, err := x509.ParseCertificateRequest(block.Bytes)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	found := false
+	for _, ext := range csr.Extensions {
+		if ext.Id.Equal(asn1.ObjectIdentifier{2, 5, 29, 19}) {
+			bc := &BasicConstraints{}
+			asn1.Unmarshal(ext.Value, bc)
+			if bc.IsCA == true && bc.MaxPathLen == -1 {
+				found = true
+				break
+			}
+		}
+	}
+
+	if !found {
+		t.Fatalf("CSR did not include BasicConstraint Extension")
 	}
 }
 
@@ -508,7 +634,7 @@ func TestReGenerate(t *testing.T) {
 		KeyRequest: &BasicKeyRequest{"ecdsa", 256},
 	}
 
-	csr, key, err := ParseRequest(req)
+	_, key, err := ParseRequest(req)
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
@@ -518,7 +644,7 @@ func TestReGenerate(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 
-	csr, err = Generate(priv, req)
+	csr, err := Generate(priv, req)
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
@@ -551,7 +677,7 @@ func TestBadReGenerate(t *testing.T) {
 		KeyRequest: &BasicKeyRequest{"ecdsa", 256},
 	}
 
-	csr, key, err := ParseRequest(req)
+	_, key, err := ParseRequest(req)
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
@@ -561,7 +687,7 @@ func TestBadReGenerate(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 
-	csr, err = Generate(priv, req)
+	csr, err := Generate(priv, req)
 	if err != nil {
 		t.Fatalf("%v", err)
 	}

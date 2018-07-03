@@ -8,6 +8,8 @@ import (
 	"encoding/hex"
 	"encoding/pem"
 	"io/ioutil"
+	"net/http"
+	"net/http/httptest"
 	"reflect"
 	"regexp"
 	"sort"
@@ -17,6 +19,7 @@ import (
 
 	"github.com/cloudflare/cfssl/config"
 	"github.com/cloudflare/cfssl/csr"
+	cferr "github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/helpers"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
@@ -56,7 +59,7 @@ func TestNewSignerFromFilePolicy(t *testing.T) {
 				Usage:        []string{"cert sign", "crl sign"},
 				ExpiryString: "43800h",
 				Expiry:       expiry,
-				CA:           true,
+				CAConstraint: config.CAConstraint{IsCA: true},
 			},
 		},
 	}
@@ -141,73 +144,7 @@ func TestNewSignerFromFileEdgeCases(t *testing.T) {
 	}
 }
 
-// test the private method
-func testSign(t *testing.T) {
-	signer, err := NewSignerFromFile("testdata/ca.pem", "testdata/ca_key.pem", nil)
-	if signer == nil || err != nil {
-		t.Fatal("Failed to produce signer")
-	}
-
-	pem, _ := ioutil.ReadFile("../../helpers/testdata/cert.pem")
-	cert, _ := helpers.ParseCertificatePEM(pem)
-
-	badcert := *cert
-	badcert.PublicKey = nil
-	profl := config.SigningProfile{Usage: []string{"Certificates", "Rule"}}
-	_, err = signer.sign(&badcert, &profl)
-
-	if err == nil {
-		t.Fatal("Improper input failed to raise an error")
-	}
-
-	// nil profile
-	_, err = signer.sign(cert, &profl)
-	if err == nil {
-		t.Fatal("Nil profile failed to raise an error")
-	}
-
-	// empty profile
-	_, err = signer.sign(cert, &config.SigningProfile{})
-	if err == nil {
-		t.Fatal("Empty profile failed to raise an error")
-	}
-
-	// empty expiry
-	prof := signer.policy.Default
-	prof.Expiry = 0
-	_, err = signer.sign(cert, prof)
-	if err != nil {
-		t.Fatal("nil expiry raised an error")
-	}
-
-	// non empty urls
-	prof = signer.policy.Default
-	prof.CRL = "stuff"
-	prof.OCSP = "stuff"
-	prof.IssuerURL = []string{"stuff"}
-	_, err = signer.sign(cert, prof)
-	if err != nil {
-		t.Fatal("non nil urls raised an error")
-	}
-
-	// nil ca
-	nilca := *signer
-	prof = signer.policy.Default
-	prof.CA = false
-	nilca.ca = nil
-	_, err = nilca.sign(cert, prof)
-	if err == nil {
-		t.Fatal("nil ca with isca false raised an error")
-	}
-	prof.CA = true
-	_, err = nilca.sign(cert, prof)
-	if err != nil {
-		t.Fatal("nil ca with CA true raised an error")
-	}
-}
-
 func TestSign(t *testing.T) {
-	testSign(t)
 	s, err := NewSignerFromFile("testdata/ca.pem", "testdata/ca_key.pem", nil)
 	if err != nil {
 		t.Fatal("Failed to produce signer")
@@ -362,6 +299,12 @@ var csrTests = []csrTest{
 		keyLen:        521,
 		errorCallback: nil,
 	},
+	{
+		file:          "testdata/rsa-old.csr",
+		keyAlgo:       "rsa",
+		keyLen:        2048,
+		errorCallback: nil,
+	},
 }
 
 func TestSignCSRs(t *testing.T) {
@@ -437,7 +380,7 @@ func TestCAIssuing(t *testing.T) {
 			Usage:        []string{"cert sign", "crl sign"},
 			ExpiryString: "1h",
 			Expiry:       1 * time.Hour,
-			CA:           true,
+			CAConstraint: config.CAConstraint{IsCA: true, MaxPathLenZero: true},
 		},
 	}
 	var hostname = "cloudflare-inter.com"
@@ -481,6 +424,12 @@ func TestCAIssuing(t *testing.T) {
 				}
 				if cert.SignatureAlgorithm != interSigner.SigAlgo() {
 					t.Fatal("Cert Signature Algorithm does not match the issuer.")
+				}
+				if cert.MaxPathLen != 0 {
+					t.Fatal("CA Cert Max Path is not zero.")
+				}
+				if cert.MaxPathLenZero != true {
+					t.Fatal("CA Cert Max Path is not zero.")
 				}
 			}
 		}
@@ -690,6 +639,98 @@ func TestOverwriteHosts(t *testing.T) {
 
 }
 
+func TestOverrideValidity(t *testing.T) {
+	csrPEM, err := ioutil.ReadFile(fullSubjectCSR)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	s := newCustomSigner(t, testECDSACaFile, testECDSACaKeyFile)
+
+	req := signer.SignRequest{
+		Request: string(csrPEM),
+	}
+
+	// The default expiry value.
+	expiry := 8760 * time.Hour
+
+	// default case
+	now := time.Now().UTC()
+	certPEM, err := s.Sign(req)
+	if err != nil {
+		t.Fatalf("Error signing default request: %s", err)
+	}
+	cert, err := helpers.ParseCertificatePEM(certPEM)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	if !cert.NotBefore.After(now.Add(-10*time.Minute)) || !cert.NotBefore.Before(now.Add(10*time.Minute)) {
+		t.Fatalf("Unexpected NotBefore: wanted %s +/-10 minutes, got %s", now, cert.NotBefore)
+	}
+	expectedNotAfter := now.Round(time.Minute).Add(expiry)
+	if !cert.NotAfter.After(expectedNotAfter.Add(-10*time.Minute)) || !cert.NotAfter.Before(expectedNotAfter.Add(10*time.Minute)) {
+		t.Fatalf("Unexpected NotAfter: wanted %s +/-10 minutes, got %s", now, cert.NotAfter)
+	}
+
+	// custom case, NotBefore only
+	now = time.Now().UTC()
+	req.NotBefore = now.Add(-time.Hour * 5).Truncate(time.Hour)
+	req.NotAfter = time.Time{}
+	certPEM, err = s.Sign(req)
+	if err != nil {
+		t.Fatalf("Error signing default request: %s", err)
+	}
+	cert, err = helpers.ParseCertificatePEM(certPEM)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	if !cert.NotBefore.Equal(req.NotBefore) {
+		t.Fatalf("Unexpected NotBefore: wanted %s, got %s", req.NotBefore, cert.NotBefore)
+	}
+	expectedNotAfter = req.NotBefore.Add(expiry)
+	if !cert.NotAfter.After(expectedNotAfter.Add(-10*time.Minute)) || !cert.NotAfter.Before(expectedNotAfter.Add(10*time.Minute)) {
+		t.Fatalf("Unexpected NotAfter: wanted %s +/-10 minutes, got %s", expectedNotAfter, cert.NotAfter)
+	}
+
+	// custom case, NotAfter only
+	now = time.Now().UTC()
+	req.NotBefore = time.Time{}
+	req.NotAfter = now.Add(-time.Hour * 5).Truncate(time.Hour)
+	certPEM, err = s.Sign(req)
+	if err != nil {
+		t.Fatalf("Error signing default request: %s", err)
+	}
+	cert, err = helpers.ParseCertificatePEM(certPEM)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	if !cert.NotBefore.After(now.Add(-10*time.Minute)) || !cert.NotBefore.Before(now.Add(10*time.Minute)) {
+		t.Fatalf("Unexpected NotBefore: wanted %s +/-10 minutes, got %s", now, cert.NotBefore)
+	}
+	if !cert.NotAfter.Equal(req.NotAfter) {
+		t.Fatalf("Unexpected NotAfter: wanted %s, got %s", req.NotAfter, cert.NotAfter)
+	}
+
+	// custom case, NotBefore and NotAfter
+	now = time.Now().UTC()
+	req.NotBefore = now.Add(-time.Hour * 5).Truncate(time.Hour)
+	req.NotAfter = now.Add(time.Hour * 5).Truncate(time.Hour)
+	certPEM, err = s.Sign(req)
+	if err != nil {
+		t.Fatalf("Error signing default request: %s", err)
+	}
+	cert, err = helpers.ParseCertificatePEM(certPEM)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	if !cert.NotBefore.Equal(req.NotBefore) {
+		t.Fatalf("Unexpected NotBefore: wanted %s, got %s", req.NotBefore, cert.NotBefore)
+	}
+	if !cert.NotAfter.Equal(req.NotAfter) {
+		t.Fatalf("Unexpected NotAfter: wanted %s, got %s", req.NotAfter, cert.NotAfter)
+	}
+}
+
 func expectOneValueOf(t *testing.T, s []string, e, n string) {
 	if len(s) != 1 {
 		t.Fatalf("Expected %s to have a single value, but it has %d values", n, len(s))
@@ -703,6 +744,160 @@ func expectOneValueOf(t *testing.T, s []string, e, n string) {
 func expectEmpty(t *testing.T, s []string, n string) {
 	if len(s) != 0 {
 		t.Fatalf("Expected no values in %s, but have %d values: %v", n, len(s), s)
+	}
+}
+
+func TestCASignPathlen(t *testing.T) {
+	var csrPathlenTests = []struct {
+		name       string
+		caCertFile string
+		caKeyFile  string
+		caProfile  bool
+		csrFile    string
+		err        error
+		pathlen    int
+		isZero     bool
+		isCA       bool
+	}{
+		{
+			name:       "pathlen 1 signing pathlen 0",
+			caCertFile: testECDSACaFile,
+			caKeyFile:  testECDSACaKeyFile,
+			caProfile:  true,
+			csrFile:    "testdata/inter_pathlen_0.csr",
+			err:        nil,
+			pathlen:    0,
+			isZero:     true,
+			isCA:       true,
+		},
+		{
+			name:       "pathlen 1 signing pathlen 1",
+			caCertFile: testECDSACaFile,
+			caKeyFile:  testECDSACaKeyFile,
+			caProfile:  true,
+			csrFile:    "testdata/inter_pathlen_1.csr",
+			err:        cferr.New(cferr.PolicyError, cferr.InvalidRequest),
+		},
+		{
+			name:       "pathlen 0 signing pathlen 0",
+			caCertFile: testCaFile,
+			caKeyFile:  testCaKeyFile,
+			caProfile:  true,
+			csrFile:    "testdata/inter_pathlen_0.csr",
+			err:        cferr.New(cferr.PolicyError, cferr.InvalidRequest),
+		},
+		{
+			name:       "pathlen 0 signing pathlen 1",
+			caCertFile: testCaFile,
+			caKeyFile:  testCaKeyFile,
+			caProfile:  true,
+			csrFile:    "testdata/inter_pathlen_1.csr",
+			err:        cferr.New(cferr.PolicyError, cferr.InvalidRequest),
+		},
+		{
+			name:       "pathlen 0 signing pathlen unspecified",
+			caCertFile: testCaFile,
+			caKeyFile:  testCaKeyFile,
+			caProfile:  true,
+			csrFile:    "testdata/inter_pathlen_unspecified.csr",
+			err:        cferr.New(cferr.PolicyError, cferr.InvalidRequest),
+		},
+		{
+			name:       "pathlen 1 signing unspecified pathlen",
+			caCertFile: testECDSACaFile,
+			caKeyFile:  testECDSACaKeyFile,
+			caProfile:  true,
+			csrFile:    "testdata/inter_pathlen_unspecified.csr",
+			err:        nil,
+			// golang x509 parses unspecified pathlen as MaxPathLen == -1 and
+			// MaxPathLenZero == false
+			pathlen: -1,
+			isZero:  false,
+			isCA:    true,
+		},
+		{
+			name:       "non-ca singing profile signing pathlen 0",
+			caCertFile: testECDSACaFile,
+			caKeyFile:  testECDSACaKeyFile,
+			caProfile:  false,
+			csrFile:    "testdata/inter_pathlen_0.csr",
+			err:        cferr.New(cferr.PolicyError, cferr.InvalidRequest),
+		},
+		{
+			name:       "non-ca singing profile signing pathlen 1",
+			caCertFile: testECDSACaFile,
+			caKeyFile:  testECDSACaKeyFile,
+			caProfile:  false,
+			csrFile:    "testdata/inter_pathlen_1.csr",
+			err:        cferr.New(cferr.PolicyError, cferr.InvalidRequest),
+		},
+		{
+			name:       "non-ca singing profile signing pathlen 0",
+			caCertFile: testECDSACaFile,
+			caKeyFile:  testECDSACaKeyFile,
+			caProfile:  false,
+			csrFile:    "testdata/inter_pathlen_unspecified.csr",
+			err:        cferr.New(cferr.PolicyError, cferr.InvalidRequest),
+		},
+	}
+
+	for _, testCase := range csrPathlenTests {
+		csrPEM, err := ioutil.ReadFile(testCase.csrFile)
+		if err != nil {
+			t.Fatalf("%v", err)
+		}
+
+		req := &signer.Subject{
+			Names: []csr.Name{
+				{O: "sam certificate authority"},
+			},
+			CN: "localhost",
+		}
+
+		s := newCustomSigner(t, testCase.caCertFile, testCase.caKeyFile)
+		// No policy CSR whitelist: the normal set of CSR fields get passed through to
+		// certificate.
+		s.policy = &config.Signing{
+			Default: &config.SigningProfile{
+				Usage:        []string{"cert sign", "crl sign"},
+				ExpiryString: "1h",
+				Expiry:       1 * time.Hour,
+				CAConstraint: config.CAConstraint{IsCA: testCase.caProfile,
+					MaxPathLen:     testCase.pathlen,
+					MaxPathLenZero: testCase.isZero,
+				},
+			},
+		}
+
+		request := signer.SignRequest{
+			Hosts:   []string{"127.0.0.1", "localhost"},
+			Request: string(csrPEM),
+			Subject: req,
+		}
+
+		certPEM, err := s.Sign(request)
+		if !reflect.DeepEqual(err, testCase.err) {
+			t.Fatalf("%s: expected: %v, actual: %v", testCase.name, testCase.err, err)
+		}
+
+		if err == nil {
+			cert, err := helpers.ParseCertificatePEM(certPEM)
+			if err != nil {
+				t.Fatalf("%s: %v", testCase.name, err)
+			}
+
+			if cert.IsCA != testCase.isCA {
+				t.Fatalf("%s: unexpected IsCA value: %v", testCase.name, cert.IsCA)
+			}
+
+			if cert.MaxPathLen != testCase.pathlen {
+				t.Fatalf("%s: unexpected pathlen value: %v", testCase.name, cert.MaxPathLen)
+			}
+
+			if cert.MaxPathLenZero != testCase.isZero {
+				t.Fatalf("%s: unexpected pathlen value: %v", testCase.name, cert.MaxPathLenZero)
+			}
+		}
 	}
 }
 
@@ -727,7 +922,7 @@ func TestNoWhitelistSign(t *testing.T) {
 			Usage:        []string{"cert sign", "crl sign"},
 			ExpiryString: "1h",
 			Expiry:       1 * time.Hour,
-			CA:           true,
+			CAConstraint: config.CAConstraint{IsCA: true},
 		},
 	}
 
@@ -781,7 +976,7 @@ func TestWhitelistSign(t *testing.T) {
 			Usage:        []string{"cert sign", "crl sign"},
 			ExpiryString: "1h",
 			Expiry:       1 * time.Hour,
-			CA:           true,
+			CAConstraint: config.CAConstraint{IsCA: true},
 			CSRWhitelist: &config.CSRWhitelist{
 				PublicKey:          true,
 				PublicKeyAlgorithm: true,
@@ -853,7 +1048,7 @@ func TestNameWhitelistSign(t *testing.T) {
 			Usage:         []string{"cert sign", "crl sign"},
 			ExpiryString:  "1h",
 			Expiry:        1 * time.Hour,
-			CA:            true,
+			CAConstraint:  config.CAConstraint{IsCA: true},
 			NameWhitelist: wl,
 		},
 	}
@@ -930,7 +1125,7 @@ func TestExtensionSign(t *testing.T) {
 			Usage:              []string{"cert sign", "crl sign"},
 			ExpiryString:       "1h",
 			Expiry:             1 * time.Hour,
-			CA:                 true,
+			CAConstraint:       config.CAConstraint{IsCA: true},
 			ExtensionWhitelist: map[string]bool{"1.2.3.4": true},
 		},
 	}
@@ -993,13 +1188,19 @@ func TestExtensionSign(t *testing.T) {
 }
 
 func TestCTFailure(t *testing.T) {
+	// start a fake CT server that returns bad request
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(400)
+	}))
+	defer ts.Close()
+
 	var config = &config.Signing{
 		Default: &config.SigningProfile{
 			Expiry:       helpers.OneYear,
-			CA:           true,
+			CAConstraint: config.CAConstraint{IsCA: true},
 			Usage:        []string{"signing", "key encipherment", "server auth", "client auth"},
 			ExpiryString: "8760h",
-			CTLogServers: []string{"https://ct.googleapis.com/pilot"},
+			CTLogServers: []string{ts.URL},
 		},
 	}
 	testSigner, err := NewSignerFromFile(testCaFile, testCaKeyFile, config)
@@ -1017,8 +1218,44 @@ func TestCTFailure(t *testing.T) {
 	}
 	_, err = testSigner.Sign(validReq)
 
-	// This should fail because our CA cert is not trusted by Google's pilot log
 	if err == nil {
 		t.Fatal("Expected CT log submission failure")
+	}
+}
+
+func TestCTSuccess(t *testing.T) {
+	// start a fake CT server that will accept the submission
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`{"sct_version":0,"id":"KHYaGJAn++880NYaAY12sFBXKcenQRvMvfYE9F1CYVM=","timestamp":1337,"extensions":"","signature":"BAMARjBEAiAIc21J5ZbdKZHw5wLxCP+MhBEsV5+nfvGyakOIv6FOvAIgWYMZb6Pw///uiNM7QTg2Of1OqmK1GbeGuEl9VJN8v8c="}`))
+		w.WriteHeader(200)
+	}))
+	defer ts.Close()
+
+	var config = &config.Signing{
+		Default: &config.SigningProfile{
+			Expiry:       helpers.OneYear,
+			CAConstraint: config.CAConstraint{IsCA: true},
+			Usage:        []string{"signing", "key encipherment", "server auth", "client auth"},
+			ExpiryString: "8760h",
+			CTLogServers: []string{ts.URL},
+		},
+	}
+	testSigner, err := NewSignerFromFile(testCaFile, testCaKeyFile, config)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	var pem []byte
+	pem, err = ioutil.ReadFile("testdata/ex.csr")
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	validReq := signer.SignRequest{
+		Request: string(pem),
+		Hosts:   []string{"example.com"},
+	}
+	_, err = testSigner.Sign(validReq)
+
+	if err != nil {
+		t.Fatal("Expected CT log submission success")
 	}
 }

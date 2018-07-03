@@ -17,7 +17,6 @@ import (
 
 	"github.com/cloudflare/cfssl/config"
 	cferr "github.com/cloudflare/cfssl/errors"
-	"github.com/cloudflare/cfssl/helpers"
 	"github.com/cloudflare/cfssl/signer"
 )
 
@@ -33,7 +32,7 @@ func parseCertificateRequest(priv crypto.Signer, csrBytes []byte) (template *x50
 		return
 	}
 
-	err = helpers.CheckSignature(csr, csr.SignatureAlgorithm, csr.RawTBSCertificateRequest, csr.Signature)
+	csr.CheckSignature()
 	if err != nil {
 		err = cferr.Wrap(cferr.CSRError, cferr.KeyMismatch, err)
 		return
@@ -119,7 +118,7 @@ func Sign(priv crypto.Signer, csrPEM []byte, profile *config.SigningProfile) ([]
 	template.KeyUsage = ku
 	template.ExtKeyUsage = eku
 	template.BasicConstraintsValid = true
-	template.IsCA = profile.CA
+	template.IsCA = profile.CAConstraint.IsCA
 	template.SubjectKeyId = pubhash.Sum(nil)
 
 	if ocspURL != "" {

@@ -1,5 +1,5 @@
-hash: dee8e115562de85a2ea256080cbbf7ea18ecdef7d0df2cdb3975f4f312abea67
-updated: 2018-07-02T09:22:56.158387755-04:00
+hash: dc299575eef403e5400e45ba32694ab027a65eacf549615a6cfe5966114bc43d
+updated: 2018-07-03T14:23:31.835265-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -86,7 +86,7 @@ imports:
   subpackages:
   - quantile
 - name: github.com/blang/semver
-  version: c5e971dbed7850a93c23aa6ff69db5771d8e23b3
+  version: b38d23b8782a487059e8fc8773e9a5b228a77cb6
 - name: github.com/certifi/gocertifi
   version: deb3ae2ef2610fde3330947281941c562861188b
 - name: github.com/chai2010/gettext-go
@@ -97,8 +97,7 @@ imports:
   - gettext/plural
   - gettext/po
 - name: github.com/cloudflare/cfssl
-  version: fca70798646c8689aeae5928d4ad1278ff8a3c17
-  repo: https://github.com/openshift/cloudflare-cfssl
+  version: 4e2dcbde500472449917533851bf4bae9bdff562
   subpackages:
   - auth
   - certdb
@@ -546,15 +545,16 @@ imports:
   - validate
   - version
   - zfs
-- name: github.com/google/certificate-transparency
-  version: f9b891ace55b3d45f6c40d313b3b7a5fc258f96b
-  repo: https://github.com/openshift/google-certificate-transparency.git
+- name: github.com/google/certificate-transparency-go
+  version: 1bec4527572c443752ad4f2830bef88be0533236
   subpackages:
-  - go
-  - go/asn1
-  - go/client
-  - go/x509
-  - go/x509/pkix
+  - asn1
+  - client
+  - client/configpb
+  - jsonclient
+  - tls
+  - x509
+  - x509/pkix
 - name: github.com/google/gofuzz
   version: 44d81051d367757e1c7c6a5a86423ece9afcf63c
 - name: github.com/google/uuid
@@ -723,9 +723,6 @@ imports:
   version: 05fbef0ca5da472bbf96c9322b84a53edc03c9fd
 - name: github.com/mohae/deepcopy
   version: 491d3605edfb866af34a48075bd4355ac1bf46ca
-- name: github.com/mreiferson/go-httpclient
-  version: 63fe23f7434723dc904c901043af07931f293c47
-  repo: https://github.com/mreiferson/go-httpclient
 - name: github.com/mrunalp/fileutils
   version: 4ee1cc9a80582a0c75febdd5cfa779ee4361cbca
 - name: github.com/mtrmac/gpgme
@@ -948,7 +945,7 @@ imports:
   - signal
   - strslice
 - name: github.com/openshift/library-go
-  version: 077f461517a8617b5bdb5088afa7b451dd612b15
+  version: 4bdffb3d6ca083fad9ee9f51d3273d328d349dbc
   subpackages:
   - pkg/config/client
   - pkg/config/leaderelection
@@ -1063,7 +1060,7 @@ imports:
 - name: github.com/shurcooL/sanitized_anchor_name
   version: 10ef21a441db47d8b13ebcc5fd2310f636973c77
 - name: github.com/sirupsen/logrus
-  version: 89742aefa4b206dcf400792f3bd35b542998eb3b
+  version: e54a77765aca7bbdd8e56c1c54f60579968b2dc9
 - name: github.com/skynetservices/skydns
   version: 775ef406696380ce92b76e72421e86b6868905d8
   repo: https://github.com/openshift/skynetservices-skydns
@@ -1174,11 +1171,14 @@ imports:
   - bcrypt
   - blowfish
   - cast5
+  - cryptobyte
+  - cryptobyte/asn1
   - curve25519
   - ed25519
   - ed25519/internal/edwards25519
   - internal/chacha20
   - nacl/secretbox
+  - ocsp
   - openpgp
   - openpgp/armor
   - openpgp/elgamal
@@ -1827,7 +1827,7 @@ imports:
   - pkg/util/proto/testing
   - pkg/util/proto/validation
 - name: k8s.io/kubernetes
-  version: 6ab9cd6e00d3648a4eff38919509ea0e42eb2d07
+  version: d4cacc043ac762235e16cb7361d527cb4189393c
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/controller-manager/app

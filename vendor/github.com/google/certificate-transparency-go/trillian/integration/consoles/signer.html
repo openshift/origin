@@ -1,0 +1,47 @@
+{{ template "head" . }}
+
+{{ template "prom_right_table_head" }}
+{{ template "prom_right_table_tail" }}
+
+{{ template "prom_content_head" . }}
+
+<h1>Signer</h1>
+
+<p>Sequence Rate:
+<div id="sequenceRateGraph"></div>
+<script>
+new PromConsole.Graph({
+  node: document.querySelector("#sequenceRateGraph"),
+  expr: "sum(rate(sequencer_sequenced{job='trillian-logsigner-http'}[5m])) without (instance, job)",
+  yAxisFormatter: PromConsole.NumberFormatter.humanizeNoSmallPrefix,
+  yHoverFormatter: PromConsole.NumberFormatter.humanizeNoSmallPrefix,
+  yUnits: "/s",
+  yTitle: "Leaves"
+})
+</script>
+</p>
+
+<p>Sequencer Batch Latency (centiles):
+<div id="sequencerLatencyGraph"></div>
+<script>
+new PromConsole.Graph({
+  node: document.querySelector("#sequencerLatencyGraph"),
+  expr: ["histogram_quantile(0.05, sum(rate(sequencer_latency_bucket[10m])) without (job, instance, logid))",
+         "histogram_quantile(0.10, sum(rate(sequencer_latency_bucket[10m])) without (job, instance, logid))",
+         "histogram_quantile(0.50, sum(rate(sequencer_latency_bucket[10m])) without (job, instance, logid))",
+         "histogram_quantile(0.90, sum(rate(sequencer_latency_bucket[10m])) without (job, instance, logid))",
+         "histogram_quantile(0.95, sum(rate(sequencer_latency_bucket[10m])) without (job, instance, logid))"],
+  name: ["5th", "10th", "50th", "90th", "95th"],
+  yAxisFormatter: PromConsole.NumberFormatter.humanizeNoSmallPrefix,
+  yHoverFormatter: PromConsole.NumberFormatter.humanizeNoSmallPrefix,
+  yUnits: "s",
+  yTitle: "SequenceBatch"
+})
+</script>
+</p>
+
+
+
+{{ template "prom_content_tail" . }}
+
+{{ template "tail" }}

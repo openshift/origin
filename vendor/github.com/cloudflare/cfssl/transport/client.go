@@ -6,6 +6,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/cloudflare/backoff"
 	"github.com/cloudflare/cfssl/csr"
 	"github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/log"
@@ -69,7 +70,7 @@ type Transport struct {
 	// Backoff is used to control the behaviour of a Transport
 	// when it is attempting to automatically update a certificate
 	// as part of AutoUpdate.
-	Backoff *core.Backoff
+	Backoff *backoff.Backoff
 
 	// RevokeSoftFail, if true, will cause a failure to check
 	// revocation (such that the revocation status of a
@@ -141,7 +142,7 @@ func New(before time.Duration, identity *core.Identity) (*Transport, error) {
 	var tr = &Transport{
 		Before:   before,
 		Identity: identity,
-		Backoff:  &core.Backoff{},
+		Backoff:  &backoff.Backoff{},
 	}
 
 	store, err := roots.New(identity.Roots)
@@ -187,6 +188,7 @@ func (tr *Transport) Lifespan() time.Duration {
 
 	now = now.Add(tr.Before)
 	ls := cert.NotAfter.Sub(now)
+	log.Debugf("   LIFESPAN:\t%s", ls)
 	if ls < 0 {
 		return 0
 	}
@@ -211,7 +213,7 @@ func (tr *Transport) RefreshKeys() (err error) {
 			err = tr.Provider.Generate(kr.Algo(), kr.Size())
 			if err != nil {
 				log.Debugf("failed to generate key: %v", err)
-				return
+				return err
 			}
 		}
 	}
@@ -222,12 +224,18 @@ func (tr *Transport) RefreshKeys() (err error) {
 		req, err := tr.Provider.CertificateRequest(tr.Identity.Request)
 		if err != nil {
 			log.Debugf("couldn't get a CSR: %v", err)
+			if tr.Provider.SignalFailure(err) {
+				return tr.RefreshKeys()
+			}
 			return err
 		}
 
 		log.Debug("requesting certificate from CA")
 		cert, err := tr.CA.SignCSR(req)
 		if err != nil {
+			if tr.Provider.SignalFailure(err) {
+				return tr.RefreshKeys()
+			}
 			log.Debugf("failed to get the certificate signed: %v", err)
 			return err
 		}
@@ -236,17 +244,25 @@ func (tr *Transport) RefreshKeys() (err error) {
 		err = tr.Provider.SetCertificatePEM(cert)
 		if err != nil {
 			log.Debugf("failed to set the provider's certificate: %v", err)
+			if tr.Provider.SignalFailure(err) {
+				return tr.RefreshKeys()
+			}
 			return err
 		}
 
-		log.Debug("storing the certificate")
-		err = tr.Provider.Store()
-		if err != nil {
-			log.Debugf("the provider failed to store the certificate: %v", err)
-			return err
+		if tr.Provider.Persistent() {
+			log.Debug("storing the certificate")
+			err = tr.Provider.Store()
+
+			if err != nil {
+				log.Debugf("the provider failed to store the certificate: %v", err)
+				if tr.Provider.SignalFailure(err) {
+					return tr.RefreshKeys()
+				}
+				return err
+			}
 		}
 	}
-
 	return nil
 }
 

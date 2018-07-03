@@ -1,0 +1,67 @@
+{{ template "head" . }}
+
+{{ template "prom_right_table_head" }}
+{{ template "prom_right_table_tail" }}
+
+{{ template "prom_content_head" . }}
+
+<h1>Read Path</h1>
+
+<p>HTTP Requests:
+<div id="httpReqsGraph"></div>
+<script>
+new PromConsole.Graph({
+  node: document.querySelector("#httpReqsGraph"),
+  expr: "sum(rate(http_reqs{ep=~'Get.+', job='trillian-ctfe-metrics-http'}[5m])) without (job, instance, logid)",
+  yAxisFormatter: PromConsole.NumberFormatter.humanizeNoSmallPrefix,
+  yHoverFormatter: PromConsole.NumberFormatter.humanizeNoSmallPrefix,
+  yUnits: "/s",
+  yTitle: "Queries"
+})
+</script>
+</p>
+
+<p>HTTP Errors:
+<div id="httpErrorsGraph"></div>
+<script>
+new PromConsole.Graph({
+  node: document.querySelector("#httpErrorsGraph"),
+  expr: "sum(http_rsps{ep=~'Get.+', job='trillian-ctfe-metrics-http', rc!='200'}) without (instance, logid, job) / ignoring (rc) sum(http_reqs{ep=~'Get.+', job='trillian-ctfe-metrics-http'}) without (instance, logid, job)",
+  yAxisFormatter: PromConsole.NumberFormatter.humanizeNoSmallPrefix,
+  yHoverFormatter: PromConsole.NumberFormatter.humanizeNoSmallPrefix,
+  yTitle: "Error Rate",
+})
+</script>
+</p>
+
+<p>gRPC Requests:
+<div id="grpcReqsGraph"></div>
+<script>
+new PromConsole.Graph({
+  node: document.querySelector("#grpcReqsGraph"),
+  expr: "sum(rate(log_rpc_requests{method=~'/trillian.TrillianLog/Get.+', job='trillian-logserver-http'}[5m])) without (instance, job)",
+  yAxisFormatter: PromConsole.NumberFormatter.humanizeNoSmallPrefix,
+  yHoverFormatter: PromConsole.NumberFormatter.humanizeNoSmallPrefix,
+  yUnits: "/s",
+  yTitle: "Queries"
+})
+</script>
+</p>
+
+<p>gRPC Errors:
+<div id="grpcErrorsGraph"></div>
+<script>
+new PromConsole.Graph({
+  node: document.querySelector("#grpcErrorsGraph"),
+  expr: "sum(log_rpc_errors{method=~'/trillian.TrillianLog/Get.+', job='trillian-logserver-http'}) without (instance, job) / ignoring (rc) sum(log_rpc_requests{method=~'/trillian.TrillianLog/Get.+', job='trillian-logserver-http'}) without (instance, job)",
+  yAxisFormatter: PromConsole.NumberFormatter.humanizeNoSmallPrefix,
+  yHoverFormatter: PromConsole.NumberFormatter.humanizeNoSmallPrefix,
+  yTitle: "Error Rate",
+})
+</script>
+</p>
+
+
+{{ template "prom_content_tail" . }}
+
+{{ template "tail" }}
