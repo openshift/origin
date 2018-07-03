@@ -11,11 +11,11 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
-	buildapiv1 "github.com/openshift/api/build/v1"
-	"github.com/openshift/origin/pkg/api/legacy"
+	buildv1 "github.com/openshift/api/build/v1"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	buildinstall "github.com/openshift/origin/pkg/build/apis/build/install"
+	buildv1helpers "github.com/openshift/origin/pkg/build/apis/build/v1"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 )
 
@@ -25,9 +25,14 @@ var (
 )
 
 func init() {
-	// TODO only use external versions, so we only add external types
-	buildinstall.Install(customBuildEncodingScheme)
-	legacy.InstallLegacyBuild(customBuildEncodingScheme)
+	utilruntime.Must(buildv1.AddToScheme(customBuildEncodingScheme))
+	utilruntime.Must(buildv1helpers.AddToScheme(customBuildEncodingScheme))
+	utilruntime.Must(buildv1.AddToSchemeInCoreGroup(customBuildEncodingScheme))
+	utilruntime.Must(buildv1helpers.AddToSchemeInCoreGroup(customBuildEncodingScheme))
+	// TODO eventually we shouldn't deal in internal versions, but for now decode into one.
+	utilruntime.Must(buildapi.AddToScheme(customBuildEncodingScheme))
+	utilruntime.Must(buildapi.AddToSchemeInCoreGroup(customBuildEncodingScheme))
+	customBuildEncodingCodecFactory = serializer.NewCodecFactory(customBuildEncodingScheme)
 }
 
 // CustomBuildStrategy creates a build using a custom builder image.
@@ -41,7 +46,7 @@ func (bs *CustomBuildStrategy) CreateBuildPod(build *buildapi.Build) (*v1.Pod, e
 		return nil, errors.New("CustomBuildStrategy cannot be executed without CustomStrategy parameters")
 	}
 
-	codec := customBuildEncodingCodecFactory.LegacyCodec(buildapiv1.SchemeGroupVersion)
+	codec := customBuildEncodingCodecFactory.LegacyCodec(buildv1.SchemeGroupVersion)
 	if len(strategy.BuildAPIVersion) != 0 {
 		gv, err := schema.ParseGroupVersion(strategy.BuildAPIVersion)
 		if err != nil {

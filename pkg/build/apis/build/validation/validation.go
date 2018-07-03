@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/golang/glog"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	kpath "k8s.io/apimachinery/pkg/api/validation/path"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -21,6 +20,7 @@ import (
 
 	buildapiv1 "github.com/openshift/api/build/v1"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	"github.com/openshift/origin/pkg/build/buildscheme"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageapivalidation "github.com/openshift/origin/pkg/image/apis/image/validation"
@@ -754,13 +754,11 @@ func diffBuildSpec(newer, older buildapi.BuildSpec) (string, error) {
 }
 
 func CreateBuildPatch(older, newer *buildapi.Build) ([]byte, error) {
-	codec := legacyscheme.Codecs.LegacyCodec(buildapiv1.SchemeGroupVersion)
-
-	newerJSON, err := runtime.Encode(codec, newer)
+	newerJSON, err := runtime.Encode(buildscheme.Encoder, newer)
 	if err != nil {
 		return nil, fmt.Errorf("error encoding newer: %v", err)
 	}
-	olderJSON, err := runtime.Encode(codec, older)
+	olderJSON, err := runtime.Encode(buildscheme.Encoder, older)
 	if err != nil {
 		return nil, fmt.Errorf("error encoding older: %v", err)
 	}
@@ -772,12 +770,11 @@ func CreateBuildPatch(older, newer *buildapi.Build) ([]byte, error) {
 }
 
 func ApplyBuildPatch(build *buildapi.Build, patch []byte) (*buildapi.Build, error) {
-	codec := legacyscheme.Codecs.LegacyCodec(buildapiv1.SchemeGroupVersion)
-	versionedBuild, err := legacyscheme.Scheme.ConvertToVersion(build, buildapiv1.SchemeGroupVersion)
+	versionedBuild, err := buildscheme.InternalExternalScheme.ConvertToVersion(build, buildapiv1.SchemeGroupVersion)
 	if err != nil {
 		return nil, err
 	}
-	buildJSON, err := runtime.Encode(codec, versionedBuild)
+	buildJSON, err := runtime.Encode(buildscheme.Encoder, versionedBuild)
 	if err != nil {
 		return nil, err
 	}
@@ -785,11 +782,11 @@ func ApplyBuildPatch(build *buildapi.Build, patch []byte) (*buildapi.Build, erro
 	if err != nil {
 		return nil, err
 	}
-	patchedVersionedBuild, err := runtime.Decode(codec, patchedJSON)
+	patchedVersionedBuild, err := runtime.Decode(buildscheme.Decoder, patchedJSON)
 	if err != nil {
 		return nil, err
 	}
-	patchedBuild, err := legacyscheme.Scheme.ConvertToVersion(patchedVersionedBuild, buildapi.SchemeGroupVersion)
+	patchedBuild, err := buildscheme.InternalExternalScheme.ConvertToVersion(patchedVersionedBuild, buildapi.SchemeGroupVersion)
 	if err != nil {
 		return nil, err
 	}

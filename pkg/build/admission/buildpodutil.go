@@ -4,10 +4,9 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/openshift/origin/pkg/build/buildscheme"
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
@@ -25,7 +24,7 @@ func GetBuildFromPod(pod *v1.Pod) (*buildapi.Build, error) {
 		return nil, errors.New("unable to get build from pod: BUILD environment variable is empty")
 	}
 
-	obj, _, err := legacyscheme.Codecs.UniversalDecoder().Decode([]byte(buildEnvVar), nil, nil)
+	obj, err := runtime.Decode(buildscheme.Decoder, []byte(buildEnvVar))
 	if err != nil {
 		return nil, fmt.Errorf("unable to get build from pod: %v", err)
 	}
@@ -38,7 +37,7 @@ func GetBuildFromPod(pod *v1.Pod) (*buildapi.Build, error) {
 
 // SetBuildInPod encodes a build object and sets it in a pod's BUILD environment variable
 func SetBuildInPod(pod *v1.Pod, build *buildapi.Build) error {
-	encodedBuild, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(schema.GroupVersion{Group: "build.openshift.io", Version: "v1"}), build)
+	encodedBuild, err := runtime.Encode(buildscheme.Encoder, build)
 	if err != nil {
 		return fmt.Errorf("unable to set build in pod: %v", err)
 	}
