@@ -54,17 +54,9 @@ import:
 
 # forks third
 # master
-- package: github.com/google/certificate-transparency
-  repo:    https://github.com/openshift/google-certificate-transparency.git
-  version: master
-# master
 - package: github.com/emicklei/go-restful-swagger12
   repo:    https://github.com/openshift/emicklei-go-restful-swagger12
   version: release-1.0.1
-# master
-- package: github.com/cloudflare/cfssl
-  repo:    https://github.com/openshift/cloudflare-cfssl
-  version: stable-20160905
 # master
 - package: github.com/skynetservices/skydns
   repo:    https://github.com/openshift/skynetservices-skydns
