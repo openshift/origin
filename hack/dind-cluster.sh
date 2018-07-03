@@ -195,6 +195,20 @@ function add-registry-to-runtime() {
   local runtime=$2
 
   for cid in $( ${DOCKER_CMD} ps -qa --filter "name=${MASTER_NAME}|${NODE_PREFIX}" ); do
+    # Wait for dbus service so that we can restart runtime service
+    local count=60
+    while [[ "${count}" -gt "0" ]]; do
+      local error=0
+      ${DOCKER_CMD} exec -t ${cid} sh -c "systemctl is-active --quiet dbus" 2>&1 > /dev/null || error=1
+      if [[ "${error}" -eq "0" ]]; then
+        echo ""
+        break
+      fi
+      echo -n "."
+      sleep 1
+      ((count--))
+    done
+
     if [[ "${runtime}" = "dockershim" ]]; then
       ${DOCKER_CMD} exec -t ${cid} sh -c "sed -i '/^\[registries.search\]$/{\$!{N;s/^\[registries.search\]\nregistries .*/\[registries.search\]\nregistries = \[\"${registry}\", \"docker.io\", \"registry.fedoraproject.org\", \"registry.access.redhat.com\"\]/g;ty;P;D;:y}}' /etc/containers/registries.conf"
       ${DOCKER_CMD} exec -t ${cid} sh -c "sed -i '/^\[registries.insecure\]$/{\$!{N;s/^\[registries.insecure\]\nregistries .*/\[registries.insecure\]\nregistries = \[\"${registry}\"\]/g;ty;P;D;:y}}' /etc/containers/registries.conf"
