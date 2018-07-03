@@ -6,17 +6,15 @@ import (
 	"strconv"
 	"testing"
 
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/kubernetes/pkg/kubectl"
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appstest "github.com/openshift/origin/pkg/apps/apis/apps/test"
 	"github.com/openshift/origin/pkg/apps/strategy"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
-	cmdtest "github.com/openshift/origin/pkg/apps/util/test"
-
-	// install all APIs
-	_ "github.com/openshift/origin/pkg/api/install"
-	_ "k8s.io/kubernetes/pkg/apis/core/install"
 )
 
 func TestDeployer_getDeploymentFail(t *testing.T) {
@@ -32,7 +30,7 @@ func TestDeployer_getDeploymentFail(t *testing.T) {
 			t.Fatal("unexpected call")
 			return nil, nil
 		},
-		scaler: &cmdtest.FakeScaler{},
+		scaler: &FakeScaler{},
 	}
 
 	err := deployer.Deploy("namespace", "name")
@@ -146,7 +144,7 @@ func TestDeployer_deployScenarios(t *testing.T) {
 		var actualFrom, actualTo *kapi.ReplicationController
 		var actualDesired int32
 		to := findDeployment(s.toVersion)
-		scaler := &cmdtest.FakeScaler{}
+		scaler := &FakeScaler{}
 
 		deployer := &Deployer{
 			out:    &bytes.Buffer{},
@@ -227,4 +225,42 @@ type testStrategy struct {
 
 func (t *testStrategy) Deploy(from *kapi.ReplicationController, to *kapi.ReplicationController, desiredReplicas int) error {
 	return t.deployFunc(from, to, desiredReplicas)
+}
+
+type FakeScaler struct {
+	Events []ScaleEvent
+}
+
+type ScaleEvent struct {
+	Name string
+	Size uint
+}
+
+func (t *FakeScaler) Scale(namespace, name string, newSize uint, preconditions *kubectl.ScalePrecondition, retry, wait *kubectl.RetryParams, resource schema.GroupResource) error {
+	t.Events = append(t.Events, ScaleEvent{name, newSize})
+	return nil
+}
+
+func (t *FakeScaler) ScaleSimple(namespace, name string, preconditions *kubectl.ScalePrecondition, newSize uint, resource schema.GroupResource) (string, error) {
+	return "", fmt.Errorf("unexpected call to ScaleSimple")
+}
+
+type FakeLaggedScaler struct {
+	Events     []ScaleEvent
+	RetryCount int
+}
+
+func (t *FakeLaggedScaler) Scale(namespace, name string, newSize uint, preconditions *kubectl.ScalePrecondition, retry, wait *kubectl.RetryParams, resource schema.GroupResource) error {
+	if t.RetryCount != 2 {
+		t.RetryCount += 1
+		// This is faking a real error from the
+		// "k8s.io/apiserver/pkg/admission/plugin/namespace/lifecycle" package.
+		return errors.NewForbidden(resource, name, fmt.Errorf("%s: not yet ready to handle request", name))
+	}
+	t.Events = append(t.Events, ScaleEvent{name, newSize})
+	return nil
+}
+
+func (t *FakeLaggedScaler) ScaleSimple(namespace, name string, preconditions *kubectl.ScalePrecondition, newSize uint, resource schema.GroupResource) (string, error) {
+	return "", nil
 }
