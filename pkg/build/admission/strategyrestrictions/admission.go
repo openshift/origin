@@ -5,10 +5,10 @@ import (
 	"io"
 	"strings"
 
+	"github.com/openshift/origin/pkg/build/buildscheme"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apiserver/pkg/admission"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	authorizationclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
@@ -185,24 +185,24 @@ func (a *buildByStrategy) checkBuildRequestAuthorization(req *buildapi.BuildRequ
 	switch gr {
 	case buildapi.Resource("builds"),
 		buildapi.LegacyResource("builds"):
-		build, err := a.buildClient.Build().Builds(attr.GetNamespace()).Get(req.Name, metav1.GetOptions{})
+		build, err := a.buildClient.BuildV1().Builds(attr.GetNamespace()).Get(req.Name, metav1.GetOptions{})
 		if err != nil {
 			return admission.NewForbidden(attr, err)
 		}
 		internalBuild := &buildapi.Build{}
-		if err := legacyscheme.Scheme.Convert(build, internalBuild, nil); err != nil {
+		if err := buildscheme.InternalExternalScheme.Convert(build, internalBuild, nil); err != nil {
 			return admission.NewForbidden(attr, err)
 		}
 		return a.checkBuildAuthorization(internalBuild, attr)
 
 	case buildapi.Resource("buildconfigs"),
 		buildapi.LegacyResource("buildconfigs"):
-		buildConfig, err := a.buildClient.Build().BuildConfigs(attr.GetNamespace()).Get(req.Name, metav1.GetOptions{})
+		buildConfig, err := a.buildClient.BuildV1().BuildConfigs(attr.GetNamespace()).Get(req.Name, metav1.GetOptions{})
 		if err != nil {
 			return admission.NewForbidden(attr, err)
 		}
 		internalBuildConfig := &buildapi.BuildConfig{}
-		if err := legacyscheme.Scheme.Convert(buildConfig, internalBuildConfig, nil); err != nil {
+		if err := buildscheme.InternalExternalScheme.Convert(buildConfig, internalBuildConfig, nil); err != nil {
 			return admission.NewForbidden(attr, err)
 		}
 		return a.checkBuildConfigAuthorization(internalBuildConfig, attr)

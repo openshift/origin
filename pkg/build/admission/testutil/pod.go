@@ -3,11 +3,10 @@ package test
 import (
 	"testing"
 
+	"github.com/openshift/origin/pkg/build/buildscheme"
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apiserver/pkg/admission"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
@@ -40,7 +39,7 @@ func (p *TestPod) WithEnvVar(name, value string) *TestPod {
 }
 
 func (p *TestPod) WithBuild(t *testing.T, build *buildapi.Build) *TestPod {
-	encodedBuild, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(schema.GroupVersion{Group: "build.openshift.io", Version: "v1"}), build)
+	encodedBuild, err := runtime.Encode(buildscheme.Encoder, build)
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
@@ -72,7 +71,7 @@ func (p *TestPod) EnvValue(name string) string {
 }
 
 func (p *TestPod) GetBuild(t *testing.T) *buildapi.Build {
-	obj, err := runtime.Decode(legacyscheme.Codecs.UniversalDecoder(), []byte(p.EnvValue("BUILD")))
+	obj, err := runtime.Decode(buildscheme.Decoder, []byte(p.EnvValue("BUILD")))
 	if err != nil {
 		t.Fatalf("Could not decode build: %v", err)
 	}
