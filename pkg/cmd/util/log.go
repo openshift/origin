@@ -4,6 +4,8 @@ import (
 	"io"
 
 	"github.com/golang/glog"
+
+	"github.com/openshift/library-go/pkg/serviceability"
 )
 
 // NewGLogWriterV returns a new Writer that delegates to `glog.Info` at the
@@ -26,4 +28,16 @@ func (w *gLogWriter) Write(p []byte) (n int, err error) {
 	}
 
 	return len(p), nil
+}
+
+// InitLogrus sets the logrus trace level based on the glog trace level.
+func InitLogrus() {
+	switch {
+	case bool(glog.V(4)):
+		serviceability.InitLogrus("DEBUG")
+	case bool(glog.V(2)):
+		serviceability.InitLogrus("INFO")
+	case bool(glog.V(0)):
+		serviceability.InitLogrus("WARN")
+	}
 }
