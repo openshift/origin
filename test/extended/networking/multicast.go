@@ -28,6 +28,10 @@ var _ = Describe("[Area:Networking] multicast", func() {
 			oc := testexutil.NewCLI("multicast", testexutil.KubeConfigPath())
 			f := oc.KubeFramework()
 
+			BeforeEach(func() {
+				waitForNetNamespace(f.Namespace.Name)
+			})
+
 			It("should block multicast traffic", func() {
 				Expect(testMulticast(f, oc)).NotTo(Succeed())
 			})
@@ -38,6 +42,10 @@ var _ = Describe("[Area:Networking] multicast", func() {
 		func() {
 			oc := testexutil.NewCLI("multicast", testexutil.KubeConfigPath())
 			f := oc.KubeFramework()
+
+			BeforeEach(func() {
+				waitForNetNamespace(f.Namespace.Name)
+			})
 
 			It("should block multicast traffic in namespaces where it is disabled", func() {
 				Expect(testMulticast(f, oc)).NotTo(Succeed())
