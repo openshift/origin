@@ -221,7 +221,7 @@ func TestRecreate_deploymentPreHookFail(t *testing.T) {
 	}
 
 	if len(controllerClient.scaleEvents) > 0 {
-		t.Fatalf("unexpected scaling events: %d", controllerClient.scaleEvents)
+		t.Fatalf("unexpected scaling events: %v", controllerClient.scaleEvents)
 	}
 }
 
@@ -253,7 +253,7 @@ func TestRecreate_deploymentMidHookSuccess(t *testing.T) {
 	}
 
 	if len(controllerClient.scaleEvents) > 0 {
-		t.Fatalf("unexpected scaling events: %d", controllerClient.scaleEvents)
+		t.Fatalf("unexpected scaling events: %v", controllerClient.scaleEvents)
 	}
 }
 
@@ -405,10 +405,10 @@ func TestRecreate_acceptorSuccessWithColdCaches(t *testing.T) {
 	if len(controllerClient.scaleEvents) != 2 {
 		t.Fatalf("expected 2 scale calls, got %d", len(controllerClient.scaleEvents))
 	}
-	if r := controllerClient.scaleEvents[0]; r.Spec.Replicas != 1 {
+	if r := controllerClient.scaleEvents[0].Spec.Replicas; r != 1 {
 		t.Errorf("expected first scale event to be 1 replica, got %d", r)
 	}
-	if r := controllerClient.scaleEvents[1]; r.Spec.Replicas != 2 {
+	if r := controllerClient.scaleEvents[1].Spec.Replicas; r != 2 {
 		t.Errorf("expected second scale event to be 2 replica, got %d", r)
 	}
 }
@@ -445,6 +445,6 @@ func TestRecreate_acceptorFail(t *testing.T) {
 		t.Fatalf("expected 1 scale calls, got %d", len(rcClient.scaleEvents))
 	}
 	if r := rcClient.scaleEvents[0]; r.Spec.Replicas != 1 {
-		t.Errorf("expected first scale event to be 1 replica, got %d", r)
+		t.Errorf("expected first scale event to be 1 replica, got %v", r)
 	}
 }
