@@ -11,7 +11,7 @@ import (
 
 	"github.com/docker/engine-api/types"
 	s2itar "github.com/openshift/source-to-image/pkg/tar"
-	s2iutil "github.com/openshift/source-to-image/pkg/util"
+	s2iutil "github.com/openshift/source-to-image/pkg/util/fs"
 )
 
 // removeLeadingDirectoryAdapter wraps a tar.Reader and strips the first leading

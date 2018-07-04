@@ -8,7 +8,8 @@ import (
 	"testing"
 
 	"github.com/openshift/source-to-image/pkg/api"
-	"github.com/openshift/source-to-image/pkg/util"
+	"github.com/openshift/source-to-image/pkg/util/cmd"
+	"github.com/openshift/source-to-image/pkg/util/cygpath"
 )
 
 // FakeGit provides a fake Git
@@ -97,18 +98,18 @@ func (f *FakeGit) GetInfo(repo string) *api.SourceInfo {
 
 // CreateLocalGitDirectory creates a git directory with a commit
 func CreateLocalGitDirectory(t *testing.T) string {
-	cr := util.NewCommandRunner()
+	cr := cmd.NewCommandRunner()
 	dir := CreateEmptyLocalGitDirectory(t)
 	f, err := os.Create(filepath.Join(dir, "testfile"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	f.Close()
-	err = cr.RunWithOptions(util.CommandOpts{Dir: dir}, "git", "add", ".")
+	err = cr.RunWithOptions(cmd.CommandOpts{Dir: dir}, "git", "add", ".")
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = cr.RunWithOptions(util.CommandOpts{Dir: dir, EnvAppend: []string{"GIT_AUTHOR_NAME=test", "GIT_AUTHOR_EMAIL=test@test", "GIT_COMMITTER_NAME=test", "GIT_COMMITTER_EMAIL=test@test"}}, "git", "commit", "-m", "testcommit")
+	err = cr.RunWithOptions(cmd.CommandOpts{Dir: dir, EnvAppend: []string{"GIT_AUTHOR_NAME=test", "GIT_AUTHOR_EMAIL=test@test", "GIT_COMMITTER_NAME=test", "GIT_COMMITTER_EMAIL=test@test"}}, "git", "commit", "-m", "testcommit")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -118,13 +119,13 @@ func CreateLocalGitDirectory(t *testing.T) string {
 
 // CreateEmptyLocalGitDirectory creates a git directory with no checkin yet
 func CreateEmptyLocalGitDirectory(t *testing.T) string {
-	cr := util.NewCommandRunner()
+	cr := cmd.NewCommandRunner()
 
 	dir, err := ioutil.TempDir(os.TempDir(), "gitdir-s2i-test")
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = cr.RunWithOptions(util.CommandOpts{Dir: dir}, "git", "init")
+	err = cr.RunWithOptions(cmd.CommandOpts{Dir: dir}, "git", "init")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -134,21 +135,21 @@ func CreateEmptyLocalGitDirectory(t *testing.T) string {
 
 // CreateLocalGitDirectoryWithSubmodule creates a git directory with a submodule
 func CreateLocalGitDirectoryWithSubmodule(t *testing.T) string {
-	cr := util.NewCommandRunner()
+	cr := cmd.NewCommandRunner()
 
 	submodule := CreateLocalGitDirectory(t)
 	defer os.RemoveAll(submodule)
 
-	if util.UsingCygwinGit {
+	if cygpath.UsingCygwinGit {
 		var err error
-		submodule, err = util.ToSlashCygwin(submodule)
+		submodule, err = cygpath.ToSlashCygwin(submodule)
 		if err != nil {
 			t.Fatal(err)
 		}
 	}
 
 	dir := CreateEmptyLocalGitDirectory(t)
-	err := cr.RunWithOptions(util.CommandOpts{Dir: dir}, "git", "submodule", "add", submodule, "submodule")
+	err := cr.RunWithOptions(cmd.CommandOpts{Dir: dir}, "git", "submodule", "add", submodule, "submodule")
 	if err != nil {
 		t.Fatal(err)
 	}

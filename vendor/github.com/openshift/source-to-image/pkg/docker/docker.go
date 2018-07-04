@@ -31,6 +31,7 @@ import (
 	s2ierr "github.com/openshift/source-to-image/pkg/errors"
 	s2itar "github.com/openshift/source-to-image/pkg/tar"
 	"github.com/openshift/source-to-image/pkg/util"
+	"github.com/openshift/source-to-image/pkg/util/fs"
 	"github.com/openshift/source-to-image/pkg/util/interrupt"
 )
 
@@ -128,8 +129,8 @@ type Docker interface {
 	GetImageUser(name string) (string, error)
 	GetImageEntrypoint(name string) ([]string, error)
 	GetLabels(name string) (map[string]string, error)
-	UploadToContainer(fs util.FileSystem, srcPath, destPath, container string) error
-	UploadToContainerWithTarWriter(fs util.FileSystem, srcPath, destPath, container string, makeTarWriter func(io.Writer) s2itar.Writer) error
+	UploadToContainer(fs fs.FileSystem, srcPath, destPath, container string) error
+	UploadToContainerWithTarWriter(fs fs.FileSystem, srcPath, destPath, container string, makeTarWriter func(io.Writer) s2itar.Writer) error
 	DownloadFromContainer(containerPath string, w io.Writer, container string) error
 	Version() (dockertypes.Version, error)
 	CheckReachable() error
@@ -371,7 +372,7 @@ func (d *stiDocker) GetImageEntrypoint(name string) ([]string, error) {
 }
 
 // UploadToContainer uploads artifacts to the container.
-func (d *stiDocker) UploadToContainer(fs util.FileSystem, src, dest, container string) error {
+func (d *stiDocker) UploadToContainer(fs fs.FileSystem, src, dest, container string) error {
 	makeWorldWritable := func(writer io.Writer) s2itar.Writer {
 		return s2itar.ChmodAdapter{Writer: tar.NewWriter(writer), NewFileMode: 0666, NewExecFileMode: 0666, NewDirMode: 0777}
 	}
@@ -384,7 +385,7 @@ func (d *stiDocker) UploadToContainer(fs util.FileSystem, src, dest, container s
 // the destination (which has to be directory as well).
 // If the source is a single file, then the file copied into destination (which
 // has to be full path to a file inside the container).
-func (d *stiDocker) UploadToContainerWithTarWriter(fs util.FileSystem, src, dest, container string, makeTarWriter func(io.Writer) s2itar.Writer) error {
+func (d *stiDocker) UploadToContainerWithTarWriter(fs fs.FileSystem, src, dest, container string, makeTarWriter func(io.Writer) s2itar.Writer) error {
 	path := filepath.Dir(dest)
 	r, w := io.Pipe()
 	go func() {

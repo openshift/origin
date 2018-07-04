@@ -15,7 +15,7 @@ import (
 
 	s2iapi "github.com/openshift/source-to-image/pkg/api"
 	s2igit "github.com/openshift/source-to-image/pkg/scm/git"
-	s2iutil "github.com/openshift/source-to-image/pkg/util"
+	s2iutil "github.com/openshift/source-to-image/pkg/util/fs"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/validation"

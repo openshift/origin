@@ -1,8 +1,7 @@
-package test
+package fs
 
 import (
 	"bytes"
-	"errors"
 	"io"
 	"os"
 	"path/filepath"
@@ -46,9 +45,20 @@ type FakeFileSystem struct {
 	OpenError      error
 	OpenCloseError error
 
+	CreateFile    string
+	CreateContent FakeWriteCloser
+	CreateError   error
+
 	WriteFileName    string
 	WriteFileError   error
 	WriteFileContent string
+
+	ReadlinkName  string
+	ReadlinkError error
+
+	SymlinkOldname string
+	SymlinkNewname string
+	SymlinkError   error
 
 	Files []os.FileInfo
 
@@ -68,19 +78,42 @@ func (f *FakeReadCloser) Close() error {
 	return f.CloseError
 }
 
+// FakeWriteCloser provider a fake ReadCloser
+type FakeWriteCloser struct {
+	bytes.Buffer
+}
+
+// Close closes the fake ReadCloser
+func (f *FakeWriteCloser) Close() error {
+	return nil
+}
+
 // ReadDir reads the files in specified directory
 func (f *FakeFileSystem) ReadDir(p string) ([]os.FileInfo, error) {
 	return f.Files, nil
 }
 
-// Stat provides stats about a single file
-func (f *FakeFileSystem) Stat(p string) (os.FileInfo, error) {
+// Lstat provides stats about a single file  (not following symlinks)
+func (f *FakeFileSystem) Lstat(p string) (os.FileInfo, error) {
 	for _, f := range f.Files {
 		if strings.HasSuffix(p, string(filepath.Separator)+f.Name()) {
 			return f, nil
 		}
 	}
-	return nil, &os.PathError{Path: p, Err: errors.New("file does not exist")}
+	return nil, &os.PathError{Path: p, Err: os.ErrNotExist}
+}
+
+// Stat returns a FileInfo describing the named file
+func (f *FakeFileSystem) Stat(p string) (os.FileInfo, error) {
+	fi, err := f.Lstat(p)
+	if err != nil || fi.Mode()&os.ModeSymlink == 0 {
+		return fi, err
+	}
+	p, err = f.Readlink(p)
+	if err != nil {
+		return nil, err
+	}
+	return f.Lstat(p)
 }
 
 // Chmod manipulates permissions on the fake filesystem
@@ -161,6 +194,12 @@ func (f *FakeFileSystem) Open(file string) (io.ReadCloser, error) {
 	return f.OpenFileResult, f.OpenError
 }
 
+// Create creates a file
+func (f *FakeFileSystem) Create(file string) (io.WriteCloser, error) {
+	f.CreateFile = file
+	return &f.CreateContent, f.CreateError
+}
+
 // WriteFile writes a file
 func (f *FakeFileSystem) WriteFile(file string, data []byte) error {
 	f.WriteFileName = file
@@ -172,4 +211,15 @@ func (f *FakeFileSystem) WriteFile(file string, data []byte) error {
 // directory in the tree, including root.
 func (f *FakeFileSystem) Walk(root string, walkFn filepath.WalkFunc) error {
 	return filepath.Walk(root, walkFn)
+}
+
+// Readlink reads the destination of a symlink
+func (f *FakeFileSystem) Readlink(name string) (string, error) {
+	return f.ReadlinkName, f.ReadlinkError
+}
+
+// Symlink creates a symlink at newname, pointing to oldname
+func (f *FakeFileSystem) Symlink(oldname, newname string) error {
+	f.SymlinkOldname, f.SymlinkNewname = oldname, newname
+	return f.SymlinkError
 }

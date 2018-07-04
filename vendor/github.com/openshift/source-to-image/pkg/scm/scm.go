@@ -3,21 +3,20 @@ package scm
 import (
 	"fmt"
 
-	s2ierr "github.com/openshift/source-to-image/pkg/errors"
-	utilglog "github.com/openshift/source-to-image/pkg/util/glog"
-
 	"github.com/openshift/source-to-image/pkg/build"
+	s2ierr "github.com/openshift/source-to-image/pkg/errors"
 	"github.com/openshift/source-to-image/pkg/scm/empty"
 	"github.com/openshift/source-to-image/pkg/scm/file"
 	"github.com/openshift/source-to-image/pkg/scm/git"
-	"github.com/openshift/source-to-image/pkg/util"
+	"github.com/openshift/source-to-image/pkg/util/fs"
+	utilglog "github.com/openshift/source-to-image/pkg/util/glog"
 )
 
 var glog = utilglog.StderrLog
 
 // DownloaderForSource determines what SCM plugin should be used for downloading
 // the sources from the repository.
-func DownloaderForSource(fs util.FileSystem, s string, forceCopy bool) (build.Downloader, string, error) {
+func DownloaderForSource(fs fs.FileSystem, s string, forceCopy bool) (build.Downloader, string, error) {
 	glog.V(4).Infof("DownloadForSource %s", s)
 
 	if len(s) == 0 {

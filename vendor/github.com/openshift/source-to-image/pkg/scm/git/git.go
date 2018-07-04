@@ -15,7 +15,9 @@ import (
 
 	"github.com/openshift/source-to-image/pkg/api"
 	s2ierr "github.com/openshift/source-to-image/pkg/errors"
-	"github.com/openshift/source-to-image/pkg/util"
+	"github.com/openshift/source-to-image/pkg/util/cmd"
+	"github.com/openshift/source-to-image/pkg/util/cygpath"
+	"github.com/openshift/source-to-image/pkg/util/fs"
 	utilglog "github.com/openshift/source-to-image/pkg/util/glog"
 )
 
@@ -35,16 +37,16 @@ type Git interface {
 }
 
 // New returns a new instance of the default implementation of the Git interface
-func New(fs util.FileSystem) Git {
+func New(fs fs.FileSystem) Git {
 	return &stiGit{
 		FileSystem:    fs,
-		CommandRunner: util.NewCommandRunner(),
+		CommandRunner: cmd.NewCommandRunner(),
 	}
 }
 
 type stiGit struct {
-	util.FileSystem
-	util.CommandRunner
+	fs.FileSystem
+	cmd.CommandRunner
 }
 
 // URLMods encapsulates potential changes to similarly named fields in the URL struct defined in golang
@@ -227,7 +229,7 @@ func makePathAbsolute(source string) string {
 // expect git clone spec syntax; it also provides details if the file://
 // proto was explicitly specified, if we should use OS copy vs. the git
 // binary, and if a frag/ref has a bad format
-func ParseFile(fs util.FileSystem, source string) (*FileProtoDetails, *URLMods, error) {
+func ParseFile(fs fs.FileSystem, source string) (*FileProtoDetails, *URLMods, error) {
 	// Checking to see if the user included a "file://" in the call
 	protoSpecified := false
 	if strings.HasPrefix(source, "file://") && len(source) > 7 {
@@ -376,7 +378,7 @@ func ParseSSH(source string) (*URLMods, error) {
 // it the gitdir value, which is supposed to indicate the location of the
 // corresponding .git /directory/.  Note: the gitdir value should point directly
 // to the corresponding .git directory even in the case of nested submodules.
-func followGitSubmodule(fs util.FileSystem, gitPath string) (string, error) {
+func followGitSubmodule(fs fs.FileSystem, gitPath string) (string, error) {
 	f, err := os.Open(gitPath)
 	if err != nil {
 		return "", err
@@ -410,7 +412,7 @@ func followGitSubmodule(fs util.FileSystem, gitPath string) (string, error) {
 
 // isValidGitRepository checks to see if there is a git repository in the
 // directory and if the repository is valid -- i.e. it has remotes or commits
-func isValidGitRepository(fs util.FileSystem, dir string) (bool, error) {
+func isValidGitRepository(fs fs.FileSystem, dir string) (bool, error) {
 	gitPath := filepath.Join(strings.TrimPrefix(dir, "file://"), ".git")
 
 	fi, err := fs.Stat(gitPath)
@@ -474,9 +476,9 @@ func hasGitBinary() bool {
 
 // Clone clones a git repository to a specific target directory
 func (h *stiGit) Clone(source, target string, c api.CloneConfig) error {
-	if util.UsingCygwinGit {
+	if cygpath.UsingCygwinGit {
 		var err error
-		target, err = util.ToSlashCygwin(target)
+		target, err = cygpath.ToSlashCygwin(target)
 		if err != nil {
 			return err
 		}
@@ -495,7 +497,7 @@ func (h *stiGit) Clone(source, target string, c api.CloneConfig) error {
 	cloneArgs := append([]string{"clone"}, cloneConfigToArgs(c)...)
 	cloneArgs = append(cloneArgs, []string{source, target}...)
 	errReader, errWriter, _ := os.Pipe()
-	opts := util.CommandOpts{Stderr: errWriter}
+	opts := cmd.CommandOpts{Stderr: errWriter}
 	err := h.RunWithOptions(opts, "git", cloneArgs...)
 	errWriter.Close()
 	if err != nil {
@@ -511,7 +513,7 @@ func (h *stiGit) Clone(source, target string, c api.CloneConfig) error {
 
 // Checkout checks out a specific branch reference of a given git repository
 func (h *stiGit) Checkout(repo, ref string) error {
-	opts := util.CommandOpts{
+	opts := cmd.CommandOpts{
 		Stdout: os.Stdout,
 		Stderr: os.Stderr,
 		Dir:    repo,
@@ -521,7 +523,7 @@ func (h *stiGit) Checkout(repo, ref string) error {
 
 // SubmoduleInit initializes/clones submodules
 func (h *stiGit) SubmoduleInit(repo string) error {
-	opts := util.CommandOpts{
+	opts := cmd.CommandOpts{
 		Stdout: os.Stdout,
 		Stderr: os.Stderr,
 		Dir:    repo,
@@ -540,7 +542,7 @@ func (h *stiGit) SubmoduleUpdate(repo string, init, recursive bool) error {
 		updateArgs = append(updateArgs, "--recursive")
 	}
 
-	opts := util.CommandOpts{
+	opts := cmd.CommandOpts{
 		Stdout: os.Stdout,
 		Stderr: os.Stderr,
 		Dir:    repo,
@@ -557,7 +559,7 @@ func (h *stiGit) LsTree(repo, ref string, recursive bool) ([]os.FileInfo, error)
 		args = append(args, "-r")
 	}
 
-	opts := util.CommandOpts{
+	opts := cmd.CommandOpts{
 		Dir: repo,
 	}
 
@@ -581,7 +583,7 @@ func (h *stiGit) LsTree(repo, ref string, recursive bool) ([]os.FileInfo, error)
 			submodules = append(submodules, filepath.Join(repo, path))
 			continue
 		}
-		rv = append(rv, &util.FileInfo{FileMode: os.FileMode(mode), FileName: path})
+		rv = append(rv, &fs.FileInfo{FileMode: os.FileMode(mode), FileName: path})
 	}
 	err = scanner.Err()
 	if err != nil {

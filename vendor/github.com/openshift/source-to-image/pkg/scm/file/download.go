@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/openshift/source-to-image/pkg/api"
-	"github.com/openshift/source-to-image/pkg/util"
+	"github.com/openshift/source-to-image/pkg/util/fs"
 	utilglog "github.com/openshift/source-to-image/pkg/util/glog"
 )
 
@@ -14,7 +14,7 @@ var glog = utilglog.StderrLog
 // File represents a simplest possible Downloader implementation where the
 // sources are just copied from local directory.
 type File struct {
-	util.FileSystem
+	fs.FileSystem
 }
 
 // Download copies sources from a local directory into the working directory

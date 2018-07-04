@@ -14,7 +14,7 @@ import (
 	docker "github.com/fsouza/go-dockerclient"
 
 	s2igit "github.com/openshift/source-to-image/pkg/scm/git"
-	s2iutil "github.com/openshift/source-to-image/pkg/util"
+	s2iutil "github.com/openshift/source-to-image/pkg/util/fs"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/build/builder/cmd/dockercfg"
