@@ -132,6 +132,24 @@ func BuildMasterConfig(
 	options configapi.MasterConfig,
 	informers InformerAccess,
 ) (*MasterConfig, error) {
+	incompleteKubeAPIServerConfig, err := kubernetes.BuildKubernetesMasterConfig(options)
+	if err != nil {
+		return nil, err
+	}
+	if informers == nil {
+		// use the real Kubernetes loopback client (using a secret token and preferibly localhost networking), not
+		// the one provided by options.MasterClients.OpenShiftLoopbackKubeConfig. The latter is meant for out-of-process
+		// components of the master.
+		realLoopbackInformers, err := NewInformers(incompleteKubeAPIServerConfig.LoopbackConfig())
+		if err != nil {
+			return nil, err
+		}
+		if err := realLoopbackInformers.AddUserIndexes(); err != nil {
+			return nil, err
+		}
+		informers = realLoopbackInformers
+	}
+
 	restOptsGetter, err := originrest.StorageOptions(options)
 	if err != nil {
 		return nil, err
@@ -189,8 +207,7 @@ func BuildMasterConfig(
 		return nil, err
 	}
 
-	kubeAPIServerConfig, err := kubernetes.BuildKubernetesMasterConfig(
-		options,
+	kubeAPIServerConfig, err := incompleteKubeAPIServerConfig.Complete(
 		admission,
 		authenticator,
 		authorizer,

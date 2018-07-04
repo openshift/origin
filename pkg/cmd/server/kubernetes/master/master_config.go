@@ -48,6 +48,7 @@ import (
 	auditlog "k8s.io/apiserver/plugin/pkg/audit/log"
 	auditwebhook "k8s.io/apiserver/plugin/pkg/audit/webhook"
 	pluginwebhook "k8s.io/apiserver/plugin/pkg/audit/webhook"
+	"k8s.io/client-go/rest"
 	"k8s.io/kube-aggregator/pkg/apis/apiregistration"
 	apiregistrationv1beta1 "k8s.io/kube-aggregator/pkg/apis/apiregistration/v1beta1"
 	aggregatorscheme "k8s.io/kube-aggregator/pkg/apiserver/scheme"
@@ -377,12 +378,13 @@ func buildPublicAddress(masterConfig configapi.MasterConfig) (net.IP, error) {
 	return publicAddress, nil
 }
 
-func buildKubeApiserverConfig(
-	masterConfig configapi.MasterConfig,
-	admissionControl admission.Interface,
-	originAuthenticator authenticator.Request,
-	kubeAuthorizer authorizer.Authorizer,
-) (*master.Config, error) {
+type incompleteKubeMasterConfig struct {
+	options          *kapiserveroptions.ServerRunOptions
+	incompleteConfig *apiserver.Config
+	masterConfig     configapi.MasterConfig
+}
+
+func BuildKubernetesMasterConfig(masterConfig configapi.MasterConfig) (*incompleteKubeMasterConfig, error) {
 	apiserverOptions, err := BuildKubeAPIserverOptions(masterConfig)
 	if err != nil {
 		return nil, err
@@ -392,6 +394,20 @@ func buildKubeApiserverConfig(
 	if err != nil {
 		return nil, err
 	}
+
+	return &incompleteKubeMasterConfig{apiserverOptions, genericConfig, masterConfig}, nil
+}
+
+func (rc *incompleteKubeMasterConfig) LoopbackConfig() *rest.Config {
+	return rc.incompleteConfig.LoopbackClientConfig
+}
+
+func (rc *incompleteKubeMasterConfig) Complete(
+	admissionControl admission.Interface,
+	originAuthenticator authenticator.Request,
+	kubeAuthorizer authorizer.Authorizer,
+) (*master.Config, error) {
+	genericConfig, apiserverOptions, masterConfig := rc.incompleteConfig, rc.options, rc.masterConfig
 
 	proxyClientCerts, err := buildProxyClientCerts(masterConfig)
 	if err != nil {
@@ -567,33 +583,13 @@ func buildKubeApiserverConfig(
 		)
 	}
 
-	return kubeApiserverConfig, nil
-}
-
-// TODO this function's parameters need to be refactored
-func BuildKubernetesMasterConfig(
-	masterConfig configapi.MasterConfig,
-	admissionControl admission.Interface,
-	originAuthenticator authenticator.Request,
-	kubeAuthorizer authorizer.Authorizer,
-) (*master.Config, error) {
-	apiserverConfig, err := buildKubeApiserverConfig(
-		masterConfig,
-		admissionControl,
-		originAuthenticator,
-		kubeAuthorizer,
-	)
-	if err != nil {
-		return nil, err
-	}
-
 	// we do this for integration tests to be able to turn it off for better startup speed
 	// TODO remove the entire option once openapi is faster
 	if masterConfig.DisableOpenAPI {
-		apiserverConfig.GenericConfig.OpenAPIConfig = nil
+		kubeApiserverConfig.GenericConfig.OpenAPIConfig = nil
 	}
 
-	return apiserverConfig, nil
+	return kubeApiserverConfig, nil
 }
 
 func defaultOpenAPIConfig(config configapi.MasterConfig) *openapicommon.Config {
