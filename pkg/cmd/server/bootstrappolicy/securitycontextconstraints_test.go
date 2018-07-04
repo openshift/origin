@@ -40,11 +40,17 @@ func TestBootstrappedConstraints(t *testing.T) {
 			t.Errorf("unexpected contraint no. %d (by priority).  Found %v, wanted %v", i, constraint.Name, expectedConstraintNames[i])
 		}
 		g := expectedGroups[constraint.Name]
+		if g == nil {
+			g = []string{}
+		}
 		if !reflect.DeepEqual(g, constraint.Groups) {
 			t.Errorf("unexpected group access for %s.  Found %v, wanted %v", constraint.Name, constraint.Groups, g)
 		}
 
 		u := expectedUsers[constraint.Name]
+		if u == nil {
+			u = []string{}
+		}
 		if !reflect.DeepEqual(u, constraint.Users) {
 			t.Errorf("unexpected user access for %s.  Found %v, wanted %v", constraint.Name, constraint.Users, u)
 		}
@@ -70,11 +76,17 @@ func TestBootstrappedConstraintsWithAddedUser(t *testing.T) {
 
 	for _, constraint := range bootstrappedConstraints {
 		g := expectedGroups[constraint.Name]
+		if g == nil {
+			g = []string{}
+		}
 		if !reflect.DeepEqual(g, constraint.Groups) {
 			t.Errorf("unexpected group access for %s.  Found %v, wanted %v", constraint.Name, constraint.Groups, g)
 		}
 
 		u := expectedUsers[constraint.Name]
+		if u == nil {
+			u = []string{}
+		}
 		if !reflect.DeepEqual(u, constraint.Users) {
 			t.Errorf("unexpected user access for %s.  Found %v, wanted %v", constraint.Name, constraint.Users, u)
 		}

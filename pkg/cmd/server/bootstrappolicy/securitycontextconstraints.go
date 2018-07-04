@@ -2,10 +2,13 @@ package bootstrappolicy
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/authentication/serviceaccount"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
+	securityapiv1 "github.com/openshift/api/security/v1"
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
+	securityapiinstall "github.com/openshift/origin/pkg/security/apis/security/install"
 )
 
 const (
@@ -44,6 +47,12 @@ const (
 	// DescriptionAnnotation is the annotation used for attaching descriptions.
 	DescriptionAnnotation = "kubernetes.io/description"
 )
+
+var bootstrapSCCScheme = runtime.NewScheme()
+
+func init() {
+	securityapiinstall.Install(bootstrapSCCScheme)
+}
 
 // GetBootstrapSecurityContextConstraints returns the slice of default SecurityContextConstraints
 // for system bootstrapping.  This method takes additional users and groups that should be added
@@ -274,7 +283,19 @@ func GetBootstrapSecurityContextConstraints(sccNameToAdditionalGroups map[string
 	}
 
 	// add default access
-	for i, constraint := range constraints {
+	for i := range constraints {
+		// round trip to external, apply defaults, to ensure we match what we compare against the server
+		v1constraint := &securityapiv1.SecurityContextConstraints{}
+		constraint := &securityapi.SecurityContextConstraints{}
+		if err := bootstrapSCCScheme.Convert(constraints[i], v1constraint, nil); err != nil {
+			panic(err)
+		}
+		bootstrapSCCScheme.Default(v1constraint)
+		if err := bootstrapSCCScheme.Convert(v1constraint, constraint, nil); err != nil {
+			panic(err)
+		}
+		constraints[i] = constraint
+
 		if usersToAdd, ok := sccNameToAdditionalUsers[constraint.Name]; ok {
 			constraints[i].Users = append(constraints[i].Users, usersToAdd...)
 		}
