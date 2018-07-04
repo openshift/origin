@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	s2igit "github.com/openshift/source-to-image/pkg/scm/git"
-	s2iutil "github.com/openshift/source-to-image/pkg/util"
+	s2iutil "github.com/openshift/source-to-image/pkg/util/fs"
 )
 
 // ParseRepository parses a string that may be in the Git format (git@) or URL format

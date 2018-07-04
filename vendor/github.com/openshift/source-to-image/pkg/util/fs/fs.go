@@ -1,4 +1,4 @@
-package util
+package fs
 
 import (
 	"fmt"
@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/openshift/source-to-image/pkg/util/cmd"
 	utilglog "github.com/openshift/source-to-image/pkg/util/glog"
 
 	s2ierr "github.com/openshift/source-to-image/pkg/errors"
@@ -33,23 +34,27 @@ type FileSystem interface {
 	RemoveDirectory(dir string) error
 	CreateWorkingDirectory() (string, error)
 	Open(file string) (io.ReadCloser, error)
+	Create(file string) (io.WriteCloser, error)
 	WriteFile(file string, data []byte) error
 	ReadDir(string) ([]os.FileInfo, error)
 	Stat(string) (os.FileInfo, error)
+	Lstat(string) (os.FileInfo, error)
 	Walk(string, filepath.WalkFunc) error
+	Readlink(string) (string, error)
+	Symlink(string, string) error
 }
 
 // NewFileSystem creates a new instance of the default FileSystem
 // implementation
 func NewFileSystem() FileSystem {
 	return &fs{
-		runner:    NewCommandRunner(),
+		runner:    cmd.NewCommandRunner(),
 		fileModes: make(map[string]os.FileMode),
 	}
 }
 
 type fs struct {
-	runner CommandRunner
+	runner cmd.CommandRunner
 
 	// on Windows, fileModes is used to track the UNIX file mode of every file we
 	// work with; m is used to synchronize access to fileModes.
@@ -118,6 +123,15 @@ func (h *fs) Stat(path string) (os.FileInfo, error) {
 	return fi, err
 }
 
+// Lstat returns a FileInfo describing the named file (not following symlinks).
+func (h *fs) Lstat(path string) (os.FileInfo, error) {
+	fi, err := os.Lstat(path)
+	if runtime.GOOS == "windows" && err == nil {
+		fi = h.enrichFileInfo(path, fi)
+	}
+	return fi, err
+}
+
 // ReadDir reads the directory named by dirname and returns a list of directory
 // entries sorted by filename.
 func (h *fs) ReadDir(path string) ([]os.FileInfo, error) {
@@ -173,7 +187,29 @@ func (h *fs) Exists(file string) bool {
 // we copy the content of the source directory to destination directory
 // recursively.
 func (h *fs) Copy(source string, dest string) (err error) {
-	sourcefile, err := os.Open(source)
+	return doCopy(h, source, dest)
+}
+
+func doCopy(h FileSystem, source, dest string) error {
+	// Our current symlink behaviour is broken.  We follow symlinks and copy the
+	// referenced file, and fail when a symlink is broken.  In all cases we
+	// should actually copy the symlink as is.  For now, at least catch the
+	// broken symlink case and copy the symlink rather than failing.
+	lstatinfo, lstaterr := h.Lstat(source)
+	_, staterr := h.Stat(source)
+	if lstaterr == nil &&
+		lstatinfo.Mode()&os.ModeSymlink != 0 &&
+		os.IsNotExist(staterr) {
+		glog.V(5).Infof("(broken) L %q -> %q", source, dest)
+		linkdest, err := h.Readlink(source)
+		if err != nil {
+			return err
+		}
+
+		return h.Symlink(linkdest, dest)
+	}
+
+	sourcefile, err := h.Open(source)
 	if err != nil {
 		return err
 	}
@@ -192,7 +228,7 @@ func (h *fs) Copy(source string, dest string) (err error) {
 	if destinfo != nil && destinfo.IsDir() {
 		return fmt.Errorf("destination must be full path to a file, not directory")
 	}
-	destfile, err := os.Create(dest)
+	destfile, err := h.Create(dest)
 	if err != nil {
 		return err
 	}
@@ -276,6 +312,11 @@ func (h *fs) Open(filename string) (io.ReadCloser, error) {
 	return os.Open(filename)
 }
 
+// Create creates a file and returns a WriteCloser interface to that file
+func (h *fs) Create(filename string) (io.WriteCloser, error) {
+	return os.Create(filename)
+}
+
 // WriteFile opens a file and writes data to it, returning error if such
 // occurred
 func (h *fs) WriteFile(filename string, data []byte) error {
@@ -319,4 +360,14 @@ func (h *fs) enrichFileInfos(root string, fis []os.FileInfo) {
 		}
 	}
 	h.m.Unlock()
+}
+
+// Readlink reads the destination of a symlink
+func (h *fs) Readlink(name string) (string, error) {
+	return os.Readlink(name)
+}
+
+// Symlink creates a symlink at newname, pointing to oldname
+func (h *fs) Symlink(oldname, newname string) error {
+	return os.Symlink(oldname, newname)
 }

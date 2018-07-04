@@ -23,6 +23,7 @@ import (
 	"github.com/openshift/source-to-image/pkg/scripts"
 	"github.com/openshift/source-to-image/pkg/tar"
 	"github.com/openshift/source-to-image/pkg/util"
+	"github.com/openshift/source-to-image/pkg/util/fs"
 	utilglog "github.com/openshift/source-to-image/pkg/util/glog"
 	utilstatus "github.com/openshift/source-to-image/pkg/util/status"
 )
@@ -50,7 +51,7 @@ type STI struct {
 	installer              scripts.Installer
 	runtimeInstaller       scripts.Installer
 	git                    git.Git
-	fs                     util.FileSystem
+	fs                     fs.FileSystem
 	tar                    tar.Tar
 	docker                 dockerpkg.Docker
 	incrementalDocker      dockerpkg.Docker
@@ -87,7 +88,7 @@ type STI struct {
 // If the layeredBuilder parameter is specified, then the builder provided will
 // be used for the case that the base Docker image does not have 'tar' or 'bash'
 // installed.
-func New(client dockerpkg.Client, config *api.Config, fs util.FileSystem, overrides build.Overrides) (*STI, error) {
+func New(client dockerpkg.Client, config *api.Config, fs fs.FileSystem, overrides build.Overrides) (*STI, error) {
 	excludePattern, err := regexp.Compile(config.ExcludeRegExp)
 	if err != nil {
 		return nil, err

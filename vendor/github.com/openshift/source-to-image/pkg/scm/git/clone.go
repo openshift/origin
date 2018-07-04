@@ -8,13 +8,14 @@ import (
 	"strings"
 
 	"github.com/openshift/source-to-image/pkg/api"
-	"github.com/openshift/source-to-image/pkg/util"
+	"github.com/openshift/source-to-image/pkg/util/cygpath"
+	"github.com/openshift/source-to-image/pkg/util/fs"
 )
 
 // Clone knows how to clone a Git repository.
 type Clone struct {
 	Git
-	util.FileSystem
+	fs.FileSystem
 }
 
 // Download downloads the application source code from the Git repository
@@ -40,9 +41,9 @@ func (c *Clone) Download(config *api.Config) (*api.SourceInfo, error) {
 	if strings.HasPrefix(config.Source, "file://") {
 		s := strings.TrimPrefix(config.Source, "file://")
 
-		if util.UsingCygwinGit {
+		if cygpath.UsingCygwinGit {
 			var err error
-			s, err = util.ToSlashCygwin(s)
+			s, err = cygpath.ToSlashCygwin(s)
 			if err != nil {
 				glog.V(0).Infof("error: Cygwin path conversion failed: %v", err)
 				return nil, err

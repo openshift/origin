@@ -3,7 +3,7 @@ package build
 import (
 	"github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/docker"
-	"github.com/openshift/source-to-image/pkg/util"
+	"github.com/openshift/source-to-image/pkg/util/fs"
 	utilglog "github.com/openshift/source-to-image/pkg/util/glog"
 )
 
@@ -13,12 +13,12 @@ var glog = utilglog.StderrLog
 // temporary directories created by STI build and it also cleans the temporary
 // Docker images produced by LayeredBuild
 type DefaultCleaner struct {
-	fs     util.FileSystem
+	fs     fs.FileSystem
 	docker docker.Docker
 }
 
 // NewDefaultCleaner creates a new instance of the default Cleaner implementation
-func NewDefaultCleaner(fs util.FileSystem, docker docker.Docker) Cleaner {
+func NewDefaultCleaner(fs fs.FileSystem, docker docker.Docker) Cleaner {
 	return &DefaultCleaner{
 		fs:     fs,
 		docker: docker,

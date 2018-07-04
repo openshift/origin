@@ -16,7 +16,7 @@ import (
 	"github.com/openshift/source-to-image/pkg/scm/git"
 	"github.com/openshift/source-to-image/pkg/scripts"
 	"github.com/openshift/source-to-image/pkg/tar"
-	"github.com/openshift/source-to-image/pkg/util"
+	"github.com/openshift/source-to-image/pkg/util/fs"
 	utilstatus "github.com/openshift/source-to-image/pkg/util/status"
 )
 
@@ -25,7 +25,7 @@ import (
 type OnBuild struct {
 	docker  docker.Docker
 	git     git.Git
-	fs      util.FileSystem
+	fs      fs.FileSystem
 	tar     tar.Tar
 	source  build.SourceHandler
 	garbage build.Cleaner
@@ -38,7 +38,7 @@ type onBuildSourceHandler struct {
 }
 
 // New returns a new instance of OnBuild builder
-func New(client docker.Client, config *api.Config, fs util.FileSystem, overrides build.Overrides) (*OnBuild, error) {
+func New(client docker.Client, config *api.Config, fs fs.FileSystem, overrides build.Overrides) (*OnBuild, error) {
 	dockerHandler := docker.New(client, config.PullAuthentication)
 	builder := &OnBuild{
 		docker: dockerHandler,

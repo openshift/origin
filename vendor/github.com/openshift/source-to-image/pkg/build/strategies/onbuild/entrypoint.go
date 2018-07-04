@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"regexp"
 
-	"github.com/openshift/source-to-image/pkg/util"
+	"github.com/openshift/source-to-image/pkg/util/fs"
 	utilglog "github.com/openshift/source-to-image/pkg/util/glog"
 )
 
@@ -20,7 +20,7 @@ var validEntrypoints = []*regexp.Regexp{
 
 // GuessEntrypoint tries to guess the valid entrypoint from the source code
 // repository. The valid entrypoints are defined above (run,start,exec,execute)
-func GuessEntrypoint(fs util.FileSystem, sourceDir string) (string, error) {
+func GuessEntrypoint(fs fs.FileSystem, sourceDir string) (string, error) {
 	files, err := fs.ReadDir(sourceDir)
 	if err != nil {
 		return "", err
@@ -40,7 +40,7 @@ func GuessEntrypoint(fs util.FileSystem, sourceDir string) (string, error) {
 // isValidEntrypoint checks if the given file exists and if it is a regular
 // file. Valid ENTRYPOINT must be an executable file, so the executable bit must
 // be set.
-func isValidEntrypoint(fs util.FileSystem, path string) bool {
+func isValidEntrypoint(fs fs.FileSystem, path string) bool {
 	stat, err := fs.Stat(path)
 	if err != nil {
 		return false
