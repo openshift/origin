@@ -10,19 +10,15 @@ import (
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	apiserverrest "k8s.io/apiserver/pkg/registry/rest"
 	clientgotesting "k8s.io/client-go/testing"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
-	appsv1 "github.com/openshift/api/apps/v1"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	_ "github.com/openshift/origin/pkg/apps/apis/apps/install"
 	appstest "github.com/openshift/origin/pkg/apps/apis/apps/test"
 	appsfake "github.com/openshift/origin/pkg/apps/generated/internalclientset/fake"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
 )
-
-var codec = legacyscheme.Codecs.LegacyCodec(appsv1.SchemeGroupVersion)
 
 type terribleGenerator struct{}
 
@@ -65,11 +61,11 @@ func TestCreateOk(t *testing.T) {
 	})
 	kc := &fake.Clientset{}
 	kc.AddReactor("get", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-		deployment, _ := appsutil.MakeDeployment(appstest.OkDeploymentConfig(1), codec)
+		deployment, _ := appsutil.MakeTestOnlyInternalDeployment(appstest.OkDeploymentConfig(1))
 		return true, deployment, nil
 	})
 
-	obj, err := NewREST(oc, kc, codec).Create(apirequest.NewDefaultContext(), &appsapi.DeploymentConfigRollback{
+	obj, err := NewREST(oc, kc).Create(apirequest.NewDefaultContext(), &appsapi.DeploymentConfigRollback{
 		Name: "config",
 		Spec: appsapi.DeploymentConfigRollbackSpec{
 			Revision: 1,
@@ -95,7 +91,7 @@ func TestCreateRollbackToLatest(t *testing.T) {
 		return true, appstest.OkDeploymentConfig(2), nil
 	})
 
-	_, err := NewREST(oc, &fake.Clientset{}, codec).Create(apirequest.NewDefaultContext(), &appsapi.DeploymentConfigRollback{
+	_, err := NewREST(oc, &fake.Clientset{}).Create(apirequest.NewDefaultContext(), &appsapi.DeploymentConfigRollback{
 		Name: "config",
 		Spec: appsapi.DeploymentConfigRollbackSpec{
 			Revision: 2,
@@ -117,7 +113,7 @@ func TestCreateGeneratorError(t *testing.T) {
 	})
 	kc := &fake.Clientset{}
 	kc.AddReactor("get", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-		deployment, _ := appsutil.MakeDeployment(appstest.OkDeploymentConfig(1), codec)
+		deployment, _ := appsutil.MakeTestOnlyInternalDeployment(appstest.OkDeploymentConfig(1))
 		return true, deployment, nil
 	})
 
@@ -125,7 +121,6 @@ func TestCreateGeneratorError(t *testing.T) {
 		generator: &terribleGenerator{},
 		dn:        oc.Apps(),
 		rn:        kc.Core(),
-		codec:     legacyscheme.Codecs.LegacyCodec(appsv1.SchemeGroupVersion),
 	}
 
 	_, err := rest.Create(apirequest.NewDefaultContext(), &appsapi.DeploymentConfigRollback{
@@ -147,11 +142,11 @@ func TestCreateMissingDeployment(t *testing.T) {
 	})
 	kc := &fake.Clientset{}
 	kc.AddReactor("get", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-		deployment, _ := appsutil.MakeDeployment(appstest.OkDeploymentConfig(1), codec)
+		deployment, _ := appsutil.MakeTestOnlyInternalDeployment(appstest.OkDeploymentConfig(1))
 		return true, nil, kerrors.NewNotFound(kapi.Resource("replicationController"), deployment.Name)
 	})
 
-	obj, err := NewREST(oc, kc, codec).Create(apirequest.NewDefaultContext(), &appsapi.DeploymentConfigRollback{
+	obj, err := NewREST(oc, kc).Create(apirequest.NewDefaultContext(), &appsapi.DeploymentConfigRollback{
 		Name: "config",
 		Spec: appsapi.DeploymentConfigRollbackSpec{
 			Revision: 1,
@@ -175,12 +170,12 @@ func TestCreateInvalidDeployment(t *testing.T) {
 	kc := &fake.Clientset{}
 	kc.AddReactor("get", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		// invalidate the encoded config
-		deployment, _ := appsutil.MakeDeployment(appstest.OkDeploymentConfig(1), codec)
+		deployment, _ := appsutil.MakeTestOnlyInternalDeployment(appstest.OkDeploymentConfig(1))
 		deployment.Annotations[appsapi.DeploymentEncodedConfigAnnotation] = ""
 		return true, deployment, nil
 	})
 
-	obj, err := NewREST(oc, kc, codec).Create(apirequest.NewDefaultContext(), &appsapi.DeploymentConfigRollback{
+	obj, err := NewREST(oc, kc).Create(apirequest.NewDefaultContext(), &appsapi.DeploymentConfigRollback{
 		Name: "config",
 		Spec: appsapi.DeploymentConfigRollbackSpec{
 			Revision: 1,
@@ -204,11 +199,11 @@ func TestCreateMissingDeploymentConfig(t *testing.T) {
 	})
 	kc := &fake.Clientset{}
 	kc.AddReactor("get", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-		deployment, _ := appsutil.MakeDeployment(appstest.OkDeploymentConfig(1), codec)
+		deployment, _ := appsutil.MakeTestOnlyInternalDeployment(appstest.OkDeploymentConfig(1))
 		return true, deployment, nil
 	})
 
-	obj, err := NewREST(oc, kc, codec).Create(apirequest.NewDefaultContext(), &appsapi.DeploymentConfigRollback{
+	obj, err := NewREST(oc, kc).Create(apirequest.NewDefaultContext(), &appsapi.DeploymentConfigRollback{
 		Name: "config",
 		Spec: appsapi.DeploymentConfigRollbackSpec{
 			Revision: 1,

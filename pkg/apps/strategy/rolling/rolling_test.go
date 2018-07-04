@@ -8,12 +8,10 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgotesting "k8s.io/client-go/testing"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	"k8s.io/kubernetes/pkg/kubectl"
 
-	appsv1 "github.com/openshift/api/apps/v1"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appstest "github.com/openshift/origin/pkg/apps/apis/apps/test"
 	strat "github.com/openshift/origin/pkg/apps/strategy"
@@ -26,7 +24,6 @@ func TestRolling_deployInitial(t *testing.T) {
 	initialStrategyInvoked := false
 
 	strategy := &RollingDeploymentStrategy{
-		decoder:     legacyscheme.Codecs.UniversalDecoder(),
 		rcClient:    fake.NewSimpleClientset().Core(),
 		eventClient: fake.NewSimpleClientset().Core(),
 		initialStrategy: &testStrategy{
@@ -46,7 +43,7 @@ func TestRolling_deployInitial(t *testing.T) {
 
 	config := appstest.OkDeploymentConfig(1)
 	config.Spec.Strategy = appstest.OkRollingStrategy()
-	deployment, _ := appsutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(appsv1.SchemeGroupVersion))
+	deployment, _ := appsutil.MakeTestOnlyInternalDeployment(config)
 	strategy.out, strategy.errOut = &bytes.Buffer{}, &bytes.Buffer{}
 	err := strategy.Deploy(nil, deployment, 2)
 	if err != nil {
@@ -60,10 +57,10 @@ func TestRolling_deployInitial(t *testing.T) {
 func TestRolling_deployRolling(t *testing.T) {
 	latestConfig := appstest.OkDeploymentConfig(1)
 	latestConfig.Spec.Strategy = appstest.OkRollingStrategy()
-	latest, _ := appsutil.MakeDeployment(latestConfig, legacyscheme.Codecs.LegacyCodec(appsv1.SchemeGroupVersion))
+	latest, _ := appsutil.MakeTestOnlyInternalDeployment(latestConfig)
 	config := appstest.OkDeploymentConfig(2)
 	config.Spec.Strategy = appstest.OkRollingStrategy()
-	deployment, _ := appsutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(appsv1.SchemeGroupVersion))
+	deployment, _ := appsutil.MakeTestOnlyInternalDeployment(config)
 
 	deployments := map[string]*kapi.ReplicationController{
 		latest.Name:     latest,
@@ -84,7 +81,6 @@ func TestRolling_deployRolling(t *testing.T) {
 
 	var rollingConfig *kubectl.RollingUpdaterConfig
 	strategy := &RollingDeploymentStrategy{
-		decoder:     legacyscheme.Codecs.UniversalDecoder(),
 		rcClient:    client.Core(),
 		eventClient: fake.NewSimpleClientset().Core(),
 		initialStrategy: &testStrategy{
@@ -157,7 +153,7 @@ func (h *hookExecutorImpl) Execute(hook *appsapi.LifecycleHook, rc *kapi.Replica
 func TestRolling_deployRollingHooks(t *testing.T) {
 	config := appstest.OkDeploymentConfig(1)
 	config.Spec.Strategy = appstest.OkRollingStrategy()
-	latest, _ := appsutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(appsv1.SchemeGroupVersion))
+	latest, _ := appsutil.MakeTestOnlyInternalDeployment(config)
 
 	var hookError error
 
@@ -174,7 +170,6 @@ func TestRolling_deployRollingHooks(t *testing.T) {
 	})
 
 	strategy := &RollingDeploymentStrategy{
-		decoder:     legacyscheme.Codecs.UniversalDecoder(),
 		rcClient:    client.Core(),
 		eventClient: fake.NewSimpleClientset().Core(),
 		initialStrategy: &testStrategy{
@@ -210,7 +205,7 @@ func TestRolling_deployRollingHooks(t *testing.T) {
 	for _, tc := range cases {
 		config := appstest.OkDeploymentConfig(2)
 		config.Spec.Strategy.RollingParams = tc.params
-		deployment, _ := appsutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(appsv1.SchemeGroupVersion))
+		deployment, _ := appsutil.MakeTestOnlyInternalDeployment(config)
 		deployments[deployment.Name] = deployment
 		hookError = nil
 		if tc.hookShouldFail {
@@ -236,7 +231,6 @@ func TestRolling_deployInitialHooks(t *testing.T) {
 	var hookError error
 
 	strategy := &RollingDeploymentStrategy{
-		decoder:     legacyscheme.Codecs.UniversalDecoder(),
 		rcClient:    fake.NewSimpleClientset().Core(),
 		eventClient: fake.NewSimpleClientset().Core(),
 		initialStrategy: &testStrategy{
@@ -271,7 +265,7 @@ func TestRolling_deployInitialHooks(t *testing.T) {
 	for i, tc := range cases {
 		config := appstest.OkDeploymentConfig(2)
 		config.Spec.Strategy.RollingParams = tc.params
-		deployment, _ := appsutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(appsv1.SchemeGroupVersion))
+		deployment, _ := appsutil.MakeTestOnlyInternalDeployment(config)
 		hookError = nil
 		if tc.hookShouldFail {
 			hookError = fmt.Errorf("hook failure")

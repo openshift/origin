@@ -10,7 +10,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/diff"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
@@ -418,7 +417,7 @@ func TestImageStreamTagLifecycleHook(t *testing.T) {
 	imageClientset := imageclient.NewForConfigOrDie(testutil.GetClusterAdminClientConfigOrDie(clusterAdminKubeConfig)).Image()
 
 	// can tag to a stream that exists
-	exec := stratsupport.NewHookExecutor(nil, imageClientset, clusterAdminKubeClientset.Core(), os.Stdout, legacyscheme.Codecs.UniversalDecoder())
+	exec := stratsupport.NewHookExecutor(nil, imageClientset, clusterAdminKubeClientset.Core(), os.Stdout)
 	err = exec.Execute(
 		&appsapi.LifecycleHook{
 			TagImages: []appsapi.TagImageHook{
@@ -456,7 +455,7 @@ func TestImageStreamTagLifecycleHook(t *testing.T) {
 	}
 
 	// can execute a second time the same tag and it should work
-	exec = stratsupport.NewHookExecutor(nil, imageClientset, clusterAdminKubeClientset.Core(), os.Stdout, legacyscheme.Codecs.UniversalDecoder())
+	exec = stratsupport.NewHookExecutor(nil, imageClientset, clusterAdminKubeClientset.Core(), os.Stdout)
 	err = exec.Execute(
 		&appsapi.LifecycleHook{
 			TagImages: []appsapi.TagImageHook{
@@ -488,7 +487,7 @@ func TestImageStreamTagLifecycleHook(t *testing.T) {
 	}
 
 	// can lifecycle tag a new image stream
-	exec = stratsupport.NewHookExecutor(nil, imageClientset, clusterAdminKubeClientset.Core(), os.Stdout, legacyscheme.Codecs.UniversalDecoder())
+	exec = stratsupport.NewHookExecutor(nil, imageClientset, clusterAdminKubeClientset.Core(), os.Stdout)
 	err = exec.Execute(
 		&appsapi.LifecycleHook{
 			TagImages: []appsapi.TagImageHook{

@@ -61,7 +61,7 @@ type RecreateDeploymentStrategy struct {
 // NewRecreateDeploymentStrategy makes a RecreateDeploymentStrategy backed by
 // a real HookExecutor and client.
 func NewRecreateDeploymentStrategy(client kclientset.Interface, tagClient imageclient.ImageStreamTagsGetter,
-	events record.EventSink, decoder runtime.Decoder, out, errOut io.Writer, until string) *RecreateDeploymentStrategy {
+	events record.EventSink, out, errOut io.Writer, until string) *RecreateDeploymentStrategy {
 	if out == nil {
 		out = ioutil.Discard
 	}
@@ -81,8 +81,7 @@ func NewRecreateDeploymentStrategy(client kclientset.Interface, tagClient imagec
 		getUpdateAcceptor: func(timeout time.Duration, minReadySeconds int32) strat.UpdateAcceptor {
 			return stratsupport.NewAcceptAvailablePods(out, client.Core(), timeout)
 		},
-		decoder:      decoder,
-		hookExecutor: stratsupport.NewHookExecutor(client.Core(), tagClient, client.Core(), os.Stdout, decoder),
+		hookExecutor: stratsupport.NewHookExecutor(client.Core(), tagClient, client.Core(), os.Stdout),
 	}
 }
 
@@ -99,7 +98,7 @@ func (s *RecreateDeploymentStrategy) Deploy(from *kapi.ReplicationController, to
 // This is currently only used in conjunction with the rolling update strategy
 // for initial deployments.
 func (s *RecreateDeploymentStrategy) DeployWithAcceptor(from *kapi.ReplicationController, to *kapi.ReplicationController, desiredReplicas int, updateAcceptor strat.UpdateAcceptor) error {
-	config, err := appsutil.DecodeDeploymentConfig(to, s.decoder)
+	config, err := appsutil.DecodeDeploymentConfig(to)
 	if err != nil {
 		return fmt.Errorf("couldn't decode config from deployment %s: %v", to.Name, err)
 	}
@@ -134,8 +133,8 @@ func (s *RecreateDeploymentStrategy) DeployWithAcceptor(from *kapi.ReplicationCo
 	}
 
 	// Record all warnings
-	defer stratutil.RecordConfigWarnings(s.eventClient, from, s.decoder, s.out)
-	defer stratutil.RecordConfigWarnings(s.eventClient, to, s.decoder, s.out)
+	defer stratutil.RecordConfigWarnings(s.eventClient, from, s.out)
+	defer stratutil.RecordConfigWarnings(s.eventClient, to, s.out)
 
 	// Scale down the from deployment.
 	if from != nil {

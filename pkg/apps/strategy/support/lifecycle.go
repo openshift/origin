@@ -48,8 +48,6 @@ type hookExecutor struct {
 	tags imageclient.ImageStreamTagsGetter
 	// out is where hook pod logs should be written to.
 	out io.Writer
-	// decoder is used for encoding/decoding.
-	decoder runtime.Decoder
 	// recorder is used to emit events from hooks
 	events kcoreclient.EventsGetter
 	// getPodLogs knows how to get logs from a pod and is used for testing
@@ -57,13 +55,12 @@ type hookExecutor struct {
 }
 
 // NewHookExecutor makes a HookExecutor from a client.
-func NewHookExecutor(pods kcoreclient.PodsGetter, tags imageclient.ImageStreamTagsGetter, events kcoreclient.EventsGetter, out io.Writer, decoder runtime.Decoder) HookExecutor {
+func NewHookExecutor(pods kcoreclient.PodsGetter, tags imageclient.ImageStreamTagsGetter, events kcoreclient.EventsGetter, out io.Writer) HookExecutor {
 	executor := &hookExecutor{
-		tags:    tags,
-		pods:    pods,
-		events:  events,
-		out:     out,
-		decoder: decoder,
+		tags:   tags,
+		pods:   pods,
+		events: events,
+		out:    out,
 	}
 	executor.getPodLogs = func(pod *kapi.Pod) (io.ReadCloser, error) {
 		opts := &kapi.PodLogOptions{
@@ -89,17 +86,17 @@ func (e *hookExecutor) Execute(hook *appsapi.LifecycleHook, rc *kapi.Replication
 				tagEventMessages = append(tagEventMessages, fmt.Sprintf("image %q as %q", image, t.To.Name))
 			}
 		}
-		strategyutil.RecordConfigEvent(e.events, rc, e.decoder, kapi.EventTypeNormal, "Started",
+		strategyutil.RecordConfigEvent(e.events, rc, kapi.EventTypeNormal, "Started",
 			fmt.Sprintf("Running %s-hook (TagImages) %s for rc %s/%s", label, strings.Join(tagEventMessages, ","), rc.Namespace, rc.Name))
 		err = e.tagImages(hook, rc, suffix, label)
 	case hook.ExecNewPod != nil:
-		strategyutil.RecordConfigEvent(e.events, rc, e.decoder, kapi.EventTypeNormal, "Started",
+		strategyutil.RecordConfigEvent(e.events, rc, kapi.EventTypeNormal, "Started",
 			fmt.Sprintf("Running %s-hook (%q) for rc %s/%s", label, strings.Join(hook.ExecNewPod.Command, " "), rc.Namespace, rc.Name))
 		err = e.executeExecNewPod(hook, rc, suffix, label)
 	}
 
 	if err == nil {
-		strategyutil.RecordConfigEvent(e.events, rc, e.decoder, kapi.EventTypeNormal, "Completed",
+		strategyutil.RecordConfigEvent(e.events, rc, kapi.EventTypeNormal, "Completed",
 			fmt.Sprintf("The %s-hook for rc %s/%s completed successfully", label, rc.Namespace, rc.Name))
 		return nil
 	}
@@ -107,11 +104,11 @@ func (e *hookExecutor) Execute(hook *appsapi.LifecycleHook, rc *kapi.Replication
 	// Retry failures are treated the same as Abort.
 	switch hook.FailurePolicy {
 	case appsapi.LifecycleHookFailurePolicyAbort, appsapi.LifecycleHookFailurePolicyRetry:
-		strategyutil.RecordConfigEvent(e.events, rc, e.decoder, kapi.EventTypeWarning, "Failed",
+		strategyutil.RecordConfigEvent(e.events, rc, kapi.EventTypeWarning, "Failed",
 			fmt.Sprintf("The %s-hook failed: %v, aborting rollout of %s/%s", label, err, rc.Namespace, rc.Name))
 		return fmt.Errorf("the %s hook failed: %v, aborting rollout of %s/%s", label, err, rc.Namespace, rc.Name)
 	case appsapi.LifecycleHookFailurePolicyIgnore:
-		strategyutil.RecordConfigEvent(e.events, rc, e.decoder, kapi.EventTypeWarning, "Failed",
+		strategyutil.RecordConfigEvent(e.events, rc, kapi.EventTypeWarning, "Failed",
 			fmt.Sprintf("The %s-hook failed: %v (ignore), rollout of %s/%s will continue", label, err, rc.Namespace, rc.Name))
 		return nil
 	default:
@@ -177,7 +174,7 @@ func (e *hookExecutor) tagImages(hook *appsapi.LifecycleHook, rc *kapi.Replicati
 //   * Working directory
 //   * Resources
 func (e *hookExecutor) executeExecNewPod(hook *appsapi.LifecycleHook, rc *kapi.ReplicationController, suffix, label string) error {
-	config, err := appsutil.DecodeDeploymentConfig(rc, e.decoder)
+	config, err := appsutil.DecodeDeploymentConfig(rc)
 	if err != nil {
 		return err
 	}

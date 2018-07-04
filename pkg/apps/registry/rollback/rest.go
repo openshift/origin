@@ -25,18 +25,16 @@ type REST struct {
 	generator RollbackGenerator
 	dn        apps.DeploymentConfigsGetter
 	rn        kcoreclient.ReplicationControllersGetter
-	codec     runtime.Codec
 }
 
 var _ rest.Creater = &REST{}
 
 // NewREST safely creates a new REST.
-func NewREST(appsclient appsclientinternal.Interface, kc kclientset.Interface, codec runtime.Codec) *REST {
+func NewREST(appsclient appsclientinternal.Interface, kc kclientset.Interface) *REST {
 	return &REST{
 		generator: NewRollbackGenerator(),
 		dn:        appsclient.Apps(),
 		rn:        kc.Core(),
-		codec:     codec,
 	}
 }
 
@@ -89,7 +87,7 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, createValidation 
 		return nil, newInvalidError(rollback, err.Error())
 	}
 
-	to, err := appsutil.DecodeDeploymentConfig(targetDeployment, r.codec)
+	to, err := appsutil.DecodeDeploymentConfig(targetDeployment)
 	if err != nil {
 		return nil, newInvalidError(rollback, fmt.Sprintf("couldn't decode deployment config from deployment: %v", err))
 	}

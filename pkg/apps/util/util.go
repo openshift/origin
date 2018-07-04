@@ -314,8 +314,8 @@ func CopyApiEnvVarToV1EnvVar(in []api.EnvVar) []v1.EnvVar {
 // template and deployment config template encoded in the latest replication
 // controller. If they are different it will return an string diff containing
 // the change.
-func HasLatestPodTemplate(currentConfig *appsapi.DeploymentConfig, rc *v1.ReplicationController, codec runtime.Codec) (bool, string, error) {
-	latestConfig, err := DecodeDeploymentConfig(rc, codec)
+func HasLatestPodTemplate(currentConfig *appsapi.DeploymentConfig, rc *v1.ReplicationController) (bool, string, error) {
+	latestConfig, err := DecodeDeploymentConfig(rc)
 	if err != nil {
 		return true, "", err
 	}
@@ -352,9 +352,9 @@ func HasUpdatedImages(dc *appsapi.DeploymentConfig, rc *v1.ReplicationController
 
 // DecodeDeploymentConfig decodes a DeploymentConfig from controller using codec. An error is returned
 // if the controller doesn't contain an encoded config.
-func DecodeDeploymentConfig(controller runtime.Object, decoder runtime.Decoder) (*appsapi.DeploymentConfig, error) {
-	encodedConfig := []byte(EncodedDeploymentConfigFor(controller))
-	decoded, err := runtime.Decode(decoder, encodedConfig)
+func DecodeDeploymentConfig(controller metav1.ObjectMetaAccessor) (*appsapi.DeploymentConfig, error) {
+	encodedConfig := controller.GetObjectMeta().GetAnnotations()[appsapi.DeploymentEncodedConfigAnnotation]
+	decoded, err := runtime.Decode(annotationDecoder, []byte(encodedConfig))
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode DeploymentConfig from controller: %v", err)
 	}
@@ -363,15 +363,6 @@ func DecodeDeploymentConfig(controller runtime.Object, decoder runtime.Decoder) 
 		return nil, fmt.Errorf("decoded object from controller is not a DeploymentConfig")
 	}
 	return config, nil
-}
-
-// EncodeDeploymentConfig encodes config as a string using codec.
-func EncodeDeploymentConfig(config *appsapi.DeploymentConfig, codec runtime.Codec) (string, error) {
-	bytes, err := runtime.Encode(codec, config)
-	if err != nil {
-		return "", err
-	}
-	return string(bytes[:]), nil
 }
 
 func NewControllerRef(config *appsapi.DeploymentConfig) *metav1.OwnerReference {
@@ -390,8 +381,8 @@ func NewControllerRef(config *appsapi.DeploymentConfig) *metav1.OwnerReference {
 // MakeDeployment creates a deployment represented as an internal ReplicationController and based on the given
 // DeploymentConfig. The controller replica count will be zero.
 // DEPRECATED: Will be replaced with external version eventually.
-func MakeDeployment(config *appsapi.DeploymentConfig, codec runtime.Codec) (*api.ReplicationController, error) {
-	obj, err := MakeDeploymentV1(config, codec)
+func MakeTestOnlyInternalDeployment(config *appsapi.DeploymentConfig) (*api.ReplicationController, error) {
+	obj, err := MakeDeploymentV1(config)
 	if err != nil {
 		return nil, err
 	}
@@ -406,11 +397,10 @@ func MakeDeployment(config *appsapi.DeploymentConfig, codec runtime.Codec) (*api
 
 // MakeDeploymentV1 creates a deployment represented as a ReplicationController and based on the given
 // DeploymentConfig. The controller replica count will be zero.
-func MakeDeploymentV1(config *appsapi.DeploymentConfig, codec runtime.Codec) (*v1.ReplicationController, error) {
-	var err error
-	var encodedConfig string
-
-	if encodedConfig, err = EncodeDeploymentConfig(config, codec); err != nil {
+func MakeDeploymentV1(config *appsapi.DeploymentConfig) (*v1.ReplicationController, error) {
+	// EncodeDeploymentConfig encodes config as a string using codec.
+	encodedConfig, err := runtime.Encode(annotationEncoder, config)
+	if err != nil {
 		return nil, err
 	}
 
@@ -471,7 +461,7 @@ func MakeDeploymentV1(config *appsapi.DeploymentConfig, codec runtime.Codec) (*v
 			Annotations: map[string]string{
 				appsapi.DeploymentConfigAnnotation:        config.Name,
 				appsapi.DeploymentStatusAnnotation:        string(appsapi.DeploymentStatusNew),
-				appsapi.DeploymentEncodedConfigAnnotation: encodedConfig,
+				appsapi.DeploymentEncodedConfigAnnotation: string(encodedConfig),
 				appsapi.DeploymentVersionAnnotation:       strconv.FormatInt(config.Status.LatestVersion, 10),
 				// This is the target replica count for the new deployment.
 				appsapi.DesiredReplicasAnnotation:    strconv.Itoa(int(config.Spec.Replicas)),
@@ -574,10 +564,6 @@ func DeploymentStatusReasonFor(obj runtime.Object) string {
 
 func DeploymentDesiredReplicas(obj runtime.Object) (int32, bool) {
 	return int32AnnotationFor(obj, appsapi.DesiredReplicasAnnotation)
-}
-
-func EncodedDeploymentConfigFor(obj runtime.Object) string {
-	return annotationFor(obj, appsapi.DeploymentEncodedConfigAnnotation)
 }
 
 func DeploymentVersionFor(obj runtime.Object) int64 {

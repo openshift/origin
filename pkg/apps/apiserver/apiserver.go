@@ -4,13 +4,11 @@ import (
 	"sync"
 
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apiserver/pkg/registry/rest"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	"k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	appsapiv1 "github.com/openshift/api/apps/v1"
@@ -99,9 +97,6 @@ func (c *completedConfig) V1RESTStorage() (map[string]rest.Storage, error) {
 }
 
 func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
-	// TODO sort out who is using this and why.  it was hardcoded before the migration and I suspect that it is being used
-	// to serialize out objects into annotations.
-	externalVersionCodec := legacyscheme.Codecs.LegacyCodec(schema.GroupVersion{Group: "", Version: "v1"})
 	openshiftInternalAppsClient, err := appsclientinternal.NewForConfig(c.GenericConfig.LoopbackClientConfig)
 	if err != nil {
 		return nil, err
@@ -128,10 +123,9 @@ func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
 		*deployConfigStorage.Store,
 		openshiftInternalImageClient,
 		kubeInternalClient,
-		externalVersionCodec,
 		c.GenericConfig.AdmissionControl,
 	)
-	deployConfigRollbackStorage := deployrollback.NewREST(openshiftInternalAppsClient, kubeInternalClient, externalVersionCodec)
+	deployConfigRollbackStorage := deployrollback.NewREST(openshiftInternalAppsClient, kubeInternalClient)
 
 	v1Storage := map[string]rest.Storage{}
 	v1Storage["deploymentConfigs"] = deployConfigStorage

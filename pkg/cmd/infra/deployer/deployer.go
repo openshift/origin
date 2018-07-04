@@ -13,7 +13,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kv1core "k8s.io/client-go/kubernetes/typed/core/v1"
 	restclient "k8s.io/client-go/rest"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl"
@@ -141,11 +140,11 @@ func NewDeployer(kubeClient kubernetes.Interface, client kclientset.Interface, i
 			switch config.Spec.Strategy.Type {
 			case appsapi.DeploymentStrategyTypeRecreate:
 				return recreate.NewRecreateDeploymentStrategy(client, images.Image(),
-					&kv1core.EventSinkImpl{Interface: kubeClient.CoreV1().Events("")}, legacyscheme.Codecs.UniversalDecoder(), out, errOut, until), nil
+					&kv1core.EventSinkImpl{Interface: kubeClient.CoreV1().Events("")}, out, errOut, until), nil
 			case appsapi.DeploymentStrategyTypeRolling:
 				recreateDeploymentStrategy := recreate.NewRecreateDeploymentStrategy(client, images.Image(),
-					&kv1core.EventSinkImpl{Interface: kubeClient.CoreV1().Events("")}, legacyscheme.Codecs.UniversalDecoder(), out, errOut, until)
-				return rolling.NewRollingDeploymentStrategy(config.Namespace, client, images.Image(), legacyscheme.Codecs.UniversalDecoder(), recreateDeploymentStrategy, out, errOut, until), nil
+					&kv1core.EventSinkImpl{Interface: kubeClient.CoreV1().Events("")}, out, errOut, until)
+				return rolling.NewRollingDeploymentStrategy(config.Namespace, client, images.Image(), recreateDeploymentStrategy, out, errOut, until), nil
 			default:
 				return nil, fmt.Errorf("unsupported strategy type: %s", config.Spec.Strategy.Type)
 			}
@@ -185,7 +184,7 @@ func (d *Deployer) Deploy(namespace, rcName string) error {
 	}
 
 	// Decode the config from the deployment.
-	config, err := appsutil.DecodeDeploymentConfig(to, legacyscheme.Codecs.UniversalDecoder())
+	config, err := appsutil.DecodeDeploymentConfig(to)
 	if err != nil {
 		return fmt.Errorf("couldn't decode deployment config from deployment %s: %v", to.Name, err)
 	}

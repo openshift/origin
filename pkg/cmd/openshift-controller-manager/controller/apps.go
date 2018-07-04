@@ -1,9 +1,7 @@
 package controller
 
 import (
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	deployercontroller "github.com/openshift/origin/pkg/apps/controller/deployer"
 	deployconfigcontroller "github.com/openshift/origin/pkg/apps/controller/deploymentconfig"
@@ -22,9 +20,6 @@ func RunDeployerController(ctx ControllerContext) (bool, error) {
 		return true, err
 	}
 
-	groupVersion := schema.GroupVersion{Group: "", Version: "v1"}
-	annotationCodec := legacyscheme.Codecs.LegacyCodec(groupVersion)
-
 	imageTemplate := variable.NewDefaultImageTemplate()
 	imageTemplate.Format = ctx.OpenshiftControllerConfig.Deployer.ImageTemplateFormat.Format
 	imageTemplate.Latest = ctx.OpenshiftControllerConfig.Deployer.ImageTemplateFormat.Latest
@@ -36,7 +31,6 @@ func RunDeployerController(ctx ControllerContext) (bool, error) {
 		bootstrappolicy.DeployerServiceAccountName,
 		imageTemplate.ExpandOrDie("deployer"),
 		nil,
-		annotationCodec,
 	).Run(5, ctx.Stop)
 
 	return true, nil
@@ -50,15 +44,11 @@ func RunDeploymentConfigController(ctx ControllerContext) (bool, error) {
 		return true, err
 	}
 
-	groupVersion := schema.GroupVersion{Group: "apps.openshift.io", Version: "v1"}
-	annotationCodec := legacyscheme.Codecs.LegacyCodec(groupVersion)
-
 	go deployconfigcontroller.NewDeploymentConfigController(
 		ctx.AppInformers.Apps().InternalVersion().DeploymentConfigs(),
 		ctx.ExternalKubeInformers.Core().V1().ReplicationControllers(),
 		ctx.ClientBuilder.OpenshiftInternalAppsClientOrDie(saName),
 		kubeClient,
-		annotationCodec,
 	).Run(5, ctx.Stop)
 
 	return true, nil

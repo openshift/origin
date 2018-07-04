@@ -7,7 +7,6 @@ import (
 	"github.com/golang/glog"
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	kcoreinformers "k8s.io/client-go/informers/core/v1"
@@ -31,7 +30,6 @@ func NewDeploymentConfigController(
 	rcInformer kcoreinformers.ReplicationControllerInformer,
 	appsClientset appsclient.Interface,
 	kubeClientset kclientset.Interface,
-	codec runtime.Codec,
 ) *DeploymentConfigController {
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartLogging(glog.Infof)
@@ -52,7 +50,6 @@ func NewDeploymentConfigController(
 		},
 
 		recorder: recorder,
-		codec:    codec,
 	}
 
 	c.dcLister = dcInformer.Lister()

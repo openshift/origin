@@ -10,7 +10,6 @@ import (
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -63,8 +62,6 @@ type RollingDeploymentStrategy struct {
 	tags imageclient.ImageStreamTagsGetter
 	// rollingUpdate knows how to perform a rolling update.
 	rollingUpdate func(config *kubectl.RollingUpdaterConfig) error
-	// decoder is used to access the encoded config on a deployment.
-	decoder runtime.Decoder
 	// hookExecutor can execute a lifecycle hook.
 	hookExecutor stratsupport.HookExecutor
 	// getUpdateAcceptor returns an UpdateAcceptor to verify the first replica
@@ -86,7 +83,7 @@ type acceptingDeploymentStrategy interface {
 }
 
 // NewRollingDeploymentStrategy makes a new RollingDeploymentStrategy.
-func NewRollingDeploymentStrategy(namespace string, client kclientset.Interface, tags imageclient.ImageStreamTagsGetter, decoder runtime.Decoder, initialStrategy acceptingDeploymentStrategy, out, errOut io.Writer, until string) *RollingDeploymentStrategy {
+func NewRollingDeploymentStrategy(namespace string, client kclientset.Interface, tags imageclient.ImageStreamTagsGetter, initialStrategy acceptingDeploymentStrategy, out, errOut io.Writer, until string) *RollingDeploymentStrategy {
 	if out == nil {
 		out = ioutil.Discard
 	}
@@ -98,7 +95,6 @@ func NewRollingDeploymentStrategy(namespace string, client kclientset.Interface,
 		out:             out,
 		errOut:          errOut,
 		until:           until,
-		decoder:         decoder,
 		initialStrategy: initialStrategy,
 		rcClient:        client.Core(),
 		eventClient:     client.Core(),
@@ -109,7 +105,7 @@ func NewRollingDeploymentStrategy(namespace string, client kclientset.Interface,
 			updater := kubectl.NewRollingUpdater(namespace, client.Core(), client.Core(), appsutil.NewReplicationControllerV1ScaleClient(client))
 			return updater.Update(config)
 		},
-		hookExecutor: stratsupport.NewHookExecutor(client.Core(), tags, client.Core(), os.Stdout, decoder),
+		hookExecutor: stratsupport.NewHookExecutor(client.Core(), tags, client.Core(), os.Stdout),
 		getUpdateAcceptor: func(timeout time.Duration, minReadySeconds int32) strat.UpdateAcceptor {
 			return stratsupport.NewAcceptAvailablePods(out, client.Core(), timeout)
 		},
@@ -117,7 +113,7 @@ func NewRollingDeploymentStrategy(namespace string, client kclientset.Interface,
 }
 
 func (s *RollingDeploymentStrategy) Deploy(from *kapi.ReplicationController, to *kapi.ReplicationController, desiredReplicas int) error {
-	config, err := appsutil.DecodeDeploymentConfig(to, s.decoder)
+	config, err := appsutil.DecodeDeploymentConfig(to)
 	if err != nil {
 		return fmt.Errorf("couldn't decode DeploymentConfig from deployment %s: %v", appsutil.LabelForDeployment(to), err)
 	}
@@ -156,8 +152,8 @@ func (s *RollingDeploymentStrategy) Deploy(from *kapi.ReplicationController, to 
 	}
 
 	// Record all warnings
-	defer stratutil.RecordConfigWarnings(s.eventClient, from, s.decoder, s.out)
-	defer stratutil.RecordConfigWarnings(s.eventClient, to, s.decoder, s.out)
+	defer stratutil.RecordConfigWarnings(s.eventClient, from, s.out)
+	defer stratutil.RecordConfigWarnings(s.eventClient, to, s.out)
 
 	// Prepare for a rolling update.
 	// Execute any pre-hook.
