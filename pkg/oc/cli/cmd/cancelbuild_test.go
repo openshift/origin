@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"io/ioutil"
+	"io"
 	"strconv"
 	"strings"
 	"testing"
@@ -20,7 +20,7 @@ import (
 
 // TestCancelBuildDefaultFlags ensures that flags default values are set.
 func TestCancelBuildDefaultFlags(t *testing.T) {
-	o := CancelBuildOptions{}
+	o := NewCancelBuildOptions(genericclioptions.NewTestIOStreamsDiscard())
 
 	tests := map[string]struct {
 		flagName   string
@@ -64,9 +64,11 @@ func TestCancelBuildRun(t *testing.T) {
 	}{
 		"cancelled": {
 			opts: &CancelBuildOptions{
-				Out:       ioutil.Discard,
-				Namespace: "test",
-				States:    []string{"new", "pending", "running"},
+				PrinterCancel:  &discardingPrinter{},
+				PrinterRestart: &discardingPrinter{},
+				IOStreams:      genericclioptions.NewTestIOStreamsDiscard(),
+				Namespace:      "test",
+				States:         []string{"new", "pending", "running"},
 			},
 			phase: buildapi.BuildPhaseCancelled,
 			expectedActions: []testAction{
@@ -76,8 +78,10 @@ func TestCancelBuildRun(t *testing.T) {
 		},
 		"complete": {
 			opts: &CancelBuildOptions{
-				Out:       ioutil.Discard,
-				Namespace: "test",
+				PrinterCancel:  &discardingPrinter{},
+				PrinterRestart: &discardingPrinter{},
+				IOStreams:      genericclioptions.NewTestIOStreamsDiscard(),
+				Namespace:      "test",
 			},
 			phase: buildapi.BuildPhaseComplete,
 			expectedActions: []testAction{
@@ -87,8 +91,10 @@ func TestCancelBuildRun(t *testing.T) {
 		},
 		"new": {
 			opts: &CancelBuildOptions{
-				Out:       ioutil.Discard,
-				Namespace: "test",
+				PrinterCancel:  &discardingPrinter{},
+				PrinterRestart: &discardingPrinter{},
+				IOStreams:      genericclioptions.NewTestIOStreamsDiscard(),
+				Namespace:      "test",
 			},
 			phase: buildapi.BuildPhaseNew,
 			expectedActions: []testAction{
@@ -100,8 +106,10 @@ func TestCancelBuildRun(t *testing.T) {
 		},
 		"pending": {
 			opts: &CancelBuildOptions{
-				Out:       ioutil.Discard,
-				Namespace: "test",
+				PrinterCancel:  &discardingPrinter{},
+				PrinterRestart: &discardingPrinter{},
+				IOStreams:      genericclioptions.NewTestIOStreamsDiscard(),
+				Namespace:      "test",
 			},
 			phase: buildapi.BuildPhaseNew,
 			expectedActions: []testAction{
@@ -113,9 +121,11 @@ func TestCancelBuildRun(t *testing.T) {
 		},
 		"running and restart": {
 			opts: &CancelBuildOptions{
-				Out:       ioutil.Discard,
-				Namespace: "test",
-				Restart:   true,
+				PrinterCancel:  &discardingPrinter{},
+				PrinterRestart: &discardingPrinter{},
+				IOStreams:      genericclioptions.NewTestIOStreamsDiscard(),
+				Namespace:      "test",
+				Restart:        true,
 			},
 			phase: buildapi.BuildPhaseNew,
 			expectedActions: []testAction{
@@ -184,7 +194,12 @@ func TestCancelBuildRun(t *testing.T) {
 			}
 		}
 	}
+}
 
+type discardingPrinter struct{}
+
+func (*discardingPrinter) PrintObj(runtime.Object, io.Writer) error {
+	return nil
 }
 
 func genBuild(phase buildapi.BuildPhase) *buildapi.Build {
