@@ -165,8 +165,6 @@ function os::test::junit::generate_report() {
         os::test::junit::reconcile_output
         os::test::junit::check_test_counters
         os::test::junit::internal::generate_report "oscmd"
-    else
-        os::test::junit::internal::generate_report "gotest"
     fi
 }
 

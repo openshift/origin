@@ -6,8 +6,6 @@ import (
 	"reflect"
 	"testing"
 
-	"k8s.io/apimachinery/pkg/util/diff"
-
 	"github.com/openshift/origin/tools/junitreport/pkg/api"
 	"github.com/openshift/origin/tools/junitreport/pkg/builder/nested"
 )
@@ -532,7 +530,7 @@ func TestNestedParse(t *testing.T) {
 			}
 
 			if !reflect.DeepEqual(testSuites, testCase.expectedSuites) {
-				t.Errorf("did not produce the correct test suites from file:\n %s", diff.ObjectReflectDiff(testCase.expectedSuites, testSuites))
+				t.Errorf("did not produce the correct test suites from file:\n%#v\n%#v", testCase.expectedSuites, testSuites)
 			}
 		})
 	}
