@@ -733,7 +733,7 @@ func WaitForBuilderAccount(c kcoreclient.ServiceAccountInterface) error {
 		}
 		return false, nil
 	}
-	return wait.Poll(time.Duration(100*time.Millisecond), 1*time.Minute, waitFn)
+	return wait.Poll(time.Duration(100*time.Millisecond), 3*time.Minute, waitFn)
 }
 
 // WaitForAnImageStream waits for an ImageStream to fulfill the isOK function
