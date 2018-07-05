@@ -19,12 +19,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 05ff74391dd7d5c894bf73aa3ad4ef48784702c8
+%global commit ca123ac7bb7e6ee122a54593c18e71342f76a4f7
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=9+ OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.9.30 OS_GIT_TREE_STATE=clean OS_GIT_PATCH=30 KUBE_GIT_VERSION=v1.9.1+a0ce1bc657 OS_GIT_CATALOG_VERSION=v0.1.9.1 KUBE_GIT_COMMIT=a0ce1bc OS_GIT_COMMIT=015cc77 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.16 ETCD_GIT_COMMIT=121edf0
+%global os_git_vars OS_GIT_MINOR=9+ OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.9.31 OS_GIT_TREE_STATE=clean OS_GIT_PATCH=31 KUBE_GIT_VERSION=v1.9.1+a0ce1bc657 OS_GIT_CATALOG_VERSION=v0.1.9.1 KUBE_GIT_COMMIT=a0ce1bc OS_GIT_COMMIT=e58e513 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.16 ETCD_GIT_COMMIT=121edf0
 }
 
 %if 0%{?skip_build}
@@ -66,7 +66,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.9.31
+Version:        3.9.32
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -606,6 +606,29 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Thu Jul 05 2018 Tim Bielawa <tbielawa@redhat.com> 3.9.32-1
+- UPSTREAM: 63926: Avoid unnecessary calls to the cloud provider
+  (miciah.masters@gmail.com)
+- UPSTREAM: 64860:checkLimitsForResolvConf for the pod create and update events
+  instead of checking periodically (ravisantoshgudimetla@gmail.com)
+- UPSTREAM: 59602: Change VMware provider ID to uuid (jsafrane@redhat.com)
+- UPSTREAM: 63875: make TestGetServerGroupsWithTimeout more reliable
+  (maszulik@redhat.com)
+- UPSTREAM: 63848: Deflake discovery timeout test (maszulik@redhat.com)
+- UPSTREAM: 63086: Fix discovery default timeout test (maszulik@redhat.com)
+- UPSTREAM: 62733: Set a default request timeout for discovery client
+  (maszulik@redhat.com)
+- Apps: Fix DC recreate strategy to wait only for running pods
+  (tnozicka@gmail.com)
+- serviceaccounts: do not manage pull secrets created by third parties
+  (mfojtik@redhat.com)
+- up: default openshift imagepolicy admission (mfojtik@redhat.com)
+- Hoist etcd startup first for all-in-one (jliggitt@redhat.com)
+- UPSTREAM: 61459: etcd client add dial timeout (xuzhonghu@huawei.com)
+- Fix bugz 1582875 - note: commit is specific to enterprise 3.9 haproxy router.
+  Fix bug where secured wildcard routes takes over all routes in the specific
+  subdomain. (smitram@gmail.com)
+
 * Tue Jun 12 2018 Justin Pierce <jupierce@redhat.com> 3.9.31-1
 - Fixing s2i build unit tests (adam.kaplan@redhat.com)
 - Revert "UPSTREAM: docker/distribution: <carry>: do not strip docker.io image
