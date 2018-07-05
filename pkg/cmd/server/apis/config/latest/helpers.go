@@ -1,6 +1,7 @@
 package latest
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -9,6 +10,7 @@ import (
 	"reflect"
 
 	"github.com/ghodss/yaml"
+	"github.com/golang/glog"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	kyaml "k8s.io/apimachinery/pkg/util/yaml"
@@ -92,17 +94,59 @@ func ReadYAML(reader io.Reader) (runtime.Object, error) {
 	if err != nil {
 		return nil, err
 	}
-	return runtime.Decode(Codec, jsonData)
+	obj, err := runtime.Decode(Codec, jsonData)
+	if err != nil {
+		return nil, captureSurroundingJSONForError("error reading config: ", jsonData, err)
+	}
+	// make sure there are no extra fields in jsonData
+	if err := strictDecodeCheck(jsonData, obj); err != nil {
+		return nil, err
+	}
+	return obj, nil
 }
 
 // TODO: Remove this when a YAML serializer is available from upstream
 func ReadYAMLInto(data []byte, obj runtime.Object) error {
-	data, err := kyaml.ToJSON(data)
+	jsonData, err := kyaml.ToJSON(data)
 	if err != nil {
 		return err
 	}
-	err = runtime.DecodeInto(Codec, data, obj)
-	return captureSurroundingJSONForError("error reading config: ", data, err)
+	if err := runtime.DecodeInto(Codec, jsonData, obj); err != nil {
+		return captureSurroundingJSONForError("error reading config: ", jsonData, err)
+	}
+	// make sure there are no extra fields in jsonData
+	return strictDecodeCheck(jsonData, obj)
+}
+
+// strictDecodeCheck fails decodes when jsonData contains fields not included in the external version of obj
+func strictDecodeCheck(jsonData []byte, obj runtime.Object) error {
+	out, err := getExternalZeroValue(obj) // we need the external version of obj as that has the correct JSON struct tags
+	if err != nil {
+		glog.Errorf("Encountered config error %v in object %T, raw JSON:\n%s", err, obj, string(jsonData)) // TODO just return the error and die
+		// never error for now, we need to determine a safe way to make this check fatal
+		return nil
+	}
+	d := json.NewDecoder(bytes.NewReader(jsonData))
+	d.DisallowUnknownFields()
+	// note that we only care about the error, out is discarded
+	if err := d.Decode(out); err != nil {
+		glog.Errorf("Encountered config error %v in object %T, raw JSON:\n%s", err, obj, string(jsonData)) // TODO just return the error and die
+	}
+	// never error for now, we need to determine a safe way to make this check fatal
+	return nil
+}
+
+// getExternalZeroValue returns the zero value of the external version of obj
+func getExternalZeroValue(obj runtime.Object) (runtime.Object, error) {
+	gvks, _, err := configapi.Scheme.ObjectKinds(obj)
+	if err != nil {
+		return nil, err
+	}
+	if len(gvks) == 0 { // should never happen
+		return nil, fmt.Errorf("no gvks found for %#v", obj)
+	}
+	gvk := Version.WithKind(gvks[0].Kind)
+	return configapi.Scheme.New(gvk)
 }
 
 func ReadYAMLFileInto(filename string, obj runtime.Object) error {
