@@ -1500,7 +1500,6 @@ type OpenshiftControllerConfig struct {
 	// Defaults to "*".
 	Controllers []string
 
-	HPA                HPAControllerConfig
 	ResourceQuota      ResourceQuotaControllerConfig
 	ServiceServingCert ServiceServingCert
 	Deployer           DeployerControllerConfig
@@ -1522,12 +1521,6 @@ type BuildControllerConfig struct {
 
 	// TODO slim this down to what is actually needed
 	AdmissionPluginConfig map[string]*AdmissionPluginConfig
-}
-
-type HPAControllerConfig struct {
-	SyncPeriod               metav1.Duration
-	UpscaleForbiddenWindow   metav1.Duration
-	DownscaleForbiddenWindow metav1.Duration
 }
 
 type ResourceQuotaControllerConfig struct {
