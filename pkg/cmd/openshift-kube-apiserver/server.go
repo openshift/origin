@@ -43,20 +43,7 @@ func RunOpenShiftKubeAPIServerServer(masterConfig *configapi.MasterConfig) error
 		return kerrors.NewInvalid(configapi.Kind("MasterConfig"), "master-config.yaml", validationResults.Errors)
 	}
 
-	// informers are shared amongst all the various api components we build
-	// TODO the needs of the apiserver and the controllers are drifting. We should consider two different skins here
-	clientConfig, err := configapi.GetClientConfig(masterConfig.MasterClients.OpenShiftLoopbackKubeConfig, masterConfig.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
-	if err != nil {
-		return err
-	}
-	informers, err := origin.NewInformers(clientConfig)
-	if err != nil {
-		return err
-	}
-	if err := informers.AddUserIndexes(); err != nil {
-		return err
-	}
-
+	informers := origin.InformerAccess(nil) // use real kube-apiserver loopback client with secret token instead of that from masterConfig.MasterClients.OpenShiftLoopbackKubeConfig
 	openshiftConfig, err := origin.BuildMasterConfig(*masterConfig, informers)
 	if err != nil {
 		return err
