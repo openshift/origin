@@ -30,7 +30,7 @@ var (
 )
 
 func init() {
-	webconsoleconfigv1.AddToScheme(webconsoleScheme)
+	webconsoleconfigv1.Install(webconsoleScheme)
 }
 
 func readWebConsoleConfiguration(objBytes string) (*webconsoleconfigv1.WebConsoleConfiguration, error) {

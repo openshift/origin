@@ -22,6 +22,7 @@ import (
 	oauthapi "github.com/openshift/api/oauth/v1"
 	routeapi "github.com/openshift/api/route/v1"
 	routeclient "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1"
+	"github.com/openshift/origin/pkg/api/legacy"
 	scopeauthorizer "github.com/openshift/origin/pkg/authorization/authorizer/scope"
 )
 
@@ -48,16 +49,15 @@ var (
 
 	emptyGroupKind       = schema.GroupKind{} // Used with static redirect URIs
 	routeGroupKind       = routeapi.SchemeGroupVersion.WithKind(routeKind).GroupKind()
-	legacyRouteGroupKind = routeapi.LegacySchemeGroupVersion.WithKind(routeKind).GroupKind() // to support redirect reference with old group
+	legacyRouteGroupKind = legacy.GroupVersion.WithKind(routeKind).GroupKind() // to support redirect reference with old group
 
 	scheme       = runtime.NewScheme()
 	codecFactory = serializer.NewCodecFactory(scheme)
 )
 
 func init() {
-	corev1.AddToScheme(scheme)
-	oauthapi.AddToScheme(scheme)
-	oauthapi.AddToSchemeInCoreGroup(scheme)
+	oauthapi.Install(scheme)
+	oauthapi.DeprecatedInstallWithoutGroup(scheme)
 }
 
 // namesToObjMapperFunc is linked to a given GroupKind.

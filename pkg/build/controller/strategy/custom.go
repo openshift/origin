@@ -25,9 +25,9 @@ var (
 )
 
 func init() {
-	utilruntime.Must(buildv1.AddToScheme(customBuildEncodingScheme))
+	utilruntime.Must(buildv1.Install(customBuildEncodingScheme))
 	utilruntime.Must(buildv1helpers.AddToScheme(customBuildEncodingScheme))
-	utilruntime.Must(buildv1.AddToSchemeInCoreGroup(customBuildEncodingScheme))
+	utilruntime.Must(buildv1.DeprecatedInstallWithoutGroup(customBuildEncodingScheme))
 	utilruntime.Must(buildv1helpers.AddToSchemeInCoreGroup(customBuildEncodingScheme))
 	// TODO eventually we shouldn't deal in internal versions, but for now decode into one.
 	utilruntime.Must(buildapi.AddToScheme(customBuildEncodingScheme))

@@ -2,6 +2,7 @@ package legacy
 
 import (
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
@@ -28,6 +29,11 @@ import (
 	templateapiv1 "github.com/openshift/origin/pkg/template/apis/template/v1"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
 	userapiv1 "github.com/openshift/origin/pkg/user/apis/user/v1"
+)
+
+var (
+	GroupName    = ""
+	GroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1"}
 )
 
 func InstallLegacyApps(scheme *runtime.Scheme) {
