@@ -132,8 +132,10 @@ if [[ -n "${junit_report}" ]]; then
     report_file="$( mktemp "${ARTIFACT_DIR}/unit_report_XXXXX" ).xml"
 
     go test -json ${gotest_flags} ${test_packages} 2>"${test_error_file}" | tee "${JUNIT_REPORT_OUTPUT}" | gotest2junit > "${report_file}"
-
     test_return_code="${PIPESTATUS[0]}"
+
+    gzip "${test_error_file}" -c > "${ARTIFACT_DIR}/unit-error.log.gz"
+    gzip "${JUNIT_REPORT_OUTPUT}" -c > "${ARTIFACT_DIR}/unit.log.gz"
 
     set -o pipefail
 
