@@ -212,6 +212,7 @@ func TestExamplePlugin(t *testing.T) {
 func waitForPluginRegistrationStatus(t *testing.T, statusCh chan registerapi.RegistrationStatus) bool {
 	select {
 	case status := <-statusCh:
+		time.Sleep(time.Second)
 		return status.PluginRegistered
 	case <-time.After(10 * time.Second):
 		t.Fatalf("Timed out while waiting for registration status")
