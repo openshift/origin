@@ -31,8 +31,4 @@ var ControllerInitializers = map[string]InitFunc{
 
 	"openshift.io/resourcequota":                RunResourceQuotaManager,
 	"openshift.io/cluster-quota-reconciliation": RunClusterQuotaReconciliationController,
-
-	// overrides the Kube HPA controller config, so that we can point it at an HTTPS Heapster
-	// in openshift-infra, and pass it a scale client that knows how to scale DCs
-	"openshift.io/horizontalpodautoscaling": RunHorizontalPodAutoscalerController,
 }

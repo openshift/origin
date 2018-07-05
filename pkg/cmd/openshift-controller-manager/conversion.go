@@ -46,11 +46,6 @@ func ConvertMasterConfigToOpenshiftControllerConfig(input *configapi.MasterConfi
 			RenewDeadline: flagOptions.GenericComponent.LeaderElection.RenewDeadline,
 			LeaseDuration: flagOptions.GenericComponent.LeaderElection.LeaseDuration,
 		},
-		HPA: configapi.HPAControllerConfig{
-			DownscaleForbiddenWindow: flagOptions.HPAController.HorizontalPodAutoscalerDownscaleForbiddenWindow,
-			SyncPeriod:               flagOptions.HPAController.HorizontalPodAutoscalerSyncPeriod,
-			UpscaleForbiddenWindow:   flagOptions.HPAController.HorizontalPodAutoscalerUpscaleForbiddenWindow,
-		},
 		ResourceQuota: configapi.ResourceQuotaControllerConfig{
 			ConcurrentSyncs: flagOptions.ResourceQuotaController.ConcurrentResourceQuotaSyncs,
 			SyncPeriod:      flagOptions.ResourceQuotaController.ResourceQuotaSyncPeriod,
