@@ -1292,7 +1292,10 @@
               "kind": "DockerImage",
               "name": "registry.access.redhat.com/rhscl/ruby-25-rhel7:latest"
             },
-            "name": "2.5"
+            "name": "2.5",
+            "referencePolicy": {
+              "type": "Local"
+            }
           }
         ]
       }

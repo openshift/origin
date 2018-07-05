@@ -129,10 +129,6 @@
                                 "value": "${DOTNET_CONFIGURATION}"
                             },
                             {
-                                "name": "DOTNET_PUBLISH",
-                                "value": "true"
-                            },
-                            {
                                 "name": "DOTNET_RESTORE_SOURCES",
                                 "value": "${DOTNET_RESTORE_SOURCES}"
                             },
@@ -442,21 +438,21 @@
             "displayName": "Memory Limit",
             "name": "MEMORY_LIMIT",
             "required": true,
-            "value": "512Mi"
+            "value": "128Mi"
         },
         {
             "description": "Maximum amount of memory the PostgreSQL container can use.",
             "displayName": "Memory Limit (PostgreSQL)",
             "name": "MEMORY_POSTGRESQL_LIMIT",
             "required": true,
-            "value": "512Mi"
+            "value": "128Mi"
         },
         {
             "description": "Volume space available for data, e.g. 512Mi, 2Gi",
             "displayName": "Volume Capacity",
             "name": "VOLUME_CAPACITY",
             "required": true,
-            "value": "1Gi"
+            "value": "256Mi"
         },
         {
             "description": "The image stream tag which is used to build the code.",

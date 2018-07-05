@@ -112,10 +112,6 @@
                                 "value": "${DOTNET_CONFIGURATION}"
                             },
                             {
-                                "name": "DOTNET_PUBLISH",
-                                "value": "true"
-                            },
-                            {
                                 "name": "DOTNET_RESTORE_SOURCES",
                                 "value": "${DOTNET_RESTORE_SOURCES}"
                             },
@@ -250,7 +246,7 @@
             "displayName": "Memory Limit",
             "name": "MEMORY_LIMIT",
             "required": true,
-            "value": "512Mi"
+            "value": "128Mi"
         },
         {
             "description": "The image stream tag which is used to build the code.",
@@ -329,8 +325,7 @@
         {
             "description": "Set this to a space separated list of npm tools needed to publish.",
             "displayName": "Npm Tools",
-            "name": "DOTNET_NPM_TOOLS",
-            "value": "bower gulp"
+            "name": "DOTNET_NPM_TOOLS"
         },
         {
             "description": "Set this to a space separated list of test projects to run before publishing.",
