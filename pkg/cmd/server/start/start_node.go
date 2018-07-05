@@ -419,7 +419,7 @@ func execKubelet(kubeletArgs []string) error {
 	for i, s := range os.Args {
 		if s == "--vmodule" {
 			if i+1 < len(os.Args) {
-				args = append(args, fmt.Sprintf("--vmodule=", os.Args[i+1]))
+				args = append(args, fmt.Sprintf("--vmodule=%q", os.Args[i+1]))
 				break
 			}
 		}
