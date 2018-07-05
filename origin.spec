@@ -17,12 +17,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit bb188ee149906c48ea8253539df3f3a4cc994851
+%global commit 7a5af79af7104f4e229a732c32bcc40cf86645f3
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=10+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.10.11 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 KUBE_GIT_VERSION=v1.10.0+b81c8f8 OS_GIT_PATCH=11 KUBE_GIT_COMMIT=b81c8f8 KUBE_GIT_MINOR=10+ OS_GIT_COMMIT=d4718a4 KUBE_GIT_MAJOR=1 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.16-0-g121edf0 ETCD_GIT_COMMIT=121edf0
+%global os_git_vars OS_GIT_MINOR=10+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.10.12 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 KUBE_GIT_VERSION=v1.10.0+b81c8f8 OS_GIT_PATCH=12 KUBE_GIT_COMMIT=b81c8f8 KUBE_GIT_MINOR=10+ OS_GIT_COMMIT=e44becc KUBE_GIT_MAJOR=1 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.16-0-g121edf0 ETCD_GIT_COMMIT=121edf0
 }
 
 %if 0%{?skip_build}
@@ -64,7 +64,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.10.12
+Version:        3.10.13
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -483,6 +483,16 @@ if [ "$1" -eq 0 ] ; then
 fi
 
 %changelog
+* Thu Jul 05 2018 Tim Bielawa <tbielawa@redhat.com> 3.10.13-1
+- install ceph-common in control plane so rbd provisioner can find rbd cli to
+  create rbd images (hchen@redhat.com)
+- openshift-kube-apiserver: use in-process loopback client config from Kube
+  (stefan.schimanski@gmail.com)
+- fix the go 1.10 unit test failures (jminter@redhat.com)
+- UPSTREAM: 62085: Fixes incorrect atomic usage (jminter@redhat.com)
+- Honor --kubelet-preferred-address-types (jliggitt@redhat.com)
+- Honor --kubelet-preferred-address-types (jliggitt@redhat.com)
+
 * Tue Jul 03 2018 Tim Bielawa <tbielawa@redhat.com> 3.10.12-1
 - 
 
