@@ -187,6 +187,15 @@ import:
 # etcd pins a very old version that has contention issues
 - package: github.com/google/btree
   version: master
+# for the unidling proxy (remove the fork as soon as the repeat-with-verdict change merges) 
+- package: github.com/directxman12/go-nfnetlink
+  version: bc3cec66116657422711c9f1b6d43f2cef7373cb
+  subpackages:
+  - nfqueue
+- package: github.com/subgraph/go-nfnetlink
+  version: bd5c281b400452a89af0cf298503f5d0bddc57c2
+- package: github.com/openshift/service-idler
+  version: v0.1.0
 
 # why do we have this?
 - package: google.golang.org/appengine

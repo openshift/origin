@@ -1,5 +1,5 @@
-hash: dee8e115562de85a2ea256080cbbf7ea18ecdef7d0df2cdb3975f4f312abea67
-updated: 2018-07-02T09:22:56.158387755-04:00
+hash: 7149d09aa8377dcc869a060f8dc9d5a54ff85ce95c0e72c1c1f8fdc7781b068f
+updated: 2018-07-05T15:30:45.785562909-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -86,7 +86,7 @@ imports:
   subpackages:
   - quantile
 - name: github.com/blang/semver
-  version: c5e971dbed7850a93c23aa6ff69db5771d8e23b3
+  version: b38d23b8782a487059e8fc8773e9a5b228a77cb6
 - name: github.com/certifi/gocertifi
   version: deb3ae2ef2610fde3330947281941c562861188b
 - name: github.com/chai2010/gettext-go
@@ -294,6 +294,10 @@ imports:
   version: 511bcaf42ccd42c38aba7427b6673277bf19e2a1
 - name: github.com/dgrijalva/jwt-go
   version: 01aeca54ebda6e0fbfafd0a524d234159c05ec20
+- name: github.com/directxman12/go-nfnetlink
+  version: bc3cec66116657422711c9f1b6d43f2cef7373cb
+  subpackages:
+  - nfqueue
 - name: github.com/docker/distribution
   version: 9e3018b6ff58e5b86c76b5f9b8826494caca28ea
   repo: https://github.com/openshift/docker-distribution.git
@@ -557,6 +561,10 @@ imports:
   - go/x509/pkix
 - name: github.com/google/gofuzz
   version: 44d81051d367757e1c7c6a5a86423ece9afcf63c
+- name: github.com/google/gopacket
+  version: 79cff32cd2cb4b955635abee1ed8a632133d3420
+  subpackages:
+  - layers
 - name: github.com/google/uuid
   version: 8c31c18f31ede9fc8eae72290a7e7a8064e9b3e3
 - name: github.com/googleapis/gnostic
@@ -812,7 +820,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: 31a7bbd2266d178da3c12bb83f5274d387f775e6
+  version: aaea23fe8f58729c8196c8e7f4f40d12bd0e2135
   subpackages:
   - apps/v1
   - authorization/v1
@@ -948,7 +956,7 @@ imports:
   - signal
   - strslice
 - name: github.com/openshift/library-go
-  version: 077f461517a8617b5bdb5088afa7b451dd612b15
+  version: 4bdffb3d6ca083fad9ee9f51d3273d328d349dbc
   subpackages:
   - pkg/config/client
   - pkg/config/leaderelection
@@ -959,8 +967,20 @@ imports:
   - pkg/operator/resource/resourcecread
   - pkg/operator/resource/resourcemerge
   - pkg/serviceability
+- name: github.com/openshift/service-idler
+  version: 6c54f75e67349e24a19f4c9bd09ee70a8e970204
+  subpackages:
+  - pkg/apis/idling/v1alpha2
+  - pkg/client/clientset/versioned
+  - pkg/client/clientset/versioned/scheme
+  - pkg/client/clientset/versioned/typed/idling/v1alpha2
+  - pkg/client/informers/externalversions
+  - pkg/client/informers/externalversions/idling
+  - pkg/client/informers/externalversions/idling/v1alpha2
+  - pkg/client/informers/externalversions/internalinterfaces
+  - pkg/client/listers/idling/v1alpha2
 - name: github.com/openshift/service-serving-cert-signer
-  version: bcaddfdfbc37c5e7cd4656ecca269ca6b735e849
+  version: 4e91b73f7394df0fffb885c35ac9b517cc385d2e
   subpackages:
   - pkg/controller/servingcert
   - pkg/controller/servingcert/cryptoextensions
@@ -1102,6 +1122,8 @@ imports:
   - assert
   - mock
   - require
+- name: github.com/subgraph/go-nfnetlink
+  version: bd5c281b400452a89af0cf298503f5d0bddc57c2
 - name: github.com/syndtr/gocapability
   version: e7cb7fa329f456b3855136a2642b197bad7366ba
   subpackages:
@@ -1827,7 +1849,7 @@ imports:
   - pkg/util/proto/testing
   - pkg/util/proto/validation
 - name: k8s.io/kubernetes
-  version: 6ab9cd6e00d3648a4eff38919509ea0e42eb2d07
+  version: d4cacc043ac762235e16cb7361d527cb4189393c
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/controller-manager/app

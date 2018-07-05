@@ -1,12 +1,12 @@
-hash: 5f2bf0998c254e84eefb2f61f12aecb0fe5a84dd46d2e354d988c90ffc4bb1e4
-updated: 2018-06-29T15:55:00.577705248-04:00
+hash: 7a825a3fb9315325701b51170aad4bedabbaaa546168698d201dea4edb448483
+updated: 2018-07-05T10:07:25.138991608-04:00
 imports:
 - name: github.com/beorn7/perks
   version: 3ac7bf7a47d159a033b107610db8a1b6575507a4
   subpackages:
   - quantile
 - name: github.com/blang/semver
-  version: c5e971dbed7850a93c23aa6ff69db5771d8e23b3
+  version: b38d23b8782a487059e8fc8773e9a5b228a77cb6
 - name: github.com/certifi/gocertifi
   version: deb3ae2ef2610fde3330947281941c562861188b
 - name: github.com/davecgh/go-spew
@@ -74,7 +74,7 @@ imports:
 - name: github.com/modern-go/reflect2
   version: 05fbef0ca5da472bbf96c9322b84a53edc03c9fd
 - name: github.com/openshift/api
-  version: 31a7bbd2266d178da3c12bb83f5274d387f775e6
+  version: aaea23fe8f58729c8196c8e7f4f40d12bd0e2135
   subpackages:
   - config/v1
   - operator/v1alpha1
@@ -91,7 +91,7 @@ imports:
   - servicecertsigner/informers/externalversions/servicecertsigner/v1alpha1
   - servicecertsigner/listers/servicecertsigner/v1alpha1
 - name: github.com/openshift/library-go
-  version: 077f461517a8617b5bdb5088afa7b451dd612b15
+  version: 4bdffb3d6ca083fad9ee9f51d3273d328d349dbc
   subpackages:
   - pkg/config/client
   - pkg/config/leaderelection
@@ -130,6 +130,8 @@ imports:
   version: 65c1f6f8f0fc1e2185eb9863a3bc751496404259
   subpackages:
   - xfs
+- name: github.com/sirupsen/logrus
+  version: e54a77765aca7bbdd8e56c1c54f60579968b2dc9
 - name: github.com/spf13/cobra
   version: c439c4fa093711d42e1b01acb1235b52004753c1
 - name: github.com/spf13/pflag
@@ -433,6 +435,26 @@ imports:
   - util/integer
   - util/retry
   - util/workqueue
+- name: k8s.io/kube-aggregator
+  version: bd6e1ad75c9758cad2069bb2f65880cf805ad8e9
+  subpackages:
+  - pkg/apis/apiregistration
+  - pkg/apis/apiregistration/v1
+  - pkg/apis/apiregistration/v1beta1
+  - pkg/client/clientset_generated/clientset
+  - pkg/client/clientset_generated/clientset/fake
+  - pkg/client/clientset_generated/clientset/scheme
+  - pkg/client/clientset_generated/clientset/typed/apiregistration/v1
+  - pkg/client/clientset_generated/clientset/typed/apiregistration/v1/fake
+  - pkg/client/clientset_generated/clientset/typed/apiregistration/v1beta1
+  - pkg/client/clientset_generated/clientset/typed/apiregistration/v1beta1/fake
+  - pkg/client/informers/externalversions
+  - pkg/client/informers/externalversions/apiregistration
+  - pkg/client/informers/externalversions/apiregistration/v1
+  - pkg/client/informers/externalversions/apiregistration/v1beta1
+  - pkg/client/informers/externalversions/internalinterfaces
+  - pkg/client/listers/apiregistration/v1
+  - pkg/client/listers/apiregistration/v1beta1
 - name: k8s.io/kube-openapi
   version: 91cfa479c814065e420cee7ed227db0f63a5854e
   subpackages:

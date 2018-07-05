@@ -1,0 +1,6 @@
+apiVersion: idling.openshift.io/v1alpha2
+kind: Idler
+metadata:
+  name: idler-example
+spec:
+  foo: bar
