@@ -235,6 +235,8 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/openshift/api/security/v1.SecurityContextConstraintsList":                               schema_openshift_api_security_v1_SecurityContextConstraintsList(ref),
 		"github.com/openshift/api/security/v1.ServiceAccountPodSecurityPolicyReviewStatus":                  schema_openshift_api_security_v1_ServiceAccountPodSecurityPolicyReviewStatus(ref),
 		"github.com/openshift/api/security/v1.SupplementalGroupsStrategyOptions":                            schema_openshift_api_security_v1_SupplementalGroupsStrategyOptions(ref),
+		"github.com/openshift/api/servicecertsigner/v1alpha1.APIServiceCABundleInjectorConfig":              schema_openshift_api_servicecertsigner_v1alpha1_APIServiceCABundleInjectorConfig(ref),
+		"github.com/openshift/api/servicecertsigner/v1alpha1.ConfigMapCABundleInjectorConfig":               schema_openshift_api_servicecertsigner_v1alpha1_ConfigMapCABundleInjectorConfig(ref),
 		"github.com/openshift/api/servicecertsigner/v1alpha1.DelegatedAuthentication":                       schema_openshift_api_servicecertsigner_v1alpha1_DelegatedAuthentication(ref),
 		"github.com/openshift/api/servicecertsigner/v1alpha1.DelegatedAuthorization":                        schema_openshift_api_servicecertsigner_v1alpha1_DelegatedAuthorization(ref),
 		"github.com/openshift/api/servicecertsigner/v1alpha1.ServiceCertSignerOperatorConfig":               schema_openshift_api_servicecertsigner_v1alpha1_ServiceCertSignerOperatorConfig(ref),
@@ -11642,6 +11644,114 @@ func schema_openshift_api_security_v1_SupplementalGroupsStrategyOptions(ref comm
 	}
 }
 
+func schema_openshift_api_servicecertsigner_v1alpha1_APIServiceCABundleInjectorConfig(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "APIServiceCABundleInjectorConfig provides information to configure an APIService CA Bundle Injector controller",
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"servingInfo": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ServingInfo is the HTTP serving information for the controller's endpoints",
+							Ref:         ref("github.com/openshift/api/config/v1.HTTPServingInfo"),
+						},
+					},
+					"authentication": {
+						SchemaProps: spec.SchemaProps{
+							Description: "authentication allows configuration of authentication for the endpoints",
+							Ref:         ref("github.com/openshift/api/servicecertsigner/v1alpha1.DelegatedAuthentication"),
+						},
+					},
+					"authorization": {
+						SchemaProps: spec.SchemaProps{
+							Description: "authorization allows configuration of authentication for the endpoints",
+							Ref:         ref("github.com/openshift/api/servicecertsigner/v1alpha1.DelegatedAuthorization"),
+						},
+					},
+					"caBundleFile": {
+						SchemaProps: spec.SchemaProps{
+							Description: "caBundleFile holds the ca bundle to apply to APIServices",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"caBundleFile"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/config/v1.HTTPServingInfo", "github.com/openshift/api/servicecertsigner/v1alpha1.DelegatedAuthentication", "github.com/openshift/api/servicecertsigner/v1alpha1.DelegatedAuthorization"},
+	}
+}
+
+func schema_openshift_api_servicecertsigner_v1alpha1_ConfigMapCABundleInjectorConfig(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ConfigMapCABundleInjectorConfig provides information to configure a ConfigMap CA Bundle Injector controller",
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"servingInfo": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ServingInfo is the HTTP serving information for the controller's endpoints",
+							Ref:         ref("github.com/openshift/api/config/v1.HTTPServingInfo"),
+						},
+					},
+					"authentication": {
+						SchemaProps: spec.SchemaProps{
+							Description: "authentication allows configuration of authentication for the endpoints",
+							Ref:         ref("github.com/openshift/api/servicecertsigner/v1alpha1.DelegatedAuthentication"),
+						},
+					},
+					"authorization": {
+						SchemaProps: spec.SchemaProps{
+							Description: "authorization allows configuration of authentication for the endpoints",
+							Ref:         ref("github.com/openshift/api/servicecertsigner/v1alpha1.DelegatedAuthorization"),
+						},
+					},
+					"caBundleFile": {
+						SchemaProps: spec.SchemaProps{
+							Description: "caBundleFile holds the ca bundle to apply to ConfigMaps",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"caBundleFile"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/config/v1.HTTPServingInfo", "github.com/openshift/api/servicecertsigner/v1alpha1.DelegatedAuthentication", "github.com/openshift/api/servicecertsigner/v1alpha1.DelegatedAuthorization"},
+	}
+}
+
 func schema_openshift_api_servicecertsigner_v1alpha1_DelegatedAuthentication(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -11812,8 +11922,20 @@ func schema_openshift_api_servicecertsigner_v1alpha1_ServiceCertSignerOperatorCo
 							Ref:         ref("k8s.io/apimachinery/pkg/runtime.RawExtension"),
 						},
 					},
+					"apiServiceCABundleInjectorConfig": {
+						SchemaProps: spec.SchemaProps{
+							Description: "apiServiceCABundleInjectorConfig holds a sparse config that the user wants for this component.  It only needs to be the overrides from the defaults it will end up overlaying in the following order: 1. hardcoded default 2. this config",
+							Ref:         ref("k8s.io/apimachinery/pkg/runtime.RawExtension"),
+						},
+					},
+					"configMapCABundleInjectorConfig": {
+						SchemaProps: spec.SchemaProps{
+							Description: "configMapCABundleInjectorConfig holds a sparse config that the user wants for this component.  It only needs to be the overrides from the defaults it will end up overlaying in the following order: 1. hardcoded default 2. this config",
+							Ref:         ref("k8s.io/apimachinery/pkg/runtime.RawExtension"),
+						},
+					},
 				},
-				Required: []string{"managementState", "imagePullSpec", "version", "serviceServingCertSignerConfig"},
+				Required: []string{"managementState", "imagePullSpec", "version", "serviceServingCertSignerConfig", "apiServiceCABundleInjectorConfig", "configMapCABundleInjectorConfig"},
 			},
 		},
 		Dependencies: []string{
