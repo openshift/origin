@@ -85,7 +85,7 @@ function compare_and_cleanup() {
 	validation_file=$1
 	actual_file=actual-${validation_file}
 	rm -f ${WORKINGDIR}/${actual_file}
-	oc get groups --no-headers | awk '{print $1}' | sort | xargs -I{} oc export group {} -o yaml >> ${WORKINGDIR}/${actual_file}
+	oc get groups --no-headers | awk '{print $1}' | sort | xargs -I{} oc get --export group {} -o yaml >> ${WORKINGDIR}/${actual_file}
 	os::util::sed '/sync-time/d' ${WORKINGDIR}/${actual_file}
 	diff ${validation_file} ${WORKINGDIR}/${actual_file}
 	oc delete groups --all
@@ -227,7 +227,7 @@ for (( i=0; i<${#schema[@]}; i++ )); do
 	os::cmd::expect_success_and_text 'oc get group -o jsonpath={.items[*].metadata.name}' 'firstgroup secondgroup thirdgroup'
 	os::cmd::expect_success_and_text 'oc adm groups prune --whitelist=ldapgroupuids.txt --sync-config=sync-config-user-defined.yaml --confirm | wc -l' '0'
 	os::cmd::expect_success_and_text 'oc get group -o jsonpath={.items[*].metadata.name}' 'firstgroup secondgroup thirdgroup'
-	os::cmd::expect_success_and_text 'oc patch group secondgroup -p "{\"metadata\":{\"annotations\":{\"openshift.io/ldap.uid\":\"cn=garbage\"}}}"' 'group.user.openshift.io "secondgroup" patched'
+	os::cmd::expect_success_and_text 'oc patch group secondgroup -p "{\"metadata\":{\"annotations\":{\"openshift.io/ldap.uid\":\"cn=garbage\"}}}"' 'group.user.openshift.io/secondgroup patched'
 	os::cmd::expect_success_and_text 'oc adm groups prune --whitelist=ldapgroupuids.txt --sync-config=sync-config-user-defined.yaml --confirm' 'group/secondgroup'
 	os::cmd::expect_success_and_text 'oc get group -o jsonpath={.items[*].metadata.name}' 'firstgroup thirdgroup'
 	os::cmd::expect_success_and_text 'oc delete groups --all' 'deleted'
