@@ -11,10 +11,10 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/tools/cache"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	imagev1 "github.com/openshift/api/image/v1"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	dockerapi "github.com/openshift/origin/pkg/image/apis/image/docker"
+	dockerscheme "github.com/openshift/origin/pkg/image/apis/image/docker/scheme"
 )
 
 // ImageLayerIndex is a cache of image digests to the layers they contain.
@@ -127,8 +127,8 @@ func manifestFromImage(image *imagev1.Image) *imagev1.ImageLayer {
 	if image.DockerImageManifestMediaType != "application/vnd.docker.distribution.manifest.v2+json" {
 		return nil
 	}
-	meta := &imageapi.DockerImage{}
-	if _, _, err := legacyscheme.Codecs.UniversalDecoder().Decode(image.DockerImageMetadata.Raw, nil, meta); err != nil {
+	meta := &dockerapi.DockerImage{}
+	if _, _, err := dockerscheme.Codecs.UniversalDecoder().Decode(image.DockerImageMetadata.Raw, nil, meta); err != nil {
 		utilruntime.HandleError(fmt.Errorf("Unable to decode image for layer cache: %v", err))
 		return nil
 	}
