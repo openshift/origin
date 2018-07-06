@@ -80,6 +80,7 @@ func TestEnsureInternalBackendServiceUpdates(t *testing.T) {
 }
 
 func TestEnsureInternalBackendServiceGroups(t *testing.T) {
+	t.Skipf("test is flaky: https://github.com/kubernetes/kubernetes/issues/65883")
 	for desc, tc := range map[string]struct {
 		mockModifier func(*cloud.MockGCE)
 	}{
