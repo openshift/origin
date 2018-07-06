@@ -65,10 +65,13 @@ var _ = g.Describe("[image_ecosystem][postgresql][Slow][local] openshift postgre
 		g.BeforeEach(func() {
 			exutil.DumpDockerInfo()
 
+			g.By("waiting for default service account")
+			err := exutil.WaitForServiceAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()), "default")
+			o.Expect(err).NotTo(o.HaveOccurred())
+
 			g.By("PV/PVC dump before setup")
 			exutil.DumpPersistentVolumeInfo(oc)
 
-			var err error
 			nfspod, pvs, err = exutil.SetupK8SNFSServerAndVolume(oc, 8)
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})

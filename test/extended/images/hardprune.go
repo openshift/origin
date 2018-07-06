@@ -43,7 +43,11 @@ var _ = g.Describe("[Feature:ImagePrune][registry][Serial][Suite:openshift/regis
 			})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		err = exutil.WaitForBuilderAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()))
+		g.By("waiting for default service account")
+		err = exutil.WaitForServiceAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()), "default")
+		o.Expect(err).NotTo(o.HaveOccurred())
+		g.By("waiting for builder service account")
+		err = exutil.WaitForServiceAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()), "builder")
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		defer func(ns string) { oc.SetNamespace(ns) }(oc.Namespace())

@@ -43,8 +43,11 @@ func NewSampleRepoTest(c sampleRepoConfig) func() {
 			})
 
 			g.JustBeforeEach(func() {
-				g.By("Waiting for builder service account")
-				err := exutil.WaitForBuilderAccount(oc.KubeClient().CoreV1().ServiceAccounts(oc.Namespace()))
+				g.By("waiting for default service account")
+				err := exutil.WaitForServiceAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()), "default")
+				o.Expect(err).NotTo(o.HaveOccurred())
+				g.By("waiting for builder service account")
+				err = exutil.WaitForServiceAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()), "builder")
 				o.Expect(err).NotTo(o.HaveOccurred())
 			})
 
