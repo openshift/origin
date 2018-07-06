@@ -10,9 +10,40 @@ import "github.com/openshift/api/operator/v1alpha1/generated.proto";
 import "k8s.io/apimachinery/pkg/apis/meta/v1/generated.proto";
 import "k8s.io/apimachinery/pkg/runtime/generated.proto";
 import "k8s.io/apimachinery/pkg/runtime/schema/generated.proto";
+import "k8s.io/apimachinery/pkg/util/intstr/generated.proto";
 
 // Package-wide variables from generator "generated".
 option go_package = "v1alpha1";
+
+// APIServiceCABundleInjectorConfig provides information to configure an APIService CA Bundle Injector controller
+message APIServiceCABundleInjectorConfig {
+  // ServingInfo is the HTTP serving information for the controller's endpoints
+  optional github.com.openshift.api.config.v1.HTTPServingInfo servingInfo = 1;
+
+  // authentication allows configuration of authentication for the endpoints
+  optional DelegatedAuthentication authentication = 2;
+
+  // authorization allows configuration of authentication for the endpoints
+  optional DelegatedAuthorization authorization = 3;
+
+  // caBundleFile holds the ca bundle to apply to APIServices
+  optional string caBundleFile = 4;
+}
+
+// ConfigMapCABundleInjectorConfig provides information to configure a ConfigMap CA Bundle Injector controller
+message ConfigMapCABundleInjectorConfig {
+  // ServingInfo is the HTTP serving information for the controller's endpoints
+  optional github.com.openshift.api.config.v1.HTTPServingInfo servingInfo = 1;
+
+  // authentication allows configuration of authentication for the endpoints
+  optional DelegatedAuthentication authentication = 2;
+
+  // authorization allows configuration of authentication for the endpoints
+  optional DelegatedAuthorization authorization = 3;
+
+  // caBundleFile holds the ca bundle to apply to ConfigMaps
+  optional string caBundleFile = 4;
+}
 
 // DelegatedAuthentication allows authentication to be disabled.
 message DelegatedAuthentication {
@@ -52,6 +83,18 @@ message ServiceCertSignerOperatorConfigSpec {
   // 1. hardcoded default
   // 2. this config
   optional k8s.io.apimachinery.pkg.runtime.RawExtension serviceServingCertSignerConfig = 2;
+
+  // apiServiceCABundleInjectorConfig holds a sparse config that the user wants for this component.  It only needs to be the overrides from the defaults
+  // it will end up overlaying in the following order:
+  // 1. hardcoded default
+  // 2. this config
+  optional k8s.io.apimachinery.pkg.runtime.RawExtension apiServiceCABundleInjectorConfig = 3;
+
+  // configMapCABundleInjectorConfig holds a sparse config that the user wants for this component.  It only needs to be the overrides from the defaults
+  // it will end up overlaying in the following order:
+  // 1. hardcoded default
+  // 2. this config
+  optional k8s.io.apimachinery.pkg.runtime.RawExtension configMapCABundleInjectorConfig = 4;
 }
 
 message ServiceCertSignerOperatorConfigStatus {
