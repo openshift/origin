@@ -1327,6 +1327,10 @@ type GitRepo struct {
 
 // AddAndCommit commits a file with its content to local repo
 func (r GitRepo) AddAndCommit(file, content string) error {
+	dir := filepath.Dir(file)
+	if err := os.MkdirAll(filepath.Join(r.RepoPath, dir), 0777); err != nil {
+		return err
+	}
 	if err := ioutil.WriteFile(filepath.Join(r.RepoPath, file), []byte(content), 0666); err != nil {
 		return err
 	}
