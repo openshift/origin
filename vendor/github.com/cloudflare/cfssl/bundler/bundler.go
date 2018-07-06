@@ -63,12 +63,34 @@ type Bundler struct {
 	RootPool         *x509.CertPool
 	IntermediatePool *x509.CertPool
 	KnownIssuers     map[string]bool
+	opts             options
+}
+
+type options struct {
+	keyUsages []x509.ExtKeyUsage
+}
+
+var defaultOptions = options{
+	keyUsages: []x509.ExtKeyUsage{
+		x509.ExtKeyUsageAny,
+	},
+}
+
+// An Option sets options such as allowed key usages, etc.
+type Option func(*options)
+
+// WithKeyUsages lets you set which Extended Key Usage values are acceptable. By
+// default x509.ExtKeyUsageAny will be used.
+func WithKeyUsages(usages ...x509.ExtKeyUsage) Option {
+	return func(o *options) {
+		o.keyUsages = usages
+	}
 }
 
 // NewBundler creates a new Bundler from the files passed in; these
 // files should contain a list of valid root certificates and a list
 // of valid intermediate certificates, respectively.
-func NewBundler(caBundleFile, intBundleFile string) (*Bundler, error) {
+func NewBundler(caBundleFile, intBundleFile string, opt ...Option) (*Bundler, error) {
 	var caBundle, intBundle []byte
 	var err error
 
@@ -103,14 +125,19 @@ func NewBundler(caBundleFile, intBundleFile string) (*Bundler, error) {
 		}
 	}
 
-	return NewBundlerFromPEM(caBundle, intBundle)
+	return NewBundlerFromPEM(caBundle, intBundle, opt...)
 
 }
 
 // NewBundlerFromPEM creates a new Bundler from PEM-encoded root certificates and
 // intermediate certificates.
 // If caBundlePEM is nil, the resulting Bundler can only do "Force" bundle.
-func NewBundlerFromPEM(caBundlePEM, intBundlePEM []byte) (*Bundler, error) {
+func NewBundlerFromPEM(caBundlePEM, intBundlePEM []byte, opt ...Option) (*Bundler, error) {
+	opts := defaultOptions
+	for _, o := range opt {
+		o(&opts)
+	}
+
 	log.Debug("parsing root certificates from PEM")
 	roots, err := helpers.ParseCertificatesPEM(caBundlePEM)
 	if err != nil {
@@ -128,6 +155,7 @@ func NewBundlerFromPEM(caBundlePEM, intBundlePEM []byte) (*Bundler, error) {
 	b := &Bundler{
 		KnownIssuers:     map[string]bool{},
 		IntermediatePool: x509.NewCertPool(),
+		opts:             opts,
 	}
 
 	log.Debug("building certificate pools")
@@ -159,11 +187,7 @@ func (b *Bundler) VerifyOptions() x509.VerifyOptions {
 	return x509.VerifyOptions{
 		Roots:         b.RootPool,
 		Intermediates: b.IntermediatePool,
-		KeyUsages: []x509.ExtKeyUsage{
-			x509.ExtKeyUsageServerAuth,
-			x509.ExtKeyUsageMicrosoftServerGatedCrypto,
-			x509.ExtKeyUsageNetscapeServerGatedCrypto,
-		},
+		KeyUsages:     b.opts.keyUsages,
 	}
 }
 
@@ -611,9 +635,9 @@ func (b *Bundler) Bundle(certs []*x509.Certificate, key crypto.Signer, flavor Bu
 			}
 
 			log.Debugf("searching for intermediates via AIA issuer")
-			err = b.fetchIntermediates(certs)
-			if err != nil {
-				log.Debugf("search failed: %v", err)
+			searchErr := b.fetchIntermediates(certs)
+			if searchErr != nil {
+				log.Debugf("search failed: %v", searchErr)
 				return nil, errors.Wrap(errors.CertificateError, errors.VerifyFailed, err)
 			}
 
@@ -645,7 +669,6 @@ func (b *Bundler) Bundle(certs []*x509.Certificate, key crypto.Signer, flavor Bu
 	var messages []string
 	// Check if bundle is expiring.
 	expiringCerts := checkExpiringCerts(bundle.Chain)
-	bundle.Expires = helpers.ExpiryTime(bundle.Chain)
 	if len(expiringCerts) > 0 {
 		statusCode |= errors.BundleExpiringBit
 		messages = append(messages, expirationWarning(expiringCerts))
@@ -702,6 +725,8 @@ func (b *Bundler) Bundle(certs []*x509.Certificate, key crypto.Signer, flavor Bu
 	}
 
 	bundle.Status.IsRebundled = diff(bundle.Chain, certs)
+	bundle.Expires = helpers.ExpiryTime(bundle.Chain)
+	bundle.LeafExpires = bundle.Chain[0].NotAfter
 
 	log.Debugf("bundle complete")
 	return bundle, nil

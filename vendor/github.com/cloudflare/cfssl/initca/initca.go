@@ -5,14 +5,11 @@ package initca
 import (
 	"crypto"
 	"crypto/ecdsa"
-	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
-	"io/ioutil"
-	"net"
 	"time"
 
 	"github.com/cloudflare/cfssl/config"
@@ -47,14 +44,28 @@ func validator(req *csr.CertificateRequest) error {
 
 // New creates a new root certificate from the certificate request.
 func New(req *csr.CertificateRequest) (cert, csrPEM, key []byte, err error) {
+	policy := CAPolicy()
 	if req.CA != nil {
 		if req.CA.Expiry != "" {
-			CAPolicy.Default.ExpiryString = req.CA.Expiry
-			CAPolicy.Default.Expiry, err = time.ParseDuration(req.CA.Expiry)
+			policy.Default.ExpiryString = req.CA.Expiry
+			policy.Default.Expiry, err = time.ParseDuration(req.CA.Expiry)
+			if err != nil {
+				return
+			}
 		}
 
-		if req.CA.PathLength != 0 {
-			signer.MaxPathLen = req.CA.PathLength
+		if req.CA.Backdate != "" {
+			policy.Default.Backdate, err = time.ParseDuration(req.CA.Backdate)
+			if err != nil {
+				return
+			}
+		}
+
+		policy.Default.CAConstraint.MaxPathLen = req.CA.PathLength
+		if req.CA.PathLength != 0 && req.CA.PathLenZero {
+			log.Infof("ignore invalid 'pathlenzero' value")
+		} else {
+			policy.Default.CAConstraint.MaxPathLenZero = req.CA.PathLenZero
 		}
 	}
 
@@ -72,12 +83,11 @@ func New(req *csr.CertificateRequest) (cert, csrPEM, key []byte, err error) {
 		return
 	}
 
-	s, err := local.NewSigner(priv, nil, signer.DefaultSigAlgo(priv), nil)
+	s, err := local.NewSigner(priv, nil, signer.DefaultSigAlgo(priv), policy)
 	if err != nil {
 		log.Errorf("failed to create signer: %v", err)
 		return
 	}
-	s.SetPolicy(CAPolicy)
 
 	signReq := signer.SignRequest{Hosts: req.Hosts, Request: string(csrPEM)}
 	cert, err = s.Sign(signReq)
@@ -88,7 +98,7 @@ func New(req *csr.CertificateRequest) (cert, csrPEM, key []byte, err error) {
 
 // NewFromPEM creates a new root certificate from the key file passed in.
 func NewFromPEM(req *csr.CertificateRequest, keyFile string) (cert, csrPEM []byte, err error) {
-	privData, err := ioutil.ReadFile(keyFile)
+	privData, err := helpers.ReadBytes(keyFile)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -107,7 +117,7 @@ func NewFromPEM(req *csr.CertificateRequest, keyFile string) (cert, csrPEM []byt
 // is valid for a year from Jan 01 2015 to Jan 01 2016, the renewed certificate
 // will be valid from now and expire in one year as well.
 func RenewFromPEM(caFile, keyFile string) ([]byte, error) {
-	caBytes, err := ioutil.ReadFile(caFile)
+	caBytes, err := helpers.ReadBytes(caFile)
 	if err != nil {
 		return nil, err
 	}
@@ -117,7 +127,7 @@ func RenewFromPEM(caFile, keyFile string) ([]byte, error) {
 		return nil, err
 	}
 
-	keyBytes, err := ioutil.ReadFile(keyFile)
+	keyBytes, err := helpers.ReadBytes(keyFile)
 	if err != nil {
 		return nil, err
 	}
@@ -128,97 +138,38 @@ func RenewFromPEM(caFile, keyFile string) ([]byte, error) {
 	}
 
 	return RenewFromSigner(ca, key)
-
 }
 
 // NewFromSigner creates a new root certificate from a crypto.Signer.
 func NewFromSigner(req *csr.CertificateRequest, priv crypto.Signer) (cert, csrPEM []byte, err error) {
+	policy := CAPolicy()
 	if req.CA != nil {
 		if req.CA.Expiry != "" {
-			CAPolicy.Default.ExpiryString = req.CA.Expiry
-			CAPolicy.Default.Expiry, err = time.ParseDuration(req.CA.Expiry)
+			policy.Default.ExpiryString = req.CA.Expiry
+			policy.Default.Expiry, err = time.ParseDuration(req.CA.Expiry)
 			if err != nil {
 				return nil, nil, err
 			}
 		}
 
-		if req.CA.PathLength != 0 {
-			signer.MaxPathLen = req.CA.PathLength
-		}
-	}
-
-	var sigAlgo x509.SignatureAlgorithm
-	switch pub := priv.Public().(type) {
-	case *rsa.PublicKey:
-		bitLength := pub.N.BitLen()
-		switch {
-		case bitLength >= 4096:
-			sigAlgo = x509.SHA512WithRSA
-		case bitLength >= 3072:
-			sigAlgo = x509.SHA384WithRSA
-		case bitLength >= 2048:
-			sigAlgo = x509.SHA256WithRSA
-		default:
-			sigAlgo = x509.SHA1WithRSA
-		}
-	case *ecdsa.PublicKey:
-		switch pub.Curve {
-		case elliptic.P521():
-			sigAlgo = x509.ECDSAWithSHA512
-		case elliptic.P384():
-			sigAlgo = x509.ECDSAWithSHA384
-		case elliptic.P256():
-			sigAlgo = x509.ECDSAWithSHA256
-		default:
-			sigAlgo = x509.ECDSAWithSHA1
-		}
-	default:
-		sigAlgo = x509.UnknownSignatureAlgorithm
-	}
-
-	var tpl = x509.CertificateRequest{
-		Subject:            req.Name(),
-		SignatureAlgorithm: sigAlgo,
-	}
-
-	for i := range req.Hosts {
-		if ip := net.ParseIP(req.Hosts[i]); ip != nil {
-			tpl.IPAddresses = append(tpl.IPAddresses, ip)
+		policy.Default.CAConstraint.MaxPathLen = req.CA.PathLength
+		if req.CA.PathLength != 0 && req.CA.PathLenZero == true {
+			log.Infof("ignore invalid 'pathlenzero' value")
 		} else {
-			tpl.DNSNames = append(tpl.DNSNames, req.Hosts[i])
+			policy.Default.CAConstraint.MaxPathLenZero = req.CA.PathLenZero
 		}
 	}
 
-	return signWithCSR(&tpl, priv)
-}
-
-// signWithCSR creates a new root certificate from signing a X509.CertificateRequest
-// by a crypto.Signer.
-func signWithCSR(tpl *x509.CertificateRequest, priv crypto.Signer) (cert, csrPEM []byte, err error) {
-	csrPEM, err = x509.CreateCertificateRequest(rand.Reader, tpl, priv)
+	csrPEM, err = csr.Generate(priv, req)
 	if err != nil {
-		log.Errorf("failed to generate a CSR: %v", err)
-		// The use of CertificateError was a matter of some
-		// debate; it is the one edge case in which a new
-		// error category specifically for CSRs might be
-		// useful, but it was deemed that one edge case did
-		// not a new category justify.
-		err = cferr.Wrap(cferr.CertificateError, cferr.BadRequest, err)
-		return
+		return nil, nil, err
 	}
 
-	p := &pem.Block{
-		Type:  "CERTIFICATE REQUEST",
-		Bytes: csrPEM,
-	}
-	csrPEM = pem.EncodeToMemory(p)
-
-	s, err := local.NewSigner(priv, nil, signer.DefaultSigAlgo(priv), nil)
+	s, err := local.NewSigner(priv, nil, signer.DefaultSigAlgo(priv), policy)
 	if err != nil {
 		log.Errorf("failed to create signer: %v", err)
 		return
 	}
-	s.SetPolicy(CAPolicy)
 
 	signReq := signer.SignRequest{Request: string(csrPEM)}
 	cert, err = s.Sign(signReq)
@@ -238,7 +189,6 @@ func RenewFromSigner(ca *x509.Certificate, priv crypto.Signer) ([]byte, error) {
 	// matching certificate public key vs private key
 	switch {
 	case ca.PublicKeyAlgorithm == x509.RSA:
-
 		var rsaPublicKey *rsa.PublicKey
 		var ok bool
 		if rsaPublicKey, ok = priv.Public().(*rsa.PublicKey); !ok {
@@ -261,18 +211,39 @@ func RenewFromSigner(ca *x509.Certificate, priv crypto.Signer) ([]byte, error) {
 	}
 
 	req := csr.ExtractCertificateRequest(ca)
-
 	cert, _, err := NewFromSigner(req, priv)
 	return cert, err
 
 }
 
 // CAPolicy contains the CA issuing policy as default policy.
-var CAPolicy = &config.Signing{
-	Default: &config.SigningProfile{
-		Usage:        []string{"cert sign", "crl sign"},
-		ExpiryString: "43800h",
-		Expiry:       5 * helpers.OneYear,
-		CA:           true,
-	},
+var CAPolicy = func() *config.Signing {
+	return &config.Signing{
+		Default: &config.SigningProfile{
+			Usage:        []string{"cert sign", "crl sign"},
+			ExpiryString: "43800h",
+			Expiry:       5 * helpers.OneYear,
+			CAConstraint: config.CAConstraint{IsCA: true},
+		},
+	}
+}
+
+// Update copies the CA certificate, updates the NotBefore and
+// NotAfter fields, and then re-signs the certificate.
+func Update(ca *x509.Certificate, priv crypto.Signer) (cert []byte, err error) {
+	copy, err := x509.ParseCertificate(ca.Raw)
+	if err != nil {
+		return
+	}
+
+	validity := ca.NotAfter.Sub(ca.NotBefore)
+	copy.NotBefore = time.Now().Round(time.Minute).Add(-5 * time.Minute)
+	copy.NotAfter = copy.NotBefore.Add(validity)
+	cert, err = x509.CreateCertificate(rand.Reader, copy, copy, priv.Public(), priv)
+	if err != nil {
+		return
+	}
+
+	cert = pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: cert})
+	return
 }

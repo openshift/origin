@@ -8,13 +8,9 @@ import (
 	"io/ioutil"
 	"strings"
 	"testing"
-	"time"
 
-	"github.com/cloudflare/cfssl/config"
 	"github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/helpers"
-	"github.com/cloudflare/cfssl/signer"
-	"github.com/cloudflare/cfssl/signer/local"
 	"github.com/cloudflare/cfssl/ubiquity"
 )
 
@@ -239,23 +235,10 @@ func TestBundleWithRSAKeyMarshalJSON(t *testing.T) {
 // Test marshal to JSON on hostnames
 func TestBundleHostnamesMarshalJSON(t *testing.T) {
 	b := newBundler(t)
-	bundle, err := b.BundleFromRemote("www.cloudflare.com", "", Ubiquitous)
-	if err != nil {
-		t.Fatal(err)
-	}
-	hostnames, err := json.Marshal(bundle.Hostnames)
-	if err != nil {
-		t.Fatal(err)
-	}
-	expectedOne := []byte(`["www.cloudflare.com","cloudflare.com"]`)
-	expectedTheOther := []byte(`["cloudflare.com","www.cloudflare.com"]`)
-	if !bytes.Equal(hostnames, expectedOne) && !bytes.Equal(hostnames, expectedTheOther) {
-		t.Fatal("Hostnames construction failed for cloudflare.com.", string(hostnames))
-	}
 
-	bundle, _ = b.BundleFromPEMorDER(GoDaddyIntermediateCert, nil, Optimal, "")
+	bundle, _ := b.BundleFromPEMorDER(GoDaddyIntermediateCert, nil, Optimal, "")
 	expected := []byte(`["Go Daddy Secure Certification Authority"]`)
-	hostnames, _ = json.Marshal(bundle.Hostnames)
+	hostnames, _ := json.Marshal(bundle.Hostnames)
 	if !bytes.Equal(hostnames, expected) {
 		t.Fatal("Hostnames construction failed for godaddy root cert.", string(hostnames))
 	}
@@ -291,48 +274,6 @@ func TestRebundleFromPEM(t *testing.T) {
 	// The status must be {Code: ExpiringBit is not set, IsRebundled:true, ExpiringSKIs:{}}
 	if len(newBundle.Status.ExpiringSKIs) != 0 || !newBundle.Status.IsRebundled || newBundle.Status.Code&errors.BundleExpiringBit != 0 {
 		t.Fatal("Rebundle Status is incorrect.")
-	}
-
-}
-
-func TestRebundleExpiring(t *testing.T) {
-	// make a policy that generate a cert expires in one hour.
-	expiry := 1 * time.Hour
-	policy := &config.Signing{
-		Profiles: map[string]*config.SigningProfile{
-			"expireIn1Hour": {
-				Usage:  []string{"cert sign"},
-				Expiry: expiry,
-				CA:     true,
-			},
-		},
-		Default: config.DefaultConfig(),
-	}
-	// Generate a intermediate cert that expires in one hour.
-	expiringPEM := createInterCert(t, interL1CSR, policy, "expireIn1Hour")
-	rootBundlePEM, _ := ioutil.ReadFile(testCFSSLRootBundle)
-
-	// Use the expiring intermediate to initiate a bundler.
-	bundler, err := NewBundlerFromPEM(rootBundlePEM, expiringPEM)
-	if err != nil {
-		t.Fatalf("bundle failed. %s", err.Error())
-	}
-	newBundle, err := bundler.BundleFromPEMorDER(expiredBundlePEM, nil, Optimal, "")
-	if err != nil {
-		t.Fatalf("Re-bundle failed. %s", err.Error())
-	}
-	// Check the bundle content.
-	newChain := newBundle.Chain
-	if len(newChain) != 2 {
-		t.Fatalf("Expected bundle chain length is 2. Got %d.", len(newChain))
-	}
-	// The status must be {Code: ExpiringBit is set, IsRebundled:true, ExpiringSKIs:{"8860BA18A477B841041BD5EF7751C25B14BA203F"}}
-	if len(newBundle.Status.ExpiringSKIs) != 1 || !newBundle.Status.IsRebundled || newBundle.Status.Code&errors.BundleExpiringBit == 0 {
-		t.Fatal("Rebundle Status is incorrect.")
-	}
-	expectedSKI := "8860BA18A477B841041BD5EF7751C25B14BA203F"
-	if newBundle.Status.ExpiringSKIs[0] != expectedSKI {
-		t.Fatalf("Expected expiring cert SKI is %s, got %s\n", expectedSKI, newBundle.Status.ExpiringSKIs[0])
 	}
 
 }
@@ -823,31 +764,6 @@ func newBundler(t *testing.T) (b *Bundler) {
 	return
 }
 
-// create a test intermediate cert in PEM
-func createInterCert(t *testing.T, csrFile string, policy *config.Signing, profileName string) (certPEM []byte) {
-	s, err := local.NewSignerFromFile(testCAFile, testCAKeyFile, policy)
-	if err != nil {
-		t.Fatal(err)
-	}
-	csr, err := ioutil.ReadFile(csrFile)
-	if err != nil {
-		t.Fatal(err)
-	}
-	req := signer.SignRequest{
-		Hosts:   []string{"cloudflare-inter.com"},
-		Request: string(csr),
-		Profile: profileName,
-		Label:   "",
-	}
-
-	certPEM, err = s.Sign(req)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return
-
-}
-
 // newBundler creates bundler from byte slices of CA certs and intermediate certs in PEM format
 func newBundlerFromPEM(t *testing.T, caBundlePEM, intBundlePEM []byte) (b *Bundler) {
 	b, err := NewBundlerFromPEM(caBundlePEM, intBundlePEM)
@@ -993,4 +909,16 @@ func TestBundlerWithEmptyRootInfo(t *testing.T) {
 	}
 	checkBundleFunc = ExpectBundleLength(2)
 	checkBundleFunc(t, bundle)
+}
+
+func TestBundlerClientAuth(t *testing.T) {
+	b, err := NewBundler("testdata/client-auth/root.pem", "testdata/client-auth/int.pem")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, leafFile := range []string{"testdata/client-auth/leaf-server.pem", "testdata/client-auth/leaf-client.pem"} {
+		if _, err := b.BundleFromFile(leafFile, "", Optimal, ""); err != nil {
+			t.Fatal(err)
+		}
+	}
 }

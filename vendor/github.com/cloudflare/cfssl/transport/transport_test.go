@@ -14,7 +14,7 @@ import (
 )
 
 var (
-	testRemote   = envOrDefault("CFSSL_REMOTE", "127.0.0.1:8888")
+	testRemote   = envOrDefault("CFSSL_REMOTE", "http://127.0.0.1:8888")
 	testLabel    = envOrDefault("CFSSL_LABEL", "")
 	testProfile  = envOrDefault("CFSSL_PROFILE", "transport-test")
 	disableTests bool
@@ -210,7 +210,7 @@ func testListen(t *testing.T) {
 	log.Debug("listener waiting for connection")
 	conn, err := l.Accept()
 	if err != nil {
-		t.Fatalf("%v", err)
+		panic(err.Error())
 	}
 
 	log.Debugf("client has connected")
@@ -243,7 +243,7 @@ func TestListener(t *testing.T) {
 	go func() {
 		err := <-errChan
 		if err != nil {
-			t.Fatalf("listener auto update failed: %v", err)
+			panic("listener auto update failed: " + err.Error())
 		}
 	}()
 

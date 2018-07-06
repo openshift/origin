@@ -83,32 +83,35 @@ blank.
       understood by Go's time package[1]. This unfortunately means
       that the maximum unit of time that can be used here is the hour.
 
-    + usage: a string of key usages. The following are acceptable key
+    + usages: strings of key usages. The following are acceptable key
       usages:
 
-      + signing
-      + digital signature
-      + content committment
-      + key encipherment
-      + key agreement
-      + data encipherment
-      + cert sign
-      + crl sign
-      + encipher only
-      + decipher only
-      + any
-      + server auth
-      + client auth
-      + code signing
-      + email protection
-      + s/mime
-      + ipsec end system
-      + ipsec tunnel
-      + ipsec user
-      + timestamping
-      + ocsp signing
-      + microsoft sgc
-      + netscape sgc
+	+ Key Usages
+		+ signing
+		+ digital signature
+		+ content committment
+		+ key encipherment
+		+ key agreement
+		+ data encipherment
+		+ cert sign
+		+ crl sign
+		+ encipher only
+		+ decipher only
+		
+	+ Ext Key Usages
+		+ any
+		+ server auth
+		+ client auth
+		+ code signing
+		+ email protection
+		+ s/mime
+		+ ipsec end system
+		+ ipsec tunnel
+		+ ipsec user
+		+ timestamping
+		+ ocsp signing
+		+ microsoft sgc
+		+ netscape sgc
 
     + issuer_urls: a list of Authority Information Access (RFC 5280
       4.2.2.1) URLs pointing to the issuer certificate.
@@ -118,8 +121,14 @@ blank.
 
     + crl_url: the URL of the CRL server for this CA.
 
-    + is_ca: this should be true if the returned certificates should
-      be permitted to issue new certificates.
+    + ca_constraint: this object controls the CA bit and CA pathlen
+      constraint of the returned certificates. For example, in order
+      to issue a intermediate CA certificate with pathlen = 1, we put
+      {"is_ca": true, "max_path_len":1}. For another example, to
+      issue a intermediate CA certificate with pathlen = 0, we put
+      {"is_ca": true, "max_path_len":0, "max_path_len_zero": true}.
+      Notice the extra "max_path_len_zero" field: Without it, the
+      intermediate CA certificate will have no pathlen constraint.
 
     + ocsp_no_check: this should be true if the id-pkix-ocsp-nocheck
       extension should be used (RFC 2560 4.2.2.2.1).
@@ -130,11 +139,20 @@ blank.
 
     + auth_key: this should contain the name of an authentication key
       specified in the authentication portion of the configuration
-      file.
+      file. This key should be used by clients using the authentication
+      scheme described in 'authentication.txt'.
 
     + remote: this should contain the name of a remote signer as
       specified in the remote signer section of the configuration
-      file.
+      file. This is used for unauthenticated CFSSL remotes.
+
+    + auth_remote: this is an object containing an "auth_key" and
+      "remote" key. This is an entry for an authenticated remote
+      signer. The "auth_key" should contain the name of an
+      authentication key specified in the authentication portion of
+      the configuration file, and "remote" should contain the name of
+      a remote signer as specified in the remote signer section of the
+      configuration file.
 
     + not_before: if provided, this specifies an override for the Not
       Before date in certificates signed by the CA.
@@ -152,7 +170,7 @@ their profile. If the default profile isn't present, the following
 default profile is used:
 
    {
-	"usage": ["signing", "key encipherment", "server auth", "client auth"],
+	"usages": ["signing", "key encipherment", "server auth", "client auth"],
 	"expiry: "8760h"
    }
 

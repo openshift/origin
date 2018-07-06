@@ -1,13 +1,13 @@
-THE CERTIFICATAE GENERATING ENDPOINT
+THE CERTIFICATE GENERATING ENDPOINT
 
 Endpoint: /api/v1/cfssl/newcert
 Method:   POST
 
 Required parameters:
-    
+
     * request: a json object specifying the certificate request,
     exactly the one which can be sent to /api/v1/cfssl/newkey
-    to generate a certificate sigining request
+    to generate a certificate signing request
     (referring to endpoint_newkey for how to write such object)
 
 Optional parameters:
@@ -16,6 +16,8 @@ Optional parameters:
     the CSR, useful when interacting with cfssl server that stands
     in front of a remote multi-root CA signer
     * profile: a string specifying the signing profile for the signer
+    * bundle: a boolean specifying whether to include an "optimal"
+    certificate bundle along with the certificate
 
 Result:
 
@@ -25,7 +27,9 @@ Result:
     * certificate_request: a PEM-encoded certificate request
     * certificate: a PEM-encoded certificate, signed by the server
     * sums: a JSON object holding both MD5 and SHA1 digests for the certificate
-    request and the certificate
+    request and the certificate; note that this is the digest of the DER
+    contents of the certificate, not the PEM contents
+    * bundle: See the result of endpoint_bundle.txt (only included if the bundle parameter was set)
 
 Example:
 
@@ -56,4 +60,3 @@ Example:
     },
     "success": true
 }
-

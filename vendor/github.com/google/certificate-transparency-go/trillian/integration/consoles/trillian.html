@@ -1,0 +1,54 @@
+{{ template "head" . }}
+
+{{ template "prom_right_table_head" }}
+{{ template "prom_right_table_tail" }}
+
+{{ template "prom_content_head" . }}
+<h1>Trillian Overview</h1>
+
+<p>Tree Size:
+<div id="treeSizeGraph"></div>
+<script>
+new PromConsole.Graph({
+  node: document.querySelector("#treeSizeGraph"),
+  expr:"max(last_sth_treesize{job='trillian-ctfe-metrics-http'}) without (instance, job)",
+  yAxisFormatter: PromConsole.NumberFormatter.humanizeNoSmallPrefix,
+  yHoverFormatter: PromConsole.NumberFormatter.humanizeNoSmallPrefix,
+  yTitle: "Tree Size"
+})
+</script>
+</p>
+
+
+<p>Signer master count per log; should always be 1 (modulo scraping interval overlaps):
+<div id="mastersGraph"></div>
+<script>
+new PromConsole.Graph({
+  node: document.querySelector("#mastersGraph"),
+  expr: "sum(is_master{job='trillian-logsigner-http'}) without (job, instance)",
+  yAxisFormatter: PromConsole.NumberFormatter.humanizeNoSmallPrefix,
+  yHoverFormatter: PromConsole.NumberFormatter.humanizeNoSmallPrefix,
+  yUnits: "/s",
+  yTitle: "Queries"
+})
+</script>
+</p>
+
+<p>Graph of log IDs known about by ctfe less those known about by logsigner;
+  should always be 0:
+<div id="knownLogsGraph"></div>
+<script>
+new PromConsole.Graph({
+  node: document.querySelector("#knownLogsGraph"),
+  expr: "max(known_logs{job='trillian-ctfe-metrics-http'}) without (instance, job) - on (logid) max(known_logs{job='trillian-logsigner-http'}) without (instance, job)",
+  yAxisFormatter: PromConsole.NumberFormatter.humanizeNoSmallPrefix,
+  yHoverFormatter: PromConsole.NumberFormatter.humanizeNoSmallPrefix,
+  yUnits: "/s",
+  yTitle: "Queries"
+})
+</script>
+</p>
+
+{{ template "prom_content_tail" . }}
+
+{{ template "tail" }}

@@ -122,12 +122,74 @@ var validMinimalRemoteConfig2 = `
 	}
 }`
 
+var invalidConflictRemoteConfig = `
+{
+	"signing": {
+		"default": {
+			"auth_remote":{
+			    "auth_key": "sample",
+			    "remote": "localhost"
+		    },
+			"remote": "localhost"
+		}
+	},
+	"auth_keys": {
+		"sample": {
+			"type":"standard",
+			"key":"0123456789ABCDEF0123456789ABCDEF"
+		}
+	},
+	"remotes": {
+		"localhost": "127.0.0.1:8888"
+	}
+}`
+
 var invalidRemoteConfig = `
 {
 	"signing": {
 		"default": {
 			"auth_remotes_typos":{
 			    "auth_key": "sample",
+			    "remote": "localhost"
+		    }
+		}
+	},
+	"auth_keys": {
+		"sample": {
+			"type":"standard",
+			"key":"0123456789ABCDEF0123456789ABCDEF"
+		}
+	},
+	"remotes": {
+		"localhost": "127.0.0.1:8888"
+	}
+}`
+
+var invalidAuthRemoteConfigMissingRemote = `
+{
+	"signing": {
+		"default": {
+			"auth_remote":{
+			    "auth_key": "sample"
+		    }
+		}
+	},
+	"auth_keys": {
+		"sample": {
+			"type":"standard",
+			"key":"0123456789ABCDEF0123456789ABCDEF"
+		}
+	},
+	"remotes": {
+		"localhost": "127.0.0.1:8888"
+	}
+}`
+
+var invalidAuthRemoteConfigMissingKey = `
+{
+	"signing": {
+		"default": {
+			"auth_remote":{
 			    "remote": "localhost"
 		    }
 		}
@@ -152,6 +214,36 @@ var validMinimalLocalConfig = `
 		}
 	}
 }`
+
+var validLocalConfigsWithCAConstraint = []string{
+	`{
+		"signing": {
+			"default": {
+				"usages": ["digital signature", "email protection"],
+				"ca_constraint": { "is_ca": true },
+				"expiry": "8000h"
+			}
+		}
+	}`,
+	`{
+		"signing": {
+			"default": {
+				"usages": ["digital signature", "email protection"],
+				"ca_constraint": { "is_ca": true, "max_path_len": 1 },
+				"expiry": "8000h"
+			}
+		}
+	}`,
+	`{
+		"signing": {
+			"default": {
+				"usages": ["digital signature", "email protection"],
+				"ca_constraint": { "is_ca": true, "max_path_len_zero": true },
+				"expiry": "8000h"
+			}
+		}
+	}`,
+}
 
 func TestInvalidProfile(t *testing.T) {
 	if invalidProfileConfig.Signing.Profiles["invalid"].validProfile(false) {
@@ -355,6 +447,10 @@ func TestNeedLocalSigner(t *testing.T) {
 	if localConfig.Signing.NeedsRemoteSigner() != false {
 		t.Fatal("incorrect NeedsRemoteSigner().")
 	}
+
+	if err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestOverrideRemotes(t *testing.T) {
@@ -402,9 +498,40 @@ func TestAuthRemoteConfig(t *testing.T) {
 	}
 }
 
+func TestDuplicateRemoteConfig(t *testing.T) {
+	_, err := LoadConfig([]byte(invalidConflictRemoteConfig))
+	if err == nil {
+		t.Fatal("fail to reject invalid config")
+	}
+}
+
 func TestBadAuthRemoteConfig(t *testing.T) {
 	_, err := LoadConfig([]byte(invalidRemoteConfig))
 	if err == nil {
 		t.Fatal("load invalid config should failed")
+	}
+
+	_, err = LoadConfig([]byte(invalidAuthRemoteConfigMissingRemote))
+	if err == nil {
+		t.Fatal("load invalid config should failed")
+	}
+
+	_, err = LoadConfig([]byte(invalidAuthRemoteConfigMissingKey))
+	if err == nil {
+		t.Fatal("load invalid config should failed")
+	}
+
+	var p *Signing
+	if p.Valid() {
+		t.Fatal("nil Signing config should be invalid")
+	}
+}
+
+func TestValidCAConstraint(t *testing.T) {
+	for _, config := range validLocalConfigsWithCAConstraint {
+		_, err := LoadConfig([]byte(config))
+		if err != nil {
+			t.Fatal("can't parse valid ca constraint")
+		}
 	}
 }

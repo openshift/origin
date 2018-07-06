@@ -1,8 +1,12 @@
 package client
 
 import (
+	"crypto/tls"
 	"errors"
+	"net/http"
+	"net/url"
 	"strings"
+	"time"
 
 	"github.com/cloudflare/cfssl/auth"
 	"github.com/cloudflare/cfssl/info"
@@ -40,14 +44,14 @@ func StrategyFromString(s string) Strategy {
 
 // NewGroup will use the collection of remotes specified with the
 // given strategy.
-func NewGroup(remotes []string, strategy Strategy) (Remote, error) {
+func NewGroup(remotes []string, tlsConfig *tls.Config, strategy Strategy) (Remote, error) {
 	var servers = make([]*server, len(remotes))
 	for i := range remotes {
 		u, err := normalizeURL(remotes[i])
 		if err != nil {
 			return nil, err
 		}
-		servers[i], _ = newServer(u)
+		servers[i] = newServer(u, tlsConfig)
 	}
 
 	switch strategy {
@@ -69,6 +73,18 @@ func (g *orderedListGroup) Hosts() []string {
 		hosts = append(hosts, srvHosts[0])
 	}
 	return hosts
+}
+
+func (g *orderedListGroup) SetRequestTimeout(timeout time.Duration) {
+	for _, srv := range g.remotes {
+		srv.SetRequestTimeout(timeout)
+	}
+}
+
+func (g *orderedListGroup) SetProxy(proxy func(*http.Request) (*url.URL, error)) {
+	for _, srv := range g.remotes {
+		srv.SetProxy(proxy)
+	}
 }
 
 func newOrdererdListGroup(remotes []*server) (Remote, error) {
@@ -108,4 +124,9 @@ func (g *orderedListGroup) Info(jsonData []byte) (resp *info.Resp, err error) {
 	}
 
 	return nil, err
+}
+
+// SetReqModifier does nothing because there is no request modifier for group
+func (g *orderedListGroup) SetReqModifier(mod func(*http.Request, []byte)) {
+	// noop
 }

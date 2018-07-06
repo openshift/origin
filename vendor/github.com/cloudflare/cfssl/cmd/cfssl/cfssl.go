@@ -14,6 +14,7 @@ Usage:
 	version	 prints the current cfssl version
 	genkey   generates a key and an associated CSR
 	gencert  generates a key and a signed certificate
+	gencsr   generates a certificate request
 	selfsign generates a self-signed certificate
 
 Use "cfssl [command] -help" to find out more about a command.
@@ -27,8 +28,10 @@ import (
 	"github.com/cloudflare/cfssl/cli"
 	"github.com/cloudflare/cfssl/cli/bundle"
 	"github.com/cloudflare/cfssl/cli/certinfo"
+	"github.com/cloudflare/cfssl/cli/crl"
 	"github.com/cloudflare/cfssl/cli/gencert"
 	"github.com/cloudflare/cfssl/cli/gencrl"
+	"github.com/cloudflare/cfssl/cli/gencsr"
 	"github.com/cloudflare/cfssl/cli/genkey"
 	"github.com/cloudflare/cfssl/cli/info"
 	"github.com/cloudflare/cfssl/cli/ocspdump"
@@ -43,7 +46,9 @@ import (
 	"github.com/cloudflare/cfssl/cli/sign"
 	"github.com/cloudflare/cfssl/cli/version"
 
-	_ "github.com/lib/pq" // import to support Postgres
+	_ "github.com/go-sql-driver/mysql" // import to support MySQL
+	_ "github.com/lib/pq"              // import to support Postgres
+	_ "github.com/mattn/go-sqlite3"    // import to support SQLite3
 )
 
 // main defines the cfssl usage and registers all defined commands and flags.
@@ -54,11 +59,13 @@ func main() {
 	cmds := map[string]*cli.Command{
 		"bundle":         bundle.Command,
 		"certinfo":       certinfo.Command,
+		"crl":            crl.Command,
 		"sign":           sign.Command,
 		"serve":          serve.Command,
 		"version":        version.Command,
 		"genkey":         genkey.Command,
 		"gencert":        gencert.Command,
+		"gencsr":         gencsr.Command,
 		"gencrl":         gencrl.Command,
 		"ocspdump":       ocspdump.Command,
 		"ocsprefresh":    ocsprefresh.Command,

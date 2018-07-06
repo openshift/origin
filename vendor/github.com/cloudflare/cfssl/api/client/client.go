@@ -1,8 +1,9 @@
-// Package client implements the a Go client for CFSSL API commands.
+// Package client implements a Go client for CFSSL API commands.
 package client
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/json"
 	stderr "errors"
 	"fmt"
@@ -23,7 +24,11 @@ import (
 
 // A server points to a single remote CFSSL instance.
 type server struct {
-	URL string
+	URL            string
+	TLSConfig      *tls.Config
+	reqModifier    func(*http.Request, []byte)
+	RequestTimeout time.Duration
+	proxy          func(*http.Request) (*url.URL, error)
 }
 
 // A Remote points to at least one (but possibly multiple) remote
@@ -36,25 +41,35 @@ type Remote interface {
 	Sign(jsonData []byte) ([]byte, error)
 	Info(jsonData []byte) (*info.Resp, error)
 	Hosts() []string
+	SetReqModifier(func(*http.Request, []byte))
+	SetRequestTimeout(d time.Duration)
+	SetProxy(func(*http.Request) (*url.URL, error))
 }
 
-// NewServer sets up a new server target. The address should be the
-// DNS name (or "name:port") of the remote CFSSL instance. If no port
+// NewServer sets up a new server target. The address should be of
+// The format [protocol:]name[:port] of the remote CFSSL instance.
+// If no protocol is given http is default. If no port
 // is specified, the CFSSL default port (8888) is used. If the name is
 // a comma-separated list of hosts, an ordered group will be returned.
 func NewServer(addr string) Remote {
+	return NewServerTLS(addr, nil)
+}
+
+// NewServerTLS is the TLS version of NewServer
+func NewServerTLS(addr string, tlsConfig *tls.Config) Remote {
 	addrs := strings.Split(addr, ",")
 
 	var remote Remote
 
 	if len(addrs) > 1 {
-		remote, _ = NewGroup(addrs, StrategyOrderedList)
+		remote, _ = NewGroup(addrs, tlsConfig, StrategyOrderedList)
 	} else {
 		u, err := normalizeURL(addrs[0])
 		if err != nil {
+			log.Errorf("bad url: %v", err)
 			return nil
 		}
-		srv, _ := newServer(u)
+		srv := newServer(u, tlsConfig)
 		if srv != nil {
 			remote = srv
 		}
@@ -66,29 +81,75 @@ func (srv *server) Hosts() []string {
 	return []string{srv.URL}
 }
 
-func newServer(u *url.URL) (*server, error) {
+func (srv *server) SetReqModifier(mod func(*http.Request, []byte)) {
+	srv.reqModifier = mod
+}
+
+func (srv *server) SetRequestTimeout(timeout time.Duration) {
+	srv.RequestTimeout = timeout
+}
+
+func (srv *server) SetProxy(proxy func(*http.Request) (*url.URL, error)) {
+	srv.proxy = proxy
+}
+
+func newServer(u *url.URL, tlsConfig *tls.Config) *server {
 	URL := u.String()
-	return &server{URL}, nil
+	return &server{
+		URL:       URL,
+		TLSConfig: tlsConfig,
+	}
 }
 
 func (srv *server) getURL(endpoint string) string {
 	return fmt.Sprintf("%s/api/v1/cfssl/%s", srv.URL, endpoint)
 }
 
+func (srv *server) createTransport() (transport *http.Transport) {
+	transport = new(http.Transport)
+	// Setup HTTPS client
+	tlsConfig := srv.TLSConfig
+	tlsConfig.BuildNameToCertificate()
+	transport.TLSClientConfig = tlsConfig
+	// Setup Proxy
+	transport.Proxy = srv.proxy
+	return transport
+}
+
 // post connects to the remote server and returns a Response struct
 func (srv *server) post(url string, jsonData []byte) (*api.Response, error) {
-	buf := bytes.NewBuffer(jsonData)
-	resp, err := http.Post(url, "application/json", buf)
+	var resp *http.Response
+	var err error
+	client := &http.Client{}
+	if srv.TLSConfig != nil {
+		client.Transport = srv.createTransport()
+	}
+	if srv.RequestTimeout != 0 {
+		client.Timeout = srv.RequestTimeout
+	}
+	req, err := http.NewRequest("POST", url, bytes.NewReader(jsonData))
 	if err != nil {
+		err = fmt.Errorf("failed POST to %s: %v", url, err)
 		return nil, errors.Wrap(errors.APIClientError, errors.ClientHTTPError, err)
 	}
+	req.Close = true
+	req.Header.Set("content-type", "application/json")
+	if srv.reqModifier != nil {
+		srv.reqModifier(req, jsonData)
+	}
+	resp, err = client.Do(req)
+	if err != nil {
+		err = fmt.Errorf("failed POST to %s: %v", url, err)
+		return nil, errors.Wrap(errors.APIClientError, errors.ClientHTTPError, err)
+	}
+	defer req.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return nil, errors.Wrap(errors.APIClientError, errors.IOError, err)
 	}
-	resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
+		log.Errorf("http error with %s", url)
 		return nil, errors.Wrap(errors.APIClientError, errors.ClientHTTPError, stderr.New(string(body)))
 	}
 
@@ -241,9 +302,9 @@ type AuthRemote struct {
 // NewAuthServer sets up a new auth server target with an addr
 // in the same format at NewServer and a default authentication provider to
 // use for Sign requests.
-func NewAuthServer(addr string, provider auth.Provider) *AuthRemote {
+func NewAuthServer(addr string, tlsConfig *tls.Config, provider auth.Provider) *AuthRemote {
 	return &AuthRemote{
-		Remote:   NewServer(addr),
+		Remote:   NewServerTLS(addr, tlsConfig),
 		provider: provider,
 	}
 }

@@ -3,6 +3,7 @@ package universal
 
 import (
 	"crypto/x509"
+	"net/http"
 
 	"github.com/cloudflare/cfssl/certdb"
 	"github.com/cloudflare/cfssl/config"
@@ -47,6 +48,11 @@ func fileBackedSigner(root *Root, policy *config.Signing) (signer.Signer, bool, 
 
 var localSignerList = []localSignerCheck{
 	fileBackedSigner,
+}
+
+// PrependLocalSignerToList prepends signer to the local signer's list
+func PrependLocalSignerToList(signer localSignerCheck) {
+	localSignerList = append([]localSignerCheck{signer}, localSignerList...)
 }
 
 func newLocalSigner(root Root, policy *config.Signing) (s signer.Signer, err error) {
@@ -184,7 +190,17 @@ func (s *Signer) Info(req info.Req) (resp *info.Resp, err error) {
 // SetDBAccessor sets the signer's cert db accessor.
 func (s *Signer) SetDBAccessor(dba certdb.Accessor) {
 	s.local.SetDBAccessor(dba)
-	s.remote.SetDBAccessor(dba)
+}
+
+// GetDBAccessor returns the signer's cert db accessor.
+func (s *Signer) GetDBAccessor() certdb.Accessor {
+	return s.local.GetDBAccessor()
+}
+
+// SetReqModifier sets the function to call to modify the HTTP request prior to sending it
+func (s *Signer) SetReqModifier(mod func(*http.Request, []byte)) {
+	s.local.SetReqModifier(mod)
+	s.remote.SetReqModifier(mod)
 }
 
 // SigAlgo returns the RSA signer's signature algorithm.
