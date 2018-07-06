@@ -8,6 +8,7 @@ import (
 	"k8s.io/kubernetes/pkg/printers"
 	printerstorage "k8s.io/kubernetes/pkg/printers/storage"
 
+	authorization "github.com/openshift/api/authorization"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/authorization/registry/rolebindingrestriction"
 	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
@@ -25,7 +26,7 @@ func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 	store := &registry.Store{
 		NewFunc:                  func() runtime.Object { return &authorizationapi.RoleBindingRestriction{} },
 		NewListFunc:              func() runtime.Object { return &authorizationapi.RoleBindingRestrictionList{} },
-		DefaultQualifiedResource: authorizationapi.Resource("rolebindingrestrictions"),
+		DefaultQualifiedResource: authorization.Resource("rolebindingrestrictions"),
 
 		TableConvertor: printerstorage.TableConvertor{TablePrinter: printers.NewTablePrinter().With(printersinternal.AddHandlers)},
 

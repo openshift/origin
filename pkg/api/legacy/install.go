@@ -7,8 +7,6 @@ import (
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsapiv1 "github.com/openshift/origin/pkg/apps/apis/apps/v1"
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	authorizationapiv1 "github.com/openshift/origin/pkg/authorization/apis/authorization/v1"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildapiv1 "github.com/openshift/origin/pkg/build/apis/build/v1"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
@@ -32,18 +30,19 @@ import (
 )
 
 var (
-	GroupName    = ""
-	GroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1"}
+	GroupName            = ""
+	GroupVersion         = schema.GroupVersion{Group: GroupName, Version: "v1"}
+	internalGroupVersion = schema.GroupVersion{Group: GroupName, Version: runtime.APIVersionInternal}
 )
+
+// DEPRECATED
+func Kind(kind string) schema.GroupKind {
+	return schema.GroupKind{Group: GroupName, Kind: kind}
+}
 
 func InstallLegacyApps(scheme *runtime.Scheme) {
 	utilruntime.Must(appsapi.AddToSchemeInCoreGroup(scheme))
 	utilruntime.Must(appsapiv1.AddToSchemeInCoreGroup(scheme))
-}
-
-func InstallLegacyAuthorization(scheme *runtime.Scheme) {
-	utilruntime.Must(authorizationapi.AddToSchemeInCoreGroup(scheme))
-	utilruntime.Must(authorizationapiv1.AddToSchemeInCoreGroup(scheme))
 }
 
 func InstallLegacyBuild(scheme *runtime.Scheme) {

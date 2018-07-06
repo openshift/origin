@@ -18,7 +18,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	rbacregistryvalidation "k8s.io/kubernetes/pkg/registry/rbac/validation"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	authorization "github.com/openshift/api/authorization"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	osutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/print"
@@ -125,11 +125,11 @@ func (o *ReconcileClusterRolesOptions) Complete(cmd *cobra.Command, f kcmdutil.F
 		return err
 	}
 	for _, resourceString := range args {
-		resource, name, err := osutil.ResolveResource(authorizationapi.Resource("clusterroles"), resourceString, mapper)
+		resource, name, err := osutil.ResolveResource(authorization.Resource("clusterroles"), resourceString, mapper)
 		if err != nil {
 			return err
 		}
-		if authorizationapi.Resource("clusterroles") != resource {
+		if authorization.Resource("clusterroles") != resource {
 			return fmt.Errorf("%v is not a valid resource type for this command", resource)
 		}
 		if len(name) == 0 {

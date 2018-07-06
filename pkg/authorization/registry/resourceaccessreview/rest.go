@@ -14,6 +14,7 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac"
 
+	authorization "github.com/openshift/api/authorization"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	authorizationvalidation "github.com/openshift/origin/pkg/authorization/apis/authorization/validation"
 	"github.com/openshift/origin/pkg/authorization/registry/util"
@@ -50,7 +51,7 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, _ rest.ValidateOb
 		return nil, kapierrors.NewBadRequest(fmt.Sprintf("not a resourceAccessReview: %#v", obj))
 	}
 	if errs := authorizationvalidation.ValidateResourceAccessReview(resourceAccessReview); len(errs) > 0 {
-		return nil, kapierrors.NewInvalid(authorizationapi.Kind(resourceAccessReview.Kind), "", errs)
+		return nil, kapierrors.NewInvalid(authorization.Kind(resourceAccessReview.Kind), "", errs)
 	}
 
 	user, ok := apirequest.UserFrom(ctx)
@@ -98,10 +99,10 @@ func (r *REST) isAllowed(user user.Info, rar *authorizationapi.ResourceAccessRev
 	authorized, reason, err := r.authorizer.Authorize(localRARAttributes)
 
 	if err != nil {
-		return kapierrors.NewForbidden(authorizationapi.Resource(localRARAttributes.GetResource()), localRARAttributes.GetName(), err)
+		return kapierrors.NewForbidden(authorization.Resource(localRARAttributes.GetResource()), localRARAttributes.GetName(), err)
 	}
 	if authorized != kauthorizer.DecisionAllow {
-		forbiddenError := kapierrors.NewForbidden(authorizationapi.Resource(localRARAttributes.GetResource()), localRARAttributes.GetName(), errors.New("") /*discarded*/)
+		forbiddenError := kapierrors.NewForbidden(authorization.Resource(localRARAttributes.GetResource()), localRARAttributes.GetName(), errors.New("") /*discarded*/)
 		forbiddenError.ErrStatus.Message = reason
 		return forbiddenError
 	}

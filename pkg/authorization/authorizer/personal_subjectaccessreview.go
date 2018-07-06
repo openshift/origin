@@ -5,12 +5,15 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	"github.com/openshift/origin/pkg/api/legacy"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	authorizationv1helpers "github.com/openshift/origin/pkg/authorization/apis/authorization/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apiserver/pkg/endpoints/request"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
-
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 )
 
 type personalSARRequestInfoResolver struct {
@@ -82,7 +85,7 @@ func isPersonalAccessReviewFromRequest(req *http.Request, requestInfo *request.R
 		defaultGVK.Kind = "LocalSubjectAccessReview"
 	}
 
-	obj, _, err := legacyscheme.Codecs.UniversalDecoder().Decode(body, &defaultGVK, nil)
+	obj, _, err := sarCodecFactory.UniversalDecoder().Decode(body, &defaultGVK, nil)
 	if err != nil {
 		return false, err
 	}
@@ -114,4 +117,14 @@ func isPersonalAccessReviewFromLocalSAR(sar *authorizationapi.LocalSubjectAccess
 	}
 
 	return false
+}
+
+var (
+	sarScheme       = runtime.NewScheme()
+	sarCodecFactory = serializer.NewCodecFactory(sarScheme)
+)
+
+func init() {
+	legacy.InstallLegacyAuthorization(sarScheme)
+	utilruntime.Must(authorizationv1helpers.Install(sarScheme))
 }

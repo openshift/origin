@@ -29,6 +29,7 @@ import (
 	rbaclisters "k8s.io/kubernetes/pkg/client/listers/rbac/internalversion"
 
 	projectapiv1 "github.com/openshift/api/project/v1"
+	"github.com/openshift/origin/pkg/api/legacy"
 	osauthorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	authorizationutil "github.com/openshift/origin/pkg/authorization/util"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -98,7 +99,7 @@ var (
 	ForbiddenPrefixes = []string{"openshift-", "kubernetes-", "kube-"}
 
 	defaultRoleBindingNames = bootstrappolicy.GetBootstrapServiceAccountProjectRoleBindingNames()
-	roleBindingGroups       = sets.NewString(osauthorizationapi.LegacyGroupName, osauthorizationapi.GroupName, rbac.GroupName)
+	roleBindingGroups       = sets.NewString(legacy.GroupName, osauthorizationapi.GroupName, rbac.GroupName)
 	roleBindingKind         = "RoleBinding"
 )
 

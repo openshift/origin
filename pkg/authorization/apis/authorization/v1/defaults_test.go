@@ -13,10 +13,8 @@ import (
 var scheme = runtime.NewScheme()
 
 func init() {
-	LegacySchemeBuilder.AddToScheme(scheme)
-	authorizationapi.LegacySchemeBuilder.AddToScheme(scheme)
-	SchemeBuilder.AddToScheme(scheme)
-	authorizationapi.SchemeBuilder.AddToScheme(scheme)
+	Install(scheme)
+	authorizationapi.Install(scheme)
 }
 
 func TestDefaults(t *testing.T) {

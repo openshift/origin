@@ -180,7 +180,7 @@ func Convert_authorization_ClusterRoleBinding_To_v1_ClusterRoleBinding(in *newer
 	return nil
 }
 
-func addConversionFuncs(scheme *runtime.Scheme) error {
+func AddConversionFuncs(scheme *runtime.Scheme) error {
 	err := scheme.AddConversionFuncs(
 		Convert_v1_SubjectAccessReview_To_authorization_SubjectAccessReview,
 		Convert_authorization_SubjectAccessReview_To_v1_SubjectAccessReview,
@@ -207,6 +207,6 @@ func addConversionFuncs(scheme *runtime.Scheme) error {
 	return nil
 }
 
-func addFieldSelectorKeyConversions(scheme *runtime.Scheme) error {
+func AddFieldSelectorKeyConversions(scheme *runtime.Scheme) error {
 	return nil
 }

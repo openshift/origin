@@ -19,7 +19,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	authorization "github.com/openshift/api/authorization"
 	authorizationutil "github.com/openshift/origin/pkg/authorization/util"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
@@ -137,11 +137,11 @@ func (o *ReconcileClusterRoleBindingsOptions) Complete(cmd *cobra.Command, f kcm
 		return err
 	}
 	for _, resourceString := range args {
-		resource, name, err := cmdutil.ResolveResource(authorizationapi.Resource("clusterroles"), resourceString, mapper)
+		resource, name, err := cmdutil.ResolveResource(authorization.Resource("clusterroles"), resourceString, mapper)
 		if err != nil {
 			return err
 		}
-		if resource != authorizationapi.Resource("clusterroles") {
+		if resource != authorization.Resource("clusterroles") {
 			return fmt.Errorf("%v is not a valid resource type for this command", resource)
 		}
 		if len(name) == 0 {

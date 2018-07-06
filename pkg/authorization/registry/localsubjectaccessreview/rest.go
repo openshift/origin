@@ -10,6 +10,7 @@ import (
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 
+	authorization "github.com/openshift/api/authorization"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	authorizationvalidation "github.com/openshift/origin/pkg/authorization/apis/authorization/validation"
 	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
@@ -43,7 +44,7 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, _ rest.ValidateOb
 		return nil, kapierrors.NewBadRequest(fmt.Sprintf("not a localSubjectAccessReview: %#v", obj))
 	}
 	if errs := authorizationvalidation.ValidateLocalSubjectAccessReview(localSAR); len(errs) > 0 {
-		return nil, kapierrors.NewInvalid(authorizationapi.Kind(localSAR.Kind), "", errs)
+		return nil, kapierrors.NewInvalid(authorization.Kind(localSAR.Kind), "", errs)
 	}
 	if namespace := apirequest.NamespaceValue(ctx); len(namespace) == 0 {
 		return nil, kapierrors.NewBadRequest(fmt.Sprintf("namespace is required on this type: %v", namespace))

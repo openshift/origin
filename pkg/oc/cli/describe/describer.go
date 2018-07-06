@@ -26,6 +26,7 @@ import (
 	kprinters "k8s.io/kubernetes/pkg/printers"
 	kinternalprinters "k8s.io/kubernetes/pkg/printers/internalversion"
 
+	authorization "github.com/openshift/api/authorization"
 	oapi "github.com/openshift/origin/pkg/api"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
@@ -106,34 +107,34 @@ func describerMap(clientConfig *rest.Config, kclient kclientset.Interface, host 
 	}
 
 	m := map[schema.GroupKind]kprinters.Describer{
-		buildapi.Kind("Build"):                          &BuildDescriber{buildClient, kclient},
-		buildapi.Kind("BuildConfig"):                    &BuildConfigDescriber{buildClient, kclient, host},
-		appsapi.Kind("DeploymentConfig"):                &DeploymentConfigDescriber{appsClient, kclient, nil},
-		imageapi.Kind("Image"):                          &ImageDescriber{imageClient},
-		imageapi.Kind("ImageStream"):                    &ImageStreamDescriber{imageClient},
-		imageapi.Kind("ImageStreamTag"):                 &ImageStreamTagDescriber{imageClient},
-		imageapi.Kind("ImageStreamImage"):               &ImageStreamImageDescriber{imageClient},
-		routeapi.Kind("Route"):                          &RouteDescriber{routeClient, kclient},
-		projectapi.Kind("Project"):                      &ProjectDescriber{projectClient, kclient},
-		templateapi.Kind("Template"):                    &TemplateDescriber{templateClient, meta.NewAccessor(), legacyscheme.Scheme, nil},
-		templateapi.Kind("TemplateInstance"):            &TemplateInstanceDescriber{kclient, templateClient, nil},
-		authorizationapi.Kind("RoleBinding"):            &RoleBindingDescriber{oauthorizationClient},
-		authorizationapi.Kind("Role"):                   &RoleDescriber{oauthorizationClient},
-		authorizationapi.Kind("ClusterRoleBinding"):     &ClusterRoleBindingDescriber{oauthorizationClient},
-		authorizationapi.Kind("ClusterRole"):            &ClusterRoleDescriber{oauthorizationClient},
-		authorizationapi.Kind("RoleBindingRestriction"): &RoleBindingRestrictionDescriber{oauthorizationClient},
-		oauthapi.Kind("OAuthAccessToken"):               &OAuthAccessTokenDescriber{oauthClient},
-		userapi.Kind("Identity"):                        &IdentityDescriber{userClient},
-		userapi.Kind("User"):                            &UserDescriber{userClient},
-		userapi.Kind("Group"):                           &GroupDescriber{userClient},
-		userapi.Kind("UserIdentityMapping"):             &UserIdentityMappingDescriber{userClient},
-		quotaapi.Kind("ClusterResourceQuota"):           &ClusterQuotaDescriber{quotaClient},
-		quotaapi.Kind("AppliedClusterResourceQuota"):    &AppliedClusterQuotaDescriber{quotaClient},
-		networkapi.Kind("ClusterNetwork"):               &ClusterNetworkDescriber{onetworkClient},
-		networkapi.Kind("HostSubnet"):                   &HostSubnetDescriber{onetworkClient},
-		networkapi.Kind("NetNamespace"):                 &NetNamespaceDescriber{onetworkClient},
-		networkapi.Kind("EgressNetworkPolicy"):          &EgressNetworkPolicyDescriber{onetworkClient},
-		securityapi.Kind("SecurityContextConstraints"):  &SecurityContextConstraintsDescriber{securityClient},
+		buildapi.Kind("Build"):                         &BuildDescriber{buildClient, kclient},
+		buildapi.Kind("BuildConfig"):                   &BuildConfigDescriber{buildClient, kclient, host},
+		appsapi.Kind("DeploymentConfig"):               &DeploymentConfigDescriber{appsClient, kclient, nil},
+		imageapi.Kind("Image"):                         &ImageDescriber{imageClient},
+		imageapi.Kind("ImageStream"):                   &ImageStreamDescriber{imageClient},
+		imageapi.Kind("ImageStreamTag"):                &ImageStreamTagDescriber{imageClient},
+		imageapi.Kind("ImageStreamImage"):              &ImageStreamImageDescriber{imageClient},
+		routeapi.Kind("Route"):                         &RouteDescriber{routeClient, kclient},
+		projectapi.Kind("Project"):                     &ProjectDescriber{projectClient, kclient},
+		templateapi.Kind("Template"):                   &TemplateDescriber{templateClient, meta.NewAccessor(), legacyscheme.Scheme, nil},
+		templateapi.Kind("TemplateInstance"):           &TemplateInstanceDescriber{kclient, templateClient, nil},
+		authorization.Kind("RoleBinding"):              &RoleBindingDescriber{oauthorizationClient},
+		authorization.Kind("Role"):                     &RoleDescriber{oauthorizationClient},
+		authorization.Kind("ClusterRoleBinding"):       &ClusterRoleBindingDescriber{oauthorizationClient},
+		authorization.Kind("ClusterRole"):              &ClusterRoleDescriber{oauthorizationClient},
+		authorization.Kind("RoleBindingRestriction"):   &RoleBindingRestrictionDescriber{oauthorizationClient},
+		oauthapi.Kind("OAuthAccessToken"):              &OAuthAccessTokenDescriber{oauthClient},
+		userapi.Kind("Identity"):                       &IdentityDescriber{userClient},
+		userapi.Kind("User"):                           &UserDescriber{userClient},
+		userapi.Kind("Group"):                          &GroupDescriber{userClient},
+		userapi.Kind("UserIdentityMapping"):            &UserIdentityMappingDescriber{userClient},
+		quotaapi.Kind("ClusterResourceQuota"):          &ClusterQuotaDescriber{quotaClient},
+		quotaapi.Kind("AppliedClusterResourceQuota"):   &AppliedClusterQuotaDescriber{quotaClient},
+		networkapi.Kind("ClusterNetwork"):              &ClusterNetworkDescriber{onetworkClient},
+		networkapi.Kind("HostSubnet"):                  &HostSubnetDescriber{onetworkClient},
+		networkapi.Kind("NetNamespace"):                &NetNamespaceDescriber{onetworkClient},
+		networkapi.Kind("EgressNetworkPolicy"):         &EgressNetworkPolicyDescriber{onetworkClient},
+		securityapi.Kind("SecurityContextConstraints"): &SecurityContextConstraintsDescriber{securityClient},
 	}
 
 	// Register the legacy ("core") API group for all kinds as well.
