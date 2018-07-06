@@ -1,5 +1,5 @@
-hash: dc299575eef403e5400e45ba32694ab027a65eacf549615a6cfe5966114bc43d
-updated: 2018-07-03T14:23:31.835265-04:00
+hash: 39269802bf8a51701d8e237475097bf81797c5d59253ef5eb16c69870ab4820d
+updated: 2018-07-06T10:35:57.091498-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -81,6 +81,8 @@ imports:
   - autorest/date
   - autorest/to
   - autorest/validation
+- name: github.com/bcicen/go-haproxy
+  version: ff5824fe38bede761b873cab6e247a530e89236a
 - name: github.com/beorn7/perks
   version: 3ac7bf7a47d159a033b107610db8a1b6575507a4
   subpackages:
@@ -425,6 +427,8 @@ imports:
   version: f3f9494671f93fcff853e3c6e9e948b3eb71e590
 - name: github.com/go-openapi/validate
   version: d509235108fcf6ab4913d2dcb3a2260c0db2108e
+- name: github.com/gocarina/gocsv
+  version: a5c9099e2484f1551abb9433885e158610a25f4b
 - name: github.com/godbus/dbus
   version: c7fdd8b5cd55e87b4e1f4e372cdb1db61dd6c66f
 - name: github.com/gogo/protobuf
@@ -809,7 +813,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: 31a7bbd2266d178da3c12bb83f5274d387f775e6
+  version: aaea23fe8f58729c8196c8e7f4f40d12bd0e2135
   subpackages:
   - apps/v1
   - authorization/v1
@@ -957,7 +961,7 @@ imports:
   - pkg/operator/resource/resourcemerge
   - pkg/serviceability
 - name: github.com/openshift/service-serving-cert-signer
-  version: bcaddfdfbc37c5e7cd4656ecca269ca6b735e849
+  version: 4e91b73f7394df0fffb885c35ac9b517cc385d2e
   subpackages:
   - pkg/controller/servingcert
   - pkg/controller/servingcert/cryptoextensions
@@ -1060,7 +1064,7 @@ imports:
 - name: github.com/shurcooL/sanitized_anchor_name
   version: 10ef21a441db47d8b13ebcc5fd2310f636973c77
 - name: github.com/sirupsen/logrus
-  version: e54a77765aca7bbdd8e56c1c54f60579968b2dc9
+  version: 89742aefa4b206dcf400792f3bd35b542998eb3b
 - name: github.com/skynetservices/skydns
   version: 775ef406696380ce92b76e72421e86b6868905d8
   repo: https://github.com/openshift/skynetservices-skydns
@@ -1827,7 +1831,7 @@ imports:
   - pkg/util/proto/testing
   - pkg/util/proto/validation
 - name: k8s.io/kubernetes
-  version: d4cacc043ac762235e16cb7361d527cb4189393c
+  version: 5200705703cbf4abe250da3822f67e244e11d5b0
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/controller-manager/app

@@ -123,7 +123,7 @@ func (c ServiceCertSignerOperator) sync() error {
 		var versionAvailability operatorsv1alpha1.VersionAvailablity
 		operatorConfig.Status.TaskSummary = "sync-[3.10.0,3.10.1)"
 		operatorConfig.Status.TargetAvailability = nil
-		versionAvailability, errors = sync_v310_00_to_00(c, operatorConfig, operatorConfig.Status.CurrentAvailability)
+		versionAvailability, errors = sync_v310_00_to_latest(c, operatorConfig, operatorConfig.Status.CurrentAvailability)
 		operatorConfig.Status.CurrentAvailability = &versionAvailability
 
 	default:

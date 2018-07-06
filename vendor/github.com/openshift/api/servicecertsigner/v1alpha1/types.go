@@ -26,6 +26,42 @@ type ServiceServingCertSignerConfig struct {
 	Signer configv1.CertInfo `json:"signer" protobuf:"bytes,4,opt,name=signer"`
 }
 
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// APIServiceCABundleInjectorConfig provides information to configure an APIService CA Bundle Injector controller
+type APIServiceCABundleInjectorConfig struct {
+	metav1.TypeMeta `json:",inline"`
+
+	// ServingInfo is the HTTP serving information for the controller's endpoints
+	ServingInfo configv1.HTTPServingInfo `json:"servingInfo,omitempty" protobuf:"bytes,1,opt,name=servingInfo"`
+
+	// authentication allows configuration of authentication for the endpoints
+	Authentication DelegatedAuthentication `json:"authentication,omitempty" protobuf:"bytes,2,opt,name=authentication"`
+	// authorization allows configuration of authentication for the endpoints
+	Authorization DelegatedAuthorization `json:"authorization,omitempty" protobuf:"bytes,3,opt,name=authorization"`
+
+	// caBundleFile holds the ca bundle to apply to APIServices
+	CABundleFile string `json:"caBundleFile" protobuf:"bytes,4,opt,name=caBundleFile"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// ConfigMapCABundleInjectorConfig provides information to configure a ConfigMap CA Bundle Injector controller
+type ConfigMapCABundleInjectorConfig struct {
+	metav1.TypeMeta `json:",inline"`
+
+	// ServingInfo is the HTTP serving information for the controller's endpoints
+	ServingInfo configv1.HTTPServingInfo `json:"servingInfo,omitempty" protobuf:"bytes,1,opt,name=servingInfo"`
+
+	// authentication allows configuration of authentication for the endpoints
+	Authentication DelegatedAuthentication `json:"authentication,omitempty" protobuf:"bytes,2,opt,name=authentication"`
+	// authorization allows configuration of authentication for the endpoints
+	Authorization DelegatedAuthorization `json:"authorization,omitempty" protobuf:"bytes,3,opt,name=authorization"`
+
+	// caBundleFile holds the ca bundle to apply to ConfigMaps
+	CABundleFile string `json:"caBundleFile" protobuf:"bytes,4,opt,name=caBundleFile"`
+}
+
 // DelegatedAuthentication allows authentication to be disabled.
 type DelegatedAuthentication struct {
 	// disabled indicates that authentication should be disabled.  By default it will use delegated authentication.
@@ -59,6 +95,18 @@ type ServiceCertSignerOperatorConfigSpec struct {
 	// 1. hardcoded default
 	// 2. this config
 	ServiceServingCertSignerConfig runtime.RawExtension `json:"serviceServingCertSignerConfig" protobuf:"bytes,2,opt,name=serviceServingCertSignerConfig"`
+
+	// apiServiceCABundleInjectorConfig holds a sparse config that the user wants for this component.  It only needs to be the overrides from the defaults
+	// it will end up overlaying in the following order:
+	// 1. hardcoded default
+	// 2. this config
+	APIServiceCABundleInjectorConfig runtime.RawExtension `json:"apiServiceCABundleInjectorConfig" protobuf:"bytes,3,opt,name=apiServiceCABundleInjectorConfig"`
+
+	// configMapCABundleInjectorConfig holds a sparse config that the user wants for this component.  It only needs to be the overrides from the defaults
+	// it will end up overlaying in the following order:
+	// 1. hardcoded default
+	// 2. this config
+	ConfigMapCABundleInjectorConfig runtime.RawExtension `json:"configMapCABundleInjectorConfig" protobuf:"bytes,4,opt,name=configMapCABundleInjectorConfig"`
 }
 
 type ServiceCertSignerOperatorConfigStatus struct {
