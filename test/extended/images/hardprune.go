@@ -436,7 +436,7 @@ func LogRegistryPod(oc *exutil.CLI) error {
 func ConfigureRegistry(oc *exutil.CLI, desiredState RegistryConfiguration) (bool, error) {
 	defer func(ns string) { oc.SetNamespace(ns) }(oc.Namespace())
 	oc = oc.SetNamespace(metav1.NamespaceDefault).AsAdmin()
-	env, err := oc.Run("env").Args("dc/docker-registry", "--list").Output()
+	env, err := oc.Run("set", "env").Args("dc/docker-registry", "--list").Output()
 	if err != nil {
 		return false, err
 	}
@@ -461,7 +461,7 @@ func ConfigureRegistry(oc *exutil.CLI, desiredState RegistryConfiguration) (bool
 		return false, nil
 	}
 
-	if err := oc.Run("env").Args(append([]string{"dc/docker-registry"}, envOverrides...)...).Execute(); err != nil {
+	if err := oc.Run("set", "env").Args(append([]string{"dc/docker-registry"}, envOverrides...)...).Execute(); err != nil {
 		return false, fmt.Errorf("failed to update registry's environment: %v", err)
 	}
 
@@ -525,7 +525,7 @@ func GetRegistryStorageSize(oc *exutil.CLI) (int64, error) {
 // schema 2.
 func DoesRegistryAcceptSchema2(oc *exutil.CLI) (bool, error) {
 	defer func(ns string) { oc.SetNamespace(ns) }(oc.Namespace())
-	env, err := oc.SetNamespace(metav1.NamespaceDefault).AsAdmin().Run("env").Args("dc/docker-registry", "--list").Output()
+	env, err := oc.SetNamespace(metav1.NamespaceDefault).AsAdmin().Run("set", "env").Args("dc/docker-registry", "--list").Output()
 	if err != nil {
 		return defaultAcceptSchema2, err
 	}
