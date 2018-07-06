@@ -16930,7 +16930,10 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "kind": "DockerImage",
               "name": "docker.io/centos/ruby-25-centos7:latest"
             },
-            "name": "2.5"
+            "name": "2.5",
+            "referencePolicy": {
+              "type": "Local"
+            }
           }
         ]
       }
@@ -18421,7 +18424,10 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "kind": "DockerImage",
               "name": "registry.access.redhat.com/rhscl/ruby-25-rhel7:latest"
             },
-            "name": "2.5"
+            "name": "2.5",
+            "referencePolicy": {
+              "type": "Local"
+            }
           }
         ]
       }
@@ -24123,10 +24129,6 @@ var _examplesQuickstartsDotnetPgsqlPersistentJson = []byte(`{
                                 "value": "${DOTNET_CONFIGURATION}"
                             },
                             {
-                                "name": "DOTNET_PUBLISH",
-                                "value": "true"
-                            },
-                            {
                                 "name": "DOTNET_RESTORE_SOURCES",
                                 "value": "${DOTNET_RESTORE_SOURCES}"
                             },
@@ -24436,21 +24438,21 @@ var _examplesQuickstartsDotnetPgsqlPersistentJson = []byte(`{
             "displayName": "Memory Limit",
             "name": "MEMORY_LIMIT",
             "required": true,
-            "value": "512Mi"
+            "value": "128Mi"
         },
         {
             "description": "Maximum amount of memory the PostgreSQL container can use.",
             "displayName": "Memory Limit (PostgreSQL)",
             "name": "MEMORY_POSTGRESQL_LIMIT",
             "required": true,
-            "value": "512Mi"
+            "value": "128Mi"
         },
         {
             "description": "Volume space available for data, e.g. 512Mi, 2Gi",
             "displayName": "Volume Capacity",
             "name": "VOLUME_CAPACITY",
             "required": true,
-            "value": "1Gi"
+            "value": "256Mi"
         },
         {
             "description": "The image stream tag which is used to build the code.",
@@ -24706,10 +24708,6 @@ var _examplesQuickstartsDotnetJson = []byte(`{
                                 "value": "${DOTNET_CONFIGURATION}"
                             },
                             {
-                                "name": "DOTNET_PUBLISH",
-                                "value": "true"
-                            },
-                            {
                                 "name": "DOTNET_RESTORE_SOURCES",
                                 "value": "${DOTNET_RESTORE_SOURCES}"
                             },
@@ -24844,7 +24842,7 @@ var _examplesQuickstartsDotnetJson = []byte(`{
             "displayName": "Memory Limit",
             "name": "MEMORY_LIMIT",
             "required": true,
-            "value": "512Mi"
+            "value": "128Mi"
         },
         {
             "description": "The image stream tag which is used to build the code.",
@@ -24923,8 +24921,7 @@ var _examplesQuickstartsDotnetJson = []byte(`{
         {
             "description": "Set this to a space separated list of npm tools needed to publish.",
             "displayName": "Npm Tools",
-            "name": "DOTNET_NPM_TOOLS",
-            "value": "bower gulp"
+            "name": "DOTNET_NPM_TOOLS"
         },
         {
             "description": "Set this to a space separated list of test projects to run before publishing.",
