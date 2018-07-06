@@ -7,27 +7,30 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
-const GroupName = "build.openshift.io"
-const LegacyGroupName = ""
-
 var (
-	SchemeGroupVersion       = schema.GroupVersion{Group: GroupName, Version: "v1"}
-	LegacySchemeGroupVersion = schema.GroupVersion{Group: LegacyGroupName, Version: "v1"}
+	GroupName     = "build.openshift.io"
+	GroupVersion  = schema.GroupVersion{Group: GroupName, Version: "v1"}
+	schemeBuilder = runtime.NewSchemeBuilder(addKnownTypes, corev1.AddToScheme)
+	// Install is a function which adds this version to a scheme
+	Install = schemeBuilder.AddToScheme
 
-	LegacySchemeBuilder    = runtime.NewSchemeBuilder(addLegacyKnownTypes)
-	AddToSchemeInCoreGroup = LegacySchemeBuilder.AddToScheme
-
-	SchemeBuilder = runtime.NewSchemeBuilder(addKnownTypes)
-	AddToScheme   = SchemeBuilder.AddToScheme
+	// SchemeGroupVersion generated code relies on this name
+	// Deprecated
+	SchemeGroupVersion = GroupVersion
+	// AddToScheme exists solely to keep the old generators creating valid code
+	// DEPRECATED
+	AddToScheme = schemeBuilder.AddToScheme
 )
 
+// Resource generated code relies on this being here, but it logically belongs to the group
+// DEPRECATED
 func Resource(resource string) schema.GroupResource {
-	return SchemeGroupVersion.WithResource(resource).GroupResource()
+	return schema.GroupResource{Group: GroupName, Resource: resource}
 }
 
 // addKnownTypes adds types to API group
 func addKnownTypes(scheme *runtime.Scheme) error {
-	scheme.AddKnownTypes(SchemeGroupVersion,
+	scheme.AddKnownTypes(GroupVersion,
 		&Build{},
 		&BuildList{},
 		&BuildConfig{},
@@ -39,23 +42,6 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		// This is needed for webhooks
 		&corev1.PodProxyOptions{},
 	)
-	metav1.AddToGroupVersion(scheme, SchemeGroupVersion)
-	return nil
-}
-
-// addLegacyKnownTypes adds types to legacy API group
-// DEPRECATED: This will be deprecated and should not be modified.
-func addLegacyKnownTypes(scheme *runtime.Scheme) error {
-	types := []runtime.Object{
-		&Build{},
-		&BuildList{},
-		&BuildConfig{},
-		&BuildConfigList{},
-		&BuildLog{},
-		&BuildRequest{},
-		&BuildLogOptions{},
-		&BinaryBuildRequestOptions{},
-	}
-	scheme.AddKnownTypes(LegacySchemeGroupVersion, types...)
+	metav1.AddToGroupVersion(scheme, GroupVersion)
 	return nil
 }

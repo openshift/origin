@@ -27,31 +27,31 @@ import (
 	user "github.com/openshift/api/user/v1"
 )
 
-var groups = map[schema.GroupVersion]runtime.SchemeBuilder{
-	apps.SchemeGroupVersion:          apps.SchemeBuilder,
-	authorization.SchemeGroupVersion: authorization.SchemeBuilder,
-	build.SchemeGroupVersion:         build.SchemeBuilder,
-	image.SchemeGroupVersion:         image.SchemeBuilder,
-	network.SchemeGroupVersion:       network.SchemeBuilder,
-	oauth.SchemeGroupVersion:         oauth.SchemeBuilder,
-	project.SchemeGroupVersion:       project.SchemeBuilder,
-	quota.SchemeGroupVersion:         quota.SchemeBuilder,
-	route.SchemeGroupVersion:         route.SchemeBuilder,
-	security.SchemeGroupVersion:      security.SchemeBuilder,
-	template.SchemeGroupVersion:      template.SchemeBuilder,
-	user.SchemeGroupVersion:          user.SchemeBuilder,
+var groups = map[schema.GroupVersion]func(*runtime.Scheme) error{
+	apps.GroupVersion:          apps.Install,
+	authorization.GroupVersion: authorization.Install,
+	build.GroupVersion:         build.Install,
+	image.GroupVersion:         image.Install,
+	network.GroupVersion:       network.Install,
+	oauth.GroupVersion:         oauth.Install,
+	project.GroupVersion:       project.Install,
+	quota.GroupVersion:         quota.Install,
+	route.GroupVersion:         route.Install,
+	security.GroupVersion:      security.Install,
+	template.GroupVersion:      template.Install,
+	user.GroupVersion:          user.Install,
 }
 
 // TestRoundTripTypesWithoutProtobuf applies the round-trip test to all round-trippable Kinds
 // in the scheme.
 func TestRoundTripTypesWithoutProtobuf(t *testing.T) {
 	// TODO upstream this loop
-	for gv, builder := range groups {
+	for gv, install := range groups {
 		t.Logf("starting group %q", gv)
 		scheme := runtime.NewScheme()
 		codecs := serializer.NewCodecFactory(scheme)
 
-		builder.AddToScheme(scheme)
+		install(scheme)
 		seed := rand.Int63()
 		// I'm only using the generic fuzzer funcs, but at some point in time we might need to
 		// switch to specialized. For now we're happy with the current serialization test.
