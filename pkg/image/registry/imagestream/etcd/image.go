@@ -73,16 +73,14 @@ func NewImageLayerIndex(lw ImageListWatch) ImageLayerIndex {
 			}
 			// reduce the full image list to a smaller subset.
 			out := &metainternalversion.List{
+				ListMeta: metav1.ListMeta{
+					Continue:        list.Continue,
+					ResourceVersion: list.ResourceVersion,
+				},
 				Items: make([]runtime.Object, len(list.Items)),
 			}
-			out.Continue = list.Continue
-			out.ResourceVersion = list.ResourceVersion
 			for i, image := range list.Items {
-				out.Items[i] = &ImageLayers{
-					Name:     image.Name,
-					Layers:   image.DockerImageLayers,
-					Manifest: manifestFromImage(&image),
-				}
+				out.Items[i] = imageLayersForImage(&image)
 			}
 			return out, nil
 		},
@@ -102,13 +100,7 @@ func NewImageLayerIndex(lw ImageListWatch) ImageLayerIndex {
 				if !ok {
 					return in, true
 				}
-				layers := &ImageLayers{
-					Name:            image.Name,
-					ResourceVersion: image.ResourceVersion,
-					Layers:          image.DockerImageLayers,
-					Manifest:        manifestFromImage(image),
-				}
-				in.Object = layers
+				in.Object = imageLayersForImage(image)
 				return in, true
 			}), nil
 		},
@@ -155,6 +147,15 @@ type ImageLayers struct {
 	ResourceVersion string
 	Manifest        *imagev1.ImageLayer
 	Layers          []imagev1.ImageLayer
+}
+
+func imageLayersForImage(image *imagev1.Image) *ImageLayers {
+	return &ImageLayers{
+		Name:            image.Name,
+		ResourceVersion: image.ResourceVersion,
+		Layers:          image.DockerImageLayers,
+		Manifest:        manifestFromImage(image),
+	}
 }
 
 var (
