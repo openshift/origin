@@ -12,6 +12,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/util/retry"
 
 	operatorversionclient "github.com/openshift/origin/pkg/cmd/openshift-operators/generated/clientset/versioned"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
@@ -106,7 +107,12 @@ func (c *WebConsoleOperatorComponentOptions) Install(dockerClient dockerhelper.I
 	if err != nil {
 		return err
 	}
-	if _, err := operatorClient.WebconsoleV1alpha1().OpenShiftWebConsoleConfigs().Update(operatorConfig); err != nil {
+	// we can race a controller.  It's not a big deal if we're a little late, so retry on conflict. It's easier than a patch.
+	err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		_, err := operatorClient.WebconsoleV1alpha1().OpenShiftWebConsoleConfigs().Update(operatorConfig)
+		return err
+	})
+	if err != nil {
 		return err
 	}
 
