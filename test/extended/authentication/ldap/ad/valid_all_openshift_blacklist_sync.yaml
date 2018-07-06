@@ -1,4 +1,4 @@
-apiVersion: v1
+apiVersion: user.openshift.io/v1
 kind: Group
 metadata:
   annotations:
@@ -8,8 +8,9 @@ metadata:
   labels:
     openshift.io/ldap.host: LDAP_SERVICE_IP
   name: group1
+  selfLink: /apis/user.openshift.io/v1/groups/group1
 users: []
-apiVersion: v1
+apiVersion: user.openshift.io/v1
 kind: Group
 metadata:
   annotations:
@@ -19,11 +20,12 @@ metadata:
   labels:
     openshift.io/ldap.host: LDAP_SERVICE_IP
   name: group2
+  selfLink: /apis/user.openshift.io/v1/groups/group2
 users:
 - person1smith@example.com
 - person2smith@example.com
 - person3smith@example.com
-apiVersion: v1
+apiVersion: user.openshift.io/v1
 kind: Group
 metadata:
   annotations:
@@ -33,4 +35,5 @@ metadata:
   labels:
     openshift.io/ldap.host: LDAP_SERVICE_IP
   name: group3
+  selfLink: /apis/user.openshift.io/v1/groups/group3
 users: []

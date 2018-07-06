@@ -9117,12 +9117,7 @@ var _testExtendedTestdataLdapLdapserverBuildconfigJson = []byte(`{
   },
   "spec": {
     "source": {
-      "type": "Git",
-      "git": {
-        "uri": "git://github.com/openshift/origin.git",
-        "ref": "master"
-      },
-      "contextDir": "images/openldap"
+      "type": "Binary"
     },
     "strategy": {
       "type": "Docker",
@@ -9144,7 +9139,8 @@ var _testExtendedTestdataLdapLdapserverBuildconfigJson = []byte(`{
   "status": {
     "lastVersion": 0
   }
-}`)
+}
+`)
 
 func testExtendedTestdataLdapLdapserverBuildconfigJsonBytes() ([]byte, error) {
 	return _testExtendedTestdataLdapLdapserverBuildconfigJson, nil

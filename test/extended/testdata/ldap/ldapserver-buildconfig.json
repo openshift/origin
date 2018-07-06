@@ -10,12 +10,7 @@
   },
   "spec": {
     "source": {
-      "type": "Git",
-      "git": {
-        "uri": "git://github.com/openshift/origin.git",
-        "ref": "master"
-      },
-      "contextDir": "images/openldap"
+      "type": "Binary"
     },
     "strategy": {
       "type": "Docker",
