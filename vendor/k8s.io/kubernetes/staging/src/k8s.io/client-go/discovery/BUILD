@@ -13,7 +13,6 @@ go_library(
         "discovery_client.go",
         "helper.go",
         "round_tripper.go",
-        "unstructured.go",
     ],
     importpath = "k8s.io/client-go/discovery",
     deps = [
