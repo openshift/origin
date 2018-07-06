@@ -721,7 +721,7 @@ func WaitForBuilderAccount(c kcoreclient.ServiceAccountInterface) error {
 		if err != nil {
 			// If we can't access the service accounts, let's wait till the controller
 			// create it.
-			if errors.IsForbidden(err) {
+			if errors.IsNotFound(err) || errors.IsForbidden(err) {
 				return false, nil
 			}
 			return false, err
