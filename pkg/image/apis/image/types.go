@@ -4,6 +4,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
+	"github.com/openshift/origin/pkg/image/apis/image/docker"
 	"github.com/openshift/origin/pkg/image/apis/image/reference"
 )
 
@@ -92,7 +93,7 @@ type Image struct {
 	// The string that can be used to pull this image.
 	DockerImageReference string
 	// Metadata about this image
-	DockerImageMetadata DockerImage
+	DockerImageMetadata docker.DockerImage
 	// This attribute conveys the version of docker metadata the JSON should be stored in, which if empty defaults to "1.0"
 	DockerImageMetadataVersion string
 	// The raw JSON of the manifest

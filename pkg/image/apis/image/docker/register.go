@@ -1,12 +1,8 @@
-package image
+package docker
 
 import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-
-	// for backwards compatibilty only we must expose DockerImage in the v1 apis
-	"github.com/openshift/origin/pkg/image/apis/image/docker"
 )
 
 const (
@@ -45,43 +41,16 @@ func LegacyResource(resource string) schema.GroupResource {
 
 // Adds the list of known types to api.Scheme.
 func addLegacyKnownTypes(scheme *runtime.Scheme) error {
-	types := []runtime.Object{
-		&Image{},
-		&ImageList{},
-		&ImageSignature{},
-		&ImageStream{},
-		&ImageStreamList{},
-		&ImageStreamMapping{},
-		&ImageStreamTag{},
-		&ImageStreamTagList{},
-		&ImageStreamImage{},
-		&ImageStreamImport{},
-
-		// exposed for backwards compatibility
-		&docker.DockerImage{},
-	}
-	scheme.AddKnownTypes(LegacySchemeGroupVersion, types...)
+	scheme.AddKnownTypes(LegacySchemeGroupVersion,
+		&DockerImage{},
+	)
 	return nil
 }
 
 // Adds the list of known types to api.Scheme.
 func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(SchemeGroupVersion,
-		&Image{},
-		&ImageList{},
-		&ImageSignature{},
-		&ImageStream{},
-		&ImageStreamList{},
-		&ImageStreamMapping{},
-		&ImageStreamTag{},
-		&ImageStreamTagList{},
-		&ImageStreamImage{},
-		&ImageStreamLayers{},
-		&ImageStreamImport{},
-		&kapi.SecretList{},
-
-		// exposed for backwards compatibility
-		&docker.DockerImage{},
+		&DockerImage{},
 	)
 	return nil
 }

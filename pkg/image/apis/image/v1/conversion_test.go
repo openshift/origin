@@ -10,26 +10,23 @@ import (
 	"k8s.io/apimachinery/pkg/util/diff"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	"github.com/openshift/api/image/docker10"
-	"github.com/openshift/api/image/dockerpre012"
 	"github.com/openshift/origin/pkg/api/apihelpers/apitesting"
 	newer "github.com/openshift/origin/pkg/image/apis/image"
+	newerdocker "github.com/openshift/origin/pkg/image/apis/image/docker"
+	dockerscheme "github.com/openshift/origin/pkg/image/apis/image/docker/scheme"
 )
 
 func TestRoundTripVersionedObject(t *testing.T) {
 	scheme := runtime.NewScheme()
-	docker10.AddToSchemeInCoreGroup(scheme)
-	dockerpre012.AddToSchemeInCoreGroup(scheme)
 	newer.AddToSchemeInCoreGroup(scheme)
-	docker10.AddToScheme(scheme)
-	dockerpre012.AddToScheme(scheme)
 	AddToSchemeInCoreGroup(scheme)
 	newer.AddToScheme(scheme)
 	AddToScheme(scheme)
+	dockerscheme.AddToScheme(scheme)
 	codecs := serializer.NewCodecFactory(scheme)
 
-	d := &newer.DockerImage{
-		Config: &newer.DockerConfig{
+	d := &newerdocker.DockerImage{
+		Config: &newerdocker.DockerConfig{
 			Env: []string{"A=1", "B=2"},
 		},
 	}

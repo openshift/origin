@@ -6,7 +6,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/openshift/api/image/dockerpre012"
-	newer "github.com/openshift/origin/pkg/image/apis/image"
+	newer "github.com/openshift/origin/pkg/image/apis/image/docker"
 )
 
 // Convert docker client object to internal object, but only when this package is included

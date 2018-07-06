@@ -16,6 +16,7 @@ import (
 	"github.com/blang/semver"
 	"github.com/golang/glog"
 
+	"github.com/openshift/origin/pkg/image/apis/image/docker"
 	"github.com/openshift/origin/pkg/image/apis/image/internal/digest"
 	"github.com/openshift/origin/pkg/image/apis/image/reference"
 )
@@ -629,7 +630,7 @@ func MostAccuratePullSpec(pullSpec string, id, tag string) (string, bool) {
 }
 
 // ShortDockerImageID returns a short form of the provided DockerImage ID for display
-func ShortDockerImageID(image *DockerImage, length int) string {
+func ShortDockerImageID(image *docker.DockerImage, length int) string {
 	id := image.ID
 	if s, err := digest.ParseDigest(id); err == nil {
 		id = s.Hex()
