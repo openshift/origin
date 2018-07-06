@@ -12,6 +12,7 @@ import (
 
 	oapi "github.com/openshift/origin/pkg/api"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	dockerapi "github.com/openshift/origin/pkg/image/apis/image/docker"
 	"github.com/openshift/origin/pkg/oc/cli/describe"
 	"github.com/openshift/origin/pkg/oc/generate"
 	"github.com/openshift/origin/pkg/oc/generate/app"
@@ -254,14 +255,14 @@ func describeBuildPipelineWithImage(out io.Writer, ref app.ComponentReference, p
 	fmt.Fprintln(out)
 }
 
-func hasRootUser(image *imageapi.DockerImage) bool {
+func hasRootUser(image *dockerapi.DockerImage) bool {
 	if image.Config == nil {
 		return false
 	}
 	return len(image.Config.User) == 0 || image.Config.User == "root" || image.Config.User == "0"
 }
 
-func hasEmptyDir(image *imageapi.DockerImage) bool {
+func hasEmptyDir(image *dockerapi.DockerImage) bool {
 	if image.Config == nil {
 		return false
 	}

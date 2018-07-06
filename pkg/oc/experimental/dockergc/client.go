@@ -5,18 +5,18 @@ import (
 	"time"
 
 	dockertypes "github.com/docker/docker/api/types"
-	dockerapi "github.com/docker/docker/client"
+	docker "github.com/docker/docker/client"
 )
 
 type dockerClient struct {
 	// timeout is the timeout of short running docker operations.
 	timeout time.Duration
 	// docker API client
-	client *dockerapi.Client
+	client *docker.Client
 }
 
 func newDockerClient(timeout time.Duration) (*dockerClient, error) {
-	client, err := dockerapi.NewEnvClient()
+	client, err := docker.NewEnvClient()
 	if err != nil {
 		return nil, err
 	}

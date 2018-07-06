@@ -12,6 +12,7 @@ import (
 
 	configcmd "github.com/openshift/origin/pkg/bulk"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	dockerapi "github.com/openshift/origin/pkg/image/apis/image/docker"
 	imagefake "github.com/openshift/origin/pkg/image/generated/internalclientset/fake"
 	newcmd "github.com/openshift/origin/pkg/oc/generate/cmd"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
@@ -396,7 +397,7 @@ func TestNewAppRunQueryActions(t *testing.T) {
 				dockerVisited = true
 				match := &app.ComponentMatch{
 					Name:  "repo/test",
-					Image: &imageapi.DockerImage{},
+					Image: &dockerapi.DockerImage{},
 				}
 				return app.ComponentMatches{match}, []error{}
 			},

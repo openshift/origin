@@ -14,6 +14,7 @@ import (
 
 	"github.com/openshift/api/image/dockerpre012"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	dockerapi "github.com/openshift/origin/pkg/image/apis/image/docker"
 	dockerregistry "github.com/openshift/origin/pkg/image/importer/dockerv1client"
 )
 
@@ -79,7 +80,7 @@ func schema2ToImage(manifest *schema2.DeserializedManifest, imageConfig []byte, 
 }
 
 func schema0ToImage(dockerImage *dockerregistry.Image) (*imageapi.Image, error) {
-	var baseImage imageapi.DockerImage
+	var baseImage dockerapi.DockerImage
 	if err := legacyscheme.Scheme.Convert(&dockerImage.Image, &baseImage, nil); err != nil {
 		return nil, fmt.Errorf("could not convert image: %#v", err)
 	}
@@ -95,12 +96,12 @@ func schema0ToImage(dockerImage *dockerregistry.Image) (*imageapi.Image, error) 
 	return image, nil
 }
 
-func unmarshalDockerImage(body []byte) (*imageapi.DockerImage, error) {
+func unmarshalDockerImage(body []byte) (*dockerapi.DockerImage, error) {
 	var image dockerpre012.DockerImage
 	if err := json.Unmarshal(body, &image); err != nil {
 		return nil, err
 	}
-	dockerImage := &imageapi.DockerImage{}
+	dockerImage := &dockerapi.DockerImage{}
 	if err := legacyscheme.Scheme.Convert(&image, dockerImage, nil); err != nil {
 		return nil, err
 	}

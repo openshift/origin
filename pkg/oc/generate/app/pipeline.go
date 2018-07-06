@@ -20,6 +20,7 @@ import (
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	dockerapi "github.com/openshift/origin/pkg/image/apis/image/docker"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	"github.com/openshift/origin/pkg/oc/generate"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
@@ -103,8 +104,8 @@ func (pb *pipelineBuilder) NewBuildPipeline(from string, input *ImageRef, source
 		ports := dockerfile.LastExposedPorts(node)
 		if len(ports) > 0 {
 			if input.Info == nil {
-				input.Info = &imageapi.DockerImage{
-					Config: &imageapi.DockerConfig{},
+				input.Info = &dockerapi.DockerImage{
+					Config: &dockerapi.DockerConfig{},
 				}
 			}
 			input.Info.Config.ExposedPorts = map[string]struct{}{}

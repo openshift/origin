@@ -9,6 +9,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	dockerapi "github.com/openshift/origin/pkg/image/apis/image/docker"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 )
 
@@ -89,7 +90,7 @@ func (r ImageStreamSearcher) Search(precise bool, terms ...string) (ComponentMat
 				imageref.Registry = ""
 				matchName := fmt.Sprintf("%s/%s", stream.Namespace, stream.Name)
 
-				addMatch := func(tag string, matchScore float32, image *imageapi.DockerImage, notFound bool) {
+				addMatch := func(tag string, matchScore float32, image *dockerapi.DockerImage, notFound bool) {
 					name := matchName
 					var description, argument string
 					if len(tag) > 0 {

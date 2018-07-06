@@ -10,6 +10,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	dockerapi "github.com/openshift/origin/pkg/image/apis/image/docker"
 	imagefake "github.com/openshift/origin/pkg/image/generated/internalclientset/fake"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 )
@@ -448,7 +449,7 @@ func fakeImageStream(desc *fakeImageStreamDesc) (*imageapi.ImageStream, map[stri
 		images[desc.name+"@"+tag+"-image"] = &imageapi.ImageStreamImage{
 			Image: imageapi.Image{
 				DockerImageReference: "example/" + tag,
-				DockerImageMetadata:  imageapi.DockerImage{ID: tag},
+				DockerImageMetadata:  dockerapi.DockerImage{ID: tag},
 			},
 		}
 	}
@@ -513,7 +514,7 @@ func TestInputImageFromMatch(t *testing.T) {
 		{
 			name: "docker image",
 			match: &ComponentMatch{
-				Image: &imageapi.DockerImage{},
+				Image: &dockerapi.DockerImage{},
 				Value: "test/dockerimage",
 			},
 			expectedRef: "test/dockerimage",
@@ -521,7 +522,7 @@ func TestInputImageFromMatch(t *testing.T) {
 		{
 			name: "docker image with tag",
 			match: &ComponentMatch{
-				Image: &imageapi.DockerImage{},
+				Image: &dockerapi.DockerImage{},
 				Value: "test/dockerimage:tag",
 			},
 			expectedRef: "test/dockerimage:tag",

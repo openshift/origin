@@ -10,6 +10,7 @@ import (
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	dockerapi "github.com/openshift/origin/pkg/image/apis/image/docker"
 	"github.com/openshift/origin/pkg/oc/generate"
 	"github.com/openshift/source-to-image/pkg/scm/git"
 )
@@ -201,8 +202,8 @@ func TestImageRefDeployableContainerPorts(t *testing.T) {
 				Name:      "image",
 				Tag:       imageapi.DefaultImageTag,
 			},
-			Info: &imageapi.DockerImage{
-				Config: &imageapi.DockerConfig{
+			Info: &dockerapi.DockerImage{
+				Config: &dockerapi.DockerConfig{
 					ExposedPorts: test.inputPorts,
 				},
 			},

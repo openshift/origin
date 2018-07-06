@@ -25,6 +25,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	dockerapi "github.com/openshift/origin/pkg/image/apis/image/docker"
 	"github.com/openshift/origin/pkg/image/apis/image/reference"
 )
 
@@ -34,7 +35,7 @@ import (
 func init() {
 	err := legacyscheme.Scheme.AddConversionFuncs(
 		// Convert docker client object to internal object
-		func(in *docker.Image, out *imageapi.DockerImage, s conversion.Scope) error {
+		func(in *docker.Image, out *dockerapi.DockerImage, s conversion.Scope) error {
 			if err := s.Convert(&in.Config, &out.Config, conversion.AllowDifferentFieldTypeNames); err != nil {
 				return err
 			}
@@ -52,7 +53,7 @@ func init() {
 			out.Size = in.Size
 			return nil
 		},
-		func(in *imageapi.DockerImage, out *docker.Image, s conversion.Scope) error {
+		func(in *dockerapi.DockerImage, out *docker.Image, s conversion.Scope) error {
 			if err := s.Convert(&in.Config, &out.Config, conversion.AllowDifferentFieldTypeNames); err != nil {
 				return err
 			}
@@ -747,7 +748,7 @@ func (repo *v2repository) getImageConfig(c *connection, dgst string) ([]byte, er
 }
 
 func (repo *v2repository) unmarshalImageManifest(c *connection, body []byte) (*docker.Image, error) {
-	manifest := imageapi.DockerImageManifest{}
+	manifest := dockerapi.DockerImageManifest{}
 	if err := json.Unmarshal(body, &manifest); err != nil {
 		return nil, err
 	}

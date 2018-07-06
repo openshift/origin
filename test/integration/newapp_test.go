@@ -322,7 +322,7 @@ func (r *ExactMatchDirectTagDockerSearcher) Search(precise bool, terms ...string
 			Argument:    fmt.Sprintf("--docker-image=%q", value),
 			Description: fmt.Sprintf("Docker image %q", value),
 			Score:       0.0,
-			Image:       &imageapi.DockerImage{},
+			Image:       &dockerapi.DockerImage{},
 			Meta:        map[string]string{"direct-tag": "1"},
 		})
 	}
@@ -2181,8 +2181,8 @@ func builderImage() *imageapi.ImageStreamImage {
 	return &imageapi.ImageStreamImage{
 		Image: imageapi.Image{
 			DockerImageReference: "example/ruby:latest",
-			DockerImageMetadata: imageapi.DockerImage{
-				Config: &imageapi.DockerConfig{
+			DockerImageMetadata: dockerapi.DockerImage{
+				Config: &dockerapi.DockerConfig{
 					Env: []string{
 						"STI_SCRIPTS_URL=http://repo/git/ruby",
 					},

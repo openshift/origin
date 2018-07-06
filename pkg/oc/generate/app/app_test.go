@@ -19,9 +19,9 @@ import (
 	_ "github.com/openshift/origin/pkg/api/install"
 )
 
-func testImageInfo() *imageapi.DockerImage {
-	return &imageapi.DockerImage{
-		Config: &imageapi.DockerConfig{},
+func testImageInfo() *dockerapi.DockerImage {
+	return &dockerapi.DockerImage{
+		Config: &dockerapi.DockerConfig{},
 	}
 }
 

@@ -19,6 +19,7 @@ import (
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	dockerapi "github.com/openshift/origin/pkg/image/apis/image/docker"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
@@ -50,7 +51,7 @@ var DescriberCoverageExceptions = []reflect.Type{
 	reflect.TypeOf(&appsapi.DeploymentLog{}),                          // normal users don't ever look at these
 	reflect.TypeOf(&appsapi.DeploymentLogOptions{}),                   // normal users don't ever look at these
 	reflect.TypeOf(&appsapi.DeploymentRequest{}),                      // normal users don't ever look at these
-	reflect.TypeOf(&imageapi.DockerImage{}),                           // not a top level resource
+	reflect.TypeOf(&dockerapi.DockerImage{}),                          // not a top level resource
 	reflect.TypeOf(&imageapi.ImageStreamImport{}),                     // normal users don't ever look at these
 	reflect.TypeOf(&oauthapi.OAuthAccessToken{}),                      // normal users don't ever look at these
 	reflect.TypeOf(&oauthapi.OAuthAuthorizeToken{}),                   // normal users don't ever look at these

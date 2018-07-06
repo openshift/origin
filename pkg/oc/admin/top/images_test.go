@@ -9,6 +9,7 @@ import (
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	dockerapi "github.com/openshift/origin/pkg/image/apis/image/docker"
 )
 
 func TestImagesTop(t *testing.T) {
@@ -99,7 +100,7 @@ func TestImagesTop(t *testing.T) {
 						},
 						DockerImageManifest: "non empty metadata",
 						DockerImageConfig:   "raw image config",
-						DockerImageMetadata: imageapi.DockerImage{
+						DockerImageMetadata: dockerapi.DockerImage{
 							ID: "manifestConfigID",
 						},
 					},
@@ -129,7 +130,7 @@ func TestImagesTop(t *testing.T) {
 						},
 						DockerImageManifest: "non empty metadata",
 						DockerImageConfig:   "raw image config",
-						DockerImageMetadata: imageapi.DockerImage{
+						DockerImageMetadata: dockerapi.DockerImage{
 							ID: "layer2",
 						},
 					},

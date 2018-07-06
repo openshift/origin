@@ -17,6 +17,7 @@ import (
 	stratsupport "github.com/openshift/origin/pkg/apps/strategy/support"
 	imagetest "github.com/openshift/origin/pkg/image/admission/testutil"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	dockerapi "github.com/openshift/origin/pkg/image/apis/image/docker"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
@@ -151,8 +152,8 @@ func TestImageStreamMappingCreate(t *testing.T) {
 	// create an image directly
 	image := &imageapi.Image{
 		ObjectMeta: metav1.ObjectMeta{Name: "image2"},
-		DockerImageMetadata: imageapi.DockerImage{
-			Config: &imageapi.DockerConfig{
+		DockerImageMetadata: dockerapi.DockerImage{
+			Config: &dockerapi.DockerConfig{
 				Env: []string{"A=B"},
 			},
 		},
@@ -316,7 +317,7 @@ func TestImageStreamWithoutDockerImageConfig(t *testing.T) {
 		t.Errorf("Unexpected empty image Name %v", expected)
 	}
 
-	imageConfig := imageapi.DockerConfig{
+	imageConfig := dockerapi.DockerConfig{
 		Hostname: "example.com",
 		Env:      []string{"A=B"},
 	}
@@ -330,8 +331,8 @@ func TestImageStreamWithoutDockerImageConfig(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: imagetest.BaseImageWith1LayerDigest,
 		},
-		DockerImageMetadata: imageapi.DockerImage{
-			Config: &imageapi.DockerConfig{
+		DockerImageMetadata: dockerapi.DockerImage{
+			Config: &dockerapi.DockerConfig{
 				Hostname: "example.com",
 				Env:      []string{"A=B"},
 			},

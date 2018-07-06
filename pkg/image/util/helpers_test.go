@@ -9,6 +9,7 @@ import (
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	dockerapi "github.com/openshift/origin/pkg/image/apis/image/docker"
 )
 
 func TestImageWithMetadata(t *testing.T) {
@@ -61,13 +62,13 @@ func TestImageWithMetadata(t *testing.T) {
 					{Name: "tarsum.dev+sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", MediaType: "application/vnd.docker.container.image.rootfs.diff+x-gtar", LayerSize: 0},
 				},
 				DockerImageManifestMediaType: "application/vnd.docker.distribution.manifest.v1+json",
-				DockerImageMetadata: imageapi.DockerImage{
+				DockerImageMetadata: dockerapi.DockerImage{
 					ID:        "2d24f826cb16146e2016ff349a8a33ed5830f3b938d45c0f82943f4ab8c097e7",
 					Parent:    "117ee323aaa9d1b136ea55e4421f4ce413dfc6c0cc6b2186dea6c88d93e1ad7c",
 					Comment:   "",
 					Created:   metav1.Date(2015, 2, 21, 2, 11, 6, 735146646, time.UTC),
 					Container: "c9a3eda5951d28aa8dbe5933be94c523790721e4f80886d0a8e7a710132a38ec",
-					ContainerConfig: imageapi.DockerConfig{
+					ContainerConfig: dockerapi.DockerConfig{
 						Hostname:        "43bd710ec89a",
 						Domainname:      "",
 						User:            "",
@@ -95,7 +96,7 @@ func TestImageWithMetadata(t *testing.T) {
 					},
 					DockerVersion: "1.4.1",
 					Author:        "",
-					Config: &imageapi.DockerConfig{
+					Config: &dockerapi.DockerConfig{
 						Hostname:        "43bd710ec89a",
 						Domainname:      "",
 						User:            "",
@@ -143,7 +144,7 @@ func TestImageWithMetadata(t *testing.T) {
 					{Name: "sha256:86e0e091d0da6bde2456dbb48306f3956bbeb2eae1b5b9a43045843f69fe4aaa", MediaType: "application/vnd.docker.image.rootfs.diff.tar.gzip", LayerSize: 235231},
 					{Name: "sha256:b4ed95caeb02ffe68cdd9fd84406680ae93d633cb16422d00e8a7c22955b46d4", MediaType: "application/vnd.docker.image.rootfs.diff.tar.gzip", LayerSize: 639152},
 				},
-				DockerImageMetadata: imageapi.DockerImage{
+				DockerImageMetadata: dockerapi.DockerImage{
 					ID:            "sha256:815d06b56f4138afacd0009b8e3799fcdce79f0507bf8d0588e219b93ab6fd4d",
 					Parent:        "",
 					Comment:       "",
@@ -153,7 +154,7 @@ func TestImageWithMetadata(t *testing.T) {
 					Author:        "",
 					Architecture:  "amd64",
 					Size:          882848,
-					ContainerConfig: imageapi.DockerConfig{
+					ContainerConfig: dockerapi.DockerConfig{
 						Hostname:        "23304fc829f9",
 						Domainname:      "",
 						User:            "",
@@ -179,7 +180,7 @@ func TestImageWithMetadata(t *testing.T) {
 						SecurityOpts:    nil,
 						OnBuild:         []string{},
 					},
-					Config: &imageapi.DockerConfig{
+					Config: &dockerapi.DockerConfig{
 						Hostname:        "23304fc829f9",
 						Domainname:      "",
 						User:            "",

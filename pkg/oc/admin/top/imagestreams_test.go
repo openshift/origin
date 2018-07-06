@@ -186,7 +186,7 @@ func TestImageStreamsTop(t *testing.T) {
 						ObjectMeta:        metav1.ObjectMeta{Name: "image1"},
 						DockerImageLayers: []imageapi.ImageLayer{{Name: "layer1", LayerSize: int64(1024)}},
 						DockerImageConfig: "raw image config",
-						DockerImageMetadata: imageapi.DockerImage{
+						DockerImageMetadata: dockerapi.DockerImage{
 							ID: "manifestConfigID",
 						},
 					},
@@ -197,7 +197,7 @@ func TestImageStreamsTop(t *testing.T) {
 							{Name: "layer2", LayerSize: int64(128)},
 						},
 						DockerImageConfig: "raw image config",
-						DockerImageMetadata: imageapi.DockerImage{
+						DockerImageMetadata: dockerapi.DockerImage{
 							ID: "manifestConfigID",
 						},
 					},

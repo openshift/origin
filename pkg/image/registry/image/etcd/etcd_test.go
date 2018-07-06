@@ -15,6 +15,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	dockerapi "github.com/openshift/origin/pkg/image/apis/image/docker"
 	"github.com/openshift/origin/pkg/image/registry/image"
 	"github.com/openshift/origin/pkg/util/restoptions"
 	// install all APIs
@@ -321,7 +322,7 @@ func TestUpdateResetsMetadata(t *testing.T) {
 				ObjectMeta:           metav1.ObjectMeta{Name: "foo", ResourceVersion: "1"},
 				DockerImageReference: "openshift/ruby-19-centos-2",
 				DockerImageLayers:    []imageapi.ImageLayer{{Name: "test", LayerSize: 10}},
-				DockerImageMetadata:  imageapi.DockerImage{ID: "foo"},
+				DockerImageMetadata:  dockerapi.DockerImage{ID: "foo"},
 			},
 			image: &imageapi.Image{
 				ObjectMeta:           metav1.ObjectMeta{Name: "foo", ResourceVersion: "1", Labels: map[string]string{"a": "b"}},
@@ -363,7 +364,7 @@ func TestUpdateResetsMetadata(t *testing.T) {
 			image: &imageapi.Image{
 				ObjectMeta:           metav1.ObjectMeta{Name: "foo", ResourceVersion: "1"},
 				DockerImageReference: "openshift/ruby-19-centos",
-				DockerImageMetadata:  imageapi.DockerImage{ID: "foo"},
+				DockerImageMetadata:  dockerapi.DockerImage{ID: "foo"},
 			},
 		},
 		// old manifest is replaced because the new manifest matches the digest
@@ -400,7 +401,7 @@ func TestUpdateResetsMetadata(t *testing.T) {
 			image: &imageapi.Image{
 				ObjectMeta:           metav1.ObjectMeta{Name: "sha256:958608f8ecc1dc62c93b6c610f3a834dae4220c9642e6e8b4e0f2b3ad7cbd238", ResourceVersion: "1"},
 				DockerImageReference: "openshift/ruby-19-centos",
-				DockerImageMetadata:  imageapi.DockerImage{ID: "foo"},
+				DockerImageMetadata:  dockerapi.DockerImage{ID: "foo"},
 				DockerImageManifest:  etcdManifest,
 			},
 		}}

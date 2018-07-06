@@ -9,19 +9,19 @@ import (
 
 func TestIsBuilderImage(t *testing.T) {
 	tests := map[string]struct {
-		image          *imageapi.DockerImage
+		image          *dockerapi.DockerImage
 		expectedReturn bool
 	}{
 		"nil image": {
 			expectedReturn: false,
 		},
 		"nil config": {
-			image:          &imageapi.DockerImage{Config: nil},
+			image:          &dockerapi.DockerImage{Config: nil},
 			expectedReturn: false,
 		},
 		"has label": {
-			image: &imageapi.DockerImage{
-				Config: &imageapi.DockerConfig{
+			image: &dockerapi.DockerImage{
+				Config: &dockerapi.DockerConfig{
 					Labels: map[string]string{
 						s2iScriptsLabel: "",
 					},
@@ -30,32 +30,32 @@ func TestIsBuilderImage(t *testing.T) {
 			expectedReturn: true,
 		},
 		"has legacy environment STI_LOCATION": {
-			image: &imageapi.DockerImage{
-				Config: &imageapi.DockerConfig{
+			image: &dockerapi.DockerImage{
+				Config: &dockerapi.DockerConfig{
 					Env: []string{"STI_LOCATION="},
 				},
 			},
 			expectedReturn: true,
 		},
 		"has legacy environment STI_SCRIPTS_URL": {
-			image: &imageapi.DockerImage{
-				Config: &imageapi.DockerConfig{
+			image: &dockerapi.DockerImage{
+				Config: &dockerapi.DockerConfig{
 					Env: []string{"STI_SCRIPTS_URL="},
 				},
 			},
 			expectedReturn: true,
 		},
 		"has legacy environment STI_BUILDER": {
-			image: &imageapi.DockerImage{
-				Config: &imageapi.DockerConfig{
+			image: &dockerapi.DockerImage{
+				Config: &dockerapi.DockerConfig{
 					Env: []string{"STI_BUILDER="},
 				},
 			},
 			expectedReturn: true,
 		},
 		"not an sti builder": {
-			image: &imageapi.DockerImage{
-				Config: &imageapi.DockerConfig{},
+			image: &dockerapi.DockerImage{
+				Config: &dockerapi.DockerConfig{},
 			},
 			expectedReturn: false,
 		},
@@ -125,8 +125,8 @@ func TestIsBuilderMatch(t *testing.T) {
 	}{
 		"match on image": {
 			match: &ComponentMatch{
-				Image: &imageapi.DockerImage{
-					Config: &imageapi.DockerConfig{
+				Image: &dockerapi.DockerImage{
+					Config: &dockerapi.DockerConfig{
 						Labels: map[string]string{
 							s2iScriptsLabel: "",
 						},
@@ -154,8 +154,8 @@ func TestIsBuilderMatch(t *testing.T) {
 		},
 		"no match": {
 			match: &ComponentMatch{
-				Image: &imageapi.DockerImage{
-					Config: &imageapi.DockerConfig{},
+				Image: &dockerapi.DockerImage{
+					Config: &dockerapi.DockerConfig{},
 				},
 				ImageStream: &imageapi.ImageStream{
 					Spec: imageapi.ImageStreamSpec{
@@ -181,19 +181,19 @@ func TestIsBuilderMatch(t *testing.T) {
 
 func TestIsGeneratorJobImage(t *testing.T) {
 	tests := map[string]struct {
-		image       *imageapi.DockerImage
+		image       *dockerapi.DockerImage
 		expectedRet bool
 	}{
 		"nil image": {expectedRet: false},
 		"nil config": {
-			image: &imageapi.DockerImage{
+			image: &dockerapi.DockerImage{
 				Config: nil,
 			},
 			expectedRet: false,
 		},
 		"match": {
-			image: &imageapi.DockerImage{
-				Config: &imageapi.DockerConfig{
+			image: &dockerapi.DockerImage{
+				Config: &dockerapi.DockerConfig{
 					Labels: map[string]string{
 						labelGenerateJob: "true",
 					},
@@ -202,8 +202,8 @@ func TestIsGeneratorJobImage(t *testing.T) {
 			expectedRet: true,
 		},
 		"no match": {
-			image: &imageapi.DockerImage{
-				Config: &imageapi.DockerConfig{},
+			image: &dockerapi.DockerImage{
+				Config: &dockerapi.DockerConfig{},
 			},
 			expectedRet: false,
 		},

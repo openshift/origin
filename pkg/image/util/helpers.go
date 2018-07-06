@@ -12,9 +12,10 @@ import (
 	godigest "github.com/opencontainers/go-digest"
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	dockerapi "github.com/openshift/origin/pkg/image/apis/image/docker"
 )
 
-func fillImageLayers(image *imageapi.Image, manifest imageapi.DockerImageManifest) error {
+func fillImageLayers(image *imageapi.Image, manifest dockerapi.DockerImageManifest) error {
 	if len(image.DockerImageLayers) != 0 {
 		// DockerImageLayers is already filled by the registry.
 		return nil
@@ -30,7 +31,7 @@ func fillImageLayers(image *imageapi.Image, manifest imageapi.DockerImageManifes
 		for i, obj := range manifest.History {
 			layer := manifest.FSLayers[i]
 
-			var size imageapi.DockerV1CompatibilityImageSize
+			var size dockerapi.DockerV1CompatibilityImageSize
 			if err := json.Unmarshal([]byte(obj.DockerV1Compatibility), &size); err != nil {
 				size.Size = 0
 			}
@@ -80,7 +81,7 @@ func ImageWithMetadata(image *imageapi.Image) error {
 		return nil
 	}
 
-	manifest := imageapi.DockerImageManifest{}
+	manifest := dockerapi.DockerImageManifest{}
 	if err := json.Unmarshal([]byte(image.DockerImageManifest), &manifest); err != nil {
 		return err
 	}
@@ -99,7 +100,7 @@ func ImageWithMetadata(image *imageapi.Image) error {
 			return fmt.Errorf("the image %s (%s) has a schema 1 manifest, but it doesn't have history", image.Name, image.DockerImageReference)
 		}
 
-		v1Metadata := imageapi.DockerV1CompatibilityImage{}
+		v1Metadata := dockerapi.DockerV1CompatibilityImage{}
 		if err := json.Unmarshal([]byte(manifest.History[0].DockerV1Compatibility), &v1Metadata); err != nil {
 			return err
 		}
@@ -121,7 +122,7 @@ func ImageWithMetadata(image *imageapi.Image) error {
 			return fmt.Errorf("dockerImageConfig must not be empty for manifest schema 2")
 		}
 
-		config := imageapi.DockerImageConfig{}
+		config := dockerapi.DockerImageConfig{}
 		if err := json.Unmarshal([]byte(image.DockerImageConfig), &config); err != nil {
 			return fmt.Errorf("failed to parse dockerImageConfig: %v", err)
 		}

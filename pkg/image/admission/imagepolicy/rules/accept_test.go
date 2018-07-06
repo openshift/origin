@@ -9,6 +9,7 @@ import (
 
 	"github.com/openshift/origin/pkg/image/admission/apis/imagepolicy"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	dockerapi "github.com/openshift/origin/pkg/image/apis/image/docker"
 )
 
 func imageref(name string) imageapi.DockerImageReference {
@@ -227,9 +228,9 @@ func TestAccept(t *testing.T) {
 			},
 			accepts: []acceptResult{
 				{ImagePolicyAttributes{Resource: podResource}, false},
-				{ImagePolicyAttributes{Resource: podResource, Image: &imageapi.Image{DockerImageMetadata: imageapi.DockerImage{Config: &imageapi.DockerConfig{Labels: map[string]string{"label1": "value1"}}}}}, true},
-				{ImagePolicyAttributes{Resource: podResource, Image: &imageapi.Image{DockerImageMetadata: imageapi.DockerImage{Config: &imageapi.DockerConfig{Labels: map[string]string{"label1": "value2"}}}}}, false},
-				{ImagePolicyAttributes{Resource: podResource, Image: &imageapi.Image{DockerImageMetadata: imageapi.DockerImage{Config: &imageapi.DockerConfig{Labels: map[string]string{"label2": "value1"}}}}}, false},
+				{ImagePolicyAttributes{Resource: podResource, Image: &imageapi.Image{DockerImageMetadata: dockerapi.DockerImage{Config: &dockerapi.DockerConfig{Labels: map[string]string{"label1": "value1"}}}}}, true},
+				{ImagePolicyAttributes{Resource: podResource, Image: &imageapi.Image{DockerImageMetadata: dockerapi.DockerImage{Config: &dockerapi.DockerConfig{Labels: map[string]string{"label1": "value2"}}}}}, false},
+				{ImagePolicyAttributes{Resource: podResource, Image: &imageapi.Image{DockerImageMetadata: dockerapi.DockerImage{Config: &dockerapi.DockerConfig{Labels: map[string]string{"label2": "value1"}}}}}, false},
 			},
 		},
 		"accepts matching multiple docker image label values": {
@@ -240,9 +241,9 @@ func TestAccept(t *testing.T) {
 			},
 			accepts: []acceptResult{
 				{ImagePolicyAttributes{Resource: podResource}, false},
-				{ImagePolicyAttributes{Resource: podResource, Image: &imageapi.Image{DockerImageMetadata: imageapi.DockerImage{Config: &imageapi.DockerConfig{Labels: map[string]string{"label1": "value1"}}}}}, true},
-				{ImagePolicyAttributes{Resource: podResource, Image: &imageapi.Image{DockerImageMetadata: imageapi.DockerImage{Config: &imageapi.DockerConfig{Labels: map[string]string{"label1": "value2"}}}}}, true},
-				{ImagePolicyAttributes{Resource: podResource, Image: &imageapi.Image{DockerImageMetadata: imageapi.DockerImage{Config: &imageapi.DockerConfig{Labels: map[string]string{"label2": "value1"}}}}}, false},
+				{ImagePolicyAttributes{Resource: podResource, Image: &imageapi.Image{DockerImageMetadata: dockerapi.DockerImage{Config: &dockerapi.DockerConfig{Labels: map[string]string{"label1": "value1"}}}}}, true},
+				{ImagePolicyAttributes{Resource: podResource, Image: &imageapi.Image{DockerImageMetadata: dockerapi.DockerImage{Config: &dockerapi.DockerConfig{Labels: map[string]string{"label1": "value2"}}}}}, true},
+				{ImagePolicyAttributes{Resource: podResource, Image: &imageapi.Image{DockerImageMetadata: dockerapi.DockerImage{Config: &dockerapi.DockerConfig{Labels: map[string]string{"label2": "value1"}}}}}, false},
 			},
 		},
 		"accepts matching docker image labels by key": {
@@ -252,9 +253,9 @@ func TestAccept(t *testing.T) {
 			},
 			accepts: []acceptResult{
 				{ImagePolicyAttributes{Resource: podResource}, false},
-				{ImagePolicyAttributes{Resource: podResource, Image: &imageapi.Image{DockerImageMetadata: imageapi.DockerImage{Config: &imageapi.DockerConfig{Labels: map[string]string{"label1": "value1"}}}}}, true},
-				{ImagePolicyAttributes{Resource: podResource, Image: &imageapi.Image{DockerImageMetadata: imageapi.DockerImage{Config: &imageapi.DockerConfig{Labels: map[string]string{"label1": "value2"}}}}}, true},
-				{ImagePolicyAttributes{Resource: podResource, Image: &imageapi.Image{DockerImageMetadata: imageapi.DockerImage{Config: &imageapi.DockerConfig{Labels: map[string]string{"label2": "value1"}}}}}, false},
+				{ImagePolicyAttributes{Resource: podResource, Image: &imageapi.Image{DockerImageMetadata: dockerapi.DockerImage{Config: &dockerapi.DockerConfig{Labels: map[string]string{"label1": "value1"}}}}}, true},
+				{ImagePolicyAttributes{Resource: podResource, Image: &imageapi.Image{DockerImageMetadata: dockerapi.DockerImage{Config: &dockerapi.DockerConfig{Labels: map[string]string{"label1": "value2"}}}}}, true},
+				{ImagePolicyAttributes{Resource: podResource, Image: &imageapi.Image{DockerImageMetadata: dockerapi.DockerImage{Config: &dockerapi.DockerConfig{Labels: map[string]string{"label2": "value1"}}}}}, false},
 			},
 		},
 		"covers calculations": {

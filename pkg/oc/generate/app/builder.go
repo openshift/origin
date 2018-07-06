@@ -7,6 +7,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/errors"
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	dockerapi "github.com/openshift/origin/pkg/image/apis/image/docker"
 )
 
 var s2iEnvironmentNames = []string{"STI_LOCATION", "STI_SCRIPTS_URL", "STI_BUILDER"}
@@ -15,7 +16,7 @@ const s2iScriptsLabel = "io.openshift.s2i.scripts-url"
 
 // IsBuilderImage checks whether the provided Docker image is
 // a builder image or not
-func IsBuilderImage(image *imageapi.DockerImage) bool {
+func IsBuilderImage(image *dockerapi.DockerImage) bool {
 	if image == nil || image.Config == nil {
 		return false
 	}
@@ -64,7 +65,7 @@ func IsBuilderMatch(match *ComponentMatch) bool {
 
 // isGeneratorJobImage checks whether the provided Docker image is
 // installable
-func isGeneratorJobImage(image *imageapi.DockerImage) bool {
+func isGeneratorJobImage(image *dockerapi.DockerImage) bool {
 	if image == nil || image.Config == nil {
 		return false
 	}

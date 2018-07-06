@@ -14,6 +14,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	dockerapi "github.com/openshift/origin/pkg/image/apis/image/docker"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	dockerregistry "github.com/openshift/origin/pkg/image/importer/dockerv1client"
 )
@@ -135,7 +136,7 @@ func (r DockerClientSearcher) Search(precise bool, terms ...string) (ComponentMa
 				}
 				continue
 			}
-			dockerImage := &imageapi.DockerImage{}
+			dockerImage := &dockerapi.DockerImage{}
 			if err := legacyscheme.Scheme.Convert(image, dockerImage, nil); err != nil {
 				errs = append(errs, err)
 				continue
@@ -332,7 +333,7 @@ func (r DockerRegistrySearcher) Search(precise bool, terms ...string) (Component
 		}
 		glog.V(4).Infof("found image: %#v", image)
 
-		dockerImage := &imageapi.DockerImage{}
+		dockerImage := &dockerapi.DockerImage{}
 		if err = legacyscheme.Scheme.Convert(&image.Image, dockerImage, nil); err != nil {
 			errs = append(errs, err)
 			continue
@@ -356,7 +357,7 @@ func (r DockerRegistrySearcher) Search(precise bool, terms ...string) (Component
 	return componentMatches, errs
 }
 
-func descriptionFor(image *imageapi.DockerImage, value, from string, tag string) string {
+func descriptionFor(image *dockerapi.DockerImage, value, from string, tag string) string {
 	if len(from) == 0 {
 		from = "local"
 	}

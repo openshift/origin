@@ -28,6 +28,7 @@ import (
 	imagev1 "github.com/openshift/api/image/v1"
 	admfake "github.com/openshift/origin/pkg/image/admission/fake"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	dockerapi "github.com/openshift/origin/pkg/image/apis/image/docker"
 	"github.com/openshift/origin/pkg/image/apis/image/validation/fake"
 	"github.com/openshift/origin/pkg/image/registry/image"
 	imageetcd "github.com/openshift/origin/pkg/image/registry/image/etcd"
@@ -94,8 +95,8 @@ func validNewMappingWithName() *imageapi.ImageStreamMapping {
 				Annotations: map[string]string{imageapi.ManagedByOpenShiftAnnotation: "true"},
 			},
 			DockerImageReference: "localhost:5000/default/somerepo@" + testImageID,
-			DockerImageMetadata: imageapi.DockerImage{
-				Config: &imageapi.DockerConfig{
+			DockerImageMetadata: dockerapi.DockerImage{
+				Config: &dockerapi.DockerConfig{
 					Cmd:          []string{"ls", "/"},
 					Env:          []string{"a=1"},
 					ExposedPorts: map[string]struct{}{"1234/tcp": {}},
@@ -222,8 +223,8 @@ func TestAddExistingImageWithNewTag(t *testing.T) {
 			Name: imageID,
 		},
 		DockerImageReference: "localhost:5000/somens/somerepo@" + imageID,
-		DockerImageMetadata: imageapi.DockerImage{
-			Config: &imageapi.DockerConfig{
+		DockerImageMetadata: dockerapi.DockerImage{
+			Config: &dockerapi.DockerConfig{
 				Cmd:          []string{"ls", "/"},
 				Env:          []string{"a=1"},
 				ExposedPorts: map[string]struct{}{"1234/tcp": {}},
@@ -319,8 +320,8 @@ func TestAddExistingImageOverridingDockerImageReference(t *testing.T) {
 			Annotations: map[string]string{imageapi.ManagedByOpenShiftAnnotation: "true"},
 		},
 		DockerImageReference: "localhost:5000/someproject/somerepo@" + imageID,
-		DockerImageMetadata: imageapi.DockerImage{
-			Config: &imageapi.DockerConfig{
+		DockerImageMetadata: dockerapi.DockerImage{
+			Config: &dockerapi.DockerConfig{
 				Cmd:          []string{"ls", "/"},
 				Env:          []string{"a=1"},
 				ExposedPorts: map[string]struct{}{"1234/tcp": {}},
@@ -425,8 +426,8 @@ func TestAddExistingImageAndTag(t *testing.T) {
 			Namespace: "default",
 		},
 		DockerImageReference: "localhost:5000/someproject/somerepo@" + testImageID,
-		DockerImageMetadata: imageapi.DockerImage{
-			Config: &imageapi.DockerConfig{
+		DockerImageMetadata: dockerapi.DockerImage{
+			Config: &dockerapi.DockerConfig{
 				Cmd:          []string{"ls", "/"},
 				Env:          []string{"a=1"},
 				ExposedPorts: map[string]struct{}{"1234/tcp": {}},

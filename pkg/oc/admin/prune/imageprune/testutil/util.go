@@ -15,6 +15,7 @@ import (
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	dockerapi "github.com/openshift/origin/pkg/image/apis/image/docker"
 )
 
 const (
@@ -80,7 +81,7 @@ func ImageWithLayers(id, ref string, configName *string, layers ...string) image
 	}
 
 	if configName != nil {
-		image.DockerImageMetadata = imageapi.DockerImage{
+		image.DockerImageMetadata = dockerapi.DockerImage{
 			ID: *configName,
 		}
 		image.DockerImageConfig = fmt.Sprintf("{Digest: %s}", *configName)

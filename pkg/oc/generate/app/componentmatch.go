@@ -24,7 +24,7 @@ type ComponentMatch struct {
 
 	// The source of the match. Generally only a single source is
 	// available.
-	Image       *imageapi.DockerImage
+	Image       *dockerapi.DockerImage
 	ImageStream *imageapi.ImageStream
 	ImageTag    string
 	Template    *templateapi.Template

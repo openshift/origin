@@ -12,6 +12,7 @@ import (
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	dockerapi "github.com/openshift/origin/pkg/image/apis/image/docker"
 	quotaapi "github.com/openshift/origin/pkg/quota/apis/quota"
 )
 
@@ -34,7 +35,7 @@ var KnownValidationExceptions = []reflect.Type{
 var MissingValidationExceptions = []reflect.Type{
 	reflect.TypeOf(&buildapi.BuildLogOptions{}),           // TODO, looks like this one should have validation
 	reflect.TypeOf(&buildapi.BinaryBuildRequestOptions{}), // TODO, looks like this one should have validation
-	reflect.TypeOf(&imageapi.DockerImage{}),               // TODO, I think this type is ok to skip validation (internal), but needs review
+	reflect.TypeOf(&dockerapi.DockerImage{}),              // TODO, I think this type is ok to skip validation (internal), but needs review
 }
 
 func TestCoverage(t *testing.T) {

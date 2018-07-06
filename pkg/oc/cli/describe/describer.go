@@ -685,7 +685,7 @@ func DescribeImage(image *imageapi.Image, imageName string) (string, error) {
 	})
 }
 
-func describeDockerImage(out *tabwriter.Writer, image *imageapi.DockerConfig) {
+func describeDockerImage(out *tabwriter.Writer, image *dockerapi.DockerConfig) {
 	if image == nil {
 		return
 	}

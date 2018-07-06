@@ -20,6 +20,7 @@ import (
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	dockerapi "github.com/openshift/origin/pkg/image/apis/image/docker"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
@@ -30,7 +31,7 @@ import (
 // If you add something to this list, explain why it doesn't need printing.  waaaa is not a valid
 // reason.
 var PrinterCoverageExceptions = []reflect.Type{
-	reflect.TypeOf(&imageapi.DockerImage{}),         // not a top level resource
+	reflect.TypeOf(&dockerapi.DockerImage{}),        // not a top level resource
 	reflect.TypeOf(&imageapi.ImageStreamImport{}),   // normal users don't ever look at these
 	reflect.TypeOf(&buildapi.BuildLog{}),            // just a marker type
 	reflect.TypeOf(&buildapi.BuildLogOptions{}),     // just a marker type

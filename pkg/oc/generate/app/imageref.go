@@ -17,6 +17,7 @@ import (
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	dockerapi "github.com/openshift/origin/pkg/image/apis/image/docker"
 	"github.com/openshift/origin/pkg/util/docker/dockerfile"
 	"github.com/openshift/origin/pkg/util/portutils"
 )
@@ -54,8 +55,8 @@ func (g *imageRefGenerator) FromName(name string) (*ImageRef, error) {
 	}
 	return &ImageRef{
 		Reference: ref,
-		Info: &imageapi.DockerImage{
-			Config: &imageapi.DockerConfig{},
+		Info: &dockerapi.DockerImage{
+			Config: &dockerapi.DockerConfig{},
 		},
 	}, nil
 }
@@ -73,8 +74,8 @@ func (g *imageRefGenerator) FromNameAndPorts(name string, ports []string) (*Imag
 		exposedPorts[p] = present
 	}
 
-	imageRef.Info = &imageapi.DockerImage{
-		Config: &imageapi.DockerConfig{
+	imageRef.Info = &dockerapi.DockerImage{
+		Config: &dockerapi.DockerConfig{
 			ExposedPorts: exposedPorts,
 		},
 	}
@@ -160,7 +161,7 @@ type ImageRef struct {
 
 	// Stream and Info should *only* be set if the image stream already exists
 	Stream *imageapi.ImageStream
-	Info   *imageapi.DockerImage
+	Info   *dockerapi.DockerImage
 }
 
 // Exists returns true if the image stream exists
