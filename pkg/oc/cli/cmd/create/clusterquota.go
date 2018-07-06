@@ -3,22 +3,19 @@ package create
 import (
 	"encoding/csv"
 	"fmt"
-	"io"
 	"strings"
 
 	"github.com/spf13/cobra"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
-	quotaapi "github.com/openshift/origin/pkg/quota/apis/quota"
-	quotaclientinternal "github.com/openshift/origin/pkg/quota/generated/internalclientset"
-	quotaclient "github.com/openshift/origin/pkg/quota/generated/internalclientset/typed/quota/internalversion"
+	quotav1 "github.com/openshift/api/quota/v1"
+	quotav1client "github.com/openshift/client-go/quota/clientset/versioned/typed/quota/v1"
 )
 
 const ClusterQuotaRecommendedName = "clusterresourcequota"
@@ -35,22 +32,27 @@ var (
 )
 
 type CreateClusterQuotaOptions struct {
-	ClusterQuota *quotaapi.ClusterResourceQuota
-	Client       quotaclient.ClusterResourceQuotasGetter
+	CreateSubcommandOptions *CreateSubcommandOptions
 
-	DryRun bool
+	LabelSelectorStr      string
+	AnnotationSelectorStr string
+	Hard                  []string
 
-	OutputFormat string
-	Out          io.Writer
-	Printer      ObjectPrinter
+	ProjectLabelSelectorStr      *metav1.LabelSelector
+	ProjectAnnotationSelectorStr map[string]string
+
+	Client quotav1client.ClusterResourceQuotasGetter
 }
 
-type ObjectPrinter func(runtime.Object, io.Writer) error
+func NewCreateClusterQuotaOptions(streams genericclioptions.IOStreams) *CreateClusterQuotaOptions {
+	return &CreateClusterQuotaOptions{
+		CreateSubcommandOptions: NewCreateSubcommandOptions(streams),
+	}
+}
 
 // NewCmdCreateClusterQuota is a macro command to create a new cluster quota.
-func NewCmdCreateClusterQuota(name, fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
-	o := &CreateClusterQuotaOptions{Out: out}
-
+func NewCmdCreateClusterQuota(name, fullName string, f genericclioptions.RESTClientGetter, streams genericclioptions.IOStreams) *cobra.Command {
+	o := NewCreateClusterQuotaOptions(streams)
 	cmd := &cobra.Command{
 		Use:     name + " NAME --project-label-selector=key=value [--hard=RESOURCE=QUANTITY]...",
 		Short:   "Create cluster resource quota resource.",
@@ -58,56 +60,63 @@ func NewCmdCreateClusterQuota(name, fullName string, f kcmdutil.Factory, out io.
 		Example: fmt.Sprintf(clusterQuotaExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			cmdutil.CheckErr(o.Complete(cmd, f, args))
-			cmdutil.CheckErr(o.Validate())
 			cmdutil.CheckErr(o.Run())
 		},
 		Aliases: []string{"clusterquota"},
 	}
+	cmd.Flags().StringVar(&o.LabelSelectorStr, "project-label-selector", o.LabelSelectorStr, "The project label selector for the cluster resource quota")
+	cmd.Flags().StringVar(&o.AnnotationSelectorStr, "project-annotation-selector", o.AnnotationSelectorStr, "The project annotation selector for the cluster resource quota")
+	cmd.Flags().StringSliceVar(&o.Hard, "hard", o.Hard, "The resource to constrain: RESOURCE=QUANTITY (pods=10)")
 
-	cmdutil.AddPrinterFlags(cmd)
+	o.CreateSubcommandOptions.PrintFlags.AddFlags(cmd)
 	cmdutil.AddDryRunFlag(cmd)
-	cmd.Flags().String("project-label-selector", "", "The project label selector for the cluster resource quota")
-	cmd.Flags().String("project-annotation-selector", "", "The project annotation selector for the cluster resource quota")
-	cmd.Flags().StringSlice("hard", []string{}, "The resource to constrain: RESOURCE=QUANTITY (pods=10)")
+
 	return cmd
 }
 
-func (o *CreateClusterQuotaOptions) Complete(cmd *cobra.Command, f kcmdutil.Factory, args []string) error {
-	if len(args) != 1 {
-		return fmt.Errorf("NAME is required: %v", args)
-	}
-
-	o.DryRun = cmdutil.GetFlagBool(cmd, "dry-run")
-
-	var labelSelector *metav1.LabelSelector
-	labelSelectorString := cmdutil.GetFlagString(cmd, "project-label-selector")
-	if len(labelSelectorString) > 0 {
-		var err error
-		labelSelector, err = metav1.ParseToLabelSelector(labelSelectorString)
+func (o *CreateClusterQuotaOptions) Complete(cmd *cobra.Command, f genericclioptions.RESTClientGetter, args []string) error {
+	var err error
+	if len(o.LabelSelectorStr) > 0 {
+		o.ProjectLabelSelectorStr, err = metav1.ParseToLabelSelector(o.LabelSelectorStr)
 		if err != nil {
 			return err
 		}
 	}
 
-	annotationSelector, err := parseAnnotationSelector(cmdutil.GetFlagString(cmd, "project-annotation-selector"))
+	o.ProjectAnnotationSelectorStr, err = parseAnnotationSelector(o.AnnotationSelectorStr)
 	if err != nil {
 		return err
 	}
 
-	o.ClusterQuota = &quotaapi.ClusterResourceQuota{
-		ObjectMeta: metav1.ObjectMeta{Name: args[0]},
-		Spec: quotaapi.ClusterResourceQuotaSpec{
-			Selector: quotaapi.ClusterResourceQuotaSelector{
-				LabelSelector:      labelSelector,
-				AnnotationSelector: annotationSelector,
+	clientConfig, err := f.ToRESTConfig()
+	if err != nil {
+		return err
+	}
+	o.Client, err = quotav1client.NewForConfig(clientConfig)
+	if err != nil {
+		return err
+	}
+
+	return o.CreateSubcommandOptions.Complete(f, cmd, args)
+}
+
+func (o *CreateClusterQuotaOptions) Run() error {
+	clusterQuota := &quotav1.ClusterResourceQuota{
+		// this is ok because we know exactly how we want to be serialized
+		TypeMeta:   metav1.TypeMeta{APIVersion: quotav1.SchemeGroupVersion.String(), Kind: "ClusterResourceQuota"},
+		ObjectMeta: metav1.ObjectMeta{Name: o.CreateSubcommandOptions.Name},
+		Spec: quotav1.ClusterResourceQuotaSpec{
+			Selector: quotav1.ClusterResourceQuotaSelector{
+				LabelSelector:      o.ProjectLabelSelectorStr,
+				AnnotationSelector: o.ProjectAnnotationSelectorStr,
 			},
-			Quota: kapi.ResourceQuotaSpec{
-				Hard: kapi.ResourceList{},
+			Quota: corev1.ResourceQuotaSpec{
+				Hard: corev1.ResourceList{},
 			},
 		},
 	}
 
-	for _, resourceCount := range cmdutil.GetFlagStringSlice(cmd, "hard") {
+	for _, resourceCount := range o.Hard {
 		tokens := strings.Split(resourceCount, "=")
 		if len(tokens) != 2 {
 			return fmt.Errorf("%v must in the form of resource=quantity", resourceCount)
@@ -116,61 +125,18 @@ func (o *CreateClusterQuotaOptions) Complete(cmd *cobra.Command, f kcmdutil.Fact
 		if err != nil {
 			return err
 		}
-		o.ClusterQuota.Spec.Quota.Hard[kapi.ResourceName(tokens[0])] = quantity
-	}
-	clientConfig, err := f.ToRESTConfig()
-	if err != nil {
-		return err
-	}
-	quotaClient, err := quotaclientinternal.NewForConfig(clientConfig)
-	if err != nil {
-		return err
-	}
-	o.Client = quotaClient.Quota()
-
-	o.OutputFormat = cmdutil.GetFlagString(cmd, "output")
-
-	o.Printer = func(obj runtime.Object, out io.Writer) error {
-		return cmdutil.PrintObject(cmd, obj, out)
+		clusterQuota.Spec.Quota.Hard[corev1.ResourceName(tokens[0])] = quantity
 	}
 
-	return nil
-}
-
-func (o *CreateClusterQuotaOptions) Validate() error {
-	if o.ClusterQuota == nil {
-		return fmt.Errorf("ClusterQuota is required")
-	}
-	if o.Client == nil {
-		return fmt.Errorf("Client is required")
-	}
-	if o.Out == nil {
-		return fmt.Errorf("Out is required")
-	}
-	if o.Printer == nil {
-		return fmt.Errorf("Printer is required")
-	}
-
-	return nil
-}
-
-func (o *CreateClusterQuotaOptions) Run() error {
-	actualObj := o.ClusterQuota
-
-	var err error
-	if !o.DryRun {
-		actualObj, err = o.Client.ClusterResourceQuotas().Create(o.ClusterQuota)
+	if !o.CreateSubcommandOptions.DryRun {
+		var err error
+		clusterQuota, err = o.Client.ClusterResourceQuotas().Create(clusterQuota)
 		if err != nil {
 			return err
 		}
 	}
 
-	if useShortOutput := o.OutputFormat == "name"; useShortOutput || len(o.OutputFormat) == 0 {
-		cmdutil.PrintSuccess(useShortOutput, o.Out, actualObj, o.DryRun, "created")
-		return nil
-	}
-
-	return o.Printer(actualObj, o.Out)
+	return o.CreateSubcommandOptions.Printer.PrintObj(clusterQuota, o.CreateSubcommandOptions.Out)
 }
 
 // parseAnnotationSelector just parses key=value,key=value=...,

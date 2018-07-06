@@ -9,7 +9,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
-	routeapi "github.com/openshift/origin/pkg/route/apis/route"
+	routev1 "github.com/openshift/api/route/v1"
 )
 
 // UnsecuredRoute will return a route with enough info so that it can direct traffic to
@@ -18,7 +18,7 @@ import (
 // forcePort always sets a port, even when there is only one and it has no name.
 // The kubernetes generator, when no port is present incorrectly selects the service Port
 // instead of the service TargetPort for the route TargetPort.
-func UnsecuredRoute(kc kclientset.Interface, namespace, routeName, serviceName, portString string, forcePort bool) (*routeapi.Route, error) {
+func UnsecuredRoute(kc kclientset.Interface, namespace, routeName, serviceName, portString string, forcePort bool) (*routev1.Route, error) {
 	if len(routeName) == 0 {
 		routeName = serviceName
 	}
@@ -28,12 +28,14 @@ func UnsecuredRoute(kc kclientset.Interface, namespace, routeName, serviceName, 
 		if len(portString) == 0 {
 			return nil, fmt.Errorf("you need to provide a route port via --port when exposing a non-existent service")
 		}
-		return &routeapi.Route{
+		return &routev1.Route{
+			// this is ok because we know exactly how we want to be serialized
+			TypeMeta: metav1.TypeMeta{APIVersion: routev1.SchemeGroupVersion.String(), Kind: "Route"},
 			ObjectMeta: metav1.ObjectMeta{
 				Name: routeName,
 			},
-			Spec: routeapi.RouteSpec{
-				To: routeapi.RouteTargetReference{
+			Spec: routev1.RouteSpec{
+				To: routev1.RouteTargetReference{
 					Name: serviceName,
 				},
 				Port: resolveRoutePort(portString),
@@ -46,13 +48,13 @@ func UnsecuredRoute(kc kclientset.Interface, namespace, routeName, serviceName, 
 		return nil, fmt.Errorf("service %q doesn't support TCP", svc.Name)
 	}
 
-	route := &routeapi.Route{
+	route := &routev1.Route{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   routeName,
 			Labels: svc.Labels,
 		},
-		Spec: routeapi.RouteSpec{
-			To: routeapi.RouteTargetReference{
+		Spec: routev1.RouteSpec{
+			To: routev1.RouteTargetReference{
 				Name: serviceName,
 			},
 		},
@@ -77,7 +79,7 @@ func UnsecuredRoute(kc kclientset.Interface, namespace, routeName, serviceName, 
 	return route, nil
 }
 
-func resolveRoutePort(portString string) *routeapi.RoutePort {
+func resolveRoutePort(portString string) *routev1.RoutePort {
 	if len(portString) == 0 {
 		return nil
 	}
@@ -88,7 +90,7 @@ func resolveRoutePort(portString string) *routeapi.RoutePort {
 	} else {
 		routePort = intstr.FromInt(integer)
 	}
-	return &routeapi.RoutePort{
+	return &routev1.RoutePort{
 		TargetPort: routePort,
 	}
 }

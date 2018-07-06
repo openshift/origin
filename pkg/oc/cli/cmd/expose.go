@@ -11,8 +11,8 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 
-	"github.com/openshift/origin/pkg/cmd/util/route"
 	"github.com/openshift/origin/pkg/oc/util/ocscheme"
+	"github.com/openshift/origin/pkg/oc/util/route"
 )
 
 var (
