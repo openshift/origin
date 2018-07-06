@@ -71,7 +71,7 @@ type CLI struct {
 func NewCLI(project, adminConfigPath string) *CLI {
 	client := &CLI{}
 
-	// has to run before the default framework nukes the client
+	// must be registered before the e2e framework aftereach
 	g.AfterEach(client.TeardownProject)
 
 	client.kubeFramework = e2e.NewDefaultFramework(project)
@@ -184,6 +184,10 @@ func (c *CLI) SetupProject() {
 
 // TeardownProject removes projects created by this test.
 func (c *CLI) TeardownProject() {
+	if g.CurrentGinkgoTestDescription().Failed && e2e.TestContext.DumpLogsOnFailure {
+		e2e.DumpAllNamespaceInfo(c.kubeFramework.ClientSet, c.Namespace())
+	}
+
 	if len(c.configPath) > 0 {
 		os.Remove(c.configPath)
 	}
