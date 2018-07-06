@@ -8,7 +8,7 @@ import (
 )
 
 func TestGitLab(t *testing.T) {
-	p, err := NewProvider("gitlab", nil, "https://gitlab.com/", "clientid", "clientsecret")
+	p, err := NewOAuthProvider("gitlab", "https://gitlab.com/", "clientid", "clientsecret", nil)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}

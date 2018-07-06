@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"path"
 
 	"github.com/RangelReale/osincli"
 	"github.com/golang/glog"
@@ -21,10 +20,8 @@ const (
 	// and OAuth-Provider (http://doc.gitlab.com/ce/integration/oauth_provider.html)
 	// with default OAuth scope (http://doc.gitlab.com/ce/api/users.html#current-user)
 	// Requires GitLab 7.7.0 or higher
-	gitlabAuthorizePath = "/oauth/authorize"
-	gitlabTokenPath     = "/oauth/token"
-	gitlabUserAPIPath   = "/api/v3/user"
-	gitlabOAuthScope    = "api"
+	gitlabUserAPIPath = "/api/v3/user"
+	gitlabOAuthScope  = "api"
 )
 
 type provider struct {
@@ -44,7 +41,7 @@ type gitlabUser struct {
 	Name     string
 }
 
-func NewProvider(providerName string, transport http.RoundTripper, URL, clientID, clientSecret string) (external.Provider, error) {
+func NewOAuthProvider(providerName, URL, clientID, clientSecret string, transport http.RoundTripper) (external.Provider, error) {
 	// Create service URLs
 	u, err := url.Parse(URL)
 	if err != nil {
@@ -60,11 +57,6 @@ func NewProvider(providerName string, transport http.RoundTripper, URL, clientID
 		clientID:     clientID,
 		clientSecret: clientSecret,
 	}, nil
-}
-
-func appendPath(u url.URL, subpath string) string {
-	u.Path = path.Join(u.Path, subpath)
-	return u.String()
 }
 
 func (p *provider) GetTransport() (http.RoundTripper, error) {
@@ -86,8 +78,7 @@ func (p *provider) NewConfig() (*osincli.ClientConfig, error) {
 }
 
 // AddCustomParameters implements external/interfaces/Provider.AddCustomParameters
-func (p *provider) AddCustomParameters(req *osincli.AuthorizeRequest) {
-}
+func (p *provider) AddCustomParameters(req *osincli.AuthorizeRequest) {}
 
 // GetUserIdentity implements external/interfaces/Provider.GetUserIdentity
 func (p *provider) GetUserIdentity(data *osincli.AccessData) (authapi.UserIdentityInfo, bool, error) {
