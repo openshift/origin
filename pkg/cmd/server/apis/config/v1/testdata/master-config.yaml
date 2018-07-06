@@ -233,8 +233,10 @@ oauthConfig:
     name: ""
     provider:
       apiVersion: v1
+      ca: ""
       clientID: ""
       clientSecret: ""
+      hostname: ""
       kind: GitHubIdentityProvider
       organizations: null
       teams: null
@@ -244,12 +246,14 @@ oauthConfig:
     name: ""
     provider:
       apiVersion: v1
+      ca: ""
       clientID: ""
       clientSecret:
         env: ""
         file: filename
         keyFile: ""
         value: ""
+      hostname: ""
       kind: GitHubIdentityProvider
       organizations: null
       teams: null
