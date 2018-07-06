@@ -319,7 +319,7 @@ func (ImageConfig) SwaggerDoc() map[string]string {
 
 var map_ImagePolicyConfig = map[string]string{
 	"": "ImagePolicyConfig holds the necessary configuration options for limits and behavior for importing images",
-	"maxImagesBulkImportedPerRepository":         "MaxImagesBulkImportedPerRepository controls the number of images that are imported when a user does a bulk import of a Docker repository. This number defaults to 5 to prevent users from importing large numbers of images accidentally. Set -1 for no limit.",
+	"maxImagesBulkImportedPerRepository":         "MaxImagesBulkImportedPerRepository controls the number of images that are imported when a user does a bulk import of a Docker repository. This number defaults to 50 to prevent users from importing large numbers of images accidentally. Set -1 for no limit.",
 	"disableScheduledImport":                     "DisableScheduledImport allows scheduled background import of images to be disabled.",
 	"scheduledImageImportMinimumIntervalSeconds": "ScheduledImageImportMinimumIntervalSeconds is the minimum number of seconds that can elapse between when image streams scheduled for background import are checked against the upstream repository. The default value is 15 minutes.",
 	"maxScheduledImageImportsPerMinute":          "MaxScheduledImageImportsPerMinute is the maximum number of scheduled image streams that will be imported in the background per minute. The default value is 60. Set to -1 for unlimited.",

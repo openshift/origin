@@ -75,7 +75,7 @@ imageConfig:
   latest: false
 imagePolicyConfig:
   disableScheduledImport: false
-  maxImagesBulkImportedPerRepository: 5
+  maxImagesBulkImportedPerRepository: 50
   maxScheduledImageImportsPerMinute: 60
   scheduledImageImportMinimumIntervalSeconds: 900
 jenkinsPipelineConfig:
