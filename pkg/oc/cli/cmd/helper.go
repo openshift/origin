@@ -1,10 +1,12 @@
 package cmd
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 )
 
 // parseNamespaceResourceName parses the value and returns namespace, resource and the
@@ -34,4 +36,15 @@ func getFlagStringArray(cmd *cobra.Command, flag string) []string {
 		glog.Fatalf("error accessing flag %s for command %s: %v", flag, cmd.Name(), err)
 	}
 	return s
+}
+
+func GetObjectName(info *resource.Info) string {
+	if info.Mapping != nil {
+		return fmt.Sprintf("%s/%s", info.Mapping.Resource.Resource, info.Name)
+	}
+	gvk := info.Object.GetObjectKind().GroupVersionKind()
+	if len(gvk.Group) == 0 {
+		return fmt.Sprintf("%s/%s", strings.ToLower(gvk.Kind), info.Name)
+	}
+	return fmt.Sprintf("%s.%s/%s\n", strings.ToLower(gvk.Kind), gvk.Group, info.Name)
 }

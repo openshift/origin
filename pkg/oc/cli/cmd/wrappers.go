@@ -474,8 +474,6 @@ var (
 
 // NewCmdRun is a wrapper for the Kubernetes cli run command
 func NewCmdRun(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	// FIXME-REBASE
-	// opts := &kcmd.RunOptions{DefaultRestartAlwaysGenerator: "deploymentconfig/v1"}
 	cmd := kcmd.NewCmdRun(f, streams)
 	cmd.Long = runLong
 	cmd.Example = fmt.Sprintf(runExample, fullName)

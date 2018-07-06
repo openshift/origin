@@ -24,7 +24,7 @@ os::cmd::expect_success_and_text 'oc set probe dc/simple-deployment --liveness -
 os::cmd::expect_success_and_text 'oc set probe dc/simple-deployment --liveness --get-url=http://google.com:80 -o yaml' 'name: simple-deployment'
 
 os::cmd::expect_success_and_not_text 'oc status --suggest' 'rc/simple-deployment-1 has no liveness probe'
-os::cmd::expect_success_and_text 'oc set probe dc/simple-deployment --liveness --get-url=http://google.com:80' 'deploymentconfig.apps.openshift.io "simple-deployment" updated'
+os::cmd::expect_success_and_text 'oc set probe dc/simple-deployment --liveness --get-url=http://google.com:80' 'deploymentconfig.apps.openshift.io/simple-deployment probes updated'
 os::cmd::expect_success_and_not_text 'oc status --suggest' 'dc/simple-deployment has no liveness probe'
 echo "set-probe-liveness: ok"
 os::test::junit::declare_suite_end

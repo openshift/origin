@@ -36,7 +36,7 @@ func NewUpdatePodSpecForObjectFn(delegate polymorphichelpers.UpdatePodSpecForObj
 			}
 			return true, fn(&template.Spec)
 
-		// FIXME-REBASE: we should probably get rid of these:
+		// TODO: we need to get rid of these:
 		// k8s internals
 		case *kapi.Pod:
 			return true, convertExteralPodSpecToInternal(fn)(&t.Spec)

@@ -4,31 +4,35 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
-	"os"
 	"regexp"
 	"sort"
 	"strings"
 
-	"github.com/openshift/origin/pkg/oc/util/ocscheme"
 	"github.com/spf13/cobra"
+
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"k8s.io/client-go/dynamic"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kinternalclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 	"k8s.io/kubernetes/pkg/kubectl/polymorphichelpers"
 
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	buildv1 "github.com/openshift/api/build/v1"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
+	"github.com/openshift/origin/pkg/oc/cli/cmd"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	utilenv "github.com/openshift/origin/pkg/oc/util/env"
+	"github.com/openshift/origin/pkg/oc/util/ocscheme"
 	envresolve "github.com/openshift/origin/pkg/pod/envresolve"
 )
 
@@ -81,81 +85,78 @@ var (
 )
 
 type EnvOptions struct {
-	Out io.Writer
-	Err io.Writer
-	In  io.Reader
+	PrintFlags *genericclioptions.PrintFlags
 
-	Filenames []string
 	EnvParams []string
 	EnvArgs   []string
 	Resources []string
 
-	All         bool
-	Resolve     bool
-	List        bool
-	ShortOutput bool
-	Local       bool
-	Overwrite   bool
+	All       bool
+	Resolve   bool
+	List      bool
+	Local     bool
+	Overwrite bool
+	DryRun    bool
 
 	ResourceVersion   string
 	ContainerSelector string
 	Selector          string
-	Output            string
 	From              string
 	Prefix            string
 
-	Builder *resource.Builder
-	Infos   []*resource.Info
+	UpdatePodSpecForObject polymorphichelpers.UpdatePodSpecForObjectFunc
+	Builder                func() *resource.Builder
+	Encoder                runtime.Encoder
+	Mapper                 meta.RESTMapper
+	Client                 dynamic.Interface
+	KubeClient             kinternalclientset.Interface
+	Printer                printers.ResourcePrinter
+	Namespace              string
+	ExplicitNamespace      bool
 
-	Encoder runtime.Encoder
+	genericclioptions.IOStreams
+	resource.FilenameOptions
+}
 
-	Cmd *cobra.Command
+func NewEnvOptions(streams genericclioptions.IOStreams) *EnvOptions {
+	return &EnvOptions{
+		PrintFlags: genericclioptions.NewPrintFlags("updated").WithTypeSetter(ocscheme.PrintingInternalScheme),
+		IOStreams:  streams,
 
-	Mapper meta.RESTMapper
-	Client dynamic.Interface
-
-	PrintObject func([]*resource.Info) error
+		ContainerSelector: "*",
+		Overwrite:         true,
+	}
 }
 
 // NewCmdEnv implements the OpenShift cli env command
 func NewCmdEnv(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	options := &EnvOptions{
-		In:  streams.In,
-		Out: streams.Out,
-		Err: streams.ErrOut,
-	}
+	o := NewEnvOptions(streams)
 	cmd := &cobra.Command{
 		Use:     "env RESOURCE/NAME KEY_1=VAL_1 ... KEY_N=VAL_N",
 		Short:   "Update environment variables on a pod template",
 		Long:    envLong,
 		Example: fmt.Sprintf(envExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
-			kcmdutil.CheckErr(options.Complete(f, cmd, args))
-			err := options.RunEnv(f)
-			if err == kcmdutil.ErrExit {
-				os.Exit(1)
-			}
-			kcmdutil.CheckErr(err)
+			kcmdutil.CheckErr(o.Complete(f, cmd, args))
+			kcmdutil.CheckErr(o.RunEnv())
 		},
 	}
-
-	cmd.Flags().StringVarP(&options.ContainerSelector, "containers", "c", "*", "The names of containers in the selected pod templates to change - may use wildcards")
-	cmd.Flags().StringP("from", "", "", "The name of a resource from which to inject environment variables")
-	cmd.Flags().StringP("prefix", "", "", "Prefix to append to variable names")
-	cmd.Flags().StringArrayVarP(&options.EnvParams, "env", "e", options.EnvParams, "Specify a key-value pair for an environment variable to set into each container.")
-	cmd.Flags().BoolVar(&options.List, "list", options.List, "If true, display the environment and any changes in the standard format")
-	cmd.Flags().BoolVar(&options.Resolve, "resolve", options.Resolve, "If true, show secret or configmap references when listing variables")
-	cmd.Flags().StringVarP(&options.Selector, "selector", "l", options.Selector, "Selector (label query) to filter on")
-	cmd.Flags().BoolVar(&options.Local, "local", false, "If true, set image will NOT contact api-server but run locally.")
-	cmd.Flags().BoolVar(&options.All, "all", options.All, "If true, select all resources in the namespace of the specified resource types")
-	cmd.Flags().StringSliceVarP(&options.Filenames, "filename", "f", options.Filenames, "Filename, directory, or URL to file to use to edit the resource.")
-	cmd.Flags().BoolVar(&options.Overwrite, "overwrite", true, "If true, allow environment to be overwritten, otherwise reject updates that overwrite existing environment.")
-	cmd.Flags().String("resource-version", "", "If non-empty, the labels update will only succeed if this is the current resource-version for the object. Only valid when specifying a single resource.")
+	usage := "to use to edit the resource"
+	kcmdutil.AddFilenameOptionFlags(cmd, &o.FilenameOptions, usage)
+	cmd.Flags().StringVarP(&o.ContainerSelector, "containers", "c", o.ContainerSelector, "The names of containers in the selected pod templates to change - may use wildcards")
+	cmd.Flags().StringVar(&o.From, "from", o.From, "The name of a resource from which to inject environment variables")
+	cmd.Flags().StringVar(&o.Prefix, "prefix", o.Prefix, "Prefix to append to variable names")
+	cmd.Flags().StringArrayVarP(&o.EnvParams, "env", "e", o.EnvParams, "Specify a key-value pair for an environment variable to set into each container.")
+	cmd.Flags().BoolVar(&o.List, "list", o.List, "If true, display the environment and any changes in the standard format")
+	cmd.Flags().BoolVar(&o.Resolve, "resolve", o.Resolve, "If true, show secret or configmap references when listing variables")
+	cmd.Flags().StringVarP(&o.Selector, "selector", "l", o.Selector, "Selector (label query) to filter on")
+	cmd.Flags().BoolVar(&o.Local, "local", o.Local, "If true, set image will NOT contact api-server but run locally.")
+	cmd.Flags().BoolVar(&o.All, "all", o.All, "If true, select all resources in the namespace of the specified resource types")
+	cmd.Flags().BoolVar(&o.Overwrite, "overwrite", o.Overwrite, "If true, allow environment to be overwritten, otherwise reject updates that overwrite existing environment.")
+	cmd.Flags().StringVar(&o.ResourceVersion, "resource-version", o.ResourceVersion, "If non-empty, the labels update will only succeed if this is the current resource-version for the object. Only valid when specifying a single resource.")
 
 	kcmdutil.AddDryRunFlag(cmd)
-	kcmdutil.AddPrinterFlags(cmd)
-
-	cmd.MarkFlagFilename("filename", "yaml", "yml", "json")
+	o.PrintFlags.AddFlags(cmd)
 
 	return cmd
 }
@@ -175,30 +176,37 @@ func keyToEnvName(key string) string {
 }
 
 func (o *EnvOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string) error {
-	resources, envArgs, ok := utilenv.SplitEnvironmentFromResources(args)
+	var ok bool
+	o.Resources, o.EnvArgs, ok = utilenv.SplitEnvironmentFromResources(args)
 	if !ok {
 		return kcmdutil.UsageErrorf(cmd, "all resources must be specified before environment changes: %s", strings.Join(args, " "))
 	}
-	if len(o.Filenames) == 0 && len(resources) < 1 {
+	if len(o.Filenames) == 0 && len(o.Resources) < 1 {
 		return kcmdutil.UsageErrorf(cmd, "one or more resources must be specified as <resource> <name> or <resource>/<name>")
 	}
 
-	o.ContainerSelector = kcmdutil.GetFlagString(cmd, "containers")
-	o.List = kcmdutil.GetFlagBool(cmd, "list")
-	o.Resolve = kcmdutil.GetFlagBool(cmd, "resolve")
-	o.Selector = kcmdutil.GetFlagString(cmd, "selector")
-	o.All = kcmdutil.GetFlagBool(cmd, "all")
-	o.Overwrite = kcmdutil.GetFlagBool(cmd, "overwrite")
-	o.ResourceVersion = kcmdutil.GetFlagString(cmd, "resource-version")
-	o.Output = kcmdutil.GetFlagString(cmd, "output")
-	o.From = kcmdutil.GetFlagString(cmd, "from")
-	o.Prefix = kcmdutil.GetFlagString(cmd, "prefix")
+	var err error
+	o.KubeClient, err = f.ClientSet()
+	if err != nil {
+		return err
+	}
 
-	o.EnvArgs = envArgs
-	o.Resources = resources
-	o.Cmd = cmd
+	o.Namespace, o.ExplicitNamespace, err = f.ToRawKubeConfigLoader().Namespace()
+	if err != nil {
+		return err
+	}
 
-	o.ShortOutput = kcmdutil.GetFlagString(cmd, "output") == "name"
+	o.DryRun = kcmdutil.GetDryRunFlag(cmd)
+	if o.DryRun {
+		o.PrintFlags.Complete("%s (dry run)")
+	}
+	o.Printer, err = o.PrintFlags.ToPrinter()
+	if err != nil {
+		return err
+	}
+
+	o.Builder = f.NewBuilder
+	o.UpdatePodSpecForObject = polymorphichelpers.UpdatePodSpecForObjectFn
 
 	clientConfig, err := f.ToRESTConfig()
 	if err != nil {
@@ -209,62 +217,49 @@ func (o *EnvOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []str
 		return err
 	}
 
-	if o.List && len(o.Output) > 0 {
-		return kcmdutil.UsageErrorf(o.Cmd, "--list and --output may not be specified together")
+	if o.List && o.PrintFlags.OutputFormat != nil && len(*o.PrintFlags.OutputFormat) > 0 {
+		return kcmdutil.UsageErrorf(cmd, "--list and --output may not be specified together")
 	}
+
+	cmdutil.WarnAboutCommaSeparation(o.ErrOut, o.EnvParams, "--env")
 
 	return nil
 }
 
 // RunEnv contains all the necessary functionality for the OpenShift cli env command
 // TODO: refactor to share the common "patch resource" pattern of probe
-func (o *EnvOptions) RunEnv(f kcmdutil.Factory) error {
-	clientConfig, err := f.ToRESTConfig()
-	if err != nil {
-		return err
-	}
-
-	kubeClient, err := kinternalclientset.NewForConfig(clientConfig)
-	if err != nil {
-		return err
-	}
-
-	cmdNamespace, explicit, err := f.ToRawKubeConfigLoader().Namespace()
-	if err != nil {
-		return err
-	}
-
-	cmdutil.WarnAboutCommaSeparation(o.Err, o.EnvParams, "--env")
-
+// TODO: figure out how we can replace this with upstream counterpart
+func (o *EnvOptions) RunEnv() error {
 	env, remove, err := utilenv.ParseEnv(append(o.EnvParams, o.EnvArgs...), o.In)
 	if err != nil {
 		return err
 	}
 
 	if len(o.From) != 0 {
-		b := f.NewBuilder().
-			WithScheme(ocscheme.ReadingInternalScheme).
+		b := o.Builder().
+			WithScheme(ocscheme.ReadingInternalScheme, ocscheme.ReadingInternalScheme.PrioritizedVersionsAllGroups()...).
 			LocalParam(o.Local).
 			ContinueOnError().
-			NamespaceParam(cmdNamespace).DefaultNamespace().
-			FilenameParam(explicit, &resource.FilenameOptions{Recursive: false, Filenames: o.Filenames}).
+			NamespaceParam(o.Namespace).DefaultNamespace().
+			FilenameParam(o.ExplicitNamespace, &o.FilenameOptions).
 			Flatten()
 
 		if !o.Local {
 			b = b.
 				LabelSelectorParam(o.Selector).
-				ResourceTypeOrNameArgs(o.All, o.From)
+				ResourceTypeOrNameArgs(o.All, o.From).
+				Latest()
 		}
 
-		one := false
-		infos, err := b.Do().IntoSingleItemImplied(&one).Infos()
+		singleItemImplied := false
+		infos, err := b.Do().IntoSingleItemImplied(&singleItemImplied).Infos()
 		if err != nil {
 			return err
 		}
 
 		for _, info := range infos {
 			switch from := info.Object.(type) {
-			case *kapi.Secret:
+			case *corev1.Secret:
 				for key := range from.Data {
 					envVar := kapi.EnvVar{
 						Name: keyToEnvName(key),
@@ -279,7 +274,7 @@ func (o *EnvOptions) RunEnv(f kcmdutil.Factory) error {
 					}
 					env = append(env, envVar)
 				}
-			case *kapi.ConfigMap:
+			case *corev1.ConfigMap:
 				for key := range from.Data {
 					envVar := kapi.EnvVar{
 						Name: keyToEnvName(key),
@@ -295,7 +290,7 @@ func (o *EnvOptions) RunEnv(f kcmdutil.Factory) error {
 					env = append(env, envVar)
 				}
 			default:
-				return fmt.Errorf("unsupported resource specified in --from")
+				return fmt.Errorf("unsupported resource specified in --from: %T", from)
 			}
 		}
 	}
@@ -306,29 +301,30 @@ func (o *EnvOptions) RunEnv(f kcmdutil.Factory) error {
 		}
 	}
 
-	b := f.NewBuilder().
-		WithScheme(ocscheme.ReadingInternalScheme).
+	b := o.Builder().
+		WithScheme(ocscheme.ReadingInternalScheme, ocscheme.ReadingInternalScheme.PrioritizedVersionsAllGroups()...).
 		LocalParam(o.Local).
 		ContinueOnError().
-		NamespaceParam(cmdNamespace).DefaultNamespace().
-		FilenameParam(explicit, &resource.FilenameOptions{Recursive: false, Filenames: o.Filenames}).
+		NamespaceParam(o.Namespace).DefaultNamespace().
+		FilenameParam(o.ExplicitNamespace, &o.FilenameOptions).
 		Flatten()
 
 	if !o.Local {
 		b = b.
 			LabelSelectorParam(o.Selector).
-			ResourceTypeOrNameArgs(o.All, o.Resources...)
+			ResourceTypeOrNameArgs(o.All, o.Resources...).
+			Latest()
 	}
 
-	one := false
-	infos, err := b.Do().IntoSingleItemImplied(&one).Infos()
+	singleItemImplied := false
+	infos, err := b.Do().IntoSingleItemImplied(&singleItemImplied).Infos()
 	if err != nil {
 		return err
 	}
 
 	// only apply resource version locking on a single resource
-	if !one && len(o.ResourceVersion) > 0 {
-		return kcmdutil.UsageErrorf(o.Cmd, "--resource-version may only be used with a single resource")
+	if !singleItemImplied && len(o.ResourceVersion) > 0 {
+		return fmt.Errorf("--resource-version may only be used with a single resource")
 	}
 	// Keep a copy of the original objects prior to updating their environment.
 	// Used in constructing the patch(es) that will be applied in the server.
@@ -346,11 +342,12 @@ func (o *EnvOptions) RunEnv(f kcmdutil.Factory) error {
 	skipped := 0
 	errored := []*resource.Info{}
 	for _, info := range infos {
-		ok, err := polymorphichelpers.UpdatePodSpecForObjectFn(info.Object, clientcmd.ConvertInteralPodSpecToExternal(func(spec *kapi.PodSpec) error {
+		name := cmd.GetObjectName(info)
+		ok, err := o.UpdatePodSpecForObject(info.Object, clientcmd.ConvertInteralPodSpecToExternal(func(spec *kapi.PodSpec) error {
 			resolutionErrorsEncountered := false
 			containers, _ := selectContainers(spec.Containers, o.ContainerSelector)
 			if len(containers) == 0 {
-				fmt.Fprintf(o.Err, "warning: %s/%s does not have any containers matching %q\n", info.Mapping.Resource, info.Name, o.ContainerSelector)
+				fmt.Fprintf(o.ErrOut, "warning: %s does not have any containers matching %q\n", name, o.ContainerSelector)
 				return nil
 			}
 			for _, c := range containers {
@@ -367,7 +364,7 @@ func (o *EnvOptions) RunEnv(f kcmdutil.Factory) error {
 					resolveErrors := map[string][]string{}
 					store := envresolve.NewResourceStore()
 
-					fmt.Fprintf(o.Out, "# %s %s, container %s\n", info.Mapping.Resource.Resource, info.Name, c.Name)
+					fmt.Fprintf(o.Out, "# %s, container %s\n", name, c.Name)
 					for _, env := range c.Env {
 						// Print the simple value
 						if env.ValueFrom == nil {
@@ -381,7 +378,7 @@ func (o *EnvOptions) RunEnv(f kcmdutil.Factory) error {
 							continue
 						}
 
-						value, err := envresolve.GetEnvVarRefValue(kubeClient, cmdNamespace, store, env.ValueFrom, info.Object, c)
+						value, err := envresolve.GetEnvVarRefValue(o.KubeClient, o.Namespace, store, env.ValueFrom, info.Object, c)
 						// Print the resolved value
 						if err == nil {
 							fmt.Fprintf(o.Out, "%s=%s\n", env.Name, value)
@@ -403,7 +400,7 @@ func (o *EnvOptions) RunEnv(f kcmdutil.Factory) error {
 					}
 					sort.Strings(errs)
 					for _, err := range errs {
-						fmt.Fprintln(o.Err, err)
+						fmt.Fprintln(o.ErrOut, err)
 					}
 				}
 			}
@@ -427,7 +424,7 @@ func (o *EnvOptions) RunEnv(f kcmdutil.Factory) error {
 				}
 				*vars = updateEnv(*vars, env, remove)
 				if o.List {
-					fmt.Fprintf(o.Out, "# %s %s\n", info.Mapping.Resource.Resource, info.Name)
+					fmt.Fprintf(o.Out, "# %s\n", name)
 					for _, env := range *vars {
 						fmt.Fprintf(o.Out, "%s=%s\n", env.Name, env.Value)
 					}
@@ -440,12 +437,13 @@ func (o *EnvOptions) RunEnv(f kcmdutil.Factory) error {
 			}
 		}
 		if err != nil {
-			fmt.Fprintf(o.Err, "error: %s/%s %v\n", info.Mapping.Resource, info.Name, err)
+			fmt.Fprintf(o.ErrOut, "error: %s %v\n", name, err)
 			continue
 		}
 	}
-	if one && skipped == len(infos) {
-		return fmt.Errorf("%s/%s is not a pod or does not have a pod template", infos[0].Mapping.Resource.Resource, infos[0].Name)
+	if singleItemImplied && skipped == len(infos) {
+		name := cmd.GetObjectName(infos[0])
+		return fmt.Errorf("%s is not a pod or does not have a pod template", name)
 	}
 	if len(errored) == len(infos) {
 		return kcmdutil.ErrExit
@@ -455,11 +453,7 @@ func (o *EnvOptions) RunEnv(f kcmdutil.Factory) error {
 		return nil
 	}
 
-	if len(o.Output) > 0 || o.Local || kcmdutil.GetDryRunFlag(o.Cmd) {
-		return clientcmd.PrintResourceInfos(o.Cmd, infos, o.Out)
-	}
-
-	failed := false
+	allErrs := []error{}
 updates:
 	for i, info := range infos {
 		for _, erroredInfo := range errored {
@@ -467,19 +461,28 @@ updates:
 				continue updates
 			}
 		}
+
+		if o.Local || o.DryRun {
+			if err := o.Printer.PrintObj(info.Object, o.Out); err != nil {
+				allErrs = append(allErrs, err)
+			}
+			continue
+		}
+
 		newData, err := json.Marshal(kcmdutil.AsDefaultVersionedOrOriginal(infos[i].Object, nil))
 		if err != nil {
-			return err
+			allErrs = append(allErrs, err)
+			continue
 		}
 		patchBytes, err := strategicpatch.CreateTwoWayMergePatch(oldData[i], newData, kcmdutil.AsDefaultVersionedOrOriginal(infos[i].Object, nil))
 		if err != nil {
-			return err
+			allErrs = append(allErrs, err)
+			continue
 		}
 
-		actualObj, err := o.Client.Resource(info.Mapping.Resource).Namespace(info.Namespace).Patch(info.Name, types.StrategicMergePatchType, patchBytes)
+		actual, err := o.Client.Resource(info.Mapping.Resource).Namespace(info.Namespace).Patch(info.Name, types.StrategicMergePatchType, patchBytes)
 		if err != nil {
-			handlePodUpdateError(o.Err, err, "environment variables")
-			failed = true
+			allErrs = append(allErrs, fmt.Errorf("failed to set env: %v\n", err))
 			continue
 		}
 
@@ -489,30 +492,48 @@ updates:
 			return fmt.Errorf("at least one environment variable must be provided")
 		}
 
-		kcmdutil.PrintSuccess(o.ShortOutput, o.Out, actualObj, false, "updated")
+		if err := o.Printer.PrintObj(actual, o.Out); err != nil {
+			allErrs = append(allErrs, err)
+		}
 	}
-	if failed {
-		return kcmdutil.ErrExit
-	}
-	return nil
+	return utilerrors.NewAggregate(allErrs)
 }
 
 // UpdateObjectEnvironment update the environment variables in object specification.
 func updateObjectEnvironment(obj runtime.Object, fn func(*[]kapi.EnvVar) error) (bool, error) {
 	switch t := obj.(type) {
-	case *buildapi.BuildConfig:
+	case *buildv1.BuildConfig:
 		if t.Spec.Strategy.CustomStrategy != nil {
-			return true, fn(&t.Spec.Strategy.CustomStrategy.Env)
+			return true, convertInternalEnvVarToExternal(fn)(&t.Spec.Strategy.CustomStrategy.Env)
 		}
 		if t.Spec.Strategy.SourceStrategy != nil {
-			return true, fn(&t.Spec.Strategy.SourceStrategy.Env)
+			return true, convertInternalEnvVarToExternal(fn)(&t.Spec.Strategy.SourceStrategy.Env)
 		}
 		if t.Spec.Strategy.DockerStrategy != nil {
-			return true, fn(&t.Spec.Strategy.DockerStrategy.Env)
+			return true, convertInternalEnvVarToExternal(fn)(&t.Spec.Strategy.DockerStrategy.Env)
 		}
 		if t.Spec.Strategy.JenkinsPipelineStrategy != nil {
-			return true, fn(&t.Spec.Strategy.JenkinsPipelineStrategy.Env)
+			return true, convertInternalEnvVarToExternal(fn)(&t.Spec.Strategy.JenkinsPipelineStrategy.Env)
 		}
 	}
-	return false, fmt.Errorf("object does not contain any environment variables")
+	return false, fmt.Errorf("object does not contain any environment variables %T", obj)
+}
+
+// TODO: this needs to die when switching to external versions
+func convertInternalEnvVarToExternal(inFn func(*[]kapi.EnvVar) error) func(*[]corev1.EnvVar) error {
+	return func(specToMutate *[]corev1.EnvVar) error {
+		externalEnvVar := &[]kapi.EnvVar{}
+		if err := legacyscheme.Scheme.Convert(specToMutate, externalEnvVar, nil); err != nil {
+			return err
+		}
+		if err := inFn(externalEnvVar); err != nil {
+			return err
+		}
+		internalEnvVar := &[]corev1.EnvVar{}
+		if err := legacyscheme.Scheme.Convert(externalEnvVar, internalEnvVar, nil); err != nil {
+			return err
+		}
+		*specToMutate = *internalEnvVar
+		return nil
+	}
 }

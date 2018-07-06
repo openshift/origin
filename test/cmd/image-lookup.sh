@@ -16,7 +16,7 @@ os::test::junit::declare_suite_start "cmd/image-lookup"
 # This test validates image lookup resolution
 
 # Verify image resolution on default resource types
-os::cmd::expect_success          "oc import-image --confirm --from=nginx:latest nginx:latest"
+os::cmd::expect_success_and_text "oc import-image --confirm --from=nginx:latest nginx:latest" "sha256:"
 os::cmd::expect_success_and_text "oc set image-lookup is/nginx" "updated"
 # Image lookup works for pods
 os::cmd::expect_success          "oc run --generator=run-pod/v1 --restart=Never --image=nginx:latest nginx"
@@ -33,8 +33,8 @@ os::cmd::expect_success          "echo '${rc}' | oc create -f -"
 os::cmd::expect_success_and_text "oc get rc/nginx -o jsonpath='{.spec.template.spec.containers[0].image}'" "nginx@sha256:"
 
 # Verify swapping settings on image stream
-os::cmd::expect_success_and_text "oc set image-lookup is/nginx" "was not changed"
-os::cmd::expect_success_and_text "oc set image-lookup nginx" "was not changed"
+os::cmd::expect_success_and_text "oc set image-lookup is/nginx --v=1" "was not changed"
+os::cmd::expect_success_and_text "oc set image-lookup nginx --v=1" "was not changed"
 os::cmd::expect_success_and_text "oc set image-lookup is --list" "nginx.*true"
 os::cmd::expect_success_and_text "oc set image-lookup nginx --enabled=false" "updated"
 os::cmd::expect_success_and_text "oc set image-lookup is --list" "nginx.*false"
@@ -47,7 +47,7 @@ os::cmd::expect_success "oc delete deploy,dc,rs,rc,pods --all"
 # Resource annotated with image lookup will create pods that resolve
 os::cmd::expect_success          "oc tag nginx:latest alternate:latest"
 rc='{"kind":"Deployment","apiVersion":"apps/v1beta1","metadata":{"name":"alternate"},"spec":{"template":{"metadata":{"labels":{"app":"test"}},"spec":{"containers":[{"name":"main","image":"alternate:latest"}]}}}}'
-os::cmd::expect_success          "echo '${rc}' | oc set image-lookup -f - -o json | oc create -f -"
+os::cmd::expect_success          "echo '${rc}' | oc set image-lookup --local -f - -o json | oc create -f -"
 os::cmd::expect_success          "oc run --generator=run-pod/v1 --restart=Never --image=alternate:latest alternate"
 os::cmd::expect_success_and_text "oc get pod/alternate -o jsonpath='{.spec.containers[0].image}'" "alternate:latest"
 os::cmd::expect_success_and_text "oc get rs -o jsonpath='{..spec.template.spec.containers[0].image}'" "nginx@sha256:"

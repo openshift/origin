@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
+
 	"k8s.io/kubernetes/pkg/kubectl/cmd/set"
 	ktemplates "k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -37,6 +38,7 @@ func NewCmdSet(fullName string, f kcmdutil.Factory, streams genericclioptions.IO
 				NewCmdEnv(name, f, streams),
 				NewCmdResources(name, f, streams),
 				NewCmdVolume(name, f, streams),
+				// TODO: this seems reasonable to upstream
 				NewCmdProbe(name, f, streams),
 				NewCmdDeploymentHook(name, f, streams),
 				NewCmdImage(name, f, streams),

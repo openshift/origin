@@ -368,7 +368,7 @@ os::cmd::expect_success "oc adm registry --images='${USE_IMAGES}'"
 os::cmd::expect_success_and_text 'oc adm registry' 'service exists'
 os::cmd::expect_success_and_text 'oc describe svc/docker-registry' 'Session Affinity:\s*ClientIP'
 os::cmd::expect_success_and_text 'oc get dc/docker-registry -o yaml' 'readinessProbe'
-os::cmd::expect_success_and_text 'oc env --list dc/docker-registry' 'REGISTRY_MIDDLEWARE_REPOSITORY_OPENSHIFT_ENFORCEQUOTA=false'
+os::cmd::expect_success_and_text 'oc set env --list dc/docker-registry' 'REGISTRY_MIDDLEWARE_REPOSITORY_OPENSHIFT_ENFORCEQUOTA=false'
 echo "registry: ok"
 os::test::junit::declare_suite_end
 

@@ -110,7 +110,7 @@ os::cmd::expect_success "dig @${DNS_SERVICE_IP} docker-registry.default.local. A
 
 os::log::info "Configure registry to disable mirroring"
 os::cmd::expect_success "oc project '${CLUSTER_ADMIN_CONTEXT}'"
-os::cmd::expect_success 'oc env -n default dc/docker-registry REGISTRY_MIDDLEWARE_REPOSITORY_OPENSHIFT_MIRRORPULLTHROUGH=false'
+os::cmd::expect_success 'oc set env -n default dc/docker-registry REGISTRY_MIDDLEWARE_REPOSITORY_OPENSHIFT_MIRRORPULLTHROUGH=false'
 os::cmd::expect_success 'oc rollout status dc/docker-registry'
 os::log::info "Registry configured to disable mirroring"
 
@@ -127,7 +127,7 @@ os::cmd::expect_success "oc get istag/busybox:latest"
 
 os::log::info "Restore registry mirroring"
 os::cmd::expect_success "oc project '${CLUSTER_ADMIN_CONTEXT}'"
-os::cmd::expect_success 'oc env -n default dc/docker-registry REGISTRY_MIDDLEWARE_REPOSITORY_OPENSHIFT_MIRRORPULLTHROUGH=true'
+os::cmd::expect_success 'oc set env -n default dc/docker-registry REGISTRY_MIDDLEWARE_REPOSITORY_OPENSHIFT_MIRRORPULLTHROUGH=true'
 os::cmd::expect_success 'oc rollout status dc/docker-registry'
 os::log::info "Restore configured to enable mirroring"
 
@@ -625,7 +625,7 @@ os::log::info "Validated image pruning"
 # with registry's re-deployment we loose all the blobs stored in its storage until now
 os::log::info "Configure registry to accept manifest V2 schema 2"
 os::cmd::expect_success "oc project '${CLUSTER_ADMIN_CONTEXT}'"
-os::cmd::expect_success 'oc env -n default dc/docker-registry REGISTRY_MIDDLEWARE_REPOSITORY_OPENSHIFT_ACCEPTSCHEMA2=true'
+os::cmd::expect_success 'oc set env -n default dc/docker-registry REGISTRY_MIDDLEWARE_REPOSITORY_OPENSHIFT_ACCEPTSCHEMA2=true'
 os::cmd::expect_success 'oc rollout status dc/docker-registry'
 os::log::info "Registry configured to accept manifest V2 schema 2"
 
