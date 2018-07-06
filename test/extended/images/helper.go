@@ -616,7 +616,7 @@ func RunHardPrune(oc *exutil.CLI, dryRun bool) (*RegistryStorageFiles, error) {
 	}
 
 	defer func(ns string) { oc.SetNamespace(ns) }(oc.Namespace())
-	output, err := oc.AsAdmin().SetNamespace(metav1.NamespaceDefault).Run("env").Args("--list", "dc/docker-registry").Output()
+	output, err := oc.AsAdmin().SetNamespace(metav1.NamespaceDefault).Run("set", "env").Args("--list", "dc/docker-registry").Output()
 	if err != nil {
 		return nil, err
 	}
