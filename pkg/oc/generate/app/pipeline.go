@@ -194,14 +194,6 @@ func (p *Pipeline) Objects(accept, objectAccept Acceptor) (Objects, error) {
 		}
 		if objectAccept.Accept(repo) {
 			objects = append(objects, repo)
-		} else {
-			tag, err := p.InputImage.ImageStreamTag()
-			if err != nil {
-				return nil, err
-			}
-			if objectAccept.Accept(tag) {
-				objects = append(objects, tag)
-			}
 		}
 	}
 	if p.Image != nil && p.Image.AsImageStream && accept.Accept(p.Image) {
