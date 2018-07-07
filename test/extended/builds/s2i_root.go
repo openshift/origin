@@ -26,8 +26,11 @@ var _ = g.Describe("[Feature:Builds][Conformance] s2i build with a root user ima
 		})
 
 		g.JustBeforeEach(func() {
+			g.By("waiting for default service account")
+			err := exutil.WaitForServiceAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()), "default")
+			o.Expect(err).NotTo(o.HaveOccurred())
 			g.By("waiting for builder service account")
-			err := exutil.WaitForBuilderAccount(oc.AdminKubeClient().Core().ServiceAccounts(oc.Namespace()))
+			err = exutil.WaitForServiceAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()), "builder")
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("creating a root build container")

@@ -12,7 +12,7 @@ import (
 	"github.com/openshift/origin/test/extended/util/db"
 	testutil "github.com/openshift/origin/test/util"
 
-	//kapiv1 "k8s.io/api/core/v1"
+	kapiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kcoreclient "k8s.io/client-go/kubernetes/typed/core/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
@@ -193,7 +193,6 @@ func replicationTestFactory(oc *exutil.CLI, tc testCase, cleanup func()) func() 
 	}
 }
 
-/*
 var _ = g.Describe("[image_ecosystem][mysql][Slow] openshift mysql replication", func() {
 	defer g.GinkgoRecover()
 
@@ -228,7 +227,10 @@ var _ = g.Describe("[image_ecosystem][mysql][Slow] openshift mysql replication",
 		g.BeforeEach(func() {
 			exutil.DumpDockerInfo()
 
-			var err error
+			g.By("waiting for default service account")
+			err := exutil.WaitForServiceAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()), "default")
+			o.Expect(err).NotTo(o.HaveOccurred())
+
 			nfspod, pvs, err = exutil.SetupK8SNFSServerAndVolume(oc, 8)
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
@@ -238,4 +240,3 @@ var _ = g.Describe("[image_ecosystem][mysql][Slow] openshift mysql replication",
 		}
 	})
 })
-*/

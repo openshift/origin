@@ -45,7 +45,11 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker security test
 	g.BeforeEach(func() {
 		framework.SkipIfProviderIs("gce")
 
-		err := exutil.WaitForBuilderAccount(cli.KubeClient().Core().ServiceAccounts(cli.Namespace()))
+		g.By("waiting for default service account")
+		err := exutil.WaitForServiceAccount(cli.KubeClient().Core().ServiceAccounts(cli.Namespace()), "default")
+		o.Expect(err).NotTo(o.HaveOccurred())
+		g.By("waiting for builder service account")
+		err = exutil.WaitForServiceAccount(cli.KubeClient().Core().ServiceAccounts(cli.Namespace()), "builder")
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		brokercli, err = TSBClient(cli)

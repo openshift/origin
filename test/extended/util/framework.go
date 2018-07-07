@@ -713,11 +713,11 @@ func CheckBuildCancelled(b *buildapi.Build) bool {
 	return b.Status.Phase == buildapi.BuildPhaseCancelled
 }
 
-// WaitForBuilderAccount waits until the builder service account gets fully
+// WaitForServiceAccount waits until the named service account gets fully
 // provisioned
-func WaitForBuilderAccount(c kcoreclient.ServiceAccountInterface) error {
+func WaitForServiceAccount(c kcoreclient.ServiceAccountInterface, name string) error {
 	waitFn := func() (bool, error) {
-		sc, err := c.Get("builder", metav1.GetOptions{})
+		sc, err := c.Get(name, metav1.GetOptions{})
 		if err != nil {
 			// If we can't access the service accounts, let's wait till the controller
 			// create it.
