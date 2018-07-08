@@ -13,6 +13,20 @@ import (
 	"github.com/docker/docker/pkg/archive"
 )
 
+type testDirectoryCheck map[string]bool
+
+func (c testDirectoryCheck) IsDirectory(path string) (bool, error) {
+	if c == nil {
+		return false, nil
+	}
+
+	isDir, ok := c[path]
+	if !ok {
+		return false, fmt.Errorf("no path defined for %s", path)
+	}
+	return isDir, nil
+}
+
 type archiveGenerator struct {
 	Headers []*tar.Header
 }
@@ -81,6 +95,7 @@ func Test_archiveFromFile(t *testing.T) {
 		dst      string
 		excludes []string
 		expect   []string
+		check    map[string]bool
 	}{
 		{
 			file: testArchive,
@@ -233,6 +248,7 @@ func Test_archiveFromFile(t *testing.T) {
 				testCase.src,
 				testCase.dst,
 				testCase.excludes,
+				testDirectoryCheck(testCase.check),
 			)
 			if err != nil {
 				t.Fatal(err)
@@ -266,6 +282,7 @@ func Test_archiveFromContainer(t *testing.T) {
 		excludes []string
 		expect   []string
 		path     string
+		check    map[string]bool
 	}{
 		{
 			gen:  newArchiveGenerator().File("file").Dir("test").File("test/file2"),
@@ -395,6 +412,14 @@ func Test_archiveFromContainer(t *testing.T) {
 			expect: nil,
 		},
 		{
+			gen:    newArchiveGenerator().File("b"),
+			src:    "/a/b",
+			dst:    "/a",
+			check:  map[string]bool{"/a": true},
+			path:   "/a",
+			expect: nil,
+		},
+		{
 			gen:  newArchiveGenerator().Dir("a/").File("a/b"),
 			src:  "/a/b",
 			dst:  "/a",
@@ -402,6 +427,13 @@ func Test_archiveFromContainer(t *testing.T) {
 			expect: []string{
 				"/a",
 			},
+		},
+		{
+			gen:    newArchiveGenerator().Dir("./a").File("./a/b"),
+			src:    "a",
+			dst:    "/a",
+			path:   ".",
+			expect: []string{"/a/b"},
 		},
 	}
 	for i := range testCases {
@@ -412,6 +444,7 @@ func Test_archiveFromContainer(t *testing.T) {
 				testCase.src,
 				testCase.dst,
 				testCase.excludes,
+				testDirectoryCheck(testCase.check),
 			)
 			if err != nil {
 				t.Fatal(err)

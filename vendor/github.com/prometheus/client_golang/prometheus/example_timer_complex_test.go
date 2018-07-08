@@ -45,7 +45,7 @@ var (
 func handler(w http.ResponseWriter, r *http.Request) {
 	status := http.StatusOK
 	// The ObserverFunc gets called by the deferred ObserveDuration and
-	// decides wich Histogram's Observe method is called.
+	// decides which Histogram's Observe method is called.
 	timer := prometheus.NewTimer(prometheus.ObserverFunc(func(v float64) {
 		switch {
 		case status >= 500: // Server error.
