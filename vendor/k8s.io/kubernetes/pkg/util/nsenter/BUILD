@@ -5,17 +5,22 @@ go_library(
     srcs = select({
         "@io_bazel_rules_go//go/platform:android": [
             "nsenter_unsupported.go",
+            "exec_unsupported.go",
         ],
         "@io_bazel_rules_go//go/platform:darwin": [
             "nsenter_unsupported.go",
+            "exec_unsupported.go",
         ],
         "@io_bazel_rules_go//go/platform:dragonfly": [
             "nsenter_unsupported.go",
+            "exec_unsupported.go",
         ],
         "@io_bazel_rules_go//go/platform:freebsd": [
             "nsenter_unsupported.go",
+            "exec_unsupported.go",
         ],
         "@io_bazel_rules_go//go/platform:linux": [
+            "exec.go",
             "nsenter.go",
         ],
         "@io_bazel_rules_go//go/platform:nacl": [
