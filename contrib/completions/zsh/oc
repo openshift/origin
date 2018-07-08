@@ -13811,6 +13811,8 @@ _oc_registry_login()
     flags_with_completion=()
     flags_completion=()
 
+    flags+=("--insecure")
+    local_nonpersistent_flags+=("--insecure")
     flags+=("--registry=")
     local_nonpersistent_flags+=("--registry=")
     flags+=("--service-account=")
