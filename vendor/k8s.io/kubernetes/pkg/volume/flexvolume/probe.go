@@ -19,6 +19,7 @@ package flexvolume
 import (
 	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/volume"
+	"k8s.io/utils/exec"
 
 	"os"
 
@@ -36,8 +37,9 @@ type flexVolumeProber struct {
 	mutex           sync.Mutex
 	pluginDir       string // Flexvolume driver directory
 	watcher         utilfs.FSWatcher
-	probeNeeded     bool      // Must only read and write this through testAndSetProbeNeeded.
-	lastUpdated     time.Time // Last time probeNeeded was updated.
+	probeNeeded     bool           // Must only read and write this through testAndSetProbeNeeded.
+	lastUpdated     time.Time      // Last time probeNeeded was updated.
+	runner          exec.Interface // Interface to use for execing flex calls
 	watchEventCount int
 	factory         PluginFactory
 	fs              utilfs.Filesystem
@@ -50,11 +52,12 @@ const (
 	watchEventLimit    = 20
 )
 
-func GetDynamicPluginProber(pluginDir string) volume.DynamicPluginProber {
+func GetDynamicPluginProber(pluginDir string, runner exec.Interface) volume.DynamicPluginProber {
 	return &flexVolumeProber{
 		pluginDir: pluginDir,
 		watcher:   utilfs.NewFsnotifyWatcher(),
 		factory:   pluginFactory{},
+		runner:    runner,
 		fs:        &utilfs.DefaultFs{},
 	}
 }
@@ -100,7 +103,7 @@ func (prober *flexVolumeProber) Probe() (updated bool, plugins []volume.VolumePl
 		// e.g. dirname = vendor~cifs
 		// then, executable will be pluginDir/dirname/cifs
 		if f.IsDir() && filepath.Base(f.Name())[0] != '.' {
-			plugin, pluginErr := prober.factory.NewFlexVolumePlugin(prober.pluginDir, f.Name())
+			plugin, pluginErr := prober.factory.NewFlexVolumePlugin(prober.pluginDir, f.Name(), prober.runner)
 			if pluginErr != nil {
 				pluginErr = fmt.Errorf(
 					"Error creating Flexvolume plugin from directory %s, skipping. Error: %s",
