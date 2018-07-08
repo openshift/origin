@@ -23,6 +23,7 @@ import (
 	_ "k8s.io/kubernetes/pkg/credentialprovider/azure"
 	_ "k8s.io/kubernetes/pkg/credentialprovider/gcp"
 	_ "k8s.io/kubernetes/pkg/credentialprovider/rancher"
+	"k8s.io/utils/exec"
 	// Network plugins
 	"k8s.io/kubernetes/pkg/kubelet/network"
 	"k8s.io/kubernetes/pkg/kubelet/network/cni"
@@ -63,7 +64,6 @@ import (
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/kubernetes/pkg/features"
 )
-
 
 // ProbeVolumePlugins collects all volume plugins into an easy to use list.
 func probeVolumePlugins() []volume.VolumePlugin {
@@ -110,8 +110,8 @@ func probeVolumePlugins() []volume.VolumePlugin {
 // GetDynamicPluginProber gets the probers of dynamically discoverable plugins
 // for kubelet.
 // Currently only Flexvolume plugins are dynamically discoverable.
-func GetDynamicPluginProber(pluginDir string) volume.DynamicPluginProber {
-	return flexvolume.GetDynamicPluginProber(pluginDir)
+func GetDynamicPluginProber(pluginDir string, runner exec.Interface) volume.DynamicPluginProber {
+	return flexvolume.GetDynamicPluginProber(pluginDir, runner)
 }
 
 // ProbeNetworkPlugins collects all compiled-in plugins

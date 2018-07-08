@@ -4,8 +4,10 @@ go_library(
     name = "go_default_library",
     srcs = [
         "nsenter_unsupported.go",
+        "exec_unsupported.go",
     ] + select({
         "@io_bazel_rules_go//go/platform:linux_amd64": [
+            "exec.go",
             "nsenter.go",
         ],
         "//conditions:default": [],
