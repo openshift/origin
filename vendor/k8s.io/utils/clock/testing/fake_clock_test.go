@@ -182,3 +182,93 @@ func TestFakeTick(t *testing.T) {
 		t.Errorf("unexpected number of accumulated ticks: %d", accumulatedTicks)
 	}
 }
+
+func TestFakeStop(t *testing.T) {
+	tc := NewFakeClock(time.Now())
+	timer := tc.NewTimer(time.Second)
+	if !tc.HasWaiters() {
+		t.Errorf("expected a waiter to be present, but it is not")
+	}
+	timer.Stop()
+	if tc.HasWaiters() {
+		t.Errorf("expected existing waiter to be cleaned up, but it is still present")
+	}
+}
+
+// This tests the pattern documented in the go docs here: https://golang.org/pkg/time/#Timer.Stop
+// This pattern is required to safely reset a timer, so should be common.
+// This also tests resetting the timer
+func TestFakeStopDrain(t *testing.T) {
+	start := time.Time{}
+	tc := NewFakeClock(start)
+	timer := tc.NewTimer(time.Second)
+	tc.Step(1 * time.Second)
+	// Effectively `if !timer.Stop { <-t.C }` but with more asserts
+	if timer.Stop() {
+		t.Errorf("stop should report the timer had triggered")
+	}
+	if readTime := assertReadTime(t, timer.C()); !readTime.Equal(start.Add(1 * time.Second)) {
+		t.Errorf("timer should have ticked after 1 second, got %v", readTime)
+	}
+
+	timer.Reset(time.Second)
+	if !tc.HasWaiters() {
+		t.Errorf("expected a waiter to be present, but it is not")
+	}
+	select {
+	case <-timer.C():
+		t.Fatal("got time early on clock; haven't stepped yet")
+	default:
+	}
+	tc.Step(1 * time.Second)
+	if readTime := assertReadTime(t, timer.C()); !readTime.Equal(start.Add(2 * time.Second)) {
+		t.Errorf("timer should have ticked again after reset + 1 more second, got %v", readTime)
+	}
+}
+
+func TestTimerNegative(t *testing.T) {
+	tc := NewFakeClock(time.Now())
+	timer := tc.NewTimer(-1 * time.Second)
+	if !tc.HasWaiters() {
+		t.Errorf("expected a waiter to be present, but it is not")
+	}
+	// force waiters to be called
+	tc.Step(0)
+	tick := assertReadTime(t, timer.C())
+	if tick != tc.Now() {
+		t.Errorf("expected -1s to turn into now: %v != %v", tick, tc.Now())
+	}
+}
+
+func TestTickNegative(t *testing.T) {
+	// The stdlib 'Tick' returns nil for negative and zero values, so our fake
+	// should too.
+	tc := NewFakeClock(time.Now())
+	if tick := tc.Tick(-1 * time.Second); tick != nil {
+		t.Errorf("expected negative tick to be nil: %v", tick)
+	}
+	if tick := tc.Tick(0); tick != nil {
+		t.Errorf("expected negative tick to be nil: %v", tick)
+	}
+}
+
+// assertReadTime asserts that the channel can be read and returns the time it
+// reads from the channel.
+func assertReadTime(t testing.TB, c <-chan time.Time) time.Time {
+	type helper interface {
+		Helper()
+	}
+	if h, ok := t.(helper); ok {
+		h.Helper()
+	}
+	select {
+	case ti, ok := <-c:
+		if !ok {
+			t.Fatalf("expected to read time from channel, but it was closed")
+		}
+		return ti
+	default:
+		t.Fatalf("expected to read time from channel, but couldn't")
+	}
+	panic("unreachable")
+}

@@ -17,9 +17,9 @@ package spec
 import (
 	"encoding/json"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/http/httptest"
+	"runtime"
 	"testing"
 
 	"github.com/go-openapi/jsonpointer"
@@ -37,36 +37,72 @@ func jsonDoc(path string) (json.RawMessage, error) {
 
 // tests that paths are normalized correctly
 func TestNormalizePaths(t *testing.T) {
-	testCases := []struct {
+	type testNormalizePathsTestCases []struct {
 		refPath   string
 		base      string
 		expOutput string
-	}{
-		{
-			// file basePath, absolute refPath
-			refPath:   "/another/base/path.json#/definitions/Pet",
-			base:      "/base/path.json",
-			expOutput: "/another/base/path.json#/definitions/Pet",
-		},
-		{
-			// file basePath, relative refPath
-			refPath:   "another/base/path.json#/definitions/Pet",
-			base:      "/base/path.json",
-			expOutput: "/base/another/base/path.json#/definitions/Pet",
-		},
-		{
-			// http basePath, absolute refPath
-			refPath:   "http://www.anotherexample.com/another/base/path/swagger.json#/definitions/Pet",
-			base:      "http://www.example.com/base/path/swagger.json",
-			expOutput: "http://www.anotherexample.com/another/base/path/swagger.json#/definitions/Pet",
-		},
-		{
-			// http basePath, relative refPath
-			refPath:   "another/base/path/swagger.json#/definitions/Pet",
-			base:      "http://www.example.com/base/path/swagger.json",
-			expOutput: "http://www.example.com/base/path/another/base/path/swagger.json#/definitions/Pet",
-		},
 	}
+	testCases := func() testNormalizePathsTestCases {
+		testCases := testNormalizePathsTestCases{
+			{
+				// http basePath, absolute refPath
+				refPath:   "http://www.anotherexample.com/another/base/path/swagger.json#/definitions/Pet",
+				base:      "http://www.example.com/base/path/swagger.json",
+				expOutput: "http://www.anotherexample.com/another/base/path/swagger.json#/definitions/Pet",
+			},
+			{
+				// http basePath, relative refPath
+				refPath:   "another/base/path/swagger.json#/definitions/Pet",
+				base:      "http://www.example.com/base/path/swagger.json",
+				expOutput: "http://www.example.com/base/path/another/base/path/swagger.json#/definitions/Pet",
+			},
+		}
+		if runtime.GOOS == "windows" {
+			testCases = append(testCases, testNormalizePathsTestCases{
+				{
+					// file basePath, absolute refPath, no fragment
+					refPath:   `C:\another\base\path.json`,
+					base:      `C:\base\path.json`,
+					expOutput: `C:\another\base\path.json`,
+				},
+				{
+					// file basePath, absolute refPath
+					refPath:   `C:\another\base\path.json#/definitions/Pet`,
+					base:      `C:\base\path.json`,
+					expOutput: `C:\another\base\path.json#/definitions/Pet`,
+				},
+				{
+					// file basePath, relative refPath
+					refPath:   `another\base\path.json#/definitions/Pet`,
+					base:      `C:\base\path.json`,
+					expOutput: `C:\base\another\base\path.json#/definitions/Pet`,
+				},
+			}...)
+			return testCases
+		}
+		// linux case
+		testCases = append(testCases, testNormalizePathsTestCases{
+			{
+				// file basePath, absolute refPath, no fragment
+				refPath:   "/another/base/path.json",
+				base:      "/base/path.json",
+				expOutput: "/another/base/path.json",
+			},
+			{
+				// file basePath, absolute refPath
+				refPath:   "/another/base/path.json#/definitions/Pet",
+				base:      "/base/path.json",
+				expOutput: "/another/base/path.json#/definitions/Pet",
+			},
+			{
+				// file basePath, relative refPath
+				refPath:   "another/base/path.json#/definitions/Pet",
+				base:      "/base/path.json",
+				expOutput: "/base/another/base/path.json#/definitions/Pet",
+			},
+		}...)
+		return testCases
+	}()
 
 	for _, tcase := range testCases {
 		out := normalizePaths(tcase.refPath, tcase.base)
@@ -178,16 +214,15 @@ func TestResponseExpansion(t *testing.T) {
 	assert.NoError(t, err)
 
 	resp := spec.Responses["anotherPet"]
-	r := spec.Responses["petResponse"]
-	err = expandResponse(&r, resolver, basePath)
+	expected := spec.Responses["petResponse"]
+	err = expandResponse(&expected, resolver, basePath)
 	assert.NoError(t, err)
-	expected := r
 
 	err = expandResponse(&resp, resolver, basePath)
-	b, _ := resp.MarshalJSON()
-	log.Printf(string(b))
-	b, _ = expected.MarshalJSON()
-	log.Printf(string(b))
+	// b, _ := resp.MarshalJSON()
+	// log.Printf(string(b))
+	// b, _ = expected.MarshalJSON()
+	// log.Printf(string(b))
 	assert.NoError(t, err)
 	assert.Equal(t, expected, resp)
 
@@ -219,16 +254,15 @@ func TestExportedResponseExpansion(t *testing.T) {
 	assert.NoError(t, err)
 
 	resp := spec.Responses["anotherPet"]
-	r := spec.Responses["petResponse"]
-	err = ExpandResponse(&r, basePath)
+	expected := spec.Responses["petResponse"]
+	err = ExpandResponse(&expected, basePath)
 	assert.NoError(t, err)
-	expected := r
 
 	err = ExpandResponse(&resp, basePath)
-	b, _ := resp.MarshalJSON()
-	log.Printf(string(b))
-	b, _ = expected.MarshalJSON()
-	log.Printf(string(b))
+	// b, _ := resp.MarshalJSON()
+	// log.Printf(string(b))
+	// b, _ = expected.MarshalJSON()
+	// log.Printf(string(b))
 	assert.NoError(t, err)
 	assert.Equal(t, expected, resp)
 
@@ -360,8 +394,8 @@ func TestContinueOnErrorExpansion(t *testing.T) {
 	}
 	err = ExpandSpec(testCase.Input, opts)
 	assert.NoError(t, err)
-	b, _ := testCase.Input.MarshalJSON()
-	log.Printf(string(b))
+	// b, _ := testCase.Input.MarshalJSON()
+	// log.Printf(string(b))
 	assert.Equal(t, testCase.Input, testCase.Expected, "Should continue expanding spec when a definition can't be found.")
 
 	doc, err := jsonDoc("fixtures/expansion/missingItemRef.json")
@@ -838,20 +872,20 @@ func TestResolveRemoteRef_RootSame(t *testing.T) {
 	// the filename doesn't matter because ref will eventually point to refed.json
 	specBase, _ := absPath("fixtures/specs/anyotherfile.json")
 	if assert.NoError(t, err) && assert.NoError(t, json.Unmarshal(b, rootDoc)) {
-		var result_0 Swagger
-		ref_0, _ := NewRef(server.URL + "/refed.json#")
-		resolver_0, _ := defaultSchemaLoader(rootDoc, nil, nil)
-		if assert.NoError(t, resolver_0.Resolve(&ref_0, &result_0, "")) {
-			assertSpecs(t, result_0, *rootDoc)
+		var result0 Swagger
+		ref0, _ := NewRef(server.URL + "/refed.json#")
+		resolver0, _ := defaultSchemaLoader(rootDoc, nil, nil)
+		if assert.NoError(t, resolver0.Resolve(&ref0, &result0, "")) {
+			assertSpecs(t, result0, *rootDoc)
 		}
 
-		var result_1 Swagger
-		ref_1, _ := NewRef("./refed.json")
-		resolver_1, _ := defaultSchemaLoader(rootDoc, &ExpandOptions{
+		var result1 Swagger
+		ref1, _ := NewRef("./refed.json")
+		resolver1, _ := defaultSchemaLoader(rootDoc, &ExpandOptions{
 			RelativeBase: specBase,
 		}, nil)
-		if assert.NoError(t, resolver_1.Resolve(&ref_1, &result_1, specBase)) {
-			assertSpecs(t, result_1, *rootDoc)
+		if assert.NoError(t, resolver1.Resolve(&ref1, &result1, specBase)) {
+			assertSpecs(t, result1, *rootDoc)
 		}
 	}
 }
@@ -1131,6 +1165,25 @@ func TestResolveLocalRef_Response(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestResolveForTransitiveRefs(t *testing.T) {
+	var spec *Swagger
+	rawSpec, err := ioutil.ReadFile("fixtures/specs/todos.json")
+	assert.NoError(t, err)
+
+	basePath, err := absPath("fixtures/specs/todos.json")
+	assert.NoError(t, err)
+
+	opts := &ExpandOptions{
+		RelativeBase: basePath,
+	}
+
+	err = json.Unmarshal(rawSpec, &spec)
+	assert.NoError(t, err)
+
+	err = ExpandSpec(spec, opts)
+	assert.NoError(t, err)
 }
 
 // PetStoreJSONMessage json raw message for Petstore20
