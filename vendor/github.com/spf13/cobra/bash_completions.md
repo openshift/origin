@@ -6,16 +6,15 @@ Generating bash completions from a cobra command is incredibly easy. An actual p
 package main
 
 import (
-	"io/ioutil"
-	"os"
+        "io/ioutil"
+        "os"
 
-	"k8s.io/kubernetes/pkg/kubectl/cmd"
-	"k8s.io/kubernetes/pkg/kubectl/cmd/util"
+        "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd"
 )
 
 func main() {
-	kubectl := cmd.NewKubectlCommand(util.NewFactory(nil), os.Stdin, ioutil.Discard, ioutil.Discard)
-	kubectl.GenBashCompletionFile("out.sh")
+        kubectl := cmd.NewFactory(nil).NewKubectlCommand(os.Stdin, ioutil.Discard, ioutil.Discard)
+        kubectl.GenBashCompletionFile("out.sh")
 }
 ```
 
