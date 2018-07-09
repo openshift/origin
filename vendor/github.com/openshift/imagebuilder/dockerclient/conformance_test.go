@@ -111,6 +111,8 @@ func TestCopyFrom(t *testing.T) {
 		{name: "copy file to deeper directory with explicit slash", create: "mkdir -p /a && touch /a/1", copy: "/a/1 /a/b/c/", expect: "ls -al /a/b/c/1 && ! ls -al /a/b/1"},
 		{name: "copy file to deeper directory without explicit slash", create: "mkdir -p /a && touch /a/1", copy: "/a/1 /a/b/c", expect: "ls -al /a/b/c && ! ls -al /a/b/1"},
 		{name: "copy directory to deeper directory without explicit slash", create: "mkdir -p /a && touch /a/1", copy: "/a /a/b/c", expect: "ls -al /a/b/c/1 && ! ls -al /a/b/1"},
+		{name: "copy directory to root without explicit slash", create: "mkdir -p /a && touch /a/1", copy: "a /a", expect: "ls -al /a/1 && ! ls -al /a/a"},
+		{name: "copy directory trailing to root without explicit slash", create: "mkdir -p /a && touch /a/1", copy: "a/. /a", expect: "ls -al /a/1 && ! ls -al /a/a"},
 	}
 	for i, testCase := range testCases {
 		name := fmt.Sprintf("%d", i)
@@ -143,6 +145,7 @@ func TestCopyFrom(t *testing.T) {
 
 			stages := imagebuilder.NewStages(node, b)
 			if _, err := e.Stages(b, stages, ""); err != nil {
+				t.Log(out.String())
 				t.Fatal(err)
 			}
 		})
@@ -249,6 +252,18 @@ func TestConformanceInternal(t *testing.T) {
 		{
 			Name:       "directory",
 			ContextDir: "testdata/dir",
+		},
+		{
+			Name:       "copy to dir",
+			ContextDir: "testdata/copy",
+		},
+		{
+			Name:       "copy dir",
+			ContextDir: "testdata/copydir",
+		},
+		{
+			Name:       "copy to renamed file",
+			ContextDir: "testdata/copyrename",
 		},
 		{
 			Name:       "directory with slash",
@@ -391,8 +406,8 @@ func TestTransientMount(t *testing.T) {
 	e.AllowPull = true
 	e.Directory = "testdata"
 	e.TransientMounts = []Mount{
-		{SourcePath: "dir", DestinationPath: "/mountdir"},
-		{SourcePath: "Dockerfile.env", DestinationPath: "/mountfile"},
+		{SourcePath: "testdata/dir", DestinationPath: "/mountdir"},
+		{SourcePath: "testdata/Dockerfile.env", DestinationPath: "/mountfile"},
 	}
 	e.Tag = fmt.Sprintf("conformance%d", rand.Int63())
 

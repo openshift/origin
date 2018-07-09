@@ -799,8 +799,9 @@ func (e *ClientExecutor) archiveFromContainer(from string, src, dst string) (io.
 		e.Deferred = append([]func() error{func() error { return e.removeContainer(containerID) }}, e.Deferred...)
 	}
 
+	check := newDirectoryCheck(e.Client, e.Container.ID)
 	pr, pw := io.Pipe()
-	ar, archiveRoot, err := archiveFromContainer(pr, src, dst, nil)
+	ar, archiveRoot, err := archiveFromContainer(pr, src, dst, nil, check)
 	if err != nil {
 		pr.Close()
 		return nil, nil, err
@@ -818,26 +819,30 @@ func (e *ClientExecutor) archiveFromContainer(from string, src, dst string) (io.
 
 // TODO: this does not support decompressing nested archives for ADD (when the source is a compressed file)
 func (e *ClientExecutor) Archive(fromFS bool, src, dst string, allowDownload bool, excludes []string) (io.Reader, io.Closer, error) {
+	var check DirectoryCheck
+	if e.Container != nil {
+		check = newDirectoryCheck(e.Client, e.Container.ID)
+	}
 	if isURL(src) {
 		if !allowDownload {
 			return nil, nil, fmt.Errorf("source can't be a URL")
 		}
 		glog.V(5).Infof("Archiving %s -> %s from URL", src, dst)
-		return archiveFromURL(src, dst, e.TempDir)
+		return archiveFromURL(src, dst, e.TempDir, check)
 	}
 	// the input is from the filesystem, use the source as the input
 	if fromFS {
 		glog.V(5).Infof("Archiving %s %s -> %s from a filesystem location", src, ".", dst)
-		return archiveFromDisk(src, ".", dst, allowDownload, excludes)
+		return archiveFromDisk(src, ".", dst, allowDownload, excludes, check)
 	}
 	// if the context is in archive form, read from it without decompressing
 	if len(e.ContextArchive) > 0 {
 		glog.V(5).Infof("Archiving %s %s -> %s from context archive", e.ContextArchive, src, dst)
-		return archiveFromFile(e.ContextArchive, src, dst, excludes)
+		return archiveFromFile(e.ContextArchive, src, dst, excludes, check)
 	}
 	// if the context is a directory, we only allow relative includes
 	glog.V(5).Infof("Archiving %q %q -> %q from disk", e.Directory, src, dst)
-	return archiveFromDisk(e.Directory, src, dst, allowDownload, excludes)
+	return archiveFromDisk(e.Directory, src, dst, allowDownload, excludes, check)
 }
 
 // ContainerVolumeTracker manages tracking archives of specific paths inside a container.
