@@ -66,7 +66,7 @@ function haproxyHealthCheck() {
 }
 
 
-old_pids=$(ps -A -opid,args | grep haproxy | egrep -v -e 'grep|reload-haproxy' | awk '{print $1}' | tr '\n' ' ')
+old_pids=$(pidof haproxy)
 
 reload_status=0
 if [ -n "$old_pids" ]; then
