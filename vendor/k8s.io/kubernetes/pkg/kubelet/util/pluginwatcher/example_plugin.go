@@ -143,7 +143,7 @@ func (e *examplePlugin) Stop() error {
 	select {
 	case <-c:
 		return nil
-	case <-time.After(time.Second):
+	case <-time.After(10 * time.Second):
 		glog.Errorf("Timed out on waiting for stop completion")
 		return fmt.Errorf("Timed out on waiting for stop completion")
 	}
