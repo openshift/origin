@@ -14,7 +14,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	"github.com/openshift/source-to-image/pkg/tar"
-	s2iutil "github.com/openshift/source-to-image/pkg/util"
+	s2iutil "github.com/openshift/source-to-image/pkg/util/fs"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/build/util/dockerfile"
