@@ -267,9 +267,14 @@ func (o *DebugOptions) Complete(cmd *cobra.Command, f kcmdutil.Factory, args []s
 	}
 	o.AsNonRoot = !o.AsRoot && cmd.Flag("as-root").Changed
 
+	templateArgSpecified := o.PrintFlags.TemplatePrinterFlags != nil &&
+		o.PrintFlags.TemplatePrinterFlags.TemplateArgument != nil &&
+		len(*o.PrintFlags.TemplatePrinterFlags.TemplateArgument) > 0
+
+	outputFormatSpecified := o.PrintFlags.OutputFormat != nil && len(*o.PrintFlags.OutputFormat) > 0
+
 	// TODO: below should be turned into a method on PrintFlags
-	if (o.PrintFlags.OutputFormat != nil && len(*o.PrintFlags.OutputFormat) > 0) ||
-		(o.PrintFlags.TemplatePrinterFlags != nil && o.PrintFlags.TemplatePrinterFlags.TemplateArgument != nil) {
+	if outputFormatSpecified || templateArgSpecified {
 		if o.DryRun {
 			o.PrintFlags.Complete("%s (dry run)")
 		}

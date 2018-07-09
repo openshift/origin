@@ -130,11 +130,6 @@ func LatestDeploymentNameForConfigV1(config *appsapiv1.DeploymentConfig) string 
 	return fmt.Sprintf("%s-%d", config.Name, config.Status.LatestVersion)
 }
 
-// LatestDeploymentNameForConfigV1 returns a stable identifier for config based on its version.
-func LatestDeploymentNameForConfigV1(config *appsapiv1.DeploymentConfig) string {
-	return fmt.Sprintf("%s-%d", config.Name, config.Status.LatestVersion)
-}
-
 // LatestDeploymentInfo returns info about the latest deployment for a config,
 // or nil if there is no latest deployment. The latest deployment is not
 // always the same as the active deployment.
