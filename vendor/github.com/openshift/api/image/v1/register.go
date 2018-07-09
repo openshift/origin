@@ -43,6 +43,7 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&ImageStreamTag{},
 		&ImageStreamTagList{},
 		&ImageStreamImage{},
+		&ImageStreamLayers{},
 		&ImageStreamImport{},
 		&corev1.SecretList{},
 	)

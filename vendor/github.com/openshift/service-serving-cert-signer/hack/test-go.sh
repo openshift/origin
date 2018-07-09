@@ -21,14 +21,6 @@
 function cleanup() {
     return_code=$?
 
-    os::test::junit::generate_report
-    if [[ "${JUNIT_REPORT_NUM_FAILED:-}" == "0 failed" ]]; then
-        if [[ "${return_code}" -ne "0" ]]; then
-            os::log::warning "While the jUnit report found no failed tests, the \`go test\` process failed."
-            os::log::warning "This usually means that the unit test suite failed to compile."
-        fi
-    fi
-
     os::util::describe_return_code "${return_code}"
     exit "${return_code}"
 }
@@ -135,10 +127,14 @@ if [[ -n "${junit_report}" ]]; then
     # we don't care if the `go test` fails in this pipe, as we want to generate the report and summarize the output anyway
     set +o pipefail
 
-    go test -i ${gotest_flags} ${test_packages}
-    go test ${gotest_flags} ${test_packages} 2>"${test_error_file}" | tee "${JUNIT_REPORT_OUTPUT}"
+    os::util::ensure::built_binary_exists 'gotest2junit'
+    report_file="$( mktemp "${ARTIFACT_DIR}/unit_report_XXXXX" ).xml"
 
+    go test -json ${gotest_flags} ${test_packages} 2>"${test_error_file}" | tee "${JUNIT_REPORT_OUTPUT}" | gotest2junit > "${report_file}"
     test_return_code="${PIPESTATUS[0]}"
+
+    gzip "${test_error_file}" -c > "${ARTIFACT_DIR}/unit-error.log.gz"
+    gzip "${JUNIT_REPORT_OUTPUT}" -c > "${ARTIFACT_DIR}/unit.log.gz"
 
     set -o pipefail
 
@@ -162,7 +158,6 @@ $( cat "${test_error_file}") "
 
 elif [[ -n "${coverage_output_dir}" ]]; then
     # we need to generate coverage reports
-    go test -i ${gotest_flags} ${test_packages}
     for test_package in ${test_packages}; do
         mkdir -p "${coverage_output_dir}/${test_package}"
         local_gotest_flags="${gotest_flags} -coverprofile=${coverage_output_dir}/${test_package}/profile.out"
@@ -187,6 +182,5 @@ elif [[ -n "${dlv_debug}" ]]; then
     dlv test ${test_packages}
 else
     # we need to generate neither jUnit XML nor coverage reports
-    go test -i ${gotest_flags} ${test_packages}
     go test ${gotest_flags} ${test_packages}
 fi
