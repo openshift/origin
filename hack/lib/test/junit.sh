@@ -181,7 +181,7 @@ function os::test::junit::generate_report() {
 #  export JUNIT_REPORT_NUM_FAILED
 function os::test::junit::internal::generate_report() {
     local report_type="$1"
-    os::util::ensure::built_binary_exists 'junitreport'
+    os::util::ensure::gopath_binary_exists 'junitreport' 'github.com/openshift/release/tools/junitreport'
 
     local report_file
     report_file="$( mktemp "${ARTIFACT_DIR}/${report_type}_report_XXXXX" ).xml"

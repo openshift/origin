@@ -6,8 +6,8 @@ source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
 os::test::junit::declare_suite_start 'tools'
 
-os::util::ensure::built_binary_exists 'junitreport'
-os::cmd::expect_success 'tools/junitreport/test/integration.sh'
+os::util::ensure::gopath_binary_exists 'junitreport' 'github.com/openshift/release/tools/junitreport'
+os::cmd::expect_success 'hack/junitreport/test/integration.sh'
 
 echo "test-tools: ok"
 os::test::junit::declare_suite_end

@@ -37,7 +37,8 @@ function component() {
 }
 
 function issues() {
-  go run tools/changelog/changelog.go "$from" "$to"
+  os::util::ensure::gopath_binary_exists 'changelog' 'github.com/openshift/release/tools/changelog'
+  os::cmd::expect_success "changelog $from $to"
 }
 
 cat << EOF

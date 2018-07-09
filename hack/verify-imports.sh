@@ -12,7 +12,7 @@ function cleanup() {
 }
 trap "cleanup" EXIT
 
-os::util::ensure::built_binary_exists 'import-verifier'
+os::util::ensure::gopath_binary_exists 'import-verifier' 'github.com/openshift/release/tools/import-verifier'
 
 os::test::junit::declare_suite_start "verify/imports"
 os::cmd::expect_success "import-verifier ${OS_ROOT}/hack/import-restrictions.json"

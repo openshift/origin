@@ -128,7 +128,7 @@ if [[ -n "${junit_report}" ]]; then
     # we don't care if the `go test` fails in this pipe, as we want to generate the report and summarize the output anyway
     set +o pipefail
 
-    os::util::ensure::built_binary_exists 'gotest2junit'
+    os::util::ensure::gopath_binary_exists 'gotest2junit' 'github.com/openshift/release/tools/gotest2junit'
     report_file="$( mktemp "${ARTIFACT_DIR}/unit_report_XXXXX" ).xml"
 
     go test -json ${gotest_flags} ${test_packages} 2>"${test_error_file}" | tee "${JUNIT_REPORT_OUTPUT}" | gotest2junit > "${report_file}"
