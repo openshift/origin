@@ -21,6 +21,7 @@ import (
 	"k8s.io/kubernetes/staging/src/k8s.io/apimachinery/pkg/labels"
 
 	appsapiv1 "github.com/openshift/api/apps/v1"
+	"github.com/openshift/origin/pkg/api/legacy"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	"github.com/openshift/origin/pkg/apps/registry/deployconfig"
 	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
@@ -94,7 +95,7 @@ func (r *ScaleREST) New() runtime.Object {
 func (r *ScaleREST) GroupVersionKind(containingGV schema.GroupVersion) schema.GroupVersionKind {
 	switch containingGV {
 	case appsapiv1.SchemeGroupVersion,
-		appsapiv1.LegacySchemeGroupVersion:
+		legacy.GroupVersion:
 		return extensionsv1beta1.SchemeGroupVersion.WithKind("Scale")
 	default:
 		return autoscalingv1.SchemeGroupVersion.WithKind("Scale")

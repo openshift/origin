@@ -1,34 +1,37 @@
 package v1
 
 import (
+	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
-const (
-	GroupName       = "authorization.openshift.io"
-	LegacyGroupName = ""
-)
-
 var (
-	SchemeGroupVersion       = schema.GroupVersion{Group: GroupName, Version: "v1"}
-	LegacySchemeGroupVersion = schema.GroupVersion{Group: LegacyGroupName, Version: "v1"}
+	GroupName     = "authorization.openshift.io"
+	GroupVersion  = schema.GroupVersion{Group: GroupName, Version: "v1"}
+	schemeBuilder = runtime.NewSchemeBuilder(addKnownTypes, corev1.AddToScheme, rbacv1.AddToScheme)
+	// Install is a function which adds this version to a scheme
+	Install = schemeBuilder.AddToScheme
 
-	LegacySchemeBuilder    = runtime.NewSchemeBuilder(addLegacyKnownTypes)
-	AddToSchemeInCoreGroup = LegacySchemeBuilder.AddToScheme
-
-	SchemeBuilder = runtime.NewSchemeBuilder(addKnownTypes)
-	AddToScheme   = SchemeBuilder.AddToScheme
+	// SchemeGroupVersion generated code relies on this name
+	// Deprecated
+	SchemeGroupVersion = GroupVersion
+	// AddToScheme exists solely to keep the old generators creating valid code
+	// DEPRECATED
+	AddToScheme = schemeBuilder.AddToScheme
 )
 
+// Resource generated code relies on this being here, but it logically belongs to the group
+// DEPRECATED
 func Resource(resource string) schema.GroupResource {
-	return SchemeGroupVersion.WithResource(resource).GroupResource()
+	return schema.GroupResource{Group: GroupName, Resource: resource}
 }
 
 // Adds the list of known types to api.Scheme.
 func addKnownTypes(scheme *runtime.Scheme) error {
-	scheme.AddKnownTypes(SchemeGroupVersion,
+	scheme.AddKnownTypes(GroupVersion,
 		&Role{},
 		&RoleBinding{},
 		&RoleBindingList{},
@@ -52,35 +55,6 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&RoleBindingRestriction{},
 		&RoleBindingRestrictionList{},
 	)
-	metav1.AddToGroupVersion(scheme, SchemeGroupVersion)
-	return nil
-}
-
-func addLegacyKnownTypes(scheme *runtime.Scheme) error {
-	types := []runtime.Object{
-		&Role{},
-		&RoleBinding{},
-		&RoleBindingList{},
-		&RoleList{},
-
-		&SelfSubjectRulesReview{},
-		&SubjectRulesReview{},
-		&ResourceAccessReview{},
-		&SubjectAccessReview{},
-		&LocalResourceAccessReview{},
-		&LocalSubjectAccessReview{},
-		&ResourceAccessReviewResponse{},
-		&SubjectAccessReviewResponse{},
-		&IsPersonalSubjectAccessReview{},
-
-		&ClusterRole{},
-		&ClusterRoleBinding{},
-		&ClusterRoleBindingList{},
-		&ClusterRoleList{},
-
-		&RoleBindingRestriction{},
-		&RoleBindingRestrictionList{},
-	}
-	scheme.AddKnownTypes(LegacySchemeGroupVersion, types...)
+	metav1.AddToGroupVersion(scheme, GroupVersion)
 	return nil
 }

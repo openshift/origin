@@ -28,9 +28,9 @@ var (
 
 func init() {
 	annotationDecodingScheme := runtime.NewScheme()
-	utilruntime.Must(buildv1.AddToScheme(annotationDecodingScheme))
+	utilruntime.Must(buildv1.Install(annotationDecodingScheme))
 	utilruntime.Must(buildv1helpers.AddToScheme(annotationDecodingScheme))
-	utilruntime.Must(buildv1.AddToSchemeInCoreGroup(annotationDecodingScheme))
+	utilruntime.Must(buildv1.DeprecatedInstallWithoutGroup(annotationDecodingScheme))
 	utilruntime.Must(buildv1helpers.AddToSchemeInCoreGroup(annotationDecodingScheme))
 	// TODO eventually we shouldn't deal in internal versions, but for now decode into one.
 	utilruntime.Must(buildapi.AddToScheme(annotationDecodingScheme))
@@ -38,14 +38,14 @@ func init() {
 	annotationDecoderCodecFactory := serializer.NewCodecFactory(annotationDecodingScheme)
 	Decoder = annotationDecoderCodecFactory.UniversalDecoder(buildapi.SchemeGroupVersion)
 
-	utilruntime.Must(buildv1.AddToScheme(EncoderScheme))
+	utilruntime.Must(buildv1.Install(EncoderScheme))
 	// TODO eventually we shouldn't deal in internal versions, but for now encode from one.
 	utilruntime.Must(buildv1helpers.AddToScheme(EncoderScheme))
 	utilruntime.Must(buildapi.AddToScheme(EncoderScheme))
 	annotationEncoderCodecFactory := serializer.NewCodecFactory(EncoderScheme)
 	Encoder = annotationEncoderCodecFactory.LegacyCodec(buildv1.SchemeGroupVersion)
 
-	utilruntime.Must(buildv1.AddToScheme(InternalExternalScheme))
+	utilruntime.Must(buildv1.Install(InternalExternalScheme))
 	utilruntime.Must(buildv1helpers.AddToScheme(InternalExternalScheme))
 	utilruntime.Must(buildapi.AddToScheme(InternalExternalScheme))
 }

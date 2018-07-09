@@ -1,7 +1,6 @@
 package util
 
 import (
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -23,10 +22,8 @@ var (
 )
 
 func init() {
-	// TODO automatically do this in appsv1 AddToScheme
-	utilruntime.Must(corev1.AddToScheme(annotationDecodingScheme))
-	utilruntime.Must(appsv1.AddToScheme(annotationDecodingScheme))
-	utilruntime.Must(appsv1.AddToSchemeInCoreGroup(annotationDecodingScheme))
+	utilruntime.Must(appsv1.Install(annotationDecodingScheme))
+	utilruntime.Must(appsv1.DeprecatedInstallWithoutGroup(annotationDecodingScheme))
 	// TODO eventually we shouldn't deal in internal versions, but for now decode into one.
 	utilruntime.Must(appsv1helpers.AddToScheme(annotationDecodingScheme))
 	utilruntime.Must(appsv1helpers.AddToSchemeInCoreGroup(annotationDecodingScheme))
@@ -36,9 +33,7 @@ func init() {
 	annotationDecoderCodecFactory := serializer.NewCodecFactory(annotationDecodingScheme)
 	annotationDecoder = annotationDecoderCodecFactory.UniversalDecoder(appsapi.SchemeGroupVersion)
 
-	// TODO automatically do this in appsv1 AddToScheme
-	utilruntime.Must(corev1.AddToScheme(annotationEncodingScheme))
-	utilruntime.Must(appsv1.AddToScheme(annotationEncodingScheme))
+	utilruntime.Must(appsv1.Install(annotationEncodingScheme))
 	// TODO eventually we shouldn't deal in internal versions, but for now decode into one.
 	utilruntime.Must(appsv1helpers.AddToScheme(annotationEncodingScheme))
 	utilruntime.Must(coreapi.AddToScheme(annotationEncodingScheme))

@@ -6,30 +6,30 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
-const (
-	GroupName       = "network.openshift.io"
-	LegacyGroupName = ""
-)
-
-// SchemeGroupVersion is group version used to register these objects
 var (
-	SchemeGroupVersion       = schema.GroupVersion{Group: GroupName, Version: "v1"}
-	LegacySchemeGroupVersion = schema.GroupVersion{Group: LegacyGroupName, Version: "v1"}
+	GroupName     = "network.openshift.io"
+	GroupVersion  = schema.GroupVersion{Group: GroupName, Version: "v1"}
+	schemeBuilder = runtime.NewSchemeBuilder(addKnownTypes)
+	// Install is a function which adds this version to a scheme
+	Install = schemeBuilder.AddToScheme
 
-	LegacySchemeBuilder    = runtime.NewSchemeBuilder(addLegacyKnownTypes)
-	AddToSchemeInCoreGroup = LegacySchemeBuilder.AddToScheme
-
-	SchemeBuilder = runtime.NewSchemeBuilder(addKnownTypes)
-	AddToScheme   = SchemeBuilder.AddToScheme
+	// SchemeGroupVersion generated code relies on this name
+	// Deprecated
+	SchemeGroupVersion = GroupVersion
+	// AddToScheme exists solely to keep the old generators creating valid code
+	// DEPRECATED
+	AddToScheme = schemeBuilder.AddToScheme
 )
 
+// Resource generated code relies on this being here, but it logically belongs to the group
+// DEPRECATED
 func Resource(resource string) schema.GroupResource {
-	return SchemeGroupVersion.WithResource(resource).GroupResource()
+	return schema.GroupResource{Group: GroupName, Resource: resource}
 }
 
 // Adds the list of known types to api.Scheme.
 func addKnownTypes(scheme *runtime.Scheme) error {
-	scheme.AddKnownTypes(SchemeGroupVersion,
+	scheme.AddKnownTypes(GroupVersion,
 		&ClusterNetwork{},
 		&ClusterNetworkList{},
 		&HostSubnet{},
@@ -39,22 +39,6 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&EgressNetworkPolicy{},
 		&EgressNetworkPolicyList{},
 	)
-	metav1.AddToGroupVersion(scheme, SchemeGroupVersion)
-	return nil
-}
-
-// Adds the list of known types to api.Scheme.
-func addLegacyKnownTypes(scheme *runtime.Scheme) error {
-	types := []runtime.Object{
-		&ClusterNetwork{},
-		&ClusterNetworkList{},
-		&HostSubnet{},
-		&HostSubnetList{},
-		&NetNamespace{},
-		&NetNamespaceList{},
-		&EgressNetworkPolicy{},
-		&EgressNetworkPolicyList{},
-	}
-	scheme.AddKnownTypes(LegacySchemeGroupVersion, types...)
+	metav1.AddToGroupVersion(scheme, GroupVersion)
 	return nil
 }

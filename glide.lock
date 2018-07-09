@@ -1,5 +1,5 @@
-hash: dc299575eef403e5400e45ba32694ab027a65eacf549615a6cfe5966114bc43d
-updated: 2018-07-03T14:23:31.835265-04:00
+hash: df63691eefa0455af08310071c1457c268b7d58f2ceb813c0c29d06ec75a5d3d
+updated: 2018-07-06T14:12:33.305926721-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -809,7 +809,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: 31a7bbd2266d178da3c12bb83f5274d387f775e6
+  version: 95626b0211df2ed778b4d68c3e9e61138677d315
   subpackages:
   - apps/v1
   - authorization/v1
@@ -957,7 +957,7 @@ imports:
   - pkg/operator/resource/resourcemerge
   - pkg/serviceability
 - name: github.com/openshift/service-serving-cert-signer
-  version: bcaddfdfbc37c5e7cd4656ecca269ca6b735e849
+  version: 4e91b73f7394df0fffb885c35ac9b517cc385d2e
   subpackages:
   - pkg/controller/servingcert
   - pkg/controller/servingcert/cryptoextensions
@@ -1060,7 +1060,7 @@ imports:
 - name: github.com/shurcooL/sanitized_anchor_name
   version: 10ef21a441db47d8b13ebcc5fd2310f636973c77
 - name: github.com/sirupsen/logrus
-  version: e54a77765aca7bbdd8e56c1c54f60579968b2dc9
+  version: 89742aefa4b206dcf400792f3bd35b542998eb3b
 - name: github.com/skynetservices/skydns
   version: 775ef406696380ce92b76e72421e86b6868905d8
   repo: https://github.com/openshift/skynetservices-skydns
@@ -1827,7 +1827,7 @@ imports:
   - pkg/util/proto/testing
   - pkg/util/proto/validation
 - name: k8s.io/kubernetes
-  version: d4cacc043ac762235e16cb7361d527cb4189393c
+  version: 5200705703cbf4abe250da3822f67e244e11d5b0
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/controller-manager/app
