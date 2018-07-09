@@ -922,11 +922,11 @@ func validateServiceAccount(client securityclientinternal.Interface, ns string, 
 	}
 
 	if hostNetwork {
-		errMsg := "service account %q is not allowed to access the host network on nodes, grant access with oc adm policy add-scc-to-user %s -z %s"
+		errMsg := "service account %q is not allowed to access the host network on nodes, grant access with: oc adm policy add-scc-to-user %s -z %s"
 		return fmt.Errorf(errMsg, serviceAccount, bootstrappolicy.SecurityContextConstraintsHostNetwork, serviceAccount)
 	}
 	if hostPorts {
-		errMsg := "service account %q is not allowed to access host ports on nodes, grant access with oc adm policy add-scc-to-user %s -z %s"
+		errMsg := "service account %q is not allowed to access host ports on nodes, grant access with: oc adm policy add-scc-to-user %s -z %s"
 		return fmt.Errorf(errMsg, serviceAccount, bootstrappolicy.SecurityContextConstraintsHostNetwork, serviceAccount)
 	}
 	return nil
