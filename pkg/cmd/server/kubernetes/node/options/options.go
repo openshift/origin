@@ -30,11 +30,9 @@ func ComputeKubeletFlags(startingArgs map[string][]string, options configapi.Nod
 	imageTemplate.Format = options.ImageConfig.Format
 	imageTemplate.Latest = options.ImageConfig.Latest
 
-	path := ""
-	var fileCheckInterval int64
 	if options.PodManifestConfig != nil {
-		path = options.PodManifestConfig.Path
-		fileCheckInterval = options.PodManifestConfig.FileCheckIntervalSeconds
+		setIfUnset(args, "pod-manifest-path", options.PodManifestConfig.Path)
+		setIfUnset(args, "file-check-frequency", fmt.Sprintf("%ds", options.PodManifestConfig.FileCheckIntervalSeconds))
 	}
 	kubeAddressStr, kubePortStr, err := net.SplitHostPort(options.ServingInfo.BindAddress)
 	if err != nil {
@@ -44,7 +42,6 @@ func ComputeKubeletFlags(startingArgs map[string][]string, options configapi.Nod
 	setIfUnset(args, "address", kubeAddressStr)
 	setIfUnset(args, "port", kubePortStr)
 	setIfUnset(args, "kubeconfig", options.MasterKubeConfig)
-	setIfUnset(args, "pod-manifest-path", path)
 	setIfUnset(args, "root-dir", options.VolumeDirectory)
 	setIfUnset(args, "node-ip", options.NodeIP)
 	setIfUnset(args, "hostname-override", options.NodeName)
@@ -61,7 +58,6 @@ func ComputeKubeletFlags(startingArgs map[string][]string, options configapi.Nod
 	setIfUnset(args, "host-pid-sources", "api", "file")
 	setIfUnset(args, "host-ipc-sources", "api", "file")
 	setIfUnset(args, "http-check-frequency", "0s") // no remote HTTP pod creation access
-	setIfUnset(args, "file-check-frequency", fmt.Sprintf("%ds", fileCheckInterval))
 	setIfUnset(args, "pod-infra-container-image", imageTemplate.ExpandOrDie("pod"))
 	setIfUnset(args, "max-pods", "250")
 	setIfUnset(args, "cgroup-driver", "systemd")
