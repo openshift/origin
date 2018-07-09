@@ -270,6 +270,8 @@
 // install/openshift-apiserver/install.yaml
 // install/openshift-controller-manager/install-rbac.yaml
 // install/openshift-controller-manager/install.yaml
+// install/openshift-docker-registry-operator/install-rbac.yaml
+// install/openshift-docker-registry-operator/install.yaml
 // install/openshift-web-console-operator/install-rbac.yaml
 // install/openshift-web-console-operator/install.yaml
 // install/origin-web-console/console-config.yaml
@@ -290,6 +292,7 @@ import (
 	"strings"
 	"time"
 )
+
 type asset struct {
 	bytes []byte
 	info  os.FileInfo
@@ -6768,7 +6771,7 @@ os::util::environment::setup_time_vars
 os::cleanup::tmpdir
 export JUNIT_REPORT_OUTPUT="${LOG_DIR}/raw_test_output.log"
 
-# use a subshell and `+"`"+`if`+"`"+` statement to prevent `+"`"+`exit`+"`"+` calls from killing this script
+# use a subshell and ` + "`" + `if` + "`" + ` statement to prevent ` + "`" + `exit` + "`" + ` calls from killing this script
 if ! ( './gssapi-tests.sh' ) 2>&1; then
     return_code=$?
 fi
@@ -28372,14 +28375,14 @@ objects:
       # and services to allow each to use different authentication configs.
       #
       # Kubernetes labels will be added as Prometheus labels on metrics via the
-      # `+"`"+`labelmap`+"`"+` relabeling action.
+      # ` + "`" + `labelmap` + "`" + ` relabeling action.
 
       # Scrape config for API servers.
       #
       # Kubernetes exposes API servers as endpoints to the default/kubernetes
-      # service so this uses `+"`"+`endpoints`+"`"+` role and uses relabelling to only keep
+      # service so this uses ` + "`" + `endpoints` + "`" + ` role and uses relabelling to only keep
       # the endpoints associated with the default/kubernetes service using the
-      # default named port `+"`"+`https`+"`"+`. This works for single API server deployments as
+      # default named port ` + "`" + `https` + "`" + `. This works for single API server deployments as
       # well as HA API server deployments.
       scrape_configs:
       - job_name: 'kubernetes-apiservers'
@@ -28494,11 +28497,11 @@ objects:
       # The relabeling allows the actual service scrape endpoint to be configured
       # via the following annotations:
       #
-      # * `+"`"+`prometheus.io/scrape`+"`"+`: Only scrape services that have a value of `+"`"+`true`+"`"+`
-      # * `+"`"+`prometheus.io/scheme`+"`"+`: If the metrics endpoint is secured then you will need
-      # to set this to `+"`"+`https`+"`"+` & most likely set the `+"`"+`tls_config`+"`"+` of the scrape config.
-      # * `+"`"+`prometheus.io/path`+"`"+`: If the metrics path is not `+"`"+`/metrics`+"`"+` override this.
-      # * `+"`"+`prometheus.io/port`+"`"+`: If the metrics are exposed on a different port to the
+      # * ` + "`" + `prometheus.io/scrape` + "`" + `: Only scrape services that have a value of ` + "`" + `true` + "`" + `
+      # * ` + "`" + `prometheus.io/scheme` + "`" + `: If the metrics endpoint is secured then you will need
+      # to set this to ` + "`" + `https` + "`" + ` & most likely set the ` + "`" + `tls_config` + "`" + ` of the scrape config.
+      # * ` + "`" + `prometheus.io/path` + "`" + `: If the metrics path is not ` + "`" + `/metrics` + "`" + ` override this.
+      # * ` + "`" + `prometheus.io/port` + "`" + `: If the metrics are exposed on a different port to the
       # service then set this appropriately.
       - job_name: 'kubernetes-service-endpoints'
 
@@ -32838,6 +32841,165 @@ func installOpenshiftControllerManagerInstallYaml() (*asset, error) {
 	return a, nil
 }
 
+var _installOpenshiftDockerRegistryOperatorInstallRbacYaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+parameters:
+- name: NAMESPACE
+  value: openshift-core-operators
+objects:
+
+# When we have an orchestrating operator
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRoleBinding
+  metadata:
+    name: system:openshift:operator:docker-registry
+  roleRef:
+    kind: ClusterRole
+    name: cluster-admin
+  subjects:
+  - kind: ServiceAccount
+    namespace: ${NAMESPACE}
+    name: openshift-docker-registry-operator
+`)
+
+func installOpenshiftDockerRegistryOperatorInstallRbacYamlBytes() ([]byte, error) {
+	return _installOpenshiftDockerRegistryOperatorInstallRbacYaml, nil
+}
+
+func installOpenshiftDockerRegistryOperatorInstallRbacYaml() (*asset, error) {
+	bytes, err := installOpenshiftDockerRegistryOperatorInstallRbacYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "install/openshift-docker-registry-operator/install-rbac.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _installOpenshiftDockerRegistryOperatorInstallYaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+parameters:
+- name: IMAGE
+  value: openshift/origin-hypershift:latest
+- name: OPENSHIFT_PULL_POLICY
+  value: Always
+- name: NAMESPACE
+  # This namespace must not be changed.
+  value: openshift-core-operators
+- name: LOGLEVEL
+  value: "0"
+- name: COMPONENT_LOGLEVEL
+  value: "0"
+- name: COMPONENT_IMAGE
+  value: openshift/docker-registry:latest
+- name: NODE_SELECTOR
+  value: "{}"
+objects:
+
+- apiVersion: apiextensions.k8s.io/v1beta1
+  kind: CustomResourceDefinition
+  metadata:
+    name: openshiftdockerregistryconfigs.dockerregistry.operator.openshift.io
+  spec:
+    scope: Cluster
+    group: dockerregistry.operator.openshift.io
+    version: v1alpha1
+    names:
+      kind: OpenShiftDockerRegistryConfig
+      plural: openshiftdockerregistryconfigs
+      singular: openshiftdockerregistryconfig
+    subresources:
+      status: {}
+
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    namespace: openshift-core-operators
+    name: openshift-docker-registry-operator-config
+  data:
+    operator-config.yaml: |
+      apiVersion: operator.openshift.io/v1alpha1
+      kind: GenericOperatorConfig
+
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    namespace: ${NAMESPACE}
+    name: openshift-docker-registry-operator
+    labels:
+      app: openshift-docker-registry-operator
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: openshift-docker-registry-operator
+    template:
+      metadata:
+        name: openshift-docker-registry-operator
+        labels:
+          app: openshift-docker-registry-operator
+      spec:
+        serviceAccountName: openshift-docker-registry-operator
+        containers:
+        - name: operator
+          image: ${IMAGE}
+          imagePullPolicy: ${OPENSHIFT_PULL_POLICY}
+          command: ["hypershift", "experimental", "openshift-docker-registry-operator"]
+          args:
+          - "--config=/var/run/configmaps/config/operator-config.yaml"
+          - "-v=${LOGLEVEL}"
+          volumeMounts:
+          - mountPath: /var/run/configmaps/config
+            name: config
+        nodeSelector: "${{NODE_SELECTOR}}"
+        volumes:
+        - name: serving-cert
+          secret:
+            defaultMode: 400
+            secretName: openshift-docker-registry-operator-serving-cert
+            optional: true
+        - name: config
+          configMap:
+            defaultMode: 440
+            name: openshift-docker-registry-operator-config
+
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    namespace: ${NAMESPACE}
+    name: openshift-docker-registry-operator
+    labels:
+      app: openshift-docker-registry-operator
+
+- apiVersion: dockerregistry.operator.openshift.io/v1alpha1
+  kind: OpenShiftDockerRegistryConfig
+  metadata:
+    name: instance
+  spec:
+    managementState: Managed
+    imagePullSpec: ${COMPONENT_IMAGE}
+    version: 3.10.0
+    logging:
+      level: ${{COMPONENT_LOGLEVEL}}
+    replicas: 1
+`)
+
+func installOpenshiftDockerRegistryOperatorInstallYamlBytes() ([]byte, error) {
+	return _installOpenshiftDockerRegistryOperatorInstallYaml, nil
+}
+
+func installOpenshiftDockerRegistryOperatorInstallYaml() (*asset, error) {
+	bytes, err := installOpenshiftDockerRegistryOperatorInstallYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "install/openshift-docker-registry-operator/install.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _installOpenshiftWebConsoleOperatorInstallRbacYaml = []byte(`apiVersion: template.openshift.io/v1
 kind: Template
 parameters:
@@ -33056,7 +33218,7 @@ parameters:
 - name: OPENSHIFT_PULL_POLICY
   value: Always
 - name: NAMESPACE
-  # This namespace cannot be changed. Only `+"`"+`openshift-web-console`+"`"+` is supported.
+  # This namespace cannot be changed. Only ` + "`" + `openshift-web-console` + "`" + ` is supported.
   value: openshift-web-console
 - name: LOGLEVEL
   value: "0"
@@ -33561,284 +33723,286 @@ func AssetNames() []string {
 
 // _bindata is a table, holding each asset generator, mapped to its name.
 var _bindata = map[string]func() (*asset, error){
-	"test/extended/testdata/aggregator/kube-system-auth-reader.yaml": testExtendedTestdataAggregatorKubeSystemAuthReaderYaml,
-	"test/extended/testdata/aggregator/sample-apiserver-apiservice.yaml": testExtendedTestdataAggregatorSampleApiserverApiserviceYaml,
-	"test/extended/testdata/aggregator/sample-apiserver-authdelegator.yaml": testExtendedTestdataAggregatorSampleApiserverAuthdelegatorYaml,
-	"test/extended/testdata/aggregator/sample-apiserver-authreader.yaml": testExtendedTestdataAggregatorSampleApiserverAuthreaderYaml,
-	"test/extended/testdata/aggregator/sample-apiserver-rc.yaml": testExtendedTestdataAggregatorSampleApiserverRcYaml,
-	"test/extended/testdata/aggregator/sample-apiserver-sa.yaml": testExtendedTestdataAggregatorSampleApiserverSaYaml,
-	"test/extended/testdata/aggregator/sample-apiserver-service.yaml": testExtendedTestdataAggregatorSampleApiserverServiceYaml,
-	"test/extended/testdata/builds/build-pruning/default-group-build-config.yaml": testExtendedTestdataBuildsBuildPruningDefaultGroupBuildConfigYaml,
-	"test/extended/testdata/builds/build-pruning/default-legacy-build-config.yaml": testExtendedTestdataBuildsBuildPruningDefaultLegacyBuildConfigYaml,
-	"test/extended/testdata/builds/build-pruning/errored-build-config.yaml": testExtendedTestdataBuildsBuildPruningErroredBuildConfigYaml,
-	"test/extended/testdata/builds/build-pruning/failed-build-config.yaml": testExtendedTestdataBuildsBuildPruningFailedBuildConfigYaml,
-	"test/extended/testdata/builds/build-pruning/failed-pipeline.yaml": testExtendedTestdataBuildsBuildPruningFailedPipelineYaml,
-	"test/extended/testdata/builds/build-pruning/imagestream.yaml": testExtendedTestdataBuildsBuildPruningImagestreamYaml,
-	"test/extended/testdata/builds/build-pruning/successful-build-config.yaml": testExtendedTestdataBuildsBuildPruningSuccessfulBuildConfigYaml,
-	"test/extended/testdata/builds/build-pruning/successful-pipeline.yaml": testExtendedTestdataBuildsBuildPruningSuccessfulPipelineYaml,
-	"test/extended/testdata/builds/build-quota/.s2i/bin/assemble": testExtendedTestdataBuildsBuildQuotaS2iBinAssemble,
-	"test/extended/testdata/builds/build-quota/Dockerfile": testExtendedTestdataBuildsBuildQuotaDockerfile,
-	"test/extended/testdata/builds/build-secrets/Dockerfile": testExtendedTestdataBuildsBuildSecretsDockerfile,
-	"test/extended/testdata/builds/build-secrets/s2i-binary-dir/.s2i/bin/assemble": testExtendedTestdataBuildsBuildSecretsS2iBinaryDirS2iBinAssemble,
-	"test/extended/testdata/builds/build-secrets/s2i-binary-dir/.s2i/bin/run": testExtendedTestdataBuildsBuildSecretsS2iBinaryDirS2iBinRun,
-	"test/extended/testdata/builds/build-secrets/s2i-binary-dir/Gemfile": testExtendedTestdataBuildsBuildSecretsS2iBinaryDirGemfile,
-	"test/extended/testdata/builds/build-secrets/s2i-binary-dir/config.ru": testExtendedTestdataBuildsBuildSecretsS2iBinaryDirConfigRu,
-	"test/extended/testdata/builds/build-secrets/test-configmap-2.json": testExtendedTestdataBuildsBuildSecretsTestConfigmap2Json,
-	"test/extended/testdata/builds/build-secrets/test-configmap.json": testExtendedTestdataBuildsBuildSecretsTestConfigmapJson,
-	"test/extended/testdata/builds/build-secrets/test-docker-build.json": testExtendedTestdataBuildsBuildSecretsTestDockerBuildJson,
-	"test/extended/testdata/builds/build-secrets/test-is.json": testExtendedTestdataBuildsBuildSecretsTestIsJson,
-	"test/extended/testdata/builds/build-secrets/test-s2i-build.json": testExtendedTestdataBuildsBuildSecretsTestS2iBuildJson,
-	"test/extended/testdata/builds/build-secrets/test-secret-2.json": testExtendedTestdataBuildsBuildSecretsTestSecret2Json,
-	"test/extended/testdata/builds/build-secrets/test-secret.json": testExtendedTestdataBuildsBuildSecretsTestSecretJson,
-	"test/extended/testdata/builds/build-timing/Dockerfile": testExtendedTestdataBuildsBuildTimingDockerfile,
-	"test/extended/testdata/builds/build-timing/s2i-binary-dir/.s2i/bin/assemble": testExtendedTestdataBuildsBuildTimingS2iBinaryDirS2iBinAssemble,
-	"test/extended/testdata/builds/build-timing/s2i-binary-dir/.s2i/bin/run": testExtendedTestdataBuildsBuildTimingS2iBinaryDirS2iBinRun,
-	"test/extended/testdata/builds/build-timing/s2i-binary-dir/Gemfile": testExtendedTestdataBuildsBuildTimingS2iBinaryDirGemfile,
-	"test/extended/testdata/builds/build-timing/s2i-binary-dir/config.ru": testExtendedTestdataBuildsBuildTimingS2iBinaryDirConfigRu,
-	"test/extended/testdata/builds/build-timing/test-docker-build.json": testExtendedTestdataBuildsBuildTimingTestDockerBuildJson,
-	"test/extended/testdata/builds/build-timing/test-is.json": testExtendedTestdataBuildsBuildTimingTestIsJson,
-	"test/extended/testdata/builds/build-timing/test-s2i-build.json": testExtendedTestdataBuildsBuildTimingTestS2iBuildJson,
-	"test/extended/testdata/builds/gradle-pipeline.yaml": testExtendedTestdataBuildsGradlePipelineYaml,
-	"test/extended/testdata/builds/incremental-auth-build.json": testExtendedTestdataBuildsIncrementalAuthBuildJson,
-	"test/extended/testdata/builds/statusfail-assemble/.s2i/bin/assemble": testExtendedTestdataBuildsStatusfailAssembleS2iBinAssemble,
-	"test/extended/testdata/builds/statusfail-badcontextdirs2i.yaml": testExtendedTestdataBuildsStatusfailBadcontextdirs2iYaml,
-	"test/extended/testdata/builds/statusfail-failedassemble.yaml": testExtendedTestdataBuildsStatusfailFailedassembleYaml,
-	"test/extended/testdata/builds/statusfail-fetchbuilderimage.yaml": testExtendedTestdataBuildsStatusfailFetchbuilderimageYaml,
-	"test/extended/testdata/builds/statusfail-fetchsourcedocker.yaml": testExtendedTestdataBuildsStatusfailFetchsourcedockerYaml,
-	"test/extended/testdata/builds/statusfail-fetchsources2i.yaml": testExtendedTestdataBuildsStatusfailFetchsources2iYaml,
-	"test/extended/testdata/builds/statusfail-genericreason.yaml": testExtendedTestdataBuildsStatusfailGenericreasonYaml,
-	"test/extended/testdata/builds/statusfail-postcommithook.yaml": testExtendedTestdataBuildsStatusfailPostcommithookYaml,
-	"test/extended/testdata/builds/statusfail-pushtoregistry.yaml": testExtendedTestdataBuildsStatusfailPushtoregistryYaml,
-	"test/extended/testdata/builds/sti-environment-build-app/.sti/environment": testExtendedTestdataBuildsStiEnvironmentBuildAppStiEnvironment,
-	"test/extended/testdata/builds/sti-environment-build-app/Gemfile": testExtendedTestdataBuildsStiEnvironmentBuildAppGemfile,
-	"test/extended/testdata/builds/sti-environment-build-app/config.ru": testExtendedTestdataBuildsStiEnvironmentBuildAppConfigRu,
-	"test/extended/testdata/builds/test-auth-build.yaml": testExtendedTestdataBuildsTestAuthBuildYaml,
-	"test/extended/testdata/builds/test-bc-with-pr-ref.yaml": testExtendedTestdataBuildsTestBcWithPrRefYaml,
-	"test/extended/testdata/builds/test-build-app/Dockerfile": testExtendedTestdataBuildsTestBuildAppDockerfile,
-	"test/extended/testdata/builds/test-build-app/Gemfile": testExtendedTestdataBuildsTestBuildAppGemfile,
-	"test/extended/testdata/builds/test-build-app/config.ru": testExtendedTestdataBuildsTestBuildAppConfigRu,
-	"test/extended/testdata/builds/test-build-podsvc.json": testExtendedTestdataBuildsTestBuildPodsvcJson,
-	"test/extended/testdata/builds/test-build-postcommit.json": testExtendedTestdataBuildsTestBuildPostcommitJson,
-	"test/extended/testdata/builds/test-build-proxy.yaml": testExtendedTestdataBuildsTestBuildProxyYaml,
-	"test/extended/testdata/builds/test-build-revision.json": testExtendedTestdataBuildsTestBuildRevisionJson,
-	"test/extended/testdata/builds/test-build.yaml": testExtendedTestdataBuildsTestBuildYaml,
-	"test/extended/testdata/builds/test-buildconfigsecretinjector.yaml": testExtendedTestdataBuildsTestBuildconfigsecretinjectorYaml,
-	"test/extended/testdata/builds/test-cds-dockerbuild.json": testExtendedTestdataBuildsTestCdsDockerbuildJson,
-	"test/extended/testdata/builds/test-cds-sourcebuild.json": testExtendedTestdataBuildsTestCdsSourcebuildJson,
-	"test/extended/testdata/builds/test-context-build.json": testExtendedTestdataBuildsTestContextBuildJson,
-	"test/extended/testdata/builds/test-docker-build-pullsecret.json": testExtendedTestdataBuildsTestDockerBuildPullsecretJson,
-	"test/extended/testdata/builds/test-docker-build-quota-optimized.json": testExtendedTestdataBuildsTestDockerBuildQuotaOptimizedJson,
-	"test/extended/testdata/builds/test-docker-build-quota.json": testExtendedTestdataBuildsTestDockerBuildQuotaJson,
-	"test/extended/testdata/builds/test-docker-build.json": testExtendedTestdataBuildsTestDockerBuildJson,
-	"test/extended/testdata/builds/test-docker-no-outputname.json": testExtendedTestdataBuildsTestDockerNoOutputnameJson,
-	"test/extended/testdata/builds/test-env-build.json": testExtendedTestdataBuildsTestEnvBuildJson,
-	"test/extended/testdata/builds/test-imagechangetriggers.yaml": testExtendedTestdataBuildsTestImagechangetriggersYaml,
-	"test/extended/testdata/builds/test-imageresolution-custom-build.yaml": testExtendedTestdataBuildsTestImageresolutionCustomBuildYaml,
-	"test/extended/testdata/builds/test-imageresolution-docker-build.yaml": testExtendedTestdataBuildsTestImageresolutionDockerBuildYaml,
-	"test/extended/testdata/builds/test-imageresolution-s2i-build.yaml": testExtendedTestdataBuildsTestImageresolutionS2iBuildYaml,
-	"test/extended/testdata/builds/test-imagesource-buildconfig.yaml": testExtendedTestdataBuildsTestImagesourceBuildconfigYaml,
-	"test/extended/testdata/builds/test-nosrc-build.json": testExtendedTestdataBuildsTestNosrcBuildJson,
-	"test/extended/testdata/builds/test-s2i-build-quota.json": testExtendedTestdataBuildsTestS2iBuildQuotaJson,
-	"test/extended/testdata/builds/test-s2i-build.json": testExtendedTestdataBuildsTestS2iBuildJson,
-	"test/extended/testdata/builds/test-s2i-no-outputname.json": testExtendedTestdataBuildsTestS2iNoOutputnameJson,
-	"test/extended/testdata/builds/valuefrom/failed-docker-build-value-from-config.yaml": testExtendedTestdataBuildsValuefromFailedDockerBuildValueFromConfigYaml,
-	"test/extended/testdata/builds/valuefrom/failed-sti-build-value-from-config.yaml": testExtendedTestdataBuildsValuefromFailedStiBuildValueFromConfigYaml,
+	"test/extended/testdata/aggregator/kube-system-auth-reader.yaml":                         testExtendedTestdataAggregatorKubeSystemAuthReaderYaml,
+	"test/extended/testdata/aggregator/sample-apiserver-apiservice.yaml":                     testExtendedTestdataAggregatorSampleApiserverApiserviceYaml,
+	"test/extended/testdata/aggregator/sample-apiserver-authdelegator.yaml":                  testExtendedTestdataAggregatorSampleApiserverAuthdelegatorYaml,
+	"test/extended/testdata/aggregator/sample-apiserver-authreader.yaml":                     testExtendedTestdataAggregatorSampleApiserverAuthreaderYaml,
+	"test/extended/testdata/aggregator/sample-apiserver-rc.yaml":                             testExtendedTestdataAggregatorSampleApiserverRcYaml,
+	"test/extended/testdata/aggregator/sample-apiserver-sa.yaml":                             testExtendedTestdataAggregatorSampleApiserverSaYaml,
+	"test/extended/testdata/aggregator/sample-apiserver-service.yaml":                        testExtendedTestdataAggregatorSampleApiserverServiceYaml,
+	"test/extended/testdata/builds/build-pruning/default-group-build-config.yaml":            testExtendedTestdataBuildsBuildPruningDefaultGroupBuildConfigYaml,
+	"test/extended/testdata/builds/build-pruning/default-legacy-build-config.yaml":           testExtendedTestdataBuildsBuildPruningDefaultLegacyBuildConfigYaml,
+	"test/extended/testdata/builds/build-pruning/errored-build-config.yaml":                  testExtendedTestdataBuildsBuildPruningErroredBuildConfigYaml,
+	"test/extended/testdata/builds/build-pruning/failed-build-config.yaml":                   testExtendedTestdataBuildsBuildPruningFailedBuildConfigYaml,
+	"test/extended/testdata/builds/build-pruning/failed-pipeline.yaml":                       testExtendedTestdataBuildsBuildPruningFailedPipelineYaml,
+	"test/extended/testdata/builds/build-pruning/imagestream.yaml":                           testExtendedTestdataBuildsBuildPruningImagestreamYaml,
+	"test/extended/testdata/builds/build-pruning/successful-build-config.yaml":               testExtendedTestdataBuildsBuildPruningSuccessfulBuildConfigYaml,
+	"test/extended/testdata/builds/build-pruning/successful-pipeline.yaml":                   testExtendedTestdataBuildsBuildPruningSuccessfulPipelineYaml,
+	"test/extended/testdata/builds/build-quota/.s2i/bin/assemble":                            testExtendedTestdataBuildsBuildQuotaS2iBinAssemble,
+	"test/extended/testdata/builds/build-quota/Dockerfile":                                   testExtendedTestdataBuildsBuildQuotaDockerfile,
+	"test/extended/testdata/builds/build-secrets/Dockerfile":                                 testExtendedTestdataBuildsBuildSecretsDockerfile,
+	"test/extended/testdata/builds/build-secrets/s2i-binary-dir/.s2i/bin/assemble":           testExtendedTestdataBuildsBuildSecretsS2iBinaryDirS2iBinAssemble,
+	"test/extended/testdata/builds/build-secrets/s2i-binary-dir/.s2i/bin/run":                testExtendedTestdataBuildsBuildSecretsS2iBinaryDirS2iBinRun,
+	"test/extended/testdata/builds/build-secrets/s2i-binary-dir/Gemfile":                     testExtendedTestdataBuildsBuildSecretsS2iBinaryDirGemfile,
+	"test/extended/testdata/builds/build-secrets/s2i-binary-dir/config.ru":                   testExtendedTestdataBuildsBuildSecretsS2iBinaryDirConfigRu,
+	"test/extended/testdata/builds/build-secrets/test-configmap-2.json":                      testExtendedTestdataBuildsBuildSecretsTestConfigmap2Json,
+	"test/extended/testdata/builds/build-secrets/test-configmap.json":                        testExtendedTestdataBuildsBuildSecretsTestConfigmapJson,
+	"test/extended/testdata/builds/build-secrets/test-docker-build.json":                     testExtendedTestdataBuildsBuildSecretsTestDockerBuildJson,
+	"test/extended/testdata/builds/build-secrets/test-is.json":                               testExtendedTestdataBuildsBuildSecretsTestIsJson,
+	"test/extended/testdata/builds/build-secrets/test-s2i-build.json":                        testExtendedTestdataBuildsBuildSecretsTestS2iBuildJson,
+	"test/extended/testdata/builds/build-secrets/test-secret-2.json":                         testExtendedTestdataBuildsBuildSecretsTestSecret2Json,
+	"test/extended/testdata/builds/build-secrets/test-secret.json":                           testExtendedTestdataBuildsBuildSecretsTestSecretJson,
+	"test/extended/testdata/builds/build-timing/Dockerfile":                                  testExtendedTestdataBuildsBuildTimingDockerfile,
+	"test/extended/testdata/builds/build-timing/s2i-binary-dir/.s2i/bin/assemble":            testExtendedTestdataBuildsBuildTimingS2iBinaryDirS2iBinAssemble,
+	"test/extended/testdata/builds/build-timing/s2i-binary-dir/.s2i/bin/run":                 testExtendedTestdataBuildsBuildTimingS2iBinaryDirS2iBinRun,
+	"test/extended/testdata/builds/build-timing/s2i-binary-dir/Gemfile":                      testExtendedTestdataBuildsBuildTimingS2iBinaryDirGemfile,
+	"test/extended/testdata/builds/build-timing/s2i-binary-dir/config.ru":                    testExtendedTestdataBuildsBuildTimingS2iBinaryDirConfigRu,
+	"test/extended/testdata/builds/build-timing/test-docker-build.json":                      testExtendedTestdataBuildsBuildTimingTestDockerBuildJson,
+	"test/extended/testdata/builds/build-timing/test-is.json":                                testExtendedTestdataBuildsBuildTimingTestIsJson,
+	"test/extended/testdata/builds/build-timing/test-s2i-build.json":                         testExtendedTestdataBuildsBuildTimingTestS2iBuildJson,
+	"test/extended/testdata/builds/gradle-pipeline.yaml":                                     testExtendedTestdataBuildsGradlePipelineYaml,
+	"test/extended/testdata/builds/incremental-auth-build.json":                              testExtendedTestdataBuildsIncrementalAuthBuildJson,
+	"test/extended/testdata/builds/statusfail-assemble/.s2i/bin/assemble":                    testExtendedTestdataBuildsStatusfailAssembleS2iBinAssemble,
+	"test/extended/testdata/builds/statusfail-badcontextdirs2i.yaml":                         testExtendedTestdataBuildsStatusfailBadcontextdirs2iYaml,
+	"test/extended/testdata/builds/statusfail-failedassemble.yaml":                           testExtendedTestdataBuildsStatusfailFailedassembleYaml,
+	"test/extended/testdata/builds/statusfail-fetchbuilderimage.yaml":                        testExtendedTestdataBuildsStatusfailFetchbuilderimageYaml,
+	"test/extended/testdata/builds/statusfail-fetchsourcedocker.yaml":                        testExtendedTestdataBuildsStatusfailFetchsourcedockerYaml,
+	"test/extended/testdata/builds/statusfail-fetchsources2i.yaml":                           testExtendedTestdataBuildsStatusfailFetchsources2iYaml,
+	"test/extended/testdata/builds/statusfail-genericreason.yaml":                            testExtendedTestdataBuildsStatusfailGenericreasonYaml,
+	"test/extended/testdata/builds/statusfail-postcommithook.yaml":                           testExtendedTestdataBuildsStatusfailPostcommithookYaml,
+	"test/extended/testdata/builds/statusfail-pushtoregistry.yaml":                           testExtendedTestdataBuildsStatusfailPushtoregistryYaml,
+	"test/extended/testdata/builds/sti-environment-build-app/.sti/environment":               testExtendedTestdataBuildsStiEnvironmentBuildAppStiEnvironment,
+	"test/extended/testdata/builds/sti-environment-build-app/Gemfile":                        testExtendedTestdataBuildsStiEnvironmentBuildAppGemfile,
+	"test/extended/testdata/builds/sti-environment-build-app/config.ru":                      testExtendedTestdataBuildsStiEnvironmentBuildAppConfigRu,
+	"test/extended/testdata/builds/test-auth-build.yaml":                                     testExtendedTestdataBuildsTestAuthBuildYaml,
+	"test/extended/testdata/builds/test-bc-with-pr-ref.yaml":                                 testExtendedTestdataBuildsTestBcWithPrRefYaml,
+	"test/extended/testdata/builds/test-build-app/Dockerfile":                                testExtendedTestdataBuildsTestBuildAppDockerfile,
+	"test/extended/testdata/builds/test-build-app/Gemfile":                                   testExtendedTestdataBuildsTestBuildAppGemfile,
+	"test/extended/testdata/builds/test-build-app/config.ru":                                 testExtendedTestdataBuildsTestBuildAppConfigRu,
+	"test/extended/testdata/builds/test-build-podsvc.json":                                   testExtendedTestdataBuildsTestBuildPodsvcJson,
+	"test/extended/testdata/builds/test-build-postcommit.json":                               testExtendedTestdataBuildsTestBuildPostcommitJson,
+	"test/extended/testdata/builds/test-build-proxy.yaml":                                    testExtendedTestdataBuildsTestBuildProxyYaml,
+	"test/extended/testdata/builds/test-build-revision.json":                                 testExtendedTestdataBuildsTestBuildRevisionJson,
+	"test/extended/testdata/builds/test-build.yaml":                                          testExtendedTestdataBuildsTestBuildYaml,
+	"test/extended/testdata/builds/test-buildconfigsecretinjector.yaml":                      testExtendedTestdataBuildsTestBuildconfigsecretinjectorYaml,
+	"test/extended/testdata/builds/test-cds-dockerbuild.json":                                testExtendedTestdataBuildsTestCdsDockerbuildJson,
+	"test/extended/testdata/builds/test-cds-sourcebuild.json":                                testExtendedTestdataBuildsTestCdsSourcebuildJson,
+	"test/extended/testdata/builds/test-context-build.json":                                  testExtendedTestdataBuildsTestContextBuildJson,
+	"test/extended/testdata/builds/test-docker-build-pullsecret.json":                        testExtendedTestdataBuildsTestDockerBuildPullsecretJson,
+	"test/extended/testdata/builds/test-docker-build-quota-optimized.json":                   testExtendedTestdataBuildsTestDockerBuildQuotaOptimizedJson,
+	"test/extended/testdata/builds/test-docker-build-quota.json":                             testExtendedTestdataBuildsTestDockerBuildQuotaJson,
+	"test/extended/testdata/builds/test-docker-build.json":                                   testExtendedTestdataBuildsTestDockerBuildJson,
+	"test/extended/testdata/builds/test-docker-no-outputname.json":                           testExtendedTestdataBuildsTestDockerNoOutputnameJson,
+	"test/extended/testdata/builds/test-env-build.json":                                      testExtendedTestdataBuildsTestEnvBuildJson,
+	"test/extended/testdata/builds/test-imagechangetriggers.yaml":                            testExtendedTestdataBuildsTestImagechangetriggersYaml,
+	"test/extended/testdata/builds/test-imageresolution-custom-build.yaml":                   testExtendedTestdataBuildsTestImageresolutionCustomBuildYaml,
+	"test/extended/testdata/builds/test-imageresolution-docker-build.yaml":                   testExtendedTestdataBuildsTestImageresolutionDockerBuildYaml,
+	"test/extended/testdata/builds/test-imageresolution-s2i-build.yaml":                      testExtendedTestdataBuildsTestImageresolutionS2iBuildYaml,
+	"test/extended/testdata/builds/test-imagesource-buildconfig.yaml":                        testExtendedTestdataBuildsTestImagesourceBuildconfigYaml,
+	"test/extended/testdata/builds/test-nosrc-build.json":                                    testExtendedTestdataBuildsTestNosrcBuildJson,
+	"test/extended/testdata/builds/test-s2i-build-quota.json":                                testExtendedTestdataBuildsTestS2iBuildQuotaJson,
+	"test/extended/testdata/builds/test-s2i-build.json":                                      testExtendedTestdataBuildsTestS2iBuildJson,
+	"test/extended/testdata/builds/test-s2i-no-outputname.json":                              testExtendedTestdataBuildsTestS2iNoOutputnameJson,
+	"test/extended/testdata/builds/valuefrom/failed-docker-build-value-from-config.yaml":     testExtendedTestdataBuildsValuefromFailedDockerBuildValueFromConfigYaml,
+	"test/extended/testdata/builds/valuefrom/failed-sti-build-value-from-config.yaml":        testExtendedTestdataBuildsValuefromFailedStiBuildValueFromConfigYaml,
 	"test/extended/testdata/builds/valuefrom/successful-docker-build-value-from-config.yaml": testExtendedTestdataBuildsValuefromSuccessfulDockerBuildValueFromConfigYaml,
-	"test/extended/testdata/builds/valuefrom/successful-sti-build-value-from-config.yaml": testExtendedTestdataBuildsValuefromSuccessfulStiBuildValueFromConfigYaml,
-	"test/extended/testdata/builds/valuefrom/test-configmap.yaml": testExtendedTestdataBuildsValuefromTestConfigmapYaml,
-	"test/extended/testdata/builds/valuefrom/test-is.json": testExtendedTestdataBuildsValuefromTestIsJson,
-	"test/extended/testdata/builds/valuefrom/test-secret.yaml": testExtendedTestdataBuildsValuefromTestSecretYaml,
-	"test/extended/testdata/cluster/master-vert.yaml": testExtendedTestdataClusterMasterVertYaml,
-	"test/extended/testdata/config-map-jenkins-slave-pods.yaml": testExtendedTestdataConfigMapJenkinsSlavePodsYaml,
-	"test/extended/testdata/custom-secret-builder/Dockerfile": testExtendedTestdataCustomSecretBuilderDockerfile,
-	"test/extended/testdata/custom-secret-builder/build.sh": testExtendedTestdataCustomSecretBuilderBuildSh,
-	"test/extended/testdata/deployments/custom-deployment.yaml": testExtendedTestdataDeploymentsCustomDeploymentYaml,
-	"test/extended/testdata/deployments/deployment-example.yaml": testExtendedTestdataDeploymentsDeploymentExampleYaml,
-	"test/extended/testdata/deployments/deployment-history-limit.yaml": testExtendedTestdataDeploymentsDeploymentHistoryLimitYaml,
-	"test/extended/testdata/deployments/deployment-ignores-deployer.yaml": testExtendedTestdataDeploymentsDeploymentIgnoresDeployerYaml,
-	"test/extended/testdata/deployments/deployment-image-resolution-is.yaml": testExtendedTestdataDeploymentsDeploymentImageResolutionIsYaml,
-	"test/extended/testdata/deployments/deployment-image-resolution.yaml": testExtendedTestdataDeploymentsDeploymentImageResolutionYaml,
-	"test/extended/testdata/deployments/deployment-min-ready-seconds.yaml": testExtendedTestdataDeploymentsDeploymentMinReadySecondsYaml,
-	"test/extended/testdata/deployments/deployment-simple.yaml": testExtendedTestdataDeploymentsDeploymentSimpleYaml,
-	"test/extended/testdata/deployments/deployment-trigger.yaml": testExtendedTestdataDeploymentsDeploymentTriggerYaml,
-	"test/extended/testdata/deployments/deployment-with-ref-env.yaml": testExtendedTestdataDeploymentsDeploymentWithRefEnvYaml,
-	"test/extended/testdata/deployments/failing-pre-hook.yaml": testExtendedTestdataDeploymentsFailingPreHookYaml,
-	"test/extended/testdata/deployments/generation-test.yaml": testExtendedTestdataDeploymentsGenerationTestYaml,
-	"test/extended/testdata/deployments/multi-ict-deployment.yaml": testExtendedTestdataDeploymentsMultiIctDeploymentYaml,
-	"test/extended/testdata/deployments/paused-deployment.yaml": testExtendedTestdataDeploymentsPausedDeploymentYaml,
-	"test/extended/testdata/deployments/readiness-test.yaml": testExtendedTestdataDeploymentsReadinessTestYaml,
-	"test/extended/testdata/deployments/tag-images-deployment.yaml": testExtendedTestdataDeploymentsTagImagesDeploymentYaml,
-	"test/extended/testdata/deployments/test-deployment-broken.yaml": testExtendedTestdataDeploymentsTestDeploymentBrokenYaml,
-	"test/extended/testdata/deployments/test-deployment-test.yaml": testExtendedTestdataDeploymentsTestDeploymentTestYaml,
-	"test/extended/testdata/forcepull-test.json": testExtendedTestdataForcepullTestJson,
-	"test/extended/testdata/gssapi/config/kubeconfig": testExtendedTestdataGssapiConfigKubeconfig,
-	"test/extended/testdata/gssapi/config/oauth_config.json": testExtendedTestdataGssapiConfigOauth_configJson,
-	"test/extended/testdata/gssapi/fedora/base/Dockerfile": testExtendedTestdataGssapiFedoraBaseDockerfile,
-	"test/extended/testdata/gssapi/fedora/kerberos/Dockerfile": testExtendedTestdataGssapiFedoraKerberosDockerfile,
-	"test/extended/testdata/gssapi/fedora/kerberos_configured/Dockerfile": testExtendedTestdataGssapiFedoraKerberos_configuredDockerfile,
-	"test/extended/testdata/gssapi/proxy/Dockerfile": testExtendedTestdataGssapiProxyDockerfile,
-	"test/extended/testdata/gssapi/proxy/configure.sh": testExtendedTestdataGssapiProxyConfigureSh,
-	"test/extended/testdata/gssapi/proxy/gssapiproxy-buildconfig.yaml": testExtendedTestdataGssapiProxyGssapiproxyBuildconfigYaml,
-	"test/extended/testdata/gssapi/proxy/gssapiproxy-deploymentconfig.yaml": testExtendedTestdataGssapiProxyGssapiproxyDeploymentconfigYaml,
-	"test/extended/testdata/gssapi/proxy/gssapiproxy-imagestream.yaml": testExtendedTestdataGssapiProxyGssapiproxyImagestreamYaml,
-	"test/extended/testdata/gssapi/proxy/gssapiproxy-service.yaml": testExtendedTestdataGssapiProxyGssapiproxyServiceYaml,
-	"test/extended/testdata/gssapi/proxy/healthz": testExtendedTestdataGssapiProxyHealthz,
-	"test/extended/testdata/gssapi/proxy/kadm5.acl": testExtendedTestdataGssapiProxyKadm5Acl,
-	"test/extended/testdata/gssapi/proxy/kdc.conf": testExtendedTestdataGssapiProxyKdcConf,
-	"test/extended/testdata/gssapi/proxy/krb5.conf": testExtendedTestdataGssapiProxyKrb5Conf,
-	"test/extended/testdata/gssapi/proxy/proxy.conf": testExtendedTestdataGssapiProxyProxyConf,
-	"test/extended/testdata/gssapi/scripts/gssapi-tests.sh": testExtendedTestdataGssapiScriptsGssapiTestsSh,
-	"test/extended/testdata/gssapi/scripts/test-wrapper.sh": testExtendedTestdataGssapiScriptsTestWrapperSh,
-	"test/extended/testdata/gssapi/ubuntu/base/Dockerfile": testExtendedTestdataGssapiUbuntuBaseDockerfile,
-	"test/extended/testdata/gssapi/ubuntu/kerberos/Dockerfile": testExtendedTestdataGssapiUbuntuKerberosDockerfile,
-	"test/extended/testdata/gssapi/ubuntu/kerberos_configured/Dockerfile": testExtendedTestdataGssapiUbuntuKerberos_configuredDockerfile,
-	"test/extended/testdata/hello-builder/Dockerfile": testExtendedTestdataHelloBuilderDockerfile,
-	"test/extended/testdata/hello-builder/scripts/assemble": testExtendedTestdataHelloBuilderScriptsAssemble,
-	"test/extended/testdata/hello-builder/scripts/run": testExtendedTestdataHelloBuilderScriptsRun,
-	"test/extended/testdata/idling-echo-server-rc.yaml": testExtendedTestdataIdlingEchoServerRcYaml,
-	"test/extended/testdata/idling-echo-server.yaml": testExtendedTestdataIdlingEchoServerYaml,
-	"test/extended/testdata/image/deployment-with-annotation-trigger.yaml": testExtendedTestdataImageDeploymentWithAnnotationTriggerYaml,
-	"test/extended/testdata/image-pull-secrets/dc-with-new-pull-secret.yaml": testExtendedTestdataImagePullSecretsDcWithNewPullSecretYaml,
-	"test/extended/testdata/image-pull-secrets/dc-with-old-pull-secret.yaml": testExtendedTestdataImagePullSecretsDcWithOldPullSecretYaml,
-	"test/extended/testdata/image-pull-secrets/pod-with-new-pull-secret.yaml": testExtendedTestdataImagePullSecretsPodWithNewPullSecretYaml,
-	"test/extended/testdata/image-pull-secrets/pod-with-no-pull-secret.yaml": testExtendedTestdataImagePullSecretsPodWithNoPullSecretYaml,
-	"test/extended/testdata/image-pull-secrets/pod-with-old-pull-secret.yaml": testExtendedTestdataImagePullSecretsPodWithOldPullSecretYaml,
-	"test/extended/testdata/image_ecosystem/perl-hotdeploy/index.pl": testExtendedTestdataImage_ecosystemPerlHotdeployIndexPl,
-	"test/extended/testdata/image_ecosystem/perl-hotdeploy/lib/My/Test.pm": testExtendedTestdataImage_ecosystemPerlHotdeployLibMyTestPm,
-	"test/extended/testdata/image_ecosystem/perl-hotdeploy/perl.json": testExtendedTestdataImage_ecosystemPerlHotdeployPerlJson,
-	"test/extended/testdata/imagestream-jenkins-slave-pods.yaml": testExtendedTestdataImagestreamJenkinsSlavePodsYaml,
-	"test/extended/testdata/imagestreamtag-jenkins-slave-pods.yaml": testExtendedTestdataImagestreamtagJenkinsSlavePodsYaml,
-	"test/extended/testdata/ingress.yaml": testExtendedTestdataIngressYaml,
-	"test/extended/testdata/jenkins-plugin/build-job-clone.xml": testExtendedTestdataJenkinsPluginBuildJobCloneXml,
-	"test/extended/testdata/jenkins-plugin/build-job-slave.xml": testExtendedTestdataJenkinsPluginBuildJobSlaveXml,
-	"test/extended/testdata/jenkins-plugin/build-job.xml": testExtendedTestdataJenkinsPluginBuildJobXml,
-	"test/extended/testdata/jenkins-plugin/build-with-env-job.xml": testExtendedTestdataJenkinsPluginBuildWithEnvJobXml,
-	"test/extended/testdata/jenkins-plugin/build-with-exec-steps.xml": testExtendedTestdataJenkinsPluginBuildWithExecStepsXml,
-	"test/extended/testdata/jenkins-plugin/create-job.xml": testExtendedTestdataJenkinsPluginCreateJobXml,
-	"test/extended/testdata/jenkins-plugin/delete-job-keys.xml": testExtendedTestdataJenkinsPluginDeleteJobKeysXml,
-	"test/extended/testdata/jenkins-plugin/delete-job-labels.xml": testExtendedTestdataJenkinsPluginDeleteJobLabelsXml,
-	"test/extended/testdata/jenkins-plugin/delete-job.xml": testExtendedTestdataJenkinsPluginDeleteJobXml,
-	"test/extended/testdata/jenkins-plugin/imagestream-scm-dsl-job.xml": testExtendedTestdataJenkinsPluginImagestreamScmDslJobXml,
-	"test/extended/testdata/jenkins-plugin/imagestream-scm-job.xml": testExtendedTestdataJenkinsPluginImagestreamScmJobXml,
-	"test/extended/testdata/jenkins-plugin/multitag-job.xml": testExtendedTestdataJenkinsPluginMultitagJobXml,
-	"test/extended/testdata/jenkins-plugin/multitag-template.json": testExtendedTestdataJenkinsPluginMultitagTemplateJson,
-	"test/extended/testdata/jenkins-plugin/shared-resources-template.json": testExtendedTestdataJenkinsPluginSharedResourcesTemplateJson,
-	"test/extended/testdata/jenkins-slave-template.yaml": testExtendedTestdataJenkinsSlaveTemplateYaml,
-	"test/extended/testdata/jobs/v1.yaml": testExtendedTestdataJobsV1Yaml,
-	"test/extended/testdata/ldap/ldapserver-buildconfig.json": testExtendedTestdataLdapLdapserverBuildconfigJson,
-	"test/extended/testdata/ldap/ldapserver-deploymentconfig.json": testExtendedTestdataLdapLdapserverDeploymentconfigJson,
-	"test/extended/testdata/ldap/ldapserver-imagestream-testenv.json": testExtendedTestdataLdapLdapserverImagestreamTestenvJson,
-	"test/extended/testdata/ldap/ldapserver-imagestream.json": testExtendedTestdataLdapLdapserverImagestreamJson,
-	"test/extended/testdata/ldap/ldapserver-service.json": testExtendedTestdataLdapLdapserverServiceJson,
-	"test/extended/testdata/long_names/Dockerfile": testExtendedTestdataLong_namesDockerfile,
-	"test/extended/testdata/long_names/fixture.json": testExtendedTestdataLong_namesFixtureJson,
-	"test/extended/testdata/multi-namespace-pipeline.yaml": testExtendedTestdataMultiNamespacePipelineYaml,
-	"test/extended/testdata/multi-namespace-template.yaml": testExtendedTestdataMultiNamespaceTemplateYaml,
-	"test/extended/testdata/openshift-secret-to-jenkins-credential.yaml": testExtendedTestdataOpenshiftSecretToJenkinsCredentialYaml,
-	"test/extended/testdata/reencrypt-serving-cert.yaml": testExtendedTestdataReencryptServingCertYaml,
-	"test/extended/testdata/roles/empty-role.yaml": testExtendedTestdataRolesEmptyRoleYaml,
-	"test/extended/testdata/roles/policy-clusterroles.yaml": testExtendedTestdataRolesPolicyClusterrolesYaml,
-	"test/extended/testdata/roles/policy-roles.yaml": testExtendedTestdataRolesPolicyRolesYaml,
-	"test/extended/testdata/router-http-echo-server.yaml": testExtendedTestdataRouterHttpEchoServerYaml,
-	"test/extended/testdata/router-metrics.yaml": testExtendedTestdataRouterMetricsYaml,
-	"test/extended/testdata/run_policy/parallel-bc.yaml": testExtendedTestdataRun_policyParallelBcYaml,
-	"test/extended/testdata/run_policy/serial-bc.yaml": testExtendedTestdataRun_policySerialBcYaml,
-	"test/extended/testdata/run_policy/serial-latest-only-bc.yaml": testExtendedTestdataRun_policySerialLatestOnlyBcYaml,
-	"test/extended/testdata/s2i-dropcaps/root-access-build.yaml": testExtendedTestdataS2iDropcapsRootAccessBuildYaml,
-	"test/extended/testdata/s2i-dropcaps/rootable-ruby/Dockerfile": testExtendedTestdataS2iDropcapsRootableRubyDockerfile,
-	"test/extended/testdata/s2i-dropcaps/rootable-ruby/adduser": testExtendedTestdataS2iDropcapsRootableRubyAdduser,
-	"test/extended/testdata/s2i-dropcaps/rootable-ruby/assemble": testExtendedTestdataS2iDropcapsRootableRubyAssemble,
-	"test/extended/testdata/sample-image-stream.json": testExtendedTestdataSampleImageStreamJson,
-	"test/extended/testdata/samplepipeline-withenvs.yaml": testExtendedTestdataSamplepipelineWithenvsYaml,
-	"test/extended/testdata/scoped-router.yaml": testExtendedTestdataScopedRouterYaml,
-	"test/extended/testdata/service-serving-cert/nginx-serving-cert.conf": testExtendedTestdataServiceServingCertNginxServingCertConf,
-	"test/extended/testdata/signer-buildconfig.yaml": testExtendedTestdataSignerBuildconfigYaml,
-	"test/extended/testdata/templates/templateinstance_objectkinds.yaml": testExtendedTestdataTemplatesTemplateinstance_objectkindsYaml,
-	"test/extended/testdata/templates/templateservicebroker_bind.yaml": testExtendedTestdataTemplatesTemplateservicebroker_bindYaml,
-	"test/extended/testdata/test-cli-debug.yaml": testExtendedTestdataTestCliDebugYaml,
-	"test/extended/testdata/test-env-pod.json": testExtendedTestdataTestEnvPodJson,
-	"test/extended/testdata/test-gitserver-tokenauth.yaml": testExtendedTestdataTestGitserverTokenauthYaml,
-	"test/extended/testdata/test-gitserver.yaml": testExtendedTestdataTestGitserverYaml,
-	"test/extended/testdata/test-secret.json": testExtendedTestdataTestSecretJson,
-	"test/extended/testdata/weighted-router.yaml": testExtendedTestdataWeightedRouterYaml,
-	"test/integration/testdata/project-request-template-with-quota.yaml": testIntegrationTestdataProjectRequestTemplateWithQuotaYaml,
-	"test/integration/testdata/test-buildcli-beta2.json": testIntegrationTestdataTestBuildcliBeta2Json,
-	"test/integration/testdata/test-buildcli.json": testIntegrationTestdataTestBuildcliJson,
-	"test/integration/testdata/test-deployment-config.yaml": testIntegrationTestdataTestDeploymentConfigYaml,
-	"test/integration/testdata/test-egress-network-policy.json": testIntegrationTestdataTestEgressNetworkPolicyJson,
-	"test/integration/testdata/test-image-stream-mapping.json": testIntegrationTestdataTestImageStreamMappingJson,
-	"test/integration/testdata/test-image-stream.json": testIntegrationTestdataTestImageStreamJson,
-	"test/integration/testdata/test-image.json": testIntegrationTestdataTestImageJson,
-	"test/integration/testdata/test-replication-controller.yaml": testIntegrationTestdataTestReplicationControllerYaml,
-	"test/integration/testdata/test-route.json": testIntegrationTestdataTestRouteJson,
-	"test/integration/testdata/test-service-with-finalizer.json": testIntegrationTestdataTestServiceWithFinalizerJson,
-	"test/integration/testdata/test-service.json": testIntegrationTestdataTestServiceJson,
-	"examples/db-templates/mariadb-ephemeral-template.json": examplesDbTemplatesMariadbEphemeralTemplateJson,
-	"examples/db-templates/mariadb-persistent-template.json": examplesDbTemplatesMariadbPersistentTemplateJson,
-	"examples/db-templates/mongodb-ephemeral-template.json": examplesDbTemplatesMongodbEphemeralTemplateJson,
-	"examples/db-templates/mongodb-persistent-template.json": examplesDbTemplatesMongodbPersistentTemplateJson,
-	"examples/db-templates/mysql-ephemeral-template.json": examplesDbTemplatesMysqlEphemeralTemplateJson,
-	"examples/db-templates/mysql-persistent-template.json": examplesDbTemplatesMysqlPersistentTemplateJson,
-	"examples/db-templates/postgresql-ephemeral-template.json": examplesDbTemplatesPostgresqlEphemeralTemplateJson,
-	"examples/db-templates/postgresql-persistent-template.json": examplesDbTemplatesPostgresqlPersistentTemplateJson,
-	"examples/db-templates/redis-ephemeral-template.json": examplesDbTemplatesRedisEphemeralTemplateJson,
-	"examples/db-templates/redis-persistent-template.json": examplesDbTemplatesRedisPersistentTemplateJson,
-	"examples/image-streams/image-streams-centos7.json": examplesImageStreamsImageStreamsCentos7Json,
-	"examples/image-streams/image-streams-rhel7.json": examplesImageStreamsImageStreamsRhel7Json,
-	"examples/sample-app/application-template-custombuild.json": examplesSampleAppApplicationTemplateCustombuildJson,
-	"examples/sample-app/application-template-dockerbuild.json": examplesSampleAppApplicationTemplateDockerbuildJson,
-	"examples/sample-app/application-template-pullspecbuild.json": examplesSampleAppApplicationTemplatePullspecbuildJson,
-	"examples/sample-app/application-template-stibuild.json": examplesSampleAppApplicationTemplateStibuildJson,
-	"examples/sample-app/cleanup.sh": examplesSampleAppCleanupSh,
-	"examples/sample-app/github-webhook-example.json": examplesSampleAppGithubWebhookExampleJson,
-	"examples/sample-app/pullimages.sh": examplesSampleAppPullimagesSh,
-	"examples/quickstarts/cakephp-mysql-persistent.json": examplesQuickstartsCakephpMysqlPersistentJson,
-	"examples/quickstarts/cakephp-mysql.json": examplesQuickstartsCakephpMysqlJson,
-	"examples/quickstarts/dancer-mysql-persistent.json": examplesQuickstartsDancerMysqlPersistentJson,
-	"examples/quickstarts/dancer-mysql.json": examplesQuickstartsDancerMysqlJson,
-	"examples/quickstarts/django-postgresql-persistent.json": examplesQuickstartsDjangoPostgresqlPersistentJson,
-	"examples/quickstarts/django-postgresql.json": examplesQuickstartsDjangoPostgresqlJson,
-	"examples/quickstarts/dotnet-pgsql-persistent.json": examplesQuickstartsDotnetPgsqlPersistentJson,
-	"examples/quickstarts/dotnet.json": examplesQuickstartsDotnetJson,
-	"examples/quickstarts/httpd.json": examplesQuickstartsHttpdJson,
-	"examples/quickstarts/nginx.json": examplesQuickstartsNginxJson,
-	"examples/quickstarts/nodejs-mongodb-persistent.json": examplesQuickstartsNodejsMongodbPersistentJson,
-	"examples/quickstarts/nodejs-mongodb.json": examplesQuickstartsNodejsMongodbJson,
-	"examples/quickstarts/rails-postgresql-persistent.json": examplesQuickstartsRailsPostgresqlPersistentJson,
-	"examples/quickstarts/rails-postgresql.json": examplesQuickstartsRailsPostgresqlJson,
-	"examples/prometheus/prometheus.yaml": examplesPrometheusPrometheusYaml,
-	"examples/hello-openshift/Dockerfile": examplesHelloOpenshiftDockerfile,
-	"examples/hello-openshift/hello-pod.json": examplesHelloOpenshiftHelloPodJson,
-	"examples/hello-openshift/hello-project.json": examplesHelloOpenshiftHelloProjectJson,
-	"examples/jenkins/application-template.json": examplesJenkinsApplicationTemplateJson,
-	"examples/jenkins/jenkins-ephemeral-template.json": examplesJenkinsJenkinsEphemeralTemplateJson,
-	"examples/jenkins/jenkins-persistent-template.json": examplesJenkinsJenkinsPersistentTemplateJson,
-	"examples/jenkins/pipeline/bluegreen-pipeline.yaml": examplesJenkinsPipelineBluegreenPipelineYaml,
-	"examples/jenkins/pipeline/mapsapp-pipeline.yaml": examplesJenkinsPipelineMapsappPipelineYaml,
-	"examples/jenkins/pipeline/maven-pipeline.yaml": examplesJenkinsPipelineMavenPipelineYaml,
-	"examples/jenkins/pipeline/nodejs-sample-pipeline.yaml": examplesJenkinsPipelineNodejsSamplePipelineYaml,
-	"examples/jenkins/pipeline/openshift-client-plugin-pipeline.yaml": examplesJenkinsPipelineOpenshiftClientPluginPipelineYaml,
-	"examples/jenkins/pipeline/samplepipeline.yaml": examplesJenkinsPipelineSamplepipelineYaml,
-	"examples/quickstarts/cakephp-mysql.json/cakephp-mysql.json": examplesQuickstartsCakephpMysqlJsonCakephpMysqlJson,
-	"install/automationservicebroker/install-rbac.yaml": installAutomationservicebrokerInstallRbacYaml,
-	"install/automationservicebroker/install.yaml": installAutomationservicebrokerInstallYaml,
-	"install/etcd/etcd.yaml": installEtcdEtcdYaml,
-	"install/kube-apiserver/apiserver.yaml": installKubeApiserverApiserverYaml,
-	"install/kube-controller-manager/kube-controller-manager.yaml": installKubeControllerManagerKubeControllerManagerYaml,
-	"install/kube-dns/install.yaml": installKubeDnsInstallYaml,
-	"install/kube-proxy/install.yaml": installKubeProxyInstallYaml,
-	"install/kube-scheduler/kube-scheduler.yaml": installKubeSchedulerKubeSchedulerYaml,
-	"install/openshift-apiserver/install.yaml": installOpenshiftApiserverInstallYaml,
-	"install/openshift-controller-manager/install-rbac.yaml": installOpenshiftControllerManagerInstallRbacYaml,
-	"install/openshift-controller-manager/install.yaml": installOpenshiftControllerManagerInstallYaml,
-	"install/openshift-web-console-operator/install-rbac.yaml": installOpenshiftWebConsoleOperatorInstallRbacYaml,
-	"install/openshift-web-console-operator/install.yaml": installOpenshiftWebConsoleOperatorInstallYaml,
-	"install/origin-web-console/console-config.yaml": installOriginWebConsoleConsoleConfigYaml,
-	"install/origin-web-console/console-template.yaml": installOriginWebConsoleConsoleTemplateYaml,
-	"install/service-catalog-broker-resources/template-service-broker-registration.yaml": installServiceCatalogBrokerResourcesTemplateServiceBrokerRegistrationYaml,
-	"install/templateservicebroker/apiserver-config.yaml": installTemplateservicebrokerApiserverConfigYaml,
-	"install/templateservicebroker/apiserver-template.yaml": installTemplateservicebrokerApiserverTemplateYaml,
-	"install/templateservicebroker/rbac-template.yaml": installTemplateservicebrokerRbacTemplateYaml,
+	"test/extended/testdata/builds/valuefrom/successful-sti-build-value-from-config.yaml":    testExtendedTestdataBuildsValuefromSuccessfulStiBuildValueFromConfigYaml,
+	"test/extended/testdata/builds/valuefrom/test-configmap.yaml":                            testExtendedTestdataBuildsValuefromTestConfigmapYaml,
+	"test/extended/testdata/builds/valuefrom/test-is.json":                                   testExtendedTestdataBuildsValuefromTestIsJson,
+	"test/extended/testdata/builds/valuefrom/test-secret.yaml":                               testExtendedTestdataBuildsValuefromTestSecretYaml,
+	"test/extended/testdata/cluster/master-vert.yaml":                                        testExtendedTestdataClusterMasterVertYaml,
+	"test/extended/testdata/config-map-jenkins-slave-pods.yaml":                              testExtendedTestdataConfigMapJenkinsSlavePodsYaml,
+	"test/extended/testdata/custom-secret-builder/Dockerfile":                                testExtendedTestdataCustomSecretBuilderDockerfile,
+	"test/extended/testdata/custom-secret-builder/build.sh":                                  testExtendedTestdataCustomSecretBuilderBuildSh,
+	"test/extended/testdata/deployments/custom-deployment.yaml":                              testExtendedTestdataDeploymentsCustomDeploymentYaml,
+	"test/extended/testdata/deployments/deployment-example.yaml":                             testExtendedTestdataDeploymentsDeploymentExampleYaml,
+	"test/extended/testdata/deployments/deployment-history-limit.yaml":                       testExtendedTestdataDeploymentsDeploymentHistoryLimitYaml,
+	"test/extended/testdata/deployments/deployment-ignores-deployer.yaml":                    testExtendedTestdataDeploymentsDeploymentIgnoresDeployerYaml,
+	"test/extended/testdata/deployments/deployment-image-resolution-is.yaml":                 testExtendedTestdataDeploymentsDeploymentImageResolutionIsYaml,
+	"test/extended/testdata/deployments/deployment-image-resolution.yaml":                    testExtendedTestdataDeploymentsDeploymentImageResolutionYaml,
+	"test/extended/testdata/deployments/deployment-min-ready-seconds.yaml":                   testExtendedTestdataDeploymentsDeploymentMinReadySecondsYaml,
+	"test/extended/testdata/deployments/deployment-simple.yaml":                              testExtendedTestdataDeploymentsDeploymentSimpleYaml,
+	"test/extended/testdata/deployments/deployment-trigger.yaml":                             testExtendedTestdataDeploymentsDeploymentTriggerYaml,
+	"test/extended/testdata/deployments/deployment-with-ref-env.yaml":                        testExtendedTestdataDeploymentsDeploymentWithRefEnvYaml,
+	"test/extended/testdata/deployments/failing-pre-hook.yaml":                               testExtendedTestdataDeploymentsFailingPreHookYaml,
+	"test/extended/testdata/deployments/generation-test.yaml":                                testExtendedTestdataDeploymentsGenerationTestYaml,
+	"test/extended/testdata/deployments/multi-ict-deployment.yaml":                           testExtendedTestdataDeploymentsMultiIctDeploymentYaml,
+	"test/extended/testdata/deployments/paused-deployment.yaml":                              testExtendedTestdataDeploymentsPausedDeploymentYaml,
+	"test/extended/testdata/deployments/readiness-test.yaml":                                 testExtendedTestdataDeploymentsReadinessTestYaml,
+	"test/extended/testdata/deployments/tag-images-deployment.yaml":                          testExtendedTestdataDeploymentsTagImagesDeploymentYaml,
+	"test/extended/testdata/deployments/test-deployment-broken.yaml":                         testExtendedTestdataDeploymentsTestDeploymentBrokenYaml,
+	"test/extended/testdata/deployments/test-deployment-test.yaml":                           testExtendedTestdataDeploymentsTestDeploymentTestYaml,
+	"test/extended/testdata/forcepull-test.json":                                             testExtendedTestdataForcepullTestJson,
+	"test/extended/testdata/gssapi/config/kubeconfig":                                        testExtendedTestdataGssapiConfigKubeconfig,
+	"test/extended/testdata/gssapi/config/oauth_config.json":                                 testExtendedTestdataGssapiConfigOauth_configJson,
+	"test/extended/testdata/gssapi/fedora/base/Dockerfile":                                   testExtendedTestdataGssapiFedoraBaseDockerfile,
+	"test/extended/testdata/gssapi/fedora/kerberos/Dockerfile":                               testExtendedTestdataGssapiFedoraKerberosDockerfile,
+	"test/extended/testdata/gssapi/fedora/kerberos_configured/Dockerfile":                    testExtendedTestdataGssapiFedoraKerberos_configuredDockerfile,
+	"test/extended/testdata/gssapi/proxy/Dockerfile":                                         testExtendedTestdataGssapiProxyDockerfile,
+	"test/extended/testdata/gssapi/proxy/configure.sh":                                       testExtendedTestdataGssapiProxyConfigureSh,
+	"test/extended/testdata/gssapi/proxy/gssapiproxy-buildconfig.yaml":                       testExtendedTestdataGssapiProxyGssapiproxyBuildconfigYaml,
+	"test/extended/testdata/gssapi/proxy/gssapiproxy-deploymentconfig.yaml":                  testExtendedTestdataGssapiProxyGssapiproxyDeploymentconfigYaml,
+	"test/extended/testdata/gssapi/proxy/gssapiproxy-imagestream.yaml":                       testExtendedTestdataGssapiProxyGssapiproxyImagestreamYaml,
+	"test/extended/testdata/gssapi/proxy/gssapiproxy-service.yaml":                           testExtendedTestdataGssapiProxyGssapiproxyServiceYaml,
+	"test/extended/testdata/gssapi/proxy/healthz":                                            testExtendedTestdataGssapiProxyHealthz,
+	"test/extended/testdata/gssapi/proxy/kadm5.acl":                                          testExtendedTestdataGssapiProxyKadm5Acl,
+	"test/extended/testdata/gssapi/proxy/kdc.conf":                                           testExtendedTestdataGssapiProxyKdcConf,
+	"test/extended/testdata/gssapi/proxy/krb5.conf":                                          testExtendedTestdataGssapiProxyKrb5Conf,
+	"test/extended/testdata/gssapi/proxy/proxy.conf":                                         testExtendedTestdataGssapiProxyProxyConf,
+	"test/extended/testdata/gssapi/scripts/gssapi-tests.sh":                                  testExtendedTestdataGssapiScriptsGssapiTestsSh,
+	"test/extended/testdata/gssapi/scripts/test-wrapper.sh":                                  testExtendedTestdataGssapiScriptsTestWrapperSh,
+	"test/extended/testdata/gssapi/ubuntu/base/Dockerfile":                                   testExtendedTestdataGssapiUbuntuBaseDockerfile,
+	"test/extended/testdata/gssapi/ubuntu/kerberos/Dockerfile":                               testExtendedTestdataGssapiUbuntuKerberosDockerfile,
+	"test/extended/testdata/gssapi/ubuntu/kerberos_configured/Dockerfile":                    testExtendedTestdataGssapiUbuntuKerberos_configuredDockerfile,
+	"test/extended/testdata/hello-builder/Dockerfile":                                        testExtendedTestdataHelloBuilderDockerfile,
+	"test/extended/testdata/hello-builder/scripts/assemble":                                  testExtendedTestdataHelloBuilderScriptsAssemble,
+	"test/extended/testdata/hello-builder/scripts/run":                                       testExtendedTestdataHelloBuilderScriptsRun,
+	"test/extended/testdata/idling-echo-server-rc.yaml":                                      testExtendedTestdataIdlingEchoServerRcYaml,
+	"test/extended/testdata/idling-echo-server.yaml":                                         testExtendedTestdataIdlingEchoServerYaml,
+	"test/extended/testdata/image/deployment-with-annotation-trigger.yaml":                   testExtendedTestdataImageDeploymentWithAnnotationTriggerYaml,
+	"test/extended/testdata/image-pull-secrets/dc-with-new-pull-secret.yaml":                 testExtendedTestdataImagePullSecretsDcWithNewPullSecretYaml,
+	"test/extended/testdata/image-pull-secrets/dc-with-old-pull-secret.yaml":                 testExtendedTestdataImagePullSecretsDcWithOldPullSecretYaml,
+	"test/extended/testdata/image-pull-secrets/pod-with-new-pull-secret.yaml":                testExtendedTestdataImagePullSecretsPodWithNewPullSecretYaml,
+	"test/extended/testdata/image-pull-secrets/pod-with-no-pull-secret.yaml":                 testExtendedTestdataImagePullSecretsPodWithNoPullSecretYaml,
+	"test/extended/testdata/image-pull-secrets/pod-with-old-pull-secret.yaml":                testExtendedTestdataImagePullSecretsPodWithOldPullSecretYaml,
+	"test/extended/testdata/image_ecosystem/perl-hotdeploy/index.pl":                         testExtendedTestdataImage_ecosystemPerlHotdeployIndexPl,
+	"test/extended/testdata/image_ecosystem/perl-hotdeploy/lib/My/Test.pm":                   testExtendedTestdataImage_ecosystemPerlHotdeployLibMyTestPm,
+	"test/extended/testdata/image_ecosystem/perl-hotdeploy/perl.json":                        testExtendedTestdataImage_ecosystemPerlHotdeployPerlJson,
+	"test/extended/testdata/imagestream-jenkins-slave-pods.yaml":                             testExtendedTestdataImagestreamJenkinsSlavePodsYaml,
+	"test/extended/testdata/imagestreamtag-jenkins-slave-pods.yaml":                          testExtendedTestdataImagestreamtagJenkinsSlavePodsYaml,
+	"test/extended/testdata/ingress.yaml":                                                    testExtendedTestdataIngressYaml,
+	"test/extended/testdata/jenkins-plugin/build-job-clone.xml":                              testExtendedTestdataJenkinsPluginBuildJobCloneXml,
+	"test/extended/testdata/jenkins-plugin/build-job-slave.xml":                              testExtendedTestdataJenkinsPluginBuildJobSlaveXml,
+	"test/extended/testdata/jenkins-plugin/build-job.xml":                                    testExtendedTestdataJenkinsPluginBuildJobXml,
+	"test/extended/testdata/jenkins-plugin/build-with-env-job.xml":                           testExtendedTestdataJenkinsPluginBuildWithEnvJobXml,
+	"test/extended/testdata/jenkins-plugin/build-with-exec-steps.xml":                        testExtendedTestdataJenkinsPluginBuildWithExecStepsXml,
+	"test/extended/testdata/jenkins-plugin/create-job.xml":                                   testExtendedTestdataJenkinsPluginCreateJobXml,
+	"test/extended/testdata/jenkins-plugin/delete-job-keys.xml":                              testExtendedTestdataJenkinsPluginDeleteJobKeysXml,
+	"test/extended/testdata/jenkins-plugin/delete-job-labels.xml":                            testExtendedTestdataJenkinsPluginDeleteJobLabelsXml,
+	"test/extended/testdata/jenkins-plugin/delete-job.xml":                                   testExtendedTestdataJenkinsPluginDeleteJobXml,
+	"test/extended/testdata/jenkins-plugin/imagestream-scm-dsl-job.xml":                      testExtendedTestdataJenkinsPluginImagestreamScmDslJobXml,
+	"test/extended/testdata/jenkins-plugin/imagestream-scm-job.xml":                          testExtendedTestdataJenkinsPluginImagestreamScmJobXml,
+	"test/extended/testdata/jenkins-plugin/multitag-job.xml":                                 testExtendedTestdataJenkinsPluginMultitagJobXml,
+	"test/extended/testdata/jenkins-plugin/multitag-template.json":                           testExtendedTestdataJenkinsPluginMultitagTemplateJson,
+	"test/extended/testdata/jenkins-plugin/shared-resources-template.json":                   testExtendedTestdataJenkinsPluginSharedResourcesTemplateJson,
+	"test/extended/testdata/jenkins-slave-template.yaml":                                     testExtendedTestdataJenkinsSlaveTemplateYaml,
+	"test/extended/testdata/jobs/v1.yaml":                                                    testExtendedTestdataJobsV1Yaml,
+	"test/extended/testdata/ldap/ldapserver-buildconfig.json":                                testExtendedTestdataLdapLdapserverBuildconfigJson,
+	"test/extended/testdata/ldap/ldapserver-deploymentconfig.json":                           testExtendedTestdataLdapLdapserverDeploymentconfigJson,
+	"test/extended/testdata/ldap/ldapserver-imagestream-testenv.json":                        testExtendedTestdataLdapLdapserverImagestreamTestenvJson,
+	"test/extended/testdata/ldap/ldapserver-imagestream.json":                                testExtendedTestdataLdapLdapserverImagestreamJson,
+	"test/extended/testdata/ldap/ldapserver-service.json":                                    testExtendedTestdataLdapLdapserverServiceJson,
+	"test/extended/testdata/long_names/Dockerfile":                                           testExtendedTestdataLong_namesDockerfile,
+	"test/extended/testdata/long_names/fixture.json":                                         testExtendedTestdataLong_namesFixtureJson,
+	"test/extended/testdata/multi-namespace-pipeline.yaml":                                   testExtendedTestdataMultiNamespacePipelineYaml,
+	"test/extended/testdata/multi-namespace-template.yaml":                                   testExtendedTestdataMultiNamespaceTemplateYaml,
+	"test/extended/testdata/openshift-secret-to-jenkins-credential.yaml":                     testExtendedTestdataOpenshiftSecretToJenkinsCredentialYaml,
+	"test/extended/testdata/reencrypt-serving-cert.yaml":                                     testExtendedTestdataReencryptServingCertYaml,
+	"test/extended/testdata/roles/empty-role.yaml":                                           testExtendedTestdataRolesEmptyRoleYaml,
+	"test/extended/testdata/roles/policy-clusterroles.yaml":                                  testExtendedTestdataRolesPolicyClusterrolesYaml,
+	"test/extended/testdata/roles/policy-roles.yaml":                                         testExtendedTestdataRolesPolicyRolesYaml,
+	"test/extended/testdata/router-http-echo-server.yaml":                                    testExtendedTestdataRouterHttpEchoServerYaml,
+	"test/extended/testdata/router-metrics.yaml":                                             testExtendedTestdataRouterMetricsYaml,
+	"test/extended/testdata/run_policy/parallel-bc.yaml":                                     testExtendedTestdataRun_policyParallelBcYaml,
+	"test/extended/testdata/run_policy/serial-bc.yaml":                                       testExtendedTestdataRun_policySerialBcYaml,
+	"test/extended/testdata/run_policy/serial-latest-only-bc.yaml":                           testExtendedTestdataRun_policySerialLatestOnlyBcYaml,
+	"test/extended/testdata/s2i-dropcaps/root-access-build.yaml":                             testExtendedTestdataS2iDropcapsRootAccessBuildYaml,
+	"test/extended/testdata/s2i-dropcaps/rootable-ruby/Dockerfile":                           testExtendedTestdataS2iDropcapsRootableRubyDockerfile,
+	"test/extended/testdata/s2i-dropcaps/rootable-ruby/adduser":                              testExtendedTestdataS2iDropcapsRootableRubyAdduser,
+	"test/extended/testdata/s2i-dropcaps/rootable-ruby/assemble":                             testExtendedTestdataS2iDropcapsRootableRubyAssemble,
+	"test/extended/testdata/sample-image-stream.json":                                        testExtendedTestdataSampleImageStreamJson,
+	"test/extended/testdata/samplepipeline-withenvs.yaml":                                    testExtendedTestdataSamplepipelineWithenvsYaml,
+	"test/extended/testdata/scoped-router.yaml":                                              testExtendedTestdataScopedRouterYaml,
+	"test/extended/testdata/service-serving-cert/nginx-serving-cert.conf":                    testExtendedTestdataServiceServingCertNginxServingCertConf,
+	"test/extended/testdata/signer-buildconfig.yaml":                                         testExtendedTestdataSignerBuildconfigYaml,
+	"test/extended/testdata/templates/templateinstance_objectkinds.yaml":                     testExtendedTestdataTemplatesTemplateinstance_objectkindsYaml,
+	"test/extended/testdata/templates/templateservicebroker_bind.yaml":                       testExtendedTestdataTemplatesTemplateservicebroker_bindYaml,
+	"test/extended/testdata/test-cli-debug.yaml":                                             testExtendedTestdataTestCliDebugYaml,
+	"test/extended/testdata/test-env-pod.json":                                               testExtendedTestdataTestEnvPodJson,
+	"test/extended/testdata/test-gitserver-tokenauth.yaml":                                   testExtendedTestdataTestGitserverTokenauthYaml,
+	"test/extended/testdata/test-gitserver.yaml":                                             testExtendedTestdataTestGitserverYaml,
+	"test/extended/testdata/test-secret.json":                                                testExtendedTestdataTestSecretJson,
+	"test/extended/testdata/weighted-router.yaml":                                            testExtendedTestdataWeightedRouterYaml,
+	"test/integration/testdata/project-request-template-with-quota.yaml":                     testIntegrationTestdataProjectRequestTemplateWithQuotaYaml,
+	"test/integration/testdata/test-buildcli-beta2.json":                                     testIntegrationTestdataTestBuildcliBeta2Json,
+	"test/integration/testdata/test-buildcli.json":                                           testIntegrationTestdataTestBuildcliJson,
+	"test/integration/testdata/test-deployment-config.yaml":                                  testIntegrationTestdataTestDeploymentConfigYaml,
+	"test/integration/testdata/test-egress-network-policy.json":                              testIntegrationTestdataTestEgressNetworkPolicyJson,
+	"test/integration/testdata/test-image-stream-mapping.json":                               testIntegrationTestdataTestImageStreamMappingJson,
+	"test/integration/testdata/test-image-stream.json":                                       testIntegrationTestdataTestImageStreamJson,
+	"test/integration/testdata/test-image.json":                                              testIntegrationTestdataTestImageJson,
+	"test/integration/testdata/test-replication-controller.yaml":                             testIntegrationTestdataTestReplicationControllerYaml,
+	"test/integration/testdata/test-route.json":                                              testIntegrationTestdataTestRouteJson,
+	"test/integration/testdata/test-service-with-finalizer.json":                             testIntegrationTestdataTestServiceWithFinalizerJson,
+	"test/integration/testdata/test-service.json":                                            testIntegrationTestdataTestServiceJson,
+	"examples/db-templates/mariadb-ephemeral-template.json":                                  examplesDbTemplatesMariadbEphemeralTemplateJson,
+	"examples/db-templates/mariadb-persistent-template.json":                                 examplesDbTemplatesMariadbPersistentTemplateJson,
+	"examples/db-templates/mongodb-ephemeral-template.json":                                  examplesDbTemplatesMongodbEphemeralTemplateJson,
+	"examples/db-templates/mongodb-persistent-template.json":                                 examplesDbTemplatesMongodbPersistentTemplateJson,
+	"examples/db-templates/mysql-ephemeral-template.json":                                    examplesDbTemplatesMysqlEphemeralTemplateJson,
+	"examples/db-templates/mysql-persistent-template.json":                                   examplesDbTemplatesMysqlPersistentTemplateJson,
+	"examples/db-templates/postgresql-ephemeral-template.json":                               examplesDbTemplatesPostgresqlEphemeralTemplateJson,
+	"examples/db-templates/postgresql-persistent-template.json":                              examplesDbTemplatesPostgresqlPersistentTemplateJson,
+	"examples/db-templates/redis-ephemeral-template.json":                                    examplesDbTemplatesRedisEphemeralTemplateJson,
+	"examples/db-templates/redis-persistent-template.json":                                   examplesDbTemplatesRedisPersistentTemplateJson,
+	"examples/image-streams/image-streams-centos7.json":                                      examplesImageStreamsImageStreamsCentos7Json,
+	"examples/image-streams/image-streams-rhel7.json":                                        examplesImageStreamsImageStreamsRhel7Json,
+	"examples/sample-app/application-template-custombuild.json":                              examplesSampleAppApplicationTemplateCustombuildJson,
+	"examples/sample-app/application-template-dockerbuild.json":                              examplesSampleAppApplicationTemplateDockerbuildJson,
+	"examples/sample-app/application-template-pullspecbuild.json":                            examplesSampleAppApplicationTemplatePullspecbuildJson,
+	"examples/sample-app/application-template-stibuild.json":                                 examplesSampleAppApplicationTemplateStibuildJson,
+	"examples/sample-app/cleanup.sh":                                                         examplesSampleAppCleanupSh,
+	"examples/sample-app/github-webhook-example.json":                                        examplesSampleAppGithubWebhookExampleJson,
+	"examples/sample-app/pullimages.sh":                                                      examplesSampleAppPullimagesSh,
+	"examples/quickstarts/cakephp-mysql-persistent.json":                                     examplesQuickstartsCakephpMysqlPersistentJson,
+	"examples/quickstarts/cakephp-mysql.json":                                                examplesQuickstartsCakephpMysqlJson,
+	"examples/quickstarts/dancer-mysql-persistent.json":                                      examplesQuickstartsDancerMysqlPersistentJson,
+	"examples/quickstarts/dancer-mysql.json":                                                 examplesQuickstartsDancerMysqlJson,
+	"examples/quickstarts/django-postgresql-persistent.json":                                 examplesQuickstartsDjangoPostgresqlPersistentJson,
+	"examples/quickstarts/django-postgresql.json":                                            examplesQuickstartsDjangoPostgresqlJson,
+	"examples/quickstarts/dotnet-pgsql-persistent.json":                                      examplesQuickstartsDotnetPgsqlPersistentJson,
+	"examples/quickstarts/dotnet.json":                                                       examplesQuickstartsDotnetJson,
+	"examples/quickstarts/httpd.json":                                                        examplesQuickstartsHttpdJson,
+	"examples/quickstarts/nginx.json":                                                        examplesQuickstartsNginxJson,
+	"examples/quickstarts/nodejs-mongodb-persistent.json":                                    examplesQuickstartsNodejsMongodbPersistentJson,
+	"examples/quickstarts/nodejs-mongodb.json":                                               examplesQuickstartsNodejsMongodbJson,
+	"examples/quickstarts/rails-postgresql-persistent.json":                                  examplesQuickstartsRailsPostgresqlPersistentJson,
+	"examples/quickstarts/rails-postgresql.json":                                             examplesQuickstartsRailsPostgresqlJson,
+	"examples/prometheus/prometheus.yaml":                                                    examplesPrometheusPrometheusYaml,
+	"examples/hello-openshift/Dockerfile":                                                    examplesHelloOpenshiftDockerfile,
+	"examples/hello-openshift/hello-pod.json":                                                examplesHelloOpenshiftHelloPodJson,
+	"examples/hello-openshift/hello-project.json":                                            examplesHelloOpenshiftHelloProjectJson,
+	"examples/jenkins/application-template.json":                                             examplesJenkinsApplicationTemplateJson,
+	"examples/jenkins/jenkins-ephemeral-template.json":                                       examplesJenkinsJenkinsEphemeralTemplateJson,
+	"examples/jenkins/jenkins-persistent-template.json":                                      examplesJenkinsJenkinsPersistentTemplateJson,
+	"examples/jenkins/pipeline/bluegreen-pipeline.yaml":                                      examplesJenkinsPipelineBluegreenPipelineYaml,
+	"examples/jenkins/pipeline/mapsapp-pipeline.yaml":                                        examplesJenkinsPipelineMapsappPipelineYaml,
+	"examples/jenkins/pipeline/maven-pipeline.yaml":                                          examplesJenkinsPipelineMavenPipelineYaml,
+	"examples/jenkins/pipeline/nodejs-sample-pipeline.yaml":                                  examplesJenkinsPipelineNodejsSamplePipelineYaml,
+	"examples/jenkins/pipeline/openshift-client-plugin-pipeline.yaml":                        examplesJenkinsPipelineOpenshiftClientPluginPipelineYaml,
+	"examples/jenkins/pipeline/samplepipeline.yaml":                                          examplesJenkinsPipelineSamplepipelineYaml,
+	"examples/quickstarts/cakephp-mysql.json/cakephp-mysql.json":                             examplesQuickstartsCakephpMysqlJsonCakephpMysqlJson,
+	"install/automationservicebroker/install-rbac.yaml":                                      installAutomationservicebrokerInstallRbacYaml,
+	"install/automationservicebroker/install.yaml":                                           installAutomationservicebrokerInstallYaml,
+	"install/etcd/etcd.yaml":                                                                 installEtcdEtcdYaml,
+	"install/kube-apiserver/apiserver.yaml":                                                  installKubeApiserverApiserverYaml,
+	"install/kube-controller-manager/kube-controller-manager.yaml":                           installKubeControllerManagerKubeControllerManagerYaml,
+	"install/kube-dns/install.yaml":                                                          installKubeDnsInstallYaml,
+	"install/kube-proxy/install.yaml":                                                        installKubeProxyInstallYaml,
+	"install/kube-scheduler/kube-scheduler.yaml":                                             installKubeSchedulerKubeSchedulerYaml,
+	"install/openshift-apiserver/install.yaml":                                               installOpenshiftApiserverInstallYaml,
+	"install/openshift-controller-manager/install-rbac.yaml":                                 installOpenshiftControllerManagerInstallRbacYaml,
+	"install/openshift-controller-manager/install.yaml":                                      installOpenshiftControllerManagerInstallYaml,
+	"install/openshift-docker-registry-operator/install-rbac.yaml":                           installOpenshiftDockerRegistryOperatorInstallRbacYaml,
+	"install/openshift-docker-registry-operator/install.yaml":                                installOpenshiftDockerRegistryOperatorInstallYaml,
+	"install/openshift-web-console-operator/install-rbac.yaml":                               installOpenshiftWebConsoleOperatorInstallRbacYaml,
+	"install/openshift-web-console-operator/install.yaml":                                    installOpenshiftWebConsoleOperatorInstallYaml,
+	"install/origin-web-console/console-config.yaml":                                         installOriginWebConsoleConsoleConfigYaml,
+	"install/origin-web-console/console-template.yaml":                                       installOriginWebConsoleConsoleTemplateYaml,
+	"install/service-catalog-broker-resources/template-service-broker-registration.yaml":     installServiceCatalogBrokerResourcesTemplateServiceBrokerRegistrationYaml,
+	"install/templateservicebroker/apiserver-config.yaml":                                    installTemplateservicebrokerApiserverConfigYaml,
+	"install/templateservicebroker/apiserver-template.yaml":                                  installTemplateservicebrokerApiserverTemplateYaml,
+	"install/templateservicebroker/rbac-template.yaml":                                       installTemplateservicebrokerRbacTemplateYaml,
 }
 
 // AssetDir returns the file names below a certain
@@ -33880,447 +34044,452 @@ type bintree struct {
 	Func     func() (*asset, error)
 	Children map[string]*bintree
 }
+
 var _bintree = &bintree{nil, map[string]*bintree{
-	"examples": &bintree{nil, map[string]*bintree{
-		"db-templates": &bintree{nil, map[string]*bintree{
-			"mariadb-ephemeral-template.json": &bintree{examplesDbTemplatesMariadbEphemeralTemplateJson, map[string]*bintree{}},
-			"mariadb-persistent-template.json": &bintree{examplesDbTemplatesMariadbPersistentTemplateJson, map[string]*bintree{}},
-			"mongodb-ephemeral-template.json": &bintree{examplesDbTemplatesMongodbEphemeralTemplateJson, map[string]*bintree{}},
-			"mongodb-persistent-template.json": &bintree{examplesDbTemplatesMongodbPersistentTemplateJson, map[string]*bintree{}},
-			"mysql-ephemeral-template.json": &bintree{examplesDbTemplatesMysqlEphemeralTemplateJson, map[string]*bintree{}},
-			"mysql-persistent-template.json": &bintree{examplesDbTemplatesMysqlPersistentTemplateJson, map[string]*bintree{}},
-			"postgresql-ephemeral-template.json": &bintree{examplesDbTemplatesPostgresqlEphemeralTemplateJson, map[string]*bintree{}},
-			"postgresql-persistent-template.json": &bintree{examplesDbTemplatesPostgresqlPersistentTemplateJson, map[string]*bintree{}},
-			"redis-ephemeral-template.json": &bintree{examplesDbTemplatesRedisEphemeralTemplateJson, map[string]*bintree{}},
-			"redis-persistent-template.json": &bintree{examplesDbTemplatesRedisPersistentTemplateJson, map[string]*bintree{}},
+	"examples": {nil, map[string]*bintree{
+		"db-templates": {nil, map[string]*bintree{
+			"mariadb-ephemeral-template.json":     {examplesDbTemplatesMariadbEphemeralTemplateJson, map[string]*bintree{}},
+			"mariadb-persistent-template.json":    {examplesDbTemplatesMariadbPersistentTemplateJson, map[string]*bintree{}},
+			"mongodb-ephemeral-template.json":     {examplesDbTemplatesMongodbEphemeralTemplateJson, map[string]*bintree{}},
+			"mongodb-persistent-template.json":    {examplesDbTemplatesMongodbPersistentTemplateJson, map[string]*bintree{}},
+			"mysql-ephemeral-template.json":       {examplesDbTemplatesMysqlEphemeralTemplateJson, map[string]*bintree{}},
+			"mysql-persistent-template.json":      {examplesDbTemplatesMysqlPersistentTemplateJson, map[string]*bintree{}},
+			"postgresql-ephemeral-template.json":  {examplesDbTemplatesPostgresqlEphemeralTemplateJson, map[string]*bintree{}},
+			"postgresql-persistent-template.json": {examplesDbTemplatesPostgresqlPersistentTemplateJson, map[string]*bintree{}},
+			"redis-ephemeral-template.json":       {examplesDbTemplatesRedisEphemeralTemplateJson, map[string]*bintree{}},
+			"redis-persistent-template.json":      {examplesDbTemplatesRedisPersistentTemplateJson, map[string]*bintree{}},
 		}},
-		"hello-openshift": &bintree{nil, map[string]*bintree{
-			"Dockerfile": &bintree{examplesHelloOpenshiftDockerfile, map[string]*bintree{}},
-			"hello-pod.json": &bintree{examplesHelloOpenshiftHelloPodJson, map[string]*bintree{}},
-			"hello-project.json": &bintree{examplesHelloOpenshiftHelloProjectJson, map[string]*bintree{}},
+		"hello-openshift": {nil, map[string]*bintree{
+			"Dockerfile":         {examplesHelloOpenshiftDockerfile, map[string]*bintree{}},
+			"hello-pod.json":     {examplesHelloOpenshiftHelloPodJson, map[string]*bintree{}},
+			"hello-project.json": {examplesHelloOpenshiftHelloProjectJson, map[string]*bintree{}},
 		}},
-		"image-streams": &bintree{nil, map[string]*bintree{
-			"image-streams-centos7.json": &bintree{examplesImageStreamsImageStreamsCentos7Json, map[string]*bintree{}},
-			"image-streams-rhel7.json": &bintree{examplesImageStreamsImageStreamsRhel7Json, map[string]*bintree{}},
+		"image-streams": {nil, map[string]*bintree{
+			"image-streams-centos7.json": {examplesImageStreamsImageStreamsCentos7Json, map[string]*bintree{}},
+			"image-streams-rhel7.json":   {examplesImageStreamsImageStreamsRhel7Json, map[string]*bintree{}},
 		}},
-		"jenkins": &bintree{nil, map[string]*bintree{
-			"application-template.json": &bintree{examplesJenkinsApplicationTemplateJson, map[string]*bintree{}},
-			"jenkins-ephemeral-template.json": &bintree{examplesJenkinsJenkinsEphemeralTemplateJson, map[string]*bintree{}},
-			"jenkins-persistent-template.json": &bintree{examplesJenkinsJenkinsPersistentTemplateJson, map[string]*bintree{}},
-			"pipeline": &bintree{nil, map[string]*bintree{
-				"bluegreen-pipeline.yaml": &bintree{examplesJenkinsPipelineBluegreenPipelineYaml, map[string]*bintree{}},
-				"mapsapp-pipeline.yaml": &bintree{examplesJenkinsPipelineMapsappPipelineYaml, map[string]*bintree{}},
-				"maven-pipeline.yaml": &bintree{examplesJenkinsPipelineMavenPipelineYaml, map[string]*bintree{}},
-				"nodejs-sample-pipeline.yaml": &bintree{examplesJenkinsPipelineNodejsSamplePipelineYaml, map[string]*bintree{}},
-				"openshift-client-plugin-pipeline.yaml": &bintree{examplesJenkinsPipelineOpenshiftClientPluginPipelineYaml, map[string]*bintree{}},
-				"samplepipeline.yaml": &bintree{examplesJenkinsPipelineSamplepipelineYaml, map[string]*bintree{}},
+		"jenkins": {nil, map[string]*bintree{
+			"application-template.json":        {examplesJenkinsApplicationTemplateJson, map[string]*bintree{}},
+			"jenkins-ephemeral-template.json":  {examplesJenkinsJenkinsEphemeralTemplateJson, map[string]*bintree{}},
+			"jenkins-persistent-template.json": {examplesJenkinsJenkinsPersistentTemplateJson, map[string]*bintree{}},
+			"pipeline": {nil, map[string]*bintree{
+				"bluegreen-pipeline.yaml":               {examplesJenkinsPipelineBluegreenPipelineYaml, map[string]*bintree{}},
+				"mapsapp-pipeline.yaml":                 {examplesJenkinsPipelineMapsappPipelineYaml, map[string]*bintree{}},
+				"maven-pipeline.yaml":                   {examplesJenkinsPipelineMavenPipelineYaml, map[string]*bintree{}},
+				"nodejs-sample-pipeline.yaml":           {examplesJenkinsPipelineNodejsSamplePipelineYaml, map[string]*bintree{}},
+				"openshift-client-plugin-pipeline.yaml": {examplesJenkinsPipelineOpenshiftClientPluginPipelineYaml, map[string]*bintree{}},
+				"samplepipeline.yaml":                   {examplesJenkinsPipelineSamplepipelineYaml, map[string]*bintree{}},
 			}},
 		}},
-		"prometheus": &bintree{nil, map[string]*bintree{
-			"prometheus.yaml": &bintree{examplesPrometheusPrometheusYaml, map[string]*bintree{}},
+		"prometheus": {nil, map[string]*bintree{
+			"prometheus.yaml": {examplesPrometheusPrometheusYaml, map[string]*bintree{}},
 		}},
-		"quickstarts": &bintree{nil, map[string]*bintree{
-			"cakephp-mysql-persistent.json": &bintree{examplesQuickstartsCakephpMysqlPersistentJson, map[string]*bintree{}},
-			"cakephp-mysql.json": &bintree{examplesQuickstartsCakephpMysqlJson, map[string]*bintree{
-				"cakephp-mysql.json": &bintree{examplesQuickstartsCakephpMysqlJsonCakephpMysqlJson, map[string]*bintree{}},
+		"quickstarts": {nil, map[string]*bintree{
+			"cakephp-mysql-persistent.json": {examplesQuickstartsCakephpMysqlPersistentJson, map[string]*bintree{}},
+			"cakephp-mysql.json": {examplesQuickstartsCakephpMysqlJson, map[string]*bintree{
+				"cakephp-mysql.json": {examplesQuickstartsCakephpMysqlJsonCakephpMysqlJson, map[string]*bintree{}},
 			}},
-			"dancer-mysql-persistent.json": &bintree{examplesQuickstartsDancerMysqlPersistentJson, map[string]*bintree{}},
-			"dancer-mysql.json": &bintree{examplesQuickstartsDancerMysqlJson, map[string]*bintree{}},
-			"django-postgresql-persistent.json": &bintree{examplesQuickstartsDjangoPostgresqlPersistentJson, map[string]*bintree{}},
-			"django-postgresql.json": &bintree{examplesQuickstartsDjangoPostgresqlJson, map[string]*bintree{}},
-			"dotnet-pgsql-persistent.json": &bintree{examplesQuickstartsDotnetPgsqlPersistentJson, map[string]*bintree{}},
-			"dotnet.json": &bintree{examplesQuickstartsDotnetJson, map[string]*bintree{}},
-			"httpd.json": &bintree{examplesQuickstartsHttpdJson, map[string]*bintree{}},
-			"nginx.json": &bintree{examplesQuickstartsNginxJson, map[string]*bintree{}},
-			"nodejs-mongodb-persistent.json": &bintree{examplesQuickstartsNodejsMongodbPersistentJson, map[string]*bintree{}},
-			"nodejs-mongodb.json": &bintree{examplesQuickstartsNodejsMongodbJson, map[string]*bintree{}},
-			"rails-postgresql-persistent.json": &bintree{examplesQuickstartsRailsPostgresqlPersistentJson, map[string]*bintree{}},
-			"rails-postgresql.json": &bintree{examplesQuickstartsRailsPostgresqlJson, map[string]*bintree{}},
+			"dancer-mysql-persistent.json":      {examplesQuickstartsDancerMysqlPersistentJson, map[string]*bintree{}},
+			"dancer-mysql.json":                 {examplesQuickstartsDancerMysqlJson, map[string]*bintree{}},
+			"django-postgresql-persistent.json": {examplesQuickstartsDjangoPostgresqlPersistentJson, map[string]*bintree{}},
+			"django-postgresql.json":            {examplesQuickstartsDjangoPostgresqlJson, map[string]*bintree{}},
+			"dotnet-pgsql-persistent.json":      {examplesQuickstartsDotnetPgsqlPersistentJson, map[string]*bintree{}},
+			"dotnet.json":                       {examplesQuickstartsDotnetJson, map[string]*bintree{}},
+			"httpd.json":                        {examplesQuickstartsHttpdJson, map[string]*bintree{}},
+			"nginx.json":                        {examplesQuickstartsNginxJson, map[string]*bintree{}},
+			"nodejs-mongodb-persistent.json":    {examplesQuickstartsNodejsMongodbPersistentJson, map[string]*bintree{}},
+			"nodejs-mongodb.json":               {examplesQuickstartsNodejsMongodbJson, map[string]*bintree{}},
+			"rails-postgresql-persistent.json":  {examplesQuickstartsRailsPostgresqlPersistentJson, map[string]*bintree{}},
+			"rails-postgresql.json":             {examplesQuickstartsRailsPostgresqlJson, map[string]*bintree{}},
 		}},
-		"sample-app": &bintree{nil, map[string]*bintree{
-			"application-template-custombuild.json": &bintree{examplesSampleAppApplicationTemplateCustombuildJson, map[string]*bintree{}},
-			"application-template-dockerbuild.json": &bintree{examplesSampleAppApplicationTemplateDockerbuildJson, map[string]*bintree{}},
-			"application-template-pullspecbuild.json": &bintree{examplesSampleAppApplicationTemplatePullspecbuildJson, map[string]*bintree{}},
-			"application-template-stibuild.json": &bintree{examplesSampleAppApplicationTemplateStibuildJson, map[string]*bintree{}},
-			"cleanup.sh": &bintree{examplesSampleAppCleanupSh, map[string]*bintree{}},
-			"github-webhook-example.json": &bintree{examplesSampleAppGithubWebhookExampleJson, map[string]*bintree{}},
-			"pullimages.sh": &bintree{examplesSampleAppPullimagesSh, map[string]*bintree{}},
+		"sample-app": {nil, map[string]*bintree{
+			"application-template-custombuild.json":   {examplesSampleAppApplicationTemplateCustombuildJson, map[string]*bintree{}},
+			"application-template-dockerbuild.json":   {examplesSampleAppApplicationTemplateDockerbuildJson, map[string]*bintree{}},
+			"application-template-pullspecbuild.json": {examplesSampleAppApplicationTemplatePullspecbuildJson, map[string]*bintree{}},
+			"application-template-stibuild.json":      {examplesSampleAppApplicationTemplateStibuildJson, map[string]*bintree{}},
+			"cleanup.sh":                              {examplesSampleAppCleanupSh, map[string]*bintree{}},
+			"github-webhook-example.json":             {examplesSampleAppGithubWebhookExampleJson, map[string]*bintree{}},
+			"pullimages.sh":                           {examplesSampleAppPullimagesSh, map[string]*bintree{}},
 		}},
 	}},
-	"install": &bintree{nil, map[string]*bintree{
-		"automationservicebroker": &bintree{nil, map[string]*bintree{
-			"install-rbac.yaml": &bintree{installAutomationservicebrokerInstallRbacYaml, map[string]*bintree{}},
-			"install.yaml": &bintree{installAutomationservicebrokerInstallYaml, map[string]*bintree{}},
+	"install": {nil, map[string]*bintree{
+		"automationservicebroker": {nil, map[string]*bintree{
+			"install-rbac.yaml": {installAutomationservicebrokerInstallRbacYaml, map[string]*bintree{}},
+			"install.yaml":      {installAutomationservicebrokerInstallYaml, map[string]*bintree{}},
 		}},
-		"etcd": &bintree{nil, map[string]*bintree{
-			"etcd.yaml": &bintree{installEtcdEtcdYaml, map[string]*bintree{}},
+		"etcd": {nil, map[string]*bintree{
+			"etcd.yaml": {installEtcdEtcdYaml, map[string]*bintree{}},
 		}},
-		"kube-apiserver": &bintree{nil, map[string]*bintree{
-			"apiserver.yaml": &bintree{installKubeApiserverApiserverYaml, map[string]*bintree{}},
+		"kube-apiserver": {nil, map[string]*bintree{
+			"apiserver.yaml": {installKubeApiserverApiserverYaml, map[string]*bintree{}},
 		}},
-		"kube-controller-manager": &bintree{nil, map[string]*bintree{
-			"kube-controller-manager.yaml": &bintree{installKubeControllerManagerKubeControllerManagerYaml, map[string]*bintree{}},
+		"kube-controller-manager": {nil, map[string]*bintree{
+			"kube-controller-manager.yaml": {installKubeControllerManagerKubeControllerManagerYaml, map[string]*bintree{}},
 		}},
-		"kube-dns": &bintree{nil, map[string]*bintree{
-			"install.yaml": &bintree{installKubeDnsInstallYaml, map[string]*bintree{}},
+		"kube-dns": {nil, map[string]*bintree{
+			"install.yaml": {installKubeDnsInstallYaml, map[string]*bintree{}},
 		}},
-		"kube-proxy": &bintree{nil, map[string]*bintree{
-			"install.yaml": &bintree{installKubeProxyInstallYaml, map[string]*bintree{}},
+		"kube-proxy": {nil, map[string]*bintree{
+			"install.yaml": {installKubeProxyInstallYaml, map[string]*bintree{}},
 		}},
-		"kube-scheduler": &bintree{nil, map[string]*bintree{
-			"kube-scheduler.yaml": &bintree{installKubeSchedulerKubeSchedulerYaml, map[string]*bintree{}},
+		"kube-scheduler": {nil, map[string]*bintree{
+			"kube-scheduler.yaml": {installKubeSchedulerKubeSchedulerYaml, map[string]*bintree{}},
 		}},
-		"openshift-apiserver": &bintree{nil, map[string]*bintree{
-			"install.yaml": &bintree{installOpenshiftApiserverInstallYaml, map[string]*bintree{}},
+		"openshift-apiserver": {nil, map[string]*bintree{
+			"install.yaml": {installOpenshiftApiserverInstallYaml, map[string]*bintree{}},
 		}},
-		"openshift-controller-manager": &bintree{nil, map[string]*bintree{
-			"install-rbac.yaml": &bintree{installOpenshiftControllerManagerInstallRbacYaml, map[string]*bintree{}},
-			"install.yaml": &bintree{installOpenshiftControllerManagerInstallYaml, map[string]*bintree{}},
+		"openshift-controller-manager": {nil, map[string]*bintree{
+			"install-rbac.yaml": {installOpenshiftControllerManagerInstallRbacYaml, map[string]*bintree{}},
+			"install.yaml":      {installOpenshiftControllerManagerInstallYaml, map[string]*bintree{}},
 		}},
-		"openshift-web-console-operator": &bintree{nil, map[string]*bintree{
-			"install-rbac.yaml": &bintree{installOpenshiftWebConsoleOperatorInstallRbacYaml, map[string]*bintree{}},
-			"install.yaml": &bintree{installOpenshiftWebConsoleOperatorInstallYaml, map[string]*bintree{}},
+		"openshift-docker-registry-operator": {nil, map[string]*bintree{
+			"install-rbac.yaml": {installOpenshiftDockerRegistryOperatorInstallRbacYaml, map[string]*bintree{}},
+			"install.yaml":      {installOpenshiftDockerRegistryOperatorInstallYaml, map[string]*bintree{}},
 		}},
-		"origin-web-console": &bintree{nil, map[string]*bintree{
-			"console-config.yaml": &bintree{installOriginWebConsoleConsoleConfigYaml, map[string]*bintree{}},
-			"console-template.yaml": &bintree{installOriginWebConsoleConsoleTemplateYaml, map[string]*bintree{}},
+		"openshift-web-console-operator": {nil, map[string]*bintree{
+			"install-rbac.yaml": {installOpenshiftWebConsoleOperatorInstallRbacYaml, map[string]*bintree{}},
+			"install.yaml":      {installOpenshiftWebConsoleOperatorInstallYaml, map[string]*bintree{}},
 		}},
-		"service-catalog-broker-resources": &bintree{nil, map[string]*bintree{
-			"template-service-broker-registration.yaml": &bintree{installServiceCatalogBrokerResourcesTemplateServiceBrokerRegistrationYaml, map[string]*bintree{}},
+		"origin-web-console": {nil, map[string]*bintree{
+			"console-config.yaml":   {installOriginWebConsoleConsoleConfigYaml, map[string]*bintree{}},
+			"console-template.yaml": {installOriginWebConsoleConsoleTemplateYaml, map[string]*bintree{}},
 		}},
-		"templateservicebroker": &bintree{nil, map[string]*bintree{
-			"apiserver-config.yaml": &bintree{installTemplateservicebrokerApiserverConfigYaml, map[string]*bintree{}},
-			"apiserver-template.yaml": &bintree{installTemplateservicebrokerApiserverTemplateYaml, map[string]*bintree{}},
-			"rbac-template.yaml": &bintree{installTemplateservicebrokerRbacTemplateYaml, map[string]*bintree{}},
+		"service-catalog-broker-resources": {nil, map[string]*bintree{
+			"template-service-broker-registration.yaml": {installServiceCatalogBrokerResourcesTemplateServiceBrokerRegistrationYaml, map[string]*bintree{}},
+		}},
+		"templateservicebroker": {nil, map[string]*bintree{
+			"apiserver-config.yaml":   {installTemplateservicebrokerApiserverConfigYaml, map[string]*bintree{}},
+			"apiserver-template.yaml": {installTemplateservicebrokerApiserverTemplateYaml, map[string]*bintree{}},
+			"rbac-template.yaml":      {installTemplateservicebrokerRbacTemplateYaml, map[string]*bintree{}},
 		}},
 	}},
-	"test": &bintree{nil, map[string]*bintree{
-		"extended": &bintree{nil, map[string]*bintree{
-			"testdata": &bintree{nil, map[string]*bintree{
-				"aggregator": &bintree{nil, map[string]*bintree{
-					"kube-system-auth-reader.yaml": &bintree{testExtendedTestdataAggregatorKubeSystemAuthReaderYaml, map[string]*bintree{}},
-					"sample-apiserver-apiservice.yaml": &bintree{testExtendedTestdataAggregatorSampleApiserverApiserviceYaml, map[string]*bintree{}},
-					"sample-apiserver-authdelegator.yaml": &bintree{testExtendedTestdataAggregatorSampleApiserverAuthdelegatorYaml, map[string]*bintree{}},
-					"sample-apiserver-authreader.yaml": &bintree{testExtendedTestdataAggregatorSampleApiserverAuthreaderYaml, map[string]*bintree{}},
-					"sample-apiserver-rc.yaml": &bintree{testExtendedTestdataAggregatorSampleApiserverRcYaml, map[string]*bintree{}},
-					"sample-apiserver-sa.yaml": &bintree{testExtendedTestdataAggregatorSampleApiserverSaYaml, map[string]*bintree{}},
-					"sample-apiserver-service.yaml": &bintree{testExtendedTestdataAggregatorSampleApiserverServiceYaml, map[string]*bintree{}},
+	"test": {nil, map[string]*bintree{
+		"extended": {nil, map[string]*bintree{
+			"testdata": {nil, map[string]*bintree{
+				"aggregator": {nil, map[string]*bintree{
+					"kube-system-auth-reader.yaml":        {testExtendedTestdataAggregatorKubeSystemAuthReaderYaml, map[string]*bintree{}},
+					"sample-apiserver-apiservice.yaml":    {testExtendedTestdataAggregatorSampleApiserverApiserviceYaml, map[string]*bintree{}},
+					"sample-apiserver-authdelegator.yaml": {testExtendedTestdataAggregatorSampleApiserverAuthdelegatorYaml, map[string]*bintree{}},
+					"sample-apiserver-authreader.yaml":    {testExtendedTestdataAggregatorSampleApiserverAuthreaderYaml, map[string]*bintree{}},
+					"sample-apiserver-rc.yaml":            {testExtendedTestdataAggregatorSampleApiserverRcYaml, map[string]*bintree{}},
+					"sample-apiserver-sa.yaml":            {testExtendedTestdataAggregatorSampleApiserverSaYaml, map[string]*bintree{}},
+					"sample-apiserver-service.yaml":       {testExtendedTestdataAggregatorSampleApiserverServiceYaml, map[string]*bintree{}},
 				}},
-				"builds": &bintree{nil, map[string]*bintree{
-					"build-pruning": &bintree{nil, map[string]*bintree{
-						"default-group-build-config.yaml": &bintree{testExtendedTestdataBuildsBuildPruningDefaultGroupBuildConfigYaml, map[string]*bintree{}},
-						"default-legacy-build-config.yaml": &bintree{testExtendedTestdataBuildsBuildPruningDefaultLegacyBuildConfigYaml, map[string]*bintree{}},
-						"errored-build-config.yaml": &bintree{testExtendedTestdataBuildsBuildPruningErroredBuildConfigYaml, map[string]*bintree{}},
-						"failed-build-config.yaml": &bintree{testExtendedTestdataBuildsBuildPruningFailedBuildConfigYaml, map[string]*bintree{}},
-						"failed-pipeline.yaml": &bintree{testExtendedTestdataBuildsBuildPruningFailedPipelineYaml, map[string]*bintree{}},
-						"imagestream.yaml": &bintree{testExtendedTestdataBuildsBuildPruningImagestreamYaml, map[string]*bintree{}},
-						"successful-build-config.yaml": &bintree{testExtendedTestdataBuildsBuildPruningSuccessfulBuildConfigYaml, map[string]*bintree{}},
-						"successful-pipeline.yaml": &bintree{testExtendedTestdataBuildsBuildPruningSuccessfulPipelineYaml, map[string]*bintree{}},
+				"builds": {nil, map[string]*bintree{
+					"build-pruning": {nil, map[string]*bintree{
+						"default-group-build-config.yaml":  {testExtendedTestdataBuildsBuildPruningDefaultGroupBuildConfigYaml, map[string]*bintree{}},
+						"default-legacy-build-config.yaml": {testExtendedTestdataBuildsBuildPruningDefaultLegacyBuildConfigYaml, map[string]*bintree{}},
+						"errored-build-config.yaml":        {testExtendedTestdataBuildsBuildPruningErroredBuildConfigYaml, map[string]*bintree{}},
+						"failed-build-config.yaml":         {testExtendedTestdataBuildsBuildPruningFailedBuildConfigYaml, map[string]*bintree{}},
+						"failed-pipeline.yaml":             {testExtendedTestdataBuildsBuildPruningFailedPipelineYaml, map[string]*bintree{}},
+						"imagestream.yaml":                 {testExtendedTestdataBuildsBuildPruningImagestreamYaml, map[string]*bintree{}},
+						"successful-build-config.yaml":     {testExtendedTestdataBuildsBuildPruningSuccessfulBuildConfigYaml, map[string]*bintree{}},
+						"successful-pipeline.yaml":         {testExtendedTestdataBuildsBuildPruningSuccessfulPipelineYaml, map[string]*bintree{}},
 					}},
-					"build-quota": &bintree{nil, map[string]*bintree{
-						".s2i": &bintree{nil, map[string]*bintree{
-							"bin": &bintree{nil, map[string]*bintree{
-								"assemble": &bintree{testExtendedTestdataBuildsBuildQuotaS2iBinAssemble, map[string]*bintree{}},
+					"build-quota": {nil, map[string]*bintree{
+						".s2i": {nil, map[string]*bintree{
+							"bin": {nil, map[string]*bintree{
+								"assemble": {testExtendedTestdataBuildsBuildQuotaS2iBinAssemble, map[string]*bintree{}},
 							}},
 						}},
-						"Dockerfile": &bintree{testExtendedTestdataBuildsBuildQuotaDockerfile, map[string]*bintree{}},
+						"Dockerfile": {testExtendedTestdataBuildsBuildQuotaDockerfile, map[string]*bintree{}},
 					}},
-					"build-secrets": &bintree{nil, map[string]*bintree{
-						"Dockerfile": &bintree{testExtendedTestdataBuildsBuildSecretsDockerfile, map[string]*bintree{}},
-						"s2i-binary-dir": &bintree{nil, map[string]*bintree{
-							".s2i": &bintree{nil, map[string]*bintree{
-								"bin": &bintree{nil, map[string]*bintree{
-									"assemble": &bintree{testExtendedTestdataBuildsBuildSecretsS2iBinaryDirS2iBinAssemble, map[string]*bintree{}},
-									"run": &bintree{testExtendedTestdataBuildsBuildSecretsS2iBinaryDirS2iBinRun, map[string]*bintree{}},
+					"build-secrets": {nil, map[string]*bintree{
+						"Dockerfile": {testExtendedTestdataBuildsBuildSecretsDockerfile, map[string]*bintree{}},
+						"s2i-binary-dir": {nil, map[string]*bintree{
+							".s2i": {nil, map[string]*bintree{
+								"bin": {nil, map[string]*bintree{
+									"assemble": {testExtendedTestdataBuildsBuildSecretsS2iBinaryDirS2iBinAssemble, map[string]*bintree{}},
+									"run":      {testExtendedTestdataBuildsBuildSecretsS2iBinaryDirS2iBinRun, map[string]*bintree{}},
 								}},
 							}},
-							"Gemfile": &bintree{testExtendedTestdataBuildsBuildSecretsS2iBinaryDirGemfile, map[string]*bintree{}},
-							"config.ru": &bintree{testExtendedTestdataBuildsBuildSecretsS2iBinaryDirConfigRu, map[string]*bintree{}},
+							"Gemfile":   {testExtendedTestdataBuildsBuildSecretsS2iBinaryDirGemfile, map[string]*bintree{}},
+							"config.ru": {testExtendedTestdataBuildsBuildSecretsS2iBinaryDirConfigRu, map[string]*bintree{}},
 						}},
-						"test-configmap-2.json": &bintree{testExtendedTestdataBuildsBuildSecretsTestConfigmap2Json, map[string]*bintree{}},
-						"test-configmap.json": &bintree{testExtendedTestdataBuildsBuildSecretsTestConfigmapJson, map[string]*bintree{}},
-						"test-docker-build.json": &bintree{testExtendedTestdataBuildsBuildSecretsTestDockerBuildJson, map[string]*bintree{}},
-						"test-is.json": &bintree{testExtendedTestdataBuildsBuildSecretsTestIsJson, map[string]*bintree{}},
-						"test-s2i-build.json": &bintree{testExtendedTestdataBuildsBuildSecretsTestS2iBuildJson, map[string]*bintree{}},
-						"test-secret-2.json": &bintree{testExtendedTestdataBuildsBuildSecretsTestSecret2Json, map[string]*bintree{}},
-						"test-secret.json": &bintree{testExtendedTestdataBuildsBuildSecretsTestSecretJson, map[string]*bintree{}},
+						"test-configmap-2.json":  {testExtendedTestdataBuildsBuildSecretsTestConfigmap2Json, map[string]*bintree{}},
+						"test-configmap.json":    {testExtendedTestdataBuildsBuildSecretsTestConfigmapJson, map[string]*bintree{}},
+						"test-docker-build.json": {testExtendedTestdataBuildsBuildSecretsTestDockerBuildJson, map[string]*bintree{}},
+						"test-is.json":           {testExtendedTestdataBuildsBuildSecretsTestIsJson, map[string]*bintree{}},
+						"test-s2i-build.json":    {testExtendedTestdataBuildsBuildSecretsTestS2iBuildJson, map[string]*bintree{}},
+						"test-secret-2.json":     {testExtendedTestdataBuildsBuildSecretsTestSecret2Json, map[string]*bintree{}},
+						"test-secret.json":       {testExtendedTestdataBuildsBuildSecretsTestSecretJson, map[string]*bintree{}},
 					}},
-					"build-timing": &bintree{nil, map[string]*bintree{
-						"Dockerfile": &bintree{testExtendedTestdataBuildsBuildTimingDockerfile, map[string]*bintree{}},
-						"s2i-binary-dir": &bintree{nil, map[string]*bintree{
-							".s2i": &bintree{nil, map[string]*bintree{
-								"bin": &bintree{nil, map[string]*bintree{
-									"assemble": &bintree{testExtendedTestdataBuildsBuildTimingS2iBinaryDirS2iBinAssemble, map[string]*bintree{}},
-									"run": &bintree{testExtendedTestdataBuildsBuildTimingS2iBinaryDirS2iBinRun, map[string]*bintree{}},
+					"build-timing": {nil, map[string]*bintree{
+						"Dockerfile": {testExtendedTestdataBuildsBuildTimingDockerfile, map[string]*bintree{}},
+						"s2i-binary-dir": {nil, map[string]*bintree{
+							".s2i": {nil, map[string]*bintree{
+								"bin": {nil, map[string]*bintree{
+									"assemble": {testExtendedTestdataBuildsBuildTimingS2iBinaryDirS2iBinAssemble, map[string]*bintree{}},
+									"run":      {testExtendedTestdataBuildsBuildTimingS2iBinaryDirS2iBinRun, map[string]*bintree{}},
 								}},
 							}},
-							"Gemfile": &bintree{testExtendedTestdataBuildsBuildTimingS2iBinaryDirGemfile, map[string]*bintree{}},
-							"config.ru": &bintree{testExtendedTestdataBuildsBuildTimingS2iBinaryDirConfigRu, map[string]*bintree{}},
+							"Gemfile":   {testExtendedTestdataBuildsBuildTimingS2iBinaryDirGemfile, map[string]*bintree{}},
+							"config.ru": {testExtendedTestdataBuildsBuildTimingS2iBinaryDirConfigRu, map[string]*bintree{}},
 						}},
-						"test-docker-build.json": &bintree{testExtendedTestdataBuildsBuildTimingTestDockerBuildJson, map[string]*bintree{}},
-						"test-is.json": &bintree{testExtendedTestdataBuildsBuildTimingTestIsJson, map[string]*bintree{}},
-						"test-s2i-build.json": &bintree{testExtendedTestdataBuildsBuildTimingTestS2iBuildJson, map[string]*bintree{}},
+						"test-docker-build.json": {testExtendedTestdataBuildsBuildTimingTestDockerBuildJson, map[string]*bintree{}},
+						"test-is.json":           {testExtendedTestdataBuildsBuildTimingTestIsJson, map[string]*bintree{}},
+						"test-s2i-build.json":    {testExtendedTestdataBuildsBuildTimingTestS2iBuildJson, map[string]*bintree{}},
 					}},
-					"gradle-pipeline.yaml": &bintree{testExtendedTestdataBuildsGradlePipelineYaml, map[string]*bintree{}},
-					"incremental-auth-build.json": &bintree{testExtendedTestdataBuildsIncrementalAuthBuildJson, map[string]*bintree{}},
-					"statusfail-assemble": &bintree{nil, map[string]*bintree{
-						".s2i": &bintree{nil, map[string]*bintree{
-							"bin": &bintree{nil, map[string]*bintree{
-								"assemble": &bintree{testExtendedTestdataBuildsStatusfailAssembleS2iBinAssemble, map[string]*bintree{}},
+					"gradle-pipeline.yaml":        {testExtendedTestdataBuildsGradlePipelineYaml, map[string]*bintree{}},
+					"incremental-auth-build.json": {testExtendedTestdataBuildsIncrementalAuthBuildJson, map[string]*bintree{}},
+					"statusfail-assemble": {nil, map[string]*bintree{
+						".s2i": {nil, map[string]*bintree{
+							"bin": {nil, map[string]*bintree{
+								"assemble": {testExtendedTestdataBuildsStatusfailAssembleS2iBinAssemble, map[string]*bintree{}},
 							}},
 						}},
 					}},
-					"statusfail-badcontextdirs2i.yaml": &bintree{testExtendedTestdataBuildsStatusfailBadcontextdirs2iYaml, map[string]*bintree{}},
-					"statusfail-failedassemble.yaml": &bintree{testExtendedTestdataBuildsStatusfailFailedassembleYaml, map[string]*bintree{}},
-					"statusfail-fetchbuilderimage.yaml": &bintree{testExtendedTestdataBuildsStatusfailFetchbuilderimageYaml, map[string]*bintree{}},
-					"statusfail-fetchsourcedocker.yaml": &bintree{testExtendedTestdataBuildsStatusfailFetchsourcedockerYaml, map[string]*bintree{}},
-					"statusfail-fetchsources2i.yaml": &bintree{testExtendedTestdataBuildsStatusfailFetchsources2iYaml, map[string]*bintree{}},
-					"statusfail-genericreason.yaml": &bintree{testExtendedTestdataBuildsStatusfailGenericreasonYaml, map[string]*bintree{}},
-					"statusfail-postcommithook.yaml": &bintree{testExtendedTestdataBuildsStatusfailPostcommithookYaml, map[string]*bintree{}},
-					"statusfail-pushtoregistry.yaml": &bintree{testExtendedTestdataBuildsStatusfailPushtoregistryYaml, map[string]*bintree{}},
-					"sti-environment-build-app": &bintree{nil, map[string]*bintree{
-						".sti": &bintree{nil, map[string]*bintree{
-							"environment": &bintree{testExtendedTestdataBuildsStiEnvironmentBuildAppStiEnvironment, map[string]*bintree{}},
+					"statusfail-badcontextdirs2i.yaml":  {testExtendedTestdataBuildsStatusfailBadcontextdirs2iYaml, map[string]*bintree{}},
+					"statusfail-failedassemble.yaml":    {testExtendedTestdataBuildsStatusfailFailedassembleYaml, map[string]*bintree{}},
+					"statusfail-fetchbuilderimage.yaml": {testExtendedTestdataBuildsStatusfailFetchbuilderimageYaml, map[string]*bintree{}},
+					"statusfail-fetchsourcedocker.yaml": {testExtendedTestdataBuildsStatusfailFetchsourcedockerYaml, map[string]*bintree{}},
+					"statusfail-fetchsources2i.yaml":    {testExtendedTestdataBuildsStatusfailFetchsources2iYaml, map[string]*bintree{}},
+					"statusfail-genericreason.yaml":     {testExtendedTestdataBuildsStatusfailGenericreasonYaml, map[string]*bintree{}},
+					"statusfail-postcommithook.yaml":    {testExtendedTestdataBuildsStatusfailPostcommithookYaml, map[string]*bintree{}},
+					"statusfail-pushtoregistry.yaml":    {testExtendedTestdataBuildsStatusfailPushtoregistryYaml, map[string]*bintree{}},
+					"sti-environment-build-app": {nil, map[string]*bintree{
+						".sti": {nil, map[string]*bintree{
+							"environment": {testExtendedTestdataBuildsStiEnvironmentBuildAppStiEnvironment, map[string]*bintree{}},
 						}},
-						"Gemfile": &bintree{testExtendedTestdataBuildsStiEnvironmentBuildAppGemfile, map[string]*bintree{}},
-						"config.ru": &bintree{testExtendedTestdataBuildsStiEnvironmentBuildAppConfigRu, map[string]*bintree{}},
+						"Gemfile":   {testExtendedTestdataBuildsStiEnvironmentBuildAppGemfile, map[string]*bintree{}},
+						"config.ru": {testExtendedTestdataBuildsStiEnvironmentBuildAppConfigRu, map[string]*bintree{}},
 					}},
-					"test-auth-build.yaml": &bintree{testExtendedTestdataBuildsTestAuthBuildYaml, map[string]*bintree{}},
-					"test-bc-with-pr-ref.yaml": &bintree{testExtendedTestdataBuildsTestBcWithPrRefYaml, map[string]*bintree{}},
-					"test-build-app": &bintree{nil, map[string]*bintree{
-						"Dockerfile": &bintree{testExtendedTestdataBuildsTestBuildAppDockerfile, map[string]*bintree{}},
-						"Gemfile": &bintree{testExtendedTestdataBuildsTestBuildAppGemfile, map[string]*bintree{}},
-						"config.ru": &bintree{testExtendedTestdataBuildsTestBuildAppConfigRu, map[string]*bintree{}},
+					"test-auth-build.yaml":     {testExtendedTestdataBuildsTestAuthBuildYaml, map[string]*bintree{}},
+					"test-bc-with-pr-ref.yaml": {testExtendedTestdataBuildsTestBcWithPrRefYaml, map[string]*bintree{}},
+					"test-build-app": {nil, map[string]*bintree{
+						"Dockerfile": {testExtendedTestdataBuildsTestBuildAppDockerfile, map[string]*bintree{}},
+						"Gemfile":    {testExtendedTestdataBuildsTestBuildAppGemfile, map[string]*bintree{}},
+						"config.ru":  {testExtendedTestdataBuildsTestBuildAppConfigRu, map[string]*bintree{}},
 					}},
-					"test-build-podsvc.json": &bintree{testExtendedTestdataBuildsTestBuildPodsvcJson, map[string]*bintree{}},
-					"test-build-postcommit.json": &bintree{testExtendedTestdataBuildsTestBuildPostcommitJson, map[string]*bintree{}},
-					"test-build-proxy.yaml": &bintree{testExtendedTestdataBuildsTestBuildProxyYaml, map[string]*bintree{}},
-					"test-build-revision.json": &bintree{testExtendedTestdataBuildsTestBuildRevisionJson, map[string]*bintree{}},
-					"test-build.yaml": &bintree{testExtendedTestdataBuildsTestBuildYaml, map[string]*bintree{}},
-					"test-buildconfigsecretinjector.yaml": &bintree{testExtendedTestdataBuildsTestBuildconfigsecretinjectorYaml, map[string]*bintree{}},
-					"test-cds-dockerbuild.json": &bintree{testExtendedTestdataBuildsTestCdsDockerbuildJson, map[string]*bintree{}},
-					"test-cds-sourcebuild.json": &bintree{testExtendedTestdataBuildsTestCdsSourcebuildJson, map[string]*bintree{}},
-					"test-context-build.json": &bintree{testExtendedTestdataBuildsTestContextBuildJson, map[string]*bintree{}},
-					"test-docker-build-pullsecret.json": &bintree{testExtendedTestdataBuildsTestDockerBuildPullsecretJson, map[string]*bintree{}},
-					"test-docker-build-quota-optimized.json": &bintree{testExtendedTestdataBuildsTestDockerBuildQuotaOptimizedJson, map[string]*bintree{}},
-					"test-docker-build-quota.json": &bintree{testExtendedTestdataBuildsTestDockerBuildQuotaJson, map[string]*bintree{}},
-					"test-docker-build.json": &bintree{testExtendedTestdataBuildsTestDockerBuildJson, map[string]*bintree{}},
-					"test-docker-no-outputname.json": &bintree{testExtendedTestdataBuildsTestDockerNoOutputnameJson, map[string]*bintree{}},
-					"test-env-build.json": &bintree{testExtendedTestdataBuildsTestEnvBuildJson, map[string]*bintree{}},
-					"test-imagechangetriggers.yaml": &bintree{testExtendedTestdataBuildsTestImagechangetriggersYaml, map[string]*bintree{}},
-					"test-imageresolution-custom-build.yaml": &bintree{testExtendedTestdataBuildsTestImageresolutionCustomBuildYaml, map[string]*bintree{}},
-					"test-imageresolution-docker-build.yaml": &bintree{testExtendedTestdataBuildsTestImageresolutionDockerBuildYaml, map[string]*bintree{}},
-					"test-imageresolution-s2i-build.yaml": &bintree{testExtendedTestdataBuildsTestImageresolutionS2iBuildYaml, map[string]*bintree{}},
-					"test-imagesource-buildconfig.yaml": &bintree{testExtendedTestdataBuildsTestImagesourceBuildconfigYaml, map[string]*bintree{}},
-					"test-nosrc-build.json": &bintree{testExtendedTestdataBuildsTestNosrcBuildJson, map[string]*bintree{}},
-					"test-s2i-build-quota.json": &bintree{testExtendedTestdataBuildsTestS2iBuildQuotaJson, map[string]*bintree{}},
-					"test-s2i-build.json": &bintree{testExtendedTestdataBuildsTestS2iBuildJson, map[string]*bintree{}},
-					"test-s2i-no-outputname.json": &bintree{testExtendedTestdataBuildsTestS2iNoOutputnameJson, map[string]*bintree{}},
-					"valuefrom": &bintree{nil, map[string]*bintree{
-						"failed-docker-build-value-from-config.yaml": &bintree{testExtendedTestdataBuildsValuefromFailedDockerBuildValueFromConfigYaml, map[string]*bintree{}},
-						"failed-sti-build-value-from-config.yaml": &bintree{testExtendedTestdataBuildsValuefromFailedStiBuildValueFromConfigYaml, map[string]*bintree{}},
-						"successful-docker-build-value-from-config.yaml": &bintree{testExtendedTestdataBuildsValuefromSuccessfulDockerBuildValueFromConfigYaml, map[string]*bintree{}},
-						"successful-sti-build-value-from-config.yaml": &bintree{testExtendedTestdataBuildsValuefromSuccessfulStiBuildValueFromConfigYaml, map[string]*bintree{}},
-						"test-configmap.yaml": &bintree{testExtendedTestdataBuildsValuefromTestConfigmapYaml, map[string]*bintree{}},
-						"test-is.json": &bintree{testExtendedTestdataBuildsValuefromTestIsJson, map[string]*bintree{}},
-						"test-secret.yaml": &bintree{testExtendedTestdataBuildsValuefromTestSecretYaml, map[string]*bintree{}},
+					"test-build-podsvc.json":                 {testExtendedTestdataBuildsTestBuildPodsvcJson, map[string]*bintree{}},
+					"test-build-postcommit.json":             {testExtendedTestdataBuildsTestBuildPostcommitJson, map[string]*bintree{}},
+					"test-build-proxy.yaml":                  {testExtendedTestdataBuildsTestBuildProxyYaml, map[string]*bintree{}},
+					"test-build-revision.json":               {testExtendedTestdataBuildsTestBuildRevisionJson, map[string]*bintree{}},
+					"test-build.yaml":                        {testExtendedTestdataBuildsTestBuildYaml, map[string]*bintree{}},
+					"test-buildconfigsecretinjector.yaml":    {testExtendedTestdataBuildsTestBuildconfigsecretinjectorYaml, map[string]*bintree{}},
+					"test-cds-dockerbuild.json":              {testExtendedTestdataBuildsTestCdsDockerbuildJson, map[string]*bintree{}},
+					"test-cds-sourcebuild.json":              {testExtendedTestdataBuildsTestCdsSourcebuildJson, map[string]*bintree{}},
+					"test-context-build.json":                {testExtendedTestdataBuildsTestContextBuildJson, map[string]*bintree{}},
+					"test-docker-build-pullsecret.json":      {testExtendedTestdataBuildsTestDockerBuildPullsecretJson, map[string]*bintree{}},
+					"test-docker-build-quota-optimized.json": {testExtendedTestdataBuildsTestDockerBuildQuotaOptimizedJson, map[string]*bintree{}},
+					"test-docker-build-quota.json":           {testExtendedTestdataBuildsTestDockerBuildQuotaJson, map[string]*bintree{}},
+					"test-docker-build.json":                 {testExtendedTestdataBuildsTestDockerBuildJson, map[string]*bintree{}},
+					"test-docker-no-outputname.json":         {testExtendedTestdataBuildsTestDockerNoOutputnameJson, map[string]*bintree{}},
+					"test-env-build.json":                    {testExtendedTestdataBuildsTestEnvBuildJson, map[string]*bintree{}},
+					"test-imagechangetriggers.yaml":          {testExtendedTestdataBuildsTestImagechangetriggersYaml, map[string]*bintree{}},
+					"test-imageresolution-custom-build.yaml": {testExtendedTestdataBuildsTestImageresolutionCustomBuildYaml, map[string]*bintree{}},
+					"test-imageresolution-docker-build.yaml": {testExtendedTestdataBuildsTestImageresolutionDockerBuildYaml, map[string]*bintree{}},
+					"test-imageresolution-s2i-build.yaml":    {testExtendedTestdataBuildsTestImageresolutionS2iBuildYaml, map[string]*bintree{}},
+					"test-imagesource-buildconfig.yaml":      {testExtendedTestdataBuildsTestImagesourceBuildconfigYaml, map[string]*bintree{}},
+					"test-nosrc-build.json":                  {testExtendedTestdataBuildsTestNosrcBuildJson, map[string]*bintree{}},
+					"test-s2i-build-quota.json":              {testExtendedTestdataBuildsTestS2iBuildQuotaJson, map[string]*bintree{}},
+					"test-s2i-build.json":                    {testExtendedTestdataBuildsTestS2iBuildJson, map[string]*bintree{}},
+					"test-s2i-no-outputname.json":            {testExtendedTestdataBuildsTestS2iNoOutputnameJson, map[string]*bintree{}},
+					"valuefrom": {nil, map[string]*bintree{
+						"failed-docker-build-value-from-config.yaml":     {testExtendedTestdataBuildsValuefromFailedDockerBuildValueFromConfigYaml, map[string]*bintree{}},
+						"failed-sti-build-value-from-config.yaml":        {testExtendedTestdataBuildsValuefromFailedStiBuildValueFromConfigYaml, map[string]*bintree{}},
+						"successful-docker-build-value-from-config.yaml": {testExtendedTestdataBuildsValuefromSuccessfulDockerBuildValueFromConfigYaml, map[string]*bintree{}},
+						"successful-sti-build-value-from-config.yaml":    {testExtendedTestdataBuildsValuefromSuccessfulStiBuildValueFromConfigYaml, map[string]*bintree{}},
+						"test-configmap.yaml":                            {testExtendedTestdataBuildsValuefromTestConfigmapYaml, map[string]*bintree{}},
+						"test-is.json":                                   {testExtendedTestdataBuildsValuefromTestIsJson, map[string]*bintree{}},
+						"test-secret.yaml":                               {testExtendedTestdataBuildsValuefromTestSecretYaml, map[string]*bintree{}},
 					}},
 				}},
-				"cluster": &bintree{nil, map[string]*bintree{
-					"master-vert.yaml": &bintree{testExtendedTestdataClusterMasterVertYaml, map[string]*bintree{}},
+				"cluster": {nil, map[string]*bintree{
+					"master-vert.yaml": {testExtendedTestdataClusterMasterVertYaml, map[string]*bintree{}},
 				}},
-				"config-map-jenkins-slave-pods.yaml": &bintree{testExtendedTestdataConfigMapJenkinsSlavePodsYaml, map[string]*bintree{}},
-				"custom-secret-builder": &bintree{nil, map[string]*bintree{
-					"Dockerfile": &bintree{testExtendedTestdataCustomSecretBuilderDockerfile, map[string]*bintree{}},
-					"build.sh": &bintree{testExtendedTestdataCustomSecretBuilderBuildSh, map[string]*bintree{}},
+				"config-map-jenkins-slave-pods.yaml": {testExtendedTestdataConfigMapJenkinsSlavePodsYaml, map[string]*bintree{}},
+				"custom-secret-builder": {nil, map[string]*bintree{
+					"Dockerfile": {testExtendedTestdataCustomSecretBuilderDockerfile, map[string]*bintree{}},
+					"build.sh":   {testExtendedTestdataCustomSecretBuilderBuildSh, map[string]*bintree{}},
 				}},
-				"deployments": &bintree{nil, map[string]*bintree{
-					"custom-deployment.yaml": &bintree{testExtendedTestdataDeploymentsCustomDeploymentYaml, map[string]*bintree{}},
-					"deployment-example.yaml": &bintree{testExtendedTestdataDeploymentsDeploymentExampleYaml, map[string]*bintree{}},
-					"deployment-history-limit.yaml": &bintree{testExtendedTestdataDeploymentsDeploymentHistoryLimitYaml, map[string]*bintree{}},
-					"deployment-ignores-deployer.yaml": &bintree{testExtendedTestdataDeploymentsDeploymentIgnoresDeployerYaml, map[string]*bintree{}},
-					"deployment-image-resolution-is.yaml": &bintree{testExtendedTestdataDeploymentsDeploymentImageResolutionIsYaml, map[string]*bintree{}},
-					"deployment-image-resolution.yaml": &bintree{testExtendedTestdataDeploymentsDeploymentImageResolutionYaml, map[string]*bintree{}},
-					"deployment-min-ready-seconds.yaml": &bintree{testExtendedTestdataDeploymentsDeploymentMinReadySecondsYaml, map[string]*bintree{}},
-					"deployment-simple.yaml": &bintree{testExtendedTestdataDeploymentsDeploymentSimpleYaml, map[string]*bintree{}},
-					"deployment-trigger.yaml": &bintree{testExtendedTestdataDeploymentsDeploymentTriggerYaml, map[string]*bintree{}},
-					"deployment-with-ref-env.yaml": &bintree{testExtendedTestdataDeploymentsDeploymentWithRefEnvYaml, map[string]*bintree{}},
-					"failing-pre-hook.yaml": &bintree{testExtendedTestdataDeploymentsFailingPreHookYaml, map[string]*bintree{}},
-					"generation-test.yaml": &bintree{testExtendedTestdataDeploymentsGenerationTestYaml, map[string]*bintree{}},
-					"multi-ict-deployment.yaml": &bintree{testExtendedTestdataDeploymentsMultiIctDeploymentYaml, map[string]*bintree{}},
-					"paused-deployment.yaml": &bintree{testExtendedTestdataDeploymentsPausedDeploymentYaml, map[string]*bintree{}},
-					"readiness-test.yaml": &bintree{testExtendedTestdataDeploymentsReadinessTestYaml, map[string]*bintree{}},
-					"tag-images-deployment.yaml": &bintree{testExtendedTestdataDeploymentsTagImagesDeploymentYaml, map[string]*bintree{}},
-					"test-deployment-broken.yaml": &bintree{testExtendedTestdataDeploymentsTestDeploymentBrokenYaml, map[string]*bintree{}},
-					"test-deployment-test.yaml": &bintree{testExtendedTestdataDeploymentsTestDeploymentTestYaml, map[string]*bintree{}},
+				"deployments": {nil, map[string]*bintree{
+					"custom-deployment.yaml":              {testExtendedTestdataDeploymentsCustomDeploymentYaml, map[string]*bintree{}},
+					"deployment-example.yaml":             {testExtendedTestdataDeploymentsDeploymentExampleYaml, map[string]*bintree{}},
+					"deployment-history-limit.yaml":       {testExtendedTestdataDeploymentsDeploymentHistoryLimitYaml, map[string]*bintree{}},
+					"deployment-ignores-deployer.yaml":    {testExtendedTestdataDeploymentsDeploymentIgnoresDeployerYaml, map[string]*bintree{}},
+					"deployment-image-resolution-is.yaml": {testExtendedTestdataDeploymentsDeploymentImageResolutionIsYaml, map[string]*bintree{}},
+					"deployment-image-resolution.yaml":    {testExtendedTestdataDeploymentsDeploymentImageResolutionYaml, map[string]*bintree{}},
+					"deployment-min-ready-seconds.yaml":   {testExtendedTestdataDeploymentsDeploymentMinReadySecondsYaml, map[string]*bintree{}},
+					"deployment-simple.yaml":              {testExtendedTestdataDeploymentsDeploymentSimpleYaml, map[string]*bintree{}},
+					"deployment-trigger.yaml":             {testExtendedTestdataDeploymentsDeploymentTriggerYaml, map[string]*bintree{}},
+					"deployment-with-ref-env.yaml":        {testExtendedTestdataDeploymentsDeploymentWithRefEnvYaml, map[string]*bintree{}},
+					"failing-pre-hook.yaml":               {testExtendedTestdataDeploymentsFailingPreHookYaml, map[string]*bintree{}},
+					"generation-test.yaml":                {testExtendedTestdataDeploymentsGenerationTestYaml, map[string]*bintree{}},
+					"multi-ict-deployment.yaml":           {testExtendedTestdataDeploymentsMultiIctDeploymentYaml, map[string]*bintree{}},
+					"paused-deployment.yaml":              {testExtendedTestdataDeploymentsPausedDeploymentYaml, map[string]*bintree{}},
+					"readiness-test.yaml":                 {testExtendedTestdataDeploymentsReadinessTestYaml, map[string]*bintree{}},
+					"tag-images-deployment.yaml":          {testExtendedTestdataDeploymentsTagImagesDeploymentYaml, map[string]*bintree{}},
+					"test-deployment-broken.yaml":         {testExtendedTestdataDeploymentsTestDeploymentBrokenYaml, map[string]*bintree{}},
+					"test-deployment-test.yaml":           {testExtendedTestdataDeploymentsTestDeploymentTestYaml, map[string]*bintree{}},
 				}},
-				"forcepull-test.json": &bintree{testExtendedTestdataForcepullTestJson, map[string]*bintree{}},
-				"gssapi": &bintree{nil, map[string]*bintree{
-					"config": &bintree{nil, map[string]*bintree{
-						"kubeconfig": &bintree{testExtendedTestdataGssapiConfigKubeconfig, map[string]*bintree{}},
-						"oauth_config.json": &bintree{testExtendedTestdataGssapiConfigOauth_configJson, map[string]*bintree{}},
+				"forcepull-test.json": {testExtendedTestdataForcepullTestJson, map[string]*bintree{}},
+				"gssapi": {nil, map[string]*bintree{
+					"config": {nil, map[string]*bintree{
+						"kubeconfig":        {testExtendedTestdataGssapiConfigKubeconfig, map[string]*bintree{}},
+						"oauth_config.json": {testExtendedTestdataGssapiConfigOauth_configJson, map[string]*bintree{}},
 					}},
-					"fedora": &bintree{nil, map[string]*bintree{
-						"base": &bintree{nil, map[string]*bintree{
-							"Dockerfile": &bintree{testExtendedTestdataGssapiFedoraBaseDockerfile, map[string]*bintree{}},
+					"fedora": {nil, map[string]*bintree{
+						"base": {nil, map[string]*bintree{
+							"Dockerfile": {testExtendedTestdataGssapiFedoraBaseDockerfile, map[string]*bintree{}},
 						}},
-						"kerberos": &bintree{nil, map[string]*bintree{
-							"Dockerfile": &bintree{testExtendedTestdataGssapiFedoraKerberosDockerfile, map[string]*bintree{}},
+						"kerberos": {nil, map[string]*bintree{
+							"Dockerfile": {testExtendedTestdataGssapiFedoraKerberosDockerfile, map[string]*bintree{}},
 						}},
-						"kerberos_configured": &bintree{nil, map[string]*bintree{
-							"Dockerfile": &bintree{testExtendedTestdataGssapiFedoraKerberos_configuredDockerfile, map[string]*bintree{}},
-						}},
-					}},
-					"proxy": &bintree{nil, map[string]*bintree{
-						"Dockerfile": &bintree{testExtendedTestdataGssapiProxyDockerfile, map[string]*bintree{}},
-						"configure.sh": &bintree{testExtendedTestdataGssapiProxyConfigureSh, map[string]*bintree{}},
-						"gssapiproxy-buildconfig.yaml": &bintree{testExtendedTestdataGssapiProxyGssapiproxyBuildconfigYaml, map[string]*bintree{}},
-						"gssapiproxy-deploymentconfig.yaml": &bintree{testExtendedTestdataGssapiProxyGssapiproxyDeploymentconfigYaml, map[string]*bintree{}},
-						"gssapiproxy-imagestream.yaml": &bintree{testExtendedTestdataGssapiProxyGssapiproxyImagestreamYaml, map[string]*bintree{}},
-						"gssapiproxy-service.yaml": &bintree{testExtendedTestdataGssapiProxyGssapiproxyServiceYaml, map[string]*bintree{}},
-						"healthz": &bintree{testExtendedTestdataGssapiProxyHealthz, map[string]*bintree{}},
-						"kadm5.acl": &bintree{testExtendedTestdataGssapiProxyKadm5Acl, map[string]*bintree{}},
-						"kdc.conf": &bintree{testExtendedTestdataGssapiProxyKdcConf, map[string]*bintree{}},
-						"krb5.conf": &bintree{testExtendedTestdataGssapiProxyKrb5Conf, map[string]*bintree{}},
-						"proxy.conf": &bintree{testExtendedTestdataGssapiProxyProxyConf, map[string]*bintree{}},
-					}},
-					"scripts": &bintree{nil, map[string]*bintree{
-						"gssapi-tests.sh": &bintree{testExtendedTestdataGssapiScriptsGssapiTestsSh, map[string]*bintree{}},
-						"test-wrapper.sh": &bintree{testExtendedTestdataGssapiScriptsTestWrapperSh, map[string]*bintree{}},
-					}},
-					"ubuntu": &bintree{nil, map[string]*bintree{
-						"base": &bintree{nil, map[string]*bintree{
-							"Dockerfile": &bintree{testExtendedTestdataGssapiUbuntuBaseDockerfile, map[string]*bintree{}},
-						}},
-						"kerberos": &bintree{nil, map[string]*bintree{
-							"Dockerfile": &bintree{testExtendedTestdataGssapiUbuntuKerberosDockerfile, map[string]*bintree{}},
-						}},
-						"kerberos_configured": &bintree{nil, map[string]*bintree{
-							"Dockerfile": &bintree{testExtendedTestdataGssapiUbuntuKerberos_configuredDockerfile, map[string]*bintree{}},
+						"kerberos_configured": {nil, map[string]*bintree{
+							"Dockerfile": {testExtendedTestdataGssapiFedoraKerberos_configuredDockerfile, map[string]*bintree{}},
 						}},
 					}},
-				}},
-				"hello-builder": &bintree{nil, map[string]*bintree{
-					"Dockerfile": &bintree{testExtendedTestdataHelloBuilderDockerfile, map[string]*bintree{}},
-					"scripts": &bintree{nil, map[string]*bintree{
-						"assemble": &bintree{testExtendedTestdataHelloBuilderScriptsAssemble, map[string]*bintree{}},
-						"run": &bintree{testExtendedTestdataHelloBuilderScriptsRun, map[string]*bintree{}},
+					"proxy": {nil, map[string]*bintree{
+						"Dockerfile":                        {testExtendedTestdataGssapiProxyDockerfile, map[string]*bintree{}},
+						"configure.sh":                      {testExtendedTestdataGssapiProxyConfigureSh, map[string]*bintree{}},
+						"gssapiproxy-buildconfig.yaml":      {testExtendedTestdataGssapiProxyGssapiproxyBuildconfigYaml, map[string]*bintree{}},
+						"gssapiproxy-deploymentconfig.yaml": {testExtendedTestdataGssapiProxyGssapiproxyDeploymentconfigYaml, map[string]*bintree{}},
+						"gssapiproxy-imagestream.yaml":      {testExtendedTestdataGssapiProxyGssapiproxyImagestreamYaml, map[string]*bintree{}},
+						"gssapiproxy-service.yaml":          {testExtendedTestdataGssapiProxyGssapiproxyServiceYaml, map[string]*bintree{}},
+						"healthz":                           {testExtendedTestdataGssapiProxyHealthz, map[string]*bintree{}},
+						"kadm5.acl":                         {testExtendedTestdataGssapiProxyKadm5Acl, map[string]*bintree{}},
+						"kdc.conf":                          {testExtendedTestdataGssapiProxyKdcConf, map[string]*bintree{}},
+						"krb5.conf":                         {testExtendedTestdataGssapiProxyKrb5Conf, map[string]*bintree{}},
+						"proxy.conf":                        {testExtendedTestdataGssapiProxyProxyConf, map[string]*bintree{}},
+					}},
+					"scripts": {nil, map[string]*bintree{
+						"gssapi-tests.sh": {testExtendedTestdataGssapiScriptsGssapiTestsSh, map[string]*bintree{}},
+						"test-wrapper.sh": {testExtendedTestdataGssapiScriptsTestWrapperSh, map[string]*bintree{}},
+					}},
+					"ubuntu": {nil, map[string]*bintree{
+						"base": {nil, map[string]*bintree{
+							"Dockerfile": {testExtendedTestdataGssapiUbuntuBaseDockerfile, map[string]*bintree{}},
+						}},
+						"kerberos": {nil, map[string]*bintree{
+							"Dockerfile": {testExtendedTestdataGssapiUbuntuKerberosDockerfile, map[string]*bintree{}},
+						}},
+						"kerberos_configured": {nil, map[string]*bintree{
+							"Dockerfile": {testExtendedTestdataGssapiUbuntuKerberos_configuredDockerfile, map[string]*bintree{}},
+						}},
 					}},
 				}},
-				"idling-echo-server-rc.yaml": &bintree{testExtendedTestdataIdlingEchoServerRcYaml, map[string]*bintree{}},
-				"idling-echo-server.yaml": &bintree{testExtendedTestdataIdlingEchoServerYaml, map[string]*bintree{}},
-				"image": &bintree{nil, map[string]*bintree{
-					"deployment-with-annotation-trigger.yaml": &bintree{testExtendedTestdataImageDeploymentWithAnnotationTriggerYaml, map[string]*bintree{}},
+				"hello-builder": {nil, map[string]*bintree{
+					"Dockerfile": {testExtendedTestdataHelloBuilderDockerfile, map[string]*bintree{}},
+					"scripts": {nil, map[string]*bintree{
+						"assemble": {testExtendedTestdataHelloBuilderScriptsAssemble, map[string]*bintree{}},
+						"run":      {testExtendedTestdataHelloBuilderScriptsRun, map[string]*bintree{}},
+					}},
 				}},
-				"image-pull-secrets": &bintree{nil, map[string]*bintree{
-					"dc-with-new-pull-secret.yaml": &bintree{testExtendedTestdataImagePullSecretsDcWithNewPullSecretYaml, map[string]*bintree{}},
-					"dc-with-old-pull-secret.yaml": &bintree{testExtendedTestdataImagePullSecretsDcWithOldPullSecretYaml, map[string]*bintree{}},
-					"pod-with-new-pull-secret.yaml": &bintree{testExtendedTestdataImagePullSecretsPodWithNewPullSecretYaml, map[string]*bintree{}},
-					"pod-with-no-pull-secret.yaml": &bintree{testExtendedTestdataImagePullSecretsPodWithNoPullSecretYaml, map[string]*bintree{}},
-					"pod-with-old-pull-secret.yaml": &bintree{testExtendedTestdataImagePullSecretsPodWithOldPullSecretYaml, map[string]*bintree{}},
+				"idling-echo-server-rc.yaml": {testExtendedTestdataIdlingEchoServerRcYaml, map[string]*bintree{}},
+				"idling-echo-server.yaml":    {testExtendedTestdataIdlingEchoServerYaml, map[string]*bintree{}},
+				"image": {nil, map[string]*bintree{
+					"deployment-with-annotation-trigger.yaml": {testExtendedTestdataImageDeploymentWithAnnotationTriggerYaml, map[string]*bintree{}},
 				}},
-				"image_ecosystem": &bintree{nil, map[string]*bintree{
-					"perl-hotdeploy": &bintree{nil, map[string]*bintree{
-						"index.pl": &bintree{testExtendedTestdataImage_ecosystemPerlHotdeployIndexPl, map[string]*bintree{}},
-						"lib": &bintree{nil, map[string]*bintree{
-							"My": &bintree{nil, map[string]*bintree{
-								"Test.pm": &bintree{testExtendedTestdataImage_ecosystemPerlHotdeployLibMyTestPm, map[string]*bintree{}},
+				"image-pull-secrets": {nil, map[string]*bintree{
+					"dc-with-new-pull-secret.yaml":  {testExtendedTestdataImagePullSecretsDcWithNewPullSecretYaml, map[string]*bintree{}},
+					"dc-with-old-pull-secret.yaml":  {testExtendedTestdataImagePullSecretsDcWithOldPullSecretYaml, map[string]*bintree{}},
+					"pod-with-new-pull-secret.yaml": {testExtendedTestdataImagePullSecretsPodWithNewPullSecretYaml, map[string]*bintree{}},
+					"pod-with-no-pull-secret.yaml":  {testExtendedTestdataImagePullSecretsPodWithNoPullSecretYaml, map[string]*bintree{}},
+					"pod-with-old-pull-secret.yaml": {testExtendedTestdataImagePullSecretsPodWithOldPullSecretYaml, map[string]*bintree{}},
+				}},
+				"image_ecosystem": {nil, map[string]*bintree{
+					"perl-hotdeploy": {nil, map[string]*bintree{
+						"index.pl": {testExtendedTestdataImage_ecosystemPerlHotdeployIndexPl, map[string]*bintree{}},
+						"lib": {nil, map[string]*bintree{
+							"My": {nil, map[string]*bintree{
+								"Test.pm": {testExtendedTestdataImage_ecosystemPerlHotdeployLibMyTestPm, map[string]*bintree{}},
 							}},
 						}},
-						"perl.json": &bintree{testExtendedTestdataImage_ecosystemPerlHotdeployPerlJson, map[string]*bintree{}},
+						"perl.json": {testExtendedTestdataImage_ecosystemPerlHotdeployPerlJson, map[string]*bintree{}},
 					}},
 				}},
-				"imagestream-jenkins-slave-pods.yaml": &bintree{testExtendedTestdataImagestreamJenkinsSlavePodsYaml, map[string]*bintree{}},
-				"imagestreamtag-jenkins-slave-pods.yaml": &bintree{testExtendedTestdataImagestreamtagJenkinsSlavePodsYaml, map[string]*bintree{}},
-				"ingress.yaml": &bintree{testExtendedTestdataIngressYaml, map[string]*bintree{}},
-				"jenkins-plugin": &bintree{nil, map[string]*bintree{
-					"build-job-clone.xml": &bintree{testExtendedTestdataJenkinsPluginBuildJobCloneXml, map[string]*bintree{}},
-					"build-job-slave.xml": &bintree{testExtendedTestdataJenkinsPluginBuildJobSlaveXml, map[string]*bintree{}},
-					"build-job.xml": &bintree{testExtendedTestdataJenkinsPluginBuildJobXml, map[string]*bintree{}},
-					"build-with-env-job.xml": &bintree{testExtendedTestdataJenkinsPluginBuildWithEnvJobXml, map[string]*bintree{}},
-					"build-with-exec-steps.xml": &bintree{testExtendedTestdataJenkinsPluginBuildWithExecStepsXml, map[string]*bintree{}},
-					"create-job.xml": &bintree{testExtendedTestdataJenkinsPluginCreateJobXml, map[string]*bintree{}},
-					"delete-job-keys.xml": &bintree{testExtendedTestdataJenkinsPluginDeleteJobKeysXml, map[string]*bintree{}},
-					"delete-job-labels.xml": &bintree{testExtendedTestdataJenkinsPluginDeleteJobLabelsXml, map[string]*bintree{}},
-					"delete-job.xml": &bintree{testExtendedTestdataJenkinsPluginDeleteJobXml, map[string]*bintree{}},
-					"imagestream-scm-dsl-job.xml": &bintree{testExtendedTestdataJenkinsPluginImagestreamScmDslJobXml, map[string]*bintree{}},
-					"imagestream-scm-job.xml": &bintree{testExtendedTestdataJenkinsPluginImagestreamScmJobXml, map[string]*bintree{}},
-					"multitag-job.xml": &bintree{testExtendedTestdataJenkinsPluginMultitagJobXml, map[string]*bintree{}},
-					"multitag-template.json": &bintree{testExtendedTestdataJenkinsPluginMultitagTemplateJson, map[string]*bintree{}},
-					"shared-resources-template.json": &bintree{testExtendedTestdataJenkinsPluginSharedResourcesTemplateJson, map[string]*bintree{}},
+				"imagestream-jenkins-slave-pods.yaml":    {testExtendedTestdataImagestreamJenkinsSlavePodsYaml, map[string]*bintree{}},
+				"imagestreamtag-jenkins-slave-pods.yaml": {testExtendedTestdataImagestreamtagJenkinsSlavePodsYaml, map[string]*bintree{}},
+				"ingress.yaml":                           {testExtendedTestdataIngressYaml, map[string]*bintree{}},
+				"jenkins-plugin": {nil, map[string]*bintree{
+					"build-job-clone.xml":            {testExtendedTestdataJenkinsPluginBuildJobCloneXml, map[string]*bintree{}},
+					"build-job-slave.xml":            {testExtendedTestdataJenkinsPluginBuildJobSlaveXml, map[string]*bintree{}},
+					"build-job.xml":                  {testExtendedTestdataJenkinsPluginBuildJobXml, map[string]*bintree{}},
+					"build-with-env-job.xml":         {testExtendedTestdataJenkinsPluginBuildWithEnvJobXml, map[string]*bintree{}},
+					"build-with-exec-steps.xml":      {testExtendedTestdataJenkinsPluginBuildWithExecStepsXml, map[string]*bintree{}},
+					"create-job.xml":                 {testExtendedTestdataJenkinsPluginCreateJobXml, map[string]*bintree{}},
+					"delete-job-keys.xml":            {testExtendedTestdataJenkinsPluginDeleteJobKeysXml, map[string]*bintree{}},
+					"delete-job-labels.xml":          {testExtendedTestdataJenkinsPluginDeleteJobLabelsXml, map[string]*bintree{}},
+					"delete-job.xml":                 {testExtendedTestdataJenkinsPluginDeleteJobXml, map[string]*bintree{}},
+					"imagestream-scm-dsl-job.xml":    {testExtendedTestdataJenkinsPluginImagestreamScmDslJobXml, map[string]*bintree{}},
+					"imagestream-scm-job.xml":        {testExtendedTestdataJenkinsPluginImagestreamScmJobXml, map[string]*bintree{}},
+					"multitag-job.xml":               {testExtendedTestdataJenkinsPluginMultitagJobXml, map[string]*bintree{}},
+					"multitag-template.json":         {testExtendedTestdataJenkinsPluginMultitagTemplateJson, map[string]*bintree{}},
+					"shared-resources-template.json": {testExtendedTestdataJenkinsPluginSharedResourcesTemplateJson, map[string]*bintree{}},
 				}},
-				"jenkins-slave-template.yaml": &bintree{testExtendedTestdataJenkinsSlaveTemplateYaml, map[string]*bintree{}},
-				"jobs": &bintree{nil, map[string]*bintree{
-					"v1.yaml": &bintree{testExtendedTestdataJobsV1Yaml, map[string]*bintree{}},
+				"jenkins-slave-template.yaml": {testExtendedTestdataJenkinsSlaveTemplateYaml, map[string]*bintree{}},
+				"jobs": {nil, map[string]*bintree{
+					"v1.yaml": {testExtendedTestdataJobsV1Yaml, map[string]*bintree{}},
 				}},
-				"ldap": &bintree{nil, map[string]*bintree{
-					"ldapserver-buildconfig.json": &bintree{testExtendedTestdataLdapLdapserverBuildconfigJson, map[string]*bintree{}},
-					"ldapserver-deploymentconfig.json": &bintree{testExtendedTestdataLdapLdapserverDeploymentconfigJson, map[string]*bintree{}},
-					"ldapserver-imagestream-testenv.json": &bintree{testExtendedTestdataLdapLdapserverImagestreamTestenvJson, map[string]*bintree{}},
-					"ldapserver-imagestream.json": &bintree{testExtendedTestdataLdapLdapserverImagestreamJson, map[string]*bintree{}},
-					"ldapserver-service.json": &bintree{testExtendedTestdataLdapLdapserverServiceJson, map[string]*bintree{}},
+				"ldap": {nil, map[string]*bintree{
+					"ldapserver-buildconfig.json":         {testExtendedTestdataLdapLdapserverBuildconfigJson, map[string]*bintree{}},
+					"ldapserver-deploymentconfig.json":    {testExtendedTestdataLdapLdapserverDeploymentconfigJson, map[string]*bintree{}},
+					"ldapserver-imagestream-testenv.json": {testExtendedTestdataLdapLdapserverImagestreamTestenvJson, map[string]*bintree{}},
+					"ldapserver-imagestream.json":         {testExtendedTestdataLdapLdapserverImagestreamJson, map[string]*bintree{}},
+					"ldapserver-service.json":             {testExtendedTestdataLdapLdapserverServiceJson, map[string]*bintree{}},
 				}},
-				"long_names": &bintree{nil, map[string]*bintree{
-					"Dockerfile": &bintree{testExtendedTestdataLong_namesDockerfile, map[string]*bintree{}},
-					"fixture.json": &bintree{testExtendedTestdataLong_namesFixtureJson, map[string]*bintree{}},
+				"long_names": {nil, map[string]*bintree{
+					"Dockerfile":   {testExtendedTestdataLong_namesDockerfile, map[string]*bintree{}},
+					"fixture.json": {testExtendedTestdataLong_namesFixtureJson, map[string]*bintree{}},
 				}},
-				"multi-namespace-pipeline.yaml": &bintree{testExtendedTestdataMultiNamespacePipelineYaml, map[string]*bintree{}},
-				"multi-namespace-template.yaml": &bintree{testExtendedTestdataMultiNamespaceTemplateYaml, map[string]*bintree{}},
-				"openshift-secret-to-jenkins-credential.yaml": &bintree{testExtendedTestdataOpenshiftSecretToJenkinsCredentialYaml, map[string]*bintree{}},
-				"reencrypt-serving-cert.yaml": &bintree{testExtendedTestdataReencryptServingCertYaml, map[string]*bintree{}},
-				"roles": &bintree{nil, map[string]*bintree{
-					"empty-role.yaml": &bintree{testExtendedTestdataRolesEmptyRoleYaml, map[string]*bintree{}},
-					"policy-clusterroles.yaml": &bintree{testExtendedTestdataRolesPolicyClusterrolesYaml, map[string]*bintree{}},
-					"policy-roles.yaml": &bintree{testExtendedTestdataRolesPolicyRolesYaml, map[string]*bintree{}},
+				"multi-namespace-pipeline.yaml":               {testExtendedTestdataMultiNamespacePipelineYaml, map[string]*bintree{}},
+				"multi-namespace-template.yaml":               {testExtendedTestdataMultiNamespaceTemplateYaml, map[string]*bintree{}},
+				"openshift-secret-to-jenkins-credential.yaml": {testExtendedTestdataOpenshiftSecretToJenkinsCredentialYaml, map[string]*bintree{}},
+				"reencrypt-serving-cert.yaml":                 {testExtendedTestdataReencryptServingCertYaml, map[string]*bintree{}},
+				"roles": {nil, map[string]*bintree{
+					"empty-role.yaml":          {testExtendedTestdataRolesEmptyRoleYaml, map[string]*bintree{}},
+					"policy-clusterroles.yaml": {testExtendedTestdataRolesPolicyClusterrolesYaml, map[string]*bintree{}},
+					"policy-roles.yaml":        {testExtendedTestdataRolesPolicyRolesYaml, map[string]*bintree{}},
 				}},
-				"router-http-echo-server.yaml": &bintree{testExtendedTestdataRouterHttpEchoServerYaml, map[string]*bintree{}},
-				"router-metrics.yaml": &bintree{testExtendedTestdataRouterMetricsYaml, map[string]*bintree{}},
-				"run_policy": &bintree{nil, map[string]*bintree{
-					"parallel-bc.yaml": &bintree{testExtendedTestdataRun_policyParallelBcYaml, map[string]*bintree{}},
-					"serial-bc.yaml": &bintree{testExtendedTestdataRun_policySerialBcYaml, map[string]*bintree{}},
-					"serial-latest-only-bc.yaml": &bintree{testExtendedTestdataRun_policySerialLatestOnlyBcYaml, map[string]*bintree{}},
+				"router-http-echo-server.yaml": {testExtendedTestdataRouterHttpEchoServerYaml, map[string]*bintree{}},
+				"router-metrics.yaml":          {testExtendedTestdataRouterMetricsYaml, map[string]*bintree{}},
+				"run_policy": {nil, map[string]*bintree{
+					"parallel-bc.yaml":           {testExtendedTestdataRun_policyParallelBcYaml, map[string]*bintree{}},
+					"serial-bc.yaml":             {testExtendedTestdataRun_policySerialBcYaml, map[string]*bintree{}},
+					"serial-latest-only-bc.yaml": {testExtendedTestdataRun_policySerialLatestOnlyBcYaml, map[string]*bintree{}},
 				}},
-				"s2i-dropcaps": &bintree{nil, map[string]*bintree{
-					"root-access-build.yaml": &bintree{testExtendedTestdataS2iDropcapsRootAccessBuildYaml, map[string]*bintree{}},
-					"rootable-ruby": &bintree{nil, map[string]*bintree{
-						"Dockerfile": &bintree{testExtendedTestdataS2iDropcapsRootableRubyDockerfile, map[string]*bintree{}},
-						"adduser": &bintree{testExtendedTestdataS2iDropcapsRootableRubyAdduser, map[string]*bintree{}},
-						"assemble": &bintree{testExtendedTestdataS2iDropcapsRootableRubyAssemble, map[string]*bintree{}},
+				"s2i-dropcaps": {nil, map[string]*bintree{
+					"root-access-build.yaml": {testExtendedTestdataS2iDropcapsRootAccessBuildYaml, map[string]*bintree{}},
+					"rootable-ruby": {nil, map[string]*bintree{
+						"Dockerfile": {testExtendedTestdataS2iDropcapsRootableRubyDockerfile, map[string]*bintree{}},
+						"adduser":    {testExtendedTestdataS2iDropcapsRootableRubyAdduser, map[string]*bintree{}},
+						"assemble":   {testExtendedTestdataS2iDropcapsRootableRubyAssemble, map[string]*bintree{}},
 					}},
 				}},
-				"sample-image-stream.json": &bintree{testExtendedTestdataSampleImageStreamJson, map[string]*bintree{}},
-				"samplepipeline-withenvs.yaml": &bintree{testExtendedTestdataSamplepipelineWithenvsYaml, map[string]*bintree{}},
-				"scoped-router.yaml": &bintree{testExtendedTestdataScopedRouterYaml, map[string]*bintree{}},
-				"service-serving-cert": &bintree{nil, map[string]*bintree{
-					"nginx-serving-cert.conf": &bintree{testExtendedTestdataServiceServingCertNginxServingCertConf, map[string]*bintree{}},
+				"sample-image-stream.json":     {testExtendedTestdataSampleImageStreamJson, map[string]*bintree{}},
+				"samplepipeline-withenvs.yaml": {testExtendedTestdataSamplepipelineWithenvsYaml, map[string]*bintree{}},
+				"scoped-router.yaml":           {testExtendedTestdataScopedRouterYaml, map[string]*bintree{}},
+				"service-serving-cert": {nil, map[string]*bintree{
+					"nginx-serving-cert.conf": {testExtendedTestdataServiceServingCertNginxServingCertConf, map[string]*bintree{}},
 				}},
-				"signer-buildconfig.yaml": &bintree{testExtendedTestdataSignerBuildconfigYaml, map[string]*bintree{}},
-				"templates": &bintree{nil, map[string]*bintree{
-					"templateinstance_objectkinds.yaml": &bintree{testExtendedTestdataTemplatesTemplateinstance_objectkindsYaml, map[string]*bintree{}},
-					"templateservicebroker_bind.yaml": &bintree{testExtendedTestdataTemplatesTemplateservicebroker_bindYaml, map[string]*bintree{}},
+				"signer-buildconfig.yaml": {testExtendedTestdataSignerBuildconfigYaml, map[string]*bintree{}},
+				"templates": {nil, map[string]*bintree{
+					"templateinstance_objectkinds.yaml": {testExtendedTestdataTemplatesTemplateinstance_objectkindsYaml, map[string]*bintree{}},
+					"templateservicebroker_bind.yaml":   {testExtendedTestdataTemplatesTemplateservicebroker_bindYaml, map[string]*bintree{}},
 				}},
-				"test-cli-debug.yaml": &bintree{testExtendedTestdataTestCliDebugYaml, map[string]*bintree{}},
-				"test-env-pod.json": &bintree{testExtendedTestdataTestEnvPodJson, map[string]*bintree{}},
-				"test-gitserver-tokenauth.yaml": &bintree{testExtendedTestdataTestGitserverTokenauthYaml, map[string]*bintree{}},
-				"test-gitserver.yaml": &bintree{testExtendedTestdataTestGitserverYaml, map[string]*bintree{}},
-				"test-secret.json": &bintree{testExtendedTestdataTestSecretJson, map[string]*bintree{}},
-				"weighted-router.yaml": &bintree{testExtendedTestdataWeightedRouterYaml, map[string]*bintree{}},
+				"test-cli-debug.yaml":           {testExtendedTestdataTestCliDebugYaml, map[string]*bintree{}},
+				"test-env-pod.json":             {testExtendedTestdataTestEnvPodJson, map[string]*bintree{}},
+				"test-gitserver-tokenauth.yaml": {testExtendedTestdataTestGitserverTokenauthYaml, map[string]*bintree{}},
+				"test-gitserver.yaml":           {testExtendedTestdataTestGitserverYaml, map[string]*bintree{}},
+				"test-secret.json":              {testExtendedTestdataTestSecretJson, map[string]*bintree{}},
+				"weighted-router.yaml":          {testExtendedTestdataWeightedRouterYaml, map[string]*bintree{}},
 			}},
 		}},
-		"integration": &bintree{nil, map[string]*bintree{
-			"testdata": &bintree{nil, map[string]*bintree{
-				"project-request-template-with-quota.yaml": &bintree{testIntegrationTestdataProjectRequestTemplateWithQuotaYaml, map[string]*bintree{}},
-				"test-buildcli-beta2.json": &bintree{testIntegrationTestdataTestBuildcliBeta2Json, map[string]*bintree{}},
-				"test-buildcli.json": &bintree{testIntegrationTestdataTestBuildcliJson, map[string]*bintree{}},
-				"test-deployment-config.yaml": &bintree{testIntegrationTestdataTestDeploymentConfigYaml, map[string]*bintree{}},
-				"test-egress-network-policy.json": &bintree{testIntegrationTestdataTestEgressNetworkPolicyJson, map[string]*bintree{}},
-				"test-image-stream-mapping.json": &bintree{testIntegrationTestdataTestImageStreamMappingJson, map[string]*bintree{}},
-				"test-image-stream.json": &bintree{testIntegrationTestdataTestImageStreamJson, map[string]*bintree{}},
-				"test-image.json": &bintree{testIntegrationTestdataTestImageJson, map[string]*bintree{}},
-				"test-replication-controller.yaml": &bintree{testIntegrationTestdataTestReplicationControllerYaml, map[string]*bintree{}},
-				"test-route.json": &bintree{testIntegrationTestdataTestRouteJson, map[string]*bintree{}},
-				"test-service-with-finalizer.json": &bintree{testIntegrationTestdataTestServiceWithFinalizerJson, map[string]*bintree{}},
-				"test-service.json": &bintree{testIntegrationTestdataTestServiceJson, map[string]*bintree{}},
+		"integration": {nil, map[string]*bintree{
+			"testdata": {nil, map[string]*bintree{
+				"project-request-template-with-quota.yaml": {testIntegrationTestdataProjectRequestTemplateWithQuotaYaml, map[string]*bintree{}},
+				"test-buildcli-beta2.json":                 {testIntegrationTestdataTestBuildcliBeta2Json, map[string]*bintree{}},
+				"test-buildcli.json":                       {testIntegrationTestdataTestBuildcliJson, map[string]*bintree{}},
+				"test-deployment-config.yaml":              {testIntegrationTestdataTestDeploymentConfigYaml, map[string]*bintree{}},
+				"test-egress-network-policy.json":          {testIntegrationTestdataTestEgressNetworkPolicyJson, map[string]*bintree{}},
+				"test-image-stream-mapping.json":           {testIntegrationTestdataTestImageStreamMappingJson, map[string]*bintree{}},
+				"test-image-stream.json":                   {testIntegrationTestdataTestImageStreamJson, map[string]*bintree{}},
+				"test-image.json":                          {testIntegrationTestdataTestImageJson, map[string]*bintree{}},
+				"test-replication-controller.yaml":         {testIntegrationTestdataTestReplicationControllerYaml, map[string]*bintree{}},
+				"test-route.json":                          {testIntegrationTestdataTestRouteJson, map[string]*bintree{}},
+				"test-service-with-finalizer.json":         {testIntegrationTestdataTestServiceWithFinalizerJson, map[string]*bintree{}},
+				"test-service.json":                        {testIntegrationTestdataTestServiceJson, map[string]*bintree{}},
 			}},
 		}},
 	}},
@@ -34372,4 +34541,3 @@ func _filePath(dir, name string) string {
 	cannonicalName := strings.Replace(name, "\\", "/", -1)
 	return filepath.Join(append([]string{dir}, strings.Split(cannonicalName, "/")...)...)
 }
-

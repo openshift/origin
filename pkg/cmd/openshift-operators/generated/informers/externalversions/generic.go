@@ -5,7 +5,8 @@ package externalversions
 import (
 	"fmt"
 
-	v1alpha1 "github.com/openshift/origin/pkg/cmd/openshift-operators/apis/webconsole/v1alpha1"
+	v1alpha1 "github.com/openshift/origin/pkg/cmd/openshift-operators/apis/dockerregistry/v1alpha1"
+	webconsole_v1alpha1 "github.com/openshift/origin/pkg/cmd/openshift-operators/apis/webconsole/v1alpha1"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
 )
@@ -36,8 +37,12 @@ func (f *genericInformer) Lister() cache.GenericLister {
 // TODO extend this to unknown resources with a client pool
 func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource) (GenericInformer, error) {
 	switch resource {
-	// Group=webconsole, Version=v1alpha1
-	case v1alpha1.SchemeGroupVersion.WithResource("openshiftwebconsoleconfigs"):
+	// Group=dockerregistry, Version=v1alpha1
+	case v1alpha1.SchemeGroupVersion.WithResource("openshiftdockerregistryconfigs"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Dockerregistry().V1alpha1().OpenShiftDockerRegistryConfigs().Informer()}, nil
+
+		// Group=webconsole, Version=v1alpha1
+	case webconsole_v1alpha1.SchemeGroupVersion.WithResource("openshiftwebconsoleconfigs"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Webconsole().V1alpha1().OpenShiftWebConsoleConfigs().Informer()}, nil
 
 	}

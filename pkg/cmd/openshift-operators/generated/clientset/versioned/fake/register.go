@@ -3,6 +3,7 @@
 package fake
 
 import (
+	dockerregistryv1alpha1 "github.com/openshift/origin/pkg/cmd/openshift-operators/apis/dockerregistry/v1alpha1"
 	webconsolev1alpha1 "github.com/openshift/origin/pkg/cmd/openshift-operators/apis/webconsole/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
@@ -34,5 +35,6 @@ func init() {
 // After this, RawExtensions in Kubernetes types will serialize kube-aggregator types
 // correctly.
 func AddToScheme(scheme *runtime.Scheme) {
+	dockerregistryv1alpha1.AddToScheme(scheme)
 	webconsolev1alpha1.AddToScheme(scheme)
 }

@@ -4,6 +4,8 @@ package fake
 
 import (
 	clientset "github.com/openshift/origin/pkg/cmd/openshift-operators/generated/clientset/versioned"
+	dockerregistryv1alpha1 "github.com/openshift/origin/pkg/cmd/openshift-operators/generated/clientset/versioned/typed/dockerregistry/v1alpha1"
+	fakedockerregistryv1alpha1 "github.com/openshift/origin/pkg/cmd/openshift-operators/generated/clientset/versioned/typed/dockerregistry/v1alpha1/fake"
 	webconsolev1alpha1 "github.com/openshift/origin/pkg/cmd/openshift-operators/generated/clientset/versioned/typed/webconsole/v1alpha1"
 	fakewebconsolev1alpha1 "github.com/openshift/origin/pkg/cmd/openshift-operators/generated/clientset/versioned/typed/webconsole/v1alpha1/fake"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -54,6 +56,16 @@ func (c *Clientset) Discovery() discovery.DiscoveryInterface {
 }
 
 var _ clientset.Interface = &Clientset{}
+
+// DockerregistryV1alpha1 retrieves the DockerregistryV1alpha1Client
+func (c *Clientset) DockerregistryV1alpha1() dockerregistryv1alpha1.DockerregistryV1alpha1Interface {
+	return &fakedockerregistryv1alpha1.FakeDockerregistryV1alpha1{Fake: &c.Fake}
+}
+
+// Dockerregistry retrieves the DockerregistryV1alpha1Client
+func (c *Clientset) Dockerregistry() dockerregistryv1alpha1.DockerregistryV1alpha1Interface {
+	return &fakedockerregistryv1alpha1.FakeDockerregistryV1alpha1{Fake: &c.Fake}
+}
 
 // WebconsoleV1alpha1 retrieves the WebconsoleV1alpha1Client
 func (c *Clientset) WebconsoleV1alpha1() webconsolev1alpha1.WebconsoleV1alpha1Interface {

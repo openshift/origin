@@ -6,6 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/openshift/origin/pkg/cmd/openshift-operators/dockerregistry-operator"
 	"github.com/openshift/origin/pkg/cmd/openshift-operators/webconsole-operator"
 )
 
@@ -20,6 +21,7 @@ func NewExperimentalCommand(out, errout io.Writer) *cobra.Command {
 	}
 
 	cmd.AddCommand(webconsole_operator.NewWebConsoleOperatorCommand(webconsole_operator.RecommendedWebConsoleOperatorName))
+	cmd.AddCommand(registry_operator.NewDockerRegistryOperatorCommand(registry_operator.RecommendedDockerRegistryOperatorName))
 
 	return cmd
 }

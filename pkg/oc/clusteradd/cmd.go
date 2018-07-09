@@ -18,7 +18,7 @@ import (
 	"github.com/openshift/origin/pkg/oc/clusteradd/componentinstall"
 	"github.com/openshift/origin/pkg/oc/clusteradd/components/automation-service-broker"
 	"github.com/openshift/origin/pkg/oc/clusteradd/components/default-imagestreams"
-	"github.com/openshift/origin/pkg/oc/clusteradd/components/registry"
+	"github.com/openshift/origin/pkg/oc/clusteradd/components/docker-registry-operator"
 	"github.com/openshift/origin/pkg/oc/clusteradd/components/router"
 	"github.com/openshift/origin/pkg/oc/clusteradd/components/sample-templates"
 	"github.com/openshift/origin/pkg/oc/clusteradd/components/service-catalog"
@@ -54,8 +54,8 @@ var availableComponents = map[string]func(ctx componentinstall.Context) componen
 	"centos-imagestreams": func(ctx componentinstall.Context) componentinstall.Component {
 		return &default_imagestreams.CentosImageStreamsComponentOptions{InstallContext: ctx}
 	},
-	"registry": func(ctx componentinstall.Context) componentinstall.Component {
-		return &registry.RegistryComponentOptions{InstallContext: ctx}
+	"docker-registry": func(ctx componentinstall.Context) componentinstall.Component {
+		return &docker_registry_operator.DockerRegistryOperatorComponentOptions{InstallContext: ctx}
 	},
 	"rhel-imagestreams": func(ctx componentinstall.Context) componentinstall.Component {
 		return &default_imagestreams.RHELImageStreamsComponentOptions{InstallContext: ctx}
