@@ -109,9 +109,18 @@ var _ = g.Describe("[Conformance][image_ecosystem][mongodb][Slow] openshift mong
 			g.By("expecting that we can insert a new record on primary node")
 			mongo := dbutil.NewMongoDB(podNames[0])
 			replicaSet := mongo.(exutil.ReplicaSet)
-			out, err := replicaSet.QueryPrimary(oc, `db.test.save({ "status" : "passed" })`)
-			e2e.Logf("save result: %s\n", out)
-			o.Expect(err).ShouldNot(o.HaveOccurred())
+			done := make(chan struct{}, 1)
+			go func() {
+				defer func() { done <- struct{}{} }()
+				out, err := replicaSet.QueryPrimary(oc, `db.test.save({ "status" : "passed" })`)
+				e2e.Logf("save result: %s\n", out)
+				o.Expect(err).ShouldNot(o.HaveOccurred())
+			}()
+			select {
+			case <-time.After(1 * time.Minute):
+				e2e.Failf("timed out waiting for db command to finish")
+			case <-done:
+			}
 
 			g.By("expecting that we can read a record from all members")
 			for _, podName := range podNames {
