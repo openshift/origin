@@ -2,7 +2,6 @@ package clusteradd
 
 import (
 	"fmt"
-	"io"
 	"os"
 	"path"
 	"strings"
@@ -12,6 +11,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
@@ -80,12 +80,15 @@ var availableComponents = map[string]func(ctx componentinstall.Context) componen
 	},
 }
 
-func NewCmdAdd(name, fullName string, out, errout io.Writer) *cobra.Command {
-	config := &ClusterAddConfig{
-		Out:           out,
-		ErrOut:        errout,
+func NewClusterAddConfig(streams genericclioptions.IOStreams) *ClusterAddConfig {
+	return &ClusterAddConfig{
+		IOStreams:     streams,
 		ImageTemplate: variable.NewDefaultImageTemplate(),
 	}
+}
+
+func NewCmdAdd(name, fullName string, streams genericclioptions.IOStreams) *cobra.Command {
+	config := NewClusterAddConfig(streams)
 	cmd := &cobra.Command{
 		Use:     name,
 		Short:   "Add components to an 'oc cluster up' cluster",
@@ -139,10 +142,8 @@ type ClusterAddConfig struct {
 	ServerLogLevel      int
 	ComponentsToInstall []string
 
-	Out    io.Writer
-	ErrOut io.Writer
-
 	dockerClient dockerhelper.Interface
+	genericclioptions.IOStreams
 }
 
 func (c *ClusterAddConfig) Complete(cmd *cobra.Command) error {

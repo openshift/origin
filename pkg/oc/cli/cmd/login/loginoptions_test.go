@@ -1,11 +1,9 @@
 package login
 
 import (
-	"bytes"
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"regexp"
@@ -19,6 +17,7 @@ import (
 	kapierrs "k8s.io/apimachinery/pkg/api/errors"
 	restclient "k8s.io/client-go/rest"
 	kclientcmdapi "k8s.io/client-go/tools/clientcmd/api"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 )
 
 const (
@@ -310,14 +309,12 @@ func TestPreserveErrTypeAuthInfo(t *testing.T) {
 		StartingKubeConfig: &kclientcmdapi.Config{},
 		Username:           "test",
 		Password:           "test",
-		Reader:             bytes.NewReader([]byte{}),
 
 		Config: &restclient.Config{
 			Host: server.URL,
 		},
 
-		Out:    ioutil.Discard,
-		ErrOut: ioutil.Discard,
+		IOStreams: genericclioptions.NewTestIOStreamsDiscard(),
 	}
 
 	err = options.gatherAuthInfo()

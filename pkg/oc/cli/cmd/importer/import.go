@@ -28,6 +28,6 @@ func NewCmdImport(fullName string, f kcmdutil.Factory, streams genericclioptions
 
 	name := fmt.Sprintf("%s import", fullName)
 
-	cmd.AddCommand(NewCmdAppJSON(name, f, streams.In, streams.Out, streams.ErrOut))
+	cmd.AddCommand(NewCmdAppJSON(name, f, streams))
 	return cmd
 }

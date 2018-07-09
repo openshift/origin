@@ -3,11 +3,9 @@ package cmd
 import (
 	"errors"
 	"fmt"
-	"io"
 
 	"github.com/spf13/cobra"
 
-	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
@@ -59,8 +57,8 @@ var (
 	  %[1]s %[2]s -f pod/backend -c ruby-container`)
 )
 
-// OpenShiftLogsOptions holds all the necessary options for running oc logs.
-type OpenShiftLogsOptions struct {
+// LogsOptions holds all the necessary options for running oc logs.
+type LogsOptions struct {
 	// Options should hold our own *LogOptions objects.
 	Options runtime.Object
 	// KubeLogOptions contains all the necessary options for
@@ -72,32 +70,35 @@ type OpenShiftLogsOptions struct {
 	// Namespace is a required parameter when accessing the Build object when processing
 	// build logs for Jenkins Pipeline Strategy builds
 	Namespace string
+	Version   int64
+
+	genericclioptions.IOStreams
+}
+
+func NewLogsOptions(streams genericclioptions.IOStreams) *LogsOptions {
+	return &LogsOptions{
+		KubeLogOptions: &kcmd.LogsOptions{
+			IOStreams: streams,
+		},
+		IOStreams: streams,
+	}
 }
 
 // NewCmdLogs creates a new logs command that supports OpenShift resources.
 func NewCmdLogs(name, baseName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	o := OpenShiftLogsOptions{
-		KubeLogOptions: &kcmd.LogsOptions{
-			IOStreams: streams,
-		},
-	}
-
+	o := NewLogsOptions(streams)
 	cmd := kcmd.NewCmdLogs(f, streams)
 	cmd.Short = "Print the logs for a resource"
 	cmd.Long = logsLong
 	cmd.Example = fmt.Sprintf(logsExample, baseName, name)
 	cmd.SuggestFor = []string{"builds", "deployments"}
 	cmd.Run = func(cmd *cobra.Command, args []string) {
-		kcmdutil.CheckErr(o.Complete(f, cmd, args, streams.Out))
-
-		if err := o.Validate(); err != nil {
-			kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
-		}
-
+		kcmdutil.CheckErr(o.Complete(f, cmd, args))
+		kcmdutil.CheckErr(o.Validate())
 		kcmdutil.CheckErr(o.RunLog())
 	}
 
-	cmd.Flags().Int64("version", 0, "View the logs of a particular build or deployment by version if greater than zero")
+	cmd.Flags().Int64Var(&o.Version, "version", o.Version, "View the logs of a particular build or deployment by version if greater than zero")
 
 	return cmd
 }
@@ -118,29 +119,14 @@ func isPipelineBuild(obj runtime.Object) (bool, *buildapi.BuildConfig, bool, *bu
 // Complete calls the upstream Complete for the logs command and then resolves the
 // resource a user requested to view its logs and creates the appropriate logOptions
 // object for it.
-func (o *OpenShiftLogsOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string, out io.Writer) error {
+func (o *LogsOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string) error {
 	if err := o.KubeLogOptions.Complete(f, cmd, args); err != nil {
 		return err
 	}
-	namespace, _, err := f.ToRawKubeConfigLoader().Namespace()
+	var err error
+	o.Namespace, _, err = f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
-	}
-	o.Namespace = namespace
-
-	podLogOptions := o.KubeLogOptions.Options.(*kapi.PodLogOptions)
-
-	infos, err := f.NewBuilder().
-		WithScheme(ocscheme.ReadingInternalScheme).
-		NamespaceParam(o.Namespace).DefaultNamespace().
-		ResourceNames("pods", args...).
-		SingleResourceType().RequireObject(false).
-		Do().Infos()
-	if err != nil {
-		return err
-	}
-	if len(infos) != 1 {
-		return errors.New("expected a resource")
 	}
 
 	clientConfig, err := f.ToRESTConfig()
@@ -153,16 +139,24 @@ func (o *OpenShiftLogsOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, 
 	}
 	o.Client = client.Build()
 
-	version := kcmdutil.GetFlagInt64(cmd, "version")
-	_, resource := meta.UnsafeGuessKindToResource(infos[0].Mapping.GroupVersionKind)
+	podLogOptions := o.KubeLogOptions.Options.(*kapi.PodLogOptions)
+	infos, err := f.NewBuilder().
+		WithScheme(ocscheme.ReadingInternalScheme, ocscheme.ReadingInternalScheme.PrioritizedVersionsAllGroups()...).
+		NamespaceParam(o.Namespace).DefaultNamespace().
+		ResourceNames("pods", args...).
+		SingleResourceType().RequireObject(false).
+		Do().Infos()
+	if err != nil {
+		return err
+	}
+	if len(infos) != 1 {
+		return errors.New("expected a resource")
+	}
 
-	gr := resource.GroupResource()
 	// TODO: podLogOptions should be included in our own logOptions objects.
-	switch {
-	case buildapi.Resource("build") == gr,
-		buildapi.Resource("builds") == gr,
-		buildapi.Resource("buildconfig") == gr,
-		buildapi.Resource("buildconfigs") == gr:
+	switch gr := infos[0].Mapping.Resource.GroupResource(); gr {
+	case buildapi.Resource("builds"),
+		buildapi.Resource("buildconfigs"):
 		bopts := &buildapi.BuildLogOptions{
 			Follow:       podLogOptions.Follow,
 			Previous:     podLogOptions.Previous,
@@ -172,13 +166,13 @@ func (o *OpenShiftLogsOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, 
 			TailLines:    podLogOptions.TailLines,
 			LimitBytes:   podLogOptions.LimitBytes,
 		}
-		if version != 0 {
-			bopts.Version = &version
+		if o.Version != 0 {
+			bopts.Version = &o.Version
 		}
 		o.Options = bopts
 
-	case appsapi.Resource("deploymentconfig") == gr,
-		appsapi.Resource("deploymentconfigs") == gr:
+	case appsapi.Resource("deploymentconfig"),
+		appsapi.Resource("deploymentconfigs"):
 		dopts := &appsapi.DeploymentLogOptions{
 			Container:    podLogOptions.Container,
 			Follow:       podLogOptions.Follow,
@@ -189,8 +183,8 @@ func (o *OpenShiftLogsOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, 
 			TailLines:    podLogOptions.TailLines,
 			LimitBytes:   podLogOptions.LimitBytes,
 		}
-		if version != 0 {
-			dopts.Version = &version
+		if o.Version != 0 {
+			dopts.Version = &o.Version
 		}
 		o.Options = dopts
 	default:
@@ -202,7 +196,7 @@ func (o *OpenShiftLogsOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, 
 
 // Validate runs the upstream validation for the logs command and then it
 // will validate any OpenShift-specific log options.
-func (o OpenShiftLogsOptions) Validate() error {
+func (o *LogsOptions) Validate() error {
 	if err := o.KubeLogOptions.Validate(); err != nil {
 		return err
 	}
@@ -226,7 +220,7 @@ func (o OpenShiftLogsOptions) Validate() error {
 
 // RunLog will run the upstream logs command and may use an OpenShift
 // logOptions object.
-func (o OpenShiftLogsOptions) RunLog() error {
+func (o *LogsOptions) RunLog() error {
 	if o.Options != nil {
 		// Use our own options object.
 		o.KubeLogOptions.Options = o.Options
@@ -241,17 +235,17 @@ func (o OpenShiftLogsOptions) RunLog() error {
 		buildName := buildutil.BuildNameForConfigVersion(bc.ObjectMeta.Name, int(bc.Status.LastVersion))
 		build, _ = o.Client.Builds(o.Namespace).Get(buildName, metav1.GetOptions{})
 		if build == nil {
-			return errors.New(fmt.Sprintf("The build %s for build config %s was not found", buildName, bc.ObjectMeta.Name))
+			return fmt.Errorf("the build %s for build config %s was not found", buildName, bc.Name)
 		}
 		fallthrough
 	case isBld:
 		urlString, _ := build.Annotations[buildapi.BuildJenkinsBlueOceanLogURLAnnotation]
 		if len(urlString) == 0 {
-			return errors.New(fmt.Sprintf("The pipeline strategy build %s does not yet contain the log URL; wait a few moments, then try again", build.ObjectMeta.Name))
+			return fmt.Errorf("the pipeline strategy build %s does not yet contain the log URL; wait a few moments, then try again", build.Name)
 		}
-		o.KubeLogOptions.Out.Write([]byte(fmt.Sprintf("info: Logs available at %s\n", urlString)))
+		fmt.Fprintf(o.Out, "info: logs available at %s\n", urlString)
 	default:
-		return errors.New(fmt.Sprintf("A pipeline strategy build log operation peformed against invalid object %#v", o.KubeLogOptions.Object))
+		return fmt.Errorf("a pipeline strategy build log operation peformed against invalid object %#v", o.KubeLogOptions.Object)
 	}
 
 	return nil

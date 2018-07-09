@@ -88,16 +88,15 @@ func TestRunLogForPipelineStrategy(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		opts := OpenShiftLogsOptions{
+		o := &LogsOptions{
+			IOStreams: streams,
 			KubeLogOptions: &kcmd.LogsOptions{
 				Object:    tc.o,
 				Namespace: "foo",
-				IOStreams: streams,
 			},
 			Client: fakebc.Build(),
 		}
-		err := opts.RunLog()
-		if err != nil {
+		if err := o.RunLog(); err != nil {
 			t.Errorf("%#v: RunLog error %v", tc.o, err)
 		}
 		if !strings.Contains(out.String(), "https://foo") {

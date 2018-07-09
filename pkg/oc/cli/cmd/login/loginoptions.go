@@ -5,7 +5,6 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"io"
 	"net"
 	"os"
 	"path/filepath"
@@ -17,6 +16,7 @@ import (
 	restclient "k8s.io/client-go/rest"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	kclientcmdapi "k8s.io/client-go/tools/clientcmd/api"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	kterm "k8s.io/kubernetes/pkg/kubectl/util/term"
 
 	"github.com/openshift/origin/pkg/client/config"
@@ -54,9 +54,6 @@ type LoginOptions struct {
 	StartingKubeConfig *kclientcmdapi.Config
 	DefaultNamespace   string
 	Config             *restclient.Config
-	Reader             io.Reader
-	Out                io.Writer
-	ErrOut             io.Writer
 
 	// cert data to be used when authenticating
 	CertFile string
@@ -68,6 +65,14 @@ type LoginOptions struct {
 
 	CommandName    string
 	RequestTimeout time.Duration
+
+	genericclioptions.IOStreams
+}
+
+func NewLoginOptions(streams genericclioptions.IOStreams) *LoginOptions {
+	return &LoginOptions{
+		IOStreams: streams,
+	}
 }
 
 // Gather all required information in a comprehensive order.
@@ -90,11 +95,11 @@ func (o *LoginOptions) getClientConfig() (*restclient.Config, error) {
 
 	if len(o.Server) == 0 {
 		// we need to have a server to talk to
-		if kterm.IsTerminal(o.Reader) {
+		if kterm.IsTerminal(o.In) {
 			for !o.serverProvided() {
 				defaultServer := defaultClusterURL
 				promptMsg := fmt.Sprintf("Server [%s]: ", defaultServer)
-				o.Server = term.PromptForStringWithDefault(o.Reader, o.Out, defaultServer, promptMsg)
+				o.Server = term.PromptForStringWithDefault(o.In, o.Out, defaultServer, promptMsg)
 			}
 		}
 	}
@@ -133,7 +138,7 @@ func (o *LoginOptions) getClientConfig() (*restclient.Config, error) {
 		case x509.UnknownAuthorityError, x509.HostnameError, x509.CertificateInvalidError:
 			if o.InsecureTLS ||
 				hasExistingInsecureCluster(*clientConfig, *o.StartingKubeConfig) ||
-				promptForInsecureTLS(o.Reader, o.Out, err) {
+				promptForInsecureTLS(o.In, o.Out, err) {
 				clientConfig.Insecure = true
 				clientConfig.CAFile = ""
 				clientConfig.CAData = nil
@@ -224,7 +229,7 @@ func (o *LoginOptions) gatherAuthInfo() error {
 	clientConfig.KeyData = []byte{}
 	clientConfig.CertFile = o.CertFile
 	clientConfig.KeyFile = o.KeyFile
-	token, err := tokencmd.RequestToken(o.Config, o.Reader, o.Username, o.Password)
+	token, err := tokencmd.RequestToken(o.Config, o.In, o.Username, o.Password)
 	if err != nil {
 		return err
 	}
