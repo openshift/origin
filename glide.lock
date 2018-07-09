@@ -85,6 +85,10 @@ imports:
   - autorest/date
   - autorest/to
   - autorest/validation
+- name: github.com/bcicen/go-haproxy
+  version: ff5824fe38bede761b873cab6e247a530e89236a
+  subpackages:
+  - kvcodec
 - name: github.com/beorn7/perks
   version: 3ac7bf7a47d159a033b107610db8a1b6575507a4
   subpackages:
@@ -429,6 +433,8 @@ imports:
   version: f3f9494671f93fcff853e3c6e9e948b3eb71e590
 - name: github.com/go-openapi/validate
   version: d509235108fcf6ab4913d2dcb3a2260c0db2108e
+- name: github.com/gocarina/gocsv
+  version: a5c9099e2484f1551abb9433885e158610a25f4b
 - name: github.com/godbus/dbus
   version: c7fdd8b5cd55e87b4e1f4e372cdb1db61dd6c66f
 - name: github.com/gogo/protobuf
