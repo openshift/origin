@@ -42,7 +42,7 @@ import:
 - package: github.com/openshift/client-go
   version: release-3.10
 - package: github.com/openshift/imagebuilder
-  version: master
+  version: bfc0aea02ce95dcfc1a83d452270dbc66933709b
 - package: github.com/openshift/library-go
   version: release-3.10
 # master already branched for 3.11
@@ -202,6 +202,8 @@ import:
 
 # force glide to pull this in
 - package: github.com/google/uuid
+# pin to level
+  version: dec09d789f3dba190787f8b4454c7d3c936fed9e
 
 # yours that I suspect aren't pinning because vendor.conf is respected
 # yours: containers/image.  No idea why this isn't self-pinning.
