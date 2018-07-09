@@ -6,16 +6,19 @@ import (
 	"io"
 
 	"github.com/spf13/cobra"
+
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 
+	appsapiv1 "github.com/openshift/api/apps/v1"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsclientinternal "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
@@ -42,28 +45,34 @@ var (
 
 // RolloutLatestOptions holds all the options for the `rollout latest` command.
 type RolloutLatestOptions struct {
-	mapper meta.RESTMapper
-	typer  runtime.ObjectTyper
-	infos  []*resource.Info
+	PrintFlags *genericclioptions.PrintFlags
+
+	Builder   *resource.Builder
+	Namespace string
+	mapper    meta.RESTMapper
+	Resource  string
 
 	DryRun bool
-	out    io.Writer
-	output string
 	again  bool
 
-	appsClient      appsclientinternal.DeploymentConfigsGetter
-	kc              kclientset.Interface
-	baseCommandName string
+	appsClient appsclientinternal.DeploymentConfigsGetter
+	kubeClient kclientset.Interface
 
-	// print an object using a printer for a given mapping
-	printObj func(runtime.Object, *meta.RESTMapping, io.Writer) error
+	Printer printers.ResourcePrinter
+
+	genericclioptions.IOStreams
+}
+
+func NewRolloutLatestOptions(streams genericclioptions.IOStreams) *RolloutLatestOptions {
+	return &RolloutLatestOptions{
+		IOStreams:  streams,
+		PrintFlags: genericclioptions.NewPrintFlags("rolled out"),
+	}
 }
 
 // NewCmdRolloutLatest implements the oc rollout latest subcommand.
-func NewCmdRolloutLatest(fullName string, f kcmdutil.Factory, out io.Writer) *cobra.Command {
-	opts := &RolloutLatestOptions{
-		baseCommandName: fullName,
-	}
+func NewCmdRolloutLatest(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
+	o := NewRolloutLatestOptions(streams)
 
 	cmd := &cobra.Command{
 		Use:     "latest DEPLOYMENTCONFIG",
@@ -71,38 +80,48 @@ func NewCmdRolloutLatest(fullName string, f kcmdutil.Factory, out io.Writer) *co
 		Long:    rolloutLatestLong,
 		Example: fmt.Sprintf(rolloutLatestExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
-			err := opts.Complete(f, cmd, args, out)
-			kcmdutil.CheckErr(err)
-
-			if err := opts.Validate(); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
-			}
-
-			err = opts.RunRolloutLatest()
-			kcmdutil.CheckErr(err)
+			kcmdutil.CheckErr(o.Complete(f, cmd, args))
+			kcmdutil.CheckErr(o.RunRolloutLatest())
 		},
 	}
 
-	kcmdutil.AddPrinterFlags(cmd)
+	cmd.Flags().BoolVar(&o.again, "again", o.again, "If true, deploy the current pod template without updating state from triggers")
+
+	o.PrintFlags.AddFlags(cmd)
 	kcmdutil.AddDryRunFlag(cmd)
-	cmd.Flags().Bool("again", false, "If true, deploy the current pod template without updating state from triggers")
 
 	return cmd
 }
 
-func (o *RolloutLatestOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string, out io.Writer) error {
+func (o *RolloutLatestOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string) error {
 	if len(args) != 1 {
 		return errors.New("one deployment config name is needed as argument.")
 	}
 
-	namespace, _, err := f.ToRawKubeConfigLoader().Namespace()
+	o.Resource = args[0]
+
+	var err error
+	o.Namespace, _, err = f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
 	}
 
 	o.DryRun = kcmdutil.GetFlagBool(cmd, "dry-run")
+	if o.DryRun {
+		o.PrintFlags.Complete("%s (dry run)")
+	}
 
-	o.kc, err = f.ClientSet()
+	if o.PrintFlags.OutputFormat != nil && *o.PrintFlags.OutputFormat == "revision" {
+		fmt.Fprintln(o.ErrOut, "--output=revision is deprecated. Use `--output=jsonpath={.status.latestVersion}` or `--output=go-template={{.status.latestVersion}}` instead")
+		o.Printer = &revisionPrinter{}
+	} else {
+		o.Printer, err = o.PrintFlags.ToPrinter()
+		if err != nil {
+			return err
+		}
+	}
+
+	o.kubeClient, err = f.ClientSet()
 	if err != nil {
 		return err
 	}
@@ -110,55 +129,37 @@ func (o *RolloutLatestOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, 
 	if err != nil {
 		return err
 	}
-	appsClient, err := appsclientinternal.NewForConfig(clientConfig)
+	o.appsClient, err = appsclientinternal.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
-	o.appsClient = appsClient
 
-	o.typer = legacyscheme.Scheme
 	o.mapper, err = f.ToRESTMapper()
 	if err != nil {
 		return err
 	}
-	o.infos, err = f.NewBuilder().
+
+	o.Builder = f.NewBuilder()
+	return nil
+}
+
+func (o *RolloutLatestOptions) RunRolloutLatest() error {
+	infos, err := o.Builder.
 		WithScheme(ocscheme.ReadingInternalScheme).
 		ContinueOnError().
-		NamespaceParam(namespace).
-		ResourceNames("deploymentconfigs", args[0]).
+		NamespaceParam(o.Namespace).
+		ResourceNames("deploymentconfigs", o.Resource).
 		SingleResourceType().
 		Do().Infos()
 	if err != nil {
 		return err
 	}
 
-	o.out = out
-	o.output = kcmdutil.GetFlagString(cmd, "output")
-	o.again = kcmdutil.GetFlagBool(cmd, "again")
-
-	if o.output != "revision" {
-		o.printObj = func(obj runtime.Object, mapping *meta.RESTMapping, out io.Writer) error {
-			printer, err := kcmdutil.PrinterForOptions(kcmdutil.ExtractCmdPrintOptions(cmd, false))
-			if err != nil {
-				return err
-			}
-
-			return printer.PrintObj(obj, out)
-		}
+	if len(infos) != 1 {
+		return errors.New("a deployment config name is required")
 	}
 
-	return nil
-}
-
-func (o RolloutLatestOptions) Validate() error {
-	if len(o.infos) != 1 {
-		return errors.New("a deployment config name is required.")
-	}
-	return nil
-}
-
-func (o RolloutLatestOptions) RunRolloutLatest() error {
-	info := o.infos[0]
+	info := infos[0]
 	config, ok := info.Object.(*appsapi.DeploymentConfig)
 	if !ok {
 		return fmt.Errorf("%s is not a deployment config", info.Name)
@@ -171,7 +172,7 @@ func (o RolloutLatestOptions) RunRolloutLatest() error {
 	}
 
 	deploymentName := appsutil.LatestDeploymentNameForConfig(config)
-	deployment, err := o.kc.Core().ReplicationControllers(config.Namespace).Get(deploymentName, metav1.GetOptions{})
+	deployment, err := o.kubeClient.Core().ReplicationControllers(config.Namespace).Get(deploymentName, metav1.GetOptions{})
 	switch {
 	case err == nil:
 		// Reject attempts to start a concurrent deployment.
@@ -207,13 +208,17 @@ func (o RolloutLatestOptions) RunRolloutLatest() error {
 		info.Refresh(dc, true)
 	}
 
-	if o.output == "revision" {
-		fmt.Fprintf(o.out, fmt.Sprintf("%d", dc.Status.LatestVersion))
-		return nil
-	} else if len(o.output) > 0 {
-		return o.printObj(dc, info.Mapping, o.out)
+	return o.Printer.PrintObj(kcmdutil.AsDefaultVersionedOrOriginal(info.Object, info.Mapping), o.Out)
+}
+
+type revisionPrinter struct{}
+
+func (p *revisionPrinter) PrintObj(obj runtime.Object, out io.Writer) error {
+	dc, ok := obj.(*appsapiv1.DeploymentConfig)
+	if !ok {
+		return fmt.Errorf("%T is not a deployment config", obj)
 	}
 
-	kcmdutil.PrintSuccess(o.output == "name", o.out, info.Object, o.DryRun, "rolled out")
+	fmt.Fprintf(out, fmt.Sprintf("%d", dc.Status.LatestVersion))
 	return nil
 }
