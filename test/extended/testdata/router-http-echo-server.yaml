@@ -25,7 +25,7 @@ items:
           command:
             - /usr/bin/socat
             - TCP4-LISTEN:8676,reuseaddr,fork
-            - EXEC:'perl -e \"print qq(HTTP/1.0 200 OK\r\n\r\n); while (<>) { print; last if /^\r/}\"'
+            - EXEC:'/bin/bash -c \"printf \\\"HTTP/1.0 200 OK\r\n\r\n\\\"; sed -e \\\"/^\r/q\\\"\"'
           ports:
           - containerPort: 8676
             protocol: TCP
