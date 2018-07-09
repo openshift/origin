@@ -38,7 +38,9 @@ func FilterArchive(r io.Reader, w io.Writer, fn TransformFileFunc) error {
 		}
 
 		var body io.Reader = tr
+		name := h.Name
 		data, ok, skip, err := fn(h, tr)
+		glog.V(6).Infof("Transform %s -> %s: data=%t ok=%t skip=%t err=%v", name, h.Name, data != nil, ok, skip, err)
 		if err != nil {
 			return err
 		}
@@ -100,7 +102,7 @@ func NewLazyArchive(fn CreateFileFunc) io.ReadCloser {
 	return pr
 }
 
-func archiveFromURL(src, dst, tempDir string) (io.Reader, io.Closer, error) {
+func archiveFromURL(src, dst, tempDir string, check DirectoryCheck) (io.Reader, io.Closer, error) {
 	// get filename from URL
 	u, err := url.Parse(src)
 	if err != nil {
@@ -151,7 +153,7 @@ func archiveFromURL(src, dst, tempDir string) (io.Reader, io.Closer, error) {
 	return archive, closers{resp.Body.Close, archive.Close}, nil
 }
 
-func archiveFromDisk(directory string, src, dst string, allowDownload bool, excludes []string) (io.Reader, io.Closer, error) {
+func archiveFromDisk(directory string, src, dst string, allowDownload bool, excludes []string, check DirectoryCheck) (io.Reader, io.Closer, error) {
 	var err error
 	if filepath.IsAbs(src) {
 		src, err = filepath.Rel(filepath.Dir(src), src)
@@ -173,11 +175,64 @@ func archiveFromDisk(directory string, src, dst string, allowDownload bool, excl
 		directory = filepath.Dir(directory)
 	}
 
-	options := archiveOptionsFor(infos, dst, excludes)
+	options, err := archiveOptionsFor(infos, dst, excludes, check)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	glog.V(4).Infof("Tar of %s %#v", directory, options)
 	rc, err := archive.TarWithOptions(directory, options)
 	return rc, rc, err
+}
+
+func archiveFromFile(file string, src, dst string, excludes []string, check DirectoryCheck) (io.Reader, io.Closer, error) {
+	var err error
+	if filepath.IsAbs(src) {
+		src, err = filepath.Rel(filepath.Dir(src), src)
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+
+	mapper, _, err := newArchiveMapper(src, dst, excludes, true, check)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	f, err := os.Open(file)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	r, err := transformArchive(f, true, mapper.Filter)
+	return r, f, err
+}
+
+func archiveFromContainer(in io.Reader, src, dst string, excludes []string, check DirectoryCheck) (io.Reader, string, error) {
+	mapper, archiveRoot, err := newArchiveMapper(src, dst, excludes, false, check)
+	if err != nil {
+		return nil, "", err
+	}
+
+	r, err := transformArchive(in, false, mapper.Filter)
+	return r, archiveRoot, err
+}
+
+func transformArchive(r io.Reader, compressed bool, fn TransformFileFunc) (io.Reader, error) {
+	pr, pw := io.Pipe()
+	go func() {
+		if compressed {
+			in, err := archive.DecompressStream(r)
+			if err != nil {
+				pw.CloseWithError(err)
+				return
+			}
+			r = in
+		}
+		err := FilterArchive(r, pw, fn)
+		pw.CloseWithError(err)
+	}()
+	return pr, nil
 }
 
 // * -> test
@@ -193,9 +248,15 @@ func archivePathMapper(src, dst string, isDestDir bool) (fn func(name string, is
 	}
 	pattern := filepath.Base(srcPattern)
 
+	glog.V(6).Infof("creating mapper for srcPattern=%s pattern=%s dst=%s isDestDir=%t", srcPattern, pattern, dst, isDestDir)
+
 	// no wildcards
 	if !containsWildcards(pattern) {
 		return func(name string, isDir bool) (string, bool) {
+			// when extracting from the working directory, Docker prefaces with ./
+			if strings.HasPrefix(name, "."+string(filepath.Separator)) {
+				name = name[2:]
+			}
 			if name == srcPattern {
 				if isDir {
 					return "", false
@@ -232,7 +293,7 @@ func archivePathMapper(src, dst string, isDestDir bool) (fn func(name string, is
 	}
 	prefix += string(filepath.Separator)
 
-	// nested with pattern pattern
+	// nested with pattern
 	return func(name string, isDir bool) (string, bool) {
 		remainder := strings.TrimPrefix(name, prefix)
 		if remainder == name {
@@ -251,56 +312,6 @@ func archivePathMapper(src, dst string, isDestDir bool) (fn func(name string, is
 	}
 }
 
-func archiveFromFile(file string, src, dst string, excludes []string) (io.Reader, io.Closer, error) {
-	var err error
-	if filepath.IsAbs(src) {
-		src, err = filepath.Rel(filepath.Dir(src), src)
-		if err != nil {
-			return nil, nil, err
-		}
-	}
-
-	mapper, _, err := newArchiveMapper(src, dst, excludes, true)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	f, err := os.Open(file)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	r, err := transformArchive(f, true, mapper.Filter)
-	return r, f, err
-}
-
-func archiveFromContainer(in io.Reader, src, dst string, excludes []string) (io.Reader, string, error) {
-	mapper, archiveRoot, err := newArchiveMapper(src, dst, excludes, false)
-	if err != nil {
-		return nil, "", err
-	}
-
-	r, err := transformArchive(in, false, mapper.Filter)
-	return r, archiveRoot, err
-}
-
-func transformArchive(r io.Reader, compressed bool, fn TransformFileFunc) (io.Reader, error) {
-	pr, pw := io.Pipe()
-	go func() {
-		if compressed {
-			in, err := archive.DecompressStream(r)
-			if err != nil {
-				pw.CloseWithError(err)
-				return
-			}
-			r = in
-		}
-		err := FilterArchive(r, pw, fn)
-		pw.CloseWithError(err)
-	}()
-	return pr, nil
-}
-
 type archiveMapper struct {
 	exclude     *fileutils.PatternMatcher
 	rename      func(name string, isDir bool) (string, bool)
@@ -308,7 +319,7 @@ type archiveMapper struct {
 	resetOwners bool
 }
 
-func newArchiveMapper(src, dst string, excludes []string, resetOwners bool) (*archiveMapper, string, error) {
+func newArchiveMapper(src, dst string, excludes []string, resetOwners bool, check DirectoryCheck) (*archiveMapper, string, error) {
 	ex, err := fileutils.NewPatternMatcher(excludes)
 	if err != nil {
 		return nil, "", err
@@ -316,6 +327,13 @@ func newArchiveMapper(src, dst string, excludes []string, resetOwners bool) (*ar
 
 	isDestDir := strings.HasSuffix(dst, "/") || path.Base(dst) == "."
 	dst = path.Clean(dst)
+	if !isDestDir && check != nil {
+		isDir, err := check.IsDirectory(dst)
+		if err != nil {
+			return nil, "", err
+		}
+		isDestDir = isDir
+	}
 
 	var prefix string
 	archiveRoot := src
@@ -380,11 +398,19 @@ func (m *archiveMapper) Filter(h *tar.Header, r io.Reader) ([]byte, bool, bool, 
 	return nil, false, false, nil
 }
 
-func archiveOptionsFor(infos []CopyInfo, dst string, excludes []string) *archive.TarOptions {
+func archiveOptionsFor(infos []CopyInfo, dst string, excludes []string, check DirectoryCheck) (*archive.TarOptions, error) {
 	dst = trimLeadingPath(dst)
 	dstIsDir := strings.HasSuffix(dst, "/") || dst == "." || dst == "/" || strings.HasSuffix(dst, "/.")
 	dst = trimTrailingSlash(dst)
 	dstIsRoot := dst == "." || dst == "/"
+
+	if !dstIsDir && check != nil {
+		isDir, err := check.IsDirectory(dst)
+		if err != nil {
+			return nil, fmt.Errorf("unable to check whether %s is a directory: %v", dst, err)
+		}
+		dstIsDir = isDir
+	}
 
 	options := &archive.TarOptions{
 		ChownOpts: &idtools.IDPair{UID: 0, GID: 0},
@@ -392,7 +418,7 @@ func archiveOptionsFor(infos []CopyInfo, dst string, excludes []string) *archive
 
 	pm, err := fileutils.NewPatternMatcher(excludes)
 	if err != nil {
-		return options
+		return options, nil
 	}
 
 	for _, info := range infos {
@@ -418,12 +444,9 @@ func archiveOptionsFor(infos []CopyInfo, dst string, excludes []string) *archive
 		case len(infos) > 1:
 			// put each input into the target, which is assumed to be a directory ([Dockerfile, dir] -> [a/Dockerfile, a/dir])
 			options.RebaseNames[infoPath] = path.Join(dst, path.Base(infoPath))
-		case info.FileInfo.IsDir() && dstIsDir:
-			// mapping a directory to an explicit directory ([dir] -> [a])
-			options.RebaseNames[infoPath] = dst
 		case info.FileInfo.IsDir():
-			// mapping a directory to an implicit directory ([Dockerfile] -> [dir/Dockerfile])
-			options.RebaseNames[infoPath] = path.Join(dst, path.Base(infoPath))
+			// mapping a directory to a destination, explicit or not ([dir] -> [a])
+			options.RebaseNames[infoPath] = dst
 		case info.FromDir:
 			// this is a file that was part of an explicit directory request, no transformation
 			options.RebaseNames[infoPath] = path.Join(dst, path.Base(infoPath))
@@ -437,7 +460,7 @@ func archiveOptionsFor(infos []CopyInfo, dst string, excludes []string) *archive
 	}
 
 	options.ExcludePatterns = excludes
-	return options
+	return options, nil
 }
 
 func sourceToDestinationName(src, dst string, forceDir bool) string {

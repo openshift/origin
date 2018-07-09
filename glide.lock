@@ -1,5 +1,5 @@
-hash: dc299575eef403e5400e45ba32694ab027a65eacf549615a6cfe5966114bc43d
-updated: 2018-07-03T14:23:31.835265-04:00
+hash: 0ee3a7cdb8b4818224d49bf5fa3c52b02ee5183ac579d4131be08e4ab2703024
+updated: 2018-07-06T19:40:06.554923-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -389,7 +389,7 @@ imports:
   subpackages:
   - kmsgparser
 - name: github.com/evanphx/json-patch
-  version: 94e38aa1586e8a6c8a75770bddf5ff84c48a106b
+  version: 944e07253867aacae43c04b2e6a239005443f33a
 - name: github.com/exponent-io/jsonpath
   version: d6023ce2651d8eafb5c75bb0c7167536102ec9f5
 - name: github.com/fatih/camelcase
@@ -599,9 +599,9 @@ imports:
   - pagination
   - testhelper
 - name: github.com/gorilla/context
-  version: 08b5f424b9271eedf6f9f0ce86cb9396ed337a42
+  version: 215affda49addc4c8ef7e2534915df2c8c35c6cd
 - name: github.com/gorilla/mux
-  version: cb4698366aa625048f3b815af6a0dea8aef9280a
+  version: 8096f47503459bcc74d1f4c487b7e6e42e5746b5
 - name: github.com/gorilla/securecookie
   version: 78f3d318a8bf316cda921f25e96fd0b441c5173d
 - name: github.com/gorilla/sessions
@@ -760,8 +760,6 @@ imports:
   version: d59fa0ac68bb5dd932ee8d24eed631cdd519efc3
   subpackages:
   - format
-  - gstruct
-  - gstruct/errors
   - internal/assertion
   - internal/asyncassertion
   - internal/oraclematcher
@@ -809,7 +807,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: 31a7bbd2266d178da3c12bb83f5274d387f775e6
+  version: 0ce1df2db7debb15eddb25f3ae76df4180777221
   subpackages:
   - apps/v1
   - authorization/v1
@@ -831,7 +829,7 @@ imports:
   - user/v1
   - webconsole/v1
 - name: github.com/openshift/client-go
-  version: 4688ad28de2e88110c0ea30179c51b9b205f99be
+  version: 570cd3183379dc770a8bb6cef90d5dbe01f678d8
   subpackages:
   - apps/clientset/versioned
   - apps/clientset/versioned/scheme
@@ -938,14 +936,14 @@ imports:
   - user/informers/externalversions/user/v1
   - user/listers/user/v1
 - name: github.com/openshift/imagebuilder
-  version: 4670fc31fca6121da0dcf42d6b9b298479c1715a
+  version: bfc0aea02ce95dcfc1a83d452270dbc66933709b
   subpackages:
   - dockerclient
   - imageprogress
   - signal
   - strslice
 - name: github.com/openshift/library-go
-  version: 4bdffb3d6ca083fad9ee9f51d3273d328d349dbc
+  version: a40fb5197436a6011f7df971393899802ed259cf
   subpackages:
   - pkg/config/client
   - pkg/config/leaderelection
@@ -957,7 +955,7 @@ imports:
   - pkg/operator/resource/resourcemerge
   - pkg/serviceability
 - name: github.com/openshift/service-serving-cert-signer
-  version: bcaddfdfbc37c5e7cd4656ecca269ca6b735e849
+  version: bc476b3fc4462f7f602aac7b07f77dd9730488da
   subpackages:
   - pkg/controller/servingcert
   - pkg/controller/servingcert/cryptoextensions
@@ -1060,7 +1058,7 @@ imports:
 - name: github.com/shurcooL/sanitized_anchor_name
   version: 10ef21a441db47d8b13ebcc5fd2310f636973c77
 - name: github.com/sirupsen/logrus
-  version: e54a77765aca7bbdd8e56c1c54f60579968b2dc9
+  version: 89742aefa4b206dcf400792f3bd35b542998eb3b
 - name: github.com/skynetservices/skydns
   version: 775ef406696380ce92b76e72421e86b6868905d8
   repo: https://github.com/openshift/skynetservices-skydns
@@ -1078,11 +1076,11 @@ imports:
 - name: github.com/spf13/cast
   version: e31f36ffc91a2ba9ddb72a4b6a607ff9b3d3cb63
 - name: github.com/spf13/cobra
-  version: c439c4fa093711d42e1b01acb1235b52004753c1
+  version: 6644d46b81fa1831979c4cded0106e774e0ef0ab
 - name: github.com/spf13/jwalterweatherman
   version: 33c24e77fb80341fe7130ee7c594256ff08ccc46
 - name: github.com/spf13/pflag
-  version: 583c0c0531f06d5278b7d917446061adc344b5cd
+  version: 4c012f6dcd9546820e378d0bdda4d8fc772cdfea
 - name: github.com/spf13/viper
   version: 7fb2782df3d83e0036cc89f461ed0422628776f4
 - name: github.com/storageos/go-api
@@ -1827,7 +1825,7 @@ imports:
   - pkg/util/proto/testing
   - pkg/util/proto/validation
 - name: k8s.io/kubernetes
-  version: d4cacc043ac762235e16cb7361d527cb4189393c
+  version: 5200705703cbf4abe250da3822f67e244e11d5b0
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/controller-manager/app
@@ -2623,7 +2621,7 @@ imports:
   - pkg/client/custom_metrics
   - pkg/client/external_metrics
 - name: k8s.io/utils
-  version: 258e2a2fa64568210fbd6267cf1d8fd87c3cb86e
+  version: aedf551cdb8b0119df3a19c65fde413a13b34997
   subpackages:
   - clock
   - exec

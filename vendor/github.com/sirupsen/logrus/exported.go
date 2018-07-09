@@ -15,7 +15,9 @@ func StandardLogger() *Logger {
 
 // SetOutput sets the standard logger output.
 func SetOutput(out io.Writer) {
-	std.SetOutput(out)
+	std.mu.Lock()
+	defer std.mu.Unlock()
+	std.Out = out
 }
 
 // SetFormatter sets the standard logger formatter.
@@ -105,7 +107,7 @@ func Panic(args ...interface{}) {
 	std.Panic(args...)
 }
 
-// Fatal logs a message at level Fatal on the standard logger then the process will exit with status set to 1.
+// Fatal logs a message at level Fatal on the standard logger.
 func Fatal(args ...interface{}) {
 	std.Fatal(args...)
 }
@@ -145,7 +147,7 @@ func Panicf(format string, args ...interface{}) {
 	std.Panicf(format, args...)
 }
 
-// Fatalf logs a message at level Fatal on the standard logger then the process will exit with status set to 1.
+// Fatalf logs a message at level Fatal on the standard logger.
 func Fatalf(format string, args ...interface{}) {
 	std.Fatalf(format, args...)
 }
@@ -185,7 +187,7 @@ func Panicln(args ...interface{}) {
 	std.Panicln(args...)
 }
 
-// Fatalln logs a message at level Fatal on the standard logger then the process will exit with status set to 1.
+// Fatalln logs a message at level Fatal on the standard logger.
 func Fatalln(args ...interface{}) {
 	std.Fatalln(args...)
 }
