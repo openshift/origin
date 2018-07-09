@@ -30,6 +30,13 @@ type storage struct {
 	client         oauthclientregistry.Getter
 	user           UserConversion
 	tokentimeout   int32
+	groups 		   map[string]group
+}
+
+type providerGroup struct { //?
+	string user
+	[]string groupInfo
+	// not sure what exactly has to go here
 }
 
 func New(access oauthclient.OAuthAccessTokenInterface, authorize oauthclient.OAuthAuthorizeTokenInterface, client oauthclientregistry.Getter, user UserConversion, tokentimeout int32) osin.Storage {
@@ -218,7 +225,7 @@ func (s *storage) convertFromAuthorizeToken(authorize *oauthapi.OAuthAuthorizeTo
 	client, err := s.client.Get(authorize.ClientName, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
-	}
+	
 	if err := scopeauthorizer.ValidateScopeRestrictions(client, authorize.Scopes...); err != nil {
 		return nil, err
 	}

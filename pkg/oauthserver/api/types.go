@@ -23,8 +23,10 @@ type UserIdentityInfo interface {
 	// GetProviderName returns the name of the provider of this identity.
 	GetProviderName() string
 	// GetProviderUserName uniquely identifies this particular identity for this provider.  It is NOT guaranteed to be unique across providers
+	// GetProviderGroups returns the group memberships given by the identity provider
 	GetProviderUserName() string
 	// GetExtra is a map to allow providers to add additional fields that they understand
+	GetProviderGroups() string
 	GetExtra() map[string]string
 }
 
@@ -52,6 +54,7 @@ type Grant struct {
 type DefaultUserIdentityInfo struct {
 	ProviderName     string
 	ProviderUserName string
+	ProviderGroups   []string
 	Extra            map[string]string
 }
 
