@@ -3,12 +3,13 @@ package cluster
 import (
 	"fmt"
 
-	"github.com/openshift/origin/pkg/oc/clusteradd"
 	"github.com/spf13/cobra"
+
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
+	"github.com/openshift/origin/pkg/oc/clusteradd"
 	"github.com/openshift/origin/pkg/oc/clusterup"
 )
 
@@ -40,11 +41,10 @@ func NewCmdCluster(name, fullName string, f kcmdutil.Factory, streams genericcli
 		Run:   kcmdutil.DefaultSubCommandRun(streams.ErrOut),
 	}
 
-	clusterAdd := clusteradd.NewCmdAdd(clusteradd.CmdAddRecommendedName, fullName+" "+clusteradd.CmdAddRecommendedName, streams.Out, streams.ErrOut)
-
+	clusterAdd := clusteradd.NewCmdAdd(clusteradd.CmdAddRecommendedName, fullName+" "+clusteradd.CmdAddRecommendedName, streams)
 	cmds.AddCommand(clusterAdd)
-	cmds.AddCommand(clusterup.NewCmdUp(clusterup.CmdUpRecommendedName, fullName+" "+clusterup.CmdUpRecommendedName, f, streams.Out, streams.ErrOut, clusterAdd))
+	cmds.AddCommand(clusterup.NewCmdUp(clusterup.CmdUpRecommendedName, fullName+" "+clusterup.CmdUpRecommendedName, f, streams, clusterAdd))
 	cmds.AddCommand(clusterup.NewCmdDown(clusterup.CmdDownRecommendedName, fullName+" "+clusterup.CmdDownRecommendedName))
-	cmds.AddCommand(clusterup.NewCmdStatus(clusterup.CmdStatusRecommendedName, fullName+" "+clusterup.CmdStatusRecommendedName, f, streams.Out))
+	cmds.AddCommand(clusterup.NewCmdStatus(clusterup.CmdStatusRecommendedName, fullName+" "+clusterup.CmdStatusRecommendedName, f, streams))
 	return cmds
 }
