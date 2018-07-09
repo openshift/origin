@@ -459,6 +459,9 @@ func ValidateImagePolicyConfig(config configapi.ImagePolicyConfig, fldPath *fiel
 			}
 		}
 	}
+	if len(config.AdditionalTrustedCA) != 0 {
+		common.ValidateFile(config.AdditionalTrustedCA, fldPath.Child("additionalTrustedCA"))
+	}
 	return errs
 }
 

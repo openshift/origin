@@ -182,6 +182,8 @@ func GetMasterFileReferences(config *MasterConfig) []*string {
 	refs = append(refs, &config.AuditConfig.AuditFilePath)
 	refs = append(refs, &config.AuditConfig.PolicyFile)
 
+	refs = append(refs, &config.ImagePolicyConfig.AdditionalTrustedCA)
+
 	return refs
 }
 

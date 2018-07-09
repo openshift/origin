@@ -411,6 +411,9 @@ type ImagePolicyConfig struct {
 	// is exposed externally. The value is used in 'publicDockerImageRepository'
 	// field in ImageStreams. The value must be in "hostname[:port]" format.
 	ExternalRegistryHostname string `json:"externalRegistryHostname,omitempty"`
+	// AdditionalTrustedCA is a path to a pem bundle file containing additional CAs that
+	// should be trusted during imagestream import.
+	AdditionalTrustedCA string `json:"additionalTrustedCA,omitempty"`
 }
 
 // AllowedRegistries represents a list of registries allowed for the image import.

@@ -2,10 +2,9 @@ package registry
 
 import (
 	"fmt"
+	"os"
 	"path"
 	"path/filepath"
-
-	"github.com/golang/glog"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -33,24 +32,6 @@ func (r *RegistryComponentOptions) Name() string {
 	return "openshift-image-registry"
 }
 
-// ensureRemoteRegistryStoragePermissions ensures the remote host directory for registry storage have write access permissions
-// so the registry can successfully write data into it.
-// TODO: This is a remote docker snowflake
-func (r *RegistryComponentOptions) ensureRemoteRegistryStoragePermissions(dir string, dockerClient dockerhelper.Interface) error {
-	glog.V(5).Infof("Ensuring the write permissions in remote directory %s", dir)
-	_, rc, err := run.NewRunHelper(dockerhelper.NewHelper(dockerClient)).New().
-		Image(r.InstallContext.ClientImage()).
-		DiscardContainer().
-		Privileged().
-		Bind(fmt.Sprintf("%s:/pv", dir)).
-		Entrypoint("/bin/bash").
-		Command("-c", "mkdir -p /pv/registry && chmod 0777 /pv/registry").Run()
-	if rc != 0 {
-		return fmt.Errorf("command returning non-zero exit code: %d", rc)
-	}
-	return err
-}
-
 func (r *RegistryComponentOptions) Install(dockerClient dockerhelper.Interface) error {
 	kubeAdminClient, err := kubernetes.NewForConfig(r.InstallContext.ClusterAdminClientConfig())
 	if err != nil {
@@ -71,6 +52,13 @@ func (r *RegistryComponentOptions) Install(dockerClient dockerhelper.Interface) 
 	}
 
 	registryStorageDir := path.Join(r.InstallContext.BaseDir(), "openshift.local.pv", "registry")
+	if err := os.MkdirAll(registryStorageDir, 0777); err != nil {
+		return err
+	}
+	// chmod in case the umask overrode our permissions above.
+	if err := os.Chmod(registryStorageDir, 0777); err != nil {
+		return err
+	}
 	masterConfigDir := path.Join(r.InstallContext.BaseDir(), kubeapiserver.KubeAPIServerDirName)
 	flags := []string{
 		"adm",

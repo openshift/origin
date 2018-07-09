@@ -1,13 +1,17 @@
 package apiserver
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
+	"net/http"
 	"sync"
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
+	knet "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/apiserver/pkg/registry/rest"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	restclient "k8s.io/client-go/rest"
@@ -43,6 +47,7 @@ type ExtraConfig struct {
 	RegistryHostnameRetriever          imageapi.RegistryHostnameRetriever
 	AllowedRegistriesForImport         *configapi.AllowedRegistries
 	MaxImagesBulkImportedPerRepository int
+	AdditionalTrustedCA                []byte
 
 	// TODO these should all become local eventually
 	Scheme *runtime.Scheme
@@ -116,11 +121,34 @@ func (c *completedConfig) V1RESTStorage() (map[string]rest.Storage, error) {
 }
 
 func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
-	// TODO: allow the system CAs and the local CAs to be joined together.
-	importTransport, err := restclient.TransportFor(&restclient.Config{})
+	cfg := restclient.Config{}
+
+	tlsConfig := &tls.Config{}
+
+	var err error
+	tlsConfig.RootCAs, err = x509.SystemCertPool()
+	if err != nil {
+		return nil, fmt.Errorf("unable to get system cert pool for default transport for image importing: %v", err)
+	}
+	if tlsConfig.RootCAs == nil {
+		tlsConfig.RootCAs = x509.NewCertPool()
+	}
+
+	if len(c.ExtraConfig.AdditionalTrustedCA) != 0 {
+		if ok := tlsConfig.RootCAs.AppendCertsFromPEM(c.ExtraConfig.AdditionalTrustedCA); !ok {
+			return nil, fmt.Errorf("No valid certificates read from %v", c.ExtraConfig.AdditionalTrustedCA)
+		}
+	}
+
+	transport := knet.SetTransportDefaults(&http.Transport{
+		TLSClientConfig: tlsConfig,
+	})
+
+	importTransport, err := restclient.HTTPWrappersForConfig(&cfg, transport)
 	if err != nil {
 		return nil, fmt.Errorf("unable to configure a default transport for importing: %v", err)
 	}
+
 	insecureImportTransport, err := restclient.TransportFor(&restclient.Config{
 		TLSClientConfig: restclient.TLSClientConfig{
 			Insecure: true,
