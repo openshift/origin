@@ -82,7 +82,8 @@ type GenerationInputs struct {
 	SourceImage     string
 	SourceImagePath string
 
-	Secrets []string
+	Secrets    []string
+	ConfigMaps []string
 
 	AllowMissingImageStreamTags bool
 
@@ -435,9 +436,13 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 			switch {
 			case refInput.ExpectToBuild:
 				glog.V(4).Infof("will add %q secrets into a build for a source build of %q", strings.Join(c.Secrets, ","), refInput.Uses)
-
 				if err := refInput.Uses.AddBuildSecrets(c.Secrets); err != nil {
 					return nil, fmt.Errorf("unable to add build secrets %q: %v", strings.Join(c.Secrets, ","), err)
+				}
+
+				glog.V(4).Infof("will add %q configMaps into a build for a source build of %q", strings.Join(c.ConfigMaps, ","), refInput.Uses)
+				if err = refInput.Uses.AddBuildConfigMaps(c.ConfigMaps); err != nil {
+					return nil, fmt.Errorf("unable to add build configMaps %q: %v", strings.Join(c.Secrets, ","), err)
 				}
 
 				if refInput.Uses.GetStrategy() == generate.StrategyDocker {
