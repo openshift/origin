@@ -22,6 +22,7 @@ import (
 	"os"
 
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
 )
 
 // GetStandardPrinter takes a format type, an optional format argument. It will return
@@ -50,7 +51,7 @@ func GetStandardPrinter(typer runtime.ObjectTyper, encoder runtime.Encoder, deco
 		if len(formatArgument) == 0 {
 			return nil, fmt.Errorf("template format specified but no template given")
 		}
-		templatePrinter, err := NewTemplatePrinter([]byte(formatArgument))
+		templatePrinter, err := printers.NewTemplatePrinter([]byte(formatArgument))
 		if err != nil {
 			return nil, fmt.Errorf("error parsing template %s, %v\n", formatArgument, err)
 		}
@@ -65,7 +66,7 @@ func GetStandardPrinter(typer runtime.ObjectTyper, encoder runtime.Encoder, deco
 		if err != nil {
 			return nil, fmt.Errorf("error reading template %s, %v\n", formatArgument, err)
 		}
-		templatePrinter, err := NewTemplatePrinter(data)
+		templatePrinter, err := printers.NewTemplatePrinter(data)
 		if err != nil {
 			return nil, fmt.Errorf("error parsing template %s, %v\n", string(data), err)
 		}
@@ -76,7 +77,7 @@ func GetStandardPrinter(typer runtime.ObjectTyper, encoder runtime.Encoder, deco
 		if len(formatArgument) == 0 {
 			return nil, fmt.Errorf("jsonpath template format specified but no template given")
 		}
-		jsonpathPrinter, err := NewJSONPathPrinter(formatArgument)
+		jsonpathPrinter, err := printers.NewJSONPathPrinter(formatArgument)
 		if err != nil {
 			return nil, fmt.Errorf("error parsing jsonpath %s, %v\n", formatArgument, err)
 		}
@@ -91,7 +92,7 @@ func GetStandardPrinter(typer runtime.ObjectTyper, encoder runtime.Encoder, deco
 		if err != nil {
 			return nil, fmt.Errorf("error reading template %s, %v\n", formatArgument, err)
 		}
-		jsonpathPrinter, err := NewJSONPathPrinter(string(data))
+		jsonpathPrinter, err := printers.NewJSONPathPrinter(string(data))
 		if err != nil {
 			return nil, fmt.Errorf("error parsing template %s, %v\n", string(data), err)
 		}
