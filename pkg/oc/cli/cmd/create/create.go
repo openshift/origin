@@ -5,8 +5,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	"k8s.io/kubernetes/pkg/kubectl/cmd/create"
+	"github.com/openshift/origin/pkg/oc/util/ocscheme"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
@@ -17,7 +16,7 @@ type CreateSubcommandOptions struct {
 	genericclioptions.IOStreams
 
 	// PrintFlags holds options necessary for obtaining a printer
-	PrintFlags *create.PrintFlags
+	PrintFlags *genericclioptions.PrintFlags
 	// Name of resource being created
 	Name string
 	// DryRun is true if the command should be simulated but not run against the server
@@ -31,7 +30,7 @@ type CreateSubcommandOptions struct {
 
 func NewCreateSubcommandOptions(ioStreams genericclioptions.IOStreams) *CreateSubcommandOptions {
 	return &CreateSubcommandOptions{
-		PrintFlags: create.NewPrintFlags("created", legacyscheme.Scheme),
+		PrintFlags: genericclioptions.NewPrintFlags("created").WithTypeSetter(ocscheme.PrintingInternalScheme),
 		IOStreams:  ioStreams,
 	}
 }

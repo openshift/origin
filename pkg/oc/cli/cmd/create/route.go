@@ -6,15 +6,14 @@ import (
 	"github.com/spf13/cobra"
 
 	"k8s.io/apimachinery/pkg/api/meta"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/kubectl/cmd/create"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
 
 	routev1client "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1"
+	"github.com/openshift/origin/pkg/oc/util/ocscheme"
 )
 
 var (
@@ -44,7 +43,7 @@ func NewCmdCreateRoute(fullName string, f kcmdutil.Factory, streams genericcliop
 // CreateRouteSubcommandOptions is an options struct to support create subcommands
 type CreateRouteSubcommandOptions struct {
 	// PrintFlags holds options necessary for obtaining a printer
-	PrintFlags *create.PrintFlags
+	PrintFlags *genericclioptions.PrintFlags
 	// Name of resource being created
 	Name        string
 	ServiceName string
@@ -66,7 +65,7 @@ type CreateRouteSubcommandOptions struct {
 
 func NewCreateRouteSubcommandOptions(ioStreams genericclioptions.IOStreams) *CreateRouteSubcommandOptions {
 	return &CreateRouteSubcommandOptions{
-		PrintFlags: create.NewPrintFlags("created", legacyscheme.Scheme),
+		PrintFlags: genericclioptions.NewPrintFlags("created").WithTypeSetter(ocscheme.PrintingInternalScheme),
 		IOStreams:  ioStreams,
 	}
 }
