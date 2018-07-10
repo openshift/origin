@@ -20,6 +20,13 @@ os::util::ensure::gopath_binary_exists imagebuilder
 os::build::release::check_for_rpms
 
 # we need to mount RPMs into the container builds for installation
-OS_BUILD_IMAGE_ARGS="${OS_BUILD_IMAGE_ARGS:-} -mount ${OS_OUTPUT_RPMPATH}/:/srv/origin-local-release/"
+cat <<END > "${OS_OUTPUT_RPMPATH}/_local.repo"
+[origin-local-release]
+name = OpenShift Origin Release from Local Source
+baseurl = file:///srv/origin-local-release/
+gpgcheck = 0
+enabled = 0
+END
+OS_BUILD_IMAGE_ARGS="${OS_BUILD_IMAGE_ARGS:-} -mount ${OS_OUTPUT_RPMPATH}/:/srv/origin-local-release/ -mount ${OS_OUTPUT_RPMPATH}/_local.repo:/etc/yum.repos.d/origin-local-release.repo"
 
 os::build::images

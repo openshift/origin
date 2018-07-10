@@ -9,8 +9,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
 
 	operatorsv1alpha1 "github.com/openshift/api/operator/v1alpha1"
 	scsv1alpha1 "github.com/openshift/api/servicecertsigner/v1alpha1"
@@ -40,6 +38,9 @@ func sync_v310_00_to_latest(c ServiceCertSignerOperator, operatorConfig *scsv1al
 	}
 	if signingVersionAvailability.ReadyReplicas > 0 && apiServiceInjectorVersionAvailability.ReadyReplicas > 0 {
 		mergedVersionAvailability.ReadyReplicas = 1
+	}
+	for _, err := range allErrors {
+		mergedVersionAvailability.Errors = append(mergedVersionAvailability.Errors, err.Error())
 	}
 
 	return mergedVersionAvailability, allErrors
@@ -213,12 +214,7 @@ func manageSigningSecret(c ServiceCertSignerOperator) (*corev1.Secret, bool, err
 }
 
 func ensureServingSignerConfigMap_v310_00_to_latest(c ServiceCertSignerOperator, options scsv1alpha1.ServiceCertSignerOperatorConfigSpec) (*corev1.ConfigMap, bool, error) {
-	// TODO use an unstructured object to merge configs
-	config, err := readServiceServingCertSignerConfig(v310_00_assets.MustAsset("v3.10.0/service-serving-cert-signer-controller/defaultconfig.yaml"))
-	if err != nil {
-		return nil, false, err
-	}
-	configBytes, err := runtime.Encode(unstructured.UnstructuredJSONScheme, config)
+	configBytes, err := mergeProcessConfig(v310_00_assets.MustAsset("v3.10.0/service-serving-cert-signer-controller/defaultconfig.yaml"), options.ServiceServingCertSignerConfig.Raw, nil)
 	if err != nil {
 		return nil, false, err
 	}
@@ -251,12 +247,7 @@ func serviceServingCertSignerName() string {
 }
 
 func ensureAPIServiceInjectorConfigMap_v310_00_to_latest(c ServiceCertSignerOperator, options scsv1alpha1.ServiceCertSignerOperatorConfigSpec) (*corev1.ConfigMap, bool, error) {
-	// TODO use an unstructured object to merge configs
-	config, err := readServiceServingCertSignerConfig(v310_00_assets.MustAsset("v3.10.0/apiservice-cabundle-controller/defaultconfig.yaml"))
-	if err != nil {
-		return nil, false, err
-	}
-	configBytes, err := runtime.Encode(unstructured.UnstructuredJSONScheme, config)
+	configBytes, err := mergeProcessConfig(v310_00_assets.MustAsset("v3.10.0/apiservice-cabundle-controller/defaultconfig.yaml"), options.APIServiceCABundleInjectorConfig.Raw, nil)
 	if err != nil {
 		return nil, false, err
 	}

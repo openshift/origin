@@ -1,7 +1,6 @@
 #!/bin/bash
 source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
-os::golang::verify_go_version
 os::util::ensure::system_binary_exists 'golint'
 
 arg="${1:-""}"

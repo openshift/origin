@@ -3,7 +3,6 @@ source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
 function cleanup() {
     return_code=$?
-    os::test::junit::generate_report
     os::util::describe_return_code "${return_code}"
     exit "${return_code}"
 }
