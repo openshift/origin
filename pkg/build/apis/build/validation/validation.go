@@ -508,9 +508,10 @@ func validateDockerStrategy(strategy *buildapi.DockerBuildStrategy, fldPath *fie
 	switch t := strategy.ImageOptimizationPolicy; {
 	case t == nil:
 	case *t == buildapi.ImageOptimizationSkipLayers, *t == buildapi.ImageOptimizationSkipLayersAndWarn,
-		*t == buildapi.ImageOptimizationNone:
+		*t == buildapi.ImageOptimizationNone, *t == buildapi.ImageOptimizationDaemonless,
+		*t == buildapi.ImageOptimizationDaemonlessWithLayers, *t == buildapi.ImageOptimizationDaemonlessSquashed:
 	default:
-		allErrs = append(allErrs, field.Invalid(fldPath.Child("imageOptimizationPolicy"), *t, "must be unset, 'None', 'SkipLayers', or 'SkipLayersAndWarn"))
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("imageOptimizationPolicy"), *t, "must be unset, 'None', 'SkipLayers', 'SkipLayersAndWarn', 'Daemonless', 'DaemonlessWithLayers', or 'DaemonlessSquashed'"))
 	}
 
 	if len(strategy.DockerfilePath) != 0 {

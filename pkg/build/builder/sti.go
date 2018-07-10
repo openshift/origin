@@ -329,12 +329,12 @@ func (s *S2IBuilder) Build() error {
 	}
 
 	if push {
-		if err = tagImage(s.dockerClient, buildTag, pushTag); err != nil {
+		if err = dockerTagImage(s.dockerClient, buildTag, pushTag); err != nil {
 			return err
 		}
 	}
 
-	if err = removeImage(s.dockerClient, buildTag); err != nil {
+	if err = dockerRemoveImage(s.dockerClient, buildTag); err != nil {
 		glog.V(0).Infof("warning: Failed to remove temporary build tag %v: %v", buildTag, err)
 	}
 
@@ -351,7 +351,7 @@ func (s *S2IBuilder) Build() error {
 		}
 		glog.V(0).Infof("\nPushing image %s ...", pushTag)
 		startTime = metav1.Now()
-		digest, err := pushImage(s.dockerClient, pushTag, pushAuthConfig)
+		digest, err := dockerPushImage(s.dockerClient, pushTag, pushAuthConfig)
 
 		timing.RecordNewStep(ctx, buildapiv1.StagePushImage, buildapiv1.StepPushImage, startTime, metav1.Now())
 

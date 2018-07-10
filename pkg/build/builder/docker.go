@@ -98,7 +98,7 @@ func (d *DockerBuilder) Build() error {
 			continue
 		}
 		imageExists := true
-		_, err = d.dockerClient.InspectImage(imageName)
+		_, err = d.checkForImage(imageName)
 		if err != nil {
 			if err != docker.ErrNoSuchImage {
 				return err
@@ -113,7 +113,7 @@ func (d *DockerBuilder) Build() error {
 			)
 			glog.V(0).Infof("\nPulling image %s ...", imageName)
 			startTime := metav1.Now()
-			err = pullImage(d.dockerClient, imageName, pullAuthConfig)
+			err = d.pullImage(imageName, pullAuthConfig)
 
 			timing.RecordNewStep(ctx, buildapiv1.StagePullImages, buildapiv1.StepPullBaseImage, startTime, metav1.Now())
 
@@ -137,7 +137,7 @@ func (d *DockerBuilder) Build() error {
 	}
 
 	startTime := metav1.Now()
-	err = d.dockerBuild(buildDir, buildTag)
+	err = d.dockerBuild(ctx, buildDir, buildTag)
 
 	timing.RecordNewStep(ctx, buildapiv1.StageBuild, buildapiv1.StepDockerBuild, startTime, metav1.Now())
 
@@ -162,12 +162,12 @@ func (d *DockerBuilder) Build() error {
 	}
 
 	if push {
-		if err := tagImage(d.dockerClient, buildTag, pushTag); err != nil {
+		if err := d.tagImage(buildTag, pushTag); err != nil {
 			return err
 		}
 	}
 
-	if err := removeImage(d.dockerClient, buildTag); err != nil {
+	if err := d.removeImage(buildTag); err != nil {
 		glog.V(0).Infof("warning: Failed to remove temporary build tag %v: %v", buildTag, err)
 	}
 
@@ -182,7 +182,7 @@ func (d *DockerBuilder) Build() error {
 		}
 		glog.V(0).Infof("\nPushing image %s ...", pushTag)
 		startTime = metav1.Now()
-		digest, err := pushImage(d.dockerClient, pushTag, pushAuthConfig)
+		digest, err := d.pushImage(pushTag, pushAuthConfig)
 
 		timing.RecordNewStep(ctx, buildapiv1.StagePushImage, buildapiv1.StepPushDockerImage, startTime, metav1.Now())
 
@@ -203,6 +203,85 @@ func (d *DockerBuilder) Build() error {
 		glog.V(0).Infof("Push successful")
 	}
 	return nil
+}
+
+func (d *DockerBuilder) checkForImage(imageName string) (imageExists bool, err error) {
+	if s := d.build.Spec.Strategy.DockerStrategy; s != nil {
+		if policy := s.ImageOptimizationPolicy; policy != nil {
+			switch *policy {
+			case buildapiv1.ImageOptimizationDaemonless, buildapiv1.ImageOptimizationDaemonlessWithLayers, buildapiv1.ImageOptimizationDaemonlessSquashed:
+				err := checkForDaemonlessImage(imageName)
+				if err == nil {
+					return true, nil
+				}
+				if err != docker.ErrNoSuchImage {
+					return false, err
+				}
+				return false, nil
+			}
+		}
+	}
+
+	_, err = d.dockerClient.InspectImage(imageName)
+	if err == nil {
+		return true, nil
+	}
+	if err != docker.ErrNoSuchImage {
+		return false, err
+	}
+	return false, nil
+}
+
+func (d *DockerBuilder) pullImage(name string, authConfig docker.AuthConfiguration) error {
+	if s := d.build.Spec.Strategy.DockerStrategy; s != nil {
+		if policy := s.ImageOptimizationPolicy; policy != nil {
+			switch *policy {
+			case buildapiv1.ImageOptimizationDaemonless, buildapiv1.ImageOptimizationDaemonlessWithLayers, buildapiv1.ImageOptimizationDaemonlessSquashed:
+				return pullDaemonlessImage(name, authConfig)
+			}
+		}
+	}
+
+	return dockerPullImage(d.dockerClient, name, authConfig)
+}
+
+func (d *DockerBuilder) tagImage(image, name string) error {
+	if s := d.build.Spec.Strategy.DockerStrategy; s != nil {
+		if policy := s.ImageOptimizationPolicy; policy != nil {
+			switch *policy {
+			case buildapiv1.ImageOptimizationDaemonless, buildapiv1.ImageOptimizationDaemonlessWithLayers, buildapiv1.ImageOptimizationDaemonlessSquashed:
+				return tagDaemonlessImage(image, name)
+			}
+		}
+	}
+
+	return dockerTagImage(d.dockerClient, image, name)
+}
+
+func (d *DockerBuilder) removeImage(name string) error {
+	if s := d.build.Spec.Strategy.DockerStrategy; s != nil {
+		if policy := s.ImageOptimizationPolicy; policy != nil {
+			switch *policy {
+			case buildapiv1.ImageOptimizationDaemonless, buildapiv1.ImageOptimizationDaemonlessWithLayers, buildapiv1.ImageOptimizationDaemonlessSquashed:
+				return removeDaemonlessImage(name)
+			}
+		}
+	}
+
+	return dockerRemoveImage(d.dockerClient, name)
+}
+
+func (d *DockerBuilder) pushImage(name string, authConfig docker.AuthConfiguration) (string, error) {
+	if s := d.build.Spec.Strategy.DockerStrategy; s != nil {
+		if policy := s.ImageOptimizationPolicy; policy != nil {
+			switch *policy {
+			case buildapiv1.ImageOptimizationDaemonless, buildapiv1.ImageOptimizationDaemonlessWithLayers, buildapiv1.ImageOptimizationDaemonlessSquashed:
+				return "", pushDaemonlessImage(name, authConfig)
+			}
+		}
+	}
+
+	return dockerPushImage(d.dockerClient, name, authConfig)
 }
 
 // copyConfigMaps copies all files from the directory where the configMap is
@@ -305,7 +384,7 @@ func (d *DockerBuilder) setupPullSecret() (*docker.AuthConfigurations, error) {
 }
 
 // dockerBuild performs a docker build on the source that has been retrieved
-func (d *DockerBuilder) dockerBuild(dir string, tag string) error {
+func (d *DockerBuilder) dockerBuild(ctx context.Context, dir string, tag string) error {
 	var noCache bool
 	var forcePull bool
 	var buildArgs []docker.BuildArg
@@ -335,6 +414,7 @@ func (d *DockerBuilder) dockerBuild(dir string, tag string) error {
 	}
 
 	opts := docker.BuildImageOptions{
+		Context:             ctx,
 		Name:                tag,
 		RmTmpContainer:      true,
 		ForceRmTmpContainer: true,
@@ -378,11 +458,13 @@ func (d *DockerBuilder) dockerBuild(dir string, tag string) error {
 				return buildDirectImage(dir, false, &opts)
 			case buildapiv1.ImageOptimizationSkipLayersAndWarn:
 				return buildDirectImage(dir, true, &opts)
+			case buildapiv1.ImageOptimizationDaemonless, buildapiv1.ImageOptimizationDaemonlessWithLayers, buildapiv1.ImageOptimizationDaemonlessSquashed:
+				return buildDaemonlessImage(dir, *policy, &opts)
 			}
 		}
 	}
 
-	return buildImage(d.dockerClient, dir, d.tar, &opts)
+	return dockerBuildImage(d.dockerClient, dir, d.tar, &opts)
 }
 
 func getDockerfilePath(dir string, build *buildapiv1.Build) string {

@@ -10,6 +10,7 @@ import (
 	"k8s.io/apiserver/pkg/util/logs"
 	"k8s.io/kubernetes/pkg/kubectl/scheme"
 
+	"github.com/containers/storage/pkg/reexec"
 	"github.com/openshift/api"
 	"github.com/openshift/library-go/pkg/serviceability"
 	"github.com/openshift/origin/pkg/api/install"
@@ -20,6 +21,10 @@ import (
 )
 
 func main() {
+	if reexec.Init() {
+		return
+	}
+
 	logs.InitLogs()
 	defer logs.FlushLogs()
 	defer serviceability.BehaviorOnPanic(os.Getenv("OPENSHIFT_ON_PANIC"), version.Get())()

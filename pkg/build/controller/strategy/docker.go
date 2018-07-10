@@ -171,8 +171,19 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildv1.Build) (*v1.Pod, er
 	}
 
 	setOwnerReference(pod, build)
-	setupDockerSocket(pod)
-	setupCrioSocket(pod)
+	setupSockets := true
+	if s := build.Spec.Strategy.DockerStrategy; s != nil {
+		if policy := s.ImageOptimizationPolicy; policy != nil {
+			switch *policy {
+			case buildapi.ImageOptimizationDaemonless, buildapi.ImageOptimizationDaemonlessWithLayers, buildapi.ImageOptimizationDaemonlessSquashed:
+				setupSockets = false
+			}
+		}
+	}
+	if setupSockets {
+		setupDockerSocket(pod)
+		setupCrioSocket(pod)
+	}
 	setupDockerSecrets(pod, &pod.Spec.Containers[0], build.Spec.Output.PushSecret, strategy.PullSecret, build.Spec.Source.Images)
 	// For any secrets the user wants to reference from their Assemble script or Dockerfile, mount those
 	// secrets into the main container.  The main container includes logic to copy them from the mounted
@@ -180,5 +191,7 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildv1.Build) (*v1.Pod, er
 	// TODO: consider moving this into the git-clone container and doing the secret copying there instead.
 	setupInputSecrets(pod, &pod.Spec.Containers[0], build.Spec.Source.Secrets)
 	setupInputConfigMaps(pod, &pod.Spec.Containers[0], build.Spec.Source.ConfigMaps)
+	setupContainersConfigs(pod, &pod.Spec.Containers[0])
+	setupContainersStorage(pod, &pod.Spec.Containers[0])
 	return pod, nil
 }

@@ -86,6 +86,15 @@ func newBuilderConfigFromEnvironment(out io.Writer, needsDocker bool) (*builderC
 	// sourceSecretsDir (SOURCE_SECRET_PATH)
 	cfg.sourceSecretDir = os.Getenv("SOURCE_SECRET_PATH")
 
+	if s := cfg.build.Spec.Strategy.DockerStrategy; s != nil {
+		if policy := s.ImageOptimizationPolicy; policy != nil {
+			switch *policy {
+			case buildapiv1.ImageOptimizationDaemonless, buildapiv1.ImageOptimizationDaemonlessWithLayers, buildapiv1.ImageOptimizationDaemonlessSquashed:
+				needsDocker = false
+			}
+		}
+	}
+
 	if needsDocker {
 		// dockerClient and dockerEndpoint (DOCKER_HOST)
 		// usually not set, defaults to docker socket

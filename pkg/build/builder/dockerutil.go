@@ -109,7 +109,7 @@ func RetryImageAction(client DockerClient, opts interface{}, authConfig docker.A
 	return fmt.Errorf("After retrying %d times, %s image still failed due to error: %v", DefaultPushOrPullRetryCount, actionName, err)
 }
 
-func pullImage(client DockerClient, name string, authConfig docker.AuthConfiguration) error {
+func dockerPullImage(client DockerClient, name string, authConfig docker.AuthConfiguration) error {
 	logProgress := func(s string) {
 		glog.V(0).Infof("%s", s)
 	}
@@ -144,7 +144,7 @@ func pullImage(client DockerClient, name string, authConfig docker.AuthConfigura
 	return RetryImageAction(client, opts, authConfig)
 }
 
-// pushImage pushes a docker image to the registry specified in its tag.
+// dockerPushImage pushes a docker image to the registry specified in its tag.
 // The method will retry to push the image when following scenarios occur:
 // - Docker registry is down temporarily or permanently
 // - other image is being pushed to the registry
@@ -152,7 +152,7 @@ func pullImage(client DockerClient, name string, authConfig docker.AuthConfigura
 //
 // Returns the digest of the docker image in the registry, or empty string in
 // case registry didn't send it or we failed to extract it.
-func pushImage(client DockerClient, name string, authConfig docker.AuthConfiguration) (string, error) {
+func dockerPushImage(client DockerClient, name string, authConfig docker.AuthConfiguration) (string, error) {
 	repository, tag := docker.ParseRepositoryTag(name)
 
 	var progressWriter io.Writer
@@ -179,12 +179,12 @@ func pushImage(client DockerClient, name string, authConfig docker.AuthConfigura
 	return digestWriter.Digest, nil
 }
 
-func removeImage(client DockerClient, name string) error {
+func dockerRemoveImage(client DockerClient, name string) error {
 	return client.RemoveImage(name)
 }
 
-// buildImage invokes a docker build on a particular directory
-func buildImage(client DockerClient, dir string, tar tar.Tar, opts *docker.BuildImageOptions) error {
+// dockerBuildImage invokes a docker build on a particular directory
+func dockerBuildImage(client DockerClient, dir string, tar tar.Tar, opts *docker.BuildImageOptions) error {
 	// TODO: be able to pass a stream directly to the Docker build to avoid the double temp hit
 	if opts == nil {
 		return fmt.Errorf("%s", "build image options nil")
@@ -308,10 +308,10 @@ func buildDirectImage(dir string, ignoreFailures bool, opts *docker.BuildImageOp
 	})
 }
 
-// tagImage uses the dockerClient to tag a Docker image with name. It is a
+// dockerTagImage uses the dockerClient to tag a Docker image with name. It is a
 // helper to facilitate the usage of dockerClient.TagImage, because the former
 // requires the name to be split into more explicit parts.
-func tagImage(dockerClient DockerClient, image, name string) error {
+func dockerTagImage(dockerClient DockerClient, image, name string) error {
 	repo, tag := docker.ParseRepositoryTag(name)
 	return dockerClient.TagImage(image, docker.TagImageOptions{
 		Repo: repo,
