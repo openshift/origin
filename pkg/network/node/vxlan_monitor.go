@@ -4,7 +4,6 @@ package node
 
 import (
 	"fmt"
-	"net"
 	"strconv"
 	"strings"
 	"sync"
@@ -15,6 +14,7 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 
+	"github.com/openshift/origin/pkg/network/common"
 	"github.com/openshift/origin/pkg/util/ovs"
 )
 
@@ -44,6 +44,7 @@ type egressVXLANMonitor struct {
 	sync.Mutex
 
 	ovsif        ovs.Interface
+	tracker      *common.EgressIPTracker
 	updates      chan<- *egressVXLANNode
 	pollInterval time.Duration
 
@@ -53,7 +54,6 @@ type egressVXLANMonitor struct {
 
 type egressVXLANNode struct {
 	nodeIP  string
-	sdnIP   string
 	offline bool
 
 	in  uint64
@@ -69,28 +69,26 @@ const (
 	maxRetries          = 2
 )
 
-func newEgressVXLANMonitor(ovsif ovs.Interface, updates chan<- *egressVXLANNode) *egressVXLANMonitor {
+func newEgressVXLANMonitor(ovsif ovs.Interface, tracker *common.EgressIPTracker, updates chan<- *egressVXLANNode) *egressVXLANMonitor {
 	return &egressVXLANMonitor{
 		ovsif:        ovsif,
+		tracker:      tracker,
 		updates:      updates,
 		pollInterval: defaultPollInterval,
 		monitorNodes: make(map[string]*egressVXLANNode),
 	}
 }
 
-func (evm *egressVXLANMonitor) AddNode(nodeIP, sdnIP string) {
+func (evm *egressVXLANMonitor) AddNode(nodeIP string) {
 	evm.Lock()
 	defer evm.Unlock()
 
 	if evm.monitorNodes[nodeIP] != nil {
 		return
 	}
-	glog.V(4).Infof("Monitoring node %s (SDN IP %s)", nodeIP, sdnIP)
+	glog.V(4).Infof("Monitoring node %s", nodeIP)
 
-	evm.monitorNodes[nodeIP] = &egressVXLANNode{
-		nodeIP: nodeIP,
-		sdnIP:  sdnIP,
-	}
+	evm.monitorNodes[nodeIP] = &egressVXLANNode{nodeIP: nodeIP}
 	if len(evm.monitorNodes) == 1 && evm.pollInterval != 0 {
 		evm.stop = make(chan struct{})
 		go utilwait.PollUntil(evm.pollInterval, evm.poll, evm.stop)
@@ -215,8 +213,11 @@ func (evm *egressVXLANMonitor) check(retryOnly bool) bool {
 				glog.Infof("Node %s is back online", node.nodeIP)
 				node.offline = false
 				evm.updates <- node
-			} else if node.sdnIP != "" {
-				go ping(node.sdnIP)
+			} else if evm.tracker != nil {
+				// We can ignore the return value because if the node responds
+				// (with either success or "connection refused") we'll see it
+				// in the OVS packet counts.
+				go evm.tracker.Ping(node.nodeIP, defaultPollInterval)
 			}
 		} else {
 			if out > node.out && in == node.in {
@@ -251,17 +252,4 @@ func (evm *egressVXLANMonitor) poll() (bool, error) {
 		retry = evm.check(true)
 	}
 	return false, nil
-}
-
-// ping a node by trying to open a TCP connection to the "discard" service (port 9). If
-// the node is still offline, the attempt will time out with no response. But if the node
-// has come back then we'll get a TCP RST (indicating that the node is not listening on
-// that port), or possibly an ACK (if for some strange reason it *was* listening); either
-// way, the input n_packets counter will increase by 1, causing the next poll to mark the
-// node as being back online.
-func ping(ip string) {
-	conn, _ := net.DialTimeout("tcp", ip+":9", defaultPollInterval)
-	if conn != nil {
-		conn.Close()
-	}
 }

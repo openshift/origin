@@ -43,12 +43,12 @@ func TestEgressVXLANMonitor(t *testing.T) {
 	setPacketCounts(ovsif, "192.168.1.5", 0, 0)
 
 	updates := make(chan *egressVXLANNode, 10)
-	evm := newEgressVXLANMonitor(ovsif, updates)
+	evm := newEgressVXLANMonitor(ovsif, nil, updates)
 	evm.pollInterval = 0
 
-	evm.AddNode("192.168.1.1", "")
-	evm.AddNode("192.168.1.3", "")
-	evm.AddNode("192.168.1.5", "")
+	evm.AddNode("192.168.1.1")
+	evm.AddNode("192.168.1.3")
+	evm.AddNode("192.168.1.5")
 
 	// Everything should be fine at startup
 	retry := evm.check(false)
