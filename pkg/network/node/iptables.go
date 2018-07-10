@@ -21,16 +21,18 @@ type NodeIPTables struct {
 	clusterNetworkCIDR []string
 	syncPeriod         time.Duration
 	masqueradeServices bool
+	vxlanPort          uint32
 
 	mu sync.Mutex // Protects concurrent access to syncIPTableRules()
 }
 
-func newNodeIPTables(clusterNetworkCIDR []string, syncPeriod time.Duration, masqueradeServices bool) *NodeIPTables {
+func newNodeIPTables(clusterNetworkCIDR []string, syncPeriod time.Duration, masqueradeServices bool, vxlanPort uint32) *NodeIPTables {
 	return &NodeIPTables{
 		ipt:                iptables.New(kexec.New(), utildbus.New(), iptables.ProtocolIpv4),
 		clusterNetworkCIDR: clusterNetworkCIDR,
 		syncPeriod:         syncPeriod,
 		masqueradeServices: masqueradeServices,
+		vxlanPort:          vxlanPort,
 	}
 }
 
@@ -141,8 +143,6 @@ func (n *NodeIPTables) syncIPTableRules() error {
 	return nil
 }
 
-const vxlanPort = "4789"
-
 func (n *NodeIPTables) getNodeIPTablesChains() []Chain {
 
 	var chainArray []Chain
@@ -154,7 +154,7 @@ func (n *NodeIPTables) getNodeIPTablesChains() []Chain {
 			srcChain: "INPUT",
 			srcRule:  []string{"-m", "comment", "--comment", "firewall overrides"},
 			rules: [][]string{
-				{"-p", "udp", "--dport", vxlanPort, "-m", "comment", "--comment", "VXLAN incoming", "-j", "ACCEPT"},
+				{"-p", "udp", "--dport", fmt.Sprintf("%d", n.vxlanPort), "-m", "comment", "--comment", "VXLAN incoming", "-j", "ACCEPT"},
 				{"-i", Tun0, "-m", "comment", "--comment", "from SDN to localhost", "-j", "ACCEPT"},
 				{"-i", "docker0", "-m", "comment", "--comment", "from docker to localhost", "-j", "ACCEPT"},
 			},
