@@ -42,6 +42,16 @@ func (Image) SwaggerDoc() map[string]string {
 	return map_Image
 }
 
+var map_ImageBlobReferences = map[string]string{
+	"":         "ImageBlobReferences describes the blob references within an image.",
+	"layers":   "layers is the list of blobs that compose this image, from base layer to top layer. All layers referenced by this array will be defined in the blobs map. Some images may have zero layers.",
+	"manifest": "manifest, if set, is the blob that contains the image manifest. Some images do not have separate manifest blobs and this field will be set to nil if so.",
+}
+
+func (ImageBlobReferences) SwaggerDoc() map[string]string {
+	return map_ImageBlobReferences
+}
+
 var map_ImageImportSpec = map[string]string{
 	"":                "ImageImportSpec describes a request to import a specific image.",
 	"from":            "From is the source of an image to import; only kind DockerImage is allowed",
@@ -75,6 +85,16 @@ var map_ImageLayer = map[string]string{
 
 func (ImageLayer) SwaggerDoc() map[string]string {
 	return map_ImageLayer
+}
+
+var map_ImageLayerData = map[string]string{
+	"":          "ImageLayerData contains metadata about an image layer.",
+	"size":      "Size of the layer in bytes as defined by the underlying store. This field is optional if the necessary information about size is not available.",
+	"mediaType": "MediaType of the referenced object.",
+}
+
+func (ImageLayerData) SwaggerDoc() map[string]string {
+	return map_ImageLayerData
 }
 
 var map_ImageList = map[string]string{
@@ -165,6 +185,17 @@ var map_ImageStreamImportStatus = map[string]string{
 
 func (ImageStreamImportStatus) SwaggerDoc() map[string]string {
 	return map_ImageStreamImportStatus
+}
+
+var map_ImageStreamLayers = map[string]string{
+	"":         "ImageStreamLayers describes information about the layers referenced by images in this image stream.",
+	"metadata": "Standard object's metadata.",
+	"blobs":    "blobs is a map of blob name to metadata about the blob.",
+	"images":   "images is a map between an image name and the names of the blobs and manifests that comprise the image.",
+}
+
+func (ImageStreamLayers) SwaggerDoc() map[string]string {
+	return map_ImageStreamLayers
 }
 
 var map_ImageStreamList = map[string]string{

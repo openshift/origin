@@ -1,5 +1,5 @@
 hash: df63691eefa0455af08310071c1457c268b7d58f2ceb813c0c29d06ec75a5d3d
-updated: 2018-07-06T14:12:33.305926721-04:00
+updated: 2018-07-10T19:25:18.202568838-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -809,7 +809,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: 95626b0211df2ed778b4d68c3e9e61138677d315
+  version: 04a26bf3b8d69c390642c5803fe4cfdb899112aa
   subpackages:
   - apps/v1
   - authorization/v1
@@ -831,7 +831,7 @@ imports:
   - user/v1
   - webconsole/v1
 - name: github.com/openshift/client-go
-  version: 4688ad28de2e88110c0ea30179c51b9b205f99be
+  version: b22949ca0eae046da7611d0d20c8089dcec212d6
   subpackages:
   - apps/clientset/versioned
   - apps/clientset/versioned/scheme
@@ -938,7 +938,7 @@ imports:
   - user/informers/externalversions/user/v1
   - user/listers/user/v1
 - name: github.com/openshift/imagebuilder
-  version: 4670fc31fca6121da0dcf42d6b9b298479c1715a
+  version: bfc0aea02ce95dcfc1a83d452270dbc66933709b
   subpackages:
   - dockerclient
   - imageprogress
@@ -957,7 +957,7 @@ imports:
   - pkg/operator/resource/resourcemerge
   - pkg/serviceability
 - name: github.com/openshift/service-serving-cert-signer
-  version: 4e91b73f7394df0fffb885c35ac9b517cc385d2e
+  version: 10d530a76d1e98ae342df2fa5a3cbefd5dc3f241
   subpackages:
   - pkg/controller/servingcert
   - pkg/controller/servingcert/cryptoextensions
@@ -1827,7 +1827,7 @@ imports:
   - pkg/util/proto/testing
   - pkg/util/proto/validation
 - name: k8s.io/kubernetes
-  version: 5200705703cbf4abe250da3822f67e244e11d5b0
+  version: aebe0498deb85f935a0126a4859b2a7610bd69c5
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/controller-manager/app

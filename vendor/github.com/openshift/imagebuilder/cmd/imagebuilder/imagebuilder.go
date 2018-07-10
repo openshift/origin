@@ -82,7 +82,7 @@ func main() {
 		if glog.V(2) {
 			log.Printf("Builder: "+format, args...)
 		} else {
-			fmt.Fprintf(options.ErrOut, "--> %s\n", fmt.Sprintf(format, args...))
+			fmt.Fprintf(options.Out, "--> %s\n", fmt.Sprintf(format, args...))
 		}
 	}
 

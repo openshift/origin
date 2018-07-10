@@ -120,6 +120,6 @@ build-rpms:
 #
 # Example:
 #   make build-images
-build-images: build-rpms
+build-images:
 	hack/build-images.sh
 .PHONY: build-images
