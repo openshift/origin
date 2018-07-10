@@ -120,6 +120,22 @@ func waitForEndpoint(c kclientset.Interface, ns, name string) error {
 	return fmt.Errorf("Failed to get endpoints for %s/%s", ns, name)
 }
 
+func waitForNetNamespace(nsName string) error {
+	clientConfig, err := testutil.GetClusterAdminClientConfig(testexutil.KubeConfigPath())
+	networkClient := networkclient.NewForConfigOrDie(clientConfig)
+	expectNoError(err)
+
+	for t := time.Now(); time.Since(t) < 3*time.Minute; time.Sleep(poll) {
+		_, err := networkClient.Network().NetNamespaces().Get(nsName, metav1.GetOptions{})
+		if err == nil {
+			// success
+			return nil
+		}
+		e2e.Logf("NetNamespace %s is not ready yet", nsName)
+	}
+	return fmt.Errorf("Failed to get NetNamespace %s", nsName)
+}
+
 func launchWebserverService(f *e2e.Framework, serviceName string, nodeName string) (serviceAddr string) {
 	e2e.LaunchWebserverPod(f, serviceName, nodeName)
 
