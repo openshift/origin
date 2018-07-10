@@ -465,6 +465,16 @@
             ]
         },
         {
+            "type": "bind",
+            "source": "/var/lib/iscsi",
+            "destination": "/var/lib/iscsi",
+            "options": [
+                "bind",
+                "rw",
+                "mode=755"
+            ]
+        },
+        {
 	    "type": "bind",
 	    "source": "$ORIGIN_CONFIG_DIR/node",
 	    "destination": "/etc/origin/node",
