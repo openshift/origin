@@ -131,6 +131,22 @@ func GetOpenshiftBootstrapClusterRoles() []rbacv1.ClusterRole {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: ClusterReaderRoleName,
 			},
+			AggregationRule: &rbacv1.AggregationRule{
+				ClusterRoleSelectors: []metav1.LabelSelector{
+					{
+						MatchLabels: map[string]string{"rbac.authorization.k8s.io/aggregate-to-cluster-reader": "true"},
+					},
+					{
+						MatchLabels: map[string]string{"rbac.authorization.k8s.io/aggregate-to-view": "true"},
+					},
+				},
+			},
+		},
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:   AggregatedClusterReaderRoleName,
+				Labels: map[string]string{"rbac.authorization.k8s.io/aggregate-to-cluster-reader": "true"},
+			},
 			Rules: []rbacv1.PolicyRule{
 				rbacv1helpers.NewRule(read...).Groups(kapiGroup).Resources("bindings", "componentstatuses", "configmaps", "endpoints", "events", "limitranges",
 					"namespaces", "namespaces/status", "nodes", "nodes/status", "persistentvolumeclaims", "persistentvolumeclaims/status", "persistentvolumes",
@@ -1010,8 +1026,9 @@ func GetBootstrapNamespaceRoleBindings() map[string][]rbacv1.RoleBinding {
 
 func GetBootstrapClusterRolesToAggregate() map[string]string {
 	return map[string]string{
-		AdminRoleName: AggregatedAdminRoleName,
-		EditRoleName:  AggregatedEditRoleName,
-		ViewRoleName:  AggregatedViewRoleName,
+		AdminRoleName:         AggregatedAdminRoleName,
+		EditRoleName:          AggregatedEditRoleName,
+		ViewRoleName:          AggregatedViewRoleName,
+		ClusterReaderRoleName: AggregatedClusterReaderRoleName,
 	}
 }
