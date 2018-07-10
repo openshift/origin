@@ -228,6 +228,9 @@ type RouterConfig struct {
 	// Strict SNI (do not use default cert)
 	StrictSNI bool
 
+	// Number of threads to start per process
+	Threads int32
+
 	Local bool
 }
 
@@ -308,6 +311,7 @@ func NewCmdRouter(f kcmdutil.Factory, parentName, name string, out, errout io.Wr
 	cmd.Flags().StringVar(&cfg.Ciphers, "ciphers", cfg.Ciphers, "Specifies the cipher suites to use. You can choose a predefined cipher set ('modern', 'intermediate', or 'old') or specify exact cipher suites by passing a : separated list. Not supported for F5.")
 	cmd.Flags().BoolVar(&cfg.StrictSNI, "strict-sni", cfg.StrictSNI, "Use strict-sni bind processing (do not use default cert). Not supported for F5.")
 	cmd.Flags().BoolVar(&cfg.Local, "local", cfg.Local, "If true, do not contact the apiserver")
+	cmd.Flags().Int32Var(&cfg.Threads, "threads", cfg.Threads, "Specifies the number of threads for the haproxy router.")
 
 	cfg.Action.BindForOutput(cmd.Flags())
 	cmd.Flags().String("output-version", "", "The preferred API versions of the output objects")
@@ -671,7 +675,9 @@ func RunCmdRouter(f kcmdutil.Factory, cmd *cobra.Command, out, errout io.Writer,
 		"STATS_PORT":                            strconv.Itoa(cfg.StatsPort),
 		"STATS_USERNAME":                        cfg.StatsUsername,
 		"STATS_PASSWORD":                        cfg.StatsPassword,
+		"ROUTER_THREADS":                        strconv.Itoa(int(cfg.Threads)),
 	}
+
 	if len(cfg.MaxConnections) > 0 {
 		env["ROUTER_MAX_CONNECTIONS"] = cfg.MaxConnections
 	}

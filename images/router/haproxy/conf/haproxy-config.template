@@ -33,6 +33,12 @@
 
 global
   maxconn {{env "ROUTER_MAX_CONNECTIONS" "20000"}}
+{{- $threads := env "ROUTER_THREADS" }}
+{{- if ne "" (firstMatch "[1-9][0-9]*" $threads) }}
+  nbthread {{ $threads }}
+{{-  end }}
+
+
 
   daemon
 {{- with (env "ROUTER_SYSLOG_ADDRESS") }}
