@@ -11950,6 +11950,8 @@ _oc_import_app.json()
     flags_with_completion=()
     flags_completion=()
 
+    flags+=("--allow-missing-template-keys")
+    local_nonpersistent_flags+=("--allow-missing-template-keys")
     flags+=("--as-template=")
     local_nonpersistent_flags+=("--as-template=")
     flags+=("--dry-run")
