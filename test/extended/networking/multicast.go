@@ -3,6 +3,7 @@ package networking
 import (
 	"fmt"
 	"regexp"
+	"time"
 
 	"github.com/openshift/origin/pkg/network"
 	networkapi "github.com/openshift/origin/pkg/network/apis/network"
@@ -11,7 +12,9 @@ import (
 	testutil "github.com/openshift/origin/test/util"
 
 	kapiv1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	. "github.com/onsi/ginkgo"
@@ -54,7 +57,17 @@ func makeNamespaceMulticastEnabled(ns *kapiv1.Namespace) {
 	clientConfig, err := testutil.GetClusterAdminClientConfig(testexutil.KubeConfigPath())
 	networkClient := networkclient.NewForConfigOrDie(clientConfig)
 	expectNoError(err)
-	netns, err := networkClient.Network().NetNamespaces().Get(ns.Name, metav1.GetOptions{})
+	var netns *networkapi.NetNamespace
+	err = wait.Poll(time.Second, 2*time.Minute, func() (bool, error) {
+		netns, err = networkClient.Network().NetNamespaces().Get(ns.Name, metav1.GetOptions{})
+		if err != nil {
+			if errors.IsNotFound(err) {
+				return false, nil
+			}
+			return false, err
+		}
+		return true, nil
+	})
 	expectNoError(err)
 	if netns.Annotations == nil {
 		netns.Annotations = make(map[string]string, 1)
