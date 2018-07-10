@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"io/ioutil"
 	"reflect"
 	"sort"
 	"testing"
@@ -22,6 +21,7 @@ import (
 	// install all APIs
 	_ "github.com/openshift/origin/pkg/api/install"
 	_ "k8s.io/kubernetes/pkg/apis/core/install"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 )
 
 func deploymentFor(config *appsapi.DeploymentConfig, status appsapi.DeploymentStatus) *kapi.ReplicationController {
@@ -61,7 +61,7 @@ func TestCmdDeploy_latestOk(t *testing.T) {
 			return true, deploymentFor(config, status), nil
 		})
 
-		o := &DeployOptions{appsClient: osClient.Apps(), kubeClient: kubeClient, out: ioutil.Discard}
+		o := &DeployOptions{appsClient: osClient.Apps(), kubeClient: kubeClient, IOStreams: genericclioptions.NewTestIOStreamsDiscard()}
 		err := o.deploy(config)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -86,7 +86,7 @@ func TestCmdDeploy_latestConcurrentRejection(t *testing.T) {
 		config := appstest.OkDeploymentConfig(1)
 		existingDeployment := deploymentFor(config, status)
 		kubeClient := fake.NewSimpleClientset(existingDeployment)
-		o := &DeployOptions{kubeClient: kubeClient, out: ioutil.Discard}
+		o := &DeployOptions{kubeClient: kubeClient, IOStreams: genericclioptions.NewTestIOStreamsDiscard()}
 
 		err := o.deploy(config)
 		if err == nil {
@@ -104,7 +104,7 @@ func TestCmdDeploy_latestLookupError(t *testing.T) {
 	})
 
 	config := appstest.OkDeploymentConfig(1)
-	o := &DeployOptions{kubeClient: kubeClient, out: ioutil.Discard}
+	o := &DeployOptions{kubeClient: kubeClient, IOStreams: genericclioptions.NewTestIOStreamsDiscard()}
 	err := o.deploy(config)
 
 	if err == nil {
@@ -152,7 +152,7 @@ func TestCmdDeploy_retryOk(t *testing.T) {
 		return true, nil, nil
 	})
 
-	o := &DeployOptions{kubeClient: kubeClient, out: ioutil.Discard}
+	o := &DeployOptions{kubeClient: kubeClient, IOStreams: genericclioptions.NewTestIOStreamsDiscard()}
 	err := o.retry(config)
 
 	if err != nil {
@@ -196,7 +196,7 @@ func TestCmdDeploy_retryRejectNonFailed(t *testing.T) {
 		config := appstest.OkDeploymentConfig(1)
 		existingDeployment := deploymentFor(config, status)
 		kubeClient := fake.NewSimpleClientset(existingDeployment)
-		o := &DeployOptions{kubeClient: kubeClient, out: ioutil.Discard}
+		o := &DeployOptions{kubeClient: kubeClient, IOStreams: genericclioptions.NewTestIOStreamsDiscard()}
 		err := o.retry(config)
 		if err == nil {
 			t.Errorf("expected an error retrying deployment with status %s", status)
@@ -257,7 +257,7 @@ func TestCmdDeploy_cancelOk(t *testing.T) {
 			return true, existingDeployments, nil
 		})
 
-		o := &DeployOptions{kubeClient: kubeClient, out: ioutil.Discard}
+		o := &DeployOptions{kubeClient: kubeClient, IOStreams: genericclioptions.NewTestIOStreamsDiscard()}
 
 		err := o.cancel(config)
 		if err != nil {
@@ -311,7 +311,7 @@ func TestDeploy_reenableTriggers(t *testing.T) {
 		config.Spec.Triggers = append(config.Spec.Triggers, mktrigger())
 	}
 
-	o := &DeployOptions{appsClient: osClient.Apps(), out: ioutil.Discard}
+	o := &DeployOptions{appsClient: osClient.Apps(), IOStreams: genericclioptions.NewTestIOStreamsDiscard()}
 	err := o.reenableTriggers(config)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

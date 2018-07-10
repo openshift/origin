@@ -50,7 +50,6 @@ var (
 )
 
 type ExtractOptions struct {
-	Out, Err        io.Writer
 	Filenames       []string
 	OnlyKeys        []string
 	TargetDirectory string
@@ -58,41 +57,46 @@ type ExtractOptions struct {
 
 	VisitorFn             func(resource.VisitorFunc) error
 	ExtractFileContentsFn func(runtime.Object) (map[string][]byte, bool, error)
+
+	genericclioptions.IOStreams
+}
+
+func NewExtractOptions(targetDirectory string, streams genericclioptions.IOStreams) *ExtractOptions {
+	return &ExtractOptions{
+		IOStreams:       streams,
+		TargetDirectory: targetDirectory,
+	}
 }
 
 func NewCmdExtract(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	options := &ExtractOptions{
-		Out: streams.Out,
-		Err: streams.ErrOut,
+	o := NewExtractOptions(".", streams)
 
-		TargetDirectory: ".",
-	}
 	cmd := &cobra.Command{
 		Use:     "extract RESOURCE/NAME [--to=DIRECTORY] [--keys=KEY ...]",
 		Short:   "Extract secrets or config maps to disk",
 		Long:    extractLong,
 		Example: fmt.Sprintf(extractExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
-			kcmdutil.CheckErr(options.Complete(f, streams.In, streams.Out, cmd, args))
-			kcmdutil.CheckErr(options.Validate())
+			kcmdutil.CheckErr(o.Complete(f, cmd, args))
+			kcmdutil.CheckErr(o.Validate())
 			// TODO: move me to kcmdutil
-			err := options.Run()
+			err := o.Run()
 			if err == kcmdutil.ErrExit {
 				os.Exit(1)
 			}
 			kcmdutil.CheckErr(err)
 		},
 	}
-	cmd.Flags().BoolVar(&options.Overwrite, "confirm", options.Overwrite, "If true, overwrite files that already exist.")
-	cmd.Flags().StringVar(&options.TargetDirectory, "to", options.TargetDirectory, "Directory to extract files to.")
-	cmd.Flags().StringSliceVarP(&options.Filenames, "filename", "f", options.Filenames, "Filename, directory, or URL to file to identify to extract the resource.")
+	cmd.Flags().BoolVar(&o.Overwrite, "confirm", o.Overwrite, "If true, overwrite files that already exist.")
+	cmd.Flags().StringVar(&o.TargetDirectory, "to", o.TargetDirectory, "Directory to extract files to.")
+	cmd.Flags().StringSliceVarP(&o.Filenames, "filename", "f", o.Filenames, "Filename, directory, or URL to file to identify to extract the resource.")
 	cmd.MarkFlagFilename("filename")
-	cmd.Flags().StringSliceVar(&options.OnlyKeys, "keys", options.OnlyKeys, "An optional list of keys to extract (default is all keys).")
+	cmd.Flags().StringSliceVar(&o.OnlyKeys, "keys", o.OnlyKeys, "An optional list of keys to extract (default is all keys).")
 	kcmdutil.AddPrinterFlags(cmd)
 	return cmd
 }
 
-func (o *ExtractOptions) Complete(f kcmdutil.Factory, in io.Reader, out io.Writer, cmd *cobra.Command, args []string) error {
+func (o *ExtractOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string) error {
 	o.ExtractFileContentsFn = extractFileContents
 
 	cmdNamespace, explicit, err := f.ToRawKubeConfigLoader().Namespace()
@@ -138,7 +142,7 @@ func (o *ExtractOptions) Run() error {
 			return fmt.Errorf("%s: %v", name(info), err)
 		}
 		if !ok {
-			fmt.Fprintf(o.Err, "warning: %s does not support extraction\n", name(info))
+			fmt.Fprintf(o.ErrOut, "warning: %s does not support extraction\n", name(info))
 			return nil
 		}
 		count++
@@ -147,7 +151,7 @@ func (o *ExtractOptions) Run() error {
 			if contains.Len() == 0 || contains.Has(k) {
 				switch {
 				case o.TargetDirectory == "-":
-					fmt.Fprintf(o.Err, "# %s\n", k)
+					fmt.Fprintf(o.ErrOut, "# %s\n", k)
 					o.Out.Write(v)
 					if !bytes.HasSuffix(v, []byte("\n")) {
 						fmt.Fprintln(o.Out)
