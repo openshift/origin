@@ -55,6 +55,7 @@ func autoConvert_v1_ClusterNetwork_To_network_ClusterNetwork(in *v1.ClusterNetwo
 	out.ServiceNetwork = in.ServiceNetwork
 	out.PluginName = in.PluginName
 	out.ClusterNetworks = *(*[]network.ClusterNetworkEntry)(unsafe.Pointer(&in.ClusterNetworks))
+	out.VXLANPort = (*uint32)(unsafe.Pointer(in.VXLANPort))
 	return nil
 }
 
@@ -70,6 +71,7 @@ func autoConvert_network_ClusterNetwork_To_v1_ClusterNetwork(in *network.Cluster
 	out.HostSubnetLength = in.HostSubnetLength
 	out.ServiceNetwork = in.ServiceNetwork
 	out.PluginName = in.PluginName
+	out.VXLANPort = (*uint32)(unsafe.Pointer(in.VXLANPort))
 	return nil
 }
 
