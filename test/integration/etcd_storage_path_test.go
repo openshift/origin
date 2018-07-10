@@ -290,12 +290,12 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 		expectedEtcdPath: "openshift.io/registry/sdnsubnets/hostnameg",
 	},
 	gvr("", "v1", "clusternetworks"): {
-		stub:             `{"metadata": {"name": "cn1"}, "serviceNetwork": "192.168.1.0/24", "clusterNetworks": [{"CIDR": "192.166.0.0/16", "hostSubnetLength": 8}]}`,
+		stub:             `{"metadata": {"name": "cn1"}, "serviceNetwork": "192.168.1.0/24", "clusterNetworks": [{"CIDR": "192.166.0.0/16", "hostSubnetLength": 8}], "vxlan":""}`,
 		expectedEtcdPath: "openshift.io/registry/sdnnetworks/cn1",
 		expectedGVK:      gvkP("network.openshift.io", "v1", "ClusterNetwork"),
 	},
 	gvr("network.openshift.io", "v1", "clusternetworks"): {
-		stub:             `{"metadata": {"name": "cn1g"}, "serviceNetwork": "192.168.1.0/24", "clusterNetworks": [{"CIDR": "192.167.0.0/16", "hostSubnetLength": 8}]}`,
+		stub:             `{"metadata": {"name": "cn1g"}, "serviceNetwork": "192.168.1.0/24", "clusterNetworks": [{"CIDR": "192.167.0.0/16", "hostSubnetLength": 8}], "vxlan":""}`,
 		expectedEtcdPath: "openshift.io/registry/sdnnetworks/cn1g",
 	},
 	gvr("", "v1", "egressnetworkpolicies"): {

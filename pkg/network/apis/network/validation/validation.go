@@ -118,6 +118,12 @@ func ValidateClusterNetwork(clusterNet *networkapi.ClusterNetwork) field.ErrorLi
 		}
 	}
 
+	if clusterNet.VXLANPort != nil {
+		for _, msg := range utilvalidation.IsValidPortNum(int(*clusterNet.VXLANPort)) {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("vxlanPort"), clusterNet.VXLANPort, msg))
+		}
+	}
+
 	if clusterNet.Name == networkapi.ClusterNetworkDefault && defaultClusterNetwork != nil {
 		if clusterNet.Network != defaultClusterNetwork.Network {
 			allErrs = append(allErrs, field.Invalid(field.NewPath("network"), clusterNet.Network, "cannot change the default ClusterNetwork record via API."))
@@ -133,6 +139,13 @@ func ValidateClusterNetwork(clusterNet *networkapi.ClusterNetwork) field.ErrorLi
 		}
 		if clusterNet.PluginName != defaultClusterNetwork.PluginName {
 			allErrs = append(allErrs, field.Invalid(field.NewPath("pluginName"), clusterNet.PluginName, "cannot change the default ClusterNetwork record via API."))
+		}
+		if (clusterNet.VXLANPort == nil) != (defaultClusterNetwork.VXLANPort == nil) {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("vxlanPort"), clusterNet.VXLANPort, "cannot change the default ClusterNetwork record via API."))
+		} else if (clusterNet.VXLANPort != nil) && (defaultClusterNetwork.VXLANPort != nil) {
+			if *clusterNet.VXLANPort != *defaultClusterNetwork.VXLANPort {
+				allErrs = append(allErrs, field.Invalid(field.NewPath("vxlanPort"), clusterNet.VXLANPort, "cannot change the default ClusterNetwork record via API."))
+			}
 		}
 	}
 

@@ -30,6 +30,7 @@ func assertHostSubnetFlowChanges(hsw *hostSubnetWatcher, flows *[]string, change
 }
 
 func setupHostSubnetWatcher(t *testing.T) (*hostSubnetWatcher, []string) {
+	vxlanPtr := uint32(4789)
 	_, oc, _ := setupOVSController(t)
 
 	networkInfo, err := common.ParseNetworkInfo(
@@ -40,6 +41,7 @@ func setupHostSubnetWatcher(t *testing.T) (*hostSubnetWatcher, []string) {
 			},
 		},
 		"172.30.0.0/16",
+		&vxlanPtr,
 	)
 	if err != nil {
 		t.Fatalf("unexpected error parsing network info: %v", err)

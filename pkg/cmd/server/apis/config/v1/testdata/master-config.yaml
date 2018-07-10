@@ -121,6 +121,7 @@ networkConfig:
   ingressIPNetworkCIDR: 172.29.0.0/16
   networkPluginName: ""
   serviceNetworkCIDR: 10.0.0.0/24
+  vxlanPort: 4789
 oauthConfig:
   alwaysShowProviderSelection: false
   assetPublicURL: ""

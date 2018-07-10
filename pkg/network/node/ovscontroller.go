@@ -52,9 +52,16 @@ func (oc *ovsController) getVersionNote() string {
 	return fmt.Sprintf("%02X.%02X", oc.pluginId, ruleVersion)
 }
 
-func (oc *ovsController) AlreadySetUp() bool {
+func (oc *ovsController) AlreadySetUp(vxlanPort uint32) bool {
 	flows, err := oc.ovs.DumpFlows("table=%d", ruleVersionTable)
 	if err != nil || len(flows) != 1 {
+		return false
+	}
+
+	port, err := oc.ovs.Get("Interface", Vxlan0, "options:dst_port")
+	// the call to ovs.Get() returns the port number surrounded by double quotes
+	// so add them to the structs value for purposes of comparison
+	if err != nil || fmt.Sprintf("\"%d\"", vxlanPort) != port {
 		return false
 	}
 	if parsed, err := ovs.ParseFlow(ovs.ParseForDump, flows[0]); err == nil {
@@ -63,7 +70,7 @@ func (oc *ovsController) AlreadySetUp() bool {
 	return false
 }
 
-func (oc *ovsController) SetupOVS(clusterNetworkCIDR []string, serviceNetworkCIDR, localSubnetCIDR, localSubnetGateway string, mtu uint32) error {
+func (oc *ovsController) SetupOVS(clusterNetworkCIDR []string, serviceNetworkCIDR, localSubnetCIDR, localSubnetGateway string, mtu uint32, vxlanPort uint32) error {
 	err := oc.ovs.DeleteBridge(true)
 	if err != nil {
 		return err
@@ -77,7 +84,7 @@ func (oc *ovsController) SetupOVS(clusterNetworkCIDR []string, serviceNetworkCID
 		return err
 	}
 	_ = oc.ovs.DeletePort(Vxlan0)
-	_, err = oc.ovs.AddPort(Vxlan0, 1, "type=vxlan", `options:remote_ip="flow"`, `options:key="flow"`)
+	_, err = oc.ovs.AddPort(Vxlan0, 1, "type=vxlan", `options:remote_ip="flow"`, `options:key="flow"`, fmt.Sprintf("options:dst_port=%d", vxlanPort))
 	if err != nil {
 		return err
 	}
