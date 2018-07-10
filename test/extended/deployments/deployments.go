@@ -54,6 +54,10 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 			ctx:    ctx,
 			cancel: cancel,
 		}
+
+		// FIXME: remove this when https://github.com/openshift/origin/issues/20225 gets fixed
+		err := exutil.WaitForServiceAccount(oc.KubeClient().CoreV1().ServiceAccounts(oc.Namespace()), "default")
+		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
 	// This have to be registered before we create kube framework (NewCLI).
