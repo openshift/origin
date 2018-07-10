@@ -110,6 +110,7 @@ type RegistryConfig struct {
 	ServiceAccount string
 	DaemonSet      bool
 	EnforceQuota   bool
+	Reconcile      bool
 
 	// SupplementalGroups is list of int64, however cobra does not have appropriate func
 	// for that type list.
@@ -157,6 +158,7 @@ func NewCmdRegistry(f kcmdutil.Factory, parentName, name string, out, errout io.
 		ServiceAccount: "registry",
 		Replicas:       1,
 		EnforceQuota:   false,
+		Reconcile:      false,
 	}
 
 	cmd := &cobra.Command{
@@ -196,6 +198,7 @@ func NewCmdRegistry(f kcmdutil.Factory, parentName, name string, out, errout io.
 	cmd.Flags().BoolVar(&cfg.DaemonSet, "daemonset", cfg.DaemonSet, "If true, use a daemonset instead of a deployment config.")
 	cmd.Flags().BoolVar(&cfg.EnforceQuota, "enforce-quota", cfg.EnforceQuota, "If true, the registry will refuse to write blobs if they exceed quota limits")
 	cmd.Flags().BoolVar(&cfg.Local, "local", cfg.Local, "If true, do not contact the apiserver")
+	cmd.Flags().BoolVar(&cfg.Reconcile, "reconcile", cfg.Reconcile, "If true, creates only serviceaccount and cluster-role-binding")
 
 	cfg.Action.BindForOutput(cmd.Flags())
 	cmd.Flags().String("output-version", "", "The preferred API versions of the output objects")
@@ -327,7 +330,7 @@ func (opts *RegistryOptions) RunCmdRegistry() error {
 		}
 	}
 
-	if !generate {
+	if !generate && !opts.Config.Reconcile {
 		fmt.Fprintf(opts.out, "Docker registry %q service exists\n", name)
 		return nil
 	}
@@ -442,7 +445,9 @@ func (opts *RegistryOptions) RunCmdRegistry() error {
 		},
 	)
 
-	if opts.Config.DaemonSet {
+	if opts.Config.Reconcile {
+		// Skipping to add DaemonSet and DeploymentConfig.
+	} else if opts.Config.DaemonSet {
 		objects = append(objects, &extensions.DaemonSet{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:   name,
@@ -473,6 +478,8 @@ func (opts *RegistryOptions) RunCmdRegistry() error {
 		})
 	}
 
+	// When Reconcile is true, AddServices does not add service as there
+	// are neither daemoneset nor deploymentConfig are in objects.
 	objects = app.AddServices(objects, true)
 
 	// Set registry service's sessionAffinity to ClientIP to prevent push
