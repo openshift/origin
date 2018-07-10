@@ -93,16 +93,20 @@ type RsyncOptions struct {
 	RsyncProgress bool
 	RsyncNoPerms  bool
 
-	Out    io.Writer
-	ErrOut io.Writer
+	genericclioptions.IOStreams
+}
+
+func NewRsyncOptions(streams genericclioptions.IOStreams) *RsyncOptions {
+	return &RsyncOptions{
+		IOStreams: streams,
+	}
 }
 
 // NewCmdRsync creates a new sync command
+
 func NewCmdRsync(name, parent string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	o := RsyncOptions{
-		Out:    streams.Out,
-		ErrOut: streams.ErrOut,
-	}
+	o := NewRsyncOptions(streams)
+
 	cmd := &cobra.Command{
 		Use:     fmt.Sprintf("%s SOURCE DESTINATION", name),
 		Short:   "Copy files between local filesystem and a pod",
