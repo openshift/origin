@@ -18,11 +18,11 @@ The following UPSTREAM commits have invalid summaries:
 {{ end }}
 UPSTREAM commit summaries should look like:
 
-  UPSTREAM: [non-kube-repo/name: ]<PR number|carry|drop>: description
+  UPSTREAM: <PR number|carry|drop>: description
 
 UPSTREAM commits which revert previous UPSTREAM commits should look like:
 
-  UPSTREAM: revert: <sha>: <normal upstream format>
+  UPSTREAM: revert: <normal upstream format>
 
 UPSTREAM commits are validated against the following regular expression:
 
@@ -31,20 +31,16 @@ UPSTREAM commits are validated against the following regular expression:
 Examples of valid summaries:
 
   UPSTREAM: 12345: A kube fix
-  UPSTREAM: coreos/etcd: 12345: An etcd fix
   UPSTREAM: <carry>: A carried kube change
   UPSTREAM: <drop>: A dropped kube change
-  UPSTREAM: revert: abcd123: coreos/etcd: 12345: An etcd fix
-  UPSTREAM: k8s.io/heapster: 12345: A heapster fix
+  UPSTREAM: revert: 12345: A kube revert
 
 `
 
 var AllValidators = []func([]util.Commit) error{
 	ValidateUpstreamCommitSummaries,
 	ValidateUpstreamCommitsWithoutGodepsChanges,
-	ValidateUpstreamCommitModifiesSingleGodepsRepo,
 	ValidateUpstreamCommitModifiesOnlyGodeps,
-	ValidateUpstreamCommitModifiesOnlyDeclaredGodepRepo,
 	ValidateUpstreamCommitModifiesOnlyKubernetes,
 }
 

@@ -296,29 +296,31 @@ func TestValidateUpstreamCommitSummaries(t *testing.T) {
 		{valid: true, summary: "UPSTREAM: <drop>: a change"},
 		{valid: true, summary: "UPSTREAM: coreos/etcd: <carry>: a change"},
 		{valid: true, summary: "UPSTREAM: coreos/etcd: <drop>: a change"},
-		{valid: true, summary: "UPSTREAM: revert: abcd123: 12345: a change"},
-		{valid: true, summary: "UPSTREAM: revert: abcd123: k8s.io/heapster: 12345: a change"},
-		{valid: true, summary: "UPSTREAM: revert: abcd123: <carry>: a change"},
-		{valid: true, summary: "UPSTREAM: revert: abcd123: <drop>: a change"},
-		{valid: true, summary: "UPSTREAM: revert: abcd123: coreos/etcd: <carry>: a change"},
-		{valid: true, summary: "UPSTREAM: revert: abcd123: coreos/etcd: <drop>: a change"},
+		{valid: true, summary: "UPSTREAM: revert: 12345: a change"},
+		{valid: true, summary: "UPSTREAM: revert: k8s.io/heapster: 12345: a change"},
+		{valid: true, summary: "UPSTREAM: revert: <carry>: a change"},
+		{valid: true, summary: "UPSTREAM: revert: <drop>: a change"},
+		{valid: true, summary: "UPSTREAM: revert: coreos/etcd: <carry>: a change"},
+		{valid: true, summary: "UPSTREAM: revert: coreos/etcd: <drop>: a change"},
 		{valid: false, summary: "UPSTREAM: whoopsie daisy"},
 		{valid: true, summary: "UPSTREAM: gopkg.in/ldap.v2: 51: exposed better API for paged search"},
 	}
 	for _, test := range tests {
-		commit := util.Commit{Summary: test.summary, Sha: "abcd000"}
-		err := ValidateUpstreamCommitSummaries([]util.Commit{commit})
-		if err != nil {
-			if test.valid {
-				t.Fatalf("unexpected error:\n%s", err)
+		t.Run(test.summary, func(t *testing.T) {
+			commit := util.Commit{Summary: test.summary, Sha: "abcd000"}
+			err := ValidateUpstreamCommitSummaries([]util.Commit{commit})
+			if err != nil {
+				if test.valid {
+					t.Fatalf("unexpected error:\n%s", err)
+				} else {
+					t.Logf("got expected error:\n%s", err)
+				}
 			} else {
-				t.Logf("got expected error:\n%s", err)
+				if !test.valid {
+					t.Fatalf("expected an error, got none; summary: %s", test.summary)
+				}
 			}
-		} else {
-			if !test.valid {
-				t.Fatalf("expected an error, got none; summary: %s", test.summary)
-			}
-		}
+		})
 	}
 }
 
@@ -409,7 +411,7 @@ func TestValidateUpstreamCommitModifiesOnlyDeclaredGodepRepo(t *testing.T) {
 			commits: []util.Commit{
 				{
 					Sha:     "aaa0001",
-					Summary: "UPSTREAM: revert: abcd000: 12345: a change",
+					Summary: "UPSTREAM: revert: 12345: a change",
 					Files: []util.File{
 						"Godeps/_workspace/src/k8s.io/kubernetes/file1",
 						"Godeps/_workspace/src/k8s.io/kubernetes/file2",
@@ -423,7 +425,7 @@ func TestValidateUpstreamCommitModifiesOnlyDeclaredGodepRepo(t *testing.T) {
 			commits: []util.Commit{
 				{
 					Sha:     "aaa0001",
-					Summary: "UPSTREAM: revert: abcd000: coreos/etcd: 12345: a change",
+					Summary: "UPSTREAM: revert: coreos/etcd: 12345: a change",
 					Files: []util.File{
 						"Godeps/_workspace/src/k8s.io/kubernetes/file1",
 						"Godeps/_workspace/src/k8s.io/kubernetes/file2",
@@ -437,7 +439,7 @@ func TestValidateUpstreamCommitModifiesOnlyDeclaredGodepRepo(t *testing.T) {
 			commits: []util.Commit{
 				{
 					Sha:     "aaa0001",
-					Summary: "UPSTREAM: revert: abcd000: coreos/etcd: 12345: a change",
+					Summary: "UPSTREAM: revert: coreos/etcd: 12345: a change",
 					Files: []util.File{
 						"Godeps/_workspace/src/github.com/coreos/etcd/file1",
 						"Godeps/_workspace/src/github.com/coreos/etcd/file2",
