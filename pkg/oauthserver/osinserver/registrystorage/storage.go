@@ -218,7 +218,7 @@ func (s *storage) convertFromAuthorizeToken(authorize *oauthapi.OAuthAuthorizeTo
 	client, err := s.client.Get(authorize.ClientName, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
-	
+	}
 	if err := scopeauthorizer.ValidateScopeRestrictions(client, authorize.Scopes...); err != nil {
 		return nil, err
 	}
