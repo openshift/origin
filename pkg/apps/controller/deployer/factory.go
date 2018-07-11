@@ -16,7 +16,6 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kcontroller "k8s.io/kubernetes/pkg/controller"
 
 	appsutil "github.com/openshift/origin/pkg/apps/util"
@@ -29,7 +28,7 @@ func NewDeployerController(
 	kubeClientset kclientset.Interface,
 	sa,
 	image string,
-	env []kapi.EnvVar,
+	env []v1.EnvVar,
 ) *DeploymentController {
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartLogging(glog.Infof)
@@ -49,7 +48,7 @@ func NewDeployerController(
 
 		serviceAccount: sa,
 		deployerImage:  image,
-		environment:    appsutil.CopyApiEnvVarToV1EnvVar(env),
+		environment:    env,
 		recorder:       recorder,
 	}
 

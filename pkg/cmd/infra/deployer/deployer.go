@@ -8,17 +8,18 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
-	"k8s.io/client-go/kubernetes"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 	kv1core "k8s.io/client-go/kubernetes/typed/core/v1"
 	restclient "k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
+	imageclientv1 "github.com/openshift/client-go/image/clientset/versioned"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	"github.com/openshift/origin/pkg/apps/strategy"
 	"github.com/openshift/origin/pkg/apps/strategy/recreate"
@@ -26,7 +27,6 @@ import (
 	appsutil "github.com/openshift/origin/pkg/apps/util"
 	"github.com/openshift/origin/pkg/cmd/util"
 	cmdversion "github.com/openshift/origin/pkg/cmd/version"
-	imageclientinternal "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	"github.com/openshift/origin/pkg/version"
 )
 
@@ -105,11 +105,7 @@ func (cfg *config) RunDeployer() error {
 	if err != nil {
 		return err
 	}
-	kubeInternalClient, err := kclientset.NewForConfig(kcfg)
-	if err != nil {
-		return err
-	}
-	openshiftInternalImageClient, err := imageclientinternal.NewForConfig(kcfg)
+	openshiftImageClient, err := imageclientv1.NewForConfig(kcfg)
 	if err != nil {
 		return err
 	}
@@ -118,33 +114,35 @@ func (cfg *config) RunDeployer() error {
 		return err
 	}
 
-	deployer := NewDeployer(kubeClient, kubeInternalClient, openshiftInternalImageClient, cfg.Out, cfg.ErrOut, cfg.Until)
+	deployer := NewDeployer(kubeClient, openshiftImageClient, cfg.Out, cfg.ErrOut, cfg.Until)
 	return deployer.Deploy(cfg.Namespace, cfg.rcName)
 }
 
 // NewDeployer makes a new Deployer from a kube client.
-func NewDeployer(kubeClient kubernetes.Interface, client kclientset.Interface, images imageclientinternal.Interface, out, errOut io.Writer,
+func NewDeployer(kubeClient kubernetes.Interface, images imageclientv1.Interface, out, errOut io.Writer,
 	until string) *Deployer {
 	return &Deployer{
 		out:    out,
 		errOut: errOut,
 		until:  until,
-		getDeployment: func(namespace, name string) (*kapi.ReplicationController, error) {
-			return client.Core().ReplicationControllers(namespace).Get(name, metav1.GetOptions{})
+		getDeployment: func(namespace, name string) (*corev1.ReplicationController, error) {
+			return kubeClient.CoreV1().ReplicationControllers(namespace).Get(name, metav1.GetOptions{})
 		},
-		getDeployments: func(namespace, configName string) (*kapi.ReplicationControllerList, error) {
-			return client.Core().ReplicationControllers(namespace).List(metav1.ListOptions{LabelSelector: appsutil.ConfigSelector(configName).String()})
+		getDeployments: func(namespace, configName string) (*corev1.ReplicationControllerList, error) {
+			return kubeClient.CoreV1().ReplicationControllers(namespace).List(metav1.ListOptions{LabelSelector: appsutil.ConfigSelector(configName).
+				String()})
 		},
-		scaler: appsutil.NewReplicationControllerV1Scaler(client),
+		scaler: appsutil.NewReplicationControllerScaler(kubeClient),
 		strategyFor: func(config *appsapi.DeploymentConfig) (strategy.DeploymentStrategy, error) {
 			switch config.Spec.Strategy.Type {
 			case appsapi.DeploymentStrategyTypeRecreate:
-				return recreate.NewRecreateDeploymentStrategy(client, images.Image(),
+				return recreate.NewRecreateDeploymentStrategy(kubeClient, images,
 					&kv1core.EventSinkImpl{Interface: kubeClient.CoreV1().Events("")}, out, errOut, until), nil
 			case appsapi.DeploymentStrategyTypeRolling:
-				recreateDeploymentStrategy := recreate.NewRecreateDeploymentStrategy(client, images.Image(),
+				recreateDeploymentStrategy := recreate.NewRecreateDeploymentStrategy(kubeClient, images,
 					&kv1core.EventSinkImpl{Interface: kubeClient.CoreV1().Events("")}, out, errOut, until)
-				return rolling.NewRollingDeploymentStrategy(config.Namespace, client, images.Image(), recreateDeploymentStrategy, out, errOut, until), nil
+				return rolling.NewRollingDeploymentStrategy(config.Namespace, kubeClient, images,
+					recreateDeploymentStrategy, out, errOut, until), nil
 			default:
 				return nil, fmt.Errorf("unsupported strategy type: %s", config.Spec.Strategy.Type)
 			}
@@ -168,9 +166,9 @@ type Deployer struct {
 	// strategyFor returns a DeploymentStrategy for config.
 	strategyFor func(config *appsapi.DeploymentConfig) (strategy.DeploymentStrategy, error)
 	// getDeployment finds the named deployment.
-	getDeployment func(namespace, name string) (*kapi.ReplicationController, error)
+	getDeployment func(namespace, name string) (*corev1.ReplicationController, error)
 	// getDeployments finds all deployments associated with a config.
-	getDeployments func(namespace, configName string) (*kapi.ReplicationControllerList, error)
+	getDeployments func(namespace, configName string) (*corev1.ReplicationControllerList, error)
 	// scaler is used to scale replication controllers.
 	scaler kubectl.Scaler
 }
@@ -206,7 +204,7 @@ func (d *Deployer) Deploy(namespace, rcName string) error {
 	if err != nil {
 		return fmt.Errorf("couldn't get controllers in namespace %s: %v", namespace, err)
 	}
-	deployments := make([]*kapi.ReplicationController, 0, len(unsortedDeployments.Items))
+	deployments := make([]*corev1.ReplicationController, 0, len(unsortedDeployments.Items))
 	for i := range unsortedDeployments.Items {
 		deployments = append(deployments, &unsortedDeployments.Items[i])
 	}
@@ -215,7 +213,7 @@ func (d *Deployer) Deploy(namespace, rcName string) error {
 	sort.Sort(appsutil.ByLatestVersionDesc(deployments))
 
 	// Find any last completed deployment.
-	var from *kapi.ReplicationController
+	var from *corev1.ReplicationController
 	for _, candidate := range deployments {
 		if candidate.Name == to.Name {
 			continue
@@ -240,7 +238,7 @@ func (d *Deployer) Deploy(namespace, rcName string) error {
 			continue
 		}
 		// Skip the deployment if it's already scaled down.
-		if candidate.Spec.Replicas == 0 {
+		if *candidate.Spec.Replicas == 0 {
 			continue
 		}
 		// Scale the deployment down to zero.

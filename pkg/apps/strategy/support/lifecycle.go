@@ -7,25 +7,26 @@ import (
 	"sync"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/client-go/kubernetes"
+	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 
+	imageapi "github.com/openshift/api/image/v1"
+	imageclientv1 "github.com/openshift/client-go/image/clientset/versioned"
+	imageclienttyped "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	"github.com/openshift/origin/pkg/api/apihelpers"
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	strategyutil "github.com/openshift/origin/pkg/apps/strategy/util"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	"github.com/openshift/origin/pkg/util"
 )
 
@@ -34,7 +35,7 @@ const hookContainerName = "lifecycle"
 
 // HookExecutor knows how to execute a deployment lifecycle hook.
 type HookExecutor interface {
-	Execute(hook *appsapi.LifecycleHook, rc *kapi.ReplicationController, suffix, label string) error
+	Execute(hook *appsinternal.LifecycleHook, rc *corev1.ReplicationController, suffix, label string) error
 }
 
 // hookExecutor implements the HookExecutor interface.
@@ -43,27 +44,27 @@ var _ HookExecutor = &hookExecutor{}
 // hookExecutor executes a deployment lifecycle hook.
 type hookExecutor struct {
 	// pods provides client to pods
-	pods kcoreclient.PodsGetter
+	pods corev1client.PodsGetter
 	// tags allows setting image stream tags
-	tags imageclient.ImageStreamTagsGetter
+	tags imageclienttyped.ImageStreamTagsGetter
 	// out is where hook pod logs should be written to.
 	out io.Writer
 	// recorder is used to emit events from hooks
-	events kcoreclient.EventsGetter
+	events corev1client.EventsGetter
 	// getPodLogs knows how to get logs from a pod and is used for testing
-	getPodLogs func(*kapi.Pod) (io.ReadCloser, error)
+	getPodLogs func(*corev1.Pod) (io.ReadCloser, error)
 }
 
 // NewHookExecutor makes a HookExecutor from a client.
-func NewHookExecutor(pods kcoreclient.PodsGetter, tags imageclient.ImageStreamTagsGetter, events kcoreclient.EventsGetter, out io.Writer) HookExecutor {
+func NewHookExecutor(kubeClient kubernetes.Interface, imageClient imageclientv1.Interface, out io.Writer) HookExecutor {
 	executor := &hookExecutor{
-		tags:   tags,
-		pods:   pods,
-		events: events,
+		tags:   imageClient.ImageV1(),
+		pods:   kubeClient.CoreV1(),
+		events: kubeClient.CoreV1(),
 		out:    out,
 	}
-	executor.getPodLogs = func(pod *kapi.Pod) (io.ReadCloser, error) {
-		opts := &kapi.PodLogOptions{
+	executor.getPodLogs = func(pod *corev1.Pod) (io.ReadCloser, error) {
+		opts := &corev1.PodLogOptions{
 			Container:  hookContainerName,
 			Follow:     true,
 			Timestamps: false,
@@ -75,7 +76,7 @@ func NewHookExecutor(pods kcoreclient.PodsGetter, tags imageclient.ImageStreamTa
 
 // Execute executes hook in the context of deployment. The suffix is used to
 // distinguish the kind of hook (e.g. pre, post).
-func (e *hookExecutor) Execute(hook *appsapi.LifecycleHook, rc *kapi.ReplicationController, suffix, label string) error {
+func (e *hookExecutor) Execute(hook *appsinternal.LifecycleHook, rc *corev1.ReplicationController, suffix, label string) error {
 	var err error
 	switch {
 	case len(hook.TagImages) > 0:
@@ -117,7 +118,7 @@ func (e *hookExecutor) Execute(hook *appsapi.LifecycleHook, rc *kapi.Replication
 }
 
 // findContainerImage returns the image with the given container name from a replication controller.
-func findContainerImage(rc *kapi.ReplicationController, containerName string) (string, bool) {
+func findContainerImage(rc *corev1.ReplicationController, containerName string) (string, bool) {
 	if rc.Spec.Template == nil {
 		return "", false
 	}
@@ -131,7 +132,7 @@ func findContainerImage(rc *kapi.ReplicationController, containerName string) (s
 
 // tagImages tags images as part of the lifecycle of a rc. It uses an ImageStreamTag client
 // which will provision an ImageStream if it doesn't already exist.
-func (e *hookExecutor) tagImages(hook *appsapi.LifecycleHook, rc *kapi.ReplicationController, suffix, label string) error {
+func (e *hookExecutor) tagImages(hook *appsinternal.LifecycleHook, rc *corev1.ReplicationController, suffix, label string) error {
 	var errs []error
 	for _, action := range hook.TagImages {
 		value, ok := findContainerImage(rc, action.ContainerName)
@@ -149,7 +150,7 @@ func (e *hookExecutor) tagImages(hook *appsapi.LifecycleHook, rc *kapi.Replicati
 				Namespace: namespace,
 			},
 			Tag: &imageapi.TagReference{
-				From: &kapi.ObjectReference{
+				From: &corev1.ObjectReference{
 					Kind: "DockerImage",
 					Name: value,
 				},
@@ -173,8 +174,7 @@ func (e *hookExecutor) tagImages(hook *appsapi.LifecycleHook, rc *kapi.Replicati
 //   * Environment (hook keys take precedence)
 //   * Working directory
 //   * Resources
-func (e *hookExecutor) executeExecNewPod(hook *appsapi.LifecycleHook, rc *kapi.ReplicationController, suffix, label string) error {
-	config, err := appsutil.DecodeDeploymentConfig(rc)
+func (e *hookExecutor) executeExecNewPod(hook *appsinternal.LifecycleHook, rc *corev1.ReplicationController, suffix, label string) error {
 	if err != nil {
 		return err
 	}
@@ -194,7 +194,7 @@ func (e *hookExecutor) executeExecNewPod(hook *appsapi.LifecycleHook, rc *kapi.R
 	}
 
 	// Build a pod spec from the hook config and replication controller.
-	podSpec, err := makeHookPod(hook, rc, &config.Spec.Strategy, suffix, startTime)
+	podSpec, err := createHookPodManifest(hook, rc, &config.Spec.Strategy, suffix, startTime)
 	if err != nil {
 		return err
 	}
@@ -223,7 +223,7 @@ func (e *hookExecutor) executeExecNewPod(hook *appsapi.LifecycleHook, rc *kapi.R
 
 	// Wait for the hook pod to reach a terminal phase. Start reading logs as
 	// soon as the pod enters a usable phase.
-	var updatedPod *kapi.Pod
+	var updatedPod *corev1.Pod
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
 	restarts := int32(0)
@@ -232,7 +232,7 @@ waitLoop:
 	for {
 		updatedPod = nextPod()
 		switch updatedPod.Status.Phase {
-		case kapi.PodRunning:
+		case corev1.PodRunning:
 			completed = false
 
 			// We should read only the first time or in any container restart when we want to retry.
@@ -250,9 +250,9 @@ waitLoop:
 			alreadyRead = true
 			go e.readPodLogs(pod, wg)
 
-		case kapi.PodSucceeded, kapi.PodFailed:
+		case corev1.PodSucceeded, corev1.PodFailed:
 			if completed {
-				if updatedPod.Status.Phase == kapi.PodSucceeded {
+				if updatedPod.Status.Phase == corev1.PodSucceeded {
 					fmt.Fprintf(e.out, "--> %s: Hook pod already succeeded\n", label)
 				}
 				wg.Done()
@@ -271,7 +271,7 @@ waitLoop:
 	}
 	// The pod is finished, wait for all logs to be consumed before returning.
 	wg.Wait()
-	if updatedPod.Status.Phase == kapi.PodFailed {
+	if updatedPod.Status.Phase == corev1.PodFailed {
 		fmt.Fprintf(e.out, "--> %s: Failed\n", label)
 		return fmt.Errorf(updatedPod.Status.Message)
 	}
@@ -285,7 +285,7 @@ waitLoop:
 
 // readPodLogs streams logs from pod to out. It signals wg when
 // done.
-func (e *hookExecutor) readPodLogs(pod *kapi.Pod, wg *sync.WaitGroup) {
+func (e *hookExecutor) readPodLogs(pod *corev1.Pod, wg *sync.WaitGroup) {
 	defer wg.Done()
 	logStream, err := e.getPodLogs(pod)
 	if err != nil || logStream == nil {
@@ -299,10 +299,14 @@ func (e *hookExecutor) readPodLogs(pod *kapi.Pod, wg *sync.WaitGroup) {
 	}
 }
 
-// makeHookPod makes a pod spec from a hook and replication controller.
-func makeHookPod(hook *appsapi.LifecycleHook, rc *kapi.ReplicationController, strategy *appsapi.DeploymentStrategy, suffix string, startTime time.Time) (*kapi.Pod, error) {
+func createHookPodManifest(hook *appsinternal.LifecycleHook, rc *corev1.ReplicationController, strategy *appsinternal.DeploymentStrategy,
+	hookType string,
+	startTime time.Time) (*corev1.Pod, error) {
+
 	exec := hook.ExecNewPod
-	var baseContainer *kapi.Container
+
+	var baseContainer *corev1.Container
+
 	for _, container := range rc.Spec.Template.Spec.Containers {
 		if container.Name == exec.ContainerName {
 			baseContainer = &container
@@ -315,41 +319,40 @@ func makeHookPod(hook *appsapi.LifecycleHook, rc *kapi.ReplicationController, st
 
 	// Build a merged environment; hook environment takes precedence over base
 	// container environment
-	envMap := map[string]kapi.EnvVar{}
-	mergedEnv := []kapi.EnvVar{}
+	envMap := map[string]corev1.EnvVar{}
+	mergedEnv := []corev1.EnvVar{}
 	for _, env := range baseContainer.Env {
 		envMap[env.Name] = env
 	}
+
 	for _, env := range exec.Env {
-		envMap[env.Name] = env
+		newEnv := corev1.EnvVar{}
+		if err := legacyscheme.Scheme.Convert(&env, &newEnv, nil); err != nil {
+			return nil, err
+		}
+		envMap[env.Name] = newEnv
 	}
 	for k, v := range envMap {
-		mergedEnv = append(mergedEnv, kapi.EnvVar{Name: k, Value: v.Value, ValueFrom: v.ValueFrom})
+		mergedEnv = append(mergedEnv, corev1.EnvVar{Name: k, Value: v.Value, ValueFrom: v.ValueFrom})
 	}
-	mergedEnv = append(mergedEnv, kapi.EnvVar{Name: "OPENSHIFT_DEPLOYMENT_NAME", Value: rc.Name})
-	mergedEnv = append(mergedEnv, kapi.EnvVar{Name: "OPENSHIFT_DEPLOYMENT_NAMESPACE", Value: rc.Namespace})
-
-	// Inherit resources from the base container
-	resources := kapi.ResourceRequirements{}
-	if err := legacyscheme.Scheme.Convert(&baseContainer.Resources, &resources, nil); err != nil {
-		return nil, fmt.Errorf("couldn't clone ResourceRequirements: %v", err)
-	}
+	mergedEnv = append(mergedEnv, corev1.EnvVar{Name: "OPENSHIFT_DEPLOYMENT_NAME", Value: rc.Name})
+	mergedEnv = append(mergedEnv, corev1.EnvVar{Name: "OPENSHIFT_DEPLOYMENT_NAMESPACE", Value: rc.Namespace})
 
 	// Assigning to a variable since its address is required
-	defaultActiveDeadline := appsapi.MaxDeploymentDurationSeconds
+	defaultActiveDeadline := appsinternal.MaxDeploymentDurationSeconds
 	if strategy.ActiveDeadlineSeconds != nil {
 		defaultActiveDeadline = *(strategy.ActiveDeadlineSeconds)
 	}
 	maxDeploymentDurationSeconds := defaultActiveDeadline - int64(time.Since(startTime).Seconds())
 
 	// Let the kubelet manage retries if requested
-	restartPolicy := kapi.RestartPolicyNever
-	if hook.FailurePolicy == appsapi.LifecycleHookFailurePolicyRetry {
-		restartPolicy = kapi.RestartPolicyOnFailure
+	restartPolicy := corev1.RestartPolicyNever
+	if hook.FailurePolicy == appsinternal.LifecycleHookFailurePolicyRetry {
+		restartPolicy = corev1.RestartPolicyOnFailure
 	}
 
 	// Transfer any requested volumes to the hook pod.
-	volumes := []kapi.Volume{}
+	volumes := []corev1.Volume{}
 	volumeNames := sets.NewString()
 	for _, volume := range rc.Spec.Template.Spec.Volumes {
 		for _, name := range exec.Volumes {
@@ -360,10 +363,10 @@ func makeHookPod(hook *appsapi.LifecycleHook, rc *kapi.ReplicationController, st
 		}
 	}
 	// Transfer any volume mounts associated with transferred volumes.
-	volumeMounts := []kapi.VolumeMount{}
+	volumeMounts := []corev1.VolumeMount{}
 	for _, mount := range baseContainer.VolumeMounts {
 		if volumeNames.Has(mount.Name) {
-			volumeMounts = append(volumeMounts, kapi.VolumeMount{
+			volumeMounts = append(volumeMounts, corev1.VolumeMount{
 				Name:      mount.Name,
 				ReadOnly:  mount.ReadOnly,
 				MountPath: mount.MountPath,
@@ -373,28 +376,29 @@ func makeHookPod(hook *appsapi.LifecycleHook, rc *kapi.ReplicationController, st
 	}
 
 	// Transfer image pull secrets from the pod spec.
-	imagePullSecrets := []kapi.LocalObjectReference{}
+	imagePullSecrets := []corev1.LocalObjectReference{}
 	for _, pullSecret := range rc.Spec.Template.Spec.ImagePullSecrets {
-		imagePullSecrets = append(imagePullSecrets, kapi.LocalObjectReference{Name: pullSecret.Name})
+		imagePullSecrets = append(imagePullSecrets, corev1.LocalObjectReference{Name: pullSecret.Name})
 	}
 
 	gracePeriod := int64(10)
 	podSecurityContextCopy := rc.Spec.Template.Spec.SecurityContext.DeepCopy()
 	securityContextCopy := baseContainer.SecurityContext.DeepCopy()
 
-	pod := &kapi.Pod{
+	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: apihelpers.GetPodName(rc.Name, suffix),
+			Name:      apihelpers.GetPodName(rc.Name, hookType),
+			Namespace: rc.Namespace,
 			Annotations: map[string]string{
-				appsapi.DeploymentAnnotation: rc.Name,
+				appsinternal.DeploymentAnnotation: rc.Name,
 			},
 			Labels: map[string]string{
-				appsapi.DeploymentPodTypeLabel:        suffix,
-				appsapi.DeployerPodForDeploymentLabel: rc.Name,
+				appsinternal.DeploymentPodTypeLabel:        hookType,
+				appsinternal.DeployerPodForDeploymentLabel: rc.Name,
 			},
 		},
-		Spec: kapi.PodSpec{
-			Containers: []kapi.Container{
+		Spec: corev1.PodSpec{
+			Containers: []corev1.Container{
 				{
 					Name:            hookContainerName,
 					Image:           baseContainer.Image,
@@ -402,7 +406,7 @@ func makeHookPod(hook *appsapi.LifecycleHook, rc *kapi.ReplicationController, st
 					Command:         exec.Command,
 					WorkingDir:      baseContainer.WorkingDir,
 					Env:             mergedEnv,
-					Resources:       resources,
+					Resources:       baseContainer.Resources,
 					VolumeMounts:    volumeMounts,
 					SecurityContext: securityContextCopy,
 				},
@@ -427,19 +431,19 @@ func makeHookPod(hook *appsapi.LifecycleHook, rc *kapi.ReplicationController, st
 
 // canRetryReading returns whether the deployment strategy can retry reading logs
 // from the given (hook) pod and the number of restarts that pod has.
-func canRetryReading(pod *kapi.Pod, restarts int32) (bool, int32) {
+func canRetryReading(pod *corev1.Pod, restarts int32) (bool, int32) {
 	if len(pod.Status.ContainerStatuses) == 0 {
 		return false, int32(0)
 	}
 	restartCount := pod.Status.ContainerStatuses[0].RestartCount
-	return pod.Spec.RestartPolicy == kapi.RestartPolicyOnFailure && restartCount > restarts, restartCount
+	return pod.Spec.RestartPolicy == corev1.RestartPolicyOnFailure && restartCount > restarts, restartCount
 }
 
 // newPodWatch creates a pod watching function which is backed by a
 // FIFO/reflector pair. This avoids managing watches directly.
 // A stop channel to close the watch's reflector is also returned.
 // It is the caller's responsibility to defer closing the stop channel to prevent leaking resources.
-func newPodWatch(client kcoreclient.PodInterface, name string, stopChannel chan struct{}) func() *kapi.Pod {
+func newPodWatch(client corev1client.PodInterface, name string, stopChannel chan struct{}) func() *corev1.Pod {
 	fieldSelector := fields.OneTermEqualSelector("metadata.name", name)
 	podLW := &cache.ListWatch{
 		ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
@@ -453,64 +457,10 @@ func newPodWatch(client kcoreclient.PodInterface, name string, stopChannel chan 
 	}
 
 	queue := cache.NewResyncableFIFO(cache.MetaNamespaceKeyFunc)
-	go cache.NewReflector(podLW, &kapi.Pod{}, queue, 1*time.Minute).Run(stopChannel)
+	go cache.NewReflector(podLW, &corev1.Pod{}, queue, 1*time.Minute).Run(stopChannel)
 
-	return func() *kapi.Pod {
+	return func() *corev1.Pod {
 		obj := cache.Pop(queue)
-		return obj.(*kapi.Pod)
+		return obj.(*corev1.Pod)
 	}
-}
-
-// NewAcceptAvailablePods makes a new acceptAvailablePods from a real client.
-func NewAcceptAvailablePods(
-	out io.Writer,
-	kclient kcoreclient.ReplicationControllersGetter,
-	timeout time.Duration,
-) *acceptAvailablePods {
-	return &acceptAvailablePods{
-		out:     out,
-		kclient: kclient,
-		timeout: timeout,
-	}
-}
-
-// acceptAvailablePods will accept a replication controller if all the pods
-// for the replication controller become available.
-type acceptAvailablePods struct {
-	out     io.Writer
-	kclient kcoreclient.ReplicationControllersGetter
-	// timeout is how long to wait for pods to become available from ready state.
-	timeout time.Duration
-}
-
-// Accept all pods for a replication controller once they are available.
-func (c *acceptAvailablePods) Accept(rc *kapi.ReplicationController) error {
-	allReplicasAvailable := func(r *kapi.ReplicationController) bool {
-		return r.Status.AvailableReplicas == r.Spec.Replicas
-	}
-
-	if allReplicasAvailable(rc) {
-		return nil
-	}
-
-	watcher, err := c.kclient.ReplicationControllers(rc.Namespace).Watch(metav1.SingleObject(metav1.ObjectMeta{Name: rc.Name, ResourceVersion: rc.ResourceVersion}))
-	if err != nil {
-		return fmt.Errorf("acceptAvailablePods failed to watch ReplicationController %s/%s: %v", rc.Namespace, rc.Name, err)
-	}
-
-	_, err = watch.Until(c.timeout, watcher, func(event watch.Event) (bool, error) {
-		if t := event.Type; t != watch.Modified {
-			return false, fmt.Errorf("acceptAvailablePods failed watching for ReplicationController %s/%s: received event %v", rc.Namespace, rc.Name, t)
-		}
-		newRc := event.Object.(*kapi.ReplicationController)
-		return allReplicasAvailable(newRc), nil
-	})
-	// Handle acceptance failure.
-	if err != nil {
-		if err == wait.ErrWaitTimeout {
-			return fmt.Errorf("pods for rc '%s/%s' took longer than %.f seconds to become available", rc.Namespace, rc.Name, c.timeout.Seconds())
-		}
-		return err
-	}
-	return nil
 }
