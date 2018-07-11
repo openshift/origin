@@ -1,4 +1,4 @@
-package apps
+package authorization
 
 import (
 	"k8s.io/apimachinery/pkg/runtime"

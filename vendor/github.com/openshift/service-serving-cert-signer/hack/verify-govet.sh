@@ -8,8 +8,6 @@ function cleanup() {
 }
 trap "cleanup" EXIT
 
-os::golang::verify_go_version
-
 govet_blacklist=( "${OS_GOVET_BLACKLIST[@]-}" )
 
 function govet_blacklist_contains() {

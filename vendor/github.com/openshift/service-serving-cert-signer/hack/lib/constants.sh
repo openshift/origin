@@ -146,5 +146,5 @@ readonly OS_ALL_IMAGES=(
 # os::build::images builds all images in this repo.
 function os::build::images() {
   tag_prefix="${OS_IMAGE_PREFIX:-"openshift/origin"}"
-  os::build::image "${tag_prefix}-service-serving-cert-signer" images/service-serving-cert-signer
+  os::build::image "${tag_prefix}-service-serving-cert-signer" .
 }

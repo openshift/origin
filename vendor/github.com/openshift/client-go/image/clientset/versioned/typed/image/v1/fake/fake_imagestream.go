@@ -134,3 +134,14 @@ func (c *FakeImageStreams) Secrets(imageStreamName string, options v1.GetOptions
 	}
 	return obj.(*core_v1.SecretList), err
 }
+
+// Layers takes name of the imageStream, and returns the corresponding imageStreamLayers object, and an error if there is any.
+func (c *FakeImageStreams) Layers(imageStreamName string, options v1.GetOptions) (result *image_v1.ImageStreamLayers, err error) {
+	obj, err := c.Fake.
+		Invokes(testing.NewGetSubresourceAction(imagestreamsResource, c.ns, "layers", imageStreamName), &image_v1.ImageStreamLayers{})
+
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*image_v1.ImageStreamLayers), err
+}

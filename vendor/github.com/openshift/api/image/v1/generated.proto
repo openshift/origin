@@ -68,6 +68,20 @@ message Image {
   optional string dockerImageConfig = 10;
 }
 
+// ImageBlobReferences describes the blob references within an image.
+message ImageBlobReferences {
+  // layers is the list of blobs that compose this image, from base layer to top layer.
+  // All layers referenced by this array will be defined in the blobs map. Some images
+  // may have zero layers.
+  // +optional
+  repeated string layers = 1;
+
+  // manifest, if set, is the blob that contains the image manifest. Some images do
+  // not have separate manifest blobs and this field will be set to nil if so.
+  // +optional
+  optional string manifest = 2;
+}
+
 // ImageImportSpec describes a request to import a specific image.
 message ImageImportSpec {
   // From is the source of an image to import; only kind DockerImage is allowed
@@ -108,6 +122,16 @@ message ImageLayer {
 
   // MediaType of the referenced object.
   optional string mediaType = 3;
+}
+
+// ImageLayerData contains metadata about an image layer.
+message ImageLayerData {
+  // Size of the layer in bytes as defined by the underlying store. This field is
+  // optional if the necessary information about size is not available.
+  optional int64 size = 1;
+
+  // MediaType of the referenced object.
+  optional string mediaType = 2;
 }
 
 // ImageList is a list of Image objects.
@@ -235,6 +259,20 @@ message ImageStreamImportStatus {
 
   // Images is set with the result of importing spec.images
   repeated ImageImportStatus images = 3;
+}
+
+// ImageStreamLayers describes information about the layers referenced by images in this
+// image stream.
+message ImageStreamLayers {
+  // Standard object's metadata.
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
+
+  // blobs is a map of blob name to metadata about the blob.
+  map<string, ImageLayerData> blobs = 2;
+
+  // images is a map between an image name and the names of the blobs and manifests that
+  // comprise the image.
+  map<string, ImageBlobReferences> images = 3;
 }
 
 // ImageStreamList is a list of ImageStream objects.
