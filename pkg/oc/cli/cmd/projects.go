@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"io"
 	"sort"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -30,13 +29,21 @@ type ProjectsOptions struct {
 	ClientConfig *restclient.Config
 	Client       projectclient.ProjectInterface
 	KubeClient   kclientset.Interface
-	Out          io.Writer
 	PathOptions  *kclientcmd.PathOptions
 
 	// internal strings
 	CommandName string
 
 	DisplayShort bool
+
+	genericclioptions.IOStreams
+}
+
+func NewProjectsOptions(name string, streams genericclioptions.IOStreams) *ProjectsOptions {
+	return &ProjectsOptions{
+		IOStreams:   streams,
+		CommandName: name,
+	}
 }
 
 // SortByProjectName is sort
@@ -62,35 +69,27 @@ var (
 
 // NewCmdProjects implements the OpenShift cli rollback command
 func NewCmdProjects(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	options := &ProjectsOptions{}
+	o := NewProjectsOptions(fullName, streams)
 
 	cmd := &cobra.Command{
 		Use:   "projects",
 		Short: "Display existing projects",
 		Long:  projectsLong,
 		Run: func(cmd *cobra.Command, args []string) {
-			options.PathOptions = cliconfig.NewPathOptions(cmd)
-
-			if err := options.Complete(f, args, fullName, streams.Out); err != nil {
+			if err := o.Complete(f, cmd, args); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
 			}
-
-			if err := options.RunProjects(); err != nil {
-				kcmdutil.CheckErr(err)
-			}
+			kcmdutil.CheckErr(o.Validate(args))
+			kcmdutil.CheckErr(o.RunProjects())
 		},
 	}
 
-	cmd.Flags().BoolVarP(&options.DisplayShort, "short", "q", false, "If true, display only the project names")
+	cmd.Flags().BoolVarP(&o.DisplayShort, "short", "q", false, "If true, display only the project names")
 	return cmd
 }
 
-func (o *ProjectsOptions) Complete(f kcmdutil.Factory, args []string, commandName string, out io.Writer) error {
-	if len(args) > 0 {
-		return fmt.Errorf("no arguments should be passed")
-	}
-
-	o.CommandName = commandName
+func (o *ProjectsOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string) error {
+	o.PathOptions = cliconfig.NewPathOptions(cmd)
 
 	var err error
 	o.Config, err = f.ToRawKubeConfigLoader().RawConfig()
@@ -113,16 +112,19 @@ func (o *ProjectsOptions) Complete(f kcmdutil.Factory, args []string, commandNam
 	}
 	o.Client = projectClient.Project()
 
-	o.Out = out
+	return nil
+}
 
+func (o *ProjectsOptions) Validate(args []string) error {
+	if len(args) > 0 {
+		return fmt.Errorf("no arguments should be passed")
+	}
 	return nil
 }
 
 // RunProjects lists all projects a user belongs to
 func (o ProjectsOptions) RunProjects() error {
 	config := o.Config
-	clientCfg := o.ClientConfig
-	out := o.Out
 
 	var currentProject string
 	currentContext := config.Contexts[config.CurrentContext]
@@ -205,9 +207,9 @@ func (o ProjectsOptions) RunProjects() error {
 			// if they specified a project name and got a generated context, then only show the information they care about.  They won't recognize
 			// a context name they didn't choose
 			if config.CurrentContext == defaultContextName {
-				fmt.Fprintf(out, "\nUsing project %q on server %q.\n", currentProject, clientCfg.Host)
+				fmt.Fprintf(o.Out, "\nUsing project %q on server %q.\n", currentProject, o.ClientConfig.Host)
 			} else {
-				fmt.Fprintf(out, "\nUsing project %q from context named %q on server %q.\n", currentProject, config.CurrentContext, clientCfg.Host)
+				fmt.Fprintf(o.Out, "\nUsing project %q from context named %q on server %q.\n", currentProject, config.CurrentContext, o.ClientConfig.Host)
 			}
 		}
 		return nil

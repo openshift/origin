@@ -24,7 +24,7 @@ func CreateProject(f genericclioptions.RESTClientGetter, name, display, desc, ba
 		return err
 	}
 	pathOptions := config.NewPathOptionsWithConfig("")
-	opt := &cmd.NewProjectOptions{
+	opt := &cmd.RequestProjectOptions{
 		ProjectName: name,
 		DisplayName: display,
 		Description: desc,
@@ -34,9 +34,9 @@ func CreateProject(f genericclioptions.RESTClientGetter, name, display, desc, ba
 		Client: projectClient.Project(),
 
 		ProjectOptions: &cmd.ProjectOptions{PathOptions: pathOptions},
-		Out:            ioutil.Discard,
+		IOStreams:      genericclioptions.NewTestIOStreamsDiscard(),
 	}
-	err = opt.ProjectOptions.Complete(f, []string{}, ioutil.Discard)
+	err = opt.ProjectOptions.Complete(f, []string{})
 	if err != nil {
 		return err
 	}
@@ -52,8 +52,8 @@ func CreateProject(f genericclioptions.RESTClientGetter, name, display, desc, ba
 
 func setCurrentProject(f genericclioptions.RESTClientGetter, name string, out io.Writer) error {
 	pathOptions := config.NewPathOptionsWithConfig("")
-	opt := &cmd.ProjectOptions{PathOptions: pathOptions}
-	opt.Complete(f, []string{name}, out)
+	opt := &cmd.ProjectOptions{PathOptions: pathOptions, IOStreams: genericclioptions.IOStreams{Out: out, ErrOut: ioutil.Discard}}
+	opt.Complete(f, []string{name})
 	return opt.RunProject()
 }
 

@@ -3,7 +3,6 @@ package cmd
 import (
 	"errors"
 	"fmt"
-	"io"
 
 	"github.com/spf13/cobra"
 
@@ -21,8 +20,8 @@ import (
 // RequestProjectRecommendedCommandName is the recommended command name.
 const RequestProjectRecommendedCommandName = "new-project"
 
-// NewProjectOptions contains all the options for running the RequestProject cli command.
-type NewProjectOptions struct {
+// RequestProjectOptions contains all the options for running the RequestProject cli command.
+type RequestProjectOptions struct {
 	ProjectName string
 	DisplayName string
 	Description string
@@ -35,7 +34,7 @@ type NewProjectOptions struct {
 	Client projectclient.ProjectInterface
 
 	ProjectOptions *ProjectOptions
-	Out            io.Writer
+	genericclioptions.IOStreams
 }
 
 // RequestProject command description.
@@ -73,11 +72,16 @@ To switch to this project and start adding applications, use:
 `
 )
 
+func NewRequestProjectOptions(baseName string, streams genericclioptions.IOStreams) *RequestProjectOptions {
+	return &RequestProjectOptions{
+		IOStreams: streams,
+		Name:      baseName,
+	}
+}
+
 // NewCmdRequestProject implement the OpenShift cli RequestProject command.
 func NewCmdRequestProject(name, baseName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	o := &NewProjectOptions{}
-	o.Out = streams.Out
-	o.Name = baseName
+	o := NewRequestProjectOptions(baseName, streams)
 
 	cmd := &cobra.Command{
 		Use:     fmt.Sprintf("%s NAME [--display-name=DISPLAYNAME] [--description=DESCRIPTION]", name),
@@ -86,11 +90,6 @@ func NewCmdRequestProject(name, baseName string, f kcmdutil.Factory, streams gen
 		Example: fmt.Sprintf(requestProjectExample, baseName, name),
 		Run: func(cmd *cobra.Command, args []string) {
 			kcmdutil.CheckErr(o.Complete(f, cmd, args))
-			clientConfig, err := f.ToRESTConfig()
-			kcmdutil.CheckErr(err)
-			projectClient, err := projectclientinternal.NewForConfig(clientConfig)
-			kcmdutil.CheckErr(err)
-			o.Client = projectClient.Project()
 			kcmdutil.CheckErr(o.Run())
 		},
 	}
@@ -103,7 +102,7 @@ func NewCmdRequestProject(name, baseName string, f kcmdutil.Factory, streams gen
 }
 
 // Complete completes all the required options.
-func (o *NewProjectOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string) error {
+func (o *RequestProjectOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string) error {
 	if len(args) != 1 {
 		cmd.Help()
 		return errors.New("must have exactly one argument")
@@ -112,9 +111,9 @@ func (o *NewProjectOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, arg
 	o.ProjectName = args[0]
 
 	if !o.SkipConfigWrite {
-		o.ProjectOptions = &ProjectOptions{}
+		o.ProjectOptions = NewProjectOptions(o.IOStreams)
 		o.ProjectOptions.PathOptions = cliconfig.NewPathOptions(cmd)
-		if err := o.ProjectOptions.Complete(f, []string{""}, o.Out); err != nil {
+		if err := o.ProjectOptions.Complete(f, []string{""}); err != nil {
 			return err
 		}
 	} else {
@@ -125,11 +124,18 @@ func (o *NewProjectOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, arg
 		o.Server = clientConfig.Host
 	}
 
+	clientConfig, err := f.ToRESTConfig()
+	if err != nil {
+		return err
+	}
+	projectClient, err := projectclientinternal.NewForConfig(clientConfig)
+	o.Client = projectClient.Project()
+
 	return nil
 }
 
 // Run implements all the necessary functionality for RequestProject.
-func (o *NewProjectOptions) Run() error {
+func (o *RequestProjectOptions) Run() error {
 	if err := o.Client.RESTClient().Get().Resource("projectrequests").Do().Into(&metav1.Status{}); err != nil {
 		return err
 	}
@@ -149,6 +155,7 @@ func (o *NewProjectOptions) Run() error {
 		o.ProjectOptions.ProjectName = project.Name
 		o.ProjectOptions.ProjectOnly = true
 		o.ProjectOptions.SkipAccessValidation = true
+		o.ProjectOptions.IOStreams = o.IOStreams
 
 		if err := o.ProjectOptions.RunProject(); err != nil {
 			return err

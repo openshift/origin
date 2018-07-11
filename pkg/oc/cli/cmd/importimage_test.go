@@ -580,11 +580,16 @@ func TestCreateImageImport(t *testing.T) {
 			From:            test.from,
 			All:             test.all,
 			Scheduled:       test.scheduled,
-			Insecure:        test.insecure,
 			ReferencePolicy: test.referencePolicy,
 			Confirm:         test.confirm,
 			isClient:        fake.Image().ImageStreams("other"),
 		}
+
+		if test.insecure != nil {
+			o.Insecure = *test.insecure
+			o.InsecureFlagProvided = true
+		}
+
 		// we need to run Validate, because it sets appropriate Name and Tag
 		if err := o.Validate(&cobra.Command{}); err != nil {
 			t.Errorf("%s: unexpected error: %v", name, err)

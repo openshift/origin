@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"bytes"
 	"fmt"
 	"strconv"
 	"testing"
@@ -48,15 +47,15 @@ func TestRequestProjectDefaultFlags(t *testing.T) {
 // DISABLE_TestRequestProjectRun ensures that Run command calls the right actions.
 func DISABLE_TestRequestProjectRun(t *testing.T) {
 	client := projectfake.NewSimpleClientset()
-	buf := &bytes.Buffer{}
+	ioStreams, _, out, _ := genericclioptions.NewTestIOStreams()
 
 	test := struct {
-		opts            *NewProjectOptions
+		opts            *RequestProjectOptions
 		expectedActions []testAction
 		expectedErr     error
 	}{
-		opts: &NewProjectOptions{
-			Out:         buf,
+		opts: &RequestProjectOptions{
+			IOStreams:   ioStreams,
 			Server:      "127.0.0.1",
 			Client:      client.Project(),
 			Name:        "oc",
@@ -75,8 +74,8 @@ func DISABLE_TestRequestProjectRun(t *testing.T) {
 		t.Fatalf("error mismatch: expected %v, got %v", test.expectedErr, err)
 	}
 
-	if buf.String() != expectedOutput {
-		t.Fatalf("error mismatch output: expected %v, got %v", expectedOutput, buf)
+	if out.String() != expectedOutput {
+		t.Fatalf("error mismatch output: expected %v, got %v", expectedOutput, out)
 	}
 
 	got := client.Actions()
