@@ -20,8 +20,8 @@ import (
 
 	appsapiv1 "github.com/openshift/api/apps/v1"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
 	appsclientinternal "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
-	appsutil "github.com/openshift/origin/pkg/apps/util"
 	"github.com/openshift/origin/pkg/oc/util/ocscheme"
 )
 
@@ -171,13 +171,13 @@ func (o *RolloutLatestOptions) RunRolloutLatest() error {
 		return fmt.Errorf("cannot deploy a paused deployment config")
 	}
 
-	deploymentName := appsutil.LatestDeploymentNameForConfig(config)
+	deploymentName := appsinternalutil.LatestDeploymentNameForConfig(config)
 	deployment, err := o.kubeClient.Core().ReplicationControllers(config.Namespace).Get(deploymentName, metav1.GetOptions{})
 	switch {
 	case err == nil:
 		// Reject attempts to start a concurrent deployment.
-		if !appsutil.IsTerminatedDeployment(deployment) {
-			status := appsutil.DeploymentStatusFor(deployment)
+		if !appsinternalutil.IsTerminatedDeployment(deployment) {
+			status := appsinternalutil.DeploymentStatusFor(deployment)
 			return fmt.Errorf("#%d is already in progress (%s).", config.Status.LatestVersion, status)
 		}
 	case !kerrors.IsNotFound(err):

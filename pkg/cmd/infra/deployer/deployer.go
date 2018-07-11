@@ -21,6 +21,7 @@ import (
 
 	imageclientv1 "github.com/openshift/client-go/image/clientset/versioned"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
 	"github.com/openshift/origin/pkg/apps/strategy"
 	"github.com/openshift/origin/pkg/apps/strategy/recreate"
 	"github.com/openshift/origin/pkg/apps/strategy/rolling"
@@ -182,7 +183,8 @@ func (d *Deployer) Deploy(namespace, rcName string) error {
 	}
 
 	// Decode the config from the deployment.
-	config, err := appsutil.DecodeDeploymentConfig(to)
+	// TODO: Remove this once we are sure there are no internal versions of configs serialized in DC
+	config, err := appsinternalutil.DecodeDeploymentConfig(to)
 	if err != nil {
 		return fmt.Errorf("couldn't decode deployment config from deployment %s: %v", to.Name, err)
 	}

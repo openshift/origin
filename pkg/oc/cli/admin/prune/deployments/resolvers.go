@@ -7,7 +7,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	appsutil "github.com/openshift/origin/pkg/apps/util"
+	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
 )
 
 // Resolver knows how to resolve the set of candidate objects to prune
@@ -59,7 +59,7 @@ func (o *orphanDeploymentResolver) Resolve() ([]*kapi.ReplicationController, err
 
 	results := []*kapi.ReplicationController{}
 	for _, deployment := range deployments {
-		deploymentStatus := appsutil.DeploymentStatusFor(deployment)
+		deploymentStatus := appsinternalutil.DeploymentStatusFor(deployment)
 		if !o.deploymentStatusFilter.Has(string(deploymentStatus)) {
 			continue
 		}
@@ -104,15 +104,15 @@ func (o *perDeploymentConfigResolver) Resolve() ([]*kapi.ReplicationController, 
 
 		completeDeployments, failedDeployments := []*kapi.ReplicationController{}, []*kapi.ReplicationController{}
 		for _, deployment := range deployments {
-			status := appsutil.DeploymentStatusFor(deployment)
+			status := appsinternalutil.DeploymentStatusFor(deployment)
 			if completeStates.Has(string(status)) {
 				completeDeployments = append(completeDeployments, deployment)
 			} else if failedStates.Has(string(status)) {
 				failedDeployments = append(failedDeployments, deployment)
 			}
 		}
-		sort.Sort(appsutil.ByMostRecent(completeDeployments))
-		sort.Sort(appsutil.ByMostRecent(failedDeployments))
+		sort.Sort(appsinternalutil.ByMostRecent(completeDeployments))
+		sort.Sort(appsinternalutil.ByMostRecent(failedDeployments))
 
 		if o.keepComplete >= 0 && o.keepComplete < len(completeDeployments) {
 			results = append(results, completeDeployments[o.keepComplete:]...)

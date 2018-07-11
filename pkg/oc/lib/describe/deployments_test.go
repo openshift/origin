@@ -13,13 +13,13 @@ import (
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsapitest "github.com/openshift/origin/pkg/apps/apis/apps/test"
+	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
 	appsfake "github.com/openshift/origin/pkg/apps/generated/internalclientset/fake"
-	appsutil "github.com/openshift/origin/pkg/apps/util"
 )
 
 func TestDeploymentConfigDescriber(t *testing.T) {
 	config := appsapitest.OkDeploymentConfig(1)
-	deployment, _ := appsutil.MakeTestOnlyInternalDeployment(config)
+	deployment, _ := appsinternalutil.MakeTestOnlyInternalDeployment(config)
 	podList := &kapi.PodList{}
 
 	fake := &appsfake.Clientset{}

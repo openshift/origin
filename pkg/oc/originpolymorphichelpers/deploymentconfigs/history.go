@@ -77,7 +77,7 @@ func (h *DeploymentConfigHistoryViewer) ViewHistory(namespace, name string, revi
 			rc := history[i]
 
 			rev := appsutil.DeploymentVersionFor(rc)
-			status := appsutil.DeploymentStatusFor(rc)
+			status := appsutil.AnnotationFor(rc, appsutil.DeploymentStatusAnnotation)
 			cause := rc.Annotations[appsapi.DeploymentStatusReasonAnnotation]
 			if len(cause) == 0 {
 				cause = "<unknown>"

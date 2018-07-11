@@ -23,6 +23,7 @@ import (
 
 	appsv1 "github.com/openshift/api/apps/v1"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
 	"github.com/openshift/origin/pkg/oc/cli/set"
 	"github.com/openshift/origin/pkg/oc/util/ocscheme"
@@ -178,8 +179,9 @@ func (o RetryOptions) Run() error {
 			continue
 		}
 
-		if !appsutil.IsFailedDeployment(rc) {
-			message := fmt.Sprintf("rollout #%d is %s; only failed deployments can be retried.\n", config.Status.LatestVersion, strings.ToLower(string(appsutil.DeploymentStatusFor(rc))))
+		if !appsinternalutil.IsFailedDeployment(rc) {
+			message := fmt.Sprintf("rollout #%d is %s; only failed deployments can be retried.\n", config.Status.LatestVersion,
+				strings.ToLower(appsutil.AnnotationFor(rc, appsutil.DeploymentStatusAnnotation)))
 			if appsutil.IsCompleteDeployment(rc) {
 				message += fmt.Sprintf("You can start a new deployment with 'oc rollout latest dc/%s'.", config.Name)
 			} else {
@@ -190,7 +192,8 @@ func (o RetryOptions) Run() error {
 		}
 
 		// Delete the deployer pod as well as the deployment hooks pods, if any
-		pods, err := o.Clientset.Core().Pods(config.Namespace).List(metav1.ListOptions{LabelSelector: appsutil.DeployerPodSelector(latestDeploymentName).String()})
+		pods, err := o.Clientset.Core().Pods(config.Namespace).List(metav1.ListOptions{LabelSelector: appsutil.DeployerPodSelector(
+			latestDeploymentName).String()})
 		if err != nil {
 			allErrs = append(allErrs, kcmdutil.AddSourceToErr("retrying", info.Source, fmt.Errorf("failed to list deployer/hook pods for deployment #%d: %v", config.Status.LatestVersion, err)))
 			continue

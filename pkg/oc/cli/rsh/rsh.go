@@ -23,8 +23,8 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/util/term"
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
 	appsclientinternal "github.com/openshift/origin/pkg/apps/generated/internalclientset"
-	appsutil "github.com/openshift/origin/pkg/apps/util"
 	"github.com/openshift/origin/pkg/cmd/util"
 )
 
@@ -233,7 +233,7 @@ func podForResource(f kcmdutil.Factory, resource string, timeout time.Duration) 
 		if err != nil {
 			return "", err
 		}
-		return podForResource(f, fmt.Sprintf("rc/%s", appsutil.LatestDeploymentNameForConfig(dc)), timeout)
+		return podForResource(f, fmt.Sprintf("rc/%s", appsinternalutil.LatestDeploymentNameForConfig(dc)), timeout)
 	case extensions.Resource("daemonsets"):
 		kc, err := f.ClientSet()
 		if err != nil {

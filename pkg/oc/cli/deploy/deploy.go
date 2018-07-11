@@ -23,6 +23,7 @@ import (
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsinternalclient "github.com/openshift/origin/pkg/apps/client/internalversion"
+	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
 	appsclientinternal "github.com/openshift/origin/pkg/apps/generated/internalclientset"
 	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
@@ -257,12 +258,12 @@ func (o DeployOptions) deploy(config *appsapi.DeploymentConfig) error {
 	// Clients should be acting either on spec or on annotations and status updates should be a
 	// responsibility of the main controller. We need to start by unplugging this assumption from
 	// our client tools.
-	deploymentName := appsutil.LatestDeploymentNameForConfig(config)
+	deploymentName := appsinternalutil.LatestDeploymentNameForConfig(config)
 	deployment, err := o.kubeClient.Core().ReplicationControllers(config.Namespace).Get(deploymentName, metav1.GetOptions{})
-	if err == nil && !appsutil.IsTerminatedDeployment(deployment) {
+	if err == nil && !appsinternalutil.IsTerminatedDeployment(deployment) {
 		// Reject attempts to start a concurrent deployment.
 		return fmt.Errorf("#%d is already in progress (%s).\nOptionally, you can cancel this deployment using 'oc rollout cancel dc/%s'.",
-			config.Status.LatestVersion, appsutil.DeploymentStatusFor(deployment), config.Name)
+			config.Status.LatestVersion, appsinternalutil.DeploymentStatusFor(deployment), config.Name)
 	}
 	if err != nil && !kerrors.IsNotFound(err) {
 		return err
@@ -310,7 +311,7 @@ func (o DeployOptions) retry(config *appsapi.DeploymentConfig) error {
 	// Clients should be acting either on spec or on annotations and status updates should be a
 	// responsibility of the main controller. We need to start by unplugging this assumption from
 	// our client tools.
-	deploymentName := appsutil.LatestDeploymentNameForConfig(config)
+	deploymentName := appsinternalutil.LatestDeploymentNameForConfig(config)
 	deployment, err := o.kubeClient.Core().ReplicationControllers(config.Namespace).Get(deploymentName, metav1.GetOptions{})
 	if err != nil {
 		if kerrors.IsNotFound(err) {
@@ -319,9 +320,9 @@ func (o DeployOptions) retry(config *appsapi.DeploymentConfig) error {
 		return err
 	}
 
-	if !appsutil.IsFailedDeployment(deployment) {
-		message := fmt.Sprintf("#%d is %s; only failed deployments can be retried.\n", config.Status.LatestVersion, appsutil.DeploymentStatusFor(deployment))
-		if appsutil.IsCompleteDeployment(deployment) {
+	if !appsinternalutil.IsFailedDeployment(deployment) {
+		message := fmt.Sprintf("#%d is %s; only failed deployments can be retried.\n", config.Status.LatestVersion, appsinternalutil.DeploymentStatusFor(deployment))
+		if appsinternalutil.IsCompleteDeployment(deployment) {
 			message += fmt.Sprintf("You can start a new deployment with 'oc deploy --latest dc/%s'.", config.Name)
 		} else {
 			message += fmt.Sprintf("Optionally, you can cancel this deployment with 'oc rollout cancel dc/%s'.", config.Name)
@@ -364,7 +365,7 @@ func (o DeployOptions) cancel(config *appsapi.DeploymentConfig) error {
 	if config.Spec.Paused {
 		return fmt.Errorf("cannot cancel a paused deployment config")
 	}
-	deploymentList, err := o.kubeClient.Core().ReplicationControllers(config.Namespace).List(metav1.ListOptions{LabelSelector: appsutil.ConfigSelector(config.Name).String()})
+	deploymentList, err := o.kubeClient.Core().ReplicationControllers(config.Namespace).List(metav1.ListOptions{LabelSelector: appsinternalutil.ConfigSelector(config.Name).String()})
 	if err != nil {
 		return err
 	}
@@ -376,17 +377,17 @@ func (o DeployOptions) cancel(config *appsapi.DeploymentConfig) error {
 	for i := range deploymentList.Items {
 		deployments = append(deployments, &deploymentList.Items[i])
 	}
-	sort.Sort(appsutil.ByLatestVersionDesc(deployments))
+	sort.Sort(appsinternalutil.ByLatestVersionDesc(deployments))
 	failedCancellations := []string{}
 	anyCancelled := false
 	for _, deployment := range deployments {
-		status := appsutil.DeploymentStatusFor(deployment)
+		status := appsinternalutil.DeploymentStatusFor(deployment)
 		switch status {
 		case appsapi.DeploymentStatusNew,
 			appsapi.DeploymentStatusPending,
 			appsapi.DeploymentStatusRunning:
 
-			if appsutil.IsDeploymentCancelled(deployment) {
+			if appsinternalutil.IsDeploymentCancelled(deployment) {
 				continue
 			}
 
@@ -408,7 +409,7 @@ func (o DeployOptions) cancel(config *appsapi.DeploymentConfig) error {
 	if !anyCancelled {
 		latest := deployments[0]
 		maybeCancelling := ""
-		if appsutil.IsDeploymentCancelled(latest) && !appsutil.IsTerminatedDeployment(latest) {
+		if appsinternalutil.IsDeploymentCancelled(latest) && !appsinternalutil.IsTerminatedDeployment(latest) {
 			maybeCancelling = " (cancelling)"
 		}
 		timeAt := strings.ToLower(units.HumanDuration(time.Now().Sub(latest.CreationTimestamp.Time)))
