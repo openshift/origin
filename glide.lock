@@ -1,5 +1,5 @@
-hash: 1511c1c08d724d5b2f6c586490bfa154f305c5b0038fb2a4bf3c0404aabc72a6
-updated: 2018-06-24T03:58:28.501190286-04:00
+hash: f6c313daf71c664707bed1f649639897c0690fd47c45615bed5abf7c4971e086
+updated: 2018-07-09T09:13:12.866398637-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -656,7 +656,6 @@ imports:
   version: e47cf1f2e83a02443d7115c54f838be8ee959644
   subpackages:
   - client
-  - client/v2
   - models
   - pkg/escape
 - name: github.com/JeffAshton/win_pdh
@@ -770,8 +769,6 @@ imports:
   version: d59fa0ac68bb5dd932ee8d24eed631cdd519efc3
   subpackages:
   - format
-  - gstruct
-  - gstruct/errors
   - internal/assertion
   - internal/asyncassertion
   - internal/oraclematcher
@@ -947,7 +944,7 @@ imports:
   - user/informers/externalversions/user/v1
   - user/listers/user/v1
 - name: github.com/openshift/imagebuilder
-  version: 937f2b31b364190f90c4bc51a1ae8b80125b374b
+  version: bfc0aea02ce95dcfc1a83d452270dbc66933709b
   subpackages:
   - dockerclient
   - imageprogress
@@ -1140,9 +1137,6 @@ imports:
   - pbm/types
   - property
   - session
-  - simulator
-  - simulator/esx
-  - simulator/vpx
   - task
   - vim25
   - vim25/debug
@@ -1254,11 +1248,7 @@ imports:
 - name: golang.org/x/tools
   version: 2382e3994d48b1d22acc2c86bcad0a2aff028e32
   subpackages:
-  - benchmark/parse
   - container/intsets
-  - go/ast/astutil
-  - go/vcs
-  - imports
 - name: google.golang.org/api
   version: 7f657476956314fee258816aaf81c0ff65cf8bee
   subpackages:
@@ -1270,9 +1260,6 @@ imports:
   - gensupport
   - googleapi
   - googleapi/internal/uritemplates
-  - logging/v2beta1
-  - monitoring/v3
-  - pubsub/v1
   - tpu/v1alpha1
 - name: google.golang.org/appengine
   version: 12d5545dc1cfa6047a286d5e853841b6471f4c19
@@ -1766,7 +1753,7 @@ imports:
   - util/testing
   - util/workqueue
 - name: k8s.io/code-generator
-  version: 006eedfdf16ff9bda1d82e13062f5e17be611d23
+  version: 895b23721034b22084c5afd7814cb9bd14ee5abd
   repo: https://github.com/openshift/kubernetes-code-generator.git
 - name: k8s.io/gengo
   version: 01a732e01d00cb9a81bb0ca050d3e6d2b947927b
@@ -1815,7 +1802,7 @@ imports:
   - pkg/util/proto
   - pkg/util/proto/validation
 - name: k8s.io/kubernetes
-  version: d500745e6519d922e3dc9735cbafc5f2a67e0e44
+  version: a745c520ef9f526306f56ae7bd27e33d5062cb59
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/controller-manager/app
