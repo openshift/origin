@@ -94,6 +94,7 @@ var (
 		"DefaultStorageClass",
 		"OwnerReferencesPermissionEnforcement",
 		"PodTolerationRestriction",
+		"Priority",
 		"ResourceQuota",
 		"openshift.io/ClusterResourceQuota",
 		"openshift.io/IngressAdmission",
@@ -115,7 +116,6 @@ var (
 		"PodPreset", // default to off while PodPreset is alpha
 		"EventRateLimit",
 		"PodSecurityPolicy",
-		"Priority",
 		"Initializers",
 		"ValidatingAdmissionWebhook",
 		"MutatingAdmissionWebhook",
