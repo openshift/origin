@@ -389,6 +389,21 @@ func TestPodAdmission(t *testing.T) {
 				PriorityClassName: scheduling.SystemClusterCritical,
 			},
 		},
+		// pod[9]: Pod with a system priority class name in openshift namespace
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "pod-w-system-priority-in-openshift-namespace",
+				Namespace: "openshift-logging",
+			},
+			Spec: api.PodSpec{
+				Containers: []api.Container{
+					{
+						Name: containerName,
+					},
+				},
+				PriorityClassName: scheduling.SystemClusterCritical,
+			},
+		},
 	}
 	// Enable PodPriority feature gate.
 	utilfeature.DefaultFeatureGate.Set(fmt.Sprintf("%s=true", features.PodPriority))
@@ -480,6 +495,13 @@ func TestPodAdmission(t *testing.T) {
 			*pods[8],
 			scheduling.SystemCriticalPriority,
 			true,
+		},
+		{
+			"pod with system critical priority in openshift namespace",
+			[]*scheduling.PriorityClass{systemClusterCritical},
+			*pods[9],
+			scheduling.SystemCriticalPriority,
+			false,
 		},
 	}
 
