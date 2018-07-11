@@ -14,7 +14,7 @@ import (
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	_ "github.com/openshift/origin/pkg/apps/apis/apps/install"
 	appstest "github.com/openshift/origin/pkg/apps/apis/apps/test"
-	appsutil "github.com/openshift/origin/pkg/apps/util"
+	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imagefake "github.com/openshift/origin/pkg/image/generated/internalclientset/fake"
 )
@@ -703,7 +703,7 @@ func TestCanTrigger(t *testing.T) {
 				config = test.config
 			}
 			config = appstest.RoundTripConfig(t, config)
-			deployment, _ := appsutil.MakeTestOnlyInternalDeployment(config)
+			deployment, _ := appsinternalutil.MakeTestOnlyInternalDeployment(config)
 			return true, deployment, nil
 		})
 

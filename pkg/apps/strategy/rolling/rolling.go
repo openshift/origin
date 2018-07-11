@@ -15,8 +15,9 @@ import (
 	"k8s.io/client-go/kubernetes"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 
-	imageclientv1 "github.com/openshift/client-go/image/clientset/versioned"
+	imageclienttyped "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
 	strat "github.com/openshift/origin/pkg/apps/strategy"
 	stratsupport "github.com/openshift/origin/pkg/apps/strategy/support"
 	stratutil "github.com/openshift/origin/pkg/apps/strategy/util"
@@ -77,8 +78,7 @@ type acceptingDeploymentStrategy interface {
 }
 
 // NewRollingDeploymentStrategy makes a new RollingDeploymentStrategy.
-func NewRollingDeploymentStrategy(namespace string, kubeClient kubernetes.Interface,
-	imageClient imageclientv1.Interface,
+func NewRollingDeploymentStrategy(namespace string, kubeClient kubernetes.Interface, imageClient imageclienttyped.ImageStreamTagsGetter,
 	initialStrategy acceptingDeploymentStrategy, out, errOut io.Writer, until string) *RollingDeploymentStrategy {
 	if out == nil {
 		out = ioutil.Discard
@@ -107,7 +107,6 @@ func NewRollingDeploymentStrategy(namespace string, kubeClient kubernetes.Interf
 	}
 }
 
-	config, err := appsutil.DecodeDeploymentConfig(to)
 func (s *RollingDeploymentStrategy) Deploy(from *corev1.ReplicationController, to *corev1.ReplicationController, desiredReplicas int) error {
 	// TODO: This should move to external once we are sure there are no replication controller left with internal version
 	config, err := appsinternalutil.DecodeDeploymentConfig(to)

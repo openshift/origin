@@ -23,7 +23,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	appsutil "github.com/openshift/origin/pkg/apps/util"
+	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
 	"github.com/openshift/origin/pkg/util"
 )
 
@@ -105,10 +105,10 @@ func (c *DeploymentController) handle(deployment *v1.ReplicationController, will
 		updatedAnnotations[key] = value
 	}
 
-	currentStatus := appsutil.DeploymentStatusFor(deployment)
+	currentStatus := appsinternalutil.DeploymentStatusFor(deployment)
 	nextStatus := currentStatus
 
-	deployerPodName := appsutil.DeployerPodNameForDeployment(deployment.Name)
+	deployerPodName := appsinternalutil.DeployerPodNameForDeployment(deployment.Name)
 	deployer, deployerErr := c.podLister.Pods(deployment.Namespace).Get(deployerPodName)
 	if deployerErr == nil {
 		nextStatus = c.nextStatus(deployer, deployment, updatedAnnotations)
@@ -122,7 +122,7 @@ func (c *DeploymentController) handle(deployment *v1.ReplicationController, will
 		// continues to see the deployment as in-flight. Eventually the deletion
 		// of the deployer pod should cause a requeue of this deployment and
 		// then it can be transitioned to Failed by this controller.
-		if appsutil.IsDeploymentCancelled(deployment) {
+		if appsinternalutil.IsDeploymentCancelled(deployment) {
 			nextStatus = appsapi.DeploymentStatusPending
 			if err := c.cleanupDeployerPods(deployment); err != nil {
 				return err
@@ -133,14 +133,14 @@ func (c *DeploymentController) handle(deployment *v1.ReplicationController, will
 		// deployer pod (quota, etc..) we should respect the timeoutSeconds in the
 		// config strategy and transition the rollout to failed instead of waiting for
 		// the deployment pod forever.
-		config, err := appsutil.DecodeDeploymentConfig(deployment)
+		config, err := appsinternalutil.DecodeDeploymentConfig(deployment)
 		if err != nil {
 			return err
 		}
-		if appsutil.RolloutExceededTimeoutSeconds(config, deployment) {
+		if appsinternalutil.RolloutExceededTimeoutSeconds(config, deployment) {
 			nextStatus = appsapi.DeploymentStatusFailed
 			updatedAnnotations[appsapi.DeploymentStatusReasonAnnotation] = appsapi.DeploymentFailedUnableToCreateDeployerPod
-			c.emitDeploymentEvent(deployment, v1.EventTypeWarning, "RolloutTimeout", fmt.Sprintf("Rollout for %q failed to create deployer pod (timeoutSeconds: %ds)", appsutil.LabelForDeploymentV1(deployment), appsutil.GetTimeoutSecondsForStrategy(config)))
+			c.emitDeploymentEvent(deployment, v1.EventTypeWarning, "RolloutTimeout", fmt.Sprintf("Rollout for %q failed to create deployer pod (timeoutSeconds: %ds)", appsinternalutil.LabelForDeployment(deployment), appsinternalutil.GetTimeoutSecondsForStrategy(config)))
 			glog.V(4).Infof("Failing deployment %s/%s as we reached timeout while waiting for the deployer pod to be created", deployment.Namespace, deployment.Name)
 			break
 		}
@@ -154,7 +154,7 @@ func (c *DeploymentController) handle(deployment *v1.ReplicationController, will
 			// Generate a deployer pod spec.
 			deployerPod, err := c.makeDeployerPod(deployment)
 			if err != nil {
-				return fatalError(fmt.Sprintf("couldn't make deployer pod for %q: %v", appsutil.LabelForDeploymentV1(deployment), err))
+				return fatalError(fmt.Sprintf("couldn't make deployer pod for %q: %v", appsinternalutil.LabelForDeployment(deployment), err))
 			}
 			// Create the deployer pod.
 			deploymentPod, err := c.pn.Pods(deployment.Namespace).Create(deployerPod)
@@ -163,7 +163,7 @@ func (c *DeploymentController) handle(deployment *v1.ReplicationController, will
 				// if we cannot create a deployment pod (i.e lack of quota), match normal replica set experience and
 				// emit an event.
 				c.emitDeploymentEvent(deployment, v1.EventTypeWarning, "FailedCreate", fmt.Sprintf("Error creating deployer pod: %v", err))
-				return actionableError(fmt.Sprintf("couldn't create deployer pod for %q: %v", appsutil.LabelForDeploymentV1(deployment), err))
+				return actionableError(fmt.Sprintf("couldn't create deployer pod for %q: %v", appsinternalutil.LabelForDeployment(deployment), err))
 			}
 			updatedAnnotations[appsapi.DeploymentPodAnnotation] = deploymentPod.Name
 			updatedAnnotations[appsapi.DeployerPodCreatedAtAnnotation] = deploymentPod.CreationTimestamp.String()
@@ -171,7 +171,7 @@ func (c *DeploymentController) handle(deployment *v1.ReplicationController, will
 				updatedAnnotations[appsapi.DeployerPodStartedAtAnnotation] = deploymentPod.Status.StartTime.String()
 			}
 			nextStatus = appsapi.DeploymentStatusPending
-			glog.V(4).Infof("Created deployer pod %q for %q", deploymentPod.Name, appsutil.LabelForDeploymentV1(deployment))
+			glog.V(4).Infof("Created deployer pod %q for %q", deploymentPod.Name, appsinternalutil.LabelForDeployment(deployment))
 
 		// Most likely dead code since we never get an error different from 404 back from the cache.
 		case deployerErr != nil:
@@ -179,7 +179,7 @@ func (c *DeploymentController) handle(deployment *v1.ReplicationController, will
 			// succeeded but the deployment state update failed and now we're re-
 			// entering. Ensure that the pod is the one we created by verifying the
 			// annotation on it, and throw a retryable error.
-			return fmt.Errorf("couldn't fetch existing deployer pod for %s: %v", appsutil.LabelForDeploymentV1(deployment), deployerErr)
+			return fmt.Errorf("couldn't fetch existing deployer pod for %s: %v", appsinternalutil.LabelForDeployment(deployment), deployerErr)
 
 		default: /* deployerErr == nil */
 			// Do a stronger check to validate that the existing deployer pod is
@@ -190,7 +190,7 @@ func (c *DeploymentController) handle(deployment *v1.ReplicationController, will
 			// to ensure that changes to 'unrelated' pods don't result in updates to
 			// the deployment. So, the image check will have to be done in other areas
 			// of the code as well.
-			if appsutil.DeploymentNameFor(deployer) != deployment.Name {
+			if appsinternalutil.DeploymentNameFor(deployer) != deployment.Name {
 				nextStatus = appsapi.DeploymentStatusFailed
 				updatedAnnotations[appsapi.DeploymentStatusReasonAnnotation] = appsapi.DeploymentFailedUnrelatedDeploymentExists
 				c.emitDeploymentEvent(deployment, v1.EventTypeWarning, "FailedCreate", fmt.Sprintf("Error creating deployer pod since another pod with the same name (%q) exists", deployer.Name))
@@ -211,7 +211,7 @@ func (c *DeploymentController) handle(deployment *v1.ReplicationController, will
 			nextStatus = appsapi.DeploymentStatusFailed
 			// If the deployment is cancelled here then we deleted the deployer in a previous
 			// resync of the deployment.
-			if !appsutil.IsDeploymentCancelled(deployment) {
+			if !appsinternalutil.IsDeploymentCancelled(deployment) {
 				// Retry more before setting the deployment to Failed if it's Pending - the pod might not have
 				// appeared in the cache yet.
 				if !willBeDropped && currentStatus == appsapi.DeploymentStatusPending {
@@ -219,14 +219,14 @@ func (c *DeploymentController) handle(deployment *v1.ReplicationController, will
 				}
 				updatedAnnotations[appsapi.DeploymentStatusReasonAnnotation] = appsapi.DeploymentFailedDeployerPodNoLongerExists
 				c.emitDeploymentEvent(deployment, v1.EventTypeWarning, "Failed", fmt.Sprintf("Deployer pod %q has gone missing", deployerPodName))
-				deployerErr = fmt.Errorf("failing rollout for %q because its deployer pod %q disappeared", appsutil.LabelForDeploymentV1(deployment), deployerPodName)
+				deployerErr = fmt.Errorf("failing rollout for %q because its deployer pod %q disappeared", appsinternalutil.LabelForDeployment(deployment), deployerPodName)
 				utilruntime.HandleError(deployerErr)
 			}
 
 		// Most likely dead code since we never get an error different from 404 back from the cache.
 		case deployerErr != nil:
 			// We'll try again later on resync. Continue to process cancellations.
-			deployerErr = fmt.Errorf("error getting deployer pod %q for %q: %v", deployerPodName, appsutil.LabelForDeploymentV1(deployment), deployerErr)
+			deployerErr = fmt.Errorf("error getting deployer pod %q for %q: %v", deployerPodName, appsinternalutil.LabelForDeployment(deployment), deployerErr)
 			utilruntime.HandleError(deployerErr)
 
 		default: /* err == nil */
@@ -234,7 +234,7 @@ func (c *DeploymentController) handle(deployment *v1.ReplicationController, will
 			// found. Eventually the deletion of the deployer pod should cause
 			// a requeue of this deployment and then it can be transitioned to
 			// Failed.
-			if appsutil.IsDeploymentCancelled(deployment) {
+			if appsinternalutil.IsDeploymentCancelled(deployment) {
 				if err := c.cleanupDeployerPods(deployment); err != nil {
 					return err
 				}
@@ -250,7 +250,7 @@ func (c *DeploymentController) handle(deployment *v1.ReplicationController, will
 	case appsapi.DeploymentStatusFailed:
 		// Try to cleanup once more a cancelled deployment in case hook pods
 		// were created just after we issued the first cleanup request.
-		if appsutil.IsDeploymentCancelled(deployment) {
+		if appsinternalutil.IsDeploymentCancelled(deployment) {
 			if err := c.cleanupDeployerPods(deployment); err != nil {
 				return err
 			}
@@ -271,26 +271,26 @@ func (c *DeploymentController) handle(deployment *v1.ReplicationController, will
 	deploymentCopy := deployment.DeepCopy()
 
 	// Update only if we need to transition to a new phase.
-	if appsutil.CanTransitionPhase(currentStatus, nextStatus) {
+	if appsinternalutil.CanTransitionPhase(currentStatus, nextStatus) {
 		updatedAnnotations[appsapi.DeploymentStatusAnnotation] = string(nextStatus)
 		deploymentCopy.Annotations = updatedAnnotations
 
 		// If we are going to transition to failed or complete and scale is non-zero, we'll check one more
 		// time to see if we are a test deployment to guarantee that we maintain the test invariant.
-		if *deploymentCopy.Spec.Replicas != 0 && appsutil.IsTerminatedDeployment(deploymentCopy) {
-			if config, err := appsutil.DecodeDeploymentConfig(deploymentCopy); err == nil && config.Spec.Test {
+		if *deploymentCopy.Spec.Replicas != 0 && appsinternalutil.IsTerminatedDeployment(deploymentCopy) {
+			if config, err := appsinternalutil.DecodeDeploymentConfig(deploymentCopy); err == nil && config.Spec.Test {
 				zero := int32(0)
 				deploymentCopy.Spec.Replicas = &zero
 			}
 		}
 
 		if _, err := c.rn.ReplicationControllers(deploymentCopy.Namespace).Update(deploymentCopy); err != nil {
-			return fmt.Errorf("couldn't update rollout status for %q to %s: %v", appsutil.LabelForDeploymentV1(deploymentCopy), nextStatus, err)
+			return fmt.Errorf("couldn't update rollout status for %q to %s: %v", appsinternalutil.LabelForDeployment(deploymentCopy), nextStatus, err)
 		}
-		glog.V(4).Infof("Updated rollout status for %q from %s to %s (scale: %d)", appsutil.LabelForDeploymentV1(deploymentCopy), currentStatus, nextStatus, *deploymentCopy.Spec.Replicas)
+		glog.V(4).Infof("Updated rollout status for %q from %s to %s (scale: %d)", appsinternalutil.LabelForDeployment(deploymentCopy), currentStatus, nextStatus, *deploymentCopy.Spec.Replicas)
 
-		if appsutil.IsDeploymentCancelled(deploymentCopy) && appsutil.IsFailedDeployment(deploymentCopy) {
-			c.emitDeploymentEvent(deploymentCopy, v1.EventTypeNormal, "RolloutCancelled", fmt.Sprintf("Rollout for %q cancelled", appsutil.LabelForDeploymentV1(deploymentCopy)))
+		if appsinternalutil.IsDeploymentCancelled(deploymentCopy) && appsinternalutil.IsFailedDeployment(deploymentCopy) {
+			c.emitDeploymentEvent(deploymentCopy, v1.EventTypeNormal, "RolloutCancelled", fmt.Sprintf("Rollout for %q cancelled", appsinternalutil.LabelForDeployment(deploymentCopy)))
 		}
 	}
 	return nil
@@ -308,7 +308,7 @@ func (c *DeploymentController) nextStatus(pod *v1.Pod, deployment *v1.Replicatio
 		// If the deployment was cancelled just prior to the deployer pod succeeding
 		// then we need to remove the cancel annotations from the complete deployment
 		// and emit an event letting users know their cancellation failed.
-		if appsutil.IsDeploymentCancelled(deployment) {
+		if appsinternalutil.IsDeploymentCancelled(deployment) {
 			delete(updatedAnnotations, appsapi.DeploymentCancelledAnnotation)
 			delete(updatedAnnotations, appsapi.DeploymentStatusReasonAnnotation)
 			c.emitDeploymentEvent(deployment, v1.EventTypeWarning, "FailedCancellation", "Succeeded before cancel recorded")
@@ -345,7 +345,7 @@ func getPodTerminatedTimestamp(pod *v1.Pod) *metav1.Time {
 }
 
 func nextStatusComp(fromDeployer, fromPath appsapi.DeploymentStatus) appsapi.DeploymentStatus {
-	if appsutil.CanTransitionPhase(fromPath, fromDeployer) {
+	if appsinternalutil.CanTransitionPhase(fromPath, fromDeployer) {
 		return fromDeployer
 	}
 	return fromPath
@@ -354,7 +354,7 @@ func nextStatusComp(fromDeployer, fromPath appsapi.DeploymentStatus) appsapi.Dep
 // makeDeployerPod creates a pod which implements deployment behavior. The pod is correlated to
 // the deployment with an annotation.
 func (c *DeploymentController) makeDeployerPod(deployment *v1.ReplicationController) (*v1.Pod, error) {
-	deploymentConfig, err := appsutil.DecodeDeploymentConfig(deployment)
+	deploymentConfig, err := appsinternalutil.DecodeDeploymentConfig(deployment)
 	if err != nil {
 		return nil, err
 	}
@@ -380,10 +380,10 @@ func (c *DeploymentController) makeDeployerPod(deployment *v1.ReplicationControl
 
 	pod := &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: appsutil.DeployerPodNameForDeployment(deployment.Name),
+			Name: appsinternalutil.DeployerPodNameForDeployment(deployment.Name),
 			Annotations: map[string]string{
 				appsapi.DeploymentAnnotation:       deployment.Name,
-				appsapi.DeploymentConfigAnnotation: appsutil.DeploymentConfigNameFor(deployment),
+				appsapi.DeploymentConfigAnnotation: appsinternalutil.DeploymentConfigNameFor(deployment),
 			},
 			Labels: map[string]string{
 				appsapi.DeployerPodForDeploymentLabel: deployment.Name,
@@ -406,7 +406,7 @@ func (c *DeploymentController) makeDeployerPod(deployment *v1.ReplicationControl
 					Args:      container.Args,
 					Image:     container.Image,
 					Env:       envVars,
-					Resources: appsutil.CopyApiResourcesToV1Resources(&deploymentConfig.Spec.Strategy.Resources),
+					Resources: appsinternalutil.CopyApiResourcesToV1Resources(&deploymentConfig.Spec.Strategy.Resources),
 				},
 			},
 			ActiveDeadlineSeconds: &maxDeploymentDurationSeconds,
@@ -456,7 +456,7 @@ func (c *DeploymentController) makeDeployerContainer(strategy *appsapi.Deploymen
 		if len(p.Command) > 0 {
 			command = p.Command
 		}
-		for _, env := range appsutil.CopyApiEnvVarToV1EnvVar(strategy.CustomParams.Environment) {
+		for _, env := range appsinternalutil.CopyApiEnvVarToV1EnvVar(strategy.CustomParams.Environment) {
 			set.Insert(env.Name)
 			environment = append(environment, env)
 		}
@@ -484,13 +484,13 @@ func (c *DeploymentController) makeDeployerContainer(strategy *appsapi.Deploymen
 }
 
 func (c *DeploymentController) getDeployerPods(deployment *v1.ReplicationController) ([]*v1.Pod, error) {
-	return c.podLister.Pods(deployment.Namespace).List(appsutil.DeployerPodSelector(deployment.Name))
+	return c.podLister.Pods(deployment.Namespace).List(appsinternalutil.DeployerPodSelector(deployment.Name))
 }
 
 func (c *DeploymentController) setDeployerPodsOwnerRef(deployment *v1.ReplicationController) error {
 	deployerPodsList, err := c.getDeployerPods(deployment)
 	if err != nil {
-		return fmt.Errorf("couldn't fetch deployer pods for %q: %v", appsutil.LabelForDeploymentV1(deployment), err)
+		return fmt.Errorf("couldn't fetch deployer pods for %q: %v", appsinternalutil.LabelForDeployment(deployment), err)
 	}
 
 	encoder := legacyscheme.Codecs.LegacyCodec(legacyscheme.Scheme.PrioritizedVersionsAllGroups()...)
@@ -534,7 +534,7 @@ func (c *DeploymentController) setDeployerPodsOwnerRef(deployment *v1.Replicatio
 func (c *DeploymentController) cleanupDeployerPods(deployment *v1.ReplicationController) error {
 	deployerList, err := c.getDeployerPods(deployment)
 	if err != nil {
-		return fmt.Errorf("couldn't fetch deployer pods for %q: %v", appsutil.LabelForDeploymentV1(deployment), err)
+		return fmt.Errorf("couldn't fetch deployer pods for %q: %v", appsinternalutil.LabelForDeployment(deployment), err)
 	}
 
 	cleanedAll := true
@@ -542,19 +542,19 @@ func (c *DeploymentController) cleanupDeployerPods(deployment *v1.ReplicationCon
 		if err := c.pn.Pods(deployerPod.Namespace).Delete(deployerPod.Name, &metav1.DeleteOptions{}); err != nil && !kerrors.IsNotFound(err) {
 			// if the pod deletion failed, then log the error and continue
 			// we will try to delete any remaining deployer pods and return an error later
-			utilruntime.HandleError(fmt.Errorf("couldn't delete completed deployer pod %q for %q: %v", deployerPod.Name, appsutil.LabelForDeploymentV1(deployment), err))
+			utilruntime.HandleError(fmt.Errorf("couldn't delete completed deployer pod %q for %q: %v", deployerPod.Name, appsinternalutil.LabelForDeployment(deployment), err))
 			cleanedAll = false
 		}
 	}
 
 	if !cleanedAll {
-		return actionableError(fmt.Sprintf("couldn't clean up all deployer pods for %q", appsutil.LabelForDeploymentV1(deployment)))
+		return actionableError(fmt.Sprintf("couldn't clean up all deployer pods for %q", appsinternalutil.LabelForDeployment(deployment)))
 	}
 	return nil
 }
 
 func (c *DeploymentController) emitDeploymentEvent(deployment *v1.ReplicationController, eventType, title, message string) {
-	if config, _ := appsutil.DecodeDeploymentConfig(deployment); config != nil {
+	if config, _ := appsinternalutil.DecodeDeploymentConfig(deployment); config != nil {
 		c.recorder.Eventf(config, eventType, title, message)
 	} else {
 		c.recorder.Eventf(deployment, eventType, title, message)

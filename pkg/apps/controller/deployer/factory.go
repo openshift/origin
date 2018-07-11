@@ -18,7 +18,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kcontroller "k8s.io/kubernetes/pkg/controller"
 
-	appsutil "github.com/openshift/origin/pkg/apps/util"
+	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
 )
 
 // NewDeployerController creates a new DeploymentController.
@@ -91,7 +91,7 @@ func (c *DeploymentController) Run(workers int, stopCh <-chan struct{}) {
 func (c *DeploymentController) addReplicationController(obj interface{}) {
 	rc := obj.(*v1.ReplicationController)
 	// Filter out all unrelated replication controllers.
-	if !appsutil.IsOwnedByConfig(rc) {
+	if !appsinternalutil.IsOwnedByConfig(rc) {
 		return
 	}
 
@@ -102,7 +102,7 @@ func (c *DeploymentController) updateReplicationController(old, cur interface{})
 	curRC := cur.(*v1.ReplicationController)
 
 	// Filter out all unrelated replication controllers.
-	if !appsutil.IsOwnedByConfig(curRC) {
+	if !appsinternalutil.IsOwnedByConfig(curRC) {
 		return
 	}
 
@@ -153,7 +153,7 @@ func (c *DeploymentController) enqueueReplicationController(rc *v1.ReplicationCo
 }
 
 func (c *DeploymentController) rcForDeployerPod(pod *v1.Pod) (*v1.ReplicationController, error) {
-	rcName := appsutil.DeploymentNameFor(pod)
+	rcName := appsinternalutil.DeploymentNameFor(pod)
 	if len(rcName) == 0 {
 		// Not a deployer pod, so don't bother with it.
 		return nil, nil

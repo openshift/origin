@@ -18,7 +18,7 @@ import (
 	kapiv1 "k8s.io/kubernetes/pkg/apis/core/v1"
 	"k8s.io/kubernetes/pkg/kubectl"
 
-	appv1 "github.com/openshift/api/apps/v1"
+	appsv1 "github.com/openshift/api/apps/v1"
 	"github.com/openshift/origin/pkg/api/apihelpers"
 )
 
@@ -89,7 +89,7 @@ func DeploymentDesiredReplicas(obj runtime.Object) (int32, bool) {
 }
 
 // LatestDeploymentNameForConfigV1 returns a stable identifier for config based on its version.
-func LatestDeploymentNameForConfigV1(config *appv1.DeploymentConfig) string {
+func LatestDeploymentNameForConfigV1(config *appsv1.DeploymentConfig) string {
 	return fmt.Sprintf("%s-%d", config.Name, config.Status.LatestVersion)
 }
 
@@ -103,13 +103,13 @@ func DeploymentConfigNameFor(obj runtime.Object) string {
 
 // HasSynced checks if the provided deployment config has been noticed by the deployment
 // config controller.
-func HasSynced(dc *appv1.DeploymentConfig, generation int64) bool {
+func HasSynced(dc *appsv1.DeploymentConfig, generation int64) bool {
 	return dc.Status.ObservedGeneration >= generation
 }
 
 // IsRollingConfig returns true if the strategy type is a rolling update.
-func IsRollingConfig(config *appv1.DeploymentConfig) bool {
-	return config.Spec.Strategy.Type == appv1.DeploymentStrategyTypeRolling
+func IsRollingConfig(config *appsv1.DeploymentConfig) bool {
+	return config.Spec.Strategy.Type == appsv1.DeploymentStrategyTypeRolling
 }
 
 // ResolveFenceposts is copy from k8s deployment_utils to avoid unnecessary imports
@@ -135,7 +135,7 @@ func ResolveFenceposts(maxSurge, maxUnavailable *intstrutil.IntOrString, desired
 }
 
 // MaxUnavailable returns the maximum unavailable pods a rolling deployment config can take.
-func MaxUnavailable(config *appv1.DeploymentConfig) int32 {
+func MaxUnavailable(config *appsv1.DeploymentConfig) int32 {
 	if !IsRollingConfig(config) {
 		return int32(0)
 	}
@@ -145,7 +145,7 @@ func MaxUnavailable(config *appv1.DeploymentConfig) int32 {
 }
 
 // MaxSurge returns the maximum surge pods a rolling deployment config can take.
-func MaxSurge(config appv1.DeploymentConfig) int32 {
+func MaxSurge(config appsv1.DeploymentConfig) int32 {
 	if !IsRollingConfig(&config) {
 		return int32(0)
 	}

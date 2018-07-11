@@ -59,7 +59,10 @@ func NewControllerRef(config *appsapi.DeploymentConfig) *metav1.OwnerReference {
 // DecodeDeploymentConfig decodes a DeploymentConfig from controller using codec. An error is returned
 // if the controller doesn't contain an encoded config.
 func DecodeDeploymentConfig(controller metav1.ObjectMetaAccessor) (*appsapi.DeploymentConfig, error) {
-	encodedConfig := controller.GetObjectMeta().GetAnnotations()[appsapi.DeploymentEncodedConfigAnnotation]
+	encodedConfig, exists := controller.GetObjectMeta().GetAnnotations()[appsapi.DeploymentEncodedConfigAnnotation]
+	if !exists {
+		return nil, fmt.Errorf("object %s does not have encoded deployment config annotation", controller.GetObjectMeta().GetName())
+	}
 	decoded, err := runtime.Decode(annotationDecoder, []byte(encodedConfig))
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode DeploymentConfig from controller: %v", err)
@@ -242,23 +245,6 @@ func MakeDeploymentV1(config *appsapi.DeploymentConfig) (*v1.ReplicationControll
 	return deployment, nil
 }
 
-// MakeDeployment creates a deployment represented as an internal ReplicationController and based on the given
-// DeploymentConfig. The controller replica count will be zero.
-// DEPRECATED: Will be replaced with external version eventually.
-func MakeTestOnlyInternalDeployment(config *appsapi.DeploymentConfig) (*api.ReplicationController, error) {
-	obj, err := MakeDeploymentV1(config)
-	if err != nil {
-		return nil, err
-	}
-	kapiv1.SetObjectDefaults_ReplicationController(obj)
-	converted, err := legacyscheme.Scheme.ConvertToVersion(obj, api.SchemeGroupVersion)
-	if err != nil {
-		return nil, err
-	}
-	deployment := converted.(*api.ReplicationController)
-	return deployment, nil
-}
-
 // LatestDeploymentNameForConfig returns a stable identifier for config based on its version.
 func LatestDeploymentNameForConfig(config *appsapi.DeploymentConfig) string {
 	return fmt.Sprintf("%s-%d", config.Name, config.Status.LatestVersion)
@@ -293,38 +279,13 @@ func ActiveDeployment(input []*api.ReplicationController) *api.ReplicationContro
 	return activeDeployment
 }
 
-// ActiveDeployment returns the latest complete deployment, or nil if there is
-// no such deployment. The active deployment is not always the same as the
-// latest deployment.
-func ActiveDeploymentV1(input []*v1.ReplicationController) *v1.ReplicationController {
-	var activeDeployment *v1.ReplicationController
-	var lastCompleteDeploymentVersion int64 = 0
-	for i := range input {
-		deployment := input[i]
-		deploymentVersion := DeploymentVersionFor(deployment)
-		if IsCompleteDeployment(deployment) && deploymentVersion > lastCompleteDeploymentVersion {
-			activeDeployment = deployment
-			lastCompleteDeploymentVersion = deploymentVersion
-		}
-	}
-	return activeDeployment
-}
-
-// DeployerPodSuffix is the suffix added to pods created from a deployment
-const DeployerPodSuffix = "deploy"
-
 // DeployerPodNameForDeployment returns the name of a pod for a given deployment
 func DeployerPodNameForDeployment(deployment string) string {
-	return apihelpers.GetPodName(deployment, DeployerPodSuffix)
+	return apihelpers.GetPodName(deployment, "deploy")
 }
 
 // LabelForDeployment builds a string identifier for a Deployment.
-func LabelForDeployment(deployment *api.ReplicationController) string {
-	return fmt.Sprintf("%s/%s", deployment.Namespace, deployment.Name)
-}
-
-// LabelForDeployment builds a string identifier for a Deployment.
-func LabelForDeploymentV1(deployment *v1.ReplicationController) string {
+func LabelForDeployment(deployment *v1.ReplicationController) string {
 	return fmt.Sprintf("%s/%s", deployment.Namespace, deployment.Name)
 }
 
@@ -787,6 +748,24 @@ func annotationFor(obj runtime.Object, key string) string {
 	return objectMeta.GetAnnotations()[key]
 }
 
+// activeDeploymentV1 returns the latest complete deployment, or nil if there is
+// no such deployment. The active deployment is not always the same as the
+// latest deployment.
+// DEPRECATED: This function exists purely to avoid import cycle from apps/util
+func activeDeploymentV1(input []*v1.ReplicationController) *v1.ReplicationController {
+	var activeDeployment *v1.ReplicationController
+	var lastCompleteDeploymentVersion int64 = 0
+	for i := range input {
+		deployment := input[i]
+		deploymentVersion := DeploymentVersionFor(deployment)
+		if IsCompleteDeployment(deployment) && deploymentVersion > lastCompleteDeploymentVersion {
+			activeDeployment = deployment
+			lastCompleteDeploymentVersion = deploymentVersion
+		}
+	}
+	return activeDeployment
+}
+
 // DeploymentsForCleanup determines which deployments for a configuration are relevant for the
 // revision history limit quota
 func DeploymentsForCleanup(configuration *appsapi.DeploymentConfig, deployments []*v1.ReplicationController) []v1.ReplicationController {
@@ -795,7 +774,7 @@ func DeploymentsForCleanup(configuration *appsapi.DeploymentConfig, deployments 
 	sort.Sort(byLatestVersionAscV1(deployments))
 
 	relevantDeployments := []v1.ReplicationController{}
-	activeDeployment := ActiveDeploymentV1(deployments)
+	activeDeployment := activeDeploymentV1(deployments)
 	if activeDeployment == nil {
 		// if cleanup policy is set but no successful deployments have happened, there will be
 		// no active deployment. We can consider all of the deployments in this case except for
@@ -839,6 +818,23 @@ func GetTimeoutSecondsForStrategy(config *appsapi.DeploymentConfig) int64 {
 		timeoutSeconds = appsapi.DefaultRecreateTimeoutSeconds
 	}
 	return timeoutSeconds
+}
+
+// MakeTestOnlyInternalDeployment creates a deployment represented as an internal ReplicationController and based on the given
+// DeploymentConfig. The controller replica count will be zero.
+// DEPRECATED: Will be replaced with external version eventually.
+func MakeTestOnlyInternalDeployment(config *appsapi.DeploymentConfig) (*api.ReplicationController, error) {
+	obj, err := MakeDeploymentV1(config)
+	if err != nil {
+		return nil, err
+	}
+	kapiv1.SetObjectDefaults_ReplicationController(obj)
+	converted, err := legacyscheme.Scheme.ConvertToVersion(obj, api.SchemeGroupVersion)
+	if err != nil {
+		return nil, err
+	}
+	deployment := converted.(*api.ReplicationController)
+	return deployment, nil
 }
 
 // RolloutExceededTimeoutSeconds returns true if the current deployment exceeded

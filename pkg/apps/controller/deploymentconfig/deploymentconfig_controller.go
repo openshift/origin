@@ -23,6 +23,7 @@ import (
 	kcontroller "k8s.io/kubernetes/pkg/controller"
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
 	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
 	appslister "github.com/openshift/origin/pkg/apps/generated/listers/apps/internalversion"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
@@ -86,7 +87,7 @@ type DeploymentConfigController struct {
 func (c *DeploymentConfigController) Handle(config *appsapi.DeploymentConfig) error {
 	glog.V(5).Infof("Reconciling %s/%s", config.Namespace, config.Name)
 	// There's nothing to reconcile until the version is nonzero.
-	if appsutil.IsInitialDeployment(config) && !appsutil.HasTrigger(config) {
+	if appsinternalutil.IsInitialDeployment(config) && !appsinternalutil.HasTrigger(config) {
 		return c.updateStatus(config, []*v1.ReplicationController{}, true)
 	}
 
@@ -108,7 +109,7 @@ func (c *DeploymentConfigController) Handle(config *appsapi.DeploymentConfig) er
 		}
 		return fresh, nil
 	})
-	cm := NewRCControllerRefManager(c.rcControl, config, appsutil.ConfigSelector(config.Name), appsutil.DeploymentConfigControllerRefKind, canAdoptFunc)
+	cm := NewRCControllerRefManager(c.rcControl, config, appsinternalutil.ConfigSelector(config.Name), appsinternalutil.DeploymentConfigControllerRefKind, canAdoptFunc)
 	existingDeployments, err := cm.ClaimReplicationControllers(rcList)
 	if err != nil {
 		return fmt.Errorf("error while deploymentConfigController claiming replication controllers: %v", err)
@@ -132,7 +133,7 @@ func (c *DeploymentConfigController) Handle(config *appsapi.DeploymentConfig) er
 		return c.updateStatus(config, existingDeployments, true)
 	}
 
-	latestExists, latestDeployment := appsutil.LatestDeploymentInfo(config, existingDeployments)
+	latestExists, latestDeployment := appsinternalutil.LatestDeploymentInfo(config, existingDeployments)
 
 	if !latestExists {
 		if err := c.cancelRunningRollouts(config, existingDeployments, cm); err != nil {
@@ -170,7 +171,7 @@ func (c *DeploymentConfigController) Handle(config *appsapi.DeploymentConfig) er
 	if latestExists {
 		// If the latest deployment is still running, try again later. We don't
 		// want to compete with the deployer.
-		if !appsutil.IsTerminatedDeployment(latestDeployment) {
+		if !appsinternalutil.IsTerminatedDeployment(latestDeployment) {
 			return c.updateStatus(config, existingDeployments, false)
 		}
 
@@ -179,9 +180,9 @@ func (c *DeploymentConfigController) Handle(config *appsapi.DeploymentConfig) er
 
 	// No deployments are running and the latest deployment doesn't exist, so
 	// create the new deployment.
-	deployment, err := appsutil.MakeDeploymentV1(config)
+	deployment, err := appsinternalutil.MakeDeploymentV1(config)
 	if err != nil {
-		return fatalError(fmt.Sprintf("couldn't make deployment from (potentially invalid) deployment config %s: %v", appsutil.LabelForDeploymentConfig(config), err))
+		return fatalError(fmt.Sprintf("couldn't make deployment from (potentially invalid) deployment config %s: %v", appsinternalutil.LabelForDeploymentConfig(config), err))
 	}
 	created, err := c.rn.ReplicationControllers(config.Namespace).Create(deployment)
 	if err != nil {
@@ -208,9 +209,9 @@ func (c *DeploymentConfigController) Handle(config *appsapi.DeploymentConfig) er
 		}
 		c.recorder.Eventf(config, v1.EventTypeWarning, "DeploymentCreationFailed", "Couldn't deploy version %d: %s", config.Status.LatestVersion, err)
 		// We don't care about this error since we need to report the create failure.
-		cond := appsutil.NewDeploymentCondition(appsapi.DeploymentProgressing, kapi.ConditionFalse, appsapi.FailedRcCreateReason, err.Error())
+		cond := appsinternalutil.NewDeploymentCondition(appsapi.DeploymentProgressing, kapi.ConditionFalse, appsapi.FailedRcCreateReason, err.Error())
 		_ = c.updateStatus(config, existingDeployments, true, *cond)
-		return fmt.Errorf("couldn't create deployment for deployment config %s: %v", appsutil.LabelForDeploymentConfig(config), err)
+		return fmt.Errorf("couldn't create deployment for deployment config %s: %v", appsinternalutil.LabelForDeploymentConfig(config), err)
 	}
 	msg := fmt.Sprintf("Created new replication controller %q for version %d", created.Name, config.Status.LatestVersion)
 	c.recorder.Eventf(config, v1.EventTypeNormal, "DeploymentCreated", msg)
@@ -222,7 +223,7 @@ func (c *DeploymentConfigController) Handle(config *appsapi.DeploymentConfig) er
 		c.recorder.Eventf(config, v1.EventTypeWarning, "DeploymentCleanupFailed", "Couldn't clean up deployments: %v", err)
 	}
 
-	cond := appsutil.NewDeploymentCondition(appsapi.DeploymentProgressing, kapi.ConditionTrue, appsapi.NewReplicationControllerReason, msg)
+	cond := appsinternalutil.NewDeploymentCondition(appsapi.DeploymentProgressing, kapi.ConditionTrue, appsapi.NewReplicationControllerReason, msg)
 	return c.updateStatus(config, existingDeployments, true, *cond)
 }
 
@@ -233,7 +234,7 @@ func (c *DeploymentConfigController) Handle(config *appsapi.DeploymentConfig) er
 // version. The active deployment replica count should follow the config, and
 // all other deployments should be scaled to zero.
 func (c *DeploymentConfigController) reconcileDeployments(existingDeployments []*v1.ReplicationController, config *appsapi.DeploymentConfig, cm *RCControllerRefManager) error {
-	activeDeployment := appsutil.ActiveDeploymentV1(existingDeployments)
+	activeDeployment := appsutil.ActiveDeployment(existingDeployments)
 
 	// Reconcile deployments. The active deployment follows the config, and all
 	// other deployments should be scaled to zero.
@@ -254,7 +255,7 @@ func (c *DeploymentConfigController) reconcileDeployments(existingDeployments []
 			newReplicaCount = config.Spec.Replicas
 		}
 		if config.Spec.Test {
-			glog.V(4).Infof("Deployment config %q is test and deployment %q will be scaled down", appsutil.LabelForDeploymentConfig(config), appsutil.LabelForDeploymentV1(deployment))
+			glog.V(4).Infof("Deployment config %q is test and deployment %q will be scaled down", appsinternalutil.LabelForDeploymentConfig(config), appsinternalutil.LabelForDeployment(deployment))
 			newReplicaCount = 0
 		}
 
@@ -322,7 +323,7 @@ func (c *DeploymentConfigController) updateStatus(config *appsapi.DeploymentConf
 	if _, err := c.dn.DeploymentConfigs(copied.Namespace).UpdateStatus(copied); err != nil {
 		return err
 	}
-	glog.V(4).Infof(fmt.Sprintf("Updated status for DeploymentConfig: %s, ", appsutil.LabelForDeploymentConfig(config)) +
+	glog.V(4).Infof(fmt.Sprintf("Updated status for DeploymentConfig: %s, ", appsinternalutil.LabelForDeploymentConfig(config)) +
 		fmt.Sprintf("replicas %d->%d (need %d), ", config.Status.Replicas, newStatus.Replicas, config.Spec.Replicas) +
 		fmt.Sprintf("readyReplicas %d->%d, ", config.Status.ReadyReplicas, newStatus.ReadyReplicas) +
 		fmt.Sprintf("availableReplicas %d->%d, ", config.Status.AvailableReplicas, newStatus.AvailableReplicas) +
@@ -338,12 +339,12 @@ func (c *DeploymentConfigController) cancelRunningRollouts(config *appsapi.Deplo
 	for i := range existingDeployments {
 		deployment := existingDeployments[i]
 		// Skip deployments with an outcome.
-		if appsutil.IsTerminatedDeployment(deployment) {
+		if appsinternalutil.IsTerminatedDeployment(deployment) {
 			continue
 		}
 		// Cancel running deployments.
 		awaitingCancellations = true
-		if appsutil.IsDeploymentCancelled(deployment) {
+		if appsinternalutil.IsDeploymentCancelled(deployment) {
 			continue
 		}
 
@@ -387,7 +388,7 @@ func (c *DeploymentConfigController) cancelRunningRollouts(config *appsapi.Deplo
 	// deployment to avoid competing with existing deployment processes.
 	if awaitingCancellations {
 		c.recorder.Eventf(config, v1.EventTypeNormal, "DeploymentAwaitingCancellation", "Deployment of version %d awaiting cancellation of older running deployments", config.Status.LatestVersion)
-		return fmt.Errorf("found previous inflight deployment for %s - requeuing", appsutil.LabelForDeploymentConfig(config))
+		return fmt.Errorf("found previous inflight deployment for %s - requeuing", appsinternalutil.LabelForDeploymentConfig(config))
 	}
 
 	return nil
@@ -397,15 +398,15 @@ func calculateStatus(config *appsapi.DeploymentConfig, rcs []*v1.ReplicationCont
 	// UpdatedReplicas represents the replicas that use the current deployment config template which means
 	// we should inform about the replicas of the latest deployment and not the active.
 	latestReplicas := int32(0)
-	latestExists, latestRC := appsutil.LatestDeploymentInfo(config, rcs)
+	latestExists, latestRC := appsinternalutil.LatestDeploymentInfo(config, rcs)
 	if !latestExists {
 		latestRC = nil
 	} else {
-		latestReplicas = appsutil.GetStatusReplicaCountForDeployments([]*v1.ReplicationController{latestRC})
+		latestReplicas = appsinternalutil.GetStatusReplicaCountForDeployments([]*v1.ReplicationController{latestRC})
 	}
 
-	available := appsutil.GetAvailableReplicaCountForReplicationControllers(rcs)
-	total := appsutil.GetReplicaCountForDeployments(rcs)
+	available := appsinternalutil.GetAvailableReplicaCountForReplicationControllers(rcs)
+	total := appsinternalutil.GetReplicaCountForDeployments(rcs)
 	unavailableReplicas := total - available
 	if unavailableReplicas < 0 {
 		unavailableReplicas = 0
@@ -420,17 +421,17 @@ func calculateStatus(config *appsapi.DeploymentConfig, rcs []*v1.ReplicationCont
 		LatestVersion:       config.Status.LatestVersion,
 		Details:             config.Status.Details,
 		ObservedGeneration:  generation,
-		Replicas:            appsutil.GetStatusReplicaCountForDeployments(rcs),
+		Replicas:            appsinternalutil.GetStatusReplicaCountForDeployments(rcs),
 		UpdatedReplicas:     latestReplicas,
 		AvailableReplicas:   available,
-		ReadyReplicas:       appsutil.GetReadyReplicaCountForReplicationControllers(rcs),
+		ReadyReplicas:       appsinternalutil.GetReadyReplicaCountForReplicationControllers(rcs),
 		UnavailableReplicas: unavailableReplicas,
 		Conditions:          config.Status.Conditions,
 	}
 
 	updateConditions(config, &status, latestRC)
 	for _, cond := range additional {
-		appsutil.SetDeploymentCondition(&status, cond)
+		appsinternalutil.SetDeploymentCondition(&status, cond)
 	}
 
 	return status
@@ -438,44 +439,48 @@ func calculateStatus(config *appsapi.DeploymentConfig, rcs []*v1.ReplicationCont
 
 func updateConditions(config *appsapi.DeploymentConfig, newStatus *appsapi.DeploymentConfigStatus, latestRC *v1.ReplicationController) {
 	// Availability condition.
-	if newStatus.AvailableReplicas >= config.Spec.Replicas-appsutil.MaxUnavailable(config) && newStatus.AvailableReplicas > 0 {
-		minAvailability := appsutil.NewDeploymentCondition(appsapi.DeploymentAvailable, kapi.ConditionTrue, "", "Deployment config has minimum availability.")
-		appsutil.SetDeploymentCondition(newStatus, *minAvailability)
+	if newStatus.AvailableReplicas >= config.Spec.Replicas-appsinternalutil.MaxUnavailable(config) && newStatus.AvailableReplicas > 0 {
+		minAvailability := appsinternalutil.NewDeploymentCondition(appsapi.DeploymentAvailable, kapi.ConditionTrue, "",
+			"Deployment config has minimum availability.")
+		appsinternalutil.SetDeploymentCondition(newStatus, *minAvailability)
 	} else {
-		noMinAvailability := appsutil.NewDeploymentCondition(appsapi.DeploymentAvailable, kapi.ConditionFalse, "", "Deployment config does not have minimum availability.")
-		appsutil.SetDeploymentCondition(newStatus, *noMinAvailability)
+		noMinAvailability := appsinternalutil.NewDeploymentCondition(appsapi.DeploymentAvailable, kapi.ConditionFalse, "",
+			"Deployment config does not have minimum availability.")
+		appsinternalutil.SetDeploymentCondition(newStatus, *noMinAvailability)
 	}
 
 	// Condition about progress.
 	if latestRC != nil {
-		switch appsutil.DeploymentStatusFor(latestRC) {
+		switch appsinternalutil.DeploymentStatusFor(latestRC) {
 		case appsapi.DeploymentStatusPending:
-			msg := fmt.Sprintf("replication controller %q is waiting for pod %q to run", latestRC.Name, appsutil.DeployerPodNameForDeployment(latestRC.Name))
-			condition := appsutil.NewDeploymentCondition(appsapi.DeploymentProgressing, kapi.ConditionUnknown, "", msg)
-			appsutil.SetDeploymentCondition(newStatus, *condition)
+			msg := fmt.Sprintf("replication controller %q is waiting for pod %q to run", latestRC.Name, appsinternalutil.DeployerPodNameForDeployment(latestRC.Name))
+			condition := appsinternalutil.NewDeploymentCondition(appsapi.DeploymentProgressing, kapi.ConditionUnknown, "", msg)
+			appsinternalutil.SetDeploymentCondition(newStatus, *condition)
 		case appsapi.DeploymentStatusRunning:
-			if appsutil.IsProgressing(config, newStatus) {
-				appsutil.RemoveDeploymentCondition(newStatus, appsapi.DeploymentProgressing)
+			if appsinternalutil.IsProgressing(config, newStatus) {
+				appsinternalutil.RemoveDeploymentCondition(newStatus, appsapi.DeploymentProgressing)
 				msg := fmt.Sprintf("replication controller %q is progressing", latestRC.Name)
-				condition := appsutil.NewDeploymentCondition(appsapi.DeploymentProgressing, kapi.ConditionTrue, appsapi.ReplicationControllerUpdatedReason, msg)
+				condition := appsinternalutil.NewDeploymentCondition(appsapi.DeploymentProgressing, kapi.ConditionTrue,
+					appsapi.ReplicationControllerUpdatedReason, msg)
 				// TODO: Right now, we use lastTransitionTime for storing the last time we had any progress instead
 				// of the last time the condition transitioned to a new status. We should probably change that.
-				appsutil.SetDeploymentCondition(newStatus, *condition)
+				appsinternalutil.SetDeploymentCondition(newStatus, *condition)
 			}
 		case appsapi.DeploymentStatusFailed:
 			var condition *appsapi.DeploymentCondition
-			if appsutil.IsDeploymentCancelled(latestRC) {
+			if appsinternalutil.IsDeploymentCancelled(latestRC) {
 				msg := fmt.Sprintf("rollout of replication controller %q was cancelled", latestRC.Name)
-				condition = appsutil.NewDeploymentCondition(appsapi.DeploymentProgressing, kapi.ConditionFalse, appsapi.CancelledRolloutReason, msg)
+				condition = appsinternalutil.NewDeploymentCondition(appsapi.DeploymentProgressing, kapi.ConditionFalse,
+					appsapi.CancelledRolloutReason, msg)
 			} else {
 				msg := fmt.Sprintf("replication controller %q has failed progressing", latestRC.Name)
-				condition = appsutil.NewDeploymentCondition(appsapi.DeploymentProgressing, kapi.ConditionFalse, appsapi.TimedOutReason, msg)
+				condition = appsinternalutil.NewDeploymentCondition(appsapi.DeploymentProgressing, kapi.ConditionFalse, appsapi.TimedOutReason, msg)
 			}
-			appsutil.SetDeploymentCondition(newStatus, *condition)
+			appsinternalutil.SetDeploymentCondition(newStatus, *condition)
 		case appsapi.DeploymentStatusComplete:
 			msg := fmt.Sprintf("replication controller %q successfully rolled out", latestRC.Name)
-			condition := appsutil.NewDeploymentCondition(appsapi.DeploymentProgressing, kapi.ConditionTrue, appsapi.NewRcAvailableReason, msg)
-			appsutil.SetDeploymentCondition(newStatus, *condition)
+			condition := appsinternalutil.NewDeploymentCondition(appsapi.DeploymentProgressing, kapi.ConditionTrue, appsapi.NewRcAvailableReason, msg)
+			appsinternalutil.SetDeploymentCondition(newStatus, *condition)
 		}
 	}
 }
@@ -510,7 +515,7 @@ func (c *DeploymentConfigController) cleanupOldDeployments(existingDeployments [
 		return nil
 	}
 
-	prunableDeployments := appsutil.DeploymentsForCleanup(deploymentConfig, existingDeployments)
+	prunableDeployments := appsinternalutil.DeploymentsForCleanup(deploymentConfig, existingDeployments)
 	if len(prunableDeployments) <= int(*deploymentConfig.Spec.RevisionHistoryLimit) {
 		// the past deployment quota has not been exceeded
 		return nil
@@ -545,8 +550,8 @@ func triggerActivated(config *appsapi.DeploymentConfig, latestExists bool, lates
 	if config.Spec.Paused {
 		return false, false, nil
 	}
-	imageTrigger := appsutil.HasImageChangeTrigger(config)
-	configTrigger := appsutil.HasChangeTrigger(config)
+	imageTrigger := appsinternalutil.HasImageChangeTrigger(config)
+	configTrigger := appsinternalutil.HasChangeTrigger(config)
 	hasTrigger := imageTrigger || configTrigger
 
 	// no-op when no triggers are defined.
@@ -555,15 +560,15 @@ func triggerActivated(config *appsapi.DeploymentConfig, latestExists bool, lates
 	}
 
 	// Handle initial rollouts
-	if appsutil.IsInitialDeployment(config) {
-		hasAvailableImages := appsutil.HasLastTriggeredImage(config)
+	if appsinternalutil.IsInitialDeployment(config) {
+		hasAvailableImages := appsinternalutil.HasLastTriggeredImage(config)
 		// When config has an image trigger, wait until its images are available to trigger.
 		if imageTrigger {
 			if hasAvailableImages {
 				glog.V(4).Infof("Rolling out initial deployment for %s/%s as it now have images available", config.Namespace, config.Name)
 				// TODO: Technically this is not a config change cause, but we will have to report the image that caused the trigger.
 				//       In some cases it might be difficult because config can have multiple ICT.
-				appsutil.RecordConfigChangeCause(config)
+				appsinternalutil.RecordConfigChangeCause(config)
 				return true, false, nil
 			}
 			glog.V(4).Infof("Rolling out initial deployment for %s/%s deferred until its images are ready", config.Namespace, config.Name)
@@ -572,7 +577,7 @@ func triggerActivated(config *appsapi.DeploymentConfig, latestExists bool, lates
 		// Rollout if we only have config change trigger.
 		if configTrigger {
 			glog.V(4).Infof("Rolling out initial deployment for %s/%s", config.Namespace, config.Name)
-			appsutil.RecordConfigChangeCause(config)
+			appsinternalutil.RecordConfigChangeCause(config)
 			return true, false, nil
 		}
 		// We are waiting for the initial RC to be created.
@@ -590,21 +595,21 @@ func triggerActivated(config *appsapi.DeploymentConfig, latestExists bool, lates
 	}
 
 	if imageTrigger {
-		if ok, imageNames := appsutil.HasUpdatedImages(config, latestDeployment); ok {
+		if ok, imageNames := appsinternalutil.HasUpdatedImages(config, latestDeployment); ok {
 			glog.V(4).Infof("Rolling out #%d deployment for %s/%s caused by image changes (%s)", config.Status.LatestVersion+1, config.Namespace, config.Name, strings.Join(imageNames, ","))
-			appsutil.RecordImageChangeCauses(config, imageNames)
+			appsinternalutil.RecordImageChangeCauses(config, imageNames)
 			return true, false, nil
 		}
 	}
 
 	if configTrigger {
-		isLatest, changes, err := appsutil.HasLatestPodTemplate(config, latestDeployment)
+		isLatest, changes, err := appsinternalutil.HasLatestPodTemplate(config, latestDeployment)
 		if err != nil {
 			return false, false, fmt.Errorf("error while checking for latest pod template in replication controller: %v", err)
 		}
 		if !isLatest {
 			glog.V(4).Infof("Rolling out #%d deployment for %s/%s caused by config change, diff: %s", config.Status.LatestVersion+1, config.Namespace, config.Name, changes)
-			appsutil.RecordConfigChangeCause(config)
+			appsinternalutil.RecordConfigChangeCause(config)
 			return true, false, nil
 		}
 	}

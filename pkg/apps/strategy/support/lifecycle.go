@@ -22,9 +22,10 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	imageapi "github.com/openshift/api/image/v1"
-	imageclientv1 "github.com/openshift/client-go/image/clientset/versioned"
 	imageclienttyped "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	"github.com/openshift/origin/pkg/api/apihelpers"
+	appsinternal "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
 	strategyutil "github.com/openshift/origin/pkg/apps/strategy/util"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
 	"github.com/openshift/origin/pkg/util"
@@ -56,9 +57,9 @@ type hookExecutor struct {
 }
 
 // NewHookExecutor makes a HookExecutor from a client.
-func NewHookExecutor(kubeClient kubernetes.Interface, imageClient imageclientv1.Interface, out io.Writer) HookExecutor {
+func NewHookExecutor(kubeClient kubernetes.Interface, imageClient imageclienttyped.ImageStreamTagsGetter, out io.Writer) HookExecutor {
 	executor := &hookExecutor{
-		tags:   imageClient.ImageV1(),
+		tags:   imageClient,
 		pods:   kubeClient.CoreV1(),
 		events: kubeClient.CoreV1(),
 		out:    out,
@@ -104,11 +105,11 @@ func (e *hookExecutor) Execute(hook *appsinternal.LifecycleHook, rc *corev1.Repl
 
 	// Retry failures are treated the same as Abort.
 	switch hook.FailurePolicy {
-	case appsapi.LifecycleHookFailurePolicyAbort, appsapi.LifecycleHookFailurePolicyRetry:
+	case appsinternal.LifecycleHookFailurePolicyAbort, appsinternal.LifecycleHookFailurePolicyRetry:
 		strategyutil.RecordConfigEvent(e.events, rc, kapi.EventTypeWarning, "Failed",
 			fmt.Sprintf("The %s-hook failed: %v, aborting rollout of %s/%s", label, err, rc.Namespace, rc.Name))
 		return fmt.Errorf("the %s hook failed: %v, aborting rollout of %s/%s", label, err, rc.Namespace, rc.Name)
-	case appsapi.LifecycleHookFailurePolicyIgnore:
+	case appsinternal.LifecycleHookFailurePolicyIgnore:
 		strategyutil.RecordConfigEvent(e.events, rc, kapi.EventTypeWarning, "Failed",
 			fmt.Sprintf("The %s-hook failed: %v (ignore), rollout of %s/%s will continue", label, err, rc.Namespace, rc.Name))
 		return nil
@@ -175,6 +176,9 @@ func (e *hookExecutor) tagImages(hook *appsinternal.LifecycleHook, rc *corev1.Re
 //   * Working directory
 //   * Resources
 func (e *hookExecutor) executeExecNewPod(hook *appsinternal.LifecycleHook, rc *corev1.ReplicationController, suffix, label string) error {
+	// TODO: This should move to external helper once we are sure there are no replication controller with internal deployment config
+	//       serialized.
+	config, err := appsinternalutil.DecodeDeploymentConfig(rc)
 	if err != nil {
 		return err
 	}

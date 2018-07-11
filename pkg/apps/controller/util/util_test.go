@@ -18,41 +18,6 @@ import (
 	_ "github.com/openshift/origin/pkg/api/install"
 )
 
-func podTemplateA() *kapi.PodTemplateSpec {
-	t := appstest.OkPodTemplate()
-	t.Spec.Containers = append(t.Spec.Containers, kapi.Container{
-		Name:  "container1",
-		Image: "registry:8080/repo1:ref1",
-	})
-	return t
-}
-
-func podTemplateB() *kapi.PodTemplateSpec {
-	t := podTemplateA()
-	t.Labels = map[string]string{"c": "d"}
-	return t
-}
-
-func podTemplateC() *kapi.PodTemplateSpec {
-	t := podTemplateA()
-	t.Spec.Containers[0] = kapi.Container{
-		Name:  "container2",
-		Image: "registry:8080/repo1:ref3",
-	}
-
-	return t
-}
-
-func podTemplateD() *kapi.PodTemplateSpec {
-	t := podTemplateA()
-	t.Spec.Containers = append(t.Spec.Containers, kapi.Container{
-		Name:  "container2",
-		Image: "registry:8080/repo1:ref4",
-	})
-
-	return t
-}
-
 func TestPodName(t *testing.T) {
 	deployment := &kapi.ReplicationController{
 		ObjectMeta: metav1.ObjectMeta{

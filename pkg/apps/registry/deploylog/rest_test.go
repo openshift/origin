@@ -17,8 +17,8 @@ import (
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appstest "github.com/openshift/origin/pkg/apps/apis/apps/test"
+	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
 	appsfake "github.com/openshift/origin/pkg/apps/generated/internalclientset/fake"
-	appsutil "github.com/openshift/origin/pkg/apps/util"
 
 	// install all APIs
 	_ "github.com/openshift/origin/pkg/api/install"
@@ -27,7 +27,7 @@ import (
 var testSelector = map[string]string{"test": "rest"}
 
 func makeDeployment(version int64) kapi.ReplicationController {
-	deployment, err := appsutil.MakeTestOnlyInternalDeployment(appstest.OkDeploymentConfig(version))
+	deployment, err := appsinternalutil.MakeTestOnlyInternalDeployment(appstest.OkDeploymentConfig(version))
 	if err != nil {
 		panic(err)
 	}
@@ -128,13 +128,13 @@ func mockREST(version, desired int64, status appsapi.DeploymentStatus) *REST {
 		// ...otherwise try to get the logs from the deployer pod.
 		fakeDeployer := &kapi.Pod{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      appsutil.DeployerPodNameForDeployment(obj.Name),
+				Name:      appsinternalutil.DeployerPodNameForDeployment(obj.Name),
 				Namespace: metav1.NamespaceDefault,
 			},
 			Spec: kapi.PodSpec{
 				Containers: []kapi.Container{
 					{
-						Name: appsutil.DeployerPodNameForDeployment(obj.Name) + "-container",
+						Name: appsinternalutil.DeployerPodNameForDeployment(obj.Name) + "-container",
 					},
 				},
 				NodeName: "some-host",

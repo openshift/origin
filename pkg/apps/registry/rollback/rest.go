@@ -15,9 +15,9 @@ import (
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	"github.com/openshift/origin/pkg/apps/apis/apps/validation"
+	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
 	appsclientinternal "github.com/openshift/origin/pkg/apps/generated/internalclientset"
 	apps "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
-	appsutil "github.com/openshift/origin/pkg/apps/util"
 )
 
 // REST provides a rollback generation endpoint. Only the Create method is implemented.
@@ -70,7 +70,7 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, createValidation 
 	case 0:
 		return nil, newInvalidError(rollback, "cannot rollback an undeployed config")
 	case 1:
-		return nil, newInvalidError(rollback, fmt.Sprintf("no previous deployment exists for %q", appsutil.LabelForDeploymentConfig(from)))
+		return nil, newInvalidError(rollback, fmt.Sprintf("no previous deployment exists for %q", appsinternalutil.LabelForDeploymentConfig(from)))
 	case rollback.Spec.Revision:
 		return nil, newInvalidError(rollback, fmt.Sprintf("version %d is already the latest", rollback.Spec.Revision))
 	}
@@ -81,13 +81,13 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, createValidation 
 	}
 
 	// Find the target deployment and decode its config.
-	name := appsutil.DeploymentNameForConfigVersion(from.Name, revision)
+	name := appsinternalutil.DeploymentNameForConfigVersion(from.Name, revision)
 	targetDeployment, err := r.rn.ReplicationControllers(namespace).Get(name, metav1.GetOptions{})
 	if err != nil {
 		return nil, newInvalidError(rollback, err.Error())
 	}
 
-	to, err := appsutil.DecodeDeploymentConfig(targetDeployment)
+	to, err := appsinternalutil.DecodeDeploymentConfig(targetDeployment)
 	if err != nil {
 		return nil, newInvalidError(rollback, fmt.Sprintf("couldn't decode deployment config from deployment: %v", err))
 	}

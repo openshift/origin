@@ -21,7 +21,9 @@ import (
 	"k8s.io/client-go/util/retry"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	imageclientv1 "github.com/openshift/client-go/image/clientset/versioned"
+	imageclienttyped "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
+	appsinternal "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
 	strat "github.com/openshift/origin/pkg/apps/strategy"
 	stratsupport "github.com/openshift/origin/pkg/apps/strategy/support"
 	stratutil "github.com/openshift/origin/pkg/apps/strategy/util"
@@ -60,7 +62,8 @@ type RecreateDeploymentStrategy struct {
 
 // NewRecreateDeploymentStrategy makes a RecreateDeploymentStrategy backed by
 // a real HookExecutor and client.
-func NewRecreateDeploymentStrategy(kubeClient kubernetes.Interface, imageClient imageclientv1.Interface, events record.EventSink, out, errOut io.Writer, until string) *RecreateDeploymentStrategy {
+func NewRecreateDeploymentStrategy(kubeClient kubernetes.Interface, imageClient imageclienttyped.ImageStreamTagsGetter, events record.EventSink, out, errOut io.Writer,
+	until string) *RecreateDeploymentStrategy {
 	if out == nil {
 		out = ioutil.Discard
 	}
@@ -98,11 +101,13 @@ func (s *RecreateDeploymentStrategy) Deploy(from *corev1.ReplicationController, 
 // for initial deployments.
 func (s *RecreateDeploymentStrategy) DeployWithAcceptor(from *corev1.ReplicationController, to *corev1.ReplicationController, desiredReplicas int,
 	updateAcceptor strat.UpdateAcceptor) error {
+	// TODO: This should move to external version once we are sure there are no replication controller with internal DeploymentConfig serialized.
+	config, err := appsinternalutil.DecodeDeploymentConfig(to)
 	if err != nil {
 		return fmt.Errorf("couldn't decode config from deployment %s: %v", to.Name, err)
 	}
 
-	recreateTimeout := time.Duration(appsapi.DefaultRecreateTimeoutSeconds) * time.Second
+	recreateTimeout := time.Duration(appsinternal.DefaultRecreateTimeoutSeconds) * time.Second
 	params := config.Spec.Strategy.RecreateParams
 	rollingParams := config.Spec.Strategy.RollingParams
 

@@ -136,10 +136,10 @@ func NewDeployer(kubeClient kubernetes.Interface, images imageclientv1.Interface
 		strategyFor: func(config *appsapi.DeploymentConfig) (strategy.DeploymentStrategy, error) {
 			switch config.Spec.Strategy.Type {
 			case appsapi.DeploymentStrategyTypeRecreate:
-				return recreate.NewRecreateDeploymentStrategy(kubeClient, images,
+				return recreate.NewRecreateDeploymentStrategy(kubeClient, images.ImageV1(),
 					&kv1core.EventSinkImpl{Interface: kubeClient.CoreV1().Events("")}, out, errOut, until), nil
 			case appsapi.DeploymentStrategyTypeRolling:
-				recreateDeploymentStrategy := recreate.NewRecreateDeploymentStrategy(kubeClient, images,
+				recreateDeploymentStrategy := recreate.NewRecreateDeploymentStrategy(kubeClient, images.ImageV1(),
 					&kv1core.EventSinkImpl{Interface: kubeClient.CoreV1().Events("")}, out, errOut, until)
 				return rolling.NewRollingDeploymentStrategy(config.Namespace, kubeClient, images,
 					recreateDeploymentStrategy, out, errOut, until), nil
@@ -238,7 +238,7 @@ func (d *Deployer) Deploy(namespace, rcName string) error {
 			continue
 		}
 		// Skip the deployment if it's already scaled down.
-		if *candidate.Spec.Replicas == 0 {
+		if candidate.Spec.Replicas == nil || *candidate.Spec.Replicas == 0 {
 			continue
 		}
 		// Scale the deployment down to zero.
