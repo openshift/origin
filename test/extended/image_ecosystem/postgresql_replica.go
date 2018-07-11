@@ -12,7 +12,7 @@ import (
 	"github.com/openshift/origin/test/extended/util/db"
 	testutil "github.com/openshift/origin/test/util"
 
-	kapiv1 "k8s.io/api/core/v1"
+	//	kapiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kcoreclient "k8s.io/client-go/kubernetes/typed/core/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
@@ -27,8 +27,10 @@ var (
 	}
 )
 
+/*
 var _ = g.Describe("[image_ecosystem][postgresql][Slow][local] openshift postgresql replication", func() {
 	defer g.GinkgoRecover()
+	g.Skip("db replica tests are currently flaky and disabled")
 
 	var oc = exutil.NewCLI("postgresql-replication", exutil.KubeConfigPath())
 	var pvs = []*kapiv1.PersistentVolume{}
@@ -81,6 +83,7 @@ var _ = g.Describe("[image_ecosystem][postgresql][Slow][local] openshift postgre
 		}
 	})
 })
+*/
 
 // CreatePostgreSQLReplicationHelpers creates a set of PostgreSQL helpers for master,
 // slave an en extra helper that is used for remote login test.
