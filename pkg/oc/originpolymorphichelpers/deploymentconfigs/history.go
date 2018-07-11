@@ -6,10 +6,12 @@ import (
 	"sort"
 	"text/tabwriter"
 
+	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/kubectl"
 	kinternalprinters "k8s.io/kubernetes/pkg/printers/internalversion"
 
@@ -17,14 +19,14 @@ import (
 	appsutil "github.com/openshift/origin/pkg/apps/util"
 )
 
-func NewDeploymentConfigHistoryViewer(kc kclientset.Interface) kubectl.HistoryViewer {
-	return &DeploymentConfigHistoryViewer{rn: kc.Core()}
+func NewDeploymentConfigHistoryViewer(kc kubernetes.Interface) kubectl.HistoryViewer {
+	return &DeploymentConfigHistoryViewer{rn: kc.CoreV1()}
 }
 
 // DeploymentConfigHistoryViewer is an implementation of the kubectl HistoryViewer interface
 // for deployment configs.
 type DeploymentConfigHistoryViewer struct {
-	rn kcoreclient.ReplicationControllersGetter
+	rn corev1client.ReplicationControllersGetter
 }
 
 var _ kubectl.HistoryViewer = &DeploymentConfigHistoryViewer{}
@@ -42,14 +44,14 @@ func (h *DeploymentConfigHistoryViewer) ViewHistory(namespace, name string, revi
 	}
 
 	items := deploymentList.Items
-	history := make([]*kapi.ReplicationController, 0, len(items))
+	history := make([]*v1.ReplicationController, 0, len(items))
 	for i := range items {
 		history = append(history, &items[i])
 	}
 
 	// Print details of a specific revision
 	if revision > 0 {
-		var desired *kapi.PodTemplateSpec
+		var desired *v1.PodTemplateSpec
 		// We could use a binary search here but brute-force is always faster to write
 		for i := range history {
 			rc := history[i]
@@ -65,7 +67,13 @@ func (h *DeploymentConfigHistoryViewer) ViewHistory(namespace, name string, revi
 		}
 
 		buf := bytes.NewBuffer([]byte{})
-		kinternalprinters.DescribePodTemplate(desired, kinternalprinters.NewPrefixWriter(buf))
+
+		// TODO: remove this once we have external describers
+		var internalDesired kapi.PodTemplateSpec
+		if legacyscheme.Scheme.Convert(desired, &internalDesired, nil); err != nil {
+			return "", fmt.Errorf("unable to convert pod template to internal pod template: %v", err)
+		}
+		kinternalprinters.DescribePodTemplate(&internalDesired, kinternalprinters.NewPrefixWriter(buf))
 		return buf.String(), nil
 	}
 

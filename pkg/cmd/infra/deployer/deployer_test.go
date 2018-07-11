@@ -44,8 +44,7 @@ func TestDeployer_getDeploymentFail(t *testing.T) {
 func TestDeployer_deployScenarios(t *testing.T) {
 	mkd := func(version int64, status appsapi.DeploymentStatus, replicas int32, desired int32) *corev1.ReplicationController {
 		deployment := mkdeployment(version, status)
-		replicasInt := int32(replicas)
-		deployment.Spec.Replicas = &replicasInt
+		deployment.Spec.Replicas = &replicas
 		if desired > 0 {
 			deployment.Annotations[appsapi.DesiredReplicasAnnotation] = strconv.Itoa(int(desired))
 		}

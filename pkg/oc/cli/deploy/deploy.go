@@ -415,7 +415,7 @@ func (o DeployOptions) cancel(config *appsapi.DeploymentConfig) error {
 		timeAt := strings.ToLower(units.HumanDuration(time.Now().Sub(latest.CreationTimestamp.Time)))
 		fmt.Fprintf(o.Out, "No deployments are in progress (latest deployment #%d %s%s %s ago)\n",
 			appsutil.DeploymentVersionFor(latest),
-			strings.ToLower(string(appsutil.DeploymentStatusFor(latest))),
+			strings.ToLower(string(appsinternalutil.DeploymentStatusFor(latest))),
 			maybeCancelling,
 			timeAt)
 	}

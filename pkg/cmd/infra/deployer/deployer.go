@@ -142,7 +142,7 @@ func NewDeployer(kubeClient kubernetes.Interface, images imageclientv1.Interface
 			case appsapi.DeploymentStrategyTypeRolling:
 				recreateDeploymentStrategy := recreate.NewRecreateDeploymentStrategy(kubeClient, images.ImageV1(),
 					&kv1core.EventSinkImpl{Interface: kubeClient.CoreV1().Events("")}, out, errOut, until)
-				return rolling.NewRollingDeploymentStrategy(config.Namespace, kubeClient, images,
+				return rolling.NewRollingDeploymentStrategy(config.Namespace, kubeClient, images.ImageV1(),
 					recreateDeploymentStrategy, out, errOut, until), nil
 			default:
 				return nil, fmt.Errorf("unsupported strategy type: %s", config.Spec.Strategy.Type)
