@@ -13,7 +13,7 @@
 # this is the version we obsolete up to. The packaging changed for Origin
 # 1.0.6 and OSE 3.1 such that 'openshift' package names were no longer used.
 %global package_refactor_version 3.0.2.900
-%global golang_version 1.9.1
+%global golang_version 1.10
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
@@ -229,7 +229,7 @@ of docker.  Exclude those versions of docker.
 %if 0%{make_redistributable}
 # Create Binaries for all supported arches
 %{os_git_vars} OS_BUILD_RELEASE_ARCHIVES=n make build-cross
-%{os_git_vars} hack/build-go.sh vendor/github.com/onsi/ginkgo/ginkgo
+%{os_git_vars} OS_BUILD_RELEASE_ARCHIVES=n make build WHAT=vendor/github.com/onsi/ginkgo/ginkgo
 %else
 # Create Binaries only for building arch
 %ifarch x86_64
@@ -248,11 +248,11 @@ of docker.  Exclude those versions of docker.
   BUILD_PLATFORM="linux/s390x"
 %endif
 OS_ONLY_BUILD_PLATFORMS="${BUILD_PLATFORM}" %{os_git_vars} OS_BUILD_RELEASE_ARCHIVES=n make build-cross
-OS_ONLY_BUILD_PLATFORMS="${BUILD_PLATFORM}" %{os_git_vars} hack/build-go.sh vendor/github.com/onsi/ginkgo/ginkgo
+OS_ONLY_BUILD_PLATFORMS="${BUILD_PLATFORM}" %{os_git_vars} OS_BUILD_RELEASE_ARCHIVES=n make build WHAT=vendor/github.com/onsi/ginkgo/ginkgo
 %endif
 
 # Generate man pages
-%{os_git_vars} hack/generate-docs.sh
+%{os_git_vars} make build-docs
 %endif
 
 %install
