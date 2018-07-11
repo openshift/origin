@@ -66,7 +66,13 @@ items:
     - userextras/scopes.authorization.openshift.io
     verbs:
     - impersonate
-- apiVersion: rbac.authorization.k8s.io/v1
+- aggregationRule:
+    clusterRoleSelectors:
+    - matchLabels:
+        rbac.authorization.k8s.io/aggregate-to-cluster-reader: "true"
+    - matchLabels:
+        rbac.authorization.k8s.io/aggregate-to-view: "true"
+  apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
     annotations:
@@ -74,38 +80,31 @@ items:
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: cluster-reader
+  rules: null
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRole
+  metadata:
+    annotations:
+      authorization.openshift.io/system-only: "true"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
+    creationTimestamp: null
+    labels:
+      rbac.authorization.k8s.io/aggregate-to-cluster-reader: "true"
+    name: system:openshift:aggregate-to-cluster-reader
   rules:
   - apiGroups:
     - ""
     resources:
-    - bindings
     - componentstatuses
-    - configmaps
-    - endpoints
-    - events
-    - limitranges
-    - namespaces
-    - namespaces/status
     - nodes
     - nodes/status
-    - persistentvolumeclaims
     - persistentvolumeclaims/status
     - persistentvolumes
     - persistentvolumes/status
-    - pods
     - pods/binding
     - pods/eviction
-    - pods/log
-    - pods/status
     - podtemplates
-    - replicationcontrollers
-    - replicationcontrollers/scale
-    - replicationcontrollers/status
-    - resourcequotas
-    - resourcequotas/status
     - securitycontextconstraints
-    - serviceaccounts
-    - services
     - services/status
     verbs:
     - get
@@ -124,16 +123,9 @@ items:
     - apps
     resources:
     - controllerrevisions
-    - daemonsets
     - daemonsets/status
-    - deployments
-    - deployments/scale
     - deployments/status
-    - replicasets
-    - replicasets/scale
     - replicasets/status
-    - statefulsets
-    - statefulsets/scale
     - statefulsets/status
     verbs:
     - get
@@ -160,7 +152,6 @@ items:
   - apiGroups:
     - autoscaling
     resources:
-    - horizontalpodautoscalers
     - horizontalpodautoscalers/status
     verbs:
     - get
@@ -169,9 +160,7 @@ items:
   - apiGroups:
     - batch
     resources:
-    - cronjobs
     - cronjobs/status
-    - jobs
     - jobs/status
     verbs:
     - get
@@ -180,24 +169,16 @@ items:
   - apiGroups:
     - extensions
     resources:
-    - daemonsets
     - daemonsets/status
-    - deployments
-    - deployments/scale
     - deployments/status
     - horizontalpodautoscalers
     - horizontalpodautoscalers/status
-    - ingresses
     - ingresses/status
     - jobs
     - jobs/status
-    - networkpolicies
     - podsecuritypolicies
-    - replicasets
-    - replicasets/scale
     - replicasets/status
     - replicationcontrollers
-    - replicationcontrollers/scale
     - storageclasses
     - thirdpartyresources
     verbs:
@@ -213,17 +194,8 @@ items:
     - list
     - watch
   - apiGroups:
-    - networking.k8s.io
-    resources:
-    - networkpolicies
-    verbs:
-    - get
-    - list
-    - watch
-  - apiGroups:
     - policy
     resources:
-    - poddisruptionbudgets
     - poddisruptionbudgets/status
     - podsecuritypolicies
     verbs:
@@ -293,23 +265,7 @@ items:
     - ""
     - build.openshift.io
     resources:
-    - buildconfigs
-    - buildconfigs/webhooks
-    - builds
     - builds/details
-    - builds/log
-    verbs:
-    - get
-    - list
-    - watch
-  - apiGroups:
-    - ""
-    - apps.openshift.io
-    resources:
-    - deploymentconfigs
-    - deploymentconfigs/log
-    - deploymentconfigs/scale
-    - deploymentconfigs/status
     verbs:
     - get
     - list
@@ -320,10 +276,6 @@ items:
     resources:
     - images
     - imagesignatures
-    - imagestreamimages
-    - imagestreams
-    - imagestreams/status
-    - imagestreamtags
     verbs:
     - get
     - list
@@ -348,8 +300,15 @@ items:
     - ""
     - project.openshift.io
     resources:
-    - projectrequests
     - projects
+    verbs:
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    - project.openshift.io
+    resources:
+    - projectrequests
     verbs:
     - get
     - list
@@ -358,19 +317,8 @@ items:
     - ""
     - quota.openshift.io
     resources:
-    - appliedclusterresourcequotas
     - clusterresourcequotas
     - clusterresourcequotas/status
-    verbs:
-    - get
-    - list
-    - watch
-  - apiGroups:
-    - ""
-    - route.openshift.io
-    resources:
-    - routes
-    - routes/status
     verbs:
     - get
     - list
@@ -400,18 +348,6 @@ items:
     - security.openshift.io
     resources:
     - rangeallocations
-    verbs:
-    - get
-    - list
-    - watch
-  - apiGroups:
-    - ""
-    - template.openshift.io
-    resources:
-    - processedtemplates
-    - templateconfigs
-    - templateinstances
-    - templates
     verbs:
     - get
     - list
@@ -492,23 +428,6 @@ items:
     - '*'
     verbs:
     - get
-  - apiGroups:
-    - ""
-    - build.openshift.io
-    resources:
-    - buildlogs
-    verbs:
-    - get
-    - list
-    - watch
-  - apiGroups:
-    - ""
-    resources:
-    - resourcequotausages
-    verbs:
-    - get
-    - list
-    - watch
 - apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:

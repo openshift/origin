@@ -65,6 +65,7 @@ var rolesToHide = sets.NewString(
 	"system:openshift:aggregate-to-admin",
 	"system:openshift:aggregate-to-edit",
 	"system:openshift:aggregate-to-view",
+	"system:openshift:aggregate-to-cluster-reader",
 	"system:kubelet-api-admin",
 	"system:volume-scheduler",
 )
