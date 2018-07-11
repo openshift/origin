@@ -23,9 +23,10 @@ import (
 	"github.com/spf13/cobra"
 
 	rbacv1 "k8s.io/api/rbac/v1"
+	rbacv1beta1 "k8s.io/api/rbac/v1beta1"
+	rbacv1alpha1 "k8s.io/api/rbac/v1alpha1"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
@@ -33,6 +34,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 	"k8s.io/kubernetes/pkg/kubectl/scheme"
 	"k8s.io/kubernetes/pkg/registry/rbac/reconciliation"
+	"fmt"
 )
 
 // ReconcileOptions is the start of the data required to perform the operation.  As new fields are added, add them here instead of
@@ -106,7 +108,7 @@ func (o *ReconcileOptions) Complete(cmd *cobra.Command, f cmdutil.Factory, args 
 	}
 
 	r := f.NewBuilder().
-		WithScheme(legacyscheme.Scheme).
+		WithScheme(scheme.Scheme, scheme.Scheme.PrioritizedVersionsAllGroups()...).
 		ContinueOnError().
 		NamespaceParam(namespace).DefaultNamespace().
 		FilenameParam(enforceNamespace, o.FilenameOptions).
@@ -171,14 +173,7 @@ func (o *ReconcileOptions) RunReconcile() error {
 			return err
 		}
 
-		obj, err := legacyscheme.Scheme.ConvertToVersion(info.Object, rbacv1.SchemeGroupVersion)
-		if err != nil {
-			glog.V(1).Infof("skipping %#v", info.Object.GetObjectKind())
-			// skip ignored resources
-			return nil
-		}
-
-		switch t := obj.(type) {
+		switch t := info.Object.(type) {
 		case *rbacv1.Role:
 			reconcileOptions := reconciliation.ReconcileRoleOptions{
 				Confirm:                !o.DryRun,
@@ -240,6 +235,16 @@ func (o *ReconcileOptions) RunReconcile() error {
 				return err
 			}
 			o.PrintObject(result.RoleBinding.GetObject(), o.Out)
+
+		case *rbacv1beta1.Role,
+			*rbacv1beta1.RoleBinding,
+			*rbacv1beta1.ClusterRole,
+			*rbacv1beta1.ClusterRoleBinding,
+			*rbacv1alpha1.Role,
+			*rbacv1alpha1.RoleBinding,
+			*rbacv1alpha1.ClusterRole,
+			*rbacv1alpha1.ClusterRoleBinding:
+			return fmt.Errorf("only rbac.authorization.k8s.io/v1 is supported: not %T", t)
 
 		default:
 			glog.V(1).Infof("skipping %#v", info.Object.GetObjectKind())
