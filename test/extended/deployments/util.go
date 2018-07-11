@@ -33,6 +33,7 @@ import (
 
 	appsapiv1 "github.com/openshift/api/apps/v1"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
 	appstypedclientset "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
 	"github.com/openshift/origin/pkg/apps/registry/deploylog"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
@@ -170,7 +171,7 @@ func checkDeploymentInvariants(dc *appsapi.DeploymentConfig, rcs []*corev1.Repli
 	sawStatus := sets.NewString()
 	statuses := []string{}
 	for _, rc := range rcs {
-		status := appsutil.DeploymentStatusFor(rc)
+		status := appsinternalutil.DeploymentStatusFor(rc)
 		if sawStatus.Len() != 0 {
 			switch status {
 			case appsapi.DeploymentStatusComplete, appsapi.DeploymentStatusFailed:
@@ -202,15 +203,15 @@ func deploymentReachedCompletion(dc *appsapi.DeploymentConfig, rcs []*corev1.Rep
 	rcv1 := rcs[len(rcs)-1]
 	rc := &kapi.ReplicationController{}
 	legacyscheme.Scheme.Convert(rcv1, rc, nil)
-	version := appsutil.DeploymentVersionFor(rc)
+	version := appsinternalutil.DeploymentVersionFor(rc)
 	if version != dc.Status.LatestVersion {
 		return false, nil
 	}
 
-	if !appsutil.IsCompleteDeployment(rc) {
+	if !appsinternalutil.IsCompleteDeployment(rc) {
 		return false, nil
 	}
-	cond := appsutil.GetDeploymentCondition(dc.Status, appsapi.DeploymentProgressing)
+	cond := appsinternalutil.GetDeploymentCondition(dc.Status, appsapi.DeploymentProgressing)
 	if cond == nil || cond.Reason != appsapi.NewRcAvailableReason {
 		return false, nil
 	}
@@ -236,14 +237,14 @@ func deploymentFailed(dc *appsapi.DeploymentConfig, rcs []*corev1.ReplicationCon
 	rcv1 := rcs[len(rcs)-1]
 	rc := &kapi.ReplicationController{}
 	legacyscheme.Scheme.Convert(rcv1, rc, nil)
-	version := appsutil.DeploymentVersionFor(rc)
+	version := appsinternalutil.DeploymentVersionFor(rc)
 	if version != dc.Status.LatestVersion {
 		return false, nil
 	}
-	if !appsutil.IsFailedDeployment(rc) {
+	if !appsinternalutil.IsFailedDeployment(rc) {
 		return false, nil
 	}
-	cond := appsutil.GetDeploymentCondition(dc.Status, appsapi.DeploymentProgressing)
+	cond := appsinternalutil.GetDeploymentCondition(dc.Status, appsapi.DeploymentProgressing)
 	return cond != nil && cond.Reason == appsapi.TimedOutReason, nil
 }
 
@@ -254,7 +255,7 @@ func deploymentRunning(dc *appsapi.DeploymentConfig, rcs []*corev1.ReplicationCo
 	rcv1 := rcs[len(rcs)-1]
 	rc := &kapi.ReplicationController{}
 	legacyscheme.Scheme.Convert(rcv1, rc, nil)
-	version := appsutil.DeploymentVersionFor(rc)
+	version := appsinternalutil.DeploymentVersionFor(rc)
 	if version != dc.Status.LatestVersion {
 		//e2e.Logf("deployment %s is not the latest version on DC: %d", rc.Name, version)
 		return false, nil
@@ -263,14 +264,14 @@ func deploymentRunning(dc *appsapi.DeploymentConfig, rcs []*corev1.ReplicationCo
 	status := rc.Annotations[appsapi.DeploymentStatusAnnotation]
 	switch appsapi.DeploymentStatus(status) {
 	case appsapi.DeploymentStatusFailed:
-		if appsutil.IsDeploymentCancelled(rc) {
+		if appsinternalutil.IsDeploymentCancelled(rc) {
 			return true, nil
 		}
-		reason := appsutil.DeploymentStatusReasonFor(rc)
+		reason := appsinternalutil.DeploymentStatusReasonFor(rc)
 		if reason == "deployer pod no longer exists" {
 			return true, nil
 		}
-		return false, fmt.Errorf("deployment failed: %v", appsutil.DeploymentStatusReasonFor(rc))
+		return false, fmt.Errorf("deployment failed: %v", appsinternalutil.DeploymentStatusReasonFor(rc))
 	case appsapi.DeploymentStatusRunning, appsapi.DeploymentStatusComplete:
 		return true, nil
 	default:
@@ -331,7 +332,7 @@ func deploymentInfo(oc *exutil.CLI, name string) (*appsapi.DeploymentConfig, []*
 	}
 
 	rcs, err := oc.KubeClient().CoreV1().ReplicationControllers(oc.Namespace()).List(metav1.ListOptions{
-		LabelSelector: appsutil.ConfigSelector(name).String(),
+		LabelSelector: appsinternalutil.ConfigSelector(name).String(),
 	})
 	if err != nil {
 		return nil, nil, nil, err
@@ -342,7 +343,7 @@ func deploymentInfo(oc *exutil.CLI, name string) (*appsapi.DeploymentConfig, []*
 		deployments = append(deployments, &rcs.Items[i])
 	}
 
-	sort.Sort(appsutil.ByLatestVersionAscV1(deployments))
+	sort.Sort(appsutil.ByLatestVersionAsc(deployments))
 
 	return dc, deployments, pods.Items, nil
 }
@@ -376,7 +377,7 @@ func waitForSyncedConfig(oc *exutil.CLI, name string, timeout time.Duration) err
 		if err != nil {
 			return false, err
 		}
-		return appsutil.HasSynced(config, generation), nil
+		return appsinternalutil.HasSynced(config, generation), nil
 	})
 }
 
@@ -404,7 +405,7 @@ func waitForDeployerToComplete(oc *exutil.CLI, name string, timeout time.Duratio
 	}); err != nil {
 		return "", err
 	}
-	podName := appsutil.DeployerPodNameForDeployment(rc.Name)
+	podName := appsinternalutil.DeployerPodNameForDeployment(rc.Name)
 	if err := deploylog.WaitForRunningDeployerPod(oc.KubeClient().CoreV1(), rc, timeout); err != nil {
 		return "", err
 	}
@@ -605,8 +606,8 @@ func HasValidDCControllerRef(dc metav1.Object, controllee metav1.Object) bool {
 	ref := metav1.GetControllerOf(controllee)
 	return ref != nil &&
 		ref.UID == dc.GetUID() &&
-		ref.APIVersion == appsutil.DeploymentConfigControllerRefKind.GroupVersion().String() &&
-		ref.Kind == appsutil.DeploymentConfigControllerRefKind.Kind &&
+		ref.APIVersion == appsinternalutil.DeploymentConfigControllerRefKind.GroupVersion().String() &&
+		ref.Kind == appsinternalutil.DeploymentConfigControllerRefKind.Kind &&
 		ref.Name == dc.GetName()
 }
 

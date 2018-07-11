@@ -15,8 +15,8 @@ import (
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appstest "github.com/openshift/origin/pkg/apps/apis/apps/test"
+	appsinternalutil "github.com/openshift/origin/pkg/apps/controller/util"
 	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset"
-	appsutil "github.com/openshift/origin/pkg/apps/util"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -103,7 +103,7 @@ func TestDeployScale(t *testing.T) {
 		if err != nil {
 			return false, nil
 		}
-		return appsutil.HasSynced(config, generation), nil
+		return appsinternalutil.HasSynced(config, generation), nil
 	}
 	if err := wait.PollImmediate(500*time.Millisecond, 10*time.Second, condition); err != nil {
 		t.Fatalf("Deployment config never synced: %v", err)
