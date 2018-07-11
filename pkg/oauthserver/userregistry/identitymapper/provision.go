@@ -84,6 +84,7 @@ func (p *provisioningIdentityMapper) createIdentityAndMapping(ctx context.Contex
 		},
 		ProviderName:     info.GetProviderName(),
 		ProviderUserName: info.GetProviderUserName(),
+		ProviderGroups:   info.GetProviderGroups(),
 		Extra:            info.GetExtra(),
 	}
 
