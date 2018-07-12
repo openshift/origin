@@ -30,6 +30,7 @@ func main() {
 	// TODO: ...along with subtree merges.
 	nonbumpCommits := []util.Commit{}
 	for _, commit := range commits {
+		fmt.Printf("checking commit: %q\n", commit.Summary)
 		var lastDescriptionLine string
 		if descriptionLen := len(commit.Description); descriptionLen > 0 {
 			lastDescriptionLine = commit.Description[descriptionLen-1]
