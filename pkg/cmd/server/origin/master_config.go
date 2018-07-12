@@ -2,12 +2,9 @@ package origin
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/golang/glog"
 	"github.com/openshift/origin/pkg/admission/namespaceconditions"
-	"k8s.io/apimachinery/pkg/api/meta"
-	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/restmapper"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -75,7 +72,7 @@ type MasterConfig struct {
 	ProjectCache                  *projectcache.ProjectCache
 	ClusterQuotaMappingController *clusterquotamapping.ClusterQuotaMappingController
 	LimitVerifier                 imageadmission.LimitVerifier
-	RESTMapper                    meta.RESTMapper
+	RESTMapper                    *restmapper.DeferredDiscoveryRESTMapper
 
 	// RegistryHostnameRetriever retrieves the name of the integrated registry, or false if no such registry
 	// is available.
@@ -223,15 +220,6 @@ func BuildMasterConfig(
 
 		kubeAPIServerConfig: kubeAPIServerConfig,
 		additionalPostStartHooks: map[string]genericapiserver.PostStartHookFunc{
-			"openshift.io-RESTMapper": func(context genericapiserver.PostStartHookContext) error {
-				restMapper.Reset()
-				go func() {
-					wait.Until(func() {
-						restMapper.Reset()
-					}, 10*time.Second, context.StopCh)
-				}()
-				return nil
-			},
 			"openshift.io-StartInformers": func(context genericapiserver.PostStartHookContext) error {
 				informers.Start(context.StopCh)
 				return nil

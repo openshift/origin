@@ -100,7 +100,7 @@ func createAggregatorServer(aggregatorConfig *aggregatorapiserver.Config, delega
 		apiExtensionInformers.Apiextensions().InternalVersion().CustomResourceDefinitions(),
 		autoRegistrationController)
 
-	aggregatorServer.GenericAPIServer.AddPostStartHook("kube-apiserver-autoregistration", func(context genericapiserver.PostStartHookContext) error {
+	aggregatorServer.GenericAPIServer.AddPostStartHookOrDie("kube-apiserver-autoregistration", func(context genericapiserver.PostStartHookContext) error {
 		go crdRegistrationController.Run(5, context.StopCh)
 		go func() {
 			// let the CRD controller process the initial set of CRDs before starting the autoregistration controller.

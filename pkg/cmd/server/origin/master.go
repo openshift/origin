@@ -26,6 +26,7 @@ import (
 	routeplugin "github.com/openshift/origin/pkg/route/allocation/simple"
 	routeallocationcontroller "github.com/openshift/origin/pkg/route/controller/allocation"
 	sccstorage "github.com/openshift/origin/pkg/security/registry/securitycontextconstraints/etcd"
+	"k8s.io/apimachinery/pkg/util/wait"
 	kapiserveroptions "k8s.io/kubernetes/cmd/kube-apiserver/app/options"
 )
 
@@ -280,7 +281,8 @@ func (c *MasterConfig) Run(stopCh <-chan struct{}) error {
 	// add post-start hooks
 	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("authorization.openshift.io-bootstrapclusterroles", bootstrapData(bootstrappolicy.Policy()).EnsureRBACPolicy())
 	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("authorization.openshift.io-ensureopenshift-infra", ensureOpenShiftInfraNamespace)
-	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("quota.openshift.io-clusterquotamapping", c.startClusterQuotaMapping)
+	c.AddPostStartHooks(aggregatedAPIServer.GenericAPIServer)
+
 	for name, fn := range c.additionalPostStartHooks {
 		aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie(name, fn)
 	}
@@ -338,7 +340,8 @@ func (c *MasterConfig) RunKubeAPIServer(stopCh <-chan struct{}) error {
 
 	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("authorization.openshift.io-bootstrapclusterroles", bootstrapData(bootstrappolicy.Policy()).EnsureRBACPolicy())
 	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("authorization.openshift.io-ensureopenshift-infra", ensureOpenShiftInfraNamespace)
-	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("quota.openshift.io-clusterquotamapping", c.startClusterQuotaMapping)
+	c.AddPostStartHooks(aggregatedAPIServer.GenericAPIServer)
+
 	// add post-start hooks
 	for name, fn := range c.additionalPostStartHooks {
 		aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie(name, fn)
@@ -377,7 +380,7 @@ func (c *MasterConfig) RunOpenShift(stopCh <-chan struct{}) error {
 	}
 
 	// add post-start hooks
-	openshiftAPIServer.AddPostStartHookOrDie("quota.openshift.io-clusterquotamapping", c.startClusterQuotaMapping)
+	c.AddPostStartHooks(openshiftAPIServer)
 	for name, fn := range c.additionalPostStartHooks {
 		openshiftAPIServer.AddPostStartHookOrDie(name, fn)
 	}
@@ -480,8 +483,23 @@ func WithPatternPrefixHandler(handler http.Handler, patternHandler http.Handler,
 	})
 }
 
+func (c *MasterConfig) AddPostStartHooks(server *apiserver.GenericAPIServer) {
+	server.AddPostStartHookOrDie("quota.openshift.io-clusterquotamapping", c.startClusterQuotaMapping)
+	server.AddPostStartHookOrDie("openshift.io-RESTMapper", c.startRESTMapper)
+}
+
 func (c *MasterConfig) startClusterQuotaMapping(context apiserver.PostStartHookContext) error {
 	go c.ClusterQuotaMappingController.Run(5, context.StopCh)
+	return nil
+}
+
+func (c *MasterConfig) startRESTMapper(context apiserver.PostStartHookContext) error {
+	c.RESTMapper.Reset()
+	go func() {
+		wait.Until(func() {
+			c.RESTMapper.Reset()
+		}, 10*time.Second, context.StopCh)
+	}()
 	return nil
 }
 
