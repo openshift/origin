@@ -6,9 +6,9 @@ trap os::test::junit::reconcile_output EXIT
 (
   set +e
   oc adm policy remove-scc-from-user privileged -z router
-  oc delete sa/router -n default
+  oc delete sa/router -n default --loglevel=8
   exit 0
-) &>/dev/null
+)
 
 defaultimage="openshift/origin-\${component}:latest"
 USE_IMAGES=${USE_IMAGES:-$defaultimage}

@@ -5,9 +5,9 @@ trap os::test::junit::reconcile_output EXIT
 # Cleanup cluster resources created by this test
 (
   set +e
-  oc delete all --all
+  oc delete all --all --loglevel=8
   exit 0
-) &>/dev/null
+)
 
 os::test::junit::declare_suite_start "cmd/migrate"
 # This test validates storage migration

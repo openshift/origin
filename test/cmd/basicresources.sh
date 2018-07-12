@@ -8,9 +8,9 @@ trap os::test::junit::reconcile_output EXIT
   oc delete all,templates,secrets,pods,jobs --all
   oc delete image v1-image
   oc delete group patch-group
-  oc delete project test-project-admin
+  oc delete project test-project-admin --loglevel=8
   exit 0
-) &>/dev/null
+)
 
 function escape_regex() {
   sed 's/[]\.|$(){}?+*^]/\\&/g' <<< "$*"

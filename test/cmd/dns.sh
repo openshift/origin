@@ -5,9 +5,9 @@ trap os::test::junit::reconcile_output EXIT
 # Cleanup cluster resources created by this test
 (
   set +e
-  oc delete svc,endpoints --all
+  oc delete svc,endpoints --all --loglevel=8
   exit 0
-) &>/dev/null
+)
 
 
 os::test::junit::declare_suite_start "cmd/dns"

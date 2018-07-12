@@ -5,12 +5,12 @@ trap os::test::junit::reconcile_output EXIT
 # Cleanup cluster resources created by this test
 (
   set +e
-  oc delete namespace sdn-test-1
-  oc delete namespace sdn-test-2
-  oc delete namespace sdn-test-3
-  oc delete egressnetworkpolicy --all
+  oc delete namespace sdn-test-1 --loglevel=8
+  oc delete namespace sdn-test-2 --loglevel=8
+  oc delete namespace sdn-test-3 --loglevel=8
+  oc delete egressnetworkpolicy --all --loglevel=8
   exit 0
-) &>/dev/null
+)
 
 os::test::junit::declare_suite_start "cmd/sdn"
 

@@ -7,9 +7,9 @@ os::test::junit::declare_suite_start "cmd/quota"
 # Cleanup cluster resources created by this test suite
 (
   set +e
-  oc delete project quota-{foo,bar,asmail,images}
+  oc delete project quota-{foo,bar,asmail,images} --loglevel=8
   exit 0
-) &>/dev/null
+)
 
 os::test::junit::declare_suite_start "cmd/quota/clusterquota"
 

@@ -18,7 +18,7 @@ trap os::test::junit::reconcile_output EXIT
   oc delete identities/anypassword:cascaded-user
   oc adm policy reconcile-cluster-roles --confirm --additive-only=false
   oc adm policy reconcile-cluster-role-bindings --confirm --additive-only=false
-) &>/dev/null
+)
 
 project="$( oc project -q )"
 
