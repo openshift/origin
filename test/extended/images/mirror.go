@@ -204,7 +204,7 @@ func getRegistrySchema(pod *testPod, host string) (schema string, err error) {
 }
 
 func runHTTPRequest(pod *testPod, URL string, headers map[string]string) (string, error) {
-	command := []string{"curl", "-v", "-k", "-L", "-o", "/dev/null"}
+	command := []string{"curl", "-s", "-v", "-k", "-L", "-o", "/dev/null"}
 	for k, v := range headers {
 		command = append(command, "-H", fmt.Sprintf("%s", k+":"+v))
 	}
