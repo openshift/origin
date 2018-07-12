@@ -154,6 +154,11 @@ type RouterConfig struct {
 	// network namespace or the container's.
 	HostNetwork bool
 
+	// ExtendedLogging specifies whether to inject a sidecar container
+	// running rsyslogd into the router pod and configure the router to send
+	// access logs to that sidecar.
+	ExtendedLogging bool
+
 	// HostPorts will expose host ports for each router port if host networking is
 	// not set.
 	HostPorts bool
@@ -242,6 +247,12 @@ const (
 
 	// Default stats port.
 	defaultStatsPort = 1936
+
+	rsyslogConfigurationFile = `$ModLoad imuxsock
+$SystemLogSocketName /var/lib/rsyslog/rsyslog.sock
+$ModLoad omstdout.so
+*.* :omstdout:
+`
 )
 
 // NewCmdRouter implements the OpenShift CLI router command.
@@ -294,6 +305,7 @@ func NewCmdRouter(f kcmdutil.Factory, parentName, name string, out, errout io.Wr
 	cmd.Flags().IntVar(&cfg.StatsPort, "stats-port", cfg.StatsPort, "If the underlying router implementation can provide statistics this is a hint to expose it on this port. Specify 0 if you want to turn off exposing the statistics.")
 	cmd.Flags().StringVar(&cfg.StatsPassword, "stats-password", cfg.StatsPassword, "If the underlying router implementation can provide statistics this is the requested password for auth.  If not set a password will be generated. Not available for external appliance based routers (e.g. F5)")
 	cmd.Flags().StringVar(&cfg.StatsUsername, "stats-user", cfg.StatsUsername, "If the underlying router implementation can provide statistics this is the requested username for auth. Not available for external appliance based routers (e.g. F5)")
+	cmd.Flags().BoolVar(&cfg.ExtendedLogging, "extended-logging", cfg.ExtendedLogging, "If true, then configure the router with additional logging.")
 	cmd.Flags().BoolVar(&cfg.HostNetwork, "host-network", cfg.HostNetwork, "If true (the default), then use host networking rather than using a separate container network stack. Not required for external appliance based routers (e.g. F5)")
 	cmd.Flags().BoolVar(&cfg.HostPorts, "host-ports", cfg.HostPorts, "If true (the default), when not using host networking host ports will be exposed. Not required for external appliance based routers (e.g. F5)")
 	cmd.Flags().StringVar(&cfg.ExternalHost, "external-host", cfg.ExternalHost, "If the underlying router implementation connects with an external host, this is the external host's hostname.")
@@ -717,9 +729,48 @@ func RunCmdRouter(f kcmdutil.Factory, cmd *cobra.Command, out, errout io.Writer,
 	}
 	env.Add(app.Environment{"DEFAULT_CERTIFICATE_DIR": defaultCertificateDir})
 	var certName = fmt.Sprintf("%s-certs", cfg.Name)
-	secrets, volumes, mounts, err := generateSecretsConfig(cfg, namespace, defaultCert, certName)
+	secrets, volumes, routerMounts, err := generateSecretsConfig(cfg, namespace, defaultCert, certName)
 	if err != nil {
 		return fmt.Errorf("router could not be created: %v", err)
+	}
+
+	var configMaps []*kapi.ConfigMap
+
+	if cfg.Type == "haproxy-router" && cfg.ExtendedLogging {
+		configMaps = append(configMaps, &kapi.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "rsyslog-config",
+			},
+			Data: map[string]string{
+				"rsyslog.conf": rsyslogConfigurationFile,
+			},
+		})
+		volumes = append(volumes, kapi.Volume{
+			Name: "rsyslog-config",
+			VolumeSource: kapi.VolumeSource{
+				ConfigMap: &kapi.ConfigMapVolumeSource{
+					LocalObjectReference: kapi.LocalObjectReference{
+						Name: "rsyslog-config",
+					},
+				},
+			},
+		})
+		// Ideally we would use a Unix domain socket in the abstract
+		// namespace, but rsyslog does not support that, so we need a
+		// filesystem that is common to the router and syslog
+		// containers.
+		volumes = append(volumes, kapi.Volume{
+			Name: "rsyslog-socket",
+			VolumeSource: kapi.VolumeSource{
+				EmptyDir: &kapi.EmptyDirVolumeSource{},
+			},
+		})
+		routerMounts = append(routerMounts, kapi.VolumeMount{
+			Name:      "rsyslog-socket",
+			MountPath: "/var/lib/rsyslog",
+		})
+
+		env["ROUTER_SYSLOG_ADDRESS"] = "/var/lib/rsyslog/rsyslog.sock"
 	}
 
 	livenessProbe := generateLivenessProbeConfig(cfg, ports)
@@ -741,7 +792,7 @@ func RunCmdRouter(f kcmdutil.Factory, cmd *cobra.Command, out, errout io.Writer,
 			LivenessProbe:   livenessProbe,
 			ReadinessProbe:  readinessProbe,
 			ImagePullPolicy: kapi.PullIfNotPresent,
-			VolumeMounts:    mounts,
+			VolumeMounts:    routerMounts,
 			Resources: kapi.ResourceRequirements{
 				Requests: kapi.ResourceList{
 					kapi.ResourceCPU:    resource.MustParse("100m"),
@@ -750,10 +801,43 @@ func RunCmdRouter(f kcmdutil.Factory, cmd *cobra.Command, out, errout io.Writer,
 			},
 		},
 	}
+	if cfg.Type == "haproxy-router" && cfg.ExtendedLogging {
+		containers = append(containers, kapi.Container{
+			Name:  "syslog",
+			Image: image,
+			Command: []string{
+				"/sbin/rsyslogd", "-n",
+				// TODO: Once we have rsyslog 8.32 or later,
+				// we can switch to -i NONE.
+				"-i", "/tmp/rsyslog.pid",
+				"-f", "/etc/rsyslog/rsyslog.conf",
+			},
+			ImagePullPolicy: kapi.PullIfNotPresent,
+			VolumeMounts: []kapi.VolumeMount{
+				{
+					Name:      "rsyslog-config",
+					MountPath: "/etc/rsyslog",
+				},
+				{
+					Name:      "rsyslog-socket",
+					MountPath: "/var/lib/rsyslog",
+				},
+			},
+			Resources: kapi.ResourceRequirements{
+				Requests: kapi.ResourceList{
+					kapi.ResourceCPU:    resource.MustParse("100m"),
+					kapi.ResourceMemory: resource.MustParse("256Mi"),
+				},
+			},
+		})
+	}
 
 	objects := []runtime.Object{}
 	for _, s := range secrets {
 		objects = append(objects, s)
+	}
+	for _, cm := range configMaps {
+		objects = append(objects, cm)
 	}
 
 	objects = append(objects,
