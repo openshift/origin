@@ -762,39 +762,20 @@ Note: Hosted API documentation can be found
 ## Performance debugging
 
 OpenShift integrates the go `pprof` tooling to make it easy to capture CPU and
-heap dumps for running systems.  The following modes are available for the
-`openshift` binary (including all the CLI variants):
+heap dumps for running systems.  The pprof endpoint is available at `/debug/pprof/`
+on the secured HTTPS port for the `openshift` binary:
 
-* `OPENSHIFT_PROFILE` environment variable:
-  * `cpu` - will start a CPU profile on startup and write `./cpu.pprof`.
-Contains samples for the entire run at the native sampling resolution (100hz).
-Note: CPU profiling for Go does not currently work on Mac OS X - the stats are
-not correctly sampled
-  * `mem` - generate a running heap dump that tracks allocations to
-`./mem.pprof`
-  * `block` -  will start a block wait time analysis and write `./block.pprof`
-  * `web` - start the pprof webserver in process at http://127.0.0.1:6060/debug/pprof
-(you can open this in a browser). This supports `OPENSHIFT_PROFILE_HOST=`
-and `OPENSHIFT_PROFILE_PORT=` to change default ip `127.0.0.1` and default port `6060`.
-
-In order to start the server in CPU profiling mode, run:
-
-    $ OPENSHIFT_PROFILE=cpu sudo ./_output/local/bin/linux/amd64/openshift start
-
-Or, if running OpenShift under systemd, append this to
-`/etc/sysconfig/atomic-openshift-{master,node}`
-
-    OPENSHIFT_PROFILE=cpu
+    $ oc get --raw /debug/pprof/profile --as=system:admin > cpu.pprof
 
 To view profiles, you use
 [pprof](http://goog-perftools.sourceforge.net/doc/cpu_profiler.html) which is
-part of `go tool`.  You must pass the binary you are debugging (for symbols)
-and a captured pprof.  For instance, to view a `cpu` profile from above, you
-would run OpenShift to completion, and then run:
+part of `go tool`.  You must pass the captured pprof file (for source lines
+you will need to build the binary locally).  For instance, to view a `cpu` profile 
+from above, you would run OpenShift to completion, and then run:
 
-    $ go tool pprof ./_output/local/bin/linux/amd64/openshift cpu.pprof
+    $ go tool pprof cpu.pprof
     or
-    $ go tool pprof $(which openshift) /var/lib/origin/cpu.pprof
+    $ go tool pprof /var/lib/origin/cpu.pprof
 
 This will open the `pprof` shell, and you can then run:
 
@@ -817,19 +798,18 @@ to launch a web browser window showing you where CPU time is going.
 `pprof` supports CLI arguments for looking at profiles in different ways -
 memory profiles by default show allocated space:
 
-    $ go tool pprof ./_output/local/bin/linux/amd64/openshift mem.pprof
+    $ go tool pprof mem.pprof
 
 but you can also see the allocated object counts:
 
-    $ go tool pprof --alloc_objects ./_output/local/bin/linux/amd64/openshift
-mem.pprof
+    $ go tool pprof --alloc_objects mem.pprof
 
 Finally, when using the `web` profile mode, you can have the go tool directly
-fetch your profiles via HTTP:
+fetch your profiles via HTTP for services that only expose their profiling 
+contents over an unsecured HTTP endpoint:
 
     # for a 30s CPU trace
-    $ go tool pprof ./_output/local/bin/linux/amd64/openshift
-http://127.0.0.1:6060/debug/pprof/profile
+    $ go tool pprof http://127.0.0.1:6060/debug/pprof/profile
 
     # for a snapshot heap dump at the current time, showing total allocations
     $ go tool pprof --alloc_space ./_output/local/bin/linux/amd64/openshift

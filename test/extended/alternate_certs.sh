@@ -45,7 +45,7 @@ os::util::sed "s/:7001$/:${ETCD_PEER_PORT}/g" master/master-config.yaml
 os::util::sed 's#^  namedCertificates: null#  namedCertificates: [{"certFile":"custom.crt","keyFile":"custom.key","names":["localhost"]}]#' master/master-config.yaml
 
 # Start master
-OPENSHIFT_PROFILE=web OPENSHIFT_ON_PANIC=crash openshift start master \
+OPENSHIFT_ON_PANIC=crash openshift start master \
  --config=master/master-config.yaml \
  --loglevel=4 \
 &>"${LOG_DIR}/openshift.log" &

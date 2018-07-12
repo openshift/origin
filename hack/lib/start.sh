@@ -270,7 +270,7 @@ function os::start::master() {
 	os::log::debug "$( ps -ef | grep openshift )"
 
 	os::log::debug "Starting OpenShift server"
-	local openshift_env=( "OPENSHIFT_PROFILE=${OPENSHIFT_PROFILE:-web}" "OPENSHIFT_ON_PANIC=crash" )
+	local openshift_env=( "OPENSHIFT_ON_PANIC=crash" )
 	$(os::start::internal::openshift_executable) start master                                       \
 	                                             --loglevel=4                                       \
 	                                             --logspec='*importer=5'                            \

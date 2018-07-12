@@ -53,21 +53,6 @@ os::log::system::start
 # Prevent user environment from colliding with the test setup
 unset KUBECONFIG
 
-# handle profiling defaults
-profile="${OPENSHIFT_PROFILE-}"
-unset OPENSHIFT_PROFILE
-if [[ -n "${profile}" ]]; then
-    if [[ "${TEST_PROFILE-}" == "cli" ]]; then
-        export CLI_PROFILE="${profile}"
-    else
-        export WEB_PROFILE="${profile}"
-    fi
-else
-  export WEB_PROFILE=cpu
-fi
-
-# profile the web
-export OPENSHIFT_PROFILE="${WEB_PROFILE-}"
 export ALLOWED_REGISTRIES='[{"domainName":"172.30.30.30:5000"},{"domainName":"myregistry.com"},{"domainName":"registry.centos.org"},{"domainName":"docker.io"},{"domainName":"gcr.io"},{"domainName":"quay.io"},{"domainName":"*.redhat.com"},{"domainName":"*.docker.io"},{"domainName":"registry.redhat.io"}]'
 
 os::start::configure_server
@@ -78,9 +63,6 @@ os::cmd::expect_success_and_not_text "KUBECONFIG='' oc version" "Missing or inco
 os::test::junit::declare_suite_end
 
 os::start::master
-
-# profile the cli commands
-export OPENSHIFT_PROFILE="${CLI_PROFILE-}"
 
 os::start::registry
 

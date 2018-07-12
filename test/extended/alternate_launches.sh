@@ -44,7 +44,7 @@ sudo env "PATH=${PATH}" OPENSHIFT_ON_PANIC=crash openshift start etcd \
 &>"${LOG_DIR}/os-etcdserver.log" &
 
 os::log::info "Starting api server"
-sudo env "PATH=${PATH}" OPENSHIFT_PROFILE=web OPENSHIFT_ON_PANIC=crash openshift start master api \
+sudo env "PATH=${PATH}" OPENSHIFT_ON_PANIC=crash openshift start master api \
  --config=${MASTER_CONFIG_DIR}/master-config.yaml \
  --loglevel=4 \
 &>"${LOG_DIR}/os-apiserver.log" &
