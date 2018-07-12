@@ -335,6 +335,9 @@ readonly OS_ALL_IMAGES=(
 # os::build::check_binaries ensures that binary sizes do not grow without approval.
 function os::build::check_binaries() {
   platform=$(os::build::host_platform)
+  if [[ "${platform}" != "linux/amd64" && "${platform}" != "darwin/amd64" ]]; then
+    return 0
+  fi
   # enforce that certain binaries don't accidentally grow too large
   # IMPORTANT: contact Clayton or another master team member before altering this code
   if [[ -f "${OS_OUTPUT_BINPATH}/${platform}/oc" ]]; then

@@ -62,6 +62,10 @@ build-router-e2e-test:
 	hack/build-go.sh test/end-to-end/end-to-end.test
 .PHONY: build-router-e2e-test
 
+build-docs:
+	hack/generate-docs.sh
+.PHONY: build-docs
+
 # Run core verification and all self contained tests.
 #
 # Example:
