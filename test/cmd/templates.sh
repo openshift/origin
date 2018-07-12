@@ -5,12 +5,12 @@ trap os::test::junit::reconcile_output EXIT
 # Cleanup cluster resources created by this test
 (
   set +e
-  oc delete all,templates --all
-  oc delete template/ruby-helloworld-sample -n openshift
-  oc delete project test-template-project
-  oc delete user someval someval=moreval someval=moreval2 someval=moreval3
+  oc delete all,templates --all &>/dev/null
+  oc delete template/ruby-helloworld-sample -n openshift &>/dev/null
+  oc delete project test-template-project &>/dev/null
+  oc delete user someval someval=moreval someval=moreval2 someval=moreval3 &>/dev/null
   exit 0
-) &>/dev/null
+)
 
 
 os::test::junit::declare_suite_start "cmd/templates"

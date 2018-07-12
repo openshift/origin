@@ -11,10 +11,10 @@ fi
 # Cleanup cluster resources created by this test
 (
   set +e
-  oc delete oauthaccesstokens --all
+  oc delete oauthaccesstokens --all --loglevel=8
   oc adm policy remove-cluster-role-from-user cluster-debugger user3
   exit 0
-) &>/dev/null
+)
 
 os::test::junit::declare_suite_start "cmd/authentication"
 

@@ -12,9 +12,9 @@ trap os::test::junit::reconcile_output EXIT
 # Cleanup cluster resources created by this test
 (
   set +e
-  oc delete project project-bar
+  oc delete project project-bar &>/dev/null
   exit 0
-) &>/dev/null
+)
 
 login_kubeconfig="${ARTIFACT_DIR}/login.kubeconfig"
 cp "${KUBECONFIG}" "${login_kubeconfig}"

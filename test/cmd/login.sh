@@ -12,9 +12,9 @@ trap os::test::junit::reconcile_output EXIT
 # Cleanup cluster resources created by this test
 (
   set +e
-  oc delete project project-foo
+  oc delete project project-foo --loglevel=8
   exit 0
-) &>/dev/null
+)
 
 os::test::junit::declare_suite_start "cmd/login"
 # This test validates login functionality for the client

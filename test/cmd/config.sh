@@ -12,9 +12,9 @@ trap os::test::junit::reconcile_output EXIT
 # Cleanup cluster resources created by this test
 (
   set +e
-  oc delete all,templates,secrets --all
+  oc delete all,templates,secrets --all --loglevel=8
   exit 0
-) &>/dev/null
+)
 
 # check to make sure that "get"ting a resource with no config file present
 # still returns error indicating that no config-file is set

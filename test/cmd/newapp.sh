@@ -6,10 +6,10 @@ trap os::test::junit::reconcile_output EXIT
 (
   set +e
 #  oc delete all,templates --all
-  oc delete-project template-substitute
-  oc delete-project prefix-template-substitute
+  oc delete project template-substitute --loglevel=8
+  oc delete project prefix-template-substitute --loglevel=8
   exit 0
-) &>/dev/null
+)
 
 os::util::environment::setup_time_vars
 

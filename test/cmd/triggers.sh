@@ -5,9 +5,9 @@ trap os::test::junit::reconcile_output EXIT
 # Cleanup cluster resources created by this test
 (
   set +e
-  oc delete all --all
+  oc delete all --all &>/dev/null
   exit 0
-) &>/dev/null
+)
 
 
 url=":${API_PORT:-8443}"

@@ -5,10 +5,10 @@ trap os::test::junit::reconcile_output EXIT
 # Cleanup cluster resources created by this test
 (
   set +e
-  oc delete all,is,pods --all
+  oc delete all,is,pods --all --loglevel=8
 
   exit 0
-) &> /dev/null
+)
 
 project="$( oc project -q )"
 

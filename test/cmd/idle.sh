@@ -5,9 +5,9 @@ trap os::test::junit::reconcile_output EXIT
 # Cleanup cluster resources created by this test
 (
   set +e
-  oc delete all,templates --all
+  oc delete all,templates --all --loglevel=8
   exit 0
-) &>/dev/null
+)
 
 project="$(oc project -q)"
 idled_at_annotation='idling.alpha.openshift.io/idled-at'

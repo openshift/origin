@@ -5,9 +5,9 @@ trap os::test::junit::reconcile_output EXIT
 # Cleanup cluster resources created by this test
 (
   set +e
-  oc delete route foo bar testroute test-route new-route
+  oc delete route foo bar testroute test-route new-route --loglevel=8
   exit 0
-) &>/dev/null
+)
 
 
 os::test::junit::declare_suite_start "cmd/routes"
