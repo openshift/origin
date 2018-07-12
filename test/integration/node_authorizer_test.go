@@ -4,7 +4,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"runtime"
 	"testing"
 	"time"
 
@@ -110,110 +109,140 @@ func TestNodeAuthorizer(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	getSecret := func(client clientset.Interface) error {
-		_, err := client.Core().Secrets("ns").Get("mysecret", metav1.GetOptions{})
-		return err
+	getSecret := func(client clientset.Interface) func() error {
+		return func() error {
+			_, err := client.Core().Secrets("ns").Get("mysecret", metav1.GetOptions{})
+			return err
+		}
 	}
-	getPVSecret := func(client clientset.Interface) error {
-		_, err := client.Core().Secrets("ns").Get("mypvsecret", metav1.GetOptions{})
-		return err
+	getPVSecret := func(client clientset.Interface) func() error {
+		return func() error {
+			_, err := client.Core().Secrets("ns").Get("mypvsecret", metav1.GetOptions{})
+			return err
+		}
 	}
-	getConfigMap := func(client clientset.Interface) error {
-		_, err := client.Core().ConfigMaps("ns").Get("myconfigmap", metav1.GetOptions{})
-		return err
+	getConfigMap := func(client clientset.Interface) func() error {
+		return func() error {
+			_, err := client.Core().ConfigMaps("ns").Get("myconfigmap", metav1.GetOptions{})
+			return err
+		}
 	}
-	getPVC := func(client clientset.Interface) error {
-		_, err := client.Core().PersistentVolumeClaims("ns").Get("mypvc", metav1.GetOptions{})
-		return err
+	getPVC := func(client clientset.Interface) func() error {
+		return func() error {
+			_, err := client.Core().PersistentVolumeClaims("ns").Get("mypvc", metav1.GetOptions{})
+			return err
+		}
 	}
-	getPV := func(client clientset.Interface) error {
-		_, err := client.Core().PersistentVolumes().Get("mypv", metav1.GetOptions{})
-		return err
+	getPV := func(client clientset.Interface) func() error {
+		return func() error {
+			_, err := client.Core().PersistentVolumes().Get("mypv", metav1.GetOptions{})
+			return err
+		}
 	}
 
-	createNode2NormalPod := func(client clientset.Interface) error {
-		_, err := client.Core().Pods("ns").Create(&api.Pod{
-			ObjectMeta: metav1.ObjectMeta{Name: "node2normalpod"},
-			Spec: api.PodSpec{
-				NodeName:   "node2",
-				Containers: []api.Container{{Name: "image", Image: "busybox"}},
-				Volumes: []api.Volume{
-					{Name: "secret", VolumeSource: api.VolumeSource{Secret: &api.SecretVolumeSource{SecretName: "mysecret"}}},
-					{Name: "cm", VolumeSource: api.VolumeSource{ConfigMap: &api.ConfigMapVolumeSource{LocalObjectReference: api.LocalObjectReference{Name: "myconfigmap"}}}},
-					{Name: "pvc", VolumeSource: api.VolumeSource{PersistentVolumeClaim: &api.PersistentVolumeClaimVolumeSource{ClaimName: "mypvc"}}},
+	createNode2NormalPod := func(client clientset.Interface) func() error {
+		return func() error {
+			_, err := client.Core().Pods("ns").Create(&api.Pod{
+				ObjectMeta: metav1.ObjectMeta{Name: "node2normalpod"},
+				Spec: api.PodSpec{
+					NodeName:   "node2",
+					Containers: []api.Container{{Name: "image", Image: "busybox"}},
+					Volumes: []api.Volume{
+						{Name: "secret", VolumeSource: api.VolumeSource{Secret: &api.SecretVolumeSource{SecretName: "mysecret"}}},
+						{Name: "cm", VolumeSource: api.VolumeSource{ConfigMap: &api.ConfigMapVolumeSource{LocalObjectReference: api.LocalObjectReference{Name: "myconfigmap"}}}},
+						{Name: "pvc", VolumeSource: api.VolumeSource{PersistentVolumeClaim: &api.PersistentVolumeClaimVolumeSource{ClaimName: "mypvc"}}},
+					},
 				},
-			},
-		})
-		return err
+			})
+			return err
+		}
 	}
-	updateNode2NormalPodStatus := func(client clientset.Interface) error {
-		startTime := metav1.NewTime(time.Now())
-		_, err := client.Core().Pods("ns").UpdateStatus(&api.Pod{
-			ObjectMeta: metav1.ObjectMeta{Name: "node2normalpod"},
-			Status:     api.PodStatus{StartTime: &startTime},
-		})
-		return err
+	updateNode2NormalPodStatus := func(client clientset.Interface) func() error {
+		return func() error {
+			startTime := metav1.NewTime(time.Now())
+			_, err := client.Core().Pods("ns").UpdateStatus(&api.Pod{
+				ObjectMeta: metav1.ObjectMeta{Name: "node2normalpod"},
+				Status:     api.PodStatus{StartTime: &startTime},
+			})
+			return err
+		}
 	}
-	deleteNode2NormalPod := func(client clientset.Interface) error {
-		zero := int64(0)
-		return client.Core().Pods("ns").Delete("node2normalpod", &metav1.DeleteOptions{GracePeriodSeconds: &zero})
-	}
-
-	createNode2MirrorPod := func(client clientset.Interface) error {
-		_, err := client.Core().Pods("ns").Create(&api.Pod{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:        "node2mirrorpod",
-				Annotations: map[string]string{api.MirrorPodAnnotationKey: "true"},
-			},
-			Spec: api.PodSpec{
-				NodeName:   "node2",
-				Containers: []api.Container{{Name: "image", Image: "busybox"}},
-			},
-		})
-		return err
-	}
-	deleteNode2MirrorPod := func(client clientset.Interface) error {
-		zero := int64(0)
-		return client.Core().Pods("ns").Delete("node2mirrorpod", &metav1.DeleteOptions{GracePeriodSeconds: &zero})
+	deleteNode2NormalPod := func(client clientset.Interface) func() error {
+		return func() error {
+			zero := int64(0)
+			return client.Core().Pods("ns").Delete("node2normalpod", &metav1.DeleteOptions{GracePeriodSeconds: &zero})
+		}
 	}
 
-	createNode2 := func(client clientset.Interface) error {
-		_, err := client.Core().Nodes().Create(&api.Node{ObjectMeta: metav1.ObjectMeta{Name: "node2"}})
-		return err
+	createNode2MirrorPod := func(client clientset.Interface) func() error {
+		return func() error {
+			_, err := client.Core().Pods("ns").Create(&api.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        "node2mirrorpod",
+					Annotations: map[string]string{api.MirrorPodAnnotationKey: "true"},
+				},
+				Spec: api.PodSpec{
+					NodeName:   "node2",
+					Containers: []api.Container{{Name: "image", Image: "busybox"}},
+				},
+			})
+			return err
+		}
 	}
-	updateNode2Status := func(client clientset.Interface) error {
-		_, err := client.Core().Nodes().UpdateStatus(&api.Node{
-			ObjectMeta: metav1.ObjectMeta{Name: "node2"},
-			Status:     api.NodeStatus{},
-		})
-		return err
+	deleteNode2MirrorPod := func(client clientset.Interface) func() error {
+		return func() error {
+			zero := int64(0)
+			return client.Core().Pods("ns").Delete("node2mirrorpod", &metav1.DeleteOptions{GracePeriodSeconds: &zero})
+		}
 	}
-	deleteNode2 := func(client clientset.Interface) error {
-		return client.Core().Nodes().Delete("node2", nil)
+
+	createNode2 := func(client clientset.Interface) func() error {
+		return func() error {
+			_, err := client.Core().Nodes().Create(&api.Node{ObjectMeta: metav1.ObjectMeta{Name: "node2"}})
+			return err
+		}
 	}
-	createNode2NormalPodEviction := func(client clientset.Interface) error {
-		return client.Policy().Evictions("ns").Evict(&policy.Eviction{
-			TypeMeta: metav1.TypeMeta{
-				APIVersion: "policy/v1beta1",
-				Kind:       "Eviction",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "node2normalpod",
-				Namespace: "ns",
-			},
-		})
+	updateNode2Status := func(client clientset.Interface) func() error {
+		return func() error {
+			_, err := client.Core().Nodes().UpdateStatus(&api.Node{
+				ObjectMeta: metav1.ObjectMeta{Name: "node2"},
+				Status:     api.NodeStatus{},
+			})
+			return err
+		}
 	}
-	createNode2MirrorPodEviction := func(client clientset.Interface) error {
-		return client.Policy().Evictions("ns").Evict(&policy.Eviction{
-			TypeMeta: metav1.TypeMeta{
-				APIVersion: "policy/v1beta1",
-				Kind:       "Eviction",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "node2mirrorpod",
-				Namespace: "ns",
-			},
-		})
+	deleteNode2 := func(client clientset.Interface) func() error {
+		return func() error {
+			return client.Core().Nodes().Delete("node2", nil)
+		}
+	}
+	createNode2NormalPodEviction := func(client clientset.Interface) func() error {
+		return func() error {
+			return client.Policy().Evictions("ns").Evict(&policy.Eviction{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: "policy/v1beta1",
+					Kind:       "Eviction",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "node2normalpod",
+					Namespace: "ns",
+				},
+			})
+		}
+	}
+	createNode2MirrorPodEviction := func(client clientset.Interface) func() error {
+		return func() error {
+			return client.Policy().Evictions("ns").Evict(&policy.Eviction{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: "policy/v1beta1",
+					Kind:       "Eviction",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "node2mirrorpod",
+					Namespace: "ns",
+				},
+			})
+		}
 	}
 
 	// nodeanonClient := clientsetForToken(tokenNodeUnknown, clientConfig)
@@ -340,23 +369,40 @@ func makeNodeClientset(t *testing.T, signer *admin.SignerCertOptions, certDir st
 	return c
 }
 
-func expectForbidden(t *testing.T, err error) {
-	if !errors.IsForbidden(err) {
-		_, file, line, _ := runtime.Caller(1)
-		t.Errorf("%s:%d: Expected forbidden error, got %v", filepath.Base(file), line, err)
+// expect executes a function a set number of times until it either returns the
+// expected error or executes too many times. It returns if the retries timed
+// out and the last error returned by the method.
+func expect(t *testing.T, f func() error, wantErr func(error) bool) (timeout bool, lastErr error) {
+	t.Helper()
+	err := wait.PollImmediate(time.Second, 30*time.Second, func() (bool, error) {
+		t.Helper()
+		lastErr = f()
+		if wantErr(lastErr) {
+			return true, nil
+		}
+		t.Logf("unexpected response, will retry: %v", lastErr)
+		return false, nil
+	})
+	return err == nil, lastErr
+}
+
+func expectForbidden(t *testing.T, f func() error) {
+	t.Helper()
+	if ok, err := expect(t, f, errors.IsForbidden); !ok {
+		t.Errorf("Expected forbidden error, got %v", err)
 	}
 }
 
-func expectNotFound(t *testing.T, err error) {
-	if !errors.IsNotFound(err) {
-		_, file, line, _ := runtime.Caller(1)
-		t.Errorf("%s:%d: Expected notfound error, got %v", filepath.Base(file), line, err)
+func expectNotFound(t *testing.T, f func() error) {
+	t.Helper()
+	if ok, err := expect(t, f, errors.IsNotFound); !ok {
+		t.Errorf("Expected notfound error, got %v", err)
 	}
 }
 
-func expectAllowed(t *testing.T, err error) {
-	if err != nil {
-		_, file, line, _ := runtime.Caller(1)
-		t.Errorf("%s:%d: Expected no error, got %v", filepath.Base(file), line, err)
+func expectAllowed(t *testing.T, f func() error) {
+	t.Helper()
+	if ok, err := expect(t, f, func(e error) bool { return e == nil }); !ok {
+		t.Errorf("Expected no error, got %v", err)
 	}
 }
