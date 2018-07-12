@@ -1387,7 +1387,7 @@ func setBuildCompletionData(build *buildapi.Build, pod *v1.Pod, update *buildUpd
 		update.setDuration(now.Rfc3339Copy().Time.Sub(startTime.Rfc3339Copy().Time))
 	}
 
-	if build.Status.Phase == buildapi.BuildPhaseFailed && len(build.Status.LogSnippet) == 0 &&
+	if (build.Status.Phase == buildapi.BuildPhaseFailed || (update.phase != nil && *update.phase == buildapi.BuildPhaseFailed)) && len(build.Status.LogSnippet) == 0 &&
 		pod != nil && len(pod.Status.ContainerStatuses) != 0 && pod.Status.ContainerStatuses[0].State.Terminated != nil {
 		msg := pod.Status.ContainerStatuses[0].State.Terminated.Message
 		if len(msg) != 0 {
