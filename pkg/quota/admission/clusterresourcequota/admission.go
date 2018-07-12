@@ -7,8 +7,10 @@ import (
 	"sync"
 	"time"
 
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/admission"
+	"k8s.io/apiserver/pkg/admission/plugin/namespace/lifecycle"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 	kcorelisters "k8s.io/kubernetes/pkg/client/listers/core/internalversion"
@@ -94,7 +96,7 @@ func (q *clusterQuotaAdmission) Admit(a admission.Attributes) (err error) {
 
 	q.init.Do(func() {
 		clusterQuotaAccessor := newQuotaAccessor(q.clusterQuotaLister, q.namespaceLister, q.clusterQuotaClient, q.clusterQuotaMapper)
-		q.evaluator = resourcequota.NewQuotaEvaluator(clusterQuotaAccessor, install.DefaultIgnoredResources(), q.registry, q.lockAquisition, &resourcequotaapi.Configuration{}, numEvaluatorThreads, utilwait.NeverStop)
+		q.evaluator = resourcequota.NewQuotaEvaluator(clusterQuotaAccessor, ignoredResources, q.registry, q.lockAquisition, &resourcequotaapi.Configuration{}, numEvaluatorThreads, utilwait.NeverStop)
 	})
 
 	return q.evaluator.Evaluate(a)
@@ -174,3 +176,18 @@ type ByName []kapi.ResourceQuota
 func (v ByName) Len() int           { return len(v) }
 func (v ByName) Swap(i, j int)      { v[i], v[j] = v[j], v[i] }
 func (v ByName) Less(i, j int) bool { return v[i].Name < v[j].Name }
+
+// ignoredResources is the set of resources that clusterquota ignores.  It's larger because we have to ignore requests
+// that the namespace lifecycle plugin ignores.  This is because of the need to have a matching namespace in order to be sure
+// that the cache is current enough to have mapped the CRQ to the namespaces.  Normal RQ doesn't have that requirement.
+var ignoredResources = map[schema.GroupResource]struct{}{}
+
+func init() {
+	for k := range install.DefaultIgnoredResources() {
+		ignoredResources[k] = struct{}{}
+	}
+	for k := range lifecycle.AccessReviewResources() {
+		ignoredResources[k] = struct{}{}
+	}
+
+}

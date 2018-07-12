@@ -87,7 +87,7 @@ func TestOAuthServiceAccountClientEvent(t *testing.T) {
 			annotationPrefix:    saoauth.OAuthRedirectModelAnnotationReferencePrefix + "1",
 			annotation:          `{"kind":"foo","apiVersion":"oauth.openshift.io/v1","metadata":{"creationTimestamp":null},"reference":{"group":"foo","kind":"Route","name":"route1"}}`,
 			expectedEventReason: "NoSAOAuthRedirectURIs",
-			expectedEventMsg:    `[no kind "foo" is registered for version "oauth.openshift.io/v1", system:serviceaccount:` + projectName + ":" + saName + " has no redirectURIs; set serviceaccounts.openshift.io/oauth-redirecturi.<some-value>=<redirect> or create a dynamic URI using serviceaccounts.openshift.io/oauth-redirectreference.<some-value>=<reference>]",
+			expectedEventMsg:    `[no kind "foo" is registered for version "oauth.openshift.io/v1" in scheme "github.com/openshift/origin/pkg/serviceaccounts/oauthclient/oauthclientregistry.go:54", system:serviceaccount:` + projectName + ":" + saName + " has no redirectURIs; set serviceaccounts.openshift.io/oauth-redirecturi.<some-value>=<redirect> or create a dynamic URI using serviceaccounts.openshift.io/oauth-redirectreference.<some-value>=<reference>]",
 			numEvents:           1,
 			expectBadRequest:    true,
 		},
