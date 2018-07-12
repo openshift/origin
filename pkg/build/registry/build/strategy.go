@@ -53,7 +53,11 @@ func (strategy) PrepareForUpdate(ctx context.Context, obj, old runtime.Object) {
 	// of the reason and message. This is to prevent the build controller from
 	// overwriting the reason and message that was set by the builder pod
 	// when it updated the build's details.
-	if oldBuild.Status.Phase == buildapi.BuildPhaseFailed {
+	// Only allow OOMKilled override because various processes in a container
+	// can get OOMKilled and this confuses builder to prematurely populate
+	// failure reason
+	if oldBuild.Status.Phase == buildapi.BuildPhaseFailed &&
+		newBuild.Status.Reason != buildapi.StatusReasonOutOfMemoryKilled {
 		newBuild.Status.Reason = oldBuild.Status.Reason
 		newBuild.Status.Message = oldBuild.Status.Message
 	}

@@ -1001,7 +1001,9 @@ func (bc *BuildController) handleActiveBuild(build *buildapi.Build, pod *v1.Pod)
 			}
 		}
 	case v1.PodFailed:
-		if build.Status.Phase != buildapi.BuildPhaseFailed {
+		if isOOMKilled(pod) {
+			update = transitionToPhase(buildapi.BuildPhaseFailed, buildapi.StatusReasonOutOfMemoryKilled, buildapi.StatusMessageOutOfMemoryKilled)
+		} else if build.Status.Phase != buildapi.BuildPhaseFailed {
 			// If a DeletionTimestamp has been set, it means that the pod will
 			// soon be deleted. The build should be transitioned to the Error phase.
 			if pod.DeletionTimestamp != nil {
@@ -1014,11 +1016,33 @@ func (bc *BuildController) handleActiveBuild(build *buildapi.Build, pod *v1.Pod)
 	return update, nil
 }
 
+func isOOMKilled(pod *v1.Pod) bool {
+	if pod.Status.Reason == "OOMKilled" {
+		return true
+	}
+	for _, c := range pod.Status.InitContainerStatuses {
+		terminated := c.State.Terminated
+		if terminated != nil && terminated.Reason == "OOMKilled" {
+			return true
+		}
+	}
+	for _, c := range pod.Status.ContainerStatuses {
+		terminated := c.State.Terminated
+		if terminated != nil && terminated.Reason == "OOMKilled" {
+			return true
+		}
+	}
+	return false
+}
+
 // handleCompletedBuild will only be called on builds that are already in a terminal phase.  It is used to setup the
 // completion timestamp and failure logsnippet as needed.
 func (bc *BuildController) handleCompletedBuild(build *buildapi.Build, pod *v1.Pod) (*buildUpdate, error) {
 
 	update := &buildUpdate{}
+	if isOOMKilled(pod) {
+		update = transitionToPhase(buildapi.BuildPhaseFailed, buildapi.StatusReasonOutOfMemoryKilled, buildapi.StatusMessageOutOfMemoryKilled)
+	}
 	setBuildCompletionData(build, pod, update)
 
 	return update, nil
