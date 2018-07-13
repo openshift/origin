@@ -445,7 +445,7 @@ backend be_secure:{{$cfgIdx}}
   {{- end }}{{/* is "edge" or "reencrypt" */}}
 
   {{- range $serviceUnitName, $weight := $cfg.ServiceUnitNames }}
-    {{- if ne $weight 0 }}
+    {{- if ge $weight 0 }}{{/* weight=0 is reasonable to keep existing connections to backends with cookies as we can see the HTTP headers */}}
       {{- with $serviceUnit := index $.ServiceUnits $serviceUnitName }}
         {{- range $idx, $endpoint := processEndpointsForAlias $cfg $serviceUnit (env "ROUTER_BACKEND_PROCESS_ENDPOINTS" "") }}
   server {{$endpoint.ID}} {{$endpoint.IP}}:{{$endpoint.Port}} cookie {{$endpoint.IdHash}} weight {{$weight}}
@@ -514,7 +514,7 @@ backend be_tcp:{{$cfgIdx}}
   hash-type consistent
   timeout check 5000ms
     {{- range $serviceUnitName, $weight := $cfg.ServiceUnitNames }}
-      {{- if ne $weight 0 }}
+      {{- if ne $weight 0 }}}{{/* drop connections where weight=0 as we can't use cookies, leaving only r-r and src-ip as dispatch methods and weight make no sense there */}}
         {{- with $serviceUnit := index $.ServiceUnits $serviceUnitName }}
           {{- range $idx, $endpoint := processEndpointsForAlias $cfg $serviceUnit (env "ROUTER_BACKEND_PROCESS_ENDPOINTS" "") }}
   server {{$endpoint.ID}} {{$endpoint.IP}}:{{$endpoint.Port}} weight {{$weight}}
