@@ -56,10 +56,12 @@ objects:
             privileged: true
             runAsUser: 0
           volumeMounts:
-           - mountPath: /etc/origin/master/
-             name: master-config
-           - mountPath: /etc/origin/cloudprovider/
-             name: master-cloud-provider
+          - mountPath: /var/serving-cert
+            name: serving-cert
+          - mountPath: /etc/origin/master/
+            name: master-config
+          - mountPath: /etc/origin/cloudprovider/
+            name: master-cloud-provider
           readinessProbe:
             httpGet:
               path: /healthz
@@ -73,6 +75,9 @@ objects:
         - name: master-cloud-provider
           hostPath:
             path: /etc/origin/cloudprovider
+        - name: serving-cert
+          secret:
+            secretName: serving-cert
 
 
 # to be able to assign powers to the process
@@ -88,7 +93,7 @@ objects:
     namespace: ${NAMESPACE}
     name: api
     annotations:
-      service.alpha.openshift.io/serving-cert-secret-name: apiserver-serving-cert
+      service.alpha.openshift.io/serving-cert-secret-name: serving-cert
   spec:
     selector:
       openshift.io/component: api
@@ -101,13 +106,14 @@ objects:
   kind: APIService
   metadata:
     name: v1.apps.openshift.io
+    annotations:
+      service.alpha.openshift.io/inject-cabundle: "true"
   spec:
     group: apps.openshift.io
     version: v1
     service:
       namespace: openshift-apiserver
       name: api
-    insecureSkipTLSVerify: true
     groupPriorityMinimum: 9900
     versionPriority: 15
 
@@ -115,13 +121,14 @@ objects:
   kind: APIService
   metadata:
     name: v1.authorization.openshift.io
+    annotations:
+      service.alpha.openshift.io/inject-cabundle: "true"
   spec:
     group: authorization.openshift.io
     version: v1
     service:
       namespace: openshift-apiserver
       name: api
-    insecureSkipTLSVerify: true
     groupPriorityMinimum: 9900
     versionPriority: 15
 
@@ -129,13 +136,14 @@ objects:
   kind: APIService
   metadata:
     name: v1.build.openshift.io
+    annotations:
+      service.alpha.openshift.io/inject-cabundle: "true"
   spec:
     group: build.openshift.io
     version: v1
     service:
       namespace: openshift-apiserver
       name: api
-    insecureSkipTLSVerify: true
     groupPriorityMinimum: 9900
     versionPriority: 15
 
@@ -143,13 +151,14 @@ objects:
   kind: APIService
   metadata:
     name: v1.image.openshift.io
+    annotations:
+      service.alpha.openshift.io/inject-cabundle: "true"
   spec:
     group: image.openshift.io
     version: v1
     service:
       namespace: openshift-apiserver
       name: api
-    insecureSkipTLSVerify: true
     groupPriorityMinimum: 9900
     versionPriority: 15
 
@@ -157,13 +166,14 @@ objects:
   kind: APIService
   metadata:
     name: v1.network.openshift.io
+    annotations:
+      service.alpha.openshift.io/inject-cabundle: "true"
   spec:
     group: network.openshift.io
     version: v1
     service:
       namespace: openshift-apiserver
       name: api
-    insecureSkipTLSVerify: true
     groupPriorityMinimum: 9900
     versionPriority: 15
 
@@ -171,13 +181,14 @@ objects:
   kind: APIService
   metadata:
     name: v1.oauth.openshift.io
+    annotations:
+      service.alpha.openshift.io/inject-cabundle: "true"
   spec:
     group: oauth.openshift.io
     version: v1
     service:
       namespace: openshift-apiserver
       name: api
-    insecureSkipTLSVerify: true
     groupPriorityMinimum: 9900
     versionPriority: 15
 
@@ -185,13 +196,14 @@ objects:
   kind: APIService
   metadata:
     name: v1.project.openshift.io
+    annotations:
+      service.alpha.openshift.io/inject-cabundle: "true"
   spec:
     group: project.openshift.io
     version: v1
     service:
       namespace: openshift-apiserver
       name: api
-    insecureSkipTLSVerify: true
     groupPriorityMinimum: 9900
     versionPriority: 15
 
@@ -199,13 +211,14 @@ objects:
   kind: APIService
   metadata:
     name: v1.quota.openshift.io
+    annotations:
+      service.alpha.openshift.io/inject-cabundle: "true"
   spec:
     group: quota.openshift.io
     version: v1
     service:
       namespace: openshift-apiserver
       name: api
-    insecureSkipTLSVerify: true
     groupPriorityMinimum: 9900
     versionPriority: 15
 
@@ -213,13 +226,14 @@ objects:
   kind: APIService
   metadata:
     name: v1.route.openshift.io
+    annotations:
+      service.alpha.openshift.io/inject-cabundle: "true"
   spec:
     group: route.openshift.io
     version: v1
     service:
       namespace: openshift-apiserver
       name: api
-    insecureSkipTLSVerify: true
     groupPriorityMinimum: 9900
     versionPriority: 15
 
@@ -227,13 +241,14 @@ objects:
   kind: APIService
   metadata:
     name: v1.security.openshift.io
+    annotations:
+      service.alpha.openshift.io/inject-cabundle: "true"
   spec:
     group: security.openshift.io
     version: v1
     service:
       namespace: openshift-apiserver
       name: api
-    insecureSkipTLSVerify: true
     groupPriorityMinimum: 9900
     versionPriority: 15
 
@@ -241,13 +256,14 @@ objects:
   kind: APIService
   metadata:
     name: v1.template.openshift.io
+    annotations:
+      service.alpha.openshift.io/inject-cabundle: "true"
   spec:
     group: template.openshift.io
     version: v1
     service:
       namespace: openshift-apiserver
       name: api
-    insecureSkipTLSVerify: true
     groupPriorityMinimum: 9900
     versionPriority: 15
 
@@ -255,12 +271,13 @@ objects:
   kind: APIService
   metadata:
     name: v1.user.openshift.io
+    annotations:
+      service.alpha.openshift.io/inject-cabundle: "true"
   spec:
     group: user.openshift.io
     version: v1
     service:
       namespace: openshift-apiserver
       name: api
-    insecureSkipTLSVerify: true
     groupPriorityMinimum: 9900
     versionPriority: 15
