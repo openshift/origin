@@ -46,6 +46,7 @@
 // test/extended/testdata/builds/statusfail-fetchsourcedocker.yaml
 // test/extended/testdata/builds/statusfail-fetchsources2i.yaml
 // test/extended/testdata/builds/statusfail-genericreason.yaml
+// test/extended/testdata/builds/statusfail-oomkilled.yaml
 // test/extended/testdata/builds/statusfail-postcommithook.yaml
 // test/extended/testdata/builds/statusfail-pushtoregistry.yaml
 // test/extended/testdata/builds/sti-environment-build-app/.sti/environment
@@ -1969,6 +1970,40 @@ func testExtendedTestdataBuildsStatusfailGenericreasonYaml() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/builds/statusfail-genericreason.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsStatusfailOomkilledYaml = []byte(`kind: BuildConfig
+apiVersion: v1
+metadata:
+  name: statusfail-oomkilled
+spec:
+  resources:
+    limits:
+      memory: 10Mi
+  source:
+    git:
+      uri: "https://github.com/openshift/ruby-hello-world"
+  strategy:
+    type: Source
+    sourceStrategy:
+      from:
+        kind: DockerImage
+        name: centos/ruby-23-centos7:latest
+`)
+
+func testExtendedTestdataBuildsStatusfailOomkilledYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsStatusfailOomkilledYaml, nil
+}
+
+func testExtendedTestdataBuildsStatusfailOomkilledYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsStatusfailOomkilledYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/statusfail-oomkilled.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -33607,6 +33642,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/builds/statusfail-fetchsourcedocker.yaml": testExtendedTestdataBuildsStatusfailFetchsourcedockerYaml,
 	"test/extended/testdata/builds/statusfail-fetchsources2i.yaml": testExtendedTestdataBuildsStatusfailFetchsources2iYaml,
 	"test/extended/testdata/builds/statusfail-genericreason.yaml": testExtendedTestdataBuildsStatusfailGenericreasonYaml,
+	"test/extended/testdata/builds/statusfail-oomkilled.yaml": testExtendedTestdataBuildsStatusfailOomkilledYaml,
 	"test/extended/testdata/builds/statusfail-postcommithook.yaml": testExtendedTestdataBuildsStatusfailPostcommithookYaml,
 	"test/extended/testdata/builds/statusfail-pushtoregistry.yaml": testExtendedTestdataBuildsStatusfailPushtoregistryYaml,
 	"test/extended/testdata/builds/sti-environment-build-app/.sti/environment": testExtendedTestdataBuildsStiEnvironmentBuildAppStiEnvironment,
@@ -34076,6 +34112,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"statusfail-fetchsourcedocker.yaml": &bintree{testExtendedTestdataBuildsStatusfailFetchsourcedockerYaml, map[string]*bintree{}},
 					"statusfail-fetchsources2i.yaml": &bintree{testExtendedTestdataBuildsStatusfailFetchsources2iYaml, map[string]*bintree{}},
 					"statusfail-genericreason.yaml": &bintree{testExtendedTestdataBuildsStatusfailGenericreasonYaml, map[string]*bintree{}},
+					"statusfail-oomkilled.yaml": &bintree{testExtendedTestdataBuildsStatusfailOomkilledYaml, map[string]*bintree{}},
 					"statusfail-postcommithook.yaml": &bintree{testExtendedTestdataBuildsStatusfailPostcommithookYaml, map[string]*bintree{}},
 					"statusfail-pushtoregistry.yaml": &bintree{testExtendedTestdataBuildsStatusfailPushtoregistryYaml, map[string]*bintree{}},
 					"sti-environment-build-app": &bintree{nil, map[string]*bintree{

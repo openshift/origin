@@ -27,6 +27,7 @@ var _ = g.Describe("[Feature:Builds][Slow] update failure status", func() {
 		fetchDockerSrc        = exutil.FixturePath("testdata", "builds", "statusfail-fetchsourcedocker.yaml")
 		fetchS2ISrc           = exutil.FixturePath("testdata", "builds", "statusfail-fetchsources2i.yaml")
 		badContextDirS2ISrc   = exutil.FixturePath("testdata", "builds", "statusfail-badcontextdirs2i.yaml")
+		oomkilled             = exutil.FixturePath("testdata", "builds", "statusfail-oomkilled.yaml")
 		builderImageFixture   = exutil.FixturePath("testdata", "builds", "statusfail-fetchbuilderimage.yaml")
 		pushToRegistryFixture = exutil.FixturePath("testdata", "builds", "statusfail-pushtoregistry.yaml")
 		failedAssembleFixture = exutil.FixturePath("testdata", "builds", "statusfail-failedassemble.yaml")
@@ -125,6 +126,32 @@ var _ = g.Describe("[Feature:Builds][Slow] update failure status", func() {
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(build.Status.Reason).To(o.Equal(buildapi.StatusReasonFetchSourceFailed))
 				o.Expect(build.Status.Message).To(o.Equal(buildapi.StatusMessageFetchSourceFailed))
+
+				exutil.CheckForBuildEvent(oc.KubeClient().Core(), br.Build, buildapi.BuildFailedEventReason, buildapi.BuildFailedEventMessage)
+			})
+		})
+
+		g.Describe("Build status OutOfMemoryKilled", func() {
+			g.It("should contain OutOfMemoryKilled failure reason and message", func() {
+				err := oc.Run("create").Args("-f", oomkilled).Execute()
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				br, err := exutil.StartBuildAndWait(oc, "statusfail-oomkilled", "--build-loglevel=5")
+				o.Expect(err).NotTo(o.HaveOccurred())
+				br.AssertFailure()
+				br.DumpLogs()
+
+				var build *buildapi.Build
+				wait.PollImmediate(200*time.Millisecond, 30*time.Second, func() (bool, error) {
+					build, err = oc.BuildClient().Build().Builds(oc.Namespace()).Get(br.Build.Name, metav1.GetOptions{})
+					if build.Status.Reason != buildapi.StatusReasonOutOfMemoryKilled {
+						return false, nil
+					}
+					return true, nil
+				})
+				o.Expect(err).NotTo(o.HaveOccurred())
+				o.Expect(build.Status.Reason).To(o.Equal(buildapi.StatusReasonOutOfMemoryKilled))
+				o.Expect(build.Status.Message).To(o.Equal(buildapi.StatusMessageOutOfMemoryKilled))
 
 				exutil.CheckForBuildEvent(oc.KubeClient().Core(), br.Build, buildapi.BuildFailedEventReason, buildapi.BuildFailedEventMessage)
 			})
