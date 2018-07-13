@@ -8,8 +8,6 @@ function cleanup() {
 }
 trap "cleanup" EXIT
 
-os::golang::verify_go_version
-
 bad_files=$(os::util::list_go_src_files | xargs gofmt -s -l)
 if [[ -n "${bad_files}" ]]; then
 	os::log::warning "!!! gofmt needs to be run on the listed files"

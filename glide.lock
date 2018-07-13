@@ -1,5 +1,5 @@
-hash: df63691eefa0455af08310071c1457c268b7d58f2ceb813c0c29d06ec75a5d3d
-updated: 2018-07-06T14:12:33.305926721-04:00
+hash: 39269802bf8a51701d8e237475097bf81797c5d59253ef5eb16c69870ab4820d
+updated: 2018-07-11T23:32:45.047353556-07:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -81,6 +81,10 @@ imports:
   - autorest/date
   - autorest/to
   - autorest/validation
+- name: github.com/bcicen/go-haproxy
+  version: ff5824fe38bede761b873cab6e247a530e89236a
+  subpackages:
+  - kvcodec
 - name: github.com/beorn7/perks
   version: 3ac7bf7a47d159a033b107610db8a1b6575507a4
   subpackages:
@@ -425,6 +429,8 @@ imports:
   version: f3f9494671f93fcff853e3c6e9e948b3eb71e590
 - name: github.com/go-openapi/validate
   version: d509235108fcf6ab4913d2dcb3a2260c0db2108e
+- name: github.com/gocarina/gocsv
+  version: a5c9099e2484f1551abb9433885e158610a25f4b
 - name: github.com/godbus/dbus
   version: c7fdd8b5cd55e87b4e1f4e372cdb1db61dd6c66f
 - name: github.com/gogo/protobuf
@@ -809,7 +815,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: 95626b0211df2ed778b4d68c3e9e61138677d315
+  version: f8215ce525d43bfcc42aeacf0c53c519fd3d41ef
   subpackages:
   - apps/v1
   - authorization/v1
@@ -831,7 +837,7 @@ imports:
   - user/v1
   - webconsole/v1
 - name: github.com/openshift/client-go
-  version: 4688ad28de2e88110c0ea30179c51b9b205f99be
+  version: b22949ca0eae046da7611d0d20c8089dcec212d6
   subpackages:
   - apps/clientset/versioned
   - apps/clientset/versioned/scheme
@@ -938,7 +944,7 @@ imports:
   - user/informers/externalversions/user/v1
   - user/listers/user/v1
 - name: github.com/openshift/imagebuilder
-  version: 4670fc31fca6121da0dcf42d6b9b298479c1715a
+  version: bfc0aea02ce95dcfc1a83d452270dbc66933709b
   subpackages:
   - dockerclient
   - imageprogress
@@ -957,7 +963,7 @@ imports:
   - pkg/operator/resource/resourcemerge
   - pkg/serviceability
 - name: github.com/openshift/service-serving-cert-signer
-  version: 4e91b73f7394df0fffb885c35ac9b517cc385d2e
+  version: 10d530a76d1e98ae342df2fa5a3cbefd5dc3f241
   subpackages:
   - pkg/controller/servingcert
   - pkg/controller/servingcert/cryptoextensions
@@ -1827,7 +1833,7 @@ imports:
   - pkg/util/proto/testing
   - pkg/util/proto/validation
 - name: k8s.io/kubernetes
-  version: 5200705703cbf4abe250da3822f67e244e11d5b0
+  version: 9a9fb880ba176e6375b5ee47ebc289fb90f974c6
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/controller-manager/app
