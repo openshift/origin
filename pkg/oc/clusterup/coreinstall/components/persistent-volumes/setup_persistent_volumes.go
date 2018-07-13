@@ -83,7 +83,6 @@ function create_pv() {
 }
 
 basedir="%[2]s"
-setup_pv_dir "${basedir}/registry"
 
 for i in $(seq -f "%%04g" 1 %[1]d); do
   create_pv "${basedir}" "pv${i}"
