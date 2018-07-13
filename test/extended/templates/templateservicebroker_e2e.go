@@ -24,7 +24,9 @@ import (
 	rbacapi "k8s.io/kubernetes/pkg/apis/rbac"
 	"k8s.io/kubernetes/test/e2e/framework"
 
+	authorization "github.com/openshift/api/authorization"
 	templateapiv1 "github.com/openshift/api/template/v1"
+	"github.com/openshift/origin/pkg/api/legacy"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -309,8 +311,8 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 					kapi.Kind("Secret"),
 					kapi.Kind("RoleBinding"),
 					rbacapi.Kind("RoleBinding"),
-					authorizationapi.LegacyKind("RoleBinding"),
-					authorizationapi.Kind("RoleBinding"),
+					legacy.Kind("RoleBinding"),
+					authorization.Kind("RoleBinding"),
 					schema.GroupKind{Group: "events.k8s.io", Kind: "Event"}:
 					continue
 				}

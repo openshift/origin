@@ -12,6 +12,7 @@ import (
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 
+	authorization "github.com/openshift/api/authorization"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	authorizationvalidation "github.com/openshift/origin/pkg/authorization/apis/authorization/validation"
 	"github.com/openshift/origin/pkg/authorization/authorizer"
@@ -47,7 +48,7 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, _ rest.ValidateOb
 		return nil, kapierrors.NewBadRequest(fmt.Sprintf("not a subjectAccessReview: %#v", obj))
 	}
 	if errs := authorizationvalidation.ValidateSubjectAccessReview(subjectAccessReview); len(errs) > 0 {
-		return nil, kapierrors.NewInvalid(authorizationapi.Kind(subjectAccessReview.Kind), "", errs)
+		return nil, kapierrors.NewInvalid(authorization.Kind(subjectAccessReview.Kind), "", errs)
 	}
 
 	requestingUser, ok := apirequest.UserFrom(ctx)
@@ -153,10 +154,10 @@ func (r *REST) isAllowed(user user.Info, sar *authorizationapi.SubjectAccessRevi
 	authorized, reason, err := r.authorizer.Authorize(localSARAttributes)
 
 	if err != nil {
-		return kapierrors.NewForbidden(authorizationapi.Resource(localSARAttributes.GetResource()), localSARAttributes.GetName(), err)
+		return kapierrors.NewForbidden(authorization.Resource(localSARAttributes.GetResource()), localSARAttributes.GetName(), err)
 	}
 	if authorized != kauthorizer.DecisionAllow {
-		forbiddenError := kapierrors.NewForbidden(authorizationapi.Resource(localSARAttributes.GetResource()), localSARAttributes.GetName(), errors.New("") /*discarded*/)
+		forbiddenError := kapierrors.NewForbidden(authorization.Resource(localSARAttributes.GetResource()), localSARAttributes.GetName(), errors.New("") /*discarded*/)
 		forbiddenError.ErrStatus.Message = reason
 		return forbiddenError
 	}
