@@ -19,8 +19,6 @@ func computeKubeControllerManagerArgs(kubeconfigFile, saPrivateKeyFile, saRootCA
 			"-ttl",
 			"-bootstrapsigner",
 			"-tokencleaner",
-			// we have to configure this separately until it is generic
-			"-horizontalpodautoscaling",
 		}
 	}
 	if _, ok := cmdLineArgs["service-account-private-key-file"]; !ok {
