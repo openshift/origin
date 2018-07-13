@@ -108,7 +108,9 @@ func (c *WebConsoleOperatorComponentOptions) Install(dockerClient dockerhelper.I
 		return err
 	}
 	// we can race a controller.  It's not a big deal if we're a little late, so retry on conflict. It's easier than a patch.
-	err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
+	backoff := retry.DefaultBackoff
+	backoff.Steps = 6
+	err = retry.RetryOnConflict(backoff, func() error {
 		_, err := operatorClient.WebconsoleV1alpha1().OpenShiftWebConsoleConfigs().Update(operatorConfig)
 		return err
 	})
