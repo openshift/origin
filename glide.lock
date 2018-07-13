@@ -1,5 +1,5 @@
-hash: df63691eefa0455af08310071c1457c268b7d58f2ceb813c0c29d06ec75a5d3d
-updated: 2018-07-10T19:25:18.202568838-04:00
+hash: 8bd538d5b1bc5b1103529ae4af431ae78ae68173ef3ac7db06dc7c00bea05fc4
+updated: 2018-07-13T03:38:19.086677269-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -14,6 +14,10 @@ imports:
   - auth
 - name: github.com/abbot/go-http-auth
   version: c0ef4539dfab4d21c8ef20ba2924f9fc6f186d35
+- name: github.com/alexbrainman/sspi
+  version: e580b900e9f5657daa5473021296289be6da2661
+  subpackages:
+  - negotiate
 - name: github.com/apcera/gssapi
   version: 5fb4217df13b8e6878046fe1e5c10e560e1b86dc
 - name: github.com/armon/circbuf
@@ -809,9 +813,10 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: 04a26bf3b8d69c390642c5803fe4cfdb899112aa
+  version: f8215ce525d43bfcc42aeacf0c53c519fd3d41ef
   subpackages:
   - apps/v1
+  - authorization
   - authorization/v1
   - build/v1
   - config/v1
@@ -1827,7 +1832,7 @@ imports:
   - pkg/util/proto/testing
   - pkg/util/proto/validation
 - name: k8s.io/kubernetes
-  version: aebe0498deb85f935a0126a4859b2a7610bd69c5
+  version: 9a9fb880ba176e6375b5ee47ebc289fb90f974c6
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/controller-manager/app
