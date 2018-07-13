@@ -270,6 +270,8 @@
 // install/openshift-apiserver/install.yaml
 // install/openshift-controller-manager/install-rbac.yaml
 // install/openshift-controller-manager/install.yaml
+// install/openshift-service-cert-signer-operator/install-rbac.yaml
+// install/openshift-service-cert-signer-operator/install.yaml
 // install/openshift-web-console-operator/install-rbac.yaml
 // install/openshift-web-console-operator/install.yaml
 // install/origin-web-console/console-config.yaml
@@ -32378,10 +32380,12 @@ objects:
             privileged: true
             runAsUser: 0
           volumeMounts:
-           - mountPath: /etc/origin/master/
-             name: master-config
-           - mountPath: /etc/origin/cloudprovider/
-             name: master-cloud-provider
+          - mountPath: /var/serving-cert
+            name: serving-cert
+          - mountPath: /etc/origin/master/
+            name: master-config
+          - mountPath: /etc/origin/cloudprovider/
+            name: master-cloud-provider
           readinessProbe:
             httpGet:
               path: /healthz
@@ -32395,6 +32399,9 @@ objects:
         - name: master-cloud-provider
           hostPath:
             path: /etc/origin/cloudprovider
+        - name: serving-cert
+          secret:
+            secretName: serving-cert
 
 
 # to be able to assign powers to the process
@@ -32410,7 +32417,7 @@ objects:
     namespace: ${NAMESPACE}
     name: api
     annotations:
-      service.alpha.openshift.io/serving-cert-secret-name: apiserver-serving-cert
+      service.alpha.openshift.io/serving-cert-secret-name: serving-cert
   spec:
     selector:
       openshift.io/component: api
@@ -32423,13 +32430,14 @@ objects:
   kind: APIService
   metadata:
     name: v1.apps.openshift.io
+    annotations:
+      service.alpha.openshift.io/inject-cabundle: "true"
   spec:
     group: apps.openshift.io
     version: v1
     service:
       namespace: openshift-apiserver
       name: api
-    insecureSkipTLSVerify: true
     groupPriorityMinimum: 9900
     versionPriority: 15
 
@@ -32437,13 +32445,14 @@ objects:
   kind: APIService
   metadata:
     name: v1.authorization.openshift.io
+    annotations:
+      service.alpha.openshift.io/inject-cabundle: "true"
   spec:
     group: authorization.openshift.io
     version: v1
     service:
       namespace: openshift-apiserver
       name: api
-    insecureSkipTLSVerify: true
     groupPriorityMinimum: 9900
     versionPriority: 15
 
@@ -32451,13 +32460,14 @@ objects:
   kind: APIService
   metadata:
     name: v1.build.openshift.io
+    annotations:
+      service.alpha.openshift.io/inject-cabundle: "true"
   spec:
     group: build.openshift.io
     version: v1
     service:
       namespace: openshift-apiserver
       name: api
-    insecureSkipTLSVerify: true
     groupPriorityMinimum: 9900
     versionPriority: 15
 
@@ -32465,13 +32475,14 @@ objects:
   kind: APIService
   metadata:
     name: v1.image.openshift.io
+    annotations:
+      service.alpha.openshift.io/inject-cabundle: "true"
   spec:
     group: image.openshift.io
     version: v1
     service:
       namespace: openshift-apiserver
       name: api
-    insecureSkipTLSVerify: true
     groupPriorityMinimum: 9900
     versionPriority: 15
 
@@ -32479,13 +32490,14 @@ objects:
   kind: APIService
   metadata:
     name: v1.network.openshift.io
+    annotations:
+      service.alpha.openshift.io/inject-cabundle: "true"
   spec:
     group: network.openshift.io
     version: v1
     service:
       namespace: openshift-apiserver
       name: api
-    insecureSkipTLSVerify: true
     groupPriorityMinimum: 9900
     versionPriority: 15
 
@@ -32493,13 +32505,14 @@ objects:
   kind: APIService
   metadata:
     name: v1.oauth.openshift.io
+    annotations:
+      service.alpha.openshift.io/inject-cabundle: "true"
   spec:
     group: oauth.openshift.io
     version: v1
     service:
       namespace: openshift-apiserver
       name: api
-    insecureSkipTLSVerify: true
     groupPriorityMinimum: 9900
     versionPriority: 15
 
@@ -32507,13 +32520,14 @@ objects:
   kind: APIService
   metadata:
     name: v1.project.openshift.io
+    annotations:
+      service.alpha.openshift.io/inject-cabundle: "true"
   spec:
     group: project.openshift.io
     version: v1
     service:
       namespace: openshift-apiserver
       name: api
-    insecureSkipTLSVerify: true
     groupPriorityMinimum: 9900
     versionPriority: 15
 
@@ -32521,13 +32535,14 @@ objects:
   kind: APIService
   metadata:
     name: v1.quota.openshift.io
+    annotations:
+      service.alpha.openshift.io/inject-cabundle: "true"
   spec:
     group: quota.openshift.io
     version: v1
     service:
       namespace: openshift-apiserver
       name: api
-    insecureSkipTLSVerify: true
     groupPriorityMinimum: 9900
     versionPriority: 15
 
@@ -32535,13 +32550,14 @@ objects:
   kind: APIService
   metadata:
     name: v1.route.openshift.io
+    annotations:
+      service.alpha.openshift.io/inject-cabundle: "true"
   spec:
     group: route.openshift.io
     version: v1
     service:
       namespace: openshift-apiserver
       name: api
-    insecureSkipTLSVerify: true
     groupPriorityMinimum: 9900
     versionPriority: 15
 
@@ -32549,13 +32565,14 @@ objects:
   kind: APIService
   metadata:
     name: v1.security.openshift.io
+    annotations:
+      service.alpha.openshift.io/inject-cabundle: "true"
   spec:
     group: security.openshift.io
     version: v1
     service:
       namespace: openshift-apiserver
       name: api
-    insecureSkipTLSVerify: true
     groupPriorityMinimum: 9900
     versionPriority: 15
 
@@ -32563,13 +32580,14 @@ objects:
   kind: APIService
   metadata:
     name: v1.template.openshift.io
+    annotations:
+      service.alpha.openshift.io/inject-cabundle: "true"
   spec:
     group: template.openshift.io
     version: v1
     service:
       namespace: openshift-apiserver
       name: api
-    insecureSkipTLSVerify: true
     groupPriorityMinimum: 9900
     versionPriority: 15
 
@@ -32577,13 +32595,14 @@ objects:
   kind: APIService
   metadata:
     name: v1.user.openshift.io
+    annotations:
+      service.alpha.openshift.io/inject-cabundle: "true"
   spec:
     group: user.openshift.io
     version: v1
     service:
       namespace: openshift-apiserver
       name: api
-    insecureSkipTLSVerify: true
     groupPriorityMinimum: 9900
     versionPriority: 15
 `)
@@ -32834,6 +32853,171 @@ func installOpenshiftControllerManagerInstallYaml() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "install/openshift-controller-manager/install.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _installOpenshiftServiceCertSignerOperatorInstallRbacYaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+parameters:
+- name: IMAGE
+  value: openshift/origin-control-plane:latest
+- name: OPENSHIFT_PULL_POLICY
+  value: Always
+- name: NAMESPACE
+  value: openshift-core-operators
+- name: LOGLEVEL
+  value: "0"
+
+objects:
+
+# When we have an orchestrating operator, it will do this
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRoleBinding
+  metadata:
+    name: system:openshift:operator:service-cert-signer
+  roleRef:
+    kind: ClusterRole
+    name: cluster-admin
+  subjects:
+  - kind: ServiceAccount
+    namespace: ${NAMESPACE}
+    name: openshift-service-cert-signer-operator
+`)
+
+func installOpenshiftServiceCertSignerOperatorInstallRbacYamlBytes() ([]byte, error) {
+	return _installOpenshiftServiceCertSignerOperatorInstallRbacYaml, nil
+}
+
+func installOpenshiftServiceCertSignerOperatorInstallRbacYaml() (*asset, error) {
+	bytes, err := installOpenshiftServiceCertSignerOperatorInstallRbacYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "install/openshift-service-cert-signer-operator/install-rbac.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _installOpenshiftServiceCertSignerOperatorInstallYaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+parameters:
+- name: IMAGE
+  value: openshift/origin-service-serving-cert-signer:latest
+- name: OPENSHIFT_PULL_POLICY
+  value: Always
+- name: NAMESPACE
+  value: openshift-core-operators
+- name: LOGLEVEL
+  value: "0"
+
+objects:
+- apiVersion: v1
+  kind: Namespace
+  metadata:
+    labels:
+      openshift.io/run-level: "1"
+    name: openshift-core-operators
+
+- apiVersion: apiextensions.k8s.io/v1beta1
+  kind: CustomResourceDefinition
+  metadata:
+    name: servicecertsigneroperatorconfigs.servicecertsigner.config.openshift.io
+  spec:
+    scope: Cluster
+    group: servicecertsigner.config.openshift.io
+    version: v1alpha1
+    names:
+      kind: ServiceCertSignerOperatorConfig
+      plural: servicecertsigneroperatorconfigs
+      singular: servicecertsigneroperatorconfig
+    subresources:
+      status: {}
+
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    namespace: ${NAMESPACE}
+    name: openshift-service-cert-signer-operator-config
+  data:
+    operator-config.yaml: |
+      apiVersion: operator.openshift.io/v1alpha1
+      kind: GenericOperatorConfig
+
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    namespace: ${NAMESPACE}
+    name: openshift-service-cert-signer-operator
+    labels:
+      app: openshift-service-cert-signer-operator
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: openshift-service-cert-signer-operator
+    template:
+      metadata:
+        name: openshift-service-cert-signer-operator
+        labels:
+          app: openshift-service-cert-signer-operator
+      spec:
+        serviceAccountName: openshift-service-cert-signer-operator
+        containers:
+        - name: operator
+          image: openshift/origin-service-serving-cert-signer:v3.11
+          imagePullPolicy: ${OPENSHIFT_PULL_POLICY}
+          command: ["service-serving-cert-signer", "operator"]
+          args:
+          - "--config=/var/run/configmaps/config/operator-config.yaml"
+          - "-v=4"
+          volumeMounts:
+          - mountPath: /var/run/configmaps/config
+            name: config
+        volumes:
+        - name: serving-cert
+          secret:
+            defaultMode: 400
+            secretName: openshift-service-cert-signer-operator-serving-cert
+            optional: true
+        - name: config
+          configMap:
+            defaultMode: 440
+            name: openshift-service-cert-signer-operator-config
+
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    namespace: ${NAMESPACE}
+    name: openshift-service-cert-signer-operator
+    labels:
+      app: openshift-service-cert-signer-operator
+
+- apiVersion: servicecertsigner.config.openshift.io/v1alpha1
+  kind: ServiceCertSignerOperatorConfig
+  metadata:
+    name: instance
+  spec:
+    managementState: Managed
+    imagePullSpec: openshift/origin-service-serving-cert-signer:v3.11
+    version: 3.10.0
+    logging:
+      level: 4
+    replicas: 1
+`)
+
+func installOpenshiftServiceCertSignerOperatorInstallYamlBytes() ([]byte, error) {
+	return _installOpenshiftServiceCertSignerOperatorInstallYaml, nil
+}
+
+func installOpenshiftServiceCertSignerOperatorInstallYaml() (*asset, error) {
+	bytes, err := installOpenshiftServiceCertSignerOperatorInstallYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "install/openshift-service-cert-signer-operator/install.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -33831,6 +34015,8 @@ var _bindata = map[string]func() (*asset, error){
 	"install/openshift-apiserver/install.yaml": installOpenshiftApiserverInstallYaml,
 	"install/openshift-controller-manager/install-rbac.yaml": installOpenshiftControllerManagerInstallRbacYaml,
 	"install/openshift-controller-manager/install.yaml": installOpenshiftControllerManagerInstallYaml,
+	"install/openshift-service-cert-signer-operator/install-rbac.yaml": installOpenshiftServiceCertSignerOperatorInstallRbacYaml,
+	"install/openshift-service-cert-signer-operator/install.yaml": installOpenshiftServiceCertSignerOperatorInstallYaml,
 	"install/openshift-web-console-operator/install-rbac.yaml": installOpenshiftWebConsoleOperatorInstallRbacYaml,
 	"install/openshift-web-console-operator/install.yaml": installOpenshiftWebConsoleOperatorInstallYaml,
 	"install/origin-web-console/console-config.yaml": installOriginWebConsoleConsoleConfigYaml,
@@ -33976,6 +34162,10 @@ var _bintree = &bintree{nil, map[string]*bintree{
 		"openshift-controller-manager": &bintree{nil, map[string]*bintree{
 			"install-rbac.yaml": &bintree{installOpenshiftControllerManagerInstallRbacYaml, map[string]*bintree{}},
 			"install.yaml": &bintree{installOpenshiftControllerManagerInstallYaml, map[string]*bintree{}},
+		}},
+		"openshift-service-cert-signer-operator": &bintree{nil, map[string]*bintree{
+			"install-rbac.yaml": &bintree{installOpenshiftServiceCertSignerOperatorInstallRbacYaml, map[string]*bintree{}},
+			"install.yaml": &bintree{installOpenshiftServiceCertSignerOperatorInstallYaml, map[string]*bintree{}},
 		}},
 		"openshift-web-console-operator": &bintree{nil, map[string]*bintree{
 			"install-rbac.yaml": &bintree{installOpenshiftWebConsoleOperatorInstallRbacYaml, map[string]*bintree{}},
