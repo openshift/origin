@@ -4,8 +4,6 @@ package tokencmd
 
 import (
 	"errors"
-	"net"
-	"net/url"
 	"runtime"
 	"sync"
 	"time"
@@ -46,7 +44,7 @@ type gssapiNegotiator struct {
 	complete bool
 }
 
-func NewGSSAPINegotiator(principalName string) Negotiater {
+func NewGSSAPINegotiator(principalName string) Negotiator {
 	return &gssapiNegotiator{principalName: principalName}
 }
 
@@ -90,17 +88,11 @@ func (g *gssapiNegotiator) InitSecContext(requestURL string, challengeToken []by
 			g.cred = lib.GSS_C_NO_CREDENTIAL
 		}
 
-		u, err := url.Parse(requestURL)
+		serviceName, err := getServiceName('@', requestURL)
 		if err != nil {
 			return nil, err
 		}
 
-		hostname := u.Host
-		if h, _, err := net.SplitHostPort(u.Host); err == nil {
-			hostname = h
-		}
-
-		serviceName := "HTTP@" + hostname
 		glog.V(5).Infof("importing service name %s", serviceName)
 		nameBuf, err := lib.MakeBufferString(serviceName)
 		if err != nil {

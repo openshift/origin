@@ -113,8 +113,13 @@ func (o VersionOptions) RunVersion() error {
 		}
 		if tokencmd.GSSAPIEnabled() {
 			features = append(features, "GSSAPI")
-			features = append(features, "Kerberos") // GSSAPI or SSPI
-			features = append(features, "SPNEGO")   // GSSAPI or SSPI
+		}
+		if tokencmd.SSPIEnabled() {
+			features = append(features, "SSPI")
+		}
+		if tokencmd.GSSAPIEnabled() || tokencmd.SSPIEnabled() {
+			features = append(features, "Kerberos")
+			features = append(features, "SPNEGO")
 		}
 		fmt.Printf("features: %s\n", strings.Join(features, " "))
 	}

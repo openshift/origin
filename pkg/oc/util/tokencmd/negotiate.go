@@ -9,8 +9,8 @@ import (
 	"github.com/golang/glog"
 )
 
-// Negotiater defines the minimal interface needed to interact with GSSAPI to perform a negotiate challenge/response
-type Negotiater interface {
+// Negotiator defines the minimal interface needed to interact with GSSAPI to perform a negotiate challenge/response
+type Negotiator interface {
 	// Load gives the negotiator a chance to load any resources needed to handle a challenge/response sequence.
 	// It may be invoked multiple times. If an error is returned, InitSecContext and IsComplete are not called, but Release() is.
 	Load() error
@@ -28,11 +28,11 @@ type Negotiater interface {
 // NegotiateChallengeHandler manages a challenge negotiation session
 // it is single-host, single-use only, and not thread-safe
 type NegotiateChallengeHandler struct {
-	negotiater Negotiater
+	negotiator Negotiator
 }
 
-func NewNegotiateChallengeHandler(negotiater Negotiater) ChallengeHandler {
-	return &NegotiateChallengeHandler{negotiater: negotiater}
+func NewNegotiateChallengeHandler(negotiator Negotiator) ChallengeHandler {
+	return &NegotiateChallengeHandler{negotiator: negotiator}
 }
 
 func (c *NegotiateChallengeHandler) CanHandle(headers http.Header) bool {
@@ -41,7 +41,7 @@ func (c *NegotiateChallengeHandler) CanHandle(headers http.Header) bool {
 		return false
 	}
 	// Make sure our negotiator can initialize
-	if err := c.negotiater.Load(); err != nil {
+	if err := c.negotiator.Load(); err != nil {
 		return false
 	}
 	return true
@@ -55,7 +55,7 @@ func (c *NegotiateChallengeHandler) HandleChallenge(requestURL string, headers h
 	}
 
 	// Process the token
-	outgoingToken, err := c.negotiater.InitSecContext(requestURL, incomingToken)
+	outgoingToken, err := c.negotiator.InitSecContext(requestURL, incomingToken)
 	if err != nil {
 		glog.V(5).Infof("InitSecContext returned error: %v", err)
 		return nil, false, err
@@ -68,7 +68,7 @@ func (c *NegotiateChallengeHandler) HandleChallenge(requestURL string, headers h
 }
 
 func (c *NegotiateChallengeHandler) CompleteChallenge(requestURL string, headers http.Header) error {
-	if c.negotiater.IsComplete() {
+	if c.negotiator.IsComplete() {
 		return nil
 	}
 	glog.V(5).Infof("continue needed")
@@ -83,19 +83,19 @@ func (c *NegotiateChallengeHandler) CompleteChallenge(requestURL string, headers
 	}
 
 	// Process the token
-	_, err = c.negotiater.InitSecContext(requestURL, incomingToken)
+	_, err = c.negotiator.InitSecContext(requestURL, incomingToken)
 	if err != nil {
 		glog.V(5).Infof("InitSecContext returned error during final negotiation: %v", err)
 		return err
 	}
-	if !c.negotiater.IsComplete() {
+	if !c.negotiator.IsComplete() {
 		return errors.New("InitSecContext did not indicate final negotiation completed")
 	}
 	return nil
 }
 
 func (c *NegotiateChallengeHandler) Release() error {
-	return c.negotiater.Release()
+	return c.negotiator.Release()
 }
 
 const negotiateScheme = "negotiate"

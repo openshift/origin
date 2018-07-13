@@ -119,7 +119,7 @@ func TestRequestToken(t *testing.T) {
 		case *BasicChallengeHandler:
 			// we don't care
 		case *NegotiateChallengeHandler:
-			switch negotiator := handler.negotiater.(type) {
+			switch negotiator := handler.negotiator.(type) {
 			case *successfulNegotiator:
 				if negotiator.releaseCalls != 1 {
 					t.Errorf("%s: expected one call to Release(), saw %d", test, negotiator.releaseCalls)
@@ -253,14 +253,14 @@ func TestRequestToken(t *testing.T) {
 
 		// negotiate handler
 		"negotiate handler, no challenge, success": {
-			Handler: &NegotiateChallengeHandler{negotiater: &successfulNegotiator{rounds: 1}},
+			Handler: &NegotiateChallengeHandler{negotiator: &successfulNegotiator{rounds: 1}},
 			Requests: []requestResponse{
 				{initialRequest, success},
 			},
 			ExpectedToken: successfulToken,
 		},
 		"negotiate handler, negotiate challenge, success": {
-			Handler: &NegotiateChallengeHandler{negotiater: &successfulNegotiator{rounds: 1}},
+			Handler: &NegotiateChallengeHandler{negotiator: &successfulNegotiator{rounds: 1}},
 			Requests: []requestResponse{
 				{initialRequest, negotiateChallenge1},
 				{negotiateRequest1, success},
@@ -268,7 +268,7 @@ func TestRequestToken(t *testing.T) {
 			ExpectedToken: successfulToken,
 		},
 		"negotiate handler, negotiate challenge, 2 rounds, success": {
-			Handler: &NegotiateChallengeHandler{negotiater: &successfulNegotiator{rounds: 2}},
+			Handler: &NegotiateChallengeHandler{negotiator: &successfulNegotiator{rounds: 2}},
 			Requests: []requestResponse{
 				{initialRequest, negotiateChallenge1},
 				{negotiateRequest1, negotiateChallenge2},
@@ -277,7 +277,7 @@ func TestRequestToken(t *testing.T) {
 			ExpectedToken: successfulToken,
 		},
 		"negotiate handler, negotiate challenge, 2 rounds, success with mutual auth": {
-			Handler: &NegotiateChallengeHandler{negotiater: &successfulNegotiator{rounds: 2}},
+			Handler: &NegotiateChallengeHandler{negotiator: &successfulNegotiator{rounds: 2}},
 			Requests: []requestResponse{
 				{initialRequest, negotiateChallenge1},
 				{negotiateRequest1, successWithNegotiate},
@@ -285,7 +285,7 @@ func TestRequestToken(t *testing.T) {
 			ExpectedToken: successfulToken,
 		},
 		"negotiate handler, negotiate challenge, 2 rounds expected, server success without client completion": {
-			Handler: &NegotiateChallengeHandler{negotiater: &successfulNegotiator{rounds: 2}},
+			Handler: &NegotiateChallengeHandler{negotiator: &successfulNegotiator{rounds: 2}},
 			Requests: []requestResponse{
 				{initialRequest, negotiateChallenge1},
 				{negotiateRequest1, success},
@@ -295,21 +295,21 @@ func TestRequestToken(t *testing.T) {
 
 		// Unloadable negotiate handler
 		"unloadable negotiate handler, no challenge, success": {
-			Handler: &NegotiateChallengeHandler{negotiater: &unloadableNegotiator{}},
+			Handler: &NegotiateChallengeHandler{negotiator: &unloadableNegotiator{}},
 			Requests: []requestResponse{
 				{initialRequest, success},
 			},
 			ExpectedToken: successfulToken,
 		},
 		"unloadable negotiate handler, negotiate challenge, failure": {
-			Handler: &NegotiateChallengeHandler{negotiater: &unloadableNegotiator{}},
+			Handler: &NegotiateChallengeHandler{negotiator: &unloadableNegotiator{}},
 			Requests: []requestResponse{
 				{initialRequest, negotiateChallenge1},
 			},
 			ExpectedError: "unhandled challenge",
 		},
 		"unloadable negotiate handler, basic challenge, failure": {
-			Handler: &NegotiateChallengeHandler{negotiater: &unloadableNegotiator{}},
+			Handler: &NegotiateChallengeHandler{negotiator: &unloadableNegotiator{}},
 			Requests: []requestResponse{
 				{initialRequest, basicChallenge1},
 			},
@@ -318,21 +318,21 @@ func TestRequestToken(t *testing.T) {
 
 		// Failing negotiate handler
 		"failing negotiate handler, no challenge, success": {
-			Handler: &NegotiateChallengeHandler{negotiater: &failingNegotiator{}},
+			Handler: &NegotiateChallengeHandler{negotiator: &failingNegotiator{}},
 			Requests: []requestResponse{
 				{initialRequest, success},
 			},
 			ExpectedToken: successfulToken,
 		},
 		"failing negotiate handler, negotiate challenge, failure": {
-			Handler: &NegotiateChallengeHandler{negotiater: &failingNegotiator{}},
+			Handler: &NegotiateChallengeHandler{negotiator: &failingNegotiator{}},
 			Requests: []requestResponse{
 				{initialRequest, negotiateChallenge1},
 			},
 			ExpectedError: "InitSecContext failed",
 		},
 		"failing negotiate handler, basic challenge, failure": {
-			Handler: &NegotiateChallengeHandler{negotiater: &failingNegotiator{}},
+			Handler: &NegotiateChallengeHandler{negotiator: &failingNegotiator{}},
 			Requests: []requestResponse{
 				{initialRequest, basicChallenge1},
 			},
@@ -342,7 +342,7 @@ func TestRequestToken(t *testing.T) {
 		// Negotiate+Basic fallback cases
 		"failing negotiate+prompting basic handler, no challenge, success": {
 			Handler: NewMultiHandler(
-				&NegotiateChallengeHandler{negotiater: &failingNegotiator{}},
+				&NegotiateChallengeHandler{negotiator: &failingNegotiator{}},
 				&BasicChallengeHandler{Reader: bytes.NewBufferString("myuser\nmypassword\n")},
 			),
 			Requests: []requestResponse{
@@ -352,7 +352,7 @@ func TestRequestToken(t *testing.T) {
 		},
 		"failing negotiate+prompting basic handler, negotiate+basic challenge, success": {
 			Handler: NewMultiHandler(
-				&NegotiateChallengeHandler{negotiater: &failingNegotiator{}},
+				&NegotiateChallengeHandler{negotiator: &failingNegotiator{}},
 				&BasicChallengeHandler{Reader: bytes.NewBufferString("myuser\nmypassword\n")},
 			),
 			Requests: []requestResponse{
@@ -363,7 +363,7 @@ func TestRequestToken(t *testing.T) {
 		},
 		"negotiate+failing basic handler, negotiate+basic challenge, success": {
 			Handler: NewMultiHandler(
-				&NegotiateChallengeHandler{negotiater: &successfulNegotiator{rounds: 2}},
+				&NegotiateChallengeHandler{negotiator: &successfulNegotiator{rounds: 2}},
 				&BasicChallengeHandler{},
 			),
 			Requests: []requestResponse{
@@ -375,7 +375,7 @@ func TestRequestToken(t *testing.T) {
 		},
 		"negotiate+basic handler, negotiate+basic challenge, prefers negotiation, success": {
 			Handler: NewMultiHandler(
-				&NegotiateChallengeHandler{negotiater: &successfulNegotiator{rounds: 2}},
+				&NegotiateChallengeHandler{negotiator: &successfulNegotiator{rounds: 2}},
 				&BasicChallengeHandler{Reader: bytes.NewBufferString("myuser\nmypassword\n")},
 			),
 			Requests: []requestResponse{
@@ -387,7 +387,7 @@ func TestRequestToken(t *testing.T) {
 		},
 		"negotiate+basic handler, negotiate+basic challenge, prefers negotiation, sticks with selected handler on failure": {
 			Handler: NewMultiHandler(
-				&NegotiateChallengeHandler{negotiater: &successfulNegotiator{rounds: 2}},
+				&NegotiateChallengeHandler{negotiator: &successfulNegotiator{rounds: 2}},
 				&BasicChallengeHandler{Reader: bytes.NewBufferString("myuser\nmypassword\n")},
 			),
 			Requests: []requestResponse{
