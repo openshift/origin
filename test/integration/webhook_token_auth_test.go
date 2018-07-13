@@ -18,6 +18,7 @@ import (
 	restclient "k8s.io/client-go/rest"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	kclientcmdapi "k8s.io/client-go/tools/clientcmd/api"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
@@ -172,7 +173,7 @@ func TestWebhookTokenAuthn(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	userWhoamiOptions := cmd.WhoAmIOptions{UserInterface: userClient.Users(), Out: ioutil.Discard}
+	userWhoamiOptions := cmd.WhoAmIOptions{UserInterface: userClient.Users(), IOStreams: genericclioptions.NewTestIOStreamsDiscard()}
 	retrievedUser, err := userWhoamiOptions.WhoAmI()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

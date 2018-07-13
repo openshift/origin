@@ -13,6 +13,7 @@ import (
 
 	restclient "k8s.io/client-go/rest"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/oc/cli/cmd"
@@ -20,7 +21,6 @@ import (
 	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
-	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 )
 
 // TestOAuthOIDC checks CLI password login against an OIDC provider
@@ -186,7 +186,7 @@ func TestOAuthOIDC(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	userWhoamiOptions := cmd.WhoAmIOptions{UserInterface: userClient.Users(), Out: ioutil.Discard}
+	userWhoamiOptions := cmd.WhoAmIOptions{UserInterface: userClient.Users(), IOStreams: genericclioptions.NewTestIOStreamsDiscard()}
 	retrievedUser, err := userWhoamiOptions.WhoAmI()
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
