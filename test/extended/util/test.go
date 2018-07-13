@@ -295,7 +295,6 @@ var (
 		//`should allow starting 95 pods per node`,
 
 		// Need fixing
-		`Horizontal pod autoscaling`, // needs heapster
 		//`PersistentVolume`,                                        // https://github.com/openshift/origin/pull/6884 for recycler
 		`mount an API token into pods`,                            // We add 6 secrets, not 1
 		`ServiceAccounts should ensure a single API token exists`, // We create lots of secrets
@@ -350,6 +349,13 @@ var (
 		"Pod should avoid to schedule to node that have avoidPod annotation",
 		"Pod should be schedule to node that satisify the PodAffinity",
 		"Pod should be prefer scheduled to node that satisify the NodeAffinity",
+
+		// undesired autoscaling tests
+		`Custom Metrics from Stackdriver`,
+		`Cluster size autoscaling`,
+		`Cluster size autoscaler`,
+		`ClusterSizeAutoscalingScaleUp`,
+		`DNS horizontal autoscaling`,
 	}
 	excludedTestsFilter = regexp.MustCompile(strings.Join(excludedTests, `|`))
 

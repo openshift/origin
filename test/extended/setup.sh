@@ -154,6 +154,9 @@ function os::test::extended::setup () {
 	os::log::info "Creating jenkins templates"
 	oc create -n openshift -f "${OS_ROOT}/examples/jenkins/jenkins-ephemeral-template.json" --config="${ADMIN_KUBECONFIG}"
 
+    os::log::info "Launching metrics server"
+    oc create ns metrics-server
+    oc process -n metrics-server -f "${OS_ROOT}/install/metrics-server/template.yaml" | oc apply -f -
 }
 
 # Run extended tests or print out a list of tests that need to be run

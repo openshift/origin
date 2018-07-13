@@ -46,6 +46,7 @@
 // install/kube-dns/install.yaml
 // install/kube-proxy/install.yaml
 // install/kube-scheduler/kube-scheduler.yaml
+// install/metrics-server/template.yaml
 // install/openshift-apiserver/install.yaml
 // install/openshift-controller-manager/install-rbac.yaml
 // install/openshift-controller-manager/install.yaml
@@ -17133,6 +17134,197 @@ func installKubeSchedulerKubeSchedulerYaml() (*asset, error) {
 	return a, nil
 }
 
+var _installMetricsServerTemplateYaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: metrics-server
+parameters:
+- name: IMAGE
+  value: openshift/origin-metrics-server
+- name: NAMESPACE
+  value: metrics-server
+# we can't hard-code this because `+"`"+`oc process`+"`"+` strips hard-coded namespace
+# values, but not variable ones
+- name: AUTH_READER_NAMESPACE
+  value: kube-system
+objects:
+# main deployment
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    name: metrics-server
+    namespace: ${NAMESPACE}
+    labels:
+      k8s-app: metrics-server
+      kubernetes.io/cluster-service: "true"
+      metrics-server-infra: metrics-server
+  spec:
+    selector:
+      matchLabels:
+        k8s-app: metrics-server
+    template:
+      metadata:
+        name: metrics-server
+        labels:
+          k8s-app: metrics-server
+        annotations:
+          scheduler.alpha.kubernetes.io/critical-pod: ''
+      spec:
+        priorityClassName: system-cluster-critical
+        serviceAccountName: metrics-server
+        containers:
+        - name: metrics-server
+          image: ${IMAGE}
+          command:
+            - /usr/bin/metrics-server
+            - "--source=kubernetes.summary_api:?useServiceAccount=true&kubeletHttps=true&kubeletPort=10250"
+            - "--tls-cert-file=/certs/tls.crt"
+            - "--tls-private-key-file=/certs/tls.key"
+            - "--metric_resolution=30s"
+            - --secure-port=8443
+          ports:
+          - containerPort: 8443
+            name: https
+            protocol: TCP
+          volumeMounts:
+          - name: metrics-server-certs
+            mountPath: /certs
+            readOnly: true
+        volumes:
+        - name: metrics-server-certs
+          secret:
+            defaultMode: 420
+            secretName: metrics-server-certs
+
+# service (will generate the secret, too)
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: metrics-server
+    namespace: ${NAMESPACE}
+    labels:
+      kubernetes.io/cluster-service: "true"
+      kubernetes.io/name: "Metrics-server"
+      metrics-server-infra: metrics-server
+    annotations:
+      service.alpha.openshift.io/serving-cert-secret-name: metrics-server-certs
+  spec:
+    ports:
+    - port: 443
+      protocol: TCP
+      targetPort: https
+    selector:
+      k8s-app: metrics-server
+
+- apiVersion: apiregistration.k8s.io/v1beta1
+  kind: APIService
+  metadata:
+    name: v1beta1.metrics.k8s.io
+    labels:
+      kubernetes.io/cluster-service: "true"
+      metrics-server-infra: support
+  spec:
+    service:
+      name: metrics-server
+      namespace: ${NAMESPACE}
+    group: metrics.k8s.io
+    version: v1beta1
+    insecureSkipTLSVerify: true
+    groupPriorityMinimum: 100
+    versionPriority: 100
+
+# RBAC policy
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRoleBinding
+  metadata:
+    name: metrics-server:system:auth-delegator
+    labels:
+      kubernetes.io/cluster-service: "true"
+      metrics-server-infra: support
+  roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
+    name: system:auth-delegator
+  subjects:
+  - kind: ServiceAccount
+    name: metrics-server
+    namespace: ${NAMESPACE}
+
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: RoleBinding
+  metadata:
+    name: metrics-server-auth-reader
+    namespace: ${AUTH_READER_NAMESPACE}
+    labels:
+      kubernetes.io/cluster-service: "true"
+      metrics-server-infra: support
+  roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: Role
+    name: extension-apiserver-authentication-reader
+  subjects:
+  - kind: ServiceAccount
+    name: metrics-server
+    namespace: ${NAMESPACE}
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRoleBinding
+  metadata:
+    name: system:metrics-server
+    labels:
+      kubernetes.io/cluster-service: "true"
+      metrics-server-infra: support
+  roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
+    name: system:metrics-server
+  subjects:
+  - kind: ServiceAccount
+    name: metrics-server
+    namespace: ${NAMESPACE}
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRole
+  metadata:
+    name: system:metrics-server
+    labels:
+      kubernetes.io/cluster-service: "true"
+      metrics-server-infra: support
+  rules:
+  - apiGroups:
+    - ""
+    resources:
+    - pods
+    - nodes
+    - nodes/stats
+    - namespaces
+    verbs:
+    - get
+    - list
+    - watch
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    name: metrics-server
+    namespace: ${NAMESPACE}
+    labels:
+      kubernetes.io/cluster-service: "true"
+      metrics-server-infra: support
+`)
+
+func installMetricsServerTemplateYamlBytes() ([]byte, error) {
+	return _installMetricsServerTemplateYaml, nil
+}
+
+func installMetricsServerTemplateYaml() (*asset, error) {
+	bytes, err := installMetricsServerTemplateYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "install/metrics-server/template.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _installOpenshiftApiserverInstallYaml = []byte(`apiVersion: template.openshift.io/v1
 kind: Template
 metadata:
@@ -18456,6 +18648,7 @@ var _bindata = map[string]func() (*asset, error){
 	"install/kube-dns/install.yaml": installKubeDnsInstallYaml,
 	"install/kube-proxy/install.yaml": installKubeProxyInstallYaml,
 	"install/kube-scheduler/kube-scheduler.yaml": installKubeSchedulerKubeSchedulerYaml,
+	"install/metrics-server/template.yaml": installMetricsServerTemplateYaml,
 	"install/openshift-apiserver/install.yaml": installOpenshiftApiserverInstallYaml,
 	"install/openshift-controller-manager/install-rbac.yaml": installOpenshiftControllerManagerInstallRbacYaml,
 	"install/openshift-controller-manager/install.yaml": installOpenshiftControllerManagerInstallYaml,
@@ -18588,6 +18781,9 @@ var _bintree = &bintree{nil, map[string]*bintree{
 		}},
 		"kube-scheduler": &bintree{nil, map[string]*bintree{
 			"kube-scheduler.yaml": &bintree{installKubeSchedulerKubeSchedulerYaml, map[string]*bintree{}},
+		}},
+		"metrics-server": &bintree{nil, map[string]*bintree{
+			"template.yaml": &bintree{installMetricsServerTemplateYaml, map[string]*bintree{}},
 		}},
 		"openshift-apiserver": &bintree{nil, map[string]*bintree{
 			"install.yaml": &bintree{installOpenshiftApiserverInstallYaml, map[string]*bintree{}},
