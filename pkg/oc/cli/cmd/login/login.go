@@ -46,29 +46,17 @@ var (
 
 // NewCmdLogin implements the OpenShift cli login command
 func NewCmdLogin(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	options := &LoginOptions{
-		Reader: streams.In,
-		Out:    streams.Out,
-		ErrOut: streams.ErrOut,
-	}
-
+	o := NewLoginOptions(streams)
 	cmds := &cobra.Command{
 		Use:     "login [URL]",
 		Short:   "Log in to a server",
 		Long:    loginLong,
 		Example: fmt.Sprintf(loginExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := options.Complete(f, cmd, args, fullName); err != nil {
-				kcmdutil.CheckErr(err)
-			}
+			kcmdutil.CheckErr(o.Complete(f, cmd, args, fullName))
+			kcmdutil.CheckErr(o.Validate(cmd, kcmdutil.GetFlagString(cmd, "server"), args))
 
-			if err := options.Validate(args, kcmdutil.GetFlagString(cmd, "server")); err != nil {
-				kcmdutil.CheckErr(err)
-			}
-
-			err := RunLogin(cmd, options)
-
-			if kapierrors.IsUnauthorized(err) {
+			if err := o.Run(); kapierrors.IsUnauthorized(err) {
 				fmt.Fprintln(streams.Out, "Login failed (401 Unauthorized)")
 				fmt.Fprintln(streams.Out, "Verify you have provided correct credentials.")
 
@@ -89,8 +77,8 @@ func NewCmdLogin(fullName string, f kcmdutil.Factory, streams genericclioptions.
 	}
 
 	// Login is the only command that can negotiate a session token against the auth server using basic auth
-	cmds.Flags().StringVarP(&options.Username, "username", "u", "", "Username, will prompt if not provided")
-	cmds.Flags().StringVarP(&options.Password, "password", "p", "", "Password, will prompt if not provided")
+	cmds.Flags().StringVarP(&o.Username, "username", "u", o.Username, "Username, will prompt if not provided")
+	cmds.Flags().StringVarP(&o.Password, "password", "p", o.Password, "Password, will prompt if not provided")
 
 	return cmds
 }
@@ -158,7 +146,7 @@ func (o *LoginOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []s
 	return nil
 }
 
-func (o LoginOptions) Validate(args []string, serverFlag string) error {
+func (o LoginOptions) Validate(cmd *cobra.Command, serverFlag string, args []string) error {
 	if len(args) > 1 {
 		return errors.New("Only the server URL may be specified as an argument")
 	}
@@ -167,7 +155,7 @@ func (o LoginOptions) Validate(args []string, serverFlag string) error {
 		return errors.New("--server and passing the server URL as an argument are mutually exclusive")
 	}
 
-	if (len(o.Server) == 0) && !term.IsTerminal(o.Reader) {
+	if (len(o.Server) == 0) && !term.IsTerminal(o.In) {
 		return errors.New("A server URL must be specified")
 	}
 
@@ -183,18 +171,18 @@ func (o LoginOptions) Validate(args []string, serverFlag string) error {
 }
 
 // RunLogin contains all the necessary functionality for the OpenShift cli login command
-func RunLogin(cmd *cobra.Command, options *LoginOptions) error {
-	if err := options.GatherInfo(); err != nil {
+func (o LoginOptions) Run() error {
+	if err := o.GatherInfo(); err != nil {
 		return err
 	}
 
-	newFileCreated, err := options.SaveConfig()
+	newFileCreated, err := o.SaveConfig()
 	if err != nil {
 		return err
 	}
 
 	if newFileCreated {
-		fmt.Fprintf(options.Out, "Welcome! See '%s help' to get started.\n", options.CommandName)
+		fmt.Fprintf(o.Out, "Welcome! See '%s help' to get started.\n", o.CommandName)
 	}
 	return nil
 }

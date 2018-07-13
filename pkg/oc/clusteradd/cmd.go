@@ -80,11 +80,27 @@ var availableComponents = map[string]func(ctx componentinstall.Context) componen
 	},
 }
 
-func NewCmdAdd(name, fullName string, streams genericclioptions.IOStreams) *cobra.Command {
-	config := &ClusterAddConfig{
+type ClusterAddConfig struct {
+	ImageTemplate variable.ImageTemplate
+	ImageTag      string
+
+	BaseDir             string
+	ServerLogLevel      int
+	ComponentsToInstall []string
+
+	dockerClient dockerhelper.Interface
+	genericclioptions.IOStreams
+}
+
+func NewClusterAddConfig(streams genericclioptions.IOStreams) *ClusterAddConfig {
+	return &ClusterAddConfig{
 		IOStreams:     streams,
 		ImageTemplate: variable.NewDefaultImageTemplate(),
 	}
+}
+
+func NewCmdAdd(name, fullName string, streams genericclioptions.IOStreams) *cobra.Command {
+	config := NewClusterAddConfig(streams)
 	cmd := &cobra.Command{
 		Use:     name,
 		Short:   "Add components to an 'oc cluster up' cluster",
@@ -128,19 +144,6 @@ func (c *ClusterAddConfig) Run(cmd *cobra.Command) error {
 		componentsToInstall = append(componentsToInstall, component)
 	}
 	return componentinstall.InstallComponents(componentsToInstall, c.dockerClient)
-}
-
-type ClusterAddConfig struct {
-	genericclioptions.IOStreams
-
-	ImageTemplate variable.ImageTemplate
-	ImageTag      string
-
-	BaseDir             string
-	ServerLogLevel      int
-	ComponentsToInstall []string
-
-	dockerClient dockerhelper.Interface
 }
 
 func (c *ClusterAddConfig) Complete(cmd *cobra.Command) error {
