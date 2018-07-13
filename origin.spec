@@ -19,12 +19,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 60e3c7e2c93dcdea030a6869a213ebe82ed2ce3f
+%global commit 222b7786792bd9f69d7e18611d1c56f5ab26b42b
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=9+ OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.9.32 OS_GIT_TREE_STATE=clean OS_GIT_PATCH=32 KUBE_GIT_VERSION=v1.9.1+a0ce1bc657 OS_GIT_CATALOG_VERSION=v0.1.9.1 KUBE_GIT_COMMIT=a0ce1bc OS_GIT_COMMIT=fc1905d OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.16 ETCD_GIT_COMMIT=121edf0
+%global os_git_vars OS_GIT_MINOR=9+ OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.9.33 OS_GIT_TREE_STATE=clean OS_GIT_PATCH=33 KUBE_GIT_VERSION=v1.9.1+a0ce1bc657 OS_GIT_CATALOG_VERSION=v0.1.9.1 KUBE_GIT_COMMIT=a0ce1bc OS_GIT_COMMIT=b30e5f7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.16 ETCD_GIT_COMMIT=121edf0
 }
 
 %if 0%{?skip_build}
@@ -66,7 +66,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.9.33
+Version:        3.9.34
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -606,6 +606,12 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Fri Jul 13 2018 Tim Bielawa <tbielawa@redhat.com> 3.9.34-1
+- UPSTREAM: 65549: Fix flexvolumes in containerized envs (hekumar@redhat.com)
+- UPSTREAM: 65226: Put all the node address cloud provider retrival complex
+  logic into cloudResourceSyncManager (jchaloup@redhat.com)
+- Fix a crash on a certain type of unsupported NetworkPolicy (danw@redhat.com)
+
 * Mon Jul 09 2018 Tim Bielawa <tbielawa@redhat.com> 3.9.33-1
 - Fix deployer pod tolerations (mfojtik@redhat.com)
 - Replace Perl with Bash in router echo test server (miciah.masters@gmail.com)
