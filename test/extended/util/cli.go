@@ -35,7 +35,7 @@ import (
 	buildclientset "github.com/openshift/origin/pkg/build/generated/internalclientset"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	imageclientset "github.com/openshift/origin/pkg/image/generated/internalclientset"
-	"github.com/openshift/origin/pkg/oc/cli/config"
+	"github.com/openshift/origin/pkg/oc/lib/kubeconfig"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	projectclientset "github.com/openshift/origin/pkg/project/generated/internalclientset"
 	routeclientset "github.com/openshift/origin/pkg/route/generated/internalclientset"
@@ -118,7 +118,7 @@ func (c *CLI) ChangeUser(name string) *CLI {
 		FatalErr(err)
 	}
 
-	kubeConfig, err := config.CreateConfig(c.Namespace(), clientConfig)
+	kubeConfig, err := kubeconfig.CreateConfig(c.Namespace(), clientConfig)
 	if err != nil {
 		FatalErr(err)
 	}

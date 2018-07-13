@@ -23,7 +23,7 @@ import (
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	oauthutil "github.com/openshift/origin/pkg/oauth/util"
-	"github.com/openshift/origin/pkg/oc/util/tokencmd"
+	"github.com/openshift/origin/pkg/oc/lib/tokencmd"
 	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"

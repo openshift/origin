@@ -9,7 +9,7 @@ import (
 	"github.com/openshift/origin/pkg/oc/clusteradd/componentinstall"
 	"github.com/openshift/origin/pkg/oc/clusterup/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/oc/clusterup/manifests"
-	"github.com/openshift/origin/pkg/oc/errors"
+	"github.com/openshift/origin/pkg/oc/lib/errors"
 	"k8s.io/client-go/kubernetes"
 )
 

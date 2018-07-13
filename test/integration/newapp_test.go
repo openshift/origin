@@ -42,14 +42,14 @@ import (
 	imagefake "github.com/openshift/origin/pkg/image/generated/internalclientset/fake"
 	imageinternalversion "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	dockerregistry "github.com/openshift/origin/pkg/image/importer/dockerv1client"
-	clicmd "github.com/openshift/origin/pkg/oc/cli/cmd"
-	"github.com/openshift/origin/pkg/oc/generate"
-	"github.com/openshift/origin/pkg/oc/generate/app"
-	apptest "github.com/openshift/origin/pkg/oc/generate/app/test"
-	"github.com/openshift/origin/pkg/oc/generate/cmd"
-	"github.com/openshift/origin/pkg/oc/generate/dockerfile"
-	"github.com/openshift/origin/pkg/oc/generate/jenkinsfile"
-	"github.com/openshift/origin/pkg/oc/generate/source"
+	"github.com/openshift/origin/pkg/oc/cli/newapp"
+	"github.com/openshift/origin/pkg/oc/lib/newapp"
+	"github.com/openshift/origin/pkg/oc/lib/newapp/app"
+	apptest "github.com/openshift/origin/pkg/oc/lib/newapp/app/test"
+	"github.com/openshift/origin/pkg/oc/lib/newapp/cmd"
+	"github.com/openshift/origin/pkg/oc/lib/newapp/dockerfile"
+	"github.com/openshift/origin/pkg/oc/lib/newapp/jenkinsfile"
+	"github.com/openshift/origin/pkg/oc/lib/newapp/source"
 	routefake "github.com/openshift/origin/pkg/route/generated/internalclientset/fake"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	templatefake "github.com/openshift/origin/pkg/template/generated/internalclientset/fake"
@@ -1984,13 +1984,13 @@ func TestNewAppSourceAuthRequired(t *testing.T) {
 func TestNewAppListAndSearch(t *testing.T) {
 	tests := []struct {
 		name           string
-		options        clicmd.AppOptions
+		options        newapp.AppOptions
 		expectedOutput string
 	}{
 		{
 			name: "search, no oldversion",
-			options: clicmd.AppOptions{
-				ObjectGeneratorOptions: &clicmd.ObjectGeneratorOptions{
+			options: newapp.AppOptions{
+				ObjectGeneratorOptions: &newapp.ObjectGeneratorOptions{
 					Config: &cmd.AppConfig{
 						ComponentInputs: cmd.ComponentInputs{
 							ImageStreams: []string{"ruby"},
@@ -2002,8 +2002,8 @@ func TestNewAppListAndSearch(t *testing.T) {
 		},
 		{
 			name: "list, no oldversion",
-			options: clicmd.AppOptions{
-				ObjectGeneratorOptions: &clicmd.ObjectGeneratorOptions{
+			options: newapp.AppOptions{
+				ObjectGeneratorOptions: &newapp.ObjectGeneratorOptions{
 					Config: &cmd.AppConfig{
 						AsList: true,
 					}},

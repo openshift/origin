@@ -11,8 +11,8 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/polymorphichelpers"
 
 	"github.com/openshift/origin/pkg/api/legacygroupification"
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	"github.com/openshift/origin/pkg/oc/originpolymorphichelpers"
+	"github.com/openshift/origin/pkg/oc/util/clientcmd"
 )
 
 func shimKubectlForOc() {

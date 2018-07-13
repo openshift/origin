@@ -4,7 +4,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
-	deploymentcmd "github.com/openshift/origin/pkg/oc/cli/deploymentconfigs"
+	deploymentcmd "github.com/openshift/origin/pkg/oc/originpolymorphichelpers/deploymentconfigs"
 	routegen "github.com/openshift/origin/pkg/route/generator"
 )
 

@@ -11,7 +11,8 @@ import (
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
-	groupscmd "github.com/openshift/origin/pkg/oc/admin/groups"
+	groupscmd "github.com/openshift/origin/pkg/oc/cli/admin/groups"
+	groupsnewcmd "github.com/openshift/origin/pkg/oc/cli/admin/groups/new"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
@@ -186,7 +187,7 @@ func TestGroupCommands(t *testing.T) {
 	}
 	userClient := userclient.NewForConfigOrDie(clusterAdminClientConfig)
 
-	newGroup := &groupscmd.NewGroupOptions{
+	newGroup := &groupsnewcmd.NewGroupOptions{
 		GroupClient: userClient.Groups(),
 		Group:       "group1",
 		Users:       []string{"first", "second", "third", "first"},

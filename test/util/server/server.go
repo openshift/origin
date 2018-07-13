@@ -37,7 +37,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/start"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	utilflags "github.com/openshift/origin/pkg/cmd/util/flags"
-	newproject "github.com/openshift/origin/pkg/oc/admin/project"
+	newproject "github.com/openshift/origin/pkg/oc/cli/admin/project"
 	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset/typed/project/internalversion"
 	"github.com/openshift/origin/test/util"
 	// install all APIs

@@ -8,7 +8,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/polymorphichelpers"
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	deploymentcmd "github.com/openshift/origin/pkg/oc/cli/deploymentconfigs"
+	deploymentcmd "github.com/openshift/origin/pkg/oc/originpolymorphichelpers/deploymentconfigs"
 )
 
 func NewHistoryViewerFn(delegate polymorphichelpers.HistoryViewerFunc) polymorphichelpers.HistoryViewerFunc {
