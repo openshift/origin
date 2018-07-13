@@ -36,6 +36,10 @@ type OAuthAccessToken struct {
 	// RefreshToken is the value by which this token can be renewed. Can be blank.
 	RefreshToken string
 
+	IdentityName string
+
+	IdentityProviderGroups map[string][]string
+
 	// InactivityTimeoutSeconds is the value in seconds, from the
 	// CreationTimestamp, after which this token can no longer be used.
 	// The value is automatically incremented when the token is used.
@@ -77,6 +81,10 @@ type OAuthAuthorizeToken struct {
 
 	// CodeChallengeMethod is the optional code_challenge_method associated with this authorization code, as described in rfc7636
 	CodeChallengeMethod string
+
+	IdentityName string
+
+	IdentityProviderGroups map[string][]string
 }
 
 // +genclient

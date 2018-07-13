@@ -58,6 +58,25 @@ type DefaultUserIdentityInfo struct {
 	Extra            map[string]string
 }
 
+type TransientRequestAuthentication struct {
+	metav1.TypeMeta
+	metav1.ObjectMeta //metadata.name is UUID stored in cookie
+
+	Name string //hash of groups, user, IDP
+
+	ExpiresIn int64
+
+	UserName string
+
+	UserUID string
+
+	IdentityProviderName string
+
+	IdentityProviderGroups []string
+
+	IdentityProviderExtras map[string][]string
+}
+
 // NewDefaultUserIdentityInfo returns a DefaultUserIdentityInfo with a non-nil Extra component
 func NewDefaultUserIdentityInfo(providerName, providerUserName string) *DefaultUserIdentityInfo {
 	return &DefaultUserIdentityInfo{
@@ -77,6 +96,10 @@ func (i *DefaultUserIdentityInfo) GetProviderName() string {
 
 func (i *DefaultUserIdentityInfo) GetProviderUserName() string {
 	return i.ProviderUserName
+}
+
+func (i *DefaultUserIdentityInfo) GetProviderGroups() string {
+	return i.ProviderGroups
 }
 
 func (i *DefaultUserIdentityInfo) GetExtra() map[string]string {
