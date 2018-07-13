@@ -70,7 +70,9 @@ function start() {
   local container_runtime=$7
   local wait_for_cluster=$8
   local node_count=$9
-  local additional_args=${10}
+  local local_registry=${10}
+  local local_registry_images=${11}
+  local additional_args=${12}
 
   # docker-in-docker's use of volumes is not compatible with SELinux
   check-selinux
@@ -117,6 +119,12 @@ function start() {
   fi
   echo "OPENSHIFT_OVN_KUBERNETES=${ovn_kubernetes}" >> "${config_root}/dind-env"
 
+  local registry_ip=
+  if [[ -n "${local_registry}" ]]; then
+    registry_ip=$(get-registry-ip)
+    enable-local-registry "${origin_root}" "${config_root}" "${registry_ip}" "${local_registry_images[@]}"
+  fi
+
   # Create containers
   start-container "${config_root}" "${deployed_config_root}" "${MASTER_IMAGE}" "${MASTER_NAME}"
   for name in "${NODE_NAMES[@]}"; do
@@ -125,8 +133,15 @@ function start() {
 
   if [[ -n "${ADDITIONAL_NETWORK_INTERFACE}" ]]; then
     add-network-interface-to-nodes "${config_root}"
-    update-master-config
-    update-node-config
+  fi
+
+  if [[ -n "${local_registry}" ]]; then
+    add-registry-to-runtime "${registry_ip}:${REGISTRY_PORT}" "${container_runtime}"
+  fi
+
+  if [[ -n "${ADDITIONAL_NETWORK_INTERFACE}" || -n "${local_registry}" ]]; then
+    update-master-config "${deployed_config_root}"
+    update-node-config "${deployed_config_root}"
   fi
 
   local rc_file="dind-${cluster_id}.rc"
@@ -168,6 +183,102 @@ cluster's rc file to configure the bash environment:
   $ oc get nodes
 "
   fi
+}
+
+function get-registry-ip() {
+  local default_iface=$(route | grep default | awk '{print $8}')
+  echo $(ip addr show ${default_iface} | grep -Po 'inet \K[\d.]+')
+}
+
+function add-registry-to-runtime() {
+  local registry=$1
+  local runtime=$2
+
+  for cid in $( ${DOCKER_CMD} ps -qa --filter "name=${MASTER_NAME}|${NODE_PREFIX}" ); do
+    # Wait for dbus service so that we can restart runtime service
+    local count=60
+    while [[ "${count}" -gt "0" ]]; do
+      local error=0
+      ${DOCKER_CMD} exec -t ${cid} sh -c "systemctl is-active --quiet dbus" 2>&1 > /dev/null || error=1
+      if [[ "${error}" -eq "0" ]]; then
+        echo ""
+        break
+      fi
+      echo -n "."
+      sleep 1
+      ((count--))
+    done
+
+    if [[ "${runtime}" = "dockershim" ]]; then
+      ${DOCKER_CMD} exec -t ${cid} sh -c "sed -i '/^\[registries.search\]$/{\$!{N;s/^\[registries.search\]\nregistries .*/\[registries.search\]\nregistries = \[\"${registry}\", \"docker.io\", \"registry.fedoraproject.org\", \"registry.access.redhat.com\"\]/g;ty;P;D;:y}}' /etc/containers/registries.conf"
+      ${DOCKER_CMD} exec -t ${cid} sh -c "sed -i '/^\[registries.insecure\]$/{\$!{N;s/^\[registries.insecure\]\nregistries .*/\[registries.insecure\]\nregistries = \[\"${registry}\"\]/g;ty;P;D;:y}}' /etc/containers/registries.conf"
+      ${DOCKER_CMD} exec -t ${cid} sh -c "systemctl restart docker"
+    else
+      ${DOCKER_CMD} exec -t ${cid} sh -c "sed -i 's/^registries .*/registries = [\n\t\"${registry}\",/g' /etc/crio/crio.conf"
+      ${DOCKER_CMD} exec -t ${cid} sh -c "sed -i 's/^insecure_registries .*/insecure_registries = [\n\t\"${registry}\",/g' /etc/crio/crio.conf"
+      ${DOCKER_CMD} exec -t ${cid} sh -c "systemctl restart crio"
+    fi
+  done
+}
+
+function enable-local-registry() {
+  local origin_root=$1
+  local config_root=$2
+  local ip=$3
+  local images=($4)
+  local tag=$(pushd "${origin_root}" >/dev/null ; git describe --abbrev=0 ; popd > /dev/null)
+
+  # Start local registry
+  ${DOCKER_CMD} run -d -p ${REGISTRY_PORT}:5000 --restart=always --name ${REGISTRY_NAME} registry:2 > /dev/null
+  echo "Created local registry '${REGISTRY_NAME}' at ${ip}:${REGISTRY_PORT}"
+
+  # Build, tag and push local images
+  for image in "${images[@]}"; do
+    ${BUILD_LOCAL_IMAGES_CMD} ${image}
+
+    ${DOCKER_CMD} tag ${image} ${ip}:${REGISTRY_PORT}/${image}:latest
+    ${DOCKER_CMD} tag ${image} ${ip}:${REGISTRY_PORT}/${image}:${tag}
+
+    ${DOCKER_CMD} push ${ip}:${REGISTRY_PORT}/${image}:latest
+    ${DOCKER_CMD} push ${ip}:${REGISTRY_PORT}/${image}:${tag}
+  done
+
+  local image_prefix=$(echo ${images[0]} | cut -d'-' -f1)
+  echo "OPENSHIFT_IMAGE_FORMAT=${ip}:${REGISTRY_PORT}/${image_prefix}-\\\${component}:\\\${version}" >> "${config_root}/dind-env"
+}
+
+function get-local-images() {
+  local user_requested_images=$1
+  local local_image_list=$(${BUILD_LOCAL_IMAGES_CMD} get-list | grep -v ERROR | xargs)
+  local supported_images=(${local_image_list})
+  local -a images=()
+
+  if [[ -n "${user_requested_images}" ]]; then
+    images=($(echo ${user_requested_images} | tr "," " "))
+
+    # Validate user provided images
+    for image in "${images[@]}"; do
+      local found=0
+      for sup_image in "${supported_images[@]}"; do
+        if [[ "${image}" = "${sup_image}" ]]; then
+          found=1
+          break
+        fi
+      done
+
+      if [ "${found}" -ne "1" ]; then
+        echo "Local image '${image}' not supported by command '${BUILD_LOCAL_IMAGES_CMD}'"
+        echo "Supported local images:"
+        echo "${supported_images[@]}"
+        return 1
+      fi
+    done
+  else
+    images=${supported_images[@]}
+  fi
+
+  echo ${images[@]}
+  return 0
 }
 
 # This is embedded in the rc file we generate
@@ -229,34 +340,39 @@ function add-network-interface-to-nodes () {
 }
 
 function update-master-config() {
-  local config_path="/data/openshift.local.config"
-  local master_config_path="${config_path}/master"
-  local master_config_file="${master_config_path}/master-config.yaml"
+  local deployed_config_root=$1
 
   # Remove master config file to trigger master config regeneration
   #
   # openshift-generate-master-config.sh script repopulates master config
-  # with certs for both eth0 and eth1 IP addrs.
+  # Depending on the dind config, it may:
+  # - add certs for both eth0 and eth1 IP addrs.
+  # - change imageFormat to use local registry
   #
   # openshift-master service executes openshift-generate-master-config.sh
   # as pre start hook.
-  rm -f "${master_config_file}"
+  for cid in $( ${DOCKER_CMD} ps -qa --filter "name=${MASTER_NAME}" ); do
+    ${DOCKER_CMD} exec -t ${cid} sh -c "rm -f ${deployed_config_root}/openshift.local.config/master/master-config.yaml"
+    ${DOCKER_CMD} exec -t ${cid} sh -c "systemctl restart openshift-master"
+  done
 }
 
 function update-node-config() {
-  local config_path="/data/openshift.local.config"
-  local host="$(hostname)"
-  local node_config_path="${config_path}/node-${host}"
-  local node_config_file="${node_config_path}/node-config.yaml"
+  local deployed_config_root=$1
 
   # Remove node config file to trigger node config regeneration
   #
   # openshift-generate-node-config.sh script repopulates node config
-  # with certs for both eth0 and eth1 IP addrs.
+  # Depending on the dind config, it may:
+  # - add certs for both eth0 and eth1 IP addrs.
+  # - change imageFormat to use local registry
   #
   # openshift-node service executes openshift-generate-node-config.sh
   # as pre start hook.
-  rm -f "${node_config_file}"
+  for cid in $( ${DOCKER_CMD} ps -qa --filter "name=${MASTER_NAME}|${NODE_PREFIX}" ); do
+    ${DOCKER_CMD} exec -t ${cid} sh -c "rm -f ${deployed_config_root}/openshift.local.config/node-*/node-config.yaml"
+    ${DOCKER_CMD} exec -t ${cid} sh -c "systemctl restart openshift-node"
+  done
 }
 
 function add-node () {
@@ -344,7 +460,7 @@ function stop() {
   fi
 
   # Delete the containers
-  for cid in $( ${DOCKER_CMD} ps -qa --filter "name=${MASTER_NAME}|${NODE_PREFIX}" ); do
+  for cid in $( ${DOCKER_CMD} ps -qa --filter "name=${MASTER_NAME}|${NODE_PREFIX}|${REGISTRY_NAME}" ); do
     ${DOCKER_CMD} rm -f "${cid}" > /dev/null
   done
 
@@ -692,8 +808,10 @@ function os::build::get-bin-output-path() {
 ## Start of the main program
 
 DEFAULT_DOCKER_CMD="sudo docker"
+DEFAULT_BUILD_LOCAL_IMAGES_CMD="sudo ${OS_ROOT}/hack/build-local-images.py"
 if [[ -w "/var/run/docker.sock" ]]; then
   DEFAULT_DOCKER_CMD="docker"
+  DEFAULT_BUILD_LOCAL_IMAGES_CMD="${OS_ROOT}/hack/build-local-images.py"
 
   # Since docker is a shell script we do not want to pass our restrictions to it
   # This would be stripped by sudo, but we have to do it manually otherwise
@@ -703,6 +821,7 @@ else
   sudo echo -n
 fi
 DOCKER_CMD="${DOCKER_CMD:-$DEFAULT_DOCKER_CMD}"
+BUILD_LOCAL_IMAGES_CMD="${BUILD_LOCAL_IMAGES_CMD:-$DEFAULT_BUILD_LOCAL_IMAGES_CMD}"
 
 CLUSTER_ID="${OPENSHIFT_CLUSTER_ID:-openshift}"
 
@@ -715,6 +834,9 @@ MASTER_NAME="${CLUSTER_ID}-master"
 NODE_PREFIX="${CLUSTER_ID}-node-"
 NODE_COUNT=2
 NODE_NAMES=()
+
+REGISTRY_NAME="${CLUSTER_ID}-local-registry"
+REGISTRY_PORT="${REGISTRY_PORT:-5000}"
 
 ADDITIONAL_BRIDGE_NAME="${ADDITIONAL_BRIDGE_NAME:-os-addbr-1}"
 ADDITIONAL_NETWORK_NUM=18
@@ -736,8 +858,10 @@ case "${1:-""}" in
     NETWORK_PLUGIN=
     REMOVE_EXISTING_CLUSTER=
     ADDITIONAL_NETWORK_INTERFACE=
+    ENABLE_LOCAL_REGISTRY=
+    LOCAL_REGISTRY_IMAGES=
     OPTIND=2
-    while getopts ":abc:in:rsN:" opt; do
+    while getopts ":abc:in:rsN:lm:" opt; do
       case $opt in
         b)
           BUILD=1
@@ -762,6 +886,12 @@ case "${1:-""}" in
           ;;
         a)
           ADDITIONAL_NETWORK_INTERFACE=1
+          ;;
+        l)
+          ENABLE_LOCAL_REGISTRY=1
+          ;;
+        m)
+          LOCAL_REGISTRY_IMAGES="${OPTARG}"
           ;;
         \?)
           echo "Invalid option: -${OPTARG}" >&2
@@ -810,9 +940,20 @@ case "${1:-""}" in
       OVN_ROOT=
     fi
 
+    declare -a images=("")
+    if [[ -n "${ENABLE_LOCAL_REGISTRY}" ]]; then
+      error=0
+      images=$(get-local-images "${LOCAL_REGISTRY_IMAGES}") || error=1
+      if [[ "${error}" -eq "1" ]]; then
+        echo "${images}"
+        exit 1
+      fi
+    fi
+
     start "${OS_ROOT}" "${OVN_ROOT}" "${CONFIG_ROOT}" "${DEPLOYED_CONFIG_ROOT}" \
           "${CLUSTER_ID}" "${NETWORK_PLUGIN}" "${CONTAINER_RUNTIME}" \
-          "${WAIT_FOR_CLUSTER}" "${NODE_COUNT}" "${ADDITIONAL_ARGS}"
+          "${WAIT_FOR_CLUSTER}" "${NODE_COUNT}" "${ENABLE_LOCAL_REGISTRY}" \
+          "${images[@]}" "${ADDITIONAL_ARGS}"
     ;;
   add-node)
     WAIT_FOR_CLUSTER=1
@@ -945,6 +1086,9 @@ start accepts the following options:
  -i                build container images before starting the cluster
  -r                remove an existing cluster
  -a                add additional network interface to all nodes in the cluster
+ -l                setup registry to push and pull local images
+ -m                filtered local images for registry (comma separated list)
+                   default: all images supported by ${OS_ROOT}/hack/build-local-images.py
  -s                skip waiting for nodes to become ready
 
 Any of the arguments that would be used in creating openshift master can be passed
@@ -962,6 +1106,7 @@ add-node and resume accept the following option:
 
 The following environment variables are honored:
  - DOCKER_CMD: The docker command used.  Default: 'sudo docker'
+ - BUILD_LOCAL_IMAGES_CMD: The command used for building local images.  Default: 'sudo ${OS_ROOT}/hack/build-local-images.py'
  - OPENSHIFT_CLUSTER_ID: The name of the cluster (so multiple can be run). Default: 'openshift'
  - OPENSHIFT_CONFIG_BASE: Where the cluster configs are written, move somewhere persistent if you
       want to pause and resume across reboots.  Default: '${TMPDIR}/openshift-dind-cluster'

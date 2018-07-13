@@ -122,16 +122,6 @@ image_config = {
         },
         "files": {}
     },
-    "nginx-router": {
-        "tag": "latest",
-        "directory": "router/nginx",
-        "binaries": {
-            "openshift": "/usr/bin/openshift"
-        },
-        "files": {
-            ".": "/var/lib/nginx"
-        }
-    },
     "haproxy-router": {
         "tag": "latest",
         "directory": "router/haproxy",
