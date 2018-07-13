@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"regexp"
 	"time"
 
 	"github.com/golang/glog"
@@ -12,6 +13,7 @@ import (
 	kubeletapi "k8s.io/kubernetes/pkg/kubelet/apis/cri"
 	kruntimeapi "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
 	kubeletremote "k8s.io/kubernetes/pkg/kubelet/remote"
+	kexec "k8s.io/utils/exec"
 )
 
 const (
@@ -64,6 +66,36 @@ func GetRuntime() (*Runtime, error) {
 		Name:    runtimeName,
 		Service: runtimeService,
 	}, nil
+}
+
+func (r *Runtime) GetContainerPid(containerID string) (string, error) {
+	var pid string
+	kexecer := kexec.New()
+
+	switch r.Name {
+	case crioRuntimeName:
+		output, err := kexecer.Command("runc", "state", containerID).CombinedOutput()
+		if err != nil {
+			return pid, err
+		}
+
+		re := regexp.MustCompile("\"pid\": ([0-9]+),")
+		match := re.FindStringSubmatch(string(output))
+		if len(match) < 1 {
+			return pid, fmt.Errorf("failed to find pid for container: %s", containerID)
+		}
+		pid = match[1]
+	case dockerRuntimeName:
+		output, err := kexecer.Command("docker", "inspect", "-f", "{{.State.Pid}}", containerID).CombinedOutput()
+		if err != nil {
+			return pid, err
+		}
+		pid = string(output)
+	default:
+		return "", fmt.Errorf("invalid runtime name %s", r.Name)
+	}
+
+	return pid, nil
 }
 
 func getDefaultRuntimeEndpoint() (string, string, error) {
