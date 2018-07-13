@@ -46,7 +46,7 @@ type gssapiNegotiator struct {
 	complete bool
 }
 
-func NewGSSAPINegotiator(principalName string) Negotiater {
+func NewGSSAPINegotiator(principalName string) Negotiator {
 	return &gssapiNegotiator{principalName: principalName}
 }
 
