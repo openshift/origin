@@ -19,6 +19,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	clientset "k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/util/homedir"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -82,6 +83,7 @@ type LoginOptions struct {
 	Credentials     Credentials
 	HostPort        string
 	SkipCheck       bool
+	Insecure        bool
 	CreateDirectory bool
 
 	Out    io.Writer
@@ -114,6 +116,7 @@ func New(name string, f kcmdutil.Factory, out, errOut io.Writer) *cobra.Command 
 	flag.StringVarP(&o.ServiceAccount, "service-account", "z", o.ServiceAccount, "Log in as the specified service account name in the specified namespace.")
 	flag.StringVar(&o.HostPort, "registry", o.HostPort, "An alternate domain name and port to use for the registry, defaults to the cluster's configured external hostname.")
 	flag.BoolVar(&o.SkipCheck, "skip-check", o.SkipCheck, "Skip checking the credentials against the registry.")
+	flag.BoolVar(&o.Insecure, "insecure", o.Insecure, "Bypass HTTPS certificate verification when checking the registry login.")
 
 	return cmd
 }
@@ -155,7 +158,7 @@ func (o *LoginOptions) Complete(f kcmdutil.Factory, args []string) error {
 			if len(token) == 0 {
 				continue
 			}
-			o.Credentials = newCredentials(fmt.Sprintf("system:serviceaccount:%s:%s", ns, o.ServiceAccount), string(token))
+			o.Credentials = newCredentials(fmt.Sprintf("system-serviceaccount-%s-%s", ns, o.ServiceAccount), string(token))
 			break
 		}
 		if o.Credentials.Empty() {
@@ -239,9 +242,12 @@ func (o *LoginOptions) Run() error {
 		creds := registryclient.NewBasicCredentials()
 		url := &url.URL{Host: o.HostPort}
 		creds.Add(url, o.Credentials.Username, o.Credentials.Password)
-		c := registryclient.NewContext(http.DefaultTransport, http.DefaultTransport).WithCredentials(creds)
-		_, err := c.Repository(ctx, url, "does_not_exist", false)
+		insecureRT, err := rest.TransportFor(&rest.Config{TLSClientConfig: rest.TLSClientConfig{Insecure: true}})
 		if err != nil {
+			return err
+		}
+		c := registryclient.NewContext(http.DefaultTransport, insecureRT).WithCredentials(creds)
+		if _, err := c.Repository(ctx, url, "does_not_exist", o.Insecure); err != nil {
 			return fmt.Errorf("unable to check your credentials - pass --skip-check to bypass this error: %v", err)
 		}
 	}

@@ -2,158 +2,190 @@ package image
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/openshift/api/image/docker10"
+	public "github.com/openshift/origin/pkg/image/apis/image/docker10"
 )
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // DockerImage is the type representing a docker image and its various properties when
 // retrieved from the Docker client API.
-type DockerImage struct {
-	metav1.TypeMeta `json:",inline"`
-
-	ID              string        `json:"Id"`
-	Parent          string        `json:"Parent,omitempty"`
-	Comment         string        `json:"Comment,omitempty"`
-	Created         metav1.Time   `json:"Created,omitempty"`
-	Container       string        `json:"Container,omitempty"`
-	ContainerConfig DockerConfig  `json:"ContainerConfig,omitempty"`
-	DockerVersion   string        `json:"DockerVersion,omitempty"`
-	Author          string        `json:"Author,omitempty"`
-	Config          *DockerConfig `json:"Config,omitempty"`
-	Architecture    string        `json:"Architecture,omitempty"`
-	Size            int64         `json:"Size,omitempty"`
-}
+type DockerImage = docker10.DockerImage
 
 // DockerConfig is the list of configuration options used when creating a container.
-type DockerConfig struct {
-	Hostname        string              `json:"Hostname,omitempty"`
-	Domainname      string              `json:"Domainname,omitempty"`
-	User            string              `json:"User,omitempty"`
-	Memory          int64               `json:"Memory,omitempty"`
-	MemorySwap      int64               `json:"MemorySwap,omitempty"`
-	CPUShares       int64               `json:"CpuShares,omitempty"`
-	CPUSet          string              `json:"Cpuset,omitempty"`
-	AttachStdin     bool                `json:"AttachStdin,omitempty"`
-	AttachStdout    bool                `json:"AttachStdout,omitempty"`
-	AttachStderr    bool                `json:"AttachStderr,omitempty"`
-	PortSpecs       []string            `json:"PortSpecs,omitempty"`
-	ExposedPorts    map[string]struct{} `json:"ExposedPorts,omitempty"`
-	Tty             bool                `json:"Tty,omitempty"`
-	OpenStdin       bool                `json:"OpenStdin,omitempty"`
-	StdinOnce       bool                `json:"StdinOnce,omitempty"`
-	Env             []string            `json:"Env,omitempty"`
-	Cmd             []string            `json:"Cmd,omitempty"`
-	DNS             []string            `json:"Dns,omitempty"` // For Docker API v1.9 and below only
-	Image           string              `json:"Image,omitempty"`
-	Volumes         map[string]struct{} `json:"Volumes,omitempty"`
-	VolumesFrom     string              `json:"VolumesFrom,omitempty"`
-	WorkingDir      string              `json:"WorkingDir,omitempty"`
-	Entrypoint      []string            `json:"Entrypoint,omitempty"`
-	NetworkDisabled bool                `json:"NetworkDisabled,omitempty"`
-	SecurityOpts    []string            `json:"SecurityOpts,omitempty"`
-	OnBuild         []string            `json:"OnBuild,omitempty"`
-	Labels          map[string]string   `json:"Labels,omitempty"`
+type DockerConfig = docker10.DockerConfig
+
+// Convert_public_to_api_DockerImage ensures that out has all of the fields set from in or returns
+// an error.
+func Convert_public_to_api_DockerImage(in *public.DockerImage, out *docker10.DockerImage) error {
+	*out = docker10.DockerImage{
+		ID:            in.ID,
+		Parent:        in.Parent,
+		Comment:       in.Comment,
+		Created:       metav1.Time{Time: in.Created},
+		Container:     in.Container,
+		DockerVersion: in.DockerVersion,
+		Author:        in.Author,
+		Architecture:  in.Architecture,
+		Size:          in.Size,
+	}
+	if err := Convert_public_to_api_DockerConfig(&in.ContainerConfig, &out.ContainerConfig); err != nil {
+		return err
+	}
+	if in.Config != nil {
+		out.Config = &docker10.DockerConfig{}
+		if err := Convert_public_to_api_DockerConfig(in.Config, out.Config); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
-// Descriptor describes targeted content. Used in conjunction with a blob
-// store, a descriptor can be used to fetch, store and target any kind of
-// blob. The struct also describes the wire protocol format. Fields should
-// only be added but never changed.
-type Descriptor struct {
-	// MediaType describe the type of the content. All text based formats are
-	// encoded as utf-8.
-	MediaType string `json:"mediaType,omitempty"`
-
-	// Size in bytes of content.
-	Size int64 `json:"size,omitempty"`
-
-	// Digest uniquely identifies the content. A byte stream can be verified
-	// against against this digest.
-	Digest string `json:"digest,omitempty"`
+// Convert_imageconfig_to_api_DockerImage takes a Docker registry digest (schema 2.1) and converts it
+// to the external API version of Image.
+func Convert_compatibility_to_api_DockerImage(in *public.DockerV1CompatibilityImage, out *docker10.DockerImage) error {
+	*out = docker10.DockerImage{
+		ID:            in.ID,
+		Parent:        in.Parent,
+		Comment:       in.Comment,
+		Created:       metav1.Time{Time: in.Created},
+		Container:     in.Container,
+		DockerVersion: in.DockerVersion,
+		Author:        in.Author,
+		Architecture:  in.Architecture,
+		Size:          in.Size,
+	}
+	if err := Convert_public_to_api_DockerConfig(&in.ContainerConfig, &out.ContainerConfig); err != nil {
+		return err
+	}
+	if in.Config != nil {
+		out.Config = &docker10.DockerConfig{}
+		if err := Convert_public_to_api_DockerConfig(in.Config, out.Config); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
-// DockerImageManifest represents the Docker v2 image format.
-type DockerImageManifest struct {
-	SchemaVersion int    `json:"schemaVersion"`
-	MediaType     string `json:"mediaType,omitempty"`
-
-	// schema1
-	Name         string          `json:"name"`
-	Tag          string          `json:"tag"`
-	Architecture string          `json:"architecture"`
-	FSLayers     []DockerFSLayer `json:"fsLayers"`
-	History      []DockerHistory `json:"history"`
-
-	// schema2
-	Layers []Descriptor `json:"layers"`
-	Config Descriptor   `json:"config"`
+// Convert_imageconfig_to_api_DockerImage takes a Docker registry digest (schema 2.2) and converts it
+// to the external API version of Image.
+func Convert_imageconfig_to_api_DockerImage(in *public.DockerImageConfig, out *docker10.DockerImage) error {
+	*out = docker10.DockerImage{
+		ID:            in.ID,
+		Parent:        in.Parent,
+		Comment:       in.Comment,
+		Created:       metav1.Time{Time: in.Created},
+		Container:     in.Container,
+		DockerVersion: in.DockerVersion,
+		Author:        in.Author,
+		Architecture:  in.Architecture,
+		Size:          in.Size,
+	}
+	if err := Convert_public_to_api_DockerConfig(&in.ContainerConfig, &out.ContainerConfig); err != nil {
+		return err
+	}
+	if in.Config != nil {
+		out.Config = &docker10.DockerConfig{}
+		if err := Convert_public_to_api_DockerConfig(in.Config, out.Config); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
-// DockerFSLayer is a container struct for BlobSums defined in an image manifest
-type DockerFSLayer struct {
-	// DockerBlobSum is the tarsum of the referenced filesystem image layer
-	// TODO make this digest.Digest once docker/distribution is in Godeps
-	DockerBlobSum string `json:"blobSum"`
+// Convert_api_to_public_DockerImage ensures that out has all of the fields set from in or returns
+// an error.
+func Convert_api_to_public_DockerImage(in *docker10.DockerImage, out *public.DockerImage) error {
+	*out = public.DockerImage{
+		ID:            in.ID,
+		Parent:        in.Parent,
+		Comment:       in.Comment,
+		Created:       in.Created.Time,
+		Container:     in.Container,
+		DockerVersion: in.DockerVersion,
+		Author:        in.Author,
+		Architecture:  in.Architecture,
+		Size:          in.Size,
+	}
+	if err := Convert_api_to_public_DockerConfig(&in.ContainerConfig, &out.ContainerConfig); err != nil {
+		return err
+	}
+	if in.Config != nil {
+		out.Config = &public.DockerConfig{}
+		if err := Convert_api_to_public_DockerConfig(in.Config, out.Config); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
-// DockerHistory stores unstructured v1 compatibility information
-type DockerHistory struct {
-	// DockerV1Compatibility is the raw v1 compatibility information
-	DockerV1Compatibility string `json:"v1Compatibility"`
+// Convert_public_to_api_DockerConfig ensures that out has all of the fields set from in or returns
+// an error.
+func Convert_public_to_api_DockerConfig(in *public.DockerConfig, out *docker10.DockerConfig) error {
+	*out = docker10.DockerConfig{
+		Hostname:        in.Hostname,
+		Domainname:      in.Domainname,
+		User:            in.User,
+		Memory:          in.Memory,
+		MemorySwap:      in.MemorySwap,
+		CPUShares:       in.CPUShares,
+		CPUSet:          in.CPUSet,
+		AttachStdin:     in.AttachStdin,
+		AttachStdout:    in.AttachStdout,
+		AttachStderr:    in.AttachStderr,
+		PortSpecs:       in.PortSpecs,
+		ExposedPorts:    in.ExposedPorts,
+		Tty:             in.Tty,
+		OpenStdin:       in.OpenStdin,
+		StdinOnce:       in.StdinOnce,
+		Env:             in.Env,
+		Cmd:             in.Cmd,
+		DNS:             in.DNS,
+		Image:           in.Image,
+		Volumes:         in.Volumes,
+		VolumesFrom:     in.VolumesFrom,
+		WorkingDir:      in.WorkingDir,
+		Entrypoint:      in.Entrypoint,
+		NetworkDisabled: in.NetworkDisabled,
+		SecurityOpts:    in.SecurityOpts,
+		OnBuild:         in.OnBuild,
+		Labels:          in.Labels,
+	}
+	return nil
 }
 
-// DockerV1CompatibilityImage represents the structured v1
-// compatibility information.
-type DockerV1CompatibilityImage struct {
-	ID              string        `json:"id"`
-	Parent          string        `json:"parent,omitempty"`
-	Comment         string        `json:"comment,omitempty"`
-	Created         metav1.Time   `json:"created"`
-	Container       string        `json:"container,omitempty"`
-	ContainerConfig DockerConfig  `json:"container_config,omitempty"`
-	DockerVersion   string        `json:"docker_version,omitempty"`
-	Author          string        `json:"author,omitempty"`
-	Config          *DockerConfig `json:"config,omitempty"`
-	Architecture    string        `json:"architecture,omitempty"`
-	Size            int64         `json:"size,omitempty"`
-}
-
-// DockerV1CompatibilityImageSize represents the structured v1
-// compatibility information for size
-type DockerV1CompatibilityImageSize struct {
-	Size int64 `json:"size,omitempty"`
-}
-
-// DockerImageConfig stores the image configuration
-type DockerImageConfig struct {
-	ID              string                `json:"id"`
-	Parent          string                `json:"parent,omitempty"`
-	Comment         string                `json:"comment,omitempty"`
-	Created         metav1.Time           `json:"created"`
-	Container       string                `json:"container,omitempty"`
-	ContainerConfig DockerConfig          `json:"container_config,omitempty"`
-	DockerVersion   string                `json:"docker_version,omitempty"`
-	Author          string                `json:"author,omitempty"`
-	Config          *DockerConfig         `json:"config,omitempty"`
-	Architecture    string                `json:"architecture,omitempty"`
-	Size            int64                 `json:"size,omitempty"`
-	RootFS          *DockerConfigRootFS   `json:"rootfs,omitempty"`
-	History         []DockerConfigHistory `json:"history,omitempty"`
-	OSVersion       string                `json:"os.version,omitempty"`
-	OSFeatures      []string              `json:"os.features,omitempty"`
-}
-
-// DockerConfigHistory stores build commands that were used to create an image
-type DockerConfigHistory struct {
-	Created    metav1.Time `json:"created"`
-	Author     string      `json:"author,omitempty"`
-	CreatedBy  string      `json:"created_by,omitempty"`
-	Comment    string      `json:"comment,omitempty"`
-	EmptyLayer bool        `json:"empty_layer,omitempty"`
-}
-
-// DockerConfigRootFS describes images root filesystem
-type DockerConfigRootFS struct {
-	Type    string   `json:"type"`
-	DiffIDs []string `json:"diff_ids,omitempty"`
+// Convert_api_to_public_DockerConfig ensures that out has all of the fields set from in or returns
+// an error.
+func Convert_api_to_public_DockerConfig(in *docker10.DockerConfig, out *public.DockerConfig) error {
+	*out = public.DockerConfig{
+		Hostname:        in.Hostname,
+		Domainname:      in.Domainname,
+		User:            in.User,
+		Memory:          in.Memory,
+		MemorySwap:      in.MemorySwap,
+		CPUShares:       in.CPUShares,
+		CPUSet:          in.CPUSet,
+		AttachStdin:     in.AttachStdin,
+		AttachStdout:    in.AttachStdout,
+		AttachStderr:    in.AttachStderr,
+		PortSpecs:       in.PortSpecs,
+		ExposedPorts:    in.ExposedPorts,
+		Tty:             in.Tty,
+		OpenStdin:       in.OpenStdin,
+		StdinOnce:       in.StdinOnce,
+		Env:             in.Env,
+		Cmd:             in.Cmd,
+		DNS:             in.DNS,
+		Image:           in.Image,
+		Volumes:         in.Volumes,
+		VolumesFrom:     in.VolumesFrom,
+		WorkingDir:      in.WorkingDir,
+		Entrypoint:      in.Entrypoint,
+		NetworkDisabled: in.NetworkDisabled,
+		SecurityOpts:    in.SecurityOpts,
+		OnBuild:         in.OnBuild,
+		Labels:          in.Labels,
+	}
+	return nil
 }

@@ -150,8 +150,15 @@
 
   {
     "checkedPackages": [
+      "github.com/openshift/origin/pkg/image/apis/image/docker10"
+    ],
+    "allowedImportPackageRoots": [],
+    "allowedImportPackages": []
+  },
+
+  {
+    "checkedPackages": [
       "github.com/openshift/origin/pkg/image/apis/image",
-      "github.com/openshift/origin/pkg/image/apis/image/docker10",
       "github.com/openshift/origin/pkg/image/apis/image/dockerpre012",
       "github.com/openshift/origin/pkg/image/apis/image/v1"
     ],
@@ -159,6 +166,7 @@
       "vendor/k8s.io/apimachinery",
       "github.com/openshift/origin/pkg/image/apis/image/internal",
       "github.com/openshift/origin/pkg/image/apis/image/reference",
+      "github.com/openshift/origin/pkg/image/apis/image/docker10",
       "vendor/k8s.io/api",
       "vendor/github.com/openshift/api",
       "github.com/openshift/origin/pkg/api/apihelpers"
@@ -484,6 +492,10 @@
       "github.com/openshift/origin/pkg/image/apis/image",
       "github.com/openshift/origin/pkg/image/apis/image/install",
       "github.com/openshift/origin/pkg/image/apis/image/v1/trigger",
+      "github.com/openshift/origin/pkg/image/apis/image/docker10",
+      "github.com/openshift/origin/pkg/image/apis/image/reference",
+      "github.com/openshift/origin/pkg/image/dockerlayer",
+      "github.com/openshift/origin/pkg/image/dockerlayer/add",
       "github.com/openshift/origin/pkg/image/importer/dockerv1client",
       "github.com/openshift/origin/pkg/image/registryclient",
       "github.com/openshift/origin/pkg/image/registryclient/dockercredentials",

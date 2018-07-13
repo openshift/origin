@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/golang/glog"
+
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -389,6 +391,7 @@ func newISTag(tag string, imageStream *imageapi.ImageStream, image *imageapi.Ima
 	event := imageapi.LatestTaggedImage(imageStream, tag)
 	if event == nil || len(event.Image) == 0 {
 		if !allowEmptyEvent {
+			glog.V(4).Infof("did not find tag %s in image stream status tags: %#v", tag, imageStream.Status.Tags)
 			return nil, kapierrors.NewNotFound(imageapi.Resource("imagestreamtags"), istagName)
 		}
 		event = &imageapi.TagEvent{

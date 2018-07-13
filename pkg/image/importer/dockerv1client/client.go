@@ -25,6 +25,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	"github.com/openshift/origin/pkg/image/apis/image/docker10"
 	"github.com/openshift/origin/pkg/image/apis/image/reference"
 )
 
@@ -161,7 +162,7 @@ func normalizeDockerHubHost(host string, v2 bool) string {
 func normalizeRegistryName(name string) (*url.URL, error) {
 	prefix := name
 	if len(prefix) == 0 {
-		prefix = imageapi.DockerDefaultV1Registry
+		prefix = reference.DockerDefaultV1Registry
 	}
 	hadPrefix := false
 	switch {
@@ -747,7 +748,7 @@ func (repo *v2repository) getImageConfig(c *connection, dgst string) ([]byte, er
 }
 
 func (repo *v2repository) unmarshalImageManifest(c *connection, body []byte) (*docker.Image, error) {
-	manifest := imageapi.DockerImageManifest{}
+	manifest := docker10.DockerImageManifest{}
 	if err := json.Unmarshal(body, &manifest); err != nil {
 		return nil, err
 	}
