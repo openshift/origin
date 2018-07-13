@@ -214,11 +214,10 @@ func (d *NetworkDiagnostic) runNetworkDiagnostic() {
 		// Do not bail out here, collect what ever info is available from all valid nodes
 	}
 
-	if err := d.CollectNetworkInfo(diagsFailed); err != nil {
-		d.res.Error("DNet2011", err, err.Error())
-	}
-
 	if diagsFailed {
+		if err := d.CollectNetworkInfo(); err != nil {
+			d.res.Error("DNet2011", err, err.Error())
+		}
 		d.res.Info("DNet2012", fmt.Sprintf("Additional info collected under %q for further analysis", d.LogDir))
 	}
 	return

@@ -36,15 +36,13 @@ func (d *NetworkDiagnostic) CollectNetworkPodLogs() error {
 	return kerrs.NewAggregate(errList)
 }
 
-func (d *NetworkDiagnostic) CollectNetworkInfo(diagsFailed bool) error {
-	if diagsFailed {
-		// Collect useful info from master
-		l := util.LogInterface{
-			Result: d.res,
-			Logdir: filepath.Join(d.LogDir, util.NetworkDiagMasterLogDirPrefix),
-		}
-		l.LogMaster()
+func (d *NetworkDiagnostic) CollectNetworkInfo() error {
+	// Collect useful info from master
+	l := util.LogInterface{
+		Result: d.res,
+		Logdir: filepath.Join(d.LogDir, util.NetworkDiagMasterLogDirPrefix),
 	}
+	l.LogMaster()
 
 	podList, err := d.getPodList(d.nsName1, util.NetworkDiagPodNamePrefix)
 	if err != nil {
@@ -57,13 +55,7 @@ func (d *NetworkDiagnostic) CollectNetworkInfo(diagsFailed bool) error {
 			continue
 		}
 
-		if diagsFailed {
-			if err := d.copyNetworkPodInfo(&pod); err != nil {
-				errList = append(errList, err)
-			}
-		}
-
-		if err := d.deleteRemoteNodeInfo(&pod); err != nil {
+		if err := d.copyNetworkPodInfo(&pod); err != nil {
 			errList = append(errList, err)
 		}
 	}
@@ -101,22 +93,6 @@ func (d *NetworkDiagnostic) copyNetworkPodInfo(pod *kapi.Pod) error {
 	err = tarHelper.ExtractTarStream(logdir, tmp)
 	if err != nil {
 		return fmt.Errorf("Untar local directory failed: %v, %s", err, errBuf.String())
-	}
-	return nil
-}
-
-func (d *NetworkDiagnostic) deleteRemoteNodeInfo(pod *kapi.Pod) error {
-	tmp, err := ioutil.TempFile("", "network-diags")
-	if err != nil {
-		return fmt.Errorf("Can not create local temporary file for tar: %v", err)
-	}
-	defer os.Remove(tmp.Name())
-
-	errBuf := &bytes.Buffer{}
-	nodeLogDir := filepath.Join(util.NetworkDiagDefaultLogDir, util.NetworkDiagNodeLogDirPrefix, pod.Spec.NodeName)
-	cmd := []string{"chroot", util.NetworkDiagContainerMountPath, "sh", "-c", fmt.Sprintf("shopt -s dotglob && rm -rf %s", nodeLogDir)}
-	if err = util.Execute(d.Factory, cmd, pod, nil, tmp, errBuf); err != nil {
-		return fmt.Errorf("Deleting remote logdir %q on node %q failed: %v, %s", nodeLogDir, pod.Spec.NodeName, err, errBuf.String())
 	}
 	return nil
 }
