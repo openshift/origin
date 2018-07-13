@@ -244,7 +244,7 @@ echo "[INFO] Create certificates for the OpenShift server"
 
 
 echo "[INFO] Starting OpenShift server"
-sudo env "PATH=${PATH}" OPENSHIFT_PROFILE=web OPENSHIFT_ON_PANIC=crash openshift start \
+sudo env "PATH=${PATH}" OPENSHIFT_ON_PANIC=crash openshift start \
 	--master-config=${MASTER_CONFIG_DIR}/master-config.yaml \
 	--node-config=${NODE_CONFIG_DIR}/node-config.yaml \
     --loglevel=4 \
