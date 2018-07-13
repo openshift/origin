@@ -55,6 +55,7 @@ oc-adm-diagnostics-metricsapiproxy.1
 oc-adm-diagnostics-networkcheck.1
 oc-adm-diagnostics-nodedefinitions.1
 oc-adm-diagnostics-routecertificatevalidation.1
+oc-adm-diagnostics-securitycontextconstraints.1
 oc-adm-diagnostics-serviceexternalips.1
 oc-adm-diagnostics-unitstatus.1
 oc-adm-diagnostics.1
@@ -212,6 +213,7 @@ oc-ex-diagnostics-metricsapiproxy.1
 oc-ex-diagnostics-networkcheck.1
 oc-ex-diagnostics-nodedefinitions.1
 oc-ex-diagnostics-routecertificatevalidation.1
+oc-ex-diagnostics-securitycontextconstraints.1
 oc-ex-diagnostics-serviceexternalips.1
 oc-ex-diagnostics-unitstatus.1
 oc-ex-diagnostics.1
