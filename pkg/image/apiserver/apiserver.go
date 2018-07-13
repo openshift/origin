@@ -56,6 +56,7 @@ type ExtraConfig struct {
 	makeV1Storage sync.Once
 	v1Storage     map[string]rest.Storage
 	v1StorageErr  error
+	startFns      []func(<-chan struct{})
 }
 
 type ImageAPIServerConfig struct {
@@ -106,6 +107,15 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget)
 	apiGroupInfo := genericapiserver.NewDefaultAPIGroupInfo(imageapiv1.GroupName, c.ExtraConfig.Scheme, metav1.ParameterCodec, c.ExtraConfig.Codecs)
 	apiGroupInfo.VersionedResourcesStorageMap[imageapiv1.SchemeGroupVersion.Version] = v1Storage
 	if err := s.GenericAPIServer.InstallAPIGroup(&apiGroupInfo); err != nil {
+		return nil, err
+	}
+
+	if err := s.GenericAPIServer.AddPostStartHook("image.openshift.io-apiserver-caches", func(context genericapiserver.PostStartHookContext) error {
+		for _, fn := range c.ExtraConfig.startFns {
+			go fn(context.StopCh)
+		}
+		return nil
+	}); err != nil {
 		return nil, err
 	}
 
@@ -193,10 +203,13 @@ func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
 		whitelister = whitelist.WhitelistAllRegistries()
 	}
 
+	imageLayerIndex := imagestreametcd.NewImageLayerIndex(imageV1Client.Image().Images())
+	c.ExtraConfig.startFns = append(c.ExtraConfig.startFns, imageLayerIndex.Run)
+
 	imageRegistry := image.NewRegistry(imageStorage)
 	imageSignatureStorage := imagesignature.NewREST(imageClient.Image())
 	imageStreamSecretsStorage := imagesecret.NewREST(coreClient)
-	imageStreamStorage, imageStreamStatusStorage, internalImageStreamStorage, err := imagestreametcd.NewREST(c.GenericConfig.RESTOptionsGetter, c.ExtraConfig.RegistryHostnameRetriever, authorizationClient.SubjectAccessReviews(), c.ExtraConfig.LimitVerifier, whitelister)
+	imageStreamStorage, imageStreamLayersStorage, imageStreamStatusStorage, internalImageStreamStorage, err := imagestreametcd.NewREST(c.GenericConfig.RESTOptionsGetter, c.ExtraConfig.RegistryHostnameRetriever, authorizationClient.SubjectAccessReviews(), c.ExtraConfig.LimitVerifier, whitelister, imageLayerIndex)
 	if err != nil {
 		return nil, fmt.Errorf("error building REST storage: %v", err)
 	}
@@ -231,6 +244,7 @@ func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
 	v1Storage["imagesignatures"] = imageSignatureStorage
 	v1Storage["imageStreams/secrets"] = imageStreamSecretsStorage
 	v1Storage["imageStreams"] = imageStreamStorage
+	v1Storage["imageStreams/layers"] = imageStreamLayersStorage
 	v1Storage["imageStreams/status"] = imageStreamStatusStorage
 	v1Storage["imageStreamImports"] = imageStreamImportStorage
 	v1Storage["imageStreamImages"] = imageStreamImageStorage

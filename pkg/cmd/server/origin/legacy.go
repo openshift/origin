@@ -207,6 +207,8 @@ func LegacyStorage(storage map[schema.GroupVersion]map[string]rest.Storage) map[
 
 				case *imagestreametcd.REST:
 					legacyStorage[resource] = &imagestreametcd.LegacyREST{REST: storage}
+				case *imagestreametcd.LayersREST:
+					delete(legacyStorage, resource)
 
 				case *routeetcd.REST:
 					store := *storage.Store

@@ -131,9 +131,11 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/openshift/api/config/v1.ServingInfo":                                                    schema_openshift_api_config_v1_ServingInfo(ref),
 		"github.com/openshift/api/image/v1.DockerImageReference":                                            schema_openshift_api_image_v1_DockerImageReference(ref),
 		"github.com/openshift/api/image/v1.Image":                                                           schema_openshift_api_image_v1_Image(ref),
+		"github.com/openshift/api/image/v1.ImageBlobReferences":                                             schema_openshift_api_image_v1_ImageBlobReferences(ref),
 		"github.com/openshift/api/image/v1.ImageImportSpec":                                                 schema_openshift_api_image_v1_ImageImportSpec(ref),
 		"github.com/openshift/api/image/v1.ImageImportStatus":                                               schema_openshift_api_image_v1_ImageImportStatus(ref),
 		"github.com/openshift/api/image/v1.ImageLayer":                                                      schema_openshift_api_image_v1_ImageLayer(ref),
+		"github.com/openshift/api/image/v1.ImageLayerData":                                                  schema_openshift_api_image_v1_ImageLayerData(ref),
 		"github.com/openshift/api/image/v1.ImageList":                                                       schema_openshift_api_image_v1_ImageList(ref),
 		"github.com/openshift/api/image/v1.ImageLookupPolicy":                                               schema_openshift_api_image_v1_ImageLookupPolicy(ref),
 		"github.com/openshift/api/image/v1.ImageSignature":                                                  schema_openshift_api_image_v1_ImageSignature(ref),
@@ -142,6 +144,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/openshift/api/image/v1.ImageStreamImport":                                               schema_openshift_api_image_v1_ImageStreamImport(ref),
 		"github.com/openshift/api/image/v1.ImageStreamImportSpec":                                           schema_openshift_api_image_v1_ImageStreamImportSpec(ref),
 		"github.com/openshift/api/image/v1.ImageStreamImportStatus":                                         schema_openshift_api_image_v1_ImageStreamImportStatus(ref),
+		"github.com/openshift/api/image/v1.ImageStreamLayers":                                               schema_openshift_api_image_v1_ImageStreamLayers(ref),
 		"github.com/openshift/api/image/v1.ImageStreamList":                                                 schema_openshift_api_image_v1_ImageStreamList(ref),
 		"github.com/openshift/api/image/v1.ImageStreamMapping":                                              schema_openshift_api_image_v1_ImageStreamMapping(ref),
 		"github.com/openshift/api/image/v1.ImageStreamSpec":                                                 schema_openshift_api_image_v1_ImageStreamSpec(ref),
@@ -6832,6 +6835,40 @@ func schema_openshift_api_image_v1_Image(ref common.ReferenceCallback) common.Op
 	}
 }
 
+func schema_openshift_api_image_v1_ImageBlobReferences(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ImageBlobReferences describes the blob references within an image.",
+				Properties: map[string]spec.Schema{
+					"layers": {
+						SchemaProps: spec.SchemaProps{
+							Description: "layers is the list of blobs that compose this image, from base layer to top layer. All layers referenced by this array will be defined in the blobs map. Some images may have zero layers.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+					"manifest": {
+						SchemaProps: spec.SchemaProps{
+							Description: "manifest, if set, is the blob that contains the image manifest. Some images do not have separate manifest blobs and this field will be set to nil if so.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{},
+	}
+}
+
 func schema_openshift_api_image_v1_ImageImportSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -6941,6 +6978,34 @@ func schema_openshift_api_image_v1_ImageLayer(ref common.ReferenceCallback) comm
 					},
 				},
 				Required: []string{"name", "size", "mediaType"},
+			},
+		},
+		Dependencies: []string{},
+	}
+}
+
+func schema_openshift_api_image_v1_ImageLayerData(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ImageLayerData contains metadata about an image layer.",
+				Properties: map[string]spec.Schema{
+					"size": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Size of the layer in bytes as defined by the underlying store. This field is optional if the necessary information about size is not available.",
+							Type:        []string{"integer"},
+							Format:      "int64",
+						},
+					},
+					"mediaType": {
+						SchemaProps: spec.SchemaProps{
+							Description: "MediaType of the referenced object.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"size", "mediaType"},
 			},
 		},
 		Dependencies: []string{},
@@ -7335,6 +7400,67 @@ func schema_openshift_api_image_v1_ImageStreamImportStatus(ref common.ReferenceC
 		},
 		Dependencies: []string{
 			"github.com/openshift/api/image/v1.ImageImportStatus", "github.com/openshift/api/image/v1.ImageStream", "github.com/openshift/api/image/v1.RepositoryImportStatus"},
+	}
+}
+
+func schema_openshift_api_image_v1_ImageStreamLayers(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ImageStreamLayers describes information about the layers referenced by images in this image stream.",
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Standard object's metadata.",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+						},
+					},
+					"blobs": {
+						SchemaProps: spec.SchemaProps{
+							Description: "blobs is a map of blob name to metadata about the blob.",
+							Type:        []string{"object"},
+							AdditionalProperties: &spec.SchemaOrBool{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/openshift/api/image/v1.ImageLayerData"),
+									},
+								},
+							},
+						},
+					},
+					"images": {
+						SchemaProps: spec.SchemaProps{
+							Description: "images is a map between an image name and the names of the blobs and manifests that comprise the image.",
+							Type:        []string{"object"},
+							AdditionalProperties: &spec.SchemaOrBool{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/openshift/api/image/v1.ImageBlobReferences"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"blobs", "images"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/image/v1.ImageBlobReferences", "github.com/openshift/api/image/v1.ImageLayerData", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 	}
 }
 
