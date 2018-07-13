@@ -9,6 +9,9 @@ import (
 	"strings"
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	ktypes "k8s.io/apimachinery/pkg/types"
+
 	networkapi "github.com/openshift/origin/pkg/network/apis/network"
 )
 
@@ -144,14 +147,26 @@ func setupEgressIPWatcher(t *testing.T) (*egressIPWatcher, []string) {
 }
 
 func updateNodeEgress(eip *egressIPWatcher, nodeIP string, egressIPs []string) {
+	name := "node-" + nodeIP[strings.LastIndex(nodeIP, ".")+1:]
 	eip.tracker.UpdateHostSubnetEgress(&networkapi.HostSubnet{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+			UID:  ktypes.UID(name),
+		},
+		Host:      name,
 		HostIP:    nodeIP,
 		EgressIPs: egressIPs,
 	})
 }
 
 func updateNamespaceEgress(eip *egressIPWatcher, vnid uint32, egressIPs []string) {
+	name := fmt.Sprintf("ns-%d", vnid)
 	eip.tracker.UpdateNetNamespaceEgress(&networkapi.NetNamespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+			UID:  ktypes.UID(name),
+		},
+		NetName:   name,
 		NetID:     vnid,
 		EgressIPs: egressIPs,
 	})
