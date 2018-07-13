@@ -89,6 +89,16 @@ var (
 				InstallTemplate: manifests.MustAsset("install/kube-dns/install.yaml"),
 			},
 		},
+		{
+			ComponentImage: "service-serving-cert-signer",
+			Template: componentinstall.Template{
+				Name:            "openshift-service-cert-signer-operator",
+				Namespace:       "openshift-core-operators",
+				NamespaceObj:    newNamespaceBytes("openshift-core-operators", runlevelOneLabel),
+				RBACTemplate:    manifests.MustAsset("install/openshift-service-cert-signer-operator/install-rbac.yaml"),
+				InstallTemplate: manifests.MustAsset("install/openshift-service-cert-signer-operator/install.yaml"),
+			},
+		},
 	}
 	runLevelOneOpenShiftComponents = []componentInstallTemplate{
 		{

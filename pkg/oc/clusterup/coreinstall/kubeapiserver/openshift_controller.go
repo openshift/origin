@@ -33,6 +33,12 @@ func MakeOpenShiftControllerConfig(existingMasterConfig string, basedir string) 
 	masterconfig := configObj.(*configapi.MasterConfig)
 	masterconfig.ServingInfo.BindAddress = "0.0.0.0:8444"
 
+	// disable the service serving cert signer because that runs in a separate pod now
+	masterconfig.ControllerConfig.Controllers = []string{
+		"*",
+		"-openshift.io/service-serving-cert",
+	}
+
 	configBytes, err := configapilatest.WriteYAML(masterconfig)
 	if err != nil {
 		return "", err

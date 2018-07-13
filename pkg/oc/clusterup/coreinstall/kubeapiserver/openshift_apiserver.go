@@ -36,6 +36,10 @@ func MakeOpenShiftAPIServerConfig(existingMasterConfig string, routingSuffix, ba
 	// hardcode the route suffix to the old default.  If anyone wants to change it, they can modify their config.
 	masterconfig.RoutingConfig.Subdomain = routingSuffix
 
+	// use the generated service serving cert
+	masterconfig.ServingInfo.ServerCert.CertFile = "/var/serving-cert/tls.crt"
+	masterconfig.ServingInfo.ServerCert.KeyFile = "/var/serving-cert/tls.key"
+
 	// default openshift image policy admission
 	if masterconfig.AdmissionConfig.PluginConfig == nil {
 		masterconfig.AdmissionConfig.PluginConfig = map[string]*configapi.AdmissionPluginConfig{}

@@ -1,0 +1,105 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+parameters:
+- name: IMAGE
+  value: openshift/origin-service-serving-cert-signer:latest
+- name: OPENSHIFT_PULL_POLICY
+  value: Always
+- name: NAMESPACE
+  value: openshift-core-operators
+- name: LOGLEVEL
+  value: "0"
+
+objects:
+- apiVersion: v1
+  kind: Namespace
+  metadata:
+    labels:
+      openshift.io/run-level: "1"
+    name: openshift-core-operators
+
+- apiVersion: apiextensions.k8s.io/v1beta1
+  kind: CustomResourceDefinition
+  metadata:
+    name: servicecertsigneroperatorconfigs.servicecertsigner.config.openshift.io
+  spec:
+    scope: Cluster
+    group: servicecertsigner.config.openshift.io
+    version: v1alpha1
+    names:
+      kind: ServiceCertSignerOperatorConfig
+      plural: servicecertsigneroperatorconfigs
+      singular: servicecertsigneroperatorconfig
+    subresources:
+      status: {}
+
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    namespace: ${NAMESPACE}
+    name: openshift-service-cert-signer-operator-config
+  data:
+    operator-config.yaml: |
+      apiVersion: operator.openshift.io/v1alpha1
+      kind: GenericOperatorConfig
+
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    namespace: ${NAMESPACE}
+    name: openshift-service-cert-signer-operator
+    labels:
+      app: openshift-service-cert-signer-operator
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: openshift-service-cert-signer-operator
+    template:
+      metadata:
+        name: openshift-service-cert-signer-operator
+        labels:
+          app: openshift-service-cert-signer-operator
+      spec:
+        serviceAccountName: openshift-service-cert-signer-operator
+        containers:
+        - name: operator
+          image: openshift/origin-service-serving-cert-signer:v3.11
+          imagePullPolicy: ${OPENSHIFT_PULL_POLICY}
+          command: ["service-serving-cert-signer", "operator"]
+          args:
+          - "--config=/var/run/configmaps/config/operator-config.yaml"
+          - "-v=4"
+          volumeMounts:
+          - mountPath: /var/run/configmaps/config
+            name: config
+        volumes:
+        - name: serving-cert
+          secret:
+            defaultMode: 400
+            secretName: openshift-service-cert-signer-operator-serving-cert
+            optional: true
+        - name: config
+          configMap:
+            defaultMode: 440
+            name: openshift-service-cert-signer-operator-config
+
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    namespace: ${NAMESPACE}
+    name: openshift-service-cert-signer-operator
+    labels:
+      app: openshift-service-cert-signer-operator
+
+- apiVersion: servicecertsigner.config.openshift.io/v1alpha1
+  kind: ServiceCertSignerOperatorConfig
+  metadata:
+    name: instance
+  spec:
+    managementState: Managed
+    imagePullSpec: openshift/origin-service-serving-cert-signer:v3.11
+    version: 3.10.0
+    logging:
+      level: 4
+    replicas: 1
