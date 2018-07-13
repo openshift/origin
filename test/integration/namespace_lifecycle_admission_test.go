@@ -3,8 +3,12 @@ package integration
 import (
 	"strings"
 	"testing"
+	"time"
+
+	"github.com/davecgh/go-spew/spew"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
@@ -55,6 +59,61 @@ func TestNamespaceLifecycleAdmission(t *testing.T) {
 	if found {
 		t.Fatalf("didn't expect origin finalizer to be present, got %#v", ns.Spec.Finalizers)
 	}
+	nsWatch, err := clusterAdminKubeClientset.Core().Namespaces().Watch(metav1.SingleObject(ns.ObjectMeta))
+	if err != nil {
+		t.Fatal(err)
+	}
+	ns.Spec.Finalizers = append(ns.Spec.Finalizers, projectapi.FinalizerOrigin)
+	t.Log(spew.Sdump(ns))
+	afterUpdate, err := clusterAdminKubeClientset.Core().Namespaces().Finalize(ns)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log(spew.Sdump(afterUpdate))
+
+	// watch to see the finalizer added
+	for {
+		found := false
+		var event watch.Event
+		select {
+		case event = <-nsWatch.ResultChan():
+			t.Log(spew.Sdump(event))
+			if event.Type != watch.Modified {
+				t.Fatal(spew.Sdump(event))
+			}
+			updatedNamespace := event.Object.(*kapi.Namespace)
+			for _, curr := range updatedNamespace.Spec.Finalizers {
+				if curr == projectapi.FinalizerOrigin {
+					found = true
+				}
+			}
+		case <-time.After(5 * time.Second):
+			t.Fatal("too long")
+		}
+		if found {
+			break
+		}
+		t.Log("not found yet")
+	}
+	// watch to see the finalizer removed by controller
+	select {
+	case obj := <-nsWatch.ResultChan():
+		if obj.Type != watch.Modified {
+			t.Fatal(spew.Sdump(obj))
+		}
+		updatedNamespace := obj.Object.(*kapi.Namespace)
+		found := false
+		for _, curr := range updatedNamespace.Spec.Finalizers {
+			if curr == projectapi.FinalizerOrigin {
+				found = true
+			}
+		}
+		if found {
+			t.Fatal(spew.Sdump(obj))
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("too long")
+	}
 
 	// Create an origin object
 	route := &routeapi.Route{
@@ -66,14 +125,7 @@ func TestNamespaceLifecycleAdmission(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Ensure the origin finalizer is added
-	ns, err = clusterAdminKubeClientset.Core().Namespaces().Get(ns.Name, metav1.GetOptions{})
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	// Delete the namespace
-	// We don't have to worry about racing the namespace deletion controller because we've only started the master
 	err = clusterAdminKubeClientset.Core().Namespaces().Delete(ns.Name, nil)
 	if err != nil {
 		t.Fatal(err)
