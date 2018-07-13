@@ -1691,7 +1691,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.access.redhat.com/rhscl/httpd-24-rhel7"
+              "name": "registry.redhat.io/rhscl/httpd-24-rhel7"
             },
             "name": "2.4",
             "referencePolicy": {
@@ -1740,7 +1740,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.access.redhat.com/openshift3/jenkins-1-rhel7:latest"
+              "name": "registry.redhat.io/openshift3/jenkins-1-rhel7:latest"
             },
             "name": "1",
             "referencePolicy": {
@@ -1758,7 +1758,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.access.redhat.com/openshift3/jenkins-2-rhel7:v3.11"
+              "name": "registry.redhat.io/openshift3/jenkins-2-rhel7:v3.11"
             },
             "name": "2",
             "referencePolicy": {
@@ -1807,7 +1807,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.access.redhat.com/rhscl/mariadb-101-rhel7:latest"
+              "name": "registry.redhat.io/rhscl/mariadb-101-rhel7:latest"
             },
             "name": "10.1",
             "referencePolicy": {
@@ -1825,7 +1825,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.access.redhat.com/rhscl/mariadb-102-rhel7:latest"
+              "name": "registry.redhat.io/rhscl/mariadb-102-rhel7:latest"
             },
             "name": "10.2",
             "referencePolicy": {
@@ -1874,7 +1874,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.access.redhat.com/openshift3/mongodb-24-rhel7:latest"
+              "name": "registry.redhat.io/openshift3/mongodb-24-rhel7:latest"
             },
             "name": "2.4",
             "referencePolicy": {
@@ -1892,7 +1892,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.access.redhat.com/rhscl/mongodb-26-rhel7:latest"
+              "name": "registry.redhat.io/rhscl/mongodb-26-rhel7:latest"
             },
             "name": "2.6",
             "referencePolicy": {
@@ -1910,7 +1910,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.access.redhat.com/rhscl/mongodb-32-rhel7:latest"
+              "name": "registry.redhat.io/rhscl/mongodb-32-rhel7:latest"
             },
             "name": "3.2",
             "referencePolicy": {
@@ -1928,7 +1928,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.access.redhat.com/rhscl/mongodb-34-rhel7:latest"
+              "name": "registry.redhat.io/rhscl/mongodb-34-rhel7:latest"
             },
             "name": "3.4",
             "referencePolicy": {
@@ -1946,7 +1946,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.access.redhat.com/rhscl/mongodb-36-rhel7:latest"
+              "name": "registry.redhat.io/rhscl/mongodb-36-rhel7:latest"
             },
             "name": "3.6",
             "referencePolicy": {
@@ -1995,7 +1995,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.access.redhat.com/openshift3/mysql-55-rhel7:latest"
+              "name": "registry.redhat.io/openshift3/mysql-55-rhel7:latest"
             },
             "name": "5.5",
             "referencePolicy": {
@@ -2013,7 +2013,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.access.redhat.com/rhscl/mysql-56-rhel7:latest"
+              "name": "registry.redhat.io/rhscl/mysql-56-rhel7:latest"
             },
             "name": "5.6",
             "referencePolicy": {
@@ -2031,7 +2031,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.access.redhat.com/rhscl/mysql-57-rhel7:latest"
+              "name": "registry.redhat.io/rhscl/mysql-57-rhel7:latest"
             },
             "name": "5.7",
             "referencePolicy": {
@@ -2065,7 +2065,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.access.redhat.com/rhscl/nginx-18-rhel7:latest"
+              "name": "registry.redhat.io/rhscl/nginx-18-rhel7:latest"
             },
             "name": "1.8",
             "referencePolicy": {
@@ -2085,7 +2085,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.access.redhat.com/rhscl/nginx-110-rhel7:latest"
+              "name": "registry.redhat.io/rhscl/nginx-110-rhel7:latest"
             },
             "name": "1.10",
             "referencePolicy": {
@@ -2105,7 +2105,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.access.redhat.com/rhscl/nginx-112-rhel7:latest"
+              "name": "registry.redhat.io/rhscl/nginx-112-rhel7:latest"
             },
             "name": "1.12",
             "referencePolicy": {
@@ -2177,7 +2177,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.access.redhat.com/openshift3/nodejs-010-rhel7:latest"
+              "name": "registry.redhat.io/openshift3/nodejs-010-rhel7:latest"
             },
             "name": "0.10",
             "referencePolicy": {
@@ -2197,7 +2197,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.access.redhat.com/rhscl/nodejs-4-rhel7:latest"
+              "name": "registry.redhat.io/rhscl/nodejs-4-rhel7:latest"
             },
             "name": "4",
             "referencePolicy": {
@@ -2217,7 +2217,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.access.redhat.com/rhscl/nodejs-6-rhel7:latest"
+              "name": "registry.redhat.io/rhscl/nodejs-6-rhel7:latest"
             },
             "name": "6",
             "referencePolicy": {
@@ -2236,7 +2236,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.access.redhat.com/rhscl/nodejs-8-rhel7:latest"
+              "name": "registry.redhat.io/rhscl/nodejs-8-rhel7:latest"
             },
             "name": "8",
             "referencePolicy": {
@@ -2255,7 +2255,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.access.redhat.com/rhoar-nodejs/nodejs-8"
+              "name": "registry.redhat.io/rhoar-nodejs/nodejs-8"
             },
             "name": "8-RHOAR",
             "referencePolicy": {
@@ -2274,7 +2274,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.access.redhat.com/rhoar-nodejs/nodejs-10"
+              "name": "registry.redhat.io/rhoar-nodejs/nodejs-10"
             },
             "name": "10",
             "referencePolicy": {
@@ -2327,7 +2327,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.access.redhat.com/openshift3/perl-516-rhel7:latest"
+              "name": "registry.redhat.io/openshift3/perl-516-rhel7:latest"
             },
             "name": "5.16",
             "referencePolicy": {
@@ -2347,7 +2347,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.access.redhat.com/rhscl/perl-520-rhel7:latest"
+              "name": "registry.redhat.io/rhscl/perl-520-rhel7:latest"
             },
             "name": "5.20",
             "referencePolicy": {
@@ -2367,7 +2367,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.access.redhat.com/rhscl/perl-524-rhel7:latest"
+              "name": "registry.redhat.io/rhscl/perl-524-rhel7:latest"
             },
             "name": "5.24",
             "referencePolicy": {
@@ -2387,7 +2387,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.access.redhat.com/rhscl/perl-526-rhel7:latest"
+              "name": "registry.redhat.io/rhscl/perl-526-rhel7:latest"
             },
             "name": "5.26",
             "referencePolicy": {
@@ -2440,7 +2440,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.access.redhat.com/openshift3/php-55-rhel7:latest"
+              "name": "registry.redhat.io/openshift3/php-55-rhel7:latest"
             },
             "name": "5.5",
             "referencePolicy": {
@@ -2460,7 +2460,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.access.redhat.com/rhscl/php-56-rhel7:latest"
+              "name": "registry.redhat.io/rhscl/php-56-rhel7:latest"
             },
             "name": "5.6",
             "referencePolicy": {
@@ -2480,7 +2480,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.access.redhat.com/rhscl/php-70-rhel7:latest"
+              "name": "registry.redhat.io/rhscl/php-70-rhel7:latest"
             },
             "name": "7.0",
             "referencePolicy": {
@@ -2500,7 +2500,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.access.redhat.com/rhscl/php-71-rhel7:latest"
+              "name": "registry.redhat.io/rhscl/php-71-rhel7:latest"
             },
             "name": "7.1",
             "referencePolicy": {
@@ -2549,7 +2549,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.access.redhat.com/openshift3/postgresql-92-rhel7:latest"
+              "name": "registry.redhat.io/openshift3/postgresql-92-rhel7:latest"
             },
             "name": "9.2",
             "referencePolicy": {
@@ -2567,7 +2567,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.access.redhat.com/rhscl/postgresql-94-rhel7:latest"
+              "name": "registry.redhat.io/rhscl/postgresql-94-rhel7:latest"
             },
             "name": "9.4",
             "referencePolicy": {
@@ -2585,7 +2585,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.access.redhat.com/rhscl/postgresql-95-rhel7:latest"
+              "name": "registry.redhat.io/rhscl/postgresql-95-rhel7:latest"
             },
             "name": "9.5",
             "referencePolicy": {
@@ -2603,7 +2603,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.access.redhat.com/rhscl/postgresql-96-rhel7:latest"
+              "name": "registry.redhat.io/rhscl/postgresql-96-rhel7:latest"
             },
             "name": "9.6",
             "referencePolicy": {
@@ -2621,7 +2621,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.access.redhat.com/rhscl/postgresql-10-rhel7:latest"
+              "name": "registry.redhat.io/rhscl/postgresql-10-rhel7:latest"
             },
             "name": "10",
             "referencePolicy": {
@@ -2674,7 +2674,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.access.redhat.com/openshift3/python-33-rhel7:latest"
+              "name": "registry.redhat.io/openshift3/python-33-rhel7:latest"
             },
             "name": "3.3",
             "referencePolicy": {
@@ -2694,7 +2694,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.access.redhat.com/rhscl/python-27-rhel7:latest"
+              "name": "registry.redhat.io/rhscl/python-27-rhel7:latest"
             },
             "name": "2.7",
             "referencePolicy": {
@@ -2714,7 +2714,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.access.redhat.com/rhscl/python-34-rhel7:latest"
+              "name": "registry.redhat.io/rhscl/python-34-rhel7:latest"
             },
             "name": "3.4",
             "referencePolicy": {
@@ -2734,7 +2734,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.access.redhat.com/rhscl/python-35-rhel7:latest"
+              "name": "registry.redhat.io/rhscl/python-35-rhel7:latest"
             },
             "name": "3.5",
             "referencePolicy": {
@@ -2754,7 +2754,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.access.redhat.com/rhscl/python-36-rhel7:latest"
+              "name": "registry.redhat.io/rhscl/python-36-rhel7:latest"
             },
             "name": "3.6",
             "referencePolicy": {
@@ -2803,7 +2803,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.access.redhat.com/rhscl/redis-32-rhel7:latest"
+              "name": "registry.redhat.io/rhscl/redis-32-rhel7:latest"
             },
             "name": "3.2",
             "referencePolicy": {
@@ -2856,7 +2856,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.access.redhat.com/openshift3/ruby-20-rhel7:latest"
+              "name": "registry.redhat.io/openshift3/ruby-20-rhel7:latest"
             },
             "name": "2.0",
             "referencePolicy": {
@@ -2876,7 +2876,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.access.redhat.com/rhscl/ruby-22-rhel7:latest"
+              "name": "registry.redhat.io/rhscl/ruby-22-rhel7:latest"
             },
             "name": "2.2",
             "referencePolicy": {
@@ -2896,7 +2896,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.access.redhat.com/rhscl/ruby-23-rhel7:latest"
+              "name": "registry.redhat.io/rhscl/ruby-23-rhel7:latest"
             },
             "name": "2.3",
             "referencePolicy": {
@@ -2916,7 +2916,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.access.redhat.com/rhscl/ruby-24-rhel7:latest"
+              "name": "registry.redhat.io/rhscl/ruby-24-rhel7:latest"
             },
             "name": "2.4",
             "referencePolicy": {
@@ -2936,7 +2936,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.access.redhat.com/rhscl/ruby-25-rhel7:latest"
+              "name": "registry.redhat.io/rhscl/ruby-25-rhel7:latest"
             },
             "name": "2.5",
             "referencePolicy": {
