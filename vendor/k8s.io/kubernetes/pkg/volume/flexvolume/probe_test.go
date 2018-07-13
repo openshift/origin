@@ -25,7 +25,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	utilfs "k8s.io/kubernetes/pkg/util/filesystem"
 	"k8s.io/kubernetes/pkg/volume"
-	"k8s.io/utils/exec"
 )
 
 const (
@@ -266,7 +265,7 @@ type fakePluginFactory struct {
 
 var _ PluginFactory = fakePluginFactory{}
 
-func (m fakePluginFactory) NewFlexVolumePlugin(_, driverName string, _ exec.Interface) (volume.VolumePlugin, error) {
+func (m fakePluginFactory) NewFlexVolumePlugin(_, driverName string) (volume.VolumePlugin, error) {
 	if m.error {
 		return nil, fmt.Errorf("Flexvolume plugin error")
 	}
