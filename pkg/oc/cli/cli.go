@@ -227,7 +227,7 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 
 	cmds.AddCommand(cmd.NewCmdPlugin(fullName, f, ioStreams))
 	if name == fullName {
-		cmds.AddCommand(cmd.NewCmdVersion(fullName, f, ioStreams, cmd.VersionOptions{PrintClientFeatures: true}))
+		cmds.AddCommand(cmd.NewCmdVersion(fullName, f, cmd.NewVersionOptions(true, ioStreams)))
 	}
 	cmds.AddCommand(cmd.NewCmdOptions(ioStreams))
 	cmds.AddCommand(cmd.NewCmdDeploy(fullName, f, ioStreams))

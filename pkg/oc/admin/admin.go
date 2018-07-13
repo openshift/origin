@@ -144,7 +144,7 @@ func NewCommandAdmin(name, fullName string, f kcmdutil.Factory, streams genericc
 	)
 
 	if name == fullName {
-		cmds.AddCommand(cmd.NewCmdVersion(fullName, f, streams, cmd.VersionOptions{}))
+		cmds.AddCommand(cmd.NewCmdVersion(fullName, f, cmd.NewVersionOptions(false, streams)))
 	}
 
 	return cmds

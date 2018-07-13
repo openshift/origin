@@ -22,6 +22,7 @@ import (
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildclient "github.com/openshift/origin/pkg/build/client/internalversion"
@@ -64,9 +65,8 @@ func TestStartBuildWebHook(t *testing.T) {
 	defer server.Close()
 
 	cfg := &FakeClientConfig{}
-	buf := &bytes.Buffer{}
 	o := &StartBuildOptions{
-		Out:          buf,
+		IOStreams:    genericclioptions.NewTestIOStreamsDiscard(),
 		ClientConfig: cfg.Client,
 		FromWebhook:  server.URL + "/webhook",
 		Mapper:       testrestmapper.TestOnlyStaticRESTMapper(legacyscheme.Scheme),
@@ -77,7 +77,7 @@ func TestStartBuildWebHook(t *testing.T) {
 	<-invoked
 
 	o = &StartBuildOptions{
-		Out:            buf,
+		IOStreams:      genericclioptions.NewTestIOStreamsDiscard(),
 		FromWebhook:    server.URL + "/webhook",
 		GitPostReceive: "unknownpath",
 	}
@@ -109,9 +109,8 @@ func TestStartBuildHookPostReceive(t *testing.T) {
 	cfg := &FakeClientConfig{
 		Err: testErr,
 	}
-	buf := &bytes.Buffer{}
 	o := &StartBuildOptions{
-		Out:            buf,
+		IOStreams:      genericclioptions.NewTestIOStreamsDiscard(),
 		ClientConfig:   cfg.Client,
 		FromWebhook:    server.URL + "/webhook",
 		GitPostReceive: f.Name(),
@@ -360,9 +359,10 @@ func TestStreamBuildLogs(t *testing.T) {
 			}),
 		}
 
+		ioStreams, _, out, _ := genericclioptions.NewTestIOStreams()
+
 		o := &StartBuildOptions{
-			Out:            out,
-			ErrOut:         out,
+			IOStreams:      ioStreams,
 			BuildLogClient: buildclient.NewBuildLogClient(fakeREST, build.Namespace),
 		}
 
