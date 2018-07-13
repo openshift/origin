@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"os"
 	"sort"
 	"strings"
 	"time"
@@ -33,6 +32,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
 	"k8s.io/kubernetes/pkg/kubectl/polymorphichelpers"
 
 	buildv1 "github.com/openshift/api/build/v1"
@@ -137,35 +137,55 @@ To search templates, image streams, and Docker images that match the arguments p
 )
 
 type ObjectGeneratorOptions struct {
-	Action bulk.BulkAction
+	PrintFlags *genericclioptions.PrintFlags
+	Action     bulk.BulkAction
+
 	Config *newcmd.AppConfig
 
 	BaseName    string
 	CommandPath string
 	CommandName string
 
-	In            io.Reader
-	ErrOut        io.Writer
-	PrintObject   func(obj runtime.Object) error
 	LogsForObject polymorphichelpers.LogsForObjectFunc
+	Printer       printers.ResourcePrinter
+
+	genericclioptions.IOStreams
 }
 
-type NewAppOptions struct {
+type AppOptions struct {
+	genericclioptions.IOStreams
 	*ObjectGeneratorOptions
 }
 
-//Complete sets all common default options for commands (new-app and new-build)
-func (o *ObjectGeneratorOptions) Complete(baseName, commandName string, f kcmdutil.Factory, c *cobra.Command, args []string, in io.Reader, out, errout io.Writer) error {
-	cmdutil.WarnAboutCommaSeparation(errout, o.Config.Environment, "--env")
-	cmdutil.WarnAboutCommaSeparation(errout, o.Config.BuildEnvironment, "--build-env")
+type versionedPrintObj struct {
+	printer printers.ResourcePrinter
+	cmd     *cobra.Command
+}
 
-	o.In = in
-	o.ErrOut = errout
+func (p *versionedPrintObj) PrintObj(obj runtime.Object, out io.Writer) error {
+	printFn := print.VersionedPrintObject(func(cmd *cobra.Command, obj runtime.Object, out io.Writer) error {
+		return p.printer.PrintObj(obj, out)
+	}, p.cmd, out)
+
+	return printFn(obj)
+}
+
+//Complete sets all common default options for commands (new-app and new-build)
+func (o *ObjectGeneratorOptions) Complete(baseName, commandName string, f kcmdutil.Factory, c *cobra.Command, args []string) error {
+	cmdutil.WarnAboutCommaSeparation(o.ErrOut, o.Config.Environment, "--env")
+	cmdutil.WarnAboutCommaSeparation(o.ErrOut, o.Config.BuildEnvironment, "--build-env")
+
+	o.Action.IOStreams = o.IOStreams
+
+	if o.PrintFlags.OutputFormat != nil {
+		o.Action.Output = *o.PrintFlags.OutputFormat
+	}
+
 	// Only output="" should print descriptions of intermediate steps. Everything
 	// else should print only some specific output (json, yaml, go-template, ...)
 	o.Config.In = o.In
 	if len(o.Action.Output) == 0 {
-		o.Config.Out = out
+		o.Config.Out = o.Out
 	} else {
 		o.Config.Out = ioutil.Discard
 	}
@@ -184,7 +204,6 @@ func (o *ObjectGeneratorOptions) Complete(baseName, commandName string, f kcmdut
 		return err
 	}
 
-	o.Action.Out, o.Action.ErrOut = out, o.ErrOut
 	o.Action.Bulk.Scheme = legacyscheme.Scheme
 	o.Action.Bulk.Op = bulk.Creator{Client: dynamicClient, RESTMapper: mapper}.Create
 	// Retry is used to support previous versions of the API server that will
@@ -192,15 +211,17 @@ func (o *ObjectGeneratorOptions) Complete(baseName, commandName string, f kcmdut
 	o.Action.Bulk.Retry = retryBuildConfig
 
 	o.Config.DryRun = o.Action.DryRun
-	if o.Action.Output == "wide" {
-		return kcmdutil.UsageErrorf(c, "wide mode is not a compatible output format")
-	}
 	o.CommandPath = c.CommandPath()
 	o.BaseName = baseName
 	o.CommandName = commandName
 
-	o.PrintObject = print.VersionedPrintObject(kcmdutil.PrintObject, c, out)
 	o.LogsForObject = polymorphichelpers.LogsForObjectFn
+	printer, err := o.PrintFlags.ToPrinter()
+	if err != nil {
+		return err
+	}
+	o.Printer = &versionedPrintObj{printer, c}
+
 	if err := CompleteAppConfig(o.Config, f, c, args); err != nil {
 		return err
 	}
@@ -210,11 +231,29 @@ func (o *ObjectGeneratorOptions) Complete(baseName, commandName string, f kcmdut
 	return nil
 }
 
-// NewCmdNewApplication implements the OpenShift cli new-app command.
-func NewCmdNewApplication(name, baseName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
+func NewAppOptions(streams genericclioptions.IOStreams) *AppOptions {
 	config := newcmd.NewAppConfig()
 	config.Deploy = true
-	o := &NewAppOptions{&ObjectGeneratorOptions{Config: config}}
+
+	// disable the --template printFlag, as it is shadowed by the existing --template printing
+	// in this command - which is used to select existing app templates
+	printFlags := genericclioptions.NewPrintFlags("created")
+	printFlags.TemplatePrinterFlags.TemplateArgument = nil
+	*printFlags.TemplatePrinterFlags.AllowMissingKeys = false
+
+	return &AppOptions{
+		IOStreams: streams,
+		ObjectGeneratorOptions: &ObjectGeneratorOptions{
+			PrintFlags: printFlags,
+			IOStreams:  streams,
+			Config:     config,
+		},
+	}
+}
+
+// NewCmdNewApplication implements the OpenShift cli new-app command.
+func NewCmdNewApplication(name, baseName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
+	o := NewAppOptions(streams)
 
 	cmd := &cobra.Command{
 		Use:        fmt.Sprintf("%s (IMAGE | IMAGESTREAM | TEMPLATE | PATH | URL ...)", name),
@@ -223,59 +262,56 @@ func NewCmdNewApplication(name, baseName string, f kcmdutil.Factory, streams gen
 		Example:    fmt.Sprintf(newAppExample, baseName, name),
 		SuggestFor: []string{"app", "application"},
 		Run: func(c *cobra.Command, args []string) {
-			kcmdutil.CheckErr(o.Complete(baseName, name, f, c, args, streams.In, streams.Out, streams.ErrOut))
-			err := o.RunNewApp()
-			if err == kcmdutil.ErrExit {
-				os.Exit(1)
-			}
-			kcmdutil.CheckErr(err)
+			kcmdutil.CheckErr(o.Complete(baseName, name, f, c, args))
+			kcmdutil.CheckErr(o.RunNewApp())
 		},
 	}
 
-	cmd.Flags().BoolVar(&config.AsTestDeployment, "as-test", config.AsTestDeployment, "If true create this application as a test deployment, which validates that the deployment succeeds and then scales down.")
-	cmd.Flags().StringSliceVar(&config.SourceRepositories, "code", config.SourceRepositories, "Source code to use to build this application.")
-	cmd.Flags().StringVar(&config.ContextDir, "context-dir", "", "Context directory to be used for the build.")
-	cmd.Flags().StringSliceVarP(&config.ImageStreams, "image", "", config.ImageStreams, "Name of an image stream to use in the app. (deprecated)")
-	cmd.Flags().MarkDeprecated("image", "use --image-stream instead")
-	cmd.Flags().StringSliceVarP(&config.ImageStreams, "image-stream", "i", config.ImageStreams, "Name of an image stream to use in the app.")
-	cmd.Flags().StringSliceVar(&config.DockerImages, "docker-image", config.DockerImages, "Name of a Docker image to include in the app.")
-	cmd.Flags().StringSliceVar(&config.Templates, "template", config.Templates, "Name of a stored template to use in the app.")
-	cmd.Flags().StringSliceVarP(&config.TemplateFiles, "file", "f", config.TemplateFiles, "Path to a template file to use for the app.")
-	cmd.MarkFlagFilename("file", "yaml", "yml", "json")
-	cmd.Flags().StringArrayVarP(&config.TemplateParameters, "param", "p", config.TemplateParameters, "Specify a key-value pair (e.g., -p FOO=BAR) to set/override a parameter value in the template.")
-	cmd.Flags().StringArrayVar(&config.TemplateParameterFiles, "param-file", config.TemplateParameterFiles, "File containing parameter values to set/override in the template.")
-	cmd.MarkFlagFilename("param-file")
-	cmd.Flags().StringSliceVar(&config.Groups, "group", config.Groups, "Indicate components that should be grouped together as <comp1>+<comp2>.")
-	cmd.Flags().StringArrayVarP(&config.Environment, "env", "e", config.Environment, "Specify a key-value pair for an environment variable to set into each container.")
-	cmd.Flags().StringArrayVar(&config.EnvironmentFiles, "env-file", config.EnvironmentFiles, "File containing key-value pairs of environment variables to set into each container.")
-	cmd.MarkFlagFilename("env-file")
-	cmd.Flags().StringArrayVar(&config.BuildEnvironment, "build-env", config.BuildEnvironment, "Specify a key-value pair for an environment variable to set into each build image.")
-	cmd.Flags().StringArrayVar(&config.BuildEnvironmentFiles, "build-env-file", config.BuildEnvironmentFiles, "File containing key-value pairs of environment variables to set into each build image.")
-	cmd.MarkFlagFilename("build-env-file")
-	cmd.Flags().StringVar(&config.Name, "name", "", "Set name to use for generated application artifacts")
-	cmd.Flags().Var(&config.Strategy, "strategy", "Specify the build strategy to use if you don't want to detect (docker|pipeline|source).")
-	cmd.Flags().StringP("labels", "l", "", "Label to set in all resources for this application.")
-	cmd.Flags().BoolVar(&config.IgnoreUnknownParameters, "ignore-unknown-parameters", false, "If true, will not stop processing if a provided parameter does not exist in the template.")
-	cmd.Flags().BoolVar(&config.InsecureRegistry, "insecure-registry", false, "If true, indicates that the referenced Docker images are on insecure registries and should bypass certificate checking")
-	cmd.Flags().BoolVarP(&config.AsList, "list", "L", false, "List all local templates and image streams that can be used to create.")
-	cmd.Flags().BoolVarP(&config.AsSearch, "search", "S", false, "Search all templates, image streams, and Docker images that match the arguments provided.")
-	cmd.Flags().BoolVar(&config.AllowMissingImages, "allow-missing-images", false, "If true, indicates that referenced Docker images that cannot be found locally or in a registry should still be used.")
-	cmd.Flags().BoolVar(&config.AllowMissingImageStreamTags, "allow-missing-imagestream-tags", false, "If true, indicates that image stream tags that don't exist should still be used.")
-	cmd.Flags().BoolVar(&config.AllowSecretUse, "grant-install-rights", false, "If true, a component that requires access to your account may use your token to install software into your project. Only grant images you trust the right to run with your token.")
-	cmd.Flags().StringVar(&config.SourceSecret, "source-secret", "", "The name of an existing secret that should be used for cloning a private git repository.")
-	cmd.Flags().BoolVar(&config.SkipGeneration, "no-install", false, "Do not attempt to run images that describe themselves as being installable")
+	o.PrintFlags.AddFlags(cmd)
 
-	o.Action.BindForOutput(cmd.Flags(), "template")
+	cmd.Flags().BoolVar(&o.Config.AsTestDeployment, "as-test", o.Config.AsTestDeployment, "If true create this application as a test deployment, which validates that the deployment succeeds and then scales down.")
+	cmd.Flags().StringSliceVar(&o.Config.SourceRepositories, "code", o.Config.SourceRepositories, "Source code to use to build this application.")
+	cmd.Flags().StringVar(&o.Config.ContextDir, "context-dir", o.Config.ContextDir, "Context directory to be used for the build.")
+	cmd.Flags().StringSliceVarP(&o.Config.ImageStreams, "image", "", o.Config.ImageStreams, "Name of an image stream to use in the app. (deprecated)")
+	cmd.Flags().MarkDeprecated("image", "use --image-stream instead")
+	cmd.Flags().StringSliceVarP(&o.Config.ImageStreams, "image-stream", "i", o.Config.ImageStreams, "Name of an image stream to use in the app.")
+	cmd.Flags().StringSliceVar(&o.Config.DockerImages, "docker-image", o.Config.DockerImages, "Name of a Docker image to include in the app.")
+	cmd.Flags().StringSliceVar(&o.Config.Templates, "template", o.Config.Templates, "Name of a stored template to use in the app.")
+	cmd.Flags().StringSliceVarP(&o.Config.TemplateFiles, "file", "f", o.Config.TemplateFiles, "Path to a template file to use for the app.")
+	cmd.MarkFlagFilename("file", "yaml", "yml", "json")
+	cmd.Flags().StringArrayVarP(&o.Config.TemplateParameters, "param", "p", o.Config.TemplateParameters, "Specify a key-value pair (e.g., -p FOO=BAR) to set/override a parameter value in the template.")
+	cmd.Flags().StringArrayVar(&o.Config.TemplateParameterFiles, "param-file", o.Config.TemplateParameterFiles, "File containing parameter values to set/override in the template.")
+	cmd.MarkFlagFilename("param-file")
+	cmd.Flags().StringSliceVar(&o.Config.Groups, "group", o.Config.Groups, "Indicate components that should be grouped together as <comp1>+<comp2>.")
+	cmd.Flags().StringArrayVarP(&o.Config.Environment, "env", "e", o.Config.Environment, "Specify a key-value pair for an environment variable to set into each container.")
+	cmd.Flags().StringArrayVar(&o.Config.EnvironmentFiles, "env-file", o.Config.EnvironmentFiles, "File containing key-value pairs of environment variables to set into each container.")
+	cmd.MarkFlagFilename("env-file")
+	cmd.Flags().StringArrayVar(&o.Config.BuildEnvironment, "build-env", o.Config.BuildEnvironment, "Specify a key-value pair for an environment variable to set into each build image.")
+	cmd.Flags().StringArrayVar(&o.Config.BuildEnvironmentFiles, "build-env-file", o.Config.BuildEnvironmentFiles, "File containing key-value pairs of environment variables to set into each build image.")
+	cmd.MarkFlagFilename("build-env-file")
+	cmd.Flags().StringVar(&o.Config.Name, "name", o.Config.Name, "Set name to use for generated application artifacts")
+	cmd.Flags().Var(&o.Config.Strategy, "strategy", "Specify the build strategy to use if you don't want to detect (docker|pipeline|source).")
+	cmd.Flags().StringP("labels", "l", "", "Label to set in all resources for this application.")
+	cmd.Flags().BoolVar(&o.Config.IgnoreUnknownParameters, "ignore-unknown-parameters", o.Config.IgnoreUnknownParameters, "If true, will not stop processing if a provided parameter does not exist in the template.")
+	cmd.Flags().BoolVar(&o.Config.InsecureRegistry, "insecure-registry", o.Config.InsecureRegistry, "If true, indicates that the referenced Docker images are on insecure registries and should bypass certificate checking")
+	cmd.Flags().BoolVarP(&o.Config.AsList, "list", "L", o.Config.AsList, "List all local templates and image streams that can be used to create.")
+	cmd.Flags().BoolVarP(&o.Config.AsSearch, "search", "S", o.Config.AsSearch, "Search all templates, image streams, and Docker images that match the arguments provided.")
+	cmd.Flags().BoolVar(&o.Config.AllowMissingImages, "allow-missing-images", o.Config.AllowMissingImages, "If true, indicates that referenced Docker images that cannot be found locally or in a registry should still be used.")
+	cmd.Flags().BoolVar(&o.Config.AllowMissingImageStreamTags, "allow-missing-imagestream-tags", o.Config.AllowMissingImageStreamTags, "If true, indicates that image stream tags that don't exist should still be used.")
+	cmd.Flags().BoolVar(&o.Config.AllowSecretUse, "grant-install-rights", o.Config.AllowSecretUse, "If true, a component that requires access to your account may use your token to install software into your project. Only grant images you trust the right to run with your token.")
+	cmd.Flags().StringVar(&o.Config.SourceSecret, "source-secret", o.Config.SourceSecret, "The name of an existing secret that should be used for cloning a private git repository.")
+	cmd.Flags().BoolVar(&o.Config.SkipGeneration, "no-install", o.Config.SkipGeneration, "Do not attempt to run images that describe themselves as being installable")
+
+	o.Action.BindForOutput(cmd.Flags(), "output", "template")
 	cmd.Flags().String("output-version", "", "The preferred API versions of the output objects")
 
 	return cmd
 }
 
 // Complete sets any default behavior for the command
-func (o *NewAppOptions) Complete(baseName, commandName string, f kcmdutil.Factory, c *cobra.Command, args []string, in io.Reader, out, errout io.Writer) error {
-	ao := o.ObjectGeneratorOptions
-	cmdutil.WarnAboutCommaSeparation(errout, ao.Config.TemplateParameters, "--param")
-	err := ao.Complete(baseName, commandName, f, c, args, in, out, errout)
+func (o *AppOptions) Complete(baseName, commandName string, f kcmdutil.Factory, c *cobra.Command, args []string) error {
+	cmdutil.WarnAboutCommaSeparation(o.ErrOut, o.ObjectGeneratorOptions.Config.TemplateParameters, "--param")
+	err := o.ObjectGeneratorOptions.Complete(baseName, commandName, f, c, args)
 	if err != nil {
 		return err
 	}
@@ -284,7 +320,7 @@ func (o *NewAppOptions) Complete(baseName, commandName string, f kcmdutil.Factor
 }
 
 // RunNewApp contains all the necessary functionality for the OpenShift cli new-app command
-func (o *NewAppOptions) RunNewApp() error {
+func (o *AppOptions) RunNewApp() error {
 	config := o.Config
 	out := o.Action.Out
 
@@ -295,7 +331,7 @@ func (o *NewAppOptions) RunNewApp() error {
 		}
 
 		if o.Action.ShouldPrint() {
-			return o.PrintObject(result.List)
+			return o.Printer.PrintObj(result.List, o.Out)
 		}
 
 		return printHumanReadableQueryResult(result, out, o.BaseName, o.CommandName)
@@ -332,7 +368,7 @@ func (o *NewAppOptions) RunNewApp() error {
 	}
 
 	if o.Action.ShouldPrint() {
-		return o.PrintObject(result.List)
+		return o.Printer.PrintObj(result.List, o.Out)
 	}
 
 	if result.GeneratedJobs {

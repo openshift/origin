@@ -1,11 +1,13 @@
 package cmd
 
 import (
-	"io/ioutil"
 	"strings"
 	"testing"
 
 	"github.com/MakeNowJust/heredoc"
+
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
+
 	configcmd "github.com/openshift/origin/pkg/bulk"
 	imagefake "github.com/openshift/origin/pkg/image/generated/internalclientset/fake"
 	"github.com/openshift/origin/pkg/oc/generate/app"
@@ -52,10 +54,10 @@ func TestNewBuildRun(t *testing.T) {
 		},
 	}
 
-	o := &NewBuildOptions{
+	o := &BuildOptions{
 		ObjectGeneratorOptions: &ObjectGeneratorOptions{
 			Action: configcmd.BulkAction{
-				Out: ioutil.Discard,
+				IOStreams: genericclioptions.NewTestIOStreamsDiscard(),
 			},
 			CommandPath: "oc new-build",
 			BaseName:    "oc",

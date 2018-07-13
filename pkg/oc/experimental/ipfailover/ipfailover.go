@@ -63,8 +63,7 @@ var (
 func NewCmdIPFailoverConfig(f kcmdutil.Factory, parentName, name string, streams genericclioptions.IOStreams) *cobra.Command {
 	options := &ipfailover.IPFailoverConfigCmdOptions{
 		Action: configcmd.BulkAction{
-			Out:    streams.Out,
-			ErrOut: streams.ErrOut,
+			IOStreams: streams,
 		},
 		ImageTemplate:    variable.NewDefaultImageTemplate(),
 		ServiceAccount:   "ipfailover",

@@ -16,6 +16,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/dynamic"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 )
 
 type Runner interface {
@@ -209,8 +210,7 @@ func CreateMessage(labels map[string]string) string {
 
 type BulkAction struct {
 	// required setup
-	Bulk        Bulk
-	Out, ErrOut io.Writer
+	Bulk Bulk
 
 	// flags
 	Output      string
@@ -219,6 +219,8 @@ type BulkAction struct {
 
 	// output modifiers
 	Action string
+
+	genericclioptions.IOStreams
 }
 
 // BindForAction sets flags on this action for when setting -o should only change how the operation results are displayed.

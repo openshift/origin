@@ -1,7 +1,6 @@
 package bulk
 
 import (
-	"bytes"
 	"fmt"
 	"testing"
 
@@ -11,6 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	_ "k8s.io/kubernetes/pkg/apis/core/install"
 )
@@ -69,9 +69,11 @@ func TestBulkAction(t *testing.T) {
 	bt := &bulkTester{
 		mapping: &meta.RESTMapping{},
 	}
-	out, err := &bytes.Buffer{}, &bytes.Buffer{}
+
+	ioStreams, _, out, err := genericclioptions.NewTestIOStreams()
+
 	bulk := Bulk{Scheme: legacyscheme.Scheme, Op: bt.Record}
-	b := &BulkAction{Bulk: bulk, Output: "", Out: out, ErrOut: err}
+	b := &BulkAction{Bulk: bulk, Output: "", IOStreams: ioStreams}
 	b2 := b.WithMessage("test1", "test2")
 
 	in := &kapi.Pod{ObjectMeta: metav1.ObjectMeta{Name: "obj1"}}
@@ -96,9 +98,11 @@ func TestBulkActionCompact(t *testing.T) {
 	bt := &bulkTester{
 		mapping: &meta.RESTMapping{},
 	}
-	out, err := &bytes.Buffer{}, &bytes.Buffer{}
+
+	ioStreams, _, out, err := genericclioptions.NewTestIOStreams()
+
 	bulk := Bulk{Scheme: legacyscheme.Scheme, Op: bt.Record}
-	b := &BulkAction{Bulk: bulk, Output: "", Out: out, ErrOut: err}
+	b := &BulkAction{Bulk: bulk, Output: "", IOStreams: ioStreams}
 	b.Compact()
 	b2 := b.WithMessage("test1", "test2")
 

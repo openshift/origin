@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"io/ioutil"
 	"strconv"
 	"strings"
 	"testing"
@@ -221,7 +220,7 @@ func TestNewAppRunFailure(t *testing.T) {
 		},
 	}
 
-	opts := &NewAppOptions{
+	opts := &AppOptions{
 		ObjectGeneratorOptions: &ObjectGeneratorOptions{
 			BaseName:    "oc",
 			CommandName: NewAppRecommendedCommandName,
@@ -370,10 +369,10 @@ func TestNewAppRunQueryActions(t *testing.T) {
 		},
 	}
 
-	o := &NewAppOptions{
+	o := &AppOptions{
 		ObjectGeneratorOptions: &ObjectGeneratorOptions{
 			Action: configcmd.BulkAction{
-				Out: ioutil.Discard,
+				IOStreams: genericclioptions.NewTestIOStreamsDiscard(),
 			},
 			BaseName:    "oc",
 			CommandName: NewAppRecommendedCommandName,
