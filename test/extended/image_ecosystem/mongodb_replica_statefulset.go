@@ -5,14 +5,15 @@ import (
 	"time"
 
 	g "github.com/onsi/ginkgo"
-	o "github.com/onsi/gomega"
+	//	o "github.com/onsi/gomega"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 	dbutil "github.com/openshift/origin/test/extended/util/db"
-	kapiv1 "k8s.io/api/core/v1"
-	e2e "k8s.io/kubernetes/test/e2e/framework"
+	//	kapiv1 "k8s.io/api/core/v1"
+	//	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
+/*
 var _ = g.Describe("[Conformance][image_ecosystem][mongodb][Slow] openshift mongodb replication (with statefulset)", func() {
 	defer g.GinkgoRecover()
 
@@ -158,6 +159,7 @@ var _ = g.Describe("[Conformance][image_ecosystem][mongodb][Slow] openshift mong
 		})
 	})
 })
+*/
 
 func readRecordFromPod(oc *exutil.CLI, podName string) error {
 	// don't include _id field to output because it changes every time
