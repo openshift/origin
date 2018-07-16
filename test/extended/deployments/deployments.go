@@ -327,13 +327,14 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 
 			out, err := oc.Run("logs").Args("-f", "dc/deployment-test").Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("verifying the deployment is marked complete and scaled to zero")
+			o.Expect(waitForLatestCondition(oc, "deployment-test", deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
+
 			g.By(fmt.Sprintf("checking the logs for substrings\n%s", out))
 			o.Expect(out).To(o.ContainSubstring("deployment-test-1 to 2"))
 			o.Expect(out).To(o.ContainSubstring("--> pre: Success"))
 			o.Expect(out).To(o.ContainSubstring("--> Success"))
-
-			g.By("verifying the deployment is marked complete and scaled to zero")
-			o.Expect(waitForLatestCondition(oc, "deployment-test", deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
 
 			g.By("verifying that scaling does not result in new pods")
 			out, err = oc.Run("scale").Args("dc/deployment-test", "--replicas=1").Output()
